@@ -1,0 +1,16778 @@
+SET NAMES WIN1251;                        
+SET SQL DIALECT 3;                        
+CREATE DATABASE 'india/3053:k:\bases\gedemin\etalon.fdb'         
+USER 'SYSDBA' PASSWORD 'masterkey'      
+PAGE_SIZE 8192                            
+DEFAULT CHARACTER SET WIN1251;            
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Gedemin project                              **/
+/**   Copyright (c) 1999-2000 by                   **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+COMMIT;
+
+CREATE ROLE administrator;
+
+COMMIT;
+
+CREATE GENERATOR gd_g_unique;
+SET GENERATOR gd_g_unique TO 147000000;
+
+CREATE GENERATOR gd_g_offset;
+SET GENERATOR gd_g_offset TO 0;
+
+CREATE GENERATOR gd_g_dbid;
+SET GENERATOR gd_g_dbid TO 0;
+
+/* в новой системе блокировки периода следующие два */
+/* генератора не используются                       */
+CREATE GENERATOR gd_g_block;
+SET GENERATOR gd_g_block TO 0;
+
+CREATE GENERATOR gd_g_block_group;
+SET GENERATOR gd_g_block_group TO 0;
+
+/*
+
+  Внимание! Текст этого исключения нельзя менять,
+  он используется в программе в gdc_dlgG
+
+*/
+CREATE EXCEPTION gd_e_block 'Period zablokirovan!';
+
+CREATE EXCEPTION tree_e_invalid_parent 'Invalid parent specified';
+
+COMMIT;
+
+/*********************************************************/
+/*                                                       */
+/*      InterBase User Defined Fuctions                  */
+/*      GUDF library                                     */
+/*      Copyright (c) 1999 by Golden Software            */
+/*                                                       */
+/*      Thanks to:                                       */
+/*        Oleg Kukarthev                                 */
+/*                                                       */
+/*********************************************************/
+
+/*
+
+  First parameter  -- set of groups of user to be tested
+  Second parameter -- set of groups allowed to access
+
+  Returns 0 if access denied,
+  !0 otherwise
+
+*/
+
+
+DECLARE EXTERNAL FUNCTION g_sec_test
+  integer, integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_sec_test'
+module_name 'gudf';
+
+/*
+
+  First parameter  -- set of groups of user to be tested
+  second, third and fourth parameters are sets of groups
+  allowed to full access, change and view respectively
+
+  Returns 0 if access denied,
+  !0 otherwise
+
+*/
+
+
+DECLARE EXTERNAL FUNCTION g_sec_testall
+  integer, integer, integer, integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_sec_testall'
+module_name 'gudf';
+
+
+DECLARE EXTERNAL FUNCTION g_b_and
+  integer, integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_b_and'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_b_or
+  integer, integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_b_or'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_b_xor
+  integer, integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_b_xor'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_b_shl
+  integer, integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_b_shl'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_b_shr
+  integer, integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_b_shr'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_b_not
+  integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_b_not'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_b_andex
+  integer, integer, integer, integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_b_andex'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_m_random
+  integer
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_m_random'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION G_D_GETDATEPARAM
+  DATE,
+  INTEGER
+RETURNS
+  INTEGER BY VALUE
+ENTRY_POINT 'g_d_getdateparam'
+MODULE_NAME 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_encodedate
+  smallint, smallint, smallint, TIMESTAMP
+RETURNS
+  TIMESTAMP
+ENTRY_POINT 'g_d_encodedate'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_inchours
+  integer, TIMESTAMP
+RETURNS
+  TIMESTAMP
+ENTRY_POINT 'g_d_inchours'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_incmonth
+  integer, TIMESTAMP
+RETURNS
+  TIMESTAMP
+ENTRY_POINT 'g_d_incmonth'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_getdayofweek
+  TIMESTAMP
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_d_getdayofweek'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_date2int
+  TIMESTAMP
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_d_date2int'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_workdaysbetween
+  TIMESTAMP, TIMESTAMP
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_d_workdaysbetween'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_date2str
+  TIMESTAMP
+RETURNS
+  cstring(32)
+ENTRY_POINT 'g_d_date2str'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_date2str_ymd
+  TIMESTAMP
+RETURNS
+  cstring(32)
+ENTRY_POINT 'g_d_date2str_ymd'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_formatdatetime
+  cstring(64), TIMESTAMP
+RETURNS
+  cstring(64)
+ENTRY_POINT 'g_d_formatdatetime'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_float2str
+  double precision
+RETURNS
+  cstring(32)
+ENTRY_POINT 'g_s_float2str'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_monthname
+  smallint
+RETURNS
+  cstring(32)
+ENTRY_POINT 'g_d_monthname'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_boolean2str
+  smallint
+RETURNS
+  cstring(4)
+ENTRY_POINT 'g_s_boolean2str'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_ansicomparetext
+  cstring(2000), cstring(2000)
+RETURNS
+  smallint BY value
+ENTRY_POINT 'g_s_ansicomparetext'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_fuzzymatch
+  integer, cstring(2000), cstring(2000)
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_s_fuzzymatch'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION G_S_COMPARENAME
+    CSTRING (255),
+    CSTRING (255)
+    RETURNS SMALLINT BY VALUE
+    ENTRY_POINT 'g_s_comparename' MODULE_NAME 'gudf';
+
+
+DECLARE EXTERNAL FUNCTION g_s_ansiuppercase
+  cstring(2000)
+RETURNS
+  cstring(2000)
+ENTRY_POINT 'g_s_ansiuppercase'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_ansilowercase
+  cstring(2000)
+RETURNS
+  cstring(2000)
+ENTRY_POINT 'g_s_ansilowercase'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_ansipos
+  cstring(2000), cstring(2000)
+RETURNS
+  SMALLINT BY value
+ENTRY_POINT 'g_s_ansipos'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_pos
+  cstring(2000), cstring(2000)
+RETURNS
+  SMALLINT BY value
+ENTRY_POINT 'g_s_pos'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_ansiposreg
+  cstring(2000), cstring(2000), SMALLINT
+RETURNS
+  SMALLINT BY value
+ENTRY_POINT 'g_s_ansiposreg'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_copy
+  cstring(255), SMALLINT, SMALLINT
+RETURNS
+  cstring(255)
+ENTRY_POINT 'g_s_copy'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_trim
+  cstring(2000), cstring(2000)
+RETURNS
+  cstring(2000)
+ENTRY_POINT 'g_s_trim'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_ternary
+  SMALLINT, cstring(2000), cstring(2000)
+RETURNS
+  cstring(2000)
+ENTRY_POINT 'g_s_ternary'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_like
+  cstring(2000), cstring(2000)
+RETURNS
+  SMALLINT BY value
+ENTRY_POINT 'g_s_like'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_length
+  cstring(2000)
+RETURNS
+  SMALLINT BY value
+ENTRY_POINT 'g_s_length'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_delete
+  cstring(2000), SMALLINT, SMALLINT
+RETURNS
+  cstring(2000)
+ENTRY_POINT 'g_s_delete'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_d_serverdate
+RETURNS
+  TIMESTAMP
+ENTRY_POINT 'g_d_serverdate'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_ais_getitemscount
+  cstring(2000)
+RETURNS
+  SMALLINT BY value
+ENTRY_POINT 'g_ais_getitemscount'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_ais_getitembyindex
+  cstring(2000), SMALLINT
+RETURNS
+  INTEGER BY value
+ENTRY_POINT 'g_ais_getitembyindex'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_ais_inarray
+  cstring(2000), INTEGER
+RETURNS
+  SMALLINT BY value
+ENTRY_POINT 'g_ais_inarray'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_m_round
+  DOUBLE PRECISION
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_m_round'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_m_roundnn
+  DOUBLE PRECISION, DOUBLE PRECISION
+RETURNS
+  DOUBLE PRECISION BY value
+ENTRY_POINT 'g_m_roundnn'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_m_complround
+  DOUBLE PRECISION, INTEGER, DOUBLE PRECISION, DOUBLE PRECISION
+RETURNS
+  DOUBLE PRECISION BY value
+ENTRY_POINT 'g_m_complround'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_blob_info
+  blob, cstring(255)
+RETURNS
+  PARAMETER 2
+ENTRY_POINT 'g_blob_info'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_blob_size
+  blob
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_blob_size'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_blob_searchsubstr
+  blob, cstring(255)
+RETURNS
+  integer BY value
+ENTRY_POINT 'g_blob_search'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_blob_blobtocstring
+  blob, cstring(16384)
+RETURNS
+  PARAMETER 2
+ENTRY_POINT 'g_blob_blobtocstring'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_blob_cstringtoblob
+  cstring(16384), blob
+RETURNS
+  PARAMETER 2
+ENTRY_POINT 'g_blob_cstringtoblob'
+module_name 'gudf';
+
+DECLARE EXTERNAL FUNCTION g_s_delchar 
+  CSTRING(2000) 
+RETURNS 
+  INTEGER BY VALUE 
+ENTRY_POINT 'g_s_delchar' 
+MODULE_NAME 'gudf';
+COMMIT;
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Gedemin project                              **/
+/**   Copyright (c) 1999-2000 by                   **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/* домен для первичных ключей */
+CREATE DOMAIN dintkey
+  AS INTEGER NOT NULL
+  CHECK (VALUE > 0);
+
+/* домен для первичных ключей */
+CREATE DOMAIN ddbkey
+  AS INTEGER NOT NULL;
+
+/* будем использовать этот домен для всех полей ссылок */
+CREATE DOMAIN dforeignkey
+  AS INTEGER;
+
+/* */  
+CREATE DOMAIN dmasterkey
+  AS INTEGER NOT NULL;
+
+CREATE DOMAIN dlb
+  AS INTEGER DEFAULT 1 NOT NULL;
+
+CREATE DOMAIN drb
+  AS INTEGER DEFAULT 2 NOT NULL;
+
+CREATE DOMAIN dparent
+  AS INTEGER;
+
+CREATE DOMAIN dinteger
+  AS INTEGER;
+
+CREATE DOMAIN dinteger_notnull
+  AS INTEGER NOT NULL;
+
+CREATE DOMAIN ddouble
+  AS DOUBLE PRECISION;
+
+/****************************************************/
+/**   Строковые                                    **/
+/****************************************************/
+
+CREATE DOMAIN dalias
+  AS VARCHAR(8) CHARACTER SET WIN1251 NOT NULL COLLATE PXW_CYRL;
+
+CREATE DOMAIN dISO
+  AS VARCHAR(3) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtemplatetype
+  AS VARCHAR(3) CHARACTER SET WIN1251 DEFAULT '' NOT NULL COLLATE PXW_CYRL;
+
+CREATE DOMAIN dnullalias
+  AS VARCHAR(16) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtablename
+  AS VARCHAR(31)
+  CHECK ((VALUE IS NULL) OR (VALUE > ''));
+
+CREATE DOMAIN dfieldname
+  AS VARCHAR(31)
+  CHECK ((VALUE IS NULL) OR (VALUE > ''));
+
+CREATE DOMAIN dname
+  AS VARCHAR(60) CHARACTER SET WIN1251 NOT NULL COLLATE PXW_CYRL;
+
+CREATE DOMAIN dlongname 
+  AS VARCHAR(80) CHARACTER SET WIN1251 NOT NULL COLLATE PXW_CYRL;
+
+CREATE DOMAIN dbarcode
+  AS VARCHAR(24) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dqueue
+  AS VARCHAR(2) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext8
+  AS VARCHAR(8) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext10
+  AS VARCHAR(10) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext20
+  AS VARCHAR(20) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext40
+  AS VARCHAR(40) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dbankaccount
+  AS VARCHAR(40) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dbankcode
+  AS VARCHAR(20) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext60
+  AS VARCHAR(60) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext80
+  AS VARCHAR(80) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext120
+  AS VARCHAR(120) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext180
+  AS VARCHAR(180) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext254
+  AS VARCHAR(254) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext255
+  AS VARCHAR(255) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext1024
+  AS VARCHAR(1024) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dclassname
+  AS VARCHAR(40) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dusername
+  AS VARCHAR(20) CHARACTER SET WIN1251 NOT NULL 
+  CHECK (VALUE > '')
+  COLLATE PXW_CYRL;
+
+CREATE DOMAIN dusergroupname
+  AS VARCHAR(20) CHARACTER SET WIN1251 NOT NULL COLLATE PXW_CYRL;
+
+CREATE DOMAIN dpassword
+  AS VARCHAR(20) CHARACTER SET WIN1251 NOT NULL 
+  CHECK (VALUE > '')
+  COLLATE PXW_CYRL;
+
+CREATE DOMAIN dsubsystemname
+  AS VARCHAR(20) CHARACTER SET WIN1251 NOT NULL COLLATE PXW_CYRL;
+
+CREATE DOMAIN ddecdigits
+  AS SMALLINT
+  CHECK ((VALUE IS NULL) OR (VALUE BETWEEN 0 AND 16));
+
+CREATE DOMAIN dlanguage
+  AS VARCHAR(1);
+
+CREATE DOMAIN daccount
+  AS VARCHAR(6) CHARACTER SET WIN1251
+  COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtext32
+  AS VARCHAR(32) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN druid
+  AS VARCHAR(21)
+  NOT NULL;
+
+CREATE DOMAIN dtax
+  AS DECIMAL(7, 4)
+  CHECK ((VALUE IS NULL) OR (VALUE BETWEEN 0 AND 99));
+
+CREATE DOMAIN dpercent
+  AS DECIMAL(7, 4);
+
+CREATE DOMAIN dpositive
+  AS DECIMAL(15, 8)
+  CHECK ((VALUE IS NULL) OR (VALUE >= 0));
+
+CREATE DOMAIN dcurrency
+  AS DECIMAL(15, 4);
+
+CREATE DOMAIN dquantity
+  AS DECIMAL(15, 4);
+
+CREATE DOMAIN dgoldquantity
+  AS NUMERIC(15, 8);
+
+CREATE DOMAIN dfactor
+  AS DOUBLE PRECISION;  
+
+CREATE DOMAIN dboolean
+  AS SMALLINT
+  CHECK ((VALUE IS NULL) OR (VALUE IN (0, 1)));
+
+CREATE DOMAIN dboolean_notnull
+  AS SMALLINT
+  NOT NULL
+  CHECK (VALUE IN (0, 1));
+
+CREATE DOMAIN ddisabled
+  AS SMALLINT DEFAULT 0
+  CHECK ((VALUE IS NULL) OR (VALUE IN (0, 1)));
+
+CREATE DOMAIN dreserved
+  AS INTEGER;
+
+CREATE DOMAIN dentryid
+  AS VARCHAR(32) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dpersonalid
+  AS VARCHAR(16) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dfilename
+  AS VARCHAR(255) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+/* почтовый индекс */
+CREATE DOMAIN dzipcode
+  AS VARCHAR(12);
+
+/* почтовый индекс */
+CREATE DOMAIN dpobox
+  AS VARCHAR(8);
+
+/* горячая клавиша */
+CREATE DOMAIN dhotkey
+  AS INTEGER;
+
+/* тэлефонны нумар */
+CREATE DOMAIN dtel
+  AS VARCHAR(40) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+/* number of pager */
+CREATE DOMAIN dpager
+  AS VARCHAR(40) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+/* адрас электроннай пошты */
+CREATE DOMAIN demail
+  AS VARCHAR(40);
+
+/* УРЛ */
+CREATE DOMAIN durl
+  AS VARCHAR(40);
+
+/* выкарыстоўваецца для захоўвання полу */
+/* М -- мужчынск_, F -- жаночы          */
+CREATE DOMAIN dgender
+  AS VARCHAR(1)
+  CHECK ((VALUE IS NULL) OR (VALUE = 'M') OR (VALUE = 'F') OR (VALUE = 'N'));
+
+/* часовой пояс относительно Гринвича */
+CREATE DOMAIN dgmtoffset
+  AS SMALLINT
+  CHECK ((VALUE IS NULL) OR (VALUE >= -12) OR (VALUE <= 12));
+
+CREATE DOMAIN dBMP
+  AS BLOB SUB_TYPE -7 SEGMENT SIZE 1024;
+
+CREATE DOMAIN dRTF
+  AS BLOB SUB_TYPE 0 SEGMENT SIZE 1024;
+
+CREATE DOMAIN dsecurity
+  AS INTEGER DEFAULT -1
+  NOT NULL;
+
+CREATE DOMAIN dtextalignment
+  AS VARCHAR(1)
+  DEFAULT 'L'
+  CHECK((VALUE IS NULL) OR (VALUE IN ('L', 'R', 'C', 'J')));  
+
+CREATE DOMAIN daccounttype 
+  AS VARCHAR(1)
+  CHECK((VALUE IS NULL) OR (VALUE IN ('D', 'K')));
+
+CREATE DOMAIN dpricetype
+  AS VARCHAR(1)
+  CHECK (VALUE IN ('P', 'C'));
+
+CREATE DOMAIN dcontacttype
+  AS VARCHAR(1)
+  CHECK (VALUE IN ('D', 'K'));
+
+CREATE DOMAIN dreplicationtype
+  AS VARCHAR(1)
+  CHECK (VALUE IN ('I', 'U', 'D'));
+
+CREATE DOMAIN dreplidset
+  AS VARCHAR(255) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dtypetransport
+  AS VARCHAR(1)
+  CHECK ((VALUE IS NULL) OR (VALUE IN ('C', 'S', 'R', 'O', 'W')));
+
+CREATE DOMAIN ddate
+  AS DATE;
+
+CREATE DOMAIN ddate_notnull
+  AS DATE NOT NULL;
+
+CREATE DOMAIN dtime
+  AS TIME;
+
+CREATE DOMAIN dtime_notnull
+  AS TIME NOT NULL;
+
+CREATE DOMAIN dtimestamp
+  AS TIMESTAMP;
+
+CREATE DOMAIN dtimestamp_notnull
+  AS TIMESTAMP NOT NULL;
+
+CREATE DOMAIN dsmallint
+  AS SMALLINT;
+
+CREATE DOMAIN dversionstring
+  AS VARCHAR(20) NOT NULL;
+
+CREATE DOMAIN dfilterdata
+  AS BLOB SUB_TYPE 0 SEGMENT SIZE 512;
+
+CREATE DOMAIN dblob4096
+  AS BLOB SEGMENT SIZE 4096;
+
+CREATE DOMAIN dblobtext80
+  AS BLOB SUB_TYPE 1 SEGMENT SIZE 80;
+
+CREATE DOMAIN dblobtext80_1251
+  AS BLOB SUB_TYPE 1 SEGMENT SIZE 80 CHARACTER SET win1251;
+
+CREATE DOMAIN dblob80
+  AS BLOB SEGMENT SIZE 80;
+
+CREATE DOMAIN dblob
+  AS BLOB;
+
+CREATE DOMAIN dscript
+  AS BLOB SUB_TYPE 1 SEGMENT SIZE 1024;
+
+CREATE DOMAIN dreporttemplate
+  AS BLOB SEGMENT SIZE 1024;
+
+CREATE DOMAIN djournalblob
+  AS BLOB SUB_TYPE 1 SEGMENT SIZE 1024;
+
+CREATE DOMAIN dlisttrtypeconddata
+  AS BLOB SUB_TYPE 0 SEGMENT SIZE 512;
+
+CREATE DOMAIN dnumerationblob
+  AS BLOB SUB_TYPE 0 SEGMENT SIZE 256;
+
+CREATE DOMAIN dmsgtype
+  AS VARCHAR(1) NOT NULL;
+
+CREATE DOMAIN daccountingdiscipline
+  AS VARCHAR(1)
+  CHECK ((VALUE IS NULL) OR (VALUE IN ('F', 'L', 'A')));
+
+CREATE DOMAIN deditiondate AS
+  TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+CREATE DOMAIN dcreationdate AS
+  TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+CREATE DOMAIN ddocumentdate AS
+  DATE NOT NULL;
+
+CREATE DOMAIN ddocumentnumber AS
+  VARCHAR(20) CHARACTER SET WIN1251 NOT NULL COLLATE PXW_CYRL;
+
+CREATE DOMAIN dblob1024 AS 
+  BLOB SUB_TYPE 0 SEGMENT SIZE 1024;
+
+CREATE DOMAIN dsubtype AS 
+  VARCHAR(31) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN dgdcname AS 
+  VARCHAR(64) CHARACTER SET WIN1251 COLLATE PXW_CYRL;
+
+CREATE DOMAIN daccountalias
+  AS VARCHAR(40) CHARACTER SET WIN1251 NOT NULL COLLATE PXW_CYRL;
+
+CREATE DOMAIN dfixlength 
+  AS INTEGER CHECK ((VALUE IS NULL) OR (VALUE > 0 AND VALUE <= 20));
+
+
+COMMIT;
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 1999-00 by                     **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE TABLE fin_versioninfo
+(
+  id            dintkey,
+  versionstring dversionstring,
+  releasedate   ddate NOT NULL,
+  comment       dtext254
+);
+
+ALTER TABLE fin_versioninfo ADD CONSTRAINT fin_pk_versioninfo_id
+  PRIMARY KEY (id);
+
+COMMIT;
+
+GRANT SELECT ON fin_versioninfo TO startuser;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE PROCEDURE fin_p_ver_getdbversion
+  RETURNS (ID INTEGER, VersionString VARCHAR(20),
+    ReleaseDate DATE, Comment VARCHAR(255) CHARACTER SET WIN1251)
+AS
+BEGIN
+  SELECT id, versionstring, releasedate, comment
+  FROM fin_versioninfo
+  WHERE id = (SELECT MAX(id) FROM fin_versioninfo)
+  INTO :ID, :VersionString, :ReleaseDate, :Comment;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+GRANT EXECUTE ON PROCEDURE fin_p_ver_getdbversion TO startuser;
+
+COMMIT;
+
+INSERT INTO fin_versioninfo
+  VALUES (1, '0000.0000.0001.0000', '01.02.1999', 'Начало...');
+
+INSERT INTO fin_versioninfo
+  VALUES (2, '0000.0000.0001.0001', '07.02.1999', NULL);
+
+INSERT INTO fin_versioninfo
+  VALUES (3, '0000.0000.0001.0002', '08.02.1999', NULL);
+
+INSERT INTO fin_versioninfo
+  VALUES (4, '0000.0000.0001.0003', '11.02.1999', NULL);
+
+INSERT INTO fin_versioninfo
+  VALUES (5, '0000.0000.0001.0004', '18.02.1999', NULL);
+
+INSERT INTO fin_versioninfo
+  VALUES (6, '0000.0000.0001.0005', '27.02.1999', NULL);
+
+INSERT INTO fin_versioninfo
+  VALUES (7, '0000.0000.0001.0006', '03.03.1999', NULL);
+
+INSERT INTO fin_versioninfo
+  VALUES (8, '0000.0000.0001.0007', '22.04.1999', NULL);
+
+INSERT INTO fin_versioninfo
+  VALUES (9, '0000.0000.0001.0008', '23.07.1999', NULL);
+
+INSERT INTO fin_versioninfo
+  VALUES (10, '0000.0000.0001.0009', '30.07.1999', 'Phone tables added');
+
+INSERT INTO fin_versioninfo
+  VALUES (11, '0000.0000.0001.0010', '03.08.1999', 'Icon tables added');
+
+INSERT INTO fin_versioninfo
+  VALUES (12, '0000.0001.0000.0001', '19.06.2000', 'Gedemin started');
+
+INSERT INTO fin_versioninfo
+  VALUES (13, '0000.0001.0000.0002', '24.06.2000', 'Andreik added ON DELETE clause to FOREIGN KEY defenitions');
+
+INSERT INTO fin_versioninfo
+  VALUES (14, '0000.0001.0000.0003', '27.06.2000', '...');
+
+INSERT INTO fin_versioninfo
+  VALUES (15, '0000.0001.0000.0004', '10.07.2000', 'Audit levels added by Andreik');
+
+INSERT INTO fin_versioninfo
+  VALUES (16, '0000.0001.0000.0005', '03.08.2000', 'Першы кандыдат да выпуску адраснай кнiгi');
+
+INSERT INTO fin_versioninfo
+  VALUES (17, '0000.0001.0000.0006', '08.08.2000', 'Другi кандыдат да выпуску адраснай кнiгi');
+
+INSERT INTO fin_versioninfo
+  VALUES (18, '0000.0001.0000.0007', '09.08.2000', 'Views added');
+
+INSERT INTO fin_versioninfo
+  VALUES (19, '0000.0001.0000.0008', '15.08.2000', 'Functions (macros) added');
+
+INSERT INTO fin_versioninfo
+  VALUES (20, '0000.0001.0000.0009', '17.08.2000', 'Payment order added');
+
+INSERT INTO fin_versioninfo
+  VALUES (21, '0000.0001.0000.0010', '18.08.2000', 'New version');
+
+INSERT INTO fin_versioninfo
+  VALUES (22, '0000.0001.0000.0011', '20.08.2000', 'Generators names changed');
+
+INSERT INTO fin_versioninfo
+  VALUES (23, '0000.0001.0000.0012', '27.08.2000', 'Next release');
+
+INSERT INTO fin_versioninfo
+  VALUES (24, '0000.0001.0000.0014', '28.08.2000', 'Order by added in gd_p_getfolderelement');
+
+INSERT INTO fin_versioninfo
+  VALUES (25, '0000.0001.0000.0015', '31.08.2000', 'Some bug base fields added');
+
+INSERT INTO fin_versioninfo
+  VALUES (26, '0000.0001.0000.0016', '08.09.2000', 'Interval trees implemented');
+
+INSERT INTO fin_versioninfo
+  VALUES (27, '0000.0001.0000.0017', '14.09.2000', 'Desktops implemented');
+
+INSERT INTO fin_versioninfo
+  VALUES (28, '0000.0001.0000.0018', '18.09.2000', 'Goods added');
+
+INSERT INTO fin_versioninfo
+  VALUES (29, '0000.0001.0000.0019', '28.09.2000', '...');
+
+INSERT INTO fin_versioninfo
+  VALUES (30, '0000.0001.0000.0020', '22.10.2000', 'Filters added');
+
+INSERT INTO fin_versioninfo
+  VALUES (31, '0000.0001.0000.0021', '26.10.2000', 'First launch of new phone!!!');
+
+INSERT INTO fin_versioninfo
+  VALUES (32, '0000.0001.0000.0022', '14.11.2000', 'Berioza 2');
+
+INSERT INTO fin_versioninfo
+  VALUES (33, '0000.0001.0000.0023', '30.11.2000', 'Berioza 3');
+
+INSERT INTO fin_versioninfo
+  VALUES (34, '0000.0001.0000.0024', '04.12.2000', 'Bank statements to Berioza');
+
+INSERT INTO fin_versioninfo
+  VALUES (35, '0000.0001.0000.0025', '27.12.2000', 'Big clean up!');
+
+INSERT INTO fin_versioninfo
+  VALUES (36, '0000.0001.0000.0026', '12.02.2001', 'My birthday :)');
+
+INSERT INTO fin_versioninfo
+  VALUES (37, '0000.0001.0000.0027', '11.03.2001', 'Bankstatement fields added. Upgrade is mandatory.');
+
+INSERT INTO fin_versioninfo
+  VALUES (38, '0000.0001.0000.0028', '24.04.2001', 'Cattle tables added.');
+
+INSERT INTO fin_versioninfo
+  VALUES (39, '0000.0001.0000.0029', '10.11.2001', 'New operations');
+
+INSERT INTO fin_versioninfo
+  VALUES (40, '0000.0001.0000.0030', '12.02.2002', 'My birthday again :(');
+
+INSERT INTO fin_versioninfo
+  VALUES (41, '0000.0001.0000.0031', '08.07.2002', 'Triggers for system tables added');
+
+INSERT INTO fin_versioninfo
+  VALUES (42, '0000.0001.0000.0032', '08.11.2002', 'GD_JOURNAL has got its final state');
+
+INSERT INTO fin_versioninfo
+  VALUES (43, '0000.0001.0000.0033', '13.01.2003', 'ST_SETTINGSTATE for installer was added');
+
+INSERT INTO fin_versioninfo
+  VALUES (44, '0000.0001.0000.0034', '04.02.2003', 'Support financial report (add tables gd_tax..)');
+
+INSERT INTO fin_versioninfo
+  VALUES (45, '0000.0001.0000.0035', '23.04.2003', 'WG_POSITION added');
+
+INSERT INTO fin_versioninfo
+  VALUES (46, '0000.0001.0000.0036', '08.06.2003', 'employee becomes a children to department');
+
+INSERT INTO fin_versioninfo
+  VALUES (47, '0000.0001.0000.0045', '18.08.2003', 'Changed domain DGOLDQUANTITY');
+
+INSERT INTO fin_versioninfo
+  VALUES (48, '0000.0001.0000.0046', '22.08.2003', 'Changed trigger INV_AU_MOVEMENT ');
+
+INSERT INTO fin_versioninfo
+  VALUES (49, '0000.0001.0000.0047', '03.09.2003', 'Added fields into AT_SETTING');
+
+INSERT INTO fin_versioninfo
+  VALUES (50, '0000.0001.0000.0048', '20.09.2003', 'Computed indice adde');
+
+INSERT INTO fin_versioninfo
+  VALUES (51, '0000.0001.0000.0049', '22.09.2003', 'Additional fields into gd_company added');
+
+INSERT INTO fin_versioninfo
+  VALUES (52, '0000.0001.0000.0052', '10.10.2003', 'Block');
+
+INSERT INTO fin_versioninfo
+  VALUES (53, '0000.0001.0000.0061', '09.12.2003', 'Additional fields into inv_balanceoption added');
+
+INSERT INTO fin_versioninfo
+  VALUES (54, '0000.0001.0000.0062', '19.12.2003', 'DataType field into gd_const added');
+
+INSERT INTO fin_versioninfo
+  VALUES (55, '0000.0001.0000.0063', '07.01.2004', 'Some triggers removed');
+
+INSERT INTO fin_versioninfo
+  VALUES (56, '0000.0001.0000.0064', '12.01.2004', 'Column RATE was added in BN_BANKSTATEMENT');
+
+INSERT INTO fin_versioninfo
+  VALUES (57, '0000.0001.0000.0066', '12.01.2004', 'Column ACCOUNTKEY was added in BN_BANKSTATEMENTLINE');
+
+INSERT INTO fin_versioninfo
+  VALUES (58, '0000.0001.0000.0068', '18.01.2004', 'Column FIXLENGTH was added in GD_LASTNUMBER');
+
+INSERT INTO fin_versioninfo
+  VALUES (59, '0000.0001.0000.0085', '17.06.2004', 'New general ledger');
+
+INSERT INTO fin_versioninfo
+  VALUES (60, '0000.0001.0000.0086', '28.06.2004', 'FIX gd_taxtype');
+
+INSERT INTO fin_versioninfo
+  VALUES (61, '0000.0001.0000.0087', '28.07.2004', 'Add EQ');
+
+INSERT INTO fin_versioninfo
+  VALUES (62, '0000.0001.0000.0090', '08.12.2004', 'Fix inv_price');
+
+INSERT INTO fin_versioninfo
+  VALUES (63, '0000.0001.0000.0091', '10.02.2005', 'Modify block triggers');
+
+INSERT INTO fin_versioninfo
+  VALUES (64, '0000.0001.0000.0092', '01.03.2005', 'Sync triggers procedures changed');
+
+INSERT INTO fin_versioninfo
+  VALUES (65, '0000.0001.0000.0093', '22.03.2005', 'Fixed some errors');
+
+INSERT INTO fin_versioninfo
+  VALUES (66, '0000.0001.0000.0094', '22.03.2005', 'Fixed some errors');
+
+INSERT INTO fin_versioninfo
+  VALUES (67, '0000.0001.0000.0095', '22.03.2005', 'Fixed some errors');
+
+INSERT INTO fin_versioninfo
+  VALUES (68, '0000.0001.0000.0096', '12.04.2005', 'Fixed some errors');
+
+INSERT INTO fin_versioninfo
+  VALUES (69, '0000.0001.0000.0097', '10.10.2005', 'Minor changes');
+
+INSERT INTO fin_versioninfo
+  VALUES (70, '0000.0001.0000.0098', '10.01.2006', 'Minor changes');
+
+INSERT INTO fin_versioninfo
+  VALUES (71, '0000.0001.0000.0099', '15.03.2006', 'Tables for SQL monitor added');
+
+INSERT INTO fin_versioninfo
+  VALUES (72, '0000.0001.0000.0100', '17.03.2006', 'Type of description field of goodgroup has been changed');
+
+INSERT INTO fin_versioninfo
+  VALUES (73, '0000.0001.0000.0101', '17.04.2006', 'Bankbranch field added');
+
+INSERT INTO fin_versioninfo
+  VALUES (74, '0000.0001.0000.0102', '04.05.2006', 'Bankbranch field added to bankstatement');
+
+INSERT INTO fin_versioninfo
+  VALUES (75, '0000.0001.0000.0103', '30.05.2006', 'Employee branch added into Explorer');
+
+INSERT INTO fin_versioninfo
+  VALUES (76, '0000.0001.0000.0104', '18.09.2006', 'Ability to exclude some document types from block period added');
+
+INSERT INTO fin_versioninfo
+  VALUES (77, '0000.0001.0000.0105', '31.07.2006', 'Add fields from AC_RECORD into AC_ENTRY');
+
+INSERT INTO fin_versioninfo
+  VALUES (78, '0000.0001.0000.0106', '15.09.2006', 'Change StoredProc AC_CIRCULATIONLIST');
+
+INSERT INTO fin_versioninfo
+  VALUES (79, '0000.0001.0000.0107', '27.10.2006', 'Исправлена процедура AC_ACCOUNTEXSALDO');
+
+INSERT INTO fin_versioninfo
+  VALUES (80, '0000.0001.0000.0108', '09.11.2006', 'Возвращены изменения триггеров - параметр ROWCOUNT - возрващал неверное значение');
+
+INSERT INTO fin_versioninfo
+  VALUES (81, '0000.0001.0000.0109', '12.11.2006', 'Добавлена процедура INV_GETCARDMOVEMENT для ускорения вывода остатков на дату');
+
+INSERT INTO fin_versioninfo
+  VALUES (82, '0000.0001.0000.0110', '24.11.2006', 'Пересчитываем складские остатки после восстановления складских триггеров');
+
+INSERT INTO fin_versioninfo
+  VALUES (84, '0000.0001.0000.0112', '03.01.2007', 'Fixed triggers for FireBird 2.0');
+
+INSERT INTO fin_versioninfo
+  VALUES (85, '0000.0001.0000.0113', '20.01.2007', 'Stripped security descriptors from rp_reportgroup');
+
+INSERT INTO fin_versioninfo
+  VALUES (86, '0000.0001.0000.0114', '22.01.2007', 'surname field of gd_people became not null');
+
+INSERT INTO fin_versioninfo
+  VALUES (87, '0000.0001.0000.0115', '24.01.2007', 'Fixed block and GD_AU_DOCUMENT triggers');
+
+INSERT INTO fin_versioninfo
+  VALUES (88, '0000.0001.0000.0116', '28.01.2007', 'Some internal changes');
+
+INSERT INTO fin_versioninfo
+  VALUES (89, '0000.0001.0000.0117', '31.01.2007', 'Some internal changes');
+
+INSERT INTO fin_versioninfo
+  VALUES (90, '0000.0001.0000.0118', '04.02.2007', 'Some internal changes');
+
+INSERT INTO fin_versioninfo
+  VALUES (91, '0000.0001.0000.0119', '26.02.2007', 'Some internal changes');
+
+INSERT INTO fin_versioninfo
+  VALUES (92, '0000.0001.0000.0120', '22.04.2007', 'GD_P_GETRUID changed');
+
+INSERT INTO fin_versioninfo
+  VALUES (93, '0000.0001.0000.0121', '02.05.2007', 'RUID changed');
+
+INSERT INTO fin_versioninfo
+  VALUES (94, '0000.0001.0000.0122', '07.05.2007', 'Some internal changes');
+
+INSERT INTO fin_versioninfo
+  VALUES (95, '0000.0001.0000.0123', '30.06.2007', 'Add generators');
+
+INSERT INTO fin_versioninfo
+  VALUES (96, '0000.0001.0000.0124', '3.08.2007', 'Add barcode indices');
+
+INSERT INTO fin_versioninfo
+  VALUES (97, '0000.0001.0000.0125', '4.10.2007', 'Add check constraints');
+
+INSERT INTO fin_versioninfo
+  VALUES (98, '0000.0001.0000.0126', '22.10.2007', 'GD_AU_DOCUMENT');
+
+INSERT INTO fin_versioninfo
+  VALUES (100, '0000.0001.0000.0127', '16.01.2008', 'inv_balanceoption');
+
+INSERT INTO fin_versioninfo
+  VALUES (101, '0000.0001.0000.0128', '10.06.2008', 'FastReport4');
+
+INSERT INTO fin_versioninfo
+  VALUES (102, '0000.0001.0000.0129', '09.07.2008', 'Добавлены RPL таблицы');
+  
+INSERT INTO fin_versioninfo
+  VALUES (103, '0000.0001.0000.0130', '15.10.2008', 'Добавлен расчет сальдо по проводкам');
+
+INSERT INTO fin_versioninfo
+  VALUES (104, '0000.0001.0000.0131', '19.12.2008', 'Добавлено поле OKULP в таблицу GD_COMPANYCODE');
+
+INSERT INTO fin_versioninfo
+  VALUES (105, '0000.0001.0000.0132', '12.01.2009', 'Добавлено поле ISINTERNAL в таблицу AC_TRANSACTION для определения внутренних проводок');
+
+
+COMMIT;
+
+CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
+  ON fin_versioninfo (id);
+
+COMMIT;
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2001 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE TABLE gd_link
+(
+  id            dintkey,
+  objectkey     dintkey,
+  linkedkey     dintkey,
+  linkedclass   dclassname NOT NULL,
+  linkedsubtype dclassname,
+  linkedname    dname,
+  linkedusertype dtext20,
+  linkedorder   INTEGER,
+
+  CONSTRAINT gd_pk_link_id PRIMARY KEY (id)
+);
+
+COMMIT;
+
+/*
+
+  Copyright (c) 2000-2007 by Golden Software of Belarus
+
+  Script
+
+    gd_security.sql
+
+  Abstract
+
+    An Interbase script for access.
+
+  Author
+
+    Andrey Shadevsky (27.04.00)
+
+  Revisions history
+
+    Initial  27.04.00  JKL    Initial version
+    add table gd_classes  27.05.2002 Nick
+
+  Status
+
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/****************************************************
+
+   Таблица для хранения пользователей.
+
+*****************************************************/
+
+CREATE DOMAIN dallowaudit
+  AS SMALLINT DEFAULT 0 NOT NULL;
+
+COMMIT;
+
+CREATE TABLE gd_user
+(
+  id               dintkey,                     /* Первичный ключ                                    */
+  name             dusername,                   /* имя                                               */
+  passw            dpassword,                   /* пароль                                            */
+  ingroup          dinteger DEFAULT 1 NOT NULL, /* группы, в которые входит пользователь             */
+  fullname         dtext180,                    /* полное имя                                        */
+  description      dtext180,                    /* описание                                          */
+  ibname           dusername,                   /* имя пользователя IB                               */
+  ibpassword       dpassword,                   /* пароль IB                                         */
+  contactkey       dintkey,                     /* ссылка на запись в таблице контактов              */
+  externalkey      dforeignkey,                 /* внешняя ссылка, например на справочник сотрудников*/
+  disabled         dboolean DEFAULT 0 NOT NULL, /* отключен                                          */
+  lockedout        dboolean DEFAULT 0,          /* запись заблокирована                              */
+  mustchange       dboolean DEFAULT 0,          /* при входе пользователь должен изменить пароль     */
+  cantchangepassw  dboolean DEFAULT 1,          /* пользователь не может менять пароль               */
+  passwneverexp    dboolean DEFAULT 1,          /* срок действия пароля никогда не истекает          */
+  expdate          ddate,                       /* дата истечения срока действия пароля              */
+  workstart        dtime,                       /* начало рабочего дня                               */
+  workend          dtime,                       /* окончание рабочего дня                            */
+  allowaudit       dallowaudit,                 /* будут ли операции этого пользователя заноситься   */
+                                                /* в журнал                                          */
+  editiondate      deditiondate,
+  editorkey        dforeignkey,
+
+  icon             dinteger,                    /* пиктограмка для данного пользователя              */
+  reserved         dinteger,                    /* зарезервировано                                   */
+
+  CHECK (((workstart IS NULL) AND (workend IS NULL)) OR (workstart < workend)),
+  CHECK (ingroup <> 0)
+);
+
+ALTER TABLE gd_user ADD CONSTRAINT gd_pk_user
+  PRIMARY KEY (id);
+
+/* имя пользователя должно быть уникальным */
+CREATE UNIQUE ASC INDEX gd_x_user_name ON gd_user
+  (name);
+
+CREATE UNIQUE INDEX gd_x_user_ibname ON
+  gd_user (ibname);
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_user FOR gd_user
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  /* значения по умолчанию */
+  IF (NEW.ingroup IS NULL) THEN
+    NEW.ingroup = 0;
+  IF (NEW.disabled IS NULL) THEN
+    NEW.disabled = 0;
+  IF (NEW.mustchange IS NULL) THEN
+    NEW.mustchange = 0;
+  IF (NEW.cantchangepassw IS NULL) THEN
+    NEW.cantchangepassw = 1;
+  IF (NEW.passwneverexp IS NULL) THEN
+    NEW.passwneverexp = 1;
+  IF (NEW.lockedout IS NULL) THEN
+    NEW.lockedout = 0;
+END
+^
+
+CREATE EXCEPTION gd_e_invaliduserupdate 'At least one user must be enabled'^
+
+CREATE TRIGGER gd_bu_user FOR gd_user
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF ((NEW.disabled = 1) AND (OLD.disabled = 0) AND
+      (SINGULAR (SELECT * FROM gd_user WHERE disabled = 0))) THEN
+    EXCEPTION gd_e_invaliduserupdate;
+END
+^
+
+CREATE EXCEPTION gd_e_invaliduserdelete 'Can not delete all users'^
+
+CREATE TRIGGER gd_bd_user FOR gd_user
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  /* выдаліць адміністратара немагчыма */
+  IF (OLD.ID = 150001) THEN
+    EXCEPTION gd_e_invaliduserdelete;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения подсистем.
+
+*****************************************************/
+
+CREATE TABLE gd_subsystem
+(
+  id               dintkey,             /* Первичный ключ                       */
+  name             dusername,           /* имя                                  */
+  description      dtext180,            /* описание                             */
+  groupsallowed    dintkey DEFAULT 1,   /* группы, которым разрешен доступ      */
+
+  auditlevel       dsmallint DEFAULT 2, /* уровень аудита, по-умолчанию средний */
+  auditcache       dsmallint DEFAULT 1, /* использовать кэширование, да         */
+  auditmaxdays     dsmallint DEFAULT 0, /* удалят записи, по-умолчанию нет      */
+
+  disabled         dboolean DEFAULT 0,  /* отключена                            */
+  reserved         dinteger,            /* зарезервировано                      */
+
+  CHECK(auditlevel >= 0 AND auditlevel <= 3),
+  CHECK(auditcache >= 0 AND auditcache <= 1),
+  CHECK(auditmaxdays >= 0)
+);
+
+ALTER TABLE gd_subsystem ADD CONSTRAINT gd_pk_subsystem
+  PRIMARY KEY (id);
+
+/* имя пользователя должно быть уникальным */
+CREATE UNIQUE ASC INDEX gd_x_subsystem_name
+  ON gd_subsystem (name);
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_subsystem FOR gd_subsystem
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE EXCEPTION gd_e_invalidsubsystemdelete 'Cannt delete all subsystem'^
+
+CREATE TRIGGER gd_bd_subsystem FOR gd_subsystem
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (NOT EXISTS(SELECT * FROM gd_subsystem WHERE id <> OLD.id)) THEN
+    EXCEPTION gd_e_invalidsubsystemdelete;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+/****************************************************/
+/**                                                **/
+/**  Группы пользователей                          **/
+/**                                                **/
+/****************************************************/
+
+CREATE TABLE gd_usergroup
+(
+  id              dintkey,              /* уникальный идентификатор    */
+  disabled        dboolean DEFAULT 0,   /* группа отключена            */
+  name            dusergroupname,       /* наименование                */
+  description     dtext180,             /* описание                    */
+  icon            dinteger,             /*                             */
+  reserved        dinteger              /* зарезервировано             */
+);
+
+ALTER TABLE gd_usergroup
+  ADD CONSTRAINT gd_pk_usergroup PRIMARY KEY (id);
+
+ALTER TABLE gd_usergroup
+  ADD CONSTRAINT gd_chk_usergroup_id CHECK (id BETWEEN 1 AND 32);
+
+ALTER TABLE gd_usergroup
+  ADD CONSTRAINT gd_chk_usergroup_name CHECK (name > '');
+
+CREATE UNIQUE ASC INDEX gd_x_usergroup_name ON gd_usergroup
+  (name);
+
+COMMIT;
+
+CREATE GENERATOR gd_g_session_id;
+SET GENERATOR gd_g_session_id TO 1;
+
+SET TERM ^ ;
+
+CREATE EXCEPTION gd_e_cantaddusergroup 'New Id cannt be more than 32'^
+
+CREATE PROCEDURE gd_p_getnextusergroupid
+  RETURNS(NextID INTEGER)
+AS
+  DECLARE VARIABLE N INTEGER;
+BEGIN
+  NextID = 7;
+  FOR
+    SELECT id
+    FROM gd_usergroup
+    WHERE id >= 7
+    ORDER BY id
+    INTO :N
+  DO BEGIN
+    IF (:NextID < :N) THEN
+    BEGIN
+      EXIT;
+    END
+
+    NextID = :NextID + 1;
+
+    IF (:NextID > 32) THEN
+    BEGIN
+      EXCEPTION gd_e_cantaddusergroup;
+    END
+  END
+END
+^
+
+CREATE TRIGGER gd_bi_usergroup FOR gd_usergroup
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+  BEGIN
+    EXECUTE PROCEDURE gd_p_getnextusergroupid
+      RETURNING_VALUES NEW.id;
+  END
+END
+^
+
+CREATE EXCEPTION gd_e_canteditusergroup 'Can''t edit reserved user group'^
+
+CREATE TRIGGER gd_bu_usergroup FOR gd_usergroup
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF ((OLD.ID < 7) AND (OLD.name <> NEW.name)) THEN
+    EXCEPTION gd_e_canteditusergroup;
+END
+^
+
+CREATE EXCEPTION gd_e_cantdeleteusergroup 'Cannt delete user group'^
+
+CREATE TRIGGER gd_bd_usergroup FOR gd_usergroup
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (OLD.ID < 7) THEN
+    EXCEPTION gd_e_cantdeleteusergroup;
+END
+^
+
+CREATE TRIGGER gd_ad_usergroup FOR gd_usergroup
+  AFTER DELETE
+  POSITION 0
+AS
+  DECLARE VARIABLE MASK INTEGER;
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  MASK = 1;
+  I = 1;
+  WHILE (I < OLD.id) DO
+  BEGIN
+    MASK = BIN_SHL(:MASK, 1);
+    I = :I + 1;
+  END
+
+  /* пользователей, которые входили только в удаленную группу */
+  /* переведем в стандартную группу Пользователи              */
+  UPDATE gd_user SET ingroup = 4 WHERE ingroup = :MASK;
+
+  /* исключим пользователей из удаленной группы               */
+  UPDATE gd_user SET ingroup = BIN_AND(ingroup, BIN_NOT(:MASK))
+    WHERE BIN_AND(ingroup, :MASK) <> 0;
+END
+^
+
+CREATE TRIGGER gd_biu_user FOR gd_user
+  BEFORE INSERT OR UPDATE
+  POSITION 100
+AS
+  DECLARE VARIABLE I INTEGER;
+  DECLARE VARIABLE MASK INTEGER;
+  DECLARE VARIABLE M BIGINT;
+BEGIN
+  I = 1;
+  M = 1;
+  MASK = 0;
+  WHILE (I < 32) DO
+  BEGIN
+    IF (EXISTS (SELECT * FROM gd_usergroup WHERE id = :I)) THEN
+      MASK = BIN_OR(:MASK, :M);
+    M = BIN_SHL(:M, 1);
+    I = :I + 1;
+  END
+
+  NEW.ingroup = BIN_AND(NEW.ingroup, :MASK);
+END
+^
+
+SET TERM ; ^
+
+
+/* визуальные настройки */
+
+
+COMMIT;
+
+SET TERM ^ ;
+
+/*--------------------------------------------------------
+
+  gd_p_sec_getgroupsforuser
+
+  На вход передается: идентификатор пользователя
+  На выходе: строка, список групп, в которые входит этот пользователь
+
+----------------------------------------------------------*/
+
+CREATE PROCEDURE gd_p_sec_getgroupsforuser(UserKey INTEGER)
+  RETURNS(GroupsForUser VARCHAR(2048))
+AS
+  DECLARE VARIABLE UGK INTEGER;
+  DECLARE VARIABLE GroupName VARCHAR(2048);
+  DECLARE VARIABLE C1 INTEGER;
+  DECLARE VARIABLE C2 INTEGER;
+  DECLARE VARIABLE IG INTEGER;
+BEGIN
+  SELECT ingroup FROM gd_user WHERE id = :UserKey INTO :IG;
+
+  C2 = 1;
+  C1 = 1;
+  GroupsForUser = '';
+  WHILE (:C1 <= 32) DO
+  BEGIN
+    IF (BIN_AND(:C2, :IG) > 0) THEN
+    BEGIN
+      GroupName = '';
+      SELECT gg.name
+      FROM gd_usergroup gg
+      WHERE gg.id = :C1
+      INTO :GroupName;
+
+      IF (:GroupName <> '') THEN
+        GroupsForUser = :GroupsForUser || ', ' || :GroupName;
+    END
+
+    C1 = :C1 + 1;
+
+    IF (:C1 < 32) THEN
+      C2 = :C2 * 2;
+  END
+END
+^
+
+SET TERM ; ^
+
+GRANT EXECUTE ON PROCEDURE gd_p_sec_getgroupsforuser TO startuser;
+GRANT SELECT ON gd_user TO PROCEDURE gd_p_sec_getgroupsforuser;
+GRANT SELECT ON gd_usergroup TO PROCEDURE gd_p_sec_getgroupsforuser;
+
+COMMIT;
+
+CREATE TABLE gd_journal
+(
+  id               dintkey,
+  contactkey       dforeignkey,
+  operationdate    dtimestamp_notnull,
+  source           dtext40,
+  objectid         dforeignkey,
+  data             dblobtext80_1251
+);
+
+COMMIT;
+
+ALTER TABLE gd_journal ADD CONSTRAINT gd_pk_journal
+  PRIMARY KEY (id);
+
+/* фореін кей не ставіцца з мэтай хукага дабаўленьня запісаў */
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_journal FOR gd_journal
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE TRIGGER gd_bi_journal2 FOR gd_journal
+  BEFORE INSERT
+  POSITION 2
+AS
+BEGIN
+  IF (NEW.operationdate IS NULL) THEN
+    NEW.operationdate = 'NOW';
+
+  IF (NEW.contactkey IS NULL) THEN
+  BEGIN
+    SELECT contactkey FROM gd_user
+    WHERE ibname = CURRENT_USER
+    INTO NEW.contactkey;
+  END
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+CREATE TABLE gd_sql_statement
+(
+  id               dintkey,
+  crc              INTEGER NOT NULL UNIQUE,
+  kind             SMALLINT NOT NULL,          /* 0 -- sql, 1 -- params */
+  data             dblobtext80_1251 not null
+);
+
+COMMIT;
+
+ALTER TABLE gd_sql_statement ADD CONSTRAINT gd_pk_sql_statement
+  PRIMARY KEY (id);
+
+/* фореін кей не ставіцца з мэтай хукага дабаўленьня запісаў */
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_sql_statement FOR gd_sql_statement
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+CREATE TABLE gd_sql_log
+(
+  statementcrc     INTEGER NOT NULL,
+  paramscrc        INTEGER,
+  contactkey       dintkey,
+  starttime        dtimestamp_notnull,
+  duration         INTEGER NOT NULL
+);
+
+COMMIT;
+
+ALTER TABLE gd_sql_log ADD CONSTRAINT gd_fk_sql_log_scrc
+  FOREIGN KEY (statementcrc) REFERENCES gd_sql_statement (crc)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_sql_log ADD CONSTRAINT gd_fk_sql_log_pcrc
+  FOREIGN KEY (paramscrc) REFERENCES gd_sql_statement (crc)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+/*
+ALTER TABLE gd_sql_log ADD CONSTRAINT gd_fk_sql_log_ckey
+  FOREIGN KEY (contactkey) REFERENCES gd_contact (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+*/
+
+SET TERM ^ ;
+
+/*--------------------------------------------------------
+
+  gd_p_sec_loginuser
+
+  На вход передаются: имя пользователя и пароль
+  (пока не в зашифрованном виде). Эти значения пользователь вводит
+  при входе в систему.
+
+  На выходе:
+    result = 1          -- все нормально
+    result = 2          -- все нормально, сменить пароль
+    result = -1001      -- нет такой подсистемы
+    result = -1002      -- подсистема заблокирована
+    result = -1003      -- пользователя нет
+    result = -1004      -- пароль неверен
+    result = -1005      -- пользователь заблокирован или истек срок
+    result = -1006      -- вход в не рабочее время
+    result = -1007      -- пользователь не имеет прав на вход в подсистему
+    result = -1008      -- все группы пользователя для входа в подсистему заблокированы
+
+    Если все нормально, то userkey, ibname, ibpassw -- ключ пользователя,
+    имя пользователя Interbase и пароль Interbase соответственно.
+    Иначе, значения переменных неопределены.
+
+  ВНИМАНИЕ! Мы поменяли смысл ДБверсионИД -- теперь это
+  уникальный идентификатор базы данных (значение соответствующего
+  генератора).
+
+----------------------------------------------------------*/
+
+CREATE PROCEDURE gd_p_sec_loginuser (username VARCHAR(20), passw VARCHAR(20), subsystem INTEGER)
+  RETURNS (
+    result        INTEGER,
+    userkey       INTEGER,
+    contactkey    INTEGER,
+    ibname        VARCHAR(20),
+    ibpassword    VARCHAR(20),
+    ingroup       INTEGER,
+    session       INTEGER,
+    subsystemname VARCHAR(60),
+    groupname     VARCHAR(2048),
+    dbversion     VARCHAR(20),
+    dbreleasedate DATE,
+    dbversionid   INTEGER,
+    dbversioncomment VARCHAR(254),
+    auditlevel    INTEGER,
+    auditcache    INTEGER,
+    auditmaxdays  INTEGER,
+    allowuseraudit SMALLINT
+  )
+AS
+  DECLARE VARIABLE PNE INTEGER;
+  DECLARE VARIABLE MCH INTEGER;
+  DECLARE VARIABLE WS TIME;
+  DECLARE VARIABLE WE TIME;
+  DECLARE VARIABLE ED DATE;
+  DECLARE VARIABLE UDISABLED INTEGER;
+  DECLARE VARIABLE UPASSW VARCHAR(20);
+BEGIN
+  UDISABLED = NULL;
+
+  SELECT id, disabled, passw, workstart, workend, expdate, passwneverexp,
+    contactkey, ibname, ibpassword, ingroup, mustchange, allowaudit
+  FROM gd_user
+  WHERE UPPER(name) = UPPER(:username)
+  INTO :userkey, :UDISABLED, :UPASSW, :WS, :WE, :ED, :PNE,
+    :contactkey, :ibname, :ibpassword, :ingroup, :MCH, :AllowUserAudit;
+
+  IF (:userkey IS NULL) THEN
+  BEGIN
+    result = -1003;
+    EXIT;
+  END
+
+  IF (:UDISABLED <> 0) THEN
+  BEGIN
+    result = -1005;
+    EXIT;
+  END
+
+  IF ((CURRENT_DATE >= :ED) AND (:PNE = 0)) THEN
+  BEGIN
+    result = -1005;
+    EXIT;
+  END
+
+  IF (
+    (NOT :WS IS NULL) AND
+    (NOT :WE IS NULL) AND
+    ((CURRENT_TIME < :WS) OR (CURRENT_TIME > :WE))
+  ) THEN
+  BEGIN
+    result = -1006;
+    EXIT;
+  END
+
+  IF (:UPASSW <> :passw) THEN
+  BEGIN
+    result = -1004;
+    EXIT;
+  END
+
+  IF (:contactkey IS NULL) THEN
+    contactkey = -1;
+
+  EXECUTE PROCEDURE gd_p_sec_getgroupsforuser(:userkey)
+    RETURNING_VALUES :groupname;
+
+  result = IIF(:MCH = 0, 1, 2);
+
+  /* унiкальны нумар сэсii */
+  session = GEN_ID(gd_g_session_id, 1);
+
+  /* бягучы нумар вэрс__ базы _ дата выхаду */
+  SELECT FIRST 1 versionstring, releasedate, /*id,*/ comment
+  FROM fin_versioninfo
+  ORDER BY id DESC
+  INTO :dbversion, :dbreleasedate, /*:dbversionid,*/ :dbversioncomment;
+
+  dbversionid = GEN_ID(gd_g_dbid, 0);
+END
+^
+
+/*
+
+  Возвращает список таблиц из базы данных, у которых есть
+  дескрипторы безопасности. Кроме этого показывает какие именно
+  дескрипторы присутствуют в той или иной таблице (0 или 1
+  в соответствующей колонке результирующего набора).
+
+*/
+CREATE PROCEDURE gd_p_gettableswithdescriptors
+RETURNS (relationname VARCHAR(32), aview INTEGER, achag INTEGER, afull INTEGER)
+AS
+BEGIN
+  FOR
+    SELECT
+      DISTINCT rf.rdb$relation_name
+      FROM rdb$relation_fields rf
+        LEFT JOIN rdb$view_relations vr ON vr.rdb$view_name = rf.rdb$relation_name
+      WHERE rf.rdb$field_name IN ('AVIEW', 'ACHAG', 'AFULL')
+        AND vr.rdb$view_name IS NULL
+      INTO :RelationName
+  DO
+  BEGIN
+    IF (EXISTS (SELECT * FROM rdb$relation_fields WHERE rdb$relation_name=:RelationName AND
+          rdb$field_name='AVIEW')) THEN aview = 1; ELSE aview = 0;
+    IF (EXISTS (SELECT * FROM rdb$relation_fields WHERE rdb$relation_name=:RelationName AND
+          rdb$field_name='ACHAG')) THEN achag = 1; ELSE achag = 0;
+    IF (EXISTS (SELECT * FROM rdb$relation_fields WHERE rdb$relation_name=:RelationName AND
+          rdb$field_name='AFULL')) THEN afull = 1; ELSE afull = 0;
+    SUSPEND;
+  END
+END
+^
+
+SET TERM ; ^
+
+GRANT EXECUTE ON PROCEDURE gd_p_sec_loginuser TO startuser;
+GRANT SELECT ON gd_user TO PROCEDURE gd_p_sec_loginuser;
+GRANT SELECT ON gd_subsystem TO PROCEDURE gd_p_sec_loginuser;
+GRANT SELECT ON gd_usergroup TO PROCEDURE gd_p_sec_loginuser;
+GRANT SELECT, UPDATE, DELETE ON gd_journal TO PROCEDURE gd_p_sec_loginuser;
+
+COMMIT;
+
+
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Gedymin project                              **/
+/**   Copyright (c) 2001-2002 by                   **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/*
+
+   0 прочее
+  10 страна
+  20 область
+  30 район
+  40 населенный пункт
+  50 район в нас пункте
+  60 улица
+  70 дом
+
+*/
+
+CREATE DOMAIN dplacetype
+  AS VARCHAR(10) CHARACTER SET WIN1251
+  DEFAULT ''
+  NOT NULL
+  COLLATE PXW_CYRL;
+
+CREATE TABLE gd_place (
+  id          dintkey,
+  parent      dparent,
+  lb          dlb,
+  rb          drb,
+  name        dname,
+  placetype   dplacetype,
+  telprefix   dtext8,           /* телефонный код места (города ) */
+  code        dtext8            /* код местности*/
+);
+
+COMMIT;
+
+ALTER TABLE gd_place ADD CONSTRAINT gd_pk_place
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_place ADD CONSTRAINT gd_fk_place_parent
+  FOREIGN KEY (parent)
+  REFERENCES gd_place (id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+CREATE EXCEPTION gd_e_placeexists 'Place already exists';
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_place FOR gd_place
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (EXISTS(SELECT * FROM gd_place WHERE COALESCE(parent, 0) = COALESCE(NEW.parent, 0)
+    AND UPPER(name) = UPPER(NEW.name))) THEN
+  BEGIN
+    EXCEPTION gd_e_placeexists;
+  END
+END
+^
+
+CREATE TRIGGER gd_bu_place FOR gd_place
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (EXISTS(SELECT * FROM gd_place WHERE COALESCE(parent, 0) = COALESCE(NEW.parent, 0)
+    AND UPPER(name) = UPPER(NEW.name)
+    AND ID <> NEW.id)) THEN
+  BEGIN
+    EXCEPTION gd_e_placeexists;
+  END
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+COMMIT;
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/****************************************************/
+/**   Справочник валют                             **/
+/****************************************************/
+
+CREATE TABLE gd_curr
+(
+  id             dintkey,                      /* уникальный идентификатор                               */
+  disabled       ddisabled,                    /* используется эта валюта или нет                        */
+  isNCU          dboolean DEFAULT 0,           /* является ли эта валюта национальной денежной ед.       */
+  isEq           dboolean DEFAULT 0,           /* является ли эта валюта эквивалентом       */
+  code           dalias,                       /* код валюты (по банковскому классификатору)             */
+  name           dname,                        /* полное наименование                                    */
+  shortname      dalias,                       /* краткое наименование                                   */
+  sign           dalias,                       /* знак валюты                                            */
+  place          dboolean DEFAULT 0,           /* местоположение знака, TRUE -- до, FALSE -- после числа */
+  decdigits      ddecdigits DEFAULT 2,         /* количество десятичных знаков                           */
+  fullcentname   dtext40,                      /* полное наименование центов                             */
+  shortcentname  dtext40,                      /* краткое наименование центов                            */
+  centbase       dsmallint DEFAULT 10 NOT NULL, /* база дробных единиц (почти всегда 10)                  */
+  icon           dinteger,
+  afull          dsecurity,
+  achag          dsecurity,
+  aview          dsecurity,
+  ISO            dISO,
+  name_0         dtext60, /* В родительном падеже, если заканчивается на 0, 5-9*/
+  name_1         dtext60, /* В родительном падеже, если заканчивается на 2-4 */
+  centname_0     dtext60, /* В родительном падеже, если заканчивается на 0, 5-9*/
+  centname_1     dtext60, /* В родительном падеже, если заканчивается на 2-4 */
+  reserved       dreserved
+);
+
+COMMIT;
+
+ALTER TABLE gd_curr ADD CONSTRAINT gd_pk_curr
+  PRIMARY KEY (id);
+
+CREATE UNIQUE ASC INDEX gd_x_currfullname ON gd_curr
+  /*COMPUTED BY (UPPER(name));*/
+  (name);
+
+CREATE UNIQUE ASC INDEX gd_x_currshortname ON gd_curr
+  /*COMPUTED BY (UPPER(shortname));*/
+  (shortname);
+
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_curr FOR gd_curr
+  BEFORE INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE ATTRKEY INTEGER;
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.code IS NULL) THEN
+    NEW.code = '';
+
+  /* НДЕ может быть только одна */
+  IF (NEW.isNCU = 1) THEN
+    UPDATE gd_curr SET isNCU = 0 WHERE isNCU = 1;
+
+  /* Эквивалент может быть только один */
+  IF (NEW.isEq = 1) THEN
+    UPDATE gd_curr SET isEq = 0 WHERE isEq = 1;
+END
+^
+
+CREATE TRIGGER gd_bu_curr FOR gd_curr
+  BEFORE UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE ATTRKEY INTEGER;
+BEGIN
+  /* НДЕ может быть только одна */
+  IF (NEW.isNCU = 1 AND NEW.isNCU <> OLD.isNCU) THEN
+    UPDATE gd_curr SET isNCU = 0 WHERE id <> NEW.id;
+
+  /* Эквивалент может быть только один */
+  IF (NEW.isEq = 1 AND NEW.isEq <> OLD.isEq) THEN
+    UPDATE gd_curr SET isEq = 0 WHERE id <> NEW.id;
+END
+^
+
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************/
+/**   Справочник курсов валют                      **/
+/****************************************************/
+
+CREATE DOMAIN dcurrrate AS
+  DECIMAL(15, 10)
+  NOT NULL;
+
+COMMIT;
+
+CREATE TABLE gd_currrate
+(
+  id             dintkey,
+  fromcurr       dintkey,
+  tocurr         dintkey,
+  fordate        ddate NOT NULL,
+  coeff          dcurrrate
+);
+
+COMMIT;
+
+SET TERM ^ ;
+
+
+CREATE TRIGGER gd_bi_currrate FOR gd_currrate ACTIVE
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+ALTER TABLE gd_currrate ADD CONSTRAINT gd_pk_currrate
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_currrate ADD CONSTRAINT gd_uk_currrate
+  UNIQUE (fromcurr, tocurr, fordate);
+
+ALTER TABLE gd_currrate ADD CONSTRAINT gd_fk1_currrate
+  FOREIGN KEY (fromcurr) REFERENCES gd_curr (id) ON UPDATE CASCADE;
+
+ALTER TABLE gd_currrate ADD CONSTRAINT gd_fk2_currrate
+  FOREIGN KEY (tocurr) REFERENCES gd_curr (id) ON UPDATE CASCADE;
+
+ALTER TABLE gd_currrate ADD CONSTRAINT gd_chk1_currrate
+  CHECK(fromcurr <> tocurr);
+
+COMMIT;
+
+/* COMMIT; */
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+
+  Abstract
+
+
+  Author
+
+
+  Revisions history
+
+
+  Status
+
+    Draft
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2002 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+RECREATE TABLE wg_position
+(
+  id         dintkey,
+  /*alias      dalias,*/
+  name       dname,
+  reserved   dreserved,
+
+  CONSTRAINT wg_pk_position PRIMARY KEY (id)
+);
+
+COMMIT;
+
+CREATE UNIQUE INDEX wg_x_position_name ON wg_position
+  /*COMPUTED BY (UPPER(name));*/
+  (name);
+
+SET TERM ^ ;
+
+CREATE TRIGGER wg_bi_position FOR wg_position
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+RECREATE TABLE wg_holiday
+(
+  id          dintkey,
+  holidaydate ddate NOT NULL,
+  name        dname,
+  disabled    ddisabled,
+
+  CONSTRAINT wg_pk_holiday PRIMARY KEY (id)
+);
+
+COMMIT;
+
+CREATE UNIQUE INDEX wg_x_holiday_holdaydate ON wg_holiday
+  (holidaydate);
+
+COMMIT;
+
+RECREATE TABLE wg_tblcal
+(
+  id         dintkey,
+  name       dname,
+
+  /* працоўныя дні тыдня */
+  mon        dboolean_notnull DEFAULT 1,
+  tue        dboolean_notnull DEFAULT 1,
+  wed        dboolean_notnull DEFAULT 1,
+  thu        dboolean_notnull DEFAULT 1,
+  fri        dboolean_notnull DEFAULT 1,
+  sat        dboolean_notnull DEFAULT 0,
+  sun        dboolean_notnull DEFAULT 0,
+
+  /*Праздничные дни по умолчанию нерабочие*/
+  holidayiswork  dboolean_notnull DEFAULT 0,
+
+  /* інтэрвалы працоўнага часу */
+  w1_offset   dinteger DEFAULT 0,
+  w1_start1   dtime_notnull DEFAULT '00:00:00',
+  w1_end1     dtime_notnull DEFAULT '00:00:00',
+  w1_start2   dtime_notnull DEFAULT '00:00:00',
+  w1_end2     dtime_notnull DEFAULT '00:00:00',
+  w1_start3   dtime_notnull DEFAULT '00:00:00',
+  w1_end3     dtime_notnull DEFAULT '00:00:00',
+  w1_start4   dtime_notnull DEFAULT '00:00:00',
+  w1_end4     dtime_notnull DEFAULT '00:00:00',
+
+  w2_offset   dinteger DEFAULT 0,
+  w2_start1   dtime_notnull DEFAULT '00:00:00',
+  w2_end1     dtime_notnull DEFAULT '00:00:00',
+  w2_start2   dtime_notnull DEFAULT '00:00:00',
+  w2_end2     dtime_notnull DEFAULT '00:00:00',
+  w2_start3   dtime_notnull DEFAULT '00:00:00',
+  w2_end3     dtime_notnull DEFAULT '00:00:00',
+  w2_start4   dtime_notnull DEFAULT '00:00:00',
+  w2_end4     dtime_notnull DEFAULT '00:00:00',
+
+  w3_offset   dinteger DEFAULT 0,
+  w3_start1   dtime_notnull DEFAULT '00:00:00',
+  w3_end1     dtime_notnull DEFAULT '00:00:00',
+  w3_start2   dtime_notnull DEFAULT '00:00:00',
+  w3_end2     dtime_notnull DEFAULT '00:00:00',
+  w3_start3   dtime_notnull DEFAULT '00:00:00',
+  w3_end3     dtime_notnull DEFAULT '00:00:00',
+  w3_start4   dtime_notnull DEFAULT '00:00:00',
+  w3_end4     dtime_notnull DEFAULT '00:00:00',
+
+  w4_offset   dinteger DEFAULT 0,
+  w4_start1   dtime_notnull DEFAULT '00:00:00',
+  w4_end1     dtime_notnull DEFAULT '00:00:00',
+  w4_start2   dtime_notnull DEFAULT '00:00:00',
+  w4_end2     dtime_notnull DEFAULT '00:00:00',
+  w4_start3   dtime_notnull DEFAULT '00:00:00',
+  w4_end3     dtime_notnull DEFAULT '00:00:00',
+  w4_start4   dtime_notnull DEFAULT '00:00:00',
+  w4_end4     dtime_notnull DEFAULT '00:00:00',
+
+  w5_offset    dinteger DEFAULT 0,
+  w5_start1    dtime_notnull DEFAULT '00:00:00',
+  w5_end1      dtime_notnull DEFAULT '00:00:00',
+  w5_start2    dtime_notnull DEFAULT '00:00:00',
+  w5_end2      dtime_notnull DEFAULT '00:00:00',
+  w5_start3    dtime_notnull DEFAULT '00:00:00',
+  w5_end3      dtime_notnull DEFAULT '00:00:00',
+  w5_start4    dtime_notnull DEFAULT '00:00:00',
+  w5_end4      dtime_notnull DEFAULT '00:00:00',
+
+  w6_offset    dinteger DEFAULT 0,
+  w6_start1    dtime_notnull DEFAULT '00:00:00',
+  w6_end1      dtime_notnull DEFAULT '00:00:00',
+  w6_start2    dtime_notnull DEFAULT '00:00:00',
+  w6_end2      dtime_notnull DEFAULT '00:00:00',
+  w6_start3    dtime_notnull DEFAULT '00:00:00',
+  w6_end3      dtime_notnull DEFAULT '00:00:00',
+  w6_start4    dtime_notnull DEFAULT '00:00:00',
+  w6_end4      dtime_notnull DEFAULT '00:00:00',
+
+  w7_offset    dinteger DEFAULT 0,
+  w7_start1    dtime_notnull DEFAULT '00:00:00',
+  w7_end1      dtime_notnull DEFAULT '00:00:00',
+  w7_start2    dtime_notnull DEFAULT '00:00:00',
+  w7_end2      dtime_notnull DEFAULT '00:00:00',
+  w7_start3    dtime_notnull DEFAULT '00:00:00',
+  w7_end3      dtime_notnull DEFAULT '00:00:00',
+  w7_start4    dtime_notnull DEFAULT '00:00:00',
+  w7_end4      dtime_notnull DEFAULT '00:00:00',
+
+  /* перад святочны дзень */
+  w8_offset    dinteger DEFAULT 0,
+  w8_start1    dtime_notnull DEFAULT '00:00:00',
+  w8_end1      dtime_notnull DEFAULT '00:00:00',
+  w8_start2    dtime_notnull DEFAULT '00:00:00',
+  w8_end2      dtime_notnull DEFAULT '00:00:00',
+  w8_start3    dtime_notnull DEFAULT '00:00:00',
+  w8_end3      dtime_notnull DEFAULT '00:00:00',
+  w8_start4    dtime_notnull DEFAULT '00:00:00',
+  w8_end4      dtime_notnull DEFAULT '00:00:00',
+
+  CONSTRAINT wg_pk_tblcal PRIMARY KEY (id)
+);
+
+COMMIT;
+
+RECREATE TABLE wg_tblcalday
+(
+  id         dintkey,
+  tblcalkey  dintkey,
+  theday     ddate_notnull,
+  workday    dboolean_notnull DEFAULT 1,
+  wstart1    dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+  wend1      dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+  wstart2    dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+  wend2      dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+  wstart3    dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+  wend3      dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+  wstart4    dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+  wend4      dtimestamp_notnull DEFAULT '1900-01-01 00:00:00',
+
+  WDURATION  COMPUTED BY (G_M_ROUNDNN(((wend1 - wstart1) + (wend2 - wstart2) + (wend3 - wstart3) + (wend4 - wstart4))*24, 0.01)),
+
+  dow COMPUTED BY (EXTRACT(weekday FROM theday)),
+
+  CONSTRAINT wg_pk_tblcalday PRIMARY KEY (id),
+  CONSTRAINT wg_fk_tblcalday_tblcal FOREIGN KEY (tblcalkey) REFERENCES wg_tblcal (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT wg_unq_tblcalday_1 UNIQUE (tblcalkey, theday),
+  CONSTRAINT wg_chk_tblcalday_1 CHECK (wend1 >= wstart1),
+  CONSTRAINT wg_chk_tblcalday_2 CHECK (wend2 >= wstart2),
+  CONSTRAINT wg_chk_tblcalday_3 CHECK (wend3 >= wstart3),
+  CONSTRAINT wg_chk_tblcalday_4 CHECK (wend4 >= wstart4),
+  CONSTRAINT wg_chk_tblcalday_5 CHECK ((wstart2 = '1900-01-01 00:00:00') OR (wstart2 >= wend1)),
+  CONSTRAINT wg_chk_tblcalday_6 CHECK ((wstart3 = '1900-01-01 00:00:00') OR (wstart3 >= wend2)),
+  CONSTRAINT wg_chk_tblcalday_7 CHECK ((wstart4 = '1900-01-01 00:00:00') OR (wstart4 >= wend3))
+
+);
+
+SET TERM ^ ;
+
+CREATE TRIGGER wg_bi_holiday FOR wg_holiday
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE TRIGGER wg_bi_tblcal FOR wg_tblcal
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE TRIGGER wg_bi_tblcalday FOR wg_tblcalday
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+
+COMMIT;
+
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE EXCEPTION gd_e_nofolder 'There is no any folder';
+
+CREATE DOMAIN daddrcontacttype
+  AS SMALLINT NOT NULL;
+
+CREATE TABLE gd_contact
+(
+  id            dintkey,
+
+
+  /* Левая (верхняя) граница. Одновременно может использоваться */
+  /* как второй уникальный индекс, если группы и список */
+  /* находятся в разных таблицах */
+  lb            dlb,
+  rb            drb,          /* Правая (нижняя) граница */
+
+  parent        dparent,
+  contacttype   daddrcontacttype, /* 0 - папка, 1 - группа, 2 - человек, 3 - клиент, 4 - подразделение, 5 - банк        */
+                              /*
+                                Для проекта department
+                                100 - Реализующие организации
+                                101 - Уполномоченные органы
+                                102 - финансовые органы
+                                103 - Главный уполномоченный орган
+                               */
+
+  name          dname,        /* Імя для паказу                                                           */
+  address       dtext60,      /* Адрэс                                                                    */
+  district      dtext20,
+  city          dtext20,      /* Горад                                                                    */
+  region        dtext20,      /* Вобласць                                                                 */
+  ZIP           dtext20,      /* Індэкс                                                                   */
+  country       dtext20,      /* Краіна                                                                   */
+  placekey      dforeignkey,
+  note          dblobtext80_1251, /* Камэнтар                                                                 */
+  externalkey   dforeignkey,
+  email         dtext60,
+  url           dtext40,
+  pobox         dtext40,
+  phone         dtext40,
+  fax           dtext40,
+
+  editorkey     dforeignkey,
+  editiondate   deditiondate,
+
+  afull         dsecurity,
+  achag         dsecurity,
+  aview         dsecurity,
+
+  disabled      ddisabled,
+  reserved      dreserved
+);
+
+COMMIT;
+
+ALTER TABLE gd_contact ADD CONSTRAINT gd_pk_contact
+  PRIMARY KEY (id);
+
+/* калі выдаляецца бацькоўскі кантакт, выдаляем і ўсіх дзяцей */
+ALTER TABLE gd_contact ADD CONSTRAINT gd_fk_contract_parent
+  FOREIGN KEY (parent) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE gd_contact ADD CONSTRAINT gd_fk_contact_placekey
+  FOREIGN KEY (placekey) REFERENCES gd_place (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_contact ADD CONSTRAINT gd_chk_contact_contacttype
+  CHECK(contacttype IN (0, 1, 2, 3, 4, 5, 100, 101, 102, 103));
+
+ALTER TABLE gd_contact ADD CONSTRAINT gd_chk_contact_parent
+  CHECK((contacttype IN (0, 1)) OR (NOT (parent IS NULL)));
+
+ALTER TABLE gd_user ADD CONSTRAINT gd_fk_user_contactkey
+  FOREIGN KEY (contactkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_contact ADD CONSTRAINT gd_fk_contact_editorkey
+  FOREIGN KEY (editorkey) REFERENCES gd_contact(id) 
+  ON UPDATE CASCADE;
+
+
+CREATE ASC INDEX gd_x_contact_name ON gd_contact (name);
+
+COMMIT;
+
+CREATE TABLE gd_people
+(
+  contactkey     dintkey,
+  firstname      dtext20,      /* Імя                                                            */
+  surname        dtext20 NOT NULL,/* Прозвішча                                                      */
+  middlename     dtext20,      /* Імя па бацьку                                                  */
+  nickname       dtext20,      /* Кароткае імя                                                   */
+  rank           dtext20,      /* Званіе                                                         */
+
+  /* Хатнія дадзеныя */
+  hplacekey      dforeignkey,
+  haddress       dtext60,     /* Адрас                                                          */
+  hcity          dtext20,     /* Горад                                                          */
+  hregion        dtext20,     /* Вобласць                                                       */
+  hZIP           dtext20,     /* Індэкс                                                         */
+  hcountry       dtext20,     /* Краіна                                                         */
+  hdistrict      dtext20,
+  hphone         dtext20,
+
+  /* Працоўныя дадзеныя */
+  wcompanykey    dforeignkey,
+  wcompanyname   dtext60,     /* Кампанія                                                       */
+  wdepartment    dtext20,     /* Падраздзяленьне                                                */
+  wpositionkey   dforeignkey,
+
+  /* Пэрсанальныя дадзеныя */
+  spouse         dtext20,     /* Супруг/супруга                                                 */
+  children       dtext20,     /* Дзеткі                                                         */
+  sex            dgender,     /* Пол                                                            */
+  birthday       ddate,        /* Дата нараджэньня                                               */
+
+  /* Пашпартныя дадзеныя */
+  passportnumber dtext40,     /* нумар пашпарту */
+  /*passportdate   ddate,*/       /* ??? */
+  passportexpdate ddate,      /* тэрмін дзеяння пашпарту */
+  passportissdate ddate,      /* дата выдачы */
+  passportissuer dtext40,     /* хто выдаў */
+  passportisscity dtext20,    /* дзе выдадзены */
+  personalnumber dtext40,     /* пэрсанальны номер */
+
+  /*Угодкі*/
+
+  /* Дадатковая інфармацыя */
+  visitcard      dBMP,        /* Візітная картка                                                */
+  photo          dBMP         /* Фота                                                           */
+);
+
+ALTER TABLE gd_people
+  ADD CONSTRAINT gd_pk_people PRIMARY KEY (contactkey);
+
+ALTER TABLE gd_people ADD CONSTRAINT gd_fk_people_contactkey
+  FOREIGN KEY (contactkey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+/* калі выдаляецца кампанія на якую спасылаецца чалавек */
+/* нічога страшнага -- ануліруем гэную спасылку і ўсё   */
+ALTER TABLE gd_people ADD CONSTRAINT gd_fk_people_companykey
+  FOREIGN KEY (wcompanykey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
+ALTER TABLE gd_people ADD CONSTRAINT gd_fk_people_positionkey
+  FOREIGN KEY (wpositionkey) REFERENCES wg_position(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
+ALTER TABLE gd_people ADD CONSTRAINT gd_fk_people_hplacekey
+  FOREIGN KEY (hplacekey) REFERENCES gd_place(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_people FOR gd_people
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  NEW.rank = NULL;
+  SELECT SUBSTRING(name FROM 1 FOR 20) FROM wg_position WHERE id = NEW.wpositionkey
+    INTO NEW.rank;
+
+  IF (NOT NEW.wcompanykey IS NULL) THEN
+  BEGIN
+    SELECT name FROM gd_contact WHERE id = NEW.wcompanykey
+      INTO NEW.wcompanyname;
+  END
+END
+^
+
+CREATE TRIGGER gd_bu_people FOR gd_people
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  NEW.rank = NULL;
+  SELECT SUBSTRING(name FROM 1 FOR 20) FROM wg_position WHERE id = NEW.wpositionkey
+    INTO NEW.rank;
+
+  IF (NOT NEW.wcompanykey IS NULL) THEN
+  BEGIN
+    SELECT name FROM gd_contact WHERE id = NEW.wcompanykey
+      INTO NEW.wcompanyname;
+  END
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+CREATE TABLE gd_company
+(
+  contactkey        dintkey,     /* Контакт  */
+  companyaccountkey dforeignkey, /* Расчетный счет */
+  headcompany       dforeignkey, /* Головная компания */
+  /* пав?нна быць першым тэкставым полем */
+  fullname          dtext180,    /* Полное наименовние */
+  companytype       dtext20,     /* Тип компании */
+  directorkey       dforeignkey,
+  chiefaccountantkey dforeignkey,
+  logo              dBMP         /* Логотип */
+);
+
+ALTER TABLE gd_company
+  ADD CONSTRAINT gd_pk_company PRIMARY KEY (contactkey);
+
+ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_contactkey
+  FOREIGN KEY (contactkey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_headcompany
+  FOREIGN KEY (headcompany) REFERENCES gd_company(contactkey)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_directorkey
+  FOREIGN KEY (directorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_chiefacckey
+  FOREIGN KEY (chiefaccountantkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+
+/*
+ *
+ *  Таблица дополнительных свойств контактов.
+ *  Дополнительные свойства контактов добавляются через атрибуты
+ *
+ */
+
+
+/*CREATE TABLE gd_contactprops
+(
+  contactkey     dintkey,                       * / /* ключ клиента */
+/*  reserved       dinteger                      */   /* зарезервировано */
+/*);
+
+
+COMMIT;
+
+ALTER TABLE gd_contactprops ADD CONSTRAINT gd_pk_contactprops_contact
+  PRIMARY KEY (contactkey);
+
+COMMIT;
+
+ALTER TABLE gd_contactprops ADD CONSTRAINT gd_fk_contactprops_contact
+  FOREIGN KEY (contactkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE ON DELETE CASCADE;
+*/
+
+CREATE TABLE gd_companycode
+(
+  companykey    dintkey,
+  legalnumber   dtext20,
+  taxid         dtext20,
+  okulp         dtext20,
+  okpo          dtext20,
+  oknh          dtext20,
+  soato         dtext20,
+  soou          dtext20,
+  licence       dtext40
+);
+
+ALTER TABLE gd_companycode
+  ADD CONSTRAINT gd_pk_companycode PRIMARY KEY (companykey);
+
+/* коды -- дадатковая інфармацыя для кампаніі, таму, калі */
+/* выдаляецца кампанія выдалім і коды                     */
+ALTER TABLE gd_companycode ADD CONSTRAINT gd_fk_companycode_contackey
+  FOREIGN KEY (companykey) REFERENCES gd_company(contactkey)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+CREATE TABLE gd_bank
+(
+  bankkey     dintkey,      /*                           */
+  bankcode    dtext20 NOT NULL,
+  bankbranch  dtext20,
+  bankMFO     dtext20,
+  SWIFT       dtext20
+);
+
+COMMIT;
+
+ALTER TABLE gd_bank ADD CONSTRAINT gd_pk_bank
+  PRIMARY KEY (bankkey);
+
+ALTER TABLE gd_bank ADD CONSTRAINT gd_fk_bank_bankkey
+  FOREIGN KEY (bankkey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+CREATE UNIQUE INDEX gd_x_bank_bankcode
+  ON gd_bank (bankcode, bankbranch);
+
+COMMIT;
+
+/* Типы счетов*/
+CREATE TABLE GD_COMPACCTYPE
+(
+  id   dintkey,
+  name dname
+);
+
+COMMIT;
+
+ALTER TABLE gd_compacctype ADD CONSTRAINT gd_pk_compacctype_id
+  PRIMARY KEY (id);
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_compacctype FOR gd_compacctype
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+CREATE TABLE gd_companyaccount
+(
+  id             dintkey,            /* унікальны ідэнтыфікатар                   */
+  companykey     dmasterkey,         /* кампанія, якой належыць рахунак           */
+  bankkey        dintkey,            /* спасылка на банк                          */
+  payername      dtext60,            /* назва кліента для плацёжных дакументаў    */
+  account        dbankaccount NOT NULL,       /* рахунак                                   */
+  currkey        dforeignkey,        /* валюта, ў якой адкрыты рахунак            */
+  accounttypekey dforeignkey,        /* код тыпа рахунку (разліковы, ссудны...)   */
+  disabled       dboolean DEFAULT 0,
+
+  accounttype    dtext20             /* для совместимости с предыдущей версией    */
+);
+
+ALTER TABLE gd_companyaccount ADD CONSTRAINT gd_pk_companyaccount
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_companyaccount ADD CONSTRAINT gd_fk_companyaccount_bankkey
+  FOREIGN KEY (bankkey) REFERENCES gd_bank(bankkey);
+
+ALTER TABLE gd_companyaccount ADD CONSTRAINT gd_fk_companyaccount_currkey
+  FOREIGN KEY (currkey) REFERENCES gd_curr(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_companyaccount ADD CONSTRAINT gd_fk_companyaccount_acctypekey
+  FOREIGN KEY (accounttypekey) REFERENCES gd_compacctype(id)
+  ON UPDATE CASCADE;
+
+/* рахункі -- дадатковая інфармацыя для кампаніі, таму, калі */
+/* выдаляецца кампанія выдалім і коды                        */
+ALTER TABLE gd_companyaccount ADD CONSTRAINT gd_fk_companyaccount_companykey
+  FOREIGN KEY (companykey) REFERENCES gd_company(contactkey)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_companyaccountkey
+  FOREIGN KEY (companyaccountkey) REFERENCES gd_companyaccount(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
+/*
+этот индекс не нужен так как заменяется индексом:
+
+gd_uk_companyaccount
+
+CREATE INDEX gd_x_companyaccount_acc
+  ON gd_companyaccount (account);
+*/
+
+COMMIT;
+
+CREATE TABLE gd_contactlist
+(
+  groupkey      dintkey,
+  contactkey    dintkey,
+  reserved      dinteger
+
+);
+
+COMMIT;
+
+ALTER TABLE gd_contactlist
+  ADD CONSTRAINT gd_pk_contactlist PRIMARY KEY (groupkey, contactkey);
+
+ALTER TABLE gd_contactlist ADD CONSTRAINT gd_fk_contract_contactlist
+  FOREIGN KEY (contactkey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+/* калі выдаляецца группа -- выдалім і ўсе звязкі кантактаў з ёй */
+ALTER TABLE gd_contactlist ADD CONSTRAINT gd_fk_group_contactlist
+  FOREIGN KEY (groupkey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+/* набор контактов, входящих в список контактов */
+
+CREATE VIEW GD_V_CONTACTLIST
+(
+  ID, CONTACTNAME, CONTACTTYPE,
+  GROUPNAME, GROUPID, GROUPLB, GROUPRB, GROUPTYPE
+) AS
+SELECT
+  P.ID, P.NAME, P.CONTACTTYPE, C.NAME, C.ID, C.LB, C.RB, C.CONTACTTYPE
+
+FROM
+  GD_CONTACT C
+    JOIN GD_CONTACTLIST CL ON (C.ID = CL.CONTACTKEY)
+    JOIN GD_CONTACT P ON (CL.GROUPKEY = P.ID)
+
+GROUP BY
+  P.ID, P.NAME, P.CONTACTTYPE, C.NAME, C.ID, C.LB, C.RB, C.CONTACTTYPE;
+
+COMMIT;
+
+
+SET TERM ^ ;
+
+
+CREATE PROCEDURE gd_p_SetCompanyToPeople(Department INTEGER)
+AS
+  DECLARE VARIABLE companykey INTEGER;
+BEGIN
+
+  SELECT MIN(comp.id)
+    FROM gd_contact comp,
+         gd_contact dep
+    WHERE dep.id = :Department AND comp.lb <= dep.lb AND
+      comp.rb >= dep.rb AND comp.contacttype = 3 INTO :companykey;
+
+  IF (:COMPANYKEY IS NOT NULL) THEN
+    UPDATE gd_people p
+    SET wcompanykey = :companykey
+    WHERE contactkey in
+    (SELECT contactkey FROM gd_contactlist cl WHERE groupkey = :Department)
+    AND (p.wcompanykey IS NULL);
+
+END
+^
+
+
+CREATE TRIGGER gd_bi_companyaccount FOR gd_companyaccount
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE EXCEPTION gd_e_invalid_contact_parent 'Invalid contact parent'
+^
+
+CREATE TRIGGER gd_bi_contact FOR gd_contact
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.name IS NULL) THEN
+    NEW.name = '';
+END
+^
+
+/*
+CREATE TRIGGER gd_bi_contact_2 FOR gd_contact
+  BEFORE INSERT
+  POSITION 2
+AS
+  DECLARE VARIABLE AFULL INTEGER;
+  DECLARE VARIABLE ACHAG INTEGER;
+  DECLARE VARIABLE AVIEW INTEGER;
+BEGIN
+  IF (NEW.parent IS NOT NULL) THEN
+  BEGIN
+    SELECT C.AFULL, C.ACHAG, C.AVIEW
+    FROM GD_CONTACT C
+    WHERE C.ID = NEW.Parent
+    INTO :AFULL, :ACHAG, :AVIEW;
+    NEW.AFULL = g_b_or(g_b_and(NEW.AFULL, :AFULL), 1);
+    NEW.ACHAG = g_b_or(g_b_and(NEW.ACHAG, :ACHAG), 1);
+    NEW.AVIEW = g_b_or(g_b_and(NEW.AVIEW, :AVIEW), 1);
+  END
+END
+^
+*/
+
+/*
+
+  При изменении прав доступа к объекту или перетаскивании его в
+  другую папку гарантируем, что у всех входящих в него объектов
+  права будут такие же или МЕНЬШЕ, но не БОЛЬШЕ.
+
+*/
+
+/*
+CREATE TRIGGER gd_bu_contact_2 FOR gd_contact
+  BEFORE UPDATE
+  POSITION 2
+AS
+  DECLARE VARIABLE AFULL INTEGER;
+  DECLARE VARIABLE ACHAG INTEGER;
+  DECLARE VARIABLE AVIEW INTEGER;
+BEGIN
+  IF ((NEW.parent IS NOT NULL) AND (NEW.parent <> OLD.parent)) THEN
+  BEGIN
+    SELECT C.AFULL, C.ACHAG, C.AVIEW
+    FROM GD_CONTACT C
+    WHERE C.ID = NEW.Parent
+    INTO :AFULL, :ACHAG, :AVIEW;
+    NEW.AFULL = g_b_or(g_b_and(NEW.AFULL, :AFULL), 1);
+    NEW.ACHAG = g_b_or(g_b_and(NEW.ACHAG, :ACHAG), 1);
+    NEW.AVIEW = g_b_or(g_b_and(NEW.AVIEW, :AVIEW), 1);
+  END
+
+  IF ((NEW.afull <> OLD.afull) OR (NEW.achag <> OLD.achag) OR (NEW.aview <> OLD.aview)) THEN
+  BEGIN
+    UPDATE GD_CONTACT C
+    SET
+      C.AFULL = g_b_or(g_b_and(NEW.AFULL, C.AFULL), 1),
+      C.ACHAG = g_b_or(g_b_and(NEW.ACHAG, C.ACHAG), 1),
+      C.AVIEW = g_b_or(g_b_and(NEW.AVIEW, C.AVIEW), 1)
+    WHERE
+      C.Parent = New.ID;
+  END
+END
+^
+*/
+
+/*
+
+  Для однажды созданного контакта нельзя изменять
+  его тип.
+
+*/
+
+CREATE EXCEPTION gd_e_cannot_change_contact_type 'Can not change contact type'
+^
+
+CREATE TRIGGER gd_bu_contact_3 FOR gd_contact
+  BEFORE UPDATE
+  POSITION 3
+AS
+BEGIN
+  IF (NEW.contacttype <> OLD.contacttype) THEN
+  BEGIN
+    EXCEPTION gd_e_cannot_change_contact_type;
+  END
+END
+^
+
+CREATE EXCEPTION gd_e_invalid_contact_type 'Invalid contact type'
+^
+
+CREATE TRIGGER gd_bi_company_1000 FOR gd_company
+  BEFORE INSERT
+  POSITION 1000
+AS
+BEGIN
+  IF (EXISTS(SELECT contacttype FROM gd_contact WHERE id=NEW.contactkey AND contacttype<3)) THEN
+  BEGIN
+    EXCEPTION gd_e_invalid_contact_type;
+  END
+END
+^
+
+
+/*
+ *  Мы паставілі сартыроўку па назве непасрэдна ў тэксце
+ *  працэдуры. !!!
+ *
+ */
+CREATE PROCEDURE gd_p_getfolderelement(parent Integer)
+RETURNS
+(
+  id          INTEGER,
+  contacttype INTEGER,
+  name        VARCHAR(60),
+  phone       VARCHAR(60),
+  address     VARCHAR(60),
+  email       VARCHAR(60),
+
+  afull       INTEGER,
+  achag       INTEGER,
+  aview       INTEGER
+)
+AS
+  DECLARE VARIABLE N INTEGER;
+BEGIN
+  FOR SELECT id, contacttype, name, phone, address, email, afull, achag, aview
+    FROM gd_contact
+    WHERE parent = :parent
+    ORDER BY name
+    INTO :id, :contacttype, :name, :phone, :address, :email, :afull, :achag, :aview DO
+  BEGIN
+    IF (:contacttype = 0) THEN
+    BEGIN
+      N = :ID;
+      FOR
+        SELECT id, contacttype, name, phone, address, email, afull, achag, aview
+          FROM gd_p_getfolderelement(:N)
+          INTO :id, :contacttype, :name, :phone, :address, :email, :afull, :achag, :aview
+      DO
+        SUSPEND;
+    END
+    ELSE
+      SUSPEND;
+  END
+END
+^
+
+
+
+
+/*
+
+  Данная процедура для заданной головной компании вытягивает
+  список подразделений и сотрудников, так, что этот список можно ото-
+  бразить в дереве.
+
+*/
+
+/*
+CREATE GENERATOR gd_g_contact_virt_id
+^
+SET GENERATOR gd_g_contact_virt_id TO 2147483646
+^
+
+CREATE PROCEDURE gd_p_people_and_departments (Master INTEGER)
+  RETURNS (
+    id INTEGER,
+    parent INTEGER,
+    name VARCHAR(60),
+    origid INTEGER,
+    origparent INTEGER,
+    contacttype INTEGER
+  )
+AS
+  DECLARE VARIABLE GK INTEGER;
+BEGIN
+  id = 2147483646;
+
+  FOR
+    SELECT d.id, d.parent, d.name, d.id, d.parent, 4
+    FROM gd_contact d
+      JOIN gd_contact p ON d.lb >= p.lb AND d.rb <= p.rb AND p.id=:Master
+    WHERE d.contacttype=4 AND (NOT d.disabled=1)
+    INTO :id, :parent, :name, :origid, :origparent, :contacttype
+  DO BEGIN
+    SUSPEND;
+
+    Parent = :ID;
+    GK = :OrigID;
+
+    FOR
+      SELECT GEN_ID(gd_g_contact_virt_id, -1), c.name, c.id, c.parent, 2
+      FROM gd_contact c
+        JOIN gd_contactlist l ON l.contactkey=c.id AND l.groupkey=:GK
+      WHERE c.contacttype=2 AND (NOT c.disabled=1)
+      INTO :id, :name, :origid, :origparent, :contacttype
+    DO BEGIN
+      SUSPEND;
+    END
+  END
+
+  IF (:id < 1000000000) THEN
+  BEGIN
+    FOR
+      SELECT GEN_ID(gd_g_contact_virt_id, 1147483646)
+      FROM rdb$database
+      INTO :id
+    DO BEGIN
+      id = 1;
+    END
+  END
+END
+^
+*/
+
+SET TERM ; ^
+
+/* Хранит связку холдинговой компании и входящих в нее компаний */
+
+CREATE TABLE gd_holding (
+  holdingkey dintkey NOT NULL,
+  companykey dintkey NOT NULL);
+
+ALTER TABLE gd_holding ADD CONSTRAINT gd_pk_holding
+  PRIMARY KEY (holdingkey, companykey);
+
+ALTER TABLE gd_holding ADD  CONSTRAINT gd_fk_holding_companykey
+  FOREIGN KEY (companykey) REFERENCES gd_company (contactkey)
+  ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE gd_holding ADD  CONSTRAINT gd_fk_holding_holdingkey
+  FOREIGN KEY (holdingkey) REFERENCES gd_company (contactkey)
+  ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+COMMIT;
+
+CREATE VIEW GD_V_COMPANY(
+    ID,
+    COMPNAME,
+    COMPFULLNAME,
+    COMPANYTYPE,
+    COMPLB,
+    COMPRB,
+    AFULL,
+    ACHAG,
+    AVIEW,
+    ADDRESS,
+    CITY,
+    COUNTRY,
+    PHONE,
+    FAX,
+    ACCOUNT,
+    BANKCODE,
+    BANKMFO,
+    BANKNAME,
+    BANKADDRESS,
+    BANKCITY,
+    BANKCOUNTRY,
+    TAXID,
+    OKULP,
+    OKPO,
+    LICENCE,
+    OKNH,
+    SOATO,
+    SOOU)
+AS
+SELECT
+  C.ID, C.NAME, COMP.FULLNAME, COMP.COMPANYTYPE, 
+  C.LB, C.RB, C.AFULL, C.ACHAG, C.AVIEW,
+  C.ADDRESS, C.CITY, C.COUNTRY, C.PHONE, C.FAX,
+  AC.ACCOUNT, BANK.BANKCODE, BANK.BANKMFO,
+  BANKC.NAME, BANKC.ADDRESS, BANKC.CITY, BANKC.COUNTRY,
+  CC.TAXID, CC.OKULP, CC.OKPO, CC.LICENCE, CC.OKNH, CC.SOATO, CC.SOOU
+
+FROM
+    GD_CONTACT C
+    JOIN GD_COMPANY COMP ON (COMP.CONTACTKEY = C.ID)
+    LEFT JOIN GD_COMPANYACCOUNT AC ON COMP.COMPANYACCOUNTKEY = AC.ID
+    LEFT JOIN GD_BANK BANK ON AC.BANKKEY = BANK.BANKKEY
+    LEFT JOIN GD_COMPANYCODE CC ON COMP.CONTACTKEY = CC.COMPANYKEY
+    LEFT JOIN GD_CONTACT BANKC ON BANK.BANKKEY = BANKC.ID;
+
+COMMIT;
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/*
+ *  Данная таблица содержит список ссылок на компании
+ *  по которым ведется учет в программе.
+ */
+CREATE TABLE gd_ourcompany
+(
+  companykey   dintkey,
+  afull        dsecurity,
+  achag        dsecurity,
+  aview        dsecurity,
+
+  disabled     dboolean  DEFAULT 0
+);
+
+COMMIT;
+
+ALTER TABLE gd_ourcompany ADD CONSTRAINT gd_companykey_ourcompany
+  PRIMARY KEY (companykey);
+
+ALTER TABLE gd_ourcompany ADD CONSTRAINT gd_fk_oc_companykey
+  FOREIGN KEY (companykey) REFERENCES gd_contact(id) ON UPDATE CASCADE;
+
+COMMIT;
+
+/*  Список компаний, по которым ведется учет */
+
+CREATE VIEW GD_V_OURCOMPANY
+(
+  ID, COMPNAME, COMPFULLNAME, COMPANYTYPE, COMPLB, COMPRB,
+  AFULL, ACHAG, AVIEW, ADDRESS, CITY, COUNTRY,
+  ACCOUNT, BANKCODE, BANKMFO, BANKNAME, BANKADDRESS, BANKCITY,
+  BANKCOUNTRY, TAXID, OKULP, OKPO, LICENCE, OKNH, SOATO, SOOU
+)
+AS
+SELECT
+  C.ID, C.NAME, COMP.FULLNAME, COMP.COMPANYTYPE, 
+  C.LB, C.RB, O.AFULL, O.ACHAG, O.AVIEW,
+  C.ADDRESS, C.CITY, C.COUNTRY,
+  AC.ACCOUNT, BANK.BANKCODE, BANK.BANKMFO,
+  BANKC.NAME, BANKC.ADDRESS, BANKC.CITY, BANKC.COUNTRY,
+  CC.TAXID, CC.OKULP, CC.OKPO, CC.LICENCE, CC.OKNH, CC.SOATO, CC.SOOU
+
+FROM
+  GD_OURCOMPANY O
+    JOIN GD_CONTACT C ON (O.COMPANYKEY = C.ID)
+    JOIN GD_COMPANY COMP ON (COMP.CONTACTKEY = O.COMPANYKEY)
+    LEFT JOIN GD_COMPANYACCOUNT AC ON COMP.COMPANYACCOUNTKEY = AC.ID
+    LEFT JOIN GD_BANK BANK ON AC.BANKKEY = BANK.BANKKEY
+    LEFT JOIN GD_COMPANYCODE CC ON COMP.CONTACTKEY = CC.COMPANYKEY
+    LEFT JOIN GD_CONTACT BANKC ON BANK.BANKKEY = BANKC.ID;
+COMMIT;
+
+
+/*
+ *  У каждого пользователя системы есть своя фирма
+ *  "по-умолчанию".
+ */
+CREATE TABLE gd_usercompany
+(
+  userkey	dintkey,
+  companykey	dforeignkey
+);
+
+ALTER TABLE gd_usercompany
+  ADD CONSTRAINT gd_pk_usercompany PRIMARY KEY (userkey);
+
+ALTER TABLE gd_usercompany ADD CONSTRAINT gd_fk_uc_userkey
+  FOREIGN KEY (userkey) REFERENCES gd_user(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_usercompany ADD CONSTRAINT gd_fk_uc_companykey
+  FOREIGN KEY (companykey) REFERENCES gd_ourcompany(companykey)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2001 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE TABLE gd_ruid
+(
+  id         dintkey,
+  xid        dintkey,
+  dbid       dintkey,
+  modified   TIMESTAMP NOT NULL,
+  editorkey  dforeignkey,
+
+  CONSTRAINT gd_pk_ruid_id PRIMARY KEY (id),
+  CONSTRAINT gd_fk_ruid_ek FOREIGN KEY (editorkey)
+    REFERENCES gd_people (contactkey)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL 
+);
+
+CREATE UNIQUE INDEX gd_x_ruid_xid ON gd_ruid(xid, dbid);
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE PROCEDURE GD_P_GETRUID(ID INTEGER)
+  RETURNS (XID INTEGER, DBID INTEGER)
+AS
+BEGIN
+  XID = NULL;
+  DBID = NULL;
+
+  IF (NOT :ID IS NULL) THEN
+  BEGIN
+    SELECT xid, dbid
+    FROM gd_ruid
+    WHERE id=:ID
+    INTO :XID, :DBID;
+
+    IF (XID IS NULL) THEN
+    BEGIN
+      XID = ID;
+      DBID = GEN_ID(gd_g_dbid, 0);
+
+      INSERT INTO gd_ruid(id, xid, dbid, modified, editorkey)
+        VALUES(:ID, :XID, :DBID, CURRENT_TIMESTAMP, NULL);
+    END
+  END
+
+  SUSPEND;
+END
+^
+
+CREATE EXCEPTION gd_e_invalid_ruid 'Invalid ruid specified'
+^
+
+CREATE PROCEDURE GD_P_GETID(XID INTEGER, DBID INTEGER)
+  RETURNS (ID INTEGER)
+AS
+BEGIN
+  ID = NULL;
+
+  SELECT id
+  FROM gd_ruid
+  WHERE xid=:XID AND dbid=:DBID
+  INTO :ID;
+
+  IF (ID IS NULL) THEN
+  BEGIN
+    EXCEPTION gd_e_invalid_ruid;
+  END
+
+  SUSPEND;
+END
+^
+
+SET TERM ; ^
+
+
+/*
+
+  Copyright (c) 2002 by Golden Software of Belarus
+
+  Script
+
+    gd_storage.sql
+
+  Abstract
+
+
+  Author
+
+
+  Revisions history
+
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2002 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE DOMAIN dstoragedata
+  AS BLOB SUB_TYPE 0 SEGMENT SIZE 1024;
+
+CREATE DOMAIN dstoragetype
+  AS CHAR(1)
+  CHECK (VALUE IN ('F', 'V')); /* F -- Folder, V -- Value */
+
+COMMIT;
+
+/*
+ *
+ */
+
+/*
+CREATE TABLE gd_storage (
+  id         dintkey,
+  parent     dparent,
+  lb         dlb,
+  rb         drb,
+  stype      dstoragetype,
+  name       dname,
+  data       VARCHAR(80),
+  bdata      dstoragedata,
+
+  CONSTRAINT gd_pk_storage PRIMARY KEY (id),
+  CONSTRAINT gd_fk_storage_parent FOREIGN KEY (parent)
+    REFERENCES gd_storage (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
+
+CREATE INDEX gd_x_storage_name ON gd_storage (name);
+*/
+
+SET TERM ^ ;
+
+/*
+CREATE EXCEPTION gd_e_storage_duplicate_name 'Storage value or folder with given name already exists'
+^
+
+CREATE TRIGGER gd_bi_storage FOR gd_storage
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.parent IS NULL) THEN
+  BEGIN
+    IF (EXISTS(SELECT * FROM gd_storage WHERE UPPER(NEW.name) = UPPER(name) AND parent IS NULL)) THEN
+      EXCEPTION gd_e_storage_duplicate_name;
+  END ELSE BEGIN
+    IF (EXISTS(SELECT * FROM gd_storage WHERE UPPER(NEW.name) = UPPER(name) AND parent = NEW.parent)) THEN
+      EXCEPTION gd_e_storage_duplicate_name;
+  END
+END
+^
+
+CREATE TRIGGER gd_bu_storage FOR gd_storage
+  BEFORE UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE NP INTEGER;
+  DECLARE VARIABLE OP INTEGER;
+BEGIN
+  IF (NEW.parent IS NULL) THEN
+    NP = -1;
+  ELSE
+    NP = NEW.parent;
+
+  IF (OLD.parent IS NULL) THEN
+    OP = -1;
+  ELSE
+    OP = OLD.parent;
+
+  IF ((NP <> OP) OR (NEW.name <> OLD.name)) THEN
+  BEGIN
+    IF (NEW.parent IS NULL) THEN
+    BEGIN
+      IF (EXISTS(SELECT * FROM gd_storage WHERE UPPER(NEW.name) = UPPER(name) AND parent IS NULL)) THEN
+        EXCEPTION gd_e_storage_duplicate_name;
+    END ELSE BEGIN
+      IF (EXISTS(SELECT * FROM gd_storage WHERE UPPER(NEW.name) = UPPER(name) AND parent = NEW.parent)) THEN
+        EXCEPTION gd_e_storage_duplicate_name;
+    END
+  END
+END
+^
+*/
+
+SET TERM ; ^
+
+COMMIT;
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE DOMAIN drelationtype
+  AS VARCHAR(1)
+  CHECK ((VALUE IN ('T', 'V')));
+
+COMMIT;
+
+/*
+ *
+ * Таблица таблиц. Содержит список всех таблиц
+ * базы данных. Необходима для поддержки
+ * системы атрибутов.
+ *
+ */
+
+CREATE TABLE at_relations (
+  id              dintkey,
+
+  relationname    dtablename NOT NULL,
+
+  relationtype    drelationtype,                    /* тып: T -- table,  V -- view */
+
+
+  lname           dname,                            /* локализованное имя                    */
+  lshortname      dname,                            /* локализованное короткое имя           */
+  description     dtext180,                         /* описание                              */
+
+  afull           dsecurity,                        /* права доступа                         */
+  achag           dsecurity,
+  aview           dsecurity,
+
+  referencekey    dforeignkey,                      /* ссылка на таблицу,
+                                                       по которой устанавливается связь ключевого поля  */
+  branchkey       dforeignkey,                      /* ветка вызова из проводника */
+  listfield       dfieldname,                       /* поле для отображения */
+  extendedfields  dtext254,                         /* поля для расширенного отображения, без пробелов через запятую */
+
+  editiondate     deditiondate,                     /* Дата последнего редактирования */
+  editorkey       dintkey,                          /* Ссылка на пользователя, который редактировал запись*/
+  reserved        dinteger                          /* зарезервировано для будущих поколений */
+);
+
+COMMIT;
+
+ALTER TABLE at_relations ADD CONSTRAINT at_pk_relations_id
+  PRIMARY KEY (id);
+
+
+ALTER TABLE at_relations ADD  CONSTRAINT at_fk_relations_referencekey
+ FOREIGN KEY (referencekey) REFERENCES at_relations (id);
+
+
+ALTER TABLE at_relations ADD CONSTRAINT at_fk_relations_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE UNIQUE INDEX at_x_relations_rn ON at_relations
+  (relationname);
+
+CREATE UNIQUE INDEX at_x_relations_ln ON at_relations
+  /*COMPUTED BY (UPPER(lname));*/
+  (lname);
+
+CREATE UNIQUE INDEX at_x_relations_lsn ON at_relations
+  /*COMPUTED BY (UPPER(lshortname));*/
+  (lshortname);
+
+COMMIT;
+
+/*
+ * Таблица, где регистрируются все домены, типы полей.
+ * Связь 1-к-1 к таблице rdb$fields.
+ * Данная таблица необходима нам для локализации,
+ * установки прав доступа, установки визуальных настроек.
+ *
+ */
+CREATE DOMAIN dvisible
+  AS SMALLINT
+  DEFAULT 1
+  CHECK ((VALUE IS NULL) OR (VALUE IN (0, 1)));
+
+CREATE DOMAIN dcolwidth
+  AS SMALLINT
+  DEFAULT 20
+  CHECK ((VALUE IS NULL) OR (VALUE >= 0));
+
+COMMIT;
+
+CREATE TABLE at_fields(
+  id              dintkey,
+
+  fieldname       dfieldname NOT NULL,              /* наименование домена                 */
+
+  lname           dname,                            /* локализованное наименование         */
+  description     dtext180,                         /* комментарий                         */
+
+  reftable        dtablename,                       /* для типа элемент множества */
+  reflistfield    dfieldname,                       /* наименование поля, которое выводится при выборе элемента множества */
+  refcondition    dtext255,                          /* условие ограничения множества       */
+
+  reftablekey     dforeignkey,                          /* для типа элемент множества */
+  reflistfieldkey dforeignkey,
+
+  settable        dtablename,                       /* для типа множество                     */
+  setlistfield    dfieldname,                       /*                                        */
+  setcondition    dtext255,                          /* условие ограничения множества       */
+
+  settablekey     dforeignkey,                          /* для типа множество                     */
+  setlistfieldkey dforeignkey,
+
+  /* Визуальные настройки по умолчанию для полей данного типа */
+
+  alignment       dtextalignment,                   /* выравнивание по умолчанию           */
+  format          dtext60,                          /* формат отображения                  */
+  visible         dvisible,                         /* видимое поле или нет                */
+  colwidth        dcolwidth,                        /* ширина колонки, при отобр. в гриде  */
+
+  readonly        dboolean DEFAULT 0,               /* запрещено ли визуальное редактирование поля */
+
+  gdclassname     dtext60,                          /* наименование класса */
+  gdsubtype       dtext60,                          /* подтип класса */
+
+  numeration      dnumerationblob,                  /* хранит значения перечисления */
+
+  disabled        dboolean DEFAULT 0,               /* не используется                     */
+  editiondate     deditiondate,                     /* Дата последнего редактирования */
+  editorkey       dintkey,                          /* Ссылка на пользователя, который редактировал запись*/
+  reserved        dinteger
+);
+
+COMMIT;
+
+ALTER TABLE at_fields ADD CONSTRAINT at_pk_fields_id
+  PRIMARY KEY (id);
+
+ALTER TABLE at_fields ADD CONSTRAINT at_fk_fields_rt
+  FOREIGN KEY (reftablekey) REFERENCES at_relations (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE at_fields ADD CONSTRAINT at_fk_fields_st
+  FOREIGN KEY (settablekey) REFERENCES at_relations (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE at_fields ADD CONSTRAINT at_fk_fields_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE UNIQUE INDEX at_x_fields_fn ON at_fields (fieldname);
+
+COMMIT;
+
+/* правило удаления для полей-ссылок */
+CREATE DOMAIN ddeleterule AS
+VARCHAR(11) CHARACTER SET WIN1251
+COLLATE PXW_CYRL;
+
+/*
+ *  Таблица хранит поля для каждой таблицы в системе.
+ *
+ *
+ *
+ */
+
+CREATE TABLE at_relation_fields(
+  id              dintkey,
+
+  fieldname       dfieldname NOT NULL,              /* наименование поля в IB                 */
+
+  relationname    dtablename NOT NULL,              /* ссылка на таблицу                      */
+  fieldsource     dfieldname,                       /* ссылка на тип поля (домен)             */
+
+  crosstable      dtablename,                       /* для типа множество                     */
+  crossfield      dfieldname,                       /*                                        */
+
+
+  relationkey     dmasterkey,                       /* ссылка на таблицу                      */
+  fieldsourcekey  dintkey,                          /* ссылка на тип поля (домен)             */
+
+  crosstablekey   dforeignkey,                      /* для типа множество                     */
+  crossfieldkey   dforeignkey,                      /*                                        */
+
+  lname           dname,                            /* локализованное наименование поля       */
+  lshortname      dtext20,                          /* локализованное наименование поля       */
+  description     dtext180,                         /* описание назначения поля               */
+
+  /* Визуальные настройки для поля */
+
+  visible         dboolean,                         /* видимое поле                           */
+  format          dtext60,                          /* формат вывода                          */
+  alignment       dtextalignment,                   /* выравнивание                           */
+  colwidth        dsmallint,                        /* ширина поля в гриде                    */
+
+  readonly        dboolean DEFAULT 0,               /* запрещено ли визуальное редактирование поля */
+
+  gdclassname     dtext180,                         /* наименование класса */
+  gdsubtype       dtext180,                         /* подтип класса */
+
+  afull           dsecurity,                        /* права доступа                          */
+  achag           dsecurity,
+  aview           dsecurity,
+
+  objects         dblobtext80_1251,                 /* список бизнес-объектов, для которых это поле вытягивается */
+  deleterule      ddeleterule,                      /* правило удаления для полей ссылок */
+  editiondate     deditiondate,                     /* Дата последнего редактирования */
+  editorkey       dintkey,                          /* Ссылка на пользователя, который редактировал запись*/
+  reserved        dinteger                           /* зарезервировано для будущих поколений  */
+);
+
+COMMIT;
+
+ALTER TABLE at_relation_fields ADD CONSTRAINT at_pk_relation_fields_id
+  PRIMARY KEY (id);
+
+ALTER TABLE at_relation_fields ADD CONSTRAINT at_fk_relation_fields_rn
+  FOREIGN KEY (relationkey) REFERENCES at_relations (id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE at_relation_fields ADD CONSTRAINT at_fk_relation_fields_fs
+  FOREIGN KEY (fieldsourcekey) REFERENCES at_fields (id) ON UPDATE CASCADE;
+
+ALTER TABLE at_relation_fields ADD CONSTRAINT at_fk_relation_fields_ct
+  FOREIGN KEY (crosstablekey) REFERENCES at_relations (id) ON UPDATE CASCADE;
+
+ALTER TABLE at_relation_fields ADD CONSTRAINT at_fk_relation_fields_cf
+  FOREIGN KEY (crossfieldkey) REFERENCES at_relation_fields (id) ON UPDATE CASCADE;
+
+ALTER TABLE at_relation_fields ADD CONSTRAINT at_fk_relation_fields_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE UNIQUE INDEX at_x_relation_fields_fr ON at_relation_fields
+  (fieldname, relationname);
+
+CREATE INDEX at_x_relation_fields_rn ON at_relation_fields
+   (relationname);
+
+ALTER TABLE at_fields ADD CONSTRAINT at_fk_fields_rlf
+  FOREIGN KEY (reflistfieldkey) REFERENCES at_relation_fields (id) 
+  ON UPDATE CASCADE ON DELETE SET NULL;
+
+ALTER TABLE at_fields ADD CONSTRAINT at_fk_fields_slf
+  FOREIGN KEY (setlistfieldkey) REFERENCES at_relation_fields (id) 
+  ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+COMMIT;
+
+/*
+ *
+ *  Транзакции необходимы, если операции с метаданными
+ *  протекают при более чем с одним подлючением.
+ *
+ */
+
+CREATE TABLE at_transaction(
+  trkey           dintkey,                           /* ключ транзакции */
+  numorder        dsmallint NOT NULL,                /* номер по порядку */
+  script          dscript,                         /* скрипт, который нужно выполнить */
+  successfull     dboolean DEFAULT 0                 /* удачно ли прошла операция */
+);
+
+ALTER TABLE at_transaction ADD CONSTRAINT at_pk_transaction_tr
+  PRIMARY KEY (trkey, numorder);
+
+COMMIT;
+
+/*
+ *
+ *  Для каждого поля типа множество необходимо создать промежуточную
+ *  таблицу и тригеры.
+ *  Для генерации имен этих тригеров мы будем использовать генератор.
+ *
+ */
+
+CREATE GENERATOR gd_g_triggercross;
+SET GENERATOR gd_g_triggercross TO 10;
+
+/*
+ *
+ *  При изменении содержимого таблиц ATFIELD, AT_RELATION
+ *  T_RELATION_FIELD изменяем этот генератор.
+ *  Генератор необходим для отслеживания версий атрибутов
+ *
+ */
+
+CREATE GENERATOR gd_g_attr_version;
+SET GENERATOR gd_g_attr_version TO 12;
+
+COMMIT;
+
+SET TERM ^ ;
+
+
+/*
+ *
+ *  Триггеры для таблицы полей
+ *
+ */
+
+
+CREATE TRIGGER at_bi_fields FOR at_fields
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id =  GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+END
+^
+
+CREATE TRIGGER at_ai_fields FOR at_fields
+  AFTER INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_au_fields FOR at_fields
+  AFTER UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_ad_fields FOR at_fields
+  AFTER DELETE
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_bi_fields5 FOR at_fields
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER at_bu_fields5 FOR at_fields
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+/*
+ *
+ *  Триггеры для таблицы таблиц
+ *
+ */
+
+CREATE TRIGGER at_bi_relations FOR at_relations
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+END
+^
+
+CREATE TRIGGER at_ai_relations FOR at_relations
+  AFTER INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_au_relations FOR at_relations
+  AFTER UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_ad_relations FOR at_relations
+  AFTER DELETE
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_bi_relations5 FOR at_relations
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER at_bu_relations5 FOR at_relations
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+/*
+ *
+ *  Триггеры для таблицы полей таблиц
+ *
+ */
+
+CREATE TRIGGER at_bi_rf FOR at_relation_fields
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+  IF (g_s_trim(NEW.relationname, ' ') = '') THEN
+  BEGIN
+    SELECT relationname FROM at_relations WHERE id = NEW.relationkey
+    INTO NEW.relationname;
+  END
+  IF (NEW.crossfield= '') THEN NEW.crossfield=NULL;
+  IF (NEW.crosstable = '') THEN NEW.crosstable=NULL;
+END
+^
+
+CREATE TRIGGER at_bu_rf FOR at_relation_fields
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.crossfield= '') THEN NEW.crossfield=NULL;
+  IF (NEW.crosstable = '') THEN NEW.crosstable=NULL;
+END
+^
+
+CREATE TRIGGER at_ai_relation_field FOR at_relation_fields
+  AFTER INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_au_relation_field FOR at_relation_fields
+  AFTER UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_ad_relation_field FOR at_relation_fields
+  AFTER DELETE
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_bi_relation_fields5 FOR at_relation_fields
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER at_bu_relation_fields5 FOR at_relation_fields
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+/*
+ *
+ * Процедура, осуществляющая формирование строки
+ * форматов таблиц базы данных
+ * Расчитано 6400 таблиц как минимум.
+ *
+ */
+
+/*06.09.02 Удалить за ненадобностью */
+CREATE PROCEDURE GD_P_RELATION_FORMATS
+RETURNS
+  (
+    RELATION_ID VARCHAR(32000),
+    RELATION_FORMAT VARCHAR(32000)
+  )
+AS
+  DECLARE VARIABLE REL_ID INTEGER;
+  DECLARE VARIABLE REL_FORMAT INTEGER;
+
+BEGIN
+  RELATION_ID = '';
+  RELATION_FORMAT = '';
+
+  FOR
+    SELECT
+      RDB$RELATION_ID, RDB$FORMAT
+    FROM
+      RDB$RELATIONS
+    WHERE
+      RDB$SYSTEM_FLAG = 0
+    ORDER BY
+      RDB$RELATION_ID
+  INTO
+    :REL_ID, :REL_FORMAT
+  DO BEGIN
+    RELATION_ID = RELATION_ID || '_' || CAST(REL_ID AS VARCHAR(4));
+    RELATION_FORMAT = RELATION_FORMAT || '_' || CAST(REL_FORMAT AS VARCHAR(4));
+  END
+
+  SUSPEND;
+END
+^
+
+
+SET TERM ; ^
+
+COMMIT;
+
+
+CREATE DOMAIN ddescription AS
+BLOB SUB_TYPE 1 SEGMENT SIZE 80 CHARACTER SET WIN1251 ;
+
+CREATE DOMAIN dexceptionname AS
+VARCHAR(31) CHARACTER SET WIN1251
+NOT NULL
+COLLATE PXW_CYRL;
+
+CREATE DOMAIN dmessage AS
+VARCHAR(78) CHARACTER SET WIN1251
+COLLATE PXW_CYRL;
+
+COMMIT;
+
+/* Таблица исключений */
+CREATE TABLE at_exceptions (
+  id               dintkey NOT NULL, /* идентификатор */
+  exceptionname    dexceptionname    /* наименование исключения */
+                   NOT NULL collate PXW_CYRL,
+  lmessage         dtext80          /* локализованное сообщение */
+                   collate PXW_CYRL,
+  editiondate      deditiondate,    /* Дата последнего редактирования */
+  editorkey        dintkey          /* Ссылка на пользователя, который редактировал запись*/
+                   );
+
+COMMIT;
+
+ALTER TABLE at_exceptions ADD CONSTRAINT at_pk_exceptions PRIMARY KEY(id);
+
+CREATE UNIQUE INDEX at_x_exceptions_en ON at_exceptions
+   (exceptionname);
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER at_ad_exceptions FOR at_exceptions
+AFTER DELETE POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+
+CREATE TRIGGER at_ai_exceptions FOR at_exceptions
+AFTER INSERT POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+
+CREATE TRIGGER at_au_exceptions FOR at_exceptions
+AFTER UPDATE POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+
+
+CREATE TRIGGER at_bi_exceptions FOR at_exceptions
+BEFORE INSERT POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id =  GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+END
+^
+
+
+CREATE TRIGGER at_bi_exceptions5 FOR at_exceptions
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER at_bu_exceptions5 FOR at_exceptions
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+SET TERM ; ^
+
+COMMIT;
+
+/*Таблица чеков */
+CREATE TABLE AT_CHECK_CONSTRAINTS (
+    ID                DINTKEY,
+    CHECKNAME         DTABLENAME NOT NULL,
+    MSG               DTEXT80 COLLATE PXW_CYRL
+);
+
+COMMIT;
+
+ALTER TABLE AT_CHECK_CONSTRAINTS ADD CONSTRAINT AT_PK_CHECK_CONSTRAINTS 
+  PRIMARY KEY (ID);
+
+CREATE UNIQUE INDEX AT_X_CONSTRAINTS_IN 
+  ON AT_CHECK_CONSTRAINTS (CHECKNAME);
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER AT_AIUD_CHECK_CONSTRAINTS FOR AT_CHECK_CONSTRAINTS
+ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 0
+AS 
+  DECLARE VARIABLE VERSION INTEGER; 
+BEGIN 
+  VERSION = GEN_ID(gd_g_attr_version, 1); 
+END
+^
+
+CREATE TRIGGER AT_BI_CHECK_CONSTRAINTS FOR AT_CHECK_CONSTRAINTS
+ACTIVE BEFORE INSERT POSITION 0
+AS 
+BEGIN 
+  IF (NEW.id IS NULL) THEN 
+    NEW.id =  GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1); 
+/*  IF (NEW.editorkey IS NULL) THEN 
+    NEW.editorkey = 650002; 
+ IF (NEW.editiondate IS NULL) THEN 
+    NEW.editiondate = CURRENT_TIMESTAMP; */
+END
+^
+/*
+
+CREATE TRIGGER AT_BU_CHECK_CONSTRAINTS FOR AT_CHECK_CONSTRAINTS
+ACTIVE BEFORE UPDATE POSITION 27000
+AS 
+BEGIN 
+  IF (NEW.editorkey IS NULL) THEN 
+    NEW.editorkey = 650002; 
+ IF (NEW.editiondate IS NULL) THEN 
+    NEW.editiondate = CURRENT_TIMESTAMP; 
+END
+^
+*/
+
+SET TERM ; ^
+
+COMMIT;
+
+/* Таблица генераторов */
+CREATE TABLE at_generators (
+  id               dintkey,
+  generatorname    dtablename NOT NULL,
+  editiondate      deditiondate,
+  editorkey        dintkey
+);
+
+COMMIT;
+
+ALTER TABLE at_generators ADD CONSTRAINT at_pk_generators
+  PRIMARY KEY(id);
+
+ALTER TABLE AT_GENERATORS ADD CONSTRAINT AT_FK_GENERATORS_EDITORKEY
+  FOREIGN KEY (EDITORKEY) REFERENCES GD_PEOPLE (CONTACTKEY) ON UPDATE CASCADE;
+
+CREATE UNIQUE INDEX at_x_generators_en
+  ON at_generators (generatorname);
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER at_aiud_generators FOR at_generators
+  ACTIVE
+  AFTER INSERT OR UPDATE OR DELETE
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_bi_generators FOR at_generators
+  ACTIVE
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER at_bu_generators FOR at_generators
+  ACTIVE
+  BEFORE UPDATE
+  POSITION 27000
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+CREATE DOMAIN dindexname AS VARCHAR(31)
+  CHARACTER SET WIN1251 COLLATE WIN1251;
+
+COMMIT;
+
+CREATE DOMAIN dprocedurename AS VARCHAR(31)
+  CHARACTER SET WIN1251 COLLATE WIN1251;
+
+/*Таблица для сторед-процедур*/
+CREATE TABLE AT_PROCEDURES (
+  id              dintkey NOT NULL,        /* идентификатор */
+  procedurename   dprocedurename NOT NULL  /* наименование процедуры */
+                  collate WIN1251,
+  proceduresource dblobtext80_1251,        /* хранит тело процедуры. Используется
+                                              только при сохранении в поток
+                                             (т.к. мы не можем сохранить нормально параметры процедуры ) */
+  editiondate     deditiondate,            /* Дата последнего редактирования */
+  editorkey       dintkey                  /* Ссылка на пользователя, который редактировал запись*/
+);
+
+ALTER TABLE at_procedures ADD CONSTRAINT pk_at_procedures PRIMARY KEY (id);
+
+CREATE UNIQUE INDEX at_x_procedures_pn ON at_procedures
+   (procedurename);
+
+ALTER TABLE at_procedures ADD CONSTRAINT at_fk_procedures_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER at_ad_procedures FOR at_procedures ACTIVE
+AFTER DELETE POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_ai_procedures FOR at_procedures ACTIVE
+AFTER INSERT POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_au_procedures FOR at_procedures ACTIVE
+AFTER UPDATE POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER at_bi_procedures FOR at_procedures ACTIVE
+BEFORE INSERT POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+END
+^
+
+CREATE TRIGGER at_bi_procedures5 FOR at_procedures
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER at_bu_procedures5 FOR at_procedures
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+
+CREATE TABLE at_indices(
+  id                  dintkey,                /* идентификатор */
+  indexname           dindexname              /* наименование индекса */
+                      NOT NULL,
+
+  relationname        dtablename              /* наименование таблицы */
+                      NOT NULL,
+
+  fieldslist          dtext255,               /* список полей */
+
+  relationkey         dmasterkey              /* идентификатор таблицы */
+                      NOT NULL,
+
+  unique_flag         dboolean DEFAULT 0,     /* 0-неуникальный индекс, 1-уникальный */
+
+  index_inactive      dboolean DEFAULT 0,     /* 0-активный индекс, 1-неактивный*/
+  editiondate         deditiondate,           /* Дата последнего редактирования */
+  editorkey           dintkey                 /* Ссылка на пользователя, который редактировал запись*/
+);
+
+COMMIT;
+
+ALTER TABLE at_indices ADD CONSTRAINT at_pk_indices PRIMARY KEY(id);
+
+ALTER TABLE at_indices ADD CONSTRAINT at_fk_indices_relationkey FOREIGN KEY(relationkey)
+REFERENCES at_relations(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+CREATE INDEX at_x_indices_rn ON at_indices
+   (relationname);
+
+CREATE UNIQUE INDEX at_x_indices_in ON at_indices
+   (indexname);
+
+ALTER TABLE at_indices ADD CONSTRAINT at_fk_indices_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+
+SET TERM ^ ;
+
+/* Triggers definition */
+
+
+
+CREATE TRIGGER at_ad_indices FOR at_indices
+AFTER DELETE POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+
+CREATE TRIGGER at_au_indices FOR at_indices
+AFTER INSERT POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+
+CREATE TRIGGER at_ai_indices FOR at_indices
+AFTER UPDATE POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+
+CREATE TRIGGER at_bi_indices FOR at_indices
+BEFORE INSERT POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id =  GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+  IF (g_s_trim(NEW.relationname, ' ') = '') THEN
+  BEGIN
+    SELECT relationname FROM at_relations WHERE id = NEW.relationkey
+    INTO NEW.relationname;
+  END
+END
+^
+
+CREATE TRIGGER at_bi_indices5 FOR at_indices
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER at_bu_indices5 FOR at_indices
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+COMMIT;
+
+
+CREATE DOMAIN dtriggername AS
+VARCHAR(31) CHARACTER SET WIN1251
+COLLATE WIN1251;
+
+CREATE TABLE at_triggers(
+  id                  dintkey,                /* идентификатор */
+  triggername         dtriggername            /* наименование триггера */
+                      NOT NULL,
+
+  relationname        dtablename              /* наименование таблицы */
+                      NOT NULL,
+
+  relationkey         dmasterkey              /* идентификатор таблицы */
+                      NOT NULL,
+
+  trigger_inactive    dboolean DEFAULT 0,     /* 0-активный индекс, 1-неактивный*/
+  editiondate         deditiondate,           /* Дата последнего редактирования */
+  editorkey           dintkey                 /* Ссылка на пользователя, который редактировал запись*/
+
+);
+
+COMMIT;
+
+ALTER TABLE at_triggers ADD CONSTRAINT at_pk_triggers PRIMARY KEY(id);
+
+ALTER TABLE at_triggers ADD CONSTRAINT at_fk_trigger_relationkey FOREIGN KEY(relationkey)
+REFERENCES at_relations(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+CREATE INDEX at_x_triggers_rn ON at_triggers
+   (relationname);
+
+ALTER TABLE at_triggers ADD CONSTRAINT at_fk_triggers_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE UNIQUE INDEX at_x_triggers_tn ON at_triggers
+   (triggername);
+
+COMMIT;
+
+SET TERM ^ ;
+
+/* Triggers definition */
+
+
+
+CREATE TRIGGER at_ad_triggers FOR at_triggers
+AFTER DELETE POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+
+CREATE TRIGGER at_ai_triggers FOR at_triggers
+AFTER INSERT POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+
+CREATE TRIGGER at_au_triggers FOR at_triggers
+AFTER UPDATE POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+
+CREATE TRIGGER at_bi_triggers FOR at_triggers
+BEFORE INSERT POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id =  GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+  IF (g_s_trim(NEW.relationname, ' ') = '') THEN
+  BEGIN
+    SELECT relationname FROM at_relations WHERE id = NEW.relationkey
+    INTO NEW.relationname;
+  END
+END
+^
+
+CREATE TRIGGER at_bi_triggers5 FOR at_triggers
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER at_bu_triggers5 FOR at_triggers
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+COMMIT ^
+
+
+
+/*@DECLARE MACRO ATTR_TRG(%TableName%, %TableAlias%)
+
+CREATE TRIGGER gd_ai_%TableAlias% FOR %TableName%
+  AFTER INSERT
+  POSITION 1000
+AS
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  I = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER gd_au_%TableAlias% FOR %TableName%
+  AFTER UPDATE
+  POSITION 1000
+AS
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  I = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER gd_ad_%TableAlias% FOR %TableName%
+  AFTER DELETE
+  POSITION 1000
+AS
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  I = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+END MACRO*/
+
+/*@UNFOLD MACRO ATTR_TRG(RDB$FIELDS, RDB_FIELDS)*/
+/*M*/
+/*M*/CREATE TRIGGER gd_ai_RDB_FIELDS FOR RDB$FIELDS
+/*M*/  AFTER INSERT
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_au_RDB_FIELDS FOR RDB$FIELDS
+/*M*/  AFTER UPDATE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_ad_RDB_FIELDS FOR RDB$FIELDS
+/*M*/  AFTER DELETE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*END MACRO*/
+/*@UNFOLD MACRO ATTR_TRG(RDB$RELATIONS, RDB_RELATIONS)*/
+/*M*/
+/*M*/CREATE TRIGGER gd_ai_RDB_RELATIONS FOR RDB$RELATIONS
+/*M*/  AFTER INSERT
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_au_RDB_RELATIONS FOR RDB$RELATIONS
+/*M*/  AFTER UPDATE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_ad_RDB_RELATIONS FOR RDB$RELATIONS
+/*M*/  AFTER DELETE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*END MACRO*/
+/*@.CALL MACRO ATTR_TRG(RDB$RELATION_FIELDS, RDB_RELATION_FIELDS)*/
+/*@UNFOLD MACRO ATTR_TRG(RDB$TRIGGERS, RDB_TRIGGERS)*/
+/*M*/
+/*M*/CREATE TRIGGER gd_ai_RDB_TRIGGERS FOR RDB$TRIGGERS
+/*M*/  AFTER INSERT
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_au_RDB_TRIGGERS FOR RDB$TRIGGERS
+/*M*/  AFTER UPDATE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_ad_RDB_TRIGGERS FOR RDB$TRIGGERS
+/*M*/  AFTER DELETE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*END MACRO*/
+/*@UNFOLD MACRO ATTR_TRG(RDB$PROCEDURES, RDB_PROCEDURES)*/
+/*M*/
+/*M*/CREATE TRIGGER gd_ai_RDB_PROCEDURES FOR RDB$PROCEDURES
+/*M*/  AFTER INSERT
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_au_RDB_PROCEDURES FOR RDB$PROCEDURES
+/*M*/  AFTER UPDATE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_ad_RDB_PROCEDURES FOR RDB$PROCEDURES
+/*M*/  AFTER DELETE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*END MACRO*/
+/*@UNFOLD MACRO ATTR_TRG(RDB$PROCEDURE_PARAMETERS, RDB_PROCEDURE_PARAMETERS)*/
+/*M*/
+/*M*/CREATE TRIGGER gd_ai_RDB_PROCEDURE_PARAMETERS FOR RDB$PROCEDURE_PARAMETERS
+/*M*/  AFTER INSERT
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_au_RDB_PROCEDURE_PARAMETERS FOR RDB$PROCEDURE_PARAMETERS
+/*M*/  AFTER UPDATE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_ad_RDB_PROCEDURE_PARAMETERS FOR RDB$PROCEDURE_PARAMETERS
+/*M*/  AFTER DELETE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*END MACRO*/
+/*@UNFOLD MACRO ATTR_TRG(RDB$INDICES, RDB_INDICES)*/
+/*M*/
+/*M*/CREATE TRIGGER gd_ai_RDB_INDICES FOR RDB$INDICES
+/*M*/  AFTER INSERT
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_au_RDB_INDICES FOR RDB$INDICES
+/*M*/  AFTER UPDATE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_ad_RDB_INDICES FOR RDB$INDICES
+/*M*/  AFTER DELETE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*END MACRO*/
+/*@UNFOLD MACRO ATTR_TRG(RDB$INDEX_SEGMENTS, RDB_INDEX_SEGMENTS)*/
+/*M*/
+/*M*/CREATE TRIGGER gd_ai_RDB_INDEX_SEGMENTS FOR RDB$INDEX_SEGMENTS
+/*M*/  AFTER INSERT
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_au_RDB_INDEX_SEGMENTS FOR RDB$INDEX_SEGMENTS
+/*M*/  AFTER UPDATE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*M*/CREATE TRIGGER gd_ad_RDB_INDEX_SEGMENTS FOR RDB$INDEX_SEGMENTS
+/*M*/  AFTER DELETE
+/*M*/  POSITION 1000
+/*M*/AS
+/*M*/  DECLARE VARIABLE I INTEGER;
+/*M*/BEGIN
+/*M*/  I = GEN_ID(gd_g_attr_version, 1);
+/*M*/END
+/*M*/^
+/*M*/
+/*END MACRO*/
+
+
+CREATE TRIGGER gd_ai_rdb_relation_fields FOR rdb$relation_fields
+  AFTER INSERT
+  POSITION 1000
+AS
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  I = GEN_ID(gd_g_attr_version, 1);
+END
+^
+/*  При подключении IBExpert-ом, IBExpert пытается изменить поле 
+  rdb$description таблицы rdb$database вызывая при этом триггер и 
+  соответвсенно, увеличивая генератор */
+CREATE TRIGGER gd_au_rdb_relation_fields FOR rdb$relation_fields
+  AFTER UPDATE
+  POSITION 1000
+AS
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  IF ((NEW.rdb$field_name <> OLD.rdb$field_name)
+    OR (NEW.rdb$relation_name <> OLD.rdb$relation_name))
+  THEN
+    I = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+CREATE TRIGGER gd_ad_rdb_relation_fields FOR rdb$relation_fields
+  AFTER DELETE
+  POSITION 1000
+AS
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  I = GEN_ID(gd_g_attr_version, 1);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    gd_const.sql
+
+  Abstract
+
+    Константы
+
+  Author
+
+    Anton Smirnov (15.09.2001)
+
+  Revisions history
+
+    Initial  15.09.2001  SAI    Initial version
+
+  Status
+
+    Draft
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/* 1 бит - 1 - периодичная */
+/* 2 бит - 1 - привязан к пользователю */
+/* 3 бит - 1 - привязан к клиенту */
+
+CREATE DOMAIN dconsttype
+  AS SMALLINT
+  DEFAULT 0
+  NOT NULL
+  CHECK ((VALUE >= 0) AND (VALUE <= 7));
+
+COMMIT;
+
+/* Справочник переменных */
+
+CREATE TABLE gd_const
+(
+  id               dintkey,
+  name             dname,
+  comment          dtext120,
+  consttype        dconsttype,
+  datatype         CHAR(1), /* NULL, S -- string, N -- numeric, D -- Date, Time */
+
+  editorkey        dforeignkey,     /* Кто создал или изменил запись */
+  editiondate      deditiondate,    /* Когда создана или изменена запись */
+
+  afull            dsecurity,
+  achag            dsecurity,
+  aview            dsecurity,
+
+  reserved         dreserved
+);
+
+ALTER TABLE gd_const
+  ADD CONSTRAINT gd_pk_const PRIMARY KEY (id);
+
+ALTER TABLE gd_const ADD CONSTRAINT gd_fk_editor_const
+  FOREIGN KEY (editorkey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+CREATE UNIQUE INDEX gd_x_const_name ON gd_const
+  /*COMPUTED BY (UPPER(name));*/
+  (name);
+
+/*ALTER TABLE gd_const ADD CONSTRAINT gd_uq_name_const
+  UNIQUE (name);*/
+
+/* Значения переменных */
+
+CREATE TABLE gd_constvalue
+(
+  id            dintkey,
+  userkey       dforeignkey,
+  companykey    dforeignkey,
+  constkey      dintkey,
+  constdate     date,
+  constvalue    dtext120,
+  editorkey     dforeignkey,     /* Кто создал или изменил запись */
+  editiondate   deditiondate    /* Когда создана или изменена запись */
+);
+
+ALTER TABLE gd_constvalue
+  ADD CONSTRAINT gd_pk_constvalue PRIMARY KEY (id);
+
+ALTER TABLE gd_constvalue ADD CONSTRAINT gd_fk_user_constvalue
+  FOREIGN KEY (userkey) REFERENCES gd_contact(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_constvalue ADD CONSTRAINT gd_fk_oc_constvalue
+  FOREIGN KEY (companykey) REFERENCES gd_ourcompany(companykey)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_constvalue ADD CONSTRAINT gd_fk_vn_constvalue
+  FOREIGN KEY (constkey) REFERENCES gd_const(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_constvalue ADD CONSTRAINT gd_fk_ek_constvalue
+  FOREIGN KEY (editorkey) REFERENCES gd_contact(id)
+  ON DELETE SET NULL
+  ON UPDATE CASCADE;
+
+SET TERM ^ ;
+
+CREATE EXCEPTION gd_e_invalidconstname 'Constant already exists'
+^
+
+CREATE TRIGGER gd_bi_const FOR gd_const
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (EXISTS (SELECT * FROM gd_const WHERE UPPER(name) = UPPER(NEW.name))) THEN
+  BEGIN
+    EXCEPTION gd_e_invalidconstname;
+  END
+END
+^
+
+CREATE TRIGGER gd_bu_const FOR gd_const
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (EXISTS (SELECT * FROM gd_const WHERE UPPER(name) = UPPER(NEW.name)
+    AND id <> NEW.id)) THEN
+  BEGIN
+    EXCEPTION gd_e_invalidconstname;
+  END
+END
+^
+
+CREATE TRIGGER gd_bi_constvalue FOR gd_constvalue
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+
+COMMIT;
+
+
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    gd_script.sql
+
+  Abstract
+
+    An Interbase script for script control.
+
+  Author
+
+    Romanovski Denis (01.08.00)
+
+  Revisions history
+
+    Initial  01.08.00  Dennis    Initial version
+
+  Status
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/****************************************************
+
+   Таблица для хранения пользователей
+
+*****************************************************/
+
+/*
+  DFUNCTIONTYPE
+  домен для хранения типа функции:
+  это Макрос или Обработчик события (Event)
+*/
+CREATE DOMAIN DFUNCTIONTYPE
+  AS CHAR(1)
+  CHECK ((VALUE IS NULL) or (VALUE IN ('E', 'M')));
+
+CREATE DOMAIN DINHERITEDRULE AS 
+  SMALLINT 
+  CHECK (VALUE IN (0, 1, 3) OR VALUE IS NULL);
+  
+CREATE TABLE gd_function
+(
+  id               dintkey,                     /* Первичный ключ */
+  module           dtext40,                     /* Модуль */
+  language         dtext10,                     /* Язык программирования */
+  name             dlongname,                   /* Наименование функции */
+  comment          dtext180,                    /* Комментарий к функции */
+  script           dscript,                     /* Текст функции */
+  displayscript    dscript,                     /* Видимый текст функции *//*Данное поле можно удалить*/
+
+  afull            dsecurity,                   /* Права доступа полные *//*Данное поле можно удалить*/
+  achag            dsecurity,                   /* Права доступа на изменения *//*Данное поле можно удалить*/
+  aview            dsecurity,                   /* права доступа на просмотр *//*Данное поле можно удалить*/
+  modifydate       dtimestamp,                  /*Данное поле можно удалить*/
+
+  testresult       dblob80,                     /* Поле для отчетов. Для хранения пустой структуры. */
+  ownername        dtext40,                     /*Данное поле можно удалить*/
+  functiontype     dfunctiontype,               /*Данное поле можно удалить*/
+  event            dtext40,
+
+  localname        dtext40,                      /* Название функции на русском языке *//*Данное поле можно удалить*/
+  publicfunction   dboolean DEFAULT 1 NOT NULL,  /* Внутрення или внешняя функция *//*Данное поле можно удалить*/
+  shortcut         dtext10,                       /* Горячая клавиша *//*Данное поле можно удалить*/
+  groupname        dtext20,                      /* Название группы *//*Данное поле можно удалить*/
+
+  modulecode       dinteger NOT NULL,            /* код модуля */
+  enteredparams    dblob80,
+  reserved         dinteger,                      /* Зарезервировано */
+  inheritedrule    dinheritedrule,                /*Поле для событий указывает на момент
+                                                  перекрытия. Оно может принимать три значения:
+                                                    0 - перекрывать полностью;
+                                                    1 - вызывать родительский обработчик до скрипт-функции;
+                                                    2 - вызывать обработчик после выполнения скрипт-функции.*//*Данное поле можно удалить*/
+/*  preparedbyparser dboolean,                      если TRUE то скрипт функции был подготовлен парсером
+                                                   данное поле уже не нужно */
+  breakpoints      dblob80,                        /* Поле хранит информацию о точках прерывания*/
+  usedebuginfo     dboolean,                       /* Указывает на необходимость использования отладчика при запуске функции*//*Данное поле можно удалить*/
+  editorstate      dblob80,                        /* Хранится положение курсора редактора, закладки и т.п.*/
+  editiondate      deditiondate,                   /* Дата последнего редактирования */
+  editorkey        dintkey                         /* Ссылка на пользователя, который редактировал запись*/
+);
+
+ALTER TABLE gd_function ADD CONSTRAINT gd_pk_function
+  PRIMARY KEY (id);
+
+/* пакуль што мы падтрымлiваем 1 мову */
+ALTER TABLE gd_function ADD CONSTRAINT gd_chk_function_language
+  CHECK (language IN ('JScript', 'VBScript'));
+
+/* назва функцыi павiнна быць унiкальнай */
+/* у межах аднаго модулю                 */
+CREATE UNIQUE INDEX gd_x_function_name ON gd_function
+  (name, modulecode);
+
+CREATE INDEX gd_x_function_module ON gd_function
+  (module);
+
+ALTER TABLE gd_function ADD CONSTRAINT gd_fk_function_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE GENERATOR gd_g_functionch;
+SET GENERATOR gd_g_functionch TO 1;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_function_ad_ch FOR gd_function
+AFTER DELETE POSITION 32000
+AS
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  I = GEN_ID(gd_g_functionch, 1);
+END
+^
+
+CREATE TRIGGER gd_bi_function FOR gd_function
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+/*  NEW.modifydate = 'NOW';*/
+
+  IF (NEW.modulecode IS NULL) then
+    NEW.modulecode = 1010001;/*ид апликатион*/
+  IF (NEW.publicfunction IS NULL) then
+    NEW.publicfunction = 0;
+END
+^
+
+
+CREATE TRIGGER gd_bu_function FOR gd_function
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+/*  NEW.modifydate = 'NOW';*/
+  IF (NEW.modulecode IS NULL) then BEGIN
+    IF (OLD.modulecode IS NULL) THEN
+      NEW.modulecode = 1010001;
+    ELSE
+      NEW.modulecode = OLD.modulecode;            
+  END
+  IF (NEW.publicfunction IS NULL) then BEGIN
+    IF (OLD.publicfunction IS NULL) THEN          
+      NEW.publicfunction = 0;                     
+    ELSE                                          
+      NEW.publicfunction = OLD.publicfunction;    
+  END
+END
+^  
+
+CREATE TRIGGER gd_bi_function5 FOR gd_function
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER gd_bu_function5 FOR gd_function
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+CREATE TABLE gd_function_log (
+  id          dintkey,
+  functionkey dintkey,
+  revision    INTEGER,
+  script      dscript,
+  editorkey   dintkey,
+  editiondate deditiondate
+);
+
+ALTER TABLE gd_function_log ADD CONSTRAINT gd_pk_function_log_id
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_function_log ADD CONSTRAINT gd_fk_function_log_fk
+  FOREIGN KEY (functionkey) REFERENCES gd_function (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_function_log ADD CONSTRAINT gd_fk_function_log_ek
+  FOREIGN KEY (editorkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_function_log FOR gd_function_log
+  BEFORE INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE R INTEGER;
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  R = 0;
+  SELECT MAX(revision) FROM gd_function_log WHERE functionkey = NEW.functionkey
+    INTO :R;
+  NEW.revision = COALESCE(:R, 0) + 1;    
+END
+^
+
+CREATE TRIGGER gd_bu_function_log FOR gd_function_log
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (OLD.revision <> COALESCE(NEW.revision, 0)) THEN
+    NEW.revision = OLD.revision;
+END
+^
+
+CREATE TRIGGER gd_function_au_ch FOR gd_function
+AFTER UPDATE POSITION 32000
+AS
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  I = GEN_ID(gd_g_functionch, 1);
+
+  IF ((OLD.EDITIONDATE <> NEW.EDITIONDATE) AND (OLD.SCRIPT <> NEW.SCRIPT)) THEN
+  BEGIN
+    IF (NOT EXISTS (SELECT L.ID FROM GD_FUNCTION_LOG L WHERE L.FUNCTIONKEY = OLD.ID)) THEN
+    BEGIN
+      INSERT INTO GD_FUNCTION_LOG (functionkey, script, editorkey, editiondate)
+        VALUES (OLD.ID, OLD.SCRIPT, OLD.EDITORKEY, OLD.EDITIONDATE);
+
+      INSERT INTO GD_FUNCTION_LOG (functionkey, script, editorkey, editiondate)
+        VALUES (NEW.ID, NEW.SCRIPT, NEW.EDITORKEY, NEW.EDITIONDATE);
+    END ELSE
+      INSERT INTO GD_FUNCTION_LOG (functionkey, script, editorkey, editiondate)
+        VALUES (NEW.ID, NEW.SCRIPT, NEW.EDITORKEY, NEW.EDITIONDATE);
+  END
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Gedemin project                              **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE EXCEPTION GD_E_DOCUMENTTYPE_RUID
+  'Document of this type already exists!';
+
+CREATE EXCEPTION GD_E_DOCUMENTTYPE_NAME
+  'Document of this type already exists!';
+
+/*
+ *  Значение позиции типового
+ *  документа:
+ *  B - branch (ветка)
+ *  D - document (документ)
+ *
+ */
+
+CREATE DOMAIN ddocumenttype
+  AS VARCHAR(1)
+  CHECK ((VALUE = 'B') OR (VALUE = 'D'));
+
+/* Тип документа */
+CREATE TABLE gd_documenttype
+(
+  id                      dintkey,                                                  
+  parent                  dparent,                                                  
+  lb                      dlb,                                                      
+  rb                      drb,                                                      
+                                                                                    
+  name                    dname,
+  description             dtext180,
+
+  classname               dclassname,
+  documenttype            ddocumenttype DEFAULT 'D',
+
+  options                 DBLOB1024,
+  headerrelkey            dforeignkey,
+  linerelkey              dforeignkey,
+
+  afull                   dsecurity,
+  achag                   dsecurity,
+  aview                   dsecurity,
+
+  disabled                dboolean DEFAULT 0,
+  ruid                    druid,                     /* Хранит руид документа  */
+  branchkey               dforeignkey,               /* Ветка в исследователе */
+  reportgroupkey          dforeignkey,               /* Группа отчетов */
+  reserved                dreserved,
+  ISCOMMON                DBOOLEAN DEFAULT 0,
+  ischecknumber           dboolean DEFAULT 0,         /* Проверять дублирование номеров */
+  HEADERFUNCTIONKEY       DFOREIGNKEY,
+  HEADERFUNCTIONTEMPLATE  DBLOB80,
+  LINEFUNCTIONKEY         DFOREIGNKEY,
+  LINEFUNCTIONTEMPLATE    DBLOB80
+);
+COMMIT;
+ALTER TABLE gd_documenttype ADD CONSTRAINT gd_pk_documenttype
+  PRIMARY KEY (id);
+COMMIT;
+ALTER TABLE gd_documenttype ADD CONSTRAINT gd_fk_documenttype_parent
+  FOREIGN KEY (parent) REFERENCES gd_documenttype(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_documenttype ADD CONSTRAINT gd_fk_documenttype_header
+  FOREIGN KEY (headerrelkey) REFERENCES at_relations (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_documenttype ADD CONSTRAINT gd_fk_documenttype_line
+  FOREIGN KEY (linerelkey) REFERENCES at_relations (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE GD_DOCUMENTTYPE ADD CONSTRAINT FK_GD_DOCUMENTTYPE_HF
+  FOREIGN KEY (HEADERFUNCTIONKEY) REFERENCES GD_FUNCTION (ID)
+  ON DELETE SET NULL
+  ON UPDATE CASCADE;
+
+ALTER TABLE GD_DOCUMENTTYPE ADD CONSTRAINT FK_GD_DOCUMENTTYPE_LF
+  FOREIGN KEY (LINEFUNCTIONKEY) REFERENCES GD_FUNCTION (ID)
+  ON DELETE SET NULL
+  ON UPDATE CASCADE;
+COMMIT;
+
+CREATE INDEX gd_x_documenttype_ruid
+  ON gd_documenttype(ruid);
+
+CREATE UNIQUE INDEX gd_x_documenttype_name ON gd_documenttype
+  /*COMPUTED BY (UPPER(name));*/
+  (name);
+
+COMMIT;
+/*
+CREATE DESC INDEX gd_x_documenttype_rb
+  ON gd_documenttype(rb);
+
+CREATE ASC INDEX gd_x_documenttype_lb
+  ON gd_documenttype(lb);
+*/
+
+/* Нумерация документов */
+
+CREATE TABLE gd_lastnumber
+(
+  documenttypekey       dintkey,
+  ourcompanykey         dintkey,
+
+  lastnumber            dinteger, /* Последний номер */
+  addnumber             dinteger, /* Увеливать на */
+  mask                  dtext80,  /* маска */
+  fixlength             dfixlength, /* фиксированная длина номера */
+
+  disabled              dboolean DEFAULT 0
+);
+
+ALTER TABLE gd_lastnumber ADD CONSTRAINT gd_pk_lastnumber
+  PRIMARY KEY (documenttypekey, ourcompanykey);
+
+ALTER TABLE gd_lastnumber ADD CONSTRAINT gd_fk_ln_documenttypekey
+  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_lastnumber ADD CONSTRAINT gd_fk_ln_ourcompanykey
+  FOREIGN KEY (ourcompanykey) REFERENCES gd_ourcompany(companykey)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+/* Доступные типовые документы для конкретного тип. документа */
+/*
+CREATE TABLE gd_accessdoctype
+(
+  documenttypekey     dintkey,
+  accessdoctypekey    dintkey,
+
+  afull               dsecurity,
+  achag               dsecurity,
+  aview               dsecurity
+);
+
+ALTER TABLE gd_accessdoctype ADD CONSTRAINT gd_pk_accessdoctype
+  PRIMARY KEY (documenttypekey, accessdoctypekey);
+
+ALTER TABLE gd_accessdoctype ADD CONSTRAINT gd_fk_adt_documenttypekey
+  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_accessdoctype ADD CONSTRAINT gd_fk_adt_accessdoctypekey
+  FOREIGN KEY (accessdoctypekey) REFERENCES gd_documenttype(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+*/  
+
+/* Таблица хранит таблицы, которые отвечают за конкретный документ */
+
+/*
+
+CREATE TABLE gd_relationtypedoc
+(
+  doctypekey          dintkey,             
+  relationname        dtablename NOT NULL, 
+  ismaindoc           dboolean             
+                                           
+);
+
+
+ALTER TABLE gd_relationtypedoc ADD CONSTRAINT gd_pk_relationtypedoc
+  PRIMARY KEY (doctypekey, relationname);
+
+ALTER TABLE gd_relationtypedoc ADD CONSTRAINT gd_fk_relationtypedoc_doctype
+  FOREIGN KEY (doctypekey) REFERENCES gd_documenttype (id)
+  ON UPDATE CASCADE;
+
+*/
+
+COMMIT;
+
+
+/**********************************************************
+
+  Документ
+
+  Мы планируем хранить документы и позиции по ним в одной
+  таблице. Связь между документом и позицией будет устанав-
+  ливаться через ссылку Parent.
+
+***********************************************************/
+
+CREATE TABLE gd_document
+(
+  id              dintkey,             /* Ідэнтыфікатар дакумента         */
+  parent          dforeignkey,         /* Спасылка ад пазіцыі да дакумента*/
+
+  documenttypekey dintkey,             /* Тып дакумента                   */
+  trtypekey       dforeignkey,         /* Привязка документа к операции   */
+  transactionkey  dforeignkey,         /* Привязка документа к новой операции   */
+
+  number          ddocumentnumber,     /* нумар дакумента                 */
+  documentdate    ddocumentdate,       /* дата дакумента                  */
+  description     dtext180,            /* каментарый                      */
+  sumncu          dcurrency,           /* сума ў НГА                      */
+  sumcurr         dcurrency,           /* сума ў валюце                   */
+  sumeq           dcurrency,           /* сума ў эквіваленце              */
+                                       /* УВАГА! гэтыя сумы выключна для  */
+                                       /* даведкі. Заўсёды трэба браць су-*/
+                                       /* му з адпаведнай табліцы         */
+
+  delayed         dboolean,            /* отложенный документ             */
+                                       /* документ оформлен, но в учете не*/
+                                       /* фигурирует                      */
+
+  afull           dsecurity,           /* права доступа                   */
+  achag           dsecurity,
+  aview           dsecurity,
+
+  currkey         dforeignkey,         /* валюта дакумента                */
+  companykey      dintkey,             /* фірма, калі ўлік вядзецца па    */
+                                       /* некалькіх фірмах                */
+
+  creatorkey      dintkey,             /* хто стварыў дакумент            */
+  creationdate    dcreationdate,       /* дата і час стварэньня           */
+  editorkey       dintkey,             /* хто рэдактаваў                  */
+  editiondate     deditiondate,        /* дата і час рэдактаваньня        */
+
+  printdate       ddate,               /* дата последней печати документа */
+
+  disabled        ddisabled,
+  reserved        dreserved
+);
+
+ALTER TABLE gd_document
+  ADD CONSTRAINT gd_pk_document PRIMARY KEY (id);
+
+ALTER TABLE gd_document ADD CONSTRAINT gd_fk_doc_parent
+  FOREIGN KEY (parent) REFERENCES gd_document(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_document ADD CONSTRAINT gd_fk_doc_doctypekey
+  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_document ADD CONSTRAINT gd_fk_document_currkey
+  FOREIGN KEY (currkey) REFERENCES gd_curr(id) ON UPDATE CASCADE;
+
+ALTER TABLE gd_document ADD CONSTRAINT gd_fk_document_companykey
+  FOREIGN KEY (companykey) REFERENCES gd_ourcompany(companykey)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_document ADD CONSTRAINT gd_fk_document_creatorkey
+  FOREIGN KEY (creatorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_document ADD CONSTRAINT gd_fk_document_editorkey
+  FOREIGN KEY (editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+CREATE DESC INDEX gd_x_document_documentdate
+  ON gd_document(documentdate);
+
+CREATE  INDEX gd_x_document_number
+  ON gd_document(number);
+
+
+SET TERM ^ ;
+
+
+SET TERM ; ^
+
+
+COMMIT;
+
+/* Доступные документы системы */
+/*
+CREATE TABLE gd_documentsystem
+(
+  subsystemkey          dintkey,
+  documenttypekey       dintkey,
+  reserved              dinteger
+);
+
+ALTER TABLE gd_documentsystem ADD CONSTRAINT gd_pk_documentsystem
+  PRIMARY KEY (subsystemkey, documenttypekey);
+
+ALTER TABLE gd_documentsystem ADD CONSTRAINT gd_fk_ds_subsystemkey
+  FOREIGN KEY (subsystemkey) REFERENCES gd_subsystem(id) ON UPDATE CASCADE;
+
+ALTER TABLE gd_documentsystem ADD CONSTRAINT gd_fk_ds_documenttypekey
+  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id) ON UPDATE CASCADE;
+
+COMMIT;
+*/
+
+SET TERM ^ ;
+
+
+/****************************************************/
+/**                                                **/
+/**   Триггер обрабатывающий добавление нового     **/
+/**   элемента дерева, проверяет диапозон,         **/
+/**   вызывает процедуру сдвига если надо          **/
+/**                                                **/
+/****************************************************/
+CREATE TRIGGER gd_bi_documenttype FOR gd_documenttype
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (EXISTS(SELECT id FROM gd_documenttype WHERE ruid = NEW.ruid)) THEN
+  BEGIN
+    EXCEPTION gd_e_documenttype_ruid;
+  END
+
+  IF (EXISTS(SELECT id FROM gd_documenttype WHERE UPPER(name) = UPPER(NEW.name))) THEN
+  BEGIN
+    EXCEPTION gd_e_documenttype_name;
+  END
+END
+^
+
+/*
+  При вставке и обновлении записи автоматически инициализируем
+  поля Дата создания и Дата редактирования, если программист не
+  присвоил их самостоятельно.
+*/
+
+CREATE TRIGGER gd_bi_document FOR gd_document
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  /*
+  теперь эти поля заполняются в бизнес-объекте
+
+  IF (NEW.creationdate IS NULL) THEN
+    NEW.creationdate = CURRENT_TIMESTAMP;
+
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+  */
+END
+^
+
+CREATE TRIGGER GD_AU_DOCUMENT FOR GD_DOCUMENT
+  AFTER UPDATE 
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.PARENT IS NULL) THEN
+  BEGIN
+    IF ((OLD.documentdate <> NEW.documentdate) OR (OLD.number <> NEW.number) 
+      OR (OLD.companykey <> NEW.companykey)) THEN
+    BEGIN
+      IF (NEW.DOCUMENTTYPEKEY <> 800300) THEN
+        UPDATE gd_document SET documentdate = NEW.documentdate,
+          number = NEW.number, companykey = NEW.companykey
+        WHERE (parent = NEW.ID)
+          AND ((documentdate <> NEW.documentdate)
+           OR (number <> NEW.number) OR (companykey <> NEW.companykey));
+      ELSE                                                                  
+        UPDATE gd_document SET documentdate = NEW.documentdate,
+          companykey = NEW.companykey
+        WHERE (parent = NEW.ID)
+          AND ((documentdate <> NEW.documentdate)
+          OR  (companykey <> NEW.companykey));
+    END
+  END ELSE
+  BEGIN
+    IF (NEW.editiondate <> OLD.editiondate) THEN
+      UPDATE gd_document SET editiondate = NEW.editiondate,
+        editorkey = NEW.editorkey
+      WHERE (ID = NEW.parent) AND (editiondate <> NEW.editiondate);
+  END
+
+  /* просто игнорируем все ошибки */
+  WHEN ANY DO
+  BEGIN
+  END
+END
+^
+
+CREATE TRIGGER GD_AD_DOCUMENT FOR GD_DOCUMENT
+  AFTER DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (NOT (OLD.PARENT IS NULL)) THEN
+  BEGIN
+    UPDATE gd_document SET editiondate = 'NOW'
+    WHERE ID = OLD.parent;
+  END
+END
+^
+
+CREATE TRIGGER GD_AI_DOCUMENT FOR GD_DOCUMENT
+  AFTER INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NOT (NEW.PARENT IS NULL)) THEN
+  BEGIN
+    UPDATE gd_document SET editiondate = NEW.editiondate,
+      editorkey = NEW.editorkey
+    WHERE (ID = NEW.parent) AND (editiondate <> NEW.editiondate);
+  END
+END
+^
+
+/*
+
+  На вход процедуры передается идентификатор
+  типа документа.
+
+  На выходе:
+
+    1 -- документ такого типа не подлежит блокировке.
+    0 -- документ может быть заблокирован (если он
+         входит в заблокированный период).
+
+*/
+
+/*
+CREATE PROCEDURE gd_p_exclude_block_dt(DT INTEGER)
+  RETURNS(F INTEGER)
+AS
+BEGIN
+  F = 0;
+END
+^
+
+CREATE TRIGGER gd_bi_document_block FOR gd_document
+  INACTIVE
+  BEFORE INSERT
+  POSITION 28017
+AS
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF ((NEW.documentdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
+  BEGIN
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (NEW.documenttypekey)
+      RETURNING_VALUES :F;
+
+    IF (:F = 0) THEN
+    BEGIN
+      BG = GEN_ID(gd_g_block_group, 0);
+      IF (:BG = 0) THEN
+      BEGIN
+        EXCEPTION gd_e_block;
+      END ELSE
+      BEGIN
+        SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+          INTO :IG;
+        IF (BIN_AND(:BG, :IG) = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END
+      END
+    END
+  END
+END
+^
+
+CREATE TRIGGER gd_bu_document_block FOR gd_document
+  INACTIVE
+  BEFORE UPDATE
+  POSITION 28017
+AS
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF (((NEW.documentdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))
+      OR ((OLD.documentdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))) THEN
+  BEGIN
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (NEW.documenttypekey)
+      RETURNING_VALUES :F;
+
+    IF (:F = 0) THEN
+    BEGIN
+      BG = GEN_ID(gd_g_block_group, 0);
+      IF (:BG = 0) THEN
+      BEGIN
+        EXCEPTION gd_e_block;
+      END ELSE
+      BEGIN
+        SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+          INTO :IG;
+        IF (BIN_AND(:BG, :IG) = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END
+      END
+    END
+  END
+END
+^
+
+CREATE TRIGGER gd_bd_document_block FOR gd_document
+  INACTIVE
+  BEFORE DELETE
+  POSITION 28017
+AS
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF ((OLD.documentdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
+  BEGIN
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (OLD.documenttypekey)
+      RETURNING_VALUES :F;
+
+    IF (:F = 0) THEN
+    BEGIN
+      BG = GEN_ID(gd_g_block_group, 0);
+      IF (:BG = 0) THEN
+      BEGIN
+        EXCEPTION gd_e_block;
+      END ELSE
+      BEGIN
+        SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+          INTO :IG;
+        IF (BIN_AND(:BG, :IG) = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END
+      END
+    END
+  END
+END
+^
+*/
+
+SET TERM ; ^
+
+COMMIT;
+
+
+/********************************************************************/
+/*   Таблица хранит коды связанных документов                       */
+/*   GD_DOCUMENTLINK                                                */
+/********************************************************************/
+
+CREATE TABLE gd_documentlink(
+  sourcedockey         dintkey,   /* Документ источник              */
+  destdockey           dintkey,   /* Документ назначение            */
+                                                                    
+  sumncu               dcurrency, /* Сумма в НДЕ                    */
+  sumcurr              dcurrency, /* Сумма в валюте                 */
+  sumeq                dcurrency, /* Сумма в эквиваленте            */
+
+  reserved             dinteger 
+);
+
+COMMIT;
+
+ALTER TABLE gd_documentlink ADD CONSTRAINT gd_pk_documentlink
+  PRIMARY KEY (sourcedockey, destdockey);
+
+ALTER TABLE gd_documentlink ADD CONSTRAINT gd_fk_documentlink_source
+  FOREIGN KEY (sourcedockey) REFERENCES gd_document(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE gd_documentlink ADD CONSTRAINT gd_fk_documentlink_dest
+  FOREIGN KEY (destdockey) REFERENCES gd_document(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/*
+
+  гэтая працэдура с_нхран_зуе змесц_ва табл_цаў at_fields, at_relations, at_relation_fields
+  з рэальнай структурай базы дадзеных.
+
+  1. выдаляе ўсё, што ўжо не _снуе
+  2. дадае новае
+  3. актуал_зуе _нфармацыю
+
+*/
+SET TERM ^ ;
+
+CREATE PROCEDURE AT_P_SYNC 
+AS
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE ID1 INTEGER;
+  DECLARE VARIABLE FN VARCHAR(31);
+  DECLARE VARIABLE FS VARCHAR(31);
+  DECLARE VARIABLE RN VARCHAR(31);
+  DECLARE VARIABLE NFS VARCHAR(31);
+  DECLARE VARIABLE VS BLOB SUB_TYPE 0 SEGMENT SIZE 80;
+  DECLARE VARIABLE EN VARCHAR(31);
+  DECLARE VARIABLE DELRULE VARCHAR(20);
+  DECLARE VARIABLE WASERROR SMALLINT;
+  DECLARE VARIABLE GN VARCHAR(64);
+BEGIN 
+ /* пакольк_ каскады не выкарыстоўваюцца мус_м */ 
+ /* п_льнавацца пэўнага парадку                */ 
+  
+ /* выдал_м не _снуючыя ўжо пал_ табл_цаў      */ 
+   FOR 
+     SELECT fieldname, relationname 
+     FROM at_relation_fields LEFT JOIN rdb$relation_fields 
+       ON fieldname=rdb$field_name AND relationname=rdb$relation_name 
+     WHERE 
+       rdb$field_name IS NULL 
+     INTO :FN, :RN 
+   DO BEGIN 
+     DELETE FROM at_relation_fields WHERE fieldname=:FN AND relationname=:RN; 
+   END 
+  
+ /* дададз_м новыя дамены */ 
+   INSERT INTO AT_FIELDS (fieldname, lname, description)
+   SELECT trim(rdb$field_name), trim(rdb$field_name),
+     trim(rdb$field_name)
+   FROM rdb$fields LEFT JOIN at_fields ON rdb$field_name = fieldname
+     WHERE fieldname IS NULL;
+  
+ /* для _снуючых палёў аднав_м _нфармацыю аб тыпе */ 
+   FOR 
+     SELECT fieldsource, fieldname, relationname 
+     FROM at_relation_fields 
+     INTO :FS, :FN, :RN 
+   DO BEGIN 
+     SELECT rf.rdb$field_source, f.id 
+     FROM rdb$relation_fields rf JOIN at_fields f ON rf.rdb$field_source = f.fieldname 
+     WHERE rdb$relation_name=:RN AND rdb$field_name = :FN 
+     INTO :NFS, :ID; 
+  
+     IF (:NFS <> :FS AND (NOT (:NFS IS NULL))) THEN 
+     UPDATE at_relation_fields SET fieldsource = :NFS, fieldsourcekey = :ID 
+     WHERE fieldname = :FN AND relationname = :RN; 
+   END 
+  
+ /* выдал_м з табл_цы даменаў не _снуючыя дамены */ 
+   DELETE FROM at_fields f WHERE
+   NOT EXISTS (SELECT rdb$field_name FROM rdb$fields
+     WHERE rdb$field_name = f.fieldname);
+
+  
+ /*Теперь будем аккуратно проверять на несуществующие уже таблицы и существующие 
+ домены, которые ссылаются на эти таблицы. Такая ситуация может возникнуть из-за 
+ ошибки при создании мета-данных*/ 
+  
+   WASERROR = 0; 
+  
+   FOR 
+ /*Выберем все поля и удалим*/ 
+     SELECT rf.id 
+     FROM at_relations r 
+     LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
+     LEFT JOIN at_fields f ON r.id = f.reftablekey 
+     LEFT JOIN at_relation_fields rf ON rf.fieldsourcekey = f.id 
+     WHERE rdb.rdb$relation_name IS NULL 
+     INTO :ID 
+   DO BEGIN 
+     WASERROR = 1; 
+     DELETE FROM at_relation_fields WHERE id = :ID; 
+   END 
+  
+   FOR 
+ /*Выберем все домены и удалим*/ 
+     SELECT f.id 
+     FROM at_relations r 
+     LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
+     LEFT JOIN at_fields f ON r.id = f.reftablekey 
+     WHERE rdb.rdb$relation_name IS NULL 
+     INTO :ID 
+   DO BEGIN 
+     WASERROR = 1; 
+     DELETE FROM at_fields WHERE id = :ID; 
+   END 
+  
+   FOR 
+ /*Выберем все поля и удалим*/ 
+     SELECT rf.id 
+     FROM at_relations r 
+     LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
+     LEFT JOIN at_fields f ON r.id = f.settablekey 
+     LEFT JOIN at_relation_fields rf ON rf.fieldsourcekey = f.id 
+     WHERE rdb.rdb$relation_name IS NULL 
+     INTO :ID 
+   DO BEGIN 
+     WASERROR = 1; 
+     DELETE FROM at_relation_fields WHERE id = :ID; 
+   END 
+  
+   FOR 
+ /*Выберем все домены и удалим*/ 
+     SELECT f.id 
+     FROM at_relations r 
+     LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
+     LEFT JOIN at_fields f ON r.id = f.settablekey 
+     WHERE rdb.rdb$relation_name IS NULL 
+     INTO :ID 
+   DO BEGIN 
+     WASERROR = 1; 
+     DELETE FROM at_fields WHERE id = :ID; 
+   END 
+  
+   FOR 
+/*выберем все документы, у которых шапка ссылается на несуществующие таблицы и удалим*/ 
+     SELECT dt.id 
+     FROM at_relations r 
+     LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
+     LEFT JOIN gd_documenttype dt ON dt.headerrelkey =r.id 
+     WHERE rdb.rdb$relation_name IS NULL 
+     INTO :ID 
+   DO BEGIN 
+     DELETE FROM gd_documenttype WHERE id = :ID; 
+   END 
+ 
+   FOR 
+/*выберем все документы, у которых позиция ссылается на несуществующие таблицы и удалим*/ 
+     SELECT dt.id 
+     FROM at_relations r 
+     LEFT JOIN rdb$relations rdb ON rdb.rdb$relation_name = r.relationname 
+     LEFT JOIN gd_documenttype dt ON dt.linerelkey =r.id 
+     WHERE rdb.rdb$relation_name IS NULL 
+     INTO :ID 
+   DO BEGIN 
+     DELETE FROM gd_documenttype WHERE id = :ID; 
+   END 
+   IF (WASERROR = 1) THEN 
+   BEGIN 
+ /* Перечитаем домены. Теперь те домены, которые были проблемными добавятся без ошибок */ 
+     INSERT INTO AT_FIELDS (fieldname, lname, description)
+     SELECT g_s_trim(rdb$field_name, ' '), g_s_trim(rdb$field_name, ' '),
+       g_s_trim(rdb$field_name, ' ')
+     FROM rdb$fields LEFT JOIN at_fields ON rdb$field_name = fieldname
+       WHERE fieldname IS NULL;
+   END 
+  
+ /* выдал_м табл_цы, як_х ужо няма */ 
+   DELETE FROM at_relations r WHERE
+   NOT EXISTS (SELECT rdb$relation_name FROM rdb$relations
+     WHERE rdb$relation_name = r.relationname );
+  
+ /* дададз_м новыя табл_цы */ 
+ /* акрамя с_стэмных  */ 
+   FOR 
+     SELECT rdb$relation_name, rdb$view_source 
+     FROM rdb$relations LEFT JOIN at_relations ON relationname=rdb$relation_name 
+     WHERE (relationname IS NULL) AND (NOT rdb$relation_name CONTAINING 'RDB$') 
+     INTO :RN, :VS 
+   DO BEGIN 
+     RN = g_s_trim(RN, ' '); 
+     IF (:VS IS NULL) THEN 
+       INSERT INTO at_relations (relationname, relationtype, lname, lshortname, description) 
+       VALUES (:RN, 'T', :RN, :RN, :RN); 
+     ELSE 
+       INSERT INTO at_relations (relationname, relationtype, lname, lshortname, description) 
+       VALUES (:RN, 'V', :RN, :RN, :RN); 
+     END 
+  
+ /* дадаем новыя пал_ */ 
+   FOR 
+     SELECT 
+       rr.rdb$field_name, rr.rdb$field_source, rr.rdb$relation_name, r.id, f.id 
+     FROM 
+       rdb$relation_fields rr JOIN at_relations r ON rdb$relation_name = r.relationname 
+     JOIN at_fields f ON rr.rdb$field_source = f.fieldname 
+     LEFT JOIN at_relation_fields rf ON rr.rdb$field_name = rf.fieldname 
+     AND rr.rdb$relation_name = rf.relationname 
+     WHERE 
+       (rf.fieldname IS NULL) AND (NOT rr.rdb$field_name CONTAINING 'RDB$') 
+     INTO 
+       :FN, :FS, :RN, :ID, :ID1 
+   DO BEGIN 
+     FN = g_s_trim(FN, ' '); 
+     FS = g_s_trim(FS, ' '); 
+     RN = g_s_trim(RN, ' '); 
+     INSERT INTO at_relation_fields (fieldname, relationname, fieldsource, lname, description, 
+       relationkey, fieldsourcekey, colwidth, visible) 
+     VALUES(:FN, :RN, :FS, :FN, :FN, :ID, :ID1, 20, 1); 
+   END 
+  
+ /* обновим информацию о правиле удаления для полей ссылок */ 
+   FOR 
+     SELECT rf.rdb$delete_rule, f.id 
+     FROM rdb$relation_constraints rc 
+     LEFT JOIN rdb$index_segments rs ON rc.rdb$index_name = rs.rdb$index_name 
+     LEFT JOIN at_relation_fields f ON rc.rdb$relation_name = f.relationname 
+     AND  rs.rdb$field_name = f.fieldname 
+     LEFT JOIN rdb$ref_constraints rf ON rf.rdb$constraint_name = rc.rdb$constraint_name 
+     WHERE 
+     rc.rdb$constraint_type = 'FOREIGN KEY' 
+     AND ((f.deleterule <> rf.rdb$delete_rule) 
+     OR ((f.deleterule IS NULL) AND (rf.rdb$delete_rule IS NOT NULL)) 
+     OR ((f.deleterule IS NOT NULL) AND (rf.rdb$delete_rule IS NULL))) 
+     INTO :DELRULE, :ID 
+   DO BEGIN 
+     UPDATE at_relation_fields SET deleterule = :DELRULE WHERE id = :ID; 
+   END 
+  
+ /* выдал_м не _снуючыя ўжо выключэннi */ 
+   FOR 
+     SELECT exceptionname 
+     FROM at_exceptions LEFT JOIN rdb$exceptions 
+     ON exceptionname=rdb$exception_name 
+     WHERE 
+       rdb$exception_name IS NULL 
+     INTO :EN 
+   DO BEGIN 
+     DELETE FROM at_exceptions WHERE exceptionname=:EN; 
+   END 
+  
+ /* дадаем новыя выключэннi */ 
+   INSERT INTO at_exceptions(exceptionname)
+   SELECT g_s_trim(rdb$exception_name, ' ')
+   FROM rdb$exceptions
+   LEFT JOIN at_exceptions e ON e.exceptionname=rdb$exception_name
+   WHERE e.exceptionname IS NULL;
+
+ /* выдал_м не _снуючыя ўжо працэдуры */ 
+   FOR 
+     SELECT procedurename 
+     FROM at_procedures LEFT JOIN rdb$procedures 
+       ON procedurename=rdb$procedure_name 
+     WHERE 
+       rdb$procedure_name IS NULL 
+     INTO :EN 
+   DO BEGIN 
+     DELETE FROM at_procedures WHERE procedurename=:EN; 
+   END 
+  
+ /* дадаем новыя працэдуры */ 
+   INSERT INTO at_procedures(procedurename)
+   SELECT g_s_trim(rdb$procedure_name, ' ')
+   FROM rdb$procedures
+   LEFT JOIN at_procedures e ON e.procedurename = rdb$procedure_name
+   WHERE e.procedurename IS NULL;
+       
+ /* удалим не существующие уже генераторы */ 
+   GN = NULL; 
+   FOR  
+     SELECT generatorname 
+     FROM at_generators 
+     LEFT JOIN rdb$generators ON generatorname=rdb$generator_name 
+     WHERE rdb$generator_name IS NULL 
+     INTO :GN  
+   DO  
+   BEGIN 
+     DELETE FROM at_generators WHERE generatorname=:GN;  
+   END 
+       
+ /* добавим новые генераторы */  
+   INSERT INTO at_generators(generatorname)
+   SELECT G_S_TRIM(rdb$generator_name, ' ')
+   FROM rdb$generators
+   LEFT JOIN at_generators t ON t.generatorname=rdb$generator_name
+   WHERE t.generatorname IS NULL;
+       
+ /* удалим не существующие уже чеки */ 
+   EN = NULL; 
+   FOR 
+     SELECT T.CHECKNAME 
+     FROM AT_CHECK_CONSTRAINTS T 
+     LEFT JOIN RDB$CHECK_CONSTRAINTS C ON T.CHECKNAME = C.RDB$CONSTRAINT_NAME 
+     WHERE C.RDB$CONSTRAINT_NAME IS NULL 
+     INTO :EN 
+   DO 
+   BEGIN 
+     DELETE FROM AT_CHECK_CONSTRAINTS WHERE CHECKNAME = :EN; 
+   END 
+       
+ /* добавим новые чеки */ 
+   INSERT INTO AT_CHECK_CONSTRAINTS(CHECKNAME)
+   SELECT G_S_TRIM(C.RDB$CONSTRAINT_NAME,  ' ')
+   FROM RDB$TRIGGERS T
+   LEFT JOIN RDB$CHECK_CONSTRAINTS C ON C.RDB$TRIGGER_NAME = T.RDB$TRIGGER_NAME
+   LEFT JOIN AT_CHECK_CONSTRAINTS CON ON CON.CHECKNAME = C.RDB$CONSTRAINT_NAME
+   WHERE T.RDB$TRIGGER_SOURCE LIKE 'CHECK%'
+     AND CON.CHECKNAME IS NULL;
+
+END
+^
+
+COMMIT^
+
+
+CREATE PROCEDURE AT_P_SYNC_INDEXES (
+    RELATION_NAME VARCHAR (31))
+AS
+  DECLARE VARIABLE FN VARCHAR(31);
+  DECLARE VARIABLE RN VARCHAR(31);
+  DECLARE VARIABLE I_N VARCHAR(31);
+  DECLARE VARIABLE FP SMALLINT;
+  DEClARE VARIABLE FLIST VARCHAR(255);
+  DEClARE VARIABLE FL VARCHAR(255);
+  DEClARE VARIABLE INDEXNAME VARCHAR(31);
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE UF SMALLINT;
+  DECLARE VARIABLE II SMALLINT;
+BEGIN
+
+  /* выдал_м не _снуючыя ўжо iндэксы */
+  FOR
+    SELECT indexname
+    FROM at_indices LEFT JOIN rdb$indices
+      ON indexname=rdb$index_name
+    WHERE
+      rdb$index_name IS NULL AND relationname = :RELATION_NAME
+    INTO :I_N
+  DO BEGIN
+    DELETE FROM at_indices WHERE indexname=:I_N;
+  END
+
+
+ /* дадаем новыя iндэксы */
+  FOR
+    SELECT rdb$relation_name, rdb$index_name,
+      rdb$index_inactive, rdb$unique_flag, r.id
+    FROM rdb$indices LEFT JOIN at_indices i
+      ON i.indexname=rdb$index_name
+    LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
+    WHERE
+     i.indexname IS NULL AND rdb$relation_name = :RELATION_NAME
+    INTO :RN, :I_N, :II, :UF, :ID
+  DO BEGIN
+    IF (II IS NULL) THEN
+      II = 0;
+    IF (UF IS NULL) THEN
+      UF = 0;
+    IF (II > 1) THEN
+      II = 1;
+    IF (UF > 1) THEN
+      UF = 1;
+    RN = g_s_trim(RN, ' ');
+    I_N = g_s_trim(I_N, ' ');
+    INSERT INTO at_indices(relationname, indexname, relationkey, unique_flag, index_inactive)
+    VALUES (:RN, :I_N, :ID, :UF, :II);
+  END
+
+  /* проверяем индексы на активность и уникальность*/
+  FOR
+    SELECT ri.rdb$index_inactive, ri.rdb$unique_flag, ri.rdb$index_name
+    FROM rdb$indices ri
+    LEFT JOIN at_indices i ON ri.rdb$index_name = i.indexname
+    WHERE ((i.unique_flag <> ri.rdb$unique_flag) OR
+    (ri.rdb$unique_flag IS NULL AND i.unique_flag = 1) OR
+    (i.unique_flag IS NULL) OR (i.index_inactive IS NULL) OR
+    (i.index_inactive <> ri.rdb$index_inactive) OR
+    (ri.rdb$index_inactive IS NULL AND i.index_inactive = 1)) AND
+    (ri.rdb$relation_name = :RELATION_NAME)
+    INTO :II, :UF, :I_N
+  DO BEGIN
+    IF (II IS NULL) THEN
+      II = 0;
+    IF (UF IS NULL) THEN
+      UF = 0;
+    IF (II > 1) THEN
+      II = 1;
+    IF (UF > 1) THEN
+      UF = 1;
+    UPDATE at_indices SET unique_flag = :UF, index_inactive = :II WHERE indexname = :I_N;
+  END
+
+
+
+  /* проверяем не изменился ли порядок полей в индексе*/
+
+  FLIST = ' ';
+  INDEXNAME = ' ';
+  FOR
+    SELECT isg.rdb$index_name, isg.rdb$field_name, isg.rdb$field_position
+    FROM rdb$index_segments isg LEFT JOIN rdb$indices ri
+      ON isg.rdb$index_name = ri.rdb$index_name
+    WHERE ri.rdb$relation_name = :RELATION_NAME
+    ORDER BY isg.rdb$index_name, isg.rdb$field_position
+    INTO :I_N, :FN, :FP
+  DO BEGIN
+    IF (INDEXNAME <> I_N) THEN
+    BEGIN
+      IF (INDEXNAME <> ' ') THEN
+      BEGIN
+        SELECT fieldslist FROM at_indices WHERE indexname = :INDEXNAME INTO :FL;
+        IF ((FL <> FLIST) OR (FL IS NULL)) THEN
+          UPDATE at_indices SET fieldslist = :FLIST WHERE indexname = :INDEXNAME;
+      END
+      FLIST = g_s_trim(FN, ' ');
+      INDEXNAME = I_N;
+    END
+    ELSE
+      FLIST = FLIST || ',' || g_s_trim(FN, ' ');
+  END
+  IF (INDEXNAME <> ' ') THEN
+    BEGIN
+      SELECT fieldslist FROM at_indices WHERE indexname = :INDEXNAME INTO :FL;
+      IF ((FL <> FLIST) OR (FL IS NULL)) THEN
+        UPDATE at_indices SET fieldslist = :FLIST WHERE indexname = :INDEXNAME;
+  END
+
+END
+^
+
+CREATE PROCEDURE AT_P_SYNC_TRIGGERS (
+    RELATION_NAME VARCHAR (31))
+AS
+  DECLARE VARIABLE RN VARCHAR(31);
+  DECLARE VARIABLE TN VARCHAR(31);
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE TI SMALLINT;
+BEGIN
+
+  /* удалим не существующие уже триггеры */
+  FOR
+    SELECT triggername
+    FROM at_triggers
+      LEFT JOIN rdb$triggers
+        ON triggername=rdb$trigger_name
+          AND relationname=rdb$relation_name
+    WHERE
+      rdb$trigger_name IS NULL AND relationname = :RELATION_NAME
+    INTO :TN
+  DO BEGIN
+    DELETE FROM at_triggers WHERE triggername=:TN;
+  END
+
+
+ /* добавим новые триггеры */
+  FOR
+    SELECT rdb$relation_name, rdb$trigger_name,
+      rdb$trigger_inactive, r.id
+    FROM rdb$triggers LEFT JOIN at_triggers t
+      ON t.triggername=rdb$trigger_name
+    LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
+    WHERE
+     t.triggername IS NULL AND rdb$relation_name = :RELATION_NAME
+    INTO :RN, :TN, :TI, :ID
+  DO BEGIN
+    RN = G_S_TRIM(RN, ' ');
+    TN = G_S_TRIM(TN, ' ');
+    IF (TI IS NULL) THEN
+      TI = 0;
+    IF (TI > 1) THEN
+      TI = 1;
+    INSERT INTO at_triggers(
+      relationname, triggername, relationkey, trigger_inactive)
+    VALUES (
+      :RN, :TN, :ID, :TI);
+  END
+
+  /* проверяем триггеры на активность*/
+  FOR
+    SELECT ri.rdb$trigger_inactive, ri.rdb$trigger_name
+    FROM rdb$triggers ri
+    LEFT JOIN at_triggers t ON ri.rdb$trigger_name = t.triggername
+    WHERE ((t.trigger_inactive IS NULL) OR
+    (t.trigger_inactive <> ri.rdb$trigger_inactive) OR
+    (ri.rdb$trigger_inactive IS NULL AND t.trigger_inactive = 1)) AND
+    (ri.rdb$relation_name = :RELATION_NAME)
+    INTO :TI, :TN
+  DO BEGIN
+    IF (TI IS NULL) THEN
+      TI = 0;
+    IF (TI > 1) THEN
+      TI = 1;
+    UPDATE at_triggers SET trigger_inactive = :TI WHERE triggername = :TN;
+  END
+
+END
+^
+
+
+CREATE PROCEDURE AT_P_SYNC_INDEXES_ALL
+AS
+  DECLARE VARIABLE FN VARCHAR(31);
+  DECLARE VARIABLE RN VARCHAR(31);
+  DECLARE VARIABLE I_ID INTEGER;
+  DECLARE VARIABLE I_N VARCHAR(31);
+  DECLARE VARIABLE FP SMALLINT;
+  DEClARE VARIABLE FLIST VARCHAR(255);
+  DEClARE VARIABLE FL VARCHAR(255);
+  DEClARE VARIABLE INDEXNAME VARCHAR(31);
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE UF SMALLINT;
+  DECLARE VARIABLE II SMALLINT;
+BEGIN
+
+  /* выдал_м не _снуючыя ўжо iндэксы */
+  FOR
+    SELECT id
+    FROM at_indices LEFT JOIN rdb$indices
+      ON indexname=rdb$index_name
+    WHERE
+      rdb$index_name IS NULL
+    INTO :I_ID
+  DO BEGIN
+    DELETE FROM at_indices WHERE id=:I_ID;
+  END
+
+
+ /* дадаем новыя iндэксы */
+  FOR
+    SELECT rdb$relation_name, rdb$index_name,
+      COALESCE(rdb$index_inactive, 0), COALESCE(rdb$unique_flag, 0), r.id
+    FROM rdb$indices LEFT JOIN at_indices i
+      ON i.indexname=rdb$index_name
+    LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
+    WHERE
+      (i.indexname IS NULL) AND (r.id IS NOT NULL)
+    INTO :RN, :I_N, :II, :UF, :ID
+  DO BEGIN
+    RN = trim(RN);
+    I_N = trim(I_N);
+    IF (II <> 0) THEN
+      II = 1;
+    IF (UF <> 0) THEN
+      UF = 1;
+    INSERT INTO at_indices(relationname, indexname, relationkey, unique_flag, index_inactive)
+    VALUES (:RN, :I_N, :ID, :UF, :II);
+  END
+
+  /* проверяем индексы на активность и уникальность*/
+  FOR
+    SELECT COALESCE(ri.rdb$index_inactive, 0), COALESCE(ri.rdb$unique_flag, 0), ri.rdb$index_name
+    FROM at_indices i
+    LEFT JOIN rdb$indices ri ON ri.rdb$index_name = i.indexname
+    WHERE ((i.unique_flag <> ri.rdb$unique_flag) OR
+    (ri.rdb$unique_flag IS NULL AND i.unique_flag = 1) OR
+    (i.unique_flag IS NULL) OR (i.index_inactive IS NULL) OR
+    (i.index_inactive <> ri.rdb$index_inactive) OR
+    (ri.rdb$index_inactive IS NULL AND i.index_inactive = 1))
+    INTO :II, :UF, :I_N
+  DO BEGIN
+    IF (II <> 0) THEN
+      II = 1;
+    IF (UF <> 0) THEN
+      UF = 1;
+    UPDATE at_indices SET unique_flag = :UF, index_inactive = :II WHERE indexname = :I_N;
+  END
+
+
+
+  /* проверяем не изменился ли порядок полей в индексе*/
+
+  FLIST = ' ';
+  INDEXNAME = ' ';
+  FOR
+    SELECT isg.rdb$index_name, isg.rdb$field_name, isg.rdb$field_position
+    FROM rdb$index_segments isg LEFT JOIN rdb$indices ri
+      ON isg.rdb$index_name = ri.rdb$index_name
+    ORDER BY isg.rdb$index_name, isg.rdb$field_position
+    INTO :I_N, :FN, :FP
+  DO BEGIN
+    IF (INDEXNAME <> I_N) THEN
+    BEGIN
+      IF (INDEXNAME <> ' ') THEN
+      BEGIN
+        SELECT fieldslist FROM at_indices WHERE indexname = :INDEXNAME INTO :FL;
+        IF ((FL <> FLIST) OR (FL IS NULL)) THEN
+          UPDATE at_indices SET fieldslist = :FLIST WHERE indexname = :INDEXNAME;
+      END
+      FLIST = UPPER(trim(FN));
+      INDEXNAME = I_N;
+    END
+    ELSE
+      FLIST = FLIST || ',' || UPPER(trim(FN));
+  END
+  IF (INDEXNAME <> ' ') THEN
+    BEGIN
+      SELECT fieldslist FROM at_indices WHERE indexname = :INDEXNAME INTO :FL;
+      IF ((FL <> FLIST) OR (FL IS NULL)) THEN
+        UPDATE at_indices SET fieldslist = :FLIST WHERE indexname = :INDEXNAME;
+  END
+
+END
+^
+
+CREATE PROCEDURE AT_P_SYNC_TRIGGERS_ALL
+AS
+  DECLARE VARIABLE RN VARCHAR(31);
+  DECLARE VARIABLE TN VARCHAR(31);
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE TI SMALLINT;
+BEGIN
+
+  /* удалим не существующие уже триггеры */
+  FOR
+    SELECT triggername
+    FROM at_triggers LEFT JOIN rdb$triggers
+      ON triggername=rdb$trigger_name
+        AND relationname=rdb$relation_name
+    WHERE
+      rdb$trigger_name IS NULL
+    INTO :TN
+  DO BEGIN
+    DELETE FROM at_triggers WHERE triggername=:TN;
+  END
+
+
+ /* добавим новые триггеры */
+  FOR
+    SELECT rdb$relation_name, rdb$trigger_name,
+      rdb$trigger_inactive, r.id
+    FROM rdb$triggers LEFT JOIN at_triggers t
+      ON t.triggername=rdb$trigger_name
+    LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
+    WHERE
+     (t.triggername IS NULL) and (r.id IS NOT NULL)
+    INTO :RN, :TN, :TI, :ID
+  DO BEGIN
+    RN = G_S_TRIM(RN, ' ');
+    TN = G_S_TRIM(TN, ' ');
+    IF (TI IS NULL) THEN
+      TI = 0;
+    IF (TI > 1) THEN
+      TI = 1;
+    INSERT INTO at_triggers(relationname, triggername, relationkey, trigger_inactive)
+    VALUES (:RN, :TN, :ID, :TI);
+  END
+
+  /* проверяем триггеры на активность*/
+  FOR
+    SELECT ri.rdb$trigger_inactive, ri.rdb$trigger_name
+    FROM rdb$triggers ri
+    LEFT JOIN at_triggers t ON ri.rdb$trigger_name = t.triggername
+    WHERE ((t.trigger_inactive IS NULL) OR
+    (t.trigger_inactive <> ri.rdb$trigger_inactive) OR
+    (ri.rdb$trigger_inactive IS NULL AND t.trigger_inactive = 1))
+    INTO :TI, :TN
+  DO BEGIN
+    IF (TI IS NULL) THEN
+      TI = 0;
+    IF (TI > 1) THEN
+      TI = 1;
+    UPDATE at_triggers SET trigger_inactive = :TI WHERE triggername = :TN;
+  END
+
+END
+^
+SET TERM ; ^
+COMMIT;
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    filter.sql
+
+  Abstract
+
+    An Interbase script for "universal" filter.
+
+  Author
+
+    Andrey Shadevsky (26.06.00)
+
+  Revisions history
+
+    Initial  26.06.00  JKL    Initial version
+
+  Status 
+    
+    Draft
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/****************************************************
+
+   Таблица для регистрации компонент фильтрации в БД.
+
+*****************************************************/
+
+CREATE TABLE flt_componentfilter
+(
+  id                dintkey,            /* идентификатор */
+  filtername        dtext20,            /* наименование компонента */
+  formname          dtext20,            /* наименование владельца компонента */
+  applicationname   dtext20,            /* наименование приложения */
+  crc               dinteger,           /* crc поля fullname */
+  fullname          dtext255            /* полное наименование компонента:
+                                           наименование приложения + \ +
+                                           наименование владельца + \ +
+                                           имя компоненты фильтра (Добавлено из-за
+                                           предыдущего органичения на имя фильтра 20 символов)*/
+);
+
+ALTER TABLE flt_componentfilter
+  ADD CONSTRAINT flt_pk_componentfilter PRIMARY KEY (id);
+
+CREATE INDEX flt_x_componentfilter_comp 
+  ON flt_componentfilter(filtername, formname, applicationname);
+
+CREATE INDEX flt_x_componentfilter_crc 
+  ON flt_componentfilter(crc);
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения процедур созданных в фильтрах.
+   Наверное от ее можно будет избавиться потом.
+
+*****************************************************/
+
+CREATE TABLE flt_procedurefilter
+(
+  name          dname,
+  componentkey  dintkey,
+  description   dtext180,
+  aview          dsecurity,
+  disabled      dboolean DEFAULT 0,
+  reserved      dinteger
+);
+
+ALTER TABLE flt_procedurefilter ADD CONSTRAINT flt_pk_procedurefilter
+  PRIMARY KEY (name);
+
+ALTER TABLE flt_procedurefilter ADD CONSTRAINT flt_fk_procedurefilter_compkey 
+  FOREIGN KEY (componentkey) REFERENCES flt_componentfilter(id)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE EXCEPTION FLT_E_INVALIDFILTERNAME 
+  'You made an attempt to save filter with duplicate name.';
+
+/****************************************************
+
+   Таблица для хранения фильтра пользователя.
+
+*****************************************************/
+
+CREATE TABLE flt_savedfilter
+(
+  id            dintkey,
+  name          dname,
+  userkey       dforeignkey,
+  componentkey  dintkey,
+  description   dtext180,
+  lastextime    dtime,
+  readcount     dinteger DEFAULT 0,
+
+  data          dfilterdata,
+
+  aview         dsecurity,
+  achag         dsecurity,
+  afull         dsecurity,
+
+  disabled      dboolean DEFAULT 0,
+  editiondate   deditiondate,   /* Дата последнего редактирования */
+  editorkey     dintkey,        /* Ссылка на пользователя, который редактировал запись*/
+  reserved      dinteger
+);
+
+ALTER TABLE flt_savedfilter ADD CONSTRAINT flt_pk_savedfilter
+  PRIMARY KEY (id);
+
+ALTER TABLE flt_savedfilter ADD CONSTRAINT flt_fk_savedfilter_userkey
+  FOREIGN KEY (userkey) REFERENCES gd_user(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE flt_savedfilter ADD CONSTRAINT flt_fk_savedfilter_componentkey
+  FOREIGN KEY (componentkey) REFERENCES flt_componentfilter(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE flt_savedfilter ADD CONSTRAINT flt_fk_savedfilter_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+     
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER flt_bi_savedfilter FOR flt_savedfilter
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+  if (NEW.readcount IS NULL) then
+    NEW.readcount = 0;
+END
+^
+
+
+
+/* Trigger: FLT_BI_SAVEDFILTER1 */
+CREATE TRIGGER flt_bi_savedfilter1 FOR flt_savedfilter
+BEFORE INSERT POSITION 1
+AS
+BEGIN
+  IF (EXISTS
+       (SELECT *
+        FROM flt_savedfilter
+        WHERE name = NEW.name AND componentkey = NEW.componentkey
+        AND (userkey = NEW.userkey OR userkey IS NULL AND NEW.userkey IS NULL))
+      )
+  THEN
+    EXCEPTION flt_e_invalidfiltername;
+END
+^
+
+
+/* Trigger: FLT_BU_SAVEDFILTER1 */
+CREATE TRIGGER flt_bu_savedfilter1 FOR flt_savedfilter
+BEFORE UPDATE POSITION 1
+AS
+BEGIN
+  IF (EXISTS
+       (SELECT *
+        FROM flt_savedfilter
+        WHERE name = NEW.name AND componentkey = NEW.componentkey
+        AND (userkey = NEW.userkey OR userkey IS NULL AND NEW.userkey IS NULL) AND id <> NEW.id)
+      )
+  THEN
+    EXCEPTION flt_e_invalidfiltername;
+END
+^
+
+CREATE TRIGGER flt_bi_component FOR flt_componentfilter
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE TRIGGER flt_bi_savedfilter5 FOR flt_savedfilter
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER flt_bu_savedfilter5 FOR flt_savedfilter
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения ссылки на последний фильтр.
+
+*****************************************************/
+
+CREATE TABLE flt_lastfilter
+(
+  componentkey         dintkey,
+  userkey              dintkey,
+  lastfilter           dintkey,
+  crc32                dinteger,
+  dbversion            dtext20
+);
+
+ALTER TABLE flt_lastfilter ADD CONSTRAINT flt_pk_lastfilter 
+  PRIMARY KEY (componentkey, userkey);
+
+ALTER TABLE flt_lastfilter ADD CONSTRAINT flt_fk_lastfilter_userkey 
+  FOREIGN KEY (userkey) REFERENCES gd_user(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE flt_lastfilter ADD CONSTRAINT flt_fk_lastfilter_componentkey 
+  FOREIGN KEY (componentkey) REFERENCES flt_componentfilter(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE flt_lastfilter ADD CONSTRAINT flt_fk_lastfilter_lastfilter 
+  FOREIGN KEY (lastfilter) REFERENCES flt_savedfilter(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    bn_bankstatement.sql
+
+  Abstract
+
+    Банковские выписки
+
+  Author
+
+    Anton Smirnov,
+    Julia Teryokhina
+
+  Revisions history
+
+    Initial  09.08.2000  SAI    Initial version
+             11.01.2002  Julie  Modification
+
+  Status
+
+    Draft
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/*
+ *
+ *   Банковская выписка
+ *
+ *   Заметьте, мы храним в выписке сумму по дебету и кредиту всех
+ *   позиций выписки, а также количество строк.
+ *   Данные значения обновляются через систему триггеров.
+ *
+ */
+
+CREATE TABLE bn_bankstatement
+(
+  documentkey          dintkey,               
+  accountkey           dintkey,
+
+  dsumncu              dcurrency DEFAULT 0 NOT NULL,
+  csumncu              dcurrency DEFAULT 0 NOT NULL,
+
+  dsumcurr             dcurrency DEFAULT 0 NOT NULL,
+  csumcurr             dcurrency DEFAULT 0 NOT NULL,
+
+  linecount            dinteger DEFAULT 0 NOT NULL,
+  rate                 dcurrency, /* курс валютной выписки */ 
+
+  CHECK(linecount >= 0)
+);
+
+COMMIT;
+
+ALTER TABLE bn_bankstatement
+  ADD CONSTRAINT bn_pk_bankstatement PRIMARY KEY (documentkey);
+
+ALTER TABLE bn_bankstatement ADD CONSTRAINT bn_fk_bs_documentkey
+  FOREIGN KEY (documentkey) REFERENCES gd_document(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE bn_bankstatement ADD CONSTRAINT bn_fk_bs_accountkey
+  FOREIGN KEY (accountkey) REFERENCES gd_companyaccount(id)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+/*
+ *
+ *   Позиция банковской выписки
+ *
+ */
+
+CREATE TABLE bn_bankstatementline
+(
+  id                   dintkey,      /* унікальны ідэнтыфікатар стракі выпіскі      */
+
+  documentkey          dforeignkey,  /* платежное требование или поручение          */
+                                     /* или чек, или другой документ, который привя-*/
+                                     /* зан к позиции выписки                       */
+  bankstatementkey     dmasterkey,   /* спасылка на выпіску                         */
+  trtypekey            dforeignkey,  /* ссылка на операцию                          */
+
+  companykey           dforeignkey,  /* клиент, реальный плательщик или получатель  */
+                                     
+  dsumncu              dcurrency,    /* дебет, сума ў НГА                           */
+  dsumcurr             dcurrency,    /* дебет, сума ў валюце                        */
+
+  csumncu              dcurrency,    /* крэдзіт, сума ў НГА                         */
+  csumcurr             dcurrency,    /* крэдзіт, сума ў валюце                      */
+                                     /* заўважце, што ключ валюты прывязаны да      */
+                                     /* рахунка, па якім ідзе выпіска               */
+
+                                     /* как определны для банковских выписок:       */
+  paymentmode          dtext8,       /* форма рассчета                              */
+  operationtype        dtext8,       /* вид операции                                */
+
+                                     /* переносим эти поля с бумажной выписки:      */
+  account              dbankaccount, /* рассчетный счет клиента                     */
+  bankcode             dbankcode,    /* код банка клиента                           */
+  bankbranch           dbankcode,    /* номер отделения банка */	
+  docnumber            dtext20,      /* номер документа(платежки)                   */
+
+  comment              dtext80,      /* каментар                                    */
+                                     /* например, назначение платежа                */
+  accountkey           dforeignkey,  /* ссылка на ac_account */
+
+  /* адначасова можа быць альбо сума па крэдзіце, альбо дзебіце */
+  CHECK(((dsumncu IS NULL) AND (csumncu > 0)) OR ((csumncu IS NULL) AND (dsumncu > 0)))
+);
+
+COMMIT;
+
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_pk_bankstatementline
+  PRIMARY KEY (id);
+
+COMMIT;
+
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_id
+  FOREIGN KEY (id) REFERENCES gd_document(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_documentkey
+  FOREIGN KEY (documentkey) REFERENCES gd_document(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_companykey
+  FOREIGN KEY (companykey) REFERENCES gd_company(contactkey)
+  ON UPDATE CASCADE;
+
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_bankstatementkey
+  FOREIGN KEY (bankstatementkey) REFERENCES bn_bankstatement(documentkey)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+/*
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_trtypekey
+  FOREIGN KEY (trtypekey) REFERENCES gd_listtrtype(id)
+  ON UPDATE CASCADE;
+*/
+
+
+COMMIT;
+
+SET TERM ^ ;
+
+/*
+  После добавления позиции по выписке надо обновить
+  суммарные значения в самой выписке.
+*/
+CREATE TRIGGER bn_ai_bsl FOR bn_bankstatementline
+  AFTER INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE ndsumncu NUMERIC(15, 4);
+  DECLARE VARIABLE ncsumncu NUMERIC(15, 4);
+  DECLARE VARIABLE ndsumcurr NUMERIC(15, 4);
+  DECLARE VARIABLE ncsumcurr NUMERIC(15, 4);
+BEGIN
+  IF (NEW.dsumncu IS NULL) THEN
+    ndsumncu = 0;
+  ELSE
+    ndsumncu = NEW.dsumncu;
+
+  IF (NEW.csumncu IS NULL) THEN
+    ncsumncu = 0;
+  ELSE
+    ncsumncu = NEW.csumncu;
+
+  IF (NEW.dsumcurr IS NULL) THEN
+    ndsumcurr = 0;
+  ELSE
+    ndsumcurr = NEW.dsumcurr;
+
+  IF (NEW.csumcurr IS NULL) THEN
+    ncsumcurr = 0;
+  ELSE
+    ncsumcurr = NEW.csumcurr;
+
+  UPDATE bn_bankstatement
+    SET linecount = linecount + 1,
+        dsumncu = dsumncu + :ndsumncu,
+        csumncu = csumncu + :ncsumncu,
+        dsumcurr = dsumcurr + :ndsumcurr,
+        csumcurr = csumcurr + :ncsumcurr
+    WHERE documentkey = NEW.bankstatementkey;
+
+  UPDATE gd_document SET
+  number = case when NEW.docnumber IS NULL then 'б\н' else NEW.docnumber end
+  WHERE id = NEW.id;
+
+END
+^
+
+/*
+  После удаление позиции по выписке надо обновить сумарные значения
+  в самой выписке.
+*/
+CREATE TRIGGER bn_ad_bsl FOR bn_bankstatementline
+  AFTER DELETE
+  POSITION 0
+AS
+  DECLARE VARIABLE old_dsumncu NUMERIC(15, 4);
+  DECLARE VARIABLE old_csumncu NUMERIC(15, 4);
+  DECLARE VARIABLE old_dsumcurr NUMERIC(15, 4);
+  DECLARE VARIABLE old_csumcurr NUMERIC(15, 4);
+BEGIN
+  IF (OLD.dsumncu IS NULL) THEN
+    old_dsumncu = 0;
+  ELSE
+    old_dsumncu = OLD.dsumncu;
+
+  IF (OLD.csumncu IS NULL) THEN
+    old_csumncu = 0;
+  ELSE
+    old_csumncu = OLD.csumncu;
+
+  IF (OLD.dsumcurr IS NULL) THEN
+    old_dsumcurr = 0;
+  ELSE
+    old_dsumcurr = OLD.dsumcurr;
+
+  IF (OLD.csumcurr IS NULL) THEN
+    old_csumcurr = 0;
+  ELSE
+    old_csumcurr = OLD.csumcurr;
+
+  UPDATE bn_bankstatement
+    SET linecount = linecount - 1,
+        dsumncu = dsumncu - :old_dsumncu,
+        csumncu = csumncu - :old_csumncu,
+        dsumcurr = dsumcurr - :old_dsumcurr,
+        csumcurr = csumcurr - :old_csumcurr
+    WHERE documentkey = OLD.bankstatementkey;
+
+    /*
+  DELETE FROM gd_entrys WHERE documentkey = OLD.bankstatementkey AND
+      positionkey = OLD.id;
+    */  
+
+END
+^
+
+/*
+
+  Данная процедура позволяет пересчитать суммарные значения
+  для выписки заданной ключем.
+
+*/
+CREATE PROCEDURE bn_p_update_bankstatement(BK INTEGER)
+AS
+  DECLARE VARIABLE dsumncu NUMERIC(15, 4);
+  DECLARE VARIABLE csumncu NUMERIC(15, 4);
+  DECLARE VARIABLE dsumcurr NUMERIC(15, 4);
+  DECLARE VARIABLE csumcurr NUMERIC(15, 4);
+  DECLARE VARIABLE linecount INTEGER;
+BEGIN
+  SELECT SUM(dsumncu), SUM(csumncu), SUM(dsumcurr), SUM(csumcurr), COUNT(*)
+  FROM bn_bankstatementline WHERE bankstatementkey = :BK
+  INTO :dsumncu, :csumncu, :dsumcurr, :csumcurr, :linecount;
+
+  IF (:dsumncu IS NULL) THEN dsumncu = 0;
+  IF (:csumncu IS NULL) THEN csumncu = 0;
+  IF (:dsumcurr IS NULL) THEN dsumcurr = 0;
+  IF (:csumcurr IS NULL) THEN csumcurr = 0;
+
+  UPDATE bn_bankstatement SET
+    dsumncu = :dsumncu, csumncu = :csumncu, dsumcurr = :dsumcurr, csumcurr = :csumcurr,
+    linecount = :linecount
+  WHERE documentkey = :BK;
+END
+^
+
+/*
+
+  Данная процедура пересчитывает суммарные значения для всех выписок.
+
+*/
+CREATE PROCEDURE bn_p_update_all_bankstatements
+AS
+  DECLARE VARIABLE DK INTEGER;
+BEGIN
+  FOR
+    SELECT documentkey FROM bn_bankstatement INTO :DK
+  DO
+  BEGIN
+    EXECUTE PROCEDURE bn_p_update_bankstatement(:DK);
+  END
+END
+^
+
+/*
+
+  После изменения строки по выписке пересчитаем суммарные значения для
+  этой выписки.
+
+*/
+CREATE TRIGGER bn_au_bsl FOR bn_bankstatementline
+  AFTER UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE change_csumcurr SMALLINT;
+  DECLARE VARIABLE change_csumncu  SMALLINT;
+  DECLARE VARIABLE change_dsumcurr SMALLINT;
+  DECLARE VARIABLE change_dsumncu  SMALLINT;
+BEGIN
+  IF ((NEW.csumcurr IS NULL AND OLD.csumcurr IS NULL) OR
+     (NEW.csumcurr = OLD.csumcurr)) THEN
+    change_csumcurr = 0;
+  ELSE
+    change_csumcurr = 1;
+    
+  IF ((NEW.csumncu IS NULL AND OLD.csumncu IS NULL) OR
+     (NEW.csumncu = OLD.csumncu)) THEN
+    change_csumncu = 0;
+  ELSE
+    change_csumncu = 1;
+  
+  IF ((NEW.dsumcurr IS NULL AND OLD.dsumcurr IS NULL) OR
+     (NEW.dsumcurr = OLD.dsumcurr)) THEN
+    change_dsumcurr = 0;
+  ELSE
+    change_dsumcurr = 1;
+    
+  IF ((NEW.dsumncu IS NULL AND OLD.dsumncu IS NULL) OR
+     (NEW.dsumncu = OLD.dsumncu)) THEN
+    change_dsumncu = 0;
+  ELSE
+    change_dsumncu = 1;
+  
+  IF ((change_csumcurr = 1) OR
+  (change_csumncu = 1) OR
+  (change_dsumcurr = 1) OR
+  (change_dsumncu = 1)) THEN
+  EXECUTE PROCEDURE bn_p_update_bankstatement(NEW.bankstatementkey);
+
+  UPDATE gd_document SET
+  number = case when NEW.docnumber IS NULL then 'б\н' else NEW.docnumber end
+  WHERE id = NEW.id;
+
+END
+^
+
+SET TERM ; ^
+
+/*
+
+  Строка выписки закрывает некоторые документы. Например, проплатили
+  фирме за компьютеры. Было две счет фактуры, их сумировали и провели одним
+  платежом. В строках выписки будет одна позиция на эту сумму. Нам
+  надо связать эту строку выписки с документами за которые прошла проплата.
+
+  Для этого служит таблица bn_bslinedocument
+
+*/
+
+/*CREATE TABLE bn_bslinedocument
+(
+  bslinekey            dintkey,
+  documentkey          dintkey,
+  sumncu               dcurrency,
+  sumcurr              dcurrency */ /* валюта совпадает с валютой выписки, а следовательно */
+                                  /* с валютой счета, по которому отражена выписка       */
+/*);
+
+COMMIT;*/
+
+/* Строка выписки может быть разнесена только по одному акту */
+/*ALTER TABLE bn_bslinedocument
+  ADD CONSTRAINT bn_pk_bslinedocument PRIMARY KEY (bslinekey);
+
+ALTER TABLE bn_bslinedocument ADD CONSTRAINT bn_fk_bsld_bslinekey
+  FOREIGN KEY (bslinekey) REFERENCES bn_bankstatementline(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE bn_bslinedocument ADD CONSTRAINT bn_fk_bsld_documentkey
+  FOREIGN KEY (documentkey) REFERENCES gd_document(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;*/
+
+SET TERM ^ ;
+
+CREATE TRIGGER bn_bi_bsl FOR bn_bankstatementline
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+                                                        
+SET TERM ; ^
+
+COMMIT;
+
+/**********************************************************
+
+  Картатэка. Сьпіс неаплочаных дакументаў, якія знаходзяцца ў банке,
+  якія трэба аплаціць. Па кожнаму ўказваецца сумма, якую яшчэ трэба
+  пералічыць.
+
+  Картатэкі захоўваюцца ў табліцы БН_БАНККАТАЛОГ, пазыцыі -- у
+  табліцы БН_БАНККАТАЛОГЛАЙН.
+
+  У БН_БАНККАТАЛОГ мы захоўваем сумарныя значэньні па пазіцыёх.
+
+***********************************************************/
+
+CREATE TABLE bn_bankcatalogue
+(
+  documentkey          dintkey,                      /* спасылка на дакумент       */
+  accountkey           dintkey,                      /* спасылка на рахунак        */
+  cataloguetype        dtext8,                       /* від картатэкі, К1, К2...   */
+  sumncu               dcurrency DEFAULT 0 NOT NULL, /* сума па картатэцы          */
+  sumcurr              dcurrency DEFAULT 0 NOT NULL  /* сума па картатэцы ў валюце */
+);
+
+COMMIT;
+
+COMMIT;
+
+ALTER TABLE bn_bankcatalogue ADD CONSTRAINT bn_pk_bankcatalogue
+  PRIMARY KEY (documentkey);
+
+ALTER TABLE bn_bankcatalogue ADD CONSTRAINT bn_fk_bankcatalogue_dc
+  FOREIGN KEY (documentkey) REFERENCES gd_document (id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE bn_bankcatalogue ADD CONSTRAINT bn_fk_bankcatalogue_accountkey
+  FOREIGN KEY (accountkey) REFERENCES gd_companyaccount (id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+/*
+
+  Пазіцыя банкаўскай картатэкі.
+
+*/
+
+CREATE TABLE bn_bankcatalogueline
+(
+  documentkey          dintkey,      /* унікальны ідэнтыфікатар стракі                 */
+                                     /* ён жа спасылка на дакумент                     */
+  bankcataloguekey     dintkey,      /* спасылка на картатэку                          */
+                                     /* звярніце ўвагу, як спасылачная цэласнасць      */
+                                     /* адсочваецца праз трыгеры                       */
+  companykey           dforeignkey,  /* клиент, реальный получатель                    */
+                                     /* кому на счет уходят деньги                     */
+  linkdocumentkey      dforeignkey,  /* платежное требование или поручение             */
+                                     /* или чек, или другой документ, который привя-   */
+                                     /* зан к позиции                                  */
+                                     /* который оплачивается по частям или с           */
+                                     /* опозданием, т.е. который помещен на картотеку  */
+
+  sumncu               dcurrency,    /* сумма в рублях                                 */
+  sumcurr              dcurrency,    /* сумма в валюте                                 */
+                                     /* сама валюта тут не указывается, потому что она */
+                                     /* привязана к счету, а он к картотеке            */
+
+  paymentdest          dalias,       /* код назначения платежа                         */
+  acceptdate           ddate,        /* дата акцепта                                   */
+  fine                 dcurrency,    /* сумма пени                                     */
+
+                                     /* переносим эти поля с бумажной выписки:         */
+  account              dbankaccount NOT NULL, /* рассчетный счет                                */
+  bankcode             dbankcode NOT NULL,    /* код банка                                      */
+  docnumber            dtext20,      /* номер документа                                */
+  queue                dqueue,       /* очередность платежа */
+
+  comment              dtext80,      /* каментар                                       */
+                                     /* например, назначение платежа                   */
+
+  reserved             dinteger,
+
+  CHECK((sumncu > 0) OR (sumcurr > 0))
+);
+
+COMMIT;
+
+ALTER TABLE bn_bankcatalogueline ADD CONSTRAINT bn_pk_bankcatalogueline
+  PRIMARY KEY (documentkey);
+
+ALTER TABLE bn_bankcatalogueline ADD CONSTRAINT bn_fk_bcl_documentkey
+  FOREIGN KEY (documentkey) REFERENCES gd_document (id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE bn_bankcatalogueline ADD CONSTRAINT bn_fk_bcl_bankcataloguekey
+  FOREIGN KEY (bankcataloguekey) REFERENCES bn_bankcatalogue (documentkey)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE bn_bankcatalogueline ADD CONSTRAINT bn_fk_bcl_companykey
+  FOREIGN KEY (companykey) REFERENCES gd_company (contactkey)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE bn_bankcatalogueline ADD CONSTRAINT bn_fk_bcl_linkdocumentkey
+  FOREIGN KEY (linkdocumentkey) REFERENCES gd_document (id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE EXCEPTION bn_e_invalid_reference 'Invalid reference value'
+^
+
+CREATE TRIGGER bn_ai_bankcatalogueline FOR bn_bankcatalogueline
+  AFTER INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE SN NUMERIC(15, 4);
+  DECLARE VARIABLE SC NUMERIC(15, 4);
+BEGIN
+  IF (NEW.sumncu IS NULL) THEN
+    SN = 0;
+  ELSE
+    SN = NEW.sumncu;
+
+  IF (NEW.sumcurr IS NULL) THEN
+    SC = 0;
+  ELSE
+    SC = NEW.sumcurr;
+
+  UPDATE bn_bankcatalogue SET sumncu = sumncu + :SN, sumcurr = sumcurr + :SC
+    WHERE documentkey = NEW.bankcataloguekey;
+END
+^
+
+CREATE TRIGGER bn_ad_bankcatalogueline FOR bn_bankcatalogueline
+  AFTER DELETE
+  POSITION 0
+AS
+  DECLARE VARIABLE SN NUMERIC(15, 4);
+  DECLARE VARIABLE SC NUMERIC(15, 4);
+BEGIN
+  IF (OLD.sumncu IS NULL) THEN
+    SN = 0;
+  ELSE
+    SN = OLD.sumncu;
+
+  IF (OLD.sumcurr IS NULL) THEN
+    SC = 0;
+  ELSE
+    SC = OLD.sumcurr;
+
+  UPDATE bn_bankcatalogue SET sumncu = sumncu - :SN, sumcurr = sumcurr - :SC
+    WHERE documentkey = OLD.bankcataloguekey;
+END
+^
+
+CREATE TRIGGER bn_au_bankcatalogueline FOR bn_bankcatalogueline
+  AFTER UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE SN NUMERIC(15, 4);
+  DECLARE VARIABLE SC NUMERIC(15, 4);
+BEGIN
+  IF (NEW.sumncu IS NULL) THEN
+    SN = 0;
+  ELSE
+    SN = NEW.sumncu;
+
+  IF (NEW.sumcurr IS NULL) THEN
+    SC = 0;
+  ELSE
+    SC = NEW.sumcurr;
+
+  IF (NOT OLD.sumncu IS NULL) THEN
+    SN = :SN - OLD.sumncu;
+
+  IF (NOT OLD.sumcurr IS NULL) THEN
+    SC = :SC - OLD.sumcurr;
+
+  UPDATE bn_bankcatalogue SET sumncu = sumncu + :SN, sumcurr = sumcurr + :SC
+    WHERE documentkey = OLD.bankcataloguekey;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 1999-00 by                     **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/**********************************************************
+
+  gd_v_user_generators
+
+  Returns list of names of non-system generators.
+
+***********************************************************/
+
+CREATE VIEW gd_v_user_generators (generator_name)
+  AS SELECT rdb$generator_name     
+     FROM rdb$generators
+     WHERE (rdb$system_flag = 0) OR (rdb$system_flag IS NULL);
+
+
+/**********************************************************
+
+  gd_v_user_triggers
+
+  Returns list of names of active non-system user defined 
+  triggers.
+
+***********************************************************/
+
+CREATE VIEW gd_v_user_triggers (trigger_name)
+  AS SELECT rdb$trigger_name 
+     FROM rdb$triggers 
+     WHERE (rdb$trigger_name NOT IN (SELECT rdb$trigger_name FROM rdb$check_constraints)) 
+       AND ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL)) 
+       AND ((rdb$trigger_inactive = 0) OR (rdb$trigger_inactive IS NULL));
+
+/**********************************************************
+
+  gd_v_foreign_keys
+
+  Returns list of foreign keys names together with
+  corresponding index name and relation name.
+
+***********************************************************/
+
+
+CREATE VIEW gd_v_foreign_keys (constraint_name, index_name, relation_name)
+  AS SELECT rdb$constraint_name, rdb$index_name, rdb$relation_name 
+     FROM rdb$relation_constraints 
+     WHERE rdb$constraint_type = 'FOREIGN KEY';
+
+
+/**********************************************************
+
+  gd_v_primary_keys
+
+  Returns list of primary keys names together with
+  corresponding index name and relation name.
+
+***********************************************************/
+
+
+CREATE VIEW gd_v_primary_keys (constraint_name, index_name, relation_name)
+  AS SELECT rdb$constraint_name, rdb$index_name, rdb$relation_name 
+     FROM rdb$relation_constraints 
+     WHERE rdb$constraint_type = 'PRIMARY KEY';
+
+
+/**********************************************************
+
+  gd_v_user_indices
+
+  Returns list of names of active non-system user defined 
+  indices.
+
+***********************************************************/
+
+CREATE VIEW gd_v_user_indices (index_name)
+  AS SELECT rdb$index_name 
+     FROM rdb$indices
+     WHERE ((rdb$system_flag = 0) OR (rdb$system_flag IS NULL))       
+       AND (rdb$index_inactive = 0);
+
+
+
+/**********************************************************
+
+  gd_v_tables_wblob
+
+  Returns list of names of all non-system tables
+  which have at least one BLOB field.
+
+***********************************************************/
+
+create view gd_v_tables_wblob as
+select distinct rf.rdb$relation_name
+from
+  rdb$relation_fields rf join rdb$fields f
+    on rf.rdb$field_source = f.rdb$field_name
+where
+  f.rdb$field_type = 261
+  and (not rf.rdb$relation_name LIKE 'RDB$%');
+
+COMMIT;
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+
+  Script
+
+
+  Abstract
+
+
+  Author
+
+
+  Revisions history
+
+
+  Status 
+
+    
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/*
+ *  Усе памылкі і пажаданьні да праграмы мы збіраем у табліцы
+ *  bug_bugbase.
+ *
+ *
+ *
+ *
+ */
+
+CREATE TABLE bug_bugbase
+(
+  /* ідэнтыфікатар памылкі/пажаданьня */
+  id             dintkey,
+
+  /* назва падсістэмы                 */
+  subsystem      dtext20 NOT NULL,
+
+  /* вэрсія падсістэмы                */
+  versionfrom    dtext20,
+  versionto      dtext20,
+
+  /* прыярытэт памылкі                */
+  priority       dsmallint,
+
+  /* вобласць памылкі/пажаданьня      */
+  /* магчымыя значэньні:              */
+  /*                                  */
+  bugarea        dtext20 NOT NULL,
+  /* тып памылкі/пажаданьня           */
+  /* магчымыя значэньні:              */
+  /*   ЗРАБІЦЬ                        */
+  /*   ТРЭБА ЗРАБІЦЬ                  */
+  /*   НЕДАХОП                        */
+  /*   ПАМЫЛКА                        */
+  /*   КАТАСТРОФА                     */
+  bugtype        dtext20 NOT NULL,
+  /* частата з'яўленьня               */
+  /* магчымыя значэньні:              */
+  /*   НІКОЛІ                         */
+  /*   ЗРЭДКУ                         */
+  /*   ЧАСАМ                          */
+  /*   ЧАСТА                          */
+  /*   ЗАЎСЁДЫ                        */
+  /*   НЕ ПРЫКЛАДАЕЦЦА                */
+  bugfrequency   dtext20 NOT NULL,
+  /* апісаньне памылкі                */
+  bugdescription dtext1024 NOT NULL,
+  /* як вызваць памылку               */
+  buginstruction dtext1024,
+
+  /* хто знайшоў памылку              */
+  founderkey     dintkey,
+  /* калі ўнесена ў базу              */
+  raised         ddate DEFAULT CURRENT_DATE NOT NULL,
+
+  /* хто адказны                      */
+  responsiblekey  dintkey,
+
+  /* стан запісу                      */
+  /* магчымыя значэньні:              */
+  /*   АДКРЫТА                        */
+  /*   ЗРОБЛЕНА                       */
+  /*   САСТАРЭЛА                      */
+  /*   АДХІЛЕНА                       */
+  /*   ЧАСТКОВА                       */
+  decision       dtext20 NOT NULL,
+  /* калі выпраўлена                  */
+  decisiondate   ddate,
+  /* хто выправіў/прыняў рашэньне     */
+  fixerkey       dforeignkey,
+  /* каментар да рашэньня/выпраўленьня */
+  fixcomment     dtext1024,
+
+  afull          dsecurity,
+  achag          dsecurity,
+  aview          dsecurity,
+
+  reserved       dinteger
+);
+
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_pk_bugbase_id
+  PRIMARY KEY (id);
+
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_fk_bugbase_founderkey
+  FOREIGN KEY (founderkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_fk_bugbase_responsiblekey
+  FOREIGN KEY (responsiblekey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_fk_bugbase_fixerkey
+  FOREIGN KEY (fixerkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_chk_bugbase_bugtype
+  CHECK (bugtype IN ('ЗРАБІЦЬ', 'ТРЭБА ЗРАБІЦЬ', 'НЕДАХОП', 'ПАМЫЛКА', 'КАТАСТРОФА'));
+
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_chk_bugbase_bugfrequency
+  CHECK (bugfrequency IN ('НІКОЛІ', 'ЗРЭДКУ', 'ЧАСАМ', 'ЧАСТА', 'ЗАЎСЁДЫ', 'НЕ ПРЫКЛАДАЕЦЦА'));
+
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_chk_bugbase_decision
+  CHECK (decision IN ('АДКРЫТА', 'ЗРОБЛЕНА', 'САСТАРЭЛА', 'АДХІЛЕНА', 'ЧАСТКОВА', 'ВЫДАЛЕНА'));
+
+/* калі стан запісу іншы за АДКРЫТА, трэба каб было пазначана хто */
+/* выправіў памылку, альбо прыняў рашэньне і калі                 */
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_chk_bugbase_fixerkey
+  CHECK ((decision = 'АДКРЫТА' AND fixerkey IS NULL AND decisiondate IS NULL) OR (decision <> 'АДКРЫТА' AND NOT fixerkey IS NULL AND NOT decisiondate IS NULL));
+
+/* нельга выправіць памылку раней, чым яна была ўнесена ў базу    */
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_chk_bugbase_ddate
+  CHECK ((decisiondate IS NULL) OR (decisiondate >= raised));
+
+ALTER TABLE bug_bugbase ADD CONSTRAINT bug_chk_bugbase_priority
+  CHECK ((priority IS NULL) OR (priority IN (0, 1, 2, 3, 4, 5)));
+
+SET TERM ^ ;
+
+CREATE TRIGGER bug_bi_bugbase FOR bug_bugbase
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  NEW.bugtype = UPPER(NEW.bugtype);
+  NEW.bugfrequency = UPPER(NEW.bugfrequency);
+  NEW.decision = UPPER(NEW.decision);
+END
+^
+
+CREATE EXCEPTION bug_e_canntdelete 'Can not delete record not marked for deletion'^
+
+CREATE TRIGGER bug_bd_bugbase FOR bug_bugbase
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (OLD.decision <> 'ВЫДАЛЕНА') THEN
+    EXCEPTION bug_e_canntdelete;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Gedemin project                              **/
+/**   Copyright (c) 1999-2000 by                   **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE TABLE gd_command (
+  id         dintkey,                      /* унікальны ідэнтыфікатар */
+  parent     dparent,                      /* спасылка на бацьку      */
+
+  name       dname,                        /* імя элементу            */
+  cmd        dtext20,                      /* каманда                 */
+  cmdtype    dinteger DEFAULT 0 NOT NULL,
+  hotkey     dhotkey,                      /* гарачая клявіша         */
+  imgindex   dsmallint DEFAULT 0 NOT NULL, /* індэкс малюнка          */
+  ordr       dinteger,                     /* парадак                 */
+  classname  dclassname,                   /* имя класса              */
+  subtype    dtext40,                      /* подтип класса           */
+
+  aview      dsecurity,                    /* бяспека                 */
+  achag      dsecurity,
+  afull      dsecurity,
+
+  disabled   ddisabled,
+  reserved   dreserved
+);
+
+COMMIT;
+
+ALTER TABLE gd_command ADD CONSTRAINT gd_pk_command_id
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_command ADD CONSTRAINT gd_fk_command_parent
+  FOREIGN KEY (parent) REFERENCES gd_command (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_documenttype ADD CONSTRAINT gd_fk_documenttype_branchkey
+  FOREIGN KEY (branchkey) REFERENCES gd_command (id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+ALTER TABLE at_relations ADD  CONSTRAINT at_kk_relations_branchkey
+  FOREIGN KEY (branchkey) REFERENCES gd_command (id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
+COMMIT;
+
+SET TERM ^ ;
+
+/*
+
+  Два наступныя трыгеры кантралююць каб у дзяцей былі тыя ж правы, што
+  і ў бацькоўскага запісу.
+
+*/
+
+CREATE TRIGGER gd_bi_command FOR gd_command
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE TRIGGER gd_aiu_command FOR gd_command
+  AFTER INSERT OR UPDATE
+  POSITION 100
+AS
+BEGIN
+  UPDATE gd_command SET aview = NEW.aview, achag = NEW.achag, afull = NEW.afull
+  WHERE classname = NEW.classname
+    AND COALESCE(subtype, '') = COALESCE(NEW.subtype, '')
+    AND ((aview <> NEW.aview) OR (achag <> NEW.achag) OR (afull <> NEW.afull))
+    AND id <> NEW.id;
+END
+^
+
+SET TERM ; ^
+
+/*
+
+  Мы прывязываем настройкі працоўнага месца да карыстальніка і
+  экраннага разрашэньня (шырыня экрану ў пікселах, памножаная на вышыню).
+
+*/
+
+CREATE TABLE gd_desktop (
+  id          dintkey,
+  userkey     dintkey,
+  screenres   dinteger,
+  name        dname,
+  saved       dtimestamp DEFAULT 'NOW' NOT NULL,
+  dtdata      dblob4096,
+
+  reserved    dinteger
+);
+
+COMMIT;
+
+ALTER TABLE gd_desktop ADD CONSTRAINT gd_pk_desktop_id
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_desktop ADD CONSTRAINT gd_fk_desktop_userkey
+  FOREIGN KEY (userkey) REFERENCES gd_user (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_desktop ADD CONSTRAINT gd_chk_desktop_name
+  CHECK (name > '');
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_desktop FOR gd_desktop
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE TRIGGER gd_bu_desktop FOR gd_desktop
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  NEW.saved = 'NOW';
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+COMMIT;
+
+/*
+ *  глябальныя настройкі,
+ *  ў табліцы захоўваецца
+ *  толькі адзін запіс
+ *
+ */
+
+CREATE TABLE gd_globalstorage (
+  id          dintkey,
+  data        dblob4096,
+  modified    dtimestamp NOT NULL
+);
+
+COMMIT;
+
+ALTER TABLE gd_globalstorage ADD CONSTRAINT gd_pk_globalstorage_id
+  PRIMARY KEY (id);
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_gs FOR gd_globalstorage
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  NEW.id = 880000;
+  IF (NEW.modified IS NULL) THEN
+    NEW.modified = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER gd_bu_gs FOR gd_globalstorage
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  NEW.id = 880000;
+  IF (NEW.modified IS NULL) THEN
+    NEW.modified = CURRENT_TIMESTAMP;
+
+  IF ((NEW.data IS NULL) OR (CHAR_LENGTH(NEW.data) = 0)) THEN
+  BEGIN
+    NEW.data = OLD.data;
+
+    INSERT INTO gd_journal (source)
+      VALUES ('Попытка удалить глобальное хранилище.');
+  END
+END
+^
+
+CREATE EXCEPTION gd_e_cannot_delete_gs
+  'Cannot delete global storage'
+^
+
+CREATE TRIGGER gd_bd_gs FOR gd_globalstorage
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (OLD.id = 880000) THEN
+  BEGIN
+    EXCEPTION gd_e_cannot_delete_gs;
+  END
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/*
+ *  настройки для каждого пользователя
+ *  хранится по одной записи для каждого пользователя
+ *
+ */
+
+CREATE TABLE gd_userstorage (
+  userkey      dintkey,
+  data         dblob4096,
+  modified     dtimestamp NOT NULL
+);
+
+ALTER TABLE gd_userstorage ADD CONSTRAINT gd_pk_userstorage_uk
+  PRIMARY KEY (userkey);
+
+ALTER TABLE gd_userstorage ADD CONSTRAINT gd_fk_userstorage_uk
+  FOREIGN KEY (userkey) REFERENCES gd_user (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+/*
+ *  настройки для каждой нашей фирмы
+ *  хранится по одной записи для каждой фирмы
+ *
+ */
+
+CREATE TABLE gd_companystorage (
+  companykey   dintkey,
+  data         dblob4096,
+  modified     dtimestamp NOT NULL
+);
+
+ALTER TABLE gd_companystorage ADD CONSTRAINT gd_pk_companystorage_ck
+  PRIMARY KEY (companykey);
+
+ALTER TABLE gd_companystorage ADD CONSTRAINT gd_fk_companystorage_ck
+  FOREIGN KEY (companykey) REFERENCES gd_ourcompany (companykey)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE TABLE gd_storagebackup (
+  id           dintkey,
+  userkey      dforeignkey,
+  companykey   dforeignkey,
+  data         dblob4096,
+  modified     dtimestamp NOT NULL
+);
+
+ALTER TABLE gd_storagebackup ADD CONSTRAINT gd_pk_storagebackup
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_storagebackup ADD CONSTRAINT gd_fk_storagebackup_ck
+  FOREIGN KEY (companykey) REFERENCES gd_ourcompany (companykey)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_storagebackup ADD CONSTRAINT gd_fk_storagebackup_uk
+  FOREIGN KEY (userkey) REFERENCES gd_user (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_storagebackup FOR gd_storagebackup
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE TRIGGER gd_bu_globalstorage FOR gd_globalstorage
+  BEFORE UPDATE
+  POSITION 100
+AS
+BEGIN
+  INSERT INTO gd_storagebackup (data, modified) VALUES (OLD.data, OLD.modified);
+END
+^
+
+CREATE TRIGGER gd_bu_userstorage FOR gd_userstorage
+  BEFORE UPDATE
+  POSITION 100
+AS
+BEGIN
+  INSERT INTO gd_storagebackup (userkey, data, modified) VALUES (OLD.userkey, OLD.data, OLD.modified);
+END
+^
+
+CREATE TRIGGER gd_bu_companystorage FOR gd_companystorage
+  BEFORE UPDATE
+  POSITION 100
+AS
+BEGIN
+  INSERT INTO gd_storagebackup (companykey, data, modified) VALUES (OLD.companykey, OLD.data, OLD.modified);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    gd_good.sql
+
+  Abstract
+
+    An Interbase script for access.
+
+  Author
+
+    Andrey Shadevsky (30.05.00)
+
+  Revisions history
+
+    Initial  30.05.00  JKL    Initial version
+    2.00     07.09.00  MSH
+    2.01     08.09.00  MSH    Add gd_goodbarcode table
+
+  Status 
+    
+    Draft
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/****************************************************
+
+   Таблица для хранения групп товаров.
+
+*****************************************************/
+
+CREATE TABLE gd_goodgroup
+(
+  id               dintkey,                     /* Первичный ключ          */
+  parent           dparent,                     /* родитель                */
+  lb               dlb,                         /* левая граница           */
+  rb               drb,                         /* правая граница          */
+
+  name             dname,                       /* имя                     */
+  alias            dnullalias,                  /* Код группы              */
+  description      dblobtext80_1251,            /* описание                */
+
+  disabled         ddisabled,                   /* отключен                */
+  reserved         dreserved,                   /* зарезервировано         */
+
+  afull            dsecurity,                   /* Полные права доступа    */
+  achag            dsecurity,                   /* Изменения права доступа */
+  aview            dsecurity                    /* Просмотра права доступа */
+);
+
+ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_pk_goodgroup
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_parent
+  FOREIGN KEY (parent) REFERENCES gd_goodgroup (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+/*
+ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_chk_goodgroup_tree_limit
+  CHECK ((lb <= rb) or ((rb is NULL) and (lb is NULL)));
+
+CREATE DESC INDEX gd_x_goodgroup_rb
+  ON gd_goodgroup(rb);
+
+CREATE ASC INDEX gd_x_goodgroup_lb
+  ON gd_goodgroup(lb);
+*/
+
+COMMIT;
+
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_goodgroup FOR gd_goodgroup
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+/*
+CREATE TRIGGER gd_bi_goodgroup_2 FOR gd_goodgroup
+  BEFORE INSERT
+  POSITION 2
+AS
+  DECLARE VARIABLE AFULL INTEGER;
+  DECLARE VARIABLE ACHAG INTEGER;
+  DECLARE VARIABLE AVIEW INTEGER;
+BEGIN
+  IF (NEW.parent IS NOT NULL) THEN
+  BEGIN
+    SELECT C.AFULL, C.ACHAG, C.AVIEW
+    FROM GD_GOODGROUP C
+    WHERE C.ID = NEW.Parent
+    INTO :AFULL, :ACHAG, :AVIEW;
+    NEW.AFULL = g_b_or(g_b_and(NEW.AFULL, :AFULL), 1);
+    NEW.ACHAG = g_b_or(g_b_and(NEW.ACHAG, :ACHAG), 1);
+    NEW.AVIEW = g_b_or(g_b_and(NEW.AVIEW, :AVIEW), 1);
+  END
+END
+^
+*/
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения единиц измерения.
+
+*****************************************************/
+
+CREATE TABLE gd_value
+(
+  id            dintkey,        /* Первичный ключ                  */
+  name          dname,          /* Наименование                    */
+  description   dtext80,        /* Описание                        */
+  goodkey       dforeignkey,    /* Ссылка на ТМЦ по данной ед.изм. */
+  ispack        dboolean        /* Используется для упаковки       */
+);
+
+ALTER TABLE gd_value ADD CONSTRAINT gd_pk_value
+  PRIMARY KEY (id);
+
+COMMIT;
+
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_value FOR gd_value
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения справочника ТНВД.
+
+*****************************************************/
+
+CREATE TABLE gd_tnvd
+(
+  id            dintkey,        /* Первичный ключ               */
+  name          dname,          /* Наименование                 */
+  description   dtext180        /* Описание                     */
+);
+
+ALTER TABLE gd_tnvd ADD CONSTRAINT gd_pk_tnvd
+  PRIMARY KEY (id);
+
+COMMIT;
+
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_tnvd FOR gd_tnvd
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+/****************************************************
+
+   Таблица для хранения товаров.
+
+*****************************************************/
+
+CREATE TABLE gd_good
+(
+  id               dintkey,                     /* Первичный ключ             */
+  groupkey         dmasterkey,                  /* Принадлежность к группе    */
+  name             dname,                       /* имя                        */
+  alias            dnullalias,                  /* Шифр товара                */
+  shortname        dtext40,                     /* Краткое наименование       */
+  description      dtext180,                    /* описание                   */
+
+  barcode          dbarcode,                    /* Штрих код                  */
+  valuekey         dintkey,                     /* Базовая единица измерения  */
+  tnvdkey          dforeignkey,                 /* Ссылка на код ТНВД         */
+  discipline       daccountingdiscipline,       /* Вид учета ТМЦ              */                  
+
+  isassembly       dboolean,                    /* Является ли комплектом     */
+
+  editorkey        dforeignkey,                 /* Кто создал или изменил запись */
+  editiondate      TIMESTAMP,                   /* Когда создана или изменена запись */
+
+
+  reserved         dreserved,                   /* Зарезервированно           */
+  disabled         ddisabled,                   /* Отключено                  */
+
+  afull            dsecurity,                   /* Полные права доступа       */
+  achag            dsecurity,                   /* Изменения права доступа    */
+  aview            dsecurity                    /* Просмотра права доступа    */
+);
+
+ALTER TABLE gd_good ADD CONSTRAINT gd_pk_good
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_groupkey
+  FOREIGN KEY (groupkey) REFERENCES gd_goodgroup(id) 
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_valuekey
+  FOREIGN KEY (valuekey) REFERENCES gd_value(id) 
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_tnvdkey
+  FOREIGN KEY (tnvdkey) REFERENCES gd_tnvd(id) 
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_editorkey
+  FOREIGN KEY (editorkey) REFERENCES gd_contact(id) 
+  ON UPDATE CASCADE;
+
+CREATE ASC INDEX gd_x_good_name
+  ON gd_good (name);
+
+CREATE ASC INDEX gd_x_good_barcode
+  ON gd_good (barcode);
+
+ALTER INDEX gd_x_good_barcode INACTIVE;
+
+COMMIT;
+
+ALTER TABLE gd_value ADD CONSTRAINT gd_fk_value_goodkey
+  FOREIGN KEY (goodkey) REFERENCES gd_good(id);  
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_good FOR gd_good
+  BEFORE INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE ATTRKEY INTEGER;
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения комплектов.
+
+*****************************************************/
+
+CREATE TABLE gd_goodset
+(
+  goodkey       dintkey,        /* Ссылка на товар(комплект)    */
+  setkey        dintkey,        /* Ссылка на комплект           */
+  goodcount     dpositive       /* Количество товара            */
+);
+
+ALTER TABLE gd_goodset ADD CONSTRAINT gd_pk_goodset
+  PRIMARY KEY (setkey, goodkey);
+
+ALTER TABLE gd_goodset ADD CONSTRAINT gd_fk_goodset_setkey
+  FOREIGN KEY (setkey) REFERENCES gd_good(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_goodset ADD CONSTRAINT gd_fk_goodset_goodkey
+  FOREIGN KEY (goodkey) REFERENCES gd_good(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для привязки к товару дополнительных единиц измерения.
+
+*****************************************************/
+
+CREATE TABLE gd_goodvalue
+(
+  goodkey       dintkey,        /* Ссылка на товар              */
+  valuekey      dintkey,        /* Ссылка на единицу измерения  */
+  scale         dpercent,       /* Коэффициент пересчета        */
+  discount      dcurrency,      /* Скидка на товар              */
+  decdigit      ddecdigits      /* Количество десятичных        */
+);
+
+ALTER TABLE gd_goodvalue ADD CONSTRAINT gd_pk_goodvalue
+  PRIMARY KEY (goodkey, valuekey);
+
+ALTER TABLE gd_goodvalue ADD CONSTRAINT gd_fk_goodvalue_goodkey
+  FOREIGN KEY (goodkey) REFERENCES gd_good(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_goodvalue ADD CONSTRAINT gd_fk_goodvalue_valuekey
+  FOREIGN KEY (valuekey) REFERENCES gd_value(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения налогов.
+
+*****************************************************/
+
+CREATE TABLE gd_tax
+(
+  id            dintkey,        /* Ключ уникальный              */
+  name          dname,          /* Наименование                 */
+  shot          dtext20,        /* Наименование переменной      */
+  rate          dtax            /* Ставка                       */
+);
+
+ALTER TABLE gd_tax ADD CONSTRAINT gd_pk_tax
+  PRIMARY KEY (id);
+
+COMMIT;
+
+CREATE UNIQUE INDEX gd_x_tax_name ON gd_tax
+  /*COMPUTED BY (UPPER(name));*/
+  (name);
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_tax FOR gd_tax
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+      
+END;^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для привязки к налогов.
+
+*****************************************************/
+
+CREATE TABLE gd_goodtax
+(
+  goodkey       dintkey,        /* Ссылка на товар              */
+  taxkey        dintkey,        /* Ссылка на налог              */
+  datetax       ddate NOT NULL,  /* Дата принятия налога         */
+  rate          dcurrency       /* Ставка                       */
+);
+
+ALTER TABLE gd_goodtax ADD CONSTRAINT gd_pk_goodtax
+  PRIMARY KEY (goodkey, taxkey, datetax);
+
+ALTER TABLE gd_goodtax ADD CONSTRAINT gd_fk_goodtax_goodkey
+  FOREIGN KEY (goodkey) REFERENCES gd_good(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_goodtax ADD CONSTRAINT gd_fk_goodtax_taxkey
+  FOREIGN KEY (taxkey) REFERENCES gd_tax(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_goodtax FOR gd_goodtax
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.rate IS NULL) THEN
+    SELECT rate FROM gd_tax
+    WHERE id = NEW.taxkey INTO NEW.rate;
+
+  IF (NEW.datetax IS NULL) THEN
+    NEW.datetax = 'NOW';
+
+END;^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для вспомогательных штрих-кодов.
+
+*****************************************************/
+
+CREATE TABLE gd_goodbarcode
+(
+  id            dintkey,           /* Ключ уникальный              */
+  goodkey       dintkey,           /* Ссылка на товар              */
+  barcode       dbarcode NOT NULL, /* Штрих код                    */
+  description   dtext180           /* Описание                     */
+);
+
+ALTER TABLE gd_goodbarcode ADD CONSTRAINT gd_pk_goodbarcode_id
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_goodbarcode ADD CONSTRAINT gd_fk_goodbarcode_goodkey
+  FOREIGN KEY (goodkey) REFERENCES gd_good(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+CREATE ASC INDEX gd_x_goodbarcode_barcode
+  ON gd_goodbarcode (barcode);
+
+ALTER INDEX gd_x_goodbarcode_barcode INACTIVE;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_goodbarcode FOR gd_goodbarcode
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+END;^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения драг. металлов.
+
+*****************************************************/
+
+CREATE TABLE gd_preciousemetal
+(
+  id            dintkey,        /* Ключ уникальный              */
+  name          dname,          /* Наименование                 */
+  description   dtext180        /* Описание */
+);
+
+ALTER TABLE gd_preciousemetal ADD CONSTRAINT gd_pk_preciousemetal
+  PRIMARY KEY (id);
+
+COMMIT;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_preciousemetal FOR gd_preciousemetal
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+      
+END;^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для привязки драгметалов.
+
+*****************************************************/
+
+CREATE TABLE gd_goodprmetal
+(
+  goodkey       dintkey,          /* Ссылка на товар              */
+  prmetalkey    dintkey,          /* Ссылка на драгметалл         */
+  quantity      dgoldquantity DEFAULT 0 /* Количество                   */
+);
+
+ALTER TABLE gd_goodprmetal ADD CONSTRAINT gd_pk_goodprmetal
+  PRIMARY KEY (goodkey, prmetalkey);
+
+ALTER TABLE gd_goodprmetal ADD CONSTRAINT gd_fk_goodprmetal_goodkey
+  FOREIGN KEY (goodkey) REFERENCES gd_good(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_goodprmetal ADD CONSTRAINT gd_fk_goodprmetal_prmetalkey
+FOREIGN KEY (prmetalkey) REFERENCES gd_preciousemetal(id)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2001 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/*
+ *
+ *  Активность счета
+ *  A - (active) активный
+ *  P - (passive) пассивный
+ *  B - (both) активно-пассивный
+ *
+ *  Пустое значение - для групп счетов, планов счетов
+ *
+ */
+
+CREATE DOMAIN daccountactivity
+  AS VARCHAR(1)
+  CHECK ((VALUE IS NULL) OR (VALUE = 'A') OR (VALUE = 'P') OR (VALUE = 'B'));
+
+
+/*
+ *
+ *  Часть плана счетов
+ *  C - (chart of account) план счетов
+ *  F - (folder) папка (группа) счетов
+ *  A - (account) счет
+ *  S - (subaccount) субсчет
+ *
+ */
+
+
+CREATE DOMAIN dchartofaccountpart
+  AS VARCHAR(1)
+  CHECK ((VALUE = 'C') OR (VALUE = 'F') OR (VALUE = 'A') OR (VALUE = 'S'));
+
+
+/*
+ *
+ *  Список планов бухгалтерских счетов, состоящих
+ *  из групп счетов, счетов и субсчетов
+ *
+ */
+
+
+CREATE TABLE ac_account
+(
+  id               dintkey,             /* Идентификатор */
+  parent           dparent,             /* Родительская ветка */
+
+  lb               dlb,                 /* Левая граница */
+  rb               drb,                 /* Правая граница */
+
+  name             dtext180,            /* Наименование счета */
+  alias            daccountalias,       /* Код счета */
+
+  analyticalfield  dforeignkey,         /* аналитическое поле для активно-пассивных счетов */  
+
+  activity         daccountactivity,    /* Активность счета */
+
+  accounttype      dchartofaccountpart, /* Часть плана счетов */
+
+  multycurr        dboolean DEFAULT 0,  /* Является ли счет валютным */
+  offbalance       dboolean DEFAULT 0,  /* Забалансовый счет */
+
+  afull            dsecurity,           /* Дескрипторы безопасности */
+  achag            dsecurity,
+  aview            dsecurity,
+
+  fullname         COMPUTED BY (case when ALIAS is null then '' else ALIAS || ' ' end || case when NAME is null then '' else NAME end),
+
+  description      dblobtext80_1251,
+
+  disabled         dboolean DEFAULT 0,
+  reserved         dinteger
+);
+
+COMMIT;
+
+ALTER TABLE ac_account
+  ADD CONSTRAINT ac_pk_account PRIMARY KEY (id);
+
+ALTER TABLE ac_account ADD CONSTRAINT ac_fk_account_parent
+  FOREIGN KEY (parent) REFERENCES ac_account(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ac_account ADD CONSTRAINT ac_fk_account_anltcf
+  FOREIGN KEY (analyticalfield) REFERENCES at_relation_fields(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT BN_FK_BSL_ACCOUNTKEY 
+  FOREIGN KEY (accountkey) REFERENCES ac_account(id) 
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE EXCEPTION AC_E_MUST_INSERT_ACCOUNT_IN_F 'You must insert account in folder!';
+CREATE EXCEPTION AC_E_MUST_INSERT_FOLDER_IN_F 'You must insert folder in folder!';
+CREATE EXCEPTION AC_E_CANT_INSERT_CARD_IN_OTHER 'You can''t insert card of account in other objects!';
+
+SET TERM ^;
+CREATE TRIGGER AC_ACCOUNT_BI11 FOR AC_ACCOUNT
+ACTIVE BEFORE INSERT POSITION 0
+AS
+DECLARE VARIABLE P VARCHAR(1);
+begin
+  p = 'Z';
+  if (not new.parent is null) then
+  begin
+    SELECT
+      a.accounttype
+    FROM
+      ac_account a
+    WHERE
+      a.id = NEW.parent
+    INTO :p;
+  end
+
+  if (new.accounttype = 'A') then
+  begin
+    if (p <> 'F') then
+      EXCEPTION ac_e_must_insert_account_in_f;
+  end else
+  if (NEW.accounttype = 'F') then
+  begin
+    if ((p <> 'C') and (p <> 'F')) then
+      EXCEPTION ac_e_must_insert_folder_in_f;
+  end else
+  if (new.accounttype = 'C') then
+  begin
+    if (p <> 'Z') then
+      EXCEPTION ac_e_cant_insert_card_in_other;
+  end
+end^
+
+CREATE TRIGGER AC_ACCOUNT_BU0 FOR AC_ACCOUNT
+ACTIVE BEFORE UPDATE POSITION 0
+AS
+DECLARE VARIABLE P VARCHAR(1);
+begin
+  p = 'Z';
+  if (not new.parent is null) then
+  begin
+    SELECT
+      a.accounttype
+    FROM
+      ac_account a
+    WHERE
+      a.id = NEW.parent
+    INTO :p;
+  end
+
+  if (new.accounttype = 'A') then
+  begin
+    if (p <> 'F') then
+      EXCEPTION ac_e_must_insert_account_in_f;
+  end else
+  if (NEW.accounttype = 'F') then
+  begin
+    if ((p <> 'C') and (p <> 'F')) then
+      EXCEPTION ac_e_must_insert_folder_in_f;
+  end else
+  if (new.accounttype = 'C') then
+  begin
+    if (p <> 'Z') then
+      EXCEPTION ac_e_cant_insert_card_in_other;
+  end
+end^
+SET TERM ;^
+COMMIT;
+/* 
+
+создается автоматом
+
+ALTER TABLE ac_account ADD CONSTRAINT ac_chk_account_tree_limit
+  CHECK ((lb <= rb) or ((rb is NULL) and (lb is NULL)));
+
+CREATE DESC INDEX ac_x_account_rb
+  ON ac_account(rb);
+
+CREATE ASC INDEX ac_x_account_lb
+  ON ac_account(lb);
+
+*/
+
+
+COMMIT;
+
+CREATE ASC INDEX ac_x_account_alias
+  ON ac_account(alias);
+
+
+COMMIT;
+
+/*
+ *
+ *  Список планов счетов, используемых теми или иными
+ *  организациями. Каждая организация имеет только один
+ *  активный план счетов.
+ */
+
+CREATE TABLE ac_companyaccount
+(
+  companykey       dintkey,             /* Ключ рабочей компании */
+  accountkey       dintkey,             /* Ключ плана счетов */
+
+  isactive         dboolean DEFAULT 0,  /* Активен ли план счетов для организации */
+
+  reserved         dinteger
+);
+
+COMMIT;
+
+ALTER TABLE ac_companyaccount
+  ADD CONSTRAINT ac_pk_companyaccount PRIMARY KEY (companykey, accountkey);
+
+ALTER TABLE ac_companyaccount ADD CONSTRAINT ac_fk_companyaccount_accnt
+  FOREIGN KEY (accountkey) REFERENCES ac_account(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ac_companyaccount ADD CONSTRAINT ac_fk_companyaccount_compny
+  FOREIGN KEY (companykey) REFERENCES gd_ourcompany(companykey)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+/*
+ *
+ *  Список типовых операций.
+ *
+ */
+
+CREATE TABLE ac_transaction
+(
+  id               dintkey,             /* Идентификатор */
+  parent           dparent,             /* Родительская ветка */
+
+  lb               dlb,                 /* Левая граница */
+  rb               drb,                 /* Правая граница */
+
+  name             dname,               /* Наименование операции  */
+  description      dtext180,            /* Описание операции */
+
+  companykey       dforeignkey,         /* Компания, которой принадлежит операция */
+                                        /* Но может быть пустым - тогда общая операция*/
+  isinternal       dboolean,            /* Внтуренняя операция */
+
+  afull            dsecurity,           /* Дескрипторы безопасности */
+  achag            dsecurity,
+  aview            dsecurity,
+
+  disabled         dboolean DEFAULT 0,
+  reserved         dinteger,
+  AUTOTRANSACTION  DBOOLEAN  /*Признак автоматической операции*/
+);
+
+COMMIT;
+
+ALTER TABLE ac_transaction
+  ADD CONSTRAINT ac_pk_transaction PRIMARY KEY (id);
+
+ALTER TABLE ac_transaction ADD CONSTRAINT ac_fk_transaction_parent
+  FOREIGN KEY (parent) REFERENCES ac_transaction(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ac_transaction ADD CONSTRAINT ac_fk_transaction_compn
+  FOREIGN KEY (companykey) REFERENCES gd_company(contactkey)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+/*
+
+создается автоматом
+
+ALTER TABLE ac_transaction ADD CONSTRAINT ac_chk_trnsctn_tree_limit
+  CHECK ((lb <= rb) or ((rb is NULL) and (lb is NULL)));
+
+CREATE DESC INDEX ac_x_transaction_rb
+  ON ac_transaction(rb);
+
+CREATE ASC INDEX ac_x_transaction_lb
+  ON ac_transaction(lb);
+
+*/
+
+COMMIT;
+
+ALTER TABLE gd_document ADD CONSTRAINT gd_fk_doc_transactionkey
+  FOREIGN KEY (transactionkey) REFERENCES ac_transaction(id) ON UPDATE CASCADE;
+
+COMMIT;
+
+/*
+ *  Часть счета
+ *  D - дебит
+ *  C - кредит
+ */
+
+CREATE DOMAIN daccountpart
+  AS VARCHAR(1)
+  CHECK ((VALUE = 'D') OR (VALUE = 'C'));
+
+
+/*
+ *
+ *  Список типовых проводок по
+ *  типовой операции.
+ *
+ */
+
+CREATE TABLE ac_trrecord (
+  id               dintkey,             /* Идентификатор */
+  transactionkey   dmasterkey,          /* Ключ типовой операции */
+
+  description      dtext180,            /* Описание проводки */
+  issavenull       dboolean,            /* Сохранять нулевую проводку */
+  accountkey       dforeignkey,         /* План счетов */
+
+  afull            dsecurity,           /* Дескрипторы безопасности */
+  achag            dsecurity,
+  aview            dsecurity,
+
+  disabled         dboolean DEFAULT 0,
+  reserved         dinteger,
+  functionkey      dforeignkey,         /* Ключ функции*/
+  documenttypekey  dforeignkey,         /* Тип документа проводки */
+  functiontemplate dblob80,             /*шаблон функции*/
+  documentpart     dtext10              /*тип оброботки документа*/
+);
+
+ALTER TABLE ac_trrecord
+  ADD CONSTRAINT ac_pk_trrecord PRIMARY KEY (id);
+
+ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_tr
+  FOREIGN KEY (transactionkey) REFERENCES ac_transaction(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_function
+  FOREIGN KEY (functionkey) REFERENCES gd_function(id) 
+  ON UPDATE CASCADE;
+
+ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_documenttype
+  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_ak
+  FOREIGN KEY (accountkey) REFERENCES ac_account(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
+       
+COMMIT;
+
+/*
+ *
+ *  Бухгалтерская проводка.
+ *
+ */
+
+CREATE TABLE ac_record(
+  id               dintkey,             /* Идентификатор */
+
+  trrecordkey      dintkey,             /* Ключ типовой проводки */
+  transactionkey   dintkey,             /* Ключ типовой операции */
+
+  recorddate       ddate NOT NULL,      /* Дата проводки */
+  description      dtext180,            /* Описание проводки */
+
+  documentkey      dmasterkey,          /* Ключ документа, по которому создана проводка */
+  masterdockey     dintkey,             /* Ключ шапки документа */
+  companykey       dintkey,             /* Ключ фирмы по которой сформирована проводка */
+
+/* Сумма по проводке используются для проверки корректности самой проводки */
+
+  debitncu         dcurrency,           /* Сумма проводки по дебету в НДЕ */
+  debitcurr        dcurrency,           /* Сумма проводки по дебету в вал */
+
+  creditncu        dcurrency,           /* Сумма проводки по кредиту в НДЕ */
+  creditcurr       dcurrency,           /* Сумма проводки по кредиту в вал */
+
+  delayed          dboolean DEFAULT 0,  /* Отложенная проводка или нет */
+  incorrect        dboolean DEFAULT 0,  /* Не корректная проводка */
+
+  afull            dsecurity,           /* Дескрипторы безопасности */
+  achag            dsecurity,
+  aview            dsecurity,
+
+  disabled         dboolean DEFAULT 0,
+  reserved         dinteger
+);
+
+ALTER TABLE ac_record
+  ADD CONSTRAINT ac_pk_record PRIMARY KEY (id);
+
+ALTER TABLE ac_record ADD CONSTRAINT ac_fk_record_trrec
+  FOREIGN KEY (trrecordkey) REFERENCES ac_trrecord(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE ac_record ADD CONSTRAINT ac_fk_record_tr
+  FOREIGN KEY (transactionkey) REFERENCES ac_transaction(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE ac_record ADD CONSTRAINT ac_fk_record_doc
+  FOREIGN KEY (documentkey) REFERENCES gd_document(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ac_record ADD CONSTRAINT ac_fk_record_mdoc
+  FOREIGN KEY (masterdockey) REFERENCES gd_document(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ac_record ADD CONSTRAINT ac_fk_record_compn
+  FOREIGN KEY (companykey) REFERENCES gd_company(contactkey)
+  ON UPDATE CASCADE;
+
+/*
+ *
+ *  Список бухгалтерских проводок
+ *
+ */
+
+
+CREATE TABLE ac_entry(
+  id               dintkey,             /* Идентификатор */
+  recordkey        dmasterkey,             /* Ключ проводки */
+  entrydate        ddate,               /* Дата проводки */
+
+  transactionkey   dintkey,             /* Ключ типовой операции */
+  documentkey      dmasterkey,          /* Ключ документа, по которому создана проводка */
+  masterdockey     dintkey,             /* Ключ шапки документа */
+  companykey       dintkey,             /* Ключ фирмы по которой сформирована проводка */
+
+
+  accountkey       dintkey,             /* Код бухгалтерского счета */
+
+  accountpart      daccountpart,        /* Часть счета D - дебет, K - кредит */
+
+  debitncu         dcurrency,           /* Сумма по дебету в рублях */
+  debitcurr        dcurrency,           /* Сумма по дебету в валюте */
+  debiteq          dcurrency,           /* Сумма по дебету в эквиваленте */
+
+  creditncu        dcurrency,           /* Сумма по кредиту в рублях */
+  creditcurr       dcurrency,           /* Сумма по кредиту в валюте */
+  crediteq         dcurrency,           /* Сумма по кредиту в эквиваленте */
+
+  currkey          dintkey,             /* Ключ валюты */
+
+  disabled         dboolean DEFAULT 0,
+  reserved         dinteger,
+  ISSIMPLE         DBOOLEAN_NOTNULL NOT NULL  /*Тру казывает на то что
+                   данная часть проводки является простой*/
+);
+
+COMMIT;
+
+ALTER TABLE ac_entry
+  ADD CONSTRAINT ac_pk_entry PRIMARY KEY (id);
+
+ALTER TABLE ac_entry ADD CONSTRAINT ac_fk_entry_rk
+  FOREIGN KEY (recordkey) REFERENCES ac_record(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ac_entry ADD CONSTRAINT gd_fk_entry_ac
+  FOREIGN KEY (accountkey) REFERENCES ac_account(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE ac_entry ADD CONSTRAINT gd_fk_entry_curr
+  FOREIGN KEY (currkey) REFERENCES gd_curr(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE AC_ENTRY ADD CONSTRAINT AC_FK_ENTRY_COMPANYKEY
+  FOREIGN KEY (COMPANYKEY) REFERENCES GD_COMPANY (CONTACTKEY)
+  ON UPDATE CASCADE;
+
+ALTER TABLE AC_ENTRY ADD CONSTRAINT AC_FK_ENTRY_DOCKEY
+  FOREIGN KEY (DOCUMENTKEY) REFERENCES GD_DOCUMENT (ID)
+  ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE AC_ENTRY ADD CONSTRAINT AC_FK_ENTRY_MASTERDOCKEY
+  FOREIGN KEY (MASTERDOCKEY) REFERENCES GD_DOCUMENT (ID)
+  ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE AC_ENTRY ADD CONSTRAINT AC_FK_ENTRY_TRANSACTIONKEY
+  FOREIGN KEY (TRANSACTIONKEY) REFERENCES AC_TRANSACTION (ID)
+  ON UPDATE CASCADE;  
+
+
+COMMIT;
+
+CREATE INDEX AC_ENTRY_ACKEY_ENTRYDATE ON AC_ENTRY (ACCOUNTKEY, ENTRYDATE);
+CREATE INDEX AC_ENTRY_ENTRYDATE ON AC_ENTRY (ENTRYDATE);
+CREATE INDEX AC_ENTRY_RECKEY_ACPART ON AC_ENTRY (RECORDKEY, ACCOUNTPART);
+COMMIT;
+
+/*
+* В генератор заносится дата последнего рачета сльдо по проводкам 
+* (разница в днях между датой расчета и 17.11.1858)
+*/
+CREATE GENERATOR gd_g_entry_balance_date;
+SET GENERATOR GD_G_ENTRY_BALANCE_DATE TO 0;
+
+/*
+*
+* Сальдо по проводкам на дату (из генератора gd_g_entry_balance_date)
+*  Поля идетичны ac_entry (за исключением неиспользуемых).
+*
+*/
+
+CREATE TABLE ac_entry_balance (
+  id                      dintkey, 
+  companykey              dintkey, 
+  accountkey              dintkey, 
+  currkey                 dintkey,
+  
+  debitncu                dcurrency, 
+  debitcurr               dcurrency, 
+  debiteq                 dcurrency, 
+  creditncu               dcurrency, 
+  creditcurr              dcurrency, 
+  crediteq                dcurrency 
+);
+
+COMMIT;
+
+ALTER TABLE ac_entry_balance ADD CONSTRAINT pk_ac_entry_bal PRIMARY KEY (id);
+ALTER TABLE ac_entry_balance ADD CONSTRAINT gd_fk_entry_bal_ac FOREIGN KEY (accountkey) REFERENCES ac_account (id) ON UPDATE CASCADE;
+
+COMMIT;
+
+SET TERM ^;
+CREATE OR ALTER TRIGGER ac_bi_entry_balance FOR ac_entry_balance
+ACTIVE BEFORE INSERT POSITION 0 
+AS 
+BEGIN 
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); 
+  IF (NEW.debitncu IS NULL) THEN 
+    NEW.debitncu = 0; 
+  IF (NEW.debitcurr IS NULL) THEN 
+    NEW.debitcurr = 0; 
+  IF (NEW.debiteq IS NULL) THEN 
+    NEW.debiteq = 0; 
+  IF (NEW.creditncu IS NULL) THEN 
+    NEW.creditncu = 0; 
+  IF (NEW.creditcurr IS NULL) THEN 
+    NEW.creditcurr = 0; 
+  IF (NEW.crediteq IS NULL) THEN 
+    NEW.crediteq = 0; 
+END
+^
+SET TERM ;^
+
+
+/*
+ *
+ *  Вид скрипта для типовых
+ *  проводок:
+ *  B - скрипт выполняется перед запуском набора других скриптов
+ *  A - скрипт выполняется после запуска набора других скриптов
+ *  E - скрипт выполняется только для конкретной позиции проводки
+ *
+ */
+
+CREATE DOMAIN daccountingscriptkind
+  AS VARCHAR(1)
+  CHECK ((VALUE IS NULL) OR (VALUE = 'B') OR (VALUE = 'A') OR (VALUE = 'E'));
+
+/****************************************************/
+/**                                                **/
+/**   Триггер обрабатывающий добавление нового     **/
+/**   элемента дерева, проверяет диапозон,         **/
+/**   вызывает процедуру сдвига если надо          **/
+/**                                                **/
+/****************************************************/
+/*Удален.Создается утилитой*/
+SET TERM ^ ;
+CREATE TRIGGER ac_bi_account FOR ac_account
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+END
+^
+
+/*
+ *
+ *  Если изменился активный план счетов
+ *  другие счета автоматически делаем не активными.
+ */
+
+CREATE TRIGGER ac_bi_companyaccount FOR ac_companyaccount
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.isactive = 1) THEN
+  BEGIN
+    UPDATE ac_companyaccount
+    SET isactive = 0
+    WHERE companykey = NEW.companykey;
+  END ELSE
+  BEGIN
+    IF ((NEW.isactive IS NULL) OR (NEW.isactive = 0)) THEN
+    BEGIN
+      IF (NOT (EXISTS (SELECT * FROM ac_companyaccount
+        WHERE companykey=NEW.companykey AND isactive=1))) THEN
+      BEGIN
+        NEW.isactive = 1;
+      END
+    END
+  END
+END
+^
+
+/*
+ *
+ *  Если изменился активный план счетов
+ *  другие счета автоматически делаем не активными.
+ */
+
+CREATE TRIGGER ac_bu_companyaccount FOR ac_companyaccount
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.isactive = 1) THEN
+  BEGIN
+    UPDATE ac_companyaccount
+    SET isactive = 0
+    WHERE companykey = NEW.companykey
+      AND accountkey <> NEW.accountkey;
+  END ELSE
+  BEGIN
+    IF ((NEW.isactive IS NULL) OR (NEW.isactive = 0)) THEN
+    BEGIN
+      IF (NOT (EXISTS (SELECT * FROM ac_companyaccount
+        WHERE companykey=NEW.companykey AND isactive=1
+        AND accountkey <> NEW.accountkey))) THEN
+      BEGIN
+        NEW.isactive = 1;
+      END
+    END
+  END
+END
+^
+
+CREATE TRIGGER AC_BI_ENTRY_ISSIMPLE FOR AC_ENTRY
+ACTIVE BEFORE INSERT POSITION 0
+AS
+begin
+
+  if (exists(select
+    e.id
+  from
+    ac_entry e
+  where
+    e.recordkey = new.recordkey
+    and
+    e.accountpart = new.accountpart
+    and
+    e.id != new.id))
+  then
+  begin
+    new.issimple = 0;
+    update
+      ac_entry e
+    set
+      e.issimple = 1
+    where
+      e.recordkey = new.recordkey
+      and
+      e.accountpart != new.accountpart
+      and
+      e.issimple <> 1;
+
+    update
+      ac_entry e
+    set
+      e.issimple = 0
+    where
+      e.recordkey = new.recordkey
+      and
+      e.accountpart = new.accountpart
+      and
+      e.id != new.id
+      and
+      e.issimple <> 0;
+  end
+  else
+  begin
+    new.issimple = 1;
+  end
+end^
+
+CREATE TRIGGER AC_BU_ENTRY_ISSIMPLE FOR AC_ENTRY
+ACTIVE BEFORE UPDATE POSITION 0
+AS
+begin
+  IF (NEW.debitncu IS NULL) THEN
+    NEW.debitncu = 0;
+
+  IF (NEW.debitcurr IS NULL) THEN
+    NEW.debitcurr = 0;
+
+  IF (NEW.debiteq IS NULL) THEN
+    NEW.debiteq = 0;
+
+  IF (NEW.creditncu IS NULL) THEN
+    NEW.creditncu = 0;
+
+  IF (NEW.creditcurr IS NULL) THEN
+    NEW.creditcurr = 0;
+
+  IF (NEW.crediteq IS NULL) THEN
+    NEW.crediteq = 0;
+
+  if (new.accountpart <> old.accountpart) then
+  begin
+  if (exists(select
+    e.id
+  from
+    ac_entry e
+  where
+    e.recordkey = new.recordkey
+    and
+    e.accountpart = new.accountpart
+    and
+    e.id != new.id))
+  then
+  begin
+    new.issimple = 0;
+    update
+      ac_entry e
+    set
+      e.issimple = 1
+    where
+      e.recordkey = new.recordkey
+      and
+      e.accountpart != new.accountpart
+      and
+      e.issimple <> 1;
+
+    update
+      ac_entry e
+    set
+      e.issimple = 0
+    where
+      e.recordkey = new.recordkey
+      and
+      e.accountpart = new.accountpart
+      and
+      e.id != new.id
+      and
+      e.issimple <> 0;
+  end
+  else
+  begin
+    new.issimple = 1;
+  end
+  end
+end^
+
+CREATE TRIGGER AC_AD_ENTRY_DELETERECORD FOR AC_ENTRY
+ACTIVE AFTER DELETE POSITION 0
+AS
+BEGIN
+  DELETE FROM AC_RECORD WHERE ID = OLD.RECORDKEY;
+END^
+
+
+CREATE TRIGGER AC_AD_ENTRY_ISSIMPLE FOR AC_ENTRY
+ACTIVE AFTER DELETE POSITION 1
+AS
+declare variable CountEntry integer;
+begin
+  CountEntry = 0;
+  if (old.issimple = 0) then
+  begin
+    select
+      count(e.id)
+    from
+      ac_entry e
+    where
+      e.recordkey = old.recordkey
+      and
+      e.accountpart = old.accountpart
+      and
+      e.id != old.id
+    into :CountEntry;
+    if ( CountEntry = 1)
+    then
+    begin
+      update
+        ac_entry e
+      set
+        e.issimple = 1
+      where
+        e.recordkey = old.recordkey
+        and
+        e.accountpart = old.accountpart;
+    end
+  end
+end^
+
+CREATE TRIGGER AC_BI_ENTRY_RECORD FOR AC_ENTRY
+ACTIVE BEFORE INSERT POSITION 10
+AS
+BEGIN
+  SELECT documentkey, masterdockey, transactionkey, companykey FROM ac_record
+  WHERE id = NEW.recordkey
+  INTO NEW.documentkey, NEW.masterdockey, NEW.transactionkey, NEW.companykey;
+END^
+
+CREATE TRIGGER AC_BU_ENTRY_RECORD FOR AC_ENTRY
+ACTIVE BEFORE UPDATE POSITION 10
+AS
+BEGIN
+  SELECT documentkey, masterdockey, transactionkey, companykey FROM ac_record
+  WHERE id = NEW.recordkey
+  INTO NEW.documentkey, NEW.masterdockey, NEW.transactionkey, NEW.companykey;
+END^
+
+/* Триггер обновляет данные в таблице ac_entry_balance в соответсвии с изменениями в ac_entry */
+CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry
+ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15
+AS 
+  BEGIN 
+    IF (INSERTING AND ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
+    BEGIN 
+      INSERT INTO ac_entry_balance 
+        (companykey, accountkey, currkey, 
+         debitncu, debitcurr, debiteq, 
+         creditncu, creditcurr, crediteq)
+      VALUES 
+     (NEW.companykey, 
+      NEW.accountkey, 
+      NEW.currkey, 
+      NEW.debitncu, 
+      NEW.debitcurr, 
+      NEW.debiteq, 
+      NEW.creditncu, 
+      NEW.creditcurr, 
+      NEW.crediteq);
+  END 
+  ELSE 
+  IF (UPDATING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
+  BEGIN 
+    INSERT INTO ac_entry_balance 
+      (companykey, accountkey, currkey, 
+       debitncu, debitcurr, debiteq, 
+       creditncu, creditcurr, crediteq)
+    VALUES 
+      (OLD.companykey, 
+       OLD.accountkey, 
+       OLD.currkey, 
+       -OLD.debitncu, 
+       -OLD.debitcurr, 
+       -OLD.debiteq, 
+       -OLD.creditncu, 
+       -OLD.creditcurr, 
+       -OLD.crediteq);
+    IF ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN 
+      INSERT INTO ac_entry_balance 
+        (companykey, accountkey, currkey, 
+         debitncu, debitcurr, debiteq, 
+         creditncu, creditcurr, crediteq)
+       VALUES 
+         (NEW.companykey, 
+          NEW.accountkey, 
+          NEW.currkey, 
+          NEW.debitncu, 
+          NEW.debitcurr, 
+          NEW.debiteq, 
+          NEW.creditncu, 
+          NEW.creditcurr, 
+          NEW.crediteq);
+  END 
+  ELSE 
+  IF (DELETING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
+  BEGIN 
+    INSERT INTO ac_entry_balance 
+      (companykey, accountkey, currkey, 
+       debitncu, debitcurr, debiteq, 
+       creditncu, creditcurr, crediteq)
+    VALUES 
+     (OLD.companykey, 
+      OLD.accountkey, 
+      OLD.currkey, 
+      -OLD.debitncu, 
+      -OLD.debitcurr, 
+      -OLD.debiteq, 
+      -OLD.creditncu, 
+      -OLD.creditcurr, 
+      -OLD.crediteq);
+  END 
+END
+^
+
+/****************************************************/
+/**                                                **/
+/**   Триггер обрабатывающий добавление нового     **/
+/**   элемента дерева, проверяет диапозон,         **/
+/**   вызывает процедуру сдвига если надо          **/
+/**                                                **/
+/****************************************************/
+
+CREATE TRIGGER ac_bi_transaction FOR ac_transaction
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+END
+^
+
+/*****************************************************/
+/*                                                   */
+/*    ac_trrecord                                    */
+/*    Триггеры и хранимые процедуры                  */
+/*                                                   */
+/*****************************************************/
+
+CREATE TRIGGER ac_bi_trrecord FOR ac_trrecord
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE EXCEPTION AC_E_CANTDELETETRENTRY 'Can not  delete this entry'
+^
+
+CREATE TRIGGER ac_bd_trrecord FOR ac_trrecord
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  /* Нельзя удалять зарезервированную операцию  */
+  IF (OLD.ID < 147000000) THEN
+    EXCEPTION AC_E_CANTDELETETRENTRY;
+END
+^
+
+/*****************************************************/
+/*                                                   */
+/*    ac_entry                                       */
+/*    Триггеры и хранимые процедуры                  */
+/*                                                   */
+/*****************************************************/
+
+CREATE EXCEPTION AC_E_ENTRYBEFOREDOCUMENT 'Entry date before document date'
+^
+
+CREATE TRIGGER ac_bi_record FOR ac_record
+  BEFORE INSERT
+  POSITION 0
+AS
+  /*DECLARE VARIABLE D DATE;*/
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  NEW.debitncu = 0;
+  NEW.debitcurr = 0;
+  NEW.creditncu = 0;
+  NEW.creditcurr = 0;
+  NEW.incorrect = 0;
+END
+^
+
+CREATE TRIGGER ac_bu_record FOR ac_record
+  BEFORE UPDATE
+  POSITION 0
+AS
+  /*DECLARE VARIABLE D DATE;*/
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+
+  IF ((NEW.debitncu <> NEW.creditncu) OR (NEW.debitcurr <> NEW.creditcurr)) THEN
+    NEW.incorrect = 1;
+  ELSE
+    NEW.incorrect = 0;
+
+  UPDATE ac_entry e
+    SET e.entrydate = NEW.recorddate
+    WHERE e.recordkey = NEW.id;
+
+END
+^
+
+/****************************************************/
+/**                                                **/
+/**   Перед сохраненеем проверяем уникальный       **/
+/**   идентификатор и значение суммовых полей      **/
+/**                                                **/
+/****************************************************/
+
+CREATE TRIGGER ac_bi_entry FOR ac_entry
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.debitncu IS NULL) THEN
+    NEW.debitncu = 0;
+
+  IF (NEW.debitcurr IS NULL) THEN
+    NEW.debitcurr = 0;
+
+  IF (NEW.debiteq IS NULL) THEN
+    NEW.debiteq = 0;
+
+  IF (NEW.creditncu IS NULL) THEN
+    NEW.creditncu = 0;
+
+  IF (NEW.creditcurr IS NULL) THEN
+    NEW.creditcurr = 0;
+
+  IF (NEW.crediteq IS NULL) THEN
+    NEW.crediteq = 0;
+
+  UPDATE ac_record SET debitncu = debitncu + NEW.debitncu,
+    creditncu = creditncu + NEW.creditncu,
+    debitcurr = debitcurr + NEW.debitcurr,
+    creditcurr = creditcurr + NEW.creditcurr
+  WHERE
+    id = NEW.recordkey;
+
+END
+^
+
+CREATE TRIGGER AC_BI_ENTRY_ENTRYDATE FOR AC_ENTRY
+ACTIVE BEFORE INSERT POSITION 1 
+AS
+BEGIN 
+
+  SELECT recorddate FROM ac_record
+  WHERE id = NEW.recordkey 
+  INTO NEW.entrydate; 
+
+END
+^
+
+CREATE TRIGGER ac_au_entry FOR ac_entry
+  AFTER UPDATE
+  POSITION 0
+AS
+BEGIN
+
+  IF ((OLD.debitncu <> NEW.debitncu) or (OLD.creditncu <> NEW.creditncu) or 
+      (OLD.debitcurr <> NEW.debitcurr) or (OLD.creditcurr <> NEW.creditcurr))
+  THEN
+    UPDATE ac_record SET debitncu = debitncu - OLD.debitncu + NEW.debitncu,
+      creditncu = creditncu - OLD.creditncu + NEW.creditncu,
+      debitcurr = debitcurr - OLD.debitcurr + NEW.debitcurr,
+      creditcurr = creditcurr - OLD.creditcurr + NEW.creditcurr
+    WHERE
+      id = OLD.recordkey;
+
+END
+^
+
+CREATE TRIGGER ac_ad_entry FOR ac_entry
+  AFTER DELETE
+  POSITION 0
+AS
+BEGIN
+  /* если записей по проводку больше нет - удаляем проводку */
+  IF (NOT EXISTS(SELECT id FROM ac_entry WHERE recordkey = OLD.recordkey)) THEN
+    DELETE FROM ac_record WHERE id = OLD.recordkey;
+  ELSE
+    UPDATE ac_record SET debitncu = debitncu - OLD.debitncu,
+      creditncu = creditncu - OLD.creditncu,
+      debitcurr = debitcurr - OLD.debitcurr,
+      creditcurr = creditcurr - OLD.creditcurr
+    WHERE
+      id = OLD.recordkey;
+
+END
+^
+
+/*
+CREATE TRIGGER ac_bi_entry_block FOR ac_entry
+  INACTIVE
+  BEFORE INSERT
+  POSITION 28017
+AS
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
+  BEGIN
+    SELECT d.documenttypekey
+    FROM gd_document d
+      JOIN ac_record r ON r.documentkey = d.id
+    WHERE
+      r.id = NEW.recordkey
+    INTO
+      :DT;
+
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (:DT)
+      RETURNING_VALUES :F;
+
+    IF(:F = 0) THEN
+    BEGIN
+      BG = GEN_ID(gd_g_block_group, 0);
+      IF (:BG = 0) THEN
+      BEGIN
+        EXCEPTION gd_e_block;
+      END ELSE
+      BEGIN
+        SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+          INTO :IG;
+        IF (BIN_AND(:BG, :IG) = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END
+      END
+    END  
+  END
+END
+^
+
+CREATE TRIGGER ac_bu_entry_block FOR ac_entry
+  INACTIVE
+  BEFORE UPDATE
+  POSITION 28017
+AS
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF (((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))
+      OR ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))) THEN
+  BEGIN
+    SELECT d.documenttypekey
+    FROM gd_document d
+      JOIN ac_record r ON r.documentkey = d.id
+    WHERE
+      r.id = NEW.recordkey
+    INTO
+      :DT;
+
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (:DT)
+      RETURNING_VALUES :F;
+
+    IF(:F = 0) THEN
+    BEGIN
+      BG = GEN_ID(gd_g_block_group, 0);
+      IF (:BG = 0) THEN
+      BEGIN
+        EXCEPTION gd_e_block;
+      END ELSE
+      BEGIN
+        SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+          INTO :IG;
+        IF (BIN_AND(:BG, :IG) = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END
+      END
+    END
+  END
+END
+^
+
+CREATE TRIGGER ac_bd_entry_block FOR ac_entry
+  INACTIVE
+  BEFORE DELETE
+  POSITION 28017
+AS
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
+  BEGIN
+    SELECT d.documenttypekey
+    FROM gd_document d
+      JOIN ac_record r ON r.documentkey = d.id
+    WHERE
+      r.id = OLD.recordkey
+    INTO
+      :DT;
+
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (:DT)
+      RETURNING_VALUES :F;
+
+    IF(:F = 0) THEN
+    BEGIN
+      BG = GEN_ID(gd_g_block_group, 0);
+      IF (:BG = 0) THEN
+      BEGIN
+        EXCEPTION gd_e_block;
+      END ELSE
+      BEGIN
+        SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+          INTO :IG;
+        IF (BIN_AND(:BG, :IG) = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END
+      END
+    END
+  END
+END
+^
+*/
+
+/* Болванка процедуры для создания оборотной ведомости */
+
+CREATE PROCEDURE AC_ACCOUNTEXSALDO (
+    DATEEND DATE,
+    ACCOUNTKEY INTEGER,
+    FIELDNAME VARCHAR(60),
+    COMPANYKEY INTEGER,
+    ALLHOLDINGCOMPANIES INTEGER,
+    INGROUP INTEGER,
+    CURRKEY INTEGER)
+RETURNS
+    (DEBITSALDO NUMERIC(15,4),
+    CREDITSALDO NUMERIC(15,4),
+    CURRDEBITSALDO NUMERIC(15,4),
+    CURRCREDITSALDO NUMERIC(15,4),
+    EQDEBITSALDO NUMERIC(15,4),
+    EQCREDITSALDO NUMERIC(15,4))
+AS
+BEGIN
+  DEBITSALDO = 0;
+  CREDITSALDO = 0;
+  CURRDEBITSALDO = 0; 
+  CURRCREDITSALDO = 0; 
+  EQDEBITSALDO = 0;
+  EQCREDITSALDO = 0;
+  SUSPEND;
+END
+^
+
+/* Вспомогательная процедура для создания оборотной ведомости с помощью расчитанного сальдо */
+
+CREATE OR ALTER PROCEDURE AC_ACCOUNTEXSALDO_BAL(
+  dateend DATE,
+  accountkey INTEGER,
+  fieldname VARCHAR(60),
+  companykey INTEGER,
+  allholdingcompanies INTEGER,
+  currkey INTEGER)
+RETURNS (
+  debitsaldo NUMERIC(15,4),
+  creditsaldo NUMERIC(15,4),
+  currdebitsaldo NUMERIC(15,4),
+  currcreditsaldo NUMERIC(15,4),
+  eqdebitsaldo NUMERIC(15,4),
+  eqcreditsaldo NUMERIC(15,4))
+AS
+DECLARE VARIABLE saldo NUMERIC(15, 4); 
+  DECLARE VARIABLE saldocurr NUMERIC(15, 4); 
+  DECLARE VARIABLE saldoeq NUMERIC(15, 4); 
+  DECLARE VARIABLE tempvar VARCHAR(60); 
+  DECLARE VARIABLE closedate DATE; 
+  DECLARE VARIABLE sqlstatement VARCHAR(2048); 
+ BEGIN  
+  debitsaldo = 0;  
+  creditsaldo = 0;  
+  currdebitsaldo = 0;  
+  currcreditsaldo = 0;  
+  eqdebitsaldo = 0;  
+  eqcreditsaldo = 0;  
+  closedate = CAST((CAST('17.11.1858' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); 
+  
+  IF (:dateend >= :closedate) THEN 
+  BEGIN 
+    sqlstatement = 
+      'SELECT 
+        main.' || fieldname || ', 
+        SUM(main.debitncu - main.creditncu), 
+        SUM(main.debitcurr - main.creditcurr), 
+        SUM(main.debiteq - main.crediteq) 
+      FROM 
+      ( 
+        SELECT 
+          bal.' || fieldname || ', 
+          bal.debitncu, bal.creditncu, 
+          bal.debitcurr, bal.creditcurr, 
+          bal.debiteq, bal.crediteq 
+        FROM 
+          ac_entry_balance bal 
+        WHERE 
+          bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
+           AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
+            (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
+            AND 
+              bal.companykey IN ( 
+                SELECT 
+                  h.companykey 
+                FROM 
+                  gd_holding h 
+                WHERE 
+                  h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
+          AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (bal.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
+       
+        UNION ALL 
+       
+        SELECT 
+          e.' || fieldname || ', 
+          e.debitncu, e.creditncu, 
+          e.debitcurr, e.creditcurr, 
+          e.debiteq, e.crediteq 
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
+          AND e.entrydate >= ''' || CAST(:closedate AS VARCHAR(20)) || ''' 
+          AND e.entrydate < ''' || CAST(:dateend AS VARCHAR(20)) || ''' 
+          AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
+            (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
+            AND 
+              e.companykey IN ( 
+                SELECT 
+                  h.companykey 
+                FROM 
+                  gd_holding h 
+                WHERE 
+                  h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
+          AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
+       
+      ) main 
+      GROUP BY 
+        main.' || fieldname; 
+  END 
+  ELSE 
+  BEGIN 
+    sqlstatement = 
+      'SELECT 
+        main.' || fieldname || ', 
+        SUM(main.debitncu - main.creditncu), 
+        SUM(main.debitcurr - main.creditcurr), 
+        SUM(main.debiteq - main.crediteq) 
+      FROM 
+      ( 
+        SELECT 
+          bal.' || fieldname || ', 
+          bal.debitncu, bal.creditncu, 
+          bal.debitcurr, bal.creditcurr, 
+          bal.debiteq, bal.crediteq 
+        FROM 
+          ac_entry_balance bal 
+        WHERE 
+          bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
+           AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
+            (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
+            AND 
+              bal.companykey IN ( 
+                SELECT 
+                  h.companykey 
+                FROM 
+                  gd_holding h 
+                WHERE 
+                  h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
+          AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (bal.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
+       
+        UNION ALL 
+       
+        SELECT 
+          e.' || fieldname || ', 
+          - e.debitncu, - e.creditncu,
+          - e.debitcurr, - e.creditcurr,
+          - e.debiteq, - e.crediteq
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
+          AND e.entrydate >= ''' || CAST(:dateend AS VARCHAR(20)) || '''
+          AND e.entrydate < ''' || CAST(:closedate AS VARCHAR(20)) || '''
+          AND (e.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
+            (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
+            AND 
+              e.companykey IN ( 
+                SELECT 
+                  h.companykey 
+                FROM 
+                  gd_holding h 
+                WHERE 
+                  h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
+          AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
+       
+      ) main 
+      GROUP BY 
+        main.' || fieldname; 
+  END 
+  
+  FOR 
+    EXECUTE STATEMENT 
+      sqlstatement 
+    INTO 
+      :tempvar, :saldo, :saldocurr, :saldoeq 
+  DO  
+  BEGIN  
+    IF (saldo IS NULL) THEN  
+      saldo = 0;  
+    IF (saldo > 0) THEN  
+      debitsaldo = debitsaldo + saldo;  
+    ELSE  
+      creditsaldo = creditsaldo - saldo;  
+    IF (saldocurr IS NULL) THEN 
+       saldocurr = 0; 
+    IF (saldocurr > 0) THEN 
+      currdebitsaldo = currdebitsaldo + saldocurr; 
+    ELSE 
+      currcreditsaldo = currcreditsaldo - saldocurr; 
+    IF (saldoeq IS NULL) THEN 
+       saldoeq = 0; 
+    IF (saldoeq > 0) THEN 
+      eqdebitsaldo = eqdebitsaldo + saldoeq; 
+    ELSE 
+      eqcreditsaldo = eqcreditsaldo - saldoeq; 
+  END 
+  SUSPEND; 
+END
+^
+
+/* Процедура для создания оборотной ведомости */
+CREATE PROCEDURE AC_CIRCULATIONLIST (
+    datebegin date,
+    dateend date,
+    companykey integer,
+    allholdingcompanies integer,
+    accountkey integer,
+    ingroup integer,
+    currkey integer,
+    dontinmove integer)
+returns (
+    alias varchar(20),
+    name varchar(180),
+    id integer,
+    ncu_begin_debit numeric(15,4),
+    ncu_begin_credit numeric(15,4),
+    ncu_debit numeric(15,4),
+    ncu_credit numeric(15,4),
+    ncu_end_debit numeric(15,4),
+    ncu_end_credit numeric(15,4),
+    curr_begin_debit numeric(15,4),
+    curr_begin_credit numeric(15,4),
+    curr_debit numeric(15,4),
+    curr_credit numeric(15,4),
+    curr_end_debit numeric(15,4),
+    curr_end_credit numeric(15,4),
+    eq_begin_debit numeric(15,4),
+    eq_begin_credit numeric(15,4),
+    eq_debit numeric(15,4),
+    eq_credit numeric(15,4),
+    eq_end_debit numeric(15,4),
+    eq_end_credit numeric(15,4),
+    offbalance integer)
+as
+declare variable activity varchar(1);
+declare variable saldo numeric(15,4);
+declare variable saldocurr numeric(15,4);
+declare variable saldoeq numeric(15,4);
+declare variable fieldname varchar(60);
+declare variable lb integer;
+declare variable rb integer;
+BEGIN                                                                                                  
+  /* Procedure Text */                                                                                 
+ 
+  SELECT c.lb, c.rb FROM ac_account c                                                                  
+  WHERE c.id = :ACCOUNTKEY 
+  INTO :lb, :rb;                                                                                       
+                                                                                                       
+  FOR                                                                                                  
+    SELECT a.ID, a.ALIAS, a.activity, f.fieldname, a.Name, a.offbalance                                
+    FROM ac_account a LEFT JOIN at_relation_fields f ON a.analyticalfield = f.id                       
+    WHERE                                                                                              
+      a.accounttype IN ('A', 'S') AND                                                                  
+      a.LB >= :LB AND a.RB <= :RB AND a.alias <> '00'                                                  
+    INTO :id, :ALIAS, :activity, :fieldname, :name, :offbalance                                        
+  DO                                                                                                   
+  BEGIN                                                                                                
+    NCU_BEGIN_DEBIT = 0;                                                                               
+    NCU_BEGIN_CREDIT = 0;                                                                              
+    CURR_BEGIN_DEBIT = 0;                                                                              
+    CURR_BEGIN_CREDIT = 0;                                                                             
+    EQ_BEGIN_DEBIT = 0;                                                                                
+    EQ_BEGIN_CREDIT = 0;  
+                                                                                                       
+    IF ((activity <> 'B') OR (fieldname IS NULL)) THEN                                                 
+    BEGIN  
+      IF ( ALLHOLDINGCOMPANIES = 0) THEN  
+      SELECT                                                                                           
+        SUM(e.DEBITNCU - e.CREDITNCU),                                                                 
+        SUM(e.DEBITCURR - e.CREDITCURR),  
+        SUM(e.DEBITEQ - e.CREDITEQ)                                                                    
+      FROM                                                                                             
+        ac_entry e                                                                                     
+      WHERE  
+        e.accountkey = :id AND e.entrydate < :datebegin AND                                            
+        (e.companykey = :companykey) AND  
+        ((0 = :currkey) OR (e.currkey = :currkey))  
+      INTO :SALDO,                                                                                     
+        :SALDOCURR, :SALDOEQ;                                                                          
+      ELSE  
+      SELECT                                                                                           
+        SUM(e.DEBITNCU - e.CREDITNCU),                                                                 
+        SUM(e.DEBITCURR - e.CREDITCURR),                                                               
+        SUM(e.DEBITEQ - e.CREDITEQ)                                                                    
+      FROM                                                                                             
+        ac_entry e                                                                                     
+      WHERE 
+        e.accountkey = :id AND e.entrydate < :datebegin AND                                            
+        (e.companykey = :companykey or e.companykey IN ( 
+          SELECT                                                                                       
+            h.companykey                                                                               
+          FROM                                                                                         
+            gd_holding h                                                                               
+          WHERE                                                                                        
+            h.holdingkey = :companykey)) AND  
+        ((0 = :currkey) OR (e.currkey = :currkey))  
+      INTO :SALDO,                                                                                     
+        :SALDOCURR, :SALDOEQ;                                                                          
+                                                                                                       
+      IF (SALDO IS NULL) THEN                                                                          
+        SALDO = 0;                                                                                     
+                                                                                                       
+      IF (SALDOCURR IS NULL) THEN  
+        SALDOCURR = 0;                                                                                 
+                                                                                                       
+      IF (SALDOEQ IS NULL) THEN                                                                        
+        SALDOEQ = 0;                                                                                   
+                                                                                                       
+                                                                                                       
+      IF (SALDO > 0) THEN                                                                              
+        NCU_BEGIN_DEBIT = SALDO;                                                                       
+      ELSE                                                                                             
+        NCU_BEGIN_CREDIT = 0 - SALDO;                                                                  
+                                                                                                       
+      IF (SALDOCURR > 0) THEN                                                                          
+        CURR_BEGIN_DEBIT = SALDOCURR;                                                                  
+      ELSE                                                                                             
+        CURR_BEGIN_CREDIT = 0 - SALDOCURR;                                                             
+                                                                                                       
+      IF (SALDOEQ > 0) THEN                                                                            
+        EQ_BEGIN_DEBIT = SALDOEQ;                                                                      
+      ELSE                                                                                             
+        EQ_BEGIN_CREDIT = 0 - SALDOEQ;                                                                 
+    END                                                                                                
+    ELSE                                                                                               
+    BEGIN                                                                                              
+      SELECT                                                                                           
+        DEBITsaldo,                                                                                    
+        creditsaldo  
+      FROM 
+        AC_ACCOUNTEXSALDO(:datebegin, :ID, :FIELDNAME, :COMPANYKEY,                                    
+          :allholdingcompanies, :INGROUP, :currkey) 
+      INTO                                                                                             
+        :NCU_BEGIN_DEBIT,                                                                              
+        :NCU_BEGIN_CREDIT;                                                                             
+    END  
+                                                                                                       
+    IF (ALLHOLDINGCOMPANIES = 0) THEN  
+    BEGIN 
+      IF (DONTINMOVE = 1) THEN 
+        SELECT 
+          SUM(e.DEBITNCU), 
+          SUM(e.CREDITNCU), 
+          SUM(e.DEBITCURR), 
+          SUM(e.CREDITCURR), 
+          SUM(e.DEBITEQ), 
+          SUM(e.CREDITEQ) 
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = :id AND e.entrydate >= :datebegin AND 
+          e.entrydate <= :dateend AND (e.companykey = :companykey) AND 
+          ((0 = :currkey) OR (e.currkey = :currkey)) AND 
+          NOT EXISTS( SELECT e_m.id FROM  ac_entry e_m 
+              JOIN ac_entry e_cm ON e_cm.recordkey=e_m.recordkey AND 
+               e_cm.accountpart <> e_m.accountpart AND 
+               e_cm.accountkey=e_m.accountkey AND 
+               (e_m.debitncu=e_cm.creditncu OR 
+                e_m.creditncu=e_cm.debitncu OR 
+                e_m.debitcurr=e_cm.creditcurr OR 
+                e_m.creditcurr=e_cm.debitcurr) 
+              WHERE e_m.id=e.id) 
+        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, EQ_CREDIT; 
+      ELSE 
+        SELECT 
+          SUM(e.DEBITNCU), 
+          SUM(e.CREDITNCU), 
+          SUM(e.DEBITCURR), 
+          SUM(e.CREDITCURR), 
+          SUM(e.DEBITEQ), 
+          SUM(e.CREDITEQ) 
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = :id AND e.entrydate >= :datebegin AND 
+          e.entrydate <= :dateend AND (e.companykey = :companykey) AND 
+          ((0 = :currkey) OR (e.currkey = :currkey)) 
+        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, EQ_CREDIT; 
+    END 
+    ELSE 
+    BEGIN 
+      IF (DONTINMOVE = 1) THEN 
+        SELECT 
+          SUM(e.DEBITNCU), 
+          SUM(e.CREDITNCU), 
+          SUM(e.DEBITCURR), 
+          SUM(e.CREDITCURR), 
+          SUM(e.DEBITEQ), 
+          SUM(e.CREDITEQ) 
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = :id AND e.entrydate >= :datebegin AND 
+          e.entrydate <= :dateend AND 
+          (e.companykey = :companykey or e.companykey IN ( 
+          SELECT h.companykey FROM gd_holding h 
+           WHERE h.holdingkey = :companykey)) AND 
+          ((0 = :currkey) OR (e.currkey = :currkey)) AND 
+          NOT EXISTS( SELECT e_m.id FROM  ac_entry e_m 
+              JOIN ac_entry e_cm ON e_cm.recordkey=e_m.recordkey AND 
+               e_cm.accountpart <> e_m.accountpart AND 
+               e_cm.accountkey=e_m.accountkey AND 
+               (e_m.debitncu=e_cm.creditncu OR 
+                e_m.creditncu=e_cm.debitncu OR 
+                e_m.debitcurr=e_cm.creditcurr OR 
+                e_m.creditcurr=e_cm.debitcurr) 
+              WHERE e_m.id=e.id) 
+        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, :EQ_CREDIT; 
+      ELSE 
+        SELECT 
+          SUM(e.DEBITNCU), 
+          SUM(e.CREDITNCU), 
+          SUM(e.DEBITCURR), 
+          SUM(e.CREDITCURR), 
+          SUM(e.DEBITEQ), 
+          SUM(e.CREDITEQ) 
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = :id AND e.entrydate >= :datebegin AND 
+          e.entrydate <= :dateend AND 
+          (e.companykey = :companykey or e.companykey IN ( 
+          SELECT h.companykey FROM gd_holding h 
+           WHERE h.holdingkey = :companykey)) AND 
+          ((0 = :currkey) OR (e.currkey = :currkey)) 
+        INTO :NCU_DEBIT, :NCU_CREDIT, :CURR_DEBIT, CURR_CREDIT, :EQ_DEBIT, :EQ_CREDIT; 
+    END 
+                                                                                                             
+    IF (NCU_DEBIT IS NULL) THEN                                                                        
+      NCU_DEBIT = 0;                                                                                   
+                                                                                                       
+    IF (NCU_CREDIT IS NULL) THEN                                                                       
+      NCU_CREDIT = 0;                                                                                  
+  
+    IF (CURR_DEBIT IS NULL) THEN                                                                       
+      CURR_DEBIT = 0;                                                                                  
+                                                                                                       
+    IF (CURR_CREDIT IS NULL) THEN                                                                      
+      CURR_CREDIT = 0;                                                                                 
+                                                                                                       
+    IF (EQ_DEBIT IS NULL) THEN  
+      EQ_DEBIT = 0;                                                                                    
+                                                                                                       
+    IF (EQ_CREDIT IS NULL) THEN                                                                        
+      EQ_CREDIT = 0;                                                                                   
+                                                                                                       
+    NCU_END_DEBIT = 0;                                                                                 
+    NCU_END_CREDIT = 0;                                                                                
+    CURR_END_DEBIT = 0;                                                                                
+    CURR_END_CREDIT = 0;                                                                               
+    EQ_END_DEBIT = 0;                                                                                  
+    EQ_END_CREDIT = 0;                                                                                 
+                                                                                                       
+    IF ((ACTIVITY <> 'B') OR (FIELDNAME IS NULL)) THEN                                                 
+    BEGIN                                                                                              
+      SALDO = NCU_BEGIN_DEBIT - NCU_BEGIN_CREDIT + NCU_DEBIT - NCU_CREDIT;                             
+      IF (SALDO > 0) THEN 
+        NCU_END_DEBIT = SALDO;                                                                         
+      ELSE 
+        NCU_END_CREDIT = 0 - SALDO;                                                                    
+                                                                                                       
+      SALDOCURR = CURR_BEGIN_DEBIT - CURR_BEGIN_CREDIT + CURR_DEBIT - CURR_CREDIT;                     
+      IF (SALDOCURR > 0) THEN                                                                          
+        CURR_END_DEBIT = SALDOCURR;                                                                    
+      ELSE                                                                                             
+        CURR_END_CREDIT = 0 - SALDOCURR;                                                               
+  
+      SALDOEQ = EQ_BEGIN_DEBIT - EQ_BEGIN_CREDIT + EQ_DEBIT - EQ_CREDIT;                               
+      IF (SALDOEQ > 0) THEN                                                                            
+        EQ_END_DEBIT = SALDOEQ;                                                                        
+      ELSE                                                                                             
+        EQ_END_CREDIT = 0 - SALDOEQ;                                                                   
+    END                                                                                                
+    ELSE  
+    BEGIN  
+      IF ((NCU_BEGIN_DEBIT <> 0) OR (NCU_BEGIN_CREDIT <> 0) OR  
+        (NCU_DEBIT <> 0) OR (NCU_CREDIT <> 0) OR  
+        (CURR_BEGIN_DEBIT <> 0) OR (CURR_BEGIN_CREDIT <> 0) OR  
+        (CURR_DEBIT <> 0) OR (CURR_CREDIT <> 0) OR  
+        (EQ_BEGIN_DEBIT <> 0) OR (EQ_BEGIN_CREDIT <> 0) OR  
+        (EQ_DEBIT <> 0) OR (EQ_CREDIT <> 0)) THEN  
+      BEGIN  
+        SELECT  
+          DEBITsaldo, creditsaldo,  
+          CurrDEBITsaldo, Currcreditsaldo,  
+          EQDEBITsaldo, EQcreditsaldo  
+        FROM AC_ACCOUNTEXSALDO(:DATEEND + 1, :ID, :FIELDNAME, :COMPANYKEY,  
+          :allholdingcompanies, :INGROUP, :currkey)  
+        INTO :NCU_END_DEBIT, :NCU_END_CREDIT, :CURR_END_DEBIT, :CURR_END_CREDIT, :EQ_END_DEBIT, :EQ_END_CREDIT;  
+      END  
+    END  
+    IF ((NCU_BEGIN_DEBIT <> 0) OR (NCU_BEGIN_CREDIT <> 0) OR  
+      (NCU_DEBIT <> 0) OR (NCU_CREDIT <> 0) OR  
+      (CURR_BEGIN_DEBIT <> 0) OR (CURR_BEGIN_CREDIT <> 0) OR  
+      (CURR_DEBIT <> 0) OR (CURR_CREDIT <> 0) OR  
+      (EQ_BEGIN_DEBIT <> 0) OR (EQ_BEGIN_CREDIT <> 0) OR  
+      (EQ_DEBIT <> 0) OR (EQ_CREDIT <> 0)) THEN  
+    SUSPEND;  
+  END  
+END^
+
+/* Процедура для создания оборотной ведомости с помощью расчитанного сальдо */
+CREATE OR ALTER PROCEDURE ac_circulationlist_bal(
+  datebegin DATE,
+  dateend DATE,
+  companykey INTEGER,
+  allholdingcompanies INTEGER,
+  accountkey INTEGER,
+  currkey INTEGER,
+  dontinmove INTEGER)
+RETURNS (
+  alias VARCHAR(20),
+  name VARCHAR(180),
+  id INTEGER,
+  ncu_begin_debit NUMERIC(15,4),
+  ncu_begin_credit NUMERIC(15,4),
+  ncu_debit NUMERIC(15,4),
+  ncu_credit NUMERIC(15,4),
+  ncu_end_debit NUMERIC(15,4),
+  ncu_end_credit NUMERIC(15,4),
+  curr_begin_debit NUMERIC(15,4),
+  curr_begin_credit NUMERIC(15,4),
+  curr_debit NUMERIC(15,4),
+  curr_credit NUMERIC(15,4),
+  curr_end_debit NUMERIC(15,4),
+  curr_end_credit NUMERIC(15,4),
+  eq_begin_debit NUMERIC(15,4),
+  eq_begin_credit NUMERIC(15,4),
+  eq_debit NUMERIC(15,4),
+  eq_credit NUMERIC(15,4),
+  eq_end_debit NUMERIC(15,4),
+  eq_end_credit NUMERIC(15,4),
+  offbalance INTEGER)
+AS
+  DECLARE VARIABLE activity VARCHAR(1);
+  DECLARE VARIABLE saldo NUMERIC(15, 4); 
+  DECLARE VARIABLE saldocurr NUMERIC(15, 4); 
+  DECLARE VARIABLE saldoeq NUMERIC(15, 4); 
+  DECLARE VARIABLE fieldname VARCHAR(60); 
+  DECLARE VARIABLE lb INTEGER; 
+  DECLARE VARIABLE rb INTEGER; 
+  DECLARE VARIABLE closedate DATE; 
+BEGIN 
+  closedate = CAST((CAST('17.11.1858' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); 
+  
+  SELECT 
+    c.lb, c.rb 
+  FROM 
+    ac_account c 
+  WHERE 
+    c.id = :accountkey 
+  INTO 
+    :lb, :rb; 
+  
+  FOR 
+    SELECT 
+      a.id, a.alias, a.activity, f.fieldname, a.name, a.offbalance 
+    FROM 
+      ac_account a 
+      LEFT JOIN at_relation_fields f ON a.analyticalfield = f.id 
+    WHERE 
+      a.accounttype IN ('A', 'S') 
+      AND a.lb >= :lb AND a.rb <= :rb AND a.alias <> '00' 
+    INTO 
+      :id, :alias, :activity, :fieldname, :name, :offbalance 
+  DO 
+  BEGIN 
+    ncu_begin_debit = 0; 
+    ncu_begin_credit = 0; 
+    curr_begin_debit = 0; 
+    curr_begin_credit = 0; 
+    eq_begin_debit = 0; 
+    eq_begin_credit = 0; 
+  
+    IF ((activity <> 'B') OR (fieldname IS NULL)) THEN 
+    BEGIN 
+      IF (:closedate <= :datebegin) THEN 
+      BEGIN 
+        SELECT 
+          SUM(main.debitncu - main.creditncu), 
+          SUM(main.debitcurr - main.creditcurr), 
+          SUM(main.debiteq - main.crediteq) 
+        FROM 
+        ( 
+          SELECT 
+            bal.debitncu, 
+            bal.creditncu, 
+            bal.debitcurr, 
+            bal.creditcurr, 
+            bal.debiteq, 
+            bal.crediteq 
+          FROM 
+            ac_entry_balance bal 
+          WHERE 
+            bal.accountkey = :id 
+            AND (bal.companykey + 0 = :companykey 
+              OR (:allholdingcompanies = 1 
+                AND bal.companykey + 0 IN ( 
+                  SELECT 
+                    h.companykey 
+                  FROM 
+                    gd_holding h 
+                  WHERE 
+                    h.holdingkey = :companykey))) 
+            AND ((0 = :currkey) OR (bal.currkey = :currkey)) 
+  
+          UNION ALL 
+  
+          SELECT 
+            e.debitncu, 
+            e.creditncu, 
+            e.debitcurr, 
+            e.creditcurr, 
+            e.debiteq, 
+            e.crediteq 
+          FROM 
+            ac_entry e 
+          WHERE 
+            e.accountkey = :id 
+            AND e.entrydate >= :closedate 
+            AND e.entrydate < :datebegin 
+            AND (e.companykey + 0 = :companykey 
+              OR (:allholdingcompanies = 1 
+              AND e.companykey + 0 IN ( 
+                SELECT 
+                  h.companykey 
+                FROM 
+                  gd_holding h 
+                WHERE 
+                  h.holdingkey = :companykey))) 
+            AND ((0 = :currkey) OR (e.currkey = :currkey)) 
+        ) main 
+        INTO 
+          :saldo, :saldocurr, :saldoeq; 
+      END 
+      ELSE 
+      BEGIN 
+        SELECT 
+          SUM(main.debitncu - main.creditncu), 
+          SUM(main.debitcurr - main.creditcurr), 
+          SUM(main.debiteq - main.crediteq) 
+        FROM 
+        ( 
+          SELECT 
+            bal.debitncu, 
+            bal.creditncu, 
+            bal.debitcurr, 
+            bal.creditcurr, 
+            bal.debiteq, 
+            bal.crediteq 
+          FROM 
+            ac_entry_balance bal 
+          WHERE 
+            bal.accountkey = :id 
+            AND (bal.companykey + 0 = :companykey 
+              OR (:allholdingcompanies = 1 
+                AND bal.companykey + 0 IN ( 
+                  SELECT 
+                    h.companykey 
+                  FROM 
+                    gd_holding h 
+                  WHERE 
+                    h.holdingkey = :companykey))) 
+            AND ((0 = :currkey) OR (bal.currkey = :currkey)) 
+ 
+          UNION ALL 
+ 
+          SELECT 
+            - e.debitncu, 
+            - e.creditncu, 
+            - e.debitcurr, 
+            - e.creditcurr, 
+            - e.debiteq, 
+            - e.crediteq 
+          FROM 
+            ac_entry e 
+          WHERE 
+            e.accountkey = :id 
+            AND e.entrydate >= :datebegin 
+            AND e.entrydate < :closedate 
+            AND (e.companykey + 0 = :companykey 
+              OR (:allholdingcompanies = 1 
+              AND e.companykey + 0 IN ( 
+                SELECT 
+                  h.companykey 
+                FROM 
+                  gd_holding h 
+                WHERE 
+                  h.holdingkey = :companykey))) 
+            AND ((0 = :currkey) OR (e.currkey = :currkey)) 
+        ) main 
+        INTO 
+          :saldo, :saldocurr, :saldoeq; 
+      END 
+ 
+      IF (saldo IS NULL) THEN 
+        saldo = 0; 
+      IF (saldocurr IS NULL) THEN 
+        saldocurr = 0;  
+      IF (saldoeq IS NULL) THEN 
+        saldoeq = 0; 
+  
+      IF (saldo > 0) THEN 
+        ncu_begin_debit = saldo; 
+      ELSE 
+        ncu_begin_credit = 0 - saldo; 
+      IF (saldocurr > 0) THEN 
+        curr_begin_debit = saldocurr; 
+      ELSE 
+        curr_begin_credit = 0 - saldocurr; 
+      IF (saldoeq > 0) THEN 
+        eq_begin_debit = saldoeq; 
+      ELSE 
+         eq_begin_credit = 0 - saldoeq; 
+    END 
+    ELSE 
+    BEGIN 
+      SELECT 
+        debitsaldo, 
+        creditsaldo 
+      FROM 
+        ac_accountexsaldo_bal(:datebegin, :id, :fieldname, :companykey, :allholdingcompanies, :currkey) 
+      INTO 
+        :ncu_begin_debit, 
+        :ncu_begin_credit; 
+    END 
+  
+    IF (allholdingcompanies = 0) THEN 
+    BEGIN 
+      IF (dontinmove = 1) THEN 
+        SELECT 
+          SUM(e.debitncu), 
+          SUM(e.creditncu), 
+          SUM(e.debitcurr), 
+          SUM(e.creditcurr), 
+          SUM(e.debiteq), 
+          SUM(e.crediteq) 
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = :id 
+          AND e.entrydate >= :datebegin 
+          AND e.entrydate <= :dateend 
+          AND e.companykey + 0 = :companykey 
+          AND ((0 = :currkey) OR (e.currkey = :currkey)) 
+          AND NOT EXISTS ( 
+            SELECT 
+              e_cm.id 
+            FROM 
+              ac_entry e_cm 
+            WHERE 
+              e_cm.recordkey = e.recordkey 
+              AND e_cm.accountpart <> e.accountpart 
+              AND e_cm.accountkey=e.accountkey 
+              AND (e.debitncu=e_cm.creditncu 
+                OR e.creditncu=e_cm.debitncu 
+                OR e.debitcurr=e_cm.creditcurr 
+                OR e.creditcurr=e_cm.debitcurr)) 
+        INTO 
+          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, eq_credit; 
+      ELSE 
+        SELECT 
+          SUM(e.debitncu), 
+          SUM(e.creditncu), 
+          SUM(e.debitcurr), 
+          SUM(e.creditcurr), 
+          SUM(e.debiteq), 
+          SUM(e.crediteq) 
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = :id 
+          AND e.entrydate >= :datebegin 
+          AND e.entrydate <= :dateend 
+          AND e.companykey + 0 = :companykey 
+          AND ((0 = :currkey) OR (e.currkey = :currkey)) 
+        INTO 
+          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, eq_credit; 
+    END 
+    ELSE 
+    BEGIN 
+      IF (dontinmove = 1) THEN 
+        SELECT 
+          SUM(e.debitncu), 
+          SUM(e.creditncu), 
+          SUM(e.debitcurr), 
+          SUM(e.creditcurr), 
+          SUM(e.debiteq), 
+          SUM(e.crediteq) 
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = :id 
+          AND e.entrydate >= :datebegin 
+          AND e.entrydate <= :dateend 
+          AND (e.companykey + 0 = :companykey 
+            OR e.companykey + 0 IN ( 
+              SELECT 
+                h.companykey 
+              FROM 
+                gd_holding h 
+              WHERE 
+                h.holdingkey = :companykey)) 
+          AND ((0 = :currkey) OR (e.currkey = :currkey)) 
+          AND NOT EXISTS ( 
+            SELECT 
+              e_cm.id 
+            FROM 
+              ac_entry e_cm 
+            WHERE 
+              e_cm.recordkey = e.recordkey 
+              AND e_cm.accountpart <> e.accountpart 
+              AND e_cm.accountkey=e.accountkey 
+              AND (e.debitncu=e_cm.creditncu 
+                OR e.creditncu=e_cm.debitncu 
+                OR e.debitcurr=e_cm.creditcurr 
+                OR e.creditcurr=e_cm.debitcurr)) 
+        INTO 
+          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, :eq_credit; 
+      ELSE 
+        SELECT 
+          SUM(e.debitncu), 
+          SUM(e.creditncu), 
+          SUM(e.debitcurr), 
+          SUM(e.creditcurr), 
+          SUM(e.debiteq), 
+          SUM(e.crediteq) 
+        FROM 
+          ac_entry e 
+        WHERE 
+          e.accountkey = :id 
+          AND e.entrydate >= :datebegin 
+          AND e.entrydate <= :dateend 
+          AND (e.companykey + 0 = :companykey 
+            OR e.companykey + 0 IN ( 
+              SELECT 
+                h.companykey 
+              FROM 
+                gd_holding h 
+              WHERE 
+                h.holdingkey = :companykey)) 
+          AND ((0 = :currkey) OR (e.currkey = :currkey)) 
+        INTO 
+          :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, :eq_credit; 
+    END 
+  
+    IF (ncu_debit IS NULL) THEN 
+      ncu_debit = 0;  
+    IF (ncu_credit IS NULL) THEN 
+      ncu_credit = 0; 
+    IF (curr_debit IS NULL) THEN 
+      curr_debit = 0; 
+    IF (curr_credit IS NULL) THEN 
+      curr_credit = 0; 
+    IF (eq_debit IS NULL) THEN 
+      eq_debit = 0; 
+    IF (eq_credit IS NULL) THEN 
+      eq_credit = 0; 
+  
+    ncu_end_debit = 0; 
+    ncu_end_credit = 0; 
+    curr_end_debit = 0; 
+    curr_end_credit = 0; 
+    eq_end_debit = 0; 
+    eq_end_credit = 0; 
+  
+    IF ((activity <> 'B') OR (fieldname IS NULL)) THEN 
+    BEGIN 
+      saldo = ncu_begin_debit - ncu_begin_credit + ncu_debit - ncu_credit; 
+      IF (saldo > 0) THEN 
+        ncu_end_debit = saldo; 
+      ELSE 
+        ncu_end_credit = 0 - saldo; 
+  
+      saldocurr = curr_begin_debit - curr_begin_credit + curr_debit - curr_credit; 
+      IF (saldocurr > 0) THEN 
+        curr_end_debit = saldocurr; 
+      ELSE 
+        curr_end_credit = 0 - saldocurr; 
+  
+      saldoeq = eq_begin_debit - eq_begin_credit + eq_debit - eq_credit; 
+      IF (saldoeq > 0) THEN 
+        eq_end_debit = saldoeq; 
+      ELSE 
+        eq_end_credit = 0 - saldoeq; 
+    END 
+    ELSE 
+    BEGIN 
+      IF ((ncu_begin_debit <> 0) OR (ncu_begin_credit <> 0) OR 
+        (ncu_debit <> 0) OR (ncu_credit <> 0) OR 
+        (curr_begin_debit <> 0) OR (curr_begin_credit <> 0) OR 
+        (curr_debit <> 0) OR (curr_credit <> 0) OR 
+        (eq_begin_debit <> 0) OR (eq_begin_credit <> 0) OR 
+        (eq_debit <> 0) OR (eq_credit <> 0)) THEN 
+      BEGIN 
+        SELECT 
+          debitsaldo, creditsaldo, 
+          currdebitsaldo, currcreditsaldo, 
+          eqdebitsaldo, eqcreditsaldo 
+        FROM 
+          ac_accountexsaldo_bal(:dateend + 1, :id, :fieldname, :companykey, :allholdingcompanies, :currkey) 
+        INTO 
+          :ncu_end_debit, :ncu_end_credit, :curr_end_debit, :curr_end_credit, :eq_end_debit, :eq_end_credit; 
+      END 
+    END 
+    IF ((ncu_begin_debit <> 0) OR (ncu_begin_credit <> 0) OR 
+      (ncu_debit <> 0) OR (ncu_credit <> 0) OR 
+      (curr_begin_debit <> 0) OR (curr_begin_credit <> 0) OR 
+      (curr_debit <> 0) OR (curr_credit <> 0) OR 
+      (eq_begin_debit <> 0) OR (eq_begin_credit <> 0) OR 
+      (eq_debit <> 0) OR (eq_credit <> 0)) THEN 
+      SUSPEND; 
+  END 
+END
+^
+
+COMMIT ^
+
+
+CREATE PROCEDURE AC_GETSIMPLEENTRY (
+    ENTRYKEY INTEGER,
+    ACORRACCOUNTKEY INTEGER)
+RETURNS (
+    ID INTEGER,
+    DEBIT NUMERIC(15,4),
+    CREDIT NUMERIC(15,4),
+    DEBITCURR NUMERIC(15,4),
+    CREDITCURR NUMERIC(15,4),
+    DEBITEQ NUMERIC(15,4),
+    CREDITEQ NUMERIC(15,4))
+AS
+BEGIN
+  ID = :ENTRYKEY; 
+  SELECT
+    SUM(iif(corr_e.issimple = 0, corr_e.creditncu, e.debitncu)),
+    SUM(iif(corr_e.issimple = 0, corr_e.debitncu, e.creditncu)),
+    SUM(iif(corr_e.issimple = 0, corr_e.creditcurr, e.debitcurr)),
+    SUM(iif(corr_e.issimple = 0, corr_e.debitcurr, e.creditcurr)),
+    SUM(iif(corr_e.issimple = 0, corr_e.crediteq, e.debiteq)),
+    SUM(iif(corr_e.issimple = 0, corr_e.debiteq, e.crediteq))
+  FROM
+    ac_entry e
+    JOIN ac_entry corr_e on e.recordkey = corr_e.recordkey and
+      e.accountpart <> corr_e.accountpart
+  WHERE
+    e.id = :entrykey AND
+    corr_e.accountkey + 0 = :acorraccountkey
+  INTO :DEBIT,
+       :CREDIT,
+       :DEBITCURR,
+       :CREDITCURR,
+       :DEBITEQ,
+       :CREDITEQ;
+  SUSPEND;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/******************************************************************************/
+/***                                 Tables                                 ***/
+/******************************************************************************/
+
+CREATE TABLE AC_AUTOTRRECORD (
+    ID                DINTKEY,
+    SHOWINEXPLORER    DBOOLEAN,
+    IMAGEINDEX        DINTEGER,
+    FOLDERKEY         DFOREIGNKEY
+);
+
+
+ALTER TABLE AC_AUTOTRRECORD ADD PRIMARY KEY (ID);
+ALTER TABLE AC_AUTOTRRECORD ADD CONSTRAINT FK_AC_AUTOTRRECORD_FOLDER FOREIGN KEY (FOLDERKEY) REFERENCES GD_COMMAND (ID) ON DELETE SET NULL ON UPDATE SET NULL;
+ALTER TABLE AC_AUTOTRRECORD ADD CONSTRAINT FK_AC_AUTOTRRECORD_ID FOREIGN KEY (ID) REFERENCES AC_TRRECORD (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE TABLE AC_AUTOENTRY (
+    ID             DINTKEY NOT NULL,
+    ENTRYKEY       DINTKEY NOT NULL,
+    TRRECORDKEY    DINTKEY NOT NULL,
+    BEGINDATE      DDATE_NOTNULL NOT NULL,
+    ENDDATE        DDATE_NOTNULL NOT NULL,
+    CREDITACCOUNT  DINTKEY NOT NULL,
+    DEBITACCOUNT   DINTKEY NOT NULL
+);
+
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT PK_AC_AUTOENTRY PRIMARY KEY (ID);
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_CREDIT FOREIGN KEY (CREDITACCOUNT) REFERENCES AC_ACCOUNT (ID);
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_DEBIT FOREIGN KEY (DEBITACCOUNT) REFERENCES AC_ACCOUNT (ID);
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_ENTRYKEY FOREIGN KEY (ENTRYKEY) REFERENCES AC_ENTRY (ID) ON DELETE CASCADE;
+ALTER TABLE AC_AUTOENTRY ADD CONSTRAINT FK_AC_AUTOENTRY_TRRECORDKEY FOREIGN KEY (TRRECORDKEY) REFERENCES AC_TRRECORD (ID) ON DELETE CASCADE;
+
+
+COMMIT;
+
+/*Таблица для хранения настроек главной книги*/
+CREATE TABLE AC_GENERALLEDGER (
+    ID             DINTKEY NOT NULL,
+    NAME           DNAME NOT NULL COLLATE PXW_CYRL,
+    DEFAULTUSE     DBOOLEAN,
+    INNCU          DBOOLEAN,
+    INCURR         DBOOLEAN,
+    NCUDECDIGITS   DINTEGER_NOTNULL,
+    NCUSCALE       DINTEGER_NOTNULL,
+    CURRDECDIGITS  DINTEGER_NOTNULL NOT NULL,
+    CURRSCALE      DINTEGER_NOTNULL NOT NULL,
+    CURRKEY        DFOREIGNKEY,
+    ACCOUNTKEY     DFOREIGNKEY,
+    ENHANCEDSALDO  DBOOLEAN
+);
+
+ALTER TABLE AC_GENERALLEDGER ADD CONSTRAINT PK_AC_GENERALLEDGER PRIMARY KEY (ID);
+ALTER TABLE AC_GENERALLEDGER ADD CONSTRAINT FK_AC_GENERALLEDGER_ACKEY FOREIGN KEY (ACCOUNTKEY) REFERENCES AC_ACCOUNT (ID);
+ALTER TABLE AC_GENERALLEDGER ADD CONSTRAINT FK_AC_GENERALLEDGER_CURRKEY FOREIGN KEY (CURRKEY) REFERENCES GD_CURR (ID);
+
+COMMIT;
+
+CREATE UNIQUE INDEX ac_x_generalledger_name ON ac_generalledger
+  (name);
+
+/*Таблица для хранения связки настройки главной книги и счетов*/
+CREATE TABLE AC_G_LEDGERACCOUNT (
+    LEDGERKEY   DFOREIGNKEY NOT NULL,
+    ACCOUNTKEY  DFOREIGNKEY NOT NULL
+);
+
+ALTER TABLE AC_G_LEDGERACCOUNT ADD CONSTRAINT PK_AC_G_LEDGERACCOUNT PRIMARY KEY (LEDGERKEY, ACCOUNTKEY);
+ALTER TABLE AC_G_LEDGERACCOUNT ADD CONSTRAINT FK_AC_G_LEDGERACCOUNT_AKEY FOREIGN KEY (ACCOUNTKEY) REFERENCES AC_ACCOUNT (ID);
+ALTER TABLE AC_G_LEDGERACCOUNT ADD CONSTRAINT FK_AC_G_LEDGERACCOUNT_LKEY FOREIGN KEY (LEDGERKEY) REFERENCES AC_GENERALLEDGER (ID);
+/* Privileges of roles */
+
+
+COMMIT;
+
+CREATE TABLE AC_ACCT_CONFIG (
+    ID              DINTKEY,
+    NAME            DTEXT32 NOT NULL,
+    CLASSNAME       DTEXT60 NOT NULL,
+    CONFIG          DBLOB,
+    SHOWINEXPLORER  DBOOLEAN,
+    FOLDER          DFOREIGNKEY,
+    IMAGEINDEX      DINTEGER
+);
+ALTER TABLE AC_ACCT_CONFIG ADD CONSTRAINT PK_AC_ACCT_CONFIG_ID PRIMARY KEY (ID);
+ALTER TABLE AC_ACCT_CONFIG ADD CONSTRAINT FK_AC_ACCT_CONFIG_FOLDER FOREIGN KEY (FOLDER) REFERENCES GD_COMMAND (ID) ON DELETE SET NULL ON UPDATE CASCADE;
+
+COMMIT;
+
+/****************************************************
+
+  Таблица связка счета с ед.измерения
+
+*****************************************************/
+
+CREATE TABLE ac_accvalue
+(
+  id          dintkey  PRIMARY KEY,
+  accountkey  dmasterkey,
+  valuekey    dintkey
+ );
+
+COMMIT;
+
+CREATE UNIQUE INDEX ac_idx_accvalue
+  ON ac_accvalue (accountkey, valuekey);
+
+COMMIT;
+
+ALTER TABLE ac_accvalue
+ADD CONSTRAINT fk_ac_accvalue_account
+FOREIGN KEY (accountkey)
+REFERENCES ac_account(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ac_accvalue
+ADD CONSTRAINT fk_ac_accvalue_value
+FOREIGN KEY (valuekey)
+REFERENCES gd_value(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+/****************************************************
+
+  Таблица количестенных показателей проводки
+
+*****************************************************/
+
+CREATE TABLE ac_quantity
+(
+  id          dintkey  PRIMARY KEY,
+  entrykey    dmasterkey,
+  valuekey    dintkey,
+  quantity    dcurrency
+ );
+
+COMMIT;
+
+CREATE UNIQUE INDEX ac_idx_quantity
+  ON ac_quantity (entrykey, valuekey);
+
+COMMIT;
+
+ALTER TABLE ac_quantity
+ADD CONSTRAINT fk_ac_quantity_entry
+FOREIGN KEY (entrykey)
+REFERENCES ac_entry(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE ac_quantity
+ADD CONSTRAINT fk_ac_quantity_accvalue
+FOREIGN KEY (valuekey)
+REFERENCES gd_value(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+COMMIT;
+
+CREATE TABLE AC_LEDGER_ACCOUNTS (
+    ACCOUNTKEY  DFOREIGNKEY NOT NULL,
+    SQLHANDLE   DINTEGER_NOTNULL NOT NULL
+);
+COMMIT;
+ALTER TABLE AC_LEDGER_ACCOUNTS ADD CONSTRAINT PK_AC_LEDGER_ACCOUNTS PRIMARY KEY (ACCOUNTKEY, SQLHANDLE);
+ALTER TABLE AC_LEDGER_ACCOUNTS ADD CONSTRAINT FK_AC_LEDGER_ACCOUNTS FOREIGN KEY (ACCOUNTKEY) REFERENCES AC_ACCOUNT (ID);
+COMMIT;
+
+CREATE TABLE AC_LEDGER_ENTRIES (
+    ENTRYKEY   DINTKEY NOT NULL,
+    SQLHANDLE  DINTKEY NOT NULL
+);
+COMMIT;
+ALTER TABLE AC_LEDGER_ENTRIES ADD CONSTRAINT PK_AC_LEDGER_ENTRIES PRIMARY KEY (SQLHANDLE, ENTRYKEY);
+ALTER TABLE AC_LEDGER_ENTRIES ADD CONSTRAINT FK_AC_LEDGER_ENTRIES FOREIGN KEY (ENTRYKEY) REFERENCES AC_ENTRY (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+COMMIT;
+
+SET TERM ^;
+
+CREATE PROCEDURE AC_L_S (
+    abeginentrydate date,
+    aendentrydate date,
+    sqlhandle integer,
+    companykey integer,
+    allholdingcompanies integer,
+    ingroup integer,
+    currkey integer)
+returns (
+    entrydate date,
+    debitncubegin numeric(15,4),
+    creditncubegin numeric(15,4),
+    debitncuend numeric(15,4),
+    creditncuend numeric(15,4),
+    debitcurrbegin numeric(15,4),
+    creditcurrbegin numeric(15,4),
+    debitcurrend numeric(15,4),
+    creditcurrend numeric(15,4),
+    debiteqbegin numeric(15,4),
+    crediteqbegin numeric(15,4),
+    debiteqend numeric(15,4),
+    crediteqend numeric(15,4),
+    forceshow integer)
+as
+declare variable o numeric(18,4);
+declare variable saldobegin numeric(18,4);
+declare variable saldoend numeric(18,4);
+declare variable ocurr numeric(18,4);
+declare variable oeq numeric(18,4);
+declare variable saldobegincurr numeric(18,4);
+declare variable saldoendcurr numeric(18,4);
+declare variable saldobegineq numeric(18,4);
+declare variable saldoendeq numeric(18,4);
+declare variable c integer;
+BEGIN 
+  IF (:SQLHANDLE = 0) THEN 
+  BEGIN 
+    SELECT 
+      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
+      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
+      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
+    FROM 
+      ac_entry e1 
+    WHERE 
+      (e1.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e1.companykey  + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      ((0 = :currkey) OR (e1.currkey = :currkey)) AND 
+      e1.entrydate < :abeginentrydate 
+    INTO :saldobegin, 
+         :saldobegincurr, 
+         :saldobegineq; 
+ 
+    IF (saldobegin IS NULL) THEN 
+      saldobegin = 0; 
+    IF (saldobegincurr IS NULL) THEN 
+      saldobegincurr = 0; 
+    IF (saldobegineq IS NULL) THEN 
+      saldobegineq = 0; 
+ 
+    C = 0; 
+    FORCESHOW = 0; 
+    FOR 
+      SELECT 
+        e.entrydate, 
+        SUM(e.debitncu - e.creditncu), 
+        SUM(e.debitcurr - e.creditcurr), 
+        SUM(e.debiteq - e.crediteq) 
+      FROM 
+        ac_entry e 
+      WHERE 
+        (e.companykey + 0 = :companykey OR 
+        (:ALLHOLDINGCOMPANIES = 1 AND 
+        e.companykey + 0 IN ( 
+          SELECT 
+            h.companykey 
+          FROM 
+            gd_holding h 
+          WHERE 
+            h.holdingkey = :companykey))) AND 
+        ((0 = :currkey) OR (e.currkey = :currkey)) AND 
+         e.entrydate <= :aendentrydate AND 
+        e.entrydate >= :abeginentrydate 
+ 
+      GROUP BY e.entrydate 
+      INTO :ENTRYDATE, 
+           :O, 
+           :OCURR, 
+           :OEQ 
+    DO 
+    BEGIN 
+      DEBITNCUBEGIN = 0; 
+      CREDITNCUBEGIN = 0; 
+      DEBITNCUEND = 0; 
+      CREDITNCUEND = 0; 
+      DEBITCURRBEGIN = 0; 
+      CREDITCURRBEGIN = 0; 
+      DEBITCURREND = 0; 
+      CREDITCURREND = 0; 
+      DEBITEQBEGIN = 0; 
+      CREDITEQBEGIN = 0; 
+      DEBITEQEND = 0; 
+      CREDITEQEND = 0; 
+      SALDOEND = :SALDOBEGIN + :O; 
+      if (SALDOBEGIN > 0) then 
+        DEBITNCUBEGIN = :SALDOBEGIN; 
+      else 
+        CREDITNCUBEGIN =  - :SALDOBEGIN; 
+      if (SALDOEND > 0) then 
+        DEBITNCUEND = :SALDOEND; 
+      else 
+        CREDITNCUEND =  - :SALDOEND; 
+      SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
+      if (SALDOBEGINCURR > 0) then 
+        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+      else 
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+      if (SALDOENDCURR > 0) then 
+        DEBITCURREND = :SALDOENDCURR; 
+      else 
+        CREDITCURREND =  - :SALDOENDCURR; 
+      SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
+      if (SALDOBEGINEQ > 0) then 
+        DEBITEQBEGIN = :SALDOBEGINEQ; 
+      else 
+        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+      if (SALDOENDEQ > 0) then 
+        DEBITEQEND = :SALDOENDEQ; 
+      else 
+        CREDITEQEND =  - :SALDOENDEQ; 
+      SUSPEND; 
+      SALDOBEGIN = :SALDOEND; 
+      SALDOBEGINCURR = :SALDOENDCURR; 
+      C = C + 1; 
+    END 
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+    IF (C = 0) THEN 
+    BEGIN 
+      ENTRYDATE = :abeginentrydate; 
+      IF (SALDOBEGIN > 0) THEN 
+      BEGIN 
+        DEBITNCUBEGIN = :SALDOBEGIN; 
+        DEBITNCUEND = :SALDOBEGIN; 
+      END ELSE 
+      BEGIN 
+        CREDITNCUBEGIN =  - :SALDOBEGIN; 
+        CREDITNCUEND =  - :SALDOBEGIN; 
+      END 
+   
+      IF (SALDOBEGINCURR > 0) THEN 
+      BEGIN 
+        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+        DEBITCURREND = :SALDOBEGINCURR; 
+      END ELSE 
+      BEGIN 
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+        CREDITCURREND =  - :SALDOBEGINCURR; 
+      END 
+ 
+      IF (SALDOBEGINEQ > 0) THEN 
+      BEGIN 
+        DEBITEQBEGIN = :SALDOBEGINEQ; 
+        DEBITEQEND = :SALDOBEGINEQ; 
+      END ELSE 
+      BEGIN 
+        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+        CREDITEQEND =  - :SALDOBEGINEQ; 
+      END 
+   
+      FORCESHOW = 1; 
+      SUSPEND; 
+    END 
+  END 
+  ELSE 
+  BEGIN 
+    SELECT 
+      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
+      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
+      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
+    FROM 
+      ac_ledger_accounts a JOIN 
+      ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate 
+      AND a.sqlhandle = :sqlhandle  
+    WHERE 
+      (e1.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e1.companykey  + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      ((0 = :currkey) OR (e1.currkey = :currkey)) 
+    INTO :saldobegin, 
+         :saldobegincurr, 
+         :saldobegineq; 
+ 
+    IF (saldobegin IS NULL) THEN 
+      saldobegin = 0; 
+    IF (saldobegincurr IS NULL) THEN 
+      saldobegincurr = 0; 
+    IF (saldobegineq IS NULL) THEN 
+      saldobegineq = 0; 
+ 
+    C = 0; 
+    FORCESHOW = 0; 
+    FOR 
+      SELECT 
+        e.entrydate, 
+        SUM(e.debitncu - e.creditncu), 
+        SUM(e.debitcurr - e.creditcurr), 
+        SUM(e.debiteq - e.crediteq) 
+      FROM 
+        ac_ledger_accounts a 
+        JOIN ac_entry e ON a.accountkey = e.accountkey AND 
+            e.entrydate <= :aendentrydate AND 
+            e.entrydate >= :abeginentrydate 
+            AND a.sqlhandle = :sqlhandle  
+      WHERE 
+        (e.companykey + 0 = :companykey OR 
+        (:ALLHOLDINGCOMPANIES = 1 AND 
+        e.companykey + 0 IN ( 
+          SELECT 
+            h.companykey 
+          FROM 
+            gd_holding h 
+          WHERE 
+            h.holdingkey = :companykey))) AND 
+        ((0 = :currkey) OR (e.currkey = :currkey)) 
+      GROUP BY e.entrydate 
+      INTO :ENTRYDATE, 
+           :O, 
+           :OCURR, 
+           :OEQ 
+    DO 
+    BEGIN 
+      DEBITNCUBEGIN = 0; 
+      CREDITNCUBEGIN = 0; 
+      DEBITNCUEND = 0; 
+      CREDITNCUEND = 0; 
+      DEBITCURRBEGIN = 0; 
+      CREDITCURRBEGIN = 0; 
+      DEBITCURREND = 0; 
+      CREDITCURREND = 0; 
+      DEBITEQBEGIN = 0; 
+      CREDITEQBEGIN = 0; 
+      DEBITEQEND = 0; 
+      CREDITEQEND = 0; 
+      SALDOEND = :SALDOBEGIN + :O; 
+      if (SALDOBEGIN > 0) then 
+        DEBITNCUBEGIN = :SALDOBEGIN; 
+      else 
+        CREDITNCUBEGIN =  - :SALDOBEGIN; 
+      if (SALDOEND > 0) then 
+        DEBITNCUEND = :SALDOEND; 
+      else 
+        CREDITNCUEND =  - :SALDOEND; 
+      SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
+      if (SALDOBEGINCURR > 0) then 
+        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+      else 
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+      if (SALDOENDCURR > 0) then 
+        DEBITCURREND = :SALDOENDCURR; 
+      else 
+        CREDITCURREND =  - :SALDOENDCURR; 
+      SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
+      if (SALDOBEGINEQ > 0) then 
+        DEBITEQBEGIN = :SALDOBEGINEQ; 
+      else 
+        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+      if (SALDOENDEQ > 0) then 
+        DEBITEQEND = :SALDOENDEQ; 
+      else 
+        CREDITEQEND =  - :SALDOENDEQ; 
+      SUSPEND; 
+      SALDOBEGIN = :SALDOEND; 
+      SALDOBEGINCURR = :SALDOENDCURR; 
+      SALDOBEGINEQ = :SALDOENDEQ; 
+      C = C + 1; 
+    END 
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+    IF (C = 0) THEN 
+    BEGIN 
+      ENTRYDATE = :abeginentrydate; 
+      IF (SALDOBEGIN > 0) THEN 
+      BEGIN 
+        DEBITNCUBEGIN = :SALDOBEGIN; 
+        DEBITNCUEND = :SALDOBEGIN; 
+      END ELSE 
+      BEGIN 
+        CREDITNCUBEGIN =  - :SALDOBEGIN; 
+        CREDITNCUEND =  - :SALDOBEGIN; 
+      END 
+ 
+      IF (SALDOBEGINCURR > 0) THEN 
+      BEGIN 
+        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+        DEBITCURREND = :SALDOBEGINCURR; 
+      END ELSE 
+      BEGIN 
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+        CREDITCURREND =  - :SALDOBEGINCURR; 
+      END 
+ 
+      IF (SALDOBEGINEQ > 0) THEN 
+      BEGIN 
+        DEBITEQBEGIN = :SALDOBEGINEQ; 
+        DEBITEQEND = :SALDOBEGINEQ; 
+      END ELSE 
+      BEGIN 
+        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+        CREDITEQEND =  - :SALDOBEGINEQ; 
+      END 
+ 
+      FORCESHOW = 1; 
+      SUSPEND; 
+    END 
+  END 
+END^
+
+COMMIT ^
+
+CREATE PROCEDURE AC_L_S1 (
+    abeginentrydate date,
+    aendentrydate date,
+    sqlhandle integer,
+    companykey integer,
+    allholdingcompanies integer,
+    ingroup integer,
+    param integer,
+    currkey integer)
+returns (
+    dateparam integer,
+    debitncubegin numeric(15,4),
+    creditncubegin numeric(15,4),
+    debitncuend numeric(15,4),
+    creditncuend numeric(15,4),
+    debitcurrbegin numeric(15,4),
+    creditcurrbegin numeric(15,4),
+    debitcurrend numeric(15,4),
+    creditcurrend numeric(15,4),
+    debiteqbegin numeric(15,4),
+    crediteqbegin numeric(15,4),
+    debiteqend numeric(15,4),
+    crediteqend numeric(15,4),
+    forceshow integer)
+as
+declare variable o numeric(18,4);
+declare variable saldobegin numeric(18,4);
+declare variable saldoend numeric(18,4);
+declare variable ocurr numeric(18,4);
+declare variable saldobegincurr numeric(18,4);
+declare variable saldoendcurr numeric(18,4);
+declare variable oeq numeric(18,4);
+declare variable saldobegineq numeric(18,4);
+declare variable saldoendeq numeric(18,4);
+declare variable c integer;
+BEGIN 
+  IF (:SQLHANDLE = 0) THEN 
+  BEGIN 
+    SELECT 
+      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
+      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
+      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
+    FROM 
+      ac_entry e1 
+    WHERE 
+      (e1.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e1.companykey + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      ((0 = :currkey) OR (e1.currkey = :currkey)) AND 
+      e1.entrydate < :abeginentrydate 
+    INTO :saldobegin, 
+         :saldobegincurr, 
+         :saldobegineq; 
+    if (saldobegin IS NULL) then 
+      saldobegin = 0; 
+    if (saldobegincurr IS NULL) then 
+      saldobegincurr = 0; 
+    if (saldobegineq IS NULL) then 
+      saldobegineq = 0; 
+ 
+    C = 0; 
+    FORCESHOW = 0; 
+    FOR 
+      SELECT 
+        SUM(e.debitncu - e.creditncu), 
+        SUM(e.debitcurr - e.creditcurr), 
+        SUM(e.debiteq - e.crediteq), 
+        g_d_getdateparam(e.entrydate, :param) 
+      FROM 
+        ac_entry e 
+      WHERE 
+        (e.companykey + 0 = :companykey OR 
+        (:ALLHOLDINGCOMPANIES = 1 AND 
+        e.companykey + 0 IN ( 
+          SELECT 
+            h.companykey 
+          FROM 
+            gd_holding h 
+          WHERE 
+            h.holdingkey = :companykey))) AND 
+        ((0 = :currkey) OR (e.currkey = :currkey)) AND 
+          e.entrydate <= :aendentrydate AND 
+          e.entrydate >= :abeginentrydate 
+      group by 4 
+      INTO :O, 
+           :OCURR, 
+           :OEQ, 
+           :dateparam 
+    DO 
+    BEGIN 
+      DEBITNCUBEGIN = 0; 
+      CREDITNCUBEGIN = 0; 
+      DEBITNCUEND = 0; 
+      CREDITNCUEND = 0; 
+      DEBITCURRBEGIN = 0; 
+      CREDITCURRBEGIN = 0; 
+      DEBITCURREND = 0; 
+      CREDITCURREND = 0; 
+      DEBITEQBEGIN = 0; 
+      CREDITEQBEGIN = 0; 
+      DEBITEQEND = 0; 
+      CREDITEQEND = 0; 
+      SALDOEND = :SALDOBEGIN + :O; 
+      if (SALDOBEGIN > 0) then 
+        DEBITNCUBEGIN = :SALDOBEGIN; 
+      else 
+        CREDITNCUBEGIN =  - :SALDOBEGIN; 
+      if (SALDOEND > 0) then 
+        DEBITNCUEND = :SALDOEND; 
+      else 
+        CREDITNCUEND =  - :SALDOEND; 
+      SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
+      if (SALDOBEGINCURR > 0) then 
+        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+      else 
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+      if (SALDOENDCURR > 0) then 
+        DEBITCURREND = :SALDOENDCURR; 
+      else 
+        CREDITCURREND =  - :SALDOENDCURR; 
+      SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
+      if (SALDOBEGINEQ > 0) then 
+        DEBITEQBEGIN = :SALDOBEGINEQ; 
+      else 
+        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+      if (SALDOENDEQ > 0) then 
+        DEBITEQEND = :SALDOENDEQ; 
+      else 
+        CREDITEQEND =  - :SALDOENDEQ; 
+      SUSPEND; 
+      SALDOBEGIN = :SALDOEND; 
+      SALDOBEGINCURR = :SALDOENDCURR; 
+      SALDOBEGINEQ = :SALDOENDEQ; 
+      C = C + 1; 
+    END 
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+    IF (C = 0) THEN 
+    BEGIN 
+      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
+      IF (SALDOBEGIN > 0) THEN 
+      BEGIN 
+        DEBITNCUBEGIN = :SALDOBEGIN; 
+        DEBITNCUEND = :SALDOBEGIN; 
+      END ELSE 
+      BEGIN 
+        CREDITNCUBEGIN =  - :SALDOBEGIN; 
+        CREDITNCUEND =  - :SALDOBEGIN; 
+      END 
+     
+      IF (SALDOBEGINCURR > 0) THEN 
+      BEGIN 
+        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+        DEBITCURREND = :SALDOBEGINCURR; 
+      END ELSE 
+      BEGIN 
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+        CREDITCURREND =  - :SALDOBEGINCURR; 
+      END 
+ 
+      IF (SALDOBEGINEQ > 0) THEN 
+      BEGIN 
+        DEBITEQBEGIN = :SALDOBEGINEQ; 
+        DEBITEQEND = :SALDOBEGINEQ; 
+      END ELSE 
+      BEGIN 
+        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+        CREDITEQEND =  - :SALDOBEGINEQ; 
+      END 
+ 
+      FORCESHOW = 1; 
+      SUSPEND; 
+    END 
+  END 
+  ELSE 
+  BEGIN 
+    SELECT 
+      IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
+      IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
+      IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
+    FROM 
+      ac_ledger_accounts a 
+      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate 
+      AND a.sqlhandle = :sqlhandle  
+    WHERE 
+      (e1.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e1.companykey + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      ((0 = :currkey) OR (e1.currkey = :currkey)) 
+    INTO :saldobegin, 
+         :saldobegincurr, 
+         :saldobegineq; 
+    if (saldobegin IS NULL) then 
+      saldobegin = 0; 
+    if (saldobegincurr IS NULL) then 
+      saldobegincurr = 0; 
+    if (saldobegineq IS NULL) then 
+      saldobegineq = 0; 
+ 
+    C = 0; 
+    FORCESHOW = 0; 
+    FOR 
+      SELECT 
+        SUM(e.debitncu - e.creditncu), 
+        SUM(e.debitcurr - e.creditcurr), 
+        SUM(e.debiteq - e.crediteq), 
+        g_d_getdateparam(e.entrydate, :param) 
+      FROM 
+        ac_ledger_accounts a 
+        JOIN ac_entry e ON a.accountkey = e.accountkey AND 
+             e.entrydate <= :aendentrydate AND 
+             e.entrydate >= :abeginentrydate 
+      AND a.sqlhandle = :sqlhandle  
+      WHERE 
+        (e.companykey + 0 = :companykey OR 
+        (:ALLHOLDINGCOMPANIES = 1 AND 
+        e.companykey + 0 IN ( 
+          SELECT 
+            h.companykey 
+          FROM 
+            gd_holding h 
+          WHERE 
+            h.holdingkey = :companykey))) AND 
+        ((0 = :currkey) OR (e.currkey = :currkey)) 
+      group by 4 
+      INTO :O, 
+           :OCURR, 
+           :OEQ, 
+           :dateparam 
+    DO 
+    BEGIN 
+      DEBITNCUBEGIN = 0; 
+      CREDITNCUBEGIN = 0; 
+      DEBITNCUEND = 0; 
+      CREDITNCUEND = 0; 
+      DEBITCURRBEGIN = 0; 
+      CREDITCURRBEGIN = 0; 
+      DEBITCURREND = 0; 
+      CREDITCURREND = 0; 
+      DEBITEQBEGIN = 0; 
+      CREDITEQBEGIN = 0; 
+      DEBITEQEND = 0; 
+      CREDITEQEND = 0; 
+      SALDOEND = :SALDOBEGIN + :O; 
+      if (SALDOBEGIN > 0) then 
+        DEBITNCUBEGIN = :SALDOBEGIN; 
+      else 
+        CREDITNCUBEGIN =  - :SALDOBEGIN; 
+      if (SALDOEND > 0) then 
+        DEBITNCUEND = :SALDOEND; 
+      else 
+        CREDITNCUEND =  - :SALDOEND; 
+      SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
+      if (SALDOBEGINCURR > 0) then 
+        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+      else 
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+      if (SALDOENDCURR > 0) then 
+        DEBITCURREND = :SALDOENDCURR; 
+      else 
+        CREDITCURREND =  - :SALDOENDCURR; 
+      SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
+      if (SALDOBEGINEQ > 0) then 
+        DEBITEQBEGIN = :SALDOBEGINEQ; 
+      else 
+        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+      if (SALDOENDEQ > 0) then 
+        DEBITEQEND = :SALDOENDEQ; 
+      else 
+        CREDITEQEND =  - :SALDOENDEQ; 
+      SUSPEND; 
+      SALDOBEGIN = :SALDOEND; 
+      SALDOBEGINCURR = :SALDOENDCURR; 
+      SALDOBEGINEQ = :SALDOENDEQ; 
+      C = C + 1; 
+    END 
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+    IF (C = 0) THEN 
+    BEGIN 
+      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
+      IF (SALDOBEGIN > 0) THEN 
+      BEGIN 
+        DEBITNCUBEGIN = :SALDOBEGIN; 
+        DEBITNCUEND = :SALDOBEGIN; 
+      END ELSE 
+      BEGIN 
+        CREDITNCUBEGIN =  - :SALDOBEGIN; 
+        CREDITNCUEND =  - :SALDOBEGIN; 
+      END 
+ 
+      IF (SALDOBEGINCURR > 0) THEN 
+      BEGIN 
+        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+        DEBITCURREND = :SALDOBEGINCURR; 
+      END ELSE 
+      BEGIN 
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+        CREDITCURREND =  - :SALDOBEGINCURR; 
+      END 
+ 
+      IF (SALDOBEGINEQ > 0) THEN 
+      BEGIN 
+        DEBITEQBEGIN = :SALDOBEGINEQ; 
+        DEBITEQEND = :SALDOBEGINEQ; 
+      END ELSE 
+      BEGIN 
+        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+        CREDITEQEND =  - :SALDOBEGINEQ; 
+      END 
+ 
+      FORCESHOW = 1; 
+ 
+      SUSPEND; 
+    END 
+   
+  END 
+END^
+
+COMMIT^
+
+CREATE PROCEDURE AC_Q_S (
+    valuekey integer,
+    abeginentrydate date,
+    aendentrydate date,
+    sqlhandle integer,
+    companykey integer,
+    allholdingcompanies integer,
+    ingroup integer,
+    currkey integer)
+returns (
+    entrydate date,
+    debitbegin numeric(15,4),
+    creditbegin numeric(15,4),
+    debit numeric(15,4),
+    credit numeric(15,4),
+    debitend numeric(15,4),
+    creditend numeric(15,4))
+as
+declare variable o numeric(15,4);
+declare variable saldobegin numeric(15,4);
+declare variable saldoend numeric(15,4);
+declare variable c integer;
+BEGIN 
+  IF (:sqlhandle = 0) THEN 
+  BEGIN 
+    SELECT 
+      IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0, 
+        SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0) 
+    FROM 
+      ac_entry e1 
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
+    WHERE 
+      (e1.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e1.companykey + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      q.valuekey = :valuekey AND 
+      ((0 = :currkey) OR (e1.currkey = :currkey)) AND 
+      e1.entrydate < :abeginentrydate  
+    INTO :saldobegin; 
+    if (saldobegin IS NULL) then 
+      saldobegin = 0; 
+ 
+    C = 0; 
+    FOR 
+      SELECT 
+        e.entrydate, 
+        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
+          SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
+      FROM 
+        ac_entry e 
+        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND 
+          q.valuekey = :valuekey 
+      WHERE 
+        (e.companykey + 0 = :companykey OR 
+        (:ALLHOLDINGCOMPANIES = 1 AND 
+        e.companykey + 0 IN ( 
+          SELECT 
+            h.companykey 
+          FROM 
+            gd_holding h 
+          WHERE 
+            h.holdingkey = :companykey))) AND 
+        ((0 = :currkey) OR (e.currkey = :currkey)) AND 
+          e.entrydate <= :aendentrydate AND 
+          e.entrydate >= :abeginentrydate 
+      GROUP BY e.entrydate 
+      INTO :ENTRYDATE, 
+           :O 
+    DO 
+    BEGIN 
+      IF (O IS NULL) THEN O = 0; 
+      DEBITBEGIN = 0; 
+      CREDITBEGIN = 0; 
+      DEBITEND = 0; 
+      CREDITEND = 0; 
+      DEBIT = 0; 
+      CREDIT = 0; 
+      IF (O > 0) THEN 
+        DEBIT = :O; 
+      ELSE 
+        CREDIT = - :O; 
+   
+      SALDOEND = :SALDOBEGIN + :O; 
+      if (SALDOBEGIN > 0) then 
+        DEBITBEGIN = :SALDOBEGIN; 
+      else 
+        CREDITBEGIN =  - :SALDOBEGIN; 
+      if (SALDOEND > 0) then 
+        DEBITEND = :SALDOEND; 
+      else 
+        CREDITEND =  - :SALDOEND; 
+      SUSPEND; 
+      SALDOBEGIN = :SALDOEND; 
+      C = C + 1; 
+    END 
+
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+    IF (C = 0) THEN 
+    BEGIN 
+      ENTRYDATE = :abeginentrydate; 
+      IF (SALDOBEGIN > 0) THEN 
+      BEGIN 
+        DEBITBEGIN = :SALDOBEGIN; 
+        DEBITEND = :SALDOBEGIN; 
+      END ELSE 
+      BEGIN 
+        CREDITBEGIN =  - :SALDOBEGIN; 
+        CREDITEND =  - :SALDOBEGIN; 
+      END 
+      SUSPEND; 
+    END 
+ 
+  END 
+  ELSE 
+  BEGIN 
+ 
+    SELECT 
+      IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0, 
+        SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0) 
+    FROM 
+      ac_ledger_accounts a 
+      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND 
+        e1.entrydate < :abeginentrydate 
+      AND a.sqlhandle = :sqlhandle  
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
+    WHERE 
+      (e1.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e1.companykey + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      q.valuekey = :valuekey AND 
+      ((0 = :currkey) OR (e1.currkey = :currkey)) 
+    INTO :saldobegin; 
+    if (saldobegin IS NULL) then 
+      saldobegin = 0; 
+   
+    C = 0; 
+    FOR 
+      SELECT 
+        e.entrydate, 
+        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
+          SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
+      FROM 
+        ac_ledger_accounts a 
+        JOIN ac_entry e ON a.accountkey = e.accountkey AND 
+          e.entrydate <= :aendentrydate AND 
+          e.entrydate >= :abeginentrydate 
+          AND a.sqlhandle = :sqlhandle  
+        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND 
+          q.valuekey = :valuekey 
+      WHERE 
+        (e.companykey + 0 = :companykey OR 
+        (:ALLHOLDINGCOMPANIES = 1 AND 
+        e.companykey + 0 IN ( 
+          SELECT 
+            h.companykey 
+          FROM 
+            gd_holding h 
+          WHERE 
+            h.holdingkey = :companykey))) AND 
+        ((0 = :currkey) OR (e.currkey = :currkey)) 
+      GROUP BY e.entrydate 
+      INTO :ENTRYDATE, 
+           :O 
+    DO 
+    BEGIN 
+      IF (O IS NULL) THEN O = 0; 
+      DEBITBEGIN = 0; 
+      CREDITBEGIN = 0; 
+      DEBITEND = 0; 
+      CREDITEND = 0; 
+      DEBIT = 0; 
+      CREDIT = 0; 
+      IF (O > 0) THEN 
+        DEBIT = :O; 
+      ELSE 
+        CREDIT = - :O; 
+   
+      SALDOEND = :SALDOBEGIN + :O; 
+      if (SALDOBEGIN > 0) then 
+        DEBITBEGIN = :SALDOBEGIN; 
+      else 
+        CREDITBEGIN =  - :SALDOBEGIN; 
+      if (SALDOEND > 0) then 
+        DEBITEND = :SALDOEND; 
+      else 
+        CREDITEND =  - :SALDOEND; 
+      SUSPEND; 
+      SALDOBEGIN = :SALDOEND; 
+      C = C + 1; 
+    END 
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+    IF (C = 0) THEN 
+    BEGIN 
+      ENTRYDATE = :abeginentrydate; 
+      IF (SALDOBEGIN > 0) THEN 
+      BEGIN 
+        DEBITBEGIN = :SALDOBEGIN; 
+        DEBITEND = :SALDOBEGIN; 
+      END ELSE 
+      BEGIN 
+        CREDITBEGIN =  - :SALDOBEGIN; 
+        CREDITEND =  - :SALDOBEGIN; 
+      END 
+      SUSPEND; 
+    END 
+ 
+  END 
+END^
+
+
+COMMIT ^
+
+CREATE PROCEDURE AC_L_Q (
+    ENTRYKEY INTEGER,
+    VALUEKEY INTEGER,
+    ACCOUNTKEY INTEGER,
+    AACCOUNTPART VARCHAR(1))
+RETURNS (
+    DEBITQUANTITY NUMERIC(15,4),
+    CREDITQUANTITY NUMERIC(15,4))
+AS
+DECLARE VARIABLE ACCOUNTPART VARCHAR(1);
+DECLARE VARIABLE QUANTITY NUMERIC(15,4);
+begin
+  SELECT
+    e.accountpart,
+    q.quantity
+  FROM
+    ac_entry e
+    LEFT JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND
+      e1.accountpart <> e.accountpart 
+    LEFT JOIN ac_quantity q ON q.entrykey = iif(e.issimple = 1 and e1.issimple = 1,
+      e.id, iif(e.issimple = 0, e.id, e1.id))
+  WHERE
+    e.id = :entrykey AND
+    q.valuekey = :valuekey AND
+    e1.accountkey = :accountkey
+  INTO
+    :accountpart,
+    :quantity;
+  IF (quantity IS NULL) THEN
+    quantity = 0;
+
+  debitquantity = 0;
+  creditquantity = 0;
+  IF (accountpart = 'D') THEN
+    debitquantity = :quantity;
+  ELSE
+    creditquantity = :quantity;
+
+  suspend;
+END^
+
+
+CREATE PROCEDURE AC_Q_S1 (
+    valuekey integer,
+    abeginentrydate date,
+    aendentrydate date,
+    sqlhandle integer,
+    companykey integer,
+    allholdingcompanies integer,
+    ingroup integer,
+    param integer,
+    currkey integer)
+returns (
+    dateparam integer,
+    debitbegin numeric(15,4),
+    creditbegin numeric(15,4),
+    debit numeric(15,4),
+    credit numeric(15,4),
+    debitend numeric(15,4),
+    creditend numeric(15,4))
+as
+declare variable o numeric(15,4);
+declare variable saldobegin numeric(15,4);
+declare variable saldoend numeric(15,4);
+declare variable c integer;
+BEGIN 
+  IF (:sqlhandle = 0) THEN 
+  BEGIN 
+    SALDOBEGIN = 0; 
+    SELECT 
+      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) 
+    FROM 
+      ac_entry e1 
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
+    WHERE 
+      e1.entrydate < :abeginentrydate AND 
+      (e1.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e1.companykey + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      q.valuekey = :valuekey AND 
+      ((0 = :currkey) OR (e1.currkey = :currkey)) 
+    INTO :saldobegin; 
+ 
+    if (SALDOBEGIN IS NULL) THEN 
+      SALDOBEGIN = 0; 
+   
+    C = 0; 
+    FOR 
+      SELECT 
+        g_d_getdateparam(e.entrydate, :param), 
+        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
+          SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
+      FROM 
+        ac_entry e 
+        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey 
+      WHERE 
+        e.entrydate <= :aendentrydate AND 
+        e.entrydate >= :abeginentrydate AND 
+        (e.companykey + 0 = :companykey OR 
+        (:ALLHOLDINGCOMPANIES = 1 AND 
+        e.companykey + 0 IN ( 
+          SELECT 
+            h.companykey 
+          FROM 
+            gd_holding h 
+          WHERE 
+            h.holdingkey = :companykey))) AND 
+        ((0 = :currkey) OR (e.currkey = :currkey)) 
+      GROUP BY 1 
+      INTO :dateparam, 
+           :O 
+    DO 
+    BEGIN 
+      IF (O IS NULL) THEN O = 0; 
+      DEBITBEGIN = 0; 
+      CREDITBEGIN = 0; 
+      DEBITEND = 0; 
+      CREDITEND = 0; 
+      DEBIT = 0; 
+      CREDIT = 0; 
+      IF (O > 0) THEN 
+        DEBIT = :O; 
+      ELSE 
+        CREDIT = - :O; 
+ 
+      SALDOEND = :SALDOBEGIN + :O; 
+      if (SALDOBEGIN > 0) then 
+        DEBITBEGIN = :SALDOBEGIN; 
+      else 
+        CREDITBEGIN =  - :SALDOBEGIN; 
+      if (SALDOEND > 0) then 
+        DEBITEND = :SALDOEND; 
+      else 
+        CREDITEND =  - :SALDOEND; 
+      SUSPEND; 
+      SALDOBEGIN = :SALDOEND; 
+      C = C + 1; 
+    END 
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+    IF (C = 0) THEN 
+    BEGIN 
+      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
+      IF (SALDOBEGIN > 0) THEN 
+      BEGIN 
+        DEBITBEGIN = :SALDOBEGIN; 
+        DEBITEND = :SALDOBEGIN; 
+      END ELSE 
+      BEGIN 
+        CREDITBEGIN =  - :SALDOBEGIN; 
+        CREDITEND =  - :SALDOBEGIN; 
+      END 
+      SUSPEND; 
+    END 
+  END 
+  ELSE 
+  BEGIN 
+ 
+    SALDOBEGIN = 0; 
+    SELECT 
+      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) 
+    FROM 
+      ac_ledger_accounts a 
+      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND 
+        e1.entrydate < :abeginentrydate 
+        AND a.sqlhandle = :sqlhandle  
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
+    WHERE 
+      (e1.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e1.companykey + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      q.valuekey = :valuekey AND 
+      ((0 = :currkey) OR (e1.currkey = :currkey)) 
+    INTO :saldobegin; 
+   
+    if (SALDOBEGIN IS NULL) THEN 
+      SALDOBEGIN = 0; 
+   
+    C = 0; 
+    FOR 
+      SELECT 
+        g_d_getdateparam(e.entrydate, :param), 
+        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
+          SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
+      FROM 
+        ac_ledger_accounts a 
+        JOIN ac_entry e ON a.accountkey = e.accountkey AND 
+          e.entrydate <= :aendentrydate AND 
+          e.entrydate >= :abeginentrydate 
+          AND a.sqlhandle = :sqlhandle  
+        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey 
+      WHERE 
+        (e.companykey + 0 = :companykey OR 
+        (:ALLHOLDINGCOMPANIES = 1 AND 
+        e.companykey + 0 IN ( 
+          SELECT 
+            h.companykey 
+          FROM 
+            gd_holding h 
+          WHERE 
+            h.holdingkey = :companykey))) AND 
+        ((0 = :currkey) OR (e.currkey = :currkey)) 
+      GROUP BY 1 
+      INTO :dateparam, 
+           :O 
+    DO 
+    BEGIN 
+      IF (O IS NULL) THEN O = 0; 
+      DEBITBEGIN = 0; 
+      CREDITBEGIN = 0; 
+      DEBITEND = 0; 
+      CREDITEND = 0; 
+      DEBIT = 0; 
+      CREDIT = 0; 
+      IF (O > 0) THEN 
+        DEBIT = :O; 
+      ELSE 
+        CREDIT = - :O; 
+   
+      SALDOEND = :SALDOBEGIN + :O; 
+      if (SALDOBEGIN > 0) then 
+        DEBITBEGIN = :SALDOBEGIN; 
+      else 
+        CREDITBEGIN =  - :SALDOBEGIN; 
+      if (SALDOEND > 0) then 
+        DEBITEND = :SALDOEND; 
+      else 
+        CREDITEND =  - :SALDOEND; 
+      SUSPEND; 
+      SALDOBEGIN = :SALDOEND; 
+      C = C + 1; 
+    END 
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+    IF (C = 0) THEN 
+    BEGIN 
+      DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
+      IF (SALDOBEGIN > 0) THEN 
+      BEGIN 
+        DEBITBEGIN = :SALDOBEGIN; 
+        DEBITEND = :SALDOBEGIN; 
+      END ELSE 
+      BEGIN 
+        CREDITBEGIN =  - :SALDOBEGIN; 
+        CREDITEND =  - :SALDOBEGIN; 
+      END 
+      SUSPEND; 
+    END 
+ 
+  END 
+END^
+
+CREATE PROCEDURE AC_Q_G_L (
+    valuekey integer,
+    datebegin date,
+    dateend date,
+    companykey integer,
+    allholdingcompanies integer,
+    sqlhandle integer,
+    ingroup integer,
+    currkey integer)
+returns (
+    m integer,
+    y integer,
+    debitbegin numeric(15,4),
+    creditbegin numeric(15,4),
+    debit numeric(15,4),
+    credit numeric(15,4),
+    debitend numeric(15,4),
+    creditend numeric(15,4))
+as
+declare variable o numeric(15,4);
+declare variable saldobegin numeric(15,4);
+declare variable saldoend numeric(15,4);
+declare variable c integer;
+begin 
+  SELECT 
+    IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
+      SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0, 
+      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
+      SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0) 
+  FROM 
+      ac_entry e1 
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id 
+  WHERE 
+    e1.entrydate < :datebegin AND 
+    e1.accountkey IN ( 
+      SELECT 
+        a.accountkey 
+      FROM 
+        ac_ledger_accounts a 
+      WHERE 
+        a.sqlhandle = :sqlhandle) AND 
+    (e1.companykey = :companykey OR 
+    (:ALLHOLDINGCOMPANIES = 1 AND 
+    e1.companykey IN ( 
+      SELECT 
+        h.companykey 
+      FROM 
+        gd_holding h 
+      WHERE 
+        h.holdingkey = :companykey))) AND 
+    q.valuekey = :valuekey AND 
+    ((0 = :currkey) OR (e1.currkey = :currkey)) 
+  INTO :saldobegin; 
+  if (saldobegin IS NULL) then 
+    saldobegin = 0; 
+ 
+  C = 0; 
+  FOR 
+    SELECT 
+      EXTRACT(MONTH FROM e.entrydate), 
+      EXTRACT(YEAR FROM e.entrydate), 
+      SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
+    FROM 
+      ac_entry e 
+      LEFT JOIN ac_quantity q ON q.entrykey = e.id AND 
+        q.valuekey = :valuekey 
+    WHERE 
+      e.entrydate <= :dateend AND 
+      e.entrydate >= :datebegin AND 
+      e.accountkey IN ( 
+        SELECT 
+          a.accountkey 
+        FROM 
+          ac_ledger_accounts a 
+        WHERE 
+          a.sqlhandle = :sqlhandle 
+      ) AND 
+      (e.companykey = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e.companykey IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      ((0 = :currkey) OR (e.currkey = :currkey)) 
+    GROUP BY 1, 2 
+    ORDER BY 2, 1 
+    INTO :M, :Y, :O 
+  DO 
+  BEGIN 
+    IF (O IS NULL) THEN O = 0; 
+    DEBITBEGIN = 0; 
+    CREDITBEGIN = 0; 
+    DEBITEND = 0; 
+    CREDITEND = 0; 
+    DEBIT = 0; 
+    CREDIT = 0; 
+    IF (O > 0) THEN 
+      DEBIT = :O; 
+    ELSE 
+      CREDIT = - :O; 
+ 
+    SALDOEND = :SALDOBEGIN + :O; 
+    if (SALDOBEGIN > 0) then 
+      DEBITBEGIN = :SALDOBEGIN; 
+    else 
+      CREDITBEGIN =  - :SALDOBEGIN; 
+    if (SALDOEND > 0) then 
+      DEBITEND = :SALDOEND; 
+    else 
+      CREDITEND =  - :SALDOEND; 
+    SALDOBEGIN = :SALDOEND; 
+    C = C + 1; 
+    SUSPEND; 
+  END 
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+  IF (C = 0) THEN 
+  BEGIN 
+    M = EXTRACT(MONTH FROM :datebegin); 
+    Y = EXTRACT(YEAR FROM :datebegin); 
+    IF (SALDOBEGIN > 0) THEN 
+    BEGIN 
+      DEBITBEGIN = :SALDOBEGIN; 
+      DEBITEND = :SALDOBEGIN; 
+    END ELSE 
+    BEGIN 
+      CREDITBEGIN =  - :SALDOBEGIN; 
+      CREDITEND =  - :SALDOBEGIN; 
+    END 
+    DEBIT = 0; 
+    CREDIT = 0; 
+    SUSPEND; 
+  END 
+END^
+
+CREATE PROCEDURE AC_G_L_S (
+    abeginentrydate date,
+    aendentrydate date,
+    sqlhandle integer,
+    companykey integer,
+    allholdingcompanies integer,
+    ingroup integer,
+    currkey integer,
+    analyticfield varchar(60))
+returns (
+    m integer,
+    y integer,
+    begindate date,
+    enddate date,
+    debitncubegin numeric(15,4),
+    creditncubegin numeric(15,4),
+    debitncuend numeric(15,4),
+    creditncuend numeric(15,4),
+    debitcurrbegin numeric(15,4),
+    creditcurrbegin numeric(15,4),
+    debitcurrend numeric(15,4),
+    creditcurrend numeric(15,4),
+    debiteqbegin numeric(18,4),
+    crediteqbegin numeric(18,4),
+    debiteqend numeric(18,4),
+    crediteqend numeric(18,4),
+    forceshow integer)
+as
+declare variable o numeric(18,4);
+declare variable ocurr numeric(18,4);
+declare variable oeq numeric(18,4);
+declare variable saldobegindebit numeric(18,4);
+declare variable saldobegincredit numeric(18,4);
+declare variable saldoenddebit numeric(18,4);
+declare variable saldoendcredit numeric(18,4);
+declare variable saldobegindebitcurr numeric(18,4);
+declare variable saldobegincreditcurr numeric(18,4);
+declare variable saldoenddebitcurr numeric(18,4);
+declare variable saldoendcreditcurr numeric(18,4);
+declare variable saldobegindebiteq numeric(18,4);
+declare variable saldobegincrediteq numeric(18,4);
+declare variable saldoenddebiteq numeric(18,4);
+declare variable saldoendcrediteq numeric(18,4);
+declare variable sd numeric(18,4);
+declare variable sc numeric(18,4);
+declare variable sdc numeric(18,4);
+declare variable scc numeric(18,4);
+declare variable sdeq numeric(18,4);
+declare variable sceq numeric(18,4);
+declare variable c integer;
+declare variable accountkey integer;
+declare variable d date;
+declare variable dayinmonth integer;
+BEGIN 
+  saldobegindebit = 0; 
+  saldobegincredit = 0; 
+  saldobegindebitcurr = 0; 
+  saldobegincreditcurr = 0; 
+ 
+  IF (ANALYTICFIELD = '') THEN 
+  BEGIN 
+    SELECT 
+      IIF((NOT SUM(e1.debitncu - e1.creditncu) IS NULL) AND 
+        (SUM(e1.debitncu - e1.creditncu) > 0), SUM(e1.debitncu - e1.creditncu),  0), 
+      IIF((NOT SUM(e1.creditncu - e1.debitncu) IS NULL) AND 
+        (SUM(e1.creditncu - e1.debitncu) > 0), SUM(e1.creditncu - e1.debitncu),  0), 
+      IIF((NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL) AND 
+        (SUM(e1.debitcurr - e1.creditcurr) > 0), SUM(e1.debitcurr - e1.creditcurr),  0), 
+      IIF((NOT SUM(e1.creditcurr - e1.debitcurr) IS NULL) AND 
+        (SUM(e1.creditcurr - e1.debitcurr) > 0), SUM(e1.creditcurr - e1.debitcurr),  0), 
+      IIF((NOT SUM(e1.debiteq - e1.crediteq) IS NULL) AND 
+        (SUM(e1.debiteq - e1.crediteq) > 0), SUM(e1.debiteq - e1.crediteq),  0), 
+      IIF((NOT SUM(e1.crediteq - e1.debiteq) IS NULL) AND 
+        (SUM(e1.crediteq - e1.debiteq) > 0), SUM(e1.crediteq - e1.debiteq),  0) 
+    FROM 
+      ac_ledger_accounts a 
+      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate 
+        AND a.sqlhandle = :sqlhandle 
+    WHERE 
+      (e1.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e1.companykey + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      ((0 = :currkey) OR (e1.currkey = :currkey)) 
+    INTO :saldobegindebit, 
+         :saldobegincredit, 
+         :saldobegindebitcurr, 
+         :saldobegincreditcurr, 
+         :saldobegindebiteq, 
+         :saldobegincrediteq; 
+  END ELSE 
+  BEGIN 
+    FOR 
+      SELECT 
+        la.accountkey 
+      FROM 
+        ac_ledger_accounts la 
+      WHERE 
+        la.sqlhandle = :sqlhandle 
+      INTO :accountkey 
+    DO 
+    BEGIN 
+      SELECT 
+        a.DEBITSALDO, 
+        a.CREDITSALDO, 
+        a.CURRDEBITSALDO, 
+        a.CURRCREDITSALDO, 
+        a.EQDEBITSALDO, 
+        a.EQCREDITSALDO 
+      FROM 
+        ac_accountexsaldo(:abeginentrydate, :accountkey, :analyticfield, :companykey, 
+          :allholdingcompanies, -1, :currkey) a 
+      INTO :sd, 
+           :sc, 
+           :sdc, 
+           :scc, 
+           :sdeq, 
+           :sceq; 
+ 
+      IF (sd IS NULL) then SD = 0; 
+      IF (sc IS NULL) then SC = 0; 
+      IF (sdc IS NULL) then SDC = 0; 
+      IF (scc IS NULL) then SCC = 0; 
+ 
+      saldobegindebit = :saldobegindebit + :sd; 
+      saldobegincredit = :saldobegincredit + :sc; 
+      saldobegindebitcurr = :saldobegindebitcurr + :sdc; 
+      saldobegincreditcurr = :saldobegincreditcurr + :scc; 
+      saldobegindebiteq = :saldobegindebiteq + :sdeq; 
+      saldobegincrediteq = :saldobegincrediteq + :sceq; 
+    END 
+  END 
+ 
+  C = 0; 
+  FORCESHOW = 0; 
+  FOR 
+    SELECT 
+      SUM(e.debitncu - e.creditncu), 
+      SUM(e.debitcurr - e.creditcurr), 
+      SUM(e.debiteq - e.crediteq), 
+      EXTRACT(MONTH FROM e.entrydate), 
+      EXTRACT(YEAR FROM e.entrydate) 
+    FROM 
+      ac_ledger_accounts a 
+      JOIN ac_entry e ON a.accountkey = e.accountkey AND 
+           e.entrydate <= :aendentrydate AND 
+           e.entrydate >= :abeginentrydate 
+    AND a.sqlhandle = :sqlhandle  
+    WHERE 
+      (e.companykey + 0 = :companykey OR 
+      (:ALLHOLDINGCOMPANIES = 1 AND 
+      e.companykey + 0 IN ( 
+        SELECT 
+          h.companykey 
+        FROM 
+          gd_holding h 
+        WHERE 
+          h.holdingkey = :companykey))) AND 
+      ((0 = :currkey) OR (e.currkey = :currkey)) 
+    group by 4, 5 
+    ORDER BY 5, 4 
+    INTO :O, :OCURR, :OEQ, :M, :Y 
+  DO 
+  BEGIN 
+    begindate = CAST(:Y || '-' || :M || '-' || 1 as DATE); 
+    IF (begindate < :abeginentrydate) THEN 
+    BEGIN 
+      begindate = :abeginentrydate; 
+    END 
+ 
+    DAYINMONTH = EXTRACT(DAY FROM g_d_incmonth(1, CAST(:Y || '-' || :M || '-' || 1 as DATE)) - 1); 
+ 
+    D = CAST(:Y || '-' || :M || '-' || :dayinmonth as DATE); 
+ 
+    IF (D > :aendentrydate) THEN 
+    BEGIN 
+      D = :aendentrydate; 
+    END 
+    ENDDATE = D; 
+    DEBITNCUBEGIN = 0; 
+    CREDITNCUBEGIN = 0; 
+    DEBITNCUEND = 0; 
+    CREDITNCUEND = 0; 
+    DEBITCURRBEGIN = 0; 
+    CREDITCURRBEGIN = 0; 
+    DEBITCURREND = 0; 
+    CREDITCURREND = 0; 
+    DEBITEQBEGIN = 0; 
+    CREDITEQBEGIN = 0; 
+    DEBITEQEND = 0; 
+    CREDITEQEND = 0; 
+    IF (analyticfield = '') THEN 
+    BEGIN 
+      IF (:saldobegindebit - :saldobegincredit + :o > 0) THEN 
+      BEGIN 
+        SALDOENDDEBIT = :saldobegindebit - :saldobegincredit + :o; 
+        SALDOENDCREDIT = 0; 
+      END ELSE 
+      BEGIN 
+        SALDOENDDEBIT = 0; 
+        SALDOENDCREDIT =  - (:saldobegindebit - :saldobegincredit + :o); 
+      END 
+ 
+      IF (:saldobegindebitcurr - :saldobegincreditcurr + :ocurr > 0) THEN 
+      BEGIN 
+        SALDOENDDEBITCURR = :saldobegindebitCURR - :saldobegincreditCURR + :ocurr; 
+        SALDOENDCREDITCURR = 0; 
+      END ELSE 
+      BEGIN 
+        SALDOENDDEBITCURR = 0; 
+        SALDOENDCREDITCURR =  - (:saldobegindebitcurr - :saldobegincreditcurr + :ocurr); 
+      END 
+ 
+      IF (:saldobegindebiteq - :saldobegincrediteq + :oeq > 0) THEN 
+      BEGIN 
+        SALDOENDDEBITEQ = :saldobegindebiteq - :saldobegincrediteq + :oeq; 
+        SALDOENDCREDITEQ = 0; 
+      END ELSE 
+      BEGIN 
+        SALDOENDDEBITEQ = 0; 
+        SALDOENDCREDITEQ =  - (:saldobegindebiteq - :saldobegincrediteq + :oeq); 
+      END 
+    END ELSE 
+    BEGIN 
+      saldoenddebit = 0; 
+      saldoendcredit = 0; 
+      saldoenddebitcurr = 0; 
+      saldoendcreditcurr = 0; 
+      saldoenddebiteq = 0; 
+      saldoendcrediteq = 0; 
+ 
+      FOR 
+        SELECT 
+          la.accountkey 
+        FROM 
+          ac_ledger_accounts la 
+        WHERE 
+          la.sqlhandle = :sqlhandle 
+        INTO :accountkey 
+      DO 
+      BEGIN 
+ 
+        SELECT 
+          a.DEBITSALDO, 
+          a.CREDITSALDO, 
+          a.CURRDEBITSALDO, 
+          a.CURRCREDITSALDO, 
+          a.EQDEBITSALDO, 
+          a.EQCREDITSALDO 
+        FROM 
+          ac_accountexsaldo(:d + 1, :accountkey, :analyticfield, :companykey, 
+            :allholdingcompanies, -1, :currkey) a 
+        INTO :sd, 
+             :sc, 
+             :sdc, 
+             :scc, 
+             :sdeq, 
+             :sceq; 
+ 
+        IF (sd IS NULL) then SD = 0; 
+        IF (sc IS NULL) then SC = 0; 
+        IF (sdc IS NULL) then SDC = 0; 
+        IF (scc IS NULL) then SCC = 0; 
+        IF (sdeq IS NULL) then SDEQ = 0; 
+        IF (sceq IS NULL) then SCEQ = 0; 
+ 
+        saldoenddebit = :saldoenddebit + :sd; 
+        saldoendcredit = :saldoendcredit + :sc; 
+        saldoenddebitcurr = :saldoenddebitcurr + :sdc; 
+        saldoendcreditcurr = :saldoendcreditcurr + :scc; 
+        saldoenddebiteq = :saldoenddebiteq + :sdeq; 
+        saldoendcrediteq = :saldoendcrediteq + :sceq; 
+      END 
+    END 
+ 
+    DEBITNCUBEGIN = :SALDOBEGINDEBIT; 
+    CREDITNCUBEGIN =  :SALDOBEGINCREDIT; 
+    DEBITNCUEND = :SALDOENDDEBIT; 
+    CREDITNCUEND =  :SALDOENDCREDIT; 
+ 
+    DEBITCURRBEGIN = :SALDOBEGINDEBITCURR; 
+    CREDITCURRBEGIN =  :SALDOBEGINCREDITCURR; 
+    DEBITCURREND = :SALDOENDDEBITCURR; 
+    CREDITCURREND =  :SALDOENDCREDITCURR; 
+ 
+    DEBITEQBEGIN = :SALDOBEGINDEBITEQ; 
+    CREDITEQBEGIN =  :SALDOBEGINCREDITEQ; 
+    DEBITEQEND = :SALDOENDDEBITEQ; 
+    CREDITEQEND =  :SALDOENDCREDITEQ; 
+ 
+    SUSPEND; 
+ 
+    SALDOBEGINDEBIT = :SALDOENDDEBIT; 
+    SALDOBEGINCREDIT = :SALDOENDCREDIT; 
+ 
+    SALDOBEGINDEBITCURR = :SALDOENDDEBITCURR; 
+    SALDOBEGINCREDITCURR = :SALDOENDCREDITCURR; 
+ 
+    SALDOBEGINDEBITEQ = :SALDOENDDEBITEQ; 
+    SALDOBEGINCREDITEQ = :SALDOENDCREDITEQ; 
+ 
+    C = C + 1; 
+  END 
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+  IF (C = 0) THEN 
+  BEGIN 
+    M = EXTRACT(MONTH FROM :abeginentrydate); 
+    Y = EXTRACT(YEAR FROM :abeginentrydate); 
+    DEBITNCUBEGIN = :SALDOBEGINDEBIT; 
+    CREDITNCUBEGIN =  :SALDOBEGINCREDIT; 
+    DEBITNCUEND = :SALDOBEGINDEBIT; 
+    CREDITNCUEND =  :SALDOBEGINCREDIT; 
+ 
+    DEBITCURRBEGIN = :SALDOBEGINDEBITCURR; 
+    CREDITCURRBEGIN =  :SALDOBEGINCREDITCURR; 
+    DEBITCURREND = :SALDOBEGINDEBITCURR; 
+    CREDITCURREND =  :SALDOBEGINCREDITCURR; 
+ 
+    DEBITEQBEGIN = :SALDOBEGINDEBITEQ; 
+    CREDITEQBEGIN =  :SALDOBEGINCREDITEQ; 
+    DEBITEQEND = :SALDOBEGINDEBITEQ; 
+    CREDITEQEND =  :SALDOBEGINCREDITEQ; 
+ 
+    BEGINDATE = :abeginentrydate; 
+    ENDDATE = :abeginentrydate; 
+ 
+    FORCESHOW = 1; 
+ 
+    SUSPEND; 
+  END 
+END^
+
+CREATE PROCEDURE AC_E_L_S (
+    abeginentrydate date,
+    saldobegin numeric(18,4),
+    saldobegincurr numeric(18,4),
+    saldobegineq numeric(18,4),
+    sqlhandle integer,
+    currkey integer)
+returns (
+    entrydate date,
+    debitncubegin numeric(15,4),
+    creditncubegin numeric(15,4),
+    debitncuend numeric(15,4),
+    creditncuend numeric(15,4),
+    debitcurrbegin numeric(15,4),
+    creditcurrbegin numeric(15,4),
+    debitcurrend numeric(15,4),
+    creditcurrend numeric(15,4),
+    debiteqbegin numeric(15,4),
+    crediteqbegin numeric(15,4),
+    debiteqend numeric(15,4),
+    crediteqend numeric(15,4),
+    forceshow integer)
+as
+declare variable o numeric(18,4);
+declare variable saldoend numeric(18,4);
+declare variable ocurr numeric(18,4);
+declare variable oeq numeric(18,4);
+declare variable saldoendcurr numeric(18,4);
+declare variable saldoendeq numeric(18,4);
+declare variable c integer;
+BEGIN 
+  IF (saldobegin IS NULL) THEN 
+    saldobegin = 0; 
+  IF (saldobegincurr IS NULL) THEN 
+    saldobegincurr = 0; 
+  IF (saldobegineq IS NULL) THEN 
+    saldobegineq = 0; 
+  C = 0; 
+  FORCESHOW = 0; 
+  FOR 
+    SELECT 
+      e.entrydate, 
+      SUM(e.debitncu - e.creditncu), 
+      SUM(e.debitcurr - e.creditcurr), 
+      SUM(e.debiteq - e.crediteq) 
+    FROM 
+      ac_ledger_entries le 
+      LEFT JOIN ac_entry e ON le.entrykey = e.id 
+    WHERE 
+      le.sqlhandle = :sqlhandle AND 
+      ((0 = :currkey) OR (e.currkey = :currkey)) 
+    group by e.entrydate 
+    INTO :ENTRYDATE, 
+         :O, 
+         :OCURR, 
+         :OEQ 
+  DO 
+  BEGIN 
+    DEBITNCUBEGIN = 0; 
+    CREDITNCUBEGIN = 0; 
+    DEBITNCUEND = 0; 
+    CREDITNCUEND = 0; 
+    DEBITCURRBEGIN = 0; 
+    CREDITCURRBEGIN = 0; 
+    DEBITCURREND = 0; 
+    CREDITCURREND = 0; 
+    DEBITEQBEGIN = 0; 
+    CREDITEQBEGIN = 0; 
+    DEBITEQEND = 0; 
+    CREDITEQEND = 0; 
+    SALDOEND = :SALDOBEGIN + :O; 
+    if (SALDOBEGIN > 0) then 
+      DEBITNCUBEGIN = :SALDOBEGIN; 
+    else 
+      CREDITNCUBEGIN =  - :SALDOBEGIN; 
+    if (SALDOEND > 0) then 
+      DEBITNCUEND = :SALDOEND; 
+    else 
+      CREDITNCUEND =  - :SALDOEND; 
+    SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
+    if (SALDOBEGINCURR > 0) then 
+      DEBITCURRBEGIN = :SALDOBEGINCURR; 
+    else 
+      CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+    if (SALDOENDCURR > 0) then 
+      DEBITCURREND = :SALDOENDCURR; 
+    else 
+      CREDITCURREND =  - :SALDOENDCURR; 
+    SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
+    if (SALDOBEGINEQ > 0) then 
+      DEBITEQBEGIN = :SALDOBEGINEQ; 
+    else 
+      CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+    if (SALDOENDEQ > 0) then 
+      DEBITEQEND = :SALDOENDEQ; 
+    else 
+      CREDITEQEND =  - :SALDOENDEQ; 
+    SUSPEND; 
+    SALDOBEGIN = :SALDOEND; 
+    SALDOBEGINCURR = :SALDOENDCURR; 
+    SALDOBEGINEQ = :SALDOENDEQ; 
+    C = C + 1; 
+  END 
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+  IF (C = 0) THEN 
+  BEGIN 
+    ENTRYDATE = :abeginentrydate; 
+    IF (SALDOBEGIN > 0) THEN 
+    BEGIN 
+      DEBITNCUBEGIN = :SALDOBEGIN; 
+      DEBITNCUEND = :SALDOBEGIN; 
+    END ELSE 
+    BEGIN 
+      CREDITNCUBEGIN =  - :SALDOBEGIN; 
+      CREDITNCUEND =  - :SALDOBEGIN; 
+    END 
+ 
+    IF (SALDOBEGINCURR > 0) THEN 
+    BEGIN 
+      DEBITCURRBEGIN = :SALDOBEGINCURR; 
+      DEBITCURREND = :SALDOBEGINCURR; 
+    END ELSE 
+    BEGIN 
+      CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+      CREDITCURREND =  - :SALDOBEGINCURR; 
+    END 
+ 
+    IF (SALDOBEGINEQ > 0) THEN 
+    BEGIN 
+      DEBITEQBEGIN = :SALDOBEGINEQ; 
+      DEBITEQEND = :SALDOBEGINEQ; 
+    END ELSE 
+    BEGIN 
+      CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+      CREDITEQEND =  - :SALDOBEGINEQ; 
+    END 
+ 
+    FORCESHOW = 1; 
+    SUSPEND; 
+  END 
+END^
+
+CREATE PROCEDURE AC_E_L_S1 (
+    abeginentrydate date,
+    saldobegin numeric(18,4),
+    saldobegincurr numeric(18,4),
+    saldobegineq integer,
+    sqlhandle integer,
+    param integer,
+    currkey integer)
+returns (
+    dateparam integer,
+    debitncubegin numeric(15,4),
+    creditncubegin numeric(15,4),
+    debitncuend numeric(15,4),
+    creditncuend numeric(15,4),
+    debitcurrbegin numeric(15,4),
+    creditcurrbegin numeric(15,4),
+    debitcurrend numeric(15,4),
+    creditcurrend numeric(15,4),
+    debiteqbegin numeric(15,4),
+    crediteqbegin numeric(15,4),
+    debiteqend numeric(15,4),
+    crediteqend numeric(15,4),
+    forceshow integer)
+as
+declare variable o numeric(18,4);
+declare variable saldoend numeric(18,4);
+declare variable ocurr numeric(18,4);
+declare variable saldoendcurr numeric(18,4);
+declare variable oeq numeric(18,4);
+declare variable saldoendeq numeric(18,4);
+declare variable c integer;
+BEGIN 
+  IF (saldobegin IS NULL) THEN 
+    saldobegin = 0; 
+  IF (saldobegincurr IS NULL) THEN 
+    saldobegincurr = 0; 
+  IF (saldobegineq IS NULL) THEN 
+    saldobegineq = 0; 
+  C = 0; 
+  FORCESHOW = 0; 
+  FOR 
+    SELECT 
+      SUM(e.debitncu - e.creditncu), 
+      SUM(e.debitcurr - e.creditcurr), 
+      SUM(e.debiteq - e.crediteq), 
+      g_d_getdateparam(e.entrydate, :param) 
+    FROM 
+      ac_ledger_entries le 
+      LEFT JOIN ac_entry e ON le.entrykey = e.id 
+    WHERE 
+      le.sqlhandle = :sqlhandle AND 
+      ((0 = :currkey) OR (e.currkey = :currkey)) 
+    group by 4 
+    INTO :O, 
+         :OCURR, 
+         :OEQ, 
+         :dateparam 
+  DO 
+  BEGIN 
+    DEBITNCUBEGIN = 0; 
+    CREDITNCUBEGIN = 0; 
+    DEBITNCUEND = 0; 
+    CREDITNCUEND = 0; 
+    DEBITCURRBEGIN = 0; 
+    CREDITCURRBEGIN = 0; 
+    DEBITCURREND = 0; 
+    CREDITCURREND = 0; 
+    DEBITEQBEGIN = 0; 
+    CREDITEQBEGIN = 0; 
+    DEBITEQEND = 0; 
+    CREDITEQEND = 0; 
+    SALDOEND = :SALDOBEGIN + :O; 
+    if (SALDOBEGIN > 0) then 
+      DEBITNCUBEGIN = :SALDOBEGIN; 
+    else 
+      CREDITNCUBEGIN =  - :SALDOBEGIN; 
+    if (SALDOEND > 0) then 
+      DEBITNCUEND = :SALDOEND; 
+    else 
+      CREDITNCUEND =  - :SALDOEND; 
+    SALDOENDCURR = :SALDOBEGINCURR + :OCURR; 
+    if (SALDOBEGINCURR > 0) then 
+      DEBITCURRBEGIN = :SALDOBEGINCURR; 
+    else 
+      CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+    if (SALDOENDCURR > 0) then 
+      DEBITCURREND = :SALDOENDCURR; 
+    else 
+      CREDITCURREND =  - :SALDOENDCURR; 
+    SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
+    if (SALDOBEGINEQ > 0) then 
+      DEBITEQBEGIN = :SALDOBEGINEQ; 
+    else 
+      CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+    if (SALDOENDEQ > 0) then 
+      DEBITEQEND = :SALDOENDEQ; 
+    else 
+      CREDITEQEND =  - :SALDOENDEQ; 
+    SUSPEND; 
+    SALDOBEGIN = :SALDOEND; 
+    SALDOBEGINCURR = :SALDOENDCURR; 
+    SALDOBEGINEQ = :SALDOENDEQ; 
+    C = C + 1; 
+  END 
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+  IF (C = 0) THEN 
+  BEGIN 
+    DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
+    IF (SALDOBEGIN > 0) THEN 
+    BEGIN 
+      DEBITNCUBEGIN = :SALDOBEGIN; 
+      DEBITNCUEND = :SALDOBEGIN; 
+    END ELSE 
+    BEGIN 
+      CREDITNCUBEGIN =  - :SALDOBEGIN; 
+      CREDITNCUEND =  - :SALDOBEGIN; 
+    END 
+ 
+    IF (SALDOBEGINCURR > 0) THEN 
+    BEGIN 
+      DEBITCURRBEGIN = :SALDOBEGINCURR; 
+      DEBITCURREND = :SALDOBEGINCURR; 
+    END ELSE 
+    BEGIN 
+      CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+      CREDITCURREND =  - :SALDOBEGINCURR; 
+    END 
+ 
+    IF (SALDOBEGINEQ > 0) THEN 
+    BEGIN 
+      DEBITEQBEGIN = :SALDOBEGINEQ; 
+      DEBITEQEND = :SALDOBEGINEQ; 
+    END ELSE 
+    BEGIN 
+      CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+      CREDITEQEND =  - :SALDOBEGINEQ; 
+    END 
+ 
+    FORCESHOW = 1; 
+    SUSPEND; 
+  END 
+END^
+
+CREATE PROCEDURE AC_E_Q_S (
+    valuekey integer,
+    abeginentrydate date,
+    saldobegin numeric(15,4),
+    sqlhandle integer,
+    currkey integer)
+returns (
+    entrydate date,
+    debitbegin numeric(15,4),
+    creditbegin numeric(15,4),
+    debit numeric(15,4),
+    credit numeric(15,4),
+    debitend numeric(15,4),
+    creditend numeric(15,4))
+as
+declare variable o numeric(15,4);
+declare variable saldoend numeric(15,4);
+declare variable c integer;
+BEGIN 
+  C = 0; 
+  if (saldobegin IS NULL) then 
+    saldobegin = 0; 
+ 
+  FOR 
+    SELECT 
+      e.entrydate, 
+      SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
+    FROM 
+      ac_ledger_entries le 
+      LEFT JOIN ac_entry e ON le.entrykey = e.id 
+      LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey 
+    WHERE 
+      le.sqlhandle = :SQLHANDLE AND 
+      ((0 = :currkey) OR (e.currkey = :currkey)) 
+    GROUP BY e.entrydate 
+    INTO :ENTRYDATE, 
+         :O 
+  DO 
+  BEGIN 
+    IF (O IS NULL) THEN O = 0; 
+    DEBITBEGIN = 0; 
+    CREDITBEGIN = 0; 
+    DEBITEND = 0; 
+    CREDITEND = 0; 
+    DEBIT = 0; 
+    CREDIT = 0; 
+    IF (O > 0) THEN 
+      DEBIT = :O; 
+    ELSE 
+      CREDIT = - :O; 
+ 
+    SALDOEND = :SALDOBEGIN + :O; 
+    if (SALDOBEGIN > 0) then 
+      DEBITBEGIN = :SALDOBEGIN; 
+    else 
+      CREDITBEGIN =  - :SALDOBEGIN; 
+    if (SALDOEND > 0) then 
+      DEBITEND = :SALDOEND; 
+    else 
+      CREDITEND =  - :SALDOEND; 
+    SUSPEND; 
+    SALDOBEGIN = :SALDOEND; 
+    C = C + 1; 
+  END 
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+  IF (C = 0) THEN 
+  BEGIN 
+    ENTRYDATE = :abeginentrydate; 
+    IF (SALDOBEGIN > 0) THEN 
+    BEGIN 
+      DEBITBEGIN = :SALDOBEGIN; 
+      DEBITEND = :SALDOBEGIN; 
+    END ELSE 
+    BEGIN 
+      CREDITBEGIN =  - :SALDOBEGIN; 
+      CREDITEND =  - :SALDOBEGIN; 
+    END 
+    SUSPEND; 
+  END 
+END^
+
+CREATE PROCEDURE AC_E_Q_S1 (
+    valuekey integer,
+    abeginentrydate date,
+    saldobegin numeric(15,4),
+    sqlhandle integer,
+    param integer,
+    currkey integer)
+returns (
+    dateparam integer,
+    debitbegin numeric(15,4),
+    creditbegin numeric(15,4),
+    debit numeric(15,4),
+    credit numeric(15,4),
+    debitend numeric(15,4),
+    creditend numeric(15,4))
+as
+declare variable o numeric(15,4);
+declare variable saldoend numeric(15,4);
+declare variable c integer;
+BEGIN 
+  C = 0; 
+  if (SALDOBEGIN IS NULL) THEN 
+    SALDOBEGIN = 0; 
+ 
+  FOR 
+    SELECT 
+      g_d_getdateparam(e.entrydate, :param), 
+      SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
+        SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
+    FROM 
+      ac_ledger_entries le 
+      LEFT JOIN ac_entry e ON le.entrykey = e.id 
+      LEFT JOIN ac_quantity q ON q.entrykey = e.id AND q.valuekey = :valuekey 
+    WHERE 
+      le.sqlhandle = :SQLHANDLE AND 
+      ((0 = :currkey) OR (e.currkey = :currkey)) 
+    GROUP BY 1 
+    INTO :dateparam, 
+         :O 
+  DO 
+  BEGIN 
+    IF (O IS NULL) THEN O = 0; 
+    DEBITBEGIN = 0; 
+    CREDITBEGIN = 0; 
+    DEBITEND = 0; 
+    CREDITEND = 0; 
+    DEBIT = 0; 
+    CREDIT = 0; 
+    IF (O > 0) THEN 
+      DEBIT = :O; 
+    ELSE 
+      CREDIT = - :O; 
+ 
+    SALDOEND = :SALDOBEGIN + :O; 
+    if (SALDOBEGIN > 0) then 
+      DEBITBEGIN = :SALDOBEGIN; 
+    else 
+      CREDITBEGIN =  - :SALDOBEGIN; 
+    if (SALDOEND > 0) then 
+      DEBITEND = :SALDOEND; 
+    else 
+      CREDITEND =  - :SALDOEND; 
+    SUSPEND; 
+    SALDOBEGIN = :SALDOEND; 
+    C = C + 1; 
+  END 
+  /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
+  IF (C = 0) THEN 
+  BEGIN 
+    DATEPARAM = g_d_getdateparam(:abeginentrydate, :param); 
+    IF (SALDOBEGIN > 0) THEN 
+    BEGIN 
+      DEBITBEGIN = :SALDOBEGIN; 
+      DEBITEND = :SALDOBEGIN; 
+    END ELSE 
+    BEGIN 
+      CREDITBEGIN =  - :SALDOBEGIN; 
+      CREDITEND =  - :SALDOBEGIN; 
+    END 
+    SUSPEND; 
+  END 
+END^
+
+SET TERM ; ^
+COMMIT;
+
+CREATE EXCEPTION AC_E_AUTOTRCANTCONTAINTR 'Can`t move transaction into autotransaction';
+CREATE EXCEPTION AC_E_TRCANTCONTAINAUTOTR 'Can`t move autotransaction into transaction';
+
+SET TERM ^;
+CREATE TRIGGER AC_TRANSACTION_BU0 FOR AC_TRANSACTION
+ACTIVE BEFORE UPDATE POSITION 0
+AS
+  DECLARE a SMALLINT;
+begin
+  if (not new.parent is null) then
+  begin
+    select
+      autotransaction
+    from
+      ac_transaction
+    where
+      id = new.parent
+    into :a;
+
+    if (a is null) then a = 0;
+    if (new.autotransaction is null) then new.autotransaction = 0;
+    if (new.autotransaction <> a) then
+    begin
+      if (a = 1) then
+      begin
+        EXCEPTION ac_e_autotrcantcontaintr;
+      end else
+      begin
+        EXCEPTION ac_e_trcantcontainautotr;
+      end
+    end
+  end
+end^
+
+CREATE TRIGGER AC_TRANSACTION_BI0 FOR AC_TRANSACTION
+ACTIVE BEFORE INSERT POSITION 0
+AS
+   DECLARE a SMALLINT;
+begin
+  if (not new.parent is null) then
+  begin
+    select
+      autotransaction
+    from
+      ac_transaction
+    where
+      id = new.parent
+    into :a;
+    if (a is null) then a = 0;
+    new.autotransaction = a;
+  end
+end^
+
+commit ^
+CREATE PROCEDURE AC_Q_CIRCULATION (
+    VALUEKEY INTEGER,
+    DATEBEGIN DATE,
+    DATEEND DATE,
+    COMPANYKEY INTEGER,
+    ALLHOLDINGCOMPANIES INTEGER,
+    ACCOUNTKEY INTEGER,
+    INGROUP INTEGER,
+    CURRKEY INTEGER)
+RETURNS (
+    ID INTEGER,
+    DEBITBEGIN NUMERIC(15,4),
+    CREDITBEGIN NUMERIC(15,4),
+    DEBIT NUMERIC(15,4),
+    CREDIT NUMERIC(15,4),
+    DEBITEND NUMERIC(15,4),
+    CREDITEND NUMERIC(15,4))
+AS
+DECLARE VARIABLE O NUMERIC(15,4);
+DECLARE VARIABLE SALDOBEGIN NUMERIC(15,4);
+DECLARE VARIABLE SALDOEND NUMERIC(15,4);
+DECLARE VARIABLE C INTEGER;
+DECLARE VARIABLE LB INTEGER;
+DECLARE VARIABLE RB INTEGER;
+begin
+  id = :accountkey;
+  SELECT
+    IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
+      SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0,
+      SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) -
+      SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0)
+  FROM
+      ac_entry e1
+      LEFT JOIN ac_record r1 ON r1.id = e1.recordkey
+      LEFT JOIN ac_quantity q ON q.entrykey = e1.id
+    WHERE
+      e1.entrydate < :datebegin AND
+      e1.accountkey = :id AND
+      (r1.companykey = :companykey OR
+      (:ALLHOLDINGCOMPANIES = 1 AND
+      r1.companykey IN (
+        SELECT
+          h.companykey
+        FROM
+          gd_holding h
+        WHERE
+          h.holdingkey = :companykey))) AND
+      G_SEC_TEST(r1.aview, :ingroup) <> 0 AND
+      q.valuekey = :valuekey AND
+      ((0 = :currkey) OR (e1.currkey = :currkey))
+    INTO :saldobegin;
+    if (saldobegin IS NULL) then
+      saldobegin = 0;
+
+    C = 0;
+    FOR
+      SELECT
+        SUM(IIF(e.accountpart = 'D', q.quantity, 0)) -
+          SUM(IIF(e.accountpart = 'C', q.quantity, 0))
+      FROM
+        ac_entry e
+        LEFT JOIN ac_record r ON r.id = e.recordkey
+        LEFT JOIN ac_quantity q ON q.entrykey = e.id AND
+          q.valuekey = :valuekey
+      WHERE
+        e.entrydate <= :dateend AND
+        e.entrydate >= :datebegin AND
+        e.accountkey = :id AND
+        (r.companykey = :companykey OR
+        (:ALLHOLDINGCOMPANIES = 1 AND
+        r.companykey IN (
+          SELECT
+            h.companykey
+          FROM
+            gd_holding h
+          WHERE
+            h.holdingkey = :companykey))) AND
+        G_SEC_TEST(r.aview, :ingroup) <> 0 AND
+        ((0 = :currkey) OR (e.currkey = :currkey))
+      INTO :O
+    DO
+    BEGIN
+      IF (O IS NULL) THEN O = 0;
+      DEBITBEGIN = 0;
+      CREDITBEGIN = 0;
+      DEBITEND = 0;
+       CREDITEND = 0;
+      DEBIT = 0;
+      CREDIT = 0;
+      IF (O > 0) THEN
+        DEBIT = :O;
+      ELSE
+        CREDIT = - :O;
+
+      SALDOEND = :SALDOBEGIN + :O;
+      if (SALDOBEGIN > 0) then
+        DEBITBEGIN = :SALDOBEGIN;
+      else
+        CREDITBEGIN =  - :SALDOBEGIN;
+      if (SALDOEND > 0) then
+        DEBITEND = :SALDOEND;
+      else
+        CREDITEND =  - :SALDOEND;
+      SALDOBEGIN = :SALDOEND;
+      C = C + 1;
+    END
+    /*Если за указанный период нет движения то выводим сальдо на начало периода*/
+    IF (C = 0) THEN
+    BEGIN
+      IF (SALDOBEGIN > 0) THEN
+      BEGIN
+        DEBITBEGIN = :SALDOBEGIN;
+        DEBITEND = :SALDOBEGIN;
+      END ELSE
+      BEGIN
+        CREDITBEGIN =  - :SALDOBEGIN;
+        CREDITEND =  - :SALDOBEGIN;
+      END
+    END
+  SUSPEND;
+end^
+COMMIT^
+
+SET TERM ;^
+
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE TABLE msg_box (
+  id             dintkey,
+  parent         dparent,
+  lb             dlb,
+  rb             drb,
+  name           dname,
+  afull          dsecurity,
+  reserved       dreserved
+);
+
+ALTER TABLE msg_box ADD CONSTRAINT msg_pk_box_id
+  PRIMARY KEY (id);
+
+ALTER TABLE msg_box ADD CONSTRAINT msg_fk_parent
+  FOREIGN KEY (parent) REFERENCES msg_box (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+SET TERM ^ ;
+
+
+CREATE TRIGGER msg_bi_box FOR msg_box
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+COMMIT;
+
+CREATE TABLE msg_message (
+  id            dintkey,
+  boxkey        dintkey,
+  msgtype       dmsgtype,
+
+  msgstart      dtimestamp NOT NULL,
+  msgstartdate  COMPUTED (CAST (msgstart AS date)),
+  msgstartmonth COMPUTED BY (g_d_formatdatetime('yyyy.mm', msgstart)),
+  msgend        dtimestamp,
+
+  subject       dtext254,
+  header        dblobtext80,
+  body          dblobtext80_1251,
+  bdata         dblob4096,
+
+  messageid     dtext60,
+  fromid        dtext120,
+  fromcontactkey dforeignkey,
+
+  copy          dblobtext80,
+  bcc           dblobtext80,
+
+  toid          dtext120,
+  tocontactkey  dforeignkey,
+
+  operatorkey   dintkey,
+
+  replykey      dforeignkey,
+
+  cost          dcurrency,      /* кошт тэлефоннага званка */
+
+  attachmentcount smallint,
+
+  afull         dsecurity,
+  achag         dsecurity,
+  aview         dsecurity,
+
+  reserved      dreserved,
+
+  CHECK (msgtype IN ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'))
+);
+
+/*
+входящий звонок	A
+исходящий звонок	B
+входящее электронное письмо	C
+исходящее электронное письмо	D
+входящий факс	E
+исходящий факс	F
+входящее письмо	G
+исходящее письмо	H
+*/
+
+ALTER TABLE msg_message ADD CONSTRAINT msg_pk_message_id
+  PRIMARY KEY (id);
+
+ALTER TABLE msg_message ADD CONSTRAINT msg_fk_message_boxkey
+  FOREIGN KEY (boxkey) REFERENCES msg_box (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE msg_message ADD CONSTRAINT msg_fk_message_fromck
+  FOREIGN KEY (fromcontactkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE msg_message ADD CONSTRAINT msg_fk_message_tock
+  FOREIGN KEY (tocontactkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE msg_message ADD CONSTRAINT msg_fk_message_ok
+  FOREIGN KEY (operatorkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE msg_message ADD CONSTRAINT msg_fk_message_replykey
+  FOREIGN KEY (replykey) REFERENCES msg_message (id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+CREATE INDEX msg_x_message_messageid ON msg_message
+  (messageid);
+
+CREATE DESC INDEX msg_x_message_msgstart_d ON msg_message
+  (msgstart);
+
+CREATE ASC INDEX msg_x_message_msgstart_a ON msg_message
+  (msgstart);
+
+SET TERM ^ ;
+
+CREATE TRIGGER msg_bi_message FOR msg_message
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF ((NEW.id IS NULL) OR (NEW.id = -1)) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.attachmentcount IS NULL) THEN
+    NEW.attachmentcount = 0;
+END
+^
+
+
+SET TERM ; ^
+
+COMMIT;
+
+CREATE TABLE msg_target
+(
+  messagekey  dintkey,
+  contactkey  dintkey,
+  viewed      dboolean DEFAULT 0 NOT NULL
+);
+
+ALTER TABLE msg_target ADD CONSTRAINT msg_pk_target
+  PRIMARY KEY (messagekey, contactkey);
+
+ALTER TABLE msg_target ADD CONSTRAINT msg_fk_target_mk
+  FOREIGN KEY (messagekey) REFERENCES  msg_message (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE msg_target ADD CONSTRAINT msg_fk_target_ck
+  FOREIGN KEY (contactkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+CREATE TABLE msg_attachment (
+  id           dintkey,
+  messagekey   dmasterkey,
+  filename     dtext254,
+  bdata        dblob4096,
+
+  reserved     dinteger
+);
+
+ALTER TABLE msg_attachment ADD CONSTRAINT msg_pk_attachment_id
+  PRIMARY KEY (id);
+
+ALTER TABLE msg_attachment ADD CONSTRAINT msg_fk_attachment_mk
+  FOREIGN KEY (messagekey) REFERENCES msg_message (id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER msg_bi_attachment FOR msg_attachment
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF ((NEW.id IS NULL) OR (NEW.id = -1)) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE TRIGGER msg_ai_attachment FOR msg_attachment
+  AFTER INSERT
+  POSITION 1000
+AS
+BEGIN
+  UPDATE msg_message SET attachmentcount = attachmentcount + 1
+    WHERE id = NEW.messagekey;
+END
+^
+
+CREATE TRIGGER msg_au_attachment FOR msg_attachment
+  AFTER UPDATE
+  POSITION 1000
+AS
+BEGIN
+  IF (NEW.messagekey <> OLD.messagekey) THEN
+  BEGIN
+    UPDATE msg_message SET attachmentcount = attachmentcount + 1
+      WHERE id = NEW.messagekey;
+
+    UPDATE msg_message SET attachmentcount = attachmentcount - 1
+      WHERE id = OLD.messagekey;
+  END
+END
+^
+
+CREATE TRIGGER msg_ad_attachment FOR msg_attachment
+  AFTER DELETE
+  POSITION 1000
+AS
+BEGIN
+  UPDATE msg_message SET attachmentcount = attachmentcount - 1
+    WHERE id = OLD.messagekey;
+END
+^
+/*
+CREATE TRIGGER msg_au_message FOR msg_message
+  BEFORE UPDATE
+  POSITION 1000
+AS
+BEGIN
+  IF (NEW.attachmentcount IS NULL) THEN
+  BEGIN
+    NEW.attachmentcount = 0;
+    SELECT COUNT(*) FROM msg_attachment
+      WHERE messagekey=NEW.id
+      INTO NEW.attachmentcount;
+  END
+END
+^
+*/
+
+
+SET TERM ; ^
+
+COMMIT;
+
+/*   */
+
+CREATE TABLE msg_account (
+  id           dintkey,
+  name         dname,
+  userkey      dintkey,
+  displayname  dname,
+  emailaddress dname,
+  pop3server   dtext40,
+  pop3port     dSMALLINT DEFAULT 110 NOT NULL,
+  smtpserver   dtext40,
+  smtpport     dSMALLINT DEFAULT 25 NOT NULL,
+  accname      dname,
+  accpassword  dname,
+  rempassword  dboolean DEFAULT 1 NOT NULL,
+  autoreceive  dboolean DEFAULT 1 NOT NULL,
+  deleteafter  dboolean DEFAULT 0 NOT NULL,
+
+  reserved     dinteger
+);
+
+COMMIT;
+
+ALTER TABLE msg_account ADD CONSTRAINT msg_pk_account_id
+  PRIMARY KEY (id);
+
+ALTER TABLE msg_account ADD CONSTRAINT msg_fk_account_uk
+  FOREIGN KEY (userkey) REFERENCES gd_user (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER msg_bi_account FOR msg_account
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF ((NEW.id IS NULL) OR (NEW.id = -1)) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+CREATE TABLE msg_messagerules (
+  id             dintkey,
+  ruleorder      dSMALLINT,
+  name           dname,
+  data           dblob80,
+
+  reserved       dinteger
+);
+
+ALTER TABLE msg_messagerules ADD CONSTRAINT msg_pk_messagerules
+  PRIMARY KEY (id);
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER msg_bi_messagerules FOR msg_messagerules
+  BEFORE INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE I INTEGER;
+BEGIN
+  IF ((NEW.id IS NULL) OR (NEW.id = -1)) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.ruleorder IS NULL) THEN
+  BEGIN
+    SELECT MAX(ruleorder) FROM msg_messagerules INTO :I;
+    IF (:I IS NULL) THEN
+      I = 0;
+    NEW.ruleorder = :I + 1;
+  END
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    rp_registry.sql
+
+  Abstract
+
+    Print registry.
+
+  Author
+
+    Anton Smirnov (13.12.2000)
+
+  Revisions history
+
+    Initial  13.12.2000  SAI    Initial version
+
+  Status
+
+    Draft
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE TABLE rp_registry
+(
+  id	     DINTKEY,	/*      Уникальный ключ. Целое больше нуля.*/
+  parent     dinteger,
+  name	     dtext60,	/*	Наименование реестра */
+/*  reporttype VARCHAR(1),	/*	CHAR(1)	G-группа, R - реестр, O - печать текущей записи */
+/*  issystem   dboolean,	/*	dboolean	Если создана программистом, то "1",
+                                если пользователем - "0". Пользователь может удалять
+                                только записи = "0". */
+  filename   dtext254,	/*	dtext255	Файл - шаблон */
+/*  lastdate   DATE,	/*	Дата последнего обновления. */
+  template   dRTF,	/*	Шаблон */
+/* userkey    dforeignkey,	/*	Шаблон для конкретного пользователя */
+  hotkey     dhotkey,   /*	Горячая клавиша для вызова */
+  isregistry dboolean,  /*      Используется как реестр    */
+  isquick    dboolean,  /*      Используется xFastReport    */
+  isPrintPreview dboolean,  /*  Выводит окно просмотра перед печатью */
+  afull      dsecurity,
+  achag      dsecurity,
+  aview      dsecurity,
+  reserved   dinteger
+);
+
+ALTER TABLE rp_registry
+  ADD CONSTRAINT rp_pk_registry PRIMARY KEY (id);
+
+ALTER TABLE rp_registry ADD CONSTRAINT rp_fk_registry_parent
+  FOREIGN KEY (parent) REFERENCES rp_registry(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER rp_bi_registry FOR rp_registry
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    rp_report.sql
+
+  Abstract
+
+    An Interbase script for "universal" report.
+
+  Author
+
+    Andrey Shadevsky (__.__.__)
+
+  Revisions history
+
+    Initial  18.12.00  JKL    Initial version
+
+  Status 
+    
+    Draft
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/****************************************************
+
+   Таблица для хранения шаблонов отчетов.
+
+*****************************************************/
+
+CREATE TABLE rp_reporttemplate
+(
+  id             dintkey,
+  name           dname,
+  description    dtext180,
+  templatedata   dreporttemplate,
+  templatetype   dtemplatetype,
+  afull          dsecurity,
+  achag          dsecurity,
+  aview          dsecurity,
+  editiondate    deditiondate,           /* Дата последнего редактирования */
+  editorkey      dintkey,                /* Ссылка на пользователя, который редактировал запись*/
+  reserved       dinteger
+);
+
+ALTER TABLE rp_reporttemplate
+  ADD CONSTRAINT rp_pk_reporttemplate PRIMARY KEY (id);
+
+COMMIT;
+
+CREATE EXCEPTION rp_e_invalidreporttemplate 'Unknown template type';
+
+CREATE UNIQUE INDEX rp_x_reporttemplate_name ON rp_reporttemplate
+  (name);
+
+ALTER TABLE rp_reporttemplate ADD CONSTRAINT rp_fk_reporttemplate_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+SET TERM ^ ;
+
+CREATE TRIGGER rp_bi_reporttemplate FOR rp_reporttemplate
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+  NEW.templatetype = UPPER(NEW.templatetype);
+  IF ((NEW.templatetype <> 'RTF') AND (NEW.templatetype <> 'FR') AND
+   (NEW.templatetype <> 'XFR') AND (NEW.templatetype <> 'GRD') AND (NEW.templatetype <> 'FR4')) THEN
+    EXCEPTION rp_e_invalidreporttemplate;
+END
+^
+
+CREATE TRIGGER rp_bi_reporttemplate5 FOR rp_reporttemplate
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER rp_bu_reporttemplate5 FOR rp_reporttemplate
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения групп отчетов.
+
+*****************************************************/
+
+CREATE TABLE rp_reportgroup
+(
+  id             dintkey,
+  parent         dforeignkey,
+  name           dname,
+  description    dtext180,
+  lb               dlb,
+  rb               drb,
+  afull          dsecurity,
+  achag          dsecurity,
+  aview          dsecurity,
+  usergroupname  dname DEFAULT '',
+  reserved       dinteger
+);
+
+ALTER TABLE rp_reportgroup
+  ADD CONSTRAINT rp_pk_reportgroup PRIMARY KEY (id);
+
+CREATE UNIQUE INDEX rp_x_reportgroup_ugn ON rp_reportgroup
+  (usergroupname);
+
+CREATE UNIQUE INDEX rp_x_reportgroup_lrn ON
+  rp_reportgroup (name, parent);
+
+ALTER TABLE rp_reportgroup ADD CONSTRAINT rp_fk_reportgroup_parent
+  FOREIGN KEY (parent) REFERENCES rp_reportgroup(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE gd_documenttype ADD CONSTRAINT gd_fk_documenttype_rpgroupkey
+  FOREIGN KEY (reportgroupkey) REFERENCES rp_reportgroup (id) ON UPDATE CASCADE;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER rp_before_insert_reportgroup FOR rp_reportgroup
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+  IF (NEW.usergroupname IS NULL) THEN
+    NEW.usergroupname = CAST(NEW.id AS varchar(60));
+END
+^
+
+CREATE PROCEDURE rp_p_checkgrouptree (newparent INTEGER, id INTEGER)
+RETURNS (
+    include INTEGER
+)
+AS
+  DECLARE VARIABLE I INTEGER;
+begin
+  IF (newparent = id) THEN
+  BEGIN
+    include = 1;
+    EXIT;
+  END ELSE
+    include = 0;
+  FOR SELECT id FROM rp_reportgroup WHERE parent = :id INTO :I do
+  BEGIN
+    IF (newparent = I) THEN
+    BEGIN
+      include = 1;
+      EXIT;
+    END ELSE
+    BEGIN
+      EXECUTE PROCEDURE rp_p_checkgrouptree(:newparent, :I) RETURNING_VALUES :include;
+      if (include = 1) then
+        EXIT;
+    END
+  END
+END
+^
+SET TERM ; ^
+
+SET TERM ^ ;
+
+/* для шаблона используются метки */
+/* rp - префикс названия */
+/* reportgroup - название без префикса */
+/* rp_reportgroup - название */
+
+/*SET TERM ^ ;*/
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения списка отчетов.
+
+*****************************************************/
+
+CREATE TABLE rp_reportlist
+(
+  id                dintkey,                 /* идентификатор                      */
+  name              dname,                   /* наименование отчета                */
+  description       dtext180,                /* комментарий                        */
+  frqrefresh        dinteger DEFAULT 1,      /* частота обновления в днях          */
+  reportgroupkey    dintkey,
+  paramformulakey   dforeignkey,
+  mainformulakey    dintkey,
+  eventformulakey   dforeignkey,
+  templatekey       dforeignkey,
+  IsRebuild         dboolean,
+  afull             dsecurity,
+  achag             dsecurity,
+  aview             dsecurity,
+  serverkey         dforeignkey,
+  islocalexecute    dboolean DEFAULT 0,
+  preview           dboolean DEFAULT 1,
+  globalreportkey   dinteger,               /* Глобальный идентификатор отчета     */
+                                            /* Должен задаваться программистом     */
+  editiondate       deditiondate,           /* Дата последнего редактирования */
+  editorkey         dintkey,                /* Ссылка на пользователя, который редактировал запись*/
+  displayinmenu     dboolean DEFAULT 1,     /* Отображать в меню формы */
+  reserved          dinteger,
+  folderkey         dforeignkey
+);
+
+ALTER TABLE rp_reportlist
+  ADD CONSTRAINT rp_pk_reportlist PRIMARY KEY (id);
+
+ALTER TABLE rp_reportlist ADD CONSTRAINT rp_fk_reportlist_groupkey
+  FOREIGN KEY (reportgroupkey) REFERENCES rp_reportgroup(id)
+  ON UPDATE CASCADE;
+
+CREATE UNIQUE INDEX rp_x_reportlist_namerpgroup
+  ON rp_reportlist(name, reportgroupkey);
+
+/* Для ниже перечисленных констрейнов НЕЛЬЗЯ СТАВИТЬ     DELETE CASCADE */
+ALTER TABLE rp_reportlist ADD CONSTRAINT rp_fk_reportlist_paramfkey
+  FOREIGN KEY (paramformulakey) REFERENCES gd_function(id)
+  ON UPDATE CASCADE;
+
+/* Для ниже перечисленных констрейнов НЕЛЬЗЯ СТАВИТЬ     DELETE CASCADE */
+ALTER TABLE rp_reportlist ADD CONSTRAINT rp_fk_reportlist_mainfkey
+  FOREIGN KEY (mainformulakey) REFERENCES gd_function(id)
+  ON UPDATE CASCADE;
+
+/* Для ниже перечисленных констрейнов НЕЛЬЗЯ СТАВИТЬ     DELETE CASCADE */
+ALTER TABLE rp_reportlist ADD CONSTRAINT rp_fk_reportlist_eventfkey
+  FOREIGN KEY (eventformulakey) REFERENCES gd_function(id)
+  ON UPDATE CASCADE;
+
+/* Для ниже перечисленных констрейнов НЕЛЬЗЯ СТАВИТЬ     DELETE CASCADE */
+ALTER TABLE rp_reportlist ADD CONSTRAINT rp_fk_reportlist_templatefkey
+  FOREIGN KEY (templatekey) REFERENCES rp_reporttemplate(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE rp_reportlist ADD CONSTRAINT rp_fk_reportlist_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+ALTER TABLE RP_REPORTLIST ADD CONSTRAINT FK_RP_REPORTLIST_FOLDERKEY
+  FOREIGN KEY (FOLDERKEY) REFERENCES GD_COMMAND (ID)
+  ON DELETE SET NULL ON UPDATE CASCADE;
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER rp_before_insert_reportlist FOR rp_reportlist
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+  IF (NEW.islocalexecute IS NULL) THEN
+    NEW.islocalexecute = 0;
+END
+^
+
+CREATE TRIGGER rp_bi_reportlist5 FOR rp_reportlist
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER rp_bu_reportlist5 FOR rp_reportlist
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения результатов выполнения функций.
+
+*****************************************************/
+
+CREATE TABLE rp_reportresult
+(
+  functionkey              dintkey,
+  crcparam                 dinteger NOT NULL,
+  paramorder               dinteger DEFAULT 0 NOT NULL,
+  paramdata                dblob,
+  resultdata               dblob,
+  createdate               dtimestamp,
+  executetime              dtime,
+  lastusedate              dtimestamp,
+  reserved                 dinteger
+);
+
+ALTER TABLE rp_reportresult
+  ADD CONSTRAINT rp_pk_reportresult PRIMARY KEY (functionkey, crcparam, paramorder);
+
+COMMIT;
+
+ALTER TABLE rp_reportresult ADD CONSTRAINT rp_fk_reportresult_functionkey
+  FOREIGN KEY (functionkey) REFERENCES gd_function(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения параметров серверов.
+
+*****************************************************/
+
+CREATE TABLE rp_reportserver
+(
+  id                      dintkey,
+  computername            dtext20 NOT NULL,
+  resultpath              dtext255,
+  starttime               dtime,
+  endtime                 dtime,
+  frqdataread             dtime,
+  actualreport            dinteger DEFAULT 1,
+  unactualreport          dinteger DEFAULT 2,
+  ibparams                dtext255,
+  localstorage            dboolean DEFAULT 1,
+  usedorder               dinteger,
+  serverport              dintkey DEFAULT 2048,
+  reserved                dinteger
+);
+
+ALTER TABLE rp_reportserver
+  ADD CONSTRAINT rp_pk_reportserver PRIMARY KEY (id);
+
+CREATE UNIQUE INDEX RP_X_REPORTSERVER_NAME
+  ON RP_REPORTSERVER (COMPUTERNAME);
+
+ALTER TABLE rp_reportserver ADD CONSTRAINT rp_chk_reportserver_act
+  CHECK(actualreport <= unactualreport);
+
+ALTER TABLE rp_reportlist ADD CONSTRAINT rp_fk_reportlist_serverkey
+  FOREIGN KEY (serverkey) REFERENCES rp_reportserver(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER rp_before_insert_reportserver FOR rp_reportserver
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF ((NEW.frqdataread < '1:00:00') OR (NEW.frqdataread IS NULL)) THEN
+    NEW.frqdataread = '1:00:00';
+
+  IF (NEW.starttime IS NULL) THEN
+  BEGIN
+    NEW.starttime = '18:00:00';
+    NEW.endtime = '21:00:00';
+  END
+
+  IF (NEW.endtime IS NULL) THEN
+    NEW.endtime = NEW.starttime + 2;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для привязки сервера отчетов к клиенту.
+   Для подключения по умолчанию.
+
+*****************************************************/
+
+CREATE TABLE rp_reportdefaultserver
+(
+  serverkey                dintkey,
+  clientname               dtext20 NOT NULL,
+  reserved                 dinteger
+);
+
+ALTER TABLE rp_reportdefaultserver
+  ADD CONSTRAINT rp_pk_reportdefaultserver PRIMARY KEY (serverkey, clientname);
+
+ALTER TABLE rp_reportdefaultserver ADD CONSTRAINT rp_fk_reportdefaultserver_sk
+  FOREIGN KEY (serverkey) REFERENCES rp_reportserver(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для привязки сервера отчетов к клиенту.
+   Для подключения по умолчанию.
+
+*****************************************************/
+
+CREATE TABLE rp_additionalfunction
+(
+  mainfunctionkey                dintkey,
+  addfunctionkey                 dintkey,
+  reserved                       dinteger
+);
+
+ALTER TABLE rp_additionalfunction
+  ADD CONSTRAINT rp_pk_additionalfunction PRIMARY KEY (mainfunctionkey, addfunctionkey);
+
+ALTER TABLE rp_additionalfunction ADD CONSTRAINT rp_fk_additionalfunction_mfk
+  FOREIGN KEY (mainfunctionkey) REFERENCES gd_function(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE rp_additionalfunction ADD CONSTRAINT rp_fk_additionalfunction_afk
+  FOREIGN KEY (addfunctionkey) REFERENCES gd_function(id)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    evt_script.sql
+
+  Abstract
+
+    An Interbase script for "universal" report.
+
+  Author
+
+    Andrey Shadevsky (__.__.__)
+
+  Revisions history
+
+    Initial  29.11.01  JKL    Initial version
+
+  Status 
+    
+    Draft
+
+*/
+
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/****************************************************
+
+   Таблица для хранения объектов.
+
+*****************************************************/
+
+CREATE TABLE evt_object
+(
+  id             dintkey,
+  name           dgdcname,
+  description    dtext180,
+  parent         dforeignkey,
+  lb               dlb,
+  rb               drb,
+  afull          dsecurity,
+  achag          dsecurity,
+  aview          dsecurity,
+  objecttype     dsmallint, /* 0-object; 1-class */
+  reserved       dinteger,
+  macrosgroupkey dforeignkey,
+  parentindex    dinteger NOT NULL,
+  reportgroupkey dforeignkey,
+  classname      dgdcname,
+  objectname     dgdcname,
+  subtype        dsubtype,
+  editiondate    deditiondate,  /* Дата последнего редактирования */
+  editorkey      dintkey        /* Ссылка на пользователя, который редактировал запись*/
+);
+
+ALTER TABLE evt_object
+  ADD CONSTRAINT evt_pk_object PRIMARY KEY (id);
+
+/* !!! Никаких каскад делете быть не должно !!!*/
+
+ALTER TABLE evt_object ADD CONSTRAINT evt_fk_object_parent
+  FOREIGN KEY (parent) REFERENCES evt_object (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_function ADD CONSTRAINT gd_fk_function_modulecode
+  FOREIGN KEY (modulecode) REFERENCES evt_object (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE evt_object ADD CONSTRAINT evt_fk_object_reportgrkey
+  FOREIGN KEY (reportgroupkey) REFERENCES rp_reportgroup (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE evt_object ADD CONSTRAINT evt_fk_object_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+/*
+ALTER TABLE evt_object ADD CONSTRAINT evt_chk_object_tree_limit
+  CHECK ((lb <= rb) or ((rb is NULL) and (lb is NULL)));
+
+CREATE DESC INDEX evt_x_object_rb
+  ON evt_object(rb);
+
+CREATE ASC INDEX evt_x_object_lb
+  ON evt_object(lb);
+*/
+
+CREATE ASC INDEX evt_x_object_objectname_upper
+  ON evt_object
+  COMPUTED BY (UPPER(objectname));
+
+COMMIT;
+
+CREATE EXCEPTION EVT_E_RECORDFOUND
+  'Object or Class with such a parameters is already exist';
+
+CREATE EXCEPTION EVT_E_RECORDINCORRECT
+  'Do not insert or update this data.';
+
+CREATE EXCEPTION EVT_E_INCORRECTVERSION
+  'Incorrect version Gedemin for insert in evt_object Table.';
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER evt_bi_object FOR evt_object
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.parent IS NULL) THEN
+    NEW.parentindex = 1;
+  ELSE
+    NEW.parentindex = NEW.parent;
+END
+^
+
+CREATE TRIGGER evt_bi_object1 FOR evt_object
+  ACTIVE
+  BEFORE INSERT
+  POSITION 1
+AS
+BEGIN
+  /* Если старая версия Гедемина, то возвращаем ошибку*/
+  IF ((NOT NEW.name is NULL) AND
+     (NEW.objectname is NULL) AND
+     (NEW.classname is NULL) AND
+     (NEW.subtype is NULL))
+  THEN
+    EXCEPTION  EVT_E_INCORRECTVERSION;
+
+  /* Проверяет корректность вводимых данных */
+
+  IF (NEW.objectname is NULL) THEN
+    NEW.objectname = '';
+  IF (NEW.classname is NULL) THEN
+    NEW.classname = '';
+  IF (NEW.subtype is NULL) THEN
+    NEW.subtype = '';
+
+  /* Проверяет корректность вводимых данных */
+  IF
+    (
+    ((NEW.objectname = '') and (NEW.classname = '')) or
+    ((NEW.subtype <> '') and ((NEW.objectname <> '') or
+     (NEW.classname = '')))
+    ) then
+  BEGIN
+    EXCEPTION EVT_E_RECORDINCORRECT;
+  END
+
+  IF (NEW.classname > '') THEN
+  BEGIN
+    IF (EXISTS (SELECT * FROM evt_object WHERE UPPER(classname)=UPPER(NEW.classname)
+      AND UPPER(subtype)=UPPER(NEW.subtype))) THEN
+    BEGIN
+      EXCEPTION EVT_E_RECORDINCORRECT;
+    END
+  END
+END
+^
+
+CREATE TRIGGER evt_bi_object2 FOR evt_object
+  ACTIVE
+  BEFORE INSERT
+  POSITION 2
+AS
+BEGIN
+  /* Проверяет уникальность объекта или класса с подтипом*/
+  IF
+    (EXISTS(SELECT * FROM evt_object
+    WHERE
+    (UPPER(objectname) = UPPER(NEW.objectname))  AND
+    (UPPER(classname) = UPPER(NEW.classname)) AND
+    (parentindex = NEW.parentindex) AND
+    (UPPER(subtype) = UPPER(NEW.subtype)) AND
+    (id <> NEW.id)))
+  THEN
+  BEGIN
+    EXCEPTION EVT_E_RECORDFOUND;
+  END
+
+  /* Заполняет поля name, objecttype для поддержки */
+  /* старой версии Гедемина */
+  IF (NEW.classname = '') THEN
+  BEGIN
+    NEW.objecttype = 0;
+    NEW.name = NEW.objectname;
+  END ELSE
+    BEGIN
+      NEW.objecttype = 1;
+      IF (NEW.subtype = '') THEN
+      BEGIN
+        NEW.name = NEW.classname;
+      END ELSE
+        NEW.name = NEW.classname || NEW.subtype;
+    END
+END
+^
+
+CREATE TRIGGER evt_bu_object FOR evt_object
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.parent IS NULL) THEN
+    NEW.parentindex = 1;
+  ELSE
+    NEW.parentindex = NEW.parent;
+END
+^
+
+CREATE TRIGGER evt_bu_object1 FOR evt_object
+ACTIVE BEFORE UPDATE POSITION 1
+AS
+BEGIN
+  /* Если старая версия Гедемина, то возвращаем ошибку*/
+  IF ((NOT NEW.name is NULL) AND
+     (NEW.objectname is NULL) AND
+     (NEW.classname is NULL) AND
+     (NEW.subtype is NULL))
+  THEN
+    EXCEPTION  EVT_E_INCORRECTVERSION;
+
+  /* Проверяет корректность вводимых данных */
+
+  IF (NEW.objectname is NULL) THEN
+    NEW.objectname = '';
+  IF (NEW.classname is NULL) THEN
+    NEW.classname = '';
+  IF (NEW.subtype is NULL) THEN
+    NEW.subtype = '';
+
+  /* Проверяет корректность вводимых данных */
+  IF
+    (
+    ((NEW.objectname = '') and (NEW.classname = '')) or
+    ((NEW.subtype <> '') and ((NEW.objectname <> '') or
+     (NEW.classname = '')))
+    ) then
+  BEGIN
+    EXCEPTION EVT_E_RECORDINCORRECT;
+  END
+
+  IF (NEW.classname > '') THEN
+  BEGIN
+    IF (EXISTS (SELECT * FROM evt_object WHERE UPPER(classname)=UPPER(NEW.classname)
+      AND UPPER(subtype)=UPPER(NEW.subtype) AND NEW.id <> id)) THEN
+    BEGIN
+      EXCEPTION EVT_E_RECORDINCORRECT;
+    END
+  END
+END
+^
+
+CREATE TRIGGER evt_bu_object2 FOR evt_object
+  ACTIVE
+  BEFORE UPDATE
+  POSITION 2
+AS
+BEGIN
+  /* Проверяет уникальность объекта или класса с подтипом*/
+  IF
+    (EXISTS(SELECT * FROM evt_object
+    WHERE
+    (UPPER(objectname) = UPPER(NEW.objectname))  AND
+    (UPPER(classname) = UPPER(NEW.classname)) AND
+    (parentindex = NEW.parentindex) AND
+    (UPPER(subtype) = UPPER(NEW.subtype)) AND
+    (id <> NEW.id)))
+  THEN
+  BEGIN
+    EXCEPTION EVT_E_RECORDFOUND;
+  END
+
+  /* Заполняет поля name, objecttype для поддержки */
+  /* старой версии Гедемина */
+  IF (NEW.classname = '') THEN
+  BEGIN
+    NEW.objecttype = 0;
+    NEW.name = NEW.objectname;
+  END ELSE
+    BEGIN
+      NEW.objecttype = 1;
+      IF (NEW.subtype = '') THEN
+      BEGIN
+        NEW.name = NEW.classname;
+      END ELSE
+        NEW.name = NEW.classname || NEW.subtype;
+    END
+END
+^
+
+CREATE TRIGGER evt_bi_object5 FOR evt_object
+  BEFORE INSERT
+  POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER evt_bu_object5 FOR evt_object
+  BEFORE UPDATE
+  POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+/****************************************************
+
+   Таблица для событий и ссылок на функции.
+
+*****************************************************/
+
+CREATE TABLE evt_objectevent
+(
+  id               dintkey,
+  objectkey             dintkey,
+  eventname           dname,
+  functionkey    dforeignkey,
+  afull          dsecurity,
+  reserved       dinteger,
+  disable        dboolean,
+  editiondate    deditiondate,  /* Дата последнего редактирования */
+  editorkey      dintkey        /* Ссылка на пользователя, который редактировал запись*/
+);
+
+/* Primary keys definition */
+
+ALTER TABLE EVT_OBJECTEVENT ADD CONSTRAINT EVT_PK_OBJECTEVENT_ID PRIMARY KEY (ID);
+
+/* Для ниже перечисленных констрейнов НЕЛЬЗЯ СТАВИТЬ     DELETE CASCADE */
+ALTER TABLE evt_objectevent ADD CONSTRAINT evt_fk_object_fk
+  FOREIGN KEY (functionkey) REFERENCES gd_function (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE evt_objectevent ADD CONSTRAINT evt_fk_object_objectkey
+  FOREIGN KEY (objectkey) REFERENCES evt_object(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE evt_objectevent ADD CONSTRAINT evt_fk_objectevent_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+/* Indices definition */
+
+CREATE UNIQUE INDEX evt_idx_objectevent ON evt_objectevent (eventname, objectkey);
+
+COMMIT;
+
+SET TERM ^ ;
+CREATE TRIGGER evt_bi_objectevent5 FOR evt_objectevent
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER evt_bu_objectevent5 FOR evt_objectevent
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+/****************************************************/
+/**                                                **/
+/**   Таблица для хранения дерева макросов         **/
+/**                                                **/
+/****************************************************/
+CREATE TABLE evt_macrosgroup (
+  id             dintkey,      /* Уникальный ключ */
+  parent      dforeignkey,      /* Парент на родителя */
+  lb             dlb,          /* Левая (верхняя) граница. Одновременно может использоваться */
+                               /* как второй уникальный индекс, если группы и список */
+                               /* находятся в разных таблицах */
+  rb               drb,        /* Правая (нижняя) граница */
+
+  name          dname,         /* Наименование поле для примера */
+
+  isglobal      dboolean,
+
+  description dblobtext80, /*  Описание группы */
+  editiondate     deditiondate,  /* Дата последнего редактирования */
+  editorkey       dintkey,       /* Ссылка на пользователя, который редактировал запись*/
+
+  reserved     dblob         /*Зарезервированно*/
+);
+
+ALTER TABLE evt_macrosgroup ADD CONSTRAINT evt_pk_macrosgroup_id
+  PRIMARY KEY (id);
+
+COMMIT;
+
+ALTER TABLE evt_object ADD CONSTRAINT evt_fk_object_mrsgroupkey
+  FOREIGN KEY (macrosgroupkey) REFERENCES evt_macrosgroup (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE evt_macrosgroup ADD CONSTRAINT evt_fk_macrosgroup_parent
+  FOREIGN KEY (parent) REFERENCES evt_macrosgroup (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE evt_macrosgroup ADD CONSTRAINT evt_fk_macrosgroup_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+/*
+ALTER TABLE evt_macrosgroup ADD CONSTRAINT evt_chk_macrosgroup_tree_limit
+  CHECK (lb <= rb);
+
+CREATE DESC INDEX evt_x_macrosgroup_rb
+  ON evt_macrosgroup(rb);
+*/
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER evt_bi_macrosgroup5 FOR evt_macrosgroup
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER evt_bu_macrosgroup5 FOR evt_macrosgroup
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+/****************************************************/
+/**                                                **/
+/**    Таблица для хранения макросов               **/
+/**                                                **/
+/****************************************************/
+
+CREATE TABLE evt_macroslist (
+  id              dintkey,      /* Уникальный ключ */
+  macrosgroupkey  dforeignkey, /*  Ключ группы макросов */
+  functionkey     dforeignkey,    /*  Ключ макроса */
+  name            dname,         /* Наименование поле для примера */
+  serverkey       dforeignkey,
+  islocalexecute  dboolean,
+  isrebuild       dboolean,
+  executedate     dtext254,
+  shortcut        dinteger,
+  editiondate     deditiondate,  /* Дата последнего редактирования */
+  editorkey       dintkey,        /* Ссылка на пользователя, который редактировал запись*/
+  displayinmenu   dboolean DEFAULT 1,     /* Отображать в меню формы */
+  achag           dsecurity,
+  afull           dsecurity,
+  aview           dsecurity
+);
+
+ALTER TABLE evt_macroslist ADD CONSTRAINT evt_pk_macroslist_id
+  PRIMARY KEY (id);
+
+COMMIT;
+
+ALTER TABLE evt_macroslist ADD CONSTRAINT evt_fk_macroslist_mrsgroupkey
+  FOREIGN KEY (macrosgroupkey) REFERENCES evt_macrosgroup(id)
+  ON UPDATE CASCADE;
+
+/* Для ниже перечисленных констрейнов НЕЛЬЗЯ СТАВИТЬ     DELETE CASCADE */
+ALTER TABLE evt_macroslist ADD CONSTRAINT evt_fk_macros_functionkey
+  FOREIGN KEY (functionkey) REFERENCES gd_function (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE evt_macroslist ADD CONSTRAINT evt_fk_macroslist_rpserver
+  FOREIGN KEY (serverkey) REFERENCES rp_reportserver(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
+ALTER TABLE evt_macroslist ADD CONSTRAINT evt_fk_macroslist_editorkey
+  FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+CREATE UNIQUE INDEX EVT_MACROSLIST_IDX
+  ON EVT_MACROSLIST
+  (NAME, MACROSGROUPKEY);
+
+CREATE UNIQUE INDEX EVT_X_MACROSLIST_FUNCTIONKEY
+  ON EVT_MACROSLIST
+  (FUNCTIONKEY);
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER evt_bi_macroslist5 FOR evt_macroslist
+  BEFORE INSERT POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+ IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+CREATE TRIGGER evt_bu_macroslist5 FOR evt_macroslist
+  BEFORE UPDATE POSITION 5
+AS
+BEGIN
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+/*
+
+  Copyright (c) 2001-2007 by Golden Software of Belarus
+
+
+  Script
+
+    inv_movement.sql
+
+  Abstract
+
+    Таблицы для учета движения товарно-материальных
+    ценностей и услуг.
+
+  Author
+
+    Mikle Shoihet    (16.07.2001)
+    Leonid Agafonov
+    Teryokhina Julia
+    Romanovski Denis
+
+  Revisions history
+
+    1.0    Julia    23.07.2001    Initial version.
+    2.0    Dennis   03.08.2001    Initial version.
+
+  Status
+
+
+*/
+
+CREATE EXCEPTION INV_E_INVALIDMOVEMENT 'The movement was made incorrect!';
+
+COMMIT;
+
+/*
+ *
+ *  Список карточек движения ТМЦ
+ *
+ */
+
+CREATE TABLE inv_card
+(
+  id                    dintkey,              /* идентификатор */
+  parent                dforeignkey,          /* ссылка на родительскую карточку */
+
+  goodkey               dintkey,              /* ссылка на товар */
+
+  documentkey           dintkey,              /* ссылка на документ создавший карту */
+  firstdocumentkey      dintkey,              /* ссылка на первый докуиент создавший карточку */
+
+  firstdate             ddate NOT NULL,       /* дата первого появления карточки */
+
+  companykey            dintkey,              /* ссылка на нашу компанию */
+
+  reserved              dreserved             /* зарезервировано */
+);
+
+COMMIT;
+
+ALTER TABLE inv_card ADD CONSTRAINT inv_pk_card
+  PRIMARY KEY (id);
+
+ALTER TABLE inv_card ADD CONSTRAINT inv_fk_card_goodkey
+  FOREIGN KEY (goodkey) REFERENCES gd_good (id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE inv_card ADD CONSTRAINT inv_fk_card_mk
+  FOREIGN KEY (documentkey) REFERENCES gd_document (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE inv_card ADD CONSTRAINT inv_fk_card_fmk
+  FOREIGN KEY (firstdocumentkey) REFERENCES gd_document (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE inv_card ADD CONSTRAINT inv_fk_card_companykey
+  FOREIGN KEY (companykey) REFERENCES gd_ourcompany (companykey)
+  ON UPDATE CASCADE;
+
+ALTER TABLE inv_card ADD CONSTRAINT inv_fk_card_parent
+  FOREIGN KEY (parent) REFERENCES inv_card (id)
+  ON UPDATE CASCADE;
+
+
+COMMIT;
+
+
+/*
+ *
+ *  Движение ТМЦ
+ *
+ */
+
+
+CREATE TABLE inv_movement
+(
+  id                    dintkey,              /* идентификатор */
+  movementkey           dintkey,              /* идентификатор движения */
+
+  movementdate          ddate NOT NULL,       /* дата движения */
+
+  documentkey           dintkey,              /* ссылка на документ */
+  contactkey            dintkey,              /* ссылка на контакт */
+
+  cardkey               dintkey,              /* ссылка на карточку */
+  goodkey               dintkey,              /* ссылка на товар */
+
+  debit                 dquantity DEFAULT 0,  /* приход ТМЦ (услуг) в количественном выражении */
+  credit                dquantity DEFAULT 0,  /* расход ТМЦ (услуг) в количественном выражении */
+
+  disabled              dboolean DEFAULT 0,   /* отключена ли запись */
+  reserved              dreserved             /* зарезервировано */
+);
+
+COMMIT;
+
+ALTER TABLE inv_movement ADD CONSTRAINT inv_pk_movement
+  PRIMARY KEY (id);
+
+ALTER TABLE inv_movement ADD CONSTRAINT inv_fk_movement_dk
+  FOREIGN KEY (documentkey) REFERENCES gd_document (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE inv_movement ADD CONSTRAINT inv_fk_movement_ck
+  FOREIGN KEY (contactkey) REFERENCES gd_contact (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE inv_movement ADD CONSTRAINT inv_fk_movement_cardk
+  FOREIGN KEY (cardkey) REFERENCES inv_card (id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE inv_movement ADD CONSTRAINT inv_fk_movement_goodk
+  FOREIGN KEY (goodkey) REFERENCES gd_good (id)
+  ON UPDATE CASCADE;
+
+
+COMMIT;
+
+CREATE INDEX INV_X_MOVEMENT_CCD ON INV_MOVEMENT (
+  CARDKEY, CONTACTKEY, MOVEMENTDATE);
+
+COMMIT;
+
+CREATE INDEX INV_X_MOVEMENT_MK ON INV_MOVEMENT (
+  MOVEMENTKEY);
+
+COMMIT;
+
+/*
+ *
+ *  Рассчитанные остатки по
+ *  определенной карточке.
+ *
+ */
+
+CREATE TABLE inv_balance
+(
+  cardkey               dintkey,              /* ссылка на карточку */
+  contactkey            dintkey,              /* ссылка на контакт */
+
+  balance               dcurrency NOT NULL,   /* остаток на карточке */
+  goodkey               dintkey,              /* ссылка на товар */
+
+  reserved              dreserved             /* зарезервировано */
+);
+
+COMMIT;
+
+ALTER TABLE inv_balance ADD CONSTRAINT inv_fk_balance_ck
+  FOREIGN KEY (cardkey) REFERENCES inv_card (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE inv_balance ADD CONSTRAINT inv_fk_balance_contk
+  FOREIGN KEY (contactkey) REFERENCES gd_contact(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE inv_balance ADD CONSTRAINT inv_fk_balance_gk
+  FOREIGN KEY (goodkey) REFERENCES gd_good (id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+
+ALTER TABLE inv_balance ADD CONSTRAINT inv_pk_balance
+  PRIMARY KEY (cardkey, contactkey);
+
+COMMIT;
+
+CREATE INDEX INV_X_BALANCE_CB ON INV_BALANCE (
+  CONTACTKEY, BALANCE);
+
+COMMIT;
+
+
+SET TERM ^ ;
+
+CREATE PROCEDURE inv_makerest                               
+AS                                               
+  DECLARE VARIABLE CONTACTKEY INTEGER;           
+  DECLARE VARIABLE CARDKEY INTEGER;              
+  DECLARE VARIABLE GOODKEY INTEGER;
+  DECLARE VARIABLE BALANCE NUMERIC(15, 4);       
+BEGIN                                            
+  DELETE FROM INV_BALANCE;                      
+  FOR                                           
+    SELECT m.contactkey, m.goodkey, m.cardkey, SUM(m.debit - m.credit) 
+      FROM                                                  
+        inv_movement m                                      
+      WHERE disabled = 0                                    
+    GROUP BY m.contactkey, m.goodkey, m.cardkey                        
+    INTO :contactkey, :goodkey, :cardkey, :balance                    
+  DO                                                        
+    INSERT INTO inv_balance (contactkey, goodkey, cardkey, balance)  
+      VALUES (:contactkey, :goodkey, :cardkey, :balance);             
+END 
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+CREATE TABLE inv_balanceoption(
+  id                      DINTKEY,
+  name                    DNAME,
+  viewfields              DBLOBTEXT80,
+  sumfields               DBLOBTEXT80,
+  GOODVIEWFIELDS          DBLOBTEXT80,
+  GOODSUMFIELDS           DBLOBTEXT80,
+  branchkey               dforeignkey,               /* Ветка в исследователе */                                 
+  usecompanykey           dboolean,
+  ruid                    DRUID
+);
+
+COMMIT;
+
+ALTER TABLE inv_balanceoption ADD CONSTRAINT inv_pk_balanceoption
+  PRIMARY KEY (id);
+
+COMMIT;
+
+ALTER TABLE inv_balanceoption ADD CONSTRAINT gd_fk_balanceoption_branchkey 
+  FOREIGN KEY (branchkey) REFERENCES gd_command (id) ON UPDATE CASCADE;
+
+COMMIT;
+
+
+CREATE GENERATOR inv_g_balancenum;
+SET GENERATOR inv_g_balancenum TO 0;
+
+COMMIT;
+
+
+SET TERM ^ ;
+
+CREATE TRIGGER inv_bi_balanceoption FOR inv_balanceoption
+  BEFORE INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE id INTEGER;
+BEGIN
+  /* Если ключ не присвоен, присваиваем */
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+    
+END
+^
+
+
+
+/*
+ *  Триггер создания уникального кода
+ */
+
+CREATE TRIGGER inv_bi_card FOR inv_card
+  BEFORE INSERT
+  POSITION 0
+  AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END;
+^
+
+CREATE TRIGGER inv_bu_card FOR inv_card
+  BEFORE UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE firstdocumentkey INTEGER;
+  DECLARE VARIABLE firstdate DATE;
+BEGIN
+
+  IF ((OLD.parent <> NEW.parent) OR (OLD.parent IS null and NEW.parent IS NOT NULL)) THEN
+  BEGIN
+    SELECT firstdocumentkey, firstdate FROM inv_card
+    WHERE id = NEW.parent
+    INTO :firstdocumentkey, :firstdate;
+
+    NEW.firstdocumentkey = :firstdocumentkey;
+    NEW.firstdate = :firstdate;
+  END
+
+  IF ((OLD.firstdocumentkey <> NEW.firstdocumentkey) OR
+       (OLD.firstdate <> NEW.firstdate)) THEN
+    UPDATE inv_card SET
+      firstdocumentkey = NEW.firstdocumentkey,
+      firstdate = NEW.firstdate
+    WHERE
+      parent = NEW.id;
+
+END;
+^
+
+CREATE TRIGGER inv_bu_card_goodkey FOR inv_card
+  BEFORE UPDATE
+  POSITION 1
+AS
+BEGIN
+  IF (NEW.GOODKEY <> OLD.GOODKEY) THEN
+  BEGIN
+    UPDATE inv_movement SET goodkey = NEW.goodkey
+    WHERE cardkey = NEW.id;
+
+    UPDATE inv_balance SET goodkey = NEW.goodkey
+    WHERE cardkey = NEW.id;
+  END
+END;
+^
+
+
+CREATE TRIGGER INV_BD_CARD FOR INV_CARD
+ACTIVE BEFORE DELETE POSITION 0
+AS
+BEGIN
+  DELETE FROM INV_CARD
+    WHERE
+      PARENT = OLD.ID AND DOCUMENTKEY = OLD.DOCUMENTKEY;
+END;
+^
+
+/*
+CREATE TRIGGER inv_bi_card_block FOR inv_card
+  INACTIVE
+  BEFORE INSERT
+  POSITION 28017
+AS
+  DECLARE VARIABLE D DATE;
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF (GEN_ID(gd_g_block, 0) > 0) THEN
+  BEGIN
+    SELECT doc.documentdate, doc.documenttypekey
+    FROM gd_document doc
+    WHERE doc.id = NEW.documentkey
+    INTO :D, :DT;
+
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (:DT)
+      RETURNING_VALUES :F;
+
+    IF(:F = 0) THEN
+    BEGIN
+      IF ((D - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
+      BEGIN
+        BG = GEN_ID(gd_g_block_group, 0);
+        IF (:BG = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END ELSE
+        BEGIN
+          SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+            INTO :IG;
+          IF (BIN_AND(:BG, :IG) = 0) THEN
+          BEGIN
+            EXCEPTION gd_e_block;
+          END
+        END
+      END
+    END
+  END
+END
+^
+
+CREATE TRIGGER inv_bu_card_block FOR inv_card
+  INACTIVE
+  BEFORE UPDATE
+  POSITION 28017
+AS
+  DECLARE VARIABLE D DATE;
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF (GEN_ID(gd_g_block, 0) > 0) THEN
+  BEGIN
+    SELECT doc.documentdate, doc.documenttypekey
+    FROM gd_document doc
+    WHERE doc.id = NEW.documentkey
+    INTO :D, :DT;
+
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (:DT)
+      RETURNING_VALUES :F;
+
+    IF(:F = 0) THEN
+    BEGIN
+      IF ((D - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
+      BEGIN
+        BG = GEN_ID(gd_g_block_group, 0);
+        IF (:BG = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END ELSE
+        BEGIN
+          SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+            INTO :IG;
+          IF (BIN_AND(:BG, :IG) = 0) THEN
+          BEGIN
+            EXCEPTION gd_e_block;
+          END
+        END
+      END
+    END
+  END
+END
+^
+
+CREATE TRIGGER inv_bd_card_block FOR inv_card
+  INACTIVE
+  BEFORE DELETE
+  POSITION 28017
+AS
+  DECLARE VARIABLE D DATE;
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF (GEN_ID(gd_g_block, 0) > 0) THEN
+  BEGIN
+    SELECT doc.documentdate, doc.documenttypekey
+    FROM gd_document doc
+    WHERE doc.id = OLD.documentkey
+    INTO :D, :DT;
+
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (:DT)
+      RETURNING_VALUES :F;
+
+    IF(:F = 0) THEN
+    BEGIN
+      IF ((D - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
+      BEGIN
+        BG = GEN_ID(gd_g_block_group, 0);
+        IF (:BG = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END ELSE
+        BEGIN
+          SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+            INTO :IG;
+          IF (BIN_AND(:BG, :IG) = 0) THEN
+          BEGIN
+            EXCEPTION gd_e_block;
+          END
+        END
+      END
+    END
+  END
+END
+^
+*/
+
+/*
+ *
+ *  После добавлением движения
+ *  осуществляем расчет сальдо
+ *
+ */
+
+
+CREATE TRIGGER inv_ai_movement FOR inv_movement
+  AFTER INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE NEWBALANCE NUMERIC(10, 4);
+BEGIN
+  /* если запись с остатком есть - изменяем ее, если нет - создаем */
+  IF (EXISTS(
+    SELECT BALANCE
+    FROM INV_BALANCE
+    WHERE CARDKEY = NEW.CARDKEY AND CONTACTKEY = NEW.CONTACTKEY)
+  )
+  THEN BEGIN
+    UPDATE INV_BALANCE
+    SET
+      BALANCE = BALANCE + (NEW.DEBIT - NEW.CREDIT)
+    WHERE
+      CARDKEY = NEW.CARDKEY AND CONTACTKEY = NEW.CONTACTKEY;
+  END ELSE BEGIN
+    INSERT INTO INV_BALANCE
+      (CARDKEY, CONTACTKEY, BALANCE)
+    VALUES
+      (NEW.CARDKEY, NEW.CONTACTKEY, NEW.DEBIT - NEW.CREDIT);
+  END
+END;
+^
+
+
+/*
+ *
+ *  После изменения движения
+ *  осуществляем расчет сальдо
+ *
+ */
+
+CREATE TRIGGER INV_AU_MOVEMENT FOR INV_MOVEMENT
+  ACTIVE
+  AFTER UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE existscontaccard INTEGER;
+BEGIN
+  /* если запись с остатком есть - изменяем ее, если нет - создаем */
+  existscontaccard = 1;
+  IF (OLD.disabled = 0) THEN
+  BEGIN
+    IF (EXISTS(
+      SELECT BALANCE
+      FROM INV_BALANCE
+      WHERE CARDKEY = OLD.CARDKEY AND CONTACTKEY = OLD.CONTACTKEY))
+    THEN BEGIN
+      UPDATE INV_BALANCE
+      SET
+        BALANCE = BALANCE - (OLD.DEBIT - OLD.CREDIT)
+      WHERE
+        CARDKEY = OLD.CARDKEY AND CONTACTKEY = OLD.CONTACTKEY;
+    END
+    ELSE
+      existscontaccard = 0;
+  END
+  
+  IF (NEW.disabled = 0) THEN
+  BEGIN
+    IF (
+       (NEW.contactkey <> OLD.contactkey) AND
+       (NEW.cardkey = OLD.cardkey) AND
+       (NEW.debit = OLD.debit) AND
+       (NEW.credit = OLD.credit) AND
+       (OLD.disabled = 0) AND
+       (existscontaccard = 0)
+       )
+    THEN
+      existscontaccard = 0;
+    ELSE
+    IF (EXISTS(
+        SELECT BALANCE
+        FROM INV_BALANCE
+        WHERE CARDKEY = NEW.CARDKEY AND CONTACTKEY = NEW.CONTACTKEY))
+    THEN BEGIN
+      UPDATE INV_BALANCE
+      SET
+        BALANCE = BALANCE + (NEW.DEBIT - NEW.CREDIT)
+      WHERE
+        CARDKEY = NEW.CARDKEY AND CONTACTKEY = NEW.CONTACTKEY;
+    END ELSE BEGIN
+        INSERT INTO INV_BALANCE
+          (CARDKEY, CONTACTKEY, BALANCE)
+        VALUES
+          (NEW.CARDKEY, NEW.CONTACTKEY, NEW.DEBIT - NEW.CREDIT);
+    END
+  END
+END;
+^
+
+/*
+ *
+ *  После изменения движения
+ *  осуществляем расчет сальдо
+ *
+ */
+
+CREATE TRIGGER inv_ad_movement FOR inv_movement
+  AFTER DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (OLD.disabled = 0) THEN
+  BEGIN
+    /*
+    эта проверка тут излишняя.
+
+    IF (EXISTS(
+      SELECT BALANCE
+      FROM INV_BALANCE
+      WHERE CARDKEY = OLD.CARDKEY AND CONTACTKEY = OLD.CONTACTKEY))
+    THEN BEGIN
+    */
+      UPDATE INV_BALANCE
+      SET
+        BALANCE = BALANCE - (OLD.DEBIT - OLD.CREDIT)
+      WHERE
+        CARDKEY = OLD.CARDKEY AND CONTACTKEY = OLD.CONTACTKEY;
+    /*
+    END
+    */
+  END
+
+END;
+^
+
+CREATE EXCEPTION inv_e_movementchange 'Can not change documentkey in movement'^
+
+CREATE TRIGGER INV_BI_MOVEMENT FOR INV_MOVEMENT
+ACTIVE BEFORE INSERT POSITION 0
+AS
+  DECLARE VARIABLE balance NUMERIC(15, 4);
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.debit IS NULL) THEN
+    NEW.debit = 0;
+
+  IF (NEW.credit IS NULL) THEN
+    NEW.credit = 0;
+
+  IF (NEW.credit > 0) THEN
+  BEGIN
+    SELECT balance FROM inv_balance
+    WHERE
+      contactkey = NEW.contactkey
+       AND cardkey = NEW.cardkey
+    INTO :balance;
+    IF (:balance IS NULL) THEN
+      balance = 0;
+    IF ((:balance > 0) AND (:balance < NEW.credit)) THEN
+    BEGIN
+      EXCEPTION INV_E_INVALIDMOVEMENT;
+    END
+  END
+
+END;
+^
+
+CREATE TRIGGER INV_BI_MOVEMENT_GOODKEY FOR INV_MOVEMENT
+ACTIVE BEFORE INSERT POSITION 1
+AS
+BEGIN
+  SELECT goodkey FROM inv_card
+  WHERE id = NEW.cardkey
+  INTO NEW.goodkey;
+END;
+^
+
+CREATE TRIGGER INV_BU_MOVEMENT FOR INV_MOVEMENT
+ACTIVE BEFORE UPDATE POSITION 0
+AS
+ DECLARE VARIABLE balance NUMERIC(15, 4);
+BEGIN
+  IF (NEW.documentkey <> OLD.documentkey) THEN
+    EXCEPTION inv_e_movementchange;
+
+  IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN
+  BEGIN
+    IF (OLD.debit > 0) THEN
+    BEGIN
+      SELECT balance FROM inv_balance
+      WHERE
+        contactkey = OLD.contactkey
+        AND cardkey = OLD.cardkey
+      INTO :balance;
+      IF (:balance IS NULL) THEN
+        balance = 0;
+      IF (:balance < OLD.debit) THEN
+      BEGIN
+        EXCEPTION INV_E_INVALIDMOVEMENT;
+      END
+    END
+  END
+  ELSE
+  BEGIN
+    IF (OLD.debit > NEW.debit) THEN
+    BEGIN
+      SELECT balance FROM inv_balance
+      WHERE
+        contactkey = OLD.contactkey
+        AND cardkey = OLD.cardkey
+      INTO :balance;
+      IF (:balance IS NULL) THEN
+        balance = 0;
+      IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN
+      BEGIN
+        EXCEPTION INV_E_INVALIDMOVEMENT;
+      END
+    END
+    ELSE
+      IF (NEW.credit > OLD.credit) THEN
+      BEGIN
+        SELECT balance FROM inv_balance
+        WHERE
+          contactkey = OLD.contactkey
+          AND cardkey = OLD.cardkey
+        INTO :balance;
+        IF (:balance IS NULL) THEN
+          balance = 0;
+        IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN
+        BEGIN
+          EXCEPTION INV_E_INVALIDMOVEMENT;
+        END
+      END
+  END
+
+END;
+^
+
+CREATE TRIGGER INV_BU_MOVEMENT_GOODKEY FOR INV_MOVEMENT
+ACTIVE BEFORE UPDATE POSITION 1
+AS
+BEGIN
+  IF ((NEW.cardkey <> OLD.cardkey) OR (NEW.goodkey IS NULL)) THEN
+    SELECT goodkey FROM inv_card
+    WHERE id = NEW.cardkey
+    INTO NEW.goodkey;
+END;
+^
+
+
+CREATE TRIGGER INV_BD_MOVEMENT FOR INV_MOVEMENT
+BEFORE DELETE POSITION 0
+AS
+  DECLARE VARIABLE DOCKEY INTEGER;
+  DECLARE VARIABLE FIRSTDOCKEY INTEGER;
+  DECLARE VARIABLE CONTACTTYPE INTEGER;
+  DECLARE VARIABLE BALANCE NUMERIC(15, 4);
+BEGIN
+  /* Trigger body */
+  IF ((OLD.disabled = 0) AND NOT EXISTS(SELECT * FROM INV_MOVEMENT WHERE DOCUMENTKEY = OLD.DOCUMENTKEY AND DISABLED = 1)) THEN
+  BEGIN
+  
+    SELECT documentkey, firstdocumentkey FROM inv_card WHERE id = OLD.cardkey
+    INTO :dockey, :firstdockey;
+  
+    IF (:dockey = OLD.documentkey) THEN
+    BEGIN
+      IF (EXISTS (SELECT id FROM inv_movement m WHERE m.cardkey = OLD.cardkey AND m.documentkey <> OLD.documentkey)) THEN
+        EXCEPTION INV_E_INVALIDMOVEMENT;
+    END
+    ELSE
+      IF (OLD.debit > 0) THEN
+      BEGIN
+        SELECT contacttype FROM gd_contact WHERE id = OLD.contactkey
+        INTO :contacttype;
+        IF (:contacttype = 2 or :contacttype = 4) THEN
+        BEGIN
+          SELECT balance FROM inv_balance
+          WHERE
+            contactkey = OLD.contactkey
+            AND cardkey = OLD.cardkey
+          INTO :balance;
+          IF (:balance IS NULL) THEN
+            balance = 0;
+          IF (:balance < OLD.debit) THEN
+          BEGIN
+            EXCEPTION INV_E_INVALIDMOVEMENT;
+          END
+        END
+      END
+      
+  END
+
+END;
+^
+
+CREATE PROCEDURE INV_P_GETCARDS (
+    PARENT INTEGER)
+RETURNS (
+    ID INTEGER)
+AS
+BEGIN
+
+  FOR
+    SELECT ID FROM INV_CARD WHERE PARENT = :PARENT
+    INTO :ID
+  DO
+  BEGIN
+    SUSPEND;
+    FOR
+      SELECT ID FROM INV_P_GETCARDS(:ID)
+      INTO :ID
+    DO
+      SUSPEND;
+  END
+END;
+^
+
+CREATE PROCEDURE INV_GETCARDMOVEMENT (
+    CARDKEY INTEGER,
+    CONTACTKEY INTEGER,
+    DATEEND DATE)
+RETURNS (
+    REMAINS NUMERIC(15, 4))
+AS
+BEGIN
+  REMAINS = 0;
+  SELECT SUM(m.debit - m.credit)
+  FROM inv_movement m
+  WHERE m.cardkey = :CARDKEY AND m.contactkey = :CONTACTKEY and m.movementdate > :DATEEND
+  INTO :REMAINS;
+  IF (REMAINS IS NULL) THEN
+    REMAINS = 0;
+  SUSPEND;
+END;
+^
+
+CREATE TRIGGER INV_BI_BALANCE_GOODKEY FOR INV_BALANCE
+ACTIVE BEFORE INSERT POSITION 0
+AS
+BEGIN
+  SELECT goodkey FROM inv_card
+  WHERE id = NEW.cardkey
+  INTO NEW.goodkey;
+END;
+^
+
+CREATE TRIGGER INV_BU_BALANCE FOR INV_BALANCE
+ACTIVE BEFORE UPDATE POSITION 0
+AS
+  DECLARE VARIABLE quantity NUMERIC(15, 4);
+BEGIN
+/*Тело триггера*/
+  IF (NEW.contactkey <> OLD.contactkey) THEN
+  BEGIN
+    /*
+    IF (EXISTS (SELECT * FROM inv_balance WHERE contactkey = NEW.contactkey AND
+      cardkey = NEW.cardkey))
+    THEN
+    BEGIN
+    */
+      quantity = NULL;
+      SELECT balance
+        FROM inv_balance
+        WHERE contactkey = NEW.contactkey AND cardkey = NEW.cardkey
+        INTO :quantity;
+      IF (NOT (:quantity IS NULL)) THEN
+      BEGIN
+        DELETE FROM inv_balance
+        WHERE
+          contactkey = NEW.contactkey AND cardkey = NEW.cardkey;
+
+        NEW.balance = NEW.balance + :quantity;
+      END
+    /*
+    END
+    */
+  END
+END
+^
+
+CREATE TRIGGER INV_BU_BALANCE_GOODKEY FOR INV_BALANCE
+  ACTIVE
+  BEFORE UPDATE
+  POSITION 1
+AS
+BEGIN
+  IF ((NEW.cardkey <> OLD.cardkey) OR (NEW.goodkey IS NULL)) THEN
+    SELECT goodkey FROM inv_card
+    WHERE id = NEW.cardkey
+    INTO NEW.goodkey;
+END;
+^
+
+/*
+CREATE TRIGGER inv_bi_movement_block FOR inv_movement
+  INACTIVE
+  BEFORE INSERT
+  POSITION 28017
+AS
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF ((NEW.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
+  BEGIN
+    SELECT d.documenttypekey
+    FROM gd_document d
+    WHERE d.id = NEW.documentkey
+    INTO :DT;
+
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (:DT)
+      RETURNING_VALUES :F;
+
+    IF(:F = 0) THEN
+    BEGIN
+      BG = GEN_ID(gd_g_block_group, 0);
+      IF (:BG = 0) THEN
+      BEGIN
+        EXCEPTION gd_e_block;
+      END ELSE
+      BEGIN
+        SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+          INTO :IG;
+        IF (BIN_AND(:BG, :IG) = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END
+      END
+    END
+  END
+END
+^
+
+CREATE TRIGGER inv_bu_movement_block FOR inv_movement
+  INACTIVE
+  BEFORE UPDATE
+  POSITION 28017
+AS
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF (((NEW.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))
+      OR ((OLD.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))) THEN
+  BEGIN
+    SELECT d.documenttypekey
+    FROM gd_document d
+    WHERE d.id = NEW.documentkey
+    INTO :DT;
+
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (:DT)
+      RETURNING_VALUES :F;
+
+    IF(:F = 0) THEN
+    BEGIN
+      BG = GEN_ID(gd_g_block_group, 0);
+      IF (:BG = 0) THEN
+      BEGIN
+        EXCEPTION gd_e_block;
+      END ELSE
+      BEGIN
+        SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+          INTO :IG;
+        IF (BIN_AND(:BG, :IG) = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END
+      END
+    END
+  END
+END
+^
+
+CREATE TRIGGER inv_bd_movement_block FOR inv_movement
+  INACTIVE
+  BEFORE DELETE
+  POSITION 28017
+AS
+  DECLARE VARIABLE IG INTEGER;
+  DECLARE VARIABLE BG INTEGER;
+  DECLARE VARIABLE DT INTEGER;
+  DECLARE VARIABLE F INTEGER;
+BEGIN
+  IF ((OLD.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) THEN
+  BEGIN
+    SELECT d.documenttypekey
+    FROM gd_document d
+    WHERE d.id = OLD.documentkey
+    INTO :DT;
+
+    EXECUTE PROCEDURE gd_p_exclude_block_dt (:DT)
+      RETURNING_VALUES :F;
+
+    IF(:F = 0) THEN
+    BEGIN
+      BG = GEN_ID(gd_g_block_group, 0);
+      IF (:BG = 0) THEN
+      BEGIN
+        EXCEPTION gd_e_block;
+      END ELSE
+      BEGIN
+        SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER
+          INTO :IG;
+        IF (BIN_AND(:BG, :IG) = 0) THEN
+        BEGIN
+          EXCEPTION gd_e_block;
+        END
+      END
+    END
+  END
+END
+^
+*/
+
+SET TERM ; ^
+
+COMMIT;
+
+
+/*
+
+  Copyright (c) 2001 by Golden Software of Belarus
+
+  Script
+
+    inv_price.sql
+
+  Abstract
+
+    Таблицы для учета прайс-листов.
+
+  Author
+
+    Denis Romanovski (19 october 2001)
+
+  Revisions history
+
+    Initial  19.10.2001  Dennis    Initial version
+
+  Status
+
+    Draft
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2001 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE TABLE inv_price
+(
+  documentkey      dintkey,                 /* Ссылка на документ */
+
+  name             dname,                   /* Наименвоание прайс-листа */
+  description      dtext180,                /* Описание прайс-листа */
+
+  relevancedate    ddate NOT NULL,          /* Дата актуальности (начала действия) */
+
+  reserved         dinteger                 /* Зарезервировано */
+);
+
+COMMIT;
+
+ALTER TABLE inv_price ADD CONSTRAINT inv_pk_price_dk
+  PRIMARY KEY(documentkey);
+
+ALTER TABLE inv_price ADD CONSTRAINT inv_fk_price_dk
+  FOREIGN KEY(documentkey) REFERENCES gd_document(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+COMMIT;
+
+CREATE TABLE inv_priceline
+(
+  documentkey      dintkey,                 /* Ссылка на позицию документа */
+  pricekey         dmasterkey,                 /* Ссылка на шапку прайс-листа */
+
+  goodkey          dintkey,                 /* Ссылка на ТМЦ */
+
+  reserved         dinteger                 /* Зарезервировано */
+);
+
+COMMIT;
+
+ALTER TABLE inv_priceline ADD CONSTRAINT inv_pk_priceline_dk
+  PRIMARY KEY(documentkey);
+
+ALTER TABLE inv_priceline ADD CONSTRAINT inv_fk_priceline_dk
+  FOREIGN KEY(documentkey) REFERENCES gd_document(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE inv_priceline ADD CONSTRAINT inv_fk_priceline_pk
+  FOREIGN KEY(pricekey) REFERENCES gd_document(id)
+  ON UPDATE CASCADE
+  ON DELETE CASCADE;
+
+ALTER TABLE inv_priceline ADD CONSTRAINT inv_fk_priceline_gk
+  FOREIGN KEY(goodkey) REFERENCES gd_good(id)
+  ON UPDATE CASCADE;
+
+COMMIT;
+
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    gd_tax.sql
+
+  Abstract
+
+    An Interbase script for script control.           
+
+  Author
+
+    Dubrovnik Alexander (24.01.03)
+
+  Revisions history
+
+    Initial  24.01.03  DAlex    Initial version
+
+  Status
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/****************************************************
+
+   Таблицы для расчета функций отчетов бухгалтерии
+
+*****************************************************/
+
+/* Таблица типов отчетов бухгалтерии */
+
+CREATE TABLE gd_taxtype
+(                               
+  id       dintkey  PRIMARY KEY,
+  name     dname
+ );
+
+COMMIT;
+
+CREATE UNIQUE INDEX gd_idx_taxtype ON gd_taxtype
+  /*COMPUTED BY (UPPER(name));*/
+  (name);
+
+COMMIT;
+
+INSERT INTO gd_taxtype(id, name)
+  VALUES (350001, 'За месяц');
+
+INSERT INTO gd_taxtype(id, name)
+  VALUES (350002, 'За квартал');
+
+INSERT INTO gd_taxtype(id, name)
+  VALUES (350003, 'За период');
+
+COMMIT;
+
+CREATE EXCEPTION gd_e_taxtype 'Can not change data in GD_TAXTYPE table';
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_taxtype FOR gd_taxtype
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  EXCEPTION gd_e_taxtype;
+END ^
+
+CREATE TRIGGER gd_bd_taxtype FOR gd_taxtype
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  EXCEPTION gd_e_taxtype;
+END ^
+
+CREATE TRIGGER gd_bu_taxtype FOR gd_taxtype
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  EXCEPTION gd_e_taxtype;
+END ^
+
+SET TERM ; ^
+
+COMMIT;
+
+/* таблица имен бух.отчетов */
+CREATE TABLE GD_TAXNAME (
+    ID              DINTKEY,
+    NAME            DNAME,
+    TRANSACTIONKEY  DFOREIGNKEY NOT NULL,
+    ACCOUNTKEY      DFOREIGNKEY NOT NULL
+);
+COMMIT;
+ALTER TABLE GD_TAXNAME ADD PRIMARY KEY (ID);
+ALTER TABLE GD_TAXNAME ADD CONSTRAINT FK_GD_TAXNAME FOREIGN KEY (TRANSACTIONKEY) REFERENCES AC_TRANSACTION (ID);
+ALTER TABLE GD_TAXNAME ADD CONSTRAINT FK_GD_TAXNAME_ACCOUNTKEY FOREIGN KEY (ACCOUNTKEY) REFERENCES AC_ACCOUNT (ID);
+COMMIT;
+CREATE UNIQUE INDEX GD_IDX_TAXNAME ON GD_TAXNAME (NAME);
+COMMIT;
+
+/* таблица актуальности налогов */
+
+CREATE TABLE GD_TAXACTUAL (
+    ID              DINTKEY,
+    TAXNAMEKEY      DINTKEY,
+    ACTUALDATE      DDATE NOT NULL,
+    REPORTGROUPKEY  DINTKEY,
+    REPORTDAY       DSMALLINT NOT NULL,
+    TYPEKEY         DINTKEY,
+    DESCRIPTION     DTEXT120,
+    TRRECORDKEY     DFOREIGNKEY NOT NULL
+);
+
+COMMIT;
+
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT CHK_GD_TAXACTUAL_RD CHECK (0 < reportday AND reportday < 32);
+ALTER TABLE GD_TAXACTUAL ADD PRIMARY KEY (ID);
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL FOREIGN KEY (TAXNAMEKEY) REFERENCES GD_TAXNAME (ID) on update CASCADE;
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL_T FOREIGN KEY (TYPEKEY) REFERENCES GD_TAXTYPE (ID) on update CASCADE;
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL_TRG FOREIGN KEY (REPORTGROUPKEY) REFERENCES RP_REPORTGROUP (ID) on update CASCADE;
+ALTER TABLE GD_TAXACTUAL ADD CONSTRAINT FK_GD_TAXACTUAL_TRRECORD FOREIGN KEY (TRRECORDKEY) REFERENCES AC_TRRECORD (ID) on update CASCADE;
+
+COMMIT;
+
+CREATE UNIQUE INDEX GD_IDX_TAXACTUAL ON GD_TAXACTUAL (TAXNAMEKEY, ACTUALDATE);
+
+COMMIT;
+
+/* таблица расчетных дат по налогу */
+
+CREATE TABLE GD_TAXDESIGNDATE (
+    DOCUMENTKEY   DINTKEY,
+    TAXNAMEKEY    DINTKEY,
+    TAXACTUALKEY  DINTKEY
+);
+
+COMMIT;
+
+ALTER TABLE GD_TAXDESIGNDATE ADD PRIMARY KEY (DOCUMENTKEY);
+ALTER TABLE GD_TAXDESIGNDATE ADD CONSTRAINT FK_GD_TAXDESIGNDATE FOREIGN KEY (TAXNAMEKEY) REFERENCES GD_TAXNAME (ID);
+ALTER TABLE GD_TAXDESIGNDATE ADD CONSTRAINT FK_GD_TAXDESIGNDATE_ADDD FOREIGN KEY (TAXACTUALKEY) REFERENCES GD_TAXACTUAL (ID);
+ALTER TABLE GD_TAXDESIGNDATE ADD CONSTRAINT FK_GD_TAXDESIGNDATE_DDD FOREIGN KEY (DOCUMENTKEY) REFERENCES GD_DOCUMENT (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+
+COMMIT;
+
+/* таблица результов функций */
+
+CREATE TABLE GD_TAXRESULT (
+    DOCUMENTKEY       DINTKEY,
+    TAXDESIGNDATEKEY  DINTKEY,
+    RESULT            DTEXT255,
+    NAME              DTEXT60 COLLATE PXW_CYRL,
+    DESCRIPTION       DTEXT1024 COLLATE PXW_CYRL
+);
+
+COMMIT;
+
+ALTER TABLE GD_TAXRESULT ADD PRIMARY KEY (DOCUMENTKEY);
+ALTER TABLE GD_TAXRESULT ADD CONSTRAINT FK_GD_TAXRESULT_D FOREIGN KEY (DOCUMENTKEY) REFERENCES GD_DOCUMENT (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE GD_TAXRESULT ADD CONSTRAINT FK_GD_TAXRESULT_DD FOREIGN KEY (TAXDESIGNDATEKEY) REFERENCES GD_TAXDESIGNDATE (DOCUMENTKEY);
+
+COMMIT;
+
+
+
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    at_setting.sql
+
+  Abstract
+
+    Репозиторий настроек БД
+
+  Author
+
+    Julia Teryokhina
+
+  Revisions history
+
+    Initial  27.05.2002  Julia    Initial version
+
+
+*/
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/* Таблица настроек*/
+
+CREATE TABLE at_setting (
+  id              dintkey NOT NULL,  /* идентификатор */
+  name            dname NOT NULL     /* наименование настройки */
+                  collate PXW_CYRL,
+  data            DBLOB4096,         /* данные объекта, сохраненные в поток */
+  storagedata     DBLOB4096,         /* данные хранилища, сохраненные в поток */
+  disabled        dboolean DEFAULT 0,/* активная / неактивная настройка */
+  modifydate      dtimestamp,        /* дата сохранения настройки в базу */
+  settingsruid    dblobtext80_1251,  /* хранит руиды настроек, от которых зависит данная натсройка*/
+  version         dinteger,          /* версия настройки, возрастает при каждом сохранении настройки в базу */ 
+  minexeversion   dtext20,           /* min версия Exe-файла для работы настройки */
+  mindbversion    dtext20,           /* min версия БД для работы настройки */
+  ending          dboolean,           /* конечная/промежуточная настройка */
+  description     dtext255           /* описание настройки */
+);
+
+
+ALTER TABLE at_setting ADD CONSTRAINT at_pk_setting PRIMARY KEY (id);
+
+SET TERM ^ ;
+
+CREATE TRIGGER at_bi_setting FOR at_setting
+BEFORE INSERT POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+END
+^
+SET TERM ; ^
+
+COMMIT;
+
+/* Таблица позиций настроек */
+/* Поля категория объекта и наименование объекта используются чисто для
+   отображения содержимого настройки, при этом поля мастера могут
+   содержать информацию о мастрее сохраняемого объекта, опять-таки
+   только для просмотра содержимого настройки. Например, мы сохраняем
+   поле usr$newfield таблицы usr$newtable. Мастер-категория - таблица,
+   мастер-наименование - usr$newtable, категория объекта - поле,
+   наименование объекта - usr$newfield. */
+
+CREATE TABLE at_settingpos (
+  id              dintkey,                   /* идентификатор */
+  settingkey      dmasterkey NOT NULL,       /* ссылка на настройку */
+  mastercategory  dtext20 collate PXW_CYRL,  /* категория местера */
+  mastername      dtext60 collate PXW_CYRL,  /* наименование мастера */
+  objectclass     dclassname NOT NULL        /* класс сохраняемого объекта */
+                  collate PXW_CYRL,
+  subtype         dtext40 collate PXW_CYRL,  /* сабтайп сохраняемого объекта */
+  category        dtext20 collate PXW_CYRL,  /* категория сохраняемого объекта */
+  objectname      dname NOT NULL             /* наименование сохраняемого объекта */
+                  collate PXW_CYRL,
+  xid             dinteger NOT NULL,         /* идентификатор сохраняемого объекта
+                                                (из базы-родителя) */
+  dbid            dinteger NOT NULL,         /* идентификатор базы родителя */
+  objectorder     dinteger NOT NULL,         /* порядок следования объектов в настройке */
+  withdetail      dboolean_notnull default 0 /* считывать все детальные объекты для данного объекта */
+                  NOT NULL,
+  needmodify      dboolean_notnull default 1 /* модифицировать объекты при активации настройки */
+                  NOT NULL,
+  autoadded       DBOOLEAN_NOTNULL DEFAULT 0 /* позиция добавлена автоматически */
+                  NOT NULL
+
+);
+
+
+
+ALTER TABLE at_settingpos ADD CONSTRAINT at_pk_settingpos PRIMARY KEY (id);
+
+/* По идее, здесь должен быть уникальный ключ,
+   но возникает проблема  при сортировке, поэтому пока убрано */
+/* ALTER TABLE at_settingpos ADD CONSTRAINT at_uk_settingpos_order
+ UNIQUE (settingkey, objectorder); */
+
+ALTER TABLE at_settingpos ADD CONSTRAINT at_uk_settingpos
+ UNIQUE (settingkey, xid, dbid);
+
+ALTER TABLE at_settingpos ADD  CONSTRAINT at_fk_settingpos_settinkey
+FOREIGN KEY (settingkey) REFERENCES at_setting (id)
+ON DELETE CASCADE ON UPDATE CASCADE;
+
+CREATE INDEX AT_SETTINGPOS_XID_DBID ON AT_SETTINGPOS (XID, DBID);
+SET TERM ^ ;
+
+CREATE TRIGGER at_bi_settingpos FOR at_settingpos
+BEFORE INSERT POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+  IF (NEW.objectorder IS NULL) THEN
+    NEW.objectorder = NEW.id;
+
+END
+^
+SET TERM ; ^
+
+COMMIT;
+
+/* Таблица для хранения веток реестра в настройках*/
+
+CREATE TABLE at_setting_storage
+(
+  id           dintkey NOT NULL,         /* идентификатор */
+  settingkey   dmasterkey NOT NULL,     /* ссылка на настройку*/
+  branchname   dblobtext80_1251,        /* наименование ветки стораджа */
+  valuename    dtext255,                /* наименование параметра. 
+                                           Если пустое, значит сохранена вся ветка*/
+  crc          dinteger
+);
+
+COMMIT;
+
+ALTER TABLE at_setting_storage ADD
+CONSTRAINT at_pk_setting_storage PRIMARY KEY (id);
+
+ALTER TABLE at_setting_storage ADD
+CONSTRAINT at_fk_setstorage_settingkey
+FOREIGN KEY (settingkey) REFERENCES at_setting (id)
+ON DELETE CASCADE ON UPDATE CASCADE;
+
+SET TERM ^ ;
+
+CREATE TRIGGER at_bi_setting_storage FOR at_setting_storage
+BEFORE INSERT POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+END
+^
+SET TERM ; ^
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2001 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+CREATE DOMAIN DFILETYPE AS CHAR(1) NOT NULL CHECK (VALUE IN('D','F'));
+
+COMMIT;
+
+CREATE TABLE gd_file
+(
+  id              dintkey,
+  /* Левая (верхняя) граница. Одновременно может использоваться */
+  /* как второй уникальный индекс, если группы и список */
+  /* находятся в разных таблицах */
+  lb              dlb,
+  rb              drb,          /* Правая (нижняя) граница */
+
+  parent          dparent,
+  filetype        dfiletype,    /* D - директория, F - файл  */
+  name            dfilename NOT NULL, /* _мя файла без пуцi     */
+  datasize        dinteger,          /* размер файла */
+  data            dblob4096,         /* данные сжатые */
+  crc             dinteger,          /* код для проверки содержимого файла */
+  description     dtext80,           /* описание сод файла */
+ 
+  afull           dsecurity,           /* права доступа                   */
+  achag           dsecurity,
+  aview           dsecurity,
+
+  creatorkey      dintkey,             /* хто стварыў дакумент            */
+  creationdate    dcreationdate,       /* дата _ час стварэньня           */
+  editorkey       dintkey,             /* хто рэдактаваў                  */
+  editiondate     deditiondate,        /* дата _ час рэдактаваньня        */
+  reserved        dreserved
+
+);
+
+
+COMMIT;
+
+ALTER TABLE gd_file
+  ADD CONSTRAINT gd_pk_file PRIMARY KEY (id);
+
+ALTER TABLE gd_file ADD CONSTRAINT gd_fk_file_parent
+  FOREIGN KEY (parent) REFERENCES gd_file(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_file ADD CONSTRAINT gd_fk_file_creatorkey
+  FOREIGN KEY (creatorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_file ADD CONSTRAINT gd_fk_file_editorkey
+  FOREIGN KEY (editorkey) REFERENCES gd_people(contactkey)
+  ON UPDATE CASCADE;
+
+
+COMMIT;
+
+CREATE EXCEPTION gd_e_invalidfilename 'You entered invalid file name!';
+
+COMMIT;
+
+SET TERM ^ ;
+
+/*
+  При вставке и обновлении записи автоматически инициализируем
+  поля Дата создания и Дата редактирования, если программист не
+  присвоил их самостоятельно.
+*/
+
+CREATE TRIGGER gd_bi_file FOR gd_file
+  BEFORE INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE id INTEGER;
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.creatorkey IS NULL) THEN
+    NEW.creatorkey = 650002;
+  IF (NEW.creationdate IS NULL) THEN
+    NEW.creationdate = CURRENT_TIMESTAMP;
+
+  IF (NEW.editorkey IS NULL) THEN
+    NEW.editorkey = 650002;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+
+  IF (NEW.parent IS NULL) THEN
+  BEGIN
+    SELECT id FROM gd_file
+    WHERE parent IS NULL AND UPPER(name) = UPPER(NEW.name)
+    INTO :id;
+  END
+  ELSE
+  BEGIN
+    SELECT id FROM gd_file
+    WHERE parent = NEW.parent AND UPPER(name) = UPPER(NEW.name)
+    INTO :id;
+  END
+
+  IF (:id IS NOT NULL) THEN
+    EXCEPTION gd_e_InvalidFileName;
+
+END
+^
+
+CREATE TRIGGER gd_bu_file FOR gd_file
+  BEFORE UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE id INTEGER;
+BEGIN
+  IF (NEW.parent IS NULL) THEN
+  BEGIN
+    SELECT id FROM gd_file
+    WHERE parent IS NULL AND UPPER(name) = UPPER(NEW.name)
+    AND id <> NEW.id
+    INTO :id;
+  END
+  ELSE
+  BEGIN
+    SELECT id FROM gd_file
+    WHERE parent = NEW.parent AND UPPER(name) = UPPER(NEW.name)
+    AND id <> NEW.id
+    INTO :id; 
+  END
+
+  IF (:id IS NOT NULL) THEN
+    EXCEPTION gd_e_InvalidFileName;
+
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/*
+
+  Copyright (c) 2001-2008 by Golden Software of Belarus
+
+
+  Script
+
+    gd_block_rule.sql
+
+  Abstract
+  
+    Таблицы, триггеры, хранимые процедуры 
+    механизма блокировки периода
+
+  Author
+
+    Alex Stav
+*/
+
+CREATE TABLE GD_BLOCK_RULE 
+(
+  ID                    DINTKEY,                     /*Первичный ключ*/
+  NAME                  DNAME,                       /*Наименование правила*/
+  ORDR                  DINTEGER_NOTNULL,            /*Порядковый номер правила*/
+  FORDOCS               DBOOLEAN_NOTNULL DEFAULT 1,  /*Правило для документов*/
+  ALLDOCTYPES           DBOOLEAN_NOTNULL DEFAULT 1,  /*для всех типов документов*/
+  INCLDOCTYPES          DBOOLEAN_NOTNULL DEFAULT 1,  /*блокировка распространяется на документы из GD_BLOCK_DT*/
+  TABLENAME             DTABLENAME,                  /*Имя таблицы, на которую устанавливается блокировка*/
+  ROOTKEY               DFOREIGNKEY,                 /*идентификатор ветви*/
+  INCLSUBLEVELS         DBOOLEAN_NOTNULL DEFAULT 1,  /*должно входить в ветвь*/
+  ALLRECORDS            DBOOLEAN_NOTNULL DEFAULT 1,  /*блокируются все записи*/
+  SELECTCONDITION       DTEXT1024,                   /*Произвольное условие отбора записей*/
+  ANYDATE               DBOOLEAN_NOTNULL DEFAULT 1,  /*блокировка вне зависимости от даты*/
+  DATEFIELDNAME         DFIELDNAME,                  /*Имя поля с датой в таблице tablename*/
+  FIXEDDATE             DBOOLEAN_NOTNULL DEFAULT 0,  /*Признак фиксированной даты блокировкаи*/
+  BLOCKDATE             DDATE,                       /*Фиксированная дата блокировки*/
+  DAYNUMBER             DINTEGER_NOTNULL DEFAULT 0,  /*Номер дня относительно начала единицы периода*/
+  DATEUNIT              CHAR(2),                     /*Единица периода*/
+  ALLUSERS              DBOOLEAN_NOTNULL DEFAULT 1,  /*Правило для всех пользователей*/
+  INCLUSERS             DBOOLEAN_NOTNULL DEFAULT 1,  /*включать указанные группы в блокировку*/
+  USERGROUPS            DINTKEY,                     /*Битовая маска групп пользователей*/
+  CREATORKEY            DINTKEY,                     /*Кто создал запись*/
+  CREATIONDATE          DCREATIONDATE,               /*Дата создания*/
+  EDITORKEY             DINTKEY,                     /*Кто последним менял запись*/
+  EDITIONDATE           DEDITIONDATE,                /*Дата изменения*/
+  DISABLED              DDISABLED DEFAULT 0          /*Правило отключено*/
+);
+
+COMMIT;
+
+ALTER TABLE GD_BLOCK_RULE ADD CONSTRAINT DATE_UNIT_CHECK CHECK (dateunit in ('CW','CM','CQ','CY','PW','PM','PQ','PY','TO')); 
+
+ALTER TABLE GD_BLOCK_RULE ADD CONSTRAINT UNQ1_GD_BLOCK_RULE UNIQUE (ORDR);
+
+ALTER TABLE GD_BLOCK_RULE ADD CONSTRAINT PK_GD_BLOCK_RULE PRIMARY KEY (ID);
+
+ALTER TABLE GD_BLOCK_RULE ADD CONSTRAINT FK_GD_BLOCK_RULE_1 FOREIGN KEY (CREATORKEY) REFERENCES GD_PEOPLE (CONTACTKEY) ON UPDATE CASCADE;
+ALTER TABLE GD_BLOCK_RULE ADD CONSTRAINT FK_GD_BLOCK_RULE_2 FOREIGN KEY (EDITORKEY) REFERENCES GD_PEOPLE (CONTACTKEY) ON UPDATE CASCADE;
+
+GRANT ALL ON GD_BLOCK_RULE TO ADMINISTRATOR;
+
+COMMIT;
+
+CREATE TABLE GD_BLOCK_DT 
+(
+  BLOCKRULEKEY          DINTKEY               /* Ссылка на правило блокировки*/,
+  DTKEY                 DINTKEY               /*Ссылка на тип документа*/
+);
+
+COMMIT;
+
+ALTER TABLE GD_BLOCK_DT ADD CONSTRAINT FK_GD_BLOCK_DT_1 FOREIGN KEY (BLOCKRULEKEY) REFERENCES GD_BLOCK_RULE (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE GD_BLOCK_DT ADD CONSTRAINT FK_GD_BLOCK_DT_2 FOREIGN KEY (DTKEY) REFERENCES GD_DOCUMENTTYPE (ID) ON DELETE CASCADE ON UPDATE CASCADE;
+GRANT ALL ON GD_BLOCK_DT TO ADMINISTRATOR;
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER GD_BI_BLOCK_RULE FOR GD_BLOCK_RULE
+ACTIVE BEFORE INSERT POSITION 0
+AS
+begin
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+  IF (NEW.creationdate IS NULL) THEN
+    NEW.creationdate = CURRENT_TIMESTAMP;
+  IF (NEW.editiondate IS NULL) THEN
+    NEW.editiondate = CURRENT_TIMESTAMP;
+end
+^
+
+CREATE TRIGGER GD_BU_BLOCK_RULE FOR GD_BLOCK_RULE
+ACTIVE BEFORE UPDATE POSITION 0
+AS
+begin
+  NEW.editiondate = CURRENT_TIMESTAMP;
+end
+^
+
+/*Определеие даты блокировки при использовании относительной даты*/
+CREATE PROCEDURE AC_CALC_DATE (
+    DU CHAR(2),
+    DN INTEGER)
+RETURNS (
+    ADATE DATE)
+AS
+DECLARE VARIABLE M SMALLINT;
+DECLARE VARIABLE Y INTEGER;
+BEGIN 
+
+  IF (:DU = 'TO') THEN
+    ADATE = CURRENT_DATE + :DN;
+
+  IF (:DU IN ('CW','PW')) THEN
+    BEGIN 
+      IF (:DU = 'CW') THEN
+        ADATE = CURRENT_DATE - EXTRACT(WEEKDAY FROM CURRENT_DATE) + 1;
+      ELSE
+        ADATE = CURRENT_DATE - EXTRACT(WEEKDAY FROM CURRENT_DATE) - 6;
+      ADATE = ADATE + :DN;
+    END 
+
+  IF (:DU IN ('CM','PM')) THEN
+    BEGIN
+      M = EXTRACT(MONTH FROM CURRENT_DATE);
+      Y = EXTRACT(YEAR FROM CURRENT_DATE); 
+      IF (:DU = 'PM') THEN
+        M = M - 1; 
+      IF (:M = 0) THEN 
+        BEGIN 
+          M = 12; 
+          Y = Y - 1; 
+        END 
+      ADATE = CAST('01.' || M || '.' || Y AS DATE) + :DN;
+    END
+
+  IF (:DU IN ('CQ','PQ')) THEN
+    BEGIN
+      M = EXTRACT(MONTH FROM CURRENT_DATE); 
+      Y = EXTRACT(YEAR FROM CURRENT_DATE); 
+--      Q = EXTRACT(QUARTER FROM CURRENT_DATE);
+      M = CASE
+            WHEN (:M IN (1,2,3)) THEN  1
+            WHEN (:M IN (4,5,6)) THEN  4
+            WHEN (:M IN (7,8,9)) THEN  7
+            WHEN (:M IN (10,11,12)) THEN 10
+          END;
+      IF (:DU = 'PQ') THEN
+        BEGIN
+          IF (M = 1) THEN
+            BEGIN
+              M = 10;
+              Y = Y - 1;
+            END ELSE
+          M = M - 3;
+        END
+      ADATE = CAST('01.' || M || '.' || Y AS DATE) + :DN;
+    END
+
+  IF (:DU IN ('CY','PY')) THEN
+    BEGIN
+      Y = EXTRACT(YEAR FROM CURRENT_DATE); 
+      if (:DU = 'PY') then
+        Y = Y - 1;
+      ADATE = CAST('01.01.' || Y AS DATE) + :DN ;
+    END
+
+  SUSPEND; 
+
+END
+^
+
+/*Проверка выполнения условий правила блокировки*/
+CREATE PROCEDURE GD_P_BLOCK (
+    IS_DOC SMALLINT,
+    BLOCK_DATE DATE,
+    DOC_TYPE INTEGER,
+    BLOCK_TABLE_NAME VARCHAR(255))
+RETURNS (
+    IS_BLOCKED SMALLINT)
+AS
+DECLARE VARIABLE ID INTEGER;
+DECLARE VARIABLE DATEFIELDNAME VARCHAR(60);
+DECLARE VARIABLE ANYDATE SMALLINT;
+DECLARE VARIABLE FIXEDDATE SMALLINT;
+DECLARE VARIABLE BLOCKDATE DATE;
+DECLARE VARIABLE DAYNUMBER INTEGER;
+DECLARE VARIABLE DATEUNIT CHAR(2);
+DECLARE VARIABLE USERGROUPS INTEGER;
+DECLARE VARIABLE CALC_DATE DATE;
+DECLARE VARIABLE F_DATE SMALLINT;
+DECLARE VARIABLE F_UG SMALLINT;
+DECLARE VARIABLE F_DT SMALLINT;
+DECLARE VARIABLE IG INTEGER;
+DECLARE VARIABLE ALLUSERS SMALLINT;
+DECLARE VARIABLE INCLUSERS SMALLINT;
+BEGIN 
+  IS_BLOCKED = 0; 
+  IF (:IS_DOC = 1) THEN 
+    BEGIN 
+      FOR 
+        SELECT ID, ANYDATE, FIXEDDATE, BLOCKDATE, DAYNUMBER, DATEUNIT,
+               USERGROUPS, ALLUSERS, INCLUSERS
+        FROM GD_BLOCK_RULE 
+        WHERE FORDOCS = 1 AND DISABLED = 0
+        ORDER BY ORDR 
+        INTO :ID, :ANYDATE, :FIXEDDATE, :BLOCKDATE, :DAYNUMBER,
+             :DATEUNIT, :USERGROUPS, :ALLUSERS, :INCLUSERS
+      DO 
+        BEGIN 
+          -- ДАТА БЛОКИРОВКИ 
+          IF (:FIXEDDATE = 1) THEN 
+            CALC_DATE = :BLOCKDATE; ELSE 
+            EXECUTE PROCEDURE AC_CALC_DATE(:DATEUNIT,:DAYNUMBER)
+              RETURNING_VALUES :CALC_DATE; 
+          IF ((:BLOCK_DATE - CAST('17.11.1858' AS DATE)) < :CALC_DATE) THEN 
+            F_DATE = 1; ELSE F_DATE = 0; 
+          IF (:ANYDATE = 1) THEN F_DATE = 1;
+          --ГРУППЫ ПОЛЬЗОВАТЕЛЕЙ 
+          SELECT INGROUP FROM GD_USER WHERE IBNAME = CURRENT_USER 
+            INTO :IG; 
+          IF (:ALLUSERS = 1) THEN
+            F_UG = 1; ELSE 
+            BEGIN 
+              IF (BIN_AND(:USERGROUPS, :IG) = 0) THEN
+                BEGIN 
+                  IF (:INCLUSERS = 1)  THEN
+                    F_UG = 1; ELSE F_UG = 0; 
+                END  ELSE 
+                BEGIN 
+                  IF (:INCLUSERS = 0)  THEN
+                    F_UG = 1; ELSE F_UG = 0; 
+                END 
+            END 
+          --ТИП  ДОКУМЕНТА 
+          IF (EXISTS(SELECT 0 FROM GD_BLOCK_DT WHERE BLOCKRULEKEY = :ID AND DTKEY = :DOC_TYPE)) 
+            THEN 
+              F_DT = 1; ELSE F_DT = 0; 
+          --IS_BLOCKED 
+          IF ((F_DATE =1) AND (F_DT =1) AND (F_UG = 1)) THEN 
+            BEGIN 
+              IS_BLOCKED = 1; 
+              LEAVE; 
+            END 
+            ELSE IS_BLOCKED = 0; 
+        END 
+    END ELSE 
+    BEGIN 
+      FOR 
+        SELECT ID, ANYDATE, DATEFIELDNAME, FIXEDDATE, BLOCKDATE, 
+               DAYNUMBER, DATEUNIT, USERGROUPS, ALLUSERS, INCLUSERS
+        FROM GD_BLOCK_RULE 
+        WHERE FORDOCS = 0 AND DISABLED = 0 AND TABLENAME = :BLOCK_TABLE_NAME
+        ORDER BY ORDR 
+        INTO :ID, :ANYDATE, :DATEFIELDNAME, :FIXEDDATE, :BLOCKDATE,
+             :DAYNUMBER, :DATEUNIT, :USERGROUPS, :ALLUSERS, :INCLUSERS
+      DO 
+        BEGIN 
+          IF (DATEFIELDNAME IS NOT NULL) THEN 
+          -- ДАТА БЛОКИРОВКИ 
+          IF (:FIXEDDATE = 1) THEN 
+            CALC_DATE = :BLOCKDATE; ELSE 
+            EXECUTE PROCEDURE AC_CALC_DATE(:DATEUNIT, :DAYNUMBER)
+              RETURNING_VALUES :CALC_DATE; 
+          IF ((:BLOCK_DATE - CAST('17.11.1858' AS DATE)) < :CALC_DATE) THEN 
+            F_DATE = 1; ELSE F_DATE = 0;     
+          IF (:ANYDATE = 1) THEN F_DATE = 1;
+          --ГРУППЫ ПОЛЬЗОВАТЕЛЕЙ
+          SELECT INGROUP FROM GD_USER WHERE IBNAME = CURRENT_USER 
+            INTO :IG; 
+          IF (:ALLUSERS = 1) THEN
+            F_UG = 1; ELSE 
+            BEGIN 
+              IF (BIN_AND(:USERGROUPS, :IG) = 0) THEN
+                BEGIN 
+                  IF (:INCLUSERS = 1)  THEN
+                    F_UG = 1; ELSE F_UG = 0; 
+                END  ELSE 
+                BEGIN 
+                  IF (:INCLUSERS = 1)  THEN
+                    F_UG = 1; ELSE F_UG = 0; 
+                END 
+            END 
+          --IS_BLOCKED 
+          IF ((F_DATE = 1) AND (F_UG = 1)) THEN
+            BEGIN 
+              IS_BLOCKED = 1; 
+              LEAVE; 
+            END 
+            ELSE IS_BLOCKED = 0; 
+        END 
+    END 
+  SUSPEND; 
+END
+^
+
+SET TERM ; ^
+
+GRANT EXECUTE ON PROCEDURE AC_CALC_DATE TO PUBLIC;
+GRANT EXECUTE ON PROCEDURE GD_P_BLOCK TO PUBLIC;
+
+COMMIT;
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**                                                **/
+/**   Copyright (c) 2008 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/****************************************************
+
+   Таблица для хранения списка баз
+   участвующих в обмене данными.
+
+*****************************************************/
+
+CREATE TABLE rpl_database (
+    id         DINTKEY,
+    name       DTEXT60 NOT NULL COLLATE PXW_CYRL,
+    isourbase  DBOOLEAN,
+
+    CONSTRAINT pk_rpl_database PRIMARY KEY (id)
+);
+
+COMMIT;
+
+SET TERM ^ ;
+
+CREATE TRIGGER rpl_bi_database FOR rpl_database
+  ACTIVE 
+  BEFORE INSERT 
+  POSITION 0
+AS
+BEGIN
+  IF (new.id IS NULL) THEN
+    new.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+/****************************************************
+
+   Таблица для хранения списка баз
+   участвующих в обмене данными.
+
+*****************************************************/
+
+CREATE TABLE rpl_record (
+    id           DINTKEY,
+    basekey      DINTKEY,
+    editiondate  DTIMESTAMP,
+    state        SMALLINT,
+
+    CONSTRAINT pk_rpl_record PRIMARY KEY (id, basekey),
+    CONSTRAINT fk_rpl_record FOREIGN KEY (basekey)
+      REFERENCES rpl_database (id)
+      ON DELETE CASCADE
+      ON UPDATE CASCADE,
+    CONSTRAINT fk_rpl_record_gd_ruid FOREIGN KEY (ID)
+      REFERENCES GD_RUID (ID)
+      ON DELETE CASCADE
+      ON UPDATE CASCADE
+);
+
+COMMIT;
+
