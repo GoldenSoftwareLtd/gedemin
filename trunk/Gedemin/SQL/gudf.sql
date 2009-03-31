@@ -383,5 +383,6 @@ RETURNS
   INTEGER BY VALUE 
 ENTRY_POINT 'g_s_delchar' 
 MODULE_NAME 'gudf';
+
 COMMIT;
 
