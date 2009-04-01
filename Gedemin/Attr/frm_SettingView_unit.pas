@@ -367,6 +367,7 @@ procedure Tfrm_SettingView.lbPositionsClick(Sender: TObject);
 var
   ClassRecordList: TStringList;
   RecordCount: Integer;
+  TempStr: String;
   I: Integer;
 begin
   mPositionText.Clear;
@@ -375,18 +376,20 @@ begin
   RecordCount := ClassRecordList.Count;
   if RecordCount > 1 then
   begin
-    mPositionText.Text := 'Количество записей: ' + IntToStr(RecordCount) + #13#10#13#10;
+    TempStr := 'Количество записей: ' + IntToStr(RecordCount) + #13#10#13#10;
     for I := 0 to RecordCount - 1 do
     begin
-      mPositionText.Text := mPositionText.Text + IntToStr(I + 1) + ' из ' + IntToStr(RecordCount) + #13#10 +
+      TempStr := TempStr + IntToStr(I + 1) + ' из ' + IntToStr(RecordCount) + #13#10 +
         ClassRecordList.Strings[I];
     end;
   end
   else
   begin
     // Тут выводится последовательность загрузки объектов
-    mPositionText.Text := ClassRecordList.Text;
+    TempStr := ClassRecordList.Text;
   end;
+
+  mPositionText.Text := TempStr;
 end;
 
 procedure Tfrm_SettingView.btnCloseClick(Sender: TObject);
