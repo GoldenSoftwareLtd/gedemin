@@ -1,0 +1,7 @@
+meatby 
+G89^J4$83O
+binary
+cd public_html/gsbelarus/gs/content/downloads/ged/local
+send plat_setup.rar plat_setup.rar
+quit
+
