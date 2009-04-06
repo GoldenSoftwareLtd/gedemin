@@ -8,11 +8,15 @@ echo **  Инициализируем глобальные переменные       **
 echo **                                             **
 echo *************************************************
 
+
+if not exist g:\nul goto NoSubst
 if not exist d:\nul subst d: g:\
 if not exist z:\nul subst z: g:\
 
+:NoSubst
+
 set path=c:\program files\StarBase\StarTeam 5.3
-set path=%path%;c:\program files\yaffil\bin;c:\program files\yaffil\client
+set path=%path%;c:\program files\Firebird 2.5\bin
 set path=%path%;c:\Program Files\Borland\Delphi5\Bin
 set path=%path%;C:\Program Files\WinRar
 set path=%path%;c:\windows;c:\windows\system32;c:\windows\System32\Wbem
