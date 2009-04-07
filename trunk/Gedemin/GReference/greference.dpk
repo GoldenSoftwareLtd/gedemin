@@ -53,10 +53,7 @@ requires
   SynEdit_D5,
   vcljpg50,
   vclado50,
-  Tee50,
-  Fr5,
-  frx5,
-  fs5;
+  Tee50;
 
 contains
   gsDesktopManager in '..\Component\gsDesktopManager.pas',

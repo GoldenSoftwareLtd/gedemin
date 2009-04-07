@@ -40,10 +40,10 @@ ImageBase=4194304
 ExeDescription=FastReport 2.5 Components
 [Directories]
 OutputDir=
-UnitOutputDir=z:\dcu\
-PackageDLLOutputDir=d:\golden\bpl
-PackageDCPOutputDir=d:\golden\bpl
-SearchPath=d:\golden\gedemin\ibx;d:\golden\comp5\xstorm;d:\golden\comp5;d:\golden\gedemin\gadmin;d:\golden\gedemin\security;d:\golden\gedemin\addressbook;d:\golden\gedemin\bugbase;d:\golden\gedemin\greference;$(DELPHI)\Source\Toolsapi;d:\golden\gedemin\log;d:\golden\gedemin\directorygood;d:\golden\gedemin\messaging;d:\golden\gedemin\queryfilter;d:\golden\gedemin\classtree;d:\golden\gedemin\1stclass\source;d:\golden\gedemin\component;d:\golden\gedemin\attr;d:\golden\gedemin\storage;d:\golden\gedemin\common;d:\golden\gedemin\bank;d:\golden\gedemin\newtransaction;d:\golden\gedemin\realization;D:\Golden\gedemin\Department;D:\Golden\gedemin\planning;D:\Golden\gedemin\component\repository;D:\Golden\gedemin\gudf;D:\Golden\gedemin\cattle;$(DELPHI)\Imports;D:\Golden\gedemin\Component\SynEdit\Source;d:\golden\gedemin\protect;D:\Golden\gedemin\inventory;d:\golden\gedemin\const;D:\Golden\gedemin\component\repository\gd;D:\Golden\gedemin\component\gdc;D:\Golden\gedemin\zlib;D:\Golden\gedemin\report;D:\Golden\gedemin\FastReport\source;$(DELPHI)\Source\Vcl;D:\Golden\gedemin\jcl\Source;d:\golden\gedemin\gedemin;D:\Golden\gedemin\Component\tb2k\Source;d:\golden\gedemin\transaction;d:\golden\gedemin\property;d:\golden\gedemin\document;d:\golden\gedemin\designer;d:\golden\gedemin\component\gdc;d:\golden\gedemin\component\qexport\delphi5;d:\golden\gedemin\setup;D:\Golden\gedemin\Component\QExport\Delphi5;d:\golden\bpl;d:\golden\gedemin\wage;D:\Golden\gedemin\jcl\packages;d:\golden\gedemin\images;d:\golden\gedemin\tax;$(DELPHI)\Ocx\Servers;d:\golden\gedemin\backup;d:\golden\gedemin\property\functionwizard;d:\golden\gedemin\modem;d:\golden\comp5\async4\source;d:\golden\gedemin\gdcFile;d:\golden\gedemin\component\diff;d:\golden\gedemin\registration;d:\golden\gedemin\imports;D:\Golden\gedemin\jcl\source\common;D:\Golden\gedemin\jcl\source\windows
+UnitOutputDir=..\..\dcu
+PackageDLLOutputDir=..\..\bpl
+PackageDCPOutputDir=..\..\bpl
+SearchPath=..\..\ibx;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;$(DELPHI)\Source\Toolsapi;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\1stclass\source;..\..\component;..\..\attr;..\..\storage;..\..\common;..\..\bank;..\..\newtransaction;..\..\realization;..\..\Department;..\..\planning;..\..\component\repository;..\..\gudf;..\..\cattle;$(DELPHI)\Imports;..\..\Component\SynEdit\Source;..\..\protect;..\..\inventory;..\..\const;..\..\component\repository\gd;..\..\component\gdc;..\..\zlib;..\..\report;..\..\FastReport\source;$(DELPHI)\Source\Vcl;..\..\jcl\Source;..\..\gedemin;..\..\Component\tb2k\Source;..\..\transaction;..\..\property;..\..\document;..\..\designer;..\..\component\gdc;..\..\component\qexport\delphi5;..\..\setup;..\..\Component\QExport\Delphi5;d:\golden\bpl;..\..\wage;..\..\jcl\packages;..\..\images;..\..\tax;$(DELPHI)\Ocx\Servers;..\..\backup;..\..\property\functionwizard;..\..\modem;..\..\gdcFile;..\..\component\diff;..\..\registration;..\..\imports;..\..\jcl\source\common;..\..\jcl\source\windows
 Packages=
 Conditionals=
 DebugSourceDirs=
@@ -51,6 +51,10 @@ UsePackages=0
 [Parameters]
 RunParams=
 HostApplication=
+[Language]
+ActiveLang=
+ProjectLang=$00000419
+RootDir=
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
@@ -77,6 +81,47 @@ ProductName=
 ProductVersion=1.0.0.0
 Comments=
 [Excluded Packages]
-d:\golden\bpl\dclfrx5.bpl=FastReport 4.0 Components
-d:\golden\bpl\greference.bpl=(untitled)
-$(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
+$(DELPHI)\Bin\DCLIB50.bpl=InterBase Data Access Components
+[HistoryLists\hlConditionals]
+Count=3
+Item0=SYNEDIT;ENTRY_BALANCE;_QBUILDER;_FR4
+Item1=_BMKK;_DEPARTMENT;_QEXPORT;_SPLASH;_CATTLE;MESSAGE;_CURRSELLCONTRACT;_REALIZATION;SYNEDIT;_PROTECT;GEDEMIN;_LOADMODULE;_MODEM;GED_LOC_RUS;_GEDEMIN_LOCK;_DEBUG;_LOCALIZATION;ENTRY_BALANCE;_NEW_GRID;NEW_STREAM;FR4
+Item2=_BMKK;_DEPARTMENT;_QEXPORT;_SPLASH;_CATTLE;MESSAGE;_CURRSELLCONTRACT;_REALIZATION;SYNEDIT;_PROTECT;GEDEMIN;_LOADMODULE;_MODEM;GED_LOC_RUS;GEDEMIN_LOCK;_DEBUG;_LOCALIZATION
+[HistoryLists\hlUnitAliases]
+Count=2
+Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+Item1=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE
+[HistoryLists\hlSearchPath]
+Count=8
+Item0=$(DELPHI)\Source\Vcl;$(DELPHI)\Source\Toolsapi;$(DELPHI)\Imports;..\ibx;..\gadmin;..\security;..\addressbook;..\bugbase;..\greference;..\log;..\directorygood;..\messaging;..\queryfilter;..\classtree;..\1stclass\source;..\component;..\attr;..\storage;..\common;..\bank;..\newtransaction;..\realization;..\Department;..\planning;..\component\repository;..\gudf;..\cattle;..\Component\SynEdit\Source;..\protect;..\inventory;..\const;..\component\repository\gd;..\component\gdc;..\zlib;..\report;..\FastReport\source;..\jcl\Source;..\gedemin;..\Component\tb2k\Source;..\transaction;..\property;..\document;..\designer;..\component\gdc;..\component\qexport\delphi5;..\setup;..\wage;..\jcl\packages;..\images;..\tax;$(DELPHI)\Ocx\Servers;..\backup;..\property\functionwizard;..\modem;..\gdcFile;..\component\diff;..\imports;..\component\textdiff;..\jcl\Source\windows;..\jcl\Source\vcl;..\jcl\Source\common;..\Component\TeeChart\Sources;..\FastReport 4\Source;..\FastReport 4\FastScript;..\FastReport 4\Source\ExportPack;..\FastReport 4\Source\ADO;..\FastReport 4\FastQB;..\FastReport 4\Source\IBX
+Item1=..\..\ibx;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;$(DELPHI)\Source\Toolsapi;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\1stclass\source;..\..\component;..\..\attr;..\..\storage;..\..\common;..\..\bank;..\..\newtransaction;..\..\realization;..\..\Department;..\..\planning;..\..\component\repository;..\..\gudf;..\..\cattle;$(DELPHI)\Imports;..\..\Component\SynEdit\Source;..\..\protect;..\..\inventory;..\..\const;..\..\component\repository\gd;..\..\component\gdc;..\..\zlib;..\..\report;..\..\FastReport\source;$(DELPHI)\Source\Vcl;..\..\jcl\Source;..\..\gedemin;..\..\Component\tb2k\Source;..\..\transaction;..\..\property;..\..\document;..\..\designer;..\..\component\gdc;..\..\component\qexport\delphi5;..\..\setup;..\..\Component\QExport\Delphi5;d:\golden\bpl;..\..\wage;..\..\jcl\packages;..\..\images;..\..\tax;$(DELPHI)\Ocx\Servers;..\..\backup;..\..\property\functionwizard;..\..\modem;..\..\gdcFile;..\..\component\diff;..\..\registration;..\..\imports;..\..\jcl\source\common;..\..\jcl\source\windows
+Item2=..\Source
+Item3=bpl;..\Source
+Item4=\golden\bpl;..\Source
+Item5=d:\golden\gedemin\ibx;d:\golden\comp5\xstorm;d:\golden\comp5;d:\golden\gedemin\gadmin;d:\golden\gedemin\security;d:\golden\gedemin\addressbook;d:\golden\gedemin\bugbase;d:\golden\gedemin\greference;$(DELPHI)\Source\Toolsapi;d:\golden\gedemin\log;d:\golden\gedemin\directorygood;d:\golden\gedemin\messaging;d:\golden\gedemin\queryfilter;d:\golden\gedemin\classtree;d:\golden\gedemin\1stclass\source;d:\golden\gedemin\component;d:\golden\gedemin\attr;d:\golden\gedemin\storage;d:\golden\gedemin\common;d:\golden\gedemin\bank;d:\golden\gedemin\newtransaction;d:\golden\gedemin\realization;D:\Golden\gedemin\Department;D:\Golden\gedemin\planning;D:\Golden\gedemin\component\repository;D:\Golden\gedemin\gudf;D:\Golden\gedemin\cattle;$(DELPHI)\Imports;D:\Golden\gedemin\Component\SynEdit\Source;d:\golden\gedemin\protect;D:\Golden\gedemin\inventory;d:\golden\gedemin\const;D:\Golden\gedemin\component\repository\gd;D:\Golden\gedemin\component\gdc;D:\Golden\gedemin\zlib;D:\Golden\gedemin\report;D:\Golden\gedemin\FastReport\source;$(DELPHI)\Source\Vcl;D:\Golden\gedemin\jcl\Source;d:\golden\gedemin\gedemin;D:\Golden\gedemin\Component\tb2k\Source;d:\golden\gedemin\transaction;d:\golden\gedemin\property;d:\golden\gedemin\document;d:\golden\gedemin\designer;d:\golden\gedemin\component\gdc;d:\golden\gedemin\component\qexport\delphi5;d:\golden\gedemin\setup;D:\Golden\gedemin\Component\QExport\Delphi5;d:\golden\bpl;d:\golden\gedemin\wage;D:\Golden\gedemin\jcl\packages;d:\golden\gedemin\images;d:\golden\gedemin\tax;$(DELPHI)\Ocx\Servers;d:\golden\gedemin\backup;d:\golden\gedemin\property\functionwizard;d:\golden\gedemin\modem;d:\golden\comp5\async4\source;d:\golden\gedemin\gdcFile;d:\golden\gedemin\component\diff;d:\golden\gedemin\imports;D:\Golden\gedemin\component\textdiff;D:\Golden\gedemin\jcl\Source\windows;D:\Golden\gedemin\jcl\Source\vcl;D:\Golden\gedemin\jcl\Source\common;d:\golden\gedemin\component\textdiff;D:\Golden\gedemin\Component\TeeChart\Sources;D:\Golden\gedemin\FastReport 4\Source;D:\Golden\gedemin\FastReport 4\FastScript;D:\Golden\gedemin\FastReport 4\Source\ExportPack;D:\Golden\gedemin\FastReport 4\Source\ADO;D:\Golden\gedemin\FastReport 4\FastQB
+Item6=d:\golden\gedemin\jcl\source;d:\golden\gedemin\component\gdc;d:\golden\gedemin\jcl\source\windows;d:\golden\gedemin\jcl\source\common
+Item7=d:\golden\gedemin\ibx;d:\golden\comp5\xstorm;d:\golden\comp5;d:\golden\gedemin\gadmin;d:\golden\gedemin\security;d:\golden\gedemin\addressbook;d:\golden\gedemin\bugbase;d:\golden\gedemin\greference;$(DELPHI)\Source\Toolsapi;d:\golden\gedemin\log;d:\golden\gedemin\directorygood;d:\golden\gedemin\messaging;d:\golden\gedemin\queryfilter;d:\golden\gedemin\classtree;d:\golden\gedemin\1stclass\source;d:\golden\gedemin\component;d:\golden\gedemin\attr;d:\golden\gedemin\storage;d:\golden\gedemin\common;d:\golden\gedemin\bank;d:\golden\gedemin\newtransaction;d:\golden\gedemin\realization;D:\Golden\gedemin\Department;D:\Golden\gedemin\planning;D:\Golden\gedemin\component\repository;D:\Golden\gedemin\gudf;D:\Golden\gedemin\cattle;$(DELPHI)\Imports;D:\Golden\gedemin\Component\SynEdit\Source;d:\golden\gedemin\protect;D:\Golden\gedemin\inventory;d:\golden\gedemin\const;D:\Golden\gedemin\component\repository\gd;D:\Golden\gedemin\component\gdc;D:\Golden\gedemin\zlib;D:\Golden\gedemin\report;D:\Golden\gedemin\FastReport\source;$(DELPHI)\Source\Vcl;D:\Golden\gedemin\jcl\Source;d:\golden\gedemin\gedemin;D:\Golden\gedemin\Component\tb2k\Source;d:\golden\gedemin\transaction;d:\golden\gedemin\property;d:\golden\gedemin\document;d:\golden\gedemin\designer;d:\golden\gedemin\component\gdc;d:\golden\gedemin\component\qexport\delphi5;d:\golden\gedemin\setup;D:\Golden\gedemin\Component\QExport\Delphi5;d:\golden\bpl;d:\golden\gedemin\wage;D:\Golden\gedemin\jcl\packages;d:\golden\gedemin\images;d:\golden\gedemin\tax;$(DELPHI)\Ocx\Servers;d:\golden\gedemin\backup;d:\golden\gedemin\property\functionwizard;d:\golden\gedemin\modem;d:\golden\comp5\async4\source;d:\golden\gedemin\gdcFile;d:\golden\gedemin\component\diff;d:\golden\gedemin\imports;D:\Golden\gedemin\component\textdiff;D:\Golden\gedemin\jcl\Source\windows;D:\Golden\gedemin\jcl\Source\vcl;D:\Golden\gedemin\jcl\Source\common
+[HistoryLists\hlUnitOutputDirectory]
+Count=6
+Item0=..\dcu
+Item1=..\..\dcu
+Item2=..\..\..\dcu
+Item3=dcu
+Item4=z:\dcu
+Item5=z:\dcu\
+[HistoryLists\hlOutputDirectorry]
+Count=1
+Item0=z:\
+[HistoryLists\hlBPLOutput]
+Count=5
+Item0=..\bpl
+Item1=..\..\bpl
+Item2=..\..\..\bpl
+Item3=bpl
+Item4=d:\golden\bpl
+[HistoryLists\hlDCPOutput]
+Count=4
+Item0=..\bpl
+Item1=..\..\bpl
+Item2=..\..\..\bpl
+Item3=d:\golden\bpl
