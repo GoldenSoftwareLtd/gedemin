@@ -437,6 +437,17 @@ begin
   if (not FUseEntryBalanceWasSetManually) and (FEntryBalanceDate <> 0) then
     FUseEntryBalance := True;
 
+  if FUseEntryBalance then
+  begin
+    // новые отчеты будут строится только на FB2.0+
+    if not (Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)) then
+    begin
+      FUseEntryBalance := False;
+      Application.MessageBox(PChar('Для построения новых бухгалтерских отчетов необходим сервер Firebird 2.0 и выше!'),
+        'Внимание!', MB_OK or MB_ICONEXCLAMATION or MB_SYSTEMMODAL);
+    end;
+  end;
+
   if FWithSubAccounts then
     FillSubAccounts(FAccounts);
 

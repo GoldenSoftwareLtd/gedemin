@@ -148,7 +148,7 @@ var
   Key: HCRYPTKEY;
   Hash: HCRYPTHASH;
   CryptoKey, Pass: String;
-  Len: Integer;
+  Len, Size: Integer;
 begin
   if UserParamExists or PasswordParamExists
     or IBLogin.ReLogining then
@@ -167,7 +167,13 @@ begin
     Reg.RootKey := HKEY_CURRENT_USER;
     if Reg.OpenKey(ClientAccessRegistrySubKey + '\' + cbDBFilename.Text, False) then
     begin
-      Pass := Reg.ReadString(cbUser.Text);
+      if Reg.GetDataType(cbUser.Text) = rdBinary then
+      begin
+        Size := Reg.GetDataSize(cbUser.Text);
+        SetLength(Pass, Size);
+        Reg.ReadBinaryData(cbUser.Text, Pass[1], Size);
+      end else
+        Pass := Reg.ReadString(cbUser.Text);
       if Copy(Pass, 1, 2) = '01' then
         Delete(Pass, 1, 2)
       else
@@ -212,7 +218,7 @@ var
   hProv: HCRYPTPROV;
   Key: HCRYPTKEY;
   Hash: HCRYPTHASH;
-  CryptoKey, Pass: String;
+  CryptoKey, Pass, S: String;
   Len: Integer;
 begin
   FAutoCloseCounter := MaxInt;
@@ -269,8 +275,10 @@ begin
             if Reg.OpenKey(ClientAccessRegistrySubKey + '\' + cbDBFilename.Text, True) then
             begin
               if Len > 0 then
-                Reg.WriteString(cbUser.Text, '01' + Pass)
-              else
+              begin
+                S := '01' + Pass;
+                Reg.WriteBinaryData(cbUser.Text, S[1], Length(S));
+              end else
                 Reg.DeleteValue(cbUser.Text);
               Reg.CloseKey;
             end;
