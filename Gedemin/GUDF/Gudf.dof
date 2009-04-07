@@ -51,6 +51,10 @@ UsePackages=0
 [Parameters]
 RunParams=
 HostApplication=
+[Language]
+ActiveLang=
+ProjectLang=$00000419
+RootDir=
 [Version Info]
 IncludeVerInfo=0
 AutoIncBuild=1
@@ -77,8 +81,6 @@ ProductName=
 ProductVersion=1.0.0.0
 Comments=
 SpecialBuild=
-[Excluded Packages]
-$(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
 [HistoryLists\hlConditionals]
 Count=2
 Item0=_BMKK;_DEPARTMENT;_QEXPORT;_SPLASH;_CATTLE;MESSAGE;_CURRSELLCONTRACT;_REALIZATION;SYNEDIT;_PROTECT;GEDEMIN;_LOADMODULE;_MODEM;GED_LOC_RUS;_GEDEMIN_LOCK;_DEBUG;_LOCALIZATION;ENTRY_BALANCE;_NEW_GRID;NEW_STREAM;FR4
