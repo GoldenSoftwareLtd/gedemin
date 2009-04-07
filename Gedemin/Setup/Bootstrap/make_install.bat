@@ -41,13 +41,14 @@ echo **                                             **
 echo *************************************************
 
 set path=c:\program files\StarBase\StarTeam 5.3
-set path=%path%;c:\program files\yaffil\bin;c:\program files\yaffil\client
+set path=%path%;c:\program files\Firebird 2.5\bin
 set path=%path%;C:\Program Files\WinRar
 set path=%path%;C:\Program Files\Inno Setup 5
 set path=%path%;c:\windows;c:\windows\system32;c:\windows\System32\Wbem
 
 set gedemin_path=d:\golden\gedemin
 set install_source_path=d:\golden\gedemin_local
+set server_name=localhost:3053
 
 echo *************************************************
 echo **                                             **
@@ -57,7 +58,7 @@ echo *************************************************
 
 d:
 cd \golden\gedemin\sql
-call create.bat localhost %install_source_path%\database\%2.fdb
+call create.bat %server_name% %install_source_path%\database\%2.fdb
 if not errorlevel 0 Error
 
 echo *************************************************
@@ -66,7 +67,7 @@ echo **  Загружаем пакет настроек                   **
 echo **                                             **
 echo *************************************************
 
-set params=/sn localhost:%install_source_path%\database\%2.fdb /user Administrator /password Administrator /sp d:\golden\setting /rd
+set params=/sn %server_name%:%install_source_path%\database\%2.fdb /user Administrator /password Administrator /sp d:\golden\setting /rd
 z:\gedemin.exe %params% /sfn %1 /ns
 
 echo *************************************************
