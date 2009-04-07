@@ -6,7 +6,6 @@ object dmDatabase: TdmDatabase
   Height = 479
   Width = 741
   object ibdbGAdmin: TIBDatabase
-    DatabaseName = 'mensk:K:\bases\gedemin\berioza.gdb'
     Params.Strings = (
       'user_name=SYSDBA'
       'password=masterkey'
