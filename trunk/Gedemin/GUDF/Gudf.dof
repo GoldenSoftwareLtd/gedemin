@@ -61,7 +61,7 @@ AutoIncBuild=1
 MajorVer=1
 MinorVer=0
 Release=3
-Build=255
+Build=256
 Debug=0
 PreRelease=1
 Special=1
@@ -72,7 +72,7 @@ CodePage=1251
 [Version Info Keys]
 CompanyName=Golden Software
 FileDescription=Golden UDF library
-FileVersion=1.0.3.255
+FileVersion=1.0.3.256
 InternalName=GUDF.DLL
 LegalCopyright=Copyright (c) 1999 by Golden Software
 LegalTrademarks=
@@ -81,3 +81,24 @@ ProductName=
 ProductVersion=1.0.0.0
 Comments=
 SpecialBuild=
+[HistoryLists\hlConditionals]
+Count=1
+Item0=_BMKK;_DEPARTMENT;_QEXPORT;SPLASH;_CATTLE;MESSAGE;_CURRSELLCONTRACT;_REALIZATION;SYNEDIT;_PROTECT;GEDEMIN;_LOADMODULE;_MODEM;GED_LOC_RUS;_GEDEMIN_LOCK;_DEBUG;_LOCALIZATION;ENTRY_BALANCE;_NEW_GRID;_NEW_STREAM;_FR4;_QBUILDER;_IBSQLCACHE;_FBEMBED;_TEECHARTPRO
+[HistoryLists\hlUnitAliases]
+Count=1
+Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE
+[HistoryLists\hlSearchPath]
+Count=1
+Item0=..\ibx;..\..\comp5\xstorm;..\..\comp5;..\gadmin;..\security;..\addressbook;..\bugbase;..\greference;$(DELPHI)\Source\Toolsapi;..\log;..\directorygood;..\messaging;..\queryfilter;..\classtree;..\1stclass\source;..\component;..\attr;..\storage;..\common;..\bank;..\newtransaction;..\realization;..\Department;..\planning;..\component\repository;..\gudf;..\cattle;$(DELPHI)\Imports;..\Component\SynEdit\Source;..\protect;..\inventory;..\const;..\component\repository\gd;..\component\gdc;..\zlib;..\report;..\FastReport\source;$(DELPHI)\Source\Vcl;..\jcl\Source;..\gedemin;..\Component\tb2k\Source;..\transaction;..\property;..\document;..\designer;..\component\gdc;..\component\qexport\delphi5;..\setup;..\wage;..\jcl\packages;..\images;..\tax;$(DELPHI)\Ocx\Servers;..\backup;..\property\functionwizard;..\modem;..\..\comp5\async4\source;..\gdcFile;..\component\diff;..\imports;..\component\textdiff;..\jcl\Source\windows;..\jcl\Source\vcl;..\jcl\Source\common;..\FastReport 4\Source;..\FastReport 4\FastScript;..\FastReport 4\Source\ExportPack;..\FastReport 4\Source\ADO;..\FastReport 4\FastQB;..\FastReport 4\Source\IBX
+[HistoryLists\hlUnitOutputDirectory]
+Count=1
+Item0=..\dcu
+[HistoryLists\hlOutputDirectorry]
+Count=1
+Item0=..\exe
+[HistoryLists\hlBPLOutput]
+Count=1
+Item0=..\bpl
+[HistoryLists\hlDCPOutput]
+Count=1
+Item0=..\bpl
