@@ -49,10 +49,10 @@ Conditionals=_BMKK;_DEPARTMENT;_QEXPORT;SPLASH;_CATTLE;MESSAGE;_CURRSELLCONTRACT
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
-RunParams=/lang:by /langsave /ns /ngc /langfile:z:\local.xml 
+RunParams=
 HostApplication=
-RemoteHost=\\gserver
-RemotePath=g:\program files\golden software\gedemin\gedemin.exe
+RemoteHost=
+RemotePath=
 [Language]
 ActiveLang=
 ProjectLang=$00000419
@@ -76,7 +76,7 @@ CompanyName=Golden Software of Belarus, Ltd
 FileDescription=Gedemin
 FileVersion=1.4.8.5480
 InternalName=gedemin
-LegalCopyright=Copyright (c) 2006 by Golden Software of Belarus, Ltd
+LegalCopyright=Copyright (c) 2009 by Golden Software of Belarus, Ltd
 LegalTrademarks=gedemin
 OriginalFilename=gedemin.exe
 ProductName=gedemin
