@@ -1,7 +1,7 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
   Left = 391
   Top = 156
-  Width = 691
+  Width = 683
   Height = 556
   HelpContext = 121
   BorderIcons = [biSystemMenu, biMaximize]
@@ -21,7 +21,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 683
+    Width = 675
     Height = 499
     Align = alClient
     BevelOuter = bvNone
@@ -29,11 +29,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object pcMain: TSuperPageControl
       Left = 9
       Top = 26
-      Width = 665
+      Width = 657
       Height = 464
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsQuery
+      ActivePage = tsResult
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -44,8 +44,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Caption = 'Редактирование'
         object Splitter1: TSplitter
           Left = 0
-          Top = 357
-          Width = 659
+          Top = 379
+          Width = 651
           Height = 4
           Cursor = crVSplit
           Align = alBottom
@@ -53,8 +53,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object seQuery: TSynEdit
           Left = 0
           Top = 0
-          Width = 659
-          Height = 357
+          Width = 651
+          Height = 379
           Cursor = crIBeam
           Align = alClient
           Font.Charset = DEFAULT_CHARSET
@@ -398,13 +398,12 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Command = ecMatchBracket
               ShortCut = 24642
             end>
-          OnChange = seQueryChange
         end
         object mmPlan: TMemo
           Left = 0
-          Top = 361
-          Width = 659
-          Height = 74
+          Top = 383
+          Width = 651
+          Height = 52
           Align = alBottom
           ReadOnly = True
           TabOrder = 1
@@ -417,7 +416,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlNavigator: TPanel
           Left = 0
           Top = 0
-          Width = 659
+          Width = 651
           Height = 26
           Align = alTop
           BevelOuter = bvNone
@@ -460,7 +459,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object dbgResult: TgsDBGrid
           Left = 0
           Top = 26
-          Width = 659
+          Width = 651
           Height = 409
           HelpContext = 3
           Align = alClient
@@ -483,7 +482,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlRecord: TPanel
           Left = 0
           Top = 26
-          Width = 659
+          Width = 651
           Height = 409
           Align = alClient
           BevelInner = bvLowered
@@ -493,7 +492,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object sbRecord: TScrollBox
             Left = 1
             Top = 1
-            Width = 657
+            Width = 649
             Height = 407
             Align = alClient
             BorderStyle = bsNone
@@ -507,7 +506,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object Splitter2: TSplitter
           Left = 0
           Top = 432
-          Width = 659
+          Width = 651
           Height = 3
           Cursor = crVSplit
           Align = alBottom
@@ -515,7 +514,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object Panel2: TPanel
           Left = 0
           Top = 0
-          Width = 659
+          Width = 651
           Height = 432
           Align = alClient
           BevelOuter = bvNone
@@ -530,7 +529,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object eFilter: TEdit
             Left = 64
             Top = 8
-            Width = 591
+            Width = 583
             Height = 21
             Anchors = [akLeft, akTop, akRight]
             TabOrder = 0
@@ -539,7 +538,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object lvHistory: TListView
             Left = 0
             Top = 36
-            Width = 659
+            Width = 651
             Height = 396
             Align = alBottom
             Anchors = [akLeft, akTop, akRight, akBottom]
@@ -573,7 +572,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object tsStatisticExtra: TSuperPageControl
           Left = 0
           Top = 26
-          Width = 659
+          Width = 651
           Height = 409
           BorderStyle = bsNone
           TabsVisible = True
@@ -832,7 +831,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             object lvReads: TListView
               Left = 184
               Top = 0
-              Width = 475
+              Width = 467
               Height = 386
               Align = alClient
               Columns = <
@@ -871,7 +870,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object TBDock5: TTBDock
           Left = 0
           Top = 0
-          Width = 659
+          Width = 651
           Height = 26
           object tbStatistic: TTBToolbar
             Left = 0
@@ -961,7 +960,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object mTransaction: TMemo
           Left = 0
           Top = 0
-          Width = 659
+          Width = 651
           Height = 149
           Align = alTop
           Lines.Strings = (
@@ -971,7 +970,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object mTransactionParams: TMemo
           Left = 0
           Top = 190
-          Width = 659
+          Width = 651
           Height = 245
           Align = alClient
           Color = clBtnFace
@@ -982,7 +981,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object Panel3: TPanel
           Left = 0
           Top = 149
-          Width = 659
+          Width = 651
           Height = 41
           Align = alTop
           Alignment = taLeftJustify
@@ -1082,25 +1081,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           ShowTotals = False
         end
       end
-      object tsReport: TSuperTabSheet
-        Caption = 'Печать'
-        object FfrxPreview: TfrxPreview
-          Left = 0
-          Top = 0
-          Width = 665
-          Height = 441
-          Align = alClient
-          OutlineVisible = False
-          OutlineWidth = 120
-          ThumbnailVisible = False
-          UseReportHints = True
-        end
-      end
     end
     object TBDock1: TTBDock
       Left = 0
       Top = 0
-      Width = 683
+      Width = 675
       Height = 26
       object TBToolbar1: TTBToolbar
         Left = 0
@@ -1172,10 +1157,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         end
         object TBSeparatorItem3: TTBSeparatorItem
         end
-        object TBItem28: TTBItem
-          Action = actQueryBuilder
-          Caption = 'Построитель запросов'
-        end
         object TBItem7: TTBItem
           Action = actExport
           Images = dmImages.ImageList
@@ -1195,14 +1176,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Control = iblkupTable
         end
         object Label13: TLabel
-          Left = 393
+          Left = 370
           Top = 4
           Width = 51
           Height = 13
           Caption = 'Таблицы: '
         end
         object iblkupTable: TgsIBLookupComboBox
-          Left = 444
+          Left = 421
           Top = 0
           Width = 145
           Height = 21
@@ -1227,7 +1208,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Position = dpLeft
     end
     object TBDock3: TTBDock
-      Left = 674
+      Left = 666
       Top = 26
       Width = 9
       Height = 464
@@ -1236,7 +1217,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object TBDock4: TTBDock
       Left = 0
       Top = 490
-      Width = 683
+      Width = 675
       Height = 9
       Position = dpBottom
     end
@@ -1244,14 +1225,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
   object pModal: TPanel
     Left = 0
     Top = 499
-    Width = 683
+    Width = 675
     Height = 30
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     Visible = False
     object Button1: TButton
-      Left = 515
+      Left = 507
       Top = 4
       Width = 75
       Height = 21
@@ -1260,7 +1241,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       TabOrder = 0
     end
     object Button2: TButton
-      Left = 596
+      Left = 588
       Top = 4
       Width = 75
       Height = 21
@@ -1470,13 +1451,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 176
       OnExecute = actShowRecordExecute
       OnUpdate = actShowGridUpdate
-    end
-    object actQueryBuilder: TAction
-      Caption = 'actQueryBuilder'
-      Hint = 'Построитель запросов'
-      ImageIndex = 74
-      OnExecute = actQueryBuilderExecute
-      OnUpdate = actQueryBuilderUpdate
     end
   end
   object ibsqlPlan: TIBSQL
@@ -2749,206 +2723,5 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     AutoStopAction = saNone
     Left = 464
     Top = 369
-  end
-  object FReport: TfrxReport
-    Version = '4.7.5'
-    DotMatrixReport = False
-    IniFile = '\Software\Fast Reports'
-    Preview = FfrxPreview
-    PreviewOptions.Buttons = [pbPrint, pbLoad, pbSave, pbExport, pbZoom, pbFind, pbOutline, pbPageSetup, pbTools, pbEdit, pbNavigator, pbExportQuick]
-    PreviewOptions.Zoom = 1
-    PrintOptions.Printer = 'Default'
-    PrintOptions.PrintOnSheet = 0
-    ReportOptions.CreateDate = 38006.7863842593
-    ReportOptions.LastChange = 39852.9561858681
-    ScriptLanguage = 'PascalScript'
-    ScriptText.Strings = (
-      'begin'
-      ''
-      'end.')
-    OnBeforePrint = FReportBeforePrint
-    Left = 133
-    Top = 207
-    Datasets = <>
-    Variables = <>
-    Style = <>
-    object Data: TfrxDataPage
-      Height = 1000
-      Width = 1000
-    end
-    object Page1: TfrxReportPage
-      Orientation = poLandscape
-      PaperWidth = 297
-      PaperHeight = 210
-      PaperSize = 9
-      LeftMargin = 10
-      RightMargin = 10
-      TopMargin = 10
-      BottomMargin = 10
-      object MasterData1: TfrxMasterData
-        Height = 83
-        Top = 105.82684
-        Width = 1046.92981
-        RowCount = 1
-        object Cross1: TfrxCrossView
-          Width = 105
-          Height = 83
-          ShowHint = False
-          DownThenAcross = False
-          ShowColumnTotal = False
-          ShowRowHeader = False
-          ShowRowTotal = False
-          ShowTitle = False
-          Memos = {
-            3C3F786D6C2076657273696F6E3D22312E302220656E636F64696E673D227574
-            662D38223F3E3C63726F73733E3C63656C6C6D656D6F733E3C546672784D656D
-            6F56696577204C6566743D2232302220546F703D223134372E38323638342220
-            57696474683D22363522204865696768743D2232312220526573747269637469
-            6F6E733D223234222053686F7748696E743D2246616C73652220416C6C6F7745
-            787072657373696F6E733D2246616C736522204672616D652E5479703D223135
-            2220476170583D22332220476170593D2233222048416C69676E3D2268614365
-            6E74657222205374796C653D2263656C6C222056416C69676E3D22766143656E
-            7465722220546578743D2230222F3E3C546672784D656D6F5669657720546167
-            3D223122204C6566743D22302220546F703D2230222057696474683D22302220
-            4865696768743D223022205265737472696374696F6E733D2238222053686F77
-            48696E743D2246616C73652220416C6C6F7745787072657373696F6E733D2246
-            616C736522204672616D652E5479703D2231352220476170583D223322204761
-            70593D2233222048416C69676E3D226861526967687422205374796C653D2263
-            656C6C222056416C69676E3D22766143656E7465722220546578743D22222F3E
-            3C546672784D656D6F56696577205461673D223222204C6566743D2230222054
-            6F703D2230222057696474683D223022204865696768743D2230222052657374
-            72696374696F6E733D2238222053686F7748696E743D2246616C73652220416C
-            6C6F7745787072657373696F6E733D2246616C736522204672616D652E547970
-            3D2231352220476170583D22332220476170593D2233222048416C69676E3D22
-            6861526967687422205374796C653D2263656C6C222056416C69676E3D227661
-            43656E7465722220546578743D22222F3E3C546672784D656D6F566965772054
-            61673D223322204C6566743D22302220546F703D2230222057696474683D2230
-            22204865696768743D223022205265737472696374696F6E733D223822205368
-            6F7748696E743D2246616C73652220416C6C6F7745787072657373696F6E733D
-            2246616C736522204672616D652E5479703D2231352220476170583D22332220
-            476170593D2233222048416C69676E3D226861526967687422205374796C653D
-            2263656C6C222056416C69676E3D22766143656E7465722220546578743D2222
-            2F3E3C2F63656C6C6D656D6F733E3C63656C6C6865616465726D656D6F733E3C
-            546672784D656D6F56696577204C6566743D22302220546F703D223022205769
-            6474683D223022204865696768743D223022205265737472696374696F6E733D
-            2238222053686F7748696E743D2246616C73652220416C6C6F77457870726573
-            73696F6E733D2246616C736522204672616D652E5479703D2231352220476170
-            583D22332220476170593D2233222056416C69676E3D22766143656E74657222
-            20546578743D22222F3E3C546672784D656D6F56696577204C6566743D223022
-            20546F703D2230222057696474683D223022204865696768743D223022205265
-            737472696374696F6E733D2238222053686F7748696E743D2246616C73652220
-            416C6C6F7745787072657373696F6E733D2246616C736522204672616D652E54
-            79703D2231352220476170583D22332220476170593D2233222056416C69676E
-            3D22766143656E7465722220546578743D22222F3E3C2F63656C6C6865616465
-            726D656D6F733E3C636F6C756D6E6D656D6F733E3C546672784D656D6F566965
-            77205461673D2231303022204C6566743D2232302220546F703D223132352E38
-            32363834222057696474683D22363522204865696768743D2232322220526573
-            7472696374696F6E733D223234222053686F7748696E743D2246616C73652220
-            416C6C6F7745787072657373696F6E733D2246616C73652220436F6C6F723D22
-            35323437392220466F6E742E436861727365743D22312220466F6E742E436F6C
-            6F723D22302220466F6E742E4865696768743D222D31332220466F6E742E4E61
-            6D653D22417269616C2220466F6E742E5374796C653D223122204672616D652E
-            5479703D2231352220476170583D22332220476170593D2233222048416C6967
-            6E3D22686143656E7465722220506172656E74466F6E743D2246616C73652220
-            5374796C653D22636F6C756D6E222056416C69676E3D22766143656E74657222
-            20546578743D22222F3E3C2F636F6C756D6E6D656D6F733E3C636F6C756D6E74
-            6F74616C6D656D6F733E3C546672784D656D6F56696577205461673D22333030
-            22204C6566743D22302220546F703D2230222057696474683D22302220486569
-            6768743D223022205265737472696374696F6E733D2238222056697369626C65
-            3D2246616C7365222053686F7748696E743D2246616C73652220416C6C6F7745
-            787072657373696F6E733D2246616C73652220466F6E742E436861727365743D
-            22312220466F6E742E436F6C6F723D22302220466F6E742E4865696768743D22
-            2D31332220466F6E742E4E616D653D22417269616C2220466F6E742E5374796C
-            653D223122204672616D652E5479703D2231352220476170583D223322204761
-            70593D2233222048416C69676E3D22686143656E7465722220506172656E7446
-            6F6E743D2246616C736522205374796C653D22636F6C6772616E64222056416C
-            69676E3D22766143656E7465722220546578743D224772616E6420546F74616C
-            222F3E3C2F636F6C756D6E746F74616C6D656D6F733E3C636F726E65726D656D
-            6F733E3C546672784D656D6F56696577204C6566743D22302220546F703D2230
-            222057696474683D2232303022204865696768743D2230222052657374726963
-            74696F6E733D2238222056697369626C653D2246616C7365222053686F774869
-            6E743D2246616C73652220416C6C6F7745787072657373696F6E733D2246616C
-            736522204672616D652E5479703D2231352220476170583D2233222047617059
-            3D2233222048416C69676E3D22686143656E746572222056416C69676E3D2276
-            6143656E7465722220546578743D22222F3E3C546672784D656D6F5669657720
-            4C6566743D2232302220546F703D223132352E3832363834222057696474683D
-            22363522204865696768743D223022205265737472696374696F6E733D223822
-            2056697369626C653D2246616C7365222053686F7748696E743D2246616C7365
-            2220416C6C6F7745787072657373696F6E733D2246616C736522204672616D65
-            2E5479703D2231352220476170583D22332220476170593D2233222048416C69
-            676E3D22686143656E746572222056416C69676E3D22766143656E7465722220
-            546578743D22222F3E3C546672784D656D6F56696577204C6566743D22302220
-            546F703D2230222057696474683D223022204865696768743D22302220526573
-            7472696374696F6E733D2238222056697369626C653D2246616C736522205368
-            6F7748696E743D2246616C73652220416C6C6F7745787072657373696F6E733D
-            2246616C736522204672616D652E5479703D2231352220476170583D22332220
-            476170593D2233222048416C69676E3D22686143656E746572222056416C6967
-            6E3D22766143656E7465722220546578743D22222F3E3C546672784D656D6F56
-            696577204C6566743D22302220546F703D2230222057696474683D2232303022
-            204865696768743D223022205265737472696374696F6E733D2238222053686F
-            7748696E743D2246616C73652220416C6C6F7745787072657373696F6E733D22
-            46616C736522204672616D652E5479703D2231352220476170583D2233222047
-            6170593D2233222048416C69676E3D22686143656E746572222056416C69676E
-            3D22766143656E7465722220546578743D22222F3E3C2F636F726E65726D656D
-            6F733E3C726F776D656D6F733E3C546672784D656D6F56696577205461673D22
-            32303022204C6566743D2231302220546F703D223332222057696474683D2232
-            303022204865696768743D22313030303022205265737472696374696F6E733D
-            223234222053686F7748696E743D2246616C73652220416C6C6F774578707265
-            7373696F6E733D2246616C736522204672616D652E5479703D22313522204761
-            70583D22332220476170593D2233222048416C69676E3D22686143656E746572
-            22205374796C653D22726F77222056416C69676E3D22766143656E7465722220
-            546578743D22222F3E3C2F726F776D656D6F733E3C726F77746F74616C6D656D
-            6F733E3C546672784D656D6F56696577205461673D2234303022204C6566743D
-            22302220546F703D2230222057696474683D223022204865696768743D223022
-            205265737472696374696F6E733D2238222056697369626C653D2246616C7365
-            222053686F7748696E743D2246616C73652220416C6C6F774578707265737369
-            6F6E733D2246616C73652220466F6E742E436861727365743D22312220466F6E
-            742E436F6C6F723D22302220466F6E742E4865696768743D222D31332220466F
-            6E742E4E616D653D22417269616C2220466F6E742E5374796C653D2231222046
-            72616D652E5479703D2231352220476170583D22332220476170593D22332220
-            48416C69676E3D22686143656E7465722220506172656E74466F6E743D224661
-            6C736522205374796C653D22726F776772616E64222056416C69676E3D227661
-            43656E7465722220546578743D224772616E6420546F74616C222F3E3C2F726F
-            77746F74616C6D656D6F733E3C63656C6C66756E6374696F6E733E3C6974656D
-            20302F3E3C2F63656C6C66756E6374696F6E733E3C636F6C756D6E736F72743E
-            3C6974656D20322F3E3C2F636F6C756D6E736F72743E3C726F77736F72743E3C
-            6974656D20302F3E3C2F726F77736F72743E3C2F63726F73733E}
-        end
-      end
-      object PageFooter1: TfrxPageFooter
-        Height = 22.67718
-        Top = 249.44898
-        Width = 1046.92981
-        object Memo1: TfrxMemoView
-          Left = 7.55906
-          Width = 79.37013
-          Height = 18.89765
-          ShowHint = False
-          Memo.UTF8 = (
-            '[Page]')
-        end
-      end
-      object ReportTitle1: TfrxReportTitle
-        Height = 26.45671
-        Top = 18.89765
-        Width = 1046.92981
-        object Memo2: TfrxMemoView
-          Left = 453.5436
-          Top = 3.77953
-          Width = 158.74026
-          Height = 18.89765
-          ShowHint = False
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clBlack
-          Font.Height = -13
-          Font.Name = 'Arial'
-          Font.Style = [fsBold]
-          HAlign = haCenter
-          Memo.UTF8 = (
-            'Р РµР·СѓР»СЊС‚Р°С‚ Р·Р°РїСЂРѕСЃР°')
-          ParentFont = False
-        end
-      end
-    end
   end
 end
