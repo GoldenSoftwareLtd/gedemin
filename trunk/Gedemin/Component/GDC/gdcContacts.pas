@@ -186,6 +186,8 @@ type
   end;
 
   TgdcCompany = class(TgdcBaseContact)
+  private
+    FOkulpExists: Boolean;    {TODO: убрать после проведения модифая на всех базах}
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -2278,8 +2280,13 @@ begin
   ' VALUES (:new_id, :new_headcompany, :new_companytype, :new_fullname, ' +
   '   :new_logo, :new_companyaccountkey, :new_directorkey, :new_chiefaccountantkey)', Buff);
 
-  CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okulp, okpo, oknh, soato, soou, licence) ' +
-  ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okulp, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence) ', Buff);
+  {TODO: убрать проверку после проведения модифая на всех базах}
+  if FOkulpExists then
+    CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okulp, okpo, oknh, soato, soou, licence) ' +
+    ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okulp, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence) ', Buff)
+  else
+    CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okpo, oknh, soato, soou, licence) ' +
+    ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence) ', Buff)
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCOMPANY', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2333,12 +2340,23 @@ begin
     ' WHERE contactkey = :old_id', Buff);
 
     if q.EOF then
-      CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okulp, okpo, oknh, soato, soou, licence) ' +
-      ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okulp, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence)', Buff)
+      {TODO: убрать проверку после проведения модифая на всех базах}
+      if FOkulpExists then
+        CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okulp, okpo, oknh, soato, soou, licence) ' +
+        ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okulp, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence)', Buff)
+      else
+        CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okpo, oknh, soato, soou, licence) ' +
+        ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence)', Buff)
     else
-      CustomExecQuery(' UPDATE gd_companycode SET legalnumber = :new_legalnumber, ' +
-      ' taxid = :new_taxid, okulp = :new_okulp, okpo = :new_okpo, oknh = :new_oknh, soato = :new_soato, soou = :new_soou, licence = :new_licence ' +
-      ' WHERE companykey = :old_id', Buff);
+      {TODO: убрать проверку после проведения модифая на всех базах}
+      if FOkulpExists then
+        CustomExecQuery(' UPDATE gd_companycode SET legalnumber = :new_legalnumber, ' +
+        ' taxid = :new_taxid, okulp = :new_okulp, okpo = :new_okpo, oknh = :new_oknh, soato = :new_soato, soou = :new_soou, licence = :new_licence ' +
+        ' WHERE companykey = :old_id', Buff)
+      else
+        CustomExecQuery(' UPDATE gd_companycode SET legalnumber = :new_legalnumber, ' +
+        ' taxid = :new_taxid, okpo = :new_okpo, oknh = :new_oknh, soato = :new_soato, soou = :new_soou, licence = :new_licence ' +
+        ' WHERE companykey = :old_id', Buff);
   finally
     q.Free;
   end;
@@ -2455,9 +2473,15 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := inherited GetSelectClause +
-    ', cc.companykey, cm.contactkey, cm.headcompany, cm.companytype, cm.fullname, cm.logo, cm.companyaccountkey, cm.directorkey, cm.chiefaccountantkey,' +
-    ' cc.legalnumber, cc.taxid, cc.okulp, cc.okpo, cc.oknh, cc.soato, cc.soou, cc.licence ';
+  {TODO: убрать проверку после проведения модифая на всех базах}
+  if FOkulpExists then
+    Result := inherited GetSelectClause +
+      ', cc.companykey, cm.contactkey, cm.headcompany, cm.companytype, cm.fullname, cm.logo, cm.companyaccountkey, cm.directorkey, cm.chiefaccountantkey,' +
+      ' cc.legalnumber, cc.taxid, cc.okulp, cc.okpo, cc.oknh, cc.soato, cc.soou, cc.licence '
+  else
+    Result := inherited GetSelectClause +
+      ', cc.companykey, cm.contactkey, cm.headcompany, cm.companytype, cm.fullname, cm.logo, cm.companyaccountkey, cm.directorkey, cm.chiefaccountantkey,' +
+      ' cc.legalnumber, cc.taxid, cc.okpo, cc.oknh, cc.soato, cc.soou, cc.licence ';
   if HasSubSet('WithAccount') then
     Result := Result + ', cacc.account, cbank.name AS bankname, bbank.bankcode AS bankcode ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCOMPANY', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
@@ -3044,6 +3068,8 @@ constructor TgdcCompany.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [cpInsert, cpModify];
+  {TODO: убрать после проведения модифая на всех базах}
+  FOkulpExists := Assigned(atDatabase.FindRelationField('GD_COMPANYCODE', 'OKULP'));
 end;
 
 class function TgdcCompany.GetRestrictCondition(const ATableName,
