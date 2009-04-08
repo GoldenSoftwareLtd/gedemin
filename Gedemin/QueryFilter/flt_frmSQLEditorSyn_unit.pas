@@ -14,11 +14,8 @@ uses
   {$IFDEF GEDEMIN}
   gdcBase,
   {$ENDIF}
-  {$IFDEF QBUILDER}
-  frxIBXComponents, fqbClass,
-  {$ENDIF}
   SynCompletionProposal, flt_i_SQLProposal, flt_SQLProposal, gd_keyAssoc,
-  gsIBGrid, frxPreview, frxClass;
+  gsIBGrid;
 
 type
   TCountRead = Record
@@ -248,11 +245,6 @@ type
     TBItem26: TTBItem;
     TBItem27: TTBItem;
     sbRecord: TScrollBox;
-    actQueryBuilder: TAction;
-    TBItem28: TTBItem;
-    tsReport: TSuperTabSheet;
-    FfrxPreview: TfrxPreview;
-    FReport: TfrxReport;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -315,9 +307,6 @@ type
     procedure actShowGridUpdate(Sender: TObject);
     procedure actShowRecordExecute(Sender: TObject);
     procedure ibqryWorkBeforeClose(DataSet: TDataSet);
-    procedure actQueryBuilderExecute(Sender: TObject);
-    procedure actQueryBuilderUpdate(Sender: TObject);
-    procedure FReportBeforePrint(Sender: TfrxReportComponent);
     procedure seQueryChange(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
@@ -327,11 +316,6 @@ type
     FParams: TParams;
     FInitialSQL: String;
     FHistoryList: THistoryList;
-
-    {$IFDEF QBUILDER}
-    FEngineIBX: TfrxEngineIBX;
-    FqbDialog: TfqbDialog;
-    {$ENDIF}
 
     procedure RemoveNoChange(const Before, After: TStrings);
     function PrepareQuery: Boolean;
@@ -377,7 +361,7 @@ uses
   flt_dlgInputParam_unit, syn_ManagerInterface_unit, prp_MessageConst,
   IB, at_Classes, IBHeader, jclStrings,
   {$IFDEF GEDEMIN}
-  gdcBaseInterface, flt_sql_parser, at_sql_setup, frxCross,
+  gdcBaseInterface, flt_sql_parser, at_sql_setup,
   {$ENDIF}
   gd_directories_const, Clipbrd, gd_security
   {must be placed after Windows unit!}
@@ -697,7 +681,7 @@ begin
       end else
       begin
         mmPlan.Text := E.Message;
-        mmPlan.Color := $AAAAFF;
+        mmPlan.Color := $AAAAFF;        
         AddLogRecord(E.Message);
       end;
     end;
@@ -955,23 +939,6 @@ begin
 
   if SQLProposal = nil then
     SQLProposalObject := TSQLProposal.Create(nil);
-
-  {$IFDEF QBUILDER}
-  FEngineIBX := TfrxEngineIBX.Create(nil);
-  FEngineIBX.SetDatabase(FDataBase);
-
-  FqbDialog := TfqbDialog.Create(nil);
-  FqbDialog.Engine := FEngineIBX;
-
-  actQueryBuilder.Visible := True;
-
-  FReport.EngineOptions.DestroyForms := False;
-  FReport.Preview := FfrxPreview;
-  
-  {$ELSE}
-  actQueryBuilder.Visible := False;
-  {$ENDIF}
-
   {$ENDIF}
 end;
 
@@ -980,10 +947,6 @@ begin
   FParams.Free;
   FHistoryList.Free;
   FTableArray.Free;
-  {$IFDEF QBUILDER}
-  FEngineIBX.Free;
-  FqbDialog.Free;
-  {$ENDIF}
   inherited;
 end;
 
@@ -1878,9 +1841,6 @@ begin
   begin
     actRefreshMonitor.Execute;
   end;
-
-  if pcMain.ActivePage = tsReport then
-    FReport.ShowReport;
 end;
 
 procedure TfrmSQLEditorSyn.ibgrMonitorDblClick(Sender: TObject);
@@ -2016,49 +1976,6 @@ begin
     sbRecord.Components[I].Free;
 end;
 
-procedure TfrmSQLEditorSyn.actQueryBuilderExecute(Sender: TObject);
-begin
-  {$IFDEF QBUILDER}
-  FqbDialog.SQL := seQuery.Lines.Text;
-  if FqbDialog.Execute then
-  begin
-    seQuery.Lines.Clear;
-    seQuery.Lines.Text := FqbDialog.SQL;
-  end;
-  {$ENDIF}
-end;
-
-procedure TfrmSQLEditorSyn.actQueryBuilderUpdate(Sender: TObject);
-begin
-  actQueryBuilder.Enabled := pcMain.ActivePage = tsQuery;
-end;
-
-procedure TfrmSQLEditorSyn.FReportBeforePrint(Sender: TfrxReportComponent);
-{$IFDEF GEDEMIN}
-var
-  Cross: TfrxCrossView;
-  i, j: Integer;
-{$ENDIF}
-begin
-  {$IFDEF GEDEMIN}
-  if (Sender is TfrxCrossView) and (not ibqryWork.IsEmpty) then
-  begin
-    Cross := TfrxCrossView(Sender);
-
-    ibqryWork.First;
-    i := 0;
-    while not ibqryWork.Eof do
-    begin
-      for j := 0 to ibqryWork.Fields.Count - 1 do
-        Cross.AddValue([i], [ibqryWork.Fields[j].DisplayLabel], [ibqryWork.Fields[j].AsString]);
-
-      ibqryWork.Next;
-      Inc(i);
-    end;
-  end;
-  {$ENDIF}
-end;
-
 procedure TfrmSQLEditorSyn.seQueryChange(Sender: TObject);
 begin
   if mmPlan.Color <> clWindow then
@@ -2071,5 +1988,3 @@ initialization
 finalization
   UnRegisterClass(TfrmSQLEditorSyn);
 end.
-
-
