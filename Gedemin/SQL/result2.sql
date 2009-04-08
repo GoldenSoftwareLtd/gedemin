@@ -1,6 +1,6 @@
 SET NAMES WIN1251;                         
 SET SQL DIALECT 3;                         
-CONNECT 'india/3053:k:\bases\gedemin\etalon.fdb'                  
+CONNECT 'localhost:c:\test.fdb'                  
 USER 'SYSDBA' PASSWORD 'masterkey';      
 
 /****************************************************/
