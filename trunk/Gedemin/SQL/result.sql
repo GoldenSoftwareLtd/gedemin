@@ -1,6 +1,6 @@
 SET NAMES WIN1251;                        
 SET SQL DIALECT 3;                        
-CREATE DATABASE 'india/3053:k:\bases\gedemin\etalon.fdb'         
+CREATE DATABASE 'localhost:c:\test.fdb'         
 USER 'SYSDBA' PASSWORD 'masterkey'      
 PAGE_SIZE 8192                            
 DEFAULT CHARACTER SET WIN1251;            
