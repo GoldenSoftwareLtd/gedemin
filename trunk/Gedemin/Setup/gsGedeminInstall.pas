@@ -5502,5 +5502,4 @@ begin
   end;
 end;
 *)
-// d:\Golden\Gedemin\Setup\Install.exe /SERVERDLL /GEDEMIN /CLIENT /DATABASE /IBUSER SYSDBA /IBPASS masterkey /IBPATH "C:\Program Files\Firebird\Bin\ibserver.exe"
 end.
