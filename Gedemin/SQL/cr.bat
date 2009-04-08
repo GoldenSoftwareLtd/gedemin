@@ -16,11 +16,24 @@ exit /b 1
 
 :proceed
 
+if exist gd_create.sql goto SetVars
+
+echo *********************************************
+echo *********************************************
+echo **                                         **
+echo **  Launch the batch file within           **
+echo **  gedemin\sql directory.                 **
+echo **                                         **
+echo *********************************************
+echo *********************************************
+
+exit /b 1
+
+:SetVars
+
 setlocal
 
-set p=c:\program files\firebird\bin;
-if not [%3]==[] set p=%~3;
-set path=%p%%path%
+if not [%3]==[] set path=%~3;%path%
 
 set user_name='SYSDBA'
 set user_pass='masterkey'
@@ -28,9 +41,6 @@ set user_pass='masterkey'
 if "%1"=="embed" (set database_name=%2) else set database_name=%1:%2
 
 if exist %2 del %2 > nul
-
-d:
-cd \golden\gedemin\sql
 
 echo SET NAMES WIN1251;                        >  result.sql
 echo SET SQL DIALECT 3;                        >> result.sql
