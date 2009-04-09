@@ -1071,24 +1071,36 @@ begin
                 'Внимание',
                 MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
 
-              with TgdModify.Create(nil) do
               try
-                Database := TryLoginDatabase;
-                IBUser := 'SYSDBA';
-                IBPassword := 'masterkey';
-                ShutdownNeeded := True;
-                OnLog := OnModifyLog;
-                Execute;
-              finally
-                Free;
-              end;
+                with TgdModify.Create(nil) do
+                try
+                  Database := TryLoginDatabase;
+                  IBUser := 'SYSDBA';
+                  IBPassword := 'masterkey';
+                  ShutdownNeeded := True;
+                  OnLog := OnModifyLog;
+                  Execute;
+                finally
+                  Free;
+                end;
 
-              MessageBox(0,
-                'Процесс обновления завершен.'#13#10#13#10 +
-                'Если вы используете сетевую версию программы, убедитесь что на всех'#13#10 +
-                'рабочих местах установлена новейшая версия модуля gedemin.exe.',
-                'Внимание',
-                MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
+                MessageBox(0,
+                  'Процесс обновления завершен.'#13#10#13#10 +
+                  'Если вы используете сетевую версию программы, убедитесь что на всех'#13#10 +
+                  'рабочих местах установлена новейшая версия модуля gedemin.exe.',
+                  'Внимание',
+                  MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
+              except
+                on E: Exception do
+                begin
+                  MessageBox(0,
+                    PChar('Произошла ошибка, процесс обновления прерван!'#13#10#13#10 +
+                    E.Message + #13#10#13#10 +
+                    'Устраните ошибки и повторите процесс обновления'),
+                    'Внимание',
+                    MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
+                end;
+              end;
             end else
               Asked := True;
           end else

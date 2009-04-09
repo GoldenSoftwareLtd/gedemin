@@ -2832,17 +2832,15 @@ begin
 end;
 
 function TgsIBStorage.LoadFromCache: Boolean;
-var
+{var
   FFileName: String;
   S: TFileStream;
   I: Integer;
-  DT: TDateTime;
+  DT: TDateTime;}
 begin
   Result := False;
-  //!!!!!!!!!!!!!!
-  //exit;
-  //!!!!!!!!!!!!!!
-  if IBLogin.ServerName > '' then
+
+  {if IBLogin.ServerName > '' then
   begin
     FFileName := GetCacheFileName;
     if FileExists(FFileName) then
@@ -2874,16 +2872,16 @@ begin
         SysUtils.DeleteFile(FFileName);
       end;
     end;
-  end;
+  end;}
 end;
 
 procedure TgsIBStorage.SaveToCache;
-var
+{var
   I: Integer;
   FFileName: String;
-  S: TFileStream;
+  S: TFileStream;}
 begin
-  if IBLogin.ServerName > '' then
+  {if IBLogin.ServerName > '' then
   begin
     FFileName := GetCacheFileName;
     try
@@ -2903,8 +2901,9 @@ begin
       end else
         SysUtils.DeleteFile(FFileName);
     except
+      SysUtils.DeleteFile(FFileName);
     end;
-  end;
+  end;}
 end;
 
 function TgsGlobalStorage.GetCacheFileName: String;
