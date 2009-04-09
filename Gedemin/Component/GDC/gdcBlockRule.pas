@@ -1,3 +1,4 @@
+{Тут добавлен коментарий для пробы !!!}
 unit gdcBlockRule;
 
 interface
