@@ -92,7 +92,7 @@ Set the default options for FastMM here.
  program overwriting the bounds of allocated memory). These checks are
  expensive, and this option should thus only be used for debugging purposes.
  If this option is set then the ASMVersion option is automatically disabled.}
-{$define CheckHeapForCorruption}
+{.$define CheckHeapForCorruption}
 
 {Enable this option to catch attempts to perform MM operations after FastMM has
  been uninstalled. With this option set when FastMM is uninstalled it will not
@@ -141,7 +141,7 @@ Set the default options for FastMM here.
 
   {Deletes the error log file on startup. No effect if LogErrorsToFile is not
    also set.}
-  {$define ClearLogFileOnStartup}
+  {.$define ClearLogFileOnStartup}
 
   {Loads the FASTMM_FullDebugMode.dll dynamically. If the DLL cannot be found
    then stack traces will not be available. Note that this may cause problems
@@ -165,7 +165,7 @@ Set the default options for FastMM here.
 
 {Set this option to enable reporting of memory leaks. Combine it with the two
  options below for further fine-tuning.}
-{$define EnableMemoryLeakReporting}
+{.$define EnableMemoryLeakReporting}
 
   {Set this option to suppress the display and logging of expected memory leaks
    that were registered by pointer. Leaks registered by size or class are often
@@ -181,7 +181,7 @@ Set the default options for FastMM here.
 
   {Set this option to require the program to be run inside the IDE debugger to
    report memory leaks. This option has no effect if the option
-   "EnableMemoryLeakReporting" is not also set. Note that this option does not
+   "EnableMemoryLeakReporting" is not also set. Note that this option does not 
    work with libraries, only EXE projects.}
   {$define RequireDebuggerPresenceForLeakReporting}
 

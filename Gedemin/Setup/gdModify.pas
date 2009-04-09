@@ -3,11 +3,16 @@ unit gdModify;
 interface
 
 uses
-  Classes, IBDatabase;
+  Classes, IBDatabase, sysutils;
 
 type
   TModifyLog = procedure(const AnLogText: String) of object;
   TProcAddr = procedure(IBDB: TIBDatabase; Log: TModifyLog);
+
+  EgsWrongServerVersion = class(Exception)
+  public
+    constructor Create(const Msg: string);
+  end;
 
 type
   TgdModify = class(TComponent)
@@ -38,7 +43,7 @@ type
 implementation
 
 uses
-  mdf_proclist, gsDatabaseShutdown, DbLogDlg, IBStoredProc, SySUtils, Forms;
+  mdf_proclist, gsDatabaseShutdown, DbLogDlg, IBStoredProc, Forms;
 
 { TgdModify }
 
@@ -111,10 +116,23 @@ begin
       FIBDatabase.Connected := True;
       ReadDBVersion;
       try
-        for I := 0 to cProcCount - 1 do
-          if FDBVersion <= cProcList[I].ModifyVersion then
-            cProcList[I].ModifyProc(FIBDatabase, DoModifyLog);
-        DoModifyLog('Процесс модификации БД завершен');
+        try
+          for I := 0 to cProcCount - 1 do
+            if FDBVersion <= cProcList[I].ModifyVersion then
+            begin
+              DoModifyLog('>  Номер версии базы данных: ' + cProcList[I].ModifyVersion);
+              cProcList[I].ModifyProc(FIBDatabase, DoModifyLog);
+            end;
+          DoModifyLog('Процесс модификации БД завершен');
+        except
+          on E: EgsWrongServerVersion do
+          begin
+            DoModifyLog(E.Message + #13#10 + '  Процесс модификации прерван!');
+            raise;
+          end;
+        else
+          raise;    
+        end;
       finally
         if not FIBOpened and FIBDatabase.Connected then
           FIBDatabase.Connected := False;
@@ -157,7 +175,7 @@ begin
   finally
     IBSP.Free;
   end;
-  DoModifyLog('Номер версии исходной базы данных: ' + FDBVersion);
+  //DoModifyLog('Номер версии исходной базы данных: ' + FDBVersion);
 end;
 
 procedure TgdModify.SetDatabase(const Value: TIBDatabase);
@@ -175,6 +193,16 @@ begin
   finally
     Free;
   end;
+end;
+
+{ EgsWrongServerVersion }
+
+constructor EgsWrongServerVersion.Create(const Msg: string);
+begin
+  if Msg <> '' then
+    Message := 'Неверная версия сервера, необходимая версия: ' + Msg
+  else
+    Message := 'Неверная версия сервера';
 end;
 
 end.

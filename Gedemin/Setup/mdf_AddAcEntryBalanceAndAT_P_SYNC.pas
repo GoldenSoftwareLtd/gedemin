@@ -1200,6 +1200,10 @@ begin
             FTransaction.Rollback;
           end;
         end;
+      end
+      else
+      begin
+        raise EgsWrongServerVersion.Create('Firebird 2.0+');
       end;
     finally
       FIBSQL.Free;

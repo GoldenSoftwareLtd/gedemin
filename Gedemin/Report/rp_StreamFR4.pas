@@ -35,7 +35,6 @@ type
   end;
 
 type
-  Pfr4PreviewForm = ^TfrxPreviewForm;
 
   Tgs_fr4Report = class(TfrxReport)
   private
@@ -61,8 +60,6 @@ type
 
     procedure SetReportResult(Value: Tfr4_ReportResult);
     function GetReportDictionary: Tgs_frDataDictionary;
-  protected
-    Ffr4PreviewForm: Pfr4PreviewForm;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -186,6 +183,8 @@ begin
 
   try
     Ffr4Report.ShowReport;
+    //Для поддержки потоков
+    Application.ProcessMessages;
   except
     on E: Exception do
     begin
@@ -198,7 +197,6 @@ begin
 
   if Assigned(FPreviewForm) and not FPreviewForm.Visible then
     FreeOldForm;
-  Ffr4Report.Free;
 end;
 
 constructor TFR4ReportInterface.Create;
@@ -206,15 +204,20 @@ begin
   inherited Create;
 
   Ffr4Report := Tgs_fr4Report.Create(Application);
-//  Ffr4Report.ModalPreview := False;
-  Ffr4Report.Ffr4PreviewForm := @FPreviewForm;
   Ffr4Report.ShowProgress := False;
+  Ffr4Report.PreviewOptions.Modal := False;
+  //Для поддержки потоков
+  Ffr4Report.EngineOptions.UseGlobalDataSetList := False;
+  Ffr4Report.EnabledDataSets.Clear;
+
 //  Ffr4Report.OnObjectClick := SelfReportEvent;
 end;
 
 procedure TFR4ReportInterface.CreatePreviewForm;
 begin
+  //Форма просмотра
   FPreviewForm := TfrxPreviewForm.Create(Application);
+  Ffr4Report.gsPreviewForm := FPreviewForm;
 
   inherited;
 end;
@@ -483,7 +486,10 @@ begin
   end;
 
   for I := 0 to FfrDataSetList.Count - 1 do
+  begin
     ReportForm.DataSets.Add(TfrxDBDataSet(FfrDataSetList.Objects[I]));
+    ReportForm.EnabledDataSets.Add(TfrxDBDataSet(FfrDataSetList.Objects[I]));
+  end;
 end;
 
 initialization

@@ -909,57 +909,50 @@ var
       begin
         if FEntryDateInFields and (not FEntryDateIsFirst) then
         begin
+          if MainSelect > '' then MainSelect := MainSelect + ', ';
+          MainSelect := MainSelect +
+            Format(' m.dateparam_%0:s, m.dateparam_%0:s, m.dateparam_%0:s ', [Alias]);
+          if MainOrder > '' then MainOrder := MainOrder + ', ';
+          MainOrder := MainOrder +
+            Format(' m.dateparam_%0:s ', [Alias]);
+
           if Assigned(F) then
           begin
-            if MainSelect > '' then MainSelect := MainSelect + ', ';
-            MainSelect := MainSelect +
-              ' m.dateparam, m.dateparam, m.dateparam ';
+            if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
+            MainSubSelect := MainSubSelect +
+              'en.entrydate AS dateparam_' + Alias;
+            if MainGroup > '' then MainGroup := MainGroup + ', ';
+            MainGroup := MainGroup +
+              'en.entrydate';
           end
           else
           begin
-            if MainSelect > '' then MainSelect := MainSelect + ', ';
-            MainSelect := MainSelect +
-              ' g_d_getdateparam(m.dateparam, ' + FAcctGroupBy[I].Additional + '), ' +
-              ' g_d_getdateparam(m.dateparam, ' + FAcctGroupBy[I].Additional + '), ' +
-              ' g_d_getdateparam(m.dateparam, ' + FAcctGroupBy[I].Additional + ') ';
+            if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
+            MainSubSelect := MainSubSelect +
+              ' g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') AS dateparam_' + Alias;
+            if MainGroup > '' then MainGroup := MainGroup + ', ';
+            MainGroup := MainGroup +
+              ' g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') ';
           end;
 
           // ENTRYDATE нужно брать в подзапросе только один раз
           if not EntryDateIsAdded then
           begin
-            if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
-            MainSubSelect := MainSubSelect +
-              'en.dateparam';
             if MainSubSubSelect01 > '' then MainSubSubSelect01 := MainSubSubSelect01 + ', ';
             MainSubSubSelect01 := MainSubSubSelect01 +
-              'CAST(:datebegin AS DATE) AS dateparam';
+              'CAST(:datebegin AS DATE) AS entrydate';
             if MainSubSubSelect02 > '' then MainSubSubSelect02 := MainSubSubSelect02 + ', ';
             MainSubSubSelect02 := MainSubSubSelect02 +
-              'CAST(:datebegin AS DATE) AS dateparam';
+              'CAST(:datebegin AS DATE) AS entrydate';
             if MainSubSubSelect03 > '' then MainSubSubSelect03 := MainSubSubSelect03 + ', ';
             MainSubSubSelect03 := MainSubSubSelect03 +
-              'em.entrydate AS dateparam';
+              'em.entrydate';
             if MainSubSubGroup03 > '' then MainSubSubGroup03 := MainSubSubGroup03 + ', ';
             MainSubSubGroup03 := MainSubSubGroup03 +
               'em.entrydate';
-            if MainGroup > '' then MainGroup := MainGroup + ', ';
-            MainGroup := MainGroup +
-              'en.dateparam';
             EntryDateIsAdded := True;  
           end;
 
-          if Assigned(F) then
-          begin
-            if MainOrder > '' then MainOrder := MainOrder + ', ';
-            MainOrder := MainOrder +
-              ' m.dateparam ';
-          end
-          else
-          begin
-            if MainOrder > '' then MainOrder := MainOrder + ', ';
-            MainOrder := MainOrder +
-              ' g_d_getdateparam(m.dateparam, ' + FAcctGroupBy[I].Additional + ')';
-          end;
           if MainInto > '' then MainInto := MainInto + ', ';
           MainInto := MainInto +
             ':' + Alias + ', ' +
@@ -1533,11 +1526,11 @@ begin
 
       DebitCreditSQL := DebitCreditSQL +
         ' BEGIN '#13#10 +
-        ' closedate = CAST((CAST(''17.11.1858'' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); '#13#10;
+        '   closedate = CAST((CAST(''17.11.1858'' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); '#13#10;
 
       if FEntryDateInFields and (not FEntryDateIsFirst) then
         for I := 0 to TempVariables.Count - 1 do
-          DebitCreditSQL := DebitCreditSQL +
+          DebitCreditSQL := DebitCreditSQL + '   ' +
             TempVariables.Names[I] + ' = ''''; '#13#10;
 
       DebitCreditSQL := DebitCreditSQL +
@@ -1552,8 +1545,8 @@ begin
         '   SELECT '#13#10 +
         '     COALESCE(SUM(en.debitncu - en.creditncu), 0) AS ncu, '#13#10 +
         '     COALESCE(SUM(en.debitcurr - en.creditcurr), 0) AS curr, '#13#10 +
-        '     COALESCE(SUM(en.debiteq - en.crediteq), 0) AS eq '#13#10 +
-          IIF(MainSubSelect <> '', ', ' + MainSubSelect + #13#10, '') +
+        '     COALESCE(SUM(en.debiteq - en.crediteq), 0) AS eq ' +
+          IIF(MainSubSelect <> '', ', ' + MainSubSelect, '') + #13#10 +
         '   FROM '#13#10 +
         '   ( '#13#10 +
         '     SELECT '#13#10 +
@@ -1607,7 +1600,9 @@ begin
         '       AND e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
           AnalyticFilterE +
           IIF(not FEntryDateIsFirst,
+            '  '#13#10 +
             ' UNION ALL '#13#10 +
+            '  '#13#10 +
             ' SELECT '#13#10 +
             '   CAST(0 as numeric(15, 4)) AS debitncu, '#13#10 +
             '   CAST(0 as numeric(15, 4)) AS creditncu, '#13#10 +
