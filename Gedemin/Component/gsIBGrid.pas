@@ -2219,8 +2219,10 @@ begin
 
     if seQuery.Text > '' then
     begin
+      {$IFNDEF DEBUG}
       if (IBLogin <> nil) and IBLogin.IsUserAdmin then
       begin
+      {$ENDIF}
         tsQuery.TabVisible := True;
 
         if AnsiPos('PLAN (', AnsiUpperCase(seQuery.Text)) <= 0 then
@@ -2245,8 +2247,10 @@ begin
             seQuery.Text := seQuery.Text + #13#10 + #13#10 + 'ERROR IN QUERY!';
           end;
         end;
+      {$IFNDEF DEBUG}
       end else
         tsQuery.TabVisible := False;
+      {$ENDIF}  
     end;
   end;
 end;
