@@ -9512,6 +9512,7 @@ var
   I, L: Integer;
   TM: TTextMetric;
   OldCursor: TCursor;
+  FlagShowZero: Boolean;
   {$IFDEF NEW_GRID}
   ARect: TRect;
   {$ENDIF}
@@ -9644,6 +9645,12 @@ begin
           OldFiltered := Filtered;
           OldCursor := Screen.Cursor;
           Screen.Cursor := crHourGlass;
+          {$IFDEF GEDEMIN}
+          if (UserStorage <> nil) and (not UserStorage.ReadBoolean('Options', 'ShowZero', False, False)) then
+            FlagShowZero := True
+          else
+          {$ENDIF}
+            FlagShowZero := False;
           try
             if Filtered then
               Filtered := False;
@@ -9673,6 +9680,13 @@ begin
                     L := Length(TempS);
                     if L > Max then
                       Max := L;
+                  end else
+                  begin
+                    if (not FlagShowZero) and (Field is TNumericField)
+                      and (not Field.IsNull) then
+                    begin
+                      FilteredCache.Add('0');
+                    end;
                   end;
                 end;
               end;
