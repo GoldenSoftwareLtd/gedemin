@@ -233,6 +233,7 @@ type
     procedure actStreamSaverOptionsExecute(Sender: TObject);
     procedure actShowMonitoringExecute(Sender: TObject);
     procedure actShowMonitoringUpdate(Sender: TObject);
+    procedure actStreamSaverOptionsUpdate(Sender: TObject);
 
   private
     FCanClose: Boolean;
@@ -2176,6 +2177,13 @@ begin
   actShowMonitoring.Enabled := Assigned(IBLogin)
     and IBLogin.IsUserAdmin
     and IBLogin.LoggedIn;
+end;
+
+procedure TfrmGedeminMain.actStreamSaverOptionsUpdate(Sender: TObject);
+begin
+  {$IFNDEF NEW_STREAM}
+  actStreamSaverOptions.Enabled := False;  
+  {$ENDIF}
 end;
 
 end.

@@ -578,6 +578,7 @@ object frmGedeminMain: TfrmGedeminMain
       Caption = 'Опции переноса данных'
       ImageIndex = 228
       OnExecute = actStreamSaverOptionsExecute
+      OnUpdate = actStreamSaverOptionsUpdate
     end
     object actShowMonitoring: TAction
       Category = 'Actions'
