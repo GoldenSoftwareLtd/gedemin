@@ -80,7 +80,7 @@ implementation
 {$R *.DFM}
 
 uses
-  DBLogDlg, gd_security, gd_directories_const, gdcBaseInterface
+  DBLogDlg, gd_security, gd_directories_const, gdcBaseInterface, jclStrings
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -140,7 +140,7 @@ var
   UserName: String;
   R: OleVariant;
 begin
-  if IBLogin.ServerName = '' then
+  if (not edServer.Visible) or (edServer.Text = '') then
     FSysDBAPassword := 'masterkey'
   else
   begin
@@ -152,18 +152,22 @@ begin
         and Assigned(gdcBaseManager)
         and gdcBaseManager.Database.Connected then
       begin
-        gdcBaseManager.ExecSingleQueryResult(
-          'SELECT ibpassword FROM gd_user WHERE UPPER(ibname)=:U',
-          AnsiUpperCase(UserName), R);
-        if not VarIsEmpty(R) then
+        if (not edServer.Visible) or
+          (edServer.Visible and (StrIPos(edServer.Text + ':', gdcBaseManager.Database.DatabaseName) = 1)) then
         begin
-          FSysDBAPassword := R[0, 0];
+          gdcBaseManager.ExecSingleQueryResult(
+            'SELECT ibpassword FROM gd_user WHERE UPPER(ibname)=:U',
+            AnsiUpperCase(UserName), R);
+          if not VarIsEmpty(R) then
+          begin
+            FSysDBAPassword := R[0, 0];
+          end;
         end;
       end;
 
       if FSysDBAPassword = '' then
       begin
-        if not LoginDialogEx(IBLogin.ServerName, UserName, FSysDBAPassword, True) then
+        if not LoginDialogEx(edServer.Text, UserName, FSysDBAPassword, True) then
           FSysDBAPassword := '';
       end;
     end;
