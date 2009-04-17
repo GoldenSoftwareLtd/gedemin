@@ -142,13 +142,21 @@ begin
 end;
 
 procedure TdlgSecLogIn.GetPasswordFromRegistry;
+
+  function HexToByte(const St: String): Byte;
+  const
+    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
+  begin
+    Result := (Pos(St[1], HexDigits) - 1) * 16 + (Pos(St[2], HexDigits) - 1);
+  end;
+
 var
   Reg: TRegistry;
   hProv: HCRYPTPROV;
   Key: HCRYPTKEY;
   Hash: HCRYPTHASH;
-  CryptoKey, Pass: String;
-  Len, Size: Integer;
+  CryptoKey, Pass, UnHexPass: String;
+  Len, I: Integer;
 begin
   if UserParamExists or PasswordParamExists
     or IBLogin.ReLogining then
@@ -167,16 +175,22 @@ begin
     Reg.RootKey := HKEY_CURRENT_USER;
     if Reg.OpenKey(ClientAccessRegistrySubKey + '\' + cbDBFilename.Text, False) then
     begin
-      if Reg.GetDataType(cbUser.Text) = rdBinary then
-      begin
-        Size := Reg.GetDataSize(cbUser.Text);
-        SetLength(Pass, Size);
-        Reg.ReadBinaryData(cbUser.Text, Pass[1], Size);
-      end else
-        Pass := Reg.ReadString(cbUser.Text);
+      Pass := Reg.ReadString(cbUser.Text);
       if Copy(Pass, 1, 2) = '01' then
-        Delete(Pass, 1, 2)
-      else
+      begin
+        Delete(Pass, 1, 2);
+      end
+      else if (Copy(Pass, 1, 2) = '02') and (not Odd(Length(Pass))) then
+      begin
+        UnHexPass := '';
+        I := 3;
+        while I < Length(Pass) do
+        begin
+          UnHexPass := UnHexPass + Chr(HexToByte(Copy(Pass, I, 2)));
+          Inc(I, 2);
+        end;
+        Pass := UnHexPass;
+      end else
         Pass := '';
     end else
       Pass := '';
@@ -213,13 +227,21 @@ end;
 }
 
 procedure TdlgSecLogIn.actLoginExecute(Sender: TObject);
+
+  function ByteToHex(const B: Byte): String;
+  const
+    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
+  begin
+    Result := HexDigits[B div 16] + HexDigits[B mod 16];
+  end;
+
 var
   Reg: TRegistry;
   hProv: HCRYPTPROV;
   Key: HCRYPTKEY;
   Hash: HCRYPTHASH;
-  CryptoKey, Pass, S: String;
-  Len: Integer;
+  CryptoKey, Pass, PassHex: String;
+  Len, I: Integer;
 begin
   FAutoCloseCounter := MaxInt;
 
@@ -276,8 +298,12 @@ begin
             begin
               if Len > 0 then
               begin
-                S := '01' + Pass;
-                Reg.WriteBinaryData(cbUser.Text, S[1], Length(S));
+                PassHex := '';
+                for I := 1 to Len do
+                  PassHex := PassHex + ByteToHex(Ord(Pass[I]));
+                Reg.WriteString(cbUser.Text, '02' + PassHex);
+
+                //Reg.WriteString(cbUser.Text, '01' + Pass);
               end else
                 Reg.DeleteValue(cbUser.Text);
               Reg.CloseKey;
