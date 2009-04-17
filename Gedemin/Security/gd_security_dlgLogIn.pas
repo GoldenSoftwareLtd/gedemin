@@ -173,7 +173,8 @@ begin
   Reg := TRegistry.Create(KEY_READ);
   try
     Reg.RootKey := HKEY_CURRENT_USER;
-    if Reg.OpenKey(ClientAccessRegistrySubKey + '\' + cbDBFilename.Text, False) then
+    if Reg.OpenKey(ClientAccessRegistrySubKey + '\' + cbDBFilename.Text, False)
+      and (Reg.GetDataType(cbUser.Text) = rdString) then
     begin
       Pass := Reg.ReadString(cbUser.Text);
       if Copy(Pass, 1, 2) = '01' then
