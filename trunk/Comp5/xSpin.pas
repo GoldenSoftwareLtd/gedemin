@@ -332,7 +332,7 @@ procedure Register;
 
 implementation
 
-{$R 'd:\golden\comp5\XSPIN.RES'}
+{$R 'XSPIN.RES'}
 
 { Auxiliry functions -------------------------------------}
 

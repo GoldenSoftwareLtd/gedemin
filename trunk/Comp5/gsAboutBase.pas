@@ -83,7 +83,7 @@ begin
   begin
     Self.DragCursor := crHelp;
     AutoSize := True;
-    Picture.Bitmap.LoadFromResourceName(hInstance, 'ICONHELP');// LoadFromFile('d:\golden\comp5\Help.bmp');
+    Picture.Bitmap.LoadFromResourceName(hInstance, 'ICONHELP');// LoadFromFile('Help.bmp');
   end;
   Hint := 'Перетащите вопрос на интересующий вас объект';
   ShowHint := True;
