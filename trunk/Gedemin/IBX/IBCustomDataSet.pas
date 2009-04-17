@@ -1149,8 +1149,8 @@ begin
     if Result then
     begin
       Value := string(Buffer);
-      {if Transliterate and (Value <> '') then
-        DataSet.Translate(PChar(Value), PChar(Value), False);}
+      if Transliterate and (Value <> '') then
+        DataSet.Translate(PChar(Value), PChar(Value), False);
     end
   finally
     FreeMem(Buffer);

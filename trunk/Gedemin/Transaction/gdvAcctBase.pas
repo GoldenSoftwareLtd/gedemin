@@ -443,8 +443,8 @@ begin
     if not (Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)) then
     begin
       FUseEntryBalance := False;
-      Application.MessageBox(PChar('Для построения новых бухгалтерских отчетов необходим сервер Firebird 2.0 и выше!'),
-        'Внимание!', MB_OK or MB_ICONEXCLAMATION or MB_SYSTEMMODAL);
+      {Application.MessageBox(PChar('Для построения новых бухгалтерских отчетов необходим сервер Firebird 2.0 и выше!'),
+        'Внимание!', MB_OK or MB_ICONEXCLAMATION or MB_SYSTEMMODAL);}
     end;
   end;
 
