@@ -25,34 +25,43 @@ object BlockEditForm: TBlockEditForm
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
-    object Button1: TButton
-      Left = 272
-      Top = 5
-      Width = 77
-      Height = 21
-      Action = actCancel
-      Anchors = [akRight, akBottom]
-      ModalResult = 2
-      TabOrder = 1
-    end
-    object Button2: TButton
-      Left = 194
-      Top = 5
-      Width = 75
-      Height = 21
-      Action = actOk
-      Anchors = [akRight, akBottom]
-      Default = True
-      ModalResult = 1
-      TabOrder = 0
-    end
     object Button4: TButton
       Left = 2
       Top = 5
       Width = 75
       Height = 21
       Action = actHelp
-      TabOrder = 2
+      TabOrder = 0
+    end
+    object pnlRightButtons: TPanel
+      Left = 184
+      Top = 0
+      Width = 165
+      Height = 30
+      Align = alRight
+      BevelOuter = bvNone
+      TabOrder = 1
+      object Button2: TButton
+        Left = 9
+        Top = 5
+        Width = 75
+        Height = 21
+        Action = actOk
+        Anchors = [akRight, akBottom]
+        Default = True
+        ModalResult = 1
+        TabOrder = 0
+      end
+      object Button1: TButton
+        Left = 87
+        Top = 5
+        Width = 77
+        Height = 21
+        Action = actCancel
+        Anchors = [akRight, akBottom]
+        ModalResult = 2
+        TabOrder = 1
+      end
     end
   end
   object PageControl: TPageControl
