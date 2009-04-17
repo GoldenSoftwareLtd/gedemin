@@ -6709,6 +6709,11 @@ begin
               Exclude(FNeeded, eoType);
               FTypeName := FToken.Text;
               Include(FDone, eoType);
+            end else
+
+            if (eoType in FDone) and (AnsiCompareText(FToken.Text, 'PRECISION') = 0) then
+            begin
+              FTypeName := FTypeName + ' ' + FToken.Text;
             end
 
             else
