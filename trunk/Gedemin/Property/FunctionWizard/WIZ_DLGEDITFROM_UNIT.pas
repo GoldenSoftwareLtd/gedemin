@@ -29,8 +29,6 @@ uses
 type
   TBlockEditForm= class(TdlgBaseEditForm)
     Panel1: TPanel;
-    Button1: TButton;
-    Button2: TButton;
     ActionList: TActionList;
     actOk: TAction;
     actCancel: TAction;
@@ -44,6 +42,9 @@ type
     actHelp: TAction;
     eLocalName: TEdit;
     lLocalName: TLabel;
+    pnlRightButtons: TPanel;
+    Button2: TButton;
+    Button1: TButton;
     procedure actOkUpdate(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);

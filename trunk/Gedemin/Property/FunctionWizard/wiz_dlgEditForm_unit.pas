@@ -13,9 +13,10 @@ type
     actCancel: TAction;
     actHelp: TAction;
     pBottom: TPanel;
-    bCancel: TButton;
-    bOk: TButton;
     bHelp: TButton;
+    pnlRightButtons: TPanel;
+    bOk: TButton;
+    bCancel: TButton;
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
