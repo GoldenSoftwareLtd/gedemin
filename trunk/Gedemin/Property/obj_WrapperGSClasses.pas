@@ -1747,6 +1747,9 @@ type
     function  Get_UseDesigner: WordBool; safecall;
     procedure Set_UseDesigner(Value: WordBool); safecall;
 
+    function  Get_Caption_: WideString; safecall;
+    procedure Set_Caption_(const Value: WideString); safecall;
+
     procedure AddObjectItem(const Name: WideString); safecall;
 
     function  VariableExists(const Name: WideString): WordBool; safecall;
@@ -7347,6 +7350,16 @@ function TwrpCreateableForm.VariableExists(
   const Name: WideString): WordBool;
 begin
   Result := TCrackCreateableForm(GetCreateableForm).VariableExists(Name);
+end;
+
+function TwrpCreateableForm.Get_Caption_: WideString;
+begin
+  Result := TCrackCreateableForm(GetCreateableForm).Caption;
+end;
+
+procedure TwrpCreateableForm.Set_Caption_(const Value: WideString);
+begin
+  TCrackCreateableForm(GetCreateableForm).Caption := Value;
 end;
 
 { TwrpGDKeyArray }
