@@ -2091,9 +2091,9 @@ begin
   end;
 
   // Вынесем скрытые записи в позиции настройки
-  if Assigned(atDatabase) and Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED'))
+  {if Assigned(atDatabase) and Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED'))
      and InNewFormatTemp then
-    Self.AddMissedPositions; 
+    Self.AddMissedPositions;} 
 end;
 {$ENDIF}
 
@@ -5301,12 +5301,12 @@ var
         {$IFDEF NEW_STREAM}
         ibsqlPos.SQL.Text :=
           'SELECT count(id) as ObjectCount FROM at_settingpos WHERE settingkey = ' +
-          SettingList[stNumber] + ' and autoadded = 0';
+          SettingList[stNumber] + ' and autoadded <> 1';
         ibsqlPos.ExecQuery;
         ObjectCount := ibsqlPos.FieldByName('ObjectCount').AsInteger;
         ibsqlPos.Close;
         
-        ibsqlPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey and xid =:xid and dbid = :dbid and autoadded = 0';
+        ibsqlPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey and xid =:xid and dbid = :dbid and autoadded <> 1';
         {$ELSE}
         ibsqlPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey and xid =:xid and dbid = :dbid';
         {$ENDIF}
