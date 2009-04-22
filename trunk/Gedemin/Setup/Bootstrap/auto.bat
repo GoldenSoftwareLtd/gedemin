@@ -4,18 +4,6 @@ setlocal
 
 echo *************************************************
 echo **                                             **
-echo **  Подключаем диски                           **
-echo **                                             **
-echo *************************************************
-
-if not exist g:\nul goto NoSubst
-if not exist d:\nul subst d: g:\
-if not exist z:\nul subst z: g:\
-
-:NoSubst
-
-echo *************************************************
-echo **                                             **
 echo **  Инициализируем глобальные переменные       **
 echo **                                             **
 echo *************************************************
@@ -26,15 +14,17 @@ set path=%path%;c:\Program Files\Borland\Delphi5\Bin
 set path=%path%;C:\Program Files\WinRar
 set path=%path%;c:\windows;c:\windows\system32;c:\windows\System32\Wbem
 
-set gedemin_path=d:\golden\gedemin
-set install_source_path=d:\golden\gedemin_local
-set setting_source_path=d:\golden\setting
+set gedemin_path=..\..
+set install_source_path=..\..\..\gedemin_local
+set setting_source_path=..\..\..\setting
 set install_target_path=g:\Distrib2\GoldSoft\Gedymin\Local
 
 set starteam_connect=Andreik:1@india:49201
 
 set exit_code=0
 set exit_message=0
+
+goto CompileGedemin
 
 echo *************************************************
 echo **                                             **
@@ -60,21 +50,18 @@ echo **  Компилируем gedemin.exe                    **
 echo **                                             **
 echo *************************************************
 
-if exist z:\gedemin.bak del z:\gedemin.bak
-if exist z:\gedemin.exe ren z:\gedemin.exe *.bak
-start delphi32 %gedemin_path%\gedemin\gedemin.dpr -b -ns 
-timeout 80
-taskkill /im delphi32.exe /f > nul
 
-if exist z:\gedemin.exe goto OptimizeGedemin
-if exist z:\gedemin.bak ren z:\gedemin.bak *.exe
-if exist z:\gedemin.exe goto OptimizeGedemin
+dcc32 -b %gedemin_path%\gedemin\gedemin.dpr 
+
+if errorlevel 0 goto OptimizeGedemin
 
 set exit_code=101
 set exit_message="Can not compile gedemin.exe"
 goto Exit
 
 :OptimizeGedemin
+
+pause
 
 echo *************************************************
 echo **                                             **

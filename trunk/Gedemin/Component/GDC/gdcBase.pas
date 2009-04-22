@@ -10710,7 +10710,7 @@ begin
     UGN := UpperCase(ClassName + SubType);
     q := TIBSQL.Create(nil);
     try
-      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.Transaction := ReadTransaction;
       q.SQL.Text := 'SELECT id FROM rp_reportgroup WHERE usergroupname = :UGN';
       q.ParamByName('UGN').AsString := UGN;
       q.ExecQuery;

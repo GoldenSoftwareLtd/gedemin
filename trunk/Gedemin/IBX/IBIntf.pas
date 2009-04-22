@@ -238,11 +238,9 @@ var
   end;
 
 begin
-  {$IFDEF FBEMBED}
   IBLibrary := LoadLibrary('fbembed.dll');
-  {$ELSE}
-  IBLibrary := LoadLibrary(PChar(FBASE_DLL));
-  {$ENDIF}
+  if (IBLibrary <= HINSTANCE_ERROR) then
+    IBLibrary := LoadLibrary(PChar(FBASE_DLL));
   if (IBLibrary <= HINSTANCE_ERROR) then
     IBLibrary := LoadLibrary(PChar(IBASE_DLL));
 
