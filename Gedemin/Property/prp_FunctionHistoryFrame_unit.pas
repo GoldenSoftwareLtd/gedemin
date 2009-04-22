@@ -87,6 +87,7 @@ end;
 
 procedure Tprp_FunctionHistoryFrame.ibdsLogAfterOpen(DataSet: TDataSet);
 begin
+  ibgrLog.DontLoadSettings := True;
   DataSet.FieldByName('id').Visible := False;
   DataSet.FieldByName('script').Visible := False;
   DataSet.FieldByName('revision').Visible := False;

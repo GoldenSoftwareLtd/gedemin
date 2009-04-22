@@ -2,20 +2,20 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 [Setup]
-AppID=GedLocal
+AppID=Ged25Local
 AppPublisher=Golden Software of Belarus, Ltd
 AppPublisherURL=http://www.gsbelarus.com
 AppSupportURL=http://www.gsbelarus.com
 AppUpdatesURL=http://www.gsbelarus.com
 AppSupportPhone=+375-17-2921333, +375-17-3313546
-DefaultDirName={pf}\Golden Software\Gedemin\Local
-DefaultGroupName=Golden Software Гедымин
+DefaultDirName={pf}\Golden Software\Gedemin 2.5\Local
+DefaultGroupName=Golden Software Гедымин 2.5
 DisableProgramGroupPage=yes
 OutputDir=d:\temp\setup
 OutputBaseFilename=setup
 Compression=lzma/ultra
 SolidCompression=yes
-MinVersion=0,5.0
+MinVersion=0,5.01sp2
 Uninstallable=yes
 ShowLanguageDialog=auto
 SourceDir=D:\Golden\Gedemin_Local_FB\
@@ -32,8 +32,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 
 [Files]
 Source: "gedemin.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "gds32.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "gds32.dll"; DestDir: "{app}"; DestName: "fbclient.dll"; Flags: ignoreversion
+Source: "fbclient.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gedemin.jpg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gsdbquery.dll"; DestDir: "{app}"; Flags: ignoreversion regserver
 Source: "UDF\gudf.dll"; DestDir: "{app}\UDF"; Flags: ignoreversion
@@ -47,20 +46,11 @@ Source: "Microsoft.VC80.CRT.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "firebird.msg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Intl\fbintl.dll"; DestDir: "{app}\Intl"; Flags: ignoreversion
 Source: "Intl\fbintl.conf"; DestDir: "{app}\Intl"; Flags: ignoreversion
-Source: "gbak.exe"; DestDir: "{app}"
+Source: "gbak.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "midas.dll"; DestDir: "{sys}"; Flags: regserver onlyifdoesntexist sharedfile
 
 Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
-
-Source: "sct10en.exe"; DestDir: "{app}"; OnlyBelowVersion: 0, 5.01sp2; Flags: ignoreversion deleteafterinstall
-
-;Source: "Help\GedyminDG.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
-;Source: "Help\GedyminUG.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
-;Source: "Help\GedyminGS.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
-;Source: "Help\GedyminPG.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
-;Source: "Help\perform.hlp"; DestDir: "{app}\Help"; Flags: ignoreversion
-; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{group}\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; WorkingDir: "{app}"
@@ -82,8 +72,6 @@ Root: HKCU; SubKey: "Software\Golden Software\Gedemin"; Flags: uninsdeletekeyife
 Root: HKCU; SubKey: "Software\Golden Software"; Flags: uninsdeletekeyifempty
 
 [Run]
-FileName: "{app}\sct10en.exe"; Parameters: "/Q"; WorkingDir: {app}; StatusMsg: "Установка Windows Script Control..."; Flags: skipifdoesntexist
-;Filename: "regsvr32.exe"; Parameters: """{app}\gsdbquery.dll"" /s"; StatusMsg: "Регистрация библиотеки gsdbquery.dll..."; Flags: skipifdoesntexist
 FileName: "{app}\gbak.exe"; Parameters: "-c -p 8192 -bu 4096 -user SYSDBA -pas masterkey Database\{code:GetBKFileName} Database\{code:GetDBFileName}"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden
 Filename: "{app}\gedemin.exe"; Description: "{cm:LaunchProgram,{code:GetSafeAppName}}"; WorkingDir: {app}; Flags: nowait postinstall skipifsilent
 

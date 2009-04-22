@@ -122,7 +122,7 @@ initialization
       MessageBox(0,
         '—рок использовани€ бета-версии программы истек!'#13#10 +
         'дл€ продолжени€ работы обратитесь в компанию Golden Software.'#13#10#13#10 +
-        'тел/факс: (017) 2313546, 2921333; email: support@gsbelarus.com; http://gsbelarus.com',
+        'тел/факс: (017) 3313546, 2921333; email: support@gsbelarus.com; http://gsbelarus.com',
         '¬нимание',
         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
 
@@ -133,7 +133,7 @@ initialization
       MessageBox(0,
         '—рок использовани€ бета-версии программы истечет через четыре мес€ца!'#13#10 +
         'ќбратитесь в компанию Golden Software.'#13#10#13#10 +
-        'тел/факс: (017) 2313546, 2921333; email: support@gsbelarus.com; http://gsbelarus.com',
+        'тел/факс: (017) 3313546, 2921333; email: support@gsbelarus.com; http://gsbelarus.com',
         '¬нимание',
         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
     end;

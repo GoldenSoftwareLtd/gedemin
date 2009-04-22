@@ -28,7 +28,7 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
       Height = 121
       Align = alClient
       DataSource = dsLog
-      Options = [dgTitles, dgIndicator, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
+      Options = [dgTitles, dgIndicator, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
       PopupMenu = pmHistoryFrame
       ReadOnly = True
       TabOrder = 0

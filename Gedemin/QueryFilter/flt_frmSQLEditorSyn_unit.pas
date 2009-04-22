@@ -1654,7 +1654,7 @@ var
 begin
   {$IFDEF GEDEMIN}
   {$IFDEF FR4}
-  with ChReads.SeriesList.Items[0] do
+  with ChReads.SeriesList.Series[0] do
   {$ELSE}
   with ChReads.SeriesList.Series[0] do
   {$ENDIF}

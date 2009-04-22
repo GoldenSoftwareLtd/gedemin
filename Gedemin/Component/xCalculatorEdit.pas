@@ -1483,6 +1483,9 @@ var
   S: String;
   OldLParam: LongInt;
 begin
+  //inherited;
+  //exit;
+
   case Message.Msg of
     WM_SETTEXT:
     begin
