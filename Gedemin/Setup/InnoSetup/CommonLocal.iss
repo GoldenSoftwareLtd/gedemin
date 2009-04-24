@@ -33,6 +33,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 [Files]
 Source: "gedemin.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "fbclient.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "fbclient.dll"; DestDir: "{app}\fbembed.dll"; Flags: ignoreversion
 Source: "gedemin.jpg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gsdbquery.dll"; DestDir: "{app}"; Flags: ignoreversion regserver
 Source: "UDF\gudf.dll"; DestDir: "{app}\UDF"; Flags: ignoreversion
