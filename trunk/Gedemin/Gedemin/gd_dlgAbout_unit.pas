@@ -12,7 +12,7 @@ type
     PageControl1: TPageControl;
     TabSheet1: TTabSheet;
     TabSheet2: TTabSheet;
-    GroupBox1: TGroupBox;
+    gbGDS32: TGroupBox;
     Label2: TLabel;
     lGDS32FileName: TLabel;
     lGDS32Version: TLabel;
@@ -123,6 +123,7 @@ var
   S: String;
 begin
   GetModuleFileName(GetIBLibraryHandle, Ch, SizeOf(Ch));
+  gbGDS32.Caption := ' ' + ExtractFileName(Ch) + ' ';
   lGDS32FileName.Caption := Ch;
   if VersionResourceAvailable(Ch) then
     with TjclFileVersionInfo.Create(Ch) do
@@ -136,7 +137,6 @@ begin
   if Assigned(IBLogin) and IBLogin.LoggedIn then
   with TIBDatabaseInfo.Create(nil) do
   try
-    TabSheet2.TabVisible := True;
     Database := IBLogin.Database;
     lServerVersion.Caption := Version;
     eDBFileName.Text := DBFileName;
@@ -158,7 +158,15 @@ begin
     Free;
   end else
   begin
-    TabSheet2.TabVisible := False;
+    lServerVersion.Caption := '';
+    eDBFileName.Text := '';
+    lDBSiteName.Caption := '';
+    lODSVersion.Caption := '';
+    lPageSize.Caption := '';
+    lForcedWrites.Caption := '';
+    lNumBuffers.Caption := '';
+    lCurrentMemory.Caption := '';
+
     tsDB.TabVisible := False;
   end;
 
