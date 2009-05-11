@@ -146,6 +146,7 @@ type
 
 
   public
+
     procedure SetupRecord; override;
     procedure SetupDialog; override;
 
@@ -705,6 +706,10 @@ begin
   gsiblkupMainAccount.Transaction := gdcObject.Transaction;
   gsiblkupDirector.Transaction := gdcObject.Transaction;
   gsiblkupChiefAccountant.Transaction := gdcObject.Transaction;
+
+  {TODO: убрать после проведения модифая на всех базах}
+  if not Assigned(gdcObject.FindField('OKULP')) then
+    dbeOkulp.DataSource := nil;
 
   inherited;
 

@@ -1432,14 +1432,15 @@ begin
             PChar(Format('Функция %s не перечислена в секции INCLUDE. Добавить?', [CurrentWord])),
             'Внимание', MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = ID_YES then begin
           gsFunctionSynEdit.Lines.Insert(0, '''#include ' + CurrentWord);
+          Modify := True;
+          gsFunctionSynEdit.Modified := True;
         end;
         TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(SQL.Fields[0].AsInteger);
-        Exit;
-      end;
-      MessageBox(Application.Handle,
-        PChar(Format('Функция %s не найдена.', [CurrentWord])),
-        'Внимание',
-        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      end else
+        MessageBox(Application.Handle,
+          PChar(Format('Функция %s не найдена.', [CurrentWord])),
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
     end;
   finally
     SQl.Free;

@@ -288,6 +288,8 @@ type
     //!!!
     procedure FlushSchema;
     function IsFirebirdConnect: Boolean;
+    function IsFirebird25Connect: Boolean;
+
   published
     property Connected;
     property DatabaseName: TIBFileName read FDBName write SetDatabaseName;
@@ -1678,9 +1680,16 @@ begin
   Result := FServerRelease;
 end;
 
-function TIBDatabase.IsFirebirdConnect :boolean;
+function TIBDatabase.IsFirebirdConnect: Boolean;
 begin
-  Result:= GetFBVersion <> ''
+  Result := GetFBVersion <> ''
+end;
+
+function TIBDataBase.IsFirebird25Connect: Boolean;
+begin
+  Result := (GetFBVersion <> '') and (ServerMajorVersion = 2) and
+    (ServerMinorVersion >= 5) and (ODSMajorVersion = 11) and
+    (ODSMinorVersion >= 2);
 end;
 
 function TIBDatabase.GetODSMinorVersion: Long;

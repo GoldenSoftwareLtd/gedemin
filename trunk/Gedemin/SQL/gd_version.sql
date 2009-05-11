@@ -356,6 +356,9 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (105, '0000.0001.0000.0132', '12.01.2009', 'ƒобавлено поле ISINTERNAL в таблицу AC_TRANSACTION дл€ определени€ внутренних проводок');
+ 
+INSERT INTO fin_versioninfo
+  VALUES (106, '0000.0001.0000.0133', '25.04.2009', 'ѕроставлены пропущенные гранты'); 
 
 
 COMMIT;

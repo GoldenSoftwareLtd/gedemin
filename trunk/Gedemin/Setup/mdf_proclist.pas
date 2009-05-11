@@ -53,31 +53,15 @@ uses
 const
 {$IFDEF ENTRY_BALANCE}
   {$IFDEF NEW_STREAM}
-    {$IFDEF GEDEMIN}
-    cProcCount = 137;
-    {$ELSE}
-    cProcCount = 137;
-    {$ENDIF}
+    cProcCount = 138;
   {$ELSE}
-    {$IFDEF GEDEMIN}
-    cProcCount = 136;
-    {$ELSE}
-    cProcCount = 136;
-    {$ENDIF}
+    cProcCount = 137;
   {$ENDIF NEW_STREAM}
 {$ELSE}
   {$IFDEF NEW_STREAM}
-    {$IFDEF GEDEMIN}
     cProcCount = 136;
-    {$ELSE}
-    cProcCount = 136;
-    {$ENDIF}
   {$ELSE}
-    {$IFDEF GEDEMIN}
     cProcCount = 135;
-    {$ELSE}
-    cProcCount = 135;
-    {$ENDIF}
   {$ENDIF NEW_STREAM}
 {$ENDIF ENTRY_BALANCE}
 
@@ -328,6 +312,9 @@ const
     {$ENDIF}
     , (ModifyProc: AddOKULPCodeToCompanyCode; ModifyVersion: '0000.0001.0000.0130')
     , (ModifyProc: AddIsInternalField; ModifyVersion: '0000.0001.0000.0131')
+    {$IFDEF ENTRY_BALANCE}
+    , (ModifyProc: AddMissedGrantsToAcEntryBalanceProcedures; ModifyVersion: '0000.0001.0000.0132')
+    {$ENDIF}
   );
 
 implementation

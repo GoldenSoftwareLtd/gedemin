@@ -6,6 +6,7 @@ uses
   IBDatabase, gdModify;
 
 procedure AddAcEntryBalanceAndAT_P_SYNC(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddMissedGrantsToAcEntryBalanceProcedures(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -61,6 +62,9 @@ const
 
   cBalanceGrant =
     'GRANT ALL ON ac_entry_balance TO ADMINISTRATOR';
+
+  cAC_CIRCULATIONLIST_BALGrant =
+    'GRANT EXECUTE ON PROCEDURE ac_circulationlist_bal TO ADMINISTRATOR';
 
   cCreateAC_CIRCULATIONLIST_BAL =
     ' CREATE OR ALTER PROCEDURE ac_circulationlist_bal( '#13#10 +
@@ -782,6 +786,9 @@ const
     '  '#13#10 +
     ' END ';
 
+  cAc_AccountExSaldo_BalGrant =
+    'GRANT EXECUTE ON PROCEDURE AC_ACCOUNTEXSALDO_BAL TO ADMINISTRATOR';
+
   cCreateAc_AccountExSaldo_Bal =
     ' CREATE OR ALTER PROCEDURE AC_ACCOUNTEXSALDO_BAL( '#13#10 +
     '     DATEEND DATE, '#13#10 +
@@ -1005,9 +1012,7 @@ begin
           FIBSQL.SQL.Text := cCreateGenerator;
           FIBSQL.ExecQuery;
           Log('Создание триггера GD_G_ENTRY_BALANCE_DATE прошло успешно');
-          //FTransaction.Commit;
 
-          //FTransaction.StartTransaction;
           AcEntryBalanceStr := cAC_ENTRY_BALANCETemplate;
           ibsqlFields := TIBSQL.Create(nil);
           gdcField := TgdcField.Create(nil);
@@ -1050,45 +1055,38 @@ begin
           FIBSQL.SQL.Text := AcEntryBalanceStr;
           FIBSQL.ExecQuery;
           Log('Создание таблицы AC_ENTRY_BALANCE прошло успешно');
-          //FTransaction.Commit;
 
-          //FTransaction.StartTransaction;
           FIBSQL.Close;
           FIBSQL.SQL.Text := cBalancePrimaryKey;
           FIBSQL.ExecQuery;
-          //FTransaction.Commit;
 
-          //FTransaction.StartTransaction;
           FIBSQL.Close;
           FIBSQL.SQL.Text := cBalanceForeignKey;
           FIBSQL.ExecQuery;
-          //FTransaction.Commit;
 
-          //FTransaction.StartTransaction;
           FIBSQL.Close;
           FIBSQL.SQL.Text := cBalanceAutoincrementTrigger;
           FIBSQL.ExecQuery;
-          //FTransaction.Commit;
 
-          //FTransaction.StartTransaction;
           FIBSQL.Close;
           FIBSQL.SQL.Text := cBalanceGrant;
           FIBSQL.ExecQuery;
-          //FTransaction.Commit;
 
-          //FTransaction.StartTransaction;
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateAc_AccountExSaldo_Bal;
           FIBSQL.ExecQuery;
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cAc_AccountExSaldo_BalGrant;
+          FIBSQL.ExecQuery;
           Log('Создание процедуры AC_ACCOUNTEXSALDO_BAL прошло успешно');
-          //FTransaction.Commit;
 
-          //FTransaction.StartTransaction;
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateAC_CIRCULATIONLIST_BAL;
           FIBSQL.ExecQuery;
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cAC_CIRCULATIONLIST_BALGrant;
+          FIBSQL.ExecQuery;
           Log('Создание процедуры AC_CIRCULATIONLIST_BAL прошло успешно');
-          //FTransaction.Commit;
 
           ACTriggerText :=
             '  CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry '#13#10 +
@@ -1172,19 +1170,15 @@ begin
               OLDFieldList + '); '#13#10 +
             '  END '#13#10 +
             ' END ';
-          //FTransaction.StartTransaction;
           FIBSQL.Close;
           FIBSQL.SQL.Text := ACTriggerText;
           FIBSQL.ExecQuery;
           Log('Создание триггера для таблицы AC_ENTRY прошло успешно');
-          //FTransaction.Commit;
 
-          //FTransaction.StartTransaction;
           FIBSQL.Close;
           FIBSQL.SQL.Text := cInsertCommand;
           FIBSQL.ExecQuery;
           Log('Создание ярлыка "Переход на новый месяц" прошло успешно');
-          //FTransaction.Commit;
 
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
@@ -1204,6 +1198,51 @@ begin
       else
       begin
         raise EgsWrongServerVersion.Create('Firebird 2.0+');
+      end;
+    finally
+      FIBSQL.Free;
+    end;
+  finally
+    FTransaction.Free;
+  end;
+end;
+
+procedure AddMissedGrantsToAcEntryBalanceProcedures(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    FIBSQL := TIBSQL.Create(nil);
+    try
+      FIBSQL.Transaction := FTransaction;
+      FIBSQL.ParamCheck := False;
+
+      FTransaction.StartTransaction;
+      try
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := cAc_AccountExSaldo_BalGrant;
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := cAc_AccountExSaldo_BalGrant;
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO fin_versioninfo ' +
+          '  VALUES (106, ''0000.0001.0000.0133'', ''25.04.2009'', ''Проставлены пропущенные гранты'')';
+        FIBSQL.ExecQuery;
+
+        FTransaction.Commit;
+      except
+        on E: Exception do
+        begin
+          Log(E.Message);
+          FTransaction.Rollback;
+        end;
       end;
     finally
       FIBSQL.Free;

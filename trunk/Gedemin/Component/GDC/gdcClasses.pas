@@ -37,7 +37,7 @@ uses
   Classes,      IBCustomDataSet,   IBDataBase,     gdcBase,
   gdcTree,      Forms,             gd_createable_form,
   at_classes,   gdcBaseInterface,  DB,             gd_KeyAssoc,
-  gdcConstants, gdcExplorer,       gd_i_ScriptFactory,
+  gdcConstants, {gdcExplorer, }      gd_i_ScriptFactory,
   gd_security,  gdcOLEClassList,   DBGrids;
 
 {$IFDEF DEBUGMOVE}
@@ -2748,7 +2748,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := inherited GetNotCopyField + ',RUID,HEADERRELKEY,LINERELKEY';
+  Result := inherited GetNotCopyField + ',RUID,HEADERRELKEY,LINERELKEY,REPORTGROUPKEY';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASEDOCUMENTTYPE', 'GETNOTCOPYFIELD', KEYGETNOTCOPYFIELD)}
   {M}  finally

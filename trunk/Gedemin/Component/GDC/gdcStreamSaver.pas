@@ -43,7 +43,8 @@ type
      etSettingPos,             //   позиция настройки
      etStoragePosList,         // список позиций хранилища в настройке
      etStoragePos,             //   позиция хранилища
-     etSettingData,            // данные настройки (из полей DATA и STORAGEDATA)
+     etSettingData,            // данные настройки (из поля DATA)
+     etSettingStorage,         // данные настройки (из поля STORAGEDATA)
      etStorage,                // данные хранилища
      etStorageFolder,          // ветка хранилища
      etStorageValue            // параметр ветки хранилища
@@ -142,6 +143,8 @@ type
 
     FStorageItemList: TStringList;
 
+    function CheckIndex(const Index: Integer): Boolean;
+
     procedure FillReferences(const Index: Integer);
 
     function GetgdcObject(Index: Integer): TgdcBase;
@@ -213,6 +216,9 @@ type
     FTransaction: TIBTransaction;
 
     FIBSQL: TIBSQL;
+    FIbsqlRPLRecordSelect: TIBSQL;
+    FIbsqlRPLRecordInsert: TIBSQL;
+    FIbsqlRPLRecordDelete: TIBSQL;
 
     FDataObject: TgdcStreamDataObject;
     FLoadingOrderList: TgdcStreamLoadingOrderList;
@@ -228,6 +234,10 @@ type
 
     FSaveWithDetailList: TgdKeyArray;
     FDontNeedModifyList: TgdKeyArray;
+
+    function GetIbsqlRPLRecordSelect: TIBSQL;
+    function GetIbsqlRPLRecordInsert: TIBSQL;
+    function GetIbsqlRPLRecordDelete: TIBSQL;
 
     procedure SetLoadingOrderList(const Value: TgdcStreamLoadingOrderList);
     procedure SetDataObject(const Value: TgdcStreamDataObject);
@@ -251,7 +261,10 @@ type
     // проверяем настройки Гедемина насчет загрузки записей уже существующих на базе,
     //   выводим форму сравнения записей
     function CheckNeedModify(ABaseRecord: TgdcBase; AStreamRecord: TClientDataSet): Boolean;
-    //Проверяем по таблице RPL_RECORD необходимость загрузки данной записи из потока на базу.
+    // Проверяем по таблице RPL_RECORD необходимость сохранения данной записи в поток
+    //  возможно, мы уже отправляли ее на целевую базу
+    function CheckNeedSaveRecord(const AID: TID; AModified: TDateTime): Boolean;
+    // Проверяем по таблице RPL_RECORD необходимость загрузки данной записи из потока на базу.
     function CheckNeedLoadingRecord(const XID, DBID: TID; AModified: TDateTime): Boolean;
 
     procedure LoadSetRecord(AObj: TgdcBase; SourceDS: TDataSet);
@@ -260,14 +273,19 @@ type
     function CopyRecord(SourceDS: TDataSet; TargetDS: TgdcBase): Boolean;
     procedure ApplyDelayedUpdates(SourceKeyValue, TargetKeyValue: Integer);
 
-    procedure AddRecordToRPLRECORDS(const XID, DBID: TID; AModified: TDateTime);
+    procedure AddRecordToRPLRECORDS(const AID: TID; AModified: TDateTime);
     procedure SetTransaction(const Value: TIBTransaction);
+
+    property IbsqlRPLRecordSelect: TIBSQL read GetIbsqlRPLRecordSelect;
+    property IbsqlRPLRecordInsert: TIBSQL read GetIbsqlRPLRecordInsert;
+    property IbsqlRPLRecordDelete: TIBSQL read GetIbsqlRPLRecordDelete;
   public
     constructor Create(ADatabase: TIBDatabase = nil; ATransaction: TIBTransaction = nil);
     destructor Destroy; override;
 
     //сохраняет данные объекта в клиент-датасет
-    procedure SaveRecord(const ObjectIndex: Integer; const AID: TID; const AWithDetail: Boolean = true);
+    procedure SaveRecord(const AObject: TgdcBase; const ObjectIndex: Integer; const AID: TID; const AWithDetail: Boolean = true); overload;
+    procedure SaveRecord(const ObjectIndex: Integer; const AID: TID; const AWithDetail: Boolean = true); overload;
 
     procedure LoadRecord(AObj: TgdcBase; CDS: TClientDataSet);
 
@@ -449,10 +467,10 @@ type
     RefID: TID;
   end;
 
-  TIncrRecordState = (irsIn, irsConfirmed, irsOut, irsReceived);
+  TIncrRecordState = (irsIn, irsOut, irsIncremented);
 
   EgsInvalidIndex = class(Exception);
-  EgsUnknownTable = class(Exception);
+  EgsClientDatasetNotFound = class(Exception);
 
 const
   sqlSelectOurBaseID =
@@ -460,18 +478,34 @@ const
   sqlSelectAllBases =
     'SELECT id, name, (SELECT count(id) FROM rpl_database) as BasesCount FROM rpl_database';
 
+  sqlDeleteRPLRecordsByBaseKeyID =
+    'DELETE FROM ' +
+    '  rpl_record ' +
+    'WHERE ' +
+    '  basekey = %0:d ' +
+    '  AND id = %1:d ';
+  sqlDeleteRPLRecordsByIDEditiondate =
+    'DELETE FROM ' +
+    '  rpl_record ' +
+    'WHERE ' +
+    '  id = :id ' +
+    '  AND editiondate < :editiondate ';
   sqlDeleteRPLRecordsByBaseKeyRUID =
     'DELETE FROM ' +
-    '  rpl_record rec ' +
+    '  rpl_record ' +
     'WHERE ' +
-    '  rec.basekey = %0:d ' +
-    '  AND rec.id = (SELECT FIRST(1) r.id FROM gd_ruid r WHERE r.xid = %1:d AND r.dbid = %2:d)';
+    '  basekey = %0:d ' +
+    '  AND id = (SELECT FIRST(1) r.id FROM gd_ruid r WHERE r.xid = %1:d AND r.dbid = %2:d)';
   sqlDeleteRPLRecordsByRUID =
     'DELETE FROM ' +
-    '  rpl_record rec ' +
+    '  rpl_record ' +
     'WHERE ' +
-    '  rec.id = (SELECT FIRST(1) r.id FROM gd_ruid r WHERE r.xid = %1:d AND r.dbid = %2:d)';
+    '  id = (SELECT FIRST(1) r.id FROM gd_ruid r WHERE r.xid = %1:d AND r.dbid = %2:d)';
 
+  sqlInsertRPLRecordsIDStateEditionDate =
+    'INSERT INTO ' +
+    '  rpl_record (id, basekey, state, editiondate) ' +
+    '  VALUES (:id, %d, :state, :editiondate)';
   sqlInsertRPLRecordsIDBaseKeyState =
     'INSERT INTO ' +
     '  rpl_record (id, basekey, state, editiondate) ' +
@@ -479,28 +513,28 @@ const
 
   sqlUpdateRPLRecordsSetStateDate =
     'UPDATE ' +
-    '  rpl_record rec ' +
+    '  rpl_record ' +
     'SET ' +
-    '  rec.state = %3:d, rec.editiondate = :editdate ' +
+    '  state = %3:d, editiondate = :editdate ' +
     'WHERE ' +
-    '  rec.basekey = %0:d ' +
-    '  rec.id = (SELECT FIRST(1) r.id FROM gd_ruid r WHERE r.xid = %1:d AND r.dbid = %2:d)';
+    '  basekey = %0:d ' +
+    '  AND id = (SELECT FIRST(1) r.id FROM gd_ruid r WHERE r.xid = %1:d AND r.dbid = %2:d)';
   sqlUpdateRPLRecordsSetStateByBasekeyRUID =
     'UPDATE ' +
-    '  rpl_record rec ' +
+    '  rpl_record ' +
     'SET ' +
-    '  rec.state = %1:d ' +
+    '  state = %1:d ' +
     'WHERE ' +
-    '  rec.basekey = %0:d ' +
-    '  rec.id = (SELECT FIRST(1) r.id FROM gd_ruid r WHERE r.xid = :xid AND r.dbid = :dbid)';
+    '  basekey = %0:d ' +
+    '  AND id = (SELECT FIRST(1) r.id FROM gd_ruid r WHERE r.xid = :xid AND r.dbid = :dbid)';
   sqlUpdateRPLRecordsSetStateByBasekey =
     'UPDATE ' +
-    '  rpl_record rec ' +
+    '  rpl_record ' +
     'SET ' +
-    '  rec.state = %1:d ' +
+    '  state = %1:d ' +
     'WHERE ' +
-    '  rec.basekey = %0:d ' +
-    '  and rec.state = 0';
+    '  basekey = %0:d ' +
+    '  AND state = 0';
 
   sqlSelectRPLRecordsByBasekeyState =
     'SELECT ' +
@@ -515,6 +549,15 @@ const
     'WHERE ' +
     '  rep.basekey = %d ' +
     '  AND rep.state = %d';
+  sqlSelectRPLRecordsDateStateByBaseKeyID =
+    'SELECT ' +
+    '  editiondate, ' +
+    '  state ' +
+    'FROM ' +
+    '  rpl_record ' +
+    'WHERE ' +
+    '  basekey = %0:d ' +
+    '  AND id = :id ';
   sqlSelectRPLRecordsDateStateByBaseKeyRUID =
     'SELECT ' +
     '  rep.editiondate, ' +
@@ -786,8 +829,6 @@ begin
   CDS.CreateDataSet;
   CDS.LogChanges := False;
 
-  //CDS.IndexFieldNames := '_XID;_DBID';
-
   FObjectArray[FCount] := Obj;
   FClientDSArray[FCount] := CDS;
 
@@ -858,29 +899,15 @@ begin
           if (not Assigned(F)) or (F.DataType <> ftInteger) then
             Continue;
 
-          {if R.RelationFields[I].gdClass <> nil then
-          begin
-            C.gdClass := CgdcBase(R.RelationFields[I].gdClass);
-            C.SubType := R.RelationFields[I].gdSubType;
-          end
-          else
-          begin
-            C.gdClass := nil;
-            C.SubType := '';
-          end;}
-
           TempFieldsList.Add(R.RelationName + '=' + R.RelationFields[I].FieldName);
-          {if C.gdClass <> nil then
-            TempClassesList.Add(C.gdClass.Classname + '=' + C.SubType)
-          else}
-            if R.RelationFields[I].References <> nil then
-            begin
-              C := GetBaseClassForRelation(R.RelationFields[I].References.RelationName);
-              if C.gdClass <> nil then
-                TempClassesList.Add(C.gdClass.Classname + '=' + C.SubType)
-              else
-                TempClassesList.Add(R.RelationFields[I].References.RelationName + '=NULL');
-            end;
+          if R.RelationFields[I].References <> nil then
+          begin
+            C := GetBaseClassForRelation(R.RelationFields[I].References.RelationName);
+            if Assigned(C.gdClass) then
+              TempClassesList.Add(C.gdClass.Classname + '=' + C.SubType)
+            else
+              TempClassesList.Add(R.RelationFields[I].References.RelationName + '=NULL');
+          end;
         end;
       end;
 
@@ -896,7 +923,7 @@ begin
         LT.Text := TableList.Text;
         for J := 0 to LT.Count - 1 do
         begin
-          atDatabase.ForeignKeys.ConstraintsByReferencedRelation({ListTable}LT[J], OL);
+          atDatabase.ForeignKeys.ConstraintsByReferencedRelation(LT[J], OL);
           for I := 0 to OL.Count - 1 do
             with OL[I] as TatForeignKey do
             begin
@@ -934,22 +961,28 @@ begin
 
     // поля-ссылки из детальных объектов
     OL := TObjectList.Create(False);
-    FObjectDetailReferences[Index] := TObjectList.Create(False);
-    for I := 0 to TableList.Count - 1 do
-      atDatabase.ForeignKeys.ConstraintsByReferencedRelation(TableList[I], OL, False);
-    for I := 0 to OL.Count - 1 do
-      if TatForeignKey(OL.Items[I]).IsSimpleKey and
-        (TatForeignKey(OL.Items[I]).ConstraintField.Field.FieldName = 'DMASTERKEY') then
+    try
+      FObjectDetailReferences[Index] := TObjectList.Create(False);
+      for I := 0 to TableList.Count - 1 do
+        atDatabase.ForeignKeys.ConstraintsByReferencedRelation(TableList[I], OL, False);
+      for I := 0 to OL.Count - 1 do
       begin
-        if (TatForeignKey(OL[I]).Relation.RelationName = 'AC_ENTRY') or
-           (TatForeignKey(OL[I]).Relation.RelationName = 'AC_RECORD') then
-          continue; 
-        if not Assigned(TatForeignKey(OL.Items[I]).Relation.PrimaryKey) then
-          raise EgdcIBError.Create('Ошибка при обработке связи мастер-дитейл: ' +
-            ' у таблицы ' + TatForeignKey(OL.Items[I]).Relation.LName + ' отсутствует первичный ключ! ')
-        else
-          FObjectDetailReferences[Index].Add(OL.Items[I]);
+        if TatForeignKey(OL.Items[I]).IsSimpleKey and
+          (TatForeignKey(OL.Items[I]).ConstraintField.Field.FieldName = 'DMASTERKEY') then
+        begin
+          if (TatForeignKey(OL[I]).Relation.RelationName = 'AC_ENTRY') or
+             (TatForeignKey(OL[I]).Relation.RelationName = 'AC_RECORD') then
+            continue;
+          if not Assigned(TatForeignKey(OL.Items[I]).Relation.PrimaryKey) then
+            raise EgdcIBError.Create('Ошибка при обработке связи мастер-дитейл: ' +
+              ' у таблицы ' + TatForeignKey(OL.Items[I]).Relation.LName + ' отсутствует первичный ключ! ')
+          else
+            FObjectDetailReferences[Index].Add(OL.Items[I]);
+        end;
       end;
+    finally
+      OL.Free;
+    end;
 
   finally
     TableList.Free;
@@ -968,65 +1001,65 @@ var
   LocName: String;
   R: TatRelation;
 begin
-  if (Index < 0) or (Index > (FCount - 1)) then
-    raise EgsInvalidIndex.Create(GetGsException(Self, 'AddData: Invalid object index'));
-
-  CDS := FClientDSArray[Index];
-
-  if Assigned(frmStreamSaver) then
-    with AObj do
-      frmStreamSaver.SetProcessText(GetDisplayName(SubType) + #13#10 + '  ' +
-        FieldByName(GetListField(SubType)).AsString{ + #13#10 + '  ' +
-        '(' + FieldByName(GetKeyField(SubType)).AsString + ')'});
-
-  if StreamLoggingType = slAll then
-    if AObj.SetTable = '' then
-    begin
-      with AObj do
-        AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
-          FieldByName(GetListField(SubType)).AsString + #13#10 +
-          ' (' + FieldByName(GetKeyField(SubType)).AsString + ')'#13#10, clBlue);
-      Space;
-    end
-    else
-    begin
-      R := atDataBase.Relations.ByRelationName(AObj.SetTable);
-      if Assigned(R) then
-        LocName := R.LName
-      else
-        LocName := AObj.SetTable;
-
-      with AObj do
-        AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
-          FieldByName(GetListField(SubType)).AsString + #13#10 +
-          ' (' + FieldByName(GetKeyField(SubType)).AsString + ') с данными множества ' + LocName + #13#10, clBlue);
-      Space;
-    end;
-
-  RUID := AObj.GetRUID;
-  Assert(RUID.XID > -1, 'TgdcStreamDataObject.AddData: RUID.XID = -1');
-
-  CDS.Append;
-  for I := 0 to AObj.FieldCount - 1 do
+  if CheckIndex(Index) then
   begin
-    F := CDS.FindField(AObj.Fields[I].FieldName);
-    if F <> nil then
-    begin
-      if (not IsReadUserFromStream and (AnsiPos(';' + F.FieldName + ';', NotSavedField) > 0)) or
-         (IsReadUserFromStream and (AnsiPos(';' + F.FieldName + ';', NotSavedFieldRepl) > 0))
-      then
-        F.Clear
-      else
-        F.Assign(AObj.Fields[I]);
-    end;
-  end;
+    CDS := FClientDSArray[Index];
 
-  CDS.FieldByName('_XID').AsInteger := RUID.XID;
-  CDS.FieldByName('_DBID').AsInteger := RUID.DBID;
-  CDS.FieldByName('_MODIFIED').AsDateTime := AObj.EditionDate;
-  CDS.FieldByName('_MODIFYFROMSTREAM').AsBoolean := AObj.ModifyFromStream;
-  CDS.FieldByName('_SETTABLE').AsString := AObj.SetTable;
-  CDS.Post;
+    if Assigned(frmStreamSaver) then
+      with AObj do
+        frmStreamSaver.SetProcessText(GetDisplayName(SubType) + #13#10 + '  ' +
+          FieldByName(GetListField(SubType)).AsString + #13#10 + '  ' +
+          '(' + FieldByName(GetKeyField(SubType)).AsString + ')');
+
+    if StreamLoggingType = slAll then
+      if AObj.SetTable = '' then
+      begin
+        with AObj do
+          AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
+            FieldByName(GetListField(SubType)).AsString + #13#10 +
+            ' (' + FieldByName(GetKeyField(SubType)).AsString + ')'#13#10, clBlue);
+        Space;
+      end
+      else
+      begin
+        R := atDataBase.Relations.ByRelationName(AObj.SetTable);
+        if Assigned(R) then
+          LocName := R.LName
+        else
+          LocName := AObj.SetTable;
+
+        with AObj do
+          AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
+            FieldByName(GetListField(SubType)).AsString + #13#10 +
+            ' (' + FieldByName(GetKeyField(SubType)).AsString + ') с данными множества ' + LocName + #13#10, clBlue);
+        Space;
+      end;
+
+    RUID := AObj.GetRUID;
+    Assert(RUID.XID > -1, 'TgdcStreamDataObject.AddData: RUID.XID = -1');
+
+    CDS.Append;
+    for I := 0 to AObj.FieldCount - 1 do
+    begin
+      F := CDS.FindField(AObj.Fields[I].FieldName);
+      if F <> nil then
+      begin
+        if (not IsReadUserFromStream and (AnsiPos(';' + F.FieldName + ';', NotSavedField) > 0)) or
+           (IsReadUserFromStream and (AnsiPos(';' + F.FieldName + ';', NotSavedFieldRepl) > 0))
+        then
+          F.Clear
+        else
+          F.Assign(AObj.Fields[I]);
+      end;
+    end;
+
+    CDS.FieldByName('_XID').AsInteger := RUID.XID;
+    CDS.FieldByName('_DBID').AsInteger := RUID.DBID;
+    CDS.FieldByName('_MODIFIED').AsDateTime := AObj.EditionDate;
+    CDS.FieldByName('_MODIFYFROMSTREAM').AsBoolean := AObj.ModifyFromStream;
+    CDS.FieldByName('_SETTABLE').AsString := AObj.SetTable;
+    CDS.Post;
+  end;
 end;
 
 procedure TgdcStreamDataObject.AddData(const Index: Integer; const AID: TID);
@@ -1035,25 +1068,26 @@ var
   C: TgdcFullClass;
   ObjectIndex: Integer;
 begin
-  if (Index < 0) or (Index > (FCount - 1)) then
-    raise EgsInvalidIndex.Create(GetGsException(Self, 'AddData: Invalid object index'));
-
-  Obj := FObjectArray[Index];
-
-  Obj.ID := AID;
-  if not Obj.Active then
-    Obj.Open;
-  if Obj.RecordCount = 0 then  {!!!!!!!!!!!!!!!!!!}
-    exit;
-
-  C := Obj.GetCurrRecordClass;
-  if (Obj.ClassType <> C.gdClass) or (Obj.SubType <> C.SubType) then
+  if CheckIndex(Index) then
   begin
-    ObjectIndex := Self.GetObjectIndex(C.gdClass.Classname, C.SubType);
-    Self.AddData(ObjectIndex, AID);
-  end
-  else
-    Self.AddData(Index, Obj);
+    Obj := FObjectArray[Index];
+
+    if Obj.ID <> AID then
+      Obj.ID := AID;
+    if not Obj.Active then
+      Obj.Open;
+    if Obj.RecordCount = 0 then  {!!!!!!!!!!!!!!!!!!}
+      Exit;
+
+    C := Obj.GetCurrRecordClass;
+    if (Obj.ClassType <> C.gdClass) or (Obj.SubType <> C.SubType) then
+    begin
+      ObjectIndex := Self.GetObjectIndex(C.gdClass.Classname, C.SubType);
+      Self.AddData(ObjectIndex, AID);
+    end
+    else
+      Self.AddData(Index, Obj);
+  end;
 end;
 
 function TgdcStreamDataObject.Find(const AClassName: TgdcClassName;
@@ -1079,61 +1113,65 @@ end;
 
 function TgdcStreamDataObject.GetClientDS(Index: Integer): TClientDataSet;
 begin
-  if (Index < 0) or (Index > (FCount - 1)) then
-    raise EgsInvalidIndex.Create(GetGsException(Self, 'GetClientDS: Invalid index (' + IntToStr(Index) + ')'));
-  Result := FClientDSArray[Index];
+  Result := nil;
+  if CheckIndex(Index) then
+  begin
+    Result := FClientDSArray[Index];
+  end;
 end;
 
 function TgdcStreamDataObject.GetgdcObject(Index: Integer): TgdcBase;
 begin
-  if (Index < 0) or (Index > (FCount - 1)) then
-    raise EgsInvalidIndex.Create(GetGsException(Self, 'GetgdcObject: Invalid index (' + IntToStr(Index) + ')'));
-  // будем возвращать только активные бизнес-объекты, с сабсетом ByID
-  try
-    if FObjectArray[Index].SubSet <> 'ByID' then
-      FObjectArray[Index].SubSet := 'ByID';
-    if not FObjectArray[Index].Active then
-      FObjectArray[Index].Open;
-  except
+  Result := nil;
+  if CheckIndex(Index) then
+  begin
+    // будем возвращать только активные бизнес-объекты, с сабсетом ByID
+    try
+      if FObjectArray[Index].SubSet <> 'ByID' then
+        FObjectArray[Index].SubSet := 'ByID';
+      if not FObjectArray[Index].Active then
+        FObjectArray[Index].Open;
+    except
+    end;
+    Result := FObjectArray[Index];
   end;
-  Result := FObjectArray[Index];
 end;
 
 function TgdcStreamDataObject.GetObjectDetailReferences(
   Index: Integer): TObjectList;
 begin
-  if (Index < 0) or (Index > (FCount - 1)) then
-    raise EgsInvalidIndex.Create(GetGsException(Self, 'GetObjectDetailReferences: Invalid index (' + IntToStr(Index) + ')'));
-  Result := FObjectDetailReferences[Index];
+  Result := nil;
+  if CheckIndex(Index) then
+    Result := FObjectDetailReferences[Index];
 end;
 
 function TgdcStreamDataObject.GetObjectCrossTables(
   Index: Integer): TStringList;
 begin
-  if (Index < 0) or (Index > (FCount - 1)) then
-    raise EgsInvalidIndex.Create(GetGsException(Self, 'GetObjectCrossTables: Invalid index (' + IntToStr(Index) + ')'));
-  Result := FObjectCrossTables[Index];
+  Result := nil;
+  if CheckIndex(Index) then
+    Result := FObjectCrossTables[Index];
 end;
 
 function TgdcStreamDataObject.GetObjectForeignKeyFields(Index: Integer): TStrings;
 begin
-  if (Index < 0) or (Index > (FCount - 1)) then
-    raise EgsInvalidIndex.Create(GetGsException(Self, 'GetObjectForeignKeyFields: Invalid index (' + IntToStr(Index) + ')'));
-  Result := FObjectForeignKeyFields[Index];
+  Result := nil;
+  if CheckIndex(Index) then
+    Result := FObjectForeignKeyFields[Index];
 end;
 
 function TgdcStreamDataObject.GetObjectForeignKeyClasses(Index: Integer): TStrings;
 begin
-  if (Index < 0) or (Index > (FCount - 1)) then
-    raise EgsInvalidIndex.Create(GetGsException(Self, 'GetObjectForeignKeyClasses: Invalid index (' + IntToStr(Index) + ')'));
-  Result := FObjectForeignKeyClasses[Index];
+  Result := nil;
+  if CheckIndex(Index) then
+    Result := FObjectForeignKeyClasses[Index];
 end;
 
 function TgdcStreamDataObject.GetOneToOneTables(Index: Integer): TStrings;
 begin
-  if (Index < 0) or (Index > (FCount - 1)) then
-    raise EgsInvalidIndex.Create(GetGsException(Self, 'GetOneToOneTables: Invalid index (' + IntToStr(Index) + ')'));
-  Result := FOneToOneTables[Index];
+  Result := nil;
+  if CheckIndex(Index) then
+    Result := FOneToOneTables[Index];
 end;
 
 procedure TgdcStreamDataObject.AddReceivedRecord(const AXID, ADBID: TID);
@@ -1226,6 +1264,14 @@ begin
     FIsIncrementedStream := True;
 end;
 
+function TgdcStreamDataObject.CheckIndex(const Index: Integer): Boolean;
+begin
+  if (FCount > 0) and ((Index < 0) or (Index > (FCount - 1))) then
+    raise EgsInvalidIndex.Create(GetGsException(Self, 'Invalid index (' + IntToStr(Index) + ')'))
+  else
+    Result := True;
+end;
+
 { TgdcStreamDataProvider }
 
 constructor TgdcStreamDataProvider.Create(ADatabase: TIBDatabase = nil;
@@ -1244,6 +1290,8 @@ begin
 
   FNowSavedRecords := TStreamOrderList.Create;
   FReplaceFieldList := TStringList.Create;
+
+  FAnAnswer := 0;
 
   FIDMapping := TgdKeyIntAssoc.Create;
   FUpdateList := TObjectList.Create(True);
@@ -1269,18 +1317,27 @@ begin
     FreeAndNil(FIDMapping);
   if Assigned(FUpdateList) then
     FreeAndNil(FUpdateList);
+
+  if Assigned(FIbsqlRPLRecordSelect) then
+    FreeAndNil(FIbsqlRPLRecordSelect);
+  if Assigned(FIbsqlRPLRecordInsert) then
+    FreeAndNil(FIbsqlRPLRecordInsert);
+  if Assigned(FIbsqlRPLRecordDelete) then
+    FreeAndNil(FIbsqlRPLRecordDelete);
     
   inherited;
 end;
 
 procedure TgdcStreamDataProvider.SaveRecord(const ObjectIndex: Integer;
   const AID: TID; const AWithDetail: Boolean = true);
+begin
+  Self.SaveRecord(FDataObject.gdcObject[ObjectIndex], ObjectIndex, AID, AWithDetail);
+end;
+
+procedure TgdcStreamDataProvider.SaveRecord(const AObject: TgdcBase; const ObjectIndex: Integer;
+  const AID: TID; const AWithDetail: Boolean);
 var
   XID, DBID: TID;
-  Obj: TgdcBase;
-  State: TIncrRecordState;
-  RplEditionDate: TDateTime;
-  CanSaveRecord: Boolean;
   C: TgdcFullClass;
   Index: Integer;
 begin
@@ -1308,15 +1365,15 @@ begin
     Exit;
   end;
 
-  Obj := FDataObject.gdcObject[ObjectIndex];
-  Obj.ID := AID;
-  if Obj.RecordCount = 0 then
-    raise EgdcIDNotFound.Create(Obj.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID));
+  if AObject.ID <> AID then
+    AObject.ID := AID;
+  if AObject.RecordCount = 0 then
+    raise EgdcIDNotFound.Create(AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID));
 
   // Если текущая запись репрезентует объект другого
   //  класса, то сохраним запись от его лица
-  C := Obj.GetCurrRecordClass;
-  if (Obj.ClassType <> C.gdClass) or (Obj.SubType <> C.SubType) then
+  C := AObject.GetCurrRecordClass;
+  if (AObject.ClassType <> C.gdClass) or (AObject.SubType <> C.SubType) then
   begin
     Index := FDataObject.GetObjectIndex(C.gdClass.Classname, C.SubType);
     Self.SaveRecord(Index, AID, AWithDetail);
@@ -1326,44 +1383,18 @@ begin
 
     // По умолчанию устанавливаем флаг Перезаписывать из потока в True
     if Assigned(FDontNeedModifyList) and (FDontNeedModifyList.IndexOf(AID) > -1) then
-      Obj.ModifyFromStream := False
+      AObject.ModifyFromStream := False
     else
-      Obj.ModifyFromStream := True;
+      AObject.ModifyFromStream := True;
 
     // Выполнить особые для некоторых объектов действия перед сохранением в поток.
     // Если вернёт false, значит объект не нужно сохранять в поток
     // (например: cистемные домены не сохраняем)
-    if DoBeforeSaving(Obj) then
+    if DoBeforeSaving(AObject) then
     begin
 
-      CanSaveRecord := true;
-
-      if FDataObject.TargetBaseKey > -1 then
-      begin
-        gdcBaseManager.GetFullRUIDByID(AID, XID, DBID);
-        FIBSQL.Close;
-        FIBSQL.SQL.Text := Format(sqlSelectRPLRecordsDateStateByBaseKeyRUID,
-          [FDataObject.TargetBaseKey, XID, DBID]);
-        FIBSQL.ExecQuery;
-        if FIBSQL.RecordCount > 0 then
-        begin
-          State := TIncrRecordState(FIBSQL.FieldByName('STATE').AsInteger);
-          RplEditionDate := FIBSQL.FieldByName('EDITIONDATE').AsDateTime;
-          // если запись уже отправлялась на целевую базу и с тех пор не изменялась, то не сохраняем ее в поток
-          if ((State = irsReceived) or (State = irsConfirmed)) and (RplEditionDate >= Obj.EditionDate) then
-            CanSaveRecord := false
-          else
-          begin
-            // удалим из RPL_RECORD информацию о сохраняемой записи
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := Format(sqlDeleteRPLRecordsByBaseKeyRUID,
-              [FDataObject.TargetBaseKey, XID, DBID]);
-            FIBSQL.ExecQuery;
-          end;
-        end;
-      end;
-
-      if CanSaveRecord then
+      // Если поток инкрементынй, то проверим по таблице RPL_RECORD необходимость сохранения записи
+      if CheckNeedSaveRecord(AID, AObject.EditionDate) then
       begin
         if FNowSavedRecords.Find(AID, ObjectIndex) = -1 then
         begin
@@ -1373,6 +1404,7 @@ begin
 
         SaveSpecial(ObjectIndex, AID);
 
+        // Снова проверим необходимость сохранения объекта, возможно он уже сохранился в функциях выше
         if (FDataObject.FindIncrSavedRecord(AID) = -1) and (FLoadingOrderList.Find(AID, ObjectIndex) = -1) then
         begin
           // сохранить порядок загрузки объекта
@@ -1382,16 +1414,16 @@ begin
 
           if FDataObject.TargetBaseKey > -1 then
           begin
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := Format(sqlInsertRPLRecordsIDBaseKeyState,
-              [AID, FDataObject.TargetBaseKey, Integer(irsOut)]);
-            FIBSQL.ParamByName('EDITIONDATE').AsDateTime := Obj.EditionDate;
-            FIBSQL.ExecQuery;
+            IbsqlRPLRecordInsert.Close;
+            IbsqlRPLRecordInsert.ParamByName('ID').AsInteger := AID;
+            IbsqlRPLRecordInsert.ParamByName('STATE').AsInteger := Integer(irsOut);
+            IbsqlRPLRecordInsert.ParamByName('EDITIONDATE').AsDateTime := AObject.EditionDate;
+            IbsqlRPLRecordInsert.ExecQuery;
           end;
         end;
 
         SaveOneToOne(ObjectIndex, AID);
-        SaveSet(Obj);
+        SaveSet(AObject);
 
       end
       else
@@ -1400,7 +1432,7 @@ begin
       end;
 
       // Выполнить особые для некоторых объектов действия после сохранения в поток.
-      DoAfterSaving(Obj);
+      DoAfterSaving(AObject);
 
       if AWithDetail or (Assigned(FSaveWithDetailList) and (FSaveWithDetailList.IndexOf(AID) > -1)) then
         SaveDetail(ObjectIndex, AID);
@@ -1450,7 +1482,7 @@ begin
       C := GetBaseClassForRelationByID(BindedClassName,
         Obj.FieldByName(RelationName, FieldName).AsInteger, FTransaction);
       BindedClassName := '';
-      if C.gdClass <> nil then
+      if Assigned(C.gdClass) then
       begin
         BindedClassName := C.gdClass.ClassName;
         BindedSubType := C.SubType;
@@ -1513,6 +1545,7 @@ begin
   begin
     TableName := OneToOneTables[I];
     C := GetBaseClassForRelationByID(TableName, AID, FTransaction);
+    //C := GetClassForObjectByID(FDatabase, FTransaction)
     if Assigned(C.gdClass) then
     begin
       ObjIndex := FDataObject.GetObjectIndex(C.gdClass.Classname, C.SubType);
@@ -1675,7 +1708,9 @@ procedure TgdcStreamDataProvider.SaveSpecial(const AObjectIndex: Integer; const 
               ObjectIndex := FDataObject.GetObjectIndex(Classname, '');
               Self.SaveRecord(ObjectIndex, ibsqlID.Fields[0].AsInteger);
               if TempObj.ID <> AID then
+              begin
                 TempObj.ID := AID;
+              end;
             end;
           end;
           ibsql.Next;
@@ -1964,7 +1999,6 @@ begin
     KeyFieldName := TargetDS.GetKeyField(TargetDS.SubType);
     TargetKeyInt := TargetDS.FieldByName(KeyFieldName).AsInteger;
     SourceKeyInt := SourceDS.FieldByName(KeyFieldName).AsInteger;
-
     //Пробежимся по полям из потока и перенесем их значение в наш объект
     for I := 0 to SourceDS.FieldCount - 1 do
     begin
@@ -2141,7 +2175,6 @@ begin
     //Стандартные id не должны меняться
     if SourceKeyInt < cstUserIDStart then
       TargetDS.FieldByName(KeyFieldName).AsInteger := SourceKeyInt;
-
     try
       if TargetDS.State = dsEdit then
       begin
@@ -2198,7 +2231,11 @@ begin
           TgdcReferenceUpdate(RUOL[I]).ID := TargetDS.ID;
       end;
 
+      {TODO: временная мера, переделать на редактирование отдельным объектом}
+      TargetKeyInt := TargetDS.ID;
       ApplyDelayedUpdates(SourceKeyInt, TargetDS.FieldByName(KeyFieldName).AsInteger);
+      if TargetDS.ID <> TargetKeyInt then
+        TargetDS.ID := TargetKeyInt;
 
       Result := True;
     except
@@ -2272,9 +2309,14 @@ begin
   Assert(IBLogin <> nil);
 
   // При нажатии Escape прервем процесс
+  // При нажатии Escape прервем процесс
   if AbortProcess or ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
   begin
-    AbortProcess := True;
+    if (not AbortProcess) and
+       (Application.MessageBox('Остановить загрузку?', 'Внимание', MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES) then
+    begin
+      AbortProcess := True;
+    end;  
     Exit;
   end;
 
@@ -2292,12 +2334,13 @@ begin
   StreamXID := CDS.FieldByName('_xid').AsInteger;
   StreamDBID := CDS.FieldByName('_dbid').AsInteger;
   StreamModified := CDS.FieldByName('_modified').AsDateTime;
-
-  if AObj.SetTable <> '' then
-    AObj.SetTable := '';
+  Modified := StreamModified;
   // используется в GetRUID
   AObj.StreamXID := StreamXID;
   AObj.StreamDBID := StreamDBID;
+
+  if AObj.SetTable <> '' then
+    AObj.SetTable := '';
 
   Space;
   //Проверяем на соответствие поля для отображения
@@ -2315,6 +2358,11 @@ begin
   end
   else
   begin
+    if Assigned(frmStreamSaver) then
+      frmStreamSaver.SetProcessText(AObj.GetDisplayName(AObj.SubType) + #13#10 + '  ' +
+        CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString + #13#10 + '  ' +
+        ' (XID =  ' + IntToStr(StreamXID) + ', DBID = ' + IntToStr(StreamDBID) + ')');
+
     if StreamLoggingType = slAll then
       AddText('Считывание объекта ' + AObj.GetDisplayName(AObj.SubType) + ' ' +
         CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString + #13#10 +
@@ -2342,7 +2390,11 @@ begin
 
   //Если запись в базе не найдена, вставим ее
   if D = -1 then
-    InsertRecord(CDS, AObj)
+  begin
+    InsertRecord(CDS, AObj);
+    if FDataObject.IsIncrementedStream then
+      AddRecordToRPLRECORDS(AObj.ID, Modified);
+  end
   else
   begin
     //Попробуем поискать нашу запись
@@ -2352,6 +2404,8 @@ begin
     begin
       gdcBaseManager.DeleteRUIDbyXID(StreamXID, StreamDBID, FTransaction);
       InsertRecord(CDS, AObj);
+      if FDataObject.IsIncrementedStream then
+        AddRecordToRPLRECORDS(AObj.ID, Modified);
     end
     else
     begin
@@ -2361,8 +2415,12 @@ begin
       // Проверяем, необходимо ли нам удалить найденную запись, перед считыванием ее аналога из потока
       if AObj.NeedDeleteTheSame(AObj.SubType)
          and AObj.DeleteTheSame(D, CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString) then
+      begin
         // Если запись удалена, вставим ее аналог из потока
-        InsertRecord(CDS, AObj)
+        InsertRecord(CDS, AObj);
+        if FDataObject.IsIncrementedStream then
+          AddRecordToRPLRECORDS(AObj.ID, Modified);
+      end
       else
       begin
         //Проверим, когда был модифицирован РУИД найденной записи
@@ -2370,7 +2428,8 @@ begin
         // Если мы нашли объект по руиду и
         //  дата модификации руида более ранняя, чем загружаемая из потока
         //  или объект нуждается в обновлении данными из потока по умолчанию
-        if (Modified < StreamModified) or {AObj.ModifyFromStream} CDS.FieldByName('_MODIFYFROMSTREAM').AsBoolean then
+        if Assigned(CDS.FindField('_MODIFYFROMSTREAM')) and CDS.FieldByName('_MODIFYFROMSTREAM').AsBoolean
+           {(Modified < StreamModified) or } then
         begin
           if AObj.ID <> D then
             AObj.ID := D;
@@ -2390,7 +2449,11 @@ begin
                   AObj.CheckBrowseMode;
                   gdcBaseManager.UpdateRUIDByXID(AObj.ID, StreamXID, StreamDBID,
                     StreamModified, IBLogin.ContactKey, FTransaction);
+                  Modified := StreamModified;
                 end;
+                if FDataObject.IsIncrementedStream then
+                  AddRecordToRPLRECORDS(AObj.ID, Modified);
+
                 FLoadingOrderList.Remove(StreamID);
                 CDS.Delete;
               end;
@@ -2433,9 +2496,6 @@ begin
       end;
     end;
   end;
-
-  if FDataObject.IsIncrementedStream then
-    AddRecordToRPLRECORDS(StreamXID, StreamDBID, StreamModified);
 end;
 
 
@@ -2473,9 +2533,9 @@ begin
       FDataObject.AddReceivedRecord(FIBSQL.FieldByName('XID').AsInteger, FIBSQL.FieldByName('DBID').AsInteger);
       FIBSQL.Next
     end;
-    // сменим статус у этих записей на irsConfirmed (принятие записей подтверждено)
+    // сменим статус у этих записей на irsIncremented (принятие записей подтверждено)
     FIBSQL.Close;
-    FIBSQL.SQL.Text := Format(sqlUpdateRPLRecordsSetStateByBasekey, [FDataObject.TargetBaseKey, Integer(irsConfirmed)]);
+    FIBSQL.SQL.Text := Format(sqlUpdateRPLRecordsSetStateByBasekey, [FDataObject.TargetBaseKey, Integer(irsIncremented)]);
     FIBSQL.ExecQuery;
   end;
 end;
@@ -2502,7 +2562,7 @@ begin
         end;
       end
       else
-        raise EgsUnknownTable.Create(CDS.FieldByName('_SETTABLE').AsString);
+        raise EgdcNoTable.Create(CDS.FieldByName('_SETTABLE').AsString);
     end;
   end;
 end;
@@ -2867,15 +2927,48 @@ begin
 
 end;
 
+function TgdcStreamDataProvider.CheckNeedSaveRecord(const AID: TID;
+  AModified: TDateTime): Boolean;
+var
+  State: TIncrRecordState;
+  RplEditionDate: TDateTime;
+begin
+  Result := True;
+
+  if FDataObject.IsIncrementedStream then
+  begin
+    IbsqlRPLRecordSelect.Close;
+    IbsqlRPLRecordSelect.ParamByName('ID').AsInteger := AID;
+    IbsqlRPLRecordSelect.ExecQuery;
+    if IbsqlRPLRecordSelect.RecordCount > 0 then
+    begin
+      State := TIncrRecordState(IbsqlRPLRecordSelect.FieldByName('STATE').AsInteger);
+      RplEditionDate := IbsqlRPLRecordSelect.FieldByName('EDITIONDATE').AsDateTime;
+      // если запись уже отправлялась на целевую базу и с тех пор не изменялась, то не сохраняем ее в поток
+      if (State = irsIncremented) and (RplEditionDate >= AModified) then
+      begin
+        Result := False;
+      end
+      else
+      begin
+        // удалим из RPL_RECORD информацию о сохраняемой записи
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := Format(sqlDeleteRPLRecordsByBaseKeyID, [FDataObject.TargetBaseKey, AID]);
+        FIBSQL.ExecQuery;
+      end;
+    end;
+  end;
+end;
+
 function TgdcStreamDataProvider.CheckNeedLoadingRecord(const XID,
   DBID: TID; AModified: TDateTime): Boolean;
 var
   State: TIncrRecordState;
   RplEditionDate: TDateTime;
 begin
-  Result := true;
+  Result := True;
 
-  if FDataObject.SourceBaseKey > -1 then
+  if FDataObject.IsIncrementedStream then
   begin
     FIBSQL.Close;
     FIBSQL.SQL.Text := Format(sqlSelectRPLRecordsDateStateByRUID, [XID, DBID]);
@@ -2884,29 +2977,55 @@ begin
     begin
       State := TIncrRecordState(FIBSQL.FieldByName('STATE').AsInteger);
       RplEditionDate := FIBSQL.FieldByName('EDITIONDATE').AsDateTime;
-      if ((State = irsReceived) or (State = irsConfirmed)) and (RplEditionDate >= AModified) then
-        Result := false;
+      if (State = irsIncremented) and (RplEditionDate >= AModified) then
+      begin
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := Format(sqlDeleteRPLRecordsByBaseKeyRUID, [FDataObject.SourceBaseKey, XID, DBID]);
+        FIBSQL.ExecQuery;
+        Result := False;
+      end;
     end;
   end;
 
 end;
 
-procedure TgdcStreamDataProvider.AddRecordToRPLRECORDS(const XID,
-  DBID: TID; AModified: TDateTime);
+procedure TgdcStreamDataProvider.AddRecordToRPLRECORDS(const AID: TID; AModified: TDateTime);
 var
-  ID: TID;
+  XID, DBID: TID;
 begin
   if FDataObject.SourceBaseKey > -1 then
   begin
-    ID := gdcBaseManager.GetIDByRUID(XID, DBID, FTransaction);
-    FIBSQL.Close;
-    FIBSQL.SQL.Text := Format(sqlInsertRPLRecordsIDBaseKeyState,
-      [ID, FDataObject.SourceBaseKey, Integer(irsIn)]);
-    FIBSQL.ParamByName('EDITIONDATE').AsDateTime := AModified;
-    FIBSQL.ExecQuery;
-    if FIBSQL.RowsAffected <> 1 then
-      raise Exception.Create(GetGsException(Self, 'AddRecordToRPLRECORDS: Ошибка при вставке записи в таблицу RPL_RECORD'));
-  end;    
+    IbsqlRPLRecordDelete.Close;
+    IbsqlRPLRecordDelete.ParamByName('ID').AsInteger := AID;
+    IbsqlRPLRecordDelete.ParamByName('EDITIONDATE').AsDateTime := AModified;
+    IbsqlRPLRecordDelete.ExecQuery;
+
+    IbsqlRPLRecordSelect.Close;
+    IbsqlRPLRecordSelect.ParamByName('ID').AsInteger := AID;
+    IbsqlRPLRecordSelect.ExecQuery;
+
+    if IbsqlRPLRecordSelect.RecordCount = 0 then
+    begin
+      IbsqlRPLRecordInsert.Close;
+      IbsqlRPLRecordInsert.ParamByName('ID').AsInteger := AID;
+      IbsqlRPLRecordInsert.ParamByName('STATE').AsInteger := Integer(irsIn);
+      IbsqlRPLRecordInsert.ParamByName('EDITIONDATE').AsDateTime := AModified;
+      IbsqlRPLRecordInsert.ExecQuery;
+      try
+        IbsqlRPLRecordInsert.ExecQuery;
+      except
+        on E: Exception do
+        begin
+          gdcBaseManager.GetRUIDByID(AID, XID, DBID, FTransaction);
+          if Assigned(frmStreamSaver) then
+            frmStreamSaver.AddMistake(Format('%s, XID = %d, DBID = %d ', [E.Message, XID, DBID]));
+          AddMistake(Format('%s, XID = %d, DBID = %d ', [E.Message, XID, DBID]), clRed);
+        end;
+      end;
+      {if IbsqlRPLRecordInsert.RowsAffected <> 1 then
+        raise Exception.Create(GetGsException(Self, 'AddRecordToRPLRECORDS: Ошибка при вставке записи в таблицу RPL_RECORD'));}
+    end;    
+  end;
 end;
 
 procedure TgdcStreamDataProvider.LoadReceivedRecords;
@@ -2916,7 +3035,7 @@ begin
   if FDataObject.SourceBaseKey > -1 then
   begin
     FIBSQL.Close;
-    FIBSQL.SQL.Text := Format(sqlUpdateRPLRecordsSetStateByBasekeyRUID, [FDataObject.SourceBaseKey, Integer(irsReceived)]);
+    FIBSQL.SQL.Text := Format(sqlUpdateRPLRecordsSetStateByBasekeyRUID, [FDataObject.SourceBaseKey, Integer(irsIncremented)]);
     for I := 0 to FDataObject.ReceivedRecordsCount - 1 do
     begin
       FIBSQL.Close;
@@ -2985,6 +3104,7 @@ const
   PassFieldName = ';EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;';
 var
   IsDifferent: Boolean;
+  NeedModifyFromStream: Boolean;
   I: Integer;
   R: TatRelation;
   F: TatRelationField;
@@ -3007,14 +3127,24 @@ begin
     end;
   end;}
 
+  NeedModifyFromStream := Assigned(AStreamRecord.FindField('_MODIFYFROMSTREAM')) and AStreamRecord.FieldByName('_MODIFYFROMSTREAM').AsBoolean;
+
   case FAnAnswer of
-    mrYesToAll: Result := True;
-    mrNoToAll: Result := False;
+    mrYesToAll:
+    begin
+      Result := True;
+    end;
+
+    mrNoToAll:
+    begin
+      Result := False;
+    end;
+
     else
     begin
       // Возможно нам выставили флаг "Обновлять из потока" вручную,
       //   тогда нас не интересует ни дата обновления, ни содержимое уже существующей записи
-      if ABaseRecord.NeedModifyFromStream(ABaseRecord.SubType) <> {ABaseRecord.ModifyFromStream} AStreamRecord.FieldByName('_MODIFYFROMSTREAM').AsBoolean then
+      if ABaseRecord.NeedModifyFromStream(ABaseRecord.SubType) <> NeedModifyFromStream then
       begin
         FAnAnswer := MessageDlg('Объект ' + ABaseRecord.GetDisplayName(ABaseRecord.SubType) + ' ' +
           ABaseRecord.FieldByName(ABaseRecord.GetListField(ABaseRecord.SubType)).AsString + ' с идентификатором ' +
@@ -3216,6 +3346,51 @@ end;
 procedure TgdcStreamDataProvider.LoadStorage;
 begin
   //
+end;
+
+function TgdcStreamDataProvider.GetIbsqlRPLRecordSelect: TIBSQL;
+begin
+  if not Assigned(FIbsqlRPLRecordSelect) then
+  begin
+    FIbsqlRPLRecordSelect := TIBSQL.Create(nil);
+    FIbsqlRPLRecordSelect.Database := FDatabase;
+    FIbsqlRPLRecordSelect.Transaction := FTransaction;
+    if FDataObject.IsSave then
+      FIbsqlRPLRecordSelect.SQL.Text := Format(sqlSelectRPLRecordsDateStateByBaseKeyID, [FDataObject.TargetBaseKey])
+    else
+      FIbsqlRPLRecordSelect.SQL.Text := Format(sqlSelectRPLRecordsDateStateByBaseKeyID, [FDataObject.SourceBaseKey]);
+    FIbsqlRPLRecordSelect.Prepare;
+  end;
+  Result := FIbsqlRPLRecordSelect;
+end;
+
+function TgdcStreamDataProvider.GetIbsqlRPLRecordInsert: TIBSQL;
+begin
+  if not Assigned(FIbsqlRPLRecordInsert) then
+  begin
+    FIbsqlRPLRecordInsert := TIBSQL.Create(nil);
+    FIbsqlRPLRecordInsert.Database := FDatabase;
+    FIbsqlRPLRecordInsert.Transaction := FTransaction;
+    if FDataObject.IsSave then
+      FIbsqlRPLRecordInsert.SQL.Text := Format(sqlInsertRPLRecordsIDStateEditionDate, [FDataObject.TargetBaseKey])
+    else
+      FIbsqlRPLRecordInsert.SQL.Text := Format(sqlInsertRPLRecordsIDStateEditionDate, [FDataObject.SourceBaseKey]);
+    FIbsqlRPLRecordInsert.Prepare;
+  end;
+  Result := FIbsqlRPLRecordInsert;
+end;
+
+function TgdcStreamDataProvider.GetIbsqlRPLRecordDelete: TIBSQL;
+begin
+  if not Assigned(FIbsqlRPLRecordDelete) then
+  begin
+    FIbsqlRPLRecordDelete := TIBSQL.Create(nil);
+    FIbsqlRPLRecordDelete.Database := FDatabase;
+    FIbsqlRPLRecordDelete.Transaction := FTransaction;
+    FIbsqlRPLRecordDelete.SQL.Text := sqlDeleteRPLRecordsByIDEditiondate;
+    FIbsqlRPLRecordDelete.Prepare;
+  end;
+  Result := FIbsqlRPLRecordDelete;
 end;
 
 { TStreamOrderList }
@@ -3739,7 +3914,6 @@ var
 begin
   // Пока сделаем загрузку сразу на базу, потом надо будет передать
   //  запись хранилища в базу классу TgdcStreamDataProvider, а здесь грузить только в память
-
   LStorage := nil;
 
   while S.Position < S.Size do
@@ -3871,7 +4045,6 @@ begin
         LStorage.CloseFolder(NewFolder, False);
     end;
   end;
-
 end;
 
 procedure TgdcStreamBinaryWriterReader.SaveStorageToStream(S: TStream);
@@ -4030,15 +4203,12 @@ begin
         etDataset:
         begin
           I := GetIntegerParamValueByName(XMLStr, 'id');
-          J := GetIntegerParamValueByName(XMLStr, 'size');
-          SetLength(DatasetStr, J);
-          S.Position := S.Position + 2;
-          S.ReadBuffer(DatasetStr[1], J);
-
-          ////////
+          DatasetStr := GetTextValueOfElement(S, XMLStr);
+          // В настройке мы изменяли форматирование XML который выдает TClientDataset,
+          //  теперь вернем его обратно
           DatasetStr := StringReplace(DatasetStr, '>'#13#10'<', '><', [rfReplaceAll]);
           J := Length(DatasetStr);
-          ////////
+
           DatasetStr := xmlDatasetHeader + DatasetStr + xmlDatasetFooter;
 
           MS := TMemoryStream.Create;
@@ -4068,8 +4238,7 @@ end;
 
 procedure TgdcStreamXMLWriterReader.LoadXMLSettingFromStream(S: TStream);
 var
-  DataSize, StorageSize: Integer;
-  DataStr, StorageStr: String;
+  DataStr: String;
   CDS: TClientDataSet;
   XMLStr: String;
   ModifyDate: TDateTime;
@@ -4104,8 +4273,7 @@ begin
         CDS.FieldByName('MINDBVERSION').AsString := GetParamValueByName(XMLStr, 'mindbversion');
         CDS.FieldByName('_XID').AsString := GetParamValueByName(XMLStr, 'xid');
         CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLStr, 'dbid');
-        ModifyDate := CDS.FieldByName('MODIFYDATE').AsDateTime;
-        CDS.FieldByName('_MODIFIED').AsDateTime := ModifyDate;
+        CDS.FieldByName('_MODIFIED').AsDateTime := CDS.FieldByName('MODIFYDATE').AsDateTime;
         CDS.Post;
         FLoadingOrderList.AddItem(CDS.FieldByName('ID').AsInteger, 0);
       end;
@@ -4137,6 +4305,10 @@ begin
           CDS.FieldByName('_MODIFIED').AsDateTime := ModifyDate;
           CDS.Post;
           FLoadingOrderList.AddItem(CDS.FieldByName('ID').AsInteger, 1);
+        end
+        else
+        begin
+          raise EgsClientDatasetNotFound.Create('Не найден датасет при загрузке позиции настройки');
         end;
       end;
 
@@ -4158,26 +4330,30 @@ begin
           CDS.FieldByName('_MODIFIED').AsDateTime := ModifyDate;
           CDS.Post;
           FLoadingOrderList.AddItem(CDS.FieldByName('ID').AsInteger, 2);
+        end
+        else
+        begin
+          raise EgsClientDatasetNotFound.Create('Не найден датасет при загрузке позиции хранилища в настройке');
         end;
       end;
 
       etSettingData:
       begin
-        DataSize := StrToInt(GetParamValueByName(XMLStr, 'datasize'));
-        StorageSize := StrToInt(GetParamValueByName(XMLStr, 'storagesize'));
-
-        SetLength(DataStr, DataSize);
-        S.Position := S.Position + 2;
-        S.ReadBuffer(DataStr[1], DataSize);
-
-        SetLength(StorageStr, StorageSize);
-        S.Position := S.Position + 2 {StorageHeaderSize};
-        S.ReadBuffer(StorageStr[1], StorageSize);
+        DataStr := GetTextValueOfElement(S, XMLStr);
 
         CDS := FDataObject.ClientDS[0];
         CDS.Edit;
-        CDS.FieldByName('DATA').AsString := xmlHeader + #13#10 + DataStr;
-        CDS.FieldByName('STORAGEDATA').AsString := StorageStr;
+        CDS.FieldByName('DATA').AsString := xmlHeader + #13#10 + Trim(DataStr);
+        CDS.Post;
+      end;
+
+      etSettingStorage:
+      begin
+        DataStr := GetTextValueOfElement(S, XMLStr);
+
+        CDS := FDataObject.ClientDS[0];
+        CDS.Edit;
+        CDS.FieldByName('STORAGEDATA').AsString := Trim(DataStr);
         CDS.Post;
       end;
       
@@ -4309,8 +4485,7 @@ begin
         StreamWriteXMLString(S, '<DATASET id="' + IntToStr(K) + '"' +
           ' classname="' + QuoteString(FDataObject.gdcObject[K].Classname) + '"' +
           ' subtype="' + QuoteString(FDataObject.gdcObject[K].SubType) + '"' +
-          ' settable="' + QuoteString(FDataObject.ClientDS[K].FieldByName('_SETTABLE').AsString) + '"' +
-          ' size="' + IntToStr(Length(DataStr)) + '">'#13#10);
+          ' settable="' + QuoteString(FDataObject.ClientDS[K].FieldByName('_SETTABLE').AsString) + '">'#13#10);
 
         StreamWriteXMLString(S, DataStr);
         StreamWriteXMLString(S, #13#10'</DATASET>'#13#10);
@@ -4517,9 +4692,15 @@ begin
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 13), '<SETTINGDATA ') = 0 then
+  if AnsiCompareText(ElementStr, '<SETTINGDATA>') = 0 then
   begin
     Result := etSettingData;
+    Exit;
+  end;
+
+  if AnsiCompareText(ElementStr, '<SETTINGSTORAGE>') = 0 then
+  begin
+    Result := etSettingStorage;
     Exit;
   end;
 
@@ -4557,7 +4738,7 @@ begin
   begin
     S.Read(TempChar[1], 100);
     TempStr := TempStr + TempChar;
-    Position := AnsiPos(Str, TempStr);
+    Position := AnsiPos(AnsiUpperCase(Str), AnsiUpperCase(TempStr));
     if Position > 0 then
     begin
       Result := OldPosition + Position - 1;
@@ -4608,7 +4789,7 @@ var
   I, J, K: Integer;
 begin
   Result := '';
-  I := Pos(ParamName, Str) + Length(ParamName) + 2;
+  I := AnsiPos(AnsiUpperCase(ParamName), AnsiUpperCase(Str)) + Length(ParamName) + 2;
   J := I;
   for K := J to Length(Str) - 1 do
     if Str[K] = '"' then
@@ -4637,7 +4818,6 @@ end;
 
 procedure TgdcStreamXMLWriterReader.SaveXMLSettingToStream(S: TStream);
 var
-  DataLength, StorageLength: Integer;
   DataStr, StorageDataStr: String;
   CDS: TClientDataSet;
 
@@ -4645,7 +4825,7 @@ var
   var
     I: Integer;
   begin
-    I := AnsiPos('<STREAM>', Str);
+    I := AnsiPos('<STREAM>', AnsiUpperCase(Str));
     Result := Copy(Str, I, Length(Str));
   end;
 
@@ -4666,7 +4846,7 @@ begin
     '" ending="' + CDS.FieldByName('ENDING').AsString +
     '" settingsruid="' + CDS.FieldByName('SETTINGSRUID').AsString +
     '" minexeversion="' + CDS.FieldByName('MINEXEVERSION').AsString +
-    '" mindbversion="' + CDS.FieldByName('MINDBVERSION').AsString + '" />'#13#10);
+    '" mindbversion="' + CDS.FieldByName('MINDBVERSION').AsString + '">'#13#10);
 
   // Позиции данных настройки
   StreamWriteXMLString(S, '<SETTINGPOSLIST>'#13#10);
@@ -4718,19 +4898,20 @@ begin
     end;
   end;
   StreamWriteXMLString(S, '</STORAGEPOSLIST>'#13#10);
+  StreamWriteXMLString(S, '</SETTINGHEADER>'#13#10);
 
   CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSetting', '')];
   
   DataStr := SkipToStreamTag(CDS.FieldByName('DATA').AsString);
-  DataLength := Length(DataStr);
   StorageDataStr := CDS.FieldByName('STORAGEDATA').AsString;
-  StorageLength := Length(StorageDataStr);
 
   // Данные и хранилище настройки
-  StreamWriteXMLString(S, '<SETTINGDATA datasize="' + IntToStr(DataLength) + '" storagesize="' + IntToStr(StorageLength) + '">'#13#10);
+  StreamWriteXMLString(S, '<SETTINGDATA>'#13#10);
   StreamWriteXMLString(S, DataStr + #13#10);
-  StreamWriteXMLString(S, StorageDataStr + #13#10);
   StreamWriteXMLString(S, '</SETTINGDATA>'#13#10);
+  StreamWriteXMLString(S, '<SETTINGSTORAGE>'#13#10);
+  StreamWriteXMLString(S, StorageDataStr + #13#10);
+  StreamWriteXMLString(S, '</SETTINGSTORAGE>'#13#10);
   StreamWriteXMLString(S, '</SETTING>'#13#10);
 end;
 
@@ -4948,42 +5129,49 @@ begin
               raise EgsStorageError.Create('Invalid value type');
             end;
 
-            try
-              if StorageValue is TgsStreamValue then
-              begin
-                ValuePosition := AnsiPos('<![CDATA[', ValueStr);
-                if ValuePosition > 0 then
+            if Assigned(StorageValue) then
+            begin
+              try
+                if StorageValue is TgsStreamValue then
                 begin
-                  ValuePosition := AnsiPos('object', ValueStr);
+                  ValuePosition := AnsiPos('<![CDATA[', ValueStr);
                   if ValuePosition > 0 then
                   begin
-                    StIn := TStringStream.Create(Copy(ValueStr, ValuePosition, Length(ValueStr) - ValuePosition - 3));
-                    StOut := TStringStream.Create('');
-                    try
-                      ObjectTextToBinary(StIn, StOut);
-                      ValueStr := StOut.DataString;
-                    finally
-                      StOut.Free;
-                      StIn.Free;
+                    ValuePosition := AnsiPos('object', ValueStr);
+                    if ValuePosition > 0 then
+                    begin
+                      StIn := TStringStream.Create(Copy(ValueStr, ValuePosition, Length(ValueStr) - ValuePosition - 3));
+                      StOut := TStringStream.Create('');
+                      try
+                        ObjectTextToBinary(StIn, StOut);
+                        ValueStr := StOut.DataString;
+                      finally
+                        StOut.Free;
+                        StIn.Free;
+                      end;
+                    end
+                    else
+                    begin
+                      ValuePosition := AnsiPos('<![CDATA[', ValueStr) + 9;
+                      ValueStr := Copy(ValueStr, ValuePosition, Length(ValueStr) - ValuePosition - 3);
                     end;
-                  end
-                  else
-                  begin
-                    ValuePosition := AnsiPos('<![CDATA[', ValueStr) + 9;
-                    ValueStr := Copy(ValueStr, ValuePosition, Length(ValueStr) - ValuePosition - 3);
                   end;
                 end;
+
+                StorageValue.AsString := ValueStr;
+                StorageFolder.WriteValue(StorageValue);
+              finally
+                StorageValue.Free;
               end;
 
-              StorageValue.AsString := ValueStr;
-              StorageFolder.WriteValue(StorageValue);
-            finally
-              StorageValue.Free;
+              if StreamLoggingType = slAll then
+                AddText('  Загрузка параметра "' + ValueName + '" ветки хранилища "' + Path + '"', clBlue);
+              LStorage.IsModified := True;
+            end
+            else
+            begin
+              // Неизвестный тип записи в хранилище
             end;
-
-            if StreamLoggingType = slAll then
-              AddText('  Загрузка параметра "' + ValueName + '" ветки хранилища "' + Path + '"', clBlue);
-            LStorage.IsModified := True;
           end;
         end;
       end;
@@ -5092,7 +5280,7 @@ begin
 
     end;
     StreamWriteXMLString(S, '</STORAGEFOLDER>'#13#10);
-    StreamWriteXMLString(S, '</STORAGE>'#13#10);
+    StreamWriteXMLString(S, '</STORAGE>');
 
     if Assigned(frmStreamSaver) then
       frmStreamSaver.Done;
@@ -5141,7 +5329,7 @@ begin
   AbortProcess := False;
   IsReadUserFromStream := False;
   if Assigned(GlobalStorage) then
-    Self.StreamLogType := TgsStreamLoggingType(GlobalStorage.ReadInteger('Options', 'StreamLogType', 0));
+    Self.StreamLogType := TgsStreamLoggingType(GlobalStorage.ReadInteger('Options', 'StreamLogType', 2));
 
   if not Assigned(frmSQLProcess) then
     frmSQLProcess := TfrmSQLProcess.Create(Application);
@@ -5173,8 +5361,6 @@ begin
       FreeAndNil(FTransaction)
     else
       FTransaction := nil;
-  {if Assigned(frmStreamSaver) then
-    frmStreamSaver := nil; }
 
   inherited;
 end;
@@ -5305,7 +5491,17 @@ begin
     end;
 
     // загружаем записи-множества на базу
-    FStreamDataProvider.LoadSetRecords;
+    try
+      FStreamDataProvider.LoadSetRecords;
+    except
+      on E: EgdcNoTable do
+      begin
+        AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]), clRed);
+        Space;
+        if Assigned(frmStreamSaver) then
+          frmStreamSaver.AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]));
+      end;
+    end;
 
     if FTransaction.InTransaction then
       if FTrWasActive then
@@ -5337,7 +5533,6 @@ begin
       raise;
     end;
   end;
-
 end;
 
 
@@ -5378,7 +5573,7 @@ begin
           // Если мы должны сохранить объект с детальными объектами, то занесем его id в список
           if ibsqlPos.FieldByName('withdetail').AsInteger = 1 then
             WithDetailList.Add(LineObjectID);
-          // Если мы должны перезаписывать объект данными из потока, то занесем его id в список
+          // Если мы не должны перезаписывать объект данными из потока, то занесем его id в список
           if ibsqlPos.FieldByName('needmodify').AsInteger = 0 then
             DontNeedModifyList.Add(LineObjectID);
         end
@@ -5399,6 +5594,12 @@ begin
       ibsqlPos.ExecQuery;
       while not ibsqlPos.Eof do
       begin
+        if Assigned(frmStreamSaver) then
+          frmStreamSaver.SetProcessText(ibsqlPos.FieldByName('category').AsString + ' ' +
+            ibsqlPos.FieldByName('objectname').AsString + #13#10 +
+              ' (XID = ' +  ibsqlPos.FieldByName('xid').AsString +
+              ', DBID = ' + ibsqlPos.FieldByName('dbid').AsString + ')');
+
         SaveDetailObjects := ibsqlPos.FieldByName('withdetail').AsInteger = 1;
         AnID := gdcBaseManager.GetIDByRUID(ibsqlPos.FieldByName('xid').AsInteger,
           ibsqlPos.FieldByName('dbid').AsInteger, FTransaction);
@@ -5475,7 +5676,22 @@ var
 
   procedure ReConnectDatabase(const WithCommit: Boolean = True);
   begin
-    DisconnectDatabase(WithCommit);
+    try
+      DisconnectDatabase(WithCommit);
+    except
+      on E: Exception do
+      begin
+        if MessageBox(0,
+          PChar('В процессе загрузки настройки произошла ошибка:'#13#10 +
+          E.Message + #13#10#13#10 +
+          'Продолжать загрузку?'),
+          'Ошибка',
+          MB_ICONEXCLAMATION or MB_YESNO or MB_TASKMODAL) = IDNO then
+        begin
+          raise;
+        end;  
+      end;
+    end;
     ConnectDatabase;
   end;
 
@@ -5551,10 +5767,11 @@ begin
     end;
   end;
 
-  if not DontHideForms then
+  FStreamDataProvider.AnAnswer := AnAnswer;
+  {if not DontHideForms then
     FStreamDataProvider.AnAnswer := AnAnswer
   else
-    FStreamDataProvider.AnAnswer := mrNoToAll;
+    FStreamDataProvider.AnAnswer := mrNoToAll;}
 
   try
 
@@ -5600,10 +5817,11 @@ begin
       CDS := FDataObject.ClientDS[OrderElement.DSIndex];
       if CDS.Locate(Obj.GetKeyField(Obj.SubType), OrderElement.RecordID, []) then
       begin
+        {FStreamDataProvider.AnAnswer := AnAnswer;
         if (not Obj.InheritsFrom(TgdcMetaBase)) and (not Obj.InheritsFrom(TgdcBaseDocumentType)) then
           FStreamDataProvider.AnAnswer := AnAnswer
         else
-          FStreamDataProvider.AnAnswer := mrNoToAll;
+          FStreamDataProvider.AnAnswer := mrNoToAll;}
 
         try
           FStreamDataProvider.LoadRecord(Obj, CDS);
@@ -5649,7 +5867,17 @@ begin
     end;
 
     // загружаем записи-множества на базу
-    FStreamDataProvider.LoadSetRecords;
+    try
+      FStreamDataProvider.LoadSetRecords;
+    except
+      on E: EgdcNoTable do
+      begin
+        AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]), clRed);
+        Space;
+        if Assigned(frmStreamSaver) then
+          frmStreamSaver.AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]));
+      end;
+    end;
 
     RunMultiConnection;
 
@@ -5953,24 +6181,32 @@ end;
 
 procedure TgdcStreamSaver.AddObject(AgdcObject: TgdcBase; const AWithDetail: Boolean = True);
 var
-  OldModifyFS: Boolean;
   C: TgdcFullClass;
   ObjectIndex: Integer;
+  AID: TID;
 begin
   Assert(AgdcObject <> nil, 'AddObject: AgdcObject = nil');
 
+  AID := AgdcObject.ID;
+  
+  if not AgdcObject.ModifyFromStream then
+  begin
+    if Assigned(DontNeedModifyList) and (DontNeedModifyList.IndexOf(AID) = -1) then
+    begin
+      DontNeedModifyList.Add(AID, True);
+    end;
+  end;
+
   C := AgdcObject.GetCurrRecordClass;
   ObjectIndex := FDataObject.GetObjectIndex(C.gdClass.Classname, C.SubType);
-
   try
     FStreamDataProvider.Reset;
-    FStreamDataProvider.SaveRecord(ObjectIndex, AgdcObject.ID, AWithDetail);
+    FStreamDataProvider.SaveRecord(ObjectIndex, AID, AWithDetail);
   except
     if FTransaction.InTransaction then
       FTransaction.Rollback;
     raise;
   end;
-  
 end;
 
 
