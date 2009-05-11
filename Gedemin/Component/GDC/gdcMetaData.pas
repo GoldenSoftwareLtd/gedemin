@@ -442,6 +442,7 @@ type
     procedure ReCreateView;
 
     function GetViewTextBySource(const Source: String): String;
+    function GetAlterViewTextBySource(const Source: String): String;
   end;
 
 
@@ -3656,18 +3657,28 @@ begin
   ViewCreateList := TStringList.Create;
   FSQL := TSQLProcessList.Create;
   try
-    DropView(ViewCreateList);
-    MetaDataCreate;
-    for I := 0 to ViewCreateList.Count - 1 do
-      FSQL.Add(ViewCreateList.Values[ViewCreateList.Names[I]], False);
+    if not Database.IsFirebird25Connect then
+    begin
+      DropView(ViewCreateList);
+      MetaDataCreate;
+      for I := 0 to ViewCreateList.Count - 1 do
+        FSQL.Add(ViewCreateList.Values[ViewCreateList.Names[I]], False);
 
-    if ViewCreateList.Count > 0 then
-      atDatabase.NotifyMultiConnectionTransaction;
+      if ViewCreateList.Count > 0 then
+        atDatabase.NotifyMultiConnectionTransaction;
 
-    ShowSQLProcess(FSQL);
+      ShowSQLProcess(FSQL);
 
-    RemoveRelationField;
-    AddRelationField;
+      RemoveRelationField;
+      AddRelationField;
+    end else
+    begin
+      FSQL.Add(GetAlterViewTextBySource(FieldByName('view_source').AsString));
+      ShowSQLProcess(FSQL);
+
+      RemoveRelationField;
+      AddRelationField;
+    end;
   finally
     ViewCreateList.Free;
     FSQL.Free;
@@ -3744,7 +3755,6 @@ function TgdcView.GetViewTextBySource(const Source: String): String;
 var
   i: Integer;
   S: TStringList;
-
 begin
   if AnsiPos('CREATE VIEW', AnsiUpperCase(Source)) > 0 then
   begin
@@ -3758,6 +3768,35 @@ begin
       if S.Count = 0 then
         raise EgdcIBError.Create('Ошибка при создании представления: количество полей равно нулю!');
       Result := Format('CREATE VIEW %s ('#13#10, [FieldByName('relationname').AsString]);
+      for i := 0 to S.Count - 2 do
+        Result := Result + S[i] + ', ' + #13#10;
+      Result := Result + S[S.Count - 1] +  #13#10 + ' )'#13#10 + ' AS ' + Source;
+    finally
+      S.Free;
+    end;
+  end;
+end;
+
+function TgdcView.GetAlterViewTextBySource(const Source: String): String;
+var
+  i: Integer;
+  S: TStringList;
+begin
+  if AnsiPos('ALTER VIEW', AnsiUpperCase(Source)) > 0 then
+  begin
+    Result := Source;
+  end
+  else if AnsiPos('CREATE VIEW', AnsiUpperCase(Source)) > 0 then
+  begin
+    Result := StringReplace(Source, 'CREATE VIEW', 'ALTER VIEW', [rfIgnoreCase]);
+  end else
+  begin
+    S := TStringList.Create;
+    try
+      GetFieldsName(Source, S);
+      if S.Count = 0 then
+        raise EgdcIBError.Create('Ошибка при создании представления: количество полей равно нулю!');
+      Result := Format('ALTER VIEW %s ('#13#10, [FieldByName('relationname').AsString]);
       for i := 0 to S.Count - 2 do
         Result := Result + S[i] + ', ' + #13#10;
       Result := Result + S[S.Count - 1] +  #13#10 + ' )'#13#10 + ' AS ' + Source;
@@ -4043,6 +4082,7 @@ procedure TgdcRelationField.UpdateField;
 var
   FQuery: TSQLProcessList;
   q: TIBSQL;
+  S: String;
 begin
   FQuery := TSQLProcessList.Create;
   try
@@ -4051,26 +4091,40 @@ begin
       or ((sLoadFromStream in BaseState) and Self.IsUserDefined
         and (FieldByName('computed_value').AsString > '')) then
     begin
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := ReadTransaction;
-        q.SQL.Text :=
-          'SELECT f.rdb$computed_source ' +
-          'FROM rdb$relation_fields r JOIN rdb$fields f ' +
-          '  ON r.rdb$field_source = f.rdb$field_name ' +
-          'WHERE r.rdb$relation_name = :RN AND r.rdb$field_name = :FN ';
-        q.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('fieldname').AsString));
-        q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('relationname').AsString));
-        q.ExecQuery;
+      if not Database.IsFirebird25Connect then
+      begin
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := ReadTransaction;
+          q.SQL.Text :=
+            'SELECT f.rdb$computed_source ' +
+            'FROM rdb$relation_fields r JOIN rdb$fields f ' +
+            '  ON r.rdb$field_source = f.rdb$field_name ' +
+            'WHERE r.rdb$relation_name = :RN AND r.rdb$field_name = :FN ';
+          q.ParamByName('FN').AsString := AnsiUpperCase(Trim(FieldByName('fieldname').AsString));
+          q.ParamByName('RN').AsString := AnsiUpperCase(Trim(FieldByName('relationname').AsString));
+          q.ExecQuery;
 
-        if AnsiCompareText(Trim(FieldByName('computed_value').AsString),
-          Trim(q.Fields[0].AsString)) <> 0 then
-        begin
-          DropField;
-          AddField;
+          if AnsiCompareText(Trim(FieldByName('computed_value').AsString),
+            Trim(q.Fields[0].AsString)) <> 0 then
+          begin
+            DropField;
+            AddField;
+          end;
+        finally
+          q.Free;
         end;
-      finally
-        q.Free;
+      end else
+      begin
+        S := Trim(FieldByName('computed_value').AsString);
+        while (Length(S) > 0) and (S[1] = '(') and (S[Length(S)] = ')') do
+          S := System.Copy(S, 2, Length(S) - 2);
+        FQuery.Add(Format
+        (
+          'ALTER TABLE %s ALTER %s COMPUTED BY (%s)',
+          [FieldByName('relationname').AsString, FieldByName('fieldname').AsString,
+          S]
+        ));
       end;
     end;
 

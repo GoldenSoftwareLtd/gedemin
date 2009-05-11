@@ -749,7 +749,7 @@ begin
   if (FPropertyTreeForm <> nil) and
     FPropertyTreeForm.Visible then
   begin
-    if (N <> nil) and FUpDateNode then
+    if (N <> nil) and FUpDateNode and (N.Owner <> nil) and (N.ItemId <> nil) then
     begin
       //Показываем нод, связанный с фрэймом
       TV := TTreeView(N.TreeView);

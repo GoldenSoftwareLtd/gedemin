@@ -531,7 +531,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         ListField = 'name'
         KeyField = 'ID'
         gdClassName = 'TgdcPlace'
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
@@ -672,7 +672,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         SortOrder = soAsc
         Condition = 'contacttype=3'
         gdClassName = 'TgdcCompany'
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 18
@@ -696,7 +696,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         Condition = 'c.contacttype=2 AND cc.id = :cc_id'
         gdClassName = 'TgdcEmployee'
         OnCreateNewObject = gsiblkupDirectorCreateNewObject
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 11
@@ -720,7 +720,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         Condition = 'c.contacttype=2 AND cc.id = :cc_id'
         gdClassName = 'TgdcEmployee'
         OnCreateNewObject = gsiblkupDirectorCreateNewObject
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 10

@@ -73,7 +73,7 @@ begin
       rgStreamType.ItemIndex := ReadInteger('Options', 'StreamType', 0);
       rgSettingStreamType.ItemIndex := ReadInteger('Options', 'StreamSettingType', 0);
       rgReplaceRecordBehaviuor.ItemIndex := ReadInteger('Options', 'StreamReplaceRecordBehaviuor', 0);
-      rgLogType.ItemIndex := ReadInteger('Options', 'StreamLogType', 0);
+      rgLogType.ItemIndex := ReadInteger('Options', 'StreamLogType', 2);
       chbxUseIncrementSaving.Checked := ReadBoolean('Options', 'UseIncrementSaving', False);
     end;
                                                

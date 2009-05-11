@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 464
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsResult
+      ActivePage = tsQuery
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -398,6 +398,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Command = ecMatchBracket
               ShortCut = 24642
             end>
+          OnChange = seQueryChange
         end
         object mmPlan: TMemo
           Left = 0
