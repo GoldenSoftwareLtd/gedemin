@@ -346,7 +346,7 @@ begin
       for I := 0 to FValueList.Count - 1 do
       begin
         F := FFieldInfos.AddInfo;
-        F.FieldName := Format(AccReviewQuantityFieldList[J].FieldName, [KeyAlias(FValueList.Names[I])]);
+        F.FieldName := Format(AccReviewQuantityFieldList[J].FieldName, [gdvObject.GetKeyAlias(FValueList.Names[I])]);
         F.Caption := Format(AccReviewQuantityFieldList[J].Caption,
             [FValueList.Values[FValueList.Names[I]]]);
         F.Visible := fvHidden;

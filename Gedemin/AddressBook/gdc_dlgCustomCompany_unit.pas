@@ -708,8 +708,8 @@ begin
   gsiblkupChiefAccountant.Transaction := gdcObject.Transaction;
 
   {TODO: убрать после проведения модифая на всех базах}
-  if not Assigned(gdcObject.FindField('OKULP')) then
-    dbeOkulp.DataSource := nil;
+  if Assigned(gdcObject.FindField('OKULP')) then
+    dbeOkulp.DataSource := dsgdcBase;
 
   inherited;
 
