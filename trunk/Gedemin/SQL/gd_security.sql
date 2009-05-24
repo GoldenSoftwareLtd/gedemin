@@ -328,8 +328,8 @@ BEGIN
   UPDATE gd_user SET ingroup = 4 WHERE ingroup = :MASK;
 
   /* исключим пользователей из удаленной группы               */
-  UPDATE gd_user SET ingroup = BIN_AND(ingroup, BIN_NOT(:MASK))
-    WHERE BIN_AND(ingroup, :MASK) <> 0;
+  /*UPDATE gd_user SET ingroup = BIN_AND(ingroup, BIN_NOT(:MASK))
+    WHERE BIN_AND(ingroup, :MASK) <> 0;*/
 END
 ^
 

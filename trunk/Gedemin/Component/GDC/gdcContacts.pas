@@ -2279,7 +2279,7 @@ begin
   '   :new_logo, :new_companyaccountkey, :new_directorkey, :new_chiefaccountantkey)', Buff);
 
   {TODO: убрать проверку после проведения модифая на всех базах}
-  if Assigned(FindField('OKULP')) then
+  if Assigned(atDatabase.FindRelationField('GD_COMPANYCODE', 'OKULP')) then
     CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okulp, okpo, oknh, soato, soou, licence) ' +
     ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okulp, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence) ', Buff)
   else
@@ -2339,7 +2339,7 @@ begin
 
     if q.EOF then
       {TODO: убрать проверку после проведения модифая на всех базах}
-      if Assigned(FindField('OKULP')) then
+      if Assigned(atDatabase.FindRelationField('GD_COMPANYCODE', 'OKULP')) then
         CustomExecQuery('INSERT INTO gd_companycode(companykey, legalnumber, taxid, okulp, okpo, oknh, soato, soou, licence) ' +
         ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okulp, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence)', Buff)
       else
@@ -2347,7 +2347,7 @@ begin
         ' VALUES (:new_id, :new_legalnumber, :new_taxid, :new_okpo, :new_oknh, :new_soato, :new_new_soou, :new_licence)', Buff)
     else
       {TODO: убрать проверку после проведения модифая на всех базах}
-      if Assigned(FindField('OKULP')) then
+      if Assigned(atDatabase.FindRelationField('GD_COMPANYCODE', 'OKULP')) then
         CustomExecQuery(' UPDATE gd_companycode SET legalnumber = :new_legalnumber, ' +
         ' taxid = :new_taxid, okulp = :new_okulp, okpo = :new_okpo, oknh = :new_oknh, soato = :new_soato, soou = :new_soou, licence = :new_licence ' +
         ' WHERE companykey = :old_id', Buff)
@@ -2472,7 +2472,7 @@ begin
   {M}    end;
   {END MACRO}
   {TODO: убрать проверку после проведения модифая на всех базах}
-  if Assigned(FindField('OKULP')) then
+  if Assigned(atDatabase.FindRelationField('GD_COMPANYCODE', 'OKULP')) then
     Result := inherited GetSelectClause +
       ', cc.companykey, cm.contactkey, cm.headcompany, cm.companytype, cm.fullname, cm.logo, cm.companyaccountkey, cm.directorkey, cm.chiefaccountantkey,' +
       ' cc.legalnumber, cc.taxid, cc.okulp, cc.okpo, cc.oknh, cc.soato, cc.soou, cc.licence '

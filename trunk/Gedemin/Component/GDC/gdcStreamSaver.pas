@@ -385,6 +385,9 @@ type
     FTrWasCreated: Boolean;
     FTrWasActive: Boolean;
 
+    // Используется для логгирования ошибок при репликации
+    FErrorMessageForSetting: WideString;
+
     procedure SetTransaction(const Value: TIBTransaction);
     procedure SetSilent(const Value: Boolean);
     function GetSilent: Boolean;
@@ -441,6 +444,8 @@ type
 
     property SaveWithDetailList: TgdKeyArray read GetSaveWithDetailList write SetSaveWithDetailList;
     property DontNeedModifyList: TgdKeyArray read GetDontNeedModifyList write SetDontNeedModifyList;
+
+    property ErrorMessageForSetting: WideString read FErrorMessageForSetting;
   end;
 
   function GetStreamType(Stream: TStream): TgsStreamType;
@@ -4242,12 +4247,16 @@ var
   CDS: TClientDataSet;
   XMLStr: String;
   ModifyDate: TDateTime;
+  SettingElementIterator: Integer;
+  SettingHeadID: Integer;
 begin
   if StreamLoggingType in [slSimple, slAll] then
     AddText(TimeToStr(Time) + ': Началось чтение XML файла.', clBlack);
 
   ModifyDate := Time;
   CDS := nil;
+  SettingHeadID := cstUserIDStart;
+  SettingElementIterator := cstUserIDStart;
 
   FDataObject.IsSave := False;
   FDataObject.Add('TgdcSetting', '', '', True);
@@ -4260,9 +4269,10 @@ begin
 
       etSettingHeader:
       begin
+        SettingHeadID := SettingElementIterator;
         CDS := FDataObject.ClientDS[0];       // TgdcSetting
         CDS.Insert;
-        CDS.FieldByName('ID').AsString := GetParamValueByName(XMLStr, 'id');
+        CDS.FieldByName('ID').AsString := IntToStr(SettingHeadID){GetParamValueByName(XMLStr, 'id')};
         CDS.FieldByName('NAME').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'name'));
         CDS.FieldByName('VERSION').AsString := GetParamValueByName(XMLStr, 'version');
         CDS.FieldByName('MODIFYDATE').AsString := GetParamValueByName(XMLStr, 'modifydate');
@@ -4275,7 +4285,8 @@ begin
         CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLStr, 'dbid');
         CDS.FieldByName('_MODIFIED').AsDateTime := CDS.FieldByName('MODIFYDATE').AsDateTime;
         CDS.Post;
-        FLoadingOrderList.AddItem(CDS.FieldByName('ID').AsInteger, 0);
+        FLoadingOrderList.AddItem(SettingHeadID{CDS.FieldByName('ID').AsInteger}, 0);
+        Inc(SettingElementIterator);
       end;
 
       etSettingPosList:
@@ -4286,8 +4297,8 @@ begin
         if Assigned(CDS) then
         begin
           CDS.Insert;
-          CDS.FieldByName('ID').AsString := GetParamValueByName(XMLStr, 'id');
-          CDS.FieldByName('SETTINGKEY').AsString := GetParamValueByName(XMLStr, 'settingkey');
+          CDS.FieldByName('ID').AsString := IntToStr(SettingElementIterator){GetParamValueByName(XMLStr, 'id')};
+          CDS.FieldByName('SETTINGKEY').AsString := IntToStr(SettingHeadID){GetParamValueByName(XMLStr, 'settingkey')};
           CDS.FieldByName('CATEGORY').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'category'));
           CDS.FieldByName('OBJECTNAME').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'objectname'));
           CDS.FieldByName('MASTERCATEGORY').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'mastercategory'));
@@ -4304,7 +4315,8 @@ begin
           CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLStr, '_dbid');
           CDS.FieldByName('_MODIFIED').AsDateTime := ModifyDate;
           CDS.Post;
-          FLoadingOrderList.AddItem(CDS.FieldByName('ID').AsInteger, 1);
+          FLoadingOrderList.AddItem(SettingElementIterator{CDS.FieldByName('ID').AsInteger}, 1);
+          Inc(SettingElementIterator);
         end
         else
         begin
@@ -4320,8 +4332,8 @@ begin
         if Assigned(CDS) then
         begin
           CDS.Insert;
-          CDS.FieldByName('ID').AsString := GetParamValueByName(XMLStr, 'id');
-          CDS.FieldByName('SETTINGKEY').AsString := GetParamValueByName(XMLStr, 'settingkey');
+          CDS.FieldByName('ID').AsString := IntToStr(SettingElementIterator){GetParamValueByName(XMLStr, 'id')};
+          CDS.FieldByName('SETTINGKEY').AsString := IntToStr(SettingHeadID){GetParamValueByName(XMLStr, 'settingkey')};
           CDS.FieldByName('BRANCHNAME').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'branchname'));
           CDS.FieldByName('VALUENAME').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'valuename'));
           CDS.FieldByName('CRC').AsString := GetParamValueByName(XMLStr, 'crc');
@@ -4329,7 +4341,8 @@ begin
           CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLStr, '_dbid');
           CDS.FieldByName('_MODIFIED').AsDateTime := ModifyDate;
           CDS.Post;
-          FLoadingOrderList.AddItem(CDS.FieldByName('ID').AsInteger, 2);
+          FLoadingOrderList.AddItem(SettingElementIterator{CDS.FieldByName('ID').AsInteger}, 2);
+          Inc(SettingElementIterator);
         end
         else
         begin
@@ -4836,8 +4849,8 @@ begin
   // Заголовок настройки
   StreamWriteXMLString(S, '<SETTING>'#13#10);
   CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSetting', '')];
-  StreamWriteXMLString(S, '<SETTINGHEADER id="' + CDS.FieldByName('ID').AsString +
-    '" name="' + QuoteString(CDS.FieldByName('NAME').AsString) +
+  StreamWriteXMLString(S, '<SETTINGHEADER ' + {'id="' + CDS.FieldByName('ID').AsString + '"' + }
+    'name="' + QuoteString(CDS.FieldByName('NAME').AsString) +
     '" version="' + CDS.FieldByName('VERSION').AsString +
     '" modifydate="' + CDS.FieldByName('MODIFYDATE').AsString +
     '" xid="' + CDS.FieldByName('_XID').AsString +
@@ -4857,9 +4870,9 @@ begin
     CDS.First;
     while not CDS.Eof do
     begin
-      StreamWriteXMLString(S, '<SETTINGPOS id="' + CDS.FieldByName('ID').AsString +
-        '" settingkey="' + CDS.FieldByName('SETTINGKEY').AsString +
-        '" category="' + QuoteString(CDS.FieldByName('CATEGORY').AsString) +
+      StreamWriteXMLString(S, '<SETTINGPOS ' + {'id="' + CDS.FieldByName('ID').AsString +
+        '" settingkey="' + CDS.FieldByName('SETTINGKEY').AsString + '"' + }
+        'category="' + QuoteString(CDS.FieldByName('CATEGORY').AsString) +
         '" objectname="' + QuoteString(CDS.FieldByName('OBJECTNAME').AsString) +
         '" mastercategory="' + QuoteString(CDS.FieldByName('MASTERCATEGORY').AsString) +
         '" mastername="' + QuoteString(CDS.FieldByName('MASTERNAME').AsString) +
@@ -4887,9 +4900,9 @@ begin
     CDS.First;
     while not CDS.Eof do
     begin
-      StreamWriteXMLString(S, '<STORAGEPOS id="' + CDS.FieldByName('ID').AsString +
-        '" settingkey="' + CDS.FieldByName('SETTINGKEY').AsString +
-        '" branchname="' + QuoteString(CDS.FieldByName('BRANCHNAME').AsString) +
+      StreamWriteXMLString(S, '<STORAGEPOS ' + {id="' + CDS.FieldByName('ID').AsString +
+        '" settingkey="' + CDS.FieldByName('SETTINGKEY').AsString + '"' + }
+        'branchname="' + QuoteString(CDS.FieldByName('BRANCHNAME').AsString) +
         '" valuename="' + QuoteString(CDS.FieldByName('VALUENAME').AsString) +
         '" crc="' + CDS.FieldByName('CRC').AsString +
         '" _xid="' + CDS.FieldByName('_XID').AsString +
@@ -5302,6 +5315,8 @@ begin
   FTrWasActive := false;
   FTrWasCreated := false;
 
+  FErrorMessageForSetting := '';
+
   if Assigned(ATransaction) then
   begin
     FTransaction := ATransaction;
@@ -5334,11 +5349,11 @@ begin
   if not Assigned(frmSQLProcess) then
     frmSQLProcess := TfrmSQLProcess.Create(Application);
       
-  if StreamLoggingType in [slSimple, slAll] then
+{  if StreamLoggingType in [slSimple, slAll] then
   begin
     Space;
     AddText(TimeToStr(Time) + ': Началась обработка данных в потоке.'#13#10, clBlack, True);
-  end;
+  end; }
 end;
 
 
@@ -5427,6 +5442,7 @@ begin
       FStreamWriterReader.Free;
     end;
 
+    // Обработать загруженный список баз данных
     FStreamDataProvider.ProcessDatabaseList;
 
     if (FDataObject.TargetBaseKey > -1) then
@@ -5474,7 +5490,7 @@ begin
       if CDS.Locate(Obj.GetKeyField(Obj.SubType), OrderElement.RecordID, []) then
         FStreamDataProvider.LoadRecord(Obj, CDS)
       else
-        raise Exception.Create('В потоке не найдена требуемая запись:'#13#10 +
+        raise Exception.Create('В потоке не найдена требуемая запись: ' +
           Obj.Classname + ' ' + Obj.SubType + ' (' + IntToStr(OrderElement.RecordID) + ')');
 
       if AbortProcess then
@@ -5842,7 +5858,7 @@ begin
             end
             else
             begin
-              //ErrorMessageForSetting := ErrorMessageForSetting + IntToStr(GetLastError) + ': ' + E.Message + ' ' + Obj.ClassName + '_' + Obj.SubType + #13#10;
+              FErrorMessageForSetting := FErrorMessageForSetting + IntToStr(GetLastError) + ': ' + E.Message + ' ' + Obj.ClassName + '_' + Obj.SubType + #13#10;
               if Obj.State in [dsEdit, dsInsert] then
                 Obj.Cancel;
             end;

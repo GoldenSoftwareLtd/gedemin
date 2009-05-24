@@ -5044,6 +5044,9 @@ begin
               try
                 StreamSaver.LoadSettingDataFromStream(DataStream, WasMetaDataInSetting, DontHideForms, AnAnswer);
                 StreamSaver.LoadSettingStorageFromStream(StorageStream, AnStAnswer);
+                // Для логгирования при репликации
+                if StreamSaver.ErrorMessageForSetting <> '' then
+                  ErrorMessageForSetting := StreamSaver.ErrorMessageForSetting;
               finally
                 StreamSaver.Free;
               end;

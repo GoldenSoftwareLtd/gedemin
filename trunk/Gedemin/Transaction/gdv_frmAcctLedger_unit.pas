@@ -340,6 +340,7 @@ var
   P: Integer;
 begin
   inherited;
+  
   if (FFieldInfos <> nil) and (ibgrMain.Conditions.Count > 0) then
   begin
     for I := 0 to ibgrMain.Conditions.Count - 1 do
@@ -850,9 +851,9 @@ begin
       begin
         for K := 0 to FValueList.Count - 1 do
         begin
-          VKeyAlias := KeyAlias(FValueList.Names[K]);
-          ValueAlias := 'v_' + KeyAlias(FValueList.Names[K]);
-          QuantityAlias := 'q_' + KeyAlias(FValueList.Names[K]);
+          VKeyAlias := gdvObject.GetKeyAlias(FValueList.Names[K]);
+          ValueAlias := 'v_' + gdvObject.GetKeyAlias(FValueList.Names[K]);
+          QuantityAlias := 'q_' + gdvObject.GetKeyAlias(FValueList.Names[K]);
 
           if not FEntryDateIsFirst then
           begin
@@ -974,7 +975,7 @@ begin
             SQL.FieldByName('CURR_BEGIN_SALDO').AsCurrency);
           for J := 0 to FValueList.Count - 1 do
           begin
-            VKeyAlias := KeyAlias(FValueList.Names[J]);
+            VKeyAlias := gdvObject.GetKeyAlias(FValueList.Names[J]);
             Name := Format('Q_B_S_%s', [VKeyAlias]);
             V.SaldoValues.AddSaldoValue(Name, SQL.FieldByName(Name).AsCurrency);
           end;
@@ -1037,7 +1038,7 @@ var
 
     for J := 0 to FValueList.Count - 1 do
     begin
-      VKeyAlias := KeyAlias(FValueList.Names[J]);
+      VKeyAlias := gdvObject.GetKeyAlias(FValueList.Names[J]);
       Name := Format('Q_B_S_%s', [VKeyAlias]);
       Index := SV.IndexOf(Name);
 
@@ -1129,7 +1130,7 @@ begin
         SV.AddSaldoValue('CURR_BEGIN_SALDO', 0);
         for J := 0 to FValueList.Count - 1 do
         begin
-          VKeyAlias := KeyAlias(FValueList.Names[J]);
+          VKeyAlias := gdvObject.GetKeyAlias(FValueList.Names[J]);
           Name := Format('Q_B_S_%s', [VKeyAlias]);
           SV.AddSaldoValue(Name, 0);
         end;
@@ -1166,7 +1167,7 @@ begin
               gdvObject.FieldByName('CURR_BEGIN_CREDIT').AsCurrency := 0;
               for J := 0 to FValueList.Count - 1 do
               begin
-                VKeyAlias := KeyAlias(FValueList.Names[J]);
+                VKeyAlias := gdvObject.GetKeyAlias(FValueList.Names[J]);
 
                 gdvObject.FieldByName(Format('Q_B_D_%s', [VKeyAlias])).AsCurrency := 0;
                 gdvObject.FieldByName(Format('Q_B_C_%s', [VKeyAlias])).AsCurrency := 0;
@@ -1216,7 +1217,7 @@ begin
 
           for J := 0 to FValueList.Count - 1 do
           begin
-            VKeyAlias := KeyAlias(FValueList.Names[J]);
+            VKeyAlias := gdvObject.GetKeyAlias(FValueList.Names[J]);
 
             C := gdvObject.FieldByName(Format('Q_B_D_%s', [VKeyAlias])).AsCurrency -
               gdvObject.FieldByName(Format('Q_B_C_%s', [VKeyAlias])).AsCurrency +

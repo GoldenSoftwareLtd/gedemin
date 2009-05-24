@@ -335,7 +335,6 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         Width = 106
         Height = 21
         DataField = 'OKULP'
-        DataSource = dsgdcBase
         TabOrder = 10
       end
     end

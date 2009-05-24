@@ -135,7 +135,6 @@ type
 
     FMakeEmpty: Boolean;
 
-    FKeyAliasList: TStrings;
     FNameAliasList: TStrings;
     FShowMessage: Boolean;
 
@@ -165,8 +164,6 @@ type
     class function ConfigClassName: string; virtual;
     procedure ParamsVisible(Value: Boolean);
 
-    function KeyAlias(Id: Integer): string; overload;
-    function KeyAlias(Id: string): string; overload;
     function NameAlias(Name: string): string;
 
     procedure SetParams; virtual;
@@ -356,7 +353,6 @@ begin
   FAccountIDs.Free;
   FCorrAccountIDs.Free;
   FValueList.Free;
-  FKeyAliasList.Free;
   FNameAliasList.Free;
 end;
 
@@ -398,8 +394,11 @@ begin
   else
     FFieldInfos.Clear;
 
-  if FKeyAliasList <> nil then FKeyAliasList.Clear;
   if FNameAliasList <> nil then FNameAliasList.Clear;
+
+  gdvObject.Clear;
+  if gdvObject.Active then
+    gdvObject.Close;
 
   // Локализуем поля сумм по умолчанию
   for I := 0 to BaseAcctFieldCount - 1 do
@@ -452,7 +451,7 @@ begin
       for I := 0 to FValueList.Count - 1 do
       begin
         F := FFieldInfos.AddInfo;
-        F.FieldName := Format(BaseAcctQuantityFieldList[J].FieldName, [KeyAlias(FValueList.Names[I])]);
+        F.FieldName := Format(BaseAcctQuantityFieldList[J].FieldName, [gdvObject.GetKeyAlias(FValueList.Names[I])]);
         F.Caption := Format(BaseAcctQuantityFieldList[J].Caption,
             [FValueList.Values[FValueList.Names[I]]]);
         F.Visible := fvHidden;
@@ -467,9 +466,6 @@ begin
   end;
 
   ibgrMain.Columns.BeginUpdate;
-  gdvObject.Clear;
-  if gdvObject.Active then
-    gdvObject.Close;
   gdvObject.FieldInfos := FFieldInfos;  
 
   FSortColumns := True;  
@@ -904,24 +900,6 @@ begin
     sLeft.Visible := True;
     sLeft.Left := pLeft.Left + pLeft.Width;
   end;
-end;
-
-function Tgdv_frmAcctBaseForm.KeyAlias(Id: Integer): string;
-begin
-  Result := KeyAlias(IntToStr(Id));
-end;
-
-function Tgdv_frmAcctBaseForm.KeyAlias(Id: string): string;
-var
-  Index: Integer;
-begin
-  if FKeyAliasList = nil then
-    FKeyAliasList := TStringList.Create;
-
-  Index := FKeyAliasList.IndexOf(Id);
-  if Index = - 1 then
-    Index := FKeyAliasList.Add(Id);
-  Result := IntToStr(Index);
 end;
 
 procedure Tgdv_frmAcctBaseForm.SetParams;

@@ -63,6 +63,7 @@ const
   NFA: TNMSet = ('а', 'ы', 'е', 'у', 'ой', 'е');   { ...а }
   NFB: TNMSet = ('я', 'и', 'е', 'ю', 'ей', 'е');   { ..ья }
   NFC: TNMSet = ('я', 'и', 'и', 'ю', 'ей', 'и');   { ..ия }
+  NFD: TNMSet = ('а', 'и', 'е', 'у', 'ой', 'е');
 
   OMA: TNMSet = ('ий', 'ого', 'ому', 'ого', 'им', 'ом');
   OMB: TNMSet = ('ый', 'ого', 'ому', 'ого', 'ым', 'ом');
@@ -295,6 +296,10 @@ begin
           if (str3 = 'ово') or (str3 = 'аго') or (str3 = 'яго') then begin
             Exit;
           end else
+          if TheWord[Length(TheWord)] = 'а' then begin
+              Delete(TheWord, Length(TheWord), 1);
+              TheWord := TheWord + NFD[TheCase];
+          end else
           if TheWord[Length(TheWord)] = 'я' then begin  //например Бетеня
             Delete(TheWord, Length(TheWord), 1);
             TheWord := TheWord + NFB[TheCase];
@@ -376,6 +381,10 @@ begin
           if str2 = 'ел' then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
             TheWord := TheWord + NMD[TheCase];
+          end else
+          if str2 = 'ец' then begin
+            Delete(TheWord, Length (TheWord) - 1, 2);
+            TheWord := TheWord + 'йц' + NMF[TheCase];
           end else
           if TheWord [Length(TheWord)] = 'ь' then begin
             Delete(TheWord, Length (TheWord), 1);
@@ -472,9 +481,9 @@ var
   Position, StartPos :Integer;
 begin
   Position := Pos('-', TheWord);
-  StartText := TheWord;
   if Position > 0 then
   begin
+    StartText := TheWord;
     FEnd := False;
     StartPos := 0;
     Text := '';
@@ -507,12 +516,16 @@ begin
     Result := TrimRight(Text);
   end else
   begin
-    str1 := TheWord[Length(TheWord)];
-    if (str1 = 'а') or (str1 = 'я') then //женский род
-      Result := SetCase(TheWord, TheCase, gdFeminine, nmNar)
-    else if str1 in sogl then
-      Result := SetCase(TheWord, TheCase, gdMasculine, nmNar)
-    else
+    if TheWord > '' then
+    begin
+      str1 := TheWord[Length(TheWord)];
+      if (str1 = 'а') or (str1 = 'я') then //женский род
+        Result := SetCase(TheWord, TheCase, gdFeminine, nmNar)
+      else if str1 in sogl then
+        Result := SetCase(TheWord, TheCase, gdMasculine, nmNar)
+      else
+        Result := TheWord;
+    end else
       Result := TheWord;
   end;
 end;

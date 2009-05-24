@@ -128,8 +128,6 @@ type
     procedure DoAfterBuildSQL; virtual;
     procedure DoAfterBuildReport; virtual;
 
-    function GetKeyAlias(ID: Integer): String; overload;
-    function GetKeyAlias(ID: String): String; overload;
     function GetNameAlias(Name: String): String;
     function GetCondition(Alias: String): String;
 
@@ -145,6 +143,9 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
+    function GetKeyAlias(ID: Integer): String; overload;
+    function GetKeyAlias(ID: String): String; overload;
 
     procedure ShowInNCU(Show: Boolean; DecDigits: Integer = -1; Scale: Integer = 0);
     procedure ShowInCurr(Show: Boolean; DecDigits: Integer = -1; Scale: Integer = 0; CurrKey: TID = -1);
