@@ -58,6 +58,7 @@ type
   TgdcInvCardFeature = record
     optFieldName: String;                          // Наименование поля атрибутов
     optValue: Variant;                             // Значение атрибута
+    isInteger: Boolean;
   end;
 
   TgdcArrInvFeatures = array of TgdcInvCardFeature;
@@ -683,7 +684,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  ;
+  , IBHeader;
 
 procedure Register;
 begin
@@ -1145,11 +1146,18 @@ begin
     Features := '';
 
     for i:= Low(InvCardFeatures) to High(InvCardFeatures) do
-      if InvCardFeatures[i].optValue = Null then
-        Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' IS NULL '
+      if InvCardFeatures[i].isInteger then
+        if InvCardFeatures[i].optValue = Null then
+          Features := Features + ' AND (' + InvCardFeatures[i].optFieldName + ' + 0) IS NULL '
+        else
+          Features := Features + ' AND (' + InvCardFeatures[i].optFieldName + ' + 0) = :' +
+            InvCardFeatures[i].optFieldName
       else
-        Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' = :' +
-          InvCardFeatures[i].optFieldName;
+        if InvCardFeatures[i].optValue = Null then
+          Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' IS NULL '
+        else
+          Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' = :' +
+            InvCardFeatures[i].optFieldName;
 
 
     Result := Result + Features ;
@@ -2041,11 +2049,18 @@ begin
   if MovementDirection = imdDefault then exit;
 
   for i:= Low(InvCardFeatures) to High(InvCardFeatures) do
-    if InvCardFeatures[i].optValue = Null then
-      Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' IS NULL '
+    if InvCardFeatures[i].isInteger then
+      if InvCardFeatures[i].optValue = Null then
+        Features := Features + ' AND (' + InvCardFeatures[i].optFieldName + ' + 0) IS NULL '
+      else
+        Features := Features + ' AND (' + InvCardFeatures[i].optFieldName + ' + 0) = :' +
+          InvCardFeatures[i].optFieldName
     else
-      Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' = :' +
-        InvCardFeatures[i].optFieldName;
+      if InvCardFeatures[i].optValue = Null then
+        Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' IS NULL '
+      else
+        Features := Features + ' AND ' + InvCardFeatures[i].optFieldName + ' = :' +
+          InvCardFeatures[i].optFieldName;
 
   if Pos(Features, ibsqlCardList.SQL.Text) > 0 then
     Result := False;
@@ -3539,18 +3554,24 @@ begin
       end;
 
       for i:= Low(ipInvSourceCardFeatures) to High(ipInvSourceCardFeatures) do
-        if ipInvSourceCardFeatures[i].optValue = Null then
-          S := S + ' AND C.' + ipInvSourceCardFeatures[i].optFieldName + ' IS NULL '
+        if ipInvSourceCardFeatures[i].isInteger then
+          if ipInvSourceCardFeatures[i].optValue = Null then
+            S := S + ' AND (C.' + ipInvSourceCardFeatures[i].optFieldName + ' + 0) IS NULL '
+          else
+            S := S + ' AND (C.' + ipInvSourceCardFeatures[i].optFieldName + ' + 0) = :' +
+              ipInvSourceCardFeatures[i].optFieldName
         else
-          S := S + ' AND C.' + ipInvSourceCardFeatures[i].optFieldName + ' = :' +
-            ipInvSourceCardFeatures[i].optFieldName;
+          if ipInvSourceCardFeatures[i].optValue = Null then
+            S := S + ' AND C.' + ipInvSourceCardFeatures[i].optFieldName + ' IS NULL '
+          else
+            S := S + ' AND C.' + ipInvSourceCardFeatures[i].optFieldName + ' = :' +
+              ipInvSourceCardFeatures[i].optFieldName;
 
       ibsql.SQL.Text := S;
 
       ibsql.Prepare;
       ibsql.ParamByName('goodkey').AsInteger := ipGoodKey;
       ibsql.ParamByName('ContactKey').AsInteger := ipSourceContactKey;
-//      ibsql.ParamByName('companykey').AsInteger := IBLogin.CompanyKey;
 
       if not CurrentRemains and not ipMinusRemains then
       begin
@@ -3966,6 +3987,10 @@ begin
               gdcDocumentLine.FieldByName(
                 INV_SOURCEFEATURE_PREFIX +
                 (gdcDocumentLine as TgdcInvDocumentLine).SourceFeatures[i]).AsVariant;
+            if gdcDocumentLine.FieldByName(
+                 INV_SOURCEFEATURE_PREFIX +
+                 (gdcDocumentLine as TgdcInvDocumentLine).SourceFeatures[i]).DataType in [ftSmallint, ftBCD, ftInteger, ftLargeInt] then
+              ipInvSourceCardFeatures[i].isInteger := True;
           end;
         end;
 
@@ -3985,6 +4010,10 @@ begin
               gdcDocumentLine.FieldByName(
                 INV_DESTFEATURE_PREFIX +
                 (gdcDocumentLine as TgdcInvDocumentLine).MinusFeatures[i]).AsVariant;
+            if gdcDocumentLine.FieldByName(
+                INV_DESTFEATURE_PREFIX +
+                (gdcDocumentLine as TgdcInvDocumentLine).MinusFeatures[i]).DataType in [ftSmallint, ftBCD, ftInteger, ftLargeInt] then
+              ipInvMinusCardFeatures[i].isInteger := True;
           end;
 
         end;
@@ -4013,6 +4042,10 @@ begin
               gdcDocumentLine.FieldByName(
                 INV_DESTFEATURE_PREFIX +
                 (gdcDocumentLine as TgdcInvDocumentLine).DestFeatures[i]).AsVariant;
+            if gdcDocumentLine.FieldByName(
+                INV_DESTFEATURE_PREFIX +
+                (gdcDocumentLine as TgdcInvDocumentLine).DestFeatures[i]).DataType in [ftSmallint, ftBCD, ftInteger, ftLargeInt] then
+              ipInvDestCardFeatures[i].isInteger := True;
           end;
 
         end;
@@ -4117,11 +4150,18 @@ begin
       begin
         if S > '' then
           S := S + ' OR ';
-        if FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).IsNull then
-          S := S + ' C.' + InvPosition.ipInvDestCardFeatures[i].optFieldName + ' IS NULL '
+        if InvPosition.ipInvDestCardFeatures[i].isInteger then
+          if FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).IsNull then
+            S := S + ' (C.' + InvPosition.ipInvDestCardFeatures[i].optFieldName + ' + 0) IS NULL '
+          else
+            S := S + ' (C.' + InvPosition.ipInvDestCardFeatures[i].optFieldName + ' + 0) = :' +
+              InvPosition.ipInvDestCardFeatures[i].optFieldName
         else
-          S := S + ' C.' + InvPosition.ipInvDestCardFeatures[i].optFieldName +
-            ' = :' + InvPosition.ipInvDestCardFeatures[i].optFieldName;
+          if FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).IsNull then
+            S := S + ' C.' + InvPosition.ipInvDestCardFeatures[i].optFieldName + ' IS NULL '
+          else
+            S := S + ' C.' + InvPosition.ipInvDestCardFeatures[i].optFieldName +
+              ' = :' + InvPosition.ipInvDestCardFeatures[i].optFieldName;
       end;
 
     ibsqlCardMovement.SQL.Text := ibsqlCardMovement.SQL.Text + S +
@@ -5506,7 +5546,6 @@ begin
   end
   else
   begin
-//    S.Add(' C.GOODKEY = :GOODKEY ');
     if isUseCompanyKey then
       S.Add('CAST(C.COMPANYKEY + 0 as INTEGER) = :companykey');
   end;
@@ -5514,8 +5553,12 @@ begin
   if High(FChooseFeatures) >= Low(FChooseFeatures) then
     for i:= Low(FChooseFeatures) to High(FChooseFeatures) do
       if FChooseFeatures[i].optValue <> NULL then
-        S.Add('  C.' + FChooseFeatures[i].optFieldName + ' = :' +
-                  FChooseFeatures[i].optFieldName);
+        if FChooseFeatures[i].isInteger then
+          S.Add('  (C.' + FChooseFeatures[i].optFieldName + ' + 0) = :' +
+                    FChooseFeatures[i].optFieldName)
+        else
+          S.Add('  C.' + FChooseFeatures[i].optFieldName + ' = :' +
+                    FChooseFeatures[i].optFieldName);
 
 end;
 
@@ -5566,6 +5609,7 @@ begin
           cvalInvCardFeatures[i].optValue := FieldByName(ViewFeatures[i]).Value
         else
           cvalInvCardFeatures[i].optValue := NULL;
+        cvalInvCardFeatures[i].isInteger := (FieldByName(ViewFeatures[i]).DataType in [ftSmallint, ftBCD, ftInteger, ftLargeInt]);
       end;
       if FindField('ContactKey') <> nil then
         cvalContactKey := FieldByName('ContactKey').AsInteger
@@ -5878,12 +5922,14 @@ begin
       try
         ParamByName(FChooseFeatures[i].optFieldName).AsVariant := FChooseFeatures[i].optValue;
       except
+        // TODO: Пустое исключение
       end;
 
   if not CurrentRemains and (RemainsDate <> 0) then
     try
       ParamByName('remainsdate').AsDateTime := RemainsDate;
     except
+      // TODO: Пустое исключение
     end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINS', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
   {M}  finally
@@ -6109,7 +6155,7 @@ var
   MovementContactType: TgdcInvMovementContactType;
 begin
   Assert(Assigned(InvMovement) and Assigned(InvMovement.gdcDocumentLine),
-    'Незадан объект движения или позиции документа');
+    'Не задан объект движения или позиции документа');
 
   Close;
 
@@ -6254,6 +6300,7 @@ begin
       begin
         FChooseFeatures[i].optFieldName := ipInvSourceCardFeatures[i].optFieldName;
         FChooseFeatures[i].optValue := ipInvSourceCardFeatures[i].optValue;
+        FChooseFeatures[i].isInteger := ipInvSourceCardFeatures[i].isInteger;
       end;
 
       SubSet := cst_ByGoodKey;
