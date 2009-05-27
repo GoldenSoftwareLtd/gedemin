@@ -652,7 +652,7 @@ end;
 procedure TgdvAcctLedger.DoBuildSQL;
 var
   I, J, N, K, Index: Integer;
-  EntryDateIsAdded: Boolean;
+  MainEntryDateIsAdded, CorrEntryDateIsAdded: Boolean;
   Line: TgdvAcctAnalyticLevels;
   F: TatRelationField;
   T: TgdvLedgerTotal;
@@ -728,6 +728,7 @@ var
           BC := TgdvStorageLedgerTotalBlock1;
       end;
 
+      // Итого для национальной валюты
       FNcuTotalBlock := BC.Create;
       T.TotalBlocks.Add(FNcuTotalBlock);
       FNcuTotalBlock.BeginDebit.FieldName := BaseAcctFieldList[2].FieldName;
@@ -748,6 +749,7 @@ var
       end;
       FNcuTotalBlock := nil;
 
+      // Итого для иностранной валюты
       if FCurrSumInfo.Show then
       begin
         FCurrTotalBlock := BC.Create;
@@ -771,6 +773,7 @@ var
         FCurrTotalBlock := nil;
       end;
 
+      // Итого для эквивалента
       if FEQSumInfo.Show then
       begin
         FEQTotalBlock := BC.Create;
@@ -795,19 +798,23 @@ var
       end;
     end;
 
+    // Используем новый или старый метод построения отчета
     if FUseEntryBalance and (FAcctValues.Count = 0) then
     begin
+      // Заполняем секцию RETURNS
       if AnalyticReturns > '' then AnalyticReturns := AnalyticReturns + ', ';
-
       AnalyticReturns := AnalyticReturns +
         Alias + ' VARCHAR(180),' +
         Name + ' VARCHAR(180),' +
-        SortName + ' VARCHAR(180)';
+        SortName + ' VARCHAR(180)'#13#10;
 
+      // Если аналитика это физическое поле, и оно является полем ссылкой
       if Assigned(F) and Assigned(F.ReferencesField) then
       begin
+        // Если первая аналитика - аналитика даты
         if FEntryDateIsFirst then
         begin
+          // Заполняем секции SELECT и ORDER BY дополнительного запроса
           if CorrSelect > '' then CorrSelect := CorrSelect + ', ';
           if CorrOrder > '' then CorrOrder := CorrOrder + ', ';
           if F.Field.RefListFieldName = '' then
@@ -825,15 +832,15 @@ var
             CorrOrder := CorrOrder + Alias + '.' + F.Field.RefListFieldName;
           end;
           CorrSelect := CorrSelect + Alias + '.' + F.ReferencesField.FieldName;
-
+          // Заполняем секции INTO дополнительного запроса
           if CorrInto > '' then CorrInto := CorrInto + ', ';
           CorrInto := CorrInto +
             ':' + SortName  + ', ' +
             ':' + Name + ', ' +
-            ':' + Alias;
+            ':' + Alias + #13#10;
 
           // Не будем заполнять эти поля при обработке уровня аналитики,
-          //  они заполнятся нужными значениями при обработке группировочной аналитике
+          //  они заполнятся нужными значениями при обработке группировочной аналитики
           if not IsTreeAnalytic then
           begin
             if CorrSubSelect > '' then CorrSubSelect := CorrSubSelect + ', ';
@@ -843,18 +850,20 @@ var
             if CorrGroup > '' then CorrGroup := CorrGroup + ', ';
             CorrGroup := CorrGroup + 'en.' + F.Fieldname;
           end;
-
+          // Добавим дополнительные поля для аналитики при включенном переключателе "Расширенное отображение"
           ExtendedFieldsBalance(F, Alias, AnalyticReturns, CorrSelect, CorrInto);
         end
         else
         begin
-          TempVariables.Add('temp_' + Alias + '=' + Alias);
+          // Если первая аналитика - не аналитика даты
 
+          TempVariables.Add('temp_' + Alias + '=' + Alias);
+          // Заполняем секции INTO, GROUP BY главного запроса и GROUP BY третьего запроса из второго вложенного уровня в главном запросе
           if MainInto > '' then MainInto := MainInto + ', ';
           MainInto := MainInto +
             ':' + Alias + ', ' +
             ':' + Name + ', ' +
-            ':' + SortName;
+            ':' + SortName + #13#10;
           if MainGroup > '' then MainGroup := MainGroup + ', ';
           MainGroup := MainGroup +
             'en.' + F.FieldName;
@@ -863,7 +872,7 @@ var
             'em.' + F.FieldName;
 
           // Не будем заполнять эти поля при обработке уровня аналитики,
-          //  они заполнятся нужными значениями при обработке группировочной аналитике  
+          //  они заполнятся нужными значениями при обработке группировочной аналитике
           if not IsTreeAnalytic then
           begin
             if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
@@ -881,6 +890,7 @@ var
             CorrWhere := CorrWhere + ' AND em.' + F.FieldName + ' = :' + Alias;
           end;
 
+          // Заполняем секции SELECT, ORDER BY главного запроса
           if MainSelect > '' then MainSelect := MainSelect + ', ';
           MainSelect := MainSelect +
             Alias + '.' + F.ReferencesField.FieldName + ', ';
@@ -901,70 +911,138 @@ var
             MainOrder := MainOrder +
               Alias + '.' + F.Field.RefListFieldName;
           end;
-
+          // Добавим дополнительные поля для аналитики при включенном переключателе "Расширенное отображение"
           ExtendedFieldsBalance(F, Alias, AnalyticReturns, MainSelect, MainInto);
         end;
       end
       else
       begin
-        if FEntryDateInFields and (not FEntryDateIsFirst) then
+        // Если аналитика это физическое поле, но оно не является полем ссылкой
+        if Assigned(F) then
         begin
-          if MainSelect > '' then MainSelect := MainSelect + ', ';
-          MainSelect := MainSelect +
-            Format(' m.dateparam_%0:s, m.dateparam_%0:s, m.dateparam_%0:s ', [Alias]);
-          if MainOrder > '' then MainOrder := MainOrder + ', ';
-          MainOrder := MainOrder +
-            Format(' m.dateparam_%0:s ', [Alias]);
-
-          if Assigned(F) then
+          // Если это поле даты проводки - ENTRYDATE
+          if F.FieldName = ENTRYDATE then
           begin
+            if FEntryDateInFields and (not FEntryDateIsFirst) then
+            begin
+              // Заполняем секции SELECT, ORDER BY, INTO главного запроса
+              if MainSelect > '' then MainSelect := MainSelect + ', ';
+              MainSelect := MainSelect +
+                Format(' m.dateparam_%0:s, m.dateparam_%0:s, m.dateparam_%0:s '#13#10, [Alias]);
+              if MainOrder > '' then MainOrder := MainOrder + ', ';
+              MainOrder := MainOrder +
+                Format(' m.dateparam_%0:s '#13#10, [Alias]);
+
+              if MainInto > '' then MainInto := MainInto + ', ';
+              MainInto := MainInto +
+                ':' + Alias + ', ' +
+                ':' + Name + ', ' +
+                ':' + SortName + #13#10;
+            end;
+
+            // Заполняем секции SELECT, GROUP BY запроса первого уровня вложенности в главном запросе
             if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
             MainSubSelect := MainSubSelect +
-              'en.entrydate AS dateparam_' + Alias;
+              Format(' en.entrydate AS dateparam_%0:s '#13#10, [Alias]);
             if MainGroup > '' then MainGroup := MainGroup + ', ';
             MainGroup := MainGroup +
-              'en.entrydate';
+              ' en.entrydate '#13#10;
           end
           else
           begin
-            if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
-            MainSubSelect := MainSubSelect +
-              ' g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') AS dateparam_' + Alias;
+            // Иначе это просто текстовое, числовое или поле даты в AC_ENTRY
+            TempVariables.Add('temp_' + Alias + '=' + Alias);
+            // Заполняем секции SELECT, GROUP BY, ORDER BY, INTO в главном запросе
+            if MainSelect > '' then MainSelect := MainSelect + ', ';
+            MainSelect := MainSelect +
+              Format(' m.%0:s, m.%0:s, m.%0:s '#13#10, [Alias]);
+            if MainOrder > '' then MainOrder := MainOrder + ', ';
+            MainOrder := MainOrder +
+              Format(' m.%0:s '#13#10, [Alias]);
             if MainGroup > '' then MainGroup := MainGroup + ', ';
             MainGroup := MainGroup +
-              ' g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') ';
-          end;
+              Format(' en.%0:s '#13#10, [Alias]);
+            if MainInto > '' then MainInto := MainInto + ', ';
+            MainInto := MainInto +
+              ':' + Alias + ', ' +
+              ':' + Name + ', ' +
+              ':' + SortName + #13#10;
 
-          // ENTRYDATE нужно брать в подзапросе только один раз
-          if not EntryDateIsAdded then
-          begin
+            // Заполняем секции SELECT в запросе первого уровня вложенности в главном запросе
+            if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
+            MainSubSelect := MainSubSelect +
+              Format(' en.%0:s '#13#10, [Alias]);
+
+            // Заполняем секции SELECT во всех запросах второго уровня вложенности в главном запросе
             if MainSubSubSelect01 > '' then MainSubSubSelect01 := MainSubSubSelect01 + ', ';
             MainSubSubSelect01 := MainSubSubSelect01 +
-              'CAST(:datebegin AS DATE) AS entrydate';
+              Format(' bal.%0:s AS %1:s '#13#10, [F.FieldName, Alias]);
             if MainSubSubSelect02 > '' then MainSubSubSelect02 := MainSubSubSelect02 + ', ';
             MainSubSubSelect02 := MainSubSubSelect02 +
-              'CAST(:datebegin AS DATE) AS entrydate';
+              Format(' e.%0:s AS %1:s '#13#10, [F.FieldName, Alias]);
             if MainSubSubSelect03 > '' then MainSubSubSelect03 := MainSubSubSelect03 + ', ';
             MainSubSubSelect03 := MainSubSubSelect03 +
-              'em.entrydate';
+              Format(' em.%0:s AS %1:s '#13#10, [F.FieldName, Alias]);
+            // Заполняем секции GROUP BY в третьем запросе второго уровня вложенности в главном запросе
             if MainSubSubGroup03 > '' then MainSubSubGroup03 := MainSubSubGroup03 + ', ';
             MainSubSubGroup03 := MainSubSubGroup03 +
-              'em.entrydate';
-            EntryDateIsAdded := True;  
+              Format(' em.%0:s '#13#10, [F.FieldName]);
+          end;
+        end
+        else
+        begin
+          // Если текущая аналитика не физическое поле (месяц, год, квартал)
+
+          // Если в аналитиках присутствует дата, но она не стоит на первом месте
+          if FEntryDateInFields and (not FEntryDateIsFirst) then
+          begin
+            if MainSelect > '' then MainSelect := MainSelect + ', ';
+            MainSelect := MainSelect +
+              Format(' m.dateparam_%0:s, m.dateparam_%0:s, m.dateparam_%0:s '#13#10, [Alias]);
+            if MainOrder > '' then MainOrder := MainOrder + ', ';
+            MainOrder := MainOrder +
+              Format(' m.dateparam_%0:s '#13#10, [Alias]);
+
+            if MainInto > '' then MainInto := MainInto + ', ';
+            MainInto := MainInto +
+              ':' + Alias + ', ' +
+              ':' + Name + ', ' +
+              ':' + SortName + #13#10;
           end;
 
-          if MainInto > '' then MainInto := MainInto + ', ';
-          MainInto := MainInto +
-            ':' + Alias + ', ' +
-            ':' + Name + ', ' +
-            ':' + SortName;
+          if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
+          MainSubSelect := MainSubSelect +
+            'en.entrydate AS dateparam_' + Alias + #13#10;
+          if MainGroup > '' then MainGroup := MainGroup + ', ';
+          MainGroup := MainGroup +
+            'en.entrydate'#13#10;
+        end;
+
+        // ENTRYDATE нужно брать в подзапросе только один раз
+        if (not Assigned(F) or (Assigned(F) and (F.FieldName = ENTRYDATE))) and (not MainEntryDateIsAdded) then
+        begin
+          // Заполняем секции SELECT во всех запросах второго уровня вложенности в главном запросе
+          if MainSubSubSelect01 > '' then MainSubSubSelect01 := MainSubSubSelect01 + ', ';
+          MainSubSubSelect01 := MainSubSubSelect01 +
+            'CAST(:datebegin AS DATE) AS entrydate'#13#10;
+          if MainSubSubSelect02 > '' then MainSubSubSelect02 := MainSubSubSelect02 + ', ';
+          MainSubSubSelect02 := MainSubSubSelect02 +
+            'CAST(:datebegin AS DATE) AS entrydate'#13#10;
+          if MainSubSubSelect03 > '' then MainSubSubSelect03 := MainSubSubSelect03 + ', ';
+          MainSubSubSelect03 := MainSubSubSelect03 +
+            'em.entrydate'#13#10;
+          // Заполняем секции GROUP BY в третьем запросе второго уровня вложенности в главном запросе
+          if MainSubSubGroup03 > '' then MainSubSubGroup03 := MainSubSubGroup03 + ', ';
+          MainSubSubGroup03 := MainSubSubGroup03 +
+            'em.entrydate'#13#10;
+          MainEntryDateIsAdded := True;
         end;
 
         if CorrInto > '' then CorrInto := CorrInto + ', ';
         CorrInto := CorrInto +
           ':' + Alias + ', ' +
           ':' + Name + ', ' +
-          ':' + SortName;
+          ':' + SortName + #13#10;
 
         if CorrSelect > '' then CorrSelect := CorrSelect + ', ';
         if CorrSubSelect > '' then CorrSubSelect := CorrSubSelect + ', ';
@@ -973,42 +1051,42 @@ var
         if Assigned(F) then
         begin
           CorrSelect := CorrSelect +
-            Format('%0:s.%1:s, %0:s.%1:s, %0:s.%1:s', ['m', F.FieldName]);
+            Format(' %0:s.%1:s, %0:s.%1:s, %0:s.%1:s '#13#10, ['m', F.FieldName]);
           CorrSubSelect := CorrSubSelect + 'en.' + F.FieldName;
           // ENTRYDATE нужно брать в подзапросе только один раз
           if AnsiCompareText(F.FieldName, ENTRYDATE) = 0 then
           begin
-            if not EntryDateIsAdded then
+            if not CorrEntryDateIsAdded then
             begin
               if CorrSubSubSelect > '' then CorrSubSubSelect := CorrSubSubSelect + ', ';
-              CorrSubSubSelect := CorrSubSubSelect + 'em.' + F.FieldName;
-              EntryDateIsAdded := True;
+              CorrSubSubSelect := CorrSubSubSelect + 'em.' + F.FieldName + #13#10;
+              CorrEntryDateIsAdded := True;
             end
           end
           else
           begin
             if CorrSubSubSelect > '' then CorrSubSubSelect := CorrSubSubSelect + ', ';
-            CorrSubSubSelect := CorrSubSubSelect + 'em.' + F.FieldName;
+            CorrSubSubSelect := CorrSubSubSelect + 'em.' + F.FieldName + #13#10;
           end;
           CorrGroup := CorrGroup + 'en.' + F.FieldName;
-          CorrOrder := CorrOrder + Format('%0:s.%1:s', ['m', F.FieldName]);
+          CorrOrder := CorrOrder + Format(' %0:s.%1:s '#13#10, ['m', F.FieldName]);
         end
         else
         begin
           CorrSelect := CorrSelect +
-            Format('%0:s.%1:s, %0:s.%1:s, %0:s.%1:s', ['m', Alias]);
+            Format(' %0:s.%1:s, %0:s.%1:s, %0:s.%1:s '#13#10, ['m', Alias]);
           CorrSubSelect := CorrSubSelect +
-            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') AS ' + Alias;
+            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') AS ' + Alias + #13#10;
           // ENTRYDATE нужно брать в подзапросе только один раз
-          if not EntryDateIsAdded then
+          if not CorrEntryDateIsAdded then
           begin
             if CorrSubSubSelect > '' then CorrSubSubSelect := CorrSubSubSelect + ', ';
-            CorrSubSubSelect := CorrSubSubSelect + 'em.entrydate';
-            EntryDateIsAdded := True;
+            CorrSubSubSelect := CorrSubSubSelect + 'em.entrydate'#13#10;
+            CorrEntryDateIsAdded := True;
           end;
           CorrGroup := CorrGroup +
-            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ')';
-          CorrOrder := CorrOrder + Format('%0:s.%1:s', ['m', Alias]);
+            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ')'#13#10;
+          CorrOrder := CorrOrder + Format(' %0:s.%1:s '#13#10, ['m', Alias]);
         end;
       end;
 
@@ -1017,11 +1095,11 @@ var
     begin
 
       if IDSelect > '' then
-        IDSelect := IDSelect + ', '#13#10;
+        IDSelect := IDSelect + ', ';
       if NameSelect > '' then
-        NameSelect := NameSelect + ', '#13#10;
+        NameSelect := NameSelect + ', ';
       if SortSelect > '' then
-        SortSelect := SortSelect + ', '#13#10;
+        SortSelect := SortSelect + ', ';
       if OrderClause > '' then
         OrderClause := OrderClause + ', ';
 
@@ -1029,20 +1107,20 @@ var
       begin
         if F.ReferencesField <> nil then
         begin
-          IDSelect := IDSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s', [Alias,
+          IDSelect := IDSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
             F.ReferencesField.FieldName, Alias]);
           if F.Field.RefListFieldName = '' then
           begin
-            NameSelect := NameSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s', [Alias,
+            NameSelect := NameSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
               F.References.ListField.FieldName, Name]);
-            SortSelect := SortSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s', [Alias,
+            SortSelect := SortSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
               F.References.ListField.FieldName, SortName]);
             OrderClause := OrderClause + Format('%s.%s, %s.%s', [Alias,
               F.References.ListField.FieldName, Alias, F.ReferencesField.FieldName]);
           end
           else
           begin
-            NameSelect := NameSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s', [Alias,
+            NameSelect := NameSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
               F.Field.RefListFieldName, Name]);
             SortSelect := SortSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s', [Alias,
               F.Field.RefListFieldName, SortName]);
@@ -1157,11 +1235,13 @@ var
     end;
   end;
 
+  // Заполняет запрос корреспондирующми счетами
   procedure FillQueryWithCorrAccounts(AAccounts: TStrings; EntryPart: String);
   var
     I, J: Integer;
     CurrencyStr: String;
 
+    // Возвращает префикс валюты (NCU, CURR, EQ)
     function GetCurrencyStr(const AccountName: String): String;
     begin
       Result := cNCUPrefix;
@@ -1170,19 +1250,24 @@ var
       if AnsiPos(UpperCase(cEQPrefix), UpperCase(AccountName)) > 0 then
         Result := cEQPrefix;
     end;
-    
+
   begin
+    // Если аналитика даты не является первой
     if not FEntryDateIsFirst then
     begin
       for I := 0 to AAccounts.Count - 1 do
       begin
+        // Показывать корреспондирующие счета
         if FShowCorrSubAccounts then
         begin
           CurrencyStr := GetCurrencyStr(AAccounts.Names[I]);
+          // Секции SELECT, INTO главного запроса
           MainSelect := MainSelect + ', m.' + AAccounts.Names[I];
           MainInto := MainInto + ', :' + AAccounts.Names[I];
+          // SELECT запроса первого уровня вложенности в главном запросе
           MainSubSelect := MainSubSelect +
             Format(', COALESCE(SUM(en.%0:s), 0) AS %0:s '#13#10, [AAccounts.Names[I]]);
+          // SELECT запросов второго уровня вложенности в главном запросе
           MainSubSubSelect01 := MainSubSubSelect01 + ', CAST(0 as numeric(15, %1:d)) AS ' + AAccounts.Names[I];
           MainSubSubSelect02 := MainSubSubSelect02 + ', CAST(0 as numeric(15, %1:d)) AS ' + AAccounts.Names[I];
           if EntryPart = cAccountPartDebit then
@@ -1197,13 +1282,17 @@ var
         else
         begin
           CurrencyStr := GetCurrencyStr(AAccounts.Strings[I]);
+          // Секции SELECT, INTO главного запроса
           MainSelect := MainSelect + ', m.' + AAccounts.Strings[I];
           MainInto := MainInto + ', :' + AAccounts.Strings[I];
+          // SELECT запроса первого уровня вложенности в главном запросе
           MainSubSelect := MainSubSelect +
             Format(', COALESCE(SUM(en.%0:s), 0) AS %0:s '#13#10, [AAccounts.Strings[I]]);
+          // SELECT запросов второго уровня вложенности в главном запросе
           MainSubSubSelect01 := MainSubSubSelect01 + ', CAST(0 as numeric(15, %1:d)) AS ' + AAccounts.Strings[I];
           MainSubSubSelect02 := MainSubSubSelect02 + ', CAST(0 as numeric(15, %1:d)) AS ' + AAccounts.Strings[I];
           MainSubSubSelect03 := MainSubSubSelect03 + ', SUM(IIF(emc.accountkey IN (';
+          // Если стоит групировка счетов, то здесь в одну колонку сгруппируется несколько значений
           for J := 0 to TgdKeyArray(AAccounts.Objects[I]).Count - 1 do
           begin
             MainSubSubSelect03 := MainSubSubSelect03 + IntToStr(TgdKeyArray(AAccounts.Objects[I]).Keys[J]);
@@ -1221,15 +1310,20 @@ var
     end
     else
     begin
+      // Если аналитика даты стоит первой
       for I := 0 to AAccounts.Count - 1 do
       begin
+        // Показывать корреспондирующие счета
         if FShowCorrSubAccounts then
         begin
           CurrencyStr := GetCurrencyStr(AAccounts.Names[I]);
+          // Секции SELECT, INTO дополнительного запроса
           CorrSelect := CorrSelect + ', m.' + AAccounts.Names[I];
           CorrInto := CorrInto + ', :' + AAccounts.Names[I];
+          // SELECT запроса первого уровня вложенности в дополнительном запросе
           CorrSubSelect := CorrSubSelect +
             Format(', COALESCE(SUM(en.%0:s), 0) AS %0:s '#13#10, [AAccounts.Names[I]]);
+          // SELECT запроса второго уровня вложенности в дополнительном запросе
           if EntryPart = cAccountPartDebit then
             CorrSubSubSelect := CorrSubSubSelect +
               Format(', IIF(emc.accountkey=%0:s,IIF(emc.issimple=0,emc.credit%1:s,em.debit%1:s),0) AS %2:s'#13#10,
@@ -1242,11 +1336,15 @@ var
         else
         begin
           CurrencyStr := GetCurrencyStr(AAccounts.Strings[I]);
+          // Секции SELECT, INTO дополнительного запроса
           CorrSelect := CorrSelect + ', m.' + AAccounts.Strings[I];
           CorrInto := CorrInto + ', :' + AAccounts.Strings[I];
+          // SELECT запроса первого уровня вложенности в дополнительном запросе
           CorrSubSelect := CorrSubSelect +
             Format(', COALESCE(SUM(en.%0:s), 0) AS %0:s '#13#10, [AAccounts.Strings[I]]);
+          // SELECT запроса второго уровня вложенности в дополнительном запросе
           CorrSubSubSelect := CorrSubSubSelect + ', IIF(emc.accountkey IN (';
+          // Если стоит групировка счетов, то здесь в одну колонку сгруппируется несколько значений
           for J := 0 to TgdKeyArray(AAccounts.Objects[I]).Count - 1 do
           begin
             CorrSubSubSelect := CorrSubSubSelect + IntToStr(TgdKeyArray(AAccounts.Objects[I]).Keys[J]);
@@ -1267,45 +1365,48 @@ var
 begin
   if FUseEntryBalance and (FAcctValues.Count = 0) then
   begin
+    // Список счетов в строковом виде
     AccountIDs := IDList(FAccounts);
-    EntryDateIsAdded := False;
+    MainEntryDateIsAdded := False;
+    CorrEntryDateIsAdded := False;
 
+    // Получим выбранные условия в строковом виде с нужными префиксами
     AnalyticFilterE := Self.GetCondition('e');
     if AnalyticFilterE > '' then
       AnalyticFilterE := ' AND ' + AnalyticFilterE + #13#10;
-
     AnalyticFilterEM := Self.GetCondition('em');
     if AnalyticFilterEM > '' then
       AnalyticFilterEM := ' AND ' + AnalyticFilterEM + #13#10;
-
     AnalyticFilterBal := Self.GetCondition('bal');
     if AnalyticFilterBal > '' then
       AnalyticFilterBal := ' AND ' + AnalyticFilterBal + #13#10;
 
     TempVariables := TStringList.Create;
     try
-
-      N := FAcctGroupBy.Count;
+      N := FAcctGroupBy.Count;        // Кол-во выбранных группировочных аналитик      
       for I := 0 to FAcctGroupBy.Count - 1 do
       begin
         F := FAcctGroupBy[I].Field;
-        
+
         if Assigned(F) then
         begin
+          // Индекс строки ввода уровня аналитики
           Index := IndexOfAnalyticLevel(F.FieldName);
           if Index > -1 then
           begin
             Line := TgdvAcctAnalyticLevels(FAcctAnalyticLevels[Index]);
+            // Если ввели какой-либо уровень аналитики
             if not Line.IsEmpty then
             begin
+              // Цикл по введенным в уровень аналитики значениям
               for J := 0 to Line.Levels.Count - 1 do
               begin
                 Alias := Format('c%d', [N]);
                 Name := Format('NAME%d', [N]);
                 SortName := Format('s%d', [N]);
-
+                // Заполнит части запроса и описания полей, связанные с аналитикой
                 ProcessAnalytic(F, True);
-
+                // Если первой является аналитика даты
                 if FEntryDateIsFirst then
                   CorrJoin := CorrJoin + Format('  LEFT JOIN %s(%s, m.%s) lg_%s ON 1 = 1'#13#10,
                     [Line.SPName, Line.Levels[J], F.FieldName, Alias]) +
@@ -1322,14 +1423,15 @@ begin
             end;
           end;
         end;
-        
+
         Alias := Format('c%d', [I]);
         Name := Format('NAME%d', [I]);
         SortName := Format('s%d', [I]);
-
+        // Заполнит части запроса и описания полей, связанные с аналитикой
         ProcessAnalytic(F);
-
+        // Если поле является полем ссылкой
         if Assigned(F) and Assigned(F.ReferencesField) then
+          // Если первой является аналитика даты
           if FEntryDateIsFirst then
             CorrJoin := CorrJoin + Format('  LEFT JOIN %s %s ON %s.%s = m.%s '#13#10,
               [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName, F.FieldName])
@@ -1338,8 +1440,10 @@ begin
               [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName, F.FieldName]);
       end;
 
+      // Если первой стоит не аналитика даты
       if not FEntryDateIsFirst then
       begin
+        // Если
         if MainSelect > '' then MainSelect := MainSelect + ', ';
         MainSelect := MainSelect +
           'm.debitncu, m.creditncu, '#13#10 +
@@ -1560,9 +1664,9 @@ begin
         '     FROM '#13#10 +
         '       ac_entry_balance bal '#13#10 +
         '     WHERE '#13#10 +
-        '       bal.accountkey IN (' + AccountIDs + ') '#13#10 +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND bal.currkey = ' + IntToStr(FCurrKey), '') +
-        '       AND bal.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
+          IIF(AccountIDs <> '', ' bal.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
+          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND bal.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
+        '       bal.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
           AnalyticFilterBal +
         '  '#13#10 +
         '     UNION ALL '#13#10 +
@@ -1589,15 +1693,15 @@ begin
             ' e1.entrydate >= :datebegin AND e1.entrydate < :closedate '#13#10,
             ' e1.entrydate >= :closedate AND e1.entrydate < :datebegin '#13#10) +
         '     WHERE '#13#10 +
-        '       e.accountkey IN (' + AccountIDs + ') '#13#10 +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + IntToStr(FCurrKey), '') +
+          IIF(AccountIDs <> '', ' e.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
+          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' e.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
           IIF(FEntryBalanceDate > FDateBegin,
-            ' AND e.entrydate >= :datebegin '#13#10,
-            ' AND e.entrydate >= :closedate '#13#10) +
+            ' e.entrydate >= :datebegin AND '#13#10,
+            ' e.entrydate >= :closedate AND '#13#10) +
           IIF(FEntryBalanceDate > FDateEnd,
-            ' AND e.entrydate <= :closedate '#13#10,
-            ' AND e.entrydate <= :dateend '#13#10) +
-        '       AND e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
+            ' e.entrydate <= :closedate AND '#13#10,
+            ' e.entrydate <= :dateend AND '#13#10) +
+        '       e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
           AnalyticFilterE +
           IIF(not FEntryDateIsFirst,
             '  '#13#10 +
@@ -1615,8 +1719,8 @@ begin
             '   ac_entry em '#13#10 +
             '   LEFT JOIN ac_entry emc ON emc.recordkey = em.recordkey AND emc.accountpart <> em.accountpart '#13#10 +
             ' WHERE '#13#10 +
-            '   em.accountkey IN (' + AccountIDs + ') '#13#10 +
-            '   AND em.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
+              IIF(AccountIDs <> '', ' em.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
+            '   em.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
               IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
             '   AND em.entrydate >= :datebegin AND em.entrydate <= :dateend '#13#10 +
               IIF(FIncludeInternalMovement, '', Self.InternalMovementClause('em') + #13#10) +
@@ -1652,8 +1756,8 @@ begin
             '   ac_entry em '#13#10 +
             '   LEFT JOIN ac_entry emc ON em.recordkey = emc.recordkey AND em.accountpart <> emc.accountpart '#13#10 +
             ' WHERE '#13#10 +
-            '   em.accountkey IN (' + AccountIDs + ') '#13#10 +
-            '   AND em.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
+              IIF(AccountIDs <> '', ' em.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
+            '   em.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
               IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND em.currkey = ' + IntToStr(FCurrKey), '') +
             '   AND em.entrydate >= :datebegin '#13#10 +
             '   AND em.entrydate <= :dateend '#13#10 +

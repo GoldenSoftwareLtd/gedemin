@@ -229,6 +229,9 @@ procedure TgdvAcctAccReview.DoBeforeBuildReport;
 begin
   inherited;
 
+  if FWithCorrSubAccounts then
+    FillSubAccounts(FCorrAccounts);
+
   if not FMakeEmpty then
   begin
     FActualAnalytics.Clear;
