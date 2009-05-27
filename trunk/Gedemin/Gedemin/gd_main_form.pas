@@ -789,10 +789,6 @@ begin
     tbsiHelp.Visible:= False;
     {$ENDIF}
 
-    {$IFDEF BMKK}
-    Caption := 'Берёзовский мясоконсервный комбинат';
-    {$ENDIF}
-
     {$IFDEF DEBUG}
     Caption := Format('%s, IBX: %s, JCL: %d.%d, ZLIB: %s, Started: %s',
       [Caption, FloatToStr(IBX_Version), JclVersionMajor, JclVersionMinor, {ZLIB_Version}'xxx',
