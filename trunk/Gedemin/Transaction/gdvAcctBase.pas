@@ -297,7 +297,7 @@ implementation
 
 uses
   Sysutils, Dialogs, gd_security, AcctStrings, IBBlob, gd_common_functions,
-  Forms, dmImages_unit, gdcConstants, gd_security_operationconst;
+  Forms, dmImages_unit, gdcConstants, gd_security_operationconst, IBHeader;
 
 type
   EgsLargeSQLStatement = class(Exception);
@@ -440,13 +440,10 @@ begin
 
   if FUseEntryBalance then
   begin
-    // новые отчеты будут строится только на FB2.0+
-    if not (Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)) then
-    begin
+    // новые отчеты будут строится только на FB2.0+, после добавления модифаем необходимых метаданных
+    if not (Assigned(atDatabase.Relations.ByRelationName('AC_ENTRY_BALANCE'))
+       and Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)) then
       FUseEntryBalance := False;
-      {Application.MessageBox(PChar('Для построения новых бухгалтерских отчетов необходим сервер Firebird 2.0 и выше!'),
-        'Внимание!', MB_OK or MB_ICONEXCLAMATION or MB_SYSTEMMODAL);}
-    end;
   end;
 
   if FWithSubAccounts then
@@ -643,20 +640,26 @@ var
   InternalMovementWhereClause: string;
 begin
   Result := '';
-
+  // Если установлен флаг 'Включать внутренние проводки'
   if not FIncludeInternalMovement then
   begin
     InternalMovementWhereClause := '';
 
+    // Использовать новый метод построения бух. отчетов
     if FUseEntryBalance then
     begin
       for I := 0 to FAcctConditions.Count  - 1 do
       begin
         F := atDatabase.FindRelationField(AC_ENTRY, FAcctConditions.Names[I]);
-        if (F <> nil) and (F.FieldName <> EntryDate) then
+        if Assigned(F) and (F.FieldName <> EntryDate) then
         begin
-          InternalMovementWhereClause := InternalMovementWhereClause +
-            Format(' AND'#13#10' %0:s.%1:s = e_cm.%1:s + 0 ', [TableAlias, F.FieldName]);
+          // Если тип INTEGER
+          if F.SQLType in [blr_short, blr_long, blr_int64] then
+            InternalMovementWhereClause := InternalMovementWhereClause +
+              Format(' AND'#13#10' %0:s.%1:s = e_cm.%1:s + 0 ', [TableAlias, F.FieldName])
+          else
+            InternalMovementWhereClause := InternalMovementWhereClause +
+              Format(' AND'#13#10' %0:s.%1:s = e_cm.%1:s ', [TableAlias, F.FieldName]);
         end;
       end;
 
@@ -668,10 +671,15 @@ begin
       for I := 0 to FAcctConditions.Count - 1 do
       begin
         F := atDatabase.FindRelationField(AC_ENTRY, FAcctConditions.Names[I]);
-        if (F <> nil) and (F.FieldName <> EntryDate) then
+        if Assigned(F) and (F.FieldName <> EntryDate) then
         begin
-          InternalMovementWhereClause := InternalMovementWhereClause +
-            Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName]);
+          // Если тип INTEGER
+          if F.SQLType in [blr_short, blr_long, blr_int64] then
+            InternalMovementWhereClause := InternalMovementWhereClause +
+              Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s + 0 ', [F.FieldName])
+          else
+            InternalMovementWhereClause := InternalMovementWhereClause +
+              Format(' AND'#13#10' e_m.%0:s = e_cm.%0:s ', [F.FieldName]);
         end;
       end;
 

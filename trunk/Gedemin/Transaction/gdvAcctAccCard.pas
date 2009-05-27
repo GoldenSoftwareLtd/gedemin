@@ -258,7 +258,7 @@ begin
   end;
 
   if FDateBegin <> FEntryBalanceDate then
-    FIBDSSaldoBegin.ParamByName('BEGINDATE').AsDateTime := FDateBegin;
+    FIBDSSaldoBegin.ParamByName(BeginDate).AsDateTime := FDateBegin;
   FIBDSSaldoBegin.Open;
 
   if FIBDSSaldoBegin.RecordCount > 0 then
@@ -280,7 +280,7 @@ begin
   end;
 
   if (FDateEnd + 1) <> FEntryBalanceDate then
-    FIBDSSaldoEnd.ParamByName('BEGINDATE').AsDateTime := FDateEnd + 1;
+    FIBDSSaldoEnd.ParamByName(BeginDate).AsDateTime := FDateEnd + 1;
   FIBDSSaldoEnd.Open;
 
   if FIBDSSaldoEnd.RecordCount > 0 then
