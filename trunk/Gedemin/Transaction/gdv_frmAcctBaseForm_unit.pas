@@ -134,10 +134,7 @@ type
     FValueList: TStrings;
 
     FMakeEmpty: Boolean;
-
-    FNameAliasList: TStrings;
     FShowMessage: Boolean;
-
     FSortColumns: Boolean;
 
     // Функция возвращает объект бухгалтерского отчета, должна быть
@@ -163,8 +160,6 @@ type
 
     class function ConfigClassName: string; virtual;
     procedure ParamsVisible(Value: Boolean);
-
-    function NameAlias(Name: string): string;
 
     procedure SetParams; virtual;
     procedure PushForm;
@@ -353,7 +348,6 @@ begin
   FAccountIDs.Free;
   FCorrAccountIDs.Free;
   FValueList.Free;
-  FNameAliasList.Free;
 end;
 
 procedure Tgdv_frmAcctBaseForm.DoAfterBuildReport;
@@ -389,14 +383,15 @@ var
   I, J: Integer;                    
   F: TgdvFieldInfo;
 begin
+  // Объект, который будет содержать информацию о полях отчета
   if FFieldInfos = nil then
     FFieldInfos := TgdvFieldInfos.Create
   else
     FFieldInfos.Clear;
 
-  if FNameAliasList <> nil then FNameAliasList.Clear;
-
+  // Очистка параметров в объекте бух. отчета
   gdvObject.Clear;
+  // Закроем датасет перед подготовкой к построению
   if gdvObject.Active then
     gdvObject.Close;
 
@@ -433,6 +428,8 @@ begin
             F.DisplayFields.Add(BaseAcctFieldList[I].DisplayFieldName);
         end;
   end;
+
+  // Сохраним выбранные счета в хранилище
   SaveHistory(cbAccounts);
 
   if FValueList = nil then
@@ -441,9 +438,12 @@ begin
   if FAccountIDs = nil then
     FAccountIDs := TList.Create;
 
+  // Получим список выбранных количественных показателей из панели формы
   frAcctQuantity.ValueList(FValueList, FAccountIDs, DateBegin, DateEnd);
+  // Перенесем строку выбранных счетов в список, опционально с субсчетами
   SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts);
 
+  // Локализуем поля сумм для количественных показателей по умолчанию
   if FValueList.Count > 0 then
   begin
     for J := 0 to BaseAcctQuantityFieldCount - 1 do
@@ -974,20 +974,6 @@ begin
     Result := Create(AnOwner)
   end else
     Result := TForm(FormsList[Index])
-end;
-
-function Tgdv_frmAcctBaseForm.NameAlias(Name: string): string;
-var
-  Index: Integer;
-begin
-  if FNameAliasList = nil then
-    FNameAliasList := TStringList.Create;
-
-  Index := FNameAliasList.IndexOfName(UpperCase(Name));
-  if Index = - 1 then
-    Index := FNameAliasList.Add(Name);
-
-  Result := Format('Field_%d', [Index]);
 end;
 
 procedure Tgdv_frmAcctBaseForm.actGotoUpdate(Sender: TObject);
