@@ -66,6 +66,7 @@ type
     FAddNew: Boolean;
 
     function DoSearch(const ANext: Boolean): Boolean;
+    procedure SaveDatabasesListToRegistry;
     
   public
     { Public declarations }
@@ -131,54 +132,8 @@ begin
 end;
 
 procedure Tgd_security_dlgDatabases.actOkExecute(Sender: TObject);
-var
-  Reg: TRegistry;
-  I: Integer;
-  SL: TStringList;
-  Path: String;
 begin
-  {
-  for I := 0 to lv.Items.Count - 1 do
-    for J := 0 to lv.Items.Count - 1 do
-      if (I <> J) and (AnsiCompareText(lv.Items[I].Caption, lv.Items[J].Caption) = 0) then
-      begin
-        MessageBox(Handle,
-          'В списке встречаются повторяющиеся наименования!',
-          'Ошибка',
-          MB_OK or MB_ICONSTOP);
-        exit;
-      end;
-  }
-
-  SL := TStringList.Create;
-  Reg := TRegistry.Create(KEY_ALL_ACCESS);
-  try
-    Reg.RootKey := ClientRootRegistryKey;
-    if Reg.OpenKey(ClientAccessRegistrySubKey, True) then
-    begin
-      Reg.GetKeyNames(SL);
-      for I := 0 to SL.Count - 1 do
-      begin
-        Reg.DeleteKey(SL[I]);
-      end;
-
-      Path := Reg.CurrentPath;
-      for I := 0 to lv.Items.Count - 1 do
-      begin
-        if Reg.OpenKey(lv.Items[I].Caption, True) then
-        begin
-          if lv.Items[I].SubItems.Count > 0 then
-            Reg.WriteString('Database', lv.Items[I].SubItems[0]);
-          Reg.CloseKey;
-          Reg.OpenKey(Path, False);
-        end;
-      end;
-    end;
-  finally
-    SL.Free;
-    Reg.Free;
-  end;
-
+  SaveDatabasesListToRegistry;
   ModalResult := mrOk;
 end;
 
@@ -400,6 +355,7 @@ end;
 
 procedure Tgd_security_dlgDatabases.actCancelExecute(Sender: TObject);
 begin
+  SaveDatabasesListToRegistry;
   ModalResult := mrCancel;
 end;
 
@@ -510,6 +466,43 @@ begin
   end;
 
   edSearch.Color := $9090FF;
+end;
+
+procedure Tgd_security_dlgDatabases.SaveDatabasesListToRegistry;
+var
+  Reg: TRegistry;
+  I: Integer;
+  SL: TStringList;
+  Path: String;
+begin
+  SL := TStringList.Create;
+  Reg := TRegistry.Create(KEY_ALL_ACCESS);
+  try
+    Reg.RootKey := ClientRootRegistryKey;
+    if Reg.OpenKey(ClientAccessRegistrySubKey, True) then
+    begin
+      Reg.GetKeyNames(SL);
+      for I := 0 to SL.Count - 1 do
+      begin
+        Reg.DeleteKey(SL[I]);
+      end;
+
+      Path := Reg.CurrentPath;
+      for I := 0 to lv.Items.Count - 1 do
+      begin
+        if Reg.OpenKey(lv.Items[I].Caption, True) then
+        begin
+          if lv.Items[I].SubItems.Count > 0 then
+            Reg.WriteString('Database', lv.Items[I].SubItems[0]);
+          Reg.CloseKey;
+          Reg.OpenKey(Path, False);
+        end;
+      end;
+    end;
+  finally
+    SL.Free;
+    Reg.Free;
+  end;
 end;
 
 end.
