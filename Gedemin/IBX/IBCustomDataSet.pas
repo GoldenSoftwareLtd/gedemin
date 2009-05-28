@@ -6117,7 +6117,7 @@ const
   SortSubStringLength = 40;
 var
   SList: TStringList;
-  Buffer, Buffer2: PChar;
+  Buffer, Buffer2, pRec: PChar;
   OldFiltered: Boolean;
   Min, E: Double;
   I: Integer;
@@ -6203,6 +6203,26 @@ begin
   DoBeforeScroll;
   DisableScrollEvents;
   try
+    if FDeletedRecords > 0 then
+    begin
+      pRec := FBufferCache;
+      I := 0;
+      while (I < FRecordCount) and (FDeletedRecords > 0) do
+      begin
+        if PRecordData(pRec).rdUpdateStatus = usDeleted then
+        begin
+          Dec(FRecordCount);
+          Move(pRec[FRecordBufferSize], pRec^, FRecordCount - I);
+          Dec(FDeletedRecords);
+        end else
+        begin
+          Inc(pRec, FRecordBufferSize);
+          Inc(I);
+        end;
+      end;
+      FCurrentRecord := -1;
+    end;
+
     SList := TStringList.Create;
 
     {$IFDEF HEAP_STRING_FIELD}
