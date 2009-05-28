@@ -662,7 +662,6 @@ begin
   SendMessage(Handle, EM_GETRECT, 0, LongInt(@Loc));
   Loc.Bottom := ClientHeight + 1;  {+1 is workaround for windows paint bug}
   Loc.Right := ClientWidth - CalcButtonWidth - 2;
-//  Loc.Right := 20;
   Loc.Top := 0;
   Loc.Left := 0;
   SendMessage(Handle, EM_SETRECT, 0, LongInt(@Loc));
@@ -700,7 +699,6 @@ end;
 
 procedure TxCalculatorEdit.ChangeInvertion;
 begin
-  //ExpressionAction := eaEqual;
   Value := -Value;
   SelStart := Length(Text) + 1;
 end;
@@ -782,10 +780,13 @@ end;
 
 procedure TxCalculatorEdit.SetValue(AValue: Double);
 begin
-  if DecDigits = -1 then
-    Text := FloatToStr(AValue)
-  else
-    Text := FloatToStrF(AValue, ffFixed, 15, DecDigits);
+  if Value <> AValue then
+  begin
+    if DecDigits = -1 then
+      Text := FloatToStr(AValue)
+    else
+      Text := FloatToStrF(AValue, ffFixed, 15, DecDigits);
+  end;    
 end;
 
 {
@@ -1455,8 +1456,6 @@ begin
 
   if not ReadOnly then
   begin
-    //SelStart := Length(Text);
-    //SelLength := 0;
     SelStart := 0;
     SelLength := Length(Text);
   end;  
@@ -1483,9 +1482,6 @@ var
   S: String;
   OldLParam: LongInt;
 begin
-  //inherited;
-  //exit;
-
   case Message.Msg of
     WM_SETTEXT:
     begin
