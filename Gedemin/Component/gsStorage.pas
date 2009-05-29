@@ -569,7 +569,7 @@ type
   protected
     FLoadedFromCache: Boolean;
 
-    function GetCacheFileName: String; virtual; 
+    function GetCacheFileName: String; virtual;
 
     function LoadFromCache: Boolean;
     procedure SaveToCache;
@@ -670,8 +670,6 @@ const
   USER_STORAGE_FILE_NAME = 'g%s_%s.usc';
   STORAGE_FILE_SIGN = $0caaf745;
   STORAGE_FILE_VER  = $00000001;
-
-
   
 function GetScreenRes: Integer;
 var
@@ -2891,35 +2889,38 @@ begin
     FFileName := GetCacheFileName;
     if FileExists(FFileName) then
     begin
-      try
-        S := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);
+      if FindCmdLineSwitch('NC', ['/', '-'], True) then
+        SysUtils.DeleteFile(FFileName)
+      else
         try
-          if (S.Read(I, SizeOf(I)) = SizeOf(I))
-            and (I = STORAGE_FILE_SIGN) then
-          begin
+          S := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);
+          try
             if (S.Read(I, SizeOf(I)) = SizeOf(I))
-              and (I = STORAGE_FILE_VER) then
+              and (I = STORAGE_FILE_SIGN) then
             begin
-              if (S.Read(DT, SizeOf(DT)) = SizeOf(DT))
-                and (DT = FLastModified) then
+              if (S.Read(I, SizeOf(I)) = SizeOf(I))
+                and (I = STORAGE_FILE_VER) then
               begin
-                LoadFromStream3(S);
-                FValid := (FRootFolder.FoldersCount > 0)
-                  or (FRootFolder.ValuesCount > 0);
-                Result := True;
+                if (S.Read(DT, SizeOf(DT)) = SizeOf(DT))
+                  and (DT = FLastModified) then
+                begin
+                  LoadFromStream3(S);
+                  FValid := (FRootFolder.FoldersCount > 0)
+                    or (FRootFolder.ValuesCount > 0);
+                  Result := True;
+                end;
               end;
             end;
+          finally
+            S.Free;
           end;
-        finally
-          S.Free;
-        end;
-      except
-        Clear;
-        FValid := False;
+        except
+          Clear;
+          FValid := False;
 
-        // не будем делать трагедии из-за какого-то кэша
-        SysUtils.DeleteFile(FFileName);
-      end;
+          // не будем делать трагедии из-за какого-то кэша
+          SysUtils.DeleteFile(FFileName);
+        end;
     end;
   end;
 end;
@@ -2930,7 +2931,8 @@ var
   FFileName: String;
   S: TFileStream;
 begin
-  if IBLogin.ServerName > '' then
+  if (IBLogin.ServerName > '') and
+    (not FindCmdLineSwitch('NC', ['/', '-'], True)) then
   begin
     FFileName := GetCacheFileName;
     try

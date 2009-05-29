@@ -5,7 +5,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   BorderStyle = bsDialog
   Caption = 'О программе'
   ClientHeight = 353
-  ClientWidth = 420
+  ClientWidth = 487
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -20,7 +20,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   object PageControl1: TPageControl
     Left = 8
     Top = 8
-    Width = 401
+    Width = 472
     Height = 313
     ActivePage = TabSheet1
     TabOrder = 0
@@ -42,7 +42,7 @@ object gd_dlgAbout: Tgd_dlgAbout
       object Memo1: TMemo
         Left = 5
         Top = 30
-        Width = 379
+        Width = 452
         Height = 247
         TabStop = False
         BorderStyle = bsNone
@@ -63,48 +63,51 @@ object gd_dlgAbout: Tgd_dlgAbout
           'Компания Golden Software, Ltd:'
           
             'Михаил Шойхет, Андрей Киреев, Денис Романовский, Антон Смирнов, ' +
-            'Виктор Дуж, Кирилл'
+            'Виктор Дуж, Кирилл Новышный,'
           
-            'Новышный, Владимир Белый, Сергей Мартиновский, Сергей Яницкий, А' +
-            'лександр Персон,'
+            'Владимир Белый, Сергей Мартиновский, Сергей Яницкий, Александр П' +
+            'ерсон, Руслан Калинков,'
           
-            'Руслан Калинков, Владимир Воробей, Александр Назаренко, Анжелика' +
-            ' Фролова, Виктор Подмаско,'
+            'Владимир Воробей, Александр Назаренко, Анжелика Фролова, Виктор ' +
+            'Подмаско, Леонид Агафонов,'
           
-            'Леонид Агафонов, Олег Поротиков, Александр Павлющик, Роман Волын' +
-            'ец, Александр Ковриго,'
+            'Олег Поротиков, Александр Павлющик, Роман Волынец, Александр Ков' +
+            'риго, Дмитрий Сыч,'
           
-            'Дмитрий Сыч, Николай Корначенко, Юрий Строков, Татьяна Орлова, А' +
-            'ндрей Шадевский,'
+            'Николай Корначенко, Юрий Строков, Татьяна Орлова, Андрей Шадевск' +
+            'ий, Сергей Тюльменков,'
           
-            'Сергей Тюльменков, Юрий Лукашеня, Игорь Власик, Татьяна Карпейчи' +
-            'к, Николай Лапушко,'
+            'Юрий Лукашеня, Игорь Власик, Татьяна Карпейчик, Николай Лапушко,' +
+            ' Юрий Толкач, Александр Чулаков,'
           
-            'Юрий Толкач, Александр Чулаков, Сергей Иванов, Денис Кравцов, Юл' +
-            'ия Терехина, Александр'
+            'Сергей Иванов, Денис Кравцов, Юлия Терехина, Александр Дубровник' +
+            ', Александр Карпук,'
           
-            'Дубровник, Александр Карпук, Олег Михайленко, Леонид Карпушенко,' +
-            ' Алексей Рогаль,'
+            'Олег Михайленко, Леонид Карпушенко, Алексей Рогаль, Антон Гочев,' +
+            ' Андрей Савелов, Надежда Сергеева,'
           
-            'Антон Гочев, Андрей Савелов, Надежда Сергеева, Сергей Лабуко, Ми' +
-            'хаил Дроздов, Андрей'
+            'Сергей Лабуко, Михаил Дроздов, Андрей Демьянов, Максим Муха, Але' +
+            'ксандр Цобкало, Александр Федин,'
           
-            'Демьянов, Максим Муха, Александр Цобкало, Александр Федин, Алекс' +
-            'андра Меджидова, Инна'
+            'Александра Меджидова, Инна Корбан, Инна Чвырова, Александр Марке' +
+            'вич, Виталий Борушко,'
           
-            'Корбан, Инна Чвырова, Александр Маркевич, Виталий Борушко, Алекс' +
-            'ей Данильчик, Павел Пугач,'
+            'Алексей Данильчик, Павел Пугач, Ольга Кацап, Виталий Садовский, ' +
+            'Александр Окруль, Алексей Рассохин,'
           
-            'Ольга Кацап, Виталий Садовский, Александр Окруль, Алексей Рассох' +
-            'ин, Станислав Шляхтич,'
+            'Станислав Шляхтич, Владимир Ковшов, Юлия Бессарабова, Вероника У' +
+            'рбанайть, Денис Шишкевич,'
           
-            'Владимир Ковшов, Юлия Бессарабова, Вероника Урбанайть, Денис Шиш' +
-            'кевич, Илона Андилевко,'
-          'Юрий Розмысл, Михаил Дубаневич, Клименко Наталья.'
+            'Илона Андилевко, Юрий Розмысл, Михаил Дубаневич, Клименко Наталь' +
+            'я, Андрей Клещенок,'
+          'Виктор Лубинский.'
           ''
           'Отдельное спасибо:'
-          'ООО Святогор, Владимир Гетманец, Stefan Boether, '
-          'Сергей "Дейрас" Борисовец.'
+          
+            'ООО Святогор, Владимир Гетманец, Stefan Boether, Сергей "Дейрас"' +
+            ' Борисовец.'
+          ' '
+          ' '
           ' '
           ' '
           ' ')
@@ -113,7 +116,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         TabOrder = 0
       end
       object btnMSInfo: TButton
-        Left = 312
+        Left = 380
         Top = 256
         Width = 75
         Height = 21
@@ -128,7 +131,7 @@ object gd_dlgAbout: Tgd_dlgAbout
       object gbGDS32: TGroupBox
         Left = 8
         Top = 8
-        Width = 377
+        Width = 446
         Height = 65
         Caption = ' Библиотека GDS32 '
         TabOrder = 0
@@ -178,7 +181,7 @@ object gd_dlgAbout: Tgd_dlgAbout
       object GroupBox2: TGroupBox
         Left = 8
         Top = 74
-        Width = 377
+        Width = 446
         Height = 144
         Caption = ' Сервер '
         TabOrder = 1
@@ -290,7 +293,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         object eDBFileName: TEdit
           Left = 136
           Top = 30
-          Width = 234
+          Width = 305
           Height = 15
           BorderStyle = bsNone
           Ctl3D = False
@@ -304,7 +307,7 @@ object gd_dlgAbout: Tgd_dlgAbout
       object GroupBox3: TGroupBox
         Left = 8
         Top = 219
-        Width = 377
+        Width = 446
         Height = 62
         Caption = ' Гедымин '
         TabOrder = 2
@@ -358,7 +361,7 @@ object gd_dlgAbout: Tgd_dlgAbout
       object GroupBox4: TGroupBox
         Left = 8
         Top = 8
-        Width = 377
+        Width = 446
         Height = 273
         Caption = ' Переменные среды '
         TabOrder = 0
@@ -442,7 +445,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         object mPath: TMemo
           Left = 111
           Top = 96
-          Width = 259
+          Width = 322
           Height = 169
           TabStop = False
           BorderStyle = bsNone
@@ -460,7 +463,7 @@ object gd_dlgAbout: Tgd_dlgAbout
       object GroupBox6: TGroupBox
         Left = 8
         Top = 8
-        Width = 377
+        Width = 446
         Height = 129
         Caption = ' Пользователь '
         TabOrder = 0
@@ -566,14 +569,14 @@ object gd_dlgAbout: Tgd_dlgAbout
       object GroupBox7: TGroupBox
         Left = 8
         Top = 141
-        Width = 377
+        Width = 446
         Height = 41
         Caption = ' Командная строка '
         TabOrder = 1
         object Label34: TEdit
           Left = 8
           Top = 14
-          Width = 360
+          Width = 433
           Height = 21
           BorderStyle = bsNone
           Color = clBtnFace
@@ -588,7 +591,7 @@ object gd_dlgAbout: Tgd_dlgAbout
       object GroupBox5: TGroupBox
         Left = 8
         Top = 1
-        Width = 377
+        Width = 446
         Height = 81
         Caption = ' Файл базы данных '
         TabOrder = 0
@@ -652,14 +655,14 @@ object gd_dlgAbout: Tgd_dlgAbout
       object GroupBox8: TGroupBox
         Left = 8
         Top = 82
-        Width = 377
+        Width = 446
         Height = 79
         Caption = ' Параметры подключения  '
         TabOrder = 1
         object mDBParams: TMemo
           Left = 9
           Top = 15
-          Width = 360
+          Width = 427
           Height = 55
           TabStop = False
           ReadOnly = True
@@ -669,14 +672,14 @@ object gd_dlgAbout: Tgd_dlgAbout
       object gbTrace: TGroupBox
         Left = 8
         Top = 161
-        Width = 377
+        Width = 446
         Height = 59
         Caption = ' Параметры трассировки подключения к БД '
         TabOrder = 2
         object mTrace: TMemo
           Left = 9
           Top = 16
-          Width = 360
+          Width = 427
           Height = 35
           TabStop = False
           ReadOnly = True
@@ -686,14 +689,14 @@ object gd_dlgAbout: Tgd_dlgAbout
       object GroupBox9: TGroupBox
         Left = 8
         Top = 221
-        Width = 377
+        Width = 446
         Height = 60
         Caption = ' Параметры трассировки SQL монитора '
         TabOrder = 3
         object mSQLMonitor: TMemo
           Left = 9
           Top = 16
-          Width = 360
+          Width = 427
           Height = 35
           TabStop = False
           ReadOnly = True
@@ -701,9 +704,78 @@ object gd_dlgAbout: Tgd_dlgAbout
         end
       end
     end
+    object tsTempFiles: TTabSheet
+      Caption = 'Врем. файлы'
+      ImageIndex = 5
+      object lblTempPath: TLabel
+        Left = 9
+        Top = 8
+        Width = 35
+        Height = 13
+        Caption = 'Папка:'
+      end
+      object lvTempFiles: TListView
+        Left = 7
+        Top = 32
+        Width = 449
+        Height = 113
+        Columns = <
+          item
+            Caption = 'Имя'
+            Width = 280
+          end
+          item
+            Alignment = taRightJustify
+            AutoSize = True
+            Caption = 'Размер, байт'
+          end>
+        GridLines = True
+        ReadOnly = True
+        RowSelect = True
+        TabOrder = 0
+        ViewStyle = vsReport
+      end
+      object edTempPath: TEdit
+        Left = 48
+        Top = 4
+        Width = 408
+        Height = 21
+        Color = clBtnFace
+        ReadOnly = True
+        TabOrder = 2
+        Text = 'edTempPath'
+      end
+      object mTempFiles: TMemo
+        Left = 7
+        Top = 152
+        Width = 449
+        Height = 124
+        Color = clBtnFace
+        Lines.Strings = (
+          
+            'Временные файлы используются для кэширования информации из базы ' +
+            'данных и'
+          'ускорения запуска программы.'
+          ''
+          
+            'Для удаления временных файлов вручную: закройте Гедымин, перейди' +
+            'те в'
+          'указанную папку, удалите файлы по списку.'
+          ''
+          
+            'Запретить создание временных файлов можно с помощью параметра ко' +
+            'мандной'
+          'строки /nc.'
+          ' '
+          ' '
+          ' ')
+        ReadOnly = True
+        TabOrder = 1
+      end
+    end
   end
   object btnOk: TButton
-    Left = 334
+    Left = 405
     Top = 328
     Width = 75
     Height = 21

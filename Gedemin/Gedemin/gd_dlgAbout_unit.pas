@@ -96,11 +96,16 @@ type
     mTrace: TMemo;
     GroupBox9: TGroupBox;
     mSQLMonitor: TMemo;
+    tsTempFiles: TTabSheet;
+    lvTempFiles: TListView;
+    lblTempPath: TLabel;
+    edTempPath: TEdit;
+    mTempFiles: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure btnMSInfoClick(Sender: TObject);
   private
-    { Private declarations }
+    procedure FillTempFiles;
   public
     { Public declarations }
   end;
@@ -247,6 +252,8 @@ begin
     tsLogin.TabVisible := False;
 
   Label34.Text := CmdLine;
+
+  FillTempFiles;
 end;
 
 procedure Tgd_dlgAbout.btnHelpClick(Sender: TObject);
@@ -257,6 +264,55 @@ end;
 procedure Tgd_dlgAbout.btnMSInfoClick(Sender: TObject);
 begin
   ShellExecute(Handle, 'open', 'msinfo32.exe', nil, nil, SW_SHOW);
+end;
+
+procedure Tgd_dlgAbout.FillTempFiles;
+
+var
+  TempPath: array[0..1023] of Char;
+
+  procedure AddFile(const AFileName: String);
+  var
+    FullName: String;
+    F: THandle;
+    Sz: DWORD;
+  begin
+    FullName := String(TempPath) + '\' + AFileName;
+    if FileExists(FullName) then
+    begin
+      with lvTempFiles.Items.Add do
+      begin
+        Caption := AFileName;
+
+        F := FileOpen(FullName, fmOpenRead);
+        if F = INVALID_HANDLE_VALUE then
+          SubItems.Add('файл заблокирован')
+        else
+          try
+            Sz := GetFileSize(F, nil);
+            if Sz <> INVALID_FILE_SIZE then
+              SubItems.Add(FormatFloat('#,##0', Sz));
+          finally
+            FileClose(F);
+          end;
+      end;
+    end;
+  end;
+
+begin
+  lvTempFiles.Items.Clear;
+
+  if Assigned(IBLogin) and (IBLogin.DBID > -1) and (IBLogin.UserKey > -1)
+    and (GetTempPath(SizeOf(TempPath), TempPath) > 0) then
+  begin
+    AddFile('g' + IntToStr(IBLogin.DBID) + '.atr');
+    AddFile('g' + IntToStr(IBLogin.DBID) + '.sfh');
+    AddFile('g' + IntToStr(IBLogin.DBID) + '.sfd');
+    AddFile('g' + IntToStr(IBLogin.DBID) + '.gsc');
+    AddFile('g' + IntToStr(IBLogin.DBID) + '_' + IntToStr(IBLogin.UserKey) + '.usc');
+  end;
+
+  edTempPath.Text := TempPath;
 end;
 
 end.
