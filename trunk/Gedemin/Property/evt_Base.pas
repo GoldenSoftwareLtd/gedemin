@@ -6600,18 +6600,26 @@ var
     CIBSQL: TIBSQL;
     CFileHandle: Integer;
   begin
-    Result := True;
+    Result := False;
     try
       FreeAndNil(FSFStream);
       FreeAndNil(FSFHandleStream);
+
+      if FindCmdLineSwitch('NC', ['/', '-'], True) then
+      begin
+        SysUtils.DeleteFile(FSFDHandleName);
+        SysUtils.DeleteFile(FSFDFileName);
+
+        FSFStreamState := sfsBlocked;
+        Exit;
+      end;
 
       CIBSQL := TIBSQL.Create(nil);
       try
         CIBSQL.Transaction := TIBTransaction.Create(CIBSQL);
         CIBSQL.Transaction.DefaultDatabase := IBLogin.Database;
         CIBSQL.Transaction.StartTransaction;
-        CIBSQL.SQL.Text :=
-          'SELECT GEN_ID(gd_g_functionch, 0) FROM rdb$database';
+        CIBSQL.SQL.Text := 'SELECT GEN_ID(gd_g_functionch, 0) FROM rdb$database';
 
         { TODO :
 в будущем, когда все базы сапгрейдим
@@ -6624,11 +6632,9 @@ var
             if E.IBErrorCode <> 335544343 then
               raise
             else begin
-              CIBSQL.SQL.Text :=
-                ' CREATE GENERATOR gd_g_functionch ';
+              CIBSQL.SQL.Text := 'CREATE GENERATOR gd_g_functionch ';
               CIBSQL.ExecQuery;
-              CIBSQL.SQL.Text :=
-                'SELECT GEN_ID(gd_g_functionch, 0) FROM rdb$database';
+              CIBSQL.SQL.Text := 'SELECT GEN_ID(gd_g_functionch, 0) FROM rdb$database';
               CIBSQL.ExecQuery;
             end;
           end;
@@ -6657,68 +6663,57 @@ var
       end;
 
       // Если файлы не существуют(или один из них), то пересоздаем файлы
-      if not (FileExists(FSFDFileName) and FileExists(FSFDHandleName)) then
+      if (not FileExists(FSFDFileName)) or (not FileExists(FSFDHandleName)) then
       begin
-        if Result then
-        begin
-          CLen := SizeOf(FSFStreamDesc);
-          CFileHandle := (CreateFile(PChar(FSFDHandleName),
-            GENERIC_READ or GENERIC_WRITE, 0, nil, CREATE_ALWAYS,
-            FILE_ATTRIBUTE_HIDDEN or FILE_ATTRIBUTE_COMPRESSED, 0));
-          if CFileHandle  > 0 then
-            FileClose(CFileHandle)
-          else
-            raise Exception.Create('Неудалось создать файлы-хранилища скрипт-функций.');
+        CLen := SizeOf(FSFStreamDesc);
+        CFileHandle := CreateFile(PChar(FSFDHandleName),
+          GENERIC_READ or GENERIC_WRITE, FILE_SHARE_READ, nil, CREATE_ALWAYS,
+          FILE_ATTRIBUTE_HIDDEN or FILE_ATTRIBUTE_COMPRESSED, 0);
+        if CFileHandle > 0 then
+          FileClose(CFileHandle)
+        else
+          raise Exception.Create('Не удалось создать файлы-хранилища скрипт-функций.');
 
-          FSFHandleStream := TFileStream.Create(FSFDHandleName, fmOpenReadWrite);
-          try
-            FSFHandleStream.Write(CLen, SizeOf(Integer));
-            FSFHandleStream.Write(FSFStreamDesc, CLen);
-          finally
-            FSFHandleStream.Free;
-          end;
-
-          CFileHandle := (CreateFile(PChar(FSFDFileName),
-            GENERIC_READ or GENERIC_WRITE, 0, nil, CREATE_ALWAYS,
-            FILE_ATTRIBUTE_HIDDEN or FILE_ATTRIBUTE_COMPRESSED, 0));
-          if CFileHandle  > 0 then
-            FileClose(CFileHandle)
-          else
-            raise Exception.Create('Неудалось создать файлы-хранилища скрипт-функций.');
-
-          FSFStream := TFileStream.Create(FSFDFileName, fmOpenReadWrite);
-          try
-            FSFStream.Write(CLen, SizeOf(Integer));
-            FSFStream.Write(FSFStreamDesc, CLen);
-          finally
-            FSFStream.Free;
-          end;
-        end else
-          raise Exception.Create('Неудалось удалить файлы-хранилища скрипт-функций.');
-      end;
-
-      FSFStream := TFileStream.Create(FSFDFileName, fmOpenReadWrite);
-      try
         FSFHandleStream := TFileStream.Create(FSFDHandleName, fmOpenReadWrite);
-      except
-        FSFStream.Free;
-        raise;
+        try
+          FSFHandleStream.Write(CLen, SizeOf(Integer));
+          FSFHandleStream.Write(FSFStreamDesc, CLen);
+        finally
+          FreeAndNil(FSFHandleStream);
+        end;
+
+        CFileHandle := CreateFile(PChar(FSFDFileName),
+          GENERIC_READ or GENERIC_WRITE, FILE_SHARE_READ, nil, CREATE_ALWAYS,
+          FILE_ATTRIBUTE_HIDDEN or FILE_ATTRIBUTE_COMPRESSED, 0);
+        if CFileHandle  > 0 then
+          FileClose(CFileHandle)
+        else
+          raise Exception.Create('Не удалось создать файлы-хранилища скрипт-функций.');
+
+        FSFStream := TFileStream.Create(FSFDFileName, fmOpenReadWrite);
+        try
+          FSFStream.Write(CLen, SizeOf(Integer));
+          FSFStream.Write(FSFStreamDesc, CLen);
+        finally
+          FreeAndNil(FSFStream);
+        end;
       end;
+
+      FSFStream := TFileStream.Create(FSFDFileName, fmOpenReadWrite or fmShareDenyWrite);
+      FSFHandleStream := TFileStream.Create(FSFDHandleName, fmOpenReadWrite or fmShareDenyWrite);
 
       Result := True;
     except
-      on E: EFOpenError do
+      on E: Exception do
       begin
-        FSFStreamState := sfsBlocked;
-        Result := False;
-        FSFStream := nil;
-        FSFHandleStream := nil;
+        FreeAndNil(FSFStream);
+        FreeAndNil(FSFHandleStream);
+
+        if E is EFOpenError then
+          FSFStreamState := sfsBlocked
+        else
+          FSFStreamState := sfsFailed;
       end;
-    else
-      FSFStreamState := sfsFailed;
-      Result := False;
-      FSFStream := nil;
-      FSFHandleStream := nil;
     end;
   end;
 
@@ -6752,9 +6747,7 @@ begin
   FSFDHandleList.Clear;
 
   if IBLogin = nil then
-  begin
-    Exit;
-  end;
+    exit;
 
   if GetTempPath(1024, Ch) = 0 then
      DirStr := ''
@@ -6779,9 +6772,7 @@ begin
   FSFDHandleName := Format(rp_SFFileName, [DirStr, IBLogin.DBID, 'sfh']);
 
   if not CreateSFStream then
-  begin
-    Exit;
-  end;
+    exit;
 
   // Проверяем соответсвие системной инф. файлов и подключения
   FSFHandleStream.ReadBuffer(Len, SizeOf(Integer));

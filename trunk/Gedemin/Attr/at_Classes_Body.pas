@@ -41,7 +41,7 @@ uses
   at_Classes;
 
 const
-  ATTR_FILE_NAME = 'G%s.ATR';
+  ATTR_FILE_NAME = 'g%s.atr';
   //Изменилась версия!!!
   _DATABASE_STREAM_VERSION = '1.6v';
 
@@ -3291,7 +3291,7 @@ end;
 procedure TatBodyDatabase.ProceedLoading(Force: Boolean = False);
 var
   S, DS: TStream;
-  Path: array[0..255] of Char;
+  Path: array[0..1024] of Char;
 begin
   CheckMultiConnectionTransaction;
 
@@ -3299,10 +3299,6 @@ begin
     exit;
 
   try
-    { TODO :
-на многих компьютерах темп каталог очищается
-при перезагрузке. может создавать кэш в темпе
-гедымина? }
     GetTempPath(SizeOf(Path), Path);
     FFileName := IncludeTrailingBackslash(Path);
     if Assigned(IBLogin) then
@@ -3310,7 +3306,13 @@ begin
     else
       FFileName := FFileName + Format(ATTR_FILE_NAME, ['']);
 
-    if FileExists(FFileName) then
+    if FindCmdLineSwitch('NC', ['/', '-'], True) then
+    begin
+      SysUtils.DeleteFile(FFileName);
+      FFileName := '';
+    end;
+
+    if (FFileName > '') and FileExists(FFileName) then
     begin
       S := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);
       try

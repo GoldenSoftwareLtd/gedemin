@@ -24,13 +24,5 @@ uses
 
 initialization
   NoSplashParam := FindCmdLineSwitch('NS', ['/', '-'], True);
-
-  {NoSplashParam := False;
-  for I := 1 to ParamCount do
-    if (ParamStr(I) = '/ns') or (ParamStr(I) = '/NS') then
-    begin
-      NoSplashParam := True;
-      break;
-    end;}
 end.
  
