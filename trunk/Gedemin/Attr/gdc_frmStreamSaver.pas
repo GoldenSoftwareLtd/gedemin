@@ -795,7 +795,7 @@ function Tgdc_frmStreamSaver.ShowLoadForm: Integer;
 var
   stRecord: TgsStreamRecord;
   SourceBaseKey, TargetBaseKey: TID;
-  I, J, TempValue: Integer;
+  I: Integer;
   S: TStream;
   IBSQL: TIBSQL;
 begin

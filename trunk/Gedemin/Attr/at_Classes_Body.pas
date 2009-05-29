@@ -3086,34 +3086,34 @@ begin
   Assert(not FLoading);
 
   Clear;
-
-  FLoading := True;
   FLoaded := False;
 
-  if S is TCustomZStream then
-  begin
-    MS := TMemoryStream.Create;
-    R := S.Read(Buff, BuffSize);
-    while R > 0 do
-    begin
-      MS.SetSize(MS.Size + R);
-      MS.Write(Buff, R);
-      R := S.Read(Buff, BuffSize);
-    end;
-    MS.Position := 0;
-    Reader := TReader.Create(MS, BuffSize);
-  end else
-  begin
-    MS := nil;
-    Reader := TReader.Create(S, BuffSize);
-  end;
-
+  MS := nil;
+  FLoading := True;
   try
-    Read(Reader);
-    FLoaded := True;
+    if S is TCustomZStream then
+    begin
+      MS := TMemoryStream.Create;
+      R := S.Read(Buff, BuffSize);
+      while R > 0 do
+      begin
+        MS.SetSize(MS.Size + R);
+        MS.Write(Buff, R);
+        R := S.Read(Buff, BuffSize);
+      end;
+      MS.Position := 0;
+      Reader := TReader.Create(MS, BuffSize);
+    end else
+      Reader := TReader.Create(S, BuffSize);
+
+    try
+      Read(Reader);
+      FLoaded := True;
+    finally
+      Reader.Free;
+    end;
   finally
     FLoading := False;
-    Reader.Free;
     MS.Free;
   end;
 end;
@@ -3313,11 +3313,14 @@ begin
     if FileExists(FFileName) then
     begin
       S := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);
-      DS := TZDecompressionStream.Create(S);
       try
-        LoadFromStream(DS);
+        DS := TZDecompressionStream.Create(S);
+        try
+          LoadFromStream(DS);
+        finally
+          DS.Free;
+        end;
       finally
-        DS.Free;
         S.Free;
       end;
 
@@ -3329,7 +3332,7 @@ begin
   except
     on E: Exception do
     begin
-      if (E is EFOpenError) or (E is EReadError) then
+      if (E is EFOpenError) or (E is EReadError) or (E is EZDecompressionError) then
         LoadFromDatabase
       else
       begin
