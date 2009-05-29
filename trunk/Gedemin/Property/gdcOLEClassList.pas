@@ -644,8 +644,8 @@ procedure TgdWrapServerList.Remove(const AnObject: TObject);
 begin
   if Assigned(FgdWrapServerList) then
   begin
-    {if AnObject.InheritsFrom(TComponent) then
-      (AnObject as TComponent).RemoveFreeNotification(FFreeComponentSpy);}
+    if AnObject.InheritsFrom(TComponent) then
+      (AnObject as TComponent).RemoveFreeNotification(FFreeComponentSpy);
     FgdWrapServerList.Remove(Integer(AnObject));
   end;
 end;
