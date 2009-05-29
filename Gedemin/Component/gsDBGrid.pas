@@ -4771,7 +4771,7 @@ begin
       OldPenColor := Pen.Color;
       try
         Brush.Style := bsSolid;
-        Brush.Color := clBtnFace;
+        Brush.Color := DrawColumn.Title.Color;
         FillRect(Rect(Right - 13, Bottom - 14, Right - 1, Bottom - 1));
 
         if FFilteredColumns.IndexOf(DrawColumn) = -1 then

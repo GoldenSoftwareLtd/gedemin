@@ -1117,8 +1117,10 @@ begin
         end;
         // end modify
 
+        {$IFNDEF DEBUG}
         if Assigned(gdSplash) then
           gdSplash.ShowSplash;
+        {$ENDIF}
 
         //
         //  Если необходимо перевести базу

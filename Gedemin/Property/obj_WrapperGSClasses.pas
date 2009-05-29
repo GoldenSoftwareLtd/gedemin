@@ -3660,14 +3660,14 @@ type
   end;
 
   TwrpGdvAcctGeneralLedger = class(TwrpGdvAcctLedger, IgsGdvAcctGeneralLedger)
-  private
+  protected
     function GetGdvAcctGeneralLedger: TgdvAcctGeneralLedger;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
 
   TwrpGdvAcctCirculationList = class(TwrpGdvAcctLedger, IgsGdvAcctCirculationList)
-  private
+  protected
     function GetGdvAcctCirculationList: TgdvAcctCirculationList;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;

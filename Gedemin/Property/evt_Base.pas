@@ -6871,27 +6871,6 @@ begin
   inherited Destroy;
 end;
 
-(*procedure TgsFunctionList.FillSFSFile;
-var
-  i, Len: Integer;
-begin
-{  FreeAndNil(FSFStream);
-
-  FSFStream := TFileStream.Create(
-    ChangeFileExt(ExtractFileName(Application.ExeName), '.sfd'), fmCreate);
-  try
-    Len := Length(strStartObject);
-    FSFStream.WriteBuffer(Len, SizeOf(strStartObject));
-
-    for i := 0 to FSortFuncList.Count - 1 do
-    begin
-      Items[i].SaveToStream(FSFStream);
-    end;
-  except
-    FSFStream.Free;
-  end;}
-end;*)
-
 procedure TgsFunctionList.Drop;
 begin
   Clear;

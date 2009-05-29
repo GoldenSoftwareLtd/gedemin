@@ -1178,8 +1178,10 @@ begin
       TCustomForm(C).Show;
   end;
 
+  {$IFNDEF DEBUG}
   if gdSplash <> nil then
     gdSplash.ShowSplash;
+  {$ENDIF}  
 end;
 
 procedure TDesktopItems.ReadFromStream;

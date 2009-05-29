@@ -648,7 +648,7 @@ implementation
 
 uses
   JclSysUtils, ZLib, Windows, st_dlgfolderprop_unit, st_dlgeditvalue_unit,
-  gsStorage_CompPath, DB, IB, IBErrorCodes, IBBlob, gdcBaseInterface
+  gsStorage_CompPath, DB, IB, IBErrorCodes, IBBlob, gdcBaseInterface, jclStrings
   {$IFDEF GEDEMIN}
   , gd_directories_const, Storages, gdc_frmG_unit
   {$ENDIF}
@@ -944,9 +944,17 @@ begin
       F.Free;
       raise;
     end;
-    if FFolders = nil then
-      FFolders := TObjectList.Create;
-    FFolders.Add(F);
+
+    if (StrIPos('noname', F.Name) = 1) and
+      (F.FoldersCount = 0) and (F.ValuesCount = 0) then
+    begin
+      F.Free;
+    end else
+    begin
+      if FFolders = nil then
+        FFolders := TObjectList.Create;
+      FFolders.Add(F);
+    end;
   end;
   S.ReadBuffer(L, SizeOf(L));
   for I := 1 to L do
@@ -2301,11 +2309,7 @@ begin
       {$ENDIF}
       DS := TZDecompressionStream.Create(S);
       try
-        try
-          FRootFolder.LoadFromStream3(DS);
-        except
-          //...
-        end;
+        FRootFolder.LoadFromStream3(DS);
       finally
         DS.Free;
       end;
@@ -2457,6 +2461,15 @@ begin
 
         SaveToCache;
       except
+        on E:Exception do
+        begin
+          MessageBox(0,
+            PCHar('Произошла ошибка при сохранении пользовательского хранилища для UserKey=' + IntToStr(FUserKey) + '.' +
+            #13#10 + #13#10 +
+            'Сообщение об ошибке: ' + E.Message),
+            'Внимание',
+            MB_TASKMODAL or MB_OK or MB_ICONHAND);
+        end;
       end;
 
     finally
@@ -2470,7 +2483,7 @@ begin
   begin
     if not FLoadedFromCache then
       SaveToCache;
-  end;    
+  end;
 end;
 
 procedure TgsUserStorage.LoadFromDataBase;
@@ -2495,7 +2508,7 @@ begin
 
     IBSQL.SQL.Text :=
       'SELECT data, modified FROM gd_userstorage WHERE userkey = :UserKey';
-    IBSQL.ParamByName('userkey').AsInteger := FUserKey;  
+    IBSQL.ParamByName('userkey').AsInteger := FUserKey;
     IBSQL.ExecQuery;
 
     FExist := IBSQL.RecordCount > 0;
@@ -2516,6 +2529,17 @@ begin
             LoadFromStream(bs);
             FValid := True;
           except
+            on E:Exception do
+            begin
+              MessageBox(0,
+                PCHar('Произошла ошибка при загрузке пользовательского хранилища для UserKey=' + IntToStr(FUserKey) + '.' +
+                #13#10 + #13#10 +
+                'Сообщение об ошибке: ' + E.Message),
+                'Внимание',
+                MB_TASKMODAL or MB_OK or MB_ICONHAND);
+
+              FValid := True;
+            end;
           end;
         finally
           bs.Free;
@@ -2709,52 +2733,64 @@ begin
         FExist := IBSQL.RecordCount > 0;
 
         try
-          IBSQL.Close;
-          if FExist then
-            IBSQL.SQL.Text := 'UPDATE gd_globalstorage SET data=:D, modified=''NOW'''
-          else
-            IBSQL.SQL.Text := 'INSERT INTO gd_globalstorage (data, modified) VALUES(:D, ''NOW'')';
-          IBSQL.Prepare;
-
-          bs := TIBBlobStream.Create;
           try
-            bs.Mode := bmWrite;
-            bs.Database := IBSQL.Database;
-            bs.Transaction := IBSQL.Transaction;
-            SaveToStream(bs);
-            bs.Finalize;
-            IBSQL.ParamByName('D').AsQuad := bs.BlobID;
+            IBSQL.Close;
+            if FExist then
+              IBSQL.SQL.Text := 'UPDATE gd_globalstorage SET data=:D, modified=''NOW'''
+            else
+              IBSQL.SQL.Text := 'INSERT INTO gd_globalstorage (data, modified) VALUES(:D, ''NOW'')';
+            IBSQL.Prepare;
+
+            bs := TIBBlobStream.Create;
+            try
+              bs.Mode := bmWrite;
+              bs.Database := IBSQL.Database;
+              bs.Transaction := IBSQL.Transaction;
+              SaveToStream(bs);
+              bs.Finalize;
+              IBSQL.ParamByName('D').AsQuad := bs.BlobID;
+              IBSQL.ExecQuery;
+            finally
+              bs.Free;
+            end;
+
+            IBSQL.Close;
+            IBSQL.SQL.Text := 'SELECT modified FROM gd_globalstorage';
             IBSQL.ExecQuery;
-          finally
-            bs.Free;
-          end;
+            TempLastModified := IBSQL.Fields[0].AsDateTime;
+            IBSQL.Close;
 
-          IBSQL.Close;
-          IBSQL.SQL.Text := 'SELECT modified FROM gd_globalstorage';
-          IBSQL.ExecQuery;
-          TempLastModified := IBSQL.Fields[0].AsDateTime;
-          IBSQL.Close;
+            Transaction.Commit;
+            FExist := True;
+            FModified := False;
+            FLastModified := TempLastModified;
+            F := 0;
 
-          Transaction.Commit;
-          FExist := True;
-          FModified := False;
-          FLastModified := TempLastModified;
-          F := 0;
-
-          SaveToCache;
-        except
-          on E: EIBError do
-          begin
-            if E.IBErrorCode = isc_deadlock then
+            SaveToCache;
+          except
+            on E: EIBError do
             begin
-              if Transaction.InTransaction then
-                Transaction.Rollback;
-              Dec(F);
-              Sleep(1000);
+              if E.IBErrorCode = isc_deadlock then
+              begin
+                if Transaction.InTransaction then
+                  Transaction.Rollback;
+                Dec(F);
+                Sleep(1000);
+              end else
+                raise;
             end else
               raise;
-          end else
-            raise;
+          end;
+        except
+          on E: Exception do
+          begin
+            MessageBox(0,
+              PCHar('Произошла ошибка при сохранении глобального хранилища.' +
+              #13#10 + #13#10 +
+              'Сообщение об ошибке: ' + E.Message),
+              'Внимание',
+              MB_TASKMODAL or MB_OK or MB_ICONHAND);
+          end;
         end;
       finally
         if Transaction.InTransaction then
@@ -2808,7 +2844,17 @@ begin
             LoadFromStream(bs);
             FValid := True;
           except
-            Clear;
+            on E:Exception do
+            begin
+              MessageBox(0,
+                PCHar('Произошла ошибка при загрузке глобального хранилища.' +
+                #13#10 + #13#10 +
+                'Сообщение об ошибке: ' + E.Message),
+                'Внимание',
+                MB_TASKMODAL or MB_OK or MB_ICONHAND);
+
+              FValid := True;
+            end;
           end;
         finally
           bs.Free;
@@ -2832,15 +2878,15 @@ begin
 end;
 
 function TgsIBStorage.LoadFromCache: Boolean;
-{var
+var
   FFileName: String;
   S: TFileStream;
   I: Integer;
-  DT: TDateTime;}
+  DT: TDateTime;
 begin
   Result := False;
 
-  {if IBLogin.ServerName > '' then
+  if IBLogin.ServerName > '' then
   begin
     FFileName := GetCacheFileName;
     if FileExists(FFileName) then
@@ -2868,20 +2914,23 @@ begin
           S.Free;
         end;
       except
+        Clear;
+        FValid := False;
+
         // не будем делать трагедии из-за какого-то кэша
         SysUtils.DeleteFile(FFileName);
       end;
     end;
-  end;}
+  end;
 end;
 
 procedure TgsIBStorage.SaveToCache;
-{var
+var
   I: Integer;
   FFileName: String;
-  S: TFileStream;}
+  S: TFileStream;
 begin
-  {if IBLogin.ServerName > '' then
+  if IBLogin.ServerName > '' then
   begin
     FFileName := GetCacheFileName;
     try
@@ -2903,7 +2952,7 @@ begin
     except
       SysUtils.DeleteFile(FFileName);
     end;
-  end;}
+  end;
 end;
 
 function TgsGlobalStorage.GetCacheFileName: String;
