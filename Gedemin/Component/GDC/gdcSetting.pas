@@ -1845,8 +1845,12 @@ begin
                   DL.Add(WithDetailID)
                 else
                 begin
-                  raise Exception.Create('Не удалось получить идентификатор позиции настройки.'#13#10 +
-                    'Проверьте целостность настройки!');
+                  // Если работает репликатор, то не будем прерывать сохранение настройки
+                  if not FSilent then
+                  begin
+                    raise Exception.Create('Не удалось получить идентификатор позиции настройки.'#13#10 +
+                      'Проверьте целостность настройки!');
+                  end;
                 end;
               end;
               Inc(PositionsCount);
@@ -1901,6 +1905,7 @@ begin
                   Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects)
                 else
                 begin
+                  // Если работает репликатор, то не будем прерывать сохранение настройки
                   if not FSilent then
                   begin
                     MistakeStr := #13#10 + 'Ошибка при сохранении объекта ' +

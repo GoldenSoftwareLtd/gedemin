@@ -601,6 +601,7 @@ const
 var
   RplDatabaseExists: Boolean;
   IsReadUserFromStream: Boolean;
+  SilentMode: Boolean;
   AbortProcess: Boolean;
   StreamLoggingType: TgsStreamLoggingType;
 
@@ -1384,8 +1385,12 @@ begin
 
   if AObject.ID <> AID then
     AObject.ID := AID;
+  // Если работает репликатор, то не будем прерывать сохранение настройки
   if AObject.RecordCount = 0 then
-    raise EgdcIDNotFound.Create(AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID));
+    if not SilentMode then
+      raise EgdcIDNotFound.Create(AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID))
+    else
+      Exit;
 
   // Если текущая запись репрезентует объект другого
   //  класса, то сохраним запись от его лица
@@ -5354,6 +5359,7 @@ begin
 
   AbortProcess := False;
   IsReadUserFromStream := False;
+  SilentMode := False;
   if Assigned(GlobalStorage) then
     Self.StreamLogType := TgsStreamLoggingType(GlobalStorage.ReadInteger('Options', 'StreamLogType', 2));
 
@@ -5605,8 +5611,12 @@ begin
             DontNeedModifyList.Add(LineObjectID);
         end
         else
-          raise Exception.Create('Не удалось получить идентификатор позиции настройки.'#13#10 +
-            'Проверьте целостность настройки!');
+          // Если работает репликатор, то не будем прерывать сохранение настройки
+          if SilentMode then
+          begin
+            raise Exception.Create('Не удалось получить идентификатор позиции настройки.'#13#10 +
+              'Проверьте целостность настройки!');
+          end;
         Inc(PositionsCount);
         ibsqlPos.Next;
       end;
@@ -6263,17 +6273,15 @@ end;
 
 procedure TgdcStreamSaver.SetSilent(const Value: Boolean);
 begin
+  SilentMode := Value;
   if Assigned(frmSQLProcess) and not Assigned(frmStreamSaver) then
-    frmSQLProcess.Silent := Value;
+    frmSQLProcess.Silent := Silent;
 end;
 
 
 function TgdcStreamSaver.GetSilent: Boolean;
 begin
-  if Assigned(frmSQLProcess) then
-    Result := frmSQLProcess.Silent
-  else
-    Result := True;
+  Result := SilentMode;
 end;
 
 
