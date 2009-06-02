@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, ComCtrls, Grids, DBGrids, gsDBGrid,
   gsIBGrid, Db, IBCustomDataSet, ActnList, gdcBase, dmDatabase_unit, at_frmIncrDatabaseList,
-  gdcStreamSaver;
+  gdcStreamSaver, gd_createable_form;
 
 type
   TgsStreamSaverProcessType =
@@ -28,7 +28,7 @@ type
     lblFirst: TLabel;
     lblSecond: TLabel;
     lblThird: TLabel;
-    ActionList1: TActionList;
+    alMain: TActionList;
     actNext: TAction;
     actPrev: TAction;
     lblResult: TLabel;
@@ -45,7 +45,7 @@ type
     cbMakeSetting: TCheckBox;
     lblSettingQuestion: TLabel;
     actStreamSettings: TAction;
-    GroupBox1: TGroupBox;
+    gbOptions: TGroupBox;
     lblFileName: TLabel;
     lblFileType: TLabel;
     lblLoadingSourceBase: TLabel;
@@ -57,6 +57,7 @@ type
     lblIncremented: TLabel;
     eIncremented: TEdit;
     btnSettings: TButton;
+    cbControlRemains: TCheckBox;
     procedure btnCloseClick(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
     procedure actPrevExecute(Sender: TObject);
@@ -69,6 +70,7 @@ type
     procedure tbsSettingShow(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure actStreamSettingsExecute(Sender: TObject);
+    procedure cbControlRemainsClick(Sender: TObject);
   private
     FgdcObject: TgdcBase;
     FgdcDetailObject: TgdcBase;
@@ -87,6 +89,7 @@ type
     FStreamSettingType: TStreamFileFormat;
     FIncrementSaving: Boolean;
     FReplaceRecordBehaviuor: TReplaceRecordBehaviour;
+    FControlRemains: Boolean;
 
     procedure SetInitialSettings;
 
@@ -144,7 +147,7 @@ uses
 
 const
   // Через какое кол-во переданных сообщений пропускать, не выводя на экран
-  cShowMessageInterval = 10;
+  cShowMessageInterval = 5;
 
 {$R *.DFM}
 
@@ -252,6 +255,8 @@ begin
         lblSecond.Enabled := true;
         btnNext.Caption := 'Далее >';
       end;
+
+      cbControlRemains.Visible := False;
     end;
 
     ptLoad:
@@ -261,6 +266,8 @@ begin
       lblThird.Caption := '2. Загрузка';
       lblThird.Font.Style := [];
       btnNext.Caption := 'Загрузить';
+
+      cbControlRemains.Visible := True;
     end;
   end;
 
@@ -700,6 +707,7 @@ begin
     S := TFileStream.Create(FFileName, fmOpenRead);
     try
       StreamSaver.Silent := True;
+      StreamSaver.ControlRemains := FControlRemains;
       StreamSaver.ReplaceRecordBehaviour := FReplaceRecordBehaviuor;
       StreamSaver.LoadFromStream(S);
       if StreamSaver.IsAbortingProcess then
@@ -806,8 +814,8 @@ begin
 
     if GetStreamType(S) = sttXML then
     begin
-      SourceBaseKey := -1;
       TargetBaseKey := -1;
+      SourceBaseKey := -1;
       eFileType.Text := 'XML';
     end
     else
@@ -836,6 +844,7 @@ begin
       // считываем ИД базы на которую поток был отправлен
       S.ReadBuffer(I, SizeOf(I));
       TargetBaseKey := I;}
+      TargetBaseKey := -1;
       SourceBaseKey := -1;
       S.Position := 0;
 
@@ -1047,6 +1056,7 @@ begin
       FStreamSettingType := TStreamFileFormat(ReadInteger('Options', 'StreamSettingType', 0));
       FIncrementSaving := ReadBoolean('Options', 'UseIncrementSaving', False);
       FReplaceRecordBehaviuor := TReplaceRecordBehaviour(ReadInteger('Options', 'StreamReplaceRecordBehaviuor', 0));
+      FControlRemains := ReadBoolean('Options', 'ControlRemainsWhileLoadingFromStream', True);
     end;
 
   if FProcessType = ptSave then
@@ -1081,6 +1091,7 @@ begin
   end;
 
   eFileName.Text := FFileName;
+  cbControlRemains.Checked := FControlRemains;
 end;
 
 procedure Tgdc_frmStreamSaver.actStreamSettingsExecute(Sender: TObject);
@@ -1100,6 +1111,11 @@ begin
   btnClose.Enabled := True;
   btnClose.Default := True;
   btnShowLog.Enabled := True;
+end;
+
+procedure Tgdc_frmStreamSaver.cbControlRemainsClick(Sender: TObject);
+begin
+  FControlRemains := cbControlRemains.Checked;
 end;
 
 end.
