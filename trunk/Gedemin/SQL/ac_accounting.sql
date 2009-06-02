@@ -777,13 +777,6 @@ begin
   end
 end^
 
-CREATE TRIGGER AC_AD_ENTRY_DELETERECORD FOR AC_ENTRY
-ACTIVE AFTER DELETE POSITION 0
-AS
-BEGIN
-  DELETE FROM AC_RECORD WHERE ID = OLD.RECORDKEY;
-END^
-
 
 CREATE TRIGGER AC_AD_ENTRY_ISSIMPLE FOR AC_ENTRY
 ACTIVE AFTER DELETE POSITION 1
@@ -837,11 +830,12 @@ BEGIN
   INTO NEW.documentkey, NEW.masterdockey, NEW.transactionkey, NEW.companykey;
 END^
 
-/* Триггер обновляет данные в таблице ac_entry_balance в соответсвии с изменениями в ac_entry */
+
 CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry
 ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15
 AS 
   BEGIN 
+    /* Триггер обновляет данные в таблице ac_entry_balance в соответсвии с изменениями в ac_entry */
     IF (INSERTING AND ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
     BEGIN 
       INSERT INTO ac_entry_balance 
@@ -979,7 +973,6 @@ CREATE TRIGGER ac_bi_record FOR ac_record
   BEFORE INSERT
   POSITION 0
 AS
-  /*DECLARE VARIABLE D DATE;*/
 BEGIN
   /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
@@ -997,7 +990,6 @@ CREATE TRIGGER ac_bu_record FOR ac_record
   BEFORE UPDATE
   POSITION 0
 AS
-  /*DECLARE VARIABLE D DATE;*/
 BEGIN
   /* Если ключ не присвоен, присваиваем */
 
@@ -1107,7 +1099,6 @@ BEGIN
 END
 ^
 
-/*
 CREATE TRIGGER ac_bi_entry_block FOR ac_entry
   INACTIVE
   BEFORE INSERT
@@ -1237,7 +1228,6 @@ BEGIN
   END
 END
 ^
-*/
 
 /* Болванка процедуры для создания оборотной ведомости */
 
