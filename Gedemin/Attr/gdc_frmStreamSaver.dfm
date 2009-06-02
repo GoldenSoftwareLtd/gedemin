@@ -1,11 +1,11 @@
 object gdc_frmStreamSaver: Tgdc_frmStreamSaver
-  Left = 471
-  Top = 196
+  Left = 474
+  Top = 199
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Мастер переноса данных'
-  ClientHeight = 377
-  ClientWidth = 502
+  ClientHeight = 371
+  ClientWidth = 496
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -20,13 +20,13 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
   TextHeight = 13
   object pnlBottom: TPanel
     Left = 0
-    Top = 336
-    Width = 502
+    Top = 330
+    Width = 496
     Height = 41
     Align = alBottom
     TabOrder = 1
     object btnClose: TButton
-      Left = 413
+      Left = 401
       Top = 8
       Width = 85
       Height = 25
@@ -35,7 +35,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       OnClick = btnCloseClick
     end
     object btnNext: TButton
-      Left = 287
+      Left = 279
       Top = 8
       Width = 110
       Height = 25
@@ -45,7 +45,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       TabOrder = 2
     end
     object btnPrev: TButton
-      Left = 201
+      Left = 193
       Top = 8
       Width = 85
       Height = 25
@@ -65,15 +65,15 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 502
-    Height = 336
+    Width = 496
+    Height = 330
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pnlTop: TPanel
       Left = 0
       Top = 0
-      Width = 502
+      Width = 496
       Height = 41
       Align = alTop
       TabOrder = 0
@@ -108,8 +108,8 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
     object PageControl: TPageControl
       Left = 0
       Top = 41
-      Width = 502
-      Height = 295
+      Width = 496
+      Height = 289
       ActivePage = tbsFirst
       Align = alClient
       TabOrder = 1
@@ -117,11 +117,11 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
         Caption = 'tbsFirst'
         TabVisible = False
         OnShow = tbsFirstShow
-        object GroupBox1: TGroupBox
+        object gbOptions: TGroupBox
           Left = 5
           Top = 0
           Width = 488
-          Height = 146
+          Height = 169
           Caption = ' Свойства  '
           TabOrder = 0
           object lblFileName: TLabel
@@ -204,6 +204,17 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
             ReadOnly = True
             TabOrder = 4
           end
+          object cbControlRemains: TCheckBox
+            Left = 8
+            Top = 142
+            Width = 471
+            Height = 17
+            Caption = 'Осуществлять контроль остатков'
+            Checked = True
+            State = cbChecked
+            TabOrder = 5
+            OnClick = cbControlRemainsClick
+          end
         end
       end
       object tbsSecond: TTabSheet
@@ -223,9 +234,9 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
         end
         object pnlDatabases: TPanel
           Left = 0
-          Top = 48
-          Width = 498
-          Height = 241
+          Top = 21
+          Width = 488
+          Height = 258
           Align = alBottom
           BevelOuter = bvNone
           TabOrder = 0
@@ -303,8 +314,8 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Caption = '0 / 0'
         end
         object btnShowLog: TButton
-          Left = 359
-          Top = 259
+          Left = 348
+          Top = 251
           Width = 134
           Height = 25
           Caption = 'Просмотреть лог-файл'
@@ -380,7 +391,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       end
     end
   end
-  object ActionList1: TActionList
+  object alMain: TActionList
     Left = 208
     Top = 288
     object actNext: TAction
