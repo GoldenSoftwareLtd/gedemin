@@ -177,6 +177,10 @@ type
       const AClassName, ASubType: String;
       ADataSet: TDataSet; APrSet: TgdcPropertySet;
       const ASR: TgsStreamRecord);
+    {$IFDEF NEW_STREAM}
+    procedure OnStartLoading2New(Sender: TatSettingWalker);
+    procedure OnObjectLoad2New(Sender: TatSettingWalker; const AClassName, ASubType: String; ADataSet: TDataSet);
+    {$ENDIF}
 
     procedure OnFakeLoad(Sender: TgdcBase; CDS: TDataSet);
 
@@ -1262,6 +1266,201 @@ begin
   //SList.Clear;
 end;
 
+{$IFDEF NEW_STREAM}
+procedure Tgdc_frmSetting.OnObjectLoad2New(Sender: TatSettingWalker;
+  const AClassName, ASubType: String; ADataSet: TDataSet);
+
+  function ByteToHex(const B: Byte): String;
+  const
+    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
+  begin
+    Result := HexDigits[B div 16] + HexDigits[B mod 16];
+  end;
+
+const
+  HexInRow = 16;
+  DontSaveList = ';LB;RB;AFULL;ACHAG;AVIEW;EDITORKEY;CREATORKEY;EDITIONDATE;CREATIONDATE;_MODIFIED;';
+  UseRUIDList = ';ID;PARENT;PARENTINDEX;';
+var
+  I, J, K, G, OldP: Integer;
+  T, FN: String;
+  B, C: PChar;
+  Size: Integer;
+  Added: Boolean;
+  Crc32: Cardinal;
+begin
+
+  if OnlyDup and (Pass = 0) then
+  begin
+    T := ADataSet.FieldByName('_xid').AsString + '_' +
+      ADataSet.FieldByName('_dbid').AsString;
+    I := SCount.IndexOf(T);
+    if I = -1 then
+      SCount.Add(T)
+    else
+      SCount.Objects[I] := Pointer(Integer(SCount.Objects[I]) + 1);
+  end
+  else
+  begin
+    T := 'Class: ' + AClassName;
+    if ASubType > '' then
+      T := T + '(' + ASubType + ')';
+    if FakeName > '' then
+      T := T + '  Настр.: ' + FakeName
+    else
+    begin
+      if (Sender.SettingObj <> nil) then
+        T := T + '  Настр.: ' + Sender.SettingObj.ObjectName;
+    end;
+    SList.Add(T);
+    Added := False;
+
+    if OnlyDup then
+    begin
+      T := ADataSet.FieldByName('_xid').AsString + '_' +
+        ADataSet.FieldByName('_dbid').AsString;
+      if SCount.IndexOf(T) = -1 then
+        Exit;
+
+      if OnlyDiff and (Pass = 2) then
+      begin
+        if SDiff.IndexOf(T) = -1 then
+          Exit;
+      end;
+    end;
+
+    Added := True;
+    SList.Add('');
+    OldP := SList.Count;
+    for I := 0 to ADataSet.FieldCount - 1 do
+    begin
+      FN := ADataSet.Fields[I].FieldName;
+
+      if DontSave and (Pos(';' + FN + ';', DontSaveList) <> 0) then
+        Continue;
+
+      if not ADataSet.Fields[I].IsNull then
+      begin
+        case ADataSet.Fields[I].DataType of
+          ftString:
+            SList.Add(Format('%20s', [FN]) + ':  "' + ADataSet.Fields[I].AsString + '"');
+          ftInteger:
+          begin
+            if UseRUID and ((Pos(';' + FN + ';', UseRUIDList) <> 0)
+              or ((Length(FN) > 3) and (Copy(FN, Length(FN) - 2, 3) = 'KEY'))) then
+            begin
+              if FN = 'ID' then
+              begin
+                K := IDLink.IndexOf(ADataSet.Fields[I].AsInteger);
+                if K <> -1 then
+                begin
+                  if IDLink.ValuesByIndex[K] <> (ADataSet.FieldByName('_xid').AsString
+                    + '_' + ADataSet.FieldByName('_dbid').AsString) then
+                  begin
+                    raise Exception.Create('Invalid data stream');
+                  end;
+                end else
+                begin
+                  K := IDLink.Add(ADataSet.Fields[I].AsInteger);
+                  IDLink.ValuesByIndex[K] := ADataSet.FieldByName('_xid').AsString
+                    + '_' + ADataSet.FieldByName('_dbid').AsString;
+                end;
+                SList.Add(Format('%20s', [FN]) + ':  '
+                  + IDLink.ValuesByIndex[K]);
+              end else
+              begin
+                K := IDLink.IndexOf(ADataSet.Fields[I].AsInteger);
+                if K = -1 then
+                  SList.Add(Format('%20s', [FN]) + ':  ' + ADataSet.Fields[I].AsString)
+                else
+                  SList.Add(Format('%20s', [FN]) + ':  '
+                    + IDLink.ValuesByIndex[K]);
+              end;
+            end else
+              SList.Add(Format('%20s', [FN]) + ':  ' + ADataSet.Fields[I].AsString);
+          end;
+          ftMemo:
+            SList.Add(Format('%20s', [FN]) +
+              ':'#13#10#13#10 + ADataSet.Fields[I].AsString + #13#10);
+          ftBLOB, ftGraphic:
+          begin
+            if not DontSaveBlob then
+            begin
+              T := ADataSet.Fields[I].AsString;
+              Size := Length(T);
+              Size := Size * 3 + ((Size div HexInRow) + 1) * (2 + 4) + 32;
+              GetMem(B, Size);
+              try
+                C := B;
+                C[0] := #0;
+                for J := 1 to Length(T) do
+                begin
+                  if J mod HexInRow = 1 then
+                    C := StrCat(C, '    ') + StrLen(C);
+                  C := StrCat(C, PChar(ByteToHex(Byte(T[J])) + ' ')) + StrLen(C);
+                  if J mod HexInRow = 0 then
+                    C := StrCat(C, #13#10) + StrLen(C);
+                end;
+                StrCat(C, #13#10);
+                SList.Add(Format('%20s', [FN]) +
+                  ':  Size ' + IntToStr(Length(T)) + #13#10#13#10 + B + #13#10);
+              finally
+                FreeMem(B, Size);
+              end;
+            end;
+          end;
+        else
+          SList.Add(Format('%20s', [FN]) + ':  ' + ADataSet.Fields[I].AsString);
+        end;
+      end
+      else
+        SList.Add(Format('%20s', [FN]) + ':  NULL');
+    end;
+
+    if OnlyDup and OnlyDiff and (Pass = 1) then
+    begin
+      Crc32 := 0;
+      for G := OldP to SList.Count - 1 do
+      begin
+        if Length(SList[G]) > 0 then
+          Crc32 := Crc32_P(@(SList[G][1]), Length(SList[G]), Crc32);
+      end;
+
+      T := ADataSet.FieldByName('_xid').AsString + '_' +
+        AdataSet.FieldByName('_dbid').AsString;
+      G := SCRC32.IndexOf(T);
+      if G = -1 then
+        SCRC32.AddObject(T, Pointer(Crc32))
+      else
+      begin
+        if Pointer(Crc32) <> SCRC32.Objects[G] then
+        begin
+          if SDiff.IndexOf(T) = -1 then
+            SDiff.Add(T);
+        end;
+      end;
+    end;
+
+    if Added then
+    begin
+      // TODO: сделать сохранение свойств записи из настройки
+      {if APrSet.Count > 0 then
+        SList.Add(#13#10'Свойства'#13#10);
+      for I := 0 to APrSet.Count - 1 do
+        SList.Add(Format('%20s', [APrSet.Name[I]]) + ':  ' + VarToStr(APrSet.Value[APrSet.Name[I]]));
+      SList.Add('');}
+    end
+    else
+      SList.Delete(SList.Count - 1);
+  end;
+end;
+
+procedure Tgdc_frmSetting.OnStartLoading2New(Sender: TatSettingWalker);
+begin
+  //SList.Clear;
+end;
+{$ENDIF}
+
 procedure Tgdc_frmSetting.actSet2TxtExecute(Sender: TObject);
 var
   WorkedOut: TList;
@@ -1336,6 +1535,10 @@ var
       try
         SW.StartLoading := OnStartLoading2;
         SW.ObjectLoad := OnObjectLoad2;
+        {$IFDEF NEW_STREAM}
+        SW.StartLoadingNew := OnStartLoading2New;
+        SW.ObjectLoadNew := OnObjectLoad2New;
+        {$ENDIF}
 
         SW.SettingObj := Obj;
         if AFileName > '' then

@@ -3134,10 +3134,6 @@ var
 begin
   Result := True;
 
-  // если наш объект - стандартные мета-данные, то перезаписываем по умолчанию
-  if ABaseRecord.InheritsFrom(TgdcMetaBase) and (not (ABaseRecord as TgdcMetaBase).IsUserDefined) then
-    Exit;
-
   {case FReplaceRecordBehaviour of
     rrbAlways:
       Exit;
@@ -3148,7 +3144,19 @@ begin
     end;
   end;}
 
-  NeedModifyFromStream := Assigned(AStreamRecord.FindField('_MODIFYFROMSTREAM')) and AStreamRecord.FieldByName('_MODIFYFROMSTREAM').AsBoolean;
+  // во время работы репликатора не заменяем метаданные или типы документов, другие объекты заменяем без вопросов
+  if SilentMode then
+  begin
+    if ABaseRecord.InheritsFrom(TgdcMetaBase) or ABaseRecord.InheritsFrom(TgdcBaseDocumentType) then
+      Result := False
+    else
+      Result := True;
+    Exit;
+  end;
+
+  // если наш объект - стандартные мета-данные, то перезаписываем по умолчанию
+  if ABaseRecord.InheritsFrom(TgdcMetaBase) and (not (ABaseRecord as TgdcMetaBase).IsUserDefined) then
+    Exit;
 
   case FAnAnswer of
     mrYesToAll:
@@ -3165,6 +3173,8 @@ begin
     begin
       // Возможно нам выставили флаг "Обновлять из потока" вручную,
       //   тогда нас не интересует ни дата обновления, ни содержимое уже существующей записи
+      NeedModifyFromStream := Assigned(AStreamRecord.FindField('_MODIFYFROMSTREAM')) and AStreamRecord.FieldByName('_MODIFYFROMSTREAM').AsBoolean;
+
       if ABaseRecord.NeedModifyFromStream(ABaseRecord.SubType) <> NeedModifyFromStream then
       begin
         FAnAnswer := MessageDlg('Объект ' + ABaseRecord.GetDisplayName(ABaseRecord.SubType) + ' ' +
@@ -3260,10 +3270,9 @@ begin
             Free;
           end;
         end;
-      end;  
+      end;
     end;
   end;
-
 end;
 
 procedure TgdcStreamDataProvider.Reset;
@@ -5497,7 +5506,7 @@ begin
       frmStreamSaver.SetupProgress(FStreamLoadingOrderList.Count, 'Загрузка данных...');
     end;
 
-    FStreamDataProvider.AnAnswer := 0;
+    //FStreamDataProvider.AnAnswer := 0;         // сбрасывать ли ответ на вопрос о замене объектов, при последовательной загрузке нескольких файлов?
 
     // загружаем записи из потока на базу
     while FStreamLoadingOrderList.PopNextElement(OrderElement) do
@@ -5805,11 +5814,6 @@ begin
   end;
 
   FStreamDataProvider.AnAnswer := AnAnswer;
-  {if not DontHideForms then
-    FStreamDataProvider.AnAnswer := AnAnswer
-  else
-    FStreamDataProvider.AnAnswer := mrNoToAll;}
-
   try
 
     // загружаем записи из потока на базу
@@ -5827,7 +5831,7 @@ begin
       begin
         if WasMetaData then
         begin
-          if not DontHideForms then
+          if not SilentMode then
             ReconnectDatabase;
         end;
 
@@ -5845,7 +5849,7 @@ begin
         if not Obj.Active then
           Obj.Open;
       except
-        if not DontHideForms then
+        if not SilentMode then
           ReconnectDatabase;
         if not Obj.Active then
           Obj.Open;
@@ -5854,12 +5858,6 @@ begin
       CDS := FDataObject.ClientDS[OrderElement.DSIndex];
       if CDS.Locate(Obj.GetKeyField(Obj.SubType), OrderElement.RecordID, []) then
       begin
-        // if (not Obj.InheritsFrom(TgdcMetaBase)) and (not Obj.InheritsFrom(TgdcBaseDocumentType)) then
-        if not DontHideForms or (not (Obj.InheritsFrom(TgdcMetaBase)) and not (Obj.InheritsFrom(TgdcBaseDocumentType))) then
-          FStreamDataProvider.AnAnswer := AnAnswer
-        else
-          FStreamDataProvider.AnAnswer := mrNoToAll;
-
         try
           FStreamDataProvider.LoadRecord(Obj, CDS);
         except
@@ -5867,7 +5865,7 @@ begin
           begin
             // удалим проблемный объект из очереди загрузки
             FStreamLoadingOrderList.Remove(OrderElement.RecordID);
-            if not DontHideForms then
+            if not SilentMode then
             begin
               if FTransaction.InTransaction then
                 FTransaction.Rollback;
@@ -6275,7 +6273,7 @@ procedure TgdcStreamSaver.SetSilent(const Value: Boolean);
 begin
   SilentMode := Value;
   if Assigned(frmSQLProcess) and not Assigned(frmStreamSaver) then
-    frmSQLProcess.Silent := Silent;
+    frmSQLProcess.Silent := Value;
 end;
 
 
@@ -6368,7 +6366,7 @@ begin
       end;
     end;
 
-    FStreamDataProvider.AnAnswer := 0;
+    //FStreamDataProvider.AnAnswer := 0;           // сбрасывать ли ответ на вопрос о замене объектов, при последовательной загрузке нескольких файлов?
 
     // загружаем записи из потока на базу
     while FStreamLoadingOrderList.PopNextElement(OrderElement) do
