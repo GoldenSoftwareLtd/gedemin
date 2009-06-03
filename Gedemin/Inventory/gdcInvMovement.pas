@@ -214,6 +214,8 @@ type
 // MovementDirection - тип списания
     function MakeCardListSQL(MovementDirection: TgdcInvMovementDirection;
     var InvCardFeatures: array of TgdcInvCardFeature; const isMinusRemains: Boolean = False): String;
+    function MakeCardListSQL_New(MovementDirection: TgdcInvMovementDirection;
+      var InvCardFeatures: array of TgdcInvCardFeature; const isMinusRemains: Boolean = False): String;
 
 //  AddOneMovement - функция добавления одной позиции движения
 //     SourceCardKey - код карты источник (если нет то -1)
@@ -294,6 +296,10 @@ type
 
     function IsReplaceDestFeature(ContactKey, CardKey, DocumentKey: Integer;
                 ChangedField: TStringList; var InvPosition: TgdcInvPosition): Boolean;
+
+    // Формируют запрос для функции GetRemains, в зависимости от версии сервера
+    function GetRemains_GetQueryOld(InvPosition: TgdcInvPosition): String;
+    function GetRemains_GetQueryNew(InvPosition: TgdcInvPosition): String;
 
   protected
     { Protected declarations }
@@ -558,7 +564,6 @@ type
     procedure SetFeatures(DataSet: TDataSet; Prefix: String;
       Features: TgdcInvFeatures);
     function IsHolding: Boolean;
-
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -1209,32 +1214,170 @@ begin
 
 end;
 
-function TgdcInvMovement.AddOneMovement(aSourceCardKey: Integer; aQuantity: Currency;
-  var invPosition: TgdcInvPosition): Boolean;
-
-function IsExistsCardKey(const aCardKey: Integer): Boolean;
+function TgdcInvMovement.MakeCardListSQL_New(MovementDirection: TgdcInvMovementDirection;
+  var InvCardFeatures: array of TgdcInvCardFeature; const isMinusRemains: Boolean): String;
 var
+  i: Integer;
+  Features: String;
   ibsql: TIBSQL;
 begin
-  if aCardKey > 0 then
+  if (gdcDocumentLine as TgdcInvDocumentLine).IsMakeMovementOnFromCardKeyOnly then
+  begin
+    Features := ' AND c.id = :cardkey ';
+  end
+  else
+  begin
+    Features := '';
+    for i:= Low(InvCardFeatures) to High(InvCardFeatures) do
+      if InvCardFeatures[i].isInteger then
+        if InvCardFeatures[i].optValue = Null then
+          Features := Features + ' AND (c.' + InvCardFeatures[i].optFieldName + ' + 0) IS NULL '
+        else
+          Features := Features + ' AND (c.' + InvCardFeatures[i].optFieldName + ' + 0) = :' +
+            InvCardFeatures[i].optFieldName
+      else
+        if InvCardFeatures[i].optValue = Null then
+          Features := Features + ' AND c.' + InvCardFeatures[i].optFieldName + ' IS NULL '
+        else
+          Features := Features + ' AND c.' + InvCardFeatures[i].optFieldName + ' = :' +
+            InvCardFeatures[i].optFieldName;
+  end;
+
+  if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
+    Features := Features + ' AND (c.companykey + 0) = :companykey';
+
+  Result := '';
+  if not CurrentRemains then
+  begin
+    Result :=
+      'SELECT' + #13#10 +
+      '  mm.id,' + #13#10 +
+      '  mm.firstdate,' + #13#10 +
+      '  SUM(mm.quantity) AS quantity' + #13#10 +
+      'FROM' + #13#10 +
+      '  (' + #13#10;
+  end;
+
+  Result := Result +
+    '     SELECT' + #13#10 +
+    '       c.id,' + #13#10 +
+    '       c.firstdate,' + #13#10;
+  if CurrentRemains and isMinusRemains then
+    Result := Result +
+      '       - bal.balance AS quantity' + #13#10
+  else
+    Result := Result +
+      '       bal.balance AS quantity' + #13#10;
+  Result := Result +
+    '     FROM' + #13#10 +
+    '       inv_balance bal' + #13#10;
+  if (gdcDocumentLine as TgdcInvDocumentLine).IsMakeMovementOnFromCardKeyOnly then
+    Result := Result +
+      '       JOIN inv_card c ON c.id = bal.cardkey' + #13#10
+  else
+    Result := Result +
+      '       LEFT JOIN inv_card c ON c.id = bal.cardkey' + #13#10;
+  Result := Result +
+    '     WHERE' + #13#10 +
+    '       bal.contactkey = :contactkey' + #13#10 +
+    '       AND bal.goodkey = :goodkey' + #13#10 +
+      Features + #13#10;
+
+  if CurrentRemains and isMinusRemains then
+    Result := Result + ' AND bal.balance < 0 '
+  else
+    Result := Result + ' AND bal.balance > 0 ';
+
+  if not CurrentRemains then
+  begin
+    Result := Result +
+      ' ' +
+      '     UNION ALL' + #13#10 +
+      ' ' +
+      '     SELECT' + #13#10 +
+      '       c.id AS cardkey,' + #13#10 +
+      '       c.firstdate,' + #13#10 +
+      '       - (m.debit - m.credit) AS quantity' + #13#10 +
+      '     FROM' + #13#10 +
+      '       inv_movement m' + #13#10;
+    if (gdcDocumentLine as TgdcInvDocumentLine).IsMakeMovementOnFromCardKeyOnly then
+      Result := Result +
+        '       JOIN inv_card c ON c.id = m.cardkey' + #13#10
+    else
+      Result := Result +
+        '       LEFT JOIN inv_card c ON c.id = m.cardkey' + #13#10;
+    Result := Result +
+      '     WHERE' + #13#10 +
+      '       m.movementdate > :movementdate' + #13#10 +
+      '       AND m.contactkey = :contactkey' + #13#10 +
+      '       AND m.goodkey = :goodkey' + #13#10 +
+      '       AND m.disabled = 0' + #13#10 +
+        Features +
+      '  ) mm' + #13#10 +
+      'GROUP BY' + #13#10 +
+      '  mm.id,' + #13#10 +
+      '  mm.firstdate' + #13#10;
+  end;
+
+  if MovementDirection = imdDefault then
   begin
     ibsql := TIBSQL.Create(Self);
     try
       ibsql.Transaction := ReadTransaction;
-      ibsql.SQL.Text := 'SELECT id FROM inv_movement WHERE documentkey = :documentkey AND ' +
-        ' cardkey = :cardkey ';
-      ibsql.ParamByName('documentkey').AsInteger := invPosition.ipDocumentKey;
-      ibsql.ParamByName('cardkey').AsInteger := aCardKey;
+      ibsql.SQL.Text := 'SELECT discipline FROM gd_good WHERE id = :id';
+      ibsql.ParamByName('id').AsInteger := gdcDocumentLine.FieldByName('goodkey').AsInteger;
       ibsql.ExecQuery;
-      Result := ibsql.RecordCount > 0;
+      if ibsql.FieldByName('discipline').IsNull then
+        MovementDirection := imdFIFO
+      else
+        if ibsql.FieldByName('discipline').AsString = 'F' then
+          MovementDirection := imdFIFO
+        else
+          MovementDirection := imdLIFO;
       ibsql.Close;
     finally
       ibsql.Free;
     end;
-  end
+  end;
+
+  if CurrentRemains then
+    if MovementDirection = imdFIFO then
+      Result := Result + ' ORDER BY c.firstdate '
+    else
+      Result := Result + ' ORDER BY c.firstdate DESC '
   else
-    Result := False;  
+    if MovementDirection = imdFIFO then
+      Result := Result + ' ORDER BY mm.firstdate '
+    else
+      Result := Result + ' ORDER BY mm.firstdate DESC ';
 end;
+
+function TgdcInvMovement.AddOneMovement(aSourceCardKey: Integer; aQuantity: Currency;
+  var invPosition: TgdcInvPosition): Boolean;
+
+  function IsExistsCardKey(const aCardKey: Integer): Boolean;
+  var
+    ibsql: TIBSQL;
+  begin
+    if aCardKey > 0 then
+    begin
+      ibsql := TIBSQL.Create(Self);
+      try
+        ibsql.Transaction := ReadTransaction;
+        ibsql.SQL.Text := 'SELECT id FROM inv_movement WHERE documentkey = :documentkey AND ' +
+          ' cardkey = :cardkey ';
+        ibsql.ParamByName('documentkey').AsInteger := invPosition.ipDocumentKey;
+        ibsql.ParamByName('cardkey').AsInteger := aCardKey;
+        ibsql.ExecQuery;
+        Result := ibsql.RecordCount > 0;
+        ibsql.Close;
+      finally
+        ibsql.Free;
+      end;
+    end
+    else
+      Result := False;
+  end;
 
 var
   SourceCardKey: Integer;
@@ -2096,12 +2239,20 @@ begin
             begin
               // Формируем текcт запроcа
               ibsqlCardList.Transaction := Transaction;
-              if not ipMinusRemains then
-                ibsqlCardList.SQL.Text :=
-                  MakeCardListSQL(ipMovementDirection, ipInvSourceCardFeatures, ipMinusRemains)
+              // Если сервер Firebird 2.0+, и есть поле GOODKEY в INV_MOVEMENT и INV_BALANCE,
+              //   то будем брать остатки новыми запросами
+              if Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)
+                 and Assigned(atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY'))
+                 and GlobalStorage.ReadBoolean('Options\Invent', 'UseNewRemainsMethod', False, False) then
+                if ipMinusRemains then
+                  ibsqlCardList.SQL.Text := MakeCardListSQL_New(ipMovementDirection, ipInvMinusCardFeatures, ipMinusRemains)
+                else
+                  ibsqlCardList.SQL.Text := MakeCardListSQL_New(ipMovementDirection, ipInvSourceCardFeatures, ipMinusRemains)
               else
-                ibsqlCardList.SQL.Text :=
-                  MakeCardListSQL(ipMovementDirection, ipInvMinusCardFeatures, ipMinusRemains);
+                if ipMinusRemains then
+                  ibsqlCardList.SQL.Text := MakeCardListSQL(ipMovementDirection, ipInvMinusCardFeatures, ipMinusRemains)
+                else
+                  ibsqlCardList.SQL.Text := MakeCardListSQL(ipMovementDirection, ipInvSourceCardFeatures, ipMinusRemains);
             end;
 
             // Уcтанавливаем параметры
@@ -3465,10 +3616,178 @@ begin
 
 end;
 
+function TgdcInvMovement.GetRemains_GetQueryNew(InvPosition: TgdcInvPosition): String;
+var
+  I: Integer;
+  S: String;
+  AdditionalFeatureClause: String;
+begin
+  // Ограничение по используемым признакам карточки
+  AdditionalFeatureClause := '';
+  for I := Low(InvPosition.ipInvSourceCardFeatures) to High(InvPosition.ipInvSourceCardFeatures) do
+    if InvPosition.ipInvSourceCardFeatures[i].isInteger then
+      if InvPosition.ipInvSourceCardFeatures[i].optValue = Null then
+        AdditionalFeatureClause := AdditionalFeatureClause +
+          ' AND (C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' + 0) IS NULL '
+      else
+        AdditionalFeatureClause := AdditionalFeatureClause +
+          ' AND (C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' + 0) = :' +
+          InvPosition.ipInvSourceCardFeatures[i].optFieldName
+    else
+      if InvPosition.ipInvSourceCardFeatures[i].optValue = Null then
+        AdditionalFeatureClause := AdditionalFeatureClause +
+          ' AND C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' IS NULL '
+      else
+        AdditionalFeatureClause := AdditionalFeatureClause +
+          ' AND C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' = :' +
+          InvPosition.ipInvSourceCardFeatures[i].optFieldName;
+
+  if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
+    AdditionalFeatureClause := AdditionalFeatureClause +
+      ' AND c.companykey + 0 = ' + gdcDocumentLine.FieldByName('companykey').AsString;
+
+  // Если нужны неотрицательные и не текущие остатки
+  if not CurrentRemains and not InvPosition.ipMinusRemains then
+  begin
+    S :=
+      'SELECT' + #13#10 +
+      '  MIN(mm.cardkey) AS cardkey,' + #13#10 +
+      '  SUM(mm.balance) AS remains' + #13#10 +
+      'FROM' + #13#10 +
+      '  (' + #13#10 +
+      '     SELECT' + #13#10 +
+      '       bal.cardkey AS cardkey,' + #13#10 +
+      '       bal.balance' + #13#10 + 
+      '     FROM' + #13#10 +
+      '       inv_balance bal' + #13#10 + 
+      '       LEFT JOIN inv_card c ON c.id = bal.cardkey' + #13#10 +
+      '     WHERE' + #13#10 +
+      '       bal.contactkey = :contactkey' + #13#10 +
+      '       AND bal.goodkey = :goodkey' + #13#10 +
+        AdditionalFeatureClause +
+      ' ' +
+      '     UNION ALL' + #13#10 +
+      ' ' +
+      '     SELECT' + #13#10 +
+      '       m.cardkey AS cardkey,' + #13#10 +
+      '       - (m.debit - m.credit) AS balance' + #13#10 +
+      '     FROM' + #13#10 +
+      '       inv_movement m' + #13#10 +
+      '       LEFT JOIN inv_card c ON c.id = m.cardkey' + #13#10 +
+      '     WHERE' + #13#10 +
+      '      m.movementdate > :movementdate' + #13#10 +
+      '      AND m.contactkey = :contactkey' + #13#10 +
+      '      AND m.goodkey = :goodkey' + #13#10 +
+      '      AND m.disabled = 0' + #13#10 +
+      '      AND m.documentkey <> :documentkey ' + #13#10 +        
+        AdditionalFeatureClause +
+      '  ) mm';
+  end
+  else
+  begin
+    S :=
+        'SELECT ' + #13#10 +
+        '  MIN(b.cardkey + 0) as cardkey, ' + #13#10 +
+        '  SUM(b.balance) AS remains ' + #13#10 +
+        'FROM' + #13#10 +
+        '  inv_balance b ' + #13#10 +
+        '  LEFT JOIN inv_card c ON c.id = b.balance ' + #13#10 +
+        'WHERE ' + #13#10 +
+        '  b.goodkey = :goodkey ' + #13#10 +
+        '  AND b.contactkey = :contactkey' + #13#10 + AdditionalFeatureClause;
+  end;
+
+  Result := S;
+end;
+
+function TgdcInvMovement.GetRemains_GetQueryOld(InvPosition: TgdcInvPosition): String;
+var
+  I: Integer;
+  S: String;
+begin
+  if not CurrentRemains and not InvPosition.ipMinusRemains then
+  begin
+    if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False)
+       or (atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY') = nil) then
+      S :=
+          'SELECT' + #13#10 +
+          '  MIN(m.cardkey + 0) AS cardkey,' + #13#10 +
+          '  SUM(m.debit - m.credit) AS remains' + #13#10 +
+          'FROM' + #13#10 +
+          '  inv_card c' + #13#10 +
+          '  LEFT JOIN inv_movement m ON m.cardkey = c.id' + #13#10 +
+          'WHERE' + #13#10 +
+          '  c.goodkey = :goodkey' + #13#10 +
+          '  AND m.contactkey = :contactkey ' + #13#10 +
+          '  AND m.movementdate <= :movementdate ' + #13#10 +
+          '  AND m.documentkey <> :documentkey' + #13#10 +
+          '  AND m.disabled = 0'
+    else
+      S :=
+          'SELECT' + #13#10 +
+          '  MIN(m.cardkey + 0) AS cardkey,' + #13#10 +
+          '  SUM(m.debit - m.credit) AS remains' + #13#10 +
+          'FROM' + #13#10 +
+          '  inv_card c' + #13#10 +
+          '  JOIN inv_movement m ON (m.cardkey = c.id)' + #13#10 +
+          '    AND m.goodkey = :goodkey ' + #13#10 +
+          '    AND m.contactkey = :contactkey ' + #13#10 +
+          '    AND m.movementdate <= :movementdate ' + #13#10 +
+          '    AND m.documentkey <> :documentkey' + #13#10 +
+          '    AND m.disabled = 0';
+    if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
+      S := S + ' AND c.companykey + 0 = ' + gdcDocumentLine.FieldByName('companykey').AsString;
+  end
+  else
+  begin
+    if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False)
+       or (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil) then
+      S :=
+          'SELECT' + #13#10 + 
+          '  MIN(b.cardkey + 0) AS cardkey,' + #13#10 +
+          '  SUM(b.balance) AS remains' + #13#10 +
+          'FROM' + #13#10 +
+          '  inv_card c' + #13#10 +
+          '  LEFT JOIN inv_balance b ON b.cardkey = c.id' + #13#10 +
+          'WHERE' + #13#10 +
+          '  c.goodkey = :goodkey' + #13#10 +
+          '  AND b.contactkey = :contactkey' +
+          #13#10
+    else
+      S :=
+          'SELECT' + #13#10 +
+          '  MIN(b.cardkey + 0) as cardkey,' + #13#10 +
+          '  SUM(b.balance) AS remains' + #13#10 +
+          'FROM' + #13#10 +
+          '  inv_card c' + #13#10 +
+          '  JOIN inv_balance b ON b.cardkey = c.id' + #13#10 +
+          '    AND b.goodkey = :goodkey ' + #13#10 +
+          '    AND b.contactkey = :contactkey' +
+          #13#10;
+    if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
+      S := S + ' AND c.companykey + 0 = ' + gdcDocumentLine.FieldByName('companykey').AsString;
+  end;
+
+  for i:= Low(InvPosition.ipInvSourceCardFeatures) to High(InvPosition.ipInvSourceCardFeatures) do
+    if InvPosition.ipInvSourceCardFeatures[i].isInteger then
+      if InvPosition.ipInvSourceCardFeatures[i].optValue = Null then
+        S := S + ' AND (C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' + 0) IS NULL '
+      else
+        S := S + ' AND (C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' + 0) = :' +
+          InvPosition.ipInvSourceCardFeatures[i].optFieldName
+    else
+      if InvPosition.ipInvSourceCardFeatures[i].optValue = Null then
+        S := S + ' AND C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' IS NULL '
+      else
+        S := S + ' AND C.' + InvPosition.ipInvSourceCardFeatures[i].optFieldName + ' = :' +
+          InvPosition.ipInvSourceCardFeatures[i].optFieldName;
+
+  Result := S;
+end;
+
 function TgdcInvMovement.GetRemains: Currency;
 var
   ibsql: TIBSQL;
-  S: String;
   i: Integer;
   InvPosition: TgdcInvPosition;
   DocQuantity: Currency;
@@ -3493,155 +3812,102 @@ begin
 
   FillPosition(gdcDocumentLine, InvPosition);
 
-  if InvPosition.ipDelayed then
+  if InvPosition.ipDelayed and (sLoadFromStream in gdcDocumentLine.BaseState) then
     exit;
 
-  with InvPosition do
-  begin
+  ibsql := TIBSQL.Create(Self);
+  try
+    if Transaction.InTransaction then
+      ibsql.Transaction := Transaction
+    else
+      ibsql.Transaction := ReadTransaction;
 
+    // Если сервер Firebird 2.0+, и есть поле GOODKEY в INV_MOVEMENT и INV_BALANCE,
+    //   то будем брать остатки новыми запросами
+    if Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)
+       and Assigned(atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY'))
+       and GlobalStorage.ReadBoolean('Options\Invent', 'UseNewRemainsMethod', False, False) then
+      ibsql.SQL.Text := GetRemains_GetQueryNew(InvPosition)
+    else
+      ibsql.SQL.Text := GetRemains_GetQueryOld(InvPosition);
+    ibsql.Prepare;
 
-    ibsql := TIBSQL.Create(Self);
-    try
-      if Transaction.InTransaction then
-        ibsql.Transaction := Transaction
+    if not CurrentRemains and not InvPosition.ipMinusRemains then
+    begin
+      DocQuantity := 0;
+      ibsql.ParamByName('documentkey').AsInteger := InvPosition.ipDocumentKey;
+      ibsql.ParamByName('movementdate').AsDateTime := InvPosition.ipDocumentDate;
+    end
+    else
+    begin
+      if gdcDocumentLine.State <> dsInsert then
+        DocQuantity := GetQuantity(InvPosition.ipDocumentKey, tpAll)
       else
-        ibsql.Transaction := ReadTransaction;
-
-      if not CurrentRemains and not ipMinusRemains then
-      begin
-        if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or (atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY') = nil) then
-          S :=
-              'SELECT  MIN(M.CARDKEY + 0) as CardKey, SUM(M.DEBIT - M.CREDIT) AS REMAINS ' + #13#10 +
-              'FROM   INV_CARD C  LEFT JOIN INV_MOVEMENT M ON (M.CARDKEY = C.ID) ' + #13#10 +
-              'WHERE   C.GOODKEY = :goodkey ' + #13#10 +
-              '    AND M.CONTACTKEY = :contactkey ' + #13#10  +
-              '    AND M.MOVEMENTDATE <= :movementdate ' + #13#10 +
-              '    AND M.DOCUMENTKEY <> :documentkey AND M.DISABLED = 0'
-        else
-          S :=
-              'SELECT  MIN(M.CARDKEY + 0) as CardKey, SUM(M.DEBIT - M.CREDIT) AS REMAINS ' + #13#10 +
-              'FROM   INV_CARD C  JOIN INV_MOVEMENT M ON (M.CARDKEY = C.ID) ' + #13#10 +
-              '    AND M.GOODKEY = :goodkey ' + #13#10 +
-              '    AND M.CONTACTKEY = :contactkey ' + #13#10  +
-              '    AND M.MOVEMENTDATE <= :movementdate ' + #13#10 +
-              '    AND M.DOCUMENTKEY <> :documentkey AND M.DISABLED = 0';
         DocQuantity := 0;
-        if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
-          S := S + ' AND c.companykey + 0 = ' + gdcDocumentLine.FieldByName('companykey').AsString;
+    end;
+
+    ibsql.ParamByName('goodkey').AsInteger := InvPosition.ipGoodKey;
+    ibsql.ParamByName('ContactKey').AsInteger := InvPosition.ipSourceContactKey;
+
+    for i:= Low(InvPosition.ipInvSourceCardFeatures) to High(InvPosition.ipInvSourceCardFeatures) do
+      if InvPosition.ipInvSourceCardFeatures[i].optValue <> Null then
+        ibsql.ParamByName(InvPosition.ipInvSourceCardFeatures[i].optFieldName).AsVariant :=
+          InvPosition.ipInvSourceCardFeatures[i].optValue;
+
+    ibsql.ExecQuery;
+    if (ibsql.RecordCount > 0) and (ibsql.FieldByName('cardkey').AsInteger > 0) then
+    begin
+      Result := ibsql.FieldByName('remains').AsCurrency;
+      if not (gdcDocumentLine.State in [dsEdit, dsInsert]) then
+        gdcDocumentLine.Edit;
+      gdcDocumentLine.FieldByName('FromCardKey').AsInteger :=
+        ibsql.FieldByName('cardkey').AsInteger;
+      if (gdcDocumentLine.FindField('tocardkey') <> nil) and
+         gdcDocumentLine.FieldByName('tocardkey').IsNull
+      then
+        gdcDocumentLine.FieldByName('tocardkey').AsInteger :=
+          ibsql.FieldByName('cardkey').AsInteger;
+      if gdcDocumentLine.FindField('remains') <> nil then
+      begin
+        gdcDocumentLine.FieldByName('remains').ReadOnly := False;
+        try
+          gdcDocumentLine.FieldByName('remains').AsCurrency :=
+            ibsql.FieldByName('remains').AsCurrency + DocQuantity;
+        finally
+          gdcDocumentLine.FieldByName('remains').ReadOnly := True;
+        end;
       end
       else
-      begin
-        if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil) then
-          S :=
-              'SELECT MIN(b.cardkey + 0) as CardKey, SUM(b.balance) AS REMAINS ' + #13#10 +
-              'FROM  INV_CARD C LEFT JOIN inv_balance b ON (B.CARDKEY = C.ID) ' + #13#10 +
-              'WHERE C.GOODKEY = :goodkey ' + #13#10 +
-              '    AND B.CONTACTKEY = :contactkey ' +
-              #13#10
-        else
-          S :=
-              'SELECT MIN(b.cardkey + 0) as CardKey, SUM(b.balance) AS REMAINS ' + #13#10 +
-              'FROM  INV_CARD C JOIN inv_balance b ON (B.CARDKEY = C.ID) ' + #13#10 +
-              '    AND B.GOODKEY = :goodkey ' + #13#10 +
-              '    AND B.CONTACTKEY = :contactkey ' +
-              #13#10;
-        if gdcDocumentLine.State <> dsInsert then
-          DocQuantity := GetQuantity(ipDocumentKey, tpAll)
-        else
-          DocQuantity := 0;
-        if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
-          S := S + ' AND c.companykey + 0 = ' + gdcDocumentLine.FieldByName('companykey').AsString;
-      end;
-
-      for i:= Low(ipInvSourceCardFeatures) to High(ipInvSourceCardFeatures) do
-        if ipInvSourceCardFeatures[i].isInteger then
-          if ipInvSourceCardFeatures[i].optValue = Null then
-            S := S + ' AND (C.' + ipInvSourceCardFeatures[i].optFieldName + ' + 0) IS NULL '
-          else
-            S := S + ' AND (C.' + ipInvSourceCardFeatures[i].optFieldName + ' + 0) = :' +
-              ipInvSourceCardFeatures[i].optFieldName
-        else
-          if ipInvSourceCardFeatures[i].optValue = Null then
-            S := S + ' AND C.' + ipInvSourceCardFeatures[i].optFieldName + ' IS NULL '
-          else
-            S := S + ' AND C.' + ipInvSourceCardFeatures[i].optFieldName + ' = :' +
-              ipInvSourceCardFeatures[i].optFieldName;
-
-      ibsql.SQL.Text := S;
-
-      ibsql.Prepare;
-      ibsql.ParamByName('goodkey').AsInteger := ipGoodKey;
-      ibsql.ParamByName('ContactKey').AsInteger := ipSourceContactKey;
-
-      if not CurrentRemains and not ipMinusRemains then
-      begin
-        ibsql.ParamByName('documentkey').AsInteger := ipDocumentKey;
-        ibsql.ParamByName('movementdate').AsDateTime := ipDocumentDate;
-      end;
-
-      for i:= Low(ipInvSourceCardFeatures) to High(ipInvSourceCardFeatures) do
-        if ipInvSourceCardFeatures[i].optValue <> Null then
-          ibsql.ParamByName(ipInvSourceCardFeatures[i].optFieldName).AsVariant :=
-            ipInvSourceCardFeatures[i].optValue;
-
-      ibsql.ExecQuery;
-      if (ibsql.RecordCount > 0) and (ibsql.FieldByName('cardkey').AsInteger > 0) then
-      begin
-        Result := ibsql.FieldByName('remains').AsCurrency;
-        if not (gdcDocumentLine.State in [dsEdit, dsInsert]) then
-          gdcDocumentLine.Edit;
-        gdcDocumentLine.FieldByName('FromCardKey').AsInteger :=
-          ibsql.FieldByName('cardkey').AsInteger;
-        if (gdcDocumentLine.FindField('tocardkey') <> nil) and
-           gdcDocumentLine.FieldByName('tocardkey').IsNull
-        then
-          gdcDocumentLine.FieldByName('tocardkey').AsInteger :=
-            ibsql.FieldByName('cardkey').AsInteger;
-        if gdcDocumentLine.FindField('remains') <> nil then
+        if gdcDocumentLine.FindField('fromquantity') <> nil then
         begin
-          gdcDocumentLine.FieldByName('remains').ReadOnly := False;
+          gdcDocumentLine.FieldByName('fromquantity').ReadOnly := False;
           try
-            gdcDocumentLine.FieldByName('remains').AsCurrency :=
+            gdcDocumentLine.FieldByName('fromquantity').AsCurrency :=
               ibsql.FieldByName('remains').AsCurrency + DocQuantity;
           finally
-            gdcDocumentLine.FieldByName('remains').ReadOnly := True;
+            gdcDocumentLine.FieldByName('fromquantity').ReadOnly := True;
           end;
-        end
-        else
-          if gdcDocumentLine.FindField('fromquantity') <> nil then
-          begin
-            gdcDocumentLine.FieldByName('fromquantity').ReadOnly := False;
-            try
-              gdcDocumentLine.FieldByName('fromquantity').AsCurrency :=
-                ibsql.FieldByName('remains').AsCurrency + DocQuantity;
-            finally
-              gdcDocumentLine.FieldByName('fromquantity').ReadOnly := True;
-            end;
-          end;
-
-      end
-      else
-      begin
-        if (tcrSource in InvPosition.ipCheckRemains) then
-        begin
-          FInvErrorCode := iecGoodNotFound;
-          raise EgdcInvMovement.Create(Format('По позиции %s возникла cледующая ошибка: %s',
-            [gdcDocumentLine.FieldByName('GOODNAME').AsString,
-            Format(gdcInvErrorMessage[InvErrorCode], [FInvErrorMessage])]));
         end;
+    end
+    else
+    begin
+      if (tcrSource in InvPosition.ipCheckRemains) then
+      begin
+        FInvErrorCode := iecGoodNotFound;
+        raise EgdcInvMovement.Create(Format('По позиции %s возникла cледующая ошибка: %s',
+          [gdcDocumentLine.FieldByName('GOODNAME').AsString,
+          Format(gdcInvErrorMessage[InvErrorCode], [FInvErrorMessage])]));
       end;
-
-      ibsql.Close;
-    finally
-      ibsql.Free;
     end;
+
+    ibsql.Close;
+  finally
+    ibsql.Free;
   end;
 
 {$IFDEF DEBUGMOVE}
   TimeGetRemains := GetTickCount - TimeTmp;
 {$ENDIF}
-
-
 end;
 
 function TgdcInvMovement.SelectGoodFeatures: Boolean;
@@ -4085,7 +4351,7 @@ begin
 {  if RecordCount > 0 then
   begin}
     Close;
-    ExecSingleQuery(Format('update inv_movement set disabled = %d where documentkey = %d',
+    ExecSingleQuery(Format('UPDATE inv_movement SET disabled = %d WHERE documentkey = %d',
       [Integer(not isEnabled), aDocumentKey]));
     Open;
 {  end;}
@@ -4095,7 +4361,7 @@ end;
 function TgdcInvMovement.DeleteEnableMovement(const aDocumentKey: Integer;
   const isEnabled: Boolean): Boolean;
 begin
-  ExecSingleQuery(Format('delete from inv_movement where disabled = %d and documentkey = %d',
+  ExecSingleQuery(Format('DELETE FROM inv_movement WHERE disabled = %d AND documentkey = %d',
       [Integer(not isEnabled), aDocumentKey]));
   Result := True;
 end;
@@ -4461,7 +4727,6 @@ begin
   ibsqlCardList.Close;
   ibsqlCardList.SQL.Text := '';
 end;
-
 
 { TgdcInvBaseRemains }
 
@@ -6763,7 +7028,7 @@ function TgdcInvCard.GetRemainsOnDate(DateEnd: TDateTime;
   IsCurrent: Boolean; const AContactKeys: string): Currency;
 var
   ibsql: TIBSQL;
-  WhereS: String;
+  FromContactStatement, WhereStatement: String;
   i: Integer;
   DataSet: TDataSet;
   Prefix: String;
@@ -6771,36 +7036,6 @@ begin
   ibsql := TIBSQL.Create(Self);
   try
     ibsql.Transaction := ReadTransaction;
-    if isCurrent then
-      ibsql.SQL.Text := 'SELECT SUM(m.balance) as Remains FROM inv_card Z ' +
-        ' LEFT JOIN inv_balance m ON z.id = m.cardkey '
-    else
-      ibsql.SQL.Text := 'SELECT SUM(m.debit - m.credit) as Remains FROM inv_card z ' +
-        ' LEFT JOIN inv_movement m ON z.id = m.cardkey ';
-    if HasSubSet('ByLBRBDepot') then
-      ibsql.SQL.Text := ibsql.SQL.Text + ' LEFT JOIN gd_contact con ON m.contactkey = con.id '
-    else
-      if HasSubSet('ByHolding') then
-        ibsql.SQL.Text := ibsql.SQL.Text + ' LEFT JOIN gd_contact con ON m.contactkey = con.id ' +
-          ' LEFT JOIN gd_contact hold ON con.LB >= hold.LB and con.RB <= hold.RB ';
-
-
-    WhereS := ' WHERE z.goodkey = :goodkey ';
-    if HasSubSet('ByHolding') then
-      WhereS := WhereS + ' AND hold.id IN (SELECT companykey FROM gd_holding) '
-    else
-    begin
-      if HasSubSet('ByLBRBDepot') then
-        WhereS := WhereS + ' AND con.LB >= :LB AND con.RB <= :RB '
-      else if HasSubSet('ByGoodDetail') then begin
-        if AContactKeys <> '' then
-          WhereS := WhereS + ' AND m.contactkey ' + AContactKeys + ' ';
-      end
-      else
-        WhereS := WhereS + ' AND m.contactkey = :contactkey ';
-    end;
-    if not isCurrent then
-      WhereS := WhereS + ' AND m.movementdate <= :dateend AND m.disabled = 0 ';
 
     Prefix := '';
     if Assigned(gdcInvRemains) then
@@ -6814,18 +7049,129 @@ begin
       else
         DataSet := Self;
 
+    // Ограничения на признаки карточки
+    WhereStatement := '';
     if not HasSubSet('ByGoodOnly') then
       for i:= 0 to RemainsFeatures.Count - 1 do
       begin
-        if not DataSet.FieldByName(Prefix + RemainsFeatures[i]).IsNull then
-          WhereS := WhereS + ' AND Z.' + RemainsFeatures[i]  + ' = :' +
-            RemainsFeatures[i]
+        // Если поле INTEGER
+        if DataSet.FieldByName(Prefix + RemainsFeatures[i]).DataType in [ftSmallint, ftBCD, ftInteger, ftLargeInt] then
+          if not DataSet.FieldByName(Prefix + RemainsFeatures[i]).IsNull then
+            WhereStatement := WhereStatement + ' AND (c.' + RemainsFeatures[i]  + ' + 0) = :' + RemainsFeatures[i]
+          else
+            WhereStatement := WhereStatement + ' AND (c.' + RemainsFeatures[i]  + ' + 0) IS NULL '
         else
-          WhereS := WhereS + ' AND Z.' + RemainsFeatures[i]  + ' IS NULL ';
+          if not DataSet.FieldByName(Prefix + RemainsFeatures[i]).IsNull then
+            WhereStatement := WhereStatement + ' AND c.' + RemainsFeatures[i]  + ' = :' + RemainsFeatures[i]
+          else
+            WhereStatement := WhereStatement + ' AND c.' + RemainsFeatures[i]  + ' IS NULL ';
       end;
+    // Дополнительные таблицы для ограничения по контактам
+    FromContactStatement := '';
+    if HasSubSet('ByLBRBDepot') then
+      FromContactStatement :=
+        '  LEFT JOIN gd_contact con ON m.contactkey = con.id '
+    else
+      if HasSubSet('ByHolding') then
+        FromContactStatement :=
+          '  LEFT JOIN gd_contact con ON m.contactkey = con.id ' +
+          '  LEFT JOIN gd_contact hold ON con.LB >= hold.LB and con.RB <= hold.RB ';
+    // Ограничения на контакты
+    if HasSubSet('ByHolding') then
+      WhereStatement := WhereStatement + ' AND hold.id IN (SELECT companykey FROM gd_holding) '
+    else
+    begin
+      if HasSubSet('ByLBRBDepot') then
+        WhereStatement := WhereStatement + ' AND con.LB >= :LB AND con.RB <= :RB '
+      else if HasSubSet('ByGoodDetail') then
+      begin
+        if AContactKeys <> '' then
+          WhereStatement := WhereStatement + ' AND m.contactkey ' + AContactKeys + ' ';
+      end
+      else
+        WhereStatement := WhereStatement + ' AND m.contactkey = :contactkey ';
+    end;
+    // Если сервер Firebird 2.0+, и есть поле GOODKEY в INV_MOVEMENT и INV_BALANCE,
+    //   то будем брать остатки новыми запросами
+    if Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)
+       and Assigned(atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY'))
+       and GlobalStorage.ReadBoolean('Options\Invent', 'UseNewRemainsMethod', False, False) then
+    begin
+      if not isCurrent then
+        ibsql.SQL.Text :=
+          'SELECT' + #13#10 +
+          '  SUM(mm.remains) AS remains' + #13#10 +
+          'FROM' + #13#10 +
+          '  (' + #13#10 +
+          '     SELECT' + #13#10 +
+          '       m.balance' + #13#10
+      else
+         ibsql.SQL.Text :=
+          '     SELECT' + #13#10 +
+          '       SUM(m.balance) AS remains ' + #13#10;
 
-    ibsql.SQL.Text := ibsql.SQL.Text + WhereS;
+      ibsql.SQL.Text := ibsql.SQL.Text +
+        '    FROM' + #13#10 +
+        '       inv_balance m' + #13#10 +
+        '       LEFT JOIN inv_card c ON c.id = m.cardkey' + #13#10 +
+          FromContactStatement + #13#10 +
+        '     WHERE' + #13#10 +
+        '       m.goodkey = :goodkey ' + #13#10 +
+          WhereStatement + #13#10;
 
+      if not isCurrent then
+      begin
+        ibsql.SQL.Text := ibsql.SQL.Text +
+          '     UNION ALL' + #13#10 +
+          ' ' +
+          '     SELECT' + #13#10 +
+          '       - (m.debit - m.credit) AS remains' + #13#10 +
+          '     FROM' + #13#10 +
+          '       inv_movement m' + #13#10 +
+          '       LEFT JOIN inv_card c ON c.id = m.cardkey' + #13#10 +
+            FromContactStatement + #13#10 +
+          '     WHERE' + #13#10 +
+          '      m.movementdate > :movementdate' + #13#10 +
+          '      AND m.goodkey = :goodkey' + #13#10 +
+          '      AND m.disabled = 0' + #13#10 +
+            WhereStatement + #13#10 +
+          '  ) mm';     
+      end;
+    end
+    else
+    begin
+      if isCurrent then
+        ibsql.SQL.Text :=
+          'SELECT ' +
+          '  SUM(m.balance) as Remains ' +
+          'FROM ' +
+          '  inv_card c ' +
+          '  LEFT JOIN inv_balance m ON c.id = m.cardkey '
+      else
+        ibsql.SQL.Text :=
+          'SELECT ' +
+          '  SUM(m.debit - m.credit) as Remains ' +
+          'FROM ' +
+          '  inv_card c ' +
+          '  LEFT JOIN inv_movement m ON c.id = m.cardkey ';
+      if HasSubSet('ByLBRBDepot') then
+        ibsql.SQL.Text := ibsql.SQL.Text +
+          '  LEFT JOIN gd_contact con ON m.contactkey = con.id '
+      else
+        if HasSubSet('ByHolding') then
+          ibsql.SQL.Text := ibsql.SQL.Text +
+            '  LEFT JOIN gd_contact con ON m.contactkey = con.id ' +
+            '  LEFT JOIN gd_contact hold ON con.LB >= hold.LB and con.RB <= hold.RB ';
+
+      ibsql.SQL.Text := ibsql.SQL.Text +
+        'WHERE ' +
+        '  c.goodkey = :goodkey ' + WhereStatement;
+
+      if not isCurrent then
+        ibsql.SQL.Text := ibsql.SQL.Text + ' AND m.movementdate <= :dateend AND m.disabled = 0 ';
+    end;
+
+    // Заполняем параметры ТОВАР и КОНТАКТЫ
     ibsql.ParamByName('goodkey').AsInteger := DataSet.FieldByName('goodkey').AsInteger;
     if HasSubSet('ByLBRBDepot') then
     begin
@@ -6842,10 +7188,10 @@ begin
           ibsql.ParamByName('contactkey').AsInteger := ParamByName('contactkey').AsInteger;
       end;
     end;
-
+    // Заполняем параметр ДАТА
     if not isCurrent then
       ibsql.ParamByName('dateend').AsDateTime := DateEnd;
-
+    // Заполняем параметры ПРИЗНАКИ КАРТОЧКИ
     if not HasSubSet('ByGoodOnly') then
       for i:= 0 to RemainsFeatures.Count - 1 do
       begin
@@ -6862,8 +7208,6 @@ begin
       Result := 0;
 
     ibsql.Close;
-
-
   finally
     ibsql.Free;
   end;
