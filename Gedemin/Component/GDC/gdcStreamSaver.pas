@@ -101,9 +101,6 @@ type
     FDatabase: TIBDatabase;
     FTransaction: TIBTransaction;
 
-    // Осуществлять контроль остатков при загрузке складских документов
-    FControlRemains: Boolean;
-
     // если false, то при добавлении нового объекта не будут создаваться
     //   списки таблиц и ссылок в которых ищем объекты дочерние данному
     FIsSave: Boolean;
@@ -211,8 +208,6 @@ type
 
     property IsSave: Boolean read FIsSave write FIsSave;
     property IsIncrementedStream: Boolean read FIsIncrementedStream write FIsIncrementedStream;
-
-    property ControlRemains: Boolean read FControlRemains write FControlRemains;
   end;
 
   TgdcStreamDataProvider = class(TObject)
@@ -409,8 +404,6 @@ type
     function GetSaveWithDetailList: TgdKeyArray;
     procedure SetDontNeedModifyList(const Value: TgdKeyArray);
     procedure SetSaveWithDetailList(const Value: TgdKeyArray);
-    function GetControlRemains: Boolean;
-    procedure SetControlRemains(const Value: Boolean);
   public
     constructor Create(ADatabase: TIBDatabase = nil; ATransaction: TIBTransaction = nil);
     destructor Destroy; override;
@@ -445,7 +438,6 @@ type
     property Silent: Boolean read GetSilent write SetSilent;
     property Transaction: TIBTransaction read FTransaction write SetTransaction;
     property ReadUserFromStream: Boolean read GetReadUserFromStream write SetReadUserFromStream;
-    property ControlRemains: Boolean read GetControlRemains write SetControlRemains;
     property IsAbortingProcess: Boolean read GetIsAbortingProcess write SetIsAbortingProcess;
     property ReplaceRecordBehaviour: TReplaceRecordBehaviour read GetReplaceRecordBehaviour write SetReplaceRecordBehaviour;
     property StreamLogType: TgsStreamLoggingType read GetStreamLogType write SetStreamLogType;
@@ -679,7 +671,6 @@ begin
 
   FIsSave := True;
   FIsIncrementedStream := False;
-  FControlRemains := True;
 
   FCount := 0;
   FSize := ASize;
@@ -815,9 +806,6 @@ begin
     gdcSetObject := CgdcBase(GetClass(AClassName)).CreateWithParams(nil, FDatabase, FTransaction, ASubType, 'All');
     FObjectList.AddObject(AClassName + '(' + ASubType + ')' + ASetTableName + '=' + IntToStr(FCount), gdcSetObject);
   end;
-  // Если это объект позиции складского документа, установим флаг контроля остатков
-  if Obj.InheritsFrom(TgdcInvDocumentLine) then
-    TgdcInvDocumentLine(Obj).ControlRemains := FControlRemains;
 
   // создаем соответствующий клиент-датасет
   CDS := TClientDataSet.Create(nil);
@@ -6464,22 +6452,6 @@ end;
 procedure TgdcStreamSaver.SetSaveWithDetailList(const Value: TgdKeyArray);
 begin
   FStreamDataProvider.SaveWithDetailList := Value;
-end;
-
-function TgdcStreamSaver.GetControlRemains: Boolean;
-begin
-  if Assigned(FDataObject) then
-    Result := FDataObject.ControlRemains
-  else
-    raise Exception.Create('Не создан объект TgdcStreamDataObject');
-end;
-
-procedure TgdcStreamSaver.SetControlRemains(const Value: Boolean);
-begin
-  if Assigned(FDataObject) then
-    FDataObject.ControlRemains := Value
-  else
-    raise Exception.Create('Не создан объект TgdcStreamDataObject');
 end;
 
 end.
