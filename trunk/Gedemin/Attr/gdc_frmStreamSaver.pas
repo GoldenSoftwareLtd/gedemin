@@ -57,7 +57,6 @@ type
     lblIncremented: TLabel;
     eIncremented: TEdit;
     btnSettings: TButton;
-    cbControlRemains: TCheckBox;
     procedure btnCloseClick(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
     procedure actPrevExecute(Sender: TObject);
@@ -70,7 +69,6 @@ type
     procedure tbsSettingShow(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure actStreamSettingsExecute(Sender: TObject);
-    procedure cbControlRemainsClick(Sender: TObject);
   private
     FgdcObject: TgdcBase;
     FgdcDetailObject: TgdcBase;
@@ -89,7 +87,6 @@ type
     FStreamSettingType: TStreamFileFormat;
     FIncrementSaving: Boolean;
     FReplaceRecordBehaviuor: TReplaceRecordBehaviour;
-    FControlRemains: Boolean;
 
     procedure SetInitialSettings;
 
@@ -255,8 +252,6 @@ begin
         lblSecond.Enabled := true;
         btnNext.Caption := 'Далее >';
       end;
-
-      cbControlRemains.Visible := False;
     end;
 
     ptLoad:
@@ -266,8 +261,6 @@ begin
       lblThird.Caption := '2. Загрузка';
       lblThird.Font.Style := [];
       btnNext.Caption := 'Загрузить';
-
-      cbControlRemains.Visible := True;
     end;
   end;
 
@@ -707,7 +700,6 @@ begin
     S := TFileStream.Create(FFileName, fmOpenRead);
     try
       StreamSaver.Silent := True;
-      StreamSaver.ControlRemains := FControlRemains;
       StreamSaver.ReplaceRecordBehaviour := FReplaceRecordBehaviuor;
       StreamSaver.LoadFromStream(S);
       if StreamSaver.IsAbortingProcess then
@@ -1056,7 +1048,6 @@ begin
       FStreamSettingType := TStreamFileFormat(ReadInteger('Options', 'StreamSettingType', 0));
       FIncrementSaving := ReadBoolean('Options', 'UseIncrementSaving', False);
       FReplaceRecordBehaviuor := TReplaceRecordBehaviour(ReadInteger('Options', 'StreamReplaceRecordBehaviuor', 0));
-      FControlRemains := ReadBoolean('Options', 'ControlRemainsWhileLoadingFromStream', True);
     end;
 
   if FProcessType = ptSave then
@@ -1091,7 +1082,6 @@ begin
   end;
 
   eFileName.Text := FFileName;
-  cbControlRemains.Checked := FControlRemains;
 end;
 
 procedure Tgdc_frmStreamSaver.actStreamSettingsExecute(Sender: TObject);
@@ -1111,11 +1101,6 @@ begin
   btnClose.Enabled := True;
   btnClose.Default := True;
   btnShowLog.Enabled := True;
-end;
-
-procedure Tgdc_frmStreamSaver.cbControlRemainsClick(Sender: TObject);
-begin
-  FControlRemains := cbControlRemains.Checked;
 end;
 
 end.

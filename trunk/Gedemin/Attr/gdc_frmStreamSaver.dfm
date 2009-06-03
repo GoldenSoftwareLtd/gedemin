@@ -5,7 +5,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
   BorderStyle = bsSingle
   Caption = 'Мастер переноса данных'
   ClientHeight = 371
-  ClientWidth = 496
+  ClientWidth = 506
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -21,12 +21,12 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
   object pnlBottom: TPanel
     Left = 0
     Top = 330
-    Width = 496
+    Width = 506
     Height = 41
     Align = alBottom
     TabOrder = 1
     object btnClose: TButton
-      Left = 401
+      Left = 408
       Top = 8
       Width = 85
       Height = 25
@@ -65,7 +65,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 496
+    Width = 506
     Height = 330
     Align = alClient
     BevelOuter = bvNone
@@ -73,7 +73,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
     object pnlTop: TPanel
       Left = 0
       Top = 0
-      Width = 496
+      Width = 506
       Height = 41
       Align = alTop
       TabOrder = 0
@@ -108,7 +108,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
     object PageControl: TPageControl
       Left = 0
       Top = 41
-      Width = 496
+      Width = 506
       Height = 289
       ActivePage = tbsFirst
       Align = alClient
@@ -121,7 +121,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Left = 5
           Top = 0
           Width = 488
-          Height = 169
+          Height = 145
           Caption = ' Свойства  '
           TabOrder = 0
           object lblFileName: TLabel
@@ -204,17 +204,6 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
             ReadOnly = True
             TabOrder = 4
           end
-          object cbControlRemains: TCheckBox
-            Left = 8
-            Top = 142
-            Width = 471
-            Height = 17
-            Caption = 'Осуществлять контроль остатков'
-            Checked = True
-            State = cbChecked
-            TabOrder = 5
-            OnClick = cbControlRemainsClick
-          end
         end
       end
       object tbsSecond: TTabSheet
@@ -235,7 +224,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
         object pnlDatabases: TPanel
           Left = 0
           Top = 21
-          Width = 488
+          Width = 498
           Height = 258
           Align = alBottom
           BevelOuter = bvNone
@@ -314,7 +303,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Caption = '0 / 0'
         end
         object btnShowLog: TButton
-          Left = 348
+          Left = 355
           Top = 251
           Width = 134
           Height = 25
