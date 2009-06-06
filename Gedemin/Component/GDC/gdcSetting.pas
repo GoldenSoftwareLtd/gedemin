@@ -1741,6 +1741,7 @@ begin
       try
         StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
         try
+          StreamSaver.Silent := Self.Silent;
           StreamSaver.ReadUserFromStream := Self.Silent;
           StreamSaver.SaveSettingDataToStream(MS, FieldByName(GetKeyField(SubType)).AsInteger);
           StreamSaver.SaveSettingStorageToStream(StorageStream, FieldByName(GetKeyField(SubType)).AsInteger);
@@ -4122,6 +4123,7 @@ begin
           StreamSaver := TgdcStreamSaver.Create(gdcSetts.Database, gdcSetts.Transaction);
           try
             StreamSaver.Silent := gdcSetts.Silent;
+            StreamSaver.ReadUserFromStream := gdcSetts.Silent;
             StreamSaver.LoadFromStream(MS);
           finally
             StreamSaver.Free;
@@ -4143,6 +4145,7 @@ begin
       StreamSaver := TgdcStreamSaver.Create(gdcSetts.Database, gdcSetts.Transaction);
       try
         StreamSaver.Silent := gdcSetts.Silent;
+        StreamSaver.ReadUserFromStream := gdcSetts.Silent;
         StreamSaver.LoadSettingFromXMLFile(FS);
       finally
         StreamSaver.Free;
@@ -5047,6 +5050,8 @@ begin
 
               StreamSaver := TgdcStreamSaver.Create(InternalTransaction.DefaultDatabase, InternalTransaction);
               try
+                StreamSaver.Silent := DontHideForms;
+                StreamSaver.ReadUserFromStream := DontHideForms;
                 StreamSaver.LoadSettingDataFromStream(DataStream, WasMetaDataInSetting, DontHideForms, AnAnswer);
                 StreamSaver.LoadSettingStorageFromStream(StorageStream, AnStAnswer);
                 // Для логгирования при репликации
