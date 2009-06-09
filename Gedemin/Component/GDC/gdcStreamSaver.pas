@@ -233,7 +233,7 @@ type
     FAnAnswer: Word;
 
     FSaveWithDetailList: TgdKeyArray;
-    FDontNeedModifyList: TgdKeyArray;
+    FNeedModifyList: TgdKeyIntAssoc;
 
     function GetIbsqlRPLRecordSelect: TIBSQL;
     function GetIbsqlRPLRecordInsert: TIBSQL;
@@ -318,7 +318,7 @@ type
     property AnAnswer: Word read FAnAnswer write FAnAnswer;
 
     property SaveWithDetailList: TgdKeyArray read FSaveWithDetailList write FSaveWithDetailList;
-    property DontNeedModifyList: TgdKeyArray read FDontNeedModifyList write FDontNeedModifyList;
+    property NeedModifyList: TgdKeyIntAssoc read FNeedModifyList write FNeedModifyList;
   end;
 
   TgdcStreamWriterReader = class(TObject)
@@ -400,9 +400,9 @@ type
     procedure SetIsAbortingProcess(const Value: Boolean);
     function GetStreamLogType: TgsStreamLoggingType;
     procedure SetStreamLogType(const Value: TgsStreamLoggingType);
-    function GetDontNeedModifyList: TgdKeyArray;
+    function GetNeedModifyList: TgdKeyIntAssoc;
     function GetSaveWithDetailList: TgdKeyArray;
-    procedure SetDontNeedModifyList(const Value: TgdKeyArray);
+    procedure SetNeedModifyList(const Value: TgdKeyIntAssoc);
     procedure SetSaveWithDetailList(const Value: TgdKeyArray);
   public
     constructor Create(ADatabase: TIBDatabase = nil; ATransaction: TIBTransaction = nil);
@@ -443,7 +443,7 @@ type
     property StreamLogType: TgsStreamLoggingType read GetStreamLogType write SetStreamLogType;
 
     property SaveWithDetailList: TgdKeyArray read GetSaveWithDetailList write SetSaveWithDetailList;
-    property DontNeedModifyList: TgdKeyArray read GetDontNeedModifyList write SetDontNeedModifyList;
+    property NeedModifyList: TgdKeyIntAssoc read GetNeedModifyList write SetNeedModifyList;
 
     property ErrorMessageForSetting: WideString read FErrorMessageForSetting;
   end;
@@ -1346,6 +1346,7 @@ var
   XID, DBID: TID;
   C: TgdcFullClass;
   Index: Integer;
+  IndexNeedModifyList: Integer;
 begin
   // При нажатии Escape прервем процесс
   if AbortProcess or ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
@@ -1392,8 +1393,22 @@ begin
   begin
 
     // По умолчанию устанавливаем флаг Перезаписывать из потока в True
-    if Assigned(FDontNeedModifyList) and (FDontNeedModifyList.IndexOf(AID) > -1) then
-      AObject.ModifyFromStream := False
+    if Assigned(FNeedModifyList) then
+    begin
+      // Если нам передан список с значениями флогов, то ищем по нему
+      IndexNeedModifyList := FNeedModifyList.IndexOf(AID);
+      if IndexNeedModifyList > -1 then
+        AObject.ModifyFromStream := (FNeedModifyList.ValuesByIndex[IndexNeedModifyList] = 1)
+      else
+      begin
+        // Если в списке не оказалось нужной позиции, значит она входит в настройку неявно
+        //  если работает репликатор, то установим флаг в False 
+        if SilentMode then
+          AObject.ModifyFromStream := False
+        else
+          AObject.ModifyFromStream := True;
+      end;
+    end
     else
       AObject.ModifyFromStream := True;
 
@@ -2262,8 +2277,9 @@ begin
 
         // удалим проблемный объект из очереди загрузки
         FLoadingOrderList.Remove(SourceKeyInt);
-
-        MessageBox(TargetDS.ParentHandle, PChar(ErrorSt), 'Ошибка', MB_OK or MB_ICONHAND);
+        // во время работы репликатора не будем показавать сообщения
+        if not SilentMode then
+          MessageBox(TargetDS.ParentHandle, PChar(ErrorSt), 'Ошибка', MB_OK or MB_ICONHAND);
 
         AddMistake(#13#10 + ErrorSt + #13#10, clRed);
         AddMistake(#13#10 + E.Message + #13#10, clRed);
@@ -3725,14 +3741,16 @@ begin
         {Пропускаем класс, если он не найден}
         if C = nil then
         begin
-          if (AMissingClassList.IndexOf(LoadClassName) = -1) and (MessageBox(0,
-            PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
-            'Продолжать загрузку?'),
-            'Внимание',
+          if (AMissingClassList.IndexOf(LoadClassName) = -1)
+             and (not SilentMode)
+             and (MessageBox(0, PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
+               'Продолжать загрузку?'),
+               'Внимание',
             MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO) then
           begin
             raise Exception.Create(GetGsException(Self, 'LoadFromStream: Invalid class name'));
-          end else
+          end
+          else
           begin
             AMissingClassList.Add(LoadClassName);
             UnpackedStream.ReadBuffer(ObjDataLen, SizeOf(ObjDataLen));
@@ -3990,12 +4008,13 @@ begin
       if ((AnsiCompareText(st_ds_DFMPath, Path) = 0) or (AnsiCompareText(st_ds_NewFormPath, Path) = 0))
          and (cstValue = '') and (LStorage.FolderExists(Path, False)) then
       begin
-        MessageBox(0,
-          PChar('Ветка хранилища "' + Path + '" уже существует в базе.'#13#10 +
-          'Ее замена содержимым настройки может привести к потере данных.'#13#10 +
-          'Загрузка ветки отменена!'),
-          'Внимание',
-          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        if not SilentMode then
+          MessageBox(0,
+            PChar('Ветка хранилища "' + Path + '" уже существует в базе.'#13#10 +
+            'Ее замена содержимым настройки может привести к потере данных.'#13#10 +
+            'Загрузка ветки отменена!'),
+            'Внимание',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
         NeedLoad := False;
       end
       else
@@ -4007,9 +4026,12 @@ begin
             mrYesToAll: NeedLoad := True;
             mrNoToAll: NeedLoad := False;
           else
-            AnStAnswer := MessageDlg('Форма "' + Path + '\' + cstValue + '" уже настроена.'#13#10 +
-              'Заменить настройки формы? ', mtConfirmation,
-              [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);
+            if not SilentMode then
+              AnStAnswer := MessageDlg('Форма "' + Path + '\' + cstValue + '" уже настроена.'#13#10 +
+                'Заменить настройки формы? ', mtConfirmation,
+                [mbYes, mbYesToAll, mbNo, mbNoToAll], 0)
+            else
+              AnStAnswer := mrYes;
             case AnStAnswer of
               mrYes, mrYesToAll: NeedLoad := True;
             else
@@ -4194,11 +4216,12 @@ begin
           {Пропускаем класс, если он не найден}
           if C = nil then
           begin
-            if (AMissingClassList.IndexOf(LoadClassName) = -1) and (MessageBox(0,
-              PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
-              'Продолжать загрузку?'),
-              'Внимание',
-              MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO) then
+            if (AMissingClassList.IndexOf(LoadClassName) = -1)
+               and (not SilentMode)
+               and (MessageBox(0, PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
+                 'Продолжать загрузку?'),
+                 'Внимание',
+                 MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO) then
             begin
               raise Exception.Create(GetGsException(Self, 'LoadFromStream: Invalid class name'));
             end else
@@ -5126,9 +5149,12 @@ begin
               mrYesToAll: NeedLoad := True;
               mrNoToAll: NeedLoad := False;
             else
-              AnStAnswer := MessageDlg('Форма "' + Path + '\' + ValueName + '" уже настроена.'#13#10 +
-                'Заменить настройки формы? ', mtConfirmation,
-                [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);
+              if not SilentMode then
+                AnStAnswer := MessageDlg('Форма "' + Path + '\' + ValueName + '" уже настроена.'#13#10 +
+                  'Заменить настройки формы? ', mtConfirmation,
+                  [mbYes, mbYesToAll, mbNo, mbNoToAll], 0)
+              else
+                AnStAnswer := mrYes;
               case AnStAnswer of
                 mrYes, mrYesToAll: NeedLoad := True;
               else
@@ -5570,7 +5596,8 @@ procedure TgdcStreamSaver.SaveSettingDataToStream(S: TStream; ASettingKey: TID);
 var
   ibsqlPos: TIBSQL;
   WithDetailList: TgdKeyArray;
-  DontNeedModifyList: TgdKeyArray;
+  NeedModifyList: TgdKeyIntAssoc;
+  IndexNeedModifyList: Integer;
   SaveDetailObjects: Boolean;
   AnID: TID;
   LineObjectID: TID;
@@ -5583,7 +5610,7 @@ begin
 
     ibsqlPos := TIBSQL.Create(nil);
     WithDetailList := TgdKeyArray.Create;
-    DontNeedModifyList := TgdKeyArray.Create;
+    NeedModifyList := TgdKeyIntAssoc.Create;
     try
       PositionsCount := 0;
 
@@ -5604,8 +5631,8 @@ begin
           if ibsqlPos.FieldByName('withdetail').AsInteger = 1 then
             WithDetailList.Add(LineObjectID);
           // Если мы не должны перезаписывать объект данными из потока, то занесем его id в список
-          if ibsqlPos.FieldByName('needmodify').AsInteger = 0 then
-            DontNeedModifyList.Add(LineObjectID);
+          IndexNeedModifyList := NeedModifyList.Add(LineObjectID);
+          NeedModifyList.ValuesByIndex[IndexNeedModifyList] := ibsqlPos.FieldByName('needmodify').AsInteger;
         end
         else
           // Если работает репликатор, то не будем прерывать сохранение настройки
@@ -5619,7 +5646,7 @@ begin
       end;
 
       FStreamDataProvider.SaveWithDetailList := WithDetailList;
-      FStreamDataProvider.DontNeedModifyList := DontNeedModifyList;
+      FStreamDataProvider.NeedModifyList := NeedModifyList;
 
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetupProgress(PositionsCount, 'Формирование настройки...');
@@ -5659,7 +5686,7 @@ begin
         frmStreamSaver.Done;
 
     finally
-      DontNeedModifyList.Free;
+      NeedModifyList.Free;
       WithDetailList.Free;
       ibsqlPos.Free;
     end;
@@ -6207,17 +6234,16 @@ var
   C: TgdcFullClass;
   ObjectIndex: Integer;
   AID: TID;
+  IndexNeedModifyList: Integer;
 begin
   Assert(AgdcObject <> nil, 'AddObject: AgdcObject = nil');
 
   AID := AgdcObject.ID;
-  
-  if not AgdcObject.ModifyFromStream then
+
+  if Assigned(NeedModifyList) and (NeedModifyList.IndexOf(AID) = -1) then
   begin
-    if Assigned(DontNeedModifyList) and (DontNeedModifyList.IndexOf(AID) = -1) then
-    begin
-      DontNeedModifyList.Add(AID, True);
-    end;
+    IndexNeedModifyList := NeedModifyList.Add(AID, True);
+    NeedModifyList.ValuesByIndex[IndexNeedModifyList] := Integer(AgdcObject.ModifyFromStream);
   end;
 
   C := AgdcObject.GetCurrRecordClass;
@@ -6434,9 +6460,9 @@ begin
     StreamLoggingType := Value;
 end;
 
-function TgdcStreamSaver.GetDontNeedModifyList: TgdKeyArray;
+function TgdcStreamSaver.GetNeedModifyList: TgdKeyIntAssoc;
 begin
-  Result := FStreamDataProvider.DontNeedModifyList;
+  Result := FStreamDataProvider.NeedModifyList;
 end;
 
 function TgdcStreamSaver.GetSaveWithDetailList: TgdKeyArray;
@@ -6444,9 +6470,9 @@ begin
   Result := FStreamDataProvider.SaveWithDetailList;
 end;
 
-procedure TgdcStreamSaver.SetDontNeedModifyList(const Value: TgdKeyArray);
+procedure TgdcStreamSaver.SetNeedModifyList(const Value: TgdKeyIntAssoc);
 begin
-  FStreamDataProvider.DontNeedModifyList := Value;
+  FStreamDataProvider.NeedModifyList := Value;
 end;
 
 procedure TgdcStreamSaver.SetSaveWithDetailList(const Value: TgdKeyArray);
