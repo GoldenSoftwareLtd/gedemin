@@ -1008,86 +1008,103 @@ begin
         // —оздание объектов бухгалтерского закрыти€ периода
         FTransaction.StartTransaction;
         try
+          // генератор GD_G_ENTRY_BALANCE_DATE
           FIBSQL.Close;
-          FIBSQL.SQL.Text := cCreateGenerator;
+          FIBSQL.SQL.Text := 'SELECT rdb$generator_name FROM rdb$generators WHERE rdb$generator_name = ''GD_G_ENTRY_BALANCE_DATE'' ';
           FIBSQL.ExecQuery;
-          Log('—оздание триггера GD_G_ENTRY_BALANCE_DATE прошло успешно');
+          if FIBSQL.RecordCount = 0 then
+          begin
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := cCreateGenerator;
+            FIBSQL.ExecQuery;
+            Log('—оздание триггера GD_G_ENTRY_BALANCE_DATE прошло успешно');
+          end;  
 
-          AcEntryBalanceStr := cAC_ENTRY_BALANCETemplate;
-          ibsqlFields := TIBSQL.Create(nil);
-          gdcField := TgdcField.Create(nil);
-          try
-            gdcField.SubSet := 'ByFieldName';
-            ibsqlFields.Transaction := FTransaction;
-            ibsqlFields.ParamCheck := False;
-            ibsqlFields.SQL.Text :=
-              ' SELECT ' +
-              '   r.rdb$field_name AS FieldName, ' +
-              '   r.rdb$field_source AS DomainName ' +
-              ' FROM ' +
-              '   rdb$relation_fields r ' +
-              ' WHERE ' +
-              '   r.rdb$relation_name = ''AC_ENTRY'' ' +
-              '   AND r.rdb$field_name STARTING WITH ''USR$'' ';
-            ibsqlFields.ExecQuery;
-            while not ibsqlFields.Eof do
-            begin
-              gdcField.Close;
-              gdcField.ParamByName('fieldname').AsString := Trim(ibsqlFields.FieldByName('DomainName').AsString);
-              gdcField.Open;
+          // таблица AC_ENTRY_BALANCE
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''AC_ENTRY_BALANCE'' ';
+          FIBSQL.ExecQuery;
+          if FIBSQL.RecordCount = 0 then
+          begin
+            AcEntryBalanceStr := cAC_ENTRY_BALANCETemplate;
+            ibsqlFields := TIBSQL.Create(nil);
+            gdcField := TgdcField.Create(nil);
+            try
+              gdcField.SubSet := 'ByFieldName';
+              ibsqlFields.Transaction := FTransaction;
+              ibsqlFields.ParamCheck := False;
+              ibsqlFields.SQL.Text :=
+                ' SELECT ' +
+                '   r.rdb$field_name AS FieldName, ' +
+                '   r.rdb$field_source AS DomainName ' +
+                ' FROM ' +
+                '   rdb$relation_fields r ' +
+                ' WHERE ' +
+                '   r.rdb$relation_name = ''AC_ENTRY'' ' +
+                '   AND r.rdb$field_name STARTING WITH ''USR$'' ';
+              ibsqlFields.ExecQuery;
+              while not ibsqlFields.Eof do
+              begin
+                gdcField.Close;
+                gdcField.ParamByName('fieldname').AsString := Trim(ibsqlFields.FieldByName('DomainName').AsString);
+                gdcField.Open;
 
-              ACFieldList := ACFieldList + ', ' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
-              NEWFieldList := NEWFieldList + ', NEW.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
-              OLDFieldList := OLDFieldList + ', OLD.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
+                ACFieldList := ACFieldList + ', ' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
+                NEWFieldList := NEWFieldList + ', NEW.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
+                OLDFieldList := OLDFieldList + ', OLD.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
 
-              AcEntryBalanceStr := AcEntryBalanceStr + ', ' +
-                Trim(ibsqlFields.FieldByName('FIELDNAME').AsString) + '  ' +
-                gdcField.GetDomainText(False, True);
+                AcEntryBalanceStr := AcEntryBalanceStr + ', ' +
+                  Trim(ibsqlFields.FieldByName('FIELDNAME').AsString) + '  ' +
+                  gdcField.GetDomainText(False, True);
 
-              ibsqlFields.Next;
+                ibsqlFields.Next;
+              end;
+              AcEntryBalanceStr := AcEntryBalanceStr + ')';
+            finally
+              gdcField.Free;
+              ibsqlFields.Free;
             end;
-            AcEntryBalanceStr := AcEntryBalanceStr + ')';
-          finally
-            gdcField.Free;
-            ibsqlFields.Free;
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := AcEntryBalanceStr;
+            FIBSQL.ExecQuery;
+            Log('—оздание таблицы AC_ENTRY_BALANCE прошло успешно');
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := cBalancePrimaryKey;
+            FIBSQL.ExecQuery;
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := cBalanceForeignKey;
+            FIBSQL.ExecQuery;
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := cBalanceAutoincrementTrigger;
+            FIBSQL.ExecQuery;
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := cBalanceGrant;
+            FIBSQL.ExecQuery;
           end;
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := AcEntryBalanceStr;
-          FIBSQL.ExecQuery;
-          Log('—оздание таблицы AC_ENTRY_BALANCE прошло успешно');
 
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cBalancePrimaryKey;
-          FIBSQL.ExecQuery;
-
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cBalanceForeignKey;
-          FIBSQL.ExecQuery;
-
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cBalanceAutoincrementTrigger;
-          FIBSQL.ExecQuery;
-
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cBalanceGrant;
-          FIBSQL.ExecQuery;
-
+          // процедура AC_ACCOUNTEXSALDO_BAL
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateAc_AccountExSaldo_Bal;
           FIBSQL.ExecQuery;
           FIBSQL.Close;
           FIBSQL.SQL.Text := cAc_AccountExSaldo_BalGrant;
           FIBSQL.ExecQuery;
-          Log('—оздание процедуры AC_ACCOUNTEXSALDO_BAL прошло успешно');
+          Log('—оздание/корректировка процедуры AC_ACCOUNTEXSALDO_BAL прошло успешно');
 
+          // процедура AC_CIRCULATIONLIST_BAL
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateAC_CIRCULATIONLIST_BAL;
           FIBSQL.ExecQuery;
           FIBSQL.Close;
           FIBSQL.SQL.Text := cAC_CIRCULATIONLIST_BALGrant;
           FIBSQL.ExecQuery;
-          Log('—оздание процедуры AC_CIRCULATIONLIST_BAL прошло успешно');
+          Log('—оздание/корректировка процедуры AC_CIRCULATIONLIST_BAL прошло успешно');
 
+          // триггер AC_ENTRY_DO_BALANCE на AC_ENTRY
           ACTriggerText :=
             '  CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry '#13#10 +
             '  ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15 '#13#10 +
@@ -1175,10 +1192,17 @@ begin
           FIBSQL.ExecQuery;
           Log('—оздание триггера дл€ таблицы AC_ENTRY прошло успешно');
 
+          // ѕроверим существование €рлыка "ѕереход на новый мес€ц"
           FIBSQL.Close;
-          FIBSQL.SQL.Text := cInsertCommand;
+          FIBSQL.SQL.Text := 'SELECT id FROM gd_command WHERE id = 714200';
           FIBSQL.ExecQuery;
-          Log('—оздание €рлыка "ѕереход на новый мес€ц" прошло успешно');
+          if FIBSQL.RecordCount = 0 then
+          begin
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := cInsertCommand;
+            FIBSQL.ExecQuery;
+            Log('—оздание €рлыка "ѕереход на новый мес€ц" прошло успешно');
+          end;
 
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
@@ -1223,12 +1247,24 @@ begin
       FTransaction.StartTransaction;
       try
         FIBSQL.Close;
-        FIBSQL.SQL.Text := cAc_AccountExSaldo_BalGrant;
+        FIBSQL.SQL.Text := 'SELECT rdb$procedure_name FROM rdb$procedures WHERE rdb$procedure_name = ''AC_ACCOUNTEXSALDO_BAL''';
         FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount > 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cAc_AccountExSaldo_BalGrant;
+          FIBSQL.ExecQuery;
+        end;
 
         FIBSQL.Close;
-        FIBSQL.SQL.Text := cAc_AccountExSaldo_BalGrant;
+        FIBSQL.SQL.Text := 'SELECT rdb$procedure_name FROM rdb$procedures WHERE rdb$procedure_name = ''AC_CIRCULATIONLIST_BAL''';
         FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount > 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cAC_CIRCULATIONLIST_BALGrant;
+          FIBSQL.ExecQuery;
+        end;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
