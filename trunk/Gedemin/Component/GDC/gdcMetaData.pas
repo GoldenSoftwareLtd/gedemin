@@ -1397,7 +1397,6 @@ function TgdcField.GetDomainText(const WithCharSet: Boolean = True; const OnlyDa
   var
     S, S1: String;
     Stream: TStringStream;
-
   begin
     case dsDomain.FieldByName('ffieldtype').AsInteger of
 
@@ -1407,8 +1406,12 @@ function TgdcField.GetDomainText(const WithCharSet: Boolean = True; const OnlyDa
           Result := 'CHAR'
         else
           Result := 'VARCHAR';
-
-        Result := Format('%s(%s)', [Result, dsDomain.FieldByName('fcharlength').AsString]);
+          
+        // проверяем длину поля (http://tracker.firebirdsql.org/browse/CORE-2228)
+        if dsDomain.FieldByName('fcharlength').AsInteger > 0 then
+          Result := Format('%s(%s)', [Result, dsDomain.FieldByName('fcharlength').AsString])
+        else
+          Result := Format('%s(%s)', [Result, dsDomain.FieldByName('flength').AsString]);
 
         if WithCharSet and (dsDomain.FieldByName('CHARSET').AsString <> '') then
         begin

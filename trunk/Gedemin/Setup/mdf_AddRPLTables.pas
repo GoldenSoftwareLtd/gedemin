@@ -65,141 +65,98 @@ begin
   FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
-    FTransaction.StartTransaction;
     try
       FIBSQL := TIBSQL.Create(nil);
       try
         FIBSQL.Transaction := FTransaction;
         FIBSQL.ParamCheck := False;
 
-        FIBSQL.SQL.Text := CreateDatabaseTableSQL;
+        FTransaction.StartTransaction;
         try
+          // Если таблица RPL_DATABASE не существует
+          FIBSQL.SQL.Text := 'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''RPL_DATABASE'' ';
           FIBSQL.ExecQuery;
-          Log('Таблица RPL_DATABASE добавлена успешно');
+          if FIBSQL.RecordCount = 0 then
+          begin
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := CreateDatabaseTableSQL;
+            FIBSQL.ExecQuery;
+            Log('Таблица RPL_DATABASE добавлена успешно');
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := CreateDatabasePrimaryKey;
+            FIBSQL.ExecQuery;
+            Log('Добавление первичного ключа прошло успешно');
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := CreateDatabaseTrigger;
+            FIBSQL.ExecQuery;
+            Log('Добавление триггера прошло успешно');
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := GrantDatabase;
+            FIBSQL.ExecQuery;
+          end;
+
+          // Если таблица RPL_RECORD не существует
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''RPL_RECORD'' ';
+          FIBSQL.ExecQuery;
+          if FIBSQL.RecordCount = 0 then
+          begin
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := CreateRecordTableSQL;
+            FIBSQL.ExecQuery;
+            Log('Таблица RPL_RECORD добавлена успешно');
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := CreateRecordPrimaryKey;
+            FIBSQL.ExecQuery;
+            Log('Добавление первичного ключа прошло успешно');
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := CreateRecordForeignKey01;
+            FIBSQL.ExecQuery;
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := CreateRecordForeignKey02;
+            FIBSQL.ExecQuery;
+            Log('Добавление ссылок прошло успешно');
+
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := GrantRecord;
+            FIBSQL.ExecQuery;
+          end;
+
           FTransaction.Commit;
         except
           on E: Exception do
           begin
             Log(E.Message);
-            FTransaction.Rollback;
+            if FTransaction.InTransaction then
+              FTransaction.Rollback;
           end;
         end;
 
         FTransaction.StartTransaction;
-        FIBSQL.SQL.Text := CreateDatabasePrimaryKey;
         try
+          // Если в таблице AT_SETTINGPOS еще нет поля AUTOADDED
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            ' SELECT ' +
+            '   rdb$field_name ' +
+            ' FROM ' +
+            '   rdb$relation_fields ' +
+            ' WHERE' +
+            '   rdb$relation_name = ''AT_SETTINGPOS'' ' +
+            '   AND rdb$field_name = ''AUTOADDED'' ';
           FIBSQL.ExecQuery;
-          Log('Добавление первичного ключа прошло успешно');
-          FTransaction.Commit;
-        except
-          on E: Exception do
+          if FIBSQL.RecordCount = 0 then
           begin
-            Log(E.Message);
-            FTransaction.Rollback;
+            FTransaction.StartTransaction;
+            FIBSQL.SQL.Text := AlterATSettingPos;
+            FIBSQL.ExecQuery;
+            Log('Добавление поля AUTOADDED в таблицу AT_SETTINGPOS прошло успешно');
           end;
-        end;
-
-        FTransaction.StartTransaction;
-        FIBSQL.SQL.Text := CreateDatabaseTrigger;
-        try
-          FIBSQL.ExecQuery;
-          Log('Добавление триггера прошло успешно');
-          FTransaction.Commit;
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
-        end;
-
-        FTransaction.StartTransaction;
-        FIBSQL.SQL.Text := GrantDatabase;
-        try
-          FIBSQL.ExecQuery;
-          FTransaction.Commit;
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
-        end;
-
-        FTransaction.StartTransaction;
-        FIBSQL.SQL.Text := CreateRecordTableSQL;
-        try
-          FIBSQL.ExecQuery;
-          Log('Таблица RPL_RECORD добавлена успешно');
-          FTransaction.Commit;
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
-        end;
-
-        FTransaction.StartTransaction;
-        FIBSQL.SQL.Text := CreateRecordPrimaryKey;
-        try
-          FIBSQL.ExecQuery;
-          Log('Добавление первичного ключа прошло успешно');
-          FTransaction.Commit;
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
-        end;
-
-        FTransaction.StartTransaction;
-        FIBSQL.SQL.Text := CreateRecordForeignKey01;
-        try
-          FIBSQL.ExecQuery;
-          Log('Добавление ссылки прошло успешно');
-          FTransaction.Commit;
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
-        end;
-
-        FTransaction.StartTransaction;
-        FIBSQL.SQL.Text := CreateRecordForeignKey02;
-        try
-          FIBSQL.ExecQuery;
-          Log('Добавление ссылки прошло успешно');
-          FTransaction.Commit;
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
-        end;
-
-        FTransaction.StartTransaction;
-        FIBSQL.SQL.Text := GrantRecord;
-        try
-          FIBSQL.ExecQuery;
-          FTransaction.Commit;
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
-        end;
-
-        FTransaction.StartTransaction;
-        FIBSQL.SQL.Text := AlterATSettingPos;
-        try
-          FIBSQL.ExecQuery;
-          Log('Добавление поля AUTOADDED в таблицу AT_SETTINGPOS прошло успешно');
           FTransaction.Commit;
         except
           on E: Exception do
