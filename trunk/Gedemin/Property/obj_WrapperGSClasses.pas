@@ -3557,8 +3557,8 @@ type
     procedure Set_Silent(Value: WordBool); safecall;
     function  Get_SaveWithDetailList: IgsGDKeyArray; safecall;
     procedure Set_SaveWithDetailList(const Value: IgsGDKeyArray); safecall;
-    function  Get_DontNeedModifyList: IgsGDKeyArray; safecall;
-    procedure Set_DontNeedModifyList(const Value: IgsGDKeyArray); safecall;
+    function  Get_NeedModifyList: IgsGDKeyIntAssoc; safecall;
+    procedure Set_NeedModifyList(const Value: IgsGDKeyIntAssoc); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -17271,9 +17271,9 @@ begin
   GetStreamSaver.Silent := Value;
 end;
 
-function TwrpStreamSaver.Get_DontNeedModifyList: IgsGDKeyArray;
+function TwrpStreamSaver.Get_NeedModifyList: IgsGDKeyIntAssoc;
 begin
-  Result := GetGdcOLEObject(GetStreamSaver.DontNeedModifyList) as IgsGDKeyArray;
+  Result := GetGdcOLEObject(GetStreamSaver.NeedModifyList) as IgsGDKeyIntAssoc;
 end;
 
 function TwrpStreamSaver.Get_SaveWithDetailList: IgsGDKeyArray;
@@ -17281,10 +17281,10 @@ begin
   Result := GetGdcOLEObject(GetStreamSaver.SaveWithDetailList) as IgsGDKeyArray;
 end;
 
-procedure TwrpStreamSaver.Set_DontNeedModifyList(
-  const Value: IgsGDKeyArray);
+procedure TwrpStreamSaver.Set_NeedModifyList(
+  const Value: IgsGDKeyIntAssoc);
 begin
-  GetStreamSaver.DontNeedModifyList := InterfaceToObject(Value) as TgdKeyArray;
+  GetStreamSaver.NeedModifyList := InterfaceToObject(Value) as TgdKeyIntAssoc;
 end;
 
 procedure TwrpStreamSaver.Set_SaveWithDetailList(
