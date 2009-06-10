@@ -64,6 +64,7 @@ const
   NFB: TNMSet = ('я', 'и', 'е', 'ю', 'ей', 'е');   { ..ья }
   NFC: TNMSet = ('я', 'и', 'и', 'ю', 'ей', 'и');   { ..ия }
   NFD: TNMSet = ('а', 'и', 'е', 'у', 'ой', 'е');
+  NFE: TNMSet = ('а', 'и', 'е', 'у', 'ей', 'е');   { ..ша }
 
   OMA: TNMSet = ('ий', 'ого', 'ому', 'ого', 'им', 'ом');
   OMB: TNMSet = ('ый', 'ого', 'ому', 'ого', 'ым', 'ом');
@@ -105,6 +106,7 @@ begin
     Exit;
   str2 := Copy(TheWord, Length(TheWord) - 1, 2);
   str3 := Copy(TheWord, Length(TheWord) - 2, 3);
+  str1 := TheWord[Length(TheWord) - 2];
   case Name of
     nmNar: begin                  { Обработка имени нарицательного }
       case Gender of
@@ -169,6 +171,14 @@ begin
         gdFeminine: begin          { Женский род }
           { ..ь, ..а, ..ья, остальные как ..ия }
 //          if TheWord[Length(TheWord)] <> 'ь' then { Не склоняются }
+            if (str2 = 'га') or (str2 = 'ка') then begin
+              Delete(TheWord, Length(TheWord), 1);
+              TheWord := TheWord + NFD[TheCase];
+            end else
+            if str2 = 'ша' then begin
+              Delete(TheWord, Length(TheWord), 1);
+              TheWord := TheWord + NFE[TheCase];
+            end else
             if TheWord[Length(TheWord)] = 'а' then begin
               Delete(TheWord, Length(TheWord), 1);
               TheWord := TheWord + NFA[TheCase];
@@ -196,7 +206,7 @@ begin
           if TheCase <> csNominative then
           begin
             if (str3 = 'нок') or (str3 = 'нек') or (str3 = 'нец') or (str3 = 'пец') or
-              (str3 = 'чок') or (str3 = 'вец') then
+              (str3 = 'чок') or (str3 = 'вец') or (str3 = 'ток') then
               Delete(TheWord, Length (TheWord) - 1, 1);
             if (str3 = 'лец') then
             begin
@@ -205,7 +215,7 @@ begin
             end;
           end;
           { ..ий, ..ый, ..ой, остальные как согласная }
-          if str3 = 'ший' then begin
+          if (str3 = 'ший') or (str3 = 'чий') then begin
             Delete(TheWord, Length(TheWord) - 1, 2);
             TheWord := TheWord + OMF[TheCase];
           end else
@@ -220,6 +230,10 @@ begin
           if str2 = 'ой' then begin
             Delete(TheWord, Length(TheWord) - 1, 2);
             TheWord := TheWord + OMC[TheCase];
+          end else
+          if (str2 = 'ец') and (str1 in gl) then begin
+            Delete(TheWord, Length (TheWord) - 1, 2);
+            TheWord := TheWord + 'йц' + NMF[TheCase];
           end else
           if str2 = 'ай' then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
@@ -355,16 +369,29 @@ end;
 function SetCase(TheWord: String; TheCase, Gender, Name: Word): String;
 var
   str2, str3: String;
+  str1: Char;
 begin
   SetCase := TheWord;
   if TheCase = csNominative then
     Exit;
   str2 := Copy(TheWord, Length(TheWord) - 1, 2);
   str3 := Copy(TheWord, Length(TheWord) - 2, 3);
+  str1 := TheWord[Length(TheWord) - 2];
   Case Name of
     nmNar: begin                  { Обработка имени нарицательного }
       Case Gender of
         gdMasculine: begin         { Мужской род }
+          if TheCase <> csNominative then
+          begin
+            if (str3 = 'нок') or (str3 = 'нек') or (str3 = 'нец') or (str3 = 'пец') or
+              (str3 = 'чок') or (str3 = 'вец') or (str3 = 'ток') then
+              Delete(TheWord, Length (TheWord) - 1, 1);
+            if (str3 = 'лец') then
+            begin
+              Delete(TheWord, Length (TheWord) - 1, 1);
+              Insert('ь', TheWord, Length (TheWord));
+            end;
+          end;
           { ..ий, ..ай, ..ей, ..ел, ..ь, остальные как согласная }
           if str2 = 'ий' then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
@@ -382,7 +409,7 @@ begin
             Delete(TheWord, Length (TheWord) - 1, 2);
             TheWord := TheWord + NMD[TheCase];
           end else
-          if str2 = 'ец' then begin
+          if (str2 = 'ец') and (str1 in gl) then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
             TheWord := TheWord + 'йц' + NMF[TheCase];
           end else
@@ -396,6 +423,14 @@ begin
         gdFeminine: begin          { Женский род }
           { ..ь, ..а, ..ья, остальные как ..ия }
           if TheWord [Length(TheWord)] <> 'ь' then { Не склоняются }
+          if (str2 = 'га') or (str2 = 'ка') then begin
+            Delete(TheWord, Length(TheWord), 1);
+            TheWord := TheWord + NFD[TheCase];
+          end else
+          if str2 = 'ша' then begin
+            Delete(TheWord, Length(TheWord), 1);
+            TheWord := TheWord + NFE[TheCase];
+          end else
           if TheWord [Length(TheWord)] = 'а' then begin
             Delete(TheWord, Length (TheWord), 1);
             TheWord := TheWord + NFA[TheCase];
@@ -415,7 +450,7 @@ begin
       Case Gender of
         gdMasculine: begin         { Мужской род }
           { ..ий, ..ый, ..ой, остальные как согласная }
-          if str3 = 'ший' then begin
+          if (str3 = 'ший') or (str3 = 'чий') then begin
             Delete(TheWord, Length(TheWord) - 1, 2);
             TheWord := TheWord + OMF[TheCase];
           end else
@@ -563,10 +598,10 @@ begin
         Text := Text + NameCase(PartText, TheCase) + ' ' + EndText;
         FEnd := True;
       end else
-        Text := Text + PartText;
+        Text := Text + ' ' + PartText;
 
       //проверим окончание
-      if Pos(' ', EndText) > 0 then
+      if (Pos(' ', EndText) > 0) and (Trim(EndText) <> '') then
       begin
         StartText := TrimLeft(EndText) + ' ';
         Position := Pos(' ', StartText);
