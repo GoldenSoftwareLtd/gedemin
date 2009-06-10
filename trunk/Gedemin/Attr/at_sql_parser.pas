@@ -177,6 +177,7 @@ type
   TsqlStatement = class
   private
     FParser: TsqlParser;
+
     function GetIndent: Integer;
     procedure SetIndent(const Value: Integer);
     function GetSIndent: String;
@@ -192,7 +193,6 @@ type
     constructor Create(AParser: TsqlParser); virtual;
     destructor Destroy; override;
   end;
-
 
   TsqlMath = class(TsqlStatement)
   private
@@ -393,7 +393,12 @@ type
       ...
     end
 }
-  TsqlCase = class(TsqlStatement)
+  TsqlBaseCase = class(TsqlStatement)
+  protected
+    FNeeded, FDone: TElementOptions;
+  end;
+
+  TsqlCase = class(TsqlBaseCase)
   private
     //По условию
     FByCondition: Boolean;
@@ -405,8 +410,6 @@ type
     FWhenStatement: TObjectList;
     //Выражение которое выполняется на else
     FElseStatement: TsqlStatement;
-
-    FNeeded, FDone: TElementOptions;
 
   protected
     procedure ParseStatement; override;
@@ -428,6 +431,28 @@ type
     property Value: TsqlStatement read FValue;
   end;
 
+  TsqlSimpleCase = class(TsqlBaseCase)
+  private
+    FValue: TsqlStatement;
+
+  protected
+    procedure ParseStatement; override;
+    procedure BuildStatement(out sql: String); override;
+
+  public
+    constructor Create(AParser: TsqlParser); override;
+    destructor Destroy; override;
+  end;
+
+  TsqlSearchedCase = class(TsqlBaseCase)
+  protected
+    procedure ParseStatement; override;
+    procedure BuildStatement(out sql: String); override;
+
+  public
+    constructor Create(AParser: TsqlParser); override;
+    destructor Destroy; override;
+  end;
 
   TsqlExpr = class(TsqlStatement)
   private
@@ -908,6 +933,7 @@ type
 
 
 implementation
+
 uses
   gdcBaseInterface;
 
@@ -920,7 +946,7 @@ begin
   with TsqlParser.Create(AnSql) do
   try
     GetTables(FList);
-  finally  
+  finally
     Free;
   end;
 end;
@@ -1003,6 +1029,33 @@ begin
     Result := False
   else
     Result := True;
+end;
+
+function CreateCaseClause(FParser: TsqlParser): TsqlBaseCase;
+begin
+  if (FParser.Token.TokenType <> ttClause) or (FParser.Token.Clause <> cCase) then
+    raise EatParserError.Create('Invalid CASE clause');
+
+  FParser.ReadNext;
+  if FParser.Token.TokenType <> ttSpace then
+    raise EatParserError.Create('Invalid CASE clause');
+
+  FParser.ReadNext;
+  Result := nil;
+
+  case FParser.Token.TokenType of
+    ttClause:
+    begin
+      if FParser.Token.Clause = cWhen then
+        Result := TsqlSearchedCase.Create(FParser);
+    end;
+
+    ttWord, ttSymbolClause:
+      Result := TsqlSimpleCase.Create(FParser);
+  end;
+
+  if Result = nil then
+    raise EatParserError.Create('Invalid CASE clause');
 end;
 
 { TsqlStatement }
@@ -5573,6 +5626,17 @@ begin
             Continue;
           end;
 
+          cUnion:
+          begin
+            FUnion := TsqlUnion.Create(FParser);
+            FUnion.ParseStatement;
+
+            Include(FDone, cUnion);
+            Exclude(FNeeded, cUnion);
+
+            Continue;
+          end; 
+
           cWhere:
           begin
             FWhere := TsqlWhere.Create(FParser);
@@ -5636,6 +5700,13 @@ begin
 
     ReadNext;
   end;
+
+  if (FParser.FToken.TokenType = ttSymbolClause) and
+    (FParser.FToken.SymbolClause = scBracketClose) and
+    FSubSelect then
+  begin
+    FParser.ReadNext;
+  end;  
 end;
 
 procedure TsqlFull.BuildStatement(out sql: String);
@@ -5690,7 +5761,14 @@ begin
   end;
 
   if FSubSelect then
-    sql := sql + ')';  
+  begin
+    if Assigned(FUnion) then
+    begin
+      FUnion.BuildStatement(subsql);
+      sql := sql + #13#10 + subsql;
+    end;
+    sql := sql + ')';
+  end;
 end;
 
 procedure TsqlFull.SetDone(const Value: TClauses);
@@ -7590,6 +7668,541 @@ begin
 
     ReadNext;
   end;
+end;
+
+{ TsqlSimpleCase }
+
+procedure TsqlSimpleCase.BuildStatement(out sql: String);
+begin
+  inherited;
+
+end;
+
+constructor TsqlSimpleCase.Create(AParser: TsqlParser);
+begin
+  inherited;
+
+end;
+
+destructor TsqlSimpleCase.Destroy;
+begin
+  inherited;
+
+end;
+
+procedure TsqlSimpleCase.ParseStatement;
+begin
+end;
+(*
+var
+  St: TsqlStatement;
+  {Счетчик when-конструкций}
+  WhenCount: Integer;
+begin
+  WhenCount := 0;
+  with FParser do
+  while not (Token.TokenType in [ttClear, ttNone]) do
+  begin
+    case FToken.TokenType of
+
+      ttClause:
+      begin
+        case Token.Clause of
+          cCase:
+          begin
+            //Если в нашем выражении уже есть eoCase, значит это вложенный case
+            if eoCase in FDone then
+            begin
+              //Если это конструкция на else
+              if eoElse in FDone then
+              begin
+                if not Assigned(FElseStatement) then
+                begin
+                  FElseStatement := CreateCaseClause(FParser);
+                  FElseStatement.ParseStatement;
+                end else
+                  raise EatParserError.Create('Ошибка в sql-выражении: CASE!');
+              end else
+              //Если это конструкция после then
+              if (eoThen in FDone) and (not(eoThen in FNeeded))
+                and (WhenCount = FWhenStatement.Count + 1) then
+              begin
+                St := CreateCaseClause(FParser);
+                FWhenStatement.Add(St);
+                St.ParseStatement;
+              end else
+              //Если это конструкция как условие when
+              if (eoWhen in FDone) and (WhenCount = FWhenCondStatement.Count + 1)
+                and (not(eoWhen in FNeeded)) then
+              begin
+                St := TsqlCase.Create(FParser);
+                FWhenCondStatement.Add(St);
+                St.ParseStatement;
+              end else
+              //Если это переменная Case
+              if (eoCase in FDone) and (FValue = nil) then
+              begin
+                FValue := TsqlCase.Create(FParser);
+                FValue.ParseStatement;
+              end else
+                raise EatParserError.Create('Ошибка в sql-выражении: CASE!');
+            end else
+            begin
+              Include(FDone, eoCase);
+              Exclude(FNeeded, eoCase);
+            end;
+          end;
+          cWhen:
+          begin
+            if eoThen in FNeeded then
+              raise EatParserError.Create('Ошибка в sql-выражении: WHEN!')
+            else
+            begin
+              Include(FDone, eoWhen);
+              Include(FNeeded, eoThen);
+              Exclude(FNeeded, eoWhen);
+              Inc(WhenCount);
+            end;
+          end;
+          cThen:
+          begin
+            if eoThen in FNeeded then
+            begin
+              Include(FDone, eoThen);
+              Exclude(FNeeded, eoThen);
+              Include(FNeeded, eoWhen);
+            end else
+              raise EatParserError.Create('Ошибка в sql-выражении: THEN!');
+          end;
+
+          cElse:
+          begin
+            if (eoElse in FDone) or (WhenCount = 0) then
+              raise EatParserError.Create('Ошибка в sql-выражении: ELSE!')
+            else
+            begin
+              Include(FDone, eoElse);
+            end;
+          end;
+
+          cEnd:
+          begin
+            ReadNext;
+            Break;
+          end;
+
+          cSum, cAvg, cMax, cMin, cUpper,
+          cCast, cCount, cFirst, cSkip, cExtract, cSubString:
+          begin
+            //Если это конструкция на else
+            if eoElse in FDone then
+            begin
+              if not Assigned(FElseStatement) then
+              begin
+                FElseStatement := TsqlFunction.Create(FParser, True);
+                FElseStatement.ParseStatement;
+              end else
+                raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            end else
+             //Если это конструкция после then
+            if (eoThen in FDone) and not(eoThen in FNeeded)
+              and (WhenCount = FWhenStatement.Count + 1) then
+            begin
+              St := TsqlFunction.Create(FParser, True);
+              FWhenStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это конструкция как условие when
+            if (eoWhen in FDone) and (WhenCount = FWhenCondStatement.Count + 1)
+              and (not(eoWhen in FNeeded)) then
+            begin
+              St := TsqlFunction.Create(FParser, True);
+              FWhenCondStatement.Add(St);
+              St.ParseStatement;
+            end else
+           //Если это переменная Case
+            if (eoCase in FDone) and (FValue = nil) then
+            begin
+              FValue := TsqlFunction.Create(FParser, True);
+              FValue.ParseStatement;
+            end else
+              raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            Continue;
+          end;
+
+          cIn, cIs, cNull, cNot, cExists, cSingular:
+          begin
+            //Если это конструкция на else
+            if eoElse in FDone then
+            begin
+              St := TsqlCondition.Create(FParser);
+              if Assigned(FElseStatement) then
+              begin
+               (St as TsqlCondition).FStatements.Add(FElseStatement);
+              end else
+              FElseStatement := St;
+              FElseStatement.ParseStatement;
+            end else
+            //Если это конструкция после then
+            if (eoThen in FDone) and (not(eoThen in FNeeded))
+              and ((WhenCount = FWhenStatement.Count + 1) or
+                (WhenCount = FWhenStatement.Count))
+            then
+            begin
+              St := TsqlCondition.Create(FParser);
+              if (WhenCount = FWhenStatement.Count) then
+              begin
+               (St as TsqlCondition).FStatements.Add(FWhenStatement.Extract(FWhenStatement[FWhenStatement.Count - 1]));
+              end;
+              FWhenStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это конструкция как условие when
+            if (eoWhen in FDone) and ((WhenCount = FWhenCondStatement.Count + 1)
+              or (WhenCount = FWhenCondStatement.Count))
+              and (not(eoWhen in FNeeded)) then
+            begin
+              St := TsqlCondition.Create(FParser);
+              if (WhenCount = FWhenCondStatement.Count) then
+              begin
+               (St as TsqlCondition).FStatements.Add(FWhenCondStatement.Extract(
+                  FWhenCondStatement[FWhenCondStatement.Count - 1]));
+              end;
+              FWhenCondStatement.Add(St);
+              St.ParseStatement;
+            end else
+           //Если это переменная Case
+            if (eoCase in FDone) then
+            begin
+              St := TsqlCondition.Create(FParser);
+              if Assigned(FValue) then
+              begin
+                (St as TsqlCondition).FStatements.Add(FValue);
+              end else
+              FValue := St;
+              FValue.ParseStatement;
+
+            end else
+              raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            Continue;
+          end;
+
+          else
+            Break;
+        end;
+      end;
+
+      ttSymbolClause:
+      begin
+        case Token.SymbolClause of
+          scBracketOpen:
+          begin
+            //Если это конструкция на else
+            if eoElse in FDone then
+            begin
+              if Assigned(FElseStatement) then
+              begin
+                FreeAndNil(FElseStatement);
+                RollBack;
+                while Token.TokenType = ttSpace do
+                  RollBack;
+              end;
+
+              St := TsqlFunction.Create(FParser, True);
+              FElseStatement := St;
+              FElseStatement.ParseStatement;
+
+            end else
+            //Если это конструкция после then
+            if (eoThen in FDone) and (not(eoThen in FNeeded))
+              and ((WhenCount = FWhenStatement.Count + 1) or
+                (WhenCount = FWhenStatement.Count))
+            then
+            begin
+              if (WhenCount = FWhenStatement.Count) then
+              begin
+                FWhenStatement.Delete(FWhenStatement.Count - 1);
+                RollBack;
+                while Token.TokenType = ttSpace do
+                  RollBack;
+              end;
+              St := TsqlFunction.Create(FParser, True);
+              FWhenStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это конструкция как условие when
+            if (eoWhen in FDone) and ((WhenCount = FWhenCondStatement.Count + 1)
+              or (WhenCount = FWhenCondStatement.Count))
+              and (not(eoWhen in FNeeded)) then
+            begin
+              if (WhenCount = FWhenCondStatement.Count) then
+              begin
+                FWhenCondStatement.Delete(FWhenCondStatement.Count - 1);
+                RollBack;
+                while Token.TokenType = ttSpace do
+                  RollBack;
+              end;
+              St := TsqlFunction.Create(FParser, True);
+              FWhenCondStatement.Add(St);
+              St.ParseStatement;
+            end else
+           //Если это переменная Case
+            if (eoCase in FDone) then
+            begin
+              if Assigned(FValue) then
+              begin
+                FreeAndNil(FValue);
+                RollBack;
+                while Token.TokenType = ttSpace do
+                  RollBack;
+              end;
+              St := TsqlFunction.Create(FParser, True);
+              FValue := St;
+              FValue.ParseStatement;
+
+            end else
+              raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            Continue;
+          end
+
+          else
+            Break;
+          end;
+      end;
+
+      ttWord:
+      begin
+        case Token.TextKind of
+
+          tkUserText:
+          begin
+            //Если это конструкция на else
+            if eoElse in FDone then
+            begin
+              if not Assigned(FElseStatement) then
+              begin
+                FElseStatement := TsqlValue.Create(FParser, True);
+                FElseStatement.ParseStatement;
+              end else
+                raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            end else
+            //Если это конструкция после then
+            if (eoThen in FDone) and not(eoThen in FNeeded)
+              and (WhenCount = FWhenStatement.Count + 1) then
+            begin
+              St := TsqlValue.Create(FParser, True);
+              FWhenStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это конструкция как условие when
+            if (eoWhen in FDone) and (WhenCount = FWhenCondStatement.Count + 1)
+              and (not(eoWhen in FNeeded)) then
+            begin
+              St := TsqlValue.Create(FParser, True);
+              FWhenCondStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это переменная Case
+            if (eoCase in FDone) and (FValue = nil) then
+            begin
+              FValue := TsqlValue.Create(FParser, True);
+              FValue.ParseStatement;
+            end else
+              raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            Continue;              
+          end;
+
+          tkText:
+          begin
+            //Если это конструкция на else
+            if eoElse in FDone then
+            begin
+              if not Assigned(FElseStatement) then
+              begin
+                FElseStatement := TsqlField.Create(FParser, True);
+                FElseStatement.ParseStatement;
+              end else
+                raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            end else
+            //Если это конструкция после then
+              //Если это конструкция после then
+            if (eoThen in FDone) and (not(eoThen in FNeeded))
+              and (WhenCount = FWhenStatement.Count + 1) then
+            begin
+              St := TsqlField.Create(FParser, True);
+              FWhenStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это конструкция как условие when
+            if (eoWhen in FDone) and (WhenCount = FWhenCondStatement.Count + 1)
+              and (not(eoWhen in FNeeded)) then
+            begin
+              St := TsqlField.Create(FParser, True);
+              FWhenCondStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это переменная Case
+            if (eoCase in FDone) and (FValue = nil) then
+            begin
+              FValue := TsqlField.Create(FParser, True);
+              FValue.ParseStatement;
+            end else
+              raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            Continue;
+          end;
+
+          tkMathOp:
+          begin
+            //Если это конструкция на else
+            if eoElse in FDone then
+            begin
+              St := TsqlExpr.Create(FParser, True);
+
+              if Assigned(FElseStatement) then
+              begin
+                (St as TsqlExpr).FExprs.Add(FElseStatement);
+              end;
+              FElseStatement := St;
+              FElseStatement.ParseStatement;
+
+            end else
+            //Если это конструкция после then
+            if (eoThen in FDone) and (not(eoThen in FNeeded))
+              and ((WhenCount = FWhenStatement.Count + 1) or
+                (WhenCount = FWhenStatement.Count))
+            then
+            begin
+              St := TsqlExpr.Create(FParser, True);
+              if (WhenCount = FWhenStatement.Count) then
+              begin
+                (St as TsqlExpr).FExprs.Add(FWhenStatement.Extract(FWhenStatement[FWhenStatement.Count - 1]));
+              end;
+              FWhenStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это конструкция как условие when
+            if (eoWhen in FDone) and ((WhenCount = FWhenCondStatement.Count + 1)
+              or (WhenCount = FWhenCondStatement.Count))
+              and (not(eoWhen in FNeeded)) then
+            begin
+              St := TsqlExpr.Create(FParser, True);
+              if (WhenCount = FWhenCondStatement.Count) then
+              begin
+                (St as TsqlExpr).FExprs.Add(FWhenCondStatement.Extract(
+                  FWhenCondStatement[FWhenCondStatement.Count - 1]));
+              end;
+              FWhenCondStatement.Add(St);
+              St.ParseStatement;
+            end else
+           //Если это переменная Case
+            if (eoCase in FDone) then
+            begin
+              St := TsqlExpr.Create(FParser, True);
+              if Assigned(FValue) then
+              begin
+                (St as TsqlExpr).FExprs.Add(FValue);
+              end;
+              FValue := St;
+              FValue.ParseStatement;
+
+            end else
+              raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            Continue;
+          end;
+
+          tkMath:
+          begin
+            //Если это конструкция на else
+            if eoElse in FDone then
+            begin
+              St := TsqlCondition.Create(FParser);
+              if Assigned(FElseStatement) then
+              begin
+               (St as TsqlCondition).FStatements.Add(FElseStatement);
+              end else
+              FElseStatement := St;
+              FElseStatement.ParseStatement;
+            end else
+            //Если это конструкция после then
+            if (eoThen in FDone) and (not(eoThen in FNeeded))
+              and ((WhenCount = FWhenStatement.Count + 1) or
+                (WhenCount = FWhenStatement.Count))
+            then
+            begin
+              St := TsqlCondition.Create(FParser);
+              if (WhenCount = FWhenStatement.Count) then
+              begin
+               (St as TsqlCondition).FStatements.Add(FWhenStatement.Extract(FWhenStatement[FWhenStatement.Count - 1]));
+              end;
+              FWhenStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это конструкция как условие when
+            if (eoWhen in FDone) and ((WhenCount = FWhenCondStatement.Count + 1)
+              or (WhenCount = FWhenCondStatement.Count))
+              and (not(eoWhen in FNeeded)) then
+            begin
+              St := TsqlCondition.Create(FParser);
+              if (WhenCount = FWhenCondStatement.Count) then
+              begin
+               (St as TsqlCondition).FStatements.Add(FWhenCondStatement.Extract(
+                  FWhenCondStatement[FWhenCondStatement.Count - 1]));
+              end;
+              FWhenCondStatement.Add(St);
+              St.ParseStatement;
+            end else
+           //Если это переменная Case
+            if (eoCase in FDone) then
+            begin
+              St := TsqlCondition.Create(FParser);
+              if Assigned(FValue) then
+              begin
+                (St as TsqlCondition).FStatements.Add(FValue);
+              end else
+              FValue := St;
+              FValue.ParseStatement;
+
+            end else
+              raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            Continue;
+          end;
+
+          else begin
+            Break;
+          end;
+        end;
+      end;
+
+    end;
+    ReadNext;
+  end;
+end;
+*)
+
+{ TsqlSearchedCase }
+
+procedure TsqlSearchedCase.BuildStatement(out sql: String);
+begin
+  inherited;
+
+end;
+
+constructor TsqlSearchedCase.Create(AParser: TsqlParser);
+begin
+  inherited;
+
+end;
+
+destructor TsqlSearchedCase.Destroy;
+begin
+  inherited;
+
+end;
+
+procedure TsqlSearchedCase.ParseStatement;
+begin
+  inherited;
+
 end;
 
 initialization
