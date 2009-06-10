@@ -236,14 +236,15 @@ var
 begin
   if frAcctCompany.CompanyKey = -1 then
   begin
-    MessageBox(Handle,
-      'Выберите организацию в поле "Компания" раздела "Компании холдинга".',
-      'Внимание',
-      MB_OK or MB_ICONHAND or MB_TASKMODAL);
+    if not gdvObject.MakeEmpty then
+      MessageBox(Handle,
+        'Выберите организацию в поле "Компания" раздела "Компании холдинга".',
+        'Внимание',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
   end
   else
   begin
-    if xdeStart.Date > xdeFinish.Date then
+    if (xdeStart.Date > xdeFinish.Date) and not gdvObject.MakeEmpty then
     begin
       MessageBox(Handle,
         'Ошибка при вводе периода построения отчета: дата начала больше даты окончания.',
