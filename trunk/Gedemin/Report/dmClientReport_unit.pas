@@ -991,8 +991,9 @@ begin
   if VarIsNull(D1) then
     raise Exception.Create('В функцию GetSumStr передано значение NULL.');
 
-    if D1 = Integer(D1) then
-      D2 := 0;
+    if VarType(D1) = varInteger then
+      if D1 = Integer(D1) then
+        D2 := 0;
 //  try
     NumberConvert.Value := D1;
     NumberConvert.Precision := D2;
