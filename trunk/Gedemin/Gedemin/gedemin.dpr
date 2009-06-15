@@ -1,3 +1,5 @@
+{$IMAGEBASE $00400000}
+
 program gedemin;
 
 {%ToDo 'gedemin.todo'}
@@ -85,7 +87,6 @@ uses
   gdc_ab_frmmain_unit in '..\AddressBook\gdc_ab_frmmain_unit.pas' {gdc_ab_frmmain},
   gdc_dlgDocumentType_unit in '..\Document\gdc_dlgDocumentType_unit.pas' {gdc_dlgDocumentType},
   obj_WrapperGSClasses in '..\Property\obj_WrapperGSClasses.pas',
-  prp_CopyFunctionRecInfoLine_unit in '..\Property\prp_CopyFunctionRecInfoLine_unit.pas' {CopyFunctionRecInfoLine: TFrame},
   obj_Inherited in '..\Property\obj_Inherited.pas',
   obj_GedeminApplication in '..\Report\obj_GedeminApplication.pas',
   gd_frmOLEMainForm_unit in 'gd_frmOLEMainForm_unit.pas' {frmOLEMainForm},
@@ -267,11 +268,13 @@ uses
   gdc_dlgAcctAccReview_unit in '..\Transaction\gdc_dlgAcctAccReview_unit.pas' {dlgAcctAccReviewConfig},
   gdc_frmAcctAccReview_Unit in '..\Transaction\gdc_frmAcctAccReview_Unit.pas' {gdc_frmAcctAccReview},
   gsIBLookupComboBox_dlgAction in '..\Component\gsIBLookupComboBox_dlgAction.pas' {gsIBLkUp_dlgAction},
+  {$IFDEF DEBUG}
   gdSQLMonitor in '..\Log\gdSQLMonitor.pas',
   gd_frmSQLMonitor_unit in '..\Log\gd_frmSQLMonitor_unit.pas' {gd_frmSQLMonitor},
   gdcSQLStatement in '..\Component\GDC\gdcSQLStatement.pas',
   gdc_frmSQLStatement_unit in '..\Log\gdc_frmSQLStatement_unit.pas' {gdc_frmSQLStatement},
   gdc_dlgSQLStatement_unit in '..\Log\gdc_dlgSQLStatement_unit.pas' {gdc_dlgSQLStatement},
+  {$ENDIF}
   IBSQLCache in '..\IBX\IBSQLCache.pas',
   dlgClassInfo_unit in '..\Property\dlgClassInfo_unit.pas' {dlgClassInfo},
   gdcUserGroup_dlgSetRights_unit in '..\GAdmin\gdcUserGroup_dlgSetRights_unit.pas' {gdcUserGroup_dlgSetRights},
@@ -312,7 +315,7 @@ uses
   , gdv_frmAcctLedger_unit in '..\Obsolete\Transaction\gdv_frmAcctLedger_unit.pas'
   , gdv_frmAcctAccReview_unit in '..\Obsolete\Transaction\gdv_frmAcctAccReview_unit.pas'
   {$ENDIF}
-  {$IFDEF JCL_DEBUG}
+  {$IFDEF DEBUG}
   , ExceptionDialog_unit in '..\Component\ExceptionDialog_unit.pas' {ExceptionDialog}
   {$ENDIF}
   , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring};
