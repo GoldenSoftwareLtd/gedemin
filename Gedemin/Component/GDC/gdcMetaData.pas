@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2009 by Golden Software of Belarus
 
   Module
 
@@ -1406,26 +1406,12 @@ function TgdcField.GetDomainText(const WithCharSet: Boolean = True; const OnlyDa
           Result := 'CHAR'
         else
           Result := 'VARCHAR';
-<<<<<<< .mine
-          
-        // проверяем длину поля (http://tracker.firebirdsql.org/browse/CORE-2228)
-        if dsDomain.FieldByName('fcharlength').AsInteger > 0 then
-          Result := Format('%s(%s)', [Result, dsDomain.FieldByName('fcharlength').AsString])
-        else
-        begin
-          {if not dsDomain.FieldByName('computed_value').IsNull then}
-            Result := Format('%s(%s)', [Result, dsDomain.FieldByName('flength').AsString])
-          {else
-            raise EgdcIBError.Create('Corrupted data for domain ' + dsDomain.FieldByName('fieldname').AsString);}
-        end;
-=======
           
         // проверяем длину поля (http://tracker.firebirdsql.org/browse/CORE-2228)
         if dsDomain.FieldByName('fcharlength').AsInteger > 0 then
           Result := Format('%s(%s)', [Result, dsDomain.FieldByName('fcharlength').AsString])
         else
           Result := Format('%s(%s)', [Result, dsDomain.FieldByName('flength').AsString]);
->>>>>>> .r190
 
         if WithCharSet and (dsDomain.FieldByName('CHARSET').AsString <> '') then
         begin
