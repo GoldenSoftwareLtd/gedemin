@@ -64,7 +64,7 @@ type
     function  ActivateKeyboardLayout(hkl: LongWord; Flags: LongWord): LongWord; safecall;
     function  GetActiveWindow: LongWord; safecall;
     function  GetFocus: LongWord; safecall;
-    function  GetKeyboardLayoutName(const pwszKLID: WideString): WordBool; safecall;
+    function  GetKeyboardLayoutName(var pwszKLID: OleVariant): WordBool; safecall;
     function  GetKeyNameText(lParam: Integer; const lpString: WideString; nSize: Integer): Integer; safecall;
     function  IsWindowEnabled(hWnd: LongWord): WordBool; safecall;
     procedure keybd_event(bVk: Shortint; bScan: Shortint; dwFlags: LongWord; dwExtraInfo: LongWord); safecall;
@@ -152,22 +152,17 @@ uses
 procedure WideStrToPChar(var Dest: PChar; const Source: WideString);
 begin
   if Trim(Source) = '' then
-  begin
-    Dest := nil;
-    Exit;
+    Dest := nil
+  else begin
+    GetMem(Dest, Length(Source) + SizeOf(Char));
+    Dest := StrPCopy(Dest, Source);
   end;
-
-//  New(Dest);
-  GetMem(Dest, Length(Source) + 1);
-  Dest := StrPCopy(Dest, Source);
 end;
 
 procedure FreePChar(var P: PChar);
 begin
   if P <> nil then
-  begin
     Dispose(P);
-  end;
   P := nil;
 end;
 
@@ -638,14 +633,13 @@ begin
   Result := Windows.GetKBCodePage;
 end;
 
-function TgsWinAPI.GetKeyboardLayoutName(
-  const pwszKLID: WideString): WordBool;
+function TgsWinAPI.GetKeyboardLayoutName(var pwszKLID: OleVariant): WordBool;
 var
-  Ch: PChar;
+  Ch: array[0..KL_NAMELENGTH] of Char;
 begin
-  WideStrToPChar(Ch, pwszKLID);
   Result := Windows.GetKeyboardLayoutName(Ch);
-  FreePChar(Ch);
+  if Result then
+    pwszKLID := StrPas(Ch);
 end;
 
 function TgsWinAPI.GetKeyNameText(lParam: Integer;
