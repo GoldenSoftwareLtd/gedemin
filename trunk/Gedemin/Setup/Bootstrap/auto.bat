@@ -4,7 +4,7 @@ setlocal
 
 echo *************************************************
 echo **                                             **
-echo **  Инициализируем глобальные переменные       **
+echo **  ╚эшЎшрышчшЁєхь уыюсры№э√х яхЁхьхээ√х       **
 echo **                                             **
 echo *************************************************
 
@@ -28,7 +28,7 @@ goto CompileGedemin
 
 echo *************************************************
 echo **                                             **
-echo **  Выгружаем настройки из StarTeam            **
+echo **  ┬√уЁєцрхь эрёЄЁющъш шч StarTeam            **
 echo **                                             **
 echo *************************************************
 
@@ -46,7 +46,7 @@ goto Exit
 
 echo *************************************************
 echo **                                             **
-echo **  Компилируем gedemin.exe                    **
+echo **  ╩юьяшышЁєхь gedemin.exe                    **
 echo **                                             **
 echo *************************************************
 
@@ -65,7 +65,7 @@ pause
 
 echo *************************************************
 echo **                                             **
-echo **  Оптимизируем gedemin.exe                   **
+echo **  ╬яЄшьшчшЁєхь gedemin.exe                   **
 echo **                                             **
 echo *************************************************
 
@@ -76,7 +76,7 @@ if not errorlevel 0 goto Error
 
 echo *************************************************
 echo **                                             **
-echo **  Копируем gedemin.exe                       **
+echo **  ╩юяшЁєхь gedemin.exe                       **
 echo **                                             **
 echo *************************************************
 
@@ -84,17 +84,17 @@ copy gedemin.exe %install_source_path%\gedemin.exe /Y
 
 echo *************************************************
 echo **                                             **
-echo **  Делаем инстоляции                          **
+echo **  ─хырхь шэёЄюы Ўшш                          **
 echo **                                             **
 echo *************************************************
 
 echo %~dp0make_install.bat
 
-call %~dp0make_install.bat "%setting_source_path%\Банк\Банк и касса.gsf"                                         plat      doc.jpg     platlocal     plat_setup.rar  "%install_target_path%\Платежные документы\setup.exe" 
-call %~dp0make_install.bat "%setting_source_path%\Общие\Общие данные.gsf"                                        devel     complex.jpg devellocal    devel_setup.rar "%install_target_path%\Разработчик\setup.exe" 
-call %~dp0make_install.bat "%setting_source_path%\Общие\Комплексная_автоматизация.gsf"                           business  complex.jpg businesslocal compl_setup.rar "%install_target_path%\Комплексная автоматизация\setup.exe" 
-call %~dp0make_install.bat "%setting_source_path%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf"     ip        ip.jpg      iplocal       ip_setup.rar    "%install_target_path%\Предприниматель\setup.exe" 
-call %~dp0make_install.bat "%setting_source_path%\Предприниматель\Единый налог\Предприниматель_единый_налог.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar "%install_target_path%\Предприниматель\setup_ed.exe" 
+call %~dp0make_install.bat "%setting_source_path%\┴рэъ\┴рэъ ш ърёёр.gsf"                                         plat      doc.jpg     platlocal     plat_setup.rar  "%install_target_path%\╧ырЄхцэ√х фюъєьхэЄ√\setup.exe" 
+call %~dp0make_install.bat "%setting_source_path%\╬с∙шх\╬с∙шх фрээ√х.gsf"                                        devel     complex.jpg devellocal    devel_setup.rar "%install_target_path%\╨рчЁрсюЄўшъ\setup.exe" 
+call %~dp0make_install.bat "%setting_source_path%\╬с∙шх\╩юьяыхъёэр _ртЄюьрЄшчрЎш .gsf"                           business  complex.jpg businesslocal compl_setup.rar "%install_target_path%\╩юьяыхъёэр  ртЄюьрЄшчрЎш \setup.exe" 
+call %~dp0make_install.bat "%setting_source_path%\╧ЁхфяЁшэшьрЄхы№\╧юфюїюфэ√щ\╧ЁхфяЁшэшьрЄхы№_яюфюїюфэ√щ.gsf"     ip        ip.jpg      iplocal       ip_setup.rar    "%install_target_path%\╧ЁхфяЁшэшьрЄхы№\setup.exe" 
+call %~dp0make_install.bat "%setting_source_path%\╧ЁхфяЁшэшьрЄхы№\┼фшэ√щ эрыюу\╧ЁхфяЁшэшьрЄхы№_хфшэ√щ_эрыюу.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar "%install_target_path%\╧ЁхфяЁшэшьрЄхы№\setup_ed.exe" 
 
 if not errorlevel 0 goto Error
 
@@ -104,7 +104,7 @@ goto Exit
 
 echo *************************************************
 echo **                                             **
-echo **  Произошла ошибка!                          **
+echo **  ╧Ёюшчю°ыр ю°шсър!                          **
 echo **                                             **
 echo *************************************************
 

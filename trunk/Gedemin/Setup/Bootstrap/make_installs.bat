@@ -5,10 +5,10 @@ setlocal
 set spath=d:\golden\setting
 set dpath=\\alex2006\Distrib2\GoldSoft\Gedymin\Local
 
-call make_install "%spath%\Общие\Комплексная_автоматизация.gsf" business complex.jpg busilocal_wo_demo compl_setup.rar "%dpath%\Комплексная автоматизация\setup.exe" N
-call make_install "%spath%\Банк\Банк и касса.gsf" plat doc.jpg platlocal_wo_demo plat_setup.rar "%dpath%\Платежные документы\setup.exe" N
-call make_install "%spath%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf" ip ip.jpg iplocal_wo_demo ip_setup.rar "%dpath%\Предприниматель\setup.exe" N
-call make_install "%spath%\Предприниматель\Единый налог\Предприниматель_единый_налог.gsf" ip ip.jpg iplocal_wo_demo ip_setup_ed.rar "%dpath%\Предприниматель\setup_ed.exe" N
-call make_install "%spath%\Общие\Общие данные.gsf" devel complex.jpg DeveloperLocal devel_setup.rar "%dpath%\Разработчик\setup.exe" N
+call make_install "%spath%\╬с∙шх\╩юьяыхъёэр _ртЄюьрЄшчрЎш .gsf" business complex.jpg busilocal_wo_demo compl_setup.rar "%dpath%\╩юьяыхъёэр  ртЄюьрЄшчрЎш \setup.exe" N
+call make_install "%spath%\┴рэъ\┴рэъ ш ърёёр.gsf" plat doc.jpg platlocal_wo_demo plat_setup.rar "%dpath%\╧ырЄхцэ√х фюъєьхэЄ√\setup.exe" N
+call make_install "%spath%\╧ЁхфяЁшэшьрЄхы№\╧юфюїюфэ√щ\╧ЁхфяЁшэшьрЄхы№_яюфюїюфэ√щ.gsf" ip ip.jpg iplocal_wo_demo ip_setup.rar "%dpath%\╧ЁхфяЁшэшьрЄхы№\setup.exe" N
+call make_install "%spath%\╧ЁхфяЁшэшьрЄхы№\┼фшэ√щ эрыюу\╧ЁхфяЁшэшьрЄхы№_хфшэ√щ_эрыюу.gsf" ip ip.jpg iplocal_wo_demo ip_setup_ed.rar "%dpath%\╧ЁхфяЁшэшьрЄхы№\setup_ed.exe" N
+call make_install "%spath%\╬с∙шх\╬с∙шх фрээ√х.gsf" devel complex.jpg DeveloperLocal devel_setup.rar "%dpath%\╨рчЁрсюЄўшъ\setup.exe" N
 
 endlocal
