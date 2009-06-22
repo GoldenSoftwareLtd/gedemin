@@ -33,7 +33,8 @@ uses
   gsDBTreeView, DBCtrls, gsIBLookupComboBox, StdCtrls, Grids, DBGrids,
   Mask, Buttons, ActnList, IBCustomDataSet,
   gdcBase, gdcContacts, gsIBGrid, Menus, 
-  IBDatabase, gdcTree, TB2Item, TB2Dock, TB2Toolbar, gdc_dlgTR_unit;
+  IBDatabase, gdcTree, TB2Item, TB2Dock, TB2Toolbar, gdc_dlgTR_unit,
+  JvDBImage;
 
 type
   Tgdc_dlgCustomCompany = class(Tgdc_dlgTRPC)
@@ -117,6 +118,15 @@ type
     dbeOKPO: TDBEdit;
     dbeOkulp: TDBEdit;
     Label16: TLabel;
+    tbsLogo: TTabSheet;
+    TBToolbar1: TTBToolbar;
+    JvDBImage: TJvDBImage;
+    actLoadPicture: TAction;
+    TBItem1: TTBItem;
+    actSavePicture: TAction;
+    TBItem2: TTBItem;
+    actDeletePicture: TAction;
+    TBItem3: TTBItem;
     procedure actAddAccountExecute(Sender: TObject);
     procedure actEditAccountExecute(Sender: TObject);
     procedure actDelAccountExecute(Sender: TObject);
@@ -133,6 +143,11 @@ type
     procedure actEditAccountUpdate(Sender: TObject);
     procedure gsiblkupDirectorCreateNewObject(Sender: TObject;
       ANewObject: TgdcBase);
+    procedure actLoadPictureExecute(Sender: TObject);
+    procedure actSavePictureExecute(Sender: TObject);
+    procedure actDeletePictureExecute(Sender: TObject);
+    procedure actSavePictureUpdate(Sender: TObject);
+    procedure actDeletePictureUpdate(Sender: TObject);
 
   protected
     //”казывает необходимо ли отображать страницу
@@ -169,7 +184,8 @@ uses
   gd_keyAssoc,
   gd_ClassList,
   gdcBaseInterface,
-  IBSQL
+  IBSQL,
+  extdlgs
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -778,6 +794,47 @@ begin
   else
     Result := inherited GetChooseSubSet(ARelationName);
 
+end;
+
+procedure Tgdc_dlgCustomCompany.actLoadPictureExecute(Sender: TObject);
+var
+  Opd: TOpenPictureDialog;
+begin
+  Opd := TOpenPictureDialog.Create(nil);
+  try
+    if Opd.Execute then
+      (JvDBImage.Field as TBlobField).LoadFromFile(Opd.FileName);
+  finally
+    Opd.Free;
+  end;
+end;
+
+procedure Tgdc_dlgCustomCompany.actSavePictureExecute(Sender: TObject);
+var
+  Spd: TSavePictureDialog;
+begin
+  Spd := TSavePictureDialog.Create(nil);
+  try
+    if Spd.Execute then
+      (JvDBImage.Field as TBlobField).SaveToFile(Spd.FileName);
+  finally
+    Spd.Free;
+  end;
+end;
+
+procedure Tgdc_dlgCustomCompany.actDeletePictureExecute(Sender: TObject);
+begin
+  dsgdcBase.DataSet.FieldByName('LOGO').Clear;
+end;
+
+procedure Tgdc_dlgCustomCompany.actSavePictureUpdate(Sender: TObject);
+begin
+  actSavePicture.Enabled := not dsgdcBase.DataSet.FieldByName('LOGO').IsNull;
+end;
+
+procedure Tgdc_dlgCustomCompany.actDeletePictureUpdate(Sender: TObject);
+begin
+  actDeletePicture.Enabled := not dsgdcBase.DataSet.FieldByName('LOGO').IsNull;
 end;
 
 initialization

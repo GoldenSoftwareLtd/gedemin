@@ -1313,7 +1313,6 @@ begin
         T := T + '  Настр.: ' + Sender.SettingObj.ObjectName;
     end;
     SList.Add(T);
-    //Added := False;
 
     if OnlyDup then
     begin
