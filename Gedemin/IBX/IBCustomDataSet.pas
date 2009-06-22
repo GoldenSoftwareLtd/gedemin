@@ -7493,7 +7493,7 @@ end;
 constructor TIBDSBlobStream.Create(AField: TField; ABlobStream: TIBBlobStream;
                                     Mode: TBlobStreamMode);
 begin
-  FModified := false;
+  FModified := Mode=bmWrite;
   FField := AField;
   FBlobStream := ABlobStream;
   FBlobStream.Seek(0, soFromBeginning);

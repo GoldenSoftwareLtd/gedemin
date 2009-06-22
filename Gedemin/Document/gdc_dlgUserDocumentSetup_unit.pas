@@ -34,8 +34,7 @@ uses
   gdcBase, Grids, DBGrids, gsDBGrid, gsIBGrid, gsIBLookupComboBox,
   gdc_dlgTR_unit, IBDatabase, gdcCustomTable, gdc_dlgDocumentType_unit,
   gdcAcctTransaction, gdcClasses, gdcFunction, gdcTree, gdcDelphiObject,
-  gdcEvent, Menus, SynEdit, SynMemo, IBSQL, SynEditHighlighter,
-  SynHighlighterVB, gdcCustomFunction;
+  gdcEvent, Menus, IBSQL, gdcCustomFunction;
 
 type
   Tgdc_dlgUserDocumentSetup = class(Tgdc_dlgDocumentType)
