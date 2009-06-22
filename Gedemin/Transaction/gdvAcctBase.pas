@@ -85,6 +85,9 @@ type
     procedure FillCompanyList;
     procedure SetAllHolding(const Value: Boolean);
     procedure SetUseEntryBalance(const Value: Boolean);
+
+    { Уменьшает длину текста запроса путем удаления лишних пробелов и отступов }
+    procedure PackSQL(const S: TStrings);
   protected
     // временные переменные для подсчета времени выполнения
     FAllTickCount: Cardinal;
@@ -310,58 +313,13 @@ begin
   RegisterComponents('gdv', [TgdvAcctBase]);
 end;
 
-procedure PackSQL(const S: TStrings);
-var
-  I, J: Integer;
-  LastSymbol: Char;
-  Str: string;
-const
-  Symbols = ['(', ')', ',', ' ', #13, #10, '<', '>', '=', '-', '+', '''', '/', '*'];
-begin
-  for I := S.Count - 1 downto 0 do
-  begin
-    S[I] := Trim(S[I]);
-    if S[I] = '' then
-      S.Delete(I)
-    else
-    begin
-      LastSymbol := #0;
-      for J := Length(S[I]) downto 1 do
-      begin
-        if (S[I][J] = ' ') and (LastSymbol in Symbols) then
-        begin
-          Str := S[I];
-          Delete(Str, J, 1);
-          S[I] := Str;
-        end else
-          LastSymbol := S[I][J];
-      end;
-
-      J := 1;
-      while J < Length(S[I]) do
-      begin
-        if (S[I][J] = ' ') and (LastSymbol in Symbols) then
-        begin
-          Str := S[I];
-          Delete(Str, J, 1);
-          S[I] := Str;
-        end else
-        begin
-          LastSymbol := S[I][J];
-          Inc(J);
-        end;
-      end;
-    end;
-  end;
-end;
-
 { TgdvAcctBase }
 
 constructor TgdvAcctBase.Create(AOwner: TComponent);
 begin
   inherited;
 
-  FUseEntryBalanceWasSetManually := False; //
+  FUseEntryBalanceWasSetManually := False;
 
   FMakeEmpty := False;
   FDateBegin := Date;
@@ -422,7 +380,10 @@ end;
 
 procedure TgdvAcctBase.DoAfterBuildSQL;
 begin
+  // в дебаге не будем сжимать запрос (путем удаления пробелов и отступов)
+  {$IFNDEF DEBUG}
   PackSQL(Self.SelectSQL);
+  {$ENDIF}
   if Length(Self.SelectSQL.Text) > cMaxSQLLength then
     raise EgsLargeSQLStatement.Create(LargeSQLErrorMessage);
 
@@ -465,24 +426,6 @@ begin
     if SQLText > '' then
       SQLText := SQLText + ', '#13#10;
     SQLText := SQLText + Format('CAST(NULL AS NUMERIC(15, 4)) AS %s', [BaseAcctFieldList[I].FieldName]);
-    {if Assigned(FFieldInfos) then
-    begin
-      FI := FFieldInfos.AddInfo;
-      FI.Caption := BaseAcctFieldList[I].Caption;
-      FI.FieldName := BaseAcctFieldList[I].FieldName;
-      if Pos('NCU_', BaseAcctFieldList[I].FieldName) = 1 then
-      begin
-        FI.DisplayFormat := DisplayFormat(FNcuSumInfo.DecDigits);
-        if FNcuSumInfo.Show
-          FI.Visible := fvVisible;
-      end
-      else
-      begin
-        FI.DisplayFormat := DisplayFormat(FCurrSumInfo.DecDigits);
-        if FCurrSumInfo.Show then
-          FI.Visible := fvVisible;
-      end;
-    end;}
   end;
   SQLText := 'SELECT ' + SQLText + ', CAST(NULL AS VARCHAR(180)) AS NAME FROM rdb$database WHERE RDB$CHARACTER_SET_NAME = ''_''';
 
@@ -1215,6 +1158,51 @@ end;
 class function TgdvAcctBase.ConfigClassName: string;
 begin
   Result := 'TBaseAcctConfigClass';
+end;
+
+procedure TgdvAcctBase.PackSQL(const S: TStrings);
+var
+  I, J: Integer;
+  LastSymbol: Char;
+  Str: string;
+const
+  Symbols = ['(', ')', ',', ' ', #13, #10, '<', '>', '=', '-', '+', '''', '/', '*'];
+begin
+  for I := S.Count - 1 downto 0 do
+  begin
+    S[I] := Trim(S[I]);
+    if S[I] = '' then
+      S.Delete(I)
+    else
+    begin
+      LastSymbol := #0;
+      for J := Length(S[I]) downto 1 do
+      begin
+        if (S[I][J] = ' ') and (LastSymbol in Symbols) then
+        begin
+          Str := S[I];
+          System.Delete(Str, J, 1);
+          S[I] := Str;
+        end else
+          LastSymbol := S[I][J];
+      end;
+
+      J := 1;
+      while J < Length(S[I]) do
+      begin
+        if (S[I][J] = ' ') and (LastSymbol in Symbols) then
+        begin
+          Str := S[I];
+          System.Delete(Str, J, 1);
+          S[I] := Str;
+        end else
+        begin
+          LastSymbol := S[I][J];
+          Inc(J);
+        end;
+      end;
+    end;
+  end;
 end;
 
 { TgdvFieldInfo }

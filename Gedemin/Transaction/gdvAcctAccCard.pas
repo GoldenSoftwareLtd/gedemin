@@ -166,6 +166,11 @@ var
 
       if EntryCondition > '' then
         Result := Result + ' AND ' + EntryCondition;
+    end
+    else
+    begin
+      // Заглушка для скриптов, ранее в запросе обязательно присутствовал параметр :begindate
+      Result := Result + ' AND ((:begindate > CAST(''17.11.1858'' AS DATE)) OR (1 = 1)) ';
     end;
     Result := Result + ') main';
   end;
@@ -256,11 +261,10 @@ begin
           ' AND e.currkey = ' + IntToStr(FCurrkey) + #13#10, '') +
         IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '');
   end;
-
-  if FDateBegin <> FEntryBalanceDate then
-    FIBDSSaldoBegin.ParamByName(BeginDate).AsDateTime := FDateBegin;
+  FIBDSSaldoBegin.ParamByName(BeginDate).AsDateTime := FDateBegin;
   FIBDSSaldoBegin.Open;
 
+  // Перенесем значения в запись FSaldoBegin
   if FIBDSSaldoBegin.RecordCount > 0 then
   begin
     FSaldoBegin.Ncu := FIBDSSaldoBegin.FieldByName('saldo').AsCurrency;
@@ -278,11 +282,10 @@ begin
   begin
     FIBDSSaldoEnd.SelectSQL.Text := FIBDSSaldoBegin.SelectSQL.Text;
   end;
-
-  if (FDateEnd + 1) <> FEntryBalanceDate then
-    FIBDSSaldoEnd.ParamByName(BeginDate).AsDateTime := FDateEnd + 1;
+  FIBDSSaldoEnd.ParamByName(BeginDate).AsDateTime := FDateEnd + 1;
   FIBDSSaldoEnd.Open;
 
+  // Перенесем значения в запись FSaldoEnd
   if FIBDSSaldoEnd.RecordCount > 0 then
   begin
     FSaldoEnd.Ncu := FIBDSSaldoEnd.FieldByName('saldo').AsCurrency;

@@ -67,9 +67,10 @@ type
   end;
 
 const
+  // Кол-во полей по умолчанию входящих в запрос бух. отчета
   AccReviewFieldCount = 11;
   AccReviewQuantityFieldCount = 2;
-
+  // Поля по умолчанию входящие в запрос бух. отчета
   AccReviewFieldList: array[0 .. AccReviewFieldCount - 1] of TgdvFieldInfoRec =(
     (FieldName: 'ALIAS'; Caption: 'Счет'; DisplayFieldName: ''),
     (FieldName: 'CORRALIAS'; Caption: 'Корр. счет'; DisplayFieldName: ''),
@@ -229,11 +230,13 @@ procedure TgdvAcctAccReview.DoBeforeBuildReport;
 begin
   inherited;
 
+  // Если строим отчет с субсчетами, то получим список субсчетов для выбранных главных счетов
   if FWithCorrSubAccounts then
     FillSubAccounts(FCorrAccounts);
 
   if not FMakeEmpty then
   begin
+    // Очистим списки аналитик
     FActualAnalytics.Clear;
     FCorrActualAnalytics.Clear;
 
@@ -326,6 +329,11 @@ var
 
       if EntryCondition > '' then
         Result := Result + ' AND ' + EntryCondition;
+    end
+    else
+    begin
+      // Заглушка для скриптов, ранее в запросе обязательно присутствовал параметр :begindate
+      Result := Result + ' AND ((:begindate > CAST(''17.11.1858'' AS DATE)) OR (1 = 1)) ';
     end;
     Result := Result + ') main '#13#10 +
       ' GROUP BY '#13#10 +
@@ -360,14 +368,14 @@ begin
   // Аналитика
   SQLAnalytics(FActualAnalytics, 'e', ASelect, AFrom, AGroup, '', '');
   SQLAnalytics(FCorrActualAnalytics, 'e1', ACorrSelect, ACorrFrom, ACorrGroup, 'CORR_', 'Кор. ');
-
+  // Список компаний
   CompanyS := ' (e.companykey + 0 IN (' + FCompanyList + '))';
-
+  // Счета
   if FAccounts.Count > 0 then
     AccWhere := 'e.accountkey IN (' + IDList(FAccounts) + ') AND e.accountkey <> 300003 AND '
   else
     AccWhere := ' e.accountkey <> 300003 AND ';
-
+  // Корреспондирующие счета
   if FCorrAccounts.Count > 0 then
   begin
     if FCorrDebit then
@@ -377,7 +385,7 @@ begin
       AccWhere := AccWhere + ' e1.accountkey IN (' + IDList(FCorrAccounts) +
         ') AND e1.accountpart = ''C'' AND ';
   end;
-
+  // Ограничения накладываемые аналитиками
   BalanceCondition := Self.GetCondition('bal');
   EntryCondition := Self.GetCondition('e');
 
@@ -413,9 +421,7 @@ begin
         IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition, '') +
       ' GROUP BY 1';
   end;
-
-  if FDateBegin <> FEntryBalanceDate then
-    FIBDSSaldoBegin.ParamByName('BEGINDATE').AsDateTime := FDateBegin;
+  FIBDSSaldoBegin.ParamByName(BeginDate).AsDateTime := FDateBegin;
   FIBDSSaldoBegin.Open;
 
   while not FIBDSSaldoBegin.Eof do
@@ -436,9 +442,7 @@ begin
   begin
     FIBDSSaldoEnd.SelectSQL.Text := FIBDSSaldoBegin.SelectSQL.Text;
   end;
-
-  if (FDateEnd + 1) <> FEntryBalanceDate then
-    FIBDSSaldoEnd.ParamByName('BEGINDATE').AsDateTime := FDateEnd + 1;
+  FIBDSSaldoEnd.ParamByName(BeginDate).AsDateTime := FDateEnd + 1;
   FIBDSSaldoEnd.Open;
 
   while not FIBDSSaldoEnd.Eof do
@@ -471,10 +475,10 @@ begin
       InternalMovementClause('e') + 
       IIF(EntryCondition <> '', ' AND '#13#10 + EntryCondition + #13#10, '') +
     ' GROUP BY 1 ';
-  FIBDSCirculation.ParamByName('BEGINDATE').AsDateTime := FDateBegin;
-  FIBDSCirculation.ParamByName('ENDDATE').AsDateTime := FDateEnd;  
+  FIBDSCirculation.ParamByName(BeginDate).AsDateTime := FDateBegin;
+  FIBDSCirculation.ParamByName(EndDate).AsDateTime := FDateEnd;  
   FIBDSCirculation.Open;  
-
+  // Основной запрос для анализа счета
   if FUseEntryBalance and (FCorrAccounts.Count = 0) and (FAcctValues.Count = 0) then
   begin
     Self.SelectSQL.Text := Format(
@@ -619,27 +623,6 @@ begin
     if SQLText > '' then
       SQLText := SQLText + ', '#13#10;
     SQLText := SQLText + Format('CAST(NULL AS NUMERIC(15, 4)) AS %s', [AccReviewFieldList[I].FieldName]);
-    {if Assigned(FFieldInfos) then
-    begin
-      FI := FFieldInfos.AddInfo;
-      FI.Caption := AccReviewFieldList[I].Caption;
-      FI.FieldName := AccReviewFieldList[I].FieldName;
-      if Pos('NCU_', AccReviewFieldList[I].FieldName) = 1 then
-      begin
-        FI.DisplayFormat := DisplayFormat(FNcuSumInfo.DecDigits);
-        FI.Visible := FNcuSumInfo.Show;
-      end;
-      if Pos('CURR_', AccReviewFieldList[I].FieldName) = 1 then
-      begin
-        FI.DisplayFormat := DisplayFormat(FCurrSumInfo.DecDigits);
-        FI.Visible := FCurrSumInfo.Show;
-      end;
-      if Pos('EQ_', AccReviewFieldList[I].FieldName) = 1 then
-      begin
-        FI.DisplayFormat := DisplayFormat(FEQSumInfo.DecDigits);
-        FI.Visible := FEQSumInfo.Show;
-      end;
-    end;}
   end;
   SQLText := 'SELECT ' + SQLText + ', CAST(NULL AS VARCHAR(180)) AS NAME FROM rdb$database WHERE RDB$CHARACTER_SET_NAME = ''_''';
 
