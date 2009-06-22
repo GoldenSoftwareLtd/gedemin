@@ -683,7 +683,7 @@ implementation
 uses
   dmDatabase_unit, gdcInvDocument_unit, gdc_frmInvSelectRemains_unit, gdc_frmInvSelectGoodRemains_unit, at_sql_setup,
   gd_security, gdc_frmInvViewRemains_unit, gd_ClassList,
-  gdc_frmInvRemainsOption_unit, gdc_dlgInvRemainsOption_unit,
+  gdc_frmInvRemainsOption_unit, gdc_dlgInvRemainsOption_unit, ComObj,
   gdcInvDocumentCache_unit, gd_resourcestring, gdc_dlgShowMovement_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -1622,7 +1622,8 @@ var
   Quantity, CurQuantity, PerQuantity: Currency;
   CountTempRemains: Integer;
   invTempRemains: array of TinvTempRemains;
-  ibsql: TIBSQL;
+// ibsql: TIBSQL;
+  FSavepoint: String;
 
 function CheckDestContactAndFeature: Boolean;
 begin
@@ -1866,7 +1867,7 @@ begin
 
   // cохраняем поcледний код cформированного раннее движения для возможноcти произвеcти откат
 
-          ibsql := TIBSQL.Create(Self);
+{          ibsql := TIBSQL.Create(Self);
           try
             ibsql.Transaction := ReadTransaction;
             ibsql.SQL.Text := 'SELECT MAX(movementkey) as movementkey FROM inv_movement WHERE documentkey = :documentkey';
@@ -1876,21 +1877,29 @@ begin
             ibsql.Close;
           finally
             ibsql.Free;
+          end;}
+
+          FSavepoint := 'S' + System.Copy(StringReplace(
+            StringReplace(
+              StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
+              '-', '', [rfReplaceAll]), 1, 30);
+          try
+            ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+          except
+            FSavepoint := '';
           end;
+
 
           Quantity := abs(ipQuantity) - abs(Quantity);
 
           Result := MakeMovementLine(Quantity, InvPosition, gdcInvPositionSaveMode) and (InvErrorCode = iecNoErr);
 
           if not Result then
-          begin
+            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
   // Удаляем вновь cформированное движение
-            try
-              Close;
-              ExecSingleQuery('DELETE FROM inv_movement WHERE documentkey = :documentkey and ' +
-                ' movementkey > :movementkey ', VarArrayOf([ipDocumentKey, MovementKey]));
-              Open;
-            except
+//            try
+
+{            except
               if Transaction.InTransaction then
               begin
 
@@ -1907,15 +1916,15 @@ begin
 
                 gdcDocumentLine.MasterSource.DataSet.Close;
                 gdcDocumentLine.MasterSource.DataSet.Open;
-                
+
                 MessageBox(gdcDocumentLine.ParentHandle,
                   PChar(s_InvErrorSaveMovement),
                   PChar(sAttention), mb_Ok or mb_IconInformation);
 
               end;
             end;
-          end;
-
+          end;}
+          ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
         end;
       end
       else
@@ -1924,51 +1933,27 @@ begin
         begin
           Quantity := -ipQuantity;
 
+          FSavepoint := 'S' + System.Copy(StringReplace(
+          StringReplace(
+            StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
+            '-', '', [rfReplaceAll]), 1, 30);
+          ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+
           try
-            SetEnableMovement(ipDocumentKey, False);
+            DeleteEnableMovement(ipDocumentKey, False);
+            Result := True;
           except
             FInvErrorCode := iecDontDisableMovement;
             Result := False;
-            exit;
           end;
 
-
-          Result := MakeMovementLine(Quantity, InvPosition, gdcInvPositionSaveMode) and (InvErrorCode = iecNoErr);
+          if Result then
+            Result := MakeMovementLine(Quantity, InvPosition, gdcInvPositionSaveMode) and (InvErrorCode = iecNoErr);
 
           if not Result then
-          begin
-  // Удаляем вновь cформированное движение
-            try
-              DeleteEnableMovement(ipDocumentKey, True);
-              SetEnableMovement(ipDocumentKey, True);
-            except
-              if Transaction.InTransaction then
-              begin
+            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
 
-                if gdcDocumentLine.State in [dsEdit, dsInsert] then
-                  gdcDocumentLine.Cancel;
-
-                if Assigned(gdcDocumentLine.MasterSource) and Assigned(gdcDocumentLine.MasterSource.DataSet) and
-                   (gdcDocumentLine.MasterSource.DataSet.State in [dsEdit, dsInsert])
-                then
-                  gdcDocumentLine.MasterSource.DataSet.Cancel;
-
-                Transaction.Rollback;
-                Transaction.StartTransaction;
-
-                gdcDocumentLine.MasterSource.DataSet.Close;
-                gdcDocumentLine.MasterSource.DataSet.Open;
-                
-                MessageBox(gdcDocumentLine.ParentHandle,
-                  PChar(s_InvErrorSaveMovement),
-                  PChar(sAttention), mb_Ok or mb_IconInformation);
-
-              end;
-            end;
-          end
-          else
-            DeleteEnableMovement(ipDocumentKey, False);
-
+          ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
         end
         else
         begin
@@ -1999,49 +1984,28 @@ begin
 
             Quantity := -ipQuantity;
 
+            FSavepoint := 'S' + System.Copy(StringReplace(
+            StringReplace(
+              StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
+              '-', '', [rfReplaceAll]), 1, 30);
+            ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+
+
             try
-              SetEnableMovement(ipDocumentKey, False);
+              DeleteEnableMovement(ipDocumentKey, False);
+              Result := True;
             except
               FInvErrorCode := iecDontDisableMovement;
               Result := False;
-              exit;
             end;
 
-            Result := MakeMovementLine(Quantity, InvPosition, gdcInvPositionSaveMode) and (InvErrorCode = iecNoErr);
+            if Result then
+              Result := MakeMovementLine(Quantity, InvPosition, gdcInvPositionSaveMode) and (InvErrorCode = iecNoErr);
 
             if not Result then
-            begin
-    // Удаляем вновь cформированное движение
-              try
-                DeleteEnableMovement(ipDocumentKey, True);
-                SetEnableMovement(ipDocumentKey, True);
-              except
-                if Transaction.InTransaction then
-                begin
+              ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
 
-                  if gdcDocumentLine.State in [dsEdit, dsInsert] then
-                    gdcDocumentLine.Cancel;
-
-                  if Assigned(gdcDocumentLine.MasterSource) and Assigned(gdcDocumentLine.MasterSource.DataSet) and
-                     (gdcDocumentLine.MasterSource.DataSet.State in [dsEdit, dsInsert])
-                  then
-                    gdcDocumentLine.MasterSource.DataSet.Cancel;
-
-                  Transaction.Rollback;
-                  Transaction.StartTransaction;
-
-                  gdcDocumentLine.MasterSource.DataSet.Close;
-                  gdcDocumentLine.MasterSource.DataSet.Open;
-                  
-                  MessageBox(gdcDocumentLine.ParentHandle,
-                  PChar(s_InvErrorSaveMovement),
-                  PChar(sAttention), mb_Ok or mb_IconInformation);
-
-                end;
-              end;
-            end
-            else
-              DeleteEnableMovement(ipDocumentKey, False);
+            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
 
           end;
         end;
@@ -2461,6 +2425,7 @@ var
   ChangeMove: TgdcChangeMovements;
   MovementKey: Integer;
   ChangedField: TStringList;
+  FSavePoint: String;
   isEdit: Boolean;
 {$IFDEF DEBUGMOVE}
   TimeTmp: LongWord;
@@ -2720,42 +2685,26 @@ begin
                  (cmSourceFeature in ChangeMove) )
         then
         begin
+          FSavepoint := 'S' + System.Copy(StringReplace(
+            StringReplace(
+              StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
+               '-', '', [rfReplaceAll]), 1, 30);
+          ExecSingleQuery('SAVEPOINT ' + FSavepoint);
           try
             {$IFDEF DEBUG}
             {ShowMessage('EditMovement');}
             {$ENDIF}
+
             Result := EditMovement(ChangeMove, InvPosition, gdcInvPositionSaveMode);
             if Result and (cmDate in ChangeMove) then
               Result := EditDateMovement(invPosition, gdcInvPositionSaveMode);
           except
-            on E: Exception do
-            begin
-              Result := True;
-              if Transaction.InTransaction then
-              begin
-
-                if gdcDocumentLine.State in [dsEdit, dsInsert] then
-                  gdcDocumentLine.Cancel;
-
-                if Assigned(gdcDocumentLine.MasterSource) and Assigned(gdcDocumentLine.MasterSource.DataSet) and
-                   (gdcDocumentLine.MasterSource.DataSet.State in [dsEdit, dsInsert])
-                then
-                  gdcDocumentLine.MasterSource.DataSet.Cancel;
-
-                Transaction.Rollback;
-                Transaction.StartTransaction;
-
-                gdcDocumentLine.MasterSource.DataSet.Refresh;
-                gdcDocumentLine.Close;
-                gdcDocumentLine.Open;
-  //              gdcDocumentLine.MasterSource.DataSet.Open;
-                MessageBox(gdcDocumentLine.ParentHandle,
-                  PChar(Format(s_InvFullErrorSaveMovement, [E.Message])),
-                  PChar(sAttention), mb_Ok or mb_IconInformation);
-
-              end;
-            end;
+            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+            FInvErrorCode := iecOtherIBError;
+            Result := False;
           end;
+          ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+
           exit;
         end
         else
@@ -3644,7 +3593,7 @@ begin
 
   if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
     AdditionalFeatureClause := AdditionalFeatureClause +
-      ' AND c.companykey + 0 = ' + gdcDocumentLine.FieldByName('companykey').AsString;
+      ' AND c.companykey + 0 = ' + IntToStr(gdcDocumentLine.FieldByName('companykey').AsInteger);
 
   // Если нужны неотрицательные и не текущие остатки
   if not CurrentRemains and not InvPosition.ipMinusRemains then
@@ -3736,7 +3685,7 @@ begin
           '    AND m.documentkey <> :documentkey' + #13#10 +
           '    AND m.disabled = 0';
     if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
-      S := S + ' AND c.companykey + 0 = ' + gdcDocumentLine.FieldByName('companykey').AsString;
+      S := S + ' AND c.companykey + 0 = ' + IntToStr(gdcDocumentLine.FieldByName('companykey').AsInteger);
   end
   else
   begin
@@ -3765,7 +3714,7 @@ begin
           '    AND b.contactkey = :contactkey' +
           #13#10;
     if (gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey then
-      S := S + ' AND c.companykey + 0 = ' + gdcDocumentLine.FieldByName('companykey').AsString;
+      S := S + ' AND c.companykey + 0 = ' + IntToStr(gdcDocumentLine.FieldByName('companykey').AsInteger);
   end;
 
   for i:= Low(InvPosition.ipInvSourceCardFeatures) to High(InvPosition.ipInvSourceCardFeatures) do
