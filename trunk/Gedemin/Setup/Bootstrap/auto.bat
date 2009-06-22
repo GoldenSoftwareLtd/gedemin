@@ -4,38 +4,31 @@ setlocal
 
 echo *************************************************
 echo **                                             **
-echo **  ╚эшЎшрышчшЁєхь уыюсры№э√х яхЁхьхээ√х       **
+echo **  Инициализируем глобальные переменные       **
 echo **                                             **
 echo *************************************************
 
-set path=c:\program files\StarBase\StarTeam 5.3
-set path=%path%;c:\program files\Firebird 2.5\bin
-set path=%path%;c:\Program Files\Borland\Delphi5\Bin
-set path=%path%;C:\Program Files\WinRar
-set path=%path%;c:\windows;c:\windows\system32;c:\windows\System32\Wbem
+set path=c:\program files\firebird 2.5\bin;C:\Program Files\Borland\Delphi5\Bin;c:\program files\StarBase\StarTeam 5.3;c:\windows;c:\windows\system32;c:\windows\System32\Wbem
 
 set gedemin_path=..\..
-set install_source_path=..\..\..\gedemin_local
-set setting_source_path=..\..\..\setting
-set install_target_path=g:\Distrib2\GoldSoft\Gedymin\Local
-
-set starteam_connect=Andreik:1@india:49201
+set install_source_path=..\..\..\gedemin_local_fb
+set setting_source_path=d:\golden\setting
+rem set install_target_path=\Distrib2\GoldSoft\Gedymin\Local
+set install_target_path=\distr_temp
 
 set exit_code=0
 set exit_message=0
 
-goto CompileGedemin
-
 echo *************************************************
 echo **                                             **
-echo **  ┬√уЁєцрхь эрёЄЁющъш шч StarTeam            **
+echo **  Выгружаем настройки из StarTeam            **
 echo **                                             **
 echo *************************************************
 
-stcmd co -p "%starteam_connect%/Setting" -is -x -stop -f NCO -nologo -q
-stcmd co -p "%starteam_connect%/Comp5"   -is -x -stop -f NCO -nologo -q
-stcmd co -p "%starteam_connect%/Gedemin" -is -x -stop -f NCO -nologo -q
+set starteam_path=c:\program files\StarBase\StarTeam 5.3
+set starteam_connect=Andreik:1@india:49201
 
+"%starteam_path%\stcmd.exe" co -p "%starteam_connect%/Setting" -is -x -stop -f NCO -nologo -q
 if errorlevel 0 goto CompileGedemin
 
 set exit_code=100
@@ -46,55 +39,36 @@ goto Exit
 
 echo *************************************************
 echo **                                             **
-echo **  ╩юьяшышЁєхь gedemin.exe                    **
+echo **  Компилируем gedemin.exe                    **
 echo **                                             **
 echo *************************************************
 
+cd ..\..\exe
+call update_gedemin.bat /no_ftp
+cd ..\setup\bootstrap
 
-dcc32 -b %gedemin_path%\gedemin\gedemin.dpr 
-
-if errorlevel 0 goto OptimizeGedemin
-
-set exit_code=101
-set exit_message="Can not compile gedemin.exe"
-goto Exit
-
-:OptimizeGedemin
-
-pause
-
-echo *************************************************
-echo **                                             **
-echo **  ╬яЄшьшчшЁєхь gedemin.exe                   **
-echo **                                             **
-echo *************************************************
-
-z:
-cd \
-stripreloc gedemin.exe
 if not errorlevel 0 goto Error
 
 echo *************************************************
 echo **                                             **
-echo **  ╩юяшЁєхь gedemin.exe                       **
+echo **  Копируем gedemin.exe                       **
 echo **                                             **
 echo *************************************************
 
-copy gedemin.exe %install_source_path%\gedemin.exe /Y
+copy ..\..\exe\gedemin.exe %install_source_path%\gedemin.exe /Y
+if not errorlevel 0 goto Error
 
 echo *************************************************
 echo **                                             **
-echo **  ─хырхь шэёЄюы Ўшш                          **
+echo **  Делаем инстоляции                          **
 echo **                                             **
 echo *************************************************
 
-echo %~dp0make_install.bat
-
-call %~dp0make_install.bat "%setting_source_path%\┴рэъ\┴рэъ ш ърёёр.gsf"                                         plat      doc.jpg     platlocal     plat_setup.rar  "%install_target_path%\╧ырЄхцэ√х фюъєьхэЄ√\setup.exe" 
-call %~dp0make_install.bat "%setting_source_path%\╬с∙шх\╬с∙шх фрээ√х.gsf"                                        devel     complex.jpg devellocal    devel_setup.rar "%install_target_path%\╨рчЁрсюЄўшъ\setup.exe" 
-call %~dp0make_install.bat "%setting_source_path%\╬с∙шх\╩юьяыхъёэр _ртЄюьрЄшчрЎш .gsf"                           business  complex.jpg businesslocal compl_setup.rar "%install_target_path%\╩юьяыхъёэр  ртЄюьрЄшчрЎш \setup.exe" 
-call %~dp0make_install.bat "%setting_source_path%\╧ЁхфяЁшэшьрЄхы№\╧юфюїюфэ√щ\╧ЁхфяЁшэшьрЄхы№_яюфюїюфэ√щ.gsf"     ip        ip.jpg      iplocal       ip_setup.rar    "%install_target_path%\╧ЁхфяЁшэшьрЄхы№\setup.exe" 
-call %~dp0make_install.bat "%setting_source_path%\╧ЁхфяЁшэшьрЄхы№\┼фшэ√щ эрыюу\╧ЁхфяЁшэшьрЄхы№_хфшэ√щ_эрыюу.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar "%install_target_path%\╧ЁхфяЁшэшьрЄхы№\setup_ed.exe" 
+call make_install.bat "%setting_source_path%\Банк\Банк и касса.gsf"                                         plat      doc.jpg     platlocal     plat_setup.rar  "%install_target_path%\Платежные документы\setup.exe" 
+call make_install.bat "%setting_source_path%\Общие\Общие данные.gsf"                                        devel     complex.jpg devellocal    devel_setup.rar "%install_target_path%\Разработчик\setup.exe" 
+call make_install.bat "%setting_source_path%\Общие\Комплексная_автоматизация.gsf"                           business  complex.jpg businesslocal compl_setup.rar "%install_target_path%\Комплексная автоматизация\setup.exe" 
+call make_install.bat "%setting_source_path%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf"     ip        ip.jpg      iplocal       ip_setup.rar    "%install_target_path%\Предприниматель\setup.exe" 
+call make_install.bat "%setting_source_path%\Предприниматель\Единый налог\Предприниматель_единый_налог.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar "%install_target_path%\Предприниматель\setup_ed.exe" 
 
 if not errorlevel 0 goto Error
 
@@ -104,13 +78,12 @@ goto Exit
 
 echo *************************************************
 echo **                                             **
-echo **  ╧Ёюшчю°ыр ю°шсър!                          **
+echo **  Произошла ошибка!                          **
 echo **                                             **
 echo *************************************************
 
 set exit_code=200
 set exit_message="Unknown error"
-
 goto Exit
 
 :Exit
