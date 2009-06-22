@@ -5128,7 +5128,7 @@ begin
             ibquery.ParamByName('ID').AsString := SettingList[StNumber];
             ibquery.ExecQuery;
 
-            if StrIPos('/sfn ', CmdLine) = 0 then
+            if not FindCmdLineSwitch ('sfn ', ['/', '-'], True) then
             begin
               J := MAX_COMPUTERNAME_LENGTH + 1;
               if GetComputerName(@TempPath, J) then

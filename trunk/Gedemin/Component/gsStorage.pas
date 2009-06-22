@@ -2404,6 +2404,7 @@ procedure TgsUserStorage.SaveToDataBase;
 var
   Transaction: TIBTransaction;
   q: TIBSQL;
+  F: Integer;
 begin
   if FUserKey = -1 then
     exit;
@@ -2415,65 +2416,85 @@ begin
 
   if IsModified then
   begin
-    q := TIBSQL.Create(nil);
-    Transaction := TIBTransaction.Create(nil);
-    try
-      Transaction.DefaultDatabase := IBLogin.Database;
-      q.Transaction := Transaction;
-      Transaction.StartTransaction;
-
-      q.SQL.Text := 'SELECT userkey FROM gd_userstorage WHERE userkey = :userkey';
-      q.ParamByName('userkey').AsInteger := FUserKey;
-      q.ExecQuery;
-
-      if not q.EOF then
-      begin
-        q.Close;
-        q.SQL.Text :=
-          'UPDATE gd_userstorage SET data = :data, modified = ''NOW'' WHERE userkey = :userkey';
-      end else
-      begin
-        q.Close;
-        q.SQL.Text :=
-          'INSERT INTO gd_userstorage (userkey, data, modified) VALUES(:userkey, :data, ''NOW'')';
-      end;
-
-      q.ParamByName('userkey').AsInteger := FUserKey;
-      q.ParamByName('data').AsString := DataString;
+    F := 5;
+    repeat
+      q := TIBSQL.Create(nil);
+      Transaction := TIBTransaction.Create(nil);
       try
-        q.ExecQuery;
-        Transaction.Commit;
-
+        Transaction.DefaultDatabase := IBLogin.Database;
+        q.Transaction := Transaction;
         Transaction.StartTransaction;
-        q.SQL.Text :=
-          'SELECT modified FROM gd_userstorage WHERE userkey = :userkey';
+
+        q.SQL.Text := 'SELECT userkey FROM gd_userstorage WHERE userkey = :userkey';
         q.ParamByName('userkey').AsInteger := FUserKey;
         q.ExecQuery;
 
-        FLastModified := q.Fields[0].AsDateTime;
-        FModified := False;
-        FExist := True;
-
-        q.Close;
-        Transaction.Commit;
-
-        SaveToCache;
-      except
-        on E:Exception do
+        if not q.EOF then
         begin
-          MessageBox(0,
-            PCHar('Произошла ошибка при сохранении пользовательского хранилища для UserKey=' + IntToStr(FUserKey) + '.' +
-            #13#10 + #13#10 +
-            'Сообщение об ошибке: ' + E.Message),
-            'Внимание',
-            MB_TASKMODAL or MB_OK or MB_ICONHAND);
+          q.Close;
+          q.SQL.Text :=
+            'UPDATE gd_userstorage SET data = :data, modified = ''NOW'' WHERE userkey = :userkey';
+        end else
+        begin
+          q.Close;
+          q.SQL.Text :=
+            'INSERT INTO gd_userstorage (userkey, data, modified) VALUES(:userkey, :data, ''NOW'')';
         end;
-      end;
 
-    finally
-      q.Free;
-      Transaction.Free;
-    end;
+        try
+          q.ParamByName('userkey').AsInteger := FUserKey;
+          q.ParamByName('data').AsString := DataString;
+
+          try
+            q.ExecQuery;
+            Transaction.Commit;
+
+            Transaction.StartTransaction;
+            q.SQL.Text :=
+              'SELECT modified FROM gd_userstorage WHERE userkey = :userkey';
+            q.ParamByName('userkey').AsInteger := FUserKey;
+            q.ExecQuery;
+
+            FLastModified := q.Fields[0].AsDateTime;
+            FModified := False;
+            FExist := True;
+
+            q.Close;
+            Transaction.Commit;
+            F := 0;
+
+            SaveToCache;
+          except
+            on E: EIBError do
+            begin
+              if E.IBErrorCode = isc_deadlock then
+              begin
+                if Transaction.InTransaction then
+                  Transaction.Rollback;
+                Dec(F);
+                Sleep(1000);
+              end else
+                raise;
+            end else
+              raise;
+          end;
+        except
+          on E: Exception do
+          begin
+            MessageBox(0,
+              PCHar('Произошла ошибка при сохранении пользовательского хранилища для UserKey=' + IntToStr(FUserKey) + '.' +
+              #13#10 + #13#10 +
+              'Сообщение об ошибке: ' + E.Message),
+              'Внимание',
+              MB_TASKMODAL or MB_OK or MB_ICONHAND);
+          end;
+        end;
+
+      finally
+        q.Free;
+        Transaction.Free;
+      end;
+    until F = 0;
 
     if FModified then
       FLastChecked := 0;

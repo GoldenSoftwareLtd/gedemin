@@ -524,7 +524,10 @@ begin
           end
         end
         else begin
-          MessageBox(0, 'Пакет не найден!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL);
+          MessageBox(0,
+            PChar('Пакет "' + LoadSettingFileName + '" не найден!'),
+            'Гедымин',
+            MB_OK or MB_ICONERROR or MB_TASKMODAL);
         end;
 
       finally

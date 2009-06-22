@@ -366,10 +366,14 @@ begin
   FWasSpace := False;
   FPrevText := '';
   FSilent := False;
-  if Assigned(UserStorage) then
-    FIsShowLog := UserStorage.ReadBoolean('Options', 'ShowLog', True, False)
-  else
-    FIsShowLog := True;
+  if not FindCmdLineSwitch('q', ['/', '-'], True) then
+  begin
+    if Assigned(UserStorage) then
+      FIsShowLog := UserStorage.ReadBoolean('Options', 'ShowLog', True, False)
+    else
+      FIsShowLog := True;
+  end else
+    FIsShowLog := False;
 end;
 
 procedure TfrmSQLProcess.FormClose(Sender: TObject;

@@ -84,16 +84,11 @@ const
 
 {Мужские и женские имена на -о не склоняются}
 
-function NormaLizeWord(TheWord: String): String;
+function NormaLizeWord(const TheWord: String): String;
 begin
-  TheWord := Trim(TheWord);
-  if TheWord <> '' then
-  begin
-    TheWord := AnsiLowerCase(TheWord);
-    TheWord := AnsiUpperCase(Copy(TheWord, 1, 1)) +
-      Copy(TheWord, 2, Length(TheWord));
-  end;
-  Result := TheWord;
+  Result := Trim(TheWord);
+  Result := AnsiUpperCase(Copy(Result, 1, 1)) +
+    AnsiLowerCase(Copy(Result, 2, Length(Result)));
 end;
 
 function SetCase_(TheWord: String; TheCase, Gender, Name: Word): String;
@@ -115,6 +110,14 @@ begin
           if str2 = 'ий' then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
             TheWord := TheWord + NMA[TheCase];
+          end else
+          if str2 = 'ый' then begin
+            Delete(TheWord, Length (TheWord) - 1, 2);
+            TheWord := TheWord + OMB[TheCase];
+          end else
+          if str2 = 'ой' then begin
+            Delete(TheWord, Length(TheWord) - 1, 2);
+            TheWord := TheWord + OMB[TheCase];
           end else
           if str2 = 'ай' then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
@@ -229,7 +232,7 @@ begin
           end else
           if str2 = 'ой' then begin
             Delete(TheWord, Length(TheWord) - 1, 2);
-            TheWord := TheWord + OMC[TheCase];
+            TheWord := TheWord + OMB[TheCase];
           end else
           if (str2 = 'ец') and (str1 in gl) then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
@@ -397,6 +400,14 @@ begin
             Delete(TheWord, Length (TheWord) - 1, 2);
             TheWord := TheWord + NMA[TheCase];
           end else
+          if str2 = 'ый' then begin
+            Delete(TheWord, Length(TheWord) - 1, 2);
+            TheWord := TheWord + OMB[TheCase];
+          end else
+          if str2 = 'ой' then begin
+            Delete(TheWord, Length(TheWord) - 1, 2);
+            TheWord := TheWord + OMB[TheCase];
+          end else
           if str2 = 'ай' then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
             TheWord := TheWord + NMB[TheCase];
@@ -464,7 +475,7 @@ begin
           end else
           if str2 = 'ой' then begin
             Delete(TheWord, Length(TheWord) - 1, 2);
-            TheWord := TheWord + OMC[TheCase];
+            TheWord := TheWord + OMB[TheCase];
           end else
           if str2 = 'ай' then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
@@ -526,7 +537,10 @@ begin
     begin
       PartText := Copy(StartText, StartPos, Position - 1);
       EndText := Copy(StartText, Position, Length(StartText) - Position + 1);
-      str1 := PartText[Length(PartText)];
+      if PartText > '' then
+        str1 := PartText[Length(PartText)]
+      else
+        str1 := #0;
       if (str1 = 'а') or (str1 = 'я') then //женский род
         Text := Text + SetCase(PartText, TheCase, gdFeminine, nmNar)
       else if str1 in sogl then
@@ -534,7 +548,7 @@ begin
       else
         Text := Text + StartText;
       //проверим окончание
-      if Pos('-', EndText) > 0 then
+      if (Pos('-', EndText) > 0) and (PartText > '') then
       begin
         Text := Text + '-';
         StartText := Copy(EndText, 2, Length(EndText)) + ' ';
@@ -585,9 +599,20 @@ begin
     while not FEnd do
     begin
       PartText := Copy(StartText, StartPos, Position - 1);
+
+      if Length(PartText) = 1 then
+      begin
+        Text := TheWord;
+        FEnd := True;
+        continue;
+      end;
+
       EndText := Copy(StartText, Position, Length(StartText) - Position + 1);
       str2 := Copy(PartText, Length(PartText) - 1, 2);
-      str1 := PartText[Length(PartText)];
+      if PartText > '' then
+        str1 := PartText[Length(PartText)]
+      else
+        str1 := #0;  
       if (str2 = 'ая') or (str2 = 'яя') then
         Text := Text + SetCase(PartText, TheCase, gdFeminine, nmOwn) + ' '
       else if (str2 = 'ый') or (str2 = 'ий') then
@@ -595,10 +620,23 @@ begin
       //Если наименование, то находим, копируем и выходим
       else if (str1 = 'а') or (str1 = 'я') or (str1 in sogl) then //женский род
       begin
-        Text := Text + NameCase(PartText, TheCase) + ' ' + EndText;
+        Text := Text + NameCase(PartText, TheCase) {+ ' '} + EndText;
         FEnd := True;
       end else
-        Text := Text + ' ' + PartText;
+      begin
+        if str1 = '.' then
+        begin
+          Text := TheWord;
+          FEnd := True;
+          continue;
+        end else
+        begin
+          if Text > '' then
+            Text := Text + ' ' + PartText
+          else
+            Text := PartText;
+        end;
+      end;
 
       //проверим окончание
       if (Pos(' ', EndText) > 0) and (Trim(EndText) <> '') then

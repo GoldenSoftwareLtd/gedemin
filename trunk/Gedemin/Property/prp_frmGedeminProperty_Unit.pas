@@ -562,9 +562,11 @@ begin
 end;
 
 procedure TfrmGedeminProperty.ShowFrame(TI: TCustomTreeItem; AShow: Boolean = True);
+{$IFDEF GEDEMIN}
 var
   Index: Integer;
   Frame: TFrame;
+{$ENDIF}
 
   function FindFrame(const FrameClass: CBaseFrame): Boolean;
   var
