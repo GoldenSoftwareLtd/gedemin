@@ -1443,7 +1443,7 @@ begin
       // Если первой стоит не аналитика даты
       if not FEntryDateIsFirst then
       begin
-        // Если
+        // Секции главного запроса
         if MainSelect > '' then MainSelect := MainSelect + ', ';
         MainSelect := MainSelect +
           'm.debitncu, m.creditncu, '#13#10 +
@@ -1489,6 +1489,7 @@ begin
       end
       else
       begin
+        // Секции вспомогательного запроса
         if CorrSelect > '' then CorrSelect := CorrSelect + ', ';
         CorrSelect := CorrSelect +
           'm.debitncu, m.creditncu, '#13#10 +
@@ -1885,7 +1886,33 @@ begin
           IIF(FCurrSumInfo.Show, ' OR (curr_debit <> 0) OR (curr_credit <> 0) ' +
             IIF(not FEntryDateInFields, ' OR (varcurrbegin <> 0)', ''), '') +
           IIF(FEQSumInfo.Show, ' OR (eq_debit <> 0) OR (eq_credit <> 0) ' +
-            IIF(not FEntryDateInFields, ' OR (vareqbegin <> 0)', ''), '') +
+            IIF(not FEntryDateInFields, ' OR (vareqbegin <> 0)', ''), '') + #13#10;
+
+      // Добавляем проверку на неравенство нулю расширенного отображения дебета и кредита
+      for I := 0 to FNcuDebitAliases.Count - 1 do
+        DebitCreditSQL := DebitCreditSQL + ' OR (' + FNcuDebitAliases.Strings[I] + ' <> 0) ';
+      for I := 0 to FNcuCreditAliases.Count - 1 do
+        DebitCreditSQL := DebitCreditSQL + ' OR (' + FNcuCreditAliases.Strings[I] + ' <> 0) ';
+      // Добавляем проверку на неравенство нулю расширенного отображения дебета и кредита для валюты
+      if FCurrSumInfo.Show then
+      begin
+        DebitCreditSQL := DebitCreditSQL + #13#10;
+        for I := 0 to FCurrDebitAliases.Count - 1 do
+          DebitCreditSQL := DebitCreditSQL + ' OR (' + FCurrDebitAliases.Strings[I] + ' <> 0) ';
+        for I := 0 to FCurrCreditAliases.Count - 1 do
+          DebitCreditSQL := DebitCreditSQL + ' OR (' + FCurrCreditAliases.Strings[I] + ' <> 0) ';
+      end;
+      // Добавляем проверку на неравенство нулю расширенного отображения дебета и кредита для эквивалента
+      if FEQSumInfo.Show then
+      begin
+        DebitCreditSQL := DebitCreditSQL + #13#10;
+        for I := 0 to FEQDebitAliases.Count - 1 do
+          DebitCreditSQL := DebitCreditSQL + ' OR (' + FEQDebitAliases.Strings[I] + ' <> 0) ';
+        for I := 0 to FEQCreditAliases.Count - 1 do
+          DebitCreditSQL := DebitCreditSQL + ' OR (' + FEQCreditAliases.Strings[I] + ' <> 0) ';
+      end;
+
+      DebitCreditSQL := DebitCreditSQL + 
         ') THEN '#13#10 +
         '       SUSPEND; '#13#10 +
         'END '#13#10 +
