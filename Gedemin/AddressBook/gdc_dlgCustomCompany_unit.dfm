@@ -31,6 +31,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
     Top = 4
     Width = 485
     Height = 329
+    ActivePage = tbsLogo
     inherited tbsMain: TTabSheet
       inherited labelID: TLabel
         Left = 6
@@ -530,7 +531,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         ListField = 'name'
         KeyField = 'ID'
         gdClassName = 'TgdcPlace'
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
@@ -671,7 +672,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         SortOrder = soAsc
         Condition = 'contacttype=3'
         gdClassName = 'TgdcCompany'
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 18
@@ -695,7 +696,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         Condition = 'c.contacttype=2 AND cc.id = :cc_id'
         gdClassName = 'TgdcEmployee'
         OnCreateNewObject = gsiblkupDirectorCreateNewObject
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 11
@@ -719,7 +720,7 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         Condition = 'c.contacttype=2 AND cc.id = :cc_id'
         gdClassName = 'TgdcEmployee'
         OnCreateNewObject = gsiblkupDirectorCreateNewObject
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 10
@@ -734,6 +735,42 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
         TabOrder = 19
       end
     end
+    object tbsLogo: TTabSheet [2]
+      Caption = 'Логотип'
+      ImageIndex = 3
+      object TBToolbar1: TTBToolbar
+        Left = 0
+        Top = 0
+        Width = 477
+        Height = 22
+        Align = alTop
+        Caption = 'TBToolbar1'
+        Images = dmImages.il16x16
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 0
+        object TBItem1: TTBItem
+          Action = actLoadPicture
+        end
+        object TBItem2: TTBItem
+          Action = actSavePicture
+        end
+        object TBItem3: TTBItem
+          Action = actDeletePicture
+        end
+      end
+      object JvDBImage: TJvDBImage
+        Left = 0
+        Top = 22
+        Width = 477
+        Height = 279
+        Align = alClient
+        DataField = 'LOGO'
+        DataSource = dsgdcBase
+        TabOrder = 1
+        Proportional = True
+      end
+    end
     inherited tbsAttr: TTabSheet
       inherited atcMain: TatContainer
         Width = 477
@@ -742,8 +779,9 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
     end
   end
   inherited alBase: TActionList
-    Left = 239
-    Top = 342
+    Images = dmImages.il16x16
+    Left = 159
+    Top = 206
     object actAddAccount: TAction [8]
       Caption = 'Добавить...'
       OnExecute = actAddAccountExecute
@@ -772,6 +810,26 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
       Caption = 'Обновить'
       OnExecute = actRefreshBankExecute
       OnUpdate = actRefreshBankUpdate
+    end
+    object actLoadPicture: TAction
+      Caption = 'Загрузить'
+      Hint = 'Загрузить'
+      ImageIndex = 132
+      OnExecute = actLoadPictureExecute
+    end
+    object actSavePicture: TAction
+      Caption = 'Сохранить'
+      Hint = 'Сохранить'
+      ImageIndex = 25
+      OnExecute = actSavePictureExecute
+      OnUpdate = actSavePictureUpdate
+    end
+    object actDeletePicture: TAction
+      Caption = 'Удалить'
+      Hint = 'Удалить'
+      ImageIndex = 2
+      OnExecute = actDeletePictureExecute
+      OnUpdate = actDeletePictureUpdate
     end
   end
   inherited dsgdcBase: TDataSource
