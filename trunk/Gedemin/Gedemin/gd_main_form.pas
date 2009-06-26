@@ -1083,8 +1083,6 @@ begin
 end;
 
 procedure TfrmGedeminMain.DoBeforeDisconnect;
-var
-  I: Integer;
 begin
   {$IFNDEF BMKK}
   Caption := 'Гедымин';
@@ -1123,13 +1121,8 @@ begin
     TgdcJournal.AddEvent('', 'Log off');
   end;
 
-  for I := System.ParamCount downto 1 do
-  begin
-    if AnsiCompareText(System.ParamStr(I), '/rd') = 0 then
-    begin
-      gdcBaseManager.ExecSingleQuery('SET GENERATOR gd_g_dbid TO 0');
-    end;
-  end;
+  if FindCmdLineSwitch('rd', ['-', '/'], True) then
+    gdcBaseManager.ExecSingleQuery('SET GENERATOR gd_g_dbid TO 0');
 end;
 
 procedure TfrmGedeminMain.actActiveFormListExecute(Sender: TObject);
