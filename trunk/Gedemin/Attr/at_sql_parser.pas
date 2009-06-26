@@ -1842,6 +1842,41 @@ begin
             FFuncClause.Add(Token.Clause);
           end;
 
+
+          cAnd, cOr:
+          begin
+            if BracketCount > 0 then
+            begin
+              CurrArg := TsqlCondition.Create(FParser);
+
+              if (FArguments.Count > 0) and (FArguments.Last <> nil) and
+                (CommaCount < FArguments.Count) then
+              with FArguments do
+              begin
+                if BracketCount > 0 then
+                begin
+                  OwnsObjects := False;
+                  (CurrArg as TsqlCondition).FStatements.Add(Extract(Last));
+                  OwnsObjects := True;
+                end else
+                begin
+                  CurrFunction := TsqlFunction.Create(FParser, True);
+                  CurrFunction.AssignAndClear(Self);
+                  (CurrArg as TsqlCondition).FStatements.Add(CurrFunction);
+                end;
+              end;
+
+              Exclude(FNeeded, eoClause);
+              Exclude(FNeeded, eoUserFunc);
+              CurrArg.ParseStatement;
+              FArguments.Add(CurrArg);
+              Continue;
+              //raise EatParserError.Create('Ошибка в SQL-выражении: ' + Token.Text)
+            end
+            else
+              Break;
+          end;
+
           cIn, cIs, cNull, cNot:
           begin
             if BracketCount > 0 then
@@ -2857,6 +2892,14 @@ begin
               if (GetLastClass = TsqlMath) then
               begin
                 CurrStatement := TsqlFunction.Create(FParser, True);
+                FStatements.Add(CurrStatement);
+                CurrStatement.ParseStatement;
+                Continue;
+              end else
+
+              if (GetLastClass = TsqlBoolean) then
+              begin
+                CurrStatement := TsqlCondition.Create(FParser);
                 FStatements.Add(CurrStatement);
                 CurrStatement.ParseStatement;
                 Continue;
@@ -7030,7 +7073,7 @@ begin
             Continue;
           end;
 
-          cIn, cIs, cNull, cNot, cExists, cSingular:
+          cIn, cIs, cNull, cNot, cExists, cSingular, cAnd, cOr:
           begin
             //Если это конструкция на else
             if eoElse in FDone then

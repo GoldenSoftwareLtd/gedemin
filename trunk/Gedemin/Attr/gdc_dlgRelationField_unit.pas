@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001 - 2009 by Golden Software of Belarus
 
   Module
 
@@ -628,12 +628,15 @@ begin
           F := atDatabase.FindRelationField(gdcObject.FieldByName('relationname').AsString,
             gdcObject.FieldByName('fieldname').AsString);
 
-          Assert(F <> nil);
-
-          for I := 0 to LocClassList.Count - 1 do
+          if Assigned(F) then
           begin
-            AddClass(I);
-          end;
+            for I := 0 to LocClassList.Count - 1 do
+            begin
+              AddClass(I);
+            end;
+          end else
+            Label2.Caption := 'Объекты будут доступны после создания поля.';
+
         finally
           tvObjects.Items.EndUpdate;
         end;
