@@ -1973,93 +1973,107 @@ begin
         BlobStream := CreateBlobStream(FieldByName('StorageData'), bmWrite);
         try
           ibsqlPos.Close;
-          ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+          ibsqlPos.SQL.Text := 'SELECT COUNT(*) AS StorPosCount FROM at_setting_storage WHERE settingkey = :settingkey ';
           ibsqlPos.ParamByName('settingkey').AsInteger := ID;
           ibsqlPos.Open;
-          while not ibsqlPos.Eof do
+
+          PositionsCount := ibsqlPos.FieldByName('STORPOSCOUNT').AsInteger;
+
+          if PositionsCount > 0 then
           begin
-            BranchName := ibsqlPos.FieldByName('branchname').AsString;
+            if Assigned(frmStreamSaver) then
+              frmStreamSaver.SetupProgress(PositionsCount, 'Формирование настройки...');
 
-            if AnsiPos('\', BranchName) = 0 then
+            ibsqlPos.Close;
+            ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+            ibsqlPos.ParamByName('settingkey').AsInteger := ID;
+            ibsqlPos.Open;
+            while not ibsqlPos.Eof do
             begin
-              Path := '';
-              StorageName := BranchName;
-            end else
-            begin
-              Path := System.Copy(BranchName, AnsiPos('\', BranchName), Length(BranchName) -
-                AnsiPos('\', BranchName) + 1);
-              StorageName := AnsiUpperCase(System.Copy(BranchName, 1, AnsiPos('\', BranchName) - 1));
-            end;
-            if AnsiPos(st_root_Global, StorageName) = 1 then
-            begin
-              if LStorage <> GlobalStorage then
+              BranchName := ibsqlPos.FieldByName('branchname').AsString;
+
+              if AnsiPos('\', BranchName) = 0 then
               begin
-                GlobalStorage.CloseFolder(GlobalStorage.OpenFolder('', False, True), False);
-                LStorage := GlobalStorage;
+                Path := '';
+                StorageName := BranchName;
+              end else
+              begin
+                Path := System.Copy(BranchName, AnsiPos('\', BranchName), Length(BranchName) -
+                  AnsiPos('\', BranchName) + 1);
+                StorageName := AnsiUpperCase(System.Copy(BranchName, 1, AnsiPos('\', BranchName) - 1));
               end;
-            end
-            else if AnsiPos(st_root_User, StorageName) = 1 then
-            begin
-              if LStorage <> UserStorage then
+              if AnsiPos(st_root_Global, StorageName) = 1 then
               begin
-                UserStorage.CloseFolder(UserStorage.OpenFolder('', False, True), False);
-                LStorage := UserStorage;
-              end;
-            end
-            else
-              LStorage := nil;
-
-            if LStorage = nil then
-              NewFolder := nil
-            else
-              NewFolder := LStorage.OpenFolder(Path, False);
-
-            if Assigned(NewFolder) and (ibsqlPos.FieldByName('valuename').AsString > '') then
-              stValue := NewFolder.ValueByName(ibsqlPos.FieldByName('valuename').AsString)
-            else
-              stValue := nil;
-
-            if Assigned(NewFolder) then
-            begin
-              if ibsqlPos.FieldByName('valuename').AsString > '' then
-              begin
-                if Assigned(stValue) then
+                if LStorage <> GlobalStorage then
                 begin
-                  BlobStream.WriteBuffer(cst_StreamValue[1], Length(cst_StreamValue));
-                  L :=  Length(ibsqlPos.FieldByName('valuename').AsString);
-                  BlobStream.WriteBuffer(L, Sizeof(L));
-                  BlobStream.WriteBuffer(ibsqlPos.FieldByName('valuename').AsString[1], L);
+                  GlobalStorage.CloseFolder(GlobalStorage.OpenFolder('', False, True), False);
+                  LStorage := GlobalStorage;
+                end;
+              end
+              else if AnsiPos(st_root_User, StorageName) = 1 then
+              begin
+                if LStorage <> UserStorage then
+                begin
+                  UserStorage.CloseFolder(UserStorage.OpenFolder('', False, True), False);
+                  LStorage := UserStorage;
+                end;
+              end
+              else
+                LStorage := nil;
+
+              if LStorage = nil then
+                NewFolder := nil
+              else
+                NewFolder := LStorage.OpenFolder(Path, False);
+
+              if Assigned(NewFolder) and (ibsqlPos.FieldByName('valuename').AsString > '') then
+                stValue := NewFolder.ValueByName(ibsqlPos.FieldByName('valuename').AsString)
+              else
+                stValue := nil;
+
+              if Assigned(NewFolder) then
+              begin
+                if ibsqlPos.FieldByName('valuename').AsString > '' then
+                begin
+                  if Assigned(stValue) then
+                  begin
+                    BlobStream.WriteBuffer(cst_StreamValue[1], Length(cst_StreamValue));
+                    L :=  Length(ibsqlPos.FieldByName('valuename').AsString);
+                    BlobStream.WriteBuffer(L, Sizeof(L));
+                    BlobStream.WriteBuffer(ibsqlPos.FieldByName('valuename').AsString[1], L);
+                    L :=  Length(BranchName);
+                    BlobStream.WriteBuffer(L, Sizeof(L));
+                    BlobStream.WriteBuffer(BranchName[1], L);
+                    stValue.SaveToStream(BlobStream);
+                    Space;
+                    AddText('Сохранение параметра ' + ibsqlPos.FieldByName('valuename').AsString +
+                      ' ветки хранилища ' + BranchName + #13#10, clBlue);
+                  end else
+                    raise EgdcIBError.Create(' Параметр ' +
+                      ibsqlPos.FieldByName('valuename').AsString +
+                      ' ветки хранилища ' + BranchName + ' не найден!');
+                end else
+                begin
                   L :=  Length(BranchName);
                   BlobStream.WriteBuffer(L, Sizeof(L));
                   BlobStream.WriteBuffer(BranchName[1], L);
-                  stValue.SaveToStream(BlobStream);
+                  NewFolder.SaveToStream(BlobStream);
                   Space;
-                  AddText('Сохранение параметра ' + ibsqlPos.FieldByName('valuename').AsString +
-                    ' ветки хранилища ' + BranchName + #13#10, clBlue);
-                end else
-                  raise EgdcIBError.Create(' Параметр ' +
-                    ibsqlPos.FieldByName('valuename').AsString +
-                    ' ветки хранилища ' + BranchName + ' не найден!');
+                  AddText('Сохранение ветки хранилища ' + BranchName + #13#10, clBlue);
+                end;
+                LStorage.CloseFolder(NewFolder);
               end else
-              begin
-                L :=  Length(BranchName);
-                BlobStream.WriteBuffer(L, Sizeof(L));
-                BlobStream.WriteBuffer(BranchName[1], L);
-                NewFolder.SaveToStream(BlobStream);
-                Space;
-                AddText('Сохранение ветки хранилища ' + BranchName + #13#10, clBlue);
-              end;
-              LStorage.CloseFolder(NewFolder);
-            end else
-              raise EgdcIBError.Create(
-                'Ветка хранилища "' + BranchName + '" не найдена!'#13#10#13#10 +
-                'В настройку можно добавлять только ветки или параметры'#13#10 +
-                'глобального хранилища или хранилища пользователя Администратор.');
+                raise EgdcIBError.Create(
+                  'Ветка хранилища "' + BranchName + '" не найдена!'#13#10#13#10 +
+                  'В настройку можно добавлять только ветки или параметры'#13#10 +
+                  'глобального хранилища или хранилища пользователя Администратор.');
 
-            ibsqlPos.Next;
+              if Assigned(frmStreamSaver) then
+                frmStreamSaver.Step;
+
+              ibsqlPos.Next;
+            end;
           end;
-
-
         finally
           FreeAndNil(BlobStream);
         end;
@@ -2068,12 +2082,11 @@ begin
         FieldByName('version').AsInteger := FieldByName('version').AsInteger + 1;
 
         Post;
-
-        // а не изменить здесь ли версию конечной настройки... Yuri.
-
+        
       except
         on E: Exception do
         begin
+          Space;
           AddMistake(E.Message, clRed);
           Space;
           Cancel;

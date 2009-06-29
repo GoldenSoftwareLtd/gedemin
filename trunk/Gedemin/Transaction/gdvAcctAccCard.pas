@@ -95,9 +95,9 @@ var
   AccWhere: String;
   CompanySBalance: String;
   AccWhereBalance: String;
-  ValueSelect, ValueJoin, ValueAlias, QuantityAlias: string;
+  ValueSelect, ValueJoin, ValueAlias, QuantityAlias, IDValues: String;
   K: Integer;
-  ASelect, AFrom, AGroup, ACorrSelect, ACorrFrom, ACorrGroup: string;
+  ASelect, AFrom, AGroup, ACorrSelect, ACorrFrom, ACorrGroup: String;
 
   function FormBalanceQuery(ADate: TDate): String;
   begin
@@ -232,7 +232,8 @@ begin
   EntryCondition := Self.GetCondition('e');
 
   // Сальдо на начало
-  FIBDSSaldoBegin.Close;
+  if FIBDSSaldoBegin.Active then
+    FIBDSSaldoBegin.Close;
   if FUseEntryBalance and (FCorrAccounts.Count = 0) and (FAcctValues.Count = 0) then
   begin
     CompanySBalance := 'bal.companykey + 0 IN (' + FCompanyList + ')';
@@ -273,7 +274,8 @@ begin
   end;
 
   // Сальдо на конец
-  FIBDSSaldoEnd.Close;
+  if FIBDSSaldoEnd.Active then
+    FIBDSSaldoEnd.Close;
   if FUseEntryBalance and (FCorrAccounts.Count = 0) and (FAcctValues.Count = 0) then
   begin
     FIBDSSaldoEnd.SelectSQL.Text := FormBalanceQuery(FDateEnd + 1);
@@ -292,6 +294,42 @@ begin
     FSaldoEnd.Curr := FIBDSSaldoEnd.FieldByName('saldocurr').AsCurrency;
     FSaldoEnd.EQ := FIBDSSaldoEnd.FieldByName('saldoeq').AsCurrency;
   end;
+
+  // Количественый учет
+  IDValues := '';
+  for K := 0 to FAcctValues.Count - 1 do
+  begin
+    if IDValues <> '' then IDValues := IDValues + ',';
+    IDValues := IDValues + FAcctValues.Names[K];
+  end;
+  if IDValues = '' then
+    IDValues := '-1';
+
+  if FIBDSSaldoQuantityBegin.Active then
+    FIBDSSaldoQuantityBegin.Close;
+  FIBDSSaldoQuantityBegin.SelectSQL.Text :=
+    'SELECT ' +
+    '  CAST(SUM(CASE WHEN e.debitncu > 0 THEN q.quantity ELSE -q.quantity END) AS NUMERIC(15, 4)) AS Saldo '#13#10 +
+    'FROM ' +
+    '  ac_entry e  ' +
+    '  JOIN ac_quantity q ON e.id = q.entrykey AND q.valuekey IN (' + IDValues + ')';
+  if FCorrAccounts.Count > 0 then
+    FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text +
+      ' JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND e1.accountpart <> e.accountpart ';
+  FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' WHERE ' + AccWhere +
+    '   e.entrydate < :begindate AND ' + CompanyS;
+  if FCurrSumInfo.Show and (FCurrkey > 0) then
+    FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND e.currkey = ' + IntToStr(FCurrkey);
+  FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + EntryCondition;
+  FIBDSSaldoQuantityBegin.ParamByName(BeginDate).AsDateTime := FDateBegin;
+  //FIBDSSaldoQuantityBegin.Open;
+
+  if FIBDSSaldoQuantityEnd.Active then
+    FIBDSSaldoQuantityEnd.Close;
+  FIBDSSaldoQuantityEnd.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text;
+  FIBDSSaldoQuantityEnd.ParamByName(BeginDate).AsDateTime := FDateEnd;
+  //FIBDSSaldoQuantityEnd.Open;
+
 
   if not FDoGroup then
   begin
@@ -450,12 +488,6 @@ begin
     if SQLText > '' then
       SQLText := SQLText + ', '#13#10;
     SQLText := SQLText + Format('CAST(NULL AS NUMERIC(15, 4)) AS %s', [AccCardAdditionalFieldList[I].FieldName]);
-    {if Assigned(FFieldInfos) then
-    begin
-      FI := FFieldInfos.AddInfo;
-      FI.Caption := AccCardAdditionalFieldList[I].Caption;
-      FI.FieldName := AccCardAdditionalFieldList[I].FieldName;
-    end;}
   end;
 
   for I := 0 to BaseAcctFieldCount - 1 do
@@ -463,24 +495,12 @@ begin
     if SQLText > '' then
       SQLText := SQLText + ', '#13#10;
     SQLText := SQLText + Format('CAST(NULL AS NUMERIC(15, 4)) AS %s', [BaseAcctFieldList[I].FieldName]);
-    {if Assigned(FFieldInfos) then
-    begin
-      FI := FFieldInfos.AddInfo;
-      FI.Caption := BaseAcctFieldList[I].Caption;
-      FI.FieldName := BaseAcctFieldList[I].FieldName;
-      if Pos('NCU_', BaseAcctFieldList[I].FieldName) = 1 then
-      begin
-        FI.DisplayFormat := DisplayFormat(FNcuSumInfo.DecDigits);
-        FI.Visible := FNcuSumInfo.Show;
-      end
-      else
-      begin
-        FI.DisplayFormat := DisplayFormat(FCurrSumInfo.DecDigits);
-        FI.Visible := FCurrSumInfo.Show;
-      end;
-    end;}
   end;
   SQLText := 'SELECT ' + SQLText + ', CAST(NULL AS VARCHAR(180)) AS NAME FROM rdb$database WHERE RDB$CHARACTER_SET_NAME = ''_''';
+
+  // Заглушка для отчетов которые не проверяют состояние датасета, а сразу пытаются обратится к параметрам запроса
+  SQLText := SQLText + ' AND ((:begindate > CAST(''17.11.1858'' AS DATE)) OR (1 = 1)) ' +
+    ' AND ((:enddate > CAST(''17.11.1858'' AS DATE)) OR (1 = 1)) ';
 
   Self.SelectSQL.Text := SQLText;
 end;
