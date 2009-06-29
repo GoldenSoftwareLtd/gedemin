@@ -1376,10 +1376,13 @@ begin
     AObject.ID := AID;
   // Если работает репликатор, то не будем прерывать сохранение настройки
   if AObject.RecordCount = 0 then
+  begin
+    AddMistake(#13#10 + AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID) + #13#10, clRed);
     if not SilentMode then
       raise EgdcIDNotFound.Create(AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID))
     else
       Exit;
+  end;
 
   // Если текущая запись репрезентует объект другого
   //  класса, то сохраним запись от его лица
@@ -1548,7 +1551,6 @@ begin
                 [RelationName, FieldName,
                 BindedClassName + BindedSubType,
                 Obj.FieldByName(RelationName, FieldName).AsInteger]), clRed);
-            //raise;
           end;
         end;
       end;
@@ -2200,6 +2202,7 @@ begin
     //Стандартные id не должны меняться
     if SourceKeyInt < cstUserIDStart then
       TargetDS.FieldByName(KeyFieldName).AsInteger := SourceKeyInt;
+
     try
       if TargetDS.State = dsEdit then
       begin
@@ -2246,8 +2249,7 @@ begin
           end;
         end;
 
-      if NeedAddToIDMapping and (FIDMapping.IndexOf(SourceKeyInt) = -1)
-      then
+      if NeedAddToIDMapping and (FIDMapping.IndexOf(SourceKeyInt) = -1) then
         FIDMapping.ValuesByIndex[FIDMapping.Add(SourceKeyInt)] := TargetDS.FieldByName(KeyFieldName).AsInteger;
 
       if Assigned(RUOL) then
@@ -2262,6 +2264,7 @@ begin
       if TargetDS.ID <> TargetKeyInt then
         TargetDS.ID := TargetKeyInt;
 
+      // Успешно скопировали данные
       Result := True;
     except
       on E: EDatabaseError do
@@ -2329,7 +2332,7 @@ end;
 procedure TgdcStreamDataProvider.LoadRecord(AObj: TgdcBase; CDS: TClientDataSet);
 var
   RuidRec: TRuidRec;
-  D, StreamXID, StreamDBID, StreamID: TID;
+  CurrentRecordID, StreamXID, StreamDBID, StreamID: TID;
   Modified, StreamModified: TDateTime;
 begin
   Assert(IBLogin <> nil);
@@ -2397,10 +2400,10 @@ begin
   //Проверим, есть ли у нас такой РУИД
   RuidRec := gdcBaseManager.GetRUIDRecByXID(StreamXID, StreamDBID, FTransaction);
   //Считаем ID, найденное по РУИДУ
-  D := RuidRec.ID;
+  CurrentRecordID := RuidRec.ID;
 
   //Если мы не нашли РУИД, но наш xid - "Стандартный"
-  if (D = -1) and (StreamXID < cstUserIDStart) then
+  if (CurrentRecordID = -1) and (StreamXID < cstUserIDStart) then
   begin
     //Попробуем поискать нашу запись
     AObj.ID := StreamXID;
@@ -2409,12 +2412,12 @@ begin
     begin
       gdcBaseManager.InsertRUID(StreamXID, StreamXID, StreamDBID, Date, IBLogin.ContactKey, FTransaction);
       //Сохраним наш XID = id
-      D := StreamXID;
+      CurrentRecordID := StreamXID;
     end;
   end;
 
   //Если запись в базе не найдена, вставим ее
-  if D = -1 then
+  if CurrentRecordID = -1 then
   begin
     InsertRecord(CDS, AObj);
     if FDataObject.IsIncrementedStream then
@@ -2423,7 +2426,7 @@ begin
   else
   begin
     //Попробуем поискать нашу запись
-    AObj.ID := D;
+    AObj.ID := CurrentRecordID;
     //Если не нашли, значит РУИД некорректен, удалим его, запись вставим
     if AObj.IsEmpty then
     begin
@@ -2439,7 +2442,7 @@ begin
 
       // Проверяем, необходимо ли нам удалить найденную запись, перед считыванием ее аналога из потока
       if AObj.NeedDeleteTheSame(AObj.SubType)
-         and AObj.DeleteTheSame(D, CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString) then
+         and AObj.DeleteTheSame(CurrentRecordID, CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString) then
       begin
         // Если запись удалена, вставим ее аналог из потока
         InsertRecord(CDS, AObj);
@@ -2456,8 +2459,8 @@ begin
         if Assigned(CDS.FindField('_MODIFYFROMSTREAM')) and CDS.FieldByName('_MODIFYFROMSTREAM').AsBoolean
            {(Modified < StreamModified) or } then
         begin
-          if AObj.ID <> D then
-            AObj.ID := D;
+          if AObj.ID <> CurrentRecordID then
+            AObj.ID := CurrentRecordID;
 
           // если поток инкрементный, то проверяем по таблице RPL_RECORD необходимость загрузки записи
           if (not FDataObject.IsIncrementedStream) or CheckNeedLoadingRecord(StreamXID, StreamDBID, StreamModified) then
@@ -2465,6 +2468,8 @@ begin
             // Уточням, нуждается ли наш объект в обновлении данными из потока
             if CheckNeedModify(AObj, CDS) then
             begin
+              // Копирует данные записи из потока в БО на базе
+              //   Если вернет false, значит загрузка была прервана для загрузки другой записи перед текущей
               if CopyRecord(CDS, AObj) then
               begin
                 // если обновление прошло успешно и мы имеем более раннюю дату модификации руида
@@ -2478,7 +2483,7 @@ begin
                 end;
                 if FDataObject.IsIncrementedStream then
                   AddRecordToRPLRECORDS(AObj.ID, Modified);
-
+                // Удалим ключ объекта из очереди загрузки
                 FLoadingOrderList.Remove(StreamID);
                 CDS.Delete;
               end;
@@ -2488,7 +2493,7 @@ begin
               //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
               if FIDMapping.IndexOf(StreamID) = -1 then
                 FIDMapping.ValuesByIndex[FIDMapping.Add(StreamID)] := AObj.ID;
-
+              // Удалим ключ объекта из очереди загрузки
               FLoadingOrderList.Remove(StreamID);
               CDS.Delete;
               ApplyDelayedUpdates(StreamID, AObj.ID);
@@ -2502,7 +2507,7 @@ begin
             //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
             if FIDMapping.IndexOf(StreamID) = -1 then
               FIDMapping.ValuesByIndex[FIDMapping.Add(StreamID)] := AObj.ID;
-
+            // Удалим ключ объекта из очереди загрузки
             FLoadingOrderList.Remove(StreamID);
             CDS.Delete;
             ApplyDelayedUpdates(StreamID, AObj.ID);
@@ -2513,7 +2518,7 @@ begin
           //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
           if FIDMapping.IndexOf(StreamID) = -1 then
             FIDMapping.ValuesByIndex[FIDMapping.Add(StreamID)] := AObj.ID;
-
+          // Удалим ключ объекта из очереди загрузки
           FLoadingOrderList.Remove(StreamID);
           CDS.Delete;
           ApplyDelayedUpdates(StreamID, AObj.ID);
@@ -3741,6 +3746,7 @@ begin
         {Пропускаем класс, если он не найден}
         if C = nil then
         begin
+          AddMistake(#13#10 + 'При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10, clRed);
           if (AMissingClassList.IndexOf(LoadClassName) = -1)
              and (not SilentMode)
              and (MessageBox(0, PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
@@ -4216,6 +4222,7 @@ begin
           {Пропускаем класс, если он не найден}
           if C = nil then
           begin
+            AddMistake(#13#10 + 'При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10, clRed);
             if (AMissingClassList.IndexOf(LoadClassName) = -1)
                and (not SilentMode)
                and (MessageBox(0, PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
@@ -5636,7 +5643,10 @@ begin
         end
         else
           // Если работает репликатор, то не будем прерывать сохранение настройки
-          if SilentMode then
+          AddMistake(#13#10 +
+            Format('Не удалось получить идентификатор позиции настройки (XID = %0:d, DBID = %1:d)',
+            [ibsqlPos.FieldByName('xid').AsInteger, ibsqlPos.FieldByName('dbid').AsInteger]) + #13#10, clRed);
+          if not SilentMode then
           begin
             raise Exception.Create('Не удалось получить идентификатор позиции настройки.'#13#10 +
               'Проверьте целостность настройки!');
