@@ -320,7 +320,8 @@ begin
     '   e.entrydate < :begindate AND ' + CompanyS;
   if FCurrSumInfo.Show and (FCurrkey > 0) then
     FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND e.currkey = ' + IntToStr(FCurrkey);
-  FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + EntryCondition;
+  if EntryCondition <> '' then
+    FIBDSSaldoQuantityBegin.SelectSQL.Text := FIBDSSaldoQuantityBegin.SelectSQL.Text + ' AND ' + EntryCondition;
   FIBDSSaldoQuantityBegin.ParamByName(BeginDate).AsDateTime := FDateBegin;
   //FIBDSSaldoQuantityBegin.Open;
 
