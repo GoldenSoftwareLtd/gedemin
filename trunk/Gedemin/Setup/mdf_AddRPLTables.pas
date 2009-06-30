@@ -152,7 +152,7 @@ begin
           FIBSQL.ExecQuery;
           if FIBSQL.RecordCount = 0 then
           begin
-            FTransaction.StartTransaction;
+            FIBSQL.Close;
             FIBSQL.SQL.Text := AlterATSettingPos;
             FIBSQL.ExecQuery;
             Log('ƒобавление пол€ AUTOADDED в таблицу AT_SETTINGPOS прошло успешно');
@@ -162,7 +162,8 @@ begin
           on E: Exception do
           begin
             Log(E.Message);
-            FTransaction.Rollback;
+            if FTransaction.InTransaction then
+              FTransaction.Rollback;
           end;
         end;
 
