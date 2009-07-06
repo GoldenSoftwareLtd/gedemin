@@ -159,7 +159,7 @@ type
 
     procedure AddPos(AnObject: TgdcBase; const WithDetail: Boolean);
     //Процедура для проверки действительности текущей настройки
-    procedure Valid;
+    procedure Valid(DoAutoDelete: Boolean = false);
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
@@ -1104,6 +1104,10 @@ begin
     finally
       FS.Free;
     end;
+
+    // Если GetStreamType(FS) не смогла определить тип файла настройки, или передан файл нулевого размера
+    if StreamType = sttUnknown then
+      raise Exception.Create('Неизвестный тип настройки');
 
     // Если frmSQLProcess не создан, то создадим его здесь
     //  и запретим вылазить на экран
@@ -2940,15 +2944,23 @@ begin
   end;
 end;
 
-procedure TgdcSettingPos.Valid;
+procedure TgdcSettingPos.Valid(DoAutoDelete: Boolean = false);
 var
   AnID: Integer;
   C: TPersistentClass;
   Obj: TgdcBase;
   WasDelete: Boolean;
+
+  MasterSilentMode: Boolean;
 begin
   Assert(Active, 'Объект не активен. Проверка корректности невозможна');
   Assert(gdcBaseManager <> nil);
+
+  if Assigned(Self.MasterSource) then
+    MasterSilentMode := TgdcSetting(Self.MasterSource.Dataset).Silent
+  else
+    MasterSilentMode := False;
+
   WasDelete := False;
   First;
   while not Eof do
@@ -2981,33 +2993,71 @@ begin
           Obj.Free;
         end;
       except
-        if MessageBox(0, PChar(' Ошибка при считывании объекта ' +
-          FieldByName('category').AsString + ' ' +
-          FieldByName('objectname').AsString + #13#10 +
-          ' (с XID = ' + FieldByName('xid').AsString +
-          '   DBID = ' + FieldByName('dbid').AsString + ')' + #13#10 +
-          'Удалить позицию настройки?'), 'Ошибка',
-          MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES
-        then
-        begin
-          Delete;
-          WasDelete := True;          
-        end;
-      end;
-    end else
-       if MessageBox(0, PChar(' Ошибка при создании объекта ' +
-          FieldByName('category').AsString + ' ' +
-          FieldByName('objectname').AsString + #13#10 +
-          ' (с XID = ' +  FieldByName('xid').AsString +
-          '   DBID = ' + FieldByName('dbid').AsString + ')'#13#10 +
-          ' Класс ' + FieldByName('objectclass').AsString + ' не найден!' + #13#10 +
-          'Удалить позицию настройки?'), 'Ошибка',
-          MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES
-        then
+        if DoAutoDelete then
         begin
           Delete;
           WasDelete := True;
+        end
+        else
+        begin
+          if MasterSilentMode then
+          begin
+            raise Exception.Create(' Ошибка при считывании объекта ' +
+              FieldByName('category').AsString + ' ' +
+              FieldByName('objectname').AsString + #13#10 +
+              ' (с XID = ' + FieldByName('xid').AsString +
+              '   DBID = ' + FieldByName('dbid').AsString + ')');
+          end
+          else
+          begin
+            if (MessageBox(0, PChar(' Ошибка при считывании объекта ' +
+              FieldByName('category').AsString + ' ' +
+              FieldByName('objectname').AsString + #13#10 +
+              ' (с XID = ' + FieldByName('xid').AsString +
+              '   DBID = ' + FieldByName('dbid').AsString + ')' + #13#10 +
+              'Удалить позицию настройки?'), 'Ошибка',
+              MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES) then
+            begin
+              Delete;
+              WasDelete := True;
+            end;
+          end;
         end;
+      end;
+    end
+    else
+    begin
+      if DoAutoDelete then
+      begin
+        Delete;
+        WasDelete := True;
+      end
+      else
+      begin
+        if MasterSilentMode then
+        begin
+          raise Exception.Create(' Ошибка при считывании объекта ' +
+            FieldByName('category').AsString + ' ' +
+            FieldByName('objectname').AsString + #13#10 +
+            ' (с XID = ' + FieldByName('xid').AsString +
+            '   DBID = ' + FieldByName('dbid').AsString + ')');
+        end
+        else
+        begin
+          if (MessageBox(0, PChar(' Ошибка при считывании объекта ' +
+            FieldByName('category').AsString + ' ' +
+            FieldByName('objectname').AsString + #13#10 +
+            ' (с XID = ' + FieldByName('xid').AsString +
+            '   DBID = ' + FieldByName('dbid').AsString + ')' + #13#10 +
+            'Удалить позицию настройки?'), 'Ошибка',
+            MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES) then
+          begin
+            Delete;
+            WasDelete := True;
+          end;
+        end;
+      end;
+    end;
 
     if WasDelete then
       WasDelete := False

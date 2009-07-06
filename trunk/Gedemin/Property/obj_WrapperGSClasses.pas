@@ -3224,7 +3224,7 @@ type
   protected
     procedure ChooseNewItem; safecall;
     procedure AddPos(const AnObject: IgsGDCBase; WithDetail: WordBool); safecall;
-    procedure Valid; safecall;
+    procedure Valid(DoAutoDelete: WordBool); safecall;
     procedure SetWithDetail(Value: WordBool; const BL: IgsBookmarkList); safecall;
     procedure SetNeedModify(Value: WordBool; const BL: IgsBookmarkList); safecall;
     procedure SetNeedModifyDefault; safecall;
@@ -15762,9 +15762,9 @@ begin
   GetGdcSettingPos.SetWithDetail(Value, InterfaceToObject(BL) as TBookmarkList);
 end;
 
-procedure TwrpGdcSettingPos.Valid;
+procedure TwrpGdcSettingPos.Valid(DoAutoDelete: WordBool);
 begin
-  GetGdcSettingPos.Valid
+  GetGdcSettingPos.Valid(DoAutoDelete);
 end;
 
 { TwrpGdcSettingStorage }

@@ -1349,10 +1349,10 @@ var
   IndexNeedModifyList: Integer;
 begin
   // При нажатии Escape прервем процесс
-  if AbortProcess or ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
+  if not SilentMode and Application.Active and (AbortProcess or ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0)) then
   begin
     if (not AbortProcess) and
-       (Application.MessageBox('Остановить сохранение?', 'Внимание', MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES) then
+       (Application.MessageBox('Остановить сохранение данных?', 'Внимание', MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES) then
     begin
       AbortProcess := True;
     end;  
@@ -2338,10 +2338,10 @@ begin
   Assert(IBLogin <> nil);
 
   // При нажатии Escape прервем процесс
-  if AbortProcess or ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
+  if not SilentMode and Application.Active and (AbortProcess or ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0)) then
   begin
     if (not AbortProcess) and
-       (Application.MessageBox('Остановить загрузку?', 'Внимание', MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES) then
+       (Application.MessageBox('Остановить загрузку данных?', 'Внимание', MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES) then
     begin
       AbortProcess := True;
     end;  
@@ -5642,6 +5642,7 @@ begin
           NeedModifyList.ValuesByIndex[IndexNeedModifyList] := ibsqlPos.FieldByName('needmodify').AsInteger;
         end
         else
+        begin
           // Если работает репликатор, то не будем прерывать сохранение настройки
           AddMistake(#13#10 +
             Format('Не удалось получить идентификатор позиции настройки (XID = %0:d, DBID = %1:d)',
@@ -5651,6 +5652,7 @@ begin
             raise Exception.Create('Не удалось получить идентификатор позиции настройки.'#13#10 +
               'Проверьте целостность настройки!');
           end;
+        end;
         Inc(PositionsCount);
         ibsqlPos.Next;
       end;
