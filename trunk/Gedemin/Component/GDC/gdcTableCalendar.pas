@@ -195,7 +195,7 @@ begin
 
             if Assigned(h) and h.IsHoliday(B) then
             begin
-              d.FieldByName('workday').AsInteger := FieldByName('sun').AsInteger;
+              d.FieldByName('workday').AsInteger := 0;
 
               for I := 1 to 4 do
               begin
