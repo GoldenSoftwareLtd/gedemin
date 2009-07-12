@@ -15151,7 +15151,8 @@ begin
     IBError(ibxeEmptyQuery, [nil]);
   {if not FInternalPrepared then
     InternalPrepare;}
-  if (SQLParams.Count > 0) and (FgdcDataLink <> nil) and (FgdcDataLink.DataSet <> nil) then
+  if (SQLParams.Count > 0) and (FgdcDataLink <> nil) and (FgdcDataLink.DataSet <> nil)
+    and (FgdcDataLink.FDetailField.Count > 0) then
   begin
     for I := 0 to FgdcDataLink.FMasterField.Count - 1 do
     begin
