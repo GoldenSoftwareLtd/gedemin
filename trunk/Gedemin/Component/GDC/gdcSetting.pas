@@ -159,7 +159,7 @@ type
 
     procedure AddPos(AnObject: TgdcBase; const WithDetail: Boolean);
     //Процедура для проверки действительности текущей настройки
-    procedure Valid(DoAutoDelete: Boolean = false);
+    procedure Valid(const DoAutoDelete: Boolean = false);
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
@@ -2944,7 +2944,7 @@ begin
   end;
 end;
 
-procedure TgdcSettingPos.Valid(DoAutoDelete: Boolean = false);
+procedure TgdcSettingPos.Valid(const DoAutoDelete: Boolean = false);
 var
   AnID: Integer;
   C: TPersistentClass;
