@@ -1738,6 +1738,9 @@ begin
     FParams.Values[UserNameValue] := AnUserName;
     FParams.Values[PasswordValue] := APassword;
 
+    if FParams.IndexOfName(Lc_ctypeValue) = -1 then
+      FParams.Add(Lc_ctypeValue + '=win1251');
+
     //
     //  Непосредственно осуществляем подключение
     //  и открытие компании
