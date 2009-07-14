@@ -1864,14 +1864,15 @@ begin
     not Document.FieldByName(Document.MovementTarget.SourceFieldName).IsNull)
       and
     (irsRemainsRef in DocumentLine.Sources)
-      and
+{      and
+
     (
       not Assigned(FBottomGrid)
         or
       (Assigned(FBottomGrid) and FBottomGrid.Focused)
         or
       DocumentLine.IsMinusRemains
-    );
+    )};
 end;
 
 procedure TdlgInvDocument.actSelectGoodUpdate(Sender: TObject);
