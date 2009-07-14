@@ -1,6 +1,6 @@
 inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
-  Left = 501
-  Top = 123
+  Left = 644
+  Top = 330
   Width = 636
   ActiveControl = ibgrDetail
   Caption = ''
