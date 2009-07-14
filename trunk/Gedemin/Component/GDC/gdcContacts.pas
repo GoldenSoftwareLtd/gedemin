@@ -3840,11 +3840,12 @@ begin
 
   if FieldByName('parent').IsNull and FieldByName('wcompanykey').IsNull then
   begin
-    MessageBox(ParentHandle,
-      'Поле "Рабочая организация" или "Подразделение" должно быть заполнено.',
-      'Внимание',
-      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    Abort;  
+    if not (sLoadFromStream in BaseState) then
+      MessageBox(ParentHandle,
+        'Поле "Рабочая организация" или "Подразделение" должно быть заполнено.',
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    Abort;
   end;
 
   {Если указано подразделение, но не указана компания, подставим компанию}
