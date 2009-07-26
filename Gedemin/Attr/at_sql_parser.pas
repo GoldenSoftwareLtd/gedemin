@@ -433,7 +433,7 @@ type
 
   TsqlSimpleCase = class(TsqlBaseCase)
   private
-    FValue: TsqlStatement;
+    //FValue: TsqlStatement;
 
   protected
     procedure ParseStatement; override;
