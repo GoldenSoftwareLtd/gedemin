@@ -1099,6 +1099,7 @@ BEGIN
 END
 ^
 
+/*
 CREATE TRIGGER ac_bi_entry_block FOR ac_entry
   INACTIVE
   BEFORE INSERT
@@ -1228,6 +1229,7 @@ BEGIN
   END
 END
 ^
+*/
 
 /* Болванка процедуры для создания оборотной ведомости */
 
