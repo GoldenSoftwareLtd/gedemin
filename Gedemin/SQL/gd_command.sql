@@ -257,3 +257,51 @@ ALTER TABLE gd_companystorage ADD CONSTRAINT gd_fk_companystorage_ck
   ON UPDATE CASCADE;
 
 COMMIT;
+
+/*
+
+  Гісторыю SQL запытаў у акне SQL рэдактара будзем захоўваць
+  у базе дадзеных, а не ў сховішчы.
+
+*/
+
+CREATE TABLE gd_sql_history (
+  id               dintkey,
+  sql_text         dblobtext80_1251 not null,
+  sql_params       dblobtext80_1251,
+  creatorkey       dintkey,
+  creationdate     dcreationdate,
+  editorkey        dintkey,
+  editiondate      deditiondate
+);
+
+ALTER TABLE gd_sql_history ADD CONSTRAINT gd_pk_sql_history
+  PRIMARY KEY (id);
+
+ALTER TABLE gd_sql_history ADD CONSTRAINT gd_fk_sql_history_creatorkey
+  FOREIGN KEY (creatorkey) REFERENCES gd_contact (id)
+  ON DELETE NO ACTION
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_sql_history ADD CONSTRAINT gd_fk_sql_history_editorkey
+  FOREIGN KEY (editorkey) REFERENCES gd_contact (id)
+  ON DELETE NO ACTION
+  ON UPDATE CASCADE;
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_sql_history FOR gd_sql_history
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+

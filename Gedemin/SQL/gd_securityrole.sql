@@ -299,6 +299,7 @@ GRANT ALL ON WG_POSITION TO administrator;
 GRANT ALL ON GD_SQL_STATEMENT TO administrator;
 GRANT ALL ON GD_SQL_LOG TO administrator;
 
+GRANT ALL ON GD_SQL_HISTORY TO administrator;
 
 /*GRANT ALL ON GD_STORAGE TO administrator;*/
 

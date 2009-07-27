@@ -471,6 +471,12 @@ SET TERM ; ^
 
 COMMIT;
 
+/*
+
+  Спроба зрабіць манітор SQL запытаў.
+
+*/
+
 CREATE TABLE gd_sql_statement
 (
   id               dintkey,
@@ -532,7 +538,7 @@ ALTER TABLE gd_sql_log ADD CONSTRAINT gd_fk_sql_log_ckey
   ON UPDATE CASCADE;
 */
 
-SET TERM ^ ;
+COMMIT;
 
 /*--------------------------------------------------------
 
@@ -563,6 +569,8 @@ SET TERM ^ ;
   генератора).
 
 ----------------------------------------------------------*/
+
+SET TERM ^ ;
 
 CREATE PROCEDURE gd_p_sec_loginuser (username VARCHAR(20), passw VARCHAR(20), subsystem INTEGER)
   RETURNS (

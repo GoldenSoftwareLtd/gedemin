@@ -86,7 +86,7 @@ copy result.sql /a + gd_file.sql               /a result.sql    > nul
 copy result.sql /a + gd_block_rule.sql         /a result.sql    > nul
 copy result.sql /a + rpl_database.sql          /a result.sql    > nul
 
-isql.exe -b -i result.sql 
+isql.exe -i result.sql 
 
 if not errorlevel 0 goto Error
 
@@ -107,7 +107,7 @@ copy result2.sql /a + gd_oper_const.sql         /a result2.sql    > nul
 copy result2.sql /a + gd_securityrole.sql       /a result2.sql    > nul
 copy result2.sql /a + gd_db_triggers.sql        /a result2.sql    > nul
 
-isql.exe -b -i result2.sql
+isql.exe -i result2.sql
 
 if not errorlevel 0 goto Error
 
