@@ -159,7 +159,7 @@ begin
       for I := 0 to FLineList.Count - 1 do
       begin
         List.Add(TfrParamLine(FLineList.Items[I]).lblName.Caption + '=' +
-          TfrParamLine(FLineList.Items[I]).edValue.Text);
+          TrimRight(TfrParamLine(FLineList.Items[I]).edValue.Text));
       end;
       List.SaveToFile(SaveDialog.FileName);
     finally
@@ -179,23 +179,27 @@ begin
     List := TStringList.Create;
     try
       List.LoadFromFile(OpenDialog.FileName);
-      for I := 0 to FLineList.Count - 1 do
-      begin
-        for J := 0 to List.Count do
+      try
+        for I := 0 to FLineList.Count - 1 do
         begin
-          if List.Names[J] = TfrParamLine(FLineList.Items[I]).lblName.Caption then
+          for J := 0 to List.Count do
           begin
-            //Загрузим значение и выходим
-            S := List[J];
-            Position := Pos('=', S);
-            if Position > 0  then
+            if List.Names[J] = TfrParamLine(FLineList.Items[I]).lblName.Caption then
             begin
-              S := Copy(S, Position + 1, Length(S));
-              TfrParamLine(FLineList.Items[I]).edValue.Text := S;
-              break;
+              //Загрузим значение и выходим
+              S := List[J];
+              Position := Pos('=', S);
+              if Position > 0  then
+              begin
+                S := Copy(S, Position + 1, Length(S));
+                TfrParamLine(FLineList.Items[I]).edValue.Text := S;
+                break;
+              end;
             end;
           end;
         end;
+      except
+        //просто пропускаем
       end;
     finally
       List.Free;
