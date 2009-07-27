@@ -3,7 +3,7 @@ object dlgFilter_Grid: TdlgFilter_Grid
   Top = 515
   BorderStyle = bsDialog
   Caption = 'Фильтр'
-  ClientHeight = 72
+  ClientHeight = 95
   ClientWidth = 346
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -36,7 +36,7 @@ object dlgFilter_Grid: TdlgFilter_Grid
     Top = 50
     Width = 233
     Height = 17
-    Caption = 'Использовать регулярные выражения'
+    Action = actRegExp
     TabOrder = 1
   end
   object btnOk: TButton
@@ -46,7 +46,7 @@ object dlgFilter_Grid: TdlgFilter_Grid
     Height = 21
     Action = actOk
     Default = True
-    TabOrder = 2
+    TabOrder = 3
   end
   object btnCancel: TButton
     Left = 264
@@ -56,7 +56,17 @@ object dlgFilter_Grid: TdlgFilter_Grid
     Cancel = True
     Caption = 'Отмена'
     ModalResult = 2
-    TabOrder = 3
+    TabOrder = 4
+  end
+  object chbxConvertSQL: TCheckBox
+    Left = 8
+    Top = 69
+    Width = 249
+    Height = 17
+    Caption = 'Конвертировать символы % и _'
+    Checked = True
+    State = cbChecked
+    TabOrder = 2
   end
   object ActionList: TActionList
     Left = 192
@@ -65,6 +75,11 @@ object dlgFilter_Grid: TdlgFilter_Grid
       Caption = 'Искать'
       OnExecute = actOkExecute
       OnUpdate = actOkUpdate
+    end
+    object actRegExp: TAction
+      Caption = 'Использовать регулярные выражения'
+      OnExecute = actRegExpExecute
+      OnUpdate = actRegExpUpdate
     end
   end
 end

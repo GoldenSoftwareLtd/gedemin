@@ -6757,7 +6757,7 @@ var
   OldPseudoRecordsOn: Boolean;
   {$ENDIF}
 begin
-  if FScaleColumns and FCanScale and DataLink.Active and Assigned(Parent)
+  if {FScaleColumns and} FCanScale and DataLink.Active and Assigned(Parent)
     and (not DataLink.Editing) then
   begin
     if FNeedScaleColumns then
@@ -11265,85 +11265,96 @@ end;
 
 procedure TgsCustomDBGrid._CountScaleColumns;
 var
-  OldWidth, CurrWidth, Remains: Integer;
+  OldWidth, VertLineWidth, Delta, NewColWidth: Integer;
   Percent: Double;
   I: Integer;
-  TotalyRemained: Integer;
 
-  // Подсчитывает, какой кролонке следующей следует добавить
-  // оставшиеся пикселы
-  procedure CountNewRemainColumn(const Depth: Integer = 1);
+  function TestColumn(C: TColumn): Boolean;
   begin
-    if FLastRemain < Columns.Count - 1 then
-      Inc(FLastRemain)
-    else
-      FLastRemain := 0;
+    Result := C.Visible and ((C.Field is TStringField) or (C.Field is TMemoField));
   end;
 
 begin
-  if FScaleColumns and FCanScale and DataLink.Active and Assigned(Parent) then
+  if FCanScale and DataLink.Active and Assigned(Parent) then
   begin
     if AcquireLayoutLock then
     try
-      OldWidth := 0;
+      VertLineWidth := GridLineWidth * Integer(dgColLines in Options);
 
-      // Расчет старого размера
       if dgIndicator in Options then
-        Inc(OldWidth, ColWidths[0] + GridLineWidth * Integer(dgColLines in Options));
+        OldWidth := ColWidths[0] + VertLineWidth
+      else
+        OldWidth := 0;
 
       for I := 0 to Columns.Count - 1 do
         if Columns[I].Visible then
-          Inc(OldWidth, Columns[I].Width +
-            GridLineWidth * Integer(dgColLines in Options));
+          Inc(OldWidth, Columns[I].Width + VertLineWidth);
 
-      if OldWidth > 0 then
-        Percent := ClientWidth / OldWidth
-      else
-        Percent := 0;
+      Delta := OldWidth - ClientWidth;
 
-    // Установка новых размеров
-      CurrWidth := 0;
-      if dgIndicator in Options then
-        Inc(CurrWidth, ColWidths[0] + GridLineWidth * Integer(dgColLines in Options));
-
-      for I := Integer(dgIndicator in Options) to ColCount - 1 do
+      if (Delta > 0) and FScaleColumns then
       begin
-        if Columns[I - Integer(dgIndicator in Options)].Visible then
+        for I := ColCount - 1 downto Integer(dgIndicator in Options) do
         begin
-          ColWidths[I] := Round(ColWidths[I] * Percent);
+          if TestColumn(Columns[I - Integer(dgIndicator in Options)]) then
+          begin
+            NewColWidth := ColWidths[I] - Delta;
+            if NewColWidth < FMinColWidth then
+              NewColWidth := FMinColWidth;
+            Delta := Delta - ColWidths[I] + NewColWidth;
+            ColWidths[I] := NewColWidth;
+            if Delta <= 0 then
+              break;
+          end;
+        end;
 
-          if ColWidths[I] < FMinColWidth then
-            ColWidths[I] := FMinColWidth;
+        if Delta > 0 then
+        begin
+          if OldWidth > 0 then
+            Percent := ClientWidth / OldWidth
+          else
+            Percent := 0;
 
-          Inc(CurrWidth, ColWidths[I] +
-            GridLineWidth * Integer(dgColLines in Options));
+          for I := Integer(dgIndicator in Options) to ColCount - 1 do
+          begin
+            if Columns[I - Integer(dgIndicator in Options)].Visible then
+            begin
+              NewColWidth := Round(ColWidths[I] * Percent);
+              if NewColWidth < FMinColWidth then
+                NewColWidth := FMinColWidth;
+              Delta := Delta - ColWidths[I] + NewColWidth;
+              ColWidths[I] := NewColWidth;
+              if Delta <= 0 then
+                break;
+            end;
+          end;
         end;
       end;
 
-      // Подсчет нового размера
-      Remains := ClientWidth - CurrWidth;
-      TotalyRemained := -1;
-
-      repeat
-        // Определяем колонку, которой отдаем весь остаток.
-        CountNewRemainColumn;
-        Inc(TotalyRemained);
-
-        if (Remains <> 0) and (FLastRemain <> -1) and Columns[FLastRemain].Visible then
+      if Delta < 0 then
+      begin
+        for I := ColCount - 1 downto Integer(dgIndicator in Options) do
         begin
-          ColWidths[FLastRemain + Integer(dgIndicator in Options)] :=
-            ColWidths[FLastRemain + Integer(dgIndicator in Options)] + Remains;
-
-          if ColWidths[FLastRemain + Integer(dgIndicator in Options)] < FMinColWidth then
+          if TestColumn(Columns[I - Integer(dgIndicator in Options)]) then
           begin
-            Remains := ColWidths[FLastRemain + Integer(dgIndicator in Options)] -
-              FMinColWidth;
-
-            ColWidths[FLastRemain + Integer(dgIndicator in Options)] := FMinColWidth;
-          end else
-            Remains := 0;
+            ColWidths[I] := ColWidths[I] - Delta;
+            Delta := 0;
+            break;
+          end;
         end;
-      until (Remains = 0) or (FLastRemain = -1) or (TotalyRemained >= Columns.Count - 1);
+      end;
+
+      if Delta < 0 then
+      begin
+        for I := ColCount - 1 downto Integer(dgIndicator in Options) do
+        begin
+          if Columns[I - Integer(dgIndicator in Options)].Visible then
+          begin
+            ColWidths[I] := ColWidths[I] - Delta;
+            break;
+          end;
+        end;
+      end;
 
       for I := 0 to Columns.Count - 1 do
         if Columns[I].Visible then
