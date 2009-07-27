@@ -535,7 +535,7 @@ type
     procedure WriteString(const APath, AValueName, AValue: String; const Sync: Boolean = True);
     procedure WriteInteger(const APath, AValueName: String; const AValue: Integer);
     procedure WriteCurrency(const APath, AValueName: String; const AValue: Currency);
-    procedure WriteBoolean(const APath, AValueName: String; const AValue: Boolean);
+    procedure WriteBoolean(const APath, AValueName: String; const AValue: Boolean; const Sync: Boolean = True);
     procedure WriteDateTime(const APath, AValueName: String; const AValue: TDateTime);
     procedure WriteStream(const APath, AValueName: String; AValue: TStream);
 
@@ -2144,18 +2144,18 @@ begin
 end;
 
 procedure TgsStorage.WriteBoolean(const APath, AValueName: String;
-  const AValue: Boolean);
+  const AValue: Boolean; const Sync: Boolean = True);
 var
   F: TgsStorageFolder;
 begin
-  F := OpenFolder(APath, True);
+  F := OpenFolder(APath, Sync);
   try
     if Assigned(F) then
     begin
       F.WriteBoolean(AValueName, AValue);
     end;
   finally
-    CloseFolder(F);
+    CloseFolder(F, Sync);
   end;
 end;
 
