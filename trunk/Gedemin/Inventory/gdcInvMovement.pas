@@ -5380,7 +5380,7 @@ begin
       Result := ibsql.FieldByName('name').AsString
     else
       Result := 'Оcтатки';
-    ibsql.Close;    
+    ibsql.Close;
   finally
     ibsql.Free;
   end;
@@ -5488,6 +5488,55 @@ var
           ' JOIN INV_CARD C ON C.ID = M.CARDKEY ';
     end;
 
+    if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
+       (High(DepartmentKeys) > Low(DepartmentKeys))
+    then
+    begin
+      if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
+      begin
+        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
+        if High(DepartmentKeys) < Low(DepartmentKeys) then
+        begin
+          if not HasSubSet(cst_Holding) then
+            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB and CON.contacttype = 2'
+          else
+            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
+              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
+
+          if not IBLogin.IsUserAdmin then
+            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
+        end;
+      end
+      else
+      begin
+        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
+        if High(DepartmentKeys) < Low(DepartmentKeys) then
+        begin
+          if not HasSubSet(cst_Holding) then
+            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB '
+          else
+            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
+              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
+
+          if not IBLogin.IsUserAdmin then
+            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
+        end;
+      end;
+    end;
+
+    if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
+    begin
+      Result := Result + ' JOIN GD_GOOD G ON ( G.ID  =  M.GOODKEY ) ';
+      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
+      begin
+        Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
+        if not HasSubSet('All') then
+          Result := Result + 'AND ( GG.LB >= :LB AND GG.RB <= :RB )';
+      end
+      else
+        Result := Result + ' LEFT JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID)';
+    end;
+
     Result := Result + #13#10 + ' WHERE ';
     if FIsMinusRemains then
       Result := Result +  ' M.BALANCE < 0 '
@@ -5506,6 +5555,9 @@ var
       else
         Result := Result + ' AND M.GOODKEY = :GOODKEY '
     end;
+
+    if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) and not HasSubSet('All') then
+      Result := Result +  ' AND ( GG.LB >= :LB AND GG.RB <= :RB )';
 
     if (High(DepartmentKeys) > Low(DepartmentKeys))
     then
@@ -5549,6 +5601,56 @@ var
         Result := Result + #13#10 +
           ' JOIN INV_CARD C ON C.ID = M.CARDKEY ';
     end;
+
+    if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
+       (High(DepartmentKeys) > Low(DepartmentKeys))
+    then
+    begin
+      if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
+      begin
+        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
+        if High(DepartmentKeys) < Low(DepartmentKeys) then
+        begin
+          if not HasSubSet(cst_Holding) then
+            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB and CON.contacttype = 2'
+          else
+            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
+              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
+
+          if not IBLogin.IsUserAdmin then
+            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
+        end;
+      end
+      else
+      begin
+        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
+        if High(DepartmentKeys) < Low(DepartmentKeys) then
+        begin
+          if not HasSubSet(cst_Holding) then
+            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB '
+          else
+            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
+              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
+
+          if not IBLogin.IsUserAdmin then
+            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
+        end;
+      end;
+    end;
+
+    if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
+    begin
+      Result := Result + ' JOIN GD_GOOD G ON ( G.ID  =  M.GOODKEY ) ';
+      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
+      begin
+        Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
+        if not HasSubSet('All') then
+          Result := Result + 'AND ( GG.LB >= :LB AND GG.RB <= :RB )';
+      end
+      else
+        Result := Result + ' LEFT JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID)';
+    end;
+
     Result := Result + #13#10 + ' WHERE M.DISABLED = 0 '#13#10 +
       ' AND M.MOVEMENTDATE > :REMAINSDATE ';
 
@@ -5561,6 +5663,9 @@ var
       else
         Result := Result + ' AND M.GOODKEY = :GOODKEY '
     end;
+
+    if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) and not HasSubSet('All') then
+      Result := Result +  ' AND ( GG.LB >= :LB AND GG.RB <= :RB )';
 
     if (High(DepartmentKeys) > Low(DepartmentKeys))
     then
