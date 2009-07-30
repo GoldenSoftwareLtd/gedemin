@@ -27,5 +27,6 @@ object frParamLine: TfrParamLine
     Checked = True
     State = cbChecked
     TabOrder = 0
+    OnClick = cbNullClick
   end
 end
