@@ -2,13 +2,13 @@
 @echo off
 setlocal
 
-if not [%6]==[] goto proceed
+if not [%7]==[] goto proceed
 
 echo ******************************************************************************
 echo **                                                                          **
 echo **  Не указаны параметры                                                    **
 echo **                                                                          **
-echo **  make_install FSFN DBN SFN IFN AFN TFN                                   **
+echo **  make_install FSFN DBN SFN IFN AFN TFN /FTP|/NO_FTP                      **
 echo **                                                                          **
 echo **    FSFN -- полное имя файла с пакетом настроек                           **
 echo **    DBN  -- только имя (без расширения) файла БД                          **
@@ -46,6 +46,7 @@ set install_source_path=..\..\..\gedemin_local_fb
 set database_path=d:\golden\gedemin_local_fb\database
 set winrar_path=C:\Program Files\WinRar
 set setup_path=..\InnoSetup
+set setting_path=d:\golden\setting
 
 set server_name=localhost/3053
 
@@ -56,9 +57,11 @@ echo **                                             **
 echo *************************************************
 
 cd ..\..\sql
-call create.bat %server_name% %database_path%\%2.fdb %fb_path%
+call create.bat %server_name% %database_path%\%2.fdb
 if not errorlevel 0 Error
+
 cd ..\setup\bootstrap
+if not errorlevel 0 Error
 
 echo *************************************************
 echo **                                             **
@@ -66,7 +69,7 @@ echo **  Загружаем пакет настроек                   **
 echo **                                             **
 echo *************************************************
 
-set params=/sn "%server_name%:%database_path%\%2.fdb" /user Administrator /password Administrator /sp d:\golden\setting /rd /q
+set params=/sn "%server_name%:%database_path%\%2.fdb" /user Administrator /password Administrator /sp %setting_path% /rd /q
 ..\..\exe\gedemin.exe %params% /sfn "%~1" /ns
 if not errorlevel 0 Error
 
@@ -76,8 +79,11 @@ echo **  Создаем бэкап базы                         **
 echo **                                             **
 echo *************************************************
 
-del %database_path%\%2.bk > nul
-"%fb_path%\gbak" -b %server_name%:%database_path%\%2.fdb %database_path%\%2.bk -user SYSDBA -pas masterkey
+del "%database_path%\%2.bk" > nul
+"%fb_path%\gbak" -b "%server_name%:%database_path%\%2.fdb" "%database_path%\%2.bk" -user SYSDBA -pas masterkey
+if not errorlevel 0 goto Error
+
+del "%database_path%\%2.fdb" > nul
 if not errorlevel 0 goto Error
 
 echo *************************************************
@@ -86,14 +92,28 @@ echo **  Делаем инстоляцию                          **
 echo **                                             **
 echo *************************************************
 
-copy ..\..\images\splash\%3 %install_source_path%\gedemin.jpg /Y
-"%inno_setup_path%\iscc.exe" "%setup_path%\%4.iss" /o%~dp6 /fsetup /q
+copy ..\..\images\splash\%3 "%install_source_path%\gedemin.jpg" /Y
+"%inno_setup_path%\iscc.exe" "%setup_path%\%4.iss" "/o%~dp6" /fsetup /q
 if not errorlevel 0 goto Error
 
-rem winrar m -m5 %5 setup.exe
-rem ftp -s:d:\ftp_commands.txt gsbelarus.com
+"%winrar_path%\winrar" a -m5 "%~dp6\%5" "%~dp6\setup.exe"
+if not errorlevel 0 goto Error
 
 eventcreate /t INFORMATION /id 201 /l application /so gedemin /d "End making install %4."
+
+if not [%7]==[/ftp] goto exit
+
+echo *************************************************
+echo **                                             **
+echo **  Upload to ftp                              **
+echo **                                             **
+echo *************************************************
+
+ftp -s:d:\ftp_commands.txt gsbelarus.com
+if not errorlevel 0 goto Error
+
+del "%~dp6\%5"
+if not errorlevel 0 goto Error
 
 goto Exit
 
