@@ -82,9 +82,9 @@ begin
     AddFormat(1, 'Без формата', FloatToStr(1234.5));
     AddFormat(2, '0', FormatFloat('0', 1234.5));
     AddFormat(3, '0.00', FormatFloat('0.00', 1234.5));
-    AddFormat(4, '#.##', FormatFloat('#.##', 1234.5));
+    AddFormat(4, '0.##', FormatFloat('0.##', 1234.5));
     AddFormat(5, '#,##0.00', FormatFloat('#,##0.00', 1234.5));
-    AddFormat(6, '#,###.##', FormatFloat('#,###.##', 1234.5));
+    AddFormat(6, '#,##0.##', FormatFloat('#,##0.##', 1234.5));
     AddFormat(7, '#,##0.##', FormatFloat('#,##0.##', 1234.5));
 
   end else if FField is TDateField then

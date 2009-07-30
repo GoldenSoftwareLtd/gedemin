@@ -1,6 +1,6 @@
 object dlgColFormat: TdlgColFormat
-  Left = 202
-  Top = 159
+  Left = 282
+  Top = 271
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Формат отображения данных'
@@ -12,6 +12,7 @@ object dlgColFormat: TdlgColFormat
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  OldCreateOrder = True
   Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13

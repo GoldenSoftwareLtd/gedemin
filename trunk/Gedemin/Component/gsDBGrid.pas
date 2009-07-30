@@ -10533,7 +10533,11 @@ begin
                 SelectedRows.Clear;
               end;
             end else
+            begin
               Resync([]);
+              if FFilteredDataSet is TIBCustomDataSet then
+                TIBCustomDataSet(FFilteredDataSet).ResetAllAggs(True, SelectedRows);
+            end;
             FFilterDataSetOpenCounter := -1;
           end;
         end;
