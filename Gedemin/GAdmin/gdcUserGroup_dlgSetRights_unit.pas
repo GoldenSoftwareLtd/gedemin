@@ -80,6 +80,15 @@ var
   end;
 
 begin
+  if not IBLogin.IsIBUserAdmin then
+  begin
+    MessageBox(Handle,
+      'Выполнять настройку прав доступа можно только под учетной записью Administrator.',
+      'Внимание',
+      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+    exit;
+  end;
+
   if (IBLogin.ServerName > '') then
   begin
     MessageBox(Handle,
