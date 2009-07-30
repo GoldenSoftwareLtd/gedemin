@@ -844,7 +844,8 @@ begin
   for I := 0 to FormsList.Count - 1 do
   begin
     if (FormsList[I].ClassName = AFormClass.ClassName)
-      and ((FormsList[I] as TgdcCreateableForm).SubType = ASubType) then
+      and ((FormsList[I] as TgdcCreateableForm).SubType = ASubType)
+      and ((FormsList[I] as TgdcCreateableForm).Parent = nil) then
     begin
       Result := FormsList[I] as TgdcCreateableForm;
       break;
