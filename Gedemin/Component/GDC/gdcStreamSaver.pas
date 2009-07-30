@@ -381,7 +381,7 @@ type
     // заменяет символы   &apos; &quot; &amp; &lt; &gt;   на   ' " & < >   соответственно
     function UnQuoteString(Str: String): String;
     function GetPositionOfString(S: TStream; Str: String): Integer;
-    procedure SaveDataset(S: TStream; CDS: TClientDataSet);
+    //procedure SaveDataset(S: TStream; CDS: TClientDataSet);
   public
     constructor Create(AObjectSet: TgdcStreamDataObject = nil; ALoadingOrderList: TgdcStreamLoadingOrderList = nil);
 
@@ -4656,6 +4656,7 @@ begin
   StreamWriteXMLString(S, AddCloseTag(XML_TAG_STREAM));
 end;
 
+(*
 procedure TgdcStreamXMLWriterReader.SaveDataset(S: TStream; CDS: TClientDataSet);
 const
   XML_TAG_FIELD_LIST = 'FIELD_LIST';
@@ -4709,6 +4710,7 @@ begin
   end;
   StreamWriteXMLString(S, AddCloseTag(XML_TAG_ROW_LIST));
 end;
+*)
 
 function TgdcStreamXMLWriterReader.GetNextElement(const St: TStream; out ElementStr: String): TXMLElementType;
 var
