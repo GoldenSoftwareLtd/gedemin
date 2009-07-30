@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2009 by Golden Software of Belarus
 
   Module
 
@@ -464,7 +464,6 @@ type
     FGroupKey: Integer;
     FGoodKey: Integer;
     FChooseFeatures: TgdcArrInvFeatures;
-    FIsDest: Boolean;
 
     FCheckRemains: Boolean;
     FDepartmentKeys: TIntegerArr;
@@ -505,7 +504,7 @@ type
     procedure ClearPositionList;
 
     procedure SetOptions(var InvPosition: TgdcInvPosition;
-      InvMovement: TgdcInvMovement; const isPosition: Boolean; const isDest: Boolean = False);
+      InvMovement: TgdcInvMovement; const isPosition: Boolean);
 
     procedure RemovePosition;
 
@@ -3902,8 +3901,6 @@ function TgdcInvMovement.ShowRemains(var InvPosition: TgdcInvPosition;
 var
   S: String;
   C: CgdcCreateableForm;
-  isDest: Boolean;
-  Field: TField;
 begin
   if isPosition then
   begin
@@ -3915,18 +3912,10 @@ begin
     S := cst_ByGroupKey;
     C := Tgdc_frmInvSelectRemains;
   end;
-  
-  if (Self.gdcDocumentLine as TgdcInvDocumentLine).RelationType = irtTransformation then
-  begin
-    Field := Self.gdcDocumentLine.FindField('INQUANTITY');
-    isDest := Assigned(Field);
-  end
-  else
-    isDest := False;
-
   with Tgdc_frmInvSelectRemains(C.CreateSubType(gdcDocumentLine, gdcDocumentLine.SubType)) do
     try
-      (gdcObject as TgdcInvRemains).SetOptions(InvPosition, Self, isPosition, isDest);
+      (gdcObject as TgdcInvRemains).SetOptions(InvPosition, Self, isPosition);
+
       Setup((gdcObject as TgdcInvRemains));
       SetChoose(gdcDocumentLine);
       Result := ShowModal = mrOk;
@@ -4367,7 +4356,7 @@ begin
       '     ON m.documentkey = doc.id '#13#10 +
       '   LEFT JOIN gd_documenttype doct '#13#10 +
       '     ON doc.documenttypekey = doct.id '#13#10 +
-      ' WHERE c.id = :id  ';
+      ' WHERE c.id = :id  AND ( ';
     S := '';
     for i:= Low(InvPosition.ipInvDestCardFeatures) to High(InvPosition.ipInvDestCardFeatures) do
       if FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).AsVariant <>
@@ -4390,10 +4379,8 @@ begin
               ' = :' + InvPosition.ipInvDestCardFeatures[i].optFieldName;
       end;
 
-    if S <> '' then
-      ibsqlCardMovement.SQL.Text := ibsqlCardMovement.SQL.Text + 'AND (' + S + ' )';
-
-    ibsqlCardMovement.SQL.Text := ibsqlCardMovement.SQL.Text + ' AND m.documentkey <> c.firstdocumentkey ';
+    ibsqlCardMovement.SQL.Text := ibsqlCardMovement.SQL.Text + S +
+      ' ) AND m.documentkey <> c.firstdocumentkey ';
 
     for i:= Low(InvPosition.ipInvDestCardFeatures) to High(InvPosition.ipInvDestCardFeatures) do
       if (FieldByName(InvPosition.ipInvDestCardFeatures[i].optFieldName).AsVariant <>
@@ -4889,14 +4876,14 @@ end;
 
 function TgdcInvBaseRemains.GetFromClause(const ARefresh: Boolean = False): String;
 var
-(*  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
   {M}
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
-  {END MACRO} *)
+  {END MACRO}
   Ignore: TatIgnore;
 begin
-(*  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCINVBASEREMAINS', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCINVBASEREMAINS', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  try
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}    begin
@@ -4925,12 +4912,7 @@ begin
   {M}          Exit;
   {M}        end;
   {M}    end;
-  {END MACRO}     *)
-  if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
-  begin
-    Result := '';
-    exit;
-  end;
+  {END MACRO}
 
   Result := ' FROM INV_CARD C JOIN GD_GOOD G ON (G.ID = C.GOODKEY) ';
 
@@ -4977,12 +4959,12 @@ begin
   Ignore := FSQLSetup.Ignores.Add;
   Ignore.AliasName := 'CON';
 
-(*  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVBASEREMAINS', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVBASEREMAINS', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
   {M}      ClearMacrosStack2('TGDCINVBASEREMAINS', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
-  {END MACRO}  *)
+  {END MACRO}
 end;
 
 function TgdcInvBaseRemains.GetGroupClause: String;
@@ -5107,28 +5089,19 @@ begin
 
   if not CurrentRemains then
   begin
-    if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
+    if not FIsNewDateRemains then
     begin
       if FIsMinusRemains then
-        Result := Result + ', SUM(0-M.BALANCE) AS REMAINS '
+        Result := Result + ', SUM(M.CREDIT - M.DEBIT) as REMAINS '
       else
-        Result := Result + ', SUM(M.BALANCE) AS REMAINS ';
-    end else
+        Result := Result + ', SUM(M.DEBIT - M.CREDIT) as REMAINS '
+    end
+    else
     begin
-      if not FIsNewDateRemains then
-      begin
-        if FIsMinusRemains then
-          Result := Result + ', SUM(M.CREDIT - M.DEBIT) as REMAINS '
-        else
-          Result := Result + ', SUM(M.DEBIT - M.CREDIT) as REMAINS '
-      end
+      if FIsMinusRemains then
+        Result := Result + ', SUM(REST.REMAINS - M.BALANCE) as REMAINS '
       else
-      begin
-        if FIsMinusRemains then
-          Result := Result + ', SUM(REST.REMAINS - M.BALANCE) as REMAINS '
-        else
-          Result := Result + ', SUM(M.BALANCE - REST.REMAINS) as REMAINS '
-      end;
+        Result := Result + ', SUM(M.BALANCE - REST.REMAINS) as REMAINS '
     end;
   end
   else
@@ -5380,7 +5353,7 @@ begin
       Result := ibsql.FieldByName('name').AsString
     else
       Result := 'Оcтатки';
-    ibsql.Close;
+    ibsql.Close;    
   finally
     ibsql.Free;
   end;
@@ -5445,7 +5418,6 @@ begin
   CachedUpdates := True;
   FCheckRemains := True;
   FgdcDocumentLine := nil;
-  FIsDest := False;
 
   SetLength(FDepartmentKeys, 0);
   SetLength(FSubDepartmentKeys, 0);
@@ -5470,229 +5442,6 @@ var
   i: Integer;
   F: TatRelationField;
   St: String;
-
-  function MakeInvBalancePart: String;
-  var
-    i : Integer;
-  begin
-    Result := ' SELECT M.CARDKEY, M.CONTACTKEY, '#13#10 +
-      '   SUM(M.BALANCE) AS BALANCE '#13#10 +
-      ' FROM '#13#10 +
-      '   INV_BALANCE M ';
-    if HasSubSet(cst_ByGoodKey) then
-    begin
-      if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or
-        (CurrentRemains and (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil))
-      then
-        Result := Result + #13#10 +
-          ' JOIN INV_CARD C ON C.ID = M.CARDKEY ';
-    end;
-
-    if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-       (High(DepartmentKeys) > Low(DepartmentKeys))
-    then
-    begin
-      if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
-      begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
-        if High(DepartmentKeys) < Low(DepartmentKeys) then
-        begin
-          if not HasSubSet(cst_Holding) then
-            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB and CON.contacttype = 2'
-          else
-            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
-
-          if not IBLogin.IsUserAdmin then
-            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
-        end;
-      end
-      else
-      begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
-        if High(DepartmentKeys) < Low(DepartmentKeys) then
-        begin
-          if not HasSubSet(cst_Holding) then
-            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB '
-          else
-            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
-
-          if not IBLogin.IsUserAdmin then
-            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
-        end;
-      end;
-    end;
-
-    if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
-    begin
-      Result := Result + ' JOIN GD_GOOD G ON ( G.ID  =  M.GOODKEY ) ';
-      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
-      begin
-        Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
-        if not HasSubSet('All') then
-          Result := Result + 'AND ( GG.LB >= :LB AND GG.RB <= :RB )';
-      end
-      else
-        Result := Result + ' LEFT JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID)';
-    end;
-
-    Result := Result + #13#10 + ' WHERE ';
-    if FIsMinusRemains then
-      Result := Result +  ' M.BALANCE < 0 '
-    else
-      if not HasSubSet(cst_AllRemains) then
-        Result := Result +  '  M.BALANCE > 0 '
-      else
-        Result := Result +  '  M.BALANCE <> 0 ';
-
-    if HasSubSet(cst_ByGoodKey) then
-    begin
-      if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or
-        (CurrentRemains and (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil))
-      then
-        Result := Result + ' AND C.GOODKEY = :GOODKEY '
-      else
-        Result := Result + ' AND M.GOODKEY = :GOODKEY '
-    end;
-
-    if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) and not HasSubSet('All') then
-      Result := Result +  ' AND ( GG.LB >= :LB AND GG.RB <= :RB )';
-
-    if (High(DepartmentKeys) > Low(DepartmentKeys))
-    then
-    begin
-      St := '(';
-      for i:= Low(DepartmentKeys) to High(DepartmentKeys) do
-      begin
-        St := St + IntToStr(DepartmentKeys[i]);
-        if i < High(DepartmentKeys) then
-          St := St + ',';
-      end;
-      Result := Result + ' AND  M.CONTACTKEY IN ' + St + ')';
-    end
-    else
-      if (High(SubDepartmentKeys) <> Low(SubDepartmentKeys)) then
-      begin
-        if (High(SubDepartmentKeys) > Low(SubDepartmentKeys)) then
-          raise EgdcInvMovement.Create('Необходимо указать меcто откуда отпуcкаетcя ТМЦ')
-        else
-          if (High(DepartmentKeys) = Low(DepartmentKeys))
-          then
-            Result := Result + ' AND M.CONTACTKEY = :DepartmentKey ';
-      end;
-
-    Result := Result + ' GROUP BY 1, 2 ';
-  end;
-
-  function MakeInvMovementPart: String;
-  var
-    i : Integer;
-  begin
-    Result := ' SELECT M.CARDKEY, M.CONTACTKEY, '#13#10 +
-      '   SUM(M.CREDIT - M.DEBIT) AS BALANCE '#13#10 +
-      ' FROM '#13#10 +
-      '   INV_MOVEMENT M ';
-    if HasSubSet(cst_ByGoodKey) then
-    begin
-      if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or
-        (CurrentRemains and (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil))
-      then
-        Result := Result + #13#10 +
-          ' JOIN INV_CARD C ON C.ID = M.CARDKEY ';
-    end;
-
-    if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-       (High(DepartmentKeys) > Low(DepartmentKeys))
-    then
-    begin
-      if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
-      begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
-        if High(DepartmentKeys) < Low(DepartmentKeys) then
-        begin
-          if not HasSubSet(cst_Holding) then
-            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB and CON.contacttype = 2'
-          else
-            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
-
-          if not IBLogin.IsUserAdmin then
-            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
-        end;
-      end
-      else
-      begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
-        if High(DepartmentKeys) < Low(DepartmentKeys) then
-        begin
-          if not HasSubSet(cst_Holding) then
-            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB '
-          else
-            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
-
-          if not IBLogin.IsUserAdmin then
-            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
-        end;
-      end;
-    end;
-
-    if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
-    begin
-      Result := Result + ' JOIN GD_GOOD G ON ( G.ID  =  M.GOODKEY ) ';
-      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
-      begin
-        Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
-        if not HasSubSet('All') then
-          Result := Result + 'AND ( GG.LB >= :LB AND GG.RB <= :RB )';
-      end
-      else
-        Result := Result + ' LEFT JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID)';
-    end;
-
-    Result := Result + #13#10 + ' WHERE M.DISABLED = 0 '#13#10 +
-      ' AND M.MOVEMENTDATE > :REMAINSDATE ';
-
-    if HasSubSet(cst_ByGoodKey) then
-    begin
-      if GlobalStorage.ReadBoolean('Options\Invent', 'DontUseGoodKey', False, False) or
-        (CurrentRemains and (atDatabase.FindRelationField('INV_BALANCE', 'GOODKEY') = nil))
-      then
-        Result := Result + ' AND C.GOODKEY = :GOODKEY '
-      else
-        Result := Result + ' AND M.GOODKEY = :GOODKEY '
-    end;
-
-    if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) and not HasSubSet('All') then
-      Result := Result +  ' AND ( GG.LB >= :LB AND GG.RB <= :RB )';
-
-    if (High(DepartmentKeys) > Low(DepartmentKeys))
-    then
-    begin
-      St := '(';
-      for i:= Low(DepartmentKeys) to High(DepartmentKeys) do
-      begin
-        St := St + IntToStr(DepartmentKeys[i]);
-        if i < High(DepartmentKeys) then
-          St := St + ',';
-      end;
-      Result := Result + ' AND  M.CONTACTKEY IN ' + St + ')';
-    end
-    else
-      if (High(SubDepartmentKeys) <> Low(SubDepartmentKeys)) then
-      begin
-        if (High(SubDepartmentKeys) > Low(SubDepartmentKeys)) then
-          raise EgdcInvMovement.Create('Необходимо указать меcто откуда отпуcкаетcя ТМЦ')
-        else
-          if (High(DepartmentKeys) = Low(DepartmentKeys))
-          then
-            Result := Result + ' AND M.CONTACTKEY = :DepartmentKey ';
-      end;
-
-    Result := Result + ' GROUP BY 1, 2 ';
-  end;
-
 begin
   {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCINVREMAINS', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  try
@@ -5724,259 +5473,146 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if Database.IsFirebirdConnect and (DataBase.ServerMajorVersion >= 2) then
+  Result := inherited GetFromClause(ARefresh);
+
+  if not CurrentRemains then
   begin
-    Result := inherited GetFromClause(ARefresh);
+    if not FIsNewDateRemains then
+      Result := Result +  ' AND M.DISABLED = 0 ';
+  end
+  else
+    if FIsMinusRemains then
+      Result := Result +  ' AND M.BALANCE < 0 '
+    else
+      if not HasSubSet(cst_AllRemains) then
+        Result := Result +  ' AND M.BALANCE > 0 ';
 
-    Result := ' FROM ('#13#10 +
-      MakeInvBalancePart + #13#10;
-    if not CurrentRemains then
-      Result := Result + ' UNION ALL '#13#10 +
-        MakeInvMovementPart + #13#10;
+  if not CurrentRemains and not FIsNewDateRemains then
+    Result := Result +  ' AND M.MOVEMENTDATE <= :REMAINSDATE ';
 
-    Result := Result + ' ) M '#13#10 +
-       ' LEFT JOIN INV_CARD C ON C.ID = M.CARDKEY '#13#10 +
-       ' LEFT JOIN GD_GOOD G ON (G.ID = C.GOODKEY) ';
-    if not IBLogin.IsUserAdmin then
-      Result := Result + Format(' AND g_sec_test(g.aview, %d) <> 0 ', [IBLogin.InGroup]);
-
-    if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-       (High(DepartmentKeys) > Low(DepartmentKeys))
-    then
-    begin
-      if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
-      begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
-        if High(DepartmentKeys) < Low(DepartmentKeys) then
-        begin
-          if not HasSubSet(cst_Holding) then
-            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB and CON.contacttype = 2'
-          else
-            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
-
-          if not IBLogin.IsUserAdmin then
-            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
-        end;
-      end
-      else
-      begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
-        if High(DepartmentKeys) < Low(DepartmentKeys) then
-        begin
-          if not HasSubSet(cst_Holding) then
-            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB '
-          else
-            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
-
-          if not IBLogin.IsUserAdmin then
-            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
-        end;
-      end;
-    end;
-
-    if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
-    begin
-      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
-      begin
-        Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
-        if not HasSubSet('All') then
-          Result := Result + 'AND ( GG.LB >= :LB AND GG.RB <= :RB )';
-      end
-      else
-        Result := Result + ' LEFT JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID)';
-
-    end;
-    Result := Result  + ' LEFT JOIN gd_value v ON g.valuekey = v.id ';
-
-    if csDesigning in ComponentState then
-      exit;
-
-    if Assigned(FViewFeatures) then
-      for i:= 0 to FViewFeatures.Count - 1 do
-      begin
-        F := atDatabase.Relations.ByRelationName('INV_CARD').RelationFields.ByFieldName(UpperCase(FViewFeatures[i]));
-        if Assigned(F) and Assigned(F.References) and Assigned(F.Field) and Assigned(F.Field.RefTable) and
-          Assigned(F.Field.RefTable.PrimaryKey)
-        then
-        begin
-          Result := Result + ' LEFT JOIN ' + F.Field.RefTable.RelationName + ' C_' + FViewFeatures[i] +
-            ' ON C.' + FViewFeatures[i] + ' = ' + ' C_' + FViewFeatures[i] + '.' + F.Field.RefTable.PrimaryKey.ConstraintFields[0].FieldName;
-          FSQLSetup.Ignores.AddAliasName('C_' + FViewFeatures[i]);
-        end;
-      end;
-
-    if Assigned(FGoodViewFeatures) then
-      for i:= 0 to FGoodViewFeatures.Count - 1 do
-      begin
-        F := atDatabase.Relations.ByRelationName('GD_GOOD').RelationFields.ByFieldName(UpperCase(FGoodViewFeatures[i]));
-        if Assigned(F) and Assigned(F.References) and Assigned(F.Field) and Assigned(F.Field.RefTable) and
-          Assigned(F.Field.RefTable.PrimaryKey)
-        then
-        begin
-          Result := Result + ' LEFT JOIN ' + F.Field.RefTable.RelationName + ' G_' + FGoodViewFeatures[i] +
-            ' ON G.' + FGoodViewFeatures[i] + ' = ' + ' G_' + FGoodViewFeatures[i] + '.' + F.Field.RefTable.PrimaryKey.ConstraintFields[0].FieldName;
-          Ignore := FSQLSetup.Ignores.Add;
-          Ignore.AliasName := 'G_' + FGoodViewFeatures[i];
-        end;
-      end;
-
-    FSQLSetup.Ignores.AddAliasName('C');
-    if not HasSubSet(cst_ByGoodKey) then
-    begin
-      Ignore := FSQLSetup.Ignores.Add;
-      Ignore.AliasName := 'GG';
-
-      Ignore := FSQLSetup.Ignores.Add;
-      Ignore.AliasName := 'G';
-    end;
-    Ignore := FSQLSetup.Ignores.Add;
-    Ignore.AliasName := 'CON';
-
-  end else
+  if (High(DepartmentKeys) > Low(DepartmentKeys))
+  then
   begin
-    Result := inherited GetFromClause(ARefresh);
-
-    if not CurrentRemains then
+    St := '(';
+    for i:= Low(DepartmentKeys) to High(DepartmentKeys) do
     begin
-      if not FIsNewDateRemains then
-        Result := Result +  ' AND M.DISABLED = 0 ';
-    end
-    else
-      if FIsMinusRemains then
-        Result := Result +  ' AND M.BALANCE < 0 '
+      St := St + IntToStr(DepartmentKeys[i]);
+      if i < High(DepartmentKeys) then
+        St := St + ',';
+    end;
+    Result := Result + ' AND  M.CONTACTKEY IN ' + St + ')';
+  end
+  else
+    if (High(SubDepartmentKeys) <> Low(SubDepartmentKeys)) then
+    begin
+      if (High(SubDepartmentKeys) > Low(SubDepartmentKeys)) then
+        raise EgdcInvMovement.Create('Необходимо указать меcто откуда отпуcкаетcя ТМЦ')
       else
-        if not HasSubSet(cst_AllRemains) then
-          Result := Result +  ' AND M.BALANCE > 0 ';
+        if (High(DepartmentKeys) = Low(DepartmentKeys))
+        then
+          Result := Result + ' AND M.CONTACTKEY = :DepartmentKey ';
+    end;
 
-    if not CurrentRemains and not FIsNewDateRemains then
-      Result := Result +  ' AND M.MOVEMENTDATE <= :REMAINSDATE ';
-
-    if (High(DepartmentKeys) > Low(DepartmentKeys))
-    then
+  if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
+     (High(DepartmentKeys) > Low(DepartmentKeys))
+  then
+  begin
+    if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
     begin
-      St := '(';
-      for i:= Low(DepartmentKeys) to High(DepartmentKeys) do
+      Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
+      if High(DepartmentKeys) < Low(DepartmentKeys) then
       begin
-        St := St + IntToStr(DepartmentKeys[i]);
-        if i < High(DepartmentKeys) then
-          St := St + ',';
-      end;
-      Result := Result + ' AND  M.CONTACTKEY IN ' + St + ')';
-    end
-    else
-      if (High(SubDepartmentKeys) <> Low(SubDepartmentKeys)) then
-      begin
-        if (High(SubDepartmentKeys) > Low(SubDepartmentKeys)) then
-          raise EgdcInvMovement.Create('Необходимо указать меcто откуда отпуcкаетcя ТМЦ')
+        if not HasSubSet(cst_Holding) then
+          Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB and CON.contacttype = 2'
         else
-          if (High(DepartmentKeys) = Low(DepartmentKeys))
-          then
-            Result := Result + ' AND M.CONTACTKEY = :DepartmentKey ';
+          Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
+            ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
+
+        if not IBLogin.IsUserAdmin then
+          Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
       end;
-
-    if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-       (High(DepartmentKeys) > Low(DepartmentKeys))
-    then
+    end
+    else
     begin
-      if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
+      Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
+      if High(DepartmentKeys) < Low(DepartmentKeys) then
       begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
-        if High(DepartmentKeys) < Low(DepartmentKeys) then
-        begin
-          if not HasSubSet(cst_Holding) then
-            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB and CON.contacttype = 2'
-          else
-            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
+        if not HasSubSet(cst_Holding) then
+          Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB '
+        else
+          Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
+            ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
 
-          if not IBLogin.IsUserAdmin then
-            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
-        end;
-      end
-      else
-      begin
-        Result := Result + ' JOIN GD_CONTACT CON ON  M.CONTACTKEY = CON.ID ';
-        if High(DepartmentKeys) < Low(DepartmentKeys) then
-        begin
-          if not HasSubSet(cst_Holding) then
-            Result := Result + ' AND CON.LB >= :SubLB  AND CON.RB <= :SubRB '
-          else
-            Result := Result + ' JOIN gd_contact con1 ON con.LB >= con1.LB and con.RB <= con1.RB ' +
-              ' JOIN gd_holding h ON CON1.id = h.companykey AND h.holdingkey = :holdingkey ';
-
-          if not IBLogin.IsUserAdmin then
-            Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
-        end;
+        if not IBLogin.IsUserAdmin then
+          Result := Result + Format(' AND g_sec_test(con.aview, %d) <> 0 ', [IBLogin.InGroup]);
       end;
     end;
+  end;
 
-    if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
+  if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
+  begin
+    if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
     begin
-      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
-      begin
-        Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
-        if not HasSubSet('All') then
-          Result := Result + 'AND ( GG.LB >= :LB AND GG.RB <= :RB )';
-      end
-      else
-        Result := Result + ' LEFT JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID)';
-
-    end;
-    Result := Result  + ' LEFT JOIN gd_value v ON g.valuekey = v.id ';
-
-    if not CurrentRemains and FIsNewDateRemains then
-      Result := Result + ' LEFT JOIN INV_GETCARDMOVEMENT(M.CARDKEY, M.CONTACTKEY, :REMAINSDATE) REST ON 1= 1';
-
-    if csDesigning in ComponentState then
-      exit;
-
-    if Assigned(FViewFeatures) then
-      for i:= 0 to FViewFeatures.Count - 1 do
-      begin
-        F := atDatabase.Relations.ByRelationName('INV_CARD').RelationFields.ByFieldName(UpperCase(FViewFeatures[i]));
-        if Assigned(F) and Assigned(F.References) and Assigned(F.Field) and Assigned(F.Field.RefTable) and
-          Assigned(F.Field.RefTable.PrimaryKey)
-        then
-        begin
-          Result := Result + ' LEFT JOIN ' + F.Field.RefTable.RelationName + ' C_' + FViewFeatures[i] +
-            ' ON C.' + FViewFeatures[i] + ' = ' + ' C_' + FViewFeatures[i] + '.' + F.Field.RefTable.PrimaryKey.ConstraintFields[0].FieldName;
-          FSQLSetup.Ignores.AddAliasName('C_' + FViewFeatures[i]);
-        end;
-      end;
-
-    if Assigned(FGoodViewFeatures) then
-      for i:= 0 to FGoodViewFeatures.Count - 1 do
-      begin
-        F := atDatabase.Relations.ByRelationName('GD_GOOD').RelationFields.ByFieldName(UpperCase(FGoodViewFeatures[i]));
-        if Assigned(F) and Assigned(F.References) and Assigned(F.Field) and Assigned(F.Field.RefTable) and
-          Assigned(F.Field.RefTable.PrimaryKey)
-        then
-        begin
-          Result := Result + ' LEFT JOIN ' + F.Field.RefTable.RelationName + ' G_' + FGoodViewFeatures[i] +
-            ' ON G.' + FGoodViewFeatures[i] + ' = ' + ' G_' + FGoodViewFeatures[i] + '.' + F.Field.RefTable.PrimaryKey.ConstraintFields[0].FieldName;
-          Ignore := FSQLSetup.Ignores.Add;
-          Ignore.AliasName := 'G_' + FGoodViewFeatures[i];
-        end;
-      end;
-
-    Ignore := FSQLSetup.Ignores.Add;
-    Ignore.AliasName := 'C';
-
-    if not HasSubSet(cst_ByGoodKey) then
-    begin
-      Ignore := FSQLSetup.Ignores.Add;
-      Ignore.AliasName := 'GG';
-
-      Ignore := FSQLSetup.Ignores.Add;
-      Ignore.AliasName := 'G';
-    end;
-
-    Ignore := FSQLSetup.Ignores.Add;
-    Ignore.AliasName := 'CON';
+      Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
+      if not HasSubSet('All') then
+        Result := Result + 'AND ( GG.LB >= :LB AND GG.RB <= :RB )';
+    end
+    else
+      Result := Result + ' LEFT JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID)';
 
   end;
+  Result := Result  + ' LEFT JOIN gd_value v ON g.valuekey = v.id ';
+
+  if not CurrentRemains and FIsNewDateRemains then
+    Result := Result + ' LEFT JOIN INV_GETCARDMOVEMENT(M.CARDKEY, M.CONTACTKEY, :REMAINSDATE) REST ON 1= 1';
+
+  if csDesigning in ComponentState then
+    exit;
+
+  if Assigned(FViewFeatures) then
+    for i:= 0 to FViewFeatures.Count - 1 do
+    begin
+      F := atDatabase.Relations.ByRelationName('INV_CARD').RelationFields.ByFieldName(UpperCase(FViewFeatures[i]));
+      if Assigned(F) and Assigned(F.References) and Assigned(F.Field) and Assigned(F.Field.RefTable) and
+        Assigned(F.Field.RefTable.PrimaryKey)
+      then
+      begin
+        Result := Result + ' LEFT JOIN ' + F.Field.RefTable.RelationName + ' C_' + FViewFeatures[i] +
+          ' ON C.' + FViewFeatures[i] + ' = ' + ' C_' + FViewFeatures[i] + '.' + F.Field.RefTable.PrimaryKey.ConstraintFields[0].FieldName;
+        FSQLSetup.Ignores.AddAliasName('C_' + FViewFeatures[i]);
+      end;
+    end;
+
+  if Assigned(FGoodViewFeatures) then
+    for i:= 0 to FGoodViewFeatures.Count - 1 do
+    begin
+      F := atDatabase.Relations.ByRelationName('GD_GOOD').RelationFields.ByFieldName(UpperCase(FGoodViewFeatures[i]));
+      if Assigned(F) and Assigned(F.References) and Assigned(F.Field) and Assigned(F.Field.RefTable) and
+        Assigned(F.Field.RefTable.PrimaryKey)
+      then
+      begin
+        Result := Result + ' LEFT JOIN ' + F.Field.RefTable.RelationName + ' G_' + FGoodViewFeatures[i] +
+          ' ON G.' + FGoodViewFeatures[i] + ' = ' + ' G_' + FGoodViewFeatures[i] + '.' + F.Field.RefTable.PrimaryKey.ConstraintFields[0].FieldName;
+        Ignore := FSQLSetup.Ignores.Add;
+        Ignore.AliasName := 'G_' + FGoodViewFeatures[i];
+      end;
+    end;
+
+  Ignore := FSQLSetup.Ignores.Add;
+  Ignore.AliasName := 'C';
+
+  if not HasSubSet(cst_ByGoodKey) then
+  begin
+    Ignore := FSQLSetup.Ignores.Add;
+    Ignore.AliasName := 'GG';
+
+    Ignore := FSQLSetup.Ignores.Add;
+    Ignore.AliasName := 'G';
+  end;
+
+  Ignore := FSQLSetup.Ignores.Add;
+  Ignore.AliasName := 'CON';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVREMAINS', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -6078,9 +5714,6 @@ begin
         if not FIsNewDateRemains then
           Result := Result + ', SUM((m.debit - m.credit) * C.' + FSumFeatures[i] + ') as ' +
             'S_' + FSumFeatures[i]
-        else if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
-          Result := Result + ', SUM((m.balance) * C.' + FSumFeatures[i] + ') as ' +
-            'S_' + FSumFeatures[i]
         else
           Result := Result + ', SUM((m.balance - rest.remains) * C.' + FSumFeatures[i] + ') as ' +
             'S_' + FSumFeatures[i]
@@ -6095,9 +5728,6 @@ begin
       begin
         if not FIsNewDateRemains then
           Result := Result + ', SUM((m.debit - m.credit) * G.' + FGoodSumFeatures[i] + ') as ' +
-            'SG_' + FGoodSumFeatures[i]
-        else if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
-          Result := Result + ', SUM((m.balance) * G.' + FGoodSumFeatures[i] + ') as ' +
             'SG_' + FGoodSumFeatures[i]
         else
           Result := Result + ', SUM((m.balance - rest.remains) * G.' + FGoodSumFeatures[i] + ') as ' +
@@ -6215,8 +5845,7 @@ begin
         cvalDocumentKey := gdcDocumentLine.FieldByName('documentkey').AsInteger;
 
         gdcDocumentLine.FieldByName('goodkey').AsInteger := cvalGoodKey;
-        if not FisDest then
-          gdcDocumentLine.FieldByName('fromcardkey').AsInteger := cvalCardKey;
+        gdcDocumentLine.FieldByName('fromcardkey').AsInteger := cvalCardKey;
 
         if gdcDocumentLine.FindField('remains') <> nil then
         begin
@@ -6407,7 +6036,7 @@ begin
   begin
     if FCheckRemains and (FieldByName('CHOOSEQUANTITY').AsCurrency <> 0) and
        (FieldByName('CHOOSEQUANTITY').AsCurrency > FieldByName('REMAINS').AsCurrency) and
-       ((gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtInventorization) and not FIsDest
+       ((gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtInventorization)
     then
     begin
       MessageBox(ParentHandle, PChar(s_InvErrorChooseRemains), PChar(sAttention),
@@ -6734,15 +6363,13 @@ begin
 end;
 
 procedure TgdcInvRemains.SetOptions(var InvPosition: TgdcInvPosition;
-  InvMovement: TgdcInvMovement; const isPosition: Boolean; const isDest: Boolean = False);
+  InvMovement: TgdcInvMovement; const isPosition: Boolean);
 var
   i: Integer;
   MovementContactType: TgdcInvMovementContactType;
 begin
   Assert(Assigned(InvMovement) and Assigned(InvMovement.gdcDocumentLine),
     'Не задан объект движения или позиции документа');
-
-  FisDest := IsDest;  
 
   Close;
 
@@ -6871,18 +6498,12 @@ begin
     end;
 
     RemainsDate := ipDocumentDate;
-    if not FIsMinusRemains and not isDest then
+    if not FIsMinusRemains then
       for i:= Low(ipInvSourceCardFeatures) to High(ipInvSourceCardFeatures) do
         ViewFeatures.Add(ipInvSourceCardFeatures[i].optFieldName)
     else
-      if FIsMinusRemains then
-      begin
-        for i:= Low(ipInvMinusCardFeatures) to High(ipInvMinusCardFeatures) do
-          ViewFeatures.Add(ipInvMinusCardFeatures[i].optFieldName);
-      end
-      else
-        for i:= Low(ipInvDestCardFeatures) to High(ipInvDestCardFeatures) do
-          ViewFeatures.Add(ipInvDestCardFeatures[i].optFieldName);
+      for i:= Low(ipInvMinusCardFeatures) to High(ipInvMinusCardFeatures) do
+        ViewFeatures.Add(ipInvMinusCardFeatures[i].optFieldName);
 
     if isPosition then
     begin
@@ -6988,33 +6609,21 @@ begin
 
   if not CurrentRemains then
   begin
-    if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
+    if not FIsMinusRemains then
     begin
-      if not FisMinusRemains then
+      if not HasSubSet(cst_AllRemains) then
       begin
-        if not HasSubSet(cst_AllRemains) then
-          Result := Result + ' HAVING SUM(M.BALANCE) > 0 ';
-      end
-      else
-        Result := Result + ' HAVING SUM(M.BALANCE) < 0 ';
-    end else
-    begin
-      if not FIsMinusRemains then
-      begin
-        if not HasSubSet(cst_AllRemains) then
-        begin
-          if not FIsNewDateRemains then
-            Result := Result + ' HAVING SUM(M.DEBIT - M.CREDIT) > 0 '
-          else
-            Result := Result + ' HAVING SUM ( M.BALANCE - REST.REMAINS )  >  0 '
-        end
-      end
-      else
         if not FIsNewDateRemains then
-          Result := Result + ' HAVING SUM(M.DEBIT - M.CREDIT) < 0 '
+          Result := Result + ' HAVING SUM(M.DEBIT - M.CREDIT) > 0 '
         else
-          Result := Result + ' HAVING SUM ( M.BALANCE - REST.REMAINS )  <  0 '
-    end;
+          Result := Result + ' HAVING SUM ( M.BALANCE - REST.REMAINS )  >  0 '
+      end
+    end
+    else
+      if not FIsNewDateRemains then
+        Result := Result + ' HAVING SUM(M.DEBIT - M.CREDIT) < 0 '
+      else
+        Result := Result + ' HAVING SUM ( M.BALANCE - REST.REMAINS )  <  0 '      
   end
   else
     if not FisMinusRemains then
@@ -7720,7 +7329,6 @@ begin
     RemainsFeatures.Clear;
     if (gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.ContactType in [imctOurCompany, imctOurDepartment, imctOurPeople] then
     begin
-    
       FieldPrefix := 'FROM_';
       if not HasSubSet('ByGoodOnly') then
         SetFeatures(gdcInvDocumentLine, FieldPrefix, (gdcInvDocumentLine as TgdcInvDocumentLine).SourceFeatures);
