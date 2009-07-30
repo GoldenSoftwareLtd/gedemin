@@ -10852,6 +10852,8 @@ begin
       end;
 
     //
+    { TODO : ShowFieldInGrid медленная функция. Мы вызываем ее при создании поля,
+             еще не зная, будет ли это поле подключаться к визуальным контролам. } 
     Fields[I].Visible := ShowFieldInGrid(Fields[I]);
   end;
 
@@ -17709,8 +17711,10 @@ end;
 
 function TgdcBase.CallDoFieldChange(Field: TField): Boolean;
 begin
+  { TODO : Закоментировали Field.ReadOnly из-за Issue 1493.
+           По хорошему, надо различать ReadOnly и отсутствие прав. }
   Result := ((FFieldsCallDoChange.Count = 0) and (not Field.Calculated)
-    and (not Field.ReadOnly)) or
+    {and (not Field.ReadOnly)}) or
    (FFieldsCallDoChange.IndexOf(Field.FieldName) > -1) and not (sLoadFromStream in BaseState);
 end;
 
