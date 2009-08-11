@@ -4042,7 +4042,7 @@ begin
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCOURCOMPANY' then
   {M}        begin
-  {M}          Result := '';//Inherited CheckTheSameStatement;
+  {M}          Result := Inherited CheckTheSameStatement;
   {M}          Exit;
   {M}        end;
   {M}    end;

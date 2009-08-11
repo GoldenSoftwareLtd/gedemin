@@ -33,7 +33,7 @@ uses
   IBCustomDataSet, gdcBase, gdcContacts, ActnList, at_Container,
   ToolWin, ExtCtrls, gsDBGrid, gsDBTreeView, gsIBLookupComboBox, Grids,
   DBGrids, Buttons, Menus, gsIBGrid, gdcAcctAccount,
-  IBDatabase, gdcTree, TB2Item, TB2Dock, TB2Toolbar;
+  IBDatabase, gdcTree, TB2Item, TB2Dock, TB2Toolbar, JvDBImage;
 
 type
   Tgdc_dlgOurCompany = class(Tgdc_dlgCustomCompany)
@@ -233,7 +233,7 @@ begin
   {M}    end else
   {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGOURCOMPANY' then
   {M}      begin
-  {M}        Result := True; //Inherited NeedVisibleTabSheet(ARelationName);
+  {M}        Result := inherited NeedVisibleTabSheet(ARelationName);
   {M}        Exit;
   {M}      end;
   {M}  end;

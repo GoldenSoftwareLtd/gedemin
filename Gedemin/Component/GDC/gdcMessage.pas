@@ -797,7 +797,7 @@ begin
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTACHMENT' then
   {M}        begin
-  {M}          Result := False;//Inherited CreateDialog(ADlgClassName);
+  {M}          Result := Inherited CreateDialog(ADlgClassName);
   {M}          Exit;
   {M}        end;
   {M}    end;
