@@ -747,6 +747,7 @@ var
   //DbShut: TgsDatabaseShutdown;
 begin
   FAutoCloseCounter := MaxInt;
+  edPassword.Text := '';
 
   if cbDBFileName.Text = '<Зарегистрировать>' then
   begin
