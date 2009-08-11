@@ -6340,6 +6340,8 @@ begin
 {  FInternalCanShowEditor := FInternalSetFocus;
   try}
 
+  SizedColumn := nil;
+  
   if
     DataLink.Active and Sizing(HitTest.X, HitTest.Y)
       and
@@ -6449,7 +6451,8 @@ begin
         then
           exit;
    {$ENDIF}
-  inherited DblClick;
+  if SizedColumn = nil then
+    inherited DblClick;
 {  finally
     FInternalCanShowEditor := FInternalSetFocus;
   end;}
