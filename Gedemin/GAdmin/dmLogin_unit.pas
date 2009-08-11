@@ -185,7 +185,12 @@ begin
         try
           UserStorage.ReadStream(SM_SYNC_PATH, 'DATA', MS);
           MS.Position := 0;
-          SynManager.LoadFromStream(MS);
+          try
+            SynManager.LoadFromStream(MS);
+          except
+            //если не удалось прочитать, то скинем по-умолчанию (удалим)
+            UserStorage.DeleteValue(SM_SYNC_PATH, 'DATA', False);
+          end;
         finally
           MS.Free;
         end;
