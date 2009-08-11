@@ -846,7 +846,7 @@ function TgsStorageFolder.GetDataSize: Integer;
 var
   I: Integer;
 begin
-  Result := inherited GetDataSize + SizeOf(FFolders) + SizeOf(FValues);
+  Result := inherited GetDataSize;
   for I := 0 to ValuesCount - 1 do
     Result := Result + Values[I].DataSize;
   for I := 0 to FoldersCount - 1 do
@@ -1193,7 +1193,10 @@ begin
   with st_dlgfolderprop do
   begin
     lName.Caption := FName;
-    eLocation.Text := Path;
+    if FParent <> nil then
+      eLocation.Text := Copy(Path, 1, Length(Path) - Length(FName))
+    else
+      eLocation.Text := '';  
     lFolders.Caption := IntToStr(FoldersCount);
     lValues.Caption := IntToStr(ValuesCount);
     C := DataSize;
@@ -3177,7 +3180,7 @@ end;
 
 function TgsStorageItem.GetDataSize: Integer;
 begin
-  Result := SizeOf(Self) + Length(FName) + SizeOf(FName);
+  Result := 0;
 end;
 
 function TgsStorageItem.GetPath: String;
@@ -3599,7 +3602,7 @@ end;
 
 function TgsStringValue.GetDataSize: Integer;
 begin
-  Result := inherited GetDataSize + Length(FData) + SizeOf(FData);
+  Result := inherited GetDataSize + Length(FData);
 end;
 
 class function TgsStringValue.GetStorageValueClass: TgsStorageValueClass;
@@ -4243,7 +4246,7 @@ end;
 
 function TgsStreamValue.GetDataSize: Integer;
 begin
-  Result := inherited GetDataSize + Length(FData) + SizeOf(FData);
+  Result := inherited GetDataSize + Length(FData);
 end;
 
 class function TgsStreamValue.GetStorageValueClass: TgsStorageValueClass;
