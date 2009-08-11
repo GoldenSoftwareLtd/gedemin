@@ -4,7 +4,7 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   BorderStyle = bsDialog
   Caption = 'Папка'
   ClientHeight = 188
-  ClientWidth = 275
+  ClientWidth = 327
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,7 +18,7 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   object Bevel5: TBevel
     Left = 8
     Top = 14
-    Width = 257
+    Width = 314
     Height = 9
     Shape = bsTopLine
   end
@@ -39,14 +39,14 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   object Bevel2: TBevel
     Left = 8
     Top = 147
-    Width = 257
+    Width = 314
     Height = 9
     Shape = bsTopLine
   end
   object Bevel3: TBevel
     Left = 8
     Top = 40
-    Width = 257
+    Width = 314
     Height = 9
     Shape = bsTopLine
   end
@@ -60,9 +60,9 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   object Label7: TLabel
     Left = 8
     Top = 110
-    Width = 42
+    Width = 82
     Height = 13
-    Caption = 'Размер:'
+    Caption = 'Размер данных:'
   end
   object Label8: TLabel
     Left = 8
@@ -116,12 +116,12 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   object lModified: TLabel
     Left = 104
     Top = 130
-    Width = 42
+    Width = 52
     Height = 13
-    Caption = 'Размер:'
+    Caption = 'Изменено'
   end
   object Button1: TButton
-    Left = 192
+    Left = 247
     Top = 160
     Width = 75
     Height = 21
@@ -131,7 +131,7 @@ object st_dlgfolderprop: Tst_dlgfolderprop
     OnClick = Button1Click
   end
   object Button2: TButton
-    Left = 104
+    Left = 159
     Top = 160
     Width = 75
     Height = 21
@@ -141,7 +141,7 @@ object st_dlgfolderprop: Tst_dlgfolderprop
   object eLocation: TEdit
     Left = 104
     Top = 48
-    Width = 161
+    Width = 217
     Height = 19
     BorderStyle = bsNone
     Color = clBtnFace
