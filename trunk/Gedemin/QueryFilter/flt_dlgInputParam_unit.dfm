@@ -23,15 +23,15 @@ object dlgInputParam: TdlgInputParam
     BevelOuter = bvNone
     TabOrder = 1
     object Panel2: TPanel
-      Left = 351
+      Left = 373
       Top = 0
-      Width = 185
+      Width = 163
       Height = 29
       Align = alRight
       BevelOuter = bvNone
       TabOrder = 0
       object btnOk: TButton
-        Left = 25
+        Left = 3
         Top = 5
         Width = 75
         Height = 21
@@ -41,7 +41,7 @@ object dlgInputParam: TdlgInputParam
         TabOrder = 0
       end
       object btnCancel: TButton
-        Left = 105
+        Left = 83
         Top = 5
         Width = 75
         Height = 21
@@ -50,6 +50,15 @@ object dlgInputParam: TdlgInputParam
         ModalResult = 2
         TabOrder = 1
       end
+    end
+    object chbxRepeat: TCheckBox
+      Left = 182
+      Top = 7
+      Width = 185
+      Height = 17
+      Alignment = taLeftJustify
+      Caption = 'Повторить выполнение запроса'
+      TabOrder = 1
     end
   end
   object ScrollBox: TScrollBox

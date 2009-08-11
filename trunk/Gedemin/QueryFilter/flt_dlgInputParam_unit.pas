@@ -24,6 +24,7 @@ type
     ActionList: TActionList;
     actSaveToFile: TAction;
     actLoadFromFile: TAction;
+    chbxRepeat: TCheckBox;
     procedure actSaveToFileExecute(Sender: TObject);
     procedure actLoadFromFileExecute(Sender: TObject);
   private
@@ -45,7 +46,7 @@ var
 implementation
 
 uses
-  IBHeader, xDateEdits
+  IBHeader, xDateEdits, flt_SafeConversion_unit
 {$IFDEF VER140}
   , Variants
 {$ENDIF}
@@ -102,13 +103,18 @@ begin
           if TfrParamLine(FLineList.Items[Index]).IsNull then
             AnParam.Vars[I].Clear
           else
-            case AnParam.Vars[I].SQLType and (not 1) of
-              SQL_SHORT, SQL_LONG:
-                AnParam.Vars[I].AsInteger := TfrParamLine(FLineList.Items[Index]).AsInteger;
-              SQL_INT64, SQL_DOUBLE, SQL_FLOAT, SQL_D_FLOAT:
-                AnParam.Vars[I].AsCurrency := TfrParamLine(FLineList.Items[Index]).AsCurrency;
+            case AnParam.Vars[I].SQLType of
+              SQL_SHORT, SQL_LONG, SQL_INT64:
+                case AnParam.Vars[I].Data.SQLScale of
+                       0: AnParam.Vars[I].AsInteger := TfrParamLine(FLineList.Items[Index]).AsInteger;
+                  -4..-1: AnParam.Vars[I].AsCurrency := TfrParamLine(FLineList.Items[Index]).AsCurrency;
+                else
+                  AnParam.Vars[I].AsFloat := TfrParamLine(FLineList.Items[Index]).AsFloat;
+                end;
+              SQL_DOUBLE, SQL_FLOAT, SQL_D_FLOAT:
+                AnParam.Vars[I].AsFloat := TfrParamLine(FLineList.Items[Index]).AsFloat;
               SQL_TYPE_DATE:
-                  AnParam.Vars[I].AsDate := TfrParamLine(FLineList.Items[Index]).AsDate;
+                AnParam.Vars[I].AsDate := TfrParamLine(FLineList.Items[Index]).AsDate;
               SQL_TYPE_TIME:
                 AnParam.Vars[I].AsTime := TfrParamLine(FLineList.Items[Index]).AsTime;
               SQL_TIMESTAMP:
@@ -154,7 +160,7 @@ begin
         if TfrParamLine(FLineList.Items[I]).IsNull then
           S := S + '<NULL>'
         else
-          S := S + '"' + TfrParamLine(FLineList.Items[I]).AsString + '"';
+          S := S + '"' + ConvertSysChars(TfrParamLine(FLineList.Items[I]).AsString) + '"';
         List.Add(S);
       end;
       List.SaveToFile(SaveDialog.FileName);
@@ -188,13 +194,18 @@ begin
               TfrParamLine(FLineList.Items[I]).IsNull := False;
               if (Copy(S, 1, 1) = '"') and (Copy(S, Length(S), 1) = '"') then
                 S := Copy(S, 2, Length(S) - 2);
-              TfrParamLine(FLineList.Items[I]).AsString := S;
+              TfrParamLine(FLineList.Items[I]).AsString := RestoreSysChars(S);
             end;
           end;
         end;
       except
         on E: Exception do
-          Application.ShowException(E);
+        begin
+          MessageBox(Handle,
+            PChar('Ошибка при чтении данных из файла: ' + E.Message),
+            'Внимание',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        end;
       end;
     finally
       List.Free;
