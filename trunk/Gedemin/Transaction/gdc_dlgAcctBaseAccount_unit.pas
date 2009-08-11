@@ -144,7 +144,7 @@ begin
   {M}    end else
   {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGACCTBASEACCOUNT' then
   {M}      begin
-  {M}        Result := True; //Inherited NeedVisibleTabSheet(ARelationName);
+  {M}        Result := Inherited NeedVisibleTabSheet(ARelationName);
   {M}        Exit;
   {M}      end;
   {M}  end;

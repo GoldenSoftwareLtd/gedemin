@@ -220,7 +220,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
             ListField = 'LNAME'
             KeyField = 'ID'
             Condition = 'RELATIONNAME = '#39'AC_ACCOUNT'#39' AND FIELDNAME LIKE '#39'USR$%'#39
-            ItemHeight = 13
+            ItemHeight = 0
             ParentShowHint = False
             ShowHint = True
             TabOrder = 0

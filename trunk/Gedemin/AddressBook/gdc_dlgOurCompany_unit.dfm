@@ -1,23 +1,18 @@
 inherited gdc_dlgOurCompany: Tgdc_dlgOurCompany
   Left = 368
   Top = 236
-  ActiveControl = dbeName
   Caption = 'Компания'
   PixelsPerInch = 96
   TextHeight = 13
   inherited pgcMain: TPageControl
-    inherited TabSheet3: TTabSheet
-      inherited gsiblkupAddress: TgsIBLookupComboBox
-        ItemHeight = 13
+    inherited tbsMain: TTabSheet
+      inherited pnAccount: TPanel
+        inherited gsiblkupMainAccount: TgsIBLookupComboBox
+          ItemHeight = 0
+        end
       end
-      inherited gsIBlcHeadCompany: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsiblkupChiefAccountant: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsiblkupDirector: TgsIBLookupComboBox
-        ItemHeight = 13
+      inherited gsibluFolder: TgsIBLookupComboBox
+        ItemHeight = 0
       end
     end
     object TabSheet1: TTabSheet
