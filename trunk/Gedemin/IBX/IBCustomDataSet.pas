@@ -3640,8 +3640,6 @@ begin  { TODO : CanEdit _ GetCanModify v0004.txt}
   if result then
      result := (FRecordCount = 0) or ( (ActiveBuffer <> nil)
        and (PRecordData(ActiveBuffer)^.rdRecordKind in [rkRecord{, rkHeaderRecord}]));
-  if not result then
-    result := result; {dbg}
   {$ENDIF}
 end;
    { TODO : ^^^^ GetCurrentRecord} {}
