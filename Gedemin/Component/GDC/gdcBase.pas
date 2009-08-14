@@ -1127,6 +1127,8 @@ type
     function GetCanPrint: Boolean; virtual;
     function GetCanView: Boolean; virtual;
 
+    function GetCanModify: Boolean; override;
+
     {
     class function Class_GetCanChangeRights(const ST: TgdcSubType): Boolean; virtual;
     class function Class_GetCanCreate(const ST: TgdcSubType): Boolean; virtual;
@@ -17973,6 +17975,11 @@ begin
       'Внимание',
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
   end;
+end;
+
+function TgdcBase.GetCanModify: Boolean;
+begin
+  Result := (not InternalPrepared) or (inherited GetCanModify);
 end;
 
 initialization
