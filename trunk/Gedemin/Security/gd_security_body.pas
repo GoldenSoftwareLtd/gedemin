@@ -755,10 +755,12 @@ begin
     if not FTransaction.InTransaction then
       FTransaction.StartTransaction;
 
-    ibsql.SQL.Text := Format(
-      'SELECT uc.companykey AS CompanyKey, c.afull AS AFull, c.name AS CompanyName ' +
-      'FROM gd_usercompany uc, gd_contact c WHERE userkey = %d ' +
-      '  AND c.id = uc.companykey ', [IBLogin.UserKey]);
+    ibsql.SQL.Text :=
+      'SELECT uc.companykey AS CompanyKey, oc.afull AS AFull, c.name AS CompanyName ' +
+      'FROM gd_usercompany uc JOIN gd_contact c ON c.id = uc.companykey  ' +
+      '  JOIN gd_ourcompany oc ON oc.companykey = c.id ' +
+      'WHERE uc.userkey = :UK';
+    ibsql.ParamByName('UK').AsInteger := IBLogin.UserKey;
     ibsql.ExecQuery;
 
     if ibsql.EOF then
@@ -767,11 +769,13 @@ begin
       ibsql.SQL.Text :=
         'SELECT oc.companykey AS CompanyKey, c.afull AS AFull, c.name AS CompanyName ' +
         'FROM gd_ourcompany oc JOIN gd_contact c ON c.id = oc.companykey';
+      {TODO: под ФБ 2.5 добавить код ниже}
+      {WHERE BIN_AND(BIN_OR(oc.afull, 1), <ingroup>) <> 0}  
       ibsql.ExecQuery;
     end;
 
     if (ibsql.RecordCount > 0) and
-      ((ibsql.FieldByName('afull').AsInteger and FIngroup) <> 0) then
+      (((ibsql.FieldByName('afull').AsInteger or 1) and FIngroup) <> 0) then
     begin
       if FCompanyOpened then DoBeforeChangeCompany;
       FCompanyKey := ibsql.FieldByName('CompanyKey').AsInteger;
