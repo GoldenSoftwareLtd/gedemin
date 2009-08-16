@@ -41,8 +41,10 @@ uses
 {$ENDIF}
 
 procedure TdlgFilter_Grid.FormCreate(Sender: TObject);
+{$IFDEF GEDEMIN}
 var
   S: String;
+{$ENDIF}
 begin
   {$IFDEF GEDEMIN}
   if UserStorage <> nil then

@@ -17979,6 +17979,8 @@ end;
 
 function TgdcBase.GetCanModify: Boolean;
 begin
+  // inherited GetCanModify проверяет FLiveMode, которая
+  // инициализируется только в процессе Prepare
   Result := (not InternalPrepared) or (inherited GetCanModify);
 end;
 
