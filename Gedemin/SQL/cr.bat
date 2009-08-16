@@ -21,6 +21,7 @@ if exist gd_create.sql goto SetVars
 echo *********************************************
 echo *********************************************
 echo **                                         **
+echo **  cr.bat:                                **
 echo **  Launch the batch file within           **
 echo **  gedemin\sql directory.                 **
 echo **                                         **
@@ -110,6 +111,8 @@ copy result2.sql /a + gd_db_triggers.sql        /a result2.sql    > nul
 isql.exe -i result2.sql
 
 if not errorlevel 0 goto Error
+
+if not exist %2 goto Error
 
 goto End
 
