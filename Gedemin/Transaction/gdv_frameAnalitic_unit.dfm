@@ -1,2 +1,0 @@
-inherited frameAnalitic: TframeAnalitic
-end

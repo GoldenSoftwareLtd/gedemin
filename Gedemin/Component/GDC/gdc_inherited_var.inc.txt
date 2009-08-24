@@ -1,2 +1,0 @@
-  __gdc_Class_Name: String;
-  __gdc_Method_Name: String;

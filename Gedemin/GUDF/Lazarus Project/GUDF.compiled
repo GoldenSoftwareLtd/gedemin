@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<CONFIG>
-  <Compiler Value="c:\lazarus\fpc\2.0.4\bin\i386-win32\fpc.exe" Date="895835052"/>
-  <Params Value=" -S2cgi -OG1 -gl -vewnhi -l -Fu. -oGUDF.dll GUDF.lpr"/>
-</CONFIG>
