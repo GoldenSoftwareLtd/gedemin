@@ -1,0 +1,104 @@
+inherited gdc_frmSGR: Tgdc_frmSGR
+  Left = 329
+  Top = 279
+  Width = 607
+  Height = 448
+  Caption = 'gdc_frmSGR'
+  Font.Charset = DEFAULT_CHARSET
+  PixelsPerInch = 96
+  TextHeight = 13
+  inherited sbMain: TStatusBar
+    Top = 386
+    Width = 599
+    OnClick = sbMainClick
+  end
+  inherited TBDockTop: TTBDock
+    Width = 599
+    inherited tbMainCustom: TTBToolbar
+      Left = 566
+    end
+    inherited tbMainMenu: TTBToolbar
+      DockPos = 8
+      DockRow = 0
+    end
+    inherited tbMainInvariant: TTBToolbar
+      Left = 424
+    end
+    inherited tbChooseMain: TTBToolbar
+      Left = 533
+    end
+  end
+  inherited TBDockLeft: TTBDock
+    Height = 329
+  end
+  inherited TBDockRight: TTBDock
+    Left = 590
+    Height = 329
+  end
+  inherited TBDockBottom: TTBDock
+    Top = 405
+    Width = 599
+  end
+  inherited pnlWorkArea: TPanel
+    Width = 581
+    Height = 329
+    inherited spChoose: TSplitter
+      Top = 227
+      Width = 581
+    end
+    inherited pnlMain: TPanel
+      Width = 581
+      Height = 227
+      inherited pnlSearchMain: TPanel
+        Height = 227
+        inherited sbSearchMain: TScrollBox
+          Height = 197
+        end
+        inherited pnlSearchMainButton: TPanel
+          Top = 197
+        end
+      end
+      object ibgrMain: TgsIBGrid
+        Left = 160
+        Top = 0
+        Width = 421
+        Height = 227
+        Align = alClient
+        BorderStyle = bsNone
+        DataSource = dsMain
+        Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
+        PopupMenu = pmMain
+        ReadOnly = True
+        TabOrder = 1
+        OnDblClick = ibgrMainDblClick
+        OnDragDrop = ibgrMainDragDrop
+        OnDragOver = ibgrMainDragOver
+        OnKeyDown = ibgrMainKeyDown
+        OnMouseMove = ibgrMainMouseMove
+        OnStartDrag = ibgrMainStartDrag
+        InternalMenuKind = imkWithSeparator
+        Expands = <>
+        ExpandsActive = False
+        ExpandsSeparate = False
+        Conditions = <>
+        ConditionsActive = False
+        CheckBox.FieldName = 'id'
+        CheckBox.Visible = True
+        CheckBox.FirstColumn = False
+        MinColWidth = 40
+        ColumnEditors = <>
+        Aliases = <>
+      end
+    end
+    inherited pnChoose: TPanel
+      Top = 230
+      Width = 581
+      inherited pnButtonChoose: TPanel
+        Left = 476
+      end
+      inherited ibgrChoose: TgsIBGrid
+        Width = 476
+      end
+    end
+  end
+end
