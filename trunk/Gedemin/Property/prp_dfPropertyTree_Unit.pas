@@ -1726,8 +1726,8 @@ var
   TS: TTreeTabSheet;
   TN: TTreeNode;
   ModuleCode: Integer;
-  I: Integer;
   SI: TSFTreeItem;
+  N: TTreeNode;
 begin
   //Инициализируем результат
   Result := nil;
@@ -1778,14 +1778,16 @@ begin
           begin
             CheckLoadSf(Tn);
             //если нашли то ищем нужный нод
-            for I := 0 to TN.Count - 1 do
+            N := TN.GetFirstChild;
+            while (N <> nil) do
             begin
-              if TSFTreeItem(TN.Item[I].data).Id = id then
+              if TSFTreeItem(N.data).Id = id then
               begin
                 //нашли. выходим.
-                Result := TN.Item[I];
+                Result := N;
                 Break;
               end;
+              N := N.GetNextSibling;
             end;
             if not Assigned(Result) then
             begin
@@ -1810,14 +1812,16 @@ begin
             begin
               CheckLoadSf(Tn);
               //Если нашли папку то ищим нужный нод
-              for I := 0 to TN.Count - 1 do
+              N := TN.GetFirstChild;
+              while (N <> nil) do
               begin
-                if TSFTreeItem(TN.Item[I].data).Id = id then
+                if TSFTreeItem(N.data).Id = id then
                 begin
-                  //Нашли. выходим
-                  Result := TN.Item[I];
+                  //нашли. выходим.
+                  Result := N;
                   Break;
                 end;
+                N := N.GetNextSibling;
               end;
               //Если нод небыл найден то добавляем его
               if not Assigned(Result) then
@@ -2388,17 +2392,21 @@ end;
 function TdfPropertyTree.FindNode(ID: Integer;
   AParent: TTreeNode): TTreeNode;
 var
-  I: Integer;
+  N: TTreeNode;
 begin
   Result := nil;
   if Assigned(AParent) then
   begin
-    for I := 0 to AParent.Count - 1 do
-      if TCustomTreeItem(AParent[I].data).Id = Id then
+    N := AParent.GetFirstChild;
+    while (N <> nil) do
+    begin
+      if TCustomTreeItem(N.data).Id = Id then
       begin
-        Result := AParent[I];
+        Result := N;
         Break;
       end;
+      N := N.GetNextSibling;
+    end;
   end;
 end;
 
@@ -3528,7 +3536,7 @@ end;
 
 function TdfPropertyTree.FindVBClass(Id: Integer): TTreeNode;
 var
-  I, J: Integer;
+  J: Integer;
   TN: TTreeNode;
   TS: TTreeTabSheet;
 begin
@@ -3538,14 +3546,15 @@ begin
     TS := TTreeTabSheet(FPageControl.Pages[J]);
     if TS.VBClassRootNode <> nil then
     begin
-      TN := TS.VBClassRootNode;
-      for I := 0 to TN.Count - 1 do
+      TN := TS.VBClassRootNode.GetFirstChild;
+      while (TN <> nil) do
       begin
-        if TVBClassTreeItem(TN.Item[I].Data).Id = Id then
+        if TVBClassTreeItem(TN.Data).Id = Id then
         begin
-          Result := TN.Item[I];
+          Result := TN;
           Exit;
         end;
+        TN := TN.GetNextSibling;
       end;
     end
   end;
@@ -3553,7 +3562,6 @@ end;
 
 function TdfPropertyTree.FindConst(Id: Integer): TTreeNode;
 var
-  I: Integer;
   TN: TTreeNode;
   TS: TTreeTabSheet;
 begin
@@ -3561,21 +3569,21 @@ begin
   TS := GetPageByObjID(OBJ_APPLICATION);
   if Assigned(TS) and Assigned(Ts.ConstRootNode) then
   begin
-    TN := Ts.ConstRootNode;
-    for I := 0 to TN.Count - 1 do
+    TN := TS.ConstRootNode.GetFirstChild;
+    while (TN <> nil) do
     begin
-      if TConstTreeItem(TN.Item[I].Data).Id = Id then
+      if TConstTreeItem(TN.Data).Id = Id then
       begin
-        Result := TN.Item[I];
+        Result := TN;
         Exit;
       end;
+      TN := TN.GetNextSibling;
     end;
   end
 end;
 
 function TdfPropertyTree.FindGO(ID: Integer): TTreeNode;
 var
-  I: Integer;
   TN: TTreeNode;
   TS: TTreeTabSheet;
 begin
@@ -3583,14 +3591,15 @@ begin
   TS := GetPageByObjID(OBJ_APPLICATION);
   if Assigned(TS) and Assigned(Ts.GORootNode) then
   begin
-    TN := Ts.GORootNode;
-    for I := 0 to TN.Count - 1 do
+    TN := TS.GORootNode.GetFirstChild;
+    while (TN <> nil) do
     begin
-      if TGLobalObjectTreeItem(TN.Item[I].Data).Id = Id then
+      if TGLobalObjectTreeItem(TN.Data).Id = Id then
       begin
-        Result := TN.Item[I];
+        Result := TN;
         Exit;
       end;
+      TN := TN.GetNextSibling;
     end;
   end
 end;
@@ -5324,7 +5333,7 @@ var
   N, Node: TTreeNode;
   Index: Integer;
   C: TCursor;
-begin
+begin       { TODO -oAlexander : ускорить }
   Result := nil;
   Node := ANode;
   Assert(Node <> nil, 'sdfsd');
@@ -5371,7 +5380,9 @@ end;
 procedure TdfPropertyTree.FindDialogFind(Sender: TObject);
 var
   Node: TTreeNode;
+  T: TDateTime;
 begin
+  T := Now;
   Node := nil;
   FSearchString := AnsiUpperCase(FindDialog.FindText);
   FSearchOptions := FindDialog.Options;
@@ -5392,7 +5403,12 @@ begin
       Node.Selected := True;
     end else
     begin
-      ShowMessage(MSG_SEACHING_TEXT + FSearchString + MSG_NOT_FIND);
+      MessageBox(Handle,
+        PChar(Format(MSG_SEACHING_TEXT + FSearchString + MSG_NOT_FIND + ''#13#10'Время поиска: %d сек.',
+          [Round((Now - T) * 24 * 60 * 60)])),
+        'Внимание',
+        MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+
     end;
   end;
 end;
@@ -5413,6 +5429,7 @@ var
   I: Integer;
   B, E: Integer;
   Allow: Boolean;
+  N: TTreeNode;
 begin
   Result := nil;
   tvClassesExpanding(ANode.TreeView, ANode, Allow);
@@ -5425,17 +5442,23 @@ begin
   else
     E := Index;
 
-  for I := B to E - 1 do
+  if (E > 0) and (B <> E) then
   begin
-    if ((frWholeWord in FSearchOptions) and (AnsiUpperCase(ANode.Item[I].Text) = FSearchString)) or
-      (not (frWholeWord in FSearchOptions) and (Pos(FSearchString, AnsiUpperCase(ANode.Item[I].Text)) > 0)) then
+    N := ANode.Item[B];
+
+    for I := B to E - 1 do
     begin
-      Result := ANode.Item[I];
-    end else
-    begin
-      Result := DoFindNode(ANode.Item[I], 0, sdBelow);
+      if ((frWholeWord in FSearchOptions) and (AnsiUpperCase(N.Text) = FSearchString)) or
+        (not (frWholeWord in FSearchOptions) and (Pos(FSearchString, AnsiUpperCase(N.Text)) > 0)) then
+      begin
+        Result := N;
+      end else
+      begin
+        Result := DoFindNode(N, 0, sdBelow);
+      end;
+      if Result <> nil then Exit;
+      N := N.GetNextSibling;
     end;
-    if Result <> nil then Exit;
   end;
 end;
 
