@@ -3606,6 +3606,9 @@ begin
               Exclude(FNeeded, eoComplicatedJoin);
 
               Rollback;
+              while Token.TokenType = ttSpace do
+                RollBack;
+
               FJoinTable := TsqlTable.Create(FParser);
               FJoinTable.ParseStatement;
               Continue;
