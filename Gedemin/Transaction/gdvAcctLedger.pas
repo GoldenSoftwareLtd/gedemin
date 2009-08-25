@@ -1012,10 +1012,10 @@ var
 
           if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
           MainSubSelect := MainSubSelect +
-            'en.entrydate AS dateparam_' + Alias + #13#10;
+            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') AS dateparam_' + Alias + #13#10;
           if MainGroup > '' then MainGroup := MainGroup + ', ';
           MainGroup := MainGroup +
-            'en.entrydate'#13#10;
+            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ')'#13#10;
         end;
 
         // ENTRYDATE нужно брать в подзапросе только один раз
