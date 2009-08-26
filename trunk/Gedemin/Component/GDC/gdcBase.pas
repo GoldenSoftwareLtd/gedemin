@@ -7299,15 +7299,19 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             Continue;
           end;
 
-          //Если это поле для установки прав и оно пришло к нам из другой базы
-          //то устанавливаем права "для всех"
-          if (AnsiPos(';' + AnsiUpperCase(TargetField.FieldName) + ';', rightsfield) > 0) and
-            (StreamRecord.StreamDBID > -1) and (StreamRecord.StreamDBID <> IBLogin.DBID)
-          then
+          // Если при вставке новой записи заполняем поле для установки прав и оно пришло к нам из другой базы
+          //   то устанавливаем права "для всех"
+          // При обновлении записи не трогаем права доступа
+          {if (TargetDS.State = dsInsert)
+             and (AnsiPos(';' + AnsiUpperCase(TargetField.FieldName) + ';', rightsfield) > 0)
+             and (StreamRecord.StreamDBID > -1) and (StreamRecord.StreamDBID <> IBLogin.DBID) then
           begin
             TargetField.AsInteger := -1;
             Continue;
-          end;
+          end;}
+          // Вместо изменения полей прав доступа, пропустим их
+          if AnsiPos(';' + AnsiUpperCase(TargetField.FieldName) + ';', rightsfield) > 0 then
+            Continue;
 
           //Если это поле для указания "Кто редактировал", то считываем текущего пользователя
           if (AnsiPos(';' + AnsiUpperCase(TargetField.FieldName) + ';', editorfield) > 0)
