@@ -42,7 +42,8 @@ const
 
   IBASE_DLL = 'gds32.dll'; {do not localize}
   //!!!
-  FBASE_DLL = 'fbclient.dll'; {do not localize}                
+  FBEMB_DLL = 'fbembed.dll'; {do not localize}                
+  FBASE_DLL = 'fbclient.dll'; {do not localize}
   //!!!
   IBXML_DLL = 'ibxml.dll'; {do not localize}
 
