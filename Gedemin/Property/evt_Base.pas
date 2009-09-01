@@ -75,6 +75,9 @@ type
     function FindFunction(const AnFunctionKey: Integer): TrpCustomFunction;
     function ReleaseFunction(AnFunction: TrpCustomFunction): Integer;
     function  UpdateList: Boolean;
+    // Удаляет ф-цию, чистит файл кэша
+    procedure RemoveFunction(const AnFunctionKey: Integer);
+
 
     function Get_Function(Index: Integer): TrpCustomFunction;
   public
@@ -1553,7 +1556,7 @@ begin
     LEventOfObject := LEventObject.EventList.Find(cAfterShowDialogEventName);
     // Выполнение события
     ExecuteEvent(LEventOfObject, LParams, Sender, cAfterShowDialogEventName);
-    
+
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -4259,7 +4262,7 @@ begin
     LEventOfObject := LEventObject.EventList.Find(cMouseMoveEventName);
     // Выполнение события
     ExecuteEvent(LEventOfObject, LParams, Sender, cMouseMoveEventName);
-    
+
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -4325,7 +4328,7 @@ begin
     // Обратное присвоение значений
 
     Handled := Boolean(GetVarParam(LParams[4]));
-    
+
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -7070,6 +7073,20 @@ begin
   Result := TrpCustomFunctionEx(AnFunction).FExternalUsedCounter;
 end;
 
+procedure TgsFunctionList.RemoveFunction(const AnFunctionKey: Integer);
+var
+  Index: Integer;
+begin
+  //вместо того, что бы использовать ф-цию UpdateList, которая удалит
+  //файл кэша, а потом перечитает все ф-ции из gd_function, просто удаляем
+  //файл и чистим список. кэш заполнится автоматически при обращении к используемым
+  //ф-циям.
+
+  DeleteSFFiles;
+  Index := FSortFuncList.IndexOf(AnFunctionKey);
+  if Index > - 1 then
+    FSortFuncList.Delete(Index);
+end;
 
 function TgsFunctionList.UpdateList: Boolean;
 var
