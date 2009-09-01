@@ -256,6 +256,7 @@ type
     FBreakPoint: TBreakPoint;
     FOldName: string;
     HistoryFrame: TFrame;
+    FOldFunctionKey: Integer;
     //FHint: THintWindow;
 
     procedure CMVisibleChanged(var Message: TMessage); message CM_VISIBLECHANGED;
@@ -1580,23 +1581,25 @@ var
 
   procedure DeleteSFNode(N: TTreeNode);
   var
-    I: Integer;
+    Nd: TTreeNode;
   begin
     if N <> nil then
     begin
-      for I := 0 to N.Count - 1 do
+      Nd := N.GetFirstChild;
+      while (Nd <> nil) do
       begin
-        if (TCustomTreeItem(N.Item[I].Data).Id = gdcFunction.Id) and
-          (Node <> N.Item[I]) then
+        if (TCustomTreeItem(Nd.Data).Id = gdcFunction.Id) and
+          (Node <> Nd) then
         begin
-          if TCustomTreeItem(N.Item[I].Data).EditorFrame <> nil then
+          if TCustomTreeItem(Nd.Data).EditorFrame <> nil then
           begin
-            TBaseFrame(TSFTreeItem(N.Item[I].Data).EditorFrame).Cancel;
-            TBaseFrame(TSFTreeItem(N.Item[I].Data).EditorFrame).Close;
+            TBaseFrame(TSFTreeItem(Nd.Data).EditorFrame).Cancel;
+            TBaseFrame(TSFTreeItem(Nd.Data).EditorFrame).Close;
           end;
-          N.Item[I].Delete;
+          Nd.Delete;
           Break;
         end;
+        Nd := Nd.GetNextSibling;
       end;
     end;
   end;
@@ -1607,6 +1610,7 @@ begin
   begin
     if TCustomTreeItem(Node.Data).ItemType <> tiSF then
       DeleteSFNode(TprpTreeView(Node.TreeView).SFRootNode);
+    FOldFunctionKey := TCustomTreeItem(Node.Data).ID;
   end;
   if PropertyTreeForm <> nil then
   begin
@@ -1722,6 +1726,7 @@ constructor TFunctionFrame.Create(AOwner: TComponent);
 begin
   inherited;
   FCurrentFunctionName := '';
+  FOldFunctionKey := 0;
   gdcFunction.CompileScript := True;
 end;
 
@@ -2621,7 +2626,10 @@ begin
 
   //Т.к. проседуры удаления функции в glbFunctionList нет
   //то очищаем список
-  glbFunctionList.UpdateList;
+  if FOldFunctionKey <> 0 then
+    glbFunctionList.RemoveFunction(FOldFunctionKey)
+  else
+    glbFunctionList.UpdateList;
   ScriptFactory.Reset;
 end;
 
