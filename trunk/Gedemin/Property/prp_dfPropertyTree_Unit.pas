@@ -4299,18 +4299,22 @@ end;
 
 procedure TprpTreeView.ReadNodeHasChildren(N: TTreeNode; Stream: TStream);
 var
-  I: Integer;
   H: Boolean;
   lCount: Integer;
+  K: TTreeNode;
 begin
   Stream.ReadBuffer(H, SizeOf(H));
   N.HasChildren := H;
   Stream.ReadBuffer(lCount, SizeOf(lCount));
   if lCount <> N.Count then
-    raise Exception.Create('asdas');
+    raise Exception.Create('node error');
 
-  for I := 0 to lCount - 1 do
-    ReadNodeHasChildren(N.Item[I], Stream);
+  K := N.GetFirstChild;
+  while (K <> nil) do
+  begin
+    ReadNodeHasChildren(K, Stream);
+    K := K.GetNextSibling;
+  end;
 end;
 
 procedure TprpTreeView.ReadRootNodes;
@@ -4354,8 +4358,8 @@ end;
 procedure TprpTreeView.SaveNodeHasChildren(N: TTreeNode; Stream: TStream);
 var
   lCount: Integer;
-  I: Integer;
   H: Boolean;
+  K: TTreeNode;
 begin
   H := N.HasChildren;
   Stream.WriteBuffer(H, SizeOf(H));
@@ -4364,8 +4368,13 @@ begin
   Inc(FNodeIndex);
   lCount := N.Count;
   Stream.WriteBuffer(lCount, SizeOf(lCount));
-  for I := 0 to lCount - 1 do
-    SaveNodeHasChildren(N.Item[I], Stream);
+
+  K := N.GetFirstChild;
+  while (K <> nil) do
+  begin
+    SaveNodeHasChildren(K, Stream);
+    K := K.GetNextSibling;
+  end;
 end;
 
 procedure TprpTreeView.SetgdcReportRootNode(const Value: TTreeNode);
