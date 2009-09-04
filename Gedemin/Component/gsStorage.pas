@@ -2470,7 +2470,7 @@ begin
           except
             on E: EIBError do
             begin
-              if E.IBErrorCode = isc_deadlock then
+              if (E.IBErrorCode = isc_deadlock) or (E.IBErrorCode = isc_lock_conflict) then
               begin
                 if Transaction.InTransaction then
                   Transaction.Rollback;
@@ -2490,6 +2490,8 @@ begin
               'Сообщение об ошибке: ' + E.Message),
               'Внимание',
               MB_TASKMODAL or MB_OK or MB_ICONHAND);
+            // иначе получим бесконечный цикл
+            F := 0;
           end;
         end;
 
@@ -2792,7 +2794,7 @@ begin
           except
             on E: EIBError do
             begin
-              if E.IBErrorCode = isc_deadlock then
+              if (E.IBErrorCode = isc_deadlock) or (E.IBErrorCode = isc_lock_conflict) then
               begin
                 if Transaction.InTransaction then
                   Transaction.Rollback;
@@ -2812,6 +2814,8 @@ begin
               'Сообщение об ошибке: ' + E.Message),
               'Внимание',
               MB_TASKMODAL or MB_OK or MB_ICONHAND);
+            //иначе получим бесконечный цикл
+            F := 0;
           end;
         end;
       finally
