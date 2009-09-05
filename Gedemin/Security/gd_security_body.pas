@@ -76,6 +76,7 @@ type
     FIBName: String;
     FIBPassword: String;
     FIBRole: String;
+    FIsIBUserAdmin: Boolean;
 
     //  Свойства сессия
     FStartTime: TDateTime;
@@ -275,7 +276,7 @@ type
     property Ingroup: Integer read GetIngroup write SetIngroup;
     property GroupName: String read GetGroupName;
     property IsUserAdmin: Boolean read GetIsUserAdmin;
-    property IsIBUserAdmin: Boolean read GetIsIBUserAdmin;
+    property IsIBUserAdmin: Boolean read FIsIBUserAdmin;
     property IsShutDown: Boolean read GetIsShutDown;
 
     // Подсистема
@@ -721,6 +722,7 @@ begin
     FIBName := spUserLogin.ParamByName('ibname').AsString;
     FIBPassword := spUserLogin.ParamByName('ibpassword').AsString;
     FIBRole := '';
+    FIsIBUserAdmin := AnsiCompareText(FIBName, SysDBAUserName) = 0;
 
     FStartTime := Now;
     FUserKey := spUserLogin.ParamByName('UserKey').AsInteger;
@@ -1043,7 +1045,7 @@ begin
         end
         else if DBVersion <= cProcList[cProcCount - 1].ModifyVersion then
         begin
-          if CompareText(SysDBAUserName, FIBName) = 0 then
+          if IsIBUserAdmin then
           begin
             if (not Asked) and
               (MessageBox(0,
@@ -1161,7 +1163,7 @@ begin
           except
             on E: EIBError do
             begin
-              if (E.IBErrorCode = 335544472) and (CompareText(SysDBAUserName, FIBName) = 0) then
+              if (E.IBErrorCode = 335544472) and IsIBUserAdmin then
               begin
                 MessageBox(0,
                   'На сервере базы данных был изменен пароль для учетной записи SYSDBA.',
@@ -1547,7 +1549,7 @@ end;
 
 function TboLogin.GetIsIBUserAdmin: Boolean;
 begin
-  Result := AnsiCompareText(FIBName, SysDBAUserName) = 0;
+  Result := FIsIBUserAdmin;
 end;
 
 function TboLogin.GetIsShutDown: Boolean;
@@ -1557,8 +1559,7 @@ end;
 
 function TboLogin.GetIsUserAdmin: Boolean;
 begin
-  Result := Boolean(FIngroup and 1)
-    or GetIsIBUserAdmin;
+  Result := Boolean(FIngroup and 1) or IsIBUserAdmin;
 end;
 
 function TboLogin.GetLoggedIn: Boolean;
@@ -2319,7 +2320,7 @@ begin
       if q.EOF then
         raise Exception.Create('Invalid user key or account disabled.');
 
-      if AnsiCompareText(q.FieldByName('IBName').AsString, 'SYSDBA') = 0 then
+      if AnsiCompareText(q.FieldByName('IBName').AsString, SysDBAUserName) = 0 then
         raise Exception.Create('Can not switch to Administrator account.');
 
       if ACheckMultipleConnections then
@@ -2350,6 +2351,7 @@ begin
 
     FIBName := q.FieldByName('IBName').AsString;
     FIBPassword := q.FieldByName('IBPassword').AsString;
+    FIsIBUserAdmin := AnsiCompareText(FIBName, SysDBAUserName) = 0;
 
     FStartTime := Now;
     FUserKey := AUserKey;
