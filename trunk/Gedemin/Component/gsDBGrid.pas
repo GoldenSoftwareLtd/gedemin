@@ -11278,7 +11278,8 @@ var
 
   function TestColumn(C: TColumn): Boolean;
   begin
-    Result := C.Visible and ((C.Field is TStringField) or (C.Field is TMemoField));
+    Result := C.Visible and (((C.Field is TStringField) and (C.Field.Size > 20))
+      or (C.Field is TMemoField));
   end;
 
 begin
