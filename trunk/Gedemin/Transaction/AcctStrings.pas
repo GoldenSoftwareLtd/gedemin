@@ -33,6 +33,12 @@ resourcestring
 const
   ENTRYDATE = 'ENTRYDATE';
   MONTH = 'MONTH';
+
+  EXTRACT_DAY = ' EXTRACT(DAY FROM %0:s) ';
+  EXTRACT_MONTH = ' EXTRACT(MONTH FROM %0:s) ';
+  EXTRACT_QUARTER = ' (EXTRACT(MONTH FROM %0:s) - 1) / 3 + 1 ';
+  EXTRACT_YEAR = ' EXTRACT(YEAR FROM %0:s) ';
+
   AC_ENTRY = 'AC_ENTRY';
 //params
   BeginDate = 'BEGINDATE';
@@ -66,7 +72,6 @@ const
     '    WHERE'#13#10 +
     '      e_m.id = e.id)'#13#10;
 
-  {$IFDEF ENTRY_BALANCE}
   cInternalMovementClauseTemplateNew =
     ' AND NOT EXISTS( '#13#10 +
     '    SELECT '#13#10 +
@@ -82,7 +87,6 @@ const
     '        %0:s.debitcurr = e_cm.creditcurr AND '#13#10 +
     '        %0:s.creditcurr = e_cm.debitcurr) ' +
     '    %1:s )'#13#10;
-  {$ENDIF}
 
   cDebitCredit =
     'SELECT '#13#10 +

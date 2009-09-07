@@ -2,8 +2,6 @@ unit gdvAcctLedger;
 
 interface
 
-{$IFDEF ENTRY_BALANCE}
-
 uses
   classes, gdv_AvailAnalytics_unit, AcctStrings, AcctUtils, gdvAcctBase,
   at_classes, contnrs, DB, ibsql, gdv_AcctConfig_unit;
@@ -259,7 +257,7 @@ type
 
     procedure CheckAnalyticLevelProcedures;
     procedure UpdateEntryDateIsFirst;
-
+    
     //процедура возвращает СКЛ запрос для вычисления начального сальдо
     //когда выбрана фиксированная аналитика и дата стоит первой аналитикой
     //для группировки
@@ -339,11 +337,7 @@ type
 
 procedure Register;
 
-{$ENDIF}
-
 implementation
-
-{$IFDEF ENTRY_BALANCE}
 
 uses
   sysutils, IBDatabase, IBHeader, gdcBaseInterface, gd_KeyAssoc,
@@ -1012,10 +1006,10 @@ var
 
           if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
           MainSubSelect := MainSubSelect +
-            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') AS dateparam_' + Alias + #13#10;
+            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + ' AS dateparam_' + Alias + #13#10;
           if MainGroup > '' then MainGroup := MainGroup + ', ';
           MainGroup := MainGroup +
-            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ')'#13#10;
+            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + #13#10;
         end;
 
         // ENTRYDATE нужно брать в подзапросе только один раз
@@ -1076,7 +1070,7 @@ var
           CorrSelect := CorrSelect +
             Format(' %0:s.%1:s, %0:s.%1:s, %0:s.%1:s '#13#10, ['m', Alias]);
           CorrSubSelect := CorrSubSelect +
-            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') AS ' + Alias + #13#10;
+            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + ' AS ' + Alias + #13#10;
           // ENTRYDATE нужно брать в подзапросе только один раз
           if not CorrEntryDateIsAdded then
           begin
@@ -1085,7 +1079,7 @@ var
             CorrEntryDateIsAdded := True;
           end;
           CorrGroup := CorrGroup +
-            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ')'#13#10;
+            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + #13#10;
           CorrOrder := CorrOrder + Format(' %0:s.%1:s '#13#10, ['m', Alias]);
         end;
       end;
@@ -1650,7 +1644,7 @@ begin
         '   SELECT '#13#10 +
         '     COALESCE(SUM(en.debitncu - en.creditncu), 0) AS ncu, '#13#10 +
         '     COALESCE(SUM(en.debitcurr - en.creditcurr), 0) AS curr, '#13#10 +
-        '     COALESCE(SUM(en.debiteq - en.crediteq), 0) AS eq ' +
+        '     COALESCE(SUM(en.debiteq - en.crediteq), 0) AS eq ' + #13#10 +
           IIF(MainSubSelect <> '', ', ' + MainSubSelect, '') + #13#10 +
         '   FROM '#13#10 +
         '   ( '#13#10 +
@@ -4952,7 +4946,5 @@ function TgdvAcctAnalyticLevels.SPName: string;
 begin
   Result := Format('AC_LEDGER_%s', [FField.References.RelationName]);
 end;
-
-{$ENDIF}
 
 end.

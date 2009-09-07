@@ -2,8 +2,6 @@ unit gdvAcctBase;
 
 interface
 
-{$IFDEF ENTRY_BALANCE}
-
 uses
   Windows, classes, IBCustomDataSet, Controls, IBSQL,
   gdcBaseInterface, gd_KeyAssoc, at_classes, contnrs, DB,
@@ -292,11 +290,7 @@ const
 
 procedure Register;
 
-{$ENDIF}
-
 implementation
-
-{$IFDEF ENTRY_BALANCE}
 
 uses
   Sysutils, Dialogs, gd_security, AcctStrings, IBBlob, gd_common_functions,
@@ -1302,8 +1296,6 @@ begin
     end;
   end;
 end;
-
-{$ENDIF}
 
 end.
  
