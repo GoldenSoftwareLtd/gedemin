@@ -714,6 +714,13 @@ begin
     Exit;
   end;
 
+  // проверяем только белорусские 13-ти значные счета
+  if Length(Account) <> 13 then
+  begin
+    Result := True;
+    Exit;
+  end;
+
   if Assigned(GlobalStorage)
     and (not (GlobalStorage.ReadBoolean('Options',
       'CheckAccount', True, False))) then
