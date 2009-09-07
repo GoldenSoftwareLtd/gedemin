@@ -2,8 +2,6 @@ unit gdvAcctGeneralLedger;
 
 interface
 
-{$IFDEF ENTRY_BALANCE}
-
 uses
   classes, gd_ClassList, gd_KeyAssoc, AcctStrings, AcctUtils, gdvAcctLedger,
   gdv_AcctConfig_unit;
@@ -25,11 +23,7 @@ type
 
 procedure Register;
 
-{$ENDIF}
-
 implementation
-
-{$IFDEF ENTRY_BALANCE}
 
 uses
   ibsql, gdvAcctBase, gdcBaseInterface, sysutils, gdcConstants;
@@ -865,7 +859,5 @@ begin
     'или выбрать меньше количество счетов.'#13#10#13#10 +
     'ѕостроение отчета не возможно.';
 end;
-
-{$ENDIF}
 
 end.

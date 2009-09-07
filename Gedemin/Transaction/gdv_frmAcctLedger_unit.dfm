@@ -1,6 +1,6 @@
 inherited gdv_frmAcctLedger: Tgdv_frmAcctLedger
-  Left = 273
-  Top = 169
+  Left = 169
+  Top = 148
   Width = 1050
   Height = 566
   HelpContext = 100

@@ -7,16 +7,18 @@ uses
   stdctrls, Forms, Controls, Dialogs,
   gdcBaseInterface, AcctStrings, gd_KeyAssoc;
 
-{$IFDEF ENTRY_BALANCE}
 type
   TgdvSumInfo = record
     Show: Boolean;
     DecDigits: Integer;
     Scale: Integer;
   end;
-{$ENDIF} 
 
-function IIF(Exp: Boolean; S1, S2: string): string;  
+function IIF(Exp: Boolean; S1, S2: string): string;
+// Функция возвращает сформированный кусок запроса для получения
+//   необходимой части даты из переданного поля
+// Если передан неизвестный ADateParam, возвращается просто AFieldName
+function GetSQLForDateParam(const AFieldName: String; const ADateParam: String): String;
 //Возвращает кол-во дес. знаков в сист. установках
 function LocateDecDigits: integer;
 function DisplayFormat(DecDig: Integer): string;
@@ -42,20 +44,16 @@ procedure SaveHistory(ComboBox: TCustomComboBox);
 //Возвращает ключ астивного плана счетов для указанной компании
 function GetActiveAccount(CompanyKey: Integer): Integer;
 procedure UpdateTabOrder(C: TWinControl);
-{$IFDEF ENTRY_BALANCE}
 // Возвращает дату последнего расчета сальдо, если сальдо не рассчитано вернет 0
 function GetCalculatedBalanceDate: TDate;
 // Заполняет поля сальдо в Карте и Анализе счета
 procedure SetSaldoValue(AValue: Currency; ADebit, ACredit: TEdit; ADecDigits: Integer);
-{$ENDIF}
 
 function CheckActiveAccount(CompanyKey: Integer; AShowMessage: Boolean = True): Boolean;
 
 const
   cInputParam = '/*INPUT PARAM*/';
-  {$IFDEF ENTRY_BALANCE}
   IBDateDelta = 15018;              // Days between Delphi and InterBase dates
-  {$ENDIF}
 
 implementation
 
@@ -68,10 +66,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  {$IFDEF ENTRY_BALANCE}
-  , Graphics
-  {$ENDIF}
-  ;
+  , Graphics;
 
 const
  cMaxHistoryQuantity = 30;
@@ -82,6 +77,20 @@ begin
     Result := S1
   else
     Result := S2;
+end;
+
+function GetSQLForDateParam(const AFieldName, ADateParam: String): String;
+begin
+  if ADateParam = '0' then
+    Result := Format(EXTRACT_DAY, [AFieldName])
+  else if ADateParam = '1' then
+    Result := Format(EXTRACT_MONTH, [AFieldName])
+  else if ADateParam = '3' then
+    Result := Format(EXTRACT_YEAR, [AFieldName])
+  else if ADateParam = '4' then
+    Result := Format(EXTRACT_QUARTER, [AFieldName])
+  else
+    Result := AFieldName;
 end;
 
 function LocateDecDigits: integer;
@@ -333,9 +342,6 @@ var
   S: TStrings;
   I: Integer;
   ID: Integer;
-  {$IFNDEF ENTRY_BALANCE}
-  SQL: TIBSQL;
-  {$ENDIF}
 begin
   Assert(AccountIds <> nil, 'Список не инициализирован');
 
@@ -367,31 +373,6 @@ begin
     finally
       S.Free;
     end;
-
-    // будем вытягивать дочерние счета в TgdvAcctBase
-    {$IFNDEF ENTRY_BALANCE}
-    if AIncSubAccounts and (AccountIDs.Count > 0) then
-    begin
-      SQL := TIBSQL.Create(nil);
-      try
-        SQL.Transaction := gdcBaseManager.ReadTransaction;
-        SQL.SQL.Text := Format(
-          ' SELECT a2.id FROM ac_account a1, ac_account a2 WHERE a1.id in(%s) and ' +
-          ' a2.lb >= a1.lb and a2.rb <= a1.rb and a2.ACCOUNTTYPE in (''A'', ''S'')',
-          [IDList(AccountIDs)]);
-        SQL.ExecQuery;
-        AccountIDs.Clear;
-        while not SQl.Eof do
-        begin
-          if AccountIDs.IndexOf(Pointer(SQL.Fields[0].AsInteger)) = - 1 then
-            AccountIDs.Add(Pointer(SQL.Fields[0].AsInteger));
-          SQL.Next;
-        end;
-      finally
-        SQL.Free;
-      end;
-    end;
-    {$ENDIF}
   end;
 end;
 
@@ -586,7 +567,6 @@ begin
   end;
 end;
 
-{$IFDEF ENTRY_BALANCE}
 function GetCalculatedBalanceDate: TDate;
 var
   IBSQL: TIBSQL;
@@ -633,6 +613,5 @@ begin
       ACredit.Color:= clWhite;
     end;
 end;
-{$ENDIF}
 
 end.
