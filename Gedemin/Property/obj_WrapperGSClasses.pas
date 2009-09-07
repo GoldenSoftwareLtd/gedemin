@@ -48,14 +48,8 @@ uses
   {$IFDEF MODEM}
   , gsModem
   {$ENDIF}
-  {$IFDEF NEW_STREAM}
-  , gdcStreamSaver
-  {$ENDIF NEW_STREAM}
-  {$IFDEF ENTRY_BALANCE}
-  , gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger, gdvAcctGeneralLedger,
-  gdvAcctCirculationList
-  {$ENDIF}
-  ;
+  , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
+  gdvAcctGeneralLedger, gdvAcctCirculationList;
 
 type
   TwrpAnalyze = class(TwrpObject, IgsAnalyze)
@@ -3542,7 +3536,6 @@ type
     procedure PutString(const S: WideString); safecall;
   end;
 
-  {$IFDEF NEW_STREAM}
   TwrpStreamSaver = class(TwrpObject, IgsStreamSaver)
   private
     function  GetStreamSaver: TgdcStreamSaver;
@@ -3562,9 +3555,7 @@ type
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
-  {$ENDIF NEW_STREAM}
 
-  {$IFDEF ENTRY_BALANCE}
   TwrpGdvAcctBase = class(TwrpIBCustomDataSet, IgsGdvAcctBase)
   private
     function GetGdvAcctBase: TgdvAcctBase;
@@ -3672,8 +3663,6 @@ type
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
-  {$ENDIF}
-
 
 implementation
 
@@ -17208,7 +17197,6 @@ begin
   GetGsCompanyStorage.CompanyKey := Value;
 end;
 
-{$IFDEF NEW_STREAM}
 { TwrpStreamSaver }
 
 class function TwrpStreamSaver.CreateObject(const DelphiClass: TClass;
@@ -17292,9 +17280,7 @@ procedure TwrpStreamSaver.Set_SaveWithDetailList(
 begin
   GetStreamSaver.SaveWithDetailList := InterfaceToObject(Value) as TgdKeyArray;
 end;
-{$ENDIF NEW_STREAM}
 
-{$IFDEF ENTRY_BALANCE}
 { TwrpGdvAcctBase }
 
 procedure TwrpGdvAcctBase.AddAccount(AccountKey: Integer);
@@ -17673,8 +17659,6 @@ begin
   Result := GetObject as TgdvAcctCirculationList;
 end;
 
-{$ENDIF}
-
 initialization
 
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
@@ -17896,16 +17880,12 @@ initialization
 
   RegisterGdcOLEClass(TgsComScaner, TwrpGsComScaner, ComServer.TypeLib, IID_IgsgsComScaner);
 
-  {$IFDEF NEW_STREAM}
   RegisterGdcOLEClass(TgdcStreamSaver, TwrpStreamSaver, ComServer.TypeLib, IID_IgsStreamSaver);
-  {$ENDIF NEW_STREAM}
 
-  {$IFDEF ENTRY_BALANCE}
   RegisterGdcOLEClass(TgdvAcctBase, TwrpGdvAcctBase, ComServer.TypeLib, IID_IgsGdvAcctBase);
   RegisterGdcOLEClass(TgdvAcctAccReview, TwrpGdvAcctAccReview, ComServer.TypeLib, IID_IgsGdvAcctAccReview);
   RegisterGdcOLEClass(TgdvAcctAccCard, TwrpGdvAcctAccCard, ComServer.TypeLib, IID_IgsGdvAcctAccCard);
   RegisterGdcOLEClass(TgdvAcctLedger, TwrpGdvAcctLedger, ComServer.TypeLib, IID_IgsGdvAcctLedger);
   RegisterGdcOLEClass(TgdvAcctGeneralLedger, TwrpGdvAcctGeneralLedger, ComServer.TypeLib, IID_IgsGdvAcctGeneralLedger);
   RegisterGdcOLEClass(TgdvAcctCirculationList, TwrpGdvAcctCirculationList, ComServer.TypeLib, IID_IgsGdvAcctCirculationList);
-  {$ENDIF}
 end.

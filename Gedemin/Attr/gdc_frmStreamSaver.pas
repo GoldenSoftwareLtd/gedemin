@@ -797,7 +797,7 @@ var
   SourceBaseKey, TargetBaseKey: TID;
   I: Integer;
   S: TStream;
-  IBSQL: TIBSQL;
+  RPLDatabase: TgdRPLDatabase;
 begin
   FProcessType := ptLoad;
 
@@ -848,26 +848,23 @@ begin
       if Assigned(atDatabase) and Assigned(atDatabase.Relations.ByRelationName('RPL_DATABASE')) then
       begin
         // вытянем имена баз данных из RPL_DATABASE
-        IBSQL := TIBSQL.Create(nil);
+        RPLDatabase := TgdRPLDatabase.Create;
         try
-          IBSQL.Transaction := gdcBaseManager.ReadTransaction;
-          IBSQL.SQL.Text := 'SELECT name FROM rpl_database WHERE id = :id';
-          IBSQL.ParamByName('id').AsInteger := SourceBaseKey;
-          IBSQL.ExecQuery;
-          if IBSQL.RecordCount > 0 then
-            eLoadingSourceBase.Text := IBSQL.FieldByName('name').AsString
+          // Исходная база
+          RPLDatabase.ID := SourceBaseKey;
+          if RPLDatabase.Name <> '' then
+            eLoadingSourceBase.Text := RPLDatabase.Name
           else
-            eLoadingSourceBase.Text := IntToStr(SourceBaseKey);
+            eLoadingSourceBase.Text := IntToStr(RPLDatabase.ID);
 
-          IBSQL.Close;
-          IBSQL.ParamByName('id').AsInteger := TargetBaseKey;
-          IBSQL.ExecQuery;
-          if IBSQL.RecordCount > 0 then
-            eLoadingTargetBase.Text := IBSQL.FieldByName('name').AsString
+          // Целевая база
+          RPLDatabase.ID := TargetBaseKey;
+          if RPLDatabase.Name <> '' then
+            eLoadingTargetBase.Text := RPLDatabase.Name
           else
-            eLoadingTargetBase.Text := IntToStr(TargetBaseKey);
+            eLoadingTargetBase.Text := IntToStr(RPLDatabase.ID);
         finally
-          IBSQL.Free;
+          RPLDatabase.Free;
         end;
       end
       else
@@ -1035,6 +1032,8 @@ begin
   lblErrorMsg.Visible := True;
   lblErrorMsg.Caption := ErrorMsg;
   btnClose.Enabled := True;
+
+  at_frmSQLProcess.AddMistake(#13#10'Критическая ошибка! Выполнение прервано!'#13#10 + ErrorMsg, clRed);
 end;
 
 procedure Tgdc_frmStreamSaver.SetInitialSettings;

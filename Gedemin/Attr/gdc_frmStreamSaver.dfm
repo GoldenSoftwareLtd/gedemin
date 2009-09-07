@@ -1,6 +1,6 @@
 object gdc_frmStreamSaver: Tgdc_frmStreamSaver
-  Left = 474
-  Top = 199
+  Left = 457
+  Top = 197
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Мастер переноса данных'
@@ -121,7 +121,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Left = 5
           Top = 0
           Width = 488
-          Height = 145
+          Height = 273
           Caption = ' Свойства  '
           TabOrder = 0
           object lblFileName: TLabel

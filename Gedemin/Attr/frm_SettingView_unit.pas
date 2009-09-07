@@ -4,13 +4,13 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, Db, DBClient;
+  StdCtrls, ComCtrls, ExtCtrls, Db, DBClient, TB2Item, ActnList, TB2Dock,
+  TB2Toolbar, SynEdit;
 
 type
   Tfrm_SettingView = class(TForm)
     pnlMain: TPanel;
     pnlPositionText: TPanel;
-    mPositionText: TMemo;
     pnlBottom: TPanel;
     pnlLeft: TPanel;
     splInfo: TSplitter;
@@ -25,9 +25,29 @@ type
     splLeft: TSplitter;
     pnlButtons: TPanel;
     btnClose: TButton;
+    TBDock1: TTBDock;
+    TBToolbar1: TTBToolbar;
+    alMain: TActionList;
+    actFind: TAction;
+    TBItem1: TTBItem;
+    actSaveToFile: TAction;
+    TBItem2: TTBItem;
+    TBSeparatorItem1: TTBSeparatorItem;
+    fdMain: TFindDialog;
+    sePositionText: TSynEdit;
+    actFindNext: TAction;
     procedure FormDestroy(Sender: TObject);
     procedure lbPositionsClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
+    procedure actFindExecute(Sender: TObject);
+    procedure fdMainFind(Sender: TObject);
+    procedure actFindUpdate(Sender: TObject);
+    procedure actFindNextExecute(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+  private
+    FSelectionPos: Integer;
+
+    procedure DoFind;
   public
     procedure ReadSetting(Stream: TStream);
   end;
@@ -45,10 +65,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  {$IFDEF NEW_STREAM}
-  , gdcStreamSaver
-  {$ENDIF NEW_STREAM}
-  ;
+  , gdcStreamSaver, prp_MessageConst, syn_ManagerInterface_unit;
 
 procedure Tfrm_SettingView.ReadSetting(Stream: TStream);
 
@@ -77,20 +94,18 @@ var
   SettingInfoAdded: Boolean;
   ClassRecordList: TStringList;
   ClassRecordListIndex: Integer;
-  {$IFDEF NEW_STREAM}
   J: Integer;
   StreamLoadingOrderList: TgdcStreamLoadingOrderList;
   StreamDataObject: TgdcStreamDataObject;
   StreamWriterReader: TgdcStreamWriterReader;
-  recNumber, recCount: Integer;
+  recCount: Integer;
   StreamType: TgsStreamType;
-  {$ENDIF NEW_STREAM}
 begin
   lbPositions.Clear;
-  mPositionText.Clear;
+  sePositionText.Lines.Clear;
   mSettingInfo.Clear;
+  FSelectionPos := 0;
 
-  {$IFDEF NEW_STREAM}
   // Проверим тип потока
   StreamType := GetStreamType(Stream);
   if StreamType = sttUnknown then
@@ -148,12 +163,9 @@ begin
                 lbPositions.Items.AddObject(StreamDataObject.gdcObject[J].ClassName + '(' +
                   StreamDataObject.gdcObject[J].SubType + ') ' + StreamDataObject.gdcObject[J].SetTable, ClassRecordList);
 
-                recNumber := 1;
-                CDS.First;
+                CDS.First;               
                 while not CDS.Eof do
                 begin
-                  CurrentSettingText := IntToStr(recNumber) + ' из ' + IntToStr(recCount) + #13#10;
-
                   // Заполнение значений полей
                   for I := 0 to CDS.FieldCount - 1 do
                   begin
@@ -161,8 +173,10 @@ begin
                     begin
                       if CDS.Fields[I] is TBlobField then
                       begin
+                        {CurrentSettingText := CurrentSettingText +
+                          Format('%2d: %20s', [I, CDS.Fields[I].FieldName]) + ':  < BLOB >'#13#10}
                         CurrentSettingText := CurrentSettingText +
-                          Format('%2d: %20s', [I, CDS.Fields[I].FieldName]) + ':  < BLOB >'#13#10
+                          Format('%2d: %20s', [I, CDS.Fields[I].FieldName]) + ':  ' + CDS.Fields[I].AsString + #13#10
                       end
                       else
                       begin
@@ -188,8 +202,6 @@ begin
                     CurrentSettingText := CurrentSettingText + #13#10'--------------------------------------------------------'#13#10#13#10;
                     ClassRecordList.Add(CurrentSettingText);
                   end;
-
-                  Inc(recNumber);
 
                   CDS.Next;
                 end;
@@ -219,7 +231,6 @@ begin
   end
   else
   begin
-  {$ENDIF NEW_STREAM}
 
     OldCursor := Screen.Cursor;
     SettingInfoAdded := False;
@@ -302,8 +313,10 @@ begin
                 begin
                   if CDS.Fields[I] is TBlobField then
                   begin
+                    {CurrentSettingText := CurrentSettingText +
+                      Format('%2d: %20s', [I, CDS.Fields[I].FieldName]) + ':  < BLOB >'#13#10}
                     CurrentSettingText := CurrentSettingText +
-                      Format('%2d: %20s', [I, CDS.Fields[I].FieldName]) + ':  < BLOB >'#13#10
+                      Format('%2d: %20s', [I, CDS.Fields[I].FieldName]) + ':  ' + CDS.Fields[I].AsString + #13#10
                   end
                   else
                   begin
@@ -346,12 +359,10 @@ begin
       PrSet.Free;
       OS.Free;
     end;
-  {$IFDEF NEW_STREAM}
   end;
-  {$ENDIF NEW_STREAM}
 
   if lbPositions.Items.Count > 0 then
-    mPositionText.Text := (lbPositions.Items.Objects[0] as TStrings).Text;
+    sePositionText.Text := (lbPositions.Items.Objects[0] as TStrings).Text;
 end;
 
 procedure Tfrm_SettingView.FormDestroy(Sender: TObject);
@@ -370,7 +381,7 @@ var
   TempStr: String;
   I: Integer;
 begin
-  mPositionText.Clear;
+  sePositionText.Lines.Clear;
 
   ClassRecordList := TStringList(lbPositions.Items.Objects[lbPositions.ItemIndex]);
   RecordCount := ClassRecordList.Count;
@@ -389,12 +400,78 @@ begin
     TempStr := ClassRecordList.Text;
   end;
 
-  mPositionText.Text := TempStr;
+  sePositionText.Text := TempStr;
 end;
 
 procedure Tfrm_SettingView.btnCloseClick(Sender: TObject);
 begin
   Self.Close;
+end;
+
+procedure Tfrm_SettingView.actFindExecute(Sender: TObject);
+begin
+  if sePositionText.SelAvail then
+    fdMain.FindText := sePositionText.SelText
+  else
+    fdMain.FindText := sePositionText.WordAtCursor;
+  fdMain.Execute;
+end;
+
+procedure Tfrm_SettingView.fdMainFind(Sender: TObject);
+begin
+  DoFind;
+end;
+
+procedure Tfrm_SettingView.actFindUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := sePositionText.Lines.Count > 0;
+end;
+
+procedure Tfrm_SettingView.actFindNextExecute(Sender: TObject);
+begin
+  if Length(fdMain.FindText) > 0 then
+    DoFind
+  else
+    actFind.Execute;
+end;
+
+procedure Tfrm_SettingView.DoFind;
+var
+  rOptions: TSynSearchOptions;
+  sSearch: String;
+begin
+  sSearch := fdMain.FindText;
+  if Length(sSearch) = 0 then
+  begin
+    Beep;
+    MessageBox(Application.Handle, MSG_FIND_EMPTY_STRING, MSG_WARNING,
+     MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+  end else
+  begin
+    rOptions := [];
+    if not (frDown in fdMain.Options) then
+      Include(rOptions, ssoBackwards);
+    if frMatchCase in fdMain.Options then
+      Include(rOptions, ssoMatchCase);
+    if frWholeWord in fdMain.Options then
+      Include(rOptions, ssoWholeWord);
+    if sePositionText.SearchReplace(sSearch, '', rOptions) = 0 then
+    begin
+      Beep;
+      MessageBox(Application.Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_FIND), MSG_WARNING,
+       MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+    end;
+  end;
+end;
+
+procedure Tfrm_SettingView.FormCreate(Sender: TObject);
+begin
+  if Assigned(SynManager) then
+  begin
+    sePositionText.Font.Assign(SynManager.GetHighlighterFont);
+    sePositionText.Gutter.Font.Assign(SynManager.GetHighlighterFont);
+    mSettingInfo.Font.Assign(SynManager.GetHighlighterFont);
+  end;
 end;
 
 end.

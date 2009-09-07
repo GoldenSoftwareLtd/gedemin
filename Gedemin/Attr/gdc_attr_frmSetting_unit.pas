@@ -151,11 +151,6 @@ type
     FFieldStorageOrigin: TStringList;
     FThirdPreservedConditions: String;
 
-    {$IFNDEF NEW_STREAM}
-    FIBSQLSelectPos, FIBSQLSelectAllPos, FIBSQLUpdatePos, FIBSQLInsertPos: TIBSQL;
-    Offset: Integer;
-    {$ENDIF}
-
     SList, SCount, SDiff, SCRC32: TStringList;
     DontSave, UseRUID, SaveDependencies, DontSaveBLOB,
       OnlyDup, OnlyDiff: Boolean;
@@ -164,23 +159,15 @@ type
     FakeStream: TStream;
     FakeRUIDList, FakeName: String;
 
-    {$IFNDEF NEW_STREAM}
-    procedure OnStartLoading(Sender: TatSettingWalker; AnObjectSet: TgdcObjectSet);
-    procedure OnObjectLoad(Sender: TatSettingWalker; const AClassName, ASubType: String;
-      ADataSet: TDataSet; APrSet: TgdcPropertySet;
-      const ASR: TgsStreamRecord);
-    {$ENDIF}
-
     procedure OnStartLoading2(Sender: TatSettingWalker;
       AnObjectSet: TgdcObjectSet);
     procedure OnObjectLoad2(Sender: TatSettingWalker;
       const AClassName, ASubType: String;
       ADataSet: TDataSet; APrSet: TgdcPropertySet;
       const ASR: TgsStreamRecord);
-    {$IFDEF NEW_STREAM}
+
     procedure OnStartLoading2New(Sender: TatSettingWalker);
     procedure OnObjectLoad2New(Sender: TatSettingWalker; const AClassName, ASubType: String; ADataSet: TDataSet);
-    {$ENDIF}
 
     procedure OnFakeLoad(Sender: TgdcBase; CDS: TDataSet);
 
@@ -208,10 +195,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  {$IFDEF NEW_STREAM}
-  , gdc_frmStreamSaver
-  {$ENDIF}
-  ;
+  , gdc_frmStreamSaver;
   
 {$R *.DFM}
 
@@ -250,34 +234,15 @@ begin
 
   if not actSetActive.Checked then
   begin
-    {$IFDEF NEW_STREAM}
     CreateStreamSaverForm;
     frmStreamSaver.SetParams(gdcObject, nil, GetMainBookmarkList);
     frmStreamSaver.ShowActivateSettingForm;
-    {$ELSE}
-    if MessageBox(Handle, PChar('Активировать настройку "' + gdcObject.FieldByName('name').AsString + '"?'),
-      'Активация настройки', MB_ICONQUESTION or MB_YESNO) = IDYES
-    then
-    begin
-      (gdcObject as TgdcSetting).ActivateSetting(nil, GetMainBookmarkList)
-    end;
-    {$ENDIF}
-
   end
   else
   begin
-    {$IFDEF NEW_STREAM}
     CreateStreamSaverForm;
     frmStreamSaver.SetParams(gdcObject);
     frmStreamSaver.ShowDeactivateSettingForm;
-    {$ELSE}
-    if MessageBox(Handle, PChar('Деактивировать настройку ' + gdcObject.FieldByName('name').AsString + ' ?'),
-      'Деактивация настройки', MB_ICONQUESTION or MB_YESNO) = IDYES
-    then
-    begin
-      (gdcObject as TgdcSetting).DeactivateSetting;
-    end;
-    {$ENDIF}
   end;
 end;
 
@@ -312,20 +277,11 @@ end;
 
 procedure Tgdc_frmSetting.actSaveToBlobExecute(Sender: TObject);
 begin
-  {$IFDEF NEW_STREAM}
   CreateStreamSaverForm;
   frmStreamSaver.SetParams(gdcObject);
   frmStreamSaver.ShowMakeSettingForm;
   // Переоткроем детальный датасет, т.к. могли быть добавлены скрытые позиции
   gdcDetailObject.CloseOpen;
-  {$ELSE}
-  if MessageBox(Self.Handle, PChar('Сформировать настройку "' +
-    gdcObject.FieldByName(gdcObject.GetListField(gdcObject.SubType)).AsString + '" из выбранных объектов?'), 'Внимание',
-    MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES then
-  begin
-    (gdcObject as TgdcSetting).SaveSettingToBlob;
-  end;
-  {$ENDIF}
 end;
 
 procedure Tgdc_frmSetting.actSaveToBlobUpdate(Sender: TObject);
@@ -336,14 +292,9 @@ end;
 
 procedure Tgdc_frmSetting.actSaveToFileExecute(Sender: TObject);
 begin
-  {$IFDEF NEW_STREAM}
   CreateStreamSaverForm;
   frmStreamSaver.SetParams(gdcObject, gdcDetailObject, GetMainBookmarkList);
   frmStreamSaver.ShowSaveSettingForm;
-  {$ELSE}
-  actSaveToBlob.Execute;
-  inherited;
-  {$ENDIF}
 end;
 
 procedure Tgdc_frmSetting.actStorageDeleteExecute(Sender: TObject);
@@ -607,13 +558,9 @@ end;
 
 procedure Tgdc_frmSetting.actReActivateExecute(Sender: TObject);
 begin
-  {$IFDEF NEW_STREAM}
   CreateStreamSaverForm;
   frmStreamSaver.SetParams(gdcObject, nil, GetMainBookmarkList);
   frmStreamSaver.ShowReactivateSettingForm;
-  {$ELSE}
-  (gdcObject as TgdcSetting).ReActivateSetting(GetMainBookmarkList);
-  {$ENDIF}
 end;
 
 procedure Tgdc_frmSetting.actValidPosUpdate(Sender: TObject);
@@ -759,11 +706,8 @@ end;
 procedure Tgdc_frmSetting.actLoadFromFileExecute(Sender: TObject);
 var
   ibsql: TIBSQL;
-  {$IFDEF NEW_STREAM}
   FN: String;
-  {$ENDIF}
 begin
-  {$IFDEF NEW_STREAM}
   FN := gdcObject.QueryLoadFileName('', gsfExtension, gsfxmlDialogFilter);
   if FN > '' then
   begin
@@ -796,60 +740,6 @@ begin
       end;
     end;
   end;
-  {$ELSE}
-  MessageBox(Handle,
-    'Для того, чтобы структуры данных были созданы,'#13#10 +
-    'а макросы начали выполняться, настройку,'#13#10 +
-    'после ее загрузки в базу данных, необходимо активизировать.'#13#10 +
-    'Для этого необходимо установить на нее курсор и выбрать'#13#10 +
-    'команду Активизировать на панели инструментов.',
-    'Внимание',
-    MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-
-  inherited;
-
-  if Assigned(gdcObject) and gdcObject.Active then
-  begin
-    ibsql := TIBSQL.Create(Self);
-    try
-      ibsql.Transaction := gdcObject.ReadTransaction;
-      // Предыдущая версия настройки удаляется перед загрузкой,
-      //  так что загруженная настройка всегда будет иметь макс. ID
-      ibsql.SQL.Text := 'SELECT MAX(id) FROM at_setting';
-      ibsql.ExecQuery;
-      if ibsql.RecordCount > 0 then
-      begin
-        try
-          gdcObject.ID := ibsql.Fields[0].AsInteger;
-        except
-          gdcObject.First;
-        end;
-
-        {
-        if actSetActive.Enabled
-          and (gdcObject.ID = ibsql.Fields[0].AsInteger) then
-        begin
-          if MessageBox(Handle,
-            'Настройка была загружена в базу данных.'#13#10#13#10 +
-            'Для того, чтобы структуры данных, входящие в настройку,'#13#10 +
-            'были созданы, а макросы начали выполняться, настройку'#13#10 +
-            'необходимо активизировать.'#13#10#13#10 +
-            'Активизировать настройку прямо сейчас?'#13#10#13#10 +
-            'Если вы ответите Нет -- активизировать настройку можно'#13#10 +
-            'будет позже, вызвав соответствующую команду на панели инструментов.',
-            'Внимание',
-            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
-          begin
-            (gdcObject as TgdcSetting).ActivateSetting(nil, nil);
-          end;
-        end;
-        }
-      end;
-    finally
-      ibsql.Free;
-    end;
-  end;
-  {$ENDIF}
 end;
 
 procedure Tgdc_frmSetting.RemoveSubSetList(S: TStrings);
@@ -907,73 +797,7 @@ begin
     (not gdcObject.FieldByName('settingsruid').IsNull);
 end;
 
-{$IFNDEF NEW_STREAM}
-procedure Tgdc_frmSetting.OnObjectLoad(Sender: TatSettingWalker;
-  const AClassName, ASubType: String;
-  ADataSet: TDataSet; APrSet: TgdcPropertySet; const ASR: TgsStreamRecord);
-var
-  C: TPersistentClass;
-begin
-  while not ADataSet.EOF do
-  begin
-    if (FIBSQLSelectAllPos.FieldByName('xid').AsInteger = ADataSet.FieldByName('_xid').AsInteger)
-      and (FIBSQLSelectAllPos.FieldByName('dbid').AsInteger = ADataSet.FieldByName('_dbid').AsInteger) then
-    begin
-      FIBSQLSelectAllPos.Next;
-      Offset := 0;
-    end else
-    begin
-      C := FindClass(AClassName);
-
-      Assert(C.InheritsFrom(TgdcBase));
-
-      FIBSQLSelectPos.Close;
-      FIBSQLSelectPos.ParamByName('xid').AsInteger :=
-        ADataSet.FieldByName('_xid').AsInteger;
-      FIBSQLSelectPos.ParamByName('dbid').AsInteger :=
-        ADataSet.FieldByName('_dbid').AsInteger;
-      FIBSQLSelectPos.ExecQuery;
-      if FIBSQLSelectPos.EOF then
-      begin
-        FIBSQLUpdatePos.ParamByName('OO').AsInteger := FIBSQLSelectAllPos.FieldByName('objectorder').AsInteger + Offset;
-        FIBSQLUpdatePos.ExecQuery;
-
-        FIBSQLInsertPos.ParamByName('objectclass').AsString := AClassName;
-        FIBSQLInsertPos.ParamByName('subtype').AsString := ASubtype;
-        FIBSQLInsertPos.ParamByName('category').AsString := Copy(CgdcBase(C).GetDisplayName(ASubType), 1, 20);
-        FIBSQLInsertPos.ParamByName('objectname').AsString := Copy(CgdcBase(C).GetListNameByID(
-          gdcBaseManager.GetIDByRUID(ADataSet.FieldByName('_xid').AsInteger,
-          ADataSet.FieldByName('_dbid').AsInteger), ASubType), 1, 60);
-        FIBSQLInsertPos.ParamByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
-        FIBSQLInsertPos.ParamByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
-        FIBSQLInsertPos.ParamByName('objectorder').AsInteger := FIBSQLSelectAllPos.FieldByName('objectorder').AsInteger + Offset;
-        FIBSQLInsertPos.ParamByName('withdetail').AsInteger := 0;
-        if CgdcBase(C).NeedModifyFromStream(ASubType) then
-          FIBSQLInsertPos.ParamByName('needmodify').AsInteger := 1
-        else
-          FIBSQLInsertPos.ParamByName('needmodify').AsInteger := 0;
-
-        FIBSQLInsertPos.ExecQuery;
-        Inc(Offset);
-      end;
-    end;
-
-    ADataSet.Next;
-  end;
-end;
-
-procedure Tgdc_frmSetting.OnStartLoading(Sender: TatSettingWalker; AnObjectSet: TgdcObjectSet);
-begin
-  Offset := 0;
-end;
-{$ENDIF}
-
 procedure Tgdc_frmSetting.actAddMissedExecute(Sender: TObject);
-{$IFNDEF NEW_STREAM}
-var
-  SW: TatSettingWalker;
-  Tr: TIBTransaction;
-{$ENDIF}
 begin
   if MessageBox(Self.Handle, PChar('Сформировать настройку "' +
     gdcObject.FieldByName(gdcObject.GetListField(gdcObject.SubType)).AsString + '" из выбранных объектов?'), 'Внимание',
@@ -982,67 +806,8 @@ begin
     (gdcObject as TgdcSetting).SaveSettingToBlob;
   end;
 
-  {$IFDEF NEW_STREAM}
   (gdcObject as TgdcSetting).AddMissedPositions;
   gdcDetailObject.CloseOpen;
-  {$ELSE}
-
-  Tr := TIBTransaction.Create(nil);
-  FIBSQLSelectAllPos := TIBSQL.Create(nil);
-  FIBSQLUpdatePos := TIBSQL.Create(nil);
-  FIBSQLInsertPos := TIBSQL.Create(nil);
-  FIBSQLSelectPos := TIBSQL.Create(nil);
-  SW := TatSettingWalker.Create;
-  try
-    Tr.DefaultDatabase := gdcBaseManager.Database;
-    Tr.StartTransaction;
-
-    FIBSQLSelectAllPos.Transaction := Tr;
-    FIBSQLUpdatePos.Transaction := Tr;
-    FIBSQLInsertPos.Transaction := Tr;
-    FIBSQLSelectPos.Transaction := Tr;
-
-    FIBSQLSelectAllPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :SK ORDER BY objectorder';
-    FIBSQLSelectAllPos.ParamByName('SK').AsInteger := gdcObject.FieldByName('id').AsInteger;
-    FIBSQLSelectAllPos.ExecQuery;
-
-    FIBSQLUpdatePos.SQL.Text := 'UPDATE at_settingpos SET objectorder = objectorder + 1 WHERE ' +
-      ' settingkey = :SK AND objectorder >= :OO ';
-    FIBSQLUpdatePos.ParamByName('SK').AsInteger := gdcObject.FieldByName('id').AsInteger;
-
-    FIBSQLInsertPos.SQL.Text := 'INSERT INTO at_settingpos(settingkey, objectclass, subtype, category, ' +
-      'objectname, xid, dbid, objectorder, withdetail, needmodify) VALUES( ' +
-      ':settingkey, :objectclass, :subtype, :category, ' +
-      ':objectname, :xid, :dbid, :objectorder, :withdetail, :needmodify) ';
-    FIBSQLInsertPos.ParamByName('settingkey').AsInteger := gdcObject.FieldByName('id').AsInteger;
-
-    FIBSQLSelectPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :SK AND xid = :XID AND dbid = :DBID ';
-    FIBSQLSelectPos.ParamByName('SK').AsInteger := gdcObject.FieldByName('id').AsInteger;
-
-    SW.StartLoading := OnStartLoading;
-    SW.ObjectLoad := OnObjectLoad;
-
-    SW.Stream := gdcObject.CreateBlobStream(gdcObject.FieldByName('data'), bmRead);
-    try
-      SW.ParseStream;
-    finally
-      SW.Stream.Free;
-    end;
-
-    Tr.Commit;
-
-    gdcDetailObject.CloseOpen;
-  finally
-    FIBSQLSelectAllPos.Free;
-    FIBSQLUpdatePos.Free;
-    FIBSQLInsertPos.Free;
-    FIBSQLSelectPos.Free;
-    if Tr.InTransaction then
-      Tr.Rollback;
-    Tr.Free;
-    SW.Free;
-  end;
-  {$ENDIF}
 end;
 
 procedure Tgdc_frmSetting.actAddMissedUpdate(Sender: TObject);
@@ -1266,7 +1031,6 @@ begin
   //SList.Clear;
 end;
 
-{$IFDEF NEW_STREAM}
 procedure Tgdc_frmSetting.OnObjectLoad2New(Sender: TatSettingWalker;
   const AClassName, ASubType: String; ADataSet: TDataSet);
 
@@ -1458,7 +1222,6 @@ procedure Tgdc_frmSetting.OnStartLoading2New(Sender: TatSettingWalker);
 begin
   //SList.Clear;
 end;
-{$ENDIF}
 
 procedure Tgdc_frmSetting.actSet2TxtExecute(Sender: TObject);
 var
@@ -1534,10 +1297,10 @@ var
       try
         SW.StartLoading := OnStartLoading2;
         SW.ObjectLoad := OnObjectLoad2;
-        {$IFDEF NEW_STREAM}
+
         SW.StartLoadingNew := OnStartLoading2New;
         SW.ObjectLoadNew := OnObjectLoad2New;
-        {$ENDIF}
+
 
         SW.SettingObj := Obj;
         if AFileName > '' then
