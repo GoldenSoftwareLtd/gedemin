@@ -406,7 +406,7 @@ begin
   {M}    end;
   {END MACRO}
   if HasSubSet(cByModuleCode) then
-    Result := ' ORDER BY  z.MODULE, z.Name '
+    Result := ' ORDER BY z.MODULE, z.Name '
   else
     Result := inherited GetOrderClause;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFUNCTION', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}

@@ -471,9 +471,9 @@ type
 
     procedure CreateInvCardTrigger(ResultList: TSQLProcessList;
       const IsDrop: Boolean = False);
-    {$IFDEF ENTRY_BALANCE}
+
     procedure AlterAcEntryBalanceAndRecreateTrigger(ResultList: TSQLProcessList);
-    {$ENDIF}
+
     function CreateAccCirculationList(const IsDrop: Boolean = False): String;
 
     function CreateDropFieldSQL: String;
@@ -3877,10 +3877,8 @@ begin
           FQuery.Add(CreateFieldSQL);
 
         CreateInvCardTrigger(FQuery);
-
-        {$IFDEF ENTRY_BALANCE}
+        // Изменить процедуру AC_ENTRY_BALANCE и пересоздать триггер синхронизации ее данных и данных AC_ENTRY
         AlterAcEntryBalanceAndRecreateTrigger(FQuery);
-        {$ENDIF}
 
         S := CreateAccCirculationList;
         if S <> '' then
@@ -5104,7 +5102,6 @@ begin
   end;
 end;
 
-{$IFDEF ENTRY_BALANCE}
 procedure TgdcRelationField.AlterAcEntryBalanceAndRecreateTrigger(ResultList: TSQLProcessList);
 var
   ibsqlR: TIBSQL;
@@ -5246,7 +5243,6 @@ begin
     end;
   end;
 end;
-{$ENDIF}
 
 function TgdcRelationField.NextCrossRelationName: String;
 begin

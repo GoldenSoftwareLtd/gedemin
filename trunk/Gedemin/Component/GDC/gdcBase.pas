@@ -281,6 +281,7 @@ type
     FArray: array of TID;
     FgdClassList: TStringList;
     FCount: Integer;
+    FMin, FMax: TID;
 
     function Get_gdClass: CgdcBase;
     function Get_gdClassName: String;
@@ -1404,12 +1405,6 @@ type
       const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True); virtual;
     procedure LoadFromFile(const AFileName: String = ''); virtual;
 
-    {$IFDEF NEW_STREAM}
-    procedure SaveToFileNew(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True); virtual;
-    procedure LoadFromFileNew(const AFileName: String = ''); virtual;
-    {$ENDIF}
-
     // Слияние двух записей
     function Reduction(BL: TBookmarkList): Boolean; virtual;
 
@@ -2104,10 +2099,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
   {$ENDIF}
-  {$IFDEF NEW_STREAM}
-  , gdc_frmStreamSaver, gdcStreamSaver
-  {$ENDIF NEW_STREAM}
-  ;
+  , gdc_frmStreamSaver, gdcStreamSaver;
 
 const
   cst_sql_SelectRuidByID = 'SELECT * FROM gd_ruid WHERE id=:id';
@@ -2121,9 +2113,7 @@ const
   cst_sql_DeleteRuidByXID = 'DELETE FROM gd_ruid WHERE xid=:xid AND dbid=:dbid';
   cst_sql_DeleteRuidByID = 'DELETE FROM gd_ruid WHERE id=:id';
 
-  {$IFDEF NEW_STREAM}
   cst_sql_DeleteRplRecordByRUID = 'DELETE FROM rpl_record WHERE xid=:xid AND dbid=:dbid';
-  {$ENDIF}
 
 const
   SM_REMOTESESSION = $1000;
@@ -7686,14 +7676,15 @@ begin
               //если обновление прошло успешно и мы имеем более раннюю дату модификации руида
               //изменяем руид
               if CopyRecord(CDS, Self, UpdateList) and
-                (Modified < CDS.FieldByName('_modified').AsDateTime)
-              then
+                (Modified < CDS.FieldByName('_modified').AsDateTime) then
               begin
                 CheckBrowseMode;
+
                 gdcBaseManager.UpdateRUIDByXID(ID, CDS.FieldByName('_XID').AsInteger, CDS.FieldByName('_DBID').AsInteger,
                   CDS.FieldByName('_MODIFIED').AsDateTime, IBLogin.ContactKey, Transaction);
               end;
-            end else
+            end
+            else
             begin
               //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
               if IDMapping.IndexOf(CDS.FieldByName(GetKeyField(SubType)).AsInteger) = -1 then
@@ -7701,8 +7692,12 @@ begin
                   IDMapping.Add(CDS.FieldByName(GetKeyField(SubType)).AsInteger)] := ID;
               ApplyDelayedUpdates(UpdateList,
                 CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID);
-            end
-          end else
+            end;
+
+            //Если есть поля-множества, то обработаем их
+            CopySetRecord(CDS);
+          end
+          else
           begin
             //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
             if IDMapping.IndexOf(CDS.FieldByName(GetKeyField(SubType)).AsInteger) = -1 then
@@ -7715,8 +7710,8 @@ begin
         end;
       end;
 
-      {Если есть поля-множества, то обработаем их}
-      CopySetRecord(CDS);
+      {Если есть поля-множества, то обработаем их
+      CopySetRecord(CDS);                        }
 
     finally
       if DidActivate and Transaction.InTransaction then
@@ -7772,10 +7767,8 @@ begin
   begin
     CheckBrowseMode;
 
-    {$IFDEF NEW_STREAM}
     if Assigned(frmStreamSaver) then
       frmStreamSaver.SetupProgress(ObjectSet.Count, 'Загрузка...');
-    {$ENDIF}
 
     Space;
     AddText(TimeToStr(Time) + ': Начата загрузка данных из потока.', clBlack);
@@ -7926,10 +7919,8 @@ begin
 
         if not (sFakeLoad in BaseState) then
         begin
-          {$IFDEF NEW_STREAM}
           if Assigned(frmStreamSaver) then
             frmStreamSaver.Step;
-          {$ENDIF}
 
           if Assigned(frmSQLProcess) then
           begin
@@ -7950,10 +7941,8 @@ begin
 
       if not (sFakeLoad in BaseState) then
       begin
-        {$IFDEF NEW_STREAM}
         if Assigned(frmStreamSaver) then
           frmStreamSaver.Done;
-        {$ENDIF}
 
         Space;
         AddText(TimeToStr(Time) + ': Закончена загрузка данных из потока.', clBlack);
@@ -7967,10 +7956,8 @@ begin
           Transaction.Rollback;
         if not (sFakeLoad in BaseState) then
         begin
-          {$IFDEF NEW_STREAM}
           if Assigned(frmStreamSaver) then
             frmStreamSaver.AddMistake(E.Message);
-          {$ENDIF}
 
           AddMistake(E.Message, clRed);
           Space;
@@ -8237,13 +8224,11 @@ var
         ' (' + FieldByName(GetKeyField(SubType)).AsString + ') ' +
         ' с данными множества ' + LocName + #13#10,
         clBlue);
-      {$IFDEF NEW_STREAM}
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
           FieldByName(GetListField(SubType)).AsString + #13#10 +
           ' (' + FieldByName(GetKeyField(SubType)).AsString + ') ' +
           ' с данными множества ' + LocName);
-      {$ENDIF}
     end
     else
     begin
@@ -8251,12 +8236,10 @@ var
         FieldByName(GetListField(SubType)).AsString + #13#10 +
         ' (' + FieldByName(GetKeyField(SubType)).AsString + ')'#13#10,
         clBlue);
-      {$IFDEF NEW_STREAM}
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
           FieldByName(GetListField(SubType)).AsString + #13#10 +
           ' (' + FieldByName(GetKeyField(SubType)).AsString + ')');
-      {$ENDIF}
     end;
     Space;
 
@@ -8706,12 +8689,10 @@ begin
                       Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + #13#10 +
                       ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')'#13#10,
                       clBlue);
-                    {$IFDEF NEW_STREAM}
                     if Assigned(frmStreamSaver) then
                       frmStreamSaver.SetProcessText(Obj.GetDisplayName(Obj.GetSubType) + ' ' +
                         Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + #13#10 +
                         ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')');
-                    {$ENDIF}
                     SaveToStreamCLDS(Obj);
                     ObjectIDIndex := ObjectSet.Add(Obj.ID, Obj.ClassName, Obj.SubType, Obj.SetTable);
                   end;
@@ -12860,6 +12841,8 @@ begin
   FCount := 0;
   SetLength(FArray, ASize);
   FgdClassList := TStringList.Create;
+  FMin := High(TID);
+  FMax := Low(TID);
 end;
 
 destructor TgdcObjectSet.Destroy;
@@ -12915,6 +12898,8 @@ begin
     Result := FCount;
     AddgdClass(Result, AgdClassName, ASubType, ASetTable);
     Inc(FCount);
+    if AnID > FMax then FMax := AnID;
+    if AnID < FMin then FMin := AnID;
   end else
   begin
     AddgdClass(Result, AgdClassName, ASubType, ASetTable);
@@ -13353,12 +13338,15 @@ var
   I: Integer;
 begin
   Result := -1;
-  for I := 0 to Count - 1 do
-    if Items[I] = AnID then
-    begin
-      Result := I;
-      break;
-    end;
+  if (AnID >= FMin) and (AnID <= FMax) then
+  begin
+    for I := 0 to Count - 1 do
+      if Items[I] = AnID then
+      begin
+        Result := I;
+        break;
+      end;
+  end;    
 end;
 
 procedure TgdcObjectSet.LoadFromStream(S: TStream);
@@ -13415,13 +13403,31 @@ end;
 procedure TgdcObjectSet.Delete(const Index: Integer);
 var
   J: Integer;
+  ID: TID;
 begin
   if (Index < 0) or (Index >= Count) then
     raise Exception.Create(GetGsException(Self, 'Index is out of bounds'));
+  ID := FArray[Index];
   for J := Index to Count - 2 do
     FArray[J] := FArray[J + 1];
   Dec(FCount);
   FgdClassList.Delete(Index);
+  if ID = FMax then
+  begin
+    FMax := Low(TID);
+    for J := 0 to FCount - 1 do
+    begin
+      if FArray[J] > FMax then FMax := FArray[J];
+    end;
+  end;
+  if ID = FMin then
+  begin
+    FMin := High(TID);
+    for J := 0 to FCount - 1 do
+    begin
+      if FArray[J] < FMin then FMin := FArray[J];
+    end;
+  end;
 end;
 
 function TgdcObjectSet.GetSubType: TgdcSubType;
@@ -13496,11 +13502,8 @@ end;
 
 function TgdcObjectSet.FindgdClassByID(const AnID: TID; const AgdClassName,
   ASubType: String; const ASetTable: String): Boolean;
-var
-  Index: Integer;
 begin
-  Index := Find(AnID);
-  Result := FindgdClass(Index, AgdClassName, ASubType, ASetTable);
+  Result := FindgdClass(Find(AnID), AgdClassName, ASubType, ASetTable);
 end;
 
 function TgdcObjectSet.GetgdInfo(Index: Integer): String;
@@ -13539,7 +13542,7 @@ var
 begin
   Ps := AnsiPos('(', AText);
   Ps1 := AnsiPos(')', AText);
-  if (Ps > 0) and (Ps1 > 0) then
+  if (Ps > 0) and (Ps1 > Ps) then
     Result := Copy(AText, Ps + 1, Ps1 - Ps - 1)
   else
     Result := '';
@@ -13661,33 +13664,6 @@ begin
 end;
 
 procedure TgdcBase.LoadFromFile(const AFileName: String);
-{$IFNDEF NEW_STREAM}
-var
-  S: TStream;
-  FN: String;
-{$ENDIF}  
-begin
-  {$IFDEF NEW_STREAM}
-  LoadFromFileNew(AFileName);
-  {$ELSE}
-  FN := QueryLoadFileName(AFileName);
-  if (FN > '') and
-    (MessageBox(0, PChar('Загрузить данные из файла ' + FN + ' ?'),
-      'Загрузка данных', MB_TASKMODAL or MB_ICONQUESTION or MB_YESNO) = IDYES)
-  then
-  begin
-    S := TFileStream.Create(FN, fmOpenRead);
-    try
-      LoadFromStream(S);
-    finally
-      S.Free;
-    end;
-  end;
-  {$ENDIF}
-end;
-
-{$IFDEF NEW_STREAM}
-procedure TgdcBase.LoadFromFileNew(const AFileName: String);
 var
   S: TStream;
   FN: String;
@@ -13726,36 +13702,8 @@ begin
     end;
   end;
 end;
-{$ENDIF}
 
 procedure TgdcBase.SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
-{$IFNDEF NEW_STREAM}
-var
-  S: TStream;
-  FN: String;
-{$ENDIF}  
-begin
-  {$IFDEF NEW_STREAM}
-  SaveToFileNew(AFileName, ADetail, BL, OnlyCurrent);
-  {$ELSE}
-  if Assigned(BL) then
-    BL.Refresh;
-  FN := QuerySaveFileName(AFileName);
-  if FN > '' then
-  begin
-    S := TFileStream.Create(FN, fmCreate);
-    try
-      SaveToStream(S, ADetail, BL, OnlyCurrent);
-    finally
-      S.Free;
-    end;
-  end;
-  {$ENDIF}
-end;
-
-{$IFDEF NEW_STREAM}
-procedure TgdcBase.SaveToFileNew(const AFileName: String = ''; const ADetail: TgdcBase = nil;
   const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
 var
   S: TStream;
@@ -13800,7 +13748,6 @@ begin
     end;
   end;
 end;
-{$ENDIF}
 
 {По-умолчанию для этого метода все выделенные для сохранения объекты и
  объекты, на которые они ссылаются, должны иметь установленный флаг
