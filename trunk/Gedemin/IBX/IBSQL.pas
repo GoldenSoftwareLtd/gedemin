@@ -2565,9 +2565,13 @@ begin
        Execute block (локальные переменные) и они не должны интерпретироваться как
        параметры.}
       if (iCurState = DefaultState) and
-         (i > 18) and ((iLenSQL - i) > 6) and
-         (AnsiSameText(Copy(sSQL, i, 5), 'begin')) and
+         (i >= 18) and ((iLenSQL - i) > 6) and
          (sSQL[i - 1] in [#10, ' ']) and
+         (sSQL[i]     in ['b', 'B']) and
+         (sSQL[i + 1] in ['e', 'E']) and
+         (sSQL[i + 2] in ['g', 'G']) and
+         (sSQL[i + 3] in ['i', 'I']) and
+         (sSQL[i + 4] in ['n', 'N']) and
          (sSQL[i + 5] in [#13, ' ']) then
         Break;
 
