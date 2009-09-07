@@ -33,10 +33,8 @@ type
     FFieldList: TStringList;
     FTransaction: TIBTransaction;
     FGsFunctionNotifier: TGsFunctionNotifier;
-    {$IFDEF ENTRY_BALANCE}
     FCalcBalanceDate: TDate;
     procedure FillCalcBalanceDate;
-    {$ENDIF}
 
     function GetWithAnDefault(AccountID: Integer): String;
     function  GetBalance(const Account: WideString;
@@ -766,9 +764,7 @@ function TobjGSFunction.GetBalance(const Account: WideString;
 var
   AnalyticsReady, MainAnalName: String;
   Id: Integer;
-  {$IFDEF ENTRY_BALANCE}
   AnalyticsReadyB, AnalyticsReadyE: String;
-  {$ENDIF}
 begin
   Result := 0;
   InitFIBSQL;
@@ -780,7 +776,6 @@ begin
   else
     MainAnalName := '';
 
-  {$IFDEF ENTRY_BALANCE}
   FillCalcBalanceDate;
   if FCalcBalanceDate > 0 then
   begin
@@ -855,7 +850,6 @@ begin
     end;
   end
   else
-  {$ENDIF}
 
     if MainAnalName = '' then
     begin
@@ -1429,9 +1423,7 @@ function TobjGSFunction.GetCurrBalance(const Account: WideString;
 var
   AnalyticsReady, MainAnalName: String;
   Id: Integer;
-  {$IFDEF ENTRY_BALANCE}
   AnalyticsReadyB, AnalyticsReadyE: String;
-  {$ENDIF}
 begin
   Result := 0;
   InitFIBSQL;
@@ -1443,7 +1435,6 @@ begin
   else
     MainAnalName := '';
 
-  {$IFDEF ENTRY_BALANCE}
   FillCalcBalanceDate;
   if FCalcBalanceDate > 0 then
   begin
@@ -1523,73 +1514,72 @@ begin
     end
   end
   else
-  {$ENDIF}
 
-  if MainAnalName = '' then
-  begin
-    with FIBSQL do
+    if MainAnalName = '' then
     begin
-      Close;
-      AnalyticsReady :=  GetAnalyticsSQL(Analytics, 'z');
-      if AnalyticsReady > '' then AnalyticsReady := '  AND ' + AnalyticsReady;
-
-      SQL.Text :=
-        'SELECT SUM(z.debitcurr - z.creditcurr) FROM ' +
-        '  ac_account a ' +
-        '  LEFT JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
-        '  LEFT JOIN ac_entry z ON z.accountkey = a1.id ' +
-        'WHERE ' +
-        '  a.id = :accountkey AND ' +
-        GetCompCondition('z.companykey') + ' and ' +
-        '  z.entrydate <= :ondate AND z.currkey = :currkey ' +
-        AnalyticsReady;
-
-      ParamByName('ondate').AsDate := OnDate;
-      ParamByName('accountkey').AsInteger := Id;
-      ParamByName('currkey').AsInteger := CurrKey;
-      ExecQuery;
-
-      if RecordCount > 0 then
-        Result := Fields[0].AsCurrency;
-    end
-  end
-  else
-  begin
-    with FIBSQL do
-    begin
-      if Open then
-        Close;
-      SQL.Text :=
-        'SELECT SUM(z.debitcurr - z.creditcurr) as saldo FROM ' +
-        '  ac_account a ' +
-        '  LEFT JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
-        '  LEFT JOIN ac_entry z ON z.accountkey = a1.id ' +
-        'WHERE ' +
-        '  a.id = :accountkey AND ' +
-        GetCompCondition('z.companykey') + ' and ' +
-        '  z.entrydate <= :ondate AND z.currkey = :currkey ' +
-        ' GROUP BY z.' + MainAnalName;
-
-      ParamByName('ondate').AsDate := OnDate;
-      ParamByName('accountkey').AsInteger := Id;
-      ParamByName('currkey').AsInteger := CurrKey;
-
-      ExecQuery;
-      while not Eof do
+      with FIBSQL do
       begin
-        case BalType of
-          gsDebit:
-            if FieldByName('saldo').AsCurrency > 0 then
-              Result := Result + FieldByName('saldo').AsCurrency;
-          gsCredit:
-            if FieldByName('saldo').AsCurrency < 0 then
-              Result := Result - FieldByName('saldo').AsCurrency;
-        end;
+        Close;
+        AnalyticsReady :=  GetAnalyticsSQL(Analytics, 'z');
+        if AnalyticsReady > '' then AnalyticsReady := '  AND ' + AnalyticsReady;
 
-        Next;
+        SQL.Text :=
+          'SELECT SUM(z.debitcurr - z.creditcurr) FROM ' +
+          '  ac_account a ' +
+          '  LEFT JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
+          '  LEFT JOIN ac_entry z ON z.accountkey = a1.id ' +
+          'WHERE ' +
+          '  a.id = :accountkey AND ' +
+          GetCompCondition('z.companykey') + ' and ' +
+          '  z.entrydate <= :ondate AND z.currkey = :currkey ' +
+          AnalyticsReady;
+
+        ParamByName('ondate').AsDate := OnDate;
+        ParamByName('accountkey').AsInteger := Id;
+        ParamByName('currkey').AsInteger := CurrKey;
+        ExecQuery;
+
+        if RecordCount > 0 then
+          Result := Fields[0].AsCurrency;
+      end
+    end
+    else
+    begin
+      with FIBSQL do
+      begin
+        if Open then
+          Close;
+        SQL.Text :=
+          'SELECT SUM(z.debitcurr - z.creditcurr) as saldo FROM ' +
+          '  ac_account a ' +
+          '  LEFT JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
+          '  LEFT JOIN ac_entry z ON z.accountkey = a1.id ' +
+          'WHERE ' +
+          '  a.id = :accountkey AND ' +
+          GetCompCondition('z.companykey') + ' and ' +
+          '  z.entrydate <= :ondate AND z.currkey = :currkey ' +
+          ' GROUP BY z.' + MainAnalName;
+
+        ParamByName('ondate').AsDate := OnDate;
+        ParamByName('accountkey').AsInteger := Id;
+        ParamByName('currkey').AsInteger := CurrKey;
+
+        ExecQuery;
+        while not Eof do
+        begin
+          case BalType of
+            gsDebit:
+              if FieldByName('saldo').AsCurrency > 0 then
+                Result := Result + FieldByName('saldo').AsCurrency;
+            gsCredit:
+              if FieldByName('saldo').AsCurrency < 0 then
+                Result := Result - FieldByName('saldo').AsCurrency;
+          end;
+
+          Next;
+        end;
       end;
     end;
-  end;  
 end;
 
 function  TobjGSFunction.GetEqBalance(const Account: WideString;
@@ -1598,9 +1588,7 @@ function  TobjGSFunction.GetEqBalance(const Account: WideString;
 var
   AnalyticsReady, MainAnalName: String;
   Id: Integer;
-  {$IFDEF ENTRY_BALANCE}
-  AnalyticsReadyB, AnalyticsReadyE: String;
-  {$ENDIF}
+  AnalyticsReadyB, AnalyticsReadyE: String; 
 begin
   Result := 0;
   InitFIBSQL;
@@ -1612,7 +1600,6 @@ begin
   else
     MainAnalName := '';
 
-  {$IFDEF ENTRY_BALANCE}
   FillCalcBalanceDate;
   if FCalcBalanceDate > 0 then
   begin
@@ -1689,73 +1676,72 @@ begin
     end
   end
   else
-  {$ENDIF}
 
-  if MainAnalName = '' then
-  begin
-    with FIBSQL do
+    if MainAnalName = '' then
     begin
-      Close;
-      AnalyticsReady := GetAnalyticsSQL(Analytics, 'z');
-      if AnalyticsReady > '' then AnalyticsReady := '  AND ' + AnalyticsReady;
-
-      SQL.Text :=
-        'SELECT SUM(z.debiteq - z.crediteq) as saldo FROM ' +
-        '  ac_account a ' +
-        '  JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
-        '  JOIN ac_entry z ON z.accountkey = a1.id ' +
-        '  AND  ' +
-        '  a.id = :accountkey AND ' +
-        GetCompCondition('z.companykey') + ' and ' +
-        '  z.entrydate <= :ondate ' +
-        AnalyticsReady;
-
-      ParamByName('ondate').AsDate := OnDate;
-      ParamByName('accountkey').AsInteger := Id;
-//      ParamByName('ingroup').AsInteger := IBLogin.Ingroup;
-      ExecQuery;
-
-      if RecordCount > 0 then
-        Result := Fields[0].AsCurrency;
-    end
-  end
-  else
-  begin
-    with FIBSQL do
-    begin
-      Close;
-
-      SQL.Text :=
-        'SELECT SUM(z.debiteq - z.crediteq) as saldo FROM ' +
-        '  ac_account a ' +
-        '  LEFT JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
-        '  LEFT JOIN ac_entry z ON z.accountkey = a1.id ' +
-        'WHERE ' +
-        '  a.id = :accountkey AND ' +
-        GetCompCondition('z.companykey') + ' AND ' +
-        '  z.entrydate <= :ondate ' +
-        'GROUP BY z.' + MainAnalName;
-
-      ParamByName('ondate').AsDate := OnDate;
-      ParamByName('accountkey').AsInteger := Id;
-//      ParamByName('ingroup').AsInteger := IBLogin.Ingroup;
-
-      ExecQuery;
-      while not Eof do
+      with FIBSQL do
       begin
-        case BalType of
-          gsDebit:
-            if FieldByName('saldo').AsCurrency > 0 then
-              Result := Result + FieldByName('saldo').AsCurrency;
-          gsCredit:
-            if FieldByName('saldo').AsCurrency < 0 then
-              Result := Result + FieldByName('saldo').AsCurrency;
-        end;
+        Close;
+        AnalyticsReady := GetAnalyticsSQL(Analytics, 'z');
+        if AnalyticsReady > '' then AnalyticsReady := '  AND ' + AnalyticsReady;
 
-        Next;
+        SQL.Text :=
+          'SELECT SUM(z.debiteq - z.crediteq) as saldo FROM ' +
+          '  ac_account a ' +
+          '  JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
+          '  JOIN ac_entry z ON z.accountkey = a1.id ' +
+          '  AND  ' +
+          '  a.id = :accountkey AND ' +
+          GetCompCondition('z.companykey') + ' and ' +
+          '  z.entrydate <= :ondate ' +
+          AnalyticsReady;
+
+        ParamByName('ondate').AsDate := OnDate;
+        ParamByName('accountkey').AsInteger := Id;
+  //      ParamByName('ingroup').AsInteger := IBLogin.Ingroup;
+        ExecQuery;
+
+        if RecordCount > 0 then
+          Result := Fields[0].AsCurrency;
+      end
+    end
+    else
+    begin
+      with FIBSQL do
+      begin
+        Close;
+
+        SQL.Text :=
+          'SELECT SUM(z.debiteq - z.crediteq) as saldo FROM ' +
+          '  ac_account a ' +
+          '  LEFT JOIN ac_account a1 ON a1.lb >= a.lb AND a1.rb <= a.rb ' +
+          '  LEFT JOIN ac_entry z ON z.accountkey = a1.id ' +
+          'WHERE ' +
+          '  a.id = :accountkey AND ' +
+          GetCompCondition('z.companykey') + ' AND ' +
+          '  z.entrydate <= :ondate ' +
+          'GROUP BY z.' + MainAnalName;
+
+        ParamByName('ondate').AsDate := OnDate;
+        ParamByName('accountkey').AsInteger := Id;
+  //      ParamByName('ingroup').AsInteger := IBLogin.Ingroup;
+
+        ExecQuery;
+        while not Eof do
+        begin
+          case BalType of
+            gsDebit:
+              if FieldByName('saldo').AsCurrency > 0 then
+                Result := Result + FieldByName('saldo').AsCurrency;
+            gsCredit:
+              if FieldByName('saldo').AsCurrency < 0 then
+                Result := Result + FieldByName('saldo').AsCurrency;
+          end;
+
+          Next;
+        end;
       end;
     end;
-  end;  
 end;
 
 
@@ -2035,12 +2021,10 @@ begin
   FEPeriod := ADate;
 end;}
 
-{$IFDEF ENTRY_BALANCE}
 procedure TobjGSFunction.FillCalcBalanceDate;
 begin
   FCalcBalanceDate := GetCalculatedBalanceDate;
 end;
-{$ENDIF}
 
 { TGsFunctionNotifier }
 

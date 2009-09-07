@@ -15,20 +15,17 @@ type
     const AClassName, ASubType: String;
     ADataSet: TDataSet; APrSet: TgdcPropertySet;
     const ASR: TgsStreamRecord) of object;
-  {$IFDEF NEW_STREAM}
+
   TgdcStartLoadingNewCallBack = procedure(Sender: TatSettingWalker) of object;
   TgdcObjectLoadNewCallBack = procedure(Sender: TatSettingWalker;
     const AClassName, ASubType: String; ADataSet: TDataSet) of object;
-  {$ENDIF}
 
   TatSettingWalker = class(TObject)
   private
     FStartLoading: TgdcStartLoadingCallBack;
     FObjectLoad: TgdcObjectLoadCallBack;
-    {$IFDEF NEW_STREAM}
     FStartLoadingNew: TgdcStartLoadingNewCallBack;
     FObjectLoadNew: TgdcObjectLoadNewCallBack;
-    {$ENDIF}
     FStream: TStream;
     FSettingObj: TgdcBase;
 
@@ -38,20 +35,16 @@ type
     property StartLoading: TgdcStartLoadingCallBack read FStartLoading
       write FStartLoading;
     property ObjectLoad: TgdcObjectLoadCallBack read FObjectLoad write FObjectLoad;
-    {$IFDEF NEW_STREAM}
     property StartLoadingNew: TgdcStartLoadingNewCallBack read FStartLoadingNew write FStartLoadingNew;
     property ObjectLoadNew: TgdcObjectLoadNewCallBack read FObjectLoadNew write FObjectLoadNew;
-    {$ENDIF}
     property Stream: TStream read FStream write FStream;
     property SettingObj: TgdcBase read FSettingObj write FSettingObj;
   end;
 
 implementation
 
-{$IFDEF NEW_STREAM}
 uses
   gdcStreamSaver;
-{$ENDIF NEW_STREAM}
 
 { TatSettingWalker }
 
@@ -77,16 +70,13 @@ var
   stRecord: TgsStreamRecord;
   stVersion: string;
   PrSet: TgdcPropertySet;
-  {$IFDEF NEW_STREAM}
   StreamLoadingOrderList: TgdcStreamLoadingOrderList;
   StreamDataObject: TgdcStreamDataObject;
   StreamWriterReader: TgdcStreamWriterReader;
   OrderElement: TStreamOrderElement;
   Obj: TgdcBase;
   StreamType: TgsStreamType;
-  {$ENDIF NEW_STREAM}
 begin
-  {$IFDEF NEW_STREAM}
   // Проверим тип потока
   StreamType := GetStreamType(Stream);
   if StreamType = sttUnknown then
@@ -137,7 +127,6 @@ begin
   end
   else
   begin
-  {$ENDIF NEW_STREAM}
     OS := TgdcObjectSet.Create(TgdcBase, '');
     PrSet := TgdcPropertySet.Create('', nil, '');
     try
@@ -208,9 +197,7 @@ begin
       PrSet.Free;
       OS.Free;
     end;
-  {$IFDEF NEW_STREAM}
   end;
-  {$ENDIF NEW_STREAM}
 end;
 
 end.
