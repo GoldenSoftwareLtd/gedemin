@@ -18,10 +18,10 @@
 
 CREATE TABLE rpl_database (
     id         DINTKEY,
-    name       DTEXT60 NOT NULL COLLATE PXW_CYRL,
+    name       DNAME,
     isourbase  DBOOLEAN,
 
-    CONSTRAINT pk_rpl_database PRIMARY KEY (id)
+    CONSTRAINT rpl_pk_database_id PRIMARY KEY (id)
 );
 
 COMMIT;
@@ -45,8 +45,9 @@ COMMIT;
 
 /****************************************************
 
-   Таблица для хранения списка баз
-   участвующих в обмене данными.
+   Таблица для хранения ссылок на РУИДы записей,
+   пересылаемых между соответствующими базами,
+   и состояние их пересылки.
 
 *****************************************************/
 
@@ -56,12 +57,12 @@ CREATE TABLE rpl_record (
     editiondate  DTIMESTAMP,
     state        SMALLINT,
 
-    CONSTRAINT pk_rpl_record PRIMARY KEY (id, basekey),
-    CONSTRAINT fk_rpl_record FOREIGN KEY (basekey)
+    CONSTRAINT rpl_pk_record_id PRIMARY KEY (id, basekey),
+    CONSTRAINT rpl_fk_record_basekey FOREIGN KEY (basekey)
       REFERENCES rpl_database (id)
       ON DELETE CASCADE
       ON UPDATE CASCADE,
-    CONSTRAINT fk_rpl_record_gd_ruid FOREIGN KEY (ID)
+    CONSTRAINT rpl_fk_record_id FOREIGN KEY (ID)
       REFERENCES GD_RUID (ID)
       ON DELETE CASCADE
       ON UPDATE CASCADE
