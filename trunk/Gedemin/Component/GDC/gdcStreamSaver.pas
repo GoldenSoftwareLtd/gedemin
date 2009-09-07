@@ -267,7 +267,7 @@ type
     // Проверяем по таблице RPL_RECORD необходимость загрузки данной записи из потока на базу.
     function CheckNeedLoadingRecord(const XID, DBID: TID; AModified: TDateTime): Boolean;
 
-    procedure LoadSetRecord(AObj: TgdcBase; SourceDS: TDataSet);
+    procedure LoadSetRecord(SourceDS: TDataSet; AObj: TgdcBase);
 
     procedure InsertRecord(SourceDS: TDataSet; TargetDS: TgdcBase);
     function CopyRecord(SourceDS: TDataSet; TargetDS: TgdcBase): Boolean;
@@ -289,8 +289,8 @@ type
 
     procedure LoadRecord(AObj: TgdcBase; CDS: TClientDataSet);
 
-    // загружает записи-множества
-    procedure LoadSetRecords;
+    {// загружает записи-множества
+    procedure LoadSetRecords;}
 
     procedure LoadReceivedRecords;
 
@@ -2472,6 +2472,7 @@ var
   RuidRec: TRuidRec;
   CurrentRecordID, StreamXID, StreamDBID, StreamID: TID;
   Modified, StreamModified: TDateTime;
+  IsRecordLoaded: Boolean;
 begin
   Assert(IBLogin <> nil);
 
@@ -2591,6 +2592,7 @@ begin
       begin
         //Проверим, когда был модифицирован РУИД найденной записи
         Modified := RUIDRec.Modified;
+        IsRecordLoaded := False;
         // Если мы нашли объект по руиду и
         //  дата модификации руида более ранняя, чем загружаемая из потока
         //  или объект нуждается в обновлении данными из потока по умолчанию
@@ -2619,11 +2621,12 @@ begin
                     StreamModified, IBLogin.ContactKey, FTransaction);
                   Modified := StreamModified;
                 end;
+                // Занесем данные о загрузке записи в таблицу RPL_RECORDS, для инкрементного потока
                 if FDataObject.IsIncrementedStream then
                   AddRecordToRPLRECORDS(AObj.ID, Modified);
                 // Удалим ключ объекта из очереди загрузки
                 FLoadingOrderList.Remove(StreamID);
-                CDS.Delete;
+                IsRecordLoaded := True;
               end;
             end
             else
@@ -2633,7 +2636,7 @@ begin
                 FIDMapping.ValuesByIndex[FIDMapping.Add(StreamID)] := AObj.ID;
               // Удалим ключ объекта из очереди загрузки
               FLoadingOrderList.Remove(StreamID);
-              CDS.Delete;
+              IsRecordLoaded := True;
               ApplyDelayedUpdates(StreamID, AObj.ID);
             end;
           end
@@ -2647,9 +2650,23 @@ begin
               FIDMapping.ValuesByIndex[FIDMapping.Add(StreamID)] := AObj.ID;
             // Удалим ключ объекта из очереди загрузки
             FLoadingOrderList.Remove(StreamID);
-            CDS.Delete;
+            IsRecordLoaded := True;
             ApplyDelayedUpdates(StreamID, AObj.ID);
           end;
+
+          // Загрузим данные множества, если такие имеются
+          if CDS.FieldByName('_SETTABLE').AsString <> '' then
+            try
+              LoadSetRecord(CDS, AObj);
+            except
+              on E: EgdcNoTable do
+              begin
+                AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]), clRed);
+                Space;
+                if Assigned(frmStreamSaver) then
+                  frmStreamSaver.AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]));
+              end;
+            end;
         end
         else
         begin
@@ -2658,9 +2675,12 @@ begin
             FIDMapping.ValuesByIndex[FIDMapping.Add(StreamID)] := AObj.ID;
           // Удалим ключ объекта из очереди загрузки
           FLoadingOrderList.Remove(StreamID);
-          CDS.Delete;
+          IsRecordLoaded := True;
           ApplyDelayedUpdates(StreamID, AObj.ID);
         end;
+        // Если запись загрузилась или больше не нужна, удалим ее из памяти
+        if IsRecordLoaded then
+          CDS.Delete;
       end;
     end;
   end;
@@ -2708,7 +2728,7 @@ begin
   end;
 end;
 
-procedure TgdcStreamDataProvider.LoadSetRecords;
+{procedure TgdcStreamDataProvider.LoadSetRecords;
 var
   I: Integer;
   CDS: TClientDataSet;
@@ -2725,7 +2745,7 @@ begin
         CDS.First;
         while not CDS.Eof do
         begin
-          Self.LoadSetRecord(Obj, CDS);
+          Self.LoadSetRecord(CDS, Obj);
           CDS.Next;
         end;
       end
@@ -2733,9 +2753,9 @@ begin
         raise EgdcNoTable.Create(CDS.FieldByName('_SETTABLE').AsString);
     end;
   end;
-end;
+end;}
 
-procedure TgdcStreamDataProvider.LoadSetRecord(AObj: TgdcBase; SourceDS: TDataSet);
+procedure TgdcStreamDataProvider.LoadSetRecord(SourceDS: TDataSet; AObj: TgdcBase);
 const
   sql_SetSelect = 'SELECT * FROM %0:s WHERE %1:s';
   sql_SetUpdate = 'UPDATE %0:s SET %1:s WHERE %2:s';
@@ -2750,143 +2770,148 @@ var
   R, R2: TatRelation;
   LocName: String;
 begin
-  SFld := '';
-  SValues := '';
-  SUpdate := '';
-  {Пробегаемся по полям из потока. Если поле является полем-множеством,
-   то формируем соответствующие строки для обновления/вставки}
-  for I := 0 to SourceDS.Fields.Count - 1 do
+  if Assigned(atDatabase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString)) then
   begin
-    if not IsSetField(SourceDS.Fields[I].FieldName) then
-      Continue;
-
-    if SFld > '' then SFld := SFld + ',';
-    if SValues > '' then SValues := SValues + ',';
-    if SUpdate > '' then SUpdate := SUpdate + ',';
-
-    SFld := SFld + GetSetFieldName(SourceDS.Fields[I].FieldName);
-
-    if SourceDS.Fields[I].IsNull then
+    SFld := '';
+    SValues := '';
+    SUpdate := '';
+    {Пробегаемся по полям из потока. Если поле является полем-множеством,
+     то формируем соответствующие строки для обновления/вставки}
+    for I := 0 to SourceDS.Fields.Count - 1 do
     begin
-      SValues := SValues + 'NULL';
-      SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = NULL';
-    end
-    else if SourceDS.Fields[I].DataType in [ftString, ftDate,
-      ftDateTime, ftTime] then
-    begin
-      SValues := SValues + '''' + SourceDS.Fields[I].AsString + '''';
-      SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = ''' +
-        SourceDS.Fields[I].AsString + '''';
-    end
-    else begin
-      F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
-        GetSetFieldName(SourceDS.Fields[I].FieldName));
-      if (F <> nil) and (F.References <> nil) then
-      begin //Если это поле является ссылкой, то поищем его в карте идентификаторов
-        Key := FIDMapping.IndexOf(SourceDS.Fields[I].AsInteger);
-        if Key > -1 then
-        begin
-          SKey := IntToStr(FIDMapping.ValuesByIndex[Key]);
+      if not IsSetField(SourceDS.Fields[I].FieldName) then
+        Continue;
+
+      if SFld > '' then SFld := SFld + ',';
+      if SValues > '' then SValues := SValues + ',';
+      if SUpdate > '' then SUpdate := SUpdate + ',';
+
+      SFld := SFld + GetSetFieldName(SourceDS.Fields[I].FieldName);
+
+      if SourceDS.Fields[I].IsNull then
+      begin
+        SValues := SValues + 'NULL';
+        SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = NULL';
+      end
+      else if SourceDS.Fields[I].DataType in [ftString, ftDate,
+        ftDateTime, ftTime] then
+      begin
+        SValues := SValues + '''' + SourceDS.Fields[I].AsString + '''';
+        SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = ''' +
+          SourceDS.Fields[I].AsString + '''';
+      end
+      else begin
+        F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
+          GetSetFieldName(SourceDS.Fields[I].FieldName));
+        if (F <> nil) and (F.References <> nil) then
+        begin //Если это поле является ссылкой, то поищем его в карте идентификаторов
+          Key := FIDMapping.IndexOf(SourceDS.Fields[I].AsInteger);
+          if Key > -1 then
+          begin
+            SKey := IntToStr(FIDMapping.ValuesByIndex[Key]);
+          end else
+            SKey := SourceDS.Fields[I].AsString;
         end else
           SKey := SourceDS.Fields[I].AsString;
-      end else
-        SKey := SourceDS.Fields[I].AsString;
-      SKey := StringReplace(SKey, ',', '.', []);
-      SValues := SValues + SKey;
-      SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = ' + SKey;
+        SKey := StringReplace(SKey, ',', '.', []);
+        SValues := SValues + SKey;
+        SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = ' + SKey;
+      end;
     end;
-  end;
-  if SFld > '' then
-  begin
-    R2 := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
-    Pr := R2.PrimaryKey;
-
-    if not Assigned(Pr) then
+    if SFld > '' then
     begin
-      {
-        если смешали метаданные и данные в одной настройке, то
-        переподключения к базе еще не было и информации в atDatabase
-        у нас может и не быть. Поэтому перечитаем ее.
-      }
-      R2.RefreshData(FDatabase, FTransaction, True);
-      R2.RefreshConstraints(FDatabase, FTransaction);
-
+      R2 := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
       Pr := R2.PrimaryKey;
-    end;
 
-    if Assigned(Pr) then
-    begin
-      try
-        S := '';
-        for I := 0 to Pr.ConstraintFields.Count -1 do
-        begin
-          if S > '' then S := S + ' AND ';
-          S1 := GetAsSetFieldName(Pr.ConstraintFields[I].FieldName);
-          if SourceDS.FieldByName(S1).IsNull then
-            S := S + Pr.ConstraintFields[I].FieldName + ' IS NULL'
-          else if SourceDS.FieldByName(S1).DataType in [ftString, ftDate,
-            ftDateTime, ftTime] then
-            S := S + Pr.ConstraintFields[I].FieldName + ' = ''' + SourceDS.FieldByName(S1).AsString + ''''
-          else
+      if not Assigned(Pr) then
+      begin
+        {
+          если смешали метаданные и данные в одной настройке, то
+          переподключения к базе еще не было и информации в atDatabase
+          у нас может и не быть. Поэтому перечитаем ее.
+        }
+        R2.RefreshData(FDatabase, FTransaction, True);
+        R2.RefreshConstraints(FDatabase, FTransaction);
+
+        Pr := R2.PrimaryKey;
+      end;
+
+      if Assigned(Pr) then
+      begin
+        try
+          S := '';
+          for I := 0 to Pr.ConstraintFields.Count -1 do
           begin
-            F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
-              GetSetFieldName(SourceDS.FieldByName(S1).FieldName));
-            if (F <> nil) and (F.References <> nil) then
-            begin //Если это поле является ссылкой, то поищем его в карте идентификаторов
-              Key := FIDMapping.IndexOf(SourceDS.FieldByName(S1).AsInteger);
-              if Key > -1 then
-              begin
-                SKey := IntToStr(FIDMapping.ValuesByIndex[Key]);
+            if S > '' then S := S + ' AND ';
+            S1 := GetAsSetFieldName(Pr.ConstraintFields[I].FieldName);
+            if SourceDS.FieldByName(S1).IsNull then
+              S := S + Pr.ConstraintFields[I].FieldName + ' IS NULL'
+            else if SourceDS.FieldByName(S1).DataType in [ftString, ftDate,
+              ftDateTime, ftTime] then
+              S := S + Pr.ConstraintFields[I].FieldName + ' = ''' + SourceDS.FieldByName(S1).AsString + ''''
+            else
+            begin
+              F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
+                GetSetFieldName(SourceDS.FieldByName(S1).FieldName));
+              if (F <> nil) and (F.References <> nil) then
+              begin //Если это поле является ссылкой, то поищем его в карте идентификаторов
+                Key := FIDMapping.IndexOf(SourceDS.FieldByName(S1).AsInteger);
+                if Key > -1 then
+                begin
+                  SKey := IntToStr(FIDMapping.ValuesByIndex[Key]);
+                end else
+                  SKey := SourceDS.FieldByName(S1).AsString;
               end else
                 SKey := SourceDS.FieldByName(S1).AsString;
-            end else
-              SKey := SourceDS.FieldByName(S1).AsString;
-            S := S + Pr.ConstraintFields[I].FieldName + ' = ' + SKey;
+              S := S + Pr.ConstraintFields[I].FieldName + ' = ' + SKey;
+            end;
+          end;
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := Format(sql_SetSelect, [SourceDS.FieldByName('_SETTABLE').AsString, S]);
+          FIBSQL.ExecQuery;
+
+          if FIBSQL.RecordCount > 0 then
+          begin
+          { TODO -oJulia : Что делать с уже существующими данными? Обновлять?
+            В каком-то случае это будет очень плохо, например, таблица gd_lastnumber }
+          // FIBSQL.Close;
+          //  FIBSQL.SQL.Text := Format(sql_SetUpdate,
+          //    [SourceDS.FieldByName('_SETTABLE').AsString, SUpdate, S]);
+          end else
+          begin
+            FIBSQL.Close;
+            FIBSQL.SQL.Text := Format(sql_SetInsert,
+              [SourceDS.FieldByName('_SETTABLE').AsString, SFld, SValues]);
+
+            R := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
+            if Assigned(R) then
+              LocName := R.LName
+            else
+              LocName := SourceDS.FieldByName('_SETTABLE').AsString;
+
+            if StreamLoggingType = slAll then
+              AddText('Считывание данных множества ' + LocName + #13#10, clBlue);
+            FIBSQL.ExecQuery;
+          end;
+        except
+          on E: Exception do
+          begin
+            AddMistake(E.Message, clRed);
+            if Assigned(frmStreamSaver) then
+              frmStreamSaver.AddMistake;
           end;
         end;
-        FIBSQL.Close;
-        FIBSQL.SQL.Text := Format(sql_SetSelect, [SourceDS.FieldByName('_SETTABLE').AsString, S]);
-        FIBSQL.ExecQuery;
-
-        if FIBSQL.RecordCount > 0 then
-        begin
-        { TODO -oJulia : Что делать с уже существующими данными? Обновлять?
-          В каком-то случае это будет очень плохо, например, таблица gd_lastnumber }
-        // FIBSQL.Close;
-        //  FIBSQL.SQL.Text := Format(sql_SetUpdate,
-        //    [SourceDS.FieldByName('_SETTABLE').AsString, SUpdate, S]);
-        end else
-        begin
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := Format(sql_SetInsert,
-            [SourceDS.FieldByName('_SETTABLE').AsString, SFld, SValues]);
-
-          R := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
-          if Assigned(R) then
-            LocName := R.LName
-          else
-            LocName := SourceDS.FieldByName('_SETTABLE').AsString;
-
-          if StreamLoggingType = slAll then
-            AddText('Считывание данных множества ' + LocName + #13#10, clBlue);
-          FIBSQL.ExecQuery;
-        end;
-      except
-        on E: Exception do
-        begin
-          AddMistake(E.Message, clRed);
-          if Assigned(frmStreamSaver) then
-            frmStreamSaver.AddMistake;
-        end;
+      end
+      else
+      begin
+        AddMistake(#13#10 + 'Данные множества ' + SourceDS.FieldByName('_SETTABLE').AsString + ' не были добавлены!'#13#10, clRed);
+        if Assigned(frmStreamSaver) then
+          frmStreamSaver.AddMistake;
       end;
-    end
-    else
-    begin
-      AddMistake(#13#10 + 'Данные множества ' + SourceDS.FieldByName('_SETTABLE').AsString + ' не были добавлены!'#13#10, clRed);
-      if Assigned(frmStreamSaver) then
-        frmStreamSaver.AddMistake;
     end;
-  end;
+  end
+  else
+    raise EgdcNoTable.Create(SourceDS.FieldByName('_SETTABLE').AsString);    
 end;
 
 function TgdcStreamDataProvider.DoBeforeSaving(AObj: TgdcBase): Boolean;
@@ -5832,7 +5857,7 @@ begin
     end;
 
     // загружаем записи-множества на базу
-    try
+    {try
       FStreamDataProvider.LoadSetRecords;
     except
       on E: EgdcNoTable do
@@ -5842,7 +5867,7 @@ begin
         if Assigned(frmStreamSaver) then
           frmStreamSaver.AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]));
       end;
-    end;
+    end;}
 
     if FTransaction.InTransaction then
       if FTrWasActive then
@@ -6207,7 +6232,7 @@ begin
     end;
 
     // загружаем записи-множества на базу
-    try
+    {try
       FStreamDataProvider.LoadSetRecords;
     except
       on E: EgdcNoTable do
@@ -6217,7 +6242,7 @@ begin
         if Assigned(frmStreamSaver) then
           frmStreamSaver.AddMistake(Format('Не найдена таблица %s для кросс-связи между объектами.', [E.Message]));
       end;
-    end;
+    end;}
 
     RunMultiConnection;
 
