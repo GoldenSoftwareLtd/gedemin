@@ -598,6 +598,7 @@ type
   EgsInvalidIndex = class(Exception);
   EgsClientDatasetNotFound = class(Exception);
   EgsXMLParseException = class(Exception);
+  EgsUnknownDatabaseKey = class(Exception);
 
 const
   sqlSelectOurBaseID =
@@ -1148,7 +1149,7 @@ begin
         with AObj do
           AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
             FieldByName(GetListField(SubType)).AsString + #13#10 +
-            ' (' + FieldByName(GetKeyField(SubType)).AsString + ')'#13#10, clBlue);
+            ' (' + FieldByName(GetKeyField(SubType)).AsString + ')', clBlue);
         Space;
       end
       else
@@ -1162,7 +1163,7 @@ begin
         with AObj do
           AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
             FieldByName(GetListField(SubType)).AsString + #13#10 +
-            ' (' + FieldByName(GetKeyField(SubType)).AsString + ') с данными множества ' + LocName + #13#10, clBlue);
+            ' (' + FieldByName(GetKeyField(SubType)).AsString + ') с данными множества ' + LocName, clBlue);
         Space;
       end;
 
@@ -1573,7 +1574,7 @@ begin
           FLoadingOrderList.AddItem(AID, ObjectIndex);
           // сохранить данные объекта
           FDataObject.AddData(ObjectIndex, AID);
-
+          // Вставить запись о передаче объекта в лог репликации
           if FDataObject.TargetBaseKey > -1 then
           begin
             IbsqlRPLRecordInsert.Close;
@@ -2423,7 +2424,7 @@ begin
           MessageBox(TargetDS.ParentHandle, PChar(ErrorSt), 'Ошибка', MB_OK or MB_ICONHAND);
 
         AddMistake(#13#10 + ErrorSt + #13#10, clRed);
-        AddMistake(#13#10 + E.Message + #13#10, clRed);
+        AddMistake(#13#10 + E.Message, clRed);
         Space;
         if Assigned(frmStreamSaver) then
           frmStreamSaver.AddMistake(ErrorSt + #13#10 + E.Message);
@@ -3217,7 +3218,7 @@ begin
       end;
       {if IbsqlRPLRecordInsert.RowsAffected <> 1 then
         raise Exception.Create(GetGsException(Self, 'AddRecordToRPLRECORDS: Ошибка при вставке записи в таблицу RPL_RECORD'));}
-    end;    
+    end;
   end;
 end;
 
@@ -3574,9 +3575,19 @@ begin
     FIbsqlRPLRecordInsert.Database := FDatabase;
     FIbsqlRPLRecordInsert.Transaction := FTransaction;
     if FDataObject.IsSave then
-      FIbsqlRPLRecordInsert.SQL.Text := Format(sqlInsertRPLRecordsIDStateEditionDate, [FDataObject.TargetBaseKey])
+    begin
+      if FDataObject.TargetBaseKey > 0 then
+        FIbsqlRPLRecordInsert.SQL.Text := Format(sqlInsertRPLRecordsIDStateEditionDate, [FDataObject.TargetBaseKey])
+      else
+        raise EgsUnknownDatabaseKey.Create(GetGsException(Self, 'Передан неверный ключ целевой базы данных (' + IntToStr(FDataObject.TargetBaseKey) + ')'));
+    end
     else
-      FIbsqlRPLRecordInsert.SQL.Text := Format(sqlInsertRPLRecordsIDStateEditionDate, [FDataObject.SourceBaseKey]);
+    begin
+      if FDataObject.SourceBaseKey > 0 then
+        FIbsqlRPLRecordInsert.SQL.Text := Format(sqlInsertRPLRecordsIDStateEditionDate, [FDataObject.SourceBaseKey])
+      else
+        raise EgsUnknownDatabaseKey.Create(GetGsException(Self, 'Передан неверный ключ исходной базы данных (' + IntToStr(FDataObject.SourceBaseKey) + ')'));
+    end;
     FIbsqlRPLRecordInsert.Prepare;
   end;
   Result := FIbsqlRPLRecordInsert;
@@ -5752,7 +5763,7 @@ begin
   if StreamLoggingType in [slSimple, slAll] then
   begin
     Space;
-    AddText(TimeToStr(Time) + ': Закончилось сохранение данных в поток.'#13#10, clBlack, True);
+    AddText(TimeToStr(Time) + ': Закончилось сохранение данных в поток.', clBlack, True);
     Space;
   end;
 end;
@@ -6587,7 +6598,13 @@ begin
       TargetBase := TgdRPLDatabase.Create;
       try
         TargetBase.ID := ABasekey;
-        AddText(TimeToStr(Time) + Format(': Подготовка к инкрементному сохранению на базу ''%0:s''.'#13#10, [TargetBase.Name]), clBlack, True);
+        if TargetBase.ID > 0 then
+        begin
+          AddText(TimeToStr(Time) + Format(': Подготовка к инкрементному сохранению на базу ''%0:s''.', [TargetBase.Name]), clBlack, True);
+          Space;
+        end
+        else
+          raise EgsUnknownDatabaseKey.Create(GetGsException(Self, 'Передан неверный ключ целевой базы данных (' + IntToStr(ABasekey) + ')'));
       finally
         TargetBase.Free;
       end;
@@ -6651,7 +6668,7 @@ begin
   if StreamLoggingType in [slSimple, slAll] then
   begin
     Space;
-    AddText(TimeToStr(Time) + ': Закончилось сохранение настройки в XML файл.'#13#10, clBlack, True);
+    AddText(TimeToStr(Time) + ': Закончилось сохранение настройки в XML файл.', clBlack, True);
     Space;
   end;
 
@@ -6827,17 +6844,17 @@ begin
   // Если переданный ключ базы реален найдем ее, иначе установим значения по умолчанию
   if Value > -1 then
   begin
-    FID := Value;
     ibsql := TIBSQL.Create(nil);
     try
       // Найдем по таблице RPL_DATABASE имя базы данных и является ли она текущей базой
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
       ibsql.SQL.Text := 'SELECT name, isourbase FROM rpl_database WHERE id = :basekey';
-      ibsql.ParamByName('BASEKEY').AsInteger := FID;
+      ibsql.ParamByName('BASEKEY').AsInteger := Value;
       ibsql.ExecQuery;
       // Если нашли такую базу, запомним значения, иначе установим значения по умолчанию
       if ibsql.RecordCount > 0 then
       begin
+        FID := Value;
         FName := ibsql.FieldByName('NAME').AsString;
         FIsOurBase := (ibsql.FieldByName('ISOURBASE').AsInteger = 1);
       end

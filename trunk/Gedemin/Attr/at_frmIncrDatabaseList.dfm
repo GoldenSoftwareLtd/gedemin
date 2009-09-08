@@ -38,6 +38,7 @@ object frmIncrDatabaseList: TfrmIncrDatabaseList
     Align = alClient
     DataSource = dsDatabases
     TabOrder = 1
+    OnExit = ibgrDatabasesExit
     InternalMenuKind = imkWithSeparator
     Expands = <>
     ExpandsActive = False
