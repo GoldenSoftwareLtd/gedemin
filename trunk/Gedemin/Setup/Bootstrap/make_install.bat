@@ -8,7 +8,7 @@ echo ***************************************************************************
 echo **                                                                          **
 echo **  Не указаны параметры                                                    **
 echo **                                                                          **
-echo **  make_install FSFN DBN SFN IFN AFN TFN /FTP|/NO_FTP                      **
+echo **  make_install FSFN DBN SFN IFN AFN TFN /FTP или /NO_FTP                  **
 echo **                                                                          **
 echo **    FSFN -- полное имя файла с пакетом настроек                           **
 echo **    DBN  -- только имя (без расширения) файла БД                          **
@@ -34,24 +34,26 @@ eventcreate /t INFORMATION /id 200 /l application /so gedemin /d "Start making i
 
 echo *************************************************
 echo **                                             **
+echo **  make_install:                              **
 echo **  Инициализируем глобальные переменные       **
 echo **                                             **
 echo *************************************************
 
-set path=c:\program files\firebird 2.5\bin;c:\windows;c:\windows\system32;c:\windows\System32\Wbem
+@set path=c:\program files\firebird 2.5\bin;c:\windows;c:\windows\system32;c:\windows\System32\Wbem
 
-set inno_setup_path=C:\Program Files\Inno Setup 5
-set fb_path=c:\program files\Firebird 2.5\bin
-set install_source_path=..\..\..\gedemin_local_fb
-set database_path=d:\golden\gedemin_local_fb\database
-set winrar_path=C:\Program Files\WinRar
-set setup_path=..\InnoSetup
-set setting_path=d:\golden\setting
+@set inno_setup_path=C:\Program Files\Inno Setup 5
+@set fb_path=c:\program files\Firebird 2.5\bin
+@set install_source_path=..\..\..\gedemin_local_fb
+@set database_path=g:\golden\gedemin_local_fb\database
+@set winrar_path=C:\Program Files\WinRar
+@set setup_path=..\InnoSetup
+@set setting_path=d:\golden\setting
 
-set server_name=localhost/3053
+@set server_name=localhost/3053
 
 echo *************************************************
 echo **                                             **
+echo **  make_install:                              **
 echo **  Создаем эталонную БД                       **
 echo **                                             **
 echo *************************************************
@@ -65,7 +67,9 @@ if not errorlevel 0 Error
 
 echo *************************************************
 echo **                                             **
+echo **  make_install:                              **
 echo **  Загружаем пакет настроек                   **
+echo **  %1                                         
 echo **                                             **
 echo *************************************************
 
@@ -75,6 +79,7 @@ if not errorlevel 0 Error
 
 echo *************************************************
 echo **                                             **
+echo **  make_install:                              **
 echo **  Создаем бэкап базы                         **
 echo **                                             **
 echo *************************************************
@@ -88,7 +93,9 @@ if not errorlevel 0 goto Error
 
 echo *************************************************
 echo **                                             **
+echo **  make_install:                              **
 echo **  Делаем инстоляцию                          **
+echo **  %~dp6\setup.exe
 echo **                                             **
 echo *************************************************
 
@@ -96,7 +103,9 @@ copy ..\..\images\splash\%3 "%install_source_path%\gedemin.jpg" /Y
 "%inno_setup_path%\iscc.exe" "%setup_path%\%4.iss" "/o%~dp6" /fsetup /q
 if not errorlevel 0 goto Error
 
-"%winrar_path%\winrar" a -m5 "%~dp6\%5" "%~dp6\setup.exe"
+if exist "%~dp6\%5" del "%~dp6\%5" 
+echo "%winrar_path%\winrar" a -m5 -ep "%~dp6%5" "%~dp6setup.exe"
+"%winrar_path%\winrar" a -m5 -ep "%~dp6%5" "%~dp6setup.exe"
 if not errorlevel 0 goto Error
 
 eventcreate /t INFORMATION /id 201 /l application /so gedemin /d "End making install %4."
@@ -105,14 +114,24 @@ if not [%7]==[/ftp] goto exit
 
 echo *************************************************
 echo **                                             **
+echo **  make_install:                              **
 echo **  Upload to ftp                              **
 echo **                                             **
 echo *************************************************
 
-ftp -s:d:\ftp_commands.txt gsbelarus.com
+move /y "%~dp6%5" ./%5
+
+if exist ftp.txt del ftp.txt
+copy ftp_commands.txt ftp.txt
+echo send %5 %5 >> ftp.txt
+echo quit >> ftp.txt
+
+ftp -s:ftp.txt
+
 if not errorlevel 0 goto Error
 
-del "%~dp6\%5"
+del %5 > nul
+del ftp.txt > nul
 if not errorlevel 0 goto Error
 
 goto Exit
@@ -123,6 +142,7 @@ eventcreate /t error /id 102 /l application /so gedemin /d "Error while making i
 
 echo *************************************************
 echo **                                             **
+echo **  make_install:                              **
 echo **  Произошла ошибка!                          **
 echo **                                             **
 echo *************************************************

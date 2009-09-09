@@ -351,10 +351,6 @@ uses
   gp_frmPrice_unit,
   {$ENDIF}
 
-  {$IFDEF PROTECT}
-  jclStrings,
-  {$ENDIF}
-
   // Перенести под команды
   gdc_frmExplorer_unit,
 
@@ -377,8 +373,6 @@ uses
   gdcJournal,
   gdcStorage,
   gdcFile,
-
-  gdv_frmAcctCirculationList_unit,
 
   gsStorage_CompPath,
   {$IFDEF DEBUG}
@@ -461,10 +455,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  {$IFDEF NEW_STREAM}
-  , gd_dlgStreamSaverOptions
-  {$ENDIF}
-  ;
+  , gd_dlgStreamSaverOptions;
 
 type
   TCrackPopupMenu = class(TPopupMenu);
@@ -2144,16 +2135,18 @@ end;
 
 procedure TfrmGedeminMain.actStreamSaverOptionsExecute(Sender: TObject);
 begin
-  {$IFDEF NEW_STREAM}
   with TdlgStreamSaverOptions.Create(Self) do
   try
     ShowModal;
   finally
     Free;
   end;
-  {$ENDIF}
 end;
 
+procedure TfrmGedeminMain.actStreamSaverOptionsUpdate(Sender: TObject);
+begin
+  actStreamSaverOptions.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+end;
 
 procedure TfrmGedeminMain.actShowMonitoringExecute(Sender: TObject);
 begin
@@ -2166,13 +2159,6 @@ begin
   actShowMonitoring.Enabled := Assigned(IBLogin)
     and IBLogin.IsUserAdmin
     and IBLogin.LoggedIn;
-end;
-
-procedure TfrmGedeminMain.actStreamSaverOptionsUpdate(Sender: TObject);
-begin
-  {$IFNDEF NEW_STREAM}
-  actStreamSaverOptions.Enabled := False;  
-  {$ENDIF}
 end;
 
 end.
