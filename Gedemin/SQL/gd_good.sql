@@ -53,6 +53,12 @@ CREATE TABLE gd_goodgroup
   alias            dnullalias,                  /* Код группы              */
   description      dblobtext80_1251,            /* описание                */
 
+  creatorkey       dforeignkey,
+  creationdate     dcreationdate,
+
+  editorkey        dforeignkey,                 /* Кто         изменил запись */
+  editiondate      deditiondate,                /* Когда      изменена запись */
+
   disabled         ddisabled,                   /* отключен                */
   reserved         dreserved,                   /* зарезервировано         */
 
@@ -67,6 +73,14 @@ ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_pk_goodgroup
 ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_parent
   FOREIGN KEY (parent) REFERENCES gd_goodgroup (id)
   ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_editorkey
+  FOREIGN KEY (editorkey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_creatorkey
+  FOREIGN KEY (creatorkey) REFERENCES gd_contact(id)
   ON UPDATE CASCADE;
 
 /*
@@ -222,9 +236,11 @@ CREATE TABLE gd_good
 
   isassembly       dboolean,                    /* Является ли комплектом     */
 
-  editorkey        dforeignkey,                 /* Кто создал или изменил запись */
-  editiondate      TIMESTAMP,                   /* Когда создана или изменена запись */
+  creatorkey       dforeignkey,
+  creationdate     dcreationdate,
 
+  editorkey        dforeignkey,                 /* Кто         изменил запись */
+  editiondate      deditiondate,                /* Когда      изменена запись */
 
   reserved         dreserved,                   /* Зарезервированно           */
   disabled         ddisabled,                   /* Отключено                  */
@@ -247,11 +263,15 @@ ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_valuekey
   ON UPDATE CASCADE;
 
 ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_tnvdkey
-  FOREIGN KEY (tnvdkey) REFERENCES gd_tnvd(id) 
+  FOREIGN KEY (tnvdkey) REFERENCES gd_tnvd(id)
   ON UPDATE CASCADE;
 
 ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_editorkey
-  FOREIGN KEY (editorkey) REFERENCES gd_contact(id) 
+  FOREIGN KEY (editorkey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE;
+
+ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_creatorkey
+  FOREIGN KEY (creatorkey) REFERENCES gd_contact(id)
   ON UPDATE CASCADE;
 
 CREATE ASC INDEX gd_x_good_name
