@@ -1187,13 +1187,7 @@ begin
         except
           on E: EIBError do
           begin
-            { TODO :
-заметим только, что данный код ошибки
-может быть справедлив только для
-read_committed
-rec_version
-nowait }
-            if (E.IBErrorCode = isc_lock_conflict) then
+            if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
             begin
               FRecordLocked := True;
               MessageBox(gdcObject.ParentHandle,
