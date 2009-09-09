@@ -397,8 +397,8 @@ begin
       try
         ibsqlConst.Database := gdScriptFactory1.Database;
         ibsqlConst.Transaction := ibtrConst;
-        ibsqlConst.SQL.Text := 'SELECT * ' +
-          'FROM gd_function WHERE module = ''CONST''';
+        ibsqlConst.SQL.Text := 'SELECT ' + fnID + ',' + fnscript +
+          ' FROM gd_function WHERE module = ''CONST''';
         ibsqlConst.ExecQuery;
 
         LocRS := TScriptControl.Create(nil);
@@ -514,7 +514,7 @@ begin
       ibDatasetWork.SQL.Text := 'SELECT id ' +
        'FROM gd_function WHERE module = ''' + scrVBClasses +
        ''' AND modulecode = :MC';
-      ibDatasetWork.ParamByName('MC').AsInteger := OBJ_APPLICATION; 
+      ibDatasetWork.ParamByName('MC').AsInteger := OBJ_APPLICATION;
       ibDatasetWork.ExecQuery;
 
       FVBClassKey.Clear;

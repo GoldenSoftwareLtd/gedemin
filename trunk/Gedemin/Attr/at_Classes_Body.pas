@@ -2761,7 +2761,11 @@ begin
     ibsql.Close;
     ibsql.SQL.Text :=
       'SELECT '#13#10 +
-      '  R.*, F.* '#13#10 +
+      '  R.RDB$FIELD_NAME , F.FIELDNAME, F.LNAME, F.DESCRIPTION, F.ALIGNMENT, '#13#10 +
+      '  F.FORMAT, F.VISIBLE, F.COLWIDTH, F.DISABLED, F.ID, F.READONLY, F.GDCLASSNAME, '#13#10 +
+      '  F.GDSUBTYPE, R.RDB$FIELD_TYPE, R.RDB$FIELD_SUB_TYPE, R.RDB$FIELD_LENGTH, '#13#10 +
+      '  R.RDB$FIELD_SCALE, R.RDB$NULL_FLAG, F.REFTABLE, F.REFCONDITION, F.REFLISTFIELD, '#13#10 +
+      '  F.FIELDNAME, F.SETTABLE, F.SETCONDITION, F.NUMERATION, F.SETLISTFIELD '#13#10 +
       'FROM '#13#10 +
       '  RDB$FIELDS R LEFT JOIN AT_FIELDS F ON R.RDB$FIELD_NAME = F.FIELDNAME '#13#10 +
       'ORDER BY '#13#10 +
@@ -2794,7 +2798,9 @@ begin
     ibsql.Close;
     ibsql.SQL.Text :=
       'SELECT '#13#10 +
-      '  r.*, a.* '#13#10 +
+      '  A.RELATIONNAME, R.RDB$RELATION_NAME, A.LNAME, A.LSHORTNAME, A.DESCRIPTION, '#13#10 +
+      '  A.AFULL, A.ACHAG, A.AVIEW, A.LISTFIELD, A.EXTENDEDFIELDS, A.ID, R.RDB$FORMAT, '#13#10 +
+      '  R.RDB$RELATION_ID, A.BRANCHKEY, R.RDB$VIEW_BLR '#13#10 +
       'FROM '#13#10 +
       '  rdb$relations r LEFT JOIN at_relations a '#13#10 +
       '    ON r.rdb$relation_name = a.relationname '#13#10 +
@@ -2831,9 +2837,12 @@ begin
     ibsql.Close;
     ibsql.SQL.Text :=
       'SELECT '#13#10 +
-      '  r.rdb$field_name, r.rdb$relation_name, r.rdb$field_position, '#13#10 +
-      '  r.rdb$field_source, r.rdb$null_flag, rf.rdb$computed_source, a.*, '#13#10 +
-      '  r.rdb$default_source as rdefsource, rf.rdb$default_source as fdefsource, rf.rdb$default_value '#13#10 +
+      '  r.rdb$field_name, r.rdb$relation_name, r.rdb$field_position, a.OBJECTS, '#13#10 +
+      '  r.rdb$null_flag, rf.rdb$computed_source, a.relationname, a.FIELDNAME, '#13#10 +
+      '  r.rdb$default_source as rdefsource, rf.rdb$default_source as fdefsource, '#13#10 +
+      '  rf.rdb$default_value, a.lname, a.lshortname, a.description, a.alignment, '#13#10 +
+      '  a.format, a.visible, a.colwidth, a.readonly, a.gdclassname, a.gdsubtype, '#13#10 +
+      '  a.AFULL, a.ACHAG, a.AVIEW, a.ID, a.fieldsource, a.CROSSTABLE, a.CROSSFIELD '#13#10 +
       'FROM '#13#10 +
       '  rdb$relation_fields r '#13#10 +
       '    LEFT JOIN '#13#10 +
@@ -2888,8 +2897,7 @@ begin
       '  RC.RDB$RELATION_NAME, '#13#10 +
       '  RC.RDB$CONSTRAINT_NAME, '#13#10 +
       '  RC.RDB$INDEX_NAME, '#13#10 +
-      '  INDSEG.RDB$FIELD_NAME, '#13#10 +
-      '  INDSEG.RDB$FIELD_POSITION '#13#10 +
+      '  INDSEG.RDB$FIELD_NAME '#13#10 +
       ' '#13#10 +
       'FROM '#13#10 +
       '  RDB$RELATION_CONSTRAINTS RC '#13#10 +
@@ -2950,7 +2958,6 @@ begin
       '  RC.RDB$CONSTRAINT_NAME AS CONSTRAINTNAME, '#13#10 +
       '  RC.RDB$INDEX_NAME AS INDEXNAME, '#13#10 +
       '  INDSEG.RDB$FIELD_NAME AS FIELDNAME, '#13#10 +
-      '  INDSEG.RDB$FIELD_POSITION AS FIELDPOS, '#13#10 +
       '  REFC.RDB$CONST_NAME_UQ AS FCONSTRAINT, '#13#10 +
       '  RC2.RDB$RELATION_NAME AS FRELATIONNAME, '#13#10 +
       '  RC2.RDB$INDEX_NAME AS FINDEXNAME, '#13#10 +
