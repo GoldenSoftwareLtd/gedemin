@@ -569,6 +569,10 @@ const
   XML_TAG_STORAGE_VALUE = 'STORAGE_VALUE';
 
   function GetStreamType(Stream: TStream): TgsStreamType;
+  // „итает строку из переданного потока, принима€ первый символ за длину строки
+  function StreamReadString(St: TStream): String;
+  // ѕишет строку в поток, проставл€€ перед ей ее длину
+  procedure StreamWriteString(St: TStream; const S: String);
 
 implementation
 
@@ -729,6 +733,16 @@ begin
     Result := Str1
   else
     Result := Str2;
+end;
+
+function StreamReadString(St: TStream): String;
+var
+  L: Integer;
+begin
+  St.ReadBuffer(L, SizeOf(L));
+  SetLength(Result, L);
+  if L > 0 then
+    St.ReadBuffer(Result[1], L);
 end;
 
 procedure StreamWriteString(St: TStream; const S: String);
@@ -3800,17 +3814,6 @@ end;
 { TgdcStreamBinaryWriterReader }
 
 procedure TgdcStreamBinaryWriterReader.LoadFromStream(const S: TStream);
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
-
 var
   I, J: Integer;
   ID, XID, DBID: TID;

@@ -7044,16 +7044,6 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
   ObjectSet: TgdcObjectSet; UpdateList: TObjectList; StreamRecord: TgsStreamRecord;
   var AnAnswer: Word);
 
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
-
   procedure InsertRecord(SourceDS: TDataSet; TargetDS: TgdcBase; UL: TObjectList); forward;
 
   procedure CopySetRecord(SourceDS: TDataSet);
@@ -7725,18 +7715,6 @@ end;
 
 procedure TgdcBase._LoadFromStream(Stream: TStream; IDMapping: TgdKeyIntAssoc;
   ObjectSet: TgdcObjectSet; UpdateList: TObjectList);
-
-//Функция для считывания строки из потока
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
-
 var
   I: Integer;
   Obj: TgdcBase;
@@ -8066,16 +8044,6 @@ procedure TgdcBase._SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
 const
   NotSavedField = ';LB;RB;CREATORKEY;EDITORKEY;';
   NotSavedFieldRepl = ';LB;RB;';
-
-  procedure StreamWriteString(St: TStream; const S: String);
-  var
-    L: Integer;
-  begin
-    L := Length(S);
-    St.Write(L, SizeOf(L));
-    if L > 0 then
-      St.Write(S[1], L);
-  end;
 
   procedure SaveBindedObjectsForTable(const ATableName: String; ReversedList: TgdcObjectSets);
   var
