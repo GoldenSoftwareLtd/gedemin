@@ -345,21 +345,40 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (101, '0000.0001.0000.0128', '10.06.2008', 'FastReport4');
 
+/*
 INSERT INTO fin_versioninfo
-  VALUES (102, '0000.0001.0000.0129', '09.07.2008', 'Добавлены RPL таблицы');
-  
-INSERT INTO fin_versioninfo
-  VALUES (103, '0000.0001.0000.0130', '15.10.2008', 'Добавлен расчет сальдо по проводкам');
+  VALUES (102, '0000.0001.0000.0134', '09.07.2008', 'Добавлены RPL таблицы');
 
 INSERT INTO fin_versioninfo
-  VALUES (104, '0000.0001.0000.0131', '19.12.2008', 'Добавлено поле OKULP в таблицу GD_COMPANYCODE');
+  VALUES (103, '0000.0001.0000.0135', '15.10.2008', 'Добавлен расчет сальдо по проводкам');
 
 INSERT INTO fin_versioninfo
-  VALUES (105, '0000.0001.0000.0132', '12.01.2009', 'Добавлено поле ISINTERNAL в таблицу AC_TRANSACTION для определения внутренних проводок');
- 
-INSERT INTO fin_versioninfo
-  VALUES (106, '0000.0001.0000.0133', '25.04.2009', 'Проставлены пропущенные гранты'); 
+  VALUES (104, '0000.0001.0000.0136', '19.12.2008', 'Добавлено поле OKULP в таблицу GD_COMPANYCODE');
 
+INSERT INTO fin_versioninfo
+  VALUES (105, '0000.0001.0000.0137', '12.01.2009', 'Добавлено поле ISINTERNAL в таблицу AC_TRANSACTION для определения внутренних проводок');
+
+INSERT INTO fin_versioninfo
+  VALUES (106, '0000.0001.0000.0138', '25.04.2009', 'Проставлены пропущенные гранты');
+*/
+
+INSERT INTO fin_versioninfo
+  VALUES (107, '0000.0001.0000.0139', '07.09.2009', 'GD_SQL_HISTORY table added and other changes');
+
+INSERT INTO fin_versioninfo
+  VALUES (108, '0000.0001.0000.0140', '09.07.2008', 'Добавлены RPL таблицы');
+
+INSERT INTO fin_versioninfo
+  VALUES (109, '0000.0001.0000.0141', '15.10.2008', 'Добавлен расчет сальдо по проводкам');
+
+INSERT INTO fin_versioninfo
+  VALUES (110, '0000.0001.0000.0142', '19.12.2008', 'Добавлено поле OKULP в таблицу GD_COMPANYCODE');
+
+INSERT INTO fin_versioninfo
+  VALUES (111, '0000.0001.0000.0143', '12.01.2009', 'Добавлено поле ISINTERNAL в таблицу AC_TRANSACTION для определения внутренних проводок');
+
+INSERT INTO fin_versioninfo
+  VALUES (112, '0000.0001.0000.0144', '25.04.2009', 'Проставлены пропущенные гранты');
 
 COMMIT;
 
