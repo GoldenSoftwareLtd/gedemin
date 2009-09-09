@@ -587,10 +587,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  {$IFDEF ENTRY_BALANCE}
-  , gdvAcctBase
-  {$ENDIF}
-  ;
+  , gdvAcctBase;
 
 {$R gsIBGrid.RES}
 
@@ -2202,11 +2199,9 @@ begin
         if (Self.DataLink.DataSet is TgdcBase) then
           seQuery.Text := (Self.DataLink.DataSet as TgdcBase).SelectSQL.Text
         else
-          {$IFDEF ENTRY_BALANCE}
           if (Self.DataLink.DataSet is TgdvAcctBase) then
             seQuery.Text := (Self.DataLink.DataSet as TgdvAcctBase).SelectSQL.Text
           else
-          {$ENDIF}
             Exit;
 
     EnableCategory('Query', True);
