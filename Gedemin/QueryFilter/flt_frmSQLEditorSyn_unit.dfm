@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
   Left = 391
-  Top = 156
+  Top = 200
   Width = 683
   Height = 556
   HelpContext = 121
@@ -44,7 +44,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Caption = 'Редактирование'
         object Splitter1: TSplitter
           Left = 0
-          Top = 379
+          Top = 369
           Width = 651
           Height = 4
           Cursor = crVSplit
@@ -54,7 +54,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 0
           Width = 651
-          Height = 379
+          Height = 369
           Cursor = crIBeam
           Align = alClient
           Font.Charset = DEFAULT_CHARSET
@@ -402,11 +402,12 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         end
         object mmPlan: TMemo
           Left = 0
-          Top = 383
+          Top = 373
           Width = 651
-          Height = 52
+          Height = 62
           Align = alBottom
           ReadOnly = True
+          ScrollBars = ssVertical
           TabOrder = 1
         end
       end
@@ -512,57 +513,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Cursor = crVSplit
           Align = alBottom
         end
-        object Panel2: TPanel
+        object pnlTest: TPanel
           Left = 0
           Top = 0
           Width = 651
           Height = 432
           Align = alClient
-          BevelOuter = bvNone
           TabOrder = 0
-          object Label14: TLabel
-            Left = 8
-            Top = 10
-            Width = 42
-            Height = 13
-            Caption = 'Фильтр:'
-          end
-          object eFilter: TEdit
-            Left = 64
-            Top = 8
-            Width = 583
-            Height = 21
-            Anchors = [akLeft, akTop, akRight]
-            TabOrder = 0
-            OnChange = eFilterChange
-          end
-          object lvHistory: TListView
-            Left = 0
-            Top = 36
-            Width = 651
-            Height = 396
-            Align = alBottom
-            Anchors = [akLeft, akTop, akRight, akBottom]
-            Columns = <
-              item
-                Caption = '#'
-              end
-              item
-                AutoSize = True
-                Caption = 'Запрос'
-              end>
-            GridLines = True
-            HideSelection = False
-            ReadOnly = True
-            RowSelect = True
-            ParentShowHint = False
-            PopupMenu = pmHistory
-            ShowHint = True
-            TabOrder = 1
-            ViewStyle = vsReport
-            OnDblClick = lvHistoryDblClick
-            OnInfoTip = lvHistoryInfoTip
-          end
+          OnResize = pnlTestResize
         end
       end
       object tsStatistic: TSuperTabSheet
@@ -587,7 +545,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Left = 0
               Top = 0
               Width = 651
-              Height = 328
+              Height = 386
               BackWall.Brush.Color = clWhite
               BackWall.Brush.Style = bsClear
               Title.Text.Strings = (
@@ -1001,6 +959,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Width = 409
             Height = 17
             Caption = 'Автоматически подтверждать транзакцию на изменение метаданных'
+            Checked = True
+            Enabled = False
+            State = cbChecked
             TabOrder = 0
             OnClick = chbxAutoCommitDDLClick
           end
@@ -1284,8 +1245,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     end
     object actDisconnectUser: TAction
       Category = 'Monitor'
-      Caption = 'Отсоединить пользователя'
-      Hint = 'Отсоединить пользователя'
+      Caption = 'Завершить сеанс пользователя'
+      Hint = 'Завершить сеанс пользователя'
       ImageIndex = 34
       OnExecute = actDisconnectUserExecute
       OnUpdate = actDisconnectUserUpdate
@@ -1341,17 +1302,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 22
       OnExecute = actReplaceExecute
       OnUpdate = actOpenScriptUpdate
-    end
-    object actClearHistory: TAction
-      Category = 'History'
-      Caption = 'Очистить историю'
-      OnExecute = actClearHistoryExecute
-    end
-    object actDeleteHistItem: TAction
-      Category = 'History'
-      Caption = 'Удалить запись'
-      OnExecute = actDeleteHistItemExecute
-      OnUpdate = actDeleteHistItemUpdate
     end
     object actOpenScript: TAction
       Caption = 'actOpenScript'
@@ -1417,17 +1367,13 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Caption = 'actRefreshChart'
       OnExecute = actRefreshChartExecute
     end
-    object actCopyAllHistory: TAction
-      Category = 'History'
-      Caption = 'Копировать все в буфер'
-      OnExecute = actCopyAllHistoryExecute
-    end
     object actRefreshMonitor: TAction
       Category = 'Monitor'
       Caption = 'Обновить'
       Hint = 'Обновить'
       ImageIndex = 17
       OnExecute = actRefreshMonitorExecute
+      OnUpdate = actRefreshMonitorUpdate
     end
     object actDeleteStatement: TAction
       Category = 'Monitor'
@@ -2156,22 +2102,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     Left = 360
     Top = 120
   end
-  object pmHistory: TPopupMenu
-    Left = 260
-    Top = 113
-    object N8: TMenuItem
-      Action = actCopyAllHistory
-    end
-    object N9: TMenuItem
-      Caption = '-'
-    end
-    object N2: TMenuItem
-      Action = actDeleteHistItem
-    end
-    object N1: TMenuItem
-      Action = actClearHistory
-    end
-  end
   object ActionList2: TActionList
     Left = 126
     Top = 117
@@ -2685,17 +2615,19 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     Transaction = ibtrMonitor
     SelectSQL.Strings = (
       'SELECT'
-      '  st.mon$attachment_id,'
+      '  st.mon$attachment_id AS att_id,'
       '  att.mon$timestamp AS att_start,'
-      '  st.mon$statement_id,'
+      '  st.mon$statement_id AS stmt_id,'
       
         '  (SELECT FIRST 1 u.name FROM gd_user u WHERE u.ibname = att.mon' +
         '$user) AS gd_user,'
-      '  att.mon$user,'
-      '  att.mon$remote_address, '
-      '  st.mon$state,'
-      '  st.mon$timestamp,'
-      '  st.mon$sql_text'
+      '  /* att.mon$user, */'
+      
+        '  CAST(SUBSTRING(att.mon$remote_address FROM 1 FOR 36) AS VARCHA' +
+        'R(36)) AS remote_address, '
+      '  st.mon$state AS state,'
+      '  st.mon$timestamp AS executed,'
+      '  st.mon$sql_text AS sql_text'
       ''
       'FROM'
       '  mon$statements st'
@@ -2721,6 +2653,10 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
   object ibtrMonitor: TIBTransaction
     Active = False
     DefaultAction = TACommit
+    Params.Strings = (
+      'read_committed'
+      'rec_version'
+      'nowait')
     AutoStopAction = saNone
     Left = 464
     Top = 369

@@ -258,6 +258,18 @@ ALTER TABLE gd_companystorage ADD CONSTRAINT gd_fk_companystorage_ck
 
 COMMIT;
 
+CREATE TABLE gd_storage_data (
+  id           dintkey,
+  storage_type CHAR(1) NOT NULL,  /* G, A, U, C, D */
+  userkey      dforeignkey,
+  companykey   dforeignkey,
+  path         VARCHAR(255) NOT NULL,
+  data         dblob4096
+);
+
+ALTER TABLE gd_storage_data ADD CONSTRAINT gd_pk_storage_data_id
+  PRIMARY KEY (id);
+
 /*
 
   Гісторыю SQL запытаў у акне SQL рэдактара будзем захоўваць
@@ -269,10 +281,12 @@ CREATE TABLE gd_sql_history (
   id               dintkey,
   sql_text         dblobtext80_1251 not null,
   sql_params       dblobtext80_1251,
+  bookmark         CHAR(1),
   creatorkey       dintkey,
   creationdate     dcreationdate,
   editorkey        dintkey,
-  editiondate      deditiondate
+  editiondate      deditiondate,
+  exec_count       dinteger_notnull DEFAULT 1
 );
 
 ALTER TABLE gd_sql_history ADD CONSTRAINT gd_pk_sql_history
@@ -297,6 +311,16 @@ AS
 BEGIN
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE TRIGGER gd_bu_sql_history FOR gd_sql_history
+  BEFORE UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.editiondate <> OLD.editiondate) THEN
+    NEW.exec_count = NEW.exec_count + 1;
 END
 ^
 
