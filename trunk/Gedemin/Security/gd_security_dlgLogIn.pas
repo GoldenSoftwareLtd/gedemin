@@ -476,8 +476,8 @@ begin
       Result := ShowModal = mrOk;
   end;
 
-  if Result then
-    ReadConnectionData;
+  {if Result then
+    ReadConnectionData;}
 end;
 
 function TdlgSecLogIn.RunLoginProc(const AUser, APassw: String; const ASubS: Integer;
@@ -713,16 +713,8 @@ begin
 end;
 
 function TdlgSecLogIn.TryAdminLogin: Boolean;
-{var
-  I: Integer;}
 begin
   Result := False;
-
-  {for I := 1 to ParamCount do
-  begin
-    if CompareText(ParamStr(I), '/sn') = 0 then
-      exit;
-  end;}
 
   if FindCmdLineSwitch('SN', ['/', '-'], True) then
     exit;
