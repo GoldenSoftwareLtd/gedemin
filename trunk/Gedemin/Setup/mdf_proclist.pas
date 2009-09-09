@@ -41,29 +41,11 @@ uses
   mdf_SuperNewGeneralLedger, mdf_SQLMonitor, mdf_AddBranchToBankAndIndex,
   mdf_AddEmployeeCmd, mdf_AddDTBlock, mdf_RemakeAcEntry, mdf_CorrectInvTrigger, mdf_AddInvMakeRest,
   mdf_ModifyBlockTriggers3, mdf_ModifyBlockTriggers4, mdf_wageUpdateFields, mdf_AddGenerators,
-  mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance
-  {$IFDEF NEW_STREAM}
-  , mdf_AddRPLTables
-  {$ENDIF NEW_STREAM}
-  {$IFDEF ENTRY_BALANCE}
-  , mdf_AddAcEntryBalanceAndAT_P_SYNC
-  {$ENDIF}
-  , mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField;
+  mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
+  mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables;
 
 const
-{$IFDEF ENTRY_BALANCE}
-  {$IFDEF NEW_STREAM}
-    cProcCount = 138;
-  {$ELSE}
-    cProcCount = 137;
-  {$ENDIF NEW_STREAM}
-{$ELSE}
-  {$IFDEF NEW_STREAM}
-    cProcCount = 136;
-  {$ELSE}
-    cProcCount = 135;
-  {$ENDIF NEW_STREAM}
-{$ENDIF ENTRY_BALANCE}
+  cProcCount = 139;
 
 type
   TModifyProc = record
@@ -303,18 +285,13 @@ const
     (ModifyProc: AddGenerators; ModifyVersion: '0000.0001.0000.0123'),
     (ModifyProc: AddCheckConstraints; ModifyVersion: '0000.0001.0000.0125'),
     (ModifyProc: AddUseCompanyKey_Balance; ModifyVersion: '0000.0001.0000.0126'),
-    (ModifyProc: ModifyRpTemplateTrigger; ModifyVersion: '0000.0001.0000.0127')
-    {$IFDEF NEW_STREAM}
-    , (ModifyProc: AddRPLTables; ModifyVersion: '0000.0001.0000.0128')
-    {$ENDIF}
-    {$IFDEF ENTRY_BALANCE}
-    , (ModifyProc: AddAcEntryBalanceAndAT_P_SYNC; ModifyVersion: '0000.0001.0000.0129')
-    {$ENDIF}
-    , (ModifyProc: AddOKULPCodeToCompanyCode; ModifyVersion: '0000.0001.0000.0130')
-    , (ModifyProc: AddIsInternalField; ModifyVersion: '0000.0001.0000.0131')
-    {$IFDEF ENTRY_BALANCE}
-    , (ModifyProc: AddMissedGrantsToAcEntryBalanceProcedures; ModifyVersion: '0000.0001.0000.0132')
-    {$ENDIF}
+    (ModifyProc: ModifyRpTemplateTrigger; ModifyVersion: '0000.0001.0000.0127'),
+    (ModifyProc: AddSQLHistTables; ModifyVersion: '0000.0001.0000.0138'),
+    (ModifyProc: AddRPLTables; ModifyVersion: '0000.0001.0000.0139'),
+    (ModifyProc: AddAcEntryBalanceAndAT_P_SYNC; ModifyVersion: '0000.0001.0000.0140'),
+    (ModifyProc: AddOKULPCodeToCompanyCode; ModifyVersion: '0000.0001.0000.0141'),
+    (ModifyProc: AddIsInternalField; ModifyVersion: '0000.0001.0000.0142'),
+    (ModifyProc: AddMissedGrantsToAcEntryBalanceProcedures; ModifyVersion: '0000.0001.0000.0143')
   );
 
 implementation
