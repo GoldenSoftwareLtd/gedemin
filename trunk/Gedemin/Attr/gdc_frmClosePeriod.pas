@@ -105,7 +105,7 @@ type
 
     procedure ActivateControls(DoActivate: Boolean);
     procedure SetBold(ActiveControl: TCheckBox = nil);
-    procedure InsertDatabaseRecord(WriteTransaction: TIBTransaction);
+    //procedure InsertDatabaseRecord(WriteTransaction: TIBTransaction);
     procedure SetTriggerActive(SetActive: Boolean; WriteTransaction: TIBTransaction);
     function GetClosePeriodParams: Boolean;
     function GetFeatureFieldList(AAlias: String): String;
@@ -1274,7 +1274,7 @@ begin
     WriteTransaction.StartTransaction;
 end;
 
-procedure TfrmClosePeriod.InsertDatabaseRecord(WriteTransaction: TIBTransaction);
+{procedure TfrmClosePeriod.InsertDatabaseRecord(WriteTransaction: TIBTransaction);
 var
   ibsql: TIBSQL;
 begin
@@ -1293,7 +1293,7 @@ begin
   finally
     ibsql.Free;
   end;
-end;
+end;}
 
 function TfrmClosePeriod.GetClosePeriodParams: Boolean;
 var
