@@ -3596,17 +3596,6 @@ end;
 
 
 procedure LoadRUIDFromBlob(RuidList: TStrings; RUIDField: TField; const AnID: Integer = -1);
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
-
 var
   BlobStream: TStream;
   CDS: TClientDataSet;
@@ -3769,16 +3758,6 @@ var
   TempPath: array[0..MAX_COMPUTERNAME_LENGTH] of Char;
   StreamSaver: TgdcStreamSaver;
   StreamType: TgsStreamType;
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
 
   procedure DisconnectDatabase(const WithCommit: Boolean);
   begin
@@ -4576,16 +4555,6 @@ var
   SettingName: String;
   J: DWORD;
   TempPath: array[0..MAX_COMPUTERNAME_LENGTH] of Char;
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
 
   procedure DisconnectDatabase(const WithCommit: Boolean);
   begin

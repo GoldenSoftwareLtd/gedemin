@@ -128,7 +128,6 @@ type
 
     //Сравнение с настройкой
     procedure ReadSetting(Stream: TStream);
-    function StreamReadString(St: TStream): String;
     procedure FindSettings(Stream: TStream);
     procedure CompareSetting(DS: TClientDataSet);
 
@@ -159,7 +158,7 @@ implementation
 
 uses
   gdc_frmExplorer_unit, gdUpdateIndiceStat, JclStrings, at_sql_parser,
-  at_dlgToSetting_unit, cmp_dlgDataBaseCompare;
+  at_dlgToSetting_unit, cmp_dlgDataBaseCompare, gdcStreamSaver;
 
 
 procedure TDataBaseCompare.btnExtOpenClick(Sender: TObject);
@@ -1443,16 +1442,6 @@ begin
     PrSet.Free;
     OS.Free;
   end;
-end;
-
-function TDataBaseCompare.StreamReadString(St: TStream): String;
-var
-  L: Integer;
-begin
-  St.ReadBuffer(L, SizeOf(L));
-  SetLength(Result, L);
-  if L > 0 then
-    St.ReadBuffer(Result[1], L);
 end;
 
 procedure TDataBaseCompare.FindSettings(Stream: TStream);

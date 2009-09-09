@@ -49,17 +49,6 @@ uses
 { TatSettingWalker }
 
 procedure TatSettingWalker.ParseStream;
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
-
 var
   I: Integer;
   MS: TMemoryStream;

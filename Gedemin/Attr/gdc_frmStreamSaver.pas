@@ -781,17 +781,6 @@ begin
 end;
 
 function Tgdc_frmStreamSaver.ShowLoadForm: Integer;
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
-
 var
   stRecord: TgsStreamRecord;
   SourceBaseKey, TargetBaseKey: TID;
@@ -1027,7 +1016,7 @@ end;
 procedure Tgdc_frmStreamSaver.DoAfterException(ErrorMsg: String);
 begin
   lblProcessText.Caption := '';
-  lblResult.Caption := 'Произошла ошибка';
+  lblResult.Caption := 'Выполнение прервано';
   lblWasErrorMsg.Visible := True;
   lblErrorMsg.Visible := True;
   lblErrorMsg.Caption := ErrorMsg;
