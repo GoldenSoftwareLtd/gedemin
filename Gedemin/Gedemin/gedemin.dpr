@@ -23,12 +23,6 @@ uses
   gd_regionalsettings_dlgEdit,
   gd_security,
   gdcRUID,
-  gd_frmMDV_unit in '..\Component\Repository\GD\gd_frmMDV_unit.pas' {gd_frmMDV},
-  gd_frmMDHIBF_unit in '..\Component\Repository\GD\gd_frmMDHIBF_unit.pas' {gd_frmMDHIBF},
-  gd_frmG_unit in '..\Component\Repository\GD\gd_frmG_unit.pas' {gd_frmG},
-  gd_frmSIBF_unit in '..\Component\Repository\GD\gd_frmSIBF_unit.pas' {gd_frmSIBF},
-  gd_dlgG_unit in '..\Component\Repository\GD\gd_dlgG_unit.pas' {gd_dlgG},
-  gd_frmMDH_unit in '..\Component\Repository\GD\gd_frmMDH_unit.pas' {gd_frmMDH},
   dmClientReport_unit in '..\Report\dmClientReport_unit.pas' {dmClientReport: TDataModule},
   gdc_frmG_unit in '..\Component\Repository\gdc_frmG_unit.pas' {gdc_frmG},
   gdc_frmMDH_unit in '..\Component\Repository\gdc_frmMDH_unit.pas' {gdc_frmMDH},
@@ -69,6 +63,7 @@ uses
   gdcFilter,
   gdcWgPosition,
   gdcLink,
+  gdcSQLHistory,
   gdcTableCalendar in '..\Component\GDC\gdcTableCalendar.pas',
   gdcAcctAccount in '..\Component\GDC\gdcAcctAccount.pas',
   gdc_frmInvBaseRemains_unit in '..\Inventory\gdc_frmInvBaseRemains_unit.pas' {gdc_frmInvBaseRemains},
@@ -283,17 +278,15 @@ uses
   prp_ScriptComparer_unit in '..\Property\prp_ScriptComparer_unit.pas' {prp_ScriptComparer},
   cmp_frmDataBaseCompare in '..\Property\cmp_frmDataBaseCompare.pas' {DataBaseCompare},
   gd_dlgRestoreWarning_unit in 'gd_dlgRestoreWarning_unit.pas' {gd_dlgRestoreWarning},
-  IBSQL_WaitWindow in '..\IBX\IBSQL_WaitWindow.pas'
-  {$IFDEF NEW_STREAM}
-  ,gdcStreamSaver in '..\Component\GDC\gdcStreamSaver.pas',
+  IBSQL_WaitWindow in '..\IBX\IBSQL_WaitWindow.pas',
+  gdcStreamSaver in '..\Component\GDC\gdcStreamSaver.pas',
   gd_dlgStreamSaverOptions in '..\Attr\gd_dlgStreamSaverOptions.pas'
-  {$ENDIF}
   {$IFDEF FR4}
   ,rp_StreamFR4 in '..\Report\rp_StreamFR4.pas',
   rp_FR4Functions in '..\Report\rp_FR4Functions.pas'
   {$ENDIF}
-  {$IFDEF ENTRY_BALANCE}
   , gdv_frmCalculateBalance in '..\Transaction\gdv_frmCalculateBalance.pas'
+  , gdc_frmClosePeriod in '..\Attr\gdc_frmClosePeriod.pas'
   , gdvAcctBase in '..\Transaction\gdvAcctBase.pas'
   , gdvAcctAccCard in '..\Transaction\gdvAcctAccCard.pas'
   , gdvAcctAccReview in '..\Transaction\gdvAcctAccReview.pas'
@@ -306,15 +299,6 @@ uses
   , gdv_frmAcctAccCard_unit in '..\Transaction\gdv_frmAcctAccCard_unit.pas'
   , gdv_frmAcctLedger_unit in '..\Transaction\gdv_frmAcctLedger_unit.pas'
   , gdv_frmAcctAccReview_unit in '..\Transaction\gdv_frmAcctAccReview_unit.pas'
-  {$ELSE}
-  , gdv_frmAcctCirculationList_unit in '..\Obsolete\Transaction\gdv_frmAcctCirculationList_unit.pas'
-  , gdv_frmGeneralLedger_unit in '..\Obsolete\Transaction\gdv_frmGeneralLedger_unit.pas'
-  , gdv_dlgGeneralLedger_unit in '..\Obsolete\Transaction\gdv_dlgGeneralLedger_unit.pas'
-  , gdv_frmAcctBaseForm_unit in '..\Obsolete\Transaction\gdv_frmAcctBaseForm_unit.pas'
-  , gdv_AcctAccCard_unit in '..\Obsolete\Transaction\gdv_AcctAccCard_Unit.pas'
-  , gdv_frmAcctLedger_unit in '..\Obsolete\Transaction\gdv_frmAcctLedger_unit.pas'
-  , gdv_frmAcctAccReview_unit in '..\Obsolete\Transaction\gdv_frmAcctAccReview_unit.pas'
-  {$ENDIF}
   {$IFDEF DEBUG}
   , ExceptionDialog_unit in '..\Component\ExceptionDialog_unit.pas' {ExceptionDialog}
   {$ENDIF}
