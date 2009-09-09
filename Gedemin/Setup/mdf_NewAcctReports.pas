@@ -838,19 +838,21 @@ begin
             ' classname, hotkey, imgindex) VALUES (714030, 714000, ''Анализ счета'', ' +
             ' '''', ''Tgdv_frmAcctAccReview'', NULL, 220)';
           SQL.ExecQuery;
-          Transaction.Commit;
         end
         else begin
           SQL.Close;
           SQL.SQL.Text := ' UPDATE gd_command SET classname = ''Tgdv_frmAcctAccReview'' ' +
                           ' WHERE id = 714030 ';
           SQL.ExecQuery;
-          Transaction.Commit;
         end;
+        Transaction.Commit;
       except
-        on E: Exception do begin
-          Transaction.Rollback;
+        on E: Exception do
+        begin
+          if Transaction.InTransaction then
+            Transaction.Rollback;
           Log(Format('Ошибка %s', [E.Message]));
+          raise;
         end;
       end;
     finally

@@ -875,7 +875,7 @@ begin
       ibsql.Close;
       ibsql.SQL.Text := 'SELECT MAX(id) as MaxID FROM fin_versioninfo';
       ibsql.ExecQuery;
-      MaxID := ibsql.FieldByName('MAxID').AsInteger + 1;
+      MaxID := ibsql.FieldByName('MaxID').AsInteger + 1;
 
       ibsql.Close;
       ibsql.SQL.Text :=

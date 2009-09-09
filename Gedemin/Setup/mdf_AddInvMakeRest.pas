@@ -22,11 +22,11 @@ begin
   FIBTransaction := TIBTransaction.Create(nil);
   try
     FIBTransaction.DefaultDatabase := IBDB;
-    ibsql.Transaction := FIBTransaction;
-    try
-      FIBTransaction.StartTransaction;
+    FIBTransaction.StartTransaction;
 
-      ibsql.ParamCheck := False;
+    ibsql.Transaction := FIBTransaction;
+    ibsql.ParamCheck := False;
+    try
       ibsql.SQl.Text:=
         'RECREATE PROCEDURE INV_GETCARDMOVEMENT(' + #13#10 +
         '    CARDKEY INTEGER,' + #13#10 +
@@ -46,24 +46,14 @@ begin
         '  SUSPEND;' + #13#10 +
         'END';
       Log('Добавление процедуры INV_GETCARDMOVEMENT ');
-
       ibsql.ExecQuery;
-      FIBTransaction.Commit;
-
-      if not FIBTransaction.InTransaction then
-        FIBTransaction.StartTransaction;
 
       ibsql.Close;
       ibsql.SQL.Text := 'GRANT EXECUTE ON PROCEDURE INV_GETCARDMOVEMENT TO administrator';
       ibsql.ExecQuery;
 
-      FIBTransaction.Commit;
-
-      FIBTransaction.StartTransaction;
       AddFinVersion('0000.0001.0000.0109', 'Добавлена процедура INV_GETCARDMOVEMENT для ускорения вывода остатков на дату', '12.11.2006', FIBTransaction);
-      FIBTransaction.Commit;
 
-      FIBTransaction.StartTransaction;
       try
         ibsql.Close;
         ibsql.SQL.Text := 'SELECT COUNT(*) FROM gd_document';
@@ -89,10 +79,9 @@ begin
         on E: Exception do
           Log('error:' +  E.Message);
       end;
-      FIBTransaction.Commit;
 
-      FIBTransaction.StartTransaction;
       AddFinVersion('0000.0001.0000.0110', 'Пересчитываем складские остатки после восстановления складских триггеров', '24.11.2006', FIBTransaction);
+
       FIBTransaction.Commit;
     except
       on E: Exception do
@@ -100,6 +89,7 @@ begin
         if FIBTransaction.InTransaction then
           FIBTransaction.Rollback;
         Log(E.Message);
+        raise;
       end;
     end;
   finally

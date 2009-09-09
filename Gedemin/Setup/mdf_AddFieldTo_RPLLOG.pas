@@ -7,18 +7,17 @@ uses
 
 procedure AddFieldTo_RPLLOG(IBDB: TIBDatabase; Log: TModifyLog);
 
-
 implementation
 
-uses
-  IBSQL, SysUtils, gd_KeyAssoc;
+{uses
+  IBSQL, SysUtils, gd_KeyAssoc;}
 
 procedure AddFieldTo_RPLLOG(IBDB: TIBDatabase; Log: TModifyLog);
-var
+{var
   FTransaction: TIBTransaction;
-  FIBSQL: TIBSQL;
+  FIBSQL: TIBSQL;}
 begin
-  FTransaction := TIBTransaction.Create(nil);
+{  FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
     FTransaction.StartTransaction;
@@ -48,7 +47,7 @@ begin
   finally
     FTransaction.Free;
   end;
-
+}
 end;
 
 

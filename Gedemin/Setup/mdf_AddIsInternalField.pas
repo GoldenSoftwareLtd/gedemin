@@ -3,15 +3,14 @@ unit mdf_AddIsInternalField;
 interface
 
 uses
-  IBDatabase, gdModify, mdf_MetaData_unit, mdf_dlgDefaultCardOfAccount_unit, Forms,
-  Windows, Controls;
+  IBDatabase, gdModify;
 
 procedure AddIsInternalField(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
 uses
-  IBSQL, SysUtils, IBScript, classes, gd_common_functions;
+  IBSQL, SysUtils, IBScript, classes, mdf_MetaData_unit;
 
 const
   FieldCount = 1;
@@ -303,6 +302,7 @@ procedure AddIsInternalField(IBDB: TIBDatabase; Log: TModifyLog);
 var
   I: Integer;
   Tr: TIBTransaction;
+  q: TIBSQL;
 begin
   for I := 0 to FieldCount - 1 do
   begin
@@ -312,31 +312,46 @@ begin
         Fields[I].RelationName]));
       try
         AddField(Fields[I], IBDB);
-        Log('Поле добавлено');
       except
         on E: Exception do
+        begin
           Log(E.Message);
+          raise;
+        end;
       end;
 
       Log(Format('Изменение процедуры %s ', [Procedures[I].ProcedureName]));
       try
         AlterProcedure(Procedures[I], IBDB);
-        Log('Процедура изменена');
       except
         on E: Exception do
+        begin
           Log(E.Message);
+          raise;
+        end;
       end;
     end;
   end;
 
   Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := IBDB;
     Tr.StartTransaction;
-    AddFinVersion('0000.0001.0000.0132', 'Добавлено поле ISINTERNAL в таблицу AC_TRANSACTION для определения внутренних проводок',
-      '12.01.2009', Tr);
+
+    q.Transaction := Tr;
+    q.SQl.Text :=
+      'INSERT INTO fin_versioninfo ' +
+      '  VALUES (111, ''0000.0001.0000.0143'', ''12.01.2009'', ''Добавлено поле ISINTERNAL в таблицу AC_TRANSACTION для определения внутренних проводок'') ';
+    try
+      q.ExecQuery;
+    except
+    end;
+    q.Close;
+
     Tr.Commit;
   finally
+    q.Free;
     Tr.Free;
   end;
 end;

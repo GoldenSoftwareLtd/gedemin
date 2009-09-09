@@ -30,58 +30,58 @@ begin
     q.Transaction := IBTr;
 
     try
+      q.SQL.Text :=
+        'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) ' +
+        '  VALUES ( ' +
+        '    730110, ' +
+        '    730100, ' +
+        '    ''Организации'', ' +
+        '    '''', ' +
+        '    ''TgdcCompany'', ' +
+        '    NULL, ' +
+        '    0 ' +
+        '  ) ';
       try
-        q.SQL.Text :=
-          'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) ' +
-          '  VALUES ( ' +
-          '    730110, ' +
-          '    730100, ' +
-          '    ''Организации'', ' +
-          '    '''', ' +
-          '    ''TgdcCompany'', ' +
-          '    NULL, ' +
-          '    0 ' +
-          '  ) ';
         q.ExecQuery;
       except
-        on E: Exception do
-          Log('error:' +  E.Message);
       end;
 
+      q.SQL.Text :=
+        'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) ' +
+        '  VALUES ( ' +
+        '    730902, ' +
+        '    730110, ' +
+        '    ''Сотрудники'', ' +
+        '    ''ref_employee'', ' +
+        '    ''TgdcEmployee'', ' +
+        '    NULL, ' +
+        '    0 ' +
+        '  ) ';
       try
-        q.SQL.Text :=
-          'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) ' +
-          '  VALUES ( ' +
-          '    730902, ' +
-          '    730110, ' +
-          '    ''Сотрудники'', ' +
-          '    ''ref_employee'', ' +
-          '    ''TgdcEmployee'', ' +
-          '    NULL, ' +
-          '    0 ' +
-          '  ) ';
         q.ExecQuery;
       except
-        on E: Exception do
-          Log('error:' +  E.Message);
       end;
 
       q.SQL.Text :=
         'INSERT INTO fin_versioninfo ' +
         'VALUES (75, ''0000.0001.0000.0103'', ''30.05.2006'', ''Employee branch added into Explorer''); ';
-      q.ExecQuery;
+      try
+        q.ExecQuery;
+      except
+      end;
 
       IBTr.Commit;
     finally
       q.Free;
       IBTr.Free;
     end;
-
   except
     on E: Exception do
+    begin
       Log('error:' +  E.Message);
+      raise;
+    end;
   end;
-
 end;
 
 end.
