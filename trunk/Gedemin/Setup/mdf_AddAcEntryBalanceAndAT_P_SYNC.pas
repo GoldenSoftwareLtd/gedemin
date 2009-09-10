@@ -1265,6 +1265,17 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
+          'ALTER TABLE ac_companyaccount DROP CONSTRAINT ac_pk_companyaccount ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE ac_companyaccount '#13#10 +
+          '  ADD CONSTRAINT ac_pk_companyaccount PRIMARY KEY (companykey, accountkey) ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
           'INSERT INTO fin_versioninfo ' +
           '  VALUES (112, ''0000.0001.0000.0144'', ''25.04.2009'', ''Проставлены пропущенные гранты'') ';
         try
