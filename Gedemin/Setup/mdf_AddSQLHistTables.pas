@@ -115,6 +115,17 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
+          'ALTER TABLE ac_companyaccount DROP CONSTRAINT ac_pk_companyaccount ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE ac_companyaccount '#13#10 +
+          '  ADD CONSTRAINT ac_pk_companyaccount PRIMARY KEY (companykey, accountkey) ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
           'INSERT INTO fin_versioninfo ' +
           '  VALUES (107, ''0000.0001.0000.0139'', ''07.09.2009'', ''GD_SQL_HISTORY table added and other changes'')';
         try
