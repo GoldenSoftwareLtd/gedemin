@@ -79,7 +79,6 @@ object frm_SettingView: Tfrm_SettingView
         ParentColor = False
         ParentFont = False
         TabOrder = 1
-        Gutter.DigitCount = 2
         Gutter.Font.Charset = DEFAULT_CHARSET
         Gutter.Font.Color = clWindowText
         Gutter.Font.Height = -11
@@ -457,9 +456,9 @@ object frm_SettingView: Tfrm_SettingView
           object lblPositions: TLabel
             Left = 7
             Top = 6
-            Width = 247
+            Width = 253
             Height = 13
-            Caption = 'Позиции настройки: Classname (Subtype) Settable'
+            Caption = 'Позиции настройки: Classname (Subtype) [Settable]'
           end
         end
       end
