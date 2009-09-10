@@ -14,8 +14,6 @@ object frmClosePeriod: TfrmClosePeriod
   OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
-  OnCreate = FormCreate
-  OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -24,7 +22,7 @@ object frmClosePeriod: TfrmClosePeriod
     Top = 0
     Width = 698
     Height = 465
-    ActivePage = tbsDocumentType
+    ActivePage = tbsMain
     Align = alClient
     TabOrder = 0
     object tbsMain: TTabSheet
@@ -181,7 +179,7 @@ object frmClosePeriod: TfrmClosePeriod
           Top = 90
           Width = 235
           Height = 17
-          Caption = 'Вычисление сальдо по проводкам'
+          Caption = 'Вычисление бухгалтерских остатков'
           TabOrder = 4
         end
         object cbRemainsCalculate: TCheckBox
