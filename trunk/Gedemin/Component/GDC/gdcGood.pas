@@ -1057,6 +1057,10 @@ begin
       ' z.DESCRIPTION, ' +
       ' z.DISABLED, ' +
       ' z.RESERVED, ' +
+      ' z.CREATIONDATE, ' +
+      ' z.CREATORKEY, ' +
+      ' z.EDITIONDATE, ' +
+      ' z.EDITORKEY, ' +
       ' z.AFULL, ' +
       ' z.ACHAG, ' +
       ' z.AVIEW ';
@@ -1316,6 +1320,8 @@ begin
     ' z.RESERVED, ' +
     ' z.DISCIPLINE, ' +
     ' z.DISABLED, ' +
+    ' z.CREATIONDATE, ' +
+    ' z.CREATORKEY, ' +
     ' z.EDITIONDATE, ' +
     ' z.EDITORKEY, ' +
     ' z.AFULL, ' +
