@@ -86,7 +86,10 @@ const
     '        %0:s.creditncu = e_cm.debitncu AND '#13#10 +
     '        %0:s.debitcurr = e_cm.creditcurr AND '#13#10 +
     '        %0:s.creditcurr = e_cm.debitcurr) ' +
-    '    %1:s )'#13#10;
+    '    %1:s )'#13#10 +
+    ' AND NOT EXISTS( '#13#10 +
+    '    SELECT t.id FROM ac_transaction t WHERE '#13#10 +
+    '      t.id = %0:s.transactionkey AND t.isinternal=1) '#13#10;
 
   cDebitCredit =
     'SELECT '#13#10 +
