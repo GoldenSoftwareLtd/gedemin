@@ -15215,7 +15215,10 @@ var
         cur_param := ParamByName(FgdcDataLink.FDetailField[I]);
       except
         MessageBox(0,
-          'Вероятно, в детальном объекте отсутствует параметр, который используется в связи мастер-дитэйл.',
+          PChar('Мастер объект: ' + MasterSource.DataSet.Name + #13#10 +
+          'Детальный объект: ' + Self.Name + #13#10#13#10 +
+          'Вероятно, в детальном объекте отсутствует параметр "' + FgdcDataLink.FDetailField[I] +
+          '", который используется в связи мастер-дитэйл.'),
           'Ошибка',
           MB_OK or MB_ICONSTOP or MB_TASKMODAL);
         raise;
