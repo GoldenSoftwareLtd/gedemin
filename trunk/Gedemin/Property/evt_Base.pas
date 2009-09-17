@@ -2620,7 +2620,7 @@ begin
     LocSQL.Transaction := FTransaction;
     if not FTransaction.InTransaction then
       FTransaction.StartTransaction;
-    LocSQL.SQL.Text := 'SELECT evtd.* FROM evt_object evtm, evt_object evtd ' +
+    LocSQL.SQL.Text := 'SELECT evtd.id, evtd.name FROM evt_object evtm, evt_object evtd ' +
      'WHERE evtm.id = :id AND evtd.lb <= evtm.lb AND evtd.rb >= evtm.rb ORDER BY evtd.lb';
     LocSQL.Params[0].AsInteger := AnObjectKey;
     LocSQL.ExecQuery;
@@ -6909,7 +6909,8 @@ begin
     ibsqlFunc := TIBQuery.Create(nil);
     try
       ibsqlFunc.Transaction := gdcBaseManager.ReadTransaction;
-      ibsqlFunc.SQL.Text := 'SELECT * FROM gd_function WHERE id = :id';
+      ibsqlFunc.SQL.Text := 'SELECT ID, MODULECODE, NAME, COMMENT, SCRIPT, ' +
+        ' MODULE, LANGUAGE, EDITIONDATE, ENTEREDPARAMS FROM gd_function WHERE id = :id';
       ibsqlFunc.Params[0].AsInteger := AnFunctionKey;
       ibsqlFunc.Open;
       if not ibsqlFunc.Eof then
@@ -7103,7 +7104,8 @@ begin
     ibqueryFunc := TIBQuery.Create(nil);
     try
       ibqueryFunc.Transaction := gdcBaseManager.ReadTransaction;
-      ibqueryFunc.SQL.Text := 'SELECT * FROM gd_function';
+      ibqueryFunc.SQL.Text := 'SELECT ID, MODULECODE, NAME, COMMENT, SCRIPT, ' +
+        ' MODULE, LANGUAGE, EDITIONDATE, ENTEREDPARAMS FROM gd_function';
       ibqueryFunc.Open;
       while not ibqueryFunc.Eof do
       begin
@@ -7411,35 +7413,14 @@ begin
       try
         ibsqlObj.Database := AnDatabase;
         ibsqlObj.Transaction := AnTransaction;
-
-        { TODO : В финальной версии удалить! }
-        {
-        ibsqlObj.SQL.Text :=
-          'select count(*) as res from rdb$relation_fields '#13#10 +
-          'where RDB$RELATION_NAME = ''EVT_OBJECT'' '#13#10 +
-          'and (rdb$field_name = ''OBJECTNAME'' or'#13#10 +
-          'rdb$field_name = ''CLASSNAME'' or'#13#10 +
-          'rdb$field_name = ''SUBTYPE'')';
-        ibsqlObj.ExecQuery;
-        if ibsqlObj.Eof or (ibsqlObj.FieldByName('res').AsInteger <> 3) then
-        begin
-          MessageBox(0, PChar('Для работы данной версии Гедемина'#13#10 +
-            'необходимо модифицировать базу данных'#13#10 +
-            'Запустите приложение Modify.exe.'), PChar(''), MB_OK or MB_ICONERROR);
-          ibsqlObj.Close;
-          Application.Terminate;
-        end;
-        if ibsqlObj.Open then
-          ibsqlObj.Close;
-        }
-
-        ibsqlObj.SQL.Text := 'SELECT * FROM evt_object WHERE objectname > '''' ' +
+        ibsqlObj.SQL.Text := 'SELECT PARENT, ID, OBJECTNAME FROM evt_object WHERE objectname > '''' ' +
          'ORDER BY lb';
         ibsqlObj.ExecQuery;
 
         ibsqlEvent.Database := AnDatabase;
         ibsqlEvent.Transaction := AnTransaction;
-        ibsqlEvent.SQL.Text := 'SELECT oe.* FROM evt_objectevent oe JOIN' +
+        ibsqlEvent.SQL.Text := 'SELECT oe.objectkey, oe.eventname, oe.id, oe.functionkey, oe.disable ' +
+         ' FROM evt_objectevent oe JOIN ' +
          ' evt_object ob ON oe.objectkey = ob.id WHERE ob.objectname > '''' ORDER BY ob.lb, oe.eventname';
         ibsqlEvent.ExecQuery;
 
