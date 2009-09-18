@@ -158,7 +158,7 @@ implementation
 
 uses
   gdc_frmExplorer_unit, gdUpdateIndiceStat, JclStrings, at_sql_parser,
-  at_dlgToSetting_unit, cmp_dlgDataBaseCompare, gdcStreamSaver;
+  at_dlgToSetting_unit, cmp_dlgDataBaseCompare, gdcStreamSaver, gsStreamHelper;
 
 
 procedure TDataBaseCompare.btnExtOpenClick(Sender: TObject);

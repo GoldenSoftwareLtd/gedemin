@@ -3200,7 +3200,7 @@ type
     procedure ActivateSetting(const KeyAr: IgsStrings; const BL: IgsBookmarkList;
                               AnModalSQLProcess: WordBool); safecall;
     procedure DeactivateSetting; safecall;
-    procedure SaveSettingToBlob(InNewFormat: WordBool); safecall;
+    procedure SaveSettingToBlob(SettingFormat: Word); safecall;
     procedure ReActivateSetting(const BL: IgsBookmarkList); safecall;
     procedure MakeOrder; safecall;
     procedure ChooseMainSetting; safecall;
@@ -3671,7 +3671,8 @@ uses
   {$IFDEF MESSAGE}
   obj_WrapperMessageClasses,
   {$ENDIF}
-  gd_i_ScriptFactory, comctrls, contnrs, windows, IBSQL, AdPort, jclStrings;
+  gd_i_ScriptFactory, comctrls, contnrs, windows, IBSQL, AdPort, jclStrings,
+  gsStreamHelper;
 
 type
   TCrackIBControlAndQueryService = class(TIBControlAndQueryService);
@@ -15685,9 +15686,15 @@ begin
   GetGdcSetting.ReActivateSetting(InterfaceToObject(BL) as TBookmarkList);
 end;
 
-procedure TwrpGdcSetting.SaveSettingToBlob(InNewFormat: WordBool);
+procedure TwrpGdcSetting.SaveSettingToBlob(SettingFormat: Word);
+var
+  StreamType: TgsStreamType;
 begin
-  GetGdcSetting.SaveSettingToBlob(InNewFormat);
+  StreamType := TgsStreamType(SettingFormat);
+  if (StreamType >= Low(TgsStreamType)) and (StreamType <= High(TgsStreamType)) then
+    GetGdcSetting.SaveSettingToBlob(StreamType)
+  else
+    raise Exception.Create(Format('SaveSettingToBlob: Передан неизвестный тип потока (%d)', [SettingFormat]));
 end;
 
 function  TwrpGdcSetting.Get_Silent: WordBool;

@@ -6,17 +6,17 @@ uses
   gdcBase,              gdcBaseInterface,           classes,
   dbclient,             IBDatabase,                 IBSQL,
   contnrs,              dbgrids,                    comctrls,
-  gd_KeyAssoc,          db,                         gdcSetting,
-  gsStorage;
+  gd_KeyAssoc,          db,                         gsStorage,
+  gsStreamHelper,       gdcSetting;
 
 type
   TStreamFileFormat = (ffBinary, ffXML);
 
-  TgsStreamType = (sttUnknown, sttBinaryOld, sttBinaryNew, sttXML, sttXMLFormatted);
-
   TReplaceRecordBehaviour = (rrbAlways, rrbNever, rrbShowDialog);
 
   TgsStreamLoggingType = (slNone, slSimple, slAll);
+  // Начальный (<TAG> или <TAG />) или конечный (</TAG>) тег элемента
+  TgsXMLElementPosition = (epOpening, epClosing);
 
   TXMLElementType =
     (etUnknown,                // неизвестный элемент
@@ -38,6 +38,7 @@ type
      etOrderItem,              //   одна запись
      etData,                   // данные датасетов сохраненные в потоке
      etDataset,                //   один датасет
+
      etSetting,                // настройка
      etSettingHeader,          // шапка настройки
      etSettingPosList,         // список позиций настройки
@@ -48,9 +49,20 @@ type
      etSettingStorage,         // данные настройки (из поля STORAGEDATA)
      etStorage,                // данные хранилища
      etStorageFolder,          // ветка хранилища
-     etStorageValue            // параметр ветки хранилища
+     etStorageValue,           // параметр ветки хранилища
+
+     etDatasetMetaData,        // метаданные датасета
+     etDatasetField,           // поле датасета
+     etDatasetRowData,         // данные датасета
+     etDatasetRow              // запись датасета
     );
 
+  TgsXMLElement = record
+    Tag: TXMLElementType;
+    Position: TgsXMLElementPosition;
+    ElementString: String;
+  end;
+    
   TStreamReferencedRecord = record
     SourceID: TID;
     RUID: TRUID;
@@ -168,7 +180,7 @@ type
       TIBTransaction = nil; const ASize: Integer = 32);
     destructor Destroy; override;
 
-    function Add(const AClassName: TgdcClassName; const ASubType: TgdcSubType; const ASetTableName: ShortString = ''; const IsSettingObject: Boolean = false): Integer;
+    function Add(const AClassName: TgdcClassName; const ASubType: TgdcSubType = ''; const ASetTableName: ShortString = ''): Integer;
     procedure AddData(const Index: Integer; AObj: TgdcBase); overload;
     procedure AddData(const Index: Integer; const AID: TID); overload;
     function Find(const AClassName: TgdcClassName; const ASubType: TgdcSubType; const ASetTableName: ShortString = ''): Integer;
@@ -329,21 +341,24 @@ type
 
   TgdcStreamWriterReader = class(TObject)
   private
+    FStream: TStream;
     FDataObject: TgdcStreamDataObject;
     FLoadingOrderList: TgdcStreamLoadingOrderList;
 
     procedure SetDataObject(const Value: TgdcStreamDataObject);
     procedure SetLoadingOrderList(const Value: TgdcStreamLoadingOrderList);
+    procedure SetStream(const Value: TStream);
   public
     constructor Create(AObjectSet: TgdcStreamDataObject = nil; ALoadingOrderList: TgdcStreamLoadingOrderList = nil);
     destructor Destroy; override;
 
-    procedure SaveToStream(S: TStream); virtual; abstract;
-    procedure LoadFromStream(const S: TStream); virtual; abstract;
+    procedure SaveToStream(S: TStream); virtual;
+    procedure LoadFromStream(const S: TStream); virtual;
 
-    procedure SaveStorageToStream(S: TStream); virtual; abstract;
-    procedure LoadStorageFromStream(const S: TStream; AnStAnswer: Word); virtual; abstract;
+    procedure SaveStorageToStream(S: TStream); virtual;
+    procedure LoadStorageFromStream(const S: TStream; AnStAnswer: Word); virtual;
 
+    property Stream: TStream read FStream write SetStream;
     property DataObject: TgdcStreamDataObject read FDataObject write SetDataObject;
     property LoadingOrderList: TgdcStreamLoadingOrderList read FLoadingOrderList write SetLoadingOrderList;
   end;
@@ -359,39 +374,59 @@ type
 
   TgdcStreamXMLWriterReader = class(TgdcStreamWriterReader)
   private
+    // Аттрибуты текущего элемента
+    FAttributeList: TStringList;
+    // В XML нельзя сохранять теги включающие $, здесь будем хранить соответствие
+    //  между реальными названиями с $ и аналогами с _
+    FFieldCorrList: TStringList;
+    // Отступ от начала новой строки
     FElementLevel: Integer;
-    // Возвращает открывающий XML-тег
+    FDoInsertXMLHeader: Boolean;
+    // Индекс датасета из TgdcDataObject, который читается из XML в данный момент
+    FCurrentDatasetKey: Integer;
+    // Возвращает открывающий XML-тег (<TAG ...>)
     //   ATag - имя тега
-    //   ASingleLineElement - элемент располагается в одну строку
-    //   AHasAttribute - содержит ли тег атрибуты
-    function AddOpenTag(const ATag: String;
-      const ASingleLineElement: Boolean = false; const AHasAttribute: Boolean = false): String;
-    // Возвращает закрывающий XML-тег
+    //   ASingleLine - элемент располагается в одну строку
+    function AddOpenTag(const ATag: String; const ASingleLine: Boolean = false): String;
+    // Возвращает закрывающий XML-тег (</TAG>)
     //   ATag - имя тега
-    //   ASingleLineElement - элемент располагается в одну строку
-    //   AShortClosingTag - определяет тип тега ('</TAG>' или '/>')
-    function AddCloseTag(const ATag: String;
-      const ASingleLineElement: Boolean = false; const AShortClosingTag: Boolean = false): String;
-    // Возвращает отформатированный XML-атрибут
-    //   ASingleLineElement - элемент располагается в одну строку
-    function AddAttribute(const ATag, AValue: String;
-      const ASingleLineElement: Boolean = false): String;
+    function AddCloseTag(const ATag: String): String;
+    // Возвращает простой XML-элемент с текстовым содержимым (<TAG>...</TAG>)
+    //  ATag - имя тега
+    //  AValue - содержимое элемента
+    function AddElement(const ATag, AValue: String): String;
+    // Возвращает короткий (<TAG ... />) XML-элемент
+    //   ATag - имя тега
+    //   ASingleLine - элемент располагается в одну строку
+    function AddShortElement(const ATag: String; const ASingleLine: Boolean = false): String;
+    // Добавляет XML-атрибут в список аттрибутов текущего элемента
+    procedure AddAttribute(const AAttributeName, AValue: String);
 
     function StorageValueToTagText(AStorageValue: TgsStorageValue): String;
 
     function RepeatString(const StringToRepeat: String; const RepeatCount: Integer): String;
-    function GetNextElement(const St: TStream; out ElementStr: String): TXMLElementType;
-    function GetTextValueOfElement(const St: TStream; const ElementHeader: String): String;
+
+    function InternalGetNextElement: String;
+
+    function GetXMLElementPosition(const AElementStr: String): TgsXMLElementPosition;
+    function GetNextElement: TgsXMLElement;
+    function GetTextValueOfElement(const ElementHeader: String): String;
     function GetParamValueByName(const Str, ParamName: String): String;
     function GetIntegerParamValueByName(const Str, ParamName: String): Integer;
     // заменяет символы   ' " & < >   на   &apos; &quot; &amp; &lt; &gt;   соответственно
     function QuoteString(Str: String): String;
     // заменяет символы   &apos; &quot; &amp; &lt; &gt;   на   ' " & < >   соответственно
     function UnQuoteString(Str: String): String;
-    function GetPositionOfString(S: TStream; const Str: String): Integer;
-    //procedure SaveDataset(S: TStream; CDS: TClientDataSet);
+    function GetPositionOfString(const Str: String): Integer;
+
+    procedure SaveDataset(CDS: TClientDataSet);
+    procedure DatasetFieldToTagText(AField: TField);
+    procedure ParseFieldDefinition(const ElementStr: String);
+    procedure ParseDatasetRecord;
+    procedure ParseDatasetFieldValue(AField: TField; AFieldValue: String);
   public
     constructor Create(AObjectSet: TgdcStreamDataObject = nil; ALoadingOrderList: TgdcStreamLoadingOrderList = nil);
+    destructor Destroy; override;
 
     procedure SaveToStream(S: TStream); override;
     procedure LoadFromStream(const S: TStream); override;
@@ -404,10 +439,13 @@ type
     function GetXMLSettingHeader(S: TStream; SettingHeader: TSettingHeader): Boolean;
 
     property ElementLevel: Integer read FElementLevel write FElementLevel;
+    property DoInsertXMLHeader: Boolean read FDoInsertXMLHeader write FDoInsertXMLHeader;
   end;
 
   TgdcStreamSaver = class(TObject)
   private
+    FStreamFormat: TgsStreamType;
+
     FStreamDataProvider: TgdcStreamDataProvider;
     FStreamLoadingOrderList: TgdcStreamLoadingOrderList;
     FDataObject: TgdcStreamDataObject;
@@ -416,12 +454,16 @@ type
     FTrWasCreated: Boolean;
     FTrWasActive: Boolean;
 
+    FSavingSettingData: Boolean;
+
     // Используется для логгирования ошибок при репликации
     FErrorMessageForSetting: WideString;
 
     procedure SetTransaction(const Value: TIBTransaction);
     procedure SetSilent(const Value: Boolean);
     function GetSilent: Boolean;
+    procedure SetReplicationMode(const Value: Boolean);
+    function GetReplicationMode: Boolean;
     procedure SetReadUserFromStream(const Value: Boolean);
     function GetReadUserFromStream: Boolean;
     function GetReplaceRecordBehaviour: TReplaceRecordBehaviour;
@@ -435,6 +477,7 @@ type
     function GetSaveWithDetailList: TgdKeyArray;
     procedure SetNeedModifyList(const Value: TgdKeyIntAssoc);
     procedure SetSaveWithDetailList(const Value: TgdKeyArray);
+    procedure SetStreamFormat(const Value: TgsStreamType);
   public
     constructor Create(ADatabase: TIBDatabase = nil; ATransaction: TIBTransaction = nil);
     destructor Destroy; override;
@@ -467,11 +510,13 @@ type
     procedure FillRUIDListFromStream(S: TStream; RuidList: TStrings; const SettingID: Integer = -1);
 
     property Silent: Boolean read GetSilent write SetSilent;
+    property ReplicationMode: Boolean read GetReplicationMode write SetReplicationMode;
     property Transaction: TIBTransaction read FTransaction write SetTransaction;
     property ReadUserFromStream: Boolean read GetReadUserFromStream write SetReadUserFromStream;
     property IsAbortingProcess: Boolean read GetIsAbortingProcess write SetIsAbortingProcess;
     property ReplaceRecordBehaviour: TReplaceRecordBehaviour read GetReplaceRecordBehaviour write SetReplaceRecordBehaviour;
     property StreamLogType: TgsStreamLoggingType read GetStreamLogType write SetStreamLogType;
+    property StreamFormat: TgsStreamType read FStreamFormat write SetStreamFormat;
 
     property SaveWithDetailList: TgdKeyArray read GetSaveWithDetailList write SetSaveWithDetailList;
     property NeedModifyList: TgdKeyIntAssoc read GetNeedModifyList write SetNeedModifyList;
@@ -527,11 +572,14 @@ const
   XML_TAG_STORAGE_FOLDER = 'STORAGE_FOLDER';
   XML_TAG_STORAGE_VALUE = 'STORAGE_VALUE';
 
+  XML_TAG_DATASET_METADATA = 'METADATA';
+  XML_TAG_DATASET_FIELD = 'FIELD';
+  XML_TAG_DATASET_ROWDATA = 'ROWDATA';
+  XML_TAG_DATASET_ROW = 'ROW';
+
+  cst_StreamVersionNew = 3;
+
   function GetStreamType(Stream: TStream): TgsStreamType;
-  // Читает строку из переданного потока, принимая первый символ за длину строки
-  function StreamReadString(St: TStream): String;
-  // Пишет строку в поток, проставляя перед ей ее длину
-  procedure StreamWriteString(St: TStream; const S: String);
 
 implementation
 
@@ -669,8 +717,6 @@ const
     '  r.xid = %d AND r.dbid = %d';
 
   xmlHeader = '<?xml version="1.0" encoding="Windows-1251"?>';
-  xmlDatasetHeader = '<?xml version="1.0" standalone="yes"?>  <DATAPACKET Version="2.0">';
-  xmlDatasetFooter = '</DATAPACKET>';
 
   NotSavedField = ';LB;RB;CREATORKEY;EDITORKEY;';
   NotSavedFieldRepl = ';LB;RB;';
@@ -682,92 +728,9 @@ var
   RplDatabaseExists: Boolean;
   IsReadUserFromStream: Boolean;
   SilentMode: Boolean;
+  IsReplicationMode: Boolean;
   AbortProcess: Boolean;
   StreamLoggingType: TgsStreamLoggingType;
-
-// Base64 encoding  
-function EncodeBase64(const inStr: string): string;
-
-  function Encode_Byte(b: Byte): char;
-  const
-    Base64Code: string[64] =
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  begin
-    Result := Base64Code[(b and $3F)+1];
-  end;
-
-var
-  i: Integer;
-begin
-  i := 1;
-  Result := '';
-  while i <= Length(InStr) do
-  begin
-    Result := Result + Encode_Byte(Byte(inStr[i]) shr 2);
-    Result := Result + Encode_Byte((Byte(inStr[i]) shl 4) or (Byte(inStr[i+1]) shr 4));
-    if i+1 <= Length(inStr) then
-      Result := Result + Encode_Byte((Byte(inStr[i+1]) shl 2) or (Byte(inStr[i+2]) shr 6))
-    else
-      Result := Result + '=';
-    if i+2 <= Length(inStr) then
-      Result := Result + Encode_Byte(Byte(inStr[i+2]))
-    else
-      Result := Result + '=';
-    Inc(i, 3);
-  end;
-end;
-
-// Base64 decoding
-function DecodeBase64(const CinLine: string): string;
-const
-  RESULT_ERROR = -2;
-var
-  inLineIndex: Integer;
-  c: Char;
-  x: SmallInt;
-  c4: Word;
-  StoredC4: array[0..3] of SmallInt;
-  InLineLength: Integer;
-begin
-  Result := '';
-  inLineIndex := 1;
-  c4 := 0;
-  InLineLength := Length(CinLine);
-
-  while inLineIndex <= InLineLength do
-  begin
-    while (inLineIndex <= InLineLength) and (c4 < 4) do
-    begin
-      c := CinLine[inLineIndex];
-      case c of
-        '+'     : x := 62;
-        '/'     : x := 63;
-        '0'..'9': x := Ord(c) - (Ord('0')-52);
-        '='     : x := -1;
-        'A'..'Z': x := Ord(c) - Ord('A');
-        'a'..'z': x := Ord(c) - (Ord('a')-26);
-      else
-        x := RESULT_ERROR;
-      end;
-      if x <> RESULT_ERROR then
-      begin
-        StoredC4[c4] := x;
-        Inc(c4);
-      end;
-      Inc(inLineIndex);
-    end;
-
-    if c4 = 4 then
-    begin
-      c4 := 0;
-      Result := Result + Char((StoredC4[0] shl 2) or (StoredC4[1] shr 4));
-      if StoredC4[2] = -1 then Exit;
-      Result := Result + Char((StoredC4[1] shl 4) or (StoredC4[2] shr 2));
-      if StoredC4[3] = -1 then Exit;
-      Result := Result + Char((StoredC4[2] shl 6) or (StoredC4[3]));
-    end;
-  end;
-end;
 
 function IIF(Condition: Boolean; Str1, Str2: String): String;
 begin
@@ -775,26 +738,6 @@ begin
     Result := Str1
   else
     Result := Str2;
-end;
-
-function StreamReadString(St: TStream): String;
-var
-  L: Integer;
-begin
-  St.ReadBuffer(L, SizeOf(L));
-  SetLength(Result, L);
-  if L > 0 then
-    St.ReadBuffer(Result[1], L);
-end;
-
-procedure StreamWriteString(St: TStream; const S: String);
-var
-  L: Integer;
-begin
-  L := Length(S);
-  St.Write(L, SizeOf(L));
-  if L > 0 then
-    St.Write(S[1], L);
 end;
 
 procedure StreamWriteXMLString(St: TStream; const S: String);
@@ -807,13 +750,22 @@ begin
 end;
 
 function GetStreamType(Stream: TStream): TgsStreamType;
+const
+  STREAM_TEST_STRING_SIZE = 100;
 var
   I, Position: Integer;
-  LeadingChar: Char;
+  StreamTestString: String;
+  StreamTestStringSize: Integer;
 begin
   Result := sttUnknown;
   if Stream.Size > 0 then
   begin
+    // Мы не можем прочитать из потока больше символов, чем в нем находится
+    if Stream.Size >= STREAM_TEST_STRING_SIZE then
+      StreamTestStringSize := STREAM_TEST_STRING_SIZE
+    else
+      StreamTestStringSize := Stream.Size;
+    // Запомним позицию в потоке, чтобы потом вернутся к ней
     Position := Stream.Position;
     try
       Stream.Position := 0;
@@ -821,8 +773,12 @@ begin
       if I > 1024 then
       begin
         Stream.Position := 0;
-        Stream.ReadBuffer(LeadingChar, SizeOf(LeadingChar));
-        if LeadingChar = '<' then
+        SetLength(StreamTestString, StreamTestStringSize);
+        Stream.ReadBuffer(StreamTestString[1], StreamTestStringSize);
+        if (AnsiPos(XML_TAG_STREAM, StreamTestString) > 0)
+           or (AnsiPos(XML_TAG_SETTING, StreamTestString) > 0)
+           or (AnsiPos(XML_TAG_STORAGE, StreamTestString) > 0)
+           or (AnsiPos(xmlHeader, StreamTestString) > 0) then
           Result := sttXML
         else
           Result := sttBinaryNew;
@@ -928,7 +884,7 @@ begin
 end;
 
 function TgdcStreamDataObject.Add(const AClassName: TgdcClassName;
-  const ASubType: TgdcSubType; const ASetTableName: ShortString = ''; const IsSettingObject: Boolean = false): Integer;
+  const ASubType: TgdcSubType = ''; const ASetTableName: ShortString = ''): Integer;
 var
   BaseState: TgdcStates;
   I: Integer;
@@ -967,32 +923,28 @@ begin
     FObjectArray[FCount].gdcSetObject := nil;
 
 
+  if not Obj.Active then
+    Obj.Open;  
   // создаем соответствующий клиент-датасет
   CDS := TClientDataSet.Create(nil);
-  // при сохранении в поток будем создавать поля датасета, при загрузке они создадутся сами
-  if IsSave or IsSettingObject then
+  for I := 0 to Obj.FieldDefs.Count - 1 do
   begin
-    if not Obj.Active then
-      Obj.Open;
-    for I := 0 to Obj.FieldDefs.Count - 1 do
+    FD := Obj.FieldDefs[I];
+    if (not (DB.faReadOnly in FD.Attributes))
+      and (not FD.InternalCalcField)
+      and (FD.Name <> 'AFULL')
+      and (FD.Name <> 'ACHAG')
+      and (FD.Name <> 'AVIEW')
+      and ((ASetTableName = '') or ((ASetTableName <> '') and IsSetField(FD.Name))) then
     begin
-      FD := Obj.FieldDefs[I];
-      if (not (DB.faReadOnly in FD.Attributes))
-        and (not FD.InternalCalcField)
-        and (FD.Name <> 'AFULL')
-        and (FD.Name <> 'ACHAG')
-        and (FD.Name <> 'AVIEW')
-        and ((ASetTableName = '') or ((ASetTableName <> '') and IsSetField(FD.Name))) then
-      begin
-        CDS.FieldDefs.Add(FD.Name, FD.DataType, FD.Size, False);
-      end;
+      CDS.FieldDefs.Add(FD.Name, FD.DataType, FD.Size, False);
     end;
-    if ASetTableName = '' then
-    begin
-      CDS.FieldDefs.Add('_XID', ftInteger, 0, True);
-      CDS.FieldDefs.Add('_DBID', ftInteger, 0, True);
-      CDS.FieldDefs.Add('_MODIFIED', ftDateTime, 0, True);
-    end;
+  end;
+  if ASetTableName = '' then
+  begin
+    CDS.FieldDefs.Add('_XID', ftInteger, 0, True);
+    CDS.FieldDefs.Add('_DBID', ftInteger, 0, True);
+    CDS.FieldDefs.Add('_MODIFIED', ftDateTime, 0, True);
   end;
   CDS.FieldDefs.Add('_MODIFYFROMSTREAM', ftBoolean, 0, False);
   CDS.FieldDefs.Add('_SETTABLE', ftString, 60, False);
@@ -1172,8 +1124,8 @@ begin
 
     if Assigned(frmStreamSaver) then
       with AObj do
-        frmStreamSaver.SetProcessText(GetDisplayName(SubType) + #13#10 + '  ' +
-          FieldByName(GetListField(SubType)).AsString + #13#10 + '  ' +
+        frmStreamSaver.SetProcessText(GetDisplayName(SubType) + NEW_LINE + '  ' +
+          FieldByName(GetListField(SubType)).AsString + NEW_LINE + '  ' +
           '(' + FieldByName(GetKeyField(SubType)).AsString + ')');
 
     if StreamLoggingType = slAll then
@@ -1181,7 +1133,7 @@ begin
       begin
         with AObj do
           AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
-            FieldByName(GetListField(SubType)).AsString + #13#10 +
+            FieldByName(GetListField(SubType)).AsString + NEW_LINE +
             ' (' + FieldByName(GetKeyField(SubType)).AsString + ')', clBlue);
         Space;
       end
@@ -1195,7 +1147,7 @@ begin
 
         with AObj do
           AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
-            FieldByName(GetListField(SubType)).AsString + #13#10 +
+            FieldByName(GetListField(SubType)).AsString + NEW_LINE +
             ' (' + FieldByName(GetKeyField(SubType)).AsString + ') с данными множества ' + LocName, clBlue);
         Space;
       end;
@@ -1542,7 +1494,7 @@ begin
   // Если работает репликатор, то не будем прерывать сохранение настройки
   if AObject.RecordCount = 0 then
   begin
-    AddMistake(#13#10 + AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID) + #13#10, clRed);
+    AddMistake(NEW_LINE + AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID) + NEW_LINE, clRed);
     if not SilentMode then
       raise EgdcIDNotFound.Create(AObject.ClassName + ': Не найдена запись с ID = ' + IntToStr(AID))
     else
@@ -1564,7 +1516,7 @@ begin
 
     // При работе репликатора не будем сохранять метаданные, и типы документов.
     //   Соответствие ключей будем сохранять в список референсных записей
-    if SilentMode and (AObject.InheritsFrom(TgdcMetaBase) or AObject.InheritsFrom(TgdcBaseDocumentType)) then
+    if IsReplicationMode and (AObject.InheritsFrom(TgdcMetaBase) or AObject.InheritsFrom(TgdcBaseDocumentType)) then
     begin
       gdcBaseManager.GetRUIDByID(AID, XID, DBID);
       FDataObject.AddReferencedRecord(AID, XID, DBID);
@@ -1688,19 +1640,19 @@ begin
           begin
             if Assigned(frmStreamSaver) then
               frmStreamSaver.AddMistake(
-                Format('В процессе сохранения возникла ошибка.'#13#10+
-                'В таблице %s в поле %s содержится'#13#10+
-                'ссылка на объект типа %s'#13#10+
-                'с идентификатором %d, однако,'#13#10+
+                Format('В процессе сохранения возникла ошибка.' + NEW_LINE+
+                'В таблице %s в поле %s содержится' + NEW_LINE+
+                'ссылка на объект типа %s' + NEW_LINE +
+                'с идентификатором %d, однако,' + NEW_LINE +
                 'такой объект в базе данных не существует.',
                   [RelationName, FieldName,
                   BindedClassName + BindedSubType,
                   Obj.FieldByName(RelationName, FieldName).AsInteger]));
             AddMistake(
-              Format('В процессе сохранения возникла ошибка.'#13#10+
-              'В таблице %s в поле %s содержится'#13#10+
-              'ссылка на объект типа %s'#13#10+
-              'с идентификатором %d, однако,'#13#10+
+              Format('В процессе сохранения возникла ошибка.' + NEW_LINE +
+              'В таблице %s в поле %s содержится' + NEW_LINE +
+              'ссылка на объект типа %s' + NEW_LINE +
+              'с идентификатором %d, однако,' + NEW_LINE +
               'такой объект в базе данных не существует.',
                 [RelationName, FieldName,
                 BindedClassName + BindedSubType,
@@ -2317,7 +2269,7 @@ begin
               if CDS.Locate(Obj.GetKeyField(Obj.SubType), OrderElement.RecordID, []) then
                 Self.LoadRecord(Obj, CDS)
               else
-                raise EgdcIDNotFound.Create('В потоке не найдена требуемая запись:'#13#10 +
+                raise EgdcIDNotFound.Create('В потоке не найдена требуемая запись:' + NEW_LINE +
                   Obj.Classname + ' ' + Obj.SubType + ' (' + IntToStr(OrderElement.RecordID) + ')');
               Exit;
             end
@@ -2446,11 +2398,11 @@ begin
         if not SilentMode then
           MessageBox(TargetDS.ParentHandle, PChar(ErrorSt), 'Ошибка', MB_OK or MB_ICONHAND);
 
-        AddMistake(#13#10 + ErrorSt + #13#10, clRed);
-        AddMistake(#13#10 + E.Message, clRed);
+        AddMistake(NEW_LINE + ErrorSt + NEW_LINE, clRed);
+        AddMistake(NEW_LINE + E.Message, clRed);
         Space;
         if Assigned(frmStreamSaver) then
-          frmStreamSaver.AddMistake(ErrorSt + #13#10 + E.Message);
+          frmStreamSaver.AddMistake(ErrorSt + NEW_LINE + E.Message);
 
         TargetDS.Cancel;
         if FIDMapping.IndexOf(SourceKeyInt) = -1 then
@@ -2538,11 +2490,11 @@ begin
   if not Assigned(CDS.FindField(AObj.GetListField(AObj.SubType))) then
   begin
     AddText('Считывание объекта ' + AObj.GetDisplayName(AObj.SubType) + ' ' +
-        ' (XID =  ' + IntToStr(StreamXID) + ', DBID = ' + IntToStr(StreamDBID) + ')'#13#10, clBlue);
+        ' (XID =  ' + IntToStr(StreamXID) + ', DBID = ' + IntToStr(StreamDBID) + ')' + NEW_LINE, clBlue);
 
-    AddMistake('Структура загружаемого объекта не соответствует '#13#10 +
-      ' структуре уже существующего объекта в базе. '#13#10 +
-      ' Поле ' + AObj.GetListField(AObj.SubType) + ' не найдено в потоке данных!'#13#10, clRed);
+    AddMistake('Структура загружаемого объекта не соответствует ' + NEW_LINE +
+      ' структуре уже существующего объекта в базе. ' + NEW_LINE +
+      ' Поле ' + AObj.GetListField(AObj.SubType) + ' не найдено в потоке данных!' + NEW_LINE, clRed);
 
     if Assigned(frmStreamSaver) then
       frmStreamSaver.AddMistake;
@@ -2550,8 +2502,8 @@ begin
   else
   begin
     if Assigned(frmStreamSaver) then
-      frmStreamSaver.SetProcessText(AObj.GetDisplayName(AObj.SubType) + #13#10 + '  ' +
-        CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString + #13#10 + '  ' +
+      frmStreamSaver.SetProcessText(AObj.GetDisplayName(AObj.SubType) + NEW_LINE + '  ' +
+        CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString + NEW_LINE + '  ' +
         ' (XID =  ' + IntToStr(StreamXID) + ', DBID = ' + IntToStr(StreamDBID) + ')');
 
     if StreamLoggingType = slAll then
@@ -3331,7 +3283,7 @@ begin
   end;}
 
   // во время работы репликатора не заменяем метаданные или типы документов, другие объекты заменяем без вопросов
-  if SilentMode then
+  if IsReplicationMode then
   begin
     if ABaseRecord.InheritsFrom(TgdcMetaBase) or ABaseRecord.InheritsFrom(TgdcBaseDocumentType) then
       Result := False
@@ -3645,7 +3597,7 @@ begin
     begin
       // Если в списке не оказалось нужной позиции, значит она входит в настройку неявно
       //  если работает репликатор, то установим флаг в False
-      if SilentMode then
+      if IsReplicationMode then
         Result := False
       else
         Result := True;
@@ -3816,6 +3768,7 @@ end;
 
 constructor TgdcStreamWriterReader.Create(AObjectSet: TgdcStreamDataObject = nil; ALoadingOrderList: TgdcStreamLoadingOrderList = nil);
 begin
+  FStream := nil;
   if AObjectSet <> nil then
     FDataObject := AObjectSet;
   if ALoadingOrderList <> nil then
@@ -3846,6 +3799,32 @@ begin
     FDataObject := Value;
 end;
 
+procedure TgdcStreamWriterReader.SetStream(const Value: TStream);
+begin
+  if Value <> nil then
+    FStream := Value;
+end;
+
+procedure TgdcStreamWriterReader.LoadFromStream(const S: TStream);
+begin
+  FStream := S;
+end;
+
+procedure TgdcStreamWriterReader.LoadStorageFromStream(const S: TStream; AnStAnswer: Word);
+begin
+  FStream := S;
+end;
+
+procedure TgdcStreamWriterReader.SaveStorageToStream(S: TStream);
+begin
+  FStream := S;
+end;
+
+procedure TgdcStreamWriterReader.SaveToStream(S: TStream);
+begin
+  FStream := S;
+end;
+
 { TgdcStreamBinaryWriterReader }
 
 procedure TgdcStreamBinaryWriterReader.LoadFromStream(const S: TStream);
@@ -3868,6 +3847,7 @@ var
   SizeRead: Integer;
   Buffer: array[0..1023] of Char;
 begin
+  inherited;
 
   FDataObject.IsSave := False;
 
@@ -4018,18 +3998,20 @@ end;
 
 procedure TgdcStreamBinaryWriterReader.SaveToStream(S: TStream);
 var
-  I, K, CurDBID, CurStrVersion: Integer;
+  I, K, CurDBID, CurStreamVersion: Integer;
   ID, XID, DBID: Integer;
   PackStream: TZCompressionStream;
   MS: TMemoryStream;
   Obj: TgdcBase;
   IBSQL: TIBSQL;
 begin
+  inherited;
+
   // метка потока
   I := cst_StreamLabel;
   S.Write(I, SizeOf(I));
-  CurStrVersion := 3;
-  S.Write(CurStrVersion, SizeOf(CurStrVersion));
+  CurStreamVersion := cst_StreamVersionNew;
+  S.Write(CurStreamVersion, SizeOf(CurStreamVersion));
   // DBID
   CurDBID := IBLogin.DBID;
   S.Write(CurDBID, SizeOf(CurDBID));
@@ -4165,6 +4147,8 @@ var
   cstValue: String;
   NeedLoad: Boolean;
 begin
+  inherited;
+
   // Пока сделаем загрузку сразу на базу, потом надо будет передать
   //  запись хранилища в базу классу TgdcStreamDataProvider, а здесь грузить только в память
   LStorage := nil;
@@ -4309,6 +4293,8 @@ var
   I, L: Integer;
   StorageItem: TgsStorageItem;
 begin
+  inherited;
+
   if FDataObject.StorageItemList.Count > 0 then
   begin
     FDataObject.StorageItemList.Sort;
@@ -4349,19 +4335,14 @@ end;
 procedure TgdcStreamXMLWriterReader.LoadFromStream(const S: TStream);
 var
   I, J, K: Integer;
-  XMLStr: String;
+  XMLElement: TgsXMLElement;
   AMissingClassList: TStringList;
   LoadClassName: TgdcClassName;
   LoadSubType: TgdcSubType;
   LoadSetTable: ShortString;
   C: TClass;
-  tempStr_1, tempStr_2: String;
-  DatasetStr: String;
-  MS: TMemoryStream;
-  xmlDatasetHeaderLength, xmlDatasetFooterLength: Integer;
 begin
-  xmlDatasetHeaderLength := Length(xmlDatasetHeader);
-  xmlDatasetFooterLength := Length(xmlDatasetFooter);
+  inherited;
 
   FDataObject.IsSave := False;
 
@@ -4372,61 +4353,74 @@ begin
 
     while S.Position < S.Size do
     begin
+      XMLElement := GetNextElement;
 
-      case GetNextElement(S, XMLStr) of
-
+      case XMLElement.Tag of
         etVersion:
         begin
-          I := StrToInt(GetTextValueOfElement(S, XMLStr));
-          FDataObject.StreamVersion := I;
+          if XMLElement.Position = epOpening then
+          begin
+            I := StrToInt(GetTextValueOfElement(XMLElement.ElementString));
+            FDataObject.StreamVersion := I;
+          end;
         end;
 
         etDBID:
         begin
-          I := StrToInt(GetTextValueOfElement(S, XMLStr));
-          FDataObject.StreamDBID := I;
+          if XMLElement.Position = epOpening then
+          begin
+            I := StrToInt(GetTextValueOfElement(XMLElement.ElementString));
+            FDataObject.StreamDBID := I;
+          end;
         end;
 
         etDatabase:
         begin
-          tempStr_1 := GetParamValueByName(XMLStr, 'id');
-          tempStr_2 := UnQuoteString(GetParamValueByName(XMLStr, 'name'));
-          FDataObject.DatabaseList.Add(tempStr_1 + '=' + tempStr_2);
+          if XMLElement.Position = epOpening then
+            FDataObject.DatabaseList.Add(
+              GetParamValueByName(XMLElement.ElementString, 'id') + '=' +
+              UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'name')));
         end;
 
         etSender:
         begin
-          I := StrToInt(GetTextValueOfElement(S, XMLStr));
-          FDataObject.SourceBaseKey := I;
+          if XMLElement.Position = epOpening then
+          begin
+            I := StrToInt(GetTextValueOfElement(XMLElement.ElementString));
+            FDataObject.SourceBaseKey := I;
+          end;
         end;
 
         etReceiver:
         begin
-          I := StrToInt(GetTextValueOfElement(S, XMLStr));
-          FDataObject.TargetBaseKey := I;
+          if XMLElement.Position = epOpening then
+          begin
+            I := StrToInt(GetTextValueOfElement(XMLElement.ElementString));
+            FDataObject.TargetBaseKey := I;
+          end;
         end;
 
         etReceivedRecord:
         begin
-          I := GetIntegerParamValueByName(XMLStr, 'xid');
-          J := GetIntegerParamValueByName(XMLStr, 'dbid');
+          I := GetIntegerParamValueByName(XMLElement.ElementString, 'xid');
+          J := GetIntegerParamValueByName(XMLElement.ElementString, 'dbid');
           FDataObject.AddReceivedRecord(I, J);
         end;
 
         etReferencedRecord:
         begin
-          I := GetIntegerParamValueByName(XMLStr, 'id');
-          J := GetIntegerParamValueByName(XMLStr, 'xid');
-          K := GetIntegerParamValueByName(XMLStr, 'dbid');
+          I := GetIntegerParamValueByName(XMLElement.ElementString, 'id');
+          J := GetIntegerParamValueByName(XMLElement.ElementString, 'xid');
+          K := GetIntegerParamValueByName(XMLElement.ElementString, 'dbid');
           FDataObject.AddReferencedRecord(I, J, K);
         end;
 
         etObject:
         begin
           // загружаем класс и подтип сохраненного объекта
-          LoadClassName := UnQuoteString(GetParamValueByName(XMLStr, 'classname'));
-          LoadSubType := UnQuoteString(GetParamValueByName(XMLStr, 'subtype'));
-          LoadSetTable := UnQuoteString(GetParamValueByName(XMLStr, 'settable'));
+          LoadClassName := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'classname'));
+          LoadSubType := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'subtype'));
+          LoadSetTable := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'settable'));
 
           C := GetClass(LoadClassName);
 
@@ -4441,7 +4435,7 @@ begin
                  'Внимание',
                  MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO) then
             begin
-              raise Exception.Create(GetGsException(Self, 'LoadFromStream: Invalid class name'));
+              raise EgsXMLParseException.Create(GetGsException(Self, 'LoadFromStream: Invalid class name'));
             end else
               AMissingClassList.Add(LoadClassName);
           end
@@ -4450,40 +4444,61 @@ begin
         end;
 
         etOrder:
-          FLoadingOrderList.LoadFromStream(S, sttXML);
+          if XMLElement.Position = epOpening then
+            FLoadingOrderList.LoadFromStream(S, sttXML);
 
         etOrderItem:
         begin
-          I := GetIntegerParamValueByName(XMLStr, 'dsindex');
-          J := GetIntegerParamValueByName(XMLStr, 'recordid');
+          I := GetIntegerParamValueByName(XMLElement.ElementString, 'dsindex');
+          J := GetIntegerParamValueByName(XMLElement.ElementString, 'recordid');
           FLoadingOrderList.AddItem(J, I);
         end;
 
         etDataset:
         begin
-          I := GetIntegerParamValueByName(XMLStr, 'id');
-          DatasetStr := GetTextValueOfElement(S, XMLStr);
-          // В настройке мы изменяли форматирование XML который выдает TClientDataset,
-          //  теперь вернем его обратно
-          DatasetStr := StringReplace(DatasetStr, '>'#13#10'<', '><', [rfReplaceAll]);
-          J := Length(DatasetStr);
-
-          DatasetStr := xmlDatasetHeader + DatasetStr + xmlDatasetFooter;
-
-          MS := TMemoryStream.Create;
-          try
-            MS.WriteBuffer(DatasetStr[1], xmlDatasetHeaderLength + J + xmlDatasetFooterLength);
-            MS.Position := 0;
-            FDataObject.ClientDS[I].LoadFromStream(MS);
-          finally
-            MS.Free;
-          end;
+          // Запомним индекс считываемого датасета
+          if XMLElement.Position = epOpening then
+            FCurrentDatasetKey := GetIntegerParamValueByName(XMLElement.ElementString, 'id');
         end;
 
-      else
-        //
-      end;
+        // метаданные датасета
+        etDatasetMetaData:
+        begin
+          // Очистим список соответствий реальных названий полей, и названий элементов XML
+          if XMLElement.Position = epOpening then
+            FFieldCorrList.Clear;
+        end;
 
+        // поле датасета
+        etDatasetField:
+        begin
+          if FCurrentDatasetKey > -1 then
+          begin
+            ParseFieldDefinition(XMLElement.ElementString);
+          end
+          else
+            raise EgsXMLParseException.Create(Format('Найден элемент <%0:s> вне элемента <%1:s>',
+              [XML_TAG_DATASET_FIELD, XML_TAG_DATASET]));
+        end;
+
+        // данные датасета
+        etDatasetRowData:
+        begin
+          if FCurrentDatasetKey = -1 then
+            raise EgsXMLParseException.Create(Format('Найден элемент <%0:s> вне элемента <%1:s>',
+              [XML_TAG_DATASET_ROWDATA, XML_TAG_DATASET]));
+        end;
+
+        // запись датасета
+        etDatasetRow:
+        begin
+          if FCurrentDatasetKey > -1 then
+            ParseDatasetRecord
+          else
+            raise EgsXMLParseException.Create(Format('Найден элемент <%0:s> вне элемента <%1:s>',
+              [XML_TAG_DATASET_ROW, XML_TAG_DATASET]));
+        end;
+      end;
     end;
 
     for I := 0 to FDataObject.Count - 1 do
@@ -4499,11 +4514,13 @@ procedure TgdcStreamXMLWriterReader.LoadXMLSettingFromStream(S: TStream);
 var
   DataStr: String;
   CDS: TClientDataSet;
-  XMLStr: String;
+  XMLElement: TgsXMLElement;
   ModifyDate: TDateTime;
   SettingElementIterator: Integer;
   SettingHeadID: Integer;
 begin
+  Stream := S;
+
   if StreamLoggingType in [slSimple, slAll] then
     AddText(TimeToStr(Time) + ': Началось чтение XML файла.', clBlack);
 
@@ -4513,38 +4530,43 @@ begin
   SettingElementIterator := cstUserIDStart;
 
   FDataObject.IsSave := False;
-  FDataObject.Add('TgdcSetting', '', '', True);
-  FDataObject.Add('TgdcSettingPos', '', '', True);
-  FDataObject.Add('TgdcSettingStorage', '', '', True);
+  FDataObject.Add('TgdcSetting');
+  FDataObject.Add('TgdcSettingPos');
+  FDataObject.Add('TgdcSettingStorage');
 
   while S.Position < S.Size do
   begin
-    case GetNextElement(S, XMLStr) of
+    XMLElement := GetNextElement;
+    case XMLElement.Tag of
 
       etSettingHeader:
       begin
-        SettingHeadID := SettingElementIterator;
-        CDS := FDataObject.ClientDS[0];       // TgdcSetting
-        CDS.Insert;
-        CDS.FieldByName('ID').AsString := IntToStr(SettingHeadID);
-        CDS.FieldByName('NAME').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'name'));
-        CDS.FieldByName('VERSION').AsString := GetParamValueByName(XMLStr, 'version');
-        CDS.FieldByName('MODIFYDATE').AsString := GetParamValueByName(XMLStr, 'modifydate');
-        CDS.FieldByName('DESCRIPTION').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'description'));
-        CDS.FieldByName('ENDING').AsString := GetParamValueByName(XMLStr, 'ending');
-        CDS.FieldByName('SETTINGSRUID').AsString := GetParamValueByName(XMLStr, 'settingsruid');
-        CDS.FieldByName('MINEXEVERSION').AsString := GetParamValueByName(XMLStr, 'minexeversion');
-        CDS.FieldByName('MINDBVERSION').AsString := GetParamValueByName(XMLStr, 'mindbversion');
-        CDS.FieldByName('_XID').AsString := GetParamValueByName(XMLStr, 'xid');
-        CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLStr, 'dbid');
-        CDS.FieldByName('_MODIFIED').AsDateTime := CDS.FieldByName('MODIFYDATE').AsDateTime;
-        CDS.Post;
-        FLoadingOrderList.AddItem(SettingHeadID, 0);
-        Inc(SettingElementIterator);
+        if XMLElement.Position = epOpening then
+        begin
+          SettingHeadID := SettingElementIterator;
+          CDS := FDataObject.ClientDS[0];       // TgdcSetting
+          CDS.Insert;
+          CDS.FieldByName('ID').AsString := IntToStr(SettingHeadID);
+          CDS.FieldByName('NAME').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'name'));
+          CDS.FieldByName('VERSION').AsString := GetParamValueByName(XMLElement.ElementString, 'version');
+          CDS.FieldByName('MODIFYDATE').AsString := GetParamValueByName(XMLElement.ElementString, 'modifydate');
+          CDS.FieldByName('DESCRIPTION').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'description'));
+          CDS.FieldByName('ENDING').AsString := GetParamValueByName(XMLElement.ElementString, 'ending');
+          CDS.FieldByName('SETTINGSRUID').AsString := GetParamValueByName(XMLElement.ElementString, 'settingsruid');
+          CDS.FieldByName('MINEXEVERSION').AsString := GetParamValueByName(XMLElement.ElementString, 'minexeversion');
+          CDS.FieldByName('MINDBVERSION').AsString := GetParamValueByName(XMLElement.ElementString, 'mindbversion');
+          CDS.FieldByName('_XID').AsString := GetParamValueByName(XMLElement.ElementString, 'xid');
+          CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLElement.ElementString, 'dbid');
+          CDS.FieldByName('_MODIFIED').AsDateTime := CDS.FieldByName('MODIFYDATE').AsDateTime;
+          CDS.Post;
+          FLoadingOrderList.AddItem(SettingHeadID, 0);
+          Inc(SettingElementIterator);
+        end;
       end;
 
       etSettingPosList:
-        CDS := FDataObject.ClientDS[1];       // TgdcSettingPos
+        if XMLElement.Position = epOpening then
+          CDS := FDataObject.ClientDS[1];       // TgdcSettingPos
 
       etSettingPos:
       begin
@@ -4553,20 +4575,20 @@ begin
           CDS.Insert;
           CDS.FieldByName('ID').AsString := IntToStr(SettingElementIterator);
           CDS.FieldByName('SETTINGKEY').AsString := IntToStr(SettingHeadID);
-          CDS.FieldByName('CATEGORY').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'category'));
-          CDS.FieldByName('OBJECTNAME').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'objectname'));
-          CDS.FieldByName('MASTERCATEGORY').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'mastercategory'));
-          CDS.FieldByName('MASTERNAME').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'mastername'));
-          CDS.FieldByName('OBJECTORDER').AsString := GetParamValueByName(XMLStr, 'objectorder');
-          CDS.FieldByName('WITHDETAIL').AsString := GetParamValueByName(XMLStr, 'withdetail');
-          CDS.FieldByName('NEEDMODIFY').AsString := GetParamValueByName(XMLStr, 'needmodify');
-          CDS.FieldByName('AUTOADDED').AsString := GetParamValueByName(XMLStr, 'autoadded');
-          CDS.FieldByName('OBJECTCLASS').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'objectclass'));
-          CDS.FieldByName('SUBTYPE').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'subtype'));
-          CDS.FieldByName('XID').AsString := GetParamValueByName(XMLStr, 'xid');
-          CDS.FieldByName('DBID').AsString := GetParamValueByName(XMLStr, 'dbid');
-          CDS.FieldByName('_XID').AsString := GetParamValueByName(XMLStr, '_xid');
-          CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLStr, '_dbid');
+          CDS.FieldByName('CATEGORY').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'category'));
+          CDS.FieldByName('OBJECTNAME').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'objectname'));
+          CDS.FieldByName('MASTERCATEGORY').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'mastercategory'));
+          CDS.FieldByName('MASTERNAME').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'mastername'));
+          CDS.FieldByName('OBJECTORDER').AsString := GetParamValueByName(XMLElement.ElementString, 'objectorder');
+          CDS.FieldByName('WITHDETAIL').AsString := GetParamValueByName(XMLElement.ElementString, 'withdetail');
+          CDS.FieldByName('NEEDMODIFY').AsString := GetParamValueByName(XMLElement.ElementString, 'needmodify');
+          CDS.FieldByName('AUTOADDED').AsString := GetParamValueByName(XMLElement.ElementString, 'autoadded');
+          CDS.FieldByName('OBJECTCLASS').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'objectclass'));
+          CDS.FieldByName('SUBTYPE').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'subtype'));
+          CDS.FieldByName('XID').AsString := GetParamValueByName(XMLElement.ElementString, 'xid');
+          CDS.FieldByName('DBID').AsString := GetParamValueByName(XMLElement.ElementString, 'dbid');
+          CDS.FieldByName('_XID').AsString := GetParamValueByName(XMLElement.ElementString, '_xid');
+          CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLElement.ElementString, '_dbid');
           CDS.FieldByName('_MODIFIED').AsDateTime := ModifyDate;
           CDS.Post;
           FLoadingOrderList.AddItem(SettingElementIterator, 1);
@@ -4579,7 +4601,8 @@ begin
       end;
 
       etStoragePosList:
-        CDS := FDataObject.ClientDS[2];       // TgdcSettingStorage
+        if XMLElement.Position = epOpening then
+          CDS := FDataObject.ClientDS[2];       // TgdcSettingStorage
 
       etStoragePos:
       begin
@@ -4588,11 +4611,11 @@ begin
           CDS.Insert;
           CDS.FieldByName('ID').AsString := IntToStr(SettingElementIterator);
           CDS.FieldByName('SETTINGKEY').AsString := IntToStr(SettingHeadID);
-          CDS.FieldByName('BRANCHNAME').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'branchname'));
-          CDS.FieldByName('VALUENAME').AsString := UnQuoteString(GetParamValueByName(XMLStr, 'valuename'));
-          CDS.FieldByName('CRC').AsString := GetParamValueByName(XMLStr, 'crc');
-          CDS.FieldByName('_XID').AsString := GetParamValueByName(XMLStr, '_xid');
-          CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLStr, '_dbid');
+          CDS.FieldByName('BRANCHNAME').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'branchname'));
+          CDS.FieldByName('VALUENAME').AsString := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'valuename'));
+          CDS.FieldByName('CRC').AsString := GetParamValueByName(XMLElement.ElementString, 'crc');
+          CDS.FieldByName('_XID').AsString := GetParamValueByName(XMLElement.ElementString, '_xid');
+          CDS.FieldByName('_DBID').AsString := GetParamValueByName(XMLElement.ElementString, '_dbid');
           CDS.FieldByName('_MODIFIED').AsDateTime := ModifyDate;
           CDS.Post;
           FLoadingOrderList.AddItem(SettingElementIterator, 2);
@@ -4606,22 +4629,28 @@ begin
 
       etSettingData:
       begin
-        DataStr := GetTextValueOfElement(S, XMLStr);
+        if XMLElement.Position = epOpening then
+        begin
+          DataStr := GetTextValueOfElement(XMLElement.ElementString);
 
-        CDS := FDataObject.ClientDS[0];
-        CDS.Edit;
-        CDS.FieldByName('DATA').AsString := xmlHeader + #13#10 + Trim(DataStr);
-        CDS.Post;
+          CDS := FDataObject.ClientDS[0];
+          CDS.Edit;
+          CDS.FieldByName('DATA').AsString := Trim(DataStr);
+          CDS.Post;
+        end;
       end;
 
       etSettingStorage:
       begin
-        DataStr := GetTextValueOfElement(S, XMLStr);
+        if XMLElement.Position = epOpening then
+        begin
+          DataStr := GetTextValueOfElement(XMLElement.ElementString);
 
-        CDS := FDataObject.ClientDS[0];
-        CDS.Edit;
-        CDS.FieldByName('STORAGEDATA').AsString := Trim(DataStr);
-        CDS.Post;
+          CDS := FDataObject.ClientDS[0];
+          CDS.Edit;
+          CDS.FieldByName('STORAGEDATA').AsString := Trim(DataStr);
+          CDS.Post;
+        end;
       end;
 
     end;
@@ -4634,24 +4663,21 @@ end;
 procedure TgdcStreamXMLWriterReader.SaveToStream(S: TStream);
 var
   I, K: Integer;
-  xmlDatasetHeaderLength, xmlDatasetFooterLength: Integer;
-  MS: TMemoryStream;
   Obj: TgdcBase;
   IBSQL: TIBSQL;
-  DataStr: String;
 begin
-  xmlDatasetHeaderLength := Length(xmlDatasetHeader);
-  xmlDatasetFooterLength := Length(xmlDatasetFooter);
+  inherited;
 
   // Заголовок XML-документа
-  StreamWriteXMLString(S, xmlHeader + NEW_LINE);
+  if FDoInsertXMLHeader then
+    StreamWriteXMLString(S, xmlHeader + NEW_LINE);
   // Откроем корневой тег документа
   StreamWriteXMLString(S, AddOpenTag(XML_TAG_STREAM));
   StreamWriteXMLString(S, AddOpenTag(XML_TAG_HEADER));
   // Версия потока
-  StreamWriteXMLString(S, AddOpenTag(XML_TAG_VERSION, true) + '3' + AddCloseTag(XML_TAG_VERSION, true));
+  StreamWriteXMLString(S, AddElement(XML_TAG_VERSION, IntToStr(cst_StreamVersionNew)));
   // DBID
-  StreamWriteXMLString(S, AddOpenTag(XML_TAG_DBID, true) + IntToStr(IBLogin.DBID) + AddCloseTag(XML_TAG_DBID, true));
+  StreamWriteXMLString(S, AddElement(XML_TAG_DBID, IntToStr(IBLogin.DBID)));
 
   // Если идет инкрементное сохранение
   if FDataObject.TargetBaseKey > -1 then
@@ -4668,11 +4694,9 @@ begin
         StreamWriteXMLString(S, AddOpenTag(XML_TAG_DATABASE_LIST));
         while not IBSQL.Eof do
         begin
-          StreamWriteXMLString(S,
-            AddOpenTag(XML_TAG_DATABASE, false, true) +
-            AddAttribute('id', IntToStr(IBSQL.FieldByName('ID').AsInteger)) +
-            AddAttribute('name', QuoteString(IBSQL.FieldByName('NAME').AsString), true) +
-            AddCloseTag(XML_TAG_DATABASE, false, true));
+          AddAttribute('id', IntToStr(IBSQL.FieldByName('ID').AsInteger));
+          AddAttribute('name', QuoteString(IBSQL.FieldByName('NAME').AsString));
+          StreamWriteXMLString(S, AddShortElement(XML_TAG_DATABASE));
           IBSQL.Next;
         end;
         StreamWriteXMLString(S, AddCloseTag(XML_TAG_DATABASE_LIST));
@@ -4682,16 +4706,9 @@ begin
     end;
 
     // ID (из таблицы RPL_DATABASE) посылающей поток базы
-    StreamWriteXMLString(S,
-      AddOpenTag(XML_TAG_SENDER, true) +
-      IntToStr(FDataObject.OurBaseKey) +
-      AddCloseTag(XML_TAG_SENDER, true));
-
+    StreamWriteXMLString(S, AddElement(XML_TAG_SENDER, IntToStr(FDataObject.OurBaseKey)));
     // ID (из таблицы RPL_DATABASE) принимающей поток базы
-    StreamWriteXMLString(S,
-      AddOpenTag(XML_TAG_RECEIVER, true) +
-      IntToStr(FDataObject.TargetBaseKey) +
-      AddCloseTag(XML_TAG_RECEIVER, true));
+    StreamWriteXMLString(S, AddElement(XML_TAG_RECEIVER, IntToStr(FDataObject.TargetBaseKey)));
 
     // Здесь запишем RUID'ы записей, получение которых мы подтверждаем
     I := FDataObject.ReceivedRecordsCount;
@@ -4699,11 +4716,11 @@ begin
     begin
       StreamWriteXMLString(S, AddOpenTag(XML_TAG_RECEIVED_RECORD_LIST));
       for K := 0 to I - 1 do
-        StreamWriteXMLString(S,
-          AddOpenTag(XML_TAG_RECEIVED_RECORD, false, true) +
-          AddAttribute('xid', IntToStr(FDataObject.ReceivedRecord[K].XID)) +
-          AddAttribute('dbid', IntToStr(FDataObject.ReceivedRecord[K].DBID), true) +
-          AddCloseTag(XML_TAG_RECEIVED_RECORD, false, true));
+      begin
+        AddAttribute('xid', IntToStr(FDataObject.ReceivedRecord[K].XID));
+        AddAttribute('dbid', IntToStr(FDataObject.ReceivedRecord[K].DBID));
+        StreamWriteXMLString(S, AddShortElement(XML_TAG_RECEIVED_RECORD));
+      end;
       StreamWriteXMLString(S, AddCloseTag(XML_TAG_RECEIVED_RECORD_LIST));
     end;
   end;
@@ -4715,12 +4732,12 @@ begin
   begin
     StreamWriteXMLString(S, AddOpenTag(XML_TAG_REFERENCED_RECORD_LIST));
     for K := 0 to I - 1 do
-      StreamWriteXMLString(S,
-        AddOpenTag(XML_TAG_REFERENCED_RECORD, false, true) +
-        AddAttribute('id', IntToStr(FDataObject.ReferencedRecord[K].SourceID)) +
-        AddAttribute('xid', IntToStr(FDataObject.ReferencedRecord[K].RUID.XID)) +
-        AddAttribute('dbid', IntToStr(FDataObject.ReferencedRecord[K].RUID.DBID), true) +
-        AddCloseTag(XML_TAG_REFERENCED_RECORD, false, true));
+    begin
+      AddAttribute('id', IntToStr(FDataObject.ReferencedRecord[K].SourceID));
+      AddAttribute('xid', IntToStr(FDataObject.ReferencedRecord[K].RUID.XID));
+      AddAttribute('dbid', IntToStr(FDataObject.ReferencedRecord[K].RUID.DBID));
+      StreamWriteXMLString(S, AddShortElement(XML_TAG_REFERENCED_RECORD));
+    end;
     StreamWriteXMLString(S, AddCloseTag(XML_TAG_REFERENCED_RECORD_LIST));
   end;
 
@@ -4729,13 +4746,11 @@ begin
   for K := 0 to FDataObject.Count - 1 do
   begin
     Obj := FDataObject.gdcObject[K];
-    StreamWriteXMLString(S,
-      AddOpenTag(XML_TAG_OBJECT, false, true) +
-      AddAttribute('id', IntToStr(K)) +
-      AddAttribute('classname', QuoteString(Obj.ClassName)) +
-      AddAttribute('subtype', QuoteString(Obj.SubType)) +
-      AddAttribute('settable', QuoteString(Obj.SetTable), true) +
-      AddCloseTag(XML_TAG_OBJECT, false, true));
+    AddAttribute('id', IntToStr(K));
+    AddAttribute('classname', QuoteString(Obj.ClassName));
+    AddAttribute('subtype', QuoteString(Obj.SubType));
+    AddAttribute('settable', QuoteString(Obj.SetTable));
+    StreamWriteXMLString(S, AddShortElement(XML_TAG_OBJECT));
   end;
   StreamWriteXMLString(S, AddCloseTag(XML_TAG_OBJECT_LIST));
 
@@ -4743,12 +4758,12 @@ begin
   StreamWriteXMLString(S, AddOpenTag(XML_TAG_LOADING_ORDER));
   with FLoadingOrderList do
     for K := 0 to Count - 1 do
-      StreamWriteXMLString(S,
-        AddOpenTag(XML_TAG_LOADING_ORDER_ITEM, false, true) +
-        AddAttribute('index', IntToStr(Items[K].Index)) +
-        AddAttribute('dsindex', IntToStr(Items[K].DSIndex)) +
-        AddAttribute('recordid', IntToStr(Items[K].RecordID), true) +
-        AddCloseTag(XML_TAG_LOADING_ORDER_ITEM, false, true));
+    begin
+      AddAttribute('index', IntToStr(Items[K].Index));
+      AddAttribute('dsindex', IntToStr(Items[K].DSIndex));
+      AddAttribute('recordid', IntToStr(Items[K].RecordID));
+      StreamWriteXMLString(S, AddShortElement(XML_TAG_LOADING_ORDER_ITEM));
+    end;
   StreamWriteXMLString(S, AddCloseTag(XML_TAG_LOADING_ORDER));
 
   // Закроем тег заголовка документа
@@ -4756,45 +4771,20 @@ begin
 
   // Откроем тег данных документа
   StreamWriteXMLString(S, AddOpenTag(XML_TAG_DATA));
-  MS := TMemoryStream.Create;
-  try
-    for K := 0 to FDataObject.Count - 1 do
+  for K := 0 to FDataObject.Count - 1 do
+  begin
+    if FDataObject.ClientDS[K].RecordCount > 0 then
     begin
-      if FDataObject.ClientDS[K].RecordCount > 0 then
-      begin
-        try
-          MS.Clear;
-          FDataObject.ClientDS[K].SaveToStream(MS, dfXML);
-        except
-          MessageBox(0,
-            'В процессе сохранения в поток возникла ошибка. Перезагрузите программу.',
-            'Внимание',
-            MB_OK or MB_ICONHAND or MB_TASKMODAL);
-          Abort;
-        end;
+      AddAttribute('id', IntToStr(K));
+      AddAttribute('classname', QuoteString(FDataObject.gdcObject[K].Classname));
+      AddAttribute('subtype', QuoteString(FDataObject.gdcObject[K].SubType));
+      AddAttribute('settable', QuoteString(FDataObject.ClientDS[K].FieldByName('_SETTABLE').AsString));
+      StreamWriteXMLString(S, AddOpenTag(XML_TAG_DATASET));
 
-        SetLength(DataStr, MS.Size - xmlDatasetHeaderLength - xmlDatasetFooterLength);
-        MS.Seek(xmlDatasetHeaderLength, soFromBeginning);
-        MS.ReadBuffer(DataStr[1], MS.Size - xmlDatasetHeaderLength - xmlDatasetFooterLength);
-        
-        DataStr := StringReplace(DataStr, '><', '>'#13#10'<', [rfReplaceAll]);
+      SaveDataset(DataObject.ClientDS[K]);
 
-        StreamWriteXMLString(S,
-          AddOpenTag(XML_TAG_DATASET, false, true) +
-          AddAttribute('id', IntToStr(K)) +
-          AddAttribute('classname', QuoteString(FDataObject.gdcObject[K].Classname)) +
-          AddAttribute('subtype', QuoteString(FDataObject.gdcObject[K].SubType)) +
-          AddAttribute('settable', QuoteString(FDataObject.ClientDS[K].FieldByName('_SETTABLE').AsString), true) +
-          '>' + NEW_LINE);
-
-        StreamWriteXMLString(S, DataStr + NEW_LINE);
-        //SaveDataset(S, FDataObject.ClientDS[K]);
-
-        StreamWriteXMLString(S, AddCloseTag(XML_TAG_DATASET));
-      end;
+      StreamWriteXMLString(S, AddCloseTag(XML_TAG_DATASET));
     end;
-  finally
-    MS.Free;
   end;
   // Закроем тег данных документа
   StreamWriteXMLString(S, AddCloseTag(XML_TAG_DATA));
@@ -4802,250 +4792,277 @@ begin
   StreamWriteXMLString(S, AddCloseTag(XML_TAG_STREAM));
 end;
 
-(*
-procedure TgdcStreamXMLWriterReader.SaveDataset(S: TStream; CDS: TClientDataSet);
-const
-  XML_TAG_FIELD_LIST = 'FIELD_LIST';
-  XML_TAG_FIELD = 'FIELD';
-  XML_TAG_ROW_LIST = 'ROW_LIST';
-  XML_TAG_ROW = 'ROW';
+procedure TgdcStreamXMLWriterReader.SaveDataset(CDS: TClientDataSet);
 var
   I: Integer;
   FD: TFieldDef;
-  IsLastAttribute: Boolean;
 begin
+  // Откроем тег метаданных датасета
+  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_DATASET_METADATA));
   // Список полей датасета
-  StreamWriteXMLString(S, AddOpenTag(XML_TAG_FIELD_LIST));
   for I := 0 to CDS.FieldDefs.Count - 1 do
   begin
     FD := CDS.FieldDefs[I];
-    if (not (DB.faReadOnly in FD.Attributes))
-      and (not FD.InternalCalcField)
-      and (FD.Name <> 'AFULL')
-      and (FD.Name <> 'ACHAG')
-      and (FD.Name <> 'AVIEW') then
+    if AnsiPos('$', FD.Name) > 0 then
     begin
-      StreamWriteXMLString(S, AddOpenTag(XML_TAG_FIELD, false, true) +
-        AddAttribute('name', FD.Name) +
-        IIF(AnsiPos('$' ,FD.Name) > 0, AddAttribute('attrname', StringReplace(CDS.Fields[I].FieldName, '$', '_', [rfReplaceAll])), '') +
-        AddAttribute('type', 'ftString') +
-        IIF(FD.Required, AddAttribute('required', 'true'), '') +
-        AddAttribute('width', IntToStr(FD.Size), true) +
-        AddCloseTag(XML_TAG_FIELD, false, true));
-    end;
+      AddAttribute('name', UpperCase(StringReplace(CDS.Fields[I].FieldName, '$', '_', [rfReplaceAll])));
+      AddAttribute('realname', UpperCase(FD.Name));
+    end
+    else
+      AddAttribute('name', UpperCase(FD.Name));
+    AddAttribute('type', IntToStr(Integer(FD.DataType)));
+    if FD.Required then
+      AddAttribute('required', '1');
+    if FD.Precision > 0 then
+      AddAttribute('decimals', IntToStr(FD.Precision));
+    if FD.Size > 0 then
+      AddAttribute('width', IntToStr(FD.Size));
+
+    StreamWriteXMLString(Stream, AddShortElement(XML_TAG_DATASET_FIELD, true));
   end;
-  StreamWriteXMLString(S, AddCloseTag(XML_TAG_FIELD_LIST));
-  // Список записей датасета
-  StreamWriteXMLString(S, AddOpenTag(XML_TAG_ROW_LIST));
+  // Закроем тег метаданных датасета
+  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_DATASET_METADATA));
+
+  // Откроем тег данных датасета
+  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_DATASET_ROWDATA));
   CDS.First;
   while not CDS.Eof do
   begin
-    IsLastAttribute := false;
-    StreamWriteXMLString(S, AddOpenTag(XML_TAG_ROW, false, true));
+    StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_DATASET_ROW));
     for I := 0 to CDS.FieldCount - 1 do
     begin
-      if I = CDS.FieldCount - 1 then
-        IsLastAttribute := true;
       if not CDS.Fields[I].IsNull then
-        StreamWriteXMLString(S,
-          AddAttribute(AnsiLowerCase(StringReplace(CDS.Fields[I].FieldName, '$', '_', [rfReplaceAll])),
-            QuoteString(CDS.Fields[I].AsString), IsLastAttribute));
+        DatasetFieldToTagText(CDS.Fields[I]);
     end;
-    StreamWriteXMLString(S, AddCloseTag(XML_TAG_ROW, false, true));
+    StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_DATASET_ROW));
     CDS.Next;
   end;
-  StreamWriteXMLString(S, AddCloseTag(XML_TAG_ROW_LIST));
+  // Закроем тег данных датасета
+  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_DATASET_ROWDATA));
 end;
-*)
 
-function TgdcStreamXMLWriterReader.GetNextElement(const St: TStream; out ElementStr: String): TXMLElementType;
+function TgdcStreamXMLWriterReader.GetNextElement: TgsXMLElement;
 var
-  TempStr: AnsiChar;
+  ElementBeginChars: String;
 begin
-  Result := etUnknown;
-  TempStr := Chr(0);
-  while (TempStr <> '<') and (St.Position < St.Size) do
-    St.ReadBuffer(TempStr, SizeOf(TempStr));
+  Result.Tag := etUnknown;
+  // Получим текст элемента с аттрибутами
+  Result.ElementString := InternalGetNextElement;
+  // Получим вид элемента (открывающий/закрывающий)
+  Result.Position := GetXMLElementPosition(Result.ElementString);
+  if Result.Position = epOpening then
+    ElementBeginChars := '<'
+  else
+    ElementBeginChars := '</';
 
-  ElementStr := TempStr;
-
-  TempStr := Chr(0);
-  while (TempStr <> '>') and (St.Position < St.Size) do
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_STREAM + '>') = 0 then
   begin
-    St.ReadBuffer(TempStr, SizeOf(TempStr));
-    ElementStr := ElementStr + TempStr;
-  end;
-
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_STREAM + '>') = 0 then
-  begin
-    Result := etStream;
+    Result.Tag := etStream;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_VERSION + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_VERSION + '>') = 0 then
   begin
-    Result := etVersion;
+    Result.Tag := etVersion;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_DBID + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_DBID + '>') = 0 then
   begin
-    Result := etDBID;
+    Result.Tag := etDBID;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_DATABASE_LIST + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_DATABASE_LIST + '>') = 0 then
   begin
-    Result := etDataBaseList;
+    Result.Tag := etDataBaseList;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 10), '<' + XML_TAG_DATABASE + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_DATABASE + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_DATABASE + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etDataBase;
+    Result.Tag := etDataBase;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_SENDER + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_SENDER + '>') = 0 then
   begin
-    Result := etSender;
+    Result.Tag := etSender;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_RECEIVER + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_RECEIVER + '>') = 0 then
   begin
-    Result := etReceiver;
+    Result.Tag := etReceiver;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_RECEIVED_RECORD_LIST + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_RECEIVED_RECORD_LIST + '>') = 0 then
   begin
-    Result := etReceivedRecordList;
+    Result.Tag := etReceivedRecordList;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 17), '<' + XML_TAG_RECEIVED_RECORD + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_RECEIVED_RECORD + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_RECEIVED_RECORD + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etReceivedRecord;
+    Result.Tag := etReceivedRecord;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_REFERENCED_RECORD_LIST + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_REFERENCED_RECORD_LIST + '>') = 0 then
   begin
-    Result := etReferencedRecordList;
+    Result.Tag := etReferencedRecordList;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 19), '<' + XML_TAG_REFERENCED_RECORD + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_REFERENCED_RECORD + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_REFERENCED_RECORD + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etReferencedRecord;
+    Result.Tag := etReferencedRecord;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_OBJECT_LIST + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_OBJECT_LIST + '>') = 0 then
   begin
-    Result := etObjectList;
+    Result.Tag := etObjectList;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 8), '<' + XML_TAG_OBJECT + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_OBJECT + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_OBJECT + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etObject;
+    Result.Tag := etObject;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_LOADING_ORDER + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_LOADING_ORDER + '>') = 0 then
   begin
-    Result := etOrder;
+    Result.Tag := etOrder;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 6), '<' + XML_TAG_LOADING_ORDER_ITEM + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_LOADING_ORDER_ITEM + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_LOADING_ORDER_ITEM + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etOrderItem;
+    Result.Tag := etOrderItem;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_DATA + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_DATA + '>') = 0 then
   begin
-    Result := etData;
+    Result.Tag := etData;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 9), '<' + XML_TAG_DATASET + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_DATASET + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_DATASET + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etDataset;
+    Result.Tag := etDataset;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_SETTING + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_SETTING + '>') = 0 then
   begin
-    Result := etSetting;
+    Result.Tag := etSetting;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 16), '<' + XML_TAG_SETTING_HEADER + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_SETTING_HEADER + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_SETTING_HEADER + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etSettingHeader;
+    Result.Tag := etSettingHeader;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_SETTING_POS_LIST + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_SETTING_POS_LIST + '>') = 0 then
   begin
-    Result := etSettingPosList;
+    Result.Tag := etSettingPosList;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 13), '<' + XML_TAG_SETTING_POS + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_SETTING_POS + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_SETTING_POS + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etSettingPos;
+    Result.Tag := etSettingPos;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_STORAGE_POS_LIST + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_STORAGE_POS_LIST + '>') = 0 then
   begin
-    Result := etStoragePosList;
+    Result.Tag := etStoragePosList;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 13), '<' + XML_TAG_STORAGE_POS + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_STORAGE_POS + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_STORAGE_POS + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etStoragePos;
+    Result.Tag := etStoragePos;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_SETTING_DATA + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_SETTING_DATA + '>') = 0 then
   begin
-    Result := etSettingData;
+    Result.Tag := etSettingData;
     Exit;
   end;
 
-  if AnsiCompareText(ElementStr, '<' + XML_TAG_SETTING_STORAGE + '>') = 0 then
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_SETTING_STORAGE + '>') = 0 then
   begin
-    Result := etSettingStorage;
+    Result.Tag := etSettingStorage;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 9), '<' + XML_TAG_STORAGE + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_STORAGE + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_STORAGE + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etStorage;
+    Result.Tag := etStorage;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 16), '<' + XML_TAG_STORAGE_FOLDER + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_STORAGE_FOLDER + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_STORAGE_FOLDER + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etStorageFolder;
+    Result.Tag := etStorageFolder;
     Exit;
   end;
 
-  if AnsiCompareText(Copy(ElementStr, 0, 15), '<' + XML_TAG_STORAGE_VALUE + ' ') = 0 then
+  if (AnsiPos(ElementBeginChars + XML_TAG_STORAGE_VALUE + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_STORAGE_VALUE + NEW_LINE, Result.ElementString) > 0) then
   begin
-    Result := etStorageValue;
+    Result.Tag := etStorageValue;
+    Exit;
+  end;
+
+  // метаданные датасета
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_DATASET_METADATA + '>') = 0 then
+  begin
+    Result.Tag := etDatasetMetaData;
+    Exit;
+  end;
+  // поле датасета
+  if (AnsiPos(ElementBeginChars + XML_TAG_DATASET_FIELD + ' ', Result.ElementString) > 0)
+     or (AnsiPos(ElementBeginChars + XML_TAG_DATASET_FIELD + NEW_LINE, Result.ElementString) > 0) then
+  begin
+    Result.Tag := etDatasetField;
+    Exit;
+  end;
+  // данные датасета
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_DATASET_ROWDATA + '>') = 0 then
+  begin
+    Result.Tag := etDatasetRowData;
+    Exit;
+  end;
+  // запись датасета
+  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_DATASET_ROW + '>') = 0 then
+  begin
+    Result.Tag := etDatasetRow;
     Exit;
   end;
 end;
 
-function TgdcStreamXMLWriterReader.GetPositionOfString(S: TStream; const Str: String): Integer;
+function TgdcStreamXMLWriterReader.GetPositionOfString(const Str: String): Integer;
 const
   SEEK_CHAR_COUNT = 100;
 var
@@ -5057,13 +5074,13 @@ var
 begin
   Result := -1;
   // Запомним начальную позицию в потоке
-  OldPosition := S.Position;
+  OldPosition := Stream.Position;
   TempStrPosition := 0;
   UpperCaseSearchString := AnsiUpperCase(Str);
   SetLength(FirstStringBuff, SEEK_CHAR_COUNT);
   SetLength(SecondStringBuff, SEEK_CHAR_COUNT);
 
-  S.Read(FirstStringBuff[1], SEEK_CHAR_COUNT);
+  Stream.Read(FirstStringBuff[1], SEEK_CHAR_COUNT);
   Position := AnsiPos(UpperCaseSearchString, AnsiUpperCase(FirstStringBuff));
   if Position > 0 then
   begin
@@ -5071,9 +5088,9 @@ begin
   end
   else
   begin
-    while S.Position < S.Size do
+    while Stream.Position < Stream.Size do
     begin
-      S.Read(SecondStringBuff[1], SEEK_CHAR_COUNT);
+      Stream.Read(SecondStringBuff[1], SEEK_CHAR_COUNT);
       Position := AnsiPos(UpperCaseSearchString, AnsiUpperCase(FirstStringBuff + SecondStringBuff));
       if Position > 0 then
       begin
@@ -5087,10 +5104,10 @@ begin
     end;
   end;
   // Вернем поток в начальную позицию
-  S.Position := OldPosition;
+  Stream.Position := OldPosition;
 end;
 
-function TgdcStreamXMLWriterReader.GetTextValueOfElement(const St: TStream; const ElementHeader: String): String;
+function TgdcStreamXMLWriterReader.GetTextValueOfElement(const ElementHeader: String): String;
 var
   TempChar: AnsiChar;
   TempStr: String;
@@ -5106,21 +5123,21 @@ begin
     ElementName := System.Copy(ElementHeader, AnsiPos('<', ElementHeader) + 1,
       AnsiPos('>', ElementHeader) - AnsiPos('<', ElementHeader) - 1);
 
-  ElementTextEndPosition := Self.GetPositionOfString(St, '</' + ElementName + '>');
+  ElementTextEndPosition := Self.GetPositionOfString('</' + ElementName + '>');
   if ElementTextEndPosition > 0 then
   begin
-    SetLength(TempStr, ElementTextEndPosition - St.Position);
-    St.ReadBuffer(TempStr[1], ElementTextEndPosition - St.Position);
+    SetLength(TempStr, ElementTextEndPosition - Stream.Position);
+    Stream.ReadBuffer(TempStr[1], ElementTextEndPosition - Stream.Position);
     Result := TempStr;
   end
   else
   begin
-    St.ReadBuffer(TempChar, SizeOf(TempChar));
+    Stream.ReadBuffer(TempChar, SizeOf(TempChar));
     if TempChar <> '<' then
-      while (TempChar <> '<') and (St.Position < St.Size) do
+      while (TempChar <> '<') and (Stream.Position < Stream.Size) do
       begin
         Result := Result + TempChar;
-        St.ReadBuffer(TempChar, SizeOf(TempChar));
+        Stream.ReadBuffer(TempChar, SizeOf(TempChar));
       end;
   end;
   // Уберем символы переноса и пробелы
@@ -5129,21 +5146,27 @@ end;
 
 function TgdcStreamXMLWriterReader.GetParamValueByName(const Str, ParamName: String): String;
 var
-  I, J, K: Integer;
+  ParamStartPosition, ParamValueStartPosition, ParamValueEndPosition: Integer;
+  StringPosCounter: Integer;
   TempParamName: String;
 begin
   Result := '';
   TempParamName := ParamName + '="';
-  I := AnsiPos(AnsiUpperCase(TempParamName), AnsiUpperCase(Str)) + Length(TempParamName);
-  J := I;
-  for K := J to Length(Str) - 1 do
-    if Str[K] = '"' then
-    begin
-      J := K;
-      Break;
-    end;
-  if J > I then
-    Result := Trim(Copy(Str, I, J - I));
+  ParamStartPosition := AnsiPos(AnsiUpperCase(TempParamName), AnsiUpperCase(Str));
+  // Если атрибут присутствует в элементе
+  if ParamStartPosition > 0 then
+  begin
+    ParamValueStartPosition := ParamStartPosition + Length(TempParamName);
+    ParamValueEndPosition := ParamValueStartPosition;
+    for StringPosCounter := ParamValueEndPosition to Length(Str) - 1 do
+      if Str[StringPosCounter] = '"' then
+      begin
+        ParamValueEndPosition := StringPosCounter;
+        Break;
+      end;
+    if ParamValueEndPosition > ParamValueStartPosition then
+      Result := Trim(Copy(Str, ParamValueStartPosition, ParamValueEndPosition - ParamValueStartPosition));
+  end;
 end;
 
 function TgdcStreamXMLWriterReader.GetIntegerParamValueByName(const Str, ParamName: String): Integer;
@@ -5165,35 +5188,26 @@ procedure TgdcStreamXMLWriterReader.SaveXMLSettingToStream(S: TStream);
 var
   DataStr, StorageDataStr: String;
   CDS: TClientDataSet;
-
-  function SkipToStreamTag(Str: String): String;
-  var
-    I: Integer;
-  begin
-    I := AnsiPos('<' + XML_TAG_STREAM + '>', AnsiUpperCase(Str));
-    Result := Copy(Str, I, Length(Str));
-  end;
-
 begin
+  Stream := S;
+
   // заголовок XML-документа
   StreamWriteXMLString(S, xmlHeader + NEW_LINE);
   // Откроем корневой тег документа
   StreamWriteXMLString(S, AddOpenTag(XML_TAG_SETTING));
   CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSetting', '')];
   // Откроем тег заголовка настройки
-  StreamWriteXMLString(S,
-    AddOpenTag(XML_TAG_SETTING_HEADER, false, true) +
-    AddAttribute('name', QuoteString(CDS.FieldByName('NAME').AsString)) +
-    AddAttribute('version', CDS.FieldByName('VERSION').AsString) +
-    AddAttribute('modifydate', CDS.FieldByName('MODIFYDATE').AsString) +
-    AddAttribute('xid', CDS.FieldByName('_XID').AsString) +
-    AddAttribute('dbid', CDS.FieldByName('_DBID').AsString) +
-    AddAttribute('description', QuoteString(CDS.FieldByName('DESCRIPTION').AsString)) +
-    AddAttribute('ending', CDS.FieldByName('ENDING').AsString) +
-    AddAttribute('settingsruid', CDS.FieldByName('SETTINGSRUID').AsString) +
-    AddAttribute('minexeversion', CDS.FieldByName('MINEXEVERSION').AsString) +
-    AddAttribute('mindbversion', CDS.FieldByName('MINDBVERSION').AsString, true) +
-    '>' + NEW_LINE);
+  AddAttribute('name', QuoteString(CDS.FieldByName('NAME').AsString));
+  AddAttribute('version', CDS.FieldByName('VERSION').AsString);
+  AddAttribute('modifydate', CDS.FieldByName('MODIFYDATE').AsString);
+  AddAttribute('xid', CDS.FieldByName('_XID').AsString);
+  AddAttribute('dbid', CDS.FieldByName('_DBID').AsString);
+  AddAttribute('description', QuoteString(CDS.FieldByName('DESCRIPTION').AsString));
+  AddAttribute('ending', CDS.FieldByName('ENDING').AsString);
+  AddAttribute('settingsruid', CDS.FieldByName('SETTINGSRUID').AsString);
+  AddAttribute('minexeversion', CDS.FieldByName('MINEXEVERSION').AsString);
+  AddAttribute('mindbversion', CDS.FieldByName('MINDBVERSION').AsString);
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_SETTING_HEADER));
 
   // Позиции данных настройки
   StreamWriteXMLString(S, AddOpenTag(XML_TAG_SETTING_POS_LIST));
@@ -5204,24 +5218,23 @@ begin
     CDS.First;
     while not CDS.Eof do
     begin
-      StreamWriteXMLString(S,
-        AddOpenTag(XML_TAG_SETTING_POS, false, true) +
-        AddAttribute('category', QuoteString(CDS.FieldByName('CATEGORY').AsString)) +
-        AddAttribute('objectname', QuoteString(CDS.FieldByName('OBJECTNAME').AsString)) +
-        AddAttribute('mastercategory', QuoteString(CDS.FieldByName('MASTERCATEGORY').AsString)) +
-        AddAttribute('mastername', QuoteString(CDS.FieldByName('MASTERNAME').AsString)) +
-        AddAttribute('objectorder', CDS.FieldByName('OBJECTORDER').AsString) +
-        AddAttribute('withdetail', CDS.FieldByName('WITHDETAIL').AsString) +
-        AddAttribute('needmodify', CDS.FieldByName('NEEDMODIFY').AsString) +
-        IIF(Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED')),
-          AddAttribute('autoadded', CDS.FieldByName('AUTOADDED').AsString), '') +
-        AddAttribute('objectclass', QuoteString(CDS.FieldByName('OBJECTCLASS').AsString)) +
-        AddAttribute('subtype', QuoteString(CDS.FieldByName('SUBTYPE').AsString)) +
-        AddAttribute('xid', CDS.FieldByName('XID').AsString) +
-        AddAttribute('dbid', CDS.FieldByName('DBID').AsString) +
-        AddAttribute('_xid', CDS.FieldByName('_XID').AsString) +
-        AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString, true) +
-        AddCloseTag(XML_TAG_SETTING_POS, false, true));
+      AddAttribute('category', QuoteString(CDS.FieldByName('CATEGORY').AsString));
+      AddAttribute('objectname', QuoteString(CDS.FieldByName('OBJECTNAME').AsString));
+      AddAttribute('mastercategory', QuoteString(CDS.FieldByName('MASTERCATEGORY').AsString));
+      AddAttribute('mastername', QuoteString(CDS.FieldByName('MASTERNAME').AsString));
+      AddAttribute('objectorder', CDS.FieldByName('OBJECTORDER').AsString);
+      AddAttribute('withdetail', CDS.FieldByName('WITHDETAIL').AsString);
+      AddAttribute('needmodify', CDS.FieldByName('NEEDMODIFY').AsString);
+      if Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED')) then
+        AddAttribute('autoadded', CDS.FieldByName('AUTOADDED').AsString);
+      AddAttribute('objectclass', QuoteString(CDS.FieldByName('OBJECTCLASS').AsString));
+      AddAttribute('subtype', QuoteString(CDS.FieldByName('SUBTYPE').AsString));
+      AddAttribute('xid', CDS.FieldByName('XID').AsString);
+      AddAttribute('dbid', CDS.FieldByName('DBID').AsString);
+      AddAttribute('_xid', CDS.FieldByName('_XID').AsString);
+      AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString);
+
+      StreamWriteXMLString(S, AddShortElement(XML_TAG_SETTING_POS));
       CDS.Next;
     end;
   end;
@@ -5235,14 +5248,13 @@ begin
     CDS.First;
     while not CDS.Eof do
     begin
-      StreamWriteXMLString(S,
-        AddOpenTag(XML_TAG_STORAGE_POS, false, true) +
-        AddAttribute('branchname', QuoteString(CDS.FieldByName('BRANCHNAME').AsString)) +
-        AddAttribute('valuename', QuoteString(CDS.FieldByName('VALUENAME').AsString)) +
-        AddAttribute('crc', CDS.FieldByName('CRC').AsString) +
-        AddAttribute('_xid', CDS.FieldByName('_XID').AsString) +
-        AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString, true) +
-        AddCloseTag(XML_TAG_STORAGE_POS, false, true));
+      AddAttribute('branchname', QuoteString(CDS.FieldByName('BRANCHNAME').AsString));
+      AddAttribute('valuename', QuoteString(CDS.FieldByName('VALUENAME').AsString));
+      AddAttribute('crc', CDS.FieldByName('CRC').AsString);
+      AddAttribute('_xid', CDS.FieldByName('_XID').AsString);
+      AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString);
+
+      StreamWriteXMLString(S, AddShortElement(XML_TAG_STORAGE_POS));
       CDS.Next;
     end;
   end;
@@ -5252,7 +5264,7 @@ begin
 
   CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSetting', '')];
   
-  DataStr := SkipToStreamTag(CDS.FieldByName('DATA').AsString);
+  DataStr := CDS.FieldByName('DATA').AsString;
   StorageDataStr := CDS.FieldByName('STORAGEDATA').AsString;
 
   // Данные и хранилище настройки
@@ -5268,31 +5280,37 @@ end;
 function TgdcStreamXMLWriterReader.GetXMLSettingHeader(S: TStream;
   SettingHeader: TSettingHeader): Boolean;
 var
-  XMLElement: TXMLElementType;
-  XMLStr: String;
+  XMLElement: TgsXMLElement;
   I: Integer;
 begin
   Result := True;
-  XMLElement := etUnknown;
+  Stream := S;
+  
+  XMLElement.Tag := etUnknown;
   try
-    while XMLElement <> etSettingHeader do
+    while XMLElement.Tag <> etSettingHeader do
     begin
-      XMLElement := GetNextElement(S, XMLStr);
-      case XMLElement of
+      XMLElement := GetNextElement;
+      case XMLElement.Tag of
         etSettingHeader:
         begin
-          SettingHeader.RUID := RUID(GetIntegerParamValueByName(XMLStr, 'xid'), GetIntegerParamValueByName(XMLStr, 'dbid'));
-          SettingHeader.Name := UnQuoteString(GetParamValueByName(XMLStr, 'name'));
-          SettingHeader.Comment := UnQuoteString(GetParamValueByName(XMLStr, 'description'));
-          SettingHeader.Date := StrToDateTime(GetParamValueByName(XMLStr, 'modifydate'));
-          SettingHeader.Version := GetIntegerParamValueByName(XMLStr, 'version');
-          SettingHeader.Ending := GetIntegerParamValueByName(XMLStr, 'ending');
-          SettingHeader.InterRUID.CommaText := GetParamValueByName(XMLStr, 'settingsruid');
-          SettingHeader.MinEXEVersion := GetParamValueByName(XMLStr, 'minexeversion');
-          SettingHeader.MinDBVersion := GetParamValueByName(XMLStr, 'mindbversion');
+          if XMLElement.Position = epOpening then
+          begin
+            SettingHeader.RUID := RUID(GetIntegerParamValueByName(XMLElement.ElementString, 'xid'),
+              GetIntegerParamValueByName(XMLElement.ElementString, 'dbid'));
+            SettingHeader.Name := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'name'));
+            SettingHeader.Comment := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'description'));
+            SettingHeader.Date := StrToDateTime(GetParamValueByName(XMLElement.ElementString, 'modifydate'));
+            SettingHeader.Version := GetIntegerParamValueByName(XMLElement.ElementString, 'version');
+            SettingHeader.Ending := GetIntegerParamValueByName(XMLElement.ElementString, 'ending');
+            SettingHeader.InterRUID.CommaText := GetParamValueByName(XMLElement.ElementString, 'settingsruid');
+            SettingHeader.MinEXEVersion := GetParamValueByName(XMLElement.ElementString, 'minexeversion');
+            SettingHeader.MinDBVersion := GetParamValueByName(XMLElement.ElementString, 'mindbversion');
+          end;  
         end;
       end;
     end;
+    
     // убираем не RUID'ы
     I := 0;
     with SettingHeader do
@@ -5348,7 +5366,7 @@ var
   ValueStr: String;
   BranchName: String;
   StorageName, Path: String;
-  XMLStr: String;
+  XMLElement: TgsXMLElement;
   LStorage: TgsStorage;
   StorageFolder: TgsStorageFolder;
   StorageValue: TgsStorageValue;
@@ -5380,6 +5398,8 @@ var
   end;
 
 begin
+  inherited;
+
   // TODO: Пока сделаем загрузку сразу на базу, потом надо будет передать
   //  запись хранилища в базу классу TgdcStreamDataProvider, а здесь грузить только в память
 
@@ -5388,142 +5408,156 @@ begin
 
   while S.Position < S.Size do
   begin
-    case GetNextElement(S, XMLStr) of
+    XMLElement := GetNextElement;
+    case XMLElement.Tag of
 
       etStorage:
       begin
-        StorageName := GetParamValueByName(XMLStr, 'name');
-
-        if AnsiPos(st_root_Global, StorageName) = 1 then
+        if XMLElement.Position = epOpening then
         begin
-          if LStorage <> GlobalStorage then
+          StorageName := GetParamValueByName(XMLElement.ElementString, 'name');
+
+          if AnsiPos(st_root_Global, StorageName) = 1 then
           begin
-            GlobalStorage.CloseFolder(GlobalStorage.OpenFolder('', False, True), False);
-            LStorage := GlobalStorage;
-          end;
-        end
-        else
-          if AnsiPos(st_root_User, StorageName) = 1 then
-          begin
-            if LStorage <> UserStorage then
+            if LStorage <> GlobalStorage then
             begin
-              UserStorage.CloseFolder(UserStorage.OpenFolder('', False, True), False);
-              LStorage := UserStorage;
+              GlobalStorage.CloseFolder(GlobalStorage.OpenFolder('', False, True), False);
+              LStorage := GlobalStorage;
             end;
           end
           else
-            LStorage := nil;
+            if AnsiPos(st_root_User, StorageName) = 1 then
+            begin
+              if LStorage <> UserStorage then
+              begin
+                UserStorage.CloseFolder(UserStorage.OpenFolder('', False, True), False);
+                LStorage := UserStorage;
+              end;
+            end
+            else
+              LStorage := nil;
+        end;
       end;
 
       etStorageFolder:
       begin
-        if Assigned(LStorage) then
+        if XMLElement.Position = epOpening then
         begin
-          BranchName := GetParamValueByName(XMLStr, 'name');
-          Path := BranchName;
-
-          if Assigned(StorageFolder) then
-            LStorage.CloseFolder(StorageFolder, False);
-
-          StorageFolder := LStorage.OpenFolder(Path, True, False);
-
-          if StreamLoggingType = slAll then
+          if Assigned(LStorage) then
           begin
-            Space;
-            AddText('Загрузка ветки хранилища "' + Path + '"', clBlue);
+            BranchName := GetParamValueByName(XMLElement.ElementString, 'name');
+            Path := BranchName;
+
+            if Assigned(StorageFolder) then
+              LStorage.CloseFolder(StorageFolder, False);
+
+            StorageFolder := LStorage.OpenFolder(Path, True, False);
+
+            if StreamLoggingType = slAll then
+            begin
+              Space;
+              AddText('Загрузка ветки хранилища "' + Path + '"', clBlue);
+            end
           end
+          else
+            raise EgsXMLParseException.Create('Найден элемент <STORAGE_FOLDER> вне элемента <STORAGE>');
         end;
       end;
 
       etStorageValue:
       begin
-        if Assigned(LStorage) and Assigned(StorageFolder) then
+        if XMLElement.Position = epOpening then
         begin
-          ValueName := GetParamValueByName(XMLStr, 'name');
-          ValueType := GetParamValueByName(XMLStr, 'type');
-          ValueStr := GetTextValueOfElement(S, XMLStr);
-
-          if ((AnsiPos(st_ds_DFMPath, Path) = 1) or (AnsiPos(st_ds_NewFormPath, Path) = 1))
-             and LStorage.ValueExists(Path, ValueName, False) then
+          if Assigned(LStorage) and Assigned(StorageFolder) then
           begin
-            case AnStAnswer of
-              mrYesToAll: NeedLoad := True;
-              mrNoToAll: NeedLoad := False;
-            else
-              if not SilentMode then
-                AnStAnswer := MessageDlg('Форма "' + Path + '\' + ValueName + '" уже настроена.'#13#10 +
-                  'Заменить настройки формы? ', mtConfirmation,
-                  [mbYes, mbYesToAll, mbNo, mbNoToAll], 0)
-              else
-                AnStAnswer := mrYes;
+            ValueName := GetParamValueByName(XMLElement.ElementString, 'name');
+            ValueType := GetParamValueByName(XMLElement.ElementString, 'type');
+            ValueStr := GetTextValueOfElement(XMLElement.ElementString);
+
+            if ((AnsiPos(st_ds_DFMPath, Path) = 1) or (AnsiPos(st_ds_NewFormPath, Path) = 1))
+               and LStorage.ValueExists(Path, ValueName, False) then
+            begin
               case AnStAnswer of
-                mrYes, mrYesToAll: NeedLoad := True;
+                mrYesToAll: NeedLoad := True;
+                mrNoToAll: NeedLoad := False;
               else
-                NeedLoad := False;
+                if not SilentMode then
+                  AnStAnswer := MessageDlg('Форма "' + Path + '\' + ValueName + '" уже настроена.'#13#10 +
+                    'Заменить настройки формы? ', mtConfirmation,
+                    [mbYes, mbYesToAll, mbNo, mbNoToAll], 0)
+                else
+                  AnStAnswer := mrYes;
+                case AnStAnswer of
+                  mrYes, mrYesToAll: NeedLoad := True;
+                else
+                  NeedLoad := False;
+                end;
+              end;
+            end
+            else
+              NeedLoad := True;
+
+            if NeedLoad then
+            begin
+              StorageFolder.DeleteValue(ValueName);
+
+              L := GetValueTypeInt(ValueType);
+              case L of
+                svtInteger: StorageValue := TgsIntegerValue.Create(StorageFolder, ValueName);
+                svtString: StorageValue := TgsStringValue.Create(StorageFolder, ValueName);
+                svtStream: StorageValue := TgsStreamValue.Create(StorageFolder, ValueName);
+                svtBoolean: StorageValue := TgsBooleanValue.Create(StorageFolder, ValueName);
+                svtDateTime: StorageValue := TgsDateTimeValue.Create(StorageFolder, ValueName);
+                svtCurrency: StorageValue := TgsCurrencyValue.Create(StorageFolder, ValueName);
+              else
+                raise EgsStorageError.Create('Invalid value type');
+              end;
+
+              if Assigned(StorageValue) then
+              begin
+                try
+                  if StorageValue is TgsStreamValue then
+                  begin
+                    ValuePosition := AnsiPos('<![CDATA[', ValueStr);
+                    if ValuePosition > 0 then
+                    begin
+                      ValuePosition := AnsiPos('object', ValueStr);
+                      if ValuePosition > 0 then
+                      begin
+                        StIn := TStringStream.Create(Copy(ValueStr, ValuePosition, Length(ValueStr) - ValuePosition - 3));
+                        StOut := TStringStream.Create('');
+                        try
+                          ObjectTextToBinary(StIn, StOut);
+                          ValueStr := StOut.DataString;
+                        finally
+                          StOut.Free;
+                          StIn.Free;
+                        end;
+                      end
+                      else
+                      begin
+                        ValuePosition := AnsiPos('<![CDATA[', ValueStr) + 9;
+                        ValueStr := DecodeBase64(Copy(ValueStr, ValuePosition, Length(ValueStr) - ValuePosition - 2));
+                      end;
+                    end;
+                  end
+                  else
+                    ValueStr := UnQuoteString(ValueStr);
+
+                  StorageValue.AsString := ValueStr;
+                  StorageFolder.WriteValue(StorageValue);
+                finally
+                  StorageValue.Free;
+                end;
+
+                if StreamLoggingType = slAll then
+                  AddText('  Загрузка параметра "' + ValueName + '" ветки хранилища "' + Path + '"', clBlue);
+                LStorage.IsModified := True;
               end;
             end;
           end
           else
-            NeedLoad := True;
-
-          if NeedLoad then
-          begin
-            StorageFolder.DeleteValue(ValueName);
-
-            L := GetValueTypeInt(ValueType);
-            case L of
-              svtInteger: StorageValue := TgsIntegerValue.Create(StorageFolder, ValueName);
-              svtString: StorageValue := TgsStringValue.Create(StorageFolder, ValueName);
-              svtStream: StorageValue := TgsStreamValue.Create(StorageFolder, ValueName);
-              svtBoolean: StorageValue := TgsBooleanValue.Create(StorageFolder, ValueName);
-              svtDateTime: StorageValue := TgsDateTimeValue.Create(StorageFolder, ValueName);
-              svtCurrency: StorageValue := TgsCurrencyValue.Create(StorageFolder, ValueName);
-            else
-              raise EgsStorageError.Create('Invalid value type');
-            end;
-
-            if Assigned(StorageValue) then
-            begin
-              try
-                if StorageValue is TgsStreamValue then
-                begin
-                  ValuePosition := AnsiPos('<![CDATA[', ValueStr);
-                  if ValuePosition > 0 then
-                  begin
-                    ValuePosition := AnsiPos('object', ValueStr);
-                    if ValuePosition > 0 then
-                    begin
-                      StIn := TStringStream.Create(Copy(ValueStr, ValuePosition, Length(ValueStr) - ValuePosition - 3));
-                      StOut := TStringStream.Create('');
-                      try
-                        ObjectTextToBinary(StIn, StOut);
-                        ValueStr := StOut.DataString;
-                      finally
-                        StOut.Free;
-                        StIn.Free;
-                      end;
-                    end
-                    else
-                    begin
-                      ValuePosition := AnsiPos('<![CDATA[', ValueStr) + 9;
-                      ValueStr := DecodeBase64(Copy(ValueStr, ValuePosition, Length(ValueStr) - ValuePosition - 2));
-                    end;
-                  end;
-                end
-                else
-                  ValueStr := UnQuoteString(ValueStr);
-
-                StorageValue.AsString := ValueStr;
-                StorageFolder.WriteValue(StorageValue);
-              finally
-                StorageValue.Free;
-              end;
-
-              if StreamLoggingType = slAll then
-                AddText('  Загрузка параметра "' + ValueName + '" ветки хранилища "' + Path + '"', clBlue);
-              LStorage.IsModified := True;
-            end;
-          end;
+            raise EgsXMLParseException.Create('Найден элемент <STORAGE_VALUE> вне элемента <STORAGE_FOLDER>');
         end;
       end;
     end;
@@ -5548,19 +5582,19 @@ var
   end;
 
 begin
+  inherited;
+
   if FDataObject.StorageItemList.Count > 0 then
   begin
     FDataObject.StorageItemList.Sort;
     // Открываем тег Хранилище
     StorageName := (FDataObject.StorageItemList.Objects[0] as TgsStorageItem).Storage.Name;
-    StreamWriteXMLString(S,
-      AddOpenTag(XML_TAG_STORAGE, false, true) +
-      AddAttribute('name', StorageName, true) + '>' + NEW_LINE);
+    AddAttribute('name', StorageName);
+    StreamWriteXMLString(S, AddOpenTag(XML_TAG_STORAGE, True));
     // Открываем тег Папка хранилища
     FolderName := GetFolderName(FDataObject.StorageItemList.Strings[0]);
-    StreamWriteXMLString(S,
-      AddOpenTag(XML_TAG_STORAGE_FOLDER, false, true) + 
-      AddAttribute('name', FolderName, true) + '>' + NEW_LINE);
+    AddAttribute('name', FolderName);
+    StreamWriteXMLString(S, AddOpenTag(XML_TAG_STORAGE_FOLDER, True));
 
     if Assigned(frmStreamSaver) then
       frmStreamSaver.SetupProgress(FDataObject.StorageItemList.Count, 'Сохранение хранилища...');
@@ -5573,18 +5607,16 @@ begin
       begin
         // Закрываем тег Папка хранилища
         StreamWriteXMLString(S, AddCloseTag(XML_TAG_STORAGE_FOLDER));
-        FolderName := GetFolderName(FDataObject.StorageItemList.Strings[I]);
         // Закрывем тег Хранилище
         StreamWriteXMLString(S, AddCloseTag(XML_TAG_STORAGE));
         // Открываем тег Хранилище
         StorageName := NextStorageName;
-        StreamWriteXMLString(S,
-          AddOpenTag(XML_TAG_STORAGE, false, true) +
-          AddAttribute('name', StorageName, true) + '>' + NEW_LINE);
+        AddAttribute('name', StorageName);
+        StreamWriteXMLString(S, AddOpenTag(XML_TAG_STORAGE, True));
         // Открываем тег Папка хранилища
-        StreamWriteXMLString(S,
-          AddOpenTag(XML_TAG_STORAGE_FOLDER, false, true) +
-          AddAttribute('name', FolderName, true) + '>' + NEW_LINE);
+        FolderName := GetFolderName(FDataObject.StorageItemList.Strings[I]);
+        AddAttribute('name', FolderName);
+        StreamWriteXMLString(S, AddOpenTag(XML_TAG_STORAGE_FOLDER, True));
       end;
 
       // Если следующий параметр находится в другой папке
@@ -5595,9 +5627,8 @@ begin
         StreamWriteXMLString(S, AddCloseTag(XML_TAG_STORAGE_FOLDER));
         // Открываем тег Папка хранилища
         FolderName := NextFolderName;
-        StreamWriteXMLString(S,
-          AddOpenTag(XML_TAG_STORAGE_FOLDER, false, true) +
-          AddAttribute('name', FolderName, true) + '>' + NEW_LINE);
+        AddAttribute('name', FolderName);
+        StreamWriteXMLString(S, AddOpenTag(XML_TAG_STORAGE_FOLDER, True));
       end;
 
       if Assigned(FDataObject.StorageItemList.Objects[I])
@@ -5605,10 +5636,9 @@ begin
       begin
         // Открываем тег Элемент папки хранилища
         StorageValue := (FDataObject.StorageItemList.Objects[I] as TgsStorageValue);
-        StreamWriteXMLString(S,
-          AddOpenTag(XML_TAG_STORAGE_VALUE, false, true) +
-          AddAttribute('name', StorageValue.Name) +
-          AddAttribute('type', StorageValue.GetTypeName, true) + '>' + NEW_LINE);
+        AddAttribute('name', StorageValue.Name);
+        AddAttribute('type', StorageValue.GetTypeName);
+        StreamWriteXMLString(S, AddOpenTag(XML_TAG_STORAGE_VALUE));
         // Запишем значение Элемента папки хранилища
         StreamWriteXMLString(S, StorageValueToTagText(StorageValue));
         // Закрываем тег Элемент папки хранилища  
@@ -5634,7 +5664,19 @@ constructor TgdcStreamXMLWriterReader.Create(
 begin
   inherited Create(AObjectSet, ALoadingOrderList);
 
+  FCurrentDatasetKey := -1;
+  FDoInsertXMLHeader := True;
   FElementLevel := 0;
+
+  FAttributeList := TStringList.Create;
+  FFieldCorrList := TStringList.Create;
+end;
+
+destructor TgdcStreamXMLWriterReader.Destroy;
+begin
+  inherited;
+  FFieldCorrList.Free;
+  FAttributeList.Free;
 end;
 
 function TgdcStreamXMLWriterReader.RepeatString(
@@ -5647,45 +5689,70 @@ begin
     Result := Result + StringToRepeat;
 end;
 
-function TgdcStreamXMLWriterReader.AddOpenTag(const ATag: String;
-  const ASingleLineElement: Boolean = false; const AHasAttribute: Boolean = false): String;
+function TgdcStreamXMLWriterReader.AddOpenTag(const ATag: String; const ASingleLine: Boolean = false): String;
+var
+  AttributeCounter: Integer;
+  AttributeName: String;
 begin
   Result := RepeatString(INDENT_STR, FElementLevel) + '<' + ATag;
-  // Последний символ открывающего тега
-  if AHasAttribute then
-    Result := Result + ' '
-  else
-    Result := Result + '>';
-  // Перенос на новую строку
-  if not ASingleLineElement then
-    Result := Result + NEW_LINE;
+  // Если в списке аттрибутов что-то есть, запишем их в этот элемент
+  if FAttributeList.Count > 0 then
+  begin
+    Result := Result + ' ';
+    for AttributeCounter := 0 to FAttributeList.Count - 1 do
+    begin
+      if not ASingleLine then
+        Result := Result + NEW_LINE + RepeatString(INDENT_STR, FElementLevel + 1);
+      AttributeName := FAttributeList.Names[AttributeCounter];
+      Result := Result + AttributeName + '="' + FAttributeList.Values[AttributeName] + '" ';
+    end;
+    // Очистим список аттрибутов
+    FAttributeList.Clear;
+  end;
+  Result := Result + '>' + NEW_LINE;
   // Увеличим уровень вложенности элемента
   Inc(FElementLevel);
 end;
 
-function TgdcStreamXMLWriterReader.AddCloseTag(const ATag: String;
-  const ASingleLineElement: Boolean = false; const AShortClosingTag: Boolean = false): String;
+function TgdcStreamXMLWriterReader.AddCloseTag(const ATag: String): String;
 begin
   // Уменьшим уровень вложенности элемента
   Dec(FElementLevel);
-  if not AShortClosingTag then
-  begin
-    // Отступ перед тегом
-    if not ASingleLineElement then
-      Result := RepeatString(INDENT_STR, FElementLevel);
-    Result := Result + '</' + ATag + '>';
-  end
-  else
-    Result := ' />';
-  Result := Result + NEW_LINE;
+  Result := RepeatString(INDENT_STR, FElementLevel) + '</' + ATag + '>' + NEW_LINE;
 end;
 
-function TgdcStreamXMLWriterReader.AddAttribute(const ATag, AValue: String;
-  const ASingleLineElement: Boolean = false): String;
+function TgdcStreamXMLWriterReader.AddElement(const ATag, AValue: String): String;
 begin
-  Result := RepeatString(INDENT_STR, FElementLevel) + ATag + '="' + AValue + '"';
-  if not ASingleLineElement then
-    Result := Result + NEW_LINE;
+  Result := RepeatString(INDENT_STR, FElementLevel) +
+    '<' + ATag + '>' + AValue + '</' + ATag + '>' + NEW_LINE;
+end;
+
+function TgdcStreamXMLWriterReader.AddShortElement(const ATag: String;
+  const ASingleLine: Boolean = false): String;
+var
+  AttributeCounter: Integer;
+  AttributeName: String;
+begin
+  Result := RepeatString(INDENT_STR, FElementLevel) + '<' + ATag + ' ';
+  // Если в списке аттрибутов что-то есть, запишем их в этот элемент
+  if FAttributeList.Count > 0 then
+  begin
+    for AttributeCounter := 0 to FAttributeList.Count - 1 do
+    begin
+      if not ASingleLine then
+        Result := Result + NEW_LINE + RepeatString(INDENT_STR, FElementLevel + 1);
+      AttributeName := FAttributeList.Names[AttributeCounter];
+      Result := Result + AttributeName + '="' + FAttributeList.Values[AttributeName] + '" ';
+    end;
+    // Очистим список аттрибутов
+    FAttributeList.Clear;
+  end;
+  Result := Result + '/>' + NEW_LINE;
+end;
+
+procedure TgdcStreamXMLWriterReader.AddAttribute(const AAttributeName, AValue: String);
+begin
+  FAttributeList.Add(AAttributeName + '=' + AValue);
 end;
 
 function TgdcStreamXMLWriterReader.StorageValueToTagText(AStorageValue: TgsStorageValue): String;
@@ -5721,6 +5788,173 @@ begin
     Result := QuoteString(AStorageValue.AsString);
 end;
 
+procedure TgdcStreamXMLWriterReader.ParseFieldDefinition(const ElementStr: String);
+var
+  {FieldDefinition: TFieldDef;}
+  XMLFieldName, DatasetFieldName: String;
+begin
+  // Формируем список соответствий реальных названий полей, и названий элементов XML
+  XMLFieldName := GetParamValueByName(ElementStr, 'name');
+  DatasetFieldName := GetParamValueByName(ElementStr, 'realname');
+  if DatasetFieldName = '' then
+    DatasetFieldName := XMLFieldName;
+  FFieldCorrList.Add(XMLFieldName + '=' + DatasetFieldName);
+
+  // Будем сравнивать описания полей из XML и созданные на основе
+  //  локального бизнес-объекта в методе TgdcStreamDataObject.Add
+
+  {// Эти поля создаются по умолчанию при создании нового объекта-датасета
+  if (AnsiCompareText(FieldName, '_MODIFYFROMSTREAM') <> 0)
+     and (AnsiCompareText(FieldName, '_SETTABLE') <> 0) then
+  begin
+    FieldDefinition := DataObject.ClientDS[FCurrentDatasetKey].FieldDefs.AddFieldDef;
+    FieldDefinition.Name := GetParamValueByName(ElementStr, 'name');
+    FieldDefinition.DisplayName := GetParamValueByName(ElementStr, 'attrname');
+    FieldDefinition.DataType := TFieldType(GetIntegerParamValueByName(ElementStr, 'type'));
+    FieldDefinition.Precision := GetIntegerParamValueByName(ElementStr, 'decimals');
+    FieldDefinition.Size := GetIntegerParamValueByName(ElementStr, 'width');
+    FieldDefinition.Required := GetIntegerParamValueByName(ElementStr, 'required') = 1;
+  end;}
+end;
+
+procedure TgdcStreamXMLWriterReader.ParseDatasetRecord;
+var
+  XMLElementStr: String;
+  ElementName: String;
+  ElementValue: String;
+  DatasetFieldName: String;
+  DatasetField: TField;
+  XMLElementPosition: TgsXMLElementPosition;
+  Dataset: TClientDataset;
+
+  function GetElementName(const AXMLElement: String): String;
+  begin
+    if AXMLElement[2] = '/' then
+      Result := Copy(AXMLElement, 3, Length(AXMLElement) - 3)
+    else
+      Result := Copy(AXMLElement, 2, Length(AXMLElement) - 2);
+  end;
+  
+begin
+  XMLElementStr := InternalGetNextElement;
+  XMLElementPosition := GetXMLElementPosition(XMLElementStr);
+  ElementName := GetElementName(XMLElementStr);
+
+  Dataset := DataObject.ClientDS[FCurrentDatasetKey];
+  Dataset.Insert;
+  // Пройдем по элементам записи из XML
+  while (ElementName <> '') and (ElementName <> XML_TAG_DATASET_ROW) do
+  begin
+    if XMLElementPosition = epOpening then
+    begin
+      ElementValue := GetTextValueOfElement(XMLElementStr);
+      // Получим реальное имя поля, возможно в названии присутствовали $ и были заменены на _
+      DatasetFieldName := FFieldCorrList.Values[ElementName];
+      if DatasetFieldName <> '' then
+      begin
+        DatasetField := Dataset.FindField(DatasetFieldName);
+        // Если есть такое поле, занесем считанную информацию
+        if Assigned(DatasetField) then
+          ParseDatasetFieldValue(DatasetField, ElementValue)
+        else
+          raise Exception.Create('Метаданные бизнес-объекта и объекта из XML отличаются');
+      end;
+    end;
+    // Получим следующий элемент
+    XMLElementStr := InternalGetNextElement;
+    XMLElementPosition := GetXMLElementPosition(XMLElementStr);
+    ElementName := GetElementName(XMLElementStr);
+  end;
+  Dataset.Post;
+end;
+
+procedure TgdcStreamXMLWriterReader.DatasetFieldToTagText(AField: TField);
+var
+  StringList: TStringList;
+  StringCounter: Integer;
+  CurrentFieldName: String;
+begin
+  CurrentFieldName := UpperCase(StringReplace(AField.FieldName, '$', '_', [rfReplaceAll]));
+
+  case AField.DataType of
+    ftMemo:
+    begin
+      // Разнесём строки на элементы <L>line_text</L>
+      StringList := TStringList.Create;
+      try
+        StreamWriteXMLString(Stream, AddOpenTag(CurrentFieldName));
+        StringList.Text := AField.AsString;
+        for StringCounter := 0 to StringList.Count - 1 do
+          StreamWriteXMLString(Stream, AddElement('L', QuoteString(StringList.Strings[StringCounter])));
+        StreamWriteXMLString(Stream, AddCloseTag(CurrentFieldName));
+      finally
+        StringList.Free;
+      end;
+    end;
+
+    ftBLOB, ftGraphic:
+      StreamWriteXMLString(Stream, AddElement(CurrentFieldName, EncodeBase64(AField.AsString)));
+  else
+    StreamWriteXMLString(Stream, AddElement(CurrentFieldName, QuoteString(AField.AsString)));
+  end;
+end;
+
+procedure TgdcStreamXMLWriterReader.ParseDatasetFieldValue(AField: TField; AFieldValue: String);
+var
+  StringList: TStringList;
+  StringCounter: Integer;
+begin
+  case AField.DataType of
+    ftMemo:
+    begin
+      // Поля такого типа хранятся как список элементов <L>element_text</L>
+      //  в каждом из которых находится одна строка текста пропущенная через QuoteString
+      StringList := TStringList.Create;
+      try
+        StringList.Text := AFieldValue;
+        for StringCounter := 0 to StringList.Count - 1 do
+          StringList.Strings[StringCounter] := Trim(StringList.Strings[StringCounter]);
+        StringList.Text := StringReplace(StringList.Text, '<L>', '', [rfReplaceAll, rfIgnoreCase]);
+        StringList.Text := StringReplace(StringList.Text, '</L>', '', [rfReplaceAll, rfIgnoreCase]);
+        AField.AsString := UnQuoteString(StringList.Text);
+      finally
+        StringList.Free;
+      end;
+    end;
+
+    ftBLOB, ftGraphic:
+      AField.AsString := DecodeBase64(AFieldValue);
+  else
+    AField.AsString := AFieldValue;
+  end;
+end;
+
+function TgdcStreamXMLWriterReader.InternalGetNextElement: String;
+var
+  TempStr: AnsiChar;
+begin
+  TempStr := Chr(0);
+  while (TempStr <> '<') and (Stream.Position < Stream.Size) do
+    Stream.ReadBuffer(TempStr, SizeOf(TempStr));
+
+  Result := TempStr;
+
+  TempStr := Chr(0);
+  while (TempStr <> '>') and (Stream.Position < Stream.Size) do
+  begin
+    Stream.ReadBuffer(TempStr, SizeOf(TempStr));
+    Result := Result + TempStr;
+  end;
+end;
+
+function TgdcStreamXMLWriterReader.GetXMLElementPosition(const AElementStr: String): TgsXMLElementPosition;
+begin
+  if AElementStr[2] = '/' then
+    Result := epClosing
+  else
+    Result := epOpening;
+end;
+
 { TgdcStreamSaver }
 
 constructor TgdcStreamSaver.Create(ADatabase: TIBDatabase = nil; ATransaction: TIBTransaction = nil);
@@ -5735,6 +5969,7 @@ begin
   FTrWasActive := false;
   FTrWasCreated := false;
 
+  FSavingSettingData := False;
   FErrorMessageForSetting := '';
 
   if Assigned(ATransaction) then
@@ -5764,6 +5999,8 @@ begin
   AbortProcess := False;
   IsReadUserFromStream := False;
   SilentMode := False;
+  IsReplicationMode := False;
+  FStreamFormat := sttBinaryNew;
   if Assigned(GlobalStorage) then
     Self.StreamLogType := TgsStreamLoggingType(GlobalStorage.ReadInteger('Options', 'StreamLogType', 2));
 
@@ -5812,9 +6049,20 @@ begin
   FStreamDataProvider.CheckNonConfirmedRecords;
 
   //сохранить полученные данные в поток
-  case AFormat of
+  case FStreamFormat of
     sttBinaryNew: FStreamWriterReader := TgdcStreamBinaryWriterReader.Create(FDataObject, FStreamLoadingOrderList);
-    sttXML: FStreamWriterReader := TgdcStreamXMLWriterReader.Create(FDataObject, FStreamLoadingOrderList);
+    sttXML, sttXMLFormatted:
+    begin
+      FStreamWriterReader := TgdcStreamXMLWriterReader.Create(FDataObject, FStreamLoadingOrderList);
+      // Если сохраняются данные настройки
+      if FSavingSettingData then
+      begin
+        // Сделаем начальный отступ в строках XML файла, чтобы потом красиво выглядело в полной настройке
+        (FStreamWriterReader as TgdcStreamXMLWriterReader).ElementLevel := 2;
+        // Не будем вставлять заголовок XML файла
+        (FStreamWriterReader as TgdcStreamXMLWriterReader).DoInsertXMLHeader := False; 
+      end;
+    end;
   else
     FStreamWriterReader := TgdcStreamBinaryWriterReader.Create(FDataObject, FStreamLoadingOrderList);
   end;
@@ -6066,11 +6314,10 @@ begin
         ibsqlPos.Next;
       end;
 
-      if Assigned(GlobalStorage) and
-         (TStreamFileFormat(GlobalStorage.ReadInteger('Options', 'StreamSettingType', 0)) = ffXML) then
-        Self.SaveToStream(S, sttXML)
-      else
-        Self.SaveToStream(S, sttBinaryNew);
+      // Сохраним собранные данные в поток в выбранном формате
+      FSavingSettingData := True;
+      Self.SaveToStream(S, FStreamFormat);
+      FSavingSettingData := False;
 
       if Assigned(frmStreamSaver) then
         frmStreamSaver.Done;
@@ -6236,7 +6483,7 @@ begin
       begin
         if WasMetaData then
         begin
-          if not SilentMode then
+          if not (SilentMode or IsReplicationMode) then
             ReconnectDatabase;
         end;
 
@@ -6254,7 +6501,7 @@ begin
         if not Obj.Active then
           Obj.Open;
       except
-        if not SilentMode then
+        if not (SilentMode or IsReplicationMode) then
           ReconnectDatabase;
         if not Obj.Active then
           Obj.Open;
@@ -6270,7 +6517,7 @@ begin
           begin
             // удалим проблемный объект из очереди загрузки
             FStreamLoadingOrderList.Remove(OrderElement.RecordID);
-            if not SilentMode then
+            if not (SilentMode or IsReplicationMode) then
             begin
               if FTransaction.InTransaction then
                 FTransaction.Rollback;
@@ -6408,8 +6655,7 @@ begin
       ibsqlPos.ParamByName('settingkey').AsInteger := ASettingKey;
       ibsqlPos.ExecQuery;
 
-      if Assigned(GlobalStorage) and
-         (TStreamFileFormat(GlobalStorage.ReadInteger('Options', 'StreamSettingType', 0)) = ffXML) then
+      if FStreamFormat <> sttBinaryNew then
       begin
         while not ibsqlPos.Eof do
         begin
@@ -6421,6 +6667,7 @@ begin
 
         FStreamWriterReader := TgdcStreamXMLWriterReader.Create(FDataObject);
         try
+          (FStreamWriterReader as TgdcStreamXMLWriterReader).ElementLevel := 2;
           FStreamWriterReader.SaveStorageToStream(S);
         finally
           FStreamWriterReader.Free;
@@ -6703,12 +6950,22 @@ begin
   Result := SilentMode;
 end;
 
+procedure TgdcStreamSaver.SetReplicationMode(const Value: Boolean);
+begin
+  IsReplicationMode := Value;
+  if Assigned(frmSQLProcess) and not Assigned(frmStreamSaver) then
+    frmSQLProcess.Silent := Value;
+end;
+
+function TgdcStreamSaver.GetReplicationMode: Boolean;
+begin
+  Result := IsReplicationMode;
+end;
 
 procedure TgdcStreamSaver.SetReadUserFromStream(const Value: Boolean);
 begin
   IsReadUserFromStream := Value;
 end;
-
 
 function TgdcStreamSaver.GetReadUserFromStream: Boolean;
 begin
@@ -6720,7 +6977,7 @@ var
   FStreamWriterReader: TgdcStreamXMLWriterReader;
 begin
   if not Assigned(S) then
-    raise Exception.Create(GetGsException(Self, 'SaveToStream: Не установлен поток'));
+    raise Exception.Create(GetGsException(Self, 'SaveSettingToXMLFile: Не установлен поток'));
 
   FStreamWriterReader := TgdcStreamXMLWriterReader.Create(FDataObject, FStreamLoadingOrderList);
   try
@@ -6885,6 +7142,14 @@ end;
 procedure TgdcStreamSaver.SetSaveWithDetailList(const Value: TgdKeyArray);
 begin
   FStreamDataProvider.SaveWithDetailList := Value;
+end;
+
+procedure TgdcStreamSaver.SetStreamFormat(const Value: TgsStreamType);
+begin
+  if (Value >= Low(TgsStreamType)) and (Value <= High(TgsStreamType)) then
+    FStreamFormat := Value
+  else
+    raise Exception.Create(Format('Передан неизвестный тип потока (%d)', [Integer(Value)]));
 end;
 
 { TgdRPLDatabase }

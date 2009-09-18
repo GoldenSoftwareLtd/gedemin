@@ -44,7 +44,7 @@ type
 implementation
 
 uses
-  gdcStreamSaver;
+  gdcStreamSaver, gsStreamHelper;
 
 { TatSettingWalker }
 
@@ -85,7 +85,7 @@ begin
       PrSet := TgdcPropertySet.Create('', nil, '');
       try
 
-        if StreamType = sttXML then
+        if StreamType <> sttBinaryNew then
           StreamWriterReader := TgdcStreamXMLWriterReader.Create(StreamDataObject, StreamLoadingOrderList)
         else
           StreamWriterReader := TgdcStreamBinaryWriterReader.Create(StreamDataObject, StreamLoadingOrderList);
@@ -128,8 +128,8 @@ begin
         while Stream.Position < Stream.Size do
         begin
           Stream.ReadBuffer(I, SizeOf(I));
-          if I <> $55443322 then
-            raise Exception.Create('error');
+          if I <> cst_StreamLabel then
+            raise Exception.Create('Stream reading error');
 
           OldPos := Stream.Position;
           SetLength(stVersion, Length(cst_WithVersion));

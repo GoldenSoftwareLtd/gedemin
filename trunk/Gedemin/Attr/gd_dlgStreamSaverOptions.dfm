@@ -32,29 +32,45 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
         Left = 5
         Top = 2
         Width = 369
-        Height = 64
-        Caption = ' Использовать новый метод сохранения '
+        Height = 72
+        Caption = ' Формат файлов (по умолчанию)'
         TabOrder = 0
-        object chbxUseNewStream: TCheckBox
-          Left = 10
-          Top = 16
-          Width = 87
-          Height = 17
-          Caption = 'для файлов'
+        object lblDefaultFormat: TLabel
+          Left = 8
+          Top = 22
+          Width = 80
+          Height = 13
+          Caption = 'Файлы данных:'
+        end
+        object lblSettingFormat: TLabel
+          Left = 8
+          Top = 46
+          Width = 90
+          Height = 13
+          Caption = 'Файлы настроек:'
+        end
+        object cbDefaultFormat: TComboBox
+          Left = 112
+          Top = 18
+          Width = 250
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
           TabOrder = 0
         end
-        object chbxUseNewStreamForSetting: TCheckBox
-          Left = 10
-          Top = 38
-          Width = 95
-          Height = 17
-          Caption = 'для настроек'
+        object cbSettingFormat: TComboBox
+          Left = 112
+          Top = 42
+          Width = 250
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
           TabOrder = 1
         end
       end
       object rgReplaceRecordBehaviuor: TRadioGroup
         Left = 5
-        Top = 223
+        Top = 164
         Width = 369
         Height = 78
         Caption = ' При загрузке существующей записи '
@@ -67,7 +83,7 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
       end
       object rgLogType: TRadioGroup
         Left = 5
-        Top = 134
+        Top = 80
         Width = 369
         Height = 78
         Caption = ' Лог-файл '
@@ -76,28 +92,6 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
           'кратко'
           'подробно')
         TabOrder = 2
-      end
-      object rgStreamType: TRadioGroup
-        Left = 5
-        Top = 69
-        Width = 181
-        Height = 61
-        Caption = ' Формат файлов '
-        Items.Strings = (
-          'двоичный'
-          'XML')
-        TabOrder = 3
-      end
-      object rgSettingStreamType: TRadioGroup
-        Left = 193
-        Top = 69
-        Width = 181
-        Height = 61
-        Caption = ' Формат настроек '
-        Items.Strings = (
-          'двоичный'
-          'XML')
-        TabOrder = 4
       end
     end
     object tbsIncrement: TTabSheet
@@ -196,7 +190,6 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
     object actOK: TAction
       Caption = 'ОК'
       OnExecute = actOKExecute
-      OnUpdate = actOKUpdate
     end
     object actCancel: TAction
       Caption = 'Отмена'

@@ -5,7 +5,7 @@ interface
 uses
    gdcBase, gd_classlist, Classes, Forms, gd_createable_form, SysUtils, Controls, dialogs,
    db, gd_security, dbgrids, gdcBaseInterface, contnrs, gd_KeyAssoc, IBCustomDataSet,
-   StdCtrls, IBSQL, at_SettingWalker;
+   StdCtrls, IBSQL, at_SettingWalker, gsStreamHelper;
 
 {type
   TSettingError = record
@@ -82,7 +82,7 @@ type
     //Деактивация текущей настройки
     procedure DeactivateSetting;
     //Сохранение позиций настройки в соответсвующие блоб-поля
-    procedure SaveSettingToBlob(const InNewFormat: Boolean = true);
+    procedure SaveSettingToBlob(SettingFormat: TgsStreamType = sttUnknown);
     //переактивирует текущую настройку без предшедствующей деактивации
     procedure ReActivateSetting(BL: TBookmarkList);
     //Устанавливает сортировку для позиций настройки
@@ -98,6 +98,8 @@ type
     // Перед этим настройка должна быть сформирована (должен быть вызван SaveSetingToBlob,
     //  который обновит данные в шапке).
     procedure AddMissedPositions;
+
+    procedure GoToLastLoadedSetting;
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function NeedDeleteTheSame(const SubType: String): Boolean; override;
@@ -323,6 +325,8 @@ type
 var
 //Используется при добавлении мета-данных в настройку
   IsSynchTriggersAndIndices: Boolean = False;
+  // Будем запоминать ключ загруженной настройки, чтобы после загрузки перейти на нее
+  LastLoadedSettingKey: TID = -1;
 
 procedure Register;
 begin
@@ -800,22 +804,37 @@ procedure TgdcSetting.SaveToFile(const AFileName: String = ''; const ADetail: Tg
 var
   FN: String;
   FS: TFileStream;
+  BlobStream: TStream;
   StreamType: TgsStreamType;
   PackStream: TZCompressionStream;
   i: Integer;
   StreamSaver: TgdcStreamSaver;
 begin
-  StreamType := sttBinaryOld;
-  if Assigned(GlobalStorage) and GlobalStorage.ReadBoolean('Options', 'UseNewStreamForSetting', False) then
-    if TStreamFileFormat(GlobalStorage.ReadInteger('Options', 'StreamSettingType', 0)) = ffXML then
-      StreamType := sttXML
-    else
-      StreamType := sttBinaryNew;
+  // Получим формат сохраненных в блобе данных настройки
+  BlobStream := CreateBlobStream(FieldByName('Data'), bmRead);
+  try
+    StreamType := GetStreamType(BlobStream);
+  finally
+    FreeAndNil(BlobStream);
+  end;
+  // Если по данным не смогли определить формат настройки, попробуем по данным хранилища настройки
+  if StreamType = sttUnknown then
+  begin
+    BlobStream := CreateBlobStream(FieldByName('StorageData'), bmRead);
+    try
+      StreamType := GetStreamType(BlobStream);
+    finally
+      FreeAndNil(BlobStream);
+    end;
+  end;  
+  // Если и сейчас не смогли определить формат, значит настройка пуста, сохраним в старом бинарном формате
+  if StreamType = sttUnknown then
+    StreamType := sttBinaryOld;
 
   case StreamType of
     sttBinaryOld, sttBinaryNew:
       FN := QuerySaveFileName(AFileName, gsfExtension, gsfSaveDialogFilter);
-    sttXML:
+    sttXML, sttXMLFormatted:
       FN := QuerySaveFileName(AFileName, xmlExtension, xmlDialogFilter);
   end;
 
@@ -827,16 +846,18 @@ begin
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessCaptionText('Сохранение настройки в файл...');
 
-      if (StreamType = sttXML) or (StreamType = sttBinaryNew) then
+      if StreamType <> sttBinaryOld then
       begin
         StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
         try
           StreamSaver.ReadUserFromStream := Self.Silent;
           StreamSaver.Silent := Self.Silent;
+          StreamSaver.ReplicationMode := Self.Silent;
+          StreamSaver.StreamFormat := StreamType;
 
           StreamSaver.AddObject(Self, True);
 
-          if StreamType = sttXML then
+          if StreamType <> sttBinaryNew then
           begin
             StreamSaver.SaveSettingToXMLFile(FS);
           end
@@ -953,6 +974,7 @@ begin
       StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
       try
         StreamSaver.Silent := Self.Silent;
+        StreamSaver.ReplicationMode := Self.Silent;
         StreamSaver.ReadUserFromStream := Self.Silent;
         StreamSaver.LoadSettingFromXMLFile(FS);
       finally
@@ -987,6 +1009,7 @@ begin
                 StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
                 try
                   StreamSaver.Silent := Self.Silent;
+                  StreamSaver.ReplicationMode := Self.Silent;
                   StreamSaver.ReadUserFromStream := Self.Silent;
                   StreamSaver.LoadFromStream(MS);
                 finally
@@ -1081,7 +1104,7 @@ begin
   ActivateSetting(nil, BL);
 end;
 
-procedure TgdcSetting.SaveSettingToBlob(const InNewFormat: Boolean);
+procedure TgdcSetting.SaveSettingToBlob(SettingFormat: TgsStreamType = sttUnknown);
 var
   BlobStream: TStream;
   ibsqlPos: TIBQuery;
@@ -1105,8 +1128,6 @@ var
 
   WithDetailID: TID;
   StreamSaver: TgdcStreamSaver;
-  InNewFormatTemp: Boolean;
-  ActiveWindowHandle: HWND;
   StorageStream: TStream;
   PositionsCount: Integer;
 begin
@@ -1137,25 +1158,24 @@ begin
       FieldByName(GetListField(SubType)).AsString + '.', clBlack, True);
   end;
 
-  InNewFormatTemp := False;
-  if InNewFormat then
+  // Если не передан конкретный формат настройки, попробуем прочитать его из хранилища
+  if SettingFormat = sttUnknown then
+  begin
     if Assigned(GlobalStorage) then
-      InNewFormatTemp := GlobalStorage.ReadBoolean('Options', 'UseNewStreamForSetting', False)
-    else
-      if not Self.Silent then
+    begin
+      SettingFormat := TgsStreamType(GlobalStorage.ReadInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, -1));
+      if (SettingFormat < Low(TgsStreamType)) or (SettingFormat > High(TgsStreamType)) or (SettingFormat = sttUnknown) then
       begin
-        if Assigned(frmSQLProcess) then
-          ActiveWindowHandle := frmSQLProcess.Handle
-        else
-          ActiveWindowHandle := ParentHandle;
-
-        if MessageBox(ActiveWindowHandle, 'Сохранить в новом формате?',
-           'Внимание', MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
-          InNewFormatTemp := True;
+        SettingFormat := sttBinaryOld;
+        GlobalStorage.WriteInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, Integer(SettingFormat));
       end;
+    end
+    else
+      SettingFormat := sttBinaryOld;
+  end;
 
   // если в опциях установлено "Сохранять настройки в новом формате"
-  if InNewFormatTemp then
+  if SettingFormat <> sttBinaryOld then
   begin
 
     MS := TMemoryStream.Create;
@@ -1165,7 +1185,9 @@ begin
         StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
         try
           StreamSaver.Silent := Self.Silent;
+          StreamSaver.ReplicationMode := Self.Silent;
           StreamSaver.ReadUserFromStream := Self.Silent;
+          StreamSaver.StreamFormat := SettingFormat;
           StreamSaver.SaveSettingDataToStream(MS, FieldByName(GetKeyField(SubType)).AsInteger);
           StreamSaver.SaveSettingStorageToStream(StorageStream, FieldByName(GetKeyField(SubType)).AsInteger);
         finally
@@ -1216,8 +1238,8 @@ begin
       if not Self.Silent then
       begin
         Space;
-        AddText(TimeToStr(Time) + ': Закончено формирование настройки '+
-          FieldByName(GetListField(SubType)).AsString + '.'#13#10, clBlack, True);
+        AddText(TimeToStr(Time) + ': Закончено формирование настройки ' +
+          FieldByName(GetListField(SubType)).AsString, clBlack, True);
       end;
 
     finally
@@ -1659,6 +1681,10 @@ begin
   CheckSetting;
   inherited;
 
+  // Если объект загружается из потока, то запомним ключ загружаемой настройки
+  if sLoadFromStream in BaseState then
+    LastLoadedSettingKey := Self.ID;
+    
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSETTING', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2897,7 +2923,7 @@ begin
   try
     StreamType := GetStreamType(FS);
     // проверим формат настройки: архивная или XML
-    if StreamType <> sttXML then
+    if StreamType in [sttBinaryOld, sttBinaryNew] then
     begin
       FS.Read(i, SizeOf(i));
       if i = gsfID then
@@ -3521,6 +3547,7 @@ begin
           StreamSaver := TgdcStreamSaver.Create(gdcSetts.Database, gdcSetts.Transaction);
           try
             StreamSaver.Silent := gdcSetts.Silent;
+            StreamSaver.ReplicationMode := gdcSetts.Silent;
             StreamSaver.ReadUserFromStream := gdcSetts.Silent;
             StreamSaver.LoadFromStream(MS);
           finally
@@ -3543,6 +3570,7 @@ begin
       StreamSaver := TgdcStreamSaver.Create(gdcSetts.Database, gdcSetts.Transaction);
       try
         StreamSaver.Silent := gdcSetts.Silent;
+        StreamSaver.ReplicationMode := gdcSetts.Silent;
         StreamSaver.ReadUserFromStream := gdcSetts.Silent;
         StreamSaver.LoadSettingFromXMLFile(FS);
       finally
@@ -4401,6 +4429,7 @@ begin
               StreamSaver := TgdcStreamSaver.Create(InternalTransaction.DefaultDatabase, InternalTransaction);
               try
                 StreamSaver.Silent := DontHideForms;
+                StreamSaver.ReplicationMode := DontHideForms;
                 StreamSaver.ReadUserFromStream := DontHideForms;
                 StreamSaver.LoadSettingDataFromStream(DataStream, WasMetaDataInSetting, DontHideForms, AnAnswer);
                 StreamSaver.LoadSettingStorageFromStream(StorageStream, AnStAnswer);
@@ -5103,6 +5132,29 @@ begin
     if Tr.InTransaction then
       Tr.Rollback;
     Tr.Free;
+  end;
+end;
+
+procedure TgdcSetting.GoToLastLoadedSetting;
+var
+  OldObjectKey: TID;
+begin
+  if LastLoadedSettingKey > -1 then
+  begin
+    try
+      OldObjectKey := Self.ID;
+      try
+        // Попробуем перейти на загруженную настройку
+        Self.ID := LastLoadedSettingKey;
+      except
+        if OldObjectKey > 0 then
+          Self.ID := OldObjectKey
+        else
+          Self.First;
+      end;
+    finally
+      LastLoadedSettingKey := -1;
+    end;
   end;
 end;
 
