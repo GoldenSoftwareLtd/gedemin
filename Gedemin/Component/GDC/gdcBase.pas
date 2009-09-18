@@ -2099,7 +2099,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
   {$ENDIF}
-  , gdc_frmStreamSaver, gdcStreamSaver;
+  , gdc_frmStreamSaver, gdcStreamSaver, gsStreamHelper;
 
 const
   cst_sql_SelectRuidByID = 'SELECT * FROM gd_ruid WHERE id=:id';
@@ -13633,87 +13633,34 @@ end;
 
 procedure TgdcBase.LoadFromFile(const AFileName: String);
 var
-  S: TStream;
   FN: String;
-  StreamType: TgsStreamType;
+  frmStreamSaver: TForm;
 begin
   FN := QueryLoadFileName(AFileName);
   if (FN > '') then
   begin
-    // проверяем на версию потока
-    S := TFileStream.Create(FN, fmOpenRead);
-    try
-      StreamType := GetStreamType(S);
-    finally
-      S.Free;
-    end;
-    if StreamType <> sttBinaryOld then
-    begin
-      CreateStreamSaverForm;
-      frmStreamSaver.FileName := FN;
-      frmStreamSaver.SetParams(Self);
-      frmStreamSaver.ShowLoadForm;
-    end
-    else
-    begin
-      if MessageBox(0, PChar('Загрузить данные из файла ' + FN + ' ?'),
-        'Загрузка данных', MB_TASKMODAL or MB_ICONQUESTION or MB_YESNO) = IDYES
-      then
-      begin
-        S := TFileStream.Create(FN, fmOpenRead);
-        try
-          LoadFromStream(S);
-        finally
-          S.Free;
-        end;
-      end;
-    end;
+    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+    (frmStreamSaver as Tgdc_frmStreamSaver).FileName := FN;
+    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(Self);
+    (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadForm;
   end;
 end;
 
 procedure TgdcBase.SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
   const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
 var
-  S: TStream;
   FN: String;
-  startTick, diffTick: Cardinal;
-  InNewFormat: Boolean;
+  frmStreamSaver: TForm;
 begin
   if Assigned(BL) then
     BL.Refresh;
   FN := QuerySaveFileName(AFileName);
   if FN > '' then
   begin
-    if Assigned(GlobalStorage) then
-      InNewFormat := GlobalStorage.ReadBoolean('Options', 'UseNewStream', False)
-    else
-      if MessageBox(ParentHandle,
-          'Сохранить в новом формате?',
-          'Внимание',
-          MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
-        InNewFormat := False
-      else
-        InNewFormat := True;
-
-    if InNewFormat then
-    begin
-      CreateStreamSaverForm;
-      frmStreamSaver.FileName := FN;
-      frmStreamSaver.SetParams(Self, ADetail, BL, OnlyCurrent);
-      frmStreamSaver.ShowSaveForm;
-    end
-    else
-    begin
-      S := TFileStream.Create(FN, fmCreate);
-      try
-        startTick := GetTickCount;
-        SaveToStream(S, ADetail, BL, OnlyCurrent);
-        diffTick := GetTickCount - startTick;
-        AddText(FloatToStr(diffTick / 1000) + ' сек', clBlack, true);
-      finally
-        S.Free;
-      end;
-    end;
+    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+    (frmStreamSaver as Tgdc_frmStreamSaver).FileName := FN;
+    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(Self, ADetail, BL, OnlyCurrent);
+    (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
   end;
 end;
 

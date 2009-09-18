@@ -222,6 +222,8 @@ begin
 end;
 
 procedure Tgdc_frmSetting.actSetActiveExecute(Sender: TObject);
+var
+  frmStreamSaver: TForm;
 begin
   if Assigned(IBLogin) and (not IBLogin.IsIBUserAdmin) then
   begin
@@ -234,15 +236,15 @@ begin
 
   if not actSetActive.Checked then
   begin
-    CreateStreamSaverForm;
-    frmStreamSaver.SetParams(gdcObject, nil, GetMainBookmarkList);
-    frmStreamSaver.ShowActivateSettingForm;
+    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, nil, GetMainBookmarkList);
+    (frmStreamSaver as Tgdc_frmStreamSaver).ShowActivateSettingForm;
   end
   else
   begin
-    CreateStreamSaverForm;
-    frmStreamSaver.SetParams(gdcObject);
-    frmStreamSaver.ShowDeactivateSettingForm;
+    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
+    (frmStreamSaver as Tgdc_frmStreamSaver).ShowDeactivateSettingForm;
   end;
 end;
 
@@ -276,10 +278,12 @@ begin
 end;
 
 procedure Tgdc_frmSetting.actSaveToBlobExecute(Sender: TObject);
+var
+  frmStreamSaver: TForm;
 begin
-  CreateStreamSaverForm;
-  frmStreamSaver.SetParams(gdcObject);
-  frmStreamSaver.ShowMakeSettingForm;
+  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+  (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
+  (frmStreamSaver as Tgdc_frmStreamSaver).ShowMakeSettingForm;
   // ѕереоткроем детальный датасет, т.к. могли быть добавлены скрытые позиции
   gdcDetailObject.CloseOpen;
 end;
@@ -291,10 +295,12 @@ begin
 end;
 
 procedure Tgdc_frmSetting.actSaveToFileExecute(Sender: TObject);
+var
+  frmStreamSaver: TForm;
 begin
-  CreateStreamSaverForm;
-  frmStreamSaver.SetParams(gdcObject, gdcDetailObject, GetMainBookmarkList);
-  frmStreamSaver.ShowSaveSettingForm;
+  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+  (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, gdcDetailObject, GetMainBookmarkList);
+  (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveSettingForm;
 end;
 
 procedure Tgdc_frmSetting.actStorageDeleteExecute(Sender: TObject);
@@ -557,10 +563,12 @@ begin
 end;
 
 procedure Tgdc_frmSetting.actReActivateExecute(Sender: TObject);
+var
+  frmStreamSaver: TForm;
 begin
-  CreateStreamSaverForm;
-  frmStreamSaver.SetParams(gdcObject, nil, GetMainBookmarkList);
-  frmStreamSaver.ShowReactivateSettingForm;
+  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+  (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, nil, GetMainBookmarkList);
+  (frmStreamSaver as Tgdc_frmStreamSaver).ShowReactivateSettingForm;
 end;
 
 procedure Tgdc_frmSetting.actValidPosUpdate(Sender: TObject);
@@ -705,39 +713,21 @@ end;
 
 procedure Tgdc_frmSetting.actLoadFromFileExecute(Sender: TObject);
 var
-  ibsql: TIBSQL;
   FN: String;
+  frmStreamSaver: TForm;
 begin
   FN := gdcObject.QueryLoadFileName('', gsfExtension, gsfxmlDialogFilter);
   if FN > '' then
   begin
-    CreateStreamSaverForm;
-    frmStreamSaver.FileName := FN;
-    frmStreamSaver.SetParams(gdcObject);
-    frmStreamSaver.ShowLoadSettingForm;
+    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+    (frmStreamSaver as Tgdc_frmStreamSaver).FileName := FN;
+    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
+    (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadSettingForm;
 
     if Assigned(gdcObject) and gdcObject.Active then
     begin
       gdcObject.CloseOpen;
-
-      ibsql := TIBSQL.Create(Self);
-      try
-        ibsql.Transaction := gdcObject.ReadTransaction;
-        // ѕредыдуща€ верси€ настройки удал€етс€ перед загрузкой,
-        //  так что загруженна€ настройка всегда будет иметь макс. ID
-        ibsql.SQL.Text := 'SELECT MAX(id) FROM at_setting';
-        ibsql.ExecQuery;
-        if ibsql.RecordCount > 0 then
-        begin
-          try
-            gdcObject.ID := ibsql.Fields[0].AsInteger;
-          except
-            gdcObject.First;
-          end;
-        end;
-      finally
-        ibsql.Free;
-      end;
+      (gdcObject as TgdcSetting).GoToLastLoadedSetting;
     end;
   end;
 end;

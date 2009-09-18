@@ -85,7 +85,9 @@ type
     procedure SetUseEntryBalance(const Value: Boolean);
 
     { Уменьшает длину текста запроса путем удаления лишних пробелов и отступов }
+    {$IFNDEF DEBUG}
     procedure PackSQL(const S: TStrings);
+    {$ENDIF}
   protected
     // временные переменные для подсчета времени выполнения
     FAllTickCount: Cardinal;
@@ -1154,6 +1156,7 @@ begin
   Result := 'TBaseAcctConfigClass';
 end;
 
+{$IFNDEF DEBUG}
 procedure TgdvAcctBase.PackSQL(const S: TStrings);
 var
   I, J: Integer;
@@ -1198,6 +1201,7 @@ begin
     end;
   end;
 end;
+{$ENDIF}
 
 { TgdvFieldInfo }
 

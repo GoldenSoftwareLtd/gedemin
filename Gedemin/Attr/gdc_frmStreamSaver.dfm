@@ -110,7 +110,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       Top = 41
       Width = 506
       Height = 289
-      ActivePage = tbsFirst
+      ActivePage = tbsSetting
       Align = alClient
       TabOrder = 1
       object tbsFirst: TTabSheet
@@ -168,15 +168,6 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
             ReadOnly = True
             TabOrder = 0
           end
-          object eFileType: TEdit
-            Left = 116
-            Top = 42
-            Width = 222
-            Height = 21
-            AutoSize = False
-            ReadOnly = True
-            TabOrder = 1
-          end
           object eLoadingSourceBase: TEdit
             Left = 116
             Top = 90
@@ -184,7 +175,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
             Height = 21
             AutoSize = False
             ReadOnly = True
-            TabOrder = 2
+            TabOrder = 1
           end
           object eLoadingTargetBase: TEdit
             Left = 116
@@ -193,15 +184,23 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
             Height = 21
             AutoSize = False
             ReadOnly = True
-            TabOrder = 3
+            TabOrder = 2
           end
-          object eIncremented: TEdit
+          object cbStreamFormat: TComboBox
             Left = 116
-            Top = 66
+            Top = 42
             Width = 222
             Height = 21
-            AutoSize = False
-            ReadOnly = True
+            Style = csDropDownList
+            ItemHeight = 0
+            TabOrder = 3
+            OnChange = cbStreamFormatChange
+          end
+          object cbIncremented: TCheckBox
+            Left = 116
+            Top = 68
+            Width = 221
+            Height = 17
             TabOrder = 4
           end
         end
@@ -366,6 +365,14 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Visible = False
           WordWrap = True
         end
+        object lblSettingFormat: TLabel
+          Left = 6
+          Top = 126
+          Width = 101
+          Height = 13
+          Caption = 'Формат настройки:'
+          Visible = False
+        end
         object cbMakeSetting: TCheckBox
           Left = 6
           Top = 90
@@ -376,6 +383,18 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           State = cbChecked
           TabOrder = 0
           Visible = False
+          OnClick = cbMakeSettingClick
+        end
+        object cbSettingFormat: TComboBox
+          Left = 116
+          Top = 122
+          Width = 222
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 1
+          Visible = False
+          OnChange = cbSettingFormatChange
         end
       end
     end

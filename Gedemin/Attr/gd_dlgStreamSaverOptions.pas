@@ -16,8 +16,6 @@ type
     tbsMain: TTabSheet;
     tbsIncrement: TTabSheet;
     gbUseNewStream: TGroupBox;
-    chbxUseNewStream: TCheckBox;
-    chbxUseNewStreamForSetting: TCheckBox;
     rgReplaceRecordBehaviuor: TRadioGroup;
     ActionList1: TActionList;
     actClearRPLRecords: TAction;
@@ -31,15 +29,16 @@ type
     rgLogType: TRadioGroup;
     btnCreateDatabaseFile: TButton;
     btnClearRPLRecords: TButton;
-    rgStreamType: TRadioGroup;
-    rgSettingStreamType: TRadioGroup;
+    cbDefaultFormat: TComboBox;
+    cbSettingFormat: TComboBox;
+    lblDefaultFormat: TLabel;
+    lblSettingFormat: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure actClearRPLRecordsExecute(Sender: TObject);
     procedure actOKExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure chbxUseIncrementSavingClick(Sender: TObject);
-    procedure actOKUpdate(Sender: TObject);
   private
     frameDatabases: TfrmIncrDatabaseList;
   public
@@ -52,7 +51,8 @@ var
 implementation
 
 uses
-  Storages, gd_security, at_classes, gdcBaseInterface, IBDatabase, IBSQL;
+  Storages, gd_security, at_classes, gdcBaseInterface, IBDatabase, IBSQL,
+  gsStreamHelper;
 
 {$R *.DFM}
 
@@ -64,14 +64,22 @@ begin
 end;
 
 procedure TdlgStreamSaverOptions.FormCreate(Sender: TObject);
+var
+  I: Integer;
 begin
+  // Заполнение выпадающих списков
+  for I := 0 to STREAM_FORMAT_COUNT - 1 do
+  begin
+    cbDefaultFormat.Items.Add(STREAM_FORMATS[I]);
+    cbSettingFormat.Items.Add(STREAM_FORMATS[I]);
+  end;
+
   if Assigned(GlobalStorage) then
     with GlobalStorage do
     begin
-      chbxUseNewStream.Checked := ReadBoolean('Options', 'UseNewStream', False);
-      chbxUseNewStreamForSetting.Checked := ReadBoolean('Options', 'UseNewStreamForSetting', False);
-      rgStreamType.ItemIndex := ReadInteger('Options', 'StreamType', 0);
-      rgSettingStreamType.ItemIndex := ReadInteger('Options', 'StreamSettingType', 0);
+      cbDefaultFormat.ItemIndex := ReadInteger('Options', STORAGE_VALUE_STREAM_DEFAULT_FORMAT, Integer(sttBinaryOld)) - 1;
+      cbSettingFormat.ItemIndex := ReadInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, Integer(sttBinaryOld)) - 1;
+
       rgReplaceRecordBehaviuor.ItemIndex := ReadInteger('Options', 'StreamReplaceRecordBehaviuor', 0);
       rgLogType.ItemIndex := ReadInteger('Options', 'StreamLogType', 2);
       chbxUseIncrementSaving.Checked := ReadBoolean('Options', 'UseIncrementSaving', False);
@@ -160,10 +168,15 @@ begin
   if Assigned(GlobalStorage) then
     with GlobalStorage do
     begin
-      WriteBoolean('Options', 'UseNewStream', chbxUseNewStream.Checked);
-      WriteBoolean('Options', 'UseNewStreamForSetting', chbxUseNewStreamForSetting.Checked);
-      WriteInteger('Options', 'StreamType', rgStreamType.ItemIndex);
-      WriteInteger('Options', 'StreamSettingType', rgSettingStreamType.ItemIndex);
+      if cbDefaultFormat.ItemIndex > -1 then
+        WriteInteger('Options', STORAGE_VALUE_STREAM_DEFAULT_FORMAT, cbDefaultFormat.ItemIndex + 1)
+      else
+        WriteInteger('Options', STORAGE_VALUE_STREAM_DEFAULT_FORMAT, Integer(sttBinaryOld));
+      if cbSettingFormat.ItemIndex > -1 then
+        WriteInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, cbSettingFormat.ItemIndex + 1)
+      else
+        WriteInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, Integer(sttBinaryOld));
+
       WriteInteger('Options', 'StreamReplaceRecordBehaviuor', rgReplaceRecordBehaviuor.ItemIndex);
       WriteInteger('Options', 'StreamLogType', rgLogType.ItemIndex);
       WriteBoolean('Options', 'UseIncrementSaving', chbxUseIncrementSaving.Checked);
@@ -190,12 +203,6 @@ begin
   pnlSSDatabases.Enabled := chbxUseIncrementSaving.Checked;
   actClearRPLRecords.Enabled := chbxUseIncrementSaving.Checked;
   actCreateDatabaseFile.Enabled := chbxUseIncrementSaving.Checked;
-end;
-
-procedure TdlgStreamSaverOptions.actOKUpdate(Sender: TObject);
-begin
-  rgStreamType.Enabled := chbxUseNewStream.Checked;
-  rgSettingStreamType.Enabled := chbxUseNewStreamForSetting.Checked;
 end;
 
 initialization
