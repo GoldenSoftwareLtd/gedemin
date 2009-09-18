@@ -1057,13 +1057,15 @@ begin
       ' z.DESCRIPTION, ' +
       ' z.DISABLED, ' +
       ' z.RESERVED, ' +
-      ' z.CREATIONDATE, ' +
-      ' z.CREATORKEY, ' +
-      ' z.EDITIONDATE, ' +
-      ' z.EDITORKEY, ' +
       ' z.AFULL, ' +
       ' z.ACHAG, ' +
       ' z.AVIEW ';
+
+  // Проверим, добавлены ли уже модифаем эти поля
+  if tiCreationInfo in gdcTableInfos then
+    Result := Result + ', Z.CREATORKEY, Z.CREATIONDATE ';
+  if tiEditionInfo in gdcTableInfos then
+    Result := Result + ', Z.EDITORKEY, Z.EDITIONDATE ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGOODGROUP', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1320,8 +1322,6 @@ begin
     ' z.RESERVED, ' +
     ' z.DISCIPLINE, ' +
     ' z.DISABLED, ' +
-    ' z.CREATIONDATE, ' +
-    ' z.CREATORKEY, ' +
     ' z.EDITIONDATE, ' +
     ' z.EDITORKEY, ' +
     ' z.AFULL, ' +
@@ -1329,6 +1329,10 @@ begin
     ' z.AVIEW, ' +
     ' T.NAME AS TNVD, ' +
     ' V.NAME AS VALUENAME ';
+
+  // Проверим, добавлены ли уже модифаем эти поля
+  if tiCreationInfo in gdcTableInfos then
+    Result := Result + ', Z.CREATORKEY, Z.CREATIONDATE ';  
     
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGOOD', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally

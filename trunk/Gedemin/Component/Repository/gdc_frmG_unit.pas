@@ -1169,7 +1169,7 @@ begin
     PN.Width := W;
   end;
 
-  if Assigned(F) and F.CanFocus then
+  if Assigned(F) and F.CanFocus and (GetParentForm(F) = Self) then
     ActiveControl := F;
 end;
 
