@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 464
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsQuery
+      ActivePage = tsResult
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -435,7 +435,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object tbResult: TTBToolbar
             Left = 120
             Top = 0
-            Width = 98
+            Width = 127
             Height = 22
             Caption = 'tbResult'
             Images = dmImages.il16x16
@@ -447,6 +447,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Action = actDeleteBusinessObject
             end
             object TBSeparatorItem16: TTBSeparatorItem
+            end
+            object TBItem28: TTBItem
+              Action = actShowViewForm
+            end
+            object TBSeparatorItem17: TTBSeparatorItem
             end
             object TBItem26: TTBItem
               Action = actShowGrid
@@ -1398,6 +1403,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 176
       OnExecute = actShowRecordExecute
       OnUpdate = actShowGridUpdate
+    end
+    object actShowViewForm: TAction
+      Category = 'Result'
+      Caption = 'actShowViewForm'
+      Hint = 'Открыть форму просмотра'
+      ImageIndex = 210
+      OnExecute = actShowViewFormExecute
+      OnUpdate = actShowViewFormUpdate
     end
   end
   object ibsqlPlan: TIBSQL
