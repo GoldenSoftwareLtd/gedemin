@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, ExtCtrls, Db, DBClient, TB2Item, ActnList, TB2Dock,
-  TB2Toolbar, SynEdit, gdcStreamSaver;
+  TB2Toolbar, SynEdit, gdcStreamSaver, gsStreamHelper;
 
 type
   Tfrm_SettingView = class(TForm)
@@ -48,8 +48,8 @@ type
     FSelectionPos: Integer;
 
     procedure DoFind;
-    function ConvertBinaryToHex(const AStr: String): String;
-    function ByteToHex(const B: Byte): String;
+    {function ConvertBinaryToHex(const AStr: String): String;}
+    {function ByteToHex(const B: Byte): String;}
 
     procedure ReadSettingOldStream(Stream: TStream);
     procedure ReadSettingNewStream(Stream: TStream; const StreamType: TgsStreamType);
@@ -134,7 +134,7 @@ begin
   StreamDataObject := TgdcStreamDataObject.Create;
   StreamLoadingOrderList := TgdcStreamLoadingOrderList.Create;
   try
-    if StreamType = sttXML then
+    if StreamType <> sttBinaryNew then
       StreamWriterReader := TgdcStreamXMLWriterReader.Create(StreamDataObject, StreamLoadingOrderList)
     else
       StreamWriterReader := TgdcStreamBinaryWriterReader.Create(StreamDataObject, StreamLoadingOrderList);
@@ -431,7 +431,7 @@ begin
   end;
 end;
 
-function Tfrm_SettingView.ConvertBinaryToHex(const AStr: String): String;
+{function Tfrm_SettingView.ConvertBinaryToHex(const AStr: String): String;
 var
   CharCounter: Integer;
   Size: Integer;
@@ -458,12 +458,12 @@ begin
   finally
     FreeMem(B, Size);
   end;
-end;
+end;}
 
-function Tfrm_SettingView.ByteToHex(const B: Byte): String;
+{function Tfrm_SettingView.ByteToHex(const B: Byte): String;
 begin
   Result := HexDigits[B div 16] + HexDigits[B mod 16];
-end;
+end;}
 
 function Tfrm_SettingView.FormatDatasetFieldValue(AField: TField): String;
 begin
@@ -475,7 +475,8 @@ begin
       Result := #13#10#13#10 + AField.AsString + #13#10;
 
     ftBLOB, ftGraphic:
-      Result := #13#10 + ConvertBinaryToHex(AField.AsString);
+      //Result := #13#10 + ConvertBinaryToHex(AField.AsString);
+      Result := '<BLOB> Size: ' + IntToStr(Length(AField.AsString));
   else
     Result := AField.AsString;
   end;

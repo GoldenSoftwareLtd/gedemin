@@ -1160,19 +1160,7 @@ begin
 
   // Если не передан конкретный формат настройки, попробуем прочитать его из хранилища
   if SettingFormat = sttUnknown then
-  begin
-    if Assigned(GlobalStorage) then
-    begin
-      SettingFormat := TgsStreamType(GlobalStorage.ReadInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, -1));
-      if (SettingFormat < Low(TgsStreamType)) or (SettingFormat > High(TgsStreamType)) or (SettingFormat = sttUnknown) then
-      begin
-        SettingFormat := sttBinaryOld;
-        GlobalStorage.WriteInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, Integer(SettingFormat));
-      end;
-    end
-    else
-      SettingFormat := sttBinaryOld;
-  end;
+    SettingFormat := GetDefaultStreamFormat(True);
 
   // если в опциях установлено "Сохранять настройки в новом формате"
   if SettingFormat <> sttBinaryOld then

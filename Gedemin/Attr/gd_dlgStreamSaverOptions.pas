@@ -77,8 +77,8 @@ begin
   if Assigned(GlobalStorage) then
     with GlobalStorage do
     begin
-      cbDefaultFormat.ItemIndex := ReadInteger('Options', STORAGE_VALUE_STREAM_DEFAULT_FORMAT, Integer(sttBinaryOld)) - 1;
-      cbSettingFormat.ItemIndex := ReadInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, Integer(sttBinaryOld)) - 1;
+      cbDefaultFormat.ItemIndex := Integer(GetDefaultStreamFormat(False)) - 1;
+      cbSettingFormat.ItemIndex := Integer(GetDefaultStreamFormat(True)) - 1;
 
       rgReplaceRecordBehaviuor.ItemIndex := ReadInteger('Options', 'StreamReplaceRecordBehaviuor', 0);
       rgLogType.ItemIndex := ReadInteger('Options', 'StreamLogType', 2);

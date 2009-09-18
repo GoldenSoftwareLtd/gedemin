@@ -1079,8 +1079,8 @@ begin
   if Assigned(GlobalStorage) then
     with GlobalStorage do
     begin
-      FStreamFormat := TgsStreamType(ReadInteger('Options', STORAGE_VALUE_STREAM_DEFAULT_FORMAT, Integer(sttBinaryOld)));
-      FStreamSettingFormat := TgsStreamType(ReadInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, Integer(sttBinaryOld)));
+      FStreamFormat := GetDefaultStreamFormat(False);
+      FStreamSettingFormat := GetDefaultStreamFormat(True);
       cbStreamFormat.ItemIndex := Integer(FStreamFormat) - 1;
       cbSettingFormat.ItemIndex := Integer(FStreamSettingFormat) - 1;
 
