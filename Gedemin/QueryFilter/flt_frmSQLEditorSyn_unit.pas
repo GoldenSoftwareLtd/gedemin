@@ -225,6 +225,9 @@ type
     TBItem27: TTBItem;
     sbRecord: TScrollBox;
     pnlTest: TPanel;
+    actShowViewForm: TAction;
+    TBSeparatorItem17: TTBSeparatorItem;
+    TBItem28: TTBItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -282,6 +285,8 @@ type
     procedure seQueryChange(Sender: TObject);
     procedure pnlTestResize(Sender: TObject);
     procedure actRefreshMonitorUpdate(Sender: TObject);
+    procedure actShowViewFormUpdate(Sender: TObject);
+    procedure actShowViewFormExecute(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -1320,42 +1325,50 @@ begin
       begin
         Obj := C.gdClass.CreateSubType(Application, C.SubType, 'ByID');
         try
-          R := atDatabase.Relations.ByRelationName(RN);
-          if (R <> nil)
-            and (R.PrimaryKey <> nil)
-            and (R.PrimaryKey.ConstraintFields.Count = 1) then
+          if ibqryWork.IsEmpty then
           begin
-            FN := R.PrimaryKey.ConstraintFields[0].FieldName;
+            Obj.Open;
+            Result := Obj;
+            Obj := nil;
           end else
-            FN := 'id';
-
-          Org := '"' + RN + '"."' + FN + '"';
-
-          for I := 0 to ibqryWork.Fields.Count - 1 do
           begin
-            if (AnsiCompareText(ibqryWork.Fields[I].Origin, Org) = 0) and
-              (ibqryWork.Fields[I] is TIntegerField) then
+            R := atDatabase.Relations.ByRelationName(RN);
+            if (R <> nil)
+              and (R.PrimaryKey <> nil)
+              and (R.PrimaryKey.ConstraintFields.Count = 1) then
             begin
-              Obj.ID := ibqryWork.Fields[I].AsInteger;
-              Obj.Open;
-              if not Obj.EOF then
-              begin
-                C := Obj.GetCurrRecordClass;
-                if (C.gdClass <> nil) and
-                  ((Obj.ClassType <> C.gdClass) or (Obj.SubType <> C.SubType)) then
-                begin
-                  Obj.Free;
-                  Obj := C.gdClass.CreateSubType(Application, C.SubType, 'ByID');
-                  Obj.ID := ibqryWork.Fields[I].AsInteger;
-                  Obj.Open;
-                  if Obj.EOF then
-                    FreeAndNil(Obj);
-                end;
+              FN := R.PrimaryKey.ConstraintFields[0].FieldName;
+            end else
+              FN := 'id';
 
-                Result := Obj;
-                Obj := nil;
+            Org := '"' + RN + '"."' + FN + '"';
+
+            for I := 0 to ibqryWork.Fields.Count - 1 do
+            begin
+              if (AnsiCompareText(ibqryWork.Fields[I].Origin, Org) = 0) and
+                (ibqryWork.Fields[I] is TIntegerField) then
+              begin
+                Obj.ID := ibqryWork.Fields[I].AsInteger;
+                Obj.Open;
+                if not Obj.EOF then
+                begin
+                  C := Obj.GetCurrRecordClass;
+                  if (C.gdClass <> nil) and
+                    ((Obj.ClassType <> C.gdClass) or (Obj.SubType <> C.SubType)) then
+                  begin
+                    Obj.Free;
+                    Obj := C.gdClass.CreateSubType(Application, C.SubType, 'ByID');
+                    Obj.ID := ibqryWork.Fields[I].AsInteger;
+                    Obj.Open;
+                    if Obj.EOF then
+                      FreeAndNil(Obj);
+                  end;
+
+                  Result := Obj;
+                  Obj := nil;
+                end;
+                break;
               end;
-              break;
             end;
           end;
         finally
@@ -1499,13 +1512,13 @@ begin
   end;
 {$ELSE}
 begin
-{$ENDIF}  
+{$ENDIF}
 end;
 
 procedure TfrmSQLEditorSyn.actEditBusinessObjectUpdate(Sender: TObject);
 begin
-  actEditBusinessObject.Enabled := ibqryWork.Active and
-    (not ibqryWork.IsEmpty);
+  actEditBusinessObject.Enabled := ibqryWork.Active {and
+    (not ibqryWork.IsEmpty)};
 end;
 
 procedure TfrmSQLEditorSyn.dbgResultDblClick(Sender: TObject);
@@ -1944,6 +1957,28 @@ end;
 procedure TfrmSQLEditorSyn.actRefreshMonitorUpdate(Sender: TObject);
 begin
   actRefreshMonitor.Enabled := ibtrMonitor.DefaultDatabase <> nil;
+end;
+
+procedure TfrmSQLEditorSyn.actShowViewFormUpdate(Sender: TObject);
+begin
+  actShowViewForm.Enabled := ibqryWork.Active;
+end;
+
+procedure TfrmSQLEditorSyn.actShowViewFormExecute(Sender: TObject);
+{$IFDEF GEDEMIN}
+var
+  Obj: TgdcBase;
+begin
+  Obj := CreateBusinessObject;
+  try
+    if Obj <> nil then
+      Obj.CreateViewForm(Application.MainForm, '', '', True).ShowModal;
+  finally
+    Obj.Free;
+  end;
+{$ELSE}
+begin
+{$ENDIF}
 end;
 
 initialization
