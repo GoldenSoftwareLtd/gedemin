@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 464
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsResult
+      ActivePage = tsQuery
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -1099,7 +1099,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         end
         object TBItem16: TTBItem
           Action = actParse
-          ImageIndex = 181
         end
         object TBSeparatorItem1: TTBSeparatorItem
         end
@@ -1141,6 +1140,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         end
         object TBControlItem1: TTBControlItem
           Control = iblkupTable
+        end
+        object TBItem29: TTBItem
+          Action = actMakeSelect
         end
         object Label13: TLabel
           Left = 370
@@ -1364,7 +1366,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     end
     object actParse: TAction
       Caption = 'Разобрать запрос'
-      ImageIndex = 265
+      ImageIndex = 181
       OnExecute = actParseExecute
       OnUpdate = actParseUpdate
     end
@@ -1411,6 +1413,13 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 210
       OnExecute = actShowViewFormExecute
       OnUpdate = actShowViewFormUpdate
+    end
+    object actMakeSelect: TAction
+      Caption = 'Создать запрос для таблицы'
+      Hint = 'Создать запрос для выбранной таблицы'
+      ImageIndex = 251
+      OnExecute = actMakeSelectExecute
+      OnUpdate = actMakeSelectUpdate
     end
   end
   object ibsqlPlan: TIBSQL

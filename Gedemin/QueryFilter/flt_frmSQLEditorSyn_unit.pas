@@ -228,6 +228,8 @@ type
     actShowViewForm: TAction;
     TBSeparatorItem17: TTBSeparatorItem;
     TBItem28: TTBItem;
+    actMakeSelect: TAction;
+    TBItem29: TTBItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -287,6 +289,8 @@ type
     procedure actRefreshMonitorUpdate(Sender: TObject);
     procedure actShowViewFormUpdate(Sender: TObject);
     procedure actShowViewFormExecute(Sender: TObject);
+    procedure actMakeSelectUpdate(Sender: TObject);
+    procedure actMakeSelectExecute(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -1987,6 +1991,17 @@ begin
 {$ELSE}
 begin
 {$ENDIF}
+end;
+
+procedure TfrmSQLEditorSyn.actMakeSelectUpdate(Sender: TObject);
+begin
+  actMakeSelect.Enabled := iblkupTable.CurrentKey > '';
+end;
+
+procedure TfrmSQLEditorSyn.actMakeSelectExecute(Sender: TObject);
+begin
+  seQuery.Text := 'SELECT * FROM ' + iblkupTable.Text + ' WHERE 1=1';
+  seQuery.Show;
 end;
 
 initialization
