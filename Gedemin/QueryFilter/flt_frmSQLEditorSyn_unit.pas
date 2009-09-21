@@ -1968,11 +1968,19 @@ procedure TfrmSQLEditorSyn.actShowViewFormExecute(Sender: TObject);
 {$IFDEF GEDEMIN}
 var
   Obj: TgdcBase;
+  F: TCustomForm;
 begin
   Obj := CreateBusinessObject;
   try
     if Obj <> nil then
-      Obj.CreateViewForm(Application.MainForm, '', '', True).ShowModal;
+    begin
+      F := Obj.CreateViewForm(Application.MainForm, '', Obj.SubType, True);
+      if F <> nil then
+      begin
+        F.ShowModal;
+        F.Free;
+      end;
+    end;
   finally
     Obj.Free;
   end;
