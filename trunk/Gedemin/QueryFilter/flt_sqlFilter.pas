@@ -1380,9 +1380,14 @@ begin
   FullFltName := GetFilterPath;
   FltName := Copy(Name, 1, FIndexFieldLength);
 
-  if Assigned(FltComponentCache) then
+  if Assigned(Owner) then
+    OldOwnerForm := Copy(Owner.Name, 1, FIndexFieldLength)
+  else
+    OldOwnerForm := '';
+
+  if (Assigned(FltComponentCache)) and (FltComponentCache.Count > 0) then
   begin
-    I := FltComponentCache.IndexOf(GetCRC32(FullFltName));
+    I := FltComponentCache.IndexOf(GetCRC32(FullFltName + OldOwnerForm));
     if I >= 0 then
     begin
       FComponentKey := FltComponentCache.ValuesByIndex[I];
@@ -1390,11 +1395,6 @@ begin
       exit;
     end;
   end;
-
-  if Assigned(Owner) then
-    OldOwnerForm := Copy(Owner.Name, 1, FIndexFieldLength)
-  else
-    OldOwnerForm := '';
 
   DidActivate := False;
   ibsqlComp := TIBSQL.Create(Self);
@@ -1410,9 +1410,10 @@ begin
     ibsqlComp.Transaction := Transaction;
     {$ENDIF}
     ibsqlComp.SQL.Text := 'SELECT id FROM flt_componentfilter WHERE crc = :crc and ' +
-      ' fullname = :fullname';
+      ' fullname = :fullname and formname = :fname  ';
     ibsqlComp.ParamByName('crc').AsInteger := GetCRC32(FullFltName);
     ibsqlComp.ParamByName('fullname').AsString := FullFltName;
+    ibsqlComp.ParamByName('fname').AsString := OldOwnerForm;
     ibsqlComp.ExecQuery;
 
     if not ibsqlComp.Eof  then
@@ -1493,7 +1494,7 @@ begin
     if Assigned(FltComponentCache) and (FComponentKey > 0) then
     begin
       FltComponentCache.ValuesByIndex[
-        FltComponentCache.Add(GetCRC32(FullFltName))] := FComponentKey;
+        FltComponentCache.Add(GetCRC32(FullFltName + OldOwnerForm))] := FComponentKey;
     end;
   finally
     FIsCompKey := True;
@@ -1614,27 +1615,13 @@ begin
   // Если датасет фильтруется на клиенте, то определяем каждый раз
   if FIBDataSet.Filtered then
   begin
-    OldRecNo := FIBDataSet.RecNo;
-    FIBDataSet.DisableControls;
-    try
-      FRecordCount := 0;
-      FIBDataSet.First;
-      while not FIBDataSet.Eof do
-      begin
-        Inc(FRecordCount);
-
-        FIBDataSet.Next;
-      end;
-      Result := FRecordCount;
-    finally
-      // Восстанавливаем значение курсора
-      FRecordCount := -1;
-      FIBDataSet.RecNo := OldRecNo;
-      FIBDataSet.EnableControls;
-    end;
+    // FetchAll делает всё что было тут написано
+    // даже немного быстрее
+    FIBDataSet.FetchAll;
+    Result := FIBDataSet.RecordCount;
+    FRecordCount := -1;
     Exit;
   end;
-
 
   // Если количество записей не определено
   if FRecordCount = -1 then
@@ -1671,93 +1658,112 @@ begin
       ibsqlCount.Database := FIBDataSet.Database;
       ibsqlCount.Transaction := Tr;
 
-      ParamList := TStringList.Create;
-      try
-        with ibsqlCount, TIBCustomDataSetCracker(FIBDataSet) do
-        begin
-          SQL.Text := 'SELECT COUNT(*)';
-          SQL.Add(ExtractSQLFrom(SelectSQL.Text));
-          SQL.Add(ExtractSQLWhere(SelectSQL.Text));
-          SQL.Add(ExtractSQLOther(SelectSQL.Text));
-          //SQL.Add(ExtractSQLOrderBy(SelectSQL.Text));
-        end;
-
-        with TIBCustomDataSetCracker(FIBDataSet) do
-        begin
-          for I := 0 to Params.Count - 1 do
-          begin
-            if (ParamList.IndexOfName(Params[I].Name) = -1) and (not Params[I].IsNull) then
-            begin
-              New(V);
-              V^ := Params[I].AsVariant;
-              ParamList.AddObject(Params[I].Name + '=' + Params[I].AsString, Pointer(V));
-            end;
-          end;
-        end;
-
-        // мы не можем использовать ПарамБайНэйм, а вынуждены
-        // сканировать список параметров так как некоторые параметры
-        // могли присутствовать в части СЕЛЕКТ, которую мы заменили
-        for I := 0 to ParamList.Count - 1 do
-        begin
-          for J := 0 to ibsqlCount.Params.Count - 1 do
-          begin
-            if AnsiCompareText(ParamList.Names[I], ibsqlCount.Params[J].Name) = 0 then
-            begin
-              ibsqlCount.Params[J].AsVariant := PVariant(ParamList.Objects[I])^;
-            end;
-          end;
-        end;
-
+{      if (FIBDataSet.Database.IsFirebirdConnect) and (FIBDataSet.Database.ServerMajorVersion >= 2) then
+      begin
+        ibsqlCount.SQL.Text := 'SELECT COUNT(*) FROM ( ' + TIBCustomDataSetCracker(FIBDataSet).SelectSQL.Text + ' ) ';
+        for I := 0 to Pred(TIBCustomDataSetCracker(FIBDataSet).Params.Count) do
+          ibsqlCount.Params[I].Value := TIBCustomDataSetCracker(FIBDataSet).Params.ByName(ibsqlCount.Params[I].Name).Value;
         try
           ibsqlCount.ExecQuery;
-          ibsqlCount.Next;
           if ibsqlCount.Eof then
-            // Присваиваем количество записей
-            FRecordCount := ibsqlCount.Fields[0].AsInteger
+            FRecordCount := 0
           else
+            FRecordCount := ibsqlCount.Fields[0].AsInteger;
+
+        finally
+          ibsqlCount.Free;
+          Tr.Free;
+        end;
+      end else
+      begin     }
+        ParamList := TStringList.Create;
+        try
+          with ibsqlCount, TIBCustomDataSetCracker(FIBDataSet) do
           begin
-            while not ibsqlCount.Eof do
-              ibsqlCount.Next;
-            FRecordCount := ibsqlCount.RecordCount;
+            SQL.Text := 'SELECT COUNT(*)';
+            SQL.Add(ExtractSQLFrom(SelectSQL.Text));
+            SQL.Add(ExtractSQLWhere(SelectSQL.Text));
+            SQL.Add(ExtractSQLOther(SelectSQL.Text));
+            //SQL.Add(ExtractSQLOrderBy(SelectSQL.Text));
           end;
-        except
-          on E: EIBError do
+
+          with TIBCustomDataSetCracker(FIBDataSet) do
           begin
-            // если запрос с юнионом то так просто не
-            // опсчитаешь количество. надо вытаскивать все на
-            // клиента.
-            if E.IBErrorCode = isc_dsql_error then
+            for I := 0 to Params.Count - 1 do
             begin
-              // Сохраняем старое значение курсора
-              OldRecNo := FIBDataSet.RecNo;
-              FIBDataSet.DisableControls;
-              try
-                FIBDataSet.Last;
-                FRecordCount := FIBDataSet.RecordCount;
-              finally
-                // Восстанавливаем значение курсора
-                FIBDataSet.RecNo := OldRecNo;
-                FIBDataSet.EnableControls;
+              if (ParamList.IndexOfName(Params[I].Name) = -1) and (not Params[I].IsNull) then
+              begin
+                New(V);
+                V^ := Params[I].AsVariant;
+                ParamList.AddObject(Params[I].Name + '=' + Params[I].AsString, Pointer(V));
               end;
+            end;
+          end;
+
+          // мы не можем использовать ПарамБайНэйм, а вынуждены
+          // сканировать список параметров так как некоторые параметры
+          // могли присутствовать в части СЕЛЕКТ, которую мы заменили
+          for I := 0 to ParamList.Count - 1 do
+          begin
+            for J := 0 to ibsqlCount.Params.Count - 1 do
+            begin
+              if AnsiCompareText(ParamList.Names[I], ibsqlCount.Params[J].Name) = 0 then
+              begin
+                ibsqlCount.Params[J].AsVariant := PVariant(ParamList.Objects[I])^;
+              end;
+            end;
+          end;
+
+          try
+            ibsqlCount.ExecQuery;
+            ibsqlCount.Next;
+            if ibsqlCount.Eof then
+              // Присваиваем количество записей
+              FRecordCount := ibsqlCount.Fields[0].AsInteger
+            else
+            begin
+              while not ibsqlCount.Eof do
+                ibsqlCount.Next;
+              FRecordCount := ibsqlCount.RecordCount;
+            end;
+          except
+            on E: EIBError do
+            begin
+              // если запрос с юнионом то так просто не
+              // опсчитаешь количество. надо вытаскивать все на
+              // клиента.
+              if E.IBErrorCode = isc_dsql_error then
+              begin
+                // Сохраняем старое значение курсора
+                OldRecNo := FIBDataSet.RecNo;
+                FIBDataSet.DisableControls;
+                try
+                  FIBDataSet.Last;
+                  FRecordCount := FIBDataSet.RecordCount;
+                finally
+                  // Восстанавливаем значение курсора
+                  FIBDataSet.RecNo := OldRecNo;
+                  FIBDataSet.EnableControls;
+                end;
+              end else
+                raise;
             end else
               raise;
-          end else
-            raise;
-        end;
+          end;
 
-        ibsqlCount.Close;
-        Tr.Commit;
-      finally
-        for I := 0 to ParamList.Count - 1 do
-        begin
-          V := PVariant(ParamList.Objects[I]);
-          Dispose(V);
+          ibsqlCount.Close;
+          Tr.Commit;
+        finally
+          for I := 0 to ParamList.Count - 1 do
+          begin
+            V := PVariant(ParamList.Objects[I]);
+            Dispose(V);
+          end;
+          ParamList.Free;
+          ibsqlCount.Free;
+          Tr.Free;
         end;
-        ParamList.Free;
-        ibsqlCount.Free;
-        Tr.Free;
-      end;
+{      end; }
     end;
   end;
 
