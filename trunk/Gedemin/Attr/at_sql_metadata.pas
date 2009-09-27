@@ -165,7 +165,7 @@ begin
       frmIBUserList := TfrmIBUserList.Create(nil);
 
       if TransferToModal then
-        AddText(TimeToStr(Time) + ': Началось создание мета-данных.'#13#10, clBlack, True);
+        AddText('Начато создание мета-данных.', clBlack);
 
       try
         ibsql.Transaction := FTransaction;
@@ -185,9 +185,8 @@ begin
           try
             if OldScript = '' then
             begin
-              AddText('Выполнение скрипта:', clBlue);
               AddText(TranslateText(FOperations[0]), clBlack);
-              AddText(FOperations[0] + #13#10, clBlack);
+              AddText(FOperations[0], clBlack);
             end;
             ibsql.SQL.Text := FOperations[0];
 
@@ -207,9 +206,6 @@ begin
 
             Self.FTransaction.Commit;
 
-            AddText('Скрипт выполнен!', clBlue);
-            Space;
-
             Delete(0);
 
             OldScript := '';
@@ -226,7 +222,7 @@ begin
                   'Обратитесь к системному администратору.',
                   'Серьезная ошибка',
                   MB_OK or MB_ICONHAND or MB_TASKMODAL);
-                //Application.Terminate;  
+                //Application.Terminate;
                 System.Halt(1);
               end;
 
@@ -252,7 +248,6 @@ begin
                     ibsql.ExecQuery;
                     Self.FTransaction.Commit;
                     AddMistake('Скрипт удален!', clRed);
-                    Space;
                   except
                   end;
                   Delete(0);
@@ -262,7 +257,6 @@ begin
                   //то выдаем запрос на удаление всех скриптов на этой транзакции
                   AddMistake('Ошибка! Попробуйте перезагрузиться или обратитесь к администратору!', clRed);
                   AddMistake(E.Message, clRed);
-                  Space;
                   CurrTransaction := FTransactions[0];
 
                   if MessageBox(0, PChar('При выполнении скрипта '#13#10 +
@@ -283,7 +277,6 @@ begin
                     ibsql.ExecQuery;
                     Self.FTransaction.Commit;
                     AddMistake('Скрипт удален!', clRed);
-                    Space;
                   except
                   end;
 
@@ -311,7 +304,7 @@ begin
           FTransaction.Rollback;
         if TransferToModal then
         begin
-          AddText(TimeToStr(Time) + ': Закончено создание мета-данных.'#13#10, clBlack, True);
+          AddText('Закончено создание мета-данных.', clBlack);
           if Assigned(frmSQLProcess) then
           begin
             if frmSQLProcess.Visible then

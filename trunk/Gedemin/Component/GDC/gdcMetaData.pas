@@ -8121,8 +8121,7 @@ begin
             ibsql.ExecQuery;
             ibsql.Close;
 
-            AddText('SQL-скрипт сохранен!', clGreen);
-            Space;
+            //AddText('SQL-скрипт сохранен!', clGreen);
           end;
         end;
 
@@ -8140,8 +8139,7 @@ begin
           ibsql.SQL.Text := S[I];
           ibsql.ExecQuery;
 
-          AddText('SQL-скрипт выполнен!', clBlue);
-          Space;
+          //AddText('SQL-скрипт выполнен!', clBlue);
         end;
       end;
 
@@ -8150,8 +8148,7 @@ begin
       begin
         if DidActivate and Transaction.InTransaction then
           Transaction.Rollback;
-        AddMistake(#13#10 + E.Message + #13#10, clRed);
-        Space;
+        AddMistake(E.Message, clRed);
         raise;
       end;
     end;

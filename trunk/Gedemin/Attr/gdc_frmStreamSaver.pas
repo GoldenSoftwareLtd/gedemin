@@ -26,13 +26,11 @@ type
     btnNext: TButton;
     btnPrev: TButton;
     PageControl: TPageControl;
-    tbsFirst: TTabSheet;
-    tbsSecond: TTabSheet;
-    tbsThird: TTabSheet;
-    Label1: TLabel;
+    tbsSave: TTabSheet;
+    tbsLoad: TTabSheet;
+    tbsProcess: TTabSheet;
     lblFirst: TLabel;
     lblSecond: TLabel;
-    lblThird: TLabel;
     alMain: TActionList;
     actNext: TAction;
     actPrev: TAction;
@@ -40,7 +38,6 @@ type
     lblWasErrorMsg: TLabel;
     btnShowLog: TButton;
     lblErrorMsg: TLabel;
-    pnlDatabases: TPanel;
     lblProgressMain: TLabel;
     pbMain: TProgressBar;
     lblProcessText: TLabel;
@@ -49,36 +46,39 @@ type
     lblSettingHint02: TLabel;
     cbMakeSetting: TCheckBox;
     lblSettingQuestion: TLabel;
-    actStreamSettings: TAction;
-    gbOptions: TGroupBox;
-    lblFileName: TLabel;
-    lblFileType: TLabel;
-    lblLoadingSourceBase: TLabel;
-    lblLoadingTargetBase: TLabel;
-    eFileName: TEdit;
-    eLoadingSourceBase: TEdit;
-    eLoadingTargetBase: TEdit;
-    lblIncremented: TLabel;
-    btnSettings: TButton;
-    cbStreamFormat: TComboBox;
     cbSettingFormat: TComboBox;
-    cbIncremented: TCheckBox;
     lblSettingFormat: TLabel;
+    imgStatus: TImage;
+    pnlDatabases: TPanel;
+    lblFileName: TLabel;
+    eFileName: TEdit;
+    lblLoadingSourceBase: TLabel;
+    eLoadingSourceBase: TEdit;
+    lblLoadingTargetBase: TLabel;
+    eLoadingTargetBase: TEdit;
+    lblIncrementedHelp: TLabel;
+    lblFileType: TLabel;
+    cbStreamFormat: TComboBox;
+    lblIncremented: TLabel;
+    cbIncremented: TCheckBox;
+    lblLoadingFileTypeLabel: TLabel;
+    lblLoadingFileType: TLabel;
+    lblLoadingIncremented: TLabel;
+    lblLoadingIncrementedLabel: TLabel;
     procedure btnCloseClick(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
     procedure actPrevExecute(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure btnShowLogClick(Sender: TObject);
-    procedure tbsFirstShow(Sender: TObject);
-    procedure tbsSecondShow(Sender: TObject);
-    procedure tbsThirdShow(Sender: TObject);
-    procedure cbIncrementClick(Sender: TObject);
+    procedure tbsSaveShow(Sender: TObject);
+    procedure tbsLoadShow(Sender: TObject);
+    procedure tbsProcessShow(Sender: TObject);
     procedure tbsSettingShow(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure actStreamSettingsExecute(Sender: TObject);
     procedure cbStreamFormatChange(Sender: TObject);
     procedure cbSettingFormatChange(Sender: TObject);
     procedure cbMakeSettingClick(Sender: TObject);
+    procedure cbIncrementedClick(Sender: TObject);
   private
     FgdcObject: TgdcBase;
     FgdcDetailObject: TgdcBase;
@@ -86,6 +86,7 @@ type
     FWithDetail, FOnlyCurrent: Boolean;
     FProcessType: TgsStreamSaverProcessType;
     FInProcess: Boolean;
+    FWasProcessError: Boolean;
     FFileName: String;
     FframeDatabases: TfrmIncrDatabaseList;
     FProcessTimeCalculator: TgsProcessTimeCalculator;
@@ -94,9 +95,12 @@ type
     FStreamFormat: TgsStreamType;
     FStreamSettingFormat: TgsStreamType;
     FIncrementSaving: Boolean;
+    FStreamLogType: TgsStreamLoggingType;
     FReplaceRecordBehaviuor: TReplaceRecordBehaviour;
 
-    procedure SetInitialSettings;
+    procedure SetupDialog;
+    procedure LoadDialogSettings;
+    procedure SaveDialogSettings;
 
     procedure Save;
     procedure Load;
@@ -120,8 +124,9 @@ type
     procedure SetupProgress(const Max: Integer; ALabelString: String = 'Выполнение...');
     procedure Step;
     procedure Done;
-    procedure ActivateFinishButtons;
+    procedure ActivateFinishButtons(const IsActivate: Boolean = True);
     procedure AddMistake(AMistake: String = '');
+    procedure AddWarning(AWarningMessage: String = '');
     procedure SetProcessCaptionText(AText: String);
     procedure SetProcessText(AText: String; const Necessary: Boolean = False);
 
@@ -148,7 +153,7 @@ uses
   gdcBaseInterface,           Storages,                  gdcSetting,
   at_frmSQLProcess,           IBSQL,                     gs_Exception,
   gd_security,                at_classes,                zlib,
-  gd_dlgStreamSaverOptions;
+  gd_dlgStreamSaverOptions,   dmImages_unit;
 
 const
   // Через какое кол-во переданных сообщений пропускать, не выводя на экран
@@ -161,7 +166,8 @@ const
 class function Tgdc_frmStreamSaver.CreateAndAssign(AnOwner: TComponent): TForm;
 begin
   if Assigned(frmStreamSaver) then
-    frmStreamSaver.Close;
+    FreeAndNil(frmStreamSaver);
+    //frmStreamSaver.Close;
 
   if not Assigned(frmStreamSaver) then
     frmStreamSaver := Tgdc_frmStreamSaver.Create(Application);
@@ -182,18 +188,12 @@ begin
   FgdcDetailObject := nil;
   FBL := nil;
   FInProcess := False;
+  FWasProcessError := False;
   FProcessType := ptSave;
   FRecordMessageCount := cShowMessageInterval;     
-  PageControl.ActivePage := tbsFirst;
+  PageControl.ActivePage := nil;
   FProcessTimeCalculator := TgsProcessTimeCalculator.Create;
-
-  if not Assigned(frmSQLProcess) then
-  begin
-    frmSQLProcess := TfrmSQLProcess.Create(Application);
-    frmSQLProcess.SQLText.Lines.Clear;
-  end;  
-  frmSQLProcess.Silent := True;
-  frmSQLProcess.IsShowLog := True;
+  FStreamLogType := slAll;
 
   // Заполнение выпадающих списков
   for I := 0 to STREAM_FORMAT_COUNT - 1 do
@@ -211,10 +211,19 @@ begin
   FgdcDetailObject := nil;
   FProcessTimeCalculator.Free;
 
+  if Assigned(FframeDatabases) then
+  begin
+    if Assigned(GlobalStorage) and (FframeDatabases.ibgrDatabases.SettingsModified) then
+      GlobalStorage.SaveComponent(FframeDatabases.ibgrDatabases, FframeDatabases.ibgrDatabases.SaveToStream);
+    FframeDatabases.Free;
+  end;
+
   if Assigned(frmSQLProcess) then
     frmSQLProcess.Silent := False;
 
-  frmStreamSaver := nil;
+  if frmStreamSaver = Self then
+    frmStreamSaver := nil;
+
   inherited;
 end;
 
@@ -224,111 +233,79 @@ begin
     frmSQLProcess := TfrmSQLProcess.Create(Application);
   frmSQLProcess.Silent := True;
 
+  LoadDialogSettings;
+  SetupDialog;
+
   case FProcessType of
-    ptSave, ptLoad:
-      PageControl.ActivePage := tbsFirst;
+    ptSave:
+      PageControl.ActivePage := tbsSave;
+    ptLoad:
+      PageControl.ActivePage := tbsLoad;
     ptSaveSetting, ptLoadSetting, ptActivateSetting, ptDeactivateSetting, ptReactivateSetting, ptMakeSetting:
       PageControl.ActivePage := tbsSetting;
   end;
-
-  SetInitialSettings;
 end;
 
 procedure Tgdc_frmStreamSaver.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
-  if Assigned(FframeDatabases) then
-  begin
-    if Assigned(GlobalStorage) and (FframeDatabases.ibgrDatabases.SettingsModified) then
-      GlobalStorage.SaveComponent(FframeDatabases.ibgrDatabases, FframeDatabases.ibgrDatabases.SaveToStream);
-    FframeDatabases.Free;
-  end;
+  PageControl.ActivePage := nil;
+
+  SaveDialogSettings;
 
   if Assigned(frmSQLProcess) then
   begin
     frmSQLProcess.Close;
     frmSQLProcess.Silent := False;
   end;
-  
-  Action := caFree;
+
+  //if (not Visible) and ((frmStreamSaver = nil) or (frmStreamSaver = Self)) then
+    Action := caFree; 
 end;
 
-procedure Tgdc_frmStreamSaver.tbsFirstShow(Sender: TObject);
+procedure Tgdc_frmStreamSaver.tbsSaveShow(Sender: TObject);
 begin
-  btnPrev.Enabled := false;
-  btnPrev.Caption := '< Назад';
-  btnNext.Enabled := true;
-  case FProcessType of
-    ptSave:
-    begin
-      lblSecond.Visible := true;
-      lblSecond.Caption := '2. Выбор базы';
-      lblSecond.Font.Style := [];
-      lblThird.Visible := true;
-      lblThird.Caption := '3. Сохранение';
-      lblThird.Font.Style := [];
-      if not FIncrementSaving then
-      begin
-        lblSecond.Enabled := false;
-        btnNext.Caption := 'Сохранить';
-      end
-      else
-      begin
-        lblSecond.Enabled := true;
-        btnNext.Caption := 'Далее >';
-      end;
-    end;
-
-    ptLoad:
-    begin
-      lblSecond.Visible := false;
-      lblThird.Visible := true;
-      lblThird.Caption := '2. Загрузка';
-      lblThird.Font.Style := [];
-      btnNext.Caption := 'Загрузить';
-    end;
-  end;
-
-  lblFirst.Visible := true;
-  lblFirst.Caption := '1. Файл';
-  lblFirst.Font.Style := [fsBold];
-end;
-
-procedure Tgdc_frmStreamSaver.tbsSecondShow(Sender: TObject);
-begin
-  btnPrev.Enabled := true;
-  btnPrev.Caption := '< Назад';
+  btnPrev.Enabled := False;
   btnNext.Enabled := true;
   btnNext.Caption := 'Сохранить';
 
-  lblFirst.Font.Style := [];
-  lblSecond.Font.Style := [fsBold];
-  lblThird.Font.Style := [];
+  lblFirst.Caption := '1. Настройки сохранения';
+  lblFirst.Font.Style := [fsBold];
+
+  lblSecond.Caption := '2. Сохранение';
+  lblSecond.Font.Style := [];
 end;
 
-procedure Tgdc_frmStreamSaver.tbsThirdShow(Sender: TObject);
+procedure Tgdc_frmStreamSaver.tbsLoadShow(Sender: TObject);
+begin
+  btnPrev.Enabled := False;
+  btnNext.Enabled := true;
+  btnNext.Caption := 'Загрузить';
+
+  lblFirst.Caption := '1. Файл данных';
+  lblFirst.Font.Style := [fsBold];
+
+  lblSecond.Caption := '2. Загрузка';
+  lblSecond.Font.Style := [];
+end;
+
+procedure Tgdc_frmStreamSaver.tbsProcessShow(Sender: TObject);
 begin
   btnPrev.Enabled := False;
   btnNext.Enabled := False;
-  btnClose.Enabled := False;
-  btnShowLog.Enabled := False;
-  btnSettings.Enabled := False;
+  ActivateFinishButtons(False);
 
   lblFirst.Font.Style := [];
-  lblSecond.Font.Style := [];
-  lblThird.Font.Style := [fsBold];
+  lblSecond.Font.Style := [fsBold];
 end;
 
 procedure Tgdc_frmStreamSaver.tbsSettingShow(Sender: TObject);
 begin
   btnPrev.Enabled := False;
   btnNext.Enabled := True;
-  lblSecond.Visible := False;
-  lblFirst.Visible := True;
   lblFirst.Caption := '1. Настройка';
   lblFirst.Font.Style := [fsBold];
-  lblThird.Visible := True;
-  lblThird.Font.Style := [];
+  lblSecond.Font.Style := [];
 
   case FProcessType of
 
@@ -340,7 +317,7 @@ begin
       lblSettingFormat.Visible := True;
       cbSettingFormat.Visible := True;
       btnNext.Caption := 'Сохранить';
-      lblThird.Caption := '2. Сохранение';
+      lblSecond.Caption := '2. Сохранение';
     end;
 
     ptLoadSetting:
@@ -350,7 +327,7 @@ begin
       lblSettingHint01.Visible := True;
       lblSettingHint02.Visible := True;
       btnNext.Caption := 'Загрузить';
-      lblThird.Caption := '2. Загрузка';
+      lblSecond.Caption := '2. Загрузка';
     end;
 
     ptActivateSetting:
@@ -358,7 +335,7 @@ begin
       lblSettingQuestion.Caption := 'Активировать настройку'#13#10 + '  "' + gdcObject.FieldByName('name').AsString + '"?';
       lblSettingQuestion.Visible := True;
       btnNext.Caption := 'Активировать';
-      lblThird.Caption := '2. Активация';
+      lblSecond.Caption := '2. Активация';
     end;
 
     ptDeactivateSetting:
@@ -370,7 +347,7 @@ begin
       lblSettingQuestion.Caption := 'Деактивировать настройку'#13#10 + '  "' + gdcObject.FieldByName('name').AsString + '"?';
       lblSettingQuestion.Visible := True;
       btnNext.Caption := 'Деактивировать';
-      lblThird.Caption := '2. Деактивация';
+      lblSecond.Caption := '2. Деактивация';
     end;
 
     ptReactivateSetting:
@@ -381,7 +358,7 @@ begin
       lblSettingQuestion.Caption := 'Переактивировать настройку'#13#10 + '  "' + gdcObject.FieldByName('name').AsString + '"?';
       lblSettingQuestion.Visible := True;
       btnNext.Caption := 'Переактивировать';
-      lblThird.Caption := '2. Переактивация';
+      lblSecond.Caption := '2. Переактивация';
     end;
 
     ptMakeSetting:
@@ -391,9 +368,8 @@ begin
       lblSettingFormat.Visible := True;
       cbSettingFormat.Visible := True;
       btnNext.Caption := 'Сформировать';
-      lblThird.Caption := '2. Формирование';
+      lblSecond.Caption := '2. Формирование';
     end;
-
   end;
 end;
 
@@ -409,6 +385,7 @@ begin
     FgdcDetailObject := gdcDetail;
     FWithDetail := Assigned(gdcDetail);
     FOnlyCurrent := OnlyCurrent;
+
     if Assigned(atDatabase) and Assigned(atDatabase.Relations.ByRelationName('RPL_DATABASE'))
        and not Assigned(FframeDatabases) then
     begin
@@ -430,11 +407,7 @@ begin
       end;
       if Assigned(GlobalStorage) then
         GlobalStorage.LoadComponent(FframeDatabases.ibgrDatabases, FframeDatabases.ibgrDatabases.LoadFromStream);
-    end
-    else
-    begin
-      lblSecond.Enabled := False;
-    end;  
+    end;
   end;
 end;
 
@@ -449,130 +422,76 @@ begin
 
     ptSave:
     begin
-      if PageControl.ActivePage = tbsFirst then
-      begin
-        if FIncrementSaving then
-          PageControl.ActivePage := tbsSecond
-        else
-        begin
-          PageControl.ActivePage := tbsThird;
-          Self.Save;
-          btnPrev.Enabled := true;
-          Self.ActivateFinishButtons;
-        end;
-      end
-      else
-        if PageControl.ActivePage = tbsSecond then
-        begin
-          PageControl.ActivePage := tbsThird;
-          Self.Save;
-          btnPrev.Enabled := true;
-          Self.ActivateFinishButtons;
-        end;
+      PageControl.ActivePage := tbsProcess;
+      Self.Save;
+      btnPrev.Enabled := true;
+      Self.ActivateFinishButtons(True);
     end;
 
     ptLoad:
     begin
-      if PageControl.ActivePage = tbsFirst then
-      begin
-        PageControl.ActivePage := tbsThird;
-        Self.Load;
-        Self.ActivateFinishButtons;
-      end;
+      PageControl.ActivePage := tbsProcess;
+      Self.Load;
+      Self.ActivateFinishButtons(True);
     end;
 
     ptSaveSetting:
     begin
-      if PageControl.ActivePage = tbsSetting then
-      begin
-        PageControl.ActivePage := tbsThird;
-        Self.SaveSetting;
-        btnPrev.Enabled := true;
-        Self.ActivateFinishButtons;
-      end;
+      PageControl.ActivePage := tbsProcess;
+      Self.SaveSetting;
+      btnPrev.Enabled := true;
+      Self.ActivateFinishButtons(True);
     end;
 
     ptLoadSetting:
     begin
-      if PageControl.ActivePage = tbsSetting then
-      begin
-        PageControl.ActivePage := tbsThird;
-        Self.LoadSetting;
-        Self.ActivateFinishButtons;
-      end;
+      PageControl.ActivePage := tbsProcess;
+      Self.LoadSetting;
+      Self.ActivateFinishButtons(True);
     end;
 
     ptActivateSetting:
     begin
-      if PageControl.ActivePage = tbsSetting then
-      begin
-        PageControl.ActivePage := tbsThird;
-        Self.ActivateSetting;
-      end;
+      PageControl.ActivePage := tbsProcess;
+      Self.ActivateSetting;
     end;
 
     ptDeactivateSetting:
     begin
-      if PageControl.ActivePage = tbsSetting then
-      begin
-        PageControl.ActivePage := tbsThird;
-        Self.DeactivateSetting;
-      end;
+      PageControl.ActivePage := tbsProcess;
+      Self.DeactivateSetting;
     end;
 
     ptReactivateSetting:
     begin
-      if PageControl.ActivePage = tbsSetting then
-      begin
-        PageControl.ActivePage := tbsThird;
-        Self.ReactivateSetting;
-      end;
+      PageControl.ActivePage := tbsProcess;
+      Self.ReactivateSetting;
     end;
 
     ptMakeSetting:
     begin
-      if PageControl.ActivePage = tbsSetting then
-      begin
-        PageControl.ActivePage := tbsThird;
-        Self.MakeSetting;
-        Self.ActivateFinishButtons;
-      end;
+      PageControl.ActivePage := tbsProcess;
+      Self.MakeSetting;
+      Self.ActivateFinishButtons(True);
     end;
-
   end;
-
 end;
 
 procedure Tgdc_frmStreamSaver.actPrevExecute(Sender: TObject);
 begin
   case FProcessType of
     ptSave:
-    begin
-      if PageControl.ActivePage = tbsThird then
-      begin
-        if FIncrementSaving then
-          PageControl.ActivePage := tbsSecond
-        else
-          PageControl.ActivePage := tbsFirst;
-        Exit;
-      end;
-
-      if PageControl.ActivePage = tbsSecond then
-        PageControl.ActivePage := tbsFirst;
-    end;
+      PageControl.ActivePage := tbsSave;
 
     ptLoad:
-    begin
-      if PageControl.ActivePage = tbsThird then
-        PageControl.ActivePage := tbsFirst;
-    end;
+      PageControl.ActivePage := tbsLoad;
 
   else
-    if PageControl.ActivePage = tbsThird then
+    if PageControl.ActivePage = tbsProcess then
       PageControl.ActivePage := tbsSetting;
   end;
 end;
-
+                                         
 procedure Tgdc_frmStreamSaver.Save;
 var
   StreamSaver: TgdcStreamSaver;
@@ -609,101 +528,113 @@ var
 
 begin
   try
-    if FStreamFormat <> sttBinaryOld then
+    // Дадим пользователю выбрать файл для сохранения информации
+    if FStreamFormat in [sttXML, sttXMLFormatted] then
+      FFileName := FgdcObject.QuerySaveFileName('', xmlExtension, xmlDialogFilter)
+    else
+      FFileName := FgdcObject.QuerySaveFileName('', datExtension, datDialogFilter);
+    // Если файл выбран
+    if FFileName <> '' then
     begin
 
-      StreamSaver := TgdcStreamSaver.Create(FgdcObject.Database, FgdcObject.Transaction);
-      try
-        // если выбрано Инкрементное сохранение, то передадим ИД целевой базы
-        if FIncrementSaving and FframeDatabases.gdcDatabases.Active then
-          StreamSaver.PrepareForIncrementSaving(FframeDatabases.gdcDatabases.FieldByName('ID').AsInteger);
+      if FStreamFormat <> sttBinaryOld then
+      begin
+        StreamSaver := TgdcStreamSaver.Create(FgdcObject.Database, FgdcObject.Transaction);
+        try
+          // если выбрано Инкрементное сохранение, то передадим ИД целевой базы
+          if FIncrementSaving and FframeDatabases.gdcDatabases.Active then
+            StreamSaver.PrepareForIncrementSaving(FframeDatabases.gdcDatabases.FieldByName('ID').AsInteger);
 
-        // Если сохраняем только одну запись
-        if FOnlyCurrent then
-        begin
-          Self.SetupProgress(1, 'Сохранение данных...');
-          StreamSaver.AddObject(FgdcObject{, FWithDetail});
-          if StreamSaver.IsAbortingProcess then
+          // Если сохраняем только одну запись
+          if FOnlyCurrent then
           begin
-            DoAfterAbortProcess;
-            Exit;
-          end;
-          SaveDetail;
-          Self.Step;
-        end
-        else
-        begin
-          Bm := FgdcObject.Bookmark;
-          FgdcObject.BlockReadSize := 1;
-
-          try
-            // Если не передан BookmarkList, то сохраняем весь датасет
-            if FBL = nil then
+            Self.SetupProgress(1, 'Сохранение данных...');
+            StreamSaver.AddObject(FgdcObject{, FWithDetail});
+            if StreamSaver.IsAbortingProcess then
             begin
-              Self.SetupProgress(FgdcObject.RecordCount,  'Сохранение данных...');
-              FgdcObject.First;
-              while not FgdcObject.EOF do
-              begin
-                StreamSaver.AddObject(FgdcObject{, FWithDetail});
-                if StreamSaver.IsAbortingProcess then
-                begin
-                  DoAfterAbortProcess;
-                  Exit;
-                end;
-                SaveDetail;
-                FgdcObject.Next;
-                Self.Step;
-              end;
-            end else
-            begin
-              Self.SetupProgress(FBL.Count,  'Сохранение данных...');
-              FBL.Refresh;
-              for I := 0 to FBL.Count - 1 do
-              begin
-                FgdcObject.Bookmark := FBL[I];
-                StreamSaver.AddObject(FgdcObject{, FWithDetail});
-                if StreamSaver.IsAbortingProcess then
-                begin
-                  DoAfterAbortProcess;
-                  Exit;
-                end;
-                SaveDetail;
-                Self.Step;
-              end;
+              DoAfterAbortProcess;
+              Exit;
             end;
-          finally
-            FgdcObject.Bookmark := Bm;
-            FgdcObject.BlockReadSize := 0;
+            SaveDetail;
+            Self.Step;
+          end
+          else
+          begin
+            Bm := FgdcObject.Bookmark;
+            FgdcObject.BlockReadSize := 1;
+
+            try
+              // Если не передан BookmarkList, то сохраняем весь датасет
+              if FBL = nil then
+              begin
+                Self.SetupProgress(FgdcObject.RecordCount,  'Сохранение данных...');
+                FgdcObject.First;
+                while not FgdcObject.EOF do
+                begin
+                  StreamSaver.AddObject(FgdcObject{, FWithDetail});
+                  if StreamSaver.IsAbortingProcess then
+                  begin
+                    DoAfterAbortProcess;
+                    Exit;
+                  end;
+                  SaveDetail;
+                  FgdcObject.Next;
+                  Self.Step;
+                end;
+              end else
+              begin
+                Self.SetupProgress(FBL.Count,  'Сохранение данных...');
+                FBL.Refresh;
+                for I := 0 to FBL.Count - 1 do
+                begin
+                  FgdcObject.Bookmark := FBL[I];
+                  StreamSaver.AddObject(FgdcObject{, FWithDetail});
+                  if StreamSaver.IsAbortingProcess then
+                  begin
+                    DoAfterAbortProcess;
+                    Exit;
+                  end;
+                  SaveDetail;
+                  Self.Step;
+                end;
+              end;
+            finally
+              FgdcObject.Bookmark := Bm;
+              FgdcObject.BlockReadSize := 0;
+            end;
           end;
+
+          Self.SetProcessCaptionText('Запись в файл...');
+
+          // сохраняем в зависимости от выбранного в настройках типа файла
+          StreamSaver.StreamFormat := FStreamFormat;
+          S := TFileStream.Create(FFileName, fmCreate);
+          try
+            StreamSaver.SaveToStream(S, FStreamFormat);
+          finally
+            S.Free;
+          end;
+        finally
+          StreamSaver.Free;
         end;
+      end
+      else
+      begin
+        Self.SetupProgress(1, 'Сохранение данных...');
 
-        Self.SetProcessCaptionText('Запись в файл...');
-
-        // сохраняем в зависимости от выбранного в настройках типа файла
-        StreamSaver.StreamFormat := FStreamFormat;
         S := TFileStream.Create(FFileName, fmCreate);
         try
-          StreamSaver.SaveToStream(S, FStreamFormat);
+          FgdcObject.SaveToStream(S, FgdcDetailObject, FBL, FOnlyCurrent);
         finally
           S.Free;
         end;
-      finally
-        StreamSaver.Free;
       end;
+
+      Self.Done;
     end
     else
-    begin
-      Self.SetupProgress(1, 'Сохранение данных...');
-
-      S := TFileStream.Create(FFileName, fmCreate);
-      try
-        FgdcObject.SaveToStream(S, FgdcDetailObject, FBL, FOnlyCurrent);
-      finally
-        S.Free;
-      end;
-    end;
-
-    Self.Done;
+      // Если файл не выбран, то перейдем на предыдущий шаг
+      PageControl.ActivePage := tbsSave;  
   except
     on E: Exception do
       Self.DoAfterException(E.Message);
@@ -832,95 +763,99 @@ var
   RPLDatabase: TgdRPLDatabase;
   StreamType: TgsStreamType;
 begin
-  FProcessType := ptLoad;
+  Result := -1;
+  // Пользователь должен выбрать файл для загрузки
+  FFileName := FgdcObject.QueryLoadFileName('', datExtension, datxmlDialogFilter);
+  // Если пользователь выбрал файл
+  if FFileName <> '' then
+  begin
+    FProcessType := ptLoad;
+    eLoadingSourceBase.Visible := false;
+    lblLoadingSourceBase.Visible := false;
+    eLoadingTargetBase.Visible := false;
+    lblLoadingTargetBase.Visible := false;
+    lblLoadingIncremented.Caption := 'Нет';
 
-  S := TFileStream.Create(FFileName, fmOpenRead);
-  try
-    StreamType := GetStreamType(S);
-    cbStreamFormat.ItemIndex := Integer(StreamType) - 1;
-    if StreamType <> sttBinaryOld then
-    begin
-      if StreamType in [sttXML, sttXMLFormatted] then
+    S := TFileStream.Create(FFileName, fmOpenRead);
+    try
+      StreamType := GetStreamType(S);
+      lblLoadingFileType.Caption := STREAM_FORMATS[Integer(StreamType) - 1];
+      if StreamType <> sttBinaryOld then
       begin
-        TargetBaseKey := -1;
-        SourceBaseKey := -1;
-      end
-      else
-      begin
-        S.ReadBuffer(I, SizeOf(I));
-        if I <> cst_StreamLabel then
-          raise Exception.Create(GetGsException(Self, 'ShowLoadForm: Invalid stream format'));
-        S.ReadBuffer(stRecord.StreamVersion, SizeOf(stRecord.StreamVersion));
-        if stRecord.StreamVersion >= 1 then
-          S.ReadBuffer(stRecord.StreamDBID, SizeOf(stRecord.StreamDBID));
-
-        // список баз данных из таблицы RPL_DATABASE
-        {S.ReadBuffer(I, SizeOf(I));
-        if I > 0 then
+        if StreamType in [sttXML, sttXMLFormatted] then
         begin
-          for J := 1 to I do
-          begin
-            S.ReadBuffer(TempValue, SizeOf(TempValue));
-            StreamReadString(S);
-          end;
-        end;
-
-        // считываем ИД базы пославшей поток
-        S.ReadBuffer(I, SizeOf(I));
-        SourceBaseKey := I;
-        // считываем ИД базы на которую поток был отправлен
-        S.ReadBuffer(I, SizeOf(I));
-        TargetBaseKey := I;}
-        TargetBaseKey := -1;
-        SourceBaseKey := -1;
-        S.Position := 0;
-      end;
-
-      if SourceBaseKey > -1 then
-      begin
-        if Assigned(atDatabase) and Assigned(atDatabase.Relations.ByRelationName('RPL_DATABASE')) then
-        begin
-          // вытянем имена баз данных из RPL_DATABASE
-          RPLDatabase := TgdRPLDatabase.Create;
-          try
-            // Исходная база
-            RPLDatabase.ID := SourceBaseKey;
-            if RPLDatabase.Name <> '' then
-              eLoadingSourceBase.Text := RPLDatabase.Name
-            else
-              eLoadingSourceBase.Text := IntToStr(RPLDatabase.ID);
-
-            // Целевая база
-            RPLDatabase.ID := TargetBaseKey;
-            if RPLDatabase.Name <> '' then
-              eLoadingTargetBase.Text := RPLDatabase.Name
-            else
-              eLoadingTargetBase.Text := IntToStr(RPLDatabase.ID);
-          finally
-            RPLDatabase.Free;
-          end;
+          TargetBaseKey := -1;
+          SourceBaseKey := -1;
         end
         else
         begin
-          eLoadingSourceBase.Text := IntToStr(SourceBaseKey);
-          eLoadingTargetBase.Text := IntToStr(TargetBaseKey);
-        end;
-        cbIncremented.Checked := True;
-      end
-      else
-      begin
-        eLoadingSourceBase.Visible := false;
-        lblLoadingSourceBase.Visible := false;
-        eLoadingTargetBase.Visible := false;
-        lblLoadingTargetBase.Visible := false;
-        cbIncremented.Checked := False;
-      end;
-    end;
-  finally
-    S.Free;
-  end;
+          S.ReadBuffer(I, SizeOf(I));
+          if I <> cst_StreamLabel then
+            raise Exception.Create(GetGsException(Self, 'ShowLoadForm: Invalid stream format'));
+          S.ReadBuffer(stRecord.StreamVersion, SizeOf(stRecord.StreamVersion));
+          if stRecord.StreamVersion >= 1 then
+            S.ReadBuffer(stRecord.StreamDBID, SizeOf(stRecord.StreamDBID));
 
-  Result := Self.ShowModal;
+          // список баз данных из таблицы RPL_DATABASE
+          {S.ReadBuffer(I, SizeOf(I));
+          if I > 0 then
+          begin
+            for J := 1 to I do
+            begin
+              S.ReadBuffer(TempValue, SizeOf(TempValue));
+              StreamReadString(S);
+            end;
+          end;
+
+          // считываем ИД базы пославшей поток
+          S.ReadBuffer(I, SizeOf(I));
+          SourceBaseKey := I;
+          // считываем ИД базы на которую поток был отправлен
+          S.ReadBuffer(I, SizeOf(I));
+          TargetBaseKey := I;}
+          TargetBaseKey := -1;
+          SourceBaseKey := -1;
+          S.Position := 0;
+        end;
+
+        if SourceBaseKey > -1 then
+        begin
+          if Assigned(atDatabase) and Assigned(atDatabase.Relations.ByRelationName('RPL_DATABASE')) then
+          begin
+            // вытянем имена баз данных из RPL_DATABASE
+            RPLDatabase := TgdRPLDatabase.Create;
+            try
+              // Исходная база
+              RPLDatabase.ID := SourceBaseKey;
+              if RPLDatabase.Name <> '' then
+                eLoadingSourceBase.Text := RPLDatabase.Name
+              else
+                eLoadingSourceBase.Text := IntToStr(RPLDatabase.ID);
+
+              // Целевая база
+              RPLDatabase.ID := TargetBaseKey;
+              if RPLDatabase.Name <> '' then
+                eLoadingTargetBase.Text := RPLDatabase.Name
+              else
+                eLoadingTargetBase.Text := IntToStr(RPLDatabase.ID);
+            finally
+              RPLDatabase.Free;
+            end;
+          end
+          else
+          begin
+            eLoadingSourceBase.Text := IntToStr(SourceBaseKey);
+            eLoadingTargetBase.Text := IntToStr(TargetBaseKey);
+          end;
+          lblLoadingIncremented.Caption := 'Да';
+        end;
+      end;
+    finally
+      S.Free;
+    end;
+
+    Result := Self.ShowModal;
+  end;
 end;
 
 function Tgdc_frmStreamSaver.ShowSaveForm: Integer;
@@ -1011,7 +946,7 @@ begin
     pbMain.Position := pbMain.Position + 1;
     FProcessTimeCalculator.Position := pbMain.Position;
     lblProgressMain.Caption := IntToStr(pbMain.Position) + ' / ' + IntToStr(pbMain.Max) +
-      ',  ' + IntToStr(FProcessTimeCalculator.GetApproximateEnd div 1000) + ' c';
+      ',  ' + FProcessTimeCalculator.GetApproxEndString;
   end;
   if (pbMain.Position mod 10) = 0 then
     Self.BringToFront;
@@ -1036,23 +971,42 @@ begin
 end;
 
 procedure Tgdc_frmStreamSaver.AddMistake(AMistake: String);
+var
+  StatusIcon: TIcon;
 begin
+  if Assigned(dmImages) then
+  begin
+    StatusIcon := TIcon.Create;
+    try
+      dmImages.il16x16.GetIcon(207, StatusIcon);
+      imgStatus.Picture.Assign(StatusIcon);
+    finally
+      StatusIcon.Free;
+    end;
+  end;
+
   if AMistake > '' then
   begin
     lblErrorMsg.Caption := AMistake;
     lblErrorMsg.Visible := true;
   end;
-  if not lblWasErrorMsg.Visible then
-    lblWasErrorMsg.Visible := true;
+  FWasProcessError := True;
 end;
 
-procedure Tgdc_frmStreamSaver.cbIncrementClick(Sender: TObject);
+procedure Tgdc_frmStreamSaver.AddWarning(AWarningMessage: String);
+var
+  StatusIcon: TIcon;
 begin
-  {lblSecond.Enabled := cbIncrement.Checked;
-  if not cbIncrement.Checked then
-    btnNext.Caption := 'Сохранить'
-  else
-    btnNext.Caption := 'Далее >';}
+  if (not FWasProcessError) and Assigned(dmImages) then
+  begin
+    StatusIcon := TIcon.Create;
+    try
+      dmImages.il16x16.GetIcon(224, StatusIcon);
+      imgStatus.Picture.Assign(StatusIcon);
+    finally
+      StatusIcon.Free;
+    end;
+  end;
 end;
 
 procedure Tgdc_frmStreamSaver.DoAfterAbortProcess;
@@ -1074,63 +1028,60 @@ begin
   at_frmSQLProcess.AddMistake(#13#10'Критическая ошибка! Выполнение прервано!'#13#10 + ErrorMsg, clRed);
 end;
 
-procedure Tgdc_frmStreamSaver.SetInitialSettings;
+procedure Tgdc_frmStreamSaver.LoadDialogSettings;
 begin
   if Assigned(GlobalStorage) then
-    with GlobalStorage do
-    begin
-      FStreamFormat := GetDefaultStreamFormat(False);
-      FStreamSettingFormat := GetDefaultStreamFormat(True);
-      cbStreamFormat.ItemIndex := Integer(FStreamFormat) - 1;
-      cbSettingFormat.ItemIndex := Integer(FStreamSettingFormat) - 1;
-
-      FIncrementSaving := ReadBoolean('Options', 'UseIncrementSaving', False);
-      FReplaceRecordBehaviuor := TReplaceRecordBehaviour(ReadInteger('Options', 'StreamReplaceRecordBehaviuor', 0));
-    end;
-
-  if FProcessType = ptSave then
   begin
-    if not FIncrementSaving then
-      btnNext.Caption := 'Сохранить'
-    else
-      btnNext.Caption := 'Далее >';
-
-    lblLoadingSourceBase.Visible := False;
-    eLoadingSourceBase.Visible := False;
-    lblLoadingTargetBase.Visible := False;
-    eLoadingTargetBase.Visible := False;
-    
-    if FStreamFormat <> sttBinaryOld then
-    begin
-      if FIncrementSaving then
-        cbIncremented.Checked := True
-      else
-        cbIncremented.Checked := False;
-    end
-    else
-      cbIncremented.Checked := False;
+    FStreamFormat := GetDefaultStreamFormat(False);
+    FStreamSettingFormat := GetDefaultStreamFormat(True);
+    FIncrementSaving := GlobalStorage.ReadBoolean('Options', 'UseIncrementSaving', False);
+    FStreamLogType := TgsStreamLoggingType(GlobalStorage.ReadInteger('Options', 'StreamLogType', 0));
+    FReplaceRecordBehaviuor := TReplaceRecordBehaviour(GlobalStorage.ReadInteger('Options', 'StreamReplaceRecordBehaviuor', 0));
   end;
+end;
+
+procedure Tgdc_frmStreamSaver.SaveDialogSettings;
+begin
+  if Assigned(GlobalStorage) then
+  begin
+    GlobalStorage.WriteInteger('Options', STORAGE_VALUE_STREAM_DEFAULT_FORMAT, Integer(FStreamFormat));
+    GlobalStorage.WriteInteger('Options', STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT, Integer(FStreamSettingFormat));
+    GlobalStorage.WriteBoolean('Options', 'UseIncrementSaving', FIncrementSaving);
+    GlobalStorage.WriteInteger('Options', 'StreamLogType', Integer(FStreamLogType));
+    GlobalStorage.WriteInteger('Options', 'StreamReplaceRecordBehaviuor', Integer(FReplaceRecordBehaviuor));
+  end;
+end;
+
+procedure Tgdc_frmStreamSaver.SetupDialog;
+begin
+  cbStreamFormat.ItemIndex := Integer(FStreamFormat) - 1;
+  cbSettingFormat.ItemIndex := Integer(FStreamSettingFormat) - 1;
+
+  if FStreamFormat <> sttBinaryOld then
+    cbIncremented.Checked := FIncrementSaving
+  else
+    cbIncremented.Checked := False;
+
+  cbMakeSetting.Visible := False;
+  lblSettingFormat.Visible := False;
+  cbSettingFormat.Visible := False;
+  lblSettingHint01.Visible := False;
+  lblSettingHint02.Visible := False;
+
+  btnPrev.Enabled := false;
+  btnPrev.Caption := '< Назад';
+
+  lblIncrementedHelp.Visible := FIncrementSaving;
+  pnlDatabases.Visible := FIncrementSaving;
 
   eFileName.Text := FFileName;
 end;
 
-procedure Tgdc_frmStreamSaver.actStreamSettingsExecute(Sender: TObject);
+procedure Tgdc_frmStreamSaver.ActivateFinishButtons(const IsActivate: Boolean = True);
 begin
-  with TdlgStreamSaverOptions.Create(Self) do
-    try
-      if ShowModal = mrOK then
-        SetInitialSettings;
-    finally
-      Free;
-    end;
-end;
-
-procedure Tgdc_frmStreamSaver.ActivateFinishButtons;
-begin
-  btnSettings.Enabled := True;
-  btnClose.Enabled := True;
-  btnClose.Default := True;
-  btnShowLog.Enabled := True;
+  btnClose.Enabled := IsActivate;
+  btnClose.Default := IsActivate;
+  btnShowLog.Enabled := IsActivate;
 end;
 
 procedure Tgdc_frmStreamSaver.cbStreamFormatChange(Sender: TObject);
@@ -1147,6 +1098,13 @@ procedure Tgdc_frmStreamSaver.cbMakeSettingClick(Sender: TObject);
 begin
   lblSettingFormat.Visible := cbMakeSetting.Checked;
   cbSettingFormat.Visible := cbMakeSetting.Checked; 
+end;
+
+procedure Tgdc_frmStreamSaver.cbIncrementedClick(Sender: TObject);
+begin
+  FIncrementSaving := cbIncremented.Checked;
+  lblIncrementedHelp.Visible := cbIncremented.Checked;
+  pnlDatabases.Visible := cbIncremented.Checked;
 end;
 
 end.

@@ -707,7 +707,7 @@ end;
 
 procedure TboLogin.OnModifyLog(const AnLogText: String);
 begin
-  AddText(AnLogText, clBlack, True);
+  AddText(AnLogText, clBlack);
 end;
 
 procedure TboLogin.DoOnConnectionParams(Sender: TObject);

@@ -107,7 +107,7 @@ uses
   menus,                flt_QueryFilterGDC,    at_sql_setup,     gd_createable_form,
   ActnList,             gsStorage,             gd_KeyAssoc,      ExtCtrls,
   Graphics,             mtd_i_Base,            evt_i_Base,       zlib,
-  gdcConstants,         Registry;
+  gdcConstants,         Registry,              gsStreamHelper;
 
 resourcestring
   strHaventRights =
@@ -1394,12 +1394,12 @@ type
 
     function QuerySaveFileName(
       const AFileName: String = '';     
-      const aDefaultExt: String = 'dat';
-      const aFilter: String = 'Dat files|*.dat'): String; virtual;
+      const aDefaultExt: String = datExtension;
+      const aFilter: String = datDialogFilter): String; virtual;
     function QueryLoadFileName(
       const AFileName: String = '';
-      const aDefaultExt: String = 'dat';
-      const aFilter: String = 'Dat files|*.dat'): String; virtual;
+      const aDefaultExt: String = datExtension;
+      const aFilter: String = datDialogFilter): String; virtual;
 
     procedure SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
       const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True); virtual;
@@ -1518,6 +1518,11 @@ type
     class function GetListTableAlias: String; virtual;
     // поле з _дэнтыф_катарам аб'екту
     class function GetKeyField(const ASubType: TgdcSubType): String; virtual;
+
+    // Список полей, которые не надо сохранять в поток.
+    //  Наименования полей разделены запятой,
+    //  пример: 'LB,RB,CREATORKEY,EDITORKEY'
+    class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; virtual;
 
     // умова выдзяленьня падмноства аб'ектаў з усяго
     // мноства зап_саў у табл_цы
@@ -2099,7 +2104,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
   {$ENDIF}
-  , gdc_frmStreamSaver, gdcStreamSaver, gsStreamHelper;
+  , gdc_frmStreamSaver, gdcStreamSaver;
 
 const
   cst_sql_SelectRuidByID = 'SELECT * FROM gd_ruid WHERE id=:id';
@@ -2112,8 +2117,6 @@ const
     ' modified=:modified, xid=:xid, dbid=:dbid WHERE id = :id';
   cst_sql_DeleteRuidByXID = 'DELETE FROM gd_ruid WHERE xid=:xid AND dbid=:dbid';
   cst_sql_DeleteRuidByID = 'DELETE FROM gd_ruid WHERE id=:id';
-
-  cst_sql_DeleteRplRecordByRUID = 'DELETE FROM rpl_record WHERE xid=:xid AND dbid=:dbid';
 
 const
   SM_REMOTESESSION = $1000;
@@ -4932,7 +4935,7 @@ begin
        (это вообще какой-то жуткий метод)
        Тем более, что этот код нормально обработает ошибку только на вставку записи,
        а апдейт пропустит}
-        if (E.IBErrorCode = 335544347) and (sDialog in FBaseState) then
+        if (E.IBErrorCode = isc_not_valid) and (sDialog in FBaseState) then
         begin
           Parser := TsqlParser.Create(FExecQuery.SQL.Text);
           try
@@ -6593,7 +6596,7 @@ nowait
           except
             on E: EIBError do
             begin
-              if (E.IBErrorCode = isc_lock_conflict) then
+              if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
               begin
                 if (CutOff > 1) and DidActivate and AllowCloseTransaction then
                 begin
@@ -6644,7 +6647,7 @@ nowait
               // вручную
               on E: EIBError do
               begin
-                if E.IBErrorCode <> 335544665 then
+                if E.IBErrorCode <> isc_unique_key_violation then
                   raise;
               end;
             end;
@@ -6658,7 +6661,7 @@ nowait
               // подавляем нарушение первичного ключа
               on E: EIBError do
               begin
-                if E.IBErrorCode <> 335544665 then
+                if E.IBErrorCode <> isc_unique_key_violation then
                   raise;
               end;
             end;
@@ -6775,7 +6778,7 @@ begin
           except
             on E: EIBError do
             begin
-              if (E.IBErrorCode = isc_lock_conflict) then
+              if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
               begin
                 if (CutOff > 1) and DidActivate and AllowCloseTransaction then
                 begin
@@ -7415,7 +7418,6 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           try
             TargetDS.Post;
             AddText('Объект обновлен данными из потока!', clBlack);
-            Space;
           except
             on E: EIBError do
             begin
@@ -7437,13 +7439,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             end;
           end;
         end
-
         else if not TargetDS.CheckTheSame(AnAnswer, True) then
-        begin
           TargetDS.Post;
-          AddText('Объект добавлен из потока!', clBlack);
-          Space;
-        end;
 
         if NeedAddToIDMapping and
           (IDMapping.IndexOf(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger) = -1)
@@ -7482,9 +7479,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             'Ошибка',
             MB_OK or MB_ICONHAND);}
 
-          AddMistake(#13#10 + ErrorSt + #13#10, clRed);
-          AddMistake(#13#10 + E.Message + #13#10, clRed);
-          Space;
+          //AddMistake(ErrorSt, clRed);
+          AddMistake(E.Message, clRed);
 
           TargetDS.Cancel;
           if IDMapping.IndexOf(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger) = -1 then
@@ -7559,23 +7555,20 @@ begin
       exit;
     end;
 
-    Space;
     //Проверяем на соответствие поля для отображения
     if (CDS.FindField(GetListField(SubType)) = nil) then
     begin
-      AddText('Считывание объекта ' + GetDisplayName(GetSubType) + ' ' +
-          ' (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
-        CDS.FieldByName('_dbid').AsString + ')'#13#10, clBlue);
+      AddText('Объект "' + GetDisplayName(GetSubType) + '" (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
+        CDS.FieldByName('_dbid').AsString + ')', clBlue);
 
-      AddMistake('Структура загружаемого объекта не соответствует '#13#10 +
-        ' структуре уже существующего объекта в базе. '#13#10 +
-        ' Поле ' + GetListField(SubType) + ' не найдено в потоке данных!'#13#10, clRed);
-    end else
+      AddMistake('Структура загружаемого объекта не соответствует структуре уже существующего объекта в базе. '#13#10 +
+        ' Поле ' + GetListField(SubType) + ' не найдено в потоке данных!', clRed);
+    end
+    else
     begin
-      AddText('Считывание объекта ' + GetDisplayName(GetSubType) + ' ' +
-        CDS.FieldByName(GetListField(SubType)).AsString + #13#10 +
-        ' (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
-        CDS.FieldByName('_dbid').AsString + ')'#13#10, clBlue);
+      AddText('Объект "' + GetDisplayName(GetSubType) + ' ' + CDS.FieldByName(GetListField(SubType)).AsString +
+        '" (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
+        CDS.FieldByName('_dbid').AsString + ')', clBlue);
     end;
 
     FStreamXID := CDS.FieldByName('_xid').AsInteger;
@@ -7748,8 +7741,7 @@ begin
     if Assigned(frmStreamSaver) then
       frmStreamSaver.SetupProgress(ObjectSet.Count, 'Загрузка...');
 
-    Space;
-    AddText(TimeToStr(Time) + ': Начата загрузка данных из потока.', clBlack);
+    AddText('Начата загрузка данных из потока.', clBlack);
 
     if Assigned(frmSQLProcess) and Assigned(ObjectSet) then
     begin
@@ -7922,9 +7914,7 @@ begin
         if Assigned(frmStreamSaver) then
           frmStreamSaver.Done;
 
-        Space;
-        AddText(TimeToStr(Time) + ': Закончена загрузка данных из потока.', clBlack);
-        Space;
+        AddText('Закончена загрузка данных из потока.', clBlack);
       end;
 
     except
@@ -7938,7 +7928,6 @@ begin
             frmStreamSaver.AddMistake(E.Message);
 
           AddMistake(E.Message, clRed);
-          Space;
         end;
         raise;
       end;
@@ -8201,15 +8190,14 @@ var
     else
     begin
       AddText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
-        FieldByName(GetListField(SubType)).AsString + #13#10 +
-        ' (' + FieldByName(GetKeyField(SubType)).AsString + ')'#13#10,
+        FieldByName(GetListField(SubType)).AsString +
+        ' (' + FieldByName(GetKeyField(SubType)).AsString + ')',
         clBlue);
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
-          FieldByName(GetListField(SubType)).AsString + #13#10 +
+          FieldByName(GetListField(SubType)).AsString +
           ' (' + FieldByName(GetKeyField(SubType)).AsString + ')');
     end;
-    Space;
 
     RUID := GetRUID;
 
@@ -8402,8 +8390,7 @@ begin
                 'Ошибка',
                 MB_OK or MB_ICONEXCLAMATION);
 
-            AddMistake(#13#10 + E.Message + #13#10, clRed);
-            Space;
+            AddMistake(E.Message, clRed);
           end;
         end;
       end else
@@ -8501,8 +8488,7 @@ begin
                 'Ошибка',
                 MB_OK or MB_ICONEXCLAMATION);
 
-            AddMistake(#13#10 + E.Message + #13#10, clRed);
-            Space;
+            AddMistake(E.Message, clRed);
           end;
         end;
       end else
@@ -8652,14 +8638,13 @@ begin
                 begin
                   if Obj.RecordCount > 0 then
                   begin
-                    Space;
                     AddText('Сохранение: ' + Obj.GetDisplayName(Obj.GetSubType) + ' ' +
-                      Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + #13#10 +
-                      ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')'#13#10,
+                      Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
+                      ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')',
                       clBlue);
                     if Assigned(frmStreamSaver) then
                       frmStreamSaver.SetProcessText(Obj.GetDisplayName(Obj.GetSubType) + ' ' +
-                        Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + #13#10 +
+                        Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
                         ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')');
                     SaveToStreamCLDS(Obj);
                     ObjectIDIndex := ObjectSet.Add(Obj.ID, Obj.ClassName, Obj.SubType, Obj.SetTable);
@@ -10573,7 +10558,7 @@ begin
       except
         on E: EIBError do
         begin
-          if (E.IBErrorCode = isc_lock_conflict)
+          if ((E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock))
             and (sView in BaseState) then
           begin
             MessageBox(ParentHandle,
@@ -11891,7 +11876,7 @@ begin
           except
               on E: EIBError do
               begin
-                if (E.IBErrorCode = isc_lock_conflict) then
+                if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
                 begin
                   if (CutOff > 1) and DidActivate {and AllowCloseTransaction} then
                   begin
@@ -12038,7 +12023,7 @@ begin
           except
             on E: EIBError do
             begin
-              if (E.IBErrorCode = isc_lock_conflict) then
+              if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
               begin
                 if (CutOff > 1) and DidActivate {and AllowCloseTransaction} then
                 begin
@@ -12403,7 +12388,7 @@ begin
               FieldByName(GetKeyField(SubType)).AsInteger := GetNextID(True, True);
               Inc(C);
             end
-            else if (E.IBErrorCode = isc_lock_conflict)
+            else if ((E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock))
               and (sView in BaseState) then
             begin
               MessageBox(ParentHandle,
@@ -13633,35 +13618,24 @@ end;
 
 procedure TgdcBase.LoadFromFile(const AFileName: String);
 var
-  FN: String;
   frmStreamSaver: TForm;
 begin
-  FN := QueryLoadFileName(AFileName);
-  if (FN > '') then
-  begin
-    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
-    (frmStreamSaver as Tgdc_frmStreamSaver).FileName := FN;
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(Self);
-    (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadForm;
-  end;
+  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+  (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(Self);
+  (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadForm;
 end;
 
 procedure TgdcBase.SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
   const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
 var
-  FN: String;
   frmStreamSaver: TForm;
 begin
   if Assigned(BL) then
     BL.Refresh;
-  FN := QuerySaveFileName(AFileName);
-  if FN > '' then
-  begin
-    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
-    (frmStreamSaver as Tgdc_frmStreamSaver).FileName := FN;
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(Self, ADetail, BL, OnlyCurrent);
-    (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
-  end;
+
+  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+  (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(Self, ADetail, BL, OnlyCurrent);
+  (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
 end;
 
 {По-умолчанию для этого метода все выделенные для сохранения объекты и
@@ -13708,8 +13682,7 @@ begin
   MS := TMemoryStream.Create;
   OS := TgdcObjectSet.Create(TgdcBase, '');
 
-  Space;
-  AddText(TimeToStr(Time) + ': Началось сохранение данных в поток.'#13#10, clBlack, True);
+  AddText('Началось сохранение данных в поток.', clBlack);
 
   WasActive := Transaction.InTransaction;
 
@@ -13772,9 +13745,7 @@ begin
     end;
 
   finally
-    Space;
-    AddText(TimeToStr(Time) + ': Закончено сохранение данных в поток.'#13#10, clBlack, True);
-    Space;
+    AddText('Закончено сохранение данных в поток.', clBlack);
 
     OS.SaveToStream(Stream);
     Stream.CopyFrom(MS, 0);
@@ -13809,8 +13780,8 @@ begin
 end;
 
 function TgdcBase.QuerySaveFileName(const AFileName: String = '';
-  const aDefaultExt: String = 'dat';
-  const aFilter: String = 'Dat files|*.dat'): String;
+  const aDefaultExt: String = datExtension;
+  const aFilter: String = datDialogFilter): String;
 begin
   if AFileName = '' then
   begin
@@ -13860,8 +13831,8 @@ end;
 
 function TgdcBase.QueryLoadFileName(
   const AFileName: String = '';
-  const aDefaultExt: String = 'dat';
-  const aFilter: String = 'Dat files|*.dat'): String;
+  const aDefaultExt: String = datExtension;
+  const aFilter: String = datDialogFilter): String;
 begin
   Result := AFileName;
 
@@ -14278,7 +14249,6 @@ begin
                 raise;
               end;
               AddText('Объект обновлен данными из потока!', clBlack);
-              Space;
             except
               Cancel;
             end;
@@ -14443,7 +14413,9 @@ begin
             (Field.AsDateTime > 1) and
             ((Field.AsDateTime < Now - DW * 365) or (Field.AsDateTime > Now + DW * 365)) then
           begin
-            MessageBox(ParentHandle,
+            // Есть диалоговые формы, где датасет для поля находится на форме просмотра,
+            // если использовать ParentHandle, то диалоговая форма будет 'западать'.
+            MessageBox(Application.Handle,
               PChar('Проверьте, является ли введенная Вами дата "' +
                 FormatDateTime('dd.mm.yyyy', Field.AsDateTime) + '" правильной.'#13#10#13#10 +
                 'Отключить данную проверку можно в окне Опции, меню Сервис.'),
@@ -14526,7 +14498,7 @@ begin
   except
     on E: EIBError do
     begin
-      if E.IBErrorCode = 335544344 then
+      if E.IBErrorCode = isc_io_error then
       begin
         MessageBox(ParentHandle,
           'Произошла ошибка при создании файла сортировки.'#13#10 +
@@ -16004,7 +15976,7 @@ begin
       // при попытке добавить элемент второй раз
       // будет исключение
       // подавим его
-      if E.IBErrorCode <> 335544665 then
+      if E.IBErrorCode <> isc_unique_key_violation then
         raise;
     end;
   end;
@@ -17851,6 +17823,14 @@ begin
   // inherited GetCanModify проверяет FLiveMode, которая
   // инициализируется только в процессе Prepare
   Result := (not InternalPrepared) or (inherited GetCanModify);
+end;
+
+class function TgdcBase.GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String;
+begin
+  if IsReplicationMode then
+    Result := 'LB,RB'
+  else
+    Result := 'LB,RB,CREATORKEY,EDITORKEY';
 end;
 
 initialization
