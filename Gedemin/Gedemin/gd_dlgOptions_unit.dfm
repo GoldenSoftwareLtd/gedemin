@@ -86,14 +86,6 @@ object gd_dlgOptions: Tgd_dlgOptions
         Caption = 'Сохранять значения полей в диалоговых окнах'
         TabOrder = 3
       end
-      object chbxShowLog: TCheckBox
-        Left = 3
-        Top = 42
-        Width = 281
-        Height = 17
-        Caption = 'Выводить лог при загрузке/сохранении в поток'
-        TabOrder = 4
-      end
       object cbLanguage: TComboBox
         Left = 278
         Top = 81
@@ -101,7 +93,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Height = 21
         Style = csDropDownList
         ItemHeight = 13
-        TabOrder = 8
+        TabOrder = 7
         Items.Strings = (
           'Не переключать'
           'Беларускую мову'
@@ -114,7 +106,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 257
         Height = 17
         Caption = 'Проверять корректность банковского счета'
-        TabOrder = 13
+        TabOrder = 12
       end
       object chbxProhibitDuplicates: TCheckBox
         Left = 3
@@ -122,7 +114,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 262
         Height = 17
         Caption = 'Запрещать ввод дублирующихся организаций'
-        TabOrder = 10
+        TabOrder = 9
       end
       object chbxCheckUNN: TCheckBox
         Left = 24
@@ -130,7 +122,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 233
         Height = 17
         Caption = 'Проверять организации по УНН (ИНН)'
-        TabOrder = 11
+        TabOrder = 10
       end
       object chbxCheckName: TCheckBox
         Left = 24
@@ -138,7 +130,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 241
         Height = 17
         Caption = 'Проверять организации по наименованию'
-        TabOrder = 12
+        TabOrder = 11
       end
       object chbxHideMaster: TCheckBox
         Left = 278
@@ -146,7 +138,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 269
         Height = 17
         Caption = 'Разрешать скрытие главной панели'
-        TabOrder = 5
+        TabOrder = 4
       end
       object chbxShowZero: TCheckBox
         Left = 278
@@ -154,7 +146,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 268
         Height = 17
         Caption = 'Показывать нули в таблице'
-        TabOrder = 7
+        TabOrder = 6
       end
       object seDateWindow: TSpinEdit
         Left = 278
@@ -163,7 +155,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Height = 22
         MaxValue = 1000
         MinValue = 0
-        TabOrder = 14
+        TabOrder = 13
         Value = 0
       end
       object cbSaveDT: TComboBox
@@ -173,7 +165,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Height = 21
         Style = csDropDownList
         ItemHeight = 13
-        TabOrder = 9
+        TabOrder = 8
         Items.Strings = (
           'Сохранять'
           'Не сохранять'
@@ -181,11 +173,11 @@ object gd_dlgOptions: Tgd_dlgOptions
       end
       object chbxHintInGrid: TCheckBox
         Left = 3
-        Top = 59
+        Top = 42
         Width = 273
         Height = 17
         Caption = 'Отображать всплывающую подсказку в таблице'
-        TabOrder = 6
+        TabOrder = 5
       end
       object chbxEditWarn: TCheckBox
         Left = 3
@@ -193,7 +185,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 334
         Height = 17
         Caption = 'Предупреждать об отсутствии прав на изменение записи'
-        TabOrder = 15
+        TabOrder = 14
       end
       object chbxByLBRB: TCheckBox
         Left = 3
@@ -201,7 +193,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 302
         Height = 17
         Caption = 'Связь по LB, RB мастера для интервальных деревьев'
-        TabOrder = 16
+        TabOrder = 15
       end
       object chbxWarnMDMism: TCheckBox
         Left = 3
@@ -211,7 +203,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Caption = 
           'Предупреждать о возможном несоответствии детальной записи главно' +
           'й записи'
-        TabOrder = 17
+        TabOrder = 16
       end
       object chbxFilterParams: TCheckBox
         Left = 3
@@ -221,7 +213,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Caption = 
           'Всегда запрашивать параметры для текущего фильтра и предупреждат' +
           'ь о фильтрации данных'
-        TabOrder = 18
+        TabOrder = 17
       end
       object chbxCorrectWindowSize: TCheckBox
         Left = 3
@@ -229,7 +221,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 542
         Height = 17
         Caption = 'Предупреждать, если часть полей ввода в диалоговом окне скрыта'
-        TabOrder = 19
+        TabOrder = 18
       end
       object cbDontUseGoodKey: TCheckBox
         Left = 3
@@ -239,7 +231,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Caption = 
           'Отключить использование поля код товара при формировании движени' +
           'я'
-        TabOrder = 20
+        TabOrder = 19
       end
       object chbxBlockRecord: TCheckBox
         Left = 3
@@ -247,7 +239,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 542
         Height = 17
         Caption = 'Блокировать запись при открытии на просмотр или изменение'
-        TabOrder = 21
+        TabOrder = 20
       end
       object cbUseDelMovement: TCheckBox
         Left = 3
@@ -255,7 +247,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 542
         Height = 17
         Caption = 'Использовать механизм обратного расчета остатков товаров на дату'
-        TabOrder = 22
+        TabOrder = 21
       end
       object chbxAutoCreate: TCheckBox
         Left = 3
@@ -265,7 +257,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Caption = 
           'Автоматически создавать объект, если он не найден в выпадающем с' +
           'писке'
-        TabOrder = 23
+        TabOrder = 22
       end
       object chbxDelSilent: TCheckBox
         Left = 3
@@ -273,7 +265,7 @@ object gd_dlgOptions: Tgd_dlgOptions
         Width = 486
         Height = 17
         Caption = 'Не показывать зависимости при удалении объекта'
-        TabOrder = 24
+        TabOrder = 23
       end
     end
     object tsAudit: TTabSheet

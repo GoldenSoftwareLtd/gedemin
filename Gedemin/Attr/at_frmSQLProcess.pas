@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, ActnList, TB2Dock, TB2Toolbar, TB2Item, ExtCtrls,
-  at_Classes;
+  at_Log, ImgList;
 
 type
   TfrmSQLProcess = class(TForm)
@@ -19,50 +19,54 @@ type
     tbiClose: TTBItem;
     pb: TProgressBar;
     Panel1: TPanel;
-    SQLText: TMemo;
+    TBItem1: TTBItem;
+    actClear: TAction;
+    lv: TListView;
+    il: TImageList;
 
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure actSaveToFileExecute(Sender: TObject);
     procedure actCloseExecute(Sender: TObject);
-    procedure FormShow(Sender: TObject);
+    procedure actClearExecute(Sender: TObject);
+    procedure actClearUpdate(Sender: TObject);
+    procedure lvData(Sender: TObject; Item: TListItem);
+    procedure lvDataHint(Sender: TObject; StartIndex, EndIndex: Integer);
+    procedure lvInfoTip(Sender: TObject; Item: TListItem;
+      var InfoTip: String);
+    procedure actSaveToFileUpdate(Sender: TObject);
 
   private
-    FWasSpace: Boolean;
-    FPrevText: String;
-    FIsShowLog: Boolean;
-    FAsked: Boolean;
     FSilent: Boolean;
+    FLog: TatLog;
+
     function GetIsError: Boolean;
+    procedure PrepareItem(LI: TListItem);
+    procedure SetSilent(const Value: Boolean);
+    procedure CleanUp;
 
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    property WasSpace: Boolean read FWasSpace write FWasSpace;
-    //Сохраняет текст перед очисткой  RichEdita при превышении максимального размера RichEdita
-    //Затем используется при сохранении данных в файл
-    property PrevText: String read FPrevText write FPrevText;
+    procedure AddRecord(const S: String; const ALogType: TatLogType);
+
     property IsError: Boolean read GetIsError;
-    //если Silent = true, то лог будет вестись, но окно не будет выводится на экран
-    property Silent: Boolean read FSilent write FSilent;
-    property IsShowLog: Boolean read FIsShowLog write FIsShowLog;
+    property Silent: Boolean read FSilent write SetSilent;
   end;
 
 var
   frmSQLProcess: TfrmSQLProcess;
 
-procedure AddText(const T: String; C: TColor; const Necessary: Boolean = False);
 function TranslateText(const T: String): String;
-//параметр IsNecessarily указывает обязательно ли рисовать Space
-//по умолчанию проверяется флаг FWasSpace,
-//который указвает, является ли предыдущая строка Space
-procedure Space(const IsNecessarily: Boolean = False);
+
+procedure AddText(const T: String; C: TColor = clBlack);
 procedure AddMistake(const T: String; C: TColor);
+procedure AddWarning(const T: String; C: TColor);
 
 implementation
 
 uses
-  Storages, at_dlgLoadPackages_unit
+  at_dlgLoadPackages_unit, at_Classes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -255,125 +259,37 @@ end;
 
 procedure AddMistake(const T: String; C: TColor);
 begin
-  if not Assigned(frmSQLProcess) then
-    frmSQLProcess := TfrmSQLProcess.Create(Application);
+  if frmSQLProcess = nil then
+    TfrmSQLProcess.Create(Application);
 
-  AddText(T,C,True);
-  frmSQLProcess.stbSQLProcess.Panels[0].Text := cstWasMistakes;
+  frmSQLProcess.AddRecord(T, atltError);
 end;
 
-procedure AddText(const T: String; C: TColor; const Necessary: Boolean = False);
-const
-  Counter: Integer = 0;
-{var
-  OldSelStart: Integer;}
+procedure AddWarning(const T: String; C: TColor);
 begin
-  if not Assigned(frmSQLProcess) then
-  begin
-    frmSQLProcess := TfrmSQLProcess.Create(Application);
-  end;
+  if frmSQLProcess = nil then
+    TfrmSQLProcess.Create(Application);
 
-  if (T > '') and (Necessary or frmSQLProcess.IsShowLog) then
-  begin
-    Inc(Counter);
-
-    with frmSQLProcess.SQLText do
-    begin
-      try
-        if SelStart > 512*1024 then
-        begin
-          frmSQLProcess.PrevText :=
-            frmSQLProcess.PrevText + #13#10 + Text;
-          Clear;
-          SelStart := 0;
-        end;
-        //OldSelStart := SelStart;
-        Lines.Add(T);
-      except
-        //Возможно ошибка из-за превышения максимального размера RichEdit'a
-        //Тогда сохраним предыдущий текст и очистим RichEdit
-        if Length(Text) > 32*1024 then
-        begin
-          frmSQLProcess.PrevText :=
-            frmSQLProcess.PrevText + #13#10 + Text;
-          Clear;
-          SelStart := 0;
-          //OldSelStart := SelStart;
-          Lines.Add(T);
-        end else
-          raise;
-      end;
-
-      {
-      if DefAttributes.Color <> C then
-      begin
-        SelStart := OldSelStart;
-        SelLength := Length(T);
-        SelAttributes.Color := C;
-      end;
-
-      SelStart := SelStart + Length(T);
-      SelLength := 0;
-      }
-
-      if Assigned(atDatabase) and atDatabase.InMultiConnection then
-        frmSQLProcess.stbSQLProcess.Panels[1].Text := cstNeedReConnection
-      else
-        frmSQLProcess.stbSQLProcess.Panels[1].Text := '';
-
-      if not frmSQLProcess.Silent then
-      begin
-        if not frmSQLProcess.Visible then
-        begin
-          frmSQLProcess.Show;
-          Counter := 0;
-        end;
-
-        if (Counter mod 40) = 0 then
-        begin
-          frmSQLProcess.BringToFront;
-          UpdateWindow(frmSQLProcess.Handle);
-        end;
-      end;  
-    end;
-
-    frmSQLProcess.WasSpace := False;
-  end;
+  frmSQLProcess.AddRecord(T, atltWarning);
 end;
 
-procedure Space(const IsNecessarily: Boolean = False);
+procedure AddText(const T: String; C: TColor = clBlack);
 begin
+  if frmSQLProcess = nil then
+    TfrmSQLProcess.Create(Application);
 
-  if not Assigned(frmSQLProcess) then
-    frmSQLProcess := TfrmSQLProcess.Create(Application);
-
-  if IsNecessarily or not frmSQLProcess.WasSpace then
-  begin
-    AddText
-    (
-      '---',
-      clBlack, False
-    );
-  end;
-  frmSQLProcess.WasSpace := True
+  frmSQLProcess.AddRecord(T, atltInfo);
 end;
 
 constructor TfrmSQLProcess.Create;
 begin
-  Assert(frmSQLProcess = nil, 'Может быть только одна форма frmSQLProcess');
-
   inherited;
-  FWasSpace := False;
-  FPrevText := '';
-  FSilent := False;
-  if not FindCmdLineSwitch('q', ['/', '-'], True) then
-  begin
-    if Assigned(UserStorage) then
-      FIsShowLog := UserStorage.ReadBoolean('Options', 'ShowLog', True, False)
-    else
-      FIsShowLog := True;
-  end else
-    FIsShowLog := False;
+
+  FSilent := FindCmdLineSwitch('q', ['/', '-'], True);
+  FLog := TatLog.Create;
+
+  frmSQLProcess.Free;
+  frmSQLProcess := Self;
 end;
 
 procedure TfrmSQLProcess.FormClose(Sender: TObject;
@@ -383,58 +299,46 @@ begin
     (MessageBox(Handle, 'Во время выполнения скриптов возникли ошибки! Сохранить лог в файл?',
       'Внимание', MB_ICONQUESTION or MB_YESNO) = IDYES)
   then
-  begin
     actSaveToFile.Execute;
-  end;
-  SQLText.Lines.Clear;
-  SQLText.SelStart := 0;
-  stbSQLProcess.Panels[0].Text := '';
-  stbSQLProcess.Panels[1].Text := '';
-  pb.Min := 0;
-  pb.Max := 0;
-  pb.Position := 0;
-  FWasSpace := False;
-  FPrevText := '';
-  FAsked := False;
 
   if (not Visible) and ((frmSQLProcess = nil) or (frmSQLProcess = Self)) then
-    Action := caFree;
+    Action := caFree
+  else
+    CleanUp;
 end;
 
 procedure TfrmSQLProcess.actSaveToFileExecute(Sender: TObject);
 var
   SD: TSaveDialog;
-  SL: TStringList;
 begin
   SD := TSaveDialog.Create(Self);
   try
     SD.Title := 'Сохранить лог в файл ';
     SD.DefaultExt := 'txt';
-    SD.Filter := 'Текстовые файлы (*.txt)|*.TXT|' +
-      'Все файлы (*.*)|*.*';
-    SD.FileName := 'Log';
-    if SD.Execute then
-    begin
-      SL := TStringList.Create;
-      try
-        SL.Assign(SQLText.Lines);
-        if PrevText > '' then
-          SL.Insert(0, PrevText);
-        SL.SaveToFile(SD.FileName);
-      finally
-        SL.Free;
-      end;
-    end;
-
+    SD.Filter := 'Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*';
+    SD.FileName := 'log.txt';
+    SD.Options := [ofOverwritePrompt, ofHideReadOnly, ofPathMustExist, ofNoReadOnlyReturn, ofEnableSizing];
+    if SD.Execute then FLog.SaveToFile(SD.FileName);
   finally
     SD.Free;
   end;
+end;
 
+procedure TfrmSQLProcess.actClearUpdate(Sender: TObject);
+begin
+  actClear.Enabled := FLog.Count > 0;
+end;
+
+procedure TfrmSQLProcess.actClearExecute(Sender: TObject);
+begin
+  CleanUp;
+  lv.Visible := False;
+  lv.Visible := True;
 end;
 
 function TfrmSQLProcess.GetIsError: Boolean;
 begin
-  Result := stbSQLProcess.Panels[0].Text > '';
+  Result := FLog.WasError;
 end;
 
 procedure TfrmSQLProcess.actCloseExecute(Sender: TObject);
@@ -442,31 +346,121 @@ begin
   Close;
 end;
 
-procedure TfrmSQLProcess.FormShow(Sender: TObject);
+destructor TfrmSQLProcess.Destroy;
 begin
-  if at_dlgLoadPackages <> nil then
+  frmSQLProcess := nil;
+  FLog.Free;
+  inherited;
+end;
+
+procedure TfrmSQLProcess.AddRecord(const S: String; const ALogType: TatLogType);
+const
+  Counter: Integer = 0;
+begin
+  FLog.AddRecord(TrimRight(S), ALogType);
+  lv.Items.Count := FLog.Count;
+
+  if not FSilent then
   begin
-    if not FAsked then
+    if not Visible then
     begin
-      if Assigned(UserStorage) then
-        FIsShowLog := UserStorage.ReadBoolean('Options', 'ShowLog', True, False);
+      Show;
+      Counter := 0;
+    end else
+      Inc(Counter);
 
-      FIsShowLog := FIsShowLog and (MessageBox(Handle,
-        'Выводить подробную информацию о ходе процесса?'#13#10#13#10 +
-        'Данная опция способна существенно замедлить выполнение!',
-        'Внимание',
-        MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL or MB_DEFBUTTON2) = IDYES);
+    if (Counter mod 40) = 0 then
+    begin
+      BringToFront;
+      UpdateWindow(Handle);
+    end;
+  end;
 
-      FAsked := True;
+  if Assigned(atDatabase) and atDatabase.InMultiConnection then
+    stbSQLProcess.Panels[1].Text := cstNeedReConnection
+  else
+    stbSQLProcess.Panels[1].Text := '';
+
+  if ALogType = atltError then
+    stbSQLProcess.Panels[0].Text := cstWasMistakes;
+end;
+
+procedure TfrmSQLProcess.lvData(Sender: TObject; Item: TListItem);
+begin
+  PrepareItem(Item);
+end;
+
+procedure TfrmSQLProcess.lvDataHint(Sender: TObject; StartIndex,
+  EndIndex: Integer);
+var
+  I: Integer;
+begin
+  for I := StartIndex to EndIndex do
+    PrepareItem(lv.Items[I]);
+end;
+
+procedure TfrmSQLProcess.lvInfoTip(Sender: TObject; Item: TListItem;
+  var InfoTip: String);
+begin
+  InfoTip := FLog.LogText[Item.Index];
+  if (Length(InfoTip) < 92) and (Pos(#13, InfoTip) = 0) then
+    InfoTip := '';
+end;
+
+procedure TfrmSQLProcess.PrepareItem(LI: TListItem);
+var
+  S: String;
+  B, E: Integer;
+begin
+  with FLog.LogRec[LI.Index] do
+  begin
+    LI.Caption := FormatDateTime('hh:nn:ss', Logged);
+
+    S := FLog.LogText[LI.Index];
+
+    B := 1;
+    while (B <= Length(S)) and (S[B] <= ' ') do
+      Inc(B);
+    E := B;
+    while (E - B < 120) and (E <= Length(S)) and (S[E] >= ' ') do
+      Inc(E);
+
+    if E < Length(S) then
+      LI.SubItems.Add(Copy(S, B, E - B) + '...')
+    else
+      LI.SubItems.Add(Copy(S, B, E - B));
+
+    case LogType of
+      atltError: LI.StateIndex := 0;
+      atltWarning: LI.StateIndex := 1;
+    else
+      LI.StateIndex := 2;
     end;
   end;
 end;
 
-destructor TfrmSQLProcess.Destroy;
+procedure TfrmSQLProcess.actSaveToFileUpdate(Sender: TObject);
 begin
-  if frmSQLProcess = Self then
-    frmSQLProcess := nil;
-  inherited;
+  actSaveToFile.Enabled := FLog.Count > 0;
+end;
+
+procedure TfrmSQLProcess.SetSilent(const Value: Boolean);
+begin
+  FSilent := Value;
+  if Visible and FSilent then
+    Hide;
+end;
+
+procedure TfrmSQLProcess.CleanUp;
+begin
+  FLog.Clear;
+  lv.Items.Count := 0;
+
+  stbSQLProcess.Panels[0].Text := '';
+  stbSQLProcess.Panels[1].Text := '';
+  pb.Min := 0;
+  pb.Max := 0;
+  pb.Position := 0;
 end;
 
 end.

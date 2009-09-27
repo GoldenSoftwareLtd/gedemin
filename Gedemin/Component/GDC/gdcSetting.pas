@@ -273,14 +273,6 @@ const
   gsfID = 608588615;
   // Текущая версия формата файла настройки
   gsfVersion = 1;
-  // Расширение для файлов настроек
-  gsfExtension = 'gsf';
-  gsfLoadDialogFilter = 'Файлы настроек|*.' + gsfExtension + '|Dat files|*.dat';
-  gsfSaveDialogFilter = 'Файлы настроек|*.' + gsfExtension;
-
-  xmlExtension = 'xml';
-  xmlDialogFilter = 'Файлы XML настроек|*.' + xmlExtension;
-  gsfxmlDialogFilter = 'Файлы настроек|*.' + gsfExtension + ';' + '*.' + xmlExtension;
 
   girOK = 0;
   girUserCancel = 1;
@@ -470,16 +462,14 @@ begin
     if Self.Silent then
     begin
       if not Assigned(frmSQLProcess) then
-      begin
         frmSQLProcess := TfrmSQLProcess.Create(Owner);
-        frmSQLProcess.SQLText.Lines.Clear;
-      end;
-      ShowSQL := frmSQLProcess.IsShowLog;
+        
+      ShowSQL := frmSQLProcess.Silent;
       try
-        frmSQLProcess.IsShowLog := False;
+        frmSQLProcess.Silent := True;
         _ActivateSetting(FinalKeyAr.CommaText, Silent, AnModalSQLProcess and not Silent, Lo(AnAnswer), Hi(AnAnswer));
       finally
-        frmSQLProcess.IsShowLog := ShowSQL;
+        frmSQLProcess.Silent := ShowSQL;
       end;
     end else
     begin
@@ -960,81 +950,81 @@ begin
     // Если frmSQLProcess не создан, то создадим его здесь
     //  и запретим вылазить на экран
     if not Assigned(frmSQLProcess) then
-    begin
       frmSQLProcess := TfrmSQLProcess.Create(Owner);
-      frmSQLProcess.SQLText.Lines.Clear;
-    end;
-    ShowLog := frmSQLProcess.IsShowLog;
-    frmSQLProcess.IsShowLog := not Self.Silent;
+      
+    ShowLog := frmSQLProcess.Silent;
+    try
+      frmSQLProcess.Silent := True;
 
-    if StreamType = sttXML then
-    begin
-      // Настройка в XML формате
-      FS := TFileStream.Create(FN, fmOpenRead);
-      StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
-      try
-        StreamSaver.Silent := Self.Silent;
-        StreamSaver.ReplicationMode := Self.Silent;
-        StreamSaver.ReadUserFromStream := Self.Silent;
-        StreamSaver.LoadSettingFromXMLFile(FS);
-      finally
-        StreamSaver.Free;
-        FS.Free;
-      end;
-    end
-    else
-    begin
-      // Обычная настройка в сжатом потоке
-      with TGSFHeader.Create do
-      try
-        if GetGSFInfo(FN) then           // проверяем корректность файла
-        begin
-          FS := TFileStream.Create(FN, fmOpenRead);
-          try
-            FS.Position := 2*SizeOf(Integer) + Size + 1;
-            PackStream := TZDecompressionStream.Create(FS);
-            MS := TMemoryStream.Create;
+      if StreamType = sttXML then
+      begin
+        // Настройка в XML формате
+        FS := TFileStream.Create(FN, fmOpenRead);
+        StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
+        try
+          StreamSaver.Silent := Self.Silent;
+          StreamSaver.ReplicationMode := Self.Silent;
+          StreamSaver.ReadUserFromStream := Self.Silent;
+          StreamSaver.LoadSettingFromXMLFile(FS);
+        finally
+          StreamSaver.Free;
+          FS.Free;
+        end;
+      end
+      else
+      begin
+        // Обычная настройка в сжатом потоке
+        with TGSFHeader.Create do
+        try
+          if GetGSFInfo(FN) then           // проверяем корректность файла
+          begin
+            FS := TFileStream.Create(FN, fmOpenRead);
             try
-              repeat
-                SizeRead := PackStream.Read(Buffer, 1024);
-                MS.WriteBuffer(Buffer, SizeRead);
-              until (SizeRead < 1024);
-              MS.Position := 0;
+              FS.Position := 2*SizeOf(Integer) + Size + 1;
+              PackStream := TZDecompressionStream.Create(FS);
+              MS := TMemoryStream.Create;
+              try
+                repeat
+                  SizeRead := PackStream.Read(Buffer, 1024);
+                  MS.WriteBuffer(Buffer, SizeRead);
+                until (SizeRead < 1024);
+                MS.Position := 0;
 
-              // Определим версию потока и способ загрузки
-              MS.ReadBuffer(TempInt, SizeOf(TempInt));
-              MS.Position := 0;
-              if TempInt > 1024 then
-              begin
-                StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
-                try
-                  StreamSaver.Silent := Self.Silent;
-                  StreamSaver.ReplicationMode := Self.Silent;
-                  StreamSaver.ReadUserFromStream := Self.Silent;
-                  StreamSaver.LoadFromStream(MS);
-                finally
-                  StreamSaver.Free;
-                end;
-              end
-              else
-                Self.LoadFromStream(MS);
+                // Определим версию потока и способ загрузки
+                MS.ReadBuffer(TempInt, SizeOf(TempInt));
+                MS.Position := 0;
+                if TempInt > 1024 then
+                begin
+                  StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
+                  try
+                    StreamSaver.Silent := Self.Silent;
+                    StreamSaver.ReplicationMode := Self.Silent;
+                    StreamSaver.ReadUserFromStream := Self.Silent;
+                    StreamSaver.LoadFromStream(MS);
+                  finally
+                    StreamSaver.Free;
+                  end;
+                end
+                else
+                  Self.LoadFromStream(MS);
+              finally
+                MS.Free;
+                PackStream.Free;
+              end;
             finally
-              MS.Free;
-              PackStream.Free;
+              FS.Free;
             end;
-          finally
-            FS.Free;
-          end;
-        end
-        else
-          inherited LoadFromFile(FN);
-      finally
-        Free;
+          end
+          else
+            inherited LoadFromFile(FN);
+        finally
+          Free;
+        end;
       end;
+    finally
+      if Assigned(frmSQLProcess) then
+        frmSQLProcess.Silent := ShowLog;
     end;
-
-    if Assigned(frmSQLProcess) then
-      frmSQLProcess.IsShowLog := ShowLog;
     Self.CloseOpen;  
   end;
 end;
@@ -1145,17 +1135,16 @@ begin
 
   if not Self.Silent then
   begin
-    AddText(TimeToStr(Time) + ': Началась синхронизация триггеров и индексов', clBlack, True);
+    AddText('Начата синхронизация триггеров и индексов', clBlack);
     //Т.к. в потоке могут оказаться триггеры и индексы и
     //мы не можем отследить изменение триггеров, а синхронизация
     //индексов проходит достаточно долго, чтобы выполнять ее каждый раз
     //при синхронизации БД, мы будем проводить синхронизацию
     //триггеров и индексов каждый раз при сохранении настройки
     atDatabase.SyncIndicesAndTriggers(Transaction);
-    AddText(TimeToStr(Time) + ': Закончилась синхронизация триггеров и индексов', clBlack, True);
-    Space;
-    AddText(TimeToStr(Time) + ': Началось формирование настройки ' +
-      FieldByName(GetListField(SubType)).AsString + '.', clBlack, True);
+    AddText('Закончена синхронизация триггеров и индексов', clBlack);
+    AddText('Начато формирование настройки ' +
+      FieldByName(GetListField(SubType)).AsString, clBlack);
   end;
 
   // Если не передан конкретный формат настройки, попробуем прочитать его из хранилища
@@ -1184,9 +1173,7 @@ begin
       except
         on E: Exception do
         begin
-          Space;
           AddMistake(E.Message, clRed);
-          Space;
           raise;
         end;
       end;
@@ -1215,20 +1202,15 @@ begin
       except
         on E: Exception do
         begin
-          Space;
           AddMistake(E.Message, clRed);
-          Space;
           Cancel;
           raise;
         end;
       end;
 
       if not Self.Silent then
-      begin
-        Space;
-        AddText(TimeToStr(Time) + ': Закончено формирование настройки ' +
-          FieldByName(GetListField(SubType)).AsString, clBlack, True);
-      end;
+        AddText('Закончено формирование настройки ' +
+          FieldByName(GetListField(SubType)).AsString, clBlack);
 
     finally
       StorageStream.Free;
@@ -1342,7 +1324,7 @@ begin
                   // Если работает репликатор, то не будем прерывать сохранение настройки
                   if not FSilent then
                   begin
-                    MistakeStr := #13#10 + 'Ошибка при сохранении объекта ' +
+                    MistakeStr := 'Ошибка при сохранении объекта ' +
                       ibsqlPos.FieldByName('category').AsString + ' ' +
                       ibsqlPos.FieldByName('objectname').AsString + #13#10 +
                       ' (с ' +
@@ -1350,7 +1332,6 @@ begin
                       ' DBID = ' + ibsqlPos.FieldByName('dbid').AsString + ')' + #13#10 +
                       'Объект не найден!';
                     AddMistake(MistakeStr, clRed);
-                    Space;
                     raise Exception.Create(MistakeStr);
                   end;
                 end;
@@ -1391,9 +1372,7 @@ begin
       except
         on E: Exception do
         begin
-          Space;
           AddMistake(E.Message, clRed);
-          Space;
           Cancel;
           raise;
         end;
@@ -1478,9 +1457,8 @@ begin
                     BlobStream.WriteBuffer(L, Sizeof(L));
                     BlobStream.WriteBuffer(BranchName[1], L);
                     stValue.SaveToStream(BlobStream);
-                    Space;
                     AddText('Сохранение параметра ' + ibsqlPos.FieldByName('valuename').AsString +
-                      ' ветки хранилища ' + BranchName + #13#10, clBlue);
+                      ' ветки хранилища ' + BranchName, clBlue);
                   end else
                     raise EgdcIBError.Create(' Параметр ' +
                       ibsqlPos.FieldByName('valuename').AsString +
@@ -1491,8 +1469,7 @@ begin
                   BlobStream.WriteBuffer(L, Sizeof(L));
                   BlobStream.WriteBuffer(BranchName[1], L);
                   NewFolder.SaveToStream(BlobStream);
-                  Space;
-                  AddText('Сохранение ветки хранилища ' + BranchName + #13#10, clBlue);
+                  AddText('Сохранение ветки хранилища ' + BranchName, clBlue);
                 end;
                 LStorage.CloseFolder(NewFolder);
               end else
@@ -1519,9 +1496,7 @@ begin
       except
         on E: Exception do
         begin
-          Space;
           AddMistake(E.Message, clRed);
-          Space;
           Cancel;
           raise;
         end;
@@ -1532,9 +1507,8 @@ begin
         if Assigned(frmStreamSaver) then
           frmStreamSaver.Done;
 
-        Space;
-        AddText(TimeToStr(Time) + ': Закончено формирование настройки '+
-          FieldByName(GetListField(SubType)).AsString + '.'#13#10, clBlack, True);
+        AddText('Закончено формирование настройки '+
+          FieldByName(GetListField(SubType)).AsString, clBlack);
       end;
 
     finally
@@ -4078,7 +4052,6 @@ var
                 if Assigned(frmStreamSaver) then
                   frmStreamSaver.AddMistake(E.Message);
                 AddMistake(E.Message, clRed);
-                Space;
                 raise;
               end
               else
@@ -4117,7 +4090,6 @@ var
           if Assigned(frmStreamSaver) then
             frmStreamSaver.AddMistake(E.Message);
           AddMistake(E.Message, clRed);
-          Space;
           raise;
         end;
       end;
@@ -4170,10 +4142,7 @@ var
   begin
     ConnectDatabase;
     if StorageStream.Size > 0 then
-    begin
-      Space;
-      AddText(TimeToStr(Time) + ': Началась загрузка хранилища', clBlack);
-    end;
+      AddText('Начата загрузка хранилища', clBlack);
     LStorage := nil;
     while StorageStream.Position < StorageStream.Size do
     begin
@@ -4273,14 +4242,12 @@ var
           if cstValue > '' then
           begin
             NewFolder.AddValueFromStream(cstValue, StorageStream);
-            Space;
             AddText('Загрузка параметра "' + cstValue +
-              '" ветки хранилища "' + StorageName + Path + '"'#13#10, clBlue);
+              '" ветки хранилища "' + StorageName + Path + '"', clBlue);
           end else
           begin
             NewFolder.LoadFromStream(StorageStream);
-            Space;
-            AddText('Загрузка ветки хранилища "' + StorageName + Path + '"'#13#10, clBlue);
+            AddText('Загрузка ветки хранилища "' + StorageName + Path + '"', clBlue);
           end;
           LStorage.CloseFolder(NewFolder, False);
           { TODO :
@@ -4293,7 +4260,6 @@ var
         else
         begin
           AddMistake('Ошибка при считывании данных хранилища!', clRed);
-          Space;
           raise Exception.Create('Ошибка при считывании данных хранилища!');
         end;
       end else
@@ -4318,11 +4284,7 @@ var
       UserStorage.SaveToDatabase;
 
     if StorageStream.Size > 0 then
-    begin
-      Space;
-      AddText(TimeToStr(Time) + ': Закончилась загрузка хранилища', clBlack);
-      Space;
-    end;
+      AddText('Закончена загрузка хранилища', clBlack);
   end;
 
 begin
@@ -4373,7 +4335,7 @@ begin
 
             if not DontHideForms then
             begin
-              AddText(TimeToStr(Time) + ': Началась загрузка настройки ' +  SettingName + '.'#13#10, clBlack, True);
+              AddText('Начата загрузка настройки ' + SettingName, clBlack);
 
               if Assigned(frmSQLProcess) then
                 frmSQLProcess.Caption := 'Загрузка настройки: ' + SettingName;
@@ -4388,7 +4350,7 @@ begin
                 if Assigned(frmStreamSaver) then
                   frmStreamSaver.SetupProgress(1, 'Синхронизация триггеров и индексов...');
 
-                AddText(TimeToStr(Time) + ': Началась синхронизация триггеров и индексов', clBlack, True);
+                AddText('Начата синхронизация триггеров и индексов', clBlack);
                 if WasMetaDataInSetting then
                 begin
                   atDataBase.ProceedLoading(True);
@@ -4396,8 +4358,7 @@ begin
                 end;
                 atDatabase.SyncIndicesAndTriggers(InternalTransaction);
 
-                AddText(TimeToStr(Time) + ': Закончилась синхронизация триггеров и индексов', clBlack, True);
-                Space;
+                AddText('Закончена синхронизация триггеров и индексов', clBlack);
 
                 if Assigned(frmStreamSaver) then
                   frmStreamSaver.Done;
@@ -4439,7 +4400,7 @@ begin
                 begin
                   if Assigned(frmStreamSaver) then
                     frmStreamSaver.SetupProgress(1, 'Синхронизация триггеров и индексов...');
-                  AddText(TimeToStr(Time) + ': Началась синхронизация триггеров и индексов', clBlack, True);
+                  AddText('Начата синхронизация триггеров и индексов', clBlack);
 
                   if WasMetaDataInSetting then
                   begin
@@ -4461,8 +4422,7 @@ begin
 
                   if Assigned(frmStreamSaver) then
                     frmStreamSaver.Done;
-                  AddText(TimeToStr(Time) + ': Закончилась синхронизация триггеров и индексов', clBlack, True);
-                  Space;
+                  AddText('Закончена синхронизация триггеров и индексов', clBlack);
 
                   DisconnectDatabase(True);
 
@@ -4506,7 +4466,7 @@ begin
 
             if not DontHideForms then
             begin
-              AddText(TimeToStr(Time) + ': Закончена загрузка настройки ' +  SettingName + '.'#13#10, clBlack, True);
+              AddText('Закончена загрузка настройки ' + SettingName, clBlack);
 
               if Assigned(frmSQLProcess) then
                 frmSQLProcess.Caption := 'Выполнение SQL команд';
@@ -4687,10 +4647,9 @@ var
                   if Assigned(Obj) then
                   begin
                     Obj.Open;
-                    Space;
                     AddText('Удаление объекта ' + Obj.GetDisplayName(Obj.SubType) +
                       ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                      ' с идентификатором ' + IntToStr(AnID) +  #13#10, clBlue);
+                      ' с идентификатором ' + IntToStr(AnID), clBlue);
                     if (Obj.RecordCount > 0) then
                     try
                       if (not(Obj is TgdcMetaBase)) or (Obj as TgdcMetaBase).IsUserDefined then
@@ -4699,13 +4658,12 @@ var
                       on E: Exception do
                       begin
                         AddMistake(E.Message, clRed);
-                        Space;
                         ReconnectDataBase(False);
                       end;
                     end else
                       AddText('Объект ' + Obj.GetDisplayName(Obj.SubType) +
                         ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                        ' с идентификатором ' + IntToStr(AnID) + ' уже удален '#13#10, clBlue);
+                        ' с идентификатором ' + IntToStr(AnID) + ' уже удален ', clBlue);
 
                   end;
                 finally
@@ -4754,14 +4712,12 @@ var
           begin
             if ibsqlPos.FieldByName('valuename').AsString > '' then
             begin
-              Space;
               AddText('Удаление параметра ' + ibsqlPos.FieldByName('valuename').AsString +
-                ' ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString + #13#10, clBlue);
+                ' ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString, clBlue);
               NewFolder.DeleteValue(ibsqlPos.FieldByName('valuename').AsString)
             end else
             begin
-              Space;
-              AddText('Удаление ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString + #13#10, clBlue);
+              AddText('Удаление ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString, clBlue);
               NewFolder.DropFolder;
             end;
           end;
@@ -4774,7 +4730,6 @@ var
         on E: Exception do
         begin
           AddMistake(E.Message, clRed);
-          Space;
           DisconnectDataBase(False);
           raise;
         end;
@@ -4818,20 +4773,16 @@ begin
         begin
           SettingName := ibquery.FieldByName('name').AsString;
 
-          AddText(TimeToStr(Time) + ': Началась синхронизация триггеров и индексов', clBlack, True);
+          AddText('Начата синхронизация триггеров и индексов', clBlack);
            //Т.к. в потоке могут оказаться триггеры и индексы и
           //мы не можем отследить изменение триггеров, а синхронизация
           //индексов проходит достаточно долго, чтобы выполнять ее каждый раз
           //при синхронизации БД, мы будем проводить синхронизацию
           //триггеров и индексов каждый раз при активации настройки
           atDatabase.SyncIndicesAndTriggers(InternalTransaction);
-          AddText(TimeToStr(Time) + ': Закончилась синхронизация триггеров и индексов', clBlack, True);
-          Space;
+          AddText('Закончена синхронизация триггеров и индексов', clBlack);
 
-          Space;
-          AddText(TimeToStr(Time) + Format(': Началась деактивация настройки %s',
-            [SettingName]), clBlack, True);
-          Space;
+          AddText(Format('Начата деактивация настройки %s', [SettingName]), clBlack);
 
           RUIDList := TStringList.Create;
           HelpList := TStringList.Create;
@@ -4847,10 +4798,7 @@ begin
                 MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDNO
               then
               begin
-                Space;
-                AddText(TimeToStr(Time) + Format(': Деактивация настройки %s прервана',
-                  [SettingName]), clBlack, True);
-                Space;
+                AddText(Format('Деактивация настройки %s прервана', [SettingName]), clBlack);
                 Continue;
               end;
             end;
@@ -4877,8 +4825,7 @@ begin
 
         DisconnectDatabase(True);
 
-        AddText(TimeToStr(Time) + Format(': Деактивация настройки %s закончена',
-          [SettingName]), clBlack, True);
+        AddText(Format('Деактивация настройки %s закончена', [SettingName]), clBlack);
       end;
     finally
       try
