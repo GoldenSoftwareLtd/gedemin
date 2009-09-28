@@ -55,6 +55,7 @@ const
   cst_AllCompanyPeople  = 'AllCompanyPeople';
   cst_ByContactType     = 'ByContactType';
   cst_ByLBRBDepartment  = 'ByLBRBDepartment';
+  cst_Holding           = 'ByHolding';
 //  cst_DepartmentPeople  = 'DepartmentsAndPeople';
 
   // ID for reports group
@@ -1731,7 +1732,10 @@ begin
   inherited;
   S.Add('z.contacttype = ' + IntToStr(ContactType));
   if HasSubSet(cst_ByLBRBDepartment) then
-    S.Add('clb.id =:companykey');
+    if not HasSubSet(cst_Holding) then
+      S.Add('clb.id = :companykey')
+    else
+      S.Add('h.holdingkey = :companykey')
 end;
 
 function TgdcDepartment.AcceptClipboard(CD: PgdcClipboardData): Boolean;
@@ -1794,7 +1798,7 @@ end;
 class function TgdcDepartment.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList +
-    cst_ByLBRBDepartment + ';';
+    cst_ByLBRBDepartment + ';' + cst_Holding + ';';
 end;
 
 function TgdcDepartment.GetFromClause(const ARefresh: Boolean = False): String;
@@ -1839,12 +1843,14 @@ begin
   { TODO : очень опасный момент с этой заменой
   но нужен нам для правильной генерации плана
   }
-  if (not ARefresh) and HasSubSet(cst_ByLBRBDepartment) then
+  if (not ARefresh) and (HasSubSet(cst_ByLBRBDepartment) or HasSubSet(cst_Holding)) then
   begin
     Result := StringReplace(Result,
       'gd_contact z',
       'gd_contact clb JOIN gd_contact z ON z.lb >= clb.lb  AND  z.rb <= clb.rb ',
       [rfIgnoreCase]);
+    if HasSubSet(cst_Holding) then
+      Result := Result + ' JOIN gd_holding h ON clb.id = h.companykey ';
 
     FSQLSetup.Ignores.AddAliasName('clb');
     FSQLSetup.Ignores.AddAliasName('z').IgnoryType := itReferences;

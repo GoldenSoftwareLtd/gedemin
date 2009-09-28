@@ -4423,7 +4423,7 @@ implementation
 
 uses
   gdcOLEClassList, ComServ, prp_Methods, obj_VarParam, obj_QueryList,
-  OleCtrls, jpeg
+  OleCtrls, jpeg, TypInfo
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -4802,46 +4802,7 @@ end;
 
 function GetStrFromFieldType(const AnFieldType: TFieldType): String;
 begin
-  case AnFieldType of
-    ftUnknown: Result := 'ftUnknown';
-    ftString: Result := 'ftString';
-    ftSmallint: Result := 'ftSmallint';
-    ftInteger: Result := 'ftInteger';
-    ftWord: Result := 'ftWord';
-    ftBoolean: Result := 'ftBoolean';
-    ftFloat: Result := 'ftFloat';
-    ftCurrency: Result := 'ftCurrency';
-    ftBCD: Result := 'ftBCD';
-    ftDate: Result := 'ftDate';
-    ftTime: Result := 'ftTime';
-    ftDateTime: Result := 'ftDateTime';
-    ftBytes: Result := 'ftBytes';
-    ftVarBytes: Result := 'ftVarBytes';
-    ftAutoInc: Result := 'ftAutoInc';
-    ftBlob: Result := 'ftBlob';
-    ftMemo: Result := 'ftMemo';
-    ftGraphic: Result := 'ftGraphic';
-    ftFmtMemo: Result := 'ftFmtMemo';
-    ftParadoxOle: Result := 'ftParadoxOle';
-    ftDBaseOle: Result := 'ftDBaseOle';
-    ftTypedBinary: Result := 'ftTypedBinary';
-    ftCursor: Result := 'ftCursor';
-    ftFixedChar: Result := 'ftFixedChar';
-    ftWideString: Result := 'ftWideString';
-    ftLargeint: Result := 'ftLargeint';
-    ftADT: Result := 'ftADT';
-    ftArray: Result := 'ftArray';
-    ftReference: Result := 'ftReference';
-    ftDataSet: Result := 'ftDataSet';
-    ftOraBlob: Result := 'ftOraBlob';
-    ftOraClob: Result := 'ftOraClob';
-    ftVariant: Result := 'ftVariant';
-    ftInterface: Result := 'ftInterface';
-    ftIDispatch: Result := 'ftIDispatch';
-    ftGuid: Result := 'ftGuid';
-  else
-    raise Exception.Create('DataType not supported');
-  end;
+  Result := GetEnumName(TypeInfo(TFieldType), Integer(AnFieldType));
 end;
 
 function VarArrayToPointArray(AVar: OleVariant; out ARes: TPointArray): boolean;

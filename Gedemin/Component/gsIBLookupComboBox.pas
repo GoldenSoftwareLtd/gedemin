@@ -328,7 +328,7 @@ uses
   gdcTree, gdcClasses,
   gdHelp_Interface,
   Storages,
-  gd_converttext, jclStrHashMap
+  gd_converttext, jclStrHashMap, IBErrorCodes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -683,7 +683,7 @@ begin
   except
     on E: EIBError do
     begin
-      if E.IBErrorCode = 335544334 then
+      if E.IBErrorCode = isc_convert_error then
       begin
         MessageBox(0,
           'Для отображения в выпадающем списке необходимо выбирать строковые поля.'#13#10 +

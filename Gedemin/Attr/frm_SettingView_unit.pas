@@ -401,7 +401,7 @@ begin
   if Length(sSearch) = 0 then
   begin
     Beep;
-    MessageBox(Application.Handle, MSG_FIND_EMPTY_STRING, MSG_WARNING,
+    MessageBox(Self.Handle, MSG_FIND_EMPTY_STRING, MSG_WARNING,
      MB_OK or MB_ICONWARNING or MB_TASKMODAL);
   end else
   begin
@@ -415,7 +415,7 @@ begin
     if sePositionText.SearchReplace(sSearch, '', rOptions) = 0 then
     begin
       Beep;
-      MessageBox(Application.Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_FIND), MSG_WARNING,
+      MessageBox(Self.Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_FIND), MSG_WARNING,
        MB_OK or MB_ICONWARNING or MB_TASKMODAL);
     end;
   end;
@@ -466,19 +466,26 @@ begin
 end;}
 
 function Tfrm_SettingView.FormatDatasetFieldValue(AField: TField): String;
+var
+  TrimmedFieldValue: String;
 begin
+  TrimmedFieldValue := Trim(AField.AsString);
+
   case AField.DataType of
     ftString:
-      Result := '"' + AField.AsString + '"';
+      Result := '"' + TrimmedFieldValue + '"';
 
     ftMemo:
-      Result := #13#10#13#10 + AField.AsString + #13#10;
+      if AnsiPos(#13#10, TrimmedFieldValue) > 0 then
+        Result := #13#10#13#10 + TrimmedFieldValue + #13#10
+      else
+        Result := '"' + TrimmedFieldValue + '"';
 
     ftBLOB, ftGraphic:
       //Result := #13#10 + ConvertBinaryToHex(AField.AsString);
       Result := '<BLOB> Size: ' + IntToStr(Length(AField.AsString));
   else
-    Result := AField.AsString;
+    Result := TrimmedFieldValue;
   end;
 end;
 

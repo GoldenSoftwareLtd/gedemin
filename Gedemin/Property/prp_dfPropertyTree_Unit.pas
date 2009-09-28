@@ -5342,7 +5342,7 @@ var
   N, Node: TTreeNode;
   Index: Integer;
   C: TCursor;
-begin       { TODO -oAlexander : ускорить }
+begin
   Result := nil;
   Node := ANode;
   Assert(Node <> nil, 'sdfsd');
