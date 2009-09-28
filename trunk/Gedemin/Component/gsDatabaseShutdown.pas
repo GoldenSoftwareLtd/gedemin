@@ -93,7 +93,7 @@ implementation
 
 uses
   IB, JclStrings, gsDatabaseShutdown_dlgShowUsers_unit, Forms,
-  Controls, Windows, SysUtils, gd_resourcestring
+  Controls, Windows, SysUtils, gd_resourcestring, IBErrorCodes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -171,7 +171,7 @@ begin
     except
       on E: EIBError do
       begin
-        if E.IBErrorCode = 335544472 then
+        if E.IBErrorCode = isc_login then
         begin
           FStatisticalService.LoginPrompt := True;
         end else

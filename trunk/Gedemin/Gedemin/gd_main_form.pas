@@ -371,7 +371,6 @@ uses
   gdcConst,
   gdcAcctEntryRegister,
   gdcJournal,
-  gdcStorage,
   gdcFile,
 
   gsStorage_CompPath,
@@ -472,11 +471,20 @@ begin
     // до главной формы -- они никак не могла участвовать
     // в подписке, поэтому вызовем соответствующие методы
     // вручную
-    if IBLogin.LoggedIn then
-    begin
-      DoAfterSuccessfullConnection;
-      DoAfterChangeCompany;
-    end;  
+    tbsiDatabase.Enabled := False;
+    tbsiMacro.Enabled := False;
+    tbsiWindow.Enabled := False;
+    try
+      if IBLogin.LoggedIn then
+      begin
+        DoAfterSuccessfullConnection;
+        DoAfterChangeCompany;
+      end;
+    finally
+      tbsiDatabase.Enabled := True;
+      tbsiMacro.Enabled := True;
+      tbsiWindow.Enabled := True;
+    end;
 
     IBLogin.AddConnectNotify(Self);
     IBLogin.AddCompanyNotify(Self);

@@ -195,7 +195,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdc_frmStreamSaver;
+  , gdc_frmStreamSaver, gsStreamHelper;
   
 {$R *.DFM}
 

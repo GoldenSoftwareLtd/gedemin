@@ -1299,8 +1299,6 @@ type
     procedure WriteDateTime(const APath: WideString; const AValueName: WideString; AValue: TDateTime); safecall;
     procedure LoadFromDataBase; safecall;
     procedure SaveToDataBase; safecall;
-    function  Get_DataCompression: TgsgsStorageDataCompression; safecall;
-    procedure Set_DataCompression(Value: TgsgsStorageDataCompression); safecall;
     function  Get_DataString: WideString; safecall;
     procedure Set_DataString(const Value: WideString); safecall;
     function  Get_IsModified: WordBool; safecall;
@@ -5078,11 +5076,6 @@ begin
   Result := GetStorage.FolderExists(APath);
 end;
 
-function TwrpGsStorage.Get_DataCompression: TgsgsStorageDataCompression;
-begin
-  Result := TgsgsStorageDataCompression(GetStorage.DataCompression);
-end;
-
 function TwrpGsStorage.Get_DataString: WideString;
 begin
   Result := GetStorage.DataString;
@@ -5148,11 +5141,6 @@ procedure TwrpGsStorage.SaveToFile(const AFileName: WideString;
   AFileFormat: OleVariant);
 begin
   GetStorage.SaveToFile(AFileName, AFileFormat);
-end;
-
-procedure TwrpGsStorage.Set_DataCompression(Value: TgsgsStorageDataCompression);
-begin
-  GetStorage.DataCompression := TgsStorageDataCompression(Value);
 end;
 
 procedure TwrpGsStorage.Set_DataString(const Value: WideString);
@@ -11537,7 +11525,10 @@ end;
 
 function TwrpGsStorageItem.GetStorageName: WideString;
 begin
-  Result := GetGsStorageItem.GetStorageName;
+  if GetGsStorageItem.Storage <> nil then
+    Result := GetGsStorageItem.Storage.Name
+  else
+    Result := '';  
 end;
 
 procedure TwrpGsStorageItem.LoadFromFile(const FileName: WideString;
@@ -11796,7 +11787,7 @@ end;
 
 function TwrpGsStorageValue.GetStorageValueClass: WideString;
 begin
-  Result := GetGsStorageValue.GetStorageValueClass.ClassName;
+  Result := GetGsStorageValue.ClassType.ClassName;
 end;
 
 function TwrpGsStorageValue.GetTypeId: Integer;

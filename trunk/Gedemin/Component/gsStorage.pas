@@ -33,7 +33,6 @@ type
 const
   DefDataCompression = sdcZLib;
 
-const
                                  // svt -- storage value type
   svtUnknown         = $0000;    // םוגÿהמלû
   svtInteger         = $0001;    // צ‎כû כ³ך

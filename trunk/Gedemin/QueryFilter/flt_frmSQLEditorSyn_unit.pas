@@ -1,25 +1,11 @@
 
 unit flt_frmSQLEditorSyn_unit;
 
-{ TODO 5 -oandreik -cSQLHistory : Функции конвертации чисел и дат в строку и обратно }
-{ TODO 5 -oandreik -cSQLHistory : Использование функций конвертации в окне с параметрами запроса }
-{ TODO 5 -oandreik -cSQLHistory : Сохранение списка параметров в тексте }
-{ TODO 5 -oandreik -cSQLHistory : Считывание списка параметров из текста }
-{ TODO 5 -oandreik -cSQLHistory : Множественный вызов окна выполнения параметризованного запроса }
-{ TODO 5 -oandreik -cSQLHistory : Сохранение текста запроса при смене страницы, закрытии окна }
-{ TODO 5 -oandreik -cSQLHistory : Конвертация информации из хранилища при открытии окна }
-{ TODO 5 -oandreik -cSQLHistory : Удаление старой информации в хранилище }
 { TODO 5 -oandreik -cSQLHistory : Разобраться почему прибавляет _1 к имени формы }
 { TODO 5 -oandreik -cSQLHistory : Визуальные настройки таблицы с историей запросов }
-{ TODO 5 -oandreik -cSQLHistory : Заполнение полей EDITIONDATE }
-{ TODO 5 -oandreik -cSQLHistory : Отображение в запросе имени контакта, а не ключа }
-{ TODO 5 -oandreik -cSQLHistory : Проверить как будет вести себя список, если сортировка будет отличной от изначальной }
 { TODO 5 -oandreik -cSQLHistory : Разобраться почему при добавлении записи в гриде старая запись остается выделенной }
 { TODO 5 -oandreik -cSQLHistory : Почему колонка BOOKMARK выводится в двойных кавычках? }
 { TODO 5 -oandreik -cSQLHistory : ДаблКлик срабатывает когда пытаемся изменить ширину колонки }
-{ TODO 5 -oandreik -cSQLHistory : Апгрейд структуры БД }
-{ TODO 5 -oandreik -cSQLHistory : Функции надежного чтения и записи строки }
-{ TODO 5 -oandreik -cSQLHistory : Выкинуть галку AutoCommitDDL }
 
 interface
 

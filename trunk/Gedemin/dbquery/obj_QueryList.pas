@@ -205,7 +205,7 @@ type
 implementation
 
 uses
-  ComServ, Provider;
+  ComServ, Provider, TypInfo;
 
 type
   TFieldCracker = class(TField);
@@ -274,115 +274,19 @@ end;
 
 function TgsdbDataSet.GetFieldTypeFromStr(const AnTypeName: String): TFieldType;
 var
-  UpTypeName: String;
+  I: Integer;
 begin
-  UpTypeName := UpperCase(AnTypeName);
-  if UpTypeName = 'FTSTRING' then
-    Result := ftString
-  else
-  if UpTypeName = 'FTBYTES' then
-    Result := ftBytes
-  else
-  if UpTypeName = 'FTSMALLINT' then
-    Result := ftSmallint
-  else
-  if UpTypeName = 'FTINTEGER' then
-    Result := ftInteger
-  else
-  if UpTypeName = 'FTWORD' then
-    Result := ftWord
-  else
-  if UpTypeName = 'FTBOOLEAN' then
-    Result := ftBoolean
-  else
-  if UpTypeName = 'FTFLOAT' then
-    Result := ftFloat
-  else
-  if UpTypeName = 'FTCURRENCY' then
-    Result := ftCurrency
-  else
-  if UpTypeName = 'FTBCD' then
-    Result := ftBCD
-  else
-  if UpTypeName = 'FTDATE' then
-    Result := ftDate
-  else
-  if UpTypeName = 'FTTIME' then
-    Result := ftTime
-  else
-  if UpTypeName = 'FTDATETIME' then
-    Result := ftDateTime
-  else
-  if UpTypeName = 'FTVARBYTES' then
-    Result := ftVarBytes
-  else
-  if UpTypeName = 'FTAUTOINC' then
-    Result := ftAutoInc
-  else
-  if UpTypeName = 'FTBLOB' then
-    Result := ftBlob
-  else
-  if UpTypeName = 'FTMEMO' then
-    Result := ftMemo
-  else
-  if UpTypeName = 'FTGRAPHIC' then
-    Result := ftGraphic
-  else
-  if UpTypeName = 'FTFMTMEMO' then
-    Result := ftFmtMemo
-  else
-  if UpTypeName = 'FTPARADOXOLE' then
-    Result := FTPARADOXOLE
-  else
-  if UpTypeName = 'FTDBASEOLE' then
-    Result := FTDBASEOLE
-  else
-  if UpTypeName = 'FTTYPEDBINARY' then
-    Result := FTTYPEDBINARY
-  else
-  if UpTypeName = 'FTCURSOR' then
-    Result := FTCURSOR
-  else
-  if UpTypeName = 'FTFIXEDCHAR' then
-    Result := FTFIXEDCHAR
-  else
-  if UpTypeName = 'FTWIDESTRING' then
-    Result := FTWIDESTRING
-  else
-  if UpTypeName = 'FTLARGEINT' then
-    Result := FTLARGEINT
-  else
-  if UpTypeName = 'FTADT' then
-    Result := FTADT
-  else
-  if UpTypeName = 'FTARRAY' then
-    Result := FTARRAY
-  else
-  if UpTypeName = 'FTREFERENCE' then
-    Result := FTREFERENCE
-  else
-  if UpTypeName = 'FTDATASET' then
-    Result := FTDATASET
-  else
-  if UpTypeName = 'FTORABLOB' then
-    Result := FTORABLOB
-  else
-  if UpTypeName = 'FTORACLOB' then
-    Result := FTORACLOB
-  else
-  if UpTypeName = 'FTVARIANT' then
-    Result := FTVARIANT
-  else
-  if UpTypeName = 'FTINTERFACE' then
-    Result := FTINTERFACE
-  else
-  if UpTypeName = 'FTIDISPATCH' then
-    Result := FTIDISPATCH
-  else
-  if UpTypeName = 'FTGUID' then
-    Result := FTGUID
-  else
-    raise Exception.Create(Format('Field type "%s" not supported.', [AnTypeName]));
+  if AnTypeName > '' then
+  begin
+    I := GetEnumValue(TypeInfo(TFieldType), AnTypeName);
+    if I <> -1 then
+    begin
+      Result := TFieldType(I);
+      exit;
+    end;
+  end;
+
+  raise Exception.Create('Invalid type specified.');
 end;
 
 function TgsdbDataSet.Get_AsString: WideString;
@@ -955,46 +859,7 @@ end;
 
 function TgsdbDataSet.GetStrFromFieldType(const AnFieldType: TFieldType): String;
 begin
-  case AnFieldType of
-    ftUnknown: Result := 'ftUnknown';
-    ftString: Result := 'ftString';
-    ftSmallint: Result := 'ftSmallint';
-    ftInteger: Result := 'ftInteger';
-    ftWord: Result := 'ftWord';
-    ftBoolean: Result := 'ftBoolean';
-    ftFloat: Result := 'ftFloat';
-    ftCurrency: Result := 'ftCurrency';
-    ftBCD: Result := 'ftBCD';
-    ftDate: Result := 'ftDate';
-    ftTime: Result := 'ftTime';
-    ftDateTime: Result := 'ftDateTime';
-    ftBytes: Result := 'ftBytes';
-    ftVarBytes: Result := 'ftVarBytes';
-    ftAutoInc: Result := 'ftAutoInc';
-    ftBlob: Result := 'ftBlob';
-    ftMemo: Result := 'ftMemo';
-    ftGraphic: Result := 'ftGraphic';
-    ftFmtMemo: Result := 'ftFmtMemo';
-    ftParadoxOle: Result := 'ftParadoxOle';
-    ftDBaseOle: Result := 'ftDBaseOle';
-    ftTypedBinary: Result := 'ftTypedBinary';
-    ftCursor: Result := 'ftCursor';
-    ftFixedChar: Result := 'ftFixedChar';
-    ftWideString: Result := 'ftWideString';
-    ftLargeint: Result := 'ftLargeint';
-    ftADT: Result := 'ftADT';
-    ftArray: Result := 'ftArray';
-    ftReference: Result := 'ftReference';
-    ftDataSet: Result := 'ftDataSet';
-    ftOraBlob: Result := 'ftOraBlob';
-    ftOraClob: Result := 'ftOraClob';
-    ftVariant: Result := 'ftVariant';
-    ftInterface: Result := 'ftInterface';
-    ftIDispatch: Result := 'ftIDispatch';
-    ftGuid: Result := 'ftGuid';
-  else
-    raise Exception.Create('DataType not supported');
-  end;
+  Result := GetEnumName(TypeInfo(TFieldType), Integer(AnFieldType));
 end;
 
 function TgsdbDataSet.Get_RecordCount: Integer;
