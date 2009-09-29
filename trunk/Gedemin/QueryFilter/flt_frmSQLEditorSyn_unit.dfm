@@ -1353,6 +1353,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object actEditBusinessObject: TAction
       Category = 'Result'
       Caption = 'Редактировать бизнес-объект...'
+      Hint = 'Редактировать бизнес-объект...'
       ImageIndex = 1
       OnExecute = actEditBusinessObjectExecute
       OnUpdate = actEditBusinessObjectUpdate
@@ -1360,6 +1361,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object actDeleteBusinessObject: TAction
       Category = 'Result'
       Caption = 'Удалить бизнес-объект'
+      Hint = 'Удалить бизнес-объект'
       ImageIndex = 2
       OnExecute = actDeleteBusinessObjectExecute
       OnUpdate = actDeleteBusinessObjectUpdate
@@ -1420,6 +1422,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 251
       OnExecute = actMakeSelectExecute
       OnUpdate = actMakeSelectUpdate
+    end
+    object actSaveFieldToFile: TAction
+      Category = 'Result'
+      Caption = 'Сохранить в файл...'
+      Hint = 'Сохранить значение поля в файл'
+      ImageIndex = 25
+      OnExecute = actSaveFieldToFileExecute
+      OnUpdate = actSaveFieldToFileUpdate
     end
   end
   object ibsqlPlan: TIBSQL
@@ -2682,5 +2692,13 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     AutoStopAction = saNone
     Left = 464
     Top = 369
+  end
+  object pmSaveFieldToFile: TPopupMenu
+    Images = dmImages.il16x16
+    Left = 188
+    Top = 180
+    object nSaveFieldToFile: TMenuItem
+      Action = actSaveFieldToFile
+    end
   end
 end

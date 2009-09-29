@@ -216,6 +216,9 @@ type
     TBItem28: TTBItem;
     actMakeSelect: TAction;
     TBItem29: TTBItem;
+    pmSaveFieldToFile: TPopupMenu;
+    actSaveFieldToFile: TAction;
+    nSaveFieldToFile: TMenuItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -277,6 +280,8 @@ type
     procedure actShowViewFormExecute(Sender: TObject);
     procedure actMakeSelectUpdate(Sender: TObject);
     procedure actMakeSelectExecute(Sender: TObject);
+    procedure actSaveFieldToFileExecute(Sender: TObject);
+    procedure actSaveFieldToFileUpdate(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -1911,6 +1916,7 @@ begin
           begin
             TDBMemo(E).DataSource := dsResult;
             TDBMemo(E).DataField := ibqryWork.Fields[I].FieldName;
+            TDBMemo(E).PopupMenu := pmSaveFieldToFile;
           end;
 
           Inc(Y, 22);
@@ -1988,6 +1994,33 @@ procedure TfrmSQLEditorSyn.actMakeSelectExecute(Sender: TObject);
 begin
   seQuery.Text := 'SELECT * FROM ' + iblkupTable.Text + ' WHERE 1=1';
   seQuery.Show;
+end;
+
+procedure TfrmSQLEditorSyn.actSaveFieldToFileExecute(Sender: TObject);
+var
+  SD: TSaveDialog;
+begin
+  if (pmSaveFieldToFile.PopupComponent is TDBMemo)
+    and ((pmSaveFieldToFile.PopupComponent as TDBMemo).Field is TBlobField) then
+  begin
+    SD := TSaveDialog.Create(Self);
+    try
+      SD.Title := 'Сохранить значение поля в файл';
+      SD.DefaultExt := 'dat';
+      SD.Filter := 'Текстовые файлы (*.txt)|*.txt|Фйлы данных(*.dat)|*.dat|Все файлы (*.*)|*.*';
+      SD.FileName := (pmSaveFieldToFile.PopupComponent as TDBMemo).Field.Name + '.dat';
+      SD.Options := [ofOverwritePrompt, ofHideReadOnly, ofPathMustExist, ofNoReadOnlyReturn, ofEnableSizing];
+      if SD.Execute then
+        ((pmSaveFieldToFile.PopupComponent as TDBMemo).Field as TBlobField).SaveToFile(SD.FileName);
+    finally
+      SD.Free;
+    end;
+  end;
+end;
+
+procedure TfrmSQLEditorSyn.actSaveFieldToFileUpdate(Sender: TObject);
+begin
+  actSaveFieldToFile.Enabled := actShowRecord.Checked and sbRecord.Visible;
 end;
 
 initialization
