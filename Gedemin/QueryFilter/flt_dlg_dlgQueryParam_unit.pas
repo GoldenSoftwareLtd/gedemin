@@ -240,6 +240,7 @@ var
             TgsIBLookupComboBox(FWinCtrl).Transaction := FTransaction;
             TgsIBLookupComboBox(FWinCtrl).ShowHint := True;
             TgsIBLookupComboBox(FWinCtrl).SortOrder := TgsSortOrder(LocParamList.Params[I].SortOrder);
+            TgsIBLookupComboBox(FWinCtrl).ShowDisabled := True;           // Будем отображать записи с DISABLED = 1
             Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               if LocParamList.Params[I].LinkConditionFunction > '' then

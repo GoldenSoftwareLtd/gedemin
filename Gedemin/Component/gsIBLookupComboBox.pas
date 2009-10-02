@@ -63,6 +63,7 @@ type
     FNeedsRecheck: Boolean;
     FFields: String;                // список полей расширенного отображения
     FCountAddField: Integer;        // количество дополнительных полей
+    FShowDisabled: Boolean;         // отображать ли записи c DISABLED = 1
 
     FDataField: String;             // поле, куда подставлять выбранный ключ
     FDataLink: TgsIBLCBDataLink;    // куда записывать данные
@@ -210,6 +211,7 @@ type
     procedure SyncWithDataSource;
 
     property IsTree: Boolean read GetIsTree;
+    property ShowDisabled: Boolean read FShowDisabled write FShowDisabled;
 
   published
     property Database: TIBDatabase read GetDatabase write SetDatabase;
@@ -396,6 +398,7 @@ begin
   inherited;
   FIBBase := TIBBase.Create(Self);
   FCountAddField := 0;
+  FShowDisabled := False;
   Fibsql := TIBSQL.Create(nil);
   FDataLink := TgsIBLCBDataLink.Create(Self);
   //FDontSync := False;
@@ -463,7 +466,8 @@ var
     if FullCondition > '' then
       Fibsql.SQL.Text := Fibsql.SQL.Text + ' AND (' + FullCondition + ') ';
 
-    if (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
+    if (not FShowDisabled)
+      and (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
       and (tiDisabled in FgdClass.GetTableInfos(FSubType))
       and (GetTableAlias(FgdClass.GetListTable(FSubType)) > '') then
     begin
@@ -645,19 +649,18 @@ begin
       S := S + Format(' AND (g_sec_test(%s.aview, %d) <> 0) ', [MainTable, IBLogin.InGroup]);
   end;
 
-  if (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
-    and (tiDisabled in FgdClass.GetTableInfos(FSubType)) then
+  if (not FShowDisabled)
+    and (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
+    and (tiDisabled in FgdClass.GetTableInfos(FSubType))
+    and (GetTableAlias(FgdClass.GetListTable(FSubType)) > '') then
   begin
-    if GetTableAlias(FgdClass.GetListTable(FSubType)) > '' then
-    begin
-      if Pos('WHERE ', S) = 0 then
-        S := S + ' WHERE '
-      else
-        S := S + ' AND ';
+    if Pos('WHERE ', S) = 0 then
+      S := S + ' WHERE '
+    else
+      S := S + ' AND ';
 
-      S := Format('%s ((%1:s.disabled IS NULL) OR (%1:s.disabled = 0))',
-        [S, GetTableAlias(FgdClass.GetListTable(FSubType))]);
-    end;
+    S := Format('%s ((%1:s.disabled IS NULL) OR (%1:s.disabled = 0))',
+      [S, GetTableAlias(FgdClass.GetListTable(FSubType))]);
   end;
 
   if FSortOrder = soAsc then
@@ -1413,19 +1416,18 @@ begin
           S := S + Format(' AND (g_sec_test(%s.aview, %d) <> 0) ', [MainTable, IBLogin.InGroup]);
       end;
 
-      if (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
-        and (tiDisabled in FgdClass.GetTableInfos(FSubType)) then
+      if (not FShowDisabled)
+        and (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
+        and (tiDisabled in FgdClass.GetTableInfos(FSubType))
+        and (GetTableAlias(FgdClass.GetListTable(FSubType)) > '') then
       begin
-        if GetTableAlias(FgdClass.GetListTable(FSubType)) > '' then
-        begin
-          if Pos('WHERE ', S) = 0 then
-            S := S + ' WHERE '
-          else
-            S := S + ' AND ';
+        if Pos('WHERE ', S) = 0 then
+          S := S + ' WHERE '
+        else
+          S := S + ' AND ';
 
-          S := Format('%s ((%1:s.disabled IS NULL) OR (%1:s.disabled = 0))',
-            [S, GetTableAlias(FgdClass.GetListTable(FSubType))]);
-        end;    
+        S := Format('%s ((%1:s.disabled IS NULL) OR (%1:s.disabled = 0))',
+          [S, GetTableAlias(FgdClass.GetListTable(FSubType))]);
       end;
 
       if FSortOrder = soAsc then
