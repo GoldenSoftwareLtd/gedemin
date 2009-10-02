@@ -951,7 +951,7 @@ begin
     //  и запретим вылазить на экран
     if not Assigned(frmSQLProcess) then
       frmSQLProcess := TfrmSQLProcess.Create(Owner);
-      
+
     ShowLog := frmSQLProcess.Silent;
     try
       frmSQLProcess.Silent := True;
@@ -965,7 +965,7 @@ begin
           StreamSaver.Silent := Self.Silent;
           StreamSaver.ReplicationMode := Self.Silent;
           StreamSaver.ReadUserFromStream := Self.Silent;
-          StreamSaver.LoadSettingFromXMLFile(FS);
+          StreamSaver.LoadFromStream(FS);
         finally
           StreamSaver.Free;
           FS.Free;
@@ -2973,62 +2973,65 @@ procedure TGSFList.GetFilesForPath(Path: String; const lInfo: TLabel = nil);
 var
   sr: TSearchRec;
   FileAttrs: Integer;
-  Header: TGSFHeader;
-begin
-// отображаем путь
-  if Assigned(lInfo) then
+
+  procedure SearchSettings(const Extension: String);
+  var
+    Header: TGSFHeader;
   begin
-    lInfo.Caption := Path;
-    lInfo.Refresh;
-  end;
-
-// перебираем файлы
-  FileAttrs := 0;
-  FileAttrs := FileAttrs + faAnyFile;
-
-  if Path[Length(Path)] <> '\' then
-    Path := Path + '\';
-  if FindFirst(Path + '*.' + gsfExtension, FileAttrs, sr) = 0 then
-  begin
-    Header := TGSFHeader.Create;
-    if Header.GetGSFInfo(Path + sr.Name) then
-      AddObject(RUIDToStr(Header.RUID), Header)
-    else
-      Header.Free;
-
-    while FindNext(sr) = 0 do
+    if FindFirst(Path + '*.' + Extension, FileAttrs, sr) = 0 then
     begin
       Header := TGSFHeader.Create;
       if Header.GetGSFInfo(Path + sr.Name) then
         AddObject(RUIDToStr(Header.RUID), Header)
       else
         Header.Free;
-    end;
-    SysUtils.FindClose(sr);
-  end;
 
-// перебираем папки
-{  if Subdir then
-  begin}
-{    FileAttrs := 0;
-  FileAttrs := FileAttrs + faDirectory;}
-
-    if FindFirst(Path + '*.*', FileAttrs, sr) = 0 then
-    begin
-      if ( (sr.Attr and faDirectory) = faDirectory) and
-         (sr.Name <> '.') and (sr.Name <> '..') then
-        GetFilesForPath(Path + sr.Name, lInfo);
       while FindNext(sr) = 0 do
       begin
-        if ( (sr.Attr and faDirectory) = faDirectory) and  // если папка и
-           ( (sr.Attr and faHidden) <> faHidden) and       // не HIDDEN и 
-           (sr.Name <> '.') and (sr.Name <> '..') then     // не ссылка на корень или уровень вверх
-          GetFilesForPath(Path + sr.Name, lInfo);
+        Header := TGSFHeader.Create;
+        if Header.GetGSFInfo(Path + sr.Name) then
+          AddObject(RUIDToStr(Header.RUID), Header)
+        else
+          Header.Free;
       end;
       SysUtils.FindClose(sr);
     end;
-//  end;
+  end;
 
+begin
+  // отображаем путь
+  if Assigned(lInfo) then
+  begin
+    lInfo.Caption := Path;
+    lInfo.Refresh;
+  end;
+
+  // перебираем файлы
+  FileAttrs := 0;
+  FileAttrs := FileAttrs + faAnyFile;
+
+  if Path[Length(Path)] <> '\' then
+    Path := Path + '\';
+  // Поищем GSF настройки
+  SearchSettings(gsfExtension);
+  // Поищем XML настройки
+  SearchSettings(xmlExtension);
+
+  // перебираем папки
+  if FindFirst(Path + '*.*', FileAttrs, sr) = 0 then
+  begin
+    if ( (sr.Attr and faDirectory) = faDirectory) and
+       (sr.Name <> '.') and (sr.Name <> '..') then
+      GetFilesForPath(Path + sr.Name, lInfo);
+    while FindNext(sr) = 0 do
+    begin
+      if ( (sr.Attr and faDirectory) = faDirectory) and  // если папка и
+         ( (sr.Attr and faHidden) <> faHidden) and       // не HIDDEN и
+         (sr.Name <> '.') and (sr.Name <> '..') then     // не ссылка на корень или уровень вверх
+        GetFilesForPath(Path + sr.Name, lInfo);
+    end;
+    SysUtils.FindClose(sr);
+  end;
 end;
 
 { TODO : перенести isCorrect в Result }
@@ -3534,7 +3537,7 @@ begin
         StreamSaver.Silent := gdcSetts.Silent;
         StreamSaver.ReplicationMode := gdcSetts.Silent;
         StreamSaver.ReadUserFromStream := gdcSetts.Silent;
-        StreamSaver.LoadSettingFromXMLFile(FS);
+        StreamSaver.LoadFromStream(FS);
       finally
         StreamSaver.Free;
       end;

@@ -18,7 +18,7 @@ const
 
   cInsertCommand =
     ' INSERT INTO gd_command (id, parent, name, cmd, classname, imgindex) ' +
-    ' VALUES (714200, 714000, ''ѕереход на новый мес€ц'', '''', ''TfrmCalculateBalance'', 87)';
+    ' VALUES (714200, :parent, ''ѕереход на новый мес€ц'', '''', ''TfrmCalculateBalance'', 87)';
 
   cAC_ENTRY_BALANCETemplate =
     'CREATE TABLE ac_entry_balance ( '#13#10 +
@@ -978,6 +978,7 @@ var
   ACTriggerText: String;
   ACFieldList, NewFieldList, OLDFieldList: String;
   gdcField: TgdcField;
+  CommandParentKey: Integer;
 begin
   // ѕроверим на версию сервера, нам нужен Firebird >= 2.0
   if not (IBDB.IsFirebirdConnect and (IBDB.ServerMajorVersion >= 2)) then
@@ -989,7 +990,6 @@ begin
     FIBSQL := TIBSQL.Create(nil);
     try
       FIBSQL.Transaction := FTransaction;
-      FIBSQL.ParamCheck := False;
 
       FTransaction.StartTransaction;
 
@@ -1193,8 +1193,19 @@ begin
         FIBSQL.ExecQuery;
         if FIBSQL.RecordCount = 0 then
         begin
+          // ѕроверим существование €рлыка "Ѕухгалтери€"
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'SELECT id FROM gd_command WHERE id = 714000';
+          FIBSQL.ExecQuery;
+          // ≈сли "Ѕухгалтери€" есть, то добавим €рлык туда, иначе в "»сследователь"
+          if FIBSQL.RecordCount > 0 then
+            CommandParentKey := 714000
+          else
+            CommandParentKey := 710000;
+
           FIBSQL.Close;
           FIBSQL.SQL.Text := cInsertCommand;
+          FIBSQL.ParamByName('PARENT').AsInteger := CommandParentKey;
           FIBSQL.ExecQuery;
           Log('—оздание €рлыка "ѕереход на новый мес€ц" прошло успешно');
         end;
