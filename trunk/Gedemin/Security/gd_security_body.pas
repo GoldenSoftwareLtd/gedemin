@@ -876,6 +876,9 @@ var
     TryLoginDatabase.SQLDialect := 3;
   end;
 
+var
+  NeedReadDBVersion: Boolean;
+
 begin
   TryLoginDatabase := TIBDatabase.Create(Self);
 
@@ -1024,6 +1027,7 @@ begin
       Result := RunLoginDialog(TryLoginDatabase);
 
       TryLoginDatabase.Connected := False;
+      NeedReadDBVersion := False;
 
       if Result then
       begin
@@ -1110,7 +1114,7 @@ begin
                 end;
               end;
 
-              ReadDBVersion;
+              NeedReadDBVersion := True;
             end else
               Asked := True;
           end else
@@ -1198,7 +1202,7 @@ begin
           end;
         until Database.Connected;
 
-        { TODO : 
+        { TODO :
 по умолчанию ИБИКС если был запрос пароля у пользователя
 уберет из списка параметров пароль. мы подправили ИБИКС
 правильнее было бы сделать так, чтобы пароль запрашивался
@@ -1230,6 +1234,9 @@ begin
 
         if FChangePass then
           Result := RunChangePassDialog;
+
+        if NeedReadDBVersion then
+          ReadDBVersion;
       end;
     except
       on E: EIBClientError do
