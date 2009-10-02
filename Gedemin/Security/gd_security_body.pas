@@ -249,6 +249,8 @@ type
       const AnObjectID: Integer = -1;
       const ATransaction: TObject = nil);
 
+    procedure ReadDBVersion;
+
     property LoginParam[ParamName: String]: String read GetLoginParam;
     property ChangePass: Boolean read FChangePass;
 
@@ -1107,6 +1109,8 @@ begin
                     MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
                 end;
               end;
+
+              ReadDBVersion;
             end else
               Asked := True;
           end else
@@ -2378,6 +2382,37 @@ end;
 function TboLogin.GetReLogining: Boolean;
 begin
   Result := FReLogining;
+end;
+
+procedure TboLogin.ReadDBVersion;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  if (Database <> nil) and Database.Connected then
+  begin
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+    try
+      Tr.DefaultDatabase := Database;
+      Tr.StartTransaction;
+
+      q.Transaction := Tr;
+      q.SQL.Text := 'SELECT FIRST 1 * FROM fin_versioninfo ORDER BY id DESC';
+      q.ExecQuery;
+
+      FDBVersion := q.FieldByName('versionstring').AsString;
+      FDBReleaseDate := q.FieldByName('releasedate').AsDateTime;
+      FDBVersionID := q.FieldByName('id').AsInteger;
+      FDBVersionComment := q.FieldByName('comment').AsString;
+
+      q.Close;
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
+    end;
+  end;
 end;
 
 end.
