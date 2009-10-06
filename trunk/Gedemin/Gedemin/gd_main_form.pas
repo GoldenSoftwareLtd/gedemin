@@ -449,6 +449,18 @@ uses
   cmp_frmDataBaseCompare,
   gd_frmMonitoring_unit,
   Clipbrd,
+
+  {$IFDEF DUNIT_TEST}
+  TestFramework,
+  GUITestRunner,
+  TestExtensions,
+  TestSQLParser_unit,
+  TestGdKeyArray_unit,
+  TestMMFStream_unit,
+  Test_gsStorage_unit,
+  Test_gsMorph_unit,
+  {$ENDIF}
+
   Registry
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -1460,40 +1472,47 @@ begin
   { TODO :
 а после подключения к другой базе уже не будет
 формактивэйт вызываться }
-  if FFirstTime and Assigned(UserStorage) then
+  if FFirstTime then
   begin
-    if UserStorage.ReadInteger('Options', 'KbLanguage', 0) <> 0 then
+    if Assigned(UserStorage) then
     begin
-      S := IntToHex(UserStorage.ReadInteger('Options', 'KbLanguage', 0), 8);
-      LoadKeyboardLayout(@S[1], KLF_ACTIVATE);
-    end;
-
-    if UserStorage.ReadBoolean('Options\Confirmations', 'Other', True) then
-    begin
-      if UnEventMacro then
-        Msg := 'событий'
-      else
-        Msg := '';
-
-      if UnMethodMacro then
+      if UserStorage.ReadInteger('Options', 'KbLanguage', 0) <> 0 then
       begin
-        if Msg > '' then
-          Msg := Msg + ' и ';
-        Msg := Msg + 'перекрытых методов классов';
+        S := IntToHex(UserStorage.ReadInteger('Options', 'KbLanguage', 0), 8);
+        LoadKeyboardLayout(@S[1], KLF_ACTIVATE);
       end;
 
-      if Msg > '' then
+      if UserStorage.ReadBoolean('Options\Confirmations', 'Other', True) then
       begin
-        MessageBox(0,
-          PChar('Система запущена в режиме с отключенными обработчиками ' + Msg + '.'#13#10#13#10 +
-          'Для запуска в нормальном режиме удалите параметры /unmethod, /unevent из командной строки.'#13#10#13#10 +
-          'Отключить данное сообщение вы можете в окне "Опции" раздела "Сервис" главного меню программы.'),
-          'Внимание',
-          MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+        if UnEventMacro then
+          Msg := 'событий'
+        else
+          Msg := '';
+
+        if UnMethodMacro then
+        begin
+          if Msg > '' then
+            Msg := Msg + ' и ';
+          Msg := Msg + 'перекрытых методов классов';
+        end;
+
+        if Msg > '' then
+        begin
+          MessageBox(0,
+            PChar('Система запущена в режиме с отключенными обработчиками ' + Msg + '.'#13#10#13#10 +
+            'Для запуска в нормальном режиме удалите параметры /unmethod, /unevent из командной строки.'#13#10#13#10 +
+            'Отключить данное сообщение вы можете в окне "Опции" раздела "Сервис" главного меню программы.'),
+            'Внимание',
+            MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+        end;
       end;
     end;
 
     FFirstTime := False;
+
+    {$IFDEF DUNIT_TEST}
+    GUITestRunner.RunRegisteredTestsModeless;
+    {$ENDIF}
   end;
 
   // если нет десктопа, то эксплорер всегда открываем
