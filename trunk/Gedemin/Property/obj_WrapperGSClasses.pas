@@ -49,7 +49,7 @@ uses
   , gsModem
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
-  gdvAcctGeneralLedger, gdvAcctCirculationList;
+  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit;
 
 type
   TwrpAnalyze = class(TwrpObject, IgsAnalyze)
@@ -549,7 +549,6 @@ type
   private
     function  GetGsStorageItem: TGsStorageItem;
   protected
-    procedure Assign_(const Source: IgsGsStorageItem); safecall;
     procedure LoadFromFile(const FileName: WideString; FileFormat: TgsGsStorageFileFormat); safecall;
     procedure SaveToFile(const FileName: WideString; FileFormat: TgsGsStorageFileFormat); safecall;
     function  Find(const AList: IgsStringList; const ASearchString: WideString;
@@ -3658,6 +3657,53 @@ type
   TwrpGdvAcctCirculationList = class(TwrpGdvAcctLedger, IgsGdvAcctCirculationList)
   protected
     function GetGdvAcctCirculationList: TgdvAcctCirculationList;
+  public
+    class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
+  end;
+
+  TwrpGsParamData = class(TwrpObject, IgsParamData)
+  private
+    function GetParamData: TgsParamData;
+  protected
+    function  Get_RealName: WideString; safecall;
+    procedure Set_RealName(const Value: WideString); safecall;
+    function  Get_DisplayName: WideString; safecall;
+    procedure Set_DisplayName(const Value: WideString); safecall;
+    function  Get_ParamType: WideString; safecall;
+    procedure Set_ParamType(const Value: WideString); safecall;
+    function  Get_Comment: WideString; safecall;
+    procedure Set_Comment(const Value: WideString); safecall;
+    function  Get_LinkTableName: WideString; safecall;
+    procedure Set_LinkTableName(const Value: WideString); safecall;
+    function  Get_LinkDisplayField: WideString; safecall;
+    procedure Set_LinkDisplayField(const Value: WideString); safecall;
+    function  Get_LinkPrimaryField: WideString; safecall;
+    procedure Set_LinkPrimaryField(const Value: WideString); safecall;
+    function  Get_Value: OleVariant; safecall;
+    procedure Set_Value(Value: OleVariant); safecall;
+    function  Get_LinkConditionFunction: WideString; safecall;
+    procedure Set_LinkConditionFunction(const Value: WideString); safecall;
+    function  Get_LinkFunctionLanguage: WideString; safecall;
+    procedure Set_LinkFunctionLanguage(const Value: WideString); safecall;
+    function  Get_Required: WordBool; safecall;
+    procedure Set_Required(Value: WordBool); safecall;
+  public
+    class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
+  end;
+
+  TwrpGsParamList = class(TwrpObjectList, IgsParamList)
+  private
+    function GetParamList: TgsParamList;
+  protected
+    function AddParam(const AnDisplayName: WideString;
+      const AnParamType: WideString; const AnComment: WideString): SYSINT; safecall;
+    function  AddLinkParam(const AnDisplayName: WideString;
+      const AnParamType: WideString; const AnTableName: WideString;
+      const AnDisplayField: WideString; const AnPrimaryField: WideString;
+      const AnLinkConditionFunction: WideString;
+      const AnLinkFunctionLanguage: WideString; const AnComment: WideString): SYSINT; safecall;
+    function GetVariantArray: OleVariant; safecall;
+    function  Get_Params(Index: Integer): IgsParamData; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -11471,11 +11517,6 @@ end;
 
 { TwrpGsStorageItem }
 
-procedure TwrpGsStorageItem.Assign_(const Source: IgsGsStorageItem);
-begin
-  GetGsStorageItem.Assign(InterfaceToObject(Source) as TgsStorageItem);
-end;
-
 function TwrpGsStorageItem.Find(const AList: IgsStringList; const ASearchString,
   ASearchOptions: WideString): WordBool;
 var
@@ -11640,8 +11681,7 @@ end;
 function TwrpGsStorageFolder.MoveFolder(
   const NewParent: IgsGsStorageFolder): WordBool;
 begin
-  Result := GetGsStorageFolder.MoveFolder(InterfaceToObject(NewParent) as
-    TgsStorageFolder)
+  Result := False; //GetGsStorageFolder.MoveFolder(InterfaceToObject(NewParent) as TgsStorageFolder)
 end;
 
 function TwrpGsStorageFolder.OpenFolder(const APath: WideString;
@@ -17657,6 +17697,170 @@ begin
   Result := GetObject as TgdvAcctCirculationList;
 end;
 
+{ TwrpGsParamList }
+
+function TwrpGsParamList.AddLinkParam(const AnDisplayName,
+  AnParamType, AnTableName, AnDisplayField, AnPrimaryField,
+  AnLinkConditionFunction, AnLinkFunctionLanguage,
+  AnComment: WideString): SYSINT;
+begin
+  Result := GetParamList.AddLinkParam(AnDisplayName, AnDisplayName, StringToParamType(AnParamType),
+    AnTableName, AnDisplayField, AnPrimaryField, AnLinkConditionFunction, AnLinkFunctionLanguage,
+    AnComment);
+end;
+
+function TwrpGsParamList.AddParam(const AnDisplayName: WideString;
+  const AnParamType: WideString; const AnComment: WideString): SYSINT;
+begin
+  Result := GetParamList.AddParam(AnDisplayName, AnDisplayName, StringToParamType(AnParamType), AnComment);
+end;
+
+class function TwrpGsParamList.CreateObject(const DelphiClass: TClass;
+  const Params: OleVariant): TObject;
+begin
+  Assert(DelphiClass.InheritsFrom(TgsParamList), 'Invalide Delphi class');
+  Result := TgsParamList.Create;
+end;
+
+function TwrpGsParamList.GetParamList: TgsParamList;
+begin
+  Result := GetObject as TgsParamList;
+end;
+
+function TwrpGsParamList.GetVariantArray: OleVariant;
+begin
+  Result := GetParamList.GetVariantArray;
+end;
+
+function TwrpGsParamList.Get_Params(Index: Integer): IgsParamData;
+begin
+  Result := GetGdcOLEObject(GetParamList.Params[Index]) as IgsParamData;
+end;
+
+{ TwrpGsParamData }
+
+class function TwrpGsParamData.CreateObject(const DelphiClass: TClass;
+  const Params: OleVariant): TObject;
+begin
+  Assert(DelphiClass.InheritsFrom(TgsParamData), 'Invalide Delphi class');
+  Result := TgsParamData.Create;
+end;
+
+function TwrpGsParamData.Get_Comment: WideString;
+begin
+  Result := GetParamData.Comment;
+end;
+
+function TwrpGsParamData.Get_DisplayName: WideString;
+begin
+  Result := GetParamData.DisplayName;
+end;
+
+function TwrpGsParamData.Get_LinkConditionFunction: WideString;
+begin
+  Result := GetParamData.LinkConditionFunction;
+end;
+
+function TwrpGsParamData.Get_LinkDisplayField: WideString;
+begin
+  Result := GetParamData.LinkDisplayField;
+end;
+
+function TwrpGsParamData.Get_LinkFunctionLanguage: WideString;
+begin
+  Result := GetParamData.LinkFunctionLanguage;
+end;
+
+function TwrpGsParamData.Get_LinkPrimaryField: WideString;
+begin
+  Result := GetParamData.LinkPrimaryField;
+end;
+
+function TwrpGsParamData.Get_LinkTableName: WideString;
+begin
+  Result := GetParamData.LinkTableName;
+end;
+
+function TwrpGsParamData.Get_ParamType: WideString;
+begin
+  Result := ParamTypeToString(GetParamData.ParamType);
+end;
+
+function TwrpGsParamData.Get_RealName: WideString;
+begin
+  Result := GetParamData.RealName;
+end;
+
+function TwrpGsParamData.Get_Required: WordBool;
+begin
+  Result := GetParamData.Required;
+end;
+
+function TwrpGsParamData.Get_Value: OleVariant;
+begin
+  Result := GetParamData.ResultValue;
+end;
+
+procedure TwrpGsParamData.Set_Comment(const Value: WideString);
+begin
+  GetParamData.Comment := Value;
+end;
+
+procedure TwrpGsParamData.Set_DisplayName(const Value: WideString);
+begin
+  GetParamData.DisplayName := Value;
+end;
+
+procedure TwrpGsParamData.Set_LinkConditionFunction(const Value: WideString);
+begin
+  GetParamData.LinkConditionFunction := Value;
+end;
+
+procedure TwrpGsParamData.Set_LinkDisplayField(const Value: WideString);
+begin
+  GetParamData.LinkDisplayField := Value;
+end;
+
+procedure TwrpGsParamData.Set_LinkFunctionLanguage(const Value: WideString);
+begin
+  GetParamData.LinkFunctionLanguage := Value;
+end;
+
+procedure TwrpGsParamData.Set_LinkPrimaryField(const Value: WideString);
+begin
+  GetParamData.LinkPrimaryField := Value;
+end;
+
+procedure TwrpGsParamData.Set_LinkTableName(const Value: WideString);
+begin
+  GetParamData.LinkTableName := Value;
+end;
+
+procedure TwrpGsParamData.Set_ParamType(const Value: WideString);
+begin
+  GetParamData.ParamType := StringToParamType(Value);
+end;
+
+procedure TwrpGsParamData.Set_RealName(const Value: WideString);
+begin
+  GetParamData.RealName := Value;
+end;
+
+procedure TwrpGsParamData.Set_Required(Value: WordBool);
+begin
+  GetParamData.Required := Value;
+end;
+
+procedure TwrpGsParamData.Set_Value(Value: OleVariant);
+begin
+  GetParamData.ResultValue := Value;
+end;
+
+function TwrpGsParamData.GetParamData: TgsParamData;
+begin
+  Result := GetObject as TgsParamData;
+end;
+
 initialization
 
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
@@ -17886,4 +18090,7 @@ initialization
   RegisterGdcOLEClass(TgdvAcctLedger, TwrpGdvAcctLedger, ComServer.TypeLib, IID_IgsGdvAcctLedger);
   RegisterGdcOLEClass(TgdvAcctGeneralLedger, TwrpGdvAcctGeneralLedger, ComServer.TypeLib, IID_IgsGdvAcctGeneralLedger);
   RegisterGdcOLEClass(TgdvAcctCirculationList, TwrpGdvAcctCirculationList, ComServer.TypeLib, IID_IgsGdvAcctCirculationList);
+
+  RegisterGdcOLEClass(TgsParamList, TwrpGsParamList, ComServer.TypeLib, IID_IgsParamList);
+  RegisterGdcOLEClass(TgsParamData, TwrpGsParamData, ComServer.TypeLib, IID_IgsParamData);
 end.
