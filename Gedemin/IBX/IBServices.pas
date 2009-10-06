@@ -372,7 +372,7 @@ type
   end;
 
   TRestoreOption = (DeactivateIndexes, NoShadow, NoValidityCheck, OneRelationAtATime,
-    Replace, CreateNewDB, UseAllSpace);
+    Replace, CreateNewDB, UseAllSpace, FixFss);
 
   TRestoreOptions = set of TRestoreOption;
   TIBRestoreService = class (TIBBackupRestoreService)
@@ -1534,6 +1534,8 @@ begin
     param := param or isc_spb_res_create;
   if (UseAllSpace in Options) then
     param := param or isc_spb_res_use_all_space;
+  if (FixFss in Options) then
+    param := param or isc_spb_res_fix_fss_data or isc_spb_res_fix_fss_metadata;
   Action := isc_action_svc_restore;
   ServiceStartParams  := Char(isc_action_svc_restore);
   ServiceStartAddParam(param, SPBConstantValues[isc_spb_options]);
