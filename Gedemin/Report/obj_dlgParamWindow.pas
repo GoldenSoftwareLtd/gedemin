@@ -37,6 +37,8 @@ type
 
     function  VariantIsArray(const Value: OleVariant): Boolean;
   protected
+    function  Get_ParamList: IgsParamList; safecall;
+
     procedure AddParam(const ParamName: WideString; const ParamType: WideString;
                        const Comment: WideString); safecall;
     procedure AddLinkParam(const ParamName: WideString; const ParamType: WideString;
@@ -50,6 +52,7 @@ type
                                    const TableName: WideString; const PrimaryName: WideString;
                                    const DisplayName: WideString; const LinkCondition: WideString;
                                    const LinkLanguage: WideString; const Comment: WideString): OleVariant; safecall;
+    function ExecuteWithParamList(const AParamList: IgsParamList): OleVariant; safecall;
   public
     constructor Create(const AnExternalKey: Integer);
     destructor Destroy; override;
@@ -58,7 +61,7 @@ type
 implementation
 
 uses
-  ComServ, flt_ScriptInterface;
+  ComServ, flt_ScriptInterface, prp_methods, gdcOLEClassList;
 
 { TgsParamWindow }
 
@@ -66,51 +69,15 @@ procedure TgsParamWindow.AddLinkParam(const ParamName: WideString; const ParamTy
   const TableName: WideString; const PrimaryName: WideString;
   const DisplayName: WideString; const LinkCondition: WideString;
   const LinkLanguage: WideString; const Comment: WideString); safecall;
-var
-  TempParamType: TParamType;
 begin
-  if AnsiUpperCase(Trim(ParamType)) = 'PRMLINKELEMENT' then
-    TempParamType := prmLinkElement
-  else
-    if AnsiUpperCase(Trim(ParamType)) = 'PRMLINKSET' then
-      TempParamType := prmLinkSet
-    else
-      raise Exception.Create('This type isn''t supported');
-  FParamList.AddLinkParam(ParamName, ParamName, TempParamType, TableName,
+  FParamList.AddLinkParam(ParamName, ParamName, StringToParamType(ParamType), TableName,
    DisplayName, PrimaryName, LinkCondition, LinkLanguage, Comment);
 end;
 
 procedure TgsParamWindow.AddParam(const ParamName: WideString; const ParamType: WideString;
   const Comment: WideString); safecall;
-var
-  I: Integer;
 begin
-  I := FParamList.AddParam(ParamName, ParamName, prmInteger, Comment);
-  if AnsiUpperCase(Trim(ParamType)) = 'PRMINTEGER' then
-    FParamList.Params[I].ParamType := prmInteger
-  else
-    if AnsiUpperCase(Trim(ParamType)) = 'PRMFLOAT' then
-      FParamList.Params[I].ParamType := prmFloat
-    else
-      if AnsiUpperCase(Trim(ParamType)) = 'PRMDATE' then
-        FParamList.Params[I].ParamType := prmDate
-      else
-        if AnsiUpperCase(Trim(ParamType)) = 'PRMDATETIME' then
-          FParamList.Params[I].ParamType := prmDateTime
-        else
-          if AnsiUpperCase(Trim(ParamType)) = 'PRMTIME' then
-            FParamList.Params[I].ParamType := prmTime
-          else
-            if AnsiUpperCase(Trim(ParamType)) = 'PRMSTRING' then
-              FParamList.Params[I].ParamType := prmString
-            else
-              if AnsiUpperCase(Trim(ParamType)) = 'PRMBOOLEAN' then
-                FParamList.Params[I].ParamType := prmBoolean
-              else
-                if AnsiUpperCase(Trim(ParamType)) = 'PRMNOQUERY' then
-                  FParamList.Params[I].ParamType := prmNoQuery
-                else
-                raise Exception.Create('This type is not supported');
+  FParamList.AddParam(ParamName, ParamName, StringToParamType(ParamType), Comment);
 end;
 
 constructor TgsParamWindow.Create(const AnExternalKey: Integer);
@@ -157,7 +124,6 @@ function TgsParamWindow.ExecuteWithParam(const ParamName, ParamType,
   Comment: WideString): OleVariant;
 var
   TmpResultArray: OleVariant;
-//  vt:
 begin
   AddParam(ParamName, ParamType, Comment);
   TmpResultArray := Execute;
@@ -165,6 +131,17 @@ begin
     Result := TmpResultArray[0]
   else
     Result := TmpResultArray;
+end;
+
+function TgsParamWindow.ExecuteWithParamList(const AParamList: IgsParamList): OleVariant;
+begin
+  FParamList.Assign(InterfaceToObject(AParamList) as TgsParamList);
+  Result := Execute;
+end;
+
+function TgsParamWindow.Get_ParamList: IgsParamList;
+begin
+  Result := GetGdcOLEObject(FParamList) as IgsParamList;
 end;
 
 function TgsParamWindow.VariantIsArray(const Value: OleVariant): Boolean;
