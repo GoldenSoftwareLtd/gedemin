@@ -9,50 +9,50 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 494
+    Top = 490
     Width = 775
   end
   inherited TBDockTop: TTBDock
     Width = 775
   end
   inherited TBDockLeft: TTBDock
-    Height = 436
+    Height = 432
   end
   inherited TBDockRight: TTBDock
     Left = 766
-    Height = 436
+    Height = 432
   end
   inherited TBDockBottom: TTBDock
-    Top = 485
+    Top = 481
     Width = 775
   end
   inherited pnlWorkArea: TPanel
     Width = 757
-    Height = 436
+    Height = 432
     inherited sMasterDetail: TSplitter
-      Height = 333
+      Height = 329
     end
     inherited spChoose: TSplitter
-      Top = 333
+      Top = 329
       Width = 757
     end
     inherited pnlMain: TPanel
-      Height = 333
+      Height = 329
       inherited pnlSearchMain: TPanel
-        Height = 333
+        Height = 329
         inherited sbSearchMain: TScrollBox
-          Height = 295
+          Height = 291
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 295
+          Top = 291
         end
       end
       inherited tvGroup: TgsDBTreeView
-        Height = 333
+        Height = 329
       end
     end
     inherited pnChoose: TPanel
-      Top = 337
+      Top = 333
       Width = 757
       inherited pnButtonChoose: TPanel
         Left = 652
@@ -66,10 +66,10 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
     end
     inherited pnlDetail: TPanel
       Width = 587
-      Height = 333
+      Height = 329
       object splQuentity: TSplitter [0]
         Left = 0
-        Top = 239
+        Top = 235
         Width = 587
         Height = 4
         Cursor = crVSplit
@@ -77,7 +77,7 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
       end
       object bvlSupport: TBevel [1]
         Left = 0
-        Top = 238
+        Top = 234
         Width = 587
         Height = 1
         Align = alBottom
@@ -89,9 +89,12 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
           object TBItem1: TTBItem [0]
             Action = actBack
           end
-          object TBSeparatorItem3: TTBSeparatorItem [1]
+          object TBItem2: TTBItem [1]
+            Action = actDoReversalEntry
           end
-          object tbiDetailEditLine: TTBItem [4]
+          object TBSeparatorItem3: TTBSeparatorItem [2]
+          end
+          object tbiDetailEditLine: TTBItem [5]
             Action = actDetailEditLine
           end
         end
@@ -128,22 +131,22 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
       end
       inherited pnlSearchDetail: TPanel
         Top = 47
-        Height = 191
+        Height = 187
         inherited sbSearchDetail: TScrollBox
-          Height = 153
+          Height = 149
         end
         inherited pnlSearchDetailButton: TPanel
-          Top = 153
+          Top = 149
         end
       end
       inherited ibgrDetail: TgsIBGrid
         Top = 47
         Width = 427
-        Height = 191
+        Height = 187
       end
       object pnlQuantity: TPanel
         Left = 0
-        Top = 243
+        Top = 239
         Width = 587
         Height = 90
         Align = alBottom
@@ -192,6 +195,14 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
       ImageIndex = 239
       OnExecute = actBackExecute
       OnUpdate = actBackUpdate
+    end
+    object actDoReversalEntry: TAction
+      Category = 'Commands'
+      Caption = 'Сторнировать проводку'
+      Hint = 'Сторнировать проводку'
+      ImageIndex = 236
+      OnExecute = actDoReversalEntryExecute
+      OnUpdate = actDoReversalEntryUpdate
     end
   end
   inherited pmMain: TPopupMenu
