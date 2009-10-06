@@ -689,7 +689,7 @@ begin
           ibsqlPlan.Prepare;
         end;
       end;
-      mmPlan.Text := ibsqlPlan.Plan;
+      mmPlan.Text := StringReplace(ibsqlPlan.Plan, #$A, #13#10, [rfReplaceAll]);
     finally
       ibsqlPlan.FreeHandle;
     end;
