@@ -62,7 +62,6 @@ copy result.sql /a + wg_tblcal.sql             /a result.sql    > nul
 copy result.sql /a + gd_addressbook.sql        /a result.sql    > nul
 copy result.sql /a + gd_ourcompany.sql         /a result.sql    > nul
 copy result.sql /a + gd_ruid.sql               /a result.sql    > nul
-copy result.sql /a + gd_storage.sql            /a result.sql    > nul
 copy result.sql /a + at_attribute.sql          /a result.sql    > nul
 copy result.sql /a + gd_const.sql              /a result.sql    > nul
 copy result.sql /a + gd_script.sql             /a result.sql    > nul
@@ -91,7 +90,7 @@ isql.exe -i result.sql
 
 if not errorlevel 0 goto Error
 
-makelbrbtree.exe /sn %database_name% /tmp tst_tree_tbl.sql     
+makelbrbtree.exe /sn %database_name%    
 
 if not errorlevel 0 goto Error
 
