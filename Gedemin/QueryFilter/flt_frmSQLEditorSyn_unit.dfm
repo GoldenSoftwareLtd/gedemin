@@ -848,7 +848,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             ShowHint = True
             TabOrder = 0
             object TBItem17: TTBItem
-              Caption = 'Индекированные чтения'
+              Caption = 'Индексированные чтения'
               Checked = True
               DisplayMode = nbdmImageAndText
               Hint = 'Индекированные чтения'

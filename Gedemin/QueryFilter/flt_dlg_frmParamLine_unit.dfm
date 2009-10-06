@@ -10,9 +10,8 @@ object dlg_frmParamLine: Tdlg_frmParamLine
   object lblName: TLabel
     Left = 8
     Top = 7
-    Width = 361
-    Height = 16
-    AutoSize = False
+    Width = 38
+    Height = 13
     Caption = 'lblName'
     ParentShowHint = False
     PopupMenu = pmWhatIsIt

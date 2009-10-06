@@ -57,6 +57,9 @@ type
     property EventComment: TCommentHint read FEventComment write FEventComment;
   end;
 
+const
+  BLANK_SPACE_WIDTH = 8;
+
 implementation
 
 {$R *.DFM}
@@ -70,7 +73,7 @@ begin
   FWinControl := AnWinControl;
   AnWinControl.Parent := Self;
   FrameResize(nil);
-  NewHeight := FWinControl.ClientHeight + 4{ * 2} + 2;
+  NewHeight := FWinControl.ClientHeight + 4 + 2;
   if NewHeight > Height then Height := NewHeight;
   AnWinControl.Visible := True;
 end;
@@ -114,8 +117,8 @@ procedure Tdlg_frmParamLine.FrameResize(Sender: TObject);
 begin
   if Assigned(FWinControl) then
   begin
-    FWinControl.Width := Width div 2 - 10;
-    FWinControl.Left := Width div 2;
+    FWinControl.Width := (Width - BLANK_SPACE_WIDTH * 3) div 2;
+    FWinControl.Left := Width - FWinControl.Width - BLANK_SPACE_WIDTH;
     FWinControl.Top := 2;
   end;
 end;
