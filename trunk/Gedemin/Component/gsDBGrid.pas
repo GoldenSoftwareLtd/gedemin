@@ -6760,7 +6760,7 @@ var
   OldPseudoRecordsOn: Boolean;
   {$ENDIF}
 begin
-  if {FScaleColumns and} FCanScale and DataLink.Active and Assigned(Parent)
+  if FScaleColumns and FCanScale and DataLink.Active and Assigned(Parent)
     and (not DataLink.Editing) then
   begin
     if FNeedScaleColumns then
