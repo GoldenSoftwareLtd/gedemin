@@ -34,6 +34,8 @@ type
     procedure lvInfoTip(Sender: TObject; Item: TListItem;
       var InfoTip: String);
     procedure actSaveToFileUpdate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
 
   private
     FSilent: Boolean;
@@ -358,7 +360,6 @@ const
   Counter: Integer = 0;
 begin
   FLog.AddRecord(TrimRight(S), ALogType);
-  lv.Items.Count := FLog.Count;
 
   if not FSilent then
   begin
@@ -371,6 +372,11 @@ begin
 
     if (Counter mod 40) = 0 then
     begin
+      lv.Items.Count := FLog.Count;
+      
+      if lv.Items.Count > 0 then
+        lv.Items[lv.Items.Count - 1].MakeVisible(False);
+
       BringToFront;
       UpdateWindow(Handle);
     end;
@@ -461,6 +467,18 @@ begin
   pb.Min := 0;
   pb.Max := 0;
   pb.Position := 0;
+end;
+
+procedure TfrmSQLProcess.FormShow(Sender: TObject);
+begin
+  if lv.Items.Count <> FLog.Count then
+    lv.Items.Count := FLog.Count;
+end;
+
+procedure TfrmSQLProcess.FormActivate(Sender: TObject);
+begin
+  if lv.Items.Count <> FLog.Count then
+    lv.Items.Count := FLog.Count;
 end;
 
 end.

@@ -1,6 +1,6 @@
 object frmSQLProcess: TfrmSQLProcess
-  Left = 609
-  Top = 321
+  Left = 437
+  Top = 205
   Width = 565
   Height = 398
   HelpContext = 25
@@ -14,7 +14,9 @@ object frmSQLProcess: TfrmSQLProcess
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
+  OnActivate = FormActivate
   OnClose = FormClose
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object pnlTop: TPanel
