@@ -566,7 +566,15 @@ end;
 
 function TdlgToSetting.GetSettingSQLByPosRUID: String;
 begin
-  Result := 'SELECT s.id, s.name FROM at_setting s WHERE ' +
+  if (SelfTransaction.DefaultDatabase.IsFirebirdConnect)
+    and (SelfTransaction.DefaultDatabase.ServerMajorVersion >= 2) then
+
+    Result := ' SELECT s.id, s.name ' +
+      ' FROM at_setting s ' +
+      ' JOIN (SELECT settingkey FROM at_settingpos WHERE xid = :xid and dbid = :dbid) pos ' +
+      '   ON pos.settingkey = s.id '
+  else
+    Result := 'SELECT s.id, s.name FROM at_setting s WHERE ' +
       ' EXISTS(SELECT id FROM at_settingpos WHERE settingkey = s.id AND ' +
       ' xid = :xid and dbid = :dbid) ';
 end;
