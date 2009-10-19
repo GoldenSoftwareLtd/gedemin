@@ -158,9 +158,7 @@ const
     '  DECLARE VARIABLE A INTEGER;'#13#10 +
     'BEGIN'#13#10 +
     '  /* Проверяем факт изменения PARENT */'#13#10 +
-    '  IF ((NEW.parent <> OLD.parent) OR'#13#10 +
-    '     ((OLD.parent IS NULL) AND NOT (NEW.parent IS NULL)) OR'#13#10 +
-    '     ((NEW.parent IS NULL) AND NOT (OLD.parent IS NULL))) THEN'#13#10 +
+    '  IF (NEW.parent IS DISTINCT FROM OLD.parent) THEN'#13#10 +
     '  BEGIN'#13#10 +
     '    /* Делаем проверку на зацикливание */'#13#10 +
     '    IF (EXISTS (SELECT * FROM ::TABLENAME'#13#10 +
@@ -274,7 +272,7 @@ const
     'CREATE DESC INDEX ::PREFIX_x_::NAME_rb'#13#10 +
     '  ON ::TABLENAME (rb)',
 
-    'CREATE ASC INDEX ::PREFIX_x_::NAME_lb'#13#10 +
+    'CREATE UNIQUE ASC INDEX ::PREFIX_x_::NAME_lb'#13#10 +
     '  ON ::TABLENAME (lb)');
 
 procedure CreateLBRBTreeMetaDataScript(AScript: TStrings; const APrefix, AName, ATableName: String);

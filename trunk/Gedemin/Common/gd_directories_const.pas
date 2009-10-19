@@ -213,15 +213,13 @@ const
     cst_txQuarterID = 350002;
     cst_txArbitraryID = 350003;
 
-
-
-
   //Глобальное хранилище
   st_root_Global = 'GLOBAL';
   //Пользовательское хранилище
   st_root_User = 'USER';
   //Хранилище компании
   st_root_Company = 'COMPANY';
+
 implementation
 
 end.

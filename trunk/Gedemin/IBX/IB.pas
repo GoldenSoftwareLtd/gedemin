@@ -743,7 +743,7 @@ begin
   else if IBErrorCode = isc_check_constraint then
     usr_msg := LocalizeCheckException(usr_msg)
   else
-    {Локализация эксепшена выдаваемого огриничениями БД}
+    {Локализация эксепшена выдаваемого ограничениями БД}
     usr_msg := LocalizeMsg(usr_msg);
   {$ENDIF}
   if sqlcode <> -551 then
