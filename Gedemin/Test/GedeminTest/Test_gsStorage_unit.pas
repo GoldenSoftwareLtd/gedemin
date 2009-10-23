@@ -62,7 +62,7 @@ begin
       'Файл "' + TestData[I].FileName + '" с тестовыми данными не найден.');
     FS := TFileStream.Create(TestFolder + '\' + TestData[I].FileName, fmOpenRead);
     try
-      S := TgsIBStorage.Create('S');
+      S := TgsIBStorage.Create;
       try
         S.LoadFromStream(FS);
 
@@ -118,7 +118,7 @@ var
   end;
 
 begin
-  S := TgsStorage.Create('S');
+  S := TgsStorage.Create;
   try
     F := S.OpenFolder('');
     try
@@ -131,7 +131,7 @@ begin
       Check(F.OpenFolder('FolderA\FolderB\FolderC', False).ValuesCount = 6);
       Check(F.OpenFolder('FolderA\FolderB', False).ValuesCount = 0);
       Check(F.OpenFolder('FolderA\FolderB', False).FoldersCount = 1);
-      F.OpenFolder('FolderA\FolderB\FolderC', False).DropFolder;
+      F.OpenFolder('FolderA\FolderB\FolderC', False).Drop;
       Check(F.OpenFolder('FolderA\FolderB', False).FoldersCount = 0);
       F.OpenFolder('FolderA', False).DeleteFolder('FolderB');
       Check(F.OpenFolder('FolderA', False).FoldersCount = 0);
@@ -140,9 +140,6 @@ begin
 
       S.Clear;
       Check((F.FoldersCount = 0) and (F.ValuesCount = 0));
-
-      F.DropFolder;
-      Check(F.Name = 'S');
     finally
       S.CloseFolder(F);
     end;

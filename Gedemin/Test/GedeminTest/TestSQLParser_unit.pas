@@ -49,8 +49,15 @@ begin
         ExcludeTrailingBackSlash(ExtractFilePath(Application.EXEName)), I]);
       }
 
-      if (not FileExists(InputFileName)) or (not FileExists(OutputFileName)) then
-        break;
+      if I = 0 then
+      begin
+        Check(FileExists(InputFileName), 'Файл не найден: ' + InputFileName);
+        Check(FileExists(OutputFileName), 'Файл не найден: ' + OutputFileName);
+      end else
+      begin
+        if (not FileExists(InputFileName)) or (not FileExists(OutputFileName)) then
+          break;
+      end;
 
       Input.LoadFromFile(InputFileName);
       TrimStrings(Input);
