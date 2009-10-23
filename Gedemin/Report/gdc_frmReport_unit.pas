@@ -24,11 +24,7 @@ type
     TBControlItem1: TTBControlItem;
     procedure FormCreate(Sender: TObject);
     procedure actBuildReportExecute(Sender: TObject);
-    procedure actReBuildReportExecute(Sender: TObject);
-    procedure actRefreshExecute(Sender: TObject);
-    procedure actDefaultServerExecute(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure ibgrDetailDblClick(Sender: TObject);
     procedure ibgrDetailKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure pnlMainResize(Sender: TObject);
@@ -49,7 +45,7 @@ var
 implementation
 
 uses
-  gd_security,  gd_ClassList, rp_ReportClient, {rp_dlgDefaultServer_unit,}
+  gd_security,  gd_ClassList, rp_ReportClient,
   IBDatabase, gd_SetDatabase, evt_i_Base;
 
 {$R *.DFM}
@@ -58,11 +54,7 @@ class function Tgdc_frmReportList.CreateAndAssign(
   AnOwner: TComponent): TForm;
 begin
   if not FormAssigned(gdc_frmReportList) then
-  begin
     gdc_frmReportList := Tgdc_frmReportList.Create(AnOwner);
-//    if ClientReport <> nil then
-//      ClientReport.Refresh;
-  end;
   Result := gdc_frmReportList
 end;
 
@@ -82,55 +74,12 @@ begin
     ClientReport.BuildReport(Unassigned, gdcReport.ID);
 end;
 
-procedure Tgdc_frmReportList.actReBuildReportExecute(Sender: TObject);
-begin
-{  if Assigned(ClientReport) then
-    ClientReport.BuildReport(Unassigned, gdcReport.ID, True);}
-end;
-
-procedure Tgdc_frmReportList.actRefreshExecute(Sender: TObject);
-begin
-  {if Assigned(ClientReport) then
-    ClientReport.Refresh;}
-end;
-
-procedure Tgdc_frmReportList.actDefaultServerExecute(Sender: TObject);
-{var
-  F: TdlgDefaultServer;
-  TempTr: TIBTransaction;}
-begin
-{  F := TdlgDefaultServer.Create(Self);
-  try
-    TempTr := TIBTransaction.Create(nil);
-    try
-      TempTr.DefaultDatabase := gdcReport.Database;
-      TempTr.StartTransaction;
-
-      SetDatabaseAndTransaction(F, gdcReport.Database, TempTr);
-      if F.SetDefaultServer then
-        MessageBox(Self.Handle, 'Новые настройки вступят в силу после перезапуска программы.',
-         'Внимание!', MB_OK or MB_ICONINFORMATION);
-      TempTr.Commit;
-    finally
-
-      TempTr.Free;
-    end;
-  finally
-    F.Free;
-  end;}
-end;
-
 procedure Tgdc_frmReportList.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
   ClientReport.Clear;
 
   inherited;
-end;
-
-procedure Tgdc_frmReportList.ibgrDetailDblClick(Sender: TObject);
-begin
-  actBuildReport.Execute;
 end;
 
 procedure Tgdc_frmReportList.ibgrDetailKeyDown(Sender: TObject;
