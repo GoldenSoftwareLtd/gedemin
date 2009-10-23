@@ -9685,7 +9685,7 @@ begin
       NeedSingleUser := False;
     end;
   end else
-    AddMistake('Для триггера ' + FieldByName('triggername').AsString
+    AddMistake('Для триггера ' + FieldByName('triggername').AsString +
       ' неверно указано значение поля rdb$trigger_type.', clRed);
 end;
 
