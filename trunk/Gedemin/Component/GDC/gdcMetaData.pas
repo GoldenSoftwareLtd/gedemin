@@ -9652,33 +9652,41 @@ var
   FSQL: TSQLProcessList;
   subtext: String;
 begin
-  FSQL := TSQLProcessList.Create;
-  try
-    case FieldByName('rdb$trigger_type').AsInteger of
-      1: subtext := 'BEFORE INSERT';
-      2: subtext := 'AFTER INSERT';
-      3: subtext := 'BEFORE UPDATE';
-      4: subtext := 'AFTER UPDATE';
-      5: subtext := 'BEFORE DELETE';
-      6: subtext := 'AFTER DELETE';
-      17: subtext := 'BEFORE INSERT OR UPDATE';
-      18: subtext := 'AFTER INSERT OR UPDATE';
-      25: subtext := 'BEFORE INSERT OR DELETE';
-      26: subtext := 'AFTER INSERT OR DELETE';
-      27: subtext := 'BEFORE UPDATE OR DELETE';
-      28: subtext := 'AFTER UPDATE OR DELETE';
-      113: subtext := 'BEFORE INSERT OR UPDATE OR DELETE';
-      114: subtext := 'AFTER INSERT OR UPDATE OR DELETE';
-    end;
-    FSQL.Add(Format('CREATE TRIGGER %s FOR %s '#13#10 + '%s'#13#10 + 'POSITION %s ' +
-      ' %s ',[FieldByName('triggername').AsString, FieldByName('relationname').AsString,
-       subtext, FieldByName('rdb$trigger_sequence').AsString,
-       FieldByName('rdb$trigger_source').AsString]));
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
+  case FieldByName('rdb$trigger_type').AsInteger of
+    1: subtext := 'BEFORE INSERT';
+    2: subtext := 'AFTER INSERT';
+    3: subtext := 'BEFORE UPDATE';
+    4: subtext := 'AFTER UPDATE';
+    5: subtext := 'BEFORE DELETE';
+    6: subtext := 'AFTER DELETE';
+    17: subtext := 'BEFORE INSERT OR UPDATE';
+    18: subtext := 'AFTER INSERT OR UPDATE';
+    25: subtext := 'BEFORE INSERT OR DELETE';
+    26: subtext := 'AFTER INSERT OR DELETE';
+    27: subtext := 'BEFORE UPDATE OR DELETE';
+    28: subtext := 'AFTER UPDATE OR DELETE';
+    113: subtext := 'BEFORE INSERT OR UPDATE OR DELETE';
+    114: subtext := 'AFTER INSERT OR UPDATE OR DELETE';
+  else
+    subtext := '';
   end;
+
+  if subtext > '' then
+  begin
+    FSQL := TSQLProcessList.Create;
+    try
+      FSQL.Add(Format('CREATE TRIGGER %s FOR %s '#13#10 + '%s'#13#10 + 'POSITION %s ' +
+        ' %s ',[FieldByName('triggername').AsString, FieldByName('relationname').AsString,
+         subtext, FieldByName('rdb$trigger_sequence').AsString,
+         FieldByName('rdb$trigger_source').AsString]));
+      ShowSQLProcess(FSQL);
+    finally
+      FSQL.Free;
+      NeedSingleUser := False;
+    end;
+  end else
+    AddMistake('Для триггера ' + FieldByName('triggername').AsString
+      ' неверно указано значение поля rdb$trigger_type.', clRed);
 end;
 
 procedure TgdcTrigger.SyncTriggers(const ARelationName: String; const NeedRefresh: Boolean = True);
