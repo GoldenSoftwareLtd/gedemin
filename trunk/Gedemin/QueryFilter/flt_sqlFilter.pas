@@ -555,7 +555,7 @@ end;
 // Сохраняем параметры текущего фильтра
 procedure TgsSQLFilter.SaveFilter;
 var
-  TempSQL: TIBQuery;
+  TempSQL: TIBSQL;
   DidActivate: Boolean;
 begin
   if (FCurrentFilter = 0) or (Transaction = nil)
@@ -565,7 +565,7 @@ begin
   end;
   
   DidActivate := False;
-  TempSQL := TIBQuery.Create(Self);
+  TempSQL := TIBSQL.Create(Self);
   try
     // Стартуем транзакции
     if not Transaction.InTransaction then
@@ -574,7 +574,6 @@ begin
       DidActivate := True;
     end;
     // Необходимые установки
-    TempSQL.Database := Database;
     TempSQL.Transaction := Transaction;
     // Запрос АПДЭЙТА
     TempSQL.SQL.Text := 'UPDATE flt_savedfilter SET lastextime = :lasttime, readcount = readcount + :deltaread WHERE id = :id';
@@ -583,7 +582,7 @@ begin
     TempSQL.ParamByName('deltaread').AsInteger := FDeltaReadCount;
     try
       // Пытаемся выполнить
-      TempSQL.ExecSQL;
+      TempSQL.ExecQuery;
     except
       // Обработка ошибки
       on E: Exception do
