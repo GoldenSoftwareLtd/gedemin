@@ -1024,11 +1024,22 @@ begin
   end;
 end;
 
+procedure InitClausesList;
+var
+  I: TClause;
+begin
+  if ClausesList = nil then
+  begin
+    ClausesList := TStringHashMap.Create(CaseInSensitiveTraits, 256);
+    for I := Low(TClause) to High(TClause) do
+      ClausesList.Add(ClauseText[I], I);
+  end;
+end;
+
 function IsClause(const Text: String): Boolean;
 begin
-  Assert(ClausesList <> nil);
-
-  Result := ClausesList.Has(UpperCase(Text));
+  InitClausesList;
+  Result := ClausesList.Has(Text);
 end;
 
 function CreateCaseClause(FParser: TsqlParser): TsqlBaseCase;
@@ -5881,9 +5892,8 @@ end;
 
 function GetClause(const Text: String): TClause;
 begin
-  Assert(ClausesList <> nil);
-
-  if not ClausesList.Find(UpperCase(Text), Result) then
+  InitClausesList;
+  if not ClausesList.Find(Text, Result) then
     Result := cNone;
 end;
 
@@ -6417,14 +6427,6 @@ begin
         begin
           AddField('UnknownSQL' + IntToStr(FList.Count))
         end;
-end;
-
-procedure FillUpClausesList;
-var
-  I: TClause;
-begin
-  for I := Low(TClause) to High(TClause) do
-    ClausesList.Add(UpperCase(ClauseText[I]), I);
 end;
 
 {Возвращает список таблиц, входящих во фром-часть запроса, без повторений}
@@ -8295,8 +8297,7 @@ begin
 end;
 
 initialization
-  ClausesList := TStringHashMap.Create(CaseSensitiveTraits, 128);
-  FillUpClausesList;
+  ClausesList := nil;
 
 finalization
   FreeAndNil(ClausesList);
