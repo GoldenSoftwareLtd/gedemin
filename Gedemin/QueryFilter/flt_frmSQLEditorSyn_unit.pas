@@ -736,24 +736,24 @@ var
 begin
   if PrepareQuery then
   begin
-    ibqryWork.Close;
-    ibqryWork.SelectSQL.Text := seQuery.Text;
-
-    try
-      ibqryWork.ParamCheck := True;
-      ibqryWork.Prepare;
-    except
-      ibqryWork.ParamCheck := False;
-      ibqryWork.Prepare;
-    end;
-
     repeat
+      ibqryWork.Close;
+      ibqryWork.SelectSQL.Text := seQuery.Text;
+
+      try
+        ibqryWork.ParamCheck := True;
+        ibqryWork.Prepare;
+      except
+        ibqryWork.ParamCheck := False;
+        ibqryWork.Prepare;
+      end;
+
       if ibqryWork.SQLType in [SQLExecProcedure, SQLInsert, SQLSelectForUpdate,
         SQLSetGenerator, SQLSelect, SQLUpdate, SQLDelete] then
       begin
         ibqryWork.ParamCheck := True;
         if not InputParam then
-          exit;
+          break;
       end else
       begin
         ibqryWork.ParamCheck := False;
@@ -908,6 +908,10 @@ begin
   frmSQLHistory.tbMainMenu.Visible := False;
   frmSQLHistory.sbMain.Visible := False;
   frmSQLHistory.ibgrMain.OnDblClick := OnHistoryDblClick;
+
+  for I := 0 to frmSQLHistory.alMain.ActionCount - 1 do
+    if frmSQLHistory.alMain.Actions[I] is TCustomAction then
+      TCustomAction(frmSQLHistory.alMain.Actions[I]).ShortCut := 0;
 
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('id')).Visible := False;
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('sql_text')).Visible := True;
