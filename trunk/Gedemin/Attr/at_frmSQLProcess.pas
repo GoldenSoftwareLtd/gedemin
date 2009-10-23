@@ -304,9 +304,7 @@ begin
     actSaveToFile.Execute;
 
   if (not Visible) and ((frmSQLProcess = nil) or (frmSQLProcess = Self)) then
-    Action := caFree
-  else
-    CleanUp;
+    Action := caFree;
 end;
 
 procedure TfrmSQLProcess.actSaveToFileExecute(Sender: TObject);
