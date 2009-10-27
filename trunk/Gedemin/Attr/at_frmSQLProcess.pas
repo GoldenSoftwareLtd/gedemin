@@ -355,28 +355,27 @@ end;
 
 procedure TfrmSQLProcess.AddRecord(const S: String; const ALogType: TatLogType);
 const
-  Counter: Integer = 0;
+  PrevTime: DWORD = 0;
 begin
   FLog.AddRecord(TrimRight(S), ALogType);
+  lv.Items.Count := FLog.Count;
+
+  if lv.Items.Count > 0 then
+    lv.Items[lv.Items.Count - 1].MakeVisible(False);
 
   if not FSilent then
   begin
     if not Visible then
     begin
       Show;
-      Counter := 0;
-    end else
-      Inc(Counter);
+      PrevTime := 0;
+    end;
 
-    if (Counter mod 40) = 0 then
+    if (GetTickCount - PrevTime) > 2000 then
     begin
-      lv.Items.Count := FLog.Count;
-      
-      if lv.Items.Count > 0 then
-        lv.Items[lv.Items.Count - 1].MakeVisible(False);
-
       BringToFront;
       UpdateWindow(Handle);
+      PrevTime := GetTickCount;
     end;
   end;
 
@@ -469,14 +468,14 @@ end;
 
 procedure TfrmSQLProcess.FormShow(Sender: TObject);
 begin
-  if lv.Items.Count <> FLog.Count then
-    lv.Items.Count := FLog.Count;
+  {if lv.Items.Count <> FLog.Count then
+    lv.Items.Count := FLog.Count;}
 end;
 
 procedure TfrmSQLProcess.FormActivate(Sender: TObject);
 begin
-  if lv.Items.Count <> FLog.Count then
-    lv.Items.Count := FLog.Count;
+  {if lv.Items.Count <> FLog.Count then
+    lv.Items.Count := FLog.Count;}
 end;
 
 end.
