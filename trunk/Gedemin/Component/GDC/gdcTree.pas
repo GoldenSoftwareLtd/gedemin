@@ -953,7 +953,8 @@ end;
 
 class function TgdcLBRBTree.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + 'ByLBRB;ByRootID;ByRootName;';
+  Result := inherited GetSubSetList +
+    'ByLBRB;ByRootID;ByRootName;ByRootIDInc;ByRootNameInc;';
 end;
 
 class function TgdcLBRBTree.GetTableInfos(
@@ -1035,6 +1036,7 @@ function TgdcLBRBTree.GetFromClause(const ARefresh: Boolean = False): String;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  Sgn: String;
 begin
   {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCLBRBTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  try
@@ -1070,19 +1072,29 @@ begin
 
   if not ARefresh then
   begin
-    if HasSubSet('ByRootID') then
+    if HasSubSet('ByRootID') or HasSubSet('ByRootIDInc') then
     begin
+      if HasSubSet('ByRootIDInc') then
+        Sgn := '='
+      else
+        Sgn := '';
+
       Result := Result +
-        Format(' JOIN %0:s root_item ON %1:s.lb > root_item.lb AND %1:s.rb <= root_item.rb AND root_item.id = :RootID ',
-          [GetListTable(SubType), GetListTableAlias]);
+        Format(' JOIN %0:s root_item ON %1:s.lb >%2:s root_item.lb AND %1:s.rb <= root_item.rb AND root_item.id = :RootID ',
+          [GetListTable(SubType), GetListTableAlias, Sgn]);
       FSQLSetup.Ignores.AddAliasName('root_item');
     end;
 
-    if HasSubSet('ByRootName') then
+    if HasSubSet('ByRootName') or HasSubSet('ByRootNameInc') then
     begin
+      if HasSubSet('ByRootNameInc') then
+        Sgn := '='
+      else
+        Sgn := '';
+
       Result := Result +
-        Format(' JOIN %0:s root_item_n ON %1:s.lb >= root_item_n.lb AND %1:s.rb <= root_item_n.rb AND root_item_n.%2:s = :RootName ',
-          [GetListTable(SubType), GetListTableAlias, GetListField(SubType)]);
+        Format(' JOIN %0:s root_item_n ON %1:s.lb >%3:s root_item_n.lb AND %1:s.rb <= root_item_n.rb AND root_item_n.%2:s = :RootName ',
+          [GetListTable(SubType), GetListTableAlias, GetListField(SubType), Sgn]);
       FSQLSetup.Ignores.AddAliasName('root_item');
     end;
   end;

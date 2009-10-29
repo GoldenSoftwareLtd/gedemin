@@ -88,6 +88,70 @@ const
 
     '/****************************************************/'#13#10 +
     '/**                                                **/'#13#10 +
+    '/**   Процедура вытягивает количество детей        **/'#13#10 +
+    '/**   по Паренту родителя                          **/'#13#10 +
+    '/**                                                **/'#13#10 +
+    '/****************************************************/'#13#10 +
+    'CREATE OR ALTER PROCEDURE ::PREFIX_p_gchc_::NAME (Parent INTEGER, FirstIndex INTEGER)'#13#10 +
+    '  RETURNS (LastIndex INTEGER)'#13#10 +
+    'AS'#13#10 +
+    '  DECLARE VARIABLE ChildKey INTEGER;'#13#10 +
+    'BEGIN'#13#10 +
+    '  /* Присваиваем начальное значение */'#13#10 +
+    '  LastIndex = :FirstIndex + 1;'#13#10 +
+    ''#13#10 +
+    '  /* Вытягиваем детей по паренту */'#13#10 +
+    '  FOR'#13#10 +
+    '    SELECT id'#13#10 +
+    '    FROM ::TABLENAME'#13#10 +
+    '    WHERE parent = :Parent'#13#10 +
+    '    INTO :ChildKey'#13#10 +
+    '  DO'#13#10 +
+    '  BEGIN'#13#10 +
+    '    /* Изменяем границы детей */'#13#10 +
+    '    EXECUTE PROCEDURE ::PREFIX_p_gchc_::NAME (:ChildKey, :LastIndex)'#13#10 +
+    '      RETURNING_VALUES :LastIndex;'#13#10 +
+    '  END'#13#10 +
+    ''#13#10 +
+    '  LastIndex = :LastIndex + 9;'#13#10 +
+    ''#13#10 +
+    '  /* Изменяем границы родителя */'#13#10 +
+    '  UPDATE ::TABLENAME SET lb = :FirstIndex + 1, rb = :LastIndex'#13#10 +
+    '    WHERE id = :Parent;'#13#10 +
+    'END',
+
+    '/****************************************************/'#13#10 +
+    '/**                                                **/'#13#10 +
+    '/**   Процедура сжимает интервалы дерева           **/'#13#10 +
+    '/**                                                **/'#13#10 +
+    '/****************************************************/'#13#10 +
+    'CREATE OR ALTER PROCEDURE ::PREFIX_p_restruct_::NAME'#13#10 +
+    'AS'#13#10 +
+    '  DECLARE VARIABLE CurrentIndex INTEGER;'#13#10 +
+    '  DECLARE VARIABLE ChildKey INTEGER;'#13#10 +
+    'BEGIN'#13#10 +
+    '  /* Устанавливаем начало свободного пространства */'#13#10 +
+    '  /* Мы не ищем свободного пространства, по причине */'#13#10 +
+    '  /* не уникальности индексов для LB, RB. */'#13#10 +
+    ''#13#10 +
+    '  CurrentIndex = 1;'#13#10 +
+    ''#13#10 +
+    '  /* Для всех элементов корневого дерево ... */'#13#10 +
+    '  FOR'#13#10 +
+    '    SELECT id'#13#10 +
+    '    FROM ::TABLENAME'#13#10 +
+    '    WHERE parent IS NULL'#13#10 +
+    '    INTO :ChildKey'#13#10 +
+    '  DO'#13#10 +
+    '  BEGIN'#13#10 +
+    '    /* ... меняем границы для детей */'#13#10 +
+    '    EXECUTE PROCEDURE ::PREFIX_p_gchc_::NAME (:ChildKey, :CurrentIndex)'#13#10 +
+    '      RETURNING_VALUES :CurrentIndex;'#13#10 +
+    '  END'#13#10 +
+    'END',
+
+    '/****************************************************/'#13#10 +
+    '/**                                                **/'#13#10 +
     '/**   Триггер обрабатывающий добавление нового     **/'#13#10 +
     '/**   элемента дерева, проверяет диапазон,         **/'#13#10 +
     '/**   вызывает процедуру сдвига если надо          **/'#13#10 +
@@ -196,76 +260,6 @@ const
     '  END'#13#10 +
     'END',
 
-    '/****************************************************/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/**   Процедура вытягивает количество детей        **/'#13#10 +
-    '/**   по Паренту родителя                          **/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/****************************************************/'#13#10 +
-    'CREATE OR ALTER PROCEDURE ::PREFIX_p_gchc_::NAME (Parent INTEGER, FirstIndex INTEGER)'#13#10 +
-    '  RETURNS (LastIndex INTEGER)'#13#10 +
-    'AS'#13#10 +
-    '  DECLARE VARIABLE ChildKey INTEGER;'#13#10 +
-    'BEGIN'#13#10 +
-    '  /* Присваиваем начальное значение */'#13#10 +
-    '  LastIndex = :FirstIndex + 1;'#13#10 +
-    ''#13#10 +
-    '  /* Вытягиваем детей по паренту */'#13#10 +
-    '  FOR'#13#10 +
-    '    SELECT id'#13#10 +
-    '    FROM ::TABLENAME'#13#10 +
-    '    WHERE parent = :Parent'#13#10 +
-    '    INTO :ChildKey'#13#10 +
-    '  DO'#13#10 +
-    '  BEGIN'#13#10 +
-    '    /* Изменяем границы детей */'#13#10 +
-    '    EXECUTE PROCEDURE ::PREFIX_p_gchc_::NAME (:ChildKey, :LastIndex)'#13#10 +
-    '      RETURNING_VALUES :LastIndex;'#13#10 +
-    '  END'#13#10 +
-    ''#13#10 +
-    '  LastIndex = :LastIndex + 9;'#13#10 +
-    ''#13#10 +
-    '  /* Изменяем границы родителя */'#13#10 +
-    '  UPDATE ::TABLENAME SET lb = :FirstIndex + 1, rb = :LastIndex'#13#10 +
-    '    WHERE id = :Parent;'#13#10 +
-    'END',
-
-    '/****************************************************/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/**   Процедура сжимает интервалы дерева           **/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/****************************************************/'#13#10 +
-    'CREATE OR ALTER PROCEDURE ::PREFIX_p_restruct_::NAME'#13#10 +
-    'AS'#13#10 +
-    '  DECLARE VARIABLE CurrentIndex INTEGER;'#13#10 +
-    '  DECLARE VARIABLE ChildKey INTEGER;'#13#10 +
-    'BEGIN'#13#10 +
-    '  /* Устанавливаем начало свободного пространства */'#13#10 +
-    '  /* Мы не ищем свободного пространства, по причине */'#13#10 +
-    '  /* не уникальности индексов для LB, RB. */'#13#10 +
-    ''#13#10 +
-    '  CurrentIndex = 1;'#13#10 +
-    ''#13#10 +
-    '  /* Для всех элементов корневого дерево ... */'#13#10 +
-    '  FOR'#13#10 +
-    '    SELECT id'#13#10 +
-    '    FROM ::TABLENAME'#13#10 +
-    '    WHERE parent IS NULL'#13#10 +
-    '    INTO :ChildKey'#13#10 +
-    '  DO'#13#10 +
-    '  BEGIN'#13#10 +
-    '    /* ... меняем границы для детей */'#13#10 +
-    '    EXECUTE PROCEDURE ::PREFIX_p_gchc_::NAME (:ChildKey, :CurrentIndex)'#13#10 +
-    '      RETURNING_VALUES :CurrentIndex;'#13#10 +
-    '  END'#13#10 +
-    'END',
-
-    'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_el_::NAME TO administrator',
-
-    'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_gchc_::NAME TO administrator',
-
-    'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_restruct_::NAME TO administrator',
-
     'ALTER TABLE ::TABLENAME ADD CONSTRAINT ::PREFIX_chk_::NAME_tr_lmt'#13#10 +
     '  CHECK ((lb <= rb) /*or ((rb is NULL) and (lb is NULL))*/)',
 
@@ -273,7 +267,13 @@ const
     '  ON ::TABLENAME (rb)',
 
     'CREATE UNIQUE ASC INDEX ::PREFIX_x_::NAME_lb'#13#10 +
-    '  ON ::TABLENAME (lb)');
+    '  ON ::TABLENAME (lb)',
+
+    'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_el_::NAME TO administrator',
+
+    'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_gchc_::NAME TO administrator',
+
+    'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_restruct_::NAME TO administrator');
 
 procedure CreateLBRBTreeMetaDataScript(AScript: TStrings; const APrefix, AName, ATableName: String);
 var
