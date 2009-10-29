@@ -395,26 +395,30 @@ begin
     begin
       F.DisplayFormat := DisplayFormat(frAcctSum.NcuDecDigits);
       if frAcctSum.InNcu then
-        F.Visible := fvVisible;
-    end
-    else
-      if Pos('CURR_', BaseAcctFieldList[I].FieldName) = 1 then
-      begin
-        F.DisplayFormat := DisplayFormat(frAcctSum.CurrDecDigits);
-        if (frAcctSum.InCurr) and (not frAcctSum.InNcu) then
-          F.Visible := fvVisible;
-        if (frAcctSum.InCurr) and (frAcctSum.InNcu) then
-          F.DisplayFields.Add(BaseAcctFieldList[I].DisplayFieldName);
-      end
+        F.Visible := fvVisible
       else
-        if Pos('EQ_', BaseAcctFieldList[I].FieldName) = 1 then
-        begin
-          F.DisplayFormat := DisplayFormat(frAcctSum.EQDecDigits);
-          if (frAcctSum.InEQ) and (not frAcctSum.InNcu) then
-            F.Visible := fvVisible;
-          if (frAcctSum.InEQ) and (frAcctSum.InNcu) then
-            F.DisplayFields.Add(BaseAcctFieldList[I].DisplayFieldName);
-        end;
+        F.Visible := fvHidden;
+    end
+    else if Pos('CURR_', BaseAcctFieldList[I].FieldName) = 1 then
+    begin
+      F.DisplayFormat := DisplayFormat(frAcctSum.CurrDecDigits);
+      if (frAcctSum.InCurr) and (not frAcctSum.InNcu) then
+        F.Visible := fvVisible
+      else
+        F.Visible := fvHidden;
+      if (frAcctSum.InCurr) and (frAcctSum.InNcu) then
+        F.DisplayFields.Add(BaseAcctFieldList[I].DisplayFieldName);
+    end
+    else if Pos('EQ_', BaseAcctFieldList[I].FieldName) = 1 then
+    begin
+      F.DisplayFormat := DisplayFormat(frAcctSum.EQDecDigits);
+      if (frAcctSum.InEQ) and (not frAcctSum.InNcu) then
+        F.Visible := fvVisible
+      else
+        F.Visible := fvHidden;
+      if (frAcctSum.InEQ) and (frAcctSum.InNcu) then
+        F.DisplayFields.Add(BaseAcctFieldList[I].DisplayFieldName);
+    end;
   end;
 
   // Сохраним выбранные счета в хранилище
