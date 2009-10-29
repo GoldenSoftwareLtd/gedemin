@@ -372,8 +372,8 @@ begin
             end;
           end;
         end;
+        ibgrMain.Conditions[I].DisplayFields := DisplayFields;
       end;
-      ibgrMain.Conditions[I].DisplayFields := DisplayFields;
     end;
   end;
 end;
