@@ -403,6 +403,10 @@ begin
       FUseEntryBalance := False;
   end;
 
+  // При выборе количественных показателей будем строить старым методом
+  if FUseEntryBalance and (FAcctValues.Count > 0) then
+    FUseEntryBalance := False;
+
   if FWithSubAccounts then
     FillSubAccounts(FAccounts);
 

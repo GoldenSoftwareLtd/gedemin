@@ -54,6 +54,8 @@ const
   fndocumenttypekey = 'documenttypekey';
   fnFunctionKey = 'functionkey';
 
+  DontBalanceAnalytic = ';USR$GS_DOCUMENT;';
+
 const
 //Шаблоны запросов
   cInternalMovementClauseTemplate = ' AND NOT EXISTS('#13#10 +

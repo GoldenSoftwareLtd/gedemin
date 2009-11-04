@@ -3,7 +3,8 @@ unit gdClosingPeriod;
 interface
 
 uses
-  IBDatabase, Classes, SysUtils, gd_KeyAssoc, gdcBaseInterface, stdctrls, comctrls;
+  IBDatabase, Classes, SysUtils, gd_KeyAssoc, gdcBaseInterface, stdctrls, comctrls,
+  IBSQL;
 
 type
   TgdClosingPeriod = class(TObject)
@@ -26,6 +27,9 @@ type
     FInsertedEntryBalanceRecordCount: Integer;
     // Список бухгалтерских аналитик, в разрезе которых строится бух. сальдо
     FEntryAvailableAnalytics: TStringList;
+    // Сущестует ли поле-ссылка на позицию прихода
+    FAddLineKeyFieldExists: Boolean;
+    FInvDocumentTypeKey: TID;
 
     FUserDocumentTypesToDelete: TgdKeyArray;
     FDontDeleteDocumentTypes: TgdKeyArray;
@@ -36,11 +40,23 @@ type
     FMessageLog: TStringList;
     FDoMaintainLog: Boolean;
 
+    FQueriesInitialized: Boolean;
+    FIBSQLInsertGdDocument: TIBSQL;
+    FIBSQLInsertDocumentHeader: TIBSQL;
+    FIBSQLInsertDocumentPosition: TIBSQL;
+    FIBSQLInsertInvCard: TIBSQL;
+    FIBSQLInsertInvMovement: TIBSQL;
+
     //procedure InsertDatabaseRecord;
     function GetFeatureFieldList(AAlias: String): String;
-    function IIF(Condition: Boolean; TrueString, FalseString: String): String;
+    function IIF(const Condition: Boolean; const TrueString, FalseString: String): String;
+
+    function AddDepotHeader(const FromContact, ToContact, CompanyKey: TID): TID;
+    function AddDepotPosition(const FromContact, ToContact, CompanyKey,
+      ADocumentParentKey, CardGoodkey: TID; const GoodQuantity: Currency; FeatureDataset: TIBSQL = nil): TID;
 
     procedure InitialFillOptions;
+    procedure InitializeIBSQLQueries;
 
     procedure AddLogMessage(const AMessage: String);
     procedure SetupProgressBar(const APosition, AMaxPosition: Integer);
@@ -100,8 +116,8 @@ type
 implementation
 
 uses
-  IBSQL, gdcInvDocument_unit, at_classes, gd_security,
-  Windows, Forms, db, contnrs, AcctUtils, controls;
+  gdcInvDocument_unit, at_classes, gd_security,
+  Windows, Forms, db, contnrs, AcctUtils, AcctStrings, controls;
 
 const
   InvDocumentRUID = '174849703_1094302532';
@@ -130,6 +146,13 @@ begin
   FMessageLog := TStringList.Create;
   FDoMaintainLog := False;
 
+  FIBSQLInsertGdDocument := TIBSQL.Create(nil);
+  FIBSQLInsertDocumentHeader := TIBSQL.Create(nil);
+  FIBSQLInsertDocumentPosition := TIBSQL.Create(nil);
+  FIBSQLInsertInvCard := TIBSQL.Create(nil);
+  FIBSQLInsertInvMovement := TIBSQL.Create(nil);
+  FQueriesInitialized := False;
+
   InitialFillOptions;
 end;
 
@@ -140,6 +163,12 @@ begin
   begin
     // спросить у пользователя о сохранении лога закрытия
   end;
+
+  FIBSQLInsertGdDocument.Free;
+  FIBSQLInsertDocumentHeader.Free;
+  FIBSQLInsertDocumentPosition.Free;
+  FIBSQLInsertInvCard.Free;
+  FIBSQLInsertInvMovement.Free;
 
   FMessageLog.Free;
   FEntryAvailableAnalytics.Free;
@@ -182,131 +211,32 @@ end;
 procedure TgdClosingPeriod.CalculateRemains;
 var
   moveFieldList, balFieldList, cFieldList: String;
-  FieldCounter: Integer;
-  PseudoClient, InvDocumentTypeKey: TID;
+  PseudoClient: TID;
   ibsql: TIBSQL;
-  ibsqlInsertGdDocument, ibsqlInsertHeader, ibsqlInsertPosition, ibsqlInsertCard, ibsqlInsertMovement: TIBSQL;
   CurrentContactKey, NextSupplierKey, CurrentSupplierKey: TID;
   LineCount: Integer;
-  InvDocumentInField, InvDocumentOutField: ShortString;
-  InvRelationName, InvRelationLineName: ShortString;
-  AddLineKeyFieldExists: Boolean;
   DocumentParentKey: TID;
-  SQLText: String;
-  gdcObject: TgdcInvDocument;
-  //MemoStringIndex, CurrentRefreshInfoStep: Integer;
-
-  function AddDepotHeader(FromContact, ToContact, CompanyKey: TID): TID;
-  var
-    NextDocumentKey: TID;
-  begin
-    // Получим ИД документа шапки
-    NextDocumentKey := gdcBaseManager.GetNextID;
-    // Вставим запись в gd_document
-    ibsqlInsertGdDocument.Close;
-    ibsqlInsertGdDocument.ParamByName('ID').AsInteger := NextDocumentKey;
-    ibsqlInsertGdDocument.ParamByName('PARENT').Clear;
-    ibsqlInsertGdDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
-    ibsqlInsertGdDocument.ParamByName('DOCUMENTDATE').AsDateTime := FCloseDate;
-    ibsqlInsertGdDocument.ExecQuery;
-
-    // Вставим запись в дополнительную таблицу документа шапки
-    ibsqlInsertHeader.Close;
-    ibsqlInsertHeader.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-    ibsqlInsertHeader.ParamByName('OUTCONTACT').AsInteger := FromContact;
-    ibsqlInsertHeader.ParamByName('INCONTACT').AsInteger := ToContact;
-    ibsqlInsertHeader.ExecQuery;
-
-    Result := NextDocumentKey;
-  end;
-
-  function AddDepotPosition(FromContact, ToContact, CompanyKey, ADocumentParentKey, CardGoodkey: TID; GoodQuantity: Currency): TID;
-  var
-    NextDocumentKey, NextMovementKey, NextCardKey: TID;
-    FieldCounter: Integer;
-  begin
-    // Получим ИД документа позиции
-    NextDocumentKey := gdcBaseManager.GetNextID;
-    // Вставим запись в gd_document
-    ibsqlInsertGdDocument.Close;
-    ibsqlInsertGdDocument.ParamByName('ID').AsInteger := NextDocumentKey;
-    ibsqlInsertGdDocument.ParamByName('PARENT').AsInteger := ADocumentParentKey;
-    ibsqlInsertGdDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
-    ibsqlInsertGdDocument.ParamByName('DOCUMENTDATE').AsDateTime := FCloseDate;
-    ibsqlInsertGdDocument.ExecQuery;
-
-    // Получим ИД новой складской карточки
-    NextCardKey := gdcBaseManager.GetNextID;
-    // Создадим новую складскую карточку
-    ibsqlInsertCard.Close;
-    ibsqlInsertCard.ParamByName('ID').AsInteger := NextCardKey;
-    ibsqlInsertCard.ParamByName('GOODKEY').AsInteger := CardGoodkey;
-    ibsqlInsertCard.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-    ibsqlInsertCard.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
-    for FieldCounter := 0 to FFeatureList.Count - 1 do
-      ibsqlInsertCard.ParamByName(FFeatureList.Strings[FieldCounter]).AsVariant :=
-        ibsql.FieldByName(FFeatureList.Strings[FieldCounter]).AsVariant;
-    // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
-    if AddLineKeyFieldExists then
-      ibsqlInsertCard.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NextDocumentKey;
-    ibsqlInsertCard.ExecQuery;
-
-    // Получим ИД складского движения
-    NextMovementKey := gdcBaseManager.GetNextID;
-    // Создадим дебетовую часть складского движения
-    ibsqlInsertMovement.Close;
-    ibsqlInsertMovement.ParamByName('MOVEMENTKEY').AsInteger := NextMovementKey;
-    ibsqlInsertMovement.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-    ibsqlInsertMovement.ParamByName('CONTACTKEY').AsInteger := ToContact;
-    ibsqlInsertMovement.ParamByName('CARDKEY').AsInteger := NextCardKey;
-    ibsqlInsertMovement.ParamByName('DEBIT').AsCurrency := GoodQuantity;
-    ibsqlInsertMovement.ParamByName('CREDIT').AsCurrency := 0;
-    ibsqlInsertMovement.ExecQuery;
-    // Создадим кредитовую часть складского движения
-    ibsqlInsertMovement.Close;
-    ibsqlInsertMovement.ParamByName('MOVEMENTKEY').AsInteger := NextMovementKey;
-    ibsqlInsertMovement.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-    ibsqlInsertMovement.ParamByName('CONTACTKEY').AsInteger := FromContact;
-    ibsqlInsertMovement.ParamByName('CARDKEY').AsInteger := NextCardKey;
-    ibsqlInsertMovement.ParamByName('DEBIT').AsCurrency := 0;
-    ibsqlInsertMovement.ParamByName('CREDIT').AsCurrency := GoodQuantity;
-    ibsqlInsertMovement.ExecQuery;
-
-    // Вставим запись в дополнительную таблицу документа позиции
-    ibsqlInsertPosition.Close;
-    ibsqlInsertPosition.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-    ibsqlInsertPosition.ParamByName('MASTERKEY').AsInteger := ADocumentParentKey;
-    ibsqlInsertPosition.ParamByName('FROMCARDKEY').AsInteger := NextCardKey;
-    ibsqlInsertPosition.ParamByName('QUANTITY').AsCurrency := GoodQuantity;
-    ibsqlInsertPosition.ExecQuery;
-
-    Result := NextDocumentKey;
-  end;
-
 begin
+  InitializeIBSQLQueries;
+
   // Запомним время начала расчета остатков
   FLocalStartTime := Time;
   // Визуализация процесса
   SetupProgressBar(0, 1);
   AddLogMessage(TimeToStr(FLocalStartTime) + ': Формирование остатков...');
 
-  // Получим ключ типа складского документа для остатков
-  InvDocumentTypeKey := gdcBaseManager.GetIDByRUIDString(InvDocumentRUID);
-
   // Заполним список полей-признаков складской карточки из настроек
   moveFieldList := GetFeatureFieldList('move.');
   balFieldList := GetFeatureFieldList('bal.');
   cFieldList := GetFeatureFieldList('c.');
 
+  // На Псевдоклиента будет оформлятся расход товара при формировании остатков
+  PseudoClient := gdcBaseManager.GetIDByRUID(147004309, 31587988);            // TODO: заменить взятие ИД на выбор контакта в настройках
+
   ibsql := TIBSQL.Create(nil);
-  ibsqlInsertGdDocument := TIBSQL.Create(nil);
-  ibsqlInsertHeader := TIBSQL.Create(nil);
-  ibsqlInsertPosition := TIBSQL.Create(nil);
-  ibsqlInsertCard := TIBSQL.Create(nil);
-  ibsqlInsertMovement := TIBSQL.Create(nil);
   try
     // Запрос на складские остатки
-    // TODO: смотреть поле для поиска поставщика по настройкам
+    // TODO: смотреть поле для поиска поставщика (usr$inv_addlinekey) по настройкам
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text :=
       ' SELECT ' +
@@ -336,8 +266,10 @@ begin
       '      SUM(b.balance) AS balance ' +
         IIF(cFieldList <> '', ', ' + cFieldList, '') +
       '    FROM ' +
-      '      inv_card c ' +
-      '      JOIN inv_balance b ON b.cardkey = c.id and b.balance > 0 ' +
+      '      inv_balance b ' +
+      '      JOIN inv_card c ON c.id = b.cardkey ' +
+      '    WHERE ' +
+      '      b.balance <> 0 ' +
       '    GROUP BY ' +
       '      b.contactkey, ' +
       '      c.goodkey, ' +
@@ -359,8 +291,7 @@ begin
       '      JOIN inv_card c on m.cardkey = c.id ' +
       '    WHERE ' +
       '      m.disabled = 0 ' +
-      '        AND ' +
-      '      m.movementdate > :remainsdate ' +
+      '      AND m.movementdate > :remainsdate ' +
       '    GROUP BY ' +
       '      m.contactkey, ' +
       '      c.goodkey, ' +
@@ -377,108 +308,24 @@ begin
       '    bal.companykey ' +
         IIF(balFieldList <> '', ', ' + balFieldList, '') +
       '  HAVING ' +
-      '    SUM(bal.balance) > 0 ' +
+      '    SUM(bal.balance) >= 0 ' +
       '  ) move ' +
       '   LEFT JOIN gd_contact cont ON cont.id = move.contactkey ' +
       ' ORDER BY ' +
       '   cont.name, move.SupplierKey ';
-
-    // На Псевдоклиента будет оформлятся расход товара при формировании остатков
-    PseudoClient := gdcBaseManager.GetIDByRUID(147004309, 31587988);            // TODO: заменить взятие ИД на выбор контакта в настройках
-    // Сущестует ли поле-ссылка на позицию прихода
-    AddLineKeyFieldExists := Assigned(atDatabase.FindRelationField('INV_CARD', 'USR$INV_ADDLINEKEY'));
-
-    gdcObject := TgdcInvDocument.Create(nil);
-    try
-      gdcObject.Transaction := FWriteTransaction;
-      gdcObject.SubType := InvDocumentRUID;
-      gdcObject.SubSet := 'ByID';
-      // Названия полей-ссылок на контакты, на которые и с которых приходуются ТМЦ
-      InvDocumentInField := gdcObject.MovementTarget.SourceFieldName;
-      InvDocumentOutField := gdcObject.MovementSource.SourceFieldName;
-      InvRelationName := gdcObject.RelationName;
-      InvRelationLineName := gdcObject.RelationLineName;
-    finally
-      gdcObject.Free;
-    end;
-
-    // Запрос на вставку записи в gd_document
-    ibsqlInsertGdDocument.Transaction := FWriteTransaction;
-    ibsqlInsertGdDocument.SQL.Text := Format(
-      'INSERT INTO gd_document ' +
-      '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, creatorkey, editorkey) ' +
-      'VALUES ' +
-      '  (:id, :parent, %0:d, ''1'', :documentdate, :companykey, -1, -1, -1, %1:d, %1:d) ', [InvDocumentTypeKey, IBLogin.ContactKey]);
-    ibsqlInsertGdDocument.Prepare;
-
-    // Запрос на вставку записи в шапку складского документа
-    ibsqlInsertHeader.Transaction := FWriteTransaction;
-    ibsqlInsertHeader.SQL.Text := Format(
-      'INSERT INTO %0:s ' +
-      '  (documentkey, %1:s, %2:s) ' +
-      'VALUES ' +
-      '  (:documentkey, :incontact, :outcontact) ', [InvRelationName, InvDocumentInField, InvDocumentOutField]);
-    ibsqlInsertHeader.Prepare;
-
-    // Запрос на вставку записи в позиции складского документа
-    ibsqlInsertPosition.Transaction := FWriteTransaction;
-    ibsqlInsertPosition.SQL.Text := Format(
-      'INSERT INTO %0:s ' +
-      '  (documentkey, masterkey, fromcardkey, quantity) ' +
-      'VALUES ' +
-      '  (:documentkey, :masterkey, :fromcardkey, :quantity) ', [InvRelationLineName]);
-    ibsqlInsertPosition.Prepare;
-
-    // Запрос на создание складской карточки
-    ibsqlInsertCard.Transaction := FWriteTransaction;
-    SQLText :=
-      'INSERT INTO inv_card ' +
-      '  (id, goodkey, documentkey, firstdocumentkey, firstdate, companykey';
-    // Поля-признаки
-    for FieldCounter := 0 to FFeatureList.Count - 1 do
-      SQLText := SQLText + ', ' + FFeatureList.Strings[FieldCounter];
-    // Если сущестует поле-ссылка на позицию прихода
-    if AddLineKeyFieldExists then
-      SQLText := SQLText + ', USR$INV_ADDLINEKEY';
-    SQLText := SQLText + ') VALUES ' +
-      '  (:id, :goodkey, :documentkey, :documentkey, :firstdate, :companykey';
-    // Поля-признаки
-    for FieldCounter := 0 to FFeatureList.Count - 1 do
-      SQLText := SQLText + ', :' + FFeatureList.Strings[FieldCounter];
-    // Если сущестует поле-ссылка на позицию прихода
-    if AddLineKeyFieldExists then
-      SQLText := SQLText + ', :USR$INV_ADDLINEKEY';
-    SQLText := SQLText + ')';
-    ibsqlInsertCard.SQL.Text := SQLText;
-    ibsqlInsertCard.ParamByName('FIRSTDATE').AsDateTime := FCloseDate;
-    ibsqlInsertCard.Prepare;
-
-    // Запрос на создание складского движения
-    ibsqlInsertMovement.Transaction := FWriteTransaction;
-    ibsqlInsertMovement.SQL.Text :=
-      'INSERT INTO inv_movement ' +
-      '  (movementkey, movementdate, documentkey, contactkey, cardkey, debit, credit) ' +
-      'VALUES ' +
-      '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
-    ibsqlInsertMovement.ParamByName('MOVEMENTDATE').AsDateTime := FCloseDate;
-    ibsqlInsertMovement.Prepare;
-
-    // Выберем все остатки ТМЦ
-    ibsql.Close;
     ibsql.ParamByName('REMAINSDATE').AsDateTime := FCloseDate;
-    ibsql.ExecQuery;
+    ibsql.ExecQuery;                                              // Выберем все остатки ТМЦ
 
     LineCount := 0;
-    //MemoStringIndex := -1;
     CurrentContactKey := -1;
     CurrentSupplierKey := -1;
     DocumentParentKey := -1;
-    //CurrentRefreshInfoStep := 0;
+
     // Цикл по остаткам ТМЦ
     while not ibsql.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if {Self.Active and }((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
+      if ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
       begin
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
@@ -505,7 +352,6 @@ begin
           // Выведем конечное число позиций предыдущего контакта
           if CurrentContactKey > 0 then
             AddLogMessage('  ' + IntToStr(LineCount) + ' позиций');
-          //CurrentRefreshInfoStep := 0;
           AddLogMessage(Format('> Контакт: %s', [ibsql.FieldByName('CONTACTNAME').AsString]));
           // Сбросим счетчик позиций
           LineCount := 0;
@@ -521,18 +367,9 @@ begin
       // Увеличим счетчик позиций в одном документе
       Inc(LineCount);
 
-      // Визуализация процесса
-      {if CurrentRefreshInfoStep >= REFRESH_CLOSING_INFO_INTERVAL then
-      begin
-        CurrentRefreshInfoStep := 0;
-        AddLogMessage('  ' + IntToStr(LineCount) + ' позиций', MemoStringIndex);
-      end
-      else
-        Inc(CurrentRefreshInfoStep);}
-
       // Создадим позицию INV_DOCUMENT
       AddDepotPosition(CurrentSupplierKey, CurrentContactKey, ibsql.FieldByName('COMPANYKEY').AsInteger,
-        DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, ibsql.FieldByName('BALANCE').AsCurrency);
+        DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, ibsql.FieldByName('BALANCE').AsCurrency, ibsql);
 
       // TODO: при выборе признаков карточки которые будут подлежать сохранению, указывать поля которые ссылаются
       //   на документы подлежащие удалению, предупреждать пользователя что, при выборе таких полей может
@@ -546,11 +383,6 @@ begin
     AddLogMessage(TimeToStr(Time) + ': Формирование остатков завершено...');
     AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
   finally
-    ibsqlInsertMovement.Free;
-    ibsqlInsertCard.Free;
-    ibsqlInsertPosition.Free;
-    ibsqlInsertHeader.Free;
-    ibsqlInsertGdDocument.Free;
     ibsql.Free;
   end;
 end;
@@ -732,7 +564,7 @@ begin
       '  AND NOT headtable.id IS NULL ' +
       '  AND NOT linetable.id IS NULL ' +
       'ORDER BY ' +
-      '  doc.documentdate DESC, doc.id DESC ';
+      '  doc.documentdate DESC, doc.creationdate DESC ';
     ibsqlDocument.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
     ibsqlDocument.ExecQuery;
 
@@ -743,7 +575,7 @@ begin
     while not ibsqlDocument.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if {Self.Active and }((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
+      if ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
       begin
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
@@ -825,12 +657,12 @@ begin
         Inc(DeletedCount);
         Dec(ErrorDocumentCount);
       except
-        on E: Exception do
+        {on E: Exception do
         begin
-          {AddLogMessage(E.Message + #13#10 +
+          AddLogMessage(E.Message + #13#10 +
             DocumentKeysToDelayedDelete.ValuesByIndex[I] +
-            ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');}
-        end;
+            ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
+        end;}
       end;
     end;
 
@@ -1057,18 +889,10 @@ var
   ibsqlUpdateDocumentCardkey: TIBSQL;
   CurrentCardKey, CurrentFromContactkey, CurrentToContactkey: Integer;
   CurrentRelationName: String;
-  gdcObject: TgdcInvDocument;
-  gdcDetail: TgdcInvDocumentLine;
-  dsObject: TDataSource;
-
+  DocumentParentKey: TID;
   NewCardKey: Integer;
-
-  InvDocumentInField, InvDocumentOutField: String;
-  AddLineKeyFieldExists: Boolean;
   FeatureCounter: Integer;
   cFeatureList: String;
-  InvDocumentTypeKey: TID;
-  CurrentRefreshInfoStep: Integer;
 
   procedure UpdateInvCard(const OldCardkey, NewCardkey: TID);
   begin
@@ -1103,15 +927,17 @@ var
         ibsqlUpdateDocumentCardkey.ExecQuery;
       except
         // в некоторых документах нет поля TOCARDKEY
-        on E: Exception do
+        {on E: Exception do
         begin
           AddLogMessage('---'#13#10 + RelationName + #13#10 + E.Message + #13#10'---');
-        end
+        end}
       end;
     end;
   end;
 
 begin
+  InitializeIBSQLQueries;
+  
   FLocalStartTime := Time;
 
   // Визуализация процесса
@@ -1123,34 +949,7 @@ begin
   ibsqlUpdateCard := TIBSQL.Create(Application);
   ibsqlUpdateInvMovement := TIBSQL.Create(Application);
   ibsqlUpdateDocumentCardkey := TIBSQL.Create(Application);
-
-  gdcObject := TgdcInvDocument.Create(Application);
-  dsObject := TDataSource.Create(Application);
-  gdcDetail := TgdcInvDocumentLine.Create(Application);
   try
-    gdcObject.Transaction := FWriteTransaction;
-    gdcObject.SubType := InvDocumentRUID;
-    gdcObject.SubSet := 'ByID';
-
-    dsObject.Dataset := gdcObject;
-
-    gdcDetail.Transaction := FWriteTransaction;
-    gdcDetail.MasterSource := dsObject;
-    gdcDetail.MasterField := 'ID';
-    gdcDetail.DetailField := 'PARENT';
-    gdcDetail.SubType := InvDocumentRUID;
-    gdcDetail.SubSet := 'ByParent';
-
-    gdcObject.Open;
-    gdcDetail.Open;
-
-    // Названия полей-ссылок на контакты, на которые и с которых приходуются ТМЦ
-    InvDocumentInField := gdcObject.MovementTarget.SourceFieldName;
-    InvDocumentOutField := gdcObject.MovementSource.SourceFieldName;
-
-    AddLineKeyFieldExists := Assigned(gdcDetail.FindField('TO_USR$INV_ADDLINEKEY'));
-    InvDocumentTypeKey := gdcBaseManager.GetIDByRUIDString(InvDocumentRUID);
-
     // обновляет ссылку на родительскую карточку
     ibsqlUpdateCard.Transaction := FWriteTransaction;
     ibsqlUpdateCard.SQL.Text :=
@@ -1256,11 +1055,10 @@ begin
     ibsql.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
     ibsql.ExecQuery;
 
-    CurrentRefreshInfoStep := 0;
     while not ibsql.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if {Self.Active and }((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
+      if ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
       begin
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
@@ -1268,13 +1066,7 @@ begin
       end;
       
       // Визуализация процесса
-      if CurrentRefreshInfoStep >= REFRESH_CLOSING_INFO_INTERVAL then
-      begin
-        StepProgressBar(CurrentRefreshInfoStep);
-        CurrentRefreshInfoStep := 0;
-      end
-      else
-        Inc(CurrentRefreshInfoStep);
+      StepProgressBar(1);  
 
       CurrentCardKey := ibsql.FieldByName('CARDKEY').AsInteger;
       CurrentFromContactkey := ibsql.FieldByName('FROMCONTACTKEY').AsInteger;
@@ -1315,27 +1107,11 @@ begin
         else
         begin
           // Иначе вставим документ нулевого прихода, и перепривяжем на созданную им карточку
-          gdcObject.Insert;
-          gdcObject.FieldByName('DOCUMENTDATE').AsDateTime := FCloseDate;
-          gdcObject.FieldByName('COMPANYKEY').AsInteger := ibsql.FieldByName('COMPANYKEY').AsInteger;
-          // Если по полю USR$INV_ADDLINEKEY карточки нашли поставщика, создадим приход остатка с него
-          // TODO: смотреть поле для поиска поставщика по настройкам
-          gdcObject.FieldByName(InvDocumentOutField).AsInteger := CurrentFromContactkey;
-          gdcObject.FieldByName(InvDocumentInField).AsInteger := CurrentFromContactkey;
-          gdcObject.Post;
+          DocumentParentKey := AddDepotHeader(CurrentFromContactkey, CurrentFromContactkey, ibsql.FieldByName('COMPANYKEY').AsInteger);
+          NewCardKey := AddDepotPosition(CurrentFromContactkey, CurrentFromContactkey, ibsql.FieldByName('COMPANYKEY').AsInteger,
+            DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, 0);
 
-          gdcDetail.Insert;
-          gdcDetail.FieldByName('GOODKEY').AsInteger := ibsql.FieldByName('GOODKEY').AsInteger;
-          gdcDetail.FieldByName('QUANTITY').AsCurrency := 0;
-          // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
-          // TODO: смотреть поле для поиска поставщика по настройкам закрытия
-          if AddLineKeyFieldExists then
-            gdcDetail.FieldByName('TO_USR$INV_ADDLINEKEY').AsInteger := gdcDetail.ID;
-          gdcDetail.Post;
-
-          AddLogMessage(Format('  Создан документ нулевого прихода ID = %0:d', [gdcObject.ID]));
-
-          NewCardKey := gdcDetail.FieldByName('FROMCARDKEY').AsInteger;
+          AddLogMessage(Format('  Создан документ нулевого прихода ID = %0:d', [DocumentParentKey]));
         end;
       end
       else
@@ -1353,7 +1129,7 @@ begin
               Format(' AND card.%0:s IS NULL ', [FFeatureList.Strings[FeatureCounter]]);
         end;
         ibsqlSearchNewCardkey.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
-        ibsqlSearchNewCardkey.ParamByName('DOCTYPEKEY').AsInteger := InvDocumentTypeKey;
+        ibsqlSearchNewCardkey.ParamByName('DOCTYPEKEY').AsInteger := FInvDocumentTypeKey;
         ibsqlSearchNewCardkey.ParamByName('GOODKEY').AsInteger := ibsql.FieldByName('GOODKEY').AsInteger;
         for FeatureCounter := 0 to FFeatureList.Count - 1 do
         begin
@@ -1377,7 +1153,7 @@ begin
       end
       else
       begin
-        AddLogMessage(Format('  Не создали карточку OLD_CARDKEY = %0:d', [CurrentCardKey]));
+        AddLogMessage(Format('  Ошибка перепривязки карточки OLD_CARDKEY = %0:d', [CurrentCardKey]));
       end;
 
       ibsql.Next;
@@ -1387,14 +1163,7 @@ begin
     SetupProgressBar(FProgressBar.Position, FProgressBar.Position);
     AddLogMessage(TimeToStr(Time) + ': Завершен процесс перепривязки складских карточек...');
     AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
-
-    gdcDetail.Close;
-    gdcObject.Close;
   finally
-    gdcDetail.Free;
-    dsObject.Free;
-    gdcObject.Free;
-
     ibsqlUpdateDocumentCardkey.Free;
     ibsqlUpdateInvMovement.Free;
     ibsqlUpdateCard.Free;
@@ -1543,8 +1312,7 @@ begin
   end;
 end;
 
-function TgdClosingPeriod.IIF(Condition: Boolean; TrueString,
-  FalseString: String): String;
+function TgdClosingPeriod.IIF(const Condition: Boolean; const TrueString, FalseString: String): String;
 begin
   if Condition then
     Result := TrueString
@@ -1994,12 +1762,197 @@ begin
     for AnalyticCounter := 0 to AcAccountRelation.RelationFields.Count - 1 do
     begin
       if AcAccountRelation.RelationFields.Items[AnalyticCounter].IsUserDefined
-        and (AcAccountRelation.RelationFields.Items[AnalyticCounter].FieldName <> 'USR$GS_DOCUMENT') then
+         and (AnsiPos(';' + AcAccountRelation.RelationFields.Items[AnalyticCounter].FieldName + ';', DontBalanceAnalytic) = 0) then
         FEntryAvailableAnalytics.Add(AcAccountRelation.RelationFields.Items[AnalyticCounter].FieldName);
     end;
   end
   else
     raise Exception.Create('AC_ACCOUNT not found!');
+end;
+
+function TgdClosingPeriod.AddDepotHeader(const FromContact, ToContact, CompanyKey: TID): TID;
+var
+  NextDocumentKey: TID;
+begin
+  // Получим ИД документа шапки
+  NextDocumentKey := gdcBaseManager.GetNextID;
+  // Вставим запись в gd_document
+  FIBSQLInsertGdDocument.Close;
+  FIBSQLInsertGdDocument.ParamByName('ID').AsInteger := NextDocumentKey;
+  FIBSQLInsertGdDocument.ParamByName('PARENT').Clear;
+  FIBSQLInsertGdDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+  FIBSQLInsertGdDocument.ParamByName('DOCUMENTDATE').AsDateTime := FCloseDate;
+  FIBSQLInsertGdDocument.ExecQuery;
+
+  // Вставим запись в дополнительную таблицу документа шапки
+  FIBSQLInsertDocumentHeader.Close;
+  FIBSQLInsertDocumentHeader.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
+  FIBSQLInsertDocumentHeader.ParamByName('OUTCONTACT').AsInteger := FromContact;
+  FIBSQLInsertDocumentHeader.ParamByName('INCONTACT').AsInteger := ToContact;
+  FIBSQLInsertDocumentHeader.ExecQuery;
+
+  Result := NextDocumentKey;
+end;
+
+function TgdClosingPeriod.AddDepotPosition(const FromContact, ToContact, CompanyKey,
+  ADocumentParentKey, CardGoodkey: TID; const GoodQuantity: Currency; FeatureDataset: TIBSQL = nil): TID;
+var
+  NextDocumentKey, NextMovementKey, NextCardKey: TID;
+  FieldCounter: Integer;
+begin
+  // Получим ИД документа позиции
+  NextDocumentKey := gdcBaseManager.GetNextID;
+  // Вставим запись в gd_document
+  FIBSQLInsertGdDocument.Close;
+  FIBSQLInsertGdDocument.ParamByName('ID').AsInteger := NextDocumentKey;
+  FIBSQLInsertGdDocument.ParamByName('PARENT').AsInteger := ADocumentParentKey;
+  FIBSQLInsertGdDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+  FIBSQLInsertGdDocument.ParamByName('DOCUMENTDATE').AsDateTime := FCloseDate;
+  FIBSQLInsertGdDocument.ExecQuery;
+
+  // Получим ИД новой складской карточки
+  NextCardKey := gdcBaseManager.GetNextID;
+  // Создадим новую складскую карточку
+  FIBSQLInsertInvCard.Close;
+  FIBSQLInsertInvCard.ParamByName('ID').AsInteger := NextCardKey;
+  FIBSQLInsertInvCard.ParamByName('GOODKEY').AsInteger := CardGoodkey;
+  FIBSQLInsertInvCard.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
+  FIBSQLInsertInvCard.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+  for FieldCounter := 0 to FFeatureList.Count - 1 do
+    if Assigned(FeatureDataset) then
+      FIBSQLInsertInvCard.ParamByName(FFeatureList.Strings[FieldCounter]).AsVariant :=
+        FeatureDataset.FieldByName(FFeatureList.Strings[FieldCounter]).AsVariant
+    else
+      FIBSQLInsertInvCard.ParamByName(FFeatureList.Strings[FieldCounter]).Clear;
+  // Заполним поле USR$INV_ADDLINEKEY карточки нового остатка ссылкой на позицию
+  if FAddLineKeyFieldExists then
+    FIBSQLInsertInvCard.ParamByName('USR$INV_ADDLINEKEY').AsInteger := NextDocumentKey;
+  FIBSQLInsertInvCard.ExecQuery;
+
+  // Получим ИД складского движения
+  NextMovementKey := gdcBaseManager.GetNextID;
+  // Создадим дебетовую часть складского движения
+  FIBSQLInsertInvMovement.Close;
+  FIBSQLInsertInvMovement.ParamByName('MOVEMENTKEY').AsInteger := NextMovementKey;
+  FIBSQLInsertInvMovement.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
+  FIBSQLInsertInvMovement.ParamByName('CONTACTKEY').AsInteger := ToContact;
+  FIBSQLInsertInvMovement.ParamByName('CARDKEY').AsInteger := NextCardKey;
+  FIBSQLInsertInvMovement.ParamByName('DEBIT').AsCurrency := GoodQuantity;
+  FIBSQLInsertInvMovement.ParamByName('CREDIT').AsCurrency := 0;
+  FIBSQLInsertInvMovement.ExecQuery;
+  // Создадим кредитовую часть складского движения
+  FIBSQLInsertInvMovement.Close;
+  FIBSQLInsertInvMovement.ParamByName('MOVEMENTKEY').AsInteger := NextMovementKey;
+  FIBSQLInsertInvMovement.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
+  FIBSQLInsertInvMovement.ParamByName('CONTACTKEY').AsInteger := FromContact;
+  FIBSQLInsertInvMovement.ParamByName('CARDKEY').AsInteger := NextCardKey;
+  FIBSQLInsertInvMovement.ParamByName('DEBIT').AsCurrency := 0;
+  FIBSQLInsertInvMovement.ParamByName('CREDIT').AsCurrency := GoodQuantity;
+  FIBSQLInsertInvMovement.ExecQuery;
+
+  // Вставим запись в дополнительную таблицу документа позиции
+  FIBSQLInsertDocumentPosition.Close;
+  FIBSQLInsertDocumentPosition.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
+  FIBSQLInsertDocumentPosition.ParamByName('MASTERKEY').AsInteger := ADocumentParentKey;
+  FIBSQLInsertDocumentPosition.ParamByName('FROMCARDKEY').AsInteger := NextCardKey;
+  FIBSQLInsertDocumentPosition.ParamByName('QUANTITY').AsCurrency := GoodQuantity;
+  FIBSQLInsertDocumentPosition.ExecQuery;
+
+  Result := NextCardKey;
+end;
+
+procedure TgdClosingPeriod.InitializeIBSQLQueries;
+var
+  gdcObject: TgdcInvDocument;
+  InvDocumentInField, InvDocumentOutField: ShortString;
+  InvRelationName, InvRelationLineName: ShortString;
+  FieldCounter: Integer;
+  SQLText: String;
+begin
+  if not FQueriesInitialized then
+  begin
+    // Получим ключ типа складского документа для остатков
+    FInvDocumentTypeKey := gdcBaseManager.GetIDByRUIDString(InvDocumentRUID);
+    // Сущестует ли поле-ссылка на позицию прихода
+    FAddLineKeyFieldExists := Assigned(atDatabase.FindRelationField('INV_CARD', 'USR$INV_ADDLINEKEY'));
+    // Получим необходимые наименования таблиц и полей
+    gdcObject := TgdcInvDocument.Create(nil);
+    try
+      gdcObject.Transaction := FWriteTransaction;
+      gdcObject.SubType := InvDocumentRUID;
+      gdcObject.SubSet := 'ByID';
+      // Названия полей-ссылок на контакты, на которые и с которых приходуются ТМЦ
+      InvDocumentInField := gdcObject.MovementTarget.SourceFieldName;
+      InvDocumentOutField := gdcObject.MovementSource.SourceFieldName;
+      InvRelationName := gdcObject.RelationName;
+      InvRelationLineName := gdcObject.RelationLineName;
+    finally
+      gdcObject.Free;
+    end;
+
+    // Запрос на вставку записи в gd_document
+    FIBSQLInsertGdDocument.Transaction := FWriteTransaction;
+    FIBSQLInsertGdDocument.SQL.Text := Format(
+      'INSERT INTO gd_document ' +
+      '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, creatorkey, editorkey) ' +
+      'VALUES ' +
+      '  (:id, :parent, %0:d, ''1'', :documentdate, :companykey, -1, -1, -1, %1:d, %1:d) ', [FInvDocumentTypeKey, IBLogin.ContactKey]);
+    FIBSQLInsertGdDocument.Prepare;
+
+    // Запрос на вставку записи в шапку складского документа
+    FIBSQLInsertDocumentHeader.Transaction := FWriteTransaction;
+    FIBSQLInsertDocumentHeader.SQL.Text := Format(
+      'INSERT INTO %0:s ' +
+      '  (documentkey, %1:s, %2:s) ' +
+      'VALUES ' +
+      '  (:documentkey, :incontact, :outcontact) ', [InvRelationName, InvDocumentInField, InvDocumentOutField]);
+    FIBSQLInsertDocumentHeader.Prepare;
+
+    // Запрос на вставку записи в позиции складского документа
+    FIBSQLInsertDocumentPosition.Transaction := FWriteTransaction;
+    FIBSQLInsertDocumentPosition.SQL.Text := Format(
+      'INSERT INTO %0:s ' +
+      '  (documentkey, masterkey, fromcardkey, quantity) ' +
+      'VALUES ' +
+      '  (:documentkey, :masterkey, :fromcardkey, :quantity) ', [InvRelationLineName]);
+    FIBSQLInsertDocumentPosition.Prepare;
+
+    // Запрос на создание складской карточки
+    FIBSQLInsertInvCard.Transaction := FWriteTransaction;
+    SQLText :=
+      'INSERT INTO inv_card ' +
+      '  (id, goodkey, documentkey, firstdocumentkey, firstdate, companykey';
+    // Поля-признаки
+    for FieldCounter := 0 to FFeatureList.Count - 1 do
+      SQLText := SQLText + ', ' + FFeatureList.Strings[FieldCounter];
+    // Если сущестует поле-ссылка на позицию прихода
+    if FAddLineKeyFieldExists then
+      SQLText := SQLText + ', USR$INV_ADDLINEKEY';
+    SQLText := SQLText + ') VALUES ' +
+      '  (:id, :goodkey, :documentkey, :documentkey, :firstdate, :companykey';
+    // Поля-признаки
+    for FieldCounter := 0 to FFeatureList.Count - 1 do
+      SQLText := SQLText + ', :' + FFeatureList.Strings[FieldCounter];
+    // Если сущестует поле-ссылка на позицию прихода
+    if FAddLineKeyFieldExists then
+      SQLText := SQLText + ', :USR$INV_ADDLINEKEY';
+    SQLText := SQLText + ')';
+    FIBSQLInsertInvCard.SQL.Text := SQLText;
+    FIBSQLInsertInvCard.ParamByName('FIRSTDATE').AsDateTime := FCloseDate;
+    FIBSQLInsertInvCard.Prepare;
+
+    // Запрос на создание складского движения
+    FIBSQLInsertInvMovement.Transaction := FWriteTransaction;
+    FIBSQLInsertInvMovement.SQL.Text :=
+      'INSERT INTO inv_movement ' +
+      '  (movementkey, movementdate, documentkey, contactkey, cardkey, debit, credit) ' +
+      'VALUES ' +
+      '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
+    FIBSQLInsertInvMovement.ParamByName('MOVEMENTDATE').AsDateTime := FCloseDate;
+    FIBSQLInsertInvMovement.Prepare;
+
+    FQueriesInitialized := True;
+  end;
 end;
 
 end.
