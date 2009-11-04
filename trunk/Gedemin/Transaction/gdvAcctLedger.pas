@@ -574,6 +574,15 @@ var
 begin
   inherited;
 
+  // Поищем аналитику USR$GS_DOCUMENT, если такая есть то будем строить старым методом
+  if FUseEntryBalance then
+    for I := 0 to FAcctGroupBy.Count - 1 do
+      if AnsiPos(';' + FAcctGroupBy.Analytics[I].FieldName + ';', DontBalanceAnalytic) > 0 then
+      begin
+        FUseEntryBalance := False;
+        Break;
+      end;
+
   if not FMakeEmpty then
   begin
     UpdateEntryDateIsFirst;
@@ -731,7 +740,7 @@ var
       FNcuTotalBlock.Credit.FieldName := BaseAcctFieldList[1].FieldName;
       FNcuTotalBlock.EndDebit.FieldName := BaseAcctFieldList[4].FieldName;
       FNcuTotalBlock.EndCredit.FieldName := BaseAcctFieldList[5].FieldName;
-      if FUseEntryBalance and (FAcctValues.Count = 0) then
+      if FUseEntryBalance then
       begin
         GetDebitSumSelectClauseBalance;
         GetCreditSumSelectClauseBalance;
@@ -754,7 +763,7 @@ var
         FCurrTotalBlock.Credit.FieldName := BaseAcctFieldList[7].FieldName;
         FCurrTotalBlock.EndDebit.FieldName := BaseAcctFieldList[10].FieldName;
         FCurrTotalBlock.EndCredit.FieldName := BaseAcctFieldList[11].FieldName;
-        if FUseEntryBalance and (FAcctValues.Count = 0) then
+        if FUseEntryBalance then
         begin
           GetDebitCurrSumSelectClauseBalance;
           GetCreditCurrSumSelectClauseBalance;
@@ -778,7 +787,7 @@ var
         FEQTotalBlock.Credit.FieldName := BaseAcctFieldList[13].FieldName;
         FEQTotalBlock.EndDebit.FieldName := BaseAcctFieldList[16].FieldName;
         FEQTotalBlock.EndCredit.FieldName := BaseAcctFieldList[17].FieldName;
-        if FUseEntryBalance and (FAcctValues.Count = 0) then
+        if FUseEntryBalance then
         begin
           GetDebitEQSumSelectClauseBalance;
           GetCreditEQSumSelectClauseBalance;
@@ -793,7 +802,7 @@ var
     end;
 
     // Используем новый или старый метод построения отчета
-    if FUseEntryBalance and (FAcctValues.Count = 0) then
+    if FUseEntryBalance then
     begin
       // Заполняем секцию RETURNS
       if AnalyticReturns > '' then AnalyticReturns := AnalyticReturns + ', ';
@@ -1357,7 +1366,7 @@ var
   end;
 
 begin
-  if FUseEntryBalance and (FAcctValues.Count = 0) then
+  if FUseEntryBalance then
   begin
     // Список счетов в строковом виде
     AccountIDs := IDList(FAccounts);
@@ -2379,7 +2388,7 @@ var
 begin
   inherited;
 
-  if (not FUseEntryBalance) or (FAcctValues.Count > 0) then
+  if not FUseEntryBalance then
   begin
     if FEntryDateIsFirst then
     begin
