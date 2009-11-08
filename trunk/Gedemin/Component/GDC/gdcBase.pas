@@ -649,6 +649,7 @@ type
 
     FPostCount: Integer;
     FInDoFieldChange: Boolean;
+    FInternalProcess: Boolean;
 
     function GetMethodControl: IMethodControl;
 
@@ -3075,6 +3076,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
+  if FInternalProcess then
+    raise EgdcException.Create('Попытка закрыть набор данных в состоянии внутренней обработки!');
 
   inherited;
 
@@ -6499,226 +6503,231 @@ begin
     end;
   }
 
-  if not FDataTransfer then
-  begin
-
-    if Assigned(UpdateObject) then
+  FInternalProcess := True;
+  try
+    if not FDataTransfer then
     begin
-      if (Qry = QDelete) then
-        UpdateObject.Apply(DB.ukDelete)
+
+      if Assigned(UpdateObject) then
+      begin
+        if (Qry = QDelete) then
+          UpdateObject.Apply(DB.ukDelete)
+        else
+          if (Qry = QInsert) then
+            UpdateObject.Apply(DB.ukInsert)
+          else
+            UpdateObject.Apply(DB.ukModify);
+      end
       else
-        if (Qry = QInsert) then
-          UpdateObject.Apply(DB.ukInsert)
-        else
-          UpdateObject.Apply(DB.ukModify);
-    end
-    else
-    begin
-      FSavepoint := '';
-      DidActivate := ActivateTransaction;
-      try
-        {savepoints support}
-        if (not DidActivate) and UseSavepoints then
-        begin
-          FSavepoint := 'S' + System.Copy(StringReplace(
-            StringReplace(
-              StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
-              '-', '', [rfReplaceAll]), 1, 30);
-          try
-            ExecSingleQuery('SAVEPOINT ' + FSavepoint);
-          except
-            UseSavepoints := False;
-            FSavepoint := '';
-          end;
-        end;
-        {end savepoints support}
-
-        DoBeforeInternalPostRecord;
-
-        pbd := PBlobDataArray(PChar(Buff) + FBlobCacheOffset);
-        j := 0;
-        for i := 0 to FieldCount - 1 do
-          if Fields[i].IsBlob then
+      begin
+        FSavepoint := '';
+        DidActivate := ActivateTransaction;
+        try
+          {savepoints support}
+          if (not DidActivate) and UseSavepoints then
           begin
-            k := FMappedFieldPosition[Fields[i].FieldNo -1];
-            if pbd^[j] <> nil then
-            begin
-              pbd^[j].Finalize;
-              PISC_QUAD(
-                PChar(Buff) + PRecordData(Buff)^.rdFields[k].fdDataOfs)^ :=
-                pbd^[j].BlobID;
-              PRecordData(Buff)^.rdFields[k].fdIsNull := pbd^[j].Size = 0;
+            FSavepoint := 'S' + System.Copy(StringReplace(
+              StringReplace(
+                StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
+                '-', '', [rfReplaceAll]), 1, 30);
+            try
+              ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+            except
+              UseSavepoints := False;
+              FSavepoint := '';
             end;
-            Inc(j);
           end;
+          {end savepoints support}
 
-        CheckRequiredFields;
+          DoBeforeInternalPostRecord;
 
-        if (Qry = QInsert) then
-          S := 'Запись добавлена'
-        else
-          S := 'Запись изменена';
-
-        IBLogin.AddEvent(S,
-          Self.ClassName + ' ' + Self.SubType,
-          ID,
-          Transaction);
-
-        { TODO :
-код обработки конфликтов транзакций.
-работает следующим образом:
-пытаемся выполнить кастом инсерт или модифай,
-если проходит то все нормально. если не прошло
-и выдало конфликт на не ждущей транзакции,
-и мы открывали эту транзакцию и ее можно закрыть,
-то закрываем транзакцию. выжидаем пол секунды.
-открываем транзакцию и повторяем все по-новой.
-так не более пяти раз. если не помогло то даем
-исключение.
-
-внимание! код ошибки верен для транзакции:
-read_committed
-rec_version
-nowait
-
-для транзакций другого типа может дать другой код ошибки.
-мы не проверяли эти случаи.}
-        CutOff := 5;
-        repeat
-          try
-            { TODO : в случае кастом обработки роузаффектед будет содержать 0 }
-            //FRowsAffected := 0;
-            if (Qry = QInsert) then
-              _CustomInsert(Buff)
-            else if (Qry = QModify) then
-              _CustomModify(Buff);
-            CutOff := 0;
-          except
-            on E: EIBError do
+          pbd := PBlobDataArray(PChar(Buff) + FBlobCacheOffset);
+          j := 0;
+          for i := 0 to FieldCount - 1 do
+            if Fields[i].IsBlob then
             begin
-              if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
+              k := FMappedFieldPosition[Fields[i].FieldNo -1];
+              if pbd^[j] <> nil then
               begin
-                if (CutOff > 1) and DidActivate and AllowCloseTransaction then
+                pbd^[j].Finalize;
+                PISC_QUAD(
+                  PChar(Buff) + PRecordData(Buff)^.rdFields[k].fdDataOfs)^ :=
+                  pbd^[j].BlobID;
+                PRecordData(Buff)^.rdFields[k].fdIsNull := pbd^[j].Size = 0;
+              end;
+              Inc(j);
+            end;
+
+          CheckRequiredFields;
+
+          if (Qry = QInsert) then
+            S := 'Запись добавлена'
+          else
+            S := 'Запись изменена';
+
+          IBLogin.AddEvent(S,
+            Self.ClassName + ' ' + Self.SubType,
+            ID,
+            Transaction);
+
+          { TODO :
+  код обработки конфликтов транзакций.
+  работает следующим образом:
+  пытаемся выполнить кастом инсерт или модифай,
+  если проходит то все нормально. если не прошло
+  и выдало конфликт на не ждущей транзакции,
+  и мы открывали эту транзакцию и ее можно закрыть,
+  то закрываем транзакцию. выжидаем пол секунды.
+  открываем транзакцию и повторяем все по-новой.
+  так не более пяти раз. если не помогло то даем
+  исключение.
+
+  внимание! код ошибки верен для транзакции:
+  read_committed
+  rec_version
+  nowait
+
+  для транзакций другого типа может дать другой код ошибки.
+  мы не проверяли эти случаи.}
+          CutOff := 5;
+          repeat
+            try
+              { TODO : в случае кастом обработки роузаффектед будет содержать 0 }
+              //FRowsAffected := 0;
+              if (Qry = QInsert) then
+                _CustomInsert(Buff)
+              else if (Qry = QModify) then
+                _CustomModify(Buff);
+              CutOff := 0;
+            except
+              on E: EIBError do
+              begin
+                if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
                 begin
-                  Transaction.Rollback;
-                  Sleep(500);
-                  Dec(CutOff);
-                  Transaction.StartTransaction;
-                end else
-                begin
-                  if sDialog in BaseState then
+                  if (CutOff > 1) and DidActivate and AllowCloseTransaction then
                   begin
-                    MessageBox(ParentHandle,
-                      'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
-                      'Вероятные причины:'#13#10 +
-                      '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
-                      '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
-                      '  3. Изменение записи влечет за собой изменение другой записи, которую'#13#10 +
-                      '     редактирует другой пользователь или которая изменяется в другом окне программы.'#13#10#13#10 +
-                      'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
-                      'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
-                      ''#13#10 +
-                      'В случае повторения проблемы обратитесь к Администратору.',
-                      'Внимание',
-                      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-                    Abort;
+                    Transaction.Rollback;
+                    Sleep(500);
+                    Dec(CutOff);
+                    Transaction.StartTransaction;
                   end else
-                    raise;
-                end;
+                  begin
+                    if sDialog in BaseState then
+                    begin
+                      MessageBox(ParentHandle,
+                        'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
+                        'Вероятные причины:'#13#10 +
+                        '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
+                        '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
+                        '  3. Изменение записи влечет за собой изменение другой записи, которую'#13#10 +
+                        '     редактирует другой пользователь или которая изменяется в другом окне программы.'#13#10#13#10 +
+                        'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
+                        'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
+                        ''#13#10 +
+                        'В случае повторения проблемы обратитесь к Администратору.',
+                        'Внимание',
+                        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+                      Abort;
+                    end else
+                      raise;
+                  end;
+                end else
+                  raise;
               end else
                 raise;
+            end;
+          until CutOff = 0;
+
+          if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
+            and Assigned(gdcBaseManager) and (not (sLoadFromStream in BaseState)) then
+          begin
+            if (Qry = QInsert) then
+            begin
+              try
+                _id := gdcBaseManager.GetIdByRUID(ID, IBLogin.DBID);
+                if _id = - 1 then
+                  gdcBaseManager.InsertRUID(ID, ID, IBLogin.DBID, Now, IBLogin.ContactKey, Transaction);
+              except
+                // подавляем нарушение первичного ключа
+                // на случай если перед этим РУИД уже сформирован
+                // вручную
+                on E: EIBError do
+                begin
+                  if E.IBErrorCode <> isc_unique_key_violation then
+                    raise;
+                end;
+              end;
             end else
-              raise;
-          end;
-        until CutOff = 0;
-
-        if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
-          and Assigned(gdcBaseManager) and (not (sLoadFromStream in BaseState)) then
-        begin
-          if (Qry = QInsert) then
-          begin
-            try
-              _id := gdcBaseManager.GetIdByRUID(ID, IBLogin.DBID);
-              if _id = - 1 then
-                gdcBaseManager.InsertRUID(ID, ID, IBLogin.DBID, Now, IBLogin.ContactKey, Transaction);
-            except
-              // подавляем нарушение первичного ключа
-              // на случай если перед этим РУИД уже сформирован
-              // вручную
-              on E: EIBError do
-              begin
-                if E.IBErrorCode <> isc_unique_key_violation then
-                  raise;
-              end;
-            end;
-          end else
-          if (Qry = QModify) then
-          begin
-            RUID := GetRUID;
-            try
-              gdcBaseManager.UpdateRUIDByXID(ID, RUID.XID, RUID.DBID, Now, IBLogin.ContactKey, Transaction);
-            except
-              // подавляем нарушение первичного ключа
-              on E: EIBError do
-              begin
-                if E.IBErrorCode <> isc_unique_key_violation then
-                  raise;
+            if (Qry = QModify) then
+            begin
+              RUID := GetRUID;
+              try
+                gdcBaseManager.UpdateRUIDByXID(ID, RUID.XID, RUID.DBID, Now, IBLogin.ContactKey, Transaction);
+              except
+                // подавляем нарушение первичного ключа
+                on E: EIBError do
+                begin
+                  if E.IBErrorCode <> isc_unique_key_violation then
+                    raise;
+                end;
               end;
             end;
           end;
-        end;
 
-        DoAfterInternalPostRecord;
+          DoAfterInternalPostRecord;
 
-        if DidActivate and AllowCloseTransaction then
-          Transaction.Commit;
+          if DidActivate and AllowCloseTransaction then
+            Transaction.Commit;
 
-        if (FSavepoint > '') and Transaction.InTransaction then
-        begin
-          try
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
-          except
-            // подавляем исключение, если
-            // сэйвпоинт уже пропала, напр. транзакцию скомитили
-            // или откатили и снова стартанули
+          if (FSavepoint > '') and Transaction.InTransaction then
+          begin
+            try
+              ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            except
+              // подавляем исключение, если
+              // сэйвпоинт уже пропала, напр. транзакцию скомитили
+              // или откатили и снова стартанули
+            end;
           end;
-        end;
-      except
-        if DidActivate and AllowCloseTransaction then
-          Transaction.Rollback
-        else if (FSavepoint > '') and Transaction.InTransaction then
-        begin
-          try
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
-          except
-            // подавляем исключение, если
-            // сэйвпоинт уже пропала, напр. транзакцию скомитили
-            // или откатили и снова стартанули
+        except
+          if DidActivate and AllowCloseTransaction then
+            Transaction.Rollback
+          else if (FSavepoint > '') and Transaction.InTransaction then
+          begin
+            try
+              ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+              ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            except
+              // подавляем исключение, если
+              // сэйвпоинт уже пропала, напр. транзакцию скомитили
+              // или откатили и снова стартанули
+            end;
           end;
+          raise;
         end;
-        raise;
       end;
     end;
-  end;
 
-  PRecordData(Buff)^.rdUpdateStatus := usUnmodified;
-  PRecordData(Buff)^.rdCachedUpdateStatus := cusUnmodified;
-  SetModified(False);
-  WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Buff);
+    PRecordData(Buff)^.rdUpdateStatus := usUnmodified;
+    PRecordData(Buff)^.rdCachedUpdateStatus := cusUnmodified;
+    SetModified(False);
+    WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Buff);
 
-  if not FDataTransfer then
-  begin
-    if (ForcedRefresh or FNeedsRefresh) and CanRefresh then
+    if not FDataTransfer then
     begin
-      FSavedFlag := True;
-      try
-        FSavedRN := PRecordData(Buff)^.rdRecordNumber;
-        InternalRefreshRow;
-      finally
-        FSavedFlag := False;
+      if (ForcedRefresh or FNeedsRefresh) and CanRefresh then
+      begin
+        FSavedFlag := True;
+        try
+          FSavedRN := PRecordData(Buff)^.rdRecordNumber;
+          InternalRefreshRow;
+        finally
+          FSavedFlag := False;
+        end;
       end;
     end;
+  finally
+    FInternalProcess := False;
   end;
 end;
 
@@ -6732,164 +6741,169 @@ var
   FirstPass: Boolean;
   FSavepoint: String;
 begin
-  if (Assigned(FUpdateObject) and (FUpdateObject.GetSQL(DB.ukDelete).Text > '')) then
-    FUpdateObject.Apply(DB.ukDelete)
-  else if not FDataTransfer then
-  begin
-    if GetCurrRecordClass.gdClass = Self.ClassType then
+  FInternalProcess := True;
+  try
+    if (Assigned(FUpdateObject) and (FUpdateObject.GetSQL(DB.ukDelete).Text > '')) then
+      FUpdateObject.Apply(DB.ukDelete)
+    else if not FDataTransfer then
     begin
-      //!!!
-      FSavepoint := '';
-      DidActivate := ActivateTransaction;
-      try
-    //!!!
-        {savepoints support}
-        if (not DidActivate) and UseSavepoints then
-        begin
-          FSavepoint := 'S' + System.Copy(StringReplace(
-            StringReplace(
-              StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
-              '-', '', [rfReplaceAll]), 1, 30);
-          try
-            ExecSingleQuery('SAVEPOINT ' + FSavepoint);
-          except
-            UseSavepoints := False;
-            FSavepoint := '';
-          end;
-        end;
-        {end savepoints support}
-
-        if Assigned(BeforeInternalDeleteRecord) then
-          BeforeInternalDeleteRecord(Self);
-
-        IBLogin.AddEvent('Запись удалена',
-          Self.ClassName + ' ' + Self.SubType,
-          ID,
-          Transaction);
-
-        { TODO : см. комментарий к ИнтерналПост }
-        CutOff := 5;
-        repeat
-          try
-            //FRowsAffected := 0;
-            if (Qry = QDelete) then
-              _CustomDelete(Buff);
-            CutOff := 0;
-          except
-            on E: EIBError do
-            begin
-              if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
-              begin
-                if (CutOff > 1) and DidActivate and AllowCloseTransaction then
-                begin
-                  Transaction.Rollback;
-                  Sleep(500);
-                  Dec(CutOff);
-                  Transaction.StartTransaction;
-                end else
-                begin
-                  if sDialog in BaseState then
-                  begin
-                    MessageBox(ParentHandle,
-                      'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
-                      'Вероятные причины:'#13#10 +
-                      '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
-                      '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
-                      '  3. Изменение записи влечет за собой изменение другой записи, которую'#13#10 +
-                      '     редактирует другой пользователь или которая изменяется в другом окне программы.'#13#10#13#10 +
-                      'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
-                      'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
-                      ''#13#10 +
-                      'В случае повторения проблемы обратитесь к Администратору.',
-                      'Внимание',
-                      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-                    Abort;
-                  end else
-                    raise;
-                end;
-              end else
-                raise;
-            end else
-              raise;
-          end;
-        until CutOff = 0;
-
-        if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
-          and Assigned(gdcBaseManager) then
-        begin
-          gdcBaseManager.DeleteRUIDByXID(ID, IBLogin.DBID, Transaction);
-        end;
-
-        if Assigned(AfterInternalDeleteRecord) then
-          AfterInternalDeleteRecord(Self);
-      //!!!
-
-        if DidActivate and AllowCloseTransaction then
-          Transaction.Commit;
-
-        if (FSavepoint > '') and Transaction.InTransaction then
-        begin
-          try
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
-          except
-          end;
-        end;
-      except
-        if DidActivate and AllowCloseTransaction then
-          Transaction.Rollback
-        else if (FSavepoint > '') and Transaction.InTransaction then
-        begin
-          try
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
-          except
-          end;
-        end;
-        raise;
-      end;
-      //!!!
-    end else
-    begin
-      FirstPass := True;
-      repeat
-        CFull := GetCurrRecordClass;
-        C := CFull.gdClass;
-        Obj := CgdcBase(C).CreateWithID(Owner, Database, Transaction,
-          ID, CFull.SubType);
+      if GetCurrRecordClass.gdClass = Self.ClassType then
+      begin
+        //!!!
+        FSavepoint := '';
+        DidActivate := ActivateTransaction;
         try
-          Obj.Open;
-          if Obj.RecordCount = 0 then
+      //!!!
+          {savepoints support}
+          if (not DidActivate) and UseSavepoints then
           begin
-            if FirstPass then
-            begin
-              FirstPass := False;
-              InternalRefresh;
-              continue;
-            end else
-            begin
-              MessageBox(ParentHandle,
-                'Невозможно удалить указанную запись.'#13#10 +
-                'Возможно, нарушена целостность данных или необходимо обновить данные.'#13#10#13#10 +
-                'В случае повторения проблемы обратитесь к системному администратору.',
-                'Внимание',
-                MB_OK or MB_ICONHAND or MB_TASKMODAL);
-              Abort;
+            FSavepoint := 'S' + System.Copy(StringReplace(
+              StringReplace(
+                StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
+                '-', '', [rfReplaceAll]), 1, 30);
+            try
+              ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+            except
+              UseSavepoints := False;
+              FSavepoint := '';
             end;
           end;
-          Obj.Delete;
-          break;
-        finally
-          Obj.Free;
+          {end savepoints support}
+
+          if Assigned(BeforeInternalDeleteRecord) then
+            BeforeInternalDeleteRecord(Self);
+
+          IBLogin.AddEvent('Запись удалена',
+            Self.ClassName + ' ' + Self.SubType,
+            ID,
+            Transaction);
+
+          { TODO : см. комментарий к ИнтерналПост }
+          CutOff := 5;
+          repeat
+            try
+              //FRowsAffected := 0;
+              if (Qry = QDelete) then
+                _CustomDelete(Buff);
+              CutOff := 0;
+            except
+              on E: EIBError do
+              begin
+                if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
+                begin
+                  if (CutOff > 1) and DidActivate and AllowCloseTransaction then
+                  begin
+                    Transaction.Rollback;
+                    Sleep(500);
+                    Dec(CutOff);
+                    Transaction.StartTransaction;
+                  end else
+                  begin
+                    if sDialog in BaseState then
+                    begin
+                      MessageBox(ParentHandle,
+                        'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
+                        'Вероятные причины:'#13#10 +
+                        '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
+                        '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
+                        '  3. Изменение записи влечет за собой изменение другой записи, которую'#13#10 +
+                        '     редактирует другой пользователь или которая изменяется в другом окне программы.'#13#10#13#10 +
+                        'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
+                        'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
+                        ''#13#10 +
+                        'В случае повторения проблемы обратитесь к Администратору.',
+                        'Внимание',
+                        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+                      Abort;
+                    end else
+                      raise;
+                  end;
+                end else
+                  raise;
+              end else
+                raise;
+            end;
+          until CutOff = 0;
+
+          if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
+            and Assigned(gdcBaseManager) then
+          begin
+            gdcBaseManager.DeleteRUIDByXID(ID, IBLogin.DBID, Transaction);
+          end;
+
+          if Assigned(AfterInternalDeleteRecord) then
+            AfterInternalDeleteRecord(Self);
+        //!!!
+
+          if DidActivate and AllowCloseTransaction then
+            Transaction.Commit;
+
+          if (FSavepoint > '') and Transaction.InTransaction then
+          begin
+            try
+              ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            except
+            end;
+          end;
+        except
+          if DidActivate and AllowCloseTransaction then
+            Transaction.Rollback
+          else if (FSavepoint > '') and Transaction.InTransaction then
+          begin
+            try
+              ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+              ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            except
+            end;
+          end;
+          raise;
         end;
-      until False;
+        //!!!
+      end else
+      begin
+        FirstPass := True;
+        repeat
+          CFull := GetCurrRecordClass;
+          C := CFull.gdClass;
+          Obj := CgdcBase(C).CreateWithID(Owner, Database, Transaction,
+            ID, CFull.SubType);
+          try
+            Obj.Open;
+            if Obj.RecordCount = 0 then
+            begin
+              if FirstPass then
+              begin
+                FirstPass := False;
+                InternalRefresh;
+                continue;
+              end else
+              begin
+                MessageBox(ParentHandle,
+                  'Невозможно удалить указанную запись.'#13#10 +
+                  'Возможно, нарушена целостность данных или необходимо обновить данные.'#13#10#13#10 +
+                  'В случае повторения проблемы обратитесь к системному администратору.',
+                  'Внимание',
+                  MB_OK or MB_ICONHAND or MB_TASKMODAL);
+                Abort;
+              end;
+            end;
+            Obj.Delete;
+            break;
+          finally
+            Obj.Free;
+          end;
+        until False;
+      end;
     end;
+    with PRecordData(Buff)^ do
+    begin
+      rdUpdateStatus := usDeleted;
+      rdCachedUpdateStatus := cusUnmodified;
+    end;
+    WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Buff);
+  finally
+    FInternalProcess := False;
   end;
-  with PRecordData(Buff)^ do
-  begin
-    rdUpdateStatus := usDeleted;
-    rdCachedUpdateStatus := cusUnmodified;
-  end;
-  WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Buff);
 end;
 
 class function TgdcBase.IsBigTable: Boolean;
@@ -10737,14 +10751,40 @@ end;
 
 procedure TgdcBase.CreateFields;
 var
+  LocalHideFieldsList: String;
+
+  function ShowRelationFieldInGrid(AField: TField; const AFieldName: String;
+    const RF: TatRelationField): Boolean;
+  begin
+    Result := AField.Visible
+      and (
+        (StrIPos(AFieldName, LocalHideFieldsList) = 0)
+        or
+        (StrIPos(';' + AFieldName + ';', LocalHideFieldsList) = 0)
+      );
+
+    if Result and (not IBLogin.IsUserAdmin) and (RF <> nil) then
+    begin
+      if (RF.aView and IBLogin.Ingroup) = 0 then
+      begin
+        Result := False;
+      end else if (RF.aChag and IBLogin.Ingroup) = 0 then
+      begin
+        AField.ReadOnly := True;
+      end;
+    end;
+  end;
+
+var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
   {M}
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  I, J: Integer;
+  I, P: Integer;
   F: TatRelationField;
   FieldName, RelationName: String;
+  FFieldList: TStringHashMap;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASE', 'CREATEFIELDS', KEYCREATEFIELDS)}
   {M}  try
@@ -10768,55 +10808,57 @@ begin
 
   inherited;
 
-  // локализуем экранные метки полей
-  for I := 0 to FieldCount - 1 do
-  begin
-    RelationName := ExtractIdentifier(Database.SQLDialect,
-      System.Copy(Fields[I].Origin, 1, Pos('.', Fields[I].Origin) - 1));
-
-    FieldName := ExtractIdentifier(Database.SQLDialect,
-      System.Copy(Fields[I].Origin, Pos('.', Fields[I].Origin) + 1, 255));
-
-    F := atDatabase.FindRelationField(RelationName, FieldName);
-
-    if F <> nil then
-      Fields[I].DisplayLabel := F.LName;
-
-    // для полей, которые не входят в запросы на обновление данных
-    // и если для объекта не предусмотрена специальная обработка
-    // мы снимаем Required
-    if (CustomProcess * [cpInsert, cpModify]) = [] then
-      if StrIPos(',' + Fields[I].FieldName + ',', ',' + FUpdateableFields + ',') = 0 then
-      begin
-        Fields[I].Required := False;
-      end;
-
-    //
-    { TODO : ShowFieldInGrid медленная функция. Мы вызываем ее при создании поля,
-             еще не зная, будет ли это поле подключаться к визуальным контролам. } 
-    Fields[I].Visible := ShowFieldInGrid(Fields[I]);
-  end;
-
-  for I := 0 to FieldCount - 1 do
-  begin
-    for J := I + 1 to FieldCount - 1 do
+  LocalHideFieldsList := ';' + HideFieldsList;
+  FFieldList := TStringHashMap.Create(CaseSensitiveTraits, 256);
+  try
+    // локализуем экранные метки полей
+    for I := 0 to FieldCount - 1 do
     begin
-      if (AnsiCompareText(Fields[I].DisplayName, Fields[J].DisplayName) = 0) then
+      RelationName := Fields[I].Origin;
+      P := Pos('.', RelationName);
+      if P > 0 then
       begin
-        RelationName := ExtractIdentifier(Database.SQLDialect,
-          System.Copy(Fields[J].Origin, 1, Pos('.', Fields[J].Origin) - 1));
-
-        FieldName := ExtractIdentifier(Database.SQLDialect,
-          System.Copy(Fields[J].Origin, Pos('.', Fields[J].Origin) + 1, 255));
-
-        F := atDatabase.FindRelationField(RelationName, FieldName);
-
-        if (F <> nil) and (F.Relation <> nil) then
-        begin
-          Fields[J].DisplayLabel := F.LName + ' (' + F.Relation.LName + ')';
-        end;
+        FieldName := System.Copy(RelationName, P + 1, 1024);
+        SetLength(RelationName, P - 1);
+      end else
+      begin
+        FieldName := RelationName;
+        RelationName := '';
       end;
+
+      if (Length(FieldName) > 2) and (FieldName[1] = '"') then
+        FieldName := System.Copy(FieldName, 2, Length(FieldName) - 2);
+      if (Length(RelationName) > 2) and (RelationName[1] = '"') then
+        RelationName := System.Copy(RelationName, 2, Length(RelationName) - 2);
+
+      F := atDatabase.FindRelationField(RelationName, FieldName);
+
+      if F <> nil then
+      begin
+        Fields[I].DisplayLabel := F.LName;
+        if FFieldList.Has(F.LName) then
+        begin
+          if F.Relation <> nil then
+            Fields[I].DisplayLabel := F.LName + ' (' + F.Relation.LName + ')';
+        end else
+          FFieldList.Add(F.LName, I);
+      end;
+      // для полей, которые не входят в запросы на обновление данных
+      // и если для объекта не предусмотрена специальная обработка
+      // мы снимаем Required
+      if (CustomProcess * [cpInsert, cpModify]) = [] then
+        if StrIPos(',' + Fields[I].FieldName + ',', ',' + FUpdateableFields + ',') = 0 then
+        begin
+          Fields[I].Required := False;
+        end;
+
+      if RelationName > '' then
+        Fields[I].Visible := ShowRelationFieldInGrid(Fields[I], FieldName, F)//ShowFieldInGrid(Fields[I]);
+      else
+        Fields[I].Visible := True;
     end;
+  finally
+    FFieldList.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CREATEFIELDS', KEYCREATEFIELDS)}
