@@ -879,6 +879,7 @@ begin
           end;
         end;
       finally
+        sql.Free;
         if DidActivate and FTransaction.InTransaction then
         begin
           if Result then
@@ -886,7 +887,6 @@ begin
           else
             FTransaction.Rollback;
         end;
-        sql.Free;
       end;
     except
       if DidActivate and FTransaction.InTransaction then
