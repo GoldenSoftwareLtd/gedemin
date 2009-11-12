@@ -5172,7 +5172,7 @@ begin
       S.Add(' M.BALANCE < 0 ')
     else
       if not HasSubSet(cst_AllRemains) then
-        S.Add(' M.BALANCE > 0 ');
+        S.Add(' M.BALANCE <> 0 ');
   end;
 end;
 
@@ -5547,7 +5547,7 @@ var
       Result := Result +  ' M.BALANCE < 0 '
     else
       if not HasSubSet(cst_AllRemains) then
-        Result := Result +  '  M.BALANCE > 0 '
+        Result := Result +  '  M.BALANCE <> 0 '
       else
         Result := Result +  '  (1 = 1) ';
 
