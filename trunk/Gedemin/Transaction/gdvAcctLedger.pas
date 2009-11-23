@@ -1669,7 +1669,7 @@ begin
         '       ac_entry_balance bal '#13#10 +
         '     WHERE '#13#10 +
           IIF(AccountIDs <> '', ' bal.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND bal.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
+          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' bal.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
         '       bal.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
           AnalyticFilterBal +
         '  '#13#10 +
