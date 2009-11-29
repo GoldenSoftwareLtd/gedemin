@@ -56,6 +56,7 @@ type
     FrxMailExport: TfrxMailExport;
     FrxTXTExport:  TfrxTXTExport;
     FrxODTExport:  TfrxODTExport;
+    FrxDMPExport:  TfrxDotMatrixExport;
     //
 
     procedure SetReportResult(Value: Tfr4_ReportResult);
@@ -131,6 +132,7 @@ begin
   FrxMailExport := TfrxMailExport.Create(Self);
   FrxTXTExport  := TfrxTXTExport.Create(Self);
   FrxODTExport  := TfrxODTExport.Create(Self);
+  FrxDMPExport  := TfrxDotMatrixExport.Create(Self);
 end;
 
 destructor Tgs_fr4Report.Destroy;
@@ -152,6 +154,7 @@ begin
   FrxMailExport.Free;
   FrxTXTExport.Free;
   FrxODTExport.Free;
+  FrxDMPExport.Free;
 
   inherited;
 end;
