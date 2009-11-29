@@ -823,9 +823,9 @@ class function TgdcFunction.GetNotStreamSavedField(const IsReplicationMode: Bool
 begin
   Result := inherited GetNotStreamSavedField(IsReplicationMode);
   if Result <> '' then
-    Result := Result + ',TESTRESULT'
+    Result := Result + ',TESTRESULT,EDITORSTATE,BREAKPOINTS'
   else
-    Result := 'TESTRESULT';
+    Result := 'TESTRESULT,EDITORSTATE,BREAKPOINTS';
 end;
 
 initialization

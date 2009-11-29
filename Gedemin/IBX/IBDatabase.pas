@@ -2557,7 +2557,8 @@ begin
       isc_tpb_consistency, isc_tpb_exclusive, isc_tpb_protected,
       isc_tpb_concurrency, isc_tpb_shared, isc_tpb_wait, isc_tpb_nowait,
       isc_tpb_read, isc_tpb_write, isc_tpb_ignore_limbo,
-      isc_tpb_read_committed, isc_tpb_rec_version, isc_tpb_no_rec_version:
+      isc_tpb_read_committed, isc_tpb_rec_version, isc_tpb_no_rec_version,
+      isc_tpb_no_auto_undo:
         TPB := TPB + Char(TPBVal);
       isc_tpb_lock_read, isc_tpb_lock_write:
       begin

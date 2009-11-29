@@ -1625,6 +1625,7 @@ begin
         ' DECLARE VARIABLE varncuend NUMERIC(18, 6); '#13#10 +
         ' DECLARE VARIABLE varcurrend NUMERIC(18, 6); '#13#10 +
         ' DECLARE VARIABLE vareqend NUMERIC(18, 6); '#13#10 +
+        ' DECLARE VARIABLE wasmovement INTEGER; '#13#10 +
         ' DECLARE VARIABLE closedate DATE; '#13#10;
 
       if FEntryDateInFields and (not FEntryDateIsFirst) then
@@ -1742,6 +1743,7 @@ begin
           IIF(MainInto <> '', ', ' + MainInto + #13#10, '') +
           IIF(not FEntryDateIsFirst, ' DO BEGIN '#13#10, ';') +
         ' sortfield = 1; '#13#10 +
+        ' wasmovement = 0; '#13#10 +
         ' IF (varncubegin IS NULL) THEN '#13#10 +
         '   varncubegin = 0; '#13#10 +
         ' IF (varcurrbegin IS NULL) THEN '#13#10 +
@@ -1884,12 +1886,9 @@ begin
         '     END '#13#10 +
           IIF(FEntryDateIsFirst,
             ' varncubegin = varncuend; varcurrbegin = varcurrend; vareqbegin = vareqend;'#13#10, '') +
-        ' IF ((ncu_debit <> 0) OR (ncu_credit <> 0) ' +
-          IIF(not FEntryDateInFields, ' OR (varncubegin <> 0)', '') +
-          IIF(FCurrSumInfo.Show, ' OR (curr_debit <> 0) OR (curr_credit <> 0) ' +
-            IIF(not FEntryDateInFields, ' OR (varcurrbegin <> 0)', ''), '') +
-          IIF(FEQSumInfo.Show, ' OR (eq_debit <> 0) OR (eq_credit <> 0) ' +
-            IIF(not FEntryDateInFields, ' OR (vareqbegin <> 0)', ''), '') + #13#10;
+        ' IF ((ncu_debit <> 0) OR (ncu_credit <> 0) OR (varncubegin <> 0)' +
+          IIF(FCurrSumInfo.Show, ' OR (curr_debit <> 0) OR (curr_credit <> 0) OR (varcurrbegin <> 0)', '') +
+          IIF(FEQSumInfo.Show, ' OR (eq_debit <> 0) OR (eq_credit <> 0) OR (vareqbegin <> 0)', '') + #13#10;
 
       // ƒобавл€ем проверку на неравенство нулю расширенного отображени€ дебета и кредита
       for I := 0 to FNcuDebitAliases.Count - 1 do
@@ -1917,9 +1916,62 @@ begin
 
       DebitCreditSQL := DebitCreditSQL + 
         ') THEN '#13#10 +
+        '     BEGIN '#13#10 +
+        '       wasmovement = 1; '#13#10 +
         '       SUSPEND; '#13#10 +
-        'END '#13#10 +
-        'END ';
+        '     END '#13#10 +
+        '   END '#13#10 +
+        '  '#13#10 +
+          IIF(FEntryDateIsFirst,
+            '   IF (wasmovement = 0) THEN '#13#10 +
+            '   BEGIN '#13#10 +
+            '     IF (varncubegin > 0) THEN '#13#10 +
+            '     BEGIN '#13#10 +
+            '       ncu_begin_debit = CAST((varncubegin / %0:d) AS NUMERIC(15, %1:d)); '#13#10 +
+            '       ncu_begin_credit = 0; '#13#10 +
+            '       ncu_end_debit = CAST((varncubegin / %0:d) AS NUMERIC(15, %1:d)); '#13#10 +
+            '       ncu_end_credit = 0; '#13#10 +
+            '     END '#13#10 +
+            '     ELSE '#13#10 +
+            '     BEGIN '#13#10 +
+            '       ncu_begin_debit = 0; '#13#10 +
+            '       ncu_begin_credit = - CAST((varncubegin / %0:d) AS NUMERIC(15, %1:d)); '#13#10 +
+            '       ncu_end_debit = 0; '#13#10 +
+            '       ncu_end_credit = - CAST((varncubegin / %0:d) AS NUMERIC(15, %1:d)); '#13#10 +
+            '     END '#13#10 +
+            '  '#13#10 +
+            '     IF (varcurrbegin > 0) THEN '#13#10 +
+            '     BEGIN '#13#10 +
+            '       curr_begin_debit = CAST((varcurrbegin / %2:d) AS NUMERIC(15, %3:d)); '#13#10 +
+            '       curr_begin_credit = 0; '#13#10 +
+            '       curr_end_debit = CAST((varcurrbegin / %2:d) AS NUMERIC(15, %3:d)); '#13#10 +
+            '       curr_end_credit = 0; '#13#10 +
+            '     END '#13#10 +
+            '     ELSE '#13#10 +
+            '     BEGIN '#13#10 +
+            '       curr_begin_debit = 0; '#13#10 +
+            '       curr_begin_credit = - CAST((varcurrbegin / %2:d) AS NUMERIC(15, %3:d)); '#13#10 +
+            '       curr_end_debit = 0; '#13#10 +
+            '       curr_end_credit = - CAST((varcurrbegin / %2:d) AS NUMERIC(15, %3:d)); '#13#10 +
+            '     END '#13#10 +
+            '  '#13#10 +
+            '     IF (vareqbegin > 0) THEN '#13#10 +
+            '     BEGIN '#13#10 +
+            '       eq_begin_debit = CAST((vareqbegin / %4:d) AS NUMERIC(15, %5:d)); '#13#10 +
+            '       eq_begin_credit = 0; '#13#10 +
+            '       eq_end_debit = CAST((vareqbegin / %4:d) AS NUMERIC(15, %5:d)); '#13#10 +
+            '       eq_end_credit = 0; '#13#10 +
+            '     END '#13#10 +
+            '     ELSE '#13#10 +
+            '     BEGIN '#13#10 +
+            '       eq_begin_debit = 0; '#13#10 +
+            '       eq_begin_credit = - CAST((vareqbegin / %4:d) AS NUMERIC(15, %5:d)); '#13#10 +
+            '       eq_end_debit = 0; '#13#10 +
+            '       eq_end_credit = - CAST((vareqbegin / %4:d) AS NUMERIC(15, %5:d)); '#13#10 +
+            '     END '#13#10 +
+            '     SUSPEND; '#13#10 +
+            '   END '#13#10, '') +
+        ' END ';
 
     finally
       TempVariables.Free;

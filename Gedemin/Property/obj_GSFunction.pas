@@ -137,6 +137,11 @@ type
     function  OP: TDateTime; safecall;
     function  GetValue(const FName: WideString): OleVariant; safecall;
     function  IncMonth(Date: TDateTime; NumberOfMonths: Integer): TDateTime; safecall;
+    // Действует как VBS DateAdd, учитывает только банковские дни, если передан ключ табеля ATBLCID, то берет выходные из него,
+    //  иначе из справочника праздников по умолчанию
+    function  DateAddBank(const Interval: WideString; Number: Integer;
+      DateValue: TDateTime; TBLCALID: Integer = -1): TDateTime; safecall;
+
     function  NM(Date: TDateTime): TDateTime; safecall;
     function  KM(Date: TDateTime): TDateTime; safecall;
 
@@ -2024,6 +2029,206 @@ end;}
 procedure TobjGSFunction.FillCalcBalanceDate;
 begin
   FCalcBalanceDate := GetCalculatedBalanceDate;
+end;
+
+function TobjGSFunction.DateAddBank(const Interval: WideString; Number: Integer;
+  DateValue: TDateTime; TBLCALID: Integer = -1): TDateTime;
+var
+  IBSQL: TIBSQL;
+  WorkingDate: TDate;
+  HourValue, MinuteValue, SecondValue, MSecondValue: Word;
+
+  function FormResultDate: TDateTime;
+  begin
+    Result := WorkingDate;
+    ReplaceTime(Result, EncodeTime(HourValue, MinuteValue, SecondValue, MSecondValue));
+  end;
+
+  function IsWeekEnd(const ADate: TDateTime): Boolean;
+  var
+    DayNumber: Integer;
+  begin
+    DayNumber := Sysutils.DayOfWeek(ADate);
+    if DayNumber in [1, 7] then
+      Result := True
+    else
+      Result := False;
+  end;
+
+  function IsDayOff(const ADate: TDateTime): Boolean;
+  begin
+    if IsWeekEnd(ADate) then
+    begin
+      Result := True;
+    end
+    else
+    begin
+      IBSQL.ParamByName('THEDATE').AsDateTime := ADate;
+      IBSQL.ExecQuery;
+      if IBSQL.RecordCount > 0 then
+        Result := True
+      else
+        Result := False;
+      IBSQL.Close;
+    end;
+  end;
+
+  procedure LocIncDay(const AValue: Integer);
+  var
+    DayCounter: Integer;
+    Factor: Integer;
+  begin
+    if AValue >= 0 then
+    begin
+      DayCounter := AValue;
+      Factor := 1;
+    end
+    else
+    begin
+      DayCounter := Abs(AValue);
+      Factor := -1;
+    end;
+
+    while DayCounter > 0 do
+    begin
+      WorkingDate := WorkingDate + Factor;
+      if not IsDayOff(FormResultDate) then
+        Dec(DayCounter);
+    end;
+  end;
+
+  procedure LocIncYear(const AValue: Integer);
+  var
+    YearValue, MonthValue, DayValue: Word;
+  begin
+    DecodeDate(WorkingDate, YearValue, MonthValue, DayValue);
+    YearValue := YearValue + AValue;
+    // Если была дата 29 февраля и перешли на не високосный год, исправим на 28 февраля
+    if not IsLeapYear(YearValue) and (MonthValue = 2) and (DayValue = 29) then
+      DayValue := 28;
+    WorkingDate := EncodeDate(YearValue, MonthValue, DayValue);
+    // Если попали на выходной день, то перейдем на следующий рабочий
+    if IsDayOff(WorkingDate) then
+      LocIncDay(1);
+  end;
+
+  procedure LocIncQuarter(const AValue: Integer);
+  begin
+    WorkingDate := Sysutils.IncMonth(WorkingDate, AValue * 3);
+    // Если попали на выходной день, то перейдем на следующий рабочий
+    if IsDayOff(WorkingDate) then
+      LocIncDay(1);
+  end;
+
+  procedure LocIncMonth(const AValue: Integer);
+  begin
+    WorkingDate := Sysutils.IncMonth(WorkingDate, AValue);
+    // Если попали на выходной день, то перейдем на следующий рабочий
+    if IsDayOff(WorkingDate) then
+      LocIncDay(1);
+  end;
+
+  procedure LocIncWeek(const AValue: Integer);
+  begin
+    WorkingDate := WorkingDate + AValue * 7;
+    // Если попали на выходной день, то перейдем на следующий рабочий
+    if IsDayOff(WorkingDate) then
+      LocIncDay(1);
+  end;
+
+  procedure LocIncHour(const AValue: Integer);
+  begin
+    HourValue := HourValue + AValue;
+    if (HourValue >= 24) or (HourValue >= 24) then
+    begin
+      LocIncDay(HourValue div 24);
+      HourValue := HourValue mod 24;
+    end;
+  end;
+
+  procedure LocIncMinute(const AValue: Integer);
+  begin
+    MinuteValue := MinuteValue + AValue;
+    if (MinuteValue >= 60) or (MinuteValue <= 60) then
+    begin
+      LocIncHour(MinuteValue div 60);
+      MinuteValue := MinuteValue mod 60;
+    end;
+  end;
+
+  procedure LocIncSecond(const AValue: Integer);
+  begin
+    SecondValue := SecondValue + AValue;
+    if (SecondValue >= 60) or (SecondValue <= -60) then
+    begin
+      LocIncMinute(SecondValue div 60);
+      SecondValue := SecondValue mod 60;
+    end;
+  end;
+
+begin
+  Result := DateValue;
+  WorkingDate := DateValue;
+
+  IBSQL := TIBSQL.Create(nil);
+  try
+    // Установить транзакцию
+    SetupTransaction(IBSQL);
+    // Разберем время
+    DecodeTime(DateValue, HourValue, MinuteValue, SecondValue, MSecondValue);
+    // Подготовим запрос для определения выходного дня
+    if TBLCALID > 0 then
+    begin
+      // Если указан ключ табеля
+      IBSQL.SQL.Text := 'SELECT id FROM wg_tblcalday WHERE tblcalkey = :tblkey AND theday = :thedate AND workday = 0';
+      IBSQL.ParamByName('TBLKEY').AsInteger := TBLCALID;
+      IBSQL.Prepare;
+    end
+    else
+    begin
+      IBSQL.SQL.Text := 'SELECT id FROM wg_holiday WHERE holidaydate = :thedate';
+      IBSQL.Prepare;
+    end;
+
+    if UpperCase(Interval) = 'YYYY' then           // Год
+    begin
+      LocIncYear(Number);
+    end
+    else if UpperCase(Interval) = 'Q' then         // Квартал
+    begin
+      LocIncQuarter(Number);
+    end
+    else if UpperCase(Interval) = 'M' then         // Месяц
+    begin
+      LocIncMonth(Number);
+    end
+    else if (UpperCase(Interval) = 'Y')
+      or (UpperCase(Interval) = 'D')
+      or (UpperCase(Interval) = 'W') then          // День
+    begin
+      LocIncDay(Number);
+    end
+    else if UpperCase(Interval) = 'WW' then        // Неделя
+    begin
+      LocIncWeek(Number);
+    end
+    else if UpperCase(Interval) = 'H' then         // Час
+    begin
+      LocIncHour(Number);
+    end
+    else if UpperCase(Interval) = 'N' then         // Минута
+    begin
+      LocIncMinute(Number);
+    end
+    else if UpperCase(Interval) = 'S' then         // Секунда
+    begin
+      LocIncSecond(Number);
+    end;
+
+    Result := FormResultDate;
+  finally
+    FreeAndNil(IBSQL);
+  end;
 end;
 
 { TGsFunctionNotifier }
