@@ -4,15 +4,24 @@ interface
 
 uses
   IBDatabase, Classes, SysUtils, gd_KeyAssoc, gdcBaseInterface, stdctrls, comctrls,
-  IBSQL;
+  IBSQL, forms;
 
 type
+  TgsBeforeAfterProcessRoutine = procedure;
+  TgsOnProcessInterruptionRoutine = procedure(const AErrorMessage: String);
+  TgsOnProcessMessage = procedure(const APosition, AMaxPosition: Integer; const AMessage: String);
+
   TgdClosingPeriod = class(TObject)
   private
+    FDontDeleteCardArray: TgdKeyArray;
+    // Нить на которой закрывается период
+    FWorkingThread: TThread;
+    FTerminatingProcess: Boolean;
+    // Пишущая транзакция для закрытия периода
     FWriteTransaction: TIBTransaction;
-
+    // Время начало отдельной части закрытия периода
     FLocalStartTime: TDateTime;
-
+    // Параметры доступа к закрываемой БД
     FExtDatabasePath: String;
     FExtDatabaseServer: String;
     FExtDatabaseUser: String;
@@ -31,21 +40,36 @@ type
     FAddLineKeyFieldExists: Boolean;
     FInvDocumentTypeKey: TID;
 
+    FPseudoClientKey: TID;
+    FDummyInvCardKey: TID;
+
     FUserDocumentTypesToDelete: TgdKeyArray;
     FDontDeleteDocumentTypes: TgdKeyArray;
-
-    FProgressBar: TProgressBar;
-    FProgressBarLabel: TLabel;
-    FMessageLogMemo: TMemo;
-    FMessageLog: TStringList;
-    FDoMaintainLog: Boolean;
+    // Список заглушек по типам документов
+    FDummyInvDocumentKeys: TgdKeyIntAssoc;
 
     FQueriesInitialized: Boolean;
+    FIBSQLGetDepotHeaderKey: TIBSQL;
     FIBSQLInsertGdDocument: TIBSQL;
     FIBSQLInsertDocumentHeader: TIBSQL;
     FIBSQLInsertDocumentPosition: TIBSQL;
     FIBSQLInsertInvCard: TIBSQL;
     FIBSQLInsertInvMovement: TIBSQL;
+
+    FOnBeforeProcess: TgsBeforeAfterProcessRoutine;
+    FOnAfterProcess: TgsBeforeAfterProcessRoutine;
+    FOnProcessInterruption: TgsOnProcessInterruptionRoutine;
+    FOnProcessMessage: TgsOnProcessMessage;
+
+    // Поля определяют, будет ли модель выполнять
+    //  соответствующие действия во время закрытия периода
+    FDoCalculateEntryBalance: Boolean;  // Подсчет бухгалтерского сальдо
+    FDoCalculateRemains: Boolean;       // Подсчет складских остатков
+    FDoReBindDepotCards: Boolean;       // Перепривязка складских карточек и движения
+    FDoDeleteEntry: Boolean;            // Удаление проводок
+    FDoDeleteDocuments: Boolean;        // Удаление складских документов
+    FDoDeleteUserDocuments: Boolean;    // Удаление пользовательских документов
+    FDoTransferEntryBalance: Boolean;   // Перенос бухгалтерского сальдо из AC_ENTRY_BALANCE в AC_ENTRY
 
     //procedure InsertDatabaseRecord;
     function GetFeatureFieldList(AAlias: String): String;
@@ -55,15 +79,23 @@ type
     function AddDepotPosition(const FromContact, ToContact, CompanyKey,
       ADocumentParentKey, CardGoodkey: TID; const GoodQuantity: Currency; FeatureDataset: TIBSQL = nil): TID;
 
+    function GetReplacementInvCardKey(const AOldCardKey: TID; AFeatureDataset: TIBSQL;
+      const AFromContactkey: TID = -1; const AToContactkey: TID = -1): TID;
+    // Процедура находит записи ссылающиеся на карточку по переданному документу и пытается убрать зависимость
+    procedure TryToDeleteInvCardReferences(const ADocumentKey: TID);
+    // Процедура пытается удалить записи ссылающиеся на переданную
+    procedure TryToDeleteDocumentReferences(const AID: TID; const AdditionalRelationName: String; const ADocTypeKey: Integer = -1);
+    function CreateDummyInvDocument(const ADocTypeKey: TID): TID;
+    function GetDummyInvCard: TID;
+
     procedure InitialFillOptions;
     procedure InitializeIBSQLQueries;
 
-    procedure AddLogMessage(const AMessage: String);
-    procedure SetupProgressBar(const APosition, AMaxPosition: Integer);
-    procedure StepProgressBar(const AStepValue: Integer = 1);
-    procedure SetMessageLogMemo(const Value: TMemo);
+    procedure ResumeProcess;
+
+    function GetInProcess: Boolean;
   public
-    constructor Create(Transaction: TIBTransaction);
+    constructor Create;
     destructor Destroy; override;
 
     // Заполнение и очистка списка типов складских документов, которые нельзя 'закрывать'
@@ -75,7 +107,16 @@ type
     // Заполнение и очистка списка актуальных складских признаков
     procedure AddInvCardFeature(FeatureFieldName: String);
     procedure ClearInvCardFeatures;
+    // Установливает параметры доступа к закрываемой БД
+    procedure SetClosingDatabaseParams(const ADBPAth, ADBServer, ADBUser, ADBPAssword: String);
 
+    // Последовательное выполнение всех действий для 'закрытия периода'
+    procedure DoClosePeriod;
+    // Остановить выполнение закрытия периода
+    procedure StopProcess;
+
+    // Подготавливает список документов которые нельзя удалять
+    procedure PrepareDontDeleteDocumentList;
     // Включает\выключает триггеры которые мешают 'закрытию периода'
     procedure SetTriggerActive(SetActive: Boolean);
     // Подсчет бухгалтерского сальдо
@@ -86,8 +127,6 @@ type
     procedure ReBindDepotCards;
     // Удаление проводок
     procedure DeleteEntry;
-    // Процедура пытается удалить записи ссылающиеся на переданную
-    procedure TryToDeleteDocumentReferences(AID: TID; AdditionalRelationName: String);
     // Удаление складских документов
     procedure DeleteDocuments;
     // Удаление пользовательских документов
@@ -95,40 +134,89 @@ type
     // Перенос бухгалтерского сальдо из AC_ENTRY_BALANCE в AC_ENTRY
     procedure TransferEntryBalance;
 
-    // Последовательное выполение всех действий для 'закрытия периода'
-    procedure DoClosePeriod;
+    procedure DoBeforeProcess;
+    procedure DoAfterProcess;
+    procedure DoOnProcessInterruption(const AErrorMessage: String);
+    procedure DoOnProcessMessage(const APosition, AMaxPosition: Integer; const AMessage: String);
 
-    property WriteTransaction: TIBTransaction read FWriteTransaction write FWriteTransaction;
-
-    property ExternalDatabasePath: String read FExtDatabasePath write FExtDatabasePath;
-    property ExternalDatabaseServer: String read FExtDatabaseServer write FExtDatabaseServer;
-    property ExternalDatabaseUser: String read FExtDatabaseUser write FExtDatabaseUser;
-    property ExternalDatabasePassword: String read FExtDatabasePassword write FExtDatabasePassword;
-
+    // Работает и сейчас закрытие периода
+    property InProcess: Boolean read GetInProcess;
+    // Пишущая транзакция для закрытия периода
+    //property WriteTransaction: TIBTransaction read FWriteTransaction write FWriteTransaction;
+    // Дата закрытия периода
     property CloseDate: TDateTime read FCloseDate write FCloseDate;
 
-    property ProgressBarLabel: TLabel read FProgressBarLabel write FProgressBarLabel;
-    property ProgressBar: TProgressBar read FProgressBar write FProgressBar;
-    property MessageLogMemo: TMemo read FMessageLogMemo write SetMessageLogMemo;
-    property DoMaintainLog: Boolean read FDoMaintainLog write FDoMaintainLog;
+    // Свойства для процедуры обрабатывающих сообщения модели
+    property OnBeforeProcessRoutine: TgsBeforeAfterProcessRoutine read FOnBeforeProcess write FOnBeforeProcess;
+    property OnAfterProcessRoutine: TgsBeforeAfterProcessRoutine read FOnAfterProcess write FOnAfterProcess;
+    property OnProcessInterruptionRoutine: TgsOnProcessInterruptionRoutine read FOnProcessInterruption write FOnProcessInterruption;
+    property OnProcessMessageRoutine: TgsOnProcessMessage read FOnProcessMessage write FOnProcessMessage;
+
+    // Свойства для доступа к полям, которые определяют, будет ли модель выполнять
+    //  соответствующие действия во время закрытия периода
+    property DoCalculateEntryBalance: Boolean read FDoCalculateEntryBalance write FDoCalculateEntryBalance;
+    property DoCalculateRemains: Boolean read FDoCalculateRemains write FDoCalculateRemains;
+    property DoReBindDepotCards: Boolean read FDoReBindDepotCards write FDoReBindDepotCards;
+    property DoDeleteEntry: Boolean read FDoDeleteEntry write FDoDeleteEntry;
+    property DoDeleteDocuments: Boolean read FDoDeleteDocuments write FDoDeleteDocuments;
+    property DoDeleteUserDocuments: Boolean read FDoDeleteUserDocuments write FDoDeleteUserDocuments;
+    property DoTransferEntryBalance: Boolean read FDoTransferEntryBalance write FDoTransferEntryBalance;
+  end;
+
+  TgdClosingThread = class(TThread)
+  protected
+    FModel: TgdClosingPeriod;
+  public
+    procedure Execute; override;
+
+    property Model: TgdClosingPeriod read FModel write FModel;
   end;
 
 implementation
 
 uses
   gdcInvDocument_unit, at_classes, gd_security,
-  Windows, Forms, db, contnrs, AcctUtils, AcctStrings, controls;
+  Windows, db, contnrs, AcctUtils, AcctStrings, controls, gdcAcctEntryRegister;
 
 const
   InvDocumentRUID = '174849703_1094302532';
+  INV_DOCUMENT_HEAD = 'USR$INV_DOCUMENT';
+  INV_DOCUMENT_LINE = 'USR$INV_DOCUMENTLINE';
   REFRESH_CLOSING_INFO_INTERVAL = 100;
+
+  SearchNewCardkeyTemplate =
+    'SELECT FIRST(1) ' +
+    '  card.id AS cardkey ' +
+    'FROM ' +
+      INV_DOCUMENT_HEAD + ' head ' +
+    '  LEFT JOIN gd_document doc ON doc.id = head.documentkey ' +
+    '  LEFT JOIN ' + INV_DOCUMENT_LINE + ' line ON line.masterkey = head.documentkey ' +
+    '  LEFT JOIN inv_card card ON card.id = line.fromcardkey ' +
+    'WHERE ' +
+    '  doc.documentdate = :closedate ' +
+    '  AND card.goodkey = :goodkey ' +
+    '  AND ' +
+    '    ((head.usr$in_contactkey = :contact_01) ' +
+    '    OR (head.usr$in_contactkey = :contact_02)) ';
+  SearchNewCardkeySimpleTemplate =
+    'SELECT FIRST(1) ' +
+    '  card.id AS cardkey ' +
+    'FROM ' +
+      INV_DOCUMENT_LINE + ' line ' +
+    '  JOIN gd_document doc ON doc.id = line.documentkey ' +
+    '  JOIN inv_card card ON card.id = line.fromcardkey ' +
+    'WHERE ' +
+    '  doc.documentdate = :closedate ' +
+    '  AND doc.documenttypekey = :doctypekey ' + 
+    '  AND card.goodkey = :goodkey ';
 
 { TgdClosingPeriod }
 
-constructor TgdClosingPeriod.Create(Transaction: TIBTransaction);
+constructor TgdClosingPeriod.Create;
 begin
-  if Assigned(Transaction) then
-    FWriteTransaction := Transaction;
+  FWriteTransaction := TIBTransaction.Create(Application);
+  FWriteTransaction.DefaultDatabase := gdcBaseManager.Database;
+  FWriteTransaction.Params.Add('no_auto_undo');
 
   FTableReferenceForeignKeysList := TStringList.Create;
   // Список полей-признаков складской карточки из настроек
@@ -136,46 +224,44 @@ begin
 
   FUserDocumentTypesToDelete := TgdKeyArray.Create;
   FDontDeleteDocumentTypes := TgdKeyArray.Create;
+  FDontDeleteCardArray := TgdKeyArray.Create;
+  FDontDeleteCardArray.Sorted := True;
+
+  FDummyInvDocumentKeys := TgdKeyIntAssoc.Create;
+  FDummyInvDocumentKeys.Sorted := True;
 
   FEntryAvailableAnalytics := TStringList.Create;
 
   FInsertedEntryBalanceRecordCount := 0;
+  FDummyInvCardKey := -1;
 
-  FProgressBar := nil;
-  FMessageLogMemo := nil;
-  FMessageLog := TStringList.Create;
-  FDoMaintainLog := False;
-
-  FIBSQLInsertGdDocument := TIBSQL.Create(nil);
-  FIBSQLInsertDocumentHeader := TIBSQL.Create(nil);
-  FIBSQLInsertDocumentPosition := TIBSQL.Create(nil);
-  FIBSQLInsertInvCard := TIBSQL.Create(nil);
-  FIBSQLInsertInvMovement := TIBSQL.Create(nil);
+  FIBSQLGetDepotHeaderKey := TIBSQL.Create(Application);
+  FIBSQLInsertGdDocument := TIBSQL.Create(Application);
+  FIBSQLInsertDocumentHeader := TIBSQL.Create(Application);
+  FIBSQLInsertDocumentPosition := TIBSQL.Create(Application);
+  FIBSQLInsertInvCard := TIBSQL.Create(Application);
+  FIBSQLInsertInvMovement := TIBSQL.Create(Application);
   FQueriesInitialized := False;
-
-  InitialFillOptions;
 end;
 
 destructor TgdClosingPeriod.Destroy;
 begin
-  // Если было указано вести лог, но никакой визуальной формы не использовалось
-  if FDoMaintainLog and not Assigned(FMessageLogMemo) then
-  begin
-    // спросить у пользователя о сохранении лога закрытия
-  end;
+  FreeAndNil(FWriteTransaction);
 
-  FIBSQLInsertGdDocument.Free;
-  FIBSQLInsertDocumentHeader.Free;
-  FIBSQLInsertDocumentPosition.Free;
-  FIBSQLInsertInvCard.Free;
-  FIBSQLInsertInvMovement.Free;
+  FreeAndNil(FIBSQLInsertGdDocument);
+  FreeAndNil(FIBSQLInsertDocumentHeader);
+  FreeAndNil(FIBSQLInsertDocumentPosition);
+  FreeAndNil(FIBSQLInsertInvCard);
+  FreeAndNil(FIBSQLInsertInvMovement);
+  FreeAndNil(FIBSQLGetDepotHeaderKey);
 
-  FMessageLog.Free;
-  FEntryAvailableAnalytics.Free;
-  FDontDeleteDocumentTypes.Free;
-  FUserDocumentTypesToDelete.Free;
-  FFeatureList.Free;
-  FTableReferenceForeignKeysList.Free;
+  FreeAndNil(FEntryAvailableAnalytics);
+  FreeAndNil(FDontDeleteDocumentTypes);
+  FreeAndNil(FDontDeleteCardArray);
+  FreeAndNil(FDummyInvDocumentKeys);
+  FreeAndNil(FUserDocumentTypesToDelete);
+  FreeAndNil(FFeatureList);
+  FreeAndNil(FTableReferenceForeignKeysList);
 end;
 
 procedure TgdClosingPeriod.AddDontDeleteDocumentType(DocType: TID);
@@ -211,29 +297,22 @@ end;
 procedure TgdClosingPeriod.CalculateRemains;
 var
   moveFieldList, balFieldList, cFieldList: String;
-  PseudoClient: TID;
   ibsql: TIBSQL;
   CurrentContactKey, NextSupplierKey, CurrentSupplierKey: TID;
   LineCount: Integer;
   DocumentParentKey: TID;
 begin
-  InitializeIBSQLQueries;
-
   // Запомним время начала расчета остатков
   FLocalStartTime := Time;
   // Визуализация процесса
-  SetupProgressBar(0, 1);
-  AddLogMessage(TimeToStr(FLocalStartTime) + ': Формирование остатков...');
+  DoOnProcessMessage(0, 1, 'Формирование остатков...');
 
   // Заполним список полей-признаков складской карточки из настроек
   moveFieldList := GetFeatureFieldList('move.');
   balFieldList := GetFeatureFieldList('bal.');
   cFieldList := GetFeatureFieldList('c.');
 
-  // На Псевдоклиента будет оформлятся расход товара при формировании остатков
-  PseudoClient := gdcBaseManager.GetIDByRUID(147004309, 31587988);            // TODO: заменить взятие ИД на выбор контакта в настройках
-
-  ibsql := TIBSQL.Create(nil);
+  ibsql := TIBSQL.Create(Application);
   try
     // Запрос на складские остатки
     // TODO: смотреть поле для поиска поставщика (usr$inv_addlinekey) по настройкам
@@ -307,8 +386,8 @@ begin
       '    bal.goodkey, ' +
       '    bal.companykey ' +
         IIF(balFieldList <> '', ', ' + balFieldList, '') +
-      '  HAVING ' +
-      '    SUM(bal.balance) >= 0 ' +
+      '  /*HAVING ' +
+      '    SUM(bal.balance) >= 0*/ ' +
       '  ) move ' +
       '   LEFT JOIN gd_contact cont ON cont.id = move.contactkey ' +
       ' ORDER BY ' +
@@ -319,24 +398,23 @@ begin
     LineCount := 0;
     CurrentContactKey := -1;
     CurrentSupplierKey := -1;
-    DocumentParentKey := -1;
 
     // Цикл по остаткам ТМЦ
     while not ibsql.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
-      begin
+      if FTerminatingProcess then
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
-          raise Exception.Create('Выполнение прервано');
-      end;
+          raise Exception.Create('Выполнение прервано')
+        else
+          FTerminatingProcess := False;
 
       // Если по полю USR$INV_ADDLINEKEY карточки нашли поставщика, создадим приход остатка с него
       if not ibsql.FieldByName('SUPPLIERKEY').IsNull then
         NextSupplierKey := ibsql.FieldByName('SUPPLIERKEY').AsInteger
       else
-        NextSupplierKey := PseudoClient;
+        NextSupplierKey := FPseudoClientKey;
 
       // Если в цикле набрели на другой контакт, или другого поставщика,
       //   или кол-во позиций в документе превысило 2000 (оперативка не резиновая),
@@ -351,8 +429,8 @@ begin
           // Визуализация процесса
           // Выведем конечное число позиций предыдущего контакта
           if CurrentContactKey > 0 then
-            AddLogMessage('  ' + IntToStr(LineCount) + ' позиций');
-          AddLogMessage(Format('> Контакт: %s', [ibsql.FieldByName('CONTACTNAME').AsString]));
+            DoOnProcessMessage(-1, -1, '  ' + IntToStr(LineCount) + ' позиций');
+          DoOnProcessMessage(-1, -1, Format('> Контакт: %s', [ibsql.FieldByName('CONTACTNAME').AsString]));
           // Сбросим счетчик позиций
           LineCount := 0;
           // Запомним текущий контакт
@@ -360,16 +438,28 @@ begin
         end;
         // Запомним текущего поставщика
         CurrentSupplierKey := NextSupplierKey;
+      end;
+
+      // Если остаток положителен то будем делать обычный приход на CurrentContactKey с CurrentSupplierKey
+      if ibsql.FieldByName('BALANCE').AsCurrency >= 0 then
+      begin
         // Вставим шапку документа и получим ее ID
         DocumentParentKey := AddDepotHeader(CurrentSupplierKey, CurrentContactKey, ibsql.FieldByName('COMPANYKEY').AsInteger);
+        // Создадим позицию INV_DOCUMENT
+        AddDepotPosition(CurrentSupplierKey, CurrentContactKey, ibsql.FieldByName('COMPANYKEY').AsInteger,
+          DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, ibsql.FieldByName('BALANCE').AsCurrency, ibsql);
+      end
+      else
+      begin
+        // Иначе будем делать приход на FPseudoClientKey с CurrentContactKey (с положительным значением кол-ва ТМЦ)
+        DocumentParentKey := AddDepotHeader(CurrentContactKey, FPseudoClientKey, ibsql.FieldByName('COMPANYKEY').AsInteger);
+        // Создадим позицию INV_DOCUMENT
+        AddDepotPosition(CurrentContactKey, FPseudoClientKey, ibsql.FieldByName('COMPANYKEY').AsInteger,
+          DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, - ibsql.FieldByName('BALANCE').AsCurrency, ibsql);
       end;
 
       // Увеличим счетчик позиций в одном документе
       Inc(LineCount);
-
-      // Создадим позицию INV_DOCUMENT
-      AddDepotPosition(CurrentSupplierKey, CurrentContactKey, ibsql.FieldByName('COMPANYKEY').AsInteger,
-        DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, ibsql.FieldByName('BALANCE').AsCurrency, ibsql);
 
       // TODO: при выборе признаков карточки которые будут подлежать сохранению, указывать поля которые ссылаются
       //   на документы подлежащие удалению, предупреждать пользователя что, при выборе таких полей может
@@ -379,9 +469,8 @@ begin
     end;
 
     // Визуализация процесса
-    SetupProgressBar(FProgressBar.Position, FProgressBar.Position);
-    AddLogMessage(TimeToStr(Time) + ': Формирование остатков завершено...');
-    AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
+    DoOnProcessMessage(1, 1, 'Формирование остатков завершено...'#13#10 +
+      'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
   finally
     ibsql.Free;
   end;
@@ -390,6 +479,8 @@ end;
 procedure TgdClosingPeriod.DeleteDocuments;
 const
   UPDATE_INV_CARD_SET_NULL = 'UPDATE inv_card SET %0:s = NULL WHERE %0:s = :dockey;';
+  UPDATE_PACK_INV_CARD_SET_NULL = 'UPDATE inv_card SET %0:s = NULL WHERE %0:s IN (%1:s);';
+  PACK_DOCUMENT_COUNT = 100;
 var
   ibsqlDocument: TIBSQL;
   ibsqlDeleteMovement: TIBSQL;
@@ -398,13 +489,15 @@ var
   ibsqlDeleteEntry: TIBSQL;
   ibsqlUpdateInvCard: TIBSQL;
   ibsqlSavepointManager: TIBSQL;
+  ibsqlBlockQuery: TIBSQL;
   DeletedCount, ErrorDocumentCount: Integer;
-  I, DocumentListIndex: Integer;
+  I, DocumentListIndex, DontDeleteIndex: Integer;
   GDDocumentReferenceFieldList: TStringList;
-  SQLText: String;
+  SQLText, PackUpdateInvCardSQLText, PackEntrySQLText: String;
   R: TatRelation;
-  DocumentKeysToDelayedDelete: TgdKeyStringAssoc;
-  CurrentRefreshInfoStep: Integer;
+  DocumentToDelete, DocumentKeysToDelayedDelete: TgdKeyStringAssoc;
+  PackDocumentCounter, AddTableCounter: Integer;
+  AddTableKeys: TStringList;
 
   procedure DeleteSingleDocument(const AID: TID; const AdditionalTableName: String; const ForceDelete: Boolean = false);
   begin
@@ -452,17 +545,98 @@ var
       ibsqlDeleteDocument.ParamByName('DOCKEY').AsInteger := AID;
       ibsqlDeleteDocument.ExecQuery;
     except
-      if ForceDelete then
+      on E: Exception do
       begin
-        // Пробуем удалить ссылки на текущую запись
-        TryToDeleteDocumentReferences(AID, 'GD_DOCUMENT');
-        // Снова пробуем удалить запись
-        ibsqlDeleteDocument.Close;
-        ibsqlDeleteDocument.ParamByName('DOCKEY').AsInteger := AID;
-        ibsqlDeleteDocument.ExecQuery;
-      end
-      else
-        raise;  
+        if ForceDelete then
+        begin
+          // Если ошибка удаления вылезла из-за ссылок на карточку, попробуем удалить эти ссылки
+          if (AnsiPos('LINE_FC', E.Message) > 0)
+             or (AnsiPos('INV_FK_CARD_PARENT', E.Message) > 0) then
+            TryToDeleteInvCardReferences(AID);
+          // Пробуем удалить ссылки на текущую запись
+          TryToDeleteDocumentReferences(AID, 'GD_DOCUMENT', ibsqlDocument.FieldByName('DOCTYPEKEY').AsInteger);
+          // Снова пробуем удалить запись
+          ibsqlDeleteDocument.Close;
+          ibsqlDeleteDocument.ParamByName('DOCKEY').AsInteger := AID;
+          ibsqlDeleteDocument.ExecQuery;
+        end
+        else
+          raise;
+      end;
+    end;
+  end;
+
+  procedure DeletePackDocuments(ADocumentList: TgdKeyStringAssoc);
+  var
+    DocumentCounter: Integer;
+    BlockSQLString: String;
+    AllKeysString: String;
+    AddTableLocalCounter, KeyCounter, AddTableIndex: Integer;
+  begin
+    // Сформируем запрос и удалим сразу пачку документов
+    try
+      AllKeysString := '';
+      // Сгруппируем ключи по таблицам
+      for KeyCounter := 0 to ADocumentList.Count - 1 do
+      begin
+        AllKeysString := AllKeysString + IntToStr(ADocumentList.Keys[KeyCounter]);
+        if KeyCounter <> (ADocumentList.Count - 1) then
+          AllKeysString := AllKeysString + ', ';
+
+        AddTableIndex := AddTableKeys.IndexOf(ADocumentList.ValuesByIndex[KeyCounter]);
+        if AddTableIndex = -1 then
+          AddTableIndex := AddTableKeys.AddObject(ADocumentList.ValuesByIndex[KeyCounter], TgdKeyArray.Create);
+        TgdKeyArray(AddTableKeys.Objects[AddTableIndex]).Add(ADocumentList.Keys[KeyCounter]);
+      end;
+
+      try
+        // Удаление ссылок на удаляемый документ из полей-признаков складских карточек
+        BlockSQLString := Format(PackUpdateInvCardSQLText, [AllKeysString]);
+
+        // Удалим позицию документа из дополнительной таблицы
+        for AddTableLocalCounter := 0 to AddTableKeys.Count - 1 do
+        begin
+          if TgdKeyArray(AddTableKeys.Objects[AddTableLocalCounter]).Count > 0 then
+            BlockSQLString := BlockSQLString + Format(
+              ' DELETE FROM %0:s WHERE documentkey IN (%1:s); '#13#10,
+              [AddTableKeys.Strings[AddTableLocalCounter], TgdKeyArray(AddTableKeys.Objects[AddTableLocalCounter]).CommaText]);
+        end;
+
+        // Удалим проводки по этому документу
+        BlockSQLString := BlockSQLString + Format(PackEntrySQLText, [AllKeysString]);
+
+        // Удалим складское движение по этому документу
+        BlockSQLString := BlockSQLString + Format('DELETE FROM inv_movement WHERE documentkey IN (%0:s);', [AllKeysString]);
+
+        // Удалим документ из GD_DOCUMENT
+        BlockSQLString := BlockSQLString + Format('DELETE FROM gd_document WHERE id IN (%0:s);', [AllKeysString]);
+
+        ibsqlBlockQuery.SQL.Text := ' EXECUTE BLOCK AS BEGIN ' + BlockSQLString + ' END ';
+        ibsqlBlockQuery.ExecQuery;
+
+        DeletedCount := DeletedCount + PackDocumentCounter;
+      finally
+        PackDocumentCounter := 0;
+        // Очистим список ключей сгруппированных по складским таблицам
+        for AddTableLocalCounter := 0 to AddTableKeys.Count - 1 do
+          if Assigned(AddTableKeys.Objects[AddTableLocalCounter]) then
+            TgdKeyArray(AddTableKeys.Objects[AddTableLocalCounter]).Clear;
+      end;
+    except
+      for DocumentCounter := 0 to ADocumentList.Count - 1 do
+      try
+        DeleteSingleDocument(ADocumentList.Keys[DocumentCounter], ADocumentList.ValuesByIndex[DocumentCounter]);
+        Inc(DeletedCount);
+      except
+        on E: Exception do
+        begin
+          // Занесем документ в список отложенного удаления
+          DocumentListIndex := DocumentKeysToDelayedDelete.Add(ADocumentList.Keys[DocumentCounter]);
+          DocumentKeysToDelayedDelete.ValuesByIndex[DocumentListIndex] := ADocumentList.ValuesByIndex[DocumentCounter];
+
+          Inc(ErrorDocumentCount);
+        end;
+      end;
     end;
   end;
 
@@ -470,8 +644,7 @@ begin
   FLocalStartTime := Time;
 
   // Визуализация процесса
-  SetupProgressBar(0, 1000000);
-  AddLogMessage(TimeToStr(FLocalStartTime) + ': Удаление документов...');
+  DoOnProcessMessage(0, 1000, 'Удаление документов...');
 
   ibsqlDocument := TIBSQL.Create(Application);
   ibsqlDeleteAddRecord := TIBSQL.Create(Application);
@@ -480,10 +653,17 @@ begin
   ibsqlDeleteEntry := TIBSQL.Create(Application);
   ibsqlUpdateInvCard := TIBSQL.Create(Application);
   ibsqlSavepointManager := TIBSQL.Create(Application);
+  ibsqlBlockQuery := TIBSQL.Create(Application);
 
+  // Список для группового удаления документов
+  DocumentToDelete := TgdKeyStringAssoc.Create;
   // Список отложенного удаления документов
   DocumentKeysToDelayedDelete := TgdKeyStringAssoc.Create;
+  // Список ключей документов для группового удаления, сгруппированных по имени таблицы
+  AddTableKeys := TStringList.Create;
   try
+    DocumentToDelete.Sorted := False;
+    DocumentKeysToDelayedDelete.Sorted := False;
 
     GDDocumentReferenceFieldList := TStringList.Create;
     try
@@ -498,12 +678,19 @@ begin
       // Запрос на удаление проводки
       ibsqlDeleteEntry.Transaction := FWriteTransaction;
       SQLText := '';
+      // Запрос будет использоваться в DeletePackDocuments
+      PackEntrySQLText := #13#10;
       for I := 0 to GDDocumentReferenceFieldList.Count - 1 do
       begin
         if SQLText <> '' then
+        begin
           SQLText := SQLText + ' OR ';
+          PackEntrySQLText := PackEntrySQLText + ' OR ';
+        end;
         SQLText := SQLText + ' ( ' + GDDocumentReferenceFieldList.Strings[I] + ' = :dockey ) ';
+        PackEntrySQLText := PackEntrySQLText + ' ( ' + GDDocumentReferenceFieldList.Strings[I] + ' IN (%0:s) ) ';
       end;
+      PackEntrySQLText := 'DELETE FROM ac_entry WHERE ' + PackEntrySQLText + ';'#13#10;
       ibsqlDeleteEntry.SQL.Text :=
         'DELETE FROM ac_entry WHERE ' + SQLText;
       ibsqlDeleteEntry.Prepare;
@@ -521,8 +708,14 @@ begin
       // Запрос на удаление ссылок на удаляемые документы из складских карточек
       ibsqlUpdateInvCard.Transaction := FWriteTransaction;
       SQLText := #13#10;
+      PackUpdateInvCardSQLText := #13#10;
       for I := 0 to GDDocumentReferenceFieldList.Count - 1 do
+      begin
         SQLText := SQLText + Format(UPDATE_INV_CARD_SET_NULL, [GDDocumentReferenceFieldList.Strings[I]]) + #13#10;
+        // Запрос будет использоваться в DeletePackDocuments
+        PackUpdateInvCardSQLText := PackUpdateInvCardSQLText +
+          Format(UPDATE_PACK_INV_CARD_SET_NULL, [GDDocumentReferenceFieldList.Strings[I], '%0:s']) + #13#10;
+      end;
       ibsqlUpdateInvCard.SQL.Text :=
         'EXECUTE BLOCK (dockey INTEGER = :dockey) AS BEGIN ' + SQLText + ' END ';
       ibsqlUpdateInvCard.Prepare;
@@ -530,6 +723,7 @@ begin
       GDDocumentReferenceFieldList.Free;
     end;
 
+    ibsqlBlockQuery.Transaction := FWriteTransaction;
     // Вытянем список документов на читающей транзакции, удалять будем на переданной
     ibsqlDocument.Transaction := gdcBaseManager.ReadTransaction;
     ibsqlDeleteAddRecord.Transaction := FWriteTransaction;
@@ -550,7 +744,11 @@ begin
     //   начиная с новейших записей
     ibsqlDocument.SQL.Text :=
       'SELECT ' +
+      '  doc.documentdate, ' +
+      '  doc.creationdate, ' +
+      '  doc.documenttypekey AS doctypekey, ' +
       '  doc.id AS documentkey, ' +
+      '  IIF(doc.parent IS NULL, 0, 1) AS is_position, ' +
       '  IIF(doc.parent IS NULL, headtable.relationname, linetable.relationname) AS addtablename ' +
       'FROM ' +
       '  gd_document doc ' +
@@ -564,125 +762,179 @@ begin
       '  AND NOT headtable.id IS NULL ' +
       '  AND NOT linetable.id IS NULL ' +
       'ORDER BY ' +
-      '  doc.documentdate DESC, doc.creationdate DESC ';
+      '  doc.documentdate DESC, 4 DESC, doc.creationdate DESC, doc.id DESC ';
     ibsqlDocument.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
     ibsqlDocument.ExecQuery;
 
     DeletedCount := 0;
     ErrorDocumentCount := 0;
-    CurrentRefreshInfoStep := 0;
+    PackDocumentCounter := 0;
+
     // Цикл по найденным документам, подлежащим удалению
     while not ibsqlDocument.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
+      if FTerminatingProcess then
       begin
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
         begin
           // Выведем список документов, которые не получилось удалить
-          AddLogMessage('Не удаленные документы:');
-          for I := 0 to DocumentKeysToDelayedDelete.Count - 1 do
-            AddLogMessage(DocumentKeysToDelayedDelete.ValuesByIndex[I] +
-              ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
-
-          raise Exception.Create('Выполнение прервано');
-        end;
-      end;
-
-      // Удалим текущий документ и его проводки
-      try
-        // Пробуем удалить документ
-        DeleteSingleDocument(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger,
-          ibsqlDocument.FieldByName('ADDTABLENAME').AsString);
-        Inc(DeletedCount);
-
-        // Каждые 100 документов будем запускать отложенное удаление
-        if DeletedCount mod 100 = 0 then
-          for I := 0 to DocumentKeysToDelayedDelete.Count - 1 do
+          if DocumentKeysToDelayedDelete.Count > 0 then
+            DoOnProcessMessage(-1, -1, 'Не удаленные документы:');
+          I := 0;
+          while (I <= DocumentKeysToDelayedDelete.Count - 1) do
           begin
             try
               // Пробуем удалить документ
               DeleteSingleDocument(DocumentKeysToDelayedDelete.Keys[I],
-                DocumentKeysToDelayedDelete.ValuesByIndex[I]);
-              // Удаляем документ из списка отложенных
-              DocumentKeysToDelayedDelete.Delete(I);
+                DocumentKeysToDelayedDelete.ValuesByIndex[I], True);
               Inc(DeletedCount);
               Dec(ErrorDocumentCount);
+              // Удаляем документ из списка отложенных
+              DocumentKeysToDelayedDelete.Delete(I);
             except
+              on E: Exception do
+              begin
+                DoOnProcessMessage(-1, -1, E.Message + #13#10 +
+                  DocumentKeysToDelayedDelete.ValuesByIndex[I] +
+                  ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
+                Inc(I);  
+              end;
+            end;
+          end;
+
+          raise Exception.Create('Выполнение прервано');
+        end
+        else
+          FTerminatingProcess := False;
+      end;
+
+      // Проверим можно ли удалять документ
+      if not FDontDeleteCardArray.Find(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger, DontDeleteIndex) then
+      begin
+        // Удалим текущий документ и его проводки
+        try
+          // Пробуем удалить документ
+          DeleteSingleDocument(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger,
+            ibsqlDocument.FieldByName('ADDTABLENAME').AsString, True);
+          Inc(DeletedCount);
+          ///
+          {if PackDocumentCounter >= PACK_DOCUMENT_COUNT then
+          begin
+            DeletePackDocuments(DocumentToDelete);
+            DocumentToDelete.Clear;
+          end
+          else
+          begin
+            DocumentListIndex := DocumentToDelete.Add(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger);
+            DocumentToDelete.ValuesByIndex[DocumentListIndex] := ibsqlDocument.FieldByName('ADDTABLENAME').AsString;
+            Inc(PackDocumentCounter);
+          end;}
+          ///
+        except
+          // Обрабатываем ошибку удаления документа
+          on E: Exception do
+          begin
+            // Занесем документ в список отложенного удаления
+            DocumentListIndex := DocumentKeysToDelayedDelete.Add(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger);
+            DocumentKeysToDelayedDelete.ValuesByIndex[DocumentListIndex] := ibsqlDocument.FieldByName('ADDTABLENAME').AsString;
+
+            Inc(ErrorDocumentCount);
+          end;
+        end;
+
+        if (DeletedCount > 0) and (DeletedCount mod 5000 = 0) then
+        begin
+          // Рестартанем транзакцию
+          FWriteTransaction.Commit;
+          FWriteTransaction.StartTransaction;
+        end;
+
+        // Каждые 50000 документов будем запускать отложенное удаление
+        if (DeletedCount > 0) and (DeletedCount mod 50000 = 0) then
+        begin
+          DoOnProcessMessage(-1, -1, 'Ошибок: ' + IntToStr(ErrorDocumentCount));
+
+          I := 0;
+          while (I <= DocumentKeysToDelayedDelete.Count - 1) do
+          begin
+            try
+              // Пробуем удалить документ
+              DeleteSingleDocument(DocumentKeysToDelayedDelete.Keys[I],
+                DocumentKeysToDelayedDelete.ValuesByIndex[I], True);
+              Inc(DeletedCount);
+              Dec(ErrorDocumentCount);
+              // Удаляем документ из списка отложенных
+              DocumentKeysToDelayedDelete.Delete(I);
+            except
+              Inc(I);
               // Если не получилось удалить, то ничего не делаем - пробуем удалить в следующий раз
             end;
           end;
-      except
-        // Обрабатываем ошибку удаления документа
-        on E: Exception do
-        begin
-          // Занесем документ в список отложенного удаления
-          DocumentListIndex := DocumentKeysToDelayedDelete.Add(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger);
-          DocumentKeysToDelayedDelete.ValuesByIndex[DocumentListIndex] := ibsqlDocument.FieldByName('ADDTABLENAME').AsString;
-
-          Inc(ErrorDocumentCount);
-          // Визуализация процесса
-          {AddLogMessage(E.Message + #13#10 +
-            ibsqlDocument.FieldByName('ADDTABLENAME').AsString +
-            ' ( ' + ibsqlDocument.FieldByName('DOCUMENTKEY').AsString + ' )');}
         end;
-      end;
 
-      // Визуализация процесса
-      if CurrentRefreshInfoStep >= REFRESH_CLOSING_INFO_INTERVAL then
-      begin
-        StepProgressBar(CurrentRefreshInfoStep);
-        CurrentRefreshInfoStep := 0;
-      end
-      else
-        Inc(CurrentRefreshInfoStep);
+        // Визуализация процесса
+        DoOnProcessMessage(DeletedCount, -1, '');
+      end;
 
       // Перейдем к следующему документу
       ibsqlDocument.Next;
     end;
-
-    // Визуализация процесса
-    SetupProgressBar(FProgressBar.Position, FProgressBar.Position);
+    ///
+    // Удалим оставшиеся накопленные в группе докуметы
+    {if PackDocumentCounter > 0 then
+    begin
+      DeletePackDocuments(DocumentToDelete);
+      DocumentToDelete.Clear;
+    end;}
+    ///
 
     // Последний раз пробуем удалить отложенные документы
-    for I := 0 to DocumentKeysToDelayedDelete.Count - 1 do
+    if DocumentKeysToDelayedDelete.Count > 0 then
+      DoOnProcessMessage(-1, -1, 'Не удаленные документы:');
+    I := 0;
+    while (I <= DocumentKeysToDelayedDelete.Count - 1) do
     begin
       try
         // Пробуем удалить документ
         DeleteSingleDocument(DocumentKeysToDelayedDelete.Keys[I],
-          DocumentKeysToDelayedDelete.ValuesByIndex[I]);
-        // Удаляем документ из списка отложенных
-        DocumentKeysToDelayedDelete.Delete(I);
+          DocumentKeysToDelayedDelete.ValuesByIndex[I], True);
         Inc(DeletedCount);
         Dec(ErrorDocumentCount);
+        // Удаляем документ из списка отложенных
+        DocumentKeysToDelayedDelete.Delete(I);
       except
-        {on E: Exception do
+        on E: Exception do
         begin
-          AddLogMessage(E.Message + #13#10 +
+          DoOnProcessMessage(-1, -1, E.Message + #13#10 +
             DocumentKeysToDelayedDelete.ValuesByIndex[I] +
             ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
-        end;}
+          Inc(I);
+        end;
       end;
     end;
 
-    // Выведем список документов, которые не получилось удалить
-    AddLogMessage('Не удаленные документы:');
-    for I := 0 to DocumentKeysToDelayedDelete.Count - 1 do
-      AddLogMessage(DocumentKeysToDelayedDelete.ValuesByIndex[I] +
-        ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
-    AddLogMessage(TimeToStr(Time) + ': Завершен процесс удаления документов...');
-    AddLogMessage(IntToStr(DeletedCount) + ' удалено, ' + IntToStr(ErrorDocumentCount) + ' ошибок');
-    AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
+    // Визуализация процесса
+    DoOnProcessMessage(DeletedCount, DeletedCount, '');
+    DoOnProcessMessage(-1, -1, TimeToStr(Time) + ': Завершен процесс удаления документов...'#13#10 +
+      IntToStr(DeletedCount) + ' удалено, ' + IntToStr(ErrorDocumentCount) + ' ошибок'#13#10 +
+      'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
   finally
-    DocumentKeysToDelayedDelete.Free;
+    for AddTableCounter := 0 to AddTableKeys.Count - 1 do
+      if Assigned(AddTableKeys.Objects[AddTableCounter]) then
+        AddTableKeys.Objects[AddTableCounter].Free;
+    FreeAndNil(AddTableKeys);
+    FreeAndNil(DocumentKeysToDelayedDelete);
+    FreeAndNil(DocumentToDelete);
 
-    ibsqlUpdateInvCard.Free;
-    ibsqlDeleteEntry.Free;
-    ibsqlDeleteAddRecord.Free;
-    ibsqlDeleteDocument.Free;
-    ibsqlDeleteMovement.Free;
-    ibsqlDocument.Free;
+    FreeAndNil(ibsqlBlockQuery);
+    FreeAndNil(ibsqlUpdateInvCard);
+    FreeAndNil(ibsqlDeleteEntry);
+    FreeAndNil(ibsqlDeleteAddRecord);
+    FreeAndNil(ibsqlDeleteDocument);
+    FreeAndNil(ibsqlDeleteMovement);
+    FreeAndNil(ibsqlDocument);
   end;
 end;
 
@@ -693,8 +945,7 @@ begin
   FLocalStartTime := Time;
 
   // Визуализация процесса
-  SetupProgressBar(0, 1);
-  AddLogMessage(TimeToStr(FLocalStartTime) + ': Удаление проводок...');
+  DoOnProcessMessage(0, 1, 'Удаление проводок...');
 
   ibsql := TIBSQL.Create(Application);
   try
@@ -707,9 +958,8 @@ begin
   end;
 
   // Визуализация процесса
-  SetupProgressBar(1, 1);
-  AddLogMessage(TimeToStr(Time) + ': Удаление проводок завершено');
-  AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
+  DoOnProcessMessage(1, 1, 'Удаление проводок завершено'#13#10 +
+    'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
 end;
 
 procedure TgdClosingPeriod.DeleteUserDocuments;
@@ -724,8 +974,7 @@ begin
   FLocalStartTime := Time;
 
   // Визуализация процесса
-  SetupProgressBar(0, 1);
-  AddLogMessage(TimeToStr(FLocalStartTime) + ': Удаление пользовательских документов...');
+  DoOnProcessMessage(0, 1, 'Удаление пользовательских документов...');
 
   // Если выбран хотя бы один тип пользовательских документов
   if FUserDocumentTypesToDelete.Count > 0 then
@@ -813,14 +1062,19 @@ begin
   end;
 
   // Визуализация процесса
-  SetupProgressBar(1, 1);
-  AddLogMessage(TimeToStr(Time) + ': Завершен процесс удаления пользовательских документов...');
-  AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
+  DoOnProcessMessage(1, 1, 'Завершен процесс удаления пользовательских документов...'#13#10 +
+    'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
 end;
 
 procedure TgdClosingPeriod.DoClosePeriod;
 begin
-
+  FTerminatingProcess := False;
+  // Создадим нить вызывающую процедуры закрытия
+  FWorkingThread := TgdClosingThread.Create(True);             
+  TgdClosingThread(FWorkingThread).Model := Self;
+  FWorkingThread.FreeOnTerminate := True;
+  FWorkingThread.Priority := tpLower;
+  FWorkingThread.Resume;
 end;
 
 {procedure TgdClosingPeriod.InsertDatabaseRecord;
@@ -854,31 +1108,6 @@ const
     'WHERE ' +
     '  line.%1:s = :old_cardkey ' +
     '  AND (SELECT doc.documentdate FROM gd_document doc WHERE doc.id = line.documentkey) >= :closedate ';
-  SearchNewCardkeyTemplate =
-    'SELECT FIRST(1) ' +
-    '  card.id AS cardkey ' +
-    'FROM ' +
-    '  usr$inv_document head ' +
-    '  LEFT JOIN gd_document doc ON doc.id = head.documentkey ' +
-    '  LEFT JOIN usr$inv_documentline line ON line.masterkey = head.documentkey ' +
-    '  LEFT JOIN inv_card card ON card.id = line.fromcardkey ' +
-    'WHERE ' +
-    '  doc.documentdate = :closedate ' +
-    '  AND card.goodkey = :goodkey ' +
-    '  AND ' +
-    '    ((head.usr$in_contactkey = :contact_01) ' +
-    '    OR (head.usr$in_contactkey = :contact_02)) ';
-  SearchNewCardkeySimpleTemplate =
-    'SELECT FIRST(1) ' +
-    '  card.id AS cardkey ' +
-    'FROM ' +
-    '  usr$inv_documentline line ' +
-    '  JOIN gd_document doc ON doc.id = line.documentkey ' +
-    '  JOIN inv_card card ON card.id = line.fromcardkey ' +
-    'WHERE ' +
-    '  doc.documentdate = :closedate ' +
-    '  AND doc.documenttypekey = :doctypekey ' + 
-    '  AND card.goodkey = :goodkey ';
   CardkeyFieldCount = 2;
   CardkeyFieldNames: array[0..CardkeyFieldCount - 1] of String = ('FROMCARDKEY', 'TOCARDKEY');
 var
@@ -891,7 +1120,7 @@ var
   CurrentRelationName: String;
   DocumentParentKey: TID;
   NewCardKey: Integer;
-  FeatureCounter: Integer;
+  FeatureCounter, RecordCounter: Integer;
   cFeatureList: String;
 
   procedure UpdateInvCard(const OldCardkey, NewCardkey: TID);
@@ -918,19 +1147,14 @@ var
   begin
     for I := 0 to CardkeyFieldCount - 1 do
     begin
-      try
+      if Assigned(atDatabase.FindRelationField(RelationName, CardkeyFieldNames[I])) then
+      begin
         ibsqlUpdateDocumentCardkey.Close;
         ibsqlUpdateDocumentCardkey.SQL.Text := Format(UpdateDocumentCardkeyTemplate, [RelationName, CardkeyFieldNames[I]]);
         ibsqlUpdateDocumentCardkey.ParamByName('OLD_CARDKEY').AsInteger := OldCardkey;
         ibsqlUpdateDocumentCardkey.ParamByName('NEW_CARDKEY').AsInteger := NewCardkey;
         ibsqlUpdateDocumentCardkey.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
         ibsqlUpdateDocumentCardkey.ExecQuery;
-      except
-        // в некоторых документах нет поля TOCARDKEY
-        {on E: Exception do
-        begin
-          AddLogMessage('---'#13#10 + RelationName + #13#10 + E.Message + #13#10'---');
-        end}
       end;
     end;
   end;
@@ -941,8 +1165,7 @@ begin
   FLocalStartTime := Time;
 
   // Визуализация процесса
-  SetupProgressBar(0, 35000);
-  AddLogMessage(TimeToStr(FLocalStartTime) + ': Перепривязка складских карточек...');
+  DoOnProcessMessage(0, 35000, 'Перепривязка складских карточек...');
 
   ibsql := TIBSQL.Create(Application);
   ibsqlSearchNewCardkey := TIBSQL.Create(Application);
@@ -1034,9 +1257,10 @@ begin
       '  m1.contactkey as fromcontactkey,' + #13#10 +
       '  m.contactkey as tocontactkey,' + #13#10 +
       '  linerel.relationname,' + #13#10 +
-      '  c1.id as cardkey,' + #13#10 +
-      '  c1.goodkey,' + #13#10 +
-      '  c1.companykey' + #13#10 +
+      '  c.id AS cardkey_new, ' + #13#10 +
+      '  c1.id as cardkey_old,' + #13#10 +
+      '  c.goodkey,' + #13#10 +
+      '  c.companykey' + #13#10 +
         IIF(cFeatureList <> '', ', ' + cFeatureList + #13#10, '') +
       'FROM' + #13#10 +
       '  gd_document d' + #13#10 +
@@ -1045,7 +1269,7 @@ begin
       '  LEFT JOIN inv_movement m1 ON m1.movementkey = m.movementkey AND m1.id <> m.id' + #13#10 +
       '  LEFT JOIN inv_card c ON c.id = m.cardkey' + #13#10 +
       '  LEFT JOIN inv_card c1 ON c1.id = m1.cardkey' + #13#10 +
-      '  LEFT JOIN gd_document d_old ON (/*(d_old.id = c.documentkey) or */(d_old.id = c1.documentkey))' + #13#10 +
+      '  LEFT JOIN gd_document d_old ON ((d_old.id = c.documentkey) or (d_old.id = c1.documentkey))' + #13#10 +
       '  LEFT JOIN at_relations linerel ON linerel.id = t.linerelkey' + #13#10 +
       'WHERE' + #13#10 +
       '  d.documentdate >= :closedate' + #13#10 +
@@ -1055,20 +1279,25 @@ begin
     ibsql.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
     ibsql.ExecQuery;
 
+    RecordCounter := 0;
     while not ibsql.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
-      begin
+      if FTerminatingProcess then
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
-          raise Exception.Create('Выполнение прервано');
-      end;
-      
-      // Визуализация процесса
-      StepProgressBar(1);  
+          raise Exception.Create('Выполнение прервано')
+        else
+          FTerminatingProcess := False;  
 
-      CurrentCardKey := ibsql.FieldByName('CARDKEY').AsInteger;
+      // Визуализация процесса
+      Inc(RecordCounter);
+      DoOnProcessMessage(RecordCounter, -1, '');
+
+      if ibsql.FieldByName('CARDKEY_OLD').IsNull then
+        CurrentCardKey := ibsql.FieldByName('CARDKEY_NEW').AsInteger
+      else
+        CurrentCardKey := ibsql.FieldByName('CARDKEY_OLD').AsInteger;
       CurrentFromContactkey := ibsql.FieldByName('FROMCONTACTKEY').AsInteger;
       CurrentToContactkey := ibsql.FieldByName('TOCONTACTKEY').AsInteger;
       CurrentRelationName := ibsql.FieldByName('RELATIONNAME').AsString;
@@ -1106,12 +1335,28 @@ begin
         end
         else
         begin
-          // Иначе вставим документ нулевого прихода, и перепривяжем на созданную им карточку
-          DocumentParentKey := AddDepotHeader(CurrentFromContactkey, CurrentFromContactkey, ibsql.FieldByName('COMPANYKEY').AsInteger);
-          NewCardKey := AddDepotPosition(CurrentFromContactkey, CurrentFromContactkey, ibsql.FieldByName('COMPANYKEY').AsInteger,
-            DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, 0);
+          // Поищем карточку без доп. признаков
+          ibsqlSearchNewCardkey.Close;
+          ibsqlSearchNewCardkey.SQL.Text := SearchNewCardkeyTemplate;
+          ibsqlSearchNewCardkey.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
+          ibsqlSearchNewCardkey.ParamByName('GOODKEY').AsInteger := ibsql.FieldByName('GOODKEY').AsInteger;
+          ibsqlSearchNewCardkey.ParamByName('CONTACT_01').AsInteger := CurrentFromContactkey;
+          ibsqlSearchNewCardkey.ParamByName('CONTACT_02').AsInteger := CurrentToContactkey;
+          ibsqlSearchNewCardkey.ExecQuery;
 
-          AddLogMessage(Format('  Создан документ нулевого прихода ID = %0:d', [DocumentParentKey]));
+          if ibsqlSearchNewCardkey.RecordCount > 0 then
+          begin
+            NewCardKey := ibsqlSearchNewCardkey.FieldByName('CARDKEY').AsInteger;
+          end
+          else
+          begin
+            // Иначе вставим документ нулевого прихода, и перепривяжем на созданную им карточку
+            DocumentParentKey := AddDepotHeader(CurrentFromContactkey, CurrentFromContactkey, ibsql.FieldByName('COMPANYKEY').AsInteger);
+            NewCardKey := AddDepotPosition(CurrentFromContactkey, CurrentFromContactkey, ibsql.FieldByName('COMPANYKEY').AsInteger,
+              DocumentParentKey, ibsql.FieldByName('GOODKEY').AsInteger, 0);
+
+            DoOnProcessMessage(-1, -1, Format('  Создан документ нулевого прихода ID = %0:d', [DocumentParentKey]));
+          end;
         end;
       end
       else
@@ -1153,16 +1398,16 @@ begin
       end
       else
       begin
-        AddLogMessage(Format('  Ошибка перепривязки карточки OLD_CARDKEY = %0:d', [CurrentCardKey]));
+        DoOnProcessMessage(-1, -1, Format('  Ошибка перепривязки карточки OLD_CARDKEY = %0:d', [CurrentCardKey]));
       end;
 
       ibsql.Next;
     end;
 
     // Визуализация процесса
-    SetupProgressBar(FProgressBar.Position, FProgressBar.Position);
-    AddLogMessage(TimeToStr(Time) + ': Завершен процесс перепривязки складских карточек...');
-    AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
+    DoOnProcessMessage(RecordCounter, RecordCounter,
+      'Завершен процесс перепривязки складских карточек...'#13#10 +
+      'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
   finally
     ibsqlUpdateDocumentCardkey.Free;
     ibsqlUpdateInvMovement.Free;
@@ -1184,15 +1429,23 @@ var
   I: Integer;
 begin
   WasActive := FWriteTransaction.Active;
-  if not WasActive then
-    FWriteTransaction.StartTransaction;
+  // Активацию\деактивацию триггеров проводим на отдельной транзакции
+  if WasActive then
+    FWriteTransaction.Commit;
+  FWriteTransaction.StartTransaction;
 
   if SetActive then
-    StateStr := 'ACTIVE'
+  begin
+    StateStr := 'ACTIVE';
+    DoOnProcessMessage(-1, -1, 'Активация триггеров');
+  end
   else
+  begin
     StateStr := 'INACTIVE';
+    DoOnProcessMessage(-1, -1, 'Деактивация триггеров');
+  end;
 
-  ibsql := TIBSQL.Create(nil);
+  ibsql := TIBSQL.Create(Application);
   try
     ibsql.Transaction := FWriteTransaction;
 
@@ -1211,7 +1464,8 @@ begin
     FWriteTransaction.StartTransaction;
 end;
 
-procedure TgdClosingPeriod.TryToDeleteDocumentReferences(AID: TID; AdditionalRelationName: String);
+procedure TgdClosingPeriod.TryToDeleteDocumentReferences(const AID: TID;
+  const AdditionalRelationName: String; const ADocTypeKey: Integer = -1);
 var
   TableReferenceIndex: Integer;
   OL: TObjectList;
@@ -1243,9 +1497,9 @@ begin
 
   // Пройдем по списку внешних ключей, и поищем записи ссылающиеся на переданную
   OL := TObjectList(FTableReferenceForeignKeysList.Objects[TableReferenceIndex]);
-  ibsql := TIBSQL.Create(nil);
-  ibsqlUpdate := TIBSQL.Create(nil);
-  ibsqlSelect := TIBSQL.Create(nil);
+  ibsql := TIBSQL.Create(Application);
+  ibsqlUpdate := TIBSQL.Create(Application);
+  ibsqlSelect := TIBSQL.Create(Application);
   try
     ibsql.Transaction := FWriteTransaction;
     ibsqlUpdate.Transaction := FWriteTransaction;
@@ -1268,7 +1522,7 @@ begin
       if ibsql.RecordCount > 0 then
       begin
         // Если поле-ссылку можно обнулить, сделаем это.
-        // TODO: Иначе поставим ссылку на любую другую подходящую запись ???
+        // Иначе поставим ссылку на заглушку такого же типа
         if TatForeignKey(OL.Items[ForeignKeyCounter]).ConstraintField.IsNullable then
         begin
           ibsqlUpdate.Close;
@@ -1278,17 +1532,17 @@ begin
         end
         else
         begin
-          ////
-          AddLogMessage(Format('NOT NULL: %1:s(%2:s) -> %0:s', [AdditionalRelationName, ReferencesRelationName, ReferencesFieldName]));
-          ////
-          {ibsqlSelect.Close;
-          ibsqlSelect.SQL.Text := Format('SELECT FIRST(1) %1:s FROM %0:s WHERE %1:s = :aid', [AdditionalRelationName, AdditionalFieldName]);
-          ibsqlSelect.ExecQuery;
-
-          if ibsqlSelect.RecordCount > 0 then
+          if ADocTypeKey <> -1 then
           begin
-
-          end;}
+            ibsqlUpdate.Close;
+            ibsqlUpdate.SQL.Text := Format('UPDATE %0:s SET %1:s = :newkey WHERE %1:s = :aid', [ReferencesRelationName, ReferencesFieldName]);
+            ibsqlUpdate.ParamByName('AID').AsInteger := AID;
+            ibsqlUpdate.ParamByName('NEWKEY').AsInteger := CreateDummyInvDocument(ADocTypeKey);
+            ibsqlUpdate.ExecQuery;
+          end  
+          else
+            DoOnProcessMessage(-1, -1, Format('NOT NULL: %1:s(%2:s) -> %0:s',
+              [AdditionalRelationName, ReferencesRelationName, ReferencesFieldName]));
         end;
       end;
     end;
@@ -1304,10 +1558,12 @@ var
   I: Integer;
 begin
   Result := '';
+  // Пройдем по списку выбранных признаков
   for I := 0 to FFeatureList.Count - 1 do
   begin
     if Result <> '' then
       Result := Result + ', ';
+    // Подставим следующее имя поля
     Result := Result + AAlias + FFeatureList.Strings[i];
   end;
 end;
@@ -1360,11 +1616,12 @@ var
   AnalyticCounter: Integer;
   Analytics: String;
   BalanceAnalytics, InsertAnalytics: String;
+  RecordCounter: Integer;
 begin
   FLocalStartTime := Time;
 
   // Визуализация процесса
-  AddLogMessage(TimeToStr(FLocalStartTime) + ': Вычисление бухгалтерских остатков...');
+  DoOnProcessMessage(-1, -1, 'Вычисление бухгалтерских остатков...');
 
   // Занесем названия всех полей-аналитик в строку
   Analytics := '';
@@ -1375,8 +1632,8 @@ begin
     Analytics := Analytics + ' ac.' + FEntryAvailableAnalytics.Strings[AnalyticCounter];
   end;
 
-  ibsql := TIBSQL.Create(nil);
-  ibsqlAccount := TIBSQL.Create(nil);
+  ibsql := TIBSQL.Create(Application);
+  ibsqlAccount := TIBSQL.Create(Application);
   try
     ibsql.Transaction := FWriteTransaction;
     ibsqlAccount.Transaction := gdcBaseManager.ReadTransaction;
@@ -1386,14 +1643,13 @@ begin
     ibsqlAccount.ExecQuery;
 
     // Визуализация процесса
-    SetupProgressBar(0, ibsqlAccount.FieldByName('AccCount').AsInteger);
-    AddLogMessage('Удаление устаревших данных...');
+    DoOnProcessMessage(0, ibsqlAccount.FieldByName('AccCount').AsInteger, 'Удаление устаревших данных...');
 
     // Удалим старые данные сальдо
     ibsql.SQL.Text := 'DELETE FROM ac_entry_balance';
     ibsql.ExecQuery;
 
-    AddLogMessage('Вычисление бухгалтерских остатков...');
+    DoOnProcessMessage(-1, -1, 'Вычисление бухгалтерских остатков...');
 
     // Вытянем все счета
     ibsqlAccount.Close;
@@ -1407,18 +1663,20 @@ begin
       '   ac.alias ';
     ibsqlAccount.ExecQuery;
 
+    RecordCounter := 0;
     while not ibsqlAccount.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if {Self.Active and }((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
-      begin
+      if FTerminatingProcess then
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
-          raise Exception.Create('Выполнение прервано');
-      end;
+          raise Exception.Create('Выполнение прервано')
+        else
+          FTerminatingProcess := False;
 
       // Визуализация процесса
-      StepProgressBar;
+      Inc(RecordCounter);
+      DoOnProcessMessage(RecordCounter, -1, '');
 
       // возьмем выбранные аналитики по расчитываемому счету
       BalanceAnalytics := '';
@@ -1453,9 +1711,8 @@ begin
     ibsql.ExecQuery;
 
     // Визуализация процесса
-    SetupProgressBar(ProgressBar.Position, ProgressBar.Position);
-    AddLogMessage(TimeToStr(FLocalStartTime) + ': Вычисление бухгалтерских остатков завершено');
-    AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
+    DoOnProcessMessage(RecordCounter, RecordCounter, 'Вычисление бухгалтерских остатков завершено'#13#10 +
+      'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
   finally
     ibsqlAccount.Free;
     ibsql.Free;
@@ -1500,17 +1757,17 @@ var
   InsertAnalytics, ValuesAnalytics: String;
   AnalyticCounter: Integer;
   CurrentCompanyKey: TID;
-  CurrentRefreshInfoStep: Integer;
+  RecordCounter: Integer;
 begin
   FLocalStartTime := Time;
 
   // Визуализация процесса
-  AddLogMessage(TimeToStr(FLocalStartTime) + ': Копирование бухгалтерских остатков...');
+  DoOnProcessMessage(-1, -1, 'Копирование бухгалтерских остатков...');
 
-  ibsqlSelect := TIBSQL.Create(nil);
-  ibsqlInsertACRecord := TIBSQL.Create(nil);
-  ibsqlInsertGDDocument := TIBSQL.Create(nil);
-  ibsqlInsertACEntry := TIBSQL.Create(nil);
+  ibsqlSelect := TIBSQL.Create(Application);
+  ibsqlInsertACRecord := TIBSQL.Create(Application);
+  ibsqlInsertGDDocument := TIBSQL.Create(Application);
+  ibsqlInsertACEntry := TIBSQL.Create(Application);
   try
     ibsqlSelect.Transaction := FWriteTransaction;
     ibsqlInsertACRecord.Transaction := FWriteTransaction;
@@ -1553,20 +1810,19 @@ begin
       '   ac_entry_balance ';
     ibsqlSelect.ExecQuery;
 
-    SetupProgressBar(0, FInsertedEntryBalanceRecordCount);
+    DoOnProcessMessage(0, FInsertedEntryBalanceRecordCount, '');
 
     CurrentCompanyKey := -1;
     NextDocumentKey := -1;
-    CurrentRefreshInfoStep := 0;
+    RecordCounter := 0;
     while not ibsqlSelect.Eof do
     begin
-      // При нажатии Escape прервем процесс
-      if {Self.Active and }((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0) then
-      begin
+      if FTerminatingProcess then
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
-          raise Exception.Create('Выполнение прервано');
-      end;
+          raise Exception.Create('Выполнение прервано')
+        else
+          FTerminatingProcess := False;
 
       if CurrentCompanyKey <> ibsqlSelect.FieldByName('COMPANYKEY').AsInteger then
       begin
@@ -1657,18 +1913,13 @@ begin
       ibsqlInsertACEntry.ExecQuery;
 
       // Визуализация процесса
-      if CurrentRefreshInfoStep >= REFRESH_CLOSING_INFO_INTERVAL then
-      begin
-        StepProgressBar(CurrentRefreshInfoStep);
-        CurrentRefreshInfoStep := 0;
-      end
-      else
-        Inc(CurrentRefreshInfoStep);
+      Inc(RecordCounter);
+      DoOnProcessMessage(RecordCounter, -1, '');
 
       ibsqlSelect.Next;
     end;
 
-    AddLogMessage('Удаление временных данных...');
+    DoOnProcessMessage(-1, -1, 'Удаление временных данных...');
 
     ibsqlSelect.Close;
     ibsqlSelect.SQL.Text := 'DELETE FROM ac_entry_balance';
@@ -1684,77 +1935,20 @@ begin
     ibsqlSelect.Free;
   end;
   // Визуализация процесса
-  SetupProgressBar(FInsertedEntryBalanceRecordCount, FInsertedEntryBalanceRecordCount);
-  AddLogMessage(TimeToStr(FLocalStartTime) + ': Копирование бухгалтерских остатков завершено');
-  AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
-end;
-
-procedure TgdClosingPeriod.AddLogMessage(const AMessage: String);
-begin
-  // Если указали вести лог закрытия
-  if FDoMaintainLog then
-  begin
-    FMessageLog.Add(AMessage);
-    // Если присвоили TMemo для отображения лога
-    if Assigned(FMessageLogMemo) then
-    begin
-      FMessageLogMemo.Lines.Add(AMessage);
-      UpdateWindow(FMessageLogMemo.Handle);
-    end;
-  end;
-end;
-
-procedure TgdClosingPeriod.SetMessageLogMemo(const Value: TMemo);
-begin
-  FMessageLogMemo := Value;
-  // Если передан существующий TMemo, значит будем вести лог
-  if Assigned(Value) then
-    FDoMaintainLog := True
-  else
-    FDoMaintainLog := False;
-end;
-
-procedure TgdClosingPeriod.SetupProgressBar(const APosition, AMaxPosition: Integer);
-begin
-  if Assigned(FProgressBar) then
-  begin
-    FProgressBar.Position := APosition;
-    FProgressBar.Max := AMaxPosition;
-    UpdateWindow(FProgressBar.Handle);
-  end;
-
-  if Assigned(FProgressBarLabel) then
-  begin
-    FProgressBarLabel.Caption := IntToStr(APosition) + ' / ' + IntToStr(AMaxPosition);
-    if Assigned(FProgressBarLabel.Owner) then
-      UpdateWindow(TWinControl(FProgressBarLabel.Owner).Handle);
-  end;
-end;
-
-procedure TgdClosingPeriod.StepProgressBar(const AStepValue: Integer = 1);
-begin
-  if Assigned(FProgressBar) then
-  begin
-    // Если мы достигли конца ПрогрессБара, а процесс еще идет, увеличим его размер
-    if FProgressBar.Position >= FProgressBar.Max then
-      FProgressBar.Max := FProgressBar.Max * 2;
-    FProgressBar.StepBy(AStepValue);
-    UpdateWindow(FProgressBar.Handle);
-  end;
-
-  if Assigned(FProgressBarLabel) then
-  begin
-    FProgressBarLabel.Caption := IntToStr(FProgressBar.Position) + ' / ' + IntToStr(FProgressBar.Max);
-    if Assigned(FProgressBarLabel.Owner) then
-      UpdateWindow(TWinControl(FProgressBarLabel.Owner).Handle);
-  end;
+  DoOnProcessMessage(FInsertedEntryBalanceRecordCount, FInsertedEntryBalanceRecordCount,
+    'Копирование бухгалтерских остатков завершено'#13#10 +
+    'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
 end;
 
 procedure TgdClosingPeriod.InitialFillOptions;
 var
   AcAccountRelation: TatRelation;
-  AnalyticCounter: Integer;
+  AnalyticCounter, ForeignKeyCounter: Integer;
+  TableReferenceIndex: Integer;
+  OL: TObjectList;
 begin
+  // На Псевдоклиента будет оформлятся расход товара при формировании остатков
+  FPseudoClientKey := gdcBaseManager.GetIDByRUID(147004309, 31587988);            // TODO: заменить взятие ИД на выбор контакта в настройках
   // Выберем подходящие бухгалтерские аналитики
   AcAccountRelation := atDatabase.Relations.ByRelationName('AC_ACCOUNT');
   if Assigned(AcAccountRelation) then
@@ -1768,30 +1962,67 @@ begin
   end
   else
     raise Exception.Create('AC_ACCOUNT not found!');
+
+  // Заполним для INV_CARD список внешних ключей из складских таблиц
+  if not FTableReferenceForeignKeysList.Find('INV_CARD', TableReferenceIndex) then
+  begin
+    // Создадим новый список внешних ключей ссылающихся на переданную таблицу
+    TableReferenceIndex := FTableReferenceForeignKeysList.AddObject('INV_CARD', TObjectList.Create(False));
+    OL := TObjectList.Create(False);
+    try
+      // Получим список внешних ключей ссылающихся на переданную таблицу
+      atDatabase.ForeignKeys.ConstraintsByReferencedRelation('INV_CARD', OL);
+      // Возьмем только простые внешние ключи
+      for ForeignKeyCounter := 0 to OL.Count - 1 do
+      begin
+        if (TatForeignKey(OL.Items[ForeignKeyCounter]).ConstraintField.FieldName = 'FROMCARDKEY')
+           or (TatForeignKey(OL.Items[ForeignKeyCounter]).ConstraintField.FieldName = 'TOCARDKEY')
+           or (TatForeignKey(OL.Items[ForeignKeyCounter]).ConstraintField.FieldName = 'PARENT') then
+          TObjectList(FTableReferenceForeignKeysList.Objects[TableReferenceIndex]).Add(OL.Items[ForeignKeyCounter]);
+      end;
+    except
+      OL.Free;
+    end;
+  end;
 end;
 
 function TgdClosingPeriod.AddDepotHeader(const FromContact, ToContact, CompanyKey: TID): TID;
 var
   NextDocumentKey: TID;
 begin
-  // Получим ИД документа шапки
-  NextDocumentKey := gdcBaseManager.GetNextID;
-  // Вставим запись в gd_document
-  FIBSQLInsertGdDocument.Close;
-  FIBSQLInsertGdDocument.ParamByName('ID').AsInteger := NextDocumentKey;
-  FIBSQLInsertGdDocument.ParamByName('PARENT').Clear;
-  FIBSQLInsertGdDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
-  FIBSQLInsertGdDocument.ParamByName('DOCUMENTDATE').AsDateTime := FCloseDate;
-  FIBSQLInsertGdDocument.ExecQuery;
+  // Попробуем найти шапку с такими контактами
+  FIBSQLGetDepotHeaderKey.Close;
+  FIBSQLGetDepotHeaderKey.ParamByName('OUTCONTACT').AsInteger := FromContact;
+  FIBSQLGetDepotHeaderKey.ParamByName('INCONTACT').AsInteger := ToContact;
+  FIBSQLGetDepotHeaderKey.ExecQuery;
 
-  // Вставим запись в дополнительную таблицу документа шапки
-  FIBSQLInsertDocumentHeader.Close;
-  FIBSQLInsertDocumentHeader.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
-  FIBSQLInsertDocumentHeader.ParamByName('OUTCONTACT').AsInteger := FromContact;
-  FIBSQLInsertDocumentHeader.ParamByName('INCONTACT').AsInteger := ToContact;
-  FIBSQLInsertDocumentHeader.ExecQuery;
+  if FIBSQLGetDepotHeaderKey.RecordCount > 0 then
+  begin
+    Result := FIBSQLGetDepotHeaderKey.FieldByName('DOCUMENTKEY').AsInteger;
+  end
+  else
+  begin
+    // Если такой шапки не нашлось, вставим новую
+    
+    // Получим ИД документа шапки
+    NextDocumentKey := gdcBaseManager.GetNextID;
+    // Вставим запись в gd_document
+    FIBSQLInsertGdDocument.Close;
+    FIBSQLInsertGdDocument.ParamByName('ID').AsInteger := NextDocumentKey;
+    FIBSQLInsertGdDocument.ParamByName('PARENT').Clear;
+    FIBSQLInsertGdDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+    FIBSQLInsertGdDocument.ParamByName('DOCUMENTDATE').AsDateTime := FCloseDate;
+    FIBSQLInsertGdDocument.ExecQuery;
 
-  Result := NextDocumentKey;
+    // Вставим запись в дополнительную таблицу документа шапки
+    FIBSQLInsertDocumentHeader.Close;
+    FIBSQLInsertDocumentHeader.ParamByName('DOCUMENTKEY').AsInteger := NextDocumentKey;
+    FIBSQLInsertDocumentHeader.ParamByName('OUTCONTACT').AsInteger := FromContact;
+    FIBSQLInsertDocumentHeader.ParamByName('INCONTACT').AsInteger := ToContact;
+    FIBSQLInsertDocumentHeader.ExecQuery;
+
+    Result := NextDocumentKey;
+  end;
 end;
 
 function TgdClosingPeriod.AddDepotPosition(const FromContact, ToContact, CompanyKey,
@@ -1876,7 +2107,7 @@ begin
     // Сущестует ли поле-ссылка на позицию прихода
     FAddLineKeyFieldExists := Assigned(atDatabase.FindRelationField('INV_CARD', 'USR$INV_ADDLINEKEY'));
     // Получим необходимые наименования таблиц и полей
-    gdcObject := TgdcInvDocument.Create(nil);
+    gdcObject := TgdcInvDocument.Create(Application);
     try
       gdcObject.Transaction := FWriteTransaction;
       gdcObject.SubType := InvDocumentRUID;
@@ -1889,6 +2120,13 @@ begin
     finally
       gdcObject.Free;
     end;
+
+    // Запрос возвращает ключ документа из InvRelationName по указанным поставщику и складу
+    FIBSQLGetDepotHeaderKey.Transaction := FWriteTransaction;
+    FIBSQLGetDepotHeaderKey.SQL.Text := Format(
+      ' SELECT documentkey FROM %0:s ' +
+      ' WHERE %1:s = :incontact AND %2:s = :outcontact ', [InvRelationName, InvDocumentInField, InvDocumentOutField]);
+    FIBSQLGetDepotHeaderKey.Prepare;
 
     // Запрос на вставку записи в gd_document
     FIBSQLInsertGdDocument.Transaction := FWriteTransaction;
@@ -1952,6 +2190,396 @@ begin
     FIBSQLInsertInvMovement.Prepare;
 
     FQueriesInitialized := True;
+  end;
+end;
+
+procedure TgdClosingPeriod.SetClosingDatabaseParams(const ADBPAth,
+  ADBServer, ADBUser, ADBPAssword: String);
+begin
+  FExtDatabasePath := ADBPAth;
+  FExtDatabaseServer := ADBServer;
+  FExtDatabaseUser := ADBUser;
+  FExtDatabasePassword := ADBPAssword;
+end;
+
+procedure TgdClosingPeriod.DoAfterProcess;
+begin
+  if FWriteTransaction.InTransaction then
+    FWriteTransaction.Commit;
+  if Assigned(FOnAfterProcess) then
+    FOnAfterProcess;
+end;
+
+procedure TgdClosingPeriod.DoBeforeProcess;
+begin
+  if Assigned(FOnBeforeProcess) then
+    FOnBeforeProcess;
+  FWriteTransaction.StartTransaction;
+  InitialFillOptions;
+  InitializeIBSQLQueries;  
+end;
+
+procedure TgdClosingPeriod.DoOnProcessInterruption(const AErrorMessage: String);
+begin
+  // Откатим пишущую транзакцию
+  if FWriteTransaction.InTransaction then
+    FWriteTransaction.Rollback;
+  if Assigned(FOnProcessInterruption) then
+    FOnProcessInterruption(AErrorMessage);
+end;
+
+procedure TgdClosingPeriod.DoOnProcessMessage(const APosition, AMaxPosition: Integer; const AMessage: String);
+begin
+  if Assigned(FOnProcessMessage) then
+    FOnProcessMessage(APosition, AMaxPosition, AMessage);
+end;
+
+function TgdClosingPeriod.GetInProcess: Boolean;
+begin
+  Result := False;
+  if Assigned(FWorkingThread) and not FWorkingThread.Suspended then
+    Result := True;
+end;
+
+procedure TgdClosingPeriod.StopProcess;
+begin
+  if InProcess then
+  begin
+    FTerminatingProcess := True;
+  end;
+end;
+
+procedure TgdClosingPeriod.ResumeProcess;
+begin
+  FTerminatingProcess := False;
+end;
+
+procedure TgdClosingPeriod.PrepareDontDeleteDocumentList;
+var
+  ibsqlSelect: TIBSQL;
+  DocTypeCounter: Integer;
+  TempOutVariable: Integer;
+begin
+  ibsqlSelect := TIBSQL.Create(Application);
+  try
+    // Подготовим запрос который вытащит ключи документов типов, которые нельзя удалять
+    ibsqlSelect.Transaction := FWriteTransaction;
+    ibsqlSelect.SQL.Text :=
+      ' SELECT ' +
+      '   d.id, c.firstdocumentkey AS firstid ' +
+      ' FROM ' +
+      '   gd_document d ' +
+      '   LEFT JOIN inv_card c ON c.documentkey = d.id ' +
+      ' WHERE ' +
+      '   d.documenttypekey = :doctypekey ' +
+      '   AND d.documentdate < :closedate ' +
+      '   AND NOT d.parent IS NULL ' +
+      ' ORDER BY ' +
+      '   d.id';
+    ibsqlSelect.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
+
+    // Пройдем по типам документов, которые нельзя удалять
+    for DocTypeCounter := 0 to FDontDeleteDocumentTypes.Count - 1 do
+    begin
+      ibsqlSelect.ParamByName('DOCTYPEKEY').AsInteger := FDontDeleteDocumentTypes.Keys[DocTypeCounter];
+      ibsqlSelect.ExecQuery;
+
+      // Пройдем по всем ключам и занесем их в список
+      while not ibsqlSelect.Eof do
+      begin
+        if not FDontDeleteCardArray.Find(ibsqlSelect.FieldByName('ID').AsInteger, TempOutVariable) then
+          FDontDeleteCardArray.Add(ibsqlSelect.FieldByName('ID').AsInteger);
+        if not FDontDeleteCardArray.Find(ibsqlSelect.FieldByName('FIRSTID').AsInteger, TempOutVariable) then
+          FDontDeleteCardArray.Add(ibsqlSelect.FieldByName('FIRSTID').AsInteger);
+
+        ibsqlSelect.Next;
+      end;
+
+      ibsqlSelect.Close;
+    end;
+
+    //DoOnProcessMessage(-1, -1, Format('Кол-во документов: %d', [FDontDeleteCardArray.Count]));
+  finally
+    FreeAndNil(ibsqlSelect);
+  end;
+end;
+
+function TgdClosingPeriod.CreateDummyInvDocument(const ADocTypeKey: TID): TID;
+var
+  ibsqlDocumentInsert: TIBSQL;
+  NextDocumentKey: TID;
+  DummyDocumentIndex: Integer;
+begin
+  // Поищем такой тип в списке, возможно для него уже создана заглушка
+  if FDummyInvDocumentKeys.Find(ADocTypeKey, DummyDocumentIndex) then
+  begin
+    Result := FDummyInvDocumentKeys.ValuesByIndex[DummyDocumentIndex];
+  end
+  else
+  begin
+    ibsqlDocumentInsert := TIBSQL.Create(Application);
+    try
+      NextDocumentKey := gdcBaseManager.GetNextID;
+      // Вставка записи в GD_DOCUMENT
+      ibsqlDocumentInsert.Transaction := FWriteTransaction;
+      ibsqlDocumentInsert.SQL.Text := Format(
+        'INSERT INTO gd_document ' +
+        '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, creatorkey, editorkey) ' +
+        'VALUES ' +
+        '  (%0:d, :parent, %1:d, ''CP_DUMMY'', :documentdate, %2:d, -1, -1, -1, %3d, %3d) ',
+        [NextDocumentKey, ADocTypeKey, IBLogin.CompanyKey, IBLogin.ContactKey]);
+      ibsqlDocumentInsert.FieldByName('DOCUMENTDATE').AsDateTime := FCloseDate;
+      ibsqlDocumentInsert.ExecQuery;
+    finally
+      FreeAndNil(ibsqlDocumentInsert);
+    end;
+
+    // Запомним ключ заглушки
+    DummyDocumentIndex := FDummyInvDocumentKeys.Add(ADocTypeKey);
+    FDummyInvDocumentKeys.ValuesByIndex[DummyDocumentIndex] := NextDocumentKey;
+
+    Result := NextDocumentKey;
+  end;
+end;
+
+procedure TgdClosingPeriod.TryToDeleteInvCardReferences(const ADocumentKey: TID);
+var
+  TableReferenceIndex: Integer;
+  OL: TObjectList;
+  ibsqlCardSelect, ibsqlDocumentSelect, ibsqlDocumentUpdate: TIBSQL;
+  ReferencesRelationName, ReferencesFieldName: String;
+  ForeignKeyCounter, FeatureCounter: Integer;
+  CardReplacementKey: Integer;
+begin
+  TableReferenceIndex := FTableReferenceForeignKeysList.IndexOf('INV_CARD');
+  if TableReferenceIndex > -1 then
+  begin
+    OL := TObjectList(FTableReferenceForeignKeysList.Objects[TableReferenceIndex]);
+
+    ibsqlCardSelect := TIBSQL.Create(Application);
+    ibsqlDocumentSelect := TIBSQL.Create(Application);
+    ibsqlDocumentUpdate := TIBSQL.Create(Application);
+    try
+      ibsqlDocumentSelect.Transaction := FWriteTransaction;
+      ibsqlDocumentUpdate.Transaction := FWriteTransaction;
+
+      // Получим ключи карточек которые ссылаются на переданный документ
+      ibsqlCardSelect.Transaction := FWriteTransaction;
+      ibsqlCardSelect.SQL.Text :=
+        'SELECT ' +
+        '  c.id, c.goodkey ';
+      for FeatureCounter := 0 to FFeatureList.Count - 1 do
+        ibsqlCardSelect.SQL.Text := ibsqlCardSelect.SQL.Text + ', c.' + FFeatureList.Strings[FeatureCounter];
+      ibsqlCardSelect.SQL.Text := ibsqlCardSelect.SQL.Text + Format(
+        'FROM ' +
+        '  inv_card c ' +
+        'WHERE ' +
+        '  c.documentkey = %0:d ' +
+        '  OR (c.firstdocumentkey = %0:d)', [ADocumentKey]);
+      ibsqlCardSelect.ExecQuery;
+      // Если такие карточки вообще есть
+      while not ibsqlCardSelect.Eof do
+      begin
+        // Цикл по внешним ключам
+        for ForeignKeyCounter := 0 to OL.Count - 1 do
+        begin
+          // Имя таблицы которая содержит ссылку на переданную запись
+          ReferencesRelationName := TatForeignKey(OL[ForeignKeyCounter]).Relation.RelationName;
+          // Имя поля-ссылки на переданную запись
+          ReferencesFieldName := TatForeignKey(OL.Items[ForeignKeyCounter]).ConstraintField.FieldName;
+
+          // Выберем записи из складских таблиц, ссылающиеся на найденные карточки
+          ibsqlDocumentSelect.SQL.Text := Format(
+            'SELECT ' +
+            '  d.documentdate, d.id ' +
+            'FROM ' +
+            '  %0:s l ' +
+            '  JOIN gd_document d ON d.id = l.documentkey ' +
+            'WHERE ' +
+            '  l.%1:s = %2:d ', [ReferencesRelationName, ReferencesFieldName, ibsqlCardSelect.FieldByName('ID').AsInteger]);
+          ibsqlDocumentSelect.ExecQuery;
+
+          if ibsqlDocumentSelect.RecordCount > 0 then
+          begin
+            while not ibsqlDocumentSelect.Eof do
+            begin
+              // Если складской документ создан после закрытия, то перепривяжем его на карточки сформированных остатков
+              //  Иначе поставим заглушку
+              {if ibsqlDocumentSelect.FieldByName('DOCUMENTDATE').AsDateTime >= FCloseDate then
+              begin}
+                // TODO: найти подходящую карточку для замены
+                CardReplacementKey := GetReplacementInvCardKey(ibsqlCardSelect.FieldByName('ID').AsInteger, ibsqlCardSelect);
+                if CardReplacementKey > -1 then
+                begin
+                  ibsqlDocumentUpdate.SQL.Text := Format(
+                    'UPDATE %0:s SET %1:s = %2:d WHERE %1:s = %3:d',
+                    [ReferencesRelationName, ReferencesFieldName, CardReplacementKey, ibsqlCardSelect.FieldByName('ID').AsInteger]);
+                  ibsqlDocumentUpdate.ExecQuery;
+                  ibsqlDocumentUpdate.Close;
+                end;
+              {end
+              else
+              begin
+                CardReplacementKey := GetDummyInvCard;
+                if CardReplacementKey > -1 then
+                begin
+                  ibsqlDocumentUpdate.SQL.Text := Format(
+                    'UPDATE %0:s SET %1:s = %2:d WHERE %1:s = %3:d',
+                    [ReferencesRelationName, ReferencesFieldName, GetDummyInvCard, ibsqlCardSelect.FieldByName('ID').AsInteger]);
+                  ibsqlDocumentUpdate.ExecQuery;
+                  ibsqlDocumentUpdate.Close;
+                end;
+              end;}
+              ibsqlDocumentSelect.Next;
+            end;
+            ibsqlDocumentUpdate.Close;
+          end;
+          ibsqlDocumentSelect.Close;
+        end;
+        ibsqlCardSelect.Next;
+      end;
+    finally
+      FreeAndNil(ibsqlDocumentUpdate);
+      FreeAndNil(ibsqlDocumentSelect);
+      FreeAndNil(ibsqlCardSelect);
+    end;
+  end;  
+end;
+
+function TgdClosingPeriod.GetDummyInvCard: TID;
+var
+  ibsqlSelectGoodKey: TIBSQL;
+  GoodKey: TID;
+  FieldCounter: Integer;
+begin
+  if FDummyInvCardKey = -1 then
+  begin
+    // Заглушка будет использоваться только для документов которые нужно будет в дальнейшем удалить,
+    //  так что неважно какой товар в ней будет стоять
+    ibsqlSelectGoodKey := TIBSQL.Create(Application);
+    try
+      ibsqlSelectGoodKey.Transaction := FWriteTransaction;
+      ibsqlSelectGoodKey.SQL.Text := 'SELECT FIRST(1) id FROM gd_good';
+      ibsqlSelectGoodKey.ExecQuery;
+
+      if ibsqlSelectGoodKey.RecordCount > 0 then
+        GoodKey := ibsqlSelectGoodKey.FieldByName('ID').AsInteger
+      else
+        GoodKey := -1;
+    finally
+      FreeAndNil(ibsqlSelectGoodKey);
+    end;
+
+    // Получим ИД новой складской карточки
+    FDummyInvCardKey := gdcBaseManager.GetNextID;
+    // Создадим новую складскую карточку
+    FIBSQLInsertInvCard.Close;
+    FIBSQLInsertInvCard.ParamByName('ID').AsInteger := FDummyInvCardKey;
+    FIBSQLInsertInvCard.ParamByName('GOODKEY').AsInteger := GoodKey;
+    FIBSQLInsertInvCard.ParamByName('DOCUMENTKEY').AsInteger := CreateDummyInvDocument(DefaultDocumentTypeKey);
+    FIBSQLInsertInvCard.ParamByName('COMPANYKEY').AsInteger := IBLogin.CompanyKey;
+    FIBSQLInsertInvCard.ParamByName('FIRSTDATE').AsDateTime := FCloseDate;
+    for FieldCounter := 0 to FFeatureList.Count - 1 do
+        FIBSQLInsertInvCard.ParamByName(FFeatureList.Strings[FieldCounter]).Clear;
+    FIBSQLInsertInvCard.ParamByName('USR$INV_ADDLINEKEY').Clear;
+    FIBSQLInsertInvCard.ExecQuery;
+  end;
+  Result := FDummyInvCardKey;
+end;
+
+function TgdClosingPeriod.GetReplacementInvCardKey(const AOldCardKey: TID;
+  AFeatureDataset: TIBSQL; const AFromContactkey, AToContactkey: TID): TID;
+var
+  ibsqlSearchNewCardkey: TIBSQL;
+  {FeatureCounter: Integer;}
+begin
+  Result := -1;
+
+  ibsqlSearchNewCardkey := TIBSQL.Create(Application);
+  try
+    ibsqlSearchNewCardkey.Transaction := FWriteTransaction;
+    // Поищем подходящую карточку для замены удаляемой
+    ibsqlSearchNewCardkey.SQL.Text := SearchNewCardkeySimpleTemplate;
+    {for FeatureCounter := 0 to FFeatureList.Count - 1 do
+    begin
+      if not AFeatureDataset.FieldByName(FFeatureList.Strings[FeatureCounter]).IsNull then
+        ibsqlSearchNewCardkey.SQL.Text := ibsqlSearchNewCardkey.SQL.Text +
+          Format(' AND card.%0:s = :%0:s ', [FFeatureList.Strings[FeatureCounter]])
+      else
+        ibsqlSearchNewCardkey.SQL.Text := ibsqlSearchNewCardkey.SQL.Text +
+          Format(' AND card.%0:s IS NULL ', [FFeatureList.Strings[FeatureCounter]]);
+    end;}
+    ibsqlSearchNewCardkey.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
+    ibsqlSearchNewCardkey.ParamByName('DOCTYPEKEY').AsInteger := FInvDocumentTypeKey;
+    ibsqlSearchNewCardkey.ParamByName('GOODKEY').AsInteger := AFeatureDataset.FieldByName('GOODKEY').AsInteger;
+    {for FeatureCounter := 0 to FFeatureList.Count - 1 do
+    begin
+      if not AFeatureDataset.FieldByName(FFeatureList.Strings[FeatureCounter]).IsNull then
+        ibsqlSearchNewCardkey.ParamByName(FFeatureList.Strings[FeatureCounter]).AsVariant :=
+          AFeatureDataset.FieldByName(FFeatureList.Strings[FeatureCounter]).AsVariant;
+    end;}
+    ibsqlSearchNewCardkey.ExecQuery;
+
+    if ibsqlSearchNewCardkey.RecordCount > 0 then
+      Result := ibsqlSearchNewCardkey.FieldByName('CARDKEY').AsInteger;
+  finally
+    FreeAndNil(ibsqlSearchNewCardkey);
+  end;
+end;
+
+{ TgdClosingThread }
+
+procedure TgdClosingThread.Execute;
+begin
+  // Вызовем обработчик начала процесса закрытия
+  Model.DoBeforeProcess;
+
+  Model.SetTriggerActive(False);
+  try
+    try
+      Model.PrepareDontDeleteDocumentList;
+
+      // Вычисление бухгалтерских остатков
+      if Model.DoCalculateEntryBalance then
+        Model.CalculateEntryBalance;
+
+      // Удаление проводок
+      if Model.DoDeleteEntry then
+        Model.DeleteEntry;
+
+      // Вычисление складских остатков
+      if Model.DoCalculateRemains then
+        Model.CalculateRemains;
+
+      // Перепривязка складских карточек
+      if Model.DoReBindDepotCards then
+        Model.ReBindDepotCards;
+
+      // Удаление документов
+      if Model.DoDeleteDocuments then
+        Model.DeleteDocuments;
+
+      // Удаление пользовательских документов
+      if Model.DoDeleteUserDocuments then
+        Model.DeleteUserDocuments;
+
+      // Копирование бухгалтерских остатков из AC_ENTRY_BALANCE в AC_ENTRY
+      if Model.DoTransferEntryBalance then
+        Model.TransferEntryBalance;
+    except
+      on E: Exception do
+      begin
+        // Вызовем обработчик исключительной ситуации
+        Model.DoOnProcessInterruption(E.Message);
+      end;
+    end;
+  finally
+    // Включение триггеров
+    Model.SetTriggerActive(True);
+    // Вызовем обработчик окончания процесса закрытия
+    Model.DoAfterProcess;
+
+    Self.Terminate;
   end;
 end;
 
