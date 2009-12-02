@@ -1,6 +1,6 @@
 object gdc_frmStreamSaver: Tgdc_frmStreamSaver
-  Left = 457
-  Top = 197
+  Left = 629
+  Top = 192
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Мастер переноса данных'
@@ -95,7 +95,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       Top = 41
       Width = 506
       Height = 289
-      ActivePage = tbsSetting
+      ActivePage = tbsProcess
       Align = alClient
       TabOrder = 1
       object tbsSave: TTabSheet
@@ -402,7 +402,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Width = 222
           Height = 21
           Style = csDropDownList
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 1
           Visible = False
           OnChange = cbSettingFormatChange
