@@ -1,2 +1,0 @@
-inherited frFixedAnalytics: TfrFixedAnalytics
-end

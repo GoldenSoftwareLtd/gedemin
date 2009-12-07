@@ -1,5 +1,0 @@
-open <ftp.by>
-<user>
-<password>
-binary
-cd <path>
