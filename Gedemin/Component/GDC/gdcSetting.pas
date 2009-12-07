@@ -70,7 +70,7 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     procedure SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True); override;
+      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True; StreamFormat: TgsStreamType = sttUnknown); override;
     procedure LoadFromFile(const AFileName: String = ''); override;
 
     {KeyAr - Список идентификаторов настроек. Идентификаторы стоят в порядке создания настроек
@@ -148,6 +148,7 @@ type
 
     procedure SetWithDetail(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedModify(const Value: Boolean; BL: TBookmarkList);
+    procedure SetNeedInsert(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedModifyDefault;
 
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
@@ -291,7 +292,7 @@ uses
   gdc_attr_dlgSetting_unit,  gdc_attr_frmSetting_unit,
   gdc_attr_dlgSettingPos_unit, gdcMetadata, gdcJournal,
   gdc_attr_dlgSettingOrder_unit, IBQuery, gdcEvent, Windows,
-  gsStorage, Storages, jclSelected, IBDatabase, at_frmSQLProcess,
+  gsStorage, Storages, gdcStorage, jclSelected, IBDatabase, at_frmSQLProcess,
   Graphics, at_classes, gd_directories_const, dbclient, gdcFunction,
   evt_i_Base, mtd_i_Base, gd_i_ScriptFactory, gdcFilter, gdcReport,
   gdcMacros, at_sql_metadata, at_sql_setup, dm_i_ClientReport_unit,
@@ -790,12 +791,11 @@ begin
 end;
 
 procedure TgdcSetting.SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
+  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True; StreamFormat: TgsStreamType = sttUnknown);
 var
   FN: String;
   FS: TFileStream;
   BlobStream: TStream;
-  StreamType: TgsStreamType;
   PackStream: TZCompressionStream;
   i: Integer;
   StreamSaver: TgdcStreamSaver;
@@ -803,25 +803,25 @@ begin
   // Получим формат сохраненных в блобе данных настройки
   BlobStream := CreateBlobStream(FieldByName('Data'), bmRead);
   try
-    StreamType := GetStreamType(BlobStream);
+    StreamFormat := GetStreamType(BlobStream);
   finally
     FreeAndNil(BlobStream);
   end;
   // Если по данным не смогли определить формат настройки, попробуем по данным хранилища настройки
-  if StreamType = sttUnknown then
+  if StreamFormat = sttUnknown then
   begin
     BlobStream := CreateBlobStream(FieldByName('StorageData'), bmRead);
     try
-      StreamType := GetStreamType(BlobStream);
+      StreamFormat := GetStreamType(BlobStream);
     finally
       FreeAndNil(BlobStream);
     end;
   end;  
   // Если и сейчас не смогли определить формат, значит настройка пуста, сохраним в старом бинарном формате
-  if StreamType = sttUnknown then
-    StreamType := sttBinaryOld;
+  if StreamFormat = sttUnknown then
+    StreamFormat := sttBinaryOld;
 
-  case StreamType of
+  case StreamFormat of
     sttBinaryOld, sttBinaryNew:
       FN := QuerySaveFileName(AFileName, gsfExtension, gsfSaveDialogFilter);
     sttXML, sttXMLFormatted:
@@ -836,20 +836,20 @@ begin
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessCaptionText('Сохранение настройки в файл...');
 
-      if StreamType <> sttBinaryOld then
+      if StreamFormat <> sttBinaryOld then
       begin
         StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
         try
           StreamSaver.ReadUserFromStream := Self.Silent;
           StreamSaver.Silent := Self.Silent;
           StreamSaver.ReplicationMode := Self.Silent;
-          StreamSaver.StreamFormat := StreamType;
+          StreamSaver.StreamFormat := StreamFormat;
 
           StreamSaver.AddObject(Self, True);
 
-          if StreamType <> sttBinaryNew then
+          if StreamFormat <> sttBinaryNew then
           begin
-            StreamSaver.SaveSettingToXMLFile(FS);
+            StreamSaver.SaveToStream(FS, StreamFormat);
           end
           else
           begin
@@ -1095,6 +1095,121 @@ begin
 end;
 
 procedure TgdcSetting.SaveSettingToBlob(SettingFormat: TgsStreamType = sttUnknown);
+
+  procedure ConvertStorageRecords;
+  var
+    q, qPos: TIBSQL;
+    Tr: TIBTransaction;
+    S: String;
+    P: Integer;
+    XID, DBID: TID;
+    F: TgsStorageFolder;
+    V: TgsStorageValue;
+  begin
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+    qPos := TIBSQL.Create(nil);
+    try
+      Tr.DefaultDatabase := Database;
+      Tr.StartTransaction;
+
+      q.Transaction := Tr;
+      q.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+      q.ParamByName('settingkey').AsInteger := ID;
+      q.ExecQuery;
+
+      qPos.Transaction := Tr;
+      qPos.SQL.Text := 'INSERT INTO at_settingpos (settingkey, objectclass, ' +
+        'category, objectname, dbid, xid, withdetail, needmodify, autoadded) ' +
+        'VALUES (:SK, :OC, :CAT, :ON, :DBID, :XID, :WD, :NM, :AA)';
+
+      while not q.EOF do
+      begin
+        S := q.FieldByName('branchname').AsString;
+        P := Pos('\', S);
+        if P = 0 then
+          continue;
+
+        if Pos('GLOBAL', S) = 1 then
+          F := GlobalStorage.OpenFolder(System.Copy(S, P + 1, 1024), False, False)
+        else
+          F := UserStorage.OpenFolder(System.Copy(S, P + 1, 1024), False, False);
+
+        if F = nil then
+        begin
+          if MessageBox(0,
+            PChar('Ветвь хранилища "' + S + '" отсутствует в базе данных.'#13#10#13#10 +
+            'Удалить ее из настройки?'),
+            'Внимание',
+            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = ID_NO then
+          begin
+            raise Exception.Create('Can not find storage folder "' + S + '"');
+          end;
+        end else
+          try
+            if q.FieldByName('valuename').IsNull then
+            begin
+              qPos.ParamByName('ON').AsString := F.Name;
+              qPos.ParamByName('OC').AsString := CgdcStorageFolder.ClassName;
+              gdcBaseManager.GetRUIDByID(F.ID, XID, DBID);
+              AddText('Конвертация в БО ветви ' + S, clBlack);
+            end else
+            begin
+              V := F.ValueByName(q.FieldByName('valuename').AsString);
+
+              if V = nil then
+              begin
+                if MessageBox(0,
+                  PChar('Параметр хранилища "' + S + '\' + q.FieldByName('valuename').AsString +
+                  '" отсутствует в базе данных.'#13#10#13#10 +
+                  'Удалить его из настройки?'),
+                  'Внимание',
+                  MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = ID_NO then
+                begin
+                  raise Exception.Create('Can not find storage value "' +
+                    S + '\' + q.FieldByName('valuename').AsString + '"');
+                end else
+                begin
+                  q.Next;
+                  continue;
+                end;
+              end;
+
+              qPos.ParamByName('ON').AsString := V.Name;
+              qPos.ParamByName('OC').AsString := CgdcStorageValue.ClassName;
+              gdcBaseManager.GetRUIDByID(V.ID, XID, DBID);
+              AddText('Конвертация в БО значения ' + S + '\' + V.Name, clBlack);
+            end;
+
+            qPos.ParamByName('SK').AsInteger := ID;
+            qPos.ParamByName('WD').AsInteger := 1;
+            qPos.ParamByName('NM').AsInteger := 1;
+            qPos.ParamByName('AA').AsInteger := 0;
+            qPos.ParamByName('XID').AsInteger := XID;
+            qPos.ParamByName('DBID').AsInteger := DBID;
+            qPos.ParamByName('CAT').AsString := TgdcStorage.GetListTable('');
+
+            qPos.ExecQuery;
+          finally
+            F.Storage.CloseFolder(F, False);
+          end;
+
+        q.Next;
+      end;
+
+      q.Close;
+      q.SQL.Text := 'DELETE FROM at_setting_storage WHERE settingkey = :settingkey ';
+      q.ParamByName('settingkey').AsInteger := ID;
+      q.ExecQuery;
+
+      Tr.Commit;
+    finally
+      qPos.Free;
+      q.Free;
+      Tr.Free;
+    end;
+  end;
+
 var
   BlobStream: TStream;
   ibsqlPos: TIBQuery;
@@ -1121,7 +1236,6 @@ var
   StorageStream: TStream;
   PositionsCount: Integer;
 begin
-
   Assert(atDatabase <> nil, 'Не загружена база атрибутов atDatabase');
   Assert(gdcBaseManager <> nil);
 
@@ -1150,6 +1264,11 @@ begin
   // Если не передан конкретный формат настройки, попробуем прочитать его из хранилища
   if SettingFormat = sttUnknown then
     SettingFormat := GetDefaultStreamFormat(True);
+
+  //////////////////////////////////////////////////////////////
+  // Превратим все записи в at_setting_storage в бизнес-объекты
+  //
+  ConvertStorageRecords;
 
   // если в опциях установлено "Сохранять настройки в новом формате"
   if SettingFormat <> sttBinaryOld then
@@ -2517,6 +2636,46 @@ begin
   end;
 end;
 
+procedure TgdcSettingPos.SetNeedInsert(const Value: Boolean;
+  BL: TBookmarkList);
+var
+  I: Integer;
+  Question: String;
+begin
+  CheckBrowseMode;
+  if Value then
+    Question := 'Установить флаг "Добавлять новый объект" %s ?'
+  else
+    Question := 'Снять флаг "Добавлять новый объект" %s ?';
+  if (BL = nil) or (BL.Count <= 1) then
+  begin
+    if MessageBox(0, PChar(Format(Question,
+      ['для записи ' + FieldByName(GetListField(SubType)).AsString])),
+      'Внимание!', MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDNO
+    then
+      Exit;
+
+    Edit;
+    FieldByName('needinsert').AsInteger := Integer(Value);
+    Post;
+  end else
+  begin
+    if MessageBox(0, PChar(Format(Question,
+      ['для ' + IntToStr(BL.Count) + ' записей'])),
+      'Внимание!', MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDNO
+    then
+      Exit;
+
+    for I := 0 to BL.Count - 1 do
+    begin
+      Bookmark := BL[I];
+      Edit;
+      FieldByName('needinsert').AsInteger := Integer(Value);
+      Post;
+    end;
+  end;
+end;
+
 procedure TgdcSettingPos.SetNeedModifyDefault;
 var
   ibsql: TIBSQL;
@@ -2883,6 +3042,9 @@ begin
   Result := False;
   FS := TFileStream.Create(FName, fmOpenRead);
   try
+    FilePath := ExtractFilePath(FName);
+    FileName := ExtractFileName(FName);
+
     StreamType := GetStreamType(FS);
     // проверим формат настройки: архивная или XML
     if StreamType in [sttBinaryOld, sttBinaryNew] then
@@ -2892,8 +3054,6 @@ begin
       begin
         FS.Read(i, SizeOf(i));
         GSFVersion := i;
-        FilePath := ExtractFilePath(FName);
-        FileName := ExtractFileName(FName);
         case i of
           1:
             begin
@@ -2904,8 +3064,6 @@ begin
     end
     else
     begin
-      FilePath := ExtractFilePath(FName);
-      FileName := ExtractFileName(FName);
       GSFVersion := 2; 
       XMLSettingReader := TgdcStreamXMLWriterReader.Create;
       try
@@ -4257,7 +4415,7 @@ var
             при загрузке из потока у хранилища не выставляется внутренний
             флаг. поэтому оно не будет сохраняться  в базу.
             мы выставляем флаг вручную. }
-          LStorage.IsModified := True;
+          //LStorage.IsModified := True;
           //LStorage.SaveToDatabase;
         end
         else
@@ -4280,10 +4438,10 @@ var
       end;
     end;
 
-    if GlobalStorage.IsModified then
+    //if GlobalStorage.IsModified then
       GlobalStorage.SaveToDatabase;
 
-    if UserStorage.IsModified then
+    //if UserStorage.IsModified then
       UserStorage.SaveToDatabase;
 
     if StorageStream.Size > 0 then
@@ -4721,7 +4879,7 @@ var
             end else
             begin
               AddText('Удаление ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString, clBlue);
-              NewFolder.DropFolder;
+              NewFolder.Drop;
             end;
           end;
 
