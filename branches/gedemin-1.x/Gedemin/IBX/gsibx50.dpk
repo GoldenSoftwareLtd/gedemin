@@ -1,0 +1,62 @@
+package gsibx50;
+
+{$R *.RES}
+{$ALIGN ON}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$IMPLICITBUILD ON}
+
+requires
+  vcl50,
+  Vcldb50;
+
+contains
+  IB in 'IB.pas',
+  IBBatchMove in 'IBBatchMove.pas',
+  IBBlob in 'ibblob.pas',
+  IBConnectionBroker in 'IBConnectionBroker.pas',
+  IBCustomDataSet in 'IBCustomDataSet.pas',
+  IBDatabase in 'IBDatabase.pas',
+  IBDatabaseInfo in 'ibdatabaseinfo.pas',
+  IBDatabaseINI in 'IBDatabaseINI.pas',
+  IBDialogs in 'IBDialogs.pas',
+  IBErrorCodes in 'iberrorcodes.pas',
+  IBEvents in 'ibevents.pas',
+  IBExternals in 'ibexternals.pas',
+  IBExtract in 'IBExtract.pas',
+  IBHeader in 'ibheader.pas',
+  IBInstall in 'IBInstall.pas',
+  IBInstallHeader in 'IBInstallHeader.pas',
+  IBIntf in 'IBIntf.pas',
+  IBQuery in 'ibquery.pas',
+  IBScript in 'IBScript.pas',
+  IBServices in 'IBServices.pas',
+  IBSQL in 'IBSQL.pas',
+  IBSQLMonitor in 'ibsqlmonitor.pas',
+  IBStoredProc in 'ibstoredproc.pas',
+  IBTable in 'ibtable.pas',
+  IBUpdateSQL in 'ibupdatesql.pas',
+  IBUtils in 'ibutils.pas',
+  IBXConst in 'IBXConst.pas',
+  IBXMLHeader in 'IBXMLHeader.pas',
+  dlgRecordFetch_unit in '..\Component\dlgRecordFetch_unit.pas' {dlgRecordFetch};
+
+end.

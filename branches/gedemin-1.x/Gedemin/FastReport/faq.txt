@@ -1,0 +1,752 @@
+1. BUGS.
+1.1. FR does not prints correctly on my printer.
+1.2. Can't set the user-defined paper size.
+1.3. FR objects don't shift when I change the left margin.
+1.4. Export filters (word, html, text) work ugly.
+1.5. All captions and hints in the FR dialogs are wrong.
+1.6. When installing FR, Delphi asks for some packages that I don't have.
+1.7. FR Object Inspector disappeared, can't get it back.
+1.8. The SUM function works incorrect.
+1.9. Problems with Delphi's Translation Tool.
+1.10. Access to the internal datasets from the script doesn't works.
+1.11. The TOTALPAGES variable always returns 0.
+1.12. Error when assigning a string value to the FR variable.
+1.13. FR designer shows "Untitled" in the caption.
+1.14. FR2.4 can't open the frf files created in the previous version.
+1.15. Printout is little differs from the preview screen.
+
+
+2. QUESTIONS.
+2.1. How to make some report?
+2.2. Can FR work with some library?
+2.3. What is "script"?
+2.4. How to show the Summary band at the bottom of the page?
+2.5. How to print the group total in the group header?
+2.6. I want to keep a group together.
+2.7. I want to keep a MasterFooter together with MasterData.
+2.8. How to change the TabOrder of the dialog controls?
+2.9. How to change the language in the FR dialogs on-the-fly?
+2.10. Can I run the FR designer as a MDI Child?
+2.11. How to work with TfrUserDataset?
+2.12. Can I print the A3 report on two A4 papers?
+2.13. How to print on Dot Matrix Printers?
+2.14. How to make particular object non-printable, but visible in the preview?
+2.15. FR prints multi-page reports in the order 1,1,2,2. How to change it to 1,2,1,2?
+2.16. Can I assign other paper bin for the first page of the report?
+2.17. How to fax/email the prepared report?
+2.18. How to change a query parameter from the script?
+2.19. How to disable some report pages?
+2.20. How to determine that report was builded succesfully?
+2.21. How to hide some buttons in the designer?
+2.22. How to use own function?
+2.23. How to fill the data dictionary programmatically?
+2.24. I don't want to show some datasets in the data dictionary and in the report.
+2.25. How to pass a value to the report?
+2.26. How to make the TChart with several series?
+2.27. How to switch pages in the designer?
+2.28. I want to show variables and data fields in one insert dialog.
+2.29. How to hide "export options" dialog?
+2.30. I store my reports in a BLOb. How to change the "Open/Save" dialogs in the designer?
+2.31. How to access to the report object from Delphi?
+2.32. How to define own hotkeys in the TfrPreview?
+2.33. How to print a report without previewing it?  
+2.34. How to print a picture that stored in a file?
+
+
+
++=============================================================================+
+|                                                                             |
+| BUGS                                                                        |
+|                                                                             |
++=============================================================================+
+
+1.1. FR does not prints correctly on my printer.
+
+(variants: exception when selecting a printer; printer skips some pages;
+some chars are turned on 90 degrees; the printout is messed up and etc.)
+(problem is known with printers: Xerox, Canon and HP).
+
+Try to uncomment the {$DEFINE PRN_RESET} line in the FR_Prntr.pas file,
+recompile the FR package and your application. In most cases problem is gone.
+If problem is still exists, try to install the newest printer driver or driver
+from the similar printer model.
+
+
+===============================================================================
+1.2. Can't set the user-defined paper size.
+
+(The dialog "Page options" in the designer, the paper width and height edit
+boxes always disabled).
+
+FR uses only papers supported by the printer driver. If the driver reports
+that it can support the user paper (paper number 0x100h in the WinAPI), FR
+allows these edit boxes when user selects the "user-defined paper".
+Some drivers use another paper number for the user-defined paper - FR can't
+works in such cases.
+
+
+===============================================================================
+1.3. FR objects don't shift when I change the left margin.
+
+The left and right margins affects only to Cross-tab reports. But you can set
+the BandAlign property of text objects to baLeft and that objects will slick
+to the left margin automatically.
+
+
+===============================================================================
+1.4. Export filters (word, html, text) work ugly.
+
+(text is shifted, empty lines and so on)
+What you want? :) FR coordinates measured in the pixels; MSWord, html, txt has
+line-oriented data representation. When exporting to such formats, FR
+inevitably distorts the layout. Try to play with X and Y factors in the export
+options.
+
+(some objects are not exported, for example, Rich)
+Try other export filter (for example, one from the powerpack). There are also
+commercial export filters from the Pragnaan Software (link is in my site).
+
+
+===============================================================================
+1.5. All captions and hints in the FR dialogs are wrong.
+
+a) wrong language resources are installed. To install correct resources, go
+FR\RES\your_resource and run the mk.bat file. Rebuild the FR package and your
+application.
+b) resources conflicts with other third-party library. FR uses the range
+53000..59000. Change the frRes constant in the file FR_Const.pas and
+recompile the FR.
+
+
+===============================================================================
+1.6. When installing FR, Delphi asks for some packages that I don't have.
+
+(for example, Delphi wants IBO40CRT, TEE45, RXCTL6, mwEdit_D6 and so on)
+
+The file FRx.dpk (x - Delphi version) referenced such packages. But references
+are in {$IFDEF} directives. Reference is used if you uncommented appropriate
+line in the FR.inc file.
+When installing FR, Delphi may asks you to save changes in the .dpk file. If
+you say "Yes", Delphi removes all {$IFDEF} directives and you'll get such error.
+Get an original dpk file, install FR again and don't save changes in this file.
+
+
+===============================================================================
+1.7. FR Object Inspector disappeared, can't get it back.
+
+ATTENTION! You may corrupt the Windows if you don't have an experience!
+Run the Windows registry editor (regedit.exe), open the key
+HKEY_CURRENT_USER\Software\FastReport\name_of_your_project\Form\TfrInspForm
+and check and correct if need the XPosition, YPosition, Width, Height values.
+
+
+===============================================================================
+1.8. The SUM function works incorrect.
+
+(in the report with two masterdata bands can't get sum the second band)
+
+FR can't determine which band to sum. Use the extended SUM syntax (also for MIN,
+MAX, AVG):
+SUM([CustNo], MasterData2)
+
+
+===============================================================================
+1.9. Problems with Delphi's Translation Tool.
+
+(error "Resource TfrProgressForm not found" when running a project that
+uses FR)
+
+Include all FR files in the uses list. Or compile your project with run-time
+packages.
+
+
+===============================================================================
+1.10. Access to the internal datasets from the script doesn't works.
+
+(I write: frDialogForm.Query1.Open)
+
+Write without "frDialogForm":
+Query1.Open
+
+
+===============================================================================
+1.11. The TOTALPAGES variable always returns 0.
+
+The report must be two-pass (go File|Report options in the designer).
+
+
+===============================================================================
+1.12. Error when assigning a string value to the FR variable.
+(code like frReport1.Dictionary.Variables['Range'] := '10..50')
+
+FR trying to calc such string values. Add quotes:
+
+frReport1.Dictionary.Variables['Range'] := '''' + '10..50' + '''';
+
+or use frVariables for static data.
+
+
+===============================================================================
+1.13. FR designer shows "Untitled" in the caption.
+
+(I store the report in the BLOb. When I load the report and run the designer,
+it shows "Untitled" in the caption)
+
+Before run the designer, do this:
+frReport1.FileName := 'MyReport';
+
+
+===============================================================================
+1.14. FR2.4 can't open the frf files created in the previous version.
+
+(FreeReport .frf files can't be opened with FR2.4)
+
+Change the first byte in the report file to 16h and do the following
+modifications in source code. After these modifications, load the report and
+save it. Finally, return back the original code.
+
+FR_Class:
+
+function ReadString(Stream: TStream): String;
+begin
+{  if frVersion >= 23 then}
+    Result := frReadString(Stream) {else
+    Result := frReadString22(Stream);}
+end;
+
+procedure ReadMemo(Stream: TStream; Memo: TStrings);
+begin
+{  if frVersion >= 23 then}
+    frReadMemo(Stream, Memo){ else
+    frReadMemo22(Stream, Memo);}
+end;
+
+
+FR_Utils:
+
+procedure frReadMemo(Stream: TStream; l: TStrings);
+var
+  s: String;
+  b: Byte;
+  n: Word;
+begin
+  l.Clear;
+  l.Text := frReadString(Stream); exit;
+  Stream.Read(n, 2);
+  if n > 0 then
+    repeat
+      Stream.Read(n, 2);
+      SetLength(s, n);
+      Stream.Read(s[1], n);
+      l.Add(s);
+      Stream.Read(b, 1);
+    until b = 0
+  else
+    Stream.Read(b, 1);
+end;
+
+function frReadString(Stream: TStream): String;
+var
+  s: String;
+  n: Integer;
+  b: Byte;
+begin
+  Stream.Read(n, 4);
+  SetLength(s, n);
+  Stream.Read(s[1], n);
+  if (n > 0) and (s[n] = #$0A) then
+    SetLength(s, n - 2);
+//  Stream.Read(b, 1);
+  Result := s;
+end;
+
+
+===============================================================================
+1.15. Printout is little differs from the preview screen.
+
+FR2.4 has not full WYSIWYG. Wait for FR3.0.
+
+
+
++=============================================================================+
+|                                                                             |
+| QUESTIONS                                                                   |
+|                                                                             |
++=============================================================================+
+
+2.1. How to make some report?
+
+Better ask this in the FR mailing list (forum). With FR you can build almost
+all types of reports, but you must read the documentation first.
+
+
+===============================================================================
+2.2. Can FR work with some library?
+
+FR works with all DB access components that are based on TDataSet. Besides,
+FR can works with IB_Objects, that is incompatible with TDataSet.
+
+
+===============================================================================
+2.3. What is "script"?
+
+This is a piece of code written in the Pascal-like language. FR can run such
+code - it gives you ability to change the report's behavior during the
+building process. See the documentation for details.
+
+(does a band have a script?)
+Yes, it does - select the band and select "OnBeforePrint" property in the 
+FR Object Inspector (or press Ctrl+Enter).
+
+
+(does a page have a script?)
+Yes, it does. Click on empty space of the page and select "OnBeforePrint"
+(OnActivate if the page is the dialog form) property in the FR Object Inspector.  
+
+
+(can I access objects from the script?)
+Yes, you can - use full name of the object:
+Memo1.Font.Name
+
+
+(what properties can be accessed?)
+Complete list of properties is in the documentation. 
+
+
+(I have two objects on a band, which script will run first?)
+Object that you've created first will run first (that called Z-Order).
+Preferred way is to write a script in the band.
+
+
+===============================================================================
+2.4. How to show the Summary band at the bottom of the page?
+
+Look at the "Summary at the bottom" report in the demo FR\DEMOS\REPORTS
+
+
+===============================================================================
+2.5. How to print the group total in the group header?
+
+Look at the "Group totals in header" report in the demo FR\DEMOS\REPORTS
+
+
+===============================================================================
+2.6. I want to keep a group together.
+
+Look at the "Keep group together" report in the demo FR\DEMOS\REPORTS
+
+
+===============================================================================
+2.7. I want to keep a MasterFooter together with MasterData.
+
+Write this in the MasterData script:
+
+begin
+  if FreeSpace < MasterFooter1.Height then
+    NewPage;
+end
+
+
+===============================================================================
+2.8. How to change the TabOrder of the dialog controls?
+
+a) use Bring to front/Send to back toolbar buttons.
+b) install the TabOrder wizard from the powerpack.
+
+
+===============================================================================
+2.9. How to change the language in the FR dialogs on-the-fly?
+
+a) use resources in a DLL. Compile the resource DLL (run mkdll.bat file from
+the FR\RES\your_resource folder) and write in your program:
+
+frLocale.LoadDll('FR_ENGL.DLL');
+
+If you want to use default resources, write:
+
+frLocale.UnloadDll;
+
+
+b) resources in the text file or ini file or in other form. Use the event
+frLocale.OnLocalize. It puts StringID and gets ResultString. For example:
+
+frLocale.OnLocalize := MyClass.OnLocalize;
+
+procedure TMyClass.OnLocalize(StringID: Integer; var ResultString: String);
+begin
+  if StringID = 53000 then
+    ResultString := 'Search';
+end;
+
+
+===============================================================================
+2.10. Can I run the FR designer as a MDI Child?
+
+You can't - try to change the FR sources.
+
+
+===============================================================================
+2.11. How to work with TfrUserDataset?
+
+(I want to print data from array/stringgrid/etc)
+
+Look at demo FR\DEMOS\PRNGRID.
+
+
+===============================================================================
+2.12. Can I print the A3 report on two A4 papers?
+
+No, you can't.
+
+
+===============================================================================
+2.13. How to print on Dot Matrix Printers?
+
+If you want fast printing - export your report to txt and then print it:
+
+frReport1.PrepareReport;
+frReport1.ExportTo(frTextExport1, 'prn');
+
+
+===============================================================================
+2.14. How to make particular object non-printable, but visible in the preview?
+
+Wait for FR3.0. 
+
+
+===============================================================================
+2.15. FR prints multi-page reports in the order 1,1,2,2. How to change it to 1,2,1,2?
+
+If report has several pages, FR prints all records in the page1 and then all
+records in the page2. If you want to change it, set the TfrReport.DataSet
+property to main dataset and set the TfrReport.ReportType = rtMultiple.
+
+
+===============================================================================
+2.16. Can I assign other paper bin for the first page of the report?
+
+If your report template has two or more pages, you can set individual paper bin
+to each page. But if your report has one page (one page in the designer, I mean)
+you can't change the paper bin of the first page in the prepared report.
+
+
+===============================================================================
+2.17. How to fax/email the prepared report?
+
+a) faxing: install the fax software. It adds the "Fax" printer to your printer
+list. Just select this printer in FR and print on it.
+b) emailing: export the prepared report to one of the formats
+(frp,txt,html,rtf etc) and send it as attachment (you may use WinAPI function
+to send an email).
+
+
+===============================================================================
+2.18. How to change a query parameter from the script?
+
+(may I write something like Query1.Params[0].Text := '10'?)
+
+No, FR can't access query parameters. But you can assign a variable to the
+parameter (in the parameters editor) and change this variable:
+
+Query1.Close;
+MyParam1 := '10';
+Query1.Open;
+
+
+===============================================================================
+2.19. How to disable some report pages?
+
+Add an empty dialog form to the report and write this in its OnActivate event:
+
+begin
+  Page2.Visible := False 
+end
+
+
+===============================================================================
+2.20. How to determine that report was builded succesfully?
+
+if frReport1.PrepareReport then // successfull, show it
+  frReport1.ShowPreparedReport
+
+
+===============================================================================
+2.21. How to hide some buttons in the designer?
+
+There are some things in the FR_Desgn.pas:
+
+type
+  TfrDesignerRestriction =
+    (frdrDontEditObj, frdrDontModifyObj, frdrDontSizeObj, frdrDontMoveObj,
+     frdrDontDeleteObj, frdrDontCreateObj,
+     frdrDontDeletePage, frdrDontCreatePage, frdrDontEditPage,
+     frdrDontCreateReport, frdrDontLoadReport, frdrDontSaveReport,
+     frdrDontPreviewReport, frdrDontEditVariables, frdrDontChangeReportOptions);
+  TfrDesignerRestrictions = set of TfrDesignerRestriction;
+
+var
+  DesignerRestrictions: TfrDesignerRestrictions;
+
+Assign some flags to the DesignerRestrictions and call the designer.
+
+
+===============================================================================
+2.22. How to use own function?
+
+Use TfrReport.OnUserFunction event. Here is simple example:
+
+procedure TForm1.frReport1UserFunction(const Name: String;
+  p1, p2, p3: Variant; var val: Variant);
+begin
+  if AnsiCompareText('SUMTOSTR', Name) = 0 then
+    val := My_Convertion_Routine(frParser.Calc(p1));
+end;
+
+After this, you can use SumToStr function in any place of report
+(in any expression or script).
+
+
+(ok, but it works only for one TfrReport component. I want to use
+my function everywhere (in all TfrReport components).
+
+Make OnUserFunction event handler common for all components. If you can't do
+this, you should create the function library:
+
+type
+  TMyFunctionLibrary = class(TfrFunctionLibrary)
+  public
+    constructor Create; override;
+    procedure DoFunction(FNo: Integer; p1, p2, p3: Variant;
+      var val: Variant); override;
+  end;
+
+constructor TMyFunctionLibrary.Create;
+begin
+  inherited Create;
+  with List do
+  begin
+    Add('DATEPROPIS');
+    Add('SUMPROPIS');
+  end;
+end;
+
+procedure TMyFunctionLibrary.DoFunction(FNo: Integer; p1, p2, p3: Variant;
+  var val: Variant);
+begin
+  val := 0;
+  case FNo of
+    0: val := My_DateConvertion_Routine(frParser.Calc(p1));
+    1: val := My_SumConvertion_Routine(frParser.Calc(p1));
+  end;
+end;
+
+To register function library, call
+frRegisterFunctionLibrary(TMyFunctionLibrary);
+To unregister library, call
+frUnRegisterFunctionLibrary(TMyFunctionLibrary);
+
+
+(how I can add my function to function list (in expression builder)?
+
+Use frAddFunctionDesc procedure (FR_Class unit):
+
+frAddFunctionDesc(FuncLib, 'SUMTOSTR', 'My functions',
+  'SUMTOSTR(<Number>)/Converts number to its verbal presentation.');
+
+Note: "/" symbol is required! It separates the function syntax from its
+description.
+FuncLib is reference to your function library (can be nil if you don't use
+the function library). When function library is unregistered, all its
+function will be automatically removed from the function list.
+
+
+===============================================================================
+2.23. How to fill the data dictionary programmatically?
+
+All variables and categories from data dictionary stored in
+TfrReport.Dictionary.Variables.
+
+with frReport1.Dictionary do
+begin
+  // creating category (space in category name required!)
+  Variables[' New category'] := '';
+  // creating variables
+  Variables['New Variable'] := 'CustomerData.Customers."CustNo"';
+  Variables['Another Variable'] := 'Page#';
+end;
+
+
+===============================================================================
+2.24. I don't want to show some datasets in the data dictionary and in the report.
+
+Use TfrReport.Dictionary.DisabledDatasets:
+
+with frReport1.Dictionary do
+begin
+  // turn of this dataset
+  DisabledDatasets.Add('CustomerData.Bio');
+  // or, turn off entire datamodule/form
+  DisabledDatasets.Add('CustomerData*');
+end;
+
+
+===============================================================================
+2.25. How to pass a value to the report?
+
+There are several methods to do this. First is to use global object
+frVariables (defined in FR_Class unit):
+
+frVariables['My variable'] := 10;
+
+This code creates a new variable with 'My variable' name and value = 10.
+This method is best to pass static data to the report.
+
+Second method is to use the TfrReport.OnGetValue event. You can use this
+method to pass dynamic data, i.e. data that changes from record to record.
+
+procedure TForm1.frReport1GetValue(ParName: String; var ParValue: Variant);
+begin
+  if ParName = 'MyField' then
+    ParValue := Table1MyField.Value;
+end;
+
+Finally, third method is to define variable from dictionary programmatically:
+
+with frReport1.Dictionary do
+begin
+  Variables['MyVariable'] := 'CustomerData.Customers."CustNo"';
+  Variables['Another Variable'] := '10';
+end;
+
+
+(can I pass data from report to the program?)
+
+Use frVariables object. If you write the following code in any script:
+
+MyVariable := 10
+
+then in your program you can use this code to retrieve MyVariable value:
+v := frVariables['MyVariable'];
+
+
+===============================================================================
+2.26. How to make the TChart with several series?
+
+You can't do this in designer. You need to write some code in Delphi.
+Create TChart or TDBChart, fill it out; put the empty TfrChartView to the report;
+write the following code in the TfrReport.OnBeforePrint event handler:
+
+if View.Name = 'Chart1' then
+  TfrChartView(View).AssignChart(your_Delphi_chart)
+
+
+===============================================================================
+2.27. How to switch pages in the designer?
+
+Just drag the page tab on a new place.
+
+
+===============================================================================
+2.28. I want to show variables and data fields in one insert dialog.
+
+Set the TfrReport.MixVariablesAndDBFields := True. All data fields and
+variables now accessible in the "Insert data field" dialog.
+
+
+===============================================================================
+2.29. How to hide "export options" dialog?
+
+Set all necessary properties of the export component (TfrTextExport, for example)
+and disable the dialog by setting ShowDialog property to False.
+
+
+===============================================================================
+2.30. I store my reports in a BLOb. How to change the "Open/Save" dialogs in the designer?
+
+Look at TfrDesigner component. It has necessary events: OnLoadReport and
+OnSaveReport. Here is a small example:
+
+procedure TForm1.frDesigner1LoadReport(Report: TfrReport;
+  var ReportName: String; var Opened: Boolean);
+begin
+  with MyOpenDialog do
+  begin
+    Opened := ShowModal = mrOk;
+    if Opened then
+    begin
+      Report.LoadFromBlobField(...);
+      ReportName := ...;
+    end;
+  end;
+end;
+
+procedure TForm1.frDesigner1SaveReport(Report: TfrReport;
+  var ReportName: String; SaveAs: Boolean; var Saved: Boolean);
+begin
+  if SaveAs then
+    with MySaveDialog do
+    begin
+      Saved := ShowModal = mrOk;
+      if Saved then
+      begin
+        Report.SaveToBlobField(...);
+        ReportName := ...;
+      end;
+    end
+  else
+    Report.SaveToBlobField(...);
+end;
+
+
+===============================================================================
+2.31. How to access to the report object from Delphi?
+
+FR objects is not a components and can be accessed this way:
+
+var
+  t: TfrMemoView;
+begin
+  t := TfrMemoView(frReport1.FindObject('Memo1'));
+
+  if t <> nil then
+    t.Memo.Text := 'FastReport';
+// or this:
+  if t <> nil then
+    t.Prop['Memo'] := 'FastReport';
+end;
+
+
+===============================================================================
+2.32. How to define own hotkeys in the TfrPreview?
+
+TfrPreview component has a property Window: TForm. You can assign your event
+handler to the TfrPreview.Window.OnKeyDown.
+
+
+===============================================================================
+2.33. How to print a report without previewing it?  
+
+This way:
+
+if frReport1.PrepareReport then
+  frReport1.PrintPreparedReport('', 1, True, frAll);
+  // or
+  frReport1.PrintPreparedReportDlg;
+
+
+===============================================================================
+2.34. How to print a picture that stored in a file?
+
+a) use TfrReport.OnBeforePrint event:
+
+if View.Name = 'Picture1' then
+  TfrPictureView(View).Picture.LoadFromFile(...) or
+                              .Assign or
+                              .everything_what_you_want
+
+b) in the script:
+
+begin
+  Picture1.LoadFromFile(filename)
+end
+

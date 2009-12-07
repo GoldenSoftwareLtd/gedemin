@@ -1,0 +1,2 @@
+inherited frameAnalitic: TframeAnalitic
+end

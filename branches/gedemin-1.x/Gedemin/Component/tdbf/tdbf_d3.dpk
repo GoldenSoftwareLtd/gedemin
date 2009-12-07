@@ -1,0 +1,51 @@
+package tdbf_d3;
+
+{$ALIGN ON}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $00400000}
+{$DESCRIPTION 'TDbf V5 for Delphi 3'}
+{$DESIGNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  vcl30,
+  VCLDB30;
+
+contains
+  dbf_reg,
+  Dbf_Common,
+  Dbf_Str,
+  Dbf_Cursor,
+  Dbf_Parser,
+  Dbf_PrsDef,
+  Dbf_PrsCore,
+  Dbf_PrsSupp,
+  Dbf_PgFile,
+  Dbf_Memo,
+  Dbf_Lang,
+  Dbf_Fields,
+  Dbf_IdxFile,
+  Dbf_IdxCur,
+  Dbf_DbfFile,
+  Dbf_Wtil,
+  Dbf;
+
+end.

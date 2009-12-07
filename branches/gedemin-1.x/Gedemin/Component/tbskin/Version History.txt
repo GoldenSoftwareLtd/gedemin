@@ -1,0 +1,482 @@
+..:: TToolbar 2000 Skin+ & Patch for Toolbar 2000 Components ::..
+          ..:: (C) Haralabos Michael 2001-2002 ::..
+
+Version History
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00.15:
+1) Fixed item caption rotation
+2) Fixed Caption Font Color when using tboDockedCaptions
+   and the toolbar was docked
+3) Replaced tcMenuText with tcText in order to archive
+   tcText = Text Color for all items when not hover
+   tcHighlightText = Text Color for all items when they hover
+4) Fixed Windows XP Skin TopRight corner painting
+   (Thanks goes to Roy M Klever for providing the fix)
+5) Updated for *Toolbar 2000 2.0.15 Compabitility*
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00.14b:
+1) Fixed in NativeXP skin didn't draw the shortcut text
+2) Fixed Popups didn't draw with the correct font
+3) Fixed in Disabled mode Checkbox hover didn't draw correctly
+4) Fixed changing to NativeXP theme OnFormCreate Event caused infinite loop
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00.14:
+1) Re-designed & Optimized the Colorsets internal code
+2) Fixed Custom Colorset on WindowsXP Skin
+3) Fixed hovering a disabled item while the mouse is
+   over on OfficeXP shouldn't paint correctly
+4) Fixed a rare runtime error when application quits.
+5) Fixed OfficeXP Checkmark painting
+6) Removed unused code & comments
+7) Updated for *Toolbar 2000 2.0.14 Compabitility*
+
+various fixes & optimizations ...
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00.13:
+1) Fixed Separator drawing in Office XP
+2) Major Updates for *Toolbar 2000 2.0.13 Compabitility*
+
+various fixes & optimizations ...
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00.12b:
+1) Fixed a couple serious bugs introduced with 1.00.12 
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00.12a:
+1) Fixed a couple serious bugs introduced with 1.00.12 
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00.12:
+1) Some changes for supporting the popup scrolling
+2) License updated
+3) Updated & fixed for *Toolbar 2000 2.0.12 Compabitility*
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00:
+1) Fixed: Edit Label Alignment in WindowsXP skin
+2) Updated documentation
+3) Fixed: Some Color Properties were not working
+4) Updated for *Toolbar 2000 2.0.11 Compabitility*
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Release Candidate 5:
+--
+1) Fixed: A Shadow bug
+2) Updated for *Toolbar 2000 2.0.10 Compabitility*
+
+various fixes ...
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Release Candidate 4:
+--
+1) Fixed: Hotimages on WindowsXP Skin
+2) Fixed: A little Shadow bug
+3) Fixed: Alignment on Edit if the imageback is not default
+4) Fixed: Winxp skin with win2k popup color is wrong
+5) Fixed: Gradient Directions were in wrong order
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Release Candidate 3:
+--
+1) Fixed an AV using Imagelist backgrounds
+2) Fixed Separator painting using OfficeXP Style
+3) Fixed a couple bugs regarding Imagelist & Popup Backgrounds
+4) Removed support for "Hot/DisabledImages". Use TB2k TTBImagelist.
+5) Fixed Floating Toolbars with no caption with NativeXP skin
+6) Using blending & Disabled functions from Alex Denisov
+7) Updated for *Toolbar 2000 2.0.9 Compabitility*
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Release Candidate 2:
+--
+1) Optimized the shadow code
+2) Fixed a painting bug in Gradient Menu Items
+3) Added Windows XP Native Theme support
+4) Fixed OfficeXP text color when clMenuText is different than clBlack;
+5) A couple Optimizations to OfficeXP
+6) Fixed closing popup when clicking on the shadows
+7) Added Gradient Background support for Popups. (see PopupStyle)
+8) Added Gradient Background support for ImageLists. (see ImgBackStyle)
+9) Fixed much shadows painting bugs
+10) TTBItemEdit Text is transparent
+11) tboGradSelItem paints the Checkboxes gradient too
+12) Decreased 1 pixel of SubMenu/Popup item heights to be 
+    extacly like OfficeXP
+13) TTBEdit is like OfficeXP in Popup menus
+14) Modified the License
+15) Renamed compoment file name from TB2Skin.pas to TBSkinPlus.pas
+    Added new unit, TBSkinShared.pas
+16) Fixed Hovering through keyboard with disabled item
+    when the mouse is over the disabled item
+17) Fixed Windows XP floating roundrect caption toolbar
+18) Fixed MDI button height
+19) Fixed Background popup color
+20) Fixed floating caption text color
+21) Fixed Popup border color
+22) Fixed Images didn't have shadows when the popup is opened
+23) Some Shadow Contrast adjustments
+24) Fixed Shadows works outside application (dll)
+25) Fixed a couple Access Violations
+26) Fixed TTBPopupMenu was ignoring any attached Skin
+27) Fixed Chevron Size
+28) Updated for *Toolbar 2000 2.0.8 Compabitility*
+
+various fixes & tweaks & optimizations ..
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Release Candidate 1:
+--
+1) Finally shadows for Office XP are Finished!!!
+            -= Merry Christmas =-
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 15d:
+--
+1) Updated for *Toolbar 2000 2.0.7 Compabitility*
+
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 15c:
+--
+1) Fixed the blend value of blended images
+2) Fixed AV when ParentFont is false
+3) Fixed Menu Item Shadow assigned with a long popup
+4) Fixed TTBEdit Text position (non hover)
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 15b:
+--
+1) Fixed compiler errors
+2) Fixed transparency problems
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 15:
+--
+1) Fixed White line on the left of a selected item.
+2) Fixed OfficeXP Popup checked items painting
+3) Blended Imagelist Support! (For both skins)
+   (A credit must go to Lee Nover for providing
+    the sample code of bleding images)
+4) Updated Documents
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 14:
+--
+1) Added CaptionFont property which controls the
+   font of "Docked" and "Undocked" toolbars
+2) Added ParentFont property
+3) DockTextAlign should affect "Docked" Toolbars too
+4) Updated Documents
+5) Added "Disabled Images" support. (You can assign
+   your own disabled images)
+6) Floating toolbar close symbol button has the correct color
+   when it's hovering (white) and when it's pressed (black).
+7) Floating Close button Symbol Top Position
+
+various fixes & tweaks & changes..
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 13:
+--
+1) Cleaned up TB2Skin.pas Source Code
+2) Fixed Assigning TBSkin
+3) Fixed changing Gradient Direction
+4) Fixed a Font leak when using Docked Captions
+5) Minor changes to Office XP Skin Floating toolbars to
+   match Office XP
+6) Updated for *Toolbar 2000 2.0.6 Compabitility*
+7) Updated License
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 12:
+--
+1) Fixed Size of MDI Buttons (OfficeXP Skin)
+2) Fixed Checked Color
+3) Removed tcCheckBox property from Colors
+   (You have tcCheck & tcChecked Over)
+4) Fixed Floating Dock Size (OfficeXP Skin)
+5) Fixed the "X" symbol position of Floating Toolbars
+6) Added Hovering of the Close button in Floating Toolbars
+7) Added Hovering of MDI Buttons
+8) Fixed Closing MDI Window when double clicking on the 
+   Window's MDI Icon.
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 11:
+--
+1) Fixed Floating Toolbar Close Button
+2) Fixed Clicking on TTBEditItem using WindowsXP skin on
+   Popup
+3) Fixed a couple major Access Violations
+4) Removed Division line on DropDown Submenu when it's dropped
+5) Fixed wrong Disabled images with some video cards when
+   using TWinXP Component
+6) Shadows should now show after the popup animation ends
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 10:
+--
+1) Floating Windows are now having the same 
+   background color as toolbars.(Office XP skin)
+2) Updated Documentation
+3) Fixed: Toolwindows will disappear when dropping
+   a TBSkin+ Component on the form
+4) Fixed Floating Windows Caption Font Height
+5) Fixed a couple TTBEditItem paint problems
+6) Fixed checkbox painting on WindowsXP Skin
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 9:
+--
+1) Fixed all the "Errors" reported from Memproof
+2) Finally fixed pRGBQuadArray problems.
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 8:
+--
+1) Corrected again (final) the WindowsXP detection function.
+2) Fixed a BCB incompabitility
+3) Fixed Shadow corners
+4) Removed some forgotten "debug" code.
+5) Changed: Imagelist shadows were too dark
+6) Updated WindowsXP Skin
+7) Updated for *Toolbar 2000 2.0.5 Compabitility*
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 7:
+--
+1) Changed: a bit the imagelist shadows. (should be more darker)
+2) Changed: disabled text only on toolbars on WindowsXP skin 
+            should now be using 3D Style
+3) Changed: Office XP Floating Borders colors
+4) Fixed: Image List Shadow color property not used
+5) Added: tcSeparator color to Colors property
+6) Updated Documentation
+7) Fixed: Hovering disabled items on toolbars with WindowXP skin
+8) Added tcChecked property to Colors
+9) OfficeXP Separator is now touching the popup edge
+10) Child Popup will not hide when you slowly pass the mouse 
+    from the Item to the popup
+11) Fixed margins & painting with big fonts
+12) Reimplement "X" close button on floating toolbars
+13) Rounded floating borders for OfficeXP
+14) Fixed: Font leak when using MDI
+15) Fixed: Office XP Popup margins
+16) Updated for *Toolbar 2000 2.0.3 Compabitility*
+
+various minor fixes & tweaks & changes..
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 6:
+--
+1) Delphi 4 Compabitility. (Thanks to a developer friend of mine)
+2) Corrected WindowsXP detection function.
+3) Disabled Images should now use Hotimages if they assigned.
+4) Fixed: MDI System Menu when hotimages are assigned.
+5) Fixed: MDI button drawing.
+6) Finally fixed the problem refresh floating toolbars
+   when changing skin.
+7) Fixed: Item Shadow with big imageslists paint above 
+   item's border.
+8) Updated Windows XP Skin
+
+various minor fixes & tweaks ..
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 5 Refresh:
+--
+1) Changed: Changing Skin should not reset the last 3 options
+2) Fixed: Windows XP Skin DropDown Menus on Toolbars
+   (It was the same painting as MenuBar)
+3) Fixed: Forgotten to update "Shortcut" code from 2.0.2 to 2.0.3
+
+various minor fixes & tweaks ..
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 5:
+--
+1) Windows XP is now fully completed!
+   Many Major changes have been done.
+2) Added Windows XP Shadows (From Andreas Holstenson) 
+   and a "ShadowStyle" property that 
+   allows you to choose the Shadow Style
+   (2 styles, sOfficeXP and sWindowsXP)
+3) Imagelist shadows should work now 
+   on all graphics cards. (Thanks Khanh for this)
+4) Added Helper 2 Functions to detect WindowsXP and
+   if the WindowsXP machine has "Themes" turned on.
+
+   function IsWindowsXP: Boolean;
+   function IsWindowsXPThemed: Boolean;
+
+5) Added Skin property to TTBToolWindow
+6) Added a Demo
+7) Updated for *Toolbar 2000 2.0.3 Compabitility*
+
+various minor fixes & tweaks ..
+    
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 4:
+--
+1) Added tcCheckOver color to TTBColors property.
+    (This is the color of a "Checked" Item when the mouse is over it)
+2) Removed tcDockBorder and Added tcDockBorderIn &
+   tcDockBorderOut in order to changed the 2 border colors 
+   of a floating toolbar.
+3) Updated Documentations
+4) Improved WindowsXP Floating Toolbar from Andreas Holstenson
+5) Fixed TTBEdit didn't detect the Default Skin propertly
+6) Reimplement Skin & Shadow Painting allowing 1 Skin & Shadow
+   code for Animated & Non-Animated Popups/Submenus
+7) Fixed TTBEdititem border color when it hans't focus or mouse over
+8) Added support for special menus. (Special menus are when the
+   popup isn't aligned on the left side of the TTBItem but somewhere
+   else .. eg middle or a little righter than the item)
+9) Added disabled Menu/Item selection support through keyboard
+10) Full MDI Skin Support (Both Office XP & Windows XP)
+11) Fixed Item Height for Windows XP Skin
+12) Added Gradient Menu Item Selections (tboGradSelItem in Options)
+13) Much better shadows corners (From Charlie McKeegan)
+14) tboCustomAnim & AnimOptions removed
+
+various minor fixes & tweaks ..
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 3 Refresh:
+--
+1) Fixed: Mouse over a checked item was filled with wrong color
+2) Added DockTextAlign for TTBToolbar and TTBToolWindow
+3) Added another one color to TTBColors property.
+    tcDockBorder is the color of the border of the TTBToolbar or
+    TTBToolwindow when it's floating (Not Docked).
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 3:
+--
+1) Added Shadows to Popup/Submenu Items.
+    (It needs more to work and i need feedback on this! and
+     also it can be disabled by the "Options" property of TTBSkin)
+2) Fixed Changing Colorsets (Bug introduced with Beta 2)
+3) OfficeXP Skin Popup Items they now painting by tcSelItem
+    (there were painted with tcSelBar)
+4) Fixed: You can not disable "IsDefault" if it is the only component.
+5) Fixed a couple Access Violations (Hopefully the last ones)
+6) Updated for *Toolbar 2000 2.0.2 Compabitility*
+
+various minor fixes & tweaks ..
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 2:
+--
+1) Component Behavior Change.
+    A) To use the Original TB2k Code you must:
+         Not put any TTBSkin component on you form or
+         if you have it must be set to "SkinType = tbsDisabled".
+
+    B) To use a skin to any toolbars without assign it you must:
+         Put a TTBSkin on your form, (make it default if there's more
+         TTBSkins) and choose the skin you like.In other words, 
+         if you don't assign any TTBSkin, the Toolbar/Popup will use
+         the "DefaultSkin". If there isn't any Default Skin the Toolbar
+         will not execute any "Skin/Patch" code. (like setting default 
+         or assigned skin to tbsDisabled).
+
+2) Major optimizations to the patch code (I think it's faster now)
+3) Re-done from scratch imagelist painting to be accurate with OfficeXP
+4) Fixed Menu Toolbar height, is according to OfficeXP
+5) Added switching to a disabled item via Keyboard to be "disabled" selected
+6) Complete Version History (from 0.1) (Thanks to Jordan's news search engine)
+7) Fixed Checked Item color for Office XP Skin
+8) Fixed a couple of Access Violations when destroying
+9) Moved color properties into a persistent
+10) Added "tboMenuTBColor" in options. If you use this options the 
+       Menu Toolbar will be painted using the "ToolbarColor"
+11) Added a "Version" Property
+12) Combo & Submenu Items on Chevrons are correctly drawn 
+       when they dropped
+13) Combo & Submenu Popup distance is the according with Office XP
+14) Added the following comment for easier track of the Patch changes:
+//Skin Patch, //Skin Patch Begin,  //Skin Patch End,  //Skin Patch Remove
+15) Documents updated 
+16) Removed the functions: (Typecastings is easier)
+    TBSSkinTypeToString,  TBSColorSetToString,
+    TBSStringToSkinType, TBSStringColorSet
+17) Support for 256 Color Mode
+18) Fixed when AllowDrag was false
+
+various minor fixes & tweaks ..
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 1 Refresh:
+--
+1) Custom Popup Animations
+2) Fixed a couple bugs with Popup positions
+
+Added/Fixed/Changed in TBSkin+ Patch 1.00 Beta 1:
+--
+1) Bigger Close(X) button on floating toolbars (From Andreas Holstenson)
+
+2) Some Major Component design changes (From Dean Harmon)
+    A) Allows for multple skins on a form, one being the default.
+    B) You can assign a specific skin to a toolbar/popup via the Skin property 
+         (no longer the non-functioning one on a Dock, either)
+    C) The variables are gone from TBSkin.  Everything is accessed from the 
+         appropriate TTBSkin.
+    D) Added TBSkinManager for multiple skins.  Invisble helper class, really.
+    E) Minor tweaks to non-painting code.
+
+Note! This mean you must assign a TTBSkin to every TTBToolbar and/or TTBPopup.
+If a TTBSkin presented and it's DefaultSkin, the Toolbars which haven't any
+assigned "Skin" it will use the "Default or First" TTBSkin available.
+
+3) Added the following functions: (eg. for ini/registry use)
+    TBSSkinTypeToString,  TBSColorSetToString,
+    TBSStringToSkinType, TBSStringColorSet
+
+4) Added WindowsXP Skin Type. 
+5) Color Properties are completed changed so if you have any Custom
+    colorset you should BACKUP the color values first. (Send to me any 
+    good custom colorset you've made to include it into the next release)
+6) Re-implement Dock Drag drawing algorithm for OfficeXP skin.
+     It's now extact to Office XP. (7 lines on menus and 8 for toolbars)
+     It's also now transparent when toolbar are using Background.
+7) OfficeXP Skin: more accurate colors & rounded toolbars added
+8) Vertically Docked Captions (From From Dean Harmon). 
+     Enabling this option will replace the "Drag Handle" with the Toolbar caption.
+     (Only when the Toolbar is vertically Docked)
+9) Updated for *Toolbar 2000 2.0.1 Compabitility*
+
+various minor fixes & tweaks ..
+
+--
+Added/Fixed/Changed in TBSkin+ Patch 0.95:
+1) Fixed: Wrong painting when ALT key pressed on a menubar.
+2) Updated for *Toolbar 2000 2.0.0 Compabitility*
+
+--
+Added/Fixed/Changed in TBSkin+ Patch 0.94:
+1) Added XP Style for Floating Windows (Code By Andreas Holstenson)
+2) Fixed disabled items Shortcut Text was incorrect when passing the mouse over
+
+--
+Added/Fixed/Changed in TBSkin+ Patch 0.90:
+
+1) On the Fly Skin(?) Support!!! (Through TBSkin) 
+When you change it at run-time but because the Dock Drags aren't getting updated you musy do:
+MyDock.Hide;
+MyDock.Show;
+in order to update the "Drag's" painting in a dock.
+2) Fixed wrong imagelist background rect fill causing imagelist mispainting
+3) Fixed Vertical Separator painting
+4) Fixed Drag calculation fillrect
+5) Fixed Subitem Arrows had White color upon selection
+6) Added ImageList shadows
+7) Different Scheme Color Support. (That means if you change the Color Scheme of Windows, TB2k should calculate XP Color regarding the Scheme, also on the fly change should recalculate XP Colors) 
+NOTE: You must also assign at least 1 dock to TBSkin in order to the get CMSysColorChange change. (that means runtime support scheme change /calculation of color if not tbcCustom) 
+8) Customized Color Theme Support! (You can either have the Standard XP Calculated color or you can assign your own!! Through TTBSkin).  You can assign you own colors for the TTBItems. e-mail me any good looking color sets you've made for the next release.
+9) Identical Popup appearance of XP Popup Menus in all directions (Left, Top, Bottom, Right) and full popup support
+10) Fixed when a TTBItem was on a (Menu)Toolbar was not pressed and the menu was open, it had wrong color.
+11) Popups overlapping is controlled throught TBSkin
+12) Added HotImageList into TTBToolbar & TTBItem (Quick Copy/Paste)
+13) Disabled Items are now behave like Office XP
+    
+various minor fixes & tweaks ..
+
+--
+Added/Fixed/Changed in TBSkin+ Patch 0.2
+
+1) DropDown Combo is now with XP Style
+2) Chevron is now with XP Style
+3) Added Vertical Drag XP Style
+4) BorderStyle is set to bsNone by default
+5) Moved Color Variables To TB2Common
+6) Close Button is now XP Style
+7) Correct the Color on Chevron Popup
+8) Fixed Height Margins on the Popups and
+    also Imagelist margin
+    (Should look more like Office XP now, maybe ?)
+9) Added CheckBox Color & Now the checkbox
+     has the correct color when is checked
+10) Fixed CheckBox Color to be correct when is selected
+11) Fixed Problems with imagelist sizes different than 16
+12) Corrected the Popup Border Color
+13) The TTBSubitem has now the correct color when it's
+      popped
+
+--
+Added/Fixed/Changed in TBSkin+ Patch 0.1
+
+Initial Version
