@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Grids, gdcBase, DBClient, ActnList, ExtCtrls;
+  StdCtrls, Grids, gdcBase, DB, ActnList, ExtCtrls;
 
 type
   TdlgCompareRecords = class(TForm)
@@ -43,7 +43,7 @@ type
     FIsNewValue: array of Boolean;
   public
     BaseRecord: TgdcBase;
-    StreamRecord: TClientDataSet;
+    StreamRecord: TDataSet;
     ReplaceFieldList: TStringList;
   end;
 
@@ -51,9 +51,6 @@ var
   dlgCompareRecords: TdlgCompareRecords;
 
 implementation
-
-uses
-  db;
 
 {$R *.DFM}
 

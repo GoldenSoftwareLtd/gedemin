@@ -3699,7 +3699,7 @@ type
       const AnParamType: WideString; const AnComment: WideString): SYSINT; safecall;
     function  AddLinkParam(const AnDisplayName: WideString;
       const AnParamType: WideString; const AnTableName: WideString;
-      const AnDisplayField: WideString; const AnPrimaryField: WideString;
+      const AnPrimaryField: WideString; const AnDisplayField: WideString; 
       const AnLinkConditionFunction: WideString;
       const AnLinkFunctionLanguage: WideString; const AnComment: WideString): SYSINT; safecall;
     function GetVariantArray: OleVariant; safecall;
@@ -17700,7 +17700,7 @@ end;
 { TwrpGsParamList }
 
 function TwrpGsParamList.AddLinkParam(const AnDisplayName,
-  AnParamType, AnTableName, AnDisplayField, AnPrimaryField,
+  AnParamType, AnTableName, AnPrimaryField, AnDisplayField,
   AnLinkConditionFunction, AnLinkFunctionLanguage,
   AnComment: WideString): SYSINT;
 begin

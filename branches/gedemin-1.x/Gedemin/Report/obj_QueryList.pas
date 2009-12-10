@@ -38,6 +38,26 @@ const
   OnlyForClientDataSet = 'Method only for MemTable';
 
 type
+  TgsIBDataSet = class(TIBDataSet)
+  private
+    FParams: TParams;
+    procedure SetParamsList(Value: TParams);
+    //аналогично TIBQuery
+    procedure SetParams;
+    procedure SetParamsFromCursor;
+
+  protected
+    procedure InternalOpen; override;  
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    function ParamByName(const Value: string): TParam;
+
+    property Params: TParams read FParams write SetParamsList stored False;
+  end;
+
+type
   TgsParam = class(TAutoObject, IgsParam)
   private
     FParam: TParam;
@@ -360,7 +380,7 @@ implementation
 
 uses
   ComServ, rp_BaseReport_unit, Provider, IBSQL, IBTable, gd_SetDatabase,
-  gdcOLEClassList, prp_Methods, obj_WrapperIBXClasses, TypInfo;
+  gdcOLEClassList, prp_Methods, obj_WrapperIBXClasses, TypInfo, IB;
 
 type
   TFieldCracker = class(TField);
@@ -2026,6 +2046,138 @@ end;
 function TgsDataSet.Get_RealDataSet: TDataSet;
 begin
   Result := GetDataSet;
+end;
+
+{ TgsIBDataSet }
+
+constructor TgsIBDataSet.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  FParams := TParams.Create(Self);
+end;
+
+destructor TgsIBDataSet.Destroy;
+begin
+  FParams.Free;
+  inherited;
+end;
+
+procedure TgsIBDataSet.InternalOpen;
+begin
+  if DataSource <> nil then
+    SetParamsFromCursor;
+  SetParams;
+
+  inherited InternalOpen;
+end;
+
+function TgsIBDataSet.ParamByName(const Value: string): TParam;
+var
+  i: Integer;
+  L: TParams;
+begin
+  if not InternalPrepared then
+    InternalPrepare;
+  L := TParams.Create(Self);
+  try
+    for i := 0 to QSelect.Params.Count - 1 do
+      TParam(L.Add).Name := QSelect.Params[i].Name;
+
+    FParams.Assign(L);
+  finally
+    L.Free;
+  end;
+  Result := FParams.ParamByName(Value);
+end;
+
+procedure TgsIBDataSet.SetParams;
+var
+  i : integer;
+  Buffer: Pointer;
+begin
+  for I := 0 to FParams.Count - 1 do
+  begin
+    if Params[i].IsNull then
+      SQLParams[i].IsNull := True
+    else begin
+      SQLParams[i].IsNull := False;
+      case Params[i].DataType of
+        ftBytes:
+        begin
+          GetMem(Buffer,Params[i].GetDataSize);
+          try
+            Params[i].GetData(Buffer);
+            SQLParams[i].AsPointer := Buffer;
+          finally
+            FreeMem(Buffer);
+          end;
+        end;
+        ftString, ftFixedChar:
+          SQLParams[i].AsString := Params[i].AsString;
+        ftBoolean, ftSmallint, ftWord:
+          SQLParams[i].AsShort := Params[i].AsSmallInt;
+        ftInteger:
+          SQLParams[i].AsLong := Params[i].AsInteger;
+{        ftLargeInt:
+          SQLParams[i].AsInt64 := Params[i].AsLargeInt;  }
+        ftFloat:
+         SQLParams[i].AsDouble := Params[i].AsFloat;
+        ftBCD, ftCurrency:
+          SQLParams[i].AsCurrency := Params[i].AsCurrency;
+        ftDate:
+          SQLParams[i].AsDate := Params[i].AsDateTime;
+        ftTime:
+          SQLParams[i].AsTime := Params[i].AsDateTime;
+        ftDateTime:
+          SQLParams[i].AsDateTime := Params[i].AsDateTime;
+        ftBlob, ftMemo:
+          SQLParams[i].AsString := Params[i].AsString;
+        else
+          IBError(ibxeNotSupported, [nil]);
+      end;
+    end;
+  end;
+end;
+
+procedure TgsIBDataSet.SetParamsFromCursor;
+var
+  I: Integer;
+  DataSet: TDataSet;
+
+  procedure CheckRequiredParams;
+  var
+    I: Integer;
+  begin
+    for I := 0 to FParams.Count - 1 do
+    with FParams[I] do
+      if not Bound then
+        IBError(ibxeRequiredParamNotSet, [nil]);
+  end;
+begin
+  if DataSource <> nil then
+  begin
+    DataSet := DataSource.DataSet;
+    if DataSet <> nil then
+    begin
+      DataSet.FieldDefs.Update;
+      for I := 0 to FParams.Count - 1 do
+        with FParams[I] do
+          if not Bound then
+          begin
+            AssignField(DataSet.FieldByName(Name));
+            Bound := False;
+          end;
+    end
+    else
+      CheckRequiredParams;
+  end
+  else
+    CheckRequiredParams;
+end;
+
+procedure TgsIBDataSet.SetParamsList(Value: TParams);
+begin
+  FParams.AssignValues(Value);
 end;
 
 initialization

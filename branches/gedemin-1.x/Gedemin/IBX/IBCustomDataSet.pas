@@ -4926,7 +4926,11 @@ begin
     FUpdatesPending := True;
   end;
   if bInserting then
+  begin
+    if not (State in dsEditModes) then
+      raise Exception.Create('Dataset not in edit or insert mode.');
     Inc(FRecordCount);
+  end;
 end;
 
 procedure TIBCustomDataSet.InternalRefresh;
