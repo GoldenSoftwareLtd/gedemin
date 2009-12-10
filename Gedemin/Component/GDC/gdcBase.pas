@@ -1403,7 +1403,7 @@ type
       const aFilter: String = datDialogFilter): String; virtual;
 
     procedure SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True; StreamFormat: TgsStreamType = sttUnknown); virtual;
+      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True); virtual;
     procedure LoadFromFile(const AFileName: String = ''); virtual;
 
     // Слияние двух записей
@@ -6502,7 +6502,7 @@ begin
       Inc(j);
     end;
   }
-  
+
   FInternalProcess := True;
   try
     if not FDataTransfer then
@@ -9731,11 +9731,6 @@ var
   R: OleVariant;
 begin
   Result := S;
-  
-  // Если не нашли знак окончания метапеременной, то выходим без дальнейшей обработки
-  if StrIPos('/>', S) = 0 then
-    Exit;
-
   I := 0;
   repeat
     if I > 0 then
@@ -13665,191 +13660,24 @@ end;
 
 procedure TgdcBase.LoadFromFile(const AFileName: String);
 var
-  StreamSaver: TgdcStreamSaver;
-  StreamFormat: TgsStreamType;
-  FileName: String;
-  S: TStream;
+  frmStreamSaver: TForm;
 begin
-  FileName := QueryLoadFileName(AFileName, datExtension, datxmlDialogFilter);
-  if FileName <> '' then
-  begin
-    // проверяем на версию потока
-    S := TFileStream.Create(AFileName, fmOpenRead);
-    try
-      StreamFormat := GetStreamType(S);
-    finally
-      S.Free;
-    end;
-
-    if StreamFormat <> sttBinaryOld then
-    begin
-      StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
-      S := TFileStream.Create(AFileName, fmOpenRead);
-      try
-        //StreamSaver.Silent := True;
-        StreamSaver.LoadFromStream(S);
-        if StreamSaver.IsAbortingProcess then
-          Exit;
-      finally
-        S.Free;
-        StreamSaver.Free;
-      end;
-    end
-    else
-    begin
-      S := TFileStream.Create(AFileName, fmOpenRead);
-      try
-        Self.LoadFromStream(S);
-      finally
-        S.Free;
-      end;
-    end;
-  end;
+  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+  (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(Self);
+  (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadForm;
 end;
 
 procedure TgdcBase.SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True; StreamFormat: TgsStreamType = sttUnknown);
+  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
 var
-  StreamSaver: TgdcStreamSaver;
-  FileName: String;
-  S: TStream;
-  Bm: TBookmarkStr;
-  I: Integer;
-
-  procedure SaveDetail;
-  var
-    DBm: TBookmarkStr;
-  begin
-    if Assigned(ADetail) then
-    begin
-      ADetail.BlockReadSize := 1;
-      try
-        DBm := ADetail.Bookmark;
-        ADetail.First;
-        while not ADetail.Eof do
-        begin
-          StreamSaver.AddObject(ADetail);
-          if StreamSaver.IsAbortingProcess then
-            Exit;
-          ADetail.Next;
-        end;
-        ADetail.Bookmark := DBm;
-      finally
-        ADetail.BlockReadSize := 0;
-      end;
-    end;
-  end;
-
+  frmStreamSaver: TForm;
 begin
   if Assigned(BL) then
     BL.Refresh;
 
-  // Если формат файла не передан, то получим формат по умолчанию
-  if StreamFormat = sttUnknown then
-    StreamFormat := GetDefaultStreamFormat(False);
-  if StreamFormat in [sttXML, sttXMLFormatted] then
-    FileName := Self.QuerySaveFileName(AFileName, xmlExtension, xmlDialogFilter)
-  else
-    FileName := Self.QuerySaveFileName(AFileName, datExtension, datDialogFilter);
-
-  // Если пользователь выбрал файл
-  if FileName <> '' then
-  begin
-    if StreamFormat <> sttBinaryOld then
-    begin
-      StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
-      try
-        // если выбрано Инкрементное сохранение, то передадим ИД целевой базы
-        {if IncrementDatabaseKey > 0 then
-          StreamSaver.PrepareForIncrementSaving(IncrementDatabaseKey);}
-
-        // Если сохраняем только одну запись
-        if OnlyCurrent then
-        begin
-          if Assigned(frmStreamSaver) then
-            frmStreamSaver.SetupProgress(1, 'Сохранение данных...');
-          StreamSaver.AddObject(Self);
-          if StreamSaver.IsAbortingProcess then
-            Exit;
-          SaveDetail;
-          if Assigned(frmStreamSaver) then
-            frmStreamSaver.Step;
-        end
-        else
-        begin
-          Bm := Self.Bookmark;
-          Self.BlockReadSize := 1;
-
-          try
-            // Если не передан BookmarkList, то сохраняем весь датасет
-            if not Assigned(BL) then
-            begin
-              if Assigned(frmStreamSaver) then
-                frmStreamSaver.SetupProgress(Self.RecordCount,  'Сохранение данных...');
-              Self.First;
-              while not Self.Eof do
-              begin
-                StreamSaver.AddObject(Self);
-                if StreamSaver.IsAbortingProcess then
-                  Exit;
-                SaveDetail;
-                Self.Next;
-                if Assigned(frmStreamSaver) then
-                  frmStreamSaver.Step;
-              end;
-            end else
-            begin
-              if Assigned(frmStreamSaver) then
-                frmStreamSaver.SetupProgress(BL.Count,  'Сохранение данных...');
-              BL.Refresh;
-              for I := 0 to BL.Count - 1 do
-              begin
-                Self.Bookmark := BL[I];
-                StreamSaver.AddObject(Self);
-                if StreamSaver.IsAbortingProcess then
-                  Exit;
-                SaveDetail;
-                if Assigned(frmStreamSaver) then
-                  frmStreamSaver.Step;
-              end;
-            end;
-          finally
-            Self.Bookmark := Bm;
-            Self.BlockReadSize := 0;
-          end;
-        end;
-
-        if Assigned(frmStreamSaver) then
-          frmStreamSaver.SetProcessCaptionText('Запись в файл...');
-
-        // сохраняем в зависимости от выбранного в настройках типа файла
-        StreamSaver.StreamFormat := StreamFormat;
-        S := TFileStream.Create(FileName, fmCreate);
-        try
-          StreamSaver.SaveToStream(S, StreamFormat);
-        finally
-          S.Free;
-        end;
-      finally
-        StreamSaver.Free;
-      end;
-    end
-    else
-    begin
-      if Assigned(frmStreamSaver) then
-        frmStreamSaver.SetupProgress(1, 'Сохранение данных...');
-
-      S := TFileStream.Create(FileName, fmCreate);
-      try
-        Self.SaveToStream(S, ADetail, BL, OnlyCurrent);
-      finally
-        S.Free;
-      end;
-    end;
-
-    if Assigned(frmStreamSaver) then
-      frmStreamSaver.Done;
-  end;
+  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+  (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(Self, ADetail, BL, OnlyCurrent);
+  (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
 end;
 
 {По-умолчанию для этого метода все выделенные для сохранения объекты и
@@ -17539,8 +17367,6 @@ var
 begin
   Result := False;
 
-  // Есть диалоговые формы, из которых могут вызываться формы просмотра
-  // если использовать ParentHandle, то форма просмотра будет 'западать'.
   if VarIsEmpty(BL)
     or (VarArrayHighBound(BL, 1) = -1)
     or ((VarArrayHighBound(BL, 1) = 0) and (BL[0] = ID))then
@@ -17548,7 +17374,7 @@ begin
     if (RecordCount > 0) and
        (
          (not (sView in BaseState)) or
-         (MessageBox(Application.Handle,
+         (MessageBox(ParentHandle,
            PChar(Format('Удалить выделенную запись "%s"?', [ObjectName])),
            'Внимание!',
            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES)
@@ -17560,7 +17386,7 @@ begin
   else
   begin
     if (not (sView in BaseState)) or
-         (MessageBox(Application.Handle,
+         (MessageBox(ParentHandle,
             PChar(Format('Выделено записей: %d'#13#10'Удалить?', [VarArrayHighBound(BL, 1) + 1])),
             'Внимание!',
             MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES) then

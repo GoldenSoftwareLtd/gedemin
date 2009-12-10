@@ -2037,7 +2037,6 @@ var
   IBSQL: TIBSQL;
   WorkingDate: TDate;
   HourValue, MinuteValue, SecondValue, MSecondValue: Word;
-  Factor: Integer;
 
   function FormResultDate: TDateTime;
   begin
@@ -2077,11 +2076,18 @@ var
   procedure LocIncDay(const AValue: Integer);
   var
     DayCounter: Integer;
+    Factor: Integer;
   begin
-    if Factor > 0 then
-      DayCounter := AValue
+    if AValue >= 0 then
+    begin
+      DayCounter := AValue;
+      Factor := 1;
+    end
     else
+    begin
       DayCounter := Abs(AValue);
+      Factor := -1;
+    end;
 
     while DayCounter > 0 do
     begin
@@ -2131,67 +2137,38 @@ var
   end;
 
   procedure LocIncHour(const AValue: Integer);
-  var
-    LocalValue: Integer;
   begin
-    LocalValue := HourValue + AValue;
-    if LocalValue >= 0 then
+    HourValue := HourValue + AValue;
+    if (HourValue >= 24) or (HourValue >= 24) then
     begin
-      HourValue := LocalValue mod 24;
-      if LocalValue >= 24 then
-        LocIncDay(LocalValue div 24);
-    end
-    else
-    begin
-      HourValue := 24 + (LocalValue mod 24);
-      LocIncDay((-24 + LocalValue) div 24);
+      LocIncDay(HourValue div 24);
+      HourValue := HourValue mod 24;
     end;
   end;
 
   procedure LocIncMinute(const AValue: Integer);
-  var
-    LocalValue: Integer;
   begin
-    LocalValue := MinuteValue + AValue;
-    if LocalValue >= 0 then
+    MinuteValue := MinuteValue + AValue;
+    if (MinuteValue >= 60) or (MinuteValue <= 60) then
     begin
-      MinuteValue := LocalValue mod 60;
-      if LocalValue >= 60 then
-        LocIncHour(LocalValue div 60);
-    end
-    else
-    begin
-      MinuteValue := 60 + (LocalValue mod 60);
-      LocIncHour((-60 + LocalValue) div 60);
+      LocIncHour(MinuteValue div 60);
+      MinuteValue := MinuteValue mod 60;
     end;
   end;
 
   procedure LocIncSecond(const AValue: Integer);
-  var
-    LocalValue: Integer;
   begin
-    LocalValue := SecondValue + AValue;
-    if LocalValue >= 0 then
+    SecondValue := SecondValue + AValue;
+    if (SecondValue >= 60) or (SecondValue <= -60) then
     begin
-      SecondValue := LocalValue mod 60;
-      if LocalValue >= 60 then
-        LocIncMinute(LocalValue div 60);
-    end
-    else
-    begin
-      SecondValue := 60 + (LocalValue mod 60);
-      LocIncMinute((-60 + LocalValue) div 60);
+      LocIncMinute(SecondValue div 60);
+      SecondValue := SecondValue mod 60;
     end;
   end;
 
 begin
   Result := DateValue;
   WorkingDate := DateValue;
-
-  if Number >= 0 then
-    Factor := 1
-  else
-    Factor := -1;
 
   IBSQL := TIBSQL.Create(nil);
   try

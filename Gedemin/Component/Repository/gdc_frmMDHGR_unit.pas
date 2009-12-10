@@ -79,7 +79,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdc_frmStreamSaver;
+  ;
 
 procedure Tgdc_frmMDHGR.LoadSettings;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -484,31 +484,19 @@ begin
 end;
 
 procedure Tgdc_frmMDHGR.actSaveToFileExecute(Sender: TObject);
-var
-  frmStreamSaver: TForm;
 begin
-  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
   if ibgrMain.SelectedRows.Count > 0 then
-    //gdcObject.SaveToFile('', gdcDetailObject, ibgrMain.SelectedRows, False)
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, gdcDetailObject, ibgrMain.SelectedRows, False)
+    gdcObject.SaveToFile('', gdcDetailObject, ibgrMain.SelectedRows, False)
   else
-    //gdcObject.SaveToFile('', gdcDetailObject);
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, gdcDetailObject);
-  (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
+    gdcObject.SaveToFile('', gdcDetailObject);
 end;
 
 procedure Tgdc_frmMDHGR.actDetailSaveToFileExecute(Sender: TObject);
-var
-  frmStreamSaver: TForm;
 begin
-  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
   if ibgrDetail.SelectedRows.Count > 0 then
-    //gdcDetailObject.SaveToFile('', nil, ibgrDetail.SelectedRows, False)
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject, nil, ibgrDetail.SelectedRows, False)
+    gdcDetailObject.SaveToFile('', nil, ibgrDetail.SelectedRows, False)
   else
-    //gdcDetailObject.SaveToFile;
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject);
-  (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
+    gdcDetailObject.SaveToFile;
 end;
 
 procedure Tgdc_frmMDHGR.actCopySettingsFromUserExecute(Sender: TObject);

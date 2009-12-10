@@ -80,17 +80,17 @@ type
     procedure actChooseUserDocumentToDeleteExecute(Sender: TObject);
     procedure actDeleteUserDocumentToDeleteExecute(Sender: TObject);
     procedure actDeleteUserDocumentToDeleteUpdate(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
   private
     FGlobalStartTime: TDateTime;
-    FClosingPeriodObject: TgdClosingPeriod;
-    
+
+    procedure ActivateControls(DoActivate: Boolean);
+    procedure SetBold(ActiveControl: TCheckBox = nil);
     // Проверка правильности заполнения параметров закрытия периода
     function CheckClosePeriodParams: Boolean;
     // Передача выбранных параметров закрытия в объект
     procedure AssignClosePeriodParams(ClosingObject: TgdClosingPeriod);
 
+    function AddLogMessage(const AMessage: String; const ALineNumber: Integer = -1): Integer;
     procedure SaveLogToFile;
 
     procedure InitialSetupForm;
@@ -99,15 +99,8 @@ type
     procedure MoveInvCardField(FromList, ToList: TListView);
     procedure SaveSettingsToStorage;
   public
-    constructor Create(AnOwner: TComponent); override;
-    destructor Destroy; override;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-
     procedure SetProcessText(AText: String);
-    procedure ActivateControls(DoActivate: Boolean);
-    function AddLogMessage(const AMessage: String; const ALineNumber: Integer = -1): Integer;
-
-    property GlobalStartTime: TDateTime read FGlobalStartTime write FGlobalStartTime;
   end;
 
 var                                  
@@ -121,73 +114,7 @@ uses
 
 {$R *.DFM}
 
-var
-  InnerFormVariable: TfrmClosePeriod;
-
-procedure DoBeforeClosingProcess;
-begin
-  if Assigned(InnerFormVariable) then
-  begin
-    InnerFormVariable.GlobalStartTime := Time;
-    InnerFormVariable.ActivateControls(False);
-    InnerFormVariable.AddLogMessage(TimeToStr(InnerFormVariable.GlobalStartTime) + ': Начат процесс закрытия периода...');
-    InnerFormVariable.btnRun.Caption := 'Прервать';
-  end;
-end;
-
-procedure DoAfterClosingProcess;
-begin
-  if Assigned(InnerFormVariable) then
-  begin
-    InnerFormVariable.AddLogMessage(TimeToStr(Time) + ': Закончен процесс закрытия периода');
-    InnerFormVariable.ActivateControls(True);
-    InnerFormVariable.btnRun.Caption := 'Выполнить';
-  end;
-end;
-
-procedure DoOnClosingProcessInterruption(const AErrorMessage: String);
-begin
-  if Assigned(InnerFormVariable) then
-  begin
-    InnerFormVariable.AddLogMessage(TimeToStr(Time) + ': Критическая ошибка:'#13#10 + AErrorMessage + #13#10'Процесс закрытия прерван!');
-  end;
-end;
-
-procedure DoOnProcessMessage(const APosition, AMaxPosition: Integer; const AMessage: String);
-begin
-  if Assigned(InnerFormVariable) then
-  begin
-    // Если текущий прогресс превысил максималный, увеличим максимальный
-    if (APosition >= 0) and (InnerFormVariable.pbMain.Position <> APosition) then
-      InnerFormVariable.pbMain.Position := APosition;
-    if (AMaxPosition >= 0) and (InnerFormVariable.pbMain.Max <> AMaxPosition) then
-      InnerFormVariable.pbMain.Max := AMaxPosition;
-
-    if APosition > InnerFormVariable.pbMain.Max then
-      InnerFormVariable.pbMain.Max := APosition * 2;
-
-    // лейбл под прогресс баром  
-    InnerFormVariable.lblProcess.Caption :=
-      IntToStr(InnerFormVariable.pbMain.Position) + ' / ' + IntToStr(InnerFormVariable.pbMain.Max);
-      
-    if AMessage <> '' then
-      InnerFormVariable.AddLogMessage(TimeToStr(Time) + ': ' + AMessage);
-  end;
-end;
-
 { TfrmCalculateBalance }
-
-constructor TfrmClosePeriod.Create(AnOwner: TComponent);
-begin
-  inherited;
-  InnerFormVariable := Self;
-end;
-
-destructor TfrmClosePeriod.Destroy;
-begin
-  InnerFormVariable := nil;
-  inherited;
-end;
 
 class function TfrmClosePeriod.CreateAndAssign(AnOwner: TComponent): TForm;
 begin
@@ -222,21 +149,117 @@ begin
 end;
 
 procedure TfrmClosePeriod.btnRunClick(Sender: TObject);
+var
+  Tr: TIBTransaction;
+  gdClosingPeriodObject: TgdClosingPeriod;
 begin
-  if not FClosingPeriodObject.InProcess then
+  // Проверим правильность заполнения параметров 'закрытия периода'
+  if CheckClosePeriodParams then
   begin
-    // Проверим правильность заполнения параметров 'закрытия периода'
-    if CheckClosePeriodParams then
-    begin
-      // Передадим параметры 'закрытия периода'
-      AssignClosePeriodParams(FClosingPeriodObject);
-      // Запустим закрытие периода
-      FClosingPeriodObject.DoClosePeriod;
+    FGlobalStartTime := Time;
+    // Визуализация процесса
+    AddLogMessage(TimeToStr(FGlobalStartTime) + ': Начат процесс закрытия периода...');
+
+    Tr := TIBTransaction.Create(nil);
+    try
+      ActivateControls(False);
+
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      //Tr.Params.Add('no_auto_undo');    // TODO: параметр должен ускорить выполнение, но его нет в IBDatabase.pas:2556
+      Tr.StartTransaction;
+
+      gdClosingPeriodObject := TgdClosingPeriod.Create(Tr);
+      try
+        gdClosingPeriodObject.ProgressBar := Self.pbMain;
+        gdClosingPeriodObject.ProgressBarLabel := Self.lblProcess;
+        gdClosingPeriodObject.MessageLogMemo := Self.mOutput;
+        // Отключение триггеров
+        gdClosingPeriodObject.SetTriggerActive(False);
+
+        try
+          // Передадим параметры 'закрытия периода'
+          AssignClosePeriodParams(gdClosingPeriodObject);
+
+          // Вычисление бухгалтерских остатков
+          if cbEntryCalculate.Checked then
+          begin
+            SetBold(cbEntryCalculate);
+            gdClosingPeriodObject.CalculateEntryBalance;
+          end;
+
+          // Удаление проводок
+          if cbEntryClearProcess.Checked then
+          begin
+            SetBold(cbEntryClearProcess);
+            gdClosingPeriodObject.DeleteEntry;
+          end;
+
+          // Вычисление складских остатков
+          if cbRemainsCalculate.Checked then
+          begin
+            SetBold(cbRemainsCalculate);
+            gdClosingPeriodObject.CalculateRemains;
+          end;
+
+          // Перепривязка складских карточек
+          if cbReBindDepotCards.Checked then
+          begin
+            SetBold(cbReBindDepotCards);
+            gdClosingPeriodObject.ReBindDepotCards;
+          end;
+
+          // Удаление документов
+          if cbRemainsClearProcess.Checked then
+          begin
+            SetBold(cbRemainsClearProcess);
+            gdClosingPeriodObject.DeleteDocuments;
+          end;
+
+          // Удаление пользовательских документов
+          if cbUserDocClearProcess.Checked then
+          begin
+            SetBold(cbUserDocClearProcess);
+            gdClosingPeriodObject.DeleteUserDocuments;
+          end;
+
+          // Копирование бухгалтерских остатков из AC_ENTRY_BALANCE в AC_ENTRY
+          if cbTransferEntryBalanceProcess.Checked then
+          begin
+            SetBold(cbTransferEntryBalanceProcess);
+            gdClosingPeriodObject.TransferEntryBalance;
+          end;
+
+          // Закоммитим изменения в базу
+          if Tr.InTransaction then
+            Tr.Commit;
+          // Визуализация процесса
+          AddLogMessage(TimeToStr(Time) + ': Закончен процесс закрытия периода');
+        except
+          on E: Exception do
+          begin
+            AddLogMessage('Критическая ошибка:'#13#10 + E.Message + #13#10'Процесс закрытия прерван!');
+            if Tr.InTransaction then
+              Tr.Rollback;
+          end;
+        end;
+      finally
+        // Включение триггеров
+        gdClosingPeriodObject.SetTriggerActive(True);
+        gdClosingPeriodObject.Free;
+      end;
+    finally
+      Tr.Free;
+
+      ActivateControls(True);
+      // Визуализация процесса
+      // Снимем выделение со всех пунктов процесса
+      SetBold(nil);
+      AddLogMessage('Продолжительность процесса: ' + TimeToStr(Time - FGlobalStartTime));
+
+      if MessageBox(Handle, 'Сохранить лог в файл?',
+         'Внимание', MB_ICONQUESTION or MB_YESNO) = IDYES then
+        SaveLogToFile;
     end;
-  end
-  else
-  begin
-    FClosingPeriodObject.StopProcess;
   end;
 end;
 
@@ -252,9 +275,26 @@ begin
   Self.Close;
 end;
 
+procedure TfrmClosePeriod.SetBold(ActiveControl: TCheckBox = nil);
+begin
+  cbEntryCalculate.Font.Style := [];
+  cbRemainsCalculate.Font.Style := [];
+  cbReBindDepotCards.Font.Style := [];
+  cbEntryClearProcess.Font.Style := [];
+  cbRemainsClearProcess.Font.Style := [];
+  cbUserDocClearProcess.Font.Style := [];
+  cbTransferEntryBalanceProcess.Font.Style := [];
+
+  if Assigned(ActiveControl) then
+    ActiveControl.Font.Style := [fsBold];
+
+  Self.BringToFront;
+  UpdateWindow(Self.Handle);
+end;
+
 procedure TfrmClosePeriod.ActivateControls(DoActivate: Boolean);
 begin
-  //btnRun.Enabled := DoActivate;
+  btnRun.Enabled := DoActivate;
   btnClose.Enabled := DoActivate;
   btnChooseDatabase.Enabled := DoActivate;
 
@@ -579,17 +619,12 @@ procedure TfrmClosePeriod.AssignClosePeriodParams(ClosingObject: TgdClosingPerio
 var
   ListElementCounter: Integer;
 begin
-  ClosingObject.SetClosingDatabaseParams(eExtDatabase.Text, eExtServer.Text, eExtUser.Text, eExtPassword.Text);
+  ClosingObject.ExternalDatabasePath := eExtDatabase.Text;
+  ClosingObject.ExternalDatabaseServer := eExtServer.Text;
+  ClosingObject.ExternalDatabaseUser := eExtUser.Text;
+  ClosingObject.ExternalDatabasePassword := eExtPassword.Text;
   ClosingObject.CloseDate := xdeCloseDate.Date;
-
-  ClosingObject.DoCalculateEntryBalance := cbEntryCalculate.Checked;
-  ClosingObject.DoCalculateRemains := cbRemainsCalculate.Checked;
-  ClosingObject.DoReBindDepotCards := cbReBindDepotCards.Checked;
-  ClosingObject.DoDeleteEntry := cbEntryClearProcess.Checked;
-  ClosingObject.DoDeleteDocuments := cbRemainsClearProcess.Checked;
-  ClosingObject.DoDeleteUserDocuments := cbUserDocClearProcess.Checked;
-  ClosingObject.DoTransferEntryBalance := cbTransferEntryBalanceProcess.Checked;
-
+  
   // Заполним список типов складских документов, которые нельзя удалять
   ClosingObject.ClearDontDeleteDocumentTypes;
   for ListElementCounter := 0 to lvDontDeleteDocumentType.Items.Count - 1 do
@@ -602,20 +637,6 @@ begin
   ClosingObject.ClearInvCardFeatures;
   for ListElementCounter := 0 to lvCheckedInvCardField.Items.Count - 1 do
     ClosingObject.AddInvCardFeature(TatRelationField(lvCheckedInvCardField.Items[ListElementCounter].Data).FieldName);
-end;
-
-procedure TfrmClosePeriod.FormCreate(Sender: TObject);
-begin
-  FClosingPeriodObject := TgdClosingPeriod.Create;
-  FClosingPeriodObject.OnBeforeProcessRoutine := DoBeforeClosingProcess;
-  FClosingPeriodObject.OnAfterProcessRoutine := DoAfterClosingProcess;
-  FClosingPeriodObject.OnProcessInterruptionRoutine := DoOnClosingProcessInterruption;
-  FClosingPeriodObject.OnProcessMessageRoutine := DoOnProcessMessage;
-end;
-
-procedure TfrmClosePeriod.FormDestroy(Sender: TObject);
-begin
-  FreeAndNil(FClosingPeriodObject);
 end;
 
 initialization
