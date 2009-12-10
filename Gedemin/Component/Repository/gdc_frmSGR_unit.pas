@@ -63,7 +63,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdc_frmStreamSaver;
+  ;
 
 function Tgdc_frmSGR.Get_SelectedKey: OleVariant;
 {var
@@ -352,17 +352,11 @@ begin
 end;
 
 procedure Tgdc_frmSGR.actSaveToFileExecute(Sender: TObject);
-var
-  frmStreamSaver: TForm;
 begin
-  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
   if ibgrMain.SelectedRows.Count > 0 then
-    //gdcObject.SaveToFile('', nil, ibgrMain.SelectedRows, False)
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, nil, ibgrMain.SelectedRows, False)
+    gdcObject.SaveToFile('', nil, ibgrMain.SelectedRows, False)
   else
-    //gdcObject.SaveToFile;
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
-  (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
+    gdcObject.SaveToFile;
 end;
 
 procedure Tgdc_frmSGR.actCopySettingsFromUserExecute(Sender: TObject);

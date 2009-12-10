@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, StdCtrls, Mask, xDateEdits, gd_createable_form, gd_ClassList,
-  ComCtrls, IBDatabase, gdClosingPeriod;
+  ComCtrls, IBDatabase;
 
 type
   TfrmCalculateBalance = class(TCreateableForm)
@@ -23,17 +23,9 @@ type
     procedure FormShow(Sender: TObject);
     procedure btnCalculateClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
-  private
-    FStartTime: TDateTime;
-
-    FClosingPeriodObject: TgdClosingPeriod;
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     procedure SetProcessText(AText: String);
-
-    property StartTime: TDateTime read FStartTime write FStartTime;
   end;
 
 var
@@ -42,64 +34,9 @@ var
 implementation
 
 uses
-  IBSQL, AcctUtils, at_classes, gdcBaseInterface;
+  IBSQL, AcctUtils, at_classes, gdcBaseInterface, gdClosingPeriod;
 
 {$R *.DFM}
-
-var
-  InnerFormVariable: TfrmCalculateBalance;
-
-procedure DoBeforeClosingProcess;
-begin
-  if Assigned(InnerFormVariable) then
-  begin
-    InnerFormVariable.btnCalculate.Enabled := False;
-    InnerFormVariable.btnClose.Enabled := False;
-    InnerFormVariable.StartTime := Time;
-    InnerFormVariable.lblTime.Caption := 'Расчет начат в ' + TimeToStr(InnerFormVariable.StartTime);
-  end;
-end;
-
-procedure DoAfterClosingProcess;
-begin
-  if Assigned(InnerFormVariable) then
-  begin
-    InnerFormVariable.lblTime.Caption := 'Расчет начат в ' + TimeToStr(InnerFormVariable.StartTime) +
-      ', продолжался ' + TimeToStr(Time - InnerFormVariable.StartTime);
-    InnerFormVariable.btnCalculate.Enabled := True;
-    InnerFormVariable.btnClose.Enabled := True;
-  end;
-end;
-
-procedure DoOnClosingProcessInterruption(const AErrorMessage: String);
-begin
-  if Assigned(InnerFormVariable) then
-  begin
-    InnerFormVariable.SetProcessText(TimeToStr(Time) + ': Критическая ошибка:'#13#10 + AErrorMessage + #13#10'Процесс закрытия прерван!');
-  end;
-end;
-
-procedure DoOnProcessMessage(const APosition, AMaxPosition: Integer; const AMessage: String);
-begin
-  if Assigned(InnerFormVariable) then
-  begin
-    if (APosition >= 0) and (InnerFormVariable.pbMain.Position <> APosition) then
-      InnerFormVariable.pbMain.Position := APosition;
-    if (AMaxPosition >= 0) and (InnerFormVariable.pbMain.Max <> AMaxPosition) then
-      InnerFormVariable.pbMain.Max := AMaxPosition;
-
-    // Если текущий прогресс превысил максималный, увеличим максимальный
-    if APosition > InnerFormVariable.pbMain.Max then
-      InnerFormVariable.pbMain.Max := InnerFormVariable.pbMain.Max * 2;
-
-    // лейбл под прогресс баром  
-    InnerFormVariable.lblProgress.Caption :=
-      IntToStr(InnerFormVariable.pbMain.Position) + ' / ' + IntToStr(InnerFormVariable.pbMain.Max);
-      
-    if AMessage <> '' then
-      InnerFormVariable.SetProcessText(TimeToStr(Time) + ': ' + AMessage);
-  end;
-end;
 
 { TfrmCalculateBalance }
 
@@ -136,14 +73,57 @@ begin
 end;
 
 procedure TfrmCalculateBalance.btnCalculateClick(Sender: TObject);
+var
+  StartTime: TDateTime;
+  gdClosingPeriodObject: TgdClosingPeriod;
+  WriteTransaction: TIBTransaction;
 begin
   if Assigned(atDatabase.Relations.ByRelationName('AC_ENTRY_BALANCE'))
      and (xdeCurrentDate.Date > 0) then
   begin
-    FClosingPeriodObject.CloseDate := xdeCurrentDate.Date;
-    FClosingPeriodObject.DoCalculateEntryBalance := True;
+    btnCalculate.Enabled := False;
+    btnClose.Enabled := False;
+    StartTime := Time;
+    lblTime.Caption := 'Расчет начат в ' + TimeToStr(StartTime);
 
-    FClosingPeriodObject.DoClosePeriod;
+    WriteTransaction := TIBTransaction.Create(nil);
+    try
+      WriteTransaction.DefaultDatabase := gdcBaseManager.Database;
+      WriteTransaction.StartTransaction;
+
+      gdClosingPeriodObject := TgdClosingPeriod.Create(WriteTransaction);
+      try
+        try
+          gdClosingPeriodObject.ProgressBar := Self.pbMain;
+          gdClosingPeriodObject.ProgressBarLabel := Self.lblProgress;
+
+          gdClosingPeriodObject.CloseDate := xdeCurrentDate.Date;
+          gdClosingPeriodObject.CalculateEntryBalance;
+          // Закоммитим транзакцию
+          if WriteTransaction.InTransaction then
+            WriteTransaction.Commit;
+        except
+          on E: Exception do
+          begin
+            // Откатим транзакцию
+            if WriteTransaction.InTransaction then
+              WriteTransaction.Rollback;
+            Self.SetProcessText('Произошла ошибка! Расчет прерван. (' + E.Message + ')');
+            btnCalculate.Enabled := True;
+            btnClose.Enabled := True;
+          end;
+        end;
+      finally
+        gdClosingPeriodObject.Free;
+      end;
+    finally
+      WriteTransaction.Free;
+    end;
+
+    lblTime.Caption := 'Расчет начат в ' + TimeToStr(StartTime) +
+      ', продолжался ' + TimeToStr(Time - StartTime);
+    btnCalculate.Enabled := True;
+    btnClose.Enabled := True;
   end;
 end;
 
@@ -155,24 +135,8 @@ end;
 procedure TfrmCalculateBalance.SetProcessText(AText: String);
 begin
   lblProgress.Caption := AText;
-end;
-
-procedure TfrmCalculateBalance.FormCreate(Sender: TObject);
-begin
-  InnerFormVariable := Self;
-
-  FClosingPeriodObject := TgdClosingPeriod.Create;
-  FClosingPeriodObject.OnBeforeProcessRoutine := DoBeforeClosingProcess;
-  FClosingPeriodObject.OnAfterProcessRoutine := DoAfterClosingProcess;
-  FClosingPeriodObject.OnProcessInterruptionRoutine := DoOnClosingProcessInterruption;
-  FClosingPeriodObject.OnProcessMessageRoutine := DoOnProcessMessage;
-end;
-
-procedure TfrmCalculateBalance.FormDestroy(Sender: TObject);
-begin
-  FreeAndNil(FClosingPeriodObject);
-
-  InnerFormVariable := nil;
+  Self.BringToFront;
+  UpdateWindow(Self.Handle);
 end;
 
 initialization

@@ -1,6 +1,6 @@
 object frmCalculateBalance: TfrmCalculateBalance
-  Left = 697
-  Top = 306
+  Left = 556
+  Top = 232
   BorderStyle = bsDialog
   Caption = 'ѕереход на новый мес€ц'
   ClientHeight = 228
@@ -13,8 +13,6 @@ object frmCalculateBalance: TfrmCalculateBalance
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
-  OnCreate = FormCreate
-  OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ComCtrls, ExtCtrls, Db, TB2Item, ActnList, TB2Dock,
+  StdCtrls, ComCtrls, ExtCtrls, Db, DBClient, TB2Item, ActnList, TB2Dock,
   TB2Toolbar, SynEdit, gdcStreamSaver, gsStreamHelper;
 
 type
@@ -66,7 +66,7 @@ implementation
 {$R *.DFM}
 
 uses
-  DBCLient, DBGrids, gdcBase
+  DBGrids, gdcBase
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -129,7 +129,7 @@ var
   CurrentSettingText: String;
   ClassRecordList: TStringList;
   ElementCounter, DataSetCounter, recCount: Integer;
-  CDS: TDataSet;
+  CDS: TClientDataSet;
 begin
   StreamDataObject := TgdcStreamDataObject.Create;
   StreamLoadingOrderList := TgdcStreamLoadingOrderList.Create;
@@ -206,7 +206,7 @@ var
   I: Integer;
   MS: TMemoryStream;
   LoadClassName, LoadSubType: String;
-  CDS: TDataset;
+  CDS: TClientDataSet;
   OS: TgdcObjectSet;
   OldPos: Integer;
   stRecord: TgsStreamRecord;
@@ -285,7 +285,7 @@ begin
         MS.Position := 0;
         CDS := TClientDataSet.Create(nil);
         try
-          TClientDataSet(CDS).LoadFromStream(MS);
+          CDS.LoadFromStream(MS);
           CDS.Open;
 
           CurrentSettingText := '';

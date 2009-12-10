@@ -196,7 +196,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdc_frmStreamSaver;
+  ;
 
 {$R *.DFM}
 
@@ -446,20 +446,14 @@ begin
 end;
 
 procedure Tgdc_frmMDH.actSaveToFileExecute(Sender: TObject);
-var
-  frmStreamSaver: TForm;
 begin
-  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
   if MessageBox(Handle,
     'Сохранить объект вместе с детальными объектами?',
     'Внимание',
     MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
-    //gdcObject.SaveToFile('', gdcDetailObject)
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, gdcDetailObject)
+    gdcObject.SaveToFile('', gdcDetailObject)
   else
-    //gdcObject.SaveToFile('', nil);
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
-  (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
+    gdcObject.SaveToFile('', nil);
 end;
 
 procedure Tgdc_frmMDH.actSaveToFileUpdate(Sender: TObject);
@@ -785,13 +779,8 @@ begin
 end;
 
 procedure Tgdc_frmMDH.actDetailSaveToFileExecute(Sender: TObject);
-var
-  frmStreamSaver: TForm;
 begin
-  //gdcDetailObject.SaveToFile;
-  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
-  (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject);
-  (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
+  gdcDetailObject.SaveToFile;
 end;
 
 procedure Tgdc_frmMDH.actDetailSaveToFileUpdate(Sender: TObject);
@@ -803,13 +792,8 @@ begin
 end;
 
 procedure Tgdc_frmMDH.actDetailLoadFromFileExecute(Sender: TObject);
-var
-  frmStreamSaver: TForm;
 begin
-  //gdcDetailObject.LoadFromFile;
-  frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
-  (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject);
-  (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadForm;
+  gdcDetailObject.LoadFromFile;
   gdcDetailObject.CloseOpen;
 end;
 

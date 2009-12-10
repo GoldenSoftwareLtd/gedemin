@@ -110,7 +110,7 @@ type
     procedure DeactivateSetting;
     procedure ReactivateSetting;
     procedure MakeSetting;
-    {procedure DoAfterAbortProcess;}
+    procedure DoAfterAbortProcess;
     procedure DoAfterException(ErrorMsg: String);
   public
     constructor Create(AOwner: TComponent); override;
@@ -119,7 +119,7 @@ type
     class function CreateAndAssign(AnOwner: TComponent): TForm;
 
     procedure SetParams(gdcObject: TgdcBase; gdcDetail: TgdcBase = nil;
-      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
+      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = false);
 
     procedure SetupProgress(const Max: Integer; ALabelString: String = 'Выполнение...');
     procedure Step;
@@ -374,7 +374,7 @@ begin
 end;
 
 procedure Tgdc_frmStreamSaver.SetParams(gdcObject: TgdcBase; gdcDetail: TgdcBase = nil;
-  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
+  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = false);
 var
   GridOptions: TDBGridOptions;
 begin
@@ -493,23 +493,144 @@ begin
 end;
                                          
 procedure Tgdc_frmStreamSaver.Save;
-{var
-  IncrementDatabaseKey: Integer;}
+var
+  StreamSaver: TgdcStreamSaver;
+  Bm: TBookmarkStr;
+  I: Integer;
+  S: TStream;
+
+  procedure SaveDetail;
+  var
+    DBm: TBookmarkStr;
+  begin
+    if Assigned(FgdcDetailObject) then
+    begin
+      FgdcDetailObject.BlockReadSize := 1;
+      try
+        DBm := FgdcDetailObject.Bookmark;
+        FgdcDetailObject.First;
+        while not FgdcDetailObject.Eof do
+        begin
+          StreamSaver.AddObject(FgdcDetailObject{, FWithDetail});
+          if StreamSaver.IsAbortingProcess then
+          begin
+            DoAfterAbortProcess;
+            Exit;
+          end;
+          FgdcDetailObject.Next;
+        end;
+        FgdcDetailObject.Bookmark := DBm;
+      finally
+        FgdcDetailObject.BlockReadSize := 0;
+      end;
+    end;
+  end;
+
 begin
   try
     // Дадим пользователю выбрать файл для сохранения информации
     if FStreamFormat in [sttXML, sttXMLFormatted] then
-      FFileName := gdcObject.QuerySaveFileName('', xmlExtension, xmlDialogFilter)
+      FFileName := FgdcObject.QuerySaveFileName('', xmlExtension, xmlDialogFilter)
     else
-      FFileName := gdcObject.QuerySaveFileName('', datExtension, datDialogFilter);
+      FFileName := FgdcObject.QuerySaveFileName('', datExtension, datDialogFilter);
     // Если файл выбран
     if FFileName <> '' then
     begin
-      {if FIncrementSaving and FframeDatabases.gdcDatabases.Active then
-        IncrementDatabaseKey := FframeDatabases.gdcDatabases.FieldByName('ID').AsInteger
+
+      if FStreamFormat <> sttBinaryOld then
+      begin
+        StreamSaver := TgdcStreamSaver.Create(FgdcObject.Database, FgdcObject.Transaction);
+        try
+          // если выбрано Инкрементное сохранение, то передадим ИД целевой базы
+          if FIncrementSaving and FframeDatabases.gdcDatabases.Active then
+            StreamSaver.PrepareForIncrementSaving(FframeDatabases.gdcDatabases.FieldByName('ID').AsInteger);
+
+          // Если сохраняем только одну запись
+          if FOnlyCurrent then
+          begin
+            Self.SetupProgress(1, 'Сохранение данных...');
+            StreamSaver.AddObject(FgdcObject{, FWithDetail});
+            if StreamSaver.IsAbortingProcess then
+            begin
+              DoAfterAbortProcess;
+              Exit;
+            end;
+            SaveDetail;
+            Self.Step;
+          end
+          else
+          begin
+            Bm := FgdcObject.Bookmark;
+            FgdcObject.BlockReadSize := 1;
+
+            try
+              // Если не передан BookmarkList, то сохраняем весь датасет
+              if FBL = nil then
+              begin
+                Self.SetupProgress(FgdcObject.RecordCount,  'Сохранение данных...');
+                FgdcObject.First;
+                while not FgdcObject.EOF do
+                begin
+                  StreamSaver.AddObject(FgdcObject{, FWithDetail});
+                  if StreamSaver.IsAbortingProcess then
+                  begin
+                    DoAfterAbortProcess;
+                    Exit;
+                  end;
+                  SaveDetail;
+                  FgdcObject.Next;
+                  Self.Step;
+                end;
+              end else
+              begin
+                Self.SetupProgress(FBL.Count,  'Сохранение данных...');
+                FBL.Refresh;
+                for I := 0 to FBL.Count - 1 do
+                begin
+                  FgdcObject.Bookmark := FBL[I];
+                  StreamSaver.AddObject(FgdcObject{, FWithDetail});
+                  if StreamSaver.IsAbortingProcess then
+                  begin
+                    DoAfterAbortProcess;
+                    Exit;
+                  end;
+                  SaveDetail;
+                  Self.Step;
+                end;
+              end;
+            finally
+              FgdcObject.Bookmark := Bm;
+              FgdcObject.BlockReadSize := 0;
+            end;
+          end;
+
+          Self.SetProcessCaptionText('Запись в файл...');
+
+          // сохраняем в зависимости от выбранного в настройках типа файла
+          StreamSaver.StreamFormat := FStreamFormat;
+          S := TFileStream.Create(FFileName, fmCreate);
+          try
+            StreamSaver.SaveToStream(S, FStreamFormat);
+          finally
+            S.Free;
+          end;
+        finally
+          StreamSaver.Free;
+        end;
+      end
       else
-        IncrementDatabaseKey := -1;}
-      gdcObject.SaveToFile(FFileName, FgdcDetailObject, FBL, FOnlyCurrent, FStreamFormat{, IncrementDatabaseKey});
+      begin
+        Self.SetupProgress(1, 'Сохранение данных...');
+
+        S := TFileStream.Create(FFileName, fmCreate);
+        try
+          FgdcObject.SaveToStream(S, FgdcDetailObject, FBL, FOnlyCurrent);
+        finally
+          S.Free;
+        end;
+      end;
+
+      Self.Done;
     end
     else
       // Если файл не выбран, то перейдем на предыдущий шаг
@@ -521,9 +642,46 @@ begin
 end;
 
 procedure Tgdc_frmStreamSaver.Load;
+var
+  StreamSaver: TgdcStreamSaver;
+  S: TStream;
 begin
   try
-    gdcObject.LoadFromFile(FFileName);
+    // проверяем на версию потока
+    S := TFileStream.Create(FFileName, fmOpenRead);
+    try
+      FStreamFormat := GetStreamType(S);
+    finally
+      S.Free;
+    end;
+
+    if FStreamFormat <> sttBinaryOld then
+    begin
+      StreamSaver := TgdcStreamSaver.Create(FgdcObject.Database, FgdcObject.Transaction);
+      S := TFileStream.Create(FFileName, fmOpenRead);
+      try
+        StreamSaver.Silent := True;
+        StreamSaver.ReplaceRecordBehaviour := FReplaceRecordBehaviuor;
+        StreamSaver.LoadFromStream(S);
+        if StreamSaver.IsAbortingProcess then
+        begin
+          DoAfterAbortProcess;
+          Exit;
+        end;
+      finally
+        S.Free;
+        StreamSaver.Free;
+      end;
+    end
+    else
+    begin
+      S := TFileStream.Create(FFileName, fmOpenRead);
+      try
+        FgdcObject.LoadFromStream(S);
+      finally
+        S.Free;
+      end;
+    end;  
   except
     on E: Exception do
       Self.DoAfterException(E.Message);
@@ -607,7 +765,7 @@ var
 begin
   Result := -1;
   // Пользователь должен выбрать файл для загрузки
-  FFileName := FgdcObject.QueryLoadFileName(FFileName, datExtension, datxmlDialogFilter);
+  FFileName := FgdcObject.QueryLoadFileName('', datExtension, datxmlDialogFilter);
   // Если пользователь выбрал файл
   if FFileName <> '' then
   begin
@@ -851,12 +1009,12 @@ begin
   end;
 end;
 
-{procedure Tgdc_frmStreamSaver.DoAfterAbortProcess;
+procedure Tgdc_frmStreamSaver.DoAfterAbortProcess;
 begin
   lblProcessText.Caption := '';
   lblResult.Caption := 'Выполнение прервано';
   btnClose.Enabled := True;
-end;}
+end;
 
 procedure Tgdc_frmStreamSaver.DoAfterException(ErrorMsg: String);
 begin

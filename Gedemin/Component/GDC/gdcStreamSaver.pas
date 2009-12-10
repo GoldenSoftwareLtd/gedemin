@@ -4,10 +4,10 @@ interface
 
 uses
   gdcBase,              gdcBaseInterface,           classes,
-  IBDatabase,           IBSQL,
+  dbclient,             IBDatabase,                 IBSQL,
   contnrs,              dbgrids,                    comctrls,
   gd_KeyAssoc,          db,                         gsStorage,
-  gsStreamHelper,       gdcSetting,                 dbclient;
+  gsStreamHelper,       gdcSetting;
 
 type
   TReplaceRecordBehaviour = (rrbAlways, rrbNever, rrbShowDialog);
@@ -82,7 +82,7 @@ type
     SetTable: String;
     gdcObject: TgdcBase;
     gdcSetObject: TgdcBase;
-    CDS: TDataSet;
+    CDS: TClientDataSet;
     ObjectForeignKeyFields: TStringList;
     ObjectForeignKeyClasses: TStringList;
     OneToOneTables: TStringList;
@@ -169,11 +169,11 @@ type
 
     function CreateBusinessObject(const AClassName: TgdcClassName; const ASubType: TgdcSubType = '';
       const ASetTableName: ShortString = ''): TgdcBase;
-    function CreateDataset(ABusinessObject: TgdcBase): TDataSet;
+    function CreateDataset(ABusinessObject: TgdcBase): TClientDataset;
     procedure FillReferences(var ADataObject: TStreamObjectRecord);
 
     function GetgdcObject(Index: Integer): TgdcBase;
-    function GetClientDS(Index: Integer): TDataSet;
+    function GetClientDS(Index: Integer): TClientDataSet;
     function GetObjectDetailReferences(Index: Integer): TObjectList;
     function GetObjectCrossTables(Index: Integer): TStringList;
     function GetReceivedRecord(Index: Integer): TRuid;
@@ -209,7 +209,7 @@ type
 
     property Count: Integer read FCount;
     property gdcObject[Index: Integer]: TgdcBase read GetgdcObject;
-    property ClientDS[Index: Integer]: TDataSet read GetClientDS;
+    property ClientDS[Index: Integer]: TClientDataSet read GetClientDS;
 
     property ObjectForeignKeyFields[Index: Integer]: TStringList read GetObjectForeignKeyFields;
     property ObjectForeignKeyClasses[Index: Integer]: TStringList read GetObjectForeignKeyClasses;
@@ -285,7 +285,7 @@ type
     function GetNeedModifyFlagOnSaving(const AObjectKey: TID): Boolean;
     // проверяем настройки Гедемина насчет загрузки записей уже существующих на базе,
     //   выводим форму сравнения записей
-    function CheckNeedModify(ABaseRecord: TgdcBase; AStreamRecord: TDataSet): Boolean;
+    function CheckNeedModify(ABaseRecord: TgdcBase; AStreamRecord: TClientDataSet): Boolean;
     // Проверяем по таблице RPL_RECORD необходимость сохранения данной записи в поток
     //  возможно, мы уже отправляли ее на целевую базу
     function CheckNeedSaveRecord(const AID: TID; AModified: TDateTime): Boolean;
@@ -312,9 +312,11 @@ type
     procedure SaveRecord(const AObject: TgdcBase; const ObjectIndex: Integer; const AID: TID; const AWithDetail: Boolean = true); overload;
     procedure SaveRecord(const ObjectIndex: Integer; const AID: TID; const AWithDetail: Boolean = true); overload;
 
-    procedure LoadRecord(AObj: TgdcBase; CDS: TDataSet);
+    procedure LoadRecord(AObj: TgdcBase; CDS: TClientDataSet);
+
     // загружает записи-множества
     procedure LoadSetRecords;
+
     procedure LoadReceivedRecords;
 
     // сравнивает список баз данных из потока и из таблицы RPL_DATABASE,
@@ -422,15 +424,10 @@ type
     function UnQuoteString(Str: String): String;
     function GetPositionOfString(const Str: String): Integer;
 
-    // В XML файл данных и файл настройки различается по структуре
-    //  поэтому сделаем разные методы для сохранения
-    procedure InternalSaveSettingToStream;
-    procedure InternalSaveToStream;
-
     // Сохраняет значение хранилища
     procedure SaveStorageValue(AStorageValue: TgsStorageValue);
     // Сохраняет метаданные и данные датасета
-    procedure SaveDataset(CDS: TDataSet);
+    procedure SaveDataset(CDS: TClientDataSet);
     // Сохраняет значение поля датасета в виде отдельного тега
     procedure SaveDatasetFieldValue(AField: TField);
     // Сохраняет многостроковое значение как последовательность тегов <L>
@@ -460,6 +457,7 @@ type
     procedure SaveStorageToStream(S: TStream); override;
     procedure LoadStorageFromStream(const S: TStream; var AnStAnswer: Word); override;
 
+    procedure SaveXMLSettingToStream(S: TStream);
     function GetXMLSettingHeader(S: TStream; SettingHeader: TSettingHeader): Boolean;
 
     property ElementLevel: Integer read FElementLevel write FElementLevel;
@@ -516,6 +514,9 @@ type
     procedure SaveToStream(S: TStream; const AFormat: TgsStreamType = sttBinaryNew);
     // загружает данные из потока на базу
     procedure LoadFromStream(S: TStream);
+
+    // сохраняет данные переданной через AddObject настройки в XML поток
+    procedure SaveSettingToXMLFile(S: TStream);
 
     // используется для активации настройки, загружает данные из потока на базу
     procedure LoadSettingDataFromStream(S: TStream; var WasMetaDataInSetting: Boolean; const DontHideForms: Boolean; var AnAnswer: Word);
@@ -742,10 +743,6 @@ const
   NEW_LINE = #13#10;
   RIGHTS_FIELD = ',ACHAG,AVIEW,AFULL,';
 
-  MODIFY_FROM_STREAM_FIELD = '_MODIFYFROMSTREAM';
-  INSERT_FROM_STREAM_FIELD = '_INSERTFROMSTREAM';
-  SET_TABLE_FIELD = '_SETTABLE';
-
 var
   RplDatabaseExists: Boolean;
   IsReadUserFromStream: Boolean;
@@ -792,7 +789,6 @@ begin
     try
       Stream.Position := 0;
       Stream.ReadBuffer(I, SizeOf(I));
-      // В новом потоке
       if I > 1024 then
       begin
         Stream.Position := 0;
@@ -1117,7 +1113,7 @@ var
   I: Integer;
   RUID: TRUID;
   F: TField;
-  CDS: TDataSet;
+  CDS: TClientDataSet;
   LocName, NotSavedField: String;
   R: TatRelation;
 begin
@@ -1128,17 +1124,17 @@ begin
 
     if Assigned(frmStreamSaver) then
       with AObj do
-        frmStreamSaver.SetProcessText(Format('%s%s  %s%s  (%s)',
-          [GetDisplayName(SubType), NEW_LINE, FieldByName(GetListField(SubType)).AsString,
-          NEW_LINE, FieldByName(GetKeyField(SubType)).AsString]));
+        frmStreamSaver.SetProcessText(GetDisplayName(SubType) + NEW_LINE + '  ' +
+          FieldByName(GetListField(SubType)).AsString + NEW_LINE + '  ' +
+          '(' + FieldByName(GetKeyField(SubType)).AsString + ')');
 
     if StreamLoggingType = slAll then
       if AObj.SetTable = '' then
       begin
         with AObj do
-          AddText(Format('Сохранение: %s %s (%s)', [GetDisplayName(SubType),
-            FieldByName(GetListField(SubType)).AsString, FieldByName(GetKeyField(SubType)).AsString]),
-            clBlue);
+          AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
+            FieldByName(GetListField(SubType)).AsString +
+            ' (' + FieldByName(GetKeyField(SubType)).AsString + ')', clBlue);
       end
       else
       begin
@@ -1149,12 +1145,13 @@ begin
           LocName := AObj.SetTable;
 
         with AObj do
-          AddText(Format('Сохранение: %s %s (%s) с данными множества %s', [GetDisplayName(SubType),
-            FieldByName(GetListField(SubType)).AsString, FieldByName(GetKeyField(SubType)).AsString,
-            LocName]), clBlue);
+          AddText('Сохранение: ' + GetDisplayName(SubType) + ' ' +
+            FieldByName(GetListField(SubType)).AsString +
+            ' (' + FieldByName(GetKeyField(SubType)).AsString + ') с данными множества ' + LocName, clBlue);
       end;
 
     RUID := AObj.GetRUID;
+    Assert(RUID.XID > -1, 'TgdcStreamDataObject.AddData: RUID.XID = -1');
 
     CDS.Append;
     for I := 0 to AObj.FieldCount - 1 do
@@ -1180,9 +1177,8 @@ begin
       CDS.FieldByName('_MODIFIED').AsDateTime := AObj.EditionDate;
     end
     else
-      CDS.FieldByName(SET_TABLE_FIELD).AsString := AObj.SetTable;
-    CDS.FieldByName(INSERT_FROM_STREAM_FIELD).AsBoolean := AObj.ModifyFromStream;
-    CDS.FieldByName(MODIFY_FROM_STREAM_FIELD).AsBoolean := AObj.ModifyFromStream;
+      CDS.FieldByName('_SETTABLE').AsString := AObj.SetTable;
+    CDS.FieldByName('_MODIFYFROMSTREAM').AsBoolean := AObj.ModifyFromStream;  
     CDS.Post;
   end;
 end;
@@ -1239,10 +1235,9 @@ begin
     Result := Self.Add(AClassName, ASubType, ASetTableName);
 end;
 
-
-function TgdcStreamDataObject.GetClientDS(Index: Integer): TDataSet;
+function TgdcStreamDataObject.GetClientDS(Index: Integer): TClientDataSet;
 var
-  Dataset: TDataSet;
+  Dataset: TClientDataset;
 begin
   Result := nil;
   if CheckIndex(Index) then
@@ -1253,8 +1248,8 @@ begin
     begin
       Dataset := TClientDataSet.Create(nil);
       Dataset.FieldDefs.Add('ID', ftInteger, 0, False);
-      TClientDataset(Dataset).CreateDataset;
-      TClientDataset(Dataset).LogChanges := False;
+      Dataset.CreateDataset;
+      Dataset.LogChanges := False;
     end;
     FObjectArray[Index].CDS := Dataset;
     Result := Dataset;
@@ -1408,10 +1403,10 @@ begin
     Result := True;
 end;
 
-function TgdcStreamDataObject.CreateDataset(ABusinessObject: TgdcBase): TDataSet;
+function TgdcStreamDataObject.CreateDataset(ABusinessObject: TgdcBase): TClientDataset;
 var
   I: Integer;
-  Dataset: TDataSet;
+  Dataset: TClientDataset;
   FD: TFieldDef;
 begin
   // создаем соответствующий клиент-датасет
@@ -1436,16 +1431,10 @@ begin
     Dataset.FieldDefs.Add('_DBID', ftInteger, 0, True);
     Dataset.FieldDefs.Add('_MODIFIED', ftDateTime, 0, True);
   end;
-  Dataset.FieldDefs.Add(INSERT_FROM_STREAM_FIELD, ftBoolean, 0, False);
-  Dataset.FieldDefs.Add(MODIFY_FROM_STREAM_FIELD, ftBoolean, 0, False);
-  Dataset.FieldDefs.Add(SET_TABLE_FIELD, ftString, 60, False);
-
-  with Dataset as TClientDataset do
-  begin
-    CreateDataSet;
-    Open;
-    LogChanges := False;
-  end;
+  Dataset.FieldDefs.Add('_MODIFYFROMSTREAM', ftBoolean, 0, False);
+  Dataset.FieldDefs.Add('_SETTABLE', ftString, 60, False);
+  Dataset.CreateDataSet;
+  Dataset.LogChanges := False;
 
   Result := Dataset;
 end;
@@ -2195,7 +2184,7 @@ var
   ReferencedRecordNewID: TID;
   OrderElement: TStreamOrderElement;
   Obj: TgdcBase;
-  CDS: TDataSet;
+  CDS: TClientDataSet;
   KeyFieldName: String;
   TargetKeyInt, SourceKeyInt: TID;
 begin
@@ -2500,7 +2489,7 @@ begin
   end;
 end;
 
-procedure TgdcStreamDataProvider.LoadRecord(AObj: TgdcBase; CDS: TDataSet);
+procedure TgdcStreamDataProvider.LoadRecord(AObj: TgdcBase; CDS: TClientDataSet);
 var
   RuidRec: TRuidRec;
   CurrentRecordID, StreamXID, StreamDBID, StreamID: TID;
@@ -2545,8 +2534,8 @@ begin
   //Проверяем на соответствие поля для отображения
   if not Assigned(CDS.FindField(AObj.GetListField(AObj.SubType))) then
   begin
-    AddText(Format('Объект "%s" (XID = %d, DBID = %d)',
-      [AObj.GetDisplayName(AObj.SubType), StreamXID, StreamDBID]), clBlue);
+    AddText('Объект "' + AObj.GetDisplayName(AObj.SubType) +
+      '" (XID =  ' + IntToStr(StreamXID) + ', DBID = ' + IntToStr(StreamDBID) + ')', clBlue);
 
     AddWarning('Структура загружаемого объекта не соответствует структуре уже существующего объекта в базе. ' + NEW_LINE +
       ' Поле ' + AObj.GetListField(AObj.SubType) + ' не найдено в потоке данных!', clRed);
@@ -2557,14 +2546,13 @@ begin
   else
   begin
     if Assigned(frmStreamSaver) then
-      frmStreamSaver.SetProcessText(Format('"%s"%s  %s%s  (XID = %d, DBID = %d)',
-        [AObj.GetDisplayName(AObj.SubType), NEW_LINE, CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString, NEW_LINE,
-         StreamXID, StreamDBID]));
+      frmStreamSaver.SetProcessText(AObj.GetDisplayName(AObj.SubType) + NEW_LINE + '  ' +
+        CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString + NEW_LINE + '  ' +
+        ' (XID =  ' + IntToStr(StreamXID) + ', DBID = ' + IntToStr(StreamDBID) + ')');
 
     if StreamLoggingType = slAll then
-      AddText(Format('Объект "%s %s" (XID = %d, DBID = %d)',
-        [AObj.GetDisplayName(AObj.SubType), CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString,
-         StreamXID, StreamDBID]), clBlue);
+      AddText('Объект "' + AObj.GetDisplayName(AObj.SubType) + ' ' + CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString +
+        '" (XID =  ' + IntToStr(StreamXID) + ', DBID = ' + IntToStr(StreamDBID) + ')', clBlue);
   end;
 
   //Проверим, есть ли у нас такой РУИД
@@ -2626,7 +2614,7 @@ begin
         IsRecordLoaded := False;
         // Если мы нашли объект по руиду и
         //  объект нуждается в обновлении данными из потока
-        if Assigned(CDS.FindField(MODIFY_FROM_STREAM_FIELD)) and CDS.FieldByName(MODIFY_FROM_STREAM_FIELD).AsBoolean then
+        if Assigned(CDS.FindField('_MODIFYFROMSTREAM')) and CDS.FieldByName('_MODIFYFROMSTREAM').AsBoolean then
         begin
           if AObj.ID <> CurrentRecordID then
             AObj.ID := CurrentRecordID;
@@ -2746,16 +2734,16 @@ end;
 procedure TgdcStreamDataProvider.LoadSetRecords;
 var
   I: Integer;
-  CDS: TDataSet;
+  CDS: TClientDataSet;
   CurrentSetTableName: String;
   Obj: TgdcBase;
 begin
   for I := 0 to FDataObject.Count - 1 do
   begin
     CDS := FDataObject.ClientDS[I];
-    if Assigned(CDS.FindField(SET_TABLE_FIELD)) then
+    if Assigned(CDS.FindField('_SETTABLE')) then
     begin
-      CurrentSetTableName := CDS.FieldByName(SET_TABLE_FIELD).AsString;
+      CurrentSetTableName := CDS.FieldByName('_SETTABLE').AsString;
       // Нам нужны объекты с указанной таблицей-множеством
       if (not CDS.IsEmpty) and (CurrentSetTableName <> '') then
       begin
@@ -2767,7 +2755,7 @@ begin
           while not CDS.Eof do
           begin
             // Если для главного объекта множества был установлен флаг "Перезаписывать из потока"
-            if CDS.FieldByName(MODIFY_FROM_STREAM_FIELD).AsBoolean then
+            if CDS.FieldByName('_MODIFYFROMSTREAM').AsBoolean then
               Self.LoadSetRecord(CDS, Obj);
             CDS.Next;
           end;
@@ -2794,7 +2782,7 @@ var
   R, R2: TatRelation;
   LocName: String;
 begin
-  if Assigned(atDatabase.Relations.ByRelationName(SourceDS.FieldByName(SET_TABLE_FIELD).AsString)) then
+  if Assigned(atDatabase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString)) then
   begin
     SFld := '';
     SValues := '';
@@ -2825,7 +2813,7 @@ begin
           SourceDS.Fields[I].AsString + '''';
       end
       else begin
-        F := atDataBase.FindRelationField(SourceDS.FieldByName(SET_TABLE_FIELD).AsString,
+        F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
           GetSetFieldName(SourceDS.Fields[I].FieldName));
         if (F <> nil) and (F.References <> nil) then
         begin //Если это поле является ссылкой, то поищем его в карте идентификаторов
@@ -2844,7 +2832,7 @@ begin
     end;
     if SFld > '' then
     begin
-      R2 := atDataBase.Relations.ByRelationName(SourceDS.FieldByName(SET_TABLE_FIELD).AsString);
+      R2 := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
       Pr := R2.PrimaryKey;
 
       if not Assigned(Pr) then
@@ -2875,7 +2863,7 @@ begin
               S := S + Pr.ConstraintFields[I].FieldName + ' = ''' + SourceDS.FieldByName(S1).AsString + ''''
             else
             begin
-              F := atDataBase.FindRelationField(SourceDS.FieldByName(SET_TABLE_FIELD).AsString,
+              F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
                 GetSetFieldName(SourceDS.FieldByName(S1).FieldName));
               if (F <> nil) and (F.References <> nil) then
               begin //Если это поле является ссылкой, то поищем его в карте идентификаторов
@@ -2891,7 +2879,7 @@ begin
             end;
           end;
           FIBSQL.Close;
-          FIBSQL.SQL.Text := Format(sql_SetSelect, [SourceDS.FieldByName(SET_TABLE_FIELD).AsString, S]);
+          FIBSQL.SQL.Text := Format(sql_SetSelect, [SourceDS.FieldByName('_SETTABLE').AsString, S]);
           FIBSQL.ExecQuery;
 
           if FIBSQL.RecordCount > 0 then
@@ -2900,18 +2888,18 @@ begin
             В каком-то случае это будет очень плохо, например, таблица gd_lastnumber }
           // FIBSQL.Close;
           //  FIBSQL.SQL.Text := Format(sql_SetUpdate,
-          //    [SourceDS.FieldByName(SET_TABLE_FIELD).AsString, SUpdate, S]);
+          //    [SourceDS.FieldByName('_SETTABLE').AsString, SUpdate, S]);
           end else
           begin
             FIBSQL.Close;
             FIBSQL.SQL.Text := Format(sql_SetInsert,
-              [SourceDS.FieldByName(SET_TABLE_FIELD).AsString, SFld, SValues]);
+              [SourceDS.FieldByName('_SETTABLE').AsString, SFld, SValues]);
 
-            R := atDataBase.Relations.ByRelationName(SourceDS.FieldByName(SET_TABLE_FIELD).AsString);
+            R := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
             if Assigned(R) then
               LocName := R.LName
             else
-              LocName := SourceDS.FieldByName(SET_TABLE_FIELD).AsString;
+              LocName := SourceDS.FieldByName('_SETTABLE').AsString;
 
             if StreamLoggingType = slAll then
               AddText('Считывание данных множества ' + LocName, clBlue);
@@ -2928,14 +2916,14 @@ begin
       end
       else
       begin
-        AddWarning('Данные множества ' + SourceDS.FieldByName(SET_TABLE_FIELD).AsString + ' не были добавлены!', clRed);
+        AddWarning('Данные множества ' + SourceDS.FieldByName('_SETTABLE').AsString + ' не были добавлены!', clRed);
         if Assigned(frmStreamSaver) then
           frmStreamSaver.AddWarning;
       end;
     end;
   end
   else
-    raise EgdcNoTable.Create(SourceDS.FieldByName(SET_TABLE_FIELD).AsString);
+    raise EgdcNoTable.Create(SourceDS.FieldByName('_SETTABLE').AsString);    
 end;
 
 function TgdcStreamDataProvider.DoBeforeSaving(AObj: TgdcBase): Boolean;
@@ -2962,9 +2950,9 @@ begin
 
     if AnsiCompareText(AObj.Classname, 'TgdcUserStorage') = 0 then
     begin
-      if AObj.ID = UserStorage.ObjectKey then
+      if AObj.ID = UserStorage.UserKey then
       begin
-        //UserStorage.IsModified := True;
+        UserStorage.IsModified := True;
         UserStorage.SaveToDatabase;
       end;
       Exit;
@@ -3316,7 +3304,7 @@ begin
 end;
 
 function TgdcStreamDataProvider.CheckNeedModify(ABaseRecord: TgdcBase;
-  AStreamRecord: TDataSet): Boolean;
+  AStreamRecord: TClientDataSet): Boolean;
 const
   PassFieldName = ';EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;';
 var
@@ -3376,8 +3364,7 @@ begin
     begin
       // Возможно нам выставили флаг "Обновлять из потока" вручную,
       //   тогда нас не интересует ни дата обновления, ни содержимое уже существующей записи
-      NeedModifyFromStream := Assigned(AStreamRecord.FindField(MODIFY_FROM_STREAM_FIELD)) and
-        AStreamRecord.FieldByName(MODIFY_FROM_STREAM_FIELD).AsBoolean;
+      NeedModifyFromStream := Assigned(AStreamRecord.FindField('_MODIFYFROMSTREAM')) and AStreamRecord.FieldByName('_MODIFYFROMSTREAM').AsBoolean;
 
       if ABaseRecord.NeedModifyFromStream(ABaseRecord.SubType) <> NeedModifyFromStream then
       begin
@@ -3496,7 +3483,8 @@ var
     if Assigned(AValue) then
     begin
       if StreamLoggingType = slAll then
-        AddText(Format('Сохранение параметра %s ветки хранилища %s', [AValueName, ABranchName]), clBlue);
+        AddText('Сохранение параметра ' + AValueName +
+          ' ветки хранилища ' + ABranchName, clBlue);
       FDataObject.StorageItemList.AddObject(ABranchName + '\' + AValueName, AValue);
     end
     else
@@ -4042,7 +4030,7 @@ begin
       try
         MS.CopyFrom(UnpackedStream, I);
         MS.Position := 0;
-        TClientDataset(FDataObject.ClientDS[ObjectIndex]).LoadFromStream(MS);
+        FDataObject.ClientDS[ObjectIndex].LoadFromStream(MS);
         //FDataObject.ClientDS[ObjectIndex].Open;
       finally
         MS.Free;
@@ -4176,7 +4164,7 @@ begin
 
           try
             MS.Clear;
-            TClientDataset(FDataObject.ClientDS[K]).SaveToStream(MS, dfBinary);
+            FDataObject.ClientDS[K].SaveToStream(MS, dfBinary);
           except
             MessageBox(0,
               'В процессе сохранения в поток возникла ошибка. Перезагрузите программу.',
@@ -4326,7 +4314,7 @@ begin
             AddText('Загрузка ветки хранилища "' + StorageName + Path + '"', clBlue);
         end;
         LStorage.CloseFolder(NewFolder, False);
-        //LStorage.IsModified := True;
+        LStorage.IsModified := True;
       end
       else
       begin
@@ -4543,8 +4531,8 @@ begin
             if FCurrentDatasetKey > -1 then
             begin
               // Создадим датасет на основе занесенных полей
-              TClientDataset(FDataObject.ClientDS[FCurrentDatasetKey]).CreateDataset;
-              TClientDataset(FDataObject.ClientDS[FCurrentDatasetKey]).LogChanges := False;
+              FDataObject.ClientDS[FCurrentDatasetKey].CreateDataset;
+              FDataObject.ClientDS[FCurrentDatasetKey].LogChanges := False;
             end
             else
               raise EgsXMLParseException.Create(Format('Найден закрывающий тег </%0:s> без открывающего тега <%1:s>',
@@ -4660,16 +4648,138 @@ begin
 end;
 
 procedure TgdcStreamXMLWriterReader.SaveToStream(S: TStream);
+var
+  I, K: Integer;
+  Obj: TgdcBase;
+  IBSQL: TIBSQL;
 begin
   inherited;
 
-  if FDataObject.gdcObject[0] is TgdcSetting then
-    InternalSaveSettingToStream
-  else
-    InternalSaveToStream;
+  // Заголовок XML-документа
+  if FDoInsertXMLHeader then
+    StreamWriteXMLString(S, xmlHeader + NEW_LINE);
+  // Откроем корневой тег документа
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_STREAM));
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_HEADER));
+  // Версия потока
+  StreamWriteXMLString(S, AddElement(XML_TAG_VERSION, IntToStr(cst_StreamVersionNew)));
+  // DBID
+  StreamWriteXMLString(S, AddElement(XML_TAG_DBID, IntToStr(IBLogin.DBID)));
+
+  // Если идет инкрементное сохранение
+  if FDataObject.TargetBaseKey > -1 then
+  begin
+    // Список баз данных из таблицы RPL_DATABASE
+    IBSQL := TIBSQL.Create(nil);
+    try
+      IBSQL.Database := gdcBaseManager.Database;
+      IBSQL.Transaction := gdcBaseManager.ReadTransaction;
+      IBSQL.SQL.Text := sqlSelectAllBases;
+      IBSQL.ExecQuery;
+      if not IBSQL.Eof then
+      begin
+        StreamWriteXMLString(S, AddOpenTag(XML_TAG_DATABASE_LIST));
+        while not IBSQL.Eof do
+        begin
+          AddAttribute('id', IntToStr(IBSQL.FieldByName('ID').AsInteger));
+          AddAttribute('name', QuoteString(IBSQL.FieldByName('NAME').AsString));
+          StreamWriteXMLString(S, AddShortElement(XML_TAG_DATABASE));
+          IBSQL.Next;
+        end;
+        StreamWriteXMLString(S, AddCloseTag(XML_TAG_DATABASE_LIST));
+      end;
+    finally
+      IBSQL.Free;
+    end;
+
+    // ID (из таблицы RPL_DATABASE) посылающей поток базы
+    StreamWriteXMLString(S, AddElement(XML_TAG_SENDER, IntToStr(FDataObject.OurBaseKey)));
+    // ID (из таблицы RPL_DATABASE) принимающей поток базы
+    StreamWriteXMLString(S, AddElement(XML_TAG_RECEIVER, IntToStr(FDataObject.TargetBaseKey)));
+
+    // Здесь запишем RUID'ы записей, получение которых мы подтверждаем
+    I := FDataObject.ReceivedRecordsCount;
+    if I > 0 then
+    begin
+      StreamWriteXMLString(S, AddOpenTag(XML_TAG_RECEIVED_RECORD_LIST));
+      for K := 0 to I - 1 do
+      begin
+        AddAttribute('xid', IntToStr(FDataObject.ReceivedRecord[K].XID));
+        AddAttribute('dbid', IntToStr(FDataObject.ReceivedRecord[K].DBID));
+        StreamWriteXMLString(S, AddShortElement(XML_TAG_RECEIVED_RECORD));
+      end;
+      StreamWriteXMLString(S, AddCloseTag(XML_TAG_RECEIVED_RECORD_LIST));
+    end;
+  end;
+
+  // Здесь запишем RUID'ы и ID записей, которые не пошли в инкрементный поток,
+  //   т.к. они присутствуют на целевой базе
+  I := FDataObject.ReferencedRecordsCount;
+  if I > 0 then
+  begin
+    StreamWriteXMLString(S, AddOpenTag(XML_TAG_REFERENCED_RECORD_LIST));
+    for K := 0 to I - 1 do
+    begin
+      AddAttribute('id', IntToStr(FDataObject.ReferencedRecord[K].SourceID));
+      AddAttribute('xid', IntToStr(FDataObject.ReferencedRecord[K].RUID.XID));
+      AddAttribute('dbid', IntToStr(FDataObject.ReferencedRecord[K].RUID.DBID));
+      StreamWriteXMLString(S, AddShortElement(XML_TAG_REFERENCED_RECORD));
+    end;
+    StreamWriteXMLString(S, AddCloseTag(XML_TAG_REFERENCED_RECORD_LIST));
+  end;
+
+  // Список бизнес-объектов из пула объектов
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_OBJECT_LIST));
+  for K := 0 to FDataObject.Count - 1 do
+  begin
+    Obj := FDataObject.gdcObject[K];
+    AddAttribute('objectkey', IntToStr(K));
+    AddAttribute('classname', QuoteString(Obj.ClassName));
+    AddAttribute('subtype', QuoteString(Obj.SubType));
+    AddAttribute('settable', QuoteString(Obj.SetTable));
+    StreamWriteXMLString(S, AddShortElement(XML_TAG_OBJECT));
+  end;
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_OBJECT_LIST));
+
+  // Очередь загрузки записей, сохраненных в данном потоке
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_LOADING_ORDER));
+  with FLoadingOrderList do
+    for K := 0 to Count - 1 do
+    begin
+      AddAttribute('index', IntToStr(Items[K].Index));
+      AddAttribute('objectkey', IntToStr(Items[K].DSIndex));
+      AddAttribute('recordid', IntToStr(Items[K].RecordID));
+      StreamWriteXMLString(S, AddShortElement(XML_TAG_LOADING_ORDER_ITEM));
+    end;
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_LOADING_ORDER));
+
+  // Закроем тег заголовка документа
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_HEADER));
+
+  // Откроем тег данных документа
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_DATA));
+  for K := 0 to FDataObject.Count - 1 do
+  begin
+    if FDataObject.ClientDS[K].RecordCount > 0 then
+    begin
+      AddAttribute('objectkey', IntToStr(K));
+      AddAttribute('classname', QuoteString(FDataObject.gdcObject[K].Classname));
+      AddAttribute('subtype', QuoteString(FDataObject.gdcObject[K].SubType));
+      AddAttribute('settable', QuoteString(FDataObject.ClientDS[K].FieldByName('_SETTABLE').AsString));
+      StreamWriteXMLString(S, AddOpenTag(XML_TAG_DATASET));
+
+      SaveDataset(DataObject.ClientDS[K]);
+
+      StreamWriteXMLString(S, AddCloseTag(XML_TAG_DATASET));
+    end;
+  end;
+  // Закроем тег данных документа
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_DATA));
+  // Закроем корневой тег документа
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_STREAM));
 end;
 
-procedure TgdcStreamXMLWriterReader.SaveDataset(CDS: TDataSet);
+procedure TgdcStreamXMLWriterReader.SaveDataset(CDS: TClientDataSet);
 var
   I: Integer;
   FD: TFieldDef;
@@ -5068,6 +5178,99 @@ begin
     end;
 end;
 
+procedure TgdcStreamXMLWriterReader.SaveXMLSettingToStream(S: TStream);
+var
+  DataStr, StorageDataStr: String;
+  CDS: TClientDataSet;
+begin
+  Stream := S;
+
+  // заголовок XML-документа
+  StreamWriteXMLString(S, xmlHeader + NEW_LINE);
+  // Откроем корневой тег документа
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_SETTING));
+  CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSetting', '')];
+  // Откроем тег заголовка настройки
+  AddAttribute('name', QuoteString(CDS.FieldByName('NAME').AsString));
+  AddAttribute('version', CDS.FieldByName('VERSION').AsString);
+  AddAttribute('modifydate', SafeDateTimeToStr(CDS.FieldByName('MODIFYDATE').AsDateTime));
+  AddAttribute('xid', CDS.FieldByName('_XID').AsString);
+  AddAttribute('dbid', CDS.FieldByName('_DBID').AsString);
+  AddAttribute('description', QuoteString(CDS.FieldByName('DESCRIPTION').AsString));
+  AddAttribute('ending', CDS.FieldByName('ENDING').AsString);
+  AddAttribute('settingsruid', CDS.FieldByName('SETTINGSRUID').AsString);
+  AddAttribute('minexeversion', CDS.FieldByName('MINEXEVERSION').AsString);
+  AddAttribute('mindbversion', CDS.FieldByName('MINDBVERSION').AsString);
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_SETTING_HEADER));
+
+  // Позиции данных настройки
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_SETTING_POS_LIST));
+  CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSettingPos', '')];
+  if not CDS.IsEmpty then
+  begin
+    CDS.IndexFieldNames := 'OBJECTORDER';
+    CDS.First;
+    while not CDS.Eof do
+    begin
+      AddAttribute('category', QuoteString(CDS.FieldByName('CATEGORY').AsString));
+      AddAttribute('objectname', QuoteString(CDS.FieldByName('OBJECTNAME').AsString));
+      AddAttribute('mastercategory', QuoteString(CDS.FieldByName('MASTERCATEGORY').AsString));
+      AddAttribute('mastername', QuoteString(CDS.FieldByName('MASTERNAME').AsString));
+      AddAttribute('objectorder', CDS.FieldByName('OBJECTORDER').AsString);
+      AddAttribute('withdetail', CDS.FieldByName('WITHDETAIL').AsString);
+      AddAttribute('needmodify', CDS.FieldByName('NEEDMODIFY').AsString);
+      if Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED')) then
+        AddAttribute('autoadded', CDS.FieldByName('AUTOADDED').AsString);
+      AddAttribute('objectclass', QuoteString(CDS.FieldByName('OBJECTCLASS').AsString));
+      AddAttribute('subtype', QuoteString(CDS.FieldByName('SUBTYPE').AsString));
+      AddAttribute('xid', CDS.FieldByName('XID').AsString);
+      AddAttribute('dbid', CDS.FieldByName('DBID').AsString);
+      AddAttribute('_xid', CDS.FieldByName('_XID').AsString);
+      AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString);
+
+      StreamWriteXMLString(S, AddShortElement(XML_TAG_SETTING_POS));
+      CDS.Next;
+    end;
+  end;
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_SETTING_POS_LIST));
+
+  // Позиции хранилища настройки
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_STORAGE_POS_LIST));
+  CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSettingStorage', '')];
+  if not CDS.IsEmpty then
+  begin
+    CDS.First;
+    while not CDS.Eof do
+    begin
+      AddAttribute('branchname', QuoteString(CDS.FieldByName('BRANCHNAME').AsString));
+      AddAttribute('valuename', QuoteString(CDS.FieldByName('VALUENAME').AsString));
+      AddAttribute('crc', CDS.FieldByName('CRC').AsString);
+      AddAttribute('_xid', CDS.FieldByName('_XID').AsString);
+      AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString);
+
+      StreamWriteXMLString(S, AddShortElement(XML_TAG_STORAGE_POS));
+      CDS.Next;
+    end;
+  end;
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_STORAGE_POS_LIST));
+  // Закроем тег заголовка настройки
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_SETTING_HEADER));
+
+  CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSetting', '')];
+  
+  DataStr := CDS.FieldByName('DATA').AsString;
+  StorageDataStr := CDS.FieldByName('STORAGEDATA').AsString;
+
+  // Данные и хранилище настройки
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_SETTING_DATA));
+  StreamWriteXMLString(S, DataStr + NEW_LINE);
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_SETTING_DATA));
+  StreamWriteXMLString(S, AddOpenTag(XML_TAG_SETTING_STORAGE));
+  StreamWriteXMLString(S, StorageDataStr + NEW_LINE);
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_SETTING_STORAGE));
+  StreamWriteXMLString(S, AddCloseTag(XML_TAG_SETTING));
+end;
+
 function TgdcStreamXMLWriterReader.GetXMLSettingHeader(S: TStream;
   SettingHeader: TSettingHeader): Boolean;
 var
@@ -5076,7 +5279,7 @@ var
 begin
   Result := False;
   Stream := S;
-
+  
   XMLElement.Tag := etUnknown;
   try
     while XMLElement.Tag <> etSettingHeader do
@@ -5317,7 +5520,7 @@ begin
 
                 if StreamLoggingType = slAll then
                   AddText('  Загрузка параметра "' + ValueName + '" ветки хранилища "' + Path + '"', clBlue);
-                //LStorage.IsModified := True;
+                LStorage.IsModified := True;
               end;
             end;
           end
@@ -5581,7 +5784,7 @@ end;
 
 procedure TgdcStreamXMLWriterReader.ParseFieldDefinition(const ElementStr: String);
 var
-  Dataset: TDataset;
+  Dataset: TClientDataset;
   FieldDefinition: TFieldDef;
   XMLFieldName, DatasetFieldName: String;
 begin
@@ -5603,6 +5806,16 @@ begin
   // Для строк сохраняется SIZE, для значений с фиксированной точкой - DECIMALS
   FieldDefinition.Size := GetIntegerParamValueByName(ElementStr, 'size') + GetIntegerParamValueByName(ElementStr, 'decimals');
   FieldDefinition.Required := GetIntegerParamValueByName(ElementStr, 'required') = 1;
+
+  {
+    gdcObject := DataObject.gdcObject[FCurrentDatasetKey];
+    if Assigned(frmSQLProcess) then
+      AddWarning(Format('В бизнес-объекте %s не найдено поле %s из XML-файла',
+        [gdcObject.Classname + '(' + gdcObject.SubType + ')', DatasetFieldName]), clRed);
+    if Assigned(frmStreamSaver) then
+      frmStreamSaver.AddWarning(Format('В бизнес-объекте %s не найдено поле %s из XML-файла',
+        [gdcObject.Classname + '(' + gdcObject.SubType + ')', DatasetFieldName]));
+  }
 end;
 
 procedure TgdcStreamXMLWriterReader.ParseDatasetRecord;
@@ -5613,7 +5826,7 @@ var
   DatasetFieldName: String;
   DatasetField: TField;
   XMLElementPosition: TgsXMLElementPosition;
-  Dataset: TDataset;
+  Dataset: TClientDataset;
 
   function GetElementName(const AXMLElement: String): String;
   begin
@@ -5816,7 +6029,7 @@ end;
 procedure TgdcStreamXMLWriterReader.ParseSettingHeader(
   const ElementStr: String; const ARecordKey: Integer);
 var
-  Dataset: TDataset;
+  Dataset: TClientDataset;
 begin
   Dataset := FDataObject.ClientDS[FCurrentDatasetKey];
   Dataset.Insert;
@@ -5838,7 +6051,7 @@ end;
 procedure TgdcStreamXMLWriterReader.ParseSettingPosition(
   const ElementStr: String; const ARecordKey, AHeaderKey: Integer);
 var
-  Dataset: TDataset;
+  Dataset: TClientDataset;
 begin
   Dataset := FDataObject.ClientDS[FCurrentDatasetKey];
   Dataset.Insert;
@@ -5865,7 +6078,7 @@ end;
 procedure TgdcStreamXMLWriterReader.ParseSettingStoragePosition(
   const ElementStr: String; const ARecordKey, AHeaderKey: Integer);
 var
-  Dataset: TDataset;
+  Dataset: TClientDataset;
 begin
   Dataset := FDataObject.ClientDS[FCurrentDatasetKey];
   Dataset.Insert;
@@ -5878,227 +6091,6 @@ begin
   Dataset.FieldByName('_DBID').AsString := GetParamValueByName(ElementStr, '_dbid');
   Dataset.FieldByName('_MODIFIED').AsDateTime := Time;
   Dataset.Post;
-end;
-
-procedure TgdcStreamXMLWriterReader.InternalSaveToStream;
-var
-  I, K: Integer;
-  Obj: TgdcBase;
-  IBSQL: TIBSQL;
-begin
-    // Заголовок XML-документа
-  if FDoInsertXMLHeader then
-    StreamWriteXMLString(Stream, xmlHeader + NEW_LINE);
-  // Откроем корневой тег документа
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_STREAM));
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_HEADER));
-  // Версия потока
-  StreamWriteXMLString(Stream, AddElement(XML_TAG_VERSION, IntToStr(cst_StreamVersionNew)));
-  // DBID
-  StreamWriteXMLString(Stream, AddElement(XML_TAG_DBID, IntToStr(IBLogin.DBID)));
-
-  // Если идет инкрементное сохранение
-  if FDataObject.TargetBaseKey > -1 then
-  begin
-    // Список баз данных из таблицы RPL_DATABASE
-    IBSQL := TIBSQL.Create(nil);
-    try
-      IBSQL.Database := gdcBaseManager.Database;
-      IBSQL.Transaction := gdcBaseManager.ReadTransaction;
-      IBSQL.SQL.Text := sqlSelectAllBases;
-      IBSQL.ExecQuery;
-      if not IBSQL.Eof then
-      begin
-        StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_DATABASE_LIST));
-        while not IBSQL.Eof do
-        begin
-          AddAttribute('id', IntToStr(IBSQL.FieldByName('ID').AsInteger));
-          AddAttribute('name', QuoteString(IBSQL.FieldByName('NAME').AsString));
-          StreamWriteXMLString(Stream, AddShortElement(XML_TAG_DATABASE));
-          IBSQL.Next;
-        end;
-        StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_DATABASE_LIST));
-      end;
-    finally
-      IBSQL.Free;
-    end;
-
-    // ID (из таблицы RPL_DATABASE) посылающей поток базы
-    StreamWriteXMLString(Stream, AddElement(XML_TAG_SENDER, IntToStr(FDataObject.OurBaseKey)));
-    // ID (из таблицы RPL_DATABASE) принимающей поток базы
-    StreamWriteXMLString(Stream, AddElement(XML_TAG_RECEIVER, IntToStr(FDataObject.TargetBaseKey)));
-
-    // Здесь запишем RUID'ы записей, получение которых мы подтверждаем
-    I := FDataObject.ReceivedRecordsCount;
-    if I > 0 then
-    begin
-      StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_RECEIVED_RECORD_LIST));
-      for K := 0 to I - 1 do
-      begin
-        AddAttribute('xid', IntToStr(FDataObject.ReceivedRecord[K].XID));
-        AddAttribute('dbid', IntToStr(FDataObject.ReceivedRecord[K].DBID));
-        StreamWriteXMLString(Stream, AddShortElement(XML_TAG_RECEIVED_RECORD));
-      end;
-      StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_RECEIVED_RECORD_LIST));
-    end;
-  end;
-
-  // Здесь запишем RUID'ы и ID записей, которые не пошли в инкрементный поток,
-  //   т.к. они присутствуют на целевой базе
-  I := FDataObject.ReferencedRecordsCount;
-  if I > 0 then
-  begin
-    StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_REFERENCED_RECORD_LIST));
-    for K := 0 to I - 1 do
-    begin
-      AddAttribute('id', IntToStr(FDataObject.ReferencedRecord[K].SourceID));
-      AddAttribute('xid', IntToStr(FDataObject.ReferencedRecord[K].RUID.XID));
-      AddAttribute('dbid', IntToStr(FDataObject.ReferencedRecord[K].RUID.DBID));
-      StreamWriteXMLString(Stream, AddShortElement(XML_TAG_REFERENCED_RECORD));
-    end;
-    StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_REFERENCED_RECORD_LIST));
-  end;
-
-  // Список бизнес-объектов из пула объектов
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_OBJECT_LIST));
-  for K := 0 to FDataObject.Count - 1 do
-  begin
-    Obj := FDataObject.gdcObject[K];
-    AddAttribute('objectkey', IntToStr(K));
-    AddAttribute('classname', QuoteString(Obj.ClassName));
-    AddAttribute('subtype', QuoteString(Obj.SubType));
-    AddAttribute('settable', QuoteString(Obj.SetTable));
-    StreamWriteXMLString(Stream, AddShortElement(XML_TAG_OBJECT));
-  end;
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_OBJECT_LIST));
-
-  // Очередь загрузки записей, сохраненных в данном потоке
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_LOADING_ORDER));
-  with FLoadingOrderList do
-    for K := 0 to Count - 1 do
-    begin
-      AddAttribute('index', IntToStr(Items[K].Index));
-      AddAttribute('objectkey', IntToStr(Items[K].DSIndex));
-      AddAttribute('recordid', IntToStr(Items[K].RecordID));
-      StreamWriteXMLString(Stream, AddShortElement(XML_TAG_LOADING_ORDER_ITEM));
-    end;
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_LOADING_ORDER));
-
-  // Закроем тег заголовка документа
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_HEADER));
-
-  // Откроем тег данных документа
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_DATA));
-  for K := 0 to FDataObject.Count - 1 do
-  begin
-    if FDataObject.ClientDS[K].RecordCount > 0 then
-    begin
-      AddAttribute('objectkey', IntToStr(K));
-      AddAttribute('classname', QuoteString(FDataObject.gdcObject[K].Classname));
-      AddAttribute('subtype', QuoteString(FDataObject.gdcObject[K].SubType));
-      AddAttribute('settable', QuoteString(FDataObject.ClientDS[K].FieldByName(SET_TABLE_FIELD).AsString));
-      StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_DATASET));
-
-      SaveDataset(DataObject.ClientDS[K]);
-
-      StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_DATASET));
-    end;
-  end;
-  // Закроем тег данных документа
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_DATA));
-  // Закроем корневой тег документа
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_STREAM));
-end;
-
-procedure TgdcStreamXMLWriterReader.InternalSaveSettingToStream;
-var
-  DataStr, StorageDataStr: String;
-  CDS: TDataSet;
-begin
-  // заголовок XML-документа
-  StreamWriteXMLString(Stream, xmlHeader + NEW_LINE);
-  // Откроем корневой тег документа
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING));
-  CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSetting')];
-  // Откроем тег заголовка настройки
-  AddAttribute('name', QuoteString(CDS.FieldByName('NAME').AsString));
-  AddAttribute('version', CDS.FieldByName('VERSION').AsString);
-  AddAttribute('modifydate', SafeDateTimeToStr(CDS.FieldByName('MODIFYDATE').AsDateTime));
-  AddAttribute('xid', CDS.FieldByName('_XID').AsString);
-  AddAttribute('dbid', CDS.FieldByName('_DBID').AsString);
-  AddAttribute('description', QuoteString(CDS.FieldByName('DESCRIPTION').AsString));
-  AddAttribute('ending', CDS.FieldByName('ENDING').AsString);
-  AddAttribute('settingsruid', CDS.FieldByName('SETTINGSRUID').AsString);
-  AddAttribute('minexeversion', CDS.FieldByName('MINEXEVERSION').AsString);
-  AddAttribute('mindbversion', CDS.FieldByName('MINDBVERSION').AsString);
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING_HEADER));
-
-  // Позиции данных настройки
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING_POS_LIST));
-  CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSettingPos')];
-  if not CDS.IsEmpty then
-  begin
-    TClientDataset(CDS).IndexFieldNames := 'OBJECTORDER';
-    CDS.First;
-    while not CDS.Eof do
-    begin
-      AddAttribute('category', QuoteString(CDS.FieldByName('CATEGORY').AsString));
-      AddAttribute('objectname', QuoteString(CDS.FieldByName('OBJECTNAME').AsString));
-      AddAttribute('mastercategory', QuoteString(CDS.FieldByName('MASTERCATEGORY').AsString));
-      AddAttribute('mastername', QuoteString(CDS.FieldByName('MASTERNAME').AsString));
-      AddAttribute('objectorder', CDS.FieldByName('OBJECTORDER').AsString);
-      AddAttribute('withdetail', CDS.FieldByName('WITHDETAIL').AsString);
-      AddAttribute('needmodify', CDS.FieldByName('NEEDMODIFY').AsString);
-      if Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED')) then
-        AddAttribute('autoadded', CDS.FieldByName('AUTOADDED').AsString);
-      AddAttribute('objectclass', QuoteString(CDS.FieldByName('OBJECTCLASS').AsString));
-      AddAttribute('subtype', QuoteString(CDS.FieldByName('SUBTYPE').AsString));
-      AddAttribute('xid', CDS.FieldByName('XID').AsString);
-      AddAttribute('dbid', CDS.FieldByName('DBID').AsString);
-      AddAttribute('_xid', CDS.FieldByName('_XID').AsString);
-      AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString);
-
-      StreamWriteXMLString(Stream, AddShortElement(XML_TAG_SETTING_POS));
-      CDS.Next;
-    end;
-  end;
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_POS_LIST));
-
-  // Позиции хранилища настройки
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_STORAGE_POS_LIST));
-  CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSettingStorage')];
-  if not CDS.IsEmpty then
-  begin
-    CDS.First;
-    while not CDS.Eof do
-    begin
-      AddAttribute('branchname', QuoteString(CDS.FieldByName('BRANCHNAME').AsString));
-      AddAttribute('valuename', QuoteString(CDS.FieldByName('VALUENAME').AsString));
-      AddAttribute('crc', CDS.FieldByName('CRC').AsString);
-      AddAttribute('_xid', CDS.FieldByName('_XID').AsString);
-      AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString);
-
-      StreamWriteXMLString(Stream, AddShortElement(XML_TAG_STORAGE_POS));
-      CDS.Next;
-    end;
-  end;
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_STORAGE_POS_LIST));
-  // Закроем тег заголовка настройки
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_HEADER));
-
-  CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSetting')];
-  
-  DataStr := CDS.FieldByName('DATA').AsString;
-  StorageDataStr := CDS.FieldByName('STORAGEDATA').AsString;
-
-  // Данные и хранилище настройки
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING_DATA));
-  StreamWriteXMLString(Stream, DataStr + NEW_LINE);
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_DATA));
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING_STORAGE));
-  StreamWriteXMLString(Stream, StorageDataStr + NEW_LINE);
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_STORAGE));
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING));
 end;
 
 { TgdcStreamSaver }
@@ -6221,7 +6213,7 @@ end;
 procedure TgdcStreamSaver.LoadFromStream(S: TStream);
 var
   Obj: TgdcBase;
-  CDS: TDataSet;
+  CDS: TClientDataSet;
   OrderElement: TStreamOrderElement;
   FStreamWriterReader: TgdcStreamWriterReader;
 begin
@@ -6353,7 +6345,6 @@ var
   ibsqlPos: TIBSQL;
   WithDetailList: TgdKeyArray;
   NeedModifyList: TgdKeyIntAssoc;
-  NeedInsertList: TgdKeyIntAssoc;
   IndexNeedModifyList: Integer;
   SaveDetailObjects: Boolean;
   AnID: TID;
@@ -6368,7 +6359,6 @@ begin
     ibsqlPos := TIBSQL.Create(nil);
     WithDetailList := TgdKeyArray.Create;
     NeedModifyList := TgdKeyIntAssoc.Create;
-    NeedInsertList := TgdKeyIntAssoc.Create;
     try
       PositionsCount := 0;
 
@@ -6391,12 +6381,6 @@ begin
           // Если мы не должны перезаписывать объект данными из потока, то занесем его id в список
           IndexNeedModifyList := NeedModifyList.Add(LineObjectID);
           NeedModifyList.ValuesByIndex[IndexNeedModifyList] := ibsqlPos.FieldByName('needmodify').AsInteger;
-          // Составим список необходимости добавления объектов
-          if Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'NEEDINSERT')) then
-          begin
-            IndexNeedModifyList := NeedInsertList.Add(LineObjectID);
-            NeedInsertList.ValuesByIndex[IndexNeedModifyList] := ibsqlPos.FieldByName('needinsert').AsInteger;
-          end;  
         end
         else
         begin
@@ -6453,7 +6437,6 @@ begin
         frmStreamSaver.Done;
 
     finally
-      NeedInsertList.Free;
       NeedModifyList.Free;
       WithDetailList.Free;
       ibsqlPos.Free;
@@ -6472,7 +6455,7 @@ procedure TgdcStreamSaver.LoadSettingDataFromStream(S: TStream; var WasMetaDataI
 var
   RelName: String;
   Obj: TgdcBase;
-  CDS: TDataSet;
+  CDS: TClientDataSet;
   OrderElement: TStreamOrderElement;
   FStreamWriterReader: TgdcStreamWriterReader;
   WasMetaData: Boolean;
@@ -6902,7 +6885,7 @@ var
   StPos: TgdcSettingPos;
   OrderElement: TStreamOrderElement;
   Obj: TgdcBase;
-  CDS: TDataSet;
+  CDS: TClientDataSet;
   FStreamWriterReader: TgdcStreamWriterReader;
 begin
 
@@ -7080,6 +7063,32 @@ end;
 function TgdcStreamSaver.GetReadUserFromStream: Boolean;
 begin
   Result := IsReadUserFromStream;
+end;
+
+procedure TgdcStreamSaver.SaveSettingToXMLFile(S: TStream);
+var
+  FStreamWriterReader: TgdcStreamXMLWriterReader;
+begin
+  if not Assigned(S) then
+    raise Exception.Create(GetGsException(Self, 'SaveSettingToXMLFile: Не установлен поток'));
+
+  FStreamWriterReader := TgdcStreamXMLWriterReader.Create(FDataObject, FStreamLoadingOrderList);
+  try
+    FStreamWriterReader.SaveXMLSettingToStream(S);
+  finally
+    FStreamWriterReader.Free;
+  end;
+
+  if StreamLoggingType in [slSimple, slAll] then
+    AddText('Закончилось сохранение настройки в XML файл.', clBlack);
+
+  if FTransaction.InTransaction then
+    if FTrWasActive then
+      FTransaction.CommitRetaining
+    else
+      FTransaction.Commit
+  else
+    FTransaction.Rollback;
 end;
 
 

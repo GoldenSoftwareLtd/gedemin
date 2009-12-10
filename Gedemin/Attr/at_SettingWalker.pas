@@ -53,7 +53,7 @@ var
   I: Integer;
   MS: TMemoryStream;
   LoadClassName, LoadSubType: String;
-  CDS: TDataset;
+  CDS: TClientDataSet;
   OS: TgdcObjectSet;
   OldPos: Integer;
   stRecord: TgsStreamRecord;
@@ -124,52 +124,64 @@ begin
       if Assigned(FStartLoading) then
         FStartLoading(Self, OS);
 
-      while Stream.Position < Stream.Size do
-      begin
-        Stream.ReadBuffer(I, SizeOf(I));
-        if I <> cst_StreamLabel then
-          raise Exception.Create('Stream reading error');
+      {try}
+        while Stream.Position < Stream.Size do
+        begin
+          Stream.ReadBuffer(I, SizeOf(I));
+          if I <> cst_StreamLabel then
+            raise Exception.Create('Stream reading error');
 
-        OldPos := Stream.Position;
-        SetLength(stVersion, Length(cst_WithVersion));
-        Stream.ReadBuffer(stVersion[1], Length(cst_WithVersion));
-        if stVersion = cst_WithVersion then
-        begin
-          Stream.ReadBuffer(stRecord.StreamVersion, SizeOf(stRecord.StreamVersion));
-          if stRecord.StreamVersion >= 1 then
-            Stream.ReadBuffer(stRecord.StreamDBID, SizeOf(stRecord.StreamDBID));
-        end else
-        begin
-          stRecord.StreamVersion := 0;
-          stRecord.StreamDBID := -1;
-          Stream.Position := OldPos;
+          OldPos := Stream.Position;
+          SetLength(stVersion, Length(cst_WithVersion));
+          Stream.ReadBuffer(stVersion[1], Length(cst_WithVersion));
+          if stVersion = cst_WithVersion then
+          begin
+            Stream.ReadBuffer(stRecord.StreamVersion, SizeOf(stRecord.StreamVersion));
+            if stRecord.StreamVersion >= 1 then
+              Stream.ReadBuffer(stRecord.StreamDBID, SizeOf(stRecord.StreamDBID));
+          end else
+          begin
+            stRecord.StreamVersion := 0;
+            stRecord.StreamDBID := -1;
+            Stream.Position := OldPos;
+          end;
+
+          LoadClassName := StreamReadString(Stream);
+          LoadSubType := StreamReadString(Stream);
+
+          if stRecord.StreamVersion >= 2 then
+          begin
+            PrSet.LoadFromStream(Stream);
+          end;
+
+          Stream.ReadBuffer(I, SizeOf(I));
+          CDS := nil;
+          MS := TMemoryStream.Create;
+          try
+            MS.CopyFrom(Stream, I);
+            MS.Position := 0;
+            CDS := TClientDataSet.Create(nil);
+            CDS.LoadFromStream(MS);
+            CDS.Open;
+
+            if Assigned(FObjectLoad) then
+              FObjectLoad(Self, LoadClassName, LoadSubType, CDS, PrSet, stRecord);
+          finally
+            CDS.Free;
+            MS.Free;
+          end;
+
         end;
 
-        LoadClassName := StreamReadString(Stream);
-        LoadSubType := StreamReadString(Stream);
-
-        if stRecord.StreamVersion >= 2 then
+      {except
+        On E: EOutOfMemory do
         begin
-          PrSet.LoadFromStream(Stream);
+          MessageBox(0,
+            'Для отображения всех данных настройки недостаточно свободной оперативной памяти.',
+            'Внимание',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
         end;
-
-        Stream.ReadBuffer(I, SizeOf(I));
-        CDS := nil;
-        MS := TMemoryStream.Create;
-        try
-          MS.CopyFrom(Stream, I);
-          MS.Position := 0;
-          CDS := TClientDataset.Create(nil);
-          TClientDataset(CDS).LoadFromStream(MS);
-          CDS.Open;
-
-          if Assigned(FObjectLoad) then
-            FObjectLoad(Self, LoadClassName, LoadSubType, CDS, PrSet, stRecord);
-        finally
-          CDS.Free;
-          MS.Free;
-        end;
-      end;
+      end;}
     finally
       PrSet.Free;
       OS.Free;
