@@ -77,7 +77,6 @@ begin
 
         Check(FC = TestData[I].FC, 'Неверное количество папок в тесте ' + TestData[I].FileName);
         Check(VC = TestData[I].VC, 'Неверное количество значений в тесте ' + TestData[I].FileName);
-        //Check(F.DataSize = TestData[I].DataSize, 'Неверный размер данных в тесте ' + TestData[I].FileName);
       finally
         S.Free;
       end;
