@@ -180,7 +180,6 @@ type
   private
     FList: TObjectList;
     FDatabase: TatDatabase;
-
     FUpdateList: TStringList; // Список объектов, которые нужно обновить
 
     function Find(const S: string; var Index: Integer): Boolean;
@@ -1222,7 +1221,7 @@ end;
 
 function TatBodyRelations.ByRelationName(const ARelationName: String): TatRelation;
 var
-  I, D: Integer;
+  I, D : Integer;
 begin
   if Assigned(FDatabase.Database) then
     D := FDatabase.Database.SQLDialect
@@ -1256,6 +1255,8 @@ var
   L, H, I, C: Integer;
 begin
   Result := False;
+  if S = '' then
+    exit;
   L := 0;
   H := FList.Count - 1;
 
