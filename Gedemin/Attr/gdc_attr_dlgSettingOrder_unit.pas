@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, Buttons, gdc_dlgG_unit, ComCtrls, Menus, Db, ActnList, gdcBase,
-  gdcSetting;
+  gdcSetting, ImgList, TB2Item, TB2Dock, TB2Toolbar, ExtCtrls;
 
 type
   Egdc_dlgSettingOrder = class(Exception);
@@ -16,6 +16,18 @@ type
     lbxSetting: TListBox;
     actUp: TAction;
     actDown: TAction;
+    pnlMain: TPanel;
+    lvSetting: TListView;
+    TBDock1: TTBDock;
+    TBToolbar1: TTBToolbar;
+    TBItem1: TTBItem;
+    TBItem2: TTBItem;
+    TBItem3: TTBItem;
+    TBItem4: TTBItem;
+    actTop: TAction;
+    actBottom: TAction;
+    TBSeparatorItem1: TTBSeparatorItem;
+    TBSeparatorItem2: TTBSeparatorItem;
     procedure actUpExecute(Sender: TObject);
     procedure actDownExecute(Sender: TObject);
     procedure lbxSettingMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -24,6 +36,12 @@ type
     procedure lbxSettingDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure lbxSettingDragOver(Sender, Source: TObject; X, Y: Integer;
       State: TDragState; var Accept: Boolean);
+    procedure actTopExecute(Sender: TObject);
+    procedure actBottomExecute(Sender: TObject);
+    procedure lvSettingDragOver(Sender, Source: TObject; X, Y: Integer;
+      State: TDragState; var Accept: Boolean);
+    procedure lvSettingMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
 
   private
     IsModified: Boolean;
@@ -31,6 +49,9 @@ type
     //перемещает выделенные элементы на заданное (дельта) число позиций
     //если дельта < 0 , то вверх, если дельта > 0 то вниз
     procedure MoveItemsByDelta(Delta: Integer);
+
+    procedure MoveListViewItem(AIndexFrom, AIndexTo: Word);
+    procedure MoveStringListItem(AIndexFrom, AIndexTo: Word);
 
   protected
     OrderList: TStringList;
@@ -69,13 +90,21 @@ end;
 procedure Tgdc_dlgSettingOrder.actUpExecute(Sender: TObject);
 begin
   Self.MoveItemsByDelta(-1);
-  lbxSetting.Selected[lbxSetting.ItemIndex] := True;
 end;
 
 procedure Tgdc_dlgSettingOrder.actDownExecute(Sender: TObject);
 begin
   Self.MoveItemsByDelta(1);
-  lbxSetting.Selected[lbxSetting.ItemIndex] := True;
+end;
+
+procedure Tgdc_dlgSettingOrder.actTopExecute(Sender: TObject);
+begin
+  Self.MoveItemsByDelta(-OrderList.Count);
+end;
+
+procedure Tgdc_dlgSettingOrder.actBottomExecute(Sender: TObject);
+begin
+  Self.MoveItemsByDelta(OrderList.Count);
 end;
 
 procedure Tgdc_dlgSettingOrder.lbxSettingMouseMove(Sender: TObject;
@@ -212,6 +241,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   ibsql: TIBSQL;
+  ListItem: TListItem;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGSETTINGORDER', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}  try
@@ -234,13 +264,21 @@ begin
   {END MACRO}
   inherited;
   lbxSetting.Items.Clear;
+  lvSetting.Items.Clear;
   OrderList.Clear;
   ibsql := TIBSQL.Create(nil);
   try
     ibsql.Database := gdcObject.Database;
     ibsql.Transaction := gdcObject.ReadTransaction;
-    ibsql.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey ' +
-      ' ORDER BY objectorder ';
+    ibsql.SQL.Text :=
+      ' SELECT ' +
+      '   s.id, s.objectorder, s.mastername, s.objectname, s.category, s.mastercategory ' +
+      ' FROM ' +
+      '   at_settingpos s ' +
+      ' WHERE ' +
+      '   s.settingkey = :settingkey ' +
+      ' ORDER BY ' +
+      '   s.objectorder ';
     ibsql.ParamByName('settingkey').AsInteger := gdcObject.ID;
     ibsql.ExecQuery;
     while not ibsql.Eof do
@@ -252,6 +290,11 @@ begin
       else
         lbxSetting.Items.Add(ibsql.FieldByName('objectname').AsString + '(' +
           ibsql.FieldByName('category').AsString + ')');
+
+      ListItem := lvSetting.Items.Add;
+      ListItem.Caption := ibsql.FieldByName('objectname').AsString;
+      ListItem.SubItems.Add(ibsql.FieldByName('category').AsString);
+
       //Список содержит сопоставление предыдущего порядка настройки и текущего
       OrderList.Add(ibsql.FieldByName('id').AsString + '=' + ibsql.FieldByName('objectorder').AsString);
       ibsql.Next;
@@ -273,39 +316,93 @@ end;
 
 procedure Tgdc_dlgSettingOrder.MoveItemsByDelta(Delta: Integer);
 var
-  Index: Integer;
-  NewValue: String;
+  OldIndex, NewIndex: Integer;
   CorrectDelta: Integer;
 begin
-  if (lbxSetting.ItemIndex + Delta >= 0) and
-    (lbxSetting.ItemIndex + Delta < lbxSetting.Items.Count) then
+  // Если выбран какой-нибудь элемент списка
+  if Assigned(lvSetting.Selected) then
   begin
-    CorrectDelta := Delta;
-  end else
-  begin
-    if lbxSetting.ItemIndex + Delta < 0 then
-      CorrectDelta := lbxSetting.ItemIndex
-    else if lbxSetting.ItemIndex + Delta >= lbxSetting.Items.Count then
-      CorrectDelta := lbxSetting.Items.Count - lbxSetting.ItemIndex - 1
+    // Получим правильное смещение элемента учитывая границы списка
+    if (lvSetting.Selected.Index + Delta >= 0)
+       and (lvSetting.Selected.Index + Delta < lvSetting.Items.Count) then
+    begin
+      CorrectDelta := Delta;
+    end
     else
-      CorrectDelta := 0;
-  end;
+    begin
+      if lvSetting.Selected.Index + Delta < 0 then
+        CorrectDelta := 0 - lvSetting.Selected.Index
+      else if lvSetting.Selected.Index + Delta >= lvSetting.Items.Count then
+        CorrectDelta := lvSetting.Items.Count - lvSetting.Selected.Index - 1
+      else
+        CorrectDelta := 0;
+    end;
 
-  if CorrectDelta <> 0 then
-  begin
-    Index := lbxSetting.ItemIndex + CorrectDelta;
-    lbxSetting.Items.Move(lbxSetting.ItemIndex, Index);
-    OrderList.Move(Index - CorrectDelta, Index);
-    lbxSetting.ItemIndex := Index;
-    NewValue := OrderList.Values[OrderList.Names[Index]];
-    OrderList.Values[OrderList.Names[Index]] :=
-      OrderList.Values[OrderList.Names[Index - CorrectDelta]];
-    OrderList.Values[OrderList.Names[Index - CorrectDelta]] := NewValue;
-    IsModified := True;
-  end;
+    if CorrectDelta <> 0 then
+    begin
+      OldIndex := lvSetting.Selected.Index;
+      // Сформируем индекс в который необходимо переместить элемент
+      NewIndex := OldIndex + CorrectDelta;
+      // Переместим элемент в визуальном элементе
+      MoveListViewItem(OldIndex, NewIndex);
+      lvSetting.Selected := lvSetting.Items[NewIndex];
+      // Переместим элемент в рабочем списке
+      MoveStringListItem(OldIndex, NewIndex);
 
-  if lbxSetting.ItemIndex = -1 then
-    lbxSetting.ItemIndex := 0;
+      IsModified := True;
+    end;
+  end;
+end;
+
+procedure Tgdc_dlgSettingOrder.MoveListViewItem(AIndexFrom, AIndexTo: Word);
+var
+  Source, Target: TListItem;
+begin
+  if AIndexTo > AIndexFrom then
+    Inc(AIndexTo);
+
+  lvSetting.Items.BeginUpdate;
+  try
+    Source := lvSetting.Items[AIndexFrom];
+    Target := lvSetting.Items.Insert(AIndexTo);
+    Target.Assign(Source);
+    FreeAndNil(Source);
+  finally
+    lvSetting.Items.EndUpdate;
+  end;
+end;
+
+procedure Tgdc_dlgSettingOrder.MoveStringListItem(AIndexFrom, AIndexTo: Word);
+var
+  NewValue: String;
+begin
+  OrderList.Move(AIndexFrom, AIndexTo);
+  NewValue := OrderList.Values[OrderList.Names[AIndexTo]];
+  OrderList.Values[OrderList.Names[AIndexTo]] := OrderList.Values[OrderList.Names[AIndexFrom]];
+  OrderList.Values[OrderList.Names[AIndexFrom]] := NewValue;
+end;
+
+procedure Tgdc_dlgSettingOrder.lvSettingDragOver(Sender, Source: TObject;
+  X, Y: Integer; State: TDragState; var Accept: Boolean);
+begin
+  if (Sender is TListView) and (lvSetting.GetItemAt(X, Y) <> TListView(Sender).Selected) then
+    Accept := True
+  else
+    Accept := False;
+end;
+
+procedure Tgdc_dlgSettingOrder.lvSettingMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+var
+  UnderCursorItem: TListItem;
+begin
+  inherited;
+
+  UnderCursorItem := lvSetting.GetItemAt(X, Y);
+  if Assigned(UnderCursorItem) then
+    lvSetting.Hint := Format('%s (%s)', [UnderCursorItem.Caption, UnderCursorItem.SubItems.Commatext])
+  else
+    lvSetting.Hint := '';
 end;
 
 initialization

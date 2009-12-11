@@ -26,25 +26,34 @@ object dlgQueryParam: TdlgQueryParam
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 0
-    object btnOK: TButton
-      Left = 234
-      Top = 3
-      Width = 75
-      Height = 21
-      Caption = 'OK'
-      Default = True
+    object pnlRightButtons: TPanel
+      Left = 195
+      Top = 0
+      Width = 201
+      Height = 29
+      Align = alRight
+      BevelOuter = bvNone
       TabOrder = 0
-      OnClick = btnOKClick
-    end
-    object btnCancel: TButton
-      Left = 314
-      Top = 3
-      Width = 75
-      Height = 21
-      Cancel = True
-      Caption = 'Отмена'
-      ModalResult = 2
-      TabOrder = 1
+      object btnOK: TButton
+        Left = 39
+        Top = 3
+        Width = 75
+        Height = 21
+        Caption = 'OK'
+        Default = True
+        TabOrder = 0
+        OnClick = btnOKClick
+      end
+      object btnCancel: TButton
+        Left = 119
+        Top = 3
+        Width = 75
+        Height = 21
+        Cancel = True
+        Caption = 'Отмена'
+        ModalResult = 2
+        TabOrder = 1
+      end
     end
   end
   object ScrollBox1: TScrollBox

@@ -33,18 +33,13 @@
 RECREATE TABLE wg_position
 (
   id         dintkey,
-  /*alias      dalias,*/
-  name       dname,
+  name       dname UNIQUE,
   reserved   dreserved,
 
-  CONSTRAINT wg_pk_position PRIMARY KEY (id)
+  CONSTRAINT wg_pk_position_id PRIMARY KEY (id)
 );
 
 COMMIT;
-
-CREATE UNIQUE INDEX wg_x_position_name ON wg_position
-  /*COMPUTED BY (UPPER(name));*/
-  (name);
 
 SET TERM ^ ;
 
@@ -65,19 +60,15 @@ COMMIT;
 RECREATE TABLE wg_holiday
 (
   id          dintkey,
-  holidaydate ddate NOT NULL,
+  holidaydate ddate NOT NULL UNIQUE,
   name        dname,
   disabled    ddisabled,
 
-  CONSTRAINT wg_pk_holiday PRIMARY KEY (id)
+  CONSTRAINT wg_pk_holiday_id PRIMARY KEY (id)
 );
 
 COMMIT;
 
-CREATE UNIQUE INDEX wg_x_holiday_holdaydate ON wg_holiday
-  (holidaydate);
-
-COMMIT;
 
 RECREATE TABLE wg_tblcal
 (

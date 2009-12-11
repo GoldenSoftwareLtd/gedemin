@@ -1,12 +1,12 @@
 object dlgSecLogIn: TdlgSecLogIn
-  Left = 506
-  Top = 531
+  Left = 513
+  Top = 338
   HelpContext = 39
   ActiveControl = edPassword
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Вход в систему'
-  ClientHeight = 168
+  ClientHeight = 196
   ClientWidth = 303
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -56,7 +56,7 @@ object dlgSecLogIn: TdlgSecLogIn
   end
   object lKL: TLabel
     Left = 8
-    Top = 148
+    Top = 174
     Width = 3
     Height = 13
     Color = clActiveCaption
@@ -72,7 +72,7 @@ object dlgSecLogIn: TdlgSecLogIn
     Left = 56
     Top = 8
     Width = 241
-    Height = 128
+    Height = 156
     BevelInner = bvRaised
     BevelOuter = bvLowered
     Ctl3D = False
@@ -81,14 +81,14 @@ object dlgSecLogIn: TdlgSecLogIn
     TabOrder = 0
     object lblUser: TLabel
       Left = 8
-      Top = 60
+      Top = 86
       Width = 76
       Height = 13
       Caption = 'Пользователь:'
     end
     object lblPassword: TLabel
       Left = 8
-      Top = 85
+      Top = 111
       Width = 41
       Height = 13
       Caption = 'Пароль:'
@@ -133,29 +133,36 @@ object dlgSecLogIn: TdlgSecLogIn
     end
     object Bevel1: TBevel
       Left = 1
-      Top = 49
+      Top = 75
       Width = 238
       Height = 2
       Shape = bsTopLine
     end
+    object lblTempDatabase: TLabel
+      Left = 8
+      Top = 53
+      Width = 43
+      Height = 13
+      Caption = 'TempDB:'
+    end
     object edPassword: TEdit
       Left = 88
-      Top = 82
+      Top = 108
       Width = 145
       Height = 21
       Ctl3D = True
       MaxLength = 20
       ParentCtl3D = False
       PasswordChar = '*'
-      TabOrder = 2
+      TabOrder = 3
     end
     object cbUser: TComboBox
       Left = 88
-      Top = 56
+      Top = 82
       Width = 145
       Height = 21
       ItemHeight = 13
-      TabOrder = 1
+      TabOrder = 2
       OnChange = cbUserChange
     end
     object cbDBFileName: TComboBox
@@ -172,16 +179,25 @@ object dlgSecLogIn: TdlgSecLogIn
     end
     object chbxRememberPassword: TCheckBox
       Left = 88
-      Top = 106
+      Top = 132
       Width = 129
       Height = 17
       Caption = 'Запомнить пароль'
-      TabOrder = 3
+      TabOrder = 4
+    end
+    object eTempDatabase: TEdit
+      Left = 54
+      Top = 49
+      Width = 179
+      Height = 21
+      Ctl3D = True
+      ParentCtl3D = False
+      TabOrder = 1
     end
   end
   object btnOk: TButton
     Left = 139
-    Top = 142
+    Top = 170
     Width = 75
     Height = 21
     Action = actLogin
@@ -190,7 +206,7 @@ object dlgSecLogIn: TdlgSecLogIn
   end
   object btnCancel: TButton
     Left = 222
-    Top = 142
+    Top = 170
     Width = 75
     Height = 21
     Action = actCancel

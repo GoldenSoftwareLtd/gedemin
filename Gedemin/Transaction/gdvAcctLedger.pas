@@ -2,8 +2,6 @@ unit gdvAcctLedger;
 
 interface
 
-{$IFDEF ENTRY_BALANCE}
-
 uses
   classes, gdv_AvailAnalytics_unit, AcctStrings, AcctUtils, gdvAcctBase,
   at_classes, contnrs, DB, ibsql, gdv_AcctConfig_unit;
@@ -259,7 +257,7 @@ type
 
     procedure CheckAnalyticLevelProcedures;
     procedure UpdateEntryDateIsFirst;
-
+    
     //процедура возвращает СКЛ запрос для вычисления начального сальдо
     //когда выбрана фиксированная аналитика и дата стоит первой аналитикой
     //для группировки
@@ -339,11 +337,7 @@ type
 
 procedure Register;
 
-{$ENDIF}
-
 implementation
-
-{$IFDEF ENTRY_BALANCE}
 
 uses
   sysutils, IBDatabase, IBHeader, gdcBaseInterface, gd_KeyAssoc,
@@ -580,6 +574,15 @@ var
 begin
   inherited;
 
+  // Поищем аналитику USR$GS_DOCUMENT, если такая есть то будем строить старым методом
+  if FUseEntryBalance then
+    for I := 0 to FAcctGroupBy.Count - 1 do
+      if AnsiPos(';' + FAcctGroupBy.Analytics[I].FieldName + ';', DontBalanceAnalytic) > 0 then
+      begin
+        FUseEntryBalance := False;
+        Break;
+      end;
+
   if not FMakeEmpty then
   begin
     UpdateEntryDateIsFirst;
@@ -737,7 +740,7 @@ var
       FNcuTotalBlock.Credit.FieldName := BaseAcctFieldList[1].FieldName;
       FNcuTotalBlock.EndDebit.FieldName := BaseAcctFieldList[4].FieldName;
       FNcuTotalBlock.EndCredit.FieldName := BaseAcctFieldList[5].FieldName;
-      if FUseEntryBalance and (FAcctValues.Count = 0) then
+      if FUseEntryBalance then
       begin
         GetDebitSumSelectClauseBalance;
         GetCreditSumSelectClauseBalance;
@@ -760,7 +763,7 @@ var
         FCurrTotalBlock.Credit.FieldName := BaseAcctFieldList[7].FieldName;
         FCurrTotalBlock.EndDebit.FieldName := BaseAcctFieldList[10].FieldName;
         FCurrTotalBlock.EndCredit.FieldName := BaseAcctFieldList[11].FieldName;
-        if FUseEntryBalance and (FAcctValues.Count = 0) then
+        if FUseEntryBalance then
         begin
           GetDebitCurrSumSelectClauseBalance;
           GetCreditCurrSumSelectClauseBalance;
@@ -784,7 +787,7 @@ var
         FEQTotalBlock.Credit.FieldName := BaseAcctFieldList[13].FieldName;
         FEQTotalBlock.EndDebit.FieldName := BaseAcctFieldList[16].FieldName;
         FEQTotalBlock.EndCredit.FieldName := BaseAcctFieldList[17].FieldName;
-        if FUseEntryBalance and (FAcctValues.Count = 0) then
+        if FUseEntryBalance then
         begin
           GetDebitEQSumSelectClauseBalance;
           GetCreditEQSumSelectClauseBalance;
@@ -799,7 +802,7 @@ var
     end;
 
     // Используем новый или старый метод построения отчета
-    if FUseEntryBalance and (FAcctValues.Count = 0) then
+    if FUseEntryBalance then
     begin
       // Заполняем секцию RETURNS
       if AnalyticReturns > '' then AnalyticReturns := AnalyticReturns + ', ';
@@ -1012,10 +1015,10 @@ var
 
           if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
           MainSubSelect := MainSubSelect +
-            'en.entrydate AS dateparam_' + Alias + #13#10;
+            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + ' AS dateparam_' + Alias + #13#10;
           if MainGroup > '' then MainGroup := MainGroup + ', ';
           MainGroup := MainGroup +
-            'en.entrydate'#13#10;
+            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + #13#10;
         end;
 
         // ENTRYDATE нужно брать в подзапросе только один раз
@@ -1076,7 +1079,7 @@ var
           CorrSelect := CorrSelect +
             Format(' %0:s.%1:s, %0:s.%1:s, %0:s.%1:s '#13#10, ['m', Alias]);
           CorrSubSelect := CorrSubSelect +
-            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ') AS ' + Alias + #13#10;
+            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + ' AS ' + Alias + #13#10;
           // ENTRYDATE нужно брать в подзапросе только один раз
           if not CorrEntryDateIsAdded then
           begin
@@ -1085,7 +1088,7 @@ var
             CorrEntryDateIsAdded := True;
           end;
           CorrGroup := CorrGroup +
-            'g_d_getdateparam(en.entrydate, ' + FAcctGroupBy[I].Additional + ')'#13#10;
+            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + #13#10;
           CorrOrder := CorrOrder + Format(' %0:s.%1:s '#13#10, ['m', Alias]);
         end;
       end;
@@ -1363,7 +1366,7 @@ var
   end;
 
 begin
-  if FUseEntryBalance and (FAcctValues.Count = 0) then
+  if FUseEntryBalance then
   begin
     // Список счетов в строковом виде
     AccountIDs := IDList(FAccounts);
@@ -1622,6 +1625,7 @@ begin
         ' DECLARE VARIABLE varncuend NUMERIC(18, 6); '#13#10 +
         ' DECLARE VARIABLE varcurrend NUMERIC(18, 6); '#13#10 +
         ' DECLARE VARIABLE vareqend NUMERIC(18, 6); '#13#10 +
+        ' DECLARE VARIABLE wasmovement INTEGER; '#13#10 +
         ' DECLARE VARIABLE closedate DATE; '#13#10;
 
       if FEntryDateInFields and (not FEntryDateIsFirst) then
@@ -1650,7 +1654,7 @@ begin
         '   SELECT '#13#10 +
         '     COALESCE(SUM(en.debitncu - en.creditncu), 0) AS ncu, '#13#10 +
         '     COALESCE(SUM(en.debitcurr - en.creditcurr), 0) AS curr, '#13#10 +
-        '     COALESCE(SUM(en.debiteq - en.crediteq), 0) AS eq ' +
+        '     COALESCE(SUM(en.debiteq - en.crediteq), 0) AS eq ' + #13#10 +
           IIF(MainSubSelect <> '', ', ' + MainSubSelect, '') + #13#10 +
         '   FROM '#13#10 +
         '   ( '#13#10 +
@@ -1666,7 +1670,7 @@ begin
         '       ac_entry_balance bal '#13#10 +
         '     WHERE '#13#10 +
           IIF(AccountIDs <> '', ' bal.accountkey IN (' + AccountIDs + ') AND '#13#10, '') +
-          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND bal.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
+          IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' bal.currkey = ' + IntToStr(FCurrKey) + ' AND '#13#10, '') +
         '       bal.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
           AnalyticFilterBal +
         '  '#13#10 +
@@ -1739,6 +1743,7 @@ begin
           IIF(MainInto <> '', ', ' + MainInto + #13#10, '') +
           IIF(not FEntryDateIsFirst, ' DO BEGIN '#13#10, ';') +
         ' sortfield = 1; '#13#10 +
+        ' wasmovement = 0; '#13#10 +
         ' IF (varncubegin IS NULL) THEN '#13#10 +
         '   varncubegin = 0; '#13#10 +
         ' IF (varcurrbegin IS NULL) THEN '#13#10 +
@@ -1881,12 +1886,9 @@ begin
         '     END '#13#10 +
           IIF(FEntryDateIsFirst,
             ' varncubegin = varncuend; varcurrbegin = varcurrend; vareqbegin = vareqend;'#13#10, '') +
-        ' IF ((ncu_debit <> 0) OR (ncu_credit <> 0) ' +
-          IIF(not FEntryDateInFields, ' OR (varncubegin <> 0)', '') +
-          IIF(FCurrSumInfo.Show, ' OR (curr_debit <> 0) OR (curr_credit <> 0) ' +
-            IIF(not FEntryDateInFields, ' OR (varcurrbegin <> 0)', ''), '') +
-          IIF(FEQSumInfo.Show, ' OR (eq_debit <> 0) OR (eq_credit <> 0) ' +
-            IIF(not FEntryDateInFields, ' OR (vareqbegin <> 0)', ''), '') + #13#10;
+        ' IF ((ncu_debit <> 0) OR (ncu_credit <> 0) OR (varncubegin <> 0)' +
+          IIF(FCurrSumInfo.Show, ' OR (curr_debit <> 0) OR (curr_credit <> 0) OR (varcurrbegin <> 0)', '') +
+          IIF(FEQSumInfo.Show, ' OR (eq_debit <> 0) OR (eq_credit <> 0) OR (vareqbegin <> 0)', '') + #13#10;
 
       // Добавляем проверку на неравенство нулю расширенного отображения дебета и кредита
       for I := 0 to FNcuDebitAliases.Count - 1 do
@@ -1914,9 +1916,62 @@ begin
 
       DebitCreditSQL := DebitCreditSQL + 
         ') THEN '#13#10 +
+        '     BEGIN '#13#10 +
+        '       wasmovement = 1; '#13#10 +
         '       SUSPEND; '#13#10 +
-        'END '#13#10 +
-        'END ';
+        '     END '#13#10 +
+        '   END '#13#10 +
+        '  '#13#10 +
+          IIF(FEntryDateIsFirst,
+            '   IF (wasmovement = 0) THEN '#13#10 +
+            '   BEGIN '#13#10 +
+            '     IF (varncubegin > 0) THEN '#13#10 +
+            '     BEGIN '#13#10 +
+            '       ncu_begin_debit = CAST((varncubegin / %0:d) AS NUMERIC(15, %1:d)); '#13#10 +
+            '       ncu_begin_credit = 0; '#13#10 +
+            '       ncu_end_debit = CAST((varncubegin / %0:d) AS NUMERIC(15, %1:d)); '#13#10 +
+            '       ncu_end_credit = 0; '#13#10 +
+            '     END '#13#10 +
+            '     ELSE '#13#10 +
+            '     BEGIN '#13#10 +
+            '       ncu_begin_debit = 0; '#13#10 +
+            '       ncu_begin_credit = - CAST((varncubegin / %0:d) AS NUMERIC(15, %1:d)); '#13#10 +
+            '       ncu_end_debit = 0; '#13#10 +
+            '       ncu_end_credit = - CAST((varncubegin / %0:d) AS NUMERIC(15, %1:d)); '#13#10 +
+            '     END '#13#10 +
+            '  '#13#10 +
+            '     IF (varcurrbegin > 0) THEN '#13#10 +
+            '     BEGIN '#13#10 +
+            '       curr_begin_debit = CAST((varcurrbegin / %2:d) AS NUMERIC(15, %3:d)); '#13#10 +
+            '       curr_begin_credit = 0; '#13#10 +
+            '       curr_end_debit = CAST((varcurrbegin / %2:d) AS NUMERIC(15, %3:d)); '#13#10 +
+            '       curr_end_credit = 0; '#13#10 +
+            '     END '#13#10 +
+            '     ELSE '#13#10 +
+            '     BEGIN '#13#10 +
+            '       curr_begin_debit = 0; '#13#10 +
+            '       curr_begin_credit = - CAST((varcurrbegin / %2:d) AS NUMERIC(15, %3:d)); '#13#10 +
+            '       curr_end_debit = 0; '#13#10 +
+            '       curr_end_credit = - CAST((varcurrbegin / %2:d) AS NUMERIC(15, %3:d)); '#13#10 +
+            '     END '#13#10 +
+            '  '#13#10 +
+            '     IF (vareqbegin > 0) THEN '#13#10 +
+            '     BEGIN '#13#10 +
+            '       eq_begin_debit = CAST((vareqbegin / %4:d) AS NUMERIC(15, %5:d)); '#13#10 +
+            '       eq_begin_credit = 0; '#13#10 +
+            '       eq_end_debit = CAST((vareqbegin / %4:d) AS NUMERIC(15, %5:d)); '#13#10 +
+            '       eq_end_credit = 0; '#13#10 +
+            '     END '#13#10 +
+            '     ELSE '#13#10 +
+            '     BEGIN '#13#10 +
+            '       eq_begin_debit = 0; '#13#10 +
+            '       eq_begin_credit = - CAST((vareqbegin / %4:d) AS NUMERIC(15, %5:d)); '#13#10 +
+            '       eq_end_debit = 0; '#13#10 +
+            '       eq_end_credit = - CAST((vareqbegin / %4:d) AS NUMERIC(15, %5:d)); '#13#10 +
+            '     END '#13#10 +
+            '     SUSPEND; '#13#10 +
+            '   END '#13#10, '') +
+        ' END ';
 
     finally
       TempVariables.Free;
@@ -2385,7 +2440,7 @@ var
 begin
   inherited;
 
-  if (not FUseEntryBalance) or (FAcctValues.Count > 0) then
+  if not FUseEntryBalance then
   begin
     if FEntryDateIsFirst then
     begin
@@ -4952,7 +5007,5 @@ function TgdvAcctAnalyticLevels.SPName: string;
 begin
   Result := Format('AC_LEDGER_%s', [FField.References.RelationName]);
 end;
-
-{$ENDIF}
 
 end.

@@ -188,7 +188,7 @@ const
 
   VB_PARAMFUNCTION_TEMPLATE =
     'option explicit'#13#10'function %s(OwnerForm)'#13#10'  ''Функция параметров должна возвращать массив с размерностью,'#13#10'  ''соответствующей кол-ву входных параметров основной функции.'#13#10'  ''dim a(<Кол-во входных параметров осн. ф.>-1)'#13#10'  ''%s = a'#13#10'end function';
-  VB_MAINFUNCTION_TEMPLATE = 'option explicit'#13#10'function %s(OwnerForm)'#13#10'  set %s = BaseQueryList'#13#10'end function';
+  VB_MAINFUNCTION_TEMPLATE = 'option explicit'#13#10'function %s(OwnerForm)'#13#10'  BaseQueryList.Clear'#13#10'  set %s = BaseQueryList'#13#10'end function';
   VB_EVENTFUNCTION_TEMPLATE = 'option explicit'#13#10'function %s(Params, Value, Name)'#13#10'  ''Результат возвращаемый функцией должен быть True или False'#13#10'  ''  Если функция вернет True, то произойдет закрытие окна предварительного просмотра'#13#10'  %s = False'#13#10'end function';
   VB_SCRIPTFUNCTION_TEMPLATE = 'option explicit'#13#10'function %s'#13#10'end function';
   VBClASS_TEMPLATE = 'option explicit'#13#10'Class %s'#13#10'  Private Sub Class_Initialize'#13#10 +

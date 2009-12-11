@@ -548,65 +548,69 @@ var
 begin
 {exception 53'#D#A'Exception body}
   Result := msg;
-  if AnsiPos(cst_word_exception, Trim(AnsiLowerCase(msg))) = 1 then
+
+  if Assigned(IBLogin) and Assigned(IBLogin.Database) and IBLogin.Database.Connected then
   begin
-    //Считаем кэш для исключений. В кэше - только локализованные исключения
-    if not Assigned(ExceptionCache) then
+    if AnsiPos(cst_word_exception, Trim(AnsiLowerCase(msg))) = 1 then
     begin
-      ExceptionCache := TStringList.Create;
-      ExceptionCache.Sorted := True;
-      ExceptionCache.Duplicates := dupIgnore;
-
-      tr := TIBTransaction.Create(nil);
-      ibsql := TIBSQL.Create(nil);
-      try
-        try
-          if Assigned(IBLogin) then
-            tr.DefaultDatabase := IBLogin.Database;
-          tr.StartTransaction;
-          ibsql.Transaction := tr;
-          ibsql.SQL.Text := 'SELECT * FROM at_exceptions a ' +
-            ' JOIN rdb$exceptions e ON e.rdb$exception_name = a.exceptionname  ' +
-            ' WHERE lmessage IS NOT NULL';
-          ibsql.ExecQuery;
-          while not ibsql.Eof do
-          begin
-            if Trim(ibsql.FieldByName('lmessage').AsString) > '' then
-              ExceptionCache.Add(ibsql.FieldByName('rdb$exception_number').AsString + '=' +
-                {$IFDEF LOCALIZATION}Translate({$ENDIF}ibsql.FieldByName('lmessage').AsString{$IFDEF LOCALIZATION}, nil, True){$ENDIF});
-            ibsql.Next;
-          end;
-          tr.Commit;
-        except
-          if tr.InTransaction then
-            tr.Rollback;
-        end;
-      finally
-        tr.Free;
-        ibsql.Free;
-      end;
-    end;
-
-    {Выделим код исключения}
-    sqlcode := Copy(msg, Length(cst_word_exception) + 1, Length(msg) - Length(cst_word_exception));
-    sqlcode := Trim(sqlcode);
-
-    for I := 1 to Length(sqlcode) do
-      if not (sqlcode[I] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']) then Break;
-
-    if I > 1 then
-    begin
-      SetLength(sqlcode, I - 1);
-      {по коду найдем локализованное исключение}
-      if ExceptionCache.IndexOfName(sqlcode) > -1 then
+      //Считаем кэш для исключений. В кэше - только локализованные исключения
+      if not Assigned(ExceptionCache) then
       begin
-        Result := cst_res_exception_rus +
-          ' '+
-          sqlcode + #13#10 +
-          ExceptionCache.Values[sqlcode];
+        ExceptionCache := TStringList.Create;
+        ExceptionCache.Sorted := True;
+        ExceptionCache.Duplicates := dupIgnore;
+
+        tr := TIBTransaction.Create(nil);
+        ibsql := TIBSQL.Create(nil);
+        try
+          try
+            if Assigned(IBLogin) then
+              tr.DefaultDatabase := IBLogin.Database;
+            tr.StartTransaction;
+            ibsql.Transaction := tr;
+            ibsql.SQL.Text := 'SELECT * FROM at_exceptions a ' +
+              ' JOIN rdb$exceptions e ON e.rdb$exception_name = a.exceptionname  ' +
+              ' WHERE lmessage IS NOT NULL';
+            ibsql.ExecQuery;
+            while not ibsql.Eof do
+            begin
+              if Trim(ibsql.FieldByName('lmessage').AsString) > '' then
+                ExceptionCache.Add(ibsql.FieldByName('rdb$exception_number').AsString + '=' +
+                  {$IFDEF LOCALIZATION}Translate({$ENDIF}ibsql.FieldByName('lmessage').AsString{$IFDEF LOCALIZATION}, nil, True){$ENDIF});
+              ibsql.Next;
+            end;
+            tr.Commit;
+          except
+            if tr.InTransaction then
+              tr.Rollback;
+          end;
+        finally
+          tr.Free;
+          ibsql.Free;
+        end;
+      end;
+
+      {Выделим код исключения}
+      sqlcode := Copy(msg, Length(cst_word_exception) + 1, Length(msg) - Length(cst_word_exception));
+      sqlcode := Trim(sqlcode);
+
+      for I := 1 to Length(sqlcode) do
+        if not (sqlcode[I] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']) then Break;
+
+      if I > 1 then
+      begin
+        SetLength(sqlcode, I - 1);
+        {по коду найдем локализованное исключение}
+        if ExceptionCache.IndexOfName(sqlcode) > -1 then
+        begin
+          Result := cst_res_exception_rus +
+            ' '+
+            sqlcode + #13#10 +
+            ExceptionCache.Values[sqlcode];
+        end;
       end;
     end;
-  end;
+  end;  
 end;
 
 function LocalizeCheckException(const msg: String): String;
@@ -743,7 +747,7 @@ begin
   else if IBErrorCode = isc_check_constraint then
     usr_msg := LocalizeCheckException(usr_msg)
   else
-    {Локализация эксепшена выдаваемого огриничениями БД}
+    {Локализация эксепшена выдаваемого ограничениями БД}
     usr_msg := LocalizeMsg(usr_msg);
   {$ENDIF}
   if sqlcode <> -551 then

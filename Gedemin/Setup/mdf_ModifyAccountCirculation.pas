@@ -7,18 +7,17 @@ uses
 
 procedure ModifyAccountCirculation(IBDB: TIBDatabase; Log: TModifyLog);
 
-
 implementation
 
-uses
-  IBSQL, SysUtils;
+{uses
+  IBSQL, SysUtils;}
 
 procedure ModifyAccountCirculation(IBDB: TIBDatabase; Log: TModifyLog);
-var
+{var
   FTransaction: TIBTransaction;
-  FIBSQL: TIBSQL;
+  FIBSQL: TIBSQL;}
 begin
-  FTransaction := TIBTransaction.Create(nil);
+{  FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
     FTransaction.StartTransaction;
@@ -170,7 +169,7 @@ begin
     end;
   finally
     FTransaction.Free;
-  end;
+  end;}
 end;
 
 

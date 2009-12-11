@@ -7,18 +7,17 @@ uses
 
 procedure ModifyAccBalanceEntry(IBDB: TIBDatabase; Log: TModifyLog);
 
-
 implementation
 
-uses
-  IBSQL, SysUtils;
+{uses
+  IBSQL, SysUtils;}
 
 procedure ModifyAccBalanceEntry(IBDB: TIBDatabase; Log: TModifyLog);
-var
+{var
   FTransaction: TIBTransaction;
-  FIBSQL: TIBSQL;
+  FIBSQL: TIBSQL;}
 begin
-  FTransaction := TIBTransaction.Create(nil);
+{  FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
     FTransaction.StartTransaction;
@@ -26,7 +25,7 @@ begin
       FIBSQL := TIBSQL.Create(nil);
       try
         FIBSQL.Transaction := FTransaction;
-        FIBSQL.ParamCheck := False;        
+        FIBSQL.ParamCheck := False;
         FIBSQL.SQL.Text :=
           'ALTER PROCEDURE AC_P_BALANCEENTRY( '#13#10 +
           '    RECORDKEY INTEGER) '#13#10 +
@@ -174,8 +173,7 @@ begin
     end;
   finally
     FTransaction.Free;
-  end;
+  end;}
 end;
-
 
 end.

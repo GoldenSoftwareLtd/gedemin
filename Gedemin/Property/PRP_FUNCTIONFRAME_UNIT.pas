@@ -178,6 +178,10 @@ type
     btnCopyRUIDFunction: TButton;
     edtRUIDFunction: TEdit;
     tsHistory: TSuperTabSheet;
+    actLowerCase: TAction;
+    actUpperCase: TAction;
+    N3: TMenuItem;
+    N4: TMenuItem;
     procedure PageControlChanging(Sender: TObject;
       var AllowChange: Boolean);
     procedure PageControlChange(Sender: TObject);
@@ -249,6 +253,8 @@ type
     procedure btnCopyRUIDFunctionClick(Sender: TObject);
     procedure pMainResize(Sender: TObject);
     procedure gdcDelphiObjectAfterScroll(DataSet: TDataSet);
+    procedure actLowerCaseExecute(Sender: TObject);
+    procedure actUpperCaseExecute(Sender: TObject);
   private
     FFunctionParams: TgsParamList;
     FParamLines: TObjectList;
@@ -256,6 +262,7 @@ type
     FBreakPoint: TBreakPoint;
     FOldName: string;
     HistoryFrame: TFrame;
+    FOldFunctionKey: Integer;
     //FHint: THintWindow;
 
     procedure CMVisibleChanged(var Message: TMessage); message CM_VISIBLECHANGED;
@@ -1436,7 +1443,8 @@ begin
           gsFunctionSynEdit.Modified := True;
         end;
         TfrmGedeminProperty(GetParentForm(Self)).FindAndEdit(SQL.Fields[0].AsInteger);
-      end else
+      end
+      else
         MessageBox(Application.Handle,
           PChar(Format('Функция %s не найдена.', [CurrentWord])),
           'Внимание',
@@ -1580,23 +1588,25 @@ var
 
   procedure DeleteSFNode(N: TTreeNode);
   var
-    I: Integer;
+    Nd: TTreeNode;
   begin
     if N <> nil then
     begin
-      for I := 0 to N.Count - 1 do
+      Nd := N.GetFirstChild;
+      while (Nd <> nil) do
       begin
-        if (TCustomTreeItem(N.Item[I].Data).Id = gdcFunction.Id) and
-          (Node <> N.Item[I]) then
+        if (TCustomTreeItem(Nd.Data).Id = gdcFunction.Id) and
+          (Node <> Nd) then
         begin
-          if TCustomTreeItem(N.Item[I].Data).EditorFrame <> nil then
+          if TCustomTreeItem(Nd.Data).EditorFrame <> nil then
           begin
-            TBaseFrame(TSFTreeItem(N.Item[I].Data).EditorFrame).Cancel;
-            TBaseFrame(TSFTreeItem(N.Item[I].Data).EditorFrame).Close;
+            TBaseFrame(TSFTreeItem(Nd.Data).EditorFrame).Cancel;
+            TBaseFrame(TSFTreeItem(Nd.Data).EditorFrame).Close;
           end;
-          N.Item[I].Delete;
+          Nd.Delete;
           Break;
         end;
+        Nd := Nd.GetNextSibling;
       end;
     end;
   end;
@@ -1607,6 +1617,7 @@ begin
   begin
     if TCustomTreeItem(Node.Data).ItemType <> tiSF then
       DeleteSFNode(TprpTreeView(Node.TreeView).SFRootNode);
+    FOldFunctionKey := TCustomTreeItem(Node.Data).ID;
   end;
   if PropertyTreeForm <> nil then
   begin
@@ -1722,6 +1733,7 @@ constructor TFunctionFrame.Create(AOwner: TComponent);
 begin
   inherited;
   FCurrentFunctionName := '';
+  FOldFunctionKey := 0;
   gdcFunction.CompileScript := True;
 end;
 
@@ -2561,11 +2573,16 @@ begin
   begin
     actComment.Enabled := True;
     actUnComment.Enabled := True;
-  end else
-    begin
-      actComment.Enabled := False;
-      actUnComment.Enabled := False;
-    end;
+    actLowerCase.Enabled := True;
+    actUpperCase.Enabled := True;
+  end
+  else
+  begin
+    actComment.Enabled := False;
+    actUnComment.Enabled := False;
+    actLowerCase.Enabled := False;
+    actUpperCase.Enabled := False;
+  end;
 
   P := gsFunctionSynEdit.ScreenToClient(TCreckPopupMenu(Sender).PopupPoint);
   Line := gsFunctionSynEdit.PixelsToRowColumn(P).Y;
@@ -2621,7 +2638,10 @@ begin
 
   //Т.к. проседуры удаления функции в glbFunctionList нет
   //то очищаем список
-  glbFunctionList.UpdateList;
+  if FOldFunctionKey <> 0 then
+    glbFunctionList.RemoveFunction(FOldFunctionKey)
+  else
+    glbFunctionList.UpdateList;
   ScriptFactory.Reset;
 end;
 
@@ -3001,6 +3021,50 @@ end;
 procedure TFunctionFrame.gdcDelphiObjectAfterScroll(DataSet: TDataSet);
 begin
   FOldName:= gdcFunction.FieldByName('name').AsString;
+end;
+
+procedure TFunctionFrame.actLowerCaseExecute(Sender: TObject);
+var
+  Str: String;
+  BlockBegin, BlockEnd: TPoint;
+begin
+  Str := '';
+  // есть ли выделение
+  if gsFunctionSynEdit.SelAvail then
+  begin
+    // запоминаем начало и окончание выделения
+    BlockBegin := gsFunctionSynEdit.BlockBegin;
+    BlockEnd := gsFunctionSynEdit.BlockEnd;
+    Str := gsFunctionSynEdit.SelText;
+    Str := AnsiLowerCase(Str);
+  end;
+  // заменяем текст в редакторе
+  gsFunctionSynEdit.SelText := Str;
+  // устанавливаем границы выделения
+  gsFunctionSynEdit.BlockBegin := BlockBegin;
+  gsFunctionSynEdit.BlockEnd := BlockEnd;
+end;
+
+procedure TFunctionFrame.actUpperCaseExecute(Sender: TObject);
+var
+  Str: String;
+  BlockBegin, BlockEnd: TPoint;
+begin
+  Str := '';
+  // есть ли выделение
+  if gsFunctionSynEdit.SelAvail then
+  begin
+    // запоминаем начало и окончание выделения
+    BlockBegin := gsFunctionSynEdit.BlockBegin;
+    BlockEnd := gsFunctionSynEdit.BlockEnd;
+    Str := gsFunctionSynEdit.SelText;
+    Str := AnsiUpperCase(Str);
+  end;
+  // заменяем текст в редакторе
+  gsFunctionSynEdit.SelText := Str;
+  // устанавливаем границы выделения
+  gsFunctionSynEdit.BlockBegin := BlockBegin;
+  gsFunctionSynEdit.BlockEnd := BlockEnd;
 end;
 
 initialization

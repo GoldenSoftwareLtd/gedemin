@@ -607,12 +607,10 @@ begin
   Assert(FDataBase <> nil, 'Не подключен DataBase.');
   Assert(FTransaction <> nil, 'Не подключен Transaction.');
 
+  Result := True;
   if RTable.TypeReduction <> 1 then
   begin
-
-    Result := True;
     try
-
       DidActivate := False;
       sql := TIBSQL.Create(Self);
       try
@@ -624,8 +622,8 @@ begin
         sql.Transaction := FTransaction;
 
 { TODO : проверить удаляемую запись по GD_RUID и настройкам. }
-        if not FUserAsked then         // ReduceRecord вызывается в цикле, но FCondemnedKey не меняется    
-        begin                             
+        if not FUserAsked then         // ReduceRecord вызывается в цикле, но FCondemnedKey не меняется
+        begin
           sql.Close;
           sql.sql.Text := 'SELECT * FROM GD_RUID WHERE ID = :ID';
           sql.ParamByName('ID').AsInteger := StrToInt(FCondemnedKey);
@@ -644,7 +642,7 @@ begin
             begin
               S := '';
               while not sql.EOF do
-              begin                                                      
+              begin
                 S := S + '"' + sql.FieldByName('NAME').AsString + '"'#13#10;
                 sql.Next;
              end;
@@ -702,7 +700,6 @@ begin
               l := -1;
               F := TStringList.Create;
               try
-{ TODO -oYuri : Разобраться с кодами ошибок }
                 if EE.IBErrorCode = isc_unique_key_violation then    // primary key
                   S := GetPrimary(RTable.ReductionTableList.Table[I].Name)
                 else
@@ -793,22 +790,11 @@ begin
                 finally
                   Free;
                 end;
-{                end
-                else begin
-                  MessageBox(0,
-                    PChar('Невозможно произвести объединение. Процесс приостановлен.'#13#10#13#10 +
-                    'Возникла следующая исключительная ситуация:'#13#10#13#10 +
-                    EE.Message),
-                    PChar(sAttention),
-                    MB_OK or MB_ICONHAND or MB_TASKMODAL);
-                  Result := False;
-                  exit;
-                end;}
               finally
                 F.Free;
               end;
-            end;   // EE: EIBError
-          end; // except
+            end;
+          end;
         end;
 
         if RTable.TypeReduction = 2 then
@@ -867,7 +853,7 @@ begin
                 end;
               end;
 
-              try 
+              try
                 sql.ExecQuery;
               except
                 on E: Exception do
@@ -895,11 +881,17 @@ begin
       finally
         sql.Free;
         if DidActivate and FTransaction.InTransaction then
-          FTransaction.Commit;
+        begin
+          if Result then
+            FTransaction.Commit
+          else
+            FTransaction.Rollback;
+        end;
       end;
     except
+      if DidActivate and FTransaction.InTransaction then
+        FTransaction.Rollback;
       raise;
-      Result := False;
     end;
 
     {$IFDEF GEDEMIN}
@@ -910,9 +902,7 @@ begin
         StrToIntDef(FMasterKey, -1));
     end;
     {$ENDIF}
-  end
-  else
-    Result := True;
+  end;
 end;
 
 procedure TgsDBReduction.Reduce;
@@ -925,7 +915,7 @@ end;
 
 function TgsDBReduction.isHideField(const FieldName: String): Boolean;
 begin
-  Result := StrIPos(';' + FieldName + ';' , ';' + FHideFields) > 0; 
+  Result := StrIPos(';' + FieldName + ';' , ';' + FHideFields) > 0;
 end;
 
 function TgsDBReduction.PrepareTable(RTable: TReductionTable): Boolean;

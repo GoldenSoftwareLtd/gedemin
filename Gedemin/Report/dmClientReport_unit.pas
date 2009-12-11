@@ -397,35 +397,35 @@ begin
       try
         ibsqlConst.Database := gdScriptFactory1.Database;
         ibsqlConst.Transaction := ibtrConst;
-        ibsqlConst.SQL.Text := 'SELECT * ' +
-          'FROM gd_function WHERE module = ''CONST''';
+        ibsqlConst.SQL.Text := 'SELECT name, ' + fnID + ',' + fnscript +
+          ' FROM gd_function WHERE module = ''CONST''';
         ibsqlConst.ExecQuery;
 
         LocRS := TScriptControl.Create(nil);
         LocRS.Language := 'VBSCRIPT';
         LocRS.TimeOut := -1;
         try
-        while not ibsqlConst.Eof do
-        begin
-          try
+          while not ibsqlConst.Eof do
+          begin
             try
-              FStaticSFList.Add(ibsqlConst.FieldByName(fnid).AsInteger);
-              LocRS.AddCode(ibsqlConst.FieldByName(fnscript).AsString);
-              FVBConst.Add(ibsqlConst.FieldByName(fnid).AsInteger);
-            except
-              ErrScript := LocRS.Error.Description + ': ' + LocRS.Error.Text + #13#10 +
-                'Строка: ' + IntToStr(LocRS.Error.Line) + #13#10;
+              try
+                FStaticSFList.Add(ibsqlConst.FieldByName(fnid).AsInteger);
+                LocRS.AddCode(ibsqlConst.FieldByName(fnscript).AsString);
+                FVBConst.Add(ibsqlConst.FieldByName(fnid).AsInteger);
+              except
+                ErrScript := LocRS.Error.Description + ': ' + LocRS.Error.Text + #13#10 +
+                  'Строка: ' + IntToStr(LocRS.Error.Line) + #13#10;
 
-              MessageBox(0, PChar(String('Ошибка загрузки блока глобальных констант ' +
-                ibsqlConst.FieldByName('Name').AsString + '.'#13#10 + ErrScript + #13#10 +
-                'Константы, объявленные в блоке будут не доступны.'#13#10 +
-                'Обратитесь к администратору.')), 'Ошибка',
-                MB_Ok or MB_ICONERROR or MB_TOPMOST);
+                MessageBox(0, PChar(String('Ошибка загрузки блока глобальных констант ' +
+                  ibsqlConst.FieldByName('Name').AsString + '.'#13#10 + ErrScript + #13#10 +
+                  'Константы, объявленные в блоке будут не доступны.'#13#10 +
+                  'Обратитесь к администратору.')), 'Ошибка',
+                  MB_Ok or MB_ICONERROR or MB_TOPMOST);
+              end;
+            finally
+              ibsqlConst.Next;
             end;
-          finally
-            ibsqlConst.Next;
           end;
-        end;
         finally
           LocRS.Free;
         end;
@@ -514,7 +514,7 @@ begin
       ibDatasetWork.SQL.Text := 'SELECT id ' +
        'FROM gd_function WHERE module = ''' + scrVBClasses +
        ''' AND modulecode = :MC';
-      ibDatasetWork.ParamByName('MC').AsInteger := OBJ_APPLICATION; 
+      ibDatasetWork.ParamByName('MC').AsInteger := OBJ_APPLICATION;
       ibDatasetWork.ExecQuery;
 
       FVBClassKey.Clear;

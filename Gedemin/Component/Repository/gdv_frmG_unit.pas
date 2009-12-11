@@ -112,8 +112,8 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  xdeStart.Date := UserStorage.ReadDateTime(BuildComponentPath(xdeStart), 'StartDate', xdeStart.Date);
-  xdeFinish.Date := UserStorage.ReadDateTime(BuildComponentPath(xdeFinish), 'FinishDate', xdeFinish.Date);
+  DateBegin := UserStorage.ReadDateTime(BuildComponentPath(xdeStart), 'StartDate', DateBegin);
+  DateEnd := UserStorage.ReadDateTime(BuildComponentPath(xdeFinish), 'FinishDate', DateEnd);
 
   TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 
@@ -162,8 +162,12 @@ begin
 
   if Assigned(UserStorage) then
   begin
-    UserStorage.WriteDateTime(BuildComponentPath(xdeStart), 'StartDate', xdeStart.Date);
-    UserStorage.WriteDateTime(BuildComponentPath(xdeFinish), 'FinishDate', xdeFinish.Date);
+    // ≈сли период введен неправильно, сохраним период DateEnd-DateEnd
+    if DateBegin <= DateEnd then
+      UserStorage.WriteDateTime(BuildComponentPath(xdeStart), 'StartDate', DateBegin)
+    else
+      UserStorage.WriteDateTime(BuildComponentPath(xdeStart), 'StartDate', DateEnd);
+    UserStorage.WriteDateTime(BuildComponentPath(xdeFinish), 'FinishDate', DateEnd);
   end;
 
   TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
@@ -245,7 +249,7 @@ end;
 
 procedure Tgdv_frmG.actRunExecute(Sender: TObject);
 begin
-  if xdeStart.Date > xdeFinish.Date then
+  if DateBegin > DateEnd then
     raise Exception.Create('ƒата начала должна быть меньше либо равна дате окончани€!');
 end;
 

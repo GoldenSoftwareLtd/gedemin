@@ -1546,35 +1546,59 @@ end;
 
 procedure TTVState.InitTree;
 var
-  I: Integer;
-  N: TTreeNode;
+  //I: Integer;
+  Data_ID: Integer;
+  N, S: TTreeNode;
 begin
-  N := nil;
-  with FTreeView do
+  if FTreeView.Items.Count > 0 then
   begin
-    Items.BeginUpdate;
-    try
-      for I := 0 to Items.Count - 1 do
-        if (Items[I].Data <> nil) then
+    with FTreeView do
+    begin
+      Items.BeginUpdate;
+      try
+        S := nil;
+        N := Items.GetFirstNode;
+
+        while N <> nil do
         begin
-          Items[I].Expanded := FExpanded.IndexOf(Integer(Items[I].Data)) <> -1;
-
-          if FSelectedID = Integer(Items[I].Data) then
-            N := Items[I];
-
-          if FChecked.IndexOf(Integer(Items[I].Data)) <> -1 then
-            Items[I].StateIndex := siChecked
-          else
-            Items[I].StateIndex := siUnchecked;
+          if (N.Data <> nil) then
+          begin
+            Data_ID := Integer(N.Data);
+            N.Expanded := FExpanded.IndexOf(Data_ID) <> -1;
+            if FSelectedID = Data_ID then
+              S := N;
+            if FChecked.IndexOf(Data_ID) <> -1 then
+              N.StateIndex := siChecked
+            else
+              N.StateIndex := siUnchecked;
+          end;
+          N := N.GetNext;
         end;
 
-      if N <> nil then
-        N.Selected := True;
+        {
+        for I := 0 to Items.Count - 1 do
+          if (Items[I].Data <> nil) then
+          begin
+            Items[I].Expanded := FExpanded.IndexOf(Integer(Items[I].Data)) <> -1;
 
-      if Selected <> nil then
-        Selected.MakeVisible;
-    finally
-      Items.EndUpdate;
+            if FSelectedID = Integer(Items[I].Data) then
+              S := Items[I];
+
+            if FChecked.IndexOf(Integer(Items[I].Data)) <> -1 then
+              Items[I].StateIndex := siChecked
+            else
+              Items[I].StateIndex := siUnchecked;
+          end;
+        }
+
+        if S <> nil then
+          S.Selected := True;
+
+        if Selected <> nil then
+          Selected.MakeVisible;
+      finally
+        Items.EndUpdate;
+      end;
     end;
   end;
 
@@ -1611,14 +1635,30 @@ end;
 
 procedure TTVState.SaveTreeState;
 var
-  I: Integer;
+  N: TTreeNode;
 begin
   with FTreeView do
   begin
     FSelectedID := ID;
     FExpanded.Clear;
     FChecked.Clear;
-    for I := 0 to Items.Count - 1 do
+    if Items.Count > 0 then
+    begin
+      N := Items.GetFirstNode;
+      while N <> nil do
+      begin
+        if N.Data <> nil then
+        begin
+          if N.Expanded then
+            FExpanded.Add(Integer(N.Data));
+          if N.StateIndex = 1 then
+            FChecked.Add(Integer(N.Data));
+        end;
+        N := N.GetNext;
+      end;
+    end;
+
+    {for I := 0 to Items.Count - 1 do
       if (Items[I].Data <> nil) then
       begin
         if Items[I].Expanded then
@@ -1626,7 +1666,7 @@ begin
 
         if Items[I].StateIndex = 1 then
           FChecked.Add(Integer(Items[I].Data));
-      end;
+      end;}
   end;
 end;
 

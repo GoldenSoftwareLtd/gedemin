@@ -114,6 +114,8 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
+    procedure CreateReversalEntry(const AReversalEntryDate: TDateTime; const ATransactionKey: TID);
+
     property RecordKey: Integer read GetRecordKey;
     property Document: TgdcDocument read GetDocument write SetDocument;
     property Description: String read FDescription write FDescription;
@@ -1092,6 +1094,184 @@ begin
   {M}      ClearMacrosStack2('TGDCACCTBASEENTRYREGISTER', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
+end;
+
+procedure TgdcAcctBaseEntryRegister.CreateReversalEntry(
+  const AReversalEntryDate: TDateTime; const ATransactionKey: TID);
+var
+  Transaction: TIBTransaction;
+  ibsqlInsertDocument, ibsqlInsertEntryRecord, ibsqlInsertEntry: TIBSQL;
+  AcEntryRelation: TatRelation;
+  FieldCounter: Integer;
+  TRRecordKey, CompanyKey, ReversalDocumentKey, ReversalRecordKey, CurrentRecordKey: TID;
+  TempString: String;
+  CurrentEntry: TgdcAcctEntryRegister;
+
+  procedure InsertEntryPart(const AEntryPart: String);
+  var
+    Counter: Integer;
+  begin
+    // заполнение части сторнирующей проводки
+    ibsqlInsertEntry.Close;
+    ibsqlInsertEntry.ParamByName('RECORDKEY').AsInteger := ReversalRecordKey;
+    ibsqlInsertEntry.ParamByName('ENTRYDATE').AsDateTime := AReversalEntryDate;
+    ibsqlInsertEntry.ParamByName('TRANSACTIONKEY').AsInteger := ATransactionKey;
+    ibsqlInsertEntry.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+    ibsqlInsertEntry.ParamByName('ACCOUNTKEY').AsInteger := CurrentEntry.FieldByName('ACCOUNTKEY').AsInteger;
+    ibsqlInsertEntry.ParamByName('ACCOUNTPART').AsString := AEntryPart;
+    ibsqlInsertEntry.ParamByName('DEBITNCU').AsCurrency := - CurrentEntry.FieldByName('DEBITNCU').AsCurrency;
+    ibsqlInsertEntry.ParamByName('DEBITCURR').AsCurrency := - CurrentEntry.FieldByName('DEBITCURR').AsCurrency;
+    ibsqlInsertEntry.ParamByName('DEBITEQ').AsCurrency := - CurrentEntry.FieldByName('DEBITEQ').AsCurrency;
+    ibsqlInsertEntry.ParamByName('CREDITNCU').AsCurrency := - CurrentEntry.FieldByName('CREDITNCU').AsCurrency;
+    ibsqlInsertEntry.ParamByName('CREDITCURR').AsCurrency := - CurrentEntry.FieldByName('CREDITCURR').AsCurrency;
+    ibsqlInsertEntry.ParamByName('CREDITEQ').AsCurrency := - CurrentEntry.FieldByName('CREDITEQ').AsCurrency;
+    ibsqlInsertEntry.ParamByName('CURRKEY').AsVariant := CurrentEntry.FieldByName('CURRKEY').AsVariant;
+    // Присвоение значения аналитик части сторнирующей проводки
+    for Counter := 0 to AcEntryRelation.RelationFields.Count - 1 do
+      if AcEntryRelation.RelationFields.Items[Counter].IsUserDefined then
+      begin
+        TempString := AcEntryRelation.RelationFields.Items[Counter].FieldName;
+        ibsqlInsertEntry.ParamByName(TempString).AsVariant := CurrentEntry.FieldByName(TempString).AsVariant;
+      end;
+    ibsqlInsertEntry.ExecQuery;
+  end;
+
+begin
+  Transaction := TIBTransaction.Create(nil);
+  ibsqlInsertDocument := TIBSQL.Create(nil);
+  ibsqlInsertEntryRecord := TIBSQL.Create(nil);
+  ibsqlInsertEntry := TIBSQL.Create(nil);
+  try
+    Transaction.DefaultDatabase := gdcBaseManager.Database;
+    Transaction.StartTransaction;
+    try
+      // Запрос на добавление документа
+      ibsqlInsertDocument.Transaction := Transaction;
+      ibsqlInsertDocument.SQL.Text :=
+        ' INSERT INTO gd_document ' +
+        '   (id, documentdate, documenttypekey, transactionkey, number, ' +
+        '    currkey, aview, achag, afull, companykey, creatorkey, editorkey, creationdate) ' +
+        ' VALUES ' +
+        '   (:id, :documentdate, :documenttypekey, :transactionkey, :number, ' +
+        '    :currkey, -1, -1, -1, :companykey, :creatorkey, :creatorkey, :creationdate) ';
+
+      // Запрос на добавление шапки проводки
+      ibsqlInsertEntryRecord.Transaction := Transaction;
+      ibsqlInsertEntryRecord.SQL.Text :=
+        ' INSERT INTO ac_record ' +
+        '   (id, recorddate, transactionkey, trrecordkey, documentkey, masterdockey, companykey, description) ' +
+        ' VALUES ' +
+        '   (:recordkey, :recorddate, :transactionkey, :trrecordkey, :documentkey, :documentkey, :companykey, :description) ';
+      ibsqlInsertEntryRecord.Prepare;
+
+      AcEntryRelation := atDatabase.Relations.ByRelationName('AC_ENTRY');
+      // Запрос на добавление части проводки
+      ibsqlInsertEntry.Transaction := Transaction;
+      TempString :=
+        ' INSERT INTO ac_entry ' +
+        '   (recordkey, transactionkey, companykey, entrydate, accountkey, accountpart, ' +
+        '    debitncu, debitcurr, debiteq, creditncu, creditcurr, crediteq, currkey ';
+      // Возьмем все пользовательские аналитики
+      for FieldCounter := 0 to AcEntryRelation.RelationFields.Count - 1 do
+        if AcEntryRelation.RelationFields.Items[FieldCounter].IsUserDefined then
+          TempString := TempString + ', ' + AcEntryRelation.RelationFields.Items[FieldCounter].FieldName;
+      TempString := TempString +
+        ') VALUES ' +
+        ' (:recordkey, :transactionkey, :companykey, :entrydate, :accountkey, :accountpart, ' +
+        '  :debitncu, :debitcurr, :debiteq, :creditncu, :creditcurr, :crediteq, :currkey ';
+      for FieldCounter := 0 to AcEntryRelation.RelationFields.Count - 1 do
+        if AcEntryRelation.RelationFields.Items[FieldCounter].IsUserDefined then
+          TempString := TempString + ', :' + AcEntryRelation.RelationFields.Items[FieldCounter].FieldName;
+      ibsqlInsertEntry.SQL.Text := TempString + ')';
+      ibsqlInsertEntry.Prepare;
+
+      // Ключ типовой проводки
+      TRRecordKey := Self.FieldByName('TRRECORDKEY').AsInteger;
+      CompanyKey := Self.FieldByName('COMPANYKEY').AsInteger;
+
+      CurrentEntry := TgdcAcctEntryRegister.Create(nil);
+      try
+        CurrentEntry.Transaction := Transaction;
+        // Ограничиваем по AC_ENTRY.DOCUMENTKEY
+        CurrentEntry.ExtraConditions.Text := 'R.DOCUMENTKEY = ' + Self.FieldByName('DOCUMENTKEY').AsString;
+        CurrentEntry.Open;
+
+        // Добавим документ
+        ReversalDocumentKey := gdcBaseManager.GetNextID;
+        ibsqlInsertDocument.ParamByName('ID').AsInteger := ReversalDocumentKey;
+        // Формирование номера документа
+        if Trim(CurrentEntry.FieldByName('NUMBER').AsString) <> '' then
+        begin
+          ibsqlInsertDocument.ParamByName('NUMBER').AsString :=
+            System.Copy(Trim(CurrentEntry.FieldByName('NUMBER').AsString), 1, 15) + '_СТРН';
+        end
+        else
+        begin
+          ibsqlInsertDocument.ParamByName('NUMBER').AsString :=
+            CurrentEntry.FieldByName('DOCUMENTKEY').AsString + '_СТРН';
+        end;    
+        ibsqlInsertDocument.ParamByName('DOCUMENTDATE').AsDateTime := AReversalEntryDate;
+        ibsqlInsertDocument.ParamByName('DOCUMENTTYPEKEY').AsInteger := DefaultDocumentTypeKey;
+        ibsqlInsertDocument.ParamByName('TRANSACTIONKEY').AsInteger := ATransactionKey;
+        ibsqlInsertDocument.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+        ibsqlInsertDocument.ParamByName('CURRKEY').AsVariant := Self.FieldByName('CURRKEY').AsVariant;
+        ibsqlInsertDocument.ParamByName('CREATORKEY').AsInteger := IBLogin.Contactkey;
+        ibsqlInsertDocument.ParamByName('CREATIONDATE').AsDateTime := Time;
+        ibsqlInsertDocument.ExecQuery;
+
+        CurrentRecordKey := -1;
+        while not CurrentEntry.Eof do
+        begin
+          if CurrentRecordKey <> CurrentEntry.FieldByName('RECORDKEY').AsInteger then
+          begin
+            // Добавим шапку проводки
+            ReversalRecordKey := gdcBaseManager.GetNextID;
+            ibsqlInsertEntryRecord.Close;
+            ibsqlInsertEntryRecord.ParamByName('RECORDKEY').AsInteger := ReversalRecordKey;
+            ibsqlInsertEntryRecord.ParamByName('RECORDDATE').AsDateTime := AReversalEntryDate;
+            ibsqlInsertEntryRecord.ParamByName('TRANSACTIONKEY').AsInteger := ATransactionKey;
+            ibsqlInsertEntryRecord.ParamByName('TRRECORDKEY').AsInteger := TRRecordKey;
+            ibsqlInsertEntryRecord.ParamByName('DOCUMENTKEY').AsInteger := ReversalDocumentKey;
+            ibsqlInsertEntryRecord.ParamByName('COMPANYKEY').AsInteger := CompanyKey;
+            TempString := CurrentEntry.FieldByName('DESCRIPTION').AsString +
+              ' Сторнирование проводок документа ' +
+              CurrentEntry.FieldByName('NUMBER').AsString + ' от ' +
+              CurrentEntry.FieldByName('DOCUMENTDATE').AsString +
+              ' (' + CurrentEntry.FieldByName('DOCUMENTKEY').AsString + ')';
+            if Length(TempString) <= 180 then
+              ibsqlInsertEntryRecord.ParamByName('DESCRIPTION').AsString := TempString
+            else
+              ibsqlInsertEntryRecord.ParamByName('DESCRIPTION').AsString := CurrentEntry.FieldByName('DESCRIPTION').AsString;
+            ibsqlInsertEntryRecord.ExecQuery;
+            CurrentRecordKey := CurrentEntry.FieldByName('RECORDKEY').AsInteger;
+          end;
+
+          // Добавим часть проводки
+          InsertEntryPart(CurrentEntry.FieldByName('ACCOUNTPART').AsString);
+          // Перейдем к следующей части проводки
+          CurrentEntry.Next;
+        end;
+      finally
+        CurrentEntry.Free;
+      end;
+
+      // Подтвердим изменения
+      if Transaction.InTransaction then
+        Transaction.Commit;
+    except
+      on E: Exception do
+      begin
+        if Transaction.InTransaction then
+          Transaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    ibsqlInsertEntry.Free;
+    ibsqlInsertEntryRecord.Free;
+    ibsqlInsertDocument.Free;
+    Transaction.Free;
+  end;
 end;
 
 { TgdcAcctEntryRegister }

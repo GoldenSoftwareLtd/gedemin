@@ -108,6 +108,8 @@ type
 
   function GetParamsFromText(const AnParamList: TgsParamList;
    const AnFunctionName, AnText: String): Boolean;
+  function StringToParamType(const AParamTypeStr: String): TParamType;
+  function ParamTypeToString(const AParamType: TParamType): String;
 
 implementation
 
@@ -115,7 +117,7 @@ uses
 {$IFDEF VER140}
   Variants,
 {$ENDIF}
-  prp_MessageConst;
+  prp_MessageConst, TypInfo;
 
 const
   StartParam = 'PRST';
@@ -221,6 +223,28 @@ begin
           AnParamList.AddParam(Trim(TempName), Trim(TempName), prmInteger, '');
       end;
     end;
+end;
+
+function StringToParamType(const AParamTypeStr: String): TParamType;
+var
+  I: Integer;
+begin
+  if AParamTypeStr > '' then
+  begin
+    I := GetEnumValue(TypeInfo(TParamType), AParamTypeStr);
+    if I <> -1 then
+    begin
+      Result := TParamType(I);
+      Exit;
+    end;
+  end;
+
+  raise Exception.Create('Неизвестный тип параметра: ' + AParamTypeStr);
+end;
+
+function ParamTypeToString(const AParamType: TParamType): String;
+begin
+  Result := GetEnumName(TypeInfo(TParamType), Integer(AParamType));
 end;
 
 { TgsParamData }
@@ -446,13 +470,17 @@ procedure TgsParamList.Assign(const Source: TgsParamList);
 var
   I: Integer;
 begin
-  Clear;
-  if Source <> nil then
+  // Проверим, не передали ли в метод себя же
+  if Self <> Source then
   begin
-    for I := 0 to Source.Count - 1 do
+    Clear;
+    if Source <> nil then
     begin
-      AddParam('', '', prmInteger, '');
-      Params[I].Assign(Source.Params[I]);
+      for I := 0 to Source.Count - 1 do
+      begin
+        AddParam('', '', prmInteger, '');
+        Params[I].Assign(Source.Params[I]);
+      end;
     end;
   end;  
 end;

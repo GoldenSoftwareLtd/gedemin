@@ -112,6 +112,7 @@ const
   ISSIMPLE: TmdfField = (
     RelationName: 'AC_ENTRY'; FieldName: 'ISSIMPLE'; Description: 'DBOOLEAN_NOTNULL');
 
+  {
   SET_ISSIMPLE_ENTRY: TmdfStoredProcedure = (ProcedureName: 'SET_ISSIMPLE_ENTRY';
     Description:'AS'#13#10 +
       '/*Версия 1*/'#13#10 +
@@ -151,6 +152,7 @@ const
       '        e.accountpart = :ACCOUNTPART;'#13#10 +
       '  end'#13#10 +
       'end');
+   }   
 
    ProcCount = 10;
 
@@ -1288,24 +1290,16 @@ begin
         end;
       end;
 
-      if not ProcedureExist(SET_ISSIMPLE_ENTRY, IBDB) then
+      {if not ProcedureExist(SET_ISSIMPLE_ENTRY, IBDB) then
       begin
         Log(Format('Добавление поцедуры %s', [SET_ISSIMPLE_ENTRY.ProcedureName]));
         try
           CreateProcedure(SET_ISSIMPLE_ENTRY, IBDB);
-        //вызов будет в mdf_QuickLedger2
-{          Log('Заполнение поля ISSIMPLE');
-          try
-            ExecuteProcedure(SET_ISSIMPLE_ENTRY, IBDB);
-          except
-            on E: Exception do
-              Log(Format('Ошибка %s', [E.Message]));
-          end;}
         except
           on E: Exception do
             Log(Format('Ошибка %s', [E.Message]));
         end;
-      end;
+      end;}
     except
       on E: Exception do
         Log(Format('Ошибка %s', [E.Message]));

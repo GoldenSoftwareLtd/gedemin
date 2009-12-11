@@ -10,17 +10,17 @@ procedure AddRPLTables(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
 
 uses
-  IBSQL, SysUtils;
+  IBSQL, SysUtils, mdf_MetaData_unit;
 
 const
   CreateDatabaseTableSQL =
     'CREATE TABLE RPL_DATABASE ( ' +
     '    ID          DINTKEY, ' +
-    '    NAME        DTEXT60 NOT NULL COLLATE PXW_CYRL, ' +
+    '    NAME        DNAME, ' +
     '    ISOURBASE   DBOOLEAN)';
 
   CreateDatabasePrimaryKey =
-    'ALTER TABLE RPL_DATABASE ADD CONSTRAINT PK_RPL_DATABASE PRIMARY KEY (ID)';
+    'ALTER TABLE RPL_DATABASE ADD CONSTRAINT RPL_PK_DATABASE_ID PRIMARY KEY (ID)';
 
   CreateDatabaseTrigger =
     'CREATE TRIGGER RPL_BI_DATABASE FOR RPL_DATABASE ' +
@@ -42,14 +42,14 @@ const
     '    STATE        SMALLINT)';
 
   CreateRecordPrimaryKey =
-    'ALTER TABLE RPL_RECORD ADD CONSTRAINT PK_RPL_RECORD PRIMARY KEY (ID, BASEKEY)';
+    'ALTER TABLE RPL_RECORD ADD CONSTRAINT RPL_PK_RECORD_ID PRIMARY KEY (ID, BASEKEY)';
 
   CreateRecordForeignKey01 =
-    'ALTER TABLE RPL_RECORD ADD CONSTRAINT FK_RPL_RECORD FOREIGN KEY (BASEKEY) ' +
+    'ALTER TABLE RPL_RECORD ADD CONSTRAINT RPL_FK_RECORD_BASEKEY FOREIGN KEY (BASEKEY) ' +
       'REFERENCES RPL_DATABASE (ID) ON DELETE CASCADE ON UPDATE CASCADE';
 
   CreateRecordForeignKey02 =
-    'ALTER TABLE RPL_RECORD ADD CONSTRAINT FK_RPL_RECORD_GD_RUID FOREIGN KEY (ID) ' +
+    'ALTER TABLE RPL_RECORD ADD CONSTRAINT RPL_FK_RECORD_ID FOREIGN KEY (ID) ' +
       'REFERENCES GD_RUID (ID) ON DELETE CASCADE ON UPDATE CASCADE';
 
   GrantRecord =
@@ -72,128 +72,196 @@ begin
         FIBSQL.ParamCheck := False;
 
         FTransaction.StartTransaction;
+
+        FIBSQL.SQL.Text :=
+          'CREATE INDEX gd_x_function_module ON gd_function (module) ';
         try
-          // Если таблица RPL_DATABASE не существует
-          FIBSQL.SQL.Text := 'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''RPL_DATABASE'' ';
           FIBSQL.ExecQuery;
-          if FIBSQL.RecordCount = 0 then
-          begin
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := CreateDatabaseTableSQL;
-            FIBSQL.ExecQuery;
-            Log('Таблица RPL_DATABASE добавлена успешно');
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := CreateDatabasePrimaryKey;
-            FIBSQL.ExecQuery;
-            Log('Добавление первичного ключа прошло успешно');
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := CreateDatabaseTrigger;
-            FIBSQL.ExecQuery;
-            Log('Добавление триггера прошло успешно');
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := GrantDatabase;
-            FIBSQL.ExecQuery;
-          end;
-
-          // Если таблица RPL_RECORD не существует
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := 'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''RPL_RECORD'' ';
-          FIBSQL.ExecQuery;
-          if FIBSQL.RecordCount = 0 then
-          begin
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := CreateRecordTableSQL;
-            FIBSQL.ExecQuery;
-            Log('Таблица RPL_RECORD добавлена успешно');
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := CreateRecordPrimaryKey;
-            FIBSQL.ExecQuery;
-            Log('Добавление первичного ключа прошло успешно');
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := CreateRecordForeignKey01;
-            FIBSQL.ExecQuery;
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := CreateRecordForeignKey02;
-            FIBSQL.ExecQuery;
-            Log('Добавление ссылок прошло успешно');
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := GrantRecord;
-            FIBSQL.ExecQuery;
-          end;
-
-          FTransaction.Commit;
         except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            if FTransaction.InTransaction then
-              FTransaction.Rollback;
-          end;
         end;
 
-        FTransaction.StartTransaction;
-        try
-          // Если в таблице AT_SETTINGPOS еще нет поля AUTOADDED
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = ''GD_CONTACT'' and rdb$field_name = ''CREATORKEY'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
-            ' SELECT ' +
-            '   rdb$field_name ' +
-            ' FROM ' +
-            '   rdb$relation_fields ' +
-            ' WHERE' +
-            '   rdb$relation_name = ''AT_SETTINGPOS'' ' +
-            '   AND rdb$field_name = ''AUTOADDED'' ';
+            'ALTER TABLE gd_contact ADD creatorkey dforeignkey';
           FIBSQL.ExecQuery;
-          if FIBSQL.RecordCount = 0 then
-          begin
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := AlterATSettingPos;
-            FIBSQL.ExecQuery;
-            Log('Добавление поля AUTOADDED в таблицу AT_SETTINGPOS прошло успешно');
-          end;
-          FTransaction.Commit;
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            if FTransaction.InTransaction then
-              FTransaction.Rollback;
-          end;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_contact ADD creationdate dcreationdate';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_contact ADD CONSTRAINT gd_fk_contact_creatorkey ' +
+            '  FOREIGN KEY (creatorkey) REFERENCES gd_contact(id) ' +
+            '  ON UPDATE CASCADE ';
+          FIBSQL.ExecQuery;
         end;
 
-        FTransaction.StartTransaction;
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = ''GD_GOOD'' and rdb$field_name = ''CREATORKEY'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_good ADD creatorkey dforeignkey';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_good ADD creationdate dcreationdate';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_good ADD CONSTRAINT gd_fk_good_creatorkey ' +
+            '  FOREIGN KEY (creatorkey) REFERENCES gd_contact(id) ' +
+            '  ON UPDATE CASCADE ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = ''GD_GOODGROUP'' and rdb$field_name = ''CREATORKEY'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_goodgroup ADD creatorkey dforeignkey';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_goodgroup ADD creationdate dcreationdate';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_creatorkey ' +
+            '  FOREIGN KEY (creatorkey) REFERENCES gd_contact(id) ' +
+            '  ON UPDATE CASCADE ';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_goodgroup ADD editorkey dforeignkey';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_goodgroup ADD editiondate deditiondate';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_editorkey ' +
+            '  FOREIGN KEY (editorkey) REFERENCES gd_contact(id) ' +
+            '  ON UPDATE CASCADE ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''RPL_DATABASE'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := CreateDatabaseTableSQL;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := CreateDatabasePrimaryKey;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := CreateDatabaseTrigger;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := GrantDatabase;
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''RPL_RECORD'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := CreateRecordTableSQL;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := CreateRecordPrimaryKey;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := CreateRecordForeignKey01;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := CreateRecordForeignKey02;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := GrantRecord;
+          FIBSQL.ExecQuery;
+        end;
+
+        // Если в таблице AT_SETTINGPOS еще нет поля AUTOADDED
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          ' SELECT ' +
+          '   rdb$field_name ' +
+          ' FROM ' +
+          '   rdb$relation_fields ' +
+          ' WHERE' +
+          '   rdb$relation_name = ''AT_SETTINGPOS'' ' +
+          '   AND rdb$field_name = ''AUTOADDED'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := AlterATSettingPos;
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
         FIBSQL.SQL.Text :=
           'INSERT INTO fin_versioninfo ' +
-          '  VALUES (102, ''0000.0001.0000.0129'', ''25.08.2008'', ''$RPL tables added'')';
+          '  VALUES (108, ''0000.0001.0000.0140'', ''09.07.2008'', ''Добавлены RPL таблицы'') ';
         try
           FIBSQL.ExecQuery;
-          FTransaction.Commit;
         except
         end;
-        
+
+        FTransaction.Commit;
       finally
         FIBSQL.Free;
       end;
-      if FTransaction.InTransaction then
-        FTransaction.Commit;
     except
       on E: Exception do
       begin
-        Log('Произошла ошибка при добавлении RPL таблиц.' + E.Message);
+        Log('Произошла ошибка: ' + E.Message);
         if FTransaction.InTransaction then
           FTransaction.Rollback;
+        raise;
       end;
     end;
   finally
     FTransaction.Free;
   end;
 end;
-
 
 end.

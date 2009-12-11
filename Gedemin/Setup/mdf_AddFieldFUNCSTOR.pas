@@ -12,19 +12,21 @@ implementation
 uses
   IBSQL, SysUtils;
 
+{
 const
   cAddField: String =
     'ALTER TABLE ac_script ADD funcstor DBLOBTEXT80';
   cPresField: String =
     'SELECT * FROM rdb$relation_fields rf'#13#10 +
     'WHERE rf.rdb$field_name = ''FUNCSTOR'' and rf.rdb$relation_name = ''AC_SCRIPT''';
+}
 
 procedure AddFieldFUNCSTOR(IBDB: TIBDatabase; Log: TModifyLog);
-var
+{var
   IBSQL: TIBSQL;
-  IBTransaction: TIBTransaction;
+  IBTransaction: TIBTransaction;}
 begin
-  IBTransaction := TIBTransaction.Create(nil);
+{  IBTransaction := TIBTransaction.Create(nil);
   try
     IBTransaction.DefaultDatabase := IBDB;
     IBSQL := TIBSQL.Create(nil);
@@ -49,7 +51,7 @@ begin
     end;
   finally
     IBTransaction.Free;
-  end;
+  end;}
 end;
 
 end.

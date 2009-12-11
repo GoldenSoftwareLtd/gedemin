@@ -2,8 +2,6 @@ unit gdvAcctCirculationList;
 
 interface
 
-{$IFDEF ENTRY_BALANCE}
-
 uses
   classes, gd_ClassList, AcctStrings, AcctUtils, gdvAcctBase, gdvAcctLedger;
 
@@ -18,11 +16,7 @@ type
 
 procedure Register;
 
-{$ENDIF}
-
 implementation
-
-{$IFDEF ENTRY_BALANCE}
 
 uses
   Sysutils, IBSQL, gdcBaseInterface;
@@ -453,7 +447,5 @@ begin
   FShowDebit := False;
   FShowCredit := False;
 end;
-
-{$ENDIF}
 
 end.

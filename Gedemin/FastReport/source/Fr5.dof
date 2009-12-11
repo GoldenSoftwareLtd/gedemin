@@ -40,21 +40,17 @@ ImageBase=4194304
 ExeDescription=FastReport 2.5 Components
 [Directories]
 OutputDir=
-UnitOutputDir=..\..\dcu
-PackageDLLOutputDir=..\..\bpl
-PackageDCPOutputDir=..\..\bpl
-SearchPath=..\..\ibx;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;$(DELPHI)\Source\Toolsapi;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\1stclass\source;..\..\component;..\..\attr;..\..\storage;..\..\common;..\..\bank;..\..\newtransaction;..\..\realization;..\..\Department;..\..\planning;..\..\component\repository;..\..\gudf;..\..\cattle;$(DELPHI)\Imports;..\..\Component\SynEdit\Source;..\..\protect;..\..\inventory;..\..\const;..\..\component\repository\gd;..\..\component\gdc;..\..\zlib;..\..\report;..\..\FastReport\source;$(DELPHI)\Source\Vcl;..\..\jcl\Source;..\..\gedemin;..\..\Component\tb2k\Source;..\..\transaction;..\..\property;..\..\document;..\..\designer;..\..\component\gdc;..\..\component\qexport\delphi5;..\..\setup;..\..\Component\QExport\Delphi5;d:\golden\bpl;..\..\wage;..\..\jcl\packages;..\..\images;..\..\tax;$(DELPHI)\Ocx\Servers;..\..\backup;..\..\property\functionwizard;..\..\modem;..\..\gdcFile;..\..\component\diff;..\..\registration;..\..\imports;..\..\jcl\source\common;..\..\jcl\source\windows
-Packages=
+UnitOutputDir=
+PackageDLLOutputDir=
+PackageDCPOutputDir=
+SearchPath=
+Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;vclado50;ibevnt50;Vclbde50;vcldbx50;Qrpt50;TeeUI50;TeeDB50;Tee50;Dss50;TeeQR50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50
 Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
 RunParams=
 HostApplication=
-[Language]
-ActiveLang=
-ProjectLang=$00000419
-RootDir=
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
@@ -81,4 +77,22 @@ ProductName=
 ProductVersion=1.0.0.0
 Comments=
 [Excluded Packages]
+D:\Golden\gedemin\FastReport 4\LibD5\dclfrx5.bpl=FastReport 4.0 Components
+D:\Golden\gedemin\DCU\A406_R50.bpl=TurboPower Async Professional 4.06 Runtime Package - VCL50
+$(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
 $(DELPHI)\Bin\DCLIB50.bpl=InterBase Data Access Components
+[HistoryLists\hlUnitAliases]
+Count=1
+Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+[HistoryLists\hlSearchPath]
+Count=1
+Item0=D:\Golden\gedemin\Component\kbmMemTable\Source
+[HistoryLists\hlUnitOutputDirectory]
+Count=1
+Item0=D:\golden\GEDEMIN\DCU
+[HistoryLists\hlBPLOutput]
+Count=1
+Item0=D:\golden\GEDEMIN\DCU
+[HistoryLists\hlDCPOutput]
+Count=1
+Item0=D:\golden\GEDEMIN\DCU

@@ -1148,6 +1148,11 @@ begin
         try
           for I := 0 to FDeskTopSF.Count - 1 do
           begin
+            {$IFDEF FLAKE}
+            // при нажатом шифте не будем восстанавливать рабочий стол
+            if (GetAsyncKeyState(VK_SHIFT) shr 1) > 0 then
+              Break;
+            {$ENDIF FLAKE}
             ReopenSf(FDeskTopSF[I]);
           end;
         finally

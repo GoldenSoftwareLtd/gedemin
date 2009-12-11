@@ -2,8 +2,6 @@ unit gdvAcctBase;
 
 interface
 
-{$IFDEF ENTRY_BALANCE}
-
 uses
   Windows, classes, IBCustomDataSet, Controls, IBSQL,
   gdcBaseInterface, gd_KeyAssoc, at_classes, contnrs, DB,
@@ -87,7 +85,9 @@ type
     procedure SetUseEntryBalance(const Value: Boolean);
 
     { Уменьшает длину текста запроса путем удаления лишних пробелов и отступов }
+    {$IFNDEF DEBUG}
     procedure PackSQL(const S: TStrings);
+    {$ENDIF}
   protected
     // временные переменные для подсчета времени выполнения
     FAllTickCount: Cardinal;
@@ -292,11 +292,7 @@ const
 
 procedure Register;
 
-{$ENDIF}
-
 implementation
-
-{$IFDEF ENTRY_BALANCE}
 
 uses
   Sysutils, Dialogs, gd_security, AcctStrings, IBBlob, gd_common_functions,
@@ -406,6 +402,10 @@ begin
        and Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)) then
       FUseEntryBalance := False;
   end;
+
+  // При выборе количественных показателей будем строить старым методом
+  if FUseEntryBalance and (FAcctValues.Count > 0) then
+    FUseEntryBalance := False;
 
   if FWithSubAccounts then
     FillSubAccounts(FAccounts);
@@ -1160,6 +1160,7 @@ begin
   Result := 'TBaseAcctConfigClass';
 end;
 
+{$IFNDEF DEBUG}
 procedure TgdvAcctBase.PackSQL(const S: TStrings);
 var
   I, J: Integer;
@@ -1204,6 +1205,7 @@ begin
     end;
   end;
 end;
+{$ENDIF}
 
 { TgdvFieldInfo }
 
@@ -1302,8 +1304,6 @@ begin
     end;
   end;
 end;
-
-{$ENDIF}
 
 end.
  

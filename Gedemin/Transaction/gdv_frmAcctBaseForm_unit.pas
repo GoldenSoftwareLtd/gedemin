@@ -28,19 +28,13 @@ uses
   gdv_frmG_unit, flt_sqlFilter, gd_ReportMenu, Menus, gd_MacrosMenu,
   ActnList, Db, StdCtrls, Mask, xDateEdits, Buttons, ExtCtrls, TB2Item,
   TB2Dock, TB2Toolbar, SuperPageControl, Grids, DBGrids, gsDBGrid, gsIBGrid,
-  IBCustomDataSet, contnrs
-  {$IFDEF ENTRY_BALANCE}
-  , AcctUtils, Storages, gsStorage_CompPath,
+  IBCustomDataSet, contnrs, AcctUtils, Storages, gsStorage_CompPath,
   at_classes, gd_ClassList, AcctStrings, IBSQL, gdcBaseInterface, dmImages_unit,
   gsIBLookupComboBox, gdvParamPanel, gdv_frAcctSum_unit, gdv_AvailAnalytics_unit,
   gdv_frAcctQuantity_unit, gdv_frAcctAnalytics_unit, gdv_frAcctCompany_unit,
   IBDatabase, gd_common_functions, gdv_AcctConfig_unit, gd_createable_form,
   gdcBase, gd_security_operationconst, gdcConstants,
-  gdvAcctBase
-  {$ENDIF}
-  ;
-
-{$IFDEF ENTRY_BALANCE}
+  gdvAcctBase;
 
 type
 
@@ -182,13 +176,9 @@ type
 var
   gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm;
 
-{$ENDIF}
-
 function AcctFormList: TComponentList;
 
 implementation
-
-{$IFDEF ENTRY_BALANCE}
 
 uses
   gdv_dlgAccounts_unit, gd_security, gdv_dlgConfigName_unit,
@@ -199,8 +189,6 @@ const
   cCURRPrefix = 'CURR';
   cEQPrefix = 'EQ';
   cQuantityDisplayFormat = '### ##0.##';
-
-{$ENDIF}
 
 var
   AcctFormList_: TComponentList;
@@ -216,8 +204,6 @@ begin
 end;
 
 {$R *.DFM}
-
-{$IFDEF ENTRY_BALANCE}
 
 procedure Tgdv_frmAcctBaseForm.actShowParamPanelExecute(Sender: TObject);
 begin
@@ -244,7 +230,7 @@ begin
   end
   else
   begin
-    if (xdeStart.Date > xdeFinish.Date) and not gdvObject.MakeEmpty then
+    if (Self.DateBegin > Self.DateEnd) and not gdvObject.MakeEmpty then
     begin
       MessageBox(Handle,
         'Ошибка при вводе периода построения отчета: дата начала больше даты окончания.',
@@ -374,9 +360,10 @@ begin
   finally
     ibgrMain.Columns.EndUpdate;
   end;
-
+  {$IFDEF DEBUG}
   lblQueryTime.Caption := ' Query: ' + IntToStr(gdvObject.QueryTickCount) + 'ms';
   lblExecuteTime.Caption := 'All: ' + IntToStr(gdvObject.AllTickCount) + 'ms ';
+  {$ENDIF}
 end;
 
 procedure Tgdv_frmAcctBaseForm.DoBeforeBuildReport;
@@ -408,26 +395,30 @@ begin
     begin
       F.DisplayFormat := DisplayFormat(frAcctSum.NcuDecDigits);
       if frAcctSum.InNcu then
-        F.Visible := fvVisible;
-    end
-    else
-      if Pos('CURR_', BaseAcctFieldList[I].FieldName) = 1 then
-      begin
-        F.DisplayFormat := DisplayFormat(frAcctSum.CurrDecDigits);
-        if (frAcctSum.InCurr) and (not frAcctSum.InNcu) then
-          F.Visible := fvVisible;
-        if (frAcctSum.InCurr) and (frAcctSum.InNcu) then
-          F.DisplayFields.Add(BaseAcctFieldList[I].DisplayFieldName);
-      end
+        F.Visible := fvVisible
       else
-        if Pos('EQ_', BaseAcctFieldList[I].FieldName) = 1 then
-        begin
-          F.DisplayFormat := DisplayFormat(frAcctSum.EQDecDigits);
-          if (frAcctSum.InEQ) and (not frAcctSum.InNcu) then
-            F.Visible := fvVisible;
-          if (frAcctSum.InEQ) and (frAcctSum.InNcu) then
-            F.DisplayFields.Add(BaseAcctFieldList[I].DisplayFieldName);
-        end;
+        F.Visible := fvHidden;
+    end
+    else if Pos('CURR_', BaseAcctFieldList[I].FieldName) = 1 then
+    begin
+      F.DisplayFormat := DisplayFormat(frAcctSum.CurrDecDigits);
+      if (frAcctSum.InCurr) and (not frAcctSum.InNcu) then
+        F.Visible := fvVisible
+      else
+        F.Visible := fvHidden;
+      if (frAcctSum.InCurr) and (frAcctSum.InNcu) then
+        F.DisplayFields.Add(BaseAcctFieldList[I].DisplayFieldName);
+    end
+    else if Pos('EQ_', BaseAcctFieldList[I].FieldName) = 1 then
+    begin
+      F.DisplayFormat := DisplayFormat(frAcctSum.EQDecDigits);
+      if (frAcctSum.InEQ) and (not frAcctSum.InNcu) then
+        F.Visible := fvVisible
+      else
+        F.Visible := fvHidden;
+      if (frAcctSum.InEQ) and (frAcctSum.InNcu) then
+        F.DisplayFields.Add(BaseAcctFieldList[I].DisplayFieldName);
+    end;
   end;
 
   // Сохраним выбранные счета в хранилище
@@ -440,7 +431,7 @@ begin
     FAccountIDs := TList.Create;
 
   // Получим список выбранных количественных показателей из панели формы
-  frAcctQuantity.ValueList(FValueList, FAccountIDs, DateBegin, DateEnd);
+  frAcctQuantity.ValueList(FValueList, FAccountIDs, Self.DateBegin, Self.DateEnd);
   // Перенесем строку выбранных счетов в список, опционально с субсчетами
   SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts);
 
@@ -677,7 +668,6 @@ begin
   BuildAcctReport;
 end;
 
-
 procedure Tgdv_frmAcctBaseForm.DoEmptyReport;
 begin
   if gdvObject.Active then
@@ -911,8 +901,8 @@ begin
 
   if not gdvObject.MakeEmpty then
   begin
-    gdvObject.DateBegin := DateBegin;
-    gdvObject.DateEnd := DateEnd;
+    gdvObject.DateBegin := Self.DateBegin;
+    gdvObject.DateEnd := Self.DateEnd;
 
     gdvObject.CompanyKey := frAcctCompany.CompanyKey;
     gdvObject.AllHolding := frAcctCompany.AllHoldingCompanies;
@@ -1320,7 +1310,5 @@ initialization
 finalization
   FreeAndNil(AcctFormList_);
   UnRegisterFrmClass(Tgdv_frmAcctBaseForm);
-
-{$ENDIF}
 
 end.

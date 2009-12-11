@@ -77,7 +77,9 @@ var
 {$ENDIF}
   MS: TMemoryStream;
   RegSetting: TgsStorageFolder;
+{$IFNDEF FLAKE}
   I, J: Integer;
+{$ENDIF}
 begin
   gdcBase.CacheDBID := -1;
 
@@ -220,6 +222,7 @@ begin
       ScriptFactory.ExceptionFlags := PropertySettings.Exceptions;
   end;
 
+  {$IFNDEF FLAKE}
   if not GlobalStorage.ReadBoolean('Options', 'MultipleConnect', True) then
   begin
     with TIBDatabaseInfo.Create(nil) do
@@ -249,6 +252,7 @@ begin
       Free;
     end;
   end;
+  {$ENDIF}
 end;
 
 procedure TdmLogin.boLoginAfterChangeCompany(Sender: TObject);

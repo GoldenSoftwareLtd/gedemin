@@ -1353,8 +1353,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
   {$ENDIF}
-  //, udemo1 //&&&
-  ;
+  , dmImages_unit;
 
 {$IFDEF GEDEMIN}
 var
@@ -4153,14 +4152,21 @@ begin
             and (TIBCustomDataSet(DataSource.DataSet).RecordKind in [rkHeader, rkGroup])
             and (Column <> nil) )
             {$ENDIF}
-          then begin
+          then
+          begin
             P := PopupMenu;
             MenuCreateKind := mckUser;
-          end else begin
+          end
+          else
+          begin
             P := TPopupMenu.Create(Self);
+            // ”кажем стандартный список пиктограмм дл€ меню
+            if Assigned(dmImages) then
+              P.Images := dmImages.il16x16;
             MenuCreateKind := mckInternal;
           end;
-        end else
+        end
+        else
           MenuCreateKind := mckUser;
 
         for I := Items.Count - 1 downto 0 do
@@ -4189,7 +4195,9 @@ begin
         finally
           Result := 0;
 
-          if MenuCreateKind <> mckInternal then
+          if MenuCreateKind = mckInternal then
+            FreeAndNil(P)
+          else
             P := nil;
 
           {if (not (csDestroying in ComponentState)) and Assigned(P) then
@@ -6760,7 +6768,7 @@ var
   OldPseudoRecordsOn: Boolean;
   {$ENDIF}
 begin
-  if {FScaleColumns and} FCanScale and DataLink.Active and Assigned(Parent)
+  if FScaleColumns and FCanScale and DataLink.Active and Assigned(Parent)
     and (not DataLink.Editing) then
   begin
     if FNeedScaleColumns then
@@ -11278,7 +11286,8 @@ var
 
   function TestColumn(C: TColumn): Boolean;
   begin
-    Result := C.Visible and ((C.Field is TStringField) or (C.Field is TMemoField));
+    Result := C.Visible and (((C.Field is TStringField) and (C.Field.Size > 20))
+      or (C.Field is TMemoField));
   end;
 
 begin

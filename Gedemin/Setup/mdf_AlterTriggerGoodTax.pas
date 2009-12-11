@@ -41,7 +41,7 @@ begin
           '     WHERE id = NEW.taxkey INTO NEW.rate; '#13#10 +
           '   IF (NEW.datetax IS NULL) THEN '#13#10 +
           '     NEW.datetax = ''NOW''; ' +
-          ' END;';
+          ' END';
         Log('GD_GOODTAX: Изменение триггера gd_bi_goodtax');
         ibsql.ExecQuery;
       end
@@ -58,7 +58,7 @@ begin
           '     WHERE id = NEW.taxkey INTO NEW.rate; '#13#10 +
           '   IF (NEW.datetax IS NULL) THEN '#13#10 +
           '     NEW.datetax = ''NOW''; ' +
-          ' END;';
+          ' END';
         Log('GD_GOODTAX: Создание триггера gd_bi_goodtax');
         ibsql.ExecQuery;
       end;
@@ -71,6 +71,7 @@ begin
         if FIBTransaction.InTransaction then
           FIBTransaction.Rollback;
         Log(E.Message);
+        raise;
       end;
     end;
   finally

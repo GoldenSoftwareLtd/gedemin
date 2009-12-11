@@ -40,10 +40,10 @@ ImageBase=4194304
 ExeDescription=Toolbar2000 Design Package (Jordan Russell)
 [Directories]
 OutputDir=
-UnitOutputDir=..\..\..\dcu
-PackageDLLOutputDir=..\..\..\bpl
-PackageDCPOutputDir=..\..\..\bpl
-SearchPath=..\source
+UnitOutputDir=D:\golden\GEDEMIN\DCU
+PackageDLLOutputDir=D:\golden\GEDEMIN\DCU
+PackageDCPOutputDir=D:\golden\GEDEMIN\DCU
+SearchPath=d:\golden\gedemin\component\tb2k\source
 Packages=
 Conditionals=
 DebugSourceDirs=
@@ -51,10 +51,6 @@ UsePackages=0
 [Parameters]
 RunParams=
 HostApplication=
-[Language]
-ActiveLang=
-ProjectLang=$00000419
-RootDir=
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
@@ -81,4 +77,20 @@ ProductName=
 ProductVersion=1.0.0.0
 Comments=
 [Excluded Packages]
+$(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
 $(DELPHI)\Bin\DCLIB50.bpl=InterBase Data Access Components
+[HistoryLists\hlUnitAliases]
+Count=1
+Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+[HistoryLists\hlSearchPath]
+Count=1
+Item0=D:\Golden\gedemin\Component\kbmMemTable\Source
+[HistoryLists\hlUnitOutputDirectory]
+Count=1
+Item0=D:\golden\GEDEMIN\DCU
+[HistoryLists\hlBPLOutput]
+Count=1
+Item0=D:\golden\GEDEMIN\DCU
+[HistoryLists\hlDCPOutput]
+Count=1
+Item0=D:\golden\GEDEMIN\DCU

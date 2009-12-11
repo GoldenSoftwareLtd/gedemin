@@ -1,6 +1,7 @@
 inherited FunctionFrame: TFunctionFrame
   OnResize = FrameResize
   inherited PageControl: TSuperPageControl
+    ActivePage = tsScript
     OnChange = PageControlChange
     OnChanging = PageControlChanging
     inherited tsProperty: TSuperTabSheet
@@ -26,7 +27,7 @@ inherited FunctionFrame: TFunctionFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 222
+        Height = 218
         OnResize = pMainResize
         inherited lbDescription: TLabel
           Top = 80
@@ -152,7 +153,7 @@ inherited FunctionFrame: TFunctionFrame
         Left = 0
         Top = 0
         Width = 439
-        Height = 250
+        Height = 246
         Cursor = crIBeam
         HelpContext = 318
         gdcFunction = gdcFunction
@@ -645,7 +646,7 @@ inherited FunctionFrame: TFunctionFrame
         Left = 220
         Top = 0
         Width = 223
-        Height = 254
+        Height = 250
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
@@ -768,6 +769,12 @@ inherited FunctionFrame: TFunctionFrame
     object TypeInfo1: TMenuItem
       Action = actTypeInfo
     end
+    object N3: TMenuItem
+      Action = actUpperCase
+    end
+    object N4: TMenuItem
+      Action = actLowerCase
+    end
   end
   inherited ActionList1: TActionList
     Left = 368
@@ -868,6 +875,14 @@ inherited FunctionFrame: TFunctionFrame
       ImageIndex = 236
       OnExecute = actWizardExecute
       OnUpdate = actWizardUpdate
+    end
+    object actUpperCase: TAction
+      Caption = 'В верхний регистр'
+      OnExecute = actUpperCaseExecute
+    end
+    object actLowerCase: TAction
+      Caption = 'В нижний регистр'
+      OnExecute = actLowerCaseExecute
     end
   end
   object gdcFunction: TgdcFunction

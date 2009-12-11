@@ -28,6 +28,8 @@ type
     procedure actSubNewExecute(Sender: TObject);
     procedure ibcmbCompanyChange(Sender: TObject);
     procedure gdcDepartmentAfterInsert(DataSet: TDataSet);
+  private
+    isHolding: Boolean;
 
   public
     procedure SaveSettings; override;
@@ -71,18 +73,35 @@ end;
 procedure Tgdc_frmDepartment.ibcmbCompanyChange(Sender: TObject);
 var
   WasActive: Boolean;
+  ibsql: TIBSQL;
 begin
-  if gdcObject.ParamByName('companykey').AsInteger <> ibcmbCompany.CurrentKeyInt then
-  begin
-    WasActive := gdcObject.Active;
-    try
-      gdcObject.Close;
-      gdcObject.ParamByName('companykey').AsInteger :=
-        ibcmbCompany.CurrentKeyInt;
-    finally
-      gdcObject.Active := WasActive;
+  if ibcmbCompany.CurrentKeyInt > 0 then
+    if gdcObject.ParamByName('companykey').AsInteger <> ibcmbCompany.CurrentKeyInt then
+    begin
+      WasActive := gdcObject.Active;
+      try
+        ibsql := TIBSQL.Create(Self);
+        try
+          ibsql.SQL.Text := 'SELECT holdingkey FROM gd_holding WHERE holdingkey = ' +
+            ibcmbCompany.CurrentKey;
+          ibsql.Transaction := gdcObject.ReadTransaction;
+          ibsql.ExecQuery;
+          isHolding := ibsql.FieldByName('holdingkey').AsInteger > 0;
+        finally
+          ibsql.Free;
+        end;
+
+        gdcObject.Close;
+        if IsHolding then
+          gdcObject.AddSubSet(cst_Holding)
+        else
+          gdcObject.RemoveSubSet(cst_Holding);
+        gdcObject.ParamByName('companykey').AsInteger :=
+          ibcmbCompany.CurrentKeyInt;
+      finally
+        gdcObject.Active := WasActive;
+      end;
     end;
-  end;  
 end;
 
 procedure Tgdc_frmDepartment.SaveSettings;

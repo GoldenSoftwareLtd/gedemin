@@ -1,7 +1,5 @@
-meatby 
-G89^J4$83O
+open ftp.meat.by
+meatby
+gsoft2001
 binary
 cd public_html/gsbelarus/gs/content/downloads/ged/local
-send plat_setup.rar plat_setup.rar
-quit
-

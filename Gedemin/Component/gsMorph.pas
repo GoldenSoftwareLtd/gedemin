@@ -396,6 +396,10 @@ begin
             end;
           end;
           { ..ий, ..ай, ..ей, ..ел, ..ь, остальные как согласная }
+          if (str3 = 'ший') or (str3 = 'чий') then begin
+            Delete(TheWord, Length(TheWord) - 1, 2);
+            TheWord := TheWord + OMF[TheCase];
+          end else            
           if str2 = 'ий' then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
             TheWord := TheWord + NMA[TheCase];

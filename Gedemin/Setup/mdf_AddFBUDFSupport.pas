@@ -1,5 +1,7 @@
 unit mdf_AddFBUDFSupport;
+
 interface
+
 uses
   IBDatabase, gdModify;
 
@@ -11,7 +13,7 @@ uses
   IBSQL, SysUtils;
 
 procedure AddFBUdfSupport(IBDB: TIBDatabase; Log: TModifyLog);
-var
+{var
   FTransaction: TIBTransaction;
   FIBSQL: TIBSQL;
   I: Integer;
@@ -42,9 +44,9 @@ const
     'declare external function Round int by descriptor, int by descriptor returns parameter 2 entry_point ''round'' module_name ''fbudf''',
     'declare external function i64Round numeric(18, 4) by descriptor, numeric(18, 4) by descriptor returns parameter 2 entry_point ''round'' module_name ''fbudf''',
     'declare external function dPower double precision by descriptor, double precision by descriptor, double precision by descriptor returns parameter 3 entry_point ''power'' module_name ''fbudf''',
-    'declare external function string2blob varchar(300) by descriptor, blob returns parameter 2 entry_point ''string2blob'' module_name ''fbudf''');
+    'declare external function string2blob varchar(300) by descriptor, blob returns parameter 2 entry_point ''string2blob'' module_name ''fbudf''');}
 begin
-  Log('Добавление поддержки FBUdf');
+{  Log('Добавление поддержки FBUdf');
   FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
@@ -83,7 +85,7 @@ begin
     end;
   finally
     FTransaction.Free;
-  end;
+  end;}
 end;
 
 end.

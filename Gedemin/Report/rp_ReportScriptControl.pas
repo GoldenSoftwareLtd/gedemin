@@ -907,9 +907,9 @@ begin
 
   // В зависимости от типа СФ (FuncModule)
   // модуль создается с разными объектами Inherited
-  if FAddModule.IndexOf(ModuleCode) = -1 then
+  if (ModuleCode > 0) and (FAddModule.IndexOf(ModuleCode) = -1) then
   begin
-    if (ModuleCode <> 0) and (ModuleCode <> OBJ_APPLICATION) then
+    if {(ModuleCode <> 0) and }(ModuleCode <> OBJ_APPLICATION) then
     begin
       if (FuncModule = scrMethodModuleName) then
       begin
@@ -931,10 +931,11 @@ begin
         LModuleVBClass := FModuleVBClassArray[ModuleCode] as TgdKeyArray;
       if Assigned(FOnCreateModuleVBClasses) then
         FOnCreateModuleVBClasses(Self, ModuleCode, LModuleVBClass);
-    end else
-      begin
-        FAddModule.Add(OBJ_APPLICATION);
-      end;
+    end
+    else
+    begin
+      FAddModule.Add(OBJ_APPLICATION);
+    end;
   end;
 end;
 

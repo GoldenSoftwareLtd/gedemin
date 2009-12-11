@@ -344,7 +344,6 @@ BEGIN
 END;
 ^
 
-/*
 CREATE TRIGGER inv_bi_card_block FOR inv_card
   INACTIVE
   BEFORE INSERT
@@ -476,7 +475,6 @@ BEGIN
   END
 END
 ^
-*/
 
 /*
  *
@@ -877,7 +875,6 @@ BEGIN
 END;
 ^
 
-/*
 CREATE TRIGGER inv_bi_movement_block FOR inv_movement
   INACTIVE
   BEFORE INSERT
@@ -928,7 +925,7 @@ AS
   DECLARE VARIABLE DT INTEGER;
   DECLARE VARIABLE F INTEGER;
 BEGIN
-  IF (((NEW.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))
+  IF (((NEW.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) 
       OR ((OLD.movementdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))) THEN
   BEGIN
     SELECT d.documenttypekey
@@ -998,7 +995,6 @@ BEGIN
   END
 END
 ^
-*/
 
 SET TERM ; ^
 

@@ -202,6 +202,9 @@ function isc_install_unset_option_stub(hOption: POPTIONS_HANDLE;
 
 //!!!b
 function GetIBLibraryHandle: THandle;
+
+function GetIBLibraryName: String;
+procedure SetIBLibraryName(const AName: String);
 //!!!e
 
 implementation
@@ -213,12 +216,26 @@ var
   IBInstallLibrary: THandle;
   IBXMLLibrary : THandle;
   IBClientVersion: Integer;
+  IBLibraryName: String;
 
 //!!!b
 function GetIBLibraryHandle: THandle;
 begin
   Result := IBLibrary;
 end;
+
+function GetIBLibraryName: String;
+begin
+  Result := IBLibraryName;
+end;
+
+procedure SetIBLibraryName(const AName: String);
+begin
+  FreeIBLibrary;
+  IBLibraryName := AName;
+end;
+
+
 //!!!e
 
 procedure LoadIBLibrary;
@@ -238,11 +255,9 @@ var
   end;
 
 begin
-  IBLibrary := LoadLibrary('fbembed.dll');
-  if (IBLibrary <= HINSTANCE_ERROR) then
-    IBLibrary := LoadLibrary(PChar(FBASE_DLL));
-  if (IBLibrary <= HINSTANCE_ERROR) then
-    IBLibrary := LoadLibrary(PChar(IBASE_DLL));
+  Assert(IBLibrary <= HINSTANCE_ERROR);
+
+  IBLibrary := LoadLibrary(PChar(IBLibraryName));
 
   if (IBLibrary > HINSTANCE_ERROR) then
   begin
@@ -406,6 +421,25 @@ function TryIBLoad: Boolean;
 begin
   if (IBLibrary <= HINSTANCE_ERROR) then
     LoadIBLibrary;
+
+  if (IBLibrary <= HINSTANCE_ERROR) then
+  begin
+    SetIBLibraryName(FBEMB_DLL);
+    LoadIBLibrary;
+  end;
+
+  if (IBLibrary <= HINSTANCE_ERROR) then
+  begin
+    SetIBLibraryName(FBASE_DLL);
+    LoadIBLibrary;
+  end;
+
+  if (IBLibrary <= HINSTANCE_ERROR) then
+  begin
+    SetIBLibraryName(IBASE_DLL);
+    LoadIBLibrary;
+  end;
+
   if (IBLibrary <= HINSTANCE_ERROR) then
     result := False
   else
@@ -617,6 +651,7 @@ begin
 end;
 
 initialization
+  IBLibraryName := FBEMB_DLL;  
 
 finalization
   FreeIBLibrary;
