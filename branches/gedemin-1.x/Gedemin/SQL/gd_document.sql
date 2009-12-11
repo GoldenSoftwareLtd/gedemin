@@ -435,7 +435,6 @@ END
 
 */
 
-/*
 CREATE PROCEDURE gd_p_exclude_block_dt(DT INTEGER)
   RETURNS(F INTEGER)
 AS
@@ -487,7 +486,7 @@ AS
   DECLARE VARIABLE BG INTEGER;
   DECLARE VARIABLE F INTEGER;
 BEGIN
-  IF (((NEW.documentdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))
+  IF (((NEW.documentdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0)) 
       OR ((OLD.documentdate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_block, 0))) THEN
   BEGIN
     EXECUTE PROCEDURE gd_p_exclude_block_dt (NEW.documenttypekey)
@@ -546,7 +545,6 @@ BEGIN
   END
 END
 ^
-*/
 
 SET TERM ; ^
 
