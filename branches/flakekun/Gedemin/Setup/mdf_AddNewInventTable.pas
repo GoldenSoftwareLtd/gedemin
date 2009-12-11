@@ -47,8 +47,6 @@ const
 
   TaxIndexSQL = 'CREATE UNIQUE INDEX gd_x_tax_name ON gd_tax(name)';
 
-
-
 procedure AddNewInventTable(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
@@ -66,96 +64,71 @@ begin
         FIBSQL.SQL.Text := 'CREATE DOMAIN druid AS VARCHAR(21) NOT NULL';
         try
           FIBSQL.ExecQuery;
-          FTransaction.Commit;
         except
-          FTransaction.Rollback;
         end;
-        FIBSQL.Close;
-        FTransaction.StartTransaction;
 
+        FIBSQL.Close;
         FIBSQL.SQL.Text := CreateTableSQL;
         try
           FIBSQL.ExecQuery;
           Log('Таблица для настройки остатков добавлена успешно');
-          FTransaction.Commit;
         except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
         end;
-        FTransaction.StartTransaction;
+
+        FIBSQL.Close;
         FIBSQL.SQL.Text := CreatePrimryKey;
         try
           FIBSQL.ExecQuery;
           Log('Добавление первичного ключа прошло успешно');
-          FTransaction.Commit;
         except
-          FTransaction.Rollback;
         end;
-        FTransaction.StartTransaction;
+
+        FIBSQL.Close;
         FIBSQL.SQL.Text := 'GRANT ALL ON inv_balanceoption TO administrator';
         FIBSQL.ExecQuery;
-        FTransaction.Commit;
 
-        IBDB.Connected := False;
-        IBDB.Connected := True;
+        {IBDB.Connected := False;
+        IBDB.Connected := True;}
 
-        FTransaction.StartTransaction;
+        FIBSQL.Close;
         FIBSQL.SQL.Text := CreateBranchKey;
         try
           FIBSQL.ExecQuery;
           Log('Добавление ссылки прошло успешно');
-          FTransaction.Commit;
         except
-          FTransaction.Rollback;
         end;
 
-        FTransaction.StartTransaction;
+        FIBSQL.Close;
         FIBSQL.SQL.Text := CreateGenerator;
         try
           FIBSQL.ExecQuery;
           Log('Добавление генератора INV_G_BALANCENUM прошло успешно');
-          FTransaction.Commit;
-        except
-          FTransaction.Rollback;
-        end;
-        FTransaction.StartTransaction;
-
-        FIBSQL.SQL.Text := SetGenerator;
-        try
           FIBSQL.ExecQuery;
           Log('Установка генератора INV_G_BALANCENUM прошло успешно');
-          FTransaction.Commit;
         except
-          FTransaction.Rollback;
         end;
-        FTransaction.StartTransaction;
 
+        FIBSQL.Close;
         FIBSQL.SQL.Text := CreateTriggerSQL;
         try
           FIBSQL.ExecQuery;
           Log('Добавление триггера прошло успешно');
-          FTransaction.Commit;
         except
-          FTransaction.Rollback;
         end;
 
-        FTransaction.StartTransaction;
 
+        FIBSQL.Close;
         FIBSQL.SQL.Text := TaxIndexSQL;
         try
           FIBSQL.ExecQuery;
           Log('Добавление индекса GD_X_TAX_NAME прошло успешно');
-          FTransaction.Commit;
         except
-          FTransaction.Rollback;
         end;
 
-        FTransaction.StartTransaction;
 
-        FIBSQL.SQL.Text := 'INSERT INTO GD_COMMAND (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED) VALUES (740510,740000,''Настройка складских остатков'',''remainsoption'',0,NULL,17,NULL,''TgdcInvRemainsOption'',NULL,-1,-1,-1,0,NULL)';
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO GD_COMMAND (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED) VALUES (740510,740000,''Настройка складских остатков'',''remainsoption'',0,NULL,17,NULL,''TgdcInvRemainsOption'',NULL,-1,-1,-1,0,NULL)';
         try
           FIBSQL.ExecQuery;
           Log('Добавление команды настройки остатков прошло успешно');
@@ -170,18 +143,16 @@ begin
         end;
 
         FTransaction.Commit;
-
       finally
         FIBSQL.Free;
       end;
-      if FTransaction.InTransaction then
-        FTransaction.Commit;
     except
       on E: Exception do
       begin
         Log('Произошла ошибка при добавлении таблицы остатков.' + E.Message);
         if FTransaction.InTransaction then
           FTransaction.Rollback;
+        raise;
       end;
     end;
   finally

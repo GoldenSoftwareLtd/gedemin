@@ -495,7 +495,7 @@ end;
 {$IFDEF FR4}
 procedure AddFR4Param(Sender: TObject; ParamName: string; Value: Variant);
 begin
-  Tgs_fr4SingleReport(Sender).Variables.AddVariable(cCategoryName, ParamName, Value);
+  Tgs_fr4SingleReport(Sender).Variables.AddVariable(cCategoryName, ParamName, '''' + VarToStr(Value) + '''');
 end;
 {$ENDIF}
 

@@ -136,11 +136,15 @@ begin
     S := FActiveEdit.Text;
     if FActiveEdit = beDebit then
     begin
-      try
-        RUID := gdcBaseManager.GetRUIDStringById(FDebit);
-      except
+      if FDebit <> 0 then
+      begin
+        try
+          RUID := gdcBaseManager.GetRUIDStringById(FDebit);
+        except
+          RUID := '';
+        end;
+      end else
         RUID := '';
-      end;
       MainFunction.OnClickAccount(S, RUID);
       FActiveEdit.Text := S;
       try
@@ -151,11 +155,15 @@ begin
       end;
     end else
     begin
-      try
-        RUID := gdcBaseManager.GetRUIDStringById(FCredit);
-      except
+      if FCredit <> 0 then
+      begin
+        try
+          RUID := gdcBaseManager.GetRUIDStringById(FCredit);
+        except
+          RUID := '';
+        end;
+      end else
         RUID := '';
-      end;
       MainFunction.OnClickAccount(S, RUID);
       FActiveEdit.Text := S;
       try

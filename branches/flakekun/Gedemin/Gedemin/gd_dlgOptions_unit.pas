@@ -32,7 +32,6 @@ type
     Memo2: TMemo;
     Button5: TButton;
     actJournal: TAction;
-    chbxShowLog: TCheckBox;
     cbLanguage: TComboBox;
     Label1: TLabel;
     chbxCheckAccount: TCheckBox;
@@ -179,7 +178,6 @@ begin
       chbxMagic.Checked := ReadBoolean('Options', 'Magic', True);
       chbxAutoSaveDesktop.Checked := ReadBoolean('Options', 'SaveDesktop', False);
       chbxDialogDefaults.Checked := ReadBoolean('Options', 'DialogDefaults', True);
-      chbxShowLog.Checked := ReadBoolean('Options', 'ShowLog', True);
       chbxHintInGrid.Checked := ReadBoolean('Options', 'HintInGrid', True);
       chbxHideMaster.Checked := ReadBoolean('Options', 'HideMaster', False);
       chbxShowZero.Checked := ReadBoolean('Options', 'ShowZero', False);
@@ -418,7 +416,6 @@ begin
         WriteBoolean('Options', 'Magic', chbxMagic.Checked);
         WriteBoolean('Options', 'SaveDesktop', chbxAutoSaveDesktop.Checked);
         WriteBoolean('Options', 'DialogDefaults', chbxDialogDefaults.Checked);
-        WriteBoolean('Options', 'ShowLog', chbxShowLog.Checked);
         WriteBoolean('Options', 'HintInGrid', chbxHintInGrid.Checked);
         WriteBoolean('Options', 'HideMaster', chbxHideMaster.Checked);
         WriteBoolean('Options', 'ShowZero', chbxShowZero.Checked);

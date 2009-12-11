@@ -615,7 +615,10 @@ begin
             if not (FSearchList.Objects[I] is TgsStorageItem) then
               continue;
 
-            S := TgsStorageItem(FSearchList.Objects[I]).GetStorageName + FSearchList[I];
+            if TgsStorageItem(FSearchList.Objects[I]).Storage <> nil then
+              S := TgsStorageItem(FSearchList.Objects[I]).Storage.Name + FSearchList[I]
+            else
+              S := FSearchList[I];
             if FSearchList.Objects[I] is TgsStorageFolder then
               S := S + '\';
 

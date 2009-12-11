@@ -10,7 +10,7 @@ procedure AddOKULPCodeToCompanyCode(IBDB: TIBDatabase; Log: TModifyLog);
 implementation
 
 uses
-  IBSQL, SysUtils, gdcMetaData;
+  IBSQL, SysUtils, gdcMetaData, mdf_MetaData_unit;
 
 const
   GD_V_COMPANY_NAME = 'GD_V_COMPANY';
@@ -99,11 +99,12 @@ begin
   try
     FTransaction.DefaultDatabase := IBDB;
     try
+      FTransaction.StartTransaction;
+
       FIBSQL := TIBSQL.Create(nil);
       try
         FIBSQL.Transaction := FTransaction;
 
-        FTransaction.StartTransaction;
         FIBSQL.SQL.Text :=
           ' SELECT * ' +
           ' FROM rdb$relation_fields ' +
@@ -114,19 +115,9 @@ begin
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
            'ALTER TABLE gd_companycode ADD okulp dtext20';
-          try
-            FIBSQL.ExecQuery;
-            Log('Добавление поля OKULP в таблицу GD_COMPANYCODE прошло успешно');
-            FTransaction.Commit;
-          except
-            on E: Exception do
-            begin
-              Log(E.Message);
-              FTransaction.Rollback;
-            end;
-          end;
+          FIBSQL.ExecQuery;
 
-          FTransaction.StartTransaction;
+          FIBSQL.Close;
           FIBSQL.SQL.Text :=
             ' INSERT INTO RDB$RELATION_FIELDS ' +
             '  (rdb$field_name, rdb$relation_name, rdb$field_source, rdb$base_field, ' +
@@ -135,10 +126,8 @@ begin
             '  (''OKULP'', ''GD_V_COMPANY'', ''DTEXT20'', ''OKULP'', ' +
             '   27, 0, 27, 5, 0) ';
           FIBSQL.ExecQuery;
-          FIBSQL.Close;
-          FTransaction.Commit;
 
-          FTransaction.StartTransaction;
+          FIBSQL.Close;
           FIBSQL.SQL.Text :=
             ' INSERT INTO RDB$RELATION_FIELDS ' +
             '  (rdb$field_name, rdb$relation_name, rdb$field_source, rdb$base_field, ' +
@@ -147,140 +136,83 @@ begin
             '  (''OKULP'', ''GD_V_OURCOMPANY'', ''DTEXT20'', ''OKULP'', ' +
             '   25, 0, 25, 6, 0) ';
           FIBSQL.ExecQuery;
-          FIBSQL.Close;
-          FTransaction.Commit;
-        end
-        else
-        begin
-          FIBSQL.Close;
         end;
 
-        // Добавление в представление GD_V_COMPANY поля OKULP
-        if not FTransaction.InTransaction then
-          FTransaction.StartTransaction;
+        FIBSQL.Close;
         FIBSQL.SQL.Text := GD_V_COMPANY_TEXT;
-        try
-          FIBSQL.ExecQuery;
-          FIBSQL.Close;
-          FTransaction.Commit;
+        FIBSQL.ExecQuery;
 
-          //Перенесём blr
-          FTransaction.StartTransaction;
-          FIBSQL.SQL.Text :=
-            'UPDATE RDB$RELATIONS R ' +
-            'SET R.RDB$VIEW_BLR = ' +
-            '  (SELECT R1.RDB$VIEW_BLR FROM RDB$RELATIONS R1 ' +
-            '   WHERE R1.RDB$RELATION_NAME = :temp_v), ' +
-            ' R.RDB$VIEW_SOURCE = ' +
-            '  (SELECT R1.RDB$VIEW_SOURCE FROM RDB$RELATIONS R1 ' +
-            '   WHERE R1.RDB$RELATION_NAME = :temp_v) ' +
-            'WHERE R.RDB$RELATION_NAME = :rn ';
-          FIBSQL.ParamByName('TEMP_V').AsString := GD_V_COMPANY_TEMP_NAME;
-          FIBSQL.ParamByName('RN').AsString := GD_V_COMPANY_NAME;
-          try
-            FIBSQL.ExecQuery;
-          except
-            FTransaction.Rollback;
-          end;
-          FIBSQL.Close;
-          if FTransaction.InTransaction then
-            FTransaction.Commit;
+        FIBSQL.SQL.Text :=
+          'UPDATE RDB$RELATIONS R ' +
+          'SET R.RDB$VIEW_BLR = ' +
+          '  (SELECT R1.RDB$VIEW_BLR FROM RDB$RELATIONS R1 ' +
+          '   WHERE R1.RDB$RELATION_NAME = :temp_v), ' +
+          ' R.RDB$VIEW_SOURCE = ' +
+          '  (SELECT R1.RDB$VIEW_SOURCE FROM RDB$RELATIONS R1 ' +
+          '   WHERE R1.RDB$RELATION_NAME = :temp_v) ' +
+          'WHERE R.RDB$RELATION_NAME = :rn ';
+        FIBSQL.ParamByName('TEMP_V').AsString := GD_V_COMPANY_TEMP_NAME;
+        FIBSQL.ParamByName('RN').AsString := GD_V_COMPANY_NAME;
+        FIBSQL.ExecQuery;
 
-          FTransaction.StartTransaction;
-          FIBSQL.SQL.Text := 'DROP VIEW ' + GD_V_COMPANY_TEMP_NAME;
-          FIBSQL.ExecQuery;
-          FIBSQL.Close;
-          FTransaction.Commit;
-
-          Log('Добавление в представление GD_V_COMPANY поля OKULP прошло успешно');
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
-        end;
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'DROP VIEW ' + GD_V_COMPANY_TEMP_NAME;
+        FIBSQL.ExecQuery;
+        Log('Добавление в представление GD_V_COMPANY поля OKULP прошло успешно');
 
         // Добавление в представление GD_V_OURCOMPANY поля OKULP
-        FTransaction.StartTransaction;
+        FIBSQL.Close;
         FIBSQL.SQL.Text := GD_V_OURCOMPANY_TEXT;
-        try
-          FIBSQL.ExecQuery;
-          FIBSQL.Close;
-          FTransaction.Commit;
+        FIBSQL.ExecQuery;
 
-          //Перенесём blr
-          FTransaction.StartTransaction;
-          FIBSQL.SQL.Text :=
-            'UPDATE RDB$RELATIONS R ' +
-            'SET R.RDB$VIEW_BLR = ' +
-            '  (SELECT R1.RDB$VIEW_BLR FROM RDB$RELATIONS R1 ' +
-            '   WHERE R1.RDB$RELATION_NAME = :temp_v), ' +
-            ' R.RDB$VIEW_SOURCE = ' +
-            '  (SELECT R1.RDB$VIEW_SOURCE FROM RDB$RELATIONS R1 ' +
-            '   WHERE R1.RDB$RELATION_NAME = :temp_v) ' +
-            'WHERE R.RDB$RELATION_NAME = :rn ';
-          FIBSQL.ParamByName('TEMP_V').AsString := GD_V_OURCOMPANY_TEMP_NAME;
-          FIBSQL.ParamByName('RN').AsString := GD_V_OURCOMPANY_NAME;
-          try
-            FIBSQL.ExecQuery;
-          except
-            FTransaction.Rollback;
-          end;
-          FIBSQL.Close;
-          if FTransaction.InTransaction then
-            FTransaction.Commit;
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'UPDATE RDB$RELATIONS R ' +
+          'SET R.RDB$VIEW_BLR = ' +
+          '  (SELECT R1.RDB$VIEW_BLR FROM RDB$RELATIONS R1 ' +
+          '   WHERE R1.RDB$RELATION_NAME = :temp_v), ' +
+          ' R.RDB$VIEW_SOURCE = ' +
+          '  (SELECT R1.RDB$VIEW_SOURCE FROM RDB$RELATIONS R1 ' +
+          '   WHERE R1.RDB$RELATION_NAME = :temp_v) ' +
+          'WHERE R.RDB$RELATION_NAME = :rn ';
+        FIBSQL.ParamByName('TEMP_V').AsString := GD_V_OURCOMPANY_TEMP_NAME;
+        FIBSQL.ParamByName('RN').AsString := GD_V_OURCOMPANY_NAME;
+        FIBSQL.ExecQuery;
 
-          FTransaction.StartTransaction;
-          FIBSQL.SQL.Text := 'DROP VIEW ' + GD_V_OURCOMPANY_TEMP_NAME;
-          FIBSQL.ExecQuery;
-          FIBSQL.Close;
-          FTransaction.Commit;
-
-          Log('Добавление в представление GD_V_OURCOMPANY поля OKULP прошло успешно');
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
-            FTransaction.Rollback;
-          end;
-        end;
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'DROP VIEW ' + GD_V_OURCOMPANY_TEMP_NAME;
+        FIBSQL.ExecQuery;
+        Log('Добавление в представление GD_V_OURCOMPANY поля OKULP прошло успешно');
 
         Log('Выполнение процедуры at_p_sync');
-        FTransaction.StartTransaction;
         FIBSQL.SQL.Text := 'EXECUTE PROCEDURE at_p_sync ';
         FIBSQL.ExecQuery;
-        FIBSQL.Close;
-        FTransaction.Commit;
 
-        if not FTransaction.InTransaction then
-          FTransaction.StartTransaction;
+        FIBSQL.Close;
         FIBSQL.SQL.Text :=
           'INSERT INTO fin_versioninfo ' +
-          '  VALUES (104, ''0000.0001.0000.0131'', ''19.12.2008'', ''Добавлено поле OKULP в таблицу GD_COMPANYCODE'')';
+          '  VALUES (110, ''0000.0001.0000.0142'', ''19.12.2008'', ''Добавлено поле OKULP в таблицу GD_COMPANYCODE'') ';
         try
           FIBSQL.ExecQuery;
-          FTransaction.Commit;
         except
         end;
-        
       finally
         FIBSQL.Free;
       end;
-      if FTransaction.InTransaction then
-        FTransaction.Commit;
+
+      FTransaction.Commit;
     except
       on E: Exception do
       begin
-        Log('Произошла ошибка при добавлении поля OKULP в таблицу GD_COMPANYCODE!' + E.Message);
+        Log('Произошла ошибка при добавлении поля OKULP: ' + E.Message);
         if FTransaction.InTransaction then
           FTransaction.Rollback;
+        raise;
       end;
     end;
   finally
     FTransaction.Free;
   end;
 end;
-
 
 end.

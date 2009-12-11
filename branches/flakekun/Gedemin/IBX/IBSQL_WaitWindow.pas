@@ -97,7 +97,7 @@ end;
 procedure TIBSQL_WaitWindowThread.CreateWinAPIForm;
 const
   WindowHeight  = 86;
-  WindowWidth   = 240;
+  WindowWidth   = 280;
   ButtonWidth   = 84;
   ButtonHeight  = 23;
 var

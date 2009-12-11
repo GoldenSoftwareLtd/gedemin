@@ -91,7 +91,9 @@ inherited gdc_acct_dlgAnalysis: Tgdc_acct_dlgAnalysis
       'AND R.RDB$NULL_FLAG IS NULL'
     ListField = 'LNAME'
     KeyField = 'ID'
-    Condition = 'R.RDB$FIELD_NAME NOT LIKE '#39'RDB$%'#39
+    Condition = 
+      'R.RDB$FIELD_NAME NOT LIKE '#39'RDB$%'#39' AND Z.SETTABLEKEY IS NULL AND ' +
+      'Z.NUMERATION IS NULL'
     gdClassName = 'TgdcField'
     ItemHeight = 13
     ParentShowHint = False

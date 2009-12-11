@@ -43,9 +43,6 @@ const
   svtDateTime        = $0005;    // дата, час
   svtCurrency        = $0006;    // валюта
 
-  MaxCountCicle      = 50;
-  TimerInterval      = 100;
-
 type
   TSaveToStreamMethod = procedure(S: TStream) of object;
   TLoadFromStreamMethod = procedure(S: TStream) of object;
@@ -95,13 +92,10 @@ type
     procedure LoadFromStream2(S: TStringStream); virtual; abstract;
     procedure SaveToStream2(S: TStringStream); virtual; abstract;
 
-     // считывают и сохраняют в двоичный неформатированный
+    // считывают и сохраняют в двоичный неформатированный
     // поток
     procedure LoadFromStream(S: TStream); virtual;
     procedure SaveToStream(S: TStream); virtual;
-
-    procedure LoadFromStream3(S: TStream); virtual;
-    procedure SaveToStream3(S: TStream); virtual;
 
     //Пропускает объект в потоке
     class procedure SkipInStream(S: TStream); virtual;
@@ -128,7 +122,6 @@ type
       const ASearchOptions: TgstSearchOptions;
       const DateFrom: TDate = 0; const DateTo: TDate = 0): Boolean; virtual; abstract;
 
-    function GetStorageName: String; virtual;
     property Name: String read FName write SetName;
     property Parent: TgsStorageItem read FParent;
     property Path: String read GetPath;
@@ -156,7 +149,6 @@ type
     procedure SaveToStream2(S: TStringStream); override;
 
   public
-    constructor Create(AParent: TgsStorageItem); override;
     destructor Destroy; override;
 
     procedure Clear; override;
@@ -169,9 +161,6 @@ type
 
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
-
-    procedure LoadFromStream3(S: TStream); override;
-    procedure SaveToStream3(S: TStream); override;
 
     class procedure SkipInStream(S: TStream); override;
 
@@ -202,7 +191,6 @@ type
     function FolderExists(const AFolderName: String): Boolean;
     function ValueByName(const AValueName: String): TgsStorageValue;
     function DeleteFolder(const AName: String): Boolean;
-//    procedure RemoveFolder(F: TgsStorageFolder);
     procedure ExtractFolder(F: TgsStorageFolder);
     function AddFolder(F: TgsStorageFolder): Integer;
     function FolderByName(const AName: String): TgsStorageFolder;
@@ -224,18 +212,10 @@ type
   end;
 
   TgsRootFolder = class(TgsStorageFolder)
-  private
+  protected
     FStorage: TgsStorage;
 
-  protected
-    function GetPath: String; override;
     function GetStorage: TgsStorage; override;
-
-  public
-    constructor Create(AStorage: TgsStorage); reintroduce;
-    function GetStorageName: String; override;
-
-    property Storage: TgsStorage read FStorage;
   end;
 
   TgsStorageValue = class(TgsStorageItem)
@@ -262,8 +242,6 @@ type
   public
     class function GetTypeId: Integer; virtual; abstract;
     class function GetTypeName: String; virtual; abstract;
-    class function GetStorageValueClass: TgsStorageValueClass; virtual; abstract;
-    class function CreateFromStream3(AParent: TgsStorageFolder; S: TStream): TgsStorageValue;
 
     class procedure SkipInStream(S: TStream); override;
 
@@ -282,9 +260,6 @@ type
 
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
-
-    procedure LoadFromStream3(S: TStream); override;
-    procedure SaveToStream3(S: TStream); override;
   end;
 
   TgsIntegerValue = class(TgsStorageValue)
@@ -307,14 +282,10 @@ type
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
 
-    procedure LoadFromStream3(S: TStream); override;
-    procedure SaveToStream3(S: TStream); override;
-
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
     class function GetTypeName: String; override;
-    class function GetStorageValueClass: TgsStorageValueClass; override;
   end;
 
   TgsCurrencyValue = class(TgsStorageValue)
@@ -335,14 +306,10 @@ type
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
 
-    procedure LoadFromStream3(S: TStream); override;
-    procedure SaveToStream3(S: TStream); override;
-
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
     class function GetTypeName: String; override;
-    class function GetStorageValueClass: TgsStorageValueClass; override;
   end;
 
   TgsStringValue = class(TgsStorageValue)
@@ -369,14 +336,10 @@ type
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
 
-    procedure LoadFromStream3(S: TStream); override;
-    procedure SaveToStream3(S: TStream); override;
-
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
     class function GetTypeName: String; override;
-    class function GetStorageValueClass: TgsStorageValueClass; override;
   end;
 
   TgsDateTimeValue = class(TgsStorageValue)
@@ -397,14 +360,10 @@ type
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
 
-    procedure LoadFromStream3(S: TStream); override;
-    procedure SaveToStream3(S: TStream); override;
-
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
     class function GetTypeName: String; override;
-    class function GetStorageValueClass: TgsStorageValueClass; override;
   end;
 
   TgsBooleanValue = class(TgsStorageValue)
@@ -429,14 +388,10 @@ type
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
 
-    procedure LoadFromStream3(S: TStream); override;
-    procedure SaveToStream3(S: TStream); override;
-
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
     class function GetTypeName: String; override;
-    class function GetStorageValueClass: TgsStorageValueClass; override;
   end;
 
   TgsStreamValue = class(TgsStorageValue)
@@ -458,9 +413,6 @@ type
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
 
-    procedure LoadFromStream3(S: TStream); override;
-    procedure SaveToStream3(S: TStream); override;
-
     class procedure SkipInStream(S: TStream); override;
 
     procedure LoadDataFromStream(S: TStream);
@@ -468,13 +420,11 @@ type
 
     class function GetTypeId: Integer; override;
     class function GetTypeName: String; override;
-    class function GetStorageValueClass: TgsStorageValueClass; override;
   end;
 
   TgsStorage = class(TObject)
   private
     FRootFolder: TgsRootFolder;
-    FDataCompression: TgsStorageDataCompression;
     {$IFDEF DEBUG}
     FOpenFolders: TStringList;
     {$ENDIF}
@@ -489,6 +439,8 @@ type
     procedure BeforeOpenFolder; virtual;
     procedure AfterCloseFolder; virtual;
 
+    property Loading: Boolean read FLoading;
+
   public
     constructor Create(const AName: String); reintroduce; virtual;
     destructor Destroy; override;
@@ -498,9 +450,6 @@ type
 
     procedure SaveToStream2(S: TStringStream);
     procedure LoadFromStream2(S: TStringStream);
-
-    procedure LoadFromStream3(S: TStream);
-    procedure SaveToStream3(S: TStream);
 
     procedure LoadFromFile(const AFileName: String; const AFileFormat: TgsStorageFileFormat);
     procedure SaveToFile(const AFileName: String; const AFileFormat: TgsStorageFileFormat);
@@ -551,12 +500,9 @@ type
       const ASearchOptions: TgstSearchOptions; const DateFrom:TDate = 0;
       const DateTo: TDate = 0): Boolean;
 
-    property DataCompression: TgsStorageDataCompression read FDataCompression
-      write FDataCompression default DefDataCompression;
-    property DataString: String read GetDataString write SetDataString;
-    property IsModified: Boolean read FModified write FModified;
     property Name: String read GetName;
-    property Loading: Boolean read FLoading;
+    property IsModified: Boolean read FModified write FModified;
+    property DataString: String read GetDataString write SetDataString;
   end;
 
   TgsIBStorage = class(TgsStorage)
@@ -565,14 +511,6 @@ type
     FLastModified: TDateTime;
     FLastChecked: LongWord;
     FValid: Boolean;
-
-  protected
-    FLoadedFromCache: Boolean;
-
-    function GetCacheFileName: String; virtual;
-
-    function LoadFromCache: Boolean;
-    procedure SaveToCache;
 
   public
     constructor Create(const AName: String); override;
@@ -604,7 +542,6 @@ type
     procedure SetUserKey(const Value: Integer);
 
   protected
-    function GetCacheFileName: String; override;
     procedure BeforeOpenFolder; override;
     procedure AfterCloseFolder; override;
 
@@ -620,7 +557,6 @@ type
 
   TgsGlobalStorage = class(TgsIBStorage)
   protected
-    function GetCacheFileName: String; override;
     procedure BeforeOpenFolder; override;
     procedure AfterCloseFolder; override;
 
@@ -664,13 +600,8 @@ var
 {$ENDIF}
 
 const
-  CacheTime = 200;
+  CacheTime                = 200;
 
-  GLOBAL_STORAGE_FILE_NAME = 'g%s.gsc';
-  USER_STORAGE_FILE_NAME = 'g%s_%s.usc';
-  STORAGE_FILE_SIGN = $0caaf745;
-  STORAGE_FILE_VER  = $00000001;
-  
 function GetScreenRes: Integer;
 var
   DC: HDC;
@@ -719,11 +650,8 @@ begin
 end;
 
 procedure TgsStorageFolder.CheckForName(const AName: String);
-var
-  N: String;
 begin
-  N := Trim(AName);
-  if (N = '') or (Assigned(FParent) and (FParent as TgsStorageFolder).FolderExists(N)) then
+  if (AName = '') or (Length(AName) > 255) or (Assigned(FParent) and (FParent as TgsStorageFolder).FolderExists(AName)) then
     raise EgsStorageError.Create('Invalid folder name');
 end;
 
@@ -731,13 +659,6 @@ procedure TgsStorageFolder.Clear;
 begin
   FreeAndNil(FFolders);
   FreeAndNil(FValues);
-end;
-
-constructor TgsStorageFolder.Create(AParent: TgsStorageItem);
-begin
-  inherited Create(APArent);
-  FValues := nil;
-  FFolders := nil;
 end;
 
 function TgsStorageFolder.CreateFolder(
@@ -1186,6 +1107,18 @@ end;
 procedure TgsStorageFolder.ShowPropDialog;
 var
   C: Double;
+  FC, VC: Integer;
+
+  procedure CountItems(F: TgsStorageFolder; var AFC, AVC: Integer);
+  var
+    I: Integer;
+  begin
+    Inc(AFC);
+    Inc(AVC, F.ValuesCount);
+    for I := 0 to F.FoldersCount - 1 do
+      CountItems(F.Folders[I], AFC, AVC);
+  end;
+
 begin
   if not Assigned(st_dlgfolderprop) then
     st_dlgfolderprop := Tst_dlgfolderprop.Create(Application);
@@ -1196,12 +1129,15 @@ begin
     if FParent <> nil then
       eLocation.Text := Copy(Path, 1, Length(Path) - Length(FName))
     else
-      eLocation.Text := '';  
-    lFolders.Caption := IntToStr(FoldersCount);
-    lValues.Caption := IntToStr(ValuesCount);
+      eLocation.Text := '';
+    FC := 0;
+    VC := 0;
+    CountItems(Self, FC, VC);
+    lFolders.Caption := IntToStr(FC);
+    lValues.Caption := IntToStr(VC);
     C := DataSize;
     lSize.Caption := FloatToStrF(C, ffNumber, 10, 0) + ' байт';
-    lModified.Caption := FormatDateTime('dd.mm.yyyy hh:nn:ss', FModified); 
+    lModified.Caption := FormatDateTime('dd.mm.yyyy hh:nn:ss', FModified);
   end;
 
   st_dlgfolderprop.ShowModal;
@@ -1332,7 +1268,7 @@ begin
   begin
     if ValueByName(AValue.Name) <> nil then
       raise EgsStorageError.Create('Duplicate value name');
-    V := AValue.GetStorageValueClass.Create(Self);
+    V := TgsStorageValueClass(AValue.ClassType).Create(Self);
     V.Assign(AValue);
     V.Name := AValue.Name;
     if FValues = nil then
@@ -1467,24 +1403,6 @@ begin
   end;
 end;
 
-{ TgsRootFolder ------------------------------------------}
-
-function TgsRootFolder.GetStorageName: String;
-begin
-  Result := Name;
-end;
-
-constructor TgsRootFolder.Create(AStorage: TgsStorage);
-begin
-  FStorage := AStorage;
-  inherited Create(nil);
-end;
-
-function TgsRootFolder.GetPath: String;
-begin
-  Result := '';
-end;
-
 procedure TgsStorageFolder.AddValueFromStream(AValueName: String; S: TStream);
 begin
   DeleteValue(AValueName);
@@ -1512,52 +1430,6 @@ begin
   end;
 end;
 
-procedure TgsStorageFolder.LoadFromStream3(S: TStream);
-var
-  L, I: SmallInt;
-  F: TgsStorageFolder;
-  V: TgsStorageValue;
-begin
-  inherited LoadFromStream3(S);
-  S.ReadBuffer(L, SizeOf(L));
-  for I := 1 to L do
-  begin
-    F := TgsStorageFolder.Create(Self);
-    try
-      F.LoadFromStream3(S);
-    except
-      F.Free;
-      raise;
-    end;
-    if FFolders = nil then
-      FFolders := TObjectList.Create;
-    FFolders.Add(F);
-  end;
-  S.ReadBuffer(L, SizeOf(L));
-  for I := 1 to L do
-  begin
-    V := TgsStorageValue.CreateFromStream3(Self, S);
-    if FValues = nil then
-      FValues := TObjectList.Create;
-    FValues.Add(V);
-  end;
-end;
-
-procedure TgsStorageFolder.SaveToStream3(S: TStream);
-var
-  L, I: SmallInt;
-begin
-  inherited SaveToStream3(S);
-  L := FoldersCount;
-  S.WriteBuffer(L, SizeOf(L));
-  for I := 0 to L - 1 do
-    Folders[I].SaveToStream3(S);
-  L := ValuesCount;
-  S.WriteBuffer(L, SizeOf(L));
-  for I := 0 to L - 1 do
-    Values[I].SaveToStream3(S);
-end;
-
 { TgsStorage }
 
 procedure TgsStorage.BuildTreeView(N: TTreeNode; const L: TList = nil);
@@ -1581,13 +1453,13 @@ begin
   FRootFolder.Clear;
 end;
 
-constructor TgsStorage.Create;
+constructor TgsStorage.Create(const AName: String);
 begin
-  Assert(AName > '');
   inherited Create;
-  FRootFolder := TgsRootFolder.Create(Self);
-  FRootFolder.Name := AName;
-  FDataCompression := DefDataCompression;
+
+  FRootFolder := TgsRootFolder.Create(nil, AName);
+  FRootFolder.FStorage := Self;
+
   FLoading := False;
 
   {$IFDEF DEBUG}
@@ -1776,9 +1648,6 @@ procedure TgsStorage.LoadFromStream(S: TStream);
 var
   H: TgsStorageHeader;
   DS: TZDecompressionStream;
-  {$IFDEF DEBUG}
-  T: Cardinal;
-  {$ENDIF}
 begin
   FLoading := True;
   try
@@ -1798,20 +1667,12 @@ begin
     end
     else if H.CompressionType = shZLibCompression then
     begin
-      {$IFDEF DEBUG}
-      T := GetTickCount;
-      {$ENDIF}
       DS := TZDecompressionStream.Create(S);
       try
         FRootFolder.LoadFromStream(DS);
       finally
         DS.Free;
       end;
-      {$IFDEF DEBUG}
-      T := GetTickCount - T;
-      if T > 0 then
-        OutputDebugString(PChar('Decompress storage ' + Self.ClassName + ': ' + IntToStr(T)));
-      {$ENDIF}
     end;
   finally
     FLoading := False;
@@ -2028,14 +1889,14 @@ begin
   H.Signature := shSignature;
   H.Version := shVersion;
 
-  if FDataCompression = sdcNone then
+  {if FDataCompression = sdcNone then
   begin
     H.CompressionType := 0;
     S.WriteBuffer(H, SizeOf(H));
     FRootFolder.SaveToStream(S);
   end
   else if FDataCompression = sdcZLib then
-  begin
+  begin}
     H.CompressionType := 1;
     S.WriteBuffer(H, SizeOf(H));
     {$IFDEF DEBUG}
@@ -2052,7 +1913,7 @@ begin
     if T > 0 then
       OutputDebugString(PChar('Compress storage ' + Self.ClassName + ': ' + IntToStr(T)));
     {$ENDIF}
-  end;
+  {end;}
 end;
 
 procedure TgsStorage.SaveToStream2(S: TStringStream);
@@ -2279,79 +2140,6 @@ begin
     AfterCloseFolder;
 end;
 
-procedure TgsStorage.LoadFromStream3(S: TStream);
-var
-  H: TgsStorageHeader;
-  DS: TZDecompressionStream;
-  {$IFDEF DEBUG}
-  T: Cardinal;
-  {$ENDIF}
-begin
-  FLoading := True;
-  try
-    Clear;
-
-    if not Assigned(S) then
-      exit;
-
-    S.ReadBuffer(H, SizeOf(H));
-
-    if (H.Signature <> shSignature) or (H.Version <> shVersion) then
-      raise EgsStorageFolderError.Create('Invalid stream format');
-
-    if H.CompressionType = shNoCompression then
-    begin
-      FRootFolder.LoadFromStream3(S);
-    end
-    else if H.CompressionType = shZLibCompression then
-    begin
-      {$IFDEF DEBUG}
-      T := GetTickCount;
-      {$ENDIF}
-      DS := TZDecompressionStream.Create(S);
-      try
-        FRootFolder.LoadFromStream3(DS);
-      finally
-        DS.Free;
-      end;
-      {$IFDEF DEBUG}
-      T := GetTickCount - T;
-      if T > 0 then
-        OutputDebugString(PChar('Decompress storage ' + Self.ClassName + ': ' + IntToStr(T)));
-      {$ENDIF}
-    end;
-  finally
-    FLoading := False;
-  end;
-end;
-
-procedure TgsStorage.SaveToStream3(S: TStream);
-var
-  H: TgsStorageHeader;
-  //CS: TZCompressionStream;
-begin
-  H.Signature := shSignature;
-  H.Version := shVersion;
-
-  {if FDataCompression = sdcNone then
-  begin}
-    H.CompressionType := 0;
-    S.WriteBuffer(H, SizeOf(H));
-    FRootFolder.SaveToStream3(S);
-  {end
-  else if FDataCompression = sdcZLib then
-  begin
-    H.CompressionType := 1;
-    S.WriteBuffer(H, SizeOf(H));
-    CS := TZCompressionStream.Create(S);
-    try
-      FRootFolder.SaveToStream3(CS);
-    finally
-      CS.Free;
-    end;
-  end;}
-end;
-
 procedure TgsStorage.DeleteValue(const APath, AValueName: String;
   const SyncWithDatabase: Boolean = True);
 var
@@ -2360,7 +2148,7 @@ begin
   F := OpenFolder(APath, False, SyncWithDatabase);
   try
     if F <> nil then
-      F.DeleteValue(AValueName); 
+      F.DeleteValue(AValueName);
   finally
     CloseFolder(F, SyncWithDatabase);
   end;
@@ -2387,11 +2175,6 @@ procedure TgsIBStorage.LoadFromDataBase;
 begin
   Assert(IBLogin.DataBase <> nil, 'Не подключен DataBase');
   FLastChecked := GetTickCount;
-end;
-
-function TgsIBStorage.GetCacheFileName: String;
-begin
-  Result := '';
 end;
 
 { TgsUserStorage }
@@ -2465,12 +2248,10 @@ begin
             q.Close;
             Transaction.Commit;
             F := 0;
-
-            SaveToCache;
           except
             on E: EIBError do
             begin
-              if E.IBErrorCode = isc_deadlock then
+              if (E.IBErrorCode = isc_deadlock) or (E.IBErrorCode = isc_lock_conflict) then
               begin
                 if Transaction.InTransaction then
                   Transaction.Rollback;
@@ -2490,6 +2271,8 @@ begin
               'Сообщение об ошибке: ' + E.Message),
               'Внимание',
               MB_TASKMODAL or MB_OK or MB_ICONHAND);
+            // иначе получим бесконечный цикл
+            F := 0;
           end;
         end;
 
@@ -2501,10 +2284,6 @@ begin
 
     if FModified then
       FLastChecked := 0;
-  end else
-  begin
-    if not FLoadedFromCache then
-      SaveToCache;
   end;
 end;
 
@@ -2537,7 +2316,6 @@ begin
     if FExist then
     begin
       FLastModified := IBSQL.FieldByName('modified').AsDateTime;
-      FLoadedFromCache := LoadFromCache;
 
       if not FValid then
       begin
@@ -2594,42 +2372,13 @@ begin
 end;
 
 procedure TgsUserStorage.SetUserKey(const Value: Integer);
-{var
-  Tr: TIBTransaction;
-  q: TIBSQL;}
 begin
   if FUserKey <> Value then
   begin
-    {if Value <> -1 then
-    begin
-      Tr := TIBTransaction.Create(nil);
-      q := TIBSQL.Create(nil);
-      try
-        Tr.DefaultDatabase := IBLogin.Database;
-        q.Transaction := Tr;
-        Tr.StartTransaction;
-        q.SQL.Text := 'SELECT id FROM gd_user WHERE id = :ID';
-        q.ParamByName('ID').AsInteger := Value;
-        q.ExecQuery;
-        if q.EOF then
-          raise EgsStorageError.Create('Invalid user key specified.');
-        q.Close;
-        Tr.Commit;
-      finally
-        q.Free;
-        Tr.Free;
-      end;
-    end;}
-
-    if FUserKey <> -1 then
-      SaveToDatabase;
-
+    if FUserKey <> -1 then SaveToDatabase;
     FUserKey := Value;
-
-    if FUserKey <> -1 then
-      LoadFromDatabase
-    else
-      Clear;
+    if FUserKey <> -1 then LoadFromDatabase
+      else Clear;
   end;
 end;
 
@@ -2675,17 +2424,6 @@ begin
       end;
     end;
   end;
-end;
-
-function TgsUserStorage.GetCacheFileName: String;
-var
-  Path: array[0..255] of Char;
-begin
-  Assert(Assigned(IBLogin));
-  GetTempPath(SizeOf(Path), Path);
-  Result := IncludeTrailingBackslash(Path)
-    + Format(USER_STORAGE_FILE_NAME, [IntToStr(IBLogin.DBVersionID),
-      IntToStr(UserKey)])
 end;
 
 { TgsGlobalStorage }
@@ -2787,12 +2525,10 @@ begin
             FModified := False;
             FLastModified := TempLastModified;
             F := 0;
-
-            SaveToCache;
           except
             on E: EIBError do
             begin
-              if E.IBErrorCode = isc_deadlock then
+              if (E.IBErrorCode = isc_deadlock) or (E.IBErrorCode = isc_lock_conflict) then
               begin
                 if Transaction.InTransaction then
                   Transaction.Rollback;
@@ -2812,6 +2548,8 @@ begin
               'Сообщение об ошибке: ' + E.Message),
               'Внимание',
               MB_TASKMODAL or MB_OK or MB_ICONHAND);
+            //иначе получим бесконечный цикл
+            F := 0;
           end;
         end;
       finally
@@ -2824,10 +2562,6 @@ begin
 
     if FModified then
       FLastChecked := 0;
-  end else
-  begin
-    if not FLoadedFromCache then
-      SaveToCache;
   end;
 end;
 
@@ -2853,7 +2587,6 @@ begin
 
     if FExist then
     begin
-      FLoadedFromCache := LoadFromCache;
       if not FValid then
       begin
         bs := TIBBlobStream.Create;
@@ -2897,98 +2630,6 @@ begin
   end;
 
   FModified := False;
-end;
-
-function TgsIBStorage.LoadFromCache: Boolean;
-var
-  FFileName: String;
-  S: TFileStream;
-  I: Integer;
-  DT: TDateTime;
-begin
-  Result := False;
-
-  if IBLogin.ServerName > '' then
-  begin
-    FFileName := GetCacheFileName;
-    if FileExists(FFileName) then
-    begin
-      if FindCmdLineSwitch('NC', ['/', '-'], True) then
-        SysUtils.DeleteFile(FFileName)
-      else
-        try
-          S := TFileStream.Create(FFileName, fmOpenRead or fmShareDenyWrite);
-          try
-            if (S.Read(I, SizeOf(I)) = SizeOf(I))
-              and (I = STORAGE_FILE_SIGN) then
-            begin
-              if (S.Read(I, SizeOf(I)) = SizeOf(I))
-                and (I = STORAGE_FILE_VER) then
-              begin
-                if (S.Read(DT, SizeOf(DT)) = SizeOf(DT))
-                  and (DT = FLastModified) then
-                begin
-                  LoadFromStream3(S);
-                  FValid := (FRootFolder.FoldersCount > 0)
-                    or (FRootFolder.ValuesCount > 0);
-                  Result := True;
-                end;
-              end;
-            end;
-          finally
-            S.Free;
-          end;
-        except
-          Clear;
-          FValid := False;
-
-          // не будем делать трагедии из-за какого-то кэша
-          SysUtils.DeleteFile(FFileName);
-        end;
-    end;
-  end;
-end;
-
-procedure TgsIBStorage.SaveToCache;
-var
-  I: Integer;
-  FFileName: String;
-  S: TFileStream;
-begin
-  if (IBLogin.ServerName > '') and
-    (not FindCmdLineSwitch('NC', ['/', '-'], True)) then
-  begin
-    FFileName := GetCacheFileName;
-    try
-      if (FRootFolder.FoldersCount > 0) or (FRootFolder.ValuesCount > 0) then
-      begin
-        S := TFileStream.Create(FFileName, fmCreate);
-        try
-          I := STORAGE_FILE_SIGN;
-          S.Write(I, SizeOf(I));
-          I := STORAGE_FILE_VER;
-          S.Write(I, SizeOf(I));
-          S.Write(FLastModified, SizeOf(FLastModified));
-          SaveToStream3(S);
-        finally
-          S.Free;
-        end;
-      end else
-        SysUtils.DeleteFile(FFileName);
-    except
-      SysUtils.DeleteFile(FFileName);
-    end;
-  end;
-end;
-
-function TgsGlobalStorage.GetCacheFileName: String;
-var
-  Path: array[0..255] of Char;
-begin
-  Assert(Assigned(IBLogin));
-  GetTempPath(SizeOf(Path), Path);
-  Result := IncludeTrailingBackslash(Path)
-    + Format(GLOBAL_STORAGE_FILE_NAME, [IntToStr(IBLogin.DBVersionID)])
 end;
 
 { TgsCompanyStorage }
@@ -3109,33 +2750,9 @@ begin
 end;
 
 procedure TgsCompanyStorage.SetCompanyKey(const Value: Integer);
-{var
-  Tr: TIBTransaction;
-  q: TIBSQL;}
 begin
   if FCompanyKey <> Value then
   begin
-    {if Value <> -1 then
-    begin
-      Tr := TIBTransaction.Create(nil);
-      q := TIBSQL.Create(nil);
-      try
-        Tr.DefaultDatabase := IBLogin.Database;
-        q.Transaction := Tr;
-        Tr.StartTransaction;
-        q.SQL.Text := 'SELECT id FROM gd_contact WHERE id = :ID';
-        q.ParamByName('ID').AsInteger := Value;
-        q.ExecQuery;
-        if q.EOF then
-          raise EgsStorageError.Create('Invalid company key specified.');
-        q.Close;
-        Tr.Commit;
-      finally
-        q.Free;
-        Tr.Free;
-      end;
-    end;}
-
     if FCompanyKey <> -1 then SaveToDatabase;
     FCompanyKey := Value;
     if FCompanyKey <> -1 then LoadFromDatabase else Clear;
@@ -3160,7 +2777,7 @@ begin
   inherited Create;
   FParent := AParent;
   FName := GetFreeName;
-  if not Storage.Loading then
+  if (Storage <> nil) and (not Storage.Loading) then
   begin
     Storage.IsModified := True;
     FModified := Now;
@@ -3188,7 +2805,7 @@ begin
   if Assigned(FParent) then
     Result := FParent.Path + '\' + FName
   else
-    Result := '\' + FName;
+    Result := '';
 end;
 
 function TgsStorageItem.GetStorage: TgsStorage;
@@ -3251,14 +2868,6 @@ begin
   S.ReadBuffer(Dummy, Sizeof(Dummy));
   S.ReadBuffer(Dummy, SizeOf(Dummy));
   S.ReadBuffer(Dummy, SizeOf(Dummy));
-end;
-
-function TgsStorageItem.GetStorageName: String;
-begin
-  if FParent <> nil then
-    Result := FParent.GetStorageName
-  else
-    Result := '';  
 end;
 
 procedure TgsStorageItem.SaveToFile(const AFileName: String;
@@ -3324,46 +2933,16 @@ var
   S: String;
 begin
   S := Trim(Value);
-
-  if Length(S) > 255 then
-    raise EgsStorageError.Create('Name is too long.');
-
   CheckForName(S);
   if FName <> S then
   begin
     FName := S;
-    if not Storage.Loading then
+    if (Storage <> nil) and (not Storage.Loading) then
     begin
       Storage.IsModified := True;
       FModified := Now;
     end;  
   end;
-end;
-
-procedure TgsStorageItem.LoadFromStream3(S: TStream);
-var
-  L: Byte;
-begin
-  Clear;
-  S.ReadBuffer(L, SizeOf(L));
-  SetLength(FName, L);
-  if L > 0 then
-    S.ReadBuffer(FName[1], L)
-  else
-    FName := GetFreeName;  
-  Storage.IsModified := False;
-  S.ReadBuffer(FModified, Sizeof(FModified));
-end;
-
-procedure TgsStorageItem.SaveToStream3(S: TStream);
-var
-  L: Byte;
-begin
-  L := Length(FName);
-  S.WriteBuffer(L, SizeOf(L));
-  if L > 0 then
-    S.WriteBuffer(FName[1], L);
-  S.WriteBuffer(FModified, Sizeof(FModified));
 end;
 
 function TgsStorageItem.GetFreeName: String;
@@ -3405,11 +2984,6 @@ end;
 function TgsIntegerValue.GetDataSize: Integer;
 begin
   Result := inherited GetDataSize + SizeOf(FData);
-end;
-
-class function TgsIntegerValue.GetStorageValueClass: TgsStorageValueClass;
-begin
-  Result := tgsIntegerValue;
 end;
 
 class function TgsIntegerValue.GetTypeId: Integer;
@@ -3470,18 +3044,6 @@ begin
   end;
 end;
 
-procedure TgsIntegerValue.LoadFromStream3(S: TStream);
-begin
-  inherited;
-  S.ReadBuffer(FData, SizeOf(FData));
-end;
-
-procedure TgsIntegerValue.SaveToStream3(S: TStream);
-begin
-  inherited;
-  S.WriteBuffer(FData, SizeOf(FData));
-end;
-
 { TgsCurrencyValue }
 
 procedure TgsCurrencyValue.Clear;
@@ -3504,11 +3066,6 @@ begin
   Result := inherited GetDataSize + SizeOf(FData);
 end;
 
-class function TgsCurrencyValue.GetStorageValueClass: TgsStorageValueClass;
-begin
-  Result := TgsCurrencyValue;
-end;
-
 class function TgsCurrencyValue.GetTypeId: Integer;
 begin
   Result := svtCurrency;
@@ -3525,19 +3082,7 @@ begin
   S.ReadBuffer(FData, SizeOf(FData));
 end;
 
-procedure TgsCurrencyValue.LoadFromStream3(S: TStream);
-begin
-  inherited;
-  S.ReadBuffer(FData, SizeOf(FData));
-end;
-
 procedure TgsCurrencyValue.SaveToStream(S: TStream);
-begin
-  inherited;
-  S.WriteBuffer(FData, SizeOf(FData));
-end;
-
-procedure TgsCurrencyValue.SaveToStream3(S: TStream);
 begin
   inherited;
   S.WriteBuffer(FData, SizeOf(FData));
@@ -3605,11 +3150,6 @@ begin
   Result := inherited GetDataSize + Length(FData);
 end;
 
-class function TgsStringValue.GetStorageValueClass: TgsStorageValueClass;
-begin
-  Result := TgsStringValue;
-end;
-
 class function TgsStringValue.GetTypeId: Integer;
 begin
   Result := svtString;
@@ -3628,12 +3168,6 @@ begin
   inherited;
 
   S.ReadBuffer(L, SizeOf(L));
-
-  {if L > 0 then
-  begin
-    SetLength(FData, L);
-    S.ReadBuffer(FData[1], L);
-  end;}
 
   if L > 0 then
   begin
@@ -3664,12 +3198,6 @@ var
   T: String;
 begin
   inherited;
-
-
-{  L := Length(FData);
-  S.WriteBuffer(L, SizeOf(L));
-  if L > 0 then
-    S.WriteBuffer(FData[1], L); }
 
   T := AsString;
   L := Length(T);
@@ -3717,33 +3245,6 @@ begin
     AsString := '1'
   else
     AsString := '0';  
-end;
-
-procedure TgsStringValue.LoadFromStream3(S: TStream);
-var
-  L: Integer;
-begin
-  inherited;
-
-  S.ReadBuffer(L, SizeOf(L));
-
-  if L > 0 then
-  begin
-    SetLength(FData, L);
-    S.ReadBuffer(FData[1], L);
-  end;
-end;
-
-procedure TgsStringValue.SaveToStream3(S: TStream);
-var
-  L: Integer;
-begin
-  inherited;
-
-  L := Length(FData);
-  S.WriteBuffer(L, SizeOf(L));
-  if L > 0 then
-    S.WriteBuffer(FData[1], L);
 end;
 
 function TgsStringValue.GetAsDateTime: TDateTime;
@@ -3811,11 +3312,6 @@ begin
   Result := inherited GetDataSize + SizeOf(FData);
 end;
 
-class function TgsDateTimeValue.GetStorageValueClass: TgsStorageValueClass;
-begin
-  Result := TgsDateTimeValue;
-end;
-
 class function TgsDateTimeValue.GetTypeId: Integer;
 begin
   Result := svtDateTime;
@@ -3846,18 +3342,6 @@ begin
   S.WriteBuffer(FData, SizeOf(FData));
 end;
 
-procedure TgsDateTimeValue.LoadFromStream3(S: TStream);
-begin
-  inherited;
-  S.ReadBuffer(FData, SizeOf(FData));
-end;
-
-procedure TgsDateTimeValue.SaveToStream3(S: TStream);
-begin
-  inherited;
-  S.WriteBuffer(FData, SizeOf(FData));
-end;
-
 { TgsBooleanValue }
 
 procedure TgsBooleanValue.Clear;
@@ -3873,11 +3357,6 @@ end;
 function TgsBooleanValue.GetDataSize: Integer;
 begin
   Result := inherited GetDataSize + SizeOf(FData);
-end;
-
-class function TgsBooleanValue.GetStorageValueClass: TgsStorageValueClass;
-begin
-  Result := TgsBooleanValue;
 end;
 
 class function TgsBooleanValue.GetTypeId: Integer;
@@ -3946,18 +3425,6 @@ begin
   SetAsBoolean(Boolean(Value));
 end;
 
-procedure TgsBooleanValue.LoadFromStream3(S: TStream);
-begin
-  inherited;
-  S.ReadBuffer(FData, SizeOf(FData));
-end;
-
-procedure TgsBooleanValue.SaveToStream3(S: TStream);
-begin
-  inherited;
-  S.WriteBuffer(FData, SizeOf(FData));
-end;
-
 function TgsBooleanValue.GetAsCurrency: Currency;
 begin
   Result := AsInteger;
@@ -3977,11 +3444,8 @@ begin
 end;
 
 procedure TgsStorageValue.CheckForName(const AName: String);
-var
-  N: String;
 begin
-  N := Trim(AName);
-  if (N = '') or (Assigned(FParent) and (FParent as TgsStorageFolder).ValueExists(N)) then
+  if (AName = '') or (Length(AName) > 255) or (Assigned(FParent) and (FParent as TgsStorageFolder).ValueExists(AName)) then
     raise EgsStorageError.Create('Invalid value name');
 end;
 
@@ -4067,7 +3531,6 @@ begin
   finally
     StrDispose(P);
   end;
-
 end;
 
 procedure TgsStorageValue.SaveToStream(S: TStream);
@@ -4146,8 +3609,6 @@ begin
 
   with st_dlgeditvalue do
   begin
-    //SetupDialog;
-
     OldName := Self.Name;
      edName.Text := OldName;
     edValue.Text := AsString;
@@ -4196,39 +3657,6 @@ begin
   inherited;
 end;
 
-procedure TgsStorageValue.LoadFromStream3(S: TStream);
-begin
-  inherited;
-end;
-
-procedure TgsStorageValue.SaveToStream3(S: TStream);
-var
-  L: Byte;
-begin
-  L := GetTypeID;
-  S.WriteBuffer(L, SizeOf(L));
-  inherited;
-end;
-
-class function TgsStorageValue.CreateFromStream3(AParent: TgsStorageFolder;
-  S: TStream): TgsStorageValue;
-var
-  L: Byte;
-begin
-  S.ReadBuffer(L, SizeOf(L));
-  case L of
-    svtInteger: Result := TgsIntegerValue.Create(AParent);
-    svtString: Result := TgsStringValue.Create(AParent);
-    svtStream: Result := TgsStreamValue.Create(AParent);
-    svtBoolean: Result := TgsBooleanValue.Create(AParent);
-    svtDateTime: Result := TgsDateTimeValue.Create(AParent);
-    svtCurrency: Result := TgsCurrencyValue.Create(AParent);
-  else
-    raise EgsStorageError.Create('Invalid value type');
-  end;
-  Result.LoadFromStream3(S);
-end;
-
 { TgsStreamValue }
 
 procedure TgsStreamValue.Clear;
@@ -4247,11 +3675,6 @@ end;
 function TgsStreamValue.GetDataSize: Integer;
 begin
   Result := inherited GetDataSize + Length(FData);
-end;
-
-class function TgsStreamValue.GetStorageValueClass: TgsStorageValueClass;
-begin
-  Result := TgsStreamValue;
 end;
 
 class function TgsStreamValue.GetTypeId: Integer;
@@ -4360,16 +3783,6 @@ var
         break;
       end;
     end;
-
-    {Result := '';
-    while (TempStr <> #13) and (TempStr <> #10) do
-    begin
-      Result := Result + TempStr;
-      TempStr := S.ReadString(1);
-    end;
-    TempStr := S.ReadString(1);
-    if (TempStr <> #13) and (TempStr <> #10) then
-      S.Position := S.Position - 1;}
   end;
 
   procedure AddData(const Str: String);
@@ -4432,7 +3845,6 @@ begin
     T := AsString;
   except
     T := '';
-    //raise;
   end;
   L := Length(T);
   S.WriteBuffer(L, SizeOf(L));
@@ -4503,28 +3915,11 @@ begin
   end;
 end;
 
-procedure TgsStreamValue.LoadFromStream3(S: TStream);
-var
-  L: Integer;
-begin
-  inherited;
-  S.ReadBuffer(L, SizeOf(L));
-  if L > 0 then
-  begin
-    SetLength(FData, L);
-    S.ReadBuffer(FData[1], L);
-  end;
-end;
+{ TgsRootFolder ------------------------------------------}
 
-procedure TgsStreamValue.SaveToStream3(S: TStream);
-var
-  L: Integer;
+function TgsRootFolder.GetStorage: TgsStorage;
 begin
-  inherited;
-  L := Length(FData);
-  S.WriteBuffer(L, SizeOf(L));
-  if L > 0 then
-    S.WriteBuffer(FData[1], L);
+  Result := FStorage;
 end;
 
 { TgsStorageDragObject }
@@ -4534,11 +3929,6 @@ begin
   inherited Create;
   F := AF;
   TN := ATN;
-end;
-
-function TgsRootFolder.GetStorage: TgsStorage;
-begin
-  Result := FStorage;
 end;
 
 {$IFDEF DEBUG}

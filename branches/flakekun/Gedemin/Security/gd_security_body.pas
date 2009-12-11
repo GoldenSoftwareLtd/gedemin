@@ -76,6 +76,7 @@ type
     FIBName: String;
     FIBPassword: String;
     FIBRole: String;
+    FIsIBUserAdmin: Boolean;
 
     //  Свойства сессия
     FStartTime: TDateTime;
@@ -248,6 +249,8 @@ type
       const AnObjectID: Integer = -1;
       const ATransaction: TObject = nil);
 
+    procedure ReadDBVersion;
+
     property LoginParam[ParamName: String]: String read GetLoginParam;
     property ChangePass: Boolean read FChangePass;
 
@@ -275,7 +278,7 @@ type
     property Ingroup: Integer read GetIngroup write SetIngroup;
     property GroupName: String read GetGroupName;
     property IsUserAdmin: Boolean read GetIsUserAdmin;
-    property IsIBUserAdmin: Boolean read GetIsIBUserAdmin;
+    property IsIBUserAdmin: Boolean read FIsIBUserAdmin;
     property IsShutDown: Boolean read GetIsShutDown;
 
     // Подсистема
@@ -706,7 +709,7 @@ end;
 
 procedure TboLogin.OnModifyLog(const AnLogText: String);
 begin
-  AddText(AnLogText, clBlack, True);
+  AddText(AnLogText, clBlack);
 end;
 
 procedure TboLogin.DoOnConnectionParams(Sender: TObject);
@@ -721,6 +724,7 @@ begin
     FIBName := spUserLogin.ParamByName('ibname').AsString;
     FIBPassword := spUserLogin.ParamByName('ibpassword').AsString;
     FIBRole := '';
+    FIsIBUserAdmin := AnsiCompareText(FIBName, SysDBAUserName) = 0;
 
     FStartTime := Now;
     FUserKey := spUserLogin.ParamByName('UserKey').AsInteger;
@@ -872,6 +876,9 @@ var
     TryLoginDatabase.SQLDialect := 3;
   end;
 
+var
+  NeedReadDBVersion: Boolean;
+
 begin
   TryLoginDatabase := TIBDatabase.Create(Self);
 
@@ -1020,6 +1027,7 @@ begin
       Result := RunLoginDialog(TryLoginDatabase);
 
       TryLoginDatabase.Connected := False;
+      NeedReadDBVersion := False;
 
       if Result then
       begin
@@ -1043,7 +1051,7 @@ begin
         end
         else if DBVersion <= cProcList[cProcCount - 1].ModifyVersion then
         begin
-          if CompareText(SysDBAUserName, FIBName) = 0 then
+          if IsIBUserAdmin then
           begin
             if (not Asked) and
               (MessageBox(0,
@@ -1105,6 +1113,8 @@ begin
                     MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
                 end;
               end;
+
+              NeedReadDBVersion := True;
             end else
               Asked := True;
           end else
@@ -1161,7 +1171,7 @@ begin
           except
             on E: EIBError do
             begin
-              if (E.IBErrorCode = 335544472) and (CompareText(SysDBAUserName, FIBName) = 0) then
+              if (E.IBErrorCode = 335544472) and IsIBUserAdmin then
               begin
                 MessageBox(0,
                   'На сервере базы данных был изменен пароль для учетной записи SYSDBA.',
@@ -1192,7 +1202,7 @@ begin
           end;
         until Database.Connected;
 
-        { TODO : 
+        { TODO :
 по умолчанию ИБИКС если был запрос пароля у пользователя
 уберет из списка параметров пароль. мы подправили ИБИКС
 правильнее было бы сделать так, чтобы пароль запрашивался
@@ -1224,6 +1234,9 @@ begin
 
         if FChangePass then
           Result := RunChangePassDialog;
+
+        if NeedReadDBVersion then
+          ReadDBVersion;
       end;
     except
       on E: EIBClientError do
@@ -1547,7 +1560,7 @@ end;
 
 function TboLogin.GetIsIBUserAdmin: Boolean;
 begin
-  Result := AnsiCompareText(FIBName, SysDBAUserName) = 0;
+  Result := FIsIBUserAdmin;
 end;
 
 function TboLogin.GetIsShutDown: Boolean;
@@ -1557,8 +1570,7 @@ end;
 
 function TboLogin.GetIsUserAdmin: Boolean;
 begin
-  Result := Boolean(FIngroup and 1)
-    or GetIsIBUserAdmin;
+  Result := Boolean(FIngroup and 1) or IsIBUserAdmin;
 end;
 
 function TboLogin.GetLoggedIn: Boolean;
@@ -2273,7 +2285,9 @@ procedure TboLogin.ChangeUser(const AUserKey: Integer;
   const ACheckMultipleConnections: Boolean = False);
 var
   q: TIBSQL;
+  {$IFNDEF FLAKE}
   I, J: Integer;
+  {$ENDIF}
 begin
   if AUserKey = FUserKey then
     exit;
@@ -2285,6 +2299,7 @@ begin
   try
     try
       FreeAndNil(FTempTransaction);
+      {$IFNDEF FLAKE}
       if ACheckMultipleConnections then
       begin
         FTempTransaction := TIBTransaction.Create(nil);
@@ -2305,6 +2320,7 @@ begin
             'Системными установками вторичные подключения запрещены.');
         end;
       end;
+      {$ENDIF}
 
       q.Close;
       q.Transaction := gdcBaseManager.ReadTransaction;
@@ -2319,9 +2335,10 @@ begin
       if q.EOF then
         raise Exception.Create('Invalid user key or account disabled.');
 
-      if AnsiCompareText(q.FieldByName('IBName').AsString, 'SYSDBA') = 0 then
+      if AnsiCompareText(q.FieldByName('IBName').AsString, SysDBAUserName) = 0 then
         raise Exception.Create('Can not switch to Administrator account.');
 
+      {$IFNDEF FLAKE}
       if ACheckMultipleConnections then
         with TIBDatabaseInfo.Create(nil) do
         try
@@ -2343,6 +2360,7 @@ begin
         finally
           Free;
         end;
+      {$ENDIF}  
     except
       FreeAndNil(FTempTransaction);
       raise;
@@ -2350,6 +2368,7 @@ begin
 
     FIBName := q.FieldByName('IBName').AsString;
     FIBPassword := q.FieldByName('IBPassword').AsString;
+    FIsIBUserAdmin := AnsiCompareText(FIBName, SysDBAUserName) = 0;
 
     FStartTime := Now;
     FUserKey := AUserKey;
@@ -2376,6 +2395,37 @@ end;
 function TboLogin.GetReLogining: Boolean;
 begin
   Result := FReLogining;
+end;
+
+procedure TboLogin.ReadDBVersion;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  if (Database <> nil) and Database.Connected then
+  begin
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+    try
+      Tr.DefaultDatabase := Database;
+      Tr.StartTransaction;
+
+      q.Transaction := Tr;
+      q.SQL.Text := 'SELECT FIRST 1 * FROM fin_versioninfo ORDER BY id DESC';
+      q.ExecQuery;
+
+      FDBVersion := q.FieldByName('versionstring').AsString;
+      FDBReleaseDate := q.FieldByName('releasedate').AsDateTime;
+      FDBVersionID := q.FieldByName('id').AsInteger;
+      FDBVersionComment := q.FieldByName('comment').AsString;
+
+      q.Close;
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
+    end;
+  end;
 end;
 
 end.

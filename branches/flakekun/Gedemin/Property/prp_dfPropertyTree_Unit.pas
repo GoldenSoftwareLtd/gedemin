@@ -306,6 +306,8 @@ type
       SubType, SubTypeComent: String): TTreeNode; overload;
     function AddFRMClassNode(AParent: TTreeNode; I: Integer;
       SubType, SubTypeComent: String): TTreeNode;
+    function AddFRMClassLocalNode(AParent: TTreeNode; CClass: CgdcCreateableForm;
+      SubType, SubTypeComent: String): TTreeNode;
     procedure AddMethods(AParent: TTreeNode; IsGDC: Boolean);
     //Добавляем нод метода
     function AddMethodItem(AnMethod: TMethodItem;
@@ -1726,8 +1728,8 @@ var
   TS: TTreeTabSheet;
   TN: TTreeNode;
   ModuleCode: Integer;
-  I: Integer;
   SI: TSFTreeItem;
+  N: TTreeNode;
 begin
   //Инициализируем результат
   Result := nil;
@@ -1778,14 +1780,16 @@ begin
           begin
             CheckLoadSf(Tn);
             //если нашли то ищем нужный нод
-            for I := 0 to TN.Count - 1 do
+            N := TN.GetFirstChild;
+            while (N <> nil) do
             begin
-              if TSFTreeItem(TN.Item[I].data).Id = id then
+              if TSFTreeItem(N.data).Id = id then
               begin
                 //нашли. выходим.
-                Result := TN.Item[I];
+                Result := N;
                 Break;
               end;
+              N := N.GetNextSibling;
             end;
             if not Assigned(Result) then
             begin
@@ -1810,14 +1814,16 @@ begin
             begin
               CheckLoadSf(Tn);
               //Если нашли папку то ищим нужный нод
-              for I := 0 to TN.Count - 1 do
+              N := TN.GetFirstChild;
+              while (N <> nil) do
               begin
-                if TSFTreeItem(TN.Item[I].data).Id = id then
+                if TSFTreeItem(N.data).Id = id then
                 begin
-                  //Нашли. выходим
-                  Result := TN.Item[I];
+                  //нашли. выходим.
+                  Result := N;
                   Break;
                 end;
+                N := N.GetNextSibling;
               end;
               //Если нод небыл найден то добавляем его
               if not Assigned(Result) then
@@ -2322,6 +2328,60 @@ begin
   end;
 end;
 
+function TdfPropertyTree.AddFRMClassLocalNode(AParent: TTreeNode;
+  CClass: CgdcCreateableForm; SubType, SubTypeComent: String): TTreeNode;
+var
+  CI: TgdcClassTreeItem;
+  MClass: TMethodClass;
+  FullName: TgdcFullClassName;
+begin
+  Result := nil;
+
+  if Assigned(CClass) then
+  begin
+    FullName.gdClassName := CClass.ClassName;
+    FullName.SubType := SubType;
+    MClass := TMethodClass(MethodControl.FindMethodClass(FullName));
+    if MClass = nil then
+      //Если не найден то регистрируем его в списке
+      MClass := TMethodClass(MethodControl.AddClass(0, FullName, CClass));
+    MClass.Class_Reference := CClass;
+    MClass.SubTypeComment := SubTypeComent;
+
+    CI := TgdcClassTreeItem.Create;
+    CI.Id := MClass.Class_Key;
+    CI.Index := frmClassList.IndexOfByName(FullName);
+    CI.Name := CClass.ClassName;
+    CI.Parent := TgdcClassTreeItem(AParent.Data);
+    {if CClass.ClassName <> TgdcBase.ClassName then
+    begin
+      CI.OwnerId := TgdcClassTreeItem(AParent.Data).OwnerId;
+      CI.MainOwnerName := TgdcClassTreeItem(AParent.Data).MainOwnerName;
+    end else
+    begin}
+      CI.OwnerId := MClass.Class_Key;
+      CI.MainOwnerName := CClass.ClassName;
+    {end;}
+    CI.OverloadMethods := MClass.SpecMethodCount;
+    Ci.DisabledMethods := MClass.SpecDisableMethod;
+    CI.TheClass := MClass;
+
+    {Result := GetPageByObjID(OBJ_APPLICATION).Tree.Items.AddChild(AParent,
+      CClass.ClassName + SubType);}
+    Result := AParent.Owner.AddChild(AParent, CClass.ClassName + SubType);
+    if SubType <> '' then
+    begin
+      if not PropertySettings.GeneralSet.FullClassName then
+        Result.Text := SubType;
+    end else
+      Result.Text := MClass.Class_Name;
+    Result.Data := CI;
+    Result.ImageIndex := 42;
+    Result.SelectedIndex := 42;
+    CI.Node := Result;
+  end;
+end;
+
 function TdfPropertyTree.FindMethod(Id: Integer): TTreeNode;
 var
   SQL: TIBSQL;
@@ -2388,17 +2448,21 @@ end;
 function TdfPropertyTree.FindNode(ID: Integer;
   AParent: TTreeNode): TTreeNode;
 var
-  I: Integer;
+  N: TTreeNode;
 begin
   Result := nil;
   if Assigned(AParent) then
   begin
-    for I := 0 to AParent.Count - 1 do
-      if TCustomTreeItem(AParent[I].data).Id = Id then
+    N := AParent.GetFirstChild;
+    while (N <> nil) do
+    begin
+      if TCustomTreeItem(N.data).Id = Id then
       begin
-        Result := AParent[I];
+        Result := N;
         Break;
       end;
+      N := N.GetNextSibling;
+    end;
   end;
 end;
 
@@ -2893,6 +2957,7 @@ function TdfPropertyTree.AddFormPage(F: TCreateableForm): TTreeTabSheet;
 var
   TS: TTreeTabSheet;
   B: Boolean;
+  TNode: TTreeNode;
 begin
   Result := nil;
   TS := TTreeTabSheet.Create(Self);
@@ -2937,6 +3002,33 @@ begin
     TS.VBClassRootNode := TS.Tree.Items.AddChild(nil, 'VB классы');
     TS.VBClassRootNode.Data := TVBClassTreeFolder.Create;
     RefreshVBClassTreeRoot(TS.VBClassRootNode, TS.Tag, InitialName);
+
+    ////
+    //TS.ClassesRootNode := TS.Tree.Items.AddChild(nil, 'Методы');
+    {if F is TgdcCreateableForm then
+    begin
+      if Assigned(TgdcCreateableForm(F).gdcObject) then
+      begin
+        TNode := AddFRMClassLocalNode(TS.VBClassRootNode, CgdcCreateableForm(F.ClassType), TgdcCreateableForm(F).gdcObject.SubType, '');
+        AddGDCClass(TS.VBClassRootNode, F.ClassName, TgdcCreateableForm(F).gdcObject.SubType);
+      end
+      else
+      begin
+        TNode := AddFRMClassLocalNode(TS.VBClassRootNode, CgdcCreateableForm(F.ClassType), '', '');
+        AddGDCClass(TS.VBClassRootNode, F.ClassName, '');
+      end;
+      TNode.HasChildren := True;
+      AddMethods(TNode, False);
+    end;}  
+    {InitOverloadAndDisable(TGDCClassTreeItem(TNode.Data).TheClass);
+    TGDCClassTreeItem(TNode.Data).OverloadMethods :=
+      TGDCClassTreeItem(TNode.Data).TheClass.SpecMethodCount;
+    TGDCClassTreeItem(TNode.Data).DisabledMethods :=
+      TGDCClassTreeItem(TNode.Data).TheClass.SpecDisableMethod;}
+    (*TS.ClassesRootNode.Data := {TgdcClassTreeFolder}TgdcClassTreeItem.Create;
+    TgdcClassTreeItem(TS.ClassesRootNode.Data).TheClass := F.ClassType;*)
+    //TS.ClassesRootNode.HasChildren := True;
+    ////
 
     TS.ObjectsRootNode := AddFormNode(F, TS.Tag, TS.Tree);
 
@@ -3528,7 +3620,7 @@ end;
 
 function TdfPropertyTree.FindVBClass(Id: Integer): TTreeNode;
 var
-  I, J: Integer;
+  J: Integer;
   TN: TTreeNode;
   TS: TTreeTabSheet;
 begin
@@ -3538,14 +3630,15 @@ begin
     TS := TTreeTabSheet(FPageControl.Pages[J]);
     if TS.VBClassRootNode <> nil then
     begin
-      TN := TS.VBClassRootNode;
-      for I := 0 to TN.Count - 1 do
+      TN := TS.VBClassRootNode.GetFirstChild;
+      while (TN <> nil) do
       begin
-        if TVBClassTreeItem(TN.Item[I].Data).Id = Id then
+        if TVBClassTreeItem(TN.Data).Id = Id then
         begin
-          Result := TN.Item[I];
+          Result := TN;
           Exit;
         end;
+        TN := TN.GetNextSibling;
       end;
     end
   end;
@@ -3553,7 +3646,6 @@ end;
 
 function TdfPropertyTree.FindConst(Id: Integer): TTreeNode;
 var
-  I: Integer;
   TN: TTreeNode;
   TS: TTreeTabSheet;
 begin
@@ -3561,21 +3653,21 @@ begin
   TS := GetPageByObjID(OBJ_APPLICATION);
   if Assigned(TS) and Assigned(Ts.ConstRootNode) then
   begin
-    TN := Ts.ConstRootNode;
-    for I := 0 to TN.Count - 1 do
+    TN := TS.ConstRootNode.GetFirstChild;
+    while (TN <> nil) do
     begin
-      if TConstTreeItem(TN.Item[I].Data).Id = Id then
+      if TConstTreeItem(TN.Data).Id = Id then
       begin
-        Result := TN.Item[I];
+        Result := TN;
         Exit;
       end;
+      TN := TN.GetNextSibling;
     end;
   end
 end;
 
 function TdfPropertyTree.FindGO(ID: Integer): TTreeNode;
 var
-  I: Integer;
   TN: TTreeNode;
   TS: TTreeTabSheet;
 begin
@@ -3583,14 +3675,15 @@ begin
   TS := GetPageByObjID(OBJ_APPLICATION);
   if Assigned(TS) and Assigned(Ts.GORootNode) then
   begin
-    TN := Ts.GORootNode;
-    for I := 0 to TN.Count - 1 do
+    TN := TS.GORootNode.GetFirstChild;
+    while (TN <> nil) do
     begin
-      if TGLobalObjectTreeItem(TN.Item[I].Data).Id = Id then
+      if TGLobalObjectTreeItem(TN.Data).Id = Id then
       begin
-        Result := TN.Item[I];
+        Result := TN;
         Exit;
       end;
+      TN := TN.GetNextSibling;
     end;
   end
 end;
@@ -4290,18 +4383,22 @@ end;
 
 procedure TprpTreeView.ReadNodeHasChildren(N: TTreeNode; Stream: TStream);
 var
-  I: Integer;
   H: Boolean;
   lCount: Integer;
+  K: TTreeNode;
 begin
   Stream.ReadBuffer(H, SizeOf(H));
   N.HasChildren := H;
   Stream.ReadBuffer(lCount, SizeOf(lCount));
   if lCount <> N.Count then
-    raise Exception.Create('asdas');
+    raise Exception.Create('node error');
 
-  for I := 0 to lCount - 1 do
-    ReadNodeHasChildren(N.Item[I], Stream);
+  K := N.GetFirstChild;
+  while (K <> nil) do
+  begin
+    ReadNodeHasChildren(K, Stream);
+    K := K.GetNextSibling;
+  end;
 end;
 
 procedure TprpTreeView.ReadRootNodes;
@@ -4345,8 +4442,8 @@ end;
 procedure TprpTreeView.SaveNodeHasChildren(N: TTreeNode; Stream: TStream);
 var
   lCount: Integer;
-  I: Integer;
   H: Boolean;
+  K: TTreeNode;
 begin
   H := N.HasChildren;
   Stream.WriteBuffer(H, SizeOf(H));
@@ -4355,8 +4452,13 @@ begin
   Inc(FNodeIndex);
   lCount := N.Count;
   Stream.WriteBuffer(lCount, SizeOf(lCount));
-  for I := 0 to lCount - 1 do
-    SaveNodeHasChildren(N.Item[I], Stream);
+
+  K := N.GetFirstChild;
+  while (K <> nil) do
+  begin
+    SaveNodeHasChildren(K, Stream);
+    K := K.GetNextSibling;
+  end;
 end;
 
 procedure TprpTreeView.SetgdcReportRootNode(const Value: TTreeNode);
@@ -5371,7 +5473,9 @@ end;
 procedure TdfPropertyTree.FindDialogFind(Sender: TObject);
 var
   Node: TTreeNode;
+  T: TDateTime;
 begin
+  T := Now;
   Node := nil;
   FSearchString := AnsiUpperCase(FindDialog.FindText);
   FSearchOptions := FindDialog.Options;
@@ -5392,7 +5496,12 @@ begin
       Node.Selected := True;
     end else
     begin
-      ShowMessage(MSG_SEACHING_TEXT + FSearchString + MSG_NOT_FIND);
+      MessageBox(Handle,
+        PChar(Format(MSG_SEACHING_TEXT + FSearchString + MSG_NOT_FIND + ''#13#10'Время поиска: %d сек.',
+          [Round((Now - T) * 24 * 60 * 60)])),
+        'Внимание',
+        MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+
     end;
   end;
 end;
@@ -5413,6 +5522,7 @@ var
   I: Integer;
   B, E: Integer;
   Allow: Boolean;
+  N: TTreeNode;
 begin
   Result := nil;
   tvClassesExpanding(ANode.TreeView, ANode, Allow);
@@ -5425,17 +5535,23 @@ begin
   else
     E := Index;
 
-  for I := B to E - 1 do
+  if (E > 0) and (B <> E) then
   begin
-    if ((frWholeWord in FSearchOptions) and (AnsiUpperCase(ANode.Item[I].Text) = FSearchString)) or
-      (not (frWholeWord in FSearchOptions) and (Pos(FSearchString, AnsiUpperCase(ANode.Item[I].Text)) > 0)) then
+    N := ANode.Item[B];
+
+    for I := B to E - 1 do
     begin
-      Result := ANode.Item[I];
-    end else
-    begin
-      Result := DoFindNode(ANode.Item[I], 0, sdBelow);
+      if ((frWholeWord in FSearchOptions) and (AnsiUpperCase(N.Text) = FSearchString)) or
+        (not (frWholeWord in FSearchOptions) and (Pos(FSearchString, AnsiUpperCase(N.Text)) > 0)) then
+      begin
+        Result := N;
+      end else
+      begin
+        Result := DoFindNode(N, 0, sdBelow);
+      end;
+      if Result <> nil then Exit;
+      N := N.GetNextSibling;
     end;
-    if Result <> nil then Exit;
   end;
 end;
 

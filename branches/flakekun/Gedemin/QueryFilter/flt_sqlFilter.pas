@@ -246,6 +246,10 @@ type
     procedure DoOnRecordCount(Sender: TObject); // События ... по выводу количества записей в запросе
     procedure DoOnRefresh(Sender: TObject); //  События ... по обновлению параметров
 
+    {$IFDEF FLAKE}
+    procedure DoOnSelectDefaultFilter(Sender: TObject);
+    {$ENDIF FLAKE}
+
     // Процедура создания меню
     procedure MakePopupMenu(AnPopupMenu: TMenu);
     procedure CreateActions;
@@ -646,7 +650,8 @@ begin
 
         if Assigned(FOnFilterChanged) then
           FOnFilterChanged(Self, FCurrentFilter);
-      end else
+      end
+      else
       begin
         Result := False;
 
@@ -962,32 +967,100 @@ end;
 // Снимаем условия фильтрации
 procedure TgsQueryFilter.DoOnFilterBack(Sender: TObject);
 begin
-  FilterBackExecute;
+  if Application.MessageBox('Отменить фильтрацию?', 'Фильтр', MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+    FilterBackExecute;
 end;
 
 procedure TgsQueryFilter.DoOnSelectFilter(Sender: TObject);
 begin
   // Делаем доступными элементы
   SetEnabled(True);
-  // Если выбран текущий, то выходим
+  // Если выбран текущий, то обновим фильтрацию (спросим параметры, если надо)
   if (Sender as TMenuItem).Tag = FCurrentFilter then
-    Exit;
-  // Сохраняем текущий
-  SaveFilter;
-  // Отмечаем
-  (Sender as TMenuItem).Checked := True;
-  // Загружаем
-  if LoadFilter((Sender as TMenuItem).Tag) then
   begin
-    FSuppressWarning := True;
-    try
-      FilterQuery(NULL);
-    finally
-      FSuppressWarning := False;
-    end;
-  end else
-    CreatePopupMenu;
+    DoOnRefresh(Sender);
+  end
+  else
+  begin
+    // Сохраняем текущий
+    SaveFilter;
+    // Отмечаем
+    (Sender as TMenuItem).Checked := True;
+    // Загружаем
+    if LoadFilter((Sender as TMenuItem).Tag) then
+    begin
+      FSuppressWarning := True;
+      try
+        FilterQuery(NULL);
+      finally
+        FSuppressWarning := False;
+      end;
+    end
+    else
+      CreatePopupMenu;
+  end;
 end;
+
+{$IFDEF FLAKE}
+procedure TgsQueryFilter.DoOnSelectDefaultFilter(Sender: TObject);
+var
+  EditionDateFLTField: TfltFieldData;
+  CurrentYear, CurrentMonth, CurrentDay: Word;
+  FilterDateParam: TDate;
+begin
+  // Делаем доступными элементы
+  SetEnabled(True);
+
+  EditionDateFLTField := TfltFieldData.Create;
+  try
+    EditionDateFLTField.TableName := 'GD_DOCUMENT';
+    EditionDateFLTField.TableAlias := 'Z.';
+    EditionDateFLTField.LocalTable := 'GD_DOCUMENT';
+    EditionDateFLTField.PrimaryName := 'ID';
+    EditionDateFLTField.FieldName := 'DOCUMENTDATE';
+    EditionDateFLTField.LocalField := 'DOCUMENTDATE';
+    EditionDateFLTField.DisplayName := 'DOCUMENTDATE';
+    EditionDateFLTField.FieldType := GD_DT_DATE;
+
+    FFilterData.Clear;
+
+    // В зависимости от типа фильтра по умолчанию передадим различные ограничения
+    case (Sender as TAction).Tag of
+      150:
+      begin
+        FFilterData.ConditionList.AddCondition(EditionDateFLTField, GD_FC_TODAY, '', '', nil, nil);
+      end;
+
+      160:
+      begin
+        DecodeDate(Now, CurrentYear, CurrentMonth, CurrentDay);
+        FilterDateParam := EncodeDate(CurrentYear, CurrentMonth, 1);
+        FFilterData.ConditionList.AddCondition(EditionDateFLTField, GD_FC_GREATER_OR_EQUAL_TO, DateToStr(FilterDateParam), '', nil, nil);
+        FilterDateParam := EncodeDate(CurrentYear, CurrentMonth + 1, 1);
+        FFilterData.ConditionList.AddCondition(EditionDateFLTField, GD_FC_LESS_THAN, DateTimeToStr(FilterDateParam), '', nil, nil);
+      end;
+
+      170:
+      begin
+        DecodeDate(Now, CurrentYear, CurrentMonth, CurrentDay);
+        FilterDateParam := EncodeDate(CurrentYear, 1, 1);
+        FFilterData.ConditionList.AddCondition(EditionDateFLTField, GD_FC_GREATER_OR_EQUAL_TO, DateToStr(FilterDateParam), '', nil, nil);
+        FilterDateParam := EncodeDate(CurrentYear + 1, 1, 1);
+        FFilterData.ConditionList.AddCondition(EditionDateFLTField, GD_FC_LESS_THAN, DateTimeToStr(FilterDateParam), '', nil, nil);
+      end;
+    end;
+  finally
+    EditionDateFLTField.Free;
+  end;
+
+  FSuppressWarning := True;
+  try
+    FilterQuery(NULL);
+  finally
+    FSuppressWarning := False;
+  end;
+end;
+{$ENDIF FLAKE}
 
 procedure TgsQueryFilter.DoOnViewFilterList(Sender: TObject);
 begin
@@ -1217,82 +1290,31 @@ end;
 procedure TgsQueryFilter.LoadLastFilter;
 var
   LFK: Integer;
-  {ibsqlLast: TIBSQL;
-  DidActivate: Boolean;}
 begin
-  if {(Database = nil)
-    or (not Database.Connected)
-    or (Transaction = nil)
-    or} ((GetAsyncKeyState(VK_SHIFT) shr 1) <> 0) then
+  //  При нажатом Shift не применяем фильтр
+  if (GetAsyncKeyState(VK_SHIFT) shr 1) <> 0 then
+    Exit;
+
+  // Ключ компонента (FComponentKey)
+  ExtractComponentKey;
+
+  LFK := GetLastFilterKey(FComponentKey);
+  if LFK > -1 then
   begin
-    exit;
+    // Если найден, то загружаем
+    LoadFilter(LFK);
+    {$IFDEF GEDEMIN}
+    if Assigned(UserStorage) then
+    begin
+      FilterQuery(NULL,
+        UserStorage.ReadBoolean('Options', 'FilterParams', False, False))
+    end
+    else
+    {$ENDIF}
+      FilterQuery(NULL, True);
   end;
 
-  {DidActivate := False;
-  ibsqlLast := TIBSQL.Create(Self);
-  try
-    // Необходимые установки
-    ibsqlLast.Database := Database;
-    ibsqlLast.Transaction := Transaction;}
-
-    // Ключ компонента
-    ExtractComponentKey;
-
-    // Ищем значение фильтра
-    {ibsqlLast.SQL.Text :=
-      'SELECT * FROM flt_lastfilter WHERE userkey '
-      + GetISUserKey
-      + ' AND componentkey = '
-      + IntToStr(FComponentKey);
-    // Стартуем транзакцию
-    if not Transaction.InTransaction then
-    begin
-      Transaction.StartTransaction;
-      DidActivate := True;
-    end;
-    ibsqlLast.ExecQuery;}
-
-    LFK := GetLastFilterKey(FComponentKey);
-    if LFK > -1 then
-    begin
-      // Если найден, то загружаем
-      LoadFilter(LFK);
-      {$IFDEF GEDEMIN}
-      if Assigned(UserStorage) then
-      begin
-        FilterQuery(NULL,
-          UserStorage.ReadBoolean('Options', 'FilterParams', True, False))
-      end else
-      {$ENDIF}
-        FilterQuery(NULL, True);
-    end;
-
-    (*
-    if not ibsqlLast.Eof then
-      if {not ibsqlLast.FieldByName('crc32').IsNull and}
-       CompareVersion(ibsqlLast.FieldByName('crc32').AsInteger,
-        ibsqlLast.FieldByName('dbversion').AsString, True) then
-      begin
-        // Если найден, то загружаем
-        LoadFilter(ibsqlLast.FieldByName('lastfilter').AsInteger);
-        {$IFDEF GEDEMIN}
-        if Assigned(UserStorage) then
-        begin
-          FilterQuery(NULL,
-            UserStorage.ReadBoolean('Options', 'FilterParams', True, False))
-        end else
-        {$ENDIF}
-          FilterQuery(NULL, True);
-      end;
-    *)
-  {finally}
-    FIsLastSave := False;
-    {ibsqlLast.Free;}
-
-    // Закрываем транзакцию
-    {if DidActivate and Transaction.InTransaction then
-      Transaction.Commit;
-  end;}
+  FIsLastSave := False;
 end;
 
 procedure TgsQueryFilter.Notification(AComponent: TComponent;
@@ -1380,9 +1402,14 @@ begin
   FullFltName := GetFilterPath;
   FltName := Copy(Name, 1, FIndexFieldLength);
 
-  if Assigned(FltComponentCache) then
+  if Assigned(Owner) then
+    OldOwnerForm := Copy(Owner.Name, 1, FIndexFieldLength)
+  else
+    OldOwnerForm := '';
+
+  if (Assigned(FltComponentCache)) and (FltComponentCache.Count > 0) then
   begin
-    I := FltComponentCache.IndexOf(GetCRC32(FullFltName));
+    I := FltComponentCache.IndexOf(GetCRC32(FullFltName + OldOwnerForm));
     if I >= 0 then
     begin
       FComponentKey := FltComponentCache.ValuesByIndex[I];
@@ -1390,11 +1417,6 @@ begin
       exit;
     end;
   end;
-
-  if Assigned(Owner) then
-    OldOwnerForm := Copy(Owner.Name, 1, FIndexFieldLength)
-  else
-    OldOwnerForm := '';
 
   DidActivate := False;
   ibsqlComp := TIBSQL.Create(Self);
@@ -1410,9 +1432,10 @@ begin
     ibsqlComp.Transaction := Transaction;
     {$ENDIF}
     ibsqlComp.SQL.Text := 'SELECT id FROM flt_componentfilter WHERE crc = :crc and ' +
-      ' fullname = :fullname';
+      ' fullname = :fullname and formname = :fname ';
     ibsqlComp.ParamByName('crc').AsInteger := GetCRC32(FullFltName);
     ibsqlComp.ParamByName('fullname').AsString := FullFltName;
+    ibsqlComp.ParamByName('fname').AsString := OldOwnerForm;
     ibsqlComp.ExecQuery;
 
     if not ibsqlComp.Eof  then
@@ -1493,7 +1516,7 @@ begin
     if Assigned(FltComponentCache) and (FComponentKey > 0) then
     begin
       FltComponentCache.ValuesByIndex[
-        FltComponentCache.Add(GetCRC32(FullFltName))] := FComponentKey;
+        FltComponentCache.Add(GetCRC32(FullFltName + OldOwnerForm))] := FComponentKey;
     end;
   finally
     FIsCompKey := True;
@@ -1614,24 +1637,11 @@ begin
   // Если датасет фильтруется на клиенте, то определяем каждый раз
   if FIBDataSet.Filtered then
   begin
-    OldRecNo := FIBDataSet.RecNo;
-    FIBDataSet.DisableControls;
-    try
-      FRecordCount := 0;
-      FIBDataSet.First;
-      while not FIBDataSet.Eof do
-      begin
-        Inc(FRecordCount);
-
-        FIBDataSet.Next;
-      end;
-      Result := FRecordCount;
-    finally
-      // Восстанавливаем значение курсора
-      FRecordCount := -1;
-      FIBDataSet.RecNo := OldRecNo;
-      FIBDataSet.EnableControls;
-    end;
+    // FetchAll делает всё что было тут написано
+    // даже немного быстрее
+    FIBDataSet.FetchAll;
+    Result := FIBDataSet.RecordCount;
+    FRecordCount := -1;
     Exit;
   end;
 
@@ -1818,12 +1828,40 @@ begin
   TAction(FActionList.Actions[FActionList.ActionCount - 1]).OnUpdate := DoOnUpdate;
   TAction(FActionList.Actions[FActionList.ActionCount - 1]).Name := 'act' + IntToStr(FActionList.ActionCount);
   //TAction(FActionList.Actions[FActionList.ActionCount - 1]).ShortCut := ShortCut(Word('L'), [ssCtrl]);
+  {$IFDEF GEDEMIN}
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Visible := IBLogin.IsIBUserAdmin;
+  {$ENDIF}
+
+  {$IFDEF FLAKE}
+  with TAction.Create(FActionList) do
+    ActionList := FActionList;
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Caption := '> За текущий день';
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).OnExecute := DoOnSelectDefaultFilter;
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Name := 'act' + IntToStr(FActionList.ActionCount);
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Tag := 150;
 
   with TAction.Create(FActionList) do
     ActionList := FActionList;
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Caption := '> За текущий месяц';
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).OnExecute := DoOnSelectDefaultFilter;
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Name := 'act' + IntToStr(FActionList.ActionCount);
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Tag := 160;
+
+  with TAction.Create(FActionList) do
+    ActionList := FActionList;
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Caption := '> За текущий год';
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).OnExecute := DoOnSelectDefaultFilter;
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Name := 'act' + IntToStr(FActionList.ActionCount);
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Tag := 170;
+  {$ENDIF FLAKE}
+
+  // Теперь можно обновить фильтрацию, кликнув второй раз на выбранном фильтре,
+  //   этот экшн можно убрать
+{  with TAction.Create(FActionList) do
+    ActionList := FActionList;
   TAction(FActionList.Actions[FActionList.ActionCount - 1]).Caption := 'Обновить данные';
   TAction(FActionList.Actions[FActionList.ActionCount - 1]).OnExecute := DoOnRefresh;
-  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Name := 'act' + IntToStr(FActionList.ActionCount);
+  TAction(FActionList.Actions[FActionList.ActionCount - 1]).Name := 'act' + IntToStr(FActionList.ActionCount); }
   //TAction(FActionList.Actions[FActionList.ActionCount - 1]).ShortCut := ShortCut(VK_F5, [ssCtrl]);
 end;
 
@@ -1909,6 +1947,24 @@ begin
     TempPM.Add(TMenuItem.Create(TempPM));
     TempPM.Items[TempPM.Count - 1].Caption := '-';
 
+    {$IFDEF FLAKE}
+    if Assigned(FIBDataset.FindField('DOCUMENTDATE')) then
+    begin
+      // За текущий день
+      TempPM.Add(TMenuItem.Create(TempPM));
+      TempPM.Items[TempPM.Count - 1].Action := FActionList.Actions[6];
+      // За текущий месяц
+      TempPM.Add(TMenuItem.Create(TempPM));
+      TempPM.Items[TempPM.Count - 1].Action := FActionList.Actions[7];
+      // За текущий год
+      TempPM.Add(TMenuItem.Create(TempPM));
+      TempPM.Items[TempPM.Count - 1].Action := FActionList.Actions[8];
+
+      TempPM.Add(TMenuItem.Create(TempPM));
+      TempPM.Items[TempPM.Count - 1].Caption := '-';
+    end;
+    {$ENDIF FLAKE}
+
     // Создаем список фильтров
     I := 0;
     while (not ibsqlFilterList.Eof) and ((I < MaxFilterCount) or not FlagSearch) do
@@ -1939,8 +1995,10 @@ begin
     TempPM.Add(TMenuItem.Create(TempPM));
     TempPM.Items[TempPM.Count - 1].Action := FActionList.Actions[5];
 
-    TempPM.Add(TMenuItem.Create(TempPM));
-    TempPM.Items[TempPM.Count - 1].Action := FActionList.Actions[6];
+    // Теперь можно обновить фильтрацию, кликнув второй раз на выбранном фильтре,
+    //   этот пункт меню можно убрать
+    {TempPM.Add(TMenuItem.Create(TempPM));
+    TempPM.Items[TempPM.Count - 1].Action := FActionList.Actions[6];}
 
     // Если не обнаружен текущий элемент, то сбрасываем его
     if (not FlagSearch) and (FCurrentFilter <> 0) then

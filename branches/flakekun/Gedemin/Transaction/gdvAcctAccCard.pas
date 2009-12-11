@@ -2,8 +2,6 @@ unit gdvAcctAccCard;
 
 interface
 
-{$IFDEF ENTRY_BALANCE}
-
 uses
   classes, AcctStrings, AcctUtils, gdvAcctBase, gdvAcctAccReview,
   gdv_AcctConfig_unit, IBCustomDataSet;
@@ -54,11 +52,7 @@ const
 
 procedure Register;
 
-{$ENDIF}
-
 implementation
-
-{$IFDEF ENTRY_BALANCE}
 
 uses
   ibsql, Sysutils, Controls, gdcBaseInterface;
@@ -579,7 +573,5 @@ class function TgdvAcctAccCard.ConfigClassName: string;
 begin
   Result := 'TAccCardConfig'; 
 end;
-
-{$ENDIF}
 
 end.

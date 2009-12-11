@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 391
-  Top = 156
+  Left = 117
+  Top = 14
   Width = 683
   Height = 556
   HelpContext = 121
@@ -22,7 +22,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     Left = 0
     Top = 0
     Width = 675
-    Height = 499
+    Height = 495
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -30,7 +30,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Left = 9
       Top = 26
       Width = 657
-      Height = 464
+      Height = 460
       BorderStyle = bsNone
       TabsVisible = True
       ActivePage = tsQuery
@@ -44,7 +44,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Caption = 'Редактирование'
         object Splitter1: TSplitter
           Left = 0
-          Top = 379
+          Top = 365
           Width = 651
           Height = 4
           Cursor = crVSplit
@@ -54,7 +54,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 0
           Width = 651
-          Height = 379
+          Height = 365
           Cursor = crIBeam
           Align = alClient
           Font.Charset = DEFAULT_CHARSET
@@ -402,11 +402,12 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         end
         object mmPlan: TMemo
           Left = 0
-          Top = 383
+          Top = 369
           Width = 651
-          Height = 52
+          Height = 62
           Align = alBottom
           ReadOnly = True
+          ScrollBars = ssVertical
           TabOrder = 1
         end
       end
@@ -434,7 +435,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object tbResult: TTBToolbar
             Left = 120
             Top = 0
-            Width = 98
+            Width = 127
             Height = 22
             Caption = 'tbResult'
             Images = dmImages.il16x16
@@ -446,6 +447,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Action = actDeleteBusinessObject
             end
             object TBSeparatorItem16: TTBSeparatorItem
+            end
+            object TBItem28: TTBItem
+              Action = actShowViewForm
+            end
+            object TBSeparatorItem17: TTBSeparatorItem
             end
             object TBItem26: TTBItem
               Action = actShowGrid
@@ -512,57 +518,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Cursor = crVSplit
           Align = alBottom
         end
-        object Panel2: TPanel
+        object pnlTest: TPanel
           Left = 0
           Top = 0
           Width = 651
           Height = 432
           Align = alClient
-          BevelOuter = bvNone
           TabOrder = 0
-          object Label14: TLabel
-            Left = 8
-            Top = 10
-            Width = 42
-            Height = 13
-            Caption = 'Фильтр:'
-          end
-          object eFilter: TEdit
-            Left = 64
-            Top = 8
-            Width = 583
-            Height = 21
-            Anchors = [akLeft, akTop, akRight]
-            TabOrder = 0
-            OnChange = eFilterChange
-          end
-          object lvHistory: TListView
-            Left = 0
-            Top = 36
-            Width = 651
-            Height = 396
-            Align = alBottom
-            Anchors = [akLeft, akTop, akRight, akBottom]
-            Columns = <
-              item
-                Caption = '#'
-              end
-              item
-                AutoSize = True
-                Caption = 'Запрос'
-              end>
-            GridLines = True
-            HideSelection = False
-            ReadOnly = True
-            RowSelect = True
-            ParentShowHint = False
-            PopupMenu = pmHistory
-            ShowHint = True
-            TabOrder = 1
-            ViewStyle = vsReport
-            OnDblClick = lvHistoryDblClick
-            OnInfoTip = lvHistoryInfoTip
-          end
+          OnResize = pnlTestResize
         end
       end
       object tsStatistic: TSuperTabSheet
@@ -574,7 +537,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 26
           Width = 651
-          Height = 409
+          Height = 405
           BorderStyle = bsNone
           TabsVisible = True
           ActivePage = tsGraphStatistic
@@ -587,7 +550,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Left = 0
               Top = 0
               Width = 651
-              Height = 328
+              Height = 386
               BackWall.Brush.Color = clWhite
               BackWall.Brush.Style = bsClear
               Title.Text.Strings = (
@@ -885,7 +848,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             ShowHint = True
             TabOrder = 0
             object TBItem17: TTBItem
-              Caption = 'Индекированные чтения'
+              Caption = 'Индексированные чтения'
               Checked = True
               DisplayMode = nbdmImageAndText
               Hint = 'Индекированные чтения'
@@ -972,7 +935,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 190
           Width = 651
-          Height = 245
+          Height = 241
           Align = alClient
           Color = clBtnFace
           ReadOnly = True
@@ -1001,6 +964,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Width = 409
             Height = 17
             Caption = 'Автоматически подтверждать транзакцию на изменение метаданных'
+            Checked = True
+            Enabled = False
+            State = cbChecked
             TabOrder = 0
             OnClick = chbxAutoCommitDDLClick
           end
@@ -1133,7 +1099,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         end
         object TBItem16: TTBItem
           Action = actParse
-          ImageIndex = 181
         end
         object TBSeparatorItem1: TTBSeparatorItem
         end
@@ -1176,6 +1141,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object TBControlItem1: TTBControlItem
           Control = iblkupTable
         end
+        object TBItem29: TTBItem
+          Action = actMakeSelect
+        end
         object Label13: TLabel
           Left = 370
           Top = 4
@@ -1205,19 +1173,19 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Left = 0
       Top = 26
       Width = 9
-      Height = 464
+      Height = 460
       Position = dpLeft
     end
     object TBDock3: TTBDock
       Left = 666
       Top = 26
       Width = 9
-      Height = 464
+      Height = 460
       Position = dpRight
     end
     object TBDock4: TTBDock
       Left = 0
-      Top = 490
+      Top = 486
       Width = 675
       Height = 9
       Position = dpBottom
@@ -1225,7 +1193,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
   end
   object pModal: TPanel
     Left = 0
-    Top = 499
+    Top = 495
     Width = 675
     Height = 30
     Align = alBottom
@@ -1284,8 +1252,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     end
     object actDisconnectUser: TAction
       Category = 'Monitor'
-      Caption = 'Отсоединить пользователя'
-      Hint = 'Отсоединить пользователя'
+      Caption = 'Завершить сеанс пользователя'
+      Hint = 'Завершить сеанс пользователя'
       ImageIndex = 34
       OnExecute = actDisconnectUserExecute
       OnUpdate = actDisconnectUserUpdate
@@ -1342,17 +1310,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       OnExecute = actReplaceExecute
       OnUpdate = actOpenScriptUpdate
     end
-    object actClearHistory: TAction
-      Category = 'History'
-      Caption = 'Очистить историю'
-      OnExecute = actClearHistoryExecute
-    end
-    object actDeleteHistItem: TAction
-      Category = 'History'
-      Caption = 'Удалить запись'
-      OnExecute = actDeleteHistItemExecute
-      OnUpdate = actDeleteHistItemUpdate
-    end
     object actOpenScript: TAction
       Caption = 'actOpenScript'
       Hint = 'Загрузить скрипт'
@@ -1396,6 +1353,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object actEditBusinessObject: TAction
       Category = 'Result'
       Caption = 'Редактировать бизнес-объект...'
+      Hint = 'Редактировать бизнес-объект...'
       ImageIndex = 1
       OnExecute = actEditBusinessObjectExecute
       OnUpdate = actEditBusinessObjectUpdate
@@ -1403,13 +1361,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     object actDeleteBusinessObject: TAction
       Category = 'Result'
       Caption = 'Удалить бизнес-объект'
+      Hint = 'Удалить бизнес-объект'
       ImageIndex = 2
       OnExecute = actDeleteBusinessObjectExecute
       OnUpdate = actDeleteBusinessObjectUpdate
     end
     object actParse: TAction
       Caption = 'Разобрать запрос'
-      ImageIndex = 265
+      ImageIndex = 181
       OnExecute = actParseExecute
       OnUpdate = actParseUpdate
     end
@@ -1417,17 +1376,13 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Caption = 'actRefreshChart'
       OnExecute = actRefreshChartExecute
     end
-    object actCopyAllHistory: TAction
-      Category = 'History'
-      Caption = 'Копировать все в буфер'
-      OnExecute = actCopyAllHistoryExecute
-    end
     object actRefreshMonitor: TAction
       Category = 'Monitor'
       Caption = 'Обновить'
       Hint = 'Обновить'
       ImageIndex = 17
       OnExecute = actRefreshMonitorExecute
+      OnUpdate = actRefreshMonitorUpdate
     end
     object actDeleteStatement: TAction
       Category = 'Monitor'
@@ -1452,6 +1407,29 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 176
       OnExecute = actShowRecordExecute
       OnUpdate = actShowGridUpdate
+    end
+    object actShowViewForm: TAction
+      Category = 'Result'
+      Caption = 'actShowViewForm'
+      Hint = 'Открыть форму просмотра'
+      ImageIndex = 210
+      OnExecute = actShowViewFormExecute
+      OnUpdate = actShowViewFormUpdate
+    end
+    object actMakeSelect: TAction
+      Caption = 'Создать запрос для таблицы'
+      Hint = 'Создать запрос для выбранной таблицы'
+      ImageIndex = 251
+      OnExecute = actMakeSelectExecute
+      OnUpdate = actMakeSelectUpdate
+    end
+    object actSaveFieldToFile: TAction
+      Category = 'Result'
+      Caption = 'Сохранить в файл...'
+      Hint = 'Сохранить значение поля в файл'
+      ImageIndex = 25
+      OnExecute = actSaveFieldToFileExecute
+      OnUpdate = actSaveFieldToFileUpdate
     end
   end
   object ibsqlPlan: TIBSQL
@@ -2156,22 +2134,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     Left = 360
     Top = 120
   end
-  object pmHistory: TPopupMenu
-    Left = 260
-    Top = 113
-    object N8: TMenuItem
-      Action = actCopyAllHistory
-    end
-    object N9: TMenuItem
-      Caption = '-'
-    end
-    object N2: TMenuItem
-      Action = actDeleteHistItem
-    end
-    object N1: TMenuItem
-      Action = actClearHistory
-    end
-  end
   object ActionList2: TActionList
     Left = 126
     Top = 117
@@ -2685,17 +2647,19 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     Transaction = ibtrMonitor
     SelectSQL.Strings = (
       'SELECT'
-      '  st.mon$attachment_id,'
+      '  st.mon$attachment_id AS att_id,'
       '  att.mon$timestamp AS att_start,'
-      '  st.mon$statement_id,'
+      '  st.mon$statement_id AS stmt_id,'
       
         '  (SELECT FIRST 1 u.name FROM gd_user u WHERE u.ibname = att.mon' +
         '$user) AS gd_user,'
-      '  att.mon$user,'
-      '  att.mon$remote_address, '
-      '  st.mon$state,'
-      '  st.mon$timestamp,'
-      '  st.mon$sql_text'
+      '  /* att.mon$user, */'
+      
+        '  CAST(SUBSTRING(att.mon$remote_address FROM 1 FOR 36) AS VARCHA' +
+        'R(36)) AS remote_address, '
+      '  st.mon$state AS state,'
+      '  st.mon$timestamp AS executed,'
+      '  st.mon$sql_text AS sql_text'
       ''
       'FROM'
       '  mon$statements st'
@@ -2721,8 +2685,20 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
   object ibtrMonitor: TIBTransaction
     Active = False
     DefaultAction = TACommit
+    Params.Strings = (
+      'read_committed'
+      'rec_version'
+      'nowait')
     AutoStopAction = saNone
     Left = 464
     Top = 369
+  end
+  object pmSaveFieldToFile: TPopupMenu
+    Images = dmImages.il16x16
+    Left = 188
+    Top = 180
+    object nSaveFieldToFile: TMenuItem
+      Action = actSaveFieldToFile
+    end
   end
 end

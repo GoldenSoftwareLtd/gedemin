@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gd_dlgG_unit, ActnList, StdCtrls, gd_createable_form, Mask, xDateEdits,
+  ActnList, StdCtrls, gd_createable_form, Mask, xDateEdits,
   ExtCtrls;
 
 type

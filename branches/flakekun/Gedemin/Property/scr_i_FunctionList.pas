@@ -19,7 +19,8 @@ type
     function ReleaseFunction(AnFunction: TrpCustomFunction): Integer;
     // Перечитывает данные для функций, содержащихся в списке.
     function  UpdateList: Boolean;
-
+    // Удаляет ф-цию, чистит файл кэша
+    procedure RemoveFunction(const AnFunctionKey: Integer);
     // Добавляет в гл. список ф-цию
     procedure AddFunction(const AnFunction: TrpCustomFunction);
     procedure Clear;

@@ -10,7 +10,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gd_frmMDV_unit, ActnList, 
+  ActnList, 
   ComCtrls, ToolWin, StdCtrls, ExtCtrls, gsDBTreeView, dmDatabase_unit,
   IBDatabase, Db, IBCustomDataSet, gdcBase, gdcPlace, Grids, DBGrids,
   gsDBGrid, gsIBGrid, Menus, flt_sqlFilter, gdcClasses, gdc_frmMDV_unit,

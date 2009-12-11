@@ -18,6 +18,7 @@ type
     TBItem3: TTBItem;
     procedure TBItem3Click(Sender: TObject);
     procedure TBItem1Click(Sender: TObject);
+    procedure ibgrDatabasesExit(Sender: TObject);
   private
     { Private declarations }
   public
@@ -46,6 +47,12 @@ begin
        MB_YESNO or MB_ICONWARNING or MB_TOPMOST or MB_SYSTEMMODAL) = IDYES then
       gdcDatabases.Delete;
   end;
+end;
+
+procedure TfrmIncrDatabaseList.ibgrDatabasesExit(Sender: TObject);
+begin
+  if gdcDatabases.State in [dsEdit, dsInsert] then
+    gdcDatabases.Post;
 end;
 
 end.

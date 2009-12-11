@@ -71,6 +71,9 @@ type
   end;
 
   TgdcMetaBase = class(TgdcBase)
+  private
+    FPostedID: Integer;
+
   protected
     //Изменяется при создании мета-данных
     //Указывает, нужно ли подключение в монопольном режиме
@@ -94,6 +97,10 @@ type
     function GetCanEdit: Boolean; override;
 
     function GetRelationName: String; virtual;
+
+    procedure DoAfterTransactionEnd(Sender: TObject); override;
+    procedure DoAfterPost; override;
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -378,19 +385,6 @@ type
   TgdcLBRBTreeTable = class(TgdcTable)
   private
     function CreateIntervalTreeTable: String;
-    function CreateIntervalLBIndex: String;
-    function CreateIntervalRBIndex: String;
-    function CreateIntervalException: String;
-
-    function CreateIntervalExpandLimitStoreProc: String;
-    function CreateIntervalBeforeInsertTrigger: String;
-    function CreateIntervalBeforeUpdateTrigger: String;
-    function CreateIntervalGetChildCountProc: String;
-    function CreateIntervalRestructProc: String;
-
-    function CreateIntervalExpandLimitStoreProcGrant: String;
-    function CreateIntervalGetChildCountProcGrant: String;
-    function CreateIntervalRestructProcGrant: String;
 
   protected
      procedure DropTable; override;
@@ -471,9 +465,9 @@ type
 
     procedure CreateInvCardTrigger(ResultList: TSQLProcessList;
       const IsDrop: Boolean = False);
-    {$IFDEF ENTRY_BALANCE}
+
     procedure AlterAcEntryBalanceAndRecreateTrigger(ResultList: TSQLProcessList);
-    {$ENDIF}
+
     function CreateAccCirculationList(const IsDrop: Boolean = False): String;
 
     function CreateDropFieldSQL: String;
@@ -888,7 +882,7 @@ uses
 
   gdc_attr_dlgGenerator_unit, gdc_attr_frmGenerator_unit, gdc_attr_frmCheckConstraint_unit,
 
-  gdc_attr_dlgCheckConstraint_unit
+  gdc_attr_dlgCheckConstraint_unit, gdcLBRBTreeMetaData
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -3877,10 +3871,8 @@ begin
           FQuery.Add(CreateFieldSQL);
 
         CreateInvCardTrigger(FQuery);
-
-        {$IFDEF ENTRY_BALANCE}
+        // Изменить процедуру AC_ENTRY_BALANCE и пересоздать триггер синхронизации ее данных и данных AC_ENTRY
         AlterAcEntryBalanceAndRecreateTrigger(FQuery);
-        {$ENDIF}
 
         S := CreateAccCirculationList;
         if S <> '' then
@@ -5104,7 +5096,6 @@ begin
   end;
 end;
 
-{$IFDEF ENTRY_BALANCE}
 procedure TgdcRelationField.AlterAcEntryBalanceAndRecreateTrigger(ResultList: TSQLProcessList);
 var
   ibsqlR: TIBSQL;
@@ -5246,7 +5237,6 @@ begin
     end;
   end;
 end;
-{$ENDIF}
 
 function TgdcRelationField.NextCrossRelationName: String;
 begin
@@ -7211,361 +7201,6 @@ begin
   end;
 end;
 
-
-
-function TgdcLBRBTreeTable.CreateIntervalBeforeInsertTrigger: String;
-begin
-  Result := Format
-  (
-    '/****************************************************/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/**   Триггер, обрабатывающий добавление нового    **/'#13#10 +
-    '/**   элемента дерева, проверяет диапазон,         **/'#13#10 +
-    '/**   вызывает процедуру сдвига если необходимо    **/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/****************************************************/'#13#10 +
-    'CREATE TRIGGER %1:s FOR %0:s'#13#10 +
-    '  BEFORE INSERT'#13#10 +
-    '  POSITION 0'#13#10 +
-    'AS'#13#10 +
-    '  DECLARE VARIABLE R INTEGER;'#13#10 +
-    '  DECLARE VARIABLE L INTEGER;'#13#10 +
-    '  DECLARE VARIABLE R2 INTEGER;'#13#10 +
-    '  DECLARE VARIABLE MULTIDELTA INTEGER;'#13#10 +
-    'BEGIN'#13#10 +
-    '  /* Если ключ не присвоен, присваиваем */'#13#10 +
-    '  IF (NEW.id IS NULL) THEN '#13#10 +
-    '    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1); '#13#10 +
-    ''#13#10 +
-    '  IF (NEW.parent IS NULL) THEN'#13#10 +
-    '  BEGIN'#13#10 +
-    '    /* Устанавливаем левую границу диапазона */'#13#10 +
-    '    SELECT MAX(rb)'#13#10 +
-    '    FROM %0:s'#13#10 +
-    '    INTO NEW.lb;'#13#10 +
-    ''#13#10 +
-    '    IF (NEW.lb IS NULL) THEN'#13#10 +
-    '      /* зап_саў няма, дадаем новы, першы */'#13#10 +
-    '      NEW.lb = 1;'#13#10 +
-    '    ELSE'#13#10 +
-    '      /* Если есть записи */'#13#10 +
-    '      NEW.lb = NEW.lb + 1;'#13#10 +
-    ''#13#10 +
-    '    NEW.rb = NEW.lb + 10;'#13#10 +
-    '  END ELSE'#13#10 +
-    '  BEGIN'#13#10 +
-    '    /* дадаем падузровень                    */'#13#10 +
-    '    /* вызначым мяжу _нтэрвала, куды дадаем  */'#13#10 +
-    ''#13#10 +
-    '    EXECUTE PROCEDURE %2:s (NEW.parent, 10, -1, -1)'#13#10 +
-    '      RETURNING_VALUES NEW.lb;'#13#10 +
-    ''#13#10 +
-    '    NEW.rb = NEW.lb;'#13#10 +
-    '  END'#13#10 +
-    'END',
-    [FieldByName('relationname').AsString,
-     gdcBaseManager.AdjustMetaName('usr$bi_' + FieldByName('relationname').AsString),
-     gdcBaseManager.AdjustMetaName('usr$_p_exlim_' + FieldByName('relationname').AsString) ]
-  );
-
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalBeforeUpdateTrigger: String;
-begin
-  Result := Format
-  (
-    '/****************************************************/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/**   Триггер, обрабатывающий изменение родителя     **/'#13#10 +
-    '/**   элемента дерева, проверяет диапазон,         **/'#13#10 +
-    '/**   вызывает процедуру сдвига если необходимо    **/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/****************************************************/'#13#10 +
-    'CREATE TRIGGER %1:s FOR %0:s'#13#10 +
-    '  BEFORE UPDATE'#13#10 +
-    '  POSITION 0'#13#10 +
-    'AS'#13#10 +
-    '  DECLARE VARIABLE OldDelta INTEGER;'#13#10 +
-    '  DECLARE VARIABLE L INTEGER;'#13#10 +
-    '  DECLARE VARIABLE R INTEGER;'#13#10 +
-    '  DECLARE VARIABLE NewL INTEGER;'#13#10 +
-    '  DECLARE VARIABLE A INTEGER;'#13#10 +
-    'BEGIN'#13#10 +
-    '  /* Проверяем факт изменения */'#13#10 +
-    '  IF ((NEW.parent <> OLD.parent) OR'#13#10 +
-    '     ((OLD.parent IS NULL) AND NOT (NEW.parent IS NULL)) OR'#13#10 +
-    '     ((NEW.parent IS NULL) AND NOT (OLD.parent IS NULL))) THEN'#13#10 +
-    '  BEGIN'#13#10 +
-    '    IF (EXISTS (SELECT * FROM %0:s'#13#10 +
-    '          WHERE id = NEW.parent AND lb >= OLD.lb AND rb <= OLD.rb)) THEN'#13#10 +
-    '      EXCEPTION %2:s;'#13#10 +
-    '    ELSE'#13#10 +
-    '    BEGIN'#13#10 +
-    '      IF (NEW.parent IS NULL) THEN'#13#10 +
-    '      BEGIN'#13#10 +
-    '        /* Получаем крайнюю правую границу */'#13#10 +
-    '        SELECT MAX(rb)'#13#10 +
-    '        FROM %0:s'#13#10 +
-    '        WHERE parent IS NULL'#13#10 +
-    '        INTO :NewL;'#13#10 +
-    '        /* Предполагается, что существует хотя бы один элемент с нулл парентом */'#13#10 +
-    '        NewL = :NewL + 1;'#13#10 +
-    '      END ELSE'#13#10 +
-    '      BEGIN'#13#10 +
-    '        /* Получаем значение новой левой границы */'#13#10 +
-    '        A = OLD.rb - OLD.lb + 1; '#13#10 +
-    '        EXECUTE PROCEDURE %3:s (NEW.parent, A, OLD.lb, OLD.rb)'#13#10 +
-    '          RETURNING_VALUES :NewL;'#13#10 +
-    '      END'#13#10 +
-    ''#13#10 +
-    '      /* Определяем величину сдвига. +1 выполняется в процедуре */'#13#10 +
-    '      OldDelta = :NewL - OLD.lb;'#13#10 +
-    '      /* Сдвигаем границы основной ветви */'#13#10 +
-    '      NEW.lb = OLD.lb + :OldDelta;'#13#10 +
-    '      NEW.rb = OLD.rb + :OldDelta;'#13#10 +
-    '      /* Сдвигаем границы детей */'#13#10 +
-    '      UPDATE %0:s SET lb = lb + :OldDelta, rb = rb + :OldDelta'#13#10 +
-    '        WHERE lb > OLD.lb AND rb <= OLD.rb;'#13#10 +
-    '    END'#13#10 +
-    '  END'#13#10 +
-    'END',
-    [FieldByName('relationname').AsString,
-     gdcBaseManager.AdjustMetaName('usr$bu_' + FieldByName('relationname').AsString),
-     gdcBaseManager.AdjustMetaName('usr$_e_tr_' + FieldByName('relationname').AsString),
-     gdcBaseManager.AdjustMetaName('usr$_p_exlim_' + FieldByName('relationname').AsString)]
-  );
-
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalException: String;
-begin
-  Result := Format
-  (
-    'CREATE EXCEPTION %s ''Can not cycle tree branch!''',
-    [gdcBaseManager.AdjustMetaName('usr$_e_tr_' + FieldByName('relationname').AsString)]
-  );
-
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalExpandLimitStoreProc: String;
-begin
-  Result := Format
-  (
-    '/****************************************************/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/**   Процедура проверяет диапазон для вставки     **/'#13#10 +
-    '/**   и раздвигает его, если он мал                 **/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/****************************************************/'#13#10 +
-    'CREATE PROCEDURE %1:s (Parent NUMERIC(18, 0), Delta INTEGER,'#13#10 +
-    '  LB2 INTEGER, RB2 INTEGER)'#13#10 +
-    'RETURNS (LeftBorder INTEGER)'#13#10 +
-    'AS'#13#10 +
-    '  DECLARE VARIABLE R INTEGER;'#13#10 +
-    '  DECLARE VARIABLE L INTEGER;'#13#10 +
-    '  DECLARE VARIABLE R2 INTEGER;'#13#10 +
-    '  DECLARE VARIABLE MKey NUMERIC(18, 0);'#13#10 +
-    '  DECLARE VARIABLE MultiDelta INTEGER;'#13#10 +
-    'BEGIN'#13#10 +
-    '  /* Получаем границы родителя */'#13#10 +
-    '  SELECT rb, lb'#13#10 +
-    '  FROM %0:s'#13#10 +
-    '  WHERE id = :Parent'#13#10 +
-    '  INTO :R, :L;'#13#10 +
-    ''#13#10 +
-    '  /* Получаем крайнюю правую границу детей */'#13#10 +
-    '  SELECT MAX(rb)'#13#10 +
-    '  FROM %0:s'#13#10 +
-    '  WHERE lb > :L AND lb <= :R'#13#10 +
-    '  INTO :R2;'#13#10 +
-    ''#13#10 +
-    '  /* Если нет детей, устанавливаем левую границу */'#13#10 +
-    '  IF (:R2 IS NULL) THEN'#13#10 +
-    '    R2 = :L;'#13#10 +
-    ''#13#10 +
-    '  IF (:R - :R2 < :Delta) THEN'#13#10 +
-    '  BEGIN'#13#10 +
-    '    /* Если места нет раздвигаем */'#13#10 +
-    '    /* Диапазон увеличивается в 10 раз */'#13#10 +
-    '    MultiDelta = (:R - :L + 1) * 9;'#13#10 +
-    ''#13#10 +
-    '    /* Проверяем, удовлетворяет ли нас новый диапазон */'#13#10 +
-    '    IF (:Delta > :MultiDelta) THEN'#13#10 +
-    '      MultiDelta = :Delta;'#13#10 +
-    ''#13#10 +
-    '    /* Сдвигаем правую границу родителей */'#13#10 +
-    '    UPDATE %0:s SET rb = rb + :MultiDelta'#13#10 +
-    '      WHERE lb <= :L AND rb >= :R AND NOT (lb >= :LB2 AND rb <= :RB2);'#13#10 +
-    ''#13#10 +
-    '    /* Сдвигаем обе границы нижних ветвей */'#13#10 +
-    '    FOR'#13#10 +
-    '      SELECT id'#13#10 +
-    '      FROM %0:s'#13#10 +
-    '      WHERE lb > :R AND NOT (lb >= :LB2 AND rb <= :RB2)'#13#10 +
-    '      ORDER BY lb DESC'#13#10 +
-    '      INTO :MKey'#13#10 +
-    '    DO'#13#10 +
-    '      UPDATE %0:s'#13#10 +
-    '        SET lb = lb + :MultiDelta, rb = rb + :MultiDelta'#13#10 +
-    '        WHERE id = :MKey;'#13#10 +
-    '  END'#13#10 +
-    ''#13#10 +
-    '  /* Присваиваем результат, первый удовлетворяющий элемент */'#13#10 +
-    '  LeftBorder = :R2 + 1;'#13#10 +
-    'END',
-    [FieldByName('relationname').AsString,
-     gdcBaseManager.AdjustMetaName('usr$_p_exlim_' + FieldByName('relationname').AsString)]
-  );
-
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalExpandLimitStoreProcGrant: String;
-begin
-  Result := Format
-  (
-    'GRANT EXECUTE ON PROCEDURE %0:s TO administrator',
-    [gdcBaseManager.AdjustMetaName('usr$_p_exlim_' + FieldByName('relationname').AsString)]
-  );
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalGetChildCountProc: String;
-begin
-  Result := Format
-  (
-    '/****************************************************/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/**   Процедура вытягивает количество детей        **/'#13#10 +
-    '/**   по Паренту родителя                          **/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/****************************************************/'#13#10 +
-    'CREATE PROCEDURE %1:s (Parent NUMERIC(18, 0), FirstIndex INTEGER)'#13#10 +
-    '  RETURNS (LastIndex INTEGER)'#13#10 +
-    'AS'#13#10 +
-    '  DECLARE VARIABLE ChildKey NUMERIC(18, 0);'#13#10 +
-    'BEGIN'#13#10 +
-    '  /* Присваиваем начальное значение */'#13#10 +
-    '  LastIndex = :FirstIndex + 1;'#13#10 +
-    ''#13#10 +
-    '  /* Вытягиваем детей по паренту */'#13#10 +
-    '  FOR'#13#10 +
-    '    SELECT id'#13#10 +
-    '    FROM %0:s'#13#10 +
-    '    WHERE parent = :Parent'#13#10 +
-    '    INTO :ChildKey'#13#10 +
-    '  DO'#13#10 +
-    '  BEGIN'#13#10 +
-    '    /* Изменяем границы детей */'#13#10 +
-    '    EXECUTE PROCEDURE %1:s (:ChildKey, :LastIndex)'#13#10 +
-    '      RETURNING_VALUES :LastIndex;'#13#10 +
-    '  END'#13#10 +
-    ''#13#10 +
-    '  LastIndex = :LastIndex + 9;'#13#10 +
-    ''#13#10 +
-    '  /* Изменяем границы родителя */'#13#10 +
-    '  UPDATE %0:s SET lb = :FirstIndex + 1, rb = :LastIndex'#13#10 +
-    '    WHERE id = :Parent;'#13#10 +
-    'END',
-    [FieldByName('relationname').AsString,
-     gdcBaseManager.AdjustMetaName('usr$_p_chldct_' + FieldByName('relationname').AsString)]
-  );
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalGetChildCountProcGrant: String;
-begin
-  Result := Format
-  (
-    'GRANT EXECUTE ON PROCEDURE %0:s TO administrator',
-    [gdcBaseManager.AdjustMetaName('usr$_p_chldct_' + FieldByName('relationname').AsString)]
-  );
-
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalLBIndex: String;
-begin
-  Result := Format
-  (
-    'CREATE ASC INDEX %0:s ON %1:s(lb)',
-    [gdcBaseManager.AdjustMetaName('usr$_x_' + FieldByName('relationname').AsString + '_lb'),
-     FieldByName('relationname').AsString ]
-  );
-
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalRBIndex: String;
-begin
-  Result := Format
-  (
-    'CREATE ASC INDEX %0:s ON %1:s(rb)',
-    [gdcBaseManager.AdjustMetaName('usr$_x_' + FieldByName('relationname').AsString + '_rb'),
-     FieldByName('relationname').AsString]
-  );
-
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalRestructProc: String;
-begin
-  Result := Format
-  (
-    '/****************************************************/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/**   Процедура сжимает интервалы дерева           **/'#13#10 +
-    '/**                                                **/'#13#10 +
-    '/****************************************************/'#13#10 +
-    'CREATE PROCEDURE %1:s'#13#10 +
-    'AS'#13#10 +
-    '  DECLARE VARIABLE Delta INTEGER;'#13#10 +
-    '  DECLARE VARIABLE CurrentIndex INTEGER;'#13#10 +
-    '  DECLARE VARIABLE ChildKey NUMERIC(18, 0);'#13#10 +
-    'BEGIN'#13#10 +
-    '  /* Получаем начало свободного пространства */'#13#10 +
-    '  SELECT MAX(rb)'#13#10 +
-    '  FROM %0:s'#13#10 +
-    '  INTO :CurrentIndex;'#13#10 +
-    ''#13#10 +
-    '  /* Присваиваем начальные значения */'#13#10 +
-    '  IF (:CurrentIndex IS NULL) THEN'#13#10 +
-    '  BEGIN'#13#10 +
-    '    Delta = 0;'#13#10 +
-    '    CurrentIndex = 1;'#13#10 +
-    '  END ELSE'#13#10 +
-    '  BEGIN'#13#10 +
-    '    Delta = : CurrentIndex;'#13#10 +
-    '    /*CurrentIndex = : CurrentIndex + 1;*/'#13#10 +
-    '  END'#13#10 +
-    ''#13#10 +
-    '  /* Для всех элементов корневого дерева */'#13#10 +
-    '  FOR'#13#10 +
-    '    SELECT id'#13#10 +
-    '    FROM %0:s'#13#10 +
-    '    WHERE parent IS NULL'#13#10 +
-    '    INTO :ChildKey'#13#10 +
-    '  DO'#13#10 +
-    '  BEGIN'#13#10 +
-    '    /* Меняем границы для детей */'#13#10 +
-    '    EXECUTE PROCEDURE %2:s (:ChildKey, :CurrentIndex)'#13#10 +
-    '      RETURNING_VALUES :CurrentIndex;'#13#10 +
-    '  END'#13#10 +
-    ''#13#10 +
-    '  /* Сдвигаем все границы в начало */'#13#10 +
-    '  IF (:Delta <> 0) THEN'#13#10 +
-    '    UPDATE %0:s SET lb = lb - :Delta, rb = rb - :Delta;'#13#10 +
-    'END',
-    [FieldByName('relationname').AsString,
-    gdcBaseManager.AdjustMetaName('usr$_p_restr_' + FieldByName('relationname').AsString),
-    gdcBaseManager.AdjustMetaName('usr$_p_chldct_' + FieldByName('relationname').AsString)]
-  );
-end;
-
-function TgdcLBRBTreeTable.CreateIntervalRestructProcGrant: String;
-begin
-  Result := Format
-  (
-    'GRANT EXECUTE ON PROCEDURE %0:s TO administrator',
-    [gdcBaseManager.AdjustMetaName('usr$_p_restr_' + FieldByName('relationname').AsString)]
-  );
-
-end;
-
 function TgdcLBRBTreeTable.CreateIntervalTreeTable: String;
 begin
   NeedSingleUser := True;
@@ -7577,12 +7212,10 @@ begin
     'editorkey dintkey, ' +
     'PRIMARY KEY (id), ' +
     'FOREIGN KEY (parent) ' +
-    'REFERENCES %0:s (id) ON DELETE CASCADE ON UPDATE CASCADE, CHECK(lb <= rb) )',
+    'REFERENCES %0:s (id) ON DELETE CASCADE ON UPDATE CASCADE/*, CHECK(lb <= rb) */ )',
     [FieldByName('relationname').AsString]
   );
-
 end;
-
 
 class function TgdcLBRBTreeTable.GetDisplayName(
   const ASubType: TgdcSubType): String;
@@ -7591,6 +7224,10 @@ begin
 end;
 
 procedure TgdcLBRBTreeTable.CreateRelationSQL(Scripts: TSQLProcessList);
+var
+  N: String;
+  SL: TStringList;
+  I: Integer;
 begin
   Scripts.Add(CreateIntervalTreeTable);
   Scripts.Add(CreateGrantSQL);
@@ -7600,21 +7237,24 @@ begin
     Scripts.Add(CreateInsertEditorTrigger);
     Scripts.Add(CreateUpdateEditorTrigger);
 
-    Scripts.Add(CreateIntervalException);
+    N := FieldByName('relationname').AsString;
+    if StrIPos(UserPrefix, N) = 1 then
+      System.Delete(N, 1, Length(UserPrefix));
+    if StrIPos('_', N) = 1 then
+      System.Delete(N, 1, 1);
 
-    Scripts.Add(CreateIntervalGetChildCountProc);
-    Scripts.Add(CreateIntervalExpandLimitStoreProc);
-    Scripts.Add(CreateIntervalRestructProc);
-    Scripts.Add(CreateIntervalBeforeInsertTrigger);
-    Scripts.Add(CreateIntervalBeforeUpdateTrigger);
+    SL := TStringList.Create;
+    try
+      CreateLBRBTreeMetaDataScript(SL, UserPrefix, N, FieldByName('relationname').AsString);
+      for I := 0 to SL.Count - 1 do
+      begin
+        Scripts.Add(SL[I]);
+      end;
+    finally
+      SL.Free;
+    end;
 
-    Scripts.Add(CreateIntervalExpandLimitStoreProcGrant);
-    Scripts.Add(CreateIntervalGetChildCountProcGrant);
-    Scripts.Add(CreateIntervalRestructProcGrant);
-
-    Scripts.Add(CreateIntervalLBIndex);
-    Scripts.Add(CreateIntervalRBIndex);
-    //будем трбовать переподключения, чтобы ссинхронизировались процедуры
+    //будем требовать переподключения, чтобы синхронизировались процедуры
     atDatabase.NotifyMultiConnectionTransaction;
   end;
 end;
@@ -7881,6 +7521,97 @@ constructor TgdcMetaBase.Create(AnOwner: TComponent);
 begin
   inherited;
   NeedSingleUser := False;
+  FPostedID := -1;
+end;
+
+procedure TgdcMetaBase.DoAfterPost;
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCMETABASE', 'DOAFTERPOST', KEYDOAFTERPOST)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYDOAFTERPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'DOAFTERPOST', KEYDOAFTERPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FDataTransfer then
+    exit;
+
+  inherited;
+
+  if Transaction.InTransaction then
+    FPostedID := ID
+  else
+    FPostedID := -1;  
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOAFTERPOST', KEYDOAFTERPOST)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'DOAFTERPOST', KEYDOAFTERPOST);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcMetaBase.DoAfterTransactionEnd(Sender: TObject);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_SENDER('TGDCMETABASE', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYDOAFTERTRANSACTIONEND);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERTRANSACTIONEND]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(Sender)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if (FPostedID > 0) and (FPostedID = ID) then
+  begin
+    FPostedID := -1;
+    InternalRefreshRow;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND);
+  {M}  end;
+  {END MACRO}
 end;
 
 function TgdcMetaBase.GetCanCreate: Boolean;
@@ -8125,8 +7856,7 @@ begin
             ibsql.ExecQuery;
             ibsql.Close;
 
-            AddText('SQL-скрипт сохранен!', clGreen);
-            Space;
+            //AddText('SQL-скрипт сохранен!', clGreen);
           end;
         end;
 
@@ -8144,8 +7874,7 @@ begin
           ibsql.SQL.Text := S[I];
           ibsql.ExecQuery;
 
-          AddText('SQL-скрипт выполнен!', clBlue);
-          Space;
+          //AddText('SQL-скрипт выполнен!', clBlue);
         end;
       end;
 
@@ -8154,8 +7883,7 @@ begin
       begin
         if DidActivate and Transaction.InTransaction then
           Transaction.Rollback;
-        AddMistake(#13#10 + E.Message + #13#10, clRed);
-        Space;
+        AddMistake(E.Message, clRed);
         raise;
       end;
     end;
@@ -10022,33 +9750,41 @@ var
   FSQL: TSQLProcessList;
   subtext: String;
 begin
-  FSQL := TSQLProcessList.Create;
-  try
-    case FieldByName('rdb$trigger_type').AsInteger of
-      1: subtext := 'BEFORE INSERT';
-      2: subtext := 'AFTER INSERT';
-      3: subtext := 'BEFORE UPDATE';
-      4: subtext := 'AFTER UPDATE';
-      5: subtext := 'BEFORE DELETE';
-      6: subtext := 'AFTER DELETE';
-      17: subtext := 'BEFORE INSERT OR UPDATE';
-      18: subtext := 'AFTER INSERT OR UPDATE';
-      25: subtext := 'BEFORE INSERT OR DELETE';
-      26: subtext := 'AFTER INSERT OR DELETE';
-      27: subtext := 'BEFORE UPDATE OR DELETE';
-      28: subtext := 'AFTER UPDATE OR DELETE';
-      113: subtext := 'BEFORE INSERT OR UPDATE OR DELETE';
-      114: subtext := 'AFTER INSERT OR UPDATE OR DELETE';
-    end;
-    FSQL.Add(Format('CREATE TRIGGER %s FOR %s '#13#10 + '%s'#13#10 + 'POSITION %s ' +
-      ' %s ',[FieldByName('triggername').AsString, FieldByName('relationname').AsString,
-       subtext, FieldByName('rdb$trigger_sequence').AsString,
-       FieldByName('rdb$trigger_source').AsString]));
-    ShowSQLProcess(FSQL);
-  finally
-    FSQL.Free;
-    NeedSingleUser := False;
+  case FieldByName('rdb$trigger_type').AsInteger of
+    1: subtext := 'BEFORE INSERT';
+    2: subtext := 'AFTER INSERT';
+    3: subtext := 'BEFORE UPDATE';
+    4: subtext := 'AFTER UPDATE';
+    5: subtext := 'BEFORE DELETE';
+    6: subtext := 'AFTER DELETE';
+    17: subtext := 'BEFORE INSERT OR UPDATE';
+    18: subtext := 'AFTER INSERT OR UPDATE';
+    25: subtext := 'BEFORE INSERT OR DELETE';
+    26: subtext := 'AFTER INSERT OR DELETE';
+    27: subtext := 'BEFORE UPDATE OR DELETE';
+    28: subtext := 'AFTER UPDATE OR DELETE';
+    113: subtext := 'BEFORE INSERT OR UPDATE OR DELETE';
+    114: subtext := 'AFTER INSERT OR UPDATE OR DELETE';
+  else
+    subtext := '';
   end;
+
+  if subtext > '' then
+  begin
+    FSQL := TSQLProcessList.Create;
+    try
+      FSQL.Add(Format('CREATE TRIGGER %s FOR %s '#13#10 + '%s'#13#10 + 'POSITION %s ' +
+        ' %s ',[FieldByName('triggername').AsString, FieldByName('relationname').AsString,
+         subtext, FieldByName('rdb$trigger_sequence').AsString,
+         FieldByName('rdb$trigger_source').AsString]));
+      ShowSQLProcess(FSQL);
+    finally
+      FSQL.Free;
+      NeedSingleUser := False;
+    end;
+  end else
+    AddMistake('Для триггера ' + FieldByName('triggername').AsString +
+      ' неверно указано значение поля rdb$trigger_type.', clRed);
 end;
 
 procedure TgdcTrigger.SyncTriggers(const ARelationName: String; const NeedRefresh: Boolean = True);

@@ -33,7 +33,7 @@ unit at_sql_parser;
 interface
 
 uses
-  Windows, SysUtils, Classes, Contnrs;
+  Windows, SysUtils, Classes, Contnrs, JclStrings;
 
 type
   TTokenType = (ttClause, ttWord, ttSymbolClause, ttClear, ttSpace, ttNone);
@@ -50,7 +50,9 @@ type
     cSort, cMerge, cIndex, cNatural, cAsc, cDesc,
     cUpdate, cSet, cValues, cAs, cCount, cDelete, cFirst, cSkip, cExtract,
     cDay, cHour, cMinute, cMonth, cSecond, cWeakday, cYear, cYearday,
-    cNone, cCase, cWhen, cElse, cThen, cEnd, cSubstring);
+    cNone, cCase, cWhen, cElse, cThen, cEnd, cSubstring,
+    cCoalesce, cIIF, cMatching, cReturning
+  );
 
   TClauses = set of TClause;
 
@@ -88,7 +90,8 @@ const
     'STARTING', 'WITH', 'SORT', 'MERGE', 'INDEX', 'NATURAL', 'ASC', 'DESC',
     'UPDATE', 'SET', 'VALUES', 'AS', 'COUNT', 'DELETE', 'FIRST', 'SKIP',
     'EXTRACT', 'DAY', 'HOUR', 'MINUTE', 'MONTH', 'SECOND', 'WEAKDAY',
-    'YEAR', 'YEARDAY', '', 'CASE', 'WHEN', 'ELSE', 'THEN', 'END', 'SUBSTRING'
+    'YEAR', 'YEARDAY', '', 'CASE', 'WHEN', 'ELSE', 'THEN', 'END', 'SUBSTRING',
+    'COALESCE', 'IIF', 'MATCHING', 'RETURNING'
   );
 
 
@@ -663,10 +666,29 @@ type
 
   end;
 
+  TsqlReturning = class(TsqlStatement)
+  private
+    FFields: TObjectList;
+    FValues: TObjectList;
+    FDone, FNeeded: TClauses;
+
+  protected
+    procedure ParseStatement; override;
+    procedure BuildStatement(out sql: String); override;
+
+  public
+    constructor Create(AParser: TsqlParser); override;
+    destructor Destroy; override;
+
+    property Fields: TObjectList read FFields;
+    property Values: TObjectList read FValues;
+  end;
+
   TsqlUpdate = class(TsqlStatement)
   private
     FTable: TsqlTable;
     FWhere: TsqlWhere;
+    FReturning: TsqlReturning;
 
     FFieldConditions: TObjectList;
 
@@ -696,6 +718,7 @@ type
     FFields: TObjectList;
     FValues: TObjectList;
     FFull: TsqlFull;
+    FReturning: TsqlReturning;
 
     FDone, FNeeded: TClauses;
 
@@ -712,6 +735,43 @@ type
     property Table: TsqlTable read FTable;
     property Fields: TObjectList read FFields;
     property Values: TObjectList read FValues;
+    property Full: TsqlFull read FFull;
+
+    property InsertAttrs: TClauses read FDone write SetDone;
+
+  end;
+
+{
+UPDATE OR INSERT INTO <table or view> [(<column_list>)]
+VALUES (<value_list>)
+[MATCHING <column_list>]
+[RETURNING <column_list> [INTO <variable_list>]]
+}
+
+  TsqlUpdateOrInsert = class(TsqlInsert)
+  private
+    FTable: TsqlTable;
+    FFields: TObjectList;
+    FValues: TObjectList;
+    FMatching: TObjectList;
+    FFull: TsqlFull;
+    FReturning: TsqlReturning;
+
+    FDone, FNeeded: TClauses;
+
+    procedure SetDone(const Value: TClauses);
+  protected
+    procedure ParseStatement; override;
+    procedure BuildStatement(out sql: String); override;
+
+  public
+    constructor Create(AParser: TsqlParser); override;
+    destructor Destroy; override;
+
+    property Table: TsqlTable read FTable;
+    property Fields: TObjectList read FFields;
+    property Values: TObjectList read FValues;
+    property Matching: TObjectList read FMatching;
     property Full: TsqlFull read FFull;
 
     property InsertAttrs: TClauses read FDone write SetDone;
@@ -935,10 +995,24 @@ type
 implementation
 
 uses
-  gdcBaseInterface;
+  jclSelected, JclStrHashMap;
 
 var
-  ClausesList: TStringList;
+  ClausesList: TStringHashMap;{TStringList}
+
+function AdjustMetaName(const S: String): String;
+var
+  Tmp, S1: String;
+begin
+  S1 := AnsiUpperCase(S);
+
+  if Length(S1) < 32 then
+    Result := S1
+  else begin
+    Tmp := IntToStr(Crc32_P(@S1[1], Length(S1), 0));
+    Result := Copy(S1, 1, 31 - Length(Tmp)) + Tmp;
+  end;
+end;
 
 procedure GetTablesName(const AnSql: String; out FList: TStrings);
 begin
@@ -1021,14 +1095,22 @@ begin
   end;
 end;
 
+procedure InitClausesList;
+var
+  I: TClause;
+begin
+  if ClausesList = nil then
+  begin
+    ClausesList := TStringHashMap.Create(CaseInSensitiveTraits, 256);
+    for I := Low(TClause) to High(TClause) do
+      ClausesList.Add(ClauseText[I], I);
+  end;
+end;
+
 function IsClause(const Text: String): Boolean;
 begin
-  Assert(ClausesList <> nil);
-
-  if ClausesList.IndexOf(UpperCase(Text)) = -1 then
-    Result := False
-  else
-    Result := True;
+  InitClausesList;
+  Result := ClausesList.Has(Text);
 end;
 
 function CreateCaseClause(FParser: TsqlParser): TsqlBaseCase;
@@ -1387,7 +1469,6 @@ end;
 
 procedure TsqlValue.BuildStatement(out sql: String);
 begin
-  Assert(Assigned(gdcBaseManager));
 
   if IsNumeric(FValue) or IsUserText(FValue) or IsNull(FValue) then
     sql := FSourceValue
@@ -1398,7 +1479,7 @@ begin
     sql := sql + ' ' + ClauseText[cCollate] + ' ' + FCollation;
 
   if eoSubName in FDone then
-    sql := sql + ' ' + ClauseText[cAs] + ' ' + gdcBaseManager.AdjustMetaName(FSubName);
+    sql := sql + ' ' + ClauseText[cAs] + ' ' + AdjustMetaName(FSubName);
 
   if eoAsc in FDone then
     sql := sql + ' ' + ClauseText[cAsc]
@@ -1639,15 +1720,13 @@ var
   subsql: string;
   I: Integer;
 begin
-  Assert(Assigned(gdcBaseManager));
-
   sql := '';
 
   for I := 0 to Comment.Count - 1 do
     sql := sql + Comment[I] + ' ';
 
   if eoAlias in FDone then
-    sql := sql + gdcBaseManager.AdjustMetaName(FAlias) + '.';
+    sql := sql + AdjustMetaName(FAlias) + '.';
 
   if eoName in FDone then
     sql := sql + FName;
@@ -1657,7 +1736,7 @@ begin
 
   if eoSubName in FDone then
   begin
-    sql := sql + ' ' + ClauseText[cAs] + ' ' + gdcBaseManager.AdjustMetaName(FSubName);
+    sql := sql + ' ' + ClauseText[cAs] + ' ' + AdjustMetaName(FSubName);
 
     if
       [eoUnderCast, eoUserFunc, eoSubName] * FDone =
@@ -1816,7 +1895,7 @@ begin
             Continue;
           end;
 
-          cSum, cAvg, cMax, cMin, cUpper,
+          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
           cCount, cGen_id, cFirst, cSkip:
           begin
             if BracketCount > 0 then
@@ -2273,10 +2352,10 @@ begin
     sql := Copy(sql, 1, Length(sql) - 1) + ArgSt;}
 
   if eoSubName in FDone then
-    sql := sql + ' AS ' + gdcBaseManager.AdjustMetaName(FSubName);
+    sql := sql + ' AS ' + AdjustMetaName(FSubName);
 
   if eoAlias in FDone then
-    sql := sql + ' ' + gdcBaseManager.AdjustMetaName(FSubName);
+    sql := sql + ' ' + AdjustMetaName(FSubName);
 
   for I := 0 to FJoins.Count - 1 do
   begin
@@ -2372,7 +2451,7 @@ begin
       ttClause:
       begin
         case Token.Clause of
-          cSum, cAvg, cMax, cMin, cUpper,
+          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
           cCast, cCount, cFirst, cSkip, cExtract, cSubString:
           begin
             CurrStatement := TsqlFunction.Create(FParser, True);
@@ -2489,8 +2568,6 @@ var
   subsql: String;
   CurrStatement: TsqlStatement;
 begin
-  Assert(Assigned(gdcBaseManager));
-
   sql := '';
 
   for I := 0 to FExprs.Count - 1 do
@@ -2505,7 +2582,7 @@ begin
   end;
 
   if eoSubName in FDone then
-    sql := sql + ' ' + ClauseText[cAs] + ' ' + gdcBaseManager.AdjustMetaName(FSubName);
+    sql := sql + ' ' + ClauseText[cAs] + ' ' + AdjustMetaName(FSubName);
 end;
 
 procedure TsqlExpr.SetSubName(const Value: String);
@@ -2601,7 +2678,7 @@ begin
       ttClause:
       begin
         case Token.Clause of
-          cSum, cAvg, cMax, cMin, cUpper,
+          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
           cCast, cCount, cFirst, cSkip, cExtract, cGen_ID, cSubString:
           begin
             CurrStatement := TsqlFunction.Create(FParser, False);
@@ -3163,7 +3240,7 @@ begin
               Break;
           end;
 
-          cSum, cAvg, cMax, cMin, cUpper,
+          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
           cCast, cCount, cGen_id, cSelect, cFirst, cSkip, cSubString:
           begin
             if GetLastClass = TsqlBoolean then
@@ -3606,6 +3683,9 @@ begin
               Exclude(FNeeded, eoComplicatedJoin);
 
               Rollback;
+              while Token.TokenType = ttSpace do
+                RollBack;
+
               FJoinTable := TsqlTable.Create(FParser);
               FJoinTable.ParseStatement;
               Continue;
@@ -3871,7 +3951,7 @@ begin
   end;
 
   if eoAlias in FDone then
-    sql := sql + ' ' + gdcBaseManager.AdjustMetaName(FAlias);
+    sql := sql + ' ' + AdjustMetaName(FAlias);
 
   Indent := Indent + 2;
   for I := 0 to FJoins.Count - 1 do
@@ -4103,16 +4183,8 @@ begin
             Continue;
           end;
 
-          cAll, cSome, cAny,
+          cAll, cSome, cAny, cUpper, cCoalesce, cIIF,
           cExists, cSingular, cCast, cSubString, cIs:
-          begin
-            CurrStatement := TsqlCondition.Create(FParser);
-            FConditions.Add(CurrStatement);
-            CurrStatement.ParseStatement;
-            Continue;
-          end;
-
-          cUpper:
           begin
             CurrStatement := TsqlCondition.Create(FParser);
             FConditions.Add(CurrStatement);
@@ -4307,6 +4379,7 @@ begin
 
   FTable := nil;
   FWhere := nil;
+  FReturning := nil;
 
   FDone := [];
   FNeeded := [cUpdate, cSet];
@@ -4323,6 +4396,9 @@ begin
 
   if Assigned(FWhere) then
     FreeAndNil(FWhere);
+
+  if Assigned(FReturning) then
+    FreeAndNil(FReturning);
 
   inherited Destroy;
 end;
@@ -4361,6 +4437,15 @@ begin
             FWhere.ParseStatement;
 
             Include(FDone, cWhere);
+            Continue;
+          end;
+
+          cReturning:
+          begin
+            FReturning := TsqlReturning.Create(FParser);
+            FReturning.ParseStatement;
+
+            Include(FDone, cReturning);
             Continue;
           end;
 
@@ -4453,6 +4538,12 @@ begin
     FWhere.BuildStatement(subsql);
     sql := sql + ' ' + #13#10 + subsql;
   end;
+
+  if Assigned(FReturning) then
+  begin
+    FReturning.BuildStatement(subsql);
+    sql := sql + ' ' + #13#10 + subsql;
+  end;
 end;
 
 procedure TsqlUpdate.SetDone(const Value: TClauses);
@@ -4462,7 +4553,7 @@ begin
   if cUpdate in FDone then
   begin
     if not Assigned(FTable) then
-      FTable := tsqlTable.Create(FParser);
+      FTable := TsqlTable.Create(FParser);
   end else begin
     if Assigned(FTable) then
       FreeAndNil(FTable);
@@ -4471,10 +4562,19 @@ begin
   if cWhere in FDone then
   begin
     if not Assigned(FWhere) then
-      FWhere := tsqlWhere.Create(FParser);
+      FWhere := TsqlWhere.Create(FParser);
   end else begin
     if Assigned(FWhere) then
       FreeAndNil(FWhere);
+  end;
+
+  if cReturning in FDone then
+  begin
+    if not Assigned(FReturning) then
+      FReturning := TsqlReturning.Create(FParser);
+  end else begin
+    if Assigned(FReturning) then
+      FreeAndNil(FReturning);
   end;
 end;
 
@@ -4488,6 +4588,7 @@ begin
   FValues := TObjectList.Create;
   FFields := TObjectList.Create;
   FFull := nil;
+  FReturning := nil;
 
   FDone := [];
   FNeeded := [cInsert, cInto, cValues];
@@ -4503,6 +4604,9 @@ begin
 
   if Assigned(FFull) then
     FreeAndNil(FFull);
+
+  if Assigned(FReturning) then
+    FreeAndNil(FReturning);
 
   inherited Destroy;
 end;
@@ -4564,6 +4668,14 @@ begin
           begin
             FFull := TsqlFull.Create(FParser);
             FFull.ParseStatement;
+            Include(FDone, Token.Clause);
+            Continue;
+          end;
+
+          cReturning:
+          begin
+            FReturning := TsqlReturning.Create(FParser);
+            FReturning.ParseStatement;
             Include(FDone, Token.Clause);
             Continue;
           end;
@@ -4711,6 +4823,12 @@ begin
     FFull.BuildStatement(subsql);
     sql := sql + ' ' + subsql + #13#10;
   end;
+
+  if Assigned(FReturning) then
+  begin
+    FReturning.BuildStatement(subsql);
+    sql := sql + '  ' + subsql + #13#10;
+  end;
 end;
 
 
@@ -4734,6 +4852,15 @@ begin
   end else begin
     if Assigned(FFull) then
       FreeAndNil(FFull);
+  end;
+
+  if cReturning in FDone then
+  begin
+    if not Assigned(FReturning) then
+      FReturning := TsqlReturning.Create(FParser);
+  end else begin
+    if Assigned(FReturning) then
+      FreeAndNil(FReturning);
   end;
 end;
 
@@ -5063,7 +5190,7 @@ begin
             Continue;
           end;
 
-          cSum, cAvg, cMax, cMin, cUpper,
+          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
           cCast, cCount, cGen_id, cFirst, cSkip, cSubString:
           begin
             CurrStatement := TsqlCondition.Create(FParser);
@@ -5885,16 +6012,10 @@ end;
 { TsqlParser }
 
 function GetClause(const Text: String): TClause;
-var
-  I: Integer;
 begin
-  Assert(ClausesList <> nil);
-
-  I := ClausesList.IndexOf(UpperCase(Text));
-  if I = -1 then
-    Result := cNone
-  else
-    Result := TClause(ClausesList.Objects[I]);
+  InitClausesList;
+  if not ClausesList.Find(Text, Result) then
+    Result := cNone;
 end;
 
 function GetSymbolClause(const Symb: Char): TSymbolClause;
@@ -5942,28 +6063,25 @@ begin
   // Добавим корректировку текста после запятых
   // Если после запятой идет сразу текст, то добавим между ними пробел
   // иначе возможно зацикливание парсера
+  K := 1;
+  repeat
+    I := StrFind(',', Result, K);
 
-  S := Result;
-  Result := '';
-  while AnsiPos(',', S) > 0 do
-  begin
-    if (AnsiPos('''', S) > 0) and (AnsiPos('''', S) < AnsiPos(',', S)) then
+    if I > 0 then
     begin
-      Result := Result + Copy(S, 1, AnsiPos('''', S));
-      Delete(S, 1, AnsiPos('''', S));
-      if AnsiPos('''', S) = 0 then
-        raise Exception.Create('Некорректный запрос: ковычки не закрыты');
-      Result := Result + Copy(S, 1, AnsiPos('''', S));
-      Delete(S, 1, AnsiPos('''', S));
-    end
-    else
-    begin
-      Result := Result + ' ' + Copy(S, 1, AnsiPos(',', S)) + ' ';
-      Delete(S, 1, AnsiPos(',', S));
-      S := TrimLeft(S);
+      if (StrFind('''', Result, K) > 0) and (StrFind('''', Result, K) < I) then
+      begin
+        K := StrFind('''', Result, StrFind('''', Result, K) + 1);
+        if K = 0 then
+          raise Exception.Create('Некорректный запрос: ковычки не закрыты');
+        I := K;
+      end
+      else if I <> StrFind(', ', Result, K) then
+        Insert(' ', Result, I + 1);
+
     end;
-  end;
-  Result := Result + ' ' + S;
+    K := I + 1;
+  until I = 0;
 end;
 
 constructor TsqlParser.Create(const AnSql: String);
@@ -6083,26 +6201,40 @@ end;
 
 procedure TsqlParser.ReadNext;
 
+  procedure FillToken(var StartIndex: Integer);
+  begin
+    if StartIndex = FIndex then
+    begin
+      FToken.Text := FSql[FIndex];
+      FToken.Source := FSource[FIndex];
+    end else
+    begin
+      FToken.Text := Copy(FSql, StartIndex, FIndex - StartIndex);
+      FToken.Source := Copy(FSource, StartIndex, FIndex - StartIndex);
+    end;
+    StartIndex := FIndex;
+  end;
+
   function ReadNextWord: String;
   var
     StrUserText: Boolean;
-
+    StartIndex: Integer;
   begin
     StrUserText := False;
     FToken.Text := '';
     FToken.Source := '';
+    StartIndex := FIndex;
     if FSql[FIndex] in NumberSymbols then
+    begin
       while (FIndex <= FLength) and (FSql[FIndex] in NumberSymbols) do
-      begin
-        FToken.Text := FToken.Text + FSql[FIndex];
-        FToken.Source := FToken.Source + FSource[FIndex];
-
         Inc(FIndex);
-      end
 
-    else repeat
+//      FillToken(StartIndex);
+    end else
+    repeat
       if (FSql[FIndex] in MathSymbolsArray) and not StrUserText then
       begin
+//        FillToken(StartIndex);
         if FToken.TextKind in [tkMath, tkNone] then
           FToken.TextKind := tkMath
         else
@@ -6111,6 +6243,7 @@ procedure TsqlParser.ReadNext;
 
       if (FSql[FIndex] in MathOperationArray) and not StrUserText then
       begin
+//        FillToken(StartIndex);
         if FToken.TextKind in [tkMathOp, tkNone] then
           FToken.TextKind := tkMathOp
         else
@@ -6119,6 +6252,7 @@ procedure TsqlParser.ReadNext;
 
       if (FSql[FIndex] in SymbolClauseArray) and not StrUserText then
       begin
+//        FillToken(StartIndex);
         Break;
       end else
 
@@ -6129,18 +6263,17 @@ procedure TsqlParser.ReadNext;
           StrUserText := True;
           FToken.TextKind := tkUserText;
         end else
-
         if StrUserText then
         begin
-          FToken.Text := FToken.Text + FSql[FIndex];
-          FToken.Source := FToken.Source + FSource[FIndex];
+//          FToken.Text := FToken.Text + FSql[FIndex];
+//          FToken.Source := FToken.Source + FSource[FIndex];
           Inc(FIndex);
           if (FIndex <= Length(FSql)) and (FSql[FIndex] = '''') then
           begin
             while (FIndex <= Length(FSql)) and (FSql[FIndex] = '''') do
             begin
-              FToken.Text := FToken.Text + FSql[FIndex];
-              FToken.Source := FToken.Source + FSource[FIndex];
+//              FToken.Text := FToken.Text + FSql[FIndex];
+//              FToken.Source := FToken.Source + FSource[FIndex];
               Inc(FIndex);
             end
           end
@@ -6158,7 +6291,8 @@ procedure TsqlParser.ReadNext;
 
       if (FSql[FIndex] <= ' ') and not StrUserText then
       begin
-        Break
+//        FillToken(StartIndex);
+        Break;
       end else
 
       if FToken.TextKind = tkNone then
@@ -6167,13 +6301,17 @@ procedure TsqlParser.ReadNext;
       end else
 
       if not (FToken.TextKind in [tkText, tkUserText]) then
+      begin
+//        FillToken(StartIndex);
         Break;
-
-      FToken.Text := FToken.Text + FSql[FIndex];
-      FToken.Source := FToken.Source + FSource[FIndex];
+      end;
+//      FToken.Text := FToken.Text + FSql[FIndex];
+//      FToken.Source := FToken.Source + FSource[FIndex];
 
       Inc(FIndex);
     until (FIndex > FLength);
+    if StartIndex <> FIndex then
+      FillToken(StartIndex);
 
     if IsNumeric(FToken.Text) then
       FToken.TextKind := tkUserText;
@@ -6412,14 +6550,6 @@ begin
         end;
 end;
 
-procedure FillUpClausesList;
-var
-  I: TClause;
-begin
-  for I := Low(TClause) to High(TClause) do
-    ClausesList.AddObject(UpperCase(ClauseText[I]), Pointer(I));
-end;
-
 {Возвращает список таблиц, входящих во фром-часть запроса, без повторений}
 procedure TsqlParser.GetTables(out FList: TStrings);
 var
@@ -6432,7 +6562,8 @@ var
     if (tbl is TsqlTable) then
     begin
       if FList.IndexOf(AnsiUpperCase((tbl as TsqlTable).TableName)) = -1 then
-        FList.Add(AnsiUpperCase((tbl as TsqlTable).TableName));
+        if ((tbl as TsqlTable).TableName <> '') then
+          FList.Add(AnsiUpperCase((tbl as TsqlTable).TableName));
 
       for K := 0 to (tbl as TsqlTable).Joins.Count - 1 do
       begin
@@ -6686,7 +6817,7 @@ begin
       begin
         case Token.Clause of
 
-          cSum, cAvg, cMax, cMin, cUpper,
+          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
           cCast, cCount, cFirst, cSkip, cExtract, cSubString:
           begin
             if FInternalStatement <> nil then
@@ -7034,7 +7165,7 @@ begin
             Break;
           end;
 
-          cSum, cAvg, cMax, cMin, cUpper,
+          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
           cCast, cCount, cFirst, cSkip, cExtract, cSubString:
           begin
             //Если это конструкция на else
@@ -7073,7 +7204,45 @@ begin
             Continue;
           end;
 
-          cIn, cIs, cNull, cNot, cExists, cSingular, cAnd, cOr:
+          cNull:
+          begin
+            //Если это конструкция на else
+            if eoElse in FDone then
+            begin
+              if not Assigned(FElseStatement) then
+              begin
+                FElseStatement := TsqlValue.Create(FParser, True);;
+                FElseStatement.ParseStatement;
+              end else
+                raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            end else
+             //Если это конструкция после then
+            if (eoThen in FDone) and not(eoThen in FNeeded)
+              and (WhenCount = FWhenStatement.Count + 1) then
+            begin
+              St := TsqlValue.Create(FParser, True);;
+              FWhenStatement.Add(St);
+              St.ParseStatement;
+            end else
+            //Если это конструкция как условие when
+            if (eoWhen in FDone) and (WhenCount = FWhenCondStatement.Count + 1)
+              and (not(eoWhen in FNeeded)) then
+            begin
+              St := TsqlValue.Create(FParser, True);;
+              FWhenCondStatement.Add(St);
+              St.ParseStatement;
+            end else
+           //Если это переменная Case
+            if (eoCase in FDone) and (FValue = nil) then
+            begin
+              FValue := TsqlValue.Create(FParser, True);;
+              FValue.ParseStatement;
+            end else
+              raise EatParserError.Create('Ошибка в sql-выражении: ' + Token.Text + '!');
+            Continue;
+          end;
+
+          cIn, cIs, {cNull,} cNot, cExists, cSingular, cAnd, cOr:
           begin
             //Если это конструкция на else
             if eoElse in FDone then
@@ -7486,7 +7655,7 @@ begin
       ttClause:
       begin
         case Token.Clause of
-          cSum, cAvg, cMax, cMin, cUpper,
+          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
           cCast, cCount, cFirst, cSkip, cExtract, cSubString:
           begin
             if FInternalStatement <> nil then
@@ -8248,11 +8417,217 @@ begin
 
 end;
 
+{ TsqlUpdateOrInsert }
+
+procedure TsqlUpdateOrInsert.BuildStatement(out sql: String);
+begin
+  inherited;
+
+end;
+
+constructor TsqlUpdateOrInsert.Create(AParser: TsqlParser);
+begin
+  inherited Create(AParser);
+
+  FMatching := TObjectList.Create;;
+  FReturning := nil;
+end;
+
+destructor TsqlUpdateOrInsert.Destroy;
+begin
+  FMatching.Free;
+  if Assigned(FReturning) then
+    FReturning.Free;
+
+  inherited Destroy;
+end;
+
+procedure TsqlUpdateOrInsert.ParseStatement;
+begin
+  inherited;
+
+end;
+
+procedure TsqlUpdateOrInsert.SetDone(const Value: TClauses);
+begin
+  FDone := Value;
+
+  if cInsert in FDone then
+  begin
+    if not Assigned(FTable) then
+      FTable := TsqlTable.Create(FParser);
+  end else begin
+    if Assigned(FTable) then
+      FreeAndNil(FTable);
+  end;
+
+  if cSelect in FDone then
+  begin
+    if not Assigned(FFull) then
+      FFull := TsqlFull.Create(FParser);
+  end else begin
+    if Assigned(FFull) then
+      FreeAndNil(FFull);
+  end;
+
+  if cReturning in FDone then
+  begin
+    if not Assigned(FReturning) then
+      FReturning := FReturning.Create(FParser);
+  end else begin
+    if Assigned(FReturning) then
+      FreeAndNil(FReturning);
+  end;
+end;
+
+{ TsqlReturning }
+
+procedure TsqlReturning.BuildStatement(out sql: String);
+var
+  subsql: String;
+  I: Integer;
+  CurrStatement: TsqlStatement;
+begin
+  sql := ClauseText[cReturning] + ' ' + #13#10;
+
+  for I := 0 to FFields.Count - 1 do
+  begin
+    CurrStatement := FFields[I] as TsqlStatement;
+    CurrStatement.BuildStatement(subsql);
+    sql := sql + subsql;
+
+    if I < FFields.Count - 1 then
+      sql := sql + ', ' + #13#10;
+  end;
+
+  if FValues.Count > 0 then
+  begin
+    sql := sql + ' ' + ClauseText[cInto] + ' ' + #13#10;
+
+    for I := 0 to FValues.Count - 1 do
+    begin
+      CurrStatement := FValues[I] as TsqlStatement;
+      CurrStatement.BuildStatement(subsql);
+      sql := sql + subsql;
+
+      if (I < FValues.Count - 1) then
+        sql := sql + ', ' + #13#10;
+    end;
+  end;
+end;
+
+constructor TsqlReturning.Create(AParser: TsqlParser);
+begin
+  inherited Create(AParser);
+
+  FFields := TObjectList.Create;
+  FValues := TObjectList.Create;
+
+  FDone := [];
+  FNeeded := [cReturning];
+end;
+
+destructor TsqlReturning.Destroy;
+begin
+  FFields.Free;
+  FValues.Free;                    
+
+  inherited Destroy;
+end;
+
+procedure TsqlReturning.ParseStatement;
+var
+  CurrStatement: TsqlStatement;
+  CommaCount: Integer;
+begin
+  CommaCount := 0;
+
+  with FParser do
+  while not (Token.TokenType in [ttClear, ttNone]) do
+  begin
+    case Token.TokenType of
+
+      ttSymbolClause:
+      begin
+        case Token.SymbolClause of
+
+          scComma:
+          begin
+            Inc(CommaCount);
+          end;
+
+          else begin
+            Break;
+          end;
+        end;
+      end;
+
+      ttClause:
+      begin
+        case Token.Clause of
+          cReturning:
+          begin
+            Include(FDone, Token.Clause);
+            Exclude(FNeeded, Token.Clause);
+          end;
+
+          cInto:
+          begin
+            Include(FDone, Token.Clause);
+            if ([cReturning, cInto] * FDone = [cReturning, cInto]) then
+              CommaCount := 0;
+          end;
+
+          else begin
+            Break;
+          end;
+        end;
+      end;
+
+      ttWord:
+      begin
+        if ([cReturning] * FDone = [cReturning]) and
+          (not (cInto in FDone)) and (CommaCount = FFields.Count) then
+        begin
+          case Token.TextKind of
+
+            tkText:
+            begin
+              CurrStatement := TsqlField.Create(FParser, False);
+              FFields.Add(CurrStatement);
+              CurrStatement.ParseStatement;
+              Continue;
+            end;
+
+            tkUserText:
+            begin
+              CurrStatement := TsqlValue.Create(FParser, False);
+              FFields.Add(CurrStatement);
+              CurrStatement.ParseStatement;
+              Continue;
+            end;
+
+          else
+            Break;
+          end;
+        end
+        else if (cInto in FDone) and (CommaCount = FValues.Count) then
+        begin
+          CurrStatement := TsqlValue.Create(FParser, True);
+          FValues.Add(CurrStatement);
+          CurrStatement.ParseStatement;
+          Continue;
+        end else
+          Break;
+      end;
+    end;
+
+    ReadNext;
+  end;
+end;
+
 initialization
-  ClausesList := TStringList.Create;
-  ClausesList.Sorted := True;
-  ClausesList.Duplicates := dupError;
-  FillUpClausesList;
+  ClausesList := nil;
 
 finalization
   FreeAndNil(ClausesList);

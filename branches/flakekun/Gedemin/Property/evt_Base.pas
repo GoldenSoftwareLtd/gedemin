@@ -75,6 +75,9 @@ type
     function FindFunction(const AnFunctionKey: Integer): TrpCustomFunction;
     function ReleaseFunction(AnFunction: TrpCustomFunction): Integer;
     function  UpdateList: Boolean;
+    // Удаляет ф-цию, чистит файл кэша
+    procedure RemoveFunction(const AnFunctionKey: Integer);
+
 
     function Get_Function(Index: Integer): TrpCustomFunction;
   public
@@ -482,6 +485,15 @@ const
   // TWebBrowser
   cWebBrowserBeforeNavigate2Name = 'ONBEFORENAVIGATE2';
   cWebBrowserDocumentCompleteName = 'ONDOCUMENTCOMPLETE';
+
+  // Events from TDrawGrid
+  cDrawCellEventName = 'ONDRAWCELL';
+  cGetEditMaskEventName = 'ONGETEDITMASK';
+  cGetEditTextEventName = 'ONGETEDITTEXT';
+  cRowMovedEventName = 'ONROWMOVED';
+  cSelectCellEventName = 'ONSELECTCELL';
+  cSetEditTextEventName = 'ONSETEDITTEXT';
+  cTopLeftChangedEventName = 'ONTOPLEFTCHANGED';
 
   //!DAlex
 
@@ -1042,6 +1054,15 @@ type
     procedure OnOpenPort(Sender: TObject);
     procedure OnClosePort(Sender: TObject);
     procedure OnError(Sender: TObject; ErrorCode: Integer; ErrorDescription: String);
+
+    // TDataGrid
+    procedure OnDrawCell(Sender: TObject; ACol, ARow: Longint; Rect: TRect; State: TGridDrawState);   //TDrawCellEvent
+    procedure OnGetEditMask(Sender: TObject; ACol, ARow: Longint; var Value: String);                 //TGetEditEvent
+    procedure OnGetEditText(Sender: TObject; ACol, ARow: Longint; var Value: String);                 //TGetEditEvent
+    procedure OnRowMoved(Sender: TObject; FromIndex, ToIndex: Longint);                               //TMovedEvent
+    procedure OnSelectCell(Sender: TObject; ACol, ARow: Longint; var CanSelect: Boolean);             //TSelectCellEvent
+    procedure OnSetEditText(Sender: TObject; ACol, ARow: Longint; const Value: String);               //TSetEditEvent
+    procedure OnTopLeftChanged(Sender: TObject);                                                      //TNotifyEvent
   end;
 
 // Эти функции нигде не используются
@@ -1553,7 +1574,7 @@ begin
     LEventOfObject := LEventObject.EventList.Find(cAfterShowDialogEventName);
     // Выполнение события
     ExecuteEvent(LEventOfObject, LParams, Sender, cAfterShowDialogEventName);
-    
+
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -2204,6 +2225,21 @@ begin
 
   {$ENDIF}
 
+    TDrawCellEvent(AddrNotifyEvent) := OnDrawCell;
+    FKnownEventList.AddObject('OnDrawCell', @AddrNotifyEvent);
+    TGetEditEvent(AddrNotifyEvent) := OnGetEditMask;
+    FKnownEventList.AddObject('OnGetEditMask', @AddrNotifyEvent);
+    TGetEditEvent(AddrNotifyEvent) := OnGetEditText;
+    FKnownEventList.AddObject('OnGetEditText', @AddrNotifyEvent);
+    TMovedEvent(AddrNotifyEvent) := OnRowMoved;
+    FKnownEventList.AddObject('OnRowMoved', @AddrNotifyEvent);
+    TSelectCellEvent(AddrNotifyEvent) := OnSelectCell;
+    FKnownEventList.AddObject('OnSelectCell', @AddrNotifyEvent);
+    TSetEditEvent(AddrNotifyEvent) := OnSetEditText;
+    FKnownEventList.AddObject('OnSetEditText', @AddrNotifyEvent);
+    TNotifyEvent(AddrNotifyEvent) := OnTopLeftChanged;
+    FKnownEventList.AddObject('OnTopLeftChanged', @AddrNotifyEvent);
+
     TStringList(FKnownEventList).Sorted := True;
   end;
 
@@ -2617,7 +2653,7 @@ begin
     LocSQL.Transaction := FTransaction;
     if not FTransaction.InTransaction then
       FTransaction.StartTransaction;
-    LocSQL.SQL.Text := 'SELECT evtd.* FROM evt_object evtm, evt_object evtd ' +
+    LocSQL.SQL.Text := 'SELECT evtd.id, evtd.name FROM evt_object evtm, evt_object evtd ' +
      'WHERE evtm.id = :id AND evtd.lb <= evtm.lb AND evtd.rb >= evtm.rb ORDER BY evtd.lb';
     LocSQL.Params[0].AsInteger := AnObjectKey;
     LocSQL.ExecQuery;
@@ -4259,7 +4295,7 @@ begin
     LEventOfObject := LEventObject.EventList.Find(cMouseMoveEventName);
     // Выполнение события
     ExecuteEvent(LEventOfObject, LParams, Sender, cMouseMoveEventName);
-    
+
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -4325,7 +4361,7 @@ begin
     // Обратное присвоение значений
 
     Handled := Boolean(GetVarParam(LParams[4]));
-    
+
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -5472,6 +5508,15 @@ begin
   FEventList.Add(cLoadSettingsAfterCreateEventName);
   FEventList.Add(cWebBrowserBeforeNavigate2Name);
   FEventList.Add(cWebBrowserDocumentCompleteName);
+
+  // Events from TDrawGrid
+  FEventList.Add(cDrawCellEventName);
+  FEventList.Add(cGetEditMaskEventName);
+  FEventList.Add(cGetEditTextEventName);
+  FEventList.Add(cRowMovedEventName);
+  FEventList.Add(cSelectCellEventName);
+  FEventList.Add(cSetEditTextEventName);
+  FEventList.Add(cTopLeftChangedEventName);
 end;
 
 function TEventControl.GetPropertyCanChangeCaption: Boolean;
@@ -6517,6 +6562,186 @@ begin
     Result:= Result.ChildObjects.FindObject(AnComponent.Name);
 end;
 
+procedure TEventControl.OnDrawCell(Sender: TObject; ACol, ARow: Integer;
+  Rect: TRect; State: TGridDrawState);
+var
+  LEventObject: TEventObject;
+  LEventOfObject: TEventItem;
+  LParams: Variant;
+
+  LgsRect: TgsRect;
+  I: Integer;
+begin
+  // Поиск объекта вызывающего событие
+  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
+  // Проверка результата поиска
+  if Assigned(LEventObject) then
+  begin
+    I := FRectList.IndexOf(Integer(Sender));
+    if I = -1 then
+    begin
+      LgsRect := TgsRect.Create2(TComponent(Sender), FRectList);
+      I := FRectList.Add(Integer(Sender));
+      FRectList.ValuesByIndex[I] := Integer(LgsRect);
+    end else
+      LgsRect := TgsRect(FRectList.ValuesByIndex[I]);
+    LgsRect.Rect := Rect;
+
+    // Формирование массива параметров. Различается в зависимости от параметров
+    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, ACol, ARow,
+      GetGdcOLEObject(LgsRect) as IDispatch, TGridDrawStateToStr(State)]);
+
+    // Поиск виртуального объекта для обработки события
+    LEventOfObject := LEventObject.EventList.Find(cDrawCellEventName);
+    // Выполнение события
+    ExecuteEvent(LEventOfObject, LParams, Sender, cDrawCellEventName);
+  end else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.OnGetEditMask(Sender: TObject; ACol, ARow: Integer;
+  var Value: String);
+var
+  LEventObject: TEventObject;
+  LEventOfObject: TEventItem;
+  LParams: Variant;
+begin
+  // Поиск объекта вызывающего событие
+  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
+  // Проверка результата поиска
+  if Assigned(LEventObject) then
+  begin
+    // Формирование массива параметров. Различается в зависимости от параметров
+    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, ACol, ARow, Value]);
+
+    // Поиск виртуального объекта для обработки события
+    LEventOfObject := LEventObject.EventList.Find(cGetEditMaskEventName);
+    // Выполнение события
+    ExecuteEvent(LEventOfObject, LParams, Sender, cGetEditMaskEventName);
+
+    Value := String(GetVarParam(LParams[3]));
+  end else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.OnGetEditText(Sender: TObject; ACol, ARow: Integer;
+  var Value: String);
+var
+  LEventObject: TEventObject;
+  LEventOfObject: TEventItem;
+  LParams: Variant;
+begin
+  // Поиск объекта вызывающего событие
+  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
+  // Проверка результата поиска
+  if Assigned(LEventObject) then
+  begin
+    // Формирование массива параметров. Различается в зависимости от параметров
+    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, ACol, ARow, Value]);
+
+    // Поиск виртуального объекта для обработки события
+    LEventOfObject := LEventObject.EventList.Find(cGetEditTextEventName);
+    // Выполнение события
+    ExecuteEvent(LEventOfObject, LParams, Sender, cGetEditTextEventName);
+
+    Value := String(GetVarParam(LParams[3]));
+  end else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.OnRowMoved(Sender: TObject; FromIndex,
+  ToIndex: Integer);
+var
+  LEventObject: TEventObject;
+  LEventOfObject: TEventItem;
+  LParams: Variant;
+begin
+  // Поиск объекта вызывающего событие
+  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
+  // Проверка результата поиска
+  if Assigned(LEventObject) then
+  begin
+    // Формирование массива параметров. Различается в зависимости от параметров
+    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, FromIndex, ToIndex]);
+
+    // Поиск виртуального объекта для обработки события
+    LEventOfObject := LEventObject.EventList.Find(cRowMovedEventName);
+    // Выполнение события
+    ExecuteEvent(LEventOfObject, LParams, Sender, cRowMovedEventName);
+  end else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.OnSelectCell(Sender: TObject; ACol, ARow: Integer;
+  var CanSelect: Boolean);
+var
+  LEventObject: TEventObject;
+  LEventOfObject: TEventItem;
+  LParams: Variant;
+begin
+  // Поиск объекта вызывающего событие
+  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
+  // Проверка результата поиска
+  if Assigned(LEventObject) then
+  begin
+    // Формирование массива параметров. Различается в зависимости от параметров
+    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, ACol, ARow, CanSelect]);
+
+    // Поиск виртуального объекта для обработки события
+    LEventOfObject := LEventObject.EventList.Find(cSelectCellEventName);
+    // Выполнение события
+    ExecuteEvent(LEventOfObject, LParams, Sender, cSelectCellEventName);
+
+    CanSelect := Boolean(GetVarParam(LParams[3]));
+  end else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.OnSetEditText(Sender: TObject; ACol, ARow: Integer;
+  const Value: String);
+var
+  LEventObject: TEventObject;
+  LEventOfObject: TEventItem;
+  LParams: Variant;
+begin
+  // Поиск объекта вызывающего событие
+  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
+  // Проверка результата поиска
+  if Assigned(LEventObject) then
+  begin
+    // Формирование массива параметров. Различается в зависимости от параметров
+    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch, ACol, ARow, Value]);
+
+    // Поиск виртуального объекта для обработки события
+    LEventOfObject := LEventObject.EventList.Find(cSetEditTextEventName);
+    // Выполнение события
+    ExecuteEvent(LEventOfObject, LParams, Sender, cSetEditTextEventName);
+  end else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
+procedure TEventControl.OnTopLeftChanged(Sender: TObject);
+var
+  LEventObject: TEventObject;
+  LEventOfObject: TEventItem;
+  LParams: Variant;
+begin
+  // Поиск объекта вызывающего событие
+  LEventObject := FEventObjectList.FindAllObject(Sender as TComponent);
+  // Проверка результата поиска
+  if Assigned(LEventObject) then
+  begin
+    // Формирование массива параметров. Различается в зависимости от параметров
+    LParams := VarArrayOf([GetGdcOLEObject(Sender) as IDispatch]);
+
+    // Поиск виртуального объекта для обработки события
+    LEventOfObject := LEventObject.EventList.Find(cTopLeftChangedEventName);
+    // Выполнение события
+    ExecuteEvent(LEventOfObject, LParams, Sender, cTopLeftChangedEventName);
+  end else
+    raise Exception.Create(cMsgCantFindObject);
+end;
+
 { TgsFunctionList }
 
 function TgsFunctionList.AddFromDataSet(AnDataSet: TDataSet): TrpCustomFunction;
@@ -6906,7 +7131,8 @@ begin
     ibsqlFunc := TIBQuery.Create(nil);
     try
       ibsqlFunc.Transaction := gdcBaseManager.ReadTransaction;
-      ibsqlFunc.SQL.Text := 'SELECT * FROM gd_function WHERE id = :id';
+      ibsqlFunc.SQL.Text := 'SELECT ID, MODULECODE, NAME, COMMENT, SCRIPT, ' +
+        ' MODULE, LANGUAGE, EDITIONDATE, ENTEREDPARAMS FROM gd_function WHERE id = :id';
       ibsqlFunc.Params[0].AsInteger := AnFunctionKey;
       ibsqlFunc.Open;
       if not ibsqlFunc.Eof then
@@ -7070,6 +7296,20 @@ begin
   Result := TrpCustomFunctionEx(AnFunction).FExternalUsedCounter;
 end;
 
+procedure TgsFunctionList.RemoveFunction(const AnFunctionKey: Integer);
+var
+  Index: Integer;
+begin
+  //вместо того, что бы использовать ф-цию UpdateList, которая удалит
+  //файл кэша, а потом перечитает все ф-ции из gd_function, просто удаляем
+  //файл и чистим список. кэш заполнится автоматически при обращении к используемым
+  //ф-циям.
+
+  DeleteSFFiles;
+  Index := FSortFuncList.IndexOf(AnFunctionKey);
+  if Index > - 1 then
+    FSortFuncList.Delete(Index);
+end;
 
 function TgsFunctionList.UpdateList: Boolean;
 var
@@ -7086,7 +7326,8 @@ begin
     ibqueryFunc := TIBQuery.Create(nil);
     try
       ibqueryFunc.Transaction := gdcBaseManager.ReadTransaction;
-      ibqueryFunc.SQL.Text := 'SELECT * FROM gd_function';
+      ibqueryFunc.SQL.Text := 'SELECT ID, MODULECODE, NAME, COMMENT, SCRIPT, ' +
+        ' MODULE, LANGUAGE, EDITIONDATE, ENTEREDPARAMS FROM gd_function';
       ibqueryFunc.Open;
       while not ibqueryFunc.Eof do
       begin
@@ -7394,35 +7635,14 @@ begin
       try
         ibsqlObj.Database := AnDatabase;
         ibsqlObj.Transaction := AnTransaction;
-
-        { TODO : В финальной версии удалить! }
-        {
-        ibsqlObj.SQL.Text :=
-          'select count(*) as res from rdb$relation_fields '#13#10 +
-          'where RDB$RELATION_NAME = ''EVT_OBJECT'' '#13#10 +
-          'and (rdb$field_name = ''OBJECTNAME'' or'#13#10 +
-          'rdb$field_name = ''CLASSNAME'' or'#13#10 +
-          'rdb$field_name = ''SUBTYPE'')';
-        ibsqlObj.ExecQuery;
-        if ibsqlObj.Eof or (ibsqlObj.FieldByName('res').AsInteger <> 3) then
-        begin
-          MessageBox(0, PChar('Для работы данной версии Гедемина'#13#10 +
-            'необходимо модифицировать базу данных'#13#10 +
-            'Запустите приложение Modify.exe.'), PChar(''), MB_OK or MB_ICONERROR);
-          ibsqlObj.Close;
-          Application.Terminate;
-        end;
-        if ibsqlObj.Open then
-          ibsqlObj.Close;
-        }
-
-        ibsqlObj.SQL.Text := 'SELECT * FROM evt_object WHERE objectname > '''' ' +
+        ibsqlObj.SQL.Text := 'SELECT PARENT, ID, OBJECTNAME FROM evt_object WHERE objectname > '''' ' +
          'ORDER BY lb';
         ibsqlObj.ExecQuery;
 
         ibsqlEvent.Database := AnDatabase;
         ibsqlEvent.Transaction := AnTransaction;
-        ibsqlEvent.SQL.Text := 'SELECT oe.* FROM evt_objectevent oe JOIN' +
+        ibsqlEvent.SQL.Text := 'SELECT oe.objectkey, oe.eventname, oe.id, oe.functionkey, oe.disable ' +
+         ' FROM evt_objectevent oe JOIN ' +
          ' evt_object ob ON oe.objectkey = ob.id WHERE ob.objectname > '''' ORDER BY ob.lb, oe.eventname';
         ibsqlEvent.ExecQuery;
 

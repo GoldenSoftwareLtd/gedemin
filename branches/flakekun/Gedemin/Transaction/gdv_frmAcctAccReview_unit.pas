@@ -306,37 +306,42 @@ begin
     F.Caption := AccReviewFieldList[I].Caption;
     F.Condition := True;
     F.Total := True;
+    
     if Pos('NCU_', AccReviewFieldList[I].FieldName) = 1 then begin
       F.DisplayFormat := DisplayFormat(frAcctSum.NcuDecDigits);
       if frAcctSum.InNcu then
-        F.Visible := fvVisible;
+        F.Visible := fvVisible
+      else
+        F.Visible := fvHidden;
+    end
+    else if Pos('CURR_', AccReviewFieldList[I].FieldName) = 1 then
+    begin
+      F.DisplayFormat := DisplayFormat(frAcctSum.CurrDecDigits);
+      if (frAcctSum.InCurr) and (not frAcctSum.InNcu) then
+        F.Visible := fvVisible
+      else
+        F.Visible := fvHidden;
+      if (frAcctSum.InCurr) and (frAcctSum.InNcu) then
+        F.DisplayFields.Add(AccReviewFieldList[I].DisplayFieldName);
+    end
+    else if Pos('EQ_', AccReviewFieldList[I].FieldName) = 1 then
+    begin
+      F.DisplayFormat := DisplayFormat(frAcctSum.EQDecDigits);
+      if (frAcctSum.InEQ) and (not frAcctSum.InNcu) then
+        F.Visible := fvVisible
+      else
+        F.Visible := fvHidden;
+      if (frAcctSum.InEQ) and (frAcctSum.InNcu) then
+        F.DisplayFields.Add(AccReviewFieldList[I].DisplayFieldName);
     end
     else
-      if Pos('CURR_', AccReviewFieldList[I].FieldName) = 1 then
-      begin
-        F.DisplayFormat := DisplayFormat(frAcctSum.CurrDecDigits);
-        if (frAcctSum.InCurr) and (not frAcctSum.InNcu) then
-          F.Visible := fvVisible;
-        if (frAcctSum.InCurr) and (frAcctSum.InNcu) then
-          F.DisplayFields.Add(AccReviewFieldList[I].DisplayFieldName);
-      end
-      else
-        if Pos('EQ_', AccReviewFieldList[I].FieldName) = 1 then
-        begin
-          F.DisplayFormat := DisplayFormat(frAcctSum.EQDecDigits);
-          if (frAcctSum.InEQ) and (not frAcctSum.InNcu) then
-            F.Visible := fvVisible;
-          if (frAcctSum.InEQ) and (frAcctSum.InNcu) then
-            F.DisplayFields.Add(AccReviewFieldList[I].DisplayFieldName);
-        end
-        else
-        begin
-          {F.Visible := ((AccReviewFieldList[I].FieldName = 'ALIAS') and ((FAccountIDs.Count > 1) or (FAccountIDs.Count = 0)))
-            or (AccReviewFieldList[I].FieldName = 'CORRALIAS')
-            or (AccReviewFieldList[I].FieldName = 'NAME')
-            or (AccReviewFieldList[I].FieldName = 'CORRNAME')}
-          F.Visible := fvUnknown; 
-        end;
+    begin
+      {F.Visible := ((AccReviewFieldList[I].FieldName = 'ALIAS') and ((FAccountIDs.Count > 1) or (FAccountIDs.Count = 0)))
+        or (AccReviewFieldList[I].FieldName = 'CORRALIAS')
+        or (AccReviewFieldList[I].FieldName = 'NAME')
+        or (AccReviewFieldList[I].FieldName = 'CORRNAME')}
+      F.Visible := fvUnknown;
+    end;
   end;
 
   if FValueList.Count > 0 then

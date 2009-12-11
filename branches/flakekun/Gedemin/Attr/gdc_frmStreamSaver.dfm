@@ -1,6 +1,6 @@
 object gdc_frmStreamSaver: Tgdc_frmStreamSaver
-  Left = 474
-  Top = 199
+  Left = 629
+  Top = 192
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Мастер переноса данных'
@@ -31,7 +31,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       Width = 85
       Height = 25
       Caption = 'Закрыть'
-      TabOrder = 3
+      TabOrder = 2
       OnClick = btnCloseClick
     end
     object btnNext: TButton
@@ -42,7 +42,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       Action = actNext
       Caption = 'Дальше >'
       Default = True
-      TabOrder = 2
+      TabOrder = 1
     end
     object btnPrev: TButton
       Left = 193
@@ -51,14 +51,6 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       Height = 25
       Action = actPrev
       Caption = '< Назад'
-      TabOrder = 1
-    end
-    object btnSettings: TButton
-      Left = 13
-      Top = 8
-      Width = 76
-      Height = 25
-      Action = actStreamSettings
       TabOrder = 0
     end
   end
@@ -91,18 +83,11 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
         ParentFont = False
       end
       object lblSecond: TLabel
-        Left = 201
-        Top = 13
-        Width = 74
-        Height = 13
-        Caption = '2. Выбор базы'
-      end
-      object lblThird: TLabel
         Left = 384
         Top = 13
         Width = 72
         Height = 13
-        Caption = '3. Сохранение'
+        Caption = '2. Сохранение'
       end
     end
     object PageControl: TPageControl
@@ -110,131 +95,150 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       Top = 41
       Width = 506
       Height = 289
-      ActivePage = tbsFirst
+      ActivePage = tbsProcess
       Align = alClient
       TabOrder = 1
-      object tbsFirst: TTabSheet
-        Caption = 'tbsFirst'
+      object tbsSave: TTabSheet
+        Caption = 'tbsSave'
         TabVisible = False
-        OnShow = tbsFirstShow
-        object gbOptions: TGroupBox
-          Left = 5
-          Top = 0
-          Width = 488
-          Height = 145
-          Caption = ' Свойства  '
-          TabOrder = 0
-          object lblFileName: TLabel
-            Left = 8
-            Top = 22
-            Width = 60
-            Height = 13
-            Caption = 'Имя файла:'
-          end
-          object lblFileType: TLabel
-            Left = 8
-            Top = 46
-            Width = 57
-            Height = 13
-            Caption = 'Тип файла:'
-          end
-          object lblLoadingSourceBase: TLabel
-            Left = 8
-            Top = 94
-            Width = 79
-            Height = 13
-            Caption = 'Исходная база:'
-          end
-          object lblLoadingTargetBase: TLabel
-            Left = 8
-            Top = 118
-            Width = 74
-            Height = 13
-            Caption = 'Целевая база:'
-          end
-          object lblIncremented: TLabel
-            Left = 8
-            Top = 70
-            Width = 80
-            Height = 13
-            Caption = 'Инкрементный:'
-          end
-          object eFileName: TEdit
-            Left = 116
-            Top = 18
-            Width = 364
-            Height = 21
-            AutoSize = False
-            ReadOnly = True
-            TabOrder = 0
-          end
-          object eFileType: TEdit
-            Left = 116
-            Top = 42
-            Width = 222
-            Height = 21
-            AutoSize = False
-            ReadOnly = True
-            TabOrder = 1
-          end
-          object eLoadingSourceBase: TEdit
-            Left = 116
-            Top = 90
-            Width = 222
-            Height = 21
-            AutoSize = False
-            ReadOnly = True
-            TabOrder = 2
-          end
-          object eLoadingTargetBase: TEdit
-            Left = 116
-            Top = 114
-            Width = 222
-            Height = 21
-            AutoSize = False
-            ReadOnly = True
-            TabOrder = 3
-          end
-          object eIncremented: TEdit
-            Left = 116
-            Top = 66
-            Width = 222
-            Height = 21
-            AutoSize = False
-            ReadOnly = True
-            TabOrder = 4
-          end
-        end
-      end
-      object tbsSecond: TTabSheet
-        Caption = 'tbsSecond'
-        ImageIndex = 1
-        TabVisible = False
-        OnShow = tbsSecondShow
-        object Label1: TLabel
-          Left = 10
-          Top = 7
-          Width = 448
-          Height = 13
+        OnShow = tbsSaveShow
+        object lblIncrementedHelp: TLabel
+          Left = 8
+          Top = 70
+          Width = 481
+          Height = 19
+          AutoSize = False
           Caption = 
             'Из таблицы выберите базу данных на которую будут отправлены сохр' +
-            'аняемые данные.'
+            'аняемые данные:'
           WordWrap = True
+        end
+        object lblFileType: TLabel
+          Left = 8
+          Top = 22
+          Width = 57
+          Height = 13
+          Caption = 'Тип файла:'
+        end
+        object lblIncremented: TLabel
+          Left = 8
+          Top = 46
+          Width = 80
+          Height = 13
+          Caption = 'Инкрементный:'
         end
         object pnlDatabases: TPanel
           Left = 0
-          Top = 21
+          Top = 88
           Width = 498
-          Height = 258
+          Height = 191
           Align = alBottom
           BevelOuter = bvNone
           TabOrder = 0
         end
+        object cbStreamFormat: TComboBox
+          Left = 116
+          Top = 18
+          Width = 364
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 0
+          TabOrder = 1
+          OnChange = cbStreamFormatChange
+        end
+        object cbIncremented: TCheckBox
+          Left = 116
+          Top = 45
+          Width = 221
+          Height = 17
+          TabOrder = 2
+          OnClick = cbIncrementedClick
+        end
       end
-      object tbsThird: TTabSheet
+      object tbsLoad: TTabSheet
+        Caption = 'tbsLoad'
+        ImageIndex = 1
+        TabVisible = False
+        OnShow = tbsLoadShow
+        object lblFileName: TLabel
+          Left = 8
+          Top = 22
+          Width = 60
+          Height = 13
+          Caption = 'Имя файла:'
+        end
+        object lblLoadingSourceBase: TLabel
+          Left = 8
+          Top = 94
+          Width = 79
+          Height = 13
+          Caption = 'Исходная база:'
+        end
+        object lblLoadingTargetBase: TLabel
+          Left = 8
+          Top = 118
+          Width = 74
+          Height = 13
+          Caption = 'Целевая база:'
+        end
+        object lblLoadingFileTypeLabel: TLabel
+          Left = 8
+          Top = 46
+          Width = 57
+          Height = 13
+          Caption = 'Тип файла:'
+        end
+        object lblLoadingFileType: TLabel
+          Left = 116
+          Top = 46
+          Width = 3
+          Height = 13
+        end
+        object lblLoadingIncremented: TLabel
+          Left = 116
+          Top = 70
+          Width = 3
+          Height = 13
+        end
+        object lblLoadingIncrementedLabel: TLabel
+          Left = 8
+          Top = 70
+          Width = 80
+          Height = 13
+          Caption = 'Инкрементный:'
+        end
+        object eFileName: TEdit
+          Left = 116
+          Top = 18
+          Width = 364
+          Height = 21
+          AutoSize = False
+          ReadOnly = True
+          TabOrder = 0
+        end
+        object eLoadingSourceBase: TEdit
+          Left = 116
+          Top = 90
+          Width = 222
+          Height = 21
+          AutoSize = False
+          ReadOnly = True
+          TabOrder = 1
+        end
+        object eLoadingTargetBase: TEdit
+          Left = 116
+          Top = 114
+          Width = 222
+          Height = 21
+          AutoSize = False
+          ReadOnly = True
+          TabOrder = 2
+        end
+      end
+      object tbsProcess: TTabSheet
         ImageIndex = 3
         TabVisible = False
-        OnShow = tbsThirdShow
+        OnShow = tbsProcessShow
         object lblErrorMsg: TLabel
           Left = 0
           Top = 125
@@ -302,6 +306,12 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           AutoSize = False
           Caption = '0 / 0'
         end
+        object imgStatus: TImage
+          Left = 336
+          Top = 257
+          Width = 16
+          Height = 16
+        end
         object btnShowLog: TButton
           Left = 355
           Top = 251
@@ -366,6 +376,14 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Visible = False
           WordWrap = True
         end
+        object lblSettingFormat: TLabel
+          Left = 6
+          Top = 126
+          Width = 101
+          Height = 13
+          Caption = 'Формат настройки:'
+          Visible = False
+        end
         object cbMakeSetting: TCheckBox
           Left = 6
           Top = 90
@@ -376,6 +394,18 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           State = cbChecked
           TabOrder = 0
           Visible = False
+          OnClick = cbMakeSettingClick
+        end
+        object cbSettingFormat: TComboBox
+          Left = 116
+          Top = 122
+          Width = 222
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 0
+          TabOrder = 1
+          Visible = False
+          OnChange = cbSettingFormatChange
         end
       end
     end
@@ -390,10 +420,6 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
     object actPrev: TAction
       Caption = 'Назад'
       OnExecute = actPrevExecute
-    end
-    object actStreamSettings: TAction
-      Caption = 'Опции'
-      OnExecute = actStreamSettingsExecute
     end
   end
 end

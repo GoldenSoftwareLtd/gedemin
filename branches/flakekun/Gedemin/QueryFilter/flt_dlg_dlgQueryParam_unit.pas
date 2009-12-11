@@ -36,14 +36,15 @@ uses
 type
   TdlgQueryParam = class(TForm)
     pnlButtons: TPanel;
-    btnOK: TButton;
-    btnCancel: TButton;
     ScrollBox1: TScrollBox;
     Timer1: TTimer;
     pnlName: TPanel;
     lblFilterName: TLabel;
     lblFormName: TLabel;
     Bevel1: TBevel;
+    pnlRightButtons: TPanel;
+    btnOK: TButton;
+    btnCancel: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
@@ -54,7 +55,8 @@ type
     FHint: THintWindow;
     FLineList: TObjectList;
     FParamList: TgsParamList;
-
+    // Устанавливает ширину окна в зависимости от ширины названий параметров
+    procedure CalcDialogWidth;
     procedure ShowHint(const AnComment: String; const X, Y: SmallInt);
 
   public
@@ -79,6 +81,9 @@ uses
     , gd_localization_stub
   {$ENDIF}
   ;
+
+const
+  DEFAULT_DIALOG_WIDTH = 404;
 
 {$R *.DFM}
 
@@ -240,6 +245,7 @@ var
             TgsIBLookupComboBox(FWinCtrl).Transaction := FTransaction;
             TgsIBLookupComboBox(FWinCtrl).ShowHint := True;
             TgsIBLookupComboBox(FWinCtrl).SortOrder := TgsSortOrder(LocParamList.Params[I].SortOrder);
+            TgsIBLookupComboBox(FWinCtrl).ShowDisabled := True;           // Будем отображать записи с DISABLED = 1
             Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               if LocParamList.Params[I].LinkConditionFunction > '' then
@@ -330,6 +336,8 @@ begin
     if FLineList.Count > 0 then
     begin
       Self.ActiveControl := Tdlg_frmParamLine(FLineList.Items[0]).WinControl;
+      // Установим ширину окна в зависимости от ширины названий параметров
+      CalcDialogWidth;
       Result := ShowModal = mrOK;
     end;
   finally
@@ -588,6 +596,24 @@ begin
   Assert(FParamList <> nil);
   SetResultFromLine(FParamList);
   ModalResult := mrOk;
+end;
+
+procedure TdlgQueryParam.CalcDialogWidth;
+var
+  LineCounter: Integer;
+  LabelWidth, MaxWidth: Integer;
+begin
+  // Сначала установим ширину по умолчанию
+  MaxWidth := DEFAULT_DIALOG_WIDTH;
+  for LineCounter := 0 to FLineList.Count - 1 do
+  begin
+    // Будем искать метку шириной с полями больше чем диалог
+    LabelWidth := Tdlg_frmParamLine(FLineList.Items[LineCounter]).lblName.Width * 2 + BLANK_SPACE_WIDTH * 3;
+    if LabelWidth > MaxWidth then
+      MaxWidth := LabelWidth;
+  end;
+
+  Self.Width := MaxWidth;
 end;
 
 end.

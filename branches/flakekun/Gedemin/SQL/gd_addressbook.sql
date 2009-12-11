@@ -51,6 +51,9 @@ CREATE TABLE gd_contact
   phone         dtext40,
   fax           dtext40,
 
+  creatorkey    dforeignkey,
+  creationdate  dcreationdate,
+
   editorkey     dforeignkey,
   editiondate   deditiondate,
 
@@ -91,6 +94,9 @@ ALTER TABLE gd_contact ADD CONSTRAINT gd_fk_contact_editorkey
   FOREIGN KEY (editorkey) REFERENCES gd_contact(id) 
   ON UPDATE CASCADE;
 
+ALTER TABLE gd_contact ADD CONSTRAINT gd_fk_contact_creatorkey
+  FOREIGN KEY (creatorkey) REFERENCES gd_contact(id)
+  ON UPDATE CASCADE;
 
 CREATE ASC INDEX gd_x_contact_name ON gd_contact (name);
 

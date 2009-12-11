@@ -448,10 +448,6 @@ begin
   finally
     SQL.Free;
   end;
-{  for I := 0 to AlterFieldCount -  1 do
-  begin
-    AlterField(AlterFields[I], IBDB);
-  end;}
 
   ConvertAutoTrrecord(IBDB, Log);
   ConvertOldTrEntries(IBDB, Log);

@@ -1,8 +1,8 @@
 inherited gdc_dlgSettingOrder: Tgdc_dlgSettingOrder
-  Left = 498
-  Top = 141
-  Width = 267
-  Height = 324
+  Left = 317
+  Top = 127
+  Width = 655
+  Height = 577
   BorderStyle = bsSizeable
   Caption = 'Порядок настроек'
   Font.Charset = DEFAULT_CHARSET
@@ -11,37 +11,29 @@ inherited gdc_dlgSettingOrder: Tgdc_dlgSettingOrder
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 301
-    TabOrder = 7
+    TabOrder = 8
     Visible = False
   end
   inherited btnNew: TButton
     Top = 301
     Visible = False
   end
-  inherited btnOK: TButton
-    Left = 105
-    Top = 269
-    Anchors = [akRight, akBottom]
-    TabOrder = 5
-  end
-  inherited btnCancel: TButton
-    Left = 188
-    Top = 269
-    Anchors = [akRight, akBottom]
-    TabOrder = 6
-  end
   inherited btnHelp: TButton
     Top = 301
     Visible = False
   end
-  object bbtnUp: TBitBtn [5]
-    Left = 224
-    Top = 56
+  inherited btnOK: TButton
+    Left = 493
+    Top = 522
+    Anchors = [akRight, akBottom]
+    TabOrder = 5
+  end
+  object bbtnUp: TBitBtn [4]
+    Left = 36
+    Top = 512
     Width = 33
     Height = 33
     Action = actUp
-    Anchors = [akTop, akRight]
     TabOrder = 1
     Glyph.Data = {
       76010000424D7601000000000000760000002800000020000000100000000100
@@ -58,13 +50,12 @@ inherited gdc_dlgSettingOrder: Tgdc_dlgSettingOrder
       3333333333337F33333333333333933333333333333373333333}
     NumGlyphs = 2
   end
-  object bbtnDown: TBitBtn [6]
-    Left = 224
-    Top = 120
+  object bbtnDown: TBitBtn [5]
+    Left = 76
+    Top = 512
     Width = 33
     Height = 33
     Action = actDown
-    Anchors = [akTop, akRight]
     TabOrder = 2
     Glyph.Data = {
       76010000424D7601000000000000760000002800000020000000100000000100
@@ -81,12 +72,11 @@ inherited gdc_dlgSettingOrder: Tgdc_dlgSettingOrder
       444377733337F333777FC3333339333337437333333733333373}
     NumGlyphs = 2
   end
-  object lbxSetting: TListBox [7]
+  object lbxSetting: TListBox [6]
     Left = 16
-    Top = 8
-    Width = 201
-    Height = 249
-    Anchors = [akLeft, akTop, akRight, akBottom]
+    Top = 512
+    Width = 12
+    Height = 25
     DragMode = dmAutomatic
     ItemHeight = 13
     MultiSelect = True
@@ -97,16 +87,106 @@ inherited gdc_dlgSettingOrder: Tgdc_dlgSettingOrder
     OnDragOver = lbxSettingDragOver
     OnMouseMove = lbxSettingMouseMove
   end
+  object pnlMain: TPanel [7]
+    Left = 0
+    Top = 0
+    Width = 647
+    Height = 515
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    TabOrder = 7
+    object lvSetting: TListView
+      Left = 1
+      Top = 27
+      Width = 645
+      Height = 487
+      Align = alClient
+      Columns = <
+        item
+          Caption = 'Наименование'
+          Width = 200
+        end
+        item
+          Caption = 'Категория'
+          Width = 100
+        end>
+      ColumnClick = False
+      DragMode = dmAutomatic
+      GridLines = True
+      HideSelection = False
+      ReadOnly = True
+      RowSelect = True
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 0
+      ViewStyle = vsReport
+      OnDragOver = lvSettingDragOver
+      OnMouseMove = lvSettingMouseMove
+    end
+    object TBDock1: TTBDock
+      Left = 1
+      Top = 1
+      Width = 645
+      Height = 26
+      object TBToolbar1: TTBToolbar
+        Left = 0
+        Top = 0
+        Caption = 'TBToolbar1'
+        Images = dmImages.il16x16
+        TabOrder = 0
+        object TBItem4: TTBItem
+          Action = actTop
+        end
+        object TBSeparatorItem1: TTBSeparatorItem
+        end
+        object TBItem3: TTBItem
+          Action = actUp
+        end
+        object TBItem2: TTBItem
+          Action = actDown
+        end
+        object TBSeparatorItem2: TTBSeparatorItem
+        end
+        object TBItem1: TTBItem
+          Action = actBottom
+        end
+      end
+    end
+  end
+  inherited btnCancel: TButton
+    Left = 576
+    Top = 522
+    Anchors = [akRight, akBottom]
+    TabOrder = 6
+  end
   inherited alBase: TActionList
+    Images = dmImages.il16x16
     Left = 78
     Top = 31
     object actUp: TAction
+      Category = 'Order'
       Hint = 'Вверх'
+      ImageIndex = 239
       OnExecute = actUpExecute
     end
     object actDown: TAction
+      Category = 'Order'
       Hint = 'Вниз'
+      ImageIndex = 240
       OnExecute = actDownExecute
+    end
+    object actTop: TAction
+      Category = 'Order'
+      Caption = 'actTop'
+      Hint = 'В начало'
+      ImageIndex = 47
+      OnExecute = actTopExecute
+    end
+    object actBottom: TAction
+      Category = 'Order'
+      Caption = 'actBottom'
+      Hint = 'В конец'
+      ImageIndex = 48
+      OnExecute = actBottomExecute
     end
   end
   inherited dsgdcBase: TDataSource

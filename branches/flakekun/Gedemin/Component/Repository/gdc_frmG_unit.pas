@@ -366,7 +366,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  ;
+  , gdc_frmStreamSaver;
 
 {
 var
@@ -928,16 +928,28 @@ begin
 end;
 
 procedure Tgdc_frmG.actSaveToFileExecute(Sender: TObject);
-begin
-  if gdcObject <> nil then
-    gdcObject.SaveToFile;
-end;
-
-procedure Tgdc_frmG.actLoadFromFileExecute(Sender: TObject);
+var
+  frmStreamSaver: TForm;
 begin
   if gdcObject <> nil then
   begin
-    gdcObject.LoadFromFile;
+    //gdcObject.SaveToFile;
+    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
+    (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
+  end;
+end;
+
+procedure Tgdc_frmG.actLoadFromFileExecute(Sender: TObject);
+var
+  frmStreamSaver: TForm;
+begin
+  if gdcObject <> nil then
+  begin
+    //gdcObject.LoadFromFile;
+    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
+    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
+    (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadForm;
     gdcObject.CloseOpen;
   end;
 end;
@@ -1169,7 +1181,7 @@ begin
     PN.Width := W;
   end;
 
-  if Assigned(F) and F.CanFocus then
+  if Assigned(F) and F.CanFocus and (GetParentForm(F) = Self) then
     ActiveControl := F;
 end;
 

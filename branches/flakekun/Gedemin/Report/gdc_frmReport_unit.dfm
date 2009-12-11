@@ -82,14 +82,12 @@ inherited gdc_frmReportList: Tgdc_frmReportList
       Caption = 'Перестроить отчет'
       Hint = 'Перестроить отчет'
       ImageIndex = 16
-      OnExecute = actReBuildReportExecute
     end
     object actDefaultServer: TAction
       Category = 'Report'
       Caption = 'Сервер отчетов'
       Hint = 'Сервер отчетов'
       ImageIndex = 36
-      OnExecute = actDefaultServerExecute
     end
     object actRefresh: TAction
       Category = 'Report'
@@ -97,7 +95,6 @@ inherited gdc_frmReportList: Tgdc_frmReportList
       Hint = 'Обновить'
       ImageIndex = 17
       Visible = False
-      OnExecute = actRefreshExecute
     end
   end
   inherited pmMain: TPopupMenu

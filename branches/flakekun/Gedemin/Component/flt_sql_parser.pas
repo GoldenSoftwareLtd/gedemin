@@ -1094,6 +1094,7 @@ SELECT ... FROM ... WHERE ...(SELECT...FROM...ORDER BY) корректно обрабатываться
     Start1 := Current;
     SQLToken := NextSQLToken(Current, Token, CurSection);
       if SQLToken = stFieldName then
+      begin
         if Token = '(' then
           Inc(BracketCount)
         else if Token = ')' then
@@ -1109,6 +1110,14 @@ SELECT ... FROM ... WHERE ...(SELECT...FROM...ORDER BY) корректно обрабатываться
                   Dec(bssc);
           until (bssc = 0) or (SQLToken = stEnd)
         end;
+     end
+     else if SQLToken = stTableName then
+      if Token = '(' then
+        Inc(BracketCount)
+      else
+        if Token = ')' then
+          Dec(BracketCount);
+
 {    if SQLToken = stFieldName then
       if Token = '(' then
         Inc(BracketCount)

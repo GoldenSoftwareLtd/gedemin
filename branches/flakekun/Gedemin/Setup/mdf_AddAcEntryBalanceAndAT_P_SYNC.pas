@@ -11,14 +11,14 @@ procedure AddMissedGrantsToAcEntryBalanceProcedures(IBDB: TIBDatabase; Log: TMod
 implementation
 
 uses
-  IBSQL, SysUtils, gdcMetaData;
+  IBSQL, SysUtils, gdcMetaData, mdf_MetaData_unit;
 
 const
   cCreateGenerator = 'CREATE GENERATOR gd_g_entry_balance_date';
 
   cInsertCommand =
     ' INSERT INTO gd_command (id, parent, name, cmd, classname, imgindex) ' +
-    ' VALUES (714200, 714000, ''Переход на новый месяц'', '''', ''TfrmCalculateBalance'', 87)';
+    ' VALUES (714200, :parent, ''Переход на новый месяц'', '''', ''TfrmCalculateBalance'', 87)';
 
   cAC_ENTRY_BALANCETemplate =
     'CREATE TABLE ac_entry_balance ( '#13#10 +
@@ -978,250 +978,256 @@ var
   ACTriggerText: String;
   ACFieldList, NewFieldList, OLDFieldList: String;
   gdcField: TgdcField;
+  CommandParentKey: Integer;
 begin
+  // Проверим на версию сервера, нам нужен Firebird >= 2.0
+  if not (IBDB.IsFirebirdConnect and (IBDB.ServerMajorVersion >= 2)) then
+    raise EgsWrongServerVersion.Create('Firebird 2.0+');
+
   FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
     FIBSQL := TIBSQL.Create(nil);
     try
       FIBSQL.Transaction := FTransaction;
-      FIBSQL.ParamCheck := False;
 
       FTransaction.StartTransaction;
+
       try
         FIBSQL.SQL.Text := cAT_P_SYNC;
         FIBSQL.ExecQuery;
         Log('Корректировка процедуры AT_P_SYNC прошла успешно');
+
+        // генератор GD_G_ENTRY_BALANCE_DATE
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'SELECT rdb$generator_name FROM rdb$generators WHERE rdb$generator_name = ''GD_G_ENTRY_BALANCE_DATE'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cCreateGenerator;
+          FIBSQL.ExecQuery;
+          Log('Создание триггера GD_G_ENTRY_BALANCE_DATE прошло успешно');
+        end;
+
+        // таблица AC_ENTRY_BALANCE
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''AC_ENTRY_BALANCE'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          AcEntryBalanceStr := cAC_ENTRY_BALANCETemplate;
+          ibsqlFields := TIBSQL.Create(nil);
+          gdcField := TgdcField.Create(nil);
+          try
+            gdcField.SubSet := 'ByFieldName';
+            ibsqlFields.Transaction := FTransaction;
+            ibsqlFields.ParamCheck := False;
+            ibsqlFields.SQL.Text :=
+              ' SELECT ' +
+              '   r.rdb$field_name AS FieldName, ' +
+              '   r.rdb$field_source AS DomainName ' +
+              ' FROM ' +
+              '   rdb$relation_fields r ' +
+              ' WHERE ' +
+              '   r.rdb$relation_name = ''AC_ENTRY'' ' +
+              '   AND r.rdb$field_name STARTING WITH ''USR$'' ';
+            ibsqlFields.ExecQuery;
+            while not ibsqlFields.Eof do
+            begin
+              gdcField.Close;
+              gdcField.ParamByName('fieldname').AsString := Trim(ibsqlFields.FieldByName('DomainName').AsString);
+              gdcField.Open;
+
+              ACFieldList := ACFieldList + ', ' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
+              NEWFieldList := NEWFieldList + ', NEW.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
+              OLDFieldList := OLDFieldList + ', OLD.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
+
+              AcEntryBalanceStr := AcEntryBalanceStr + ', ' +
+                Trim(ibsqlFields.FieldByName('FIELDNAME').AsString) + '  ' +
+                gdcField.GetDomainText(False, True);
+
+              ibsqlFields.Next;
+            end;
+            AcEntryBalanceStr := AcEntryBalanceStr + ')';
+          finally
+            gdcField.Free;
+            ibsqlFields.Free;
+          end;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := AcEntryBalanceStr;
+          FIBSQL.ExecQuery;
+          Log('Создание таблицы AC_ENTRY_BALANCE прошло успешно');
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cBalancePrimaryKey;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cBalanceForeignKey;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cBalanceAutoincrementTrigger;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cBalanceGrant;
+          FIBSQL.ExecQuery;
+        end;
+
+        // процедура AC_ACCOUNTEXSALDO_BAL
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := cCreateAc_AccountExSaldo_Bal;
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := cAc_AccountExSaldo_BalGrant;
+        FIBSQL.ExecQuery;
+        Log('Создание/корректировка процедуры AC_ACCOUNTEXSALDO_BAL прошло успешно');
+
+        // процедура AC_CIRCULATIONLIST_BAL
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := cCreateAC_CIRCULATIONLIST_BAL;
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := cAC_CIRCULATIONLIST_BALGrant;
+        FIBSQL.ExecQuery;
+        Log('Создание/корректировка процедуры AC_CIRCULATIONLIST_BAL прошло успешно');
+
+        // триггер AC_ENTRY_DO_BALANCE на AC_ENTRY
+        ACTriggerText :=
+          '  CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry '#13#10 +
+          '  ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15 '#13#10 +
+          '  AS '#13#10 +
+          '  BEGIN '#13#10 +
+          '    IF (INSERTING AND ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '        (companykey, accountkey, currkey, '#13#10 +
+          '         debitncu, debitcurr, debiteq, '#13#10 +
+          '         creditncu, creditcurr, crediteq ' +
+            ACFieldList + ') '#13#10 +
+          '      VALUES '#13#10 +
+          '     (NEW.companykey, '#13#10 +
+          '      NEW.accountkey, '#13#10 +
+          '      NEW.currkey, '#13#10 +
+          '      NEW.debitncu, '#13#10 +
+          '      NEW.debitcurr, '#13#10 +
+          '      NEW.debiteq, '#13#10 +
+          '      NEW.creditncu, '#13#10 +
+          '      NEW.creditcurr, '#13#10 +
+          '      NEW.crediteq ' +
+            NEWFieldList + '); '#13#10 +
+          '  END '#13#10 +
+          '  ELSE '#13#10 +
+          '  IF (UPDATING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '      (companykey, accountkey, currkey, '#13#10 +
+          '       debitncu, debitcurr, debiteq, '#13#10 +
+          '       creditncu, creditcurr, crediteq ' +
+            ACFieldList + ') '#13#10 +
+          '    VALUES '#13#10 +
+          '      (OLD.companykey, '#13#10 +
+          '       OLD.accountkey, '#13#10 +
+          '       OLD.currkey, '#13#10 +
+          '       -OLD.debitncu, '#13#10 +
+          '       -OLD.debitcurr, '#13#10 +
+          '       -OLD.debiteq, '#13#10 +
+          '       -OLD.creditncu, '#13#10 +
+          '       -OLD.creditcurr, '#13#10 +
+          '       -OLD.crediteq ' +
+            OLDFieldList + '); '#13#10 +
+          '    IF ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN '#13#10 +
+          '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '        (companykey, accountkey, currkey, '#13#10 +
+          '         debitncu, debitcurr, debiteq, '#13#10 +
+          '         creditncu, creditcurr, crediteq '#13#10 +
+            ACFieldList + ') '#13#10 +
+          '       VALUES '#13#10 +
+          '         (NEW.companykey, '#13#10 +
+          '          NEW.accountkey, '#13#10 +
+          '          NEW.currkey, '#13#10 +
+          '          NEW.debitncu, '#13#10 +
+          '          NEW.debitcurr, '#13#10 +
+          '          NEW.debiteq, '#13#10 +
+          '          NEW.creditncu, '#13#10 +
+          '          NEW.creditcurr, '#13#10 +
+          '          NEW.crediteq ' +
+            NEWFieldList + '); '#13#10 +
+          '  END '#13#10 +
+          '  ELSE '#13#10 +
+          '  IF (DELETING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '      (companykey, accountkey, currkey, '#13#10 +
+          '       debitncu, debitcurr, debiteq, '#13#10 +
+          '       creditncu, creditcurr, crediteq '#13#10 +
+            ACFieldList + ') '#13#10 +
+          '    VALUES '#13#10 +
+          '     (OLD.companykey, '#13#10 +
+          '      OLD.accountkey, '#13#10 +
+          '      OLD.currkey, '#13#10 +
+          '      -OLD.debitncu, '#13#10 +
+          '      -OLD.debitcurr, '#13#10 +
+          '      -OLD.debiteq, '#13#10 +
+          '      -OLD.creditncu, '#13#10 +
+          '      -OLD.creditcurr, '#13#10 +
+          '      -OLD.crediteq ' +
+            OLDFieldList + '); '#13#10 +
+          '  END '#13#10 +
+          ' END ';
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := ACTriggerText;
+        FIBSQL.ExecQuery;
+        Log('Создание триггера для таблицы AC_ENTRY прошло успешно');
+
+        // Проверим существование ярлыка "Переход на новый месяц"
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT id FROM gd_command WHERE id = 714200';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          // Проверим существование ярлыка "Бухгалтерия"
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'SELECT id FROM gd_command WHERE id = 714000';
+          FIBSQL.ExecQuery;
+          // Если "Бухгалтерия" есть, то добавим ярлык туда, иначе в "Исследователь"
+          if FIBSQL.RecordCount > 0 then
+            CommandParentKey := 714000
+          else
+            CommandParentKey := 710000;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cInsertCommand;
+          FIBSQL.ParamByName('PARENT').AsInteger := CommandParentKey;
+          FIBSQL.ExecQuery;
+          Log('Создание ярлыка "Переход на новый месяц" прошло успешно');
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO fin_versioninfo ' +
+          '  VALUES (109, ''0000.0001.0000.0141'', ''15.10.2008'', ''Добавлен расчет сальдо по проводкам'') ';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
+
         FTransaction.Commit;
       except
         on E: Exception do
         begin
-          Log(E.Message);
-          FTransaction.Rollback;
-        end;
-      end;
-
-      // Проверим на версию сервера, нам нужен Firebird >= 2.0
-      //   если нет, то не создаем объекты бухгалтерского закрытия периода и не увеличиваем версию базы
-      if IBDB.IsFirebirdConnect and (IBDB.ServerMajorVersion >= 2) then
-      begin
-        // Создание объектов бухгалтерского закрытия периода
-        FTransaction.StartTransaction;
-        try
-          // генератор GD_G_ENTRY_BALANCE_DATE
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := 'SELECT rdb$generator_name FROM rdb$generators WHERE rdb$generator_name = ''GD_G_ENTRY_BALANCE_DATE'' ';
-          FIBSQL.ExecQuery;
-          if FIBSQL.RecordCount = 0 then
-          begin
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := cCreateGenerator;
-            FIBSQL.ExecQuery;
-            Log('Создание триггера GD_G_ENTRY_BALANCE_DATE прошло успешно');
-          end;  
-
-          // таблица AC_ENTRY_BALANCE
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := 'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''AC_ENTRY_BALANCE'' ';
-          FIBSQL.ExecQuery;
-          if FIBSQL.RecordCount = 0 then
-          begin
-            AcEntryBalanceStr := cAC_ENTRY_BALANCETemplate;
-            ibsqlFields := TIBSQL.Create(nil);
-            gdcField := TgdcField.Create(nil);
-            try
-              gdcField.SubSet := 'ByFieldName';
-              ibsqlFields.Transaction := FTransaction;
-              ibsqlFields.ParamCheck := False;
-              ibsqlFields.SQL.Text :=
-                ' SELECT ' +
-                '   r.rdb$field_name AS FieldName, ' +
-                '   r.rdb$field_source AS DomainName ' +
-                ' FROM ' +
-                '   rdb$relation_fields r ' +
-                ' WHERE ' +
-                '   r.rdb$relation_name = ''AC_ENTRY'' ' +
-                '   AND r.rdb$field_name STARTING WITH ''USR$'' ';
-              ibsqlFields.ExecQuery;
-              while not ibsqlFields.Eof do
-              begin
-                gdcField.Close;
-                gdcField.ParamByName('fieldname').AsString := Trim(ibsqlFields.FieldByName('DomainName').AsString);
-                gdcField.Open;
-
-                ACFieldList := ACFieldList + ', ' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
-                NEWFieldList := NEWFieldList + ', NEW.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
-                OLDFieldList := OLDFieldList + ', OLD.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
-
-                AcEntryBalanceStr := AcEntryBalanceStr + ', ' +
-                  Trim(ibsqlFields.FieldByName('FIELDNAME').AsString) + '  ' +
-                  gdcField.GetDomainText(False, True);
-
-                ibsqlFields.Next;
-              end;
-              AcEntryBalanceStr := AcEntryBalanceStr + ')';
-            finally
-              gdcField.Free;
-              ibsqlFields.Free;
-            end;
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := AcEntryBalanceStr;
-            FIBSQL.ExecQuery;
-            Log('Создание таблицы AC_ENTRY_BALANCE прошло успешно');
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := cBalancePrimaryKey;
-            FIBSQL.ExecQuery;
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := cBalanceForeignKey;
-            FIBSQL.ExecQuery;
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := cBalanceAutoincrementTrigger;
-            FIBSQL.ExecQuery;
-
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := cBalanceGrant;
-            FIBSQL.ExecQuery;
-          end;
-
-          // процедура AC_ACCOUNTEXSALDO_BAL
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cCreateAc_AccountExSaldo_Bal;
-          FIBSQL.ExecQuery;
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cAc_AccountExSaldo_BalGrant;
-          FIBSQL.ExecQuery;
-          Log('Создание/корректировка процедуры AC_ACCOUNTEXSALDO_BAL прошло успешно');
-
-          // процедура AC_CIRCULATIONLIST_BAL
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cCreateAC_CIRCULATIONLIST_BAL;
-          FIBSQL.ExecQuery;
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cAC_CIRCULATIONLIST_BALGrant;
-          FIBSQL.ExecQuery;
-          Log('Создание/корректировка процедуры AC_CIRCULATIONLIST_BAL прошло успешно');
-
-          // триггер AC_ENTRY_DO_BALANCE на AC_ENTRY
-          ACTriggerText :=
-            '  CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry '#13#10 +
-            '  ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15 '#13#10 +
-            '  AS '#13#10 +
-            '  BEGIN '#13#10 +
-            '    IF (INSERTING AND ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
-            '    BEGIN '#13#10 +
-            '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-            '        (companykey, accountkey, currkey, '#13#10 +
-            '         debitncu, debitcurr, debiteq, '#13#10 +
-            '         creditncu, creditcurr, crediteq ' +
-              ACFieldList + ') '#13#10 +
-            '      VALUES '#13#10 +
-            '     (NEW.companykey, '#13#10 +
-            '      NEW.accountkey, '#13#10 +
-            '      NEW.currkey, '#13#10 +
-            '      NEW.debitncu, '#13#10 +
-            '      NEW.debitcurr, '#13#10 +
-            '      NEW.debiteq, '#13#10 +
-            '      NEW.creditncu, '#13#10 +
-            '      NEW.creditcurr, '#13#10 +
-            '      NEW.crediteq ' +
-              NEWFieldList + '); '#13#10 +
-            '  END '#13#10 +
-            '  ELSE '#13#10 +
-            '  IF (UPDATING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
-            '  BEGIN '#13#10 +
-            '    INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-            '      (companykey, accountkey, currkey, '#13#10 +
-            '       debitncu, debitcurr, debiteq, '#13#10 +
-            '       creditncu, creditcurr, crediteq ' +
-              ACFieldList + ') '#13#10 +
-            '    VALUES '#13#10 +
-            '      (OLD.companykey, '#13#10 +
-            '       OLD.accountkey, '#13#10 +
-            '       OLD.currkey, '#13#10 +
-            '       -OLD.debitncu, '#13#10 +
-            '       -OLD.debitcurr, '#13#10 +
-            '       -OLD.debiteq, '#13#10 +
-            '       -OLD.creditncu, '#13#10 +
-            '       -OLD.creditcurr, '#13#10 +
-            '       -OLD.crediteq ' +
-              OLDFieldList + '); '#13#10 +
-            '    IF ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN '#13#10 +
-            '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-            '        (companykey, accountkey, currkey, '#13#10 +
-            '         debitncu, debitcurr, debiteq, '#13#10 +
-            '         creditncu, creditcurr, crediteq '#13#10 +
-              ACFieldList + ') '#13#10 +
-            '       VALUES '#13#10 +
-            '         (NEW.companykey, '#13#10 +
-            '          NEW.accountkey, '#13#10 +
-            '          NEW.currkey, '#13#10 +
-            '          NEW.debitncu, '#13#10 +
-            '          NEW.debitcurr, '#13#10 +
-            '          NEW.debiteq, '#13#10 +
-            '          NEW.creditncu, '#13#10 +
-            '          NEW.creditcurr, '#13#10 +
-            '          NEW.crediteq ' +
-              NEWFieldList + '); '#13#10 +
-            '  END '#13#10 +
-            '  ELSE '#13#10 +
-            '  IF (DELETING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
-            '  BEGIN '#13#10 +
-            '    INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-            '      (companykey, accountkey, currkey, '#13#10 +
-            '       debitncu, debitcurr, debiteq, '#13#10 +
-            '       creditncu, creditcurr, crediteq '#13#10 +
-              ACFieldList + ') '#13#10 +
-            '    VALUES '#13#10 +
-            '     (OLD.companykey, '#13#10 +
-            '      OLD.accountkey, '#13#10 +
-            '      OLD.currkey, '#13#10 +
-            '      -OLD.debitncu, '#13#10 +
-            '      -OLD.debitcurr, '#13#10 +
-            '      -OLD.debiteq, '#13#10 +
-            '      -OLD.creditncu, '#13#10 +
-            '      -OLD.creditcurr, '#13#10 +
-            '      -OLD.crediteq ' +
-              OLDFieldList + '); '#13#10 +
-            '  END '#13#10 +
-            ' END ';
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := ACTriggerText;
-          FIBSQL.ExecQuery;
-          Log('Создание триггера для таблицы AC_ENTRY прошло успешно');
-
-          // Проверим существование ярлыка "Переход на новый месяц"
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := 'SELECT id FROM gd_command WHERE id = 714200';
-          FIBSQL.ExecQuery;
-          if FIBSQL.RecordCount = 0 then
-          begin
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := cInsertCommand;
-            FIBSQL.ExecQuery;
-            Log('Создание ярлыка "Переход на новый месяц" прошло успешно');
-          end;
-
-          FIBSQL.Close;
-          FIBSQL.SQL.Text :=
-            'INSERT INTO fin_versioninfo ' +
-            '  VALUES (103, ''0000.0001.0000.0130'', ''15.10.2008'', ''Добавлен расчет сальдо по проводкам'')';
-          FIBSQL.ExecQuery;
-
-          FTransaction.Commit;
-        except
-          on E: Exception do
-          begin
-            Log(E.Message);
+          Log('Произошла ошибка: ' + E.Message);
+          if FTransaction.InTransaction then
             FTransaction.Rollback;
-          end;
+          raise;
         end;
-      end
-      else
-      begin
-        raise EgsWrongServerVersion.Create('Firebird 2.0+');
       end;
     finally
       FIBSQL.Free;
@@ -1247,7 +1253,8 @@ begin
       FTransaction.StartTransaction;
       try
         FIBSQL.Close;
-        FIBSQL.SQL.Text := 'SELECT rdb$procedure_name FROM rdb$procedures WHERE rdb$procedure_name = ''AC_ACCOUNTEXSALDO_BAL''';
+        FIBSQL.SQL.Text :=
+          'SELECT rdb$procedure_name FROM rdb$procedures WHERE rdb$procedure_name = ''AC_ACCOUNTEXSALDO_BAL''';
         FIBSQL.ExecQuery;
         if FIBSQL.RecordCount > 0 then
         begin
@@ -1257,7 +1264,8 @@ begin
         end;
 
         FIBSQL.Close;
-        FIBSQL.SQL.Text := 'SELECT rdb$procedure_name FROM rdb$procedures WHERE rdb$procedure_name = ''AC_CIRCULATIONLIST_BAL''';
+        FIBSQL.SQL.Text :=
+          'SELECT rdb$procedure_name FROM rdb$procedures WHERE rdb$procedure_name = ''AC_CIRCULATIONLIST_BAL''';
         FIBSQL.ExecQuery;
         if FIBSQL.RecordCount > 0 then
         begin
@@ -1268,16 +1276,32 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (106, ''0000.0001.0000.0133'', ''25.04.2009'', ''Проставлены пропущенные гранты'')';
+          'ALTER TABLE ac_companyaccount DROP CONSTRAINT ac_pk_companyaccount ';
         FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE ac_companyaccount '#13#10 +
+          '  ADD CONSTRAINT ac_pk_companyaccount PRIMARY KEY (companykey, accountkey) ';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO fin_versioninfo ' +
+          '  VALUES (112, ''0000.0001.0000.0144'', ''25.04.2009'', ''Проставлены пропущенные гранты'') ';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
 
         FTransaction.Commit;
       except
         on E: Exception do
         begin
-          Log(E.Message);
-          FTransaction.Rollback;
+          Log('Произошла ошибка: ' + E.Message);
+          if FTransaction.InTransaction then
+            FTransaction.Rollback;
+          raise;
         end;
       end;
     finally

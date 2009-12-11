@@ -1,6 +1,12 @@
 
 unit flt_frmSQLEditorSyn_unit;
 
+{ TODO 5 -oandreik -cSQLHistory : Разобраться почему прибавляет _1 к имени формы }
+{ TODO 5 -oandreik -cSQLHistory : Визуальные настройки таблицы с историей запросов }
+{ TODO 5 -oandreik -cSQLHistory : Разобраться почему при добавлении записи в гриде старая запись остается выделенной }
+{ TODO 5 -oandreik -cSQLHistory : Почему колонка BOOKMARK выводится в двойных кавычках? }
+{ TODO 5 -oandreik -cSQLHistory : ДаблКлик срабатывает когда пытаемся изменить ширину колонки }
+
 interface
 
 uses
@@ -12,10 +18,10 @@ uses
   TB2Dock, TB2Toolbar, SuperPageControl, gsDBGrid, StdActns,
   gsIBLookupComboBox, TeEngine, Series, TeeProcs, Chart, TB2ExtItems,
   {$IFDEF GEDEMIN}
-  gdcBase,
+  gdcBase, gdc_frmSQLHistory_unit,
   {$ENDIF}
   SynCompletionProposal, flt_i_SQLProposal, flt_SQLProposal, gd_keyAssoc,
-  gsIBGrid;
+  gsIBGrid, gdcSQLHistory;
 
 type
   TCountRead = Record
@@ -24,35 +30,6 @@ type
     InsertCount: Integer;
     UpdateCount: Integer;
     DeleteCount: Integer;
-  end;
-
-type
-  THistoryItem = class
-  private
-    FCaption: string;
-
-  public
-    procedure SaveToStream(Stream: TStream);
-    procedure LoadFromStream(Stream: TStream);
-
-    property Caption: string read FCaption write FCaption;
-  end;
-
-  THistoryList = class(TObjectList)
-  private
-    function GetItems(Index: Integer): THistoryItem;
-    procedure SetItems(Index: Integer; const Value: THistoryItem);
-
-  public
-    function NewItem(const ACaption: String): THistoryItem; overload;
-    function NewItem(AStream: TStream): THistoryItem; overload;
-
-    procedure SaveToStream(Stream: TStream);
-    procedure LoadFromStream(Stream: TStream);
-
-    function IndexOf(Text: String): Integer;
-    
-    property Items[Index: Integer]: THistoryItem read GetItems write SetItems; default;
   end;
 
 type
@@ -74,11 +51,6 @@ type
     FindDialog1: TFindDialog;
     ReplaceDialog1: TReplaceDialog;
     actReplace: TAction;
-    pmHistory: TPopupMenu;
-    N1: TMenuItem;
-    N2: TMenuItem;
-    actClearHistory: TAction;
-    actDeleteHistItem: TAction;
     ActionList2: TActionList;
     pmQuery: TPopupMenu;
     actEditCopy: TEditCopy;
@@ -112,10 +84,6 @@ type
     dbgResult: TgsDBGrid;
     tsHistory: TSuperTabSheet;
     Splitter2: TSplitter;
-    Panel2: TPanel;
-    Label14: TLabel;
-    eFilter: TEdit;
-    lvHistory: TListView;
     tsStatistic: TSuperTabSheet;
     tsLog: TSuperTabSheet;
     mmLog: TMemo;
@@ -210,9 +178,6 @@ type
     TBSeparatorItem13: TTBSeparatorItem;
     tbItemAllRecord: TTBItem;
     SynCompletionProposal: TSynCompletionProposal;
-    actCopyAllHistory: TAction;
-    N8: TMenuItem;
-    N9: TMenuItem;
     Label15: TLabel;
     chbxAutoCommitDDL: TCheckBox;
     mmPlan: TMemo;
@@ -245,6 +210,15 @@ type
     TBItem26: TTBItem;
     TBItem27: TTBItem;
     sbRecord: TScrollBox;
+    pnlTest: TPanel;
+    actShowViewForm: TAction;
+    TBSeparatorItem17: TTBSeparatorItem;
+    TBItem28: TTBItem;
+    actMakeSelect: TAction;
+    TBItem29: TTBItem;
+    pmSaveFieldToFile: TPopupMenu;
+    actSaveFieldToFile: TAction;
+    nSaveFieldToFile: TMenuItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -259,11 +233,6 @@ type
     procedure actFindExecute(Sender: TObject);
     procedure actReplaceExecute(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure lvHistoryDblClick(Sender: TObject);
-    procedure eFilterChange(Sender: TObject);
-    procedure actClearHistoryExecute(Sender: TObject);
-    procedure actDeleteHistItemUpdate(Sender: TObject);
-    procedure actDeleteHistItemExecute(Sender: TObject);
     procedure actOpenScriptExecute(Sender: TObject);
     procedure actSaveScriptExecute(Sender: TObject);
     procedure actFindUpdate(Sender: TObject);
@@ -290,10 +259,7 @@ type
     procedure SynCompletionProposalExecute(Kind: SynCompletionType;
       Sender: TObject; var AString: String; x, y: Integer;
       var CanExecute: Boolean);
-    procedure actCopyAllHistoryExecute(Sender: TObject);
     procedure chbxAutoCommitDDLClick(Sender: TObject);
-    procedure lvHistoryInfoTip(Sender: TObject; Item: TListItem;
-      var InfoTip: String);
     procedure actRefreshMonitorExecute(Sender: TObject);
     procedure actDeleteStatementUpdate(Sender: TObject);
     procedure actDeleteStatementExecute(Sender: TObject);
@@ -308,14 +274,25 @@ type
     procedure actShowRecordExecute(Sender: TObject);
     procedure ibqryWorkBeforeClose(DataSet: TDataSet);
     procedure seQueryChange(Sender: TObject);
+    procedure pnlTestResize(Sender: TObject);
+    procedure actRefreshMonitorUpdate(Sender: TObject);
+    procedure actShowViewFormUpdate(Sender: TObject);
+    procedure actShowViewFormExecute(Sender: TObject);
+    procedure actMakeSelectUpdate(Sender: TObject);
+    procedure actMakeSelectExecute(Sender: TObject);
+    procedure actSaveFieldToFileExecute(Sender: TObject);
+    procedure actSaveFieldToFileUpdate(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
     FPrepareTime, FExecuteTime, FFetchTime: TDateTime;
     FTableArray: TgdKeyStringAssoc;
     FParams: TParams;
-    FInitialSQL: String;
-    FHistoryList: THistoryList;
+    FRepeatQuery: Boolean;
+    FTop, FLeft: Integer;
+    {$IFDEF GEDEMIN}
+    frmSQLHistory: Tgdc_frmSQLHistory;
+    {$ENDIF}
 
     procedure RemoveNoChange(const Before, After: TStrings);
     function PrepareQuery: Boolean;
@@ -325,16 +302,16 @@ type
     procedure AddLogRecord(const StrLog: String);
     function InputParam: Boolean;
     procedure UpdateSyncs;
-    procedure UpdateHistoryList;
-    procedure AddlvHistoryItem(HI: THistoryItem);
     procedure UpdateHistory;
-    procedure UpdateHistoryOfForm;
-    procedure SaveHistory;
     procedure LoadHistory;
     procedure DrawChart;
     {$IFDEF GEDEMIN}
     function CreateBusinessObject: TgdcBase;
     {$ENDIF}
+
+    procedure AddSQLHistory(const AnExecute: Boolean);
+    procedure UseSQLHistory;
+    procedure OnHistoryDblClick(Sender: TObject);
 
   public
     FDatabase: TIBDatabase;
@@ -359,7 +336,7 @@ implementation
 
 uses
   flt_dlgInputParam_unit, syn_ManagerInterface_unit, prp_MessageConst,
-  IB, at_Classes, IBHeader, jclStrings,
+  IB, at_Classes, IBHeader, jclStrings, flt_SafeConversion_unit,
   {$IFDEF GEDEMIN}
   gdcBaseInterface, flt_sql_parser, at_sql_setup,
   {$ENDIF}
@@ -373,29 +350,15 @@ uses
 const
   cQueryHistory = 'QueryHistory';
 
-//сохраняет строку в поток
-procedure SaveStringToStream(const Str: String; Stream: TStream);
-var
-  L: Integer;
-begin
-  L := Length(Str);
-  Stream.WriteBuffer(L, SizeOf(L));
-  if L > 0 then
-    Stream.WriteBuffer(Str[1], L);
-end;
-
-//читает строку из потока
 function ReadStringFromStream(Stream: TStream): String;
 var
   L: Integer;
-  Str: String;
 begin
   try
     Stream.ReadBuffer(L, SizeOf(L));
-    SetLength(Str, L);
+    SetLength(Result, L);
     if L > 0 then
-      Stream.ReadBuffer(Str[1], L);
-    Result := Str;
+      Stream.ReadBuffer(Result[1], L);
   except
     Result := '';
   end;
@@ -408,32 +371,35 @@ function TfrmSQLEditorSyn.ShowSQL(const AnSQL: String; const AParams: TParams = 
 var
   I: Integer;
 begin
-  Result := mrNone;
-  FParams.Clear;
-  if Assigned(AParams) then
+  if AnSQL > '' then
   begin
-    for I := 0 to AParams.Count - 1 do
-      FParams.CreateParam(AParams[I].DataType, AParams[I].Name, AParams[I].ParamType).Value := AParams[I].Value;
-    FInitialSQL := AnsiUpperCase(Trim(AnSQL));
-  end;
+    FParams.Clear;
+    if Assigned(AParams) then
+    begin
+      for I := 0 to AParams.Count - 1 do
+        FParams.CreateParam(AParams[I].DataType, AParams[I].Name, AParams[I].ParamType).Value := AParams[I].Value;
+    end;
 
-  //Если переданныей текст пустой то выводим тот что есть
-  if AnSQL <> '' then
     seQuery.Text := AnSQL;
+  end;
+    
   ibsqlPlan.Database := FDatabase;
   ibqryWork.Database := FDatabase;
   ibtrEditor.DefaultDatabase := FDatabase;
   IBDatabaseInfo.Database := FDatabase;
   tsResult.TabVisible := False;
-  if not CreateTableList then
-    Exit;
-  if AShowModal then
+
+  Result := mrNone;
+  if CreateTableList then
   begin
-    pModal.Visible := True;
-    Position := poScreenCenter;
-    Result := ShowModal;
-  end else
-    Show;
+    if AShowModal then
+    begin
+      pModal.Visible := True;
+      Position := poScreenCenter;
+      Result := ShowModal;
+    end else
+      Show;
+  end;
 end;
 
 function TfrmSQLEditorSyn.InputParam: Boolean;
@@ -442,44 +408,84 @@ var
   P: TParam;
   S: TStringList;
 begin
+  S := TStringList.Create;
+  try
+    S.Text := ibqryWork.Params.Names;
+    for I := 0 to FParams.Count - 1 do
+    begin
+      Index := S.IndexOf(FParams[i].Name);
+      if Index > -1 then
+      begin
+        if FParams[i].IsNull then
+          ibqryWork.Params.Vars[Index].Clear
+        else
+          try
+            case ibqryWork.Params[Index].SQLType of
+              SQL_TYPE_DATE:
+                ibqryWork.Params.Vars[Index].AsDate := FParams[i].AsDate;
+              SQL_TYPE_TIME:
+                ibqryWork.Params.Vars[Index].AsTime := FParams[i].AsTime;
+              SQL_TIMESTAMP:
+                ibqryWork.Params.Vars[Index].AsDateTime := FParams[i].AsDateTime;
+              SQL_VARYING, SQL_TEXT:
+                ibqryWork.Params.Vars[Index].AsString := FParams[i].AsString;
+              SQL_DOUBLE, SQL_FLOAT, SQL_D_FLOAT:
+                ibqryWork.Params.Vars[Index].AsFloat := FParams[i].AsFloat;
+              SQL_LONG, SQL_SHORT, SQL_INT64:
+                case ibqryWork.Params[Index].Data.SQLScale of
+                  0:
+                    if ibqryWork.Params[Index].SQLType = SQL_INT64 then
+                      ibqryWork.Params.Vars[Index].AsInt64 := StrToInt64(FParams[i].AsString)
+                    else
+                      ibqryWork.Params.Vars[Index].AsInteger := FParams[i].AsInteger;
+                  -4..-1:
+                    ibqryWork.Params.Vars[Index].AsCurrency := FParams[i].AsCurrency;
+                else
+                  ibqryWork.Params.Vars[Index].AsFloat := FParams[i].AsFloat;
+                end;
+            else
+              ibqryWork.Params.Vars[Index].Value := FParams[i].Value;
+            end;
+          except
+            // тип параметра из запроса и тип сохраненного параметра могут не совпадать
+            // если конверсия невозможна, то очистим параметр, присвоим NULL
+            ibqryWork.Params.Vars[Index].Clear
+          end;
+      end;
+    end;
+  finally
+    S.Free;
+  end;
+
   with TdlgInputParam.Create(Self) do
   try
-    S := TStringList.Create;
-    try
-      S.Text := ibqryWork.Params.Names;
-      for I := 0 to FParams.Count - 1 do
-      begin
-        Index := S.IndexOf(FParams[i].Name);
-        if Index > -1 then
-        begin
-          case ibqryWork.Params[Index].SQLType and (not 1) of
-            SQL_TYPE_DATE:
-              ibqryWork.Params.Vars[Index].AsDate := FParams[i].Value;
-            SQL_TYPE_TIME:
-              ibqryWork.Params.Vars[Index].AsTime := FParams[i].Value;
-            SQL_TIMESTAMP:
-              ibqryWork.Params.Vars[Index].AsDateTime := FParams[i].Value;
-          else
-            ibqryWork.Params.Vars[Index].Value := FParams[i].Value;
-          end;
-        end;
-      end;
-    finally
-      S.Free;
+    if ibqryWork.SQLType in [SQLExecProcedure, SQLSelect, SQLSelectForUpdate] then
+    begin
+      chbxRepeat.Checked := False;
+      chbxRepeat.Enabled := False;
+    end else
+    begin
+      chbxRepeat.Checked := FRepeatQuery;
+      chbxRepeat.Enabled := True;
     end;
+    if FLeft > 0 then Left := FLeft;
+    if FTop > 0 then Top := FTop;
 
     Result := SetParams(ibqryWork.Params);
 
-    FParams.Clear;
-    for I := 0 to ibqryWork.Params.Count - 1 do
-    begin
-      P := TParam.Create(FParams);
-      P.Name := ibqryWork.Params[i].Name;
-      P.Value := ibqryWork.Params[i].Value;
-      FParams.AddParam(P);
-    end;
+    FRepeatQuery := chbxRepeat.Checked;
+    FLeft := Left;
+    FTop := Top;
   finally
     Free;
+  end;
+
+  FParams.Clear;
+  for I := 0 to ibqryWork.Params.Count - 1 do
+  begin
+    P := TParam.Create(FParams);
+    P.Name := ibqryWork.Params[i].Name;
+    P.Value := ibqryWork.Params[i].Value;
   end;
 end;
 
@@ -647,6 +653,9 @@ begin
 end;
 
 function TfrmSQLEditorSyn.PrepareQuery: Boolean;
+var
+  OldMessage: String;
+  OldSQLCode, OldGDSCode: Integer;
 begin
   if not ibtrEditor.InTransaction then
     ibtrEditor.StartTransaction;
@@ -662,10 +671,25 @@ begin
         ibsqlPlan.Prepare;
       except
         //если скл имеет тип DDLSQl то нужно установить paramCheck  в фолсе
-        ibsqlPlan.ParamCheck := False;
-        ibsqlPlan.Prepare;
+        on E: Exception do
+        begin
+          OldMessage := E.Message;
+
+          if E is EIBError then
+          begin
+            OldSQLCode := EIBError(E).SQLCode;
+            OldGDSCode := EIBError(E).IBErrorCode;
+          end else
+          begin
+            OldSQLCode := 0;
+            OldGDSCode := 0;
+          end;
+
+          ibsqlPlan.ParamCheck := False;
+          ibsqlPlan.Prepare;
+        end;
       end;
-      mmPlan.Text := ibsqlPlan.Plan;
+      mmPlan.Text := StringReplace(ibsqlPlan.Plan, #$A, #13#10, [rfReplaceAll]);
     finally
       ibsqlPlan.FreeHandle;
     end;
@@ -680,8 +704,19 @@ begin
         Result := True;
       end else
       begin
+        if E.Message <> OldMessage then
+          E.Message := OldMessage;
         mmPlan.Text := E.Message;
-        mmPlan.Color := $AAAAFF;        
+        if E is EIBError then
+        begin
+          if (OldGDSCode <> 0) or (OldSQLCode <> 0) then
+            mmPlan.Lines.Add('SQLCode: ' + IntToStr(OldSQLCode) +
+              '; GDSCode: ' + IntToStr(OldGDSCode))
+          else
+            mmPlan.Lines.Add('SQLCode: ' + IntToStr(EIBError(E).SQLCode) +
+              '; GDSCode: ' + IntToStr(EIBError(E).IBErrorCode));
+        end;
+        mmPlan.Color := $AAAAFF;
         AddLogRecord(E.Message);
       end;
     end;
@@ -696,103 +731,103 @@ end;
 procedure TfrmSQLEditorSyn.actExecuteExecute(Sender: TObject);
 var
   StartTime: TDateTime;
-  I, K: Integer;
+  I: Integer;
   S: String;
 begin
   if PrepareQuery then
   begin
-    //Добавляем в историю запросов
-    K := FHistoryList.IndexOf(seQuery.Lines.Text);
-    if (K = -1) or (lvHistory.Selected = nil)
-      or (FHistoryList[Integer(lvHistory.Selected.Data)].Caption <> seQuery.Lines.Text) then
-    begin
-      FHistoryList.NewItem(seQuery.Lines.Text);
-      SaveHistory;
-      UpdateHistory;
-      UpdateHistoryOfForm;
-    end;
+    repeat
+      ibqryWork.Close;
+      ibqryWork.SelectSQL.Text := seQuery.Text;
 
-    ibqryWork.Close;
-    ibqryWork.SelectSQL.Text := seQuery.Text;
-
-    try
-      ibqryWork.ParamCheck := True;
-      ibqryWork.Prepare;
-    except
-      ibqryWork.ParamCheck := False;
-      ibqryWork.Prepare;
-    end;
-
-    if ibqryWork.SQLType in [SQLExecProcedure, SQLInsert, SQLSelectForUpdate,
-      SQLSetGenerator, SQLSelect, SQLUpdate, SQLDelete] then
-    begin
-      ibqryWork.ParamCheck := True;
-      if not InputParam then
-        exit;
-    end else
-    begin
-      ibqryWork.ParamCheck := False;
-    end;
-    ibqryWork.UnPrepare;
-
-    ibqryWork.DisableControls;
-    try
-      SaveLastStat;
-
-      StartTime := Now;
-      ibqryWork.Prepare;
-
-      FPrepareTime := Now - StartTime;
-
-      if (ibqryWork.SQLType = SQLDDL) and (UserStorage <> nil)
-        and UserStorage.ReadBoolean('Options', 'AutoCommitDDL', True, False) then
-      begin
-        actCommit.Execute;
+      try
+        ibqryWork.ParamCheck := True;
+        ibqryWork.Prepare;
+      except
+        ibqryWork.ParamCheck := False;
+        ibqryWork.Prepare;
       end;
 
-      StartTime := Now;
-      ibqryWork.Open;
-      FExecuteTime := Now - StartTime;
-
-      if ibqryWork.SQLType in [SQLExecProcedure, SQLSelect, SQLSelectForUpdate] then
+      if ibqryWork.SQLType in [SQLExecProcedure, SQLInsert, SQLSelectForUpdate,
+        SQLSetGenerator, SQLSelect, SQLUpdate, SQLDelete] then
       begin
-        tsResult.TabVisible := True;
-        pcMain.ActivePage := tsResult;
-
-        dbgResult.Visible := True;
-        pnlRecord.Visible := False;
-        actShowGrid.Checked := True;
-        actShowRecord.Checked := False;
+        ibqryWork.ParamCheck := True;
+        if not InputParam then
+          break;
       end else
       begin
-        if pcMain.ActivePage = tsResult then
-          pcMain.ActivePage := tsQuery;
-        tsResult.TabVisible := False;
+        ibqryWork.ParamCheck := False;
       end;
 
-      if (ibqryWork.SQLType = SQLDDL) and (UserStorage <> nil)
-        and UserStorage.ReadBoolean('Options', 'AutoCommitDDL', True, False) then
-      begin
-        actCommit.Execute;
+      AddSQLHistory(True);
+
+      ibqryWork.UnPrepare;
+      ibqryWork.DisableControls;
+      try
+        SaveLastStat;
+
+        StartTime := Now;
+        ibqryWork.Prepare;
+
+        FPrepareTime := Now - StartTime;
+
+        if (ibqryWork.SQLType = SQLDDL) {and (UserStorage <> nil)
+          and UserStorage.ReadBoolean('Options', 'AutoCommitDDL', True, False)} then
+        begin
+          actCommit.Execute;
+        end;
+
+        StartTime := Now;
+        ibqryWork.Open;
+        FExecuteTime := Now - StartTime;
+
+        if ibqryWork.SQLType in [SQLExecProcedure, SQLSelect, SQLSelectForUpdate] then
+        begin
+          tsResult.TabVisible := True;
+          pcMain.ActivePage := tsResult;
+
+          dbgResult.Visible := True;
+          pnlRecord.Visible := False;
+          actShowGrid.Checked := True;
+          actShowRecord.Checked := False;
+          FRepeatQuery := False;
+        end else
+        begin
+          if pcMain.ActivePage = tsResult then
+            pcMain.ActivePage := tsQuery;
+          tsResult.TabVisible := False;
+        end;
+
+        if (ibqryWork.SQLType = SQLDDL) {and (UserStorage <> nil)
+          and UserStorage.ReadBoolean('Options', 'AutoCommitDDL', True, False)} then
+        begin
+          actCommit.Execute;
+        end;
+
+        StartTime := Now;
+        ibqryWork.EnableControls;
+        FFetchTime := Now - StartTime;
+
+        ShowStatistic;
+
+        if ibqryWork.QSelect.SQLType in [SQLInsert, SQLUpdate, SQLDelete, SQLExecProcedure] then
+          mmPlan.Lines.Add('RowsAffected: ' + IntToStr(ibqryWork.QSelect.RowsAffected));
+
+        if mmPlan.Color <> clWindow then
+          mmPlan.Color := clWindow;
+      except
+        on E: Exception do
+        begin
+          mmPlan.Text := E.Message;
+          if E is EIBError then
+            mmPlan.Lines.Add('SQLCode: ' + IntToStr(EIBError(E).SQLCode) +
+              '; GDSCode: ' + IntToStr(EIBError(E).IBErrorCode));
+          mmPlan.Color := $AAAAFF;
+          AddLogRecord(E.Message);
+          FRepeatQuery := False;
+        end;
       end;
-
-      StartTime := Now;
-      ibqryWork.EnableControls;
-      FFetchTime := Now - StartTime;
-
-      ShowStatistic;
-
-      if ibqryWork.QSelect.SQLType in [SQLInsert, SQLUpdate, SQLDelete, SQLExecProcedure] then
-        mmPlan.Lines.Add('RowsAffected: ' + IntToStr(ibqryWork.QSelect.RowsAffected));
-
-    except
-      on E: Exception do
-      begin
-        mmPlan.Text := E.Message;
-        mmPlan.Color := $AAAAFF;
-        AddLogRecord(E.Message);
-      end;
-    end;
+    until not FRepeatQuery;
     ibqryWork.EnableControls;
 
     if pcMain.ActivePage = tsResult then
@@ -830,6 +865,8 @@ procedure TfrmSQLEditorSyn.actRollbackExecute(Sender: TObject);
 begin
   if ibtrEditor.InTransaction then
     ibtrEditor.Rollback;
+  if pcMain.ActivePage = tsResult then
+    pcMain.ActivePage := tsQuery;
   tsResult.TabVisible := False;
 end;
 
@@ -841,9 +878,6 @@ end;
 procedure TfrmSQLEditorSyn.FormCreate(Sender: TObject);
 var
   I: Integer;
-  {$IFDEF GEDEMIN}
-  SL: TStringList;
-  {$ENDIF}
 begin
   {$IFDEF GEDEMIN}
   iblkupTable.Transaction := gdcBaseManager.ReadTransaction;
@@ -864,14 +898,33 @@ begin
   FOldSeqRead := TStringList.Create;
 
   {$IFDEF GEDEMIN}
-  SL := TStringList.Create;
-  try
-    gdcBaseManager.Database.GetTableNames(SL, True);
-    tsMonitor.TabVisible := SL.IndexOf('MON$STATEMENTS') <> -1;
-  finally
-    SL.Free;
-  end;
   ibtrMonitor.DefaultDatabase := gdcBaseManager.Database;
+  tsMonitor.TabVisible := gdcBaseManager.Database.ODSMajorVersion >= 11; // FB 2.5
+
+  frmSQLHistory := Tgdc_frmSQLHistory.Create(Self);
+  frmSQLHistory.ShowSpeedButton := False;
+  frmSQLHistory.Parent := pnlTest;
+  frmSQLHistory.BorderStyle := bsNone;
+  frmSQLHistory.tbMainMenu.Visible := False;
+  frmSQLHistory.sbMain.Visible := False;
+  frmSQLHistory.ibgrMain.OnDblClick := OnHistoryDblClick;
+
+  for I := 0 to frmSQLHistory.alMain.ActionCount - 1 do
+    if frmSQLHistory.alMain.Actions[I] is TCustomAction then
+      TCustomAction(frmSQLHistory.alMain.Actions[I]).ShortCut := 0;
+
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('id')).Visible := False;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('sql_text')).Visible := True;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('sql_params')).Visible := False;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('bookmark')).Visible := True;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('creatorkey')).Visible := False;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('creationdate')).Visible := False;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('editorkey')).Visible := False;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('editiondate')).Visible := True;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('creator')).Visible := True;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('exec_count')).Visible := True;
+
+  frmSQLHistory.Show;
   {$ENDIF}
 
   pnlRecord.Visible := False;
@@ -883,8 +936,8 @@ begin
   ActiveControl := seQuery;
   UpdateSyncs;
 
-  if UserStorage <> nil then
-    chbxAutoCommitDDL.Checked := UserStorage.ReadBoolean('Options', 'AutoCommitDDL', True, False);
+  {if UserStorage <> nil then
+    chbxAutoCommitDDL.Checked := UserStorage.ReadBoolean('Options', 'AutoCommitDDL', True, False);}
 end;
 
 procedure TfrmSQLEditorSyn.FormDestroy(Sender: TObject);
@@ -920,10 +973,13 @@ end;
 
 constructor TfrmSQLEditorSyn.Create(AnOwner: TComponent);
 begin
+  if (atDatabase <> nil) and (atDatabase.Relations.ByRelationName('GD_SQL_HISTORY') = nil) then
+    raise Exception.Create('Необходимо обновить структуру базы данных!');
+
   inherited;
+
   UseDesigner := False;
   FParams := TParams.Create;
-  FHistoryList := THistoryList.Create(True);
   ShowSpeedButton := True;
   FTableArray := TgdKeyStringAssoc.Create;
 
@@ -945,7 +1001,6 @@ end;
 destructor TfrmSQLEditorSyn.Destroy;
 begin
   FParams.Free;
-  FHistoryList.Free;
   FTableArray.Free;
   inherited;
 end;
@@ -1049,232 +1104,76 @@ begin
   ShiftDown := GetAsyncKeyState(VK_SHIFT) shr 1 > 0;
   if (Action = caHide) and ShiftDown then
     Action := caFree;
-end;
-
-procedure TfrmSQLEditorSyn.lvHistoryDblClick(Sender: TObject);
-begin
-  if lvHistory.Selected <> nil then
-  begin
-    seQuery.Lines.Text := FHistoryList[Integer(lvHistory.Selected.Data)].Caption;
-    seQuery.Show;
-  end;
-end;
-
-procedure TfrmSQLEditorSyn.UpdateHistoryList;
-var
-  I: Integer;
-begin
-  lvHistory.Items.BeginUpdate;
-  try
-    lvHistory.Items.Clear;
-    for I := 0 to FHistoryList.Count - 1 do
-    begin
-      if (eFilter.Text = '') or (StrIPos(eFilter.Text, FHistoryList[I].Caption) > 0) then
-        AddlvHistoryItem(FHistoryList[I]);
-    end;
-  finally
-    lvHistory.Items.EndUpdate;
-  end;
-  if lvHistory.Items.Count > 0 then
-  begin
-    lvHistory.Items[lvHistory.Items.Count - 1].Selected := True;
-    lvHistory.Items[lvHistory.Items.Count - 1].MakeVisible(False);
-  end;
-end;
-
-{ THistoryList }
-
-function THistoryList.GetItems(Index: Integer): THistoryItem;
-begin
-  Result := THistoryItem(inherited Items[Index]);
-end;
-
-function THistoryList.IndexOf(Text: String): Integer;
-var
-  I: Integer;
-begin
-  Result := -1;
-  for I := 0 to Count - 1 do
-  begin
-    if AnsiCompareText(Items[I].Caption, Text) = 0 then
-    begin
-      Result := I;
-      Break;
-    end;
-  end;
-end;
-
-procedure THistoryList.LoadFromStream(Stream: TStream);
-var
-  I: Integer;
-  C: Integer;
-begin
-  Clear;
-  if Assigned(Stream) then
-  begin
-    if Stream.Read(C, SizeOf(C)) = SizeOf(C) then
-    begin
-      for I := 0 to C - 1 do
-      begin
-        if Stream.Position >= Stream.Size then
-          break;
-
-        NewItem(Stream);
-      end;
-    end;
-  end;
-end;
-
-function THistoryList.NewItem(const ACaption: String): THistoryItem;
-begin
-  Result := THistoryItem.Create;
-  Result.Caption := ACaption;
-  Add(Result);
-end;
-
-function THistoryList.NewItem(AStream: TStream): THistoryItem;
-begin
-  Result := THistoryItem.Create;
-  Result.LoadFromStream(AStream);
-  Add(Result);
-end;
-
-procedure THistoryList.SaveToStream(Stream: TStream);
-const
-  MaxItemsCount = 120;
-var
-  I, J: Integer;
-begin
-  if Stream <> nil then
-  begin
-    I := Count - 1;
-    while I >= 0 do
-    begin
-      J := I - 1;
-      while J >= 0 do
-      begin
-        if Items[I].Caption = Items[J].Caption then
-        begin
-          Delete(J);
-          Dec(I);
-        end;
-        Dec(J);
-      end;
-
-      Dec(I);
-    end;
-
-    for I := 1 to (Count - MaxItemsCount) do
-      Delete(0);
-
-    Stream.WriteBuffer(Count, SizeOf(Count));
-    for I := 0 to Count - 1 do
-      Items[I].SaveToStream(Stream);
-  end;
-end;
-
-procedure THistoryList.SetItems(Index: Integer; const Value: THistoryItem);
-begin
-  inherited Items[Index] := Value;
-end;
-
-procedure TfrmSQLEditorSyn.AddlvHistoryItem(HI: THistoryItem);
-var
-  LI: TListItem;
-  I: Integer;
-  S: String;
-begin
-  LI := lvHistory.Items.Add;
-  LI.Caption := IntToStr(lvHistory.Items.Count - 1);
-  S := HI.Caption;
-  for I := 1 to Length(S) do
-  begin
-    if S[I] in [#10, #13] then
-      S[I] := ' '
-  end;
-  LI.Data := Pointer(TObjectList(FHistoryList).IndexOf(HI));
-  LI.SubItems.Add(S);
-  LI.Selected := True;
-  LI.MakeVisible(False);
-end;
-
-procedure TfrmSQLEditorSyn.eFilterChange(Sender: TObject);
-begin
-  UpdateHistoryList;
-end;
-
-{ THistoryItem }
-
-procedure THistoryItem.LoadFromStream(Stream: TStream);
-begin
-  if Assigned(Stream) then
-    FCaption := ReadStringFromStream(Stream);
-end;
-
-procedure THistoryItem.SaveToStream(Stream: TStream);
-begin
-  if Stream <> nil then
-    SaveStringToStream(FCaption, Stream)
-end;
-
-procedure TfrmSQLEditorSyn.UpdateHistoryOfForm;
-var
-  I: Integer;
-begin
-  for I := 0 to Screen.FormCount - 1 do
-  begin
-    if (Screen.Forms[I] is TfrmSQLEditorSyn) and
-      (Screen.Forms[I] <> Self) then
-      TfrmSQLEditorSyn(Screen.Forms[I]).UpdateHistory;
-  end;
+  if Action = caFree then
+    AddSQLHistory(False);
 end;
 
 procedure TfrmSQLEditorSyn.UpdateHistory;
 begin
   LoadHistory;
-  UpdateHistoryList;
-end;
-
-procedure TfrmSQLEditorSyn.SaveHistory;
-var
-  Path: String;
-  F: TgsStorageFolder;
-  M: TMemoryStream;
-begin
-  Path := Name;
-  F := UserStorage.OpenFolder(Path, True, False);
-  if F <> nil then
-  begin
-    M := TMemoryStream.Create;
-    try
-      FHistoryList.SaveToStream(M);
-      F.WriteStream(cQueryHistory, M);
-    finally
-      M.Free;
-    end;
-    UserStorage.CloseFolder(F, False);
-  end;
 end;
 
 procedure TfrmSQLEditorSyn.LoadHistory;
+{$IFDEF GEDEMIN}
 var
   Path: String;
   F: TgsStorageFolder;
   M: TMemoryStream;
+  Tr: TIBTransaction;
+  q: TIBSQL;
+  C: Integer;
+{$ENDIF}
 begin
-  Path := Name;
-  F := UserStorage.OpenFolder(Path, False);
-  if F <> nil then
+{$IFDEF GEDEMIN}
+  if (UserStorage <> nil) and (IBLogin <> nil) then
   begin
-    M := TMemoryStream.Create;
-    try
-      F.ReadStream(cQueryHistory, M);
-      FHistoryList.LoadFromStream(M);
-    finally
-      M.Free;
+    Path := Name;
+    F := UserStorage.OpenFolder(Path, False);
+    if F <> nil then
+    begin
+      M := TMemoryStream.Create;
+      try
+        F.ReadStream(cQueryHistory, M);
+
+        Tr := TIBTransaction.Create(nil);
+        try
+          Tr.DefaultDatabase := gdcBaseManager.Database;
+          Tr.StartTransaction;
+
+          q := TIBSQL.Create(nil);
+          try
+            q.Transaction := Tr;
+            q.SQL.Text :=
+              'INSERT INTO gd_sql_history (sql_text, bookmark, creatorkey, creationdate, editorkey, editiondate, exec_count) ' +
+              'VALUES (:S, ''H'', :K, CURRENT_TIMESTAMP, :K, CURRENT_TIMESTAMP, 0) ';
+
+            if M.Read(C, SizeOf(C)) = SizeOf(C) then
+            begin
+              while (M.Position < M.Size) and (C > 0) do
+              begin
+                q.ParamByName('S').AsString := ReadStringFromStream(M);
+                q.ParamByName('K').AsInteger := IBLogin.ContactKey;
+                q.ExecQuery;
+                Dec(C);
+              end;
+            end;
+          finally
+            q.Free;
+          end;
+
+          Tr.Commit;
+        finally
+          Tr.Free;
+        end;
+      finally
+        M.Free;
+      end;
+      UserStorage.CloseFolder(F, False);
+
+      UserStorage.DeleteFolder(Path, False);
     end;
-    UserStorage.CloseFolder(F, False);
   end;
+{$ENDIF}  
 end;
 
 procedure TfrmSQLEditorSyn.LoadSettings;
@@ -1287,32 +1186,7 @@ end;
 procedure TfrmSQLEditorSyn.SaveSettings;
 begin
   inherited;
-  SaveHistory;
   TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
-end;
-
-procedure TfrmSQLEditorSyn.actClearHistoryExecute(Sender: TObject);
-begin
-  FHistoryList.Clear;
-  SaveHistory;
-  UpdateHistoryList;
-  UpdateHistoryOfForm;
-end;
-
-procedure TfrmSQLEditorSyn.actDeleteHistItemUpdate(Sender: TObject);
-begin
-  TAction(Sender).Enabled := lvHistory.Selected <> nil;
-end;
-
-procedure TfrmSQLEditorSyn.actDeleteHistItemExecute(Sender: TObject);
-var
-  Index: Integer;
-begin
-  Index := Integer(lvHistory.Selected.Data);
-  FHistoryList.Delete(Index);
-  SaveHistory;
-  UpdateHistory;
-  UpdateHistoryOfForm;
 end;
 
 class function TfrmSQLEditorSyn.CreateAndAssign(
@@ -1358,93 +1232,60 @@ begin
 end;
 
 procedure TfrmSQLEditorSyn.actNextQueryExecute(Sender: TObject);
-var
-  LI: TListItem;
 begin
-  if lvHistory.Selected = nil then
-  begin
-    if lvHistory.Items.Count > 0 then
-    begin
-      lvHistory.Selected := lvHistory.Items[lvHistory.Items.Count - 1];
-    end;
-  end;
-
-  if lvHistory.Selected <> nil then
-  begin
-    LI := lvHistory.GetNextItem(lvHistory.Selected, sdBelow, [isNone]);
-
-    if (LI <> nil) then
-    begin
-      lvHistory.Selected := LI;
-      if pcMain.ActivePage = tsQuery then
-      begin
-        seQuery.Lines.Text := FHistoryList[Integer(lvHistory.Selected.Data)].Caption;
-        seQuery.Show;
-      end;  
-    end;
-  end;
+  {$IFDEF GEDEMIN}
+  frmSQLHistory.gdcObject.Next;
+  UseSQLHistory;
+  {$ENDIF}
 end;
 
 procedure TfrmSQLEditorSyn.actPrevQueryExecute(Sender: TObject);
-var
-  LI: TListItem;
 begin
-  if lvHistory.Selected = nil then
-  begin
-    if lvHistory.Items.Count > 0 then
-    begin
-      lvHistory.Selected := lvHistory.Items[0];
-    end;
-  end;
-
-  if lvHistory.Selected <> nil then
-  begin
-    LI := lvHistory.GetNextItem(lvHistory.Selected, sdAbove, [isNone]);
-
-    if (LI <> nil) then
-    begin
-      lvHistory.Selected := LI;
-      if pcMain.ActivePage = tsQuery then
-      begin
-        seQuery.Lines.Text := FHistoryList[Integer(lvHistory.Selected.Data)].Caption;
-        seQuery.Show;
-      end;
-    end;
-  end;
+  {$IFDEF GEDEMIN}
+  frmSQLHistory.gdcObject.Prior;
+  UseSQLHistory;
+  {$ENDIF}
 end;
 
 procedure TfrmSQLEditorSyn.actNextQueryUpdate(Sender: TObject);
 begin
-  actNextQuery.Enabled := (pcMain.ActivePage = tsQuery) or (pcMain.ActivePage = tsHistory);
+  actNextQuery.Enabled := ((pcMain.ActivePage = tsQuery) or (pcMain.ActivePage = tsHistory))
+    {$IFDEF GEDEMIN}
+    and Assigned(frmSQLHistory)
+    and (not frmSQLHistory.gdcObject.EOF)
+    {$ENDIF}
+    ;
 end;
 
 procedure TfrmSQLEditorSyn.actPrevQueryUpdate(Sender: TObject);
 begin
-  actPrevQuery.Enabled := (pcMain.ActivePage = tsQuery) or (pcMain.ActivePage = tsHistory);
+  actPrevQuery.Enabled := ((pcMain.ActivePage = tsQuery) or (pcMain.ActivePage = tsHistory))
+    {$IFDEF GEDEMIN}
+    and Assigned(frmSQLHistory)
+    and (not frmSQLHistory.gdcObject.BOF)
+    {$ENDIF}
+    ;
 end;
 
 procedure TfrmSQLEditorSyn.actExecuteUpdate(Sender: TObject);
 begin
-  actExecute.Enabled := pcMain.ActivePage = tsQuery;
+  actExecute.Enabled := (pcMain.ActivePage = tsQuery)
+    and (Trim(seQuery.Text) > '');
 end;
 
 procedure TfrmSQLEditorSyn.actPrepareUpdate(Sender: TObject);
 begin
-  actPrepare.Enabled := pcMain.ActivePage = tsQuery;
+  actPrepare.Enabled := (pcMain.ActivePage = tsQuery)
+    and (Trim(seQuery.Text) > '');
 end;
 
 procedure TfrmSQLEditorSyn.LoadSettingsAfterCreate;
 begin
   inherited;
 
-  if lvHistory.Items.Count > 0 then
-  begin
-    lvHistory.Selected := lvHistory.Items[lvHistory.Items.Count - 1];
-    if lvHistory.Selected <> nil then
-    begin
-      seQuery.Lines.Text := FHistoryList[lvHistory.Selected.Index].Caption;
-    end;  
-  end;
+  {$IFDEF GEDEMIN}
+  if frmSQLHistory <> nil then UseSQLHistory;
+  {$ENDIF}  
 end;
 
 procedure TfrmSQLEditorSyn.actOkExecute(Sender: TObject);
@@ -1483,42 +1324,50 @@ begin
       begin
         Obj := C.gdClass.CreateSubType(Application, C.SubType, 'ByID');
         try
-          R := atDatabase.Relations.ByRelationName(RN);
-          if (R <> nil)
-            and (R.PrimaryKey <> nil)
-            and (R.PrimaryKey.ConstraintFields.Count = 1) then
+          if ibqryWork.IsEmpty then
           begin
-            FN := R.PrimaryKey.ConstraintFields[0].FieldName;
+            Obj.Open;
+            Result := Obj;
+            Obj := nil;
           end else
-            FN := 'id';
-
-          Org := '"' + RN + '"."' + FN + '"';
-
-          for I := 0 to ibqryWork.Fields.Count - 1 do
           begin
-            if (AnsiCompareText(ibqryWork.Fields[I].Origin, Org) = 0) and
-              (ibqryWork.Fields[I] is TIntegerField) then
+            R := atDatabase.Relations.ByRelationName(RN);
+            if (R <> nil)
+              and (R.PrimaryKey <> nil)
+              and (R.PrimaryKey.ConstraintFields.Count = 1) then
             begin
-              Obj.ID := ibqryWork.Fields[I].AsInteger;
-              Obj.Open;
-              if not Obj.EOF then
-              begin
-                C := Obj.GetCurrRecordClass;
-                if (C.gdClass <> nil) and
-                  ((Obj.ClassType <> C.gdClass) or (Obj.SubType <> C.SubType)) then
-                begin
-                  Obj.Free;
-                  Obj := C.gdClass.CreateSubType(Application, C.SubType, 'ByID');
-                  Obj.ID := ibqryWork.Fields[I].AsInteger;
-                  Obj.Open;
-                  if Obj.EOF then
-                    FreeAndNil(Obj);
-                end;
+              FN := R.PrimaryKey.ConstraintFields[0].FieldName;
+            end else
+              FN := 'id';
 
-                Result := Obj;
-                Obj := nil;
+            Org := '"' + RN + '"."' + FN + '"';
+
+            for I := 0 to ibqryWork.Fields.Count - 1 do
+            begin
+              if (AnsiCompareText(ibqryWork.Fields[I].Origin, Org) = 0) and
+                (ibqryWork.Fields[I] is TIntegerField) then
+              begin
+                Obj.ID := ibqryWork.Fields[I].AsInteger;
+                Obj.Open;
+                if not Obj.EOF then
+                begin
+                  C := Obj.GetCurrRecordClass;
+                  if (C.gdClass <> nil) and
+                    ((Obj.ClassType <> C.gdClass) or (Obj.SubType <> C.SubType)) then
+                  begin
+                    Obj.Free;
+                    Obj := C.gdClass.CreateSubType(Application, C.SubType, 'ByID');
+                    Obj.ID := ibqryWork.Fields[I].AsInteger;
+                    Obj.Open;
+                    if Obj.EOF then
+                      FreeAndNil(Obj);
+                  end;
+
+                  Result := Obj;
+                  Obj := nil;
+                end;
+                break;
               end;
-              break;
             end;
           end;
         finally
@@ -1531,6 +1380,122 @@ begin
   end;
 end;
 {$ENDIF}
+
+procedure TfrmSQLEditorSyn.AddSQLHistory(const AnExecute: Boolean);
+  {$IFDEF GEDEMIN}
+  procedure SaveSQLParams;
+  var
+    K: Integer;
+    js: TStrings;
+    S: String;
+  begin
+    if ibqryWork.ParamCheck and (ibqryWork.Params.Count > 0) then
+    begin
+      js := TStringList.Create;
+      try
+        for K := 0 to ibqryWork.Params.Count - 1 do
+        begin
+          if js.IndexOfName(ibqryWork.Params[K].Name) = -1 then
+          begin
+            if not ibqryWork.Params[K].IsNull then
+            begin
+              case ibqryWork.Params[K].SQLType of
+                SQL_TIMESTAMP, SQL_TYPE_DATE, SQL_TYPE_TIME:
+                  S := SafeDateTimeToStr(ibqryWork.Params[K].AsDateTime);
+                SQL_SHORT, SQL_LONG, SQL_INT64, SQL_DOUBLE, SQL_FLOAT, SQL_D_FLOAT:
+                  S := SafeFloatToStr(ibqryWork.Params[K].AsDouble);
+              else
+                S := '"' + ConvertSysChars(ibqryWork.Params[K].AsString) + '"';
+              end;
+            end else
+              S := '<NULL>';
+            js.Add(ibqryWork.Params[K].Name + '=' + S);
+          end;
+        end;
+        frmSQLHistory.gdcObject.FieldByName('SQL_PARAMS').AsString := js.Text;
+      finally
+        js.Free;
+      end;
+    end else
+      frmSQLHistory.gdcObject.FieldByName('SQL_PARAMS').Clear;
+  end;
+  {$ENDIF}
+begin
+  {$IFDEF GEDEMIN}
+  if (frmSQLHistory <> nil) then
+  begin
+    if frmSQLHistory.gdcObject.FieldByName('SQL_TEXT').AsString <> seQuery.Text then
+    begin
+      frmSQLHistory.gdcObject.First;
+      frmSQLHistory.gdcObject.Insert;
+      frmSQLHistory.gdcObject.FieldByName('SQL_TEXT').AsString := seQuery.Text;
+    end else
+    begin
+      if AnExecute then
+      begin
+        frmSQLHistory.gdcObject.Edit;
+        frmSQLHistory.gdcObject.FieldByName('editiondate').AsDateTime := Now;
+      end;
+    end;
+    if AnExecute then
+      SaveSQLParams;
+
+    if frmSQLHistory.gdcObject.State in dsEditModes then
+      frmSQLHistory.gdcObject.Post;
+  end;
+  {$ENDIF}
+end;
+
+procedure TfrmSQLEditorSyn.UseSQLHistory;
+{$IFDEF GEDEMIN}
+var
+  SL: TStringList;
+  I: Integer;
+  P: TParam;
+  S: String;
+{$ENDIF}
+begin
+  {$IFDEF GEDEMIN}
+  if not frmSQLHistory.gdcObject.IsEmpty then
+  begin
+    seQuery.Text := frmSQLHistory.gdcObject.FieldByName('SQL_TEXT').AsString;
+
+    FParams.Clear;
+
+    if frmSQLHistory.gdcObject.FieldByName('SQL_PARAMS').AsString > '' then
+    begin
+      SL := TStringList.Create;
+      try
+        SL.Text := frmSQLHistory.gdcObject.FieldByName('SQL_PARAMS').AsString;
+        for I := 0 to SL.Count - 1 do
+          if SL.Names[I] > '' then
+          begin
+            P := TParam.Create(FParams);
+            P.Name := SL.Names[I];
+            S := Trim(SL.Values[SL.Names[I]]);
+            if Copy(S, 1, 1) = '"' then
+              P.Value := RestoreSysChars(Copy(S, 2, Length(S) - 2))
+            else if Pos(':', S) > 0 then
+              P.Value := SafeStrToDateTime(S)
+            else if Copy(S, 1, 1) = '<' then
+              P.Clear
+            else
+              P.Value := SafeStrToFloat(S);
+          end;
+      finally
+        SL.Free;
+      end;
+    end;
+
+    seQuery.Show;
+  end;
+  {$ENDIF}
+end;
+
+procedure TfrmSQLEditorSyn.OnHistoryDblClick(Sender: TObject);
+begin
+  UseSQLHistory;
+end;
 
 procedure TfrmSQLEditorSyn.actEditBusinessObjectExecute(Sender: TObject);
 {$IFDEF GEDEMIN}
@@ -1546,13 +1511,13 @@ begin
   end;
 {$ELSE}
 begin
-{$ENDIF}  
+{$ENDIF}
 end;
 
 procedure TfrmSQLEditorSyn.actEditBusinessObjectUpdate(Sender: TObject);
 begin
-  actEditBusinessObject.Enabled := ibqryWork.Active and
-    (not ibqryWork.IsEmpty);
+  actEditBusinessObject.Enabled := ibqryWork.Active {and
+    (not ibqryWork.IsEmpty)};
 end;
 
 procedure TfrmSQLEditorSyn.dbgResultDblClick(Sender: TObject);
@@ -1593,22 +1558,37 @@ end;
 
 procedure TfrmSQLEditorSyn.pcMainChanging(Sender: TObject;
   var AllowChange: Boolean);
+var
+  Tr: TIBTransaction;
 begin
   if (pcMain.ActivePage = tsTransaction)
-    and (ibtrEditor <> nil) then
+    and (ibtrEditor <> nil)
+    and (ibtrEditor.Params.Text <> mTransaction.Lines.Text) then
   begin
-    if ibtrEditor.InTransaction then
-      ibtrEditor.Commit;
-    ibtrEditor.Params.Text := mTransaction.Lines.Text;
+    Tr := TIBTransaction.Create(nil);
     try
-      ibtrEditor.StartTransaction;
-      AllowChange := True;
-    except
-      MessageBox(Handle,
-        'Задан неверный параметр транзакции.',
-        'Внимание',
-        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-      AllowChange := False;
+      {$IFDEF GEDEMIN}
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      Tr.Params.Text := mTransaction.Lines.Text;
+      try
+        Tr.StartTransaction;
+
+        if ibtrEditor.InTransaction then
+          ibtrEditor.Commit;
+        ibtrEditor.Params.Text := mTransaction.Lines.Text;
+        ibtrEditor.StartTransaction;
+        tsResult.TabVisible := False;
+        AllowChange := True;
+      except
+        MessageBox(Handle,
+          'Задан неверный параметр транзакции.',
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        AllowChange := False;
+      end;
+      {$ENDIF}
+    finally
+      Tr.Free;
     end;
   end
   else if (pcMain.ActivePage = tsMonitor)
@@ -1622,7 +1602,8 @@ end;
 
 procedure TfrmSQLEditorSyn.actParseUpdate(Sender: TObject);
 begin
-  actParse.Enabled := pcMain.ActivePage = tsQuery;
+  actParse.Enabled := (pcMain.ActivePage = tsQuery)
+    and (Trim(seQuery.Text) > '');
 end;
 
 procedure TfrmSQLEditorSyn.actParseExecute(Sender: TObject);
@@ -1654,7 +1635,7 @@ var
 begin
   {$IFDEF GEDEMIN}
   {$IFDEF FR4}
-  with ChReads.SeriesList.Series[0] do
+  with ChReads.SeriesList.Items[0] do
   {$ELSE}
   with ChReads.SeriesList.Series[0] do
   {$ENDIF}
@@ -1749,41 +1730,20 @@ begin
   end;
 end;
 
-procedure TfrmSQLEditorSyn.actCopyAllHistoryExecute(Sender: TObject);
-var
-  I: Integer;
-  S: String;
-begin
-  S := '';
-  for I := 0 to FHistoryList.Count - 1 do
-    S := S + FHistoryList[I].Caption + #13#10 + #13#10 + #13#10;
-  if S > '' then
-    Clipboard.AsText := S;
-end;
-
 procedure TfrmSQLEditorSyn.chbxAutoCommitDDLClick(Sender: TObject);
 begin
-  if UserStorage <> nil then
+  {if UserStorage <> nil then
   begin
     if chbxAutoCommitDDL.Checked then
       UserStorage.DeleteValue('Options', 'AutoCommitDDL', False)
     else
       UserStorage.WriteBoolean('Options', 'AutoCommitDDL', False);
-  end;
-end;
-
-procedure TfrmSQLEditorSyn.lvHistoryInfoTip(Sender: TObject;
-  Item: TListItem; var InfoTip: String);
-begin
-  InfoTip := FHistoryList[Integer(Item.Data)].Caption
+  end;}
 end;
 
 procedure TfrmSQLEditorSyn.actRefreshMonitorExecute(Sender: TObject);
 begin
   ibdsMonitor.Close;
-  if ibtrMonitor.InTransaction then
-    ibtrMonitor.Commit;
-  ibtrMonitor.StartTransaction;
   ibdsMonitor.Open;
 end;
 
@@ -1791,7 +1751,7 @@ procedure TfrmSQLEditorSyn.actDeleteStatementUpdate(Sender: TObject);
 begin
   actDeleteStatement.Enabled := ibdsMonitor.Active and
     (not ibdsMonitor.IsEmpty) and
-    (ibdsMonitor.FieldByName('mon$state').AsInteger = 1) and
+    (ibdsMonitor.FieldByName('state').AsInteger = 1) and
     (IBLogin <> nil) and
     IBLogin.IsIBUserAdmin;
 end;
@@ -1809,7 +1769,7 @@ begin
     Tr.StartTransaction;
     q.Transaction := Tr;
     q.SQL.Text := 'DELETE FROM mon$statements WHERE mon$statement_id = :ID';
-    q.ParamByName('id').AsInteger := ibdsMonitor.FieldByName('mon$statement_id').AsInteger;
+    q.ParamByName('id').AsInteger := ibdsMonitor.FieldByName('stmt_id').AsInteger;
     q.ExecQuery;
     q.Close;
     Tr.Commit;
@@ -1830,17 +1790,17 @@ end;
 
 procedure TfrmSQLEditorSyn.actShowMonitorSQLExecute(Sender: TObject);
 begin
-  seQuery.Lines.Text := ibdsMonitor.FieldByName('mon$sql_text').AsString;
+  seQuery.Text := ibdsMonitor.FieldByName('sql_text').AsString;
   seQuery.Show;
 end;
 
 procedure TfrmSQLEditorSyn.pcMainChange(Sender: TObject);
 begin
-  if (pcMain.ActivePage = tsMonitor)
-    and (ibdsMonitor <> nil) then
+  if (pcMain.ActivePage = tsMonitor) and (ibdsMonitor <> nil) then
   begin
     actRefreshMonitor.Execute;
-  end;
+  end else if (pcMain.ActivePage = tsResult) and (not tsResult.TabVisible) then
+    pcMain.ActivePage := tsQuery;
 end;
 
 procedure TfrmSQLEditorSyn.ibgrMonitorDblClick(Sender: TObject);
@@ -1862,32 +1822,30 @@ var
   Tr: TIBTransaction;
 begin
   if MessageBox(Handle,
-    PChar('Разорвать соединение с пользователем ' + ibdsMonitor.FieldByName('gd_user').AsString + '?'),
+    PChar('Завершить сеанс пользователя ' + ibdsMonitor.FieldByName('gd_user').AsString + '?'),
     'Внимание',
-    MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO then
+    MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDYES then
   begin
-    exit;
-  end;
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+    try
+      {$IFDEF GEDEMIN}
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      Tr.StartTransaction;
+      q.Transaction := Tr;
+      q.SQL.Text := 'DELETE FROM mon$attachments WHERE mon$attachment_id = :ID';
+      q.ParamByName('id').AsInteger := ibdsMonitor.FieldByName('att_id').AsInteger;
+      q.ExecQuery;
+      q.Close;
+      Tr.Commit;
+      {$ENDIF}
+    finally
+      q.Free;
+      Tr.Free;
+    end;
 
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  try
-    {$IFDEF GEDEMIN}
-    Tr.DefaultDatabase := gdcBaseManager.Database;
-    Tr.StartTransaction;
-    q.Transaction := Tr;
-    q.SQL.Text := 'DELETE FROM mon$attachments WHERE mon$attachment_id = :ID';
-    q.ParamByName('id').AsInteger := ibdsMonitor.FieldByName('mon$attachment_id').AsInteger;
-    q.ExecQuery;
-    q.Close;
-    Tr.Commit;
-    {$ENDIF}
-  finally
-    q.Free;
-    Tr.Free;
+    actRefreshMonitor.Execute;
   end;
-
-  actRefreshMonitor.Execute;
 end;
 
 procedure TfrmSQLEditorSyn.actShowGridExecute(Sender: TObject);
@@ -1923,46 +1881,52 @@ begin
 
     if sbRecord.ComponentCount = 0 then
     begin
-      Y := 6;
-      for I := 0 to ibqryWork.FieldCount - 1 do
-      begin
-        L := TLabel.Create(sbRecord);
-        L.Parent := sbRecord;
-        L.Left := 6;
-        L.Top := Y + 2;
-        L.ParentFont := True;
-        L.AutoSize := False;
-        L.Width := 150;
-        L.Caption := ibqryWork.Fields[I].FieldName + ':';
-        L.ShowHint := True;
-        L.Hint := ibqryWork.Fields[I].FieldName + #13#10 +
-          //ibqryWork.Fields[I].DisplayLabel + #13#10 +
-          ibqryWork.Fields[I].Origin;
-
-        if ibqryWork.Fields[I] is TBlobField then
-          E := TDBMemo.Create(sbRecord)
-        else
-          E := TDBEdit.Create(sbRecord);
-        E.Parent := sbRecord;
-        E.Left := 160;
-        E.Top := Y;
-        E.Height := 21;
-        if (ibqryWork.Fields[I] is TNumericField) or (ibqryWork.Fields[I] is TDateTimeField) then
-          E.Width := 120
-        else
-          E.Width := sbRecord.Width - 160 - 6 - 18;
-
-        if E is TDBEdit then
+      LockWindowUpdate(pnlRecord.Handle);
+      try
+        Y := 6;
+        for I := 0 to ibqryWork.FieldCount - 1 do
         begin
-          TDBEdit(E).DataSource := dsResult;
-          TDBEdit(E).DataField := ibqryWork.Fields[I].FieldName;
-        end else
-        begin
-          TDBMemo(E).DataSource := dsResult;
-          TDBMemo(E).DataField := ibqryWork.Fields[I].FieldName;
+          L := TLabel.Create(sbRecord);
+          L.Parent := sbRecord;
+          L.Left := 6;
+          L.Top := Y + 2;
+          L.ParentFont := True;
+          L.AutoSize := False;
+          L.Width := 150;
+          L.Caption := ibqryWork.Fields[I].FieldName + ':';
+          L.ShowHint := True;
+          L.Hint := ibqryWork.Fields[I].FieldName + #13#10 +
+            //ibqryWork.Fields[I].DisplayLabel + #13#10 +
+            ibqryWork.Fields[I].Origin;
+
+          if ibqryWork.Fields[I] is TBlobField then
+            E := TDBMemo.Create(sbRecord)
+          else
+            E := TDBEdit.Create(sbRecord);
+          E.Parent := sbRecord;
+          E.Left := 160;
+          E.Top := Y;
+          E.Height := 21;
+          if (ibqryWork.Fields[I] is TNumericField) or (ibqryWork.Fields[I] is TDateTimeField) then
+            E.Width := 120
+          else
+            E.Width := sbRecord.Width - 160 - 6 - 18;
+
+          if E is TDBEdit then
+          begin
+            TDBEdit(E).DataSource := dsResult;
+            TDBEdit(E).DataField := ibqryWork.Fields[I].FieldName;
+          end else
+          begin
+            TDBMemo(E).DataSource := dsResult;
+            TDBMemo(E).DataField := ibqryWork.Fields[I].FieldName;
+            TDBMemo(E).PopupMenu := pmSaveFieldToFile;
+          end;
+
+          Inc(Y, 22);
         end;
-
-        Inc(Y, 22);
+      finally
+        LockWindowUpdate(0);
       end;
     end;
   end;
@@ -1982,9 +1946,91 @@ begin
     mmPlan.Color := clWindow;
 end;
 
+procedure TfrmSQLEditorSyn.pnlTestResize(Sender: TObject);
+begin
+  {$IFDEF GEDEMIN}
+  if frmSQLHistory <> nil then
+    frmSQLHistory.SetBounds(0, 0, pnlTest.Width, pnlTest.Height);
+  {$ENDIF}  
+end;
+
+procedure TfrmSQLEditorSyn.actRefreshMonitorUpdate(Sender: TObject);
+begin
+  actRefreshMonitor.Enabled := ibtrMonitor.DefaultDatabase <> nil;
+end;
+
+procedure TfrmSQLEditorSyn.actShowViewFormUpdate(Sender: TObject);
+begin
+  actShowViewForm.Enabled := ibqryWork.Active;
+end;
+
+procedure TfrmSQLEditorSyn.actShowViewFormExecute(Sender: TObject);
+{$IFDEF GEDEMIN}
+var
+  Obj: TgdcBase;
+  F: TCustomForm;
+begin
+  Obj := CreateBusinessObject;
+  try
+    if Obj <> nil then
+    begin
+      F := Obj.CreateViewForm(Application.MainForm, '', Obj.SubType, True);
+      if F <> nil then
+      begin
+        F.ShowModal;
+        F.Free;
+      end;
+    end;
+  finally
+    Obj.Free;
+  end;
+{$ELSE}
+begin
+{$ENDIF}
+end;
+
+procedure TfrmSQLEditorSyn.actMakeSelectUpdate(Sender: TObject);
+begin
+  actMakeSelect.Enabled := iblkupTable.CurrentKey > '';
+end;
+
+procedure TfrmSQLEditorSyn.actMakeSelectExecute(Sender: TObject);
+begin
+  seQuery.Text := 'SELECT * FROM ' + iblkupTable.Text + ' WHERE 1=1';
+  seQuery.Show;
+end;
+
+procedure TfrmSQLEditorSyn.actSaveFieldToFileExecute(Sender: TObject);
+var
+  SD: TSaveDialog;
+begin
+  if (pmSaveFieldToFile.PopupComponent is TDBMemo)
+    and ((pmSaveFieldToFile.PopupComponent as TDBMemo).Field is TBlobField) then
+  begin
+    SD := TSaveDialog.Create(Self);
+    try
+      SD.Title := 'Сохранить значение поля в файл';
+      SD.DefaultExt := 'dat';
+      SD.Filter := 'Текстовые файлы (*.txt)|*.txt|Фйлы данных(*.dat)|*.dat|Все файлы (*.*)|*.*';
+      SD.FileName := (pmSaveFieldToFile.PopupComponent as TDBMemo).Field.Name + '.dat';
+      SD.Options := [ofOverwritePrompt, ofHideReadOnly, ofPathMustExist, ofNoReadOnlyReturn, ofEnableSizing];
+      if SD.Execute then
+        ((pmSaveFieldToFile.PopupComponent as TDBMemo).Field as TBlobField).SaveToFile(SD.FileName);
+    finally
+      SD.Free;
+    end;
+  end;
+end;
+
+procedure TfrmSQLEditorSyn.actSaveFieldToFileUpdate(Sender: TObject);
+begin
+  actSaveFieldToFile.Enabled := actShowRecord.Checked and sbRecord.Visible;
+end;
+
 initialization
   RegisterClass(TfrmSQLEditorSyn);
 
 finalization
   UnRegisterClass(TfrmSQLEditorSyn);
 end.
+

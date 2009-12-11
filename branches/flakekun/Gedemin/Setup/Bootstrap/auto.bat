@@ -2,25 +2,45 @@
 @echo off
 setlocal
 
+set exit_code=0
+set exit_message=0
+
+if not [%1]==[] goto InitVars
+
 echo *************************************************
 echo **                                             **
+echo **  Auto:                                      **
+echo **  Использование: auto.bat /ftp или /no_ftp   **
+echo **                                             **
+echo *************************************************
+
+goto Exit
+
+:InitVars
+
+echo *************************************************
+echo **                                             **
+echo **  Auto:                                      **
 echo **  Инициализируем глобальные переменные       **
 echo **                                             **
 echo *************************************************
 
-set path=c:\program files\firebird 2.5\bin;C:\Program Files\Borland\Delphi5\Bin;c:\program files\StarBase\StarTeam 5.3;c:\windows;c:\windows\system32;c:\windows\System32\Wbem
+@set path=c:\program files\firebird 2.5\bin
+@set path=%path%;C:\Program Files\Borland\Delphi5\Bin
+rem set path=%path%;c:\program files\StarBase\StarTeam 5.3
+@set path=%path%;c:\windows;c:\windows\system32;c:\windows\System32\Wbem
 
-set gedemin_path=..\..
-set install_source_path=..\..\..\gedemin_local_fb
-set setting_source_path=d:\golden\setting
+@set gedemin_path=..\..
+@set install_source_path=..\..\..\gedemin_local_fb
+@set setting_source_path=d:\golden\setting
 rem set install_target_path=\Distrib2\GoldSoft\Gedymin\Local
-set install_target_path=\distr_temp
+@set install_target_path=\distr_temp
 
-set exit_code=0
-set exit_message=0
+set send_ftp=%1
 
 echo *************************************************
 echo **                                             **
+echo **  Auto:                                      **
 echo **  Выгружаем настройки из StarTeam            **
 echo **                                             **
 echo *************************************************
@@ -39,6 +59,7 @@ goto Exit
 
 echo *************************************************
 echo **                                             **
+echo **  Auto:                                      **
 echo **  Компилируем gedemin.exe                    **
 echo **                                             **
 echo *************************************************
@@ -51,24 +72,28 @@ if not errorlevel 0 goto Error
 
 echo *************************************************
 echo **                                             **
+echo **  Auto:                                      **
 echo **  Копируем gedemin.exe                       **
 echo **                                             **
 echo *************************************************
 
-copy ..\..\exe\gedemin.exe %install_source_path%\gedemin.exe /Y
+@copy ..\..\exe\gedemin.exe %install_source_path%\gedemin.exe /Y
 if not errorlevel 0 goto Error
 
 echo *************************************************
 echo **                                             **
+echo **  Auto:                                      **
 echo **  Делаем инстоляции                          **
 echo **                                             **
 echo *************************************************
 
-call make_install.bat "%setting_source_path%\Банк\Банк и касса.gsf"                                         plat      doc.jpg     platlocal     plat_setup.rar  "%install_target_path%\Платежные документы\setup.exe" 
-call make_install.bat "%setting_source_path%\Общие\Общие данные.gsf"                                        devel     complex.jpg devellocal    devel_setup.rar "%install_target_path%\Разработчик\setup.exe" 
-call make_install.bat "%setting_source_path%\Общие\Комплексная_автоматизация.gsf"                           business  complex.jpg businesslocal compl_setup.rar "%install_target_path%\Комплексная автоматизация\setup.exe" 
-call make_install.bat "%setting_source_path%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf"     ip        ip.jpg      iplocal       ip_setup.rar    "%install_target_path%\Предприниматель\setup.exe" 
-call make_install.bat "%setting_source_path%\Предприниматель\Единый налог\Предприниматель_единый_налог.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar "%install_target_path%\Предприниматель\setup_ed.exe" 
+call make_install.bat "%setting_source_path%\Общие\Общие данные.gsf"                                        devel     complex.jpg devellocal    devel_setup.rar "%install_target_path%\Разработчик\setup.exe"         %send_ftp%
+call make_install.bat "%setting_source_path%\Банк\Банк и касса.gsf"                                         plat      doc.jpg     platlocal     plat_setup.rar  "%install_target_path%\Платежные документы\setup.exe" %send_ftp% 
+call make_install.bat "%setting_source_path%\Общие\Комплексная_автоматизация.gsf"                           business  complex.jpg businesslocal compl_setup.rar "%install_target_path%\Комплексная автоматизация\setup.exe" %send_ftp%
+call make_install.bat "%setting_source_path%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf"     ip        ip.jpg      iplocal       ip_setup.rar    "%install_target_path%\Предприниматель\setup.exe" %send_ftp%
+call make_install.bat "%setting_source_path%\Предприниматель\Единый налог\Предприниматель_единый_налог.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar "%install_target_path%\Предприниматель\setup_ed.exe" %send_ftp%
+call make_install.bat "%setting_source_path%\Меню\Бэк-офис\Меню_БэкОфис.gsf"                                menuback     complex.jpg menubacklocal    menuback_setup.rar "%install_target_path%\Меню\setup_back.exe" %send_ftp%
+call make_install.bat "%setting_source_path%\Меню\Фронт-офис\00 Меню  Фронтофис.gsf"                        menufront    complex.jpg menufrontlocal   menufront_setup.rar "%install_target_path%\Меню\setup_front.exe" %send_ftp%
 
 if not errorlevel 0 goto Error
 
@@ -78,6 +103,7 @@ goto Exit
 
 echo *************************************************
 echo **                                             **
+echo **  Auto:                                      **
 echo **  Произошла ошибка!                          **
 echo **                                             **
 echo *************************************************

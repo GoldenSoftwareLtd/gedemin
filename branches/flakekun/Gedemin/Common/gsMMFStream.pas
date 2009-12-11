@@ -29,7 +29,8 @@ type
 
   public
     constructor Create; overload;
-    constructor Create(AHandle: THandle; AProtection: DWORD; AStreamStart, AStreamSize: Int64); overload;
+    constructor Create(AHandle: THandle; AProtection: DWORD;
+      AStreamStart, AStreamSize: Int64); overload;
     destructor Destroy; override;
 
     function Read(var Buffer; Count: Longint): Longint;
@@ -133,7 +134,7 @@ begin
     if FPointer <> nil then
     begin
       if not UnMapViewOfFile(FPointer) then
-        raise EgsMMFStream.Create('Cannot unmap view of file');
+        raise EgsMMFStream.Create('Can not unmap view of file');
     end;
 
     if (ANewViewStart > FViewStart) or (FFileMapping = 0) then
@@ -141,7 +142,7 @@ begin
       if FFileMapping <> 0 then
       begin
         if not CloseHandle(FFileMapping) then
-          raise EgsMMFStream.Create('Cannot close file mapping');
+          raise EgsMMFStream.Create('Can not close file mapping');
       end;
 
       if FOwnFile then
@@ -155,7 +156,7 @@ begin
         L.LowPart,
         nil);
       if FFileMapping = 0 then
-        raise EgsMMFStream.Create('Cannot create a file mapping');
+        raise EgsMMFStream.Create('Can not create a file mapping');
     end;
     FViewStart := ANewViewStart;
 
@@ -166,7 +167,7 @@ begin
       L.LowPart,
       FViewSize);
     if FPointer = nil then
-      raise EgsMMFStream.Create('Cannot map view of file, error #' + IntToStr(GetLastError));
+      raise EgsMMFStream.CreateFmt('Can not map view of file, error #%d', [GetLastError]);
   end;
 
   FOffset := ANewOffset;
@@ -177,8 +178,9 @@ var
   TempPath: array[0..1023] of Char;
   TempFileName: array[0..1023] of Char;
 begin
-  if (GetTempPath(SizeOf(TempPath), TempPath) = 0) or (GetTempFileName(TempPath, 'gd', 0, TempFileName) = 0) then
-    raise EgsMMFStream.Create('Cannot get a name for temp file');
+  if (GetTempPath(SizeOf(TempPath), TempPath) = 0) or
+    (GetTempFileName(TempPath, 'gd', 0, TempFileName) = 0) then
+      raise EgsMMFStream.Create('Can not get a name for temp file');
 
   FHandle := CreateFile(TempFileName,
     GENERIC_READ or GENERIC_WRITE,
@@ -188,7 +190,7 @@ begin
     FILE_ATTRIBUTE_TEMPORARY or FILE_FLAG_DELETE_ON_CLOSE,
     0);
   if FHandle = INVALID_HANDLE_VALUE then
-    raise EgsMMFStream.Create('Cannot create a file for gsMMFStream');
+    raise EgsMMFStream.Create('Can not create a file for gsMMFStream');
 
   MapView(0);
 end;
@@ -234,7 +236,7 @@ begin
   if AStrLen = -1 then
     ReadBuffer(L, SizeOf(L))
   else
-    L := AStrLen;  
+    L := AStrLen;
   if L < 0 then
     raise EgsMMFStream.Create('Invalid stream format');
   SetLength(Result, L);

@@ -29,6 +29,8 @@ type
     actDetailEditLine: TAction;
     nDetailEditLine: TMenuItem;
     tbiDetailEditLine: TTBItem;
+    actDoReversalEntry: TAction;
+    TBItem2: TTBItem;
 
     procedure FormCreate(Sender: TObject);
     procedure cbGroupByDocumentClick(Sender: TObject);
@@ -38,6 +40,8 @@ type
     procedure actDetailEditLineExecute(Sender: TObject);
     procedure actDetailEditExecute(Sender: TObject);
     procedure actDetailEditLineUpdate(Sender: TObject);
+    procedure actDoReversalEntryExecute(Sender: TObject);
+    procedure actDoReversalEntryUpdate(Sender: TObject);
 
   private
     procedure ShowQuantity;
@@ -54,7 +58,9 @@ var
 
 implementation
 
-uses gd_ClassList, Storages, gsStorage_CompPath, gdv_frmAcctBaseForm_unit, gdcClasses;
+uses
+  gd_ClassList, Storages, gsStorage_CompPath, gdv_frmAcctBaseForm_unit, gdcClasses,
+  flt_ScriptInterface, prm_ParamFunctions_unit;
 
 {$R *.DFM}
 
@@ -258,6 +264,57 @@ begin
   actDetailEditLine.Enabled :=
      (gdcAcctViewEntryRegister.FieldByName('documenttypekey').AsInteger <> DefaultDocumentTypeKey) and
       (gdcAcctViewEntryRegister.FieldByName('id').AsInteger > 0)
+end;
+
+procedure Tgdc_frmTransaction.actDoReversalEntryExecute(Sender: TObject);
+var
+  ParamList: TgsParamList;
+  ParamResult: OleVariant;
+  DialogResult: Boolean;
+begin
+  if Assigned(ParamGlobalDlg) and ParamGlobalDlg.IsEventAssigned then
+  begin
+    ParamList := TgsParamList.Create;
+    try
+      // Заполнение и инициализация списка параметров
+      ParamList.AddParam('STDATE', 'Дата сторно-проводки', prmDate, '');
+      ParamList.Params[0].Required := True;
+      ParamList.Params[0].ResultValue := Date;
+      ParamList.AddLinkParam('TRANSACTION', 'Привязать к Типовой операции', prmLinkElement, 'AC_TRANSACTION', 'NAME', 'ID', '', '', '');
+      ParamList.Params[1].Required := True;
+      ParamList.Params[1].ResultValue :=
+        VarArrayOf([gdcAcctViewEntryRegister.FieldByName('TRANSACTIONKEY').AsInteger]);
+
+      ParamGlobalDlg.QueryParams(GD_PRM_SCRIPT_DLG, Self.Handle, ParamList, DialogResult);
+      if DialogResult then
+      begin
+        try
+          ParamResult := ParamList.GetVariantArray;
+          if (ParamResult[0] > 0) and (ParamResult[1][0] > 0) then
+          begin
+            // Если параметры введены - сторнируем выбранную проводку
+            gdcAcctViewEntryRegister.CreateReversalEntry(ParamResult[0], ParamResult[1][0]);
+            gdcAcctViewEntryRegister.CloseOpen;
+            Application.MessageBox('Проводка сторнирована', PChar(Self.Caption),
+              MB_OK + MB_ICONINFORMATION + MB_SYSTEMMODAL);
+          end;
+        except
+          on E: Exception do
+            Application.MessageBox(PChar('Произошла ошибка при сторнировании проводки:'#13#10 + E.Message),
+              PChar(Self.Caption), MB_OK + MB_ICONERROR + MB_SYSTEMMODAL);
+        end;
+      end;
+    finally
+      ParamList.Free;
+    end;
+  end
+  else
+    raise Exception.Create('Класс ParamGlobalDlg не создан');
+end;
+
+procedure Tgdc_frmTransaction.actDoReversalEntryUpdate(Sender: TObject);
+begin
+  actDoReversalEntry.Enabled := (gdcAcctViewEntryRegister.FieldByName('id').AsInteger > 0);
 end;
 
 initialization

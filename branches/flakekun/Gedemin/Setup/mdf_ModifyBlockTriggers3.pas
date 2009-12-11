@@ -12,7 +12,6 @@ implementation
 uses
   IBSQL, SysUtils;
 
-
 procedure ModifyBlockTriggers3(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
@@ -39,8 +38,6 @@ begin
         try
           ExecQuery;
         except
-          on E: Exception do
-            Log('Сообщение:' +  E.Message);
         end;
         Close;
 
@@ -48,8 +45,6 @@ begin
         try
           ExecQuery;
         except
-          on E: Exception do
-            Log('Внимание:' +  E.Message);
         end;
 
         SQL.Text :=
@@ -59,46 +54,8 @@ begin
           ExecQuery;
         except
         end;
-        Close;
 
-        (*
-        SQL.Text :=
-          'ALTER TABLE rp_reportgroup DROP aview ';
-        try
-          ExecQuery;
-        except
-          on E: Exception do
-          begin
-            Log('Внимание: ' + E.Message);
-          end;
-        end;
         Close;
-
-        SQL.Text :=
-          'ALTER TABLE rp_reportgroup DROP achag ';
-        try
-          ExecQuery;
-        except
-          on E: Exception do
-          begin
-            Log('Внимание: ' + E.Message);
-          end;
-        end;
-        Close;
-
-        SQL.Text :=
-          'ALTER TABLE rp_reportgroup DROP afull ';
-        try
-          ExecQuery;
-        except
-          on E: Exception do
-          begin
-            Log('Внимание: ' + E.Message);
-          end;
-        end;
-        Close;
-        *)
-
         SQL.Text :=
           'INSERT INTO fin_versioninfo ' +
           '  VALUES (85, ''0000.0001.0000.0113'', ''20.01.2007'', ''Stripped security descriptors from rp_reportgroup'')';
@@ -106,8 +63,8 @@ begin
           ExecQuery;
         except
         end;
-        Close;
 
+        Close;
         SQL.Text :=
           'UPDATE gd_people p SET p.surname=(SELECT SUBSTRING(c.name FROM 1 FOR 20) FROM gd_contact c WHERE c.id=p.contactkey) ' +
             'WHERE COALESCE(p.surname, '''')='''' ';
@@ -149,8 +106,8 @@ begin
           SQL.Text := 'UPDATE usr$inv_car SET usr$number = CAST(id AS VARCHAR(20)) WHERE COALESCE(usr$number, '''')='''' ';
           ExecQuery;
         end;
-        Close;
 
+        Close;
         SQL.Text :=
           'INSERT INTO fin_versioninfo ' +
           '  VALUES (86, ''0000.0001.0000.0114'', ''22.01.2007'', ''surname field of gd_people became not null'')';
@@ -158,15 +115,10 @@ begin
           ExecQuery;
         except
         end;
-        Close;
 
-        SQL.Text :=
-          'DROP TRIGGER GD_AU_DOCUMENT ';
-        ExecQuery;
         Close;
-
         SQL.Text :=
-          'CREATE TRIGGER GD_AU_DOCUMENT FOR GD_DOCUMENT ' + #13#10 +
+          'ALTER TRIGGER GD_AU_DOCUMENT ' + #13#10 +
           '  AFTER UPDATE ' + #13#10 +
           '  POSITION 0 ' + #13#10 +
           'AS ' + #13#10 +
@@ -210,16 +162,9 @@ begin
         end;
         Close;
 
-        SQL.Text :=
-          'DROP TRIGGER gd_aiu_command ';
-        try
-          ExecQuery;
-        except
-        end;
         Close;
-
         SQL.Text :=
-          'CREATE TRIGGER gd_aiu_command FOR gd_command ' + #13#10 +
+          'CREATE OR ALTER TRIGGER gd_aiu_command FOR gd_command' + #13#10 +
           '  AFTER INSERT OR UPDATE ' + #13#10 +
           '  POSITION 100 ' + #13#10 +
           'AS ' + #13#10 +
@@ -231,32 +176,24 @@ begin
           '    AND id <> NEW.id; ' + #13#10 +
           'END';
         ExecQuery;
-        Close;
 
+        Close;
         SQL.Text :=
           'ALTER TABLE gd_usergroup ADD CONSTRAINT gd_chk_usergroup_id CHECK (id BETWEEN 1 AND 32)';
         try
           ExecQuery;
         except
-          on E: Exception do
-          begin
-            Log('Внимание: ' + E.Message);
-          end;
         end;
-        Close;
 
+        Close;
         SQL.Text :=
           'ALTER TABLE gd_usergroup ADD CONSTRAINT gd_chk_usergroup_name CHECK (name > '''')';
         try
           ExecQuery;
         except
-          on E: Exception do
-          begin
-            Log('Внимание: ' + E.Message);
-          end;
         end;
-        Close;
 
+        Close;
         SQL.Text :=
           'ALTER TRIGGER gd_bi_usergroup BEFORE INSERT POSITION 0 ' + #13#10 +
           '  AS ' + #13#10 +
@@ -266,19 +203,15 @@ begin
           '      RETURNING_VALUES NEW.id; ' + #13#10 +
           'END ';
         ExecQuery;
-        Close;
 
+        Close;
         SQL.Text := 'DROP EXCEPTION gd_e_notidusegroup';
         try
           ExecQuery;
         except
-          on E: Exception do
-          begin
-            Log('Внимание: ' + E.Message);
-          end;
         end;
-        Close;
 
+        Close;
         SQL.Text :=
           'ALTER TRIGGER gd_bu_usergroup BEFORE UPDATE POSITION 0 ' + #13#10 +
           'AS ' + #13#10 +
@@ -316,13 +249,9 @@ begin
         try
           ExecQuery;
         except
-          on E: Exception do
-          begin
-            Log('Внимание: ' + E.Message);
-          end;
         end;
-        Close;
 
+        Close;
         SQL.Text :=
           'CREATE TRIGGER gd_biu_user FOR gd_user ' + #13#10 +
           '  BEFORE INSERT OR UPDATE ' + #13#10 +
@@ -348,13 +277,9 @@ begin
         try
           ExecQuery;
         except
-          on E: Exception do
-          begin
-            Log('Внимание: ' + E.Message);
-          end;
         end;
-        Close;
 
+        Close;
         SQL.Text :=
           'INSERT INTO fin_versioninfo ' +
           '  VALUES (88, ''0000.0001.0000.0116'', ''28.01.2007'', ''Some internal changes'')';
@@ -362,24 +287,23 @@ begin
           ExecQuery;
         except
         end;
-        Close;
-
-        FTransaction.Commit;
       finally
         FIBSQL.Free;
       end;
+
+      FTransaction.Commit;
     except
       on E: Exception do
       begin
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
         Log('Ошибка: ' + E.Message);
+        raise;
       end;
     end;
   finally
-    if FTransaction.InTransaction then
-      FTransaction.Rollback;
     FTransaction.Free;
   end;
-
 end;
 
 end.

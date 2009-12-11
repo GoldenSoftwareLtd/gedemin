@@ -372,8 +372,8 @@ begin
             end;
           end;
         end;
+        ibgrMain.Conditions[I].DisplayFields := DisplayFields;
       end;
-      ibgrMain.Conditions[I].DisplayFields := DisplayFields;
     end;
   end;
 end;
@@ -406,7 +406,7 @@ var
     end;
   end;
 
-  procedure GetQuarterMaonthes(const AQuarter: word; var ABegin, AEnd: word);
+  procedure GetQuarterMonths(const AQuarter: word; var ABegin, AEnd: word);
   begin
     case AQuarter of
       1:begin
@@ -437,8 +437,9 @@ begin
     C := TAccCardConfig.Create;
     try
       DoSaveConfig(C);
-      C.CompanyKey := frAcctCompany.iblCompany.CurrentKeyInt;
-      C.AllHoldingCompanies := frAcctCompany.cbAllCompanies.Checked;
+      // Закомментировано - поля заполняются в Tgdv_frmAcctBaseForm.DoSaveConfig
+      //C.CompanyKey := frAcctCompany.iblCompany.CurrentKeyInt;
+      //C.AllHoldingCompanies := frAcctCompany.cbAllCompanies.Checked;
       C.IncCorrSubAccounts := False;
       C.CorrAccounts := '';
 
@@ -532,7 +533,7 @@ begin
             wQ:= StrToInt(gdvObject.FieldByName(sQName).AsString);
             DecodeDate(dtBegin, wBY, wBM, wBD);
             DecodeDate(dtEnd, wEY, wEM, wED);
-            GetQuarterMaonthes(wQ, wQBM, wQEM);
+            GetQuarterMonths(wQ, wQBM, wQEM);
             if wBY = wEY then begin
               if (wQBM <= wBM) and (wQEM >= wEM) then begin
                 dtBegin:= EncodeDate(wBY, wBM, wBD);
@@ -608,7 +609,7 @@ begin
             wY:= StrToInt(gdvObject.FieldByName(sYName).AsString);
             DecodeDate(dtBegin, wBY, wBM, wBD);
             DecodeDate(dtEnd, wEY, wEM, wED);
-            GetQuarterMaonthes(wQ, wQBM, wQEM);
+            GetQuarterMonths(wQ, wQBM, wQEM);
             if (wEY = wBY) and (wQBM <= wBM) and (wQEM >= wEM) then begin
               dtBegin:= EncodeDate(wY, wBM, wBD);
               dtEnd:= EncodeDate(wY, wEM, wED);
@@ -628,9 +629,14 @@ begin
           end;
       end;
 
-
+      // Добавим ограничение по аналитикам из "Группировки по аналитикам"
       if A > '' then
-        C.Analytics := A;
+      begin
+        if C.Analytics > '' then
+          C.Analytics := C.Analytics + #13#10 + A
+        else
+          C.Analytics := A;
+      end;
 
       if not NewWindow or (Form = nil) then
       begin
@@ -935,7 +941,7 @@ begin
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
       SQL.SQL.Text := GetSaldoBeginSQL;
-      SQL.ParamByName('begindate').AsDateTime := xdeStart.Date;
+      SQL.ParamByName('begindate').AsDateTime := Self.DateBegin;
       SQL.ExecQuery;
       while not SQL.Eof do
       begin

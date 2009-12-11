@@ -8,6 +8,7 @@ uses
   FastMM4,
   FastMove,
   RTLVCLOptimize,
+  MidasSpeedFix,
   Forms,
   gd_main_form in 'gd_main_form.pas' {frmGedeminMain},
   dmDataBase_unit in '..\GAdmin\dmDataBase_unit.pas' {dmDatabase: TDataModule},
@@ -23,12 +24,6 @@ uses
   gd_regionalsettings_dlgEdit,
   gd_security,
   gdcRUID,
-  gd_frmMDV_unit in '..\Component\Repository\GD\gd_frmMDV_unit.pas' {gd_frmMDV},
-  gd_frmMDHIBF_unit in '..\Component\Repository\GD\gd_frmMDHIBF_unit.pas' {gd_frmMDHIBF},
-  gd_frmG_unit in '..\Component\Repository\GD\gd_frmG_unit.pas' {gd_frmG},
-  gd_frmSIBF_unit in '..\Component\Repository\GD\gd_frmSIBF_unit.pas' {gd_frmSIBF},
-  gd_dlgG_unit in '..\Component\Repository\GD\gd_dlgG_unit.pas' {gd_dlgG},
-  gd_frmMDH_unit in '..\Component\Repository\GD\gd_frmMDH_unit.pas' {gd_frmMDH},
   dmClientReport_unit in '..\Report\dmClientReport_unit.pas' {dmClientReport: TDataModule},
   gdc_frmG_unit in '..\Component\Repository\gdc_frmG_unit.pas' {gdc_frmG},
   gdc_frmMDH_unit in '..\Component\Repository\gdc_frmMDH_unit.pas' {gdc_frmMDH},
@@ -69,6 +64,7 @@ uses
   gdcFilter,
   gdcWgPosition,
   gdcLink,
+  gdcSQLHistory,
   gdcTableCalendar in '..\Component\GDC\gdcTableCalendar.pas',
   gdcAcctAccount in '..\Component\GDC\gdcAcctAccount.pas',
   gdc_frmInvBaseRemains_unit in '..\Inventory\gdc_frmInvBaseRemains_unit.pas' {gdc_frmInvBaseRemains},
@@ -268,13 +264,6 @@ uses
   gdc_dlgAcctAccReview_unit in '..\Transaction\gdc_dlgAcctAccReview_unit.pas' {dlgAcctAccReviewConfig},
   gdc_frmAcctAccReview_Unit in '..\Transaction\gdc_frmAcctAccReview_Unit.pas' {gdc_frmAcctAccReview},
   gsIBLookupComboBox_dlgAction in '..\Component\gsIBLookupComboBox_dlgAction.pas' {gsIBLkUp_dlgAction},
-  {$IFDEF DEBUG}
-  gdSQLMonitor in '..\Log\gdSQLMonitor.pas',
-  gd_frmSQLMonitor_unit in '..\Log\gd_frmSQLMonitor_unit.pas' {gd_frmSQLMonitor},
-  gdcSQLStatement in '..\Component\GDC\gdcSQLStatement.pas',
-  gdc_frmSQLStatement_unit in '..\Log\gdc_frmSQLStatement_unit.pas' {gdc_frmSQLStatement},
-  gdc_dlgSQLStatement_unit in '..\Log\gdc_dlgSQLStatement_unit.pas' {gdc_dlgSQLStatement},
-  {$ENDIF}
   IBSQLCache in '..\IBX\IBSQLCache.pas',
   dlgClassInfo_unit in '..\Property\dlgClassInfo_unit.pas' {dlgClassInfo},
   gdcUserGroup_dlgSetRights_unit in '..\GAdmin\gdcUserGroup_dlgSetRights_unit.pas' {gdcUserGroup_dlgSetRights},
@@ -283,17 +272,15 @@ uses
   prp_ScriptComparer_unit in '..\Property\prp_ScriptComparer_unit.pas' {prp_ScriptComparer},
   cmp_frmDataBaseCompare in '..\Property\cmp_frmDataBaseCompare.pas' {DataBaseCompare},
   gd_dlgRestoreWarning_unit in 'gd_dlgRestoreWarning_unit.pas' {gd_dlgRestoreWarning},
-  IBSQL_WaitWindow in '..\IBX\IBSQL_WaitWindow.pas'
-  {$IFDEF NEW_STREAM}
-  ,gdcStreamSaver in '..\Component\GDC\gdcStreamSaver.pas',
+  IBSQL_WaitWindow in '..\IBX\IBSQL_WaitWindow.pas',
+  gdcStreamSaver in '..\Component\GDC\gdcStreamSaver.pas',
   gd_dlgStreamSaverOptions in '..\Attr\gd_dlgStreamSaverOptions.pas'
-  {$ENDIF}
   {$IFDEF FR4}
   ,rp_StreamFR4 in '..\Report\rp_StreamFR4.pas',
   rp_FR4Functions in '..\Report\rp_FR4Functions.pas'
   {$ENDIF}
-  {$IFDEF ENTRY_BALANCE}
   , gdv_frmCalculateBalance in '..\Transaction\gdv_frmCalculateBalance.pas'
+  , gdc_frmClosePeriod in '..\Attr\gdc_frmClosePeriod.pas'
   , gdvAcctBase in '..\Transaction\gdvAcctBase.pas'
   , gdvAcctAccCard in '..\Transaction\gdvAcctAccCard.pas'
   , gdvAcctAccReview in '..\Transaction\gdvAcctAccReview.pas'
@@ -306,17 +293,13 @@ uses
   , gdv_frmAcctAccCard_unit in '..\Transaction\gdv_frmAcctAccCard_unit.pas'
   , gdv_frmAcctLedger_unit in '..\Transaction\gdv_frmAcctLedger_unit.pas'
   , gdv_frmAcctAccReview_unit in '..\Transaction\gdv_frmAcctAccReview_unit.pas'
-  {$ELSE}
-  , gdv_frmAcctCirculationList_unit in '..\Obsolete\Transaction\gdv_frmAcctCirculationList_unit.pas'
-  , gdv_frmGeneralLedger_unit in '..\Obsolete\Transaction\gdv_frmGeneralLedger_unit.pas'
-  , gdv_dlgGeneralLedger_unit in '..\Obsolete\Transaction\gdv_dlgGeneralLedger_unit.pas'
-  , gdv_frmAcctBaseForm_unit in '..\Obsolete\Transaction\gdv_frmAcctBaseForm_unit.pas'
-  , gdv_AcctAccCard_unit in '..\Obsolete\Transaction\gdv_AcctAccCard_Unit.pas'
-  , gdv_frmAcctLedger_unit in '..\Obsolete\Transaction\gdv_frmAcctLedger_unit.pas'
-  , gdv_frmAcctAccReview_unit in '..\Obsolete\Transaction\gdv_frmAcctAccReview_unit.pas'
-  {$ENDIF}
   {$IFDEF DEBUG}
   , ExceptionDialog_unit in '..\Component\ExceptionDialog_unit.pas' {ExceptionDialog}
+  , gdSQLMonitor in '..\Log\gdSQLMonitor.pas',
+  , gd_frmSQLMonitor_unit in '..\Log\gd_frmSQLMonitor_unit.pas' {gd_frmSQLMonitor},
+  , gdcSQLStatement in '..\Component\GDC\gdcSQLStatement.pas',
+  , gdc_frmSQLStatement_unit in '..\Log\gdc_frmSQLStatement_unit.pas' {gdc_frmSQLStatement},
+  , gdc_dlgSQLStatement_unit in '..\Log\gdc_dlgSQLStatement_unit.pas' {gdc_dlgSQLStatement},
   {$ENDIF}
   , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring};
 
@@ -490,7 +473,7 @@ begin
           {$IFDEF SPLASH}
           Application.ShowMainForm := False;
           Application.CreateForm(TfrmSplashHidden, frmSplashHidden);
-  if (not NoSplashParam) and (not GridStripeProh) then
+          if (not NoSplashParam) and (not GridStripeProh) then
             try
               Application.CreateForm(TfrmSplash, frmSplash);
             except

@@ -9,7 +9,7 @@ procedure AddAccountKeyToTypeEntry(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
-uses
+{uses
   IBSQL, SysUtils, IBScript;
 
 const
@@ -80,10 +80,10 @@ TextView =
   'FROM '#13#10 +
   '  ac_trrecord r '#13#10 +
   '    LEFT JOIN ac_trentry e ON (e.id = -1)';
-
+}
 
 procedure AddAccountKeyToTypeEntry(IBDB: TIBDatabase; Log: TModifyLog);
-var
+{var
   FTransaction: TIBTransaction;
 
   procedure AddField;
@@ -200,10 +200,10 @@ var
      finally
        FIBSQL.Free;
      end;
-  end;
+  end;}
 
 begin
-  FTransaction := TIBTransaction.Create(nil);
+{  FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
     FTransaction.StartTransaction;
@@ -220,7 +220,7 @@ begin
     end;
   finally
     FTransaction.Free;
-  end;
+  end;}
 end;
 
 end.

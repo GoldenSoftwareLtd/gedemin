@@ -43,6 +43,11 @@ type
     function GetUniqueName(PrefName, Name: string; modulecode: integer): string;
     function CheckFunction(const Name: string; modulecode: integer): Boolean;
 
+    // —писок полей, которые не надо сохран€ть в поток.
+    //  Ќаименовани€ полей разделены зап€той,
+    //  пример: 'LB,RB,CREATORKEY,EDITORKEY'
+    class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
+
     //ѕровер€ет наличие ссылок на данную запись
     function RecordUsed: Integer;
 
@@ -406,7 +411,7 @@ begin
   {M}    end;
   {END MACRO}
   if HasSubSet(cByModuleCode) then
-    Result := ' ORDER BY  z.MODULE, z.Name '
+    Result := ' ORDER BY z.MODULE, z.Name '
   else
     Result := inherited GetOrderClause;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFUNCTION', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
@@ -812,6 +817,15 @@ begin
     gdcEvent.Free;
   end;
 
+end;
+
+class function TgdcFunction.GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String;
+begin
+  Result := inherited GetNotStreamSavedField(IsReplicationMode);
+  if Result <> '' then
+    Result := Result + ',TESTRESULT,EDITORSTATE,BREAKPOINTS'
+  else
+    Result := 'TESTRESULT,EDITORSTATE,BREAKPOINTS';
 end;
 
 initialization

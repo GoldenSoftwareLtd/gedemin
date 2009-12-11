@@ -107,7 +107,7 @@ uses
   menus,                flt_QueryFilterGDC,    at_sql_setup,     gd_createable_form,
   ActnList,             gsStorage,             gd_KeyAssoc,      ExtCtrls,
   Graphics,             mtd_i_Base,            evt_i_Base,       zlib,
-  gdcConstants,         Registry;
+  gdcConstants,         Registry,              gsStreamHelper;
 
 resourcestring
   strHaventRights =
@@ -281,6 +281,7 @@ type
     FArray: array of TID;
     FgdClassList: TStringList;
     FCount: Integer;
+    FMin, FMax: TID;
 
     function Get_gdClass: CgdcBase;
     function Get_gdClassName: String;
@@ -648,6 +649,7 @@ type
 
     FPostCount: Integer;
     FInDoFieldChange: Boolean;
+    FInternalProcess: Boolean;
 
     function GetMethodControl: IMethodControl;
 
@@ -1393,22 +1395,16 @@ type
 
     function QuerySaveFileName(
       const AFileName: String = '';     
-      const aDefaultExt: String = 'dat';
-      const aFilter: String = 'Dat files|*.dat'): String; virtual;
+      const aDefaultExt: String = datExtension;
+      const aFilter: String = datDialogFilter): String; virtual;
     function QueryLoadFileName(
       const AFileName: String = '';
-      const aDefaultExt: String = 'dat';
-      const aFilter: String = 'Dat files|*.dat'): String; virtual;
+      const aDefaultExt: String = datExtension;
+      const aFilter: String = datDialogFilter): String; virtual;
 
     procedure SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True); virtual;
+      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True; StreamFormat: TgsStreamType = sttUnknown); virtual;
     procedure LoadFromFile(const AFileName: String = ''); virtual;
-
-    {$IFDEF NEW_STREAM}
-    procedure SaveToFileNew(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True); virtual;
-    procedure LoadFromFileNew(const AFileName: String = ''); virtual;
-    {$ENDIF}
 
     // Слияние двух записей
     function Reduction(BL: TBookmarkList): Boolean; virtual;
@@ -1523,6 +1519,11 @@ type
     class function GetListTableAlias: String; virtual;
     // поле з _дэнтыф_катарам аб'екту
     class function GetKeyField(const ASubType: TgdcSubType): String; virtual;
+
+    // Список полей, которые не надо сохранять в поток.
+    //  Наименования полей разделены запятой,
+    //  пример: 'LB,RB,CREATORKEY,EDITORKEY'
+    class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; virtual;
 
     // умова выдзяленьня падмноства аб'ектаў з усяго
     // мноства зап_саў у табл_цы
@@ -2104,10 +2105,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
   {$ENDIF}
-  {$IFDEF NEW_STREAM}
-  , gdc_frmStreamSaver, gdcStreamSaver
-  {$ENDIF NEW_STREAM}
-  ;
+  , gdc_frmStreamSaver, gdcStreamSaver;
 
 const
   cst_sql_SelectRuidByID = 'SELECT * FROM gd_ruid WHERE id=:id';
@@ -2120,10 +2118,6 @@ const
     ' modified=:modified, xid=:xid, dbid=:dbid WHERE id = :id';
   cst_sql_DeleteRuidByXID = 'DELETE FROM gd_ruid WHERE xid=:xid AND dbid=:dbid';
   cst_sql_DeleteRuidByID = 'DELETE FROM gd_ruid WHERE id=:id';
-
-  {$IFDEF NEW_STREAM}
-  cst_sql_DeleteRplRecordByRUID = 'DELETE FROM rpl_record WHERE xid=:xid AND dbid=:dbid';
-  {$ENDIF}
 
 const
   SM_REMOTESESSION = $1000;
@@ -3082,6 +3076,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
+  if FInternalProcess then
+    raise EgdcException.Create('Попытка закрыть набор данных в состоянии внутренней обработки!');
 
   inherited;
 
@@ -4942,7 +4939,7 @@ begin
        (это вообще какой-то жуткий метод)
        Тем более, что этот код нормально обработает ошибку только на вставку записи,
        а апдейт пропустит}
-        if (E.IBErrorCode = 335544347) and (sDialog in FBaseState) then
+        if (E.IBErrorCode = isc_not_valid) and (sDialog in FBaseState) then
         begin
           Parser := TsqlParser.Create(FExecQuery.SQL.Text);
           try
@@ -6505,227 +6502,232 @@ begin
       Inc(j);
     end;
   }
-
-  if not FDataTransfer then
-  begin
-
-    if Assigned(UpdateObject) then
+  
+  FInternalProcess := True;
+  try
+    if not FDataTransfer then
     begin
-      if (Qry = QDelete) then
-        UpdateObject.Apply(DB.ukDelete)
+
+      if Assigned(UpdateObject) then
+      begin
+        if (Qry = QDelete) then
+          UpdateObject.Apply(DB.ukDelete)
+        else
+          if (Qry = QInsert) then
+            UpdateObject.Apply(DB.ukInsert)
+          else
+            UpdateObject.Apply(DB.ukModify);
+      end
       else
-        if (Qry = QInsert) then
-          UpdateObject.Apply(DB.ukInsert)
-        else
-          UpdateObject.Apply(DB.ukModify);
-    end
-    else
-    begin
-      FSavepoint := '';
-      DidActivate := ActivateTransaction;
-      try
-        {savepoints support}
-        if (not DidActivate) and UseSavepoints then
-        begin
-          FSavepoint := 'S' + System.Copy(StringReplace(
-            StringReplace(
-              StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
-              '-', '', [rfReplaceAll]), 1, 30);
-          try
-            ExecSingleQuery('SAVEPOINT ' + FSavepoint);
-          except
-            UseSavepoints := False;
-            FSavepoint := '';
-          end;
-        end;
-        {end savepoints support}
-
-        DoBeforeInternalPostRecord;
-
-        pbd := PBlobDataArray(PChar(Buff) + FBlobCacheOffset);
-        j := 0;
-        for i := 0 to FieldCount - 1 do
-          if Fields[i].IsBlob then
+      begin
+        FSavepoint := '';
+        DidActivate := ActivateTransaction;
+        try
+          {savepoints support}
+          if (not DidActivate) and UseSavepoints then
           begin
-            k := FMappedFieldPosition[Fields[i].FieldNo -1];
-            if pbd^[j] <> nil then
-            begin
-              pbd^[j].Finalize;
-              PISC_QUAD(
-                PChar(Buff) + PRecordData(Buff)^.rdFields[k].fdDataOfs)^ :=
-                pbd^[j].BlobID;
-              PRecordData(Buff)^.rdFields[k].fdIsNull := pbd^[j].Size = 0;
+            FSavepoint := 'S' + System.Copy(StringReplace(
+              StringReplace(
+                StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
+                '-', '', [rfReplaceAll]), 1, 30);
+            try
+              ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+            except
+              UseSavepoints := False;
+              FSavepoint := '';
             end;
-            Inc(j);
           end;
+          {end savepoints support}
 
-        CheckRequiredFields;
+          DoBeforeInternalPostRecord;
 
-        if (Qry = QInsert) then
-          S := 'Запись добавлена'
-        else
-          S := 'Запись изменена';
-
-        IBLogin.AddEvent(S,
-          Self.ClassName + ' ' + Self.SubType,
-          ID,
-          Transaction);
-
-        { TODO :
-код обработки конфликтов транзакций.
-работает следующим образом:
-пытаемся выполнить кастом инсерт или модифай,
-если проходит то все нормально. если не прошло
-и выдало конфликт на не ждущей транзакции,
-и мы открывали эту транзакцию и ее можно закрыть,
-то закрываем транзакцию. выжидаем пол секунды.
-открываем транзакцию и повторяем все по-новой.
-так не более пяти раз. если не помогло то даем
-исключение.
-
-внимание! код ошибки верен для транзакции:
-read_committed
-rec_version
-nowait
-
-для транзакций другого типа может дать другой код ошибки.
-мы не проверяли эти случаи.}
-        CutOff := 5;
-        repeat
-          try
-            { TODO : в случае кастом обработки роузаффектед будет содержать 0 }
-            //FRowsAffected := 0;
-            if (Qry = QInsert) then
-              _CustomInsert(Buff)
-            else if (Qry = QModify) then
-              _CustomModify(Buff);
-            CutOff := 0;
-          except
-            on E: EIBError do
+          pbd := PBlobDataArray(PChar(Buff) + FBlobCacheOffset);
+          j := 0;
+          for i := 0 to FieldCount - 1 do
+            if Fields[i].IsBlob then
             begin
-              if (E.IBErrorCode = isc_lock_conflict) then
+              k := FMappedFieldPosition[Fields[i].FieldNo -1];
+              if pbd^[j] <> nil then
               begin
-                if (CutOff > 1) and DidActivate and AllowCloseTransaction then
+                pbd^[j].Finalize;
+                PISC_QUAD(
+                  PChar(Buff) + PRecordData(Buff)^.rdFields[k].fdDataOfs)^ :=
+                  pbd^[j].BlobID;
+                PRecordData(Buff)^.rdFields[k].fdIsNull := pbd^[j].Size = 0;
+              end;
+              Inc(j);
+            end;
+
+          CheckRequiredFields;
+
+          if (Qry = QInsert) then
+            S := 'Запись добавлена'
+          else
+            S := 'Запись изменена';
+
+          IBLogin.AddEvent(S,
+            Self.ClassName + ' ' + Self.SubType,
+            ID,
+            Transaction);
+
+          { TODO :
+  код обработки конфликтов транзакций.
+  работает следующим образом:
+  пытаемся выполнить кастом инсерт или модифай,
+  если проходит то все нормально. если не прошло
+  и выдало конфликт на не ждущей транзакции,
+  и мы открывали эту транзакцию и ее можно закрыть,
+  то закрываем транзакцию. выжидаем пол секунды.
+  открываем транзакцию и повторяем все по-новой.
+  так не более пяти раз. если не помогло то даем
+  исключение.
+
+  внимание! код ошибки верен для транзакции:
+  read_committed
+  rec_version
+  nowait
+
+  для транзакций другого типа может дать другой код ошибки.
+  мы не проверяли эти случаи.}
+          CutOff := 5;
+          repeat
+            try
+              { TODO : в случае кастом обработки роузаффектед будет содержать 0 }
+              //FRowsAffected := 0;
+              if (Qry = QInsert) then
+                _CustomInsert(Buff)
+              else if (Qry = QModify) then
+                _CustomModify(Buff);
+              CutOff := 0;
+            except
+              on E: EIBError do
+              begin
+                if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
                 begin
-                  Transaction.Rollback;
-                  Sleep(500);
-                  Dec(CutOff);
-                  Transaction.StartTransaction;
-                end else
-                begin
-                  if sDialog in BaseState then
+                  if (CutOff > 1) and DidActivate and AllowCloseTransaction then
                   begin
-                    MessageBox(ParentHandle,
-                      'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
-                      'Вероятные причины:'#13#10 +
-                      '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
-                      '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
-                      '  3. Изменение записи влечет за собой изменение другой записи, которую'#13#10 +
-                      '     редактирует другой пользователь или которая изменяется в другом окне программы.'#13#10#13#10 +
-                      'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
-                      'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
-                      ''#13#10 +
-                      'В случае повторения проблемы обратитесь к Администратору.',
-                      'Внимание',
-                      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-                    Abort;
+                    Transaction.Rollback;
+                    Sleep(500);
+                    Dec(CutOff);
+                    Transaction.StartTransaction;
                   end else
-                    raise;
-                end;
+                  begin
+                    if sDialog in BaseState then
+                    begin
+                      MessageBox(ParentHandle,
+                        'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
+                        'Вероятные причины:'#13#10 +
+                        '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
+                        '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
+                        '  3. Изменение записи влечет за собой изменение другой записи, которую'#13#10 +
+                        '     редактирует другой пользователь или которая изменяется в другом окне программы.'#13#10#13#10 +
+                        'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
+                        'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
+                        ''#13#10 +
+                        'В случае повторения проблемы обратитесь к Администратору.',
+                        'Внимание',
+                        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+                      Abort;
+                    end else
+                      raise;
+                  end;
+                end else
+                  raise;
               end else
                 raise;
+            end;
+          until CutOff = 0;
+
+          if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
+            and Assigned(gdcBaseManager) and (not (sLoadFromStream in BaseState)) then
+          begin
+            if (Qry = QInsert) then
+            begin
+              try
+                _id := gdcBaseManager.GetIdByRUID(ID, IBLogin.DBID);
+                if _id = - 1 then
+                  gdcBaseManager.InsertRUID(ID, ID, IBLogin.DBID, Now, IBLogin.ContactKey, Transaction);
+              except
+                // подавляем нарушение первичного ключа
+                // на случай если перед этим РУИД уже сформирован
+                // вручную
+                on E: EIBError do
+                begin
+                  if E.IBErrorCode <> isc_unique_key_violation then
+                    raise;
+                end;
+              end;
             end else
-              raise;
-          end;
-        until CutOff = 0;
-
-        if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
-          and Assigned(gdcBaseManager) and (not (sLoadFromStream in BaseState)) then
-        begin
-          if (Qry = QInsert) then
-          begin
-            try
-              _id := gdcBaseManager.GetIdByRUID(ID, IBLogin.DBID);
-              if _id = - 1 then
-                gdcBaseManager.InsertRUID(ID, ID, IBLogin.DBID, Now, IBLogin.ContactKey, Transaction);
-            except
-              // подавляем нарушение первичного ключа
-              // на случай если перед этим РУИД уже сформирован
-              // вручную
-              on E: EIBError do
-              begin
-                if E.IBErrorCode <> 335544665 then
-                  raise;
-              end;
-            end;
-          end else
-          if (Qry = QModify) then
-          begin
-            RUID := GetRUID;
-            try
-              gdcBaseManager.UpdateRUIDByXID(ID, RUID.XID, RUID.DBID, Now, IBLogin.ContactKey, Transaction);
-            except
-              // подавляем нарушение первичного ключа
-              on E: EIBError do
-              begin
-                if E.IBErrorCode <> 335544665 then
-                  raise;
+            if (Qry = QModify) then
+            begin
+              RUID := GetRUID;
+              try
+                gdcBaseManager.UpdateRUIDByXID(ID, RUID.XID, RUID.DBID, Now, IBLogin.ContactKey, Transaction);
+              except
+                // подавляем нарушение первичного ключа
+                on E: EIBError do
+                begin
+                  if E.IBErrorCode <> isc_unique_key_violation then
+                    raise;
+                end;
               end;
             end;
           end;
-        end;
 
-        DoAfterInternalPostRecord;
+          DoAfterInternalPostRecord;
 
-        if DidActivate and AllowCloseTransaction then
-          Transaction.Commit;
+          if DidActivate and AllowCloseTransaction then
+            Transaction.Commit;
 
-        if (FSavepoint > '') and Transaction.InTransaction then
-        begin
-          try
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
-          except
-            // подавляем исключение, если
-            // сэйвпоинт уже пропала, напр. транзакцию скомитили
-            // или откатили и снова стартанули
+          if (FSavepoint > '') and Transaction.InTransaction then
+          begin
+            try
+              ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            except
+              // подавляем исключение, если
+              // сэйвпоинт уже пропала, напр. транзакцию скомитили
+              // или откатили и снова стартанули
+            end;
           end;
-        end;
-      except
-        if DidActivate and AllowCloseTransaction then
-          Transaction.Rollback
-        else if (FSavepoint > '') and Transaction.InTransaction then
-        begin
-          try
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
-          except
-            // подавляем исключение, если
-            // сэйвпоинт уже пропала, напр. транзакцию скомитили
-            // или откатили и снова стартанули
+        except
+          if DidActivate and AllowCloseTransaction then
+            Transaction.Rollback
+          else if (FSavepoint > '') and Transaction.InTransaction then
+          begin
+            try
+              ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+              ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            except
+              // подавляем исключение, если
+              // сэйвпоинт уже пропала, напр. транзакцию скомитили
+              // или откатили и снова стартанули
+            end;
           end;
+          raise;
         end;
-        raise;
       end;
     end;
-  end;
 
-  PRecordData(Buff)^.rdUpdateStatus := usUnmodified;
-  PRecordData(Buff)^.rdCachedUpdateStatus := cusUnmodified;
-  SetModified(False);
-  WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Buff);
+    PRecordData(Buff)^.rdUpdateStatus := usUnmodified;
+    PRecordData(Buff)^.rdCachedUpdateStatus := cusUnmodified;
+    SetModified(False);
+    WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Buff);
 
-  if not FDataTransfer then
-  begin
-    if (ForcedRefresh or FNeedsRefresh) and CanRefresh then
+    if not FDataTransfer then
     begin
-      FSavedFlag := True;
-      try
-        FSavedRN := PRecordData(Buff)^.rdRecordNumber;
-        InternalRefreshRow;
-      finally
-        FSavedFlag := False;
+      if (ForcedRefresh or FNeedsRefresh) and CanRefresh then
+      begin
+        FSavedFlag := True;
+        try
+          FSavedRN := PRecordData(Buff)^.rdRecordNumber;
+          InternalRefreshRow;
+        finally
+          FSavedFlag := False;
+        end;
       end;
     end;
+  finally
+    FInternalProcess := False;
   end;
 end;
 
@@ -6739,164 +6741,169 @@ var
   FirstPass: Boolean;
   FSavepoint: String;
 begin
-  if (Assigned(FUpdateObject) and (FUpdateObject.GetSQL(DB.ukDelete).Text > '')) then
-    FUpdateObject.Apply(DB.ukDelete)
-  else if not FDataTransfer then
-  begin
-    if GetCurrRecordClass.gdClass = Self.ClassType then
+  FInternalProcess := True;
+  try
+    if (Assigned(FUpdateObject) and (FUpdateObject.GetSQL(DB.ukDelete).Text > '')) then
+      FUpdateObject.Apply(DB.ukDelete)
+    else if not FDataTransfer then
     begin
-      //!!!
-      FSavepoint := '';
-      DidActivate := ActivateTransaction;
-      try
-    //!!!
-        {savepoints support}
-        if (not DidActivate) and UseSavepoints then
-        begin
-          FSavepoint := 'S' + System.Copy(StringReplace(
-            StringReplace(
-              StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
-              '-', '', [rfReplaceAll]), 1, 30);
-          try
-            ExecSingleQuery('SAVEPOINT ' + FSavepoint);
-          except
-            UseSavepoints := False;
-            FSavepoint := '';
-          end;
-        end;
-        {end savepoints support}
-
-        if Assigned(BeforeInternalDeleteRecord) then
-          BeforeInternalDeleteRecord(Self);
-
-        IBLogin.AddEvent('Запись удалена',
-          Self.ClassName + ' ' + Self.SubType,
-          ID,
-          Transaction);
-
-        { TODO : см. комментарий к ИнтерналПост }
-        CutOff := 5;
-        repeat
-          try
-            //FRowsAffected := 0;
-            if (Qry = QDelete) then
-              _CustomDelete(Buff);
-            CutOff := 0;
-          except
-            on E: EIBError do
-            begin
-              if (E.IBErrorCode = isc_lock_conflict) then
-              begin
-                if (CutOff > 1) and DidActivate and AllowCloseTransaction then
-                begin
-                  Transaction.Rollback;
-                  Sleep(500);
-                  Dec(CutOff);
-                  Transaction.StartTransaction;
-                end else
-                begin
-                  if sDialog in BaseState then
-                  begin
-                    MessageBox(ParentHandle,
-                      'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
-                      'Вероятные причины:'#13#10 +
-                      '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
-                      '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
-                      '  3. Изменение записи влечет за собой изменение другой записи, которую'#13#10 +
-                      '     редактирует другой пользователь или которая изменяется в другом окне программы.'#13#10#13#10 +
-                      'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
-                      'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
-                      ''#13#10 +
-                      'В случае повторения проблемы обратитесь к Администратору.',
-                      'Внимание',
-                      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-                    Abort;
-                  end else
-                    raise;
-                end;
-              end else
-                raise;
-            end else
-              raise;
-          end;
-        until CutOff = 0;
-
-        if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
-          and Assigned(gdcBaseManager) then
-        begin
-          gdcBaseManager.DeleteRUIDByXID(ID, IBLogin.DBID, Transaction);
-        end;
-
-        if Assigned(AfterInternalDeleteRecord) then
-          AfterInternalDeleteRecord(Self);
-      //!!!
-
-        if DidActivate and AllowCloseTransaction then
-          Transaction.Commit;
-
-        if (FSavepoint > '') and Transaction.InTransaction then
-        begin
-          try
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
-          except
-          end;
-        end;
-      except
-        if DidActivate and AllowCloseTransaction then
-          Transaction.Rollback
-        else if (FSavepoint > '') and Transaction.InTransaction then
-        begin
-          try
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
-          except
-          end;
-        end;
-        raise;
-      end;
-      //!!!
-    end else
-    begin
-      FirstPass := True;
-      repeat
-        CFull := GetCurrRecordClass;
-        C := CFull.gdClass;
-        Obj := CgdcBase(C).CreateWithID(Owner, Database, Transaction,
-          ID, CFull.SubType);
+      if GetCurrRecordClass.gdClass = Self.ClassType then
+      begin
+        //!!!
+        FSavepoint := '';
+        DidActivate := ActivateTransaction;
         try
-          Obj.Open;
-          if Obj.RecordCount = 0 then
+      //!!!
+          {savepoints support}
+          if (not DidActivate) and UseSavepoints then
           begin
-            if FirstPass then
-            begin
-              FirstPass := False;
-              InternalRefresh;
-              continue;
-            end else
-            begin
-              MessageBox(ParentHandle,
-                'Невозможно удалить указанную запись.'#13#10 +
-                'Возможно, нарушена целостность данных или необходимо обновить данные.'#13#10#13#10 +
-                'В случае повторения проблемы обратитесь к системному администратору.',
-                'Внимание',
-                MB_OK or MB_ICONHAND or MB_TASKMODAL);
-              Abort;
+            FSavepoint := 'S' + System.Copy(StringReplace(
+              StringReplace(
+                StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
+                '-', '', [rfReplaceAll]), 1, 30);
+            try
+              ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+            except
+              UseSavepoints := False;
+              FSavepoint := '';
             end;
           end;
-          Obj.Delete;
-          break;
-        finally
-          Obj.Free;
+          {end savepoints support}
+
+          if Assigned(BeforeInternalDeleteRecord) then
+            BeforeInternalDeleteRecord(Self);
+
+          IBLogin.AddEvent('Запись удалена',
+            Self.ClassName + ' ' + Self.SubType,
+            ID,
+            Transaction);
+
+          { TODO : см. комментарий к ИнтерналПост }
+          CutOff := 5;
+          repeat
+            try
+              //FRowsAffected := 0;
+              if (Qry = QDelete) then
+                _CustomDelete(Buff);
+              CutOff := 0;
+            except
+              on E: EIBError do
+              begin
+                if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
+                begin
+                  if (CutOff > 1) and DidActivate and AllowCloseTransaction then
+                  begin
+                    Transaction.Rollback;
+                    Sleep(500);
+                    Dec(CutOff);
+                    Transaction.StartTransaction;
+                  end else
+                  begin
+                    if sDialog in BaseState then
+                    begin
+                      MessageBox(ParentHandle,
+                        'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
+                        'Вероятные причины:'#13#10 +
+                        '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
+                        '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
+                        '  3. Изменение записи влечет за собой изменение другой записи, которую'#13#10 +
+                        '     редактирует другой пользователь или которая изменяется в другом окне программы.'#13#10#13#10 +
+                        'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
+                        'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
+                        ''#13#10 +
+                        'В случае повторения проблемы обратитесь к Администратору.',
+                        'Внимание',
+                        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+                      Abort;
+                    end else
+                      raise;
+                  end;
+                end else
+                  raise;
+              end else
+                raise;
+            end;
+          until CutOff = 0;
+
+          if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
+            and Assigned(gdcBaseManager) then
+          begin
+            gdcBaseManager.DeleteRUIDByXID(ID, IBLogin.DBID, Transaction);
+          end;
+
+          if Assigned(AfterInternalDeleteRecord) then
+            AfterInternalDeleteRecord(Self);
+        //!!!
+
+          if DidActivate and AllowCloseTransaction then
+            Transaction.Commit;
+
+          if (FSavepoint > '') and Transaction.InTransaction then
+          begin
+            try
+              ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            except
+            end;
+          end;
+        except
+          if DidActivate and AllowCloseTransaction then
+            Transaction.Rollback
+          else if (FSavepoint > '') and Transaction.InTransaction then
+          begin
+            try
+              ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+              ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            except
+            end;
+          end;
+          raise;
         end;
-      until False;
+        //!!!
+      end else
+      begin
+        FirstPass := True;
+        repeat
+          CFull := GetCurrRecordClass;
+          C := CFull.gdClass;
+          Obj := CgdcBase(C).CreateWithID(Owner, Database, Transaction,
+            ID, CFull.SubType);
+          try
+            Obj.Open;
+            if Obj.RecordCount = 0 then
+            begin
+              if FirstPass then
+              begin
+                FirstPass := False;
+                InternalRefresh;
+                continue;
+              end else
+              begin
+                MessageBox(ParentHandle,
+                  'Невозможно удалить указанную запись.'#13#10 +
+                  'Возможно, нарушена целостность данных или необходимо обновить данные.'#13#10#13#10 +
+                  'В случае повторения проблемы обратитесь к системному администратору.',
+                  'Внимание',
+                  MB_OK or MB_ICONHAND or MB_TASKMODAL);
+                Abort;
+              end;
+            end;
+            Obj.Delete;
+            break;
+          finally
+            Obj.Free;
+          end;
+        until False;
+      end;
     end;
+    with PRecordData(Buff)^ do
+    begin
+      rdUpdateStatus := usDeleted;
+      rdCachedUpdateStatus := cusUnmodified;
+    end;
+    WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Buff);
+  finally
+    FInternalProcess := False;
   end;
-  with PRecordData(Buff)^ do
-  begin
-    rdUpdateStatus := usDeleted;
-    rdCachedUpdateStatus := cusUnmodified;
-  end;
-  WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Buff);
 end;
 
 class function TgdcBase.IsBigTable: Boolean;
@@ -7053,16 +7060,6 @@ end;
 procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyIntAssoc;
   ObjectSet: TgdcObjectSet; UpdateList: TObjectList; StreamRecord: TgsStreamRecord;
   var AnAnswer: Word);
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
 
   procedure InsertRecord(SourceDS: TDataSet; TargetDS: TgdcBase; UL: TObjectList); forward;
 
@@ -7299,15 +7296,19 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             Continue;
           end;
 
-          //Если это поле для установки прав и оно пришло к нам из другой базы
-          //то устанавливаем права "для всех"
-          if (AnsiPos(';' + AnsiUpperCase(TargetField.FieldName) + ';', rightsfield) > 0) and
-            (StreamRecord.StreamDBID > -1) and (StreamRecord.StreamDBID <> IBLogin.DBID)
-          then
+          // Если при вставке новой записи заполняем поле для установки прав и оно пришло к нам из другой базы
+          //   то устанавливаем права "для всех"
+          // При обновлении записи не трогаем права доступа
+          {if (TargetDS.State = dsInsert)
+             and (AnsiPos(';' + AnsiUpperCase(TargetField.FieldName) + ';', rightsfield) > 0)
+             and (StreamRecord.StreamDBID > -1) and (StreamRecord.StreamDBID <> IBLogin.DBID) then
           begin
             TargetField.AsInteger := -1;
             Continue;
-          end;
+          end;}
+          // Вместо изменения полей прав доступа, пропустим их
+          if AnsiPos(';' + AnsiUpperCase(TargetField.FieldName) + ';', rightsfield) > 0 then
+            Continue;
 
           //Если это поле для указания "Кто редактировал", то считываем текущего пользователя
           if (AnsiPos(';' + AnsiUpperCase(TargetField.FieldName) + ';', editorfield) > 0)
@@ -7431,7 +7432,6 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           try
             TargetDS.Post;
             AddText('Объект обновлен данными из потока!', clBlack);
-            Space;
           except
             on E: EIBError do
             begin
@@ -7453,13 +7453,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             end;
           end;
         end
-
         else if not TargetDS.CheckTheSame(AnAnswer, True) then
-        begin
           TargetDS.Post;
-          AddText('Объект добавлен из потока!', clBlack);
-          Space;
-        end;
 
         if NeedAddToIDMapping and
           (IDMapping.IndexOf(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger) = -1)
@@ -7498,9 +7493,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             'Ошибка',
             MB_OK or MB_ICONHAND);}
 
-          AddMistake(#13#10 + ErrorSt + #13#10, clRed);
-          AddMistake(#13#10 + E.Message + #13#10, clRed);
-          Space;
+          //AddMistake(ErrorSt, clRed);
+          AddMistake(E.Message, clRed);
 
           TargetDS.Cancel;
           if IDMapping.IndexOf(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger) = -1 then
@@ -7575,23 +7569,20 @@ begin
       exit;
     end;
 
-    Space;
     //Проверяем на соответствие поля для отображения
     if (CDS.FindField(GetListField(SubType)) = nil) then
     begin
-      AddText('Считывание объекта ' + GetDisplayName(GetSubType) + ' ' +
-          ' (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
-        CDS.FieldByName('_dbid').AsString + ')'#13#10, clBlue);
+      AddText('Объект "' + GetDisplayName(GetSubType) + '" (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
+        CDS.FieldByName('_dbid').AsString + ')', clBlue);
 
-      AddMistake('Структура загружаемого объекта не соответствует '#13#10 +
-        ' структуре уже существующего объекта в базе. '#13#10 +
-        ' Поле ' + GetListField(SubType) + ' не найдено в потоке данных!'#13#10, clRed);
-    end else
+      AddMistake('Структура загружаемого объекта не соответствует структуре уже существующего объекта в базе. '#13#10 +
+        ' Поле ' + GetListField(SubType) + ' не найдено в потоке данных!', clRed);
+    end
+    else
     begin
-      AddText('Считывание объекта ' + GetDisplayName(GetSubType) + ' ' +
-        CDS.FieldByName(GetListField(SubType)).AsString + #13#10 +
-        ' (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
-        CDS.FieldByName('_dbid').AsString + ')'#13#10, clBlue);
+      AddText('Объект "' + GetDisplayName(GetSubType) + ' ' + CDS.FieldByName(GetListField(SubType)).AsString +
+        '" (XID =  ' + CDS.FieldByName('_xid').AsString + ', DBID = ' +
+        CDS.FieldByName('_dbid').AsString + ')', clBlue);
     end;
 
     FStreamXID := CDS.FieldByName('_xid').AsInteger;
@@ -7682,14 +7673,15 @@ begin
               //если обновление прошло успешно и мы имеем более раннюю дату модификации руида
               //изменяем руид
               if CopyRecord(CDS, Self, UpdateList) and
-                (Modified < CDS.FieldByName('_modified').AsDateTime)
-              then
+                (Modified < CDS.FieldByName('_modified').AsDateTime) then
               begin
                 CheckBrowseMode;
+
                 gdcBaseManager.UpdateRUIDByXID(ID, CDS.FieldByName('_XID').AsInteger, CDS.FieldByName('_DBID').AsInteger,
                   CDS.FieldByName('_MODIFIED').AsDateTime, IBLogin.ContactKey, Transaction);
               end;
-            end else
+            end
+            else
             begin
               //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
               if IDMapping.IndexOf(CDS.FieldByName(GetKeyField(SubType)).AsInteger) = -1 then
@@ -7697,8 +7689,12 @@ begin
                   IDMapping.Add(CDS.FieldByName(GetKeyField(SubType)).AsInteger)] := ID;
               ApplyDelayedUpdates(UpdateList,
                 CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID);
-            end
-          end else
+            end;
+
+            //Если есть поля-множества, то обработаем их
+            CopySetRecord(CDS);
+          end
+          else
           begin
             //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
             if IDMapping.IndexOf(CDS.FieldByName(GetKeyField(SubType)).AsInteger) = -1 then
@@ -7711,8 +7707,8 @@ begin
         end;
       end;
 
-      {Если есть поля-множества, то обработаем их}
-      CopySetRecord(CDS);
+      {Если есть поля-множества, то обработаем их
+      CopySetRecord(CDS);                        }
 
     finally
       if DidActivate and Transaction.InTransaction then
@@ -7726,18 +7722,6 @@ end;
 
 procedure TgdcBase._LoadFromStream(Stream: TStream; IDMapping: TgdKeyIntAssoc;
   ObjectSet: TgdcObjectSet; UpdateList: TObjectList);
-
-//Функция для считывания строки из потока
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
-
 var
   I: Integer;
   Obj: TgdcBase;
@@ -7768,13 +7752,10 @@ begin
   begin
     CheckBrowseMode;
 
-    {$IFDEF NEW_STREAM}
     if Assigned(frmStreamSaver) then
       frmStreamSaver.SetupProgress(ObjectSet.Count, 'Загрузка...');
-    {$ENDIF}
 
-    Space;
-    AddText(TimeToStr(Time) + ': Начата загрузка данных из потока.', clBlack);
+    AddText('Начата загрузка данных из потока.', clBlack);
 
     if Assigned(frmSQLProcess) and Assigned(ObjectSet) then
     begin
@@ -7922,10 +7903,8 @@ begin
 
         if not (sFakeLoad in BaseState) then
         begin
-          {$IFDEF NEW_STREAM}
           if Assigned(frmStreamSaver) then
             frmStreamSaver.Step;
-          {$ENDIF}
 
           if Assigned(frmSQLProcess) then
           begin
@@ -7946,14 +7925,10 @@ begin
 
       if not (sFakeLoad in BaseState) then
       begin
-        {$IFDEF NEW_STREAM}
         if Assigned(frmStreamSaver) then
           frmStreamSaver.Done;
-        {$ENDIF}
 
-        Space;
-        AddText(TimeToStr(Time) + ': Закончена загрузка данных из потока.', clBlack);
-        Space;
+        AddText('Закончена загрузка данных из потока.', clBlack);
       end;
 
     except
@@ -7963,13 +7938,10 @@ begin
           Transaction.Rollback;
         if not (sFakeLoad in BaseState) then
         begin
-          {$IFDEF NEW_STREAM}
           if Assigned(frmStreamSaver) then
             frmStreamSaver.AddMistake(E.Message);
-          {$ENDIF}
 
           AddMistake(E.Message, clRed);
-          Space;
         end;
         raise;
       end;
@@ -8075,16 +8047,6 @@ procedure TgdcBase._SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
 const
   NotSavedField = ';LB;RB;CREATORKEY;EDITORKEY;';
   NotSavedFieldRepl = ';LB;RB;';
-
-  procedure StreamWriteString(St: TStream; const S: String);
-  var
-    L: Integer;
-  begin
-    L := Length(S);
-    St.Write(L, SizeOf(L));
-    if L > 0 then
-      St.Write(S[1], L);
-  end;
 
   procedure SaveBindedObjectsForTable(const ATableName: String; ReversedList: TgdcObjectSets);
   var
@@ -8233,28 +8195,23 @@ var
         ' (' + FieldByName(GetKeyField(SubType)).AsString + ') ' +
         ' с данными множества ' + LocName + #13#10,
         clBlue);
-      {$IFDEF NEW_STREAM}
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
           FieldByName(GetListField(SubType)).AsString + #13#10 +
           ' (' + FieldByName(GetKeyField(SubType)).AsString + ') ' +
           ' с данными множества ' + LocName);
-      {$ENDIF}
     end
     else
     begin
       AddText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
-        FieldByName(GetListField(SubType)).AsString + #13#10 +
-        ' (' + FieldByName(GetKeyField(SubType)).AsString + ')'#13#10,
+        FieldByName(GetListField(SubType)).AsString +
+        ' (' + FieldByName(GetKeyField(SubType)).AsString + ')',
         clBlue);
-      {$IFDEF NEW_STREAM}
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessText('Сохранение: ' + GetDisplayName(GetSubType) + ' ' +
-          FieldByName(GetListField(SubType)).AsString + #13#10 +
+          FieldByName(GetListField(SubType)).AsString +
           ' (' + FieldByName(GetKeyField(SubType)).AsString + ')');
-      {$ENDIF}
     end;
-    Space;
 
     RUID := GetRUID;
 
@@ -8447,8 +8404,7 @@ begin
                 'Ошибка',
                 MB_OK or MB_ICONEXCLAMATION);
 
-            AddMistake(#13#10 + E.Message + #13#10, clRed);
-            Space;
+            AddMistake(E.Message, clRed);
           end;
         end;
       end else
@@ -8546,8 +8502,7 @@ begin
                 'Ошибка',
                 MB_OK or MB_ICONEXCLAMATION);
 
-            AddMistake(#13#10 + E.Message + #13#10, clRed);
-            Space;
+            AddMistake(E.Message, clRed);
           end;
         end;
       end else
@@ -8697,17 +8652,14 @@ begin
                 begin
                   if Obj.RecordCount > 0 then
                   begin
-                    Space;
                     AddText('Сохранение: ' + Obj.GetDisplayName(Obj.GetSubType) + ' ' +
-                      Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + #13#10 +
-                      ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')'#13#10,
+                      Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
+                      ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')',
                       clBlue);
-                    {$IFDEF NEW_STREAM}
                     if Assigned(frmStreamSaver) then
                       frmStreamSaver.SetProcessText(Obj.GetDisplayName(Obj.GetSubType) + ' ' +
-                        Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString + #13#10 +
+                        Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
                         ' (' + Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsString + ')');
-                    {$ENDIF}
                     SaveToStreamCLDS(Obj);
                     ObjectIDIndex := ObjectSet.Add(Obj.ID, Obj.ClassName, Obj.SubType, Obj.SetTable);
                   end;
@@ -9779,6 +9731,11 @@ var
   R: OleVariant;
 begin
   Result := S;
+  
+  // Если не нашли знак окончания метапеременной, то выходим без дальнейшей обработки
+  if StrIPos('/>', S) = 0 then
+    Exit;
+
   I := 0;
   repeat
     if I > 0 then
@@ -10620,7 +10577,7 @@ begin
       except
         on E: EIBError do
         begin
-          if (E.IBErrorCode = isc_lock_conflict)
+          if ((E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock))
             and (sView in BaseState) then
           begin
             MessageBox(ParentHandle,
@@ -10799,14 +10756,40 @@ end;
 
 procedure TgdcBase.CreateFields;
 var
+  LocalHideFieldsList: String;
+
+  function ShowRelationFieldInGrid(AField: TField; const AFieldName: String;
+    const RF: TatRelationField): Boolean;
+  begin
+    Result := AField.Visible
+      and (
+        (StrIPos(AFieldName, LocalHideFieldsList) = 0)
+        or
+        (StrIPos(';' + AFieldName + ';', LocalHideFieldsList) = 0)
+      );
+
+    if Result and (not IBLogin.IsUserAdmin) and (RF <> nil) then
+    begin
+      if (RF.aView and IBLogin.Ingroup) = 0 then
+      begin
+        Result := False;
+      end else if (RF.aChag and IBLogin.Ingroup) = 0 then
+      begin
+        AField.ReadOnly := True;
+      end;
+    end;
+  end;
+
+var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
   {M}
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  I, J: Integer;
+  I, P: Integer;
   F: TatRelationField;
   FieldName, RelationName: String;
+  FFieldList: TStringHashMap;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASE', 'CREATEFIELDS', KEYCREATEFIELDS)}
   {M}  try
@@ -10830,55 +10813,57 @@ begin
 
   inherited;
 
-  // локализуем экранные метки полей
-  for I := 0 to FieldCount - 1 do
-  begin
-    RelationName := ExtractIdentifier(Database.SQLDialect,
-      System.Copy(Fields[I].Origin, 1, Pos('.', Fields[I].Origin) - 1));
-
-    FieldName := ExtractIdentifier(Database.SQLDialect,
-      System.Copy(Fields[I].Origin, Pos('.', Fields[I].Origin) + 1, 255));
-
-    F := atDatabase.FindRelationField(RelationName, FieldName);
-
-    if F <> nil then
-      Fields[I].DisplayLabel := F.LName;
-
-    // для полей, которые не входят в запросы на обновление данных
-    // и если для объекта не предусмотрена специальная обработка
-    // мы снимаем Required
-    if (CustomProcess * [cpInsert, cpModify]) = [] then
-      if StrIPos(',' + Fields[I].FieldName + ',', ',' + FUpdateableFields + ',') = 0 then
-      begin
-        Fields[I].Required := False;
-      end;
-
-    //
-    { TODO : ShowFieldInGrid медленная функция. Мы вызываем ее при создании поля,
-             еще не зная, будет ли это поле подключаться к визуальным контролам. } 
-    Fields[I].Visible := ShowFieldInGrid(Fields[I]);
-  end;
-
-  for I := 0 to FieldCount - 1 do
-  begin
-    for J := I + 1 to FieldCount - 1 do
+  LocalHideFieldsList := ';' + HideFieldsList;
+  FFieldList := TStringHashMap.Create(CaseSensitiveTraits, 256);
+  try
+    // локализуем экранные метки полей
+    for I := 0 to FieldCount - 1 do
     begin
-      if (AnsiCompareText(Fields[I].DisplayName, Fields[J].DisplayName) = 0) then
+      RelationName := Fields[I].Origin;
+      P := Pos('.', RelationName);
+      if P > 0 then
       begin
-        RelationName := ExtractIdentifier(Database.SQLDialect,
-          System.Copy(Fields[J].Origin, 1, Pos('.', Fields[J].Origin) - 1));
-
-        FieldName := ExtractIdentifier(Database.SQLDialect,
-          System.Copy(Fields[J].Origin, Pos('.', Fields[J].Origin) + 1, 255));
-
-        F := atDatabase.FindRelationField(RelationName, FieldName);
-
-        if (F <> nil) and (F.Relation <> nil) then
-        begin
-          Fields[J].DisplayLabel := F.LName + ' (' + F.Relation.LName + ')';
-        end;
+        FieldName := System.Copy(RelationName, P + 1, 1024);
+        SetLength(RelationName, P - 1);
+      end else
+      begin
+        FieldName := RelationName;
+        RelationName := '';
       end;
+
+      if (Length(FieldName) > 2) and (FieldName[1] = '"') then
+        FieldName := System.Copy(FieldName, 2, Length(FieldName) - 2);
+      if (Length(RelationName) > 2) and (RelationName[1] = '"') then
+        RelationName := System.Copy(RelationName, 2, Length(RelationName) - 2);
+
+      F := atDatabase.FindRelationField(RelationName, FieldName);
+
+      if F <> nil then
+      begin
+        Fields[I].DisplayLabel := F.LName;
+        if FFieldList.Has(F.LName) then
+        begin
+          if F.Relation <> nil then
+            Fields[I].DisplayLabel := F.LName + ' (' + F.Relation.LName + ')';
+        end else
+          FFieldList.Add(F.LName, I);
+      end;
+      // для полей, которые не входят в запросы на обновление данных
+      // и если для объекта не предусмотрена специальная обработка
+      // мы снимаем Required
+      if (CustomProcess * [cpInsert, cpModify]) = [] then
+        if StrIPos(',' + Fields[I].FieldName + ',', ',' + FUpdateableFields + ',') = 0 then
+        begin
+          Fields[I].Required := False;
+        end;
+
+      if RelationName > '' then
+        Fields[I].Visible := ShowRelationFieldInGrid(Fields[I], FieldName, F)//ShowFieldInGrid(Fields[I]);
+      else
+        Fields[I].Visible := True;
     end;
+  finally
+    FFieldList.Free;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'CREATEFIELDS', KEYCREATEFIELDS)}
@@ -11938,7 +11923,7 @@ begin
           except
               on E: EIBError do
               begin
-                if (E.IBErrorCode = isc_lock_conflict) then
+                if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
                 begin
                   if (CutOff > 1) and DidActivate {and AllowCloseTransaction} then
                   begin
@@ -12085,7 +12070,7 @@ begin
           except
             on E: EIBError do
             begin
-              if (E.IBErrorCode = isc_lock_conflict) then
+              if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
               begin
                 if (CutOff > 1) and DidActivate {and AllowCloseTransaction} then
                 begin
@@ -12450,7 +12435,7 @@ begin
               FieldByName(GetKeyField(SubType)).AsInteger := GetNextID(True, True);
               Inc(C);
             end
-            else if (E.IBErrorCode = isc_lock_conflict)
+            else if ((E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock))
               and (sView in BaseState) then
             begin
               MessageBox(ParentHandle,
@@ -12856,6 +12841,8 @@ begin
   FCount := 0;
   SetLength(FArray, ASize);
   FgdClassList := TStringList.Create;
+  FMin := High(TID);
+  FMax := Low(TID);
 end;
 
 destructor TgdcObjectSet.Destroy;
@@ -12911,6 +12898,8 @@ begin
     Result := FCount;
     AddgdClass(Result, AgdClassName, ASubType, ASetTable);
     Inc(FCount);
+    if AnID > FMax then FMax := AnID;
+    if AnID < FMin then FMin := AnID;
   end else
   begin
     AddgdClass(Result, AgdClassName, ASubType, ASetTable);
@@ -13349,12 +13338,15 @@ var
   I: Integer;
 begin
   Result := -1;
-  for I := 0 to Count - 1 do
-    if Items[I] = AnID then
-    begin
-      Result := I;
-      break;
-    end;
+  if (AnID >= FMin) and (AnID <= FMax) then
+  begin
+    for I := 0 to Count - 1 do
+      if Items[I] = AnID then
+      begin
+        Result := I;
+        break;
+      end;
+  end;    
 end;
 
 procedure TgdcObjectSet.LoadFromStream(S: TStream);
@@ -13411,13 +13403,31 @@ end;
 procedure TgdcObjectSet.Delete(const Index: Integer);
 var
   J: Integer;
+  ID: TID;
 begin
   if (Index < 0) or (Index >= Count) then
     raise Exception.Create(GetGsException(Self, 'Index is out of bounds'));
+  ID := FArray[Index];
   for J := Index to Count - 2 do
     FArray[J] := FArray[J + 1];
   Dec(FCount);
   FgdClassList.Delete(Index);
+  if ID = FMax then
+  begin
+    FMax := Low(TID);
+    for J := 0 to FCount - 1 do
+    begin
+      if FArray[J] > FMax then FMax := FArray[J];
+    end;
+  end;
+  if ID = FMin then
+  begin
+    FMin := High(TID);
+    for J := 0 to FCount - 1 do
+    begin
+      if FArray[J] < FMin then FMin := FArray[J];
+    end;
+  end;
 end;
 
 function TgdcObjectSet.GetSubType: TgdcSubType;
@@ -13492,11 +13502,8 @@ end;
 
 function TgdcObjectSet.FindgdClassByID(const AnID: TID; const AgdClassName,
   ASubType: String; const ASetTable: String): Boolean;
-var
-  Index: Integer;
 begin
-  Index := Find(AnID);
-  Result := FindgdClass(Index, AgdClassName, ASubType, ASetTable);
+  Result := FindgdClass(Find(AnID), AgdClassName, ASubType, ASetTable);
 end;
 
 function TgdcObjectSet.GetgdInfo(Index: Integer): String;
@@ -13535,7 +13542,7 @@ var
 begin
   Ps := AnsiPos('(', AText);
   Ps1 := AnsiPos(')', AText);
-  if (Ps > 0) and (Ps1 > 0) then
+  if (Ps > 0) and (Ps1 > Ps) then
     Result := Copy(AText, Ps + 1, Ps1 - Ps - 1)
   else
     Result := '';
@@ -13657,146 +13664,193 @@ begin
 end;
 
 procedure TgdcBase.LoadFromFile(const AFileName: String);
-{$IFNDEF NEW_STREAM}
 var
+  StreamSaver: TgdcStreamSaver;
+  StreamFormat: TgsStreamType;
+  FileName: String;
   S: TStream;
-  FN: String;
-{$ENDIF}  
 begin
-  {$IFDEF NEW_STREAM}
-  LoadFromFileNew(AFileName);
-  {$ELSE}
-  FN := QueryLoadFileName(AFileName);
-  if (FN > '') and
-    (MessageBox(0, PChar('Загрузить данные из файла ' + FN + ' ?'),
-      'Загрузка данных', MB_TASKMODAL or MB_ICONQUESTION or MB_YESNO) = IDYES)
-  then
-  begin
-    S := TFileStream.Create(FN, fmOpenRead);
-    try
-      LoadFromStream(S);
-    finally
-      S.Free;
-    end;
-  end;
-  {$ENDIF}
-end;
-
-{$IFDEF NEW_STREAM}
-procedure TgdcBase.LoadFromFileNew(const AFileName: String);
-var
-  S: TStream;
-  FN: String;
-  StreamType: TgsStreamType;
-begin
-  FN := QueryLoadFileName(AFileName);
-  if (FN > '') then
+  FileName := QueryLoadFileName(AFileName, datExtension, datxmlDialogFilter);
+  if FileName <> '' then
   begin
     // проверяем на версию потока
-    S := TFileStream.Create(FN, fmOpenRead);
+    S := TFileStream.Create(AFileName, fmOpenRead);
     try
-      StreamType := GetStreamType(S);
+      StreamFormat := GetStreamType(S);
     finally
       S.Free;
     end;
-    if StreamType <> sttBinaryOld then
-    begin
-      CreateStreamSaverForm;
-      frmStreamSaver.FileName := FN;
-      frmStreamSaver.SetParams(Self);
-      frmStreamSaver.ShowLoadForm;
-    end
-    else
-    begin
-      if MessageBox(0, PChar('Загрузить данные из файла ' + FN + ' ?'),
-        'Загрузка данных', MB_TASKMODAL or MB_ICONQUESTION or MB_YESNO) = IDYES
-      then
-      begin
-        S := TFileStream.Create(FN, fmOpenRead);
-        try
-          LoadFromStream(S);
-        finally
-          S.Free;
-        end;
-      end;
-    end;
-  end;
-end;
-{$ENDIF}
 
-procedure TgdcBase.SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
-{$IFNDEF NEW_STREAM}
-var
-  S: TStream;
-  FN: String;
-{$ENDIF}  
-begin
-  {$IFDEF NEW_STREAM}
-  SaveToFileNew(AFileName, ADetail, BL, OnlyCurrent);
-  {$ELSE}
-  if Assigned(BL) then
-    BL.Refresh;
-  FN := QuerySaveFileName(AFileName);
-  if FN > '' then
-  begin
-    S := TFileStream.Create(FN, fmCreate);
-    try
-      SaveToStream(S, ADetail, BL, OnlyCurrent);
-    finally
-      S.Free;
-    end;
-  end;
-  {$ENDIF}
-end;
-
-{$IFDEF NEW_STREAM}
-procedure TgdcBase.SaveToFileNew(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
-var
-  S: TStream;
-  FN: String;
-  startTick, diffTick: Cardinal;
-  InNewFormat: Boolean;
-begin
-  if Assigned(BL) then
-    BL.Refresh;
-  FN := QuerySaveFileName(AFileName);
-  if FN > '' then
-  begin
-    if Assigned(GlobalStorage) then
-      InNewFormat := GlobalStorage.ReadBoolean('Options', 'UseNewStream', False)
-    else
-      if MessageBox(ParentHandle,
-          'Сохранить в новом формате?',
-          'Внимание',
-          MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
-        InNewFormat := False
-      else
-        InNewFormat := True;
-
-    if InNewFormat then
+    if StreamFormat <> sttBinaryOld then
     begin
-      CreateStreamSaverForm;
-      frmStreamSaver.FileName := FN;
-      frmStreamSaver.SetParams(Self, ADetail, BL, OnlyCurrent);
-      frmStreamSaver.ShowSaveForm;
-    end
-    else
-    begin
-      S := TFileStream.Create(FN, fmCreate);
+      StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
+      S := TFileStream.Create(AFileName, fmOpenRead);
       try
-        startTick := GetTickCount;
-        SaveToStream(S, ADetail, BL, OnlyCurrent);
-        diffTick := GetTickCount - startTick;
-        AddText(FloatToStr(diffTick / 1000) + ' сек', clBlack, true);
+        //StreamSaver.Silent := True;
+        StreamSaver.LoadFromStream(S);
+        if StreamSaver.IsAbortingProcess then
+          Exit;
+      finally
+        S.Free;
+        StreamSaver.Free;
+      end;
+    end
+    else
+    begin
+      S := TFileStream.Create(AFileName, fmOpenRead);
+      try
+        Self.LoadFromStream(S);
       finally
         S.Free;
       end;
     end;
   end;
 end;
-{$ENDIF}
+
+procedure TgdcBase.SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
+  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True; StreamFormat: TgsStreamType = sttUnknown);
+var
+  StreamSaver: TgdcStreamSaver;
+  FileName: String;
+  S: TStream;
+  Bm: TBookmarkStr;
+  I: Integer;
+
+  procedure SaveDetail;
+  var
+    DBm: TBookmarkStr;
+  begin
+    if Assigned(ADetail) then
+    begin
+      ADetail.BlockReadSize := 1;
+      try
+        DBm := ADetail.Bookmark;
+        ADetail.First;
+        while not ADetail.Eof do
+        begin
+          StreamSaver.AddObject(ADetail);
+          if StreamSaver.IsAbortingProcess then
+            Exit;
+          ADetail.Next;
+        end;
+        ADetail.Bookmark := DBm;
+      finally
+        ADetail.BlockReadSize := 0;
+      end;
+    end;
+  end;
+
+begin
+  if Assigned(BL) then
+    BL.Refresh;
+
+  // Если формат файла не передан, то получим формат по умолчанию
+  if StreamFormat = sttUnknown then
+    StreamFormat := GetDefaultStreamFormat(False);
+  if StreamFormat in [sttXML, sttXMLFormatted] then
+    FileName := Self.QuerySaveFileName(AFileName, xmlExtension, xmlDialogFilter)
+  else
+    FileName := Self.QuerySaveFileName(AFileName, datExtension, datDialogFilter);
+
+  // Если пользователь выбрал файл
+  if FileName <> '' then
+  begin
+    if StreamFormat <> sttBinaryOld then
+    begin
+      StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
+      try
+        // если выбрано Инкрементное сохранение, то передадим ИД целевой базы
+        {if IncrementDatabaseKey > 0 then
+          StreamSaver.PrepareForIncrementSaving(IncrementDatabaseKey);}
+
+        // Если сохраняем только одну запись
+        if OnlyCurrent then
+        begin
+          if Assigned(frmStreamSaver) then
+            frmStreamSaver.SetupProgress(1, 'Сохранение данных...');
+          StreamSaver.AddObject(Self);
+          if StreamSaver.IsAbortingProcess then
+            Exit;
+          SaveDetail;
+          if Assigned(frmStreamSaver) then
+            frmStreamSaver.Step;
+        end
+        else
+        begin
+          Bm := Self.Bookmark;
+          Self.BlockReadSize := 1;
+
+          try
+            // Если не передан BookmarkList, то сохраняем весь датасет
+            if not Assigned(BL) then
+            begin
+              if Assigned(frmStreamSaver) then
+                frmStreamSaver.SetupProgress(Self.RecordCount,  'Сохранение данных...');
+              Self.First;
+              while not Self.Eof do
+              begin
+                StreamSaver.AddObject(Self);
+                if StreamSaver.IsAbortingProcess then
+                  Exit;
+                SaveDetail;
+                Self.Next;
+                if Assigned(frmStreamSaver) then
+                  frmStreamSaver.Step;
+              end;
+            end else
+            begin
+              if Assigned(frmStreamSaver) then
+                frmStreamSaver.SetupProgress(BL.Count,  'Сохранение данных...');
+              BL.Refresh;
+              for I := 0 to BL.Count - 1 do
+              begin
+                Self.Bookmark := BL[I];
+                StreamSaver.AddObject(Self);
+                if StreamSaver.IsAbortingProcess then
+                  Exit;
+                SaveDetail;
+                if Assigned(frmStreamSaver) then
+                  frmStreamSaver.Step;
+              end;
+            end;
+          finally
+            Self.Bookmark := Bm;
+            Self.BlockReadSize := 0;
+          end;
+        end;
+
+        if Assigned(frmStreamSaver) then
+          frmStreamSaver.SetProcessCaptionText('Запись в файл...');
+
+        // сохраняем в зависимости от выбранного в настройках типа файла
+        StreamSaver.StreamFormat := StreamFormat;
+        S := TFileStream.Create(FileName, fmCreate);
+        try
+          StreamSaver.SaveToStream(S, StreamFormat);
+        finally
+          S.Free;
+        end;
+      finally
+        StreamSaver.Free;
+      end;
+    end
+    else
+    begin
+      if Assigned(frmStreamSaver) then
+        frmStreamSaver.SetupProgress(1, 'Сохранение данных...');
+
+      S := TFileStream.Create(FileName, fmCreate);
+      try
+        Self.SaveToStream(S, ADetail, BL, OnlyCurrent);
+      finally
+        S.Free;
+      end;
+    end;
+
+    if Assigned(frmStreamSaver) then
+      frmStreamSaver.Done;
+  end;
+end;
 
 {По-умолчанию для этого метода все выделенные для сохранения объекты и
  объекты, на которые они ссылаются, должны иметь установленный флаг
@@ -13842,8 +13896,7 @@ begin
   MS := TMemoryStream.Create;
   OS := TgdcObjectSet.Create(TgdcBase, '');
 
-  Space;
-  AddText(TimeToStr(Time) + ': Началось сохранение данных в поток.'#13#10, clBlack, True);
+  AddText('Началось сохранение данных в поток.', clBlack);
 
   WasActive := Transaction.InTransaction;
 
@@ -13906,9 +13959,7 @@ begin
     end;
 
   finally
-    Space;
-    AddText(TimeToStr(Time) + ': Закончено сохранение данных в поток.'#13#10, clBlack, True);
-    Space;
+    AddText('Закончено сохранение данных в поток.', clBlack);
 
     OS.SaveToStream(Stream);
     Stream.CopyFrom(MS, 0);
@@ -13943,8 +13994,8 @@ begin
 end;
 
 function TgdcBase.QuerySaveFileName(const AFileName: String = '';
-  const aDefaultExt: String = 'dat';
-  const aFilter: String = 'Dat files|*.dat'): String;
+  const aDefaultExt: String = datExtension;
+  const aFilter: String = datDialogFilter): String;
 begin
   if AFileName = '' then
   begin
@@ -13994,8 +14045,8 @@ end;
 
 function TgdcBase.QueryLoadFileName(
   const AFileName: String = '';
-  const aDefaultExt: String = 'dat';
-  const aFilter: String = 'Dat files|*.dat'): String;
+  const aDefaultExt: String = datExtension;
+  const aFilter: String = datDialogFilter): String;
 begin
   Result := AFileName;
 
@@ -14412,7 +14463,6 @@ begin
                 raise;
               end;
               AddText('Объект обновлен данными из потока!', clBlack);
-              Space;
             except
               Cancel;
             end;
@@ -14577,7 +14627,9 @@ begin
             (Field.AsDateTime > 1) and
             ((Field.AsDateTime < Now - DW * 365) or (Field.AsDateTime > Now + DW * 365)) then
           begin
-            MessageBox(ParentHandle,
+            // Есть диалоговые формы, где датасет для поля находится на форме просмотра,
+            // если использовать ParentHandle, то диалоговая форма будет 'западать'.
+            MessageBox(Application.Handle,
               PChar('Проверьте, является ли введенная Вами дата "' +
                 FormatDateTime('dd.mm.yyyy', Field.AsDateTime) + '" правильной.'#13#10#13#10 +
                 'Отключить данную проверку можно в окне Опции, меню Сервис.'),
@@ -14660,7 +14712,7 @@ begin
   except
     on E: EIBError do
     begin
-      if E.IBErrorCode = 335544344 then
+      if E.IBErrorCode = isc_io_error then
       begin
         MessageBox(ParentHandle,
           'Произошла ошибка при создании файла сортировки.'#13#10 +
@@ -15296,7 +15348,10 @@ var
         cur_param := ParamByName(FgdcDataLink.FDetailField[I]);
       except
         MessageBox(0,
-          'Вероятно, в детальном объекте отсутствует параметр, который используется в связи мастер-дитэйл.',
+          PChar('Мастер объект: ' + MasterSource.DataSet.Name + #13#10 +
+          'Детальный объект: ' + Self.Name + #13#10#13#10 +
+          'Вероятно, в детальном объекте отсутствует параметр "' + FgdcDataLink.FDetailField[I] +
+          '", который используется в связи мастер-дитэйл.'),
           'Ошибка',
           MB_OK or MB_ICONSTOP or MB_TASKMODAL);
         raise;
@@ -16135,7 +16190,7 @@ begin
       // при попытке добавить элемент второй раз
       // будет исключение
       // подавим его
-      if E.IBErrorCode <> 335544665 then
+      if E.IBErrorCode <> isc_unique_key_violation then
         raise;
     end;
   end;
@@ -17484,6 +17539,8 @@ var
 begin
   Result := False;
 
+  // Есть диалоговые формы, из которых могут вызываться формы просмотра
+  // если использовать ParentHandle, то форма просмотра будет 'западать'.
   if VarIsEmpty(BL)
     or (VarArrayHighBound(BL, 1) = -1)
     or ((VarArrayHighBound(BL, 1) = 0) and (BL[0] = ID))then
@@ -17491,7 +17548,7 @@ begin
     if (RecordCount > 0) and
        (
          (not (sView in BaseState)) or
-         (MessageBox(ParentHandle,
+         (MessageBox(Application.Handle,
            PChar(Format('Удалить выделенную запись "%s"?', [ObjectName])),
            'Внимание!',
            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES)
@@ -17503,7 +17560,7 @@ begin
   else
   begin
     if (not (sView in BaseState)) or
-         (MessageBox(ParentHandle,
+         (MessageBox(Application.Handle,
             PChar(Format('Выделено записей: %d'#13#10'Удалить?', [VarArrayHighBound(BL, 1) + 1])),
             'Внимание!',
             MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES) then
@@ -17982,6 +18039,14 @@ begin
   // inherited GetCanModify проверяет FLiveMode, которая
   // инициализируется только в процессе Prepare
   Result := (not InternalPrepared) or (inherited GetCanModify);
+end;
+
+class function TgdcBase.GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String;
+begin
+  if IsReplicationMode then
+    Result := 'LB,RB'
+  else
+    Result := 'LB,RB,CREATORKEY,EDITORKEY';
 end;
 
 initialization

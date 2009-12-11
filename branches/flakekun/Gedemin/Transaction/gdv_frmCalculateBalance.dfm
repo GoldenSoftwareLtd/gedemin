@@ -1,10 +1,10 @@
 object frmCalculateBalance: TfrmCalculateBalance
-  Left = 608
-  Top = 232
+  Left = 697
+  Top = 306
   BorderStyle = bsDialog
   Caption = 'Переход на новый месяц'
   ClientHeight = 228
-  ClientWidth = 305
+  ClientWidth = 312
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,13 +13,15 @@ object frmCalculateBalance: TfrmCalculateBalance
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 305
+    Width = 312
     Height = 228
     Align = alClient
     TabOrder = 0
@@ -35,6 +37,7 @@ object frmCalculateBalance: TfrmCalculateBalance
       Top = 30
       Width = 299
       Height = 157
+      Anchors = [akLeft, akTop, akRight, akBottom]
       Caption = ' Расчет '
       TabOrder = 1
       object lblCurrentDate: TLabel
@@ -45,16 +48,17 @@ object frmCalculateBalance: TfrmCalculateBalance
         Caption = 'Расчитать сальдо на дату:'
       end
       object lblProgress: TLabel
-        Left = 13
+        Left = 15
         Top = 108
         Width = 268
-        Height = 13
+        Height = 26
         AutoSize = False
         Caption = 'lblProgress'
+        WordWrap = True
       end
       object lblTime: TLabel
-        Left = 13
-        Top = 130
+        Left = 15
+        Top = 135
         Width = 268
         Height = 13
         AutoSize = False
@@ -76,6 +80,7 @@ object frmCalculateBalance: TfrmCalculateBalance
         Top = 82
         Width = 278
         Height = 17
+        Anchors = [akLeft, akTop, akRight, akBottom]
         Min = 0
         Max = 100
         Smooth = True
@@ -93,10 +98,11 @@ object frmCalculateBalance: TfrmCalculateBalance
       end
     end
     object btnClose: TButton
-      Left = 119
-      Top = 198
+      Left = 224
+      Top = 195
       Width = 75
       Height = 25
+      Anchors = [akLeft, akTop, akRight, akBottom]
       Cancel = True
       Caption = 'Закрыть'
       Default = True

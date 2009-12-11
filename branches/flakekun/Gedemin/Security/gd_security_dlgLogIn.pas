@@ -56,6 +56,8 @@ type
     cbDBFileName: TComboBox;
     actHelp: TAction;
     chbxRememberPassword: TCheckBox;
+    eTempDatabase: TEdit;
+    lblTempDatabase: TLabel;
 
     procedure actLoginUpdate(Sender: TObject);
     procedure actLoginExecute(Sender: TObject);
@@ -92,7 +94,9 @@ type
     function GetUserName: String;
     procedure GetPasswordFromRegistry;
     function ExtractServerName(const DatabaseName: String): String;
-
+    {$IFDEF FLAKE}
+    procedure TryToConnect(const ADatabaseName: String);
+    {$ENDIF FLAKE}
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -126,7 +130,8 @@ implementation
 uses
   gd_Security, gd_resourcestring, gd_directories_const, inst_const,
   gd_security_dlgDatabases_unit, jclStrings, IBSQL, gdcBaseInterface,
-  IBServices, IB, DBLogDlg, gsDatabaseShutdown, Wcrypt2, dmLogin_unit
+  IBServices, IB, DBLogDlg, gsDatabaseShutdown, Wcrypt2, dmLogin_unit,
+  IBErrorCodes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
@@ -245,24 +250,26 @@ var
   Len, I: Integer;
 begin
   FAutoCloseCounter := MaxInt;
+  {$IFDEF FLAKE}
+  if eTempDatabase.Text <> '' then
+  begin
+    TryToConnect(eTempDatabase.Text);
+  end;
+  {$ENDIF FLAKE}
 
   if RunLoginProc(Copy(cbUser.Text, 1, max_username_length),
     Copy(edPassword.Text, 1, max_password_length),
     FSubSystemKey,
     False) then
   begin
-    {if FDatabaseChanged and (MessageBox(Handle,
-      'Подключаться к выбранной базе данных при следующем входе?',
-      'Внимание',
-      MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES) then
-    begin}
+    if eTempDatabase.Text = '' then
+    begin
       Reg := TRegistry.Create(KEY_WRITE);
       try
         Reg.RootKey := ClientRootRegistryKey;
 
         if Reg.OpenKey(ClientRootRegistrySubKey, False) then
         begin
-          //
           //  Наименование сервера
           Reg.WriteString(ServerNameValue, Database.DatabaseName);
           Reg.CloseKey;
@@ -322,7 +329,7 @@ begin
       finally
         Reg.Free;
       end;
-    {end;}
+    end;  
 
     ModalResult := mrOk;
   end;
@@ -400,6 +407,11 @@ begin
   {$IFDEF LOCALIZATION}
   LocalizeComponent(Self);
   {$ENDIF}
+
+  {$IFNDEF FLAKE}
+  eTempDatabase.Enabled := False;
+  lblTempDatabase.Enabled := False;
+  {$ENDIF}
 end;
 
 {
@@ -429,6 +441,16 @@ begin
       lKL.Caption := '';
     end;
   end;
+
+  {$IFDEF FLAKE}
+  if eTempDatabase.Text <> '' then
+  begin
+    chbxRememberPassword.Checked := False;
+    chbxRememberPassword.Enabled := False;
+  end
+  else
+    chbxRememberPassword.Enabled := True;
+  {$ENDIF FLAKE}
 
   Dec(FAutoCloseCounter);
   if FAutoCloseCounter < 0 then
@@ -476,8 +498,8 @@ begin
       Result := ShowModal = mrOk;
   end;
 
-  if Result then
-    ReadConnectionData;
+  {if Result then
+    ReadConnectionData;}
 end;
 
 function TdlgSecLogIn.RunLoginProc(const AUser, APassw: String; const ASubS: Integer;
@@ -713,16 +735,8 @@ begin
 end;
 
 function TdlgSecLogIn.TryAdminLogin: Boolean;
-{var
-  I: Integer;}
 begin
   Result := False;
-
-  {for I := 1 to ParamCount do
-  begin
-    if CompareText(ParamStr(I), '/sn') = 0 then
-      exit;
-  end;}
 
   if FindCmdLineSwitch('SN', ['/', '-'], True) then
     exit;
@@ -740,10 +754,12 @@ end;
 procedure TdlgSecLogIn.cbDBFileNameChange(Sender: TObject);
 var
   OldK: Boolean;
-  OldD: String;
   I: Integer;
+  {$IFNDEF FLAKE}
+  OldD: String;
   IBSS: TIBSecurityService;
   FSysDBAUserName, FSysDBAPassword: String;
+  {$ENDIF FLAKE}
   //DbShut: TgsDatabaseShutdown;
 begin
   FAutoCloseCounter := MaxInt;
@@ -796,6 +812,10 @@ begin
 
   if cbdbFileName.ItemIndex >= 0 then
   begin
+    {$IFDEF FLAKE}
+    TryToConnect(FSL[Integer(cbDBFileName.Items.Objects[cbdbFileName.ItemIndex])]);
+    GetPasswordFromRegistry;
+    {$ELSE FLAKE}
     OldD := Database.DatabaseName;
     OldK := Database.Connected;
     Database.Connected := False;
@@ -879,7 +899,7 @@ begin
       end;
 
       GetPasswordFromRegistry;
-      
+
       if StrIPos(' /SN ', CmdLine) = 0 then
       begin
         FDatabaseChanged := True;
@@ -894,6 +914,7 @@ begin
         PrepareSelf;
       end;
     end;
+    {$ENDIF FLAKE}
   end;
 end;
 
@@ -934,6 +955,90 @@ begin
   end else
     Result := '';
 end;
+
+{$IFDEF FLAKE}
+procedure TdlgSecLogIn.TryToConnect(const ADatabaseName: String);
+var
+  OldK: Boolean;
+  OldD: String;
+  IBSS: TIBSecurityService;
+  FSysDBAUserName, FSysDBAPassword: String;
+begin
+  OldD := Database.DatabaseName;
+  OldK := Database.Connected;
+  Database.Connected := False;
+  Database.DatabaseName := ADatabaseName;
+  try
+    try
+      Database.Connected := OldK;
+    except
+      on E: EIBError do
+      begin
+        if (E.IBErrorCode = isc_login) then
+        begin
+          // сервер есть но старт юзера нет
+          if MessageBox(Handle,
+            'Указанный сервер Interbase/Firebird/Yaffil не сконфигурирован для работы с системой Гедымин.'#13#10 +
+            'Произвести его настройку прямо сейчас?',
+            'Ошибка',
+            MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO then
+          begin
+            raise;
+          end;
+
+          //...
+          FSysDBAPassword := 'masterkey';
+          FSysDBAUserName := SysDBAUserName;
+
+          if not LoginDialogEx(ExtractServerName(Database.DatabaseName), FSysDBAUserName, FSysDBAPassword, True) then
+            raise;
+
+          IBSS := TIBSecurityService.Create(Self);
+          try
+            IBSS.ServerName := ExtractServerName(Database.DatabaseName);
+            IBSS.LoginPrompt := False;
+            IBSS.Protocol := TCP;
+            IBSS.Params.Add('user_name=' + SysDBAUserName);
+            IBSS.Params.Add('password=' + FSysDBAPassword);
+            IBSS.Active := True;
+            try
+              IBSS.UserName := 'STARTUSER';
+              IBSS.FirstName := ''; //FieldByName('fullname').AsString;
+              IBSS.MiddleName := '';
+              IBSS.LastName := '';
+              IBSS.UserID := 0;
+              IBSS.GroupID := 0;
+              IBSS.Password := 'startuser';
+              IBSS.AddUser;
+              while IBSS.IsServiceRunning do
+                Sleep(100);
+            finally
+              IBSS.Active := False;
+            end;
+          finally
+            IBSS.Free;
+          end;
+        end else
+          raise;
+      end;
+    end;
+
+    if StrIPos(' /SN ', CmdLine) = 0 then
+    begin
+      FDatabaseChanged := True;
+    end;
+  except
+    on E: Exception do
+    begin
+      Application.ShowException(E);
+      Database.Connected := False;
+      Database.DatabaseName := OldD;
+      Database.Connected := OldK;
+      PrepareSelf;
+    end;
+  end;
+end;
+{$ENDIF FLAKE}
 
 end.
 

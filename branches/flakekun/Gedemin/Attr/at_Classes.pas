@@ -34,9 +34,9 @@ uses
   ComCtrls, DB, IBSQL, Contnrs, gd_security_OperationConst, Classes, IBDatabase;
 
 const
-  UserPrefix = 'USR$';  //Пользователькие мета-данные
-  SystemPrefix = 'RDB$'; //Системные мета-данные
-  BooleanDomainName = 'DBOOLEAN';
+  UserPrefix            = 'USR$';  //Пользователькие мета-данные
+  SystemPrefix          = 'RDB$'; //Системные мета-данные
+  BooleanDomainName     = 'DBOOLEAN';
   BoolNotNullDomainName = 'DBOOLEAN_NOTNULL';
 
 type
@@ -50,7 +50,6 @@ type
 
   TarNumeration = array of TatNumerationInfo;
 
-type
   TatRelationField = class;
   TatRelationFields = class;
   TatPrimaryKey = class;
@@ -202,7 +201,6 @@ type
     FRelationID: Integer;
 
     FIsDropped: Boolean;
-    //FIsCreateCommand: Integer;
     FBranchKey: Integer;
 
     FListField: String;
@@ -212,8 +210,6 @@ type
     function GetIsSystem: Boolean; virtual; abstract;
     function GetHasSecurityDescriptors: Boolean; virtual; abstract;
     function GetListField: TatRelationField; virtual; abstract;
-//    function GetExtendedFields(Index: Integer): TatRelationField; virtual; abstract;
-//    function GetExtendedFieldsCount: Integer; virtual; abstract;
     function GetIsStandartTreeRelation: Boolean; virtual; abstract;
     function GetIsLBRBTreeRelation: Boolean; virtual; abstract;
 
@@ -261,7 +257,6 @@ type
     property aView: TSecurityDescriptor read FaView;
 
     property IsDropped: Boolean read FIsDropped;
-//    property IsCreateCommand: Integer read FIsCreateCommand;
     property BranchKey: Integer read FBranchKey;
 
     //Возвращает таблицу, если первичный ключ содержит только одно поле,
@@ -298,8 +293,6 @@ type
 
     property Count: Integer read GetCount;
     property Items[Index: Integer]: TatRelation read GetItems; default;
-
-    //property GlobalNameSpace: TatRelation read GetGlobalNameSpace;
   end;
 
   TatRelationField = class(TObject)
@@ -350,7 +343,6 @@ type
     function GetIsUserDefined: Boolean; virtual; abstract;
     function GetSQLType: Smallint; virtual; abstract;
     function GetReferenceListField: TatRelationField; virtual; abstract;
-    //function GetIsSecurityDescriptor: Boolean; virtual; abstract;
     function GetVisible: Boolean; virtual; abstract;
     procedure SetFieldName(const AFieldName: String); virtual; abstract;
 
@@ -530,7 +522,7 @@ type
     FConstraintFields: TatRelationFields;
 
     FIsDropped: Boolean;
-    
+
   public
     procedure RefreshData; overload; virtual; abstract;
     procedure RefreshData(ibsql: TIBSQL); overload; virtual; abstract;
@@ -542,7 +534,6 @@ type
     property ConstraintFields: TatRelationFields read FConstraintFields;
 
     property IsDropped: Boolean read FIsDropped;
-
   end;
 
   TatPrimaryKeys = class(TObject)

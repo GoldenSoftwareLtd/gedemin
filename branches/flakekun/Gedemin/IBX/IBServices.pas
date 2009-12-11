@@ -372,7 +372,7 @@ type
   end;
 
   TRestoreOption = (DeactivateIndexes, NoShadow, NoValidityCheck, OneRelationAtATime,
-    Replace, CreateNewDB, UseAllSpace);
+    Replace, CreateNewDB, UseAllSpace, FixFss);
 
   TRestoreOptions = set of TRestoreOption;
   TIBRestoreService = class (TIBBackupRestoreService)
@@ -382,6 +382,7 @@ type
     FOptions: TRestoreOptions;
     FPageSize: Integer;
     FPageBuffers: Integer;
+    FFixFssCharacterSet: String;
     procedure SetBackupFile(const Value: TStrings);
     procedure SetDatabaseName(const Value: TStrings);
   protected
@@ -395,6 +396,7 @@ type
     property BackupFile: TStrings read FBackupFile write SetBackupFile;
     property PageSize: Integer read FPageSize write FPageSize default 4096;
     property PageBuffers: Integer read FPageBuffers write FPageBuffers;
+    property FixFssCharacterSet: String read FFixFssCharacterSet write FFixFssCharacterSet;
     property Options : TRestoreOptions read FOptions write FOptions default [CreateNewDB];
   end;
 
@@ -1542,6 +1544,12 @@ begin
     ServiceStartAddParam(FPageSize, isc_spb_res_page_size);
   if FPageBuffers > 0 then
     ServiceStartAddParam(FPageBuffers, isc_spb_res_buffers);
+  // Кодовая страница для конвертации БД в ODS 11.1 +
+  if FFixFssCharacterSet <> '' then
+  begin
+    ServiceStartAddParam(FixFssCharacterSet, isc_spb_res_fix_fss_data);
+    ServiceStartAddParam(FixFssCharacterSet, isc_spb_res_fix_fss_metadata);
+  end;
   for i := 0 to FBackupFile.Count - 1 do
   begin
     if (Trim(FBackupFile[i]) = '') then continue;
@@ -1577,6 +1585,7 @@ begin
   FBackupFile := TStringList.Create;
   Include (FOptions, CreateNewDB);
   FPageSize := 4096;
+  FixFssCharacterSet := '';
 end;
 
 destructor TIBRestoreService.Destroy;

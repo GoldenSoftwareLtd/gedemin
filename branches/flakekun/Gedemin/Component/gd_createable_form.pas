@@ -13,6 +13,14 @@ type
   TgdVariables = class;
   TgdObjects = class;
 
+  HMONITOR = type THandle;
+  TMonitorInfo = record
+    cbSize:DWORD;
+    rcMonitor:TRECT;
+    rcWork:TRECT;
+    dwFlags:DWORD;
+  end;
+
   /////////////////////////////////////////////////////////
   //cfsDesignig - форма в режиме редактирования
   //cfsUserCreated - форма созданная пользователем
@@ -99,6 +107,8 @@ type
 
     //
     procedure UpdateActions; override;
+
+    function GetActiveMonitorWorkArea: TRect;
 
     // До закрытия формы могут выполняться какие-то действия,
     // и когда дойдет непосредственно до закрытия, Shift может быть
@@ -256,8 +266,7 @@ uses
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
-  {$ENDIF}
-  ;
+  {$ENDIF};
 
 const
   Treshold = 10;
@@ -265,6 +274,9 @@ const
 type
   TCrackControlActionLink = class(TControlActionLink)
   end;
+
+function GetMonitorInfo(AMonitorHandle: HMONITOR; Var ADataRecord: TMonitorInfo): Boolean;
+          stdcall; external 'user32.dll' name 'GetMonitorInfoA';  
 
 procedure FreeAllForms(const OnlyInvisible: Boolean);
 var
@@ -761,6 +773,7 @@ var
   L, MaxHeight, MinTop, MinLeft, DRight: Integer;
   ShellTrayWND: HWND;
   TrayWNDRect: TRect;
+  ActiveMonitor: TMonitor;
 begin
 
   if not ([cfsUserCreated] * Self.CreateableFormState = [cfsUserCreated]) then
@@ -783,94 +796,112 @@ begin
     and (Self.ClassName <> 'Tgdc_frmExplorer')
     and (not(cfsDesigning in CreateableFormState)) then
   begin
-    if Assigned(UserStorage)
-      and UserStorage.ReadBoolean('Options', 'Magic', True, False)
-      and (GetAsyncKeyState(VK_CONTROL) shr 1 = 0) then
+    ActiveMonitor := Application.MainForm.Monitor;
+    if ActiveMonitor.Handle = Self.Monitor.Handle then
     begin
-      PostMessage(Self.Handle, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
-    end else begin
-      ShellTrayWND := FindWindow('Shell_TrayWnd', nil);
-      MinTop := 50;
-      MinLeft := 50;
-      DRight := Screen.DesktopWidth - 50;
-      if ShellTrayWND <> 0 then
+      if Assigned(UserStorage)
+        and UserStorage.ReadBoolean('Options', 'Magic', True, False)
+        and (GetAsyncKeyState(VK_CONTROL) shr 1 = 0) then
       begin
-        GetWindowRect(ShellTrayWND, TrayWNDRect);
-        if (TrayWNDRect.Left < 10) and (TrayWNDRect.Top < 10) then
-        begin
-          if TrayWNDRect.Right < TrayWNDRect.Bottom then
-          begin
-            MinTop := 50;
-            MinLeft := TrayWNDRect.Right + 50;
-          end else
-            begin
-              MinTop := TrayWNDRect.Bottom + 50;
-              MinLeft := 50;
-            end;
-
-        end;
-        if TrayWNDRect.Left > 10 then
-          DRight := TrayWNDRect.Left - 50;
-      end;
-
-      if FormAssigned(gdc_frmExplorer) and (gdc_frmExplorer.Left < MinLeft) then
-        L := gdc_frmExplorer.Left + gdc_frmExplorer.Width
+        PostMessage(Self.Handle, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+      end
       else
-        L := 0;
-
-      if L > (Screen.DesktopWidth / 2) then
-        Left := 0
-      else
-        Left := L;
-
-      if Application.MainForm.Top < MinTop then
-        Top := Application.MainForm.Top + Application.MainForm.Height
-      else
-        Top := 0;
-
-      if ShellTrayWND <> 0 then
       begin
-        if (TrayWNDRect.Left < 10) and (TrayWNDRect.Top > 10) then
+        ShellTrayWND := FindWindow('Shell_TrayWnd', nil);
+        MinTop := 50;
+        MinLeft := 50;
+        DRight := ActiveMonitor.Left + ActiveMonitor.Width - 50;
+        if ShellTrayWND <> 0 then
         begin
-          Height := TrayWNDRect.Top - Top;
-          Width := Screen.DesktopWidth - Left;
-        end else
-          if (TrayWNDRect.Left > 10) and (TrayWNDRect.Top < 10) then
+          GetWindowRect(ShellTrayWND, TrayWNDRect);
+          if (TrayWNDRect.Left < 10) and (TrayWNDRect.Top < 10) then
           begin
-            Width := TrayWNDRect.Left - Left;
-            Height := Screen.DesktopHeight - Top;
-          end else
-            if (TrayWNDRect.Left < 10) and (TrayWNDRect.Top < 10) then
+            if TrayWNDRect.Right < TrayWNDRect.Bottom then
             begin
-              if TrayWNDRect.Right < TrayWNDRect.Bottom then
+              MinTop := 50;
+              MinLeft := TrayWNDRect.Right + 50;
+            end else
               begin
-                if Left < TrayWNDRect.Right then Left := TrayWNDRect.Right;
-              end else
-                begin
-                  if Top < TrayWNDRect.Bottom then Top := TrayWNDRect.Bottom;
-                end;
-              Width := Screen.DesktopWidth - Left;
-              Height := Screen.DesktopHeight - Top;
-            end;
-      end else
+                MinTop := TrayWNDRect.Bottom + 50;
+                MinLeft := 50;
+              end;
+
+          end;
+          if TrayWNDRect.Left > 10 then
+            DRight := TrayWNDRect.Left - 50;
+        end;
+
+        if FormAssigned(gdc_frmExplorer) and (gdc_frmExplorer.Left < MinLeft) then
+          L := gdc_frmExplorer.Left + gdc_frmExplorer.Width
+        else
+          L := 0;
+
+        if L > (ActiveMonitor.Left + ActiveMonitor.Width / 2) then
+          Left := 0
+        else
+          Left := L;
+
+        if Application.MainForm.Top < MinTop then
+          Top := Application.MainForm.Top + Application.MainForm.Height
+        else
+          Top := 0;
+
+        if ShellTrayWND <> 0 then
         begin
-          MaxHeight := Screen.DesktopHeight - Top - 26;
+          if (TrayWNDRect.Left < 10) and (TrayWNDRect.Top > 10) then
+          begin
+            Height := TrayWNDRect.Top - Top;
+            Width := ActiveMonitor.Left + ActiveMonitor.Width - Left;
+          end
+          else
+          begin
+            if (TrayWNDRect.Left > 10) and (TrayWNDRect.Top < 10) then
+            begin
+              Width := TrayWNDRect.Left - Left;
+              Height := ActiveMonitor.Top + ActiveMonitor.Height - Top;
+            end
+            else
+            begin
+              if (TrayWNDRect.Left < 10) and (TrayWNDRect.Top < 10) then
+              begin
+                if TrayWNDRect.Right < TrayWNDRect.Bottom then
+                begin
+                  if Left < TrayWNDRect.Right then
+                    Left := TrayWNDRect.Right;
+                end
+                else
+                begin
+                  if Top < TrayWNDRect.Bottom then
+                    Top := TrayWNDRect.Bottom;
+                end;
+                Width := ActiveMonitor.Left + ActiveMonitor.Width - Left;
+                Height := ActiveMonitor.Top + ActiveMonitor.Height - Top;
+              end;
+            end;  
+          end;
+        end
+        else
+        begin
+          MaxHeight := ActiveMonitor.Top + ActiveMonitor.Height - Top - 26;
           if FormAssigned(gdc_frmExplorer) then
           begin
             Height := gdc_frmExplorer.Top + gdc_frmExplorer.Height - Top;
             if Height > MaxHeight then
               Height := MaxHeight;
-          end else
+          end
+          else
             Height := MaxHeight;
-          Width := Screen.DesktopWidth - Left;
+          Width := ActiveMonitor.Left + ActiveMonitor.Width - Left;
         end;
-      if FormAssigned(gdc_frmExplorer) and
-        ((gdc_frmExplorer.Left + gdc_frmExplorer.Width) > DRight) and
-        ((gdc_frmExplorer.Left + gdc_frmExplorer.Width) < Left)
-//        ((gdc_frmExplorer.Left + gdc_frmExplorer.Width) > (Screen.DesktopWidth - DRight))
-      then
-        Width := gdc_frmExplorer.Left - Left;
-    end;
+
+        if FormAssigned(gdc_frmExplorer) and
+          ((gdc_frmExplorer.Left + gdc_frmExplorer.Width) > DRight) and
+          ((gdc_frmExplorer.Left + gdc_frmExplorer.Width) < Left)
+  //        ((gdc_frmExplorer.Left + gdc_frmExplorer.Width) > (Application.MainForm.Monitor.Width - DRight))
+        then
+          Width := gdc_frmExplorer.Left - Left;
+      end;
+    end;  
   end;
 end;
 
@@ -1336,8 +1367,11 @@ begin
           and UserStorage.ReadBoolean('Options', 'Magic', True, False)
           and (GetAsyncKeyState(VK_CONTROL) shr 1 = 0) then
         begin
-          SystemParametersInfo(SPI_GETWORKAREA, 0, @RDesk, 0);
-          SystemParametersInfo(SPI_GETWORKAREA, 0, @RCurr, 0);
+          RDesk := Self.GetActiveMonitorWorkArea;
+          RCurr := RDesk;
+
+          //SystemParametersInfo(SPI_GETWORKAREA, 0, @RDesk, 0);
+          //SystemParametersInfo(SPI_GETWORKAREA, 0, @RCurr, 0);
 
           if Application.MainForm <> nil then
           begin
@@ -1716,6 +1750,18 @@ begin
     end;
   end else}
     inherited;
+end;
+
+function TCreateableForm.GetActiveMonitorWorkArea: TRect;
+var
+  MonInfo: TMonitorInfo;
+begin
+  MonInfo.cbSize := SizeOf(MonInfo);
+  if Assigned(Application.MainForm) then
+    GetMonitorInfo(Application.MainForm.Monitor.Handle, MonInfo)
+  else
+    GetMonitorInfo(Self.Monitor.Handle, MonInfo);
+  Result := MonInfo.rcWork;
 end;
 
 initialization

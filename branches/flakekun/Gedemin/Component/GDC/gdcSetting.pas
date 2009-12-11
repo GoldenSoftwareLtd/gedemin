@@ -5,11 +5,7 @@ interface
 uses
    gdcBase, gd_classlist, Classes, Forms, gd_createable_form, SysUtils, Controls, dialogs,
    db, gd_security, dbgrids, gdcBaseInterface, contnrs, gd_KeyAssoc, IBCustomDataSet,
-   StdCtrls, IBSQL
-   {$IFDEF NEW_STREAM}
-   , at_SettingWalker
-   {$ENDIF}
-   ;
+   StdCtrls, IBSQL, at_SettingWalker, gsStreamHelper;
 
 {type
   TSettingError = record
@@ -26,7 +22,6 @@ type
     //Список руидов в настройке. Используется при загрузке из потока
     OldRuidList: TStrings;
 
-    {$IFDEF NEW_STREAM}
     FIBSQLDeleteAllPos: TIBSQL;
     FIBSQLSelectPos: TIBSQL;
     FIBSQLSelectAllPos: TIBSQL;
@@ -37,7 +32,6 @@ type
     FNewPositionOffset: Integer;
     FManualAddedPositions: TStringList;
     FAddedPositions: TStringList;
-    {$ENDIF}
     
     //Проверяет настройку на удаленные из нее объекты
     procedure CheckSetting;
@@ -46,14 +40,12 @@ type
     procedure LoadMainSettingsID(KA: TgdKeyArray);
     procedure AddMainSettings(FKeys: TStrings; const MainID: Integer = 0);
 
-    {$IFDEF NEW_STREAM}
     procedure OnStartLoading(Sender: TatSettingWalker; AnObjectSet: TgdcObjectSet);
     procedure OnObjectLoad(Sender: TatSettingWalker; const AClassName, ASubType: String;
       ADataSet: TDataSet; APrSet: TgdcPropertySet;
       const ASR: TgsStreamRecord);
     procedure OnStartLoadingNew(Sender: TatSettingWalker);
     procedure OnObjectLoadNew(Sender: TatSettingWalker; const AClassName, ASubType: String; ADataSet: TDataSet);
-    {$ENDIF}
 
   protected
     function CreateDialogForm: TCreateableForm; override;
@@ -78,14 +70,8 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     procedure SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True); override;
+      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True; StreamFormat: TgsStreamType = sttUnknown); override;
     procedure LoadFromFile(const AFileName: String = ''); override;
-
-    {$IFDEF NEW_STREAM}
-    procedure SaveToFileNew(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-      const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True); override;
-    procedure LoadFromFileNew(const AFileName: String = ''); override;
-    {$ENDIF}
 
     {KeyAr - Список идентификаторов настроек. Идентификаторы стоят в порядке создания настроек
      Вместо KeyAr может передаваться nil.
@@ -96,10 +82,7 @@ type
     //Деактивация текущей настройки
     procedure DeactivateSetting;
     //Сохранение позиций настройки в соответсвующие блоб-поля
-    procedure SaveSettingToBlob(const InNewFormat: Boolean = true);
-    {$IFDEF NEW_STREAM}
-    procedure SaveSettingToBlobNew(const InNewFormat: Boolean = true);
-    {$ENDIF}
+    procedure SaveSettingToBlob(SettingFormat: TgsStreamType = sttUnknown);
     //переактивирует текущую настройку без предшедствующей деактивации
     procedure ReActivateSetting(BL: TBookmarkList);
     //Устанавливает сортировку для позиций настройки
@@ -110,13 +93,13 @@ type
     procedure ClearDependencies;
 
     procedure UpdateActivateError;
-    {$IFDEF NEW_STREAM}
     // Удаляет текущие позиции настройки и заполняет настоящим содержимым настройки
     //  (то есть добавляет в позиции те записи, которые были неявно добавленны в настройку).
     // Перед этим настройка должна быть сформирована (должен быть вызван SaveSetingToBlob,
     //  который обновит данные в шапке).
     procedure AddMissedPositions;
-    {$ENDIF}
+
+    procedure GoToLastLoadedSetting;
 
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
     class function NeedDeleteTheSame(const SubType: String): Boolean; override;
@@ -165,6 +148,7 @@ type
 
     procedure SetWithDetail(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedModify(const Value: Boolean; BL: TBookmarkList);
+    procedure SetNeedInsert(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedModifyDefault;
 
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
@@ -243,9 +227,6 @@ type
     destructor Destroy; override;
 
     function GetGSFInfo(const FName: String): Boolean;
-    {$IFDEF NEW_STREAM}
-    function GetGSFInfoNew(const FName: String): Boolean;
-    {$ENDIF}
   end;
 
 // список объектов с информацией о файле настройки
@@ -257,9 +238,7 @@ type
     CurEXEVersion: String;
 
     procedure InstallSettingByID(aID: Integer);
-    {$IFDEF NEW_STREAM}
-    procedure InstallSettingByIDNew(aID: Integer);
-    {$ENDIF}
+
     function LoadInfoFor(aID: Integer; const aRUID, aPath: String; var Err: String; var MaxPackVerInfo: TSettingVersion; out isCorrect: Boolean{; const isForce: Boolean = False}): TSettingVersion;
     function CheckedRUID(aRUID: String): Integer;
   public
@@ -295,16 +274,6 @@ const
   gsfID = 608588615;
   // Текущая версия формата файла настройки
   gsfVersion = 1;
-  // Расширение для файлов настроек
-  gsfExtension = 'gsf';
-  gsfLoadDialogFilter = 'Файлы настроек|*.' + gsfExtension + '|Dat files|*.dat';
-  gsfSaveDialogFilter = 'Файлы настроек|*.' + gsfExtension;
-
-  {$IFDEF NEW_STREAM}
-  xmlExtension = 'xml';
-  xmlDialogFilter = 'Файлы XML настроек|*.' + xmlExtension;
-  gsfxmlDialogFilter = 'Файлы настроек|*.' + gsfExtension + ';' + '*.' + xmlExtension;
-  {$ENDIF}
 
   girOK = 0;
   girUserCancel = 1;
@@ -333,10 +302,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  {$IFDEF NEW_STREAM}
-  , gdcStreamSaver, gdc_frmStreamSaver
-  {$ENDIF NEW_STREAM}
-  ;
+  , gdcStreamSaver, gdc_frmStreamSaver;
 
 const
   cst_strTable = 'Таблица';
@@ -352,6 +318,8 @@ type
 var
 //Используется при добавлении мета-данных в настройку
   IsSynchTriggersAndIndices: Boolean = False;
+  // Будем запоминать ключ загруженной настройки, чтобы после загрузки перейти на нее
+  LastLoadedSettingKey: TID = -1;
 
 procedure Register;
 begin
@@ -495,16 +463,14 @@ begin
     if Self.Silent then
     begin
       if not Assigned(frmSQLProcess) then
-      begin
         frmSQLProcess := TfrmSQLProcess.Create(Owner);
-        frmSQLProcess.SQLText.Lines.Clear;
-      end;
-      ShowSQL := frmSQLProcess.IsShowLog;
+        
+      ShowSQL := frmSQLProcess.Silent;
       try
-        frmSQLProcess.IsShowLog := False;
+        frmSQLProcess.Silent := True;
         _ActivateSetting(FinalKeyAr.CommaText, Silent, AnModalSQLProcess and not Silent, Lo(AnAnswer), Hi(AnAnswer));
       finally
-        frmSQLProcess.IsShowLog := ShowSQL;
+        frmSQLProcess.Silent := ShowSQL;
       end;
     end else
     begin
@@ -730,37 +696,23 @@ begin
 end;
 
 procedure TgdcSetting.DeactivateSetting;
-{$IFNDEF NEW_STREAM}
-var
-  AnAnswer: Integer;
-{$ENDIF}  
 begin
-  if FieldByName('Disabled').AsInteger = 1 then
-    Exit;
-
-  {$IFNDEF NEW_STREAM}
-  AnAnswer := MessageBox(0, PChar(Format('Обновить данные настройки %s перед ее деактивацией?',
-    [FieldByName(GetListField(SubType)).AsString])), 'Внимание!',
-    MB_ICONQUESTION or MB_YESNOCANCEL or MB_TASKMODAL);
-
-  case AnAnswer of
-    IDYES: SaveSettingToBlob;
-    IDCANCEL: Exit;
-  end;
-  {$ENDIF}
-
-  if Assigned(IBLogin) then
+  // Если настройка активирована
+  if FieldByName('Disabled').AsInteger = 0 then
   begin
-    IBLogin.AddEvent(
-      'Деактивация настройки "' + ObjectName + '"',
-      Self.ClassName,
-      Self.ID);
-  end;
+    if Assigned(IBLogin) then
+    begin
+      IBLogin.AddEvent(
+        'Деактивация настройки "' + ObjectName + '"',
+        Self.ClassName,
+        Self.ID);
+    end;
 
-  with TActivateSetting.Create(Application) do
-  begin
-    SettingKeys := IntToStr(ID);
-    PostMessage(Handle, WM_DEACTIVATESETTING, 0, Integer(True));
+    with TActivateSetting.Create(Application) do
+    begin
+      SettingKeys := IntToStr(ID);
+      PostMessage(Handle, WM_DEACTIVATESETTING, 0, Integer(True));
+    end;
   end;
 end;
 
@@ -839,76 +791,40 @@ begin
 end;
 
 procedure TgdcSetting.SaveToFile(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
-{$IFNDEF NEW_STREAM}
+  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True; StreamFormat: TgsStreamType = sttUnknown);
 var
   FN: String;
   FS: TFileStream;
-  PackStream: TZCompressionStream;
-  i: Integer;
-{$ENDIF}
-begin
-  {$IFDEF NEW_STREAM}
-  // используем новый метод вместо старого
-  SaveToFileNew(AFileName, ADetail, BL, OnlyCurrent);
-  {$ELSE}
-
-  FN := QuerySaveFileName(AFileName, gsfExtension, gsfSaveDialogFilter);
-  if FN > '' then
-  begin
-    FS := TFileStream.Create(FN, fmCreate);
-    try
-      // заголовок файла
-      i := gsfID;
-      FS.Write(i, SizeOf(i));
-      i := gsfVersion;
-      FS.Write(i, SizeOf(i));
-
-      // сохраняем заголовок настройки в потоке
-      with TSettingHeader.Create do
-      try
-        SetInfo(Self);
-        SaveToStream(FS);
-      finally
-        Free;
-      end;
-
-      // сохраняем саму настройку в упакованный поток
-      PackStream := TZCompressionStream.Create(FS, zcMax);
-      try
-        SaveToStream(PackStream, ADetail);
-      finally
-        PackStream.Free;
-      end;
-    finally
-      FS.Free;
-    end;
-  end;
-  {$ENDIF}
-end;
-
-{$IFDEF NEW_STREAM}
-procedure TgdcSetting.SaveToFileNew(const AFileName: String = ''; const ADetail: TgdcBase = nil;
-  const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
-var
-  FN: String;
-  FS: TFileStream;
-  StreamType: TgsStreamType;
+  BlobStream: TStream;
   PackStream: TZCompressionStream;
   i: Integer;
   StreamSaver: TgdcStreamSaver;
 begin
-  StreamType := sttBinaryOld;
-  if Assigned(GlobalStorage) and GlobalStorage.ReadBoolean('Options', 'UseNewStreamForSetting', False) then
-    if TStreamFileFormat(GlobalStorage.ReadInteger('Options', 'StreamSettingType', 0)) = ffXML then
-      StreamType := sttXML
-    else
-      StreamType := sttBinaryNew;
+  // Получим формат сохраненных в блобе данных настройки
+  BlobStream := CreateBlobStream(FieldByName('Data'), bmRead);
+  try
+    StreamFormat := GetStreamType(BlobStream);
+  finally
+    FreeAndNil(BlobStream);
+  end;
+  // Если по данным не смогли определить формат настройки, попробуем по данным хранилища настройки
+  if StreamFormat = sttUnknown then
+  begin
+    BlobStream := CreateBlobStream(FieldByName('StorageData'), bmRead);
+    try
+      StreamFormat := GetStreamType(BlobStream);
+    finally
+      FreeAndNil(BlobStream);
+    end;
+  end;  
+  // Если и сейчас не смогли определить формат, значит настройка пуста, сохраним в старом бинарном формате
+  if StreamFormat = sttUnknown then
+    StreamFormat := sttBinaryOld;
 
-  case StreamType of
+  case StreamFormat of
     sttBinaryOld, sttBinaryNew:
       FN := QuerySaveFileName(AFileName, gsfExtension, gsfSaveDialogFilter);
-    sttXML:
+    sttXML, sttXMLFormatted:
       FN := QuerySaveFileName(AFileName, xmlExtension, xmlDialogFilter);
   end;
 
@@ -920,18 +836,20 @@ begin
       if Assigned(frmStreamSaver) then
         frmStreamSaver.SetProcessCaptionText('Сохранение настройки в файл...');
 
-      if (StreamType = sttXML) or (StreamType = sttBinaryNew) then
+      if StreamFormat <> sttBinaryOld then
       begin
         StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
         try
           StreamSaver.ReadUserFromStream := Self.Silent;
           StreamSaver.Silent := Self.Silent;
+          StreamSaver.ReplicationMode := Self.Silent;
+          StreamSaver.StreamFormat := StreamFormat;
 
           StreamSaver.AddObject(Self, True);
 
-          if StreamType = sttXML then
+          if StreamFormat <> sttBinaryNew then
           begin
-            StreamSaver.SaveSettingToXMLFile(FS);
+            StreamSaver.SaveToStream(FS, StreamFormat);
           end
           else
           begin
@@ -996,88 +914,8 @@ begin
     end;
   end;
 end;
-{$ENDIF}
 
 procedure TgdcSetting.LoadFromFile(const AFileName: String = '');
-{$IFNDEF NEW_STREAM}
-var
-  FN: String;
-  FS: TFileStream;
-  MS: TMemoryStream;
-  PackStream: TZDecompressionStream;
-  SizeRead: Integer;
-  Buffer: array[0..1023] of Char;
-  ShowSQL: boolean;
-{$ENDIF}
-begin
-  {$IFDEF NEW_STREAM}
-  // используем новый метод вместо старого
-  LoadFromFileNew(AFileName);
-  {$ELSE}
-
-  if AFileName = '' then
-    FN := QueryLoadFileName(AFileName, gsfExtension, gsfLoadDialogFilter)
-  else
-    FN := AFileName;
-  if (FN > '') then
-
-    with TGSFHeader.Create do
-    try 
-      if GetGSFInfo(FN) then           // проверяем корректность файла    
-      begin
-        if ((not (sView in BaseState)) or
-          (MessageBox(0,
-            PChar('Загрузить настройку из файла ' + FN + ' ?'),
-            'Загрузка настройки',
-            MB_TASKMODAL or MB_ICONQUESTION or MB_YESNO) = IDYES)) then
-        begin
-          FS := TFileStream.Create(FN, fmOpenRead);
-          try
-            FS.Position := 2*SizeOf(Integer) + Size + 1;
-            PackStream := TZDecompressionStream.Create(FS);
-            MS := TMemoryStream.Create;
-            try
-              repeat
-                SizeRead := PackStream.Read(Buffer, 1024);
-                MS.WriteBuffer(Buffer, SizeRead);
-              until (SizeRead < 1024) {or PackStream.EOF};
-              MS.Position := 0;
-              if Self.Silent then
-              begin
-                if not Assigned(frmSQLProcess) then
-                begin
-                  frmSQLProcess := TfrmSQLProcess.Create(Owner);
-                  frmSQLProcess.SQLText.Lines.Clear;
-                end;
-                ShowSQL := frmSQLProcess.IsShowLog;
-                frmSQLProcess.IsShowLog := False;
-              end else
-                ShowSQL := True;
-
-              Self.LoadFromStream(MS);
-
-              if Assigned(frmSQLProcess) and Self.Silent then
-                frmSQLProcess.IsShowLog := ShowSQL;
-              Self.CloseOpen;
-            finally
-              MS.Free;
-              PackStream.Free;
-            end;
-          finally
-            FS.Free;
-          end;
-        end;
-      end;
-{      else
-        inherited LoadFromFile(FN);}
-    finally
-      Free;
-    end;
-  {$ENDIF}
-end;
-
-{$IFDEF NEW_STREAM}
-procedure TgdcSetting.LoadFromFileNew(const AFileName: String = '');
 var
   FN: String;
   FS: TFileStream;
@@ -1112,83 +950,84 @@ begin
     // Если frmSQLProcess не создан, то создадим его здесь
     //  и запретим вылазить на экран
     if not Assigned(frmSQLProcess) then
-    begin
       frmSQLProcess := TfrmSQLProcess.Create(Owner);
-      frmSQLProcess.SQLText.Lines.Clear;
-    end;
-    ShowLog := frmSQLProcess.IsShowLog;
-    frmSQLProcess.IsShowLog := not Self.Silent;
 
-    if StreamType = sttXML then
-    begin
-      // Настройка в XML формате
-      FS := TFileStream.Create(FN, fmOpenRead);
-      StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
-      try
-        StreamSaver.Silent := Self.Silent;
-        StreamSaver.ReadUserFromStream := Self.Silent;
-        StreamSaver.LoadSettingFromXMLFile(FS);
-      finally
-        StreamSaver.Free;
-        FS.Free;
-      end;
-    end
-    else
-    begin
-      // Обычная настройка в сжатом потоке
-      with TGSFHeader.Create do
-      try
-        if GetGSFInfo(FN) then           // проверяем корректность файла
-        begin
-          FS := TFileStream.Create(FN, fmOpenRead);
-          try
-            FS.Position := 2*SizeOf(Integer) + Size + 1;
-            PackStream := TZDecompressionStream.Create(FS);
-            MS := TMemoryStream.Create;
+    ShowLog := frmSQLProcess.Silent;
+    try
+      frmSQLProcess.Silent := True;
+
+      if StreamType = sttXML then
+      begin
+        // Настройка в XML формате
+        FS := TFileStream.Create(FN, fmOpenRead);
+        StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
+        try
+          StreamSaver.Silent := Self.Silent;
+          StreamSaver.ReplicationMode := Self.Silent;
+          StreamSaver.ReadUserFromStream := Self.Silent;
+          StreamSaver.LoadFromStream(FS);
+        finally
+          StreamSaver.Free;
+          FS.Free;
+        end;
+      end
+      else
+      begin
+        // Обычная настройка в сжатом потоке
+        with TGSFHeader.Create do
+        try
+          if GetGSFInfo(FN) then           // проверяем корректность файла
+          begin
+            FS := TFileStream.Create(FN, fmOpenRead);
             try
-              repeat
-                SizeRead := PackStream.Read(Buffer, 1024);
-                MS.WriteBuffer(Buffer, SizeRead);
-              until (SizeRead < 1024);
-              MS.Position := 0;
+              FS.Position := 2*SizeOf(Integer) + Size + 1;
+              PackStream := TZDecompressionStream.Create(FS);
+              MS := TMemoryStream.Create;
+              try
+                repeat
+                  SizeRead := PackStream.Read(Buffer, 1024);
+                  MS.WriteBuffer(Buffer, SizeRead);
+                until (SizeRead < 1024);
+                MS.Position := 0;
 
-              // Определим версию потока и способ загрузки
-              MS.ReadBuffer(TempInt, SizeOf(TempInt));
-              MS.Position := 0;
-              if TempInt > 1024 then
-              begin
-                StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
-                try
-                  StreamSaver.Silent := Self.Silent;
-                  StreamSaver.ReadUserFromStream := Self.Silent;
-                  StreamSaver.LoadFromStream(MS);
-                finally
-                  StreamSaver.Free;
-                end;
-              end
-              else
-                Self.LoadFromStream(MS);
+                // Определим версию потока и способ загрузки
+                MS.ReadBuffer(TempInt, SizeOf(TempInt));
+                MS.Position := 0;
+                if TempInt > 1024 then
+                begin
+                  StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
+                  try
+                    StreamSaver.Silent := Self.Silent;
+                    StreamSaver.ReplicationMode := Self.Silent;
+                    StreamSaver.ReadUserFromStream := Self.Silent;
+                    StreamSaver.LoadFromStream(MS);
+                  finally
+                    StreamSaver.Free;
+                  end;
+                end
+                else
+                  Self.LoadFromStream(MS);
+              finally
+                MS.Free;
+                PackStream.Free;
+              end;
             finally
-              MS.Free;
-              PackStream.Free;
+              FS.Free;
             end;
-          finally
-            FS.Free;
-          end;
-        end
-        else
-          inherited LoadFromFile(FN);
-      finally
-        Free;
+          end
+          else
+            inherited LoadFromFile(FN);
+        finally
+          Free;
+        end;
       end;
+    finally
+      if Assigned(frmSQLProcess) then
+        frmSQLProcess.Silent := ShowLog;
     end;
-
-    if Assigned(frmSQLProcess) then
-      frmSQLProcess.IsShowLog := ShowLog;
     Self.CloseOpen;  
   end;
 end;
-{$ENDIF}
 
 procedure TgdcSetting.GetWhereClauseConditions(S: TStrings);
 begin
@@ -1237,44 +1076,15 @@ procedure TgdcSetting.ReActivateSetting(BL: TBookmarkList);
 var
   I: Integer;
 begin
-  {$IFNDEF NEW_STREAM}
-  if sView in BaseState then
-  begin
-    if MessageBox(ParentHandle,
-      'Переактивация настройки на действующей базе данных может привести к потере данных!'#13#10 +
-      'Настоятельно рекомендуется произвести архивное копирование базы данных.',
-      'Внимание',
-      MB_OKCANCEL or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDCANCEL then
-    begin
-      exit;
-    end;
-  end;
-  {$ENDIF}
-
   if Assigned(BL) and (BL.Count = 1) then
     Bookmark := BL[0];
 
   if not Assigned(BL) or (BL.Count <= 1) then
   begin
-    {$IFNDEF NEW_STREAM}
-    if MessageBox(0, PChar('Переактивировать настройку ' +
-      FieldByName(GetListField(SubType)).AsString + '?'), 'Внимание!',
-      MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDNO
-    then
-      Exit;
-    {$ENDIF}
-    
     SetDisabled;
   end
   else
   begin
-    {$IFNDEF NEW_STREAM}
-    if MessageBox(0, PChar('Переактивировать выделенные настройки ?'), 'Внимание!',
-      MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDNO
-    then
-      Exit;
-    {$ENDIF}
-    
     for I := 0 to BL.Count - 1 do
     begin
       Bookmark := BL[I];
@@ -1284,385 +1094,7 @@ begin
   ActivateSetting(nil, BL);
 end;
 
-procedure TgdcSetting.SaveSettingToBlob(const InNewFormat: Boolean = true);
-{$IFNDEF NEW_STREAM}
-var
-  BlobStream: TStream;
-  ibsqlPos: TIBQuery;
-  //Tr: TIBTransaction;
-  C: TPersistentClass;
-  Obj: TgdcBase;
-  AnID: Integer;
-  OS: TgdcObjectSet;
-  MS: TMemoryStream;
-  StorageName, Path: String;
-  NewFolder: TgsStorageFolder;
-  BranchName: String;
-  L, I{, J, K}: Integer;
-  //RUID: TRUID;
-  SaveDetailObjects: Boolean;
-  LStorage: TgsStorage;
-  stValue: TgsStorageValue;
-  PropertyList: TgdcPropertySets;
-  Index: Integer;
-  MistakeStr, OldSubType, OldClassName: String;
-  ObjList: TStringList;
-  DL: TgdKeyArray;
-  //q, qu, qo: TIBSQL;
-{$ENDIF}
-begin
-  {$IFDEF NEW_STREAM}
-  // используем новый метод вместо старого
-  SaveSettingToBlobNew(InNewFormat);
-  {$ELSE}
-
-  Assert(atDatabase <> nil, 'Не загружена база атрибутов atDatabase');
-  Assert(gdcBaseManager <> nil);
-
-  if Assigned(IBLogin) then
-  begin
-    IBLogin.AddEvent(
-      'Формирование настройки "' + ObjectName + '"',
-      Self.ClassName,
-      Self.ID);
-  end;
-
-  if not FSilent then
-  begin
-    AddText(TimeToStr(Time) + ': Началась синхронизация триггеров и индексов', clBlack, True);
-    //Т.к. в потоке могут оказаться триггеры и индексы и
-    //мы не можем отследить изменение триггеров, а синхронизация
-    //индексов проходит достаточно долго, чтобы выполнять ее каждый раз
-    //при синхронизации БД, мы будем проводить синхронизацию
-    //триггеров и индексов каждый раз при сохранении настройки
-    atDatabase.SyncIndicesAndTriggers(Transaction);
-    AddText(TimeToStr(Time) + ': Закончилась синхронизация триггеров и индексов', clBlack, True);
-    Space;
-
-  end;
-
-  AddText(TimeToStr(Time) + ': Началось формирование настройки ' +
-    FieldByName(GetListField(SubType)).AsString + '.', clBlack, True);
-
-  //_GlobalSetList := TStringList.Create;
-  ibsqlPos := TIBQuery.Create(Self);
-  try
-    ibsqlPos.Transaction := ReadTransaction;
-    Edit;
-    try
-      BlobStream := CreateBlobStream(FieldByName('Data'), bmWrite);
-      try
-
-        OS := TgdcObjectSet.Create(TgdcBase, '');
-        MS := TMemoryStream.Create;
-        PropertyList := TgdcPropertySets.Create;
-        ObjList := TStringList.Create;
-        DL := TgdKeyArray.Create;
-        try
-          ibsqlPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey ' +
-            ' ORDER BY objectorder';
-          ibsqlPos.ParamByName('settingkey').AsInteger := FieldByName(GetKeyField(SubType)).AsInteger;
-          ibsqlPos.Open;
-          while not ibsqlPos.Eof do
-          begin
-            Index := PropertyList.Add(ibsqlPos.FieldByName('xid').AsString + '_' +
-              ibsqlPos.FieldByName('dbid').AsString,
-              ibsqlPos.FieldByName('objectclass').AsString,
-              ibsqlPos.FieldByName('subtype').AsString);
-            PropertyList.Objects[Index].Add('ModifyFromStream',
-              ibsqlPos.FieldByName('needmodify').AsVariant);
-            //Если мы должны сохранить объект с детальными объектами, то занесем его id в список
-            if ibsqlPos.FieldByName('withdetail').AsInteger = 1 then
-            begin
-              DL.Add(gdcBaseManager.GetIDByRUID(ibsqlPos.FieldByName('xid').AsInteger,
-                ibsqlPos.FieldByName('dbid').AsInteger, ReadTransaction));
-            end;
-            ibsqlPos.Next;
-
-          end;
-
-          ibsqlPos.First;
-          while not ibsqlPos.Eof do
-          begin
-            SaveDetailObjects := ibsqlPos.FieldByName('withdetail').AsInteger = 1;
-
-            {при репликации добавление объекта, его РУИДА и сохр. настройки идет на одной транзакции}
-            if FSilent and Transaction.InTransaction then
-              AnID := gdcBaseManager.GetIDByRUID(ibsqlPos.FieldByName('xid').AsInteger,
-                ibsqlPos.FieldByName('dbid').AsInteger, Transaction)
-            else
-              AnID := gdcBaseManager.GetIDByRUID(ibsqlPos.FieldByName('xid').AsInteger,
-                ibsqlPos.FieldByName('dbid').AsInteger);
-            //Сохраняем сами мета-данные в блоб-поле
-            C := GetClass(ibsqlPos.FieldByName('objectclass').AsString);
-            if C <> nil then
-            begin
-              if (C.ClassName <> OldClassName) or (ibsqlPos.FieldByName('subtype').AsString <> OldSubType) then
-              begin
-                OldClassName := C.ClassName;
-                OldSubType := ibsqlPos.FieldByName('subtype').AsString;
-
-                Index := ObjList.IndexOf(C.ClassName + '('+ ibsqlPos.FieldByName('subtype').AsString + ')');
-                if Index = -1 then
-                begin
-                  Obj := CgdcBase(C).CreateSubType(nil, ibsqlPos.FieldByName('subtype').AsString, 'ByID');
-                  Obj.FReadUserFromStream := True;
-                  ObjList.AddObject(C.ClassName + '('+ ibsqlPos.FieldByName('subtype').AsString + ')', Obj);
-                  ObjList.Sort;
-                end else
-                  Obj := TgdcBase(ObjList.Objects[Index]);
-              end;
-
-              Obj.ID := AnID;
-              Obj.Open;
-
-              if Obj.RecordCount > 0 then                         {!!!!!!!!!!!!!!!!!}
-                Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects)
-              else
-              begin
-                if not FSilent then
-                begin
-                  MistakeStr := #13#10 + 'Ошибка при сохранении объекта ' +
-                    ibsqlPos.FieldByName('category').AsString + ' ' +
-                    ibsqlPos.FieldByName('objectname').AsString + #13#10 +
-                    ' (с ' +
-                    ' XID = ' +  ibsqlPos.FieldByName('xid').AsString +
-                    ' DBID = ' + ibsqlPos.FieldByName('dbid').AsString + ')' + #13#10 +
-                    'Объект не найден!';
-                  AddMistake(MistakeStr, clRed);
-                  Space;
-                  raise Exception.Create(MistakeStr);
-                end;
-              end;
-            end;
-            ibsqlPos.Next;
-          end;
-
-          OS.SaveToStream(BlobStream);
-          BlobStream.CopyFrom(MS, 0);
-
-        finally
-          MS.Free;
-          OS.Free;
-          PropertyList.Free;
-          DL.Free;
-
-          for I := 0 to ObjList.Count - 1 do
-          begin
-            Obj := TgdcBase(ObjList.Objects[I]);
-            ObjList.Objects[I] := nil;
-            if Assigned(Obj) then
-              FreeAndNil(Obj);
-          end;
-          ObjList.Free;
-        end;
-
-      finally
-        FreeAndNil(BlobStream);
-      end;
-
-      Post;
-    except
-      on E: Exception do
-      begin
-        Space;
-        AddMistake(E.Message, clRed);
-        Space;
-        Cancel;
-        raise;
-      end;
-    end;
-
-    {
-    if False and Assigned(_GlobalSetList) and (_GlobalSetList.Count > 0) then
-    begin
-      Tr := TIBTransaction.Create(nil);
-      q := TIBSQL.Create(nil);
-      qu := TIBSQL.Create(nil);
-      qo := TIBSQL.Create(nil);
-      try
-        Tr.DefaultDatabase := Database;
-        qu.Transaction := Tr;
-        qo.Transaction := Tr;
-
-        Tr.StartTransaction;
-
-        q.Transaction := ReadTransaction;
-        q.SQL.Text := 'SELECT objectclass, subtype, objectorder FROM at_settingpos WHERE settingkey = :SK AND ' +
-          ' xid = :XID AND dbid = :DBID';
-
-        qu.SQL.Text := 'INSERT INTO at_settingpos (objectclass, subtype, xid, dbid, ' +
-          'settingkey, objectname, category, objectorder) VALUES (:OC, :ST, :XID, :DBID, :SK, :ON, :C, :O) ';
-
-        qo.SQL.Text := 'UPDATE at_settingpos SET objectorder = objectorder + :I WHERE settingkey = :SK AND objectorder >= :O';
-
-        J := 0;
-        for I := 0 to _GlobalSetList.Count - 1 do
-        begin
-          q.Close;
-
-          RUID := StrToRUID(System.Copy(_GlobalSetList[I],
-            Pos(' ', _GlobalSetList[I]), 1024));
-
-          q.ParamByName('SK').AsInteger := FieldByName(GetKeyField(SubType)).AsInteger;
-          q.ParamByName('xid').AsInteger := RUID.XID;
-          q.ParamByName('dbid').AsInteger := RUID.DBID;
-
-          q.ExecQuery;
-          if not q.EOF then
-          begin
-            qo.Close;
-            qo.ParamByName('SK').AsInteger := FieldByName(GetKeyField(SubType)).AsInteger;
-            qo.ParamByName('O').AsInteger := q.FieldByName('objectorder').AsInteger;
-            qo.ParamByName('I').AsInteger := I - J;
-            qo.ExecQuery;
-
-            for K := J to I do
-            begin
-              qu.Close;
-              qu.ParamByName('SK').AsInteger := FieldByName(GetKeyField(SubType)).AsInteger;
-            end;
-          end else
-            J := I;
-        end;
-
-        Tr.Commit;
-      finally
-        q.Free;
-        qu.Free;
-        qo.Free;
-        Tr.Free;
-      end;
-    end;
-    }
-
-    Edit;
-    try
-      LStorage := nil;
-      BlobStream := CreateBlobStream(FieldByName('StorageData'), bmWrite);
-      try
-        ibsqlPos.Close;
-        ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
-        ibsqlPos.ParamByName('settingkey').AsInteger := ID;
-        ibsqlPos.Open;
-        while not ibsqlPos.Eof do
-        begin
-          BranchName := ibsqlPos.FieldByName('branchname').AsString;
-
-          if AnsiPos('\', BranchName) = 0 then
-          begin
-            Path := '';
-            StorageName := BranchName;
-          end else
-          begin
-            Path := System.Copy(BranchName, AnsiPos('\', BranchName), Length(BranchName) -
-              AnsiPos('\', BranchName) + 1);
-            StorageName := AnsiUpperCase(System.Copy(BranchName, 1, AnsiPos('\', BranchName) - 1));
-          end;
-          if AnsiPos(st_root_Global, StorageName) = 1 then
-          begin
-            if LStorage <> GlobalStorage then
-            begin
-              GlobalStorage.CloseFolder(GlobalStorage.OpenFolder('', False, True), False);
-              LStorage := GlobalStorage;
-            end;
-          end
-          else if AnsiPos(st_root_User, StorageName) = 1 then
-          begin
-            if LStorage <> UserStorage then
-            begin
-              UserStorage.CloseFolder(UserStorage.OpenFolder('', False, True), False);
-              LStorage := UserStorage;
-            end;
-          end
-          else
-            LStorage := nil;
-
-          if LStorage = nil then
-            NewFolder := nil
-          else
-            NewFolder := LStorage.OpenFolder(Path, False);
-
-          if Assigned(NewFolder) and (ibsqlPos.FieldByName('valuename').AsString > '') then
-            stValue := NewFolder.ValueByName(ibsqlPos.FieldByName('valuename').AsString)
-          else
-            stValue := nil;
-
-          if Assigned(NewFolder) then
-          begin
-            if ibsqlPos.FieldByName('valuename').AsString > '' then
-            begin
-              if Assigned(stValue) then
-              begin
-                BlobStream.WriteBuffer(cst_StreamValue[1], Length(cst_StreamValue));
-                L :=  Length(ibsqlPos.FieldByName('valuename').AsString);
-                BlobStream.WriteBuffer(L, Sizeof(L));
-                BlobStream.WriteBuffer(ibsqlPos.FieldByName('valuename').AsString[1], L);
-                L :=  Length(BranchName);
-                BlobStream.WriteBuffer(L, Sizeof(L));
-                BlobStream.WriteBuffer(BranchName[1], L);
-                stValue.SaveToStream(BlobStream);
-                Space;
-                AddText('Сохранение параметра ' + ibsqlPos.FieldByName('valuename').AsString +
-                  ' ветки хранилища ' + BranchName + #13#10, clBlue);
-              end else
-                raise EgdcIBError.Create(' Параметр ' +
-                  ibsqlPos.FieldByName('valuename').AsString +
-                  ' ветки хранилища ' + BranchName + ' не найден!');
-            end else
-            begin
-              L :=  Length(BranchName);
-              BlobStream.WriteBuffer(L, Sizeof(L));
-              BlobStream.WriteBuffer(BranchName[1], L);
-              NewFolder.SaveToStream(BlobStream);
-              Space;
-              AddText('Сохранение ветки хранилища ' + BranchName + #13#10, clBlue);
-            end;
-            LStorage.CloseFolder(NewFolder);
-          end else
-            raise EgdcIBError.Create(
-              'Ветка хранилища "' + BranchName + '" не найдена!'#13#10#13#10 +
-              'В настройку можно добавлять только ветки или параметры'#13#10 +
-              'глобального хранилища или хранилища пользователя Администратор.');
-
-          ibsqlPos.Next;
-        end;
-
-
-      finally
-        FreeAndNil(BlobStream);
-      end;
-
-      FieldByName('modifydate').AsDateTime := Now;
-      FieldByName('version').AsInteger := FieldByName('version').AsInteger + 1;
-
-      Post;
-
-// а не изменить здесь ли версию конечной настройки... Yuri.
-
-    except
-      on E: Exception do
-      begin
-        AddMistake(E.Message, clRed);
-        Space;
-        Cancel;
-        raise;
-      end;
-    end;
-
-    Space;
-    AddText(TimeToStr(Time) + ': Закончено формирование настройки '+
-      FieldByName(GetListField(SubType)).AsString + '.'#13#10, clBlack, True);
-
-  finally
-    ibsqlPos.Free;
-    //FreeAndNil(_GlobalSetList);
-  end;
-  {$ENDIF}
-end;
-
-{$IFDEF NEW_STREAM}
-procedure TgdcSetting.SaveSettingToBlobNew(const InNewFormat: Boolean);
+procedure TgdcSetting.SaveSettingToBlob(SettingFormat: TgsStreamType = sttUnknown);
 var
   BlobStream: TStream;
   ibsqlPos: TIBQuery;
@@ -1686,8 +1118,6 @@ var
 
   WithDetailID: TID;
   StreamSaver: TgdcStreamSaver;
-  InNewFormatTemp: Boolean;
-  ActiveWindowHandle: HWND;
   StorageStream: TStream;
   PositionsCount: Integer;
 begin
@@ -1705,38 +1135,24 @@ begin
 
   if not Self.Silent then
   begin
-    AddText(TimeToStr(Time) + ': Началась синхронизация триггеров и индексов', clBlack, True);
+    AddText('Начата синхронизация триггеров и индексов', clBlack);
     //Т.к. в потоке могут оказаться триггеры и индексы и
     //мы не можем отследить изменение триггеров, а синхронизация
     //индексов проходит достаточно долго, чтобы выполнять ее каждый раз
     //при синхронизации БД, мы будем проводить синхронизацию
     //триггеров и индексов каждый раз при сохранении настройки
     atDatabase.SyncIndicesAndTriggers(Transaction);
-    AddText(TimeToStr(Time) + ': Закончилась синхронизация триггеров и индексов', clBlack, True);
-    Space;
-    AddText(TimeToStr(Time) + ': Началось формирование настройки ' +
-      FieldByName(GetListField(SubType)).AsString + '.', clBlack, True);
+    AddText('Закончена синхронизация триггеров и индексов', clBlack);
+    AddText('Начато формирование настройки ' +
+      FieldByName(GetListField(SubType)).AsString, clBlack);
   end;
 
-  InNewFormatTemp := False;
-  if InNewFormat then
-    if Assigned(GlobalStorage) then
-      InNewFormatTemp := GlobalStorage.ReadBoolean('Options', 'UseNewStreamForSetting', False)
-    else
-      if not Self.Silent then
-      begin
-        if Assigned(frmSQLProcess) then
-          ActiveWindowHandle := frmSQLProcess.Handle
-        else
-          ActiveWindowHandle := ParentHandle;
-
-        if MessageBox(ActiveWindowHandle, 'Сохранить в новом формате?',
-           'Внимание', MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
-          InNewFormatTemp := True;
-      end;
+  // Если не передан конкретный формат настройки, попробуем прочитать его из хранилища
+  if SettingFormat = sttUnknown then
+    SettingFormat := GetDefaultStreamFormat(True);
 
   // если в опциях установлено "Сохранять настройки в новом формате"
-  if InNewFormatTemp then
+  if SettingFormat <> sttBinaryOld then
   begin
 
     MS := TMemoryStream.Create;
@@ -1746,7 +1162,9 @@ begin
         StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
         try
           StreamSaver.Silent := Self.Silent;
+          StreamSaver.ReplicationMode := Self.Silent;
           StreamSaver.ReadUserFromStream := Self.Silent;
+          StreamSaver.StreamFormat := SettingFormat;
           StreamSaver.SaveSettingDataToStream(MS, FieldByName(GetKeyField(SubType)).AsInteger);
           StreamSaver.SaveSettingStorageToStream(StorageStream, FieldByName(GetKeyField(SubType)).AsInteger);
         finally
@@ -1755,9 +1173,7 @@ begin
       except
         on E: Exception do
         begin
-          Space;
           AddMistake(E.Message, clRed);
-          Space;
           raise;
         end;
       end;
@@ -1786,20 +1202,15 @@ begin
       except
         on E: Exception do
         begin
-          Space;
           AddMistake(E.Message, clRed);
-          Space;
           Cancel;
           raise;
         end;
       end;
 
       if not Self.Silent then
-      begin
-        Space;
-        AddText(TimeToStr(Time) + ': Закончено формирование настройки '+
-          FieldByName(GetListField(SubType)).AsString + '.'#13#10, clBlack, True);
-      end;
+        AddText('Закончено формирование настройки ' +
+          FieldByName(GetListField(SubType)).AsString, clBlack);
 
     finally
       StorageStream.Free;
@@ -1913,7 +1324,7 @@ begin
                   // Если работает репликатор, то не будем прерывать сохранение настройки
                   if not FSilent then
                   begin
-                    MistakeStr := #13#10 + 'Ошибка при сохранении объекта ' +
+                    MistakeStr := 'Ошибка при сохранении объекта ' +
                       ibsqlPos.FieldByName('category').AsString + ' ' +
                       ibsqlPos.FieldByName('objectname').AsString + #13#10 +
                       ' (с ' +
@@ -1921,7 +1332,6 @@ begin
                       ' DBID = ' + ibsqlPos.FieldByName('dbid').AsString + ')' + #13#10 +
                       'Объект не найден!';
                     AddMistake(MistakeStr, clRed);
-                    Space;
                     raise Exception.Create(MistakeStr);
                   end;
                 end;
@@ -1962,9 +1372,7 @@ begin
       except
         on E: Exception do
         begin
-          Space;
           AddMistake(E.Message, clRed);
-          Space;
           Cancel;
           raise;
         end;
@@ -2049,9 +1457,8 @@ begin
                     BlobStream.WriteBuffer(L, Sizeof(L));
                     BlobStream.WriteBuffer(BranchName[1], L);
                     stValue.SaveToStream(BlobStream);
-                    Space;
                     AddText('Сохранение параметра ' + ibsqlPos.FieldByName('valuename').AsString +
-                      ' ветки хранилища ' + BranchName + #13#10, clBlue);
+                      ' ветки хранилища ' + BranchName, clBlue);
                   end else
                     raise EgdcIBError.Create(' Параметр ' +
                       ibsqlPos.FieldByName('valuename').AsString +
@@ -2062,8 +1469,7 @@ begin
                   BlobStream.WriteBuffer(L, Sizeof(L));
                   BlobStream.WriteBuffer(BranchName[1], L);
                   NewFolder.SaveToStream(BlobStream);
-                  Space;
-                  AddText('Сохранение ветки хранилища ' + BranchName + #13#10, clBlue);
+                  AddText('Сохранение ветки хранилища ' + BranchName, clBlue);
                 end;
                 LStorage.CloseFolder(NewFolder);
               end else
@@ -2090,9 +1496,7 @@ begin
       except
         on E: Exception do
         begin
-          Space;
           AddMistake(E.Message, clRed);
-          Space;
           Cancel;
           raise;
         end;
@@ -2103,9 +1507,8 @@ begin
         if Assigned(frmStreamSaver) then
           frmStreamSaver.Done;
 
-        Space;
-        AddText(TimeToStr(Time) + ': Закончено формирование настройки '+
-          FieldByName(GetListField(SubType)).AsString + '.'#13#10, clBlack, True);
+        AddText('Закончено формирование настройки '+
+          FieldByName(GetListField(SubType)).AsString, clBlack);
       end;
 
     finally
@@ -2118,7 +1521,6 @@ begin
      and InNewFormatTemp then
     Self.AddMissedPositions;} 
 end;
-{$ENDIF}
 
 procedure TgdcSetting.DoBeforeEdit;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -2241,6 +1643,10 @@ begin
   CheckSetting;
   inherited;
 
+  // Если объект загружается из потока, то запомним ключ загружаемой настройки
+  if sLoadFromStream in BaseState then
+    LastLoadedSettingKey := Self.ID;
+    
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSETTING', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3111,6 +2517,46 @@ begin
   end;
 end;
 
+procedure TgdcSettingPos.SetNeedInsert(const Value: Boolean;
+  BL: TBookmarkList);
+var
+  I: Integer;
+  Question: String;
+begin
+  CheckBrowseMode;
+  if Value then
+    Question := 'Установить флаг "Добавлять новый объект" %s ?'
+  else
+    Question := 'Снять флаг "Добавлять новый объект" %s ?';
+  if (BL = nil) or (BL.Count <= 1) then
+  begin
+    if MessageBox(0, PChar(Format(Question,
+      ['для записи ' + FieldByName(GetListField(SubType)).AsString])),
+      'Внимание!', MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDNO
+    then
+      Exit;
+
+    Edit;
+    FieldByName('needinsert').AsInteger := Integer(Value);
+    Post;
+  end else
+  begin
+    if MessageBox(0, PChar(Format(Question,
+      ['для ' + IntToStr(BL.Count) + ' записей'])),
+      'Внимание!', MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDNO
+    then
+      Exit;
+
+    for I := 0 to BL.Count - 1 do
+    begin
+      Bookmark := BL[I];
+      Edit;
+      FieldByName('needinsert').AsInteger := Integer(Value);
+      Post;
+    end;
+  end;
+end;
+
 procedure TgdcSettingPos.SetNeedModifyDefault;
 var
   ibsql: TIBSQL;
@@ -3465,43 +2911,9 @@ begin
             ( {(VerInfo < svEqual) or}   // его версия: более новая или он не установлен
               (MaxVerInfo <= OwnerList.VerInfoToInstall)) and   // или одна из его промеж. настроек является таковой
             (ApprVersion = []);        // подходит по версиям БД и EXE
-end;            
- 
-function TGSFHeader.GetGSFInfo(const FName: String): Boolean;
-{$IFNDEF NEW_STREAM}
-var
-  FS: TFileStream;
-  i: Integer;
-{$ENDIF}
-begin
-  {$IFDEF NEW_STREAM}
-  Result := GetGSFInfoNew(FName);
-  {$ELSE}
-  Result := False;
-  FS := TFileStream.Create(FName, fmOpenRead);
-  try
-    FS.Read(i, SizeOf(i));
-    if i = gsfID then
-    begin
-      FS.Read(i, SizeOf(i));
-      GSFVersion := i;
-      FilePath := ExtractFilePath(FName);
-      FileName := ExtractFileName(FName);
-      case i of
-        1:
-          begin
-            Result := LoadFromStream(FS);
-          end;
-      end;
-    end;
-  finally
-    FS.Free;
-  end;
-  {$ENDIF}
 end;
 
-{$IFDEF NEW_STREAM}
-function TGSFHeader.GetGSFInfoNew(const FName: String): Boolean;
+function TGSFHeader.GetGSFInfo(const FName: String): Boolean;
 var
   FS: TFileStream;
   i: Integer;
@@ -3511,17 +2923,18 @@ begin
   Result := False;
   FS := TFileStream.Create(FName, fmOpenRead);
   try
+    FilePath := ExtractFilePath(FName);
+    FileName := ExtractFileName(FName);
+
     StreamType := GetStreamType(FS);
     // проверим формат настройки: архивная или XML
-    if StreamType <> sttXML then
+    if StreamType in [sttBinaryOld, sttBinaryNew] then
     begin
       FS.Read(i, SizeOf(i));
       if i = gsfID then
       begin
         FS.Read(i, SizeOf(i));
         GSFVersion := i;
-        FilePath := ExtractFilePath(FName);
-        FileName := ExtractFileName(FName);
         case i of
           1:
             begin
@@ -3532,8 +2945,6 @@ begin
     end
     else
     begin
-      FilePath := ExtractFilePath(FName);
-      FileName := ExtractFileName(FName);
       GSFVersion := 2; 
       XMLSettingReader := TgdcStreamXMLWriterReader.Create;
       try
@@ -3546,7 +2957,6 @@ begin
     FS.Free;
   end;
 end;
-{$ENDIF}
 
 constructor TGSFList.Create;
 begin
@@ -3602,62 +3012,65 @@ procedure TGSFList.GetFilesForPath(Path: String; const lInfo: TLabel = nil);
 var
   sr: TSearchRec;
   FileAttrs: Integer;
-  Header: TGSFHeader;
-begin
-// отображаем путь
-  if Assigned(lInfo) then
+
+  procedure SearchSettings(const Extension: String);
+  var
+    Header: TGSFHeader;
   begin
-    lInfo.Caption := Path;
-    lInfo.Refresh;
-  end;
-
-// перебираем файлы
-  FileAttrs := 0;
-  FileAttrs := FileAttrs + faAnyFile;
-
-  if Path[Length(Path)] <> '\' then
-    Path := Path + '\';
-  if FindFirst(Path + '*.' + gsfExtension, FileAttrs, sr) = 0 then
-  begin
-    Header := TGSFHeader.Create;
-    if Header.GetGSFInfo(Path + sr.Name) then
-      AddObject(RUIDToStr(Header.RUID), Header)
-    else
-      Header.Free;
-
-    while FindNext(sr) = 0 do
+    if FindFirst(Path + '*.' + Extension, FileAttrs, sr) = 0 then
     begin
       Header := TGSFHeader.Create;
       if Header.GetGSFInfo(Path + sr.Name) then
         AddObject(RUIDToStr(Header.RUID), Header)
       else
         Header.Free;
-    end;
-    SysUtils.FindClose(sr);
-  end;
 
-// перебираем папки
-{  if Subdir then
-  begin}
-{    FileAttrs := 0;
-  FileAttrs := FileAttrs + faDirectory;}
-
-    if FindFirst(Path + '*.*', FileAttrs, sr) = 0 then
-    begin
-      if ( (sr.Attr and faDirectory) = faDirectory) and
-         (sr.Name <> '.') and (sr.Name <> '..') then
-        GetFilesForPath(Path + sr.Name, lInfo);
       while FindNext(sr) = 0 do
       begin
-        if ( (sr.Attr and faDirectory) = faDirectory) and  // если папка и
-           ( (sr.Attr and faHidden) <> faHidden) and       // не HIDDEN и 
-           (sr.Name <> '.') and (sr.Name <> '..') then     // не ссылка на корень или уровень вверх
-          GetFilesForPath(Path + sr.Name, lInfo);
+        Header := TGSFHeader.Create;
+        if Header.GetGSFInfo(Path + sr.Name) then
+          AddObject(RUIDToStr(Header.RUID), Header)
+        else
+          Header.Free;
       end;
       SysUtils.FindClose(sr);
     end;
-//  end;
+  end;
 
+begin
+  // отображаем путь
+  if Assigned(lInfo) then
+  begin
+    lInfo.Caption := Path;
+    lInfo.Refresh;
+  end;
+
+  // перебираем файлы
+  FileAttrs := 0;
+  FileAttrs := FileAttrs + faAnyFile;
+
+  if Path[Length(Path)] <> '\' then
+    Path := Path + '\';
+  // Поищем GSF настройки
+  SearchSettings(gsfExtension);
+  // Поищем XML настройки
+  SearchSettings(xmlExtension);
+
+  // перебираем папки
+  if FindFirst(Path + '*.*', FileAttrs, sr) = 0 then
+  begin
+    if ( (sr.Attr and faDirectory) = faDirectory) and
+       (sr.Name <> '.') and (sr.Name <> '..') then
+      GetFilesForPath(Path + sr.Name, lInfo);
+    while FindNext(sr) = 0 do
+    begin
+      if ( (sr.Attr and faDirectory) = faDirectory) and  // если папка и
+         ( (sr.Attr and faHidden) <> faHidden) and       // не HIDDEN и
+         (sr.Name <> '.') and (sr.Name <> '..') then     // не ссылка на корень или уровень вверх
+        GetFilesForPath(Path + sr.Name, lInfo);
+    end;
+    SysUtils.FindClose(sr);
+  end;
 end;
 
 { TODO : перенести isCorrect в Result }
@@ -4095,54 +3508,6 @@ begin
 end;
 
 procedure TGSFList.InstallSettingByID(aID: Integer);
-{$IFNDEF NEW_STREAM}
-var
-  FS: TFileStream;
-  ind: Integer;
-  PackStream: TZDecompressionStream;
-  MS: TMemoryStream;
-  SizeRead: Integer;
-  Buffer: array[0..1023] of Char;
-{$ENDIF}
-begin
-  {$IFDEF NEW_STREAM}
-  InstallSettingByIDNew(aID);
-  {$ELSE}
-  ind := aID;
-  if ind = -1 then
-  begin
-// по логике, RUID всегда должен быть найден
-    raise Exception.Create('Не найден RUID!');
-    Exit;
-  end;
-
-  FS := TFileStream.Create( (Objects[ind] as TGSFHeader).FilePath +
-                            (Objects[ind] as TGSFHeader).FileName, fmOpenRead);
-  try
-    FS.Position := 2*SizeOf(Integer) + (Objects[ind] as TGSFHeader).Size + 1;
-    PackStream := TZDecompressionStream.Create(FS);
-    MS := TMemoryStream.Create;
-    try
-      repeat
-        SizeRead := PackStream.Read(Buffer, 1024);
-        MS.WriteBuffer(Buffer, SizeRead);
-      until (SizeRead < 1024) {or PackStream.EOF};
-      MS.Position := 0;
-      gdcSetts.Open;
-      gdcSetts.LoadFromStream(MS);
-      gdcSetts.Close;
-    finally
-      MS.Free;
-      PackStream.Free;
-    end;
-  finally
-    FS.Free;
-  end;
-  {$ENDIF}
-end;
-
-{$IFDEF NEW_STREAM}
-procedure TGSFList.InstallSettingByIDNew(aID: Integer);
 var
   FS: TFileStream;
   ind: Integer;
@@ -4186,6 +3551,7 @@ begin
           StreamSaver := TgdcStreamSaver.Create(gdcSetts.Database, gdcSetts.Transaction);
           try
             StreamSaver.Silent := gdcSetts.Silent;
+            StreamSaver.ReplicationMode := gdcSetts.Silent;
             StreamSaver.ReadUserFromStream := gdcSetts.Silent;
             StreamSaver.LoadFromStream(MS);
           finally
@@ -4208,8 +3574,9 @@ begin
       StreamSaver := TgdcStreamSaver.Create(gdcSetts.Database, gdcSetts.Transaction);
       try
         StreamSaver.Silent := gdcSetts.Silent;
+        StreamSaver.ReplicationMode := gdcSetts.Silent;
         StreamSaver.ReadUserFromStream := gdcSetts.Silent;
-        StreamSaver.LoadSettingFromXMLFile(FS);
+        StreamSaver.LoadFromStream(FS);
       finally
         StreamSaver.Free;
       end;
@@ -4218,7 +3585,6 @@ begin
     FS.Free;
   end;
 end;
-{$ENDIF}
 
 // активирует настройки из списка SettIDList
 procedure TGSFList.ActivatePackages;
@@ -4262,17 +3628,6 @@ end;
 
 
 procedure LoadRUIDFromBlob(RuidList: TStrings; RUIDField: TField; const AnID: Integer = -1);
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
-
 var
   BlobStream: TStream;
   CDS: TClientDataSet;
@@ -4285,10 +3640,8 @@ var
   stClass, stSubType: String;
   PrSet: TgdcPropertySet;
   StPos: TgdcSettingPos;
-  {$IFDEF NEW_STREAM}
   StreamSaver: TgdcStreamSaver;
   StreamType: TgsStreamType;
-  {$ENDIF}
 begin
   Assert(Assigned(RuidList));
 
@@ -4296,7 +3649,6 @@ begin
 
   //Создаем блоб-поток для обращения к полю, в котором хранится сформированная настройка
   BlobStream := RuidField.DataSet.CreateBlobStream(RUIDField, bmRead);
-  {$IFDEF NEW_STREAM}
   try
     StreamType := GetStreamType(BlobStream);
     // загружать новым или старым методом
@@ -4311,7 +3663,6 @@ begin
     end
     else
     begin
-  {$ENDIF}
       PrSet := TgdcPropertySet.Create('', nil, '');
       StPos := nil;
       try
@@ -4417,12 +3768,10 @@ begin
         PrSet.Free;
         if Assigned(StPos) then
           FreeAndNil(StPos);
-  {$IFDEF NEW_STREAM}
       end;
     end;
 
   finally
-  {$ENDIF}
     FreeAndNil(BlobStream);
   end;
 end;
@@ -4439,20 +3788,8 @@ var
   StNumber: Integer;
   J: DWORD;
   TempPath: array[0..MAX_COMPUTERNAME_LENGTH] of Char;
-  {$IFDEF NEW_STREAM}
   StreamSaver: TgdcStreamSaver;
   StreamType: TgsStreamType;
-  {$ENDIF}
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
 
   procedure DisconnectDatabase(const WithCommit: Boolean);
   begin
@@ -4571,13 +3908,11 @@ var
     Assert(ObjectSet <> nil);
     tmpAnAnswer := mrNoToAll;
 
-    {$IFDEF NEW_STREAM}
     if Assigned(frmStreamSaver) then
     begin
       frmStreamSaver.SetupProgress(ObjectSet.Count, 'Активация настройки...');
       frmStreamSaver.SetProcessText(SettingName, True);
     end;
-    {$ENDIF}
 
     if Assigned(frmSQLProcess) and Assigned(ObjectSet) then
     begin
@@ -4755,12 +4090,10 @@ var
               begin
                 if InternalTransaction.InTransaction then
                   InternalTransaction.Rollback;
-                {$IFDEF NEW_STREAM}
+
                 if Assigned(frmStreamSaver) then
                   frmStreamSaver.AddMistake(E.Message);
-                {$ENDIF}
                 AddMistake(E.Message, clRed);
-                Space;
                 raise;
               end
               else
@@ -4771,11 +4104,8 @@ var
             end;
           end;
 
-          {$IFDEF NEW_STREAM}
           if Assigned(frmStreamSaver) then
             frmStreamSaver.Step;
-          {$ENDIF}
-
           if Assigned(frmSQLProcess) then
           begin
             frmSQLProcess.pb.Position := frmSQLProcess.pb.Position + 1;
@@ -4791,22 +4121,17 @@ var
         end;
         RunMultiConnection;
 
-        {$IFDEF NEW_STREAM}
         if Assigned(frmStreamSaver) then
           frmStreamSaver.Done;
-        {$ENDIF}
-
       except
         on E: Exception do
         begin
           if InternalTransaction.InTransaction then
             InternalTransaction.Rollback;
-          {$IFDEF NEW_STREAM}
+
           if Assigned(frmStreamSaver) then
             frmStreamSaver.AddMistake(E.Message);
-          {$ENDIF}
           AddMistake(E.Message, clRed);
-          Space;
           raise;
         end;
       end;
@@ -4859,10 +4184,7 @@ var
   begin
     ConnectDatabase;
     if StorageStream.Size > 0 then
-    begin
-      Space;
-      AddText(TimeToStr(Time) + ': Началась загрузка хранилища', clBlack);
-    end;
+      AddText('Начата загрузка хранилища', clBlack);
     LStorage := nil;
     while StorageStream.Position < StorageStream.Size do
     begin
@@ -4962,14 +4284,12 @@ var
           if cstValue > '' then
           begin
             NewFolder.AddValueFromStream(cstValue, StorageStream);
-            Space;
             AddText('Загрузка параметра "' + cstValue +
-              '" ветки хранилища "' + StorageName + Path + '"'#13#10, clBlue);
+              '" ветки хранилища "' + StorageName + Path + '"', clBlue);
           end else
           begin
             NewFolder.LoadFromStream(StorageStream);
-            Space;
-            AddText('Загрузка ветки хранилища "' + StorageName + Path + '"'#13#10, clBlue);
+            AddText('Загрузка ветки хранилища "' + StorageName + Path + '"', clBlue);
           end;
           LStorage.CloseFolder(NewFolder, False);
           { TODO :
@@ -4982,7 +4302,6 @@ var
         else
         begin
           AddMistake('Ошибка при считывании данных хранилища!', clRed);
-          Space;
           raise Exception.Create('Ошибка при считывании данных хранилища!');
         end;
       end else
@@ -5007,11 +4326,7 @@ var
       UserStorage.SaveToDatabase;
 
     if StorageStream.Size > 0 then
-    begin
-      Space;
-      AddText(TimeToStr(Time) + ': Закончилась загрузка хранилища', clBlack);
-      Space;
-    end;
+      AddText('Закончена загрузка хранилища', clBlack);
   end;
 
 begin
@@ -5060,22 +4375,14 @@ begin
             if not DontHideForms then
               FreeAllForms(False);
 
-            {$IFDEF NEW_STREAM}
             if not DontHideForms then
             begin
-              AddText(TimeToStr(Time) + ': Началась загрузка настройки ' +  SettingName + '.'#13#10, clBlack, True);
+              AddText('Начата загрузка настройки ' + SettingName, clBlack);
 
               if Assigned(frmSQLProcess) then
                 frmSQLProcess.Caption := 'Загрузка настройки: ' + SettingName;
             end;
-            {$ELSE}
-            AddText(TimeToStr(Time) + ': Началась загрузка настройки ' +  SettingName + '.'#13#10, clBlack, True);
 
-            if Assigned(frmSQLProcess) then
-              frmSQLProcess.Caption := 'Загрузка настройки: ' + SettingName;
-            {$ENDIF}
-
-            {$IFDEF NEW_STREAM}
             StreamType := GetStreamType(DataStream);
             // Загружать новым или старым методом
             if StreamType <> sttBinaryOld then
@@ -5085,7 +4392,7 @@ begin
                 if Assigned(frmStreamSaver) then
                   frmStreamSaver.SetupProgress(1, 'Синхронизация триггеров и индексов...');
 
-                AddText(TimeToStr(Time) + ': Началась синхронизация триггеров и индексов', clBlack, True);
+                AddText('Начата синхронизация триггеров и индексов', clBlack);
                 if WasMetaDataInSetting then
                 begin
                   atDataBase.ProceedLoading(True);
@@ -5093,8 +4400,7 @@ begin
                 end;
                 atDatabase.SyncIndicesAndTriggers(InternalTransaction);
 
-                AddText(TimeToStr(Time) + ': Закончилась синхронизация триггеров и индексов', clBlack, True);
-                Space;
+                AddText('Закончена синхронизация триггеров и индексов', clBlack);
 
                 if Assigned(frmStreamSaver) then
                   frmStreamSaver.Done;
@@ -5114,6 +4420,7 @@ begin
               StreamSaver := TgdcStreamSaver.Create(InternalTransaction.DefaultDatabase, InternalTransaction);
               try
                 StreamSaver.Silent := DontHideForms;
+                StreamSaver.ReplicationMode := DontHideForms;
                 StreamSaver.ReadUserFromStream := DontHideForms;
                 StreamSaver.LoadSettingDataFromStream(DataStream, WasMetaDataInSetting, DontHideForms, AnAnswer);
                 StreamSaver.LoadSettingStorageFromStream(StorageStream, AnStAnswer);
@@ -5127,18 +4434,16 @@ begin
             end
             else
             begin
-            {$ENDIF}
 
               //Загружаем б-о
               if DataStream.Size > 0 then
               begin
                 if not DontHideForms then
                 begin
-                  {$IFDEF NEW_STREAM}
                   if Assigned(frmStreamSaver) then
                     frmStreamSaver.SetupProgress(1, 'Синхронизация триггеров и индексов...');
-                  {$ENDIF}
-                  AddText(TimeToStr(Time) + ': Началась синхронизация триггеров и индексов', clBlack, True);
+                  AddText('Начата синхронизация триггеров и индексов', clBlack);
+
                   if WasMetaDataInSetting then
                   begin
                     {Будем перегружать atDatabase. Многие первичные ключи, поля,
@@ -5157,13 +4462,9 @@ begin
 
                   atDatabase.SyncIndicesAndTriggers(InternalTransaction);
 
-                  {$IFDEF NEW_STREAM}
                   if Assigned(frmStreamSaver) then
                     frmStreamSaver.Done;
-                  {$ENDIF}
-
-                  AddText(TimeToStr(Time) + ': Закончилась синхронизация триггеров и индексов', clBlack, True);
-                  Space;
+                  AddText('Закончена синхронизация триггеров и индексов', clBlack);
 
                   DisconnectDatabase(True);
 
@@ -5180,10 +4481,7 @@ begin
                 StorageStream.Position := 0;
                 LoadSettingStorageFromStream(StorageStream);
               end;
-
-            {$IFDEF NEW_STREAM}
             end;
-            {$ENDIF}
 
             ConnectDatabase;
             ibquery.Close;
@@ -5208,22 +4506,13 @@ begin
             else
               if InternalTransaction.InTransaction then InternalTransaction.Commit;
 
-            {$IFDEF NEW_STREAM}
             if not DontHideForms then
             begin
-              AddText(TimeToStr(Time) + ': Закончена загрузка настройки ' +  SettingName + '.'#13#10, clBlack, True);
+              AddText('Закончена загрузка настройки ' + SettingName, clBlack);
 
               if Assigned(frmSQLProcess) then
                 frmSQLProcess.Caption := 'Выполнение SQL команд';
             end;
-            {$ELSE}
-            AddText(TimeToStr(Time) + ': Закончена загрузка настройки ' +  SettingName + '.'#13#10, clBlack, True);
-
-            if Assigned(frmSQLProcess) then
-              frmSQLProcess.Caption := 'Выполнение SQL команд';
-            {$ENDIF}
-
-
           finally                                            
             FreeAndNil(DataStream);
             FreeAndNil(StorageStream);
@@ -5253,11 +4542,9 @@ begin
   finally
     SettingList.Free;
 
-    {$IFDEF NEW_STREAM}
     if not Assigned(frmStreamSaver) then
     begin
       if not DontHideForms then
-    {$ENDIF}
         if Assigned(frmSQLProcess) and AnModalSQLProcess and not frmSQLProcess.Silent then
         begin
           if frmSQLProcess.Visible then
@@ -5265,14 +4552,12 @@ begin
           frmSQLProcess.ShowModal;
           frmSQLProcess.BringToFront;
         end;
-    {$IFDEF NEW_STREAM}
     end
     else
     begin
       frmStreamSaver.BringToFront;
       frmStreamSaver.ActivateFinishButtons;
     end;
-    {$ENDIF}
   end;
 end;
 
@@ -5289,16 +4574,6 @@ var
   SettingName: String;
   J: DWORD;
   TempPath: array[0..MAX_COMPUTERNAME_LENGTH] of Char;
-
-  function StreamReadString(St: TStream): String;
-  var
-    L: Integer;
-  begin
-    St.ReadBuffer(L, SizeOf(L));
-    SetLength(Result, L);
-    if L > 0 then
-      St.ReadBuffer(Result[1], L);
-  end;
 
   procedure DisconnectDatabase(const WithCommit: Boolean);
   begin
@@ -5366,34 +4641,26 @@ var
     StorageName, Path: String;
     NewFolder: TgsStorageFolder;
     J: Integer;
-    {$IFDEF NEW_STREAM}
     ObjectCount: Integer;
-    {$ENDIF}
   begin
     ibsqlPos := TIBSQL.Create(nil);
     try
       try
         ibsqlPos.Transaction := InternalTransaction;
-        {$IFDEF NEW_STREAM}
         ibsqlPos.SQL.Text :=
           'SELECT count(id) as ObjectCount FROM at_settingpos WHERE settingkey = ' +
           SettingList[stNumber] + ' and autoadded <> 1';
         ibsqlPos.ExecQuery;
         ObjectCount := ibsqlPos.FieldByName('ObjectCount').AsInteger;
-        ibsqlPos.Close;
-        
-        ibsqlPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey and xid =:xid and dbid = :dbid and autoadded <> 1';
-        {$ELSE}
-        ibsqlPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey and xid =:xid and dbid = :dbid';
-        {$ENDIF}
 
-        {$IFDEF NEW_STREAM}
+        ibsqlPos.Close;
+        ibsqlPos.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :settingkey and xid =:xid and dbid = :dbid and autoadded <> 1';
+
         if Assigned(frmStreamSaver) then
         begin
           frmStreamSaver.SetupProgress(ObjectCount, 'Деактивация настройки...');
           frmStreamSaver.SetProcessText(SettingName, True);
         end;
-        {$ENDIF}
 
         for J := RUIDList.Count - 1 downto 0 do
         begin
@@ -5422,10 +4689,9 @@ var
                   if Assigned(Obj) then
                   begin
                     Obj.Open;
-                    Space;
                     AddText('Удаление объекта ' + Obj.GetDisplayName(Obj.SubType) +
                       ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                      ' с идентификатором ' + IntToStr(AnID) +  #13#10, clBlue);
+                      ' с идентификатором ' + IntToStr(AnID), clBlue);
                     if (Obj.RecordCount > 0) then
                     try
                       if (not(Obj is TgdcMetaBase)) or (Obj as TgdcMetaBase).IsUserDefined then
@@ -5434,13 +4700,12 @@ var
                       on E: Exception do
                       begin
                         AddMistake(E.Message, clRed);
-                        Space;
                         ReconnectDataBase(False);
                       end;
                     end else
                       AddText('Объект ' + Obj.GetDisplayName(Obj.SubType) +
                         ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                        ' с идентификатором ' + IntToStr(AnID) + ' уже удален '#13#10, clBlue);
+                        ' с идентификатором ' + IntToStr(AnID) + ' уже удален ', clBlue);
 
                   end;
                 finally
@@ -5449,10 +4714,8 @@ var
 
             end;
           end;
-          {$IFDEF NEW_STREAM}
           if Assigned(frmStreamSaver) then
             frmStreamSaver.Step;
-          {$ENDIF}
         end;
 
         RunMultiConnection;
@@ -5491,29 +4754,24 @@ var
           begin
             if ibsqlPos.FieldByName('valuename').AsString > '' then
             begin
-              Space;
               AddText('Удаление параметра ' + ibsqlPos.FieldByName('valuename').AsString +
-                ' ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString + #13#10, clBlue);
+                ' ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString, clBlue);
               NewFolder.DeleteValue(ibsqlPos.FieldByName('valuename').AsString)
             end else
             begin
-              Space;
-              AddText('Удаление ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString + #13#10, clBlue);
+              AddText('Удаление ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString, clBlue);
               NewFolder.DropFolder;
             end;
           end;
 
           ibsqlPos.Next;
         end;
-        {$IFDEF NEW_STREAM}
         if Assigned(frmStreamSaver) then
           frmStreamSaver.Done;
-        {$ENDIF}
       except
         on E: Exception do
         begin
           AddMistake(E.Message, clRed);
-          Space;
           DisconnectDataBase(False);
           raise;
         end;
@@ -5557,20 +4815,16 @@ begin
         begin
           SettingName := ibquery.FieldByName('name').AsString;
 
-          AddText(TimeToStr(Time) + ': Началась синхронизация триггеров и индексов', clBlack, True);
+          AddText('Начата синхронизация триггеров и индексов', clBlack);
            //Т.к. в потоке могут оказаться триггеры и индексы и
           //мы не можем отследить изменение триггеров, а синхронизация
           //индексов проходит достаточно долго, чтобы выполнять ее каждый раз
           //при синхронизации БД, мы будем проводить синхронизацию
           //триггеров и индексов каждый раз при активации настройки
           atDatabase.SyncIndicesAndTriggers(InternalTransaction);
-          AddText(TimeToStr(Time) + ': Закончилась синхронизация триггеров и индексов', clBlack, True);
-          Space;
+          AddText('Закончена синхронизация триггеров и индексов', clBlack);
 
-          Space;
-          AddText(TimeToStr(Time) + Format(': Началась деактивация настройки %s',
-            [SettingName]), clBlack, True);
-          Space;
+          AddText(Format('Начата деактивация настройки %s', [SettingName]), clBlack);
 
           RUIDList := TStringList.Create;
           HelpList := TStringList.Create;
@@ -5586,10 +4840,7 @@ begin
                 MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDNO
               then
               begin
-                Space;
-                AddText(TimeToStr(Time) + Format(': Деактивация настройки %s прервана',
-                  [SettingName]), clBlack, True);
-                Space;
+                AddText(Format('Деактивация настройки %s прервана', [SettingName]), clBlack);
                 Continue;
               end;
             end;
@@ -5616,8 +4867,7 @@ begin
 
         DisconnectDatabase(True);
 
-        AddText(TimeToStr(Time) + Format(': Деактивация настройки %s закончена',
-          [SettingName]), clBlack, True);
+        AddText(Format('Деактивация настройки %s закончена', [SettingName]), clBlack);
       end;
     finally
       try
@@ -5638,10 +4888,8 @@ begin
   finally
     SettingList.Free;
 
-    {$IFDEF NEW_STREAM}
     if not Assigned(frmStreamSaver) then
     begin
-    {$ENDIF}
       if Assigned(frmSQLProcess) and AnModalSQLProcess then
       begin
         if frmSQLProcess.Visible then
@@ -5649,18 +4897,15 @@ begin
         frmSQLProcess.ShowModal;
         frmSQLProcess.BringToFront;
       end;
-    {$IFDEF NEW_STREAM}
     end
     else
     begin
       frmStreamSaver.BringToFront;
       frmStreamSaver.ActivateFinishButtons;
     end;
-    {$ENDIF}
   end;
 end;
 
-{$IFDEF NEW_STREAM}
 procedure TgdcSetting.OnStartLoading(Sender: TatSettingWalker; AnObjectSet: TgdcObjectSet);
 begin
   FNewPositionOffset := 0;
@@ -5866,8 +5111,29 @@ begin
     Tr.Free;
   end;
 end;
-{$ENDIF}
 
+procedure TgdcSetting.GoToLastLoadedSetting;
+var
+  OldObjectKey: TID;
+begin
+  if LastLoadedSettingKey > -1 then
+  begin
+    try
+      OldObjectKey := Self.ID;
+      try
+        // Попробуем перейти на загруженную настройку
+        Self.ID := LastLoadedSettingKey;
+      except
+        if OldObjectKey > 0 then
+          Self.ID := OldObjectKey
+        else
+          Self.First;
+      end;
+    finally
+      LastLoadedSettingKey := -1;
+    end;
+  end;
+end;
 
 initialization
   RegisterGDCClass(TgdcSetting);

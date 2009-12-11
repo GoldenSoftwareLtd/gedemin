@@ -40,10 +40,10 @@ ImageBase=4194304
 ExeDescription=SynEdit component suite
 [Directories]
 OutputDir=
-UnitOutputDir=..\..\..\dcu
-PackageDLLOutputDir=..\..\..\bpl
-PackageDCPOutputDir=..\..\..\bpl
-SearchPath=..\Source
+UnitOutputDir=D:\GOLDEN\GEDEMIN\DCU
+PackageDLLOutputDir=D:\GOLDEN\GEDEMIN\DCU
+PackageDCPOutputDir=D:\GOLDEN\GEDEMIN\DCU
+SearchPath=D:\Golden\gedemin\Component\SynEdit\Source
 Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;Vclbde50;Tee50;TeeQR50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50;FirstClass_d5;SynEdit_D5;Fr5;tb2k_d5;greference
 Conditionals=
 DebugSourceDirs=
@@ -51,10 +51,6 @@ UsePackages=0
 [Parameters]
 RunParams=
 HostApplication=
-[Language]
-ActiveLang=
-ProjectLang=$00000419
-RootDir=
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
@@ -80,3 +76,22 @@ OriginalFilename=
 ProductName=
 ProductVersion=1.0.0.0
 Comments=
+[Excluded Packages]
+C:\PROGRA~1\Borland\Delphi5\Projects\Bpl\DJCL50_2.bpl=JEDI Code Library package for Delphi 5
+$(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
+$(DELPHI)\Bin\DCLIB50.bpl=InterBase Data Access Components
+[HistoryLists\hlUnitAliases]
+Count=1
+Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+[HistoryLists\hlSearchPath]
+Count=1
+Item0=D:\Golden\gedemin\Component\kbmMemTable\Source
+[HistoryLists\hlUnitOutputDirectory]
+Count=1
+Item0=D:\golden\GEDEMIN\DCU
+[HistoryLists\hlBPLOutput]
+Count=1
+Item0=D:\golden\GEDEMIN\DCU
+[HistoryLists\hlDCPOutput]
+Count=1
+Item0=D:\golden\GEDEMIN\DCU
