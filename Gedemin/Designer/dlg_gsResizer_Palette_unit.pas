@@ -366,11 +366,13 @@ end;
 procedure Tdlg_gsResizer_Palette.actExitWithoutSavingExecute(
   Sender: TObject);
 begin
-  if MessageDlg('Выйти без сохранения?',
-    mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+  if MessageBox(Handle,
+    'Выйти без сохранения?', 'Внимание',
+    MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+  begin
     if Assigned(FManager) then
       FManager.ExitWithoutSaving;
-
+  end;
 end;
 
 procedure Tdlg_gsResizer_Palette.actExitAndLoadDefExecute(Sender: TObject);
