@@ -106,6 +106,9 @@ type
      lsFEStopConvert,
      lsFESaveMetadata,
      lsFESkipMetadata,
+     lsAllFilesBrowseMask,
+     lsDatabaseBrowseMask,
+     lsBackupBrowseMask,
      lsLastID
     );
 
@@ -281,6 +284,11 @@ begin
   SetLocalizedString(lsFEStopConvert, 'Прервать конвертацию БД');
   SetLocalizedString(lsFESaveMetadata, 'Сохранить');
   SetLocalizedString(lsFESkipMetadata, 'Пропустить');
+
+  SetLocalizedString(lsAllFilesBrowseMask, 'Все файлы');
+  SetLocalizedString(lsDatabaseBrowseMask, 'База данных');
+  SetLocalizedString(lsBackupBrowseMask, 'Архив базы данных');
+
 end;
 
 initialization
