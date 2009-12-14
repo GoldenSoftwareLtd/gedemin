@@ -1,0 +1,6 @@
+Place the Yaffil embedded server files here.
+	fbclient.dll
+	gsdbquery.dll
+	gudf.dll				// gedemin external function library
+	ib_util.dll
+	msvcr70.dll

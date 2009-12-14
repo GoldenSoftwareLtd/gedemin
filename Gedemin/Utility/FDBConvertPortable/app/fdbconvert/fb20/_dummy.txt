@@ -1,0 +1,18 @@
+Place the Firebird 2.0 embedded server files here.
+	intl\
+		fbintl.conf
+		fbintl.dll
+	udf\
+		fbudf.dll
+		gudf.dll		// gedemin external function library
+		ib_udf.dll
+	_dummy.txt
+	fbembed.dll
+	firebird.msg
+	gsdbquery.dll
+	ib_util.dll
+	icudt30.dll
+	icuin30.dll
+	icuuc30.dll
+	msvcp71.dll
+	msvcr71.dll
