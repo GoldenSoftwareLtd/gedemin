@@ -204,7 +204,7 @@ begin
       'Внимание',
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
   {$ELSE}
-    if not FindCmdLineSwitch('q', ['-', '/'], True) then
+    if (not FindCmdLineSwitch('q', ['-', '/'], True)) and (not FindCmdLineSwitch('sfn', ['-', '/'], True)) then
       MessageBox(0,
         'Программа не зарегистрирована на этом компьютере.'#13#10#13#10 +
         'Вы можете выполнить регистрацию вызвав команду Регистрация'#13#10 +
@@ -234,7 +234,7 @@ begin
       'Внимание',
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
   {$ELSE}
-    if not FindCmdLineSwitch('q', ['-', '/'], True) then
+    if (not FindCmdLineSwitch('q', ['-', '/'], True)) and (not FindCmdLineSwitch('sfn', ['-', '/'], True)) then
       MessageBox(0,
         'Программа не зарегистрирована на этом компьютере.'#13#10#13#10 +
         'Возможно, конфигурация компьютера была изменена.'#13#10 +
