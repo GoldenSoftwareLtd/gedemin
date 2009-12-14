@@ -172,7 +172,10 @@ begin
   odDatabase := TOpenDialog.Create(Self);
   try
     odDatabase.DefaultExt := 'FDB';
-    odDatabase.Filter := 'Все файлы|*.*|База данных (*.FDB; *.GDB)|*.FDB;*.GDB|Архив базы данных (*.BK)|*.BK';
+    odDatabase.Filter := Format('%s|*.*|%s (*.FDB; *.GDB), %s (*.BK)|*.FDB;*.GDB;*.BK',
+      [GetLocalizedString(lsAllFilesBrowseMask),
+       GetLocalizedString(lsDatabaseBrowseMask),
+       GetLocalizedString(lsBackupBrowseMask)]);
     odDatabase.Options := [ofHideReadOnly, ofFileMustExist];
 
     if odDatabase.Execute then
@@ -323,7 +326,9 @@ begin
   sdDatabase := TSaveDialog.Create(Self);
   try
     sdDatabase.DefaultExt := 'BK';
-    sdDatabase.Filter := 'Все файлы|*.*|Архив базы данных (*.BK)|*.BK';
+    sdDatabase.Filter := Format('%s|*.*|%s (*.BK)|*.BK',
+      [GetLocalizedString(lsAllFilesBrowseMask),
+       GetLocalizedString(lsBackupBrowseMask)]);
     sdDatabase.Options := [ofHideReadOnly, ofPathMustExist];
 
     if sdDatabase.Execute then
@@ -340,7 +345,9 @@ begin
   sdDatabase := TSaveDialog.Create(Self);
   try
     sdDatabase.DefaultExt := 'FDB';
-    sdDatabase.Filter := 'Все файлы|*.*|База данных (*.FDB; *.GDB)|*.FDB;*.GDB';
+    sdDatabase.Filter := Format('%s|*.*|%s (*.FDB; *.GDB)|*.FDB;*.GDB',
+      [GetLocalizedString(lsAllFilesBrowseMask),
+       GetLocalizedString(lsDatabaseBrowseMask)]);
     sdDatabase.Options := [ofHideReadOnly, ofPathMustExist];
 
     if sdDatabase.Execute then
