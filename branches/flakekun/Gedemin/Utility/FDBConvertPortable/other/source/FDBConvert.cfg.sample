@@ -31,11 +31,11 @@
 -M
 -$M16384,1048576
 -K$00400000
--E"..\app\FDBConvert"
--N"..\..\..\DCU"
+-E"..\..\"
+-N"..\..\..\..\DCU"
 -LE"..\..\..\Bpl"
 -LN"..\..\..\Bpl"
--U"..\..\..\IBX;..\..\..\DCU;..\..\..\setup;..\..\..\Common;..\..\..\gedemin;..\..\..\Component\SynEdit\Source"
--O"..\..\..\IBX;..\..\..\DCU;..\..\..\setup;..\..\..\Common;..\..\..\gedemin;..\..\..\Component\SynEdit\Source"
--I"..\..\..\IBX;..\..\..\DCU;..\..\..\setup;..\..\..\Common;..\..\..\gedemin;..\..\..\Component\SynEdit\Source"
--R"..\..\..\IBX;..\..\..\DCU;..\..\..\setup;..\..\..\Common;..\..\..\gedemin;..\..\..\Component\SynEdit\Source"
+-U"..\..\..\..\IBX;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\gedemin;..\..\..\..\Component\SynEdit\Source"
+-O"..\..\..\..\IBX;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\gedemin;..\..\..\..\Component\SynEdit\Source"
+-I"..\..\..\..\IBX;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\gedemin;..\..\..\..\Component\SynEdit\Source"
+-R"..\..\..\..\IBX;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\gedemin;..\..\..\..\Component\SynEdit\Source"
