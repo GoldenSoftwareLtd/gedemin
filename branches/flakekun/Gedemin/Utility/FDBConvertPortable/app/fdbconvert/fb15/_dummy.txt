@@ -1,0 +1,11 @@
+Place the Firebird 1.5 embedded server files here.
+	intl\
+		fbintl.dll
+	udf\
+		fbudf.dll
+		gudf.dll			// gedemin external function library
+		ib_udf.dll
+	fbembed.dll
+	firebird.conf
+	firebird.msg      
+	ib_util.dll
