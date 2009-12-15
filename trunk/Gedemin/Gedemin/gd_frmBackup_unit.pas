@@ -62,9 +62,13 @@ procedure Tgd_frmBackup.actDoItExecute(Sender: TObject);
 begin
   mProgress.Clear;
 
-  GlobalStorage.SaveToDatabase;
-  UserStorage.SaveToDatabase;
-  CompanyStorage.SaveToDatabase;
+  if Assigned(IBLogin) and Assigned(IBLogin.Database)
+    and IBLogin.Database.Connected then
+  begin
+    GlobalStorage.SaveToDatabase;
+    UserStorage.SaveToDatabase;
+    CompanyStorage.SaveToDatabase;
+  end;  
 
   if chbxCheck.Checked then
   begin

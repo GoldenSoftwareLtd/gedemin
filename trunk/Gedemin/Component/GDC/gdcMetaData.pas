@@ -71,6 +71,9 @@ type
   end;
 
   TgdcMetaBase = class(TgdcBase)
+  private
+    FPostedID: Integer;
+
   protected
     //Изменяется при создании мета-данных
     //Указывает, нужно ли подключение в монопольном режиме
@@ -94,6 +97,10 @@ type
     function GetCanEdit: Boolean; override;
 
     function GetRelationName: String; virtual;
+
+    procedure DoAfterTransactionEnd(Sender: TObject); override;
+    procedure DoAfterPost; override;
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -7514,6 +7521,97 @@ constructor TgdcMetaBase.Create(AnOwner: TComponent);
 begin
   inherited;
   NeedSingleUser := False;
+  FPostedID := -1;
+end;
+
+procedure TgdcMetaBase.DoAfterPost;
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCMETABASE', 'DOAFTERPOST', KEYDOAFTERPOST)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYDOAFTERPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'DOAFTERPOST', KEYDOAFTERPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FDataTransfer then
+    exit;
+
+  inherited;
+
+  if Transaction.InTransaction then
+    FPostedID := ID
+  else
+    FPostedID := -1;  
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOAFTERPOST', KEYDOAFTERPOST)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'DOAFTERPOST', KEYDOAFTERPOST);
+  {M}  end;
+  {END MACRO}
+end;
+
+procedure TgdcMetaBase.DoAfterTransactionEnd(Sender: TObject);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_SENDER('TGDCMETABASE', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCMETABASE', KEYDOAFTERTRANSACTIONEND);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERTRANSACTIONEND]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCMETABASE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), GetGdcInterface(Sender)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCMETABASE',
+  {M}          'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCMETABASE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if (FPostedID > 0) and (FPostedID = ID) then
+  begin
+    FPostedID := -1;
+    InternalRefreshRow;
+  end;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCMETABASE', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCMETABASE', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND);
+  {M}  end;
+  {END MACRO}
 end;
 
 function TgdcMetaBase.GetCanCreate: Boolean;
