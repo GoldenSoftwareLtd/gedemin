@@ -454,11 +454,7 @@ uses
   TestFramework,
   GUITestRunner,
   TestExtensions,
-  TestSQLParser_unit,
-  TestGdKeyArray_unit,
-  TestMMFStream_unit,
-  Test_gsStorage_unit,
-  Test_gsMorph_unit,
+  GedeminTestList,
   {$ENDIF}
 
   Registry
