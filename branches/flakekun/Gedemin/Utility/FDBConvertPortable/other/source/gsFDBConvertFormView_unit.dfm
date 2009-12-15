@@ -4,8 +4,8 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
   BorderStyle = bsDialog
   Caption = 'FDB Convert'
   ClientHeight = 468
-  ClientWidth = 634
-  Color = clBtnFace
+  ClientWidth = 654
+  Color = clWhite
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
@@ -21,23 +21,27 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
   object pnlLeft: TPanel
     Left = 0
     Top = 0
-    Width = 150
+    Width = 115
     Height = 468
     Align = alLeft
+    BevelOuter = bvNone
+    ParentColor = True
     TabOrder = 0
   end
   object pnlRight: TPanel
-    Left = 150
+    Left = 115
     Top = 0
-    Width = 484
+    Width = 539
     Height = 468
     Align = alClient
+    BevelOuter = bvNone
+    ParentColor = True
     TabOrder = 1
     object pcMain: TPageControl
-      Left = 1
-      Top = 1
-      Width = 482
-      Height = 425
+      Left = 0
+      Top = 0
+      Width = 539
+      Height = 427
       ActivePage = tbs03
       Align = alClient
       Font.Charset = DEFAULT_CHARSET
@@ -46,6 +50,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
+      Style = tsFlatButtons
       TabOrder = 0
       object tbs01: TTabSheet
         Caption = 'tbs01'
@@ -81,16 +86,16 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
         object Bevel1: TBevel
           Left = 6
           Top = 34
-          Width = 462
+          Width = 613
           Height = 2
         end
         object cbLanguage: TComboBox
           Left = 112
           Top = 188
-          Width = 352
+          Width = 113
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 0
           OnChange = cbLanguageChange
         end
@@ -527,33 +532,35 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
       end
     end
     object pnlButtons: TPanel
-      Left = 1
-      Top = 426
-      Width = 482
+      Left = 0
+      Top = 427
+      Width = 539
       Height = 41
       Align = alBottom
+      BevelOuter = bvNone
+      ParentColor = True
       TabOrder = 1
       object btnExit: TButton
-        Left = 400
+        Left = 448
         Top = 9
         Width = 75
-        Height = 25
+        Height = 21
         Action = actClose
         TabOrder = 2
       end
       object btnNext: TButton
-        Left = 296
+        Left = 344
         Top = 9
         Width = 89
-        Height = 25
+        Height = 21
         Action = actNextPage
         TabOrder = 1
       end
       object btnPrev: TButton
-        Left = 205
+        Left = 253
         Top = 9
         Width = 89
-        Height = 25
+        Height = 21
         Action = actPrevPage
         TabOrder = 0
       end
