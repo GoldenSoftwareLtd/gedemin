@@ -1095,121 +1095,6 @@ begin
 end;
 
 procedure TgdcSetting.SaveSettingToBlob(SettingFormat: TgsStreamType = sttUnknown);
-
-  procedure ConvertStorageRecords;
-  var
-    q, qPos: TIBSQL;
-    Tr: TIBTransaction;
-    S: String;
-    P: Integer;
-    XID, DBID: TID;
-    F: TgsStorageFolder;
-    V: TgsStorageValue;
-  begin
-    Tr := TIBTransaction.Create(nil);
-    q := TIBSQL.Create(nil);
-    qPos := TIBSQL.Create(nil);
-    try
-      Tr.DefaultDatabase := Database;
-      Tr.StartTransaction;
-
-      q.Transaction := Tr;
-      q.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
-      q.ParamByName('settingkey').AsInteger := ID;
-      q.ExecQuery;
-
-      qPos.Transaction := Tr;
-      qPos.SQL.Text := 'INSERT INTO at_settingpos (settingkey, objectclass, ' +
-        'category, objectname, dbid, xid, withdetail, needmodify, autoadded) ' +
-        'VALUES (:SK, :OC, :CAT, :ON, :DBID, :XID, :WD, :NM, :AA)';
-
-      while not q.EOF do
-      begin
-        S := q.FieldByName('branchname').AsString;
-        P := Pos('\', S);
-        if P = 0 then
-          continue;
-
-        if Pos('GLOBAL', S) = 1 then
-          F := GlobalStorage.OpenFolder(System.Copy(S, P + 1, 1024), False, False)
-        else
-          F := UserStorage.OpenFolder(System.Copy(S, P + 1, 1024), False, False);
-
-        if F = nil then
-        begin
-          if MessageBox(0,
-            PChar('Ветвь хранилища "' + S + '" отсутствует в базе данных.'#13#10#13#10 +
-            'Удалить ее из настройки?'),
-            'Внимание',
-            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = ID_NO then
-          begin
-            raise Exception.Create('Can not find storage folder "' + S + '"');
-          end;
-        end else
-          try
-            if q.FieldByName('valuename').IsNull then
-            begin
-              qPos.ParamByName('ON').AsString := F.Name;
-              qPos.ParamByName('OC').AsString := CgdcStorageFolder.ClassName;
-              gdcBaseManager.GetRUIDByID(F.ID, XID, DBID);
-              AddText('Конвертация в БО ветви ' + S, clBlack);
-            end else
-            begin
-              V := F.ValueByName(q.FieldByName('valuename').AsString);
-
-              if V = nil then
-              begin
-                if MessageBox(0,
-                  PChar('Параметр хранилища "' + S + '\' + q.FieldByName('valuename').AsString +
-                  '" отсутствует в базе данных.'#13#10#13#10 +
-                  'Удалить его из настройки?'),
-                  'Внимание',
-                  MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = ID_NO then
-                begin
-                  raise Exception.Create('Can not find storage value "' +
-                    S + '\' + q.FieldByName('valuename').AsString + '"');
-                end else
-                begin
-                  q.Next;
-                  continue;
-                end;
-              end;
-
-              qPos.ParamByName('ON').AsString := V.Name;
-              qPos.ParamByName('OC').AsString := CgdcStorageValue.ClassName;
-              gdcBaseManager.GetRUIDByID(V.ID, XID, DBID);
-              AddText('Конвертация в БО значения ' + S + '\' + V.Name, clBlack);
-            end;
-
-            qPos.ParamByName('SK').AsInteger := ID;
-            qPos.ParamByName('WD').AsInteger := 1;
-            qPos.ParamByName('NM').AsInteger := 1;
-            qPos.ParamByName('AA').AsInteger := 0;
-            qPos.ParamByName('XID').AsInteger := XID;
-            qPos.ParamByName('DBID').AsInteger := DBID;
-            qPos.ParamByName('CAT').AsString := TgdcStorage.GetListTable('');
-
-            qPos.ExecQuery;
-          finally
-            F.Storage.CloseFolder(F, False);
-          end;
-
-        q.Next;
-      end;
-
-      q.Close;
-      q.SQL.Text := 'DELETE FROM at_setting_storage WHERE settingkey = :settingkey ';
-      q.ParamByName('settingkey').AsInteger := ID;
-      q.ExecQuery;
-
-      Tr.Commit;
-    finally
-      qPos.Free;
-      q.Free;
-      Tr.Free;
-    end;
-  end;
-
 var
   BlobStream: TStream;
   ibsqlPos: TIBQuery;
@@ -1268,7 +1153,7 @@ begin
   //////////////////////////////////////////////////////////////
   // Превратим все записи в at_setting_storage в бизнес-объекты
   //
-  ConvertStorageRecords;
+  ConvertStorageRecords(ID, Database);
 
   // если в опциях установлено "Сохранять настройки в новом формате"
   if SettingFormat <> sttBinaryOld then

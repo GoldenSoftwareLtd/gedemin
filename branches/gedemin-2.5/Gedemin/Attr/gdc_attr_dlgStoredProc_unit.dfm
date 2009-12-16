@@ -20,6 +20,12 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Top = 405
+    Height = 22
+    Anchors = [akLeft, akBottom]
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 428
     Top = 405
@@ -33,12 +39,6 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
     Height = 22
     Anchors = [akRight, akBottom]
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Top = 405
-    Height = 22
-    Anchors = [akLeft, akBottom]
-    TabOrder = 5
   end
   object pcStoredProc: TPageControl [5]
     Left = 0

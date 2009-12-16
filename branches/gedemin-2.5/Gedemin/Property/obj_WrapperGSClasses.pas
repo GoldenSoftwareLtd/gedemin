@@ -3699,7 +3699,7 @@ type
       const AnParamType: WideString; const AnComment: WideString): SYSINT; safecall;
     function  AddLinkParam(const AnDisplayName: WideString;
       const AnParamType: WideString; const AnTableName: WideString;
-      const AnDisplayField: WideString; const AnPrimaryField: WideString;
+      const AnPrimaryField: WideString; const AnDisplayField: WideString; 
       const AnLinkConditionFunction: WideString;
       const AnLinkFunctionLanguage: WideString; const AnComment: WideString): SYSINT; safecall;
     function GetVariantArray: OleVariant; safecall;
@@ -5139,7 +5139,7 @@ end;
 
 procedure TwrpGsStorage.LoadFromDataBase;
 begin
-  GetStorage.LoadFromDataBase;
+  (GetStorage as TgsIBStorage).LoadFromDataBase;
 end;
 
 procedure TwrpGsStorage.LoadFromFile(const AFileName: WideString;
@@ -5180,7 +5180,7 @@ end;
 
 procedure TwrpGsStorage.SaveToDataBase;
 begin
-  GetStorage.SaveToDataBase;
+  (GetStorage as TgsIBStorage).SaveToDataBase;
 end;
 
 procedure TwrpGsStorage.SaveToFile(const AFileName: WideString;
@@ -11594,7 +11594,8 @@ end;
 function TwrpGsStorageFolder.AddFolder(
   const F: IgsGsStorageFolder): Integer;
 begin
-  Result := GetGsStorageFolder.AddFolder(InterfaceToObject(F) as TgsStorageFolder);
+  GetGsStorageFolder.AddFolder(InterfaceToObject(F) as TgsStorageFolder);
+  Result := 0;
 end;
 
 procedure TwrpGsStorageFolder.BuildTreeView(const N: IgsTreeNode);
@@ -11625,7 +11626,7 @@ end;
 
 procedure TwrpGsStorageFolder.DropFolder;
 begin
-  GetGsStorageFolder.DropFolder;
+  GetGsStorageFolder.Drop;
 end;
 
 procedure TwrpGsStorageFolder.ExtractFolder(const F: IgsGsStorageFolder);
@@ -14238,7 +14239,7 @@ end;
 
 function TwrpGsUserStorage.Get_UserKey: Integer;
 begin
-  Result := GetGsUserStorage.UserKey;
+  Result := GetGsUserStorage.ObjectKey;
 end;
 
 function TwrpGsUserStorage.GetGsUserStorage: TgsUserStorage;
@@ -14248,7 +14249,7 @@ end;
 
 procedure TwrpGsUserStorage.Set_UserKey(Value: Integer);
 begin
-  GetGsUserStorage.UserKey := Value;
+  GetGsUserStorage.ObjectKey := Value;
 end;
 
 { TwrpAtContainer }
@@ -17222,7 +17223,7 @@ end;
 
 function TwrpGsCompanyStorage.Get_CompanyKey: Integer;
 begin
-  Result := GetGsCompanyStorage.CompanyKey;
+  Result := GetGsCompanyStorage.ObjectKey;
 end;
 
 function TwrpGsCompanyStorage.GetGsCompanyStorage: TgsCompanyStorage;
@@ -17232,7 +17233,7 @@ end;
 
 procedure TwrpGsCompanyStorage.Set_CompanyKey(Value: Integer);
 begin
-  GetGsCompanyStorage.CompanyKey := Value;
+  GetGsCompanyStorage.ObjectKey := Value;
 end;
 
 { TwrpStreamSaver }
@@ -17700,7 +17701,7 @@ end;
 { TwrpGsParamList }
 
 function TwrpGsParamList.AddLinkParam(const AnDisplayName,
-  AnParamType, AnTableName, AnDisplayField, AnPrimaryField,
+  AnParamType, AnTableName, AnPrimaryField, AnDisplayField,
   AnLinkConditionFunction, AnLinkFunctionLanguage,
   AnComment: WideString): SYSINT;
 begin

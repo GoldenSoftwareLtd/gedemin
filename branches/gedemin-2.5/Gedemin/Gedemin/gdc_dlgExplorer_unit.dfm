@@ -120,6 +120,10 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     Left = 78
     TabOrder = 12
   end
+  inherited btnHelp: TButton
+    Left = 150
+    TabOrder = 13
+  end
   inherited btnOK: TButton
     Left = 225
     TabOrder = 9
@@ -127,10 +131,6 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
   inherited btnCancel: TButton
     Left = 297
     TabOrder = 10
-  end
-  inherited btnHelp: TButton
-    Left = 150
-    TabOrder = 13
   end
   object dbeName: TDBEdit [17]
     Left = 125

@@ -261,6 +261,7 @@ var
   S: String;
   F: Boolean;
   I: Integer;
+  RF: TgsStorageFolder;
 begin
   if Assigned(CurrentStorage)
     and (CurrentStorage <> GlobalStorage)
@@ -279,8 +280,8 @@ begin
     if ID = IBLogin.UserKey then
       CurrentStorage := UserStorage
     else begin
-      CurrentStorage := TgsUserStorage.Create(cb.Text);
-      TgsUserStorage(CurrentStorage).UserKey := ID;
+      CurrentStorage := TgsUserStorage.Create;
+      TgsUserStorage(CurrentStorage).ObjectKey := ID;
     end;
   end;
 
@@ -292,7 +293,12 @@ begin
   tv.Items.BeginUpdate;
   try
     tv.Items.Clear;
-    N := tv.Items.Add(nil, CurrentStorage.Name);
+    RF := CurrentStorage.OpenFolder('\', False, False);
+    try
+      N := tv.Items.Add(nil, RF.Name);
+    finally
+      CurrentStorage.CloseFolder(RF, False);
+    end;
     CurrentStorage.BuildTreeView(N, L);
     if tv.Items.Count > 0 then
     begin
@@ -347,7 +353,12 @@ begin
           if not (F.Values[I] is TgsStreamValue) then
             L.SubItems.Add(F.Values[I].AsString)
           else
-            L.SubItems.Add(Format('%d (размер, байт)', [F.Values[I].DataSize]));
+          begin
+            if F.Values[I].DataSize > 0 then
+              L.SubItems.Add(Format('%d (размер, байт)', [F.Values[I].DataSize]))
+            else
+              L.SubItems.Add('<размер не определен>');
+          end;
           L.SubItems.Add(FormatDateTime('dd.mm.yy hh:nn:ss', F.Values[I].Modified));
         end;
 
@@ -377,13 +388,13 @@ end;
 
 procedure Tst_frmMain.actSaveStorageUpdate(Sender: TObject);
 begin
-  actSaveStorage.Enabled := Assigned(CurrentStorage)
-    and (CurrentStorage.IsModified);
+  actSaveStorage.Enabled := (CurrentStorage is TgsIBStorage)
+    and CurrentStorage.IsModified;
 end;
 
 procedure Tst_frmMain.actSaveStorageExecute(Sender: TObject);
 begin
-  CurrentStorage.SaveToDatabase;
+  (CurrentStorage as TgsIBStorage).SaveToDatabase;
 end;
 
 procedure Tst_frmMain.actNewFolderUpdate(Sender: TObject);
@@ -1029,6 +1040,11 @@ begin
           else
             Sender.Canvas.Font.Color := $FFBBBB;
         end;
+
+        if F.Changed then
+          Sender.Canvas.Font.Style := [fsBold, fsUnderline]
+        else
+          Sender.Canvas.Font.Style := [fsBold];
       end;
     finally
       CurrentStorage.CloseFolder(F);
@@ -1154,6 +1170,11 @@ begin
         //else
         //  Sender.Canvas.Font.Color := $FFBBBB;
       end;
+
+      if V.Changed then
+        Sender.Canvas.Font.Style := [fsUnderline]
+      else
+        Sender.Canvas.Font.Style := [];
     end;
   finally
     CurrentStorage.CloseFolder(F);
