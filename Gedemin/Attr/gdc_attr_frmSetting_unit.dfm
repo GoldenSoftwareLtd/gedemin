@@ -1,7 +1,7 @@
 inherited gdc_frmSetting: Tgdc_frmSetting
   Left = 317
   Top = 188
-  Width = 623
+  Width = 823
   Height = 485
   HelpContext = 22
   Caption = 'Настройки'
@@ -9,12 +9,12 @@ inherited gdc_frmSetting: Tgdc_frmSetting
   TextHeight = 13
   inherited sbMain: TStatusBar
     Top = 439
-    Width = 615
+    Width = 815
   end
   inherited TBDockTop: TTBDock
-    Width = 615
+    Width = 815
     inherited tbMainCustom: TTBToolbar
-      Left = 386
+      Left = 431
       DockPos = 431
       object tbiSetActive: TTBItem
         Action = actSetActive
@@ -116,11 +116,8 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         end
       end
     end
-    inherited tbMainInvariant: TTBToolbar
-      Left = 291
-    end
     inherited tbChooseMain: TTBToolbar
-      Left = 353
+      Left = 398
       DockPos = 398
     end
   end
@@ -128,62 +125,64 @@ inherited gdc_frmSetting: Tgdc_frmSetting
     Height = 381
   end
   inherited TBDockRight: TTBDock
-    Left = 606
+    Left = 806
     Height = 381
   end
   inherited TBDockBottom: TTBDock
     Top = 430
-    Width = 615
+    Width = 815
   end
   inherited pnlWorkArea: TPanel
-    Width = 597
+    Width = 797
     Height = 381
     inherited sMasterDetail: TSplitter
-      Width = 597
+      Width = 797
     end
     inherited spChoose: TSplitter
       Top = 278
-      Width = 597
+      Width = 797
     end
     object spltStorrage: TSplitter [2]
-      Left = 339
+      Left = 539
       Top = 171
       Width = 3
       Height = 107
       Cursor = crHSplit
+      Align = alRight
+      Visible = False
     end
     inherited pnlMain: TPanel
-      Width = 597
+      Width = 797
       inherited ibgrMain: TgsIBGrid
-        Width = 437
+        Width = 637
       end
     end
     inherited pnChoose: TPanel
       Top = 282
-      Width = 597
+      Width = 797
       inherited pnButtonChoose: TPanel
-        Left = 492
+        Left = 692
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 492
+        Width = 692
       end
       inherited pnlChooseCaption: TPanel
-        Width = 597
+        Width = 797
       end
     end
     inherited pnlDetail: TPanel
-      Width = 339
+      Width = 539
       Height = 107
-      Align = alLeft
       inherited TBDockDetail: TTBDock
-        Width = 339
+        Width = 539
+        Height = 10
         inherited tbDetailToolbar: TTBToolbar
           object tbiOpenObject: TTBItem
             Action = actOpenObject
           end
         end
         inherited tbDetailCustom: TTBToolbar
-          Left = 237
+          Left = 255
           DockPos = 255
           Visible = True
           object tbiWithDetail: TTBItem
@@ -198,32 +197,36 @@ inherited gdc_frmSetting: Tgdc_frmSetting
           object tbiValidPos: TTBItem
             Action = actValidPos
           end
+          object TBItem10: TTBItem
+            Action = actAddForm
+          end
         end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 81
+        Top = 10
+        Height = 97
         inherited sbSearchDetail: TScrollBox
-          Height = 43
+          Height = 59
         end
         inherited pnlSearchDetailButton: TPanel
-          Top = 43
+          Top = 59
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 179
-        Height = 81
+        Top = 10
+        Width = 379
+        Height = 97
       end
     end
     object pnlStorage: TPanel
-      Left = 342
+      Left = 542
       Top = 171
       Width = 255
       Height = 107
-      Align = alClient
+      Align = alRight
       BevelOuter = bvNone
-      Constraints.MinHeight = 100
-      Constraints.MinWidth = 200
       TabOrder = 3
+      Visible = False
       object TBDockStorage: TTBDock
         Left = 0
         Top = 0
@@ -422,7 +425,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       Category = 'Storage'
       Caption = 'Добавить форму пользователя'
       Hint = 'Добавить форму пользователя'
-      ImageIndex = 0
+      ImageIndex = 229
       OnExecute = actAddFormExecute
       OnUpdate = actAddFormUpdate
     end

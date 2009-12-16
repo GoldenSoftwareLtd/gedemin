@@ -25,9 +25,9 @@ begin
     q.ExecQuery;
     while not q.EOF do
     begin
-      US := TgsUserStorage.Create('US');
+      US := TgsUserStorage.Create;
       try
-        US.UserKey := q.Fields[0].AsInteger;
+        US.ObjectKey := q.Fields[0].AsInteger;
         OldUS := UserStorage;
         try
           UserStorage := US;

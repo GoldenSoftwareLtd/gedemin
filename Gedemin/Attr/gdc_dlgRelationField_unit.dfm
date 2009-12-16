@@ -18,6 +18,11 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Top = 406
+    Anchors = [akLeft, akBottom]
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 311
     Top = 406
@@ -29,11 +34,6 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
     Top = 406
     Anchors = [akRight, akBottom]
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Top = 406
-    Anchors = [akLeft, akBottom]
-    TabOrder = 5
   end
   object pcRelationField: TPageControl [5]
     Left = 4

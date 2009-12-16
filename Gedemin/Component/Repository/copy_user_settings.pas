@@ -8,9 +8,9 @@ begin
     );
   if (U <> -1) and (U <> IBLogin.UserKey) then
   begin
-    US := TgsUserStorage.Create('US');
+    US := TgsUserStorage.Create;
     try
-      US.UserKey := U;
+      US.ObjectKey := U;
       OldUS := UserStorage;
       try
         UserStorage := US;

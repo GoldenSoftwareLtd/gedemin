@@ -2380,7 +2380,7 @@ begin
     q.ExecQuery;
     FSessionKey := q.Fields[0].AsInteger;
 
-    UserStorage.UserKey := AUserKey;
+    UserStorage.ObjectKey := AUserKey;
   finally
     q.Free;
   end;

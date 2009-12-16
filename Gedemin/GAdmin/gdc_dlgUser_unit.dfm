@@ -21,6 +21,13 @@ inherited gdc_dlgUser: Tgdc_dlgUser
     ParentShowHint = False
     ShowHint = True
   end
+  inherited btnHelp: TButton
+    Left = 393
+    Top = 195
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 7
+  end
   inherited btnOK: TButton
     Left = 393
     Top = 6
@@ -32,13 +39,6 @@ inherited gdc_dlgUser: Tgdc_dlgUser
     Top = 35
     ParentShowHint = False
     ShowHint = True
-  end
-  inherited btnHelp: TButton
-    Left = 393
-    Top = 195
-    ParentShowHint = False
-    ShowHint = True
-    TabOrder = 7
   end
   object btnGroup: TButton [5]
     Left = 393

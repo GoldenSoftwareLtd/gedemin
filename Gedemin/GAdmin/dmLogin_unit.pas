@@ -107,7 +107,7 @@ begin
   begin
     if Assigned(gdSplash) then
       gdSplash.ShowText(sLoadingUserStorage);
-    UserStorage.UserKey := IBLogin.UserKey;
+    UserStorage.ObjectKey := IBLogin.UserKey;
   end;
 
   {if Assigned(CompanyStorage) then
@@ -254,7 +254,7 @@ end;
 procedure TdmLogin.boLoginAfterChangeCompany(Sender: TObject);
 begin
   {.$IFDEF GEDEMIN}
-  CompanyStorage.CompanyKey := IBLogin.CompanyKey;
+  CompanyStorage.ObjectKey := IBLogin.CompanyKey;
   if TrayIcon <> nil then TrayIcon.ToolTip := IBLogin.CompanyName;
   {.$ENDIF}
 end;
