@@ -51,17 +51,13 @@ UsePackages=0
 [Parameters]
 RunParams=
 HostApplication=
-[Language]
-ActiveLang=
-ProjectLang=$00000419
-RootDir=
 [Version Info]
 IncludeVerInfo=0
 AutoIncBuild=1
 MajorVer=1
 MinorVer=0
 Release=3
-Build=256
+Build=257
 Debug=0
 PreRelease=1
 Special=1
@@ -72,7 +68,7 @@ CodePage=1251
 [Version Info Keys]
 CompanyName=Golden Software
 FileDescription=Golden UDF library
-FileVersion=1.0.3.256
+FileVersion=1.0.3.257
 InternalName=GUDF.DLL
 LegalCopyright=Copyright (c) 1999 by Golden Software
 LegalTrademarks=
