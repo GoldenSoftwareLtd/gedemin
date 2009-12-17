@@ -1247,7 +1247,8 @@ begin
         begin
           if Assigned(FOnAfterCreateDialog) then
             FOnAfterCreateDialog(Self, Obj);
-          CurrKey := Obj.ID;
+          if Obj.ID > -1 then
+            CurrKey := Obj.ID;
         end;
       finally
         if Obj <> T2 then
