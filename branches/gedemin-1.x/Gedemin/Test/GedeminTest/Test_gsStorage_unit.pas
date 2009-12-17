@@ -35,7 +35,7 @@ const
    (FileName: 'ber_global_data.dat'; FC:  256; VC: 1457; DataSize: 3475475),
    (FileName: 'ber_admin_data.dat';  FC: 1708; VC: 4524; DataSize:  693951)
   );
-  TestFolder = 'data';
+  TestFolder = '\golden\gedemin\test\gedemintest\data';
 
 procedure TgsStorageTest.TestLoadFromStream;
 
