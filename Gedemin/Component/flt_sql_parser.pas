@@ -163,6 +163,15 @@ begin
       if IP.TokemType = ttSpace then
         continue;
 
+      if (Scope = ssNone) and (IP.TokemType = ttIdentifier) and (IP.LowerTokem = 'execute') then
+      begin
+        IP.GetNext;
+        if IP.TokemType = ttSpace then
+          IP.GetNext;
+        if (IP.TokemType = ttIdentifier) and (IP.LowerTokem = 'block') then
+          break;
+      end;
+
       if (Scope = ssNone) and (IP.TokemType = ttIdentifier) and (IP.LowerTokem = 'select') then
       begin
         // мы мусім прапусціць увесь селект пакуль ня
@@ -480,6 +489,10 @@ begin
     SL := TStringList.Create;
     try
       ExtractTablesList(AnSQLText, SL, False, True);
+
+      if SL.Count = 0 then
+        exit;
+
       if S[P - 1] = '.' then
       begin
         Dec(P, 2);
