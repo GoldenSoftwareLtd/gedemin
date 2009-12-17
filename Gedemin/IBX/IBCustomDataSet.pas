@@ -5904,7 +5904,7 @@ begin
       SetString(FieldAliasName, aliasname, aliasname_length);
       SetString(RelationName, relname, relname_length);
       SetString(FieldName, sqlname, sqlname_length);
-      if ownname_length > 0 then // проверка должна исключить поля конструкций EXECUTE BLOCK
+      if relname_length > 0 then // проверка должна исключить поля конструкций EXECUTE BLOCK
       begin
         f := FindField(FieldAliasname);
         if Assigned(f) then
