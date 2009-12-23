@@ -144,6 +144,11 @@ type
     //Процедура для проверки действительности текущей настройки
     procedure Valid(const DoAutoDelete: Boolean = false);
 
+    // Скопировать позицию настройки в указанную настройку, позиция вставляется в конец списка
+    function CopyToSetting(const ASettingKey: TID): Boolean;
+    // Переместить позицию настройки в указанную настройку
+    function MoveToSetting(const ASettingKey: TID): Boolean;
+
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     procedure SetWithDetail(const Value: Boolean; BL: TBookmarkList);
@@ -1262,7 +1267,7 @@ begin
                 else
                 begin
                   // Если работает репликатор, то не будем прерывать сохранение настройки
-                  if not FSilent then
+                  if not Self.Silent then
                   begin
                     raise Exception.Create('Не удалось получить идентификатор позиции настройки.'#13#10 +
                       'Проверьте целостность настройки!');
@@ -1282,7 +1287,7 @@ begin
               SaveDetailObjects := ibsqlPos.FieldByName('withdetail').AsInteger = 1;
 
               {при репликации добавление объекта, его РУИДА и сохр. настройки идет на одной транзакции}
-              if FSilent and Transaction.InTransaction then
+              if Self.Silent and Transaction.InTransaction then
                 AnID := gdcBaseManager.GetIDByRUID(ibsqlPos.FieldByName('xid').AsInteger,
                   ibsqlPos.FieldByName('dbid').AsInteger, Transaction)
               else
@@ -1322,7 +1327,7 @@ begin
                 else
                 begin
                   // Если работает репликатор, то не будем прерывать сохранение настройки
-                  if not FSilent then
+                  if not Self.Silent then
                   begin
                     MistakeStr := 'Ошибка при сохранении объекта ' +
                       ibsqlPos.FieldByName('category').AsString + ' ' +
@@ -2644,6 +2649,53 @@ begin
   if Assigned(FLastOrderSQL) then
     FLastOrderSQL.Free;
   inherited;
+end;
+
+function TgdcSettingPos.CopyToSetting(const ASettingKey: TID): Boolean;
+var
+  TestSetting: TgdcSetting;
+begin
+  Result := False;
+
+  // Проверим, существует ли указанная настройка
+  TestSetting := TgdcSetting.CreateWithID(nil, Database, Transaction, ASettingKey);
+  try
+    if Assigned(TestSetting) and (TestSetting.ID = ASettingKey) then
+      raise EgdcIDNotFound.Create(Format('Настройка с идентификатором %d не существует.', [ASettingKey]));
+  finally
+    FreeAndNil(TestSetting);
+  end;
+
+  //Скопируемуем данные объекта в новый объект
+  if Self.CopyObject then
+  begin
+    // Изменим ссылку на настройку
+    Self.Edit;
+    Self.FieldByName('SETTINGKEY').AsInteger := ASettingKey;
+    Self.Post;
+
+    Result := True;
+  end;
+end;
+
+function TgdcSettingPos.MoveToSetting(const ASettingKey: TID): Boolean;
+var
+  OldSettingPosKey: TID;
+begin
+  Result := False;
+
+  // Запомним ИД текущей позиции
+  OldSettingPosKey := Self.ID;
+  // Скопируем позицию
+  if Self.CopyToSetting(ASettingKey) then
+  begin
+    // Пытаемся перейти на оригинальную позицию, и удаляем ее
+    Self.ID := OldSettingPosKey;
+    if Self.ID = OldSettingPosKey then
+      Self.Delete;
+
+    Result := True;  
+  end;
 end;
 
 { TgdcSettingStorage }
@@ -4080,9 +4132,10 @@ var
 
           try
             if not DontHideForms or (not (CgdcBase(C).InheritsFrom(TgdcMetaBase)) and not (CgdcBase(C).InheritsFrom(TgdcBaseDocumentType))) then
-              Obj._LoadFromStreamInternal(Stream, IDMapping, ObjectSet, UpdateList, stRecord, AnAnswer)
+              Obj.StreamProcessingAnswer := AnAnswer
             else
-              Obj._LoadFromStreamInternal(Stream, IDMapping, ObjectSet, UpdateList, stRecord, tmpAnAnswer);
+              Obj.StreamProcessingAnswer := tmpAnAnswer;
+            Obj._LoadFromStreamInternal(Stream, IDMapping, ObjectSet, UpdateList, stRecord);
           except
             on E: Exception do
             begin

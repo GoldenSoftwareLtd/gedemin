@@ -2410,7 +2410,8 @@ begin
         end;
       end
       else
-        if not TargetDS.CheckTheSame(FAnAnswer, True) then
+        TargetDS.StreamProcessingAnswer := FAnAnswer;
+        if not TargetDS.CheckTheSame(True) then
         begin
           TargetDS.Post;
 
@@ -2451,7 +2452,7 @@ begin
 
         // удалим проблемный объект из очереди загрузки
         FLoadingOrderList.Remove(SourceKeyInt);
-        // во время работы репликатора не будем показавать сообщения
+        // во время работы репликатора не будем показывать сообщения
         if not SilentMode then
           MessageBox(TargetDS.ParentHandle, PChar(ErrorSt), 'Ошибка', MB_OK or MB_ICONHAND);
 
@@ -7052,18 +7053,15 @@ begin
   Result := IsReadUserFromStream;
 end;
 
-
 function TgdcStreamSaver.GetReplaceRecordBehaviour: TReplaceRecordBehaviour;
 begin
   Result := FStreamDataProvider.ReplaceRecordBehaviour;
 end;
 
-
 procedure TgdcStreamSaver.SetReplaceRecordBehaviour(const Value: TReplaceRecordBehaviour);
 begin
   FStreamDataProvider.ReplaceRecordBehaviour := Value;
 end;
-
 
 function TgdcStreamSaver.GetIsAbortingProcess: Boolean;
 begin

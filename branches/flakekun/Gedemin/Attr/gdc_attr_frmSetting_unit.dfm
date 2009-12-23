@@ -1,20 +1,20 @@
 inherited gdc_frmSetting: Tgdc_frmSetting
-  Left = 317
-  Top = 188
+  Left = 408
+  Top = 175
   Width = 623
-  Height = 485
+  Height = 491
   HelpContext = 22
   Caption = 'Настройки'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 439
-    Width = 615
+    Top = 428
+    Width = 607
   end
   inherited TBDockTop: TTBDock
-    Width = 615
+    Width = 607
     inherited tbMainCustom: TTBToolbar
-      Left = 386
+      Left = 378
       DockPos = 431
       object tbiSetActive: TTBItem
         Action = actSetActive
@@ -75,6 +75,14 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         end
       end
       inherited tbsiMainMenuDetailObject: TTBSubmenuItem
+        object TBSeparatorItem4: TTBSeparatorItem [9]
+        end
+        object TBItem11: TTBItem [10]
+          Action = actCopyToSetting
+        end
+        object TBItem10: TTBItem [11]
+          Action = actMoveToSetting
+        end
         object TBSeparatorItem3: TTBSeparatorItem
         end
         object TBItem7: TTBItem
@@ -117,63 +125,59 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       end
     end
     inherited tbMainInvariant: TTBToolbar
-      Left = 291
+      Left = 283
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 353
+      Left = 345
       DockPos = 398
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 381
+    Height = 368
   end
   inherited TBDockRight: TTBDock
-    Left = 606
-    Height = 381
+    Left = 598
+    Height = 368
   end
   inherited TBDockBottom: TTBDock
-    Top = 430
-    Width = 615
+    Top = 419
+    Width = 607
   end
   inherited pnlWorkArea: TPanel
-    Width = 597
-    Height = 381
+    Width = 589
     inherited sMasterDetail: TSplitter
-      Width = 597
+      Width = 589
     end
     inherited spChoose: TSplitter
-      Top = 278
-      Width = 597
+      Width = 589
     end
     object spltStorrage: TSplitter [2]
       Left = 339
       Top = 171
       Width = 3
-      Height = 107
+      Height = 100
       Cursor = crHSplit
     end
     inherited pnlMain: TPanel
-      Width = 597
+      Width = 589
       inherited ibgrMain: TgsIBGrid
-        Width = 437
+        Width = 429
       end
     end
     inherited pnChoose: TPanel
-      Top = 282
-      Width = 597
+      Width = 589
       inherited pnButtonChoose: TPanel
-        Left = 492
+        Left = 484
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 492
+        Width = 484
       end
       inherited pnlChooseCaption: TPanel
-        Width = 597
+        Width = 589
       end
     end
     inherited pnlDetail: TPanel
       Width = 339
-      Height = 107
       Align = alLeft
       inherited TBDockDetail: TTBDock
         Width = 339
@@ -200,25 +204,15 @@ inherited gdc_frmSetting: Tgdc_frmSetting
           end
         end
       end
-      inherited pnlSearchDetail: TPanel
-        Height = 81
-        inherited sbSearchDetail: TScrollBox
-          Height = 43
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 43
-        end
-      end
       inherited ibgrDetail: TgsIBGrid
         Width = 179
-        Height = 81
       end
     end
     object pnlStorage: TPanel
       Left = 342
       Top = 171
-      Width = 255
-      Height = 107
+      Width = 247
+      Height = 100
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -227,7 +221,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       object TBDockStorage: TTBDock
         Left = 0
         Top = 0
-        Width = 255
+        Width = 247
         Height = 26
         object tbStorageToolbar: TTBToolbar
           Left = 0
@@ -265,7 +259,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         Left = 0
         Top = 26
         Width = 160
-        Height = 81
+        Height = 74
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -275,7 +269,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
           Left = 0
           Top = 0
           Width = 160
-          Height = 51
+          Height = 44
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -285,7 +279,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         end
         object pnlSearchStorageButton: TPanel
           Left = 0
-          Top = 51
+          Top = 44
           Width = 160
           Height = 30
           Align = alBottom
@@ -315,8 +309,8 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       object ibgrStorage: TgsIBGrid
         Left = 160
         Top = 26
-        Width = 95
-        Height = 81
+        Width = 87
+        Height = 74
         HelpContext = 3
         Align = alClient
         BorderStyle = bsNone
@@ -523,12 +517,37 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       OnExecute = actSet2TxtExecute
       OnUpdate = actSet2TxtUpdate
     end
+    object actCopyToSetting: TAction
+      Category = 'Detail'
+      Caption = 'Копировать в настройку...'
+      Hint = 'Копировать в настройку...'
+      ImageIndex = 10
+      OnExecute = actCopyToSettingExecute
+    end
+    object actMoveToSetting: TAction
+      Category = 'Detail'
+      Caption = 'Переместить в настройку...'
+      Hint = 'Переместить в настройку...'
+      ImageIndex = 9
+      OnExecute = actMoveToSettingExecute
+    end
   end
   inherited dsMain: TDataSource
     DataSet = gdcSetting
   end
   inherited dsDetail: TDataSource
     DataSet = gdcSettingPos
+  end
+  inherited pmDetail: TPopupMenu
+    object sprSettingPosMoving: TMenuItem [6]
+      Caption = '-'
+    end
+    object nCopyToSetting: TMenuItem [7]
+      Action = actCopyToSetting
+    end
+    object nMoveToSetting: TMenuItem [8]
+      Action = actMoveToSetting
+    end
   end
   object gdcSetting: TgdcSetting
     Left = 129

@@ -646,6 +646,8 @@ type
     {Хранят РУИД объекта, загружаемый из потока}
     FStreamXID, FStreamDBID: TID;
     FOnFakeLoad: TOnFakeLoad;
+    FStreamSilentProcessing: Boolean;
+    FStreamProcessingAnswer: Word;
 
     FPostCount: Integer;
     FInDoFieldChange: Boolean;
@@ -742,7 +744,6 @@ type
 
     procedure UpdateOldValues(Field: TField);
     procedure CheckDoFieldChange;
-
   protected
     FgdcDataLink: TgdcDataLink;
     FInternalTransaction: TIBTransaction;
@@ -1203,14 +1204,13 @@ type
     // и, если она есть, установит курсор на нее и вернет
     // Истина. Если записи нет -- вернет Ложь.
     // При этом датасет будет выведен из состояния вставки через Cancel.
-    function CheckTheSame(var AnAnswer: Word; Modify: Boolean = False): Boolean;
+    function CheckTheSame(Modify: Boolean = False): Boolean;
     //Удаляет запись по идентификатору и ее руид
     //Используется только при загрузке данных из потока
     function DeleteTheSame(AnID: Integer; AName: String): Boolean;
     //Функция проверки необходимости модификации записи данными из SourceDS
     //при наличии полей editiondate, editorkey
-    function CheckNeedModify(SourceDS: TDataSet; IDMapping: TgdKeyIntAssoc;
-      var AnAnswer: Word): Boolean;
+    function CheckNeedModify(SourceDS: TDataSet; IDMapping: TgdKeyIntAssoc): Boolean;
 
     //
     procedure Prepare;
@@ -1333,7 +1333,10 @@ type
     // дитэйл таблицах, ссылающихся на исходную запись
     function Copy(const AFields: String; AValues: Variant; const ACopyDetail: Boolean = False;
       const APost: Boolean = True; const AnAppend: Boolean = False): Boolean; virtual;
-
+    // Метод используется для дублирования бизнес-объектов с детальными или без детальных
+    function CopyObject(const ACopyDetailObjects: Boolean = False;
+      const AShowEditDialog: Boolean = False): Boolean; virtual;
+    // Оставлен для обратной совместимости, вызывает Copy(True)
     function CopyWithDetail: Boolean;
 
     // захоўвае бягучы зап_с (кал_ ён рэдактаваўся)
@@ -1387,7 +1390,7 @@ type
     //Загрузка данных из потока в текущий обхект
     procedure _LoadFromStreamInternal(Stream: TStream;
       IDMapping: TgdKeyIntAssoc; ObjectSet: TgdcObjectSet;
-      UpdateList: TObjectList; StreamRecord: TgsStreamRecord; var AnAnswer: Word);
+      UpdateList: TObjectList; StreamRecord: TgsStreamRecord);
 
     procedure SaveToStream(Stream: TStream; DetailDS: TgdcBase;
       const BL: TBookmarkList = nil; const OnlyCurrent: Boolean = True);
@@ -1774,6 +1777,8 @@ type
 
     property StreamXID: TID read FStreamXID write FStreamXID;
     property StreamDBID: TID read FStreamDBID write FStreamDBID;
+    property StreamSilentProcessing: Boolean read FStreamSilentProcessing write FStreamSilentProcessing;
+    property StreamProcessingAnswer: Word read FStreamProcessingAnswer write FStreamProcessingAnswer;
 
   published
     //У нас есть класс-функция, которая по умолчанию возвращает для класса
@@ -3607,130 +3612,23 @@ begin
     Result := False;
 end;
 
-function TgdcBase.Copy(const AFields: String;
-  AValues: Variant;
-  const ACopyDetail: Boolean = False;
-  const APost: Boolean = True;
-  const AnAppend: Boolean = False): Boolean;
+function TgdcBase.CopyObject(const ACopyDetailObjects: Boolean = False;
+  const AShowEditDialog: Boolean = False): Boolean;
 var
-  V: array of Variant;
-  I: Integer;
-  L: TList;
-  C: TgdcFullClass;
-  Obj: TgdcBase;
+  MasterObject: TgdcBase;
+  DetailObject: TgdcBase;
+  LinkObj, LinkCopy: TgdcBase;
+  DS: TDataSource;
+  C, CFull: TgdcFullClass;
+  I, J: Integer;
+  DidActivate: Boolean;
+  NewId: Integer;
+  LinkTableList: TStringList;
+  OL: TObjectList;
   F: TField;
-  DontCopyList: String;
-begin
-  CheckBrowseMode;
 
-  C := GetCurrRecordClass;
-
-  if (C.gdClass = Self.ClassType) and (C.SubType = Self.SubType) then
-  begin
-
-    // список значений полей должен быть обязательно массивом
-    if (AFields > '') and (not VarIsArray(AValues)) then
-      AValues := VarArrayOf([AValues]);
-
-    // сохраним значения текущей записи
-    SetLength(V, FieldCount);
-    for I := 0 to FieldCount - 1 do
-    begin
-      if Fields[I].IsNull then
-        V[I] := Fields[I].Value
-      else
-        V[I] := Fields[I].AsString;
-    end;
-
-    // добавим новую и скопируем в нее значения полей
-    // исходной записи, кроме первичного ключа
-    // и полей, для которых заданы другие значения
-    L := TList.Create;
-    try
-      GetFieldList(L, AFields);
-      if AnAppend then
-        Append
-      else
-        Insert;
-      try
-        DontCopyList := GetNotCopyField;
-        for I := 0 to FieldCount - 1 do
-          if L.IndexOf(Fields[I]) >= 0 then
-            Fields[I].AsVariant := AValues[L.IndexOf(Fields[I])]
-          else
-            if TestCopyField(Fields[I].FieldName, DontCopyList) then
-            begin
-              if VarIsNull(V[I]) then
-                Fields[I].Clear
-              else
-                Fields[I].AsString := V[I];
-            end;
-        if APost then
-          Post;
-      except
-        if State in dsEditModes then
-          Cancel;
-        raise;
-      end;
-    finally
-      L.Free;
-    end;
-
-    Result := True;
-  end else
-  begin
-    Obj := C.gdClass.CreateWithParams(Owner,
-      Database,
-      Transaction,
-      C.SubType,
-      'ByID',
-      ID);
-    try
-      CopyEventHandlers(Obj, Self);
-      try
-        Obj.Open;
-        Result := Obj.Copy(AFields, AValues, ACopyDetail, True);
-        if Result and Active and Obj.Active then
-        begin
-          FDataTransfer := True;
-          ResetEventHandlers(Self);
-          try
-            if AnAppend then
-              Append
-            else
-              Insert;
-            try
-              DontCopyList := GetNotCopyField;
-              for I := 0 to FieldCount - 1 do
-              begin
-                F := Obj.FindField(Fields[I].FieldName);
-                if Assigned(F) and TestCopyField(Fields[I].FieldName, DontCopyList) then
-                begin
-                  Fields[I].Assign(F);
-                end;
-              end;
-              Post;
-            except
-              if State in dsEditModes then
-                Cancel;
-              raise;
-            end;
-          finally
-            FDataTransfer := False;
-          end;
-        end;
-      finally
-        CopyEventHandlers(Self, Obj);
-      end;
-    finally
-      Obj.Free;
-    end;
-  end;
-end;
-
-function TgdcBase.CopyWithDetail: Boolean;
-
-  procedure CopyRow(Source, Dest: TgdcBase);
+  // Копирует данные объекта
+  procedure CopyRecordData(Source, Dest: TgdcBase);
   var
     I: Integer;
     DontCopyList: String;
@@ -3749,7 +3647,8 @@ function TgdcBase.CopyWithDetail: Boolean;
     end;
   end;
 
-  procedure CopySet(Source, Dest: TgdcBase);
+  // Копирование данных объектов-множеств
+  procedure CopyRecordSetData(Source, Dest: TgdcBase);
   var
     LinkTableList: TStringList;
     OL: TObjectList;
@@ -3828,7 +3727,8 @@ function TgdcBase.CopyWithDetail: Boolean;
                         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
                     end;
                     raise;
-                  end else
+                  end
+                  else
                     raise;
                 end;
                 while not qin.EOF do
@@ -3878,24 +3778,11 @@ function TgdcBase.CopyWithDetail: Boolean;
     end;
   end;
 
-var
-  MasterObject: TgdcBase;
-  DetailObject: TgdcBase;
-  LinkObj, LinkCopy: TgdcBase;
-  DS: TDataSource;
-  C, CFull: TgdcFullClass;
-  I, J: Integer;
-  DidActivate: Boolean;
-  NewId: Integer;
-  LinkTableList: TStringList;
-  OL: TObjectList;
-  F: TField;
 begin
   CheckBrowseMode;
 
   C := GetCurrRecordClass;
-
-  DS := nil;
+  // Создадим рабочий объект того же класса, что и копируемый
   MasterObject := C.gdClass.CreateWithParams(Owner,
     Database,
     Transaction,
@@ -3911,11 +3798,13 @@ begin
     MasterObject.Open;
     MasterObject.Insert;
     try
-      CopyRow(Self, MasterObject);
+      // Копирование данных самой записи
+      CopyRecordData(Self, MasterObject);
       if (MasterObject is TgdcDocument) and MasterObject.FieldByName('number').IsNull then
         MasterObject.FieldByName('number').AsString := ' ';
       MasterObject.Post;
-      CopySet(Self, MasterObject);
+      // Копирование объектов-множеств
+      CopyRecordSetData(Self, MasterObject);
     except
       if MasterObject.State in dsEditModes then
         MasterObject.Cancel;
@@ -3931,37 +3820,33 @@ begin
     try
       OL := TObjectList.Create(False);
       try
-        atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
-          GetListTable(SubType), OL);
+        atDatabase.ForeignKeys.ConstraintsByReferencedRelation(GetListTable(SubType), OL);
         for I := 0 to OL.Count - 1 do
           with OL[I] as TatForeignKey do
-        begin
-          if IsSimpleKey
-            and (Relation.PrimaryKey <> nil)
-            and (Relation.PrimaryKey.ConstraintFields.Count = 1)
-            and (ConstraintField = Relation.PrimaryKey.ConstraintFields[0])
-            and (Pos('USR$', Relation.RelationName) = 1) then
           begin
-            if GetBaseClassForRelation(Relation.RelationName).gdClass.ClassName =
-              'TgdcAttrUserDefined' then
+            if IsSimpleKey
+              and Assigned(Relation.PrimaryKey)
+              and (Relation.PrimaryKey.ConstraintFields.Count = 1)
+              and (ConstraintField = Relation.PrimaryKey.ConstraintFields[0])
+              and (Pos('USR$', Relation.RelationName) = 1) then
             begin
-              // возможно, что на форме присутствует уже бизнес-объект
-              // связанный с нашим объектов. Скопируем его механизмом
-              // копирования связанных (детальных) объектов чуть ниже.
-              for J := 0 to Self.DetailLinksCount - 1 do
+              if GetBaseClassForRelation(Relation.RelationName).gdClass.ClassName = 'TgdcAttrUserDefined' then
               begin
-                if AnsiCompareText(TgdcBase(Self.DetailLinks[J]).GetListTable(
-                  TgdcBase(Self.DetailLinks[J]).SubType), Relation.RelationName) = 0 then
+                // возможно, что на форме присутствует уже бизнес-объект
+                // связанный с нашим объектов. Скопируем его механизмом
+                // копирования связанных (детальных) объектов чуть ниже (если включено копирование детальных объектов).
+                for J := 0 to Self.DetailLinksCount - 1 do
                 begin
-                  break;
-                end;
+                  if AnsiCompareText(
+                       TgdcBase(Self.DetailLinks[J]).GetListTable(TgdcBase(Self.DetailLinks[J]).SubType), Relation.RelationName) = 0 then
+                    Break;
 
-                if J = Self.DetailLinksCount - 1 then
-                  LinkTableList.Add(AnsiUpperCase(Relation.RelationName));
+                  if J = Self.DetailLinksCount - 1 then
+                    LinkTableList.Add(AnsiUpperCase(Relation.RelationName));
+                end;
               end;
             end;
           end;
-        end;
       finally
         OL.Free;
       end;
@@ -3988,10 +3873,10 @@ begin
             try
               LinkCopy.Open;
               LinkCopy.Insert;
-              CopyRow(LinkObj, LinkCopy);
+              CopyRecordData(LinkObj, LinkCopy);
               LinkCopy.ID := MasterObject.ID;
               LinkCopy.Post;
-              CopySet(LinkObj, LinkCopy);
+              CopyRecordSetData(LinkObj, LinkCopy);
             finally
               LinkCopy.Free;
             end;
@@ -4004,87 +3889,102 @@ begin
       LinkTableList.Free;
     end;
 
-    DS := TDatasource.Create(Owner);
-    DS.Dataset := MasterObject;
-
-    for I := 0 to Self.DetailLinksCount - 1 do
+    // Если флаг установлен, то скопируем также детальные объекты
+    if ACopyDetailObjects then
     begin
-      // на форме могут быть несколько объектов, подключенных
-      // к нашему. Рассмотрим такой случай: на форме лежит объект накладная,
-      // объект позиции накладной и объект клиент. Два последних, подключены
-      // как детальные к накладной. Очевидно, что при копировании, объект
-      // клиент не следует трогать.
-      {
-      if CompareText(TgdcBase(Self.DetailLinks[I]).DetailField,
-        TgdcBase(Self.DetailLinks[I]).GetKeyField(TgdcBase(Self.DetailLinks[I]).SubType)) = 0 then
-      begin
-        continue;
-      end;
-      }
-      F := Self.FindField(Self.DetailLinks[I].MasterField);
-      if (not (F is TIntegerField)) or (Self.ID <> F.AsInteger) then
-        continue;
-
-      DetailObject := nil;
-      Self.DetailLinks[I].DisableControls;
+      DS := TDatasource.Create(Owner);
       try
-        C := TgdcBase(Self.DetailLinks[I]).GetCurrRecordClass;
-        DetailObject := C.gdClass.CreateWithParams(Owner,
-            Database,
-            Transaction,
-            TgdcBase(Self.DetailLinks[I]).SubType,
-            TgdcBase(Self.DetailLinks[I]).SubSet,
-            -1);
-
-        CopyEventHandlers(DetailObject, Self.DetailLinks[I]);
-
-        DetailObject.MasterSource := DS;        
-        DetailObject.MasterField := Self.DetailLinks[I].MasterField;
-        DetailObject.DetailField := Self.DetailLinks[I].DetailField;
-        DetailObject.Open;
-
-        Self.DetailLinks[I].First;
-        while not Self.DetailLinks[I].Eof do
+        DS.Dataset := MasterObject;
+        for I := 0 to Self.DetailLinksCount - 1 do
         begin
-          DetailObject.Insert;
+          // На форме могут быть несколько объектов, подключенных
+          // к нашему. Рассмотрим такой случай: на форме лежит объект накладная,
+          // объект позиции накладной и объект клиент. Два последних, подключены
+          // как детальные к накладной. Очевидно, что при копировании, объект
+          // клиент не следует трогать.
+          F := Self.FindField(Self.DetailLinks[I].MasterField);
+          if (not (F is TIntegerField)) or (Self.ID <> F.AsInteger) then
+            continue;
+
+          DetailObject := nil;
+          Self.DetailLinks[I].DisableControls;
           try
-            CopyRow(Self.DetailLinks[I], DetailObject);
-            DetailObject.Post;
-            CopySet(Self.DetailLinks[I], DetailObject);
-          except
-            on E: Exception do
+            C := TgdcBase(Self.DetailLinks[I]).GetCurrRecordClass;
+            DetailObject := C.gdClass.CreateWithParams(Owner,
+                Database,
+                Transaction,
+                TgdcBase(Self.DetailLinks[I]).SubType,
+                TgdcBase(Self.DetailLinks[I]).SubSet,
+                -1);
+
+            CopyEventHandlers(DetailObject, Self.DetailLinks[I]);
+
+            DetailObject.MasterSource := DS;
+            DetailObject.MasterField := Self.DetailLinks[I].MasterField;
+            DetailObject.DetailField := Self.DetailLinks[I].DetailField;
+            DetailObject.Open;
+
+            Self.DetailLinks[I].First;
+            while not Self.DetailLinks[I].Eof do
             begin
-              if DetailObject.State in dsEditModes then
-                DetailObject.Cancel;
-              MessageBox(ParentHandle,
-                PChar(Format('Ошибка копирования детального объекта: '#13#10'"%s"',
-                  [E.Message])),
-                'Внимание',
-                MB_OK or MB_ICONERROR);
+              DetailObject.Insert;
+              try
+                CopyRecordData(Self.DetailLinks[I], DetailObject);
+                DetailObject.Post;
+                CopyRecordSetData(Self.DetailLinks[I], DetailObject);
+              except
+                on E: Exception do
+                begin
+                  if DetailObject.State in dsEditModes then
+                    DetailObject.Cancel;
+                  MessageBox(ParentHandle,
+                    PChar(Format('Ошибка копирования детального объекта: '#13#10'"%s"',
+                      [E.Message])),
+                    'Внимание',
+                    MB_OK or MB_ICONERROR);
+                end;
+              end;
+              Self.DetailLinks[I].Next;
             end;
-          end;
-          Self.DetailLinks[I].Next;
+          finally
+            DetailObject.Free;
+            Self.DetailLinks[I].EnableControls;
+          end
         end;
       finally
-        DetailObject.Free;
-        Self.DetailLinks[I].EnableControls;
-      end
+        DS.Free;
+      end;
     end;
 
-    if MasterObject.EditDialog then
+    // Если установлен параметр, покажем диалог редактирования скопированного объекта
+    if AShowEditDialog then
+    begin
+      if MasterObject.EditDialog then
+      begin
+        NewID := MasterObject.ID;
+        if DidActivate and MasterObject.Transaction.InTransaction then
+          MasterObject.Transaction.Commit
+        else
+          FDSModified := True;
+        Self.Close;
+        Self.Open;
+        Self.ID := NewID;
+      end
+      else
+        if DidActivate and MasterObject.Transaction.InTransaction then
+          MasterObject.Transaction.Rollback;
+    end
+    else
     begin
       NewID := MasterObject.ID;
       if DidActivate and MasterObject.Transaction.InTransaction then
         MasterObject.Transaction.Commit
       else
         FDSModified := True;
-      Close;
-      Open;
-      Locate('ID', NewID, []);
-    end
-    else
-      if DidActivate and MasterObject.Transaction.InTransaction then
-        MasterObject.Transaction.Rollback;
+      Self.Close;
+      Self.Open;
+      Self.ID := NewID;
+    end;
   finally
     if DidActivate and MasterObject.Transaction.InTransaction then
       MasterObject.Transaction.Rollback;
@@ -4092,10 +3992,151 @@ begin
     for I := MasterObject.DetailLinksCount - 1 downto 0 do
       MasterObject.DetailLinks[I].Free;
 
-    DS.Free;
     MasterObject.Free
   end;
+
   Result := True;
+end;
+
+function TgdcBase.Copy(const AFields: String;
+  AValues: Variant;
+  const ACopyDetail: Boolean = False;
+  const APost: Boolean = True;
+  const AnAppend: Boolean = False): Boolean;
+var
+  V: array of Variant;
+  I: Integer;
+  L: TList;
+  C: TgdcFullClass;
+  Obj: TgdcBase;
+  F: TField;
+  DontCopyList: String;
+begin
+  CheckBrowseMode;
+
+  C := GetCurrRecordClass;
+
+  if (C.gdClass = Self.ClassType) and (C.SubType = Self.SubType) then
+  begin
+
+    // список значений полей должен быть обязательно массивом
+    if (AFields > '') and (not VarIsArray(AValues)) then
+      AValues := VarArrayOf([AValues]);
+
+    // сохраним значения текущей записи
+    SetLength(V, FieldCount);
+    for I := 0 to FieldCount - 1 do
+    begin
+      if Fields[I].IsNull then
+        V[I] := Fields[I].Value
+      else
+        V[I] := Fields[I].AsString;
+    end;
+
+    // добавим новую и скопируем в нее значения полей
+    // исходной записи, кроме первичного ключа
+    // и полей, для которых заданы другие значения
+    {
+    if AnAppend then
+      Append
+    else
+      Insert;
+    try
+      DuplicateRow(Self, AFields, AValues);
+    except
+      if State in dsEditModes then
+        Cancel;
+      raise;
+    end;
+    }
+
+    L := TList.Create;
+    try
+      GetFieldList(L, AFields);
+      if AnAppend then
+        Append
+      else
+        Insert;
+      try
+        DontCopyList := GetNotCopyField;
+        for I := 0 to FieldCount - 1 do
+          if L.IndexOf(Fields[I]) >= 0 then
+            Fields[I].AsVariant := AValues[L.IndexOf(Fields[I])]
+          else
+            if TestCopyField(Fields[I].FieldName, DontCopyList) then
+            begin
+              if VarIsNull(V[I]) then
+                Fields[I].Clear
+              else
+                Fields[I].AsString := V[I];
+            end;
+        if APost then
+          Post;
+      except
+        if State in dsEditModes then
+          Cancel;
+        raise;
+      end;
+    finally
+      L.Free;
+    end;
+
+    Result := True;
+  end
+  else
+  begin
+    Obj := C.gdClass.CreateWithParams(Owner,
+      Database,
+      Transaction,
+      C.SubType,
+      'ByID',
+      ID);
+    try
+      CopyEventHandlers(Obj, Self);
+      try
+        Obj.Open;
+        Result := Obj.Copy(AFields, AValues, ACopyDetail, True);
+        if Result and Active and Obj.Active then
+        begin
+          FDataTransfer := True;
+          ResetEventHandlers(Self);
+          try
+            if AnAppend then
+              Append
+            else
+              Insert;
+            try
+              DontCopyList := GetNotCopyField;
+              for I := 0 to FieldCount - 1 do
+              begin
+                F := Obj.FindField(Fields[I].FieldName);
+                if Assigned(F) and TestCopyField(Fields[I].FieldName, DontCopyList) then
+                begin
+                  Fields[I].Assign(F);
+                end;
+              end;
+              Post;
+            except
+              if State in dsEditModes then
+                Cancel;
+              raise;
+            end;
+          finally
+            FDataTransfer := False;
+          end;
+        end;
+      finally
+        CopyEventHandlers(Self, Obj);
+      end;
+    finally
+      Obj.Free;
+    end;
+  end;
+end;
+
+function TgdcBase.CopyWithDetail: Boolean;
+begin
+  Result := Self.CopyObject(True);
 end;
 
 procedure TgdcBase.CopyDetailTable(const AMasterTableName: String;
@@ -4206,11 +4247,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-  Bm: String;
-  C: TgdcFullClass;
-  Obj: TgdcBase;
-  I: Integer;
-  F: TField;
   UserChoice: Boolean;
 begin
   {@UNFOLD MACRO INH_ORIG_COPYDIALOG('TGDCBASE', 'COPYDIALOG', KEYCOPYDIALOG)}
@@ -4270,67 +4306,16 @@ begin
         exit;
       end;
     end;
-  end else
+  end
+  else
     UserChoice := True;
 
   if (DetailLinksCount > 0) and UserChoice then
-  begin
-    Result := CopyWithDetail;
-  end else
-  begin
-    C := GetCurrRecordClass;
-    if (C.gdClass = Self.ClassType) and (C.SubType = Self.SubType) then
-    begin
-      Bm := Bookmark;
-      Result := Copy('', Null, True, False) and EditDialog;
-      if not Result then
-        if BookmarkValid(Pointer(Bm)) and (Bookmark <> Bm) then
-          Bookmark := Bm;
-    end else
-    begin
-      Obj := C.gdClass.CreateWithParams(Owner,
-        Database,
-        Transaction,
-        C.SubType,
-        'ByID',
-        Self.ID);
-      try
-        CopyEventHandlers(Obj, Self);
-        try
-          Obj.Open;
-          Result := Obj.CopyDialog;
-          if Result and Active and Obj.Active then
-          begin
-            FDataTransfer := True;
-            ResetEventHandlers(Self);
-            try
-              Insert;
-              try
-                for I := 0 to FieldCount - 1 do
-                begin
-                  F := Obj.FindField(Fields[I].FieldName);
-                  if Assigned(F) then
-                    Fields[I].Assign(F);
-                end;
-                Post;
-              except
-                if State in dsEditModes then
-                  Cancel;
-                raise;
-              end;
-            finally
-              FDataTransfer := False;
-            end;
-          end;
-
-        finally
-          CopyEventHandlers(Self, Obj);
-        end;
-      finally
-        Obj.Free;
-      end;
-    end;
-  end;
+    // Скопируем объект с детальными объектами
+    Result := CopyObject(True, True)
+  else
+    // Скопируем объект без детальных объектов
+    Result := CopyObject(False, True);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'COPYDIALOG', KEYCOPYDIALOG)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -4502,6 +4487,9 @@ begin
   FSetRefreshSQLOn := True;
   FStreamXID := -1;
   FStreamDBID := -1;
+
+  Self.StreamSilentProcessing := False;
+  Self.StreamProcessingAnswer := mrNone;
 end;
 
 procedure TgdcBase.Prepare;
@@ -6918,8 +6906,7 @@ begin
   QueryFiltered := True;
 end;
 
-function TgdcBase.CheckNeedModify(SourceDS: TDataSet; IDMapping: TgdKeyIntAssoc;
-  var AnAnswer: Word): Boolean;
+function TgdcBase.CheckNeedModify(SourceDS: TDataSet; IDMapping: TgdKeyIntAssoc): Boolean;
 const
   PassFieldName = ';EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;';
 var
@@ -6936,7 +6923,7 @@ begin
   if Self.InheritsFrom(TgdcMetaBase) and (not (Self as TgdcMetaBase).IsUserDefined) then
     Exit;
 
-  case AnAnswer of
+  case Self.StreamProcessingAnswer of
     mrYesToAll: Result := True;
     mrNoToAll: Result := False;
     else
@@ -6945,112 +6932,108 @@ begin
      {Возможно нам выставили флаг "Обновлять из потока" вручную,
       тогда нас не интересует ни дата обновления, ни содержимое уже существующей записи}
       begin
-        AnAnswer := MessageDlg('Объект ' + GetDisplayName(SubType) + ' ' +
+        Self.StreamProcessingAnswer := MessageDlg('Объект ' + GetDisplayName(SubType) + ' ' +
           FieldByName(GetListField(SubType)).AsString + ' с идентификатором ' +
           FieldByName(GetKeyField(SubType)).AsString + ' уже существует в базе. ' +
           'Заменить объект? ', mtConfirmation,
-          [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);
-        case AnAnswer of
+          [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);                  
+        case Self.StreamProcessingAnswer of
           mrYes, mrYesToAll: Result := True;
           else Result := False;
         end;
-      end else
-
-      if Assigned(SourceDS.FindField(fneditiondate)) and
-        Assigned(FindField(fneditiondate))
-      then
+      end
+      else
       begin
-        Result := False;
-        if (SourceDS.FieldByName(fneditiondate).AsDateTime <= FieldByName(fneditiondate).AsDateTime)
-        then
+        if Assigned(SourceDS.FindField(fneditiondate)) and Assigned(FindField(fneditiondate)) then
         begin
-          IsDifferent := False;
-
-          //Проверим на отличие содержимого полей загружаемой записи от существующей
-          for I := 0 to SourceDS.Fields.Count - 1 do
+          Result := False;
+          if (SourceDS.FieldByName(fneditiondate).AsDateTime <= FieldByName(fneditiondate).AsDateTime) then
           begin
-            if Assigned(FindField(SourceDS.Fields[I].FieldName)) and
-              //Исключим из проверки поля editiondate, keyfield, editorkey
-              (AnsiCompareText(Trim(SourceDS.Fields[I].FieldName), GetKeyField(SubType)) <> 0) and
-              (AnsiPos(';' + AnsiUpperCase(Trim(SourceDS.Fields[I].FieldName)) + ';', PassFieldName) = 0)
-            then
-            begin
-              F := nil;
-              if Assigned(atDatabase) and (SourceDS.Fields[I].DataType in [ftInteger, ftSmallInt, ftWord]) then
-              begin
-               //Проверяем не является ли наше поле ссылкой
-                R := atDatabase.Relations.ByRelationName(RelationByAliasName(SourceDS.Fields[I].FieldName));
-                if Assigned(R) then
-                  F := R.RelationFields.ByFieldName(FieldNameByAliasName(SourceDS.Fields[I].FieldName));
-                if Assigned(F) and Assigned(F.References) then
-                begin
-                  //Если нам передан SourceDS из потока (IDMapping <> nil)
-                  //то ищем соответсвие нашей ссылке
-                  //В обратном случае (т.е. если нам передан обработанный SourceDS)
-                  //берем текущее значение
-                  if Assigned(IDMapping) then
-                  begin
-                    Key := IDMapping.IndexOf(SourceDS.Fields[I].AsInteger);
-                    if Key <> -1 then
-                    begin
-                      Key := IDMapping.ValuesByIndex[Key];
-                    end;
-                    if (Key = -1) and (SourceDS.Fields[I].AsInteger < cstUserIDStart) then
-                      Key := SourceDS.Fields[I].AsInteger;
-                  end else
-                    Key := SourceDS.Fields[I].AsInteger;
+            IsDifferent := False;
 
-                  //Сравниваем наши ссылки
-                  if (Key <> FieldByName(SourceDS.Fields[I].FieldName).AsInteger)
-                  then
+            //Проверим на отличие содержимого полей загружаемой записи от существующей
+            for I := 0 to SourceDS.Fields.Count - 1 do
+            begin
+              if Assigned(FindField(SourceDS.Fields[I].FieldName)) and
+                //Исключим из проверки поля editiondate, keyfield, editorkey
+                (AnsiCompareText(Trim(SourceDS.Fields[I].FieldName), GetKeyField(SubType)) <> 0) and
+                (AnsiPos(';' + AnsiUpperCase(Trim(SourceDS.Fields[I].FieldName)) + ';', PassFieldName) = 0) then
+              begin
+                F := nil;
+                if Assigned(atDatabase) and (SourceDS.Fields[I].DataType in [ftInteger, ftSmallInt, ftWord]) then
+                begin
+                 //Проверяем не является ли наше поле ссылкой
+                  R := atDatabase.Relations.ByRelationName(RelationByAliasName(SourceDS.Fields[I].FieldName));
+                  if Assigned(R) then
+                    F := R.RelationFields.ByFieldName(FieldNameByAliasName(SourceDS.Fields[I].FieldName));
+                  if Assigned(F) and Assigned(F.References) then
                   begin
-                    IsDifferent := True;
-                    Break;
+                    //Если нам передан SourceDS из потока (IDMapping <> nil)
+                    //то ищем соответсвие нашей ссылке
+                    //В обратном случае (т.е. если нам передан обработанный SourceDS)
+                    //берем текущее значение
+                    if Assigned(IDMapping) then
+                    begin
+                      Key := IDMapping.IndexOf(SourceDS.Fields[I].AsInteger);
+                      if Key <> -1 then
+                      begin
+                        Key := IDMapping.ValuesByIndex[Key];
+                      end;
+                      if (Key = -1) and (SourceDS.Fields[I].AsInteger < cstUserIDStart) then
+                        Key := SourceDS.Fields[I].AsInteger;
+                    end
+                    else
+                      Key := SourceDS.Fields[I].AsInteger;
+
+                    //Сравниваем наши ссылки
+                    if (Key <> FieldByName(SourceDS.Fields[I].FieldName).AsInteger) then
+                    begin
+                      IsDifferent := True;
+                      Break;
+                    end;
+                    Continue;
                   end;
-                  Continue;
+                end;
+
+                if (Trim(SourceDS.Fields[I].AsString) = '') and (SourceDS.Fields[I].AsString > '') then
+                //Если строка у нас содержит только пробелы
+                //То оставляем ее такую как есть
+                  SourceSt := SourceDS.Fields[I].AsString
+                else
+                //В обратном случае убираем ведущие и закрывающие пробелы
+                  SourceSt := Trim(SourceDS.Fields[I].AsString);
+
+                if (Trim(FieldByName(SourceDS.Fields[I].FieldName).AsString) = '') and
+                   (FieldByName(SourceDS.Fields[I].FieldName).AsString > '') then
+                  CurrentSt := FieldByName(SourceDS.Fields[I].FieldName).AsString
+                else
+                  CurrentSt := Trim(FieldByName(SourceDS.Fields[I].FieldName).AsString);
+
+                if (CurrentSt <> SourceSt) then
+                begin
+                  IsDifferent := True;
+                  Break;
                 end;
               end;
+            end;
 
-              if (Trim(SourceDS.Fields[I].AsString) = '') and (SourceDS.Fields[I].AsString > '') then
-              //Если строка у нас содержит только пробелы
-              //То оставляем ее такую как есть
-                SourceSt := SourceDS.Fields[I].AsString
-              else
-              //В обратном случае убираем ведущие и закрывающие пробелы
-                SourceSt := Trim(SourceDS.Fields[I].AsString);
-
-              if (Trim(FieldByName(SourceDS.Fields[I].FieldName).AsString) = '') and
-                (FieldByName(SourceDS.Fields[I].FieldName).AsString > '')
-              then
-                CurrentSt := FieldByName(SourceDS.Fields[I].FieldName).AsString
-              else
-                CurrentSt := Trim(FieldByName(SourceDS.Fields[I].FieldName).AsString);
-
-              if (CurrentSt <> SourceSt) then
-              begin
-                IsDifferent := True;
-                Break;
+            if IsDifferent then
+            begin
+              //Если загружаемая запись отличается от существующей уточним, нужно ли ее считывать
+              Self.StreamProcessingAnswer := MessageDlg('Объект ' + GetDisplayName(SubType) + ' ' +
+                FieldByName(GetListField(SubType)).AsString + ' с идентификатором ' +
+                FieldByName(GetKeyField(SubType)).AsString + ' имеет более позднюю модификацию, ' +
+                'чем загружаемый из потока. Заменить объект? ', mtConfirmation,
+                [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);
+              case Self.StreamProcessingAnswer of
+                mrYes, mrYesToAll: Result := True;
+                else Result := False;
               end;
             end;
-          end;
-
-          if IsDifferent then
+          end else if (SourceDS.FieldByName(fneditiondate).AsDateTime > FieldByName(fneditiondate).AsDateTime) then
           begin
-            //Если загружаемая запись отличается от существующей уточним, нужно ли ее считывать
-            AnAnswer := MessageDlg('Объект ' + GetDisplayName(SubType) + ' ' +
-              FieldByName(GetListField(SubType)).AsString + ' с идентификатором ' +
-              FieldByName(GetKeyField(SubType)).AsString + ' имеет более позднюю модификацию, ' +
-              'чем загружаемый из потока. Заменить объект? ', mtConfirmation,
-              [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);
-            case AnAnswer of
-              mrYes, mrYesToAll: Result := True;
-              else Result := False;
-            end;
+            Result := True;
           end;
-        end else if (SourceDS.FieldByName(fneditiondate).AsDateTime > FieldByName(fneditiondate).AsDateTime)
-        then
-        begin
-          Result := True;
         end;
       end;
     end;
@@ -7058,8 +7041,7 @@ begin
 end;
 
 procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyIntAssoc;
-  ObjectSet: TgdcObjectSet; UpdateList: TObjectList; StreamRecord: TgsStreamRecord;
-  var AnAnswer: Word);
+  ObjectSet: TgdcObjectSet; UpdateList: TObjectList; StreamRecord: TgsStreamRecord);
 
   procedure InsertRecord(SourceDS: TDataSet; TargetDS: TgdcBase; UL: TObjectList); forward;
 
@@ -7082,8 +7064,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
     SFld := '';
     SValues := '';
     SUpdate := '';
-    {Пробегаемся по полям из потока. Если поле является полем-множеством,
-     то формируем соответствующие строки для обновления/вставки}
+    // Пробегаемся по полям из потока. Если поле является полем-множеством,
+    //   то формируем соответствующие строки для обновления/вставки
     for I := 0 to SourceDS.Fields.Count - 1 do
     begin
       if not IsSetField(SourceDS.Fields[I].FieldName) then
@@ -7111,14 +7093,15 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
         F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
           GetSetFieldName(SourceDS.Fields[I].FieldName));
         if (F <> nil) and (F.References <> nil) then
-        begin //Если это поле является ссылкой, то поищем его в карте идентификаторов
+        begin
+          // Если это поле является ссылкой, то поищем его в карте идентификаторов
           Key := IDMapping.IndexOf(SourceDS.Fields[I].AsInteger);
           if Key > -1 then
-          begin
-            SKey := IntToStr(IDMapping.ValuesByIndex[Key]);
-          end else
+            SKey := IntToStr(IDMapping.ValuesByIndex[Key])
+          else
             SKey := SourceDS.Fields[I].AsString;
-        end else
+        end
+        else
           SKey := SourceDS.Fields[I].AsString;
         SKey := StringReplace(SKey, ',', '.', []);   
         SValues := SValues + SKey;
@@ -7164,14 +7147,15 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
                 F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
                   GetSetFieldName(SourceDS.FieldByName(S1).FieldName));
                 if (F <> nil) and (F.References <> nil) then
-                begin //Если это поле является ссылкой, то поищем его в карте идентификаторов
+                begin
+                  // Если это поле является ссылкой, то поищем его в карте идентификаторов
                   Key := IDMapping.IndexOf(SourceDS.FieldByName(S1).AsInteger);
                   if Key > -1 then
-                  begin
-                    SKey := IntToStr(IDMapping.ValuesByIndex[Key]);
-                  end else
+                    SKey := IntToStr(IDMapping.ValuesByIndex[Key])
+                  else
                     SKey := SourceDS.FieldByName(S1).AsString;
-                end else
+                end
+                else
                   SKey := SourceDS.FieldByName(S1).AsString;
                 S := S + Pr.ConstraintFields[I].FieldName + ' = ' + SKey;
               end;
@@ -7186,7 +7170,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
     {          ibsql.Close;
               ibsql.SQL.Text := Format(sql_SetUpdate,
                 [SourceDS.FieldByName('_SETTABLE').AsString, SUpdate, S]);}
-            end else
+            end
+            else
             begin
               ibsql.Close;
               ibsql.SQL.Text := Format(sql_SetInsert,
@@ -7207,9 +7192,10 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
               AddMistake(E.Message, clRed);
             end;
           end;
-        end else
+        end
+        else
         begin
-          AddMistake(#13#10 + 'Данные множества ' + SourceDS.FieldByName('_SETTABLE').AsString + ' не были добавлены!'#13#10, clRed);
+          AddWarning(#13#10 + 'Данные множества ' + SourceDS.FieldByName('_SETTABLE').AsString + ' не были добавлены!'#13#10, clRed);
         end;
 
       finally
@@ -7227,11 +7213,11 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
     begin
       if (UL[I] as TgdcReferenceUpdate).RefID = SourceKeyValue then
       begin
-        {На обновление полей в б-о могут быть заданы к-л операции => Сделано через б-о, а не через bsql}
+        // На обновление полей в б-о могут быть заданы к-л операции => Сделано через б-о, а не через ibsql
         Obj := (UL[I] as TgdcReferenceUpdate).FullClass.gdClass.CreateSubType(nil,
           (UL[I] as TgdcReferenceUpdate).FullClass.SubType, 'ByID');
         try
-          {Транзакция должна быть открыта}
+          // Транзакция должна быть открыта
           Obj.Transaction := Transaction;
           Obj.ReadTransaction := Transaction;
           Obj.ID := (UL[I] as TgdcReferenceUpdate).ID;
@@ -7271,13 +7257,13 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
     RUOL := nil;
 
     try
-      //Пробежимся по полям из потока и перенесем их значение в наш объект
+      // Пробежимся по полям из потока и перенесем их значение в наш объект
       for I := 0 to SourceDS.FieldCount - 1 do
       begin
         SourceField := SourceDS.Fields[I];
         TargetField := TargetDS.FindField(SourceField.FieldName);
 
-        //Если мы нашли поле в нашем объекте, то поищем к какой таблице оно принадлежит
+        // Если мы нашли поле в нашем объекте, то поищем к какой таблице оно принадлежит
         if (TargetField <> nil) then
         begin
           R := atDatabase.Relations.ByRelationName(TargetDS.RelationByAliasName(TargetField.FieldName));
@@ -7285,7 +7271,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           // системных таблиц нет в нашей структуре атДатабэйз
           if R = nil then
           begin
-            //Если это ключевое поле, то переходим к следующему полю
+            // Если это ключевое поле, то переходим к следующему полю
             if (AnsiCompareText(SourceField.FieldName, TargetDS.GetKeyField(TargetDS.SubType)) = 0) then
               Continue;
 
@@ -7317,8 +7303,6 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             TargetField.AsInteger := IBLogin.ContactKey;
             Continue;
           end;
-
-
 
           //Если наш объект документ
           if (TargetDS is TgdcDocument) and (TargetField.FieldName = fnDOCUMENTKEY)
@@ -7453,7 +7437,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
             end;
           end;
         end
-        else if not TargetDS.CheckTheSame(AnAnswer, True) then
+        else if not TargetDS.CheckTheSame(True) then
           TargetDS.Post;
 
         if NeedAddToIDMapping and
@@ -7487,11 +7471,6 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
               [TargetDS.ClassName,
                SourceDS.FieldByName(TargetDS.GetListField(TargetDS.SubType)).AsString,
                SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsString]);
-
-          {MessageBox(ParentHandle,
-            PChar(ErrorSt),
-            'Ошибка',
-            MB_OK or MB_ICONHAND);}
 
           //AddMistake(ErrorSt, clRed);
           AddMistake(E.Message, clRed);
@@ -7667,7 +7646,7 @@ begin
             end;
 
             //Уточням, нуждается ли наш объект в обновлении данными из потока
-            if CheckNeedModify(CDS, IDMapping, AnAnswer) then
+            if CheckNeedModify(CDS, IDMapping) then
             begin
               Edit;
               //если обновление прошло успешно и мы имеем более раннюю дату модификации руида
@@ -7706,10 +7685,6 @@ begin
           end;
         end;
       end;
-
-      {Если есть поля-множества, то обработаем их
-      CopySetRecord(CDS);                        }
-
     finally
       if DidActivate and Transaction.InTransaction then
         Transaction.Commit;
@@ -7733,7 +7708,6 @@ var
   OldPos: Integer;
   stVersion: String;
   stRecord: TgsStreamRecord;
-  AnAnswer: Word;
   RecCount: Integer;
   PrSet: TgdcPropertySet;
   PropInfo: PPropInfo;
@@ -7741,11 +7715,10 @@ var
   Ind, ObjDataLen: Integer;
   AClassList: TStringList;
 begin
-  Assert(IBLogin <> nil);
-  Assert(atDatabase <> nil);
-  Assert(ObjectSet <> nil);
+  Assert(IBLogin <> nil, 'IBLogin not assigned');
+  Assert(atDatabase <> nil, 'atDatabase not assigned');
+  Assert(ObjectSet <> nil, 'ObjectSet not assigned');
 
-  AnAnswer := 0;
   Obj := nil;
 
   if not (sFakeLoad in BaseState) then
@@ -7835,23 +7808,26 @@ begin
 
         C := GetClass(LoadClassName);
 
-        {Пропускаем класс, если он не найден}
+        // Пропускаем класс, если он не найден
         if C = nil then
         begin
-          if (AClassList.IndexOf(LoadClassName) = -1) and (MessageBox(ParentHandle,
-            PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
-            'Продолжать загрузку?'),
-            'Внимание',
-            MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO) then
+          if not Self.StreamSilentProcessing then
           begin
-            raise EgdcException.CreateObj('Invalid class name', Self);
-          end else
-          begin
+            if (AClassList.IndexOf(LoadClassName) = -1)
+              and (MessageBox(ParentHandle,
+                PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
+                'Продолжать загрузку?'),
+                'Внимание',
+                MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO) then
+            begin
+              raise EgdcException.CreateObj('Invalid class name', Self);
+            end;
+            // Добавим в список пропускаемых классов
             AClassList.Add(LoadClassName);
-            Stream.ReadBuffer(ObjDataLen, SizeOf(ObjDataLen));
-            Stream.Seek(ObjDataLen, soFromCurrent);
-            continue;
           end;
+          Stream.ReadBuffer(ObjDataLen, SizeOf(ObjDataLen));
+          Stream.Seek(ObjDataLen, soFromCurrent);
+          Continue;
         end;
 
         if (Obj = nil)
@@ -7873,9 +7849,13 @@ begin
             Obj.SetRefreshSQLOn(False);
             ObjList.AddObject(LoadClassName + '('+ LoadSubType + ')', Obj);
             ObjList.Sort;
-          end else
+          end
+          else
             Obj := TgdcBase(ObjList.Objects[Ind]);
         end;
+
+        Obj.StreamSilentProcessing := Self.StreamSilentProcessing;
+        Obj.StreamProcessingAnswer := Self.StreamProcessingAnswer;
 
         if Obj.SubSet <> 'ByID' then
           Obj.SubSet := 'ByID';
@@ -7898,8 +7878,10 @@ begin
           //За счет этого дополнительного метода исчезает рекурсия =>
           //меньше жрется память, работает быстрее в 10 раз
         Obj._LoadFromStreamInternal(Stream, IDMapping, ObjectSet, UpdateList,
-          stRecord, AnAnswer);
+          stRecord);
         inc(RecCount);
+        // Внутри _LoadFromStreamInternal поле могло изменится, запомним для других объектов
+        Self.StreamProcessingAnswer := Obj.StreamProcessingAnswer;
 
         if not (sFakeLoad in BaseState) then
         begin
@@ -8126,6 +8108,8 @@ const
               begin
                 Obj.ModifyFromStream := Self.ModifyFromStream;
               end;
+              Obj.StreamSilentProcessing := Self.StreamSilentProcessing;
+              Obj.StreamProcessingAnswer := Self.StreamProcessingAnswer;
               Obj.FReadUserFromStream := Self.FReadUserFromStream;
               Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, False);
             finally
@@ -8385,8 +8369,9 @@ begin
             begin
               Obj.ModifyFromStream := Self.ModifyFromStream;
             end;
+            Obj.StreamSilentProcessing := Self.StreamSilentProcessing;
+            Obj.StreamProcessingAnswer := Self.StreamProcessingAnswer;
             Obj.FReadUserFromStream := Self.FReadUserFromStream;
-
             Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
           finally
             Obj.Free;
@@ -8394,7 +8379,7 @@ begin
         except
           on E: Exception do
           begin
-            if not (E is EAbort) then
+            if (not Self.StreamSilentProcessing) and (not (E is EAbort)) then
               MessageBox(ParentHandle,
                 PChar(Format('Нарушена целостность данных. '#13#10# +
                 'Предполагаемая информация о типе объекта'#13#10# +
@@ -8404,7 +8389,7 @@ begin
                 'Ошибка',
                 MB_OK or MB_ICONEXCLAMATION);
 
-            AddMistake(E.Message, clRed);
+            AddWarning(E.Message, clRed);
           end;
         end;
       end else
@@ -8483,7 +8468,8 @@ begin
             begin
               Obj.ModifyFromStream := Self.ModifyFromStream;
             end;
-
+            Obj.StreamSilentProcessing := Self.StreamSilentProcessing;
+            Obj.StreamProcessingAnswer := Self.StreamProcessingAnswer;
             Obj.FReadUserFromStream := Self.FReadUserFromStream;
             Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
           finally
@@ -8492,7 +8478,7 @@ begin
         except
           on E: Exception do
           begin
-            if not (E is EAbort) then
+            if (not Self.StreamSilentProcessing) and (not (E is EAbort)) then
               MessageBox(ParentHandle,
                 PChar(Format('Нарушена целостность данных. '#13#10# +
                 'Предполагаемая информация о типе объекта'#13#10# +
@@ -8502,7 +8488,7 @@ begin
                 'Ошибка',
                 MB_OK or MB_ICONEXCLAMATION);
 
-            AddMistake(E.Message, clRed);
+            AddWarning(E.Message, clRed);
           end;
         end;
       end else
@@ -8688,6 +8674,8 @@ begin
               begin
                 Obj.ModifyFromStream := Self.ModifyFromStream;
               end;
+              Obj.StreamSilentProcessing := Self.StreamSilentProcessing;
+              Obj.StreamProcessingAnswer := Self.StreamProcessingAnswer;
               Obj.FReadUserFromStream := Self.FReadUserFromStream;
               Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
             finally
@@ -8825,6 +8813,8 @@ begin
                 begin
                   Obj.ModifyFromStream := Self.ModifyFromStream;
                 end;
+                Obj.StreamSilentProcessing := Self.StreamSilentProcessing;
+                Obj.StreamProcessingAnswer := Self.StreamProcessingAnswer;
                 Obj.FReadUserFromStream := Self.FReadUserFromStream;
                 Obj.Open;
                 while not Obj.Eof do
@@ -13684,6 +13674,7 @@ begin
     if StreamFormat <> sttBinaryOld then
     begin
       StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
+      StreamSaver.Silent := Self.StreamSilentProcessing;
       S := TFileStream.Create(AFileName, fmOpenRead);
       try
         //StreamSaver.Silent := True;
@@ -13759,6 +13750,7 @@ begin
     begin
       StreamSaver := TgdcStreamSaver.Create(Self.Database, Self.Transaction);
       try
+        StreamSaver.Silent := Self.StreamSilentProcessing;
         // если выбрано Инкрементное сохранение, то передадим ИД целевой базы
         {if IncrementDatabaseKey > 0 then
           StreamSaver.PrepareForIncrementSaving(IncrementDatabaseKey);}
@@ -14358,7 +14350,7 @@ begin
     FSQLInitialized := False;
 end;
 
-function TgdcBase.CheckTheSame(var AnAnswer: Word; Modify: Boolean = False): Boolean;
+function TgdcBase.CheckTheSame(Modify: Boolean = False): Boolean;
 var
   q: TIBSQL;
   I: Integer;
@@ -14427,7 +14419,7 @@ begin
 
           if Modify and ModifyFromStream
             and (sLoadFromStream in BaseState)
-            and CheckNeedModify(CDS, nil, AnAnswer) then
+            and CheckNeedModify(CDS, nil) then
             try
               Edit;
               try
