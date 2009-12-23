@@ -93,6 +93,14 @@ type
     TBItem8: TTBItem;
     actSet2Txt: TAction;
     TBItem9: TTBItem;
+    actCopyToSetting: TAction;
+    actMoveToSetting: TAction;
+    TBItem10: TTBItem;
+    TBSeparatorItem4: TTBSeparatorItem;
+    TBItem11: TTBItem;
+    sprSettingPosMoving: TMenuItem;
+    nCopyToSetting: TMenuItem;
+    nMoveToSetting: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actSetActiveExecute(Sender: TObject);
@@ -146,6 +154,8 @@ type
     procedure actSet2TxtExecute(Sender: TObject);
     procedure actSet2TxtUpdate(Sender: TObject);
     procedure ibgrDetailDblClick(Sender: TObject);
+    procedure actCopyToSettingExecute(Sender: TObject);
+    procedure actMoveToSettingExecute(Sender: TObject);
 
   private
     FFieldStorageOrigin: TStringList;
@@ -1510,6 +1520,16 @@ begin
       end;
     end;
   end;
+end;
+
+procedure Tgdc_frmSetting.actCopyToSettingExecute(Sender: TObject);
+begin
+  //
+end;
+
+procedure Tgdc_frmSetting.actMoveToSettingExecute(Sender: TObject);
+begin
+  //
 end;
 
 initialization
