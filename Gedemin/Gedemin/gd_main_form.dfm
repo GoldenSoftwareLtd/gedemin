@@ -1,8 +1,8 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 199
-  Top = 65
-  Width = 918
-  Height = 85
+  Left = 288
+  Top = 64
+  Width = 914
+  Height = 81
   HelpContext = 76
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False
@@ -26,7 +26,7 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockMain: TTBDock
     Left = 0
     Top = 0
-    Width = 910
+    Width = 898
     Height = 26
     LimitToOneRow = True
     object tbMainMenu: TTBToolbar
@@ -96,10 +96,51 @@ object frmGedeminMain: TfrmGedeminMain
         object TBItem1: TTBItem
           Action = actSQLMonitor
         end
-        object N24: TTBSeparatorItem
+        object TBSeparatorItem14: TTBSeparatorItem
         end
-        object tbiScanTemplate: TTBItem
-          Action = actScanTemplate
+        object tbsiAdministrator: TTBSubmenuItem
+          Caption = 'Администратор'
+          ImageIndex = 155
+          object TBItem26: TTBItem
+            Action = actUserGroups
+          end
+          object TBItem25: TTBItem
+            Action = actJournal
+          end
+          object TBItem24: TTBItem
+            Action = actUsers
+          end
+        end
+        object tbsiAttributes: TTBSubmenuItem
+          Caption = 'Атрибуты'
+          ImageIndex = 175
+          object tbiGenerators: TTBItem
+            Action = actGenerators
+          end
+          object tbiDomains: TTBItem
+            Action = actDomains
+          end
+          object tbiExceptions: TTBItem
+            Action = actExceptions
+          end
+          object tbiViews: TTBItem
+            Action = actViews
+          end
+          object tbiProcedures: TTBItem
+            Action = actProcedures
+          end
+          object tbiTables: TTBItem
+            Action = actTables
+          end
+        end
+        object tbiDocumentType: TTBItem
+          Action = actDocumentType
+        end
+        object tbiStorage: TTBItem
+          Action = actStorage
+        end
+        object N24: TTBSeparatorItem
+          Visible = False
         end
         object TBItem3: TTBItem
           Caption = 'Регистрационый номер'
@@ -116,6 +157,9 @@ object frmGedeminMain: TfrmGedeminMain
         end
         object TBSeparatorItem12: TTBSeparatorItem
         end
+        object tbiSettings: TTBItem
+          Action = actSettings
+        end
         object TBItem22: TTBItem
           Action = actLoadPackage
           Caption = 'Установить пакеты настроек...'
@@ -129,13 +173,16 @@ object frmGedeminMain: TfrmGedeminMain
         object TBItem17: TTBItem
           Action = actCompareDataBases
         end
+        object TBItem20: TTBItem
+          Action = actShell
+        end
+        object tbiScanTemplate: TTBItem
+          Action = actScanTemplate
+        end
         object TBSeparatorItem6: TTBSeparatorItem
         end
         object tbiStreamSaverOptions: TTBItem
           Action = actStreamSaverOptions
-        end
-        object TBItem20: TTBItem
-          Action = actShell
         end
         object tbiOptions: TTBItem
           Action = actOptions
@@ -145,6 +192,9 @@ object frmGedeminMain: TfrmGedeminMain
         Caption = 'Окна'
         object TBItem6: TTBItem
           Action = actExplorer
+        end
+        object tbiSQLProcessWindow: TTBItem
+          Action = actSQLProcess
         end
         object TBSeparatorItem1: TTBSeparatorItem
         end
@@ -251,29 +301,30 @@ object frmGedeminMain: TfrmGedeminMain
         Control = lblDatabase
       end
       object Label1: TLabel
-        Left = 224
+        Left = 235
         Top = 4
         Width = 32
         Height = 13
         Caption = 'Стол: '
       end
       object Label2: TLabel
-        Left = 476
+        Left = 487
         Top = 4
         Width = 73
         Height = 13
         Caption = 'Организация: '
       end
       object lblDatabase: TLabel
-        Left = 723
+        Left = 734
         Top = 4
         Width = 3
         Height = 13
         Alignment = taRightJustify
         PopupMenu = pmlblDataBase
+        OnDblClick = actCopyExecute
       end
       object cbDesktop: TComboBox
-        Left = 256
+        Left = 267
         Top = 0
         Width = 145
         Height = 21
@@ -286,7 +337,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnChange = cbDesktopChange
       end
       object gsiblkupCompany: TgsIBLookupComboBox
-        Left = 549
+        Left = 560
         Top = 0
         Width = 145
         Height = 21
@@ -308,8 +359,8 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object TBDockForms: TTBDock
     Left = 0
-    Top = 33
-    Width = 910
+    Top = 26
+    Width = 898
     Height = 25
     LimitToOneRow = True
     Position = dpBottom
@@ -321,6 +372,7 @@ object frmGedeminMain: TfrmGedeminMain
       CloseButton = False
       DockMode = dmCannotFloatOrChangeDocks
       DockPos = 0
+      FullSize = True
       Stretch = True
       TabOrder = 0
       OnResize = tbFormsResize
@@ -573,8 +625,71 @@ object frmGedeminMain: TfrmGedeminMain
       OnExecute = actShellExecute
       OnUpdate = actShellUpdate
     end
+    object actSettings: TAction
+      Category = 'Service'
+      Caption = 'Настройки'
+      ImageIndex = 7
+      OnExecute = actSettingsExecute
+      OnUpdate = actSettingsUpdate
+    end
+    object actGenerators: TAction
+      Category = 'Service'
+      Caption = 'Генераторы'
+      ImageIndex = 236
+      OnExecute = actGeneratorsExecute
+      OnUpdate = actGeneratorsUpdate
+    end
+    object actDomains: TAction
+      Category = 'Service'
+      Caption = 'Домены'
+      ImageIndex = 250
+      OnExecute = actDomainsExecute
+      OnUpdate = actDomainsUpdate
+    end
+    object actExceptions: TAction
+      Category = 'Service'
+      Caption = 'Исключения'
+      ImageIndex = 254
+      OnExecute = actExceptionsExecute
+      OnUpdate = actExceptionsUpdate
+    end
+    object actViews: TAction
+      Category = 'Service'
+      Caption = 'Представления'
+      ImageIndex = 252
+      OnExecute = actViewsExecute
+      OnUpdate = actViewsUpdate
+    end
+    object actProcedures: TAction
+      Category = 'Service'
+      Caption = 'Процедуры'
+      ImageIndex = 253
+      OnExecute = actProceduresExecute
+      OnUpdate = actProceduresUpdate
+    end
+    object actTables: TAction
+      Category = 'Service'
+      Caption = 'Таблицы'
+      ImageIndex = 251
+      OnExecute = actTablesExecute
+      OnUpdate = actTablesUpdate
+    end
+    object actDocumentType: TAction
+      Category = 'Service'
+      Caption = 'Типовые документы'
+      ImageIndex = 0
+      OnExecute = actDocumentTypeExecute
+      OnUpdate = actDocumentTypeUpdate
+    end
+    object actStorage: TAction
+      Category = 'Service'
+      Caption = 'Хранилище'
+      ImageIndex = 255
+      OnExecute = actStorageExecute
+      OnUpdate = actStorageUpdate
+    end
     object actStreamSaverOptions: TAction
-      Category = 'Actions'
+      Category = 'Service'
       Caption = 'Опции переноса данных'
       ImageIndex = 228
       OnExecute = actStreamSaverOptionsExecute
@@ -587,6 +702,33 @@ object frmGedeminMain: TfrmGedeminMain
       ImageIndex = 120
       OnExecute = actShowMonitoringExecute
       OnUpdate = actShowMonitoringUpdate
+    end
+    object actSQLProcess: TAction
+      Category = 'Actions'
+      Caption = 'Выполнение SQL команд'
+      ImageIndex = 211
+      OnExecute = actSQLProcessExecute
+    end
+    object actUserGroups: TAction
+      Category = 'Admin'
+      Caption = 'Группы пользователей'
+      ImageIndex = 35
+      OnExecute = actUserGroupsExecute
+      OnUpdate = actUserGroupsUpdate
+    end
+    object actJournal: TAction
+      Category = 'Admin'
+      Caption = 'Журнал событий'
+      ImageIndex = 256
+      OnExecute = actJournalExecute
+      OnUpdate = actJournalUpdate
+    end
+    object actUsers: TAction
+      Category = 'Admin'
+      Caption = 'Пользователи'
+      ImageIndex = 34
+      OnExecute = actUsersExecute
+      OnUpdate = actUsersUpdate
     end
   end
   object IBTransaction: TIBTransaction
