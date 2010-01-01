@@ -1,8 +1,8 @@
 object DataBaseCompare: TDataBaseCompare
-  Left = 1405
-  Top = 25
-  Width = 1097
-  Height = 732
+  Left = 293
+  Top = 87
+  Width = 1094
+  Height = 583
   Caption = 'Сравнение баз данных'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,24 +19,24 @@ object DataBaseCompare: TDataBaseCompare
   object pnMain: TPanel
     Left = 0
     Top = 0
-    Width = 1089
-    Height = 705
+    Width = 1078
+    Height = 545
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pnTop: TPanel
       Left = 0
       Top = 0
-      Width = 1089
-      Height = 171
+      Width = 1078
+      Height = 167
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 0
       object gbExternalConnection: TGroupBox
-        Left = 4
+        Left = 7
         Top = 3
         Width = 365
-        Height = 110
+        Height = 108
         Caption = 'Параметры соединения'
         TabOrder = 0
         object lbExtUserName: TLabel
@@ -102,25 +102,25 @@ object DataBaseCompare: TDataBaseCompare
         end
       end
       object btnCompareDB: TButton
-        Left = 120
-        Top = 127
+        Left = 8
+        Top = 120
         Width = 75
         Height = 25
         Action = actCompareDB
         TabOrder = 1
       end
       object gbViewItems: TGroupBox
-        Left = 4
-        Top = 116
+        Left = 379
+        Top = 113
         Width = 106
-        Height = 43
+        Height = 45
         Caption = 'Показывать'
         TabOrder = 2
         object pnViewItems: TPanel
           Left = 2
           Top = 15
           Width = 102
-          Height = 26
+          Height = 28
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 0
@@ -162,15 +162,15 @@ object DataBaseCompare: TDataBaseCompare
         end
       end
       object gbSearchOptions: TGroupBox
-        Left = 392
+        Left = 379
         Top = 3
-        Width = 401
-        Height = 164
+        Width = 404
+        Height = 108
         Caption = 'Объекты для сравнения'
         TabOrder = 3
         object cbVBClass: TCheckBox
-          Left = 6
-          Top = 13
+          Left = 8
+          Top = 17
           Width = 97
           Height = 17
           Caption = 'VB классы'
@@ -179,8 +179,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 0
         end
         object cbGO: TCheckBox
-          Left = 6
-          Top = 29
+          Left = 8
+          Top = 33
           Width = 153
           Height = 18
           Caption = 'Глобальные VB-объекты'
@@ -189,8 +189,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 1
         end
         object cbConst: TCheckBox
-          Left = 6
-          Top = 46
+          Left = 8
+          Top = 50
           Width = 145
           Height = 17
           Caption = 'Константы'
@@ -199,8 +199,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 2
         end
         object cbMacros: TCheckBox
-          Left = 6
-          Top = 62
+          Left = 8
+          Top = 66
           Width = 97
           Height = 17
           Caption = 'Макросы'
@@ -209,8 +209,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 3
         end
         object cbSF: TCheckBox
-          Left = 6
-          Top = 79
+          Left = 8
+          Top = 83
           Width = 123
           Height = 17
           Caption = 'Скрипт-функции'
@@ -219,8 +219,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 4
         end
         object cbReport: TCheckBox
-          Left = 6
-          Top = 95
+          Left = 170
+          Top = 17
           Width = 97
           Height = 17
           Caption = 'Отчеты'
@@ -229,8 +229,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 5
         end
         object cbMethod: TCheckBox
-          Left = 6
-          Top = 111
+          Left = 170
+          Top = 33
           Width = 97
           Height = 17
           Caption = 'Методы'
@@ -239,8 +239,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 6
         end
         object cbEvents: TCheckBox
-          Left = 6
-          Top = 128
+          Left = 170
+          Top = 50
           Width = 97
           Height = 17
           Caption = 'События'
@@ -249,8 +249,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 7
         end
         object cbEntry: TCheckBox
-          Left = 6
-          Top = 144
+          Left = 170
+          Top = 66
           Width = 97
           Height = 17
           Caption = 'Проводки'
@@ -259,8 +259,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 8
         end
         object cbTrigger: TCheckBox
-          Left = 168
-          Top = 13
+          Left = 260
+          Top = 17
           Width = 97
           Height = 17
           Caption = 'Триггеры'
@@ -269,8 +269,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 9
         end
         object cbView: TCheckBox
-          Left = 168
-          Top = 29
+          Left = 260
+          Top = 33
           Width = 97
           Height = 17
           Caption = 'Представления'
@@ -279,8 +279,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 10
         end
         object cbSP: TCheckBox
-          Left = 168
-          Top = 46
+          Left = 260
+          Top = 50
           Width = 137
           Height = 17
           Caption = 'Хранимые процедуры'
@@ -289,8 +289,8 @@ object DataBaseCompare: TDataBaseCompare
           TabOrder = 11
         end
         object cbTable: TCheckBox
-          Left = 168
-          Top = 63
+          Left = 260
+          Top = 67
           Width = 97
           Height = 17
           Caption = 'Таблицы'
@@ -300,8 +300,8 @@ object DataBaseCompare: TDataBaseCompare
         end
       end
       object btnCompareSetting: TButton
-        Left = 232
-        Top = 127
+        Left = 233
+        Top = 120
         Width = 137
         Height = 25
         Caption = 'Сравнить с настройкой'
@@ -311,16 +311,16 @@ object DataBaseCompare: TDataBaseCompare
     end
     object pnBottom: TPanel
       Left = 0
-      Top = 171
-      Width = 1089
-      Height = 534
+      Top = 167
+      Width = 1078
+      Height = 378
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
       object sbDBCompare: TStatusBar
         Left = 0
-        Top = 515
-        Width = 1089
+        Top = 359
+        Width = 1078
         Height = 19
         Panels = <
           item
@@ -337,8 +337,8 @@ object DataBaseCompare: TDataBaseCompare
       object SuperPageControl1: TSuperPageControl
         Left = 0
         Top = 0
-        Width = 1089
-        Height = 515
+        Width = 1078
+        Height = 359
         BorderStyle = bsNone
         TabsVisible = True
         ActivePage = SuperTabSheet1
@@ -350,8 +350,8 @@ object DataBaseCompare: TDataBaseCompare
           object lvMacros: TgsListView
             Left = 0
             Top = 0
-            Width = 1089
-            Height = 492
+            Width = 1078
+            Height = 336
             Align = alClient
             Columns = <
               item
@@ -399,8 +399,8 @@ object DataBaseCompare: TDataBaseCompare
           object lvMetaData: TgsListView
             Left = 0
             Top = 0
-            Width = 1089
-            Height = 492
+            Width = 1078
+            Height = 336
             Align = alClient
             Columns = <
               item

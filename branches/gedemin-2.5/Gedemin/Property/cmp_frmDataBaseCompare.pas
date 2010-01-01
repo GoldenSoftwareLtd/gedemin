@@ -7,7 +7,8 @@ uses
   StdCtrls, ExtCtrls, Db, IBDatabase, ActnList, IBSQL, ComCtrls, gdc_createable_form,
   rp_report_const, DBClient, prp_ScriptComparer_unit, gd_security, dmImages_unit,
   TB2Item, TB2Dock, TB2Toolbar, gd_ClassList, DBGrids, Contnrs, Diff, HashUnit,
-  gdcBase, gdcSetting, gdcBaseInterface, ZLib, Menus, SuperPageControl, gsListView;
+  gdcBase, gdcSetting, gdcBaseInterface, ZLib, Menus, SuperPageControl, gsListView,
+  at_SettingWalker;
 
 const
   cn_eqv         = 0; // - значения равны
@@ -127,9 +128,10 @@ type
     function LocaliseEventName(FSQL: TIBSQL): String;
 
     //Сравнение с настройкой
-    procedure ReadSetting(Stream: TStream);
-    procedure FindSettings(Stream: TStream);
-    procedure CompareSetting(DS: TClientDataSet);
+    procedure OnSettingObjectLoad(Sender: TatSettingWalker; const AClassName, ASubType: String;
+      ADataSet: TDataSet; APrSet: TgdcPropertySet; const ASR: TgsStreamRecord);
+    procedure OnSettingObjectLoadNew(Sender: TatSettingWalker; const AClassName, ASubType: String; ADataSet: TDataSet);
+    procedure CompareSetting(DS: TDataSet);
 
     //Отображение и сравнение текстов
     procedure ShowDiffs;
@@ -1275,16 +1277,13 @@ end;
 procedure TDataBaseCompare.btnCompareSettingClick(Sender: TObject);
 var
   FS: TFileStream;
-  PackStream: TZDecompressionStream;
-  MS: TMemoryStream;
-  SizeRead: Integer;
-  Buffer: array[0..1023] of Char;
+  SettingWalker: TatSettingWalker;
   OldCursor: TCursor;
 begin
   with TOpenDialog.Create(Self) do
   try
-    DefaultExt := '*.gsf';
-    Filter := '*.gsf|*.gsf';
+    DefaultExt := gsfExtension;
+    Filter := gsfxmlDialogFilter;
     Title := 'Загрузить настройку из файла.';
     if Execute then
     begin
@@ -1317,20 +1316,15 @@ begin
 
           FS := TFileStream.Create(FFileName, fmOpenRead);
           try
-            FS.Position := 2 * SizeOf(Integer) + Size + 1;
-            PackStream := TZDecompressionStream.Create(FS);
-            MS := TMemoryStream.Create;
+            SettingWalker := TatSettingWalker.Create;
             try
-              repeat
-                SizeRead := PackStream.Read(Buffer, 1024);
-                MS.WriteBuffer(Buffer, SizeRead);
-              until (SizeRead < 1024);
-              MS.Position := 0;
+              SettingWalker.ObjectLoad := OnSettingObjectLoad;
+              SettingWalker.ObjectLoadNew := OnSettingObjectLoadNew;
+              SettingWalker.Stream := FS;
 
-              FindSettings(MS);
+              SettingWalker.ParseSetting;
             finally
-              MS.Free;
-              PackStream.Free;
+              FreeAndNil(SettingWalker);
             end;
           finally
             FS.Free;
@@ -1363,169 +1357,19 @@ begin
   end;
 end;
 
-procedure TDataBaseCompare.ReadSetting(Stream: TStream);
-var
-  I: Integer;
-  MS: TMemoryStream;
-  LoadClassName, LoadSubType: String;
-  CDS: TClientDataSet;
-  OS: TgdcObjectSet;
-  OldPos: Integer;
-  stRecord: TgsStreamRecord;
-  stVersion: string;
-  PrSet: TgdcPropertySet;
+procedure TDataBaseCompare.OnSettingObjectLoadNew(Sender: TatSettingWalker;
+  const AClassName, ASubType: String; ADataSet: TDataSet);
 begin
-  OS := TgdcObjectSet.Create(TgdcBase, '');
-  PrSet := TgdcPropertySet.Create('', nil, '');
-  try
-    OS.LoadFromStream(Stream);
-    try
-      while Stream.Position < Stream.Size do
-      begin
-        Stream.ReadBuffer(I, SizeOf(I));
-        if I <> $55443322 then
-          raise Exception.Create('error');
-
-        OldPos := Stream.Position;
-        SetLength(stVersion, Length(cst_WithVersion));
-        Stream.ReadBuffer(stVersion[1], Length(cst_WithVersion));
-        if stVersion = cst_WithVersion then
-        begin
-          Stream.ReadBuffer(stRecord.StreamVersion, SizeOf(stRecord.StreamVersion));
-          if stRecord.StreamVersion >= 1 then
-            Stream.ReadBuffer(stRecord.StreamDBID, SizeOf(stRecord.StreamDBID));
-        end else
-        begin
-          stRecord.StreamVersion := 0;
-          stRecord.StreamDBID := -1;
-          Stream.Position := OldPos;
-        end;
-
-        LoadClassName := StreamReadString(Stream);
-        LoadSubType := StreamReadString(Stream);
-
-        if stRecord.StreamVersion >= 2 then
-        begin
-          PrSet.LoadFromStream(Stream);
-        end;
-
-        Stream.ReadBuffer(I, SizeOf(I));
-
-        MS := TMemoryStream.Create;
-        try
-          MS.CopyFrom(Stream, I);
-          MS.Position := 0;
-          CDS := TClientDataSet.Create(nil);
-          try
-            CDS.LoadFromStream(MS);
-            CDS.Open;
-            // Если тип TgdcFunction, то начинаем сравнивать
-            if LoadClassName = 'TgdcFunction' then
-              CompareSetting(CDS);
-          finally
-            FreeAndNil(CDS);
-          end;
-        finally
-          MS.Free;
-        end;
-      end;
-    except
-      On E: EOutOfMemory do
-      begin
-        MessageBox(0,
-          'Для отображения всех данных настройки недостаточно свободной оперативной памяти.',
-          'Внимание',
-          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-      end;
-    end;
-  finally
-    PrSet.Free;
-    OS.Free;
-  end;
+  if AClassName = 'TgdcFunction' then
+    CompareSetting(ADataSet);
 end;
 
-procedure TDataBaseCompare.FindSettings(Stream: TStream);
-var
-  I: Integer;
-  stVersion: String;
-  OldPos: Integer;
-  stRecord: TgsStreamRecord;
-  LoadClassName: String;
-  CDS: TClientDataSet;
-  MS, MS2: TMemoryStream;
-  OS: TgdcObjectSet;
-  PrSet: TgdcPropertySet;
-  LoadSubType: String;
+procedure TDataBaseCompare.OnSettingObjectLoad(Sender: TatSettingWalker;
+  const AClassName, ASubType: String; ADataSet: TDataSet;
+  APrSet: TgdcPropertySet; const ASR: TgsStreamRecord);
 begin
-  OS := TgdcObjectSet.Create(TgdcBase, '');
-  PrSet := TgdcPropertySet.Create('', nil, '');
-  try
-    OS.LoadFromStream(Stream);
-
-    while Stream.Position < Stream.Size do
-    begin
-      Stream.ReadBuffer(I, SizeOf(I));
-      if I <> $55443322 then
-        raise Exception.Create('error');
-
-      OldPos := Stream.Position;
-      SetLength(stVersion, Length(cst_WithVersion));
-      Stream.ReadBuffer(stVersion[1], Length(cst_WithVersion));
-      if stVersion = cst_WithVersion then
-      begin
-        Stream.ReadBuffer(stRecord.StreamVersion, SizeOf(stRecord.StreamVersion));
-        if stRecord.StreamVersion >= 1 then
-          Stream.ReadBuffer(stRecord.StreamDBID, SizeOf(stRecord.StreamDBID));
-      end else
-      begin
-        stRecord.StreamVersion := 0;
-        stRecord.StreamDBID := -1;
-        Stream.Position := OldPos;
-      end;
-
-      LoadClassName := StreamReadString(Stream);
-      LoadSubType := StreamReadString(Stream);
-
-      if stRecord.StreamVersion >= 2 then
-      begin
-        PrSet.LoadFromStream(Stream);
-      end;
-
-      if LoadClassName = 'TgdcSetting' then
-      begin
-        Stream.ReadBuffer(I, SizeOf(I));
-        MS := TMemoryStream.Create;
-        try
-          MS.CopyFrom(Stream, I);
-          MS.Position := 0;
-          CDS := TClientDataSet.Create(nil);
-          try
-            CDS.LoadFromStream(MS);
-            CDS.Open;
-            if CDS.RecordCount = 1 then
-            begin
-              MS2 := TMemoryStream.Create;
-              try
-                TBlobField(CDS.FieldByName('data')).SaveToStream(MS2);
-                MS2.Position := 0;
-                ReadSetting(MS2);
-              finally
-                MS2.Free;
-              end;
-            end;
-          finally
-            FreeAndNil(CDS);
-          end;
-        finally
-          MS.Free;
-        end;
-        break;
-      end;
-    end;
-  finally
-    PrSet.Free;
-    OS.Free;
-  end;
+  // вызов нового метода
+  OnSettingObjectLoadNew(Sender, AClassName, ASubType, ADataSet);
 end;
 
 {
@@ -1542,9 +1386,9 @@ UNKNOWN      +
 VBCLASSES    +
 }
 
-procedure TDataBaseCompare.CompareSetting(DS: TClientDataSet);
+procedure TDataBaseCompare.CompareSetting(DS: TDataSet);
 
-  procedure FillScriptDS(DS: TClientDataSet);
+  procedure FillScriptDS(DS: TDataSet);
   begin
     DSMacros.Insert;
     DSMacros.FieldByName('NAME').AsString := DS.FieldByName('NAME').AsString;
@@ -1559,7 +1403,7 @@ procedure TDataBaseCompare.CompareSetting(DS: TClientDataSet);
     Inc(FNumber);
   end;
 
-  procedure FillEventDS(DS: TClientDataSet);
+  procedure FillEventDS(DS: TDataSet);
   begin
     DSMacros.Insert;
     DSMacros.FieldByName('NAME').AsString := DS.FieldByName('NAME').AsString;
@@ -1574,7 +1418,7 @@ procedure TDataBaseCompare.CompareSetting(DS: TClientDataSet);
     Inc(FNumber);
   end;
 
-  procedure FillExistsScript(DS: TClientDataSet; FSQL: TIBSQL);
+  procedure FillExistsScript(DS: TDataSet; FSQL: TIBSQL);
   begin
     DSMacros.Insert;
     DSMacros.FieldByName('NAME').AsString := FSQL.FieldByName('NAME').AsString;
