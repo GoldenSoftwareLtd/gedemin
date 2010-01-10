@@ -13,22 +13,22 @@ type
   TgsProcessTimeCalculator = class
   private
     // Время начала подсчета
-    FStartTickCount: Integer;
+    FStartTickCount: Cardinal;
     // Позиция процесса считая от нуля
-    FPosition: Integer;
+    FPosition: Cardinal;
     // Позиция процесса, при достижении которой процесс считается завершенным
-    FMaxPosition: Integer;
+    FMaxPosition: Cardinal;
 
     function InternalGetApproximateEnd: TgsDurationRecord;
   public
     constructor Create;
 
-    procedure StartCalculation(const AMaxPosition: Integer);
-    function GetApproxEndMS: Integer;
+    procedure StartCalculation(const AMaxPosition: Cardinal);
+    function GetApproxEndMS: Cardinal;
     function GetApproxEndString: String;
 
-    property Position: Integer read FPosition write FPosition;
-    property MaxPosition: Integer read FMaxPosition write FMaxPosition;
+    property Position: Cardinal read FPosition write FPosition;
+    property MaxPosition: Cardinal read FMaxPosition write FMaxPosition;
   end;
 
 
@@ -43,15 +43,13 @@ const
   MSECOND_IN_MINUTE = 60000;
   MSECOND_IN_HOUR = 3600000;
 
-
-
 { TgsProcessTimeCalculator }
 
 constructor TgsProcessTimeCalculator.Create;
 begin
   FStartTickCount := 0;
-  FPosition := -1;
-  FMaxPosition := -1;
+  FPosition := 0;
+  FMaxPosition := 0;
 end;
 
 function TgsProcessTimeCalculator.GetApproxEndString: String;
@@ -68,11 +66,11 @@ begin
       Result := Format('%d с', [Duration.Second])
 end;
 
-function TgsProcessTimeCalculator.GetApproxEndMS: Integer;
+function TgsProcessTimeCalculator.GetApproxEndMS: Cardinal;
 var
-  AverageTickPerPosition: Integer;
+  AverageTickPerPosition: Cardinal;
 begin
-  if FPosition <= 0 then
+  if FPosition = 0 then
     FPosition := 1;
   // Вычисление среднего кол-во миллисекунд, затрачиваемого на одну позицию процесса
   AverageTickPerPosition := (GetTickCount - FStartTickCount) div FPosition;
@@ -107,7 +105,7 @@ begin
   Result.MSecond := MSDuration;
 end;
 
-procedure TgsProcessTimeCalculator.StartCalculation(const AMaxPosition: Integer);
+procedure TgsProcessTimeCalculator.StartCalculation(const AMaxPosition: Cardinal);
 begin
   if AMaxPosition > 0 then
     FMaxPosition := AMaxPosition;

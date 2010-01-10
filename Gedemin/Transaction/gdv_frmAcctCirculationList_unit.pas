@@ -45,6 +45,7 @@ type
       const AggregatesObsolete: Boolean; var DisplayString: String);
     procedure cbSubAccountClick(Sender: TObject);
     procedure ibdsMainAfterOpen(DataSet: TDataSet);
+    procedure actGotoLedgerUpdate(Sender: TObject);
   private
     FMainAccounts: TStringList;
   protected
@@ -662,6 +663,12 @@ begin
       gdvObject.EnableControls;
     end;
   end;
+end;
+
+procedure Tgdv_frmAcctCirculationList.actGotoLedgerUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := gdvObject.Active and (gdvObject.FindField('id') <> nil) and
+    not gdvObject.IsEmpty
 end;
 
 initialization

@@ -610,8 +610,8 @@ begin
   Result := True;
   if RTable.TypeReduction <> 1 then
   begin
+    DidActivate := False;
     try
-      DidActivate := False;
       sql := TIBSQL.Create(Self);
       try
         DidActivate := not FTransaction.InTransaction;
