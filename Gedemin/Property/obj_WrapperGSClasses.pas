@@ -1680,6 +1680,11 @@ type
     procedure LoadDialogDefaults; safecall;
     procedure SaveDialogDefaults; safecall;
     function  GetDlgForm: IgsForm; safecall;
+
+    function  Get_StreamSilentProcessing: WordBool; safecall;
+    procedure Set_StreamSilentProcessing(Value: WordBool); safecall;
+    function  Get_StreamProcessingAnswer: Word; safecall;
+    procedure Set_StreamProcessingAnswer(Value: Word); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3699,7 +3704,7 @@ type
       const AnParamType: WideString; const AnComment: WideString): SYSINT; safecall;
     function  AddLinkParam(const AnDisplayName: WideString;
       const AnParamType: WideString; const AnTableName: WideString;
-      const AnDisplayField: WideString; const AnPrimaryField: WideString;
+      const AnPrimaryField: WideString; const AnDisplayField: WideString; 
       const AnLinkConditionFunction: WideString;
       const AnLinkFunctionLanguage: WideString; const AnComment: WideString): SYSINT; safecall;
     function GetVariantArray: OleVariant; safecall;
@@ -7084,6 +7089,29 @@ end;
 function TwrpGDCBase.GetDlgForm: IgsForm;
 begin
   Result := GetGdcOLEObject(GetGDCBase.GetDlgForm) as IgsForm;
+end;
+
+function TwrpGDCBase.Get_StreamProcessingAnswer: Word;
+begin
+  Result := GetGDCBase.StreamProcessingAnswer;
+end;
+
+procedure TwrpGDCBase.Set_StreamProcessingAnswer(Value: Word);
+begin
+  if Value <= mrYesToAll then
+    GetGDCBase.StreamProcessingAnswer := Value
+  else
+    raise Exception.Create(Format('Unknown value of StreamProcessingAnswer (%d)', [Value]));
+end;
+
+function TwrpGDCBase.Get_StreamSilentProcessing: WordBool;
+begin
+  Result := GetGDCBase.StreamSilentProcessing;
+end;
+
+procedure TwrpGDCBase.Set_StreamSilentProcessing(Value: WordBool);
+begin
+  GetGDCBase.StreamSilentProcessing := Value;
 end;
 
 { TwrpGDCClassList }
@@ -17700,7 +17728,7 @@ end;
 { TwrpGsParamList }
 
 function TwrpGsParamList.AddLinkParam(const AnDisplayName,
-  AnParamType, AnTableName, AnDisplayField, AnPrimaryField,
+  AnParamType, AnTableName, AnPrimaryField, AnDisplayField,
   AnLinkConditionFunction, AnLinkFunctionLanguage,
   AnComment: WideString): SYSINT;
 begin

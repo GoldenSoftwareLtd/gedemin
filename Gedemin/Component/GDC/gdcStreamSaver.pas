@@ -33,8 +33,6 @@ type
      etReceivedRecord,         //   одна запись
      etReferencedRecordList,   // список записей, которые не были сохранены в поток, ввиду их предполагаемого присутствия на целевой базе
      etReferencedRecord,       //   одна запись
-     etObjectList,             // список бизнес-объектов сохраненных в потоке
-     etObject,                 //   один объект
      etOrder,                  // порядок загрузки записей
      etOrderItem,              //   одна запись
      etData,                   // данные датасетов сохраненные в потоке
@@ -491,8 +489,7 @@ type
     procedure SetReadUserFromStream(const Value: Boolean);
     function GetReadUserFromStream: Boolean;
     function GetReplaceRecordBehaviour: TReplaceRecordBehaviour;
-    procedure SetReplaceRecordBehaviour(
-      const Value: TReplaceRecordBehaviour);
+    procedure SetReplaceRecordBehaviour(const Value: TReplaceRecordBehaviour);
     function GetIsAbortingProcess: Boolean;
     procedure SetIsAbortingProcess(const Value: Boolean);
     function GetStreamLogType: TgsStreamLoggingType;
@@ -572,8 +569,6 @@ const
   XML_TAG_RECEIVED_RECORD = 'RECEIVED_RECORD';
   XML_TAG_REFERENCED_RECORD_LIST = 'REFERENCED_RECORD_LIST';
   XML_TAG_REFERENCED_RECORD = 'REFERENCED_RECORD';
-  XML_TAG_OBJECT_LIST = 'OBJECT_LIST';
-  XML_TAG_OBJECT = 'OBJECT';
   XML_TAG_LOADING_ORDER = 'LOADING_ORDER';
   XML_TAG_LOADING_ORDER_ITEM = 'ITEM';
   XML_TAG_DATA = 'DATA';
@@ -2414,7 +2409,8 @@ begin
         end;
       end
       else
-        if not TargetDS.CheckTheSame(FAnAnswer, True) then
+        TargetDS.StreamProcessingAnswer := FAnAnswer;
+        if not TargetDS.CheckTheSame(True) then
         begin
           TargetDS.Post;
 
@@ -2455,7 +2451,7 @@ begin
 
         // удалим проблемный объект из очереди загрузки
         FLoadingOrderList.Remove(SourceKeyInt);
-        // во время работы репликатора не будем показавать сообщения
+        // во время работы репликатора не будем показывать сообщения
         if not SilentMode then
           MessageBox(TargetDS.ParentHandle, PChar(ErrorSt), 'Ошибка', MB_OK or MB_ICONHAND);
 
@@ -2962,9 +2958,9 @@ begin
 
     if AnsiCompareText(AObj.Classname, 'TgdcUserStorage') = 0 then
     begin
-      if AObj.ID = UserStorage.ObjectKey then
+      if AObj.ID = UserStorage.UserKey then
       begin
-        //UserStorage.IsModified := True;
+        UserStorage.IsModified := True;
         UserStorage.SaveToDatabase;
       end;
       Exit;
@@ -4326,7 +4322,7 @@ begin
             AddText('Загрузка ветки хранилища "' + StorageName + Path + '"', clBlue);
         end;
         LStorage.CloseFolder(NewFolder, False);
-        //LStorage.IsModified := True;
+        LStorage.IsModified := True;
       end
       else
       begin
@@ -4477,35 +4473,6 @@ begin
           FDataObject.AddReferencedRecord(I, J, K);
         end;
 
-        etObject:
-        begin
-          // загружаем класс и подтип сохраненного объекта
-          I := GetIntegerParamValueByName(XMLElement.ElementString, 'objectkey');
-          LoadClassName := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'classname'));
-          LoadSubType := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'subtype'));
-          LoadSetTable := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'settable'));
-
-          C := GetClass(LoadClassName);
-
-          {Пропускаем класс, если он не найден}
-          if C = nil then
-          begin
-            AddMistake('При загрузке из потока встречен несуществующий класс: ' + LoadClassName, clRed);
-            if (AMissingClassList.IndexOf(LoadClassName) = -1)
-               and (not SilentMode)
-               and (MessageBox(0, PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
-                 'Продолжать загрузку?'),
-                 'Внимание',
-                 MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO) then
-            begin
-              raise Exception.Create(GetGsException(Self, 'LoadFromStream: Invalid class name'));
-            end else
-              AMissingClassList.Add(LoadClassName);
-          end
-          else
-            FDataObject.Add(LoadClassName, LoadSubType, LoadSetTable, I);
-        end;
-
         etOrder:
           if XMLElement.Position = epOpening then
             FLoadingOrderList.LoadFromStream(S, sttXML);
@@ -4521,7 +4488,34 @@ begin
         begin
           // Запомним индекс считываемого датасета
           if XMLElement.Position = epOpening then
-            FCurrentDatasetKey := GetIntegerParamValueByName(XMLElement.ElementString, 'objectkey')
+          begin
+            FCurrentDatasetKey := GetIntegerParamValueByName(XMLElement.ElementString, 'objectkey');
+
+            // Загружаем класс и подтип сохраненного объекта
+            LoadClassName := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'classname'));
+            LoadSubType := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'subtype'));
+            LoadSetTable := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'settable'));
+
+            C := GetClass(LoadClassName);
+
+            // Пропускаем класс, если он не найден
+            if C = nil then
+            begin
+              AddMistake('При загрузке из потока встречен несуществующий класс: ' + LoadClassName, clRed);
+              if (AMissingClassList.IndexOf(LoadClassName) = -1)
+                 and (not SilentMode)
+                 and (MessageBox(0, PChar('При загрузке из потока встречен несуществующий класс: ' + LoadClassName + #13#10#13#10 +
+                   'Продолжать загрузку?'),
+                   'Внимание',
+                   MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO) then
+              begin
+                raise Exception.Create(GetGsException(Self, 'LoadFromStream: Invalid class name'));
+              end else
+                AMissingClassList.Add(LoadClassName);
+            end
+            else
+              FDataObject.Add(LoadClassName, LoadSubType, LoadSetTable, FCurrentDatasetKey);
+          end
           else
             FCurrentDatasetKey := -1;  
         end;
@@ -4649,10 +4643,6 @@ begin
       end;
     end;
 
-    {for I := 0 to FDataObject.Count - 1 do
-      if FDataObject.ClientDS[I].FieldCount > 0 then
-        FDataObject.ClientDS[I].Open;}
-
   finally
     AMissingClassList.Free;
   end;
@@ -4663,7 +4653,7 @@ procedure TgdcStreamXMLWriterReader.SaveToStream(S: TStream);
 begin
   inherited;
 
-  if FDataObject.gdcObject[0] is TgdcSetting then
+  if (FDataObject.Count > 0) and (FDataObject.gdcObject[0] is TgdcSetting) then
     InternalSaveSettingToStream
   else
     InternalSaveToStream;
@@ -4805,19 +4795,6 @@ begin
      or (AnsiPos(ElementBeginChars + XML_TAG_REFERENCED_RECORD + NEW_LINE, Result.ElementString) > 0) then
   begin
     Result.Tag := etReferencedRecord;
-    Exit;
-  end;
-
-  if AnsiCompareText(Result.ElementString, ElementBeginChars + XML_TAG_OBJECT_LIST + '>') = 0 then
-  begin
-    Result.Tag := etObjectList;
-    Exit;
-  end;
-
-  if (AnsiPos(ElementBeginChars + XML_TAG_OBJECT + ' ', Result.ElementString) > 0)
-     or (AnsiPos(ElementBeginChars + XML_TAG_OBJECT + NEW_LINE, Result.ElementString) > 0) then
-  begin
-    Result.Tag := etObject;
     Exit;
   end;
 
@@ -5317,7 +5294,7 @@ begin
 
                 if StreamLoggingType = slAll then
                   AddText('  Загрузка параметра "' + ValueName + '" ветки хранилища "' + Path + '"', clBlue);
-                //LStorage.IsModified := True;
+                LStorage.IsModified := True;
               end;
             end;
           end
@@ -5883,7 +5860,6 @@ end;
 procedure TgdcStreamXMLWriterReader.InternalSaveToStream;
 var
   I, K: Integer;
-  Obj: TgdcBase;
   IBSQL: TIBSQL;
 begin
     // Заголовок XML-документа
@@ -5958,19 +5934,6 @@ begin
     end;
     StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_REFERENCED_RECORD_LIST));
   end;
-
-  // Список бизнес-объектов из пула объектов
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_OBJECT_LIST));
-  for K := 0 to FDataObject.Count - 1 do
-  begin
-    Obj := FDataObject.gdcObject[K];
-    AddAttribute('objectkey', IntToStr(K));
-    AddAttribute('classname', QuoteString(Obj.ClassName));
-    AddAttribute('subtype', QuoteString(Obj.SubType));
-    AddAttribute('settable', QuoteString(Obj.SetTable));
-    StreamWriteXMLString(Stream, AddShortElement(XML_TAG_OBJECT));
-  end;
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_OBJECT_LIST));
 
   // Очередь загрузки записей, сохраненных в данном потоке
   StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_LOADING_ORDER));
@@ -6093,11 +6056,14 @@ begin
 
   // Данные и хранилище настройки
   StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING_DATA));
-  StreamWriteXMLString(Stream, DataStr + NEW_LINE);
+  StreamWriteXMLString(Stream, Trim(DataStr) + NEW_LINE);
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_DATA));
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING_STORAGE));
-  StreamWriteXMLString(Stream, StorageDataStr + NEW_LINE);
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_STORAGE));
+  if StrLength(StorageDataStr) > 0 then
+  begin
+    StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING_STORAGE));
+    StreamWriteXMLString(Stream, StorageDataStr + NEW_LINE);
+    StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_STORAGE));
+  end;
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING));
 end;
 
@@ -6191,7 +6157,7 @@ begin
   //сохранить полученные данные в поток
   case FStreamFormat of
     sttBinaryNew: FStreamWriterReader := TgdcStreamBinaryWriterReader.Create(FDataObject, FStreamLoadingOrderList);
-    sttXML, sttXMLFormatted:
+    sttXML:
     begin
       FStreamWriterReader := TgdcStreamXMLWriterReader.Create(FDataObject, FStreamLoadingOrderList);
       // Если сохраняются данные настройки
@@ -7082,18 +7048,15 @@ begin
   Result := IsReadUserFromStream;
 end;
 
-
 function TgdcStreamSaver.GetReplaceRecordBehaviour: TReplaceRecordBehaviour;
 begin
   Result := FStreamDataProvider.ReplaceRecordBehaviour;
 end;
 
-
 procedure TgdcStreamSaver.SetReplaceRecordBehaviour(const Value: TReplaceRecordBehaviour);
 begin
   FStreamDataProvider.ReplaceRecordBehaviour := Value;
 end;
-
 
 function TgdcStreamSaver.GetIsAbortingProcess: Boolean;
 begin
