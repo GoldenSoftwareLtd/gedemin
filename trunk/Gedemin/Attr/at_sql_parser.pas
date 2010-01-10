@@ -757,7 +757,7 @@ VALUES (<value_list>)
     FFull: TsqlFull;
     FReturning: TsqlReturning;
 
-    FDone, FNeeded: TClauses;
+    FDone: TClauses;
 
     procedure SetDone(const Value: TClauses);
   protected

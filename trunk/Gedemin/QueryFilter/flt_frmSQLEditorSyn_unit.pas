@@ -660,6 +660,8 @@ begin
   if not ibtrEditor.InTransaction then
     ibtrEditor.StartTransaction;
   Result := False;
+  OldSQLCode := 0;
+  OldGDSCode := 0;
   ibsqlPlan.Close;
   ibsqlPlan.SQL.Text := seQuery.Text;
   try
@@ -679,10 +681,6 @@ begin
           begin
             OldSQLCode := EIBError(E).SQLCode;
             OldGDSCode := EIBError(E).IBErrorCode;
-          end else
-          begin
-            OldSQLCode := 0;
-            OldGDSCode := 0;
           end;
 
           ibsqlPlan.ParamCheck := False;
