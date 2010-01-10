@@ -496,7 +496,7 @@ begin
   with TfrmSQLEditorSyn.Create(Self) do
   try
     FDatabase := (dsgdcBase.DataSet as TIBCustomDataSet).Database;
-    ShowSQL(dbseScript.SelText, nil, False);
+    ShowSQL(dbseScript.SelText, nil, True);
   finally
     Free;
   end;

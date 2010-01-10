@@ -58,7 +58,8 @@ const
 
 const
 //Шаблоны запросов
-  cInternalMovementClauseTemplate = ' AND NOT EXISTS('#13#10 +
+  cInternalMovementClauseTemplate =
+    ' AND NOT EXISTS('#13#10 +
     '    SELECT'#13#10 +
     '      e_m.id'#13#10 +
     '    FROM'#13#10+
@@ -72,7 +73,10 @@ const
     '        e_m.creditcurr = e_cm.debitcurr) ' +
     '    %s'#13#10 +
     '    WHERE'#13#10 +
-    '      e_m.id = e.id)'#13#10;
+    '      e_m.id = e.id)'#13#10 +
+    ' AND NOT EXISTS( '#13#10 +
+    '    SELECT t.id FROM ac_transaction t WHERE '#13#10 +
+    '      t.id = e.transactionkey AND t.isinternal=1) '#13#10;
 
   cInternalMovementClauseTemplateNew =
     ' AND NOT EXISTS( '#13#10 +
