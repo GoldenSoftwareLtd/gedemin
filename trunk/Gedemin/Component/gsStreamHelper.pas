@@ -9,12 +9,11 @@ const
   STORAGE_VALUE_STREAM_DEFAULT_FORMAT = 'StreamDefaultFormat';
   STORAGE_VALUE_STREAM_SETTING_DEFAULT_FORMAT = 'StreamSettingDefaultFormat';
 
-  STREAM_FORMAT_COUNT = 4;
+  STREAM_FORMAT_COUNT = 3;
   STREAM_FORMATS: array[0..STREAM_FORMAT_COUNT - 1] of String = (
     'Двоичный формат версии 1.0',
     'Двоичный формат версии 2.0',
-    'XML',
-    'XML с отступами');
+    'XML');
 
   // Расширение для DAT файлов
   datExtension = 'dat';
@@ -35,9 +34,8 @@ type
   //  sttUnknown - неизвеcтный тип
   //  sttBinaryOld - Двоичный формат версии 1.0
   //  sttBinaryNew - Двоичный формат версии 2.0
-  //  sttXML - простой XML
-  //  sttXMLFormatted - форматированный XML (с отступами)
-  TgsStreamType = (sttUnknown, sttBinaryOld, sttBinaryNew, sttXML, sttXMLFormatted);
+  //  sttXML - XML
+  TgsStreamType = (sttUnknown, sttBinaryOld, sttBinaryNew, sttXML);
 
   // Читает строку из переданного потока, принимая первый символ за длину строки
   function StreamReadString(St: TStream): String;

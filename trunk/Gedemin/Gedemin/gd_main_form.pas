@@ -140,10 +140,39 @@ type
     TBSeparatorItem13: TTBSeparatorItem;
     actShell: TAction;
     TBItem20: TTBItem;
+    tbiSettings: TTBItem;
+    actSettings: TAction;
+    tbsiAttributes: TTBSubmenuItem;
+    tbiGenerators: TTBItem;
+    tbiProcedures: TTBItem;
+    tbiViews: TTBItem;
+    tbiExceptions: TTBItem;
+    tbiDomains: TTBItem;
+    tbiTables: TTBItem;
+    actGenerators: TAction;
+    actDomains: TAction;
+    actExceptions: TAction;
+    actViews: TAction;
+    actProcedures: TAction;
+    actTables: TAction;
+    TBSeparatorItem14: TTBSeparatorItem;
+    tbiStorage: TTBItem;
+    tbiDocumentType: TTBItem;
+    actDocumentType: TAction;
+    actStorage: TAction;
     actStreamSaverOptions: TAction;
     tbiStreamSaverOptions: TTBItem;
     actShowMonitoring: TAction;
     TBItem23: TTBItem;
+    tbiSQLProcessWindow: TTBItem;
+    actSQLProcess: TAction;
+    tbsiAdministrator: TTBSubmenuItem;
+    TBItem24: TTBItem;
+    TBItem25: TTBItem;
+    TBItem26: TTBItem;
+    actUserGroups: TAction;
+    actJournal: TAction;
+    actUsers: TAction;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -230,11 +259,35 @@ type
     procedure actCompareDataBasesUpdate(Sender: TObject);
     procedure actShellExecute(Sender: TObject);
     procedure actShellUpdate(Sender: TObject);
+    procedure actSettingsExecute(Sender: TObject);
+    procedure actGeneratorsExecute(Sender: TObject);
+    procedure actDomainsExecute(Sender: TObject);
+    procedure actExceptionsExecute(Sender: TObject);
+    procedure actViewsExecute(Sender: TObject);
+    procedure actProceduresExecute(Sender: TObject);
+    procedure actTablesExecute(Sender: TObject);
+    procedure actStorageExecute(Sender: TObject);
+    procedure actDocumentTypeExecute(Sender: TObject);
     procedure actStreamSaverOptionsExecute(Sender: TObject);
     procedure actShowMonitoringExecute(Sender: TObject);
     procedure actShowMonitoringUpdate(Sender: TObject);
+    procedure actSQLProcessExecute(Sender: TObject);
     procedure actStreamSaverOptionsUpdate(Sender: TObject);
-
+    procedure actSettingsUpdate(Sender: TObject);
+    procedure actStorageUpdate(Sender: TObject);
+    procedure actDocumentTypeUpdate(Sender: TObject);
+    procedure actGeneratorsUpdate(Sender: TObject);
+    procedure actDomainsUpdate(Sender: TObject);
+    procedure actExceptionsUpdate(Sender: TObject);
+    procedure actViewsUpdate(Sender: TObject);
+    procedure actProceduresUpdate(Sender: TObject);
+    procedure actTablesUpdate(Sender: TObject);
+    procedure actUserGroupsExecute(Sender: TObject);
+    procedure actJournalExecute(Sender: TObject);
+    procedure actUsersExecute(Sender: TObject);
+    procedure actUserGroupsUpdate(Sender: TObject);
+    procedure actJournalUpdate(Sender: TObject);
+    procedure actUsersUpdate(Sender: TObject);
   private
     FCanClose: Boolean;
     FExitWindowsParam: Longint;
@@ -282,7 +335,6 @@ type
     procedure LoadSettings; override;
 
   end;
-
 
 var
   frmGedeminMain: TfrmGedeminMain;
@@ -449,20 +501,18 @@ uses
   cmp_frmDataBaseCompare,
   gd_frmMonitoring_unit,
   Clipbrd,
-
   {$IFDEF DUNIT_TEST}
   TestFramework,
   GUITestRunner,
   TestExtensions,
   GedeminTestList,
   {$ENDIF}
-
   Registry
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gd_dlgStreamSaverOptions;
+  , gdcExplorer, gd_dlgStreamSaverOptions;
 
 type
   TCrackPopupMenu = class(TPopupMenu);
@@ -1087,6 +1137,7 @@ begin
 
   if IBLogin.IsUserAdmin then
     lblDatabase.Caption := '  ' + IBLogin.Database.DatabaseName;
+
 end;
 
 procedure TfrmGedeminMain.DoBeforeDisconnect;
@@ -1284,9 +1335,10 @@ begin
 
   if Position = poDesigned then
   begin
-    Left := Screen.DeskTopLeft - 1;
-    Top := Screen.DesktopTop - 1;
-    Width := Screen.DesktopWidth + 2;
+    Left := Self.Monitor.Left - 1;
+    Top := Self.Monitor.Top - 1;
+    // изменим на ширину монитора, на котором находитс€ форма
+    Width := Self.Monitor.Width + 2;
   end;
 
   tcForms.Tabs.Clear;
@@ -1405,10 +1457,11 @@ begin
     else
     begin
       frm.Show;
-      if frm.Left >= Screen.Width then
-        frm.Left := Screen.Width div 2;
-      if frm.Top >= Screen.Height then
-        frm.Top := Screen.Height div 2;
+      // ≈сли форма вылезла куда-то за границу экрана, поместим ее в центр
+      if frm.Left >= (Self.Monitor.Left + Self.Monitor.Width) then
+        frm.Left := Self.Monitor.Left + Self.Monitor.Width div 2;
+      if frm.Top >= (Self.Monitor.Top + Self.Monitor.Height) then
+        frm.Top := Self.Monitor.Top + Self.Monitor.Height div 2;
     end;
 
   except
@@ -1806,27 +1859,31 @@ procedure TfrmGedeminMain.actCloseAllExecute(Sender: TObject);
 var
   I: Integer;
 begin
-  for I := tcForms.Tabs.Count - 1 downto 0 do
-  try
+  if MessageBox(Handle, '«акрыть все формы?', '¬нимание', MB_YESNO or MB_ICONQUESTION) = IDYES then
+  begin
+    for I := tcForms.Tabs.Count - 1 downto 0 do
     try
-      if gdc_frmExplorer <> tcForms.Tabs.Objects[I] then
-      begin
-        if tcForms.Tabs.Objects[I] is TForm then
+      try
+        if gdc_frmExplorer <> tcForms.Tabs.Objects[I] then
         begin
-          if tcForms.Tabs.Objects[I] is TfrmGedeminProperty then
+          if tcForms.Tabs.Objects[I] is TForm then
           begin
-            if (tcForms.Tabs.Objects[I] as TfrmGedeminProperty).Restored then
+            if tcForms.Tabs.Objects[I] is TfrmGedeminProperty then
+            begin
+              if (tcForms.Tabs.Objects[I] as TfrmGedeminProperty).Restored then
+                (tcForms.Tabs.Objects[I] as TForm).Free;
+            end
+            else
               (tcForms.Tabs.Objects[I] as TForm).Free;
-          end else
-            (tcForms.Tabs.Objects[I] as TForm).Free;
+          end;
         end;
+      except
+        //oops!
+        tcForms.Tabs.Delete(I);
       end;
     except
-      //oops!
-      tcForms.Tabs.Delete(I);
     end;
-  except
-  end;  
+  end;
 end;
 
 procedure TfrmGedeminMain.tcFormsMouseMove(Sender: TObject;
@@ -2155,15 +2212,122 @@ begin
   actShell.Enabled := (IBLogin <> nil) and IBLogin.IsUserAdmin;
 end;
 
+procedure TfrmGedeminMain.actSettingsExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcSetting', '', False);
+end;
+
+procedure TfrmGedeminMain.actSettingsUpdate(Sender: TObject);
+begin
+  actSettings.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
+end;
+
+procedure TfrmGedeminMain.actGeneratorsExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcGenerator', '', False);
+end;
+
+procedure TfrmGedeminMain.actGeneratorsUpdate(Sender: TObject);
+begin
+  actGenerators.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
+end;
+
+procedure TfrmGedeminMain.actDomainsExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcField', '', False);
+end;
+
+procedure TfrmGedeminMain.actDomainsUpdate(Sender: TObject);
+begin
+  actDomains.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
+end;
+
+procedure TfrmGedeminMain.actExceptionsExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcException', '', False);
+end;
+
+procedure TfrmGedeminMain.actExceptionsUpdate(Sender: TObject);
+begin
+  actExceptions.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
+end;
+
+procedure TfrmGedeminMain.actViewsExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcView', '', False);
+end;
+
+procedure TfrmGedeminMain.actViewsUpdate(Sender: TObject);
+begin
+  actViews.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
+end;
+
+procedure TfrmGedeminMain.actProceduresExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcStoredProc', '', False);
+end;
+
+procedure TfrmGedeminMain.actProceduresUpdate(Sender: TObject);
+begin
+  actProcedures.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
+end;
+
+procedure TfrmGedeminMain.actTablesExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcTable', '', False);
+end;
+
+procedure TfrmGedeminMain.actTablesUpdate(Sender: TObject);
+begin
+  actTables.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
+end;
+
+procedure TfrmGedeminMain.actStorageExecute(Sender: TObject);
+begin
+  ViewFormByClass('Tst_frmMain', '', False);
+end;
+
+procedure TfrmGedeminMain.actStorageUpdate(Sender: TObject);
+begin
+  actStorage.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
+end;
+
+procedure TfrmGedeminMain.actDocumentTypeExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcDocumentType', '', False);
+end;
+
+procedure TfrmGedeminMain.actDocumentTypeUpdate(Sender: TObject);
+begin
+  actDocumentType.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
+end;
 
 procedure TfrmGedeminMain.actStreamSaverOptionsExecute(Sender: TObject);
 begin
   with TdlgStreamSaverOptions.Create(Self) do
-  try
-    ShowModal;
-  finally
-    Free;
-  end;
+    try
+      ShowModal;
+    finally
+      Free;
+    end;
 end;
 
 procedure TfrmGedeminMain.actStreamSaverOptionsUpdate(Sender: TObject);
@@ -2180,6 +2344,51 @@ end;
 procedure TfrmGedeminMain.actShowMonitoringUpdate(Sender: TObject);
 begin
   actShowMonitoring.Enabled := Assigned(IBLogin)
+    and IBLogin.IsUserAdmin
+    and IBLogin.LoggedIn;
+end;
+
+procedure TfrmGedeminMain.actSQLProcessExecute(Sender: TObject);
+begin
+  if not Assigned(frmSQLProcess) then
+  begin
+    frmSQLProcess := TfrmSQLProcess.Create(Owner);
+  end;
+  frmSQLProcess.Show;
+end;
+
+procedure TfrmGedeminMain.actUserGroupsExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcUserGroup', '', False);
+end;
+
+procedure TfrmGedeminMain.actUserGroupsUpdate(Sender: TObject);
+begin
+  actUserGroups.Enabled := Assigned(IBLogin)
+    and IBLogin.IsUserAdmin
+    and IBLogin.LoggedIn;
+end;
+
+procedure TfrmGedeminMain.actJournalExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcJournal', '', False);
+end;
+
+procedure TfrmGedeminMain.actJournalUpdate(Sender: TObject);
+begin
+  actJournal.Enabled := Assigned(IBLogin)
+    and IBLogin.IsUserAdmin
+    and IBLogin.LoggedIn;
+end;
+
+procedure TfrmGedeminMain.actUsersExecute(Sender: TObject);
+begin
+  ViewFormByClass('TgdcUser', '', False);
+end;
+
+procedure TfrmGedeminMain.actUsersUpdate(Sender: TObject);
+begin
+  actUsers.Enabled := Assigned(IBLogin)
     and IBLogin.IsUserAdmin
     and IBLogin.LoggedIn;
 end;
