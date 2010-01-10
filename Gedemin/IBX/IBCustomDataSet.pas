@@ -5904,56 +5904,58 @@ begin
       SetString(FieldAliasName, aliasname, aliasname_length);
       SetString(RelationName, relname, relname_length);
       SetString(FieldName, sqlname, sqlname_length);
-      f := FindField(FieldAliasname);
-      if Assigned(f) then
+      if relname_length > 0 then // проверка должна исключить поля конструкций EXECUTE BLOCK
       begin
-        //!!!
-        // если в запросе вытаскиваются поля из разных таблиц,
-        // то скорее всего эти таблицы связаны джоинами
-        // и надо рефрешить запись, чтобы вытащились правильные значения
-        if not FNeedsRefresh then
+        f := FindField(FieldAliasname);
+        if Assigned(f) then
         begin
-          FNeedsRefresh := (PrevRelationName > '') and (RelationName <> PrevRelationName);
-          PrevRelationName := RelationName;
-        end;
-        //!!!
-
-        if (RelationName <> '') and (FieldName <> '') then
-        begin
-          f.Origin := QuoteIdentifier(FBase.Database.SQLDialect, RelationName) + '.' +
-                      QuoteIdentifier(FBase.Database.SQLDialect, FieldName);
-
-          if Database.Has_DEFAULT_VALUE(RelationName, FieldName) then
+          //!!!
+          // если в запросе вытаскиваются поля из разных таблиц,
+          // то скорее всего эти таблицы связаны джоинами
+          // и надо рефрешить запись, чтобы вытащились правильные значения
+          if not FNeedsRefresh then
           begin
-            f.DefaultExpression := Database.Get_DEFAULT_VALUE(RelationName, FieldName);
-
-            // иногда ИБ заключает значения по умолчанию в скобки
-            {$IFNDEF DEBUG}
-            if (f.DataType in [ftSmallInt, ftInteger, ftWord, ftBoolean, ftFloat, ftCurrency, ftBCD, ftDate, ftTime, ftDateTime, ftLargeInt])
-              and (Copy(f.DefaultExpression, 1, 1) = '(')
-              and (Copy(f.DefaultExpression, Length(f.DefaultExpression), 1) = ')') then
-            begin
-              f.DefaultExpression := Copy(f.DefaultExpression, 2, Length(f.DefaultExpression) - 2);
-            end;
-            {$ENDIF}
-
-            { TODO : такие дефаулты не обрабатываем }
-           { if Pos('CURRENT_', f.DefaultExpression) = 1 then
-              f.DefaultExpression := '';}
+            FNeedsRefresh := (PrevRelationName > '') and (RelationName <> PrevRelationName);
+            PrevRelationName := RelationName;
           end;
+          //!!!
 
-        //!!!!
-        //added by Golden Software
-        end else
-          f.Origin := MakeFieldOrigin(FQSelect.SQL.Text, FieldAliasName,
-            FBase.Database.SQLDialect);
+          if (RelationName <> '') and (FieldName <> '') then
+          begin
+            f.Origin := QuoteIdentifier(FBase.Database.SQLDialect, RelationName) + '.' +
+                        QuoteIdentifier(FBase.Database.SQLDialect, FieldName);
 
-        if f.Name = '' then
-          f.Name := RemoveProhibitedSymbols(Self.Name + FieldAliasName);
-        //!!!
+            if Database.Has_DEFAULT_VALUE(RelationName, FieldName) then
+            begin
+              f.DefaultExpression := Database.Get_DEFAULT_VALUE(RelationName, FieldName);
+
+              // иногда ИБ заключает значения по умолчанию в скобки
+              {$IFNDEF DEBUG}
+              if (f.DataType in [ftSmallInt, ftInteger, ftWord, ftBoolean, ftFloat, ftCurrency, ftBCD, ftDate, ftTime, ftDateTime, ftLargeInt])
+                and (Copy(f.DefaultExpression, 1, 1) = '(')
+                and (Copy(f.DefaultExpression, Length(f.DefaultExpression), 1) = ')') then
+              begin
+                f.DefaultExpression := Copy(f.DefaultExpression, 2, Length(f.DefaultExpression) - 2);
+              end;
+              {$ENDIF}
+
+              { TODO : такие дефаулты не обрабатываем }
+             { if Pos('CURRENT_', f.DefaultExpression) = 1 then
+                f.DefaultExpression := '';}
+            end;
+
+          //!!!!
+          //added by Golden Software
+          end else
+            f.Origin := MakeFieldOrigin(FQSelect.SQL.Text, FieldAliasName,
+              FBase.Database.SQLDialect);
+
+          if f.Name = '' then
+            f.Name := RemoveProhibitedSymbols(Self.Name + FieldAliasName);
+          //!!!
+        end;
       end;
     end;
-
 end;
 
 function TIBCustomDataSet.GetReadTransaction: TIBTransaction;
