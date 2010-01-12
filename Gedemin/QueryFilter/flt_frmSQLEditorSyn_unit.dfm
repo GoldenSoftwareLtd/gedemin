@@ -22,7 +22,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     Left = 0
     Top = 0
     Width = 675
-    Height = 495
+    Height = 499
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -30,7 +30,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Left = 9
       Top = 26
       Width = 657
-      Height = 460
+      Height = 464
       BorderStyle = bsNone
       TabsVisible = True
       ActivePage = tsQuery
@@ -44,7 +44,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Caption = 'Редактирование'
         object Splitter1: TSplitter
           Left = 0
-          Top = 365
+          Top = 369
           Width = 651
           Height = 4
           Cursor = crVSplit
@@ -54,7 +54,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 0
           Width = 651
-          Height = 365
+          Height = 369
           Cursor = crIBeam
           Align = alClient
           Font.Charset = DEFAULT_CHARSET
@@ -402,7 +402,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         end
         object mmPlan: TMemo
           Left = 0
-          Top = 369
+          Top = 373
           Width = 651
           Height = 62
           Align = alBottom
@@ -537,7 +537,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 26
           Width = 651
-          Height = 405
+          Height = 409
           BorderStyle = bsNone
           TabsVisible = True
           ActivePage = tsGraphStatistic
@@ -935,7 +935,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 190
           Width = 651
-          Height = 241
+          Height = 245
           Align = alClient
           Color = clBtnFace
           ReadOnly = True
@@ -1173,19 +1173,19 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Left = 0
       Top = 26
       Width = 9
-      Height = 460
+      Height = 464
       Position = dpLeft
     end
     object TBDock3: TTBDock
       Left = 666
       Top = 26
       Width = 9
-      Height = 460
+      Height = 464
       Position = dpRight
     end
     object TBDock4: TTBDock
       Left = 0
-      Top = 486
+      Top = 490
       Width = 675
       Height = 9
       Position = dpBottom
@@ -1193,7 +1193,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
   end
   object pModal: TPanel
     Left = 0
-    Top = 495
+    Top = 499
     Width = 675
     Height = 30
     Align = alBottom

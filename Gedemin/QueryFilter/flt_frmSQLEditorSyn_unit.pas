@@ -1326,6 +1326,7 @@ begin
         try
           if ibqryWork.IsEmpty then
           begin
+            Obj.Transaction := ibtrEditor;
             Obj.Open;
             Result := Obj;
             Obj := nil;
@@ -1357,6 +1358,7 @@ begin
                   begin
                     Obj.Free;
                     Obj := C.gdClass.CreateSubType(Application, C.SubType, 'ByID');
+                    Obj.Transaction := ibtrEditor;
                     Obj.ID := ibqryWork.Fields[I].AsInteger;
                     Obj.Open;
                     if Obj.EOF then

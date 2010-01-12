@@ -1,74 +1,78 @@
 [Closed Files]
-File_0=SourceModule,'c:\program files\borland\delphi5\source\vcl\Classes.pas',0,1,3346,1,3368,0,0
-File_1=SourceModule,'c:\program files\borland\delphi5\source\vcl\Controls.pas',0,1,5465,16,5488,0,0
-File_2=SourceModule,'D:\Golden\gedemin\IBX\IB.pas',0,1,735,61,744,0,0
-File_3=SourceModule,'D:\Golden\gedemin\jcl\source\windows\JclUnicode.pas',0,1,8409,1,8414,0,0
-File_4=SourceModule,'D:\Golden\gedemin\jcl\source\common\JclStrings.pas',0,1,784,26,803,0,0
-File_5=SourceModule,'c:\program files\borland\delphi5\source\rtl\Win\windows.pas',0,1,175,1,200,0,0
-File_6=SourceModule,'c:\program files\borland\delphi5\source\vcl\IniFiles.pas',0,1,317,22,337,0,0
-File_7=SourceModule,'D:\Golden\gedemin\IBX\IBSQL.pas',0,1,2968,1,2987,0,0
-File_8=SourceModule,'c:\program files\borland\delphi5\source\vcl\Forms.pas',0,1,1238,1,1257,0,0
-File_9=SourceModule,'D:\Golden\gedemin\IBX\IBServices.pas',0,1,1761,51,1779,0,0
+File_0=SourceModule,'D:\golden\gedemin\gedemin\dmImages_unit.pas',0,1,1,1,3,1,0
+File_1=SourceModule,'D:\golden\gedemin\IBX\IBDatabase.pas',0,1,1931,1,1946,0,0
+File_2=SourceModule,'D:\golden\gedemin\IBX\IB.pas',0,1,739,1,754,0,0
+File_3=SourceModule,'c:\program files (x86)\borland\delphi5\source\vcl\Classes.pas',0,1,7423,1,7442,0,0
+File_4=SourceModule,'D:\golden\gedemin\FastReport 4\Source\frxPrinter.pas',0,1,803,90,807,0,0
+File_5=SourceModule,'D:\golden\gedemin\jcl\source\common\JclStrings.pas',0,1,166,1,166,0,0
+File_6=SourceModule,'c:\program files\borland\delphi5\source\vcl\Classes.pas',0,1,3346,1,3368,0,0
+File_7=SourceModule,'c:\program files\borland\delphi5\source\vcl\Controls.pas',0,1,5465,16,5488,0,0
+File_8=SourceModule,'D:\Golden\gedemin\jcl\source\windows\JclUnicode.pas',0,1,8409,1,8414,0,0
+File_9=SourceModule,'c:\program files\borland\delphi5\source\rtl\Win\windows.pas',0,1,175,1,200,0,0
 
 [Modules]
-Module0=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvert_unit.pas
-Module1=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertConsoleView_unit.pas
-Module2=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertController_unit.pas
-Module3=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertLocalization_unit.pas
-Module4=D:\Golden\gedemin\Utility\FDBConvertPortable\source\FDBConvert.dpr
-Module5=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertFormView_unit.pas
-Module6=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertHelper_unit.pas
-Module7=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gs_frmFunctionEdit_unit.pas
+Module0=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertFormView_unit.pas
+Module1=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertController_unit.pas
+Module2=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertConsoleView_unit.pas
+Module3=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gs_frmFunctionEdit_unit.pas
+Module4=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertLocalization_unit.pas
+Module5=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\FDBConvert.dpr
+Module6=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvert_unit.pas
+Module7=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertHelper_unit.pas
 Count=8
 EditWindowCount=1
 
-[D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvert_unit.pas]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertFormView_unit.pas]
+ModuleType=SourceModule
+FormState=1
+FormOnTop=0
+
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertController_unit.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertConsoleView_unit.pas]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertConsoleView_unit.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertController_unit.pas]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gs_frmFunctionEdit_unit.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertLocalization_unit.pas]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertLocalization_unit.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[D:\Golden\gedemin\Utility\FDBConvertPortable\source\FDBConvert.dpr]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\FDBConvert.dpr]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertFormView_unit.pas]
-ModuleType=SourceModule
-FormState=0
-FormOnTop=1
-
-[D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertHelper_unit.pas]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvert_unit.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[D:\Golden\gedemin\Utility\FDBConvertPortable\source\gs_frmFunctionEdit_unit.pas]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertHelper_unit.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[C:\Program Files\Borland\Delphi5\Bin\ProjectGroup1.bpg]
+[D:\golden\gedemin\gedemin\dmImages_unit.pas]
+FormState=0
+FormOnTop=0
+
+[C:\Program Files (x86)\Borland\Delphi5\Bin\ProjectGroup1.bpg]
 FormState=0
 FormOnTop=0
 
 [EditWindow0]
 ViewCount=8
-CurrentView=2
+CurrentView=1
 View0=0
 View1=1
 View2=2
@@ -82,78 +86,78 @@ MessageView=MessageView@EditWindow0
 Create=1
 Visible=1
 State=2
-Left=219
-Top=223
-Width=870
-Height=642
-MaxLeft=-4
-MaxTop=52
-MaxWidth=1288
-MaxHeight=726
-ClientWidth=1280
-ClientHeight=695
-LeftPanelSize=0
+Left=1454
+Top=96
+Width=1065
+Height=800
+MaxLeft=-1
+MaxTop=-8
+MaxWidth=1456
+MaxHeight=916
+ClientWidth=1440
+ClientHeight=878
+LeftPanelSize=227
 LeftPanelClients=CodeExplorer@EditWindow0
-LeftPanelData=00000400010000000C000000436F64654578706C6F7265720000000000000000000000000000000000FFFFFFFF
+LeftPanelData=000004000000000000000000000000000000000000000000000100000000000000000C000000436F64654578706C6F726572FFFFFFFF
 RightPanelSize=0
 BottomPanelSize=0
 BottomPanelClients=BreakpointWindow,WatchWindow,CallStackWindow,MessageView@EditWindow0
 BottomPanelData=000004000400000008000000425057696E646F770B000000576174636857696E646F770F00000043616C6C537461636B57696E646F770B0000004D65737361676556696577A005000000000000006F00000000000000FFFFFFFF
 
 [View0]
-Module=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertFormView_unit.pas
-CursorX=1
-CursorY=264
-TopLine=260
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\FDBConvert.dpr
+CursorX=28
+CursorY=59
+TopLine=50
 LeftCol=1
 
 [View1]
-Module=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gs_frmFunctionEdit_unit.pas
-CursorX=33
-CursorY=139
-TopLine=107
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertFormView_unit.pas
+CursorX=54
+CursorY=427
+TopLine=407
 LeftCol=1
 
 [View2]
-Module=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvert_unit.pas
-CursorX=50
-CursorY=1649
-TopLine=315
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertConsoleView_unit.pas
+CursorX=12
+CursorY=15
+TopLine=7
 LeftCol=1
 
 [View3]
-Module=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertConsoleView_unit.pas
-CursorX=33
-CursorY=95
-TopLine=112
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertController_unit.pas
+CursorX=37
+CursorY=499
+TopLine=488
 LeftCol=1
 
 [View4]
-Module=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertController_unit.pas
-CursorX=84
-CursorY=1157
-TopLine=1130
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gs_frmFunctionEdit_unit.pas
+CursorX=32
+CursorY=52
+TopLine=52
 LeftCol=1
 
 [View5]
-Module=D:\Golden\gedemin\Utility\FDBConvertPortable\source\FDBConvert.dpr
-CursorX=58
-CursorY=51
-TopLine=28
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertLocalization_unit.pas
+CursorX=51
+CursorY=6
+TopLine=1
 LeftCol=1
 
 [View6]
-Module=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertHelper_unit.pas
-CursorX=53
-CursorY=675
-TopLine=537
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvert_unit.pas
+CursorX=27
+CursorY=273
+TopLine=317
 LeftCol=1
 
 [View7]
-Module=D:\Golden\gedemin\Utility\FDBConvertPortable\source\gsFDBConvertLocalization_unit.pas
-CursorX=28
-CursorY=119
-TopLine=107
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertHelper_unit.pas
+CursorX=47
+CursorY=15
+TopLine=4
 LeftCol=1
 
 [Watches]
@@ -170,29 +174,29 @@ Count=0
 Create=1
 Visible=1
 State=2
-Left=0
-Top=20
+Left=-10
+Top=165
 Width=1280
-Height=109
-MaxLeft=-1
-MaxTop=-1
-MaxWidth=1288
-MaxHeight=57
+Height=66
+MaxLeft=-8
+MaxTop=-8
+MaxWidth=1296
+MaxHeight=66
 ClientWidth=1280
-ClientHeight=26
+ClientHeight=28
 
 [ProjectManager]
 Create=1
-Visible=1
+Visible=0
 State=0
-Left=191
-Top=116
+Left=281
+Top=220
 Width=642
 Height=378
 MaxLeft=-1
 MaxTop=-1
-ClientWidth=634
-ClientHeight=354
+ClientWidth=626
+ClientHeight=344
 TBDockHeight=305
 LRDockWidth=438
 Dockable=1
@@ -204,7 +208,7 @@ State=0
 Left=200
 Top=114
 Width=156
-Height=82
+Height=84
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=150
@@ -214,20 +218,20 @@ ClientHeight=60
 Create=1
 Visible=1
 State=0
-Left=-1
+Left=-2
 Top=53
 Width=273
-Height=687
+Height=719
 MaxLeft=-1
 MaxTop=-1
-ClientWidth=263
-ClientHeight=661
+ClientWidth=255
+ClientHeight=683
 TBDockHeight=659
 LRDockWidth=190
 Dockable=1
-SplitPos=126
+SplitPos=117
 ArrangeBy=Name
-SelectedItem=Tag
+SelectedItem=Name
 ExpandedItems=
 HiddenCategories=Legacy
 ShowStatusBar=1
@@ -296,8 +300,8 @@ Width=470
 Height=250
 MaxLeft=-1
 MaxTop=-1
-ClientWidth=462
-ClientHeight=226
+ClientWidth=454
+ClientHeight=216
 TBDockHeight=250
 LRDockWidth=470
 Dockable=1
@@ -312,18 +316,18 @@ ShowChecked=1
 
 [CodeExplorer@EditWindow0]
 Create=1
-Visible=0
+Visible=1
 State=0
 Left=0
 Top=12
-Width=57
-Height=665
+Width=227
+Height=848
 MaxLeft=-1
 MaxTop=-1
-ClientWidth=57
-ClientHeight=665
+ClientWidth=227
+ClientHeight=848
 TBDockHeight=305
-LRDockWidth=57
+LRDockWidth=227
 Dockable=1
 
 [MessageView@EditWindow0]

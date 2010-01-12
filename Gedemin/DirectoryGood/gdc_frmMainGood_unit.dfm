@@ -1,12 +1,12 @@
 inherited gdc_frmMainGood: Tgdc_frmMainGood
-  Left = 280
-  Top = 130
+  Left = 254
+  Top = 157
   HelpContext = 42
   Caption = 'Справочник товарно-материальных ценностей'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 553
+    Top = 557
   end
   inherited TBDockTop: TTBDock
     inherited tbMainToolbar: TTBToolbar
@@ -64,31 +64,12 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
       inherited tbiLinkObject: TTBItem [21]
       end
     end
-    inherited tbMainCustom: TTBToolbar
-      object TBControlItem1: TTBControlItem
-        Control = eServerAddress
-      end
-      object TBItem2: TTBItem
-        Action = actConnectToServer
-      end
-      object TBItem1: TTBItem
-        Action = actSendToServer
-      end
-      object eServerAddress: TEdit
-        Left = 0
-        Top = 0
-        Width = 121
-        Height = 21
-        TabOrder = 0
-        Text = '192.168.0.60'
-      end
-    end
     inherited tbMainInvariant: TTBToolbar
       Left = 292
     end
   end
   inherited TBDockBottom: TTBDock
-    Top = 572
+    Top = 576
   end
   inherited alMain: TActionList
     Left = 85
@@ -96,18 +77,6 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
       Category = 'Main'
       Caption = 'Добавить подуровень...'
       OnExecute = actNewSubExecute
-    end
-    object actSendToServer: TAction
-      Category = 'TCP'
-      Caption = 'Отправить на сервер'
-      ImageIndex = 106
-      OnExecute = actSendToServerExecute
-    end
-    object actConnectToServer: TAction
-      Category = 'TCP'
-      Caption = 'actConnectToServer'
-      ImageIndex = 105
-      OnExecute = actConnectToServerExecute
     end
   end
   inherited pmMain: TPopupMenu

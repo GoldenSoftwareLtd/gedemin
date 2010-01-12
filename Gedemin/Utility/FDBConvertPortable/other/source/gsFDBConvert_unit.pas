@@ -108,6 +108,8 @@ type
     // Истина - если переданное слово не входит в состав другого слова, а отделено символами SPACE_CHARS
     class function IsSeparateWord(const AFunctionText: String; const AWordPosition, AWordLength: Integer): Boolean;
 
+    // Получить текст параметров процедуры
+    function GetProcedureParamText(const AProcedureName: String): String;
     // Получить текст параметров представления
     function GetViewParamText(const AViewName: String): String;
   public
@@ -147,11 +149,9 @@ type
     procedure DeleteComputedField(const ARelationName, AComputedFieldName: String);
 
     // Получить текст процедуры
-    function GetProcedureText(const AProcedureName: String): String;
-    // Получить текст параметров процедуры
-    function GetProcedureParamText(const AProcedureName: String): String;
+    function GetProcedureText(const AProcedureName: String; const AFullText: Boolean = False): String;
     // Получить текст триггера
-    function GetTriggerText(const ATriggerName: String): String;
+    function GetTriggerText(const ATriggerName: String; const AFullText: Boolean = False): String;
     // Получить текст представления
     function GetViewText(const AViewName: String): String;
     // Получить текст вычисляемого поля
@@ -163,13 +163,18 @@ type
     function GetBackupComputedFieldText(const ARelationName, AComputedFieldName: String): String;
 
     // Изменить текст процедуры
-    procedure SetProcedureText(const AProcedureName, AProcedureText: String; const AParams: String = '_');
+    procedure SetProcedureText(const AProcedureName, AProcedureText: String; const AParams: String = '_'); overload;
+    procedure SetProcedureText(const AProcedureText: String); overload;
     // Изменить текст триггера
-    procedure SetTriggerText(const ATriggerName, ATriggerText: String);
+    procedure SetTriggerText(const ATriggerName, ATriggerText: String); overload;
+    procedure SetTriggerText(const ATriggerText: String); overload;
     // Изменить текст представления
-    procedure SetViewText(const AViewName, AViewText: String);
+    procedure SetViewText(const AViewName, AViewText: String); overload;
+    procedure SetViewText(const AViewText: String); overload;
     // Изменить текст вычисляемого поля
     procedure SetComputedFieldText(const ARelationName, AComputedFieldName, AComputedFieldText: String);
+
+    class function GetFirstNLines(const AText: String; const ALineCount: Integer): String;
 
     property SubstituteFunctionList: TStringList read FSubstituteFunctionList write FSubstituteFunctionList;
   end;
@@ -265,6 +270,11 @@ var
   NumRead: Integer;
   FileSize, CopiedSize: Int64;
 begin
+  // Визуализация процесса 
+  if Assigned(FServiceProgressRoutine) then
+    FServiceProgressRoutine(Format('%s: %s (%s >> %s)',
+      [TimeToStr(Time), GetLocalizedString(lsDatabaseFileCopyingProcess), ADatabaseOriginalPath, ADatabaseCopyPath]));
+
   // Получим размер оригинального файла
   FileSize := TgsFileSystemHelper.GetFileSize(ADatabaseOriginalPath);
   // Оригинальный файл
@@ -282,14 +292,16 @@ begin
       FromFile.Position := 0;
 
       // Визуализация процесса
-      FCopyProgressRoutine(FileSize, CopiedSize, 0, 0, 0, 0, 0, 0, nil);
+      if Assigned(FCopyProgressRoutine) then
+        FCopyProgressRoutine(FileSize, CopiedSize);
       // Сделаем первое чтение
       NumRead := FromFile.Read(Buffer[0], BUFFER_SIZE);
       while NumRead > 0 do
       begin
         CopiedSize := CopiedSize + NumRead;
         // Визуализация процесса
-        FCopyProgressRoutine(FileSize, CopiedSize, 0, 0, 0, 0, 0, 0, nil);
+        if Assigned(FCopyProgressRoutine) then
+          FCopyProgressRoutine(FileSize, CopiedSize);
         // Запишем прочитанную инфу
         ToFile.Write(Buffer[0], NumRead);
         // Следующее чтение
@@ -1046,7 +1058,8 @@ begin
   FIBSQLRead.Close;
 end;
 
-function TgsMetadataEditor.GetProcedureText(const AProcedureName: String): String;
+function TgsMetadataEditor.GetProcedureText(const AProcedureName: String;
+  const AFullText: Boolean = False): String;
 begin
   Result := '';
 
@@ -1059,7 +1072,14 @@ begin
     FIBSQLRead.ExecQuery;
 
     if FIBSQLRead.RecordCount > 0 then
-      Result := FIBSQLRead.FieldByName('FUNCSOURCE').AsString
+    begin
+      // Получить полный текст процедуры (с параметрами) или только тело
+      if AFullText then
+        Result := Format('ALTER PROCEDURE %s %s AS %s',
+          [AProcedureName, GetProcedureParamText(AProcedureName), FIBSQLRead.FieldByName('FUNCSOURCE').AsString])
+      else
+        Result := FIBSQLRead.FieldByName('FUNCSOURCE').AsString;
+    end
     else
       raise Exception.Create('TgsMetadataEditor.GetProcedureText'#13#10 +
         '  Stored procedure "' + AProcedureName + '" not found');
@@ -1073,7 +1093,8 @@ begin
   Result := GetParamsText(AProcedureName, FDatabase);
 end;
 
-function TgsMetadataEditor.GetTriggerText(const ATriggerName: String): String;
+function TgsMetadataEditor.GetTriggerText(const ATriggerName: String;
+  const AFullText: Boolean = False): String;
 begin
   Result := '';
 
@@ -1086,7 +1107,12 @@ begin
     FIBSQLRead.ExecQuery;
 
     if FIBSQLRead.RecordCount > 0 then
-      Result := FIBSQLRead.FieldByName('FUNCSOURCE').AsString
+    begin
+      if AFullText then
+        Result := 'ALTER TRIGGER ' + ATriggerName + #13#10 + FIBSQLRead.FieldByName('FUNCSOURCE').AsString
+      else
+        Result := FIBSQLRead.FieldByName('FUNCSOURCE').AsString;
+    end
     else
       raise Exception.Create('TgsMetadataEditor.GetTriggerText'#13#10 +
         '  Trigger "' + ATriggerName + '" not found');
@@ -1267,10 +1293,15 @@ begin
     ParamText := AParams;
 
   // Запишем измененную процедуру в БД
+  SetProcedureText(Format('ALTER PROCEDURE %s %s AS %s', [AProcedureName, ParamText, AProcedureText]));
+end;
+
+procedure TgsMetadataEditor.SetProcedureText(const AProcedureText: String);
+begin
+  // Запишем измененную процедуру в БД
   FWriteTransaction.StartTransaction;
   try
-    FIBSQLWrite.SQL.Text :=
-      'ALTER PROCEDURE ' + AProcedureName + ' ' + ParamText + ' AS ' + AProcedureText;
+    FIBSQLWrite.SQL.Text := AProcedureText;
     try
       FIBSQLWrite.ExecQuery;
     finally
@@ -1289,10 +1320,15 @@ end;
 procedure TgsMetadataEditor.SetTriggerText(const ATriggerName, ATriggerText: String);
 begin
   // Запишем измененный триггер в БД
+  SetTriggerText('ALTER TRIGGER ' + ATriggerName + #13#10 + ATriggerText);
+end;
+
+procedure TgsMetadataEditor.SetTriggerText(const ATriggerText: String);
+begin
+  // Запишем измененный триггер в БД
   FWriteTransaction.StartTransaction;
   try
-    FIBSQLWrite.SQL.Text :=
-      'ALTER TRIGGER ' + ATriggerName + #13#10 + ATriggerText;
+    FIBSQLWrite.SQL.Text := ATriggerText;
     try
       FIBSQLWrite.ExecQuery;
     finally
@@ -1333,11 +1369,15 @@ end;
 
 procedure TgsMetadataEditor.SetViewText(const AViewName, AViewText: String);
 begin
+  SetViewText('CREATE OR ALTER VIEW ' + AViewName + AViewText);
+end;
+
+procedure TgsMetadataEditor.SetViewText(const AViewText: String);
+begin
   // Запишем измененное представление в БД
   FWriteTransaction.StartTransaction;
   try
-    FIBSQLWrite.SQL.Text :=
-      'CREATE OR ALTER VIEW ' + AViewName + AViewText;
+    FIBSQLWrite.SQL.Text := AViewText;
     try
       FIBSQLWrite.ExecQuery;
     finally
@@ -1662,6 +1702,25 @@ begin
     Result := True
   else
     Result := False;
+end;
+
+class function TgsMetadataEditor.GetFirstNLines(const AText: String;
+  const ALineCount: Integer): String;
+var
+  LinesList: TStringList;
+  LineCounter: Integer;
+begin
+  Result := '';
+
+  LinesList := TStringList.Create;
+  try
+    LinesList.Text := AText;
+    for LineCounter := (LinesList.Count - 1) downto ALineCount do
+      LinesList.Delete(LineCounter);
+    Result := LinesList.Text;
+  finally
+    LinesList.Free;
+  end;
 end;
 
 end.

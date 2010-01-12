@@ -10,7 +10,7 @@ uses
   dmImages_unit, gd_security_OperationConst, {gsTrayIcon,}
   AppEvnts, Db, IBCustomDataSet, IBServices, gdHelp_Body,
   gd_createable_form, TB2Item, TB2Dock, TB2Toolbar, IBQuery,
-  gsIBLookupComboBox{$IFDEF INDY}, IdTCPServer{$ENDIF INDY};
+  gsIBLookupComboBox;
 
 const
   WM_ACTIVATESETTING = WM_USER + 30000;
@@ -173,10 +173,6 @@ type
     actUserGroups: TAction;
     actJournal: TAction;
     actUsers: TAction;
-    eServerAddress: TEdit;
-    TBControlItem7: TTBControlItem;
-    TBItem27: TTBItem;
-    actTCPServerStart: TAction;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -289,21 +285,15 @@ type
     procedure actUserGroupsExecute(Sender: TObject);
     procedure actJournalExecute(Sender: TObject);
     procedure actUsersExecute(Sender: TObject);
-    procedure actTCPServerStartExecute(Sender: TObject);
-
+    procedure actUserGroupsUpdate(Sender: TObject);
+    procedure actJournalUpdate(Sender: TObject);
+    procedure actUsersUpdate(Sender: TObject);
   private
     FCanClose: Boolean;
     FExitWindowsParam: Longint;
     FExitWindows: Boolean;
     //FIconShown: Boolean;
     FFirstTime: Boolean;
-
-    {$IFDEF INDY}
-    FTCPServer: TIdTCPServer;
-    procedure OnServerConnect(AThread: TIdPeerThread);
-    procedure OnServerDisconnect(AThread: TIdPeerThread);
-    procedure OnServerExecute(AThread: TIdPeerThread);
-    {$ENDIF INDY}
 
     procedure EnableCategory(Category: String; DoEnable: Boolean);
     {procedure WMSysCommand(var Message: TWMSysCommand);
@@ -515,22 +505,14 @@ uses
   TestFramework,
   GUITestRunner,
   TestExtensions,
-  TestSQLParser_unit,
-  TestGdKeyArray_unit,
-  TestMMFStream_unit,
-  Test_gsStorage_unit,
-  Test_gsMorph_unit,
+  GedeminTestList,
   {$ENDIF}
   Registry
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdcExplorer, gd_dlgStreamSaverOptions
-  {$IFDEF INDY}
-  , idGlobal, IdSocketHandle, gsTCPCommunicationHelper               
-  {$ENDIF INDY}
-  ;
+  , gdcExplorer, gd_dlgStreamSaverOptions;
 
 type
   TCrackPopupMenu = class(TPopupMenu);
@@ -789,19 +771,6 @@ begin
   TBItem4.Visible := False;
   TBItem3.Visible := False;
   {$ENDIF}
-
-  {$IFDEF INDY}
-  FTCPServer := TidTCPServer.Create(Self);
-  FTCPServer.OnConnect := OnServerConnect;
-  FTCPServer.OnDisconnect := OnServerDisconnect;
-  FTCPServer.OnExecute := OnServerExecute;
-
-  eServerAddress.Visible := True;
-  TBItem27.Visible := True;
-  {$ELSE}
-  eServerAddress.Visible := False;
-  TBItem27.Visible := False;
-  {$ENDIF INDY}
 end;
 
 procedure TfrmGedeminMain.WMQueryEndSession(var Message: TWMQueryEndSession);
@@ -868,11 +837,7 @@ begin
   if Assigned(frmGedeminMain) then
   begin
     {$IFNDEF BMKK}
-      {$IFDEF FLAKE}
-    Caption := 'Гедымин - ' + IBLogin.CompanyName + ' - ' + IBLogin.UserName + ' (Flake''s edition)';
-      {$ELSE}
     Caption := 'Гедымин - ' + IBLogin.CompanyName + ' - ' + IBLogin.UserName;
-      {$ENDIF}
     {$ENDIF}
 
     {$IFDEF NOGEDEMIN}
@@ -935,12 +900,9 @@ procedure TfrmGedeminMain.DoAfterSuccessfullConnection;
 var
   TempPath: array[0..256] of char;
   SearchR: TSearchRec;
-  S: String;
-  {$IFNDEF FLAKE}
-  FN, FE: String;
+  S, FN, FE: String;
   Res: OleVariant;
   IBService: TIBBackupService;
-  {$ENDIF}
   J: DWORD;
 begin
   ClearFltComponentCache;
@@ -1017,7 +979,6 @@ begin
   gdcBaseManager.Database.TraceFlags := [];
   {$ENDIF}
 
-  {$IFNDEF FLAKE}
   if Assigned(GlobalStorage)
     and GlobalStorage.ReadBoolean('Options\Arch', 'Enabled', False, False)
     and (GlobalStorage.ReadInteger('Options\Arch', 'Interval', 7, False) > 0)
@@ -1151,7 +1112,6 @@ begin
       gd_dlgAutoBackup.Free;
     end;
   end;
-  {$ENDIF}
 
 {$IFDEF GEDEMIN_LOCK}
   if IsRegisteredCopy and
@@ -1370,18 +1330,15 @@ begin
 end;
 
 procedure TfrmGedeminMain.Loaded;
-var
-  RDeck: TRect;
 begin
   inherited;
 
   if Position = poDesigned then
   begin
-    RDeck := Self.GetActiveMonitorWorkArea;
-    Left := RDeck.Left - 1;
-    Top := RDeck.Top - 1;
+    Left := Self.Monitor.Left - 1;
+    Top := Self.Monitor.Top - 1;
     // изменим на ширину монитора, на котором находится форма
-    Width := RDeck.Right - RDeck.Left + 2;
+    Width := Self.Monitor.Width + 2;
   end;
 
   tcForms.Tabs.Clear;
@@ -1480,10 +1437,6 @@ end;
 
 destructor TfrmGedeminMain.Destroy;
 begin
-  {$IFDEF INDY}
-  FTCPServer.Free;
-  {$ENDIF INDY}
-
   _OnCreateForm := nil;
   _OnDestroyForm := nil;
   _OnActivateForm := nil;
@@ -1929,7 +1882,6 @@ begin
         tcForms.Tabs.Delete(I);
       end;
     except
-      { TODO: пустой обработчик исключений! }
     end;
   end;
 end;
@@ -2267,7 +2219,9 @@ end;
 
 procedure TfrmGedeminMain.actSettingsUpdate(Sender: TObject);
 begin
-  actSettings.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+  actSettings.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmGedeminMain.actGeneratorsExecute(Sender: TObject);
@@ -2277,7 +2231,9 @@ end;
 
 procedure TfrmGedeminMain.actGeneratorsUpdate(Sender: TObject);
 begin
-  actGenerators.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+  actGenerators.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmGedeminMain.actDomainsExecute(Sender: TObject);
@@ -2287,7 +2243,9 @@ end;
 
 procedure TfrmGedeminMain.actDomainsUpdate(Sender: TObject);
 begin
-  actDomains.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+  actDomains.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmGedeminMain.actExceptionsExecute(Sender: TObject);
@@ -2297,7 +2255,9 @@ end;
 
 procedure TfrmGedeminMain.actExceptionsUpdate(Sender: TObject);
 begin
-  actExceptions.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+  actExceptions.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmGedeminMain.actViewsExecute(Sender: TObject);
@@ -2307,7 +2267,9 @@ end;
 
 procedure TfrmGedeminMain.actViewsUpdate(Sender: TObject);
 begin
-  actViews.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+  actViews.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmGedeminMain.actProceduresExecute(Sender: TObject);
@@ -2317,7 +2279,9 @@ end;
 
 procedure TfrmGedeminMain.actProceduresUpdate(Sender: TObject);
 begin
-  actProcedures.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+  actProcedures.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmGedeminMain.actTablesExecute(Sender: TObject);
@@ -2327,7 +2291,9 @@ end;
 
 procedure TfrmGedeminMain.actTablesUpdate(Sender: TObject);
 begin
-  actTables.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+  actTables.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmGedeminMain.actStorageExecute(Sender: TObject);
@@ -2337,7 +2303,9 @@ end;
 
 procedure TfrmGedeminMain.actStorageUpdate(Sender: TObject);
 begin
-  actStorage.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+  actStorage.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmGedeminMain.actDocumentTypeExecute(Sender: TObject);
@@ -2347,7 +2315,9 @@ end;
 
 procedure TfrmGedeminMain.actDocumentTypeUpdate(Sender: TObject);
 begin
-  actDocumentType.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
+  actDocumentType.Enabled := Assigned(IBLogin)
+    and IBLogin.LoggedIn
+    and IBLogin.IsUserAdmin;
 end;
 
 procedure TfrmGedeminMain.actStreamSaverOptionsExecute(Sender: TObject);
@@ -2392,9 +2362,23 @@ begin
   ViewFormByClass('TgdcUserGroup', '', False);
 end;
 
+procedure TfrmGedeminMain.actUserGroupsUpdate(Sender: TObject);
+begin
+  actUserGroups.Enabled := Assigned(IBLogin)
+    and IBLogin.IsUserAdmin
+    and IBLogin.LoggedIn;
+end;
+
 procedure TfrmGedeminMain.actJournalExecute(Sender: TObject);
 begin
   ViewFormByClass('TgdcJournal', '', False);
+end;
+
+procedure TfrmGedeminMain.actJournalUpdate(Sender: TObject);
+begin
+  actJournal.Enabled := Assigned(IBLogin)
+    and IBLogin.IsUserAdmin
+    and IBLogin.LoggedIn;
 end;
 
 procedure TfrmGedeminMain.actUsersExecute(Sender: TObject);
@@ -2402,155 +2386,11 @@ begin
   ViewFormByClass('TgdcUser', '', False);
 end;
 
-procedure TfrmGedeminMain.actTCPServerStartExecute(Sender: TObject);
-{$IFDEF INDY}
-var
-  IPText, IPPort: String;
-
-  function StopServer: Boolean;
-  begin
-    FTCPServer.Active := false;
-    FTCPServer.Bindings.Clear;
-    Result := not FTCPServer.Active;
-
-    if Result then
-      AddText('Server stopped')
-    else
-      AddText('Server not stopped');
-  end;
-
-  function StartServer(const AIP, APort: String): Boolean;
-  var
-    Binding : TIdSocketHandle;
-  begin
-    if not StopServer then
-    begin
-      AddText('Error stopping server');
-      Result := false;
-      Exit;
-    end;
-
-    FTCPServer.Bindings.Clear; // bindings cannot be cleared until TidTCPServer is inactive
-    try
-      Binding := FTCPServer.Bindings.Add;
-      Binding.IP := AIP;
-      Binding.Port := StrToInt(APort);
-      AddText('Server bound to IP ' + AIP + ' on port ' + APort);
-
-      FTCPServer.Active := true;
-      Result := FTCPServer.Active;
-
-      AddText('Server started');
-    except
-      on E: Exception do
-      begin
-        AddText('Server not started: ' + E.Message);
-        Result := False;
-      end;
-    end;
-  end;
-{$ENDIF INDY}
+procedure TfrmGedeminMain.actUsersUpdate(Sender: TObject);
 begin
-{$IFDEF INDY}
-  if not FTCPServer.Active then
-  begin
-    IPText := TgsTCPCommunicationHelper.GetIPFromString(eServerAddress.Text);
-    IPPort := TgsTCPCommunicationHelper.GetPortFromString(eServerAddress.Text);
-    if IPPort = '' then
-      IPPort := '9099';
-    if IsValidIP(IPText) and IsNumeric(IPPort) then
-    begin
-      if StartServer(IPText, IPPort) then
-        actTCPServerStart.Caption := 'Остановить сервер';
-    end
-    else
-      AddText('Invalid server IP or port');
-  end
-  else
-  begin
-    if StopServer then
-      actTCPServerStart.Caption := 'Стартовать сервер';
-  end;
-{$ENDIF INDY}
+  actUsers.Enabled := Assigned(IBLogin)
+    and IBLogin.IsUserAdmin
+    and IBLogin.LoggedIn;
 end;
-
-{$IFDEF INDY}
-procedure TfrmGedeminMain.OnServerConnect(AThread: TIdPeerThread);
-var
-  ReceivedTCPCommand, SentTCPCommand: TgsTCPCommand;
-begin
-  {SentTCPCommand.Command := 'SUCCESSFULL_CONNECT';
-  SentTCPCommand.DatabaseID := DEFAULT_SERVER_ID;
-  AThread.Connection.WriteBuffer(SentTCPCommand, SizeOf(TgsTCPCommand));
-
-  AThread.Connection.ReadBuffer(ReceivedTCPCommand, SizeOf(TgsTCPCommand));
-  AddText('Database ' + IntToStr(ReceivedTCPCommand.DatabaseID) + ' connected');}
-  AddText('Client connected');
-end;
-
-procedure TfrmGedeminMain.OnServerDisconnect(AThread: TIdPeerThread);
-begin
-  AddText('Client disconnected'); 
-end;
-
-procedure TfrmGedeminMain.OnServerExecute(AThread: TIdPeerThread);
-var
-  ReceivedTCPCommand, SentTCPCommand: TgsTCPCommand;
-  gdcGood: TgdcGood;
-  Tr: TIBTransaction;
-begin
-  AThread.Connection.ReadBuffer(ReceivedTCPCommand, SizeOf(TgsTCPCommand));
-
-  if ReceivedTCPCommand.Command = 'INSERT_GOOD' then
-  begin
-    AddText('Received INSERT_GOOD command');
-
-    if ReceivedTCPCommand.Value <> '' then
-    begin
-      Tr := TIBTransaction.Create(Self);
-      gdcGood := TgdcGood.Create(Self);
-      try
-        Tr.DefaultDatabase := gdcBaseManager.Database;
-        gdcGood.Transaction := Tr;
-        try
-          Tr.StartTransaction;
-          gdcGood.SubSet := 'ByID';
-          gdcGood.Open;
-
-          gdcGood.Insert;
-          gdcGood.FieldByName('VALUEKEY').AsInteger := 3000001;
-          gdcGood.FieldByName('GROUPKEY').AsInteger := 147704068;
-          gdcGood.FieldByName('NAME').AsString := ReceivedTCPCommand.Value;
-          gdcGood.Post;
-
-          gdcGood.Close;
-
-          Tr.Commit;
-
-          SentTCPCommand.Command := 'GOOD_INSERTED';
-        except
-          Tr.Rollback;
-          SentTCPCommand.Command := 'GOOD_NOT_INSERTED';
-        end;
-      finally
-        gdcGood.Free;
-        Tr.Free;
-      end;
-    end;
-
-    AThread.Connection.WriteBuffer(SentTCPCommand, SizeOf(TgsTCPCommand), True);
-  end
-  else
-  begin
-    AddText('Received unknown command');
-
-    SentTCPCommand.Command := 'UNKNOWN_COMMAND';
-    SentTCPCommand.DatabaseID := 112233;
-
-    AThread.Connection.WriteBuffer(SentTCPCommand, SizeOf(TgsTCPCommand), True);
-  end;
-end;
-{$ENDIF INDY}
-
 
 end.
