@@ -13,6 +13,8 @@ type
     FWasConvertingProcess: Boolean;
 
     procedure SetProcessForm(const Value: TForm);
+
+    procedure ProcessSubstituteList;
   public
     constructor Create(AnOwner: TObject);
     destructor Destroy; override;
@@ -30,7 +32,7 @@ type
     // Установить необходимые параметры конвертации БД
     procedure SetProcessParameters;
     // Проверить правильность указанных параметров конвертации
-    procedure CheckProcessParams;
+    procedure CheckProcessParams(const RespondToForm: Boolean = False);
 
     procedure ClearConvertParams;
     // Запустить процесс конвертации БД
@@ -61,7 +63,7 @@ type
 
     FgsFunctionEditor: TgsMetadataEditor;
     FMetadataMaxProgress, FMetadataCurrentProgress: Integer;
-    FMetadataName, FMetadataParams, FMetadataText, FMetadataError: String;
+    FMetadataName, FMetadataText, FMetadataError: String;
     FEditMetadataType: TgsMetadataType;
 
     procedure DoEditMetadata;
@@ -79,6 +81,7 @@ type
   end;
 
   EgsInterruptConvertProcess = class(Exception);
+  EgsNeedFreeSpace = class(Exception);
 
 { TgsFDBConvertController }
 
@@ -150,10 +153,33 @@ begin
   LoadLanguageStrings(ALanguageName);
 end;
 
-procedure TgsFDBConvertController.SetProcessParameters;
+procedure TgsFDBConvertController.ProcessSubstituteList;
 var
   SubstituteList: TStringList;
   StringCounter: Integer;
+begin
+  with (FProcessForm as TgsFDBConvertFormView) do
+  begin
+    // Сохраним введенные замещаемые функции
+    SubstituteList := TStringList.Create;
+    try
+      for StringCounter := 0 to sgSubstituteList.RowCount - 1 do
+      begin
+        // Учитываем только правильно указанные записи
+        if (sgSubstituteList.Cells[0, StringCounter] <> '')
+           and (sgSubstituteList.Cells[1, StringCounter] <> '') then
+          SubstituteList.Add(sgSubstituteList.Cells[0, StringCounter] + '=' + sgSubstituteList.Cells[1, StringCounter]);
+      end;
+      // Сохранить данные в файлы
+      TgsConfigFileManager.SaveSubstituteFunctionList(SubstituteList);
+    finally
+      FreeAndNil(SubstituteList);
+    end;
+  end;
+end;
+
+procedure TgsFDBConvertController.SetProcessParameters;
+var
   ConnectInfo: TgsConnectionInformation;
   ParameterValue: String;
 begin
@@ -170,6 +196,22 @@ begin
           // Получим имя БД
           FFDBConvert.DatabaseName := eDatabaseName.Text;
           FFDBConvert.DatabaseOriginalName := eDatabaseName.Text;
+
+          if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseName) then
+          begin
+            // Имя оригинальной БД (бэкапа)
+            FFDBConvert.FinishOriginalDatabaseName :=
+              TgsFileSystemHelper.ChangeExtention(FFDBConvert.DatabaseOriginalName, OLD_DATABASE_EXTENSION);
+            // Имя конвертированной БД
+            FFDBConvert.FinishConvertedDatabaseName := FFDBConvert.DatabaseOriginalName;
+          end
+          else
+          begin
+            // Имя оригинальной БД (бэкапа)
+            FFDBConvert.FinishOriginalDatabaseName := FFDBConvert.DatabaseOriginalName;
+            // Имя конвертированной БД
+            FFDBConvert.FinishConvertedDatabaseName := FFDBConvert.DatabaseCopyName;
+          end;
 
           // Обработчик сервисов сервера БД
           FFDBConvert.ServiceProgressRoutine := FormServiceProgressRoutine;
@@ -190,22 +232,11 @@ begin
           ConnectInfo.NumBuffers := StrToInt(eBufferSize.Text);
           ConnectInfo.CharacterSet := Trim(cbCharacterSet.Text);
           FFDBConvert.ConnectionInformation := ConnectInfo;
-
-          // Сохраним введенные замещаемые функции
-          SubstituteList := TStringList.Create;
-          try
-            for StringCounter := 0 to sgSubstituteList.RowCount - 1 do
-            begin
-              if (sgSubstituteList.Cells[0, StringCounter] <> '')
-                 and (sgSubstituteList.Cells[1, StringCounter] <> '') then
-                SubstituteList.Add(sgSubstituteList.Cells[0, StringCounter] + '=' + sgSubstituteList.Cells[1, StringCounter]);
-            end;
-            // Сохранить данные в файлы
-            TgsConfigFileManager.SaveSubstituteFunctionList(SubstituteList);
-          finally
-            FreeAndNil(SubstituteList);
-          end;
         end;
+
+        // Обработаем введенные замещаемые функции
+        if pcMain.ActivePage = tbs04 then
+          ProcessSubstituteList;
       end;
     end
     else
@@ -327,11 +358,13 @@ begin
             // Если передан не бэкап
             if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseName) then
             begin
+              eBAKDatabaseCopy.Text := FFDBConvert.FinishOriginalDatabaseName;
               eOriginalDBVersion.Text := GetTextDBVersion(FFDBConvert.GetDatabaseVersion);
               eOriginalServerVersion.Text := GetTextServerVersion(GetServerVersionByDBVersion(FFDBConvert.GetDatabaseVersion));
             end
             else
             begin
+              eBAKDatabaseCopy.Text := Format('< %0:s >', [GetLocalizedString(lsUnknownParameterValue)]);
               eOriginalDBVersion.Text := Format('< %0:s >', [GetLocalizedString(lsUnknownParameterValue)]);
               eOriginalServerVersion.Text := Format('< %0:s >', [GetLocalizedString(lsUnknownParameterValue)]);
             end;
@@ -343,7 +376,7 @@ begin
             if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseName) then
             begin
               eBackupName.Text := TgsFileSystemHelper.GetDefaultBackupName(FFDBConvert.DatabaseName);
-              actBrowseBackupFile.Enabled := True;
+              {actBrowseBackupFile.Enabled := True;}
               cbPageSize.Text := IntToStr(FFDBConvert.DatabaseInfo.PageSize);
               eBufferSize.Text := IntToStr(FFDBConvert.DatabaseInfo.NumBuffers);
               // Получим кодировку БД
@@ -359,9 +392,10 @@ begin
             end
             else
             begin
-              eBackupName.Text := Format('< %0:s >', [GetLocalizedString(lsUnknownParameterValue)]);
+              {eBackupName.Text := Format('< %0:s >', [GetLocalizedString(lsUnknownParameterValue)]);
               eBackupName.ReadOnly := True;
-              actBrowseBackupFile.Enabled := False;
+              actBrowseBackupFile.Enabled := False;}
+              eBackupName.Text := TgsFileSystemHelper.GetDefaultBackupName(FFDBConvert.DatabaseName);
 
               cbPageSize.Text := IntToStr(DefaultPageSize);
               eBufferSize.Text := IntToStr(DefaultNumBuffers);
@@ -371,6 +405,7 @@ begin
           // Выведем тоже самое в мемо
           mProcessInformation.Clear;
           mProcessInformation.Lines.Add(lblOriginalDatabase.Caption + ' ' + eOriginalDatabase.Text);
+          mProcessInformation.Lines.Add(lblBAKDatabaseCopy.Caption + ' ' + eBAKDatabaseCopy.Text);
           mProcessInformation.Lines.Add(lblOriginalDBVersion.Caption + ' ' + eOriginalDBVersion.Text);
           mProcessInformation.Lines.Add(lblOriginalServerVersion.Caption + ' ' + eOriginalServerVersion.Text);
           mProcessInformation.Lines.Add(lblNewServerVersion.Caption + ' ' + eNewServerVersion.Text);
@@ -390,6 +425,8 @@ begin
         begin
           WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsOriginalDatabase),
             FFDBConvert.DatabaseName]));
+          WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsBAKDatabaseCopy),
+            FFDBConvert.FinishOriginalDatabaseName]));
           WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsOriginalDBVersion),
             GetTextDBVersion(FFDBConvert.GetDatabaseVersion)]));
           WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsOriginalServerVersion),
@@ -439,22 +476,20 @@ begin
   begin
     with FProcessForm as TgsFDBConvertFormView do
     begin
-      mAfterProcessInformation.Clear;
-      mAfterProcessInformation.Lines.Add(GetLocalizedString(lsProcessSuccessfullEnd));
+      AddMessage(' ');
+      AddMessage(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcessSuccessfullEnd)]));
       if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseOriginalName) then
       begin
-        mAfterProcessInformation.Lines.Add(GetLocalizedString(lsOriginalDatabaseNameFinalMessage));
-        mAfterProcessInformation.Lines.Add('  ' + FFDBConvert.FinishOriginalDatabaseName);
+        AddMessage(GetLocalizedString(lsOriginalDatabaseNameFinalMessage));
+        AddMessage('  ' + FFDBConvert.FinishOriginalDatabaseName);
       end;
-      mAfterProcessInformation.Lines.Add(GetLocalizedString(lsNewDatabaseNameFinalMessage));
-      mAfterProcessInformation.Lines.Add('  ' + FFDBConvert.FinishConvertedDatabaseName);
-      // Перейдем на закладку с окончательной информацией о выполненном процессе
-      pcMain.ActivePage := tbs07;
+      AddMessage(GetLocalizedString(lsNewDatabaseNameFinalMessage));
+      AddMessage('  ' + FFDBConvert.FinishConvertedDatabaseName);
     end;
   end
   else
   begin
-    WriteToConsoleLn(GetLocalizedString(lsProcessSuccessfullEnd));
+    WriteToConsoleLn(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcessSuccessfullEnd)]));
     if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseOriginalName) then
     begin
       WriteToConsoleLn(GetLocalizedString(lsOriginalDatabaseNameFinalMessage));
@@ -472,28 +507,27 @@ begin
   begin
     with FProcessForm as TgsFDBConvertFormView do
     begin
-      mAfterProcessInformation.Clear;
-      mAfterProcessInformation.Lines.Add(GetLocalizedString(lsProcessInterruptedEnd));
-      mAfterProcessInformation.Lines.Add(AErrorMessage);
+      AddMessage(' ');
+      AddMessage(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcessInterruptedEnd)]));
+      if AErrorMessage <> '' then
+        AddMessage(AErrorMessage);
       if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseOriginalName) then
       begin
-        mAfterProcessInformation.Lines.Add(GetLocalizedString(lsOriginalDatabaseNameInterruptMessage));
-        mAfterProcessInformation.Lines.Add('  ' + FFDBConvert.DatabaseOriginalName);
+        AddMessage(GetLocalizedString(lsOriginalDatabaseNameInterruptMessage));
+        AddMessage('  ' + FFDBConvert.DatabaseOriginalName);
       end
       else
       begin
-        mAfterProcessInformation.Lines.Add(GetLocalizedString(lsOriginalBackupNameInterruptMessage));
-        mAfterProcessInformation.Lines.Add('  ' + FFDBConvert.DatabaseOriginalName);
+        AddMessage(GetLocalizedString(lsOriginalBackupNameInterruptMessage));
+        AddMessage('  ' + FFDBConvert.DatabaseOriginalName);
       end;
-
-      // Перейдем на закладку с окончательной информацией о прерванном процессе
-      pcMain.ActivePage := tbs07;
     end;
   end
   else
   begin
-    WriteToConsoleLn(GetLocalizedString(lsProcessInterruptedEnd));
-    WriteToConsoleLn(AErrorMessage);
+    WriteToConsoleLn(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcessInterruptedEnd)]));
+    if AErrorMessage <> '' then
+      WriteToConsoleLn(AErrorMessage);
     if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseOriginalName) then
     begin
       WriteToConsoleLn(GetLocalizedString(lsOriginalDatabaseNameInterruptMessage));
@@ -557,32 +591,62 @@ begin
   FWasConvertingProcess := False;
 end;
 
-procedure TgsFDBConvertController.CheckProcessParams;
+procedure TgsFDBConvertController.CheckProcessParams(const RespondToForm: Boolean = False);
 var
   ProcessedFileSize: Int64;
+  NeedFreeSpace: Boolean;
 begin
+  NeedFreeSpace := False;
+
   // Если копия БД и архив на одном диске
   if ExtractFileDrive(ModelObject.DatabaseCopyName) = ExtractFileDrive(ModelObject.DatabaseBackupName) then
   begin
     // Проверим свободное место для копии БД и архива БД
     ProcessedFileSize := Round(TgsFileSystemHelper.GetFileSize(ModelObject.DatabaseName) * FREE_SPACE_MULTIPLIER);
     if TgsFileSystemHelper.CheckForFreeDiskSpace(ModelObject.DatabaseCopyName, ProcessedFileSize) > 0 then
-      raise Exception.Create(GetLocalizedString(lsNoDiskSpaceForTempFiles) + #13#10 +
-        Format(GetLocalizedString(lsWantDiskSpace), [ProcessedFileSize div BYTE_IN_MB]));
+      if RespondToForm and Assigned(FProcessForm) then
+      begin
+        (FProcessForm as TgsFDBConvertFormView).lblNeedFreeSpace.Caption :=
+          GetLocalizedString(lsNoDiskSpaceForTempFiles) + #13#10 +
+          Format(GetLocalizedString(lsWantDiskSpace), [ProcessedFileSize div BYTE_IN_MB]);
+        NeedFreeSpace := True;
+      end
+      else
+        raise EgsNeedFreeSpace.Create(GetLocalizedString(lsNoDiskSpaceForTempFiles) + #13#10 +
+          Format(GetLocalizedString(lsWantDiskSpace), [ProcessedFileSize div BYTE_IN_MB]));
   end
   else
   begin
     // Проверим свободное место для копии БД
     ProcessedFileSize := TgsFileSystemHelper.GetFileSize(ModelObject.DatabaseName);
     if TgsFileSystemHelper.CheckForFreeDiskSpace(ModelObject.DatabaseCopyName, ProcessedFileSize) > 0 then
-      raise Exception.Create(GetLocalizedString(lsNoDiskSpaceForDBCopy) + #13#10 +
-        Format('  %s'#13#10 + GetLocalizedString(lsWantDiskSpace), [ModelObject.DatabaseCopyName, ProcessedFileSize div BYTE_IN_MB]));
+      if RespondToForm and Assigned(FProcessForm) then
+      begin
+        (FProcessForm as TgsFDBConvertFormView).lblNeedFreeSpace.Caption :=
+          GetLocalizedString(lsNoDiskSpaceForDBCopy) + #13#10 + ModelObject.DatabaseCopyName + #13#10 +
+          Format(GetLocalizedString(lsWantDiskSpace), [ProcessedFileSize div BYTE_IN_MB]);
+        NeedFreeSpace := True;
+      end
+      else
+        raise EgsNeedFreeSpace.Create(GetLocalizedString(lsNoDiskSpaceForDBCopy) + #13#10 +
+          Format('  %s'#13#10 + GetLocalizedString(lsWantDiskSpace), [ModelObject.DatabaseCopyName, ProcessedFileSize div BYTE_IN_MB]));
     // Проверим свободное место для архива БД
     ProcessedFileSize := ProcessedFileSize div 2;
     if TgsFileSystemHelper.CheckForFreeDiskSpace(ModelObject.DatabaseBackupName, ProcessedFileSize) > 0 then
-      raise Exception.Create(GetLocalizedString(lsNoDiskSpaceForBackup) + #13#10 +
-        Format('  %s'#13#10 + GetLocalizedString(lsWantDiskSpace), [ModelObject.DatabaseBackupName, ProcessedFileSize div BYTE_IN_MB]));
+      if RespondToForm and Assigned(FProcessForm) then
+      begin
+        (FProcessForm as TgsFDBConvertFormView).lblNeedFreeSpace.Caption :=
+          GetLocalizedString(lsNoDiskSpaceForBackup) + #13#10 + ModelObject.DatabaseBackupName + #13#10 +
+          Format(GetLocalizedString(lsWantDiskSpace), [ProcessedFileSize div BYTE_IN_MB]);
+        NeedFreeSpace := True;
+      end
+      else
+        raise EgsNeedFreeSpace.Create(GetLocalizedString(lsNoDiskSpaceForBackup) + #13#10 +
+          Format('  %s'#13#10 + GetLocalizedString(lsWantDiskSpace), [ModelObject.DatabaseBackupName, ProcessedFileSize div BYTE_IN_MB]));
   end;
+
+  if RespondToForm and Assigned(FProcessForm) and not NeedFreeSpace then
+    (FProcessForm as TgsFDBConvertFormView).lblNeedFreeSpace.Caption := '';
 end;
 
 { TgsConvertThread }
@@ -667,33 +731,40 @@ begin
       begin
         // Пробуем восстановить БД несколькими серверами подряд
         try
-          Controller.ModelObject.ServiceProgressRoutine(Format('%s %s',
-            [GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svYaffil)]));
+          Controller.ModelObject.ServiceProgressRoutine(Format('%s: %s %s',
+            [TimeToStr(Time), GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svYaffil)]));
           Controller.ModelObject.ServerType := svYaffil;
           Controller.ModelObject.RestoreDatabase(Controller.ModelObject.DatabaseName, Controller.ModelObject.DatabaseCopyName);
         except
           try
-            Controller.ModelObject.ServiceProgressRoutine(Format('%s %s',
-              [GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svFirebird_20)]));
+            // сообщим об ошибке восстановления
+            Controller.ModelObject.ServiceProgressRoutine(GetLocalizedString(lsDatabaseRestoreProcessError));
+            // Восстанавливаем след. сервером
+            Controller.ModelObject.ServiceProgressRoutine(Format('%s: %s %s',
+              [TimeToStr(Time), GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svFirebird_20)]));
             Controller.ModelObject.ServerType := svFirebird_20;
             Controller.ModelObject.RestoreDatabase(Controller.ModelObject.DatabaseName, Controller.ModelObject.DatabaseCopyName);
           except
             try
-              Controller.ModelObject.ServiceProgressRoutine(Format('%s %s',
-                [GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svFirebird_25)]));
+              // сообщим об ошибке восстановления
+              Controller.ModelObject.ServiceProgressRoutine(GetLocalizedString(lsDatabaseRestoreProcessError));
+              // Восстанавливаем след. сервером
+              Controller.ModelObject.ServiceProgressRoutine(Format('%s: %s %s',
+                [TimeToStr(Time), GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svFirebird_25)]));
               Controller.ModelObject.ServerType := svFirebird_25;
               Controller.ModelObject.RestoreDatabase(Controller.ModelObject.DatabaseName, Controller.ModelObject.DatabaseCopyName);
             except
               on E: Exception do
               begin
-                // TODO: обработать ситуацию невозможности восстановления бэкапа
+                // сообщим об ошибке восстановления
+                Controller.ModelObject.ServiceProgressRoutine(GetLocalizedString(lsDatabaseRestoreProcessError));
                 raise Exception.Create(E.Message);
               end;
             end;
           end;
         end;
         // Получим новое имя для бэкапа для последующей процедуры backup-restore
-        Controller.ModelObject.DatabaseBackupName := TgsFileSystemHelper.GetDefaultBackupName(Controller.ModelObject.DatabaseCopyName);
+        // Controller.ModelObject.DatabaseBackupName := TgsFileSystemHelper.GetDefaultBackupName(Controller.ModelObject.DatabaseCopyName);
       end
       else
       begin
@@ -708,7 +779,7 @@ begin
       Controller.ModelObject.ServerType := CONVERT_SERVER_VERSION;
       Controller.ModelObject.Connect;
       try
-        Controller.ModelObject.ServerType := GetServerVersionByDBVersion(Controller.ModelObject.GetDatabaseVersion);
+        Controller.ModelObject.ServerType := GetAppropriateServerVersion(GetServerVersionByDBVersion(Controller.ModelObject.GetDatabaseVersion));
         // Запомним версию оригинального сервера, будет использоваться в ModelObject.RestoreDatabase
         Controller.ModelObject.OriginalServerType := Controller.ModelObject.ServerType;
       finally
@@ -757,24 +828,15 @@ begin
       begin
         try
           // Переименуем старую БД в *.BAK
-          Controller.ModelObject.FinishOriginalDatabaseName :=
-            TgsFileSystemHelper.DoRenameFile(Controller.ModelObject.DatabaseOriginalName,
-              TgsFileSystemHelper.ChangeExtention(Controller.ModelObject.DatabaseOriginalName, OLD_DATABASE_EXTENSION));
+          TgsFileSystemHelper.DoRenameFile(Controller.ModelObject.DatabaseOriginalName,
+            Controller.ModelObject.FinishOriginalDatabaseName);
           // Переименуем новую БД в старую
-          Controller.ModelObject.FinishConvertedDatabaseName :=
-            TgsFileSystemHelper.DoRenameFile(Controller.ModelObject.DatabaseCopyName,
-              Controller.ModelObject.DatabaseOriginalName);
+          TgsFileSystemHelper.DoRenameFile(Controller.ModelObject.DatabaseCopyName,
+            Controller.ModelObject.DatabaseOriginalName);
         except
           on E: Exception do
             Controller.ModelObject.ServiceProgressRoutine(E.Message);
         end;
-      end
-      else
-      begin
-        // Имя оригинальной БД (бэкапа)
-        Controller.ModelObject.FinishOriginalDatabaseName := Controller.ModelObject.DatabaseOriginalName;
-        // Имя конвертированной БД
-        Controller.ModelObject.FinishConvertedDatabaseName := Controller.ModelObject.DatabaseCopyName;
       end;
 
       // Отобразим информацию о завершенном процессе
@@ -782,7 +844,7 @@ begin
     except
       on E: Exception do
       begin
-        Controller.ModelObject.ServiceProgressRoutine(E.Message);
+        //Controller.ModelObject.ServiceProgressRoutine(E.Message);
         // Отобразим информацию о прерванном процессе
         FMessage := E.Message;
         Synchronize(OnInterruptedProcess);
@@ -808,7 +870,7 @@ end;
 
 procedure TgsConvertThread.OnMetadataEditError;
 var
-  NewFunctionText, NewParamText: String;
+  NewFunctionText: String;
   DialogResult: TModalResult;
 begin
   // Если работаем с оконным интерфейсом, то дадим пользователю исправить функцию
@@ -821,15 +883,22 @@ begin
           // Произошла ошибка при редактировании хранимой процедуры
           mtProcedure:
           begin
+            // Покажем сообщение об ошибке
+            Application.MessageBox(
+              PChar(Format('%s %s %s ...',
+                [GetLocalizedString(lsFEProcedureErrorCaption), #13#10,
+                 FgsFunctionEditor.GetFirstNLines(FMetadataError, 25)])),
+              PChar(GetLocalizedString(lsInformationDialogCaption)),
+              MB_OK or MB_ICONERROR or MB_APPLMODAL);
+
             // Вызвать диалог редактирования для хранимой процедуры
-            DialogResult := ShowForProcedure(FMetadataName, FMetadataParams, FMetadataText, FMetadataError);
+            DialogResult := ShowForProcedure(FMetadataName, FMetadataText, FMetadataError);
             case DialogResult of
               idOk:
               begin
                 NewFunctionText := SynEditFunctionText;
-                NewParamText := SynEditParamText;
                 // Сохраним измененную процедуру
-                FgsFunctionEditor.SetProcedureText(FMetadataName, NewFunctionText, NewParamText);
+                FgsFunctionEditor.SetProcedureText(NewFunctionText);
                 // Визуализация процесса
                 Controller.ModelObject.MetadataProgressRoutine(Format(GetLocalizedString(lsProcedureModified), [FMetadataName]),
                   FMetadataMaxProgress, FMetadataCurrentProgress);
@@ -837,7 +906,7 @@ begin
 
               idAbort:
               begin
-                raise EgsInterruptConvertProcess.Create(GetLocalizedString(lsProcessInterruptedEnd));
+                raise EgsInterruptConvertProcess.Create('');
               end;
             else
               // Визуализация процесса
@@ -849,6 +918,14 @@ begin
           // Произошла ошибка при редактировании триггера
           mtTrigger:
           begin
+            // Покажем сообщение об ошибке
+            Application.MessageBox(
+              PChar(Format('%s %s %s ...',
+                [GetLocalizedString(lsFETriggerErrorCaption), #13#10,
+                 FgsFunctionEditor.GetFirstNLines(FMetadataError, 25)])),
+              PChar(GetLocalizedString(lsInformationDialogCaption)),
+              MB_OK or MB_ICONERROR or MB_APPLMODAL);
+
             // Вызвать диалог редактирования для триггера
             DialogResult := ShowForTrigger(FMetadataName, FMetadataText, FMetadataError);
             case DialogResult of
@@ -856,7 +933,7 @@ begin
               begin
                 NewFunctionText := SynEditFunctionText;
                 // Сохраним измененный триггер
-                FgsFunctionEditor.SetTriggerText(FMetadataName, NewFunctionText);
+                FgsFunctionEditor.SetTriggerText(NewFunctionText);
                 // Визуализация процесса
                 Controller.ModelObject.MetadataProgressRoutine(Format(GetLocalizedString(lsTriggerModified), [FMetadataName]),
                   FMetadataMaxProgress, FMetadataCurrentProgress);
@@ -864,7 +941,7 @@ begin
 
               idAbort:
               begin
-                raise EgsInterruptConvertProcess.Create(GetLocalizedString(lsProcessInterruptedEnd));
+                raise EgsInterruptConvertProcess.Create('');
               end;
             else
               // Визуализация процесса
@@ -876,6 +953,14 @@ begin
           // Произошла ошибка при редактировании представления
           mtView:
           begin
+            // Покажем сообщение об ошибке
+            Application.MessageBox(
+              PChar(Format('%s %s %s ...',
+                [GetLocalizedString(lsFEViewErrorCaption), #13#10,
+                 FgsFunctionEditor.GetFirstNLines(FMetadataError, 25)])),
+              PChar(GetLocalizedString(lsInformationDialogCaption)),
+              MB_OK or MB_ICONERROR or MB_APPLMODAL);
+
             // Вызвать диалог редактирования для триггера
             DialogResult := ShowForView(FMetadataName, FMetadataText, FMetadataError);
             case DialogResult of
@@ -891,7 +976,7 @@ begin
 
               idAbort:
               begin
-                raise EgsInterruptConvertProcess.Create(GetLocalizedString(lsProcessInterruptedEnd));
+                raise EgsInterruptConvertProcess.Create('');
               end;
             else
               // Визуализация процесса
@@ -912,7 +997,6 @@ begin
       on E: EIBInterbaseError do
       begin
         FMetadataText := NewFunctionText;
-        FMetadataParams := NewParamText;
         FMetadataError := E.Message;
         Synchronize(OnMetadataEditError);
       end;
@@ -941,7 +1025,7 @@ begin
   try
     // Укажем что идет редактирование хранимых процедур
     FEditMetadataType := mtProcedure;
-    // Закомментируем\Откомментируем процедуры
+    // Получим список процедур для обработки
     FgsFunctionEditor.GetProcedureList(FunctionList);
     // Визуализация процесса
     FMetadataMaxProgress := FunctionList.Count;
@@ -958,31 +1042,30 @@ begin
     begin
       // Визуализация процесса
       FMetadataCurrentProgress := MetadataCounter + 1;
-      Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
+      Controller.ModelObject.MetadataProgressRoutine('  ' + FunctionList[MetadataCounter], FMetadataMaxProgress, FMetadataCurrentProgress);
       try
         // Закомментируем\Откомментируем тело процедуры FunctionList[MetadataCounter]
-        FunctionText := FgsFunctionEditor.GetProcedureText(FunctionList[MetadataCounter]);
+        FunctionText := FgsFunctionEditor.GetProcedureText(FunctionList[MetadataCounter], True);
         // В зависимости от установленного флага будем комментировать, или же убирать комментарии
         if not FIsRestoringMetadata then
         begin
           if FgsFunctionEditor.CommentFunctionBody(FunctionText) then
-            FgsFunctionEditor.SetProcedureText(FunctionList[MetadataCounter], FunctionText);
+            FgsFunctionEditor.SetProcedureText(FunctionText);
         end
         else
         begin
           // Заменим вызовы функций на новые
           if FgsFunctionEditor.ReplaceSubstituteUDFFunction(FunctionText) then
-            FgsFunctionEditor.SetProcedureText(FunctionList[MetadataCounter], FunctionText);
+            FgsFunctionEditor.SetProcedureText(FunctionText);
           // Откомментиреум процедуру
           if FgsFunctionEditor.UncommentFunctionBody(FunctionText) then
-            FgsFunctionEditor.SetProcedureText(FunctionList[MetadataCounter], FunctionText);
+            FgsFunctionEditor.SetProcedureText(FunctionText);
         end;
       except
         on E: Exception do
         begin
           FMetadataName := FunctionList[MetadataCounter];
           FMetadataText := FunctionText;
-          FMetadataParams := FgsFunctionEditor.GetProcedureParamText(FunctionList[MetadataCounter]);
           FMetadataError := E.Message;
           Synchronize(OnMetadataEditError);
         end;
@@ -990,10 +1073,7 @@ begin
     end;
     // Визуализация процесса
     FMetadataMaxProgress := FMetadataCurrentProgress;
-    if not FIsRestoringMetadata then
-      Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress)
-    else
-      Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
+    Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
   finally
     FreeAndNil(FunctionList);
   end;
@@ -1009,40 +1089,42 @@ begin
   try
     // Укажем что идет редактирование триггеров
     FEditMetadataType := mtTrigger;
-    // Закомментируем\Откомментируем триггеры
+    // Получим список триггеров для обработки
     FgsFunctionEditor.GetTriggerList(FunctionList);
     // Визуализация процесса
     FMetadataMaxProgress := FunctionList.Count;
     FMetadataCurrentProgress := 0;
+
     if not FIsRestoringMetadata then
       Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsTriggerProcessStart)]),
         FMetadataMaxProgress, FMetadataCurrentProgress)
     else
       Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsTriggerProcessFinish)]),
         FMetadataMaxProgress, FMetadataCurrentProgress);
+
     // Пройдем по списку триггеров
     for MetadataCounter := 0 to FunctionList.Count - 1 do
     begin
       // Визуализация процесса
       FMetadataCurrentProgress := MetadataCounter + 1;
-      Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
+      Controller.ModelObject.MetadataProgressRoutine('  ' + FunctionList[MetadataCounter], FMetadataMaxProgress, FMetadataCurrentProgress);
       try
         // Закомментируем\Откомментируем тело триггера FunctionList[MetadataCounter]
-        FunctionText := FgsFunctionEditor.GetTriggerText(FunctionList[MetadataCounter]);
+        FunctionText := FgsFunctionEditor.GetTriggerText(FunctionList[MetadataCounter], True);
         // В зависимости от установленного флага будем комментировать, или же убирать комментарии
         if not FIsRestoringMetadata then
         begin
           if FgsFunctionEditor.CommentFunctionBody(FunctionText) then
-            FgsFunctionEditor.SetTriggerText(FunctionList[MetadataCounter], FunctionText);
+            FgsFunctionEditor.SetTriggerText(FunctionText);
         end
         else
         begin
           // Заменим вызовы функций на новые
           if FgsFunctionEditor.ReplaceSubstituteUDFFunction(FunctionText) then
-            FgsFunctionEditor.SetTriggerText(FunctionList[MetadataCounter], FunctionText);
+            FgsFunctionEditor.SetTriggerText(FunctionText);
           // Откомментируем триггер
           if FgsFunctionEditor.UncommentFunctionBody(FunctionText) then
-            FgsFunctionEditor.SetTriggerText(FunctionList[MetadataCounter], FunctionText);
+            FgsFunctionEditor.SetTriggerText(FunctionText);
         end;
       except
         on E: Exception do
@@ -1056,10 +1138,7 @@ begin
     end;
     // Визуализация процесса
     FMetadataMaxProgress := FMetadataCurrentProgress;
-    if not FIsRestoringMetadata then
-      Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress)
-    else
-      Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
+    Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
   finally
     FreeAndNil(FunctionList);
   end;
@@ -1095,7 +1174,7 @@ begin
     begin
       // Визуализация процесса
       FMetadataCurrentProgress := MetadataCounter + 1;
-      Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
+      Controller.ModelObject.MetadataProgressRoutine('  ' + FunctionList[MetadataCounter], FMetadataMaxProgress, FMetadataCurrentProgress);
       try
         // Определим что за элемент списка, представление или выч. поле
         DelimeterPos := AnsiPos(',', FunctionList[MetadataCounter]);
@@ -1150,10 +1229,7 @@ begin
     end;
     // Визуализация процесса
     FMetadataMaxProgress := FMetadataCurrentProgress;
-    if not FIsRestoringMetadata then
-      Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress)
-    else
-      Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
+    Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
   finally
     FreeAndNil(FunctionList);
   end;
@@ -1161,8 +1237,9 @@ end;
 
 procedure TgsConvertThread.OnInterruptedProcess;
 begin
-  if FMessage <> '' then
-    Controller.ViewInterruptedProcessInformation(FMessage);
+  // Обработаем прерывание выполнения процесса (вызванное пользователем или исключением)
+  Controller.ViewInterruptedProcessInformation(FMessage);
+  // Очистим сообщение об ошибке
   FMessage := '';
 end;
 

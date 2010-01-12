@@ -13738,10 +13738,12 @@ begin
   // Если формат файла не передан, то получим формат по умолчанию
   if StreamFormat = sttUnknown then
     StreamFormat := GetDefaultStreamFormat(False);
-  if StreamFormat in [sttXML, sttXMLFormatted] then
-    FileName := Self.QuerySaveFileName(AFileName, xmlExtension, xmlDialogFilter)
+  case StreamFormat of
+    sttXML:
+      FileName := Self.QuerySaveFileName(AFileName, xmlExtension, xmlDialogFilter)
   else
     FileName := Self.QuerySaveFileName(AFileName, datExtension, datDialogFilter);
+  end;
 
   // Если пользователь выбрал файл
   if FileName <> '' then
@@ -17764,7 +17766,8 @@ function TgdcBase.CallDoFieldChange(Field: TField): Boolean;
 begin
   { TODO : Закоментировали Field.ReadOnly из-за Issue 1493.
            По хорошему, надо различать ReadOnly и отсутствие прав. }
-  Result := ((FFieldsCallDoChange.Count = 0) and (not Field.Calculated)
+  Result := ((FFieldsCallDoChange.Count = 0)
+    and (not (Field.FieldKind in [fkCalculated, fkInternalCalc]))
     {and (not Field.ReadOnly)}) or
    (FFieldsCallDoChange.IndexOf(Field.FieldName) > -1) and not (sLoadFromStream in BaseState);
 end;

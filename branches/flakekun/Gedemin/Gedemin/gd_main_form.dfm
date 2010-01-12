@@ -26,7 +26,7 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockMain: TTBDock
     Left = 0
     Top = 0
-    Width = 906
+    Width = 898
     Height = 26
     LimitToOneRow = True
     object tbMainMenu: TTBToolbar
@@ -142,10 +142,6 @@ object frmGedeminMain: TfrmGedeminMain
         object N24: TTBSeparatorItem
           Visible = False
         end
-        object tbiScanTemplate: TTBItem
-          Action = actScanTemplate
-          Visible = False
-        end
         object TBItem3: TTBItem
           Caption = 'Регистрационый номер'
           OnClick = TBItem3Click
@@ -179,6 +175,9 @@ object frmGedeminMain: TfrmGedeminMain
         end
         object TBItem20: TTBItem
           Action = actShell
+        end
+        object tbiScanTemplate: TTBItem
+          Action = actScanTemplate
         end
         object TBSeparatorItem6: TTBSeparatorItem
         end
@@ -298,31 +297,25 @@ object frmGedeminMain: TfrmGedeminMain
       end
       object TBSeparatorItem8: TTBSeparatorItem
       end
-      object TBControlItem7: TTBControlItem
-        Control = eServerAddress
-      end
-      object TBItem27: TTBItem
-        Action = actTCPServerStart
-      end
       object TBControlItem6: TTBControlItem
         Control = lblDatabase
       end
       object Label1: TLabel
-        Left = 230
+        Left = 235
         Top = 4
         Width = 32
         Height = 13
         Caption = 'Стол: '
       end
       object Label2: TLabel
-        Left = 482
+        Left = 487
         Top = 4
         Width = 73
         Height = 13
         Caption = 'Организация: '
       end
       object lblDatabase: TLabel
-        Left = 873
+        Left = 734
         Top = 4
         Width = 3
         Height = 13
@@ -331,7 +324,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnDblClick = actCopyExecute
       end
       object cbDesktop: TComboBox
-        Left = 262
+        Left = 267
         Top = 0
         Width = 145
         Height = 21
@@ -344,7 +337,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnChange = cbDesktopChange
       end
       object gsiblkupCompany: TgsIBLookupComboBox
-        Left = 555
+        Left = 560
         Top = 0
         Width = 145
         Height = 21
@@ -362,20 +355,12 @@ object frmGedeminMain: TfrmGedeminMain
         TabOrder = 1
         OnChange = gsiblkupCompanyChange
       end
-      object eServerAddress: TEdit
-        Left = 729
-        Top = 0
-        Width = 121
-        Height = 21
-        TabOrder = 2
-        Text = '192.168.0.60'
-      end
     end
   end
   object TBDockForms: TTBDock
     Left = 0
     Top = 26
-    Width = 906
+    Width = 898
     Height = 25
     LimitToOneRow = True
     Position = dpBottom
@@ -729,24 +714,21 @@ object frmGedeminMain: TfrmGedeminMain
       Caption = 'Группы пользователей'
       ImageIndex = 35
       OnExecute = actUserGroupsExecute
+      OnUpdate = actUserGroupsUpdate
     end
     object actJournal: TAction
       Category = 'Admin'
       Caption = 'Журнал событий'
       ImageIndex = 256
       OnExecute = actJournalExecute
+      OnUpdate = actJournalUpdate
     end
     object actUsers: TAction
       Category = 'Admin'
       Caption = 'Пользователи'
       ImageIndex = 34
       OnExecute = actUsersExecute
-    end
-    object actTCPServerStart: TAction
-      Category = 'Admin'
-      Caption = 'Старт сервера'
-      ImageIndex = 108
-      OnExecute = actTCPServerStartExecute
+      OnUpdate = actUsersUpdate
     end
   end
   object IBTransaction: TIBTransaction

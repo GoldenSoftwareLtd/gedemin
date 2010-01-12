@@ -49,15 +49,18 @@ const
     '    REFERENCES gd_storage_data (id) '#13#10 +
     '    ON UPDATE CASCADE '#13#10 +
     '    ON DELETE CASCADE, '#13#10 +
-    '  CONSTRAINT gd_u_storage_data_name UNIQUE(name, parent, int_data), '#13#10 +
     '  CHECK ((NOT parent IS NULL) OR (data_type IN (''G'', ''U'', ''O'', ''T''))) '#13#10 +
     ') ';
+
+  cCreateException =
+    'CREATE EXCEPTION gd_e_storage_data ''''';
 
   cCreateTrigger =
     'CREATE TRIGGER gd_biu_storage_data FOR gd_storage_data'#13#10 +
     '  BEFORE INSERT OR UPDATE'#13#10 +
     '  POSITION 0'#13#10 +
     'AS'#13#10 +
+    '  DECLARE VARIABLE FID INTEGER = -1;'#13#10 +
     'BEGIN'#13#10 +
     '  IF (NEW.ID IS NULL) THEN'#13#10 +
     '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);'#13#10 +
@@ -86,6 +89,7 @@ const
     '    NEW.datetime_data = NULL;'#13#10 +
     '    NEW.blob_data = NULL;'#13#10 +
     '    NEW.int_data = NULL;'#13#10 +
+    '    NEW.str_data = COALESCE(NEW.str_data, '''');'#13#10 +
     '  END'#13#10 +
     ''#13#10 +
     '  IF (NEW.data_type IN (''I'', ''L'')) THEN'#13#10 +
@@ -94,6 +98,7 @@ const
     '    NEW.curr_data = NULL;'#13#10 +
     '    NEW.datetime_data = NULL;'#13#10 +
     '    NEW.blob_data = NULL;'#13#10 +
+    '    NEW.int_data = COALESCE(NEW.int_data, 0);'#13#10 +
     '  END'#13#10 +
     ''#13#10 +
     '  IF (NEW.data_type = ''C'') THEN'#13#10 +
@@ -102,6 +107,7 @@ const
     '    NEW.datetime_data = NULL;'#13#10 +
     '    NEW.blob_data = NULL;'#13#10 +
     '    NEW.int_data = NULL;'#13#10 +
+    '    NEW.curr_data = COALESCE(NEW.curr_data, 0);'#13#10 +
     '  END'#13#10 +
     ''#13#10 +
     '  IF (NEW.data_type = ''D'') THEN'#13#10 +
@@ -110,6 +116,7 @@ const
     '    NEW.curr_data = NULL;'#13#10 +
     '    NEW.blob_data = NULL;'#13#10 +
     '    NEW.int_data = NULL;'#13#10 +
+    '    NEW.datetime_data = COALESCE(NEW.datetime_data, CURRENT_TIMESTAMP);'#13#10 +
     '  END'#13#10 +
     ''#13#10 +
     '  IF (NEW.data_type = ''B'') THEN'#13#10 +
@@ -119,167 +126,119 @@ const
     '    NEW.datetime_data = NULL;'#13#10 +
     '    NEW.int_data = NULL;'#13#10 +
     '  END'#13#10 +
+    ''#13#10 +
+    '  IF (NEW.parent IS NULL) THEN'#13#10 +
+    '  BEGIN'#13#10 +
+    '    FOR'#13#10 +
+    '      SELECT id FROM gd_storage_data WHERE parent IS NULL'#13#10 +
+    '        AND data_type = NEW.data_type AND int_data IS NOT DISTINCT FROM NEW.int_data'#13#10 +
+    '        AND id <> NEW.id'#13#10 +
+    '      INTO :FID'#13#10 +
+    '    DO'#13#10 +
+    '      EXCEPTION gd_e_storage_data ''Root already exists. ID='' || :FID;'#13#10 +
+    '  END ELSE'#13#10 +
+    '  BEGIN'#13#10 +
+    '    FOR'#13#10 +
+    '      SELECT id FROM gd_storage_data WHERE parent = NEW.parent'#13#10 +
+    '        AND UPPER(name) = UPPER(NEW.name) AND id <> NEW.id'#13#10 +
+    '      INTO :FID'#13#10 +
+    '    DO'#13#10 +
+    '      EXCEPTION gd_e_storage_data ''Duplicate name. ID='' || :FID;'#13#10 +
+    '  END'#13#10 +
     'END';
 
 procedure ConvertStorage(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
-  FIBSQL, qID, q: TIBSQL;
-
-  procedure ScanStorage(AFolder: TgsStorageFolder; AParentID: Integer;
-    ARootName: String; ARootType: Char; ARootKey: Integer; qInsert: TIBSQL);
-  var
-    I, ThisID: Integer;
-  begin
-    if (AFolder.Parent <> nil) and (AFolder.FoldersCount = 0) and (AFolder.ValuesCount = 0) then
-      exit;
-
-    qID.Close;
-    qID.ExecQuery;
-    ThisID := qID.Fields[0].AsInteger;
-
-    qInsert.Close;
-    qInsert.ParamByName('ID').AsInteger := ThisID;
-    qInsert.ParamByName('INT_DATA').Clear;
-    qInsert.ParamByName('STR_DATA').Clear;
-    qInsert.ParamByName('CURR_DATA').Clear;
-    qInsert.ParamByName('DATETIME_DATA').Clear;
-    qInsert.ParamByName('BLOB_DATA').Clear;
-    if AFolder.Parent = nil then
-    begin
-      qInsert.ParamByName('PARENT').Clear;
-      qInsert.ParamByName('NAME').AsString := ARootName;
-      qInsert.ParamByName('DATA_TYPE').AsString := ARootType;
-      if ARootKey <> -1 then
-        qInsert.ParamByName('INT_DATA').AsInteger := ARootKey;
-    end else
-    begin
-      qInsert.ParamByName('PARENT').AsInteger := AParentID;
-      qInsert.ParamByName('NAME').AsString := AFolder.Name;
-      qInsert.ParamByName('DATA_TYPE').AsString := cStorageFolder;
-    end;
-    qInsert.ExecQuery;
-
-    for I := 0 to AFolder.FoldersCount - 1 do
-    begin
-      ScanStorage(AFolder.Folders[I], ThisID, '', #0, -1, qInsert);
-    end;
-
-    for I := 0 to AFolder.ValuesCount - 1 do
-    begin
-      qInsert.Close;
-      qInsert.ParamByName('ID').Clear;
-      qInsert.ParamByName('PARENT').AsInteger := ThisID;
-      qInsert.ParamByName('NAME').AsString := AFolder.Values[I].Name;
-      qInsert.ParamByName('INT_DATA').Clear;
-      qInsert.ParamByName('STR_DATA').Clear;
-      qInsert.ParamByName('CURR_DATA').Clear;
-      qInsert.ParamByName('DATETIME_DATA').Clear;
-      qInsert.ParamByName('BLOB_DATA').Clear;
-      case AFolder.Values[I].GetTypeID of
-        svtInteger:
-          begin
-            qInsert.ParamByName('DATA_TYPE').AsString := cStorageInteger;
-            qInsert.ParamByName('INT_DATA').AsInteger := AFolder.Values[I].AsInteger;
-          end;
-
-        svtString:
-          begin
-            if Length(AFolder.Values[I].AsString) <= 120 then
-            begin
-              qInsert.ParamByName('DATA_TYPE').AsString := cStorageString;
-              qInsert.ParamByName('STR_DATA').AsString := AFolder.Values[I].AsString;
-            end else
-            begin
-              qInsert.ParamByName('DATA_TYPE').AsString := cStorageBLOB;
-              qInsert.ParamByName('BLOB_DATA').AsString := AFolder.Values[I].AsString;
-            end;
-          end;
-
-        svtStream:
-          begin
-            qInsert.ParamByName('DATA_TYPE').AsString := cStorageBLOB;
-            qInsert.ParamByName('BLOB_DATA').AsString := AFolder.Values[I].AsString;
-          end;
-
-        svtBoolean:
-          begin
-            qInsert.ParamByName('DATA_TYPE').AsString := cStorageBoolean;
-            qInsert.ParamByName('INT_DATA').AsInteger := AFolder.Values[I].AsInteger;
-          end;
-
-        svtDateTime:
-          begin
-            qInsert.ParamByName('DATA_TYPE').AsString := cStorageDateTime;
-            qInsert.ParamByName('DATETIME_DATA').AsDateTime := AFolder.Values[I].AsDateTime;
-          end;
-
-        svtCurrency:
-          begin
-            qInsert.ParamByName('DATA_TYPE').AsString := cStorageCurrency;
-            qInsert.ParamByName('CURR_DATA').AsCurrency := AFolder.Values[I].AsCurrency;
-          end;
-      else
-        raise Exception.Create('Invalid storage item type');
-      end;
-      qInsert.ExecQuery;
-    end;
-  end;
+  FIBSQL: TIBSQL;
 
   procedure ConvertStorage(const AnSQL: String; const ARootType: Char);
   var
-    S: TgsStorage;
-    F: TgsStorageFolder;
+    S: TgsIBStorage;
     bs: TIBBlobStream;
+    F: TgsStorageFolder;
+    EmptyStorage: Boolean;
   begin
-    S := TgsIBStorage.Create('S');
-    try
-      FIBSQL.Close;
-      FIBSQL.SQL.Text := AnSQL;
-      FIBSQL.ExecQuery;
+    FIBSQL.Close;
+    FIBSQL.SQL.Text := AnSQL;
+    FIBSQL.ExecQuery;
 
-      while not FIBSQL.EOF do
-      begin
-        bs := TIBBlobStream.Create;
-        try
-          bs.Mode := bmRead;
-          bs.Database := IBDB;
-          bs.Transaction := FTransaction;
-          bs.BlobID := FIBSQL.FieldByName('data').AsQuad;
-          S.LoadFromStream(bs);
-        finally
-          bs.Free;
-        end;
+    while not FIBSQL.EOF do
+    begin
+      case ARootType of
+        cStorageGlobal: S := TgsGlobalStorage.Create;
+        cStorageUser: S := TgsUserStorage.Create;
+        cStorageCompany: S := TgsCompanyStorage.Create;
+        cStorageDesktop: S := TgsDesktopStorage.Create;
+      else
+        raise Exception.Create('Invalid storage root');
+      end;
 
-        F := S.OpenFolder('\', False, False);
+      try
+        if FIBSQL.FieldByName('akey').AsInteger > -1 then
+          S.ObjectKey := FIBSQL.FieldByName('akey').AsInteger
+        else
+          S.LoadFromDatabase;
+
+        F := S.OpenFolder('', False, False);
         try
-          if F <> nil then
-          begin
-            ScanStorage(F, -1, FIBSQL.FieldByName('name').AsString,
-              ARootType, FIBSQL.FieldByName('akey').AsInteger, q);
-          end;    
+          EmptyStorage := (F.FoldersCount = 0) and (F.ValuesCount = 0);
         finally
           S.CloseFolder(F, False);
         end;
 
-        FIBSQL.Next;
+        if not EmptyStorage then
+        begin
+          Log('Хранилище ' + FIBSQL.FieldByName('name').AsString +
+            ' уже было сконвертировано и/или содержит данные.'#13#10 +
+            'Повторная конвертация производиться не будет!');
+        end else
+        begin
+          bs := TIBBlobStream.Create;
+          try
+            bs.Mode := bmRead;
+            bs.Database := IBDB;
+            bs.Transaction := FTransaction;
+            bs.BlobID := FIBSQL.FieldByName('data').AsQuad;
+            try
+              S.LoadFromStream(bs);
+            except
+              on E: Exception do
+              begin
+                Log('Ошибка при считывании из потока хранилища ' + FIBSQL.FieldByName('name').AsString +
+                  '.'#13#10'Сообщение: ' + E.Message);
+                FreeAndNil(S);
+              end;
+            end;
+          finally
+            bs.Free;
+          end;
+
+          if S <> nil then
+          begin
+            Log('Конвертация хранилища ' + FIBSQL.FieldByName('name').AsString + '...');
+            S.SaveToDatabase(FTransaction);
+          end;
+        end;
+      finally
+        S.Free;
       end;
-    finally
-      S.Free;
+
+      FIBSQL.Next;
     end;
   end;
 
 var
   SL: TStringList;
   I: Integer;
+  FNeedToCreateMeta: Boolean;
 begin
+  FNeedToCreateMeta := False;
   FTransaction := TIBTransaction.Create(nil);
   try
     FTransaction.DefaultDatabase := IBDB;
     try
       FIBSQL := TIBSQL.Create(nil);
-      qID := TIBSQL.Create(nil);
-      q := TIBSQL.Create(nil);
       try
         FTransaction.StartTransaction;
 
@@ -296,6 +255,16 @@ begin
         end;
 
         FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT * FROM rdb$exceptions WHERE rdb$exception_name = ''GD_E_STORAGE_DATA'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.EOF then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cCreateException;
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
         FIBSQL.SQL.Text := 'SELECT * FROM rdb$relations WHERE rdb$relation_name = ''GD_STORAGE_DATA'' ';
         FIBSQL.ExecQuery;
         if FIBSQL.EOF then
@@ -304,34 +273,12 @@ begin
           FIBSQL.SQL.Text := cCreateTable;
           FIBSQL.ExecQuery;
 
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cCreateTrigger;
-          FIBSQL.ExecQuery;
-
-          SL := TStringList.Create;
-          try
-            CreateLBRBTreeMetaDataScript(SL, 'GD', 'STORAGE_DATA', 'GD_STORAGE_DATA');
-            for I := 0 to SL.Count - 1 do
-            begin
-              FIBSQL.Close;
-              FIBSQL.SQL.Text := SL[I];
-              FIBSQL.ExecQuery;
-            end;
-          finally
-            SL.Free;
-          end;
+          FNeedToCreateMeta := True;
         end;
 
+        FIBSQL.Close;
         FTransaction.Commit;
         FTransaction.StartTransaction;
-
-        qID.Transaction := FTransaction;
-        qID.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 1) FROM rdb$database';
-
-        q.Transaction := FTransaction;
-        q.SQL.Text :=
-          'INSERT INTO gd_storage_data (ID, PARENT, NAME, DATA_TYPE, STR_DATA, INT_DATA, DATETIME_DATA, CURR_DATA, BLOB_DATA) ' +
-          'VALUES (:ID, :PARENT, :NAME, :DATA_TYPE, :STR_DATA, :INT_DATA, :DATETIME_DATA, :CURR_DATA, :BLOB_DATA) ';
 
         ConvertStorage(
           'SELECT -1           AS AKey,     data, ''GLOBAL'' AS Name FROM gd_globalstorage', 'G');
@@ -341,6 +288,46 @@ begin
           'SELECT s.companykey AS AKey,   s.data,             c.name FROM gd_companystorage s JOIN gd_contact c ON c.id = s.companykey', 'O');
         ConvertStorage(
           'SELECT d.id         AS AKey, d.dtdata AS data, d.name || '' ('' || u.name || '')'' AS name FROM gd_desktop d JOIN gd_user u ON u.id = d.userkey', 'T');
+
+        if FNeedToCreateMeta then
+        begin
+          FIBSQL.Close;
+
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
+
+          SL := TStringList.Create;
+          try
+            CreateLBRBTreeMetaDataScript(SL, 'GD', 'STORAGE_DATA', 'GD_STORAGE_DATA');
+            for I := 0 to 2 do
+            begin
+              FIBSQL.Close;
+              FIBSQL.SQL.Text := SL[I];
+              FIBSQL.ExecQuery;
+            end;
+
+            FIBSQL.Close;
+
+            FTransaction.Commit;
+            FTransaction.StartTransaction;
+
+            FIBSQL.SQL.Text := 'EXECUTE PROCEDURE GD_P_RESTRUCT_STORAGE_DATA';
+            FIBSQL.ExecQuery;
+
+            for I := 3 to SL.Count - 1 do
+            begin
+              FIBSQL.Close;
+              FIBSQL.SQL.Text := SL[I];
+              FIBSQL.ExecQuery;
+            end;
+          finally
+            SL.Free;
+          end;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cCreateTrigger;
+          FIBSQL.ExecQuery;
+        end;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
@@ -353,8 +340,6 @@ begin
 
         FTransaction.Commit;
       finally
-        q.Free;
-        qID.Free;
         FIBSQL.Free;
       end;
     except

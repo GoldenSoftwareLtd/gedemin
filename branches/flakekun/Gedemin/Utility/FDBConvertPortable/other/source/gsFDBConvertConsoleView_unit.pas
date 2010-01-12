@@ -14,8 +14,7 @@ uses
   function GetConsoleParamValue(const AParamName: String): String;
 
   // Функция обработки сообщений API-функции копирования файла
-  function ConsoleCopyProgressRoutine(TotalFileSize, TotalBytesTransferred, StreamSize, StreamBytesTransferred: TLargeInteger;
-    dwStreamNumber, dwCallbackReason: DWORD; hSourceFile, hDestinationFile: THandle; lpData: Pointer): DWORD; stdcall;
+  procedure ConsoleCopyProgressRoutine(TotalFileSize, TotalBytesTransferred: Int64);
   // Функция обработки сообщений сервисов сервера
   procedure ConsoleServiceProgressRoutine(const AServiceMessage: String);
   // Функция обработки сообщений при редактировании метаданных
@@ -35,12 +34,9 @@ var
   ConsoleOutput: Boolean = False;
 
 // Функция обработки сообщений API-функции копирования файла
-function ConsoleCopyProgressRoutine(TotalFileSize, TotalBytesTransferred, StreamSize, StreamBytesTransferred: TLargeInteger;
-  dwStreamNumber, dwCallbackReason: DWORD; hSourceFile, hDestinationFile: THandle; lpData: Pointer): DWORD; stdcall;
+procedure ConsoleCopyProgressRoutine(TotalFileSize, TotalBytesTransferred: Int64);
 begin
-  Result := 0;
-  if TotalBytesTransferred = 0 then
-    WriteToConsoleLn(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsDatabaseFileCopyingProcess)]));
+  //
 end;
 
 // Функция обработки сообщений сервисов сервера

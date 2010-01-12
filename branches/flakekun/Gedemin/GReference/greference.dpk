@@ -129,7 +129,7 @@ contains
   gsFunctionSyncEdit in '..\Component\gsFunctionSyncEdit.pas',
   gsKeyStrokes in '..\Component\gsKeyStrokes.pas',
   gdcFilter in '..\Component\GDC\gdcFilter.pas',
-  at_frmSQLProcess in '..\attr\at_frmSQLProcess.pas' {frmSQLProcess},
+  at_frmSQLProcess in '..\Attr\at_frmSQLProcess.pas' {frmSQLProcess},
   gdcLedger in '..\Component\GDC\gdcLedger.pas',
   HHCTRLLib_TLB in '..\Imports\HHCTRLLib_TLB.pas',
   MSScriptControl_TLB in '..\Imports\MSScriptControl_TLB.pas',
@@ -153,6 +153,7 @@ contains
   gdvAcctGeneralLedger in '..\Transaction\gdvAcctGeneralLedger.pas',
   gdvAcctCirculationList in '..\Transaction\gdvAcctCirculationList.pas',
   gdcBlockRule in '..\Component\GDC\gdcBlockRule.pas',
-  gdcSQLHistory in '..\Component\GDC\gdcSQLHistory.pas';
+  gdcSQLHistory in '..\Component\GDC\gdcSQLHistory.pas',
+  gdcStorage in '..\Component\GDC\gdcStorage.pas';
 
 end.

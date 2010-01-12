@@ -13,8 +13,7 @@ type
 
   TgsMetadataType = (mtTrigger, mtProcedure, mtView, mtComputedField);
 
-  TCopyProgressRoutine = function(TotalFileSize, TotalBytesTransferred, StreamSize, StreamBytesTransferred: Int64;
-    dwStreamNumber, dwCallbackReason: DWORD; hSourceFile, hDestinationFile: THandle; lpData: Pointer): DWORD; stdcall;
+  TCopyProgressRoutine = procedure(TotalFileSize, TotalBytesTransferred: Int64);
   TServiceProgressRoutine = procedure(const AServiceMessage: String);
   TMetadataProgressRoutine = procedure(const AMessage: String; const AMaxProgress, ACurrentProgress: Integer);
 
@@ -135,6 +134,7 @@ const
 
 // Получить версию сервера по версии БД
 function GetServerVersionByDBVersion(const ADBVersion: TgsDatabaseVersion): TgsServerVersion;
+function GetAppropriateServerVersion(const AServerVersion: TgsServerVersion): TgsServerVersion;
 // Получить версию БД по версии сервера
 function GetDBVersionByServerVersion(const AServerVersion: TgsServerVersion): TgsDatabaseVersion;
 // Получить строковое представление версии БД
@@ -345,7 +345,7 @@ function GetServerVersionByDBVersion(const ADBVersion: TgsDatabaseVersion): TgsS
 begin
   case ADBVersion of
     dvODS_10_0:
-      Result := {svYaffil}svFirebird_20{svFirebird_15};
+      Result := svYaffil;
 
     dvODS_11_0:
       Result := svFirebird_20;
@@ -363,24 +363,34 @@ begin
   end;
 end;
 
+function GetAppropriateServerVersion(const AServerVersion: TgsServerVersion): TgsServerVersion;
+begin
+  case AServerVersion of
+    svYaffil, svFirebird_15:
+      Result := svFirebird_20;
+  else
+    Result := AServerVersion;
+  end;
+end;
+
 // Получить строковое представление версии БД
 function GetTextDBVersion(const ADBVersion: TgsDatabaseVersion): String;
 begin
   case ADBVersion of
     dvODS_10_0:
-      Result := 'ODS 10.0';
+      Result := '10.0';
 
     dvODS_11_0:
-      Result := 'ODS 11.0';
+      Result := '11.0';
 
     dvODS_11_1:
-      Result := 'ODS 11.1';
+      Result := '11.1';
 
     dvODS_11_2:
-      Result := 'ODS 11.2';
+      Result := '11.2';
 
     dvODS_12:
-      Result := 'ODS 12';
+      Result := '12';
   else
     Result := GetLocalizedString(lsUnknownDatabaseType);
   end;
@@ -403,10 +413,10 @@ begin
       Result := 'Firebird 2.1';
 
     svFirebird_25:
-      Result := 'Firdbird 2.5';
+      Result := 'Firebird 2.5';
 
     svFirebird_30:
-      Result := 'Firdbird 3.0';
+      Result := 'Firebird 3.0';
   else
     Result := GetLocalizedString(lsUnknownServerType);
   end;
@@ -509,13 +519,13 @@ end;
 
 class function TgsFileSystemHelper.ChangeExtention(const AFileName, AExt: String): String;
 begin
-  Result := ChangeFileExt(AFileName, '.' + AExt);
+  Result := AFileName + '.' + AExt;
 end;
 
 class function TgsFileSystemHelper.CheckForFreeDiskSpace(const APath: String; const AFileSize: Int64): Int64;
 var
   DiskFreeSpace: Int64;
-  OldDirectory: String;
+  OldDirectory, FileDrive: String;
 begin
   Result := -1;
 
@@ -531,7 +541,20 @@ begin
         Result := AFileSize - DiskFreeSpace;
     end
     else
-      raise Exception.Create(GetLocalizedString(lsDirectoryAccessError) + ':'#13#10'  "' + APath + '"');
+    begin
+      FileDrive := ExtractFileDrive(APath);
+      if (FileDrive <> '') and (SetCurrentDir(FileDrive)) then
+      begin
+        // Определим свободное место на диске
+        DiskFreeSpace := DiskFree(0);
+
+        // Определим необходимый размер свободного места для конвертации БД
+        if AFileSize > DiskFreeSpace then
+          Result := AFileSize - DiskFreeSpace;
+      end
+      else
+        raise Exception.Create(GetLocalizedString(lsDirectoryAccessError) + ':'#13#10'  "' + ExtractFileDir(APath) + '"');
+    end;
   finally
     SetCurrentDir(OldDirectory);
   end;

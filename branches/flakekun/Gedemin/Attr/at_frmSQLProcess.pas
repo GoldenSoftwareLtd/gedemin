@@ -23,6 +23,12 @@ type
     actClear: TAction;
     lv: TListView;
     il: TImageList;
+    ActionList1: TActionList;
+    actShowError: TAction;
+    actShowWarning: TAction;
+    TBToolbar1: TTBToolbar;
+    TBItem2: TTBItem;
+    TBItem3: TTBItem;
 
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure actSaveToFileExecute(Sender: TObject);
@@ -36,6 +42,8 @@ type
     procedure actSaveToFileUpdate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormActivate(Sender: TObject);
+    procedure actShowErrorExecute(Sender: TObject);
+    procedure actShowWarningExecute(Sender: TObject);
 
   private
     FSilent: Boolean;
@@ -476,6 +484,16 @@ procedure TfrmSQLProcess.FormActivate(Sender: TObject);
 begin
   {if lv.Items.Count <> FLog.Count then
     lv.Items.Count := FLog.Count;}
+end;
+
+procedure TfrmSQLProcess.actShowErrorExecute(Sender: TObject);
+begin
+  actShowError.Checked := not actShowError.Checked;
+end;
+
+procedure TfrmSQLProcess.actShowWarningExecute(Sender: TObject);
+begin
+  actShowWarning.Checked := not actShowWarning.Checked;
 end;
 
 end.

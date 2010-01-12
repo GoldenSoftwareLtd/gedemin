@@ -498,7 +498,7 @@ procedure Tgdc_frmStreamSaver.Save;
 begin
   try
     // Дадим пользователю выбрать файл для сохранения информации
-    if FStreamFormat in [sttXML, sttXMLFormatted] then
+    if FStreamFormat = sttXML then
       FFileName := gdcObject.QuerySaveFileName('', xmlExtension, xmlDialogFilter)
     else
       FFileName := gdcObject.QuerySaveFileName('', datExtension, datDialogFilter);
@@ -624,7 +624,7 @@ begin
       lblLoadingFileType.Caption := STREAM_FORMATS[Integer(StreamType) - 1];
       if StreamType <> sttBinaryOld then
       begin
-        if StreamType in [sttXML, sttXMLFormatted] then
+        if StreamType = sttXML then
         begin
           TargetBaseKey := -1;
           SourceBaseKey := -1;

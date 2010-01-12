@@ -231,7 +231,8 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    function GetGSFInfo(const FName: String): Boolean;
+    function GetGSFInfo(const FName: String): Boolean; overload;
+    function GetGSFInfo(AStream: TStream): Boolean; overload;
   end;
 
 // список объектов с информацией о файле настройки
@@ -829,7 +830,7 @@ begin
   case StreamFormat of
     sttBinaryOld, sttBinaryNew:
       FN := QuerySaveFileName(AFileName, gsfExtension, gsfSaveDialogFilter);
-    sttXML, sttXMLFormatted:
+    sttXML:
       FN := QuerySaveFileName(AFileName, xmlExtension, xmlDialogFilter);
   end;
 
@@ -2968,45 +2969,52 @@ end;
 function TGSFHeader.GetGSFInfo(const FName: String): Boolean;
 var
   FS: TFileStream;
+begin
+  FilePath := ExtractFilePath(FName);
+  FileName := ExtractFileName(FName);
+
+  FS := TFileStream.Create(FName, fmOpenRead);
+  try
+    Result := GetGSFInfo(FS);
+  finally
+    FS.Free;
+  end;
+end;
+
+function TGSFHeader.GetGSFInfo(AStream: TStream): Boolean;
+var
   i: Integer;
   StreamType: TgsStreamType;
   XMLSettingReader: TgdcStreamXMLWriterReader;
 begin
   Result := False;
-  FS := TFileStream.Create(FName, fmOpenRead);
-  try
-    FilePath := ExtractFilePath(FName);
-    FileName := ExtractFileName(FName);
 
-    StreamType := GetStreamType(FS);
-    // проверим формат настройки: архивная или XML
-    if StreamType in [sttBinaryOld, sttBinaryNew] then
+  StreamType := GetStreamType(AStream);
+  // проверим формат настройки: архивная или XML
+  if StreamType in [sttBinaryOld, sttBinaryNew] then
+  begin
+    AStream.Read(i, SizeOf(i));
+    if i = gsfID then
     begin
-      FS.Read(i, SizeOf(i));
-      if i = gsfID then
-      begin
-        FS.Read(i, SizeOf(i));
-        GSFVersion := i;
-        case i of
-          1:
-            begin
-              Result := LoadFromStream(FS);
-            end;
-        end;
-      end;
-    end
-    else
-    begin
-      GSFVersion := 2; 
-      XMLSettingReader := TgdcStreamXMLWriterReader.Create;
-      try
-        Result := XMLSettingReader.GetXMLSettingHeader(FS, Self);
-      finally
-        XMLSettingReader.Free;
+      AStream.Read(i, SizeOf(i));
+      GSFVersion := i;
+      case i of
+        1:
+          begin
+            Result := LoadFromStream(AStream);
+          end;
       end;
     end;
-  finally
-    FS.Free;
+  end
+  else
+  begin
+    GSFVersion := 2;
+    XMLSettingReader := TgdcStreamXMLWriterReader.Create;
+    try
+      Result := XMLSettingReader.GetXMLSettingHeader(AStream, Self);
+    finally
+      XMLSettingReader.Free;
+    end;
   end;
 end;
 
@@ -3736,7 +3744,7 @@ begin
           begin
             // проверим тот ли поток нам подсунули для считывания из
             BlobStream.ReadBuffer(I, SizeOf(I));
-            if I <> $55443322 then
+            if I <> cst_StreamLabel then
               raise Exception.Create('Invalid stream format');
 
             OldPos := BlobStream.Position;
@@ -4136,6 +4144,7 @@ var
             else
               Obj.StreamProcessingAnswer := tmpAnAnswer;
             Obj._LoadFromStreamInternal(Stream, IDMapping, ObjectSet, UpdateList, stRecord);
+            AnAnswer := Obj.StreamProcessingAnswer;
           except
             on E: Exception do
             begin

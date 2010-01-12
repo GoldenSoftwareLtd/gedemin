@@ -6,6 +6,7 @@ type
   // Идентификаторы локализованных строк
   TgsLocalizedStringID =
     (
+     lsApplicationCaption,
      lsEmptyLocalizedEntry,
      lsPressAnyButton,
      lsFileNotFound,
@@ -25,6 +26,9 @@ type
      lsStep02,
      lsDatabaseBrowseDescription,
      lsStep03,
+     lsStep03Group01,
+     lsStep03Group02,
+     lsStep03Group03,
      lsOriginalDatabase,
      lsOriginalBackup,
      lsResultDatabaseName,
@@ -41,14 +45,17 @@ type
      lsStep04,
      lsOriginalFunction,
      lsSubstituteFunction,
+     lsStep04Comment,
      lsStep05,
      lsStep06,
      lsStep07,
      lsStep08,
+     lsStep08Comment,
      lsPrevButton,
      lsNextButton,
      lsExitButton,
      lsDatabaseBrowseButton,
+     lsBAKDatabaseCopy,
      lsProcessSuccessfullEnd,
      lsNewDatabaseNameFinalMessage,
      lsOriginalDatabaseNameFinalMessage,
@@ -93,19 +100,22 @@ type
      lsCircularReferenceError,
      lsChooseDatabaseMessage,
      lsInformationDialogCaption,
-     lsFEParamsCaption,
-     lsFEProcedureCaption,
+     //lsFEParamsCaption,
+     //lsFEProcedureCaption,
      lsFEProcedureEditCaption,
      lsFEProcedureErrorCaption,
-     lsFETriggerCaption,
+     //lsFETriggerCaption,
      lsFETriggerEditCaption,
      lsFETriggerErrorCaption,
-     lsFEViewCaption,
+     //lsFEViewCaption,
      lsFEViewEditCaption,
      lsFEViewErrorCaption,
      lsFEStopConvert,
      lsFESaveMetadata,
-     lsFESkipMetadata,
+     //lsFESkipMetadata,
+     lsFEDoComment,
+     lsFEDoUncomment,
+     lsFEDoShowError,
      lsAllFilesBrowseMask,
      lsDatabaseBrowseMask,
      lsBackupBrowseMask,
@@ -118,10 +128,29 @@ type
 implementation
 
 uses
-  classes, typinfo, sysutils, gsFDBConvertHelper_unit;
+  classes, typinfo, sysutils, gsFDBConvertHelper_unit, jclStrings;
+
+const
+  MULTILINE_FIRSTLINE_MARK = 1;
+  MULTILINE_SEPARATOR = ' ';
+  DOUBLE_SLASH_DUMMY = '/\\/';
 
 var
   LocalizedStringArray: array [0..(Integer(lsLastID) - 1)] of String;
+
+procedure ProcessControlChar(var AString: String);
+begin
+  // временно заменим двойные слэши
+  StrReplace(AString, '\\', DOUBLE_SLASH_DUMMY, [rfReplaceAll, rfIgnoreCase]);
+  // перенос на новую строку
+  StrReplace(AString, '\n', #13#10, [rfReplaceAll, rfIgnoreCase]);
+  // табуляция
+  StrReplace(AString, '\t', #9, [rfReplaceAll, rfIgnoreCase]);
+  // вернем обратно двойные слэши
+  StrReplace(AString, DOUBLE_SLASH_DUMMY, '\\', [rfReplaceAll, rfIgnoreCase]);
+  // слэш
+  StrReplace(AString, '\\', '\', [rfReplaceAll, rfIgnoreCase]);
+end;
 
 function LocalizedStringTypeToString(const ALocalizedStringType: TgsLocalizedStringID): String;
 begin
@@ -159,7 +188,10 @@ var
   LanguageStrings: TStringList;
   LocStringCounter: Integer;
   LocIDString: String;
+  LocValue, TempS: String;
   LocID: TgsLocalizedStringID;
+  MultiLineSymbolIndex: Integer;
+  MultiLineNumberString: String;
 begin
   LanguageStrings := TStringList.Create;
   try
@@ -169,9 +201,44 @@ begin
     for LocStringCounter := 0 to LanguageStrings.Count - 1 do
     begin
       LocIDString := LanguageStrings.Names[LocStringCounter];
-      LocID := StringToLocalizedStringType(LocIDString);
-      if LocID <> lsEmptyLocalizedEntry then
-        SetLocalizedString(LocID, LanguageStrings.Values[LocIDString]);
+      LocValue := LanguageStrings.Values[LocIDString];
+      // обработаем контрольные символы
+      ProcessControlChar(LocValue);
+      // возможно запись содержит несколько строк, типа lsLine.1, lsLine.2, lsLine.3
+      MultiLineSymbolIndex := StrFind('.', LocIDString);
+      if MultiLineSymbolIndex > 0 then
+      begin
+        LocID := StringToLocalizedStringType(StrLeft(LocIDString, MultiLineSymbolIndex - 1));
+        // если идентификатор элемента локализации верен
+        if LocID <> lsEmptyLocalizedEntry then
+        begin
+          // найдем номер строки в мультистроковом элементе
+          MultiLineNumberString := Trim(StrRight(LocIDString, StrLength(LocIDString) - MultiLineSymbolIndex));
+          if StrIsDigit(MultiLineNumberString) then
+          begin
+            // если номер строки = MULTILINE_FIRSTLINE_MARK, то заменяем системный элемент считанным,
+            //  иначе дописываем системный элемент считанными данными,
+            //  разделяя их пробелом
+            if StrToInt(MultiLineNumberString) = MULTILINE_FIRSTLINE_MARK then
+              SetLocalizedString(LocID, LocValue)
+            else
+            begin
+              TempS := GetLocalizedString(LocID);
+              if Copy(TempS, Length(TempS), 1) > ' ' then
+                TempS := TempS + MULTILINE_SEPARATOR;
+              SetLocalizedString(LocID, TempS + LocValue);
+            end;
+          end;
+        end;
+      end
+      else
+      begin
+        LocID := StringToLocalizedStringType(LocIDString);
+        // если идентификатор элемента локализации верен
+        if LocID <> lsEmptyLocalizedEntry then
+          // установим элемент локализации в систему
+          SetLocalizedString(LocID, LocValue);
+      end;
     end;
   finally
     FreeAndNil(LanguageStrings);
@@ -180,6 +247,7 @@ end;
 
 procedure __SetDefaultValues;
 begin
+  SetLocalizedString(lsApplicationCaption, 'FDB Converter');
   SetLocalizedString(lsPressAnyButton, 'Нажмите любую клавишу...');
   SetLocalizedString(lsFileNotFound, 'Файл не найден');
   SetLocalizedString(lsFileDoesntExists, 'Файл %0:s не существует.');
@@ -199,6 +267,9 @@ begin
   SetLocalizedString(lsStep02, 'Выбор файла базы данных');
   SetLocalizedString(lsDatabaseBrowseDescription, 'Выберите базу данных или файл архива базы данных');
   SetLocalizedString(lsStep03, 'Подробная информация');
+  SetLocalizedString(lsStep03Group01, 'Временные файлы. Будут удалены по окончании процесса');
+  SetLocalizedString(lsStep03Group02, 'Исходная база данных');
+  SetLocalizedString(lsStep03Group03, 'Сконвертированная база данных');
   SetLocalizedString(lsOriginalDatabase, 'Исходная база данных');
   SetLocalizedString(lsOriginalBackup, 'Исходный архивный файл');
   SetLocalizedString(lsResultDatabaseName, 'Конечная база данных');
@@ -215,14 +286,17 @@ begin
   SetLocalizedString(lsStep04, 'Заменяемые функции');
   SetLocalizedString(lsOriginalFunction, 'Заменяемая функция');
   SetLocalizedString(lsSubstituteFunction, 'Заменяющая функция');
+  SetLocalizedString(lsStep04Comment, 'Список функций можно изменять');
   SetLocalizedString(lsStep05, 'Информация');
   SetLocalizedString(lsStep06, 'Ход процесса');
   SetLocalizedString(lsStep07, 'Завершение');
   SetLocalizedString(lsStep08, 'Реклама');
+  SetLocalizedString(lsStep08Comment, 'Реклама');
   SetLocalizedString(lsPrevButton, 'Назад');
   SetLocalizedString(lsNextButton, 'Далее');
   SetLocalizedString(lsExitButton, 'Выйти');
   SetLocalizedString(lsDatabaseBrowseButton, 'Обзор');
+  SetLocalizedString(lsBAKDatabaseCopy, 'BAK файл');
 
   SetLocalizedString(lsProcessSuccessfullEnd, 'Процесс завершен успешно');
   SetLocalizedString(lsNewDatabaseNameFinalMessage, 'Сконвертированная база данных сохранена под именем:');
@@ -271,19 +345,22 @@ begin
   SetLocalizedString(lsChooseDatabaseMessage, 'Выберите базу данных для конвертации');
   SetLocalizedString(lsInformationDialogCaption, 'Внимание');
 
-  SetLocalizedString(lsFEParamsCaption, 'Параметры');
-  SetLocalizedString(lsFEProcedureCaption, 'Хранимая процедура');
+  //SetLocalizedString(lsFEParamsCaption, 'Параметры');
+  //SetLocalizedString(lsFEProcedureCaption, 'Хранимая процедура');
   SetLocalizedString(lsFEProcedureEditCaption, 'Редактирование хранимой процедуры');
   SetLocalizedString(lsFEProcedureErrorCaption, 'Произошла ошибка при сохранении хранимой процедуры');
-  SetLocalizedString(lsFETriggerCaption, 'Триггер');
+  //SetLocalizedString(lsFETriggerCaption, 'Триггер');
   SetLocalizedString(lsFETriggerEditCaption, 'Редактирование триггера');
   SetLocalizedString(lsFETriggerErrorCaption, 'Произошла ошибка при сохранении триггера');
-  SetLocalizedString(lsFEViewCaption, 'Представление');
+  //SetLocalizedString(lsFEViewCaption, 'Представление');
   SetLocalizedString(lsFEViewEditCaption, 'Редактирование представления');
   SetLocalizedString(lsFEViewErrorCaption, 'Произошла ошибка при сохранении представления');
   SetLocalizedString(lsFEStopConvert, 'Прервать конвертацию БД');
   SetLocalizedString(lsFESaveMetadata, 'Сохранить');
-  SetLocalizedString(lsFESkipMetadata, 'Пропустить');
+  //SetLocalizedString(lsFESkipMetadata, 'Пропустить');
+  SetLocalizedString(lsFEDoComment, 'Закомментировать');
+  SetLocalizedString(lsFEDoUncomment, 'Откомментировать');
+  SetLocalizedString(lsFEDoShowError, 'Показать текст ошибки');
 
   SetLocalizedString(lsAllFilesBrowseMask, 'Все файлы');
   SetLocalizedString(lsDatabaseBrowseMask, 'База данных');

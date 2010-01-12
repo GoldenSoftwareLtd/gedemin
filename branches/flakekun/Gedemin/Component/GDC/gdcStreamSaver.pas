@@ -489,8 +489,7 @@ type
     procedure SetReadUserFromStream(const Value: Boolean);
     function GetReadUserFromStream: Boolean;
     function GetReplaceRecordBehaviour: TReplaceRecordBehaviour;
-    procedure SetReplaceRecordBehaviour(
-      const Value: TReplaceRecordBehaviour);
+    procedure SetReplaceRecordBehaviour(const Value: TReplaceRecordBehaviour);
     function GetIsAbortingProcess: Boolean;
     procedure SetIsAbortingProcess(const Value: Boolean);
     function GetStreamLogType: TgsStreamLoggingType;
@@ -4644,10 +4643,6 @@ begin
       end;
     end;
 
-    {for I := 0 to FDataObject.Count - 1 do
-      if FDataObject.ClientDS[I].FieldCount > 0 then
-        FDataObject.ClientDS[I].Open;}
-
   finally
     AMissingClassList.Free;
   end;
@@ -4658,7 +4653,7 @@ procedure TgdcStreamXMLWriterReader.SaveToStream(S: TStream);
 begin
   inherited;
 
-  if FDataObject.gdcObject[0] is TgdcSetting then
+  if (FDataObject.Count > 0) and (FDataObject.gdcObject[0] is TgdcSetting) then
     InternalSaveSettingToStream
   else
     InternalSaveToStream;
@@ -6162,7 +6157,7 @@ begin
   //сохранить полученные данные в поток
   case FStreamFormat of
     sttBinaryNew: FStreamWriterReader := TgdcStreamBinaryWriterReader.Create(FDataObject, FStreamLoadingOrderList);
-    sttXML, sttXMLFormatted:
+    sttXML:
     begin
       FStreamWriterReader := TgdcStreamXMLWriterReader.Create(FDataObject, FStreamLoadingOrderList);
       // Если сохраняются данные настройки
