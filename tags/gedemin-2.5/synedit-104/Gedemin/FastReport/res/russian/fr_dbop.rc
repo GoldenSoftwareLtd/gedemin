@@ -1,0 +1,13 @@
+#include "FR_Const.pas"
+
+STRINGTABLE
+{
+  frRes + 6000, "&Алиас:"
+  frRes + 6001, "Нет"
+}
+
+ALIASDLGTEMPLATE DIALOG 0, 0, 400, 16
+STYLE WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS
+FONT 8, "MS Sans Serif"
+{
+}

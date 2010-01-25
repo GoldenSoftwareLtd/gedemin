@@ -1,0 +1,51 @@
+// Package file for Delphi 7
+
+package FRXXX7;
+
+{$R *.res}
+{$R 'FR_XXXreg.dcr'}
+{$I FR.inc}
+
+{$DESCRIPTION 'FastReport 2.5 XXX Components'}
+{$ALIGN ON}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $00400000}
+{$IMPLICITBUILD ON}
+
+requires
+  VCL,
+  VCLDB,
+  BDERTL,
+  VCLSMP,
+  FR7;
+
+contains
+  FR_XXXReg        in 'FR_XXXReg.pas',
+  FR_XXXDB         in 'FR_XXXDB.pas',
+  FR_XXXMd         in 'FR_XXXMd.pas',
+{$IFDEF QBUILDER} 
+  FR_XXXQb         in 'FR_XXXQb.pas',
+{$ENDIF} 
+  FR_XXXQuery      in 'FR_XXXQuery.pas',
+  FR_XXXQueryParam in 'FR_XXXQueryParam.pas',
+  FR_XXXTable      in 'FR_XXXTable.pas';
+
+end.
