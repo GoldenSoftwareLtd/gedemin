@@ -92,7 +92,7 @@ Set the default options for FastMM here.
  program overwriting the bounds of allocated memory). These checks are
  expensive, and this option should thus only be used for debugging purposes.
  If this option is set then the ASMVersion option is automatically disabled.}
-{.$define CheckHeapForCorruption}
+{$define CheckHeapForCorruption}
 
 {Enable this option to catch attempts to perform MM operations after FastMM has
  been uninstalled. With this option set when FastMM is uninstalled it will not
@@ -111,7 +111,7 @@ Set the default options for FastMM here.
  Very important: If you enable this option your application will require the
  FastMM_FullDebugMode.dll library. If this library is not available you will
  get an error on startup.}
-{.$define FullDebugMode}
+{$define FullDebugMode}
 
   {Set this option to perform "raw" stack traces, i.e. check all entries on the
    stack for valid return addresses. Note that this is significantly slower
@@ -141,13 +141,18 @@ Set the default options for FastMM here.
 
   {Deletes the error log file on startup. No effect if LogErrorsToFile is not
    also set.}
-  {.$define ClearLogFileOnStartup}
+  {$define ClearLogFileOnStartup}
 
   {Loads the FASTMM_FullDebugMode.dll dynamically. If the DLL cannot be found
    then stack traces will not be available. Note that this may cause problems
    due to a changed DLL unload order when sharing the memory manager. Use with
    care.}
   {.$define LoadDebugDLLDynamically}
+
+    {.$define DoNotInstallIfDLLMissing}
+    {If the FastMM_FullDebugMode.dll file is not available then FastMM will not
+     install itself. No effect unless FullDebugMode and LoadDebugDLLDynamically
+     are also defined.}
 
   {FastMM usually allocates large blocks from the topmost available address and
    medium and small blocks from the lowest available address (This reduces
@@ -181,7 +186,7 @@ Set the default options for FastMM here.
 
   {Set this option to require the program to be run inside the IDE debugger to
    report memory leaks. This option has no effect if the option
-   "EnableMemoryLeakReporting" is not also set. Note that this option does not 
+   "EnableMemoryLeakReporting" is not also set. Note that this option does not
    work with libraries, only EXE projects.}
   {$define RequireDebuggerPresenceForLeakReporting}
 
@@ -264,6 +269,13 @@ Set the default options for FastMM here.
  Otherwise the default Delphi memory manager will be used (which is equivalent
  to the non-FullDebugMode FastMM since Delphi 2006.)}
 {.$define FullDebugModeInIDE}
+
+{Combines the FullDebugMode, LoadDebugDLLDynamically and
+ DoNotInstallIfDLLMissing options. Consequently FastMM will only be installed
+ (In FullDebugMode) when the FastMM_FullDebugMode.dll file is available. This
+ is useful when the same executable will be distributed for both debugging as
+ well as deployment.}
+{.$define FullDebugModeWhenDLLAvailable}
 
 {Group the options you use for release and debug versions below}
 {$ifdef Release}
