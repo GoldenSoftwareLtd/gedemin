@@ -264,6 +264,8 @@ type
     function GetDialogDefaultsFields: String; override;
     function Copy(const AFields: String; AValues: Variant; const ACopyDetail: Boolean = False;
       const APost: Boolean = True; const AnAppend: Boolean = False): Boolean; override;
+    function CopyObject(const ACopyDetailObjects: Boolean = False;
+      const AShowEditDialog: Boolean = False): Boolean; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -324,6 +326,8 @@ type
     function DeleteLine(Id: Integer): Boolean;
     function Copy(const AFields: String; AValues: Variant; const ACopyDetail: Boolean = False;
       const APost: Boolean = True; const AnAppend: Boolean = False): Boolean; override;
+    function CopyObject(const ACopyDetailObjects: Boolean = False;
+      const AShowEditDialog: Boolean = False): Boolean; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -3388,6 +3392,12 @@ end;
 }
 
 
+function TgdcAcctSimpleRecord.CopyObject(const ACopyDetailObjects,
+  AShowEditDialog: Boolean): Boolean;
+begin
+  Result := Copy('', NULL, True, False) and EditDialog;
+end;
+
 { TgdcAcctEntryLine }
 
 constructor TgdcAcctEntryLine.Create(AnOwner: TComponent);
@@ -4023,6 +4033,12 @@ begin
         L.Post;
     end;
   end;
+end;
+
+function TgdcAcctComplexRecord.CopyObject(const ACopyDetailObjects,
+  AShowEditDialog: Boolean): Boolean;
+begin
+  Result := Copy('', NULL, True, False) and EditDialog;
 end;
 
 constructor TgdcAcctComplexRecord.Create(AOwner: TComponent);
