@@ -36,7 +36,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdcBaseInterface, IBDatabase, IBSQL;
+  gd_ClassList, gdcBaseInterface, IBDatabase, IBSQL, Storages;
 
 const
   SelSQL =
@@ -56,6 +56,17 @@ procedure Tgdc_frmStorage.FormCreate(Sender: TObject);
 var
   q: TIBSQL;
 begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT id FROM gd_storage_data ';
+    q.ExecQuery;
+    if q.EOF then
+      SaveStorages;
+  finally
+    q.Free;
+  end;
+
   gdcObject := gdcStorageFolder;
   gdcDetailObject := gdcStorageValue;
 
