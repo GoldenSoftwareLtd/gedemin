@@ -2056,21 +2056,31 @@ var
       Result := False;
   end;
 
+  function IsHolyday(const ADate: TDateTime): Boolean;
+  begin
+    IBSQL.ParamByName('THEDATE').AsDateTime := ADate;
+    IBSQL.ExecQuery;
+    if IBSQL.RecordCount > 0 then
+      Result := True
+    else
+      Result := False;
+    IBSQL.Close;
+  end;
+
   function IsDayOff(const ADate: TDateTime): Boolean;
   begin
-    if IsWeekEnd(ADate) then
+    if TBLCALID > 0 then
     begin
-      Result := True;
+      // ≈сли передан табель, то выходной день там может быть рабочим
+      Result := IsHolyday(ADate);
     end
     else
     begin
-      IBSQL.ParamByName('THEDATE').AsDateTime := ADate;
-      IBSQL.ExecQuery;
-      if IBSQL.RecordCount > 0 then
+      // ѕроверим по выходным дн€м
+      if IsWeekEnd(ADate) then
         Result := True
       else
-        Result := False;
-      IBSQL.Close;
+        Result := IsHolyday(ADate);     // ≈сли это не выходной, проверим не праздник ли это
     end;
   end;
 
