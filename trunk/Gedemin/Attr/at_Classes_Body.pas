@@ -462,7 +462,7 @@ procedure InitDatabase(IBDatabase: TIBDatabase; IBTransaction: TIBTransaction);
 procedure GetTableName(DS: TDataSet; const FieldName: String; out AliasName, TableName: String);
 //procedure LocalizeDataSet(DS: TDataSet);
 
-function UpdateIBName(IBName: String): String;
+function UpdateIBName(const IBName: String): String;
 
 function RelationTypeToChar(const ARelationType: TatRelationType): String;
 //function StringToRelationType(const Name: String): TatRelationType;
@@ -544,16 +544,14 @@ end;
 *)
 
 // Доводит длину имени до 31 символа
-function UpdateIBName(IBName: String): String;
-const
-  IBStr = '                               ';
+function UpdateIBName(const IBName: String): String;
+var
+  I: Integer;
 begin
   Result := IBName;
-  if Length(Result) < 31 then
-  begin
-    Result := IBName + IBStr;
-    SetLength(Result, 31);
-  end;
+  SetLength(Result, 31);
+  for I := Length(IBName) + 1 to 31 do
+    Result[I] := ' ';
 end;
 
 function RelationTypeToChar(const ARelationType: TatRelationType): String;

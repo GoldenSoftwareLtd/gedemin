@@ -4095,7 +4095,9 @@ begin
 
   inherited;
 
-  FNumberUpdated := False;
+  // Зачем здесь присваивалась эта переменная?
+  //  Из-за этого не откатывалась нумерация документов при вызове Cancel
+  //FNumberUpdated := False;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENT', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  finally
