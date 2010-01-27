@@ -31,6 +31,7 @@ type
 
     function GetSumCurr(D1, D2, D3: Variant; D4: Boolean = False): String;
     function GetSumStr(D1: Variant; D2: Byte = 0): String;
+    function GetSumStr2(D1: Variant; const D2: String; D3: Integer): String;
     function GetRubSumStr(D: Variant): String;
     function GetFullRubSumStr(D: Variant): String;
     //Дата
@@ -183,6 +184,8 @@ begin
       'SUMRUBSTR(<Число>)/Возвращает сумму прописью со словом рублей в нужном падеже');
     AddMethod('function SUMSTR(D1: Currency; D2: Integer): String', CallMethod, 'Golden Software',
       'SUMSTR(<Число>, <Количество знаков после запятой>)/Возвращает сумму прописью, количество знаков после запятой не больше трех.');
+    AddMethod('function SUMSTR2(D1: Currency; D2: String; D3: Integer): String', CallMethod, 'Golden Software',
+      'SUMSTR2(<Число> , <Существительное для определения рода>/Ед. ч. им. падеж , <Род>/Если второй параметр не задан. 0 - муж, 1 - жен, 2 - ср.') ;
     AddMethod('function DATESTR(Date: Variant): String', CallMethod , 'Golden Software',
       'DATESTR(<Дата>)/Возвращает дату (месяц на русском языке)');
     AddMethod('function GETFIOCASE(LastName, FirstName, MiddleName: String; Sex, TheCase: Word): String', CallMethod, 'Golden Software',
@@ -369,6 +372,37 @@ begin
     NumberConvert.Gender := gFemale
   else
     NumberConvert.Gender := gMale;
+    Result := NumberConvert.Numeral;
+end;
+
+function TFR4Functions.GetSumStr2(D1: Variant; const D2: String; D3: Integer): String;
+begin
+  if VarIsNull(D1) then
+    raise Exception.Create('Не указано числовое значение!');
+
+  if (D3 < gdMasculine) or (D3 > gdMedium) then
+    raise Exception.Create('Неверно указан род числительного!');
+
+  if NumberConvert = nil then
+  begin
+    NumberConvert := TNumberConvert.Create(nil);
+    NumberConvert.Language := lRussian;
+  end;
+
+  NumberConvert.Value := D1;
+
+  if D2 > '' then
+  begin
+    case D2[Length(D2)] of
+      'а', 'я', 'А', 'Я', 'ь', 'Ь': D3 := gdFeminine;
+      'о', 'О', 'ё', 'Ё': D3 := gdMedium;
+    else
+      D3 := gdMasculine;
+    end;
+  end;
+
+  NumberConvert.Gender := TGender(D3);
+
   Result := NumberConvert.Numeral;
 end;
 

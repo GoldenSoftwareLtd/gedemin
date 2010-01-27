@@ -499,7 +499,7 @@ begin
       try
         AllGSFList.gdcSetts := gdcSetting;
         AllGSFList.isYesToAll := True;           // YesToAll на запросы
-        AllGSFList.GetFilesForPath(ExtractFilePath(LoadSettingPath));
+        AllGSFList.GetFilesForPath({ExtractFilePath(}LoadSettingPath{)});
         AllGSFList.LoadPackageInfo;
 
         isFound := False;
