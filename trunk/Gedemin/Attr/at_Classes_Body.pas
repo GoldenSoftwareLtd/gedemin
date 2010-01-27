@@ -545,9 +545,15 @@ end;
 
 // Доводит длину имени до 31 символа
 function UpdateIBName(IBName: String): String;
+const
+  IBStr = '                               ';
 begin
   Result := IBName;
-  while Length(Result) < 31 do Result := Result + ' ';
+  if Length(Result) < 31 then
+  begin
+    Result := IBName + IBStr;
+    SetLength(Result, 31);
+  end;
 end;
 
 function RelationTypeToChar(const ARelationType: TatRelationType): String;
@@ -567,6 +573,7 @@ begin
 
   atDatabase.Database := IBDatabase;
   atDatabase.Transaction := IBTransaction;
+  atDatabase.Dialect := IBDatabase.SQLDialect;
 end;
 
 function ReadField(F: TIBXSQLVAR; const Default: String): String; overload;
@@ -1221,14 +1228,9 @@ end;
 
 function TatBodyRelations.ByRelationName(const ARelationName: String): TatRelation;
 var
-  I, D : Integer;
+  I: Integer;
 begin
-  if Assigned(FDatabase.Database) then
-    D := FDatabase.Database.SQLDialect
-  else
-    D := 3;
-
-  if Find(ExtractIdentifier(D, ARelationName), I) then
+  if Find(ExtractIdentifier(FDatabase.Dialect, ARelationName), I) then
     Result := Items[I]
   else
     Result := nil;
@@ -1244,11 +1246,6 @@ function TatBodyRelations.GetItems(Index: Integer): TatRelation;
 begin
   Result := FList[Index] as TatRelation;
 end;
-
-{function TatBodyRelations.GetGlobalNamespace: TatRelation;
-begin
-  Result := ByRelationName('GEDEMINGLOBALNAMESPACE');
-end;}
 
 function TatBodyRelations.Find(const S: string; var Index: Integer): Boolean;
 var
@@ -1786,23 +1783,16 @@ begin
   if atField.FieldName = '' then
     raise EatDatabaseError.Create('Can''t add an empty field!');
 
+  //поиск в FList, если нет, то возвращает след. индекс.
   Find(atField.FieldName, Result);
   FList.Insert(Result, atField);
 end;
 
 function TatBodyFields.ByFieldName(const AFieldName: String): TatField;
 var
-  I, D: Integer;
+  I: Integer;
 begin
-{ TODO : 
-мура. но не понятно как сделать правильно.
-встречается еще в одном месте. }
-  if Assigned(FDatabase.Database) then
-    D := FDatabase.Database.SQLDialect
-  else
-    D := 3;
-
-  if Find(ExtractIdentifier(D, AFieldName), I) then
+  if Find(ExtractIdentifier(FDatabase.Dialect, AFieldName), I) then
     Result := Items[I]
   else
     Result := nil;
@@ -1986,7 +1976,6 @@ begin
   with Reader do
   begin
     ReadListBegin;
-
     while not EndOfList do
     begin
       NewField := TatBodyField.Create(FDatabase);
@@ -2624,6 +2613,7 @@ begin
   FAttrVersion := 0;
 
   FGarbageCount := 0;
+  FDialect := 3;
 end;
 
 destructor TatBodyDatabase.Destroy;
@@ -4884,11 +4874,9 @@ begin
 end;
 
 initialization
-
   atDatabase := TatBodyDatabase.Create;
 
 finalization
-
   FreeAndNil(atDatabase);
 
 end.
