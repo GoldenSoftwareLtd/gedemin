@@ -542,6 +542,7 @@ type
   protected
     function GetCount: Integer; virtual; abstract;
     function GetItems(Index: Integer): TatPrimaryKey; virtual; abstract;
+
   public
     function Add(atPrimaryKey: TatPrimaryKey): Integer; virtual; abstract;
     procedure Delete(const Index: Integer); virtual; abstract;
@@ -550,7 +551,6 @@ type
 
     property Count: Integer read GetCount;
     property Items[Index: Integer]: TatPrimaryKey read GetItems; default;
-
   end;
 
   TatDatabase = class(TObject)
@@ -570,6 +570,7 @@ type
     FMultiConnectionTransaction: Integer;
 
     FGarbageCount: Integer;
+    FDialect: Integer;
 
     function GetReadOnly: Boolean; virtual; abstract;
     procedure SetDatabase(Value: TIBDatabase); virtual; abstract;
@@ -603,6 +604,7 @@ type
     property ReadOnly: Boolean read GetReadOnly;
     property Loaded: Boolean read FLoaded;
     property Loading: Boolean read FLoading;
+    property Dialect: Integer read FDialect write FDialect;
 
     property InMultiConnection: Boolean read GetInMultiConnection;
 

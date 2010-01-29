@@ -734,6 +734,7 @@ begin
             TF.Modify := True;
             RTFStr.Position := 0;
             RTFStr.Size := 0;
+            Lfr4Report.Variables.Clear;
             Lfr4Report.SaveToStream(RTFStr);
             Post;
           end;

@@ -2104,56 +2104,60 @@ begin
   begin
     // Получим ключ типа складского документа для остатков
     FInvDocumentTypeKey := gdcBaseManager.GetIDByRUIDString(InvDocumentRUID);
-    // Сущестует ли поле-ссылка на позицию прихода
-    FAddLineKeyFieldExists := Assigned(atDatabase.FindRelationField('INV_CARD', 'USR$INV_ADDLINEKEY'));
-    // Получим необходимые наименования таблиц и полей
-    gdcObject := TgdcInvDocument.Create(Application);
-    try
-      gdcObject.Transaction := FWriteTransaction;
-      gdcObject.SubType := InvDocumentRUID;
-      gdcObject.SubSet := 'ByID';
-      // Названия полей-ссылок на контакты, на которые и с которых приходуются ТМЦ
-      InvDocumentInField := gdcObject.MovementTarget.SourceFieldName;
-      InvDocumentOutField := gdcObject.MovementSource.SourceFieldName;
-      InvRelationName := gdcObject.RelationName;
-      InvRelationLineName := gdcObject.RelationLineName;
-    finally
-      gdcObject.Free;
+
+    if FInvDocumentTypeKey > 0 then
+    begin
+      // Сущестует ли поле-ссылка на позицию прихода
+      FAddLineKeyFieldExists := Assigned(atDatabase.FindRelationField('INV_CARD', 'USR$INV_ADDLINEKEY'));
+      // Получим необходимые наименования таблиц и полей
+      gdcObject := TgdcInvDocument.Create(Application);
+      try
+        gdcObject.Transaction := FWriteTransaction;
+        gdcObject.SubType := InvDocumentRUID;
+        gdcObject.SubSet := 'ByID';
+        // Названия полей-ссылок на контакты, на которые и с которых приходуются ТМЦ
+        InvDocumentInField := gdcObject.MovementTarget.SourceFieldName;
+        InvDocumentOutField := gdcObject.MovementSource.SourceFieldName;
+        InvRelationName := gdcObject.RelationName;
+        InvRelationLineName := gdcObject.RelationLineName;
+      finally
+        gdcObject.Free;
+      end;
+
+      // Запрос возвращает ключ документа из InvRelationName по указанным поставщику и складу
+      FIBSQLGetDepotHeaderKey.Transaction := FWriteTransaction;
+      FIBSQLGetDepotHeaderKey.SQL.Text := Format(
+        ' SELECT documentkey FROM %0:s ' +
+        ' WHERE %1:s = :incontact AND %2:s = :outcontact ', [InvRelationName, InvDocumentInField, InvDocumentOutField]);
+      FIBSQLGetDepotHeaderKey.Prepare;
+
+      // Запрос на вставку записи в gd_document
+      FIBSQLInsertGdDocument.Transaction := FWriteTransaction;
+      FIBSQLInsertGdDocument.SQL.Text := Format(
+        'INSERT INTO gd_document ' +
+        '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, creatorkey, editorkey) ' +
+        'VALUES ' +
+        '  (:id, :parent, %0:d, ''1'', :documentdate, :companykey, -1, -1, -1, %1:d, %1:d) ', [FInvDocumentTypeKey, IBLogin.ContactKey]);
+      FIBSQLInsertGdDocument.Prepare;
+
+      // Запрос на вставку записи в шапку складского документа
+      FIBSQLInsertDocumentHeader.Transaction := FWriteTransaction;
+      FIBSQLInsertDocumentHeader.SQL.Text := Format(
+        'INSERT INTO %0:s ' +
+        '  (documentkey, %1:s, %2:s) ' +
+        'VALUES ' +
+        '  (:documentkey, :incontact, :outcontact) ', [InvRelationName, InvDocumentInField, InvDocumentOutField]);
+      FIBSQLInsertDocumentHeader.Prepare;
+
+      // Запрос на вставку записи в позиции складского документа
+      FIBSQLInsertDocumentPosition.Transaction := FWriteTransaction;
+      FIBSQLInsertDocumentPosition.SQL.Text := Format(
+        'INSERT INTO %0:s ' +
+        '  (documentkey, masterkey, fromcardkey, quantity) ' +
+        'VALUES ' +
+        '  (:documentkey, :masterkey, :fromcardkey, :quantity) ', [InvRelationLineName]);
+      FIBSQLInsertDocumentPosition.Prepare;
     end;
-
-    // Запрос возвращает ключ документа из InvRelationName по указанным поставщику и складу
-    FIBSQLGetDepotHeaderKey.Transaction := FWriteTransaction;
-    FIBSQLGetDepotHeaderKey.SQL.Text := Format(
-      ' SELECT documentkey FROM %0:s ' +
-      ' WHERE %1:s = :incontact AND %2:s = :outcontact ', [InvRelationName, InvDocumentInField, InvDocumentOutField]);
-    FIBSQLGetDepotHeaderKey.Prepare;
-
-    // Запрос на вставку записи в gd_document
-    FIBSQLInsertGdDocument.Transaction := FWriteTransaction;
-    FIBSQLInsertGdDocument.SQL.Text := Format(
-      'INSERT INTO gd_document ' +
-      '  (id, parent, documenttypekey, number, documentdate, companykey, afull, achag, aview, creatorkey, editorkey) ' +
-      'VALUES ' +
-      '  (:id, :parent, %0:d, ''1'', :documentdate, :companykey, -1, -1, -1, %1:d, %1:d) ', [FInvDocumentTypeKey, IBLogin.ContactKey]);
-    FIBSQLInsertGdDocument.Prepare;
-
-    // Запрос на вставку записи в шапку складского документа
-    FIBSQLInsertDocumentHeader.Transaction := FWriteTransaction;
-    FIBSQLInsertDocumentHeader.SQL.Text := Format(
-      'INSERT INTO %0:s ' +
-      '  (documentkey, %1:s, %2:s) ' +
-      'VALUES ' +
-      '  (:documentkey, :incontact, :outcontact) ', [InvRelationName, InvDocumentInField, InvDocumentOutField]);
-    FIBSQLInsertDocumentHeader.Prepare;
-
-    // Запрос на вставку записи в позиции складского документа
-    FIBSQLInsertDocumentPosition.Transaction := FWriteTransaction;
-    FIBSQLInsertDocumentPosition.SQL.Text := Format(
-      'INSERT INTO %0:s ' +
-      '  (documentkey, masterkey, fromcardkey, quantity) ' +
-      'VALUES ' +
-      '  (:documentkey, :masterkey, :fromcardkey, :quantity) ', [InvRelationLineName]);
-    FIBSQLInsertDocumentPosition.Prepare;
 
     // Запрос на создание складской карточки
     FIBSQLInsertInvCard.Transaction := FWriteTransaction;

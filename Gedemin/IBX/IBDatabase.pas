@@ -1682,7 +1682,7 @@ end;
 
 function TIBDatabase.IsFirebirdConnect: Boolean;
 begin
-  Result := GetFBVersion <> ''
+  Result := (GetFBVersion <> '') and (ODSMajorVersion >= 11);
 end;
 
 function TIBDataBase.IsFirebird25Connect: Boolean;
