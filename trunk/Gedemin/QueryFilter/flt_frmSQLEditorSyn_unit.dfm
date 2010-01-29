@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 117
-  Top = 14
+  Left = 291
+  Top = 168
   Width = 683
   Height = 556
   HelpContext = 121
