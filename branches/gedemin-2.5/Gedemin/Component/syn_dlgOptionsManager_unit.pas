@@ -118,7 +118,7 @@ var
 implementation
 
 uses
-  prp_MessageConst
+  prp_MessageConst, SynEditTypes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -344,8 +344,8 @@ begin
       seTestScript.Lines.Add(''' Invalid breakpoint');
       seTestScript.Lines.Add('  a = 1/0  ''Error line');
       seTestScript.Lines.Add('end function');
-      seTestScript.BlockBegin := Point(3, 6);
-      seTestScript.BlockEnd := Point(15, 6);
+      seTestScript.BlockBegin := BufferCoord(3, 6);
+      seTestScript.BlockEnd := BufferCoord(15, 6);
       TSynVBScriptSyn(FSynHighLighter).MarkBlockAttri.OnChange :=
         SelectColorChange;
     end;

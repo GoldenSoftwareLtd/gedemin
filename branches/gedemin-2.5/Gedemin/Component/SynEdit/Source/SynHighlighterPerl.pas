@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterPerl.pas,v 1.6 2001/10/24 09:39:25 plpolak Exp $
+$Id: SynHighlighterPerl.pas,v 1.15 2005/01/28 16:53:24 maelh Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -44,20 +44,27 @@ Known Issues:
 @lastmod(2000-06-23)
 The SynHighlighterPerl unit provides SynEdit with a Perl syntax highlighter.
 }
+
+{$IFNDEF QSYNHIGHLIGHTERPERL}
 unit SynHighlighterPerl;
+{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-  SysUtils, Classes,
-  {$IFDEF SYN_KYLIX}
-  Qt, QControls, QGraphics,
-  {$ELSE}
-  Windows, Messages, Controls, Graphics,
-  {$ENDIF}
-  SynEditTypes, SynEditHighlighter;
+{$IFDEF SYN_CLX}
+  QGraphics,
+  QSynEditTypes,
+  QSynEditHighlighter,
+{$ELSE}
+  Graphics,
+  SynEditTypes,
+  SynEditHighlighter,
+{$ENDIF}
+  SysUtils,
+  Classes;
 
 type
   TtkTokenKind = (tkComment, tkIdentifier, tkKey, tkNull, tkNumber, tkOperator,
@@ -357,9 +364,10 @@ type
     procedure MakeMethodTables;
   protected
     function GetIdentChars: TSynIdentChars; override;
+    function GetSampleSource: string; override;
+    function IsFilterStored: Boolean; override;
   public
-    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
-    function GetLanguageName: string; override;
+    class function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
@@ -399,7 +407,11 @@ type
 implementation
 
 uses
+{$IFDEF SYN_CLX}
+  QSynEditStrConst;
+{$ELSE}
   SynEditStrConst;
+{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -2435,6 +2447,8 @@ begin
 end;
 
 procedure TSynPerlSyn.StringInterpProc;
+var
+  fBackslashCount : Integer;
 begin
   fTokenID := tkString;
   if (FLine[Run + 1] = #34) and (FLine[Run + 2] = #34) then inc(Run, 2);
@@ -2442,8 +2456,19 @@ begin
     case FLine[Run] of
       #0, #10, #13: break;
       #92:
-        { backslash quote not the ending one }
-        if FLine[Run + 1] = #34 then inc(Run);
+        { If we're looking at a backslash, and the following character is an
+          end quote, and it's preceeded by an odd number of backslashes, then
+          it shouldn't mark the end of the string.  If it's preceeded by an
+          even number, then it should. }
+        if (FLine[Run + 1] = #34) then
+          begin
+            fBackslashCount := 1;
+
+            while ((Run > fBackslashCount) and (FLine[Run - fBackslashCount] = #92)) do
+              fBackslashCount := fBackslashCount + 1;
+
+            if (fBackslashCount mod 2 = 1) then inc(Run)
+          end;
     end;
     inc(Run);
   until FLine[Run] = #34;
@@ -2488,7 +2513,7 @@ procedure TSynPerlSyn.UnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run,2)
+    Inc(Run, 2)
   else
 {$ENDIF}
   inc(Run);
@@ -2566,16 +2591,34 @@ begin
   Result := ['%', '@', '$', '_', '0'..'9', 'a'..'z', 'A'..'Z'] + TSynSpecialChars;
 end;
 
-{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
-function TSynPerlSyn.GetLanguageName: string;
+function TSynPerlSyn.GetSampleSource: string;
+begin
+  Result :=
+    '#!/bin/perl'#13#10 +
+    'require "cgi-lib.pl";'#13#10 +
+    'use sigtrap;'#13#10 +
+    'do ''envars.pl'';'#13#10 +
+    '$_ = $password1;'#13#10 +
+    'sub WriteBack {'#13#10 +
+    '        while ($_ ne "fred")    {'#13#10 +
+    '                sleep 5;'#13#10 +
+    '        }'#13#10 +
+    '}';
+end;
+
+function TSynPerlSyn.IsFilterStored: Boolean;
+begin
+  Result := fDefaultFilter <> SYNS_FilterPerl;
+end;
+
+class function TSynPerlSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangPerl;
 end;
 
 initialization
   MakeIdentTable;
-{$IFNDEF SYN_CPPB_1}                                                            //mh 2000-07-14
+{$IFNDEF SYN_CPPB_1}
   RegisterPlaceableHighlighter(TSynPerlSyn);
 {$ENDIF}
 end.
-

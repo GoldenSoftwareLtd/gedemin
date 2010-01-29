@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterIni.pas,v 1.5 2001/10/24 09:39:26 plpolak Exp $
+$Id: SynHighlighterIni.pas,v 1.13 2004/07/13 00:00:31 markonjezic Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -42,20 +42,26 @@ Known Issues:
 The SynHighlighterIni unit provides SynEdit with an Ini-files highlighter.
 Thanks to Primoz Gabrijelcic, Martin Waldenburg and Michael Hieke.
 }
+
+{$IFNDEF QSYNHIGHLIGHTERINI}
 unit SynHighlighterIni;
+{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-  Classes,
-  {$IFDEF SYN_KYLIX}
+{$IFDEF SYN_CLX}
   QGraphics,
-  {$ELSE}
+  QSynEditTypes,
+  QSynEditHighlighter,
+{$ELSE}
   Graphics,
-  {$ENDIF}
-  SynEditTypes, SynEditHighlighter;
+  SynEditTypes,
+  SynEditHighlighter,
+{$ENDIF}
+  Classes;
 
 type
   TtkTokenKind = (tkComment, tkText, tkSection, tkKey, tkNull, tkNumber,
@@ -96,9 +102,10 @@ type
   protected
     {General Stuff}
     function GetIdentChars: TSynIdentChars; override;
+    function GetSampleSource: String; override;
+    function IsFilterStored: Boolean; override;
   public
-    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
-    function GetLanguageName: string; override;
+    class function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;   
@@ -133,7 +140,11 @@ type
 implementation
 
 uses
+{$IFDEF SYN_CLX}
+  QSynEditStrConst;
+{$ELSE}
   SynEditStrConst;
+{$ENDIF}
 
 procedure TSynIniSyn.MakeMethodTables;
 var
@@ -180,7 +191,7 @@ begin
   AddAttribute(fSymbolAttri);
   SetAttributesOnChange(DefHighlightChange);
 
-  fDefaultFilter      := SYNS_FilterINI;
+  fDefaultFilter := SYNS_FilterINI;
   MakeMethodTables;
 end; { Create }
 
@@ -249,6 +260,10 @@ begin
   else begin
     fTokenID := tkText;
     inc(Run);
+    while FLine[Run] <> #0 do
+      if FLine[Run] in ['a'..'z', 'A'..'Z', '0'..'9'] then
+        inc(Run)
+      else break;
   end;
 end;
 
@@ -271,6 +286,7 @@ begin
     inc(Run);
     fTokenID := tkNumber;
     while FLine[Run] in ['0'..'9', '.', 'e', 'E'] do inc(Run);
+    if FLine[Run] in ['a'..'z','A'..'Z'] then TextProc;
   end;
 end;
 
@@ -399,13 +415,26 @@ begin
   Result := TSynValidStringChars;
 end;
 
-{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
-function TSynIniSyn.GetLanguageName: string;
+function TSynIniSyn.IsFilterStored: Boolean;
+begin
+  Result := fDefaultFilter <> SYNS_FilterINI;
+end;
+
+class function TSynIniSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangINI;
 end;
 
-{$IFNDEF SYN_CPPB_1}                                                            //mh 2000-07-14
+function TSynIniSyn.GetSampleSource: String;
+begin
+  Result := '; Syntax highlighting'#13#10+
+            '[Section]'#13#10+
+            'Key=value'#13#10+
+            'String="Arial"'#13#10+
+            'Number=123456';
+end;
+
+{$IFNDEF SYN_CPPB_1}
 initialization
   RegisterPlaceableHighlighter(TSynIniSyn);
 {$ENDIF}

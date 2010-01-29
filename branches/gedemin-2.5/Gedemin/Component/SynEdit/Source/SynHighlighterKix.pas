@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterKix.pas,v 1.6 2001/10/24 09:39:26 plpolak Exp $
+$Id: SynHighlighterKix.pas,v 1.13 2005/01/28 16:53:24 maelh Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -41,20 +41,27 @@ Known Issues:
 @lastmod(2000-06-23)
 The SynHighlighterKix unit provides SynEdit with a Kix script file syntax highlighter.
 }
+
+{$IFNDEF QSYNHIGHLIGHTERKIX}
 unit SynHighlighterKix;
+{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-  SysUtils, Classes,
-  {$IFDEF SYN_KYLIX}
-  Qt, QControls, QGraphics,
-  {$ELSE}
-  Windows, Messages, Controls, Graphics,
-  {$ENDIF}
-  SynEditTypes, SynEditHighlighter;
+{$IFDEF SYN_CLX}
+  QGraphics,
+  QSynEditTypes,
+  QSynEditHighlighter,
+{$ELSE}
+  Graphics,
+  SynEditTypes,
+  SynEditHighlighter,
+{$ENDIF}
+  SysUtils,
+  Classes;
 
 type
   TtkTokenKind = (tkComment, tkIdentifier, tkKey, tkMiscellaneous, tkNull,
@@ -221,14 +228,15 @@ type
     procedure MakeMethodTables;
   protected
     function GetIdentChars: TSynIdentChars; override;
+    function GetSampleSource: string; override;
+    function IsFilterStored: Boolean; override;
   public
-    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
-    function GetLanguageName: string; override;
+    class function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
       override;
-    function GetEOL: Boolean; override;
+    function GetEol: Boolean; override;
     function GetTokenID: TtkTokenKind;
     procedure SetLine(NewValue: String; LineNumber: Integer); override;
     function GetToken: String; override;
@@ -259,7 +267,11 @@ type
 implementation
 
 uses
+{$IFDEF SYN_CLX}
+  QSynEditStrConst;
+{$ELSE}
   SynEditStrConst;
+{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -1245,7 +1257,7 @@ procedure TSynKixSyn.UnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run,2)
+    Inc(Run, 2)
   else
 {$ENDIF}
   inc(Run);
@@ -1272,7 +1284,7 @@ begin
   end;
 end;
 
-function TSynKixSyn.GetEOL: Boolean;
+function TSynKixSyn.GetEol: Boolean;
 begin
   Result := fTokenID = tkNull;
 end;
@@ -1322,15 +1334,30 @@ begin
   Result := TSynValidStringChars;
 end;
 
-{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
-function TSynKixSyn.GetLanguageName: string;
+class function TSynKixSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangKIX;
 end;
 
+function TSynKixSyn.IsFilterStored: Boolean;
+begin
+  Result := fDefaultFilter <> SYNS_FilterKIX;
+end;
+
+function TSynKixSyn.GetSampleSource: string;
+begin
+  Result := '; KiXtart sample source'#13#10 +
+            'break on'#13#10 +
+            'color b/n'#13#10 +
+            #13#10 +
+            'AT(1, 30) "Hello World!"'#13#10 +
+            '$USERID = @USERID'#13#10 +
+            'AT(1, 30) $USERID';
+end;
+
 initialization
   MakeIdentTable;
-{$IFNDEF SYN_CPPB_1}                                                            //mh 2000-07-14
+{$IFNDEF SYN_CPPB_1}
   RegisterPlaceableHighlighter(TSynKixSyn);
 {$ENDIF}
 end.

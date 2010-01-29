@@ -26,7 +26,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynEditPrintMargins.pas,v 1.2 2001/05/31 12:07:07 claplace Exp $
+$Id: SynEditPrintMargins.pas,v 1.5 2003/04/30 12:59:48 etrusco Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -82,18 +82,27 @@ CONTENTS:
 
 -------------------------------------------------------------------------------}
 
+{$IFNDEF QSYNEDITPRINTMARGINS}
 unit SynEditPrintMargins;
+{$ENDIF}
 {$M+}
+
+{$I SynEdit.inc }
+
 interface
 
 uses
-  Classes, SysUtils,
-  {$IFDEF LINUX}
-  Qgraphics,
-  {$ELSE}
+{$IFDEF SYN_CLX}
+  QGraphics,
+  QSynEditPrintTypes,
+  QSynEditPrinterInfo,
+{$ELSE}
   Graphics,
-  {$ENDIF}
-  SynEditPrintTypes, SynEditPrinterInfo;
+  SynEditPrintTypes,
+  SynEditPrinterInfo,
+{$ENDIF}
+  Classes,
+  SysUtils;
 
 type
   //Margins class - sorting out dimensions of printable area
@@ -144,6 +153,8 @@ type
       PrinterInfo: TSynEditPrinterInfo; LineNumbers,
       LineNumbersInMargin: Boolean; MaxLineNum: Integer);
     procedure Assign(Source: TPersistent); override;
+    procedure LoadFromStream(AStream: TStream);
+    procedure SaveToStream(AStream: TStream);
   published
     property UnitSystem: TUnitSystem read FUnitSystem write FUnitSystem
       default usMM;
@@ -356,6 +367,44 @@ begin
     FUnitSystem := Src.FUnitSystem;
   end else
     inherited;
+end;
+
+procedure TSynEditPrintMargins.LoadFromStream(AStream: TStream);
+begin
+  // we read all our values in MM
+  with AStream do begin
+    Read(FUnitSystem, SizeOf(FUnitSystem));
+    Read(FLeft, SizeOf(FLeft));
+    Read(FRight, SizeOf(FRight));
+    Read(FTop, SizeOf(FTop));
+    Read(FBottom, SizeOf(FBottom));
+    Read(FHeader, SizeOf(FHeader));
+    Read(FFooter, SizeOf(FFooter));
+    Read(FLeftHFTextIndent, SizeOf(FLeftHFTextIndent));
+    Read(FRightHFTextIndent, SizeOf(FRightHFTextIndent));
+    Read(FHFInternalMargin, SizeOf(FHFInternalMargin));
+    Read(FGutter, SizeOf(FGutter));
+    Read(FMirrorMargins, SizeOf(FMirrorMargins));
+  end;
+end;
+
+procedure TSynEditPrintMargins.SaveToStream(AStream: TStream);
+begin
+  // we always write our values in MM
+  with AStream do begin
+    Write(FUnitSystem, SizeOf(FUnitSystem));
+    Write(FLeft, SizeOf(FLeft));
+    Write(FRight, SizeOf(FRight));
+    Write(FTop, SizeOf(FTop));
+    Write(FBottom, SizeOf(FBottom));
+    Write(FHeader, SizeOf(FHeader));
+    Write(FFooter, SizeOf(FFooter));
+    Write(FLeftHFTextIndent, SizeOf(FLeftHFTextIndent));
+    Write(FRightHFTextIndent, SizeOf(FRightHFTextIndent));
+    Write(FHFInternalMargin, SizeOf(FHFInternalMargin));
+    Write(FGutter, SizeOf(FGutter));
+    Write(FMirrorMargins, SizeOf(FMirrorMargins));
+  end;
 end;
 
 end.

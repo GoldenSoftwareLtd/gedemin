@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynEditTypes.pas,v 1.3 2001/10/21 18:46:55 jrx Exp $
+$Id: SynEditTypes.pas,v 1.13 2004/07/29 19:24:40 maelh Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -35,7 +35,9 @@ located at http://SynEdit.SourceForge.net
 Known Issues:
 -------------------------------------------------------------------------------}
 
+{$IFNDEF QSYNEDITTYPES}
 unit SynEditTypes;
+{$ENDIF}
 
 {$I SynEdit.inc}
 
@@ -44,8 +46,26 @@ interface
 const
   TSynSpecialChars = ['À'..'Ö', 'Ø'..'ö', 'ø'..'ÿ'];
   TSynValidStringChars = ['_', '0'..'9', 'A'..'Z', 'a'..'z'] + TSynSpecialChars;
+  TSynWordBreakChars = ['.', ',', ';', ':', '"', '''', '!', '?', '[', ']', '(',
+                        ')', '{', '}', '^', '-', '=', '+', '-', '*', '/', '\',
+                        '|'];
+
+  TSynTabChar = #9;
+
+//These might need to be localized depending on the characterset because they might be
+//interpreted as valid ident characters.
+  SynTabGlyph = Chr($BB);       //'»'
+  SynSoftBreakGlyph = Chr($AC); //'¬'
+  SynLineBreakGlyph = Chr($B6); //'¶'
+  SynSpaceGlyph = Chr($B7);     //'·'
+
+  SLineBreak = {$IFDEF SYN_WIN32} #13#10 {$ELSE} #10 {$ENDIF};
 
 type
+  TSynSearchOption = (ssoMatchCase, ssoWholeWord, ssoBackwards,
+    ssoEntireScope, ssoSelectedOnly, ssoReplace, ssoReplaceAll, ssoPrompt);
+  TSynSearchOptions = set of TSynSearchOption;
+
   TSynIdentChars = set of char;
 
   //NOTE: This will need to be localized and currently will not work will with
@@ -54,8 +74,32 @@ type
   PSynSelectionMode = ^TSynSelectionMode;
   TSynSelectionMode = (smNormal, smLine, smColumn);
 
+  //todo: better field names. CharIndex and LineIndex?
+  TBufferCoord = record
+    Char: integer;
+    Line: integer;
+  end;
 
+  TDisplayCoord = record
+    Column: integer;
+    Row: integer;
+  end;
+
+function DisplayCoord(AColumn, ARow: Integer): TDisplayCoord;
+function BufferCoord(AChar, ALine: Integer): TBufferCoord;
 
 implementation
+
+function DisplayCoord(AColumn, ARow: Integer): TDisplayCoord;
+begin
+  Result.Column := AColumn;
+  Result.Row := ARow;
+end;
+
+function BufferCoord(AChar, ALine: Integer): TBufferCoord;
+begin
+  Result.Char := AChar;
+  Result.Line := ALine;
+end;
 
 end.

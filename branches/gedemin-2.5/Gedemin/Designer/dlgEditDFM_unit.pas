@@ -65,7 +65,7 @@ function EditDFM(const AName: String; var S: String): Boolean;
 implementation
 
 uses
-  prp_MessageConst
+  prp_MessageConst, SynEditTypes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

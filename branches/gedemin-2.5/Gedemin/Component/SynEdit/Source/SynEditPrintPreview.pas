@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynEditPrintPreview.pas,v 1.7 2001/10/21 21:05:32 jrx Exp $
+$Id: SynEditPrintPreview.pas,v 1.18 2003/12/27 22:18:43 markonjezic Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -43,7 +43,9 @@ CONTENTS:
   before the preview is shown, and when the printer is changed)
 -------------------------------------------------------------------------------}
 
+{$IFNDEF QSYNEDITPRINTPREVIEW}
 unit SynEditPrintPreview;
+{$ENDIF}
 
 {$I SynEdit.inc}
 
@@ -51,28 +53,32 @@ unit SynEditPrintPreview;
 interface
 
 uses
-  Classes,
-  SysUtils,
-{$IFDEF SYN_KYLIX}
+{$IFDEF SYN_CLX}
   Qt,
   QControls,
   QGraphics,
   QForms,
   Types,
+  QSynEditPrint,
 {$ELSE}
+  {$IFDEF SYN_COMPILER_7}
+  Themes,
+  {$ENDIF}
   Windows,
   Controls,
   Messages,
   Graphics,
   Forms,
+  SynEditPrint,
 {$ENDIF}
-  SynEditPrint;
+  Classes,
+  SysUtils;
 
 type
 //Event raised when page is changed in preview
   TPreviewPageEvent = procedure(Sender: TObject; PageNumber: Integer) of object;
   TSynPreviewScale = (pscWholePage, pscPageWidth, pscUserScaled);
-  
+
   {$IFNDEF SYN_COMPILER_4_UP}
   TWMMouseWheel = record
     Msg: Cardinal;
@@ -103,7 +109,8 @@ type
     FPageNumber: Integer;
     FShowScrollHint: Boolean;
     FOnPreviewPage: TPreviewPageEvent;
-  {$IFNDEF SYN_KYLIX}
+    FOnScaleChange: TNotifyEvent;                                               // JD 2002-01-9
+  {$IFNDEF SYN_CLX}
     FWheelAccumulator: Integer;
   {$ENDIF}
     procedure SetBorderStyle(Value: TBorderStyle);
@@ -112,7 +119,7 @@ type
     procedure SetScaleMode(Value: TSynPreviewScale);
     procedure SetScalePercent(Value: Integer);
   private
-  {$IFNDEF SYN_KYLIX}
+  {$IFNDEF SYN_CLX}
     procedure WMEraseBkgnd(var Msg: TWMEraseBkgnd); message WM_ERASEBKGND;
     procedure WMHScroll(var Msg: TWMHScroll); message WM_HSCROLL;
     procedure WMSize(var Msg: TWMSize); message WM_SIZE;
@@ -123,7 +130,7 @@ type
     procedure PaintPaper;
     function GetPageCount: Integer;
   protected
-  {$IFNDEF SYN_KYLIX}
+  {$IFNDEF SYN_CLX}
     procedure CreateParams(var Params: TCreateParams); override;
   {$ENDIF}
     function GetPageHeightFromWidth(AWidth: Integer): Integer;
@@ -155,6 +162,7 @@ type
     property Color default clAppWorkspace;
     property Cursor;
     property PageBGColor: TColor read FPageBG write SetPageBG default clWhite;
+    property PopupMenu;                                                         // JD 2002-01-9
     property SynEditPrint: TSynEditPrint read FSynEditPrint
       write SetSynEditPrint;
     property ScaleMode: TSynPreviewScale read FScaleMode write SetScaleMode
@@ -169,12 +177,18 @@ type
     property OnMouseUp;
     property OnPreviewPage: TPreviewPageEvent read FOnPreviewPage
       write FOnPreviewPage;
+    property OnScaleChange: TNotifyEvent read FOnScaleChange                    // JD 2002-01-9
+      write FOnScaleChange;                                                     // JD 2002-01-9
   end;
 
 implementation
 
 uses
+{$IFDEF SYN_CLX}
+  QSynEditStrConst;
+{$ELSE}
   SynEditStrConst;
+{$ENDIF}
 
 const
   MARGIN_X = 12; // margin width left and right of page
@@ -186,6 +200,11 @@ const
 constructor TSynEditPrintPreview.Create(AOwner: TComponent);
 begin
   inherited;
+{$IFDEF SYN_COMPILER_7_UP}
+  {$IFNDEF SYN_CLX}
+  ControlStyle := ControlStyle + [csNeedsBorderPaint];
+  {$ENDIF}
+{$ENDIF}
   FBorderStyle := bsSingle;
   FScaleMode := pscUserScaled;
   FScalePercent := 100;
@@ -198,12 +217,12 @@ begin
   FPageNumber := 1;
   FShowScrollHint := True;
   Align := alClient;
-{$IFNDEF SYN_KYLIX}
+{$IFNDEF SYN_CLX}
   FWheelAccumulator := 0;
 {$ENDIF}
 end;
 
-{$IFNDEF SYN_KYLIX}
+{$IFNDEF SYN_CLX}
 procedure TSynEditPrintPreview.CreateParams(var Params: TCreateParams);
 const
   BorderStyles: array[TBorderStyle] of DWord = (0, WS_BORDER);
@@ -242,34 +261,42 @@ end;
 
 function TSynEditPrintPreview.GetPageHeight100Percent: Integer;
 var
+  {$IFNDEF SYN_CLX}
   DC: HDC;
+  {$ENDIF}
   ScreenDPI: Integer;
 begin
   Result := 0;
-{$IFNDEF SYN_KYLIX}
+{$IFDEF SYN_CLX}
+  ScreenDPI := Screen.Height;
+{$ELSE}
   DC := GetDC(0);
   ScreenDPI := GetDeviceCaps(DC, LogPixelsY);
   ReleaseDC(0, DC);
+{$ENDIF}
   if Assigned(FSynEditPrint) then
     with FSynEditPrint.PrinterInfo do
       Result := MulDiv(PhysicalHeight, ScreenDPI, YPixPrInch);
-{$ENDIF}
 end;
 
 function TSynEditPrintPreview.GetPageWidth100Percent: Integer;
 var
+  {$IFNDEF SYN_CLX}
   DC: HDC;
+  {$ENDIF}
   ScreenDPI: Integer;
 begin
   Result := 0;
-{$IFNDEF SYN_KYLIX}
+{$IFDEF SYN_CLX}
+  ScreenDPI := Screen.Height;
+{$ELSE}
   DC := GetDC(0);
   ScreenDPI := GetDeviceCaps(DC, LogPixelsX);
   ReleaseDC(0, DC);
+{$ENDIF}
   if Assigned(FSynEditPrint) then
     with FSynEditPrint.PrinterInfo do
       Result := MulDiv(PhysicalWidth, ScreenDPI, XPixPrInch);
-{$ENDIF}
 end;
 
 procedure TSynEditPrintPreview.Notification(AComponent: TComponent;
@@ -283,7 +310,9 @@ end;
 procedure TSynEditPrintPreview.PaintPaper;
 var
   rcClip, rcPaper: TRect;
+  {$IFNDEF SYN_CLX}
   rgnPaper: HRGN;
+  {$ENDIF}
   i: Integer;
 begin
   with Canvas do begin
@@ -310,11 +339,11 @@ begin
         Top := FVirtualOffset.Y + FScrollPosition.Y;
       Right := Left + FPageSize.X;
       Bottom := Top + FPageSize.Y;
-    {$IFNDEF SYN_KYLIX}
+    {$IFNDEF SYN_CLX}
       rgnPaper := CreateRectRgn(Left, Top, Right + 1, Bottom + 1);
     {$ENDIF}
     end;
-  {$IFNDEF SYN_KYLIX}
+  {$IFNDEF SYN_CLX}
     if (NULLREGION <> ExtSelectClipRgn(Handle, rgnPaper, RGN_DIFF)) then
       FillRect(rcClip);
   {$ENDIF}
@@ -326,13 +355,13 @@ begin
           Point(Right + i, Top + i)]);
     end;
       // paint paper background
-  {$IFNDEF SYN_KYLIX}
+  {$IFNDEF SYN_CLX}
     SelectClipRgn(Handle, rgnPaper);
   {$ENDIF}
     Brush.Color := FPageBG;
     with rcPaper do
       Rectangle(Left, Top, Right + 1, Bottom + 1);
-  {$IFNDEF SYN_KYLIX}
+  {$IFNDEF SYN_CLX}
     DeleteObject(rgnPaper);
   {$ENDIF}
   end;
@@ -349,13 +378,13 @@ begin
       // paint the contents, clipped to the area inside of the print margins
       // correct scaling for output:
 
-  {$IFNDEF SYN_KYLIX}
+  {$IFNDEF SYN_CLX}
     SetMapMode(Handle, MM_ANISOTROPIC);
   {$ENDIF}
       // compute the logical point (0, 0) in screen pixels
     with FSynEditPrint.PrinterInfo do
     begin
-    {$IFNDEF SYN_KYLIX}
+    {$IFNDEF SYN_CLX}
       SetWindowExtEx(Handle, PhysicalWidth, PhysicalHeight, nil);
       SetViewPortExtEx(Handle, FPageSize.X, FPageSize.Y, nil);
     {$ENDIF}
@@ -366,7 +395,7 @@ begin
         Inc(ptOrgScreen.Y, FVirtualOffset.Y)
       else
         Inc(ptOrgScreen.Y, FVirtualOffset.Y + FScrollPosition.Y);
-    {$IFNDEF SYN_KYLIX}
+    {$IFNDEF SYN_CLX}
       SetViewPortOrgEx(Handle, ptOrgScreen.X, ptOrgScreen.Y, nil);
           // clip the output to the print margins
       IntersectClipRect(Handle, 0, 0, PrintableWidth, PrintableHeight);
@@ -398,7 +427,7 @@ begin
       Invalidate
     else
     begin
-    {$IFNDEF SYN_KYLIX}
+    {$IFNDEF SYN_CLX}
       ScrollWindow(Handle, n, 0, nil, nil);
     {$ENDIF}
       Update;
@@ -419,7 +448,8 @@ begin
   n := nH - FVirtualSize.Y;
   if (Value < n) then Value := n;
   if (Value > 0) then Value := 0;
-  if (Value <> FScrollPosition.Y) then begin
+  if (Value <> FScrollPosition.Y) then
+  begin
     n := Value - FScrollPosition.Y;
     FScrollPosition.Y := Value;
     UpdateScrollbars;
@@ -427,7 +457,7 @@ begin
       Invalidate
     else
     begin
-    {$IFNDEF SYN_KYLIX}
+    {$IFNDEF SYN_CLX}
       ScrollWindow(Handle, 0, n, nil, nil);
     {$ENDIF}
       Update;
@@ -476,12 +506,12 @@ end;
 
 
 procedure TSynEditPrintPreview.UpdateScrollbars;
-{$IFNDEF SYN_KYLIX}
+{$IFNDEF SYN_CLX}
 var
   si: TScrollInfo;
 {$ENDIF}
 begin
-{$IFNDEF SYN_KYLIX}
+{$IFNDEF SYN_CLX}
   FillChar(si, SizeOf(TScrollInfo), 0);
   si.cbSize := SizeOf(TScrollInfo);
   si.fMask := SIF_ALL;
@@ -537,7 +567,7 @@ begin
   if (Value <> FBorderStyle) then
   begin
     FBorderStyle := Value;
-  {$IFNDEF SYN_KYLIX}
+  {$IFNDEF SYN_CLX}
     RecreateWnd;
   {$ENDIF}
   end;
@@ -568,6 +598,8 @@ begin
     FScaleMode := Value;
     FScrollPosition := Point(0, 0);
     SizeChanged;
+    if Assigned(FOnScaleChange) then                                            // JD 2002-01-9
+      FOnScaleChange(Self);                                                     // JD 2002-01-9
     Invalidate;
   end;
 end;
@@ -580,12 +612,13 @@ begin
     FScalePercent := Value;
     SizeChanged;
     Invalidate;
-  end
-  else
+  end else
     ScaleMode := pscUserScaled;
+  if Assigned(FOnScaleChange) then                                              // JD 2002-01-9
+    FOnScaleChange(Self);                                                       // JD 2002-01-9
 end;
 
-{$IFNDEF SYN_KYLIX}
+{$IFNDEF SYN_CLX}
 procedure TSynEditPrintPreview.WMEraseBkgnd(var Msg: TWMEraseBkgnd);
 begin
   Msg.Result := 1;
@@ -669,16 +702,22 @@ begin
               pt := ClientToScreen(Point(ClientWidth - rc.Right - 4, 10));
               OffsetRect(rc, pt.x, pt.y);
               ScrollHint.ActivateHint(rc, s);
+{$IFDEF SYN_COMPILER_3}
+              SendMessage(ScrollHint.Handle, WM_NCPAINT, 1, 0);
+{$ENDIF}
+{$IFNDEF SYN_COMPILER_3_UP}
               ScrollHint.Invalidate;
+{$ENDIF}
               ScrollHint.Update;
             end;
           end;
         SB_ENDSCROLL: begin
             if FShowScrollHint then
-              with GetScrollHint do begin
-                Visible := False;
-                ActivateHint(Rect(0, 0, 0, 0), '');
-              end;
+            begin
+              ScrollHint := GetScrollHint;
+              ScrollHint.Visible := False;
+              ShowWindow(ScrollHint.Handle, SW_HIDE);
+            end;
           end;
       end;
       {Updating scroll position and redrawing}
@@ -737,6 +776,7 @@ begin
       MouseWheelUp;
   end;
 end;
+
 {$ENDIF}
 
 procedure TSynEditPrintPreview.UpdatePreview;
@@ -750,9 +790,12 @@ begin
   if Assigned(FSynEditPrint) then
     FSynEditPrint.UpdatePages(Canvas);
   SizeChanged;
+  Invalidate;
   ScaleMode := OldMode;
   if ScaleMode = pscUserScaled then
     ScalePercent := OldScale;
+  if Assigned(FOnPreviewPage) then
+    FOnPreviewPage(Self, FPageNumber);
 end;
 
 procedure TSynEditPrintPreview.FirstPage;
@@ -806,4 +849,3 @@ begin
 end;
 
 end.
-

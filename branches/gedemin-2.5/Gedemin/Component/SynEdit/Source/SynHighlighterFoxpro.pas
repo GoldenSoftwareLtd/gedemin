@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterFoxpro.pas,v 1.6 2001/10/24 09:39:26 plpolak Exp $
+$Id: SynHighlighterFoxpro.pas,v 1.13 2005/01/28 16:53:22 maelh Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -42,20 +42,27 @@ Known Issues:
 The SynHighlighterFoxpro unit provides SynEdit with a Foxpro syntax highlighter.
 Thanks to Martin Waldenburg.
 }
+
+{$IFNDEF QSYNHIGHLIGHTERFOXPRO}
 unit SynHighlighterFoxpro;
+{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-  SysUtils, Classes,
-  {$IFDEF SYN_KYLIX}
-  Qt, QControls, QGraphics,
-  {$ELSE}
-  Windows, Messages, Controls, Graphics, Registry,
-  {$ENDIF}
-  SynEditTypes, SynEditHighlighter;
+{$IFDEF SYN_CLX}
+  QGraphics,
+  QSynEditTypes,
+  QSynEditHighlighter,
+{$ELSE}
+  Graphics,
+  SynEditTypes,
+  SynEditHighlighter,
+{$ENDIF}
+  SysUtils,
+  Classes;
 
 type
   TtkTokenKind = (tkComment, tkIdentifier, tkKey, tkNull, tkNumber, tkSpace,
@@ -222,14 +229,14 @@ type
     procedure MakeMethodTables;
   protected
     function GetIdentChars: TSynIdentChars; override;
+    function IsFilterStored: Boolean; override;
   public
-    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
-    function GetLanguageName: string; override;
+    class function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
       override;
-    function GetEOL: Boolean; override;
+    function GetEol: Boolean; override;
     function GetTokenID: TtkTokenKind;
     procedure SetLine(NewValue: String; LineNumber: Integer); override;
     function GetToken: String; override;
@@ -256,7 +263,11 @@ type
 implementation
 
 uses
+{$IFDEF SYN_CLX}
+  QSynEditStrConst;
+{$ELSE}
   SynEditStrConst;
+{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -1418,8 +1429,8 @@ end;
 procedure TSynFoxproSyn.SlashProc;
 begin
   {division}
-   inc(Run);
-   fTokenID := tkSymbol;
+  inc(Run);
+  fTokenID := tkSymbol;
 end;
 
 procedure TSynFoxproSyn.SpaceProc;
@@ -1493,7 +1504,7 @@ procedure TSynFoxproSyn.UnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run,2)
+    Inc(Run, 2)
   else
 {$ENDIF}
   inc(Run);
@@ -1520,7 +1531,7 @@ begin
   end;
 end;
 
-function TSynFoxproSyn.GetEOL: Boolean;
+function TSynFoxproSyn.GetEol: Boolean;
 begin
   Result := fTokenID = tkNull;
 end;
@@ -1568,15 +1579,19 @@ begin
   Result := TSynValidStringChars;
 end;
 
-{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
-function TSynFoxproSyn.GetLanguageName: string;                    
+function TSynFoxproSyn.IsFilterStored: Boolean;
+begin
+  Result := fDefaultFilter <> SYNS_FilterFoxpro;
+end;
+
+class function TSynFoxproSyn.GetLanguageName: string;                    
 begin
   Result := SYNS_LangFoxpro;
 end;
 
 initialization
   MakeIdentTable;
-{$IFNDEF SYN_CPPB_1}                                                            //mh 2000-07-14
+{$IFNDEF SYN_CPPB_1}
   RegisterPlaceableHighlighter(TSynFoxproSyn);
 {$ENDIF}
 end.
