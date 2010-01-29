@@ -183,7 +183,7 @@ uses
   gdcConstants, prp_MessageConst, rp_StreamFR, Gedemin_TLB,
   xfr_TemplateBuilder, rp_dlgViewResultEx_unit, rp_ReportClient,
   rp_dlgEnterParam_unit, obj_i_Debugger, evt_i_Base,
-  prp_frmGedeminProperty_Unit,
+  prp_frmGedeminProperty_Unit, SynEditTypes,
   {$IFDEF FR4}
   rp_StreamFR4,
   {$ENDIF}

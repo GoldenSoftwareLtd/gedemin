@@ -20,7 +20,7 @@ object frm_SettingView: Tfrm_SettingView
     Left = 0
     Top = 0
     Width = 781
-    Height = 537
+    Height = 541
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -28,14 +28,14 @@ object frm_SettingView: Tfrm_SettingView
       Left = 283
       Top = 0
       Width = 3
-      Height = 537
+      Height = 541
       Cursor = crHSplit
     end
     object pnlPositionText: TPanel
       Left = 286
       Top = 0
       Width = 495
-      Height = 537
+      Height = 541
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
@@ -68,7 +68,7 @@ object frm_SettingView: Tfrm_SettingView
         Left = 0
         Top = 26
         Width = 495
-        Height = 511
+        Height = 515
         Cursor = crIBeam
         Align = alClient
         Font.Charset = DEFAULT_CHARSET
@@ -414,7 +414,7 @@ object frm_SettingView: Tfrm_SettingView
       Left = 0
       Top = 0
       Width = 283
-      Height = 537
+      Height = 541
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 0
@@ -430,7 +430,7 @@ object frm_SettingView: Tfrm_SettingView
         Left = 0
         Top = 87
         Width = 283
-        Height = 450
+        Height = 454
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
@@ -438,7 +438,7 @@ object frm_SettingView: Tfrm_SettingView
           Left = 0
           Top = 25
           Width = 283
-          Height = 425
+          Height = 429
           Align = alClient
           ItemHeight = 13
           Sorted = True
@@ -506,7 +506,7 @@ object frm_SettingView: Tfrm_SettingView
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 537
+    Top = 541
     Width = 781
     Height = 32
     Align = alBottom

@@ -81,7 +81,7 @@ implementation
 
 uses
   rp_report_const, gdcConstants, prp_MessageConst, evt_i_Base, gd_SetDatabase,
-  prp_dfPropertyTree_Unit
+  prp_dfPropertyTree_Unit, SynEditTypes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

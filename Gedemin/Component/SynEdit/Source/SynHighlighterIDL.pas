@@ -27,32 +27,33 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterIDL.pas,v 1.4 2001/10/24 09:39:26 plpolak Exp $
+$Id: SynHighlighterIDL.pas,v 1.9 2005/01/28 16:53:23 maelh Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
 
 -------------------------------------------------------------------------------}
 
+{$IFNDEF QSYNHIGHLIGHTERIDL}
 unit SynHighlighterIDL;
+{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-  SysUtils,
-  Classes,
-{$IFDEF SYN_KYLIX}
-  QControls,
+{$IFDEF SYN_CLX}
   QGraphics,
+  QSynEditTypes,
+  QSynEditHighlighter,
 {$ELSE}
-  Windows,
-  Controls,
   Graphics,
-{$ENDIF}
   SynEditTypes,
-  SynEditHighlighter;
+  SynEditHighlighter,
+{$ENDIF}
+  SysUtils,
+  Classes;
 
 Type
   TtkTokenKind = (
@@ -167,13 +168,12 @@ type
     function IsFilterStored: Boolean; override;
   public
     constructor Create(AOwner: TComponent); override;
-    {$IFNDEF SYN_CPPB_1} class {$ENDIF}
-    function GetLanguageName: string; override;
+    class function GetLanguageName: string; override;
     function GetRange: Pointer; override;
     procedure ResetRange; override;
     procedure SetRange(Value: Pointer); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes; override;
-    function GetEOL: Boolean; override;
+    function GetEol: Boolean; override;
     function GetTokenID: TtkTokenKind;
     procedure SetLine(NewValue: String; LineNumber: Integer); override;
     function GetToken: String; override;
@@ -196,7 +196,11 @@ type
 implementation
 
 uses
+{$IFDEF SYN_CLX}
+  QSynEditStrConst;
+{$ELSE}
   SynEditStrConst;
+{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -795,7 +799,7 @@ procedure TSynIdlSyn.UnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run,2)
+    Inc(Run, 2)
   else
 {$ENDIF}
   inc(Run);
@@ -829,7 +833,7 @@ begin
   end;
 end;
 
-function TSynIdlSyn.GetEOL: Boolean;
+function TSynIdlSyn.GetEol: Boolean;
 begin
   Result := fTokenID = tkNull;
 end;
@@ -900,8 +904,7 @@ begin
   Result := fDefaultFilter <> SYNS_FilterCORBAIDL;
 end;
 
-{$IFNDEF SYN_CPPB_1} class {$ENDIF}
-function TSynIdlSyn.GetLanguageName: string;
+class function TSynIdlSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangCORBAIDL;
 end;

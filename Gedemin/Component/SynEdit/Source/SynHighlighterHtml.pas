@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterHtml.pas,v 1.6 2001/10/24 09:39:26 plpolak Exp $
+$Id: SynHighlighterHtml.pas,v 1.25 2005/01/28 16:53:23 maelh Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -41,186 +41,290 @@ Known Issues:
 @lastmod(2000-06-23)
 The SynHighlighterHTML unit provides SynEdit with an HTML highlighter.
 }
+
+{$IFNDEF QSYNHIGHLIGHTERHTML}
 unit SynHighlighterHtml;
+{$ENDIF}
 
 interface
 
 {$I SynEdit.inc}
 
 uses
-  SysUtils, Classes,
-  {$IFDEF SYN_KYLIX}
-  Qt, QControls, QGraphics,
-  {$ELSE}
-  Windows, Messages, Controls, Graphics, Registry,
-  {$ENDIF}
-  SynEditTypes, SynEditHighlighter;
+{$IFDEF SYN_CLX}
+  QGraphics,
+  QSynEditTypes,
+  QSynEditHighlighter,
+{$ELSE}
+  Graphics,
+  SynEditTypes,
+  SynEditHighlighter,
+{$ENDIF}
+  SysUtils,
+  Classes;
 
 const
-  MAX_ESCAPEAMPS = 151;
+  MAX_ESCAPEAMPS = 249;
 
   EscapeAmps: array[0..MAX_ESCAPEAMPS - 1] of PChar = (
-    ('&amp;'),               {   &   }
-    ('&lt;'),                {   >   }
-    ('&gt;'),                {   <   }
-    ('&quot;'),              {   "   }
-    ('&trade;'),             {   Ö   }
-    ('&nbsp;'),              { space }
-    ('&copy;'),              {   ©   }
-    ('&reg;'),               {   «   }
-    ('&Agrave;'),            {   À   }
-    ('&Aacute;'),            {   Á   }
-    ('&Acirc;'),             {   Â   }
-    ('&Atilde;'),            {   Ã   }
-    ('&Auml;'),              {   Ž   }
-    ('&Aring;'),             {      }
-    ('&AElig;'),             {   ’   }
-    ('&Ccedil;'),            {   €   }
-    ('&Egrave;'),            {   È   }
-    ('&Eacute;'),            {      }
-    ('&Ecirc;'),             {   Ê   }
-    ('&Euml;'),              {   Ë   }
-    ('&Igrave;'),            {   Ì   }
-    ('&Iacute;'),            {   Í   }
-    ('&Icirc;'),             {   Î   }
-    ('&Iuml;'),              {   Ï   }
-    ('&ETH;'),               {   Ð   }
-    ('&Ntilde;'),            {      }
-    ('&Ograve;'),            {   Ò   }
-    ('&Oacute;'),            {   Ó   }
-    ('&Ocirc;'),             {   Ô   }
-    ('&Otilde;'),            {   Õ   }
-    ('&Ouml;'),              {   ™   }
-    ('&Oslash;'),            {   Ø   }
-    ('&Ugrave;'),            {   Ù   }
-    ('&Uacute;'),            {   Ú   }
-    ('&Ucirc;'),             {   Û   }
-    ('&Uuml;'),              {   š   }
-    ('&Yacute;'),            {   Ý   }
-    ('&THORN;'),             {   Þ   }
-    ('&szlig;'),             {   ˜   }
-    ('&agrave;'),            {   …   }
-    ('&aacute;'),            {   ß   }
-    ('&acirc;'),             {   ƒ   }
-    ('&atilde;'),            {   ã   }
-    ('&auml;'),              {   „   }
-    ('&aring;'),             {   †   }
-    ('&aelig;'),             {   µ   }
-    ('&ccedil;'),            {   ‡   }
-    ('&egrave;'),            {   Š   }
-    ('&eacute;'),            {   ‚   }
-    ('&ecirc;'),             {   ˆ   }
-    ('&euml;'),              {   ‰   }
-    ('&igrave;'),            {      }
-    ('&iacute;'),            {   ­   }
-    ('&icirc;'),             {   Œ   }
-    ('&iuml;'),              {   ‹   }
-    ('&eth;'),               {   ð   }
-    ('&ntilde;'),            {   ±   }
-    ('&ograve;'),            {   •   }
-    ('&oacute;'),            {   ›   }
-    ('&ocirc;'),             {   “   }
-    ('&otilde;'),            {   õ   }
-    ('&ouml;'),              {   ÷   }
-    ('&oslash;'),            {   °   }
-    ('&ugrave;'),            {   —   }
-    ('&uacute;'),            {   ·   }
-    ('&ucirc;'),             {   –   }
-    ('&uuml;'),              {      }
-    ('&yacute;'),            {   ²   }
-    ('&thorn;'),             {   þ   }
-    ('&yuml;'),              {       }
-    ('&iexcl;'),             {   í   }
-    ('&cent;'),              {   ó   }
-    ('&pound;'),             {   ú   }
-    ('&curren;'),            {   ñ   }
-    ('&yen;'),               {   Ñ   }
-    ('&brvbar;'),            {   ª   }
-    ('&sect;'),              {   º   }
-    ('&uml;'),               {   ¿   }
-    ('&ordf;'),              {   ¬   }
-    ('&laquo;'),             {   ½   }
-    ('&shy;'),               {   ¼   }
-    ('&macr;'),              {   »   }
-    ('&deg;'),               {   ø   }
-    ('&plusmn;'),            {   ¤   }
-    ('&sup2;'),              {   ý   }
-    ('&sup3;'),              {   ³   }
-    ('&acute;'),             {   ´   }
-    ('&micro;'),             {   ‘   }
-    ('&middot;'),            {   œ   }
-    ('&cedil;'),             {   ¸   }
-    ('&sup1;'),              {   ¹   }
-    ('&ordm;'),              {      }
-    ('&raquo;'),             {   ¯   }
-    ('&frac14;'),            {   ¦   }
-    ('&frac12;'),            {   ®   }
-    ('&frac34;'),            {   ¾   }
-    ('&iquest;'),            {   ¨   }
-    ('&times;'),             {   ×   }
-    ('&divide'),             {   ”   }
-    ('&euro;'),              {   Ç   }
-    //used by very old HTML editors
-    ('&#9;'),                {  TAB  }
-    ('&#127;'),              {      }
-    ('&#128;'),              {   Ç   }
-    ('&#129;'),              {   ü   }
-    ('&#130;'),              {   é   }
-    ('&#131;'),              {   â   }
-    ('&#132;'),              {   ä   }
-    ('&ldots;'),             {   à   }
-    ('&#134;'),              {   å   }
-    ('&#135;'),              {   ç   }
-    ('&#136;'),              {   ê   }
-    ('&#137;'),              {   ë   }
-    ('&#138;'),              {   è   }
-    ('&#139;'),              {   ï   }
-    ('&#140;'),              {   î   }
-    ('&#141;'),              {   ì   }
-    ('&#142;'),              {   Ä   }
-    ('&#143;'),              {   Å   }
-    ('&#144;'),              {   É   }
-    ('&#152;'),              {   ÿ   }
-    ('&#153;'),              {   Ö   }
-    ('&#154;'),              {   Ü   }
-    ('&#155;'),              {   ¢   }
-    ('&#156;'),              {   £   }
-    ('&#157;'),              {   ¥   }
-    ('&#158;'),              {   ž   }
-    ('&#159;'),              {   Ÿ   }
-    ('&#161;'),              {   í   }
-    ('&#162;'),              {   ó   }
-    ('&#163;'),              {   ú   }
-    ('&#164;'),              {   ñ   }
-    ('&#165;'),              {   Ñ   }
-    ('&#166;'),              {   ª   }
-    ('&#167;'),              {   º   }
-    ('&#168;'),              {   ¿   }
-    ('&#170;'),              {   ¬   }
-    ('&#175;'),              {   ¯   }
-    ('&#176;'),              {   ø   }
-    ('&#177;'),              {   ¤   }
-    ('&#178;'),              {   ý   }
-    ('&#180;'),              {   ´   }
-    ('&#181;'),              {   ‘   }
-    ('&#183;'),              {   œ   }
-    ('&#184;'),              {   ¸   }
-    ('&#185;'),              {   ¹   }
-    ('&#186;'),              {      }
-    ('&#188;'),              {   ¦   }
-    ('&#189;'),              {   ®   }
-    ('&#190;'),              {   ¾   }
-    ('&#191;'),              {   ¨   }
-    ('&#215;')               {   Ô   }
+    ('&Alpha;'),         { ?        }  { greek capital alpha }
+    ('&Beta;'),          { ?        }  { greek capital beta }
+    ('&Gamma;'),         { G        }  { greek capital gamma }
+    ('&Delta;'),         { ?        }  { greek capital delta }
+    ('&Epsilon;'),       { ?        }  { greek capital epsilon }
+    ('&Zeta;'),          { ?        }  { greek capital zeta }
+    ('&Eta;'),           { ?        }  { greek capital eta }
+    ('&Theta;'),         { T        }  { greek capital theta }
+    ('&Iota;'),          { ?        }  { greek capital iota }
+    ('&Kappa;'),         { ?        }  { greek capital kappa }
+    ('&Lambda;'),        { ?        }  { greek capital lambda }
+    ('&Mu;'),            { ?        }  { greek capital mu }
+    ('&Nu;'),            { ?        }  { greek capital nu }
+    ('&Xi;'),            { ?        }  { greek capital xi }
+    ('&Omicron;'),       { ?        }  { greek capital omicron }
+    ('&Pi;'),            { ?        }  { greek capital pi }
+    ('&Rho;'),           { ?        }  { greek capital rho }
+    ('&Sigma;'),         { S        }  { greek capital sigma }
+    ('&Tau;'),           { ?        }  { greek capital tau }
+    ('&Upsilon;'),       { ?        }  { greek capital upsilon }
+    ('&Phi;'),           { F        }  { greek capital phi }
+    ('&Chi;'),           { ?        }  { greek capital chi }
+    ('&Psi;'),           { ?        }  { greek capital psi }
+    ('&Omega;'),         { O        }  { greek capital omega }
+    ('&alpha;'),         { a        }  { greek small alpha }
+    ('&beta;'),          { ß        }  { greek small beta }
+    ('&gamma;'),         { ?        }  { greek small gamma }
+    ('&delta;'),         { d        }  { greek small delta }
+    ('&epsilon;'),       { e        }  { greek small epsilon }
+    ('&zeta;'),          { ?        }  { greek small zeta }
+    ('&eta;'),           { ?        }  { greek small eta }
+    ('&theta;'),         { ?        }  { greek small theta }
+    ('&iota;'),          { ?        }  { greek small iota }
+    ('&kappa;'),         { ?        }  { greek small kappa }
+    ('&lambda;'),        { ?        }  { greek small lambda }
+    ('&mu;'),            { µ        }  { greek small mu }
+    ('&nu;'),            { ?        }  { greek small nu }
+    ('&xi;'),            { ?        }  { greek small xi }
+    ('&omicron;'),       { ?        }  { greek small omicron }
+    ('&pi;'),            { p        }  { greek small pi }
+    ('&rho;'),           { ?        }  { greek small rho }
+    ('&sigmaf;'),        { ?        }  { greek small final sigma }
+    ('&sigma;'),         { s        }  { greek small sigma }
+    ('&tau;'),           { t        }  { greek small tau }
+    ('&upsilon;'),       { ?        }  { greek small upsilon }
+    ('&phi;'),           { f        }  { greek small phi }
+    ('&chi;'),           { ?        }  { greek small chi }
+    ('&psi;'),           { ?        }  { greek small psi }
+    ('&omega;'),         { ?        }  { greek small omega }
+    ('&thetasym;'),      { ?        }  { greek small theta symbol }
+    ('&upsih;'),         { ?        }  { greek upsilon with hook symbol }
+    ('&piv;'),           { ?        }  { greek pi symbol }
+    ('&bull;'),          { •        }  { bullet }
+    ('&hellip;'),        { …        }  { horizontal ellipsis }
+    ('&prime;'),         { '        }  { prime }
+    ('&Prime;'),         { "        }  { double prime }
+    ('&oline;'),         { ?        }  { overline, = spacing overscore }
+    ('&frasl;'),         { /        }  { fraction slash }
+    ('&weierp;'),        { P        }  { script capital P }
+    ('&image;'),         { I        }  { imaginary part }
+    ('&real;'),          { R        }  { real part }
+    ('&trade;'),         { ™        }  { trademark sign }
+    ('&alefsym;'),       { ?        }  { first transfinite cardinal }
+    ('&larr;'),          { ?        }  { leftwards arrow }
+    ('&uarr;'),          { ?        }  { upwards arrow }
+    ('&rarr;'),          { ?        }  { rightwards arrow }
+    ('&darr;'),          { ?        }  { downwards arrow }
+    ('&harr;'),          { ?        }  { left right arrow }
+    ('&crarr;'),         { ?        }  { carriage return arrow }
+    ('&lArr;'),          { ?        }  { leftwards double arrow }
+    ('&uArr;'),          { ?        }  { upwards double arrow }
+    ('&rArr;'),          { ?        }  { rightwards double arrow }
+    ('&dArr;'),          { ?        }  { downwards double arrow }
+    ('&hArr;'),          { ?        }  { left right double arrow }
+    ('&forall;'),        { ?        }  { for all }
+    ('&part;'),          { ?        }  { partial differential }
+    ('&exist;'),         { ?        }  { there exists }
+    ('&empty;'),         { Ø        }  { empty set }
+    ('&nabla;'),         { ?        }  { backward difference }
+    ('&isin;'),          { ?        }  { element of }
+    ('&notin;'),         { ?        }  { not an element of }
+    ('&ni;'),            { ?        }  { contains as member }
+    ('&prod;'),          { ?        }  { n-ary product }
+    ('&sum;'),           { ?        }  { n-ary sumation }
+    ('&minus;'),         { -        }  { minus sign }
+    ('&lowast;'),        { *        }  { asterisk operator }
+    ('&radic;'),         { v        }  { square root }
+    ('&prop;'),          { ?        }  { proportional to }
+    ('&infin;'),         { 8        }  { infinity }
+    ('&ang;'),           { ?        }  { angle }
+    ('&and;'),           { ?        }  { logical and }
+    ('&or;'),            { ?        }  { logical or }
+    ('&cap;'),           { n        }  { intersection }
+    ('&cup;'),           { ?        }  { union }
+    ('&int;'),           { ?        }  { integral }
+    ('&there4;'),        { ?        }  { therefore }
+    ('&sim;'),           { ~        }  { similar to = tilde operator }
+    ('&cong;'),          { ?        }  { approximately equal to }
+    ('&asymp;'),         { ˜        }  { almost euqal to }
+    ('&ne;'),            { ?        }  { not equal to }
+    ('&equiv;'),         { =        }  { identical to }
+    ('&le;'),            { =        }  { less-than or equal to }
+    ('&ge;'),            { =        }  { greater-than or equal to }
+    ('&sub;'),           { ?        }  { subset of }
+    ('&sup;'),           { ?        }  { superset of }
+    ('&nsub;'),          { ?        }  { not a subset of }
+    ('&sube;'),          { ?        }  { subset of or equal to }
+    ('&supe;'),          { ?        }  { superset of or equal to }
+    ('&oplus;'),         { ?        }  { circled plus }
+    ('&otimes;'),        { ?        }  { circled times }
+    ('&perp;'),          { ?        }  { orthogonal to = perpendicular }
+    ('&sdot;'),          { ·        }  { dot operator }
+    ('&lceil;'),         { ?        }  { left ceiling }
+    ('&rceil;'),         { ?        }  { right ceiling }
+    ('&lfloor;'),        { ?        }  { left floor }
+    ('&rfloor;'),        { ?        }  { right floor }
+    ('&lang;'),          { <        }  { left-pointing angle bracket }
+    ('&rang;'),          { >        }  { right-pointing angle bracket }
+    ('&loz;'),           { ?        }  { lozenge }
+    ('&spades;'),        { ?        }  { black spade suit }
+    ('&clubs;'),         { ?        }  { black club suit }
+    ('&hearts;'),        { ?        }  { black heart suit }
+    ('&diams;'),         { ?        }  { black diamond suit }
+    ('&lsquo;'),         { ‘        }  { left single quote  }
+    ('&rsquo;'),         { ’        }  { right single quote }
+    ('&sbquo;'),         { ‚        }  { single low-9 quote }
+    ('&ldquo;'),         { “        }  { left double quote }
+    ('&rdquo;'),         { ”        }  { right double quote }
+    ('&bdquo;'),         { „        }  { double low-9 quote }
+    ('&dagger;'),        { †        }  { dagger }
+    ('&Dagger;'),        { ‡        }  { double dagger }
+    ('&permil;'),        { ‰        }  { per mill sign }
+    ('&lsaquo;'),        { ‹        }  { single left-pointing angle quote }
+    ('&rsaquo;'),        { ›        }  { single right-pointing angle quote }
+    ('&quot;'),          { &#034; " }  { double quotation mark }
+    ('&amp;'),           { &#038; & }  { ampersand }
+    ('&lt;'),            { &#060; < }  { less-than sign }
+    ('&gt;'),            { >        }  { greater-than sign }
+    ('&ndash;'),         { &#150; – }  { en dash }
+    ('&mdash;'),         { &#151; — }  { em dash }
+    ('&nbsp;'),          { &#160;   }  { nonbreaking space }
+    ('&thinsp;'),        {          }  { thin space }
+    ('&ensp;'),          {          }  { en space }
+    ('&emsp;'),          {          }  { em space }
+    ('&iexcl;'),         { &#161; ! }  { inverted exclamation }
+    ('&cent;'),          { &#162; c }  { cent sign }
+    ('&pound;'),         { &#163; L }  { pound sterling }
+    ('&curren;'),        { &#164; ¤ }  { general currency sign }
+    ('&yen;'),           { &#165; Y }  { yen sign }
+    ('&brvbar;'),        { &#166; ¦ }  { broken vertical bar }
+    ('&brkbar;'),        { &#166; ¦ }  { broken vertical bar }
+    ('&sect;'),          { &#167; § }  { section sign }
+    ('&uml;'),           { &#168; ¨ }  { umlaut }
+    ('&die;'),           { &#168; ¨ }  { umlaut }
+    ('&copy;'),          { &#169; © }  { copyright }
+    ('&ordf;'),          { &#170; a }  { feminine ordinal }
+    ('&laquo;'),         { &#171; « }  { left angle quote }
+    ('&not;'),           { &#172; ¬ }  { not sign }
+    ('&shy;'),           { &#173; ­ }  { soft hyphen }
+    ('&reg;'),           { &#174; ® }  { registered trademark }
+    ('&macr;'),          { &#175; — }  { macron accent }
+    ('&hibar;'),         { &#175; — }  { macron accent }
+    ('&deg;'),           { &#176; ° }  { degree sign }
+    ('&plusmn;'),        { &#177; ± }  { plus or minus }
+    ('&sup2;'),          { &#178; 2 }  { superscript two }
+    ('&sup3;'),          { &#179; 3 }  { superscript three }
+    ('&acute;'),         { &#180; ´ }  { acute accent }
+    ('&micro;'),         { &#181; µ }  { micro sign }
+    ('&para;'),          { &#182; ¶ }  { paragraph sign }
+    ('&middot;'),        { &#183; · }  { middle dot }
+    ('&cedil;'),         { &#184; ¸ }  { cedilla }
+    ('&sup1;'),          { &#185; 1 }  { superscript one }
+    ('&ordm;'),          { &#186; o }  { masculine ordinal }
+    ('&raquo;'),         { &#187; » }  { right angle quote }
+    ('&frac14;'),        { &#188; 1 }  { one-fourth }
+    ('&frac12;'),        { &#189; 1 }  { one-half }
+    ('&frac34;'),        { &#190; 3 }  { three-fourths }
+    ('&iquest;'),        { &#191; ? }  { inverted question mark }
+    ('&Agrave;'),        { &#192; A }  { uppercase A, grave accent }
+    ('&Aacute;'),        { &#193; Á }  { uppercase A, acute accent }
+    ('&Acirc;'),         { &#194; Â }  { uppercase A, circumflex accent }
+    ('&Atilde;'),        { &#195; A }  { uppercase A, tilde }
+    ('&Auml;'),          { &#196; Ä }  { uppercase A, umlaut }
+    ('&Aring;'),         { &#197; A }  { uppercase A, ring }
+    ('&AElig;'),         { &#198; A }  { uppercase AE }
+    ('&Ccedil;'),        { &#199; Ç }  { uppercase C, cedilla }
+    ('&Egrave;'),        { &#200; E }  { uppercase E, grave accent }
+    ('&Eacute;'),        { &#201; É }  { uppercase E, acute accent }
+    ('&Ecirc;'),         { &#202; E }  { uppercase E, circumflex accent }
+    ('&Euml;'),          { &#203; Ë }  { uppercase E, umlaut }
+    ('&Igrave;'),        { &#204; I }  { uppercase I, grave accent }
+    ('&Iacute;'),        { &#205; Í }  { uppercase I, acute accent }
+    ('&Icirc;'),         { &#206; Î }  { uppercase I, circumflex accent }
+    ('&Iuml;'),          { &#207; I }  { uppercase I, umlaut }
+    ('&ETH;'),           { &#208; ? }  { uppercase Eth, Icelandic }
+    ('&Ntilde;'),        { &#209; N }  { uppercase N, tilde }
+    ('&Ograve;'),        { &#210; O }  { uppercase O, grave accent }
+    ('&Oacute;'),        { &#211; Ó }  { uppercase O, acute accent }
+    ('&Ocirc;'),         { &#212; Ô }  { uppercase O, circumflex accent }
+    ('&Otilde;'),        { &#213; O }  { uppercase O, tilde }
+    ('&Ouml;'),          { &#214; Ö }  { uppercase O, umlaut }
+    ('&times;'),         { &#215; × }  { multiplication sign }
+    ('&Oslash;'),        { &#216; O }  { uppercase O, slash }
+    ('&Ugrave;'),        { &#217; U }  { uppercase U, grave accent }
+    ('&Uacute;'),        { &#218; Ú }  { uppercase U, acute accent }
+    ('&Ucirc;'),         { &#219; U }  { uppercase U, circumflex accent }
+    ('&Uuml;'),          { &#220; Ü }  { uppercase U, umlaut }
+    ('&Yacute;'),        { &#221; Ý }  { uppercase Y, acute accent }
+    ('&THORN;'),         { &#222; ? }  { uppercase THORN, Icelandic }
+    ('&szlig;'),         { &#223; ß }  { lowercase sharps, German }
+    ('&agrave;'),        { &#224; à }  { lowercase a, grave accent }
+    ('&aacute;'),        { &#225; á }  { lowercase a, acute accent }
+    ('&acirc;'),         { &#226; â }  { lowercase a, circumflex accent }
+    ('&atilde;'),        { &#227; ã }  { lowercase a, tilde }
+    ('&auml;'),          { &#228; ä }  { lowercase a, umlaut }
+    ('&aring;'),         { &#229; å }  { lowercase a, ring }
+    ('&aelig;'),         { &#230; a }  { lowercase ae }
+    ('&ccedil;'),        { &#231; ç }  { lowercase c, cedilla }
+    ('&egrave;'),        { &#232; e }  { lowercase e, grave accent }
+    ('&eacute;'),        { &#233; é }  { lowercase e, acute accent }
+    ('&ecirc;'),         { &#234; ê }  { lowercase e, circumflex accent }
+    ('&euml;'),          { &#235; ë }  { lowercase e, umlaut }
+    ('&igrave;'),        { &#236; i }  { lowercase i, grave accent }
+    ('&iacute;'),        { &#237; í }  { lowercase i, acute accent }
+    ('&icirc;'),         { &#238; î }  { lowercase i, circumflex accent }
+    ('&iuml;'),          { &#239; i }  { lowercase i, umlaut }
+    ('&eth;'),           { &#240; ? }  { lowercase eth, Icelandic }
+    ('&ntilde;'),        { &#241; ñ }  { lowercase n, tilde }
+    ('&ograve;'),        { &#242; o }  { lowercase o, grave accent }
+    ('&oacute;'),        { &#243; ó }  { lowercase o, acute accent }
+    ('&ocirc;'),         { &#244; ô }  { lowercase o, circumflex accent }
+    ('&otilde;'),        { &#245; o }  { lowercase o, tilde }
+    ('&ouml;'),          { &#246; ö }  { lowercase o, umlaut }
+    ('&divide;'),        { &#247; ÷ }  { division sign }
+    ('&oslash;'),        { &#248; o }  { lowercase o, slash }
+    ('&ugrave;'),        { &#249; u }  { lowercase u, grave accent }
+    ('&uacute;'),        { &#250; ú }  { lowercase u, acute accent }
+    ('&ucirc;'),         { &#251; u }  { lowercase u, circumflex accent }
+    ('&uuml;'),          { &#252; ü }  { lowercase u, umlaut }
+    ('&yacute;'),        { &#253; ý }  { lowercase y, acute accent }
+    ('&thorn;'),         { &#254; ? }  { lowercase thorn, Icelandic }
+    ('&yuml;'),          { &#255; y }  { lowercase y, umlaut }
+    ('&euro;'),          { €        }  { euro sign }
+    ('&OElig;'),         { Œ        }  { capital ligature OE }
+    ('&oelig;'),         { œ        }  { small ligature oe }
+    ('&scaron;'),        { š        }  { small S with caron }
+    ('&Scaron;'),        { Š        }  { capital S with caron }
+    ('&fnof;'),          { ƒ        }  { function }
+    ('&circ;')           { ˆ        }  { circumflex accent }
   );
 
 
 type
-  TtkTokenKind = (tkAmpersand, tkASP, tkComment, tkIdentifier, tkKey, tkNull,
-    tkSpace, tkString, tkSymbol, tkText, tkUndefKey, tkValue);
+  TtkTokenKind = (tkAmpersand, tkComment, tkIdentifier, tkKey, tkNull,
+    tkSpace, tkSymbol, tkText, tkUndefKey, tkValue);
 
-  TRangeState = (rsAmpersand, rsASP, rsComment, rsKey, rsParam, rsText,
-    rsUnKnown, rsValue);
+  TRangeState = (rsAmpersand, rsComment, rsKey, rsParam, rsText,
+    rsUnKnown, rsValue, rsQuoteValue, rsDoubleQuoteValue);
 
   TProcTableProc = procedure of object;
   TIdentFuncTableFunc = function: TtkTokenKind of object;
@@ -235,11 +339,10 @@ type
     Temp: PChar;
     fStringLen: Integer;
     fToIdent: PChar;
-    fIdentFuncTable: array[0..243] of TIdentFuncTableFunc;
+    fIdentFuncTable: array[0..250] of TIdentFuncTableFunc;
     fTokenPos: Integer;
     fTokenID: TtkTokenKind;
     fAndAttri: TSynHighlighterAttributes;
-    fASPAttri: TSynHighlighterAttributes;
     fCommentAttri: TSynHighlighterAttributes;
     fIdentifierAttri: TSynHighlighterAttributes;
     fKeyAttri: TSynHighlighterAttributes;
@@ -325,6 +428,7 @@ type
     function Func121: TtkTokenKind;
     function Func123: TtkTokenKind;
     function Func124: TtkTokenKind;
+    function Func128: TtkTokenKind;
     function Func130: TtkTokenKind;
     function Func131: TtkTokenKind;
     function Func132: TtkTokenKind;
@@ -387,11 +491,11 @@ type
     function Func229: TtkTokenKind;
     function Func236: TtkTokenKind;
     function Func243: TtkTokenKind;
+    function Func250: TtkTokenKind;
     function AltFunc: TtkTokenKind;
     function IdentKind(MayBe: PChar): TtkTokenKind;
     procedure InitIdent;
     procedure MakeMethodTables;
-    procedure ASPProc;
     procedure TextProc;
     procedure CommentProc;
     procedure BraceCloseProc;
@@ -406,9 +510,10 @@ type
     procedure AmpersandProc;
   protected
     function GetIdentChars: TSynIdentChars; override;
+    function GetSampleSource : String; override;
+    function IsFilterStored: Boolean; override;
   public
-    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
-    function GetLanguageName: string; override;
+    class function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
@@ -423,11 +528,10 @@ type
     function GetTokenPos: Integer; override;
     procedure Next; override;
     procedure SetRange(Value: Pointer); override;
-    procedure ReSetRange; override;
+    procedure ResetRange; override;
     property IdentChars;
   published
     property AndAttri: TSynHighlighterAttributes read fAndAttri write fAndAttri;
-    property ASPAttri: TSynHighlighterAttributes read fASPAttri write fASPAttri;
     property CommentAttri: TSynHighlighterAttributes read fCommentAttri
       write fCommentAttri;
     property IdentifierAttri: TSynHighlighterAttributes read fIdentifierAttri
@@ -448,7 +552,11 @@ type
 implementation
 
 uses
+{$IFDEF SYN_CLX}
+  QSynEditStrConst;
+{$ELSE}
   SynEditStrConst;
+{$ENDIF}
 
 var
   mHashTable: array[#0..#255] of Integer;
@@ -474,7 +582,7 @@ procedure TSynHTMLSyn.InitIdent;
 var
   i: Integer;
 begin
-  for i := 0 to 243 do
+  for i := 0 to 250 do
     case i of
       1:   fIdentFuncTable[i] := Func1;
       2:   fIdentFuncTable[i] := Func2;
@@ -549,6 +657,7 @@ begin
       121: fIdentFuncTable[i] := Func121;
       123: fIdentFuncTable[i] := Func123;
       124: fIdentFuncTable[i] := Func124;
+      128: fIdentFuncTable[i] := Func128;
       130: fIdentFuncTable[i] := Func130;
       131: fIdentFuncTable[i] := Func131;
       132: fIdentFuncTable[i] := Func132;
@@ -611,6 +720,7 @@ begin
       229: fIdentFuncTable[i] := Func229;
       236: fIdentFuncTable[i] := Func236;
       243: fIdentFuncTable[i] := Func243;
+      250: fIdentFuncTable[i] := Func250;
       else fIdentFuncTable[i] := AltFunc;
     end;
 end;
@@ -776,7 +886,7 @@ end;
 
 function TSynHTMLSyn.Func21: TtkTokenKind;
 begin
-  if KeyComp('DEL') Or KeyComp('LI') Or KeyComp('U') then begin
+  if KeyComp('DEL') Or KeyComp('LI') Or KeyComp('U') Or KeyComp('BDO') then begin
     Result := tkKey;
   end else begin
     Result := tkUndefKey;
@@ -1305,6 +1415,15 @@ begin
   end;
 end;
 
+function TSynHTMLSyn.Func128: TtkTokenKind;
+begin
+  if KeyComp('OPTGROUP') then begin
+    Result := tkKey;
+  end else begin
+    Result := tkUndefKey;
+  end;
+end;
+
 function TSynHTMLSyn.Func130: TtkTokenKind;
 begin
   if KeyComp('/DD') then begin
@@ -1406,7 +1525,7 @@ end;
 
 function TSynHTMLSyn.Func143: TtkTokenKind;
 begin
-  if KeyComp('/DEL') Or KeyComp('/LI') Or KeyComp('/U') then begin
+  if KeyComp('/DEL') Or KeyComp('/LI') Or KeyComp('/U') Or KeyComp('/BDO') then begin
     Result := tkKey;
   end else begin
     Result := tkUndefKey;
@@ -1863,6 +1982,15 @@ begin
   end;
 end;
 
+function TSynHTMLSyn.Func250: TtkTokenKind;
+begin
+  if KeyComp('/OPTGROUP') then begin
+    Result := tkKey;
+  end else begin
+    Result := tkUndefKey;
+  end;
+end;
+
 function TSynHTMLSyn.AltFunc: TtkTokenKind;
 begin
   Result := tkUndefKey;
@@ -1894,7 +2022,7 @@ begin
       begin
         fProcTable[i] := AmpersandProc;
       end;
-    '"':
+    '"', #39:
       begin
         fProcTable[i] := StringProc;
       end;
@@ -1911,19 +2039,14 @@ begin
         fProcTable[i] := EqualProc;
       end;
     else
-      fProcTable[i] := IdentProc;
-    end;
+    fProcTable[i] := IdentProc;
+  end;
   end;
 end;
 
 constructor TSynHTMLSyn.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-
-  fASPAttri := TSynHighlighterAttributes.Create(SYNS_AttrASP);
-  fASPAttri.Foreground := clBlack;
-  fASPAttri.Background := clYellow;
-  AddAttribute(fASPAttri);
 
   fCommentAttri := TSynHighlighterAttributes.Create(SYNS_AttrComment);
   AddAttribute(fCommentAttri);
@@ -1966,6 +2089,7 @@ begin
   MakeMethodTables;
   fRange := rsText;
   fDefaultFilter := SYNS_FilterHTML;
+  fAndCode := -1;
 end;
 
 procedure TSynHTMLSyn.SetLine(NewValue: string; LineNumber:Integer);
@@ -1974,25 +2098,6 @@ begin
   Run := 0;
   fLineNumber := LineNumber;
   Next;
-end;
-
-procedure TSynHTMLSyn.ASPProc;
-begin
-  fTokenID := tkASP;
-  if (fLine[Run] In [#0, #10, #13]) then begin
-    fProcTable[fLine[Run]];
-    Exit;
-  end;
-
-  while not (fLine[Run] in [#0, #10, #13]) do begin
-    if (fLine[Run] = '>') and (fLine[Run - 1] = '%')
-    then begin
-      fRange := rsText;
-      Inc(Run);
-      break;
-    end;
-    Inc(Run);
-  end;
 end;
 
 procedure TSynHTMLSyn.BraceCloseProc;
@@ -2031,18 +2136,9 @@ begin
     fTokenID := tkComment;
     Inc(Run, 3);
   end else begin
-
-    if fLine[Run]= '%' then begin
-      fRange := rsASP;
-      fTokenID := tkASP;
-      Inc(Run);
-    end else begin
-      fRange := rsKey;
-      fTokenID := tkSymbol;
-    end;
-
+    fRange := rsKey;
+    fTokenID := tkSymbol;
   end;
-
 end;
 
 procedure TSynHTMLSyn.CRProc;
@@ -2065,7 +2161,7 @@ var
 begin
   fToIdent := MayBe;
   hashKey := KeyHash(MayBe);
-  if (hashKey < 244) then begin
+  if (hashKey < 251) then begin
     Result := fIdentFuncTable[hashKey];
   end else begin
     Result := tkIdentifier;
@@ -2123,12 +2219,33 @@ begin
     while not (fLine[Run] in StopSet) do Inc(Run);
 
     if (fLine[Run] = '&') then begin
+      if (fLine[Run+1]='#') then begin
+        fAndCode:=-1;
+        i:=Run;
+        inc(Run, 2);
+        if fLine[Run] in ['X', 'x'] then
+        begin
+          inc(Run);
+          while (fLine[Run] in ['0'..'9', 'A'..'F', 'a'..'f']) do
+            inc(Run);
+        end
+        else
+          while (fLine[Run] in ['0'..'9']) do
+            inc(Run);
+        if (fLine[Run]=';') then begin
+          inc(Run);
+          Run:=i;
+          fRange := rsAmpersand;
+        end;
+        BREAK;
+      end else begin
       For i:=Low(EscapeAmps) To High(EscapeAmps) do begin
-        if (StrLIComp((fLine + Run), PChar(EscapeAmps[i]), StrLen(EscapeAmps[i])) = 0) then begin
+        if (StrLComp((fLine + Run), PChar(EscapeAmps[i]), StrLen(EscapeAmps[i])) = 0) then begin
           fAndCode := i;
           fRange := rsAmpersand;
           Exit;
         end;
+      end;
       end;
 
       Inc(Run);
@@ -2141,11 +2258,44 @@ end;
 
 procedure TSynHTMLSyn.AmpersandProc;
 begin
+  if fRange <> rsAmpersand then
+  begin
+    if fRange = rsKey then
+    begin
+      Inc( Run );
+      fRange := rsText;
+      fTokenID := tkText;
+    end
+    else
+      IdentProc;
+    Exit;
+  end;
+  
   case fAndCode of
   Low(EscapeAmps)..High(EscapeAmps):
     begin
       fTokenID := tkAmpersand;
       Inc(Run, StrLen(EscapeAmps[fAndCode]));
+    end;
+    else begin
+      if (fLine[Run+1]='#') then begin
+        fAndCode:=-1;
+        inc(Run, 2);
+        if fLine[Run] in ['X', 'x'] then
+        begin
+          inc(Run);
+          while (fLine[Run] in ['0'..'9', 'A'..'F', 'a'..'f']) do
+            inc(Run);
+        end
+        else
+          while (fLine[Run] in ['0'..'9']) do
+            inc(Run);
+        if (fLine[Run]=';') then begin
+          inc(Run);
+          fTokenID := tkAmpersand;
+        end else
+          fTokenID := tkText;
+      end;
     end;
   end;
   fAndCode := -1;
@@ -2163,36 +2313,63 @@ begin
 end;
 
 procedure TSynHTMLSyn.StringProc;
+var
+  iOpenChar: Char;
 begin
-  if (fRange = rsValue) then begin
-    fRange := rsParam;
-    fTokenID := tkValue;
-  end else begin
-    fTokenID := tkString;
+  case fRange of
+    rsQuoteValue: begin
+      iOpenChar := #39;
+      fTokenID := tkValue;
+    end;
+    rsDoubleQuoteValue: begin
+      iOpenChar := '"';
+      fTokenID := tkValue;
+    end;
+    else begin
+      iOpenChar := fLine[Run];
+      if fRange = rsValue then begin
+        if iOpenChar = '"' then
+          fRange := rsDoubleQuoteValue
+        else
+          fRange := rsQuoteValue;
+        fTokenID := tkValue;
+      end else
+      begin
+        IdentProc;
+        Exit;
+      end;
+      Inc( Run ); { jumps over the opening char }
+    end;
   end;
-  Inc(Run);  // first '"'
-  while not (fLine[Run] in [#0, #10, #13, '"']) do Inc(Run);
-  if fLine[Run] = '"' then Inc(Run);  // last '"'
+
+  while not( fLine[ Run ] in [#0, #10, #13] ) do begin
+    if fLine[ Run ] = iOpenChar then begin
+      Inc( Run );  { jumps over the closing char }
+      if fRange in [rsDoubleQuoteValue, rsQuoteValue] then
+        fRange := rsParam
+      else
+        fRange := rsText;
+      break;
+    end;
+    Inc( Run );
+  end;
 end;
 
 procedure TSynHTMLSyn.Next;
 begin
   fTokenPos := Run;
   case fRange of
-  rsText:
-    begin
+    rsText:
       TextProc;
-    end;
-  rsComment:
-    begin
+    rsComment:
       CommentProc;
-    end;
-  rsASP:
-    begin
-      ASPProc;
-    end;
-  else
-    fProcTable[fLine[Run]];
+    rsQuoteValue, rsDoubleQuoteValue:
+      if fLine[ Run ] in [#0, #10, #13] then
+        fProcTable[ fLine[Run] ]
+      else
+        StringProc;
+    else
+      fProcTable[fLine[Run]];
   end;
 end;
 
@@ -2231,12 +2408,10 @@ function TSynHTMLSyn.GetTokenAttribute: TSynHighlighterAttributes;
 begin
   case fTokenID of
     tkAmpersand: Result := fAndAttri;
-    tkASP: Result := fASPAttri;
     tkComment: Result := fCommentAttri;
     tkIdentifier: Result := fIdentifierAttri;
     tkKey: Result := fKeyAttri;
     tkSpace: Result := fSpaceAttri;
-    tkString: Result := fValueAttri;
     tkSymbol: Result := fSymbolAttri;
     tkText: Result := fTextAttri;
     tkUndefKey: Result := fUndefKeyAttri;
@@ -2265,7 +2440,7 @@ begin
   fRange := TRangeState(Value);
 end;
 
-procedure TSynHTMLSyn.ReSetRange;
+procedure TSynHTMLSyn.ResetRange;
 begin
   fRange:= rsText;
 end;
@@ -2275,16 +2450,34 @@ begin
   Result := TSynValidStringChars;
 end;
 
-{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
-function TSynHTMLSyn.GetLanguageName: string;
+function TSynHTMLSyn.IsFilterStored: Boolean;
+begin
+  Result := fDefaultFilter <> SYNS_FilterHTML;
+end;
+
+class function TSynHTMLSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangHTML;
 end;
 
+function TSynHTMLSyn.GetSampleSource: String;
+begin
+  Result := '<!-- Syntax highlighting -->'#13#10 +
+            #13#10 +
+            '<html>'#13#10 +
+            '<body bgcolor="red">'#13#10 +
+            '  <form name="frmLogin" action="doSomething.asp">'#13#10 +
+            '    <input name="user" value=''any'#13#10 +
+            '      value''>'#13#10 +
+            '  </form>'#13#10 +
+            '  <invalid>Sample HTML code &copy; 2001</invalid>'#13#10 +
+            '</body>'#13#10 +
+            '</html>';
+end;
+
 initialization
   MakeIdentTable;
-{$IFNDEF SYN_CPPB_1}                                                            //mh 2000-07-14
+{$IFNDEF SYN_CPPB_1}
   RegisterPlaceableHighlighter(TSynHTMLSyn);
 {$ENDIF}
 end.
-

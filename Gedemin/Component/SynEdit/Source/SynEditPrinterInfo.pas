@@ -26,7 +26,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynEditPrinterInfo.pas,v 1.2 2001/05/31 12:07:07 claplace Exp $
+$Id: SynEditPrinterInfo.pas,v 1.5.2.1 2007/06/22 04:24:04 etrusco Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -40,16 +40,22 @@ CONTENTS:
   Class retrieving info about selected printer and paper size.
 -------------------------------------------------------------------------------}
 
+{$IFNDEF QSYNEDITPRINTERINFO}
 unit SynEditPrinterInfo;
+{$ENDIF}
+
+{$I SynEdit.inc}
 
 interface
 
 uses
-  {$IFDEF LINUX}
-  Qt, QPrinters;
-  {$ELSE}
-  Windows, Printers;
-  {$ENDIF}
+{$IFDEF SYN_CLX}
+  Qt,
+  QPrinters;
+{$ELSE}
+  Windows,
+  Printers;
+{$ENDIF}
 
 type
   //Printer info class - getting dimensions of paper
@@ -238,29 +244,33 @@ end;
 procedure TSynEditPrinterInfo.UpdatePrinter;
 begin
   FIsUpdated := True;
-  if Printer.Printers.Count <= 0 then begin
+{$IFNDEF SYN_CLX}
+  Printer.Refresh;
+{$ENDIF}
+  if Printer.Printers.Count <= 0 then
+  begin
     FillDefault;
     Exit;
   end;
   {************}
-  {$IFNDEF LINUX}
+{$IFNDEF SYN_CLX}
   FPhysicalWidth := GetDeviceCaps(Printer.Handle, Windows.PhysicalWidth);
   FPhysicalHeight := GetDeviceCaps(Printer.Handle, Windows.PhysicalHeight);
-  {$ENDIF}
+{$ENDIF}
   FPrintableWidth := Printer.PageWidth; {or GetDeviceCaps(Printer.Handle, HorzRes);}
   FPrintableHeight := Printer.PageHeight; {or GetDeviceCaps(Printer.Handle, VertRes);}
   {************}
-  {$IFNDEF LINUX}
+{$IFNDEF SYN_CLX}
   FLeftGutter := GetDeviceCaps(Printer.Handle, PhysicalOffsetX);
   FTopGutter := GetDeviceCaps(Printer.Handle, PhysicalOffsetY);
-  {$ENDIF}
+{$ENDIF}
   FRightGutter := FPhysicalWidth - FPrintableWidth - FLeftGutter;
   FBottomGutter := FPhysicalHeight - FPrintableHeight - FTopGutter;
   {************}
-  {$IFNDEF LINUX}
+{$IFNDEF SYN_CLX}
   FXPixPrInch := GetDeviceCaps(Printer.Handle, LogPixelsX);
   FYPixPrInch := GetDeviceCaps(Printer.Handle, LogPixelsY);
-  {$ENDIF}
+{$ENDIF}
   FXPixPrmm := FXPixPrInch / 25.4;
   FYPixPrmm := FYPixPrInch / 25.4;
 end;

@@ -110,7 +110,8 @@ uses
   tax_frmAnalytics_unit,
   wiz_dlgVarSelect_unit,
   wiz_dlgReserveVarName_unit,
-  wiz_dlgCustumAnalytic_unit
+  wiz_dlgCustumAnalytic_unit,
+  SynEditTypes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

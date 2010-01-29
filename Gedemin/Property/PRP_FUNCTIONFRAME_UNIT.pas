@@ -48,7 +48,7 @@ type
     procedure SetDebugLines(const Value: TDebugLines);
     procedure SetFunctionKey(const Value: Integer);
   protected
-    procedure AfterPaint(ACanvas: TCanvas; AClip: TRect;
+    procedure AfterPaint(ACanvas: TCanvas; const AClip: TRect;
       FirstLine, LastLine: integer); override;
     procedure LinesInserted(FirstLine, Count: integer); override;
     procedure LinesDeleted(FirstLine, Count: integer); override;
@@ -65,7 +65,7 @@ type
     procedure SetErrorListView(const Value: TListView);
     procedure SetFunctionKey(const Value: Integer);
   protected
-    procedure AfterPaint(ACanvas: TCanvas; AClip: TRect;
+    procedure AfterPaint(ACanvas: TCanvas; const AClip: TRect;
       FirstLine, LastLine: integer); override;
     procedure LinesInserted(FirstLine, Count: integer); override;
     procedure LinesDeleted(FirstLine, Count: integer); override;
@@ -279,8 +279,8 @@ type
     FFinding: Boolean;
     FFindNext: Boolean;
 
-    function GetCaretXY: TPoint; override;
-    procedure SetCaretXY(const Value: TPoint); override;
+    function GetCaretXY: TBufferCoord; override;
+    procedure SetCaretXY(const Value: TBufferCoord); override;
     function GetMasterObject: TgdcBase;override;
     // Обработчик события SynhEdit.OnParamChange
     procedure ParamChange(Sender: TObject);
@@ -397,7 +397,7 @@ var
 implementation
 
 uses
-  gdcConstants, rp_frmParamLineSE_unit, scr_i_FunctionList,
+  gdcConstants, rp_frmParamLineSE_unit, scr_i_FunctionList, SynEditTypes,
   rp_BaseReport_unit, gd_i_ScriptFactory, syn_ManagerInterface_unit,
   prp_Messages, prp_i_VBProposal, prp_MessageConst, gd_ScriptFactory,
   prp_frmGedeminProperty_Unit, IBSQL, IBDatabase, mtd_i_Base, Clipbrd, gd_createable_form,
@@ -959,7 +959,7 @@ procedure TFunctionFrame.WarningFunctionName(const AnFunctionName: string;
 var
   i: integer;
   SearchOptions: TSynSearchOptions;
-  OldPos: TPoint;
+  OldPos: TBufferCoord;
 
   procedure EdtSetFocus;
   begin
@@ -1132,12 +1132,12 @@ procedure TFunctionFrame.OnBeforePaint(Sender: TObject);
 begin
 end;
 
-function TFunctionFrame.GetCaretXY: TPoint;
+function TFunctionFrame.GetCaretXY: TBufferCoord;
 begin
   Result := gsFunctionSynEdit.CaretXY;
 end;
 
-procedure TFunctionFrame.SetCaretXY(const Value: TPoint);
+procedure TFunctionFrame.SetCaretXY(const Value: TBufferCoord);
 begin
   gsFunctionSynEdit.CaretXY := Value;
 end;
@@ -1222,7 +1222,7 @@ begin
     if OpenDialog.Execute then
     begin
       gsFunctionSynEdit.Lines.LoadFromFile(OpenDialog.FileName);
-      TCrackDBSynEdit(gsFunctionSynEdit).NewOnChange(gsFunctionSynEdit);
+      TCrackDBSynEdit(gsFunctionSynEdit).DoChange;
       Modify := True;
     end;
   end;
@@ -1389,8 +1389,8 @@ var
   Index: Integer;
 begin
   CurrentWord := UpperCase(Trim(System.Copy(gsFunctionSynEdit.Lines[gsFunctionSynEdit.CaretY - 1],
-    gsFunctionSynEdit.WordStart.X, gsFunctionSynEdit.WordEnd.X -
-    gsFunctionSynEdit.WordStart.X)));
+    gsFunctionSynEdit.WordStart.Char, gsFunctionSynEdit.WordEnd.Char -
+    gsFunctionSynEdit.WordStart.Char)));
   SQL := TIBSQL.Create(nil);
   try
     SQL.Transaction := gdcFunction.ReadTransaction;
@@ -1637,7 +1637,7 @@ var
   I, K: Integer;
   LStrings: TStrings;
   F: Boolean;
-  BlockBegin, BlockEnd: TPoint;
+  BlockBegin, BlockEnd: TBufferCoord;
 begin
   Str := '';
   // есть ли выделение
@@ -1661,8 +1661,8 @@ begin
         if System.Copy(Str, Length(Str) - 2, 3) = #13#10 + prp_VBComment then
           Str := System.Copy(Str, 1, Length(Str) - 3) + #13#10;
         // корректировка окончания блока
-        if BlockEnd.x > 1 then
-          BlockEnd.x := BlockEnd.x + Length(prp_VBComment);
+        if BlockEnd.Char > 1 then
+          BlockEnd.Char := BlockEnd.Char + Length(prp_VBComment);
       end;
       prpUnComment:
       // удаляем символ комментария
@@ -1690,14 +1690,14 @@ begin
           begin
             Str := LStrings.Text;
             // корректировка окончания блока
-            if BlockEnd.x > 1 then
-              BlockEnd.x := Length(LStrings[LStrings.Count - Length(prp_VBComment)])
+            if BlockEnd.Char > 1 then
+              BlockEnd.Char := Length(LStrings[LStrings.Count - Length(prp_VBComment)])
           end else
             begin
               Str := System.Copy(LStrings.Text, 1, Length(LStrings.Text) - 2);
               // корректировка окончания блока
-              if BlockEnd.x > 1 then
-                BlockEnd.x := BlockEnd.x - Length(prp_VBComment);
+              if BlockEnd.Char > 1 then
+                BlockEnd.Char := BlockEnd.Char - Length(prp_VBComment);
             end;
         finally
           LStrings.Free;
@@ -1962,7 +1962,7 @@ begin
   if s <> st then begin
     if Pos(#13#10, st) > 0 then begin
       s:= '';
-      se:= StringOfChar(' ', gsFunctionSynEdit.WordStart.x - 1);
+      se:= StringOfChar(' ', gsFunctionSynEdit.WordStart.Char - 1);
       while Pos(#13#10, st) > 0 do begin
         s:= s + System.Copy(st, 1, Pos(#13#10, st) + 1);
         System.Delete(st, 1, Pos(#13#10, st) + 1);
@@ -1974,9 +1974,9 @@ begin
     iPos:= Pos('|', st);
     if iPos > 0 then
       System.Delete(st, iPos, 1);
-    if gsFunctionSynEdit.CaretX = gsFunctionSynEdit.WordStart.x then
+    if gsFunctionSynEdit.CaretX = gsFunctionSynEdit.WordStart.Char then
       gsFunctionSynEdit.CaretX:= gsFunctionSynEdit.CaretX + 1
-    else if gsFunctionSynEdit.CaretX = gsFunctionSynEdit.WordEnd.x then
+    else if gsFunctionSynEdit.CaretX = gsFunctionSynEdit.WordEnd.Char then
       gsFunctionSynEdit.CaretX:= gsFunctionSynEdit.CaretX - 1;
     gsFunctionSynEdit.SetSelWord;
     iPos:= gsFunctionSynEdit.SelStart + iPos;
@@ -1994,7 +1994,7 @@ end;
 
 { TDebugSupportPlugin }
 
-procedure TDebugSupportPlugin.AfterPaint(ACanvas: TCanvas; AClip: TRect;
+procedure TDebugSupportPlugin.AfterPaint(ACanvas: TCanvas; const AClip: TRect;
   FirstLine, LastLine: integer);
 begin
 end;
@@ -2087,7 +2087,7 @@ end;
 { TErrorListSuppurtPlugin }
 
 procedure TErrorListSuppurtPlugin.AfterPaint(ACanvas: TCanvas;
-  AClip: TRect; FirstLine, LastLine: integer);
+  const AClip: TRect; FirstLine, LastLine: integer);
 begin
 end;
 
@@ -2525,9 +2525,12 @@ var
   F: TdlgPropertyReplacePromt;
   P: TPoint;
   W: Integer;
+  DC: TDisplayCoord;
 begin
   inherited;
-  P := gsFunctionSynEdit.RowColumnToPixels(Point(Column, Line));
+  DC.Column := Column;
+  DC.Row := Line;
+  P := gsFunctionSynEdit.RowColumnToPixels(DC);
   P := gsFunctionSynEdit.ClientToScreen(P);
   F := TdlgPropertyReplacePromt.Create(Application);
   try
@@ -2573,7 +2576,7 @@ begin
     end;
 
   P := gsFunctionSynEdit.ScreenToClient(TCreckPopupMenu(Sender).PopupPoint);
-  Line := gsFunctionSynEdit.PixelsToRowColumn(P).Y;
+  Line := gsFunctionSynEdit.PixelsToRowColumn(P.X, P.Y).Row;
   FBreakPoint := BreakPointList.BreakPoint(gdcFunction.FieldByName(fnId).AsInteger,
      Line);
   B := (P.x < gsFunctionSynEdit.Gutter.Width) and (FBreakPoint <> nil);
@@ -2637,11 +2640,12 @@ procedure TFunctionFrame.OnShowHint(var HintStr: String;
   var CanShow: Boolean; var HintInfo: THintInfo);
 var
   p: TPoint;
-  RowColumn: TPoint;
+  RowColumn: TDisplayCoord;
   Str, Eval: String;
   BeginPos, EndPos: Integer;
   B: TBreakPoint;
   Line: Integer;
+  DC: TDisplayCoord;
 begin
   inherited;
   if HintInfo.HintControl = gsFunctionSynEdit then
@@ -2657,17 +2661,21 @@ begin
           Str := gsFunctionSynEdit.SelText;
         end else
         begin
-          RowColumn := gsFunctionSynEdit.PixelsToRowColumn(P);
-          Str := gsFunctionSynEdit.Lines[RowColumn.y - 1];
-          Str := Trim(GetCompliteStatament(Str, RowColumn.X, BeginPos, EndPos));
+          RowColumn := gsFunctionSynEdit.PixelsToRowColumn(P.x, P.Y);
+          Str := gsFunctionSynEdit.Lines[RowColumn.Row - 1];
+          Str := Trim(GetCompliteStatament(Str, RowColumn.Column, BeginPos, EndPos));
 
-          HintInfo.CursorRect.TopLeft := gsFunctionSynEdit.RowColumnToPixels(Point(BeginPos,
-             RowColumn.Y));
-          HintInfo.CursorRect.BottomRight := gsFunctionSynEdit.RowColumnToPixels(Point(EndPos,
-             RowColumn.Y + 1));
+          DC.Column := BeginPos;
+          DC.Row := RowColumn.Row;
+          HintInfo.CursorRect.TopLeft := gsFunctionSynEdit.RowColumnToPixels(DC);
 
-          P := gsFunctionSynEdit.RowColumnToPixels(Point(BeginPos,
-            RowColumn.Y + 1));
+          DC.Column := EndPos;
+          DC.Row := RowColumn.Row + 1;
+          HintInfo.CursorRect.BottomRight := gsFunctionSynEdit.RowColumnToPixels(DC);
+
+          DC.Column := BeginPos;
+          DC.Row := RowColumn.Row + 1;
+          P := gsFunctionSynEdit.RowColumnToPixels(DC);
           P := gsFunctionSynEdit.ClientToScreen(P);
 
           Str := GetCompliteStatament(Str, 1, BeginPos, EndPos);
@@ -2689,18 +2697,22 @@ begin
     if (P.x < gsFunctionSynEdit.Gutter.Width) and (P.y > 0) and
       (P.X > 0) and (P.Y < gsFunctionSynEdit.Height) then
     begin
-      Line := gsFunctionSynEdit.PixelsToRowColumn(P).Y;
+      Line := gsFunctionSynEdit.PixelsToRowColumn(P.X, P.Y).Row;
       B := BreakPointList.BreakPoint(gdcFunction.FieldByName(fnId).AsInteger,
          Line);
       CanShow := B <> nil;
       if CanShow then
       begin
-        HintInfo.CursorRect.TopLeft := gsFunctionSynEdit.RowColumnToPixels(Point(1,
-           Line));
-        HintInfo.CursorRect.BottomRight := gsFunctionSynEdit.RowColumnToPixels(Point(1,
-           Line + 1));
+        DC.Column := 1;
+        DC.Row := Line;
+        HintInfo.CursorRect.TopLeft := gsFunctionSynEdit.RowColumnToPixels(DC);
+
+        DC.Column := 1;
+        DC.Row := Line + 1;
+        HintInfo.CursorRect.BottomRight := gsFunctionSynEdit.RowColumnToPixels(DC);
+
         HintInfo.CursorRect.Left := 1;
-        HintInfo.CursorRect.Right := gsFunctionSynEdit.Gutter.Width - 1; 
+        HintInfo.CursorRect.Right := gsFunctionSynEdit.Gutter.Width - 1;
         HintStr := Format('Condition: %s'#13#10'PassCount: %d of %d',
           [B.Condition, B.ValidPassCount, B.PassCount]);
       end;

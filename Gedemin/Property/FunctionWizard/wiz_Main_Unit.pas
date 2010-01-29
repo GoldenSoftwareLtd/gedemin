@@ -374,7 +374,7 @@ implementation
 uses
   prm_ParamFunctions_unit,
   syn_ManagerInterface_unit,
-  dmImages_unit
+  dmImages_unit, SynEditTypes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -683,6 +683,7 @@ var
   ImgIndex: integer;
   BreakPoint: TBreakPoint;
   CurVB: TVisualBlock;
+  DC: TDisplayCoord;
 begin
   if SelBlockList = nil then
     exit;
@@ -702,7 +703,9 @@ begin
         if (I >= CurVB.BeginScriptLine - 1) and
           (I <= CurVB.EndScriptLine - 1) then
         begin
-          R.TopLeft := seScript.RowColumnToPixels(Point(0, I));
+          DC.Column := 0;
+          DC.Row := I;
+          R.TopLeft := seScript.RowColumnToPixels(DC);
           R.Bottom := R.Top + seScript.LineHeight;
           R.Top := R.Top - 1;
           R.Right := seScript.Gutter.Width;
@@ -1145,7 +1148,7 @@ end;
 procedure TdlgFunctionWisard.actRunToCursorExecute(Sender: TObject);
 begin
   CheckLink;
-  FDebugLink.GotoCursor(seScript.CaretXY.y);
+  FDebugLink.GotoCursor(seScript.CaretXY.Line);
 end;
 
 procedure TdlgFunctionWisard.actResetExecute(Sender: TObject);

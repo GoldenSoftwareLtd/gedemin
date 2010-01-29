@@ -66,7 +66,7 @@ implementation
 {$R *.DFM}
 
 uses
-  DBCLient, DBGrids, gdcBase
+  DBCLient, DBGrids, gdcBase, SynEditTypes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

@@ -1102,14 +1102,14 @@ begin
       FRun := True;
       try
         Debugger.GotoToLine(TBaseFrame(FActiveFrame).FunctionId,
-          TBaseFrame(FActiveFrame).CaretXY.Y - 1);
+          TBaseFrame(FActiveFrame).CaretXY.Line - 1);
         TBaseFrame(FActiveFrame).Run(sfUnknown);
       finally
         FRun := False;
       end;
     end else
       Debugger.GotoToLine(TBaseFrame(FActiveFrame).FunctionId,
-        TBaseFrame(FActiveFrame).CaretXY.Y - 1);
+        TBaseFrame(FActiveFrame).CaretXY.Line - 1);
   end;
 end;
 
@@ -2975,7 +2975,7 @@ begin
   if not (Assigned(ActiveFrame) and ActiveFrame.InheritsFrom(TFunctionFrame)) then
     Exit;
 
-  TFunctionFrame(ActiveFrame).gsFunctionSynEdit.InsertText(InsertText);
+  TFunctionFrame(ActiveFrame).gsFunctionSynEdit.SelText := InsertText;
   {$ENDIF}
 end;
 

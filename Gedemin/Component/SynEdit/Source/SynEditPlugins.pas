@@ -26,7 +26,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynEditPlugins.pas,v 1.3 2001/10/21 21:11:47 jrx Exp $
+$Id: SynEditPlugins.pas,v 1.8 2003/04/30 12:59:47 etrusco Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -34,14 +34,28 @@ located at http://SynEdit.SourceForge.net
 Known Issues:
 -------------------------------------------------------------------------------}
 
+{$IFNDEF QSYNEDITPLUGINS}
 unit SynEditPlugins;
+{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-  Classes, SynEdit, SynEditKeyCmds, Windows, Menus;
+{$IFDEF SYN_CLX}
+  Qt,
+  Types,
+  QMenus,
+  QSynEdit,
+  QSynEditKeyCmds,
+{$ELSE}
+  Windows,
+  Menus,
+  SynEdit,
+  SynEditKeyCmds,
+{$ENDIF}
+  Classes;
 
 type
   TAbstractSynPlugin = class(TComponent)
@@ -54,8 +68,8 @@ type
     fEditors: TList;
     procedure Notification(aComponent: TComponent;
       aOperation: TOperation); override;
-    procedure DoAddEditor(aEditor: TCustomSynEdit); dynamic;
-    procedure DoRemoveEditor(aEditor: TCustomSynEdit); dynamic;
+    procedure DoAddEditor(aEditor: TCustomSynEdit); virtual;
+    procedure DoRemoveEditor(aEditor: TCustomSynEdit); virtual;
     function AddEditor(aEditor: TCustomSynEdit): integer;
     function RemoveEditor(aEditor: TCustomSynEdit): integer;
   public
@@ -81,24 +95,24 @@ type
 
   TAbstractSynSingleHookPlugin = class(TAbstractSynHookerPlugin)
   private
-    fCommandID: integer;
+    fCommandID: TSynEditorCommand;
     function IsShortCutStored: Boolean;
     procedure SetShortCut(const Value: TShortCut);
   protected
     fState: TPluginState;
     fCurrentEditor: TCustomSynEdit;
     fShortCut: TShortCut;
-    class function DefaultShortCut: TShortCut; dynamic;
+    class function DefaultShortCut: TShortCut; virtual;
     procedure DoAddEditor(aEditor: TCustomSynEdit); override;
     procedure DoRemoveEditor(aEditor: TCustomSynEdit); override;
     {}
-    procedure DoExecute; dynamic; abstract;
-    procedure DoAccept; dynamic; abstract;
-    procedure DoCancel; dynamic; abstract;
+    procedure DoExecute; virtual; abstract;
+    procedure DoAccept; virtual; abstract;
+    procedure DoCancel; virtual; abstract;
   public
     constructor Create(aOwner: TComponent); override;
     destructor Destroy; override;
-    property CommandID: integer read fCommandID;
+    property CommandID: TSynEditorCommand read fCommandID;
     {}
     property CurrentEditor: TCustomSynEdit read fCurrentEditor;
     function Executing: boolean;
@@ -129,30 +143,41 @@ type
     property CurrentString: String read fCurrentString write SetCurrentString;
   end;
 
-function NewPluginCommand: integer; forward;
-procedure ReleasePluginCommandID(aID: integer); forward;
+function NewPluginCommand: TSynEditorCommand;
+procedure ReleasePluginCommand(aCmd: TSynEditorCommand);
 
 implementation
 
 uses
-  SynEditTypes, SysUtils, Forms, SynEditStrConst, SynEditMiscProcs;
+{$IFDEF SYN_CLX}
+  QForms,
+  QSynEditTypes,
+  QSynEditMiscProcs,
+  QSynEditStrConst,
+{$ELSE}
+  Forms,
+  SynEditTypes,
+  SynEditMiscProcs,
+  SynEditStrConst,
+{$ENDIF}
+  SysUtils;
 
 const
   ecPluginBase = 64000;
 
 var
-  iCurrentCommand: integer = ecPluginBase;
+  gCurrentCommand: integer = ecPluginBase;
 
-function NewPluginCommand: integer;
+function NewPluginCommand: TSynEditorCommand;
 begin
-  Result := iCurrentCommand;
-  Inc( iCurrentCommand );
+  Result := gCurrentCommand;
+  Inc( gCurrentCommand );
 end;
 
-procedure ReleasePluginCommandID(aID: integer);
+procedure ReleasePluginCommand(aCmd: TSynEditorCommand);
 begin
-  if aID = Pred( iCurrentCommand ) then
-    iCurrentCommand := aID;
+  if aCmd = Pred( gCurrentCommand ) then
+    gCurrentCommand := aCmd;
 end;
 
 { TAbstractSynPlugin }
@@ -356,6 +381,7 @@ destructor TAbstractSynSingleHookPlugin.Destroy;
 begin
   if Executing then
     Cancel;
+  ReleasePluginCommand( CommandID );
   inherited;
 end;
 
