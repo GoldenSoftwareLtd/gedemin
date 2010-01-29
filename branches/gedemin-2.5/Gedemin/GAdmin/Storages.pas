@@ -11,7 +11,7 @@ var
   CompanyStorage: TgsCompanyStorage;
   UserStorage: TgsUserStorage;
   AdminStorage: TgsUserStorage;
-
+                                     
 procedure SaveStorages;
 
 implementation
