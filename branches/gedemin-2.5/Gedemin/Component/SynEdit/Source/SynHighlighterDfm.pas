@@ -42,27 +42,20 @@ Known Issues:
 The SynHighlighterDfm unit provides SynEdit with a Delphi Form Source (.dfm) highlighter.
 The highlighter formats form source code similar to when forms are viewed as text in the Delphi editor.
 }
-
-{$IFNDEF QSYNHIGHLIGHTERDFM}
 unit SynHighlighterDfm;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  QGraphics,
-  QSynEditTypes,
-  QSynEditHighlighter,
-{$ELSE}
-  Graphics,
-  SynEditTypes,
-  SynEditHighlighter,
-{$ENDIF}
-  SysUtils,
-  Classes;
+  SysUtils, Classes,
+  {$IFDEF SYN_KYLIX}
+  Qt, QControls, QGraphics,
+  {$ELSE}
+  Windows, Messages, Controls, Graphics, Registry,
+  {$ENDIF}
+  SynEditTypes, SynEditHighlighter;
 
 type
   TtkTokenKind = (tkComment, tkIdentifier, tkKey, tkNull, tkNumber, tkSpace,
@@ -152,11 +145,7 @@ function SaveStrings2DFMFile(AStrings: TStrings; const AFile: string): integer;
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditStrConst;
-{$ELSE}
   SynEditStrConst;
-{$ENDIF}
 
 { A couple of useful Delphi Form functions }
 
@@ -572,7 +561,7 @@ begin
             'end';
 end; { GetSampleSource }
 
-{$IFNDEF SYN_CPPB_1}
+{$IFNDEF SYN_CPPB_1}                                                            
 initialization
   RegisterPlaceableHighlighter(TSynDfmSyn);
 {$ENDIF}

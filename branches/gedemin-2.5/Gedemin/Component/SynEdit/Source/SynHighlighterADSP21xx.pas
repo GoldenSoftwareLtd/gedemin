@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterADSP21xx.pas,v 1.17 2005/01/28 16:53:20 maelh Exp $
+$Id: SynHighlighterADSP21xx.pas,v 1.8 2001/10/24 09:39:26 plpolak Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -41,27 +41,20 @@ Known Issues:
 @lastmod(2000-06-23)
 The SynHighlighterADSP21xx unit provides a ADSP21xx DSP assembler highlighter for SynEdit.
 }
-
-{$IFNDEF QSYNHIGHLIGHTERADSP21XX}
 unit SynHighlighterADSP21xx;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  QGraphics,
-  QSynEditTypes,
-  QSynEditHighlighter,
-{$ELSE}
-  Graphics,
-  SynEditTypes,
-  SynEditHighlighter,
-{$ENDIF}
-  SysUtils,
-  Classes;
+  SysUtils, Classes,
+  {$IFDEF SYN_KYLIX}
+  QT, QControls, QGraphics,
+  {$ELSE}
+  Windows, Messages, Controls, Graphics, Registry,
+  {$ENDIF}
+  SynEditTypes, SynEditHighlighter;
 
 type
   TTokenKind = (tkComment, tkCondition, tkIdentifier, tkKey, tkNull, tkNumber,
@@ -203,10 +196,11 @@ type
     procedure UnknownProc;
   protected
     function GetIdentChars: TSynIdentChars; override;
-    function IsFilterStored: Boolean; override;
   public
-    class function GetCapabilities: TSynHighlighterCapabilities; override;
-    class function GetLanguageName: string; override;
+    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
+    function GetCapabilities: TSynHighlighterCapabilities; override;
+    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
+    function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
@@ -248,12 +242,7 @@ type
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditStrConst;
-{$ELSE}
-  Windows,
   SynEditStrConst;
-{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -487,6 +476,7 @@ begin
   else if KeyComp('m5') then Result := tkRegister
   else if KeyComp('m6') then Result := tkRegister
   else if KeyComp('m7') then Result := tkRegister
+//  else if KeyComp('m1') then Result := tkRegister
   else Result := tkIdentifier;
 end;
 
@@ -1059,7 +1049,7 @@ begin
   fUnknownAttri := TSynHighlighterAttributes.Create(SYNS_AttrUnknownWord);
   AddAttribute(fUnknownAttri);
 
-  SetAttributesOnChange(DefHighlightChange);
+  SetAttributesOnChange(DefHighlightChange);                                    //mh 2000-10-08
 
   InitIdent;
   MakeMethodTables;
@@ -1152,8 +1142,8 @@ begin
         begin
           if FLine[Run+1] = '/' then
           begin
-            fRange := rsUnknown;
-            inc(Run, 2);
+            fRange := rsUnknown;//
+            inc(Run,2);
             break;
           end
           else
@@ -1279,13 +1269,13 @@ begin
   begin
     fTokenID := tkComment;
     fRange := rsCComment;
-    inc(Run, 2);
+    inc(Run,2);
     while FLine[Run] <> #0 do
       case FLine[Run] of
         '*':  begin
                 if FLine[Run+1] = '/' then
                 begin
-                  inc(Run, 2);
+                  inc(Run,2);
                   fRange := rsUnknown;
                   break;
                 end
@@ -1314,7 +1304,7 @@ procedure TSynADSP21xxSyn.UnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run, 2)
+    Inc(Run,2)
   else
 {$ENDIF}
   inc(Run);
@@ -1405,7 +1395,7 @@ begin
   fRange := TRangeState(Value);
 end;
 
-procedure TSynADSP21xxSyn.ResetRange;
+procedure TSynADSP21xxSyn.ReSetRange;
 begin
   fRange:= rsUnknown;
 end;
@@ -1413,7 +1403,7 @@ end;
 procedure TSynADSP21xxSyn.EnumUserSettings(settings: TStrings);
 begin
   { returns the user settings that exist in the registry }
-  {$IFNDEF SYN_CLX}
+  {$IFNDEF SYN_KYLIX}
   with TBetterRegistry.Create do
   begin
     try
@@ -1442,7 +1432,7 @@ function TSynADSP21xxSyn.UseUserSettings(settingIndex: integer): boolean;
 //   false: problem reading settings or invalid version specified - old settings
 //          were preserved
 
-    {$IFNDEF SYN_CLX}
+    {$IFNDEF SYN_KYLIX}
     function ReadDspIDESetting(settingTag: string; attri: TSynHighlighterAttributes; key: string): boolean;
     begin
       try
@@ -1487,7 +1477,7 @@ begin  // UseUserSettings
       tmpIdentifierAttri.Assign(fIdentifierAttri);
       tmpSpaceAttri     .Assign(fSpaceAttri);
       tmpRegisterAttri  .Assign(fRegisterAttri);
-      {$IFNDEF SYN_CLX}
+      {$IFNDEF SYN_KYLIX}
       Result := ReadDspIDESetting(StrLst[settingIndex],fCommentAttri,'Comment')       and
                 ReadDspIDESetting(StrLst[settingIndex],fIdentifierAttri,'Identifier') and
                 ReadDspIDESetting(StrLst[settingIndex],fKeyAttri,'Reserved word')     and
@@ -1496,8 +1486,6 @@ begin  // UseUserSettings
                 ReadDspIDESetting(StrLst[settingIndex],fSymbolAttri,'Symbol')         and
                 ReadDspIDESetting(StrLst[settingIndex],fConditionAttri,'Condition')   and
                 ReadDspIDESetting(StrLst[settingIndex],fRegisterAttri,'Symbol');
-      {$ELSE}
-      Result := False;
       {$ENDIF}
       if not Result then
       begin
@@ -1528,24 +1516,22 @@ begin
   Result := TSynValidStringChars;
 end;
 
-function TSynADSP21xxSyn.IsFilterStored: Boolean;
-begin
-  Result := fDefaultFilter <> SYNS_FilterADSP21xx;
-end;
-
-class function TSynADSP21xxSyn.GetLanguageName: string;
+{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
+function TSynADSP21xxSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangADSP21xx;
 end;
 
-class function TSynADSP21xxSyn.GetCapabilities: TSynHighlighterCapabilities;
+{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
+function TSynADSP21xxSyn.GetCapabilities: TSynHighlighterCapabilities;
 begin
   Result := inherited GetCapabilities + [hcUserSettings];
 end;
 
 initialization
   MakeIdentTable;
-{$IFNDEF SYN_CPPB_1}
+{$IFNDEF SYN_CPPB_1}                                                            //mh 2000-07-14
   RegisterPlaceableHighlighter(TSynADSP21xxSyn);
 {$ENDIF}
 end.
+

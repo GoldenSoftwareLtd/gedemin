@@ -25,7 +25,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterMulti.pas,v 1.34 2004/07/09 13:03:55 markonjezic Exp $
+$Id: SynHighlighterMulti.pas,v 1.10 2001/10/25 14:10:37 harmeister Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -41,191 +41,95 @@ The SynHighlighterMulti unit provides SynEdit with a multiple-highlighter syntax
 This highlighter can be used to highlight text in which several languages are present, such as HTML.
 For example, in HTML as well as HTML tags there can also be JavaScript and/or VBScript present.
 }
-
-{$IFNDEF QSYNHIGHLIGHTERMULTI}
 unit SynHighlighterMulti;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditTypes,
-  QSynEditHighlighter,
-{$ELSE}
-  Windows,
-  SynEditTypes,
-  SynEditHighlighter,
-{$ENDIF}
-  Classes;
+  Classes, SynEditTypes, SynEditHighlighter;                                    //LAD 2000-08-21
 
 type
-  TOnCheckMarker = procedure (Sender: TObject; var StartPos, MarkerLen: Integer;
-    var MarkerText: String; Line: Integer) of object;
-
-  TScheme = class(TCollectionItem)
+  TgmScheme = class(TCollectionItem)
   private
-    fEndExpr: string;
-    fStartExpr: string;
-    fHighlighter: TSynCustomHighLighter;
-    fMarkerAttri: TSynHighlighterAttributes;
-    fSchemeName: TComponentName;
-    fCaseSensitive: Boolean;
-    fOnCheckStartMarker: TOnCheckMarker;
-    fOnCheckEndMarker: TOnCheckMarker;
-    function ConvertExpression(const Value: string): string;
-    procedure MarkerAttriChanged(Sender: TObject);
+    FCaseSensitive: Boolean;                                                    //AC 2001-10-25
+    FEndExpr: string;
+    FStartExpr: string;
+    FHighlighter: TSynCustomHighLighter;
+    FMarkerAttri: TSynHighlighterAttributes;
+    FSchemeName: TComponentName;
+    function ConvertExpression(const Value: string): string;                    //AC 2001-10-25
     procedure SetMarkerAttri(const Value: TSynHighlighterAttributes);
-    procedure SetHighlighter(const Value: TSynCustomHighlighter);
-    procedure SetEndExpr(const Value: string);
-    procedure SetStartExpr(const Value: string);
-    procedure SetCaseSensitive(const Value: Boolean);
-
-  protected
-{$IFDEF SYN_COMPILER_3_UP}
-    function GetDisplayName: String; override;
-    procedure SetDisplayName(const Value: String); override;
-{$ENDIF}
   public
     constructor Create(Collection: TCollection); override;
     destructor Destroy; override;
   published
-    property CaseSensitive: Boolean read fCaseSensitive write SetCaseSensitive
-      default True;
-    property StartExpr: string read fStartExpr write SetStartExpr;
-    property EndExpr: string read fEndExpr write SetEndExpr;
-    property Highlighter: TSynCustomHighlighter read fHighlighter
-      write SetHighlighter;
-    property MarkerAttri: TSynHighlighterAttributes read fMarkerAttri
+    property CaseSensitive: Boolean read FCaseSensitive write FCaseSensitive;   //AC 2001-10-25
+    property StartExpr: string read FStartExpr write FStartExpr;
+    property EndExpr: string read FEndExpr write FEndExpr;
+    property Highlighter: TSynCustomHighLighter read FHighlighter
+      write FHighlighter;
+    property MarkerAttri: TSynHighlighterAttributes read FMarkerAttri
       write SetMarkerAttri;
-    property SchemeName: TComponentName read fSchemeName write fSchemeName;
-    property OnCheckStartMarker: TOnCheckMarker read fOnCheckStartMarker write fOnCheckStartMarker;
-    property OnCheckEndMarker: TOnCheckMarker read fOnCheckEndMarker write fOnCheckEndMarker;
+    property SchemeName: TComponentName read FSchemeName write FSchemeName;
   end;
 
-  TgmSchemeClass = class of TScheme;
+  TgmSchemeClass = class of TgmScheme;
 
   TSynMultiSyn = class;
 
-  TSchemes = class(TCollection)
+  TgmSchemes = class(TCollection)
   private
     fOwner: TSynMultiSyn;
-    function GetItems(Index: integer): TScheme;
-    procedure SetItems(Index: integer; const Value: TScheme);
+    function GetItems(Index: integer): TgmScheme;
+    procedure SetItems(Index: integer; const Value: TgmScheme);
 {$IFDEF SYN_COMPILER_3_UP}
   protected
     function GetOwner: TPersistent; override;
-    procedure Update(Item: TCollectionItem); override;
 {$ENDIF}
   public
     constructor Create(aOwner: TSynMultiSyn);
-    property Items[aIndex: integer]: TScheme read GetItems write SetItems;
+    property Items[Index: integer]: TgmScheme read GetItems write SetItems;
       default;
   end;
 
-  TMarker = class
+  TgmMarker = class
   protected
+    fOwnerScheme: integer;
     fScheme: integer;
     fStartPos: integer;
     fMarkerLen: integer;
     fMarkerText: string;
     fIsOpenMarker: boolean;
   public
-    constructor Create(aScheme, aStartPos, aMarkerLen: integer;
-      aIsOpenMarker: boolean; const aMarkerText: string);
+    constructor Create(aOwnerScheme, aScheme, aStartPos, aMarkerLen: integer;
+      aIsOpenMarker: boolean; aMarkerText: string);
   end;
 
-
-  TRangeOperation = (roGet, roSet);
-
-  TRangeProc = procedure (Operation: TRangeOperation; var Range: cardinal) of object;
-
-  TCustomRangeEvent = procedure (Sender: TSynMultiSyn; Operation: TRangeOperation;
-    var Range: pointer) of object;
-
-  {
-  * Usage notes *
-    If you don't need to nest MultiSyns as Schemes, just as DefaultHighlighter,
-  you can nest up to 2 MultiSyns, each of them containing up to 7 Schemes. This
-  is the way MultiSyn works best. (implemented in NewRangeProc)
-    If you need to use a MultiSyn nested as Scheme, then you can nest up to
-  5 MultiSyns, but Ranges aren't persisted across occurrences of Schemes that
-  have multiple lines. (implemented in OldRangeProc)
-    Clarification: when I say "you can nest up to X" MultiSyns, I mean having
-  X+1 levels of MultiSyns.
-
-  MultiSyn doesn't work by default with dynamic highlighters; you must use
-  OnCustomRange. This is because dynamic highlighters' Ranges are pointers,
-  but MultiSyn needs Ranges to be ordinal values smaller than 16 (4 bits).
-
-  OnCustomRange:
-    When Operation is roGet, user should store in the 'Range' parameter the
-    information to allow restoring the current state of the highlighter.
-    When Operation is roSet, user should restore highlighter state (CurrScheme,
-    DefaultHighlighter.Range and, if the case, Schemes[CurrScheme].Range)
-    according to 'Range' value.
-  CurrScheme:
-    Index of the scheme that is currently parsing. DefaultHighlighter maps to -1.
-
-  * Implementation notes *
-  fTmpLine:
-    The (partial) line that the current scheme is parsing. It's necessary
-    because SetLine takes a string as parameter, but most highlighters
-    use a PChar to point to it, breaking reference count.
-    When the editor calls 'Next' so the highlighter returns the next token,
-    the string may have gone or may have changed.
-  fTmpRange:
-    Using the OldRangeProc, fTmpRange was the only way to restore the Range
-    of the DefaultHighlighter after a Scheme spanned across multiple lines.
-    With the NewRangeProc, the only use for it is restoring DefaultHighLighter's
-    Range in case a nested MultiSyn uses the highlighter too.
-  }
-
   TSynMultiSyn = class(TSynCustomHighLighter)
-  private
-    fRangeProc: TRangeProc;
-    fDefaultLanguageName: String;
-    fMarkers: TList;
-    fMarker: TMarker;
-    fNextMarker: integer;
-    fCurrScheme: integer;
-    fTmpLine: String;
-    fTmpRange: pointer;
-    fOnCustomRange: TCustomRangeEvent;
-    procedure SetDefaultHighlighter(const Value: TSynCustomHighLighter);
-    function GetMarkers(aIndex: integer): TMarker;
-    property Markers[aIndex: integer]: TMarker read GetMarkers;
-    procedure DoCheckMarker(Scheme:TScheme; StartPos, MarkerLen: Integer;
-      const MarkerText: String; Start: Boolean; Line: Integer);
-    procedure SetOnCustomRange(const Value: TCustomRangeEvent);
   protected
-    fSchemes: TSchemes;
-    fDefaultHighlighter: TSynCustomHighLighter;
+    fSchemes: TgmSchemes;
+    fCurrScheme: integer;
     fLine: string;
+    fLine_tmp1: string; //These Ref counts are getting me down :(
+    fLine_tmp2: string; //These Ref counts are getting me down :(
+    FDefault: TSynCustomHighLighter;
     fLineNumber: Integer;
-    fTokenPos: integer;
-    fRun: Integer;
-    fSampleSource: string;
-    procedure Loaded; override;
-    procedure SetSchemes(const Value: TSchemes);
+    fRun, fLastRun: Integer;
+    fMarkers: TList;
+    fMarker: TgmMarker;
+
+    procedure SetSchemes(const Value: TgmSchemes);
     procedure ClearMarkers;
-    function GetIdentChars: TSynIdentChars; override;
+    function FindMarker(MarkerPos, OwnerScheme: integer): TgmMarker;
+    function FindNextMarker(MarkerPos, OwnerScheme: integer): TgmMarker;
+    function GetIdentChars: TSynIdentChars; override;                           //LAD 2000-08-21
+  protected    
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes; override;
-    function GetAttribCount: integer; override;
-    function GetAttribute(idx: integer): TSynHighlighterAttributes; override;
-    procedure HookHighlighter(aHL: TSynCustomHighlighter);
-    procedure UnhookHighlighter(aHL: TSynCustomHighlighter);
-    procedure Notification(aComp: TComponent; aOp: TOperation); override;
-    function GetSampleSource: string; override;
-    procedure SetSampleSource(Value: string); override;
-    //
-    procedure OldRangeProc(Operation: TRangeOperation; var Range: cardinal);
-    procedure NewRangeProc(Operation: TRangeOperation; var Range: cardinal);
-    procedure UserRangeProc(Operation: TRangeOperation; var Range: cardinal);
   public
-    class function GetLanguageName: string; override;
+{$IFNDEF SYN_CPPB_1} class {$ENDIF}
+    function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -238,67 +142,45 @@ type
     procedure Next; override;
     procedure SetLine(NewValue: string; LineNumber: Integer); override;
     procedure SetRange(Value: Pointer); override;
-    procedure ResetRange; override;
-    function UpdateRangeProcs: boolean;
+    procedure ReSetRange; override;
     property CurrScheme: integer read fCurrScheme write fCurrScheme;
-    property CurrLine: string read fLine;
-{$IFNDEF SYN_CLX}
-    function LoadFromRegistry(RootKey: HKEY; Key: string): boolean; override;
-    function SaveToRegistry(RootKey: HKEY; Key: string): boolean; override;
-{$ENDIF}
   published
-    property Schemes: TSchemes read fSchemes write SetSchemes;
-    property DefaultHighlighter: TSynCustomHighLighter read fDefaultHighlighter
-      write SetDefaultHighlighter;
-    property DefaultLanguageName: String read fDefaultLanguageName
-      write fDefaultLanguageName;
-    property OnCustomRange: TCustomRangeEvent read fOnCustomRange write SetOnCustomRange;
+    property Schemes: TgmSchemes read fSchemes write SetSchemes;
+    property DefaultHighlighter: TSynCustomHighLighter read FDefault
+      write FDefault;
   end;
 
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QGraphics,
-  QSynEditMiscProcs,
-  QSynRegExpr,
-  QSynEditStrConst,
-{$ELSE}
-  Graphics,
-  SynEditMiscProcs,
-  SynRegExpr,
-  SynEditStrConst,
-{$ENDIF}
-  SysUtils;
+  SynRegExpr, Graphics, SysUtils, SynEditStrConst;
 
-procedure CheckExpression(const aExpr: string);
-var
-  iParser: TRegExpr;
+function cmpMarker(Item1, Item2: Pointer): Integer;
 begin
-  iParser := TRegExpr.Create;
-  try
-    iParser.Expression := aExpr;
-    try
-      iParser.Compile;
-    except
-      on E: ERegExpr do
-      begin
-        if E.ErrorCode < 1000 then
-          E.Message := Format( '"%s" is not a valid Regular Expression.'#13'Error (pos %d): %s',
-            [ aExpr, E.CompilerErrorPos, Copy( iParser.ErrorMsg(E.ErrorCode), 16, MaxInt) ] );
-        raise;
-      end;
-    end;
-  finally
-    iParser.Free;
-  end;
+  if TgmMarker(Item1).fStartPos < TgmMarker(Item2).fStartPos then
+    Result := -1
+  else if TgmMarker(Item1).fStartPos > TgmMarker(Item2).fStartPos then
+    Result := 1
+  else
+    Result := 0;
 end;
 
-{ TMarker }
-
-constructor TMarker.Create(aScheme, aStartPos,
-  aMarkerLen: integer; aIsOpenMarker: boolean; const aMarkerText: string);
+function cmpMarkerPos(Item1: Pointer; Pos: integer): Integer;
 begin
+  if TgmMarker(Item1).fStartPos < Pos then
+    Result := -1
+  else if TgmMarker(Item1).fStartPos > Pos then
+    Result := 1
+  else
+    Result := 0;
+end;
+
+{ TgmMarker }
+
+constructor TgmMarker.Create(aOwnerScheme, aScheme, aStartPos,
+  aMarkerLen: integer; aIsOpenMarker: boolean; aMarkerText: string);
+begin
+  fOwnerScheme := aOwnerScheme;
   fScheme := aScheme;
   fStartPos := aStartPos;
   fMarkerLen := aMarkerLen;
@@ -320,179 +202,174 @@ end;
 constructor TSynMultiSyn.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  fSchemes := TSchemes.Create(Self);
+  fSchemes := TgmSchemes.Create(Self);
   fCurrScheme := -1;
+  fMarker := nil;
   fMarkers := TList.Create;
-  fRangeProc := NewRangeProc;
 end;
 
 destructor TSynMultiSyn.Destroy;
 begin
-  ClearMarkers;
-  { unhook notification handlers }
-  Schemes.Clear;
-  DefaultHighlighter := nil;
-  inherited Destroy;
   fSchemes.Free;
+  ClearMarkers;
   fMarkers.Free;
+  inherited Destroy;
 end;
 
-function TSynMultiSyn.GetAttribCount: integer;
+function TSynMultiSyn.FindMarker(MarkerPos, OwnerScheme: integer): TgmMarker;
 var
-  cScheme: integer;
+  L, H, I, C: Integer;
 begin
-  Result := Schemes.Count;
-  if DefaultHighlighter <> nil then
-    Inc( Result, DefaultHighlighter.AttrCount );
-  for cScheme := 0 to Schemes.Count -1 do
-    if Schemes[cScheme].Highlighter <> nil then
-      Inc( Result, Schemes[cScheme].Highlighter.AttrCount );
-end;
-
-function TSynMultiSyn.GetAttribute(
-  idx: integer): TSynHighlighterAttributes;
-var
-  cScheme: integer;
-  iHL: TSynCustomHighlighter;
-begin
-  if idx < Schemes.Count then
-    Result := Schemes[ idx ].MarkerAttri
-  else begin
-    Dec( idx, Schemes.Count );
-    if DefaultHighlighter <> nil then
-      if idx < DefaultHighlighter.AttrCount then
-      begin
-        Result := DefaultHighlighter.Attribute[idx];
-        Exit;
-      end
-      else
-        Dec( idx, DefaultHighlighter.AttrCount );
-    for cScheme := 0 to Schemes.Count -1 do
-    begin
-      iHL := Schemes[cScheme].Highlighter;
-      if iHL <> nil then
-        if idx < iHL.AttrCount then
-        begin
-          Result := iHL.Attribute[idx];
-          Exit;
+  Result := nil;
+  L := 0;
+  H := fMarkers.Count - 1;
+  while L <= H do begin
+    I := (L + H) shr 1;
+    C := cmpMarkerPos(fMarkers[I], MarkerPos);
+    if C < 0 then
+      L := I + 1
+    else begin
+      H := I - 1;
+      if (C = 0) then begin
+        if fCurrScheme >= 0 then begin
+          while ((I < fMarkers.Count) and
+            (TgmMarker(fMarkers[I]).fOwnerScheme <> OwnerScheme) and
+            (cmpMarkerPos(fMarkers[I], MarkerPos) = 0)) do
+            inc(I);
+          if (I < fMarkers.count) and
+            (TgmMarker(fMarkers[I]).fOwnerScheme = OwnerScheme) then
+            Result := fMarkers[I];
         end
-        else
-          Dec( idx, iHL.AttrCount );
+        else if (I < fMarkers.count) and
+          TgmMarker(fMarkers[I]).fIsOpenMarker then
+          Result := fMarkers[I];
+        break;
+      end;
     end;
-    Result := nil;
+  end;
+end;
+
+function TSynMultiSyn.FindNextMarker(MarkerPos, OwnerScheme: integer): TgmMarker;
+var
+  L, H, I, C: Integer;
+begin
+  Result := nil;
+  I := -1;
+  L := 0;
+  H := fMarkers.Count - 1;
+  while L <= H do begin
+    I := (L + H) shr 1;
+    C := cmpMarkerPos(fMarkers[I], MarkerPos);
+    if C < 0 then
+      L := I + 1
+    else begin
+      H := I - 1;
+      if C = 0 then
+        break;
+    end;
+  end;
+  if (I >= 0) then begin
+    if (cmpMarkerPos(fMarkers[I], MarkerPos) < 0) then
+      inc(I);
+    while I < fMarkers.Count do
+      if TgmMarker(fMarkers[I]).fIsOpenMarker or
+        (TgmMarker(fMarkers[I]).fOwnerScheme = OwnerScheme) then begin
+        Result := fMarkers[I];
+        break;
+      end else
+        inc(I);
   end;
 end;
 
 function TSynMultiSyn.GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
 var
-  iHL: TSynCustomHighlighter;
+  HL: TSynCustomHighlighter;
 begin
-  if (CurrScheme >= 0) and (Schemes[CurrScheme].Highlighter <> nil) then
-    iHL := Schemes[CurrScheme].Highlighter
+  if not Assigned(fDefault) then
+    Result := nil
   else
-    iHL := DefaultHighlighter;
-  { the typecast to TSynMultiSyn is only necessary because the
-  GetDefaultAttribute method is protected.
-  And don't worry: this really works }
-  if iHL <> nil then begin
-    Result := TSynMultiSyn(iHL).GetDefaultAttribute(Index)
-  end else
-    Result := nil;
+  begin
+    if (fCurrScheme >= 0) then
+      HL := TgmScheme(fSchemes[fCurrScheme]).Highlighter
+    else
+      HL := fDefault;
+    case Index of
+      SYN_ATTR_COMMENT: Result := HL.CommentAttribute;
+      SYN_ATTR_IDENTIFIER: Result := HL.IdentifierAttribute;
+      SYN_ATTR_KEYWORD: Result := HL.KeywordAttribute;
+      SYN_ATTR_STRING: Result := HL.StringAttribute;
+      SYN_ATTR_SYMBOL: Result := HL.SymbolAttribute;
+      SYN_ATTR_WHITESPACE: Result := HL.WhitespaceAttribute;
+    else
+      Result := nil;
+    end;
+  end;
 end;
 
 function TSynMultiSyn.GetEol: Boolean;
 begin
-  if fMarker <> nil then
-    Result := False
-  else if fCurrScheme >= 0 then
-    Result := Schemes[CurrScheme].Highlighter.GetEol
+  if assigned(fMarker) then
+    Result := false
+  else if (fCurrScheme >= 0) then
+    Result := TgmScheme(fSchemes[fCurrScheme]).Highlighter.GetEol
   else if DefaultHighlighter <> nil then
     Result := DefaultHighlighter.GetEol
   else
-    Result := fRun > Length(fLine) + 2;
+    Result := true;
 end;
 
+{begin}                                                                         //LAD 2000-08-21
 function TSynMultiSyn.GetIdentChars: TSynIdentChars;
 begin
-  if CurrScheme >= 0 then
-    Result := Schemes[CurrScheme].Highlighter.IdentChars
-  else if DefaultHighlighter <> nil then
-    Result := DefaultHighlighter.IdentChars
-  else
-    Result := inherited GetIdentChars;
+  Result := ['0'..'9', 'a'..'z', 'A'..'Z'] + TSynSpecialChars;
 end;
+{end}                                                                           //LAD 2000-08-21
 
-class function TSynMultiSyn.GetLanguageName: string;
+{$IFNDEF SYN_CPPB_1} class {$ENDIF}
+function TSynMultiSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangGeneralMulti;
 end;
 
-function TSynMultiSyn.GetMarkers(aIndex: integer): TMarker;
-begin
-  Result := TMarker( fMarkers[ aIndex ] );
-end;
-
-procedure TSynMultiSyn.OldRangeProc(Operation: TRangeOperation; var Range: cardinal);
-const
-  MaxNestedMultiSyn = 6;
-  { number of bits of the Range that will be used to store the SchemeIndex }
-  SchemeIndexSize = 4;
-  MaxSchemeCount = (1 shl SchemeIndexSize) -1;
-  { number of bits of the Range that will be used to store the SchemeRange }
-  SchemeRangeSize = 8;
-  MaxSchemeRange = (1 shl SchemeRangeSize) -1;
+function TSynMultiSyn.GetRange: Pointer;
 var
-  iHL: TSynCustomHighlighter;
-  iSchemeIndex: cardinal;
-  iSchemeRange: cardinal;
+  lResult: longint;
 begin
-  if Operation = roGet then
-  begin
-    if (fCurrScheme < 0) then
-      iHL := DefaultHighlighter
+  if (fCurrScheme < 0) then
+    if DefaultHighlighter <> nil then
+      Result := DefaultHighlighter.GetRange
     else
-      iHL := Schemes[fCurrScheme].Highlighter;
-    iSchemeIndex := fCurrScheme +2;
-    Assert( iSchemeIndex <= MaxSchemeCount );
-    if iHL <> nil then begin
-      iSchemeRange := cardinal( iHL.GetRange );
-      Assert( (iSchemeRange <= MaxSchemeRange) or (iHL is TSynMultiSyn) );
-    end else
-      iSchemeRange := 0;
-    { checks the limit of nested MultiSyns }
-    Assert( iSchemeRange shr ((MaxNestedMultiSyn -1)*SchemeIndexSize + SchemeRangeSize) = 0 );
-    iSchemeRange := (iSchemeRange shl SchemeIndexSize) or iSchemeIndex;
-    Range := iSchemeRange;
-  end
+      Result := nil
   else begin
-    if Range = 0 then
-      Exit;
-    iSchemeRange := cardinal(Range);
-    fCurrScheme := integer(iSchemeRange and MaxSchemeCount) -2;
-    iSchemeRange := iSchemeRange shr SchemeIndexSize;
-    if (CurrScheme < 0) then begin
-      if DefaultHighlighter <> nil then
-        DefaultHighlighter.SetRange( pointer(iSchemeRange) );
-    end else begin
-      Schemes[CurrScheme].Highlighter.SetRange( pointer(iSchemeRange) );
-    end;
+    lResult := ((fCurrScheme + 1) shl 16) or
+      (integer(fSchemes[fCurrScheme].Highlighter.GetRange) and $0000FFFF);
+    Result := pointer(lResult);
   end;
 end;
 
 function TSynMultiSyn.GetToken: string;
 begin
-  if DefaultHighlighter = nil then
-    Result := fLine
+  if assigned(fMarker) then
+    Result := fMarker.fMarkerText
+  else if (fCurrScheme >= 0) then
+    Result := fSchemes[fCurrScheme].Highlighter.GetToken
+  else if DefaultHighlighter <> nil then
+  begin
+    if fLastRun >= 0 then
+      Result := copy(DefaultHighlighter.GetToken, 1, fRun - fLastRun)
+    else
+      Result := DefaultHighlighter.GetToken;
+  end
   else
-    Result := Copy( fLine, fTokenPos +1, fRun - fTokenPos -1)
+    Result := fLine;
 end;
 
 function TSynMultiSyn.GetTokenAttribute: TSynHighlighterAttributes;
 begin
-  if fMarker <> nil then
+  if assigned(fMarker) then
     Result := Schemes[fMarker.fScheme].MarkerAttri
-  else if CurrScheme >= 0 then
-    Result := Schemes[CurrScheme].Highlighter.GetTokenAttribute
+  else if (fCurrScheme >= 0) then
+    Result := fSchemes[fCurrScheme].Highlighter.GetTokenAttribute
   else if DefaultHighlighter <> nil then
     Result := DefaultHighlighter.GetTokenAttribute
   else
@@ -501,10 +378,8 @@ end;
 
 function TSynMultiSyn.GetTokenKind: integer;
 begin
-  if fMarker <> nil then
-    Result := 0
-  else if fCurrScheme >= 0 then
-    Result := Schemes[fCurrScheme].Highlighter.GetTokenKind
+  if (fCurrScheme >= 0) then
+    Result := fSchemes[fCurrScheme].Highlighter.GetTokenKind
   else if DefaultHighlighter <> nil then
     Result := DefaultHighlighter.GetTokenKind
   else
@@ -513,548 +388,271 @@ end;
 
 function TSynMultiSyn.GetTokenPos: Integer;
 begin
-  Result := fTokenPos;
-end;
+  if assigned(fMarker) then begin                                               //DDH 10/19/01 moved per Dmitri Dmitrienko's suggestion to remove an AV
+    Result := fMarker.fStartPos - 1;
+    exit;
+  end;
 
-procedure TSynMultiSyn.HookHighlighter(aHL: TSynCustomHighlighter);
-begin
-  aHL.FreeNotification( Self );
-  aHL.HookAttrChangeEvent( DefHighlightChange );
+  Result := 0;
+
+  if (fCurrScheme >= 0) then
+    Result := fRun + fSchemes[fCurrScheme].Highlighter.GetTokenPos -
+      length(fSchemes[fCurrScheme].Highlighter.GetToken)
+  else if DefaultHighlighter <> nil then
+  begin
+    if fLastRun >= 0 then
+      Result := fLastRun + DefaultHighlighter.GetTokenPos
+    else
+      Result := fRun + DefaultHighlighter.GetTokenPos -
+        length(DefaultHighlighter.GetToken);
+  end;
 end;
 
 procedure TSynMultiSyn.Next;
 var
-  iToken: String;
-  iHL: TSynCustomHighlighter;
+  i, mx: integer;
+  tok: string;
 begin
-  if DefaultHighlighter = nil then begin
-    if fRun > 1 then
-      Inc( fRun )
-    else
-      fRun := Length(fLine) + 2;
-    Exit;
-  end;
+  if DefaultHighlighter = nil then
+    exit;
 
-  if (fNextMarker < fMarkers.Count) and (fRun >= Markers[fNextMarker].fStartPos) then begin
-    fMarker := Markers[ fNextMarker ];
-    if fMarker.fIsOpenMarker then
-    begin
-      fCurrScheme := fMarker.fScheme;
-      fTmpRange := DefaultHighlighter.GetRange;
-      Schemes[CurrScheme].Highlighter.ResetRange;
-    end;
-    Inc( fNextMarker );
-    fTokenPos := fRun -1;
-    Inc( fRun, fMarker.fMarkerLen );
-    Exit;
-  end;
-
-  if (fRun = 1) then begin
-    if fMarkers.Count = 0 then
-      fTmpLine := fLine
+  fMarker := FindMarker(fRun + 1, fCurrScheme);
+  if assigned(fMarker) then begin
+    if (fMarker.fIsOpenMarker) then
+      if fCurrScheme = -1 then
+        fCurrScheme := fMarker.fScheme
+      else
+        fMarker := nil
     else
-      fTmpLine := Copy( fLine, 1, Markers[fNextMarker].fStartPos -1 );
-    if CurrScheme >= 0 then
-      iHL := Schemes[CurrScheme].Highlighter
-    else
-      iHL := DefaultHighlighter;
-    iHL.SetLine( fTmpLine, fLineNumber );
-  end else if fMarker <> nil then begin
-    if not fMarker.fIsOpenMarker then
-    begin
       fCurrScheme := -1;
-      DefaultHighlighter.SetRange( fTmpRange );
+    if assigned(fMarker) then begin
+      inc(fRun, fMarker.fMarkerLen);
+      exit;
     end;
-    fMarker := nil;
-    {}
-    if fNextMarker < fMarkers.Count then
-      fTmpLine := Copy( fLine, fRun, Markers[fNextMarker].fStartPos - fRun  )
-    else
-      fTmpLine := Copy( fLine, fRun, MaxInt );
-    if CurrScheme >= 0 then
-      iHL := Schemes[CurrScheme].Highlighter
-    else
-      iHL := DefaultHighlighter;
-    iHL.SetLine( fTmpLine, fLineNumber );
-  end else begin
-    if CurrScheme >= 0 then
-      iHL := Schemes[CurrScheme].Highlighter
-    else
-      iHL := DefaultHighlighter;
-    iHL.Next;
   end;
+  fMarker := FindNextMarker(fRun + 1, fCurrScheme);
+  if assigned(fMarker) and
+    not fMarker.fIsOpenMarker then
+    mx := fMarker.fStartPos - 1
+  else
+    mx := length(fLine);
 
-  fTokenPos := iHL.GetTokenPos;
-  iToken := iHL.GetToken;
-  if fNextMarker > 0 then begin
-    with Markers[ fNextMarker -1 ] do
-      Inc( fTokenPos, fStartPos + fMarkerLen -1 );
+  if (fCurrScheme < 0) then begin
+    fLine_tmp1 := copy(fLine, fRun + 1, mx - fRun);
+    DefaultHighlighter.SetLine(fLine_tmp1, fLineNumber);
+    tok := DefaultHighlighter.GetToken;
+  end
+  else begin
+    fLine_tmp1 := copy(fLine, fRun + 1, mx - fRun);
+    fSchemes[fCurrScheme].Highlighter.SetLine(fLine_tmp1, fLineNumber);
+    tok := fSchemes[fCurrScheme].Highlighter.GetToken;
   end;
-  Inc( fRun, (fTokenPos - fRun +1) + Length(iToken) );
+  fMarker := nil;
+  for i := 1 to length(tok) do begin
+    fMarker := FindMarker(fRun + i, fCurrScheme);
+    if assigned(fMarker) then begin
+      if (fMarker.fIsOpenMarker) then
+        if fCurrScheme = -1 then
+          {fCurrScheme := fMarker.fScheme}
+        else
+          fMarker := nil
+      else
+        fCurrScheme := -1;
+      break;
+    end;
+  end;
+  fLastRun := fRun;
+  if assigned(fMarker) then
+    inc(fRun, i - 1)
+  else
+    inc(fRun, length(tok));
+
+  if assigned(fMarker) then begin
+      if (fMarker.fIsOpenMarker) then
+        {if fCurrScheme = -1 then
+        begin
+          fCurrScheme := fMarker.fScheme;
+          fMarker := nil;
+        end
+        else}
+          fMarker := nil
+      else
+        fCurrScheme := -1;
+  end
+  else
+    fLastRun := -1;
 end;
 
-procedure TSynMultiSyn.Notification(aComp: TComponent; aOp: TOperation);
-var
-  cScheme: integer;
-begin
-  inherited;
-  // 'opRemove' doesn't mean the component is being destroyed. It means it's
-  // being removed from its Owner's list of Components.
-  if (aOp = opRemove) and (aComp is TSynCustomHighlighter) and
-    (csDestroying in aComp.ComponentState) then
-  begin
-    if DefaultHighlighter = aComp then
-      DefaultHighlighter := nil;
-    for cScheme := 0 to Schemes.Count -1 do
-      if Schemes[ cScheme ].Highlighter = aComp then
-        Schemes[ cScheme ].Highlighter := nil;
-  end;
-end;
-
-procedure TSynMultiSyn.ResetRange;
+procedure TSynMultiSyn.ReSetRange;
 begin
   fCurrScheme := -1;
-  if DefaultHighlighter <> nil then
-  begin
-    DefaultHighlighter.ResetRange;
-    fTmpRange := DefaultHighlighter.GetRange;
-  end;
-end;
-
-procedure TSynMultiSyn.SetDefaultHighlighter(
-  const Value: TSynCustomHighLighter);
-const
-  sDefaultHlSetToSelf = 'A SynMultiSyn cannot be its own DefaultHighlighter.';
-begin
-  if DefaultHighlighter <> Value then begin
-    if Value = Self then
-      raise Exception.Create( sDefaultHlSetToSelf );
-    if DefaultHighlighter <> nil then
-      UnhookHighlighter( DefaultHighlighter );
-    fDefaultHighlighter := Value;
-    if DefaultHighlighter <> nil then
-      HookHighlighter( DefaultHighlighter );
-    DefHighlightChange( Self );
-  end;
-end;
-
-procedure TSynMultiSyn.DoCheckMarker(Scheme:TScheme; StartPos, MarkerLen: Integer;
-  const MarkerText: String; Start: Boolean; Line: Integer);
-var
-  aStartPos: Integer;
-  aMarkerLen: Integer;
-  aMarkerText: String;
-begin
-  aStartPos:=StartPos;
-  aMarkerLen:=MarkerLen;
-  aMarkerText:=MarkerText;
-  if (Start) and Assigned(Scheme.OnCheckStartMarker) then
-    Scheme.OnCheckStartMarker(Self,aStartPos,aMarkerLen,aMarkerText,Line)
-  else if (not Start) and Assigned(Scheme.OnCheckEndMarker) then
-    Scheme.OnCheckEndMarker(Self,aStartPos,aMarkerLen,aMarkerText,Line);
-  if (aMarkerText<>'') and (aMarkerLen>0) then
-    begin
-    fMarkers.Add(TMarker.Create(Scheme.Index, aStartPos, aMarkerLen,Start,aMarkerText));
-    end;
 end;
 
 procedure TSynMultiSyn.SetLine(NewValue: string; LineNumber: Integer);
 var
-  iParser: TRegExpr;
-  iScheme: TScheme;
-  iExpr: String;
-  iLine: String;
-  iEaten: integer;
-  cScheme: integer;
+  i, j, k: integer;
+  r: TRegExpr;
+  tmp: string;
 begin
   ClearMarkers;
 
-  iParser := TRegExpr.Create;
+  r := TRegExpr.Create;
   try
-    iEaten := 0;
-    iLine := NewValue;
-    if CurrScheme >= 0
-    then
-      iScheme := fSchemes[ CurrScheme ]
-    else
-      iScheme := nil;
-    while iLine <> '' do
-      if iScheme <> nil then begin
-        iParser.Expression := iScheme.EndExpr;
-        iParser.ModifierI := not iScheme.CaseSensitive;
-        if iParser.Exec( iLine ) then begin
-          iExpr := Copy( NewValue, iParser.MatchPos[0] + iEaten, iParser.MatchLen[0] );
-          DoCheckMarker(iScheme, iParser.MatchPos[0] + iEaten, iParser.MatchLen[0],iExpr,False, LineNumber);
-          Delete( iLine, 1, iParser.MatchPos[0] -1 + iParser.MatchLen[0] );
-          Inc( iEaten, iParser.MatchPos[0] -1 + iParser.MatchLen[0] );
-          iScheme := nil;
-        end else
-          break;
-      end else begin
-        for cScheme := 0 to Schemes.Count -1 do begin
-          iScheme := Schemes[ cScheme ];
-          if (iScheme.StartExpr = '') or (iScheme.EndExpr = '') or
-            (iScheme.Highlighter = nil) or (not iScheme.Highlighter.Enabled) then
-          begin
-            continue;
-          end;
-          iParser.Expression := iScheme.StartExpr;
-          iParser.ModifierI := not iScheme.CaseSensitive;
-          if iParser.Exec( iLine ) then begin
-            iExpr := Copy( NewValue, iParser.MatchPos[0] + iEaten, iParser.MatchLen[0] );
-            DoCheckMarker(iScheme, iParser.MatchPos[0] + iEaten, iParser.MatchLen[0],iExpr,True, LineNumber);
-            Delete( iLine, 1, iParser.MatchPos[0] -1 + iParser.MatchLen[0] );
-            Inc( iEaten, iParser.MatchPos[0] -1 + iParser.MatchLen[0] );
-            break;
-          end;
-        end; {for}
-        if cScheme >= Schemes.Count then
-          break;
-      end; {else}
+    for i := 0 to fSchemes.Count - 1 do begin
+      r.Expression := fSchemes[i].ConvertExpression(fSchemes[i].StartExpr);     //AC 2001-10-25
+      tmp := NewValue;
+      k := 0;
+      while tmp <> '' do
+        if r.exec(fSchemes[i].ConvertExpression(tmp)) then                      //AC 2001-10-25
+          for j := 0 to r.MatchCount - 1 do begin
+            fMarkers.Add(TgmMarker.Create(i, i, r.MatchPos[j] + k, r.MatchLen[j],
+              true, copy(tmp, r.MatchPos[j], r.MatchLen[j])));
 
+            delete(tmp, 1, r.MatchPos[j] + r.MatchLen[j]);
+            inc(k, r.MatchPos[j] + r.MatchLen[j]);
+          end
+        else
+          tmp := ''
+    end;
+    for i := 0 to fSchemes.Count - 1 do begin
+      r.Expression := fSchemes[i].ConvertExpression(fSchemes[i].EndExpr);       //AC 2001-10-25
+      tmp := NewValue;
+      k := 0;
+      while tmp <> '' do
+        if r.exec(fSchemes[i].ConvertExpression(tmp)) then                      //AC 2001-10-25
+          for j := 0 to r.MatchCount - 1 do begin
+            fMarkers.Add(TgmMarker.Create(i, i, r.MatchPos[j] + k, r.MatchLen[j],
+              false, copy(tmp, r.MatchPos[j], r.MatchLen[j])));
+            delete(tmp, 1, r.MatchPos[j] + r.MatchLen[j]);
+            inc(k, r.MatchPos[j] + r.MatchLen[j]);
+          end
+        else
+          tmp := ''
+    end;
   finally
-    iParser.Free;
+    r.Free;
   end;
+
+  fMarkers.Sort(cmpMarker);
+
+  // We have to check if Markers "overlap" to avoid drawing errors (blank characters!)
+  for i := 0 to fMarkers.Count - 2 do begin
+    with TgmMarker(fMarkers[i]) do
+    begin
+      // Allright, there is an open marker but the next marker is not a closing marker
+      if fIsOpenMarker and (fOwnerScheme <> TgmMarker(fMarkers[i + 1]).fOwnerScheme) and
+         (TgmMarker(fMarkers[i + 1]).fIsOpenMarker) then
+      begin
+        fMarkers.Insert(i, TgmMarker.Create(fOwnerScheme, fScheme, TgmMarker(fMarkers[i + 1]).fStartPos,
+                0, false, ''));
+      end
+      // Hmm, we got two close markers, insert an open marker after first one
+      else
+      if (not fIsOpenMarker) and (not TgmMarker(fMarkers[i + 1]).fIsOpenMarker) and
+         (fOwnerScheme <> TgmMarker(fMarkers[i + 1]).fOwnerScheme) then
+      begin
+        fMarkers.Insert(i, TgmMarker.Create(TgmMarker(fMarkers[i + 1]).fOwnerScheme,
+                TgmMarker(fMarkers[i + 1]).fScheme, fStartPos + fMarkerLen, 0, true, ''));
+      end;
+    end;
+  end;
+
+{  tmp := '';
+  if fMarkers.Count > 2 then
+    for i := 0 to fMarkers.Count - 2 do begin
+      with TgmMarker(fMarkers[i]) do
+      begin
+        tmp := tmp + fMarkerText + #13 + 'sp:'+inttostr(fstartpos) +#13+'len:'+inttostr(fmarkerlen)+#13;
+        if fIsopenmarker then
+          tmp := tmp + 'IsOpenMarker'
+        else
+          tmp := tmp +'Is not OpenMarker';
+         tmp := tmp + '------';
+      end;
+    end;
+
+  tmp := tmp + ';';}
 
   fLineNumber := LineNumber;
   fLine := NewValue;
   fMarker := nil;
-  fRun := 1;
-  fTokenPos := 0;
-  fNextMarker := 0;
+  fRun := 0;
   Next;
-end;
-
-procedure TSynMultiSyn.SetSchemes(const Value: TSchemes);
-begin
-  fSchemes.Assign(Value);
-end;
-
-procedure TSynMultiSyn.UnhookHighlighter(aHL: TSynCustomHighlighter);
-begin
-  aHL.UnhookAttrChangeEvent( DefHighlightChange );
-{$IFDEF SYN_COMPILER_5_UP}
-  aHL.RemoveFreeNotification( Self );
-{$ENDIF}
-end;
-
-function TSynMultiSyn.GetSampleSource: string;
-begin
-  Result := fSampleSource;
-end;
-
-procedure TSynMultiSyn.SetSampleSource(Value: string);
-begin
-  fSampleSource := Value;
-end;
-
-{$IFNDEF SYN_CLX}
-function TSynMultiSyn.LoadFromRegistry(RootKey: HKEY;
-  Key: string): boolean;
-var
-  r: TBetterRegistry;
-  i: integer;
-begin
-  if DefaultHighlighter <> nil then
-    Result := DefaultHighlighter.LoadFromRegistry( RootKey, Key + '\DefaultHighlighter' )
-  else
-    Result := False;
-  r := TBetterRegistry.Create;
-  try
-    r.RootKey := RootKey;
-    for i := 0 to Schemes.Count-1 do
-      if (Schemes[i].SchemeName <> '') and
-        r.OpenKeyReadOnly(Key + '\' + Schemes[i].SchemeName) then
-      begin
-        Result := Schemes[i].MarkerAttri.LoadFromRegistry(r) and Result;
-        r.CloseKey;
-        Result := (Schemes[i].Highlighter <> nil) and
-          Schemes[i].Highlighter.LoadFromRegistry( RootKey,
-          Key + '\' + Schemes[i].SchemeName ) and Result;
-      end
-      else
-        Result := False;
-  finally
-    r.Free;
-  end;
-end;
-
-function TSynMultiSyn.SaveToRegistry(RootKey: HKEY; Key: string): boolean;
-var
-  r: TBetterRegistry;
-  i: integer;
-begin
-  if DefaultHighlighter <> nil then
-    Result := DefaultHighlighter.SaveToRegistry( RootKey, Key + '\DefaultHighlighter' )
-  else
-    Result := False;
-  r := TBetterRegistry.Create;
-  try
-    r.RootKey := RootKey;
-    for i := 0 to Schemes.Count-1 do
-      if (Schemes[i].SchemeName <> '') and
-        r.OpenKey(Key + '\' + Schemes[i].SchemeName, True) then
-      begin
-        Result := Schemes[i].MarkerAttri.SaveToRegistry(r) and Result;
-        r.CloseKey;
-        Result := (Schemes[i].Highlighter <> nil) and
-          Schemes[i].Highlighter.SaveToRegistry( RootKey,
-          Key + '\' + Schemes[i].SchemeName ) and Result;
-      end
-      else
-        Result := False;
-  finally
-    r.Free;
-  end;
-end;
-{$ENDIF}
-
-function TSynMultiSyn.GetRange: Pointer;
-begin
-  Result := nil;
-  fRangeProc( roGet, cardinal(Result) );
 end;
 
 procedure TSynMultiSyn.SetRange(Value: Pointer);
 begin
-  fRangeProc( roSet, cardinal(Value) );
-end;
-
-procedure TSynMultiSyn.NewRangeProc(Operation: TRangeOperation; var Range: cardinal);
-const
-  SchemeIndexSize = 3;
-  MaxSchemeCount = (1 shl SchemeIndexSize) -1;
-  SchemeRangeSize = 4;
-  MaxSchemeRange = (1 shl SchemeRangeSize) -1;
-begin
-  if Operation = roGet then
-  begin
-    if DefaultHighlighter <> nil then
-      Range := cardinal( DefaultHighlighter.GetRange )
+  fCurrScheme := (Integer(Value) shr 16) - 1;
+  if DefaultHighlighter <> nil then begin
+    if (fCurrScheme < 0) then
+      DefaultHighlighter.SetRange(pointer(Integer(Value) and $0000FFFF))
     else
-      Range := 0;
-    if CurrScheme >= 0 then
-    begin
-      Assert( cardinal( Schemes[CurrScheme].Highlighter.GetRange ) <= MaxSchemeRange );
-      Range := Range shl SchemeRangeSize;
-      Range := Range or cardinal( Schemes[CurrScheme].Highlighter.GetRange );
-    end;
-    Assert( CurrScheme <= MaxSchemeCount );
-    Range := Range shl SchemeIndexSize;
-    Range := Range or cardinal(CurrScheme + 1);
-  end
-  else begin
-    CurrScheme := integer(Range and MaxSchemeCount) -1;
-    Range := Range shr SchemeIndexSize;
-    if CurrScheme >= 0 then
-    begin
-      Schemes[CurrScheme].Highlighter.SetRange( pointer(Range and MaxSchemeRange) );
-      Range := Range shr SchemeRangeSize;
-    end;
-    if DefaultHighlighter <> nil then
-    begin
-      fTmpRange := pointer(Range);
-      DefaultHighlighter.SetRange( fTmpRange );
-    end;
+      fSchemes[fCurrScheme].Highlighter.SetRange(pointer(Integer(Value) and $0000FFFF));
   end;
 end;
 
-function TSynMultiSyn.UpdateRangeProcs: boolean;
-// determines the appropriate RangeProcs and returns whether they were changed
-var
-  i: integer;
-  OldProc: TRangeProc;
+procedure TSynMultiSyn.SetSchemes(const Value: TgmSchemes);
 begin
-  OldProc := fRangeProc;
-  if Assigned( OnCustomRange ) then
-    fRangeProc := UserRangeProc
-  else begin
-    fRangeProc := NewRangeProc;
-    for i := 0 to Schemes.Count -1 do
-      if Schemes[i].Highlighter is TSynMultiSyn then
-      begin
-        fRangeProc := OldRangeProc;
-        break;
-      end;
-  end;
-  Result := TMethod(OldProc).Code <> TMethod(fRangeProc).Code;
-  if Result then
-    DefHighlightChange( Self );
+  fSchemes.Assign(Value);
 end;
 
-procedure TSynMultiSyn.UserRangeProc(Operation: TRangeOperation; var Range: cardinal);
-begin
-  OnCustomRange( Self, Operation, pointer(Range) );
-  if (Operation = roSet) and (DefaultHighlighter <> nil) then
-    fTmpRange := DefaultHighlighter.GetRange;
-end;
+{ TgmSchemes }
 
-procedure TSynMultiSyn.SetOnCustomRange(const Value: TCustomRangeEvent);
+constructor TgmSchemes.Create(aOwner: TSynMultiSyn);
 begin
-  if ( TMethod(OnCustomRange).Code <> TMethod(Value).Code ) or
-    ( TMethod(OnCustomRange).Data <> TMethod(Value).Data ) then
-  begin
-    fOnCustomRange := Value;
-    UpdateRangeProcs;
-  end;
-end;
-
-procedure TSynMultiSyn.Loaded;
-begin
-  inherited;
-  DefHighlightChange( Self );
-end;
-
-{ TSchemes }
-
-constructor TSchemes.Create(aOwner: TSynMultiSyn);
-begin
-  inherited Create(TScheme);
+  inherited Create(TgmScheme);
   fOwner := aOwner;
 end;
 
-function TSchemes.GetItems(Index: integer): TScheme;
+function TgmSchemes.GetItems(Index: integer): TgmScheme;
 begin
-  Result := inherited Items[Index] as TScheme;
+  Result := inherited Items[Index] as TgmScheme;
 end;
 
 {$IFDEF SYN_COMPILER_3_UP}
-function TSchemes.GetOwner: TPersistent;
+function TgmSchemes.GetOwner: TPersistent;
 begin
   Result := fOwner;
 end;
 {$ENDIF}
 
-procedure TSchemes.SetItems(Index: integer; const Value: TScheme);
+procedure TgmSchemes.SetItems(Index: integer; const Value: TgmScheme);
 begin
   inherited Items[Index] := Value;
 end;
 
-{$IFDEF SYN_COMPILER_3_UP}
-procedure TSchemes.Update(Item: TCollectionItem);
+{ TgmScheme }
+
+constructor TgmScheme.Create(Collection: TCollection);
 begin
-  if Item <> nil then
-    fOwner.DefHighlightChange( Item )
-  else // pass the MultiSyn as the Sender so Editors reparse their text
-    fOwner.DefHighlightChange( fOwner );
+  inherited Create(Collection);
+  FCaseSensitive := True;
+  FMarkerAttri := TSynHighlighterAttributes.Create(SYNS_AttrMarker);
+{  with (FMarkerAttri) do begin                                                 //AC 2001-10-25
+    Background := clYellow;
+    Style := [fsBold];
+  end;}
 end;
-{$ENDIF}
 
-{ TScheme }
-
-function TScheme.ConvertExpression(const Value: String): String;
+destructor TgmScheme.Destroy;
 begin
-  if not CaseSensitive then
+  FMarkerAttri.Free;
+  inherited Destroy;
+end;
+
+function TgmScheme.ConvertExpression(const Value: String): String;              //AC 2001-10-25
+begin
+  if not FCaseSensitive then
     Result := AnsiUpperCase(Value)
   else
     Result := Value;
-end;
+end; { ConvertExpression }
 
-constructor TScheme.Create(Collection: TCollection);
+procedure TgmScheme.SetMarkerAttri(const Value: TSynHighlighterAttributes);
 begin
-  inherited Create(Collection);
-  fCaseSensitive := True;
-  fMarkerAttri := TSynHighlighterAttributes.Create(SYNS_AttrMarker);
-  fMarkerAttri.OnChange := MarkerAttriChanged;
-  MarkerAttri.Background := clYellow;
-  MarkerAttri.Style := [fsBold];
-  MarkerAttri.InternalSaveDefaultValues;
-end;
-
-destructor TScheme.Destroy;
-begin
-  { unhook notification handlers }
-  Highlighter := nil;
-  inherited Destroy;
-  fMarkerAttri.Free;
-end;
-
-{$IFDEF SYN_COMPILER_3_UP}
-function TScheme.GetDisplayName: String;
-begin
-  if SchemeName <> '' then
-    Result := SchemeName
-  else
-    Result := inherited GetDisplayName;
-end;
-{$ENDIF SYN_COMPILER_3_UP}
-
-procedure TScheme.MarkerAttriChanged(Sender: TObject);
-begin
-  Changed( False );
-end;
-
-procedure TScheme.SetCaseSensitive(const Value: Boolean);
-begin
-  if fCaseSensitive <> Value then
-  begin
-    fCaseSensitive := Value;
-    Changed( True );
-  end;
-end;
-
-{$IFDEF SYN_COMPILER_3_UP}
-procedure TScheme.SetDisplayName(const Value: String);
-begin
-  SchemeName := Value;
-end;
-{$ENDIF SYN_COMPILER_3_UP}
-
-procedure TScheme.SetEndExpr(const Value: string);
-var
-  OldValue: String;
-begin
-  if fEndExpr <> Value then
-  begin
-    if Value <> '' then
-      CheckExpression( Value );
-    OldValue := fEndExpr;
-    fEndExpr := Value;
-    if ConvertExpression( OldValue ) <> ConvertExpression( Value ) then
-      Changed( True );
-  end;
-end;
-
-procedure TScheme.SetHighlighter(const Value: TSynCustomHighLighter);
-var
-  iOwner: TSynMultiSyn;
-  iAlreadyRepainted: boolean;
-begin
-  if Highlighter <> Value then
-  begin
-    iOwner := TSchemes(Collection).fOwner;
-    if (Highlighter <> nil) and (Highlighter <> iOwner) then
-      iOwner.UnhookHighlighter( Highlighter );
-    fHighlighter := Value;
-    if (Highlighter <> nil) and (Highlighter <> iOwner) then
-      iOwner.HookHighlighter( Highlighter );
-    if Highlighter is TSynMultiSyn then
-      iAlreadyRepainted := iOwner.UpdateRangeProcs
-    else
-      iAlreadyRepainted := False;
-    if not iAlreadyRepainted then
-      Changed( True );
-  end;
-end;
-
-procedure TScheme.SetMarkerAttri(const Value: TSynHighlighterAttributes);
-begin
-  fMarkerAttri.Assign(Value);
-end;
-
-procedure TScheme.SetStartExpr(const Value: string);
-var
-  OldValue: String;
-begin
-  if fStartExpr <> Value then
-  begin
-    if Value <> '' then
-      CheckExpression( Value );
-    OldValue   := fStartExpr;
-    fStartExpr := Value;
-    if ConvertExpression( Value ) <> ConvertExpression( OldValue ) then
-      Changed( True );
-  end;
+  FMarkerAttri.Assign(Value);
 end;
 
 end.
+
+

@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterManager.pas,v 1.7 2004/07/09 13:03:55 markonjezic Exp $
+$Id: SynHighlighterManager.pas,v 1.4 2001/08/27 09:47:34 plpolak Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -42,10 +42,7 @@ Known Issues:
 @lastmod(2000-04-14)
 Provides a component to manage many highlighters in a single project.
 }
-
-{$IFNDEF QSYNHIGHLIGHTERMANAGER}
 unit SynHighlighterManager;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
@@ -88,33 +85,34 @@ type
   published
   end;
 
+procedure Register;
+
 implementation
 
 uses
-{$IFDEF SYN_COMPILER_6_UP}
-  DesignIntf,
-{$ELSE}
-  DsgnIntf,
-{$ENDIF}
-{$IFDEF SYN_CLX}
+  SysUtils,
+{$IFDEF SYN_KYLIX}
   Qt,
   QForms,
   QControls,
   QStdCtrls,
   QCheckLst,
+  DesignIntf,
   Types,
-  QSynEditHighlighter,
-  QSynEditStrConst,
 {$ELSE}
+{$IFDEF SYN_COMPILER_6_UP}
+  DesignIntf,
+{$ELSE}
+  DsgnIntf,
+{$ENDIF}
   Windows,
   Forms,
   Controls,
   StdCtrls,
   CheckLst,
-  SynEditHighlighter,
-  SynEditStrConst,
 {$ENDIF}
-  SysUtils;
+  SynEditStrConst,
+  SynEditHighlighter;
 
 type
   TSynHighlighterForm = class(TForm)
@@ -140,6 +138,11 @@ type
   {$ELSE}
     TDesignerClass = TFormDesigner;
   {$ENDIF}
+
+procedure Register;
+begin
+  RegisterComponents(SYNS_ComponentsPage, [TSynHighlighterManager]);
+end;
 
 { TSynHighlighterManager }
 
@@ -284,17 +287,18 @@ begin
   inherited;
   if (csDesigning in ComponentState) and (AOwner is TCustomForm) then begin
     form := TCustomForm(AOwner);
-{$IFDEF SYN_CLX}
+    dsgn := form.Designer as TDesignerClass;
+{$IFDEF SYN_KYLIX}
     dsgn := form.DesignerHook as TDesignerClass;
 {$ELSE}
     dsgn := form.Designer as TDesignerClass;
 {$ENDIF}
     highlight := GetPlaceableHighlighters;
     if highlight.Count = 0 then
-{$IFDEF SYN_CLX}
+{$IFDEF SYN_KYLIX}
       Application.MessageBox('No highlighters found!','Highlighter Manager', [smbOK], smsWarning)
 {$ELSE}
-      Application.MessageBox('No highlighters found!','Highlighter Manager', MB_OK + MB_ICONEXCLAMATION)
+      Application.MessageBox('No highlighters found!','Highlighter Manager', MB_OK or MB_ICONEXCLAMATION)
 {$ENDIF}
     else
     begin
@@ -320,7 +324,7 @@ begin
   Width  := 410;
   Height := 243;
   Position := poScreenCenter;
-{$IFDEF SYN_CLX}
+{$IFDEF SYN_KYLIX}
   BorderStyle := fbsDialog;
 {$ELSE}
   BorderStyle := bsDialog;
@@ -472,3 +476,4 @@ begin
 end;
 
 end.
+

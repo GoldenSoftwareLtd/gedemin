@@ -26,7 +26,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynEditPropertyReg.pas,v 1.17 2004/05/07 12:53:13 markonjezic Exp $
+$Id: SynEditPropertyReg.pas,v 1.3 2001/08/01 17:54:51 jrx Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -34,28 +34,32 @@ located at http://SynEdit.SourceForge.net
 Known Issues:
 -------------------------------------------------------------------------------}
 
-{$IFNDEF QSYNEDITPROPERTYREG}
 unit SynEditPropertyReg;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
-uses
-{$IFDEF SYN_COMPILER_6_UP}
-  DesignIntf,
-  DesignEditors,
-  {$IFDEF SYN_KYLIX}
-  ClxEditors,
-  {$ELSE}
-  VCLEditors,
-  {$ENDIF}
-{$ELSE}
-  DsgnIntf,
+{*****************}
+{$IFNDEF SYN_KYLIX}
+procedure Register;
 {$ENDIF}
-  Classes;
 
+implementation
+
+uses
+  Classes,
+  {$IFDEF SYN_KYLIX}
+  QDialogs, QForms, QGraphics, QControls,
+  {$ELSE}
+  {$IFDEF SYN_COMPILER_6_UP} DesignIntf, DesignEditors, VCLEditors, {$ELSE} DsgnIntf, {$ENDIF}
+  Dialogs, Forms, Graphics, Controls,
+  {$ENDIF}
+  SynEditKeyCmds, SynEditKeyCmdsEditor, SynEdit,
+  SynEditPrint, SynEditPrintMargins, SynEditPrintMarginsDialog;
+
+{**************}
+{$IFNDEF SYN_KYLIX}
 type
   TSynEditFontProperty = class(TFontProperty)
   public
@@ -77,63 +81,12 @@ type
     function GetAttributes: TPropertyAttributes; override;
   end;
 
-  TSynEditPrintMarginsProperty = class(TClassProperty)
-  public
-    procedure Edit; override;
-    function GetAttributes: TPropertyAttributes; override;
-  end;
-
-  TAutoCorrectionProperty = class(TPropertyEditor)
-  public
-    procedure Edit; override;
-    function GetAttributes: TPropertyAttributes; override;
-    function GetValue:string; override;
-  end;
-
-  TSynAutoCorrectComponentEditor = class(TDefaultEditor)
-    procedure Edit; override;
-    procedure ExecuteVerb(Index: Integer); override;
-    function GetVerb(Index: Integer): string; override;
-    function GetVerbCount: Integer; override;
-  end;
-
-procedure Register;
-
-implementation
-
-uses
-{$IFDEF SYN_CLX}
-  QDialogs,
-  QForms,
-  QGraphics,
-  QControls,
-  QSynEditKeyCmds,
-  QSynEditKeyCmdsEditor,
-  QSynEdit,
-  QSynEditPrint,
-  QSynEditPrintMargins,
-  QSynEditPrintMarginsDialog,
-  QSynCompletionProposal,
-  QSynMacroRecorder,
-  QSynAutoCorrect,
-  QSynAutoCorrectEditor,
-{$ELSE}
-  Dialogs,
-  Forms,
-  Graphics,
-  Controls,
-  SynEditKeyCmds,
-  SynEditKeyCmdsEditor,
-  SynEdit,
-  SynEditPrint,
-  SynEditPrintMargins,
-  SynEditPrintMarginsDialog,
-  SynCompletionProposal,
-  SynMacroRecorder,
-  SynAutoCorrect,
-  SynAutoCorrectEditor,
-{$ENDIF}
-  SysUtils;
+  TSynEditPrintMarginsProperty =
+    class(TClassProperty)
+      public
+    	procedure Edit; override;
+    	function GetAttributes: TPropertyAttributes; override;
+      end;
 
 { TSynEditFontProperty }
 
@@ -148,11 +101,8 @@ begin
   try
     FontDialog.Font := TFont(GetOrdValue);
     FontDialog.HelpContext := hcDFontEditor;
-  {$IFDEF SYN_CLX}
-  {$ELSE}
     FontDialog.Options := FontDialog.Options + [fdShowHelp, fdForceFontExist,
        fdFixedPitchOnly];
-  {$ENDIF}
     if FontDialog.Execute then
       SetOrdValue(Longint(FontDialog.Font));
   finally
@@ -240,88 +190,20 @@ begin
   Result := [paDialog, paSubProperties, paReadOnly, paSortList];
 end;
 
-procedure TSynAutoCorrectComponentEditor.Edit;
-var
-  frmAutoCorrectEditor: TfrmAutoCorrectEditor;
-begin
-  frmAutoCorrectEditor := TfrmAutoCorrectEditor.Create(Application);
-  try
-    frmAutoCorrectEditor.SynAutoCorrect := TSynAutoCorrect(Component);
-    frmAutoCorrectEditor.ShowModal;
-  finally
-    frmAutoCorrectEditor.Free;
-  end;
-  Designer.Modified;
-end;
-
-procedure TSynAutoCorrectComponentEditor.ExecuteVerb(Index: Integer);
-begin
-  case Index of
-    0: Edit;
-  end;
-end;
-
-function TSynAutoCorrectComponentEditor.GetVerb(Index: Integer): string;
-begin
-  case Index of
-    0: Result := '&Edit...';
-  end;
-end;
-
-function TSynAutoCorrectComponentEditor.GetVerbCount: Integer;
-begin
-  Result := 1;
-end;
-
-procedure TAutoCorrectionProperty.Edit;
-var
-  frmAutoCorrectEditor: TfrmAutoCorrectEditor;
-begin
-  frmAutoCorrectEditor := TfrmAutoCorrectEditor.Create(Application);
-  try
-    frmAutoCorrectEditor.SynAutoCorrect := TSynAutoCorrect(GetComponent(0));
-    frmAutoCorrectEditor.ShowModal;
-  finally
-    frmAutoCorrectEditor.Free;
-  end;
-  Designer.Modified;
-end;
-
-function TAutoCorrectionProperty.GetAttributes: TPropertyAttributes;
-begin
-  GetAttributes := [paDialog, paReadOnly];
-end;
-
-function TAutoCorrectionProperty.GetValue: String;
-begin
-  GetValue := '(AutoCorrections)';
-end;
-
-
 { Register }
 
 procedure Register;
 begin
   RegisterPropertyEditor(TypeInfo(TFont), TCustomSynEdit,
      'Font', TSynEditFontProperty);
-  RegisterPropertyEditor(TypeInfo(TSynEditorCommand), TPersistent,
-     '', TSynEditCommandProperty);
-  RegisterPropertyEditor(TypeInfo(TSynEditKeystrokes), TPersistent,
-    '', TSynEditKeystrokesProperty);
-  RegisterPropertyEditor(TypeInfo(TSynEditPrintMargins), TPersistent,
-    '', TSynEditPrintMarginsProperty);
-  RegisterPropertyEditor(TypeInfo(TStrings), TSynAutoCorrect,
-    'Items', TAutoCorrectionProperty);
-  RegisterComponentEditor(TSynAutoCorrect, TSynAutoCorrectComponentEditor);
-  {$IFDEF SYN_DELPHI_6_UP}
-  RegisterPropertyEditor(TypeInfo(TShortCut), TSynCompletionProposal, '',
-    TShortCutProperty);
-  RegisterPropertyEditor(TypeInfo(TShortCut), TSynAutoComplete, '',
-    TShortCutProperty);
-  RegisterPropertyEditor(TypeInfo(TShortCut), TSynMacroRecorder, '',
-    TShortCutProperty);
-  {$ENDIF}
+  RegisterPropertyEditor(TypeInfo(TSynEditorCommand), NIL,
+     'Command', TSynEditCommandProperty);
+  RegisterPropertyEditor(TypeInfo(TSynEditKeystrokes), NIL, '',
+     TSynEditKeystrokesProperty);
+  RegisterPropertyEditor(TypeInfo(TSynEditPrintMargins), NIL, '',
+     TSynEditPrintMarginsProperty);
 end;
+{$ENDIF}
 
 end.
 

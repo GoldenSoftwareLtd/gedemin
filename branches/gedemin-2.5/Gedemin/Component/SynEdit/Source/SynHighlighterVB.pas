@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterVB.pas,v 1.15 2005/01/28 16:53:25 maelh Exp $
+$Id: SynHighlighterVB.pas,v 1.6 2001/10/24 09:39:25 plpolak Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -41,27 +41,20 @@ Known Issues:
 @lastmod(2000-06-23)
 The SynHighlighterVB unit provides SynEdit with a Visual Basic (.bas) highlighter.
 }
-
-{$IFNDEF QSYNHIGHLIGHTERVB}
 unit SynHighlighterVB;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
+  SysUtils, Classes,
+  {$IFDEF SYN_KYLIX}
   Qt, QControls, QGraphics,
-  QSynEditHighlighter,
-  QSynEditTypes,
-{$ELSE}
+  {$ELSE}
   Windows, Messages, Controls, Graphics, Registry,
-  SynEditHighlighter,
-  SynEditTypes,
-{$ENDIF}
-  SysUtils,
-  Classes;
+  {$ENDIF}
+  SynEditHighlighter, SynEditTypes;
 
 type
   TtkTokenKind = (tkComment, tkIdentifier, tkKey, tkNull, tkNumber, tkSpace,
@@ -200,15 +193,14 @@ type
     procedure MakeMethodTables;
   protected
     function GetIdentChars: TSynIdentChars; override;
-    function GetSampleSource: String; override;
-    function IsFilterStored: Boolean; override;
   public
-    class function GetLanguageName: string; override;
+    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
+    function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
       override;
-    function GetEol: Boolean; override;
+    function GetEOL: Boolean; override;
     function GetTokenID: TtkTokenKind;
     procedure SetLine(NewValue: String; LineNumber: Integer); override;
     function GetToken: String; override;
@@ -235,11 +227,7 @@ type
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditStrConst;
-{$ELSE}
   SynEditStrConst;
-{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -520,15 +508,7 @@ end;
 function TSynVBSyn.Func36: TtkTokenKind;
 begin
   if KeyComp('clng') then Result := tkKey else
-    if KeyComp('rnd') then Result := tkKey else
-      if KeyComp('rem') then
-      begin
-        ApostropheProc;
-        fStringLen:=0;
-        Result := tkComment;
-      end
-      else
-        Result := tkIdentifier;
+    if KeyComp('rnd') then Result := tkKey else Result := tkIdentifier;
 end;
 
 function TSynVBSyn.Func37: TtkTokenKind;
@@ -1154,7 +1134,7 @@ procedure TSynVBSyn.UnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run, 2)
+    Inc(Run,2)
   else
 {$ENDIF}
   inc(Run);
@@ -1182,7 +1162,7 @@ begin
   end;
 end;
 
-function TSynVBSyn.GetEol: Boolean;
+function TSynVBSyn.GetEOL: Boolean;
 begin
   Result := fTokenID = tkNull;
 end;
@@ -1230,39 +1210,16 @@ begin
   Result := TSynValidStringChars;
 end;
 
-function TSynVBSyn.IsFilterStored: Boolean;
-begin
-  Result := fDefaultFilter <> SYNS_FilterVisualBASIC;
-end;
-
-class function TSynVBSyn.GetLanguageName: string;
+{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
+function TSynVBSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangVisualBASIC;
 end;
 
-function TSynVBSyn.GetSampleSource: String;
-begin
-  Result := ''' Syntax highlighting'#13#10+
-            'Function PrintNumber'#13#10+
-            '  Dim Number'#13#10+
-            '  Dim X'#13#10+
-            ''#13#10+
-            '  Number = 123456'#13#10+
-            '  Response.Write "The number is " & number'#13#10+
-            ''#13#10+
-            '  For I = 0 To Number'#13#10+
-            '    X = X + &h4c'#13#10+
-            '    X = X - &o8'#13#10+
-            '    X = X + 1.0'#13#10+
-            '  Next'#13#10+
-            ''#13#10+
-            '  I = I + @;  '' illegal character'#13#10+
-            'End Function';
-end;
-
 initialization
   MakeIdentTable;
-{$IFNDEF SYN_CPPB_1}
+{$IFNDEF SYN_CPPB_1}                                                            //mh 2000-07-14
   RegisterPlaceableHighlighter(TSynVBSyn);
 {$ENDIF}
 end.
+

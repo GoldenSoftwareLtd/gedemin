@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterVBScript.pas,v 1.15.2.2 2007/05/24 11:17:58 etrusco Exp $
+$Id: SynHighlighterVBScript.pas,v 1.7 2001/10/24 09:39:25 plpolak Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -42,28 +42,20 @@ Known Issues:
 The SynHighlighterVBScript unit provides SynEdit with a VisualBasic Script (.vbs) highlighter.
 Thanks to Primoz Gabrijelcic and Martin Waldenburg.
 }
-
-{$IFNDEF QSYNHIGHLIGHTERVBSCRIPT}
 unit SynHighlighterVBScript;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  QGraphics,
-  QSynEditHighlighter,
-  QSynEditTypes,
-{$ELSE}
-  Graphics,
-  Registry,
-  SynEditHighlighter,
-  SynEditTypes,
-{$ENDIF}
-  SysUtils,
-  Classes;
+  SysUtils, Classes,
+  {$IFDEF SYN_KYLIX}
+  Qt, QControls, QGraphics,
+  {$ELSE}
+  Windows, Messages, Controls, Graphics, Registry,
+  {$ENDIF}
+  SynEditHighlighter, SynEditTypes;
 
 type
   TtkTokenKind = (tkComment, tkIdentifier, tkKey, tkNull, tkNumber, tkSpace,
@@ -139,10 +131,10 @@ type
     function Func63: TtkTokenKind;
     function Func64: TtkTokenKind;
     function Func66: TtkTokenKind;
-    function Func69: TtkTokenKind;
     function Func70: TtkTokenKind;
     function Func71: TtkTokenKind;
     function Func72: TtkTokenKind;
+    function Func73: TtkTokenKind;
     function Func74: TtkTokenKind;
     function Func76: TtkTokenKind;
     function Func78: TtkTokenKind;
@@ -230,14 +222,12 @@ type
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditStrConst;
-{$ELSE}
   SynEditStrConst;
-{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
+  //Хранит значения каждого символа для вычисления
+  //хэш значения
   mHashTable: array[#0..#255] of Integer;
 
 procedure MakeIdentTable;
@@ -253,7 +243,8 @@ begin
     J := UpCase(I);
     Case I in['_', 'a'..'z', 'A'..'Z'] of
       True: mHashTable[I] := Ord(J) - 64
-    else mHashTable[I] := 0;
+    else
+      mHashTable[I] := 0;
     end;
   end;
 end;
@@ -264,7 +255,8 @@ var
   pF: PIdentFuncTableFunc;
 begin
   pF := PIdentFuncTableFunc(@fIdentFuncTable);
-  for I := Low(fIdentFuncTable) to High(fIdentFuncTable) do begin
+  for I := Low(fIdentFuncTable) to High(fIdentFuncTable) do
+  begin
     pF^ := AltFunc;
     Inc(pF);
   end;
@@ -301,14 +293,14 @@ begin
   fIdentFuncTable[58] := Func58;
   fIdentFuncTable[59] := Func59;
   fIdentFuncTable[60] := Func60;
-  fIdentFuncTable[62] := Func62;
+  fIdentFuncTable[62] := Func62;                                               
   fIdentFuncTable[63] := Func63;
   fIdentFuncTable[64] := Func64;
   fIdentFuncTable[66] := Func66;
-  fIdentFuncTable[69] := Func69;
   fIdentFuncTable[70] := Func70;
   fIdentFuncTable[71] := Func71;
   fIdentFuncTable[72] := Func72;
+  fIdentFuncTable[73] := Func73;
   fIdentFuncTable[74] := Func74;
   fIdentFuncTable[76] := Func76;
   fIdentFuncTable[78] := Func78;
@@ -397,7 +389,8 @@ end;
 function TSynVBScriptSyn.Func23: TtkTokenKind;
 begin
   if KeyComp('End') then Result := tkKey else
-    if KeyComp('In') then Result := tkKey else Result := tkIdentifier;
+    if KeyComp('In') then Result := tkKey else
+      Result := tkIdentifier;
 end;
 
 function TSynVBScriptSyn.Func26: TtkTokenKind;
@@ -576,10 +569,9 @@ end;
 
 function TSynVBScriptSyn.Func60: TtkTokenKind;
 begin
-  if KeyComp('With') then
-    Result := tkKey
-  else
-    Result := tkIdentifier;
+  if KeyComp('Step') then Result := tkKey else
+    if KeyComp('With') then Result := tkKey else
+     Result := tkIdentifier;
 end;
 
 function TSynVBScriptSyn.Func62: TtkTokenKind;
@@ -613,14 +605,6 @@ begin
     Result := tkIdentifier;
 end;
 
-function TSynVBScriptSyn.Func69: TtkTokenKind;
-begin
-  if KeyComp('default') then
-    Result := tkKey
-  else
-    Result := tkIdentifier;
-end;
-
 function TSynVBScriptSyn.Func70: TtkTokenKind;
 begin
   if KeyComp('Stop') then
@@ -640,6 +624,11 @@ begin
     Result := tkKey
   else
     Result := tkIdentifier;
+end;
+
+function TSynVBScriptSyn.Func73: TtkTokenKind;
+begin
+  if KeyComp('Except') then Result := tkKey else Result := tkIdentifier;
 end;
 
 function TSynVBScriptSyn.Func74: TtkTokenKind;
@@ -707,6 +696,11 @@ begin
   if KeyComp('Private') then Result := tkKey else Result := tkIdentifier;
 end;
 
+function TSynVBScriptSyn.Func92: TtkTokenKind;
+begin
+  if KeyComp('Inherited') then Result := tkKey else Result := tkIdentifier;
+end;
+
 function TSynVBScriptSyn.Func98: TtkTokenKind;
 begin
   if KeyComp('Explicit') then Result := tkKey else Result := tkIdentifier;
@@ -772,16 +766,20 @@ function TSynVBScriptSyn.AltFunc: TtkTokenKind;
 begin
   Result := tkIdentifier;
 end;
-
+//Определение типа идентификатора
 function TSynVBScriptSyn.IdentKind(MayBe: PChar): TtkTokenKind;
 var
   HashKey: Integer;
 begin
   fToIdent := MayBe;
+  //Получаем хэш значение идентификатора
   HashKey := KeyHash(MayBe);
+  //если хэш значение меньше размера хэш-таблицы
+  //то вызываем соответ. обработкик идентификатора
   if HashKey < 134 then
     Result := fIdentFuncTable[HashKey]
   else
+  //иначе мы имеем дело с простым идентификатором
     Result := tkIdentifier;
 end;
 
@@ -872,7 +870,7 @@ begin
   until fLine[Run] in [#0, #10, #13];
 end;
 
-procedure TSynVBScriptSyn.CRProc;
+procedure TSynVBScriptSyn.CRProc;                  
 begin
   fTokenID := tkSpace;
   inc(Run);
@@ -900,6 +898,8 @@ end;
 
 procedure TSynVBScriptSyn.IdentProc;
 begin
+  //Обработка индентифкатора
+  //Определяется тип идентификаторф
   fTokenID := IdentKind((fLine + Run));
   inc(Run, fStringLen);
   while Identifiers[fLine[Run]] do inc(Run);
@@ -1063,11 +1063,6 @@ begin
             '    x = x + 1.0'#13#10 +
             '  next'#13#10 +
             'end function';
-end;
-
-function TSynVBScriptSyn.Func92: TtkTokenKind;
-begin
-  if KeyComp('Inherited') then Result := tkKey else Result := tkIdentifier;
 end;
 
 initialization
