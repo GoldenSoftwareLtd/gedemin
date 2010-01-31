@@ -47,7 +47,7 @@ var
 implementation
 
 uses
-  prp_MessageConst, SynEditTypes
+  prp_MessageConst
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

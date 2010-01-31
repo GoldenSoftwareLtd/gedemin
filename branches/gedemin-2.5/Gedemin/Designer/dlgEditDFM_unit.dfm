@@ -442,6 +442,7 @@ object dlgEditDFM: TdlgEditDFM
     end
   end
   object SynDfmSyn1: TSynDfmSyn
+    DefaultFilter = 'Delphi/C++ Builder Form Files (*.dfm;*.xfm)|*.dfm;*.xfm'
     NumberAttri.Foreground = clBlue
     StringAttri.Foreground = clRed
     Left = 432
