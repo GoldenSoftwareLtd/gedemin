@@ -99,11 +99,11 @@ type
     procedure dbseScriptClick(Sender: TObject);
     procedure dbseScriptKeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure SynCompletionProposalExecute(Kind: SynCompletionType;
+      Sender: TObject; var AString: String; x, y: Integer;
+      var CanExecute: Boolean);
     procedure dbseScriptProcessCommand(Sender: TObject;
       var Command: TSynEditorCommand; var AChar: Char; Data: Pointer);
-    procedure SynCompletionProposalExecute(Kind: TSynCompletionType;
-      Sender: TObject; var CurrentInput: String; var x, y: Integer;
-      var CanExecute: Boolean);
   protected
     procedure BeforePost; override;
     procedure ParserInit; virtual;
@@ -152,7 +152,7 @@ var
 implementation
 
 uses
-  IBCustomDataSet, rp_frmParamLineSE_unit, IBSQL, SynEditTypes,
+  IBCustomDataSet, rp_frmParamLineSE_unit, IBSQL,
   gdcConstants, gd_i_ScriptFactory, dm_i_ClientReport_unit,
   flt_frmSQLEditorSyn_unit, syn_ManagerInterface_unit,
   prp_MessageConst, rp_report_const, Gedemin_TLB, rp_dlgEnterParam_unit,
@@ -305,7 +305,7 @@ begin
   if OpenDialog1.Execute then
   begin
     dbseScript.Lines.LoadFromFile(OpenDialog1.FileName);
-    TCrackDBSynEdit(dbseScript).DoChange;
+    TCrackDBSynEdit(dbseScript).NewOnChange(dbseScript);
     FChanged := True;
   end;
 end;
@@ -1045,6 +1045,46 @@ begin
   end;
 end;
 
+procedure Tgdc_dlgFunction.SynCompletionProposalExecute(
+  Kind: SynCompletionType; Sender: TObject; var AString: String; x,
+  y: Integer; var CanExecute: Boolean);
+var
+  Str: String;
+  Script: TStrings;
+begin
+  CanExecute := False;
+  if Assigned(VBProposal) then
+  begin
+    ParserInit;
+    Str := dbseScript.LineText;
+    Str := GetStatament(Str, dbseScript.CaretX);
+
+    Script := TStringList.Create;
+    try
+      Script.Assign(dbseScript.Lines);
+      VBProposal.PrepareScript(Str, Script, dbseScript.CaretY);
+    finally
+      Script.Free;
+    end;
+    SynCompletionProposal.ItemList.Assign(VBProposal.ItemList);
+    SynCompletionProposal.InsertList.Assign(VBProposal.InsertList);
+{    TStringList(SynCompletionProposal.ItemList).Sort;
+    SynCompletionProposal.InsertList.Clear;
+
+    for I := 0 to SynCompletionProposal.ItemList.Count - 1 do
+    begin
+      P := Pos('(', SynCompletionProposal.ItemList[I]);
+      if P = 0 then
+        SynCompletionProposal.InsertList.Add(SynCompletionProposal.ItemList[I])
+      else
+        SynCompletionProposal.InsertList.Add(
+          System.Copy(SynCompletionProposal.ItemList[I], 1, P - 1))
+    end;}
+
+    CanExecute := SynCompletionProposal.ItemList.Count > 0;
+  end;
+end;
+
 procedure Tgdc_dlgFunction.ParserInit;
 begin
   FVBParser.IsEvent := False;
@@ -1212,34 +1252,6 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGFUNCTION', 'SAVESETTINGS', KEYSAVESETTINGS);
   {M}end;
   {END MACRO}
-end;
-
-procedure Tgdc_dlgFunction.SynCompletionProposalExecute(
-  Kind: TSynCompletionType; Sender: TObject; var CurrentInput: String;
-  var x, y: Integer; var CanExecute: Boolean);
-var
-  Str: String;
-  Script: TStrings;
-begin
-  CanExecute := False;
-  if Assigned(VBProposal) then
-  begin
-    ParserInit;
-    Str := dbseScript.LineText;
-    Str := GetStatament(Str, dbseScript.CaretX);
-
-    Script := TStringList.Create;
-    try
-      Script.Assign(dbseScript.Lines);
-      VBProposal.PrepareScript(Str, Script, dbseScript.CaretY);
-    finally
-      Script.Free;
-    end;
-    SynCompletionProposal.ItemList.Assign(VBProposal.ItemList);
-    SynCompletionProposal.InsertList.Assign(VBProposal.InsertList);
-
-    CanExecute := SynCompletionProposal.ItemList.Count > 0;
-  end;
 end;
 
 initialization

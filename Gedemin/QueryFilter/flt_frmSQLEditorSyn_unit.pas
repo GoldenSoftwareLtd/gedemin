@@ -256,6 +256,9 @@ type
     procedure actParseUpdate(Sender: TObject);
     procedure actParseExecute(Sender: TObject);
     procedure actRefreshChartExecute(Sender: TObject);
+    procedure SynCompletionProposalExecute(Kind: SynCompletionType;
+      Sender: TObject; var AString: String; x, y: Integer;
+      var CanExecute: Boolean);
     procedure chbxAutoCommitDDLClick(Sender: TObject);
     procedure actRefreshMonitorExecute(Sender: TObject);
     procedure actDeleteStatementUpdate(Sender: TObject);
@@ -279,9 +282,6 @@ type
     procedure actMakeSelectExecute(Sender: TObject);
     procedure actSaveFieldToFileExecute(Sender: TObject);
     procedure actSaveFieldToFileUpdate(Sender: TObject);
-    procedure SynCompletionProposalExecute(Kind: TSynCompletionType;
-      Sender: TObject; var CurrentInput: String; var x, y: Integer;
-      var CanExecute: Boolean);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -336,7 +336,7 @@ implementation
 
 uses
   flt_dlgInputParam_unit, syn_ManagerInterface_unit, prp_MessageConst,
-  IB, at_Classes, IBHeader, jclStrings, flt_SafeConversion_unit, SynEditTypes,
+  IB, at_Classes, IBHeader, jclStrings, flt_SafeConversion_unit,
   {$IFDEF GEDEMIN}
   gdcBaseInterface, flt_sql_parser, at_sql_setup,
   {$ENDIF}
@@ -1695,6 +1695,41 @@ begin
   {$ENDIF}
 end;
 
+procedure TfrmSQLEditorSyn.SynCompletionProposalExecute(
+  Kind: SynCompletionType; Sender: TObject; var AString: String; x,
+  y: Integer; var CanExecute: Boolean);
+var
+  str: string;
+  Script: TStrings;
+begin
+
+  CanExecute := False;
+  if Assigned(SQLProposal) then
+  begin
+    str := seQuery.LineText;
+    str := SQLProposal.GetStatement(str, seQuery.CaretX);
+
+    if str = '' then
+    begin
+      SynCompletionProposal.ItemList.Assign(SQLProposal.ItemList);
+      SynCompletionProposal.InsertList.Assign(SQLProposal.InsertList);
+      CanExecute := SynCompletionProposal.ItemList.Count > 0;
+    end else
+    begin
+      Script := TStringList.Create;
+      try
+        Script.Assign(seQuery.Lines);
+        SQLProposal.PrepareSQL(str, Script);
+      finally
+        Script.Free;
+      end;
+      SynCompletionProposal.ItemList.Assign(SQLProposal.FieldItemList);
+      SynCompletionProposal.InsertList.Assign(SQLProposal.FieldInsertList);
+      CanExecute := SynCompletionProposal.ItemList.Count > 0;
+    end;
+  end;
+end;
+
 procedure TfrmSQLEditorSyn.chbxAutoCommitDDLClick(Sender: TObject);
 begin
   {if UserStorage <> nil then
@@ -1990,41 +2025,6 @@ end;
 procedure TfrmSQLEditorSyn.actSaveFieldToFileUpdate(Sender: TObject);
 begin
   actSaveFieldToFile.Enabled := actShowRecord.Checked and sbRecord.Visible;
-end;
-
-procedure TfrmSQLEditorSyn.SynCompletionProposalExecute(
-  Kind: TSynCompletionType; Sender: TObject; var CurrentInput: String;
-  var x, y: Integer; var CanExecute: Boolean);
-var
-  str: string;
-  Script: TStrings;
-begin
-
-  CanExecute := False;
-  if Assigned(SQLProposal) then
-  begin
-    str := seQuery.LineText;
-    str := SQLProposal.GetStatement(str, seQuery.CaretX);
-
-    if str = '' then
-    begin
-      SynCompletionProposal.ItemList.Assign(SQLProposal.ItemList);
-      SynCompletionProposal.InsertList.Assign(SQLProposal.InsertList);
-      CanExecute := SynCompletionProposal.ItemList.Count > 0;
-    end else
-    begin
-      Script := TStringList.Create;
-      try
-        Script.Assign(seQuery.Lines);
-        SQLProposal.PrepareSQL(str, Script);
-      finally
-        Script.Free;
-      end;
-      SynCompletionProposal.ItemList.Assign(SQLProposal.FieldItemList);
-      SynCompletionProposal.InsertList.Assign(SQLProposal.FieldInsertList);
-      CanExecute := SynCompletionProposal.ItemList.Count > 0;
-    end;
-  end;
 end;
 
 initialization

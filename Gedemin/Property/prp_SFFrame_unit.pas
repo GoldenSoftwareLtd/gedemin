@@ -47,7 +47,7 @@ implementation
 
 uses
   rp_report_const, dm_i_ClientReport_unit, gd_i_ScriptFactory, gdcConstants,
-  prp_MessageConst, SynEditTypes
+  prp_MessageConst
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub

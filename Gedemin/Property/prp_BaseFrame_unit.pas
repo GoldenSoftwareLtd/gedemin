@@ -29,7 +29,7 @@ uses
   ComCtrls, StdCtrls, DBCtrls, Mask, Db, gdcBase, Menus, prp_TreeItems,
   ActnList, prp_dfPropertyTree_Unit, gd_createable_form, prp_dlgEvaluate_unit,
   SuperPageControl, prpDBComboBox, extctrls, StdActns, TB2Item, TB2Dock,
-  TB2Toolbar, IBSQL, TB2MDI, TB2Common, SynEditTypes;
+  TB2Toolbar, IBSQL, TB2MDI, TB2Common;
 
 type
  //Тип события вызываемого при изменении положения курсора
@@ -106,8 +106,8 @@ type
     FNeedDeleteDetail: Boolean;
 
     procedure SetCustomTreeItem(const Value: TCustomTreeItem); virtual;
-    function GetCaretXY: TBufferCoord; virtual;
-    procedure SetCaretXY(const Value: TBufferCoord); virtual;
+    function GetCaretXY: TPoint; virtual;
+    procedure SetCaretXY(const Value: TPoint); virtual;
     function GetMasterObject: TgdcBase;virtual; abstract;
     function GetDetailObject: TgdcBase; virtual;
     function GetObjectID: Integer;
@@ -237,7 +237,7 @@ type
     property InfoHint: String read GetInfoHint;
     property CanRun: Boolean read GetCanRun;
     property CanPrepare: Boolean read GetCanPrepare;
-    property CaretXY: TBufferCoord read GetCaretXY write SetCaretXY;
+    property CaretXY: TPoint read GetCaretXY write SetCaretXY;
     property MessageListView: TListView read FMessageListView write SetMessageListView;
     property ShowDeleteQuestion: Boolean read FShowDeleteQuestion write SetShowDeleteQuestion;
     property Name: string read GetName;
@@ -766,12 +766,13 @@ begin
 
 end;
 
-function TBaseFrame.GetCaretXY: TBufferCoord;
+function TBaseFrame.GetCaretXY: TPoint;
 begin
-  FillChar(Result, SizeOf(Result), 0);
+  Result.X := 0;
+  Result.Y := 0;
 end;
 
-procedure TBaseFrame.SetCaretXY(const Value: TBufferCoord);
+procedure TBaseFrame.SetCaretXY(const Value: TPoint);
 begin
 
 end;

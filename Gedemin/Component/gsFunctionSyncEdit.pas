@@ -29,7 +29,6 @@ type
     FShowOnlyColor: Tcolor;
     FOnPaintGutter: TOnPaintGutter;
     FOnBeforePaint: TOnBeforePaint;
-    FMaxLeftChar: Integer;
     procedure SetgdcFunction(const Value: TgdcFunction);
     procedure SetParser(const Value: TCustomParser);
     procedure SetUseParser(const Value: Boolean);
@@ -41,13 +40,15 @@ type
     { Protected declarations }
     procedure UpdateData(Sender: TObject); override;
     procedure DoLinesInserted(FirstLine, Count: integer); override;
+    procedure SetCaretXY(Value: TPoint); override;
+    procedure SetCaretXYEx(CallEnsureCursorPos: Boolean; Value: TPoint); override;
     function GetReadOnly: boolean; overload; override;
     function GetReadOnly(Line: Integer): Boolean; reintroduce; overload;// override;
     procedure SetReadOnly(Value: boolean); override;
 
     function DoOnSpecialLineColors(Line: integer;
       var Foreground, Background: TColor): boolean; override;
-    procedure PaintGutter(const AClip: TRect; const aFirstRow, aLastRow: integer); override;
+    procedure PaintGutter(AClip: TRect; FirstLine, LastLine: integer); override;
   public
     { Public declarations }
     constructor Create(AOwner: TComponent); override;
@@ -56,6 +57,7 @@ type
     // Если Flag = True, делает строку N только для чтения
     procedure LineShowOnly(const N: Integer;
       const Flag: Boolean);
+    procedure UpdateRecord; override;
     procedure LoadMemo; override;
     procedure CodeComplite;
     procedure CodeCompliteEx(AUseParser: Boolean);
@@ -69,7 +71,6 @@ type
     procedure SaveStateToStream(Stream: TStream);
     procedure LoadStateFromStream(Stream: TStream);
     procedure Paint; override;
-    procedure UpdateRecord;
   published
     { Published declarations }
     property gdcFunction: TgdcFunction read FgdcFunction write SetgdcFunction;
@@ -139,7 +140,7 @@ type
     property InsertCaret;
     property InsertMode;
     property Keystrokes;
-    property MaxLeftChar: Integer read FMaxLeftChar write FMaxLeftChar;
+    property MaxLeftChar;
     property MaxUndo;
     property Options;
     property OverwriteCaret;
@@ -294,8 +295,8 @@ end;
 function TgsFunctionSynEdit.GetReadOnly: boolean;
 begin
   Result := (not SelAvail and (TgsLineState(Lines.Objects[CaretY - 1]) in
-    [lsReadOnly, lsShowOnly])) or (SelAvail and ((TgsLineState(Lines.Objects[BlockBegin.Line - 1]) in
-    [lsReadOnly, lsShowOnly]) or (TgsLineState(Lines.Objects[BlockEnd.Line - 1]) in
+    [lsReadOnly, lsShowOnly])) or (SelAvail and ((TgsLineState(Lines.Objects[BlockBegin.Y - 1]) in
+    [lsReadOnly, lsShowOnly]) or (TgsLineState(Lines.Objects[BlockEnd.Y - 1]) in
     [lsReadOnly, lsShowOnly])));
 end;
 
@@ -319,7 +320,7 @@ end;
 
 procedure TgsFunctionSynEdit.LoadCaretXYFromStream(Stream: TStream);
 var
-  C: TBufferCoord;
+  C: TPoint;
 begin
   if not Assigned(Stream) then
     raise Exception.Create(MSG_STREAM_DO_NOT_INIT);
@@ -328,7 +329,7 @@ begin
     Exit;
   Stream.ReadBuffer(C, SizeOf(C));
   IncPaintLock;
-  if FFirstLoad then C.Char := 1;
+  if FFirstLoad then C.X := 1;
   CaretXY := C;
   DecPaintLock;
 end;
@@ -344,7 +345,8 @@ begin
   if not Assigned(Stream) then
     raise Exception.Create(MSG_STREAM_DO_NOT_INIT);
 
-  FMarkList.Clear;
+  for I := FMarkList.Count - 1 downto 0 do
+    FMarkList.Delete(I);
 
   for I := 0 to 9 do
     fBookMarks[I] := nil;
@@ -355,13 +357,13 @@ begin
   Stream.ReadBuffer(lCount, SizeOf(lCount));
   for I := 0 to lCount - 1 do
   begin
-    M := TSynEditMark.Create;
+    M := TSynEditMark.Create(Self);
     with M do
     begin
       Stream.ReadBuffer(Buf, SizeOf(Buf));
       Line := Buf;
       Stream.ReadBuffer(Buf, SizeOf(Buf));
-      Char := Buf;
+      Column := Buf;
       Stream.ReadBuffer(Buf, SizeOf(Buf));
       BookmarkNumber := Buf;
       Stream.ReadBuffer(Buf, SizeOf(Buf));
@@ -376,58 +378,16 @@ begin
 end;
 
 procedure TgsFunctionSynEdit.LoadMemo;
-{$IFDEF SYN_COMPILER_3_UP}
-//var
-//  BlobStream: TStream;
-{$ELSE}
-//var
-//  BlobStream: TBlobStream;
-//  BlobField: TBlobField;
-{$ENDIF}
 var
-  Str: TStream;
-begin
-  try
-{$IFDEF SYN_COMPILER_3_UP}
-//    BlobStream := FDataLink.DataSet.CreateBlobStream(FDataLink.Field, bmRead);
-{$ELSE}
-//    BlobField := FDataLink.Field as TBlobField;
-//    BlobStream := TBlobStream.Create(BlobField, bmRead);
-{$ENDIF}
-    Lines.BeginUpdate;
-    try
-      if Assigned(FgdcFunction) and FgdcFunction.Active then
-        Lines.Text := gdcFunction.FieldByName('Script').AsString;
-
-      Str := gdcFunction.CreateBlobStream(gdcFunction.FieldByName('editorstate'),
-        DB.bmRead);
-      try
-        LoadStateFromStream(Str);
-      finally
-        Str.Free;
-      end;
-    finally
-      Lines.EndUpdate;
-      Modified := false;
-      if FFirstLoad then FFirstLoad := False;
-      ClearUndo;
-    end;
-  except
-    { Memo too large }
-    on E: EInvalidOperation do
-      Lines.Text := Format('(%s)', [E.Message]);
-  end;
-  EditingChange(Self);
-end;
-
-{
-var
+//  CP: TPoint;
   Str: TStream;
 begin
   Lines.BeginUpdate;
   try
+//    CP := CaretXY;
     if Assigned(FgdcFunction) and FgdcFunction.Active then
       Lines.Text :=  gdcFunction.FieldByName('Script').AsString;
+
 
     Str := gdcFunction.CreateBlobStream(gdcFunction.FieldByName('editorstate'),
       DB.bmRead);
@@ -440,10 +400,10 @@ begin
     Lines.EndUpdate;
     Modified := False;
     if FFirstLoad then FFirstLoad := False;
+//    CaretXY := CP;
     ClearUndo;
   end;
 end;
-}
 
 procedure TgsFunctionSynEdit.LoadStateFromStream(Stream: TStream);
 begin
@@ -462,19 +422,20 @@ begin
   inherited;
 end;
 
-procedure TgsFunctionSynEdit.PaintGutter(const AClip: TRect; const aFirstRow, aLastRow: integer);
+procedure TgsFunctionSynEdit.PaintGutter(AClip: TRect; FirstLine,
+  LastLine: integer);
 begin
   inherited;
 
   if Assigned(FOnPaintGutter) then
-    FOnPaintGutter(AClip, aFirstRow, aLastRow);
+    FOnPaintGutter(AClip, FirstLine, LastLine);
 end;
 
 
 
 procedure TgsFunctionSynEdit.SaveCaretXYToStream(Stream: TStream);
 var
-  C: TBufferCoord;
+  C: TPoint;
 begin
   if not Assigned(Stream) then
     raise Exception.Create(MSG_STREAM_DO_NOT_INIT);
@@ -500,7 +461,7 @@ begin
     begin
       Buf := Line;
       Stream.WriteBuffer(Buf, SizeOf(Buf));
-      Buf := Char;
+      Buf := Column;
       Stream.WriteBuffer(Buf, SizeOf(Buf));
       Buf := BookmarkNumber;
       Stream.WriteBuffer(Buf, SizeOf(Buf));
@@ -545,6 +506,17 @@ begin
   end;
 end;
 
+procedure TgsFunctionSynEdit.SetCaretXY(Value: TPoint);
+begin
+  inherited;
+end;
+
+procedure TgsFunctionSynEdit.SetCaretXYEx(CallEnsureCursorPos: Boolean;
+  Value: TPoint);
+begin
+  inherited;
+end;
+
 procedure TgsFunctionSynEdit.SetgdcFunction(const Value: TgdcFunction);
 begin
   FgdcFunction := Value;
@@ -582,28 +554,28 @@ begin
 end;
 
 procedure TgsFunctionSynEdit.UpdateData(Sender: TObject);
-var
-  Str: TStream;
 begin
-  if Modified then
-  begin
-    Str := gdcFunction.CreateBlobStream(gdcFunction.FieldByName('editorstate'),
-      DB.bmWrite);
-    try
-      Str.Size := 0;
-      SaveStateToStream(Str);
-    finally
-      Str.Free;
-    end;
-  end;
-
   if Assigned(FDataLink) and Assigned(FDataLink.Field) then
     FDataLink.Field.AsString := Lines.Text;
 end;
 
 procedure TgsFunctionSynEdit.UpdateRecord;
+var
+  Str: TStream;
 begin
-  UpdateData(nil);
+  Str := gdcFunction.CreateBlobStream(gdcFunction.FieldByName('editorstate'),
+    DB.bmWrite);
+  try
+    Str.Size := 0;
+    SaveStateToStream(Str);
+  finally
+    Str.Free;
+  end;
+
+  if Modified then
+    UpdateData(Self)
+  else
+    FDataLink.UpdateRecord;
 end;
 
 end.
