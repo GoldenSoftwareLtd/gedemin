@@ -9,7 +9,7 @@ uses
   IBSQL, ActnList, Menus, gsDesktopManager,  StdCtrls,
   dmImages_unit, gd_security_OperationConst, {gsTrayIcon,}
   AppEvnts, Db, IBCustomDataSet, IBServices, gdHelp_Body,
-  gd_createable_form, TB2Item, TB2Dock, TB2Toolbar, IBQuery,
+  gd_createable_form, TB2Item, TB2Dock, TB2Toolbar,
   gsIBLookupComboBox;
 
 const
@@ -767,6 +767,7 @@ begin
   gsStorage_CompPath.MainForm := Self;
 
   Application.OnShowHint := ApplicationEventsShowHint;
+
   {$IFNDEF PROTECT}
   TBItem4.Visible := False;
   TBItem3.Visible := False;
@@ -813,7 +814,6 @@ begin
   begin
     if Assigned(gdSplash) then
       gdSplash.ShowText(sLoadingExplorer);
-
     Tgdc_frmExplorer.CreateAndAssign(Application);
   end;
 
@@ -1807,18 +1807,20 @@ procedure TfrmGedeminMain.actCloseFormExecute(Sender: TObject);
 var
   TabPos: TPoint;
   I: Integer;
+  Form: TObject;
 begin
   TabPos := TCrackPopupMenu(pmForms).PopupPoint;
   TabPos := tcForms.ScreenToClient(TabPos);
   I := tcForms.IndexOfTabAt(TabPos.x, TabPos.y);
   if I > -1 then
   try
-    if tcForms.Tabs.Objects[I] is TfrmGedeminProperty then
+    Form := tcForms.Tabs.Objects[I];
+    if Form is TfrmGedeminProperty then
     begin
-      if (tcForms.Tabs.Objects[I] as TfrmGedeminProperty).Restored then
-       (tcForms.Tabs.Objects[I] as TForm).Free;
+      if (Form as TfrmGedeminProperty).Restored then
+       (Form as TForm).Free;
     end else
-      (tcForms.Tabs.Objects[I] as TForm).Free;
+      (Form as TForm).Free;
   except
     //oops!
     tcForms.Tabs.Delete(I);
@@ -1858,23 +1860,25 @@ end;
 procedure TfrmGedeminMain.actCloseAllExecute(Sender: TObject);
 var
   I: Integer;
+  Form: TObject;
 begin
   if MessageBox(Handle, 'Закрыть все формы?', 'Внимание', MB_YESNO or MB_ICONQUESTION) = IDYES then
   begin
     for I := tcForms.Tabs.Count - 1 downto 0 do
     try
       try
-        if gdc_frmExplorer <> tcForms.Tabs.Objects[I] then
+        Form := tcForms.Tabs.Objects[I];
+        if gdc_frmExplorer <> Form then
         begin
-          if tcForms.Tabs.Objects[I] is TForm then
+          if Form is TForm then
           begin
-            if tcForms.Tabs.Objects[I] is TfrmGedeminProperty then
+            if Form is TfrmGedeminProperty then
             begin
-              if (tcForms.Tabs.Objects[I] as TfrmGedeminProperty).Restored then
-                (tcForms.Tabs.Objects[I] as TForm).Free;
+              if (Form as TfrmGedeminProperty).Restored then
+                (Form as TForm).Free;
             end
             else
-              (tcForms.Tabs.Objects[I] as TForm).Free;
+              (Form as TForm).Free;
           end;
         end;
       except
