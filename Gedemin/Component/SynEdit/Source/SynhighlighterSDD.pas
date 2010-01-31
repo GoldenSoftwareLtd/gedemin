@@ -25,34 +25,32 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterSDD.pas,v 1.14 2005/01/28 16:53:25 maelh Exp $
+$Id: SynhighlighterSDD.pas,v 1.5 2001/10/24 09:39:25 plpolak Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
 
 -------------------------------------------------------------------------------}
 
-{$IFNDEF QSYNHIGHLIGHTERSDD}
 unit SynHighlighterSDD;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
+  SysUtils,
+  Classes,
+{$IFDEF SYN_KYLIX}
+  QControls,
   QGraphics,
-  QSynEditTypes,
-  QSynEditHighlighter,
 {$ELSE}
   Windows,
+  Controls,
   Graphics,
-  SynEditTypes,
-  SynEditHighlighter,
 {$ENDIF}
-  SysUtils,
-  Classes;
+  SynEditTypes,
+  SynEditHighlighter;
 
 type
   TtkTokenKind = (
@@ -146,7 +144,7 @@ type
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
       override;
-    function GetEol: Boolean; override;
+    function GetEOL: Boolean; override;
     function GetTokenID: TtkTokenKind;
     procedure SetLine(NewValue: String; LineNumber: Integer); override;
     function GetToken: String; override;
@@ -167,11 +165,7 @@ type
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditStrConst;
-{$ELSE}
   SynEditStrConst;
-{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -535,7 +529,7 @@ procedure TSynSDDSyn.UnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run, 2)
+    Inc(Run,2)
   else
 {$ENDIF}
   inc(Run);
@@ -601,10 +595,10 @@ begin
 end; { GetDefaultAttribute }
 
 
-function TSynSDDSyn.GetEol: Boolean;
+function TSynSDDSyn.GetEOL: Boolean;
 begin
   Result := fTokenID = tkNull;
-end; { GetEol }
+end; { GetEOL }
 
 
 function TSynSDDSyn.GetToken: String;
@@ -676,6 +670,7 @@ begin
   Result := TSynValidStringChars;
 end; { GetIdentChars }
 
+
 class function TSynSDDSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangSDD;
@@ -715,3 +710,4 @@ initialization
   RegisterPlaceableHighlighter(TSynSDDSyn);
 {$ENDIF}
 end.
+

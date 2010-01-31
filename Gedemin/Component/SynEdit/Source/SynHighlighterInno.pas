@@ -25,7 +25,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterInno.pas,v 1.23 2005/01/28 16:53:23 maelh Exp $
+$Id: SynHighlighterInno.pas,v 1.15 2001/10/24 09:39:26 plpolak Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -41,32 +41,23 @@ The SynHighlighterInno unit provides an Inno script file highlighter for SynEdit
 Check out http://www.jrsoftware.org for the free Inno Setup program,
 and http://www.wintax.nl/isx/ for My Inno Setup Extensions.
 }
-
-{$IFNDEF QSYNHIGHLIGHTERINNO}
 unit SynHighlighterInno;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  QGraphics,
-  QSynEditTypes,
-  QSynEditHighlighter,
-  QSynHighlighterHashEntries,
-{$ELSE}
-  Graphics,
-  SynEditTypes,
-  SynEditHighlighter,
-  SynHighlighterHashEntries,
-{$ENDIF}
-  SysUtils,
-  Classes;
+  SysUtils, Classes,
+  {$IFDEF SYN_KYLIX}
+  Qt, QControls, QGraphics,
+  {$ELSE}
+  Windows, Messages, Controls, Graphics, Registry,
+  {$ENDIF}
+  SynEditTypes, SynEditHighlighter, SynHighlighterHashEntries;
 
 type
-  TtkTokenKind = (tkComment, tkConstant, tkIdentifier, tkKey, tkKeyOrParameter,
+  TtkTokenKind = (tkComment, tkConstant, tkIdentifier, tkKey, tkKeyOrParameter, //mh 2001-02-07
     tkNull, tkNumber, tkParameter, tkSection, tkSpace, tkString, tkSymbol,
     tkUnknown);
 
@@ -115,9 +106,9 @@ type
     procedure MakeMethodTables;
   protected
     function GetIdentChars: TSynIdentChars; override;
-    function IsFilterStored: Boolean; override;
   public
-    class function GetLanguageName: string; override;
+    {$IFNDEF SYN_CPPB_1} class {$ENDIF}
+    function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -158,11 +149,7 @@ type
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditStrConst;
-{$ELSE}
   SynEditStrConst;
-{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -175,14 +162,15 @@ const
   {Ref:  Keywords and Parameters are updated as they last appeared in
          Inno Setup / ISX version 1.3.26}
 
+{begin}                                                                         //satya 2001-01-23
   Keywords: string =
-    'AdminPrivilegesRequired,AllowNoIcons,AllowRootDirectory,AllowUNCPath,' +
+    'AdminPrivilegesRequired,AllowNoIcons,AllowRootDirectory,' +
     'AlwaysCreateUninstallIcon,AlwaysRestart,AlwaysShowComponentsList,' +
     'AlwaysShowDirOnReadyPage,AlwaysShowGroupOnReadyPage,' +
     'AlwaysUsePersonalGroup,AppCopyright,AppId,AppMutex,AppName,AppPublisher,' +
     'AppPublisherURL,AppSupportURL,AppUpdatesURL,AppVerName,AppVersion,' +
     'Attribs,BackColor,BackColor2,BackColorDirection,BackSolid,Bits,' +
-    'ChangesAssociations,Check,CodeFile,Comment,Components,Compression,CompressLevel,CopyMode,'+
+    'ChangesAssociations,Check,CodeFile,Comment,Components,CompressLevel,CopyMode,'+
     'CreateAppDir,CreateUninstallRegKey,DefaultDirName,DefaultGroupName,' +
     'Description,DestDir,DestName,DirExistsWarning,DisableAppendDir,' +
     'DisableDirExistsWarning,DisableDirPage,DisableFinishedPage,' +
@@ -191,7 +179,7 @@ const
     'DiskSpanning,DontMergeDuplicateFiles,EnableDirDoesntExistWarning,' +
     'ExtraDiskSpaceRequired,Filename,Flags,FlatComponentsList,FontInstall,' +
     'GroupDescription,HotKey,IconFilename,IconIndex,InfoAfterFile,InfoBeforeFile,' +
-    'InstallMode,InternalCompressLevel,Key,LicenseFile,MessagesFile,MinVersion,Name,' +
+    'InstallMode,Key,LicenseFile,MessagesFile,MinVersion,Name,' +
     'OnlyBelowVersion,OutputBaseFilename,OutputDir,OverwriteUninstRegEntries,' +
     'Parameters,Password,ReserveBytes,Root,RunOnceId,Section,' +
     'ShowComponentSizes,Source,SourceDir,StatusMsg,Subkey,Tasks,Type,Types,' +
@@ -215,12 +203,14 @@ const
     'preservestringtype,regserver,regtypelib,restart,restartreplace,' +
     'runmaximized,runminimized,sharedfile,shellexec,showcheckbox,' +
     'skipifnotsilent,skipifsilent,silent,skipifdoesntexist,' +
-    'skipifsourcedoesntexist,unchecked,uninsalwaysuninstall,' +
+//    'skipifsourcedoesntexist,string,unchecked,uninsalwaysuninstall,' +
+    'skipifsourcedoesntexist,unchecked,uninsalwaysuninstall,' +                 //mh 2001-02-07
     'uninsclearvalue,uninsdeleteentry,uninsdeletekey,uninsdeletekeyifempty,' +
     'uninsdeletesection,uninsdeletesectionifempty,uninsdeletevalue,' +
     'uninsneveruninstall,useapppaths,verysilent,waituntilidle';
+{end}                                                                           //satya 2001-01-23
 
-  KeyOrParameter: string = 'string';
+  KeyOrParameter: string = 'string';                                            //mh 2001-02-07
 
 procedure MakeIdentTable;
 var
@@ -375,7 +365,7 @@ begin
   SetAttributesOnChange(DefHighlightChange);
   EnumerateKeywords(Ord(tkKey), Keywords, IdentChars, DoAddKeyword);
   EnumerateKeywords(Ord(tkParameter), Parameters, IdentChars, DoAddKeyword);
-  EnumerateKeywords(Ord(tkKeyOrParameter), KeyOrParameter, IdentChars,
+  EnumerateKeywords(Ord(tkKeyOrParameter), KeyOrParameter, IdentChars,          //mh 2001-02-07
     DoAddKeyword);
   MakeMethodTables;
   fDefaultFilter := SYNS_FilterInno;
@@ -429,6 +419,8 @@ var
 begin
   fTokenID := IdentKind((fLine + Run));
   inc(Run, fStringLen);
+{begin}                                                                         //mh 2001-02-07
+//  while Identifiers[fLine[Run]] do inc(Run);
   if fTokenID = tkKeyOrParameter then begin
     LookAhead := Run;
     while fLine[LookAhead] in [#9, ' '] do
@@ -438,6 +430,7 @@ begin
     else
       fTokenID := tkParameter;
   end;
+{end}                                                                           //mh 2001-02-07
 end;
 
 procedure TSynInnoSyn.SectionProc;
@@ -553,6 +546,17 @@ end;
 procedure TSynInnoSyn.StringProc;
 begin
   fTokenID := tkString;
+{begin}                                                                         //mh 2001-02-07
+(*
+  if (FLine[Run + 1] = #34) and (FLine[Run + 2] = #34) then inc(Run, 2);
+  repeat
+    case FLine[Run] of
+      #0, #10, #13: break;
+    end;
+    inc(Run);
+  until FLine[Run] = #34;
+  if FLine[Run] <> #0 then inc(Run);
+*)
   repeat
     Inc(Run);
     if fLine[Run] = '"' then begin
@@ -561,15 +565,11 @@ begin
         break;
     end;
   until fLine[Run] in [#0, #10, #13];
+{end}                                                                           //mh 2001-02-07
 end;
 
 procedure TSynInnoSyn.UnknownProc;
 begin
-{$IFDEF SYN_MBCSSUPPORT}
-  if FLine[Run] in LeadBytes then
-    Inc(Run, 2)
-  else
-{$ENDIF}
   inc(Run);
   fTokenID := tkUnknown;
 end;
@@ -647,12 +647,8 @@ begin
   Result := TSynValidStringChars;
 end;
 
-function TSynInnoSyn.IsFilterStored: Boolean;
-begin
-  Result := fDefaultFilter <> SYNS_FilterInno;
-end;
-
-class function TSynInnoSyn.GetLanguageName: string;
+{$IFNDEF SYN_CPPB_1} class {$ENDIF}
+function TSynInnoSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangInno;
 end;

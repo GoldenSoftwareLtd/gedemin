@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynEditKeyCmdEditor.pas,v 1.10 2004/06/25 14:14:20 markonjezic Exp $
+$Id: SynEditKeyCmdEditor.pas,v 1.3 2001/10/17 12:52:04 harmeister Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -35,43 +35,51 @@ located at http://SynEdit.SourceForge.net
 Known Issues:
 -------------------------------------------------------------------------------}
 
-{$IFNDEF QSYNEDITKEYCMDEDITOR}
+
+{-------------------------------------------------------------------------------
+The contents of this file are subject to the Mozilla Public License
+Version 1.1 (the "License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+http://www.mozilla.org/MPL/
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
+the specific language governing rights and limitations under the License.
+
+
+The Original Code is based on , part of the mwEdit component
+suite.
+All Rights Reserved.
+
+Contributors:
+
+  For a list of the contributors to the mwEdit project see the
+  accompanying Contributors.mwEdit.txt file.
+
+Last Modified: 2000-04-07
+Current Version: 1.00
+
+You may retrieve the latest version of this file at the SynEdit home page,
+located at http://SynEdit.SourceForge.net
+
+Known Issues:
+-------------------------------------------------------------------------------}
+
 unit SynEditKeyCmdEditor;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  Qt,
-  QGraphics,
-  QMenus,
-  QControls,
-  QForms,
-  QDialogs,
-  QStdCtrls,
-  QExtCtrls,
-  QComCtrls,
-  QSynEditKeyCmds,
-  QSynEditMiscClasses,
-{$ELSE}
-  Windows,
-  Messages,
-  Graphics,
-  Menus,
-  Controls,
-  Forms,
-  Dialogs,
-  StdCtrls,
-  ComCtrls,
-  ExtCtrls,
-  SynEditKeyCmds,
-  SynEditMiscClasses,
-{$ENDIF}
-  SysUtils,
-  Classes;
+  SysUtils, Classes,
+  {$IFDEF SYN_KYLIX}
+  Qt, QGraphics, QMenus, QControls, QForms, QDialogs,
+  QStdCtrls, QComCtrls,
+  {$ELSE}
+  Windows, Messages, Graphics, Menus, Controls, Forms, Dialogs,
+  StdCtrls, ComCtrls,
+  {$ENDIF}
+  SynEditKeyCmds, ExtCtrls, SynEditMiscClasses;
 
 
 type
@@ -91,8 +99,6 @@ type
     procedure cmbCommandExit(Sender: TObject);
     procedure btnOKClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure FormKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
   private
     FExtended: Boolean;
     procedure SetCommand(const Value: TSynEditorCommand);
@@ -222,6 +228,7 @@ begin
   begin
      cmbCommand.ItemIndex := cmbCommand.Items.IndexOf(ConvertCodeStringToExtended('ecNone'));
   end else cmbCommand.ItemIndex := TmpIndex;  //need to force it incase they just typed something in
+  hkKeystroke2.Enabled := not ((Command >= 1004) and (Command <= 1057))
 end;
 
 procedure TSynEditKeystrokeEditorForm.btnOKClick(Sender: TObject);
@@ -231,7 +238,8 @@ begin
     MessageDlg('You must first select a command.', mtError, [mbOK], 0);
     cmbCommand.SetFocus;
     cmbCommand.SelectAll;
-  end else if Keystroke = 0 then
+  end else
+  if Keystroke = 0 then
   begin
     MessageDlg('The command "'+cmbCommand.Text+'" needs to have at least one keystroke assigned to it.', mtError, [mbOK], 0);
     hkKeystroke.SetFocus;
@@ -239,7 +247,8 @@ begin
 end;
 
 procedure TSynEditKeystrokeEditorForm.FormCreate(Sender: TObject);
-begin    
+begin
+{$IFNDEF SYN_KYLIX}
   hkKeystroke := TSynHotKey.Create(self);
   with hkKeystroke do
   begin
@@ -249,8 +258,8 @@ begin
     Width := 186;
     Height := 19;
     HotKey := 0;
-    InvalidKeys := [];
-    Modifiers := [];
+//    InvalidKeys := [hcNone];
+//    Modifiers := [];
     TabOrder := 1;
   end;
 
@@ -263,16 +272,12 @@ begin
     Width := 186;
     Height := 19;
     HotKey := 0;
-    InvalidKeys := [];
-    Modifiers := [];
+//    InvalidKeys := [hcNone];
+//    Modifiers := [];
     TabOrder := 2;
   end;
-end;
 
-procedure TSynEditKeystrokeEditorForm.FormKeyDown(Sender: TObject;
-  var Key: Word; Shift: TShiftState);
-begin
-  // if this event is not present CLX will complain
+  {$ENDIF}
 end;
 
 end.

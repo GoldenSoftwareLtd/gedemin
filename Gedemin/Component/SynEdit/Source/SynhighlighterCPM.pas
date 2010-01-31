@@ -25,36 +25,31 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterCPM.pas,v 1.17 2005/01/28 16:53:21 maelh Exp $
+$Id: SynhighlighterCPM.pas,v 1.7 2001/10/24 09:39:26 plpolak Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
 
 -------------------------------------------------------------------------------}
-
-{$IFNDEF QSYNHIGHLIGHTERCPM}
-unit SynHighlighterCPM;
-{$ENDIF}
+unit SynhighlighterCPM;
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  QGraphics,
-  QSynEditTypes,
-  QSynEditHighlighter,
-{$ELSE}
-  Graphics,
-  SynEditTypes,
-  SynEditHighlighter,
-{$ENDIF}
   SysUtils,
-  Classes;
-
-const
-  MaxKey = 291;
+  Classes,
+{$IFDEF SYN_KYLIX}
+  QControls,
+  QGraphics,
+{$ELSE}
+  Windows,
+  Controls,
+  Graphics,
+{$ENDIF}
+  SynEditTypes,
+  SynEditHighlighter;
 
 Type
   TtkTokenKind = (
@@ -92,7 +87,7 @@ type
     fToIdent: PChar;
     fTokenPos: Integer;
     fTokenID: TtkTokenKind;
-    fIdentFuncTable: array[0..MaxKey] of TIdentFuncTableFunc;
+    fIdentFuncTable: array[0..271] of TIdentFuncTableFunc;
     fCommentAttri: TSynHighlighterAttributes;
     fIdentifierAttri: TSynHighlighterAttributes;
     fKeyAttri: TSynHighlighterAttributes;
@@ -165,7 +160,6 @@ type
     function Func120: TtkTokenKind;
     function Func122: TtkTokenKind;
     function Func125: TtkTokenKind;
-    function Func126: TtkTokenKind;
     function Func127: TtkTokenKind;
     function Func128: TtkTokenKind;
     function Func130: TtkTokenKind;
@@ -196,16 +190,12 @@ type
     function Func174: TtkTokenKind;
     function Func178: TtkTokenKind;
     function Func186: TtkTokenKind;
-    function Func187: TtkTokenKind;
-    function Func188: TtkTokenKind;
     function Func198: TtkTokenKind;
     function Func210: TtkTokenKind;
     function Func211: TtkTokenKind;
     function Func212: TtkTokenKind;
     function Func213: TtkTokenKind;
     function Func271: TtkTokenKind;
-    function Func273: TtkTokenKind;
-    function Func291: TtkTokenKind;
     procedure CRProc;
     procedure LFProc;
     procedure SemiColonProc;
@@ -233,7 +223,7 @@ type
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
       override;
-    function GetEol: Boolean; override;
+    function GetEOL: Boolean; override;
     function GetTokenID: TtkTokenKind;
     procedure SetLine(NewValue: String; LineNumber: Integer); override;
     function GetToken: String; override;
@@ -261,11 +251,7 @@ type
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditStrConst;
-{$ELSE}
   SynEditStrConst;
-{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -361,7 +347,6 @@ begin
   fIdentFuncTable[120] := Func120;
   fIdentFuncTable[122] := Func122;
   fIdentFuncTable[125] := Func125;
-  fIdentFuncTable[126] := Func126;
   fIdentFuncTable[127] := Func127;
   fIdentFuncTable[128] := Func128;
   fIdentFuncTable[130] := Func130;
@@ -392,16 +377,12 @@ begin
   fIdentFuncTable[174] := Func174;
   fIdentFuncTable[178] := Func178;
   fIdentFuncTable[186] := Func186;
-  fIdentFuncTable[187] := Func187;
-  fIdentFuncTable[188] := Func188;
   fIdentFuncTable[198] := Func198;
   fIdentFuncTable[210] := Func210;
   fIdentFuncTable[211] := Func211;
   fIdentFuncTable[212] := Func212;
   fIdentFuncTable[213] := Func213;
   fIdentFuncTable[271] := Func271;
-  fIdentFuncTable[273] := Func273;
-  fIdentFuncTable[291] := Func291;
 end; { InitIdent }
 
 
@@ -726,8 +707,7 @@ begin
   if KeyComp('OUTPUT') then Result := tkKey else
     if KeyComp('SORTKEY') then Result := tkKey else
       if KeyComp('READINSTANCE') then Result := tkSystem else
-        if KeyComp('SQL_MLADD') then Result := tkSQLKey else
-          if KeyComp('SQL_FREE') then Result := tkSQLKey else Result := tkIdentifier;
+        if KeyComp('SQL_FREE') then Result := tkSQLKey else Result := tkIdentifier;
 end;
 
 function TSynCPMSyn.Func114: TtkTokenKind;
@@ -774,11 +754,6 @@ begin
   if KeyComp('CONSTANTS') then Result := tkKey else Result := tkIdentifier;
 end;
 
-function TSynCPMSyn.Func126: TtkTokenKind;
-begin
-  if KeyComp('ALLENTITIES') then Result := tkKey else Result := tkIdentifier;
-end;
-
 function TSynCPMSyn.Func127: TtkTokenKind;
 begin
   if KeyComp('FILTERSTR') then Result := tkSystem else Result := tkIdentifier;
@@ -788,7 +763,8 @@ function TSynCPMSyn.Func128: TtkTokenKind;
 begin
   if KeyComp('FILEEXISTS') then Result := tkSystem else
     if KeyComp('MULTIPLY') then Result := tkSystem else
-      if KeyComp('SORTDOWN') then Result := tkKey else Result := tkIdentifier;
+      if KeyComp('SORTDOWN') then Result := tkKey else
+        if KeyComp('V_ORAERR') then Result := tkSpecialVar else Result := tkIdentifier;
 end;
 
 function TSynCPMSyn.Func130: TtkTokenKind;
@@ -939,16 +915,6 @@ begin
   if KeyComp('SQL_ASSTRING') then Result := tkSQLKey else Result := tkIdentifier;
 end;
 
-function TSynCPMSyn.Func187: TtkTokenKind;
-begin
-  if KeyComp('V_PAR_LANGUAGE') then Result := tkSpecialVar else Result := tkIdentifier;
-end;
-
-function TSynCPMSyn.Func188: TtkTokenKind;
-begin
-  if KeyComp('SQL_MLMULTIADD') then Result := tkSQLKey else Result := tkIdentifier;
-end;
-
 function TSynCPMSyn.Func198: TtkTokenKind;
 begin
   if KeyComp('LOWERLEVELSTOO') then Result := tkKey else Result := tkIdentifier;
@@ -980,15 +946,6 @@ begin
   if KeyComp('ALLQUALITYPROPERTIES') then Result := tkKey else Result := tkIdentifier;
 end;
 
-function TSynCPMSyn.Func273: TtkTokenKind;
-begin
-  if KeyComp('V_PAR_LANGUAGE_FIELDS') then Result := tkSpecialVar else Result := tkIdentifier;
-end;
-
-function TSynCPMSyn.Func291: TtkTokenKind;
-begin
-  if KeyComp('V_PAR_LANGUAGE_COUNT') then Result := tkSpecialVar else Result := tkIdentifier;
-end;
 
 function TSynCPMSyn.AltFunc: TtkTokenKind;
 begin
@@ -1002,7 +959,7 @@ var
 begin
   fToIdent := MayBe;
   HashKey := KeyHash(MayBe);
-  if HashKey <= MaxKey then
+  if HashKey < 272 then
     Result := fIdentFuncTable[HashKey]
   else
     Result := tkIdentifier;
@@ -1043,7 +1000,7 @@ begin
       '['..'^',
       '`', '~' : begin
                    case I of
-                     ';': fProcTable[I] := SemiColonProc;
+                     ';': fProcTable[I] := SemicolonProc;
                    else
                      fProcTable[I] := SymbolProc;
                    end;
@@ -1184,7 +1141,7 @@ procedure TSynCPMSyn.UnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run, 2)
+    Inc(Run,2)
   else
 {$ENDIF}
   inc(Run);
@@ -1218,10 +1175,10 @@ begin
 end; { GetDefaultAttribute }
 
 
-function TSynCPMSyn.GetEol: Boolean;
+function TSynCPMSyn.GetEOL: Boolean;
 begin
   Result := fTokenID = tkNull;
-end; { GetEol }
+end; { GetEOL }
 
 
 function TSynCPMSyn.GetToken: String;
@@ -1333,25 +1290,24 @@ end; { LFProc }
 function TSynCPMSyn.GetSampleSource: string;
 begin
   Result := '{ COAS Product Manager report (RDF) }'#13#10 +
-            'PARAM'#13#10 +
+            'PARAM;'#13#10 +
             '  LANGUAGE;'#13#10 +
             '  CONTINUE;'#13#10 +
             'END; { Param }'#13#10 +
             #13#10 +
-            'GLOBALS'#13#10 +
+            'GLOBALS;'#13#10 +
             '  LANGUAGE = LOCAL;'#13#10 +
-            'END; { Globals }'#13#10 +
             #13#10 +
-            'DEFINITION BLOCK "MAIN"'#13#10 +
+            'DEFINITION BLOCK "DEMO"'#13#10 +
             'VARIABLES'#13#10 +
             '  S_Query = "";'#13#10 +
             '  V_OraErr = -1;'#13#10 +
-            '  V_Count;'#13#10 +
             'BEGIN'#13#10 +
             '  ASSIGN(S_Query, "SELECT * FROM DUAL");'#13#10 +
             '  SQL_CREATE(V_OraErr, S_Query);'#13#10 +
-            '  ASSIGN(V_Count, V_NoneReal);'#13#10 +
-            'END;';
+            '  SQL_EXECUTE(V_OraErr, S_Query);'#13#10 +
+            '  SQL_FREE(V_OraErr, S_Query);'#13#10 +
+            'END';
 end; { GetSampleSource }
 
 
@@ -1394,7 +1350,6 @@ procedure TSynCPMSyn.ResetRange;
 begin
   inherited;
   fRange := rsUnknown;
-  fCommentLevel := 0;
 end; { ResetRange }
 
 
@@ -1421,3 +1376,4 @@ initialization
   RegisterPlaceableHighlighter(TSynCPMSyn);
 {$ENDIF}
 end.
+

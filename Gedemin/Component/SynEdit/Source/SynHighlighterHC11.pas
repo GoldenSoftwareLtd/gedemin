@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterHC11.pas,v 1.14 2005/01/28 16:53:22 maelh Exp $
+$Id: SynHighlighterHC11.pas,v 1.6 2001/10/24 09:39:26 plpolak Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -44,26 +44,20 @@ The highlighter supports all 68HC11 op codes.
 Thanks to Martin Waldenburg, David Muir, Hideo Koiso and Nick Hoddinott.
 }
 
-{$IFNDEF QSYNHIGHLIGHTERHC11}
 unit SynHighlighterHC11;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  QGraphics,
-  QSynEditHighlighter,
-  QSynEditTypes,
-{$ELSE}
-  Graphics,
-  SynEditHighlighter,
-  SynEditTypes,
-{$ENDIF}
-  SysUtils,
-  Classes;
+  SysUtils, Classes,
+  {$IFDEF SYN_KYLIX}
+  Qt, QControls, QGraphics,
+  {$ELSE}
+  Windows, Messages, Controls, Graphics, Registry,
+  {$ENDIF}
+  SynEditHighlighter, SynEditTypes;
 
 const
   KeyWordCount = 149;
@@ -133,10 +127,9 @@ type
     function IdentKind(MayBe: PChar): TtkTokenKind;
   protected
     function GetIdentChars: TSynIdentChars; override;
-    function GetSampleSource: string; override;
-    function IsFilterStored: Boolean; override;
   public
-    class function GetLanguageName: string; override;
+    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
+    function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;
@@ -172,11 +165,7 @@ type
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditStrConst;
-{$ELSE}
   SynEditStrConst;
-{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -198,12 +187,12 @@ const
     'RORB', 'ROR_', 'RTI', 'RTS', 'SBA', 'SBCA_', 'SBCB_', 'SEC', 'SEI', 'SEV',
     'STAA_', 'STAB_', 'STD_', 'STOP', 'STS_', 'STX_', 'STY_', 'SUBA_', 'SUBB_',
     'SUBD_', 'SWI', 'TAB', 'TAP', 'TBA', 'TEST', 'TPA', 'TSTA', 'TSTB', 'TST_',
-    'TSX', 'TSY', 'TXS', 'TYS', 'WAI', 'XGDX', 'XGDY', // end commands
-    'FCC_','FCB_','BSZ_','FDB_' // codegenerating directives
+    'TSX', 'TSY', 'TXS', 'TYS', 'WAI', 'XGDX', 'XGDY', // Ende Befehle
+    'FCC_','FCB_','BSZ_','FDB_' // Codeerzeugende Direktiven
     );
 
   Directives: array[1..DirectiveCount] of string = (
-    'EQU_', 'OPT_', 'PAGE', 'ORG_', 'RMB_', 'END'  // directives
+    'EQU_', 'OPT_', 'PAGE', 'ORG_', 'RMB_', 'END'  // Direktiven
     );
 procedure MakeIdentTable;
 var
@@ -270,6 +259,7 @@ begin
   Result := #0;
   while ToHash^ in ['_', '0'..'9', 'a'..'z', 'A'..'Z'] do
   begin
+//    inc (Result, ord(ToHash^));
     Result := char(byte(Result) + byte(ToHash^));
     inc(ToHash);
   end;
@@ -504,7 +494,7 @@ procedure TSynHC11Syn.SymUnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run, 2)
+    Inc(Run,2)
   else
 {$ENDIF}
   inc(Run);
@@ -580,34 +570,16 @@ begin
   Result := TSynValidStringChars;
 end;
 
-function TSynHC11Syn.IsFilterStored: Boolean;
-begin
-  Result := fDefaultFilter <> SYNS_FilterAsm68HC11;
-end;
-
-class function TSynHC11Syn.GetLanguageName: string;
+{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
+function TSynHC11Syn.GetLanguageName: string;
 begin
   Result := SYNS_Lang68HC11;
 end;
 
-function TSynHC11Syn.GetSampleSource: string;
-begin
-  Result :=
-    '* TX.ASM'#13#10 +
-    'MAINORG EQU_    $F800'#13#10 +
-    '        ORG     $F800'#13#10 +
-    'MAIN    EQU     *        ;Start assembling here'#13#10 +
-    '        STAA    SCCR2'#13#10 +
-    'loop:'#13#10 +
-    '        LDAA    #$05'#13#10 +
-    '	BRA	loop		;Do it again'#13#10 +
-    '	ORG	$FFFE		;Reset vector interrupt setup'#13#10 +
-    '	END';
-end;
-
 initialization
   MakeIdentTable;
-{$IFNDEF SYN_CPPB_1}
+{$IFNDEF SYN_CPPB_1}                                                            //mh 2000-07-14
   RegisterPlaceableHighlighter(TSynHC11Syn);
 {$ENDIF}
 end.
+

@@ -1,15 +1,14 @@
 Contributors to the SynEdit project:
 
-    Ackbar, Andre Mens, Andy Colson, Anthony Steele, Arentjan Banck, Aaron Chan,
-    Bruno Mikkelsen, Colin Laplace, Daniel Parnell, David H. Muir, Dean Harmon,
-    Eden Kirin, Erik B. Berry, Falko Jens Wagner, Flávio Etrusco, 
-    James D. Richardson, Jan Fiala, Jeff Rafter, Johan Visser, Jordan Russell, 
-    Jorg Jans, Jonathan Halterman, Kirys, Lasse Vagsather Karlsen, Leon Brown, 
-    Lorant Toth, Maël Hörz, Marko Njezic, Martin Pley, Massimo Maria Ghisalberti, 
-    Mattias Gaertner, Michael Beck, Michael Hieke, Mike Gibbard,
-    Morten J. Skovrup, Murad Kakabayev, Pieter Polak, Primoz Gabrijelcic,
-    Roman Silin, Ruggero Bandera, Satya, Stefan van As, Steve Sutherland,
-    Sven Blankenberg, Tony De Buys, Woo Young Bum
+    Andre Mens, Andy Colson, Anthony Steele, Arentjan Banck, Bruno Mikkelsen,
+    Colin Laplace, Daniel Parnell, David H. Muir, Dean Harmon,  Eden Kirin,
+    Erik B. Berry, Falko Jens Wagner, Flávio Etrusco, James D. Richardson,
+    Jeff Rafter, Johan Visser, Jordan Russell, Jorg Jans, Jonathan Halterman,
+    Lasse Vagsather Karlsen, Leon Brown, Lorant Toth, Martin Pley,
+    Mattias Gaertner, Michael Beck, Michael Hieke,  Morten J. Skovrup,
+    Murad Kakabayev, Pieter Polak, Primoz Gabrijelcic, Roman Silin, Satya,
+    Stefan van As, Steve Sutherland, Sven Blankenberg, Tony De Buys,
+    Woo Young Bum
 
 
 Most of the files in the SynEdit package are based on mwEdit version 0.92a.
@@ -37,4 +36,4 @@ of appearance):
     Eden Kirin,  Max Horváth,  riceball,  Ewart Nijburg,  Nils Springob,
     Jeff D. Smith,  Pavel Krehula,  Peter Wolters
 
-$Id: Contributors.txt,v 1.20.2.2 2004/12/10 15:31:01 maelh Exp $
+$Id: Contributors.txt,v 1.18 2001/10/18 09:40:07 plpolak Exp $

@@ -27,7 +27,7 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynEditPrintHeaderFooter.pas,v 1.12 2007/01/24 02:44:27 etrusco Exp $
+$Id: SynEditPrintHeaderFooter.pas,v 1.3 2001/08/03 02:36:19 jrx Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
@@ -93,29 +93,18 @@ CONTENTS:
 
 -------------------------------------------------------------------------------}
 
-{$IFNDEF QSYNEDITPRINTHEADERFOOTER}
 unit SynEditPrintHeaderFooter;
-{$ENDIF}
 {$M+}
-
-{$I SynEdit.inc}
-
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  Qt,
-  QGraphics,
-  QSynEditPrintTypes,
-  QSynEditPrintMargins,
-{$ELSE}
-  Windows,
-  Graphics,
-  SynEditPrintTypes,
-  SynEditPrintMargins,
-{$ENDIF}
-  Classes,
-  SysUtils;
+  Classes, SysUtils,
+  {$IFDEF LINUX}
+  Qt, QGraphics,
+  {$ELSE}
+  Windows, Graphics,
+  {$ENDIF}
+  SynEditPrintTypes, SynEditPrintMargins;
 
 type
   //An item in a header or footer. An item has a text,Font,LineNumber and
@@ -140,8 +129,6 @@ type
     destructor Destroy; override;
     function GetText(NumPages, PageNum: Integer; Roman: Boolean;
       Title, ATime, ADate: string): string;
-    procedure LoadFromStream(AStream: TStream);
-    procedure SaveToStream(AStream: TStream);
   public
     property Alignment: TAlignment read FAlignment write FAlignment;
     property AsString: string read GetAsString write SetAsString;               //gp 2000-06-24
@@ -207,8 +194,6 @@ type
     procedure Assign(Source: TPersistent); override;
     procedure FixLines;
     property AsString: string read GetAsString write SetAsString;               //gp 2000-06-24
-    procedure LoadFromStream(AStream: TStream);
-    procedure SaveToStream(AStream: TStream);
   published
     property FrameTypes: TFrameTypes read FFrameTypes write FFrameTypes
     default [ftLine];
@@ -234,21 +219,10 @@ type
     constructor Create;
   end;
 
-  {$IFNDEF SYN_COMPILER_3_UP}
-  TFontCharSet = 0..255;
-  {$ENDIF}
-
 implementation
 
 uses
-{$IFDEF SYN_COMPILER_4_UP}
-  Math,
-{$ENDIF}
-{$IFDEF SYN_CLX}
-  QSynEditMiscProcs;
-{$ELSE}
   SynEditMiscProcs;
-{$ENDIF}
 
 {begin}                                                                         //gp 2000-06-24
 // Helper routine for AsString processing.
@@ -286,13 +260,9 @@ begin
   Result :=
     EncodeString(FText) + '/' +
 {$IFDEF SYN_COMPILER_3_UP}
-{$IFDEF SYN_CLX}
-    IntToStr(Ord(FFont.Charset)) + '/' +
-{$ELSE}
     IntToStr(FFont.Charset) + '/' +
-{$ENDIF}
 {$ELSE}
-    IntToStr(DEFAULT_CHARSET)+'/' +                             
+    '1/' +                              // 1 for DEFAULT_CHARSET
 {$ENDIF}
     IntToStr(FFont.Color) + '/' +
     IntToStr(FFont.Height) + '/' +
@@ -339,10 +309,7 @@ var
       Exit;
     end;
     if Macro = '$PAGECOUNT$' then begin
-      if Roman then
-        DoAppend(IntToRoman(NumPages))
-      else
-        DoAppend(IntToStr(NumPages));
+      DoAppend(IntToStr(NumPages));
       Exit;
     end;
     if Macro = '$TITLE$' then begin
@@ -408,103 +375,6 @@ begin
 end;
 
 {begin}                                                                         //gp 2000-06-24
-procedure THeaderFooterItem.LoadFromStream(AStream: TStream);
-var
-  aCharset: TFontCharset;
-  aColor: TColor;
-  aHeight: Integer;
-  aName: TFontName;
-  aPitch: TFontPitch;
-  aSize: Integer;
-  aStyle: TFontStyles;
-  bufSize : integer;
-  buffer : PChar;
-begin
-  with AStream do begin
-    Read(bufSize, SizeOf(bufSize));
-    GetMem(buffer, bufSize+1);
-    try
-      Read(buffer^, bufSize);
-      buffer[bufSize] := #0;
-      FText := buffer;
-    finally
-      FreeMem(buffer);
-    end;
-    Read(FLineNumber, SizeOf(FLineNumber));
-    // font
-    Read(aCharset, SizeOf(aCharset));
-    Read(aColor, SizeOf(aColor));
-    Read(aHeight, SizeOf(aHeight));
-    Read(bufSize, SizeOf(bufSize));
-    GetMem(buffer, bufSize+1);
-    try
-      Read(buffer^, bufSize);
-      buffer[bufSize] := #0;
-      aName := buffer;
-    finally
-      FreeMem(buffer);
-    end;
-    Read(aPitch, SizeOf(aPitch));
-    Read(aSize, SizeOf(aSize));
-    Read(aStyle, SizeOf(aStyle));
-    {$IFDEF SYN_COMPILER_3_UP}
-    FFont.Charset := aCharset;
-    {$ENDIF}
-    FFont.Color   := aColor;
-    FFont.Height  := aHeight;
-    FFont.Name    := aName;
-    FFont.Pitch   := aPitch;
-    FFont.Size    := aSize;
-    FFont.Style   := aStyle;
-    Read(FAlignment, SizeOf(FAlignment));
-  end;
-end;
-
-procedure THeaderFooterItem.SaveToStream(AStream: TStream);
-var
-  aCharset: TFontCharset;
-  aColor: TColor;
-  aHeight: Integer;
-  aName: TFontName;
-  aPitch: TFontPitch;
-  aSize: Integer;
-  aStyle: TFontStyles;
-  aLen : integer;
-begin
-  with AStream do begin
-    aLen := Length(FText);
-    Write(aLen, SizeOf(aLen));
-    Write(PChar(FText)^, aLen);
-    Write(FLineNumber, SizeOf(FLineNumber));
-    // font
-    {$IFDEF SYN_COMPILER_3_UP}
-    aCharset := FFont.Charset;
-    {$ELSE}
-    aCharset := DEFAULT_CHARSET;
-    {$ENDIF}
-    aColor   := FFont.Color;
-    aHeight  := FFont.Height;
-    aName    := FFont.Name;
-    aPitch   := FFont.Pitch;
-    aSize    := FFont.Size;
-    aStyle   := FFont.Style;
-    Write(aCharset, SizeOf(aCharset));
-    Write(aColor, SizeOf(aColor));
-    Write(aHeight, SizeOf(aHeight));
-    aLen := Length(aName);
-    Write(aLen, SizeOf(aLen));
-    {$IFDEF SYN_COMPILER_2}           // In D2 TFontName is a ShortString
-    Write(PChar(@aName[1])^, aLen);   // D2 cannot convert ShortStrings to PChar
-    {$ELSE}
-    Write(PChar(aName)^, aLen);
-    {$ENDIF}
-    Write(aPitch, SizeOf(aPitch));
-    Write(aSize, SizeOf(aSize));
-    Write(aStyle, SizeOf(aStyle));
-    Write(FAlignment, SizeOf(FAlignment));
-  end;
-end;
-
 procedure THeaderFooterItem.SetAsString(const Value: string);
 var
   s: string;
@@ -513,11 +383,7 @@ begin
   s := Value;
   FText := DecodeString(GetFirstEl(s, '/'));
 {$IFDEF SYN_COMPILER_3_UP}
-{$IFDEF SYN_CLX}
-  GetFirstEl(s, '/');
-{$ELSE}
   FFont.Charset := StrToIntDef(GetFirstEl(s, '/'), 0);
-{$ENDIF}
 {$ELSE}
   GetFirstEl(s, '/');
 {$ENDIF}
@@ -600,7 +466,7 @@ var
   i: Integer;
 begin
   for i := 0 to FItems.Count - 1 do begin
-    if THeaderFooterItem(FItems[i]).FIndex = Index then begin
+    if THeaderFooterItem(FItems[Index]).FIndex = Index then begin
       FItems.Delete(i);
       Break;
     end;
@@ -652,9 +518,9 @@ var
   AItem: THeaderFooterItem;
   FOrgHeight: Integer;
   {************}
-{$IFNDEF SYN_CLX}
+  {$IFNDEF LINUX}
   TextMetric: TTextMetric;
-{$ENDIF}
+  {$ENDIF}
 begin
   FFrameHeight := -1;
   if FItems.Count <= 0 then Exit;
@@ -662,24 +528,21 @@ begin
   CurLine := 1;
   FFrameHeight := 0;
   FOrgHeight := FFrameHeight;
-  for i := 0 to FItems.Count - 1 do
-  begin
+  for i := 0 to FItems.Count - 1 do begin
     AItem := THeaderFooterItem(FItems[i]);
-    if AItem.LineNumber <> CurLine then
-    begin
+    if AItem.LineNumber <> CurLine then begin
       CurLine := AItem.LineNumber;
       FOrgHeight := FFrameHeight;
     end;
     ACanvas.Font.Assign(AItem.Font);
     {************}
-  {$IFNDEF SYN_CLX}
+    {$IFNDEF LINUX}
     GetTextMetrics(ACanvas.Handle, TextMetric);
-    with TLineInfo(FLineInfo[CurLine - 1]), TextMetric do
-    begin
+    with TLineInfo(FLineInfo[CurLine - 1]), TextMetric do begin
       LineHeight := Max(LineHeight, ACanvas.TextHeight('W'));
       MaxBaseDist := Max(MaxBaseDist, tmHeight - tmDescent);
     end;
-  {$ENDIF}
+    {$ENDIF}
     FFrameHeight := Max(FFrameHeight, FOrgHeight + ACanvas.TextHeight('W'));
   end;
   FFrameHeight := FFrameHeight + 2 * FMargins.PHFInternalMargin;
@@ -689,8 +552,6 @@ function CompareItems(Item1, Item2: Pointer): Integer;
 //Used to sort header/footer items
 begin
   Result := THeaderFooterItem(Item1).LineNumber - THeaderFooterItem(Item2).LineNumber;
-  if Result = 0 then
-    Result := Integer(Item1) - Integer(Item2);
 end;
 
 procedure THeaderFooter.SetPixPrInch(Value: Integer);
@@ -776,9 +637,7 @@ var
   i, X, Y, CurLine: Integer;
   AStr: string;
   AItem: THeaderFooterItem;
-{$IFNDEF SYN_CLX}
   OldAlign: UINT;
-{$ENDIF}
   TheAlignment: TAlignment;
 begin
   if (FFrameHeight <= 0) then Exit; //No header/footer
@@ -818,14 +677,14 @@ begin
     end;
       {Aligning at base line - Fonts can have different size in headers and footers}
     {************}
-  {$IFNDEF SYN_CLX}
+    {$IFNDEF LINUX}
     OldAlign := SetTextAlign(ACanvas.Handle, TA_BASELINE);
-  {$ENDIF}
+    {$ENDIF}
     ACanvas.TextOut(X, Y + TLineInfo(FLineInfo[CurLine - 1]).MaxBaseDist, AStr);
     {************}
-  {$IFNDEF SYN_CLX}
+    {$IFNDEF LINUX}
     SetTextAlign(ACanvas.Handle, OldAlign);
-  {$ENDIF}
+    {$ENDIF}
   end;
   RestoreFontPenBrush(ACanvas);
 end;
@@ -894,115 +753,6 @@ begin
   end;
 end;
 {end}                                                                           //gp 2000-06-24
-
-procedure THeaderFooter.LoadFromStream(AStream: TStream);
-var
-  Num, idx: integer;
-  aCharset: TFontCharset;
-  aColor: TColor;
-  aHeight: Integer;
-  aName: TFontName;
-  aPitch: TFontPitch;
-  aSize: Integer;
-  aStyle: TFontStyles;
-  bufSize : integer;
-  buffer : PChar;
-begin
-  with AStream do begin
-    // read header/footer properties first
-    Read(FFrameTypes, SizeOf(FFrameTypes));
-    Read(FShadedColor, SizeOf(FShadedColor));
-    Read(FLineColor, SizeOf(FLineColor));
-    Read(FRomanNumbers, SizeOf(FRomanNumbers));
-    Read(FMirrorPosition, SizeOf(FMirrorPosition));
-    // font
-    Read(aCharset, SizeOf(aCharset));
-    Read(aColor, SizeOf(aColor));
-    Read(aHeight, SizeOf(aHeight));
-    Read(bufSize, SizeOf(bufSize));
-    GetMem(buffer, bufSize+1);
-    try
-      Read(buffer^, bufSize);
-      buffer[bufSize] := #0;
-      aName := buffer;
-    finally
-      FreeMem(buffer);
-    end;
-    Read(aPitch, SizeOf(aPitch));
-    Read(aSize, SizeOf(aSize));
-    Read(aStyle, SizeOf(aStyle));
-    {$IFDEF SYN_COMPILER_3_UP}
-    FDefaultFont.Charset := aCharset;
-    {$ENDIF}
-    FDefaultFont.Color   := aColor;
-    FDefaultFont.Height  := aHeight;
-    FDefaultFont.Name    := aName;
-    FDefaultFont.Pitch   := aPitch;
-    FDefaultFont.Size    := aSize;
-    FDefaultFont.Style   := aStyle;
-    // now read in the items
-    Read(Num, SizeOf(Num));
-    while Num > 0 do begin
-      // load headerfooter items from stream
-      idx := Add('', nil, taLeftJustify, 1);
-      Get(idx).LoadFromStream(AStream);
-      Dec(Num);
-    end;
-  end;
-end;
-
-procedure THeaderFooter.SaveToStream(AStream: TStream);
-var
-  i, Num: integer;
-  aCharset: TFontCharset;
-  aColor: TColor;
-  aHeight: Integer;
-  aName: TFontName;
-  aPitch: TFontPitch;
-  aSize: Integer;
-  aStyle: TFontStyles;
-  aLen : integer;
-begin
-  with AStream do begin
-    // write the header/footer properties first
-    Write(FFrameTypes, SizeOf(FFrameTypes));
-    Write(FShadedColor, SizeOf(FShadedColor));
-    Write(FLineColor, SizeOf(FLineColor));
-    Write(FRomanNumbers, SizeOf(FRomanNumbers));
-    Write(FMirrorPosition, SizeOf(FMirrorPosition));
-    // font
-    {$IFDEF SYN_COMPILER_3_UP}
-    aCharset := FDefaultFont.Charset;
-    {$ELSE}
-    aCharSet := DEFAULT_CHARSET;
-    {$ENDIF}
-    aColor   := FDefaultFont.Color;
-    aHeight  := FDefaultFont.Height;
-    aName    := FDefaultFont.Name;
-    aPitch   := FDefaultFont.Pitch;
-    aSize    := FDefaultFont.Size;
-    aStyle   := FDefaultFont.Style;
-    Write(aCharset, SizeOf(aCharset));
-    Write(aColor, SizeOf(aColor));
-    Write(aHeight, SizeOf(aHeight));
-    aLen := Length(aName);
-    Write(aLen, SizeOf(aLen));
-    {$IFDEF SYN_COMPILER_2}                    // In D2 TFontName is a ShortString
-    Write(PChar(@aName[1])^, Length(aName));   // D2 cannot convert ShortStrings to PChar
-    {$ELSE}
-    Write(PChar(aName)^, Length(aName));
-    {$ENDIF}
-    Write(aPitch, SizeOf(aPitch));
-    Write(aSize, SizeOf(aSize));
-    Write(aStyle, SizeOf(aStyle));
-
-    // now write the items
-    Num := Count;
-    Write(Num, SizeOf(Num));
-    for i := 0 to Num - 1 do
-      Get(i).SaveToStream(AStream);
-  end;
-end;
 
 { THeader }
 

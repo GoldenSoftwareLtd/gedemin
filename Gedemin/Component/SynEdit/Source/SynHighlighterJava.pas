@@ -27,12 +27,14 @@ replace them with the notice and other provisions required by the GPL.
 If you do not delete the provisions above, a recipient may use your version
 of this file under either the MPL or the GPL.
 
-$Id: SynHighlighterJava.pas,v 1.21 2007/01/24 02:44:06 etrusco Exp $
+$Id: SynHighlighterJava.pas,v 1.9 2001/10/23 17:58:25 harmeister Exp $
 
 You may retrieve the latest version of this file at the SynEdit home page,
 located at http://SynEdit.SourceForge.net
 
 Known Issues:
+  - A number beginning with a '.' will not be properly recognized as the
+    start of the number.
 -------------------------------------------------------------------------------}
 {
 @abstract(Provides a Java highlighter for SynEdit)
@@ -41,26 +43,20 @@ Known Issues:
 @lastmod(2000-06-23)
 The SynHighlighterJava unit provides SynEdit with a Java source (.java) highlighter.
 }
-
-{$IFNDEF QSYNHIGHLIGHTERJAVA}
 unit SynHighlighterJava;
-{$ENDIF}
 
 {$I SynEdit.inc}
 
 interface
 
 uses
-{$IFDEF SYN_CLX}
-  QGraphics,
-  QSynEditTypes,
-  QSynEditHighlighter,
-{$ELSE}
-  Graphics,
-  SynEditTypes,
-  SynEditHighlighter,
-{$ENDIF}
-  SysUtils, Classes;
+  SysUtils, Classes,
+  {$IFDEF SYN_KYLIX}
+  Qt, QControls, QGraphics,
+  {$ELSE}
+  Windows, Messages, Controls, Graphics, Registry,
+  {$ENDIF}
+  SynEditTypes, SynEditHighlighter;
 
 type
   TtkTokenKind = (tkComment, tkDocument, tkIdentifier, tkInvalid, tkKey,
@@ -76,7 +72,7 @@ type
     xtkRoundOpen, xtkSemiColon, xtkShiftLeft, xtkShiftLeftAssign, xtkShiftRight,
     xtkShiftRightAssign, xtkSquareClose, xtkSquareOpen, xtkSubtract,
     xtkSubtractAssign, xtkUnsignShiftRight, xtkUnsignShiftRightAssign, xtkXor,
-    xtkXorAssign, xtkComma);
+    xtkXorAssign);
 
   TRangeState = (rsANil, rsComment, rsDocument, rsUnknown);
 
@@ -199,9 +195,9 @@ type
     function GetIdentChars: TSynIdentChars; override;
     function GetSampleSource: string; override;
     function GetExtTokenID: TxtkTokenKind;
-    function IsFilterStored: Boolean; override;
   public
-    class function GetLanguageName: string; override;
+    {$IFNDEF SYN_CPPB_1} class {$ENDIF}                                         //mh 2000-07-14
+    function GetLanguageName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     function GetDefaultAttribute(Index: integer): TSynHighlighterAttributes;    
@@ -241,11 +237,7 @@ type
 implementation
 
 uses
-{$IFDEF SYN_CLX}
-  QSynEditStrConst;
-{$ELSE}
   SynEditStrConst;
-{$ENDIF}
 
 var
   Identifiers: array[#0..#255] of ByteBool;
@@ -257,18 +249,18 @@ var
 begin
   for I := #0 to #255 do
   begin
-    // Java allows special characters in identifier names
-    Identifiers[I] := (I in ['_', '$', '0'..'9', 'a'..'z', 'A'..'Z']) or (I in TSynSpecialChars);
-    if (I in ['_', '$', 'a'..'z', 'A'..'Z']) or (I in TSynSpecialChars) then
-    begin
-      if (I > #64) and (I < #91) then
-        mHashTable[I] := Ord(I) - 64
-      else
-        if (I > #96) then
-          mHashTable[I] := Ord(I) - 95;
-    end
-    else
-      mHashTable[I] := 0;
+    Case I of
+      '_', '$', '0'..'9', 'a'..'z', 'A'..'Z': Identifiers[I] := True;
+    else Identifiers[I] := False;
+    end;
+    Case I in['_', '$', 'a'..'z', 'A'..'Z'] of
+      True:
+        begin
+          if (I > #64) and (I < #91) then mHashTable[I] := Ord(I) - 64 else
+            if (I > #96) then mHashTable[I] := Ord(I) - 95;
+        end;
+    else mHashTable[I] := 0;
+    end;
   end;
 end;
 
@@ -330,8 +322,7 @@ end;
 function TSynJavaSyn.KeyHash(ToHash: PChar): Integer;
 begin
   Result := 0;
-  while (ToHash^ in ['_', '$', '0'..'9', 'a'..'z', 'A'..'Z']) or
-        (ToHash^ in TSynSpecialChars) do
+  while ToHash^ in ['_', '$', '0'..'9', 'a'..'z', 'A'..'Z'] do
   begin
     inc(Result, mHashTable[ToHash^]);
     inc(ToHash);
@@ -516,8 +507,7 @@ end;
 
 function TSynJavaSyn.Func88: TtkTokenKind;
 begin
-  if KeyComp('switch') then Result := tkKey else
-    if KeyComp('assert') then Result := tkKey else Result := tkIdentifier;
+  if KeyComp('switch') then Result := tkKey else Result := tkIdentifier;
 end;
 
 function TSynJavaSyn.Func89: TtkTokenKind;
@@ -647,10 +637,7 @@ begin
       '~': fProcTable[I] := TildeProc;
       '^': fProcTable[I] := XOrSymbolProc;
     else
-      if (I in TSynSpecialChars) then
-        fProcTable[I] := IdentProc
-      else
-        fProcTable[I] := UnknownProc;
+      fProcTable[I] := UnknownProc;
     end;
 end;
 
@@ -766,9 +753,9 @@ begin
   repeat
     case FLine[Run] of
       #0, #10, #13: break;
-      #92: Inc(Run); // backslash, if we have an escaped single character, skip to the next
+      #92: Inc(Run); { backslash, if we have an escaped single character, skip to the next }
     end;
-    if FLine[Run] <> #0 then inc(Run); //Add check here to prevent overrun from backslash being last char
+    inc(Run);
   until FLine[Run] = #39;
   if FLine[Run] <> #0 then inc(Run);
 end;
@@ -812,8 +799,7 @@ end;
 procedure TSynJavaSyn.CommaProc;
 begin
   inc(Run);
-  fTokenID := tkSymbol;
-  fExtTokenID := xtkComma;
+  fTokenID := tkSymbol; //tkInvalid;                                            //DDH Addition from Eden Kirin
 end;
 
 procedure TSynJavaSyn.EqualProc;
@@ -1056,11 +1042,6 @@ end;
 procedure TSynJavaSyn.PointProc;
 begin
   inc(Run);                            {point}
-  if FLine[Run] in ['0'..'9'] then
-  begin
-    NumberProc;
-    Exit;
-  end;
   fTokenID := tkSymbol;
   FExtTokenID := xtkPoint;
 end;
@@ -1136,7 +1117,7 @@ begin
       end;
     '*':
       begin
-        if (fLine[Run+2] = '*') and (fLine[Run+3] <> '/') then     {documentation comment}
+        if fLine[Run+2] = '*' then     {documentation comment}
         begin
           fRange := rsDocument;
           fTokenID := tkDocument;
@@ -1148,7 +1129,7 @@ begin
           fTokenID := tkComment;
         end;
 
-        inc(Run, 2);
+        inc(Run,2);
         while fLine[Run] <> #0 do
           case fLine[Run] of
             '*':
@@ -1209,9 +1190,9 @@ begin
   repeat
     case FLine[Run] of
       #0, #10, #13: break;
-      #92: Inc(Run);  // Backslash, if we have an escaped charcter it can be skipped
+      #92: Inc(Run);  { Backslash, if we have an escaped charcter it can be skipped }
     end;
-    if FLine[Run] <> #0 then inc(Run); //Add check here to prevent overrun from backslash being last char
+    inc(Run);
   until FLine[Run] = #34;
   if FLine[Run] <> #0 then inc(Run);
 end;
@@ -1245,7 +1226,7 @@ procedure TSynJavaSyn.UnknownProc;
 begin
 {$IFDEF SYN_MBCSSUPPORT}
   if FLine[Run] in LeadBytes then
-    Inc(Run, 2)
+    Inc(Run,2)
   else
 {$ENDIF}
   inc(Run);
@@ -1289,7 +1270,7 @@ begin
   Result := Pointer(fRange);
 end;
 
-procedure TSynJavaSyn.ResetRange;
+procedure TSynJavaSyn.ReSetRange;
 begin
   fRange := rsUnknown;
 end;
@@ -1349,12 +1330,8 @@ begin
   Result := ['_', '$', '0'..'9', 'a'..'z', 'A'..'Z'] + TSynSpecialChars;
 end;
 
-function TSynJavaSyn.IsFilterStored: Boolean;
-begin
-  Result := fDefaultFilter <> SYNS_FilterJava;
-end;
-
-class function TSynJavaSyn.GetLanguageName: string;
+{$IFNDEF SYN_CPPB_1} class {$ENDIF}                                             //mh 2000-07-14
+function TSynJavaSyn.GetLanguageName: string;
 begin
   Result := SYNS_LangJava;
 end;
@@ -1376,7 +1353,8 @@ end;
 
 initialization
   MakeIdentTable;
-{$IFNDEF SYN_CPPB_1}
+{$IFNDEF SYN_CPPB_1}                                                            //mh 2000-07-14
   RegisterPlaceableHighlighter(TSynJavaSyn);
 {$ENDIF}
 end.
+
