@@ -981,8 +981,12 @@ var
   CommandParentKey: Integer;
 begin
   // ѕроверим на версию сервера, нам нужен Firebird >= 2.0
-  if not (IBDB.IsFirebirdConnect and (IBDB.ServerMajorVersion >= 2)) then
+  if (not IBDB.IsFirebirdConnect) or
+    (IBDB.ServerMajorVersion < 2) or
+    ((IBDB.ServerMajorVersion = 2) and (IBDB.ServerMinorVersion < 5)) then
+  begin
     raise EgsWrongServerVersion.Create('Firebird 2.0+');
+  end;  
 
   FTransaction := TIBTransaction.Create(nil);
   try

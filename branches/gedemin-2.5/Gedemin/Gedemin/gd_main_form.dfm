@@ -1,16 +1,16 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 288
-  Top = 64
-  Width = 914
-  Height = 81
+  Left = 274
+  Top = 111
+  Width = 977
+  Height = 76
   HelpContext = 76
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False
   Caption = 'Gedemin'
   Color = clBtnFace
-  Constraints.MaxHeight = 85
+  Constraints.MaxHeight = 76
   Constraints.MaxWidth = 2000
-  Constraints.MinHeight = 80
+  Constraints.MinHeight = 76
   Constraints.MinWidth = 400
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -26,17 +26,21 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockMain: TTBDock
     Left = 0
     Top = 0
-    Width = 898
+    Width = 969
     Height = 26
     LimitToOneRow = True
     object tbMainMenu: TTBToolbar
       Left = 0
       Top = 0
+      ActivateParent = False
+      BorderStyle = bsNone
       Caption = 'tbMainMenu'
       CloseButton = False
       DockMode = dmCannotFloatOrChangeDocks
       DockPos = 0
+      DragHandleStyle = dhNone
       FullSize = True
+      HideWhenInactive = False
       Images = dmImages.il16x16
       MenuBar = True
       ParentShowHint = False
@@ -301,21 +305,21 @@ object frmGedeminMain: TfrmGedeminMain
         Control = lblDatabase
       end
       object Label1: TLabel
-        Left = 235
+        Left = 224
         Top = 4
         Width = 32
         Height = 13
         Caption = 'Стол: '
       end
       object Label2: TLabel
-        Left = 487
+        Left = 476
         Top = 4
         Width = 73
         Height = 13
         Caption = 'Организация: '
       end
       object lblDatabase: TLabel
-        Left = 734
+        Left = 723
         Top = 4
         Width = 3
         Height = 13
@@ -324,7 +328,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnDblClick = actCopyExecute
       end
       object cbDesktop: TComboBox
-        Left = 267
+        Left = 256
         Top = 0
         Width = 145
         Height = 21
@@ -337,7 +341,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnChange = cbDesktopChange
       end
       object gsiblkupCompany: TgsIBLookupComboBox
-        Left = 560
+        Left = 549
         Top = 0
         Width = 145
         Height = 21
@@ -360,38 +364,31 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockForms: TTBDock
     Left = 0
     Top = 26
-    Width = 898
-    Height = 25
+    Width = 969
+    Height = 27
+    BoundLines = [blTop]
     LimitToOneRow = True
     Position = dpBottom
     object tbForms: TTBToolbar
       Left = 0
       Top = 0
+      ActivateParent = False
+      BorderStyle = bsNone
       Caption = 'Формы'
       ChevronHint = 'Показать все'
       CloseButton = False
       DockMode = dmCannotFloatOrChangeDocks
       DockPos = 0
+      DragHandleStyle = dhNone
       FullSize = True
+      HideWhenInactive = False
+      Images = dmImages.il16x16
+      ParentShowHint = False
+      PopupMenu = pmForms
+      ShowHint = True
       Stretch = True
+      SystemFont = False
       TabOrder = 0
-      OnResize = tbFormsResize
-      object TBControlItem2: TTBControlItem
-        Control = tcForms
-      end
-      object tcForms: TTabControl
-        Left = 0
-        Top = 0
-        Width = 766
-        Height = 21
-        ParentShowHint = False
-        PopupMenu = pmForms
-        ShowHint = True
-        Style = tsFlatButtons
-        TabOrder = 0
-        OnChange = tcFormsChange
-        OnMouseMove = tcFormsMouseMove
-      end
     end
   end
   object ActionList: TActionList
@@ -744,7 +741,7 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object pmForms: TPopupMenu
     Images = dmImages.il16x16
-    Left = 296
+    Left = 344
     Top = 24
     object N1: TMenuItem
       Action = actHideForm
