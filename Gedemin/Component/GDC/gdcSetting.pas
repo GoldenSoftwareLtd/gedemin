@@ -1395,7 +1395,8 @@ begin
         BlobStream := CreateBlobStream(FieldByName('StorageData'), bmWrite);
         try
           ibsqlPos.Close;
-          ibsqlPos.SQL.Text := 'SELECT COUNT(*) AS StorPosCount FROM at_setting_storage WHERE settingkey = :settingkey ';
+          ibsqlPos.SQL.Text :=
+            'SELECT COUNT(*) AS StorPosCount FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
           ibsqlPos.ParamByName('settingkey').AsInteger := ID;
           ibsqlPos.Open;
 
@@ -1407,7 +1408,8 @@ begin
               frmStreamSaver.SetupProgress(PositionsCount, 'Формирование настройки...');
 
             ibsqlPos.Close;
-            ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+            ibsqlPos.SQL.Text :=
+              'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
             ibsqlPos.ParamByName('settingkey').AsInteger := ID;
             ibsqlPos.Open;
             while not ibsqlPos.Eof do
@@ -2777,6 +2779,12 @@ begin
   while not Eof do
   begin
     BranchName := FieldByName('branchname').AsString;
+
+    if Pos('#', BranchName) = 1 then
+    begin
+      Next;
+      continue;
+    end;
 
     if AnsiPos('\', BranchName) = 0 then
     begin
@@ -4787,7 +4795,8 @@ var
         RunMultiConnection;
 
         ibsqlPos.Close;
-        ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+        ibsqlPos.SQL.Text :=
+          'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
         ibsqlPos.ParamByName('settingkey').AsString := SettingList[stNumber];
         ibsqlPos.ExecQuery;
         while not ibsqlPos.Eof do

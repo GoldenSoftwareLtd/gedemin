@@ -62,7 +62,16 @@ begin
     q.SQL.Text := 'SELECT id FROM gd_storage_data ';
     q.ExecQuery;
     if q.EOF then
-      SaveStorages;
+    begin
+      if Assigned(GlobalStorage) then
+        GlobalStorage.SaveToDataBase;
+
+      if Assigned(UserStorage) then
+        UserStorage.SaveToDataBase;
+
+      if Assigned(CompanyStorage) then
+        CompanyStorage.SaveToDataBase;
+    end;
   finally
     q.Free;
   end;

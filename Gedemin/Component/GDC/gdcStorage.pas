@@ -18,6 +18,7 @@ unit gdcStorage;
 { DONE 5 -oandreik -cStorage : При удалении пользователя, компании, десктопа, удалять хранилище }
 { DONE 5 -oandreik -cStorage : Assert на IBLogin, а используем gdcBasemanager }
 { DONE 5 -oandreik -cStorage : повторный импорт данных. распознавать ситуацию и предотвращать }
+{ DONE 5 -oandreik -cStorage : Конфликт транзакций. Сделать обработку при сохранении и удалении эл хран }
 
 { TODO 5 -oandreik -cStorage : CheckTheSameStatement для загрузки веток хранилища через настройку }
 { TODO 5 -oandreik -cStorage : Определиться с максимальной длиной имени и контролировать ее при создании элемента }
@@ -25,7 +26,6 @@ unit gdcStorage;
 { TODO 5 -oandreik -cStorage : Зачем в gdcStreamSaver выставлялся флаг IsModified хранилища? }
 { TODO 5 -oandreik -cStorage : А как быть с хранилищем раб стола? }
 { TODO 5 -oandreik -cStorage : Оптимизация доступа к полям TIBSQL через индексы, а не по имени }
-{ TODO 5 -oandreik -cStorage : Конфликт транзакций. Сделать обработку при сохранении и удалении эл хран }
 { TODO 5 -oandreik -cStorage : Может присвоение ИД внутрь объекта внести? property ID read only? }
 { TODO 5 -oandreik -cStorage : BLOBs like QUADs! }
 { TODO 5 -oandreik -cStorage : Смена имени или парента у блоба }
@@ -47,18 +47,16 @@ unit gdcStorage;
 { TODO 5 -oandreik -cStorage : TwrpGsStorageFolder.LoadFromDatabase перенести на уровень TgsIBStorage }
 { TODO 5 -oandreik -cStorage : В оболочках предусмотреть ObjectKey }
 { TODO 5 -oandreik -cStorage : Надо ли конвертировать хранилище раб стола? }
-{ TODO 5 -oandreik -cStorage : Если нет, то как их просматривать без старого окна? }
 { TODO 5 -oandreik -cStorage : UpdateName для раб стола не должен обращаться к БД }
 { TODO 5 -oandreik -cStorage : Changed после создания объекта и после загрузки из потока.
   Не забыть: десктоп, конвертацию, корневую папку   }
-{ TODO 5 -oandreik -cStorage : Зачем на уровне TgsStorage методы работы с БД? }
 { TODO 5 -oandreik -cStorage : procedure TgdcUser.CopySettingsByUser(U: Integer; ibtr: TIBTransaction); }
 { TODO 5 -oandreik -cStorage : в тестирование добавить сохранение на диск и считывание с диска }
 { TODO 5 -oandreik -cStorage : копирование и распространение настроек в форме проверить }
 { TODO 5 -oandreik -cStorage : копирование настроек при создании нового пользователя проверить }
-{ TODO 5 -oandreik -cStorage : Poperty ID элемента хранилища сделать только для чтения }
 { TODO 5 -oandreik -cStorage : Мы вылавливаем из текста исключения подстроку вида '. ID=', надеясь что там она есть }
-
+{ TODO 5 -oandreik -cStorage : убрать из TdlgToSetting.Setup код, который работает с хран по старому}
+{ TODO 5 -oandreik -cStorage : массив InSett сейчас заполняется неправильно}
 
 interface
 
@@ -154,7 +152,8 @@ begin
     Tr.StartTransaction;
 
     q.Transaction := Tr;
-    q.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+    q.SQL.Text :=
+      'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
     q.ParamByName('settingkey').AsInteger := ASettingKey;
     q.ExecQuery;
 
@@ -238,7 +237,9 @@ begin
     end;
 
     q.Close;
-    q.SQL.Text := 'DELETE FROM at_setting_storage WHERE settingkey = :settingkey ';
+    q.SQL.Text :=
+      'UPDATE at_setting_storage SET branchname = ''#'' || branchname ' +
+      '  WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
     q.ParamByName('settingkey').AsInteger := ASettingKey;
     q.ExecQuery;
 

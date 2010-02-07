@@ -71,6 +71,7 @@ type
     FModified: TDateTime;
 
     procedure SetName(const Value: String);
+    procedure SetID(const Value: Integer);
 
   protected
     function GetStorage: TgsStorage; virtual;
@@ -126,7 +127,7 @@ type
       const ASearchOptions: TgstSearchOptions;
       const DateFrom: TDate = 0; const DateTo: TDate = 0): Boolean; virtual; abstract;
 
-    property ID: Integer read FID write FID;
+    property ID: Integer read FID write SetID;
     property Name: String read FName write SetName;
     property Parent: TgsStorageItem read FParent;
     property Path: String read GetPath;
@@ -681,7 +682,7 @@ begin
   try
     FreeAndNil(FFolders);
     FreeAndNil(FValues);
-    FID := -1;
+    ID := -1;
   finally
     FDestroying := False;
   end;
@@ -2439,7 +2440,9 @@ var
   end;
 
 begin
+  Assert(IBLogin <> nil);
   Assert(IBLogin.Database <> nil);
+  Assert(gdcBaseManager <> nil);
 
   if (FObjectKey = -1) and (FDataType <> cStorageGlobal) then
     exit;
@@ -2558,6 +2561,7 @@ var
   SQL: String;
 
 begin
+  Assert(IBLogin <> nil);
   Assert(IBLogin.DataBase <> nil, 'Не подключен DataBase');
 
   Clear;
@@ -2958,6 +2962,11 @@ begin
       end;
     end;
   Free;  
+end;
+
+procedure TgsStorageItem.SetID(const Value: Integer);
+begin
+  FID := Value;
 end;
 
 { TgsIntegerValue }
