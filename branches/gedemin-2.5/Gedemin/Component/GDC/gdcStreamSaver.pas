@@ -6735,7 +6735,7 @@ begin
     ibsqlPos := TIBSQL.Create(nil);
     try
       ibsqlPos.Transaction := FTransaction;
-      ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+      ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
       ibsqlPos.ParamByName('settingkey').AsInteger := ASettingKey;
       ibsqlPos.ExecQuery;
 

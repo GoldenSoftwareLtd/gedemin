@@ -147,6 +147,19 @@ const
     '  END'#13#10 +
     'END';
 
+  cBlockException =
+    'CREATE EXCEPTION gd_e_block_old_storage ''»зменение старых данных хранилища заблокировано'' ';
+
+  cBlockTrigger =
+    'CREATE TRIGGER gd_biud_%s FOR gd_%s'#13#10 +
+    '  BEFORE INSERT OR UPDATE OR DELETE'#13#10 +
+    '  POSITION 0'#13#10 +
+    'AS'#13#10 +
+    'BEGIN'#13#10 +
+    '  EXCEPTION gd_e_block_old_storage ''%s'';'#13#10 +
+    'END';
+
+
 procedure ConvertStorage(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
@@ -327,7 +340,45 @@ begin
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateTrigger;
           FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cBlockException;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := Format(cBlockTrigger, ['GLOBALSTORAGE', 'GLOBALSTORAGE',
+            '»зменение старых данных глобального хранилища заблокировано']);
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := Format(cBlockTrigger, ['USERSTORAGE', 'USERSTORAGE',
+            '»зменение старых данных пользовательского хранилища заблокировано']);
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := Format(cBlockTrigger, ['COMPANYSTORAGE', 'COMPANYSTORAGE',
+            '»зменение старых данных хранилища компании заблокировано']);
+          FIBSQL.ExecQuery;
         end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview) '#13#10 +
+          '  VALUES ( '#13#10 +
+          '    740302, '#13#10 +
+          '    740000, '#13#10 +
+          '    ''’ранилище (б/о)'', '#13#10 +
+          '    ''srv_storage_new'', '#13#10 +
+          '    ''TgdcStorage'', '#13#10 +
+          '    NULL, '#13#10 +
+          '    255, '#13#10 +
+          '    1 '#13#10 +
+          '  )';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'GRANT ALL ON gd_storage_data TO Administrator ';
+        FIBSQL.ExecQuery;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=

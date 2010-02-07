@@ -186,7 +186,7 @@ implementation
 
 uses
   Storages,               gdcUser,           gd_security,
-  st_dlgEditValue_unit,   dlgEditDFM_unit,
+  st_dlgEditValue_unit,   dlgEditDFM_unit,   gdcStorage,
   at_dlgToSetting_unit,   gsDesktopManager,  gd_directories_const,
   gsStorage_CompPath,     IBSQL,             gdcBaseInterface
   {must be placed after Windows unit!}
@@ -895,21 +895,31 @@ begin
 end;
 
 procedure Tst_frmMain.actAddFolderToSettingExecute(Sender: TObject);
-const
-  Asked: Boolean = False;
+var
+  F: TgsStorageFolder;
+  Obj: TgdcStorageFolder;
 begin
-  if Asked or (MessageBox(Handle,
-    'Не рекомендуется сохранять в настройке папку из хранилища.'#13#10 +
-    'При установке такой настройки на пользовательской базе'#13#10 +
-    'могут быть удалены пользовательские данные, находящиеся'#13#10 +
-    'в этой папке. Продолжить?',
-    'Внимание',
-    MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL or MB_DEFBUTTON2) = IDYES) then
-  begin
-    Asked := True;
-    AddToSetting(True, CurrentStorage.Name +
-      PString(tv.Selected.Data)^, '', nil, nil);
-    actShowInSett.Execute;
+  F := CurrentStorage.OpenFolder(PString(tv.Selected.Data)^);
+  try
+    if F = nil then
+      exit;
+
+    if F.ID = -1 then
+      (F.Storage as TgsIBStorage).SaveToDatabase;
+
+    Obj := TgdcStorageFolder.Create(nil);
+    try
+      Obj.SubSet := 'ByID';
+      Obj.ID := F.ID;
+      Obj.Open;
+
+      AddToSetting(False, '', '', Obj, nil);
+      actShowInSett.Execute;
+    finally
+      Obj.Free;
+    end;
+  finally
+    CurrentStorage.CloseFolder(F);
   end;
 end;
 
@@ -1003,10 +1013,38 @@ begin
 end;
 
 procedure Tst_frmMain.actAddValueToSettingExecute(Sender: TObject);
+var
+  F: TgsStorageFolder;
+  V: TgsStorageValue;
+  Obj: TgdcStorageValue;
 begin
-  AddToSetting(True, CurrentStorage.Name +
-    PString(tv.Selected.Data)^, lv.Selected.Caption, nil, nil);
-  actShowInSett.Execute;
+  F := CurrentStorage.OpenFolder(PString(tv.Selected.Data)^);
+  try
+    if F = nil then
+      exit;
+
+    V := F.ValueByName(lv.Selected.Caption);
+
+    if V = nil then
+      exit;
+
+    if V.ID = -1 then
+      (V.Storage as TgsIBStorage).SaveToDatabase;
+
+    Obj := TgdcStorageValue.Create(nil);
+    try
+      Obj.SubSet := 'ByID';
+      Obj.ID := V.ID;
+      Obj.Open;
+
+      AddToSetting(False, '', '', Obj, nil);
+      actShowInSett.Execute;
+    finally
+      Obj.Free;
+    end;
+  finally
+    CurrentStorage.CloseFolder(F);
+  end;
 end;
 
 procedure Tst_frmMain.actAddValueToSettingUpdate(Sender: TObject);
@@ -1119,7 +1157,7 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT branchname, valuename FROM at_setting_storage';
+      'SELECT branchname, valuename FROM at_setting_storage WHERE NOT branchname LIKE ''#%'' ';
     q.ExecQuery;
 
     while not q.EOF do
