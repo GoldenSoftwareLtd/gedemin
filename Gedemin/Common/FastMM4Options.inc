@@ -92,7 +92,7 @@ Set the default options for FastMM here.
  program overwriting the bounds of allocated memory). These checks are
  expensive, and this option should thus only be used for debugging purposes.
  If this option is set then the ASMVersion option is automatically disabled.}
-{$define CheckHeapForCorruption}
+{.$define CheckHeapForCorruption}
 
 {Enable this option to catch attempts to perform MM operations after FastMM has
  been uninstalled. With this option set when FastMM is uninstalled it will not
@@ -111,7 +111,7 @@ Set the default options for FastMM here.
  Very important: If you enable this option your application will require the
  FastMM_FullDebugMode.dll library. If this library is not available you will
  get an error on startup.}
-{$define FullDebugMode}
+{.$define FullDebugMode}
 
   {Set this option to perform "raw" stack traces, i.e. check all entries on the
    stack for valid return addresses. Note that this is significantly slower
