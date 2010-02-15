@@ -1,14 +1,14 @@
 object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
   Left = 0
   Top = 0
-  Width = 443
-  Height = 277
+  Width = 435
+  Height = 266
   Align = alClient
   TabOrder = 0
   object Splitter1: TSplitter
     Left = 0
     Top = 121
-    Width = 443
+    Width = 435
     Height = 3
     Cursor = crVSplit
     Align = alTop
@@ -16,7 +16,7 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
   object pnlLog: TPanel
     Left = 0
     Top = 0
-    Width = 443
+    Width = 435
     Height = 121
     Align = alTop
     BevelOuter = bvNone
@@ -24,11 +24,11 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
     object ibgrLog: TgsIBGrid
       Left = 0
       Top = 0
-      Width = 443
+      Width = 435
       Height = 121
       Align = alClient
       DataSource = dsLog
-      Options = [dgTitles, dgIndicator, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
+      Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
       PopupMenu = pmHistoryFrame
       ReadOnly = True
       TabOrder = 0
@@ -53,8 +53,8 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
   object Panel2: TPanel
     Left = 0
     Top = 152
-    Width = 443
-    Height = 106
+    Width = 435
+    Height = 95
     Align = alClient
     BevelOuter = bvNone
     Font.Charset = DEFAULT_CHARSET
@@ -67,8 +67,8 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 258
-    Width = 443
+    Top = 247
+    Width = 435
     Height = 19
     Panels = <>
     SimplePanel = False
@@ -76,7 +76,7 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
   object Panel1: TPanel
     Left = 0
     Top = 124
-    Width = 443
+    Width = 435
     Height = 28
     Align = alTop
     BevelOuter = bvNone
@@ -84,7 +84,7 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
     object TBDock1: TTBDock
       Left = 0
       Top = 0
-      Width = 443
+      Width = 435
       Height = 26
       object TBToolbar1: TTBToolbar
         Left = 0

@@ -1,6 +1,6 @@
 object gdc_frmStreamSaver: Tgdc_frmStreamSaver
-  Left = 629
-  Top = 192
+  Left = 412
+  Top = 181
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Мастер переноса данных'

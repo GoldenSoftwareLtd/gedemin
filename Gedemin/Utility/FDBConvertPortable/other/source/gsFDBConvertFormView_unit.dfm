@@ -1,6 +1,6 @@
 object gsFDBConvertFormView: TgsFDBConvertFormView
-  Left = 398
-  Top = 135
+  Left = 340
+  Top = 116
   BorderStyle = bsDialog
   Caption = 'FDB Convert'
   ClientHeight = 468
@@ -13,6 +13,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
@@ -9568,7 +9569,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
       Top = 0
       Width = 539
       Height = 427
-      ActivePage = tbs06
+      ActivePage = tbs02
       Align = alClient
       Style = tsFlatButtons
       TabOrder = 0
@@ -9593,7 +9594,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           Left = 329
           Top = 10
           Width = 94
-          Height = 13
+          Height = 19
           Alignment = taRightJustify
           AutoSize = False
           Caption = 'Язык интерфейса:'
@@ -9629,7 +9630,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           Width = 93
           Height = 21
           Style = csDropDownList
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 0
           OnChange = cbLanguageChange
         end
@@ -9701,8 +9702,6 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
       object tbs03: TTabSheet
         Caption = 'tbs03'
         ImageIndex = 2
-        OnEnter = tbs03Enter
-        OnExit = tbs03Exit
         object lblStep03: TLabel
           Left = 8
           Top = 6
@@ -9726,7 +9725,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           Left = 7
           Top = 274
           Width = 515
-          Height = 123
+          Height = 121
           Caption = ' Временные файлы. Будут удалены по окончании процесса '
           TabOrder = 0
           object lblBackupName: TLabel
@@ -9746,28 +9745,31 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           object lblNeedFreeSpace: TLabel
             Left = 8
             Top = 76
-            Width = 3
+            Width = 107
             Height = 13
+            Caption = 'Свободное место:'
             Font.Charset = DEFAULT_CHARSET
-            Font.Color = clMaroon
+            Font.Color = clWindowText
             Font.Height = -11
-            Font.Name = 'MS Sans Serif'
+            Font.Name = 'Verdana'
             Font.Style = []
             ParentFont = False
           end
           object eTempDatabaseName: TEdit
-            Left = 128
+            Left = 130
             Top = 46
-            Width = 349
+            Width = 347
             Height = 21
             TabOrder = 0
+            OnChange = eTempDatabaseNameChange
           end
           object eBackupName: TEdit
-            Left = 128
+            Left = 130
             Top = 18
-            Width = 349
+            Width = 347
             Height = 21
             TabOrder = 1
+            OnChange = eBackupNameChange
           end
           object btnBrowseBackupName: TButton
             Left = 476
@@ -9784,6 +9786,15 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
             Height = 21
             Action = actBrowseCopyFile
             TabOrder = 3
+          end
+          object eNeedFreeSpace: TMemo
+            Left = 130
+            Top = 72
+            Width = 347
+            Height = 39
+            Color = clBtnFace
+            ReadOnly = True
+            TabOrder = 4
           end
         end
         object GroupBox2: TGroupBox
@@ -9823,7 +9834,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
             Caption = 'BAK файл:'
           end
           object eOriginalServerVersion: TEdit
-            Left = 128
+            Left = 130
             Top = 72
             Width = 192
             Height = 21
@@ -9832,27 +9843,27 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
             TabOrder = 0
           end
           object eOriginalDBVersion: TEdit
-            Left = 442
+            Left = 444
             Top = 72
-            Width = 63
+            Width = 61
             Height = 21
             Color = clBtnFace
             ReadOnly = True
             TabOrder = 1
           end
           object eOriginalDatabase: TEdit
-            Left = 128
+            Left = 130
             Top = 20
-            Width = 377
+            Width = 375
             Height = 21
             Color = clBtnFace
             ReadOnly = True
             TabOrder = 2
           end
           object eBAKDatabaseCopy: TEdit
-            Left = 128
+            Left = 130
             Top = 46
-            Width = 377
+            Width = 375
             Height = 21
             Color = clBtnFace
             ReadOnly = True
@@ -9873,81 +9884,90 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
             Height = 13
             Caption = 'Новый сервер:'
           end
-          object lblPageSize: TLabel
-            Left = 8
-            Top = 50
-            Width = 106
-            Height = 13
-            Caption = 'Размер страницы:'
-          end
-          object lblPageSize_02: TLabel
-            Left = 240
-            Top = 50
-            Width = 30
-            Height = 13
-            Caption = 'байт.'
-          end
-          object lblBufferSize: TLabel
-            Left = 287
-            Top = 50
-            Width = 94
-            Height = 13
-            Alignment = taRightJustify
-            Caption = 'Размер буфера:'
-          end
-          object lblBufferSize_02: TLabel
-            Left = 455
-            Top = 50
-            Width = 47
-            Height = 13
-            Alignment = taRightJustify
-            Caption = 'страниц'
-          end
-          object lblCharacterSet: TLabel
-            Left = 8
-            Top = 76
-            Width = 114
-            Height = 13
-            Caption = 'Кодовая страница:'
-          end
           object eNewServerVersion: TEdit
-            Left = 128
+            Left = 130
             Top = 20
-            Width = 377
+            Width = 375
             Height = 21
             Color = clBtnFace
             ReadOnly = True
             TabOrder = 0
           end
-          object cbPageSize: TComboBox
-            Left = 128
-            Top = 46
-            Width = 109
-            Height = 21
-            ItemHeight = 13
+          object pnlDBProperties: TPanel
+            Left = 4
+            Top = 42
+            Width = 506
+            Height = 57
+            BevelOuter = bvNone
+            ParentColor = True
             TabOrder = 1
-            Items.Strings = (
-              '1024'
-              '2048'
-              '4096'
-              '8192'
-              '16384')
-          end
-          object eBufferSize: TEdit
-            Left = 385
-            Top = 46
-            Width = 66
-            Height = 21
-            TabOrder = 2
-          end
-          object cbCharacterSet: TComboBox
-            Left = 128
-            Top = 72
-            Width = 109
-            Height = 21
-            Style = csDropDownList
-            ItemHeight = 0
-            TabOrder = 3
+            object lblPageSize: TLabel
+              Left = 4
+              Top = 8
+              Width = 106
+              Height = 13
+              Caption = 'Размер страницы:'
+            end
+            object lblPageSize_02: TLabel
+              Left = 238
+              Top = 8
+              Width = 30
+              Height = 13
+              Caption = 'байт.'
+            end
+            object lblBufferSize: TLabel
+              Left = 286
+              Top = 8
+              Width = 94
+              Height = 13
+              Alignment = taRightJustify
+              Caption = 'Размер буфера:'
+            end
+            object lblBufferSize_02: TLabel
+              Left = 450
+              Top = 8
+              Width = 47
+              Height = 13
+              Alignment = taRightJustify
+              Caption = 'страниц'
+            end
+            object lblCharacterSet: TLabel
+              Left = 4
+              Top = 34
+              Width = 114
+              Height = 13
+              Caption = 'Кодовая страница:'
+            end
+            object cbPageSize: TComboBox
+              Left = 126
+              Top = 4
+              Width = 109
+              Height = 21
+              ItemHeight = 13
+              TabOrder = 0
+              Items.Strings = (
+                '1024'
+                '2048'
+                '4096'
+                '8192'
+                '16384')
+            end
+            object eBufferSize: TEdit
+              Left = 384
+              Top = 4
+              Width = 66
+              Height = 21
+              TabOrder = 1
+            end
+            object cbCharacterSet: TComboBox
+              Left = 126
+              Top = 30
+              Width = 109
+              Height = 21
+              Style = csDropDownList
+              ItemHeight = 0
+              TabOrder = 2
+            end
           end
         end
       end
@@ -9989,18 +10009,18 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
         end
         object lblStep04Comment: TLabel
           Left = 8
-          Top = 309
+          Top = 333
           Width = 505
-          Height = 78
+          Height = 62
           AutoSize = False
           Caption = 'lblStep04Comment'
           WordWrap = True
         end
         object sgSubstituteList: TStringGrid
           Left = 6
-          Top = 74
+          Top = 70
           Width = 515
-          Height = 223
+          Height = 259
           ColCount = 2
           DefaultColWidth = 246
           DefaultRowHeight = 16
@@ -10067,9 +10087,15 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           Width = 516
           Height = 2
         end
+        object lblCurrentProgressStep: TLabel
+          Left = 8
+          Top = 360
+          Width = 4
+          Height = 13
+        end
         object pbMain: TProgressBar
           Left = 6
-          Top = 374
+          Top = 379
           Width = 515
           Height = 15
           Min = 0
@@ -10080,16 +10106,24 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           Left = 6
           Top = 48
           Width = 515
-          Height = 318
+          Height = 304
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 1
         end
+        object Animate: TAnimate
+          Left = 434
+          Top = 282
+          Width = 64
+          Height = 64
+          Active = False
+          StopFrame = 20
+        end
       end
-      object tbs08: TTabSheet
-        Caption = 'tbs08'
+      object tbs07: TTabSheet
+        Caption = 'tbs07'
         ImageIndex = 7
-        object lblStep08: TLabel
+        object lblStep07: TLabel
           Left = 8
           Top = 6
           Width = 159
@@ -10108,7 +10142,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           Width = 516
           Height = 2
         end
-        object lblStep08Comment: TLabel
+        object lblStep07Comment: TLabel
           Left = 8
           Top = 50
           Width = 505
@@ -10122,37 +10156,6 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           Font.Style = []
           ParentFont = False
           WordWrap = True
-        end
-      end
-      object tbs07: TTabSheet
-        Caption = 'tbs07'
-        ImageIndex = 8
-        object Bevel7: TBevel
-          Left = 6
-          Top = 34
-          Width = 516
-          Height = 2
-        end
-        object lblStep07: TLabel
-          Left = 8
-          Top = 6
-          Width = 202
-          Height = 23
-          Caption = '7/8 - Завершение'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clMaroon
-          Font.Height = -19
-          Font.Name = 'Verdana'
-          Font.Style = [fsBold]
-          ParentFont = False
-        end
-        object mAfterProcessInformation: TMemo
-          Left = 6
-          Top = 48
-          Width = 515
-          Height = 340
-          ReadOnly = True
-          TabOrder = 0
         end
       end
     end
@@ -10221,11 +10224,5 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
       Caption = 'Обзор...'
       OnExecute = actBrowseOriginalDatabaseExecute
     end
-  end
-  object timerFreeSpace: TTimer
-    Enabled = False
-    OnTimer = timerFreeSpaceTimer
-    Left = 40
-    Top = 8
   end
 end

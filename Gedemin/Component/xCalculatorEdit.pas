@@ -125,7 +125,6 @@ type
 
     procedure SetEditRect;
     function GetMinHeight: Integer;
-    procedure ChangeInvertion;
 
     procedure DoOnButtonMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure DoOnButtonClick(Sender: TObject);
@@ -135,6 +134,7 @@ type
 
   protected
     procedure SetDecDigits(ADecDigits: Integer); virtual;
+    procedure ChangeInvertion; virtual;
 
     procedure CreateWnd; override;
     procedure CreateParams(var Params: TCreateParams); override;
@@ -197,6 +197,8 @@ type
 
   protected
     procedure SetDecDigits(ADecDigits: Integer); override;
+    procedure ChangeInvertion; override;
+
     procedure Change; override;
     procedure Notification(AComponent: TComponent; Operation: TOperation);
       override;
@@ -1531,6 +1533,12 @@ begin
   S := Text;
   if S > '' then
     Perform(WM_SETTEXT, 0, Longint(PChar(S)));
+end;
+
+procedure TxDBCalculatorEdit.ChangeInvertion;
+begin
+  inherited;
+  //DataChange(nil);
 end;
 
 end.

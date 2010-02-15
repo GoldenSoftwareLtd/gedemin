@@ -49,7 +49,7 @@ uses
   , gsModem
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
-  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit;
+  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form;
 
 type
   TwrpAnalyze = class(TwrpObject, IgsAnalyze)
@@ -3711,6 +3711,15 @@ type
     function  Get_Params(Index: Integer): IgsParamData; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
+  end;
+
+  TwrpGsFrmGedeminMain = class(TwrpCreateableForm, IgsFrmGedeminMain)
+  private
+    function GetFrmGedeminMain: TfrmGedeminMain;
+  protected
+    procedure AddFormToggleItem(const AForm: IgsForm); safecall;
+    function  GetFormToggleItem(const AForm: IgsForm): IgsTBCustomItem; safecall;
+    function  GetFormToggleItemIndex(const AForm: IgsForm): Integer; safecall;
   end;
 
 implementation
@@ -17889,6 +17898,34 @@ begin
   Result := GetObject as TgsParamData;
 end;
 
+{ TwrpGsFrmGedeminMain }
+
+function TwrpGsFrmGedeminMain.GetFrmGedeminMain: TfrmGedeminMain;
+begin
+  Result := GetObject as TfrmGedeminMain;
+end;
+
+procedure TwrpGsFrmGedeminMain.AddFormToggleItem(const AForm: IgsForm);
+begin
+  GetFrmGedeminMain.AddFormToggleItem(InterfaceToObject(AForm) as TForm);
+end;
+
+function TwrpGsFrmGedeminMain.GetFormToggleItemIndex(const AForm: IgsForm): Integer;
+begin
+  Result := GetFrmGedeminMain.GetFormToggleItemIndex(InterfaceToObject(AForm) as TForm);
+end;
+
+function TwrpGsFrmGedeminMain.GetFormToggleItem(const AForm: IgsForm): IgsTBCustomItem;
+var
+  Index: Integer;
+begin
+  Index := GetFrmGedeminMain.GetFormToggleItemIndex(InterfaceToObject(AForm) as TForm);
+  if Index > -1 then
+    Result := GetGdcOLEObject(GetFrmGedeminMain.tbForms.Items[Index]) as IgsTBCustomItem
+  else
+    Result := nil;  
+end;
+
 initialization
 
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
@@ -18121,4 +18158,6 @@ initialization
 
   RegisterGdcOLEClass(TgsParamList, TwrpGsParamList, ComServer.TypeLib, IID_IgsParamList);
   RegisterGdcOLEClass(TgsParamData, TwrpGsParamData, ComServer.TypeLib, IID_IgsParamData);
+
+  RegisterGdcOLEClass(TfrmGedeminMain, TwrpGsFrmGedeminMain, ComServer.TypeLib, IID_IgsFrmGedeminMain);
 end.

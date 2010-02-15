@@ -8120,6 +8120,7 @@ var
   RecHidden: Boolean;
   IBDS: TIBCustomDataSet;
   {$ENDIF}
+
   procedure ToBookmark(bm: TBookmarkStr);
   begin
    {$IFDEF NEW_GRID}
@@ -8133,6 +8134,7 @@ var
      if Assigned(IBDS) then IBDS.SetFinding(True);
     {$ENDIF}
   end;
+
   function FindAtField(CurrField: TField): Boolean;
   begin
     Result := false;
@@ -8275,15 +8277,20 @@ begin
               if not IsMovedToStart and  (MessageBox(0,
                   'Заданное значение не найдено. Продолжить поиск с начала списка?',
                   'Внимание!',
-                  MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = ID_YES)
-              then begin
+                  MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = ID_YES) then
+              begin
                 IsMovedToStart := True;
                 DataSource.DataSet.First;
-              end else begin
-                Break;
+              end
+              else
+              begin
+                FFindColumn := nil;
+                Exit;
               end;
             end; {  --  if DataSource.DataSet.EOF  --  }
-          end else begin
+          end
+          else
+          begin
             DataSource.DataSet.Prior;
 
             if DataSource.DataSet.BOF then
@@ -8292,12 +8299,15 @@ begin
               if not IsMovedToStart and (MessageBox(0,
                   'Заданное значение не найдено. Продолжить поиск с конца списка?',
                   'Внимание!',
-                  MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = ID_YES)
-              then begin
+                  MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = ID_YES) then
+              begin
                 IsMovedToStart := True;
                 DataSource.DataSet.Last;
-              end else begin
-                Break;
+              end
+              else
+              begin
+                FFindColumn := nil;
+                Exit;
               end;
             end;  {  --  if DataSource.DataSet.BOF  --  }
           end; { -- if FFindDlg.rbDown.Checked else  -- }
@@ -8333,18 +8343,22 @@ begin
 
         end;       {  --  while (GetAsyncKeyState(VK_ESCAPE) shr 1) = 0  --  }
 
-        if not Found then begin
+        if not Found then
+        begin
           ToBookmark(bmOrg);
           MessageBox(Handle,
             'Значение не найдено!',
             'Внимание!',
             MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
           FFindColumn := nil;
-        end else begin
+        end
+        else
+        begin
          {$IFDEF NEW_GRID}
           IBDS.SetFinding(false);
           if RecHidden then
-            if IBDS.BookmarkValid(Pointer(bmGroup)) then begin
+            if IBDS.BookmarkValid(Pointer(bmGroup)) then
+            begin
               IBDS.Bookmark := bmGroup;
               IBDS.WrapGroup;
             end;

@@ -1398,16 +1398,16 @@ begin
     SourceCardKey := aSourceCardKey
   else
   begin
-    {$IFDEF DEBUG}
-    {ShowMessage('Создаем новую карточку');}
+    {$IFDEF DEBUGMOVE}
+    ShowMessage('Создаем новую карточку');
     {$ENDIF}
     if ((gdcDocumentLine as TgdcInvDocumentLine).RelationType = irtInventorization) or
       isExistsCardKey(invPosition.ipBaseCardKey) and (GetLastRemains(invPosition.ipBaseCardKey, invPosition.ipSourceContactKey) > 0) then
       TempCardKey := invPosition.ipBaseCardKey
     else
       TempCardKey := -1;
-    {$IFDEF DEBUG}
-    {ShowMessage('Базовая карточка ' + inttostr(TempCardKey) );}
+    {$IFDEF DEBUGMOVE}
+    ShowMessage('Базовая карточка ' + inttostr(TempCardKey) );
     {$ENDIF}
 
     SourceCardKey := AddInvCard(TempCardKey, invPosition,
@@ -1459,7 +1459,10 @@ begin
           ibsql.ParamByName('contactkey').AsInteger := ipDestContactKey;
           ibsql.ParamByName('debit').AsCurrency := abs(aQuantity);
         end;
-        
+    {$IFDEF DEBUGMOVE}
+    ShowMessage('Вставляем запись ' + inttostr(TempCardKey) );
+    {$ENDIF}
+
         Flag := True;
         repeat
           try
@@ -1477,7 +1480,7 @@ begin
                 Flag := False;
               end else
                 raise;
-            end 
+            end
             else
               raise;
           end;
@@ -1485,6 +1488,9 @@ begin
         ibsql.Close;
       end;
 
+    {$IFDEF DEBUGMOVE}
+    ShowMessage('Вставили ' + inttostr(TempCardKey) );
+    {$ENDIF}
 
       if ((gdcDocumentLine.FindField('fromcardkey') <> nil) and
          gdcDocumentLine.FieldByName('fromcardkey').IsNull) or
@@ -1524,6 +1530,9 @@ begin
         ibsql.ParamByName('cardkey').AsInteger := DestCardKey;
         ibsql.ParamByName('debit').AsCurrency := aQuantity;
         ibsql.ParamByName('credit').AsCurrency := 0;
+    {$IFDEF DEBUGMOVE}
+    ShowMessage('Вставляем запись ' + inttostr(TempCardKey) );
+    {$ENDIF}
 
         Flag := True;
         repeat
@@ -1549,6 +1558,9 @@ begin
           end;
         until Flag;
         ibsql.Close;
+    {$IFDEF DEBUGMOVE}
+    ShowMessage('Вставили ' + inttostr(TempCardKey) );
+    {$ENDIF}
 
         if (gdcDocumentLine.FindField('tocardkey') <> nil) and
            (gdcDocumentLine.FieldByName('tocardkey').AsInteger <> DestCardKey)
@@ -2188,11 +2200,14 @@ begin
           if ipMinusRemains then
             Quantity := abs(Quantity);
 
+
           tempCardKey := -1;
           isChangeBaseCardKey := True;
           try
+
             {$IFDEF DEBUGMOVE}
             Times := GetTickCount;
+            ShowMessage('Формирование списка');
             {$ENDIF}
             ibsqlCardList.Close;
             if not ipMinusRemains then
@@ -2255,6 +2270,7 @@ begin
             {$IFDEF DEBUGMOVE}
             TimeQueryList := TimeQueryList + GetTickCount - Times;
             Times := GetTickCount;
+            ShowMessage('Закончили');
             {$ENDIF}
             while not ibsqlCardList.EOF do
             begin
@@ -2281,9 +2297,10 @@ begin
                   Result := True;
               end
               else
+              begin
                 Result := AddOneMovement(ibsqlCardList.FieldByName('id').AsInteger,
                   Quantity, InvPosition);
-
+              end;
               if not Result then
                 Break;
 
@@ -2341,13 +2358,30 @@ begin
             if (not (tcrSource in ipCheckRemains)) or (ipOneRecord and (Quantity < 0)) then
             begin
               if ipOneRecord and (Quantity > 0) then
-                Result := AddOneMovement(-1, -Quantity, InvPosition)
+              begin
+             {$IFDEF DEBUGMOVE}
+                ShowMessage('Начали движение');
+             {$ENDIF}
+
+                Result := AddOneMovement(-1, -Quantity, InvPosition);
+             {$IFDEF DEBUGMOVE}
+                ShowMessage('Закончили движение');
+             {$ENDIF}
+
+              end
               else
               begin
                 {$IFDEF DEBUG}
                 {ShowMessage('Создаем новое движение');}
                 {$ENDIF}
+             {$IFDEF DEBUGMOVE}
+                ShowMessage('Начали движение');
+             {$ENDIF}
+
                 Result := AddOneMovement(-1, abs(Quantity), InvPosition);
+             {$IFDEF DEBUGMOVE}
+                ShowMessage('Закончили движение');
+             {$ENDIF}
 
               end
             end
@@ -2362,7 +2396,17 @@ begin
         end
         else
           if (ipBaseCardKey <= 0) and (Quantity <> 0) then
+          begin
+             {$IFDEF DEBUGMOVE}
+                ShowMessage('Началии движение');
+             {$ENDIF}
+
             AddOneMovement(-1, Quantity, InvPosition);
+             {$IFDEF DEBUGMOVE}
+                ShowMessage('Закончили движение');
+             {$ENDIF}
+
+          end;
 
         if Result then
           FInvErrorCode := iecNoErr;
@@ -5532,7 +5576,7 @@ var
     if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
     begin
       Result := Result + ' JOIN GD_GOOD G ON ( G.ID  =  M.GOODKEY ) ';
-      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
+      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', True) then
       begin
         Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
         if not HasSubSet('All') then
@@ -5562,7 +5606,7 @@ var
     end;
 
     if not HasSubSet(cst_ByGoodKey) then
-      if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) and not HasSubSet('All') then
+      if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', True) and not HasSubSet('All') then
         Result := Result +  ' AND ( GG.LB >= :LB AND GG.RB <= :RB )';
 
     if (High(DepartmentKeys) > Low(DepartmentKeys))
@@ -5649,7 +5693,7 @@ var
     if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
     begin
       Result := Result + ' JOIN GD_GOOD G ON ( G.ID  =  M.GOODKEY ) ';
-      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
+      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', True) then
       begin
         Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
         if not HasSubSet('All') then
@@ -5673,7 +5717,7 @@ var
     end;
 
     if not HasSubSet(cst_ByGoodKey) then
-      if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) and not HasSubSet('All') then
+      if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', True) and not HasSubSet('All') then
         Result := Result +  ' AND ( GG.LB >= :LB AND GG.RB <= :RB )';
 
     if (High(DepartmentKeys) > Low(DepartmentKeys))
@@ -5787,7 +5831,7 @@ begin
 
     if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
     begin
-      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
+      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', True) then
       begin
         Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
         if not HasSubSet('All') then
@@ -5923,7 +5967,7 @@ begin
 
     if (not ARefresh) and (not HasSubSet(cst_ByGoodKey))  then
     begin
-      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) then
+      if not CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', True) then
       begin
         Result := Result + ' JOIN GD_GOODGROUP GG ON (G.GROUPKEY = GG.ID) ';
         if not HasSubSet('All') then
@@ -6134,7 +6178,7 @@ begin
   if not HasSubSet(cst_ByGoodKey) then
   begin
     inherited;
-    if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', False) and not HasSubSet('All') then
+    if CompanyStorage.ReadBoolean('Inventory', 'ISLEFTJOIN', True) and not HasSubSet('All') then
       S.Add('( GG.LB >= :LB AND GG.RB <= :RB )');
   end
   else
@@ -6260,7 +6304,7 @@ begin
 
           F := gdcDocumentLine.FindField(INV_DESTFEATURE_PREFIX +
                cvalInvCardFeatures[j].optFieldName);
-          if (F <> nil) and F.IsNull and (F.AsVariant <> cvalInvCardFeatures[j].optValue)
+          if (F <> nil) and (F.IsNull or (F.DefaultExpression > '')) and (F.AsVariant <> cvalInvCardFeatures[j].optValue)
           then
             F.AsVariant :=
               cvalInvCardFeatures[j].optValue;

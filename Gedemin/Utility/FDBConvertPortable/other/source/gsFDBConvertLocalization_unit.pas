@@ -49,8 +49,7 @@ type
      lsStep05,
      lsStep06,
      lsStep07,
-     lsStep08,
-     lsStep08Comment,
+     lsStep07Comment,
      lsPrevButton,
      lsNextButton,
      lsExitButton,
@@ -67,6 +66,7 @@ type
      lsNoDiskSpaceForDBCopy,
      lsNoDiskSpaceForBackup,
      lsWantDiskSpace,
+     lsDiskSpaceQuantifier,
      lsEditingMetadataError,
      lsRestoreWithServer,
      lsProcedureProcessStart,
@@ -81,11 +81,14 @@ type
      lsTriggerError,
      lsViewFieldsProcessStart,
      lsViewFieldsProcessFinish,
-     lsViewFieldsProcessStartError,
-     lsViewFieldsProcessFinishError,
+     lsComputedFieldProcessStartError,
+     lsComputedFieldProcessFinishError,
      lsViewModified,
      lsViewSkipped,
      lsViewError,
+     lsComputedFieldModified,
+     lsComputedFieldSkipped,
+     lsComputedFieldError, 
      lsObjectLeftCommented,
      lsDatabaseFileCopyingProcess,
      lsDatabaseBackupProcess,
@@ -97,22 +100,21 @@ type
      lsDatabaseNULLCheckProcess,
      lsDatabaseNULLCheckMessage,
      lsDatabaseNULLCheckProcessError,
+     lsContinueCheckingQuestion,
+     lsContinueConvertingQuestion,
      lsCircularReferenceError,
      lsChooseDatabaseMessage,
      lsInformationDialogCaption,
-     //lsFEParamsCaption,
-     //lsFEProcedureCaption,
      lsFEProcedureEditCaption,
      lsFEProcedureErrorCaption,
-     //lsFETriggerCaption,
      lsFETriggerEditCaption,
      lsFETriggerErrorCaption,
-     //lsFEViewCaption,
      lsFEViewEditCaption,
      lsFEViewErrorCaption,
+     lsFEComputedFieldEditCaption,
+     lsFEComputedFieldErrorCaption,
      lsFEStopConvert,
      lsFESaveMetadata,
-     //lsFESkipMetadata,
      lsFEDoComment,
      lsFEDoUncomment,
      lsFEDoShowError,
@@ -124,19 +126,30 @@ type
 
   function GetLocalizedString(const ALocStringID: TgsLocalizedStringID): String;
   procedure LoadLanguageStrings(const ALanguageName: String);
+  function LanguageLoadedOnStartup: String;
 
 implementation
 
 uses
-  classes, typinfo, sysutils, gsFDBConvertHelper_unit, jclStrings;
+  classes, typinfo, sysutils, gsFDBConvertHelper_unit, jclStrings, windows;
 
 const
   MULTILINE_FIRSTLINE_MARK = 1;
   MULTILINE_SEPARATOR = ' ';
   DOUBLE_SLASH_DUMMY = '/\\/';
 
+  LANG_BELARUSIAN_NAME = 'Беларуская';
+  LANG_RUSSIAN_NAME = 'Русский';
+  LANG_ENGLISH_NAME = 'English';
+
 var
   LocalizedStringArray: array [0..(Integer(lsLastID) - 1)] of String;
+  LanguageLoadedOnStartupName: String;
+
+function LanguageLoadedOnStartup: String;
+begin
+  Result := LanguageLoadedOnStartupName;
+end;
 
 procedure ProcessControlChar(var AString: String);
 begin
@@ -181,6 +194,42 @@ end;
 procedure SetLocalizedString(const ALocStringID: TgsLocalizedStringID; const AString: String);
 begin
   LocalizedStringArray[Integer(ALocStringID)] := AString;
+end;
+
+procedure SetLanguageOnKeybordLayout;
+var
+  Ch: array[0..KL_NAMELENGTH] of Char;
+  KeboardLayout: Integer;
+begin
+  LanguageLoadedOnStartupName := '';
+
+  GetKeyboardLayoutName(Ch);
+
+  KeboardLayout := StrToInt('$' + String(Ch));
+  try
+    case (KeboardLayout and $3ff) of
+      LANG_BELARUSIAN:
+      begin
+        LoadLanguageStrings(LANG_BELARUSIAN_NAME);
+        LanguageLoadedOnStartupName := LANG_BELARUSIAN_NAME;
+      end;
+
+      LANG_RUSSIAN:
+      begin
+        LoadLanguageStrings(LANG_RUSSIAN_NAME);
+        LanguageLoadedOnStartupName := LANG_RUSSIAN_NAME;
+      end;
+
+      LANG_ENGLISH:
+      begin
+        LoadLanguageStrings(LANG_ENGLISH_NAME);
+        LanguageLoadedOnStartupName := LANG_ENGLISH_NAME;
+      end;
+    end;
+  except
+    // Если не получилось загрузить язык на основании расклдаки клавиатуры
+    // загрузим его потом в форме, или останется язык по умолчанию в консоли
+  end;
 end;
 
 procedure LoadLanguageStrings(const ALanguageName: String);
@@ -289,9 +338,8 @@ begin
   SetLocalizedString(lsStep04Comment, 'Список функций можно изменять');
   SetLocalizedString(lsStep05, 'Информация');
   SetLocalizedString(lsStep06, 'Ход процесса');
-  SetLocalizedString(lsStep07, 'Завершение');
-  SetLocalizedString(lsStep08, 'Реклама');
-  SetLocalizedString(lsStep08Comment, 'Реклама');
+  SetLocalizedString(lsStep07, 'Реклама');
+  SetLocalizedString(lsStep07Comment, 'Реклама');
   SetLocalizedString(lsPrevButton, 'Назад');
   SetLocalizedString(lsNextButton, 'Далее');
   SetLocalizedString(lsExitButton, 'Выйти');
@@ -323,13 +371,16 @@ begin
   SetLocalizedString(lsTriggerError, 'Ошибка при сохранении триггера');
   SetLocalizedString(lsViewFieldsProcessStart, 'Архивирование представлений и вычисляемых полей');
   SetLocalizedString(lsViewFieldsProcessFinish, 'Восстановление представлений и вычисляемых полей');
-  SetLocalizedString(lsViewFieldsProcessStartError, 'Ошибка при архивировании');
-  SetLocalizedString(lsViewFieldsProcessFinishError, 'Ошибка при восстановлении');
+  SetLocalizedString(lsComputedFieldProcessStartError, 'Ошибка при архивировании вычисляемого поля');
+  SetLocalizedString(lsComputedFieldProcessFinishError, 'Ошибка при восстановлении вычисляемого поля');
   SetLocalizedString(lsViewModified, 'Представление %s измененено');
   SetLocalizedString(lsViewSkipped, 'Представление %s пропущено, и не восстановлено. Необходимо ручное восстановление.');
   SetLocalizedString(lsViewError, 'Ошибка при сохранении представления');
+  SetLocalizedString(lsComputedFieldModified, 'Вычисляемое поле %s измененено');
+  SetLocalizedString(lsComputedFieldSkipped, 'Вычисляемое поле %s пропущено, и не восстановлено. Необходимо ручное восстановление.');
+  SetLocalizedString(lsComputedFieldError, 'Ошибка при сохранении вычисляемого поля');
   SetLocalizedString(lsObjectLeftCommented, 'Объект оставлен закомментированным.');
-
+  
   SetLocalizedString(lsDatabaseFileCopyingProcess, 'Копирование файла базы данных');
   SetLocalizedString(lsDatabaseBackupProcess, 'Архивация базы данных');
   SetLocalizedString(lsDatabaseBackupProcessError, 'В процессе архивации базы данных произошла ошибка');
@@ -338,6 +389,8 @@ begin
   SetLocalizedString(lsDatabaseValidationProcess, 'Проверка базы данных');
   SetLocalizedString(lsDatabaseValidationProcessError, 'В процессе проверки базы данных произошла ошибка');
   SetLocalizedString(lsDatabaseNULLCheckProcess, 'Проверка базы данных на NULL значения');
+  SetLocalizedString(lsContinueCheckingQuestion, 'Продолжить проверку?');
+  SetLocalizedString(lsContinueConvertingQuestion, 'Продолжить процесс конвертации?');
   SetLocalizedString(lsDatabaseNULLCheckMessage, 'В колонке "%s" таблицы "%s" присутствуют недопустимые NULL значения');
   SetLocalizedString(lsDatabaseNULLCheckProcessError, 'В процессе проверки базы данных на NULL значения произошла ошибка');
   SetLocalizedString(lsCircularReferenceError, 'Удаляемые представления и вычисляемые поля находятся в циклической зависимости');
@@ -345,19 +398,16 @@ begin
   SetLocalizedString(lsChooseDatabaseMessage, 'Выберите базу данных для конвертации');
   SetLocalizedString(lsInformationDialogCaption, 'Внимание');
 
-  //SetLocalizedString(lsFEParamsCaption, 'Параметры');
-  //SetLocalizedString(lsFEProcedureCaption, 'Хранимая процедура');
   SetLocalizedString(lsFEProcedureEditCaption, 'Редактирование хранимой процедуры');
   SetLocalizedString(lsFEProcedureErrorCaption, 'Произошла ошибка при сохранении хранимой процедуры');
-  //SetLocalizedString(lsFETriggerCaption, 'Триггер');
   SetLocalizedString(lsFETriggerEditCaption, 'Редактирование триггера');
   SetLocalizedString(lsFETriggerErrorCaption, 'Произошла ошибка при сохранении триггера');
-  //SetLocalizedString(lsFEViewCaption, 'Представление');
   SetLocalizedString(lsFEViewEditCaption, 'Редактирование представления');
   SetLocalizedString(lsFEViewErrorCaption, 'Произошла ошибка при сохранении представления');
+  SetLocalizedString(lsFEComputedFieldEditCaption, 'Редактирование вычисляемого поля');
+  SetLocalizedString(lsFEComputedFieldErrorCaption, 'Произошла ошибка при компиляции вычисляемого поля');
   SetLocalizedString(lsFEStopConvert, 'Прервать конвертацию БД');
   SetLocalizedString(lsFESaveMetadata, 'Сохранить');
-  //SetLocalizedString(lsFESkipMetadata, 'Пропустить');
   SetLocalizedString(lsFEDoComment, 'Закомментировать');
   SetLocalizedString(lsFEDoUncomment, 'Откомментировать');
   SetLocalizedString(lsFEDoShowError, 'Показать текст ошибки');
@@ -370,4 +420,5 @@ end;
 
 initialization
   __SetDefaultValues;
+  SetLanguageOnKeybordLayout;
 end.

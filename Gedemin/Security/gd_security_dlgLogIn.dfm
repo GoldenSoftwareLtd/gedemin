@@ -7,7 +7,7 @@ object dlgSecLogIn: TdlgSecLogIn
   BorderStyle = bsDialog
   Caption = '¬ход в систему'
   ClientHeight = 196
-  ClientWidth = 303
+  ClientWidth = 334
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -71,7 +71,7 @@ object dlgSecLogIn: TdlgSecLogIn
   object pnlLoginParams: TPanel
     Left = 56
     Top = 8
-    Width = 241
+    Width = 263
     Height = 156
     BevelInner = bvRaised
     BevelOuter = bvLowered
@@ -134,7 +134,7 @@ object dlgSecLogIn: TdlgSecLogIn
     object Bevel1: TBevel
       Left = 1
       Top = 75
-      Width = 238
+      Width = 261
       Height = 2
       Shape = bsTopLine
     end
@@ -159,7 +159,7 @@ object dlgSecLogIn: TdlgSecLogIn
     object cbUser: TComboBox
       Left = 88
       Top = 82
-      Width = 145
+      Width = 169
       Height = 21
       ItemHeight = 13
       TabOrder = 2
@@ -168,7 +168,7 @@ object dlgSecLogIn: TdlgSecLogIn
     object cbDBFileName: TComboBox
       Left = 88
       Top = 23
-      Width = 145
+      Width = 169
       Height = 21
       Style = csDropDownList
       DropDownCount = 16
@@ -188,11 +188,19 @@ object dlgSecLogIn: TdlgSecLogIn
     object eTempDatabase: TEdit
       Left = 54
       Top = 49
-      Width = 179
+      Width = 203
       Height = 21
       Ctl3D = True
       ParentCtl3D = False
       TabOrder = 1
+    end
+    object Button1: TButton
+      Left = 232
+      Top = 107
+      Width = 25
+      Height = 21
+      Action = actGetPassword
+      TabOrder = 5
     end
   end
   object btnOk: TButton
@@ -230,6 +238,10 @@ object dlgSecLogIn: TdlgSecLogIn
       Caption = 'actHelp'
       ShortCut = 112
       OnExecute = actHelpExecute
+    end
+    object actGetPassword: TAction
+      Caption = 'get'
+      OnExecute = actGetPasswordExecute
     end
   end
   object spUserLogin: TIBStoredProc

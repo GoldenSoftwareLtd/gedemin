@@ -1,14 +1,14 @@
 object frmFunctionEdit: TfrmFunctionEdit
-  Left = 1589
-  Top = 71
-  Width = 935
-  Height = 696
+  Left = 277
+  Top = 68
+  Width = 906
+  Height = 667
   Caption = 'Редактирование'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poOwnerFormCenter
@@ -18,15 +18,16 @@ object frmFunctionEdit: TfrmFunctionEdit
   object pnlSynEdit: TPanel
     Left = 0
     Top = 0
-    Width = 919
-    Height = 621
+    Width = 890
+    Height = 595
     Align = alClient
+    BevelOuter = bvNone
     TabOrder = 0
     object seFunction: TSynEdit
-      Left = 1
-      Top = 27
-      Width = 917
-      Height = 593
+      Left = 0
+      Top = 26
+      Width = 890
+      Height = 569
       Cursor = crIBeam
       Align = alClient
       Font.Charset = DEFAULT_CHARSET
@@ -377,19 +378,29 @@ object frmFunctionEdit: TfrmFunctionEdit
           ShortCut = 24642
         end>
     end
-    object TBDock1: TTBDock
-      Left = 1
-      Top = 1
-      Width = 917
+    object TBDock: TTBDock
+      Left = 0
+      Top = 0
+      Width = 890
       Height = 26
-      object TBToolbar1: TTBToolbar
+      BoundLines = [blLeft, blRight]
+      object TBToolbar: TTBToolbar
         Left = 0
         Top = 0
-        Caption = 'TBToolbar1'
+        BorderStyle = bsNone
+        Caption = 'TBToolbar'
+        CloseButton = False
         DockMode = dmCannotFloatOrChangeDocks
         DragHandleStyle = dhNone
         FullSize = True
+        HideWhenInactive = False
         Images = dmImages.il16x16
+        MenuBar = True
+        Options = [tboDefault]
+        ParentShowHint = False
+        ProcessShortCuts = True
+        ShowHint = True
+        ShrinkMode = tbsmWrap
         TabOrder = 0
         object TBItem3: TTBItem
           Action = actComment
@@ -408,38 +419,40 @@ object frmFunctionEdit: TfrmFunctionEdit
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 621
-    Width = 919
-    Height = 37
+    Top = 595
+    Width = 890
+    Height = 34
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object pnlBottomRight: TPanel
-      Left = 568
+      Left = 541
       Top = 0
-      Width = 351
-      Height = 37
+      Width = 349
+      Height = 34
       Align = alRight
       BevelOuter = bvNone
       TabOrder = 0
       object btnSave: TButton
-        Left = 12
-        Top = 8
-        Width = 160
-        Height = 25
+        Left = 68
+        Top = 7
+        Width = 134
+        Height = 21
         Action = actSave
+        Anchors = []
         ModalResult = 1
         TabOrder = 0
       end
-    end
-    object btnStopConvert: TButton
-      Left = 753
-      Top = 8
-      Width = 160
-      Height = 25
-      Action = actStopConvert
-      ModalResult = 3
-      TabOrder = 1
+      object btnStopConvert: TButton
+        Left = 207
+        Top = 7
+        Width = 134
+        Height = 21
+        Action = actStopConvert
+        Anchors = []
+        ModalResult = 3
+        TabOrder = 1
+      end
     end
   end
   object ActionList1: TActionList

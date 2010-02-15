@@ -23,6 +23,8 @@ type
 
     procedure LoadLanguage(const ALanguageName: String);
 
+    procedure SetCurrentStepMessage(const AStepMessage: String);
+
     // Отобразить информацию о предстоящем процессе
     procedure ViewPreProcessInformation;
     // Отобразить информацию о завершенном процессе
@@ -52,7 +54,8 @@ uses
   gs_frmFunctionEdit_unit,
   jclStrings,
   IBDatabase, IB,
-  gsFDBConvertLocalization_unit;
+  gsFDBConvertLocalization_unit,
+  Graphics;
 
 type
   TgsConvertThread = class(TThread)
@@ -73,14 +76,14 @@ type
     procedure ProcessViewsAndComputedFields;
 
     procedure OnMetadataEditError;
+    procedure OnComputedFieldEditError;
     procedure OnInterruptedProcess;
   public
     procedure Execute; override;
 
     property Controller: TgsFDBConvertController read FController write FController;
   end;
-
-  EgsInterruptConvertProcess = class(Exception);
+  
   EgsNeedFreeSpace = class(Exception);
 
 { TgsFDBConvertController }
@@ -112,11 +115,19 @@ begin
     begin
       // Загрузим список локализаций
       TgsConfigFileManager.GetLanguageList(cbLanguage.Items);
-      // Выберем первый язык из списка (поэтому язык по умолчанию должен быть первым в файле)
-      if cbLanguage.Items.Count > 0 then
+      // Если не смогли загрузить язык на основании раскладки клавиатуры, то
+      // выберем первый язык из списка (поэтому язык по умолчанию должен быть первым в файле)
+      if (cbLanguage.Items.Count > 0) then
       begin
-        cbLanguage.ItemIndex := 0;
-        cbLanguage.OnChange(cbLanguage);
+        if LanguageLoadedOnStartup <> '' then
+        begin
+          cbLanguage.ItemIndex := cbLanguage.Items.IndexOf(LanguageLoadedOnStartup);
+        end
+        else
+        begin
+          cbLanguage.ItemIndex := 0;
+          cbLanguage.OnChange(cbLanguage);
+        end;
       end;
       // Загрузим список кодовых страниц
       TgsConfigFileManager.GetCodePageList(cbCharacterSet.Items);
@@ -213,6 +224,11 @@ begin
             FFDBConvert.FinishConvertedDatabaseName := FFDBConvert.DatabaseCopyName;
           end;
 
+          // Путь к копии БД
+          FFDBConvert.DatabaseCopyName := TgsFileSystemHelper.GetDefaultDatabaseCopyName(FFDBConvert.DatabaseName);
+          // Путь к бэкапу БД
+          FFDBConvert.DatabaseBackupName := TgsFileSystemHelper.GetDefaultBackupName(FFDBConvert.DatabaseName);;
+
           // Обработчик сервисов сервера БД
           FFDBConvert.ServiceProgressRoutine := FormServiceProgressRoutine;
           // Обработчик копирования БД
@@ -228,9 +244,18 @@ begin
           // Путь к бэкапу БД
           FFDBConvert.DatabaseBackupName := eBackupName.Text;
 
-          ConnectInfo.PageSize := StrToInt(cbPageSize.Text);
-          ConnectInfo.NumBuffers := StrToInt(eBufferSize.Text);
-          ConnectInfo.CharacterSet := Trim(cbCharacterSet.Text);
+          if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseName) then
+          begin
+            ConnectInfo.PageSize := StrToInt(cbPageSize.Text);
+            ConnectInfo.NumBuffers := StrToInt(eBufferSize.Text);
+            ConnectInfo.CharacterSet := Trim(cbCharacterSet.Text);
+          end
+          else
+          begin
+            ConnectInfo.PageSize := -1;
+            ConnectInfo.NumBuffers := -1;
+            ConnectInfo.CharacterSet := '';
+          end;
           FFDBConvert.ConnectionInformation := ConnectInfo;
         end;
 
@@ -370,13 +395,14 @@ begin
             end;
 
             eNewServerVersion.Text := GetTextServerVersion(CONVERT_SERVER_VERSION);
-            eTempDatabaseName.Text := TgsFileSystemHelper.GetDefaultDatabaseCopyName(FFDBConvert.DatabaseName);
+            eTempDatabaseName.Text := FFDBConvert.DatabaseCopyName;
+            eBackupName.Text := FFDBConvert.DatabaseBackupName;
 
             // Если передан не бэкап
             if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseName) then
             begin
-              eBackupName.Text := TgsFileSystemHelper.GetDefaultBackupName(FFDBConvert.DatabaseName);
-              {actBrowseBackupFile.Enabled := True;}
+              pnlDBProperties.Visible := True;
+
               cbPageSize.Text := IntToStr(FFDBConvert.DatabaseInfo.PageSize);
               eBufferSize.Text := IntToStr(FFDBConvert.DatabaseInfo.NumBuffers);
               // Получим кодировку БД
@@ -392,13 +418,8 @@ begin
             end
             else
             begin
-              {eBackupName.Text := Format('< %0:s >', [GetLocalizedString(lsUnknownParameterValue)]);
-              eBackupName.ReadOnly := True;
-              actBrowseBackupFile.Enabled := False;}
-              eBackupName.Text := TgsFileSystemHelper.GetDefaultBackupName(FFDBConvert.DatabaseName);
-
-              cbPageSize.Text := IntToStr(DefaultPageSize);
-              eBufferSize.Text := IntToStr(DefaultNumBuffers);
+              // Скроем поля ввода при выборе бекапа
+              pnlDBProperties.Visible := False;
             end;
           end;
 
@@ -412,9 +433,12 @@ begin
 
           mProcessInformation.Lines.Add(lblBackupName.Caption + ' ' + eBackupName.Text);
           mProcessInformation.Lines.Add(lblTempDatabaseName.Caption + ' ' + eTempDatabaseName.Text);
-          mProcessInformation.Lines.Add(lblPageSize.Caption + ' ' + cbPageSize.Text + ' ' + lblPageSize_02.Caption);
-          mProcessInformation.Lines.Add(lblBufferSize.Caption + ' ' + eBufferSize.Text + ' ' + lblBufferSize_02.Caption);
-          mProcessInformation.Lines.Add(lblCharacterSet.Caption + ' ' + cbCharacterSet.Text);
+          if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseName) then
+          begin
+            mProcessInformation.Lines.Add(lblPageSize.Caption + ' ' + cbPageSize.Text + ' ' + lblPageSize_02.Caption);
+            mProcessInformation.Lines.Add(lblBufferSize.Caption + ' ' + eBufferSize.Text + ' ' + lblBufferSize_02.Caption);
+            mProcessInformation.Lines.Add(lblCharacterSet.Caption + ' ' + cbCharacterSet.Text);
+          end;
         end;
       end
       else
@@ -434,7 +458,7 @@ begin
           WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsNewServerVersion),
             GetTextServerVersion(CONVERT_SERVER_VERSION)]));
           WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsBackupName),
-            TgsFileSystemHelper.GetDefaultBackupName(FFDBConvert.DatabaseName)]));
+            FFDBConvert.DatabaseBackupName]));
           WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsTempDatabaseName),
             TgsFileSystemHelper.GetDefaultDatabaseCopyName(FFDBConvert.DatabaseName)]));
           WriteToConsoleLn(Format('  %0:s %1:d %2:s', [GetLocalizedString(lsPageSize),
@@ -452,14 +476,16 @@ begin
             GetLocalizedString(lsUnknownParameterValue)]));
           WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsNewServerVersion),
             GetTextServerVersion(CONVERT_SERVER_VERSION)]));
+          WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsBackupName),
+            FFDBConvert.DatabaseBackupName]));
           WriteToConsoleLn(Format('  %0:s %1:s', [GetLocalizedString(lsResultDatabaseName),
             TgsFileSystemHelper.GetDefaultDatabaseCopyName(FFDBConvert.DatabaseName)]));
-          WriteToConsoleLn(Format('  %0:s %1:d %2:s', [GetLocalizedString(lsPageSize),
+          {WriteToConsoleLn(Format('  %0:s %1:d %2:s', [GetLocalizedString(lsPageSize),
             FFDBConvert.DatabaseInfo.PageSize, GetLocalizedString(lsPageSize_02)]));
           WriteToConsoleLn(Format('  %0:s %1:d %2:s', [GetLocalizedString(lsBufferSize),
             FFDBConvert.DatabaseInfo.NumBuffers, GetLocalizedString(lsBufferSize_02)]));
           WriteToConsoleLn(Format('  %0:s < %1:s >', [GetLocalizedString(lsCharacterSet),
-            GetLocalizedString(lsUnknownParameterValue)]));
+            GetLocalizedString(lsUnknownParameterValue)]));}
         end;
       end;
     finally
@@ -485,6 +511,7 @@ begin
       end;
       AddMessage(GetLocalizedString(lsNewDatabaseNameFinalMessage));
       AddMessage('  ' + FFDBConvert.FinishConvertedDatabaseName);
+      Animate.Visible := False;
     end;
   end
   else
@@ -508,9 +535,18 @@ begin
     with FProcessForm as TgsFDBConvertFormView do
     begin
       AddMessage(' ');
-      AddMessage(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcessInterruptedEnd)]));
+      // сообщим об ошибке
       if AErrorMessage <> '' then
-        AddMessage(AErrorMessage);
+      begin
+        AddMessage(Format('%s: %s', [TimeToStr(Time), AErrorMessage]));
+        AddMessage(' ');
+        AddMessage(GetLocalizedString(lsProcessInterruptedEnd));
+      end
+      else
+        AddMessage(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcessInterruptedEnd)]));
+
+      AddMessage(' ');
+
       if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseOriginalName) then
       begin
         AddMessage(GetLocalizedString(lsOriginalDatabaseNameInterruptMessage));
@@ -521,13 +557,24 @@ begin
         AddMessage(GetLocalizedString(lsOriginalBackupNameInterruptMessage));
         AddMessage('  ' + FFDBConvert.DatabaseOriginalName);
       end;
+
+      // скроем анимацию
+      Animate.Visible := False;
+      // очистим прогресс-бар
+      SetCurrentStep('');
     end;
   end
   else
   begin
-    WriteToConsoleLn(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcessInterruptedEnd)]));
+    // сообщим об ошибке
     if AErrorMessage <> '' then
-      WriteToConsoleLn(AErrorMessage);
+    begin
+      WriteToConsoleLn(Format('%s: %s', [TimeToStr(Time), AErrorMessage]));
+      WriteToConsoleLn(GetLocalizedString(lsProcessInterruptedEnd));
+    end
+    else
+      WriteToConsoleLn(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcessInterruptedEnd)]));
+
     if not TgsFileSystemHelper.IsBackupFile(FFDBConvert.DatabaseOriginalName) then
     begin
       WriteToConsoleLn(GetLocalizedString(lsOriginalDatabaseNameInterruptMessage));
@@ -569,6 +616,11 @@ begin
     // Запомним что процесс был запущен
     FWasConvertingProcess := True;
 
+    // Запустим анимацию 
+    if Assigned(FProcessForm) then
+      with FProcessForm as TgsFDBConvertFormView do
+        Animate.Visible := True;
+
     // Создадим нить вставляющую или удаляющую комментарии из хранимых процедур и триггеры
     with TgsConvertThread.Create(True) do
     begin
@@ -595,58 +647,73 @@ procedure TgsFDBConvertController.CheckProcessParams(const RespondToForm: Boolea
 var
   ProcessedFileSize: Int64;
   NeedFreeSpace: Boolean;
+  MessageStr: String;
 begin
   NeedFreeSpace := False;
+  MessageStr := '';
 
   // Если копия БД и архив на одном диске
-  if ExtractFileDrive(ModelObject.DatabaseCopyName) = ExtractFileDrive(ModelObject.DatabaseBackupName) then
+  if UpperCase(ExtractFileDrive(ModelObject.DatabaseCopyName)) =
+    UpperCase(ExtractFileDrive(ModelObject.DatabaseBackupName)) then
   begin
     // Проверим свободное место для копии БД и архива БД
     ProcessedFileSize := Round(TgsFileSystemHelper.GetFileSize(ModelObject.DatabaseName) * FREE_SPACE_MULTIPLIER);
+    MessageStr := Format('%s %d %s   ',
+      [UpperCase(ExtractFileDrive(ModelObject.DatabaseCopyName)), (ProcessedFileSize div BYTE_IN_MB), GetLocalizedString(lsDiskSpaceQuantifier)]);
     if TgsFileSystemHelper.CheckForFreeDiskSpace(ModelObject.DatabaseCopyName, ProcessedFileSize) > 0 then
-      if RespondToForm and Assigned(FProcessForm) then
-      begin
-        (FProcessForm as TgsFDBConvertFormView).lblNeedFreeSpace.Caption :=
-          GetLocalizedString(lsNoDiskSpaceForTempFiles) + #13#10 +
-          Format(GetLocalizedString(lsWantDiskSpace), [ProcessedFileSize div BYTE_IN_MB]);
-        NeedFreeSpace := True;
-      end
-      else
-        raise EgsNeedFreeSpace.Create(GetLocalizedString(lsNoDiskSpaceForTempFiles) + #13#10 +
-          Format(GetLocalizedString(lsWantDiskSpace), [ProcessedFileSize div BYTE_IN_MB]));
+    begin
+      NeedFreeSpace := True;
+      if not (RespondToForm and Assigned(FProcessForm)) then
+        raise EgsNeedFreeSpace.Create(GetLocalizedString(lsNoDiskSpaceForTempFiles) + #13#10#13#10 +
+          Format('%s %d %s',
+            [GetLocalizedString(lsWantDiskSpace), (ProcessedFileSize div BYTE_IN_MB), GetLocalizedString(lsDiskSpaceQuantifier)]));
+    end;
   end
   else
   begin
+    // Проверим свободное место для архива БД
+    ProcessedFileSize := TgsFileSystemHelper.GetFileSize(ModelObject.DatabaseName) div 2;
+    MessageStr := Format('%s %d %s   ',
+      [UpperCase(ExtractFileDrive(ModelObject.DatabaseBackupName)), (ProcessedFileSize div BYTE_IN_MB), GetLocalizedString(lsDiskSpaceQuantifier)]);
+    if TgsFileSystemHelper.CheckForFreeDiskSpace(ModelObject.DatabaseBackupName, ProcessedFileSize) > 0 then
+    begin
+      NeedFreeSpace := True;
+      if not (RespondToForm and Assigned(FProcessForm)) then
+        raise EgsNeedFreeSpace.Create(GetLocalizedString(lsNoDiskSpaceForBackup) + #13#10 +
+          ModelObject.DatabaseBackupName + #13#10#13#10 +
+          Format('%s %d %s',
+            [GetLocalizedString(lsWantDiskSpace), (ProcessedFileSize div BYTE_IN_MB),
+             GetLocalizedString(lsDiskSpaceQuantifier)]));
+    end;
+
     // Проверим свободное место для копии БД
     ProcessedFileSize := TgsFileSystemHelper.GetFileSize(ModelObject.DatabaseName);
+    MessageStr := MessageStr + Format('%s %d %s   ',
+      [UpperCase(ExtractFileDrive(ModelObject.DatabaseCopyName)), (ProcessedFileSize div BYTE_IN_MB), GetLocalizedString(lsDiskSpaceQuantifier)]);
     if TgsFileSystemHelper.CheckForFreeDiskSpace(ModelObject.DatabaseCopyName, ProcessedFileSize) > 0 then
-      if RespondToForm and Assigned(FProcessForm) then
-      begin
-        (FProcessForm as TgsFDBConvertFormView).lblNeedFreeSpace.Caption :=
-          GetLocalizedString(lsNoDiskSpaceForDBCopy) + #13#10 + ModelObject.DatabaseCopyName + #13#10 +
-          Format(GetLocalizedString(lsWantDiskSpace), [ProcessedFileSize div BYTE_IN_MB]);
-        NeedFreeSpace := True;
-      end
-      else
+    begin
+      NeedFreeSpace := True;
+      if not (RespondToForm and Assigned(FProcessForm)) then
         raise EgsNeedFreeSpace.Create(GetLocalizedString(lsNoDiskSpaceForDBCopy) + #13#10 +
-          Format('  %s'#13#10 + GetLocalizedString(lsWantDiskSpace), [ModelObject.DatabaseCopyName, ProcessedFileSize div BYTE_IN_MB]));
-    // Проверим свободное место для архива БД
-    ProcessedFileSize := ProcessedFileSize div 2;
-    if TgsFileSystemHelper.CheckForFreeDiskSpace(ModelObject.DatabaseBackupName, ProcessedFileSize) > 0 then
-      if RespondToForm and Assigned(FProcessForm) then
-      begin
-        (FProcessForm as TgsFDBConvertFormView).lblNeedFreeSpace.Caption :=
-          GetLocalizedString(lsNoDiskSpaceForBackup) + #13#10 + ModelObject.DatabaseBackupName + #13#10 +
-          Format(GetLocalizedString(lsWantDiskSpace), [ProcessedFileSize div BYTE_IN_MB]);
-        NeedFreeSpace := True;
-      end
-      else
-        raise EgsNeedFreeSpace.Create(GetLocalizedString(lsNoDiskSpaceForBackup) + #13#10 +
-          Format('  %s'#13#10 + GetLocalizedString(lsWantDiskSpace), [ModelObject.DatabaseBackupName, ProcessedFileSize div BYTE_IN_MB]));
+          ModelObject.DatabaseCopyName + #13#10#13#10 +
+          Format('%s %d %s',
+            [GetLocalizedString(lsWantDiskSpace), (ProcessedFileSize div BYTE_IN_MB),
+             GetLocalizedString(lsDiskSpaceQuantifier)]));
+    end;
   end;
 
-  if RespondToForm and Assigned(FProcessForm) and not NeedFreeSpace then
-    (FProcessForm as TgsFDBConvertFormView).lblNeedFreeSpace.Caption := '';
+  if RespondToForm and Assigned(FProcessForm) then
+  begin
+    if NeedFreeSpace then
+      MessageStr := MessageStr + GetLocalizedString(lsNoDiskSpaceForTempFiles);
+    (FProcessForm as TgsFDBConvertFormView).eNeedFreeSpace.Text := MessageStr;
+  end;
+end;
+
+procedure TgsFDBConvertController.SetCurrentStepMessage(const AStepMessage: String);
+begin
+  if Assigned(FProcessForm) then
+    (FProcessForm as TgsFDBConvertFormView).SetCurrentStep(AStepMessage);
 end;
 
 { TgsConvertThread }
@@ -707,6 +774,9 @@ begin
 end;
 
 procedure TgsConvertThread.Execute;
+var
+  ConnectInfo: TgsConnectionInformation;
+  OriginalIsBackup: Boolean;
 begin
   // Установим процедуры визуализации работы нитей
   if Assigned(Controller.ProcessForm) then
@@ -729,6 +799,7 @@ begin
       // Если передан бэкап - разбекапим его во временную базу
       if TgsFileSystemHelper.IsBackupFile(Controller.ModelObject.DatabaseName) then
       begin
+        OriginalIsBackup := True;
         // Пробуем восстановить БД несколькими серверами подряд
         try
           Controller.ModelObject.ServiceProgressRoutine(Format('%s: %s %s',
@@ -736,40 +807,53 @@ begin
           Controller.ModelObject.ServerType := svYaffil;
           Controller.ModelObject.RestoreDatabase(Controller.ModelObject.DatabaseName, Controller.ModelObject.DatabaseCopyName);
         except
-          try
-            // сообщим об ошибке восстановления
-            Controller.ModelObject.ServiceProgressRoutine(GetLocalizedString(lsDatabaseRestoreProcessError));
-            // Восстанавливаем след. сервером
-            Controller.ModelObject.ServiceProgressRoutine(Format('%s: %s %s',
-              [TimeToStr(Time), GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svFirebird_20)]));
-            Controller.ModelObject.ServerType := svFirebird_20;
-            Controller.ModelObject.RestoreDatabase(Controller.ModelObject.DatabaseName, Controller.ModelObject.DatabaseCopyName);
-          except
+          on E: EgsInterruptConvertProcess do
+            raise
+          else
             try
               // сообщим об ошибке восстановления
               Controller.ModelObject.ServiceProgressRoutine(GetLocalizedString(lsDatabaseRestoreProcessError));
               // Восстанавливаем след. сервером
               Controller.ModelObject.ServiceProgressRoutine(Format('%s: %s %s',
-                [TimeToStr(Time), GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svFirebird_25)]));
-              Controller.ModelObject.ServerType := svFirebird_25;
+                [TimeToStr(Time), GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svFirebird_20)]));
+              Controller.ModelObject.ServerType := svFirebird_20;
               Controller.ModelObject.RestoreDatabase(Controller.ModelObject.DatabaseName, Controller.ModelObject.DatabaseCopyName);
             except
-              on E: Exception do
-              begin
-                // сообщим об ошибке восстановления
-                Controller.ModelObject.ServiceProgressRoutine(GetLocalizedString(lsDatabaseRestoreProcessError));
-                raise Exception.Create(E.Message);
-              end;
+              on E: EgsInterruptConvertProcess do
+                raise
+              else
+                try
+                  // сообщим об ошибке восстановления
+                  Controller.ModelObject.ServiceProgressRoutine(GetLocalizedString(lsDatabaseRestoreProcessError));
+                  // Восстанавливаем след. сервером
+                  Controller.ModelObject.ServiceProgressRoutine(Format('%s: %s %s',
+                    [TimeToStr(Time), GetLocalizedString(lsRestoreWithServer), GetTextServerVersion(svFirebird_25)]));
+                  Controller.ModelObject.ServerType := svFirebird_25;
+                  Controller.ModelObject.RestoreDatabase(Controller.ModelObject.DatabaseName, Controller.ModelObject.DatabaseCopyName);
+                except
+                  on E: EgsInterruptConvertProcess do
+                    raise;
+
+                  on E: Exception do
+                  begin
+                    // сообщим об ошибке восстановления
+                    Controller.ModelObject.ServiceProgressRoutine(GetLocalizedString(lsDatabaseRestoreProcessError));
+                    raise Exception.Create(E.Message);
+                  end;
+                end;
             end;
-          end;
         end;
         // Получим новое имя для бэкапа для последующей процедуры backup-restore
         // Controller.ModelObject.DatabaseBackupName := TgsFileSystemHelper.GetDefaultBackupName(Controller.ModelObject.DatabaseCopyName);
       end
       else
       begin
+        OriginalIsBackup := False;
+
+        Controller.SetCurrentStepMessage(GetLocalizedString(lsDatabaseFileCopyingProcess));
         // Иначе берем базу и копируем во временную базу
         Controller.ModelObject.CopyDatabaseFile(Controller.ModelObject.DatabaseName, Controller.ModelObject.DatabaseCopyName);
+        Controller.SetCurrentStepMessage('');
       end;
 
       // Далее будем работать с копией БД
@@ -782,6 +866,13 @@ begin
         Controller.ModelObject.ServerType := GetAppropriateServerVersion(GetServerVersionByDBVersion(Controller.ModelObject.GetDatabaseVersion));
         // Запомним версию оригинального сервера, будет использоваться в ModelObject.RestoreDatabase
         Controller.ModelObject.OriginalServerType := Controller.ModelObject.ServerType;
+        // Если был передан бекап, то получим из восстановленной базы кодовую страницу
+        if OriginalIsBackup then
+        begin
+          ConnectInfo := Controller.ModelObject.ConnectionInformation;
+          ConnectInfo.CharacterSet := Controller.ModelObject.GetDatabaseCharacterSet;
+          Controller.ModelObject.ConnectionInformation := ConnectInfo;
+        end;
       finally
         Controller.ModelObject.Disconnect;
       end;
@@ -844,7 +935,6 @@ begin
     except
       on E: Exception do
       begin
-        //Controller.ModelObject.ServiceProgressRoutine(E.Message);
         // Отобразим информацию о прерванном процессе
         FMessage := E.Message;
         Synchronize(OnInterruptedProcess);
@@ -885,7 +975,7 @@ begin
           begin
             // Покажем сообщение об ошибке
             Application.MessageBox(
-              PChar(Format('%s %s %s ...',
+              PChar(Format('%s %s %s',
                 [GetLocalizedString(lsFEProcedureErrorCaption), #13#10,
                  FgsFunctionEditor.GetFirstNLines(FMetadataError, 25)])),
               PChar(GetLocalizedString(lsInformationDialogCaption)),
@@ -920,7 +1010,7 @@ begin
           begin
             // Покажем сообщение об ошибке
             Application.MessageBox(
-              PChar(Format('%s %s %s ...',
+              PChar(Format('%s %s %s',
                 [GetLocalizedString(lsFETriggerErrorCaption), #13#10,
                  FgsFunctionEditor.GetFirstNLines(FMetadataError, 25)])),
               PChar(GetLocalizedString(lsInformationDialogCaption)),
@@ -955,7 +1045,7 @@ begin
           begin
             // Покажем сообщение об ошибке
             Application.MessageBox(
-              PChar(Format('%s %s %s ...',
+              PChar(Format('%s %s %s',
                 [GetLocalizedString(lsFEViewErrorCaption), #13#10,
                  FgsFunctionEditor.GetFirstNLines(FMetadataError, 25)])),
               PChar(GetLocalizedString(lsInformationDialogCaption)),
@@ -968,7 +1058,7 @@ begin
               begin
                 NewFunctionText := SynEditFunctionText;
                 // Сохраним измененный триггер
-                FgsFunctionEditor.SetViewText(FMetadataName, NewFunctionText);
+                FgsFunctionEditor.SetViewText(NewFunctionText);
                 // Визуализация процесса
                 Controller.ModelObject.MetadataProgressRoutine(Format(GetLocalizedString(lsViewModified), [FMetadataName]),
                   FMetadataMaxProgress, FMetadataCurrentProgress);
@@ -988,7 +1078,36 @@ begin
           // Произошла ошибка при редактировании вычисляемого поля
           mtComputedField:
           begin
+            // Покажем сообщение об ошибке
+            Application.MessageBox(
+              PChar(Format('%s %s %s',
+                [GetLocalizedString(lsFEComputedFieldErrorCaption), #13#10,
+                 FgsFunctionEditor.GetFirstNLines(FMetadataError, 25)])),
+              PChar(GetLocalizedString(lsInformationDialogCaption)),
+              MB_OK or MB_ICONERROR or MB_APPLMODAL);
 
+            // Вызвать диалог редактирования для триггера
+            DialogResult := ShowForComputedField(FMetadataName, FMetadataText, FMetadataError);
+            case DialogResult of
+              idOk:
+              begin
+                NewFunctionText := SynEditFunctionText;
+                // Сохраним измененный триггер
+                FgsFunctionEditor.SetViewText(NewFunctionText);
+                // Визуализация процесса
+                Controller.ModelObject.MetadataProgressRoutine(Format(GetLocalizedString(lsComputedFieldModified), [FMetadataName]),
+                  FMetadataMaxProgress, FMetadataCurrentProgress);
+              end;
+
+              idAbort:
+              begin
+                raise EgsInterruptConvertProcess.Create('');
+              end;
+            else
+              // Визуализация процесса
+              Controller.ModelObject.MetadataProgressRoutine(Format(GetLocalizedString(lsComputedFieldSkipped), [FMetadataName]),
+                FMetadataMaxProgress, FMetadataCurrentProgress);
+            end;
           end;
         end;
       end;
@@ -1006,12 +1125,55 @@ begin
   begin
     case FEditMetadataType of
       mtProcedure:
-        WriteToConsoleLn(Format('%s %s. %s', [GetLocalizedString(lsProcedureError), FMetadataName, GetLocalizedString(lsObjectLeftCommented)]));
+        Controller.ModelObject.MetadataProgressRoutine(
+          Format('%s %s. %s', [GetLocalizedString(lsProcedureError), FMetadataName, GetLocalizedString(lsObjectLeftCommented)]),
+          FMetadataMaxProgress, FMetadataCurrentProgress);
+
       mtTrigger:
-        WriteToConsoleLn(Format('%s %s. %s', [GetLocalizedString(lsTriggerError), FMetadataName, GetLocalizedString(lsObjectLeftCommented)]));
+        Controller.ModelObject.MetadataProgressRoutine(
+          Format('%s %s. %s', [GetLocalizedString(lsTriggerError), FMetadataName, GetLocalizedString(lsObjectLeftCommented)]),
+          FMetadataMaxProgress, FMetadataCurrentProgress);
+
       mtView:
-        WriteToConsoleLn(Format('%s %s. %s', [GetLocalizedString(lsViewError), FMetadataName, GetLocalizedString(lsObjectLeftCommented)]));
+        Controller.ModelObject.MetadataProgressRoutine(
+          Format('%s %s. %s', [GetLocalizedString(lsViewError), FMetadataName, GetLocalizedString(lsObjectLeftCommented)]),
+          FMetadataMaxProgress, FMetadataCurrentProgress);
+          
+      mtComputedField:
+        Controller.ModelObject.MetadataProgressRoutine(
+          Format('%s %s. %s', [GetLocalizedString(lsComputedFieldError), FMetadataName, GetLocalizedString(lsObjectLeftCommented)]),
+          FMetadataMaxProgress, FMetadataCurrentProgress);
     end;
+  end;
+end;
+
+procedure TgsConvertThread.OnComputedFieldEditError;
+var
+  ErrorMessagePartStr: String;
+begin
+  if not FIsRestoringMetadata then
+    ErrorMessagePartStr := GetLocalizedString(lsComputedFieldProcessStartError)
+  else
+    ErrorMessagePartStr := GetLocalizedString(lsComputedFieldProcessFinishError);
+
+  // Если работаем с оконным интерфейсом, то дадим пользователю исправить функцию
+  if Assigned(Controller.ProcessForm) then
+  begin                                    
+    // Покажем сообщение об ошибке
+    Application.MessageBox(
+      PChar(Format('%s %s%s%s',
+        [ErrorMessagePartStr, FMetadataName, #13#10,
+         FgsFunctionEditor.GetFirstNLines(FMetadataError, 25)])),
+      PChar(GetLocalizedString(lsInformationDialogCaption)),
+      MB_OK or MB_ICONERROR or MB_APPLMODAL);
+
+    raise EgsInterruptConvertProcess.Create(Format('%s %s%s%s',
+      [ErrorMessagePartStr, FMetadataName, #13#10, FMetadataError]));
+  end
+  else
+  begin
+    raise EgsInterruptConvertProcess.Create(Format('%s %s%s%s',
+      [ErrorMessagePartStr, FMetadataName, #13#10, FMetadataError]));
   end;
 end;
 
@@ -1031,11 +1193,17 @@ begin
     FMetadataMaxProgress := FunctionList.Count;
     FMetadataCurrentProgress := 0;
     if not FIsRestoringMetadata then
+    begin
       Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcedureProcessStart)]),
-        FMetadataMaxProgress, FMetadataCurrentProgress)
+        FMetadataMaxProgress, FMetadataCurrentProgress);
+      Controller.SetCurrentStepMessage(GetLocalizedString(lsProcedureProcessStart));
+    end
     else
+    begin
       Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsProcedureProcessFinish)]),
         FMetadataMaxProgress, FMetadataCurrentProgress);
+      Controller.SetCurrentStepMessage(GetLocalizedString(lsProcedureProcessFinish));
+    end;
 
     // Пройдем по списку процедур
     for MetadataCounter := 0 to FunctionList.Count - 1 do
@@ -1045,7 +1213,7 @@ begin
       Controller.ModelObject.MetadataProgressRoutine('  ' + FunctionList[MetadataCounter], FMetadataMaxProgress, FMetadataCurrentProgress);
       try
         // Закомментируем\Откомментируем тело процедуры FunctionList[MetadataCounter]
-        FunctionText := FgsFunctionEditor.GetProcedureText(FunctionList[MetadataCounter], True);
+        FunctionText := FgsFunctionEditor.GetProcedureText(FunctionList[MetadataCounter]);
         // В зависимости от установленного флага будем комментировать, или же убирать комментарии
         if not FIsRestoringMetadata then
         begin
@@ -1062,7 +1230,7 @@ begin
             FgsFunctionEditor.SetProcedureText(FunctionText);
         end;
       except
-        on E: Exception do
+        on E: EIBInterbaseError do
         begin
           FMetadataName := FunctionList[MetadataCounter];
           FMetadataText := FunctionText;
@@ -1074,6 +1242,7 @@ begin
     // Визуализация процесса
     FMetadataMaxProgress := FMetadataCurrentProgress;
     Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
+    Controller.SetCurrentStepMessage('');
   finally
     FreeAndNil(FunctionList);
   end;
@@ -1096,11 +1265,17 @@ begin
     FMetadataCurrentProgress := 0;
 
     if not FIsRestoringMetadata then
+    begin
       Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsTriggerProcessStart)]),
-        FMetadataMaxProgress, FMetadataCurrentProgress)
+        FMetadataMaxProgress, FMetadataCurrentProgress);
+      Controller.SetCurrentStepMessage(GetLocalizedString(lsTriggerProcessStart));
+    end
     else
+    begin
       Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsTriggerProcessFinish)]),
         FMetadataMaxProgress, FMetadataCurrentProgress);
+      Controller.SetCurrentStepMessage(GetLocalizedString(lsTriggerProcessFinish));
+    end;
 
     // Пройдем по списку триггеров
     for MetadataCounter := 0 to FunctionList.Count - 1 do
@@ -1110,7 +1285,7 @@ begin
       Controller.ModelObject.MetadataProgressRoutine('  ' + FunctionList[MetadataCounter], FMetadataMaxProgress, FMetadataCurrentProgress);
       try
         // Закомментируем\Откомментируем тело триггера FunctionList[MetadataCounter]
-        FunctionText := FgsFunctionEditor.GetTriggerText(FunctionList[MetadataCounter], True);
+        FunctionText := FgsFunctionEditor.GetTriggerText(FunctionList[MetadataCounter]);
         // В зависимости от установленного флага будем комментировать, или же убирать комментарии
         if not FIsRestoringMetadata then
         begin
@@ -1127,7 +1302,7 @@ begin
             FgsFunctionEditor.SetTriggerText(FunctionText);
         end;
       except
-        on E: Exception do
+        on E: EIBInterbaseError do
         begin
           FMetadataName := FunctionList[MetadataCounter];
           FMetadataText := FunctionText;
@@ -1139,6 +1314,7 @@ begin
     // Визуализация процесса
     FMetadataMaxProgress := FMetadataCurrentProgress;
     Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
+    Controller.SetCurrentStepMessage('');
   finally
     FreeAndNil(FunctionList);
   end;
@@ -1163,11 +1339,17 @@ begin
     FMetadataMaxProgress := FunctionList.Count;
     FMetadataCurrentProgress := 0;
     if not FIsRestoringMetadata then
+    begin
       Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsViewFieldsProcessStart)]),
-        FMetadataMaxProgress, FMetadataCurrentProgress)
+        FMetadataMaxProgress, FMetadataCurrentProgress);
+      Controller.SetCurrentStepMessage(GetLocalizedString(lsViewFieldsProcessStart));
+    end
     else
+    begin
       Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsViewFieldsProcessFinish)]),
         FMetadataMaxProgress, FMetadataCurrentProgress);
+      Controller.SetCurrentStepMessage(GetLocalizedString(lsViewFieldsProcessFinish));
+    end;
 
     // Пройдем по списку представлений и вычисляемых полей
     for MetadataCounter := 0 to FunctionList.Count - 1 do
@@ -1177,7 +1359,7 @@ begin
       Controller.ModelObject.MetadataProgressRoutine('  ' + FunctionList[MetadataCounter], FMetadataMaxProgress, FMetadataCurrentProgress);
       try
         // Определим что за элемент списка, представление или выч. поле
-        DelimeterPos := AnsiPos(',', FunctionList[MetadataCounter]);
+        DelimeterPos := AnsiPos(COMPUTED_FIELD_DELIMITER, FunctionList[MetadataCounter]);
         if DelimeterPos = 0 then
         begin
           // Укажем что идет редактирование представлений
@@ -1191,7 +1373,8 @@ begin
           else
           begin
             MetadataText := FgsFunctionEditor.GetBackupViewText(FunctionList[MetadataCounter]);
-            FgsFunctionEditor.SetViewText(FunctionList[MetadataCounter], MetadataText);
+            FgsFunctionEditor.SetViewText(MetadataText);
+            FgsFunctionEditor.RestoreGrant(FunctionList[MetadataCounter]);
           end;
         end
         else
@@ -1209,27 +1392,25 @@ begin
           end
           else
           begin
-            FgsFunctionEditor.RestoreComputedField(ComputedTableName, ComputedFieldName);
+            MetadataText := FgsFunctionEditor.GetBackupComputedFieldText(ComputedTableName, ComputedFieldName);
+            FgsFunctionEditor.SetComputedFieldText(MetadataText);
+            FgsFunctionEditor.RestoreGrant(ComputedFieldName, ComputedTableName);
           end;
         end;
       except
-        on E: Exception do
+        on E: EIBInterbaseError do
         begin
-          // Визуализация процесса
-          if not FIsRestoringMetadata then
-            Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s %s%s%s',
-              [TimeToStr(Time), GetLocalizedString(lsViewFieldsProcessStartError), FunctionList[MetadataCounter], #13#10, E.Message]),
-              FMetadataMaxProgress, FMetadataCurrentProgress)
-          else
-            Controller.ModelObject.MetadataProgressRoutine(Format('%s: %s %s%s%s',
-              [TimeToStr(Time), GetLocalizedString(lsViewFieldsProcessFinishError), FunctionList[MetadataCounter], #13#10, E.Message]),
-              FMetadataMaxProgress, FMetadataCurrentProgress)
+          FMetadataName := FunctionList[MetadataCounter];
+          FMetadataError := E.Message;
+          FMetadataText := MetadataText;
+          Synchronize(OnMetadataEditError);
         end;
       end;
     end;
     // Визуализация процесса
     FMetadataMaxProgress := FMetadataCurrentProgress;
     Controller.ModelObject.MetadataProgressRoutine('', FMetadataMaxProgress, FMetadataCurrentProgress);
+    Controller.SetCurrentStepMessage('');
   finally
     FreeAndNil(FunctionList);
   end;
