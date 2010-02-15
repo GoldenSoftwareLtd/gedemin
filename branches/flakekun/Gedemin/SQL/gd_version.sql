@@ -380,6 +380,11 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (112, '0000.0001.0000.0144', '25.04.2009', 'Проставлены пропущенные гранты');
 
+
+INSERT INTO fin_versioninfo
+  VALUES (114, '0000.0001.0000.0145', '25.09.2009', 'Storage being converted into new data structures');
+  
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

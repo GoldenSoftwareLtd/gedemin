@@ -23,10 +23,6 @@ type
     tbs05: TTabSheet;
     tbs06: TTabSheet;
     tbs07: TTabSheet;
-    Bevel7: TBevel;
-    lblStep07: TLabel;
-    mAfterProcessInformation: TMemo;
-    tbs08: TTabSheet;
     lblHello: TLabel;
     lblLanguage: TLabel;
     cbLanguage: TComboBox;
@@ -42,7 +38,7 @@ type
     lblStep04: TLabel;
     lblStep05: TLabel;
     lblStep06: TLabel;
-    lblStep08: TLabel;
+    lblStep07: TLabel;
     Bevel1: TBevel;
     Bevel2: TBevel;
     Bevel3: TBevel;
@@ -76,22 +72,25 @@ type
     GroupBox3: TGroupBox;
     lblNewServerVersion: TLabel;
     eNewServerVersion: TEdit;
-    lblPageSize: TLabel;
-    cbPageSize: TComboBox;
-    lblPageSize_02: TLabel;
-    lblBufferSize: TLabel;
-    eBufferSize: TEdit;
-    lblBufferSize_02: TLabel;
-    lblCharacterSet: TLabel;
-    cbCharacterSet: TComboBox;
     lblBAKDatabaseCopy: TLabel;
     eBAKDatabaseCopy: TEdit;
     lblNeedFreeSpace: TLabel;
-    timerFreeSpace: TTimer;
     Image1: TImage;
     lblStep04Comment: TLabel;
-    lblStep08Comment: TLabel;
+    lblStep07Comment: TLabel;
     actBrowseOriginalDatabase: TAction;
+    lblCurrentProgressStep: TLabel;
+    eNeedFreeSpace: TMemo;
+    Animate: TAnimate;
+    pnlDBProperties: TPanel;
+    lblPageSize: TLabel;
+    lblPageSize_02: TLabel;
+    lblBufferSize: TLabel;
+    lblBufferSize_02: TLabel;
+    lblCharacterSet: TLabel;
+    cbPageSize: TComboBox;
+    eBufferSize: TEdit;
+    cbCharacterSet: TComboBox;
     procedure actCloseExecute(Sender: TObject);
     procedure actNextPageExecute(Sender: TObject);
     procedure actPrevPageExecute(Sender: TObject);
@@ -105,11 +104,11 @@ type
     procedure tbs06Show(Sender: TObject);
     procedure actBrowseBackupFileExecute(Sender: TObject);
     procedure actBrowseCopyFileExecute(Sender: TObject);
-    procedure timerFreeSpaceTimer(Sender: TObject);
-    procedure tbs03Enter(Sender: TObject);
-    procedure tbs03Exit(Sender: TObject);
     procedure actCloseUpdate(Sender: TObject);
     procedure actBrowseOriginalDatabaseExecute(Sender: TObject);
+    procedure eBackupNameChange(Sender: TObject);
+    procedure eTempDatabaseNameChange(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
     FControlsEnabled: Boolean;
     FConvertController: TgsFDBConvertController;
@@ -118,6 +117,7 @@ type
     procedure InitializeLocalization;
   public
     procedure AddMessage(const AMessage: String);
+    procedure SetCurrentStep(const AStepText: String);
 
     procedure DisableControls;
     procedure EnableControls;
@@ -137,9 +137,10 @@ var
 implementation
 
 uses
-  gsFDBConvertLocalization_unit;
+  gsFDBConvertLocalization_unit, gsFDBConvertHelper_unit;
 
 {$R *.DFM}
+{$R convert.res}
 
 procedure FormCopyProgressRoutine(TotalFileSize, TotalBytesTransferred: Int64);
 const
@@ -182,7 +183,7 @@ end;
 
 procedure TgsFDBConvertFormView.actNextPageExecute(Sender: TObject);
 begin
-  if pcMain.ActivePage <> tbs08 then
+  if pcMain.ActivePage <> tbs07 then
   begin
     // Переход со страницы "2/8 - Выбор файла базы данных"
     if pcMain.ActivePage = tbs02 then
@@ -202,6 +203,11 @@ begin
         FConvertController.SetProcessParameters;
         // Получить предварительную информацию о процессе конвертации
         FConvertController.ViewPreProcessInformation;
+        // Проверить правильность указанных параметров
+        try
+          FConvertController.CheckProcessParams(True);
+        except
+        end;  
       end;
     end;
 
@@ -243,7 +249,7 @@ procedure TgsFDBConvertFormView.actNextPageUpdate(Sender: TObject);
 begin
   if FControlsEnabled then
   begin
-    if pcMain.ActivePage <> tbs08 then
+    if pcMain.ActivePage <> tbs07 then
     begin
       if pcMain.ActivePage = tbs02 then
         actNextPage.Enabled := FileExists(eDatabaseName.Text)
@@ -278,6 +284,10 @@ begin
   FConvertController.SetupDialogForm;
 
   FControlsEnabled := True;
+
+  Animate.ResName := 'convert';
+  Animate.ResHandle := hInstance;
+  Animate.Active := True;
 end;
 
 procedure TgsFDBConvertFormView.FormDestroy(Sender: TObject);
@@ -335,6 +345,7 @@ begin
       [GetLocalizedString(lsAllFilesBrowseMask),
        GetLocalizedString(lsBackupBrowseMask)]);
     sdDatabase.Options := [ofHideReadOnly, ofPathMustExist];
+    sdDatabase.FileName := eBackupName.Text;
 
     if sdDatabase.Execute then
       eBackupName.Text := sdDatabase.Filename;
@@ -354,6 +365,7 @@ begin
       [GetLocalizedString(lsAllFilesBrowseMask),
        GetLocalizedString(lsDatabaseBrowseMask)]);
     sdDatabase.Options := [ofHideReadOnly, ofPathMustExist];
+    sdDatabase.Filename := eTempDatabaseName.Text;
 
     if sdDatabase.Execute then
       eTempDatabaseName.Text := sdDatabase.Filename;
@@ -387,40 +399,21 @@ begin
   lblBufferSize.Caption := GetLocalizedString(lsBufferSize);
   lblBufferSize_02.Caption := GetLocalizedString(lsBufferSize_02);
   lblCharacterSet.Caption := GetLocalizedString(lsCharacterSet);
+  lblNeedFreeSpace.Caption := GetLocalizedString(lsWantDiskSpace);
   lblStep04.Caption := '4/7 - ' + GetLocalizedString(lsStep04);
   lblOriginalFunction.Caption := GetLocalizedString(lsOriginalFunction);
   lblSubstituteFunction.Caption := GetLocalizedString(lsSubstituteFunction);
   lblStep04Comment.Caption := GetLocalizedString(lsStep04Comment);
   lblStep05.Caption := '5/7 - ' + GetLocalizedString(lsStep05);
   lblStep06.Caption := '6/7 - ' + GetLocalizedString(lsStep06);
-  //lblStep07.Caption := '7/8 - ' + GetLocalizedString(lsStep07);
-  lblStep08.Caption := '7/7 - ' + GetLocalizedString(lsStep08);
-  lblStep08Comment.Caption := GetLocalizedString(lsStep08Comment);
+  lblStep07.Caption := '7/7 - ' + GetLocalizedString(lsStep07);
+  lblStep07Comment.Caption := GetLocalizedString(lsStep07Comment);
   lblBAKDatabaseCopy.Caption := GetLocalizedString(lsBAKDatabaseCopy);
 
   actPrevPage.Caption := '< ' + GetLocalizedString(lsPrevButton);
   actNextPage.Caption := GetLocalizedString(lsNextButton) + ' >';
   actClose.Caption := GetLocalizedString(lsExitButton);
   actBrowseOriginalDatabase.Caption := GetLocalizedString(lsDatabaseBrowseButton);
-end;
-
-procedure TgsFDBConvertFormView.timerFreeSpaceTimer(Sender: TObject);
-begin
-  FConvertController.SetProcessParameters;
-  try
-    FConvertController.CheckProcessParams(True);
-  except
-  end;
-end;
-
-procedure TgsFDBConvertFormView.tbs03Enter(Sender: TObject);
-begin
-  timerFreeSpace.Enabled := True;
-end;
-
-procedure TgsFDBConvertFormView.tbs03Exit(Sender: TObject);
-begin
-  timerFreeSpace.Enabled := False;
 end;
 
 procedure TgsFDBConvertFormView.actCloseUpdate(Sender: TObject);
@@ -440,13 +433,50 @@ begin
       [GetLocalizedString(lsAllFilesBrowseMask),
        GetLocalizedString(lsDatabaseBrowseMask),
        GetLocalizedString(lsBackupBrowseMask)]);
-    odDatabase.Options := [ofHideReadOnly, ofFileMustExist];
+    odDatabase.Options := [ofHideReadOnly, ofFileMustExist, ofEnableSizing];
 
     if odDatabase.Execute then
       eDatabaseName.Text := odDatabase.Filename;
   finally
     FreeAndNil(odDatabase);
   end;
+end;
+
+procedure TgsFDBConvertFormView.eBackupNameChange(Sender: TObject);
+begin
+  FConvertController.SetProcessParameters;
+  try
+    FConvertController.CheckProcessParams(True);
+  except
+  end;
+end;
+
+procedure TgsFDBConvertFormView.eTempDatabaseNameChange(Sender: TObject);
+begin
+  FConvertController.SetProcessParameters;
+  try
+    FConvertController.CheckProcessParams(True);
+  except
+  end;
+end;
+
+procedure TgsFDBConvertFormView.SetCurrentStep(const AStepText: String);
+begin
+  if AStepText > '' then
+  begin
+    lblCurrentProgressStep.Caption := AStepText + LINE_CUT;
+    pbMain.Visible := True;
+  end else
+  begin
+    lblCurrentProgressStep.Caption := '';
+    pbMain.Visible := False;
+  end;
+end;
+
+procedure TgsFDBConvertFormView.FormCloseQuery(Sender: TObject;
+  var CanClose: Boolean);
+begin
+  CanClose := actClose.Enabled;
 end;
 
 end.

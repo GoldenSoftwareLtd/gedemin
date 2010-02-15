@@ -18,16 +18,16 @@ type
     pnlBottomRight: TPanel;
     btnSave: TButton;
     SynSQLSyn: TSynSQLSyn;
-    btnStopConvert: TButton;
     actStopConvert: TAction;
     actComment: TAction;
     actUncomment: TAction;
-    TBDock1: TTBDock;
-    TBToolbar1: TTBToolbar;
+    TBDock: TTBDock;
+    TBToolbar: TTBToolbar;
     actShowErrorMessage: TAction;
     TBItem1: TTBItem;
     TBItem2: TTBItem;
     TBItem3: TTBItem;
+    btnStopConvert: TButton;
     procedure actSaveExecute(Sender: TObject);
     procedure actCommentExecute(Sender: TObject);
     procedure actStopConvertExecute(Sender: TObject);       
@@ -48,6 +48,7 @@ type
     function ShowForTrigger(const ATriggerName, ATriggerText, AErrorMessage: String): TModalResult;
     function ShowForProcedure(const AProcedureName, AProcedureText, AErrorMessage: String): TModalResult;
     function ShowForView(const AViewName, AViewText, AErrorMessage: String): TModalResult;
+    function ShowForComputedField(const AFieldName, AFieldText, AErrorMessage: String): TModalResult;
 
     property SynEditFunctionText: String read GetSynEditFunctionText write SetSynEditFunctionText;
     property MetadataErrorMessage: String read FErrorMessage write FErrorMessage;
@@ -125,6 +126,21 @@ begin
   Result := ShowModal;
 end;
 
+function TfrmFunctionEdit.ShowForComputedField(const AFieldName, AFieldText,
+  AErrorMessage: String): TModalResult;
+begin
+  // Заголовок окна
+  Self.Caption := Format('%s %s', [GetLocalizedString(lsFEComputedFieldEditCaption), AFieldName]);
+  // Текст представления
+  SynEditFunctionText := AFieldText;
+  // Текст сообщения об ошибке
+  MetadataErrorMessage := AErrorMessage;
+
+  FMetadataType := mtComputedField;
+
+  Result := ShowModal;
+end;
+
 procedure TfrmFunctionEdit.actCommentExecute(Sender: TObject);
 var
   FunctionText: String;
@@ -170,21 +186,27 @@ begin
   case FMetadataType of
     mtTrigger:
     begin
-      ErrorMessageLocal := Format('%s %s %s ...',
+      ErrorMessageLocal := Format('%s %s %s',
         [GetLocalizedString(lsFETriggerErrorCaption), #13#10, TgsMetadataEditor.GetFirstNLines(FErrorMessage, 25)]);
     end;
 
     mtProcedure:
     begin
-      ErrorMessageLocal := Format('%s %s %s ...',
+      ErrorMessageLocal := Format('%s %s %s',
         [GetLocalizedString(lsFEProcedureErrorCaption), #13#10, TgsMetadataEditor.GetFirstNLines(FErrorMessage, 25)]);
     end;
 
     mtView:
     begin
-      ErrorMessageLocal := Format('%s %s %s ...',
+      ErrorMessageLocal := Format('%s %s %s',
         [GetLocalizedString(lsFEViewErrorCaption), #13#10, TgsMetadataEditor.GetFirstNLines(FErrorMessage, 25)]);
-    end;     
+    end;
+
+    mtComputedField:
+    begin
+      ErrorMessageLocal := Format('%s %s %s',
+        [GetLocalizedString(lsFEComputedFieldErrorCaption), #13#10, TgsMetadataEditor.GetFirstNLines(FErrorMessage, 25)]);
+    end;
   end;
   // Выведем сообщение
   Application.MessageBox(PChar(ErrorMessageLocal), PChar(GetLocalizedString(lsInformationDialogCaption)),

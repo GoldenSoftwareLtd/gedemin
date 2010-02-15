@@ -58,6 +58,8 @@ type
     chbxRememberPassword: TCheckBox;
     eTempDatabase: TEdit;
     lblTempDatabase: TLabel;
+    Button1: TButton;
+    actGetPassword: TAction;
 
     procedure actLoginUpdate(Sender: TObject);
     procedure actLoginExecute(Sender: TObject);
@@ -70,6 +72,7 @@ type
     procedure cbDBFileNameChange(Sender: TObject);
     procedure actHelpExecute(Sender: TObject);
     procedure cbUserChange(Sender: TObject);
+    procedure actGetPasswordExecute(Sender: TObject);
 
   private
     KL: Integer;
@@ -96,6 +99,7 @@ type
     function ExtractServerName(const DatabaseName: String): String;
     {$IFDEF FLAKE}
     procedure TryToConnect(const ADatabaseName: String);
+    function PeepPasswordFromDatabase(const ADatabaseName, AUserName: String): String;
     {$ENDIF FLAKE}
   public
     constructor Create(AnOwner: TComponent); override;
@@ -1038,7 +1042,83 @@ begin
     end;
   end;
 end;
+
+function TdlgSecLogIn.PeepPasswordFromDatabase(const ADatabaseName, AUserName: String): String;
+var
+  SysLogin, SysPass: String;
+  DBase: TIBDatabase;
+  Tr: TIBTransaction;
+  ibsql: TIBSQL;
+begin
+  Result := '';
+
+  SysLogin := 'SYSDBA';
+  SysPass := 'masterkey';
+
+  DBase := TIBDatabase.Create(Self);
+  try
+    DBase.DatabaseName := ADatabaseName;
+    DBase.LoginPrompt := False;
+    DBase.Params.Add('user_name=' + SysLogin);
+    DBase.Params.Add('password=' + SysPass);
+    DBase.Params.Add('lc_ctype=WIN1251');
+
+    try
+      DBase.Open;
+
+      Tr := TIBTransaction.Create(Self);
+      ibsql := TIBSQL.Create(Self);
+      try
+        Tr.DefaultDatabase := DBase;
+        Tr.StartTransaction;
+
+        try
+          ibsql.Transaction := Tr;
+          ibsql.SQL.Text := 'SELECT passw FROM gd_user WHERE name = :name';
+          ibsql.ParamByName('NAME').AsString := AUserName;
+          ibsql.ExecQuery;
+
+          if ibsql.RecordCount > 0 then
+            Result := ibsql.FieldByName('PASSW').AsString;
+
+          if Tr.InTransaction then
+            Tr.Commit;
+        except
+          if Tr.InTransaction then
+            Tr.Rollback;
+          raise;  
+        end;
+      finally
+        ibsql.Free;
+        Tr.Free;
+      end;
+
+      DBase.Close;
+    except
+      on E: Exception do
+        Application.MessageBox(PChar(E.Message), 'Внимание', MB_OK + MB_ICONERROR + MB_SYSTEMMODAL);
+    end;
+  finally
+    DBase.Free;
+  end;
+end;
 {$ENDIF FLAKE}
+
+procedure TdlgSecLogIn.actGetPasswordExecute(Sender: TObject);
+var
+  DatabasePath: String;
+begin
+  {$IFDEF FLAKE}
+  if cbUser.Text <> '' then
+  begin
+    if eTempDatabase.Text <> '' then
+      DatabasePath := eTempDatabase.Text
+    else
+      DatabasePath := FSL[Integer(cbDBFileName.Items.Objects[cbdbFileName.ItemIndex])];
+    edPassword.Text := PeepPasswordFromDatabase(DatabasePath, cbUser.Text);
+  end;
+  {$ENDIF FLAKE}
+end;
 
 end.
 

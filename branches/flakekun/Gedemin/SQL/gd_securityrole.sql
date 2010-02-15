@@ -301,7 +301,7 @@ GRANT ALL ON GD_SQL_LOG TO administrator;
 
 GRANT ALL ON GD_SQL_HISTORY TO administrator;
 
-/*GRANT ALL ON GD_STORAGE TO administrator;*/
+GRANT ALL ON GD_STORAGE_DATA TO administrator;
 
 GRANT EXECUTE ON PROCEDURE at_p_sync_indexes_all TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_sync_triggers_all TO administrator;
@@ -352,5 +352,13 @@ GRANT ALL ON ac_quantity      TO administrator;
 GRANT ALL ON GD_FILE TO ADMINISTRATOR;
 
 GRANT ALL ON GD_V_OURCOMPANY TO administrator;
+
+/*
+GRANT ALL ON RP2_BASE TO ADMINISTRATOR;
+GRANT ALL ON RP2_MAIN_BASE TO ADMINISTRATOR;
+*/
+
+GRANT ALL ON rpl_database TO administrator;
+GRANT ALL ON rpl_record TO administrator;
 
 COMMIT;

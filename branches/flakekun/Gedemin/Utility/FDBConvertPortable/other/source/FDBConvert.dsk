@@ -1,50 +1,37 @@
 [Closed Files]
-File_0=SourceModule,'D:\golden\gedemin\gedemin\dmImages_unit.pas',0,1,1,1,3,1,0
-File_1=SourceModule,'D:\golden\gedemin\IBX\IBDatabase.pas',0,1,1931,1,1946,0,0
-File_2=SourceModule,'D:\golden\gedemin\IBX\IB.pas',0,1,739,1,754,0,0
-File_3=SourceModule,'c:\program files (x86)\borland\delphi5\source\vcl\Classes.pas',0,1,7423,1,7442,0,0
-File_4=SourceModule,'D:\golden\gedemin\FastReport 4\Source\frxPrinter.pas',0,1,803,90,807,0,0
-File_5=SourceModule,'D:\golden\gedemin\jcl\source\common\JclStrings.pas',0,1,166,1,166,0,0
-File_6=SourceModule,'c:\program files\borland\delphi5\source\vcl\Classes.pas',0,1,3346,1,3368,0,0
-File_7=SourceModule,'c:\program files\borland\delphi5\source\vcl\Controls.pas',0,1,5465,16,5488,0,0
-File_8=SourceModule,'D:\Golden\gedemin\jcl\source\windows\JclUnicode.pas',0,1,8409,1,8414,0,0
-File_9=SourceModule,'c:\program files\borland\delphi5\source\rtl\Win\windows.pas',0,1,175,1,200,0,0
+File_0=SourceModule,'D:\golden\gedemin\IBX\IBSQL.pas',0,1,1524,1,1535,0,0
+File_1=SourceModule,'D:\golden\gedemin\IBX\IB.pas',0,1,389,1,400,0,0
+File_2=SourceModule,'D:\golden\gedemin\Common\gdUpdateIndiceStat.pas',0,1,10,36,34,0,0
+File_3=SourceModule,'D:\golden\gedemin\Common\gd_common_functions.pas',0,1,1,1,1,0,0
+File_4=SourceModule,'..\..\..\..\gedemin\dmImages_unit.pas',0,1,4,38,7,0,0
+File_5=SourceModule,'D:\golden\gedemin\IBX\IBServices.pas',0,1,374,54,399,0,0
+File_6=SourceModule,'c:\program files (x86)\borland\delphi5\source\vcl\ComCtrls.pas',0,1,14469,15,14458,0,0
+File_7=SourceModule,'c:\program files (x86)\borland\delphi5\source\vcl\StdCtrls.pas',0,1,1771,1,1786,0,0
+File_8=SourceModule,'c:\program files (x86)\borland\delphi5\source\rtl\Win\windows.pas',0,1,29640,21,29670,0,0
+File_9=SourceModule,'D:\golden\gedemin\Gedemin\gd_main_form.pas',0,1,1518,16,1531,1,0
 
 [Modules]
-Module0=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertFormView_unit.pas
-Module1=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertController_unit.pas
-Module2=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertConsoleView_unit.pas
-Module3=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gs_frmFunctionEdit_unit.pas
-Module4=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertLocalization_unit.pas
-Module5=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\FDBConvert.dpr
-Module6=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvert_unit.pas
-Module7=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertHelper_unit.pas
-Count=8
+Module0=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gs_frmFunctionEdit_unit.pas
+Module1=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertFormView_unit.pas
+Module2=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\FDBConvert.dpr
+Module3=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvert_unit.pas
+Module4=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertController_unit.pas
+Module5=D:\golden\gedemin\jcl\source\common\JclStrings.pas
+Module6=D:\golden\gedemin\gedemin\dmImages_unit.pas
+Module7=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertLocalization_unit.pas
+Module8=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertConsoleView_unit.pas
+Module9=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertHelper_unit.pas
+Count=10
 EditWindowCount=1
 
-[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertFormView_unit.pas]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gs_frmFunctionEdit_unit.pas]
 ModuleType=SourceModule
 FormState=1
 FormOnTop=0
 
-[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertController_unit.pas]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertFormView_unit.pas]
 ModuleType=SourceModule
-FormState=0
-FormOnTop=0
-
-[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertConsoleView_unit.pas]
-ModuleType=SourceModule
-FormState=0
-FormOnTop=0
-
-[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gs_frmFunctionEdit_unit.pas]
-ModuleType=SourceModule
-FormState=0
-FormOnTop=0
-
-[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertLocalization_unit.pas]
-ModuleType=SourceModule
-FormState=0
+FormState=1
 FormOnTop=0
 
 [D:\golden\gedemin\Utility\FDBConvertPortable\other\source\FDBConvert.dpr]
@@ -57,12 +44,33 @@ ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
-[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertHelper_unit.pas]
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertController_unit.pas]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
+[D:\golden\gedemin\jcl\source\common\JclStrings.pas]
 ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
 [D:\golden\gedemin\gedemin\dmImages_unit.pas]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertLocalization_unit.pas]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertConsoleView_unit.pas]
+ModuleType=SourceModule
+FormState=0
+FormOnTop=0
+
+[D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertHelper_unit.pas]
+ModuleType=SourceModule
 FormState=0
 FormOnTop=0
 
@@ -71,8 +79,8 @@ FormState=0
 FormOnTop=0
 
 [EditWindow0]
-ViewCount=8
-CurrentView=1
+ViewCount=10
+CurrentView=7
 View0=0
 View1=1
 View2=2
@@ -81,21 +89,23 @@ View4=4
 View5=5
 View6=6
 View7=7
+View8=8
+View9=9
 CodeExplorer=CodeExplorer@EditWindow0
 MessageView=MessageView@EditWindow0
 Create=1
 Visible=1
 State=2
-Left=1454
-Top=96
-Width=1065
-Height=800
-MaxLeft=-1
-MaxTop=-8
-MaxWidth=1456
-MaxHeight=916
-ClientWidth=1440
-ClientHeight=878
+Left=219
+Top=223
+Width=870
+Height=642
+MaxLeft=-8
+MaxTop=50
+MaxWidth=1296
+MaxHeight=718
+ClientWidth=1280
+ClientHeight=680
 LeftPanelSize=227
 LeftPanelClients=CodeExplorer@EditWindow0
 LeftPanelData=000004000000000000000000000000000000000000000000000100000000000000000C000000436F64654578706C6F726572FFFFFFFF
@@ -106,58 +116,72 @@ BottomPanelData=000004000400000008000000425057696E646F770B000000576174636857696E
 
 [View0]
 Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\FDBConvert.dpr
-CursorX=28
-CursorY=59
-TopLine=50
-LeftCol=1
-
-[View1]
-Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertFormView_unit.pas
-CursorX=54
-CursorY=427
-TopLine=407
-LeftCol=1
-
-[View2]
-Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertConsoleView_unit.pas
-CursorX=12
-CursorY=15
-TopLine=7
-LeftCol=1
-
-[View3]
-Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertController_unit.pas
-CursorX=37
-CursorY=499
-TopLine=488
-LeftCol=1
-
-[View4]
-Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gs_frmFunctionEdit_unit.pas
-CursorX=32
-CursorY=52
-TopLine=52
-LeftCol=1
-
-[View5]
-Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertLocalization_unit.pas
-CursorX=51
+CursorX=30
 CursorY=6
 TopLine=1
 LeftCol=1
 
-[View6]
+[View1]
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertFormView_unit.pas
+CursorX=57
+CursorY=140
+TopLine=123
+LeftCol=1
+
+[View2]
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertConsoleView_unit.pas
+CursorX=51
+CursorY=38
+TopLine=35
+LeftCol=1
+
+[View3]
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertController_unit.pas
+CursorX=69
+CursorY=1396
+TopLine=1380
+LeftCol=1
+
+[View4]
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertLocalization_unit.pas
+CursorX=65
+CursorY=300
+TopLine=284
+LeftCol=1
+
+[View5]
 Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvert_unit.pas
-CursorX=27
-CursorY=273
-TopLine=317
+CursorX=38
+CursorY=2115
+TopLine=2107
+LeftCol=1
+
+[View6]
+Module=D:\golden\gedemin\jcl\source\common\JclStrings.pas
+CursorX=19
+CursorY=3261
+TopLine=3245
 LeftCol=1
 
 [View7]
+Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gs_frmFunctionEdit_unit.pas
+CursorX=35
+CursorY=9
+TopLine=1
+LeftCol=1
+
+[View8]
+Module=D:\golden\gedemin\gedemin\dmImages_unit.pas
+CursorX=37
+CursorY=14
+TopLine=1
+LeftCol=1
+
+[View9]
 Module=D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvertHelper_unit.pas
-CursorX=47
-CursorY=15
-TopLine=4
+CursorX=29
+CursorY=1
+TopLine=1
 LeftCol=1
 
 [Watches]
@@ -165,7 +189,8 @@ Count=1
 Watch0='FIBSQL.FieldByName(''FUNCNAME'').AsString',32,0,18,1,1
 
 [Breakpoints]
-Count=0
+Count=1
+Breakpoint0='D:\golden\gedemin\Utility\FDBConvertPortable\other\source\gsFDBConvert_unit.pas',2118,'AMetadataname = ''GD_V_COMPANY''',0,1,'',1,0,0,'',1,'','',''
 
 [AddressBreakpoints]
 Count=0
@@ -174,8 +199,8 @@ Count=0
 Create=1
 Visible=1
 State=2
-Left=-10
-Top=165
+Left=0
+Top=20
 Width=1280
 Height=66
 MaxLeft=-8
@@ -187,10 +212,10 @@ ClientHeight=28
 
 [ProjectManager]
 Create=1
-Visible=0
+Visible=1
 State=0
-Left=281
-Top=220
+Left=191
+Top=116
 Width=642
 Height=378
 MaxLeft=-1
@@ -218,20 +243,20 @@ ClientHeight=60
 Create=1
 Visible=1
 State=0
-Left=-2
+Left=-1
 Top=53
 Width=273
-Height=719
+Height=687
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=255
-ClientHeight=683
+ClientHeight=651
 TBDockHeight=659
 LRDockWidth=190
 Dockable=1
-SplitPos=117
+SplitPos=126
 ArrangeBy=Name
-SelectedItem=Name
+SelectedItem=Tag
 ExpandedItems=
 HiddenCategories=Legacy
 ShowStatusBar=1
@@ -321,11 +346,11 @@ State=0
 Left=0
 Top=12
 Width=227
-Height=848
+Height=665
 MaxLeft=-1
 MaxTop=-1
 ClientWidth=227
-ClientHeight=848
+ClientHeight=665
 TBDockHeight=305
 LRDockWidth=227
 Dockable=1

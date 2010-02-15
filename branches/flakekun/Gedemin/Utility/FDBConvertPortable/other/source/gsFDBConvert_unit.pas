@@ -5,6 +5,9 @@ interface
 uses
   IBDatabase, IBDatabaseInfo, IBSQL, classes, Windows, gsFDBConvertHelper_unit;
 
+const
+  COMPUTED_FIELD_DELIMITER = '.';
+
 type
   TgsConnectionInformation = record
     ServerPath: String;                     // Embedded server path
@@ -112,6 +115,8 @@ type
     function GetProcedureParamText(const AProcedureName: String): String;
     // Получить текст параметров представления
     function GetViewParamText(const AViewName: String): String;
+    // Получить гранты на представление или вычисляемое поле
+    function GetMetadataGrants(const AMetadataName: String; const AFieldName: String = ''): String;
   public
     constructor Create(ADatabase: TIBDatabase);
     destructor Destroy; override;
@@ -138,10 +143,6 @@ type
     procedure BackupView(const AViewName: String);
     // Скопировать данные вычисляемого поля в вспомогательную таблицу
     procedure BackupComputedField(const ARelationName, AComputedFieldName: String);
-    // Восстановить данные представления из вспомогательной таблицы
-    procedure RestoreView(const AViewName: String);
-    // Восстановить данные вычисляемого поля из вспомогательной таблицы
-    procedure RestoreComputedField(const ARelationName, AComputedFieldName: String);
 
     // Удалить представление
     procedure DeleteView(const AViewName: String);
@@ -149,9 +150,9 @@ type
     procedure DeleteComputedField(const ARelationName, AComputedFieldName: String);
 
     // Получить текст процедуры
-    function GetProcedureText(const AProcedureName: String; const AFullText: Boolean = False): String;
+    function GetProcedureText(const AProcedureName: String): String;
     // Получить текст триггера
-    function GetTriggerText(const ATriggerName: String; const AFullText: Boolean = False): String;
+    function GetTriggerText(const ATriggerName: String): String;
     // Получить текст представления
     function GetViewText(const AViewName: String): String;
     // Получить текст вычисляемого поля
@@ -161,6 +162,8 @@ type
     function GetBackupViewText(const AViewName: String): String;
     // Получить текст вычисляемого поля из вспомогательной таблицы
     function GetBackupComputedFieldText(const ARelationName, AComputedFieldName: String): String;
+
+    procedure RestoreGrant(const AMetadataName: String; const ARelationName: String = '');
 
     // Изменить текст процедуры
     procedure SetProcedureText(const AProcedureName, AProcedureText: String; const AParams: String = '_'); overload;
@@ -172,7 +175,8 @@ type
     procedure SetViewText(const AViewName, AViewText: String); overload;
     procedure SetViewText(const AViewText: String); overload;
     // Изменить текст вычисляемого поля
-    procedure SetComputedFieldText(const ARelationName, AComputedFieldName, AComputedFieldText: String);
+    procedure SetComputedFieldText(const ARelationName, AComputedFieldName, AComputedFieldText: String); overload;
+    procedure SetComputedFieldText(const AComputedFieldText: String); overload;
 
     class function GetFirstNLines(const AText: String; const ALineCount: Integer): String;
 
@@ -182,23 +186,29 @@ type
 implementation
 
 uses
-  SysUtils, IBIntf, IBServices,
-  gsSysUtils, gdUpdateIndiceStat, JclStrings,
-  gsFDBConvertLocalization_unit;
+  SysUtils, IBIntf, IBServices, IBHeader,
+  gsSysUtils, JclStrings, gsFDBConvertLocalization_unit, forms;
 
 const
   HELP_VIEW_TYPE = 'V';
   HELP_COMPUTED_FIELD_TYPE = 'F';
 
   HELP_METADATA_TABLE = 'CNV$DATA';
+  HELP_M_ID = 'id';
+  HELP_M_OBJTYPE = 'obj_type';
+  HELP_M_NAME = 'name';
+  HELP_M_RELATIONNAME = 'relation_name';
+  HELP_M_SOURCE = 'source';
+  HELP_M_GRANTTEXT = 'grant_text';
   HELP_METADATA_TABLE_CODE =
     'CREATE TABLE ' + HELP_METADATA_TABLE + ' ( ' +
-    '  id             INTEGER NOT NULL PRIMARY KEY, ' +
-    '  obj_type       CHAR(1) NOT NULL, ' +
-    '  name           VARCHAR(60) CHARACTER SET UNICODE_FSS NOT NULL, ' +
-    '  relation_name  VARCHAR(60) CHARACTER SET UNICODE_FSS, ' +
-    '  source         BLOB SUB_TYPE 1 CHARACTER SET UNICODE_FSS, ' +
-    '  CHECK(obj_type IN (''' + HELP_VIEW_TYPE + ''', ''' + HELP_COMPUTED_FIELD_TYPE + ''')) ' +
+     HELP_M_ID +           '  INTEGER NOT NULL PRIMARY KEY, ' +
+     HELP_M_OBJTYPE +      '  CHAR(1) NOT NULL, ' +
+     HELP_M_NAME +         '  VARCHAR(60) CHARACTER SET UNICODE_FSS NOT NULL, ' +
+     HELP_M_RELATIONNAME + '  VARCHAR(60) CHARACTER SET UNICODE_FSS, ' +
+     HELP_M_SOURCE +       '  BLOB SUB_TYPE 1 CHARACTER SET UNICODE_FSS, ' +
+     HELP_M_GRANTTEXT +    '  VARCHAR(2048) CHARACTER SET UNICODE_FSS, ' +
+    '  CHECK(' + HELP_M_OBJTYPE + ' IN (''' + HELP_VIEW_TYPE + ''', ''' + HELP_COMPUTED_FIELD_TYPE + ''')) ' +
     ') ';
   HELP_METADATA_GENERATOR = 'CNV$G_ID';
   HELP_METADATA_GENERATOR_CODE = 'CREATE GENERATOR ' + HELP_METADATA_GENERATOR;
@@ -212,6 +222,7 @@ const
     'END ';
 
   SPACE_CHARS: set of char = [' ', #0, #10, #13, '/', '(', ')', '+', '-', '=', '*', '/', '<', '>', '!', '~', '^'];
+  WITH_GRANT_OPTION_MARKER = '/WGO/';
 
 var
   SetDllDirectory: function(lpPathName: PChar): Boolean; stdcall;
@@ -319,11 +330,14 @@ end;
 procedure TgsFDBConvert.BackupDatabase(const ADatabasePath, ABackupPath: String);
 var
   BackupService: TIBBackupService;
+  ProcessLogList: TStringList;
+  NextLogLine: String;
 begin
   // Загрузим встроенный сервер
   LoadIBServer(Self.ServerType);
 
   BackupService := TIBBackupService.Create(nil);
+  ProcessLogList := TStringList.Create;
   try
     BackupService.Protocol := Local;
     BackupService.LoginPrompt := False;
@@ -337,7 +351,7 @@ begin
     BackupService.DatabaseName := ADatabasePath;
     // Путь к бэкапу
     BackupService.BackupFile.Add(ABackupPath);
-    BackupService.Options := [NoGarbageCollection];
+    BackupService.Options := [IgnoreChecksums, IgnoreLimbo, NoGarbageCollection];
 
     try
       if Assigned(FServiceProgressRoutine) then
@@ -346,9 +360,11 @@ begin
       BackupService.ServiceStart;
       while (not BackupService.Eof)
         and (BackupService.IsServiceRunning) do
-      begin
-        if Assigned(FServiceProgressRoutine) then
-          FServiceProgressRoutine(BackupService.GetNextLine);
+      begin          
+        // Будем записывать во временный лог всё, возвращаемое сервисом
+        NextLogLine := BackupService.GetNextLine;
+        if NextLogLine <> '' then
+          ProcessLogList.Add(NextLogLine + #13#10);
       end;
 
     except
@@ -360,7 +376,23 @@ begin
           [TimeToStr(Time), GetLocalizedString(lsDatabaseBackupProcessError), #13#10, E.Message]));
       end;
     end;
+
+    // Если в логе что-то есть, то спросим пользователя, продолжать ли процесс конвертации
+    if ProcessLogList.Count > 0 then
+    begin
+      if Application.MessageBox(
+           PChar(GetLocalizedString(lsDatabaseBackupProcessError) + #13#10 +
+             TgsMetadataEditor.GetFirstNLines(ProcessLogList.Text, 25) + #13#10 +
+             GetLocalizedString(lsContinueConvertingQuestion)),
+           PChar(GetLocalizedString(lsInformationDialogCaption)),
+           MB_YESNO or MB_ICONEXCLAMATION or MB_APPLMODAL) <> IDYES then
+        raise EgsInterruptConvertProcess.Create(Format('%s: %s%s%s',
+          [TimeToStr(Time), GetLocalizedString(lsDatabaseBackupProcessError), #13#10, ProcessLogList.Text]));
+    end;
+
   finally
+    FreeAndNil(ProcessLogList);
+
     BackupService.Active := False;
     FreeAndNil(BackupService);
   end;
@@ -369,11 +401,14 @@ end;
 procedure TgsFDBConvert.RestoreDatabase(const ABackupPath, ADatabasePath: String);
 var
   RestoreService: TIBRestoreService;
+  ProcessLogList: TStringList;
+  NextLogLine: String;
 begin
   // Загрузим встроенный сервер
   LoadIBServer(Self.ServerType);
 
   RestoreService := TIBRestoreService.Create(nil);
+  ProcessLogList := TStringList.Create;
   try
     RestoreService.Protocol := Local;
     RestoreService.LoginPrompt := False;
@@ -389,6 +424,7 @@ begin
     RestoreService.DatabaseName.Add(ADatabasePath);
 
     RestoreService.Options := [Replace];
+
     // Если восстанавливаем под Firebird 2.5 (или 3.0), то добавим опцию перекодирования метаданных в unicode
     if (Self.ServerType in [svFirebird_25, svFirebird_30])
        and (ConnectionInformation.CharacterSet <> '')
@@ -405,10 +441,11 @@ begin
       while (not RestoreService.Eof)
         and (RestoreService.IsServiceRunning) do
       begin
-        if Assigned(FServiceProgressRoutine) then
-          FServiceProgressRoutine(RestoreService.GetNextLine);
+        // Будем записывать во временный лог всё, возвращаемое сервисом
+        NextLogLine := RestoreService.GetNextLine;
+        if NextLogLine <> '' then
+          ProcessLogList.Add(NextLogLine + #13#10);
       end;
-
     except
       on E: Exception do
       begin
@@ -418,8 +455,22 @@ begin
           [TimeToStr(Time), GetLocalizedString(lsDatabaseRestoreProcessError), #13#10, E.Message]));
       end;
     end;
+
+    // Если в логе что-то есть, то прервем конвертацию
+    if ProcessLogList.Count > 0 then
+    begin
+      Application.MessageBox(
+         PChar(GetLocalizedString(lsDatabaseRestoreProcessError) + #13#10 +
+           TgsMetadataEditor.GetFirstNLines(ProcessLogList.Text, 25)),
+         PChar(GetLocalizedString(lsInformationDialogCaption)),
+         MB_OK or MB_ICONERROR or MB_APPLMODAL);
+      raise EgsInterruptConvertProcess.Create(Format('%s: %s%s%s',
+        [TimeToStr(Time), GetLocalizedString(lsDatabaseRestoreProcessError), #13#10, ProcessLogList.Text]));
+    end;
+
   finally
     RestoreService.Active := False;
+    FreeAndNil(ProcessLogList);
     FreeAndNil(RestoreService);
   end;
 end;
@@ -427,12 +478,16 @@ end;
 procedure TgsFDBConvert.CheckDatabaseIntegrity(const ADatabasePath: String);
 var
   ValidationService: TIBValidationService;
+  ProcessLogList: TStringList;
+  NextLogLine: String;
   ibsqlCheck, ibsqlSelect: TIBSQL;
+  WasAskedAboutNullError: Boolean;
 begin
   // Загрузим встроенный сервер
   LoadIBServer(Self.ServerType);
 
   ValidationService := TIBValidationService.Create(nil);
+  ProcessLogList := TStringList.Create;
   try
     ValidationService.Protocol := Local;
     ValidationService.LoginPrompt := False;
@@ -442,7 +497,7 @@ begin
     ValidationService.Active := True;
 
     ValidationService.DatabaseName := ADatabasePath;
-    ValidationService.Options := [MendDB, ValidateFull];
+    ValidationService.Options := [MendDB, IgnoreChecksum];
 
     try
       if Assigned(FServiceProgressRoutine) then
@@ -452,21 +507,37 @@ begin
       while (not ValidationService.Eof)
         and (ValidationService.IsServiceRunning) do
       begin
-        if Assigned(FServiceProgressRoutine) then
-          FServiceProgressRoutine(ValidationService.GetNextLine);
+        // Будем записывать во временный лог всё, возвращаемое сервисом
+        NextLogLine := ValidationService.GetNextLine;
+        if NextLogLine <> '' then
+          ProcessLogList.Add(NextLogLine + #13#10);
       end;
-
     except
       on E: Exception do
       begin
         ValidationService.Active := False;
 
-        raise Exception.Create(Format('%s: %s%s%s',
+        raise EgsInterruptConvertProcess.Create(Format('%s: %s%s%s',
           [TimeToStr(Time), GetLocalizedString(lsDatabaseValidationProcessError), #13#10, E.Message]));
       end;
     end;
+
+    // Если в логе что-то есть, то спросим пользователя, продолжать ли процесс конвертации
+    //   Убрали взаимодействие с пользователем
+    {if ProcessLogList.Count > 0 then
+    begin
+      if Application.MessageBox(
+           PChar(GetLocalizedString(lsDatabaseValidationProcessError) + #13#10 +
+             TgsMetadataEditor.GetFirstNLines(ProcessLogList.Text, 25) + #13#10 +
+             GetLocalizedString(lsContinueConvertingQuestion)),
+           PChar(GetLocalizedString(lsInformationDialogCaption)),
+           MB_YESNO or MB_ICONEXCLAMATION or MB_APPLMODAL) <> IDYES then
+        raise EgsInterruptConvertProcess.Create(Format('%s: %s%s%s',
+          [TimeToStr(Time), GetLocalizedString(lsDatabaseValidationProcessError), #13#10, ProcessLogList.Text]));
+    end;}
   finally
     ValidationService.Active := False;
+    FreeAndNil(ProcessLogList);
     FreeAndNil(ValidationService);
   end;
 
@@ -483,16 +554,22 @@ begin
         FServiceProgressRoutine(Format('%s: %s', [TimeToStr(Time), GetLocalizedString(lsDatabaseNULLCheckProcess)]));
 
       try
-        ibsqlSelect.SQL.Text := 'SELECT r.rdb$relation_name rn, r.rdb$field_name rf ' +
-          'FROM rdb$relation_fields r JOIN rdb$fields f ON r.rdb$field_source = f.rdb$field_name ' +
-          'WHERE ((r.rdb$null_flag = 1) OR (f.rdb$null_flag = 1)) AND (r.rdb$view_context IS NULL) ' +
-          '';
+        WasAskedAboutNullError := False;
+
+        ibsqlSelect.SQL.Text :=
+          ' SELECT ' +
+          '   r.rdb$relation_name rn, r.rdb$field_name rf ' +
+          ' FROM ' +
+          '   rdb$relation_fields r ' +
+          '   JOIN rdb$fields f ON r.rdb$field_source = f.rdb$field_name ' +
+          ' WHERE ' +
+          '   ((r.rdb$null_flag = 1) OR (f.rdb$null_flag = 1)) AND (r.rdb$view_context IS NULL) ';
         ibsqlSelect.ExecQuery;
 
         while not ibsqlSelect.EOF do
         begin
-          if GetAsyncKeyState(VK_ESCAPE) shr 1 > 0 then
-            break;
+          {if GetAsyncKeyState(VK_ESCAPE) shr 1 > 0 then
+            break;}
 
           ibsqlCheck.Close;
           ibsqlCheck.SQL.Text := Format('SELECT * FROM %s WHERE %s IS NULL',
@@ -500,16 +577,41 @@ begin
           ibsqlCheck.ExecQuery;
 
           if not ibsqlCheck.EOF then
-            raise Exception.Create(Format(GetLocalizedString(lsDatabaseNULLCheckMessage),
-              [ibsqlSelect.Fields[1].AsTrimString, ibsqlSelect.Fields[0].AsTrimString]));
+          begin
+            // Визуализация процесса
+            if Assigned(FServiceProgressRoutine) then
+              FServiceProgressRoutine(Format(GetLocalizedString(lsDatabaseNULLCheckMessage),
+                [ibsqlSelect.Fields[1].AsTrimString, ibsqlSelect.Fields[0].AsTrimString]));
+
+            // Если еще не спрашивали, спросим у пользователя о необходимости дальнейшей конвертации
+            if not WasAskedAboutNullError then
+            begin
+              WasAskedAboutNullError := True;
+              
+              if Application.MessageBox(
+                 PChar(Format(GetLocalizedString(lsDatabaseNULLCheckMessage),
+                   [ibsqlSelect.Fields[1].AsTrimString, ibsqlSelect.Fields[0].AsTrimString]) + #13#10 +
+                   GetLocalizedString(lsContinueCheckingQuestion)),
+                 PChar(GetLocalizedString(lsInformationDialogCaption)),
+                 MB_YESNO or MB_ICONEXCLAMATION or MB_APPLMODAL) <> IDYES then
+                raise EgsInterruptConvertProcess.Create(GetLocalizedString(lsDatabaseNULLCheckProcessError));
+            end;
+          end;
 
           ibsqlSelect.Next;
         end;
 
+        // Если спрашивали у пользователя об ошибке, значит прерываем процесс, надо вручную чинить NOT NULL поля
+        if WasAskedAboutNullError then
+          raise EgsInterruptConvertProcess.Create(GetLocalizedString(lsDatabaseNULLCheckProcessError));
+
       except
+        on E: EgsInterruptConvertProcess do
+          raise;
+
         on E: Exception do
-          raise Exception.Create(Format('%s: %s%s%s',
-          [TimeToStr(Time), GetLocalizedString(lsDatabaseNULLCheckProcessError), #13#10, E.Message]));
+          raise Exception.Create(Format('%s%s%s',
+          [GetLocalizedString(lsDatabaseNULLCheckProcessError), #13#10'  ', E.Message]));
       end;
     finally
       ibsqlSelect.Free;
@@ -856,7 +958,7 @@ var
     if AFieldName = '' then
       Result := Trim(ARelationName)
     else
-      Result := Trim(ARelationName) + ',' + Trim(AFieldName);
+      Result := Trim(ARelationName) + COMPUTED_FIELD_DELIMITER + Trim(AFieldName);
   end;
 
   procedure GetMetadataDependency(const ARelationName: String; const AFieldName: String = '');
@@ -1035,36 +1137,37 @@ end;
 
 procedure TgsMetadataEditor.GetBackupViewAndComputedFieldList(AMetadataList: TStrings);
 begin
-  FIBSQLRead.SQL.Text :=
+  FIBSQLRead.SQL.Text := Format(
     'SELECT DISTINCT ' +
-    '  t.obj_type, t.name, t.relation_name ' +
+    '  t.%0:s, t.%1:s, t.%2:s ' +
     'FROM ' +
-      HELP_METADATA_TABLE + ' t ' +
+    '  %3:s t ' +
     'ORDER BY ' +
-    '  id DESC ' ;
+    '  t.%4:s DESC ',
+    [HELP_M_OBJTYPE, HELP_M_NAME, HELP_M_RELATIONNAME, HELP_METADATA_TABLE, HELP_M_ID]);
   FIBSQLRead.ExecQuery;
 
   while not FIBSQLRead.Eof do
   begin
     // В зависимости от типа метаданных будем вытягивать ИМЯ, или ИМЯ + ИМЯ_ТАБЛИЦЫ
-    if FIBSQLRead.FieldByName('OBJ_TYPE').AsString = HELP_VIEW_TYPE then
-      AMetadataList.Add(Trim(FIBSQLRead.FieldByName('NAME').AsString))
-    else if FIBSQLRead.FieldByName('OBJ_TYPE').AsString = HELP_COMPUTED_FIELD_TYPE then
-      AMetadataList.Add(Trim(FIBSQLRead.FieldByName('RELATION_NAME').AsString) + ',' +
-        Trim(FIBSQLRead.FieldByName('NAME').AsString));
+    if FIBSQLRead.FieldByName(HELP_M_OBJTYPE).AsString = HELP_VIEW_TYPE then
+      AMetadataList.Add(Trim(FIBSQLRead.FieldByName(HELP_M_NAME).AsString))
+    else if FIBSQLRead.FieldByName(HELP_M_OBJTYPE).AsString = HELP_COMPUTED_FIELD_TYPE then
+      AMetadataList.Add(Trim(FIBSQLRead.FieldByName(HELP_M_RELATIONNAME).AsString) + COMPUTED_FIELD_DELIMITER +
+        Trim(FIBSQLRead.FieldByName(HELP_M_NAME).AsString));
 
     FIBSQLRead.Next;
   end;
   FIBSQLRead.Close;
 end;
 
-function TgsMetadataEditor.GetProcedureText(const AProcedureName: String;
-  const AFullText: Boolean = False): String;
+function TgsMetadataEditor.GetProcedureText(const AProcedureName: String): String;
 begin
   Result := '';
 
   FIBSQLRead.SQL.Text :=
-    ' SELECT rdb$procedure_source AS FuncSource FROM rdb$procedures ' +
+    ' SELECT rdb$procedure_source AS FuncSource ' +
+    ' FROM rdb$procedures ' +
     ' WHERE UPPER(TRIM(rdb$procedure_name)) = UPPER(:procedure_name) ';
   FIBSQLRead.ParamByName('PROCEDURE_NAME').AsString := AProcedureName;
 
@@ -1073,12 +1176,8 @@ begin
 
     if FIBSQLRead.RecordCount > 0 then
     begin
-      // Получить полный текст процедуры (с параметрами) или только тело
-      if AFullText then
-        Result := Format('ALTER PROCEDURE %s %s AS %s',
-          [AProcedureName, GetProcedureParamText(AProcedureName), FIBSQLRead.FieldByName('FUNCSOURCE').AsString])
-      else
-        Result := FIBSQLRead.FieldByName('FUNCSOURCE').AsString;
+      Result := Format('ALTER PROCEDURE %s %s AS'#13#10'%s',
+        [Trim(AProcedureName), GetProcedureParamText(AProcedureName), Trim(FIBSQLRead.FieldByName('FUNCSOURCE').AsString)])
     end
     else
       raise Exception.Create('TgsMetadataEditor.GetProcedureText'#13#10 +
@@ -1089,17 +1188,208 @@ begin
 end;
 
 function TgsMetadataEditor.GetProcedureParamText(const AProcedureName: String): String;
+var
+  ibsqlParams, ibsqlDomain: TIBSQL;
+  S1, S2: String;
+
+  function FormFloatDomain(dsDomain: TIBSQL): String;
+  var
+    fscale: Integer;
+  begin
+    if dsDomain.FieldByName('fsubtype').AsInteger = 1 then
+      Result := 'NUMERIC'
+    else
+      Result := 'DECIMAL';
+
+    if dsDomain.FieldByName('fscale').AsInteger < 0 then
+      fscale := -dsDomain.FieldByName('fscale').AsInteger
+    else
+      fscale := dsDomain.FieldByName('fscale').AsInteger;
+
+    if dsDomain.FieldByName('fprecision').AsInteger = 0 then
+      Result := Format('%s(9, %s)',
+        [Result, IntToStr(fscale)])
+    else
+      Result := Format('%s(%s, %s)',
+        [Result, dsDomain.FieldByName('fprecision').AsString, IntToStr(fscale)]);
+  end;
+
+  function GetDomain(dsDomain: TIBSQL): String;
+  begin
+
+    case dsDomain.FieldByName('ffieldtype').AsInteger of
+    blr_Text, blr_varying:
+      begin
+        if dsDomain.FieldByName('ffieldtype').AsInteger = blr_Text then
+          Result := 'CHAR'
+        else
+          Result := 'VARCHAR';
+
+        Result := Format('%s(%s)', [Result, dsDomain.FieldByName('fcharlength').AsString]);
+      end;
+
+    blr_d_float, blr_double, blr_float:
+      Result := 'DOUBLE PRECISION';
+
+    blr_int64:
+      if (dsDomain.FieldByName('fsubtype').AsInteger > 0) or
+        (dsDomain.FieldByName('fprecision').AsInteger > 0) or
+        (dsDomain.FieldByName('fscale').AsInteger < 0) then
+      begin
+        Result := FormFloatDomain(dsDomain)
+      end else
+        Result := 'INT64';
+
+    blr_long:
+      if (dsDomain.FieldByName('fsubtype').AsInteger > 0) or
+        (dsDomain.FieldByName('fprecision').AsInteger > 0) or
+        (dsDomain.FieldByName('fscale').AsInteger < 0) then
+      begin
+        Result := FormFloatDomain(dsDomain)
+      end else
+        Result := 'INTEGER';
+
+    blr_short:
+      if (dsDomain.FieldByName('fsubtype').AsInteger > 0) or
+        (dsDomain.FieldByName('fprecision').AsInteger > 0) or
+        (dsDomain.FieldByName('fscale').AsInteger < 0) then
+      begin
+        Result := FormFloatDomain(dsDomain)
+      end else
+        Result := 'SMALLINT';
+
+    blr_sql_time:
+      Result := 'TIME';
+
+    blr_sql_date:
+      Result := 'DATE';
+
+    blr_timestamp:
+      Result := 'TIMESTAMP';
+
+    blr_blob:
+      begin
+        Result := 'BLOB';
+        Result := Format
+        (
+          ' %s SUB_TYPE %s SEGMENT SIZE %s',
+          [
+            Result,
+            dsDomain.FieldByName('fsubtype').AsString,
+            dsDomain.FieldByName('seglength').AsString
+          ]
+        );
+      end;
+    end;
+    Result := Trim(Result);
+  end;
+
+  function GetDomainText(const FieldName: String): String;
+  begin
+    ibsqlDomain.SQL.Text :=
+      'SELECT ' +
+      '  rdb.rdb$null_flag AS flag, ' +
+      '  rdb.rdb$field_type as ffieldtype, ' +
+      '  rdb.rdb$field_sub_type as fsubtype, ' +
+      '  rdb.rdb$field_precision as fprecision, ' +
+      '  rdb.rdb$field_scale as fscale, ' +
+      '  rdb.rdb$field_length as flength, ' +
+      '  rdb.rdb$character_length as fcharlength, ' +
+      '  rdb.rdb$segment_length as seglength, ' +
+      '  rdb.rdb$validation_source AS checksource, ' +
+      '  rdb.rdb$default_source as defsource, ' +
+      '  rdb.rdb$computed_source as computed_value, ' +
+      '  cs.rdb$character_set_name AS charset, ' +
+      '  cl.rdb$collation_name AS collation ' +
+      ' FROM ' +
+      '   rdb$fields rdb ' +
+      '   LEFT JOIN rdb$character_sets cs ON rdb.rdb$character_set_id = cs.rdb$character_set_id ' +
+      '   LEFT JOIN rdb$collations cl ON rdb.rdb$collation_id = cl.rdb$collation_id ' +
+      '     AND rdb.rdb$character_set_id = cl.rdb$character_set_id ' +
+      ' WHERE ' +
+      '   rdb.rdb$field_name = :fieldname ';
+    ibsqlDomain.ParamByName('fieldname').AsString := FieldName;
+    try
+      ibsqlDomain.ExecQuery;
+      if ibsqlDomain.RecordCount > 0 then
+        Result := GetDomain(ibsqlDomain)
+      else
+        raise Exception.Create('Undefined domain type');
+    finally
+      ibsqlDomain.Close;
+    end;
+  end;
+
 begin
-  Result := GetParamsText(AProcedureName, FDatabase);
+  Result := '';
+  ibsqlParams := TIBSQL.Create(nil);
+  ibsqlDomain := TIBSQL.Create(nil);
+  try
+    ibsqlDomain.Transaction := FDatabase.DefaultTransaction;
+
+    ibsqlParams.Transaction := FDatabase.DefaultTransaction;
+    ibsqlParams.SQL.Text :=
+      ' SELECT ' +
+      '   rdb$parameter_name, rdb$field_source ' +
+      ' FROM ' +
+      '   rdb$procedure_parameters pr ' +
+      ' WHERE ' +
+      '   pr.rdb$procedure_name = :pn ' +
+      '   AND pr.rdb$parameter_type = :pt ' +
+      ' ORDER BY ' +
+      '   pr.rdb$parameter_number ASC ';
+    ibsqlParams.ParamByName('pn').AsString := AProcedureName;
+    ibsqlParams.ParamByName('pt').AsInteger := 0;
+    ibsqlParams.ExecQuery;
+
+    S1 := '';
+    while not ibsqlParams.EOF do
+    begin
+      if S1 = '' then
+        S1 := '('#13#10;
+      S1 := S1 + '    ' + Trim(ibsqlParams.FieldByName('rdb$parameter_name').AsString) + ' ' +
+         GetDomainText(ibsqlParams.FieldByName('rdb$field_source').AsString);
+      ibsqlParams.Next;
+      if not ibsqlParams.EOF then
+        S1 := S1 + ','#13#10
+      else
+        S1 := S1 + ')';
+    end;
+
+    S1 := S1 + #13#10;
+
+    ibsqlParams.Close;
+    ibsqlParams.ParamByName('pt').AsInteger := 1;
+
+    ibsqlParams.ExecQuery;
+    S2 := '';
+    while not ibsqlParams.EOF do
+    begin
+      if S2 = '' then
+        S2 := 'RETURNS ( '#13#10;
+      S2 := S2 + '    ' + Trim(ibsqlParams.FieldByName('rdb$parameter_name').AsString) + ' ' +
+        GetDomainText(ibsqlParams.FieldByName('rdb$field_source').AsString);
+      ibsqlParams.Next;
+      if not ibsqlParams.EOF then
+        S2 := S2 + ','#13#10
+      else
+        S2 := S2 + ')'#13#10;
+    end;
+
+    Result := S1 + S2;
+  finally
+    FreeAndNil(ibsqlDomain);
+    FreeAndNil(ibsqlParams);
+  end;
 end;
 
-function TgsMetadataEditor.GetTriggerText(const ATriggerName: String;
-  const AFullText: Boolean = False): String;
+function TgsMetadataEditor.GetTriggerText(const ATriggerName: String): String;
 begin
   Result := '';
 
   FIBSQLRead.SQL.Text :=
-    ' SELECT rdb$trigger_source AS FuncSource FROM rdb$triggers ' +
+    ' SELECT rdb$trigger_source AS FuncSource ' +
+    ' FROM rdb$triggers ' +
     ' WHERE UPPER(TRIM(rdb$trigger_name)) = UPPER(:trigger_name) ';
   FIBSQLRead.ParamByName('TRIGGER_NAME').AsString := ATriggerName;
 
@@ -1108,10 +1398,8 @@ begin
 
     if FIBSQLRead.RecordCount > 0 then
     begin
-      if AFullText then
-        Result := 'ALTER TRIGGER ' + ATriggerName + #13#10 + FIBSQLRead.FieldByName('FUNCSOURCE').AsString
-      else
-        Result := FIBSQLRead.FieldByName('FUNCSOURCE').AsString;
+      Result := Format('ALTER TRIGGER %s'#13#10'%s',
+        [Trim(ATriggerName), Trim(FIBSQLRead.FieldByName('FUNCSOURCE').AsString)]);
     end
     else
       raise Exception.Create('TgsMetadataEditor.GetTriggerText'#13#10 +
@@ -1143,7 +1431,9 @@ begin
     FIBSQLRead.ExecQuery;
 
     if FIBSQLRead.RecordCount > 0 then
-      Result := FIBSQLRead.FieldByName('FIELD_SOURCE').AsString
+      Result := Format(
+      'ALTER TABLE %0:s ADD %1:s COMPUTED BY %2:s',
+      [Trim(ARelationName), Trim(AComputedFieldName), Trim(FIBSQLRead.FieldByName('FIELD_SOURCE').AsString)])
     else
       raise Exception.Create('TgsMetadataEditor.GetComputedFieldText'#13#10 +
         '  Computed field "' + ARelationName + '.' + AComputedFieldName + '" not found');
@@ -1179,11 +1469,11 @@ begin
   end;
 
   if ViewText <> '' then
-    Result := GetViewParamText(AViewName) + #13#10'AS'#13#10 + ViewText
+    Result := Format('CREATE OR ALTER VIEW %s%s'#13#10'AS'#13#10'%s',
+      [Trim(AViewName), GetViewParamText(AViewName), Trim(ViewText)])
   else
     raise Exception.Create('TgsMetadataEditor.GetViewText'#13#10 +
       '  View "' + AViewName + '" not found');
-
 end;
 
 function TgsMetadataEditor.GetViewParamText(const AViewName: String): String;
@@ -1198,7 +1488,9 @@ begin
     '   JOIN rdb$relation_fields rf ON rf.rdb$relation_name = r.rdb$relation_name ' +
     ' WHERE ' +
     '   UPPER(TRIM(r.rdb$relation_name)) = UPPER(:view_name) ' +
-    '   AND NOT r.rdb$view_source IS NULL ';
+    '   AND NOT r.rdb$view_source IS NULL ' +
+    ' ORDER BY ' +
+    '   rf.rdb$field_position ASC';
   FIBSQLRead.ParamByName('VIEW_NAME').AsString := AViewName;
 
   try
@@ -1210,7 +1502,7 @@ begin
       // Пройдем по списку полей представления
       while not FIBSQLRead.Eof do
       begin
-        Result := Result + Trim(FIBSQLRead.FieldByName('FIELD_NAME').AsString);
+        Result := Result + '  ' + Trim(FIBSQLRead.FieldByName('FIELD_NAME').AsString);
         FIBSQLRead.Next;
         if not FIBSQLRead.EOF then
           Result := Result + ','#13#10
@@ -1221,6 +1513,72 @@ begin
     else
       raise Exception.Create('TgsMetadataEditor.GetViewParamText'#13#10 +
         '  View "' + AViewName + '" not found');
+  finally
+    FIBSQLRead.Close;
+  end;
+end;
+
+{
+  Получение всех грантов для объекта и сохранение их в форматированный список,
+  для последующей обработки при пересоздании объектов метаданных.
+  Элемент списка:
+  (GRANT_TYPE)(USER_NAME)=(USER_TYPE)[(WITH_GRANT_OPTION)]
+}
+function TgsMetadataEditor.GetMetadataGrants(const AMetadataName: String; const AFieldName: String = ''): String;
+var
+  GrantList: TStringList;
+  GrantElementStr: String;
+begin
+  Result := '';
+  // Запрос на получение списка грантов для переданного объекта
+  FIBSQLRead.SQL.Text :=
+    'SELECT ' +
+    '  p.rdb$privilege AS user_privilege, ' +
+    '  p.rdb$user_type AS user_type, ' +
+    '  TRIM(p.rdb$user) AS user_name, ' +
+    '  p.rdb$grant_option AS grant_option ' +
+    'FROM ' +
+    '  rdb$user_privileges p ' +
+    'WHERE ' +
+    '  UPPER(TRIM(p.rdb$relation_name)) = UPPER(:metadata_name) ' +
+    '  AND p.rdb$user <> ''SYSDBA''';
+  // Если ищем гранты для поля, то дополним ограничение
+  if AFieldName <> '' then
+    FIBSQLRead.SQL.Text := FIBSQLRead.SQL.Text +
+      '  AND UPPER(TRIM(p.rdb$field_name)) = UPPER(:field_name)';
+  FIBSQLRead.ParamByName('METADATA_NAME').AsString := AMetadataName;
+  // Если ищем гранты для поля
+  if AFieldName <> '' then
+    FIBSQLRead.ParamByName('FIELD_NAME').AsString := AFieldName;
+
+  try
+    FIBSQLRead.ExecQuery;
+    // Если представление существует
+    if FIBSQLRead.RecordCount > 0 then
+    begin
+      GrantList := TStringList.Create;
+      try
+        // Пройдем по списку грантов
+        while not FIBSQLRead.Eof do
+        begin
+          // Сформируем текущий элемент списка
+          GrantElementStr := Trim(FIBSQLRead.FieldByName('user_privilege').AsString) +
+            Trim(FIBSQLRead.FieldByName('user_name').AsString) + '=' +
+            Trim(FIBSQLRead.FieldByName('user_type').AsString);
+          if FIBSQLRead.FieldByName('grant_option').AsInteger = 1 then
+            GrantElementStr := GrantElementStr + WITH_GRANT_OPTION_MARKER;
+
+          // Добавим в список сохраняемых грантов текущий
+          GrantList.Add(GrantElementStr);
+
+          FIBSQLRead.Next;
+        end;
+
+        Result := GrantList.Text;
+      finally
+        FreeAndNil(GrantList);
+      end;
+    end;
   finally
     FIBSQLRead.Close;
   end;
@@ -1293,7 +1651,7 @@ begin
     ParamText := AParams;
 
   // Запишем измененную процедуру в БД
-  SetProcedureText(Format('ALTER PROCEDURE %s %s AS %s', [AProcedureName, ParamText, AProcedureText]));
+  SetProcedureText(Format('ALTER PROCEDURE %s %s AS'#13#10'%s', [AProcedureName, ParamText, AProcedureText]));
 end;
 
 procedure TgsMetadataEditor.SetProcedureText(const AProcedureText: String);
@@ -1348,10 +1706,18 @@ procedure TgsMetadataEditor.SetComputedFieldText(const ARelationName,
   AComputedFieldName, AComputedFieldText: String);
 begin
   // Запишем измененное вычисляемое поле в БД
+  { TODO : не проверяется существование вычисляемого поля }
+  SetComputedFieldText(Format('ALTER TABLE %s ADD %s COMPUTED BY %s',
+    [ARelationName, AComputedFieldName, AComputedFieldText]));
+end;
+
+procedure TgsMetadataEditor.SetComputedFieldText(
+  const AComputedFieldText: String);
+begin
+  // Запишем измененное вычисляемое поле в БД
   FWriteTransaction.StartTransaction;
   try
-    FIBSQLWrite.SQL.Text :=
-      'ALTER TABLE ' + ARelationName + ' ALTER ' + AComputedFieldName + ' COMPUTED BY ' + AComputedFieldText;
+    FIBSQLWrite.SQL.Text := AComputedFieldText;
     try
       FIBSQLWrite.ExecQuery;
     finally
@@ -1472,15 +1838,17 @@ begin
   // Сохраним вычисляемое поле во временную таблицу
   FWriteTransaction.StartTransaction;
   try
-    FIBSQLWrite.SQL.Text :=
-      ' INSERT INTO ' + HELP_METADATA_TABLE +
-      '   (obj_type, name, relation_name, source) ' +
+    FIBSQLWrite.SQL.Text := Format(
+      ' INSERT INTO %0:s' +
+      '   (%1:s, %2:s, %3:s, %4:s, %5:s) ' +
       ' VALUES ' +
-      '   (:obj_type, :name, :relation_name, :source)';
-    FIBSQLWrite.ParamByName('OBJ_TYPE').AsString := HELP_COMPUTED_FIELD_TYPE;
-    FIBSQLWrite.ParamByName('NAME').AsString := AComputedFieldName;
-    FIBSQLWrite.ParamByName('RELATION_NAME').AsString := ARelationName;
-    FIBSQLWrite.ParamByName('SOURCE').AsString := GetComputedFieldText(ARelationName, AComputedFieldName);
+      '   (:%1:s, :%2:s, :%3:s, :%4:s, :%5:s) ',
+      [HELP_METADATA_TABLE, HELP_M_OBJTYPE, HELP_M_NAME, HELP_M_RELATIONNAME, HELP_M_SOURCE, HELP_M_GRANTTEXT]);
+    FIBSQLWrite.ParamByName(HELP_M_OBJTYPE).AsString := HELP_COMPUTED_FIELD_TYPE;
+    FIBSQLWrite.ParamByName(HELP_M_NAME).AsString := AComputedFieldName;
+    FIBSQLWrite.ParamByName(HELP_M_RELATIONNAME).AsString := ARelationName;
+    FIBSQLWrite.ParamByName(HELP_M_SOURCE).AsString := GetComputedFieldText(ARelationName, AComputedFieldName);
+    FIBSQLWrite.ParamByName(HELP_M_GRANTTEXT).AsString := GetMetadataGrants(ARelationName, AComputedFieldName);
     try
       FIBSQLWrite.ExecQuery;
     finally
@@ -1501,63 +1869,16 @@ begin
   // Сохраним представление во временную таблицу
   FWriteTransaction.StartTransaction;
   try
-    FIBSQLWrite.SQL.Text :=
-      ' INSERT INTO ' + HELP_METADATA_TABLE +
-      '   (obj_type, name, source) ' +
+    FIBSQLWrite.SQL.Text := Format(
+      ' INSERT INTO %0:s' +
+      '   (%1:s, %2:s, %3:s, %4:s) ' +
       ' VALUES ' +
-      '   (:obj_type, :name, :source)';
-    FIBSQLWrite.ParamByName('OBJ_TYPE').AsString := HELP_VIEW_TYPE;
-    FIBSQLWrite.ParamByName('NAME').AsString := AViewName;
-    FIBSQLWrite.ParamByName('SOURCE').AsString := GetViewText(AViewName);
-    try
-      FIBSQLWrite.ExecQuery;
-    finally
-      FIBSQLWrite.Close;
-    end;
-
-    if FWriteTransaction.InTransaction then
-      FWriteTransaction.Commit;
-  except
-    if FWriteTransaction.InTransaction then
-      FWriteTransaction.Rollback;
-    raise;
-  end;
-end;
-
-procedure TgsMetadataEditor.RestoreComputedField(const ARelationName, AComputedFieldName: String);
-begin
-  // Восстановим вычисляемое поле из временной таблицы
-  FWriteTransaction.StartTransaction;
-  try
-    FIBSQLWrite.SQL.Text := Format(
-      ' ALTER TABLE %0:s ' +
-      ' ADD %1:s ' +
-      ' COMPUTED BY %2:s ',
-      [ARelationName, AComputedFieldName, GetBackupComputedFieldText(ARelationName, AComputedFieldName)]);
-    try
-      FIBSQLWrite.ExecQuery;
-    finally
-      FIBSQLWrite.Close;
-    end;
-
-    if FWriteTransaction.InTransaction then
-      FWriteTransaction.Commit;
-  except
-    if FWriteTransaction.InTransaction then
-      FWriteTransaction.Rollback;
-    raise;
-  end;
-end;
-
-procedure TgsMetadataEditor.RestoreView(const AViewName: String);
-begin
-  // Восстановим представление из временной таблицы
-  FWriteTransaction.StartTransaction;
-  try
-    FIBSQLWrite.SQL.Text := Format(
-      ' CREATE VIEW %0:s ' +
-      ' %1:s ',
-      [AViewName, GetBackupViewText(AViewName)]);
+      '   (:%1:s, :%2:s, :%3:s, :%4:s) ',
+      [HELP_METADATA_TABLE, HELP_M_OBJTYPE, HELP_M_NAME, HELP_M_SOURCE, HELP_M_GRANTTEXT]);
+    FIBSQLWrite.ParamByName(HELP_M_OBJTYPE).AsString := HELP_VIEW_TYPE;
+    FIBSQLWrite.ParamByName(HELP_M_NAME).AsString := AViewName;
+    FIBSQLWrite.ParamByName(HELP_M_SOURCE).AsString := GetViewText(AViewName);
+    FIBSQLWrite.ParamByName(HELP_M_GRANTTEXT).AsString := GetMetadataGrants(AViewName);
     try
       FIBSQLWrite.ExecQuery;
     finally
@@ -1715,11 +2036,127 @@ begin
   LinesList := TStringList.Create;
   try
     LinesList.Text := AText;
-    for LineCounter := (LinesList.Count - 1) downto ALineCount do
-      LinesList.Delete(LineCounter);
+    if LinesList.Count > ALineCount then
+    begin
+      for LineCounter := (LinesList.Count - 1) downto ALineCount do
+        LinesList.Delete(LineCounter);
+      LinesList.Add(LINE_CUT);
+    end;
     Result := LinesList.Text;
   finally
     LinesList.Free;
+  end;
+end;
+
+{
+  Проставляет гранты для вновь созданного объекта (берутся из архивной таблицы)
+  Формат элемента списка грантов:
+  (GRANT_TYPE)(USER_NAME)=(USER_TYPE)[(WITH_GRANT_OPTION)]
+}
+procedure TgsMetadataEditor.RestoreGrant(const AMetadataName: String; const ARelationName: String = '');
+var
+  GrantList: TStringList;
+  GrantListCounter: Integer;
+  UserName, UserType, GrantType: String;
+  WithGrantOption: String;
+
+  procedure ParseGrantElement;
+  begin
+    // Тип выдаваемого гранта
+    GrantType := StrLeft(GrantList.Names[GrantListCounter], 1);
+    if GrantType = 'S' then
+      GrantType := 'SELECT'
+    else if GrantType = 'I' then
+      GrantType := 'INSERT'
+    else if GrantType = 'U' then
+      GrantType := 'UPDATE'
+    else if GrantType = 'D' then
+      GrantType := 'DELETE'
+    else if GrantType = 'R' then
+      GrantType := 'REFERENCES'
+    else
+      GrantType := 'ALL';
+
+    // Имя объекта которому выдается грант
+    UserName := StrRestOf(GrantList.Names[GrantListCounter], 2);
+
+    if StrFind(WITH_GRANT_OPTION_MARKER, GrantList.Values[GrantList.Names[GrantListCounter]]) > 0 then
+    begin
+      UserType := StrLeft(GrantList.Values[GrantList.Names[GrantListCounter]],
+        StrLength(GrantList.Values[GrantList.Names[GrantListCounter]]) - StrLength(WITH_GRANT_OPTION_MARKER));
+      WithGrantOption := 'WITH GRANT OPTION';
+    end
+    else
+    begin
+      UserType := GrantList.Values[GrantList.Names[GrantListCounter]];
+      WithGrantOption := '';
+    end;
+    // Тип объекта которому выдается грант (выделяем только триггер или процедуру)
+    if UserType = '2' then
+      UserType := 'TRIGGER'
+    else if UserType = '5' then
+      UserType := 'PROCEDURE'
+    else
+      UserType := '';
+  end;
+
+begin
+  // Запрос на вытягивание списка грантов из архивной таблицы
+  FIBSQLRead.SQL.Text := Format(
+    'SELECT %0:s FROM %1:s WHERE UPPER(TRIM(%2:s)) = UPPER(:metadata_name)',
+    [HELP_M_GRANTTEXT, HELP_METADATA_TABLE, HELP_M_NAME]);
+  if ARelationName <> '' then
+    FIBSQLRead.SQL.Text := FIBSQLRead.SQL.Text +
+      ' AND UPPER(TRIM(' + HELP_M_RELATIONNAME + ')) = UPPER(:relation_name) ';
+  FIBSQLRead.ParamByName('METADATA_NAME').AsString := AMetadataName;
+  if ARelationName <> '' then
+    FIBSQLRead.ParamByName('RELATION_NAME').AsString := ARelationName;
+
+  try
+    FIBSQLRead.ExecQuery;
+
+    if (FIBSQLRead.RecordCount > 0) and (FIBSQLRead.FieldByName(HELP_M_GRANTTEXT).AsString <> '') then
+    begin
+      GrantList := TStringList.Create;
+      try
+        GrantList.Text := FIBSQLRead.FieldByName(HELP_M_GRANTTEXT).AsString;
+
+        FWriteTransaction.StartTransaction;
+        try
+          // Пройдем по списку гранотов для текущего объекта и создадим каждый из них
+          for GrantListCounter := 0 to GrantList.Count - 1 do
+          begin
+            // Разбор элемента списка
+            ParseGrantElement;
+            // Создание гранта
+            if ARelationName = '' then
+              FIBSQLWrite.SQL.Text := Format(
+                'GRANT %0:s ON %1:s TO %2:s %3:s %4:s',
+                [GrantType, AMetadataName, UserType, UserName, WithGrantOption])
+            else
+              FIBSQLWrite.SQL.Text := Format(
+                'GRANT %0:s(%1:s) ON %2:s TO %3:s %4:s %5:s',
+                [GrantType, ARelationName, AMetadataName, UserType, UserName, WithGrantOption]);
+            try
+              FIBSQLWrite.ExecQuery;
+            finally
+              FIBSQLWrite.Close;
+            end;
+          end;
+
+          if FWriteTransaction.InTransaction then
+            FWriteTransaction.Commit;
+        except
+          if FWriteTransaction.InTransaction then
+            FWriteTransaction.Rollback;
+          raise;
+        end;
+      finally
+        FreeAndNil(GrantList);
+      end;
+    end;
+  finally
+    FIBSQLRead.Close;
   end;
 end;
 

@@ -46,6 +46,7 @@ type
     FResizerActivated: Boolean;
     FVariables: TgdVariables;
     FObjects: TgdObjects;
+    FImageIndex: Integer;
     //FAUTimerInitialized: Boolean;
     //FOldTickCount: DWORD;
 
@@ -191,7 +192,7 @@ type
     property UseDesigner: Boolean read FUseDesigner write FUseDesigner;
     property ResizerActivated: Boolean read FResizerActivated;
     property CreatedCarefully: Boolean read FCreatedCarefully;
-
+    property ImageIndex: Integer read FImageIndex write FImageIndex;
   published
     property ShowSpeedButton: Boolean read GetShowSpeedButton write SetShowSpeedButton;
     property Caption: TCaption read GetText write SetText stored IsCaptionStored;

@@ -76,6 +76,7 @@ type
   end;
 
   EgsConfigFileReadError = class(Exception);
+  EgsInterruptConvertProcess = class(Exception);
 
 const
   // Множитель на который увеличивается размер оригинальной базы
@@ -131,6 +132,8 @@ const
   // Комментарий используемый для тел процедур и триггреров
   FUNCTION_COMMENT_BEGIN = '/*FDB_CONV_COMM';
   FUNCTION_COMMENT_END = 'FDB_CONV_COMM*/';
+
+  LINE_CUT = '...';
 
 // Получить версию сервера по версии БД
 function GetServerVersionByDBVersion(const ADBVersion: TgsDatabaseVersion): TgsServerVersion;

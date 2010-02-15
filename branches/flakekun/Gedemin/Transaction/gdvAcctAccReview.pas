@@ -178,26 +178,25 @@ begin
           begin
             if S > '' then
               S := S + ', '#13#10;
-            S := S + Format('  COUNT(a.%0:s) AS %0:s', [FAvailableAnalytics[I].FieldName]);
+            S := S + Format('  SUM(a.%0:s) AS %0:s', [FAvailableAnalytics[I].FieldName]);
           end;
         end;
 
         if S > '' then
         begin
-          ibsql.SQL.Text := 'SELECT '#13#10 + S + #13#10'FROM'#13#10'  ac_entry a ' +
-            ' LEFT JOIN ac_entry e1 ON e1.recordkey = a.recordkey AND e1.id <> a.id ';
-          WhereClause := ' WHERE a.entrydate >= :begindate and a.entrydate <= :enddate AND ' +
-            ' a.companykey IN (' + FCompanyList + ')' ;
+          ibsql.SQL.Text :=
+            'SELECT '#13#10 + S + #13#10'FROM'#13#10'  ac_account a ';
 
           if AccountIDs.Count > 0 then
-            WhereClause := WhereClause + Format('  AND a.accountkey IN (%s)'#13#10, [IDList(AccountIDs)]);
+            WhereClause := WhereClause + Format(' WHERE a.id IN (%s)'#13#10, [IDList(AccountIDs)]);
 
           if CorrAccountIDs.Count > 0 then
-            WhereClause := WhereClause + Format('AND  e1.accountkey IN (%s)'#13#10, [IDList(CorrAccountIDs)]);
+            if AccountIDs.Count > 0 then
+              WhereClause := WhereClause + Format(' AND a.id IN (%s)'#13#10, [IDList(CorrAccountIDs)])
+            else
+              WhereClause := WhereClause + Format(' WHERE a.id IN (%s)'#13#10, [IDList(CorrAccountIDs)]);
 
           ibsql.SQL.Add(WhereClause);
-          ibsql.ParamByName('begindate').AsDateTime := FDateBegin;
-          ibsql.ParamByName('enddate').AsDateTime := FDateEnd;
           ibsql.ExecQuery;
 
           if ibsql.RecordCount > 0 then
