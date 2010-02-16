@@ -3625,7 +3625,7 @@ var
   NewId: Integer;
   LinkTableList: TStringList;
   OL: TObjectList;
-  F: TField;
+  F, DetailField: TField;
 
   // Копирует данные объекта
   procedure CopyRecordData(Source, Dest: TgdcBase);
@@ -3636,8 +3636,8 @@ var
     DontCopyList := Source.GetNotCopyField;
     for I := 0 to Dest.FieldCount - 1 do
     begin
-      if Dest.TestCopyField(Dest.Fields[I].FieldName, DontCopyList)
-        and (Source.FindField(Dest.Fields[I].FieldName) <> nil) then
+      if Dest.TestCopyField(Dest.Fields[I].FieldName, DontCopyList)       // не входит ли поле в список некопируемых полей
+        and (Assigned(Source.FindField(Dest.Fields[I].FieldName))) then
       begin
         if (Dest.Fields[I] is TBlobField) and (not Source.FieldByName(Dest.Fields[I].FieldName).IsNull) then
           Dest.Fields[I].AsString := Source.FieldByName(Dest.Fields[I].FieldName).AsString
@@ -3930,6 +3930,13 @@ begin
               DetailObject.Insert;
               try
                 CopyRecordData(Self.DetailLinks[I], DetailObject);
+                // установим ссылку на объект master
+                DetailField := DetailObject.FindField(DetailObject.DetailField);
+                if Assigned(DetailField) then
+                begin
+                  if DetailField.AsInteger <> MasterObject.ID then
+                    DetailField.AsInteger := MasterObject.ID;
+                end;
                 DetailObject.Post;
                 CopyRecordSetData(Self.DetailLinks[I], DetailObject);
               except
@@ -3965,14 +3972,17 @@ begin
         if DidActivate and MasterObject.Transaction.InTransaction then
           MasterObject.Transaction.Commit
         else
-          FDSModified := True;
-        Self.Close;
-        Self.Open;
+          FDSModified := True;   // укажем что объект был модифицирован (ведь мы работали с его копией)
+
+        Self.CloseOpen;
         Self.ID := NewID;
       end
       else
-        if DidActivate and MasterObject.Transaction.InTransaction then
-          MasterObject.Transaction.Rollback;
+        if MasterObject.Transaction.InTransaction then
+          if DidActivate then
+            MasterObject.Transaction.Rollback
+          else
+            MasterObject.Delete;
     end
     else
     begin
@@ -3980,9 +3990,9 @@ begin
       if DidActivate and MasterObject.Transaction.InTransaction then
         MasterObject.Transaction.Commit
       else
-        FDSModified := True;
-      Self.Close;
-      Self.Open;
+        FDSModified := True;    // укажем что объект был модифицирован (ведь мы работали с его копией)
+
+      Self.CloseOpen;
       Self.ID := NewID;
     end;
   finally

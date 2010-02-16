@@ -105,6 +105,8 @@ type
     destructor Destroy; override;
   end;
 
+const
+  cCategoryName = '¬ходные параметры';
 
 implementation
 
@@ -177,7 +179,7 @@ end;
 procedure TFR4ReportInterface.AddParam(const AnName: String;
   const AnValue: Variant);
 begin
-  Ffr4Report.Variables.AddVariable('¬ходные параметры', AnName, '''' + VarToStr(AnValue) + '''');
+  Ffr4Report.Variables.AddVariable(cCategoryName, AnName, '''' + VarToStr(AnValue) + '''');
 end;
 
 procedure TFR4ReportInterface.BuildReport;
@@ -358,6 +360,9 @@ begin
   OldPosition := AnReportTemplate.Position;
   Ffr4Report.LoadFromStream(AnReportTemplate);
   AnReportTemplate.Position := OldPosition;
+
+  Ffr4Report.Variables.Clear;
+  Ffr4Report.Variables[' ' + cCategoryName] := Null;
 end;
 
 { Tfr4_ReportResult }

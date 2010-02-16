@@ -687,6 +687,8 @@ var
   procedure ProcessAnalytic(F: TatRelationField; IsTreeAnalytic: Boolean = False);
   var
     FI: TgdvFieldInfo;
+    NameFieldLength: Integer;
+    NameRefField: TatField;
   begin
     if Assigned(FFieldInfos) then
     begin
@@ -804,12 +806,25 @@ var
     // Используем новый или старый метод построения отчета
     if FUseEntryBalance then
     begin
+      NameFieldLength := 180;
+      // Если длина отображаемого по ссылке поля больше стандартных 180, возьмем ее
+      if Assigned(F) and Assigned(F.ReferencesField) then
+      begin
+        if Assigned(F.Field.RefListField) then
+          NameRefField := F.Field.RefListField.Field
+        else
+          NameRefField := F.References.ListField.Field;  
+          
+        if NameRefField.FieldLength > NameFieldLength then
+          NameFieldLength := NameRefField.FieldLength;
+      end;
+
       // Заполняем секцию RETURNS
       if AnalyticReturns > '' then AnalyticReturns := AnalyticReturns + ', ';
-      AnalyticReturns := AnalyticReturns +
-        Alias + ' VARCHAR(180),' +
-        Name + ' VARCHAR(180),' +
-        SortName + ' VARCHAR(180)'#13#10;
+      AnalyticReturns := AnalyticReturns + Format(
+        '%0:s VARCHAR(%3:d),' +
+        '%1:s VARCHAR(%3:d),' +
+        '%2:s VARCHAR(%3:d)'#13#10, [Alias, Name, SortName, NameFieldLength]);
 
       // Если аналитика это физическое поле, и оно является полем ссылкой
       if Assigned(F) and Assigned(F.ReferencesField) then
@@ -1243,15 +1258,23 @@ var
   var
     I, J: Integer;
     CurrencyStr: String;
+    CurrencyInfo: TgdvSumInfo;
 
     // Возвращает префикс валюты (NCU, CURR, EQ)
     function GetCurrencyStr(const AccountName: String): String;
     begin
       Result := cNCUPrefix;
+      CurrencyInfo := FNcuSumInfo;
       if AnsiPos(UpperCase(cCURRPrefix), UpperCase(AccountName)) > 0 then
+      begin
         Result := cCURRPrefix;
-      if AnsiPos(UpperCase(cEQPrefix), UpperCase(AccountName)) > 0 then
+        CurrencyInfo := FCurrSumInfo;
+      end
+      else if AnsiPos(UpperCase(cEQPrefix), UpperCase(AccountName)) > 0 then
+      begin
         Result := cEQPrefix;
+        CurrencyInfo := FEQSumInfo;
+      end;
     end;
 
   begin
@@ -1269,17 +1292,17 @@ var
           MainInto := MainInto + ', :' + AAccounts.Names[I];
           // SELECT запроса первого уровня вложенности в главном запросе
           MainSubSelect := MainSubSelect +
-            Format(', COALESCE(SUM(en.%0:s), 0) AS %0:s '#13#10, [AAccounts.Names[I]]);
+            Format(', COALESCE(SUM(en.%0:s) / %1:d, 0) AS %0:s '#13#10, [AAccounts.Names[I], CurrencyInfo.Scale]);
           // SELECT запросов второго уровня вложенности в главном запросе
           MainSubSubSelect01 := MainSubSubSelect01 + ', CAST(0 as numeric(15, %1:d)) AS ' + AAccounts.Names[I];
           MainSubSubSelect02 := MainSubSubSelect02 + ', CAST(0 as numeric(15, %1:d)) AS ' + AAccounts.Names[I];
           if EntryPart = cAccountPartDebit then
             MainSubSubSelect03 := MainSubSubSelect03 +
-              Format(', SUM(IIF(emc.accountkey=%0:s,IIF(emc.issimple=0,emc.credit%1:s,em.debit%1:s),0)) AS %2:s'#13#10,
+              Format(', SUM(IIF(emc.accountkey=%0:s,IIF(emc.issimple=0, emc.credit%1:s, em.debit%1:s), 0)) AS %2:s'#13#10,
               [AAccounts.Values[AAccounts.Names[I]], CurrencyStr, AAccounts.Names[I]])
           else
             MainSubSubSelect03 := MainSubSubSelect03 +
-              Format(', SUM(IIF(emc.accountkey=%0:s,IIF(emc.issimple=0,emc.debit%1:s,em.credit%1:s),0)) AS %1:s'#13#10,
+              Format(', SUM(IIF(emc.accountkey=%0:s,IIF(emc.issimple=0, emc.debit%1:s, em.credit%1:s), 0)) AS %2:s'#13#10,
               [AAccounts.Values[AAccounts.Names[I]], CurrencyStr, AAccounts.Names[I]]);
         end
         else
@@ -1290,7 +1313,7 @@ var
           MainInto := MainInto + ', :' + AAccounts.Strings[I];
           // SELECT запроса первого уровня вложенности в главном запросе
           MainSubSelect := MainSubSelect +
-            Format(', COALESCE(SUM(en.%0:s), 0) AS %0:s '#13#10, [AAccounts.Strings[I]]);
+            Format(', COALESCE(SUM(en.%0:s) / %1:d, 0) AS %0:s '#13#10, [AAccounts.Strings[I], CurrencyInfo.Scale]);
           // SELECT запросов второго уровня вложенности в главном запросе
           MainSubSubSelect01 := MainSubSubSelect01 + ', CAST(0 as numeric(15, %1:d)) AS ' + AAccounts.Strings[I];
           MainSubSubSelect02 := MainSubSubSelect02 + ', CAST(0 as numeric(15, %1:d)) AS ' + AAccounts.Strings[I];
@@ -1303,11 +1326,11 @@ var
               MainSubSubSelect03 := MainSubSubSelect03 + ', ';
           end;
           if EntryPart = cAccountPartDebit then
-            MainSubSubSelect03 := MainSubSubSelect03 + Format('), IIF(emc.issimple=0,emc.credit%0:s,em.debit%0:s),0)) AS ', [CurrencyStr]) +
-              AAccounts.Strings[I] + #13#10
+            MainSubSubSelect03 := MainSubSubSelect03 + Format('), IIF(emc.issimple=0, emc.credit%0:s, em.debit%0:s), 0)) AS %1:s'#13#10,
+              [CurrencyStr, AAccounts.Strings[I]])
           else
-            MainSubSubSelect03 := MainSubSubSelect03 + Format('), IIF(emc.issimple=0,emc.debit%0:s,em.credit%0:s),0)) AS ', [CurrencyStr]) +
-              AAccounts.Strings[I] + #13#10;
+            MainSubSubSelect03 := MainSubSubSelect03 + Format('), IIF(emc.issimple=0, emc.debit%0:s, em.credit%0:s), 0)) AS %1:s'#13#10,
+              [CurrencyStr, AAccounts.Strings[I]]);
         end;
       end
     end
@@ -1325,15 +1348,15 @@ var
           CorrInto := CorrInto + ', :' + AAccounts.Names[I];
           // SELECT запроса первого уровня вложенности в дополнительном запросе
           CorrSubSelect := CorrSubSelect +
-            Format(', COALESCE(SUM(en.%0:s), 0) AS %0:s '#13#10, [AAccounts.Names[I]]);
+            Format(', COALESCE(SUM(en.%0:s) / %1:d, 0) AS %0:s '#13#10, [AAccounts.Names[I], CurrencyInfo.Scale]);
           // SELECT запроса второго уровня вложенности в дополнительном запросе
           if EntryPart = cAccountPartDebit then
             CorrSubSubSelect := CorrSubSubSelect +
-              Format(', IIF(emc.accountkey=%0:s,IIF(emc.issimple=0,emc.credit%1:s,em.debit%1:s),0) AS %2:s'#13#10,
+              Format(', IIF(emc.accountkey=%0:s,IIF(emc.issimple=0, emc.credit%1:s,em.debit%1:s),0) AS %2:s'#13#10,
               [AAccounts.Values[AAccounts.Names[I]], CurrencyStr, AAccounts.Names[I]])
           else
             CorrSubSubSelect := CorrSubSubSelect +
-              Format(', IIF(emc.accountkey=%0:s,IIF(emc.issimple=0,emc.debit%1:s,em.credit%1:s),0) AS %2:s'#13#10,
+              Format(', IIF(emc.accountkey=%0:s,IIF(emc.issimple=0, emc.debit%1:s,em.credit%1:s),0) AS %2:s'#13#10,
               [AAccounts.Values[AAccounts.Names[I]], CurrencyStr, AAccounts.Names[I]]);
         end
         else
@@ -1344,7 +1367,7 @@ var
           CorrInto := CorrInto + ', :' + AAccounts.Strings[I];
           // SELECT запроса первого уровня вложенности в дополнительном запросе
           CorrSubSelect := CorrSubSelect +
-            Format(', COALESCE(SUM(en.%0:s), 0) AS %0:s '#13#10, [AAccounts.Strings[I]]);
+            Format(', COALESCE(SUM(en.%0:s) / %1:d, 0) AS %0:s '#13#10, [AAccounts.Strings[I], CurrencyInfo.Scale]);
           // SELECT запроса второго уровня вложенности в дополнительном запросе
           CorrSubSubSelect := CorrSubSubSelect + ', IIF(emc.accountkey IN (';
           // Если стоит групировка счетов, то здесь в одну колонку сгруппируется несколько значений
@@ -1355,11 +1378,11 @@ var
               CorrSubSubSelect := CorrSubSubSelect + ', ';
           end;
           if EntryPart = cAccountPartDebit then
-            CorrSubSubSelect := CorrSubSubSelect + Format('), IIF(emc.issimple=0,emc.credit%0:s,em.debit%0:s),0) AS ', [CurrencyStr]) +
-              AAccounts.Strings[I] + #13#10
+            CorrSubSubSelect := CorrSubSubSelect + Format('), IIF(emc.issimple=0,emc.credit%0:s,em.debit%0:s),0) AS %1:s '#13#10,
+              [CurrencyStr, AAccounts.Strings[I]])
           else
-            CorrSubSubSelect := CorrSubSubSelect + Format('), IIF(emc.issimple=0,emc.debit%0:s,em.credit%0:s),0) AS ', [CurrencyStr]) +
-              AAccounts.Strings[I] + #13#10;
+            CorrSubSubSelect := CorrSubSubSelect + Format('), IIF(emc.issimple=0,emc.debit%0:s,em.credit%0:s),0) AS %1:s '#13#10,
+              [CurrencyStr, AAccounts.Strings[I]]);
         end;
       end;
     end;
