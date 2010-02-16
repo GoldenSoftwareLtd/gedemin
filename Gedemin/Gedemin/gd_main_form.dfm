@@ -2,15 +2,15 @@ object frmGedeminMain: TfrmGedeminMain
   Left = 274
   Top = 111
   Width = 977
-  Height = 76
+  Height = 85
   HelpContext = 76
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False
   Caption = 'Gedemin'
   Color = clBtnFace
-  Constraints.MaxHeight = 76
+  Constraints.MaxHeight = 85
   Constraints.MaxWidth = 2000
-  Constraints.MinHeight = 76
+  Constraints.MinHeight = 80
   Constraints.MinWidth = 400
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -32,7 +32,6 @@ object frmGedeminMain: TfrmGedeminMain
     object tbMainMenu: TTBToolbar
       Left = 0
       Top = 0
-      ActivateParent = False
       BorderStyle = bsNone
       Caption = 'tbMainMenu'
       CloseButton = False
@@ -40,7 +39,6 @@ object frmGedeminMain: TfrmGedeminMain
       DockPos = 0
       DragHandleStyle = dhNone
       FullSize = True
-      HideWhenInactive = False
       Images = dmImages.il16x16
       MenuBar = True
       ParentShowHint = False
@@ -363,25 +361,25 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object TBDockForms: TTBDock
     Left = 0
-    Top = 26
+    Top = 31
     Width = 969
     Height = 27
     BoundLines = [blTop]
+    Color = clWindow
     LimitToOneRow = True
     Position = dpBottom
     object tbForms: TTBToolbar
       Left = 0
       Top = 0
-      ActivateParent = False
       BorderStyle = bsNone
       Caption = 'Формы'
       ChevronHint = 'Показать все'
       CloseButton = False
+      Color = clWindow
       DockMode = dmCannotFloatOrChangeDocks
       DockPos = 0
       DragHandleStyle = dhNone
       FullSize = True
-      HideWhenInactive = False
       Images = dmImages.il16x16
       ParentShowHint = False
       PopupMenu = pmForms

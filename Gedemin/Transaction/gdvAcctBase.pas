@@ -84,6 +84,8 @@ type
     procedure SetAllHolding(const Value: Boolean);
     procedure SetUseEntryBalance(const Value: Boolean);
 
+    function GetQuantitySumInfo: TgdvSumInfo;
+
     { Уменьшает длину текста запроса путем удаления лишних пробелов и отступов }
     {$IFNDEF DEBUG}
     procedure PackSQL(const S: TStrings);
@@ -189,6 +191,8 @@ type
     property AllTickCount: Cardinal read FAllTickCount;
     property QueryTickCount: Cardinal read FQueryTickCount;
     property UseEntryBalance: Boolean read FUseEntryBalance write SetUseEntryBalance;
+
+    property QuantitySumInfo: TgdvSumInfo read GetQuantitySumInfo;
   published
     { TIBCustomDataSet }
     property BufferChunks;
@@ -1158,6 +1162,18 @@ end;
 class function TgdvAcctBase.ConfigClassName: string;
 begin
   Result := 'TBaseAcctConfigClass';
+end;
+
+function TgdvAcctBase.GetQuantitySumInfo: TgdvSumInfo;
+begin
+  if FNcuSumInfo.Show then
+    Result := FNcuSumInfo
+  else if FCurrSumInfo.Show then
+    Result := FCurrSumInfo
+  else if FEQSumInfo.Show then
+    Result := FEQSumInfo
+  else
+    Result := FNcuSumInfo;
 end;
 
 {$IFNDEF DEBUG}

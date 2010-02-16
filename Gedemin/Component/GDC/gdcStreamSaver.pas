@@ -2409,6 +2409,7 @@ begin
         end;
       end
       else
+      begin
         TargetDS.StreamProcessingAnswer := FAnAnswer;
         if not TargetDS.CheckTheSame(True) then
         begin
@@ -2420,6 +2421,7 @@ begin
             Space;
           end;}
         end;
+      end;  
 
       if NeedAddToIDMapping and (FIDMapping.IndexOf(SourceKeyInt) = -1) then
         FIDMapping.ValuesByIndex[FIDMapping.Add(SourceKeyInt)] := TargetDS.FieldByName(KeyFieldName).AsInteger;

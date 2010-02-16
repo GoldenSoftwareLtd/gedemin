@@ -342,7 +342,7 @@ begin
       '  CAST(IIF(e1.issimple = 0, e1.creditcurr, e.debitcurr) / %2:d AS NUMERIC(15, %3:d)) AS CURR_DEBIT,'#13#10 +
       '  CAST(IIF(e1.issimple = 0, e1.debitcurr, e.creditcurr) / %2:d AS NUMERIC(15, %3:d)) AS CURR_CREDIT,')  + #13#10 +
     '  CAST(IIF(e1.issimple = 0, e1.crediteq, e.debiteq) / %4:d AS NUMERIC(15, %5:d)) AS EQ_DEBIT,'#13#10 +
-    '  CAST(IIF(e1.issimple = 0, e1.debiteq, e.crediteq) / %4:d AS NUMERIC(15, %5::d)) AS EQ_CREDIT,'#13#10 +
+    '  CAST(IIF(e1.issimple = 0, e1.debiteq, e.crediteq) / %4:d AS NUMERIC(15, %5:d)) AS EQ_CREDIT,'#13#10 +
     '  a.alias, '#13#10 +
     '  corr_a.alias AS corralias,'#13#10 + ASelect + ACorrSelect +
     '  curr.ShortName as CurrencyName,'#13#10 +
