@@ -16572,15 +16572,15 @@ end;
 
 function TgdcBase.CreateBlobStream(Field: TField;
   Mode: TBlobStreamMode): TStream;
-var
-  OldID: Integer;
+{var
+  OldID: Integer;}
 begin
   if (State = dsEdit) and (Mode in [DB.bmWrite, DB.bmReadWrite]) then
     UpdateOldValues(Field);
 
-  try
+  {try}
     Result := inherited CreateBlobStream(Field, Mode);
-  except
+  {except
     if State = dsBrowse then
     begin
       OldID := ID;
@@ -16591,7 +16591,7 @@ begin
         raise;
     end else
       raise;
-  end;
+  end;}
   
   if (State = dsEdit) and (Mode in [DB.bmWrite, DB.bmReadWrite]) then
     FDSModified := True;
