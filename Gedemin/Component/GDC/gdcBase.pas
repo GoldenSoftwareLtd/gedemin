@@ -12006,11 +12006,11 @@ begin
                 Param := VarArrayOf([Param]);
               if q.Params.Count > (VarArrayHighBound(Param, 1) + 1) then
               begin
-                St := '';
+                St := ',';
                 J := 0;
                 for I := 0 to q.Params.Count - 1 do
                 begin
-                  if Pos(q.Params[I].Name + ',', St) > 0 then
+                  if Pos(',' + q.Params[I].Name + ',', St) > 0 then
                     continue;
                   q.Params[I].AsVariant := Param[J];
                   St := St + q.Params[I].Name + ',';
