@@ -325,6 +325,8 @@ begin
     ibqryFind.First;
     Draw500Item;
 
+    tvAttrSet.AlphaSort;
+
     if (tvAttrSet.Selected = nil) and (tvAttrSet.Items.Count > 0) then
       tvAttrSet.Items[0].Selected := True;
 
@@ -371,13 +373,16 @@ begin
 
   // Визуальное отображение
   tvAttrSet.Items.BeginUpdate;
-  tvAttrSet.Items.Clear;
+  try
+    tvAttrSet.Items.Clear;
 
-  ibqryFind.First;
-  Draw500Item;
+    ibqryFind.First;
+    Draw500Item;
 
-  tvAttrSet.FullExpand;
-  tvAttrSet.Items.EndUpdate;
+    tvAttrSet.FullExpand;
+  finally
+    tvAttrSet.Items.EndUpdate;
+  end;  
 end;
 
 function TdlgSelectFSet.CheckValue(StartP, EndP, Value: Integer): Integer;
