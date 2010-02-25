@@ -244,14 +244,19 @@ begin
 
   // Визуальное отображение
   tvAttrSet.Items.BeginUpdate;
-  tvAttrSet.Items.Clear;
+  try
+    tvAttrSet.Items.Clear;
 
-  ibqryFind.First;
-  Draw500Item;
+    ibqryFind.First;
+    Draw500Item;
 
-  tvAttrSet.ShowLines := FIsTree;
-  tvTarget.ShowLines := FIsTree;
-  tvAttrSet.Items.EndUpdate;
+    tvAttrSet.AlphaSort;
+
+    tvAttrSet.ShowLines := FIsTree;
+    tvTarget.ShowLines := FIsTree;
+  finally
+    tvAttrSet.Items.EndUpdate;
+  end;
 end;
 
 procedure TdlgSelectAttrSet.ShowFind(Qry: Boolean);
@@ -279,16 +284,21 @@ begin
 
   // Визуальное отображение
   tvAttrSet.Items.BeginUpdate;
-  tvAttrSet.Items.Clear;
+  try
+    tvAttrSet.Items.Clear;
 
-  ibqryFind.First;
-  Draw500Item;
+    ibqryFind.First;
+    Draw500Item;
 
-  tvAttrSet.ShowLines := FIsTree;
-  tvTarget.ShowLines := FIsTree;
+    tvAttrSet.AlphaSort;
 
-  tvAttrSet.FullExpand;
-  tvAttrSet.Items.EndUpdate;
+    tvAttrSet.ShowLines := FIsTree;
+    tvTarget.ShowLines := FIsTree;
+
+    tvAttrSet.FullExpand;
+  finally
+    tvAttrSet.Items.EndUpdate;
+  end;
 end;
 
 function TdlgSelectAttrSet.CheckValue(StartP, EndP, Value: Integer): Integer;
