@@ -76,7 +76,7 @@ var
   T: TDateTime;
 {$ENDIF}
   MS: TMemoryStream;
-  RegSetting: TgsStorageFolder;
+  //RegSetting: TgsStorageFolder;
   I, J: Integer;
 begin
   gdcBase.CacheDBID := -1;
@@ -120,6 +120,11 @@ begin
   {$IFDEF DEBUG}
     OutputDebugString(PChar('UserStorage: ' + FormatDateTime('s.z', Now - T)));
   {$ENDIF}
+
+  // ћы отказываемс€ от использовани€ раздельных системных настроек
+  // внутри √едымина
+  LoadSystemLocalSettingsIntoDelphiVars;
+  (*
   if Assigned(GlobalStorage) then
   begin
     RegSetting := GlobalStorage.OpenFolder(st_rs_RegionalSettingsPath, False, False);
@@ -160,6 +165,7 @@ begin
       GlobalStorage.CloseFolder(RegSetting, False);
     end;
   end;
+  *)
 
   if Pos('dd.mm.yy', AnsiLowerCase(ShortDateFormat)) <> 1 then
   begin

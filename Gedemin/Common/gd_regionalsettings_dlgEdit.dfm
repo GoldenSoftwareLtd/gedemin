@@ -11,55 +11,77 @@ object dlgRegionalSettings: TdlgRegionalSettings
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
+  object Label30: TLabel
+    Left = 8
+    Top = 16
+    Width = 385
+    Height = 41
+    AutoSize = False
+    Caption = 
+      'В текущей версии используются действующие настройки операционной' +
+      ' системы. Перейдите в "Панель управления" -> "Язык и региональны' +
+      'е стандарты" для их просмотра и изменения.'
+    Color = clInfoBk
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clInfoText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentColor = False
+    ParentFont = False
+    WordWrap = True
+  end
   object pcRegion: TPageControl
-    Left = 10
+    Left = 8
     Top = 7
     Width = 383
     Height = 361
-    ActivePage = tsDate
+    ActivePage = tsNumber
+    Enabled = False
     TabOrder = 0
+    Visible = False
     object tsNumber: TTabSheet
       Caption = 'Число'
       ImageIndex = 3
       object Label1: TLabel
         Left = 16
         Top = 76
-        Width = 225
+        Width = 228
         Height = 13
         Caption = 'Разделитель целой и дробной частей числа:'
       end
       object Label2: TLabel
         Left = 16
         Top = 108
-        Width = 147
+        Width = 150
         Height = 13
         Caption = 'Количество дробных знаков:'
       end
       object Label3: TLabel
         Left = 16
         Top = 140
-        Width = 151
+        Width = 153
         Height = 13
         Caption = 'Разделитель групп разрядов:'
       end
       object Label4: TLabel
         Left = 16
         Top = 172
-        Width = 137
+        Width = 140
         Height = 13
         Caption = 'Количество цифр в группе:'
       end
       object Label5: TLabel
         Left = 16
         Top = 204
-        Width = 163
+        Width = 164
         Height = 13
         Caption = 'Признак отрицательного числа:'
         Enabled = False
@@ -74,14 +96,14 @@ object dlgRegionalSettings: TdlgRegionalSettings
       object Label7: TLabel
         Left = 16
         Top = 268
-        Width = 147
+        Width = 150
         Height = 13
         Caption = 'Вывод нулей в начале числа:'
       end
       object Label8: TLabel
         Left = 16
         Top = 300
-        Width = 166
+        Width = 163
         Height = 13
         Caption = 'Разделитель элементов списка:'
       end
@@ -131,7 +153,7 @@ object dlgRegionalSettings: TdlgRegionalSettings
         Width = 105
         Height = 21
         Hint = 'Разделитель групп разрядов'
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 2
@@ -236,14 +258,14 @@ object dlgRegionalSettings: TdlgRegionalSettings
         object Label9: TLabel
           Left = 14
           Top = 24
-          Width = 40
+          Width = 41
           Height = 13
           Caption = 'Полож.:'
         end
         object Label10: TLabel
           Left = 184
           Top = 24
-          Width = 37
+          Width = 40
           Height = 13
           Caption = 'Отриц.:'
         end
@@ -275,49 +297,49 @@ object dlgRegionalSettings: TdlgRegionalSettings
       object Label11: TLabel
         Left = 16
         Top = 76
-        Width = 170
+        Width = 173
         Height = 13
         Caption = 'Обозначение денежной единицы:'
       end
       object Label12: TLabel
         Left = 16
         Top = 108
-        Width = 212
+        Width = 209
         Height = 13
         Caption = 'Формат положительных денежных сумм:'
       end
       object Label13: TLabel
         Left = 16
         Top = 140
-        Width = 209
+        Width = 207
         Height = 13
         Caption = 'Формат отрицательных денежных сумм:'
       end
       object Label14: TLabel
         Left = 16
         Top = 172
-        Width = 225
+        Width = 228
         Height = 13
         Caption = 'Разделитель целой и дробной частей числа:'
       end
       object Label15: TLabel
         Left = 16
         Top = 204
-        Width = 147
+        Width = 150
         Height = 13
         Caption = 'Количество дробных знаков:'
       end
       object Label16: TLabel
         Left = 16
         Top = 236
-        Width = 151
+        Width = 153
         Height = 13
         Caption = 'Разделитель групп разрядов:'
       end
       object Label17: TLabel
         Left = 16
         Top = 268
-        Width = 137
+        Width = 140
         Height = 13
         Caption = 'Количество цифр в группе:'
       end
@@ -477,14 +499,14 @@ object dlgRegionalSettings: TdlgRegionalSettings
         object Label19: TLabel
           Left = 14
           Top = 24
-          Width = 40
+          Width = 41
           Height = 13
           Caption = 'Полож.:'
         end
         object Label20: TLabel
           Left = 184
           Top = 24
-          Width = 37
+          Width = 40
           Height = 13
           Caption = 'Отриц.:'
         end
@@ -530,14 +552,14 @@ object dlgRegionalSettings: TdlgRegionalSettings
         object Label24: TLabel
           Left = 16
           Top = 52
-          Width = 121
+          Width = 124
           Height = 13
           Caption = 'Короткий формат даты:'
         end
         object Label25: TLabel
           Left = 16
           Top = 80
-          Width = 167
+          Width = 169
           Height = 13
           Caption = 'Разделитель компонентов даты:'
         end
@@ -598,7 +620,7 @@ object dlgRegionalSettings: TdlgRegionalSettings
         object Label29: TLabel
           Left = 16
           Top = 56
-          Width = 113
+          Width = 114
           Height = 13
           Caption = 'Полный формат даты:'
         end
@@ -634,21 +656,21 @@ object dlgRegionalSettings: TdlgRegionalSettings
       object Label18: TLabel
         Left = 16
         Top = 76
-        Width = 92
+        Width = 87
         Height = 13
         Caption = 'Формат времени:'
       end
       object Label21: TLabel
         Left = 16
         Top = 108
-        Width = 186
+        Width = 184
         Height = 13
         Caption = 'Разделитель компонентов времени:'
       end
       object Label22: TLabel
         Left = 16
         Top = 140
-        Width = 201
+        Width = 204
         Height = 13
         Caption = 'Обозначение времени до полудня (AM):'
       end
@@ -766,9 +788,12 @@ object dlgRegionalSettings: TdlgRegionalSettings
   object chbUseSystemSettings: TCheckBox
     Left = 10
     Top = 371
-    Width = 225
+    Width = 351
     Height = 17
-    Caption = 'Использовать системные настройки'
+    Caption = 'Использовать настройки операционной системы'
+    Checked = True
+    Enabled = False
+    State = cbChecked
     TabOrder = 4
     OnClick = chbUseSystemSettingsClick
   end
