@@ -3270,10 +3270,10 @@ begin
             SelectCondition := Format('%s OR (%s = ''%s'') ',
               [SelectCondition, FLookup.FieldWithAlias(Trim(SL[J])), Grid.InplaceEditor.Text])
           else
-            if FListFieldIsBlob then
+            {if FListFieldIsBlob then
 
-            else
-              SelectCondition := Format('%0:s OR (upper(SUBSTRING(%1:s FROM 1 FOR CHAR_LENGTH(%1:s))) LIKE ''%%''|| ''%2:s'' || ''%%'') ',
+            else}
+              SelectCondition := Format('%0:s OR (upper(SUBSTRING('''' || %1:s FROM 1 FOR CHAR_LENGTH('''' || %1:s))) LIKE ''%%''|| ''%2:s'' || ''%%'') ',
                 [SelectCondition, FLookup.FieldWithAlias(Trim(SL[J])), AnsiUpperCase(Grid.InplaceEditor.Text)])
       finally
         SL.Free;

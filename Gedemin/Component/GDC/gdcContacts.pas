@@ -1731,11 +1731,10 @@ procedure TgdcDepartment.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
   S.Add('z.contacttype = ' + IntToStr(ContactType));
-  if HasSubSet(cst_ByLBRBDepartment) then
-    if not HasSubSet(cst_Holding) then
-      S.Add('clb.id = :companykey')
-    else
-      S.Add('h.holdingkey = :companykey')
+  if HasSubSet(cst_Holding) then
+    S.Add('h.holdingkey = :companykey')
+  else if HasSubSet(cst_ByLBRBDepartment) then
+    S.Add('clb.id = :companykey');
 end;
 
 function TgdcDepartment.AcceptClipboard(CD: PgdcClipboardData): Boolean;

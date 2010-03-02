@@ -285,7 +285,7 @@ begin
   if not Find(Value, Result) then
     InsertItem(Result, Value)
   else if not IgnoreDuplicates then
-    raise Exception.Create('TgdKeyArray: Duplicate keys are not allowed');
+    raise Exception.Create('TgdKeyArray: Duplicate keys are not allowed. Key=' + IntToStr(Value));
 end;
 
 procedure TgdKeyArray.Assign(KA: TgdKeyArray);

@@ -1146,7 +1146,7 @@ COMMIT;
     INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
       VALUES (
         740302,
-        740000,
+        740300,
         'Хранилище (б/о)',
         'srv_storage_new',
         'TgdcStorage',

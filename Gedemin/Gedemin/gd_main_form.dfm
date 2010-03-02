@@ -361,7 +361,7 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object TBDockForms: TTBDock
     Left = 0
-    Top = 31
+    Top = 30
     Width = 969
     Height = 27
     BoundLines = [blTop]
@@ -375,7 +375,7 @@ object frmGedeminMain: TfrmGedeminMain
       Caption = 'Формы'
       ChevronHint = 'Показать все'
       CloseButton = False
-      Color = clWindow
+      Color = clBtnHighlight
       DockMode = dmCannotFloatOrChangeDocks
       DockPos = 0
       DragHandleStyle = dhNone

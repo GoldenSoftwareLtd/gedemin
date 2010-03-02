@@ -143,6 +143,8 @@ begin
     Inc(I);
     ibqryFind.Next;
   end;
+
+  tvAttrSet.AlphaSort;
 end;
 
 procedure TdlgSelectAttrSet.ShowTargetList(SL: TStrings);
@@ -227,6 +229,7 @@ begin
     tvTarget.ShowLines := FIsTree;
 
     TargetParentList.Free;
+    tvTarget.AlphaSort;
     tvTarget.FullExpand;
     tvTarget.Items.EndUpdate;
   end;
@@ -249,8 +252,6 @@ begin
 
     ibqryFind.First;
     Draw500Item;
-
-    tvAttrSet.AlphaSort;
 
     tvAttrSet.ShowLines := FIsTree;
     tvTarget.ShowLines := FIsTree;
@@ -289,8 +290,6 @@ begin
 
     ibqryFind.First;
     Draw500Item;
-
-    tvAttrSet.AlphaSort;
 
     tvAttrSet.ShowLines := FIsTree;
     tvTarget.ShowLines := FIsTree;

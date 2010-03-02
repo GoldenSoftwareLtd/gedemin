@@ -366,7 +366,7 @@ begin
           'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview) '#13#10 +
           '  VALUES ( '#13#10 +
           '    740302, '#13#10 +
-          '    740000, '#13#10 +
+          '    740300, '#13#10 +
           '    ''Хранилище (б/о)'', '#13#10 +
           '    ''srv_storage_new'', '#13#10 +
           '    ''TgdcStorage'', '#13#10 +

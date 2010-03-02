@@ -57,6 +57,7 @@ unit gdcStorage;
 { TODO 5 -oandreik -cStorage : Мы вылавливаем из текста исключения подстроку вида '. ID=', надеясь что там она есть }
 { TODO 5 -oandreik -cStorage : убрать из TdlgToSetting.Setup код, который работает с хран по старому}
 { TODO 5 -oandreik -cStorage : массив InSett сейчас заполняется неправильно}
+{ TODO 5 -oandreik -cStorage : TgsIBStorage.SaveToDataBase Надо по другому делать проверку на пустой БЛОБ}
 
 interface
 
@@ -319,7 +320,10 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := Format('SELECT %s.*, ' +
+
+  Result := inherited GetSelectClause;
+
+  {Result := Format('SELECT %s.*, ' +
     'CASE data_type ' +
     '  WHEN ''S'' THEN str_data ' +
     '  WHEN ''I'' THEN CAST(int_data AS VARCHAR(120)) ' +
@@ -329,7 +333,8 @@ begin
     '  WHEN ''B'' THEN ''Размер данных: '' || CAST(CHAR_LENGTH(blob_data) AS VARCHAR(120)) || '' байт'' ' +
     'ELSE ' +
     '  '''' ' +
-    'END', [GetListTableAlias]);
+    'END', [GetListTableAlias]);}
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTORAGEVALUE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

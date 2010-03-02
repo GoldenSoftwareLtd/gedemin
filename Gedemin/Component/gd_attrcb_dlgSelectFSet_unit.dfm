@@ -1,6 +1,6 @@
 object dlgSelectFSet: TdlgSelectFSet
-  Left = 408
-  Top = 241
+  Left = 404
+  Top = 152
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Выбор множества'

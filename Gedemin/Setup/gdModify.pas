@@ -78,7 +78,11 @@ var
   I: Integer;
   FIBOpened: Boolean;
 begin
-  DoModifyLog('Процесс модификации БД начат');
+  DoModifyLog('Процесс обновления может занять несколько десятков минут.');
+  DoModifyLog('Дождитесь его завершения. Не снимайте задачу и не перезагружайте компьютер.');
+  DoModifyLog('');
+
+  DoModifyLog('Начат процесс модификации БД');
   FIBOpened := FIBDatabase.Connected;
 
   if not FIBDatabase.Connected then

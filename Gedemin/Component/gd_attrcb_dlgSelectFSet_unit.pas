@@ -155,6 +155,8 @@ begin
     Inc(I);
     ibqryFind.Next;
   end;
+
+  tvAttrSet.AlphaSort;
 end;
 
 procedure TdlgSelectFSet.ShowTargetList(SL: TStrings);
@@ -289,7 +291,9 @@ begin
 
       ibsqlTarget.Next;
     end;
+
     (SL as TStringList).CustomSort(ValueListCompare);
+    tvTarget.AlphaSort;
   finally
     TargetParentList.Free;
     tvTarget.FullExpand;
@@ -324,8 +328,6 @@ begin
 
     ibqryFind.First;
     Draw500Item;
-
-    tvAttrSet.AlphaSort;
 
     if (tvAttrSet.Selected = nil) and (tvAttrSet.Items.Count > 0) then
       tvAttrSet.Items[0].Selected := True;

@@ -277,8 +277,7 @@ begin
       '       AND e.entrydate <= :dateend '#13#10 +
       '       AND e.companykey + 0 IN (' + FCompanyList + ') '#13#10 +
         IIF(FCurrSumInfo.Show and (FCurrKey > 0), ' AND e.currkey = ' + IntToStr(FCurrKey) + #13#10, '') +
-        IIF(not FIncludeInternalMovement,
-          '       AND NOT EXISTS (SELECT t.id FROM ac_transaction t WHERE t.id = e.transactionkey AND t.isinternal = 1) '#13#10, '') +
+        Self.InternalMovementClause('e') +
       '         INTO '#13#10 +
       '           :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, eq_credit; '#13#10 +
       ' '#13#10 +
