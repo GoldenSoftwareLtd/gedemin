@@ -73,11 +73,16 @@ begin
 
         FTransaction.StartTransaction;
 
+        FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'CREATE INDEX gd_x_function_module ON gd_function (module) ';
-        try
+          'SELECT * FROM rdb$indices WHERE rdb$index_name = ''GD_X_FUNCTION_MODULE'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'CREATE INDEX gd_x_function_module ON gd_function (module) ';
           FIBSQL.ExecQuery;
-        except
         end;
 
         FIBSQL.Close;

@@ -2357,7 +2357,7 @@ var
           q.ParamByName('data_type').AsString := cStorageBlob;
           if V.AsString > '' then //!!! Надо по другому делать проверку на пустой БЛОБ
           begin
-            TgsStreamValue(V).SaveBLOB(Tr);
+            TgsStreamValue(V).SaveBLOB(q.Transaction);
             q.ParamByName('blob_data').AsQuad := TgsStreamValue(V).AsQuad;
           end else
             q.ParamByName('blob_data').Clear;
@@ -2424,6 +2424,17 @@ var
                 begin
                   V.ID := FoundID;
                   q.ParamByName('id').AsInteger := V.ID;
+
+                  if V is TgsStreamValue then
+                  begin
+                    if V.AsString > '' then //!!! Надо по другому делать проверку на пустой БЛОБ
+                    begin
+                      TgsStreamValue(V).SaveBLOB(q.Transaction);
+                      q.ParamByName('blob_data').AsQuad := TgsStreamValue(V).AsQuad;
+                    end else
+                      q.ParamByName('blob_data').Clear;
+                  end;
+
                   CutOff := 5;
                 end else
                   raise;
@@ -3639,6 +3650,15 @@ end;
 function TgsStreamValue.GetAsString: String;
 var
   bs: TIBBlobStream;
+  Qry: TIBSQL;
+
+  procedure ReadBLOB;
+  begin
+    SetLength(FData, bs.Size);
+    if bs.Size > 0 then
+      bs.ReadBuffer(FData[1], bs.Size);
+  end;
+
 begin
   if (not FLoaded) and (Int64(FQUAD) <> 0) then
   begin
@@ -3648,9 +3668,39 @@ begin
       bs.Database := gdcBaseManager.Database;
       bs.Transaction := gdcBaseManager.ReadTransaction;
       bs.BlobID := FQUAD;
-      SetLength(FData, bs.Size);
-      if bs.Size > 0 then
-        bs.ReadBuffer(FData[1], bs.Size);
+      try
+        ReadBLOB;
+      except
+        on E: EIBError do
+        begin
+          if E.IBErrorCode <> isc_random then
+            raise;
+
+          {
+            Если данный БЛОБ обновили из другого конекта, то мы должны перечитать с
+            сервера его ИД.
+          }
+
+          Qry := TIBSQL.Create(nil);
+          Qry.Transaction := gdcBaseManager.ReadTransaction;
+          Qry.SQL.Text := 'SELECT blob_data FROM gd_storage_data WHERE id = :ID';
+          Qry.ParamByName('id').AsInteger := FID;
+          Qry.ExecQuery;
+
+          if Qry.EOF then
+          begin
+            Qry.Free;
+            raise;
+          end;
+
+          FQUAD := Qry.Fields[0].AsQUAD;
+          bs.BlobID := FQUAD;
+
+          Qry.Free;
+
+          ReadBLOB;
+        end;
+      end;
       FLoaded := True;
     finally
       bs.Free;
@@ -3902,6 +3952,18 @@ end;
 procedure TgsStreamValue.SaveBLOB(Tr: TIBTransaction);
 var
   bs: TIBBlobStream;
+  //Qry: TIBSQL;
+
+  procedure WriteBLOB;
+  begin
+    if Length(FData) > 0 then
+      bs.WriteBuffer(FData[1], Length(FData))
+    else
+      bs.Truncate;
+    bs.Finalize;
+    FQuad := bs.BlobID;
+  end;
+
 begin
   if FChanged then
   begin
@@ -3910,14 +3972,42 @@ begin
       bs.Mode := bmWrite;
       bs.Database := Tr.DefaultDatabase;
       bs.Transaction := Tr;
-      if Int64(FQUAD) <> 0 then
-        bs.BlobID := FQUAD;
-      if Length(FData) > 0 then
-        bs.WriteBuffer(FData[1], Length(FData))
-      else
-        bs.Truncate;
-      bs.Finalize;
-      FQuad := bs.BlobID;
+      {if Int64(FQUAD) <> 0 then
+        bs.BlobID := FQUAD;}
+      try
+        WriteBLOB;
+      except
+        on E: EIBError do
+        begin
+          raise;
+          (*if (E.IBErrorCode <> isc_random) or (Int64(FQUAD) = 0) or (FID <= 0) then
+            raise;
+
+          {
+            Если данный БЛОБ обновили из другого конекта, то мы должны перечитать с
+            сервера его ИД.
+          }
+
+          Qry := TIBSQL.Create(nil);
+          Qry.Transaction := Tr;
+          Qry.SQL.Text := 'SELECT blob_data FROM gd_storage_data WHERE id = :ID';
+          Qry.ParamByName('id').AsInteger := FID;
+          Qry.ExecQuery;
+
+          if Qry.EOF then
+          begin
+            Qry.Free;
+            raise;
+          end;
+
+          bs.BlobID := Qry.Fields[0].AsQUAD;
+
+          Qry.Free;
+
+          WriteBLOB;*)
+        end;
+      end;
+
       FLoaded := True;
     finally
       bs.Free;

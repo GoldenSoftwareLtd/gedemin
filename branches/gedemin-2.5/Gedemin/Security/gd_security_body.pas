@@ -1077,11 +1077,11 @@ begin
                 'Внимание',
                 MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
 
-              MessageBox(0,
+              {MessageBox(0,
                 'Процесс обновления может занять несколько десятков минут.'#13#10 +
                 'Дождитесь его завершения. Не снимайте задачу и не перезагружайте компьютер.',
                 'Внимание',
-                MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
+                MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);}
 
               try
                 with TgdModify.Create(nil) do
