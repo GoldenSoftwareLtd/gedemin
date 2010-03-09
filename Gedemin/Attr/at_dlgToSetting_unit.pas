@@ -177,12 +177,13 @@ begin
     SelfTransaction.StartTransaction;
 
   FBL := BL;
-  FIsStorage := FromStorage;
   FBranchName := ABranchName;
   FValueName := AValueName;
   FreeAndNil(FgdcObject);
 
   //Если это хранилище
+  (*
+  FIsStorage := FromStorage;
   if FIsStorage then
   begin
     if FValueName > '' then
@@ -202,7 +203,7 @@ begin
       ibluSetting.CurrentKeyInt := qrySetting.FieldByName('id').AsInteger;
     end;
 
-  end else
+  end else *)
   begin
     Assert(AgdcObject <> nil);
     Assert(AgdcObject.RecordCount > 0);
