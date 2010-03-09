@@ -64,16 +64,16 @@ type
 
   TgsStorageItem = class(TObject)
   private
-    FID: Integer;
     FName: String;
     FParent: TgsStorageItem;
     FChanged: Boolean;
-    FModified: TDateTime;
 
     procedure SetName(const Value: String);
-    procedure SetID(const Value: Integer);
 
   protected
+    FID: Integer;
+    FModified: TDateTime;
+
     function GetStorage: TgsStorage; virtual;
 
     // возвращает строку -- путь к элементу
@@ -82,7 +82,7 @@ type
     function GetDataSize: Integer; virtual;
 
     // проверяет имя элемента на допустимость
-    function CheckForName(const AName: String): String; virtual; 
+    function CheckForName(const AName: String): String; virtual;
     function GetFreeName: String;
     // очищает данные элемента
     procedure Clear; virtual; abstract;
@@ -91,16 +91,16 @@ type
     // где все данные представлены в текстовом виде
     // формат потока близок к формату текстового
     // файла реестра Виндоуз
-    procedure LoadFromStream2(S: TStringStream); virtual; abstract;
-    procedure SaveToStream2(S: TStringStream); virtual; abstract;
+    procedure LoadFromStream2(S: TStringStream); virtual;
+    procedure SaveToStream2(S: TStringStream); virtual;
 
     // считывают и сохраняют в двоичный неформатированный
     // поток
     procedure LoadFromStream(S: TStream); virtual;
     procedure SaveToStream(S: TStream); virtual;
 
-    procedure AddChildren(SI: TgsStorageItem); virtual; abstract;
-    procedure RemoveChildren(SI: TgsStorageItem); virtual; abstract;
+    procedure AddChildren(SI: TgsStorageItem); virtual;
+    procedure RemoveChildren(SI: TgsStorageItem); virtual;
 
     //Пропускает объект в потоке
     class procedure SkipInStream(S: TStream); virtual;
@@ -127,7 +127,7 @@ type
       const ASearchOptions: TgstSearchOptions;
       const DateFrom: TDate = 0; const DateTo: TDate = 0): Boolean; virtual; abstract;
 
-    property ID: Integer read FID write SetID;
+    property ID: Integer read FID;
     property Name: String read FName write SetName;
     property Parent: TgsStorageItem read FParent;
     property Path: String read GetPath;
@@ -682,7 +682,7 @@ begin
   try
     FreeAndNil(FFolders);
     FreeAndNil(FValues);
-    ID := -1;
+    FID := -1;
   finally
     FDestroying := False;
   end;
@@ -1115,7 +1115,7 @@ begin
     lValues.Caption := IntToStr(VC) + ' (' + IntToStr(ChVC) + ')';
     C := DataSize;
     lSize.Caption := FloatToStrF(C, ffNumber, 10, 0) + ' байт';
-    lModified.Caption := '';
+    lModified.Caption := FormatDateTime('dd.mm.yy hh:nn:ss', Modified);;
   end;
 
   st_dlgfolderprop.ShowModal;
@@ -2255,6 +2255,7 @@ var
     q.ParamByName('datetime_data').Clear;
     q.ParamByName('curr_data').Clear;
     q.ParamByName('blob_data').Clear;
+    q.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
   end;
 
   procedure DoRecurse(F: TgsStorageFolder);
@@ -2265,10 +2266,11 @@ var
     if F.Changed then
     begin
       if F.ID = -1 then
-        F.ID := GetNextID;
+        F.FID := GetNextID;
 
       q.ParamByName('id').AsInteger := F.ID;
       q.ParamByName('name').AsString := F.Name;
+      q.ParamByName('editiondate').AsDateTime := F.Modified;
 
       if F.Parent <> nil then
       begin
@@ -2296,7 +2298,7 @@ var
               FoundID := -1;
             if FoundID > 0 then
             begin
-              F.ID := FoundID;
+              F.FID := FoundID;
               q.ParamByName('id').AsInteger := F.ID;
             end else
               raise;
@@ -2315,11 +2317,12 @@ var
       if V.Changed then
       begin
         if V.ID = -1 then
-          V.ID := GetNextID;
+          V.FID := GetNextID;
         ClearParams;
         q.ParamByName('id').AsInteger := V.ID;
         q.ParamByName('parent').AsInteger := F.ID;
         q.ParamByName('name').AsString := V.Name;
+        q.ParamByName('editiondate').AsDateTime := V.Modified;
         if V is TgsStringValue then
         begin
           if Length(V.AsString) <= cStorageMaxStrLen then
@@ -2363,32 +2366,6 @@ var
             q.ParamByName('blob_data').Clear;
         end;
 
-        {repeat
-          try
-            q.ExecQuery;
-            break;
-          except
-            on E: EIBError do
-            begin
-              P := Pos('. ID=', E.Message);
-              if P > 0 then
-              begin
-                J := P + 5;
-                while (J <= Length(E.Message)) and (E.Message[J] in ['0'..'9']) do
-                  Inc(J);
-                FoundID := StrToIntDef(Copy(E.Message, P + 5, J - P - 5), -1);
-              end else
-                FoundID := -1;
-              if FoundID > 0 then
-              begin
-                V.ID := FoundID;
-                q.ParamByName('id').AsInteger := V.ID;
-              end else
-                raise;
-            end;
-          end;
-        until False;}
-
         Failed := False;
         CutOff := 5;
         repeat
@@ -2422,12 +2399,12 @@ var
                   FoundID := -1;
                 if FoundID > 0 then
                 begin
-                  V.ID := FoundID;
+                  V.FID := FoundID;
                   q.ParamByName('id').AsInteger := V.ID;
 
                   if V is TgsStreamValue then
                   begin
-                    if V.AsString > '' then //!!! Надо по другому делать проверку на пустой БЛОБ
+                    if V.AsString > '' then 
                     begin
                       TgsStreamValue(V).SaveBLOB(q.Transaction);
                       q.ParamByName('blob_data').AsQuad := TgsStreamValue(V).AsQuad;
@@ -2482,9 +2459,9 @@ begin
     q.Transaction := Tr;
     q.SQL.Text :=
       'UPDATE OR INSERT INTO gd_storage_data (id, parent, name, data_type, ' +
-      '  str_data, int_data, datetime_data, curr_data, blob_data) ' +
+      '  str_data, int_data, datetime_data, curr_data, blob_data, editorkey, editiondate) ' +
       'VALUES (:id, :parent, :name, :data_type, ' +
-      '  :str_data, :int_data, :datetime_data, :curr_data, :blob_data) ' +
+      '  :str_data, :int_data, :datetime_data, :curr_data, :blob_data, :editorkey, :editiondate) ' +
       'MATCHING (id) ';
     q.Prepare;
     ClearParams;
@@ -2514,7 +2491,8 @@ var
     V: TgsStorageValue;
     RB: Integer;
   begin
-    F.ID := q.FieldByName('id').AsInteger;
+    F.FID := q.FieldByName('id').AsInteger;
+    F.FModified := q.FieldByName('editiondate').AsDateTime;
     RB := q.FieldByName('rb').AsInteger;
     q.Next;
 
@@ -2525,6 +2503,7 @@ var
         DoRecurse(F.CreateFolder(q.FieldByName('name').AsString));
       end else
       begin
+        V := nil;
         case q.FieldByName('data_type').AsString[1] of
         cStorageString:
           begin
@@ -2563,6 +2542,10 @@ var
               TgsStreamValue(V).AsQUAD := q.FieldByName('blob_data').AsQUAD;
           end;
         end;
+
+        if V <> nil then
+          V.FModified := q.FieldByName('editiondate').AsDateTime;
+
         q.Next;
       end;
     end;
@@ -2581,9 +2564,9 @@ begin
     exit;
 
   if not IBLogin.Database.Connected then
-    exit;  
+    exit;
 
-  StorageLoading := True;
+  LockStorage(True);
   q := TIBSQL.Create(nil);
   try
     if FDataType <> cStorageGlobal then
@@ -2593,7 +2576,7 @@ begin
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
       'SELECT d.id, d.lb, d.rb, d.parent, d.name, d.data_type, d.str_data, ' +
-      '  d.int_data, d.datetime_data, d.curr_data, d.blob_data ' +
+      '  d.int_data, d.datetime_data, d.curr_data, d.blob_data, d.editiondate ' +
       'FROM gd_storage_data d JOIN gd_storage_data r ' +
       '  ON d.lb BETWEEN r.lb AND r.rb AND r.data_type = :DT AND r.parent IS NULL ' + SQL +
       'ORDER BY d.lb';
@@ -2609,7 +2592,7 @@ begin
     end;
   finally
     q.Free;
-    StorageLoading := False;
+    LockStorage(False);
   end;
 end;
 
@@ -2773,8 +2756,16 @@ begin
   inherited Create;
   FID := AnID;
   FParent := AParent;
-  Name := AName;
+  if AName = '' then
+    FName := GetFreeName
+  else begin
+    if StorageLoading then
+      FName := AName
+    else
+      FName := CheckForName(AName);
+  end;
   FChanged := not StorageLoading;
+  FModified := Now;
   if FParent <> nil then
     FParent.AddChildren(Self);
 end;
@@ -2926,12 +2917,17 @@ var
 begin
   if Value = '' then
     S := GetFreeName
-  else
-    S := CheckForName(Value);
+  else begin
+    if StorageLoading then
+      S := Value
+    else
+      S := CheckForName(Value);
+  end;
   if FName <> S then
   begin
     FName := S;
     FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
   end;
 end;
 
@@ -2975,9 +2971,24 @@ begin
   Free;  
 end;
 
-procedure TgsStorageItem.SetID(const Value: Integer);
+procedure TgsStorageItem.LoadFromStream2(S: TStringStream);
 begin
-  FID := Value;
+  raise EAbstractError.Create('TgsStorageItem.LoadFromStream2');
+end;
+
+procedure TgsStorageItem.SaveToStream2(S: TStringStream);
+begin
+  raise EAbstractError.Create('TgsStorageItem.SaveToStream2');
+end;
+
+procedure TgsStorageItem.AddChildren(SI: TgsStorageItem);
+begin
+  raise EAbstractError.Create('TgsStorageItem.AddChildren');
+end;
+
+procedure TgsStorageItem.RemoveChildren(SI: TgsStorageItem);
+begin
+  raise EAbstractError.Create('TgsStorageItem.RemoveChildren');
 end;
 
 { TgsIntegerValue }
@@ -3048,6 +3059,7 @@ begin
   begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
   end;
 end;
 
@@ -3111,6 +3123,7 @@ begin
   begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
  end;
 end;
 
@@ -3221,6 +3234,7 @@ begin
   begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
   end;
 end;
 
@@ -3275,6 +3289,7 @@ begin
   begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
   end;
 end;
 
@@ -3381,6 +3396,7 @@ begin
   begin
     FData := Value;
     FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
   end;
 end;
 
@@ -3595,6 +3611,7 @@ begin
     OldName := Self.Name;
      edName.Text := OldName;
     edValue.Text := AsString;
+    edID.Text := IntToStr(ID);
 
     F := False;
     repeat
@@ -3935,6 +3952,7 @@ begin
   FData := Value;
   FLoaded := True;
   FChanged := FChanged or (not StorageLoading);
+  FModified := Now;
 end;
 
 { TgsRootFolder ------------------------------------------}
