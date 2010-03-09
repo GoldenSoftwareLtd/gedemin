@@ -1138,6 +1138,17 @@ begin
       Self.ID);
   end;
 
+  AddText('Сохранение данных хранилища в базу данных', clBlack);
+
+  if GlobalStorage <> nil then
+    GlobalStorage.SaveToDatabase;
+
+  if UserStorage <> nil then
+    UserStorage.SaveToDatabase;
+
+  if CompanyStorage <> nil then
+    CompanyStorage.SaveToDatabase;
+
   if not Self.Silent then
   begin
     AddText('Начата синхронизация триггеров и индексов', clBlack);
@@ -2056,9 +2067,7 @@ begin
     end;
   end;
 
-
   {если на одной транзакции создался и AnObject, и настройка, и РУИД - и такое бывает!}
-  //gdcBaseManager.GetFullRUIDByID(AnObject.ID, AXID, ADBID)
   gdcBaseManager.GetRUIDByID(AnObject.ID, AXID, ADBID, Transaction);
 
   ibsql := TIBSQL.Create(nil);
@@ -4004,7 +4013,7 @@ var
 
     if IDMapping = nil then
     begin
-      IDMapping := TgdKeyIntAssoc.Create;
+      IDMapping := TLoadedRecordStateList.Create;
       IDMappingCreated := True;
     end else
       IDMappingCreated := False;

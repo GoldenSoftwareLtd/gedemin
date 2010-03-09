@@ -1838,8 +1838,15 @@ begin
     FDataLink.DataSet.DisableControls;
     try
       FDataLink.DataSet.Edit;
-      FDataLink.DataSet.FieldByName(DisplayField).AsString := Selected.Text;
-      FDataLink.DataSet.Post;
+      if FDataLink.DataSet.FieldByName(DisplayField).ReadOnly then
+      begin
+        Selected.Text := FDataLink.DataSet.FieldByName(DisplayField).AsString;
+        FDataLink.DataSet.Cancel;
+      end else
+      begin
+        FDataLink.DataSet.FieldByName(DisplayField).AsString := Selected.Text;
+        FDataLink.DataSet.Post;
+      end;
     finally
       FDataLink.DataSet.EnableControls;
     end;
