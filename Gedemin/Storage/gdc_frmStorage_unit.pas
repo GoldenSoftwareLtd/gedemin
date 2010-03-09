@@ -26,6 +26,8 @@ type
     procedure actDeleteUnusedExecute(Sender: TObject);
     procedure lkupStorageCreateNewObject(Sender: TObject;
       ANewObject: TgdcBase);
+    procedure tvGroupEditing(Sender: TObject; Node: TTreeNode;
+      var AllowEdit: Boolean);
   end;
 
 var
@@ -158,6 +160,12 @@ begin
     'Внимание',
     MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
   ANewObject.Cancel;
+end;
+
+procedure Tgdc_frmStorage.tvGroupEditing(Sender: TObject; Node: TTreeNode;
+  var AllowEdit: Boolean);
+begin
+  AllowEdit := (Node <> nil) and (Node.Parent <> nil);
 end;
 
 initialization

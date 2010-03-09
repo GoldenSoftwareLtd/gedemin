@@ -19,25 +19,27 @@ unit gdcStorage;
 { DONE 5 -oandreik -cStorage : Assert на IBLogin, а используем gdcBasemanager }
 { DONE 5 -oandreik -cStorage : повторный импорт данных. распознавать ситуацию и предотвращать }
 { DONE 5 -oandreik -cStorage : Конфликт транзакций. Сделать обработку при сохранении и удалении эл хран }
+{ DONE 5 -oandreik -cStorage : В форме просмотра запрещать вложенные уровни }
+{ DONE 5 -oandreik -cStorage : убрать из TdlgToSetting.Setup код, который работает с хран по старому}
+{ DONE 5 -oandreik -cStorage : массив InSett сейчас заполняется неправильно}
+{ DONE 5 -oandreik -cStorage : BLOBs like QUADs! }
+{ DONE 5 -oandreik -cStorage : Редактироваие через БО наименование корневого элемента }
+{ DONE 5 -oandreik -cStorage : Определиться с максимальной длиной имени и контролировать ее при создании элемента }
+{ DONE 5 -oandreik -cStorage : CheckTheSameStatement для загрузки веток хранилища через настройку }
+{ DONE 5 -oandreik -cStorage : БЛОБы и загрузка из потока }
+{ DONE 5 -oandreik -cStorage : Проверку на имя элемента при загрузке из БД можно не делать }
 
-{ TODO 5 -oandreik -cStorage : CheckTheSameStatement для загрузки веток хранилища через настройку }
-{ TODO 5 -oandreik -cStorage : Определиться с максимальной длиной имени и контролировать ее при создании элемента }
 { TODO 5 -oandreik -cStorage : Обработка удаленных элементов }
 { TODO 5 -oandreik -cStorage : Зачем в gdcStreamSaver выставлялся флаг IsModified хранилища? }
 { TODO 5 -oandreik -cStorage : А как быть с хранилищем раб стола? }
 { TODO 5 -oandreik -cStorage : Оптимизация доступа к полям TIBSQL через индексы, а не по имени }
 { TODO 5 -oandreik -cStorage : Может присвоение ИД внутрь объекта внести? property ID read only? }
-{ TODO 5 -oandreik -cStorage : BLOBs like QUADs! }
 { TODO 5 -oandreik -cStorage : Смена имени или парента у блоба }
-{ TODO 5 -oandreik -cStorage : БЛОБы и загрузка из потока }
 { TODO 5 -oandreik -cStorage : Обращение к STorage для каждого элемента }
 { TODO 5 -oandreik -cStorage : Редактироваие DFM форм }
-{ TODO 5 -oandreik -cStorage : Редактироваие через БО наименование корневого элемента }
 { TODO 5 -oandreik -cStorage : Редактироваие DFM форм, если при распознавании потока получается ошибка }
 { TODO 5 -oandreik -cStorage : Работа с хранилищем раб стола }
 { TODO 5 -oandreik -cStorage : При конвертации БД сразу конвертировать все настройки с хранилищами }
-{ TODO 5 -oandreik -cStorage : Проверку на имя элемента при загрузке из БД можно не делать }
-{ TODO 5 -oandreik -cStorage : В форме просмотра запрещать вложенные уровни }
 { TODO 5 -oandreik -cStorage : Надо ли наименования корневых папок хранилища брать из базы? }
 { TODO 5 -oandreik -cStorage : Стоит ли в базе запретить изменение наименования корневой папки? }
 { TODO 5 -oandreik -cStorage : Когда происходит считывание хранилища администратора? }
@@ -45,7 +47,6 @@ unit gdcStorage;
 { TODO 5 -oandreik -cStorage : Проверку делать через триггер, а не через уникальный индекс }
 { TODO 5 -oandreik -cStorage : TwrpGsStorageFolder.DropFolder переименовать }
 { TODO 5 -oandreik -cStorage : TwrpGsStorageFolder.LoadFromDatabase перенести на уровень TgsIBStorage }
-{ TODO 5 -oandreik -cStorage : В оболочках предусмотреть ObjectKey }
 { TODO 5 -oandreik -cStorage : Надо ли конвертировать хранилище раб стола? }
 { TODO 5 -oandreik -cStorage : UpdateName для раб стола не должен обращаться к БД }
 { TODO 5 -oandreik -cStorage : Changed после создания объекта и после загрузки из потока.
@@ -55,9 +56,7 @@ unit gdcStorage;
 { TODO 5 -oandreik -cStorage : копирование и распространение настроек в форме проверить }
 { TODO 5 -oandreik -cStorage : копирование настроек при создании нового пользователя проверить }
 { TODO 5 -oandreik -cStorage : Мы вылавливаем из текста исключения подстроку вида '. ID=', надеясь что там она есть }
-{ TODO 5 -oandreik -cStorage : убрать из TdlgToSetting.Setup код, который работает с хран по старому}
-{ TODO 5 -oandreik -cStorage : массив InSett сейчас заполняется неправильно}
-{ TODO 5 -oandreik -cStorage : TgsIBStorage.SaveToDataBase Надо по другому делать проверку на пустой БЛОБ}
+{ TODO 5 -oandreik -cStorage : В оболочках предусмотреть ObjectKey или вернуться к XXXKey? }
 
 interface
 
@@ -509,6 +508,11 @@ begin
 
   inherited;
 
+  if IsEmpty or (not FieldByName('parent').IsNull) or (FieldByName('name').AsString = '') then
+    FieldByName('name').ReadOnly := False
+  else
+    FieldByName('name').ReadOnly := True;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTORAGE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -575,7 +579,10 @@ begin
       end;
 
       if SI.GetTypeName <> FieldByName('data_type').AsString then
-        raise Exception.Create('Storage item data type mismatch');
+      begin
+        if not (FieldByName('parent').IsNull and (SI is TgsRootFolder)) then
+          raise Exception.Create('Storage item data type mismatch');
+      end;
 
       if SI is TgsStorageValue then
         case SI.GetTypeName of

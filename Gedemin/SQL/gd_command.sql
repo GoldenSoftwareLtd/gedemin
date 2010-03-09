@@ -285,6 +285,8 @@ CREATE TABLE gd_storage_data (
   datetime_data  dtimestamp,
   curr_data      dcurrency,
   blob_data      dblob4096,
+  editiondate    deditiondate,
+  editorkey      dintkey,
 
   CONSTRAINT gd_pk_storage_data_id PRIMARY KEY (id),
   CONSTRAINT gd_fk_storage_data_parent FOREIGN KEY (parent)

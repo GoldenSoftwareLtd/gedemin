@@ -6,6 +6,7 @@ uses
   IBDatabase, gdModify;
 
 procedure ConvertStorage(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddEdtiorKeyEditionDate2Storage(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -43,6 +44,8 @@ const
     '  datetime_data  dtimestamp, '#13#10 +
     '  curr_data      dcurrency, '#13#10 +
     '  blob_data      dblob4096, '#13#10 +
+    '  editiondate    deditiondate, '#13#10 +
+    '  editorkey      dintkey, '#13#10 +
     ' '#13#10 +
     '  CONSTRAINT gd_pk_storage_data_id PRIMARY KEY (id), '#13#10 +
     '  CONSTRAINT gd_fk_storage_data_parent FOREIGN KEY (parent) '#13#10 +
@@ -159,6 +162,15 @@ const
     '  EXCEPTION gd_e_block_old_storage ''%s'';'#13#10 +
     'END';
 
+  cAddEditorKey =
+    'ALTER TABLE gd_storage_data ADD editorkey dintkey';
+
+  cAddEditionDate =
+    'ALTER TABLE gd_storage_data ADD editiondate deditiondate';
+
+  cFillEditorInfo =
+    'UPDATE gd_storage_data SET editiondate = CURRENT_TIMESTAMP, editorkey = 650002 ' +
+    '  WHERE editiondate IS NULL AND editorkey IS NULL';
 
 procedure ConvertStorage(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -389,6 +401,15 @@ begin
         except
         end;
 
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO fin_versioninfo ' +
+          '  VALUES (115, ''0000.0001.0000.0146'', ''08.03.2010'', ''Editorkey and editiondate fields were added to storage table'')';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
+
         FTransaction.Commit;
       finally
         FIBSQL.Free;
@@ -406,5 +427,72 @@ begin
     FTransaction.Free;
   end;
 end;
+
+procedure AddEdtiorKeyEditionDate2Storage(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FIBSQL := TIBSQL.Create(nil);
+      try
+        FTransaction.StartTransaction;
+
+        FIBSQL.Transaction := FTransaction;
+        FIBSQL.ParamCheck := False;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$field_name FROM rdb$relation_fields ' +
+          'WHERE rdb$relation_name = ''GD_STORAGE_DATA'' AND rdb$field_name = ''EDITIONDATE'' ';
+        FIBSQL.ExecQuery;
+
+        if FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cAddEditorKey;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cAddEditionDate;
+          FIBSQL.ExecQuery;
+
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cFillEditorInfo;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'INSERT INTO fin_versioninfo ' +
+            '  VALUES (115, ''0000.0001.0000.0146'', ''08.03.2010'', ''Editorkey and editiondate fields were added to storage table'')';
+          try
+            FIBSQL.ExecQuery;
+          except
+          end;
+        end;  
+
+        FTransaction.Commit;
+      finally
+        FIBSQL.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FTransaction.Free;
+  end;
+end;
+
 
 end.
