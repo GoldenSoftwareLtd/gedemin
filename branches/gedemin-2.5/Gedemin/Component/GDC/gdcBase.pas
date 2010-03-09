@@ -3975,7 +3975,18 @@ begin
           FDSModified := True;   // укажем что объект был модифицирован (ведь мы работали с его копией)
 
         Self.CloseOpen;
-        Self.ID := NewID;
+
+        try
+          Self.ID := NewID;
+        except
+          on E: EgdcException do
+          begin
+            MessageBox(0,
+              'Невозможно отобразить скопированный объект. Возможно, он не соответствует установленному фильтру.',
+              'Внимание',
+              MB_OK or MB_TASKMODAL or MB_ICONEXCLAMATION);
+          end;
+        end;
       end
       else
         if MasterObject.Transaction.InTransaction then
@@ -14391,30 +14402,35 @@ var
   CDS: TClientDataSet;
   R: TatRelation;
   F: TatRelationField;
+  ChkStm: String;
 begin
   if not (State = dsInsert) then
     raise EgdcException.CreateObj('Объект должен находиться в состоянии вставки!', Self);
 
   Result := False;
-  if CheckTheSameStatement > '' then
-  begin
-    q := TIBSQL.Create(nil);
-    CDS := TClientDataSet.Create(nil);
-    try
-      q.Database := Database;
-      q.Transaction := ReadTransaction;
-      q.SQL.Text := CheckTheSameStatement;
-      q.ExecQuery;
-      q.Next;
-      if q.RecordCount = 1 then
-      begin
-        AddText('Объект найден по уникальному ключу'#13#10, clBlue);
-        if (sLoadFromStream in BaseState) and NeedDeleteTheSame(SubType) then
-        begin
-          DeleteTheSame(q.Fields[0].AsInteger, FieldByName(GetListField(SubType)).AsString);
-        end else
+  ChkStm := CheckTheSameStatement;
 
-        begin
+  if ChkStm = '' then
+    exit;
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Database := Database;
+    q.Transaction := ReadTransaction;
+    q.SQL.Text := ChkStm;
+    q.ExecQuery;
+    q.Next;
+
+    if q.RecordCount = 1 then
+    begin
+      AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" найден по уникальному ключу', clBlue);
+      if (sLoadFromStream in BaseState) and NeedDeleteTheSame(SubType) then
+      begin
+        DeleteTheSame(q.Fields[0].AsInteger, FieldByName(GetListField(SubType)).AsString);
+      end else
+      begin
+        CDS := TClientDataSet.Create(nil);
+        try
           if Modify and (sLoadFromStream in BaseState) then
           begin
             for I := 0 to FieldDefs.Count - 1 do
@@ -14454,6 +14470,7 @@ begin
           if Modify and ModifyFromStream
             and (sLoadFromStream in BaseState)
             and CheckNeedModify(CDS, nil) then
+          begin
             try
               Edit;
               try
@@ -14488,16 +14505,18 @@ begin
                   Cancel;
                 raise;
               end;
-              AddText('Объект обновлен данными из потока!', clBlack);
+              AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" обновлен данными из потока!', clBlack);
             except
               Cancel;
             end;
+          end;
+        finally
+          CDS.Free;
         end;
       end;
-    finally
-      q.Free;
-      CDS.Free;
     end;
+  finally
+    q.Free;
   end;
 end;
 
