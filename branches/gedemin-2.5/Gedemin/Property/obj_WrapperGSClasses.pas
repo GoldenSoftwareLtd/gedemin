@@ -560,6 +560,7 @@ type
     function  Get_DataSize: Integer; safecall;
     function  Get_Path: WideString; safecall;
     function  Get_Storage: IgsGsStorage; safecall;
+    procedure Drop; safecall;
   end;
 
   TwrpGsStorageFolder = class(TwrpGsStorageItem, IgsGsStorageFolder)
@@ -592,7 +593,6 @@ type
     procedure ExtractFolder(const F: IgsGsStorageFolder); safecall;
     function  AddFolder(const F: IgsGsStorageFolder): Integer; safecall;
     function  FolderByName(const AName: WideString): IgsGsStorageFolder; safecall;
-    procedure DropFolder; safecall;
     function  DeleteValue(const AValueName: WideString): WordBool; safecall;
     function  FindFolder(const F: IgsGsStorageFolder; GoSubFolders: WordBool): WordBool; safecall;
     function  MoveFolder(const NewParent: IgsGsStorageFolder): WordBool; safecall;
@@ -11617,6 +11617,11 @@ begin
   GetGsStorageItem.Name := Value;
 end;
 
+procedure TwrpGsStorageItem.Drop;
+begin
+  GetGsStorageItem.Drop;
+end;
+
 { TwrpGsStorageFolder }
 
 function TwrpGsStorageFolder.AddFolder(
@@ -11650,11 +11655,6 @@ function TwrpGsStorageFolder.DeleteValue(
   const AValueName: WideString): WordBool;
 begin
   Result := GetGsStorageFolder.DeleteValue(AValueName);
-end;
-
-procedure TwrpGsStorageFolder.DropFolder;
-begin
-  GetGsStorageFolder.Drop;
 end;
 
 procedure TwrpGsStorageFolder.ExtractFolder(const F: IgsGsStorageFolder);

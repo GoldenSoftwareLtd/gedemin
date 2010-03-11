@@ -4421,6 +4421,16 @@ begin
   //Перед загрузкой настроек необходимо перегрузить atDatabase
   WasMetaDataInSetting := True;
 
+  //... и сохранить хранилища
+  if (GlobalStorage <> nil) and GlobalStorage.IsModified then
+    GlobalStorage.SaveToDatabase;
+
+  if (UserStorage <> nil) and UserStorage.IsModified then
+    UserStorage.SaveToDatabase;
+
+  if (CompanyStorage <> nil) and CompanyStorage.IsModified then
+    CompanyStorage.SaveToDatabase;
+
   DesktopManager.WriteDesktopData(cst_DesktopLast, True);
   SettingList := TStringList.Create;
   try

@@ -1,5 +1,5 @@
 object st_frmMain: Tst_frmMain
-  Left = 278
+  Left = 279
   Top = 260
   Width = 696
   Height = 480

@@ -311,8 +311,8 @@ begin
           'SELECT s.userkey    AS AKey,   s.data,             u.name FROM gd_userstorage s JOIN gd_user u ON u.id = s.userkey', 'U');
         ConvertStorage(
           'SELECT s.companykey AS AKey,   s.data,             c.name FROM gd_companystorage s JOIN gd_contact c ON c.id = s.companykey', 'O');
-        ConvertStorage(
-          'SELECT d.id         AS AKey, d.dtdata AS data, d.name || '' ('' || u.name || '')'' AS name FROM gd_desktop d JOIN gd_user u ON u.id = d.userkey', 'T');
+        {ConvertStorage(
+          'SELECT d.id         AS AKey, d.dtdata AS data, d.name || '' ('' || u.name || '')'' AS name FROM gd_desktop d JOIN gd_user u ON u.id = d.userkey', 'T');}
 
         if FNeedToCreateMeta then
         begin

@@ -28,16 +28,17 @@ unit gdcStorage;
 { DONE 5 -oandreik -cStorage : CheckTheSameStatement для загрузки веток хранилища через настройку }
 { DONE 5 -oandreik -cStorage : БЛОБы и загрузка из потока }
 { DONE 5 -oandreik -cStorage : Проверку на имя элемента при загрузке из БД можно не делать }
+{ DONE 5 -oandreik -cStorage : Обработка удаленных элементов }
+{ DONE 5 -oandreik -cStorage : Может присвоение ИД внутрь объекта внести? property ID read only? }
+{ DONE 5 -oandreik -cStorage : Редактироваие DFM форм }
+{ DONE 5 -oandreik -cStorage : Редактироваие DFM форм, если при распознавании потока получается ошибка }
+{ DONE 5 -oandreik -cStorage : TwrpGsStorageFolder.DropFolder переименовать }
 
-{ TODO 5 -oandreik -cStorage : Обработка удаленных элементов }
 { TODO 5 -oandreik -cStorage : Зачем в gdcStreamSaver выставлялся флаг IsModified хранилища? }
 { TODO 5 -oandreik -cStorage : А как быть с хранилищем раб стола? }
 { TODO 5 -oandreik -cStorage : Оптимизация доступа к полям TIBSQL через индексы, а не по имени }
-{ TODO 5 -oandreik -cStorage : Может присвоение ИД внутрь объекта внести? property ID read only? }
 { TODO 5 -oandreik -cStorage : Смена имени или парента у блоба }
 { TODO 5 -oandreik -cStorage : Обращение к STorage для каждого элемента }
-{ TODO 5 -oandreik -cStorage : Редактироваие DFM форм }
-{ TODO 5 -oandreik -cStorage : Редактироваие DFM форм, если при распознавании потока получается ошибка }
 { TODO 5 -oandreik -cStorage : Работа с хранилищем раб стола }
 { TODO 5 -oandreik -cStorage : При конвертации БД сразу конвертировать все настройки с хранилищами }
 { TODO 5 -oandreik -cStorage : Надо ли наименования корневых папок хранилища брать из базы? }
@@ -45,7 +46,6 @@ unit gdcStorage;
 { TODO 5 -oandreik -cStorage : Когда происходит считывание хранилища администратора? }
 { TODO 5 -oandreik -cStorage : Как вместе с настройками передаются хранилища пользователя? }
 { TODO 5 -oandreik -cStorage : Проверку делать через триггер, а не через уникальный индекс }
-{ TODO 5 -oandreik -cStorage : TwrpGsStorageFolder.DropFolder переименовать }
 { TODO 5 -oandreik -cStorage : TwrpGsStorageFolder.LoadFromDatabase перенести на уровень TgsIBStorage }
 { TODO 5 -oandreik -cStorage : Надо ли конвертировать хранилище раб стола? }
 { TODO 5 -oandreik -cStorage : UpdateName для раб стола не должен обращаться к БД }
@@ -68,9 +68,9 @@ type
   TgdcStorage = class(TgdcLBRBTree)
   protected
     procedure _DoOnNewRecord; override;
-    procedure DoAfterDelete; override;
     procedure DoAfterPost; override;
     procedure DoBeforeEdit; override;
+    procedure DoBeforeDelete; override;
 
     function CheckTheSameStatement: String; override;
     function GetTreeInsertMode: TgdcTreeInsertMode; override;
@@ -564,7 +564,7 @@ begin
 
   LockStorage(True);
   try
-    if not FindStorageItem(FieldByName('parent').AsInteger, SIParent) then
+    if FieldByName('parent').IsNull or (not FindStorageItem(FieldByName('parent').AsInteger, SIParent)) then
       SIParent := nil;
 
     if FindStorageItem(SI) then
@@ -626,7 +626,7 @@ begin
           end;
         end;
       end else
-        raise Exception.Create('Invalid storage item parent');
+        raise Exception.Create('Invalid parent! Storage item: ' + FieldByName('name').AsString);
     end;
   finally
     LockStorage(False);
@@ -648,50 +648,6 @@ begin
     UserStorage.FindID(AnID, SI) or
     CompanyStorage.FindID(AnID, SI) or
     ((AdminStorage <> nil) and AdminStorage.FindID(AnID, SI));
-end;
-
-procedure TgdcStorage.DoAfterDelete;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  SI: TgsStorageItem;
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCSTORAGE', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCSTORAGE', KEYDOAFTERDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTORAGE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTORAGE',
-  {M}          'DOAFTERDELETE', KEYDOAFTERDELETE, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTORAGE' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  if FDataTransfer then
-    exit;
-
-  inherited;
-
-  if FindStorageItem(SI) then
-    SI.Drop;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTORAGE', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCSTORAGE', 'DOAFTERDELETE', KEYDOAFTERDELETE);
-  {M}  end;
-  {END MACRO}
 end;
 
 function TgdcStorage.CheckTheSameStatement: String;
@@ -765,6 +721,50 @@ end;
 function TgdcStorage.GetTreeInsertMode: TgdcTreeInsertMode;
 begin
   Result := timChildren;
+end;
+
+procedure TgdcStorage.DoBeforeDelete;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  SI: TgsStorageItem;
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCSTORAGE', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCSTORAGE', KEYDOBEFOREDELETE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREDELETE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCSTORAGE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCSTORAGE',
+  {M}          'DOBEFOREDELETE', KEYDOBEFOREDELETE, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCSTORAGE' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if FDataTransfer then
+    exit;
+
+  inherited;
+
+  if FindStorageItem(SI) then
+    SI.Drop;
+    
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTORAGE', 'DOBEFOREDELETE', KEYDOBEFOREDELETE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCSTORAGE', 'DOBEFOREDELETE', KEYDOBEFOREDELETE);
+  {M}  end;
+  {END MACRO}
 end;
 
 initialization
