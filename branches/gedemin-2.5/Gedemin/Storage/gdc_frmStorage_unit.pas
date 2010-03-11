@@ -26,8 +26,6 @@ type
     procedure actDeleteUnusedExecute(Sender: TObject);
     procedure lkupStorageCreateNewObject(Sender: TObject;
       ANewObject: TgdcBase);
-    procedure tvGroupEditing(Sender: TObject; Node: TTreeNode;
-      var AllowEdit: Boolean);
   end;
 
 var
@@ -38,7 +36,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdcBaseInterface, IBDatabase, IBSQL, Storages;
+  gd_ClassList, gdcBaseInterface, IBDatabase, IBSQL;
 
 const
   SelSQL =
@@ -58,26 +56,6 @@ procedure Tgdc_frmStorage.FormCreate(Sender: TObject);
 var
   q: TIBSQL;
 begin
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT id FROM gd_storage_data ';
-    q.ExecQuery;
-    if q.EOF then
-    begin
-      if Assigned(GlobalStorage) then
-        GlobalStorage.SaveToDataBase;
-
-      if Assigned(UserStorage) then
-        UserStorage.SaveToDataBase;
-
-      if Assigned(CompanyStorage) then
-        CompanyStorage.SaveToDataBase;
-    end;
-  finally
-    q.Free;
-  end;
-
   gdcObject := gdcStorageFolder;
   gdcDetailObject := gdcStorageValue;
 
@@ -160,12 +138,6 @@ begin
     'Внимание',
     MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
   ANewObject.Cancel;
-end;
-
-procedure Tgdc_frmStorage.tvGroupEditing(Sender: TObject; Node: TTreeNode;
-  var AllowEdit: Boolean);
-begin
-  AllowEdit := (Node <> nil) and (Node.Parent <> nil);
 end;
 
 initialization
