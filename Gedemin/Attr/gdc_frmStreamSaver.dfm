@@ -27,18 +27,18 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
     BevelOuter = bvNone
     TabOrder = 1
     object btnClose: TButton
-      Left = 416
+      Left = 405
       Top = 5
-      Width = 85
+      Width = 96
       Height = 21
       Caption = 'Закрыть'
       TabOrder = 2
       OnClick = btnCloseClick
     end
     object btnNext: TButton
-      Left = 323
+      Left = 297
       Top = 5
-      Width = 85
+      Width = 96
       Height = 21
       Action = actNext
       Caption = 'Дальше >'
@@ -46,9 +46,9 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       TabOrder = 1
     end
     object btnPrev: TButton
-      Left = 235
+      Left = 196
       Top = 5
-      Width = 85
+      Width = 96
       Height = 21
       Action = actPrev
       Caption = '< Назад'
@@ -321,9 +321,8 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Top = 277
           Width = 134
           Height = 21
-          Caption = 'Просмотреть лог-файл'
+          Action = actShowLog
           TabOrder = 0
-          OnClick = btnShowLogClick
         end
         object pbMain: TProgressBar
           Left = 8
@@ -424,6 +423,11 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
     object actPrev: TAction
       Caption = 'Назад'
       OnExecute = actPrevExecute
+    end
+    object actShowLog: TAction
+      Caption = 'Просмотреть лог...'
+      OnExecute = actShowLogExecute
+      OnUpdate = actShowLogUpdate
     end
   end
 end

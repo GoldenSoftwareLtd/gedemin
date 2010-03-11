@@ -185,6 +185,7 @@ var
 
 implementation
 
+
 {$R *.DFM}
 
 uses
@@ -399,6 +400,7 @@ end;
 procedure Tst_frmMain.actSaveStorageExecute(Sender: TObject);
 begin
   (CurrentStorage as TgsIBStorage).SaveToDatabase;
+  actRefresh.Execute;
 end;
 
 procedure Tst_frmMain.actNewFolderUpdate(Sender: TObject);

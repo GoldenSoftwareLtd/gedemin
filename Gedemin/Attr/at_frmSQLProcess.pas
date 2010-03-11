@@ -297,11 +297,11 @@ end;
 procedure TfrmSQLProcess.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
-  if IsError and
+  {if IsError and
     (MessageBox(Handle, 'Во время выполнения скриптов возникли ошибки! Сохранить лог в файл?',
       'Внимание', MB_ICONQUESTION or MB_YESNO) = IDYES)
   then
-    actSaveToFile.Execute;
+    actSaveToFile.Execute;}
 
   if (not Visible) and ((frmSQLProcess = nil) or (frmSQLProcess = Self)) then
     Action := caFree;

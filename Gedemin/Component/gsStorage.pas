@@ -2909,6 +2909,8 @@ begin
   S.WriteBuffer(FAccessed, SizeOf(FAccessed));
   S.WriteBuffer(FChanged, SizeOf(FChanged));
   *)
+
+  FChanged := False;
 end;
 
 procedure TgsStorageItem.SetName(const Value: String);
