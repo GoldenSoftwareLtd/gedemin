@@ -92,7 +92,6 @@ inherited gdc_frmStorage: Tgdc_frmStorage
         Images = dmImages.il16x16
         ParentFont = False
         StateImages = nil
-        OnEditing = tvGroupEditing
         MainFolderHead = False
         MainFolder = False
         WithCheckBox = False
