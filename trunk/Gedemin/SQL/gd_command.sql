@@ -258,17 +258,142 @@ ALTER TABLE gd_companystorage ADD CONSTRAINT gd_fk_companystorage_ck
 
 COMMIT;
 
+CREATE DOMAIN dstorage_data_type AS CHAR(1) NOT NULL
+  CHECK(VALUE IN (
+    'G',   /* корень глобального хранилища                                      */
+    'U',   /* корень пользовательского хранилища, int_data -- ключ пользователя */
+    'O',   /* корень хранилища компании, int_data -- ключ компании              */
+    'T',   /* корень хранилища р.стола, int_data -- ключ р.стола                */
+    'F',   /* папка                                                             */
+    'S',   /* строка                                                            */
+    'I',   /* целое число                                                       */
+    'C',   /* дробное число                                                     */
+    'L',   /* булевский тип                                                     */
+    'D',   /* дата и время                                                      */
+    'B'    /* двоичный объект                                                   */
+  ));
+
 CREATE TABLE gd_storage_data (
-  id           dintkey,
-  storage_type CHAR(1) NOT NULL,  /* G, A, U, C, D */
-  userkey      dforeignkey,
-  companykey   dforeignkey,
-  path         VARCHAR(255) NOT NULL,
-  data         dblob4096
+  id             dintkey,
+  lb             dlb,
+  rb             drb,
+  parent         dparent,
+  name           dtext120 NOT NULL,
+  data_type      dstorage_data_type,
+  str_data       dtext120,
+  int_data       dinteger,
+  datetime_data  dtimestamp,
+  curr_data      dcurrency,
+  blob_data      dblob4096,
+
+  CONSTRAINT gd_pk_storage_data_id PRIMARY KEY (id),
+  CONSTRAINT gd_fk_storage_data_parent FOREIGN KEY (parent)
+    REFERENCES gd_storage_data (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  CHECK ((NOT parent IS NULL) OR (data_type IN ('G', 'U', 'O', 'T')))
 );
 
-ALTER TABLE gd_storage_data ADD CONSTRAINT gd_pk_storage_data_id
-  PRIMARY KEY (id);
+CREATE EXCEPTION gd_e_storage_data '';
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_biu_storage_data FOR gd_storage_data
+  BEFORE INSERT OR UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE FID INTEGER = -1;
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+
+  IF (NEW.data_type IN ('G', 'U', 'O', 'T')) THEN
+  BEGIN
+    NEW.parent = NULL;
+  END
+
+  IF (NEW.data_type IN ('G', 'F')) THEN
+  BEGIN
+    NEW.int_data = NULL;
+  END
+
+  IF (NEW.data_type IN ('G', 'U', 'O', 'T', 'F')) THEN
+  BEGIN
+    NEW.str_data = NULL;
+    NEW.curr_data = NULL;
+    NEW.datetime_data = NULL;
+    NEW.blob_data = NULL;
+  END
+
+  IF (NEW.data_type = 'S') THEN
+  BEGIN
+    NEW.curr_data = NULL;
+    NEW.datetime_data = NULL;
+    NEW.blob_data = NULL;
+    NEW.int_data = NULL;
+    NEW.str_data = COALESCE(NEW.str_data, '');
+  END
+
+  IF (NEW.data_type IN ('I', 'L')) THEN
+  BEGIN
+    NEW.str_data = NULL;
+    NEW.curr_data = NULL;
+    NEW.datetime_data = NULL;
+    NEW.blob_data = NULL;
+    NEW.int_data = COALESCE(NEW.int_data, 0);
+  END
+
+  IF (NEW.data_type = 'C') THEN
+  BEGIN
+    NEW.str_data = NULL;
+    NEW.datetime_data = NULL;
+    NEW.blob_data = NULL;
+    NEW.int_data = NULL;
+    NEW.curr_data = COALESCE(NEW.curr_data, 0);
+  END
+
+  IF (NEW.data_type = 'D') THEN
+  BEGIN
+    NEW.str_data = NULL;
+    NEW.curr_data = NULL;
+    NEW.blob_data = NULL;
+    NEW.int_data = NULL;
+    NEW.datetime_data = COALESCE(NEW.datetime_data, CURRENT_TIMESTAMP);
+  END
+
+  IF (NEW.data_type = 'B') THEN
+  BEGIN
+    NEW.str_data = NULL;
+    NEW.curr_data = NULL;
+    NEW.datetime_data = NULL;
+    NEW.int_data = NULL;
+  END
+
+
+  IF (NEW.parent IS NULL) THEN
+  BEGIN
+    FOR
+      SELECT id FROM gd_storage_data WHERE parent IS NULL
+        AND data_type = NEW.data_type AND int_data IS NOT DISTINCT FROM NEW.int_data
+        AND id <> NEW.id
+      INTO :FID
+    DO
+      EXCEPTION gd_e_storage_data 'Root already exists. ID=' || :FID;
+  END ELSE
+  BEGIN
+    FOR
+      SELECT id FROM gd_storage_data WHERE parent = NEW.parent
+        AND UPPER(name) = UPPER(NEW.name) AND id <> NEW.id
+      INTO :FID
+    DO
+      EXCEPTION gd_e_storage_data 'Duplicate name. ID=' || :FID;
+  END
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
 
 /*
 
