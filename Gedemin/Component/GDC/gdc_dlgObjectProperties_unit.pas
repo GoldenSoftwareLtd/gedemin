@@ -424,7 +424,7 @@ begin
     if gdcObject is TgdcLBRBTree then
     begin
       Add(AddSpaces('Левая граница:') + IntToStr((gdcObject as TgdcLBRBTree).LB));
-      Add(AddSpaces('Правая граница:') + IntToStr('#,##0', (gdcObject as TgdcLBRBTree).RB));
+      Add(AddSpaces('Правая граница:') + IntToStr((gdcObject as TgdcLBRBTree).RB));
     end;
     Add(AddSpaces('Главная таблица:') + gdcObject.GetListTable(gdcObject.SubType));
     S := '';
