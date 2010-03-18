@@ -280,7 +280,7 @@ object gd_dlgOptions: Tgd_dlgOptions
       end
       object GroupBox1: TGroupBox
         Left = 5
-        Top = 8
+        Top = 4
         Width = 548
         Height = 89
         Caption = ' Пользователи  '
