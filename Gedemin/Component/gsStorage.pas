@@ -561,12 +561,12 @@ type
     constructor Create; override;
   end;
 
-  TgsDesktopStorage = class(TgsIBStorage)
-  protected
+  TgsDesktopStorage = class(TgsStorage)
+  {protected
     function UpdateName(const Tr: TIBTransaction = nil): String; override;
 
   public
-    constructor Create; override;
+    constructor Create; override;}
   end;
 
   TgsGlobalStorage = class(TgsIBStorage);
@@ -607,6 +607,7 @@ var
   StorageLoading: Boolean;
 {$IFDEF DEBUG}
   StorageFolderSearchCounter: Integer;
+  LogSL: TStringList;
 {$ENDIF}
 
 const
@@ -2224,6 +2225,31 @@ var
   CurrID, LimitID, CutOff: Integer;
   Failed: Boolean;
 
+  {$IFDEF DEBUG}
+  procedure LogQuery;
+  var
+    S: String;
+  begin
+    if q.ParamByName('parent').IsNull then
+      exit;
+
+    S := Format(
+      'UPDATE OR INSERT INTO gd_storage_data (id, parent, name, data_type, ' +
+      ' editorkey) ' +
+      'VALUES (%d, %d, ''%s'', ''F'', ' +
+      ' %d) ' +
+      'MATCHING (id); ', [
+        q.ParamByName('id').AsInteger,
+        q.ParamByName('parent').AsInteger,
+        q.ParamByName('name').AsString,
+        IBLogin.ContactKey
+      ]);
+
+    LogSL.Add(S);
+  end;
+  {$ENDIF}
+
+
   function GetNextID: Integer;
   begin
     if ATr = nil then
@@ -2280,32 +2306,52 @@ var
       end else
         q.ParamByName('parent').Clear;
 
+      Failed := False;
+      CutOff := 5;
       repeat
         try
+          {$IFDEF DEBUG}LogQuery;{$ENDIF}
           q.ExecQuery;
-          break;
+          CutOff := 0;
         except
           on E: EIBError do
           begin
-            P := Pos('. ID=', E.Message);
-            if P > 0 then
+            if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
             begin
-              J := P + 5;
-              while (J <= Length(E.Message)) and (E.Message[J] in ['0'..'9']) do
-                Inc(J);
-              FoundID := StrToIntDef(Copy(E.Message, P + 5, J - P - 5), -1);
+              if CutOff > 1 then
+              begin
+                Sleep(500);
+                Dec(CutOff);
+              end else
+              begin
+                Failed := True;
+                CutOff := 0;
+              end;
             end else
-              FoundID := -1;
-            if FoundID > 0 then
             begin
-              F.FID := FoundID;
-              q.ParamByName('id').AsInteger := F.ID;
-            end else
-              raise;
+              P := Pos('. ID=', E.Message);
+              if P > 0 then
+              begin
+                J := P + 5;
+                while (J <= Length(E.Message)) and (E.Message[J] in ['0'..'9']) do
+                  Inc(J);
+                FoundID := StrToIntDef(Copy(E.Message, P + 5, J - P - 5), -1);
+              end else
+                FoundID := -1;
+              if FoundID > 0 then
+              begin
+                F.FID := FoundID;
+                q.ParamByName('id').AsInteger := F.ID;
+                CutOff := 5;
+              end else
+                raise;
+            end;
           end;
         end;
-      until False;
-      F.FChanged := False;
+      until CutOff = 0;
+
+      if not Failed then
+        F.FChanged := False;
     end;
 
     for I := 0 to F.FoldersCount - 1 do
@@ -2370,6 +2416,7 @@ var
         CutOff := 5;
         repeat
           try
+            {$IFDEF DEBUG}LogQuery;{$ENDIF}
             q.ExecQuery;
             CutOff := 0;
           except
@@ -2404,7 +2451,7 @@ var
 
                   if V is TgsStreamValue then
                   begin
-                    if V.AsString > '' then 
+                    if V.AsString > '' then
                     begin
                       TgsStreamValue(V).SaveBLOB(q.Transaction);
                       q.ParamByName('blob_data').AsQuad := TgsStreamValue(V).AsQuad;
@@ -2414,7 +2461,9 @@ var
 
                   CutOff := 5;
                 end else
+                begin
                   raise;
+                end;
               end;
             end else
               raise;
@@ -2449,6 +2498,7 @@ begin
   try
     if ATr = nil then
     begin
+      Tr.DefaultAction := taRollback;
       Tr.DefaultDatabase := IBLogin.Database;
       Tr.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait';
       Tr.StartTransaction;
@@ -2475,6 +2525,8 @@ begin
     if ATr = nil then
       Tr.Commit;
   finally
+   {$IFDEF DEBUG}LogSL.SaveToFile('d:\log.txt');{$ENDIF}
+
     qID.Free;
     q.Free;
     if ATr = nil then
@@ -4046,13 +4098,13 @@ end;
 
 { TgsDesktopStorage }
 
-constructor TgsDesktopStorage.Create;
+{constructor TgsDesktopStorage.Create;
 begin
   inherited;
   DataType := cStorageDesktop;
-end;
+end;}
 
-function TgsDesktopStorage.UpdateName(const Tr: TIBTransaction = nil): String;
+{function TgsDesktopStorage.UpdateName(const Tr: TIBTransaction = nil): String;
 var
   q: TIBSQL;
 begin
@@ -4077,16 +4129,18 @@ begin
        q.Free;
      end;
   end;
-end;
+end;}
 
 initialization
   StorageLoading := False;
   {$IFDEF DEBUG}
   StorageFolderSearchCounter := 0;
+  LogSL := TStringList.Create;
   {$ENDIF}
 
 finalization
   {$IFDEF DEBUG}
   OutputDebugString(PChar('SSC: ' + IntToStr(StorageFolderSearchCounter)));
+  LogSL.Free;
   {$ENDIF}
 end.

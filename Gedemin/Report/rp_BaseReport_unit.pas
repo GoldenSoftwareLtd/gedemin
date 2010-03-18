@@ -1947,13 +1947,13 @@ end;
 
 procedure TReportList.SetReport(const AnIndex: Integer; const AnReport: TCustomReport);
 begin
-  Assert((AnIndex >= 0) or (AnIndex < Count), 'Индекс вне диапозона');
+  Assert((AnIndex >= 0) or (AnIndex < Count), 'Индекс вне диапазона');
   TCustomReport(Items[AnIndex]).Assign(AnReport);
 end;
 
 function TReportList.GetReport(const AnIndex: Integer): TCustomReport;
 begin
-  Assert((AnIndex >= 0) or (AnIndex < Count), 'Индекс вне диапозона');
+  Assert((AnIndex >= 0) or (AnIndex < Count), 'Индекс вне диапазона');
   Result := TCustomReport(Items[AnIndex]);
 end;
 
@@ -1991,7 +1991,7 @@ end;
 
 procedure TReportList.DeleteReport(const AnIndex: Integer);
 begin
-  Assert((AnIndex >= 0) or (AnIndex < Count), 'Индекс вне диапозона');
+  Assert((AnIndex >= 0) or (AnIndex < Count), 'Индекс вне диапазона');
   TCustomReport(Items[AnIndex]).Free;
   Delete(AnIndex);
 end;
