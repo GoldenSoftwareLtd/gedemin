@@ -3217,7 +3217,7 @@ begin
               end else
                 raise EatParserError.Create('Ошибка в SQL-выражении: ' + Token.Text);
             end else begin
-              if (GetLastClass = TsqlCondition) or (BracketCount > 0) then
+              if (GetLastClass = TsqlCondition) or (GetLastClass = TsqlField) or (BracketCount > 0) then
               begin
                 CurrStatement := TsqlBoolean.Create(FParser);
                 FStatements.Add(CurrStatement);
