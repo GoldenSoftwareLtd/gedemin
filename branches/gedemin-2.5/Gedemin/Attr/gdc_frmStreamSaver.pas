@@ -900,6 +900,9 @@ begin
   else
     cbIncremented.Checked := False;
 
+  lblIncrementedHelp.Visible := cbIncremented.Checked;
+  pnlDatabases.Visible := cbIncremented.Checked;
+
   cbMakeSetting.Visible := False;
   lblSettingFormat.Visible := False;
   cbSettingFormat.Visible := False;
@@ -908,9 +911,6 @@ begin
 
   btnPrev.Enabled := false;
   btnPrev.Caption := '< Назад';
-
-  lblIncrementedHelp.Visible := FIncrementSaving;
-  pnlDatabases.Visible := FIncrementSaving;
 
   eFileName.Text := FFileName;
 end;
