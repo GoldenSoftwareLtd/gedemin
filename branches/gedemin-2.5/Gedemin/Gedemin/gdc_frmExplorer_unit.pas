@@ -536,37 +536,44 @@ var
   I: Integer;
   S, S2: Variant;
   LFullClass: TgdcFullClassName;
+  DataID: Integer;
 begin
-  I := 0;
-  while I < dbtvExplorer.Items.Count do
-  begin
-    if gdcExplorer.GetFieldValueForID(Integer(dbtvExplorer.Items[I].Data),
-      'cmdtype') = cst_expl_cmdtype_function
-    then
-      Inc(I)
-    else
+  dbtvExplorer.Items.BeginUpdate;
+  try
+    I := 0;
+    while I < dbtvExplorer.Items.Count do
     begin
-      S := gdcExplorer.GetFieldValueForID(Integer(dbtvExplorer.Items[I].Data), 'classname');
-      if VarIsNull(S) then S := '';
-      S2 := gdcExplorer.GetFieldValueForID(Integer(dbtvExplorer.Items[I].Data), 'cmd');
-      if VarIsNull(S2) then S2 := '';
-      LFullClass.gdClassName := S;
-      LFullClass.SubType := '';
-      if (S = '') or (S2 = '') or
-        dbtvExplorer.Items[I].HasChildren or
-        (gdcClassList.IndexOfByName(LFullClass) > -1) or
-        (frmClassList.IndexOfByName(LFullClass) > -1) or
-        (GetClass(S) <> nil) or
-        (StrIPos(USERFORM_PREFIX, S) = 1) then
+      DataID := Integer(dbtvExplorer.Items[I].Data);
+        if gdcExplorer.GetFieldValueForID(DataID,
+        'cmdtype') = cst_expl_cmdtype_function
+      then
+        Inc(I)
+      else
       begin
-        Inc(I);
-      end else
-      begin
-        dbtvExplorer.TVState.Bookmarks.Remove(Integer(dbtvExplorer.Items[I].Data));
-        dbtvExplorer.Items[I].Delete;
-        I := 0;
+        S := gdcExplorer.GetFieldValueForID(DataID, 'classname');
+        if VarIsNull(S) then S := '';
+        S2 := gdcExplorer.GetFieldValueForID(DataID, 'cmd');
+        if VarIsNull(S2) then S2 := '';
+        LFullClass.gdClassName := S;
+        LFullClass.SubType := '';
+        if (S = '') or (S2 = '') or
+          dbtvExplorer.Items[I].HasChildren or
+          (gdcClassList.IndexOfByName(LFullClass) > -1) or
+          (frmClassList.IndexOfByName(LFullClass) > -1) or
+          (GetClass(S) <> nil) or
+          (StrIPos(USERFORM_PREFIX, S) = 1) then
+        begin
+          Inc(I);
+        end else
+        begin
+          dbtvExplorer.TVState.Bookmarks.Remove(DataID);
+          dbtvExplorer.Items[I].Delete;
+  //        I := 0;
+        end;
       end;
     end;
+  finally
+    dbtvExplorer.Items.EndUpdate;
   end;
 end;
 
