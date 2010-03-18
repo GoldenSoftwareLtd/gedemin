@@ -194,7 +194,7 @@ var
         cStorageGlobal: S := TgsGlobalStorage.Create;
         cStorageUser: S := TgsUserStorage.Create;
         cStorageCompany: S := TgsCompanyStorage.Create;
-        cStorageDesktop: S := TgsDesktopStorage.Create;
+        {cStorageDesktop: S := TgsDesktopStorage.Create;}
       else
         raise Exception.Create('Invalid storage root');
       end;

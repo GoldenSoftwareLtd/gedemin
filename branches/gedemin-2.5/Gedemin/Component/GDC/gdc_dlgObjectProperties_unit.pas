@@ -416,15 +416,15 @@ begin
     if Trim(gdcObject.ExtraConditions.CommaText) > '' then
       Add(AddSpaces('Доп. условия:') + Trim(gdcObject.ExtraConditions.CommaText));
     Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName);
-    Add(AddSpaces('Идентификатор:') + FormatFloat('#,##0', gdcObject.ID));
+    Add(AddSpaces('Идентификатор:') + IntToStr(gdcObject.ID));
     Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
     Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
     if gdcObject is TgdcTree then
-      Add(AddSpaces('Родитель:') + FormatFloat('#,##0', (gdcObject as TgdcTree).Parent));
+      Add(AddSpaces('Родитель:') + IntToStr((gdcObject as TgdcTree).Parent));
     if gdcObject is TgdcLBRBTree then
     begin
-      Add(AddSpaces('Левая граница:') + FormatFloat('#,##0', (gdcObject as TgdcLBRBTree).LB));
-      Add(AddSpaces('Правая граница:') + FormatFloat('#,##0', (gdcObject as TgdcLBRBTree).RB));
+      Add(AddSpaces('Левая граница:') + IntToStr((gdcObject as TgdcLBRBTree).LB));
+      Add(AddSpaces('Правая граница:') + IntToStr('#,##0', (gdcObject as TgdcLBRBTree).RB));
     end;
     Add(AddSpaces('Главная таблица:') + gdcObject.GetListTable(gdcObject.SubType));
     S := '';

@@ -27,22 +27,23 @@ begin
       FIBSQL := TIBSQL.Create(nil);
       try
         FIBSQL.Transaction := FTransaction;
-        try
-          FIBSQL.SQL.Text := 'SELECT usecompanykey FROM inv_balanceoption';
-          FIBSQL.Prepare;
-        except
+
+        FIBSQL.SQL.Text := 'SELECT rdb$relation_name FROM rdb$relation_fields ' +
+          'WHERE rdb$field_name = ''USECOMPANYKEY'' AND rdb$relation_name = ''INV_BALANCEOPTION'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.Eof then
+        begin
           FIBSQL.Close;
-          FIBSQL.SQL.Text := 'ALTER TABLE inv_balanceoption ADD usecompanykey  DBOOLEAN';
-          try
-            FIBSQL.ExecQuery;
-          except
-          end;
-          FIBSQL.Close;
-          FTransaction.Commit;
-          FTransaction.StartTransaction;
-          FIBSQL.SQL.Text := 'UPDATE inv_balanceoption SET usecompanykey = 1';
+
+          FIBSQL.SQL.Text := 'ALTER TABLE inv_balanceoption ADD usecompanykey DBOOLEAN';
           FIBSQL.ExecQuery;
           FIBSQL.Close;
+
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
+
+          FIBSQL.SQL.Text := 'UPDATE inv_balanceoption SET usecompanykey = 1';
+          FIBSQL.ExecQuery;
 
           Log('Добавление поля - успешно завершено ');
         end;

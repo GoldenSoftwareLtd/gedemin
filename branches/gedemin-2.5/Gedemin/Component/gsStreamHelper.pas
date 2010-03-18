@@ -47,6 +47,9 @@ type
   function FieldTypeToString(const AFieldType: TFieldType): String;
   function StringToFieldType(const AFieldTypeStr: String): TFieldType;
 
+  function StreamTypeToString(const AStreamType: TgsStreamType): String;
+  function StringToStreamType(const AStreamTypeStr: String): TgsStreamType;
+
 implementation
 
 uses
@@ -161,6 +164,28 @@ begin
   end;
 
   raise Exception.Create('Invalid type specified.');
+end;
+
+function StreamTypeToString(const AStreamType: TgsStreamType): String;
+begin
+  Result := GetEnumName(TypeInfo(TgsStreamType), Integer(AStreamType));
+end;
+
+function StringToStreamType(const AStreamTypeStr: String): TgsStreamType;
+var
+  I: Integer;
+begin
+  if AStreamTypeStr > '' then
+  begin
+    I := GetEnumValue(TypeInfo(TgsStreamType), AStreamTypeStr);
+    if I <> -1 then
+    begin
+      Result := TgsStreamType(I);
+      exit;
+    end;
+  end;
+
+  raise Exception.Create('Invalid type specified: ' + AStreamTypeStr);
 end;
 
 end.
