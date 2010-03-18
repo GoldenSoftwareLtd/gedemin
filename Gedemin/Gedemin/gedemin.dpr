@@ -9,8 +9,6 @@ uses
   {$IFNDEF DEBUG}
   FastMove,
   RTLVCLOptimize,
-  MidasSpeedFix,
-  {$ENDIF}
   Forms,
   gd_main_form in 'gd_main_form.pas' {frmGedeminMain},
   dmDataBase_unit in '..\GAdmin\dmDataBase_unit.pas' {dmDatabase: TDataModule},
@@ -282,26 +280,29 @@ uses
   gd_dlgRestoreWarning_unit in 'gd_dlgRestoreWarning_unit.pas' {gd_dlgRestoreWarning},
   IBSQL_WaitWindow in '..\IBX\IBSQL_WaitWindow.pas',
   gdcStreamSaver in '..\Component\GDC\gdcStreamSaver.pas',
-  gd_dlgStreamSaverOptions in '..\Attr\gd_dlgStreamSaverOptions.pas' {$IFDEF FR4},
-  rp_StreamFR4 in '..\Report\rp_StreamFR4.pas',
-  rp_FR4Functions in '..\Report\rp_FR4Functions.pas' {$ENDIF},
-  gdv_frmCalculateBalance in '..\Transaction\gdv_frmCalculateBalance.pas',
-  gdc_frmClosePeriod in '..\Attr\gdc_frmClosePeriod.pas',
-  gdvAcctBase in '..\Transaction\gdvAcctBase.pas',
-  gdvAcctAccCard in '..\Transaction\gdvAcctAccCard.pas',
-  gdvAcctAccReview in '..\Transaction\gdvAcctAccReview.pas',
-  gdvAcctLedger in '..\Transaction\gdvAcctLedger.pas',
-  gdvAcctGeneralLedger in '..\Transaction\gdvAcctGeneralLedger.pas',
-  gdvAcctCirculationList in '..\Transaction\gdvAcctCirculationList.pas',
-  gdv_frmAcctCirculationList_unit in '..\Transaction\gdv_frmAcctCirculationList_unit.pas',
-  gdv_frmAcctGeneralLedger_unit in '..\Transaction\gdv_frmAcctGeneralLedger_unit.pas',
-  gdv_frmAcctBaseForm_unit in '..\Transaction\gdv_frmAcctBaseForm_unit.pas',
-  gdv_frmAcctAccCard_unit in '..\Transaction\gdv_frmAcctAccCard_unit.pas',
-  gdv_frmAcctLedger_unit in '..\Transaction\gdv_frmAcctLedger_unit.pas',
-  gdv_frmAcctAccReview_unit in '..\Transaction\gdv_frmAcctAccReview_unit.pas' {$IFDEF DEBUG},
-  ExceptionDialog_unit in '..\Component\ExceptionDialog_unit.pas' {ExceptionDialog},
-  gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring} {$ENDIF},
-  gdc_dlgStorageFolder_unit in '..\Storage\gdc_dlgStorageFolder_unit.pas' {gdc_dlgStorageFolder};
+  gd_dlgStreamSaverOptions in '..\Attr\gd_dlgStreamSaverOptions.pas'
+  {$IFDEF FR4}
+  ,rp_StreamFR4 in '..\Report\rp_StreamFR4.pas',
+  rp_FR4Functions in '..\Report\rp_FR4Functions.pas'
+  {$ENDIF}
+  , gdv_frmCalculateBalance in '..\Transaction\gdv_frmCalculateBalance.pas'
+  , gdc_frmClosePeriod in '..\Attr\gdc_frmClosePeriod.pas'
+  , gdvAcctBase in '..\Transaction\gdvAcctBase.pas'
+  , gdvAcctAccCard in '..\Transaction\gdvAcctAccCard.pas'
+  , gdvAcctAccReview in '..\Transaction\gdvAcctAccReview.pas'
+  , gdvAcctLedger in '..\Transaction\gdvAcctLedger.pas'
+  , gdvAcctGeneralLedger in '..\Transaction\gdvAcctGeneralLedger.pas'
+  , gdvAcctCirculationList in '..\Transaction\gdvAcctCirculationList.pas'
+  , gdv_frmAcctCirculationList_unit in '..\Transaction\gdv_frmAcctCirculationList_unit.pas'
+  , gdv_frmAcctGeneralLedger_unit in '..\Transaction\gdv_frmAcctGeneralLedger_unit.pas'
+  , gdv_frmAcctBaseForm_unit in '..\Transaction\gdv_frmAcctBaseForm_unit.pas'
+  , gdv_frmAcctAccCard_unit in '..\Transaction\gdv_frmAcctAccCard_unit.pas'
+  , gdv_frmAcctLedger_unit in '..\Transaction\gdv_frmAcctLedger_unit.pas'
+  , gdv_frmAcctAccReview_unit in '..\Transaction\gdv_frmAcctAccReview_unit.pas'
+  {$IFDEF DEBUG}
+  , ExceptionDialog_unit in '..\Component\ExceptionDialog_unit.pas' {ExceptionDialog}
+  {$ENDIF}
+  , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring};
 
 {$R Gedemin.TLB}
 {$R *.RES}
@@ -473,7 +474,7 @@ begin
           {$IFDEF SPLASH}
           Application.ShowMainForm := False;
           Application.CreateForm(TfrmSplashHidden, frmSplashHidden);
-  if (not NoSplashParam) and (not GridStripeProh) then
+          if (not NoSplashParam) and (not GridStripeProh) then
             try
               Application.CreateForm(TfrmSplash, frmSplash);
             except
