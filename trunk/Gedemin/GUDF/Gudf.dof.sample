@@ -1,8 +1,8 @@
 [Compiler]
 A=1
 B=0
-C=1
-D=1
+C=0
+D=0
 E=0
 F=0
 G=1
@@ -37,45 +37,50 @@ RemoteSymbols=0
 MinStackSize=16384
 MaxStackSize=1048576
 ImageBase=4194304
-ExeDescription=SynEdit component suite
+ExeDescription=
 [Directories]
-OutputDir=
-UnitOutputDir=..\..\..\dcu
-PackageDLLOutputDir=..\..\..\bpl
-PackageDCPOutputDir=..\..\..\bpl
-SearchPath=..\Source
-Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;Vclbde50;Tee50;TeeQR50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50;FirstClass_d5;SynEdit_D5;Fr5;tb2k_d5;greference
+OutputDir=..\exe
+UnitOutputDir=..\dcu
+PackageDLLOutputDir=..\bpl
+PackageDCPOutputDir=..\bpl
+SearchPath=..\jcl\source;..\component\gdc;..\jcl\source\windows;..\jcl\source\common
+Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50;Vclbde50;vcldbx50;TeeUI50;TeeDB50;Tee50;SynEdit_D5;FR5;gdpkMessage;gdpkWage;FrBDE5
 Conditionals=
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
 RunParams=
 HostApplication=
+[Language]
+ActiveLang=
+ProjectLang=$00000419
+RootDir=
 [Version Info]
-IncludeVerInfo=1
-AutoIncBuild=0
+IncludeVerInfo=0
+AutoIncBuild=1
 MajorVer=1
 MinorVer=0
-Release=0
-Build=0
+Release=3
+Build=257
 Debug=0
-PreRelease=0
-Special=0
+PreRelease=1
+Special=1
 Private=0
-DLL=0
-Locale=1059
+DLL=1
+Locale=1049
 CodePage=1251
 [Version Info Keys]
-CompanyName=
-FileDescription=
-FileVersion=1.0.0.0
-InternalName=
-LegalCopyright=
+CompanyName=Golden Software
+FileDescription=Golden UDF library
+FileVersion=1.0.3.257
+InternalName=GUDF.DLL
+LegalCopyright=Copyright (c) 1999 by Golden Software
 LegalTrademarks=
-OriginalFilename=
+OriginalFilename=gudf.dll
 ProductName=
 ProductVersion=1.0.0.0
 Comments=
+SpecialBuild=
 [HistoryLists\hlConditionals]
 Count=1
 Item0=_BMKK;_DEPARTMENT;_QEXPORT;SPLASH;_CATTLE;MESSAGE;_CURRSELLCONTRACT;_REALIZATION;SYNEDIT;_PROTECT;GEDEMIN;_LOADMODULE;_MODEM;GED_LOC_RUS;_GEDEMIN_LOCK;_DEBUG;_LOCALIZATION;ENTRY_BALANCE;_NEW_GRID;_NEW_STREAM;_FR4;_QBUILDER;_IBSQLCACHE;_FBEMBED;_TEECHARTPRO
