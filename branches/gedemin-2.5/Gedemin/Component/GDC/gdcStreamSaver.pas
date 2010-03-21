@@ -6691,7 +6691,7 @@ begin
         end;
       end
       else
-        raise Exception.Create('В потоке не найдена требуемая запись:'#13#10 +
+        raise Exception.Create('В потоке не найдена запись:'#13#10 +
           Obj.Classname + ' ' + Obj.SubType + ' (' + IntToStr(OrderElement.RecordID) + ')');
 
       if Assigned(frmStreamSaver) then

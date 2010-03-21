@@ -33,22 +33,21 @@ unit gdcStorage;
 { DONE 5 -oandreik -cStorage : Редактироваие DFM форм }
 { DONE 5 -oandreik -cStorage : Редактироваие DFM форм, если при распознавании потока получается ошибка }
 { DONE 5 -oandreik -cStorage : TwrpGsStorageFolder.DropFolder переименовать }
+{ DONE 5 -oandreik -cStorage : Надо ли конвертировать хранилище раб стола? }
+{ DONE 5 -oandreik -cStorage : А как быть с хранилищем раб стола? }
+{ DONE 5 -oandreik -cStorage : Работа с хранилищем раб стола }
+{ DONE 5 -oandreik -cStorage : Как вместе с настройками передаются хранилища пользователя? }
 
 { TODO 5 -oandreik -cStorage : Зачем в gdcStreamSaver выставлялся флаг IsModified хранилища? }
-{ TODO 5 -oandreik -cStorage : А как быть с хранилищем раб стола? }
 { TODO 5 -oandreik -cStorage : Оптимизация доступа к полям TIBSQL через индексы, а не по имени }
 { TODO 5 -oandreik -cStorage : Смена имени или парента у блоба }
 { TODO 5 -oandreik -cStorage : Обращение к STorage для каждого элемента }
-{ TODO 5 -oandreik -cStorage : Работа с хранилищем раб стола }
 { TODO 5 -oandreik -cStorage : При конвертации БД сразу конвертировать все настройки с хранилищами }
 { TODO 5 -oandreik -cStorage : Надо ли наименования корневых папок хранилища брать из базы? }
 { TODO 5 -oandreik -cStorage : Стоит ли в базе запретить изменение наименования корневой папки? }
 { TODO 5 -oandreik -cStorage : Когда происходит считывание хранилища администратора? }
-{ TODO 5 -oandreik -cStorage : Как вместе с настройками передаются хранилища пользователя? }
 { TODO 5 -oandreik -cStorage : Проверку делать через триггер, а не через уникальный индекс }
 { TODO 5 -oandreik -cStorage : TwrpGsStorageFolder.LoadFromDatabase перенести на уровень TgsIBStorage }
-{ TODO 5 -oandreik -cStorage : Надо ли конвертировать хранилище раб стола? }
-{ TODO 5 -oandreik -cStorage : UpdateName для раб стола не должен обращаться к БД }
 { TODO 5 -oandreik -cStorage : Changed после создания объекта и после загрузки из потока.
   Не забыть: десктоп, конвертацию, корневую папку   }
 { TODO 5 -oandreik -cStorage : procedure TgdcUser.CopySettingsByUser(U: Integer; ibtr: TIBTransaction); }
@@ -135,6 +134,32 @@ begin
 end;
 
 procedure ConvertStorageRecords(const ASettingKey: Integer; AnDatabase: TIBDatabase);
+
+  function AdjustName(const SI: TgsStorageItem): String;
+  const
+    dname_length = 60;
+  var
+    LP, LN, D: Integer;
+    SN: String;
+  begin
+    if SI.Storage is TgsUserStorage then
+      SN := 'U'
+    else if SI.Storage is TgsGlobalStorage then
+      SN := 'G'
+    else
+      raise Exception.Create('Unsupported storage type');
+
+    LP := Length(SI.Path);
+    LN := Length(SN);
+    D := dname_length - LN - LP; // 60 = length of dname domain
+    if D >= 0 then
+      Result := SN + SI.Path
+    else begin
+      D := D - 3;      // 3 = length of '...'
+      Result := Copy(SN + '\...' + Copy(SI.Path, 2 - D, 256), 1, dname_length);
+    end;
+  end;
+
 var
   q, qPos: TIBSQL;
   Tr: TIBTransaction;
@@ -143,6 +168,7 @@ var
   XID, DBID: TID;
   F: TgsStorageFolder;
   V: TgsStorageValue;
+
 begin
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
@@ -188,7 +214,7 @@ begin
         try
           if q.FieldByName('valuename').IsNull then
           begin
-            qPos.ParamByName('ON').AsString := F.Name;
+            qPos.ParamByName('ON').AsString := AdjustName(F);
             qPos.ParamByName('OC').AsString := CgdcStorageFolder.ClassName;
             gdcBaseManager.GetRUIDByID(F.ID, XID, DBID);
             AddText('Конвертация в БО ветви ' + S, clBlack);
@@ -214,7 +240,7 @@ begin
               end;
             end;
 
-            qPos.ParamByName('ON').AsString := V.Name;
+            qPos.ParamByName('ON').AsString := AdjustName(V);
             qPos.ParamByName('OC').AsString := CgdcStorageValue.ClassName;
             gdcBaseManager.GetRUIDByID(V.ID, XID, DBID);
             AddText('Конвертация в БО значения ' + S + '\' + V.Name, clBlack);
