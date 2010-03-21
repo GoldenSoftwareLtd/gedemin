@@ -108,7 +108,6 @@ type
 const
   cCategoryName = '¬ходные параметры';
 
-
 implementation
 
 { Tgs_fr4Report }

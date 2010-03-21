@@ -170,17 +170,20 @@ var
   FXID, FDBID: TID;
 
 begin
+  Assert(FromStorage = False, 'Работа с элементами хранилища должна осуществляться через б/о.');
+
   Assert(gdcBaseManager <> nil, 'Не активен gdcBaseManager');
   if not SelfTransaction.InTransaction then
     SelfTransaction.StartTransaction;
 
   FBL := BL;
-  FIsStorage := FromStorage;
   FBranchName := ABranchName;
   FValueName := AValueName;
   FreeAndNil(FgdcObject);
 
   //Если это хранилище
+  (*
+  FIsStorage := FromStorage;
   if FIsStorage then
   begin
     if FValueName > '' then
@@ -200,7 +203,7 @@ begin
       ibluSetting.CurrentKeyInt := qrySetting.FieldByName('id').AsInteger;
     end;
 
-  end else
+  end else *)
   begin
     Assert(AgdcObject <> nil);
     Assert(AgdcObject.RecordCount > 0);
@@ -552,6 +555,8 @@ begin
   qrySetting.Close;
   if FgdcSettingObject is TgdcSettingStorage then
   begin
+    Assert(False, 'Работа с элементами хранилища должна осуществляться через б/о');
+    {
     qrySetting.SQL.Text := 'SELECT s.id, s.name FROM at_setting s ';
     if FValueName > '' then
       qrySetting.SQL.Text := qrySetting.SQL.Text + Format('WHERE EXISTS(SELECT * FROM at_setting_storage ' +
@@ -561,6 +566,7 @@ begin
       qrySetting.SQL.Text := qrySetting.SQL.Text + Format('WHERE EXISTS(SELECT * FROM at_setting_storage ' +
         ' WHERE settingkey = s.id AND crc = %s AND id in (%s) AND valuename IS NULL)',
         [IntToStr(GetCRC32FromText(FBranchName)), SetConditionsForStorage]);
+    }
   end;
 end;
 

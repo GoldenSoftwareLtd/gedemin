@@ -31,10 +31,17 @@ object st_dlgeditvalue: Tst_dlgeditvalue
     Height = 13
     Caption = 'Значение:'
   end
+  object lblID: TLabel
+    Left = 282
+    Top = 80
+    Width = 83
+    Height = 13
+    Caption = 'Идентификатор:'
+  end
   object edName: TEdit
     Left = 8
     Top = 96
-    Width = 361
+    Width = 265
     Height = 21
     TabOrder = 1
   end
@@ -89,6 +96,15 @@ object st_dlgeditvalue: Tst_dlgeditvalue
     Caption = 'Отмена'
     ModalResult = 2
     TabOrder = 4
+  end
+  object edID: TEdit
+    Left = 280
+    Top = 96
+    Width = 89
+    Height = 21
+    Enabled = False
+    ReadOnly = True
+    TabOrder = 6
   end
   object ActionList1: TActionList
     Left = 64

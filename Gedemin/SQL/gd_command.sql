@@ -285,6 +285,8 @@ CREATE TABLE gd_storage_data (
   datetime_data  dtimestamp,
   curr_data      dcurrency,
   blob_data      dblob4096,
+  editiondate    deditiondate,
+  editorkey      dintkey,
 
   CONSTRAINT gd_pk_storage_data_id PRIMARY KEY (id),
   CONSTRAINT gd_fk_storage_data_parent FOREIGN KEY (parent)
@@ -446,6 +448,39 @@ AS
 BEGIN
   IF (NEW.editiondate <> OLD.editiondate) THEN
     NEW.exec_count = NEW.exec_count + 1;
+END
+^
+
+SET TERM ; ^
+
+CREATE EXCEPTION gd_e_block_old_storage 'Изменение старых данных хранилища заблокировано';
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_biud_globalstorage FOR gd_globalstorage
+  BEFORE INSERT OR UPDATE OR DELETE
+  POSITION 0
+AS
+BEGIN
+  EXCEPTION gd_e_block_old_storage 'Изменение старых данных глобального хранилища заблокировано';
+END
+^
+
+CREATE TRIGGER gd_biud_userstorage FOR gd_userstorage
+  BEFORE INSERT OR UPDATE OR DELETE
+  POSITION 0
+AS
+BEGIN
+  EXCEPTION gd_e_block_old_storage 'Изменение старых данных пользовательского хранилища заблокировано';
+END
+^
+
+CREATE TRIGGER gd_biud_companystorage FOR gd_companystorage
+  BEFORE INSERT OR UPDATE OR DELETE
+  POSITION 0
+AS
+BEGIN
+  EXCEPTION gd_e_block_old_storage 'Изменение старых данных хранилища компании заблокировано';
 END
 ^
 

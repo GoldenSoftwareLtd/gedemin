@@ -203,12 +203,12 @@ implementation
 
 uses
   Windows,                    IBSQL,                      IBServices,
-  DBConsts,                   DBLogDlg,
+  DBConsts,                   DBLogDlg,                   Controls,
   SysUtils,                   jclStrings,                 gdc_frmUser_unit,
   gdc_frmUserGroup_unit,      gdc_dlgUser_unit,           gdc_dlgUserGroup_unit,
   gdc_dlgAddUserToGroup_unit, gdc_dlgAddGroupToUser_unit, gd_security,
   gd_directories_const,       gd_ClassList,               dmImages_unit,
-  Storages,                   Controls
+  Storages,                   gsStorage,                  gdcStorage_Types
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1200,70 +1200,90 @@ var
   DidActivate: Boolean;
   SelfTr: TIBTransaction;
   q: TIBSQL;
+  US: TgsUserStorage;
+  MS: TMemoryStream;
 begin
+  if ID = U then
+    exit;
+
   if Assigned(ibtr) then
     SelfTr := ibtr
   else
     SelfTr := Transaction;
 
-  DidActivate := False;
+  MS := TMemoryStream.Create;
   try
-    DidActivate := not SelfTr.InTransaction;
-    if DidActivate then
-      SelfTr.StartTransaction;
-      
-    if UserStorage.UserKey = U then
-      UserStorage.SaveToDatabase;
-
-    q := TIBSQL.Create(nil);
+    DidActivate := False;
     try
-      q.Transaction := SelfTr;
+      DidActivate := not SelfTr.InTransaction;
+      if DidActivate then
+        SelfTr.StartTransaction;
 
-      q.SQL.Text := 'SELECT * FROM gd_userstorage WHERE userkey = :UK ';
-      q.Params[0].AsInteger := ID;
-      q.ExecQuery;
-      if q.EOF then
-      begin
-        q.Close;
-        q.SQL.Text :=
-          'INSERT INTO gd_userstorage (userkey, data, modified) ' +
-          'SELECT ' + IntToStr(ID) + ', data, CURRENT_TIMESTAMP FROM gd_userstorage WHERE userkey=:FK ';
-      end else
-      begin
-        q.Close;
-        q.SQL.Text :=
-          'UPDATE gd_userstorage SET data = (SELECT data FROM gd_userstorage WHERE userkey=:FK) WHERE userkey=:TK';
-        q.ParamByName('TK').AsInteger := ID;
+      if UserStorage.ObjectKey = U then
+        UserStorage.SaveToStream(MS)
+      else begin
+        US := TgsUserStorage.Create;
+        try
+          US.ObjectKey := U;
+          US.SaveToStream(MS);
+        finally
+          US.Free;
+        end;
       end;
 
-      q.ParamByName('FK').AsInteger := U;
-      q.ExecQuery;
+      MS.Position := 0;
 
-      q.SQL.Text :=
-        'DELETE FROM gd_desktop WHERE userkey=:TK AND name IN ' +
-        '(SELECT name FROM gd_desktop WHERE userkey=:FK) ';
-      q.ParamByName('FK').AsInteger := U;
-      q.ParamByName('TK').AsInteger := ID;
-      q.ExecQuery;
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := SelfTr;
 
-      q.SQL.Text :=
-        'INSERT INTO gd_desktop (userkey, screenres, name, saved, dtdata, reserved) ' +
-        'SELECT ' + IntToStr(ID) + ', screenres, name, saved, dtdata, reserved FROM gd_desktop WHERE userkey=:FK';
-      q.ParamByName('FK').AsInteger := U;
-      q.ExecQuery;
-    finally
-      q.Free;
+        q.SQL.Text := 'DELETE FROM gd_storage_data WHERE parent IS NULL ' +
+          'AND data_type = :DT AND int_data = :ID';
+        q.ParamByName('DT').AsString := cStorageUser;
+        q.ParamByName('ID').AsInteger := ID;
+        q.ExecQuery;
+
+        if UserStorage.ObjectKey = ID then
+        begin
+          UserStorage.LoadFromStream(MS);
+          UserStorage.SaveToDataBase;
+        end else
+        begin
+          US := TgsUserStorage.Create;
+          try
+            US.ObjectKey := ID;
+            US.LoadFromStream(MS);
+            US.SaveToDatabase(SelfTr);
+          finally
+            US.Free;
+          end;
+        end;
+
+        q.SQL.Text :=
+          'DELETE FROM gd_desktop WHERE userkey=:TK AND name IN ' +
+          '(SELECT name FROM gd_desktop WHERE userkey=:FK) ';
+        q.ParamByName('FK').AsInteger := U;
+        q.ParamByName('TK').AsInteger := ID;
+        q.ExecQuery;
+
+        q.SQL.Text :=
+          'INSERT INTO gd_desktop (userkey, screenres, name, saved, dtdata, reserved) ' +
+          'SELECT ' + IntToStr(ID) + ', screenres, name, saved, dtdata, reserved FROM gd_desktop WHERE userkey=:FK';
+        q.ParamByName('FK').AsInteger := U;
+        q.ExecQuery;
+      finally
+        q.Free;
+      end;
+
+      if DidActivate and SelfTr.InTransaction then
+        SelfTr.Commit;
+    except
+      if DidActivate and SelfTr.InTransaction then
+        SelfTr.Rollback;
+      raise;  
     end;
-
-    if UserStorage.UserKey = ID then
-      UserStorage.LoadFromDatabase;
-
-    if DidActivate and SelfTr.InTransaction then
-      SelfTr.Commit;
-
-  except
-    if DidActivate and SelfTr.InTransaction then
-      SelfTr.Rollback;
+  finally
+    MS.Free;
   end;
 end;
 
@@ -1313,12 +1333,7 @@ begin
       begin
         UserID := SelectObject;
         if UserID > 0 then
-        begin
-          if UserStorage.UserKey = UserID then
-            UserStorage.SaveToDatabase;
-
           Self.CopySettingsByUser(UserID, Transaction);
-        end;
       end;
     end;
   end

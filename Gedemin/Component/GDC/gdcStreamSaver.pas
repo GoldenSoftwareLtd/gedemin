@@ -10,6 +10,12 @@ uses
   gsStreamHelper,       gdcSetting,                 dbclient;
 
 type
+  // Состояние записи после загрузки
+  //   lsNotLoaded - запись не загружена (оставлена старая запись)
+  //   lsModified - запись загружена поверх старой
+  //   lsCreated - запись создана (старой не было)
+  TLoadedRecordState = (lsNotLoaded, lsModified, lsCreated);
+
   TReplaceRecordBehaviour = (rrbAlways, rrbNever, rrbShowDialog);
   // Тип логирования:
   //  slNone - не выводить ничего в лог
@@ -120,6 +126,29 @@ type
 
     procedure SaveToStream(Stream: TStream; const AFormat: TgsStreamType = sttBinaryNew);
     procedure LoadFromStream(Stream: TStream; const AFormat: TgsStreamType = sttBinaryNew);
+  end;
+
+  TLoadedRecordStateList = class(TgdKeyIntAssoc)
+  private
+    FStateArray: array of TLoadedRecordState;
+
+    function GetStateByIndex(Index: Integer): TLoadedRecordState;
+    procedure SetStateByIndex(Index: Integer; const Value: TLoadedRecordState);
+    function GetStateByKey(Key: Integer): TLoadedRecordState;
+    procedure SetStateByKey(Key: Integer; const Value: TLoadedRecordState);
+  protected
+    procedure Grow; override;
+    procedure InsertItem(const Index, Value: Integer); override;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure Delete(const Index: Integer); override;
+
+    property StateByIndex[Index: Integer]: TLoadedRecordState read GetStateByIndex
+      write SetStateByIndex;
+    property StateByKey[Key: Integer]: TLoadedRecordState read GetStateByKey
+      write SetStateByKey;
   end;
 
   TgdcStreamDataObject = class(TObject)
@@ -295,6 +324,7 @@ type
     procedure InsertRecord(SourceDS: TDataSet; TargetDS: TgdcBase);
     function CopyRecord(SourceDS: TDataSet; TargetDS: TgdcBase): Boolean;
     procedure ApplyDelayedUpdates(SourceKeyValue, TargetKeyValue: Integer);
+    procedure AddToIDMapping(const AKey, AValue: Integer; const ARecordState: TLoadedRecordState);
 
     procedure AddRecordToRPLRECORDS(const AID: TID; AModified: TDateTime);
     procedure SetTransaction(const Value: TIBTransaction);
@@ -1488,7 +1518,7 @@ begin
 
   FAnAnswer := 0;
 
-  FIDMapping := TgdKeyIntAssoc.Create;
+  FIDMapping := TLoadedRecordStateList.Create;
   FUpdateList := TObjectList.Create(True);
 end;
 
@@ -2193,11 +2223,13 @@ var
   CDS: TDataSet;
   KeyFieldName: String;
   TargetKeyInt, SourceKeyInt: TID;
+  LoadedRecordState: TLoadedRecordState;
 begin
   if not (TargetDS.State in [dsInsert, dsEdit]) then
     TargetDS.Edit;
      
   NeedAddToIDMapping := True;
+  LoadedRecordState := lsCreated;
   Result := False;
   RUOL := nil;
   try
@@ -2309,8 +2341,7 @@ begin
               if ReferencedRecordNewID > -1 then
               begin
                 Key := ReferencedRecordNewID;
-                if FIDMapping.IndexOf(SourceField.AsInteger) = -1 then
-                  FIDMapping.ValuesByIndex[FIDMapping.Add(SourceField.AsInteger)] := ReferencedRecordNewID;
+                AddToIDMapping(SourceField.AsInteger, Key, lsNotLoaded);
               end;
             end;
           end;
@@ -2382,7 +2413,7 @@ begin
       begin
         try
           TargetDS.Post;
-
+          LoadedRecordState := lsModified;
           if StreamLoggingType = slAll then
             AddText('Объект обновлен данными из потока!', clBlack);
         except
@@ -2409,6 +2440,7 @@ begin
         end;
       end
       else
+      begin
         TargetDS.StreamProcessingAnswer := FAnAnswer;
         if not TargetDS.CheckTheSame(True) then
         begin
@@ -2420,9 +2452,10 @@ begin
             Space;
           end;}
         end;
+      end;  
 
-      if NeedAddToIDMapping and (FIDMapping.IndexOf(SourceKeyInt) = -1) then
-        FIDMapping.ValuesByIndex[FIDMapping.Add(SourceKeyInt)] := TargetDS.FieldByName(KeyFieldName).AsInteger;
+      if NeedAddToIDMapping then
+        AddToIDMapping(SourceKeyInt, TargetDS.FieldByName(KeyFieldName).AsInteger, LoadedRecordState);
 
       if Assigned(RUOL) then
       begin
@@ -2461,8 +2494,7 @@ begin
           frmStreamSaver.AddWarning(ErrorSt + NEW_LINE + E.Message);
 
         TargetDS.Cancel;
-        if FIDMapping.IndexOf(SourceKeyInt) = -1 then
-          FIDMapping.ValuesByIndex[FIDMapping.Add(SourceKeyInt)] := -1;
+        AddToIDMapping(SourceKeyInt, -1, lsNotLoaded);
       end;
     end;
   finally
@@ -2657,8 +2689,7 @@ begin
             else
             begin
               //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
-              if FIDMapping.IndexOf(StreamID) = -1 then
-                FIDMapping.ValuesByIndex[FIDMapping.Add(StreamID)] := AObj.ID;
+              AddToIDMapping(StreamID, AObj.ID, lsNotLoaded);
               // Удалим ключ объекта из очереди загрузки
               FLoadingOrderList.Remove(StreamID);
               IsRecordLoaded := True;
@@ -2671,8 +2702,7 @@ begin
               AddText('Объект найден в RPL_RECORD', clBlack);
 
             //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
-            if FIDMapping.IndexOf(StreamID) = -1 then
-              FIDMapping.ValuesByIndex[FIDMapping.Add(StreamID)] := AObj.ID;
+            AddToIDMapping(StreamID, AObj.ID, lsNotLoaded);
             // Удалим ключ объекта из очереди загрузки
             FLoadingOrderList.Remove(StreamID);
             IsRecordLoaded := True;
@@ -2682,8 +2712,7 @@ begin
         else
         begin
           //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
-          if FIDMapping.IndexOf(StreamID) = -1 then
-            FIDMapping.ValuesByIndex[FIDMapping.Add(StreamID)] := AObj.ID;
+          AddToIDMapping(StreamID, AObj.ID, lsNotLoaded);
           // Удалим ключ объекта из очереди загрузки
           FLoadingOrderList.Remove(StreamID);
           IsRecordLoaded := True;
@@ -2789,14 +2818,16 @@ var
   S, S1: String;
   R, R2: TatRelation;
   LocName: String;
+  LoadedRecordState: TLoadedRecordState;
 begin
   if Assigned(atDatabase.Relations.ByRelationName(SourceDS.FieldByName(SET_TABLE_FIELD).AsString)) then
   begin
     SFld := '';
     SValues := '';
     SUpdate := '';
-    {Пробегаемся по полям из потока. Если поле является полем-множеством,
-     то формируем соответствующие строки для обновления/вставки}
+    LoadedRecordState := lsNotLoaded;
+    // Пробегаемся по полям из потока. Если поле является полем-множеством,
+    //   то формируем соответствующие строки для обновления/вставки
     for I := 0 to SourceDS.Fields.Count - 1 do
     begin
       if not IsSetField(SourceDS.Fields[I].FieldName) then
@@ -2813,14 +2844,14 @@ begin
         SValues := SValues + 'NULL';
         SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = NULL';
       end
-      else if SourceDS.Fields[I].DataType in [ftString, ftDate,
-        ftDateTime, ftTime] then
+      else if SourceDS.Fields[I].DataType in [ftString, ftDate, ftDateTime, ftTime] then
       begin
         SValues := SValues + '''' + SourceDS.Fields[I].AsString + '''';
         SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = ''' +
           SourceDS.Fields[I].AsString + '''';
       end
-      else begin
+      else
+      begin
         F := atDataBase.FindRelationField(SourceDS.FieldByName(SET_TABLE_FIELD).AsString,
           GetSetFieldName(SourceDS.Fields[I].FieldName));
         if (F <> nil) and (F.References <> nil) then
@@ -2838,6 +2869,8 @@ begin
         SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = ' + SKey;
       end;
     end;
+
+    // Если присутствовали поля-множества, то вставим значения в БД
     if SFld > '' then
     begin
       R2 := atDataBase.Relations.ByRelationName(SourceDS.FieldByName(SET_TABLE_FIELD).AsString);
@@ -2866,53 +2899,65 @@ begin
             S1 := GetAsSetFieldName(Pr.ConstraintFields[I].FieldName);
             if SourceDS.FieldByName(S1).IsNull then
               S := S + Pr.ConstraintFields[I].FieldName + ' IS NULL'
-            else if SourceDS.FieldByName(S1).DataType in [ftString, ftDate,
-              ftDateTime, ftTime] then
+            else if SourceDS.FieldByName(S1).DataType in [ftString, ftDate, ftDateTime, ftTime] then
               S := S + Pr.ConstraintFields[I].FieldName + ' = ''' + SourceDS.FieldByName(S1).AsString + ''''
             else
             begin
               F := atDataBase.FindRelationField(SourceDS.FieldByName(SET_TABLE_FIELD).AsString,
                 GetSetFieldName(SourceDS.FieldByName(S1).FieldName));
               if (F <> nil) and (F.References <> nil) then
-              begin //Если это поле является ссылкой, то поищем его в карте идентификаторов
+              begin
+                //Если это поле является ссылкой, то поищем его в карте идентификаторов
                 Key := FIDMapping.IndexOf(SourceDS.FieldByName(S1).AsInteger);
                 if Key > -1 then
                 begin
                   SKey := IntToStr(FIDMapping.ValuesByIndex[Key]);
-                end else
+                  // Предполагаем что первую часть ключа в множестве имеет главная запись
+                  if I = 0 then
+                    LoadedRecordState := TLoadedRecordStateList(FIDMapping).StateByIndex[Key];
+                end
+                else
                   SKey := SourceDS.FieldByName(S1).AsString;
-              end else
+              end
+              else
                 SKey := SourceDS.FieldByName(S1).AsString;
               S := S + Pr.ConstraintFields[I].FieldName + ' = ' + SKey;
             end;
           end;
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := Format(sql_SetSelect, [SourceDS.FieldByName(SET_TABLE_FIELD).AsString, S]);
-          FIBSQL.ExecQuery;
 
-          if FIBSQL.RecordCount > 0 then
-          begin
-          { TODO -oJulia : Что делать с уже существующими данными? Обновлять?
-            В каком-то случае это будет очень плохо, например, таблица gd_lastnumber }
-          // FIBSQL.Close;
-          //  FIBSQL.SQL.Text := Format(sql_SetUpdate,
-          //    [SourceDS.FieldByName(SET_TABLE_FIELD).AsString, SUpdate, S]);
-          end else
+          // Смотрим на состояние главной записи - множество не будет загружено,
+          //  если главная запись не была загружена или изменена из настройки
+          if LoadedRecordState <> lsNotLoaded then
           begin
             FIBSQL.Close;
-            FIBSQL.SQL.Text := Format(sql_SetInsert,
-              [SourceDS.FieldByName(SET_TABLE_FIELD).AsString, SFld, SValues]);
-
-            R := atDataBase.Relations.ByRelationName(SourceDS.FieldByName(SET_TABLE_FIELD).AsString);
-            if Assigned(R) then
-              LocName := R.LName
-            else
-              LocName := SourceDS.FieldByName(SET_TABLE_FIELD).AsString;
-
-            if StreamLoggingType = slAll then
-              AddText('Считывание данных множества ' + LocName, clBlue);
+            FIBSQL.SQL.Text := Format(sql_SetSelect, [SourceDS.FieldByName(SET_TABLE_FIELD).AsString, S]);
             FIBSQL.ExecQuery;
-          end;
+
+            if FIBSQL.RecordCount > 0 then
+            begin
+            { TODO -oJulia : Что делать с уже существующими данными? Обновлять?
+              В каком-то случае это будет очень плохо, например, таблица gd_lastnumber }
+            // FIBSQL.Close;
+            //  FIBSQL.SQL.Text := Format(sql_SetUpdate,
+            //    [SourceDS.FieldByName(SET_TABLE_FIELD).AsString, SUpdate, S]);
+            end
+            else
+            begin
+              FIBSQL.Close;
+              FIBSQL.SQL.Text := Format(sql_SetInsert,
+                [SourceDS.FieldByName(SET_TABLE_FIELD).AsString, SFld, SValues]);
+
+              R := atDataBase.Relations.ByRelationName(SourceDS.FieldByName(SET_TABLE_FIELD).AsString);
+              if Assigned(R) then
+                LocName := R.LName
+              else
+                LocName := SourceDS.FieldByName(SET_TABLE_FIELD).AsString;
+
+              if StreamLoggingType = slAll then
+                AddText('Считывание данных множества ' + LocName, clBlue);
+              FIBSQL.ExecQuery;
+            end;
+          end;  
         except
           on E: Exception do
           begin
@@ -2958,9 +3003,9 @@ begin
 
     if AnsiCompareText(AObj.Classname, 'TgdcUserStorage') = 0 then
     begin
-      if AObj.ID = UserStorage.UserKey then
+      if AObj.ID = UserStorage.ObjectKey then
       begin
-        UserStorage.IsModified := True;
+        //UserStorage.IsModified := True;
         UserStorage.SaveToDatabase;
       end;
       Exit;
@@ -3661,6 +3706,19 @@ begin
     Result := True;
 end;
 
+procedure TgdcStreamDataProvider.AddToIDMapping(const AKey,
+  AValue: Integer; const ARecordState: TLoadedRecordState);
+var
+  IDMappingIndex: Integer;
+begin
+  if (FIDMapping.IndexOf(AKey) = -1) then
+  begin
+    IDMappingIndex := FIDMapping.Add(AKey);
+    FIDMapping.ValuesByIndex[IDMappingIndex] := AValue;
+    TLoadedRecordStateList(FIDMapping).StateByIndex[IDMappingIndex] := ARecordState;
+  end;
+end;
+
 { TStreamOrderList }
 
 constructor TStreamOrderList.Create;
@@ -4322,7 +4380,7 @@ begin
             AddText('Загрузка ветки хранилища "' + StorageName + Path + '"', clBlue);
         end;
         LStorage.CloseFolder(NewFolder, False);
-        LStorage.IsModified := True;
+        //LStorage.IsModified := True;
       end
       else
       begin
@@ -5294,7 +5352,7 @@ begin
 
                 if StreamLoggingType = slAll then
                   AddText('  Загрузка параметра "' + ValueName + '" ветки хранилища "' + Path + '"', clBlue);
-                LStorage.IsModified := True;
+                //LStorage.IsModified := True;
               end;
             end;
           end
@@ -6633,7 +6691,7 @@ begin
         end;
       end
       else
-        raise Exception.Create('В потоке не найдена требуемая запись:'#13#10 +
+        raise Exception.Create('В потоке не найдена запись:'#13#10 +
           Obj.Classname + ' ' + Obj.SubType + ' (' + IntToStr(OrderElement.RecordID) + ')');
 
       if Assigned(frmStreamSaver) then
@@ -6735,7 +6793,7 @@ begin
     ibsqlPos := TIBSQL.Create(nil);
     try
       ibsqlPos.Transaction := FTransaction;
-      ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+      ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
       ibsqlPos.ParamByName('settingkey').AsInteger := ASettingKey;
       ibsqlPos.ExecQuery;
 
@@ -7150,6 +7208,82 @@ begin
   end
   else
     Self.SetDefaultValues;
+end;
+
+{ TLoadedRecordStateList }
+
+constructor TLoadedRecordStateList.Create;
+begin
+  inherited Create;
+  SetLength(FStateArray, Size);
+end;
+
+procedure TLoadedRecordStateList.Delete(const Index: Integer);
+begin
+  CheckIndex(Index);
+  System.Move(FStateArray[Index + 1], FStateArray[Index],
+    (Count - Index) * SizeOf(FStateArray[0]));
+  // колькасць запісаў будзе зменшаная ў наследаваным
+  // метадзе
+  inherited Delete(Index);
+end;
+
+destructor TLoadedRecordStateList.Destroy;
+begin
+  SetLength(FStateArray, 0);
+  inherited;
+end;
+
+function TLoadedRecordStateList.GetStateByIndex(Index: Integer): TLoadedRecordState;
+begin
+  CheckIndex(Index);
+  Result := FStateArray[Index];
+end;
+
+function TLoadedRecordStateList.GetStateByKey(Key: Integer): TLoadedRecordState;
+var
+  Index: Integer;
+begin
+  if Find(Key, Index) then
+    Result := FStateArray[Index]
+  else
+    raise Exception.Create(Format('TLoadedRecordStateList.GetStateByKey: Invalid key value (%d)', [Key]));
+end;
+
+procedure TLoadedRecordStateList.Grow;
+begin
+  inherited;
+  SetLength(FStateArray, Size);
+end;
+
+procedure TLoadedRecordStateList.InsertItem(const Index, Value: Integer);
+begin
+  inherited;
+  // пасля выкліку наследаванага метаду
+  // колькасць запісаў (ФКаунт) ужо павялічана
+  // на адзінку
+  if Index < (Count - 1) then
+    System.Move(FStateArray[Index], FStateArray[Index + 1],
+      ((Count - 1) - Index) * SizeOf(FStateArray[0]));
+  FStateArray[Index] := lsNotLoaded;
+end;
+
+procedure TLoadedRecordStateList.SetStateByIndex(Index: Integer;
+  const Value: TLoadedRecordState);
+begin
+  CheckIndex(Index);
+  FStateArray[Index] := Value;
+end;
+
+procedure TLoadedRecordStateList.SetStateByKey(Key: Integer;
+  const Value: TLoadedRecordState);
+var
+  Index: Integer;
+begin
+  if Find(Key, Index) then
+    FStateArray[Index] := Value
+  else
+    raise Exception.Create(Format('TLoadedRecordStateList.GetStateByKey: Invalid key value (%d)', [Key]));
 end;
 
 end.

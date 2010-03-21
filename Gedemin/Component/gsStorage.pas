@@ -4,8 +4,8 @@ unit gsStorage;
 interface
 
 uses
-  Classes, Contnrs, SysUtils, Comctrls, Controls, Forms, IBDatabase, IBSQL,
-  gd_security, extctrls;
+  Classes, Contnrs, SysUtils, Comctrls, Controls, Forms,
+  IBHeader, IBDatabase, IBSQL, gd_security, extctrls;
 
 const
                                   // sh -- storage header
@@ -33,7 +33,6 @@ type
 const
   DefDataCompression = sdcZLib;
 
-const
                                  // svt -- storage value type
   svtUnknown         = $0000;    // невядомы
   svtInteger         = $0001;    // цэлы лік
@@ -67,11 +66,14 @@ type
   private
     FName: String;
     FParent: TgsStorageItem;
-    FModified: TDateTime;
+    FChanged: Boolean;
 
     procedure SetName(const Value: String);
 
   protected
+    FID: Integer;
+    FModified: TDateTime;
+
     function GetStorage: TgsStorage; virtual;
 
     // возвращает строку -- путь к элементу
@@ -80,7 +82,7 @@ type
     function GetDataSize: Integer; virtual;
 
     // проверяет имя элемента на допустимость
-    procedure CheckForName(const AName: String); virtual; abstract;
+    function CheckForName(const AName: String): String; virtual;
     function GetFreeName: String;
     // очищает данные элемента
     procedure Clear; virtual; abstract;
@@ -89,29 +91,32 @@ type
     // где все данные представлены в текстовом виде
     // формат потока близок к формату текстового
     // файла реестра Виндоуз
-    procedure LoadFromStream2(S: TStringStream); virtual; abstract;
-    procedure SaveToStream2(S: TStringStream); virtual; abstract;
+    procedure LoadFromStream2(S: TStringStream); virtual;
+    procedure SaveToStream2(S: TStringStream); virtual;
 
     // считывают и сохраняют в двоичный неформатированный
     // поток
     procedure LoadFromStream(S: TStream); virtual;
     procedure SaveToStream(S: TStream); virtual;
 
+    procedure AddChildren(SI: TgsStorageItem); virtual;
+    procedure RemoveChildren(SI: TgsStorageItem); virtual;
+
     //Пропускает объект в потоке
     class procedure SkipInStream(S: TStream); virtual;
 
   public
-    constructor Create(AParent: TgsStorageItem); overload; virtual;
-    constructor Create(AParent: TgsStorageItem; const AName: String); overload; virtual;
+    constructor Create(AParent: TgsStorageItem; const AName: String = '';
+      const AnID: Integer = -1); virtual;
 
     destructor Destroy; override;
 
-    procedure Assign(AnItem: TgsStorageItem); virtual;
+    class function GetTypeName: Char; virtual; abstract;
 
-    // ???
     procedure LoadFromFile(const AFileName: String; const FileFormat: TgsStorageFileFormat); virtual;
-    // ???
     procedure SaveToFile(const AFileName: String; const FileFormat: TgsStorageFileFormat); virtual;
+
+    procedure Drop; virtual;
 
     // в функцию передается список, строка для поиска и параметры поиска
     // она осуществялет поиск в соответствии с введенной строкой
@@ -122,17 +127,21 @@ type
       const ASearchOptions: TgstSearchOptions;
       const DateFrom: TDate = 0; const DateTo: TDate = 0): Boolean; virtual; abstract;
 
+    property ID: Integer read FID;
     property Name: String read FName write SetName;
     property Parent: TgsStorageItem read FParent;
     property Path: String read GetPath;
     property DataSize: Integer read GetDataSize;
     property Modified: TDateTime read FModified;
+    property Changed: Boolean read FChanged;
 
     property Storage: TgsStorage read GetStorage;
   end;
 
   TgsStorageFolder = class(TgsStorageItem)
   private
+    FDestroying: Boolean;
+
     function GetFoldersCount: Integer;
     function GetValuesCount: Integer;
     function GetFolders(Index: Integer): TgsStorageFolder;
@@ -143,7 +152,7 @@ type
 
     function GetDataSize: Integer; override;
 
-    procedure CheckForName(const AName: String); override;
+    function CheckForName(const AName: String): String; override;
 
     procedure LoadFromStream2(S: TStringStream); override;
     procedure SaveToStream2(S: TStringStream); override;
@@ -162,6 +171,10 @@ type
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
 
+    procedure AddChildren(SI: TgsStorageItem); override;
+    procedure RemoveChildren(SI: TgsStorageItem); override;
+
+    class function GetTypeName: Char; override;
     class procedure SkipInStream(S: TStream); override;
 
     function ReadString(const AValueName: String; const Default: String = ''): String;
@@ -192,12 +205,11 @@ type
     function ValueByName(const AValueName: String): TgsStorageValue;
     function DeleteFolder(const AName: String): Boolean;
     procedure ExtractFolder(F: TgsStorageFolder);
-    function AddFolder(F: TgsStorageFolder): Integer;
+    procedure AddFolder(F: TgsStorageFolder);
     function FolderByName(const AName: String): TgsStorageFolder;
-    procedure DropFolder;
     function DeleteValue(const AValueName: String): Boolean;
     function FindFolder(F: TgsStorageFolder; const GoSubFolders: Boolean = True): Boolean;
-    function MoveFolder(NewParent: TgsStorageFolder): Boolean;
+    //function MoveFolder(NewParent: TgsStorageFolder): Boolean;
 
     procedure ShowPropDialog;
 
@@ -216,6 +228,9 @@ type
     FStorage: TgsStorage;
 
     function GetStorage: TgsStorage; override;
+
+  public
+    procedure Drop; override;
   end;
 
   TgsStorageValue = class(TgsStorageItem)
@@ -223,7 +238,7 @@ type
     class function CreateFromStream(AParent: TgsStorageFolder; S: TStream): TgsStorageValue;
 
   protected
-    procedure CheckForName(const AName: String); override;
+    function CheckForName(const AName: String): String; override;
 
     function GetAsCurrency: Currency; virtual;
     procedure SetAsCurrency(const Value: Currency); virtual;
@@ -241,7 +256,6 @@ type
 
   public
     class function GetTypeId: Integer; virtual; abstract;
-    class function GetTypeName: String; virtual; abstract;
 
     class procedure SkipInStream(S: TStream); override;
 
@@ -250,7 +264,6 @@ type
       const DateTo: TDate = 0): Boolean; override;
 
     function ShowEditValueDialog: TModalResult;
-    procedure Assign(AnItem: TgsStorageItem); override;
 
     property AsInteger: Integer read GetAsInteger write SetAsInteger;
     property AsCurrency: Currency read GetAsCurrency write SetAsCurrency;
@@ -285,7 +298,7 @@ type
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
-    class function GetTypeName: String; override;
+    class function GetTypeName: Char; override;
   end;
 
   TgsCurrencyValue = class(TgsStorageValue)
@@ -309,7 +322,7 @@ type
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
-    class function GetTypeName: String; override;
+    class function GetTypeName: Char; override;
   end;
 
   TgsStringValue = class(TgsStorageValue)
@@ -339,7 +352,7 @@ type
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
-    class function GetTypeName: String; override;
+    class function GetTypeName: Char; override;
   end;
 
   TgsDateTimeValue = class(TgsStorageValue)
@@ -363,7 +376,7 @@ type
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
-    class function GetTypeName: String; override;
+    class function GetTypeName: Char; override;
   end;
 
   TgsBooleanValue = class(TgsStorageValue)
@@ -391,12 +404,14 @@ type
     class procedure SkipInStream(S: TStream); override;
 
     class function GetTypeId: Integer; override;
-    class function GetTypeName: String; override;
+    class function GetTypeName: Char; override;
   end;
 
   TgsStreamValue = class(TgsStorageValue)
   private
     FData: String;
+    FQUAD: TISC_QUAD;
+    FLoaded: Boolean;
 
   protected
     procedure Clear; override;
@@ -409,6 +424,10 @@ type
     procedure LoadFromStream2(S: TStringStream); override;
     procedure SaveToStream2(S: TStringStream); override;
 
+    procedure SaveBLOB(Tr: TIBTransaction);
+
+    property AsQUAD: TISC_QUAD read FQUAD write FQUAD;
+
   public
     procedure LoadFromStream(S: TStream); override;
     procedure SaveToStream(S: TStream); override;
@@ -419,7 +438,7 @@ type
     procedure SaveDataToStream(S: TStream);
 
     class function GetTypeId: Integer; override;
-    class function GetTypeName: String; override;
+    class function GetTypeName: Char; override;
   end;
 
   TgsStorage = class(TObject)
@@ -428,21 +447,21 @@ type
     {$IFDEF DEBUG}
     FOpenFolders: TStringList;
     {$ENDIF}
-    FModified: Boolean;
-    FLoading: Boolean;
 
     function GetDataString: String;
     procedure SetDataString(const Value: String);
     function GetName: String;
+    function GetModified: Boolean;
 
   protected
     procedure BeforeOpenFolder; virtual;
     procedure AfterCloseFolder; virtual;
 
-    property Loading: Boolean read FLoading;
+    procedure DeleteStorageItem(const AnID: Integer); virtual;
+    function UpdateName(const Tr: TIBTransaction = nil): String; virtual;
 
   public
-    constructor Create(const AName: String); reintroduce; virtual;
+    constructor Create; virtual;
     destructor Destroy; override;
 
     procedure LoadFromStream(S: TStream);
@@ -492,78 +511,65 @@ type
     procedure LoadComponent(C: TComponent; M: TLoadFromStreamMethod; const Context: String = '';
       const ALoadAdmin: Boolean = True);
 
-    procedure LoadFromDataBase; virtual; abstract;
-    procedure SaveToDataBase; virtual; abstract;
-
     //
     function Find(AList: TStringList; const ASearchString: String;
       const ASearchOptions: TgstSearchOptions; const DateFrom:TDate = 0;
       const DateTo: TDate = 0): Boolean;
 
+    function FindID(const AnID: Integer; out SI: TgsStorageItem): Boolean;
+
     property Name: String read GetName;
-    property IsModified: Boolean read FModified write FModified;
+    property IsModified: Boolean read GetModified;
     property DataString: String read GetDataString write SetDataString;
   end;
 
   TgsIBStorage = class(TgsStorage)
   private
-    FExist: Boolean;
-    FLastModified: TDateTime;
-    FLastChecked: LongWord;
-    FValid: Boolean;
+    FObjectKey: Integer;
+    FDataType: Char;
+
+    procedure SetObjectKey(const Value: Integer);
+
+  protected
+    procedure DeleteStorageItem(const AnID: Integer); override;
+    function UpdateName(const Tr: TIBTransaction = nil): String; override;
+
+    property DataType: Char read FDataType write FDataType;
 
   public
-    constructor Create(const AName: String); override;
+    constructor Create; override;
 
-    procedure SaveToDataBase; override;
-    procedure LoadFromDataBase; override;
+    procedure SaveToDataBase(const ATr: TIBTransaction = nil); virtual;
+    procedure LoadFromDataBase; virtual;
+
+    property ObjectKey: Integer read FObjectKey write SetObjectKey;
   end;
 
   TgsCompanyStorage = class(TgsIBStorage)
-  private
-    FCompanyKey: Integer;
-    procedure SetCompanyKey(const Value: Integer);
+  protected
+    function UpdateName(const Tr: TIBTransaction = nil): String; override;
 
   public
-    constructor Create(const AName: String); override;
-
-    procedure SaveToDataBase; override;
-    procedure LoadFromDataBase; override;
-
-  published
-
-    property CompanyKey: Integer read FCompanyKey write SetCompanyKey;
+    constructor Create; override;
   end;
 
   TgsUserStorage = class(TgsIBStorage)
-  private
-    {$IFDEF DEBUG } CountSave: Integer;{$ENDIF}
-    FUserKey: Integer;
-    procedure SetUserKey(const Value: Integer);
-
   protected
-    procedure BeforeOpenFolder; override;
-    procedure AfterCloseFolder; override;
+    function UpdateName(const Tr: TIBTransaction = nil): String; override;
 
   public
-    constructor Create(const AName: String); override;
-
-    procedure SaveToDataBase; override;
-    procedure LoadFromDataBase; override;
-
-  published
-    property UserKey: Integer read FUserKey write SetUserKey;
+    constructor Create; override;
   end;
 
-  TgsGlobalStorage = class(TgsIBStorage)
-  protected
-    procedure BeforeOpenFolder; override;
-    procedure AfterCloseFolder; override;
+  TgsDesktopStorage = class(TgsStorage)
+  {protected
+    function UpdateName(const Tr: TIBTransaction = nil): String; override;
 
   public
-    procedure SaveToDataBase; override;
-    procedure LoadFromDataBase; override;
+    constructor Create; override;}
   end;
+
+  TgsGlobalStorage = class(TgsIBStorage);
 
   EgsStorageError = class(Exception);
   EgsStorageFolderError = class(EgsStorageError);
@@ -580,11 +586,14 @@ type
 
   function DateIntvlCheck(const CheckedDate, DateFrom, DateTo: TDate): Boolean;
 
+  procedure LockStorage(const ALock: Boolean);
+
 implementation
 
 uses
-  JclSysUtils, ZLib, Windows, st_dlgfolderprop_unit, st_dlgeditvalue_unit,
-  gsStorage_CompPath, DB, IB, IBErrorCodes, IBBlob, gdcBaseInterface, jclStrings
+  JclSysUtils, ZLib, Windows, st_dlgfolderprop_unit,
+  st_dlgeditvalue_unit, gsStorage_CompPath, DB, IB, IBErrorCodes,
+  IBBlob, gdcBaseInterface, jclStrings, gdcStorage_Types
   {$IFDEF GEDEMIN}
   , gd_directories_const, Storages, gdc_frmG_unit
   {$ENDIF}
@@ -594,9 +603,11 @@ uses
   {$ENDIF}
   ;
 
-{$IFDEF DEBUG}
 var
+  StorageLoading: Boolean;
+{$IFDEF DEBUG}
   StorageFolderSearchCounter: Integer;
+  LogSL: TStringList;
 {$ENDIF}
 
 const
@@ -622,6 +633,13 @@ begin
    ((CheckedDate >= DateFrom) and (CheckedDate <= DateTo));
 end;
 
+procedure LockStorage(const ALock: Boolean);
+begin
+  if StorageLoading = ALock then
+    raise EgsStorageError.Create('Invalid lock status');
+  StorageLoading := ALock;
+end;
+
 { TgsStorageFolder }
 
 procedure TgsStorageFolder.BuildTreeView(N: TTreeNode; const L: TList = nil);
@@ -631,7 +649,10 @@ var
   P: Pointer;
   S: PString;
 begin
-  N.Text := FName + ' [' + IntToStr(GetDataSize) + ']';
+  if GetDataSize > 0 then
+    N.Text := FName + ' [' + IntToStr(GetDataSize) + ']'
+  else
+    N.Text := FName;
   N.ImageIndex := 0;
   for I := 0 to FoldersCount - 1 do
   begin
@@ -649,64 +670,50 @@ begin
   end;
 end;
 
-procedure TgsStorageFolder.CheckForName(const AName: String);
+function TgsStorageFolder.CheckForName(const AName: String): String;
 begin
-  if (AName = '') or (Length(AName) > 255) or (Assigned(FParent) and (FParent as TgsStorageFolder).FolderExists(AName)) then
-    raise EgsStorageError.Create('Invalid folder name');
+  Result := inherited CheckForName(AName);
+  if Assigned(FParent) and (FParent as TgsStorageFolder).FolderExists(AName) then
+    raise EgsStorageError.Create('Duplicate folder name');
 end;
 
 procedure TgsStorageFolder.Clear;
 begin
-  FreeAndNil(FFolders);
-  FreeAndNil(FValues);
+  FDestroying := True;
+  try
+    FreeAndNil(FFolders);
+    FreeAndNil(FValues);
+    FID := -1;
+  finally
+    FDestroying := False;
+  end;
 end;
 
 function TgsStorageFolder.CreateFolder(
   const AName: String): TgsStorageFolder;
 begin
-  if Pos('\', AName) > 0 then
-    raise EgsStorageError.Create('Invalid folder name');
-  if FolderExists(AName) then
-    raise EgsStorageError.Create('Duplicate folder name');
   Result := TgsStorageFolder.Create(Self, AName);
-  if FFolders = nil then
-    FFolders := TObjectList.Create;
-  FFolders.Add(Result);
 end;
 
 function TgsStorageFolder.DeleteFolder(const AName: String): Boolean;
+var
+  F: TgsStorageFolder;
 begin
-  if FFolders = nil then
-    Result := False
-  else begin
-    Result := FFolders.Remove(FolderByName(AName)) >= 0;
-    if Result then
-    begin
-      if not Storage.Loading then
-        Storage.IsModified := True;
-    end;
-  end;
+  F := FolderByName(AName);
+  if F <> nil then
+  begin
+    F.Drop;
+    Result := True;
+  end else
+    Result := False;
 end;
 
 destructor TgsStorageFolder.Destroy;
 begin
+  FDestroying := True;
   FValues.Free;
   FFolders.Free;
   inherited;
-end;
-
-procedure TgsStorageFolder.DropFolder;
-begin
-  if Storage <> nil then
-    Storage.IsModified := True;
-  if Assigned(FParent) and (FParent is TgsStorageFolder) then
-    with (FParent as TgsStorageFolder) do
-    begin
-      if FFolders <> nil then
-        FFolders.Remove(Self);
-    end
-  else
-    Free;
 end;
 
 function TgsStorageFolder.FolderByName(
@@ -868,11 +875,6 @@ begin
       (F.FoldersCount = 0) and (F.ValuesCount = 0) then
     begin
       F.Free;
-    end else
-    begin
-      if FFolders = nil then
-        FFolders := TObjectList.Create;
-      FFolders.Add(F);
     end;
   end;
   S.ReadBuffer(L, SizeOf(L));
@@ -881,13 +883,7 @@ begin
     V := TgsStorageValue.CreateFromStream(Self, S);
     if V = nil then
       raise EgsStorageFolderError.Create(
-        'Ошибка при считывании значения #' + IntToStr(I) + ' в папке ' + Path)
-    else
-    begin
-      if FValues = nil then
-        FValues := TObjectList.Create;
-      FValues.Add(V);
-    end;
+        'Ошибка при считывании значения #' + IntToStr(I) + ' в папке ' + Path);
   end;
 end;
 
@@ -1020,12 +1016,8 @@ begin
     V.AsInteger := AValue
   else
   begin
-    V := TgsIntegerValue.Create(Self);
-    V.Name := AValueName;
+    V := TgsIntegerValue.Create(Self, AValueName);
     V.AsInteger := AValue;
-    if FValues = nil then
-      FValues := TObjectList.Create;
-    FValues.Add(V);
   end;
 end;
 
@@ -1039,12 +1031,8 @@ begin
     V.AsCurrency := AValue
   else
   begin
-    V := TgsCurrencyValue.Create(Self);
-    V.Name := AValueName;
+    V := TgsCurrencyValue.Create(Self, AValueName);
     V.AsCurrency := AValue;
-    if FValues = nil then
-      FValues := TObjectList.Create;
-    FValues.Add(V);
   end;
 end;
 
@@ -1058,12 +1046,8 @@ begin
     V.AsBoolean := AValue
   else
   begin
-    V := TgsBooleanValue.Create(Self);
-    V.Name := AValueName;
+    V := TgsBooleanValue.Create(Self, AValueName);
     V.AsBoolean := AValue;
-    if FValues = nil then
-      FValues := TObjectList.Create;
-    FValues.Add(V);
   end;
 end;
 
@@ -1077,12 +1061,8 @@ begin
     V.AsDateTime := AValue
   else
   begin
-    V := TgsDateTimeValue.Create(Self);
-    V.Name := AValueName;
+    V := TgsDateTimeValue.Create(Self, AValueName);
     V.AsDateTime := AValue;
-    if FValues = nil then
-      FValues := TObjectList.Create;
-    FValues.Add(V);
   end;
 end;
 
@@ -1095,28 +1075,27 @@ begin
     V.AsString := AValue
   else
   begin
-    V := TgsStringValue.Create(Self);
-    V.Name := AValueName;
+    V := TgsStringValue.Create(Self, AValueName);
     V.AsString := AValue;
-    if FValues = nil then
-      FValues := TObjectList.Create;
-    FValues.Add(V);
   end;
 end;
 
 procedure TgsStorageFolder.ShowPropDialog;
 var
   C: Double;
-  FC, VC: Integer;
+  FC, VC, ChFC, ChVC: Integer;
 
-  procedure CountItems(F: TgsStorageFolder; var AFC, AVC: Integer);
+  procedure CountItems(F: TgsStorageFolder; var AFC, AVC, AChFC, AChVC: Integer);
   var
     I: Integer;
   begin
     Inc(AFC);
+    if F.Changed then Inc(AChFC);
     Inc(AVC, F.ValuesCount);
+    for I := 0 to F.ValuesCount - 1 do
+      if F.Values[I].Changed then Inc(AChVC);
     for I := 0 to F.FoldersCount - 1 do
-      CountItems(F.Folders[I], AFC, AVC);
+      CountItems(F.Folders[I], AFC, AVC, AChFC, AChVC);
   end;
 
 begin
@@ -1132,29 +1111,28 @@ begin
       eLocation.Text := '';
     FC := 0;
     VC := 0;
-    CountItems(Self, FC, VC);
-    lFolders.Caption := IntToStr(FC);
-    lValues.Caption := IntToStr(VC);
+    CountItems(Self, FC, VC, ChFC, ChVC);
+    lFolders.Caption := IntToStr(FC) + ' (' + IntToStr(ChFC) + ')';
+    lValues.Caption := IntToStr(VC) + ' (' + IntToStr(ChVC) + ')';
     C := DataSize;
     lSize.Caption := FloatToStrF(C, ffNumber, 10, 0) + ' байт';
-    lModified.Caption := FormatDateTime('dd.mm.yyyy hh:nn:ss', FModified);
+    lModified.Caption := FormatDateTime('dd.mm.yy hh:nn:ss', Modified);;
   end;
 
   st_dlgfolderprop.ShowModal;
 end;
 
 function TgsStorageFolder.DeleteValue(const AValueName: String): Boolean;
+var
+  V: TgsStorageValue;
 begin
-  if FValues = nil then
-    Result := False
-  else begin
-    Result := FValues.Remove(ValueByName(AValueName)) >= 0;
-    if Result then
-    begin
-      if not Storage.Loading then
-        Storage.IsModified := True;
-    end;
-  end;
+  V := ValueByName(AValueName);
+  if V <> nil then
+  begin
+    V.Drop;
+    Result := True;
+  end else
+    Result := False;
 end;
 
 function TgsStorageFolder.FolderExists(const AFolderName: String): Boolean;
@@ -1195,12 +1173,8 @@ begin
     end;
   end else
   begin
-    V := TgsStreamValue.Create(Self);
-    V.Name := AValueName;
+    V := TgsStreamValue.Create(Self, AValueName);
     (V as TgsStreamValue).LoadDataFromStream(S);
-    if FValues = nil then
-      FValues := TObjectList.Create;
-    FValues.Add(V);
   end;
 end;
 
@@ -1230,34 +1204,28 @@ begin
     end
 end;
 
-function TgsStorageFolder.MoveFolder(NewParent: TgsStorageFolder): Boolean;
+{function TgsStorageFolder.MoveFolder(NewParent: TgsStorageFolder): Boolean;
 begin
   Result := (NewParent is TgsStorageFolder) and (not FindFolder(NewParent));
   if Result then
     NewParent.AddFolder(Self);
-end;
+end;}
 
 procedure TgsStorageFolder.ExtractFolder(F: TgsStorageFolder);
 begin
-  if FFolders <> nil then
-    FFolders.Extract(F);
+  RemoveChildren(F);
 end;
 
-function TgsStorageFolder.AddFolder(F: TgsStorageFolder): Integer;
+procedure TgsStorageFolder.AddFolder(F: TgsStorageFolder);
 begin
   if not (F is TgsStorageFolder) then
     raise EgsStorageError.Create('Invalid folder specified');
   if FindFolder(F) then
     raise EgsStorageError.Create('Duplicate folder');
-  if FFolders = nil then
-    FFolders := TObjectList.Create;
-
-  if F.Parent is TgsStorageFolder then
-    (F.Parent as TgsStorageFolder).ExtractFolder(F);
+  if F.Parent <> nil then
+    F.Parent.RemoveChildren(F);
   F.FParent := Self;
-  Result := FFolders.Add(F);
-
-  Storage.IsModified := True;
+  AddChildren(F);
 end;
 
 procedure TgsStorageFolder.WriteValue(AValue: TgsStorageValue);
@@ -1268,12 +1236,8 @@ begin
   begin
     if ValueByName(AValue.Name) <> nil then
       raise EgsStorageError.Create('Duplicate value name');
-    V := TgsStorageValueClass(AValue.ClassType).Create(Self);
-    V.Assign(AValue);
-    V.Name := AValue.Name;
-    if FValues = nil then
-      FValues := TObjectList.Create;
-    FValues.Add(V);
+    V := TgsStorageValueClass(AValue.ClassType).Create(Self, AValue.Name, AValue.ID);
+    V.AsString := AValue.AsString;
   end;
 end;
 
@@ -1389,13 +1353,6 @@ begin
         V := TgsCurrencyValue.Create(Self, ValueName)
       else if ValueType = 'St' then
         V := TgsStreamValue.Create(Self, ValueName);
-
-      if V <> nil then
-      begin
-        if FValues = nil then
-          FValues := TObjectList.Create;
-        FValues.Add(V);
-      end;
     end;
 
     if V <> nil then
@@ -1406,11 +1363,7 @@ end;
 procedure TgsStorageFolder.AddValueFromStream(AValueName: String; S: TStream);
 begin
   DeleteValue(AValueName);
-  if FValues = nil then
-    FValues := TObjectList.Create;
-  FValues.Add(TgsStorageValue.CreateFromStream(Self, S));
-  if not Storage.Loading then
-    Storage.IsModified := True;
+  TgsStorageValue.CreateFromStream(Self, S);
 end;
 
 class procedure TgsStorageFolder.SkipValueInStream(S: TStream);
@@ -1428,6 +1381,47 @@ begin
   else
     raise EgsStorageError.Create('Invalid value type');
   end;
+end;
+
+procedure TgsStorageFolder.AddChildren(SI: TgsStorageItem);
+begin
+  if SI is TgsStorageFolder then
+  begin
+    if FFolders = nil then
+      FFolders := TObjectList.Create;
+    FFolders.Add(SI);
+    SI.FParent := Self;
+  end
+  else if SI is TgsStorageValue then
+  begin
+    if FValues = nil then
+      FValues := TObjectList.Create;
+    FValues.Add(SI);
+    SI.FParent := Self;
+  end;
+end;
+
+procedure TgsStorageFolder.RemoveChildren(SI: TgsStorageItem);
+begin
+  if not FDestroying then
+  begin
+    if (SI is TgsStorageFolder) and (SI.FParent = Self) then
+    begin
+      if FFolders <> nil then
+        FFolders.Extract(SI);
+      SI.FParent := nil;
+    end else if (SI is TgsStorageValue) and (SI.Parent = Self) then
+    begin
+      if FValues <> nil then
+        FValues.Extract(SI);
+      SI.FParent := nil;
+    end;
+  end;
+end;
+
+class function TgsStorageFolder.GetTypeName: Char;
+begin
+  Result := cStorageFolder;
 end;
 
 { TgsStorage }
@@ -1453,14 +1447,12 @@ begin
   FRootFolder.Clear;
 end;
 
-constructor TgsStorage.Create(const AName: String);
+constructor TgsStorage.Create;
 begin
   inherited Create;
 
-  FRootFolder := TgsRootFolder.Create(nil, AName);
+  FRootFolder := TgsRootFolder.Create(nil, UpdateName);
   FRootFolder.FStorage := Self;
-
-  FLoading := False;
 
   {$IFDEF DEBUG}
   FOpenFolders := TStringList.Create;
@@ -1587,12 +1579,12 @@ begin
     {$IFDEF GEDEMIN}
     else if ALoadAdmin then
     begin
-      if (Self = UserStorage) and (UserStorage.UserKey <> ADMIN_KEY) then
+      if (Self = UserStorage) and (UserStorage.ObjectKey <> ADMIN_KEY) then
       begin
         if AdminStorage = nil then
         begin
-          AdminStorage := TgsUserStorage.Create('US');
-          AdminStorage.UserKey := ADMIN_KEY;
+          AdminStorage := TgsUserStorage.Create;
+          AdminStorage.ObjectKey := ADMIN_KEY;
         end;
 
         F := AdminStorage.OpenFolder(Path, False, False);
@@ -1641,7 +1633,6 @@ begin
       FS.Free;
     end;
   end;
-  FModified := True;
 end;
 
 procedure TgsStorage.LoadFromStream(S: TStream);
@@ -1649,33 +1640,28 @@ var
   H: TgsStorageHeader;
   DS: TZDecompressionStream;
 begin
-  FLoading := True;
-  try
-    Clear;
+  Clear;
 
-    if not Assigned(S) then
-      exit;
+  if not Assigned(S) then
+    exit;
 
-    S.ReadBuffer(H, SizeOf(H));
+  S.ReadBuffer(H, SizeOf(H));
 
-    if (H.Signature <> shSignature) or (H.Version <> shVersion) then
-      raise EgsStorageFolderError.Create('Invalid stream format');
+  if (H.Signature <> shSignature) or (H.Version <> shVersion) then
+    raise EgsStorageFolderError.Create('Invalid stream format');
 
-    if H.CompressionType = shNoCompression then
-    begin
-      FRootFolder.LoadFromStream(S);
-    end
-    else if H.CompressionType = shZLibCompression then
-    begin
-      DS := TZDecompressionStream.Create(S);
-      try
-        FRootFolder.LoadFromStream(DS);
-      finally
-        DS.Free;
-      end;
+  if H.CompressionType = shNoCompression then
+  begin
+    FRootFolder.LoadFromStream(S);
+  end
+  else if H.CompressionType = shZLibCompression then
+  begin
+    DS := TZDecompressionStream.Create(S);
+    try
+      FRootFolder.LoadFromStream(DS);
+    finally
+      DS.Free;
     end;
-  finally
-    FLoading := False;
   end;
 end;
 
@@ -2135,7 +2121,7 @@ begin
   if F = FRootFolder then
     raise EgsStorageFolderError.Create('Can not delete root folder!');
   if F <> nil then
-    F.DropFolder;
+    F.Drop;
   if SyncWithDatabase then
     AfterCloseFolder;
 end;
@@ -2154,644 +2140,692 @@ begin
   end;
 end;
 
-{ TgsIBStorage }
+function TgsStorage.GetModified: Boolean;
 
-constructor TgsIBStorage.Create(const AName: String);
+  function Scan(F: TgsStorageFolder): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := F.Changed;
+    if not Result then
+    begin
+      for I := 0 to F.FoldersCount - 1 do
+      begin
+        Result := Scan(F.Folders[I]);
+        if Result then exit;
+      end;
+      for I := 0 to F.ValuesCount - 1 do
+      begin
+        Result := F.Values[I].Changed;
+        if Result then exit;
+      end;
+    end;
+  end;
+
 begin
-  inherited Create(AName);
-  FExist := False;
-  FLastModified := 0;
-  FLastChecked := 0;
-  FValid := False;
+  Result := Scan(FRootFolder);
 end;
 
-procedure TgsIBStorage.SaveToDataBase;
+function TgsStorage.FindID(const AnID: Integer;
+  out SI: TgsStorageItem): Boolean;
+
+  function DoRecurse(F: TgsStorageFolder): Boolean;
+  var
+    I: Integer;
+  begin
+    if F.ID = AnID then
+    begin
+      SI := F;
+      Result := True;
+    end else
+    begin
+      for I := 0 to F.FoldersCount - 1 do
+      begin
+        if DoRecurse(F.Folders[I]) then
+        begin
+          Result := True;
+          exit;
+        end;
+      end;
+
+      for I := 0 to F.ValuesCount - 1 do
+      begin
+        if F.Values[I].ID = AnID then
+        begin
+          SI := F.Values[I];
+          Result := True;
+          exit;
+        end;
+      end;
+
+      Result := False;
+    end;
+  end;
+
 begin
-  Assert(IBLogin.DataBase <> nil, 'Не подключен DataBase');
-  FLastChecked := GetTickCount;
+  Result := DoRecurse(FRootFolder);
+end;
+
+procedure TgsStorage.DeleteStorageItem(const AnID: Integer);
+begin
+  //
+end;
+
+function TgsStorage.UpdateName(const Tr: TIBTransaction = nil): String;
+begin
+  Result := 'RootFolder';
+end;
+
+{ TgsIBStorage }
+
+procedure TgsIBStorage.SaveToDataBase(const ATr: TIBTransaction = nil);
+var
+  q, qID: TIBSQL;
+  Tr: TIBTransaction;
+  CurrID, LimitID, CutOff: Integer;
+  Failed: Boolean;
+
+  {$IFDEF DEBUG}
+  procedure LogQuery;
+  var
+    S: String;
+  begin
+    if q.ParamByName('parent').IsNull then
+      exit;
+
+    S := Format(
+      'UPDATE OR INSERT INTO gd_storage_data (id, parent, name, data_type, ' +
+      ' editorkey) ' +
+      'VALUES (%d, %d, ''%s'', ''F'', ' +
+      ' %d) ' +
+      'MATCHING (id); ', [
+        q.ParamByName('id').AsInteger,
+        q.ParamByName('parent').AsInteger,
+        q.ParamByName('name').AsString,
+        IBLogin.ContactKey
+      ]);
+
+    LogSL.Add(S);
+  end;
+  {$ENDIF}
+
+
+  function GetNextID: Integer;
+  begin
+    if ATr = nil then
+      Result := gdcBaseManager.GetNextID
+    else
+    begin
+      if CurrID < LimitID then
+        Inc(CurrID)
+      else begin
+        if qID = nil then
+        begin
+          qID := TIBSQL.Create(nil);
+          qID.Transaction := Tr;
+          qID.SQL.Text := 'SELECT GEN_ID(gd_g_unique, 1000) FROM rdb$database';
+        end;
+        qID.ExecQuery;
+        LimitID := qID.Fields[0].AsInteger;
+        CurrID := LimitID - 1000 + 1;
+        qID.Close;
+      end;
+      Result := CurrID;
+    end;
+  end;
+
+  procedure ClearParams;
+  begin
+    q.ParamByName('str_data').Clear;
+    q.ParamByName('int_data').Clear;
+    q.ParamByName('datetime_data').Clear;
+    q.ParamByName('curr_data').Clear;
+    q.ParamByName('blob_data').Clear;
+    q.ParamByName('editorkey').AsInteger := IBLogin.ContactKey;
+  end;
+
+  procedure DoRecurse(F: TgsStorageFolder);
+  var
+    I, P, J, FoundID: Integer;
+    V: TgsStorageValue;
+  begin
+    if F.Changed then
+    begin
+      if F.ID = -1 then
+        F.FID := GetNextID;
+
+      q.ParamByName('id').AsInteger := F.ID;
+      q.ParamByName('name').AsString := F.Name;
+      q.ParamByName('editiondate').AsDateTime := F.Modified;
+
+      if F.Parent <> nil then
+      begin
+        q.ParamByName('parent').AsInteger := F.Parent.ID;
+        q.ParamByName('data_type').AsString := cStorageFolder;
+        ClearParams;
+      end else
+        q.ParamByName('parent').Clear;
+
+      Failed := False;
+      CutOff := 5;
+      repeat
+        try
+          {$IFDEF DEBUG}LogQuery;{$ENDIF}
+          q.ExecQuery;
+          CutOff := 0;
+        except
+          on E: EIBError do
+          begin
+            if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
+            begin
+              if CutOff > 1 then
+              begin
+                Sleep(500);
+                Dec(CutOff);
+              end else
+              begin
+                Failed := True;
+                CutOff := 0;
+              end;
+            end else
+            begin
+              P := Pos('. ID=', E.Message);
+              if P > 0 then
+              begin
+                J := P + 5;
+                while (J <= Length(E.Message)) and (E.Message[J] in ['0'..'9']) do
+                  Inc(J);
+                FoundID := StrToIntDef(Copy(E.Message, P + 5, J - P - 5), -1);
+              end else
+                FoundID := -1;
+              if FoundID > 0 then
+              begin
+                F.FID := FoundID;
+                q.ParamByName('id').AsInteger := F.ID;
+                CutOff := 5;
+              end else
+                raise;
+            end;
+          end;
+        end;
+      until CutOff = 0;
+
+      if not Failed then
+        F.FChanged := False;
+    end;
+
+    for I := 0 to F.FoldersCount - 1 do
+      DoRecurse(F.Folders[I]);
+
+    for I := 0 to F.ValuesCount - 1 do
+    begin
+      V := F.Values[I];
+      if V.Changed then
+      begin
+        if V.ID = -1 then
+          V.FID := GetNextID;
+        ClearParams;
+        q.ParamByName('id').AsInteger := V.ID;
+        q.ParamByName('parent').AsInteger := F.ID;
+        q.ParamByName('name').AsString := V.Name;
+        q.ParamByName('editiondate').AsDateTime := V.Modified;
+        if V is TgsStringValue then
+        begin
+          if Length(V.AsString) <= cStorageMaxStrLen then
+          begin
+            q.ParamByName('data_type').AsString := cStorageString;
+            q.ParamByName('str_data').AsString := V.AsString;
+          end else
+          begin
+            q.ParamByName('data_type').AsString := cStorageBLOB;
+            q.ParamByName('blob_data').AsString := V.AsString;
+          end;
+        end
+        else if V is TgsIntegerValue then
+        begin
+          q.ParamByName('data_type').AsString := cStorageInteger;
+          q.ParamByName('int_data').AsInteger := V.AsInteger;
+        end
+        else if V is TgsBooleanValue then
+        begin
+          q.ParamByName('data_type').AsString := cStorageBoolean;
+          q.ParamByName('int_data').AsInteger := V.AsInteger;
+        end
+        else if V is TgsDateTimeValue then
+        begin
+          q.ParamByName('data_type').AsString := cStorageDateTime;
+          q.ParamByName('datetime_data').AsDateTime := V.AsDateTime;
+        end
+        else if V is TgsCurrencyValue then
+        begin
+          q.ParamByName('data_type').AsString := cStorageCurrency;
+          q.ParamByName('curr_data').AsCurrency := V.AsCurrency;
+        end
+        else if V is TgsStreamValue then
+        begin
+          q.ParamByName('data_type').AsString := cStorageBlob;
+          if V.AsString > '' then //!!! Надо по другому делать проверку на пустой БЛОБ
+          begin
+            TgsStreamValue(V).SaveBLOB(q.Transaction);
+            q.ParamByName('blob_data').AsQuad := TgsStreamValue(V).AsQuad;
+          end else
+            q.ParamByName('blob_data').Clear;
+        end;
+
+        Failed := False;
+        CutOff := 5;
+        repeat
+          try
+            {$IFDEF DEBUG}LogQuery;{$ENDIF}
+            q.ExecQuery;
+            CutOff := 0;
+          except
+            on E: EIBError do
+            begin
+              if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
+              begin
+                if CutOff > 1 then
+                begin
+                  Sleep(500);
+                  Dec(CutOff);
+                end else
+                begin
+                  Failed := True;
+                  CutOff := 0;
+                end;
+              end else
+              begin
+                P := Pos('. ID=', E.Message);
+                if P > 0 then
+                begin
+                  J := P + 5;
+                  while (J <= Length(E.Message)) and (E.Message[J] in ['0'..'9']) do
+                    Inc(J);
+                  FoundID := StrToIntDef(Copy(E.Message, P + 5, J - P - 5), -1);
+                end else
+                  FoundID := -1;
+                if FoundID > 0 then
+                begin
+                  V.FID := FoundID;
+                  q.ParamByName('id').AsInteger := V.ID;
+
+                  if V is TgsStreamValue then
+                  begin
+                    if V.AsString > '' then
+                    begin
+                      TgsStreamValue(V).SaveBLOB(q.Transaction);
+                      q.ParamByName('blob_data').AsQuad := TgsStreamValue(V).AsQuad;
+                    end else
+                      q.ParamByName('blob_data').Clear;
+                  end;
+
+                  CutOff := 5;
+                end else
+                begin
+                  raise;
+                end;
+              end;
+            end else
+              raise;
+          end;
+        until CutOff = 0;
+
+        if not Failed then
+          V.FChanged := False;
+      end;
+    end;
+  end;
+
+begin
+  Assert(IBLogin <> nil);
+  Assert(IBLogin.Database <> nil);
+  Assert(gdcBaseManager <> nil);
+
+  if (FObjectKey = -1) and (FDataType <> cStorageGlobal) then
+    exit;
+
+  if (ATr = nil) and (not IBLogin.Database.Connected) then
+    exit;
+
+  if ATr = nil then
+    Tr := TIBTransaction.Create(nil)
+  else
+    Tr := ATr;
+  q := TIBSQL.Create(nil);
+  qID := nil;
+  CurrID := -1;
+  LimitID := -1;
+  try
+    if ATr = nil then
+    begin
+      Tr.DefaultAction := taRollback;
+      Tr.DefaultDatabase := IBLogin.Database;
+      Tr.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait';
+      Tr.StartTransaction;
+    end;
+
+    FRootFolder.Name := UpdateName(Tr);
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'UPDATE OR INSERT INTO gd_storage_data (id, parent, name, data_type, ' +
+      '  str_data, int_data, datetime_data, curr_data, blob_data, editorkey, editiondate) ' +
+      'VALUES (:id, :parent, :name, :data_type, ' +
+      '  :str_data, :int_data, :datetime_data, :curr_data, :blob_data, :editorkey, :editiondate) ' +
+      'MATCHING (id) ';
+    q.Prepare;
+    ClearParams;
+
+    q.ParamByName('data_type').AsString := FDataType;
+    if FDataType <> cStorageGlobal then
+      q.ParamByName('int_data').AsInteger := FObjectKey;
+
+    DoRecurse(FRootFolder);
+
+    if ATr = nil then
+      Tr.Commit;
+  finally
+   {$IFDEF DEBUG}LogSL.SaveToFile('d:\log.txt');{$ENDIF}
+
+    qID.Free;
+    q.Free;
+    if ATr = nil then
+      Tr.Free;
+  end;
 end;
 
 procedure TgsIBStorage.LoadFromDataBase;
+var
+  q: TIBSQL;
+
+  procedure DoRecurse(F: TgsStorageFolder);
+  var
+    V: TgsStorageValue;
+    RB: Integer;
+  begin
+    F.FID := q.FieldByName('id').AsInteger;
+    F.FModified := q.FieldByName('editiondate').AsDateTime;
+    RB := q.FieldByName('rb').AsInteger;
+    q.Next;
+
+    while (not q.EOF) and (q.FieldByName('rb').AsInteger <= RB) do
+    begin
+      if q.FieldByName('data_type').AsString = 'F' then
+      begin
+        DoRecurse(F.CreateFolder(q.FieldByName('name').AsString));
+      end else
+      begin
+        V := nil;
+        case q.FieldByName('data_type').AsString[1] of
+        cStorageString:
+          begin
+            V := TgsStringValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            V.AsString := q.FieldByName('str_data').AsString;
+          end;
+
+        cStorageInteger:
+          begin
+            V := TgsIntegerValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            V.AsInteger := q.FieldByName('int_data').AsInteger;
+          end;
+
+        cStorageCurrency:
+          begin
+            V := TgsCurrencyValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            V.AsCurrency := q.FieldByName('curr_data').AsCurrency;
+          end;
+
+        cStorageBoolean:
+          begin
+            V := TgsBooleanValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            V.AsInteger := q.FieldByName('int_data').AsInteger;
+          end;
+
+        cStorageDateTime:
+          begin
+            V := TgsDateTimeValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            V.AsDateTime := q.FieldByName('datetime_data').AsDateTime;
+          end;
+
+        cStorageBlob:
+          begin
+            V := TgsStreamValue.Create(F, q.FieldByName('name').AsString, q.FieldByName('id').AsInteger);
+            if not q.FieldByName('blob_data').IsNull then
+              TgsStreamValue(V).AsQUAD := q.FieldByName('blob_data').AsQUAD;
+          end;
+        end;
+
+        if V <> nil then
+          V.FModified := q.FieldByName('editiondate').AsDateTime;
+
+        q.Next;
+      end;
+    end;
+  end;
+
+var
+  SQL: String;
+
 begin
+  Assert(IBLogin <> nil);
   Assert(IBLogin.DataBase <> nil, 'Не подключен DataBase');
-  FLastChecked := GetTickCount;
+
+  Clear;
+
+  if (FObjectKey = -1) and (FDataType <> cStorageGlobal) then
+    exit;
+
+  if not IBLogin.Database.Connected then
+    exit;
+
+  LockStorage(True);
+  q := TIBSQL.Create(nil);
+  try
+    if FDataType <> cStorageGlobal then
+      SQL := 'AND r.int_data = :ID '
+    else
+      SQL := '';
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT d.id, d.lb, d.rb, d.parent, d.name, d.data_type, d.str_data, ' +
+      '  d.int_data, d.datetime_data, d.curr_data, d.blob_data, d.editiondate ' +
+      'FROM gd_storage_data d JOIN gd_storage_data r ' +
+      '  ON d.lb BETWEEN r.lb AND r.rb AND r.data_type = :DT AND r.parent IS NULL ' + SQL +
+      'ORDER BY d.lb';
+    q.ParamByName('DT').AsString := FDataType;
+    if FDataType <> cStorageGlobal then
+      q.ParamByName('ID').AsInteger := FObjectKey;
+    q.ExecQuery;
+    FRootFolder.Name := UpdateName;
+    if not q.EOF then
+    begin
+      FRootFolder.FChanged := False;
+      DoRecurse(FRootFolder);
+    end;
+  finally
+    q.Free;
+    LockStorage(False);
+  end;
+end;
+
+procedure TgsIBStorage.DeleteStorageItem(const AnID: Integer);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+  CutOff: Integer;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    CutOff := 5;
+    repeat
+      try
+        q.SQL.Text := 'DELETE FROM gd_storage_data WHERE id = :ID';
+        q.Params[0].AsInteger := AnID;
+        q.ExecQuery;
+        CutOff := 0;
+      except
+        on E: EIBError do
+        begin
+          if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
+          begin
+            if (CutOff > 1) and Tr.InTransaction then
+            begin
+              Tr.Rollback;
+              Sleep(500);
+              Dec(CutOff);
+              Tr.StartTransaction;
+            end else
+              raise;
+          end else
+            raise;
+        end else
+          raise;
+      end;
+    until CutOff = 0;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure TgsIBStorage.SetObjectKey(const Value: Integer);
+begin
+  if FDataType <> cStorageGlobal then
+  begin
+    if FObjectKey <> Value then
+    begin
+      SaveToDatabase;
+      FObjectKey := Value;
+      LoadFromDatabase;
+    end;
+  end else
+    raise EgsStorageError.Create('Can not set id for global storage');  
+end;
+
+constructor TgsIBStorage.Create;
+begin
+  FDataType := cStorageGlobal;
+  FObjectKey := -1;
+  inherited;
+end;
+
+function TgsIBStorage.UpdateName(const Tr: TIBTransaction = nil): String;
+begin
+  Result := 'GLOBAL';
 end;
 
 { TgsUserStorage }
 
-constructor TgsUserStorage.Create(const AName: String);
+constructor TgsUserStorage.Create;
 begin
-  inherited Create(AName);
-  FUserKey := -1;
-  {$IFDEF DEBUG } CountSave := 0;{$ENDIF}
+  inherited;
+  DataType := cStorageUser;
 end;
 
-procedure TgsUserStorage.SaveToDataBase;
+function TgsUserStorage.UpdateName(const Tr: TIBTransaction = nil): String;
 var
-  Transaction: TIBTransaction;
   q: TIBSQL;
-  F: Integer;
 begin
-  if FUserKey = -1 then
-    exit;
+  Result := 'USER';
 
-  inherited SaveToDatabase;
-
-  if not FValid then
-    exit;
-
-  if IsModified then
+  if (FObjectKey > -1) and (IBLogin <> nil) then
   begin
-    F := 5;
-    repeat
-      q := TIBSQL.Create(nil);
-      Transaction := TIBTransaction.Create(nil);
-      try
-        Transaction.DefaultDatabase := IBLogin.Database;
-        q.Transaction := Transaction;
-        Transaction.StartTransaction;
-
-        q.SQL.Text := 'SELECT userkey FROM gd_userstorage WHERE userkey = :userkey';
-        q.ParamByName('userkey').AsInteger := FUserKey;
-        q.ExecQuery;
-
-        if not q.EOF then
-        begin
-          q.Close;
-          q.SQL.Text :=
-            'UPDATE gd_userstorage SET data = :data, modified = ''NOW'' WHERE userkey = :userkey';
-        end else
-        begin
-          q.Close;
-          q.SQL.Text :=
-            'INSERT INTO gd_userstorage (userkey, data, modified) VALUES(:userkey, :data, ''NOW'')';
-        end;
-
-        try
-          q.ParamByName('userkey').AsInteger := FUserKey;
-          q.ParamByName('data').AsString := DataString;
-
-          try
-            q.ExecQuery;
-            Transaction.Commit;
-
-            Transaction.StartTransaction;
-            q.SQL.Text :=
-              'SELECT modified FROM gd_userstorage WHERE userkey = :userkey';
-            q.ParamByName('userkey').AsInteger := FUserKey;
-            q.ExecQuery;
-
-            FLastModified := q.Fields[0].AsDateTime;
-            FModified := False;
-            FExist := True;
-
-            q.Close;
-            Transaction.Commit;
-            F := 0;
-          except
-            on E: EIBError do
-            begin
-              if (E.IBErrorCode = isc_deadlock) or (E.IBErrorCode = isc_lock_conflict) then
-              begin
-                if Transaction.InTransaction then
-                  Transaction.Rollback;
-                Dec(F);
-                Sleep(1000);
-              end else
-                raise;
-            end else
-              raise;
-          end;
-        except
-          on E: Exception do
-          begin
-            MessageBox(0,
-              PCHar('Произошла ошибка при сохранении пользовательского хранилища для UserKey=' + IntToStr(FUserKey) + '.' +
-              #13#10 + #13#10 +
-              'Сообщение об ошибке: ' + E.Message),
-              'Внимание',
-              MB_TASKMODAL or MB_OK or MB_ICONHAND);
-            // иначе получим бесконечный цикл
-            F := 0;
-          end;
-        end;
-
-      finally
-        q.Free;
-        Transaction.Free;
-      end;
-    until F = 0;
-
-    if FModified then
-      FLastChecked := 0;
+     if FObjectKey = IBLogin.UserKey then
+     begin
+       Result := Result + ' - ' + IBLogin.UserName;
+     end else
+     begin
+       q := TIBSQL.Create(nil);
+       try
+         if Tr = nil then
+           q.Transaction := gdcBaseManager.ReadTransaction
+         else
+           q.Transaction := Tr;
+         q.SQL.Text := 'SELECT name FROM gd_user WHERE id = :ID';
+         q.ParamByName('ID').AsInteger := FObjectKey;
+         q.ExecQuery;
+         if not q.EOF then
+           Result := Result + ' - ' + q.Fields[0].AsTrimString;
+       finally
+         q.Free;
+       end;
+     end;
   end;
-end;
-
-procedure TgsUserStorage.LoadFromDataBase;
-var
-  IBSQL: TIBSQL;
-  Transaction: TIBTransaction;
-  bs: TIBBlobStream;
-begin
-  if FUserKey = -1 then
-    exit;
-
-  inherited LoadFromDatabase;
-
-  FValid := False;
-  IBSQL := TIBSQL.Create(nil);
-  Transaction := TIBTransaction.Create(nil);
-  try
-    Transaction.DefaultDatabase := IBLogin.DataBase;
-    IBSQL.Transaction := Transaction;
-
-    Transaction.StartTransaction;
-
-    IBSQL.SQL.Text :=
-      'SELECT data, modified FROM gd_userstorage WHERE userkey = :UserKey';
-    IBSQL.ParamByName('userkey').AsInteger := FUserKey;
-    IBSQL.ExecQuery;
-
-    FExist := IBSQL.RecordCount > 0;
-    if FExist then
-    begin
-      FLastModified := IBSQL.FieldByName('modified').AsDateTime;
-
-      if not FValid then
-      begin
-        bs := TIBBlobStream.Create;
-        try
-          bs.Mode := bmRead;
-          bs.Database := IBSQL.Database;
-          bs.Transaction := IBSQL.Transaction;
-          bs.BlobID := IBSQL.FieldByName('data').AsQuad;
-          try
-            LoadFromStream(bs);
-            FValid := True;
-          except
-            on E:Exception do
-            begin
-              MessageBox(0,
-                PCHar('Произошла ошибка при загрузке пользовательского хранилища для UserKey=' + IntToStr(FUserKey) + '.' +
-                #13#10 + #13#10 +
-                'Сообщение об ошибке: ' + E.Message),
-                'Внимание',
-                MB_TASKMODAL or MB_OK or MB_ICONHAND);
-
-              FValid := True;
-            end;
-          end;
-        finally
-          bs.Free;
-        end;
-      end;
-    end else
-    begin
-      Clear;
-      FExist := True;
-      FValid := True;
-    end;
-
-    if Assigned(IBLogin) and (IBLogin.UserKey = FUserKey) then
-    else
-      FRootFolder.Name := 'USER(' + IBLogin.UserName + ')';
-    begin
-      IBSQL.Close;
-      IBSQL.SQL.Text := 'SELECT name FROM gd_user WHERE id=' + IntToStr(FUserKey);
-      IBSQL.ExecQuery;
-      FRootFolder.Name := 'USER(' + IBSQL.FieldByName('NAME').AsString + ')';
-    end;
-  finally
-    IBSQL.Free;
-    if Transaction.InTransaction then
-      Transaction.Commit;
-    Transaction.Free;
-  end;
-
-  FModified := False;
-end;
-
-procedure TgsUserStorage.SetUserKey(const Value: Integer);
-begin
-  if FUserKey <> Value then
-  begin
-    if FUserKey <> -1 then SaveToDatabase;
-    FUserKey := Value;
-    if FUserKey <> -1 then LoadFromDatabase
-      else Clear;
-  end;
-end;
-
-procedure TgsUserStorage.AfterCloseFolder;
-begin
-  if Assigned(IBLogin) and IBLogin.LoggedIn
-    and ((FUserKey <> IBLogin.UserKey) or (IBLogin.IsIBUserAdmin))
-    and IsModified then
-  begin
-    SaveToDatabase;
-  end;  
-end;
-
-procedure TgsUserStorage.BeforeOpenFolder;
-var
-  IBSQL: TIBSQL;
-begin
-  if FUserKey = -1 then
-    exit;
-
-  if Assigned(IBLogin) and (IBLogin.LoggedIn)
-    and ((FUserKey <> IBLogin.UserKey) or (IBLogin.IsIBUserAdmin)) then
-  begin
-    if not FExist then
-      LoadFromDatabase
-    else if (GetTickCount - FLastChecked > CacheTime)
-      or (GetTickCount < FLastChecked) then
-    begin
-      IBSQL := TIBSQl.Create(nil);
-      try
-        IBSQL.Transaction := gdcBaseManager.ReadTransaction;
-        IBSQL.SQL.Text := 'SELECT modified FROM gd_userstorage WHERE userkey = :userkey';
-        IBSQL.ParamByName('userkey').AsInteger := FUserKey;
-        IBSQL.ExecQuery;
-        if IBSQL.RecordCount > 0 then
-        begin
-          if IBSQL.FieldByName('modified').AsDateTime <> FLastModified then
-            LoadFromDataBase;
-        end;
-        FLastChecked := GetTickCount;
-      finally
-        IBSQL.Free;
-      end;
-    end;
-  end;
-end;
-
-{ TgsGlobalStorage }
-
-procedure TgsGlobalStorage.BeforeOpenFolder;
-var
-  IBSQL: TIBSQL;
-begin
-  if Assigned(IBLogin) and IBLogin.LoggedIn then
-  begin
-    if not FExist then
-      LoadFromDatabase
-    else if (GetTickCount - FLastChecked > CacheTime)
-      or (GetTickCount < FLastChecked) then
-    begin
-      IBSQL := TIBSQl.Create(nil);
-      try
-        IBSQL.Transaction := gdcBaseManager.ReadTransaction;
-        IBSQL.SQL.Text := 'SELECT modified FROM gd_globalstorage';
-        IBSQL.ExecQuery;
-        if IBSQL.RecordCount > 0 then
-          if IBSQL.FieldByName('modified').AsDateTime <> FLastModified then
-            LoadFromDataBase;
-        FLastChecked := GetTickCount;
-      finally
-        IBSQL.Free;
-      end;
-    end;
-  end;  
-end;
-
-procedure TgsGlobalStorage.AfterCloseFolder;
-begin
-  if Assigned(IBLogin) and IBLogin.LoggedIn and IsModified then
-    SaveToDatabase;
-end;
-
-procedure TgsGlobalStorage.SaveToDataBase;
-var
-  IBSQL: TIBSQL;
-  Transaction: TIBTransaction;
-  F: Integer;
-  TempLastModified: TDateTime;
-  bs: TIBBlobStream;
-begin
-  inherited SaveToDatabase;
-
-  if not FValid then
-    exit;
-
-  if (FRootFolder.FoldersCount = 0) and (FRootFolder.ValuesCount = 0) then
-    exit;  
-
-  if IsModified then
-  begin
-    F := 5;
-    repeat
-      IBSQL := TIBSQL.Create(nil);
-      Transaction := TIBTransaction.Create(nil);
-      try
-        Transaction.DefaultDatabase := IBLogin.DataBase;
-        IBSQL.Transaction := Transaction;
-        Transaction.StartTransaction;
-
-        IBSQL.SQL.Text := 'SELECT modified FROM gd_globalstorage';
-        IBSQL.ExecQuery;
-        FExist := IBSQL.RecordCount > 0;
-
-        try
-          try
-            IBSQL.Close;
-            if FExist then
-              IBSQL.SQL.Text := 'UPDATE gd_globalstorage SET data=:D, modified=''NOW'''
-            else
-              IBSQL.SQL.Text := 'INSERT INTO gd_globalstorage (data, modified) VALUES(:D, ''NOW'')';
-            IBSQL.Prepare;
-
-            bs := TIBBlobStream.Create;
-            try
-              bs.Mode := bmWrite;
-              bs.Database := IBSQL.Database;
-              bs.Transaction := IBSQL.Transaction;
-              SaveToStream(bs);
-              bs.Finalize;
-              IBSQL.ParamByName('D').AsQuad := bs.BlobID;
-              IBSQL.ExecQuery;
-            finally
-              bs.Free;
-            end;
-
-            IBSQL.Close;
-            IBSQL.SQL.Text := 'SELECT modified FROM gd_globalstorage';
-            IBSQL.ExecQuery;
-            TempLastModified := IBSQL.Fields[0].AsDateTime;
-            IBSQL.Close;
-
-            Transaction.Commit;
-            FExist := True;
-            FModified := False;
-            FLastModified := TempLastModified;
-            F := 0;
-          except
-            on E: EIBError do
-            begin
-              if (E.IBErrorCode = isc_deadlock) or (E.IBErrorCode = isc_lock_conflict) then
-              begin
-                if Transaction.InTransaction then
-                  Transaction.Rollback;
-                Dec(F);
-                Sleep(1000);
-              end else
-                raise;
-            end else
-              raise;
-          end;
-        except
-          on E: Exception do
-          begin
-            MessageBox(0,
-              PCHar('Произошла ошибка при сохранении глобального хранилища.' +
-              #13#10 + #13#10 +
-              'Сообщение об ошибке: ' + E.Message),
-              'Внимание',
-              MB_TASKMODAL or MB_OK or MB_ICONHAND);
-            //иначе получим бесконечный цикл
-            F := 0;
-          end;
-        end;
-      finally
-        if Transaction.InTransaction then
-          Transaction.Commit;
-        IBSQL.Free;
-        Transaction.Free;
-      end;
-    until F = 0;
-
-    if FModified then
-      FLastChecked := 0;
-  end;
-end;
-
-procedure TgsGlobalStorage.LoadFromDataBase;
-var
-  IBSQL: TIBSQL;
-  Transaction: TIBTransaction;
-  bs: TIBBlobStream;
-begin
-  FValid := False;
-  inherited LoadFromDatabase;
-  IBSQL := TIBSQL.Create(nil);
-  Transaction := TIBTransaction.Create(nil);
-  try
-    Transaction.DefaultDatabase := IBLogin.DataBase;
-    IBSQL.Transaction := Transaction;
-    Transaction.StartTransaction;
-
-    IBSQL.SQL.Text := 'SELECT data, modified FROM gd_globalstorage';
-    IBSQL.ExecQuery;
-    FExist := IBSQL.RecordCount > 0;
-    FLastModified := IBSQL.FieldByName('modified').AsDateTime;
-
-    if FExist then
-    begin
-      if not FValid then
-      begin
-        bs := TIBBlobStream.Create;
-        try
-          bs.Mode := bmRead;
-          bs.Database := IBSQL.Database;
-          bs.Transaction := IBSQL.Transaction;
-          bs.BlobID := IBSQL.FieldByName('data').AsQuad;
-          try
-            LoadFromStream(bs);
-            FValid := True;
-          except
-            on E:Exception do
-            begin
-              MessageBox(0,
-                PCHar('Произошла ошибка при загрузке глобального хранилища.' +
-                #13#10 + #13#10 +
-                'Сообщение об ошибке: ' + E.Message),
-                'Внимание',
-                MB_TASKMODAL or MB_OK or MB_ICONHAND);
-
-              FValid := True;
-            end;
-          end;
-        finally
-          bs.Free;
-        end;
-      end;
-    end else
-    begin
-      Clear;
-      FExist := True;
-      FValid := True;
-    end;
-
-  finally
-    IBSQL.Free;
-    if Transaction.InTransaction then
-      Transaction.Commit;
-    Transaction.Free;
-  end;
-
-  FModified := False;
 end;
 
 { TgsCompanyStorage }
 
-constructor TgsCompanyStorage.Create(const AName: String);
+constructor TgsCompanyStorage.Create;
 begin
-  inherited Create(AName);
-  FCompanyKey := -1;
+  inherited;
+  DataType := cStorageCompany;
 end;
 
-procedure TgsCompanyStorage.SaveToDataBase;
+function TgsCompanyStorage.UpdateName(const Tr: TIBTransaction = nil): String;
 var
-  IBSQL: TIBSQL;
-  ibsqlExists: TIBSQL;
-  Transaction: TIBTransaction;
+  q: TIBSQL;
 begin
-  if FCompanyKey = -1 then
-    exit; // нечего сохранять
+  Result := 'COMPANY';
 
-  inherited SaveToDatabase;
-
-  if not FValid then
-    exit;
-
-  if IsModified then
+  if (FObjectKey > -1) and (IBLogin <> nil) then
   begin
-    IBSQL := TIBSQL.Create(nil);
-    ibsqlExists := TIBSQL.Create(nil);
-    Transaction := TIBTransaction.Create(nil);
-    try
-      Transaction.DefaultDatabase := IBLogin.DataBase;
-      IBSQL.Transaction := Transaction;
-      ibsqlExists.Transaction := Transaction;
-      Transaction.StartTransaction;
-
-      ibsqlExists.SQL.Text := 'SELECT companykey FROM gd_ourcompany WHERE companykey = :id';
-      ibsqlExists.ParamByName('id').AsInteger := FCompanyKey;
-      ibsqlExists.ExecQuery;
-
-      if ibsqlExists.RecordCount > 0 then
-      begin
-        if FExist then
-          IBSQL.SQL.Text := 'UPDATE gd_companystorage SET data=:D, modified=''NOW'' WHERE companykey=:U'
-        else
-          IBSQL.SQL.Text := 'INSERT INTO gd_companystorage (companykey, data, modified) VALUES(:U, :D, ''NOW'')';
-        IBSQL.ParamByName('U').AsInteger := FCompanyKey;
-        IBSQL.ParamByName('D').AsString := DataString;
-        IBSQL.ExecQuery;
-        FExist := True;
-      end
-      else begin
-        if FExist then
-        begin
-          IBSQL.SQL.Text := 'DELETE FROM gd_companystorage WHERE companykey=:U';
-          IBSQL.ParamByName('U').AsInteger := FCompanyKey;
-          IBSQL.ExecQuery;
-        end;
-      end;
-
-    finally
-      IBSQL.Free;
-      ibsqlExists.Free;
-      if Transaction.InTransaction then
-        Transaction.Commit;
-      Transaction.Free;
-    end;
-
-    FModified := False;
-  end;
-end;
-
-procedure TgsCompanyStorage.LoadFromDataBase;
-var
-  IBSQL: TIBSQL;
-begin
-  if FCompanyKey = -1 then
-    exit;
-
-  inherited LoadFromDatabase;
-
-  FValid := False;
-  IBSQL := TIBSQL.Create(nil);
-  try
-    IBSQL.Transaction := gdcBaseManager.ReadTransaction;
-    IBSQL.SQL.Text :=
-      'SELECT data, modified FROM gd_companystorage WHERE companykey=' + IntToStr(FCompanyKey);
-    IBSQL.ExecQuery;
-    FExist := IBSQL.RecordCount > 0;
-
-    if FExist then
-    begin
-      DataString := IBSQL.FieldByName('data').AsString;
-      FLastModified := IBSQL.FieldByName('modified').AsDateTime;
-      FValid := True;
-    end else
-    begin
-      Clear;
-      FValid := True; 
-    end;
-
-    if Assigned(IBLogin) and (IBLogin.CompanyKey = FCompanyKey) then
-    begin
-      FRootFolder.Name := 'COMPANY(' + IBLogin.CompanyName + ')';
-    end else
-    begin
-      IBSQL.Close;
-      IBSQL.SQL.Text := 'SELECT name FROM gd_contact WHERE id=' + IntToStr(FCompanyKey);
-      IBSQL.ExecQuery;
-      FRootFolder.Name := 'COMPANY(' + IBSQL.FieldByName('NAME').AsString + ')';
-    end;
-
-    IBSQL.Close;
-  finally
-    IBSQL.Free;
-  end;
-
-  FModified := False;
-end;
-
-procedure TgsCompanyStorage.SetCompanyKey(const Value: Integer);
-begin
-  if FCompanyKey <> Value then
-  begin
-    if FCompanyKey <> -1 then SaveToDatabase;
-    FCompanyKey := Value;
-    if FCompanyKey <> -1 then LoadFromDatabase else Clear;
+     if FObjectKey = IBLogin.CompanyKey then
+     begin
+       Result := Result + ' - ' + IBLogin.CompanyName;
+     end else
+     begin
+       q := TIBSQL.Create(nil);
+       try
+         if Tr = nil then
+           q.Transaction := gdcBaseManager.ReadTransaction
+         else
+           q.Transaction := Tr;
+         q.SQL.Text := 'SELECT name FROM gd_contact WHERE id = :ID';
+         q.ParamByName('ID').AsInteger := FObjectKey;
+         q.ExecQuery;
+         if not q.EOF then
+           Result := Result + ' - ' + q.Fields[0].AsTrimString;
+       finally
+         q.Free;
+       end;
+     end;
   end;
 end;
 
 { TgsStorageItem }
 
-procedure TgsStorageItem.Assign(AnItem: TgsStorageItem);
-begin
-  if AnItem <> Self then
-  begin
-    if (FParent <> AnItem.Parent) or (FParent = nil) then
-      FName := AnItem.Name;
-    if not Storage.Loading then
-      Storage.IsModified := True;
-  end;
-end;
-
-constructor TgsStorageItem.Create(AParent: TgsStorageItem);
+constructor TgsStorageItem.Create(AParent: TgsStorageItem; const AName: String = '';
+  const AnID: Integer = -1);
 begin
   inherited Create;
+  FID := AnID;
   FParent := AParent;
-  FName := GetFreeName;
-  if (Storage <> nil) and (not Storage.Loading) then
-  begin
-    Storage.IsModified := True;
-    FModified := Now;
-  end;  
-end;
-
-constructor TgsStorageItem.Create(AParent: TgsStorageItem; const AName: String);
-begin
-  Create(AParent);
-  Name := AName;
+  if AName = '' then
+    FName := GetFreeName
+  else begin
+    if StorageLoading then
+      FName := AName
+    else
+      FName := CheckForName(AName);
+  end;
+  FChanged := not StorageLoading;
+  FModified := Now;
+  if FParent <> nil then
+    FParent.AddChildren(Self);
 end;
 
 destructor TgsStorageItem.Destroy;
 begin
+  if FParent <> nil then
+    FParent.RemoveChildren(Self);
   inherited;
 end;
 
@@ -2817,7 +2851,7 @@ end;
 procedure TgsStorageItem.LoadFromFile(const AFileName: String;
   const FileFormat: TgsStorageFileFormat);
 begin
-
+  //Abstract;
 end;
 
 procedure TgsStorageItem.LoadFromStream(S: TStream);
@@ -2835,7 +2869,6 @@ begin
     S.ReadBuffer(FName[1], L)
   else
     FName := GetFreeName;  
-  Storage.IsModified := False;
 { TODO :
 ради совместимости мы делаем это
 позже, когда будет сделано сохранение в текст
@@ -2844,6 +2877,8 @@ begin
   S.ReadBuffer(FModified, Sizeof(FModified));
   S.ReadBuffer(Dummy, SizeOf(Dummy));
   S.ReadBuffer(Dummy, SizeOf(Dummy));
+
+  FChanged := True;
 end;
 
 class procedure TgsStorageItem.SkipInStream(S: TStream);
@@ -2926,22 +2961,27 @@ begin
   S.WriteBuffer(FAccessed, SizeOf(FAccessed));
   S.WriteBuffer(FChanged, SizeOf(FChanged));
   *)
+
+  FChanged := False;
 end;
 
 procedure TgsStorageItem.SetName(const Value: String);
 var
   S: String;
 begin
-  S := Trim(Value);
-  CheckForName(S);
+  if Value = '' then
+    S := GetFreeName
+  else begin
+    if StorageLoading then
+      S := Value
+    else
+      S := CheckForName(Value);
+  end;
   if FName <> S then
   begin
     FName := S;
-    if (Storage <> nil) and (not Storage.Loading) then
-    begin
-      Storage.IsModified := True;
-      FModified := Now;
-    end;  
+    FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
   end;
 end;
 
@@ -2957,6 +2997,52 @@ begin
     Inc(I);
     Result := 'noname' + IntToStr(I);
   end;
+end;
+
+function TgsStorageItem.CheckForName(const AName: String): String;
+begin
+  Result := Trim(AName);
+  if (Result = '') or (Length(Result) > cStorageMaxNameLen) or (Pos('\', Result) > 0) then
+    raise EgsStorageError.Create('Invalid name ' + Result);
+end;
+
+procedure TgsStorageItem.Drop;
+begin
+  if (Storage <> nil) and (FID > 0) then
+    try
+      Storage.DeleteStorageItem(FID);
+    except
+      on E: Exception do
+      begin
+        MessageBox(0,
+          PChar('Возникла ошибка при попытке удалить элемент хранилища'#13#10'"' +
+            Storage.Name + '\' + Path + '" из базы данных: '#13#10#13#10 +
+          E.Message),
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      end;
+    end;
+  Free;  
+end;
+
+procedure TgsStorageItem.LoadFromStream2(S: TStringStream);
+begin
+  raise EAbstractError.Create('TgsStorageItem.LoadFromStream2');
+end;
+
+procedure TgsStorageItem.SaveToStream2(S: TStringStream);
+begin
+  raise EAbstractError.Create('TgsStorageItem.SaveToStream2');
+end;
+
+procedure TgsStorageItem.AddChildren(SI: TgsStorageItem);
+begin
+  raise EAbstractError.Create('TgsStorageItem.AddChildren');
+end;
+
+procedure TgsStorageItem.RemoveChildren(SI: TgsStorageItem);
+begin
+  raise EAbstractError.Create('TgsStorageItem.RemoveChildren');
 end;
 
 { TgsIntegerValue }
@@ -2991,9 +3077,9 @@ begin
   Result := svtInteger;
 end;
 
-class function TgsIntegerValue.GetTypeName: String;
+class function TgsIntegerValue.GetTypeName: Char;
 begin
-  Result := 'I';
+  Result := cStorageInteger;
 end;
 
 procedure TgsIntegerValue.LoadFromStream(S: TStream);
@@ -3026,11 +3112,8 @@ begin
   if Value <> AsInteger then
   begin
     FData := Value;
-    if not Storage.Loading then
-    begin
-      Storage.IsModified := True;
-      FModified := Now;
-    end;
+    FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
   end;
 end;
 
@@ -3071,9 +3154,9 @@ begin
   Result := svtCurrency;
 end;
 
-class function TgsCurrencyValue.GetTypeName: String;
+class function TgsCurrencyValue.GetTypeName: Char;
 begin
-  Result := 'C';
+  Result := cStorageCurrency;
 end;
 
 procedure TgsCurrencyValue.LoadFromStream(S: TStream);
@@ -3093,12 +3176,9 @@ begin
   if Value <> AsCurrency then
   begin
     FData := Value;
-    if not Storage.Loading then
-    begin
-      Storage.IsModified := True;
-      FModified := Now;
-    end;
-  end;  
+    FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
+ end;
 end;
 
 procedure TgsCurrencyValue.SetAsString(const Value: String);
@@ -3133,16 +3213,7 @@ end;
 
 function TgsStringValue.GetAsString: String;
 begin
-  if FData > '' then
-  begin
-    try
-      Result := ZDecompressStr(FData)
-    except
-      FData := '';
-      Result := '';
-    end;
-  end else
-    Result := '';
+  Result := FData;
 end;
 
 function TgsStringValue.GetDataSize: Integer;
@@ -3155,9 +3226,9 @@ begin
   Result := svtString;
 end;
 
-class function TgsStringValue.GetTypeName: String;
+class function TgsStringValue.GetTypeName: Char;
 begin
-  Result := 'S';
+  Result := cStorageString;
 end;
 
 procedure TgsStringValue.LoadFromStream(S: TStream);
@@ -3212,31 +3283,18 @@ begin
 end;
 
 procedure TgsStringValue.SetAsString(const Value: String);
-var
-  T: String;
 begin
-  if Value > '' then
+  if Value <> FData then
   begin
-    T := ZCompressStr(Value, zcDefault);
-  end else
-    T := '';
-
-  if T <> FData then
-  begin
-    FData := T;
-    if not Storage.Loading then
-    begin
-      Storage.IsModified := True;
-      FModified := Now;
-    end;
+    FData := Value;
+    FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
   end;
 end;
 
 function TgsStringValue.GetAsBoolean: Boolean;
 begin
-  if (AsString <> '0') and (AsString <> '1') then
-    raise EgsStorageError.Create('Invalid typecast');
-  Result := AsString = '1';
+  Result := AsString <> '0';
 end;
 
 procedure TgsStringValue.SetAsBoolean(const Value: Boolean);
@@ -3284,12 +3342,9 @@ begin
   if AsDateTime <> Value then
   begin
     FData := Value;
-    if not Storage.Loading then
-    begin
-      Storage.IsModified := True;
-      FModified := Now;
-    end;  
-  end;  
+    FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
+  end;
 end;
 
 function TgsDateTimeValue.GetAsString: String;
@@ -3317,9 +3372,9 @@ begin
   Result := svtDateTime;
 end;
 
-class function TgsDateTimeValue.GetTypeName: String;
+class function TgsDateTimeValue.GetTypeName: Char;
 begin
-  Result := 'D';
+  Result := cStorageDateTime;
 end;
 
 procedure TgsDateTimeValue.LoadFromStream(S: TStream);
@@ -3364,9 +3419,9 @@ begin
   Result := svtBoolean;
 end;
 
-class function TgsBooleanValue.GetTypeName: String;
+class function TgsBooleanValue.GetTypeName: Char;
 begin
-  Result := 'B';
+  Result := cStorageBoolean;
 end;
 
 procedure TgsBooleanValue.LoadFromStream(S: TStream);
@@ -3394,12 +3449,9 @@ begin
   if AsBoolean <> Value then
   begin
     FData := Value;
-    if not Storage.Loading then
-    begin
-      Storage.IsModified := True;
-      FModified := Now;
-    end;  
-  end;  
+    FChanged := FChanged or (not StorageLoading);
+    FModified := Now;
+  end;
 end;
 
 function TgsBooleanValue.GetAsString: String;
@@ -3437,16 +3489,17 @@ end;
 
 { TgsStorageValue }
 
-procedure TgsStorageValue.Assign(AnItem: TgsStorageItem);
+function TgsStorageValue.CheckForName(const AName: String): String;
 begin
-  inherited;
-  AsString := (AnItem as TgsStorageValue).AsString;
-end;
-
-procedure TgsStorageValue.CheckForName(const AName: String);
-begin
-  if (AName = '') or (Length(AName) > 255) or (Assigned(FParent) and (FParent as TgsStorageFolder).ValueExists(AName)) then
-    raise EgsStorageError.Create('Invalid value name');
+  Result := inherited CheckForName(AName);
+  while Assigned(FParent) and (FParent as TgsStorageFolder).ValueExists(Result) do
+  begin
+    if StorageLoading then
+      Result := inherited CheckForName(Result + '_')
+    else
+      raise EgsStorageError.Create('Duplicate value name ' + Result +
+        ' in folder ' + FParent.Path);
+  end;
 end;
 
 class function TgsStorageValue.CreateFromStream(AParent: TgsStorageFolder;
@@ -3612,6 +3665,7 @@ begin
     OldName := Self.Name;
      edName.Text := OldName;
     edValue.Text := AsString;
+    edID.Text := IntToStr(ID);
 
     F := False;
     repeat
@@ -3665,11 +3719,66 @@ begin
 end;
 
 function TgsStreamValue.GetAsString: String;
+var
+  bs: TIBBlobStream;
+  Qry: TIBSQL;
+
+  procedure ReadBLOB;
+  begin
+    SetLength(FData, bs.Size);
+    if bs.Size > 0 then
+      bs.ReadBuffer(FData[1], bs.Size);
+  end;
+
 begin
-  if FData > '' then
-    Result := ZDecompressStr(FData)
-  else
-    Result := '';  
+  if (not FLoaded) and (Int64(FQUAD) <> 0) then
+  begin
+    bs := TIBBlobStream.Create;
+    try
+      bs.Mode := bmRead;
+      bs.Database := gdcBaseManager.Database;
+      bs.Transaction := gdcBaseManager.ReadTransaction;
+      bs.BlobID := FQUAD;
+      try
+        ReadBLOB;
+      except
+        on E: EIBError do
+        begin
+          if E.IBErrorCode <> isc_random then
+            raise;
+
+          {
+            Если данный БЛОБ обновили из другого конекта, то мы должны перечитать с
+            сервера его ИД.
+          }
+
+          Qry := TIBSQL.Create(nil);
+          Qry.Transaction := gdcBaseManager.ReadTransaction;
+          Qry.SQL.Text := 'SELECT blob_data FROM gd_storage_data WHERE id = :ID';
+          Qry.ParamByName('id').AsInteger := FID;
+          Qry.ExecQuery;
+
+          if Qry.EOF then
+          begin
+            Qry.Free;
+            raise;
+          end;
+
+          FQUAD := Qry.Fields[0].AsQUAD;
+          bs.BlobID := FQUAD;
+
+          Qry.Free;
+
+          ReadBLOB;
+        end;
+      end;
+      FLoaded := True;
+    finally
+      bs.Free;
+    end;
+  end;
+
+  Result := FData;
 end;
 
 function TgsStreamValue.GetDataSize: Integer;
@@ -3682,9 +3791,9 @@ begin
   Result := svtStream;
 end;
 
-class function TgsStreamValue.GetTypeName: String;
+class function TgsStreamValue.GetTypeName: Char;
 begin
-  Result := 'St';
+  Result := cStorageBlob;
 end;
 
 procedure TgsStreamValue.LoadDataFromStream(S: TStream);
@@ -3841,11 +3950,7 @@ var
   T: String;
 begin
   inherited;
-  try
-    T := AsString;
-  except
-    T := '';
-  end;
+  T := AsString;
   L := Length(T);
   S.WriteBuffer(L, SizeOf(L));
   if L > 0 then
@@ -3897,29 +4002,89 @@ end;
 
 
 procedure TgsStreamValue.SetAsString(const Value: String);
-var
-  S: String;
 begin
-  if Value > '' then
-    S := ZCompressStr(Value, zcDefault)
-  else
-    S := '';
-  if S <> FData then
-  begin
-    FData := S;
-    if not Storage.Loading then
-    begin
-      Storage.IsModified := True;
-      FModified := Now;
-    end;
-  end;
+  FData := Value;
+  FLoaded := True;
+  FChanged := FChanged or (not StorageLoading);
+  FModified := Now;
 end;
 
 { TgsRootFolder ------------------------------------------}
 
+procedure TgsRootFolder.Drop;
+begin
+  raise EgsStorageError.Create('Can not drop a root folder');
+end;
+
 function TgsRootFolder.GetStorage: TgsStorage;
 begin
   Result := FStorage;
+end;
+
+procedure TgsStreamValue.SaveBLOB(Tr: TIBTransaction);
+var
+  bs: TIBBlobStream;
+  //Qry: TIBSQL;
+
+  procedure WriteBLOB;
+  begin
+    if Length(FData) > 0 then
+      bs.WriteBuffer(FData[1], Length(FData))
+    else
+      bs.Truncate;
+    bs.Finalize;
+    FQuad := bs.BlobID;
+  end;
+
+begin
+  if FChanged then
+  begin
+    bs := TIBBlobStream.Create;
+    try
+      bs.Mode := bmWrite;
+      bs.Database := Tr.DefaultDatabase;
+      bs.Transaction := Tr;
+      {if Int64(FQUAD) <> 0 then
+        bs.BlobID := FQUAD;}
+      try
+        WriteBLOB;
+      except
+        on E: EIBError do
+        begin
+          raise;
+          (*if (E.IBErrorCode <> isc_random) or (Int64(FQUAD) = 0) or (FID <= 0) then
+            raise;
+
+          {
+            Если данный БЛОБ обновили из другого конекта, то мы должны перечитать с
+            сервера его ИД.
+          }
+
+          Qry := TIBSQL.Create(nil);
+          Qry.Transaction := Tr;
+          Qry.SQL.Text := 'SELECT blob_data FROM gd_storage_data WHERE id = :ID';
+          Qry.ParamByName('id').AsInteger := FID;
+          Qry.ExecQuery;
+
+          if Qry.EOF then
+          begin
+            Qry.Free;
+            raise;
+          end;
+
+          bs.BlobID := Qry.Fields[0].AsQUAD;
+
+          Qry.Free;
+
+          WriteBLOB;*)
+        end;
+      end;
+
+      FLoaded := True;
+    finally
+      bs.Free;
+    end;
+  end;
 end;
 
 { TgsStorageDragObject }
@@ -3931,11 +4096,51 @@ begin
   TN := ATN;
 end;
 
-{$IFDEF DEBUG}
+{ TgsDesktopStorage }
+
+{constructor TgsDesktopStorage.Create;
+begin
+  inherited;
+  DataType := cStorageDesktop;
+end;}
+
+{function TgsDesktopStorage.UpdateName(const Tr: TIBTransaction = nil): String;
+var
+  q: TIBSQL;
+begin
+  Result := 'DESKTOP';
+
+  if (FObjectKey > -1) and (IBLogin <> nil) then
+  begin
+     q := TIBSQL.Create(nil);
+     try
+       if Tr = nil then
+         q.Transaction := gdcBaseManager.ReadTransaction
+       else
+         q.Transaction := Tr;
+       q.SQL.Text :=
+         'SELECT d.name || '' ('' || u.name || '')'' AS name ' +
+         'FROM gd_desktop d JOIN gd_user u ON u.id = d.userkey AND d.id = :ID';
+       q.ParamByName('ID').AsInteger := FObjectKey;
+       q.ExecQuery;
+       if not q.EOF then
+         Result := Result + ' - ' + q.Fields[0].AsTrimString;
+     finally
+       q.Free;
+     end;
+  end;
+end;}
+
 initialization
+  StorageLoading := False;
+  {$IFDEF DEBUG}
   StorageFolderSearchCounter := 0;
+  LogSL := TStringList.Create;
+  {$ENDIF}
 
 finalization
+  {$IFDEF DEBUG}
   OutputDebugString(PChar('SSC: ' + IntToStr(StorageFolderSearchCounter)));
-{$ENDIF}
+  LogSL.Free;
+  {$ENDIF}
 end.

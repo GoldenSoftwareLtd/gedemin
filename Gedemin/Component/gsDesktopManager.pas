@@ -261,7 +261,7 @@ type
     FDesktopCount: Integer;
     FCurrentDesktopName: String;
     FOnDesktopItemCreate: TOnDesktopItemCreateEvent;
-    FStorage: TgsIBStorage;
+    FStorage: TgsStorage;
     FLoadingDesktop: Boolean;
 
     procedure SetDatabase(const Value: TIBDatabase);
@@ -332,7 +332,7 @@ type
     property DesktopCount: Integer read FDesktopCount;
     property CurrentDesktopName: String read FCurrentDesktopName;
     property CurrentDesktopIndex: Integer read GetCurrentDesktopIndex;
-    property Storage: TgsIBStorage read FStorage write FStorage;
+    property Storage: TgsStorage read FStorage;
     property DesktopItems: TDesktopItems read FDesktopItems;
     property LoadingDesktop: Boolean read FLoadingDesktop;
 
@@ -360,7 +360,8 @@ implementation
 uses
   DB, IBSQL, gd_security, gd_ClassList, gdcBaseInterface,
   gdc_createable_form, gdc_frmG_unit, gd_createable_form,
-  gdc_frmMDH_unit, gsResizerInterface, gd_splash, gdc_dlgG_unit;
+  gdc_frmMDH_unit, gsResizerInterface, gd_splash, gdc_dlgG_unit,
+  IBBlob;
 
 const
   DesktopValueName = 'Desktop';
@@ -391,7 +392,7 @@ begin
   FTransaction := TIBTransaction.Create(nil);
   FTransaction.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait'#13#10;
   FDatabase := nil;
-  FStorage := TgsIBStorage.Create('DESKTOP');
+  FStorage := TgsStorage.Create;
 end;
 
 destructor TgsDesktopManager.Destroy;
@@ -405,10 +406,11 @@ begin
   inherited;
 end;
 
-function TgsDesktopManager.ReadDesktopData;
+function TgsDesktopManager.ReadDesktopData(const ADesktopName: String = ''): Boolean;
 var
   IBSQL: TIBSQL;
   S: TStream;
+  bs: TIBBlobStream;
 begin
   Result := False;
   if DesktopCount = 0 then exit;
@@ -430,10 +432,20 @@ begin
 
     if IBSQL.EOF then exit;
 
-    if not IBSQL.FieldByName('dtdata').IsNull then
-      FStorage.DataString := IBSQL.FieldByName('dtdata').AsString
-    else
-      FStorage.Clear;
+    if IBSQL.FieldByName('dtdata').IsNull then
+      FStorage.Clear
+    else begin
+      bs := TIBBlobStream.Create;
+      try
+        bs.Mode := bmRead;
+        bs.Database := FDatabase;
+        bs.Transaction := FTransaction;
+        bs.BlobID := IBSQL.FieldByName('dtdata').AsQUAD;
+        FStorage.LoadFromStream(bs);
+      finally
+        bs.Free;
+      end;
+    end;
 
     try
       S := TMemoryStream.Create;
@@ -685,7 +697,6 @@ begin
 
   if ADesktopName = FCurrentDesktopName then
   begin
-    {FDesktopItems.Clear;}
     FCurrentDesktopName := '';
   end;
 end;

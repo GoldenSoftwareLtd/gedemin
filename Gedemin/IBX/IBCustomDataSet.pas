@@ -1107,7 +1107,7 @@ var
 implementation
 
 uses
-  IBIntf, DBConsts,
+  IBIntf, DBConsts, IBErrorCodes,
   //uDemo1{&&&},
   {$IFDEF GEDEMIN}
   gd_security,
@@ -3489,6 +3489,8 @@ var
   fs: TIBBlobStream;
   Buff: PChar;
   bTr, bDB: Boolean;
+  J, K: Integer;
+  Qry: TIBSQL;
 begin
   Buff := GetActiveBuf;
   if Buff = nil then
@@ -3532,7 +3534,69 @@ begin
     WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Pointer(Buff));
   end else
     fs := pb^[Field.Offset];
-  result := TIBDSBlobStream.Create(Field, fs, Mode);
+
+  try
+    result := TIBDSBlobStream.Create(Field, fs, Mode);
+  except
+    on E: EIBError do
+    begin
+      if E.IBErrorCode <> isc_random then
+        raise;
+
+      {
+        Если данный БЛОБ обновили из другого конекта, то мы должны перечитать с
+        сервера его ИД.
+      }
+
+      if (Assigned(FUpdateObject) and (FUpdateObject.RefreshSQL.Text > '')) then
+      begin
+        Qry := TIBSQL.Create(nil);
+        Qry.SQL.Text := FUpdateObject.RefreshSQL.Text;
+      end else if (FQRefresh <> nil) and (FQRefresh.SQL.Text > '') then
+      begin
+        Qry := TIBSQL.Create(nil);
+        Qry.SQL.Text := FQRefresh.SQL.Text;
+      end else
+        raise;
+
+      if Transaction.InTransaction then
+        Qry.Transaction := Transaction
+      else
+        Qry.Transaction := ReadTransaction;
+
+      SetInternalSQLParams(Qry, Buff);
+
+      //
+      for J := 0 to FQSelect.Params.Count - 1 do
+      begin
+        for K := 0 to Qry.Params.Count - 1 do
+        begin
+          if AnsiCompareText(FQSelect.Params[J].Name, Qry.Params[K].Name) = 0 then
+          begin
+            Qry.Params[K].Assign(FQSelect.Params[J]);
+            break;
+          end;
+        end;
+      end;
+
+      Qry.ExecQuery;
+
+      if Qry.EOF then
+      begin
+        Qry.Free;
+        raise;
+      end;
+
+      fs.BlobID := Qry.FieldByName(Field.FieldName).AsQUAD;
+      PISC_QUAD(@Buff[PRecordData(Buff)^.rdFields[FMappedFieldPosition[Field.FieldNo - 1]].fdDataOfs])^ := fs.BlobID;
+
+      Qry.Free;
+
+      WriteRecordCache(PRecordData(Buff)^.rdRecordNumber, Pointer(Buff));
+
+      result := TIBDSBlobStream.Create(Field, fs, Mode);
+    end;
+  end;
 end;
 
 function TIBCustomDataSet.CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Integer;

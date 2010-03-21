@@ -6,6 +6,7 @@ uses
   IBDatabase, gdModify;
 
 procedure ConvertStorage(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddEdtiorKeyEditionDate2Storage(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -43,6 +44,8 @@ const
     '  datetime_data  dtimestamp, '#13#10 +
     '  curr_data      dcurrency, '#13#10 +
     '  blob_data      dblob4096, '#13#10 +
+    '  editiondate    deditiondate, '#13#10 +
+    '  editorkey      dintkey, '#13#10 +
     ' '#13#10 +
     '  CONSTRAINT gd_pk_storage_data_id PRIMARY KEY (id), '#13#10 +
     '  CONSTRAINT gd_fk_storage_data_parent FOREIGN KEY (parent) '#13#10 +
@@ -147,6 +150,28 @@ const
     '  END'#13#10 +
     'END';
 
+  cBlockException =
+    'CREATE EXCEPTION gd_e_block_old_storage ''Изменение старых данных хранилища заблокировано'' ';
+
+  cBlockTrigger =
+    'CREATE TRIGGER gd_biud_%s FOR gd_%s'#13#10 +
+    '  BEFORE INSERT OR UPDATE OR DELETE'#13#10 +
+    '  POSITION 0'#13#10 +
+    'AS'#13#10 +
+    'BEGIN'#13#10 +
+    '  EXCEPTION gd_e_block_old_storage ''%s'';'#13#10 +
+    'END';
+
+  cAddEditorKey =
+    'ALTER TABLE gd_storage_data ADD editorkey dintkey';
+
+  cAddEditionDate =
+    'ALTER TABLE gd_storage_data ADD editiondate deditiondate';
+
+  cFillEditorInfo =
+    'UPDATE gd_storage_data SET editiondate = CURRENT_TIMESTAMP, editorkey = 650002 ' +
+    '  WHERE editiondate IS NULL AND editorkey IS NULL';
+
 procedure ConvertStorage(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
@@ -169,7 +194,7 @@ var
         cStorageGlobal: S := TgsGlobalStorage.Create;
         cStorageUser: S := TgsUserStorage.Create;
         cStorageCompany: S := TgsCompanyStorage.Create;
-        cStorageDesktop: S := TgsDesktopStorage.Create;
+        {cStorageDesktop: S := TgsDesktopStorage.Create;}
       else
         raise Exception.Create('Invalid storage root');
       end;
@@ -286,8 +311,8 @@ begin
           'SELECT s.userkey    AS AKey,   s.data,             u.name FROM gd_userstorage s JOIN gd_user u ON u.id = s.userkey', 'U');
         ConvertStorage(
           'SELECT s.companykey AS AKey,   s.data,             c.name FROM gd_companystorage s JOIN gd_contact c ON c.id = s.companykey', 'O');
-        ConvertStorage(
-          'SELECT d.id         AS AKey, d.dtdata AS data, d.name || '' ('' || u.name || '')'' AS name FROM gd_desktop d JOIN gd_user u ON u.id = d.userkey', 'T');
+        {ConvertStorage(
+          'SELECT d.id         AS AKey, d.dtdata AS data, d.name || '' ('' || u.name || '')'' AS name FROM gd_desktop d JOIN gd_user u ON u.id = d.userkey', 'T');}
 
         if FNeedToCreateMeta then
         begin
@@ -327,12 +352,59 @@ begin
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateTrigger;
           FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cBlockException;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := Format(cBlockTrigger, ['GLOBALSTORAGE', 'GLOBALSTORAGE',
+            'Изменение старых данных глобального хранилища заблокировано']);
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := Format(cBlockTrigger, ['USERSTORAGE', 'USERSTORAGE',
+            'Изменение старых данных пользовательского хранилища заблокировано']);
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := Format(cBlockTrigger, ['COMPANYSTORAGE', 'COMPANYSTORAGE',
+            'Изменение старых данных хранилища компании заблокировано']);
+          FIBSQL.ExecQuery;
         end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview) '#13#10 +
+          '  VALUES ( '#13#10 +
+          '    740302, '#13#10 +
+          '    740300, '#13#10 +
+          '    ''Хранилище (б/о)'', '#13#10 +
+          '    ''srv_storage_new'', '#13#10 +
+          '    ''TgdcStorage'', '#13#10 +
+          '    NULL, '#13#10 +
+          '    255, '#13#10 +
+          '    1 '#13#10 +
+          '  )';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'GRANT ALL ON gd_storage_data TO Administrator ';
+        FIBSQL.ExecQuery;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
           'INSERT INTO fin_versioninfo ' +
           '  VALUES (114, ''0000.0001.0000.0145'', ''25.09.2009'', ''Storage being converted into new data structures'')';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO fin_versioninfo ' +
+          '  VALUES (115, ''0000.0001.0000.0146'', ''08.03.2010'', ''Editorkey and editiondate fields were added to storage table'')';
         try
           FIBSQL.ExecQuery;
         except
@@ -355,5 +427,72 @@ begin
     FTransaction.Free;
   end;
 end;
+
+procedure AddEdtiorKeyEditionDate2Storage(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FIBSQL := TIBSQL.Create(nil);
+      try
+        FTransaction.StartTransaction;
+
+        FIBSQL.Transaction := FTransaction;
+        FIBSQL.ParamCheck := False;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$field_name FROM rdb$relation_fields ' +
+          'WHERE rdb$relation_name = ''GD_STORAGE_DATA'' AND rdb$field_name = ''EDITIONDATE'' ';
+        FIBSQL.ExecQuery;
+
+        if FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cAddEditorKey;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cAddEditionDate;
+          FIBSQL.ExecQuery;
+
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cFillEditorInfo;
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'INSERT INTO fin_versioninfo ' +
+            '  VALUES (115, ''0000.0001.0000.0146'', ''08.03.2010'', ''Editorkey and editiondate fields were added to storage table'')';
+          try
+            FIBSQL.ExecQuery;
+          except
+          end;
+        end;  
+
+        FTransaction.Commit;
+      finally
+        FIBSQL.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FTransaction.Free;
+  end;
+end;
+
 
 end.

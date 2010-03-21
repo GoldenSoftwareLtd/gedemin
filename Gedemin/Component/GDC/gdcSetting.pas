@@ -298,7 +298,7 @@ uses
   gdc_attr_dlgSetting_unit,  gdc_attr_frmSetting_unit,
   gdc_attr_dlgSettingPos_unit, gdcMetadata, gdcJournal,
   gdc_attr_dlgSettingOrder_unit, IBQuery, gdcEvent, Windows,
-  gsStorage, Storages, jclSelected, IBDatabase, at_frmSQLProcess,
+  gsStorage, Storages, gdcStorage, jclSelected, IBDatabase, at_frmSQLProcess,
   Graphics, at_classes, gd_directories_const, dbclient, gdcFunction,
   evt_i_Base, mtd_i_Base, gd_i_ScriptFactory, gdcFilter, gdcReport,
   gdcMacros, at_sql_metadata, at_sql_setup, dm_i_ClientReport_unit,
@@ -1127,7 +1127,6 @@ var
   StorageStream: TStream;
   PositionsCount: Integer;
 begin
-
   Assert(atDatabase <> nil, 'Не загружена база атрибутов atDatabase');
   Assert(gdcBaseManager <> nil);
 
@@ -1138,6 +1137,17 @@ begin
       Self.ClassName,
       Self.ID);
   end;
+
+  AddText('Сохранение данных хранилища в базу данных', clBlack);
+
+  if GlobalStorage <> nil then
+    GlobalStorage.SaveToDatabase;
+
+  if UserStorage <> nil then
+    UserStorage.SaveToDatabase;
+
+  if CompanyStorage <> nil then
+    CompanyStorage.SaveToDatabase;
 
   if not Self.Silent then
   begin
@@ -1156,6 +1166,11 @@ begin
   // Если не передан конкретный формат настройки, попробуем прочитать его из хранилища
   if SettingFormat = sttUnknown then
     SettingFormat := GetDefaultStreamFormat(True);
+
+  //////////////////////////////////////////////////////////////
+  // Превратим все записи в at_setting_storage в бизнес-объекты
+  //
+  ConvertStorageRecords(ID, Database);
 
   // если в опциях установлено "Сохранять настройки в новом формате"
   if SettingFormat <> sttBinaryOld then
@@ -1391,7 +1406,8 @@ begin
         BlobStream := CreateBlobStream(FieldByName('StorageData'), bmWrite);
         try
           ibsqlPos.Close;
-          ibsqlPos.SQL.Text := 'SELECT COUNT(*) AS StorPosCount FROM at_setting_storage WHERE settingkey = :settingkey ';
+          ibsqlPos.SQL.Text :=
+            'SELECT COUNT(*) AS StorPosCount FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
           ibsqlPos.ParamByName('settingkey').AsInteger := ID;
           ibsqlPos.Open;
 
@@ -1403,7 +1419,8 @@ begin
               frmStreamSaver.SetupProgress(PositionsCount, 'Формирование настройки...');
 
             ibsqlPos.Close;
-            ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+            ibsqlPos.SQL.Text :=
+              'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
             ibsqlPos.ParamByName('settingkey').AsInteger := ID;
             ibsqlPos.Open;
             while not ibsqlPos.Eof do
@@ -2050,9 +2067,7 @@ begin
     end;
   end;
 
-
   {если на одной транзакции создался и AnObject, и настройка, и РУИД - и такое бывает!}
-  //gdcBaseManager.GetFullRUIDByID(AnObject.ID, AXID, ADBID)
   gdcBaseManager.GetRUIDByID(AnObject.ID, AXID, ADBID, Transaction);
 
   ibsql := TIBSQL.Create(nil);
@@ -2773,6 +2788,12 @@ begin
   while not Eof do
   begin
     BranchName := FieldByName('branchname').AsString;
+
+    if Pos('#', BranchName) = 1 then
+    begin
+      Next;
+      continue;
+    end;
 
     if AnsiPos('\', BranchName) = 0 then
     begin
@@ -3992,7 +4013,7 @@ var
 
     if IDMapping = nil then
     begin
-      IDMapping := TgdKeyIntAssoc.Create;
+      IDMapping := TLoadedRecordStateList.Create;
       IDMappingCreated := True;
     end else
       IDMappingCreated := False;
@@ -4358,7 +4379,7 @@ var
             при загрузке из потока у хранилища не выставляется внутренний
             флаг. поэтому оно не будет сохраняться  в базу.
             мы выставляем флаг вручную. }
-          LStorage.IsModified := True;
+          //LStorage.IsModified := True;
           //LStorage.SaveToDatabase;
         end
         else
@@ -4381,10 +4402,10 @@ var
       end;
     end;
 
-    if GlobalStorage.IsModified then
+    //if GlobalStorage.IsModified then
       GlobalStorage.SaveToDatabase;
 
-    if UserStorage.IsModified then
+    //if UserStorage.IsModified then
       UserStorage.SaveToDatabase;
 
     if StorageStream.Size > 0 then
@@ -4399,6 +4420,16 @@ begin
 
   //Перед загрузкой настроек необходимо перегрузить atDatabase
   WasMetaDataInSetting := True;
+
+  //... и сохранить хранилища
+  if (GlobalStorage <> nil) and GlobalStorage.IsModified then
+    GlobalStorage.SaveToDatabase;
+
+  if (UserStorage <> nil) and UserStorage.IsModified then
+    UserStorage.SaveToDatabase;
+
+  if (CompanyStorage <> nil) and CompanyStorage.IsModified then
+    CompanyStorage.SaveToDatabase;
 
   DesktopManager.WriteDesktopData(cst_DesktopLast, True);
   SettingList := TStringList.Create;
@@ -4783,7 +4814,8 @@ var
         RunMultiConnection;
 
         ibsqlPos.Close;
-        ibsqlPos.SQL.Text := 'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey ';
+        ibsqlPos.SQL.Text :=
+          'SELECT * FROM at_setting_storage WHERE settingkey = :settingkey AND (NOT branchname LIKE ''#%'')';
         ibsqlPos.ParamByName('settingkey').AsString := SettingList[stNumber];
         ibsqlPos.ExecQuery;
         while not ibsqlPos.Eof do
@@ -4822,7 +4854,7 @@ var
             end else
             begin
               AddText('Удаление ветки хранилища ' + ibsqlPos.FieldByName('branchname').AsString, clBlue);
-              NewFolder.DropFolder;
+              NewFolder.Drop;
             end;
           end;
 

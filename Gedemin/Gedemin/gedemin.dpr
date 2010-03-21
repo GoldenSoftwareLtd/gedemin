@@ -6,9 +6,10 @@ program gedemin;
 
 uses
   FastMM4,
+  {$IFNDEF DEBUG}
   FastMove,
   RTLVCLOptimize,
-  MidasSpeedFix,
+  {$ENDIF}
   Forms,
   gd_main_form in 'gd_main_form.pas' {frmGedeminMain},
   dmDataBase_unit in '..\GAdmin\dmDataBase_unit.pas' {dmDatabase: TDataModule},
@@ -65,6 +66,7 @@ uses
   gdcWgPosition,
   gdcLink,
   gdcSQLHistory,
+  gdcStorage,
   gdcTableCalendar in '..\Component\GDC\gdcTableCalendar.pas',
   gdcAcctAccount in '..\Component\GDC\gdcAcctAccount.pas',
   gdc_frmInvBaseRemains_unit in '..\Inventory\gdc_frmInvBaseRemains_unit.pas' {gdc_frmInvBaseRemains},
@@ -264,6 +266,11 @@ uses
   gdc_dlgAcctAccReview_unit in '..\Transaction\gdc_dlgAcctAccReview_unit.pas' {dlgAcctAccReviewConfig},
   gdc_frmAcctAccReview_Unit in '..\Transaction\gdc_frmAcctAccReview_Unit.pas' {gdc_frmAcctAccReview},
   gsIBLookupComboBox_dlgAction in '..\Component\gsIBLookupComboBox_dlgAction.pas' {gsIBLkUp_dlgAction},
+  gdSQLMonitor in '..\Log\gdSQLMonitor.pas',
+  gd_frmSQLMonitor_unit in '..\Log\gd_frmSQLMonitor_unit.pas' {gd_frmSQLMonitor},
+  gdcSQLStatement in '..\Component\GDC\gdcSQLStatement.pas',
+  gdc_frmSQLStatement_unit in '..\Log\gdc_frmSQLStatement_unit.pas' {gdc_frmSQLStatement},
+  gdc_dlgSQLStatement_unit in '..\Log\gdc_dlgSQLStatement_unit.pas' {gdc_dlgSQLStatement},
   IBSQLCache in '..\IBX\IBSQLCache.pas',
   dlgClassInfo_unit in '..\Property\dlgClassInfo_unit.pas' {dlgClassInfo},
   gdcUserGroup_dlgSetRights_unit in '..\GAdmin\gdcUserGroup_dlgSetRights_unit.pas' {gdcUserGroup_dlgSetRights},
@@ -295,11 +302,6 @@ uses
   , gdv_frmAcctAccReview_unit in '..\Transaction\gdv_frmAcctAccReview_unit.pas'
   {$IFDEF DEBUG}
   , ExceptionDialog_unit in '..\Component\ExceptionDialog_unit.pas' {ExceptionDialog}
-  , gdSQLMonitor in '..\Log\gdSQLMonitor.pas',
-  , gd_frmSQLMonitor_unit in '..\Log\gd_frmSQLMonitor_unit.pas' {gd_frmSQLMonitor},
-  , gdcSQLStatement in '..\Component\GDC\gdcSQLStatement.pas',
-  , gdc_frmSQLStatement_unit in '..\Log\gdc_frmSQLStatement_unit.pas' {gdc_frmSQLStatement},
-  , gdc_dlgSQLStatement_unit in '..\Log\gdc_dlgSQLStatement_unit.pas' {gdc_dlgSQLStatement},
   {$ENDIF}
   , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring};
 
@@ -523,6 +525,8 @@ begin
     ApplicationEventsHandler.Free;
   end;
 end.
+
+
 
 
 

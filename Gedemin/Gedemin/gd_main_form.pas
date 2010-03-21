@@ -10,7 +10,7 @@ uses
   dmImages_unit, gd_security_OperationConst, {gsTrayIcon,}
   AppEvnts, Db, IBCustomDataSet, IBServices, gdHelp_Body,
   gd_createable_form, TB2Item, TB2Dock, TB2Toolbar,
-  gsIBLookupComboBox;
+  gsIBLookupComboBox, TB2ExtItems;
 
 const
   WM_ACTIVATESETTING = WM_USER + 30000;
@@ -63,8 +63,6 @@ type
     Property1: TTBItem;
     TBDockForms: TTBDock;
     tbForms: TTBToolbar;
-    TBControlItem2: TTBControlItem;
-    tcForms: TTabControl;
     actEditForm: TAction;
     TBSeparatorItem6: TTBSeparatorItem;
     TBControlItem1: TTBControlItem;
@@ -204,8 +202,6 @@ type
     procedure actShowUsersUpdate(Sender: TObject);
     procedure TBItem3Click(Sender: TObject);
     procedure TBItem4Click(Sender: TObject);
-    procedure tcFormsChange(Sender: TObject);
-    procedure tbFormsResize(Sender: TObject);
     procedure actEditFormExecute(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure actShowSQLObjectsUpdate(Sender: TObject);
@@ -233,8 +229,6 @@ type
     procedure actHideFormExecute(Sender: TObject);
     procedure actHideAllExecute(Sender: TObject);
     procedure actCloseAllExecute(Sender: TObject);
-    procedure tcFormsMouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
     procedure actWorkingCompaniesExecute(Sender: TObject);
     procedure actHelpExecute(Sender: TObject);
     procedure actLoadPackageExecute(Sender: TObject);
@@ -295,6 +289,11 @@ type
     //FIconShown: Boolean;
     FFirstTime: Boolean;
 
+    procedure AddFormToggleItem(AForm: TForm);
+    function GetFormToggleItemIndex(AForm: TForm): Integer;
+
+    procedure OnFormToggleItemClick(Sender: TObject);
+
     procedure EnableCategory(Category: String; DoEnable: Boolean);
     {procedure WMSysCommand(var Message: TWMSysCommand);
       message WM_SYSCOMMAND;}
@@ -320,20 +319,13 @@ type
     procedure DoBeforeDisconnect;
     procedure DoAfterConnectionLost;
 
-    procedure Activate; override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
 
     procedure DoDestroy; override;
 
   public
-    SettingKey: Integer;
-
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
-
-    procedure SaveSettings; override;
-    procedure LoadSettings; override;
-
   end;
 
 var
@@ -756,7 +748,6 @@ begin
   inherited;
   FCanClose := False;
   FExitWindows := False;
-  SettingKey := -1;
   FFirstTime := True;
 
   _OnCreateForm := _DoOnCreateForm;
@@ -767,7 +758,7 @@ begin
   gsStorage_CompPath.MainForm := Self;
 
   Application.OnShowHint := ApplicationEventsShowHint;
-
+  
   {$IFNDEF PROTECT}
   TBItem4.Visible := False;
   TBItem3.Visible := False;
@@ -1156,7 +1147,7 @@ begin
 
   FFirstTime := True;
 
-  tcForms.Tabs.Clear;
+  tbForms.Items.Clear;
 
   _IBSQLCache.Enabled := False;
 
@@ -1341,7 +1332,7 @@ begin
     Width := Self.Monitor.Width + 2;
   end;
 
-  tcForms.Tabs.Clear;
+  tbForms.Items.Clear;
 end;
 
 procedure TfrmGedeminMain.actShowUsersExecute(Sender: TObject);
@@ -1394,35 +1385,13 @@ begin
   {$ENDIF}
 end;
 
-procedure TfrmGedeminMain.LoadSettings;
-begin
-  inherited;
-  TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
-end;
-
-procedure TfrmGedeminMain.SaveSettings;
-begin
-  TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
-  inherited;
-end;
-
 procedure TfrmGedeminMain._DoOnCreateForm(Sender: TObject);
-var
-  S: String;
-  Old: Integer;
 begin
   if (Sender is TForm) and (Sender <> Self)
     {and (not (fsModal in TForm(Sender).FormState))} then
   begin
-    S := (Sender as TForm).Caption;
-    if Length(S) > 20 then
-      S := Copy(S, 1, 17) + '...';
-    if tcForms.Tabs.IndexOfObject(Sender) = -1 then
-    begin
-      Old := tcForms.TabIndex;
-      tcForms.Tabs.AddObject(S, Sender);
-      tcForms.TabIndex := Old;
-    end;
+    if GetFormToggleItemIndex(Sender as TForm) = -1 then
+      AddFormToggleItem(Sender as TForm);
   end;
 end;
 
@@ -1430,9 +1399,9 @@ procedure TfrmGedeminMain._DoOnDestroyForm(Sender: TObject);
 var
   I: Integer;
 begin
-  for I := tcForms.Tabs.Count - 1 downto 0 do
-    if Sender = tcForms.Tabs.Objects[I] then
-      tcForms.Tabs.Delete(I);
+  for I := tbForms.Items.Count - 1 downto 0 do
+    if TForm(Sender) = TForm(tbForms.Items[I].Tag) then
+      tbForms.Items.Delete(I);
 end;
 
 destructor TfrmGedeminMain.Destroy;
@@ -1444,64 +1413,26 @@ begin
   inherited;
 end;
 
-procedure TfrmGedeminMain.tcFormsChange(Sender: TObject);
-var
-  frm: TForm;
-begin
-  if tcForms.TabIndex >= 0 then
-  try
-    frm := tcForms.Tabs.Objects[tcForms.TabIndex] as TForm;
-
-    if FormsList.IndexOf(frm) = -1 then
-      tcForms.Tabs.Delete(tcForms.TabIndex)
-    else
-    begin
-      frm.Show;
-      // Если форма вылезла куда-то за границу экрана, поместим ее в центр
-      if frm.Left >= (Self.Monitor.Left + Self.Monitor.Width) then
-        frm.Left := Self.Monitor.Left + Self.Monitor.Width div 2;
-      if frm.Top >= (Self.Monitor.Top + Self.Monitor.Height) then
-        frm.Top := Self.Monitor.Top + Self.Monitor.Height div 2;
-    end;
-
-  except
-    //oops!
-    tcForms.Tabs.Delete(tcForms.TabIndex);
-  end;
-end;
-
-procedure TfrmGedeminMain.tbFormsResize(Sender: TObject);
-begin
-  {tcForms.Left := 0;
-  tcForms.Top := 0;
-  tcForms.Height := 21;}
-  tcForms.Width := tbForms.Width - 10;
-end;
-
 procedure TfrmGedeminMain._DoOnActivateForm(Sender: TObject);
 var
   I: Integer;
-  S: String;
+  Form: TForm;
 begin
   if (Sender is TForm) and (Sender <> Self)
     and (not (csDestroying in TForm(Sender).ComponentState)) then
   begin
-    S := (Sender as TForm).Caption;
-    if Length(S) > 20 then
-      S := Copy(S, 1, 17) + '...';
-    if tcForms.Tabs.IndexOfObject(Sender) = -1 then
-      tcForms.Tabs.AddObject(S, Sender);
+    Form := Sender as TForm;
 
-    for I := 0 to tcForms.Tabs.Count - 1 do
-      if Sender = tcForms.Tabs.Objects[I] then
-        tcForms.TabIndex := I;
+    I := GetFormToggleItemIndex(Form);
+    // Если текущей форме не соответствует никакая кнопка, то добавим ее
+    if GetFormToggleItemIndex(Form) = -1 then
+    begin
+      AddFormToggleItem(Form);
+      I := GetFormToggleItemIndex(Form);
+    end;
+    // Зажмем соответствующую форме кнопку
+    tbForms.Items[I].Checked := True;
   end;
-end;
-
-procedure TfrmGedeminMain.Activate;
-begin
-  inherited;
-  tcForms.TabIndex := -1;
 end;
 
 procedure TfrmGedeminMain.actEditFormExecute(Sender: TObject);
@@ -1719,20 +1650,22 @@ end;
 
 procedure TfrmGedeminMain._DoOnCaptionChange(Sender: TObject);
 var
-  I: Integer;
   Index: Integer;
-  S: string;
+  CuttedCaption: String;
+  Form: TForm;
 begin
-  Index := -1;
-  for I := 0 to tcForms.Tabs.Count - 1 do
-    if Sender = tcForms.Tabs.Objects[I] then
-      Index := I;
+  Form := Sender as TForm;
+
+  Index := GetFormToggleItemIndex(Form);
   if Index > -1 then
   begin
-    S := (Sender as TForm).Caption;
-    if Length(S) > 20 then
-      S := Copy(S, 1, 17) + '...';
-    tcForms.Tabs[Index] := S;
+    if Length(Form.Caption) > 20 then
+      CuttedCaption := Copy(Form.Caption, 1, 17) + '...'
+    else
+      CuttedCaption := Form.Caption;
+
+    tbForms.Items[Index].Caption := CuttedCaption;
+    tbForms.Items[Index].Hint := Form.Caption;
   end;
 end;
 
@@ -1806,55 +1739,53 @@ end;
 procedure TfrmGedeminMain.actCloseFormExecute(Sender: TObject);
 var
   TabPos: TPoint;
-  I: Integer;
   Form: TObject;
+  ToggleItem: TTBCustomItem;
 begin
   TabPos := TCrackPopupMenu(pmForms).PopupPoint;
-  TabPos := tcForms.ScreenToClient(TabPos);
-  I := tcForms.IndexOfTabAt(TabPos.x, TabPos.y);
-  if I > -1 then
+  TabPos := tbForms.ScreenToClient(TabPos);
+  ToggleItem := tbForms.View.ViewerFromPoint(TabPos).Item;
+  if Assigned(ToggleItem) and (ToggleItem is TTBItem) then
   try
-    Form := tcForms.Tabs.Objects[I];
+    Form := TForm(ToggleItem.Tag);
     if Form is TfrmGedeminProperty then
     begin
       if (Form as TfrmGedeminProperty).Restored then
        (Form as TForm).Free;
-    end else
+    end
+    else
       (Form as TForm).Free;
   except
-    //oops!
-    tcForms.Tabs.Delete(I);
+    tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
   end;
 end;
 
 procedure TfrmGedeminMain.actHideFormExecute(Sender: TObject);
 var
   TabPos: TPoint;
-  I: Integer;
+  ToggleItem: TTBCustomItem;
 begin
-  TabPos := TCrackPopupMenu(pmForms).PopupPoint;
-  TabPos := tcForms.ScreenToClient(TabPos);
-  I := tcForms.IndexOfTabAt(TabPos.x, TabPos.y);
-  if I > -1 then
-  try
-    (tcForms.Tabs.Objects[I] as TForm).Close;
-  except
-    //oops!
-    tcForms.Tabs.Delete(I);
-  end;
+  TabPos := tbForms.ScreenToClient(TCrackPopupMenu(pmForms).PopupPoint);
+  ToggleItem := tbForms.View.ViewerFromPoint(TabPos).Item;
+  if Assigned(ToggleItem) and (ToggleItem is TTBItem) then
+    try
+      TForm(ToggleItem.Tag).Close;
+    except
+      tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
+    end;
 end;
 
 procedure TfrmGedeminMain.actHideAllExecute(Sender: TObject);
 var
   I: Integer;
 begin
-  for I := 0 to tcForms.Tabs.Count - 1 do
-  try
-    (tcForms.Tabs.Objects[I] as TForm).Close;
-  except
-    //oops!
-    tcForms.Tabs.Delete(I);
-  end;
+  for I := 0 to tbForms.Items.Count - 1 do
+    if tbForms.Items[I] is TTBItem then
+      try
+        TForm(tbForms.Items[I].Tag).Close;
+      except
+        tbForms.Items.Delete(I);
+      end;
 end;
 
 procedure TfrmGedeminMain.actCloseAllExecute(Sender: TObject);
@@ -1864,38 +1795,29 @@ var
 begin
   if MessageBox(Handle, 'Закрыть все формы?', 'Внимание', MB_YESNO or MB_ICONQUESTION) = IDYES then
   begin
-    for I := tcForms.Tabs.Count - 1 downto 0 do
-    try
-      try
-        Form := tcForms.Tabs.Objects[I];
-        if gdc_frmExplorer <> Form then
-        begin
-          if Form is TForm then
-          begin
-            if Form is TfrmGedeminProperty then
+    for I := tbForms.Items.Count - 1 downto 0 do
+      if tbForms.Items[I] is TTBItem then
+        try
+          try
+            Form := TForm(tbForms.Items[I].Tag);
+            if gdc_frmExplorer <> Form then
             begin
-              if (Form as TfrmGedeminProperty).Restored then
-                (Form as TForm).Free;
-            end
-            else
-              (Form as TForm).Free;
+              if Form is TForm then
+              begin
+                if Form is TfrmGedeminProperty then
+                begin
+                  if (Form as TfrmGedeminProperty).Restored then
+                    (Form as TForm).Free;
+                end
+                else
+                  (Form as TForm).Free;
+              end;
+            end;
+          except
+            tbForms.Items.Delete(I);
           end;
+        except
         end;
-      except
-        //oops!
-        tcForms.Tabs.Delete(I);
-      end;
-    except
-    end;
-  end;
-end;
-
-procedure TfrmGedeminMain.tcFormsMouseMove(Sender: TObject;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if tcForms.IndexOfTabAt(X, Y) <> -1 then
-  begin
-    tcForms.Hint := tcForms.Tabs[tcForms.IndexOfTabAt(X, Y)];
   end;
 end;
 
@@ -2395,6 +2317,80 @@ begin
   actUsers.Enabled := Assigned(IBLogin)
     and IBLogin.IsUserAdmin
     and IBLogin.LoggedIn;
+end;
+
+function TfrmGedeminMain.GetFormToggleItemIndex(AForm: TForm): Integer;
+var
+  I: Integer;
+begin
+  Result := -1;
+  for I := tbForms.Items.Count - 1 downto 0 do
+    // т.к. тег заполняется и у разделителей, то проверим кнопка ли это
+    if (AForm = TForm(tbForms.Items[I].Tag)) and (tbForms.Items[I] is TTBItem) then
+    begin
+      Result := I;
+      Break;
+    end;
+end;
+
+procedure TfrmGedeminMain.AddFormToggleItem(AForm: TForm);
+var
+  ToggleItem: TTBCustomItem;
+  CutCaption: String;
+begin
+  if Length(AForm.Caption) > 20 then
+    CutCaption := Copy(AForm.Caption, 1, 17) + '...'
+  else
+    CutCaption := AForm.Caption;
+
+  // Кнопка на тулбаре
+  ToggleItem := TTBItem.Create(tbForms);
+  ToggleItem.Caption := CutCaption;
+  //ToggleItem.ImageIndex := ImageIndex;
+  ToggleItem.GroupIndex := 1;
+  ToggleItem.Hint := AForm.Caption;
+  ToggleItem.Tag := Integer(AForm);
+  ToggleItem.AutoCheck := True;
+  ToggleItem.OnClick := OnFormToggleItemClick;
+  tbForms.Items.Add(ToggleItem);
+
+  // Разделитель
+  ToggleItem := TTBSeparatorItem.Create(tbForms);
+  // Заполним тег, чтобы потом корректно удалить разделитель
+  ToggleItem.Tag := Integer(AForm);
+  tbForms.Items.Add(ToggleItem);
+end;
+
+procedure TfrmGedeminMain.OnFormToggleItemClick(Sender: TObject);
+var
+  frm: TForm;
+  ToggleItem: TTBItem;
+begin
+  ToggleItem := Sender as TTBItem;
+  if Assigned(TForm(ToggleItem.Tag)) then
+  try
+    frm := TForm(ToggleItem.Tag);
+
+    if FormsList.IndexOf(frm) = -1 then
+    begin
+      tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
+    end
+    else
+    begin
+      if not frm.Visible then
+        frm.Show;
+      frm.BringToFront;
+      // Если форма вылезла куда-то за границу экрана, поместим ее в центр
+      if frm.Left >= (frm.Monitor.Left + frm.Monitor.Width) then
+        frm.Left := frm.Monitor.Left + frm.Monitor.Width div 2;
+      if frm.Top >= (frm.Monitor.Top + frm.Monitor.Height) then
+        frm.Top := frm.Monitor.Top + frm.Monitor.Height div 2;
+
+      ToggleItem.Checked := True;
+    end;
+  except
+    tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
+  end;
 end;
 
 end.

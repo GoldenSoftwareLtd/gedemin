@@ -24,10 +24,6 @@ type
     btnExclude: TButton;
     gdcUserGroup: TgdcUserGroup;
     dsUserGroup: TDataSource;
-    Label4: TLabel;
-    lblClassName: TLabel;
-    Label5: TLabel;
-    lblName: TLabel;
     gdcUserGroupID: TIntegerField;
     gdcUserGroupNAME: TIBStringField;
     btnInclude: TButton;
@@ -36,38 +32,8 @@ type
     Label6: TLabel;
     btnIncludeAll: TButton;
     actIncludeAll: TAction;
-    Label7: TLabel;
     btnExcludeAll: TButton;
     actExcludeAll: TAction;
-    lblObjectID: TLabel;
-    btnCopyID: TButton;
-    actCopyIDToClipboard: TAction;
-    Label9: TLabel;
-    lblCurrentRecord: TLabel;
-    Label12: TLabel;
-    lblParent: TLabel;
-    Label14: TLabel;
-    lblLB: TLabel;
-    Label16: TLabel;
-    lblRB: TLabel;
-    Label13: TLabel;
-    lblParentClassName: TLabel;
-    Label15: TLabel;
-    lblSubType: TLabel;
-    Label17: TLabel;
-    lblSubSet: TLabel;
-    Label18: TLabel;
-    lblListTable: TLabel;
-    Label19: TLabel;
-    lblClassLabel: TLabel;
-    Label20: TLabel;
-    Label21: TLabel;
-    Label22: TLabel;
-    Label23: TLabel;
-    lblCreationDate: TLabel;
-    lblCreator: TLabel;
-    lblEditionDate: TLabel;
-    lblEditor: TLabel;
     tsAdditional: TTabSheet;
     Label24: TLabel;
     lblRecordCount: TLabel;
@@ -77,24 +43,10 @@ type
     actShowSQL: TAction;
     lblParams: TLabel;
     cbParams: TComboBox;
-    Label25: TLabel;
-    lblRUID: TLabel;
-    btnCopyRUID: TButton;
-    actCopyRUIDToClipboard: TAction;
     sbFields: TScrollBox;
     tsFields: TTabSheet;
     sbFields2: TScrollBox;
     chbxUpdateChildren: TCheckBox;
-    Label8: TLabel;
-    lblConnectedTables: TEdit;
-    Label10: TLabel;
-    Label11: TLabel;
-    Label27: TLabel;
-    edAView: TEdit;
-    edAChag: TEdit;
-    edAFull: TEdit;
-    Label28: TLabel;
-    lblExtraConditions: TLabel;
     tsLinks: TTabSheet;
     tbLinks: TTBToolbar;
     ibgrLinks: TgsIBGrid;
@@ -107,12 +59,13 @@ type
     Label30: TLabel;
     cbOpenDoc: TComboBox;
     TBControlItem2: TTBControlItem;
-    Button1: TButton;
+    btnClassMethods: TButton;
     actGoToMethods: TAction;
     actGoToMethodsSubtype: TAction;
-    Button2: TButton;
-    Button3: TButton;
+    btnSubTypeMethods: TButton;
+    btnParentMethods: TButton;
     actGoToMethodsParent: TAction;
+    mProp: TMemo;
     procedure cbAccessClassChange(Sender: TObject);
     procedure actExcludeUpdate(Sender: TObject);
     procedure actExcludeExecute(Sender: TObject);
@@ -122,11 +75,9 @@ type
     procedure actIncludeAllExecute(Sender: TObject);
     procedure actExcludeAllUpdate(Sender: TObject);
     procedure actExcludeAllExecute(Sender: TObject);
-    procedure actCopyIDToClipboardExecute(Sender: TObject);
     procedure tsAccessShow(Sender: TObject);
     procedure actShowSQLExecute(Sender: TObject);
     procedure actShowSQLUpdate(Sender: TObject);
-    procedure actCopyRUIDToClipboardExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actShowLinkObjectUpdate(Sender: TObject);
     procedure actShowLinkObjectExecute(Sender: TObject);
@@ -136,7 +87,6 @@ type
     procedure actGoToMethodsUpdate(Sender: TObject);
     procedure actGoToMethodsSubtypeUpdate(Sender: TObject);
     procedure actGoToMethodsParentUpdate(Sender: TObject);
-    procedure actCopyIDToClipboardUpdate(Sender: TObject);
 
   private
     function GetCurrentSecField(const ATI: TgdcTableInfos = []): TField;
@@ -145,7 +95,7 @@ type
     procedure LabelMouseMove(Sender: TObject;
       Shift: TShiftState; X, Y: Integer);
 
-    procedure BuildLinks;  
+    procedure BuildLinks;
 
   protected
     procedure SyncCombo;
@@ -309,19 +259,6 @@ begin
   SyncCombo;
 end;
 
-procedure Tgdc_dlgObjectProperties.actCopyIDToClipboardExecute(
-  Sender: TObject);
-var
-  C: TClipboard;
-begin
-  C := TClipboard.Create;
-  try
-    C.AsText := IntToStr(gdcObject.ID);
-  finally
-    C.Free;
-  end;
-end;
-
 procedure Tgdc_dlgObjectProperties.tsAccessShow(Sender: TObject);
 var
   OldCursor: TCursor;
@@ -434,6 +371,17 @@ procedure Tgdc_dlgObjectProperties.SetupRecord;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  Lst: TObjectList;
+  FK: TatForeignKey;
+  PK, PK2: TatPrimaryKey;
+  I: Integer;
+  S: String;
+
+  function AddSpaces(const S: String): String;
+  begin
+    Result := S + StringOfChar(' ', 20 - Length(S));
+  end;
+
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGOBJECTPROPERTIES', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -457,29 +405,77 @@ begin
   inherited;
 
   if Assigned(gdcObject) then
+  with mProp.Lines do
   begin
-    lblRUID.Caption := RUIDToStr(gdcObject.GetRUID);
-  end else
-    lblRUID.Caption := '';
+    Clear;
+    Add(AddSpaces('Метка типа:') + gdcObject.GetDisplayName(gdcObject.SubType));
+    Add(AddSpaces('Тип объекта:') + gdcObject.ClassName);
+    Add(AddSpaces('Тип родителя:') + gdcObject.ClassParent.ClassName);
+    Add(AddSpaces('Подтип:') + gdcObject.SubType);
+    Add(AddSpaces('Подмножество:') + gdcObject.SubSet);
+    if Trim(gdcObject.ExtraConditions.CommaText) > '' then
+      Add(AddSpaces('Доп. условия:') + Trim(gdcObject.ExtraConditions.CommaText));
+    Add(AddSpaces('Тип текущей записи:') + gdcObject.GetCurrRecordClass.gdClass.ClassName);
+    Add(AddSpaces('Идентификатор:') + IntToStr(gdcObject.ID));
+    Add(AddSpaces('RUID:') + RUIDToStr(gdcObject.GetRUID));
+    Add(AddSpaces('Наименование:') + gdcObject.ObjectName);
+    if gdcObject is TgdcTree then
+      Add(AddSpaces('Родитель:') + IntToStr((gdcObject as TgdcTree).Parent));
+    if gdcObject is TgdcLBRBTree then
+    begin
+      Add(AddSpaces('Левая граница:') + IntToStr((gdcObject as TgdcLBRBTree).LB));
+      Add(AddSpaces('Правая граница:') + IntToStr((gdcObject as TgdcLBRBTree).RB));
+    end;
+    Add(AddSpaces('Главная таблица:') + gdcObject.GetListTable(gdcObject.SubType));
+    S := '';
+    Lst := TObjectList.Create(False);
+    try
+      atDatabase.ForeignKeys.ConstraintsByReferencedRelation(gdcObject.GetListTable(gdcObject.SubType),
+        Lst);
+      for I := 0 to Lst.Count - 1 do
+      begin
+        FK := Lst[I] as TatForeignKey;
+        PK := FK.ReferencesRelation.PrimaryKey;
+        PK2 := FK.Relation.PrimaryKey;
+        if (PK <> nil) and (PK.ConstraintFields.Count = 1)
+          and (FK.ConstraintFields.Count = 1)
+          and (PK2 <> nil) and (PK2.ConstraintFields.Count = 1)
+          and (PK2.ConstraintFields[0].FieldName = FK.ConstraintFields[0].FieldName) then
+        begin
+          if S > '' then S := S + ', ';
+          S := S + FK.Relation.RelationName;
+        end;
+      end;
+    finally
+      Lst.Free;
+    end;
+    if S > '' then Add(AddSpaces('Связанные таблицы:') + S);
+    if tiCreationInfo in gdcObject.gdcTableInfos then
+    begin
+      Add(AddSpaces('Когда создан:') + gdcObject.FieldByName('creationdate').AsString);
+      if gdcObject.CreatorName > '' then
+        Add(AddSpaces('Кем создан:') + gdcObject.CreatorName);
+    end;
+    if tiEditionInfo in gdcObject.gdcTableInfos then
+    begin
+      Add(AddSpaces('Когда изменен:') + gdcObject.FieldByName('editiondate').AsString);
+      if gdcObject.EditorName > '' then
+        Add(AddSpaces('Кем изменен:') + gdcObject.EditorName);
+    end;
+    if gdcObject.FindField('aview') <> nil then
+      Add(AddSpaces('Только просмотр:') + TgdcUserGroup.GetGroupList(gdcObject.FindField('aview').AsInteger));
+    if gdcObject.FindField('achag') <> nil then
+      Add(AddSpaces('Просм. и изменение:') + TgdcUserGroup.GetGroupList(gdcObject.FindField('achag').AsInteger));
+    if gdcObject.FindField('afull') <> nil then
+      Add(AddSpaces('Полный доступ:') + TgdcUserGroup.GetGroupList(gdcObject.FindField('afull').AsInteger));
+  end;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGOBJECTPROPERTIES', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
   {M}    ClearMacrosStack('TGDC_DLGOBJECTPROPERTIES', 'SETUPRECORD', KEYSETUPRECORD);
   {M}end;
   {END MACRO}
-end;
-
-procedure Tgdc_dlgObjectProperties.actCopyRUIDToClipboardExecute(
-  Sender: TObject);
-var
-  C: TClipboard;
-begin
-  C := TClipboard.Create;
-  try
-    C.AsText := RUIDToStr(gdcObject.GetRUID);
-  finally
-    C.Free;
-  end;
 end;
 
 procedure Tgdc_dlgObjectProperties.SetupDialog;
@@ -492,11 +488,8 @@ var
   I: Integer;
   L: TLabel;
   DBE: TDBEdit;
-  Lst: TObjectList;
-  FK: TatForeignKey;
-  PK, PK2: TatPrimaryKey;
   E: TEdit;
-  C: TCheckBox; 
+  C: TCheckBox;
 
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGOBJECTPROPERTIES', 'SETUPDIALOG', KEYSETUPDIALOG)}
@@ -522,109 +515,7 @@ begin
 
   if Assigned(gdcObject) then
   begin
-    lblClassLabel.Caption := gdcObject.GetDisplayName(gdcObject.SubType);
-    lblClassName.Caption := gdcObject.ClassName;
-    lblParentClassName.Caption := gdcObject.ClassParent.ClassName;
-    lblSubType.Caption := gdcObject.SubType;
-    lblSubSet.Caption := gdcObject.SubSet;
-    lblExtraConditions.Caption := gdcObject.ExtraConditions.Text;
-    lblCurrentRecord.Caption := gdcObject.GetCurrRecordClass.gdClass.ClassName;
-    lblName.Caption := gdcObject.ObjectName;
-    lblListTable.Caption := gdcObject.GetListTable(gdcObject.SubType);
-
-    lblConnectedTables.Text := '';
-    Lst := TObjectList.Create(False);
-    try
-      atDatabase.ForeignKeys.ConstraintsByReferencedRelation(lblListTable.Caption,
-        Lst);
-      for I := 0 to Lst.Count - 1 do
-      begin
-        FK := Lst[I] as TatForeignKey;
-        PK := FK.ReferencesRelation.PrimaryKey;
-        PK2 := FK.Relation.PrimaryKey;
-        if (PK <> nil) and (PK.ConstraintFields.Count = 1)
-          and (FK.ConstraintFields.Count = 1)
-          and (PK2 <> nil) and (PK2.ConstraintFields.Count = 1)
-          and (PK2.ConstraintFields[0].FieldName = FK.ConstraintFields[0].FieldName) then
-        begin
-          if lblConnectedTables.Text > '' then
-            lblConnectedTables.Text := lblConnectedTables.Text + ', ';
-          lblConnectedTables.Text := lblConnectedTables.Text +
-            FK.Relation.RelationName;
-        end;
-      end;
-    finally
-      Lst.Free;
-    end;
-
-    lblObjectID.Caption := FormatFloat('#,##0', gdcObject.ID);
-
-    if gdcObject is TgdcTree then
-    begin
-      lblParent.Caption := FormatFloat('#,##0', (gdcObject as TgdcTree).Parent);
-      chbxUpdateChildren.Visible := True;
-    end else
-    begin
-      lblParent.Caption := '';
-      chbxUpdateChildren.Visible := False;
-    end;
-
-    if gdcObject is TgdcLBRBTree then
-    begin
-      lblLB.Caption := FormatFloat('#,##0', (gdcObject as TgdcLBRBTree).LB);
-      lblRB.Caption := FormatFloat('#,##0', (gdcObject as TgdcLBRBTree).RB);
-    end else
-    begin
-      lblLB.Caption := '';
-      lblRB.Caption := '';
-    end;
-
-    if tiCreationInfo in gdcObject.gdcTableInfos then
-    begin
-      lblCreationDate.Caption := gdcObject.FieldByName('creationdate').AsString;
-      lblCreator.Caption := gdcObject.CreatorName;
-    end else
-    begin
-      lblCreationDate.Caption := '';
-      lblCreator.Caption := '';
-    end;
-
-    if tiEditionInfo in gdcObject.gdcTableInfos then
-    begin
-      lblEditionDate.Caption := gdcObject.FieldByName('editiondate').AsString;
-      lblEditor.Caption := gdcObject.EditorName;
-    end else
-    begin
-      lblEditionDate.Caption := '';
-      lblEditor.Caption := '';
-    end;
-
-    if gdcObject.FindField('aview') <> nil then
-    begin
-      edAView.Text :=
-        TgdcUserGroup.GetGroupList(gdcObject.FindField('aview').AsInteger);
-    end else
-    begin
-      edAView.Text := '';
-    end;
-
-    if gdcObject.FindField('achag') <> nil then
-    begin
-      edAChag.Text :=
-        TgdcUserGroup.GetGroupList(gdcObject.FindField('achag').AsInteger);
-    end else
-    begin
-      edAChag.Text := '';
-    end;
-
-    if gdcObject.FindField('afull') <> nil then
-    begin
-      edAFull.Text :=
-        TgdcUserGroup.GetGroupList(gdcObject.FindField('afull').AsInteger);
-    end else
-    begin
-      edAFull.Text := '';
-    end;
+    chbxUpdateChildren.Visible := gdcObject is TgdcTree;
 
     cbParams.Items.Clear;
     if gdcObject.Params.Count = 0 then
@@ -1052,48 +943,39 @@ end;
 procedure Tgdc_dlgObjectProperties.actGoToMethodsExecute(Sender: TObject);
 begin
   ModalResult:= mrCancel;
-  if Assigned(EventControl) then
-    EventControl.GoToClassMethods(lblClassName.Caption, '');
+  EventControl.GoToClassMethods(gdcObject.ClassName, '');
 end;
 
 procedure Tgdc_dlgObjectProperties.actGoToMethodsUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled:= lblClassName.Caption <> '';
+  TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil);
 end;
 
 procedure Tgdc_dlgObjectProperties.actGoToMethodsSubtypeExecute(
   Sender: TObject);
 begin
   ModalResult:= mrCancel;
-  if Assigned(EventControl) then
-    EventControl.GoToClassMethods(lblClassName.Caption, lblSubType.Caption);
+  EventControl.GoToClassMethods(gdcObject.ClassName, gdcObject.SubType);
 end;
 
 procedure Tgdc_dlgObjectProperties.actGoToMethodsSubtypeUpdate(
   Sender: TObject);
 begin
-  TAction(Sender).Enabled:= (lblParentClassName.Caption <> '') and
-    (lblSubType.Caption <> '');
+  TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil)
+    and (gdcObject.SubType > '');
 end;
 
 procedure Tgdc_dlgObjectProperties.actGoToMethodsParentExecute(
   Sender: TObject);
 begin
   ModalResult:= mrCancel;
-  if Assigned(EventControl) then
-    EventControl.GoToClassMethods(lblParentClassName.Caption, '');
+  EventControl.GoToClassMethods(gdcObject.ClassParent.ClassName, '');
 end;
 
 procedure Tgdc_dlgObjectProperties.actGoToMethodsParentUpdate(
   Sender: TObject);
 begin
-  TAction(Sender).Enabled:= lblParentClassName.Caption <> '';
-end;
-
-procedure Tgdc_dlgObjectProperties.actCopyIDToClipboardUpdate(
-  Sender: TObject);
-begin
-  actCopyIDToClipboard.Enabled := pcMain.ActivePage = tsGeneral;
+  TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil);
 end;
 
 initialization

@@ -2096,7 +2096,7 @@ begin
       GlobalStorage.DeleteValue('Options\DNSS', BuildComponentPath(Self), False);
       F := GlobalStorage.OpenFolder('Options\DNSS', False, False);
       if (F <> nil) and (F.ValuesCount = 0) then
-        F.DropFolder
+        F.Drop
       else
         GlobalStorage.CloseFolder(F, False);
     end else
@@ -2105,13 +2105,13 @@ begin
   end;
 end;
 
-procedure Tgdc_frmG.actDistributeSettingsExecute(Sender: TObject);
-{$INCLUDE distribute_user_settings.pas}
-
 procedure Tgdc_frmG.actHlpUpdate(Sender: TObject);
 begin
   actHlp.Enabled := gdcObject <> nil;
 end;
+
+procedure Tgdc_frmG.actDistributeSettingsExecute(Sender: TObject);
+{$INCLUDE distribute_user_settings.pas}
 
 initialization
   RegisterFrmClass(Tgdc_frmG);
