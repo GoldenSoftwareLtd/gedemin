@@ -1145,6 +1145,18 @@ COMMIT;
 
     INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
       VALUES (
+        740302,
+        740300,
+        'Хранилище (б/о)',
+        'srv_storage_new',
+        'TgdcStorage',
+        NULL,
+        255,
+        1
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+      VALUES (
         740350,
         740000,
         'Фильтры',

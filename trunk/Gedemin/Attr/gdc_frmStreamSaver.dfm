@@ -10,7 +10,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -20,35 +20,36 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
   TextHeight = 13
   object pnlBottom: TPanel
     Left = 0
-    Top = 330
+    Top = 342
     Width = 506
-    Height = 41
+    Height = 29
     Align = alBottom
+    BevelOuter = bvNone
     TabOrder = 1
     object btnClose: TButton
-      Left = 408
-      Top = 8
-      Width = 85
-      Height = 25
+      Left = 405
+      Top = 5
+      Width = 96
+      Height = 21
       Caption = 'Закрыть'
       TabOrder = 2
       OnClick = btnCloseClick
     end
     object btnNext: TButton
-      Left = 279
-      Top = 8
-      Width = 110
-      Height = 25
+      Left = 297
+      Top = 5
+      Width = 96
+      Height = 21
       Action = actNext
       Caption = 'Дальше >'
       Default = True
       TabOrder = 1
     end
     object btnPrev: TButton
-      Left = 193
-      Top = 8
-      Width = 85
-      Height = 25
+      Left = 196
+      Top = 5
+      Width = 96
+      Height = 21
       Action = actPrev
       Caption = '< Назад'
       TabOrder = 0
@@ -58,7 +59,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
     Left = 0
     Top = 0
     Width = 506
-    Height = 330
+    Height = 342
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -66,37 +67,40 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
       Left = 0
       Top = 0
       Width = 506
-      Height = 41
+      Height = 25
       Align = alTop
+      BevelOuter = bvNone
+      Color = clWindow
       TabOrder = 0
       object lblFirst: TLabel
         Left = 17
-        Top = 13
-        Width = 111
+        Top = 5
+        Width = 104
         Height = 13
         Caption = '1. Тип сохранения'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
-        Font.Name = 'MS Sans Serif'
+        Font.Name = 'Tahoma'
         Font.Style = [fsBold]
         ParentFont = False
       end
       object lblSecond: TLabel
         Left = 384
-        Top = 13
-        Width = 72
+        Top = 5
+        Width = 74
         Height = 13
         Caption = '2. Сохранение'
       end
     end
     object PageControl: TPageControl
       Left = 0
-      Top = 41
+      Top = 25
       Width = 506
-      Height = 289
+      Height = 317
       ActivePage = tbsProcess
       Align = alClient
+      Style = tsFlatButtons
       TabOrder = 1
       object tbsSave: TTabSheet
         Caption = 'tbsSave'
@@ -123,13 +127,13 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
         object lblIncremented: TLabel
           Left = 8
           Top = 46
-          Width = 80
+          Width = 79
           Height = 13
           Caption = 'Инкрементный:'
         end
         object pnlDatabases: TPanel
           Left = 0
-          Top = 88
+          Top = 116
           Width = 498
           Height = 191
           Align = alBottom
@@ -142,7 +146,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Width = 364
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 1
           OnChange = cbStreamFormatChange
         end
@@ -163,7 +167,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
         object lblFileName: TLabel
           Left = 8
           Top = 22
-          Width = 60
+          Width = 58
           Height = 13
           Caption = 'Имя файла:'
         end
@@ -203,7 +207,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
         object lblLoadingIncrementedLabel: TLabel
           Left = 8
           Top = 70
-          Width = 80
+          Width = 79
           Height = 13
           Caption = 'Инкрементный:'
         end
@@ -275,7 +279,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = [fsBold]
           ParentFont = False
         end
@@ -290,7 +294,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clMaroon
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = [fsBold]
           ParentFont = False
           Transparent = True
@@ -307,19 +311,18 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Caption = '0 / 0'
         end
         object imgStatus: TImage
-          Left = 336
-          Top = 257
+          Left = 344
+          Top = 280
           Width = 16
           Height = 16
         end
         object btnShowLog: TButton
-          Left = 355
-          Top = 251
+          Left = 363
+          Top = 277
           Width = 134
-          Height = 25
-          Caption = 'Просмотреть лог-файл'
+          Height = 21
+          Action = actShowLog
           TabOrder = 0
-          OnClick = btnShowLogClick
         end
         object pbMain: TProgressBar
           Left = 8
@@ -340,7 +343,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
         object lblSettingHint01: TLabel
           Left = 4
           Top = 70
-          Width = 489
+          Width = 441
           Height = 26
           Caption = 
             '  Для того, чтобы структуры данных были созданы, а макросы начал' +
@@ -379,7 +382,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
         object lblSettingFormat: TLabel
           Left = 6
           Top = 126
-          Width = 101
+          Width = 98
           Height = 13
           Caption = 'Формат настройки:'
           Visible = False
@@ -402,7 +405,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Width = 222
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 1
           Visible = False
           OnChange = cbSettingFormatChange
@@ -420,6 +423,11 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
     object actPrev: TAction
       Caption = 'Назад'
       OnExecute = actPrevExecute
+    end
+    object actShowLog: TAction
+      Caption = 'Просмотреть лог...'
+      OnExecute = actShowLogExecute
+      OnUpdate = actShowLogUpdate
     end
   end
 end

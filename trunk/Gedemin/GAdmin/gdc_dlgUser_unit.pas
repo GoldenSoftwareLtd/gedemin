@@ -56,7 +56,6 @@ type
     procedure actCopySettingsExecute(Sender: TObject);
     procedure cbSaveErrorLogClick(Sender: TObject);
     procedure cbLimitLinesClick(Sender: TObject);
-    procedure FormActivate(Sender: TObject);
 
   private
     FEnabledChildPnlErrLog: array of Boolean;
@@ -249,9 +248,10 @@ const
   uDLFN = 'ErrScript.log';
 
 begin
-  UserStorage.UserKey := gdcObject.ID;
+  if gdcObject.State <> dsInsert then
+    UserStorage.ObjectKey := gdcObject.ID;
 
-  if UserStorage.UserKey = IBLogin.UserKey then
+  if UserStorage.ObjectKey = IBLogin.UserKey then
   begin
     FUserSettings.Exceptions := PropertySettings.Exceptions;
   end else
@@ -282,7 +282,9 @@ begin
   spErrorLines.Enabled := cbLimitLines.Checked;
   BuildFileList(ExtractFileDir(Application.ExeName) + '\*.log',
     faAnyFile, cbErrorLogFile.Items);
-  UserStorage.UserKey := IBLogin.UserKey;
+
+  if UserStorage.ObjectKey <> IBLogin.UserKey then
+    UserStorage.ObjectKey := IBLogin.UserKey;
 end;
 
 procedure Tgdc_dlgUser.SaveErrorsPage;
@@ -322,7 +324,7 @@ begin
         ScriptFactory.ExceptionFlags := Exceptions;
       end;}
 
-      UserStorage.UserKey := gdcObject.ID;
+      UserStorage.ObjectKey := gdcObject.ID;
       UserStorage.WriteBoolean(sPropertyExceptionPath,
         cSaveErrorLog, SaveErrorLog);
       UserStorage.WriteString(sPropertyExceptionPath,
@@ -333,7 +335,7 @@ begin
         cLinesCount, LinesCount);
     end;
   end;
-  if UserStorage.UserKey = IBLogin.UserKey then
+  if UserStorage.ObjectKey = IBLogin.UserKey then
   begin
     PropertySettings.Exceptions := FUserSettings.Exceptions;
     if Assigned(ScriptFactory) then
@@ -341,7 +343,7 @@ begin
       ScriptFactory.ExceptionFlags := FUserSettings.Exceptions;
     end;
   end;
-  UserStorage.UserKey := IBLogin.UserKey;
+  UserStorage.ObjectKey := IBLogin.UserKey;
 end;
 
 procedure Tgdc_dlgUser.CheckLogFileName;
@@ -397,13 +399,6 @@ procedure Tgdc_dlgUser.cbLimitLinesClick(Sender: TObject);
 begin
   inherited;
   spErrorLines.Enabled := cbLimitLines.Checked;
-end;
-
-procedure Tgdc_dlgUser.FormActivate(Sender: TObject);
-begin
-  inherited;
-  SetLength(FEnabledChildPnlErrLog, pnlErrLog.ControlCount);
-  SetErrorsPage;
 end;
 
 procedure Tgdc_dlgUser.SetupDialog;
@@ -509,7 +504,10 @@ begin
 
   edPasswordConfirmation.Text := gdcObject.FieldByName('passw').AsString;
   dbeName.Enabled := gdcObject.State = dsInsert;
-  
+
+  SetLength(FEnabledChildPnlErrLog, pnlErrLog.ControlCount);
+  SetErrorsPage;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGUSER', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then

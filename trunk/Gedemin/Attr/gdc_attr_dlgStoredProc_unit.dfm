@@ -20,6 +20,12 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Top = 405
+    Height = 22
+    Anchors = [akLeft, akBottom]
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 428
     Top = 405
@@ -33,12 +39,6 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
     Height = 22
     Anchors = [akRight, akBottom]
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Top = 405
-    Height = 22
-    Anchors = [akLeft, akBottom]
-    TabOrder = 5
   end
   object pcStoredProc: TPageControl [5]
     Left = 0
@@ -118,12 +118,15 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
           ParentColor = False
           ParentFont = False
           TabOrder = 0
-          BorderStyle = bsNone
+          Gutter.DigitCount = 2
           Gutter.Font.Charset = DEFAULT_CHARSET
           Gutter.Font.Color = clWindowText
           Gutter.Font.Height = -11
-          Gutter.Font.Name = 'Terminal'
+          Gutter.Font.Name = 'Tahoma'
           Gutter.Font.Style = []
+          Gutter.LeftOffset = 8
+          Gutter.ShowLineNumbers = True
+          Gutter.Width = 16
           Highlighter = SynSQLSyn
           Keystrokes = <
             item

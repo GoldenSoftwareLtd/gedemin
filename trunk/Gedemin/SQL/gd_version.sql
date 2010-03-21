@@ -384,6 +384,8 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (114, '0000.0001.0000.0145', '25.09.2009', 'Storage being converted into new data structures');
   
+INSERT INTO fin_versioninfo
+  VALUES (115, '0000.0001.0000.0146', '08.03.2010', 'Editorkey and editiondate fields were added to storage table');
 
 COMMIT;
 

@@ -105,6 +105,7 @@ begin
       try
         FIBSQL.Transaction := FTransaction;
 
+        // Проверим существование поля в GD_COMPANYCODE
         FIBSQL.SQL.Text :=
           ' SELECT * ' +
           ' FROM rdb$relation_fields ' +
@@ -116,7 +117,17 @@ begin
           FIBSQL.SQL.Text :=
            'ALTER TABLE gd_companycode ADD okulp dtext20';
           FIBSQL.ExecQuery;
+        end;
 
+        // Проверим существование поля в GD_V_COMPANY
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          ' SELECT * ' +
+          ' FROM rdb$relation_fields ' +
+          ' WHERE rdb$field_name = ''OKULP'' AND rdb$relation_name = ''GD_V_COMPANY''';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
             ' INSERT INTO RDB$RELATION_FIELDS ' +
@@ -126,7 +137,17 @@ begin
             '  (''OKULP'', ''GD_V_COMPANY'', ''DTEXT20'', ''OKULP'', ' +
             '   27, 0, 27, 5, 0) ';
           FIBSQL.ExecQuery;
+        end;
 
+        // Проверим существование поля в GD_V_OURCOMPANY
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          ' SELECT * ' +
+          ' FROM rdb$relation_fields ' +
+          ' WHERE rdb$field_name = ''OKULP'' AND rdb$relation_name = ''GD_V_OURCOMPANY''';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
           FIBSQL.Close;
           FIBSQL.SQL.Text :=
             ' INSERT INTO RDB$RELATION_FIELDS ' +
@@ -142,6 +163,7 @@ begin
         FIBSQL.SQL.Text := GD_V_COMPANY_TEXT;
         FIBSQL.ExecQuery;
 
+        FIBSQL.Close;
         FIBSQL.SQL.Text :=
           'UPDATE RDB$RELATIONS R ' +
           'SET R.RDB$VIEW_BLR = ' +
@@ -185,6 +207,7 @@ begin
         Log('Добавление в представление GD_V_OURCOMPANY поля OKULP прошло успешно');
 
         Log('Выполнение процедуры at_p_sync');
+        FIBSQL.Close;
         FIBSQL.SQL.Text := 'EXECUTE PROCEDURE at_p_sync ';
         FIBSQL.ExecQuery;
 

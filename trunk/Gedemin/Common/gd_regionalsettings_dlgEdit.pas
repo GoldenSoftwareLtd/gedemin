@@ -86,7 +86,8 @@ type
     aCancel: TAction;
     aApply: TAction;
     Button1: TButton;
-    
+    Label30: TLabel;
+
     procedure FormCreate(Sender: TObject);
     procedure aApplyExecute(Sender: TObject);
     procedure aApplyUpdate(Sender: TObject);
@@ -96,11 +97,11 @@ type
     procedure chbUseSystemSettingsClick(Sender: TObject);
 
   private
-    ApplyActive: Boolean;
-    function DoApply: Boolean;
-    function TestCorrect: Boolean;
-    procedure SetExample;
-    procedure LoadRegionalSettings;
+    //ApplyActive: Boolean;
+    //function DoApply: Boolean;
+    //function TestCorrect: Boolean;
+    //procedure SetExample;
+    //procedure LoadRegionalSettings;
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
@@ -129,14 +130,14 @@ class function TdlgRegionalSettings.CreateAndAssign(AnOwner: TComponent): TForm;
 begin
   if not FormAssigned(dlgRegionalSettings) then
     dlgRegionalSettings := TdlgRegionalSettings.Create(AnOwner);
-  dlgRegionalSettings.LoadRegionalSettings;
+  {dlgRegionalSettings.LoadRegionalSettings;
   dlgRegionalSettings.ApplyActive := False;
   dlgRegionalSettings.SetExample;
-  dlgRegionalSettings.pcRegion.ActivePageIndex := 0;
+  dlgRegionalSettings.pcRegion.ActivePageIndex := 0;}
   Result := dlgRegionalSettings;
 end;
 
-function TdlgRegionalSettings.TestCorrect: Boolean;
+{function TdlgRegionalSettings.TestCorrect: Boolean;
   function Test(CB: TComboBox): Boolean;
   begin
     Result := Cb.Text > '';
@@ -161,9 +162,10 @@ begin
   if not Test(cbCurrThousandSeparator) then exit;
 
   Result := True;
-end;
+end;}
 
 //«агрузка региональных установок на форму
+(*
 procedure TdlgRegionalSettings.LoadRegionalSettings;
 var
   F: TgsStorageFolder;
@@ -231,7 +233,9 @@ begin
     GlobalStorage.CloseFolder(F);
   end;
 end;
+*)
 
+(*
 procedure TdlgRegionalSettings.SetExample;
 var
   S: String;
@@ -249,11 +253,13 @@ begin
   DateTimeToString(S, ShortTimeFormat, Time);
   stTime.Caption := S;
 end;
+*)
 
 procedure TdlgRegionalSettings.FormCreate(Sender: TObject);
-var
-  I: Integer;
+{var
+  I: Integer;}
 begin
+  (*
   //«аполнение списков константами
   cbCurrencyFormat.Clear;
   for I := 0 to CurrencyFormatCount - 1 do
@@ -266,27 +272,28 @@ begin
   begin
     cbNegCurrFormat.Items.Add(NegCurrencyFormatConstants[I]);
   end;
+  *)
 end;
 
 procedure TdlgRegionalSettings.aApplyExecute(Sender: TObject);
 begin
-  DoApply;
+  //DoApply;
 end;
 
 procedure TdlgRegionalSettings.aApplyUpdate(Sender: TObject);
 begin
-  aApply.Enabled := ApplyActive;
+  //aApply.Enabled := ApplyActive;
 end;
 
 procedure TdlgRegionalSettings.cbDecimalSeparatorChange(Sender: TObject);
 begin
-  ApplyActive := True;
-  chbUseSystemSettings.Checked := False;
+  //ApplyActive := True;
+  //chbUseSystemSettings.Checked := False;
 end;
 
 procedure TdlgRegionalSettings.aOKExecute(Sender: TObject);
 begin
-  if DoApply then
+  //if DoApply then
     Close;
 end;
 
@@ -297,9 +304,10 @@ end;
 
 procedure TdlgRegionalSettings.chbUseSystemSettingsClick(Sender: TObject);
 begin
-  ApplyActive := True;
+  //ApplyActive := True;
 end;
 
+(*
 function TdlgRegionalSettings.DoApply: Boolean;
 var
   F: TgsStorageFolder;
@@ -390,13 +398,12 @@ begin
   ApplyActive := False;
   Result := True;
 end;
+*)
 
 initialization
-  //RegisterFrmClass(TdlgRegionalSettings);
   RegisterClass(TdlgRegionalSettings);
 
 finalization
-  //UnRegisterFrmClass(TdlgRegionalSettings);
   UnRegisterClass(TdlgRegionalSettings);
 
 end.

@@ -11,7 +11,7 @@ var
   CompanyStorage: TgsCompanyStorage;
   UserStorage: TgsUserStorage;
   AdminStorage: TgsUserStorage;
-
+                                     
 procedure SaveStorages;
 
 implementation
@@ -30,24 +30,18 @@ begin
     GlobalStorage.SaveToDataBase;
 
   if Assigned(UserStorage) then
-  begin
-    //UserStorage.SaveToDataBase;
-    // сохранит при смене пользователя на -1
-    UserStorage.UserKey := -1;
-  end;
+    UserStorage.ObjectKey := -1;
 
   if Assigned(CompanyStorage) then
-  begin
-    CompanyStorage.CompanyKey := -1;
-  end;
+    CompanyStorage.ObjectKey := -1;
 
   {.$ENDIF}
 end;
 
 initialization
-  GlobalStorage := TgsGlobalStorage.Create(st_root_Global);
-  CompanyStorage := TgsCompanyStorage.Create(st_root_Company);
-  UserStorage := TgsUserStorage.Create(st_root_User);
+  GlobalStorage := TgsGlobalStorage.Create;
+  CompanyStorage := TgsCompanyStorage.Create;
+  UserStorage := TgsUserStorage.Create;
   AdminStorage := nil;
 
 finalization

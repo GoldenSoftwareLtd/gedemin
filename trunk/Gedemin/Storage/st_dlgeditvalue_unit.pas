@@ -20,6 +20,8 @@ type
     btnOk: TButton;
     btnCancel: TButton;
     actHelp: TAction;
+    lblID: TLabel;
+    edID: TEdit;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure actOkUpdate(Sender: TObject);
     procedure actHelpExecute(Sender: TObject);

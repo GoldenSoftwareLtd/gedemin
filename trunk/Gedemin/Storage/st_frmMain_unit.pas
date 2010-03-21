@@ -6,7 +6,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gd_createable_form, TB2Item, StdCtrls, ExtCtrls, ComCtrls, TB2Dock,
-  TB2Toolbar, dmImages_unit, ActnList, gsStorage, Menus, st_dlgFind_unit;
+  TB2Toolbar, dmImages_unit, ActnList, gsStorage, Menus, st_dlgFind_unit,
+  gd_KeyAssoc;
 
 type
   Tst_frmMain = class(TCreateableForm)
@@ -154,11 +155,13 @@ type
     procedure lvCustomDrawSubItem(Sender: TCustomListView; Item: TListItem;
       SubItem: Integer; State: TCustomDrawState; var DefaultDraw: Boolean);
     procedure actLoadFromFileUpdate(Sender: TObject);
+    procedure tvEditing(Sender: TObject; Node: TTreeNode;
+      var AllowEdit: Boolean);
 
   private
     L: TList;
     CurrentStorage: TgsStorage;
-    InSett: TStringList;
+    InSett: TgdKeyArray;
     dlgFind: Tst_dlgFind;
 
     procedure LoadTreeView(const ID: Integer);
@@ -182,13 +185,15 @@ var
 
 implementation
 
+
 {$R *.DFM}
 
 uses
   Storages,               gdcUser,           gd_security,
-  st_dlgEditValue_unit,   dlgEditDFM_unit,
+  st_dlgEditValue_unit,   dlgEditDFM_unit,   gdcStorage,
   at_dlgToSetting_unit,   gsDesktopManager,  gd_directories_const,
-  gsStorage_CompPath,     IBSQL,             gdcBaseInterface
+  gsStorage_CompPath,     IBSQL,             gdcBaseInterface,
+  gdcStorage_Types
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -261,6 +266,7 @@ var
   S: String;
   F: Boolean;
   I: Integer;
+  RF: TgsStorageFolder;
 begin
   if Assigned(CurrentStorage)
     and (CurrentStorage <> GlobalStorage)
@@ -279,8 +285,8 @@ begin
     if ID = IBLogin.UserKey then
       CurrentStorage := UserStorage
     else begin
-      CurrentStorage := TgsUserStorage.Create(cb.Text);
-      TgsUserStorage(CurrentStorage).UserKey := ID;
+      CurrentStorage := TgsUserStorage.Create;
+      TgsUserStorage(CurrentStorage).ObjectKey := ID;
     end;
   end;
 
@@ -292,7 +298,12 @@ begin
   tv.Items.BeginUpdate;
   try
     tv.Items.Clear;
-    N := tv.Items.Add(nil, CurrentStorage.Name);
+    RF := CurrentStorage.OpenFolder('\', False, False);
+    try
+      N := tv.Items.Add(nil, RF.Name);
+    finally
+      CurrentStorage.CloseFolder(RF, False);
+    end;
     CurrentStorage.BuildTreeView(N, L);
     if tv.Items.Count > 0 then
     begin
@@ -347,7 +358,12 @@ begin
           if not (F.Values[I] is TgsStreamValue) then
             L.SubItems.Add(F.Values[I].AsString)
           else
-            L.SubItems.Add(Format('%d (размер, байт)', [F.Values[I].DataSize]));
+          begin
+            if F.Values[I].DataSize > 0 then
+              L.SubItems.Add(Format('%d (размер, байт)', [F.Values[I].DataSize]))
+            else
+              L.SubItems.Add('<размер не определен>');
+          end;
           L.SubItems.Add(FormatDateTime('dd.mm.yy hh:nn:ss', F.Values[I].Modified));
         end;
 
@@ -377,13 +393,14 @@ end;
 
 procedure Tst_frmMain.actSaveStorageUpdate(Sender: TObject);
 begin
-  actSaveStorage.Enabled := Assigned(CurrentStorage)
-    and (CurrentStorage.IsModified);
+  actSaveStorage.Enabled := (CurrentStorage is TgsIBStorage)
+    and CurrentStorage.IsModified;
 end;
 
 procedure Tst_frmMain.actSaveStorageExecute(Sender: TObject);
 begin
-  CurrentStorage.SaveToDatabase;
+  (CurrentStorage as TgsIBStorage).SaveToDatabase;
+  actRefresh.Execute;
 end;
 
 procedure Tst_frmMain.actNewFolderUpdate(Sender: TObject);
@@ -457,7 +474,7 @@ end;
 
 procedure Tst_frmMain.actDeleteFolderUpdate(Sender: TObject);
 begin
-  actDeleteFolder.Enabled := tv.Selected <> nil;
+  actDeleteFolder.Enabled := (tv.Selected <> nil) and (tv.Selected.Parent <> nil);
 end;
 
 procedure Tst_frmMain.actDeleteFolderExecute(Sender: TObject);
@@ -489,6 +506,7 @@ procedure Tst_frmMain.actNewValueExecute(Sender: TObject);
 var
   S: PString;
   I: TListItem;
+  St: TStringStream;
 begin
   S := tv.Selected.Data;
   with Tst_dlgEditValue.Create(Self) do
@@ -508,9 +526,19 @@ begin
         case rg.ItemIndex of
           0: CurrentStorage.WriteInteger(S^, edName.Text, StrToInt(edValue.Text));
           1: CurrentStorage.WriteDateTime(S^, edName.Text, StrToDateTime(edValue.Text));
-          2: CurrentStorage.WriteString(S^, edName.Text, edValue.Text);
           3: CurrentStorage.WriteCurrency(S^, edName.Text, StrToCurr(edValue.Text));
           4: CurrentStorage.WriteBoolean(S^, edName.Text, Boolean(StrToInt(edValue.Text)));
+        else
+          if Length(edValue.Text) <= cStorageMaxStrLen then
+            CurrentStorage.WriteString(S^, edName.Text, edValue.Text)
+          else begin
+            St := TStringStream.Create(edValue.Text);
+            try
+              CurrentStorage.WriteStream(S^, edName.Text, St);
+            finally
+              St.Free;
+            end;
+          end
         end;
 
         I := lv.Items.Add;
@@ -576,7 +604,6 @@ var
   I, J: Integer;
   L: TListItem;
   FSearchList: TStringList;
-  S: String;
 begin
   FSearchList := TStringList.Create;
   try
@@ -612,23 +639,16 @@ begin
         begin
           for I := FSearchList.Count - 1 downto 0 do
           begin
-            if not (FSearchList.Objects[I] is TgsStorageItem) then
-              continue;
-
-            if TgsStorageItem(FSearchList.Objects[I]).Storage <> nil then
-              S := TgsStorageItem(FSearchList.Objects[I]).Storage.Name + FSearchList[I]
-            else
-              S := FSearchList[I];
-            if FSearchList.Objects[I] is TgsStorageFolder then
-              S := S + '\';
-
-            J := InSett.IndexOf(S);
-
-            if ((rgSetting.ItemIndex = 1) and (J = -1))
-              or ((rgSetting.ItemIndex = 2) and (J > -1)) then
+            if FSearchList.Objects[I] is TgsStorageItem then
             begin
-              FSearchList.Delete(I);
-            end;
+              J := InSett.IndexOf(TgsStorageItem(FSearchList.Objects[I]).ID);
+
+              if ((rgSetting.ItemIndex = 1) and (J = -1))
+                or ((rgSetting.ItemIndex = 2) and (J > -1)) then
+              begin
+                FSearchList.Delete(I);
+              end;
+            end;  
           end;
         end;
 
@@ -693,7 +713,7 @@ end;
 
 procedure Tst_frmMain.actEditValueUpdate(Sender: TObject);
 begin
-  actEditValue.Enabled := lv.Selected <> nil;
+  actEditValue.Enabled := (lv.Selected <> nil) and (tv.Selected <> nil);
 end;
 
 procedure Tst_frmMain.actEditValueExecute(Sender: TObject);
@@ -704,11 +724,10 @@ var
   StIn, StOut: TStringStream;
   Sign: String;
 begin
-  F := CurrentStorage.OpenFolder(PString(tv.Selected.Data)^);
-  try
-    if F = nil then
-      exit;
+  F := CurrentStorage.OpenFolder(PString(tv.Selected.Data)^, False);
 
+  if F <> nil then
+  try
     V := F.ValueByName(lv.Selected.Caption);
 
     if V = nil then
@@ -746,6 +765,7 @@ begin
           try
             ObjectTextToBinary(StIn, StOut);
             V.AsString := StOut.DataString;
+            lv.Selected.SubItems[2] := FormatDateTime('dd.mm.yy hh:nn:ss', V.Modified);
           finally
             StIn.Free;
             StOut.Free;
@@ -754,40 +774,43 @@ begin
       end else
       begin
         S := V.AsString;
-        EditDFM(F.Name, S);
-      end;
-
-      exit;
-    end;
-  finally
-    CurrentStorage.CloseFolder(F);
-  end;
-
-  with Tst_dlgEditValue.Create(Self) do
-  try
-    edValue.Text := CurrentStorage.ReadString(PString(tv.Selected.Data)^, lv.Selected.Caption);
-    edName.Text := lv.Selected.Caption;
-    edName.Enabled := False;
-    rg.Enabled := False;
-
-    while ShowModal = mrOk do
-    begin
-      try
-        CurrentStorage.WriteString(PString(tv.Selected.Data)^, edName.Text, edValue.Text);
-
-        lv.Selected.SubItems[1] := edValue.Text;
-      except
-        on E: Exception do
+        if EditDFM(F.Name, S) then
         begin
-          Application.ShowException(E);
-          continue;
+          V.AsString := S;
+          lv.Selected.SubItems[2] := FormatDateTime('dd.mm.yy hh:nn:ss', V.Modified);
         end;
       end;
+    end else
+      with Tst_dlgEditValue.Create(Self) do
+      try
+        edValue.Text := V.AsString;
+        edID.Text := IntToStr(V.ID);
+        edName.Text := V.Name;
 
-      break;
-    end;
+        edName.Enabled := False;
+        rg.Enabled := False;
+
+        while ShowModal = mrOk do
+        begin
+          try
+            V.AsString := edValue.Text;
+            lv.Selected.SubItems[1] := edValue.Text;
+            lv.Selected.SubItems[2] := FormatDateTime('dd.mm.yy hh:nn:ss', V.Modified);
+          except
+            on E: Exception do
+            begin
+              Application.ShowException(E);
+              continue;
+            end;
+          end;
+
+          break;
+        end;
+      finally
+        Free;
+      end;
   finally
-    Free;
+    CurrentStorage.CloseFolder(F);
   end;
 end;
 
@@ -884,21 +907,30 @@ begin
 end;
 
 procedure Tst_frmMain.actAddFolderToSettingExecute(Sender: TObject);
-const
-  Asked: Boolean = False;
+var
+  F: TgsStorageFolder;
+  Obj: TgdcStorageFolder;
 begin
-  if Asked or (MessageBox(Handle,
-    'Не рекомендуется сохранять в настройке папку из хранилища.'#13#10 +
-    'При установке такой настройки на пользовательской базе'#13#10 +
-    'могут быть удалены пользовательские данные, находящиеся'#13#10 +
-    'в этой папке. Продолжить?',
-    'Внимание',
-    MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL or MB_DEFBUTTON2) = IDYES) then
-  begin
-    Asked := True;
-    AddToSetting(True, CurrentStorage.Name +
-      PString(tv.Selected.Data)^, '', nil, nil);
+  F := CurrentStorage.OpenFolder(PString(tv.Selected.Data)^);
+  if F <> nil then
+  try
+    if F.ID = -1 then
+      (F.Storage as TgsIBStorage).SaveToDatabase;
+
+    Obj := TgdcStorageFolder.Create(nil);
+    try
+      Obj.SubSet := 'ByID';
+      Obj.ID := F.ID;
+      Obj.Open;
+
+      AddToSetting(False, '', '', Obj, nil);
+    finally
+      Obj.Free;
+    end;
+
     actShowInSett.Execute;
+  finally
+    CurrentStorage.CloseFolder(F);
   end;
 end;
 
@@ -912,7 +944,7 @@ end;
 
 procedure Tst_frmMain.actEditFolderUpdate(Sender: TObject);
 begin
-  actEditFolder.Enabled := tv.Selected <> nil;
+  actEditFolder.Enabled := (tv.Selected <> nil) and (tv.Selected.Parent <> nil);
 end;
 
 procedure Tst_frmMain.actEditFolderExecute(Sender: TObject);
@@ -992,10 +1024,37 @@ begin
 end;
 
 procedure Tst_frmMain.actAddValueToSettingExecute(Sender: TObject);
+var
+  F: TgsStorageFolder;
+  V: TgsStorageValue;
+  Obj: TgdcStorageValue;
 begin
-  AddToSetting(True, CurrentStorage.Name +
-    PString(tv.Selected.Data)^, lv.Selected.Caption, nil, nil);
-  actShowInSett.Execute;
+  F := CurrentStorage.OpenFolder(PString(tv.Selected.Data)^);
+  if F <> nil then
+  try
+    V := F.ValueByName(lv.Selected.Caption);
+
+    if V = nil then
+      exit;
+
+    if V.ID = -1 then
+      (V.Storage as TgsIBStorage).SaveToDatabase;
+
+    Obj := TgdcStorageValue.Create(nil);
+    try
+      Obj.SubSet := 'ByID';
+      Obj.ID := V.ID;
+      Obj.Open;
+
+      AddToSetting(False, '', '', Obj, nil);
+    finally
+      Obj.Free;
+    end;
+
+    actShowInSett.Execute;
+  finally
+    CurrentStorage.CloseFolder(F);
+  end;
 end;
 
 procedure Tst_frmMain.actAddValueToSettingUpdate(Sender: TObject);
@@ -1022,13 +1081,18 @@ begin
         else
           Sender.Canvas.Font.Style := Sender.Canvas.Font.Style - [fsBold];
 
-        if Assigned(InSett) and (InSett.IndexOf(F.Storage.Name + F.Path + '\') <> -1) then
+        if Assigned(InSett) and (InSett.IndexOf(F.ID) <> -1) then
         begin
           if not (cdsSelected in State) then
             Sender.Canvas.Font.Color := clBlue
           else
             Sender.Canvas.Font.Color := $FFBBBB;
         end;
+
+        if F.Changed then
+          Sender.Canvas.Font.Style := [fsBold, fsUnderline]
+        else
+          Sender.Canvas.Font.Style := [fsBold];
       end;
     finally
       CurrentStorage.CloseFolder(F);
@@ -1092,23 +1156,22 @@ var
   q: TIBSQL;
 begin
   if InSett = nil then
-  begin
-    InSett := TStringList.Create;
-    InSett.Sorted := True;
-    InSett.Duplicates := dupIgnore;
-  end else
+    InSett := TgdKeyArray.Create
+  else
     InSett.Clear;
 
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT branchname, valuename FROM at_setting_storage';
+      'SELECT r.id FROM gd_ruid r JOIN at_settingpos p ON ' +
+      '  p.xid = r.id AND p.dbid = r.dbid ' +
+      'WHERE p.category = ''GD_STORAGE_DATA'' ';
     q.ExecQuery;
 
     while not q.EOF do
     begin
-      InSett.Add(q.Fields[0].AsString + '\' + q.Fields[1].AsString);
+      InSett.Add(q.Fields[0].AsInteger, True);
       q.Next;
     end;
 
@@ -1140,20 +1203,18 @@ begin
     exit;
 
   F := CurrentStorage.OpenFolder(PString(tv.Selected.Data)^);
+  if F <> nil then
   try
-    if F = nil then
-      exit;
-
     V := F.ValueByName(Item.Caption);
     if V <> nil then
     begin
-      if InSett.IndexOf(F.Storage.Name + F.Path + '\' + V.Name) <> -1 then
-      begin
-        //if not (cdsSelected in State) then
-          Sender.Canvas.Font.Color := clBlue
-        //else
-        //  Sender.Canvas.Font.Color := $FFBBBB;
-      end;
+      if InSett.IndexOf(V.ID) <> -1 then
+        Sender.Canvas.Font.Color := clBlue;
+
+      if V.Changed then
+        Sender.Canvas.Font.Style := [fsUnderline]
+      else
+        Sender.Canvas.Font.Style := [];
     end;
   finally
     CurrentStorage.CloseFolder(F);
@@ -1170,6 +1231,12 @@ end;
 procedure Tst_frmMain.actLoadFromFileUpdate(Sender: TObject);
 begin
   actLoadFromFile.Enabled := Assigned(CurrentStorage);
+end;
+
+procedure Tst_frmMain.tvEditing(Sender: TObject; Node: TTreeNode;
+  var AllowEdit: Boolean);
+begin
+  AllowEdit := (Node <> nil) and (Node.Parent <> nil);
 end;
 
 initialization

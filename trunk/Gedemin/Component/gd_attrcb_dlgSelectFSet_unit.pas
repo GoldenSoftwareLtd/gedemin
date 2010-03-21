@@ -155,6 +155,8 @@ begin
     Inc(I);
     ibqryFind.Next;
   end;
+
+  tvAttrSet.AlphaSort;
 end;
 
 procedure TdlgSelectFSet.ShowTargetList(SL: TStrings);
@@ -289,7 +291,9 @@ begin
 
       ibsqlTarget.Next;
     end;
+
     (SL as TStringList).CustomSort(ValueListCompare);
+    tvTarget.AlphaSort;
   finally
     TargetParentList.Free;
     tvTarget.FullExpand;
@@ -371,13 +375,16 @@ begin
 
   // Визуальное отображение
   tvAttrSet.Items.BeginUpdate;
-  tvAttrSet.Items.Clear;
+  try
+    tvAttrSet.Items.Clear;
 
-  ibqryFind.First;
-  Draw500Item;
+    ibqryFind.First;
+    Draw500Item;
 
-  tvAttrSet.FullExpand;
-  tvAttrSet.Items.EndUpdate;
+    tvAttrSet.FullExpand;
+  finally
+    tvAttrSet.Items.EndUpdate;
+  end;  
 end;
 
 function TdlgSelectFSet.CheckValue(StartP, EndP, Value: Integer): Integer;

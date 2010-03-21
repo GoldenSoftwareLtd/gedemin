@@ -65,11 +65,11 @@ type
     lblLoadingFileType: TLabel;
     lblLoadingIncremented: TLabel;
     lblLoadingIncrementedLabel: TLabel;
+    actShowLog: TAction;
     procedure btnCloseClick(Sender: TObject);
     procedure actNextExecute(Sender: TObject);
     procedure actPrevExecute(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure btnShowLogClick(Sender: TObject);
     procedure tbsSaveShow(Sender: TObject);
     procedure tbsLoadShow(Sender: TObject);
     procedure tbsProcessShow(Sender: TObject);
@@ -79,6 +79,8 @@ type
     procedure cbSettingFormatChange(Sender: TObject);
     procedure cbMakeSettingClick(Sender: TObject);
     procedure cbIncrementedClick(Sender: TObject);
+    procedure actShowLogExecute(Sender: TObject);
+    procedure actShowLogUpdate(Sender: TObject);
   private
     FgdcObject: TgdcBase;
     FgdcDetailObject: TgdcBase;
@@ -806,12 +808,6 @@ begin
   UpdateWindow(Self.Handle);
 end;
 
-procedure Tgdc_frmStreamSaver.btnShowLogClick(Sender: TObject);
-begin
-  if Assigned(frmSQLProcess) then
-    frmSQLProcess.Show;
-end;
-
 procedure Tgdc_frmStreamSaver.AddMistake(AMistake: String);
 var
   StatusIcon: TIcon;
@@ -904,6 +900,9 @@ begin
   else
     cbIncremented.Checked := False;
 
+  lblIncrementedHelp.Visible := cbIncremented.Checked;
+  pnlDatabases.Visible := cbIncremented.Checked;
+
   cbMakeSetting.Visible := False;
   lblSettingFormat.Visible := False;
   cbSettingFormat.Visible := False;
@@ -912,9 +911,6 @@ begin
 
   btnPrev.Enabled := false;
   btnPrev.Caption := '< Назад';
-
-  lblIncrementedHelp.Visible := FIncrementSaving;
-  pnlDatabases.Visible := FIncrementSaving;
 
   eFileName.Text := FFileName;
 end;
@@ -947,6 +943,16 @@ begin
   FIncrementSaving := cbIncremented.Checked;
   lblIncrementedHelp.Visible := cbIncremented.Checked;
   pnlDatabases.Visible := cbIncremented.Checked;
+end;
+
+procedure Tgdc_frmStreamSaver.actShowLogExecute(Sender: TObject);
+begin
+  frmSQLProcess.Show;
+end;
+
+procedure Tgdc_frmStreamSaver.actShowLogUpdate(Sender: TObject);
+begin
+  actShowLog.Enabled := (frmSQLProcess <> nil) and (frmSQLProcess.lv.Items.Count > 0);
 end;
 
 end.

@@ -1,6 +1,6 @@
 object st_frmMain: Tst_frmMain
-  Left = 411
-  Top = 329
+  Left = 279
+  Top = 260
   Width = 696
   Height = 480
   HelpContext = 108
@@ -229,6 +229,7 @@ object st_frmMain: Tst_frmMain
         OnChange = tvChange
         OnCustomDrawItem = tvCustomDrawItem
         OnEdited = tvEdited
+        OnEditing = tvEditing
       end
       object Panel2: TPanel
         Left = 106

@@ -52,8 +52,8 @@ BEGIN
   
  /* дададз_м новы€ дамены */ 
    INSERT INTO AT_FIELDS (fieldname, lname, description)
-   SELECT g_s_trim(rdb$field_name, ' '), g_s_trim(rdb$field_name, ' '),
-     g_s_trim(rdb$field_name, ' ')
+   SELECT trim(rdb$field_name), trim(rdb$field_name),
+     trim(rdb$field_name)
    FROM rdb$fields LEFT JOIN at_fields ON rdb$field_name = fieldname
      WHERE fieldname IS NULL;
   
@@ -508,6 +508,7 @@ CREATE PROCEDURE AT_P_SYNC_INDEXES_ALL
 AS
   DECLARE VARIABLE FN VARCHAR(31);
   DECLARE VARIABLE RN VARCHAR(31);
+  DECLARE VARIABLE I_ID INTEGER;
   DECLARE VARIABLE I_N VARCHAR(31);
   DECLARE VARIABLE FP SMALLINT;
   DEClARE VARIABLE FLIST VARCHAR(255);
@@ -520,21 +521,21 @@ BEGIN
 
   /* выдал_м не _снуючы€ Ґжо iндэксы */
   FOR
-    SELECT indexname
+    SELECT id
     FROM at_indices LEFT JOIN rdb$indices
       ON indexname=rdb$index_name
     WHERE
       rdb$index_name IS NULL
-    INTO :I_N
+    INTO :I_ID
   DO BEGIN
-    DELETE FROM at_indices WHERE indexname=:I_N;
+    DELETE FROM at_indices WHERE id=:I_ID;
   END
 
 
  /* дадаем новы€ iндэксы */
   FOR
     SELECT rdb$relation_name, rdb$index_name,
-      rdb$index_inactive, rdb$unique_flag, r.id
+      COALESCE(rdb$index_inactive, 0), COALESCE(rdb$unique_flag, 0), r.id
     FROM rdb$indices LEFT JOIN at_indices i
       ON i.indexname=rdb$index_name
     LEFT JOIN at_relations r ON rdb$relation_name = r.relationname
@@ -542,15 +543,11 @@ BEGIN
       (i.indexname IS NULL) AND (r.id IS NOT NULL)
     INTO :RN, :I_N, :II, :UF, :ID
   DO BEGIN
-    RN = g_s_trim(RN, ' ');
-    I_N = g_s_trim(I_N, ' ');
-    IF (II IS NULL) THEN
-      II = 0;
-    IF (UF IS NULL) THEN
-      UF = 0;
-    IF (II > 1) THEN
+    RN = trim(RN);
+    I_N = trim(I_N);
+    IF (II <> 0) THEN
       II = 1;
-    IF (UF > 1) THEN
+    IF (UF <> 0) THEN
       UF = 1;
     INSERT INTO at_indices(relationname, indexname, relationkey, unique_flag, index_inactive)
     VALUES (:RN, :I_N, :ID, :UF, :II);
@@ -558,7 +555,7 @@ BEGIN
 
   /* провер€ем индексы на активность и уникальность*/
   FOR
-    SELECT ri.rdb$index_inactive, ri.rdb$unique_flag, ri.rdb$index_name
+    SELECT COALESCE(ri.rdb$index_inactive, 0), COALESCE(ri.rdb$unique_flag, 0), ri.rdb$index_name
     FROM at_indices i
     LEFT JOIN rdb$indices ri ON ri.rdb$index_name = i.indexname
     WHERE ((i.unique_flag <> ri.rdb$unique_flag) OR
@@ -568,13 +565,9 @@ BEGIN
     (ri.rdb$index_inactive IS NULL AND i.index_inactive = 1))
     INTO :II, :UF, :I_N
   DO BEGIN
-    IF (II IS NULL) THEN
-      II = 0;
-    IF (UF IS NULL) THEN
-      UF = 0;
-    IF (II > 1) THEN
+    IF (II <> 0) THEN
       II = 1;
-    IF (UF > 1) THEN
+    IF (UF <> 0) THEN
       UF = 1;
     UPDATE at_indices SET unique_flag = :UF, index_inactive = :II WHERE indexname = :I_N;
   END
@@ -600,11 +593,11 @@ BEGIN
         IF ((FL <> FLIST) OR (FL IS NULL)) THEN
           UPDATE at_indices SET fieldslist = :FLIST WHERE indexname = :INDEXNAME;
       END
-      FLIST = UPPER(g_s_trim(FN, ' '));
+      FLIST = UPPER(trim(FN));
       INDEXNAME = I_N;
     END
     ELSE
-      FLIST = FLIST || ',' || UPPER(g_s_trim(FN, ' '));
+      FLIST = FLIST || ',' || UPPER(trim(FN));
   END
   IF (INDEXNAME <> ' ') THEN
     BEGIN

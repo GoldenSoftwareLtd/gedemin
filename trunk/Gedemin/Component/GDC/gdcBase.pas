@@ -3625,7 +3625,7 @@ var
   NewId: Integer;
   LinkTableList: TStringList;
   OL: TObjectList;
-  F: TField;
+  F, DetailField: TField;
 
   // Копирует данные объекта
   procedure CopyRecordData(Source, Dest: TgdcBase);
@@ -3636,8 +3636,8 @@ var
     DontCopyList := Source.GetNotCopyField;
     for I := 0 to Dest.FieldCount - 1 do
     begin
-      if Dest.TestCopyField(Dest.Fields[I].FieldName, DontCopyList)
-        and (Source.FindField(Dest.Fields[I].FieldName) <> nil) then
+      if Dest.TestCopyField(Dest.Fields[I].FieldName, DontCopyList)       // не входит ли поле в список некопируемых полей
+        and (Assigned(Source.FindField(Dest.Fields[I].FieldName))) then
       begin
         if (Dest.Fields[I] is TBlobField) and (not Source.FieldByName(Dest.Fields[I].FieldName).IsNull) then
           Dest.Fields[I].AsString := Source.FieldByName(Dest.Fields[I].FieldName).AsString
@@ -3930,6 +3930,13 @@ begin
               DetailObject.Insert;
               try
                 CopyRecordData(Self.DetailLinks[I], DetailObject);
+                // установим ссылку на объект master
+                DetailField := DetailObject.FindField(DetailObject.DetailField);
+                if Assigned(DetailField) then
+                begin
+                  if DetailField.AsInteger <> MasterObject.ID then
+                    DetailField.AsInteger := MasterObject.ID;
+                end;
                 DetailObject.Post;
                 CopyRecordSetData(Self.DetailLinks[I], DetailObject);
               except
@@ -3965,14 +3972,28 @@ begin
         if DidActivate and MasterObject.Transaction.InTransaction then
           MasterObject.Transaction.Commit
         else
-          FDSModified := True;
-        Self.Close;
-        Self.Open;
-        Self.ID := NewID;
+          FDSModified := True;   // укажем что объект был модифицирован (ведь мы работали с его копией)
+
+        Self.CloseOpen;
+
+        try
+          Self.ID := NewID;
+        except
+          on E: EgdcException do
+          begin
+            MessageBox(0,
+              'Невозможно отобразить скопированный объект. Возможно, он не соответствует установленному фильтру.',
+              'Внимание',
+              MB_OK or MB_TASKMODAL or MB_ICONEXCLAMATION);
+          end;
+        end;
       end
       else
-        if DidActivate and MasterObject.Transaction.InTransaction then
-          MasterObject.Transaction.Rollback;
+        if MasterObject.Transaction.InTransaction then
+          if DidActivate then
+            MasterObject.Transaction.Rollback
+          else
+            MasterObject.Delete;
     end
     else
     begin
@@ -3980,9 +4001,9 @@ begin
       if DidActivate and MasterObject.Transaction.InTransaction then
         MasterObject.Transaction.Commit
       else
-        FDSModified := True;
-      Self.Close;
-      Self.Open;
+        FDSModified := True;    // укажем что объект был модифицирован (ведь мы работали с его копией)
+
+      Self.CloseOpen;
       Self.ID := NewID;
     end;
   finally
@@ -7045,6 +7066,18 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
 
   procedure InsertRecord(SourceDS: TDataSet; TargetDS: TgdcBase; UL: TObjectList); forward;
 
+  procedure AddToIDMapping(const AKey, AValue: Integer; const ARecordState: TLoadedRecordState);
+  var
+    IDMappingIndex: Integer;
+  begin
+    if (IDMapping.IndexOf(AKey) = -1) then
+    begin
+      IDMappingIndex := IDMapping.Add(AKey);
+      IDMapping.ValuesByIndex[IDMappingIndex] := AValue;
+      TLoadedRecordStateList(IDMapping).StateByIndex[IDMappingIndex] := ARecordState;
+    end;
+  end;
+
   procedure CopySetRecord(SourceDS: TDataSet);
   const
     sql_SetSelect = 'SELECT * FROM %0:s WHERE %1:s';
@@ -7060,10 +7093,12 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
     S, S1: String;
     R, R2: TatRelation;
     LocName: String;
+    LoadedRecordState: TLoadedRecordState;
   begin
     SFld := '';
     SValues := '';
     SUpdate := '';
+    LoadedRecordState := lsNotLoaded;
     // Пробегаемся по полям из потока. Если поле является полем-множеством,
     //   то формируем соответствующие строки для обновления/вставки
     for I := 0 to SourceDS.Fields.Count - 1 do
@@ -7082,14 +7117,14 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
         SValues := SValues + 'NULL';
         SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = NULL';
       end
-      else if SourceDS.Fields[I].DataType in [ftString, ftDate,
-        ftDateTime, ftTime] then
+      else if SourceDS.Fields[I].DataType in [ftString, ftDate, ftDateTime, ftTime] then
       begin
         SValues := SValues + '''' + SourceDS.Fields[I].AsString + '''';
         SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = ''' +
           SourceDS.Fields[I].AsString + '''';
       end
-      else begin
+      else
+      begin
         F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
           GetSetFieldName(SourceDS.Fields[I].FieldName));
         if (F <> nil) and (F.References <> nil) then
@@ -7108,98 +7143,110 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
         SUpdate := SUpdate + GetSetFieldName(SourceDS.Fields[I].FieldName) + ' = ' + SKey;
       end;
     end;
+
+    // Если присутствовали поля-множества, то вставим значения в БД
     if SFld > '' then
     begin
-      ibsql := TIBSQL.Create(Self);
-      try
-        ibsql.Transaction := Transaction;
-        R2 := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
+      R2 := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
+      Pr := R2.PrimaryKey;
+
+      if not Assigned(Pr) then
+      begin
+        {
+          если смешали метаданные и данные в одной настройке, то
+          переподключения к базе еще не было и информации в atDatabase
+          у нас может и не быть. Поэтому перечитаем ее.
+        }
+        R2.RefreshData(Transaction.DefaultDatabase, Transaction, True);
+        R2.RefreshConstraints(Transaction.DefaultDatabase, Transaction);
+
         Pr := R2.PrimaryKey;
+      end;
 
-        if not Assigned(Pr) then
-        begin
-          {
-            если смешали метаданные и данные в одной настройке, то
-            переподключения к базе еще не было и информации в atDatabase
-            у нас может и не быть. Поэтому перечитаем ее.
-          }
-          R2.RefreshData(Transaction.DefaultDatabase, Transaction, True);
-          R2.RefreshConstraints(Transaction.DefaultDatabase, Transaction);
-
-          Pr := R2.PrimaryKey;
-        end;
-
-        if Assigned(Pr) then
-        begin
-          try
-            S := '';
-            for I := 0 to Pr.ConstraintFields.Count -1 do
+      if Assigned(Pr) then
+      begin
+        try
+          S := '';
+          for I := 0 to Pr.ConstraintFields.Count - 1 do
+          begin
+            if S > '' then S := S + ' AND ';
+            S1 := GetAsSetFieldName(Pr.ConstraintFields[I].FieldName);
+            if SourceDS.FieldByName(S1).IsNull then
+              S := S + Pr.ConstraintFields[I].FieldName + ' IS NULL'
+            else if SourceDS.FieldByName(S1).DataType in [ftString, ftDate,
+              ftDateTime, ftTime] then
+              S := S + Pr.ConstraintFields[I].FieldName + ' = ''' + SourceDS.FieldByName(S1).AsString + ''''
+            else
             begin
-              if S > '' then S := S + ' AND ';
-              S1 := GetAsSetFieldName(Pr.ConstraintFields[I].FieldName);
-              if SourceDS.FieldByName(S1).IsNull then
-                S := S + Pr.ConstraintFields[I].FieldName + ' IS NULL'
-              else if SourceDS.FieldByName(S1).DataType in [ftString, ftDate,
-                ftDateTime, ftTime] then
-                S := S + Pr.ConstraintFields[I].FieldName + ' = ''' + SourceDS.FieldByName(S1).AsString + ''''
-              else
+              F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
+                GetSetFieldName(SourceDS.FieldByName(S1).FieldName));
+              if (F <> nil) and (F.References <> nil) then
               begin
-                F := atDataBase.FindRelationField(SourceDS.FieldByName('_SETTABLE').AsString,
-                  GetSetFieldName(SourceDS.FieldByName(S1).FieldName));
-                if (F <> nil) and (F.References <> nil) then
+                // Если это поле является ссылкой, то поищем его в карте идентификаторов
+                Key := IDMapping.IndexOf(SourceDS.FieldByName(S1).AsInteger);
+                if Key > -1 then
                 begin
-                  // Если это поле является ссылкой, то поищем его в карте идентификаторов
-                  Key := IDMapping.IndexOf(SourceDS.FieldByName(S1).AsInteger);
-                  if Key > -1 then
-                    SKey := IntToStr(IDMapping.ValuesByIndex[Key])
-                  else
-                    SKey := SourceDS.FieldByName(S1).AsString;
+                  SKey := IntToStr(IDMapping.ValuesByIndex[Key]);
+                  // Предполагаем что первую часть ключа в множестве имеет главная запись
+                  if I = 0 then
+                    LoadedRecordState := TLoadedRecordStateList(IDMapping).StateByIndex[Key];
                 end
                 else
                   SKey := SourceDS.FieldByName(S1).AsString;
-                S := S + Pr.ConstraintFields[I].FieldName + ' = ' + SKey;
-              end;
-            end;
-            ibsql.SQL.Text := Format(sql_SetSelect, [SourceDS.FieldByName('_SETTABLE').AsString, S]);
-            ibsql.ExecQuery;
-
-            if ibsql.RecordCount > 0 then
-            begin
-            { TODO -oJulia : Что делать с уже существующими данными? Обновлять?
-              В каком-то случае это будет очень плохо, например, таблица gd_lastnumber }
-    {          ibsql.Close;
-              ibsql.SQL.Text := Format(sql_SetUpdate,
-                [SourceDS.FieldByName('_SETTABLE').AsString, SUpdate, S]);}
-            end
-            else
-            begin
-              ibsql.Close;
-              ibsql.SQL.Text := Format(sql_SetInsert,
-                [SourceDS.FieldByName('_SETTABLE').AsString, SFld, SValues]);
-
-              R := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
-              if Assigned(R) then
-                LocName := R.LName
+              end
               else
-                LocName := SourceDS.FieldByName('_SETTABLE').AsString;
-
-              AddText('Считывание данных множества ' + LocName + #13#10, clBlue);
-              ibsql.ExecQuery;
-            end;
-          except
-            on E: Exception do
-            begin
-              AddMistake(E.Message, clRed);
+                SKey := SourceDS.FieldByName(S1).AsString;
+              S := S + Pr.ConstraintFields[I].FieldName + ' = ' + SKey;
             end;
           end;
-        end
-        else
-        begin
-          AddWarning(#13#10 + 'Данные множества ' + SourceDS.FieldByName('_SETTABLE').AsString + ' не были добавлены!'#13#10, clRed);
-        end;
 
-      finally
-        ibsql.Free;
+          // Смотрим на состояние главной записи - множество не будет загружено,
+          //  если главная запись не была загружена или изменена из настройки
+          if LoadedRecordState <> lsNotLoaded then
+          begin
+            ibsql := TIBSQL.Create(Self);
+            try
+              ibsql.Transaction := Transaction;
+              ibsql.SQL.Text := Format(sql_SetSelect, [SourceDS.FieldByName('_SETTABLE').AsString, S]);
+              ibsql.ExecQuery;
+
+              if ibsql.RecordCount > 0 then
+              begin
+              { TODO -oJulia : Что делать с уже существующими данными? Обновлять?
+                В каком-то случае это будет очень плохо, например, таблица gd_lastnumber }
+      {          ibsql.Close;
+                ibsql.SQL.Text := Format(sql_SetUpdate,
+                  [SourceDS.FieldByName('_SETTABLE').AsString, SUpdate, S]);}
+              end
+              else
+              begin
+                ibsql.Close;
+                ibsql.SQL.Text := Format(sql_SetInsert,
+                  [SourceDS.FieldByName('_SETTABLE').AsString, SFld, SValues]);
+
+                R := atDataBase.Relations.ByRelationName(SourceDS.FieldByName('_SETTABLE').AsString);
+                if Assigned(R) then
+                  LocName := R.LName
+                else
+                  LocName := SourceDS.FieldByName('_SETTABLE').AsString;
+
+                AddText('Считывание данных множества ' + LocName + #13#10, clBlue);
+                ibsql.ExecQuery;
+              end;
+            finally
+              ibsql.Free;
+            end;
+          end;
+        except
+          on E: Exception do
+          begin
+            AddMistake(E.Message, clRed);
+          end;
+        end;
+      end
+      else
+      begin
+        AddWarning(#13#10 + 'Данные множества ' + SourceDS.FieldByName('_SETTABLE').AsString + ' не были добавлены!'#13#10, clRed);
       end;
     end;
   end;
@@ -7250,9 +7297,11 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
     RU: TgdcReferenceUpdate;
     ErrorSt: String;
     NeedAddToIDMapping: Boolean;
+    LoadedRecordState: TLoadedRecordState;
     RUOL: TList;
   begin
     NeedAddToIDMapping := True;
+    LoadedRecordState := lsCreated;
     Result := False;
     RUOL := nil;
 
@@ -7410,12 +7459,14 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
       if SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger < cstUserIDStart then
         TargetDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger :=
           SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger;
+
       try
         if TargetDS.State = dsEdit then
         begin
           try
             TargetDS.Post;
             AddText('Объект обновлен данными из потока!', clBlack);
+            LoadedRecordState := lsModified;
           except
             on E: EIBError do
             begin
@@ -7440,11 +7491,8 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
         else if not TargetDS.CheckTheSame(True) then
           TargetDS.Post;
 
-        if NeedAddToIDMapping and
-          (IDMapping.IndexOf(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger) = -1)
-        then
-          IDMapping.ValuesByIndex[
-            IDMapping.Add(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger)] := TargetDS.ID;
+        if NeedAddToIDMapping then
+          AddToIDMapping(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger, TargetDS.ID, LoadedRecordState);
 
         if Assigned(RUOL) then
         begin
@@ -7476,9 +7524,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           AddMistake(E.Message, clRed);
 
           TargetDS.Cancel;
-          if IDMapping.IndexOf(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger) = -1 then
-            IDMapping.ValuesByIndex[
-              IDMapping.Add(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger)] := -1;
+          AddToIDMapping(SourceDS.FieldByName(TargetDS.GetKeyField(SubType)).AsInteger, -1, lsNotLoaded);
         end;
       end;
     finally
@@ -7663,28 +7709,25 @@ begin
             else
             begin
               //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
-              if IDMapping.IndexOf(CDS.FieldByName(GetKeyField(SubType)).AsInteger) = -1 then
-                IDMapping.ValuesByIndex[
-                  IDMapping.Add(CDS.FieldByName(GetKeyField(SubType)).AsInteger)] := ID;
+              AddToIDMapping(CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID, lsNotLoaded);
+
               ApplyDelayedUpdates(UpdateList,
                 CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID);
             end;
-
-            //Если есть поля-множества, то обработаем их
-            CopySetRecord(CDS);
           end
           else
           begin
             //Сохраним соответствие нашего ID и ID из потока в карте идентификаторов
-            if IDMapping.IndexOf(CDS.FieldByName(GetKeyField(SubType)).AsInteger) = -1 then
-              IDMapping.ValuesByIndex[
-                IDMapping.Add(CDS.FieldByName(GetKeyField(SubType)).AsInteger)] := ID;
+            AddToIDMapping(CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID, lsNotLoaded);
 
             ApplyDelayedUpdates(UpdateList,
               CDS.FieldByName(GetKeyField(SubType)).AsInteger, ID);
           end;
         end;
       end;
+
+      //Если есть поля-множества, то обработаем их
+      CopySetRecord(CDS);
     finally
       if DidActivate and Transaction.InTransaction then
         Transaction.Commit;
@@ -7747,7 +7790,7 @@ begin
   //Создаем карту идентификаторов
   if IDMapping = nil then
   begin
-    IDMapping := TgdKeyIntAssoc.Create;
+    IDMapping := TLoadedRecordStateList.Create;
     IDMappingCreated := True;
   end else
     IDMappingCreated := False;
@@ -11996,11 +12039,11 @@ begin
                 Param := VarArrayOf([Param]);
               if q.Params.Count > (VarArrayHighBound(Param, 1) + 1) then
               begin
-                St := '';
+                St := ',';
                 J := 0;
                 for I := 0 to q.Params.Count - 1 do
                 begin
-                  if Pos(q.Params[I].Name + ',', St) > 0 then
+                  if Pos(',' + q.Params[I].Name + ',', St) > 0 then
                     continue;
                   q.Params[I].AsVariant := Param[J];
                   St := St + q.Params[I].Name + ',';
@@ -14359,30 +14402,35 @@ var
   CDS: TClientDataSet;
   R: TatRelation;
   F: TatRelationField;
+  ChkStm: String;
 begin
   if not (State = dsInsert) then
     raise EgdcException.CreateObj('Объект должен находиться в состоянии вставки!', Self);
 
   Result := False;
-  if CheckTheSameStatement > '' then
-  begin
-    q := TIBSQL.Create(nil);
-    CDS := TClientDataSet.Create(nil);
-    try
-      q.Database := Database;
-      q.Transaction := ReadTransaction;
-      q.SQL.Text := CheckTheSameStatement;
-      q.ExecQuery;
-      q.Next;
-      if q.RecordCount = 1 then
-      begin
-        AddText('Объект найден по уникальному ключу'#13#10, clBlue);
-        if (sLoadFromStream in BaseState) and NeedDeleteTheSame(SubType) then
-        begin
-          DeleteTheSame(q.Fields[0].AsInteger, FieldByName(GetListField(SubType)).AsString);
-        end else
+  ChkStm := CheckTheSameStatement;
 
-        begin
+  if ChkStm = '' then
+    exit;
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Database := Database;
+    q.Transaction := ReadTransaction;
+    q.SQL.Text := ChkStm;
+    q.ExecQuery;
+    q.Next;
+
+    if q.RecordCount = 1 then
+    begin
+      AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" найден по уникальному ключу', clBlue);
+      if (sLoadFromStream in BaseState) and NeedDeleteTheSame(SubType) then
+      begin
+        DeleteTheSame(q.Fields[0].AsInteger, FieldByName(GetListField(SubType)).AsString);
+      end else
+      begin
+        CDS := TClientDataSet.Create(nil);
+        try
           if Modify and (sLoadFromStream in BaseState) then
           begin
             for I := 0 to FieldDefs.Count - 1 do
@@ -14422,6 +14470,7 @@ begin
           if Modify and ModifyFromStream
             and (sLoadFromStream in BaseState)
             and CheckNeedModify(CDS, nil) then
+          begin
             try
               Edit;
               try
@@ -14456,16 +14505,18 @@ begin
                   Cancel;
                 raise;
               end;
-              AddText('Объект обновлен данными из потока!', clBlack);
+              AddText('Объект "' + FieldByName(GetListField(SubType)).AsString + '" обновлен данными из потока!', clBlack);
             except
               Cancel;
             end;
+          end;
+        finally
+          CDS.Free;
         end;
       end;
-    finally
-      q.Free;
-      CDS.Free;
     end;
+  finally
+    q.Free;
   end;
 end;
 
@@ -16562,15 +16613,15 @@ end;
 
 function TgdcBase.CreateBlobStream(Field: TField;
   Mode: TBlobStreamMode): TStream;
-var
-  OldID: Integer;
+{var
+  OldID: Integer;}
 begin
   if (State = dsEdit) and (Mode in [DB.bmWrite, DB.bmReadWrite]) then
     UpdateOldValues(Field);
 
-  try
+  {try}
     Result := inherited CreateBlobStream(Field, Mode);
-  except
+  {except
     if State = dsBrowse then
     begin
       OldID := ID;
@@ -16581,7 +16632,7 @@ begin
         raise;
     end else
       raise;
-  end;
+  end;}
   
   if (State = dsEdit) and (Mode in [DB.bmWrite, DB.bmReadWrite]) then
     FDSModified := True;

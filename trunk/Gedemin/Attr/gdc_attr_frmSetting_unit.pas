@@ -93,6 +93,7 @@ type
     TBItem8: TTBItem;
     actSet2Txt: TAction;
     TBItem9: TTBItem;
+    TBItem10: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actSetActiveExecute(Sender: TObject);
@@ -188,14 +189,14 @@ implementation
 
 uses
   gd_ClassList, gdcBaseInterface, at_frmUserForm_unit,
-  gd_directories_const, Storages, frm_SettingView_unit,
-  gd_security, gd_common_functions, jclSelected,
-  IBDatabase, gdc_attr_dlgSetToTxt_unit, ShellAPI
+  gd_directories_const, gsStorage, Storages, gdcStorage,
+  frm_SettingView_unit, gd_security, gd_common_functions,
+  jclSelected, IBDatabase, gdc_attr_dlgSetToTxt_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdc_frmStreamSaver, gsStreamHelper;
+  , gdc_frmStreamSaver, gsStreamHelper, ShellAPI;
   
 {$R *.DFM}
 
@@ -425,6 +426,9 @@ begin
 end;
 
 procedure Tgdc_frmSetting.actAddFormExecute(Sender: TObject);
+var
+  F: TgsStorageFolder;
+  Obj: TgdcBase;
 begin
   with Tat_frmUserForm.Create(nil) do
   try
@@ -434,8 +438,27 @@ begin
       cldsChoose.First;
       while not cldsChoose.Eof do
       begin
-        gdcSettingStorage.AddPos(st_root_Global + st_ds_NewFormPath + '\' +
-          cldsChoose.FieldByName('formname').AsString, '');
+        F := GlobalStorage.OpenFolder(st_ds_NewFormPath + '\' +
+          cldsChoose.FieldByName('formname').AsString, False, False);
+
+        if F <> nil then
+          try
+            if F.ID = -1 then
+              GlobalStorage.SaveToDatabase;
+
+            Obj := TgdcStorageFolder.CreateSingularByID(nil, F.ID);
+            try
+              gdcSettingPos.AddPos(Obj, True);
+            finally
+              Obj.Free;
+            end;
+          finally
+            GlobalStorage.CloseFolder(F, False);
+          end;
+
+        {gdcSettingStorage.AddPos(st_root_Global + st_ds_NewFormPath + '\' +
+          cldsChoose.FieldByName('formname').AsString, '');}
+
         cldsChoose.Next;
       end;
     end;
@@ -504,8 +527,8 @@ begin
 
   inherited;
 
-  if Assigned(UserStorage) then
-    UserStorage.LoadComponent(ibgrStorage, ibgrStorage.LoadFromStream);
+{  if Assigned(UserStorage) then
+    UserStorage.LoadComponent(ibgrStorage, ibgrStorage.LoadFromStream); }
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMSETTING', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
@@ -542,9 +565,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if Assigned(UserStorage) then
+{  if Assigned(UserStorage) then
     if ibgrStorage.SettingsModified then
-      UserStorage.SaveComponent(ibgrStorage, ibgrStorage.SaveToStream);
+      UserStorage.SaveComponent(ibgrStorage, ibgrStorage.SaveToStream); }
   inherited;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMSETTING', 'SAVESETTINGS', KEYSAVESETTINGS)}
   {M}finally

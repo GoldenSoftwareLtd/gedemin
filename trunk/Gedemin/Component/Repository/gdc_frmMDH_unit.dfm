@@ -154,7 +154,6 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Caption = 'Панель инструментов (детальная)'
           CloseButton = False
           DockMode = dmCannotFloat
-          Images = dmImages.il16x16
           ParentShowHint = False
           ShowHint = True
           Stretch = True
@@ -213,7 +212,6 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           CloseButton = False
           DockMode = dmCannotFloat
           DockPos = 256
-          Images = dmImages.il16x16
           ParentShowHint = False
           ShowHint = True
           Stretch = True
