@@ -509,6 +509,7 @@ var
   L: TParams;
   I: Integer;
   P: TParam;
+  TempDest: array[0..5] of Char;
 
   function NameDelimiter: Boolean;
   begin
@@ -559,7 +560,18 @@ begin
     L := nil;
   try
     repeat
+      {ƒело в том, что компоненты IBX на этапе подготовки запроса к выполнению
+       создают дл€ себ€ список параметров. ≈сли до по€влени€ Execute block параметр
+       определ€лс€ однозначно - символьное им€ начинающеес€ с ':' или '?', то
+       теперь такие последовательности символов могут встретитьс€ в теле оператора
+       Execute block (локальные переменные) и они не должны интерпретироватьс€ как
+       параметры.}
+      StrLCopy(TempDest, CurPos, SizeOf(TempDest) - 1);
+      if (StrIComp(TempDest, 'begin') = 0) and (CurPos[5] in [#32, #9, #10, #13]) then
+        break;
+
       CurChar := CurPos^;
+
       if CurChar <> #0 then
         NextChar := (CurPos + 1)^
       else
