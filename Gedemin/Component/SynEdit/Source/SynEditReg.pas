@@ -78,7 +78,6 @@ uses
   SynHighlighterGalaxy,
   SynHighlighterGeneral,
   SynHighlighterHC11,
-  SynHighlighterHP48,
   SynHighlighterHtml,
   SynHighlighterIni,
   SynHighlighterInno,
