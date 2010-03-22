@@ -806,8 +806,8 @@ begin
 end;
 
 function TboLogin.EstablishConnection: Boolean;
-const
-  Asked: Boolean = False;
+{const
+  Asked: Boolean = False;}
 var
   TryLoginDatabase: TIBDatabase;
   Tr: TIBTransaction;
@@ -1053,6 +1053,7 @@ begin
         begin
           if IsIBUserAdmin then
           begin
+            (*
             if (not Asked) and
               (MessageBox(0,
               PChar('Структура файла базы данных устарела. Произвести обновление?'#13#10#13#10 +
@@ -1064,6 +1065,14 @@ begin
                 'Перед обновлением структуры необходимо создать архивную копию базы данных!',
                 'Внимание',
                 MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
+            *)
+
+              MessageBox(0,
+                PChar('Структура файла базы будет обновлена.'#13#10#13#10 +
+                'Версия вашей БД: ' + DBVersion + #13#10#13#10 +
+                'Перед обновлением необходимо создать архивную копию базы данных!'),
+                'Внимание',
+                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
 
               with Tgd_frmBackup.Create(Application) do
               try
@@ -1072,16 +1081,10 @@ begin
                 Free;
               end;
 
-              MessageBox(0,
+              {MessageBox(0,
                 'Перепишите архив на съемный носитель и сохраните в надежном месте!',
                 'Внимание',
-                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
-
-              {MessageBox(0,
-                'Процесс обновления может занять несколько десятков минут.'#13#10 +
-                'Дождитесь его завершения. Не снимайте задачу и не перезагружайте компьютер.',
-                'Внимание',
-                MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);}
+                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);}
 
               try
                 with TgdModify.Create(nil) do
@@ -1095,6 +1098,11 @@ begin
                 finally
                   Free;
                 end;
+
+                // в процессе модифая мог проскочить код, который
+                // открыл подключение к БД. Закрываем
+                if Self.Database.Connected then
+                  Self.Database.Connected := False;
 
                 MessageBox(0,
                   'Процесс обновления завершен.'#13#10#13#10 +
@@ -1115,8 +1123,8 @@ begin
               end;
 
               NeedReadDBVersion := True;
-            end else
-              Asked := True;
+            {end else
+              Asked := True;}
           end else
           begin
             if ServerName = '' then
