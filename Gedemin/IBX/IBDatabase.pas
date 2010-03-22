@@ -1433,8 +1433,6 @@ var
 begin
   if TableName = '' then
     IBError(ibxeNoTableName, [nil]);
-  if not Connected then
-    Open;
 
   {$IFDEF GEDEMIN}
   if Assigned(atDatabase) then
@@ -1458,26 +1456,8 @@ begin
   end;
   {$ENDIF}
 
-  //!!!! added by Andreik
-  {
-  if GetFieldNamesCache <> nil then
-  begin
-    if GetFieldNamesCacheDatabaseName = DatabaseName then
-    begin
-      I := GetFieldNamesCache.IndexOf(FormatIdentifierValue(SQLDialect, TableName));
-      if I <> -1 then
-      begin
-        List.CommaText := PString(GetFieldNamesCache.Objects[I])^;
-        exit;
-      end;
-    end else
-    begin
-      ClearGetFieldNamesCache;
-      GetFieldNamesCacheDatabaseName := DatabaseName;
-    end;
-  end;
-  }
-  //!!!!
+  if not Connected then
+    Open;
 
   if not FInternalTransaction.Active then
     FInternalTransaction.StartTransaction;
@@ -1511,18 +1491,6 @@ begin
     Query.free;
     FInternalTransaction.Commit;
   end;
-
-  //!!!! added by Andreik
-  {
-  if GetFieldNamesCache <> nil then
-  begin
-    New(P);
-    Initialize(P^);
-    P^ := List.CommaText;
-    GetFieldNamesCache.AddObject(FormatIdentifierValue(SQLDialect, TableName), Pointer(P));
-  end;
-  }
-  //!!!!
 end;
 
 procedure TIBDatabase.GetTableNames(List: TStrings; SystemTables: Boolean);
