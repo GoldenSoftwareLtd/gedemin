@@ -1387,7 +1387,7 @@ begin
 идентификатор базы должен возвращатьс€ сторед процедурой
 котора€ делает логин }
 {TODO: Ќасчет ускорени€: может считывать dbid базы один раз при логине?}
-  if not FDBIDRead then
+  if (not FDBIDRead) and Database.Connected then
   begin
     q := TIBSQL.Create(nil);
     try

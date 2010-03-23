@@ -2174,50 +2174,111 @@ end;
 
 function TgdcDocument.GetCanChangeRights: Boolean;
 begin
-  if Assigned(MasterSource) and (MasterSource.DataSet is TgdcDocument) then
-    Result := (MasterSource.DataSet as TgdcDocument).CanChangeRights
-  else
-    Result := inherited GetCanChangeRights;
+  Result := inherited GetCanChangeRights;
+
+  if Result then
+  begin
+    Result :=
+      (not Assigned(MasterSource))
+      or
+      (not (MasterSource.DataSet is TgdcDocument))
+      or
+      (TgdcBase(MasterSource.DataSet).SubType <> Self.SubType)
+      or
+      (TgdcBase(MasterSource.DataSet).TestUserRights([tiAFull]));
+  end;
 end;
 
 function TgdcDocument.GetCanCreate: Boolean;
 begin
-  if Assigned(MasterSource) and (MasterSource.DataSet is TgdcDocument) then
-    Result := (MasterSource.DataSet as TgdcDocument).CanCreate
-  else
-    Result := inherited GetCanCreate;
+  Result := inherited GetCanCreate;
+
+  if Result then
+  begin
+    Result :=
+      (not Assigned(MasterSource))
+      or
+      (not (MasterSource.DataSet is TgdcDocument))
+      or
+      (TgdcBase(MasterSource.DataSet).SubType <> Self.SubType)
+      or
+      (TgdcBase(MasterSource.DataSet).Class_TestUserRights([tiAChag],
+        TgdcBase(MasterSource.DataSet).SubType));
+  end;
 end;
 
 function TgdcDocument.GetCanDelete: Boolean;
 begin
-  if Assigned(MasterSource) and (MasterSource.DataSet is TgdcDocument) then
-    Result := (MasterSource.DataSet as TgdcDocument).CanDelete
-  else
-    Result := inherited GetCanDelete;
+  Result := inherited GetCanDelete;
+
+  if Result then
+  begin
+    Result :=
+      (not Assigned(MasterSource))
+      or
+      (not (MasterSource.DataSet is TgdcDocument))
+      or
+      (TgdcBase(MasterSource.DataSet).SubType <> Self.SubType)
+      or
+      (TgdcBase(MasterSource.DataSet).TestUserRights([tiAFull]));
+  end;
 end;
 
 function TgdcDocument.GetCanEdit: Boolean;
 begin
-  if Assigned(MasterSource) and (MasterSource.DataSet is TgdcDocument) then
-    Result := (MasterSource.DataSet as TgdcDocument).CanEdit
-  else
+  if State = dsInsert then
+    Result := True
+  else begin
     Result := inherited GetCanEdit;
+
+    if Result then
+    begin
+      Result :=
+          (not Assigned(MasterSource))
+          or
+          (not (MasterSource.DataSet is TgdcDocument))
+          or
+          (TgdcBase(MasterSource.DataSet).SubType <> Self.SubType)
+          or
+          (TgdcBase(MasterSource.DataSet).TestUserRights([tiAChag]));
+    end;
+  end;
 end;
 
 function TgdcDocument.GetCanPrint: Boolean;
 begin
-  if Assigned(MasterSource) and (MasterSource.DataSet is TgdcDocument) then
-    Result := (MasterSource.DataSet as TgdcDocument).CanPrint
-  else
-    Result := inherited GetCanPrint;
+  Result := inherited GetCanPrint;
+
+  if Result then
+  begin
+    Result :=
+      (not Assigned(MasterSource))
+      or
+      (not (MasterSource.DataSet is TgdcDocument))
+      or
+      (TgdcBase(MasterSource.DataSet).SubType <> Self.SubType)
+      or
+      (TgdcBase(MasterSource.DataSet).TestUserRights([tiAView]));
+  end;
 end;
 
 function TgdcDocument.GetCanView: Boolean;
 begin
-  if Assigned(MasterSource) and (MasterSource.DataSet is TgdcDocument) then
-    Result := (MasterSource.DataSet as TgdcDocument).CanView
-  else
-    Result := inherited GetCanView;
+  Result := inherited GetCanView;
+
+  if Result then
+  begin
+    Result :=
+      (not Assigned(MasterSource))
+      or
+      (TgdcBase(MasterSource.DataSet).State in dsEditModes)
+      or
+      (not (MasterSource.DataSet is TgdcDocument))
+      or
+      (TgdcBase(MasterSource.DataSet).SubType <> Self.SubType)
+      or
+      (TgdcBase(MasterSource.DataSet).TestUserRights([tiAView]));
+  end;
 end;
 
 function TgdcDocument.Reduction(BL: TBookmarkList): Boolean;

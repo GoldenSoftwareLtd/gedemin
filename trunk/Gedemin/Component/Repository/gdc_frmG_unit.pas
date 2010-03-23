@@ -1025,7 +1025,7 @@ var
   E: TCustomEdit;
   F: TWinControl;
   SL: TStringList;
-  TempS, S: String;
+  S: String;
   KIA: TgdKeyIntAssoc;
   Flag: Boolean;
   St: TMemoryStream;
@@ -1053,30 +1053,27 @@ begin
       end;
 
       Pass := 0;
-      GetTableAlias(Obj.SelectSQL.Text, SL);
+      // ѕолучим список алиасов запроса соотнесенных с реальными пол€ми таблиц
+      GetTableAliasOriginField(Obj.SelectSQL.Text, SL);
       while Pass < 2 do
       begin
         J := 0;
         for I := 0 to SL.Count - 1 do
         begin
+          // ќбратимс€ к полю датасета
           Fld := Obj.FieldByName(copy(SL.Names[I], 1, 31));
           if ((Fld is TNumericField) or (Fld is TStringField) or (Fld is TDateTimeField)) and
             (Fld.Visible or (copy(SL.Names[I], 1, 31) = 'ID')) then
           begin
-            if (Fld.DataType = ftInteger)
-              and (copy(SL.Names[I], 1, 31) <> 'ID') then
-            begin
+            // »з целочисленных полей будем показывать только ID
+            if (Fld.DataType = ftInteger) and (copy(SL.Names[I], 1, 31) <> 'ID') then
               continue;
-            end;
-
-            TempS := Obj.FieldNameByAliasName(Fld.FieldName);
-            if TempS = '' then continue;
 
             if Pass = 0 then
             begin
               if not ShowAllFields then
               begin
-                S := SL.Values[SL.Names[I]] + '.' + TempS;
+                S := SL.Values[SL.Names[I]];
                 if KIA.IndexOf(Integer(Crc32_P(@S[1], Length(S), 0))) = -1 then
                   continue;
               end;
@@ -1092,7 +1089,8 @@ begin
                (E as TxDateEdit).Kind := kTime
               else
                (E as TxDateEdit).Kind := kDateTime;
-            end else
+            end
+            else
             begin
               E := TEdit.Create(PN);
             end;
@@ -1101,13 +1099,13 @@ begin
             E.Top := J * RowHeight + 22;
             E.Left := 4;
             E.Width := SB.Width - 8 - 14;
-            E.Tag := FO.Add(SL.Values[SL.Names[I]] + '.' + TempS + '=' + IntToStr(Integer(Fld.DataType)));
+            E.Tag := FO.Add(SL.Values[SL.Names[I]] + '=' + IntToStr(Integer(Fld.DataType)));
             E.Visible := True;
 
             { TODO : не знаю, нужен ли этот хинт? }
             if (IBLogin <> nil) and IBLogin.IsUserAdmin then
             begin
-              E.Hint := Obj.FieldByName(copy(SL.Names[I], 1, 31)).Origin;
+              E.Hint := SL.Values[SL.Names[I]];
               E.ShowHint := True;
             end;
 

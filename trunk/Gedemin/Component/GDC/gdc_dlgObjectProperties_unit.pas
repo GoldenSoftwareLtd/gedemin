@@ -324,7 +324,7 @@ begin
       tiAView:
         begin
           if GetCurrentSecField([tiAFull]) <> nil then
-            GetCurrentSecField([tiAFull]).AsInteger := GetCurrentSecField([tiAView]).AsInteger and
+            GetCurrentSecField([tiAFull]).AsInteger := GetCurrentSecField([tiAFull]).AsInteger and
               (not AMask);
           if GetCurrentSecField([tiAChag]) <> nil then
             GetCurrentSecField([tiAChag]).AsInteger := GetCurrentSecField([tiAChag]).AsInteger and
@@ -332,7 +332,7 @@ begin
         end;
       tiAChag:
         if GetCurrentSecField([tiAFull]) <> nil then
-          GetCurrentSecField([tiAFull]).AsInteger := GetCurrentSecField([tiAView]).AsInteger and
+          GetCurrentSecField([tiAFull]).AsInteger := GetCurrentSecField([tiAFull]).AsInteger and
             (not AMask);
       tiAFull: ;
     end;
