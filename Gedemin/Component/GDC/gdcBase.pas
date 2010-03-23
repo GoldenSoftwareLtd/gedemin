@@ -1120,9 +1120,6 @@ type
     // используется, чтобы знать, когда обнулить стек LastCallClass
     property ClassMethodAssoc: TgdKeyIntAndStrAssoc read FClassMethodAssoc;
 
-    //
-    function TestUserRights(const SS: TgdcTableInfos): Boolean;
-
     function GetCanChangeRights: Boolean; virtual;
     function GetCanCreate: Boolean; virtual;
     function GetCanDelete: Boolean; virtual;
@@ -1429,6 +1426,9 @@ type
     class function GetListNameByID(const AnID: TID;
       const ASubType: TgdcSubType = ''): String;
 
+    //
+    function TestUserRights(const SS: TgdcTableInfos): Boolean;
+    
     //
     class function Class_TestUserRights(const SS: TgdcTableInfos;
       const ST: String): Boolean; virtual;
@@ -16771,42 +16771,20 @@ end;
 function TgdcBase.GetCanChangeRights: Boolean;
 begin
   Result := TestUserRights([tiAFull])
-    and (Transaction <> gdcBaseManager.ReadTransaction)
-    and (
-      (not Assigned(MasterSource))
-      or
-      (not (MasterSource.DataSet is TgdcBase))
-      or
-      (TgdcBase(MasterSource.DataSet).TestUserRights([tiAFull]))
-    );
+    and (Transaction <> gdcBaseManager.ReadTransaction);
 end;
 
 function TgdcBase.GetCanCreate: Boolean;
 begin
   Result := Class_TestUserRights([tiAChag], SubType)
     and (Transaction <> gdcBaseManager.ReadTransaction)
-    and GetCanModify
-    and (
-      (not Assigned(MasterSource))
-      or
-      (not (MasterSource.DataSet is TgdcBase))
-      or
-      (TgdcBase(MasterSource.DataSet).Class_TestUserRights([tiAChag],
-        TgdcBase(MasterSource.DataSet).SubType))
-    );
+    and GetCanModify;
 end;
 
 function TgdcBase.GetCanDelete: Boolean;
 begin
   Result := TestUserRights([tiAFull])
-    and (Transaction <> gdcBaseManager.ReadTransaction)
-    and (
-      (not Assigned(MasterSource))
-      or
-      (not (MasterSource.DataSet is TgdcBase))
-      or
-      (TgdcBase(MasterSource.DataSet).TestUserRights([tiAFull]))
-    );
+    and (Transaction <> gdcBaseManager.ReadTransaction);
 end;
 
 function TgdcBase.GetCanEdit: Boolean;
@@ -16815,14 +16793,7 @@ begin
     Result := True
   else
     Result := TestUserRights([tiAChag])
-      and (Transaction <> gdcBaseManager.ReadTransaction)
-      and (
-        (not Assigned(MasterSource))
-        or
-        (not (MasterSource.DataSet is TgdcBase))
-        or
-        (TgdcBase(MasterSource.DataSet).TestUserRights([tiAChag]))
-      );
+      and (Transaction <> gdcBaseManager.ReadTransaction);
 end;
 
 function TgdcBase.GetCanPrint: Boolean;
@@ -16831,28 +16802,12 @@ begin
     and Assigned(GlobalStorage)
     and Assigned(IBlogin)
     and ((GlobalStorage.ReadInteger('Options\Policy',
-      GD_POL_REPORT_ID, GD_POL_REPORT_MASK, False) and IBLogin.InGroup) <> 0)
-    and (
-      (not Assigned(MasterSource))
-      or
-      (not (MasterSource.DataSet is TgdcBase))
-      or
-      (TgdcBase(MasterSource.DataSet).TestUserRights([tiAView]))
-    );
+      GD_POL_REPORT_ID, GD_POL_REPORT_MASK, False) and IBLogin.InGroup) <> 0);
 end;
 
 function TgdcBase.GetCanView: Boolean;
 begin
-  Result := TestUserRights([tiAView])
-    and (
-      (not Assigned(MasterSource))
-      or
-      (not (MasterSource.DataSet is TgdcBase))
-      or
-      (TgdcBase(MasterSource.DataSet).State in dsEditModes)
-      or
-      (TgdcBase(MasterSource.DataSet).TestUserRights([tiAView]))
-    );
+  Result := TestUserRights([tiAView]);
 end;
 
 procedure TgdcBase.SetUseScriptMethod(const Value: Boolean);

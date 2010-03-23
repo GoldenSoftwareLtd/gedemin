@@ -42,7 +42,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
     Top = 4
     Width = 391
     Height = 393
-    ActivePage = tsGeneral
+    ActivePage = tsAccess
     TabOrder = 0
     OnChange = tsAccessShow
     object tsGeneral: TTabSheet
@@ -190,7 +190,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         KeyField = 'ID'
         gdClassName = 'TgdcUserGroup'
         StrictOnExit = False
-        ItemHeight = 0
+        ItemHeight = 13
         ParentShowHint = False
         ShowHint = True
         TabOrder = 5
@@ -306,7 +306,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Height = -9
         Font.Name = 'Tahoma'
         Font.Style = []
-        ItemHeight = 0
+        ItemHeight = 11
         ParentFont = False
         TabOrder = 2
       end

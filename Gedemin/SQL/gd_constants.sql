@@ -949,13 +949,24 @@ COMMIT;
 
     INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
       VALUES (
+        730805,
+        730800,
+        'Группы ТМЦ',
+        '',
+        'TgdcGoodGroup',
+        NULL,
+        142
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
         730810,
         730800,
         'Драгметаллы',
         '',
         'TgdcMetal',
         NULL,
-        0
+        165
       );
 
     INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)

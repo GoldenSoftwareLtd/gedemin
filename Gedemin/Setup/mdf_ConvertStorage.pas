@@ -389,6 +389,21 @@ begin
         FIBSQL.ExecQuery;
 
         FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview) '#13#10 +
+          '  VALUES ( '#13#10 +
+          '    730805, '#13#10 +
+          '    730800, '#13#10 +
+          '    ''Ãðóïïû ÒÌÖ'', '#13#10 +
+          '    '''', '#13#10 +
+          '    ''TgdcGoodGroup'', '#13#10 +
+          '    NULL, '#13#10 +
+          '    142, '#13#10 +
+          '    1 '#13#10 +
+          '  )';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
         FIBSQL.SQL.Text := 'GRANT ALL ON gd_storage_data TO Administrator ';
         FIBSQL.ExecQuery;
 

@@ -44,6 +44,7 @@ type
     procedure cbAllRemainsClick(Sender: TObject);
     procedure pnMainResize(Sender: TObject);
     procedure actViewFullCardExecute(Sender: TObject);
+    procedure actFindExecute(Sender: TObject);
   protected
     { Private declarations }
     FSavedMasterSource: TDataSource;
@@ -321,6 +322,12 @@ begin
   finally
     Free;
   end;
+end;
+
+procedure Tgdc_frmInvBaseRemains.actFindExecute(Sender: TObject);
+begin
+  SetLocalizeListName(ibgrDetail);
+  inherited;
 end;
 
 initialization
