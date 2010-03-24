@@ -1263,6 +1263,8 @@ begin
 end;
 
 procedure Tgdc_dlgG.SetupRecord;
+const
+  cReadOnlyWarn = ' [“олько просмотр]';
 var
   {@UNFOLD MACRO INH_CRFORM_PARAMS()}
   {M}
@@ -1271,7 +1273,7 @@ var
   {END MACRO}
   ctrl, pctrl: TWinControl;
   L: TList;
-  I: Integer;
+  I, P: Integer;
   IsNewCtrl: Boolean;
 
 begin
@@ -1295,8 +1297,28 @@ begin
   {M}    end;
   {END MACRO}
 
-  //”становим фокус на первый контрол
+  P := Pos(cReadOnlyWarn, Caption);
+  if (gdcObject.State = dsEdit) and (not gdcObject.CanEdit)
+    and (not (sSubDialog in gdcObject.BaseState)) then
+  begin
+    if P = 0 then
+      Caption := Caption + cReadOnlyWarn;
 
+    {if UserStorage.ReadBoolean('Options', 'EditWarn', True) then
+    begin
+      MessageBox(0,
+        '” вас нет прав на редактирование или данную запись нельз€ измен€ть.'#13#10 +
+        'ƒиалоговое окно будет открыто в режиме просмотра.',
+        '¬нимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    end;}
+  end else
+  begin
+    if P > 0 then
+      Caption := StringReplace(Caption, cReadOnlyWarn, '', []);
+  end;
+
+  //”становим фокус на первый контрол
   L := TList.Create;
   try
     ctrl := Self;
@@ -1428,7 +1450,7 @@ begin
   if Screen.Width < 640 then
   begin
     pm_dlgG.AutoPopup := False;
-  end;  
+  end;
 
   SetupTransaction; // должно идти перед присваиванием датасета
   dsgdcBase.DataSet := gdcObject;
@@ -1447,7 +1469,7 @@ begin
   if Assigned(FMultipleID) then
     FMultipleID.Clear;
 
-  if (gdcObject.State = dsEdit) and (not gdcObject.CanEdit)
+  {if (gdcObject.State = dsEdit) and (not gdcObject.CanEdit)
     and (not (sSubDialog in gdcObject.BaseState)) then
   begin
     if UserStorage.ReadBoolean('Options', 'EditWarn', True) then
@@ -1457,9 +1479,9 @@ begin
         'ƒиалоговое окно будет открыто в режиме просмотра.',
         '¬нимание',
         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    end;    
-  end;
-  
+    end;
+  end;}
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGG', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -1810,46 +1832,70 @@ var
 begin
   FIntermediate := True;
   try
-    // перед проверкой надо убрать курсор с эдита
-    // чтобы изменени€ занеслись в поле
-    C := ActiveControl;
-    try
-      if Assigned(C) and Assigned(C.Parent) then
-      begin
-        SetFocusedControl(C.Parent);
-      end else
-        SetFocusedControl(btnNew);
-    finally
-      if C <> nil then
-        SetFocusedControl(C);
-    end;
-
-    WasInsert := gdcObject.State = dsInsert;
-
-    CallBeforePost;
-
-    if TestCorrect then
+    if gdcObject.CanEdit then
     begin
+      // перед проверкой надо убрать курсор с эдита
+      // чтобы изменени€ занеслись в поле
+      C := ActiveControl;
+      try
+        if Assigned(C) and Assigned(C.Parent) then
+        begin
+          SetFocusedControl(C.Parent);
+        end else
+          SetFocusedControl(btnNew);
+      finally
+        if C <> nil then
+          SetFocusedControl(C);
+      end;
 
+      WasInsert := gdcObject.State = dsInsert;
+
+      CallBeforePost;
+
+      if TestCorrect then
+      begin
+
+        isActiveTransaction := Assigned(FSharedTransaction)
+          and FSharedTransaction.InTransaction;
+
+        if DlgModified then
+        begin
+          Post;
+
+          if not Assigned(FMultipleID) then
+            FMultipleID := TList.Create;
+          if FMultipleID.IndexOf(Pointer(gdcObject.ID)) = -1 then
+            FMultipleID.Add(Pointer(gdcObject.ID));
+        end else
+          Cancel;
+
+        if isActiveTransaction then
+          ActivateTransaction(FSharedTransaction);
+
+        if WasInsert and (not gdcObject.IsEmpty) then
+          FAppliedID := gdcObject.ID;
+
+        Mtd;
+        if Assigned(Mtd2) then
+          Mtd2;
+
+        SetupRecord;
+
+        if Assigned(FOnSetupRecord) then
+          FOnSetupRecord(Self);
+      end;
+    end else
+    begin
       isActiveTransaction := Assigned(FSharedTransaction)
         and FSharedTransaction.InTransaction;
 
       if DlgModified then
-      begin
-        Post;
-
-        if not Assigned(FMultipleID) then
-          FMultipleID := TList.Create;
-        if FMultipleID.IndexOf(Pointer(gdcObject.ID)) = -1 then
-          FMultipleID.Add(Pointer(gdcObject.ID));
-      end else
         Cancel;
 
       if isActiveTransaction then
         ActivateTransaction(FSharedTransaction);
 
-      if WasInsert and (not gdcObject.IsEmpty) then
-        FAppliedID := gdcObject.ID;
+      FAppliedID := -1;
 
       Mtd;
       if Assigned(Mtd2) then
@@ -1874,7 +1920,7 @@ end;
 function Tgdc_dlgG.Get_SelectedKey: OleVariant;
 begin
   Result := VarArrayOf([gdcObject.ID])
-end; 
+end;
 
 function Tgdc_dlgG.CallSyncField(const Field: TField;
   const SyncList: TList): Boolean;
