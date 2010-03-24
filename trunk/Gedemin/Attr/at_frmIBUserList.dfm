@@ -13,6 +13,7 @@ object frmIBUserList: TfrmIBUserList
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object Label5: TLabel
@@ -53,6 +54,10 @@ object frmIBUserList: TfrmIBUserList
       item
         AutoSize = True
         Caption = 'Имя пользователя'
+      end
+      item
+        Caption = 'Компьютер'
+        Width = 126
       end>
     ColumnClick = False
     FlatScrollBars = True
@@ -119,38 +124,11 @@ object frmIBUserList: TfrmIBUserList
       TabOrder = 1
     end
   end
-  object ibsqlUser: TIBSQL
-    Database = dmDatabase.ibdbGAdmin
-    SQL.Strings = (
-      'SELECT'
-      '  NAME, FULLNAME'
-      ''
-      'FROM'
-      '  GD_USER'
-      ''
-      'WHERE'
-      '  IBNAME = :IBNAME ')
-    Transaction = IBTransaction
-    Left = 30
-    Top = 150
-  end
-  object IBTransaction: TIBTransaction
-    Active = False
-    DefaultDatabase = dmDatabase.ibdbGAdmin
-    AutoStopAction = saNone
-    Left = 60
-    Top = 150
-  end
   object IBUserTimer: TTimer
     Enabled = False
     Interval = 10000
     OnTimer = IBUserTimerTimer
     Left = 90
-    Top = 150
-  end
-  object IBDatabaseInfo: TIBDatabaseInfo
-    Database = dmDatabase.ibdbGAdmin
-    Left = 120
     Top = 150
   end
   object alIBUsers: TActionList
@@ -161,12 +139,6 @@ object frmIBUserList: TfrmIBUserList
       Hint = 'Вы можете продолжить, только если подключен один пользователь'
       OnExecute = actOkExecute
       OnUpdate = actOkUpdate
-    end
-    object actBuildUserList: TAction
-      Caption = 'Перестроить список пользователей'
-      Hint = 'Перестроить список пользователей'
-      ShortCut = 116
-      OnExecute = actBuildUserListExecute
     end
   end
 end
