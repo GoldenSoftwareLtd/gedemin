@@ -4,31 +4,26 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Db, IBCustomDataSet, IBSQL, StdCtrls, ComCtrls, ExtCtrls, IBDatabase,
-  IBDatabaseInfo, ActnList;
+  Db, IBSQL, StdCtrls, ComCtrls, ExtCtrls, IBDatabase, ActnList;
 
 type
   TfrmIBUserList = class(TForm)
     lvUser: TListView;
     memoInfo: TMemo;
-    ibsqlUser: TIBSQL;
     pnlButtons: TPanel;
     btnCancel: TButton;
     btnOk: TButton;
     Bevel1: TBevel;
     Label5: TLabel;
-    IBTransaction: TIBTransaction;
     IBUserTimer: TTimer;
-    IBDatabaseInfo: TIBDatabaseInfo;
     alIBUsers: TActionList;
     actOk: TAction;
-    actBuildUserList: TAction;
     lblCount: TLabel;
 
     procedure IBUserTimerTimer(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
-    procedure actBuildUserListExecute(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
 
   private
     procedure BuildUserList;
@@ -36,7 +31,6 @@ type
   public
     function CheckUsers: Boolean;
     procedure ShowUsers;
-
   end;
 
 var
@@ -44,19 +38,35 @@ var
 
 implementation
 
-uses dmDataBase_unit;
+uses
+  dmDataBase_unit, gdcBaseInterface, WinSock;
 
 {$R *.DFM}
+
+function ALIPAddrToName(IPAddr : String): String;
+var SockAddrIn: TSockAddrIn;
+    HostEnt: PHostEnt;
+    WSAData: TWSAData;
+begin
+  WSAData.wVersion := 0;
+  WSAStartup(MAKEWORD(2,2), WSAData);
+  Try
+    SockAddrIn.sin_addr.s_addr:= inet_addr(PChar(IPAddr));
+    HostEnt:= gethostbyaddr(@SockAddrIn.sin_addr.S_addr, 4, AF_INET);
+    if HostEnt<>nil then result:=StrPas(Hostent^.h_name)
+    else result:='';
+  finally
+    if WSAData.wVersion = 2 then WSACleanup;
+  end;
+end;
 
 { TfrmIBUserList }
 
 function TfrmIBUserList.CheckUsers: Boolean;
 begin
-  if IBDatabaseInfo.UserNames.Count > 1 then
+  if lvUser.Items.Count > 1 then
   begin
-    BuildUserList;
     IBUserTimer.Enabled := True;
-
     try
       Result := ShowModal = mrOk;
     finally
@@ -68,9 +78,6 @@ end;
 
 procedure TfrmIBUserList.ShowUsers;
 begin
-  BuildUserList;
-  IBUserTimer.Enabled := True;
-
   btnCancel.Visible := False;
   memoInfo.Visible := False;
 
@@ -78,7 +85,8 @@ begin
   btnOk.Cancel := True;
 
   lvUser.Height := lvUser.Height + memoInfo.Height;
-  
+
+  IBUserTimer.Enabled := True;
   try
     ShowModal;
   finally
@@ -88,61 +96,58 @@ end;
 
 procedure TfrmIBUserList.BuildUserList;
 var
-  List: TStringList;
   I, K: Integer;
   ListItem: TListItem;
+  q: TIBSQL;
+  Tr: TIBTransaction;
 begin
   if (lvUser.Items.Count > 0) and Assigned(lvUser.Selected) then
     K := lvUser.Selected.Index
   else
     K := -1;
 
-  with lvUser.Items do
-  begin
-    BeginUpdate;
-    Clear;
-    IBUserTimer.Enabled := False;
-    List := TStringList.Create;
+  lvUser.Items.BeginUpdate;
+  q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    I := 0;
+    lvUser.Items.Clear;
 
-    try
-      IBTransaction.Active := True;
-      ibsqlUser.Prepare;
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
 
-      List.Assign(IBDatabaseInfo.UserNames);
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT A.MON$USER, U.NAME, U.FULLNAME, A.MON$REMOTE_ADDRESS ' +
+      'FROM MON$ATTACHMENTS A LEFT JOIN GD_USER U ' +
+      '  ON A.MON$USER = U.IBNAME ' +
+      'WHERE A.MON$STATE = 1 ';
+    q.ExecQuery;
 
-      ibsqlUser.Prepare;
+    while not q.EOF do
+    begin
+      ListItem := lvUser.Items.Add;
+      ListItem.Caption := q.FieldByName('MON$USER').AsTrimString;
 
-      for I := 0 to List.Count - 1 do
-      begin
-        ibsqlUser.ParamByName('IBNAME').AsString := List[I];
-        ibsqlUser.ExecQuery;
+      if q.FieldByName('NAME').IsNull then
+        ListItem.SubItems.Add('Подключается...')
+      else
+        ListItem.SubItems.Add(q.FieldByName('NAME').AsTrimString);
 
-        ListItem := Add;
-        ListItem.Caption := List[I];
+      ListItem.SubItems.Add(ALIPAddrToName(q.FieldByName('MON$REMOTE_ADDRESS').AsString));
 
-        if ibsqlUser.RecordCount > 0  then
-          ListItem.SubItems.Add(ibsqlUser.FieldByName('NAME').AsString)
-        else
-          ListItem.SubItems.Add('Пользователь подключается...');
-
-        ibsqlUser.Close;
-      end;
-
-      lblCount.Caption := 'Всего подключено: ' + IntToStr(List.Count);
-
-      if IBTransaction.Active then
-        IBTransaction.Commit;
-    finally
-      IBUserTimer.Enabled := True;
-      EndUpdate;
-      List.Free;
-
-      if IBTransaction.Active then
-        IBTransaction.Rollback;
+      Inc(I);
+      q.Next;
     end;
+
+    lblCount.Caption := 'Всего подключено: ' + IntToStr(I);
+  finally
+    q.Free;
+    Tr.Free;
+    lvUser.Items.EndUpdate;
   end;
 
-  if K > 0 then
+  if K >= 0 then
   begin
     if lvUser.Items.Count > K then
       lvUser.Selected := lvUser.Items[K]
@@ -156,7 +161,7 @@ end;
 
 procedure TfrmIBUserList.IBUserTimerTimer(Sender: TObject);
 begin
-  actBuildUserList.Execute;
+  BuildUserList;
 end;
 
 procedure TfrmIBUserList.actOkExecute(Sender: TObject);
@@ -166,10 +171,10 @@ end;
 
 procedure TfrmIBUserList.actOkUpdate(Sender: TObject);
 begin
-  actOk.Enabled := (lvUser.Items.Count = 1) or (btnOk.Cancel);
+  actOk.Enabled := (lvUser.Items.Count = 1) or btnOk.Cancel;
 end;
 
-procedure TfrmIBUserList.actBuildUserListExecute(Sender: TObject);
+procedure TfrmIBUserList.FormCreate(Sender: TObject);
 begin
   BuildUserList;
 end;
