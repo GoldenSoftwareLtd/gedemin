@@ -342,7 +342,7 @@ begin
 
       IbTr.StartTransaction;
 
-      AddFinVersion('0000.0001.0000.0106', 'Change StoredProc AC_CIRCULATIONLIST', '15.09.2006', IBTr);
+      AddFinVersion(78, '0000.0001.0000.0106', 'Change StoredProc AC_CIRCULATIONLIST', '15.09.2006', IBTr);
 
       IbTr.Commit;
 
@@ -2097,7 +2097,7 @@ begin
 
       IbTr.StartTransaction;
 
-      AddFinVersion('0000.0001.0000.0105', 'Add fields from AC_RECORD into AC_ENTRY', '31.07.2006', IBTr);
+      AddFinVersion(77, '0000.0001.0000.0105', 'Add fields from AC_RECORD into AC_ENTRY', '31.07.2006', IBTr);
 
       IbTr.Commit;
 
@@ -3194,7 +3194,7 @@ begin
       IbTr.Commit;
       IbTr.StartTransaction;
 
-      AddFinVersion('0000.0001.0000.0107', 'Исправлена процедура AC_ACCOUNTEXSALDO', '27.10.2006', IBTr);
+      AddFinVersion(79, '0000.0001.0000.0107', 'Исправлена процедура AC_ACCOUNTEXSALDO', '27.10.2006', IBTr);
 
       IbTr.Commit;
 

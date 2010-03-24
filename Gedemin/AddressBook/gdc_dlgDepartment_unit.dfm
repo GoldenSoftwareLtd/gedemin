@@ -14,10 +14,7 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
     Top = 287
   end
   inherited btnNew: TButton
-    Top = 287
-  end
-  inherited btnHelp: TButton
-    Left = 150
+    Left = 77
     Top = 287
   end
   inherited btnOK: TButton
@@ -26,6 +23,10 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
   end
   inherited btnCancel: TButton
     Left = 435
+    Top = 287
+  end
+  inherited btnHelp: TButton
+    Left = 150
     Top = 287
   end
   inherited pgcMain: TPageControl

@@ -88,7 +88,8 @@ procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
 function GenId(Db: TIBdatabase): integer;
 function GetRUIDRecByID(const AnID: Integer; Transaction: TIBTransaction): TRUIDRec;
 function GetRUIDStringByID(const ID: Integer; const Tr: TIBTransaction): TRUIDString;
-procedure AddFinVersion(NumVersion, Comment, DateOper: String; const Tr: TIBTransaction);
+procedure AddFinVersion(const ID: Integer; const NumVersion, Comment, DateOper: String;
+  const Tr: TIBTransaction);
 
 implementation
 
@@ -859,10 +860,10 @@ begin
   Result := RUIDToStr(RUID);
 end;
 
-procedure AddFinVersion(NumVersion, Comment, DateOper: String; const Tr: TIBTransaction);
+procedure AddFinVersion(const ID: Integer; const NumVersion, Comment, DateOper: String;
+  const Tr: TIBTransaction);
 var
   ibsql: TIBSQL;
-  MaxID: Integer;
 begin
   ibsql := TIBSQL.Create(nil);
   try
@@ -870,20 +871,14 @@ begin
     ibsql.SQL.Text := 'SELECT id FROM fin_versioninfo WHERE VERSIONSTRING = :ver';
     ibsql.ParamByName('ver').AsString := NumVersion;
     ibsql.ExecQuery;
-    if ibsql.RecordCount = 0 then
+    if ibsql.EOF then
     begin
-      ibsql.Close;
-      ibsql.SQL.Text := 'SELECT MAX(id) as MaxID FROM fin_versioninfo';
-      ibsql.ExecQuery;
-      MaxID := ibsql.FieldByName('MaxID').AsInteger + 1;
-
       ibsql.Close;
       ibsql.SQL.Text :=
         Format('INSERT INTO fin_versioninfo ' +
-        'VALUES (%d, ''%s'', ''%s'', ''%s''); ', [MaxID, NumVersion, DateOper, Comment]);
-      ibsql.ExecQuery;  
+        'VALUES (%d, ''%s'', ''%s'', ''%s''); ', [ID, NumVersion, DateOper, Comment]);
+      ibsql.ExecQuery;
     end;
-
   finally
     ibsql.Free;
   end;
