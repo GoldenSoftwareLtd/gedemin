@@ -52,7 +52,7 @@ begin
       ibsql.SQL.Text := 'GRANT EXECUTE ON PROCEDURE INV_GETCARDMOVEMENT TO administrator';
       ibsql.ExecQuery;
 
-      AddFinVersion('0000.0001.0000.0109', 'Добавлена процедура INV_GETCARDMOVEMENT для ускорения вывода остатков на дату', '12.11.2006', FIBTransaction);
+      AddFinVersion(81, '0000.0001.0000.0109', 'Добавлена процедура INV_GETCARDMOVEMENT для ускорения вывода остатков на дату', '12.11.2006', FIBTransaction);
 
       try
         ibsql.Close;
@@ -80,7 +80,7 @@ begin
           Log('error:' +  E.Message);
       end;
 
-      AddFinVersion('0000.0001.0000.0110', 'Пересчитываем складские остатки после восстановления складских триггеров', '24.11.2006', FIBTransaction);
+      AddFinVersion(82, '0000.0001.0000.0110', 'Пересчитываем складские остатки после восстановления складских триггеров', '24.11.2006', FIBTransaction);
 
       FIBTransaction.Commit;
     except
