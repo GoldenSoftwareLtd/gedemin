@@ -14639,20 +14639,23 @@ begin
   else begin
     if State = dsEdit then
     begin
-      if (not FIsNewRecord) and ((FBaseState * [sDialog, sView]) <> [])
-        and (not (sLoadFromStream in FBaseState)) then
+      if TestUserRights([tiAChag]) then
       begin
-        if
-          ((Field.DataType = ftString)
-            and ((Field.FieldName = 'NAME') or (Field.FieldName = 'USR$NAME') or (Field.FieldName = 'FULLNAME'))) or
-          ((Field.DataType = ftInteger)
-            and ((Field.FieldName = 'PARENT') or (Field.FieldName = 'COMPANYKEY'))) or
-          ((Field.DataType = ftDate)
-            and (Field.FieldName = 'DOCUMENTDATE')) then
+        if (not FIsNewRecord) and ((FBaseState * [sDialog, sView]) <> [])
+          and (not (sLoadFromStream in FBaseState)) then
         begin
-          if not TestUserRights([tiAFull]) then
-            raise EgdcUserHaventRights.CreateObj('Нет прав для изменения поля ' + Field.DisplayName + '.',
-              Self);
+          if
+            ((Field.DataType = ftString)
+              and ((Field.FieldName = 'NAME') or (Field.FieldName = 'USR$NAME') or (Field.FieldName = 'FULLNAME'))) or
+            ((Field.DataType = ftInteger)
+              and ((Field.FieldName = 'PARENT') or (Field.FieldName = 'COMPANYKEY'))) or
+            ((Field.DataType = ftDate)
+              and (Field.FieldName = 'DOCUMENTDATE')) then
+          begin
+            if not TestUserRights([tiAFull]) then
+              raise EgdcUserHaventRights.CreateObj('Нет прав для изменения поля ' + Field.DisplayName + '.',
+                Self);
+          end;
         end;
       end;
 
