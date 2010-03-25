@@ -118,8 +118,7 @@ uses
   gd_frmErrorInScript in '..\Report\gd_frmErrorInScript.pas' {frmErrorInScript},
   prp_frmRuntimeScript in '..\Property\prp_frmRuntimeScript.pas' {frmRuntimeScript},
   gdc_attr_frmRelationField_unit in '..\Attr\gdc_attr_frmRelationField_unit.pas' {gdc_attr_frmRelationField},
-  AppEvnts,
-  ComObj,
+  AppEvnts, ComObj, ComServ,
   gdApplicationEventsHandler in 'gdApplicationEventsHandler.pas',
   flt_frmSQLEditorSyn_unit in '..\queryfilter\flt_frmSQLEditorSyn_unit.pas' {frmSQLEditorSyn},
   gdcCustomFunction in '..\Component\GDC\gdcCustomFunction.pas',
@@ -308,6 +307,32 @@ uses
 {$R Gedemin.TLB}
 {$R *.RES}
 
+type
+  {TFactoryRegisterClass}
+  TFactoryRegisterClass = class(TObject)
+  private
+    procedure FactoryRegisterClassObject(Factory: TComObjectFactory);
+  end;
+
+{TFactoryRegisterClass}
+procedure TFactoryRegisterClass.FactoryRegisterClassObject(
+  Factory: TComObjectFactory);
+begin
+  Factory.RegisterClassObject;
+end;
+
+procedure DoInitComServer;
+begin
+  with TFactoryRegisterClass.Create do
+  try
+    ComClassManager.ForEachFactory(ComServer, FactoryRegisterClassObject);
+  finally
+    Free;
+  end;
+  if ComServer.StartSuspended then
+    ComObj.CoResumeClassObjects;
+end;
+
 var
   MutexHandle: THandle;
   MutexCreated, MutexExisted: Boolean;
@@ -449,19 +474,25 @@ begin
           Application.Initialize;
         except
           on E: EOLESysError do
-          begin
+            if ComServer.StartMode in [smRegServer, smUnregServer] then
+              raise
+            else
+              DoInitComServer;
+          else
+            raise;
+ {         begin
             if E.ErrorCode = -2147319780 then
             begin
-              MessageBox(0,
+              MessageBox(0, PChar(
                 'У Вас нет прав для запуска приложения на данном компьютере.'#13#10 +
                 'Возможно, приложение не было установлено надлежащим образом.'#13#10#13#10 +
-                'Обратитесь к системному администратору.',
+                'Обратитесь к системному администратору. ' + E.Message),
                 'Ошибка',
                 MB_OK or MB_ICONSTOP or MB_TASKMODAL);
               Halt(0);
             end else
               raise;
-          end;
+          end;}
         end;
 
         {$IFDEF NOGEDEMIN}
