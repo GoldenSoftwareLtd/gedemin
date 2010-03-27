@@ -19,10 +19,12 @@ type
     tbiClose: TTBItem;
     pb: TProgressBar;
     Panel1: TPanel;
-    TBItem1: TTBItem;
+    tbiClear: TTBItem;
     actClear: TAction;
     lv: TListView;
     il: TImageList;
+    actShowErrors: TAction;
+    tbiShowErrors: TTBItem;
 
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure actSaveToFileExecute(Sender: TObject);
@@ -36,7 +38,8 @@ type
     procedure actSaveToFileUpdate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormActivate(Sender: TObject);
-
+    procedure actShowErrorsExecute(Sender: TObject);
+    procedure actShowErrorsUpdate(Sender: TObject);
   private
     FSilent: Boolean;
     FLog: TatLog;
@@ -45,6 +48,7 @@ type
     procedure PrepareItem(LI: TListItem);
     procedure SetSilent(const Value: Boolean);
     procedure CleanUp;
+    procedure ProcessMessageFilter;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -297,12 +301,6 @@ end;
 procedure TfrmSQLProcess.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
-  {if IsError and
-    (MessageBox(Handle, 'Во время выполнения скриптов возникли ошибки! Сохранить лог в файл?',
-      'Внимание', MB_ICONQUESTION or MB_YESNO) = IDYES)
-  then
-    actSaveToFile.Execute;}
-
   if (not Visible) and ((frmSQLProcess = nil) or (frmSQLProcess = Self)) then
     Action := caFree;
 end;
@@ -414,8 +412,15 @@ procedure TfrmSQLProcess.PrepareItem(LI: TListItem);
 var
   S: String;
   B, E: Integer;
+  LogRec: TatLogRec;
 begin
-  with FLog.LogRec[LI.Index] do
+  // Выбираем все записи, или только ошибки и предупреждения
+  if actShowErrors.Checked then
+    LogRec := FLog.LogErrorRec[LI.Index]
+  else
+    LogRec := FLog.LogRec[LI.Index];
+  // Отобразим данные записи
+  with LogRec do
   begin
     LI.Caption := FormatDateTime('hh:nn:ss', Logged);
 
@@ -476,6 +481,31 @@ procedure TfrmSQLProcess.FormActivate(Sender: TObject);
 begin
   {if lv.Items.Count <> FLog.Count then
     lv.Items.Count := FLog.Count;}
+end;
+
+procedure TfrmSQLProcess.actShowErrorsExecute(Sender: TObject);
+begin
+  actShowErrors.Checked := not actShowErrors.Checked;
+  ProcessMessageFilter;
+end;
+
+procedure TfrmSQLProcess.ProcessMessageFilter;
+begin
+  lv.Items.BeginUpdate;
+  if actShowErrors.Checked then
+    lv.Items.Count := FLog.ErrorCount
+  else
+    lv.Items.Count := FLog.Count;
+
+  // Перейдем на первую запись
+  if lv.Items.Count > 0 then
+    lv.Items[0].MakeVisible(False);
+  lv.Items.EndUpdate;  
+end;
+
+procedure TfrmSQLProcess.actShowErrorsUpdate(Sender: TObject);
+begin
+  actShowErrors.Enabled := FLog.WasError;
 end;
 
 end.
