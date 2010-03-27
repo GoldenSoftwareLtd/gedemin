@@ -4,7 +4,7 @@ unit at_Log;
 interface
 
 uses
-  gsMMFStream;
+  gsMMFStream, gd_KeyAssoc;
 
 type
   TatLogType = (atltInfo, atltWarning, atltError);
@@ -22,10 +22,12 @@ type
     FStream: TgsStream64;
     FWasError: Boolean;
     FReposition: Boolean;
+    FErrorArray: TgdKeyArray;
 
     function GetLogRec(Index: Integer): TatLogRec;
     function GetLogText(Index: Integer): String;
-
+    function GetErrorCount: Integer;
+    function GetLogErrorRec(Index: Integer): TatLogRec;
   public
     constructor Create;
     destructor Destroy; override;
@@ -35,8 +37,11 @@ type
     procedure SaveToFile(const AFileName: String);
 
     property Count: Integer read FCount;
+    property ErrorCount: Integer read GetErrorCount;
+
     property WasError: Boolean read FWasError;
     property LogRec[Index: Integer]: TatLogRec read GetLogRec;
+    property LogErrorRec[Index: Integer]: TatLogRec read GetLogErrorRec;
     property LogText[Index: Integer]: String read GetLogText;
   end;
 
@@ -73,8 +78,12 @@ begin
 
   FStream.WriteString(S);
 
-  if ALogType = atltError then
-    FWasError := True;
+  if (ALogType = atltError) or (ALogType = atltWarning) then
+  begin
+    if ALogType = atltError then
+      FWasError := True;
+    FErrorArray.Add(FCount);
+  end;
 
   Inc(FCount);
 end;
@@ -86,18 +95,31 @@ begin
   FSize := 0;
   FCount := 0;
   FWasError := False;
+  FErrorArray.Clear;
 end;
 
 constructor TatLog.Create;
 begin
-
+  FErrorArray := TgdKeyArray.Create;
 end;
 
 destructor TatLog.Destroy;
 begin
+  FreeAndNil(FErrorArray);
   FStream.Free;
   SetLength(FArray, 0);
   inherited;
+end;
+
+function TatLog.GetErrorCount: Integer;
+begin
+  Result := FErrorArray.Count;
+end;
+
+function TatLog.GetLogErrorRec(Index: Integer): TatLogRec;
+begin
+  Assert((Index >= 0) and (Index < ErrorCount));
+  Result := FArray[FErrorArray.Keys[Index]];
 end;
 
 function TatLog.GetLogRec(Index: Integer): TatLogRec;
