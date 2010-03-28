@@ -270,7 +270,7 @@ function GetDomainText(ADataBase : TIBDataBase; FieldName :String; const isCharS
       begin
         Result := FormFloatDomain(dsDomain)
       end else
-        Result := 'INT64';
+        Result := 'BIGINT';
 
     blr_long:
       if (dsDomain.FieldByName('fsubtype').AsInteger > 0) or

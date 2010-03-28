@@ -157,7 +157,7 @@ const
     (SqlType : blr_sql_time; TypeName : 'TIME'),		 {do not localize}
     (SqlType : blr_sql_date; TypeName : 'DATE'),		 {do not localize}
     (SqlType : blr_timestamp; TypeName : 'TIMESTAMP'),		  {do not localize}
-    (SqlType : blr_int64; TypeName : 'INT64'));              {do not localize}
+    (SqlType : blr_int64; TypeName : 'BIGINT'));              {do not localize}
 
   SubTypes : Array[0..8] of String = (
     'UNKNOWN',			    {do not localize}
