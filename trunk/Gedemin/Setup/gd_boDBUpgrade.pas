@@ -1792,7 +1792,7 @@ begin
                           IBFT_DATE: FieldType := 'DATE';
                           IBFT_TIME: FieldType := 'TIME';
                           IBFT_CHAR: FieldType := 'CHAR(' + IBSQLOld.FieldByName('flength').AsTrimString + ')';
-                          IBFT_INT64: FieldType := 'INT64';
+                          IBFT_INT64: FieldType := 'BIGINT';
                           //DOUBLE
                           IBFT_DOUBLE: FieldType := 'NUMERIC(15, ' + IntToStr(Abs(IBSQLOld.FieldByName('fscale').AsInteger)) + ')';
                           IBFT_TIMESTAMP: FieldType := 'TIMESTAMP';
