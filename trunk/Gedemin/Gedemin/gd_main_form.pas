@@ -1949,8 +1949,7 @@ begin
     if not CheckUsers then
     begin
       MessageBox(Handle,
-        'К базе данных подключены другие пользователи. Обновление'#13#10 +
-        'статистики индексов возможно только в однопользовательском режиме.',
+        'Обновление возможно только в однопользовательском режиме.',
         'Внимание',
         MB_OK or MB_ICONHAND or MB_TASKMODAL);
       exit;
@@ -1959,11 +1958,7 @@ begin
     Free;
   end;
 
-  if MessageBox(Handle,
-    'Обновление статистики индексов может занять несколько минут. Продолжить?',
-    'Внимание',
-    MB_YESNO or MB_ICONQUESTION) = IDYES then
-  begin
+  try
     Cr := Screen.Cursor;
     try
       Screen.Cursor := crHourGlass;
@@ -1972,14 +1967,16 @@ begin
       RecompileTriggers(gdcBaseManager.Database);
       ReCreateComputedFields(gdcBaseManager.Database);
       ReCreateView(gdcBaseManager.Database);
-    finally  
+      AddText('Процесс завершен успешно');
+    finally
       Screen.Cursor := Cr;
     end;
-
-    MessageBox(Handle,
-      'Обновление статистики индексов завершено успешно.',
-      'Внимание',
-      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+  except
+    on E: Exception do
+    begin
+      AddMistake('Ошибка в процессе обновления:');
+      AddMistake(E.Message);
+    end;
   end;
 end;
 
