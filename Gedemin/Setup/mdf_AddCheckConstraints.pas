@@ -658,7 +658,7 @@ begin
         '  BEGIN '#13#10 +
         '  END '#13#10 +
         'END ';
-      Log('GD_DOCUMENT: Изменение тригера GD_AU_DOCUMENT');
+      Log('GD_DOCUMENT: Изменение триггера GD_AU_DOCUMENT');
       IBSQL.ExecQuery;
       FTransaction.Commit;
       FTransaction.StartTransaction;

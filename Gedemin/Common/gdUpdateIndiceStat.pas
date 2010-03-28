@@ -25,11 +25,7 @@ const
 implementation
 
 uses
-  IBSQL, IBHeader, IBCustomDataSet, SysUtils, Classes;
-
-const
-  Temp_FieldName = 'TEMP_COMPUTED';
-  Temp_View = 'TEMP_VIEW';
+  IBSQL, IBHeader, IBCustomDataSet, SysUtils, Classes, at_frmSQLProcess;
 
 procedure UpdateIndicesStat(ADataBase : TIBDataBase);
 var
@@ -52,7 +48,10 @@ begin
     while not q2.EOF do
     begin
       Tr.StartTransaction;
-      q1.SQL.Text := 'SET STATISTICS INDEX "' + q2.Fields[0].AsTrimString + '"';
+
+      AddText('Обновление статистики индекса ' + q2.Fields[0].AsTrimString);
+
+      q1.SQL.Text := 'SET STATISTICS INDEX "' + q2.Fields[0].AsTrimString + '"';;
       q1.ExecQuery;
 
       q1.Close;
@@ -93,6 +92,9 @@ begin
     while not q2.EOF do
     begin
       Tr.StartTransaction;
+
+      AddText('Перекомпиляция триггера ' + q2.Fields[0].AsTrimString);
+
       q1.SQL.Text := 'ALTER TRIGGER "' + q2.Fields[0].AsTrimString + '" ' + q2.Fields[1].AsTrimString;
       q1.ParamCheck := False;
       q1.ExecQuery;
@@ -134,6 +136,9 @@ begin
     while not q2.EOF do
     begin
       Tr.StartTransaction;
+
+      AddText('Перекомпиляция процедуры ' + q2.Fields[0].AsTrimString);
+
       q1.SQL.Text := 'ALTER PROCEDURE "' + q2.Fields[0].AsTrimString + '" ' + GetParamsText(q2.FieldByName('RDB$PROCEDURE_NAME').AsString , ADataBase) +
         ' AS ' + q2.Fields[1].AsTrimString;
       q1.ParamCheck := False;
@@ -446,50 +451,30 @@ begin
     ReadTr.DefaultDatabase := ADataBase;
     ReadTr.StartTransaction;
     q2.Transaction := ReadTr;
-    
-    q2.SQL.Text := 'SELECT ' +
-      '  F.RDB$FIELD_NAME AS DOMAIN_NAME, ' +
-      '  F.RDB$COMPUTED_SOURCE AS FIELD_SOURCE, ' +
+
+    q2.SQL.Text :=
+      'SELECT ' +
+      '  F.RDB$COMPUTED_SOURCE AS COMPUTED_SOURCE, ' +
       '  RF.RDB$FIELD_NAME AS FIELD_NAME, ' +
       '  RF.RDB$RELATION_NAME AS TABLE_NAME ' +
-      'FROM RDB$FIELDS F ' +
-      'JOIN RDB$RELATION_FIELDS RF ON RF.RDB$FIELD_SOURCE = F.RDB$FIELD_NAME ' +
-      'WHERE F.RDB$COMPUTED_SOURCE IS NOT NULL ';
+      'FROM ' +
+      '  RDB$FIELDS F ' +
+      '  JOIN RDB$RELATION_FIELDS RF ON RF.RDB$FIELD_SOURCE = F.RDB$FIELD_NAME ' +
+      '  JOIN RDB$RELATIONS R ON R.RDB$RELATION_NAME = RF.RDB$RELATION_NAME ' +
+      'WHERE ' +
+      '  F.RDB$COMPUTED_SOURCE IS NOT NULL AND R.RDB$VIEW_SOURCE IS NULL';
     q2.ExecQuery;
     while not q2.EOF do
     begin
-      // Создали поле.
       Tr.StartTransaction;
-      q1.SQL.Text := 'ALTER TABLE "' + q2.Fields[3].AsTrimString + '" ADD ' + Temp_FieldName +
-        ' COMPUTED BY ' + q2.Fields[1].AsTrimString;
-      q1.ExecQuery;
-      q1.Close;
-      Tr.Commit;
 
-      Tr.StartTransaction;
-      q1.SQL.Text := 'UPDATE RDB$FIELDS F '#13#10 +
-        'SET F.RDB$COMPUTED_BLR = '#13#10 +
-        '  (SELECT F1.RDB$COMPUTED_BLR '#13#10 +
-        '   FROM RDB$RELATION_FIELDS RF '#13#10 +
-        '   JOIN RDB$FIELDS F1 ON RF.RDB$FIELD_SOURCE = F1.RDB$FIELD_NAME '#13#10 +
-        '   WHERE RF.RDB$RELATION_NAME = :table_name '#13#10 +
-        '     AND RF.RDB$FIELD_NAME = :field_name) '#13#10 +
-        'WHERE F.RDB$FIELD_NAME = :domain_name ';
-      q1.ParamByName('table_name').AsString := q2.FieldByName('table_name').AsTrimString;
-      q1.ParamByName('field_name').AsString := Temp_FieldName;
-      q1.ParamByName('domain_name').AsString := q2.FieldByName('domain_name').AsTrimString;
-      try
-        q1.ExecQuery;
-      except
-        Tr.Rollback;
-      end;
-      q1.Close;
-      if Tr.InTransaction then
-        Tr.Commit;
+      AddText('Перекомпиляция поля ' + q2.FieldByName('field_name').AsTrimString +
+        ' таблицы ' + q2.FieldByName('table_name').AsTrimString);
 
-      //удаляем поле
-      Tr.StartTransaction;
-      q1.SQL.Text := 'ALTER TABLE "' + q2.Fields[3].AsTrimString + '" DROP ' + Temp_FieldName;
+      q1.SQL.Text :=
+        'ALTER TABLE "' + q2.FieldByName('table_name').AsTrimString +
+        '" ALTER "' + q2.FieldByName('field_name').AsTrimString +
+        '" COMPUTED BY ' + q2.FieldByName('computed_source').AsTrimString;
       q1.ExecQuery;
       q1.Close;
       Tr.Commit;
@@ -510,42 +495,39 @@ procedure ReCreateView(ADataBase : TIBDataBase);
 var
   q1, q2: TIBSQL;
   Tr, ReadTr: TIBTransaction;
-  S: String;
 
   function GetViewText(const FSQL: TIBSQL; const ReadTr: TIBTransaction): String;
   var
     S: String;
     ibsql: TIBSQL;
   begin
-    Result := Format(
-      'CREATE VIEW %s '#13#10 +
-      ' ('#13#10, [Temp_View]);
-
-    S := '';
-
     ibsql := TIBSQL.Create(nil);
     try
+      S := '';
+      
       ibsql.Transaction := ReadTr;
       ibsql.SQL.Text := 'SELECT * FROM rdb$relation_fields ' +
         ' WHERE rdb$relation_name = :rn ORDER BY rdb$field_position ';
-      ibsql.ParamByName('rn').AsString := FSQL.FieldByName('RDB$RELATION_NAME').AsString;
+      ibsql.ParamByName('rn').AsString := FSQL.FieldByName('RDB$RELATION_NAME').AsTrimString;
       ibsql.ExecQuery;
-      if ibsql.RecordCount > 0 then
+      if not ibsql.EOF then
       begin
         while not ibsql.EOF do
         begin
-          S := S + Trim(ibsql.FieldByName('rdb$field_name').AsString);
+          S := S + ibsql.FieldByName('rdb$field_name').AsTrimString + ','#13#10;
           ibsql.Next;
-          if not ibsql.EOF then
-            S := S + ','#13#10;
         end;
+        SetLength(S, Length(S) - 3);
       end;
     finally
       ibsql.Free;
     end;
 
-    Result := Result + S + #13#10 + ') '#13#10 + 'AS ' +
-       FSQL.FieldByName('RDB$VIEW_SOURCE').AsString;
+    Result :=
+      Format('ALTER VIEW "%s" '#13#10 +
+        ' ('#13#10, [FSQL.FieldByName('RDB$RELATION_NAME').AsTrimString]) +
+      S + #13#10') '#13#10' AS ' +
+      FSQL.FieldByName('RDB$VIEW_SOURCE').AsString;
   end;
 
 begin
@@ -561,40 +543,18 @@ begin
     ReadTr.StartTransaction;
     q2.Transaction := ReadTr;
 
-    q2.SQL.Text := 'SELECT R.RDB$RELATION_NAME, R.RDB$VIEW_SOURCE ' +
+    q2.SQL.Text :=
+      'SELECT R.RDB$RELATION_NAME, R.RDB$VIEW_SOURCE ' +
       'FROM RDB$RELATIONS R ' +
       'WHERE R.RDB$VIEW_SOURCE IS NOT NULL ';
     q2.ExecQuery;
     while not q2.EOF do
     begin
-      S := GetViewText(q2, ReadTr);
-
       Tr.StartTransaction;
-      q1.SQL.Text := S;
-      q1.ExecQuery;
-      q1.Close;
-      Tr.Commit;
 
-      //Перенесём blr
-      Tr.StartTransaction;
-      q1.SQL.Text := 'UPDATE RDB$RELATIONS R ' +
-        'SET R.RDB$VIEW_BLR = ' +
-        '  (SELECT R1.RDB$VIEW_BLR FROM RDB$RELATIONS R1 ' +
-        '   WHERE R1.RDB$RELATION_NAME = :temp_view) ' +
-        'WHERE R.RDB$RELATION_NAME = :rn ';
-      q1.ParamByName('temp_view').AsString := Temp_View;
-      q1.ParamByName('rn').AsString := q2.FieldByName('RDB$RELATION_NAME').AsTrimString;
-      try
-        q1.ExecQuery;
-      except
-        Tr.Rollback;
-      end;
-      q1.Close;
-      if Tr.InTransaction then
-        Tr.Commit;
+      AddText('Перекомпиляция представления ' + q2.FieldByName('RDB$RELATION_NAME').AsTrimString);
 
-      Tr.StartTransaction;
-      q1.SQL.Text := 'DROP VIEW ' + Temp_View;
+      q1.SQL.Text := GetViewText(q2, ReadTr);
       q1.ExecQuery;
       q1.Close;
       Tr.Commit;
