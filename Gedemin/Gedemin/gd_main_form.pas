@@ -418,9 +418,9 @@ uses
   gdcFile,
 
   gsStorage_CompPath,
-  {$IFDEF DEBUG}
-  gdSQLMonitor,
-  {$ENDIF}
+  //{$IFDEF DEBUG}
+  //gdSQLMonitor,
+  //{$ENDIF}
 
   {$IFDEF DEPARTMENT}
   gdcDepartament,
@@ -485,9 +485,7 @@ uses
   mtd_i_Base,
   dm_i_ClientReport_unit,
   gdcBaseInterface, dmLogin_unit,
-  {$IFDEF DEBUG}
-  gd_frmSQLMonitor_unit,
-  {$ENDIF}
+  //gd_frmSQLMonitor_unit,
   gd_dlgAutoBackup_unit,
   prp_frmGedeminProperty_Unit,
   cmp_frmDataBaseCompare,
@@ -953,22 +951,22 @@ begin
   end;
   {$ENDIF}
 
-  {$IFDEF DEBUG}
-  if Assigned(GlobalStorage)
-    and GlobalStorage.ReadBoolean('Options', 'MSQL', False, False) then
-  begin
-    gdcBaseManager.Database.TraceFlags := IntegerToTraceFlags(
-      GlobalStorage.ReadInteger('Options', 'MSQLF', 0, False));
-    if gdcBaseManager.Database.TraceFlags <> [] then
-    begin
-      if SQLMonitor = nil then
-        SQLMonitor := TgdSQLMonitor.Create(nil);
-    end else
-      FreeAndNil(SQLMonitor);
-  end;
-  {$ELSE}
+  //{$IFDEF DEBUG}
+  //if Assigned(GlobalStorage)
+  //  and GlobalStorage.ReadBoolean('Options', 'MSQL', False, False) then
+  //begin
+  //  gdcBaseManager.Database.TraceFlags := IntegerToTraceFlags(
+  //    GlobalStorage.ReadInteger('Options', 'MSQLF', 0, False));
+  //  if gdcBaseManager.Database.TraceFlags <> [] then
+  //  begin
+  //    if SQLMonitor = nil then
+  //      SQLMonitor := TgdSQLMonitor.Create(nil);
+  //  end else
+  //    FreeAndNil(SQLMonitor);
+  //end;
+  //{$ELSE}
   gdcBaseManager.Database.TraceFlags := [];
-  {$ENDIF}
+  //{$ENDIF}
 
   if Assigned(GlobalStorage)
     and GlobalStorage.ReadBoolean('Options\Arch', 'Enabled', False, False)
@@ -1151,13 +1149,13 @@ begin
 
   _IBSQLCache.Enabled := False;
 
-  {$IFDEF DEBUG}
-  if SQLMonitor <> nil then
-  begin
-    SQLMonitor.Flush;
-    FreeAndNil(SQLMonitor);
-  end;
-  {$ENDIF}
+  //{$IFDEF DEBUG}
+  //if SQLMonitor <> nil then
+  //begin
+  //  SQLMonitor.Flush;
+  //  FreeAndNil(SQLMonitor);
+  //end;
+  //{$ENDIF}
 
   gdcBaseManager.IDCacheFlush;
   ClearLookupCache;
@@ -1991,26 +1989,26 @@ end;
 
 procedure TfrmGedeminMain.actSQLMonitorUpdate(Sender: TObject);
 begin
-  {$IFDEF DEBUG}
-  actSQLMonitor.Enabled := Assigned(IBLogin) and
-    (IBLogin.IsUserAdmin or ((IBLogin.InGroup and GD_UG_POWERUSERS) <> 0));
-  {$ELSE}
+  //{$IFDEF DEBUG}
+  //actSQLMonitor.Enabled := Assigned(IBLogin) and
+  //  (IBLogin.IsUserAdmin or ((IBLogin.InGroup and GD_UG_POWERUSERS) <> 0));
+  //{$ELSE}
   actSQLMonitor.Visible := False;
-  {$ENDIF}
+  //{$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actSQLMonitorExecute(Sender: TObject);
-{$IFDEF DEBUG}
-var
-  F: TCustomForm;
-{$ENDIF}
+//{$IFDEF DEBUG}
+//var
+//  F: TCustomForm;
+//{$ENDIF}
 begin
-  {$IFDEF DEBUG}
-  F := FindForm(Tgd_frmSQLMonitor);
-  if F = nil then
-    F := Tgd_frmSQLMonitor.Create(Application);
-  F.Show;
-  {$ENDIF}
+  //{$IFDEF DEBUG}
+  //F := FindForm(Tgd_frmSQLMonitor);
+  //if F = nil then
+  //  F := Tgd_frmSQLMonitor.Create(Application);
+  //F.Show;
+  //{$ENDIF}
 end;
 
 procedure TfrmGedeminMain.DoDestroy;
