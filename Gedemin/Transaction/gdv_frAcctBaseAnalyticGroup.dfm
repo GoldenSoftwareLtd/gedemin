@@ -8,7 +8,7 @@ object frAcctBaseAnalyticsGroup: TfrAcctBaseAnalyticsGroup
     Left = 54
     Top = 42
     object actUp: TAction
-      Caption = '¬вех'
+      Caption = '¬верх'
       OnExecute = actUpExecute
       OnUpdate = actUpUpdate
     end
