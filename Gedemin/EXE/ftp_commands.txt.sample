@@ -1,0 +1,7 @@
+<ftp_user_name> 
+<ftp_user_password>
+binary
+cd public_html/gsbelarus/gs/content/downloads/ged
+send gedemin.rar gedemin.rar
+quit
+

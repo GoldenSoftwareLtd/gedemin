@@ -2,7 +2,7 @@ inherited dlgAcctLedgerConfig: TdlgAcctLedgerConfig
   Left = 414
   Top = 97
   HelpContext = 102
-  Caption = 'Конфигураця журнал-ордера'
+  Caption = 'Конфигурация журнал-ордера'
   ClientHeight = 554
   PixelsPerInch = 96
   TextHeight = 13
@@ -112,37 +112,69 @@ inherited dlgAcctLedgerConfig: TdlgAcctLedgerConfig
       end
     end
     object tsAdditional: TTabSheet [1]
+      BorderWidth = 3
       Caption = 'Дополнительно'
       ImageIndex = 2
-      object Label1: TLabel
-        Left = 5
-        Top = 1
-        Width = 98
-        Height = 13
-        Caption = 'Уровни аналитики:'
-      end
-      object cbSumNull: TCheckBox
-        Left = 5
-        Top = 199
-        Width = 321
-        Height = 14
-        Caption = 'Подсчет итого пустых строк'
-        TabOrder = 1
-      end
-      object cbEnchancedSaldo: TCheckBox
-        Left = 5
-        Top = 215
-        Width = 321
-        Height = 14
-        Caption = 'Расширенное сальдо'
-        TabOrder = 2
-      end
-      object sbTreeAnalitic: TScrollBox
-        Left = 5
-        Top = 17
-        Width = 333
-        Height = 176
+      object gbTreeAnalytic: TGroupBox
+        Left = 0
+        Top = 0
+        Width = 522
+        Height = 204
+        Align = alTop
+        Caption = ' Уровни аналитики '
         TabOrder = 0
+        object sbTreeAnalitic: TScrollBox
+          Left = 2
+          Top = 15
+          Width = 518
+          Height = 187
+          Align = alClient
+          BorderStyle = bsNone
+          TabOrder = 0
+        end
+      end
+      object gbAnalyticGroupListField: TGroupBox
+        Left = 0
+        Top = 204
+        Width = 522
+        Height = 204
+        Align = alTop
+        Caption = ' Поля отображений для группировки по аналитике '
+        TabOrder = 1
+        object sbAnalyticGroupListField: TScrollBox
+          Left = 2
+          Top = 15
+          Width = 518
+          Height = 187
+          Align = alClient
+          BorderStyle = bsNone
+          TabOrder = 0
+        end
+      end
+      object gbOtherParameters: TGroupBox
+        Left = 0
+        Top = 408
+        Width = 522
+        Height = 57
+        Align = alTop
+        Caption = ' Другие параметры '
+        TabOrder = 2
+        object cbEnchancedSaldo: TCheckBox
+          Left = 9
+          Top = 35
+          Width = 148
+          Height = 14
+          Caption = 'Расширенное сальдо'
+          TabOrder = 0
+        end
+        object cbSumNull: TCheckBox
+          Left = 9
+          Top = 19
+          Width = 180
+          Height = 14
+          Caption = 'Подсчет итого пустых строк'
+          TabOrder = 1
+        end
       end
     end
     inherited tsAnalytics: TTabSheet

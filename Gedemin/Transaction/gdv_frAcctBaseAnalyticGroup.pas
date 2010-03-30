@@ -41,6 +41,8 @@ type
     function GetSelected: TgdvAnalyticsList;
     function GetSelectedCount: Integer;
     procedure SetOnSelect(const Value: TNotifyEvent);
+    function GetAnalyticListFields: String;
+    procedure SetAnalyticListFields(const Value: String);
     { Private declarations }
   protected
     FAvailFieldList: TgdvAvailAnalytics;
@@ -64,6 +66,7 @@ type
     property Selected: TgdvAnalyticsList read GetSelected;
     property SelectedCount: Integer read GetSelectedCount;
     property OnSelect: TNotifyEvent read FOnSelect write SetOnSelect;
+    property AnalyticListFields: String read GetAnalyticListFields write SetAnalyticListFields;
   end;
 
 implementation
@@ -496,6 +499,44 @@ procedure TfrAcctBaseAnalyticsGroup.DoSelect;
 begin
   if Assigned(FOnselect) then
     FOnSelect(Self);
+end;
+
+function TfrAcctBaseAnalyticsGroup.GetAnalyticListFields: String;
+var
+  List: TStrings;
+  AnalyticCounter: Integer;
+begin
+  Result := '';
+  List := TStringList.Create;
+  try
+    for AnalyticCounter := 0 to SelectedCount - 1 do
+    begin
+      if Assigned(Selected.Analytics[AnalyticCounter].ListField) then
+        List.Add(Selected.Analytics[AnalyticCounter].FieldName + '=' +
+          Selected.Analytics[AnalyticCounter].ListField.FieldName);
+    end;
+    Result := List.Text;
+  finally
+    FreeAndNil(List);
+  end;
+end;
+
+procedure TfrAcctBaseAnalyticsGroup.SetAnalyticListFields(const Value: String);
+var
+  List: TStrings;
+  AnalyticCounter: Integer;
+begin
+  List := TStringList.Create;
+  try
+    List.Text := Value;
+    for AnalyticCounter := 0 to SelectedCount - 1 do
+    begin
+      if List.IndexOfName(Selected.Analytics[AnalyticCounter].FieldName) > -1 then
+        Selected.Analytics[AnalyticCounter].SetListFieldByFieldName(List.Values[Selected.Analytics[AnalyticCounter].FieldName]);
+    end;
+  finally
+    FreeAndNil(List);
+  end;
 end;
 
 end.

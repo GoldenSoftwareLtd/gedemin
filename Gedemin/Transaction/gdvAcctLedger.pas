@@ -318,7 +318,7 @@ type
     destructor Destroy; override;
 
     // Добавляет аналитику по которой будут сгруппированы данные
-    procedure AddGroupBy(GroupFieldName: String; ShowTotal: Boolean = False); overload;
+    procedure AddGroupBy(GroupFieldName: String; ShowTotal: Boolean = False; const ListFieldName: String = ''); overload;
     procedure AddGroupBy(Analytic: TgdvAnalytics); overload;
     // Добавляет уровни аналитики
     procedure AddAnalyticLevel(AnalyticName: String; Levels: String);
@@ -474,7 +474,7 @@ begin
     FAcctGroupBy.Add(Analytic);
 end;
 
-procedure TgdvAcctLedger.AddGroupBy(GroupFieldName: String; ShowTotal: Boolean = False);
+procedure TgdvAcctLedger.AddGroupBy(GroupFieldName: String; ShowTotal: Boolean = False; const ListFieldName: String = '');
 var
   A: TgdvAnalytics;
   FieldName, Caption, Additional: String;
@@ -482,8 +482,6 @@ var
 begin
   if GroupFieldName <> '' then
   begin
-    Assert(Assigned(atDatabase));
-
     FieldName := '';
     Caption := '';
     Additional := '';
@@ -529,6 +527,7 @@ begin
     A.Field := Field;
     A.Additional := Additional;
     A.Total := ShowTotal;
+    A.SetListFieldByFieldName(ListFieldName);
     Self.AddGroupBy(A);
   end;
 end;
@@ -684,17 +683,20 @@ var
   CorrSelect, CorrSubSelect, CorrSubSubSelect: String;
   CorrJoin, CorrWhere, CorrGroup, CorrOrder, CorrInto: String;
 
-  procedure ProcessAnalytic(F: TatRelationField; IsTreeAnalytic: Boolean = False);
+  procedure ProcessAnalytic(CurrentAnalytic: TgdvAnalytics; IsTreeAnalytic: Boolean = False);
   var
     FI: TgdvFieldInfo;
     NameFieldLength: Integer;
-    NameRefField: TatField;
+    F: TatRelationField;
+    RefListField: TatRelationField;
   begin
+    F := CurrentAnalytic.Field;
+
     if Assigned(FFieldInfos) then
     begin
       FI := FFieldInfos.AddInfo;
       FI.FieldName := Name;
-      FI.Caption := FAcctGroupBy[I].Caption;
+      FI.Caption := CurrentAnalytic.Caption;
       FI.Visible := fvVisible;
       FI.Condition := True;
 
@@ -705,9 +707,9 @@ var
       FI := FFieldInfos.AddInfo;
       FI.FieldName := SortName;
       FI.Visible := fvHidden;
-    end;  
+    end;
 
-    // Если присвоен объект подсчитывающий строки "Итого:" 
+    // Если присвоен объект подсчитывающий строки "Итого:"
     //  (присваивается в форме gdv_frmAcctLedger)
     if Assigned(FTotals) then
     begin
@@ -715,7 +717,7 @@ var
       FTotals.Add(T);
       T.FieldName := Alias;
       T.ValueFieldName := Name;
-      T.Total := FAcctGroupBy[I].Total;
+      T.Total := CurrentAnalytic.Total;
       T.atRelationField := F;
 
       if not FEntryDateInFields then
@@ -803,22 +805,31 @@ var
       end;
     end;
 
+    NameFieldLength := 180;
+    RefListField := nil;
+    if Assigned(F) and Assigned(F.ReferencesField) then
+    begin
+      // Для аналитики-ссылки подберем поле для отображения
+      if Assigned(CurrentAnalytic.ListField) then
+      begin
+        RefListField := CurrentAnalytic.ListField;
+      end
+      else
+      begin
+        if F.Field.RefListFieldName = '' then
+          RefListField := F.References.ListField
+        else
+          RefListField := F.Field.RefListField;
+      end;
+
+      // Если длина отображаемого по ссылке поля больше стандартных 180, возьмем ее
+      if RefListField.Field.FieldLength > NameFieldLength then
+        NameFieldLength := RefListField.Field.FieldLength;
+    end;
+
     // Используем новый или старый метод построения отчета
     if FUseEntryBalance then
     begin
-      NameFieldLength := 180;
-      // Если длина отображаемого по ссылке поля больше стандартных 180, возьмем ее
-      if Assigned(F) and Assigned(F.ReferencesField) then
-      begin
-        if Assigned(F.Field.RefListField) then
-          NameRefField := F.Field.RefListField.Field
-        else
-          NameRefField := F.References.ListField.Field;  
-          
-        if NameRefField.FieldLength > NameFieldLength then
-          NameFieldLength := NameRefField.FieldLength;
-      end;
-
       // Заполняем секцию RETURNS
       if AnalyticReturns > '' then AnalyticReturns := AnalyticReturns + ', ';
       AnalyticReturns := AnalyticReturns + Format(
@@ -832,25 +843,18 @@ var
         // Если первая аналитика - аналитика даты
         if FEntryDateIsFirst then
         begin
-          // Заполняем секции SELECT и ORDER BY дополнительного запроса
+          // Заполняем секцию SELECT дополнительного запроса
           if CorrSelect > '' then CorrSelect := CorrSelect + ', ';
+          CorrSelect := CorrSelect +
+            Format(
+              'SUBSTRING(%0:s.%1:s from 1 for %3:d) AS %0:s, ' +
+              'SUBSTRING(%0:s.%1:s from 1 for %3:d) AS %0:s, ' +
+              '%0:s.%2:s',
+              [Alias, RefListField.FieldName, F.ReferencesField.FieldName, NameFieldLength]);
+          // Заполняем секцию ORDER BY дополнительного запроса
           if CorrOrder > '' then CorrOrder := CorrOrder + ', ';
-          if F.Field.RefListFieldName = '' then
-          begin
-            CorrSelect := CorrSelect +
-              Alias + '.' + F.References.ListField.FieldName + ', ' +
-              Alias + '.' + F.References.ListField.FieldName + ', ';
-            CorrOrder := CorrOrder + Alias + '.' + F.References.ListField.FieldName;
-          end
-          else
-          begin
-            CorrSelect := CorrSelect +
-              Alias + '.' + F.Field.RefListFieldName + ', ' +
-              Alias + '.' + F.Field.RefListFieldName + ', ';
-            CorrOrder := CorrOrder + Alias + '.' + F.Field.RefListFieldName;
-          end;
-          CorrSelect := CorrSelect + Alias + '.' + F.ReferencesField.FieldName;
-          // Заполняем секции INTO дополнительного запроса
+          CorrOrder := CorrOrder + Alias + '.' + RefListField.FieldName;
+          // Заполняем секцию INTO дополнительного запроса
           if CorrInto > '' then CorrInto := CorrInto + ', ';
           CorrInto := CorrInto +
             ':' + SortName  + ', ' +
@@ -874,9 +878,9 @@ var
         else
         begin
           // Если первая аналитика - не аналитика даты
-
           TempVariables.Add('temp_' + Alias + '=' + Alias);
-          // Заполняем секции INTO, GROUP BY главного запроса и GROUP BY третьего запроса из второго вложенного уровня в главном запросе
+          // Заполняем секции INTO, GROUP BY главного запроса и GROUP BY третьего запроса
+          //  из второго вложенного уровня в главном запросе
           if MainInto > '' then MainInto := MainInto + ', ';
           MainInto := MainInto +
             ':' + Alias + ', ' +
@@ -911,24 +915,13 @@ var
           // Заполняем секции SELECT, ORDER BY главного запроса
           if MainSelect > '' then MainSelect := MainSelect + ', ';
           MainSelect := MainSelect +
-            Alias + '.' + F.ReferencesField.FieldName + ', ';
+            Format(
+              '%0:s.%2:s, ' +
+              'SUBSTRING(%0:s.%1:s from 1 for %3:d) AS %0:s, ' +
+              'SUBSTRING(%0:s.%1:s from 1 for %3:d) AS %0:s',
+              [Alias, RefListField.FieldName, F.ReferencesField.FieldName, NameFieldLength]);
           if MainOrder > '' then MainOrder := MainOrder + ', ';
-          if F.Field.RefListFieldName = '' then
-          begin
-            MainSelect := MainSelect +
-              Alias + '.' + F.References.ListField.FieldName + ', ' +
-              Alias + '.' + F.References.ListField.FieldName;
-            MainOrder := MainOrder +
-              Alias + '.' + F.References.ListField.FieldName;
-          end
-          else
-          begin
-            MainSelect := MainSelect +
-              Alias + '.' + F.Field.RefListFieldName + ', ' +
-              Alias + '.' + F.Field.RefListFieldName;
-            MainOrder := MainOrder +
-              Alias + '.' + F.Field.RefListFieldName;
-          end;
+          MainOrder := MainOrder + Alias + '.' + RefListField.FieldName;
           // Добавим дополнительные поля для аналитики при включенном переключателе "Расширенное отображение"
           ExtendedFieldsBalance(F, Alias, AnalyticReturns, MainSelect, MainInto);
         end;
@@ -1030,10 +1023,10 @@ var
 
           if MainSubSelect > '' then MainSubSelect := MainSubSelect + ', ';
           MainSubSelect := MainSubSelect +
-            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + ' AS dateparam_' + Alias + #13#10;
+            GetSQLForDateParam('en.entrydate', CurrentAnalytic.Additional) + ' AS dateparam_' + Alias + #13#10;
           if MainGroup > '' then MainGroup := MainGroup + ', ';
           MainGroup := MainGroup +
-            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + #13#10;
+            GetSQLForDateParam('en.entrydate', CurrentAnalytic.Additional) + #13#10;
         end;
 
         // ENTRYDATE нужно брать в подзапросе только один раз
@@ -1069,7 +1062,7 @@ var
         if Assigned(F) then
         begin
           CorrSelect := CorrSelect +
-            Format(' %0:s.%1:s, %0:s.%1:s, %0:s.%1:s '#13#10, ['m', F.FieldName]);
+            Format(' m.%0:s, m.%0:s, m.%0:s '#13#10, [F.FieldName]);
           CorrSubSelect := CorrSubSelect + 'en.' + F.FieldName;
           // ENTRYDATE нужно брать в подзапросе только один раз
           if AnsiCompareText(F.FieldName, ENTRYDATE) = 0 then
@@ -1087,14 +1080,14 @@ var
             CorrSubSubSelect := CorrSubSubSelect + 'em.' + F.FieldName + #13#10;
           end;
           CorrGroup := CorrGroup + 'en.' + F.FieldName;
-          CorrOrder := CorrOrder + Format(' %0:s.%1:s '#13#10, ['m', F.FieldName]);
+          CorrOrder := CorrOrder + Format(' m.%0:s '#13#10, [F.FieldName]);
         end
         else
         begin
           CorrSelect := CorrSelect +
-            Format(' %0:s.%1:s, %0:s.%1:s, %0:s.%1:s '#13#10, ['m', Alias]);
+            Format(' m.%0:s, m.%0:s, m.%0:s '#13#10, [Alias]);
           CorrSubSelect := CorrSubSelect +
-            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + ' AS ' + Alias + #13#10;
+            GetSQLForDateParam('en.entrydate', CurrentAnalytic.Additional) + ' AS ' + Alias + #13#10;
           // ENTRYDATE нужно брать в подзапросе только один раз
           if not CorrEntryDateIsAdded then
           begin
@@ -1103,8 +1096,8 @@ var
             CorrEntryDateIsAdded := True;
           end;
           CorrGroup := CorrGroup +
-            GetSQLForDateParam('en.entrydate', FAcctGroupBy[I].Additional) + #13#10;
-          CorrOrder := CorrOrder + Format(' %0:s.%1:s '#13#10, ['m', Alias]);
+            GetSQLForDateParam('en.entrydate', CurrentAnalytic.Additional) + #13#10;
+          CorrOrder := CorrOrder + Format(' m.%0:s '#13#10, [Alias]);
         end;
       end;
 
@@ -1127,24 +1120,13 @@ var
         begin
           IDSelect := IDSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
             F.ReferencesField.FieldName, Alias]);
-          if F.Field.RefListFieldName = '' then
-          begin
-            NameSelect := NameSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
-              F.References.ListField.FieldName, Name]);
-            SortSelect := SortSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
-              F.References.ListField.FieldName, SortName]);
-            OrderClause := OrderClause + Format('%s.%s, %s.%s', [Alias,
-              F.References.ListField.FieldName, Alias, F.ReferencesField.FieldName]);
-          end
-          else
-          begin
-            NameSelect := NameSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
-              F.Field.RefListFieldName, Name]);
-            SortSelect := SortSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s', [Alias,
-              F.Field.RefListFieldName, SortName]);
-            OrderClause := OrderClause + Format('%s.%s, %s.%s', [Alias,
-              F.Field.RefListFieldName, Alias, F.ReferencesField.FieldName]);
-          end;
+
+          NameSelect := NameSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
+            RefListField.FieldName, Name]);
+          SortSelect := SortSelect + Format('  SUBSTRING(%s.%s from 1 for 180) AS %s ', [Alias,
+            RefListField.FieldName, SortName]);
+          OrderClause := OrderClause + Format('%s.%s, %s.%s', [Alias,
+            RefListField.FieldName, Alias, F.ReferencesField.FieldName]);
         end
         else
         begin
@@ -1176,13 +1158,13 @@ var
         else
         begin
           IDSelect := IDSelect + Format(' SUBSTRING(g_d_getdateparam(e2.entrydate, %s) from 1 for 180)AS %s',
-            [FAcctGroupBy[I].Additional, Alias]);
+            [CurrentAnalytic.Additional, Alias]);
           NameSelect := NameSelect + Format(' SUBSTRING(g_d_getdateparam(e2.entrydate, %s) from 1 for 180)AS %s',
-            [FAcctGroupBy[I].Additional, Name]);
+            [CurrentAnalytic.Additional, Name]);
           SortSelect := SortSelect + Format(' SUBSTRING(g_d_getdateparam(e2.entrydate, %s) from 1 for 180)AS %s',
-            [FAcctGroupBy[I].Additional, SortName]);
+            [CurrentAnalytic.Additional, SortName]);
           OrderClause := OrderClause + Format('g_d_getdateparam(e2.entrydate, %s)',
-            [FAcctGroupBy[I].Additional]);
+            [CurrentAnalytic.Additional]);
         end;
       end;
 
@@ -1195,12 +1177,8 @@ var
       begin
         if F.ReferencesField <> nil then
         begin
-          if F.Field.RefListFieldName = '' then
-            GroupClause := GroupClause + Format('%s.%s, %s.%s', [Alias,
-              F.References.ListField.FieldName, Alias, F.ReferencesField.FieldName])
-          else
-            GroupClause := GroupClause + Format('%s.%s, %s.%s', [Alias,
-              F.Field.RefListFieldName, Alias, F.ReferencesField.FieldName]);
+          GroupClause := GroupClause + Format('%s.%s, %s.%s', [Alias,
+            RefListField.FieldName, Alias, F.ReferencesField.FieldName])
         end
         else
         begin
@@ -1216,7 +1194,7 @@ var
           GroupClause := GroupClause + 'ls.dateparam'
         else
           GroupClause := GroupClause + Format('g_d_getdateparam(e2.entrydate, %s)',
-            [FAcctGroupBy[I].Additional])
+            [CurrentAnalytic.Additional])
       end;
     end;
   end;
@@ -1431,7 +1409,7 @@ begin
                 Name := Format('NAME%d', [N]);
                 SortName := Format('s%d', [N]);
                 // Заполнит части запроса и описания полей, связанные с аналитикой
-                ProcessAnalytic(F, True);
+                ProcessAnalytic(FAcctGroupBy[I], True);
                 // Если первой является аналитика даты
                 if FEntryDateIsFirst then
                   CorrJoin := CorrJoin + Format('  LEFT JOIN %s(%s, m.%s) lg_%s ON 1 = 1'#13#10,
@@ -1454,7 +1432,7 @@ begin
         Name := Format('NAME%d', [I]);
         SortName := Format('s%d', [I]);
         // Заполнит части запроса и описания полей, связанные с аналитикой
-        ProcessAnalytic(F);
+        ProcessAnalytic(FAcctGroupBy[I]);
         // Если поле является полем ссылкой
         if Assigned(F) and Assigned(F.ReferencesField) then
           // Если первой является аналитика даты
@@ -2093,7 +2071,7 @@ begin
                 Name := Format('NAME%d', [N]);
                 SortName := Format('s%d', [N]);
 
-                ProcessAnalytic(F);
+                ProcessAnalytic(FAcctGroupBy[I]);
                 FromClause := FromClause + Format('  LEFT JOIN %s(%s, e.%s) lg_%s ON 1=1'#13#10,
                   [Line.SPName, Line.Levels[J], F.FieldName, Alias]) +
                   Format('  LEFT JOIN %s %s ON %s.%s = lg_%s.Id'#13#10,
@@ -2110,8 +2088,8 @@ begin
         Name := Format('NAME%d', [I]);
         SortName := Format('s%d', [I]);
 
-        ProcessAnalytic(F);
-        if Assigned(F) and  Assigned(F.ReferencesField) then
+        ProcessAnalytic(FAcctGroupBy[I]);
+        if Assigned(F) and Assigned(F.ReferencesField) then
         begin
           FromClause := FromClause + Format('  LEFT JOIN %s %s ON %s.%s = e.%s'#13#10,
             [F.References.RelationName, Alias, Alias, F.ReferencesField.FieldName,
@@ -2188,7 +2166,8 @@ begin
                   Format('  LEFT JOIN ac_quantity %0:s ON %0:s.entrykey = e.id AND '#13#10 +
                     '     %0:s.valuekey = %1:s ', [QuantityAlias, FAcctValues.Names[K]]);
               end;
-            end else
+            end
+            else
             begin
               if FAcctGroupBy[0].FieldName = ENTRYDATE then
               begin
@@ -2219,7 +2198,8 @@ begin
                     Format('  LEFT JOIN ac_quantity %0:s_f ON %0:s_f.entrykey = e2.id AND %0:s_f.valuekey = %1:s',
                       [QuantityAlias, FAcctValues.Names[K]]);
                 end;
-              end else
+              end
+              else
               begin
                 SelectClause := SelectClause + ','#13#10 +
                   Format('  IIF(NOT %0:s.debitbegin IS NULL, %0:s.debitbegin, 0) AS Q_B_D_%1:s,'#13#10 +
@@ -2559,7 +2539,9 @@ end;
 procedure TgdvAcctLedger.DoLoadConfig(const Config: TBaseAcctConfig);
 var
   C: TAccLedgerConfig;
-  StringList: TStringList;
+  TreeAnalyticList: TStringList;
+  AnalyticListField: TStringList;
+  ListFieldName: String;
   Stream: TStream;
   Count: Integer;
   FieldName: String;
@@ -2576,23 +2558,37 @@ begin
     FSumNull := C.SumNull;
     FEnchancedSaldo := C.EnchancedSaldo;
     // группировка по аналитикам
-    Stream := C.AnalyticsGroup;
-    Stream.Position := 0;
-    Count := ReadIntegerFromStream(Stream);
-    for I := 0 to Count - 1 do
-    begin
-      FieldName := ReadStringFromStream(Stream);
-      ShowTotal := ReadBooleanFromStream(Stream);
-      Self.AddGroupBy(FieldName, ShowTotal);
+    AnalyticListField := TStringList.Create;
+    try
+      // Список полей просмотра для группировочных аналитик
+      AnalyticListField.Text := C.AnalyticListField;
+
+      Stream := C.AnalyticsGroup;
+      Stream.Position := 0;
+      Count := ReadIntegerFromStream(Stream);
+      for I := 0 to Count - 1 do
+      begin
+        FieldName := ReadStringFromStream(Stream);
+        ShowTotal := ReadBooleanFromStream(Stream);
+        // Загрузим поле отображения, если было указано
+        if AnalyticListField.IndexOfName(FieldName) > -1 then
+          ListFieldName := AnalyticListField.Values[FieldName]
+        else
+          ListFieldName := '';
+        // Добавим группировку
+        Self.AddGroupBy(FieldName, ShowTotal, ListFieldName);
+      end;
+    finally
+      FreeAndNil(AnalyticListField);
     end;
     // уровни аналитики
-    StringList := TStringList.Create;
+    TreeAnalyticList := TStringList.Create;
     try
-      StringList.Text := C.TreeAnalytic;
-      for I := 0 to StringList.Count - 1 do
-        Self.AddAnalyticLevel(StringList.Names[I], StringList.Values[StringList.Names[I]]);
+      TreeAnalyticList.Text := C.TreeAnalytic;
+      for I := 0 to TreeAnalyticList.Count - 1 do
+        Self.AddAnalyticLevel(TreeAnalyticList.Names[I], TreeAnalyticList.Values[TreeAnalyticList.Names[I]]);
     finally
-      StringList.Free;
+      TreeAnalyticList.Free;
     end;
   end;
 end;
@@ -2601,7 +2597,8 @@ procedure TgdvAcctLedger.DoSaveConfig(Config: TBaseAcctConfig);
 var
   C: TAccLedgerConfig;
   I: Integer;
-  StringList: TStringList;
+  TreeAnalyticList: TStringList;
+  AnalyticListField: TStringList;
 begin
   inherited;
   if Config is TAccLedgerConfig then
@@ -2613,24 +2610,32 @@ begin
     C.SumNull := FSumNull;
     C.EnchancedSaldo := FEnchancedSaldo;
     // группировка по аналитикам
-    C.AnalyticsGroup.Size := 0;
-    SaveIntegerToStream(FAcctGroupBy.Count, C.AnalyticsGroup);
-    for I := 0 to FAcctGroupBy.Count - 1 do
-    begin
-      SaveStringToStream(FAcctGroupBy[I].FieldName, C.AnalyticsGroup);
-      SaveBooleanToStream(FAcctGroupBy[I].Total, C.AnalyticsGroup);
+    AnalyticListField := TStringList.Create;
+    try
+      C.AnalyticsGroup.Size := 0;
+      SaveIntegerToStream(FAcctGroupBy.Count, C.AnalyticsGroup);
+      for I := 0 to FAcctGroupBy.Count - 1 do
+      begin
+        SaveStringToStream(FAcctGroupBy[I].FieldName, C.AnalyticsGroup);
+        SaveBooleanToStream(FAcctGroupBy[I].Total, C.AnalyticsGroup);
+        if Assigned(FAcctGroupBy[I].ListField) then
+          AnalyticListField.Add(FAcctGroupBy[I].FieldName + '=' + FAcctGroupBy[I].ListField.FieldName);
+      end;
+      C.AnalyticListField := AnalyticListField.Text;
+    finally
+      FreeAndNil(AnalyticListField);
     end;
     // уровни аналитики
-    StringList := TStringList.Create;
+    TreeAnalyticList := TStringList.Create;
     try
       for I := 0 to FAcctAnalyticLevels.Count - 1 do
       begin
-        StringList.Add(TgdvAcctAnalyticLevels(FAcctAnalyticLevels[I]).Field.FieldName + '=' +
+        TreeAnalyticList.Add(TgdvAcctAnalyticLevels(FAcctAnalyticLevels[I]).Field.FieldName + '=' +
           TgdvAcctAnalyticLevels(FAcctAnalyticLevels[I]).Value);
       end;
-      C.TreeAnalytic := StringList.Text;
+      C.TreeAnalytic := TreeAnalyticList.Text;
     finally
-      StringList.Free;
+      TreeAnalyticList.Free;
     end;
   end;
 end;

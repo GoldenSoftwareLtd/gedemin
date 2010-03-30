@@ -1,8 +1,11 @@
 unit gdv_AcctConfig_unit;
 
 interface
-uses classes, gd_common_functions, Sysutils, AcctUtils, IBSQL, gdcBaseInterface,
+
+uses
+  classes, gd_common_functions, Sysutils, AcctUtils, IBSQL, gdcBaseInterface,
   gdcConstants;
+
 type
   TAbstractConfig = class(TPersistent)
   public
@@ -145,6 +148,7 @@ type
     FShowCredit: Boolean;
     FShowCorrSubAccounts: boolean;
     FAnalyticsGroup: TStream;
+    FAnalyticListField: String;
     FSumNull: Boolean;
     FEnchancedSaldo: Boolean;
     FTreeAnalytic: string;
@@ -168,6 +172,7 @@ type
     property ShowCredit: Boolean read FShowCredit write SetShowCredit;
     property ShowCorrSubAccounts: boolean read FShowCorrSubAccounts write SetShowCorrSubAccounts;
     property AnalyticsGroup: TStream read GetAnalyticsGroup;
+    property AnalyticListField: String read FAnalyticListField write FAnalyticListField;
     property SumNull: Boolean read FSumNull write SetSumNull;
     property EnchancedSaldo: Boolean read FEnchancedSaldo write SetEnchancedSaldo;
     property TreeAnalytic: string read FTreeAnalytic write SetTreeAnalytic;
@@ -205,9 +210,11 @@ type
 function LoadConfigFromStream(Str: TStream): TBaseAcctConfig;
 function LoadConfigById(Id: Integer): TBaseAcctConfig;
 procedure SaveConfigToStream(const Config: TBaseAcctConfig; const Stream: TStream);
+
 implementation
+
 const
-  StreamVersion = 8;
+  StreamVersion = 9;
 
 procedure SaveConfigToStream(const Config: TBaseAcctConfig; const Stream: TStream);
 begin
@@ -658,7 +665,8 @@ end;
 destructor TAccLedgerConfig.Destroy;
 begin
   inherited;
-  FAnalyticsGroup.Free;
+  if Assigned(FAnalyticsGroup) then
+    FreeAndNil(FAnalyticsGroup);
 end;
 
 class function TAccLedgerConfig.EditDialogName: string;
@@ -687,9 +695,10 @@ begin
   end;
 
   if FStreamVersion >= 5 then
-  begin
     FTreeAnalytic := ReadStringFromStream(Stream);
-  end;
+
+  if FStreamVersion >= 9 then
+    AnalyticListField := ReadStringFromStream(Stream);
 end;
 
 procedure TAccLedgerConfig.Reset;
@@ -714,6 +723,7 @@ begin
   SaveBooleanToStream(FSumNull, Stream);
   saveBooleanToStream(FEnchancedSaldo, Stream);
   SaveStringToStream(FTreeAnalytic, Stream);
+  SaveStringToStream(FAnalyticListField, Stream);
 end;
 
 procedure TAccLedgerConfig.SetEnchancedSaldo(const Value: Boolean);
