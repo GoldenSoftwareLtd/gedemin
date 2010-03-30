@@ -18,27 +18,35 @@ type
     cbShowCorrSubAccounts: TCheckBox;
     frAnalyticsGroup: TdlgfrAcctAnalyticsGroup;
     tsAdditional: TTabSheet;
-    cbSumNull: TCheckBox;
-    cbEnchancedSaldo: TCheckBox;
+    gbTreeAnalytic: TGroupBox;
     sbTreeAnalitic: TScrollBox;
-    Label1: TLabel;
+    gbAnalyticGroupListField: TGroupBox;
+    gbOtherParameters: TGroupBox;
+    cbEnchancedSaldo: TCheckBox;
+    cbSumNull: TCheckBox;
+    sbAnalyticGroupListField: TScrollBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
-    FLinesList: TObjectList;
+    FTreeAnalyticLineList: TObjectList;
+    FAnalyticListFieldList: TObjectList;
     function GetTreeAnalitic: string;
     procedure SetTreeAnalitic(const Value: string);
+    function GetAnaliticListField: string;
+    procedure SetAnaliticListField(const Value: string);
   protected
     class function ConfigClassName: string; override;
     procedure UpdateControls; override;
     procedure UpdateTreeAnalytic(AnalyticsList: TgdvAnalyticsList);
+    procedure UpdateAnalyticListField(AnalyticsList: TgdvAnalyticsList);
 
     procedure DoLoadConfig(const Config: TBaseAcctConfig);override;
     procedure DoSaveConfig(Config: TBaseAcctConfig);override;
     procedure OnAnalyticGroupSelect(Sender: TObject);
 
     property TreeAnalitic: string read GetTreeAnalitic write SetTreeAnalitic;
+    property AnaliticListField: string read GetAnaliticListField write SetAnaliticListField;
   public
     { Public declarations }
     function TestCorrect: Boolean; override;
@@ -51,11 +59,14 @@ implementation
 
 {$R *.DFM}
 
-  {$IFDEF LOCALIZATION}
+
 uses
+  {$IFDEF LOCALIZATION}
   {must be placed after Windows unit!}
-  gd_localization_stub;
+  gd_localization_stub,
   {$ENDIF}
+  gdv_frAcctAnalyticListField_unit;
+
 
 { TdlgAcctLedgerConfig }
 
@@ -81,7 +92,8 @@ begin
       frAnalyticsGroup.LoadFromStream(AnalyticsGroup);
       cbSumNull.Checked := SumNull;
       cbEnchancedSaldo.Checked := EnchancedSaldo;
-      Self.TreeAnalitic := TreeAnalytic;  
+      Self.TreeAnalitic := TreeAnalytic;
+      Self.AnaliticListField := AnalyticListField;
     end;
   end;
 end;
@@ -104,6 +116,7 @@ begin
       SumNull := cbSumNull.Checked;
       EnchancedSaldo := cbEnchancedSaldo.Checked;
       TreeAnalytic := Self.TreeAnalitic;
+      AnalyticListField := Self.AnaliticListField;
     end;
   end;
 end;
@@ -176,6 +189,7 @@ end;
 procedure TdlgAcctLedgerConfig.OnAnalyticGroupSelect(Sender: TObject);
 begin
   UpdateTreeAnalytic(frAnalyticsGroup.Selected);
+  UpdateAnalyticListField(frAnalyticsGroup.Selected);
 end;
 
 procedure TdlgAcctLedgerConfig.UpdateTreeAnalytic(AnalyticsList: TgdvAnalyticsList);
@@ -204,15 +218,15 @@ var
 
 begin
   P := 0;
-  if FLinesList = nil then
-    FLinesList := TObjectList.Create;
+  if FTreeAnalyticLineList = nil then
+    FTreeAnalyticLineList := TObjectList.Create;
 
   LList := TObjectList.Create;
   try
-    for I := FLinesList.Count - 1 downto 0 do
+    for I := FTreeAnalyticLineList.Count - 1 downto 0 do
     begin
-      LList.Add(FLinesList[I]);
-      FLinesList.Extract(FLinesList[I]);
+      LList.Add(FTreeAnalyticLineList[I]);
+      FTreeAnalyticLineList.Extract(FTreeAnalyticLineList[I]);
     end;
 
     for I := 0 to AnalyticsList.Count - 1 do
@@ -237,7 +251,7 @@ begin
             Line.Color := sbTreeAnalitic.Color;
 
           end;
-          FLinesList.Add(Line);
+          FTreeAnalyticLineList.Add(Line);
 
           with Line do
           begin
@@ -271,9 +285,99 @@ begin
 //  UpdateTabOrder;
 end;
 
+procedure TdlgAcctLedgerConfig.UpdateAnalyticListField(AnalyticsList: TgdvAnalyticsList);
+var
+  LList: TObjectList;
+  FrameLine: Tgdv_frAcctAnalyticListField;
+  FieldCounter, FrameCounter, FrameIndex: Integer;
+  F: TatRelationField;
+  H, W, P: Integer;
+
+  function IndexOf(F: TatRelationField): Integer;
+  var
+    I: Integer;
+  begin
+    Result := -1;
+    for I := 0 to LList.Count - 1 do
+    begin
+      if Tgdv_frAcctAnalyticListField(LList[I]).AnalyticField = F then
+      begin
+        Result := I;
+        Exit;
+      end;
+    end;
+  end;
+
+begin
+  P := 0;
+  if not Assigned(FAnalyticListFieldList) then
+    FAnalyticListFieldList := TObjectList.Create;
+
+  LList := TObjectList.Create;
+  try
+    // Перекинем все уже существующие фреймы во временный список
+    for FrameCounter := FAnalyticListFieldList.Count - 1 downto 0 do
+    begin
+      LList.Add(FAnalyticListFieldList[FrameCounter]);
+      FAnalyticListFieldList.Extract(FAnalyticListFieldList[FrameCounter]);
+    end;
+    // Пройдем по выбранным группировочным аналитикам
+    for FieldCounter := 0 to AnalyticsList.Count - 1 do
+    begin
+      F := AnalyticsList[FieldCounter].Field;
+      // Будем обрабатывать только поля-ссылки
+      if Assigned(F) and Assigned(F.References) then
+      begin
+        FrameIndex := IndexOf(F);
+        if FrameIndex > -1 then
+        begin
+          FrameLine := Tgdv_frAcctAnalyticListField(LList[FrameIndex]);
+          LList.Extract(FrameLine);
+        end
+        else
+        begin
+          FrameLine := Tgdv_frAcctAnalyticListField.Create(nil);
+          FrameLine.Parent := sbAnalyticGroupListField;
+          FrameLine.Name := 'gdv_frAcctAnalyticListField_' + StringReplace(F.FieldName, '$', '_', [rfReplaceAll]);
+          FrameLine.AnalyticField := F;
+          FrameLine.Color := sbAnalyticGroupListField.Color;
+        end;
+        FAnalyticListFieldList.Add(FrameLine);
+
+        with FrameLine do
+        begin
+          H := Height;
+          Top := P;
+        end;
+        Inc(P, H);
+      end;
+    end;
+  finally
+    FreeAndNil(LList);
+  end;
+
+  // Установим ширину созданных контроллов
+  W := 0;
+  for FrameCounter := 0 to sbAnalyticGroupListField.ControlCount - 1 do
+  begin
+    W := Max(Tgdv_frAcctAnalyticListField(sbAnalyticGroupListField.Controls[FrameCounter]).lAnaliticName.Left +
+      Tgdv_frAcctAnalyticListField(sbAnalyticGroupListField.Controls[FrameCounter]).lAnaliticName.Width, W);
+  end;
+  W := W + 5;
+  for FrameCounter := 0 to sbAnalyticGroupListField.ControlCount - 1 do
+  begin
+    Tgdv_frAcctAnalyticListField(sbAnalyticGroupListField.Controls[FrameCounter]).cbListFieldName.Left := W;
+    Tgdv_frAcctAnalyticListField(sbAnalyticGroupListField.Controls[FrameCounter]).cbListFieldName.Width :=
+      Tgdv_frAcctAnalyticListField(sbAnalyticGroupListField.Controls[FrameCounter]).ClientWidth - 2 - W;
+  end;    
+end;
+
 procedure TdlgAcctLedgerConfig.FormDestroy(Sender: TObject);
 begin
-  FLinesList.Free;
+  if Assigned(FTreeAnalyticLineList) then
+    FreeAndNil(FTreeAnalyticLineList);
+  if Assigned(FAnalyticListFieldList) then
+    FreeAndNil(FAnalyticListFieldList);
   inherited;
 end;
 
@@ -284,13 +388,13 @@ var
   S: TStrings;
 begin
   Result := '';
-  if FLinesList <> nil then
+  if FTreeAnalyticLineList <> nil then
   begin
     S := TStringList.Create;
     try
-      for I := 0 to FLinesList.Count - 1 do
+      for I := 0 to FTreeAnalyticLineList.Count - 1 do
       begin
-        Line := Tgdv_frAcctTreeAnalyticLine(FLinesList[I]);
+        Line := Tgdv_frAcctTreeAnalyticLine(FTreeAnalyticLineList[I]);
         if not Line.IsEmpty then
         begin
           S.Add(Line.Field.FieldName + '=' + Line.eLevel.Text);
@@ -314,7 +418,7 @@ var
   J: Integer;
   Line: Tgdv_frAcctTreeAnalyticLine;
 begin
-  if FLinesList <> nil then
+  if FTreeAnalyticLineList <> nil then
   begin
     S := TStringList.Create;
     try
@@ -324,12 +428,73 @@ begin
         A := S.Names[I];
         V := S.Values[A];
 
-        for J := 0 to FLinesList.Count - 1 do
+        for J := 0 to FTreeAnalyticLineList.Count - 1 do
         begin
-          Line := Tgdv_frAcctTreeAnalyticLine(FLinesList[J]);
+          Line := Tgdv_frAcctTreeAnalyticLine(FTreeAnalyticLineList[J]);
           if Line.Field.FieldName = A then
           begin
             Line.eLevel.Text := V;
+            Break;
+          end;
+        end;
+      end;
+    finally
+      S.Free;
+    end;
+  end;
+end;
+
+function TdlgAcctLedgerConfig.GetAnaliticListField: string;
+var
+  I: Integer;
+  Line: Tgdv_frAcctAnalyticListField;
+  S: TStrings;
+begin
+  Result := '';
+  if Assigned(FAnalyticListFieldList) then
+  begin
+    S := TStringList.Create;
+    try
+      for I := 0 to FAnalyticListFieldList.Count - 1 do
+      begin
+        Line := Tgdv_frAcctAnalyticListField(FAnalyticListFieldList[I]);
+        if not Line.IsEmpty then
+          S.Add(Line.AnalyticField.FieldName + '=' + Line.ListField);
+      end;
+      if S.Count > 0 then
+      begin
+        Result := S.Text;
+      end;
+    finally
+      S.Free;
+    end;
+  end;
+end;
+
+procedure TdlgAcctLedgerConfig.SetAnaliticListField(const Value: string);
+var
+  S: TStrings;
+  I: Integer;
+  A, V: string;
+  J: Integer;
+  Line: Tgdv_frAcctAnalyticListField;
+begin
+  if Assigned(FAnalyticListFieldList) then
+  begin
+    S := TStringList.Create;
+    try
+      S.Text := Value;
+      for I := 0 to S.Count - 1 do
+      begin
+        A := S.Names[I];
+        V := S.Values[A];
+
+        for J := 0 to FAnalyticListFieldList.Count - 1 do
+        begin
+          Line := Tgdv_frAcctAnalyticListField(FAnalyticListFieldList[J]);
+          if AnsiCompareText(Line.AnalyticField.FieldName, A) = 0 then
+          begin
+            Line.ListField := V;
             Break;
           end;
         end;

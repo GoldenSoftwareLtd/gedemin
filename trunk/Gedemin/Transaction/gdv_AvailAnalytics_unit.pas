@@ -1,13 +1,17 @@
 unit gdv_AvailAnalytics_unit;
 
 interface
-uses contnrs, at_classes, classes, AcctUtils, AcctStrings;
+
+uses
+  contnrs, at_classes, classes, AcctUtils, AcctStrings;
+  
 type
   TgdvAnalytics = class
   private
     FFieldName: string;
     FCaption: string;
     FField: TatRelationField;
+    FListField: TatRelationField;
     FAdditional: string;
     FTotal: boolean;
     procedure SetCaption(const Value: string);
@@ -15,10 +19,14 @@ type
     procedure SetFieldName(const Value: string);
     procedure SetAdditional(const Value: string);
     procedure SetTotal(const Value: boolean);
+    procedure SetListField(const Value: TatRelationField);
   public
+    procedure SetListFieldByFieldName(const Value: string); overload;
+
     property FieldName: string read FFieldName write SetFieldName;
     property Caption: string read FCaption write SetCaption;
     property Field: TatRelationField read FField write SetField;
+    property ListField: TatRelationField read FListField write SetListField;
     property Additional: string read FAdditional write SetAdditional;
     property Total: boolean read FTotal write SetTotal;
   end;
@@ -151,6 +159,19 @@ end;
 procedure TgdvAnalytics.SetFieldName(const Value: string);
 begin
   FFieldName := Value;
+end;
+
+procedure TgdvAnalytics.SetListFieldByFieldName(const Value: string);
+begin
+  if Assigned(FField) and (Value <> '') then
+    ListField := FField.References.RelationFields.ByFieldName(Value)
+  else
+    ListField := nil;
+end;
+
+procedure TgdvAnalytics.SetListField(const Value: TatRelationField);
+begin
+  FListField := Value;
 end;
 
 procedure TgdvAnalytics.SetTotal(const Value: boolean);

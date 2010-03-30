@@ -300,6 +300,7 @@ begin
     C.AnalyticsGroup.Position := 0;
     frAcctAnalyticsGroup.UpdateAnalyticsList(FAccountIDs);
     frAcctAnalyticsGroup.LoadFromStream(C.AnalyticsGroup);
+    frAcctAnalyticsGroup.AnalyticListFields := C.AnalyticListField;
     cbSumNull.Checked := C.SumNull;
     cbEnchancedSaldo.Checked := C.EnchancedSaldo;
     frAcctTreeAnalytic.TreeAnalitic := C.TreeAnalytic;
@@ -319,6 +320,7 @@ begin
     C.ShowCorrSubAccounts := cbShowCorrSubAccount.Checked;
     C.AnalyticsGroup.Size := 0;
     frAcctAnalyticsGroup.SaveToStream(C.AnalyticsGroup);
+    C.AnalyticListField := frAcctAnalyticsGroup.AnalyticListFields;
     C.SumNull := cbSumNull.Checked;
     C.EnchancedSaldo := cbEnchancedSaldo.Checked;
     C.TreeAnalytic := frAcctTreeAnalytic.TreeAnalitic;
@@ -1271,8 +1273,10 @@ begin
   if gdvObject.Active then
   begin
     Result:= True;
-    for i:= 0 to ibgrMain.Columns.Count - 1 do
-      if gdvObject.FieldByName(ibgrMain.Columns[i].FieldName).AsString = cTotal then begin
+    for i := 0 to ibgrMain.Columns.Count - 1 do
+      if Assigned(gdvObject.FindField(ibgrMain.Columns[i].FieldName))
+         and (gdvObject.FieldByName(ibgrMain.Columns[i].FieldName).AsString = cTotal) then
+      begin
         Result:= False;
         Exit;
       end;
