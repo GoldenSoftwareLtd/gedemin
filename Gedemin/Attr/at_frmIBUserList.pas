@@ -26,6 +26,8 @@ type
     procedure FormCreate(Sender: TObject);
 
   private
+    FNotBuilt: Boolean;
+
     procedure BuildUserList;
 
   public
@@ -64,6 +66,12 @@ end;
 
 function TfrmIBUserList.CheckUsers: Boolean;
 begin
+  if FNotBuilt then
+  begin
+    BuildUserList;
+    FNotBuilt := False;
+  end;
+
   if lvUser.Items.Count > 1 then
   begin
     IBUserTimer.Enabled := True;
@@ -176,7 +184,12 @@ end;
 
 procedure TfrmIBUserList.FormCreate(Sender: TObject);
 begin
-  BuildUserList;
+  if gdcBaseManager.Database.Connected then
+  begin
+    BuildUserList;
+    FNotBuilt := False;
+  end else
+    FNotBuilt := True;
 end;
 
 end.
