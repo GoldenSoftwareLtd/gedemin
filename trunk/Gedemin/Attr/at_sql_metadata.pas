@@ -162,7 +162,7 @@ begin
   begin
     try
       ibsql := TIBSQL.Create(nil);
-      frmIBUserList := TfrmIBUserList.Create(nil);
+      frmIBUserList := nil;
 
       if TransferToModal then
         AddText('Начато создание мета-данных.', clBlack);
@@ -189,6 +189,9 @@ begin
               AddText(FOperations[0], clBlack);
             end;
             ibsql.SQL.Text := FOperations[0];
+
+            if frmIBUserList = nil then
+              frmIBUserList := TfrmIBUserList.Create(nil);
 
             if not frmIBUserList.CheckUsers then
               raise EmetaError.Create('К базе подключены другие пользователи! ' +
