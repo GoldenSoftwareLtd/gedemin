@@ -8,7 +8,7 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 619
+    Top = 618
     Width = 856
   end
   inherited TBDockTop: TTBDock
@@ -179,56 +179,56 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
   end
   inherited TBDockLeft: TTBDock
     Top = 101
-    Height = 509
+    Height = 508
   end
   inherited TBDockRight: TTBDock
     Left = 847
     Top = 101
-    Height = 509
+    Height = 508
   end
   inherited TBDockBottom: TTBDock
-    Top = 610
+    Top = 609
     Width = 856
   end
   inherited pnlWorkArea: TPanel
     Top = 101
     Width = 838
-    Height = 509
+    Height = 508
     inherited spChoose: TSplitter
-      Top = 406
+      Top = 405
       Width = 838
     end
     inherited pnlMain: TPanel
       Width = 838
-      Height = 406
+      Height = 405
       inherited Splitter1: TSplitter
-        Height = 406
+        Height = 405
       end
       inherited pnlSearchMain: TPanel
-        Height = 406
+        Height = 405
         inherited sbSearchMain: TScrollBox
-          Height = 368
+          Height = 367
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 368
+          Top = 367
         end
       end
       inherited pnMain: TPanel
-        Height = 406
+        Height = 405
         inherited tvGroup: TgsDBTreeView
-          Height = 406
+          Height = 405
         end
       end
       inherited pnDetail: TPanel
         Width = 458
-        Height = 406
+        Height = 405
         Caption = 'Для отображения остатков нажмите кнопку "Перестроить" (F5)'
         Font.Height = -13
         Font.Style = [fsBold]
         ParentFont = False
         inherited ibgrDetail: TgsIBGrid
           Width = 458
-          Height = 406
+          Height = 405
           Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
           ParentFont = False
           Visible = False
@@ -242,7 +242,7 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
       end
     end
     inherited pnChoose: TPanel
-      Top = 410
+      Top = 409
       Width = 838
       inherited pnButtonChoose: TPanel
         Left = 733

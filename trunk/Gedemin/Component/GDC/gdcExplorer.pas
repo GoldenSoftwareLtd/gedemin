@@ -67,7 +67,7 @@ type
     procedure DoBeforePost; override;
 
     function GetSecCondition: String; override;
-
+    
   public
     procedure ShowProgram(const AlwaysCreateWindow: Boolean = False);
     function CreateGdcInstance: TgdcBase;
@@ -107,6 +107,9 @@ uses
     , gd_localization_stub
   {$ENDIF}
   ;
+
+type
+  TgdcBaseCrack = class(TgdcBase);
 
 procedure Register;
 begin
@@ -625,6 +628,53 @@ begin
 end;
 
 procedure TgdcExplorer.DoBeforePost;
+
+  procedure SetAccessRightsForExistingRecords;
+  var
+    Obj: TgdcBase;
+    AClassName, ASubType: String;
+    AListTable, AListTableAlias, AKeyField: String;
+    SetRightClause, S: String;
+  begin
+    AClassName := FieldByName('classname').AsString;
+    if not GetClass(AClassName).InheritsFrom(TgdcBase) then
+      exit;
+
+    Obj := CgdcBase(GetClass(AClassName)).CreateSubType(nil, FieldByName('subtype').AsString);
+    try
+      AListTable := Obj.GetListTable(ASubType);
+      AListTableAlias := Obj.GetListTableAlias;
+      AKeyField := Obj.GetKeyField(ASubType);
+
+      if (AListTable = '') or (AKeyField = '') then
+        exit;
+
+      if (tiAView in Obj.gdcTableInfos) and FieldChanged('aview') then
+        SetRightClause := 'aview=' + FieldByName('aview').AsString + ','
+      else
+        SetRightClause := '';
+
+      if (tiAChag in Obj.gdcTableInfos) and FieldChanged('achag') then
+        SetRightClause := SetRightClause + 'achag=' + FieldByName('achag').AsString + ',';
+
+      if (tiAFull in Obj.gdcTableInfos) and FieldChanged('afull') then
+        SetRightClause := SetRightClause + 'afull=' + FieldByName('afull').AsString
+      else if SetRightClause > '' then
+        SetLength(SetRightClause, Length(SetRightClause) - 1);
+
+      if SetRightClause > '' then
+      begin
+        S := 'UPDATE ' + AListTable + ' SET ' + SetRightClause +
+          ' WHERE ' + AKeyField + ' IN ('+ 'SELECT ' + AListTableAlias + '.' + AKeyField + ' ' +
+          TgdcBaseCrack(Obj).GetFromClause(False) + TgdcBaseCrack(Obj).GetWhereClause + ')';
+
+        ExecSingleQuery(S);
+      end;
+    finally
+      Obj.Free;
+    end;
+  end;
+
 var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
   {M}
@@ -677,10 +727,13 @@ begin
     and (FieldChanged('aview') or FieldChanged('achag') or FieldChanged('afull'))
     and (State = dsEdit) then
   begin
-    MessageBox(ParentHandle,
-      '»зменение прав доступа на класс не распростран€етс€ на уже существующие записи в базе.',
-      '¬нимание',
-      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+    if MessageBox(ParentHandle,
+       '–аспространить права доступа на уже существующие записи в базе?',
+       '¬нимание',
+       MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+    begin
+      SetAccessRightsForExistingRecords;
+    end;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}

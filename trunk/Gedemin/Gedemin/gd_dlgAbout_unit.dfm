@@ -54,11 +54,10 @@ object gd_dlgAbout: Tgd_dlgAbout
         Font.Style = []
         Lines.Strings = (
           
-            'Copyright (c) 1994-2009 by Golden Software of Belarus, Ltd. All ' +
+            'Copyright (c) 1994-2010 by Golden Software of Belarus, Ltd. All ' +
             'rights reserved.'
           ''
           'http://gsbelarus.com, email: support@gsbelarus.com'
-          'тел/факс: +375-17-2921333, 3313546.'
           ''
           'Компания Golden Software, Ltd:'
           
