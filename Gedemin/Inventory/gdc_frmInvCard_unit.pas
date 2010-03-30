@@ -230,15 +230,20 @@ begin
     edBeginRest.Text := '';
   end;
 
-  gdcObject.First;
-  while not gdcObject.EOF do
-  begin
-    gdcObject.Edit;
-    gdcObject.FieldByName('REMAINS').AsCurrency := Saldo + gdcObject.FieldByName('debit').AsCurrency -
-      gdcObject.FieldByName('credit').AsCurrency;
-    Saldo := gdcObject.FieldByName('REMAINS').AsCurrency;
-    gdcObject.Post;
-    gdcObject.Next;
+  gdcObject.DisableControls;
+  try
+    gdcObject.First;
+    while not gdcObject.EOF do
+    begin
+      gdcObject.Edit;
+      gdcObject.FieldByName('REMAINS').AsCurrency := Saldo + gdcObject.FieldByName('debit').AsCurrency -
+        gdcObject.FieldByName('credit').AsCurrency;
+      Saldo := gdcObject.FieldByName('REMAINS').AsCurrency;
+      gdcObject.Post;
+      gdcObject.Next;
+    end;
+  finally
+    gdcObject.EnableControls;
   end;
 
   ibgrMain.ColumnByField(gdcObject.FieldByName('REMAINS')).Visible := True;
@@ -372,52 +377,52 @@ var
   F: TatRelationField;
   i: Integer;
 begin
-   with Tgdc_attr_frmRelationField.Create(Self) do
-     try
-       gdcTableField.ExtraConditions.Clear;
-       gdcTableField.ExtraConditions.Add('z.relationname = ''INV_CARD'' AND z.fieldname LIKE ''USR$%''');
-       for i:= 0 to gdcInvCard.RemainsFeatures.Count - 1 do
-         gdcTableField.ExtraConditions.Add('z.fieldname <> ''' + gdcInvCard.RemainsFeatures[i] + '''');
-          
-       SetChoose(gdcTableField);
-       gdcTableField.SelectedID.Clear;
+  with Tgdc_attr_frmRelationField.Create(Self) do
+    try
+      gdcTableField.ExtraConditions.Clear;
+      gdcTableField.ExtraConditions.Add('z.relationname = ''INV_CARD'' AND z.fieldname LIKE ''USR$%''');
+      for i:= 0 to gdcInvCard.RemainsFeatures.Count - 1 do
+        gdcTableField.ExtraConditions.Add('z.fieldname <> ''' + gdcInvCard.RemainsFeatures[i] + '''');
 
-       for i:= 0 to gdcInvCard.ViewFeatures.Count - 1 do
-       begin
-         R := atDatabase.Relations.ByRelationName('INV_CARD');
-         if Assigned(R) then
-         begin
-           F := R.RelationFields.ByFieldName(gdcInvCard.ViewFeatures[i]);
-           if Assigned(F) then
-           begin
-             gdcTableField.SelectedID.Add(F.ID);
-             ibgrMain.CheckBox.AddCheck(F.ID);
-           end;
-         end;
-       end;
+      SetChoose(gdcTableField);
+      gdcTableField.SelectedID.Clear;
 
-       gdcTableField.SubSet := 'All';
-       gdcTableField.Open;
-       if ShowModal = mrOk then
-       begin
-         gdcTableField.SubSet := 'OnlySelected';
-         gdcTableField.Open;
-         gdcTableField.First;
-         gdcInvCard.Close;
-         gdcInvCard.ViewFeatures.Clear;
-         while not gdcTableField.EOF do
-         begin
-           gdcInvCard.ViewFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
-           gdcTableField.Next;
-         end;
-         gdcTableField.Close;
-         gdcInvCard.SubSet := 'ByID';
-         gdcInvCard.SubSet := 'ByContact';
-         RunCard;
-       end;
-     finally
-       Free;
-     end;
+      for i:= 0 to gdcInvCard.ViewFeatures.Count - 1 do
+      begin
+        R := atDatabase.Relations.ByRelationName('INV_CARD');
+        if Assigned(R) then
+        begin
+          F := R.RelationFields.ByFieldName(gdcInvCard.ViewFeatures[i]);
+          if Assigned(F) then
+          begin
+            gdcTableField.SelectedID.Add(F.ID);
+            ibgrMain.CheckBox.AddCheck(F.ID);
+          end;
+        end;
+      end;
+
+      gdcTableField.SubSet := 'All';
+      gdcTableField.Open;
+      if ShowModal = mrOk then
+      begin
+        gdcTableField.SubSet := 'OnlySelected';
+        gdcTableField.Open;
+        gdcTableField.First;
+        gdcInvCard.Close;
+        gdcInvCard.ViewFeatures.Clear;
+        while not gdcTableField.EOF do
+        begin
+          gdcInvCard.ViewFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
+          gdcTableField.Next;
+        end;
+        gdcTableField.Close;
+        gdcInvCard.SubSet := 'ByID';
+        gdcInvCard.SubSet := 'ByContact';
+        RunCard;
+      end;
+    finally
+      Free;
+    end;
 end;
 
 procedure Tgdc_frmInvCard.actChooseIgnoryFeaturesExecute(Sender: TObject);
@@ -426,52 +431,52 @@ var
   F: TatRelationField;
   i: Integer;
 begin
-   with Tgdc_attr_frmRelationField.Create(Self) do
-     try
-       gdcTableField.ExtraConditions.Clear;
-       gdcTableField.ExtraConditions.Add('z.relationname = ''INV_CARD'' AND z.fieldname LIKE ''USR$%''');
-{       for i:= 0 to gdcInvCard.RemainsFeatures.Count - 1 do
-         gdcTableField.ExtraConditions.Add('z.fieldname <> ''' + gdcInvCard.RemainsFeatures[i] + '''');}
+  with Tgdc_attr_frmRelationField.Create(Self) do
+    try
+      gdcTableField.ExtraConditions.Clear;
+      gdcTableField.ExtraConditions.Add('z.relationname = ''INV_CARD'' AND z.fieldname LIKE ''USR$%''');
+{      for i:= 0 to gdcInvCard.RemainsFeatures.Count - 1 do
+        gdcTableField.ExtraConditions.Add('z.fieldname <> ''' + gdcInvCard.RemainsFeatures[i] + '''');}
 
-       SetChoose(gdcTableField);
-       gdcTableField.SelectedID.Clear;
+      SetChoose(gdcTableField);
+      gdcTableField.SelectedID.Clear;
 
-       for i:= 0 to gdcInvCard.IgnoryFeatures.Count - 1 do
-       begin
-         R := atDatabase.Relations.ByRelationName('INV_CARD');
-         if Assigned(R) then
-         begin
-           F := R.RelationFields.ByFieldName(gdcInvCard.IgnoryFeatures[i]);
-           if Assigned(F) then
-           begin
-             gdcTableField.SelectedID.Add(F.ID);
-             ibgrMain.CheckBox.AddCheck(F.ID);
-           end;
-         end;
-       end;
+      for i:= 0 to gdcInvCard.IgnoryFeatures.Count - 1 do
+      begin
+        R := atDatabase.Relations.ByRelationName('INV_CARD');
+        if Assigned(R) then
+        begin
+          F := R.RelationFields.ByFieldName(gdcInvCard.IgnoryFeatures[i]);
+          if Assigned(F) then
+          begin
+            gdcTableField.SelectedID.Add(F.ID);
+            ibgrMain.CheckBox.AddCheck(F.ID);
+          end;
+        end;
+      end;
 
-       gdcTableField.SubSet := 'All';
-       gdcTableField.Open;
-       if ShowModal = mrOk then
-       begin
-         gdcTableField.SubSet := 'OnlySelected';
-         gdcTableField.Open;
-         gdcTableField.First;
-         gdcInvCard.Close;
-         gdcInvCard.IgnoryFeatures.Clear;
-         while not gdcTableField.EOF do
-         begin
-           gdcInvCard.IgnoryFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
-           gdcTableField.Next;
-         end;
-         gdcTableField.Close;
-         gdcInvCard.SubSet := 'ByID';
-         gdcInvCard.SubSet := 'ByContact';
-         RunCard;
-       end;
-     finally
-       Free;
-     end;
+      gdcTableField.SubSet := 'All';
+      gdcTableField.Open;
+      if ShowModal = mrOk then
+      begin
+        gdcTableField.SubSet := 'OnlySelected';
+        gdcTableField.Open;
+        gdcTableField.First;
+        gdcInvCard.Close;
+        gdcInvCard.IgnoryFeatures.Clear;
+        while not gdcTableField.EOF do
+        begin
+          gdcInvCard.IgnoryFeatures.Add(gdcTableField.FieldByName('fieldname').AsString);
+          gdcTableField.Next;
+        end;
+        gdcTableField.Close;
+        gdcInvCard.SubSet := 'ByID';
+        gdcInvCard.SubSet := 'ByContact';
+        RunCard;
+      end;
+    finally
+      Free;
+    end;
 end;
 
 procedure Tgdc_frmInvCard.DoDestroy;
@@ -499,7 +504,6 @@ begin
   except
     Application.HandleException(Self);
   end;
-
 end;
 
 procedure Tgdc_frmInvCard.cbIncludeInvMovementClick(Sender: TObject);

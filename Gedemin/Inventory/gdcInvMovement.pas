@@ -7424,7 +7424,7 @@ var
   FromContactStatement, WhereStatement: String;
   i: Integer;
   DataSet: TDataSet;
-  Prefix: String;
+  Prefix, SQLText: String;
 begin
   ibsql := TIBSQL.Create(Self);
   try
@@ -7487,81 +7487,68 @@ begin
     // Если сервер Firebird 2.0+, и есть поле GOODKEY в INV_MOVEMENT и INV_BALANCE,
     //   то будем брать остатки новыми запросами
     if Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)
-       and Assigned(atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY'))
-       and GlobalStorage.ReadBoolean('Options\Invent', 'UseNewRemainsMethod', False, False) then
+       and Assigned(atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY')) and (not isCurrent) then
     begin
-      if not isCurrent then
-        ibsql.SQL.Text :=
+      SQLText :=
           'SELECT' + #13#10 +
-          '  SUM(mm.remains) AS remains' + #13#10 +
-          'FROM' + #13#10 +
-          '  (' + #13#10 +
-          '     SELECT' + #13#10 +
-          '       m.balance' + #13#10
-      else
-         ibsql.SQL.Text :=
-          '     SELECT' + #13#10 +
-          '       SUM(m.balance) AS remains ' + #13#10;
-
-      ibsql.SQL.Text := ibsql.SQL.Text +
-        '    FROM' + #13#10 +
-        '       inv_balance m' + #13#10 +
-        '       LEFT JOIN inv_card c ON c.id = m.cardkey' + #13#10 +
+          '  SUM(M.BALANCE) AS remains ' + #13#10 +
+          'FROM (' + #13#10 +
+          '  SELECT SUM(M.BALANCE) AS BALANCE ' + #13#10 +
+          '  FROM INV_BALANCE m' + #13#10 +
+          '  LEFT JOIN inv_card c ON c.id = m.cardkey' + #13#10 +
           FromContactStatement + #13#10 +
-        '     WHERE' + #13#10 +
-        '       m.goodkey = :goodkey ' + #13#10 +
+          '  WHERE' + #13#10 +
+          '    m.goodkey = :goodkey ' + #13#10 +
           WhereStatement + #13#10;
-
       if not isCurrent then
-      begin
-        ibsql.SQL.Text := ibsql.SQL.Text +
-          '     UNION ALL' + #13#10 +
-          ' ' +
-          '     SELECT' + #13#10 +
-          '       - (m.debit - m.credit) AS remains' + #13#10 +
-          '     FROM' + #13#10 +
-          '       inv_movement m' + #13#10 +
-          '       LEFT JOIN inv_card c ON c.id = m.cardkey' + #13#10 +
-            FromContactStatement + #13#10 +
-          '     WHERE' + #13#10 +
-          '      m.movementdate > :movementdate' + #13#10 +
-          '      AND m.goodkey = :goodkey' + #13#10 +
-          '      AND m.disabled = 0' + #13#10 +
-            WhereStatement + #13#10 +
-          '  ) mm';     
-      end;
+        SQLText := SQLText + ' UNION ALL '#13#10 +
+          ' SELECT' + #13#10 +
+          ' SUM(M.CREDIT - M.DEBIT) AS BALANCE ' + #13#10 +
+          ' FROM INV_MOVEMENT m' + #13#10 +
+          ' LEFT JOIN inv_card c ON c.id = m.cardkey' + #13#10 +
+          FromContactStatement + #13#10 +
+          ' WHERE' + #13#10 +
+          '   m.movementdate > :dateend' + #13#10 +
+          '   AND m.goodkey = :goodkey' + #13#10 +
+          '   AND m.disabled = 0' + #13#10 +
+          WhereStatement + #13#10;
+      SQLText := SQLText + ' ) M ';
+      
+      ibsql.SQL.Text := SQLText;
     end
     else
     begin
       if isCurrent then
-        ibsql.SQL.Text :=
+        SQLText :=
           'SELECT ' +
           '  SUM(m.balance) as Remains ' +
           'FROM ' +
           '  inv_card c ' +
           '  LEFT JOIN inv_balance m ON c.id = m.cardkey '
       else
-        ibsql.SQL.Text :=
+        SQLText :=
           'SELECT ' +
           '  SUM(m.debit - m.credit) as Remains ' +
           'FROM ' +
           '  inv_card c ' +
           '  LEFT JOIN inv_movement m ON c.id = m.cardkey ';
       if HasSubSet('ByLBRBDepot') then
-        ibsql.SQL.Text := ibsql.SQL.Text +
+        SQLText := SQLText +
           '  LEFT JOIN gd_contact con ON m.contactkey = con.id '
       else
         if HasSubSet('ByHolding') then
-          ibsql.SQL.Text := ibsql.SQL.Text +
+          SQLText := SQLText +
             '  LEFT JOIN gd_contact con ON m.contactkey = con.id ' +
             '  LEFT JOIN gd_contact hold ON con.LB >= hold.LB and con.RB <= hold.RB ';
 
-      ibsql.SQL.Text := ibsql.SQL.Text +
+      SQLText := SQLText +
         'WHERE ' +
         '  c.goodkey = :goodkey ' + WhereStatement;
 
       if not isCurrent then
-        ibsql.SQL.Text := ibsql.SQL.Text + ' AND m.movementdate <= :dateend AND m.disabled = 0 ';
+        SQLText := SQLText + ' AND m.movementdate <= :dateend AND m.disabled = 0 ';
+
+      ibsql.SQL.Text := SQLText;
     end;
 
     // Заполняем параметры ТОВАР и КОНТАКТЫ
