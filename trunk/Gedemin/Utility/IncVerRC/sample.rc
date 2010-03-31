@@ -1,0 +1,33 @@
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 4,0,2,13
+PRODUCTVERSION 4,0,2,13
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS 0x4L
+FILETYPE 0x1L
+FILESUBTYPE 0x0L
+BEGIN
+        BLOCK "StringFileInfo"
+        BEGIN
+                BLOCK "080904B0"
+                BEGIN
+                VALUE "BuildDate","16 February 2000\0"                 
+                VALUE "CompanyName", "Survey Design Associates Limited\0"                 
+                VALUE "Compiler","Borland Delphi 5\0"                 
+                VALUE "FileDescription", "SuperBeam 4\0"                 
+                VALUE "FileVersion", "4.02d\0"                 
+                VALUE "InternalName", "SuperBeam 4\0"                 
+                VALUE "LegalCopyright", "Copyright \251 1989,2000 Survey Design Assocs Ltd\0"
+                VALUE "LegalTrademarks", "SuperBeam\0"                 
+                VALUE "ProductName", "SuperBeam 4\0"                 
+                VALUE "ProductVersion","4.0.2.13\0"                 
+                END
+ 
+        END
+ 
+        BLOCK "VarFileInfo"
+        BEGIN
+                VALUE "Translation", 0x809,1200
+        END
+ 
+END
