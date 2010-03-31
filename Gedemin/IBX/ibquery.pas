@@ -509,7 +509,6 @@ var
   L: TParams;
   I: Integer;
   P: TParam;
-  TempDest: array[0..5] of Char;
 
   function NameDelimiter: Boolean;
   begin
@@ -566,9 +565,14 @@ begin
        теперь такие последовательности символов могут встретиться в теле оператора
        Execute block (локальные переменные) и они не должны интерпретироваться как
        параметры.}
-      StrLCopy(TempDest, CurPos, SizeOf(TempDest) - 1);
-      if (StrIComp(TempDest, 'begin') = 0) and (CurPos[5] in [#32, #9, #10, #13]) then
-        break;
+      if (CurPos[0] in [#32, #9, #10, #13]) and
+         (CurPos[1] in ['b', 'B']) and
+         (CurPos[2] in ['e', 'E']) and
+         (CurPos[3] in ['g', 'G']) and
+         (CurPos[4] in ['i', 'I']) and
+         (CurPos[5] in ['n', 'N']) and
+         (CurPos[6] in [#32, #9, #10, #13]) then
+        Break;
 
       CurChar := CurPos^;
 

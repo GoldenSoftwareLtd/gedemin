@@ -19,6 +19,15 @@ echo *************************************************
 echo *************************************************
 echo **                                             **
 echo **  update_gedemin:                            **
+echo **  Increment version number                   **
+echo **                                             **
+echo *************************************************
+
+incverrc.exe ..\gedemin\gedemin.rc
+
+echo *************************************************
+echo **                                             **
+echo **  update_gedemin:                            **
 echo **  Prepare .cfg files                         **
 echo **                                             **
 echo *************************************************
@@ -26,6 +35,15 @@ echo *************************************************
 cd ..\gedemin
 copy gedemin.cfg gedemin.current.cfg /y
 copy gedemin.product.cfg gedemin.cfg /y
+
+echo *************************************************
+echo **                                             **
+echo **  update_gedemin:                            **
+echo **  Compile resources                          **
+echo **                                             **
+echo *************************************************
+
+"%delphi_path%\brcc32.exe" -fogedemin.res -i..\images gedemin.rc
 
 echo *************************************************
 echo **                                             **
