@@ -1,10 +1,10 @@
 LANGUAGE LANG_RUSSIAN,1
 
-MAIN ICON gedemin2.ico
+MAINICON ICON gedemin2.ico
 
 1 VERSIONINFO LOADONCALL MOVEABLE DISCARDABLE IMPURE 
-FILEVERSION 2, 5, 0, 6077
-PRODUCTVERSION 2, 5, 0, 6077
+FILEVERSION 2, 5, 0, 6078
+PRODUCTVERSION 2, 5, 0, 6078
 FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 FILEOS VOS__WINDOWS32
 FILETYPE VFT_APP
@@ -15,7 +15,7 @@ FILETYPE VFT_APP
   {
    VALUE "CompanyName", "Golden Software of Belarus, Ltd\000"
    VALUE "FileDescription", "Gedemin\000"
-   VALUE "FileVersion", "2.5.0.6077\000"
+   VALUE "FileVersion", "2.5.0.6078\000"
    VALUE "InternalName", "Gedemin\000"
    VALUE "LegalCopyright", "Copyright (c) 2010 by Golden Software of Belarus, Ltd\000"
    VALUE "LegalTrademarks", "Gedemin\000"
