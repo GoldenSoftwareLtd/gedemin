@@ -664,11 +664,18 @@ procedure TgdcExplorer.DoBeforePost;
 
       if SetRightClause > '' then
       begin
-        S := 'UPDATE ' + AListTable + ' SET ' + SetRightClause +
-          ' WHERE ' + AKeyField + ' IN ('+ 'SELECT ' + AListTableAlias + '.' + AKeyField + ' ' +
-          TgdcBaseCrack(Obj).GetFromClause(False) + TgdcBaseCrack(Obj).GetWhereClause + ')';
+        if MessageBox(ParentHandle,
+           PChar('Распространить права доступа на существующие записи типа ' +
+           Obj.GetDisplayName(Obj.SubType) + '?'),
+           'Внимание',
+           MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+        begin
+          S := 'UPDATE ' + AListTable + ' SET ' + SetRightClause +
+            ' WHERE ' + AKeyField + ' IN ('+ 'SELECT ' + AListTableAlias + '.' + AKeyField + ' ' +
+            TgdcBaseCrack(Obj).GetFromClause(False) + TgdcBaseCrack(Obj).GetWhereClause + ')';
 
-        ExecSingleQuery(S);
+          ExecSingleQuery(S);
+        end;
       end;
     finally
       Obj.Free;
@@ -727,13 +734,7 @@ begin
     and (FieldChanged('aview') or FieldChanged('achag') or FieldChanged('afull'))
     and (State = dsEdit) then
   begin
-    if MessageBox(ParentHandle,
-       'Распространить права доступа на уже существующие записи в базе?',
-       'Внимание',
-       MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
-    begin
-      SetAccessRightsForExistingRecords;
-    end;
+    SetAccessRightsForExistingRecords;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCEXPLORER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
