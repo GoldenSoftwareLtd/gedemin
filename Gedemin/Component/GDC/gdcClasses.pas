@@ -2016,9 +2016,52 @@ var
   V, N: String;
   FirstCheck: Boolean;
   StartTime: DWORD;
+  B, E, I: Integer;
 begin
   if sLoadFromStream in BaseState then
     exit;
+
+  N := Trim(FieldByName('number').AsString);
+
+  { если пользователь использует автонумерацию с целочисленным счетчиком
+    и добавил в номер произвольные символы (не цифры), то считаем что он
+    ввел серию документа. Вычленяем серию и добавляем ее в маску, чтобы
+    последующие номера генерировались с этой серией.
+  }
+  if (N <> FAutoNumber) and (Pos(NumerationVars[0], UpperCase(FMask)) > 0) then
+  begin
+    B := 0;
+    E := 0;
+    I := 1;
+    while I <= Length(N) do
+    begin
+      if N[I] in ['0'..'9'] then
+      begin
+        if B = 0 then
+          B := I
+        else begin
+          if E > 0 then
+            break;
+        end;
+      end else
+      begin
+        if (B > 0) and (E = 0) then E := I - 1;
+      end;
+      Inc(I);
+    end;
+    if (B > 0) and (E = 0) then E := I - 1;
+
+    if (I > Length(N)) and (B > 0) then
+    begin
+      FMask := N;
+      System.Delete(FMask, B, E - B + 1);
+      System.Insert(NumerationVars[0], FMask, B);
+
+      gdcBaseManager.ExecSingleQuery(
+        'UPDATE gd_lastnumber SET mask = :mask WHERE ourcompanykey = :ck AND documenttypekey = :dtk ',
+        VarArrayOf([FMask, FieldByName('companykey').AsInteger, DocumentTypeKey]));
+    end;
+  end;
 
   if not IsCheckNumber then
     exit;
@@ -2034,7 +2077,6 @@ begin
     ibsql.ParamByName('dt').AsInteger := DocumentTypeKey;
     ibsql.ParamByName('id').AsInteger := FieldByName('id').AsInteger;
     ibsql.ParamByName('companykey').AsInteger := FieldByName('companykey').AsInteger;
-    N := FieldByName('number').AsString;
     StartTime := GetTickCount;
     repeat
       ibsql.ParamByName('number').AsString := N;
@@ -3160,7 +3202,10 @@ begin
           else
             q.ParamByName('mask').AsString := FieldByName('mask').AsString;
           q.ParamByName('addnumber').AsInteger := 1;
-          q.ParamByName('fixlength').AsVariant := FieldByName('fixlength').AsVariant;
+          if FieldByName('fixlength').AsInteger <= 0 then
+            q.ParamByName('fixlength').Clear
+          else
+            q.ParamByName('fixlength').AsInteger := FieldByName('fixlength').AsInteger;
           q.ExecQuery;
         end else
         begin
@@ -3173,7 +3218,10 @@ begin
           q.ParamByName('mask').AsString := FieldByName('mask').AsString;
 
           q.ParamByName('addnumber').AsInteger := FieldByName('addnumber').AsInteger;
-          q.ParamByName('fixlength').AsVariant := FieldByName('fixlength').AsVariant;
+          if FieldByName('fixlength').AsInteger <= 0 then
+            q.ParamByName('fixlength').Clear
+          else
+            q.ParamByName('fixlength').AsInteger := FieldByName('fixlength').AsInteger;
           q.ExecQuery;
         end;
       finally
