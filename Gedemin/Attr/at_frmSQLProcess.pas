@@ -330,6 +330,7 @@ end;
 procedure TfrmSQLProcess.actClearExecute(Sender: TObject);
 begin
   CleanUp;
+  actShowErrors.Checked := False;
   lv.Visible := False;
   lv.Visible := True;
 end;
