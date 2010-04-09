@@ -6678,7 +6678,7 @@ end;
 
 function TgdcStoredProc.GetAlterProcedureText: String;
 begin
-  Result := Format('ALTER PROCEDURE %0:s ' + GetParamsText + ' AS %1:s',
+  Result := Format('ALTER PROCEDURE %0:s ' + GetParamsText + ' AS'#13#10'%1:s',
     [FieldByName('procedurename').AsString,
      FieldByName('rdb$procedure_source').AsString]);
 end;
@@ -6697,7 +6697,7 @@ end;
 
 function TgdcStoredProc.GetCreateProcedureText: String;
 begin
-  Result := Format('CREATE PROCEDURE %0:s ' + GetParamsText + ' AS %1:s',
+  Result := Format('CREATE PROCEDURE %0:s ' + GetParamsText + ' AS'#13#10'%1:s',
     [FieldByName('procedurename').AsString,
      FieldByName('rdb$procedure_source').AsString]);
 end;
@@ -6917,6 +6917,7 @@ end;
 procedure TgdcStoredProc.SaveStoredProc(const isNew: Boolean);
 var
   FSQL: TSQLProcessList;
+  BracketPos: Integer;
 begin
   FSQL := TSQLProcessList.Create;
   try
@@ -6931,6 +6932,17 @@ begin
         FSQL.Add('ALTER ' +  System.Copy(Trim(FieldByName('proceduresource').AsString), Length('CREATE') + 1,
           Length(FieldByName('proceduresource').AsString) - Length('CREATE')));
       end;
+    end
+    else if sCopy in BaseState then
+    begin
+      // ѕри копировании процедуры параметры еще не создались и мы не можем получить из через GetParamText
+      // поэтому формируем текст вручную
+      BracketPos := Pos('(', FieldByName('proceduresource').AsString);
+
+      FSQL.Add(Format('CREATE PROCEDURE %0:s %1:s',
+        [FieldByName('procedurename').AsString,
+         System.Copy(FieldByName('proceduresource').AsString, BracketPos,
+           Length(FieldByName('proceduresource').AsString) - BracketPos + 1)]));
     end
     else
       FSQL.Add(FieldByName('rdb$procedure_source').AsString);

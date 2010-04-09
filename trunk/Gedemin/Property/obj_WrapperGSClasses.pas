@@ -49,7 +49,7 @@ uses
   , gsModem
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
-  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit;
+  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form;
 
 type
   TwrpAnalyze = class(TwrpObject, IgsAnalyze)
@@ -3546,6 +3546,7 @@ type
     procedure PrepareForIncrementSaving(ABasekey: Integer); safecall;
     procedure SaveToStream(const S: IgsStream; AFormat: WordBool = false); safecall;
     procedure LoadFromStream(const S: IgsStream); safecall;
+    procedure Clear; safecall;
     function Get_Transaction: IgsIBTransaction; safecall;
     procedure Set_Transaction(const Value: IgsIBTransaction); safecall;
     function  Get_Silent: WordBool; safecall;
@@ -3554,6 +3555,10 @@ type
     procedure Set_SaveWithDetailList(const Value: IgsGDKeyArray); safecall;
     function  Get_NeedModifyList: IgsGDKeyIntAssoc; safecall;
     procedure Set_NeedModifyList(const Value: IgsGDKeyIntAssoc); safecall;
+    function  Get_StreamFormat: WideString; safecall;
+    procedure Set_StreamFormat(const Value: WideString); safecall;
+    function  Get_ReplaceRecordAnswer: Word; safecall;
+    procedure Set_ReplaceRecordAnswer(Value: Word); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3711,6 +3716,15 @@ type
     function  Get_Params(Index: Integer): IgsParamData; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
+  end;
+
+  TwrpGsFrmGedeminMain = class(TwrpCreateableForm, IgsFrmGedeminMain)
+  private
+    function GetFrmGedeminMain: TfrmGedeminMain;
+  protected
+    procedure AddFormToggleItem(const AForm: IgsForm); safecall;
+    function  GetFormToggleItem(const AForm: IgsForm): IgsTBCustomItem; safecall;
+    function  GetFormToggleItemIndex(const AForm: IgsForm): Integer; safecall;
   end;
 
 implementation
@@ -17289,10 +17303,11 @@ end;
 
 procedure TwrpStreamSaver.SaveToStream(const S: IgsStream; AFormat: WordBool = false);
 begin
-  if not AFormat then
-    GetStreamSaver.SaveToStream(InterfaceToObject(S) as TStream, sttBinaryNew)
-  else
-    GetStreamSaver.SaveToStream(InterfaceToObject(S) as TStream, sttXML);
+  // Параметр оставлен для обратной совместимости,
+  //  теперь менять формат нужно через TwrpStreamSaver.StreamFormat
+  if AFormat then
+    GetStreamSaver.StreamFormat := sttXML;
+  GetStreamSaver.SaveToStream(InterfaceToObject(S) as TStream);
 end;
 
 procedure TwrpStreamSaver.LoadFromStream(const S: IgsStream);
@@ -17336,16 +17351,39 @@ begin
   Result := GetGdcOLEObject(GetStreamSaver.SaveWithDetailList) as IgsGDKeyArray;
 end;
 
-procedure TwrpStreamSaver.Set_NeedModifyList(
-  const Value: IgsGDKeyIntAssoc);
+procedure TwrpStreamSaver.Set_NeedModifyList(const Value: IgsGDKeyIntAssoc);
 begin
   GetStreamSaver.NeedModifyList := InterfaceToObject(Value) as TgdKeyIntAssoc;
 end;
 
-procedure TwrpStreamSaver.Set_SaveWithDetailList(
-  const Value: IgsGDKeyArray);
+procedure TwrpStreamSaver.Set_SaveWithDetailList(const Value: IgsGDKeyArray);
 begin
   GetStreamSaver.SaveWithDetailList := InterfaceToObject(Value) as TgdKeyArray;
+end;
+
+function TwrpStreamSaver.Get_StreamFormat: WideString;
+begin
+  Result := StreamTypeToString(GetStreamSaver.StreamFormat);
+end;
+
+procedure TwrpStreamSaver.Set_StreamFormat(const Value: WideString);
+begin
+  GetStreamSaver.StreamFormat := StringToStreamType(Value);
+end;
+
+procedure TwrpStreamSaver.Clear;
+begin
+  GetStreamSaver.Clear;
+end;
+
+function TwrpStreamSaver.Get_ReplaceRecordAnswer: Word;
+begin
+  Result := GetStreamSaver.ReplaceRecordAnswer;
+end;
+
+procedure TwrpStreamSaver.Set_ReplaceRecordAnswer(Value: Word);
+begin
+  GetStreamSaver.ReplaceRecordAnswer := Value;
 end;
 
 { TwrpGdvAcctBase }
@@ -17890,6 +17928,34 @@ begin
   Result := GetObject as TgsParamData;
 end;
 
+{ TwrpGsFrmGedeminMain }
+
+function TwrpGsFrmGedeminMain.GetFrmGedeminMain: TfrmGedeminMain;
+begin
+  Result := GetObject as TfrmGedeminMain;
+end;
+
+procedure TwrpGsFrmGedeminMain.AddFormToggleItem(const AForm: IgsForm);
+begin
+  GetFrmGedeminMain.AddFormToggleItem(InterfaceToObject(AForm) as TForm);
+end;
+
+function TwrpGsFrmGedeminMain.GetFormToggleItemIndex(const AForm: IgsForm): Integer;
+begin
+  Result := GetFrmGedeminMain.GetFormToggleItemIndex(InterfaceToObject(AForm) as TForm);
+end;
+
+function TwrpGsFrmGedeminMain.GetFormToggleItem(const AForm: IgsForm): IgsTBCustomItem;
+var
+  Index: Integer;
+begin
+  Index := GetFrmGedeminMain.GetFormToggleItemIndex(InterfaceToObject(AForm) as TForm);
+  if Index > -1 then
+    Result := GetGdcOLEObject(GetFrmGedeminMain.tbForms.Items[Index]) as IgsTBCustomItem
+  else
+    Result := nil;  
+end;
+
 initialization
 
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
@@ -18122,4 +18188,6 @@ initialization
 
   RegisterGdcOLEClass(TgsParamList, TwrpGsParamList, ComServer.TypeLib, IID_IgsParamList);
   RegisterGdcOLEClass(TgsParamData, TwrpGsParamData, ComServer.TypeLib, IID_IgsParamData);
+
+  RegisterGdcOLEClass(TfrmGedeminMain, TwrpGsFrmGedeminMain, ComServer.TypeLib, IID_IgsFrmGedeminMain);
 end.

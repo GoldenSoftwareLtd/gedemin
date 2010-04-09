@@ -289,9 +289,6 @@ type
     //FIconShown: Boolean;
     FFirstTime: Boolean;
 
-    procedure AddFormToggleItem(AForm: TForm);
-    function GetFormToggleItemIndex(AForm: TForm): Integer;
-
     procedure OnFormToggleItemClick(Sender: TObject);
 
     procedure EnableCategory(Category: String; DoEnable: Boolean);
@@ -326,6 +323,9 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
+
+    procedure AddFormToggleItem(AForm: TForm);
+    function GetFormToggleItemIndex(AForm: TForm): Integer;
   end;
 
 var

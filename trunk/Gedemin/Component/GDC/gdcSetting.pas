@@ -855,7 +855,7 @@ begin
 
           if StreamFormat <> sttBinaryNew then
           begin
-            StreamSaver.SaveToStream(FS, StreamFormat);
+            StreamSaver.SaveToStream(FS);
           end
           else
           begin
@@ -877,7 +877,7 @@ begin
             // сохраняем саму настройку в упакованный поток
             PackStream := TZCompressionStream.Create(FS, zcMax);
             try
-              StreamSaver.SaveToStream(PackStream, sttBinaryNew);
+              StreamSaver.SaveToStream(PackStream);
             finally
               PackStream.Free;
             end;
@@ -1187,7 +1187,8 @@ begin
           StreamSaver.ReadUserFromStream := Self.Silent;
           StreamSaver.StreamFormat := SettingFormat;
           StreamSaver.SaveSettingDataToStream(MS, FieldByName(GetKeyField(SubType)).AsInteger);
-          StreamSaver.SaveSettingStorageToStream(StorageStream, FieldByName(GetKeyField(SubType)).AsInteger);
+          // 22.03.2010: Мы больше не используем отдельное сохранение хранилища
+          //StreamSaver.SaveSettingStorageToStream(StorageStream, FieldByName(GetKeyField(SubType)).AsInteger);
         finally
           StreamSaver.Free;
         end;
@@ -1208,12 +1209,13 @@ begin
           FreeAndNil(BlobStream);
         end;
 
-        BlobStream := CreateBlobStream(FieldByName('StorageData'), bmWrite);
+        // 22.03.2010: Мы больше не используем отдельное сохранение хранилища
+        {BlobStream := CreateBlobStream(FieldByName('StorageData'), bmWrite);
         try
           BlobStream.CopyFrom(StorageStream, 0);
         finally
           FreeAndNil(BlobStream);
-        end;
+        end;}
 
         FieldByName('modifydate').AsDateTime := Now;
         FieldByName('version').AsInteger := FieldByName('version').AsInteger + 1;
