@@ -12385,7 +12385,8 @@ procedure TgdcBaseManager.SortSecDescArr;
   end;
 
 begin
-  QuickSort(Low(FSecDescArr), High(FSecDescArr));
+  if High(FSecDescArr) > Low(FSecDescArr) then
+    QuickSort(Low(FSecDescArr), High(FSecDescArr));
 end;
 
 procedure TgdcBaseManager.RemoveDuplicates;
