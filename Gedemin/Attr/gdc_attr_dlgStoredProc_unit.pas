@@ -124,7 +124,7 @@ begin
     raise EgdcIBError.Create('Необходимо указать имя процедуры');
 
   if (smProcedureBody.Text > '') and
-     (Pos(Trim(gdcObject.FieldByName('procedurename').AsString), smProcedureBody.Text) = 0) then
+     (Pos(UpperCase(Trim(gdcObject.FieldByName('procedurename').AsString)), UpperCase(smProcedureBody.Text)) = 0) then
   begin
     raise EgdcIBError.Create('Неправильное имя функции');
   end;
@@ -246,7 +246,12 @@ begin
   begin
     dbedProcedureName.Enabled := False;
     smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetAlterProcedureText
-  end else
+  end
+  else if (sCopy in gdcObject.BaseState) and (gdcObject.State = dsInsert) then
+  begin
+    smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetCreateProcedureText;
+  end
+  else
     smProcedureBody.Text := '';
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_ATTR_DLGSTOREDPROC', 'SETUPRECORD', KEYSETUPRECORD)}

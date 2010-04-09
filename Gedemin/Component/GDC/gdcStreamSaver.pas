@@ -16,7 +16,7 @@ type
   //   lsCreated - запись создана (старой не было)
   TLoadedRecordState = (lsNotLoaded, lsModified, lsCreated);
 
-  TReplaceRecordBehaviour = (rrbAlways, rrbNever, rrbShowDialog);
+  TReplaceRecordBehaviour = (rrbDefault, rrbAlways, rrbNever, rrbCompareDialog);
   // Тип логирования:
   //  slNone - не выводить ничего в лог
   //  slSimple - выводить только основные сообщения (начало/конец загрузки и т.д.)
@@ -108,7 +108,7 @@ type
     function AddItem(AID: TID; ADSIndex: Integer = -1): Integer;
     function Find(const AID: TID; const ADSIndex: Integer = -1; AndDisabled: Boolean = false): Integer;
     procedure Remove(const AID: TID; const ADSIndex: Integer = -1);
-    procedure Reset;
+    procedure Clear; virtual;
 
     property Count: Integer read FCount;
     property Items[Index: Integer]: TStreamOrderElement read GetOrderElement;
@@ -120,6 +120,7 @@ type
     FNext: Integer;
   public
     constructor Create;
+    procedure Clear; override;
 
     function PopNextElement(out Element: TStreamOrderElement): Boolean;
     function PopElementByID(const AID: TID; out Element: TStreamOrderElement): Boolean;
@@ -228,6 +229,9 @@ type
 
     function GetSetObject(const AClassName: TgdcClassName; const ASubType: TgdcSubType; const ASetTableName: ShortString): TgdcBase;
 
+    // очистка данных о добавленных объектах
+    procedure Clear;
+
     property ReceivedRecordsCount: Integer read FReceivedRecordsCount;
     property ReceivedRecord[Index: Integer]: TRuid read GetReceivedRecord;
 
@@ -275,13 +279,13 @@ type
     FLoadingOrderList: TgdcStreamLoadingOrderList;
     FNowSavedRecords: TStreamOrderList;
 
-    FReplaceRecordBehaviour: TReplaceRecordBehaviour;
+    //FReplaceRecordBehaviour: TReplaceRecordBehaviour;
     FReplaceFieldList: TStringList;
 
     FIDMapping: TgdKeyIntAssoc; // карта идентификаторов
     FUpdateList: TObjectList;   // список в котором будут записи, требующие обновления foreignkeys после вставки ссылаемой записи
 
-    FAnAnswer: Word;
+    FReplaceRecordAnswer: Word;
 
     FSaveWithDetailList: TgdKeyArray;
     FNeedModifyList: TgdKeyIntAssoc;
@@ -360,13 +364,14 @@ type
 
     procedure LoadStorage;
 
-    procedure Reset;
+    procedure ClearNowSavedRecordsList;
+    procedure Clear;
 
     property LoadingOrderList: TgdcStreamLoadingOrderList read FLoadingOrderList write SetLoadingOrderList;
     property DataObject: TgdcStreamDataObject read FDataObject write SetDataObject;
     property Transaction: TIBTransaction read FTransaction write SetTransaction;
-    property ReplaceRecordBehaviour: TReplaceRecordBehaviour read FReplaceRecordBehaviour write FReplaceRecordBehaviour;
-    property AnAnswer: Word read FAnAnswer write FAnAnswer;
+    //property ReplaceRecordBehaviour: TReplaceRecordBehaviour read FReplaceRecordBehaviour write FReplaceRecordBehaviour;
+    property ReplaceRecordAnswer: Word read FReplaceRecordAnswer write FReplaceRecordAnswer;
 
     property SaveWithDetailList: TgdKeyArray read FSaveWithDetailList write FSaveWithDetailList;
     property NeedModifyList: TgdKeyIntAssoc read FNeedModifyList write FNeedModifyList;
@@ -518,8 +523,8 @@ type
     function GetReplicationMode: Boolean;
     procedure SetReadUserFromStream(const Value: Boolean);
     function GetReadUserFromStream: Boolean;
-    function GetReplaceRecordBehaviour: TReplaceRecordBehaviour;
-    procedure SetReplaceRecordBehaviour(const Value: TReplaceRecordBehaviour);
+    {function GetReplaceRecordBehaviour: TReplaceRecordBehaviour;
+    procedure SetReplaceRecordBehaviour(const Value: TReplaceRecordBehaviour);}
     function GetIsAbortingProcess: Boolean;
     procedure SetIsAbortingProcess(const Value: Boolean);
     function GetStreamLogType: TgsStreamLoggingType;
@@ -529,6 +534,8 @@ type
     procedure SetNeedModifyList(const Value: TgdKeyIntAssoc);
     procedure SetSaveWithDetailList(const Value: TgdKeyArray);
     procedure SetStreamFormat(const Value: TgsStreamType);
+    function GetReplaceRecordAnswer: Word;
+    procedure SetReplaceRecordAnswer(const Value: Word);
   public
     constructor Create(ADatabase: TIBDatabase = nil; ATransaction: TIBTransaction = nil);
     destructor Destroy; override;
@@ -540,9 +547,11 @@ type
     // сохраняет данные переданноо объекта и объектов по ссылкам из него в память
     procedure AddObject(AgdcObject: TgdcBase; const AWithDetail: Boolean = true);
     // сохраняет данные о переданных объектах из памяти в поток
-    procedure SaveToStream(S: TStream; const AFormat: TgsStreamType = sttBinaryNew);
+    procedure SaveToStream(S: TStream);
     // загружает данные из потока на базу
     procedure LoadFromStream(S: TStream);
+    // удаление информации о всех добавленных объектах
+    procedure Clear;
 
     // используется для активации настройки, загружает данные из потока на базу
     procedure LoadSettingDataFromStream(S: TStream; var WasMetaDataInSetting: Boolean; const DontHideForms: Boolean; var AnAnswer: Word);
@@ -560,7 +569,8 @@ type
     property Transaction: TIBTransaction read FTransaction write SetTransaction;
     property ReadUserFromStream: Boolean read GetReadUserFromStream write SetReadUserFromStream;
     property IsAbortingProcess: Boolean read GetIsAbortingProcess write SetIsAbortingProcess;
-    property ReplaceRecordBehaviour: TReplaceRecordBehaviour read GetReplaceRecordBehaviour write SetReplaceRecordBehaviour;
+    //property ReplaceRecordBehaviour: TReplaceRecordBehaviour read GetReplaceRecordBehaviour write SetReplaceRecordBehaviour;
+    property ReplaceRecordAnswer: Word read GetReplaceRecordAnswer write SetReplaceRecordAnswer;
     property StreamLogType: TgsStreamLoggingType read GetStreamLogType write SetStreamLogType;
     property StreamFormat: TgsStreamType read FStreamFormat write SetStreamFormat;
 
@@ -621,6 +631,8 @@ const
   XML_TAG_DATASET_ROWDATA = 'ROWDATA';
   XML_TAG_DATASET_ROW = 'ROW';
 
+  XML_TAG_MULTILINE_SPLITTER = 'L';
+
   cst_StreamVersionNew = 3;
 
   function GetStreamType(Stream: TStream): TgsStreamType;
@@ -633,7 +645,7 @@ uses
   at_sql_parser,            at_sql_setup,            JclStrings,
   at_frmSQLProcess,         graphics,                gdcClasses,
   gdcConstants,             gd_directories_const,    IB,
-  IBErrorCodes,             gdcMetadata,             gdcDelphiObject,
+  IBErrorCodes,             gdcMetadata,
   Storages,                 Forms,                   controls,
   at_dlgCompareRecords,     Dialogs,                 ComObj,
   gdc_frmStreamSaver,       zlib,                    gdcInvDocument_unit,
@@ -771,6 +783,8 @@ const
   INSERT_FROM_STREAM_FIELD = '_INSERTFROMSTREAM';
   SET_TABLE_FIELD = '_SETTABLE';
 
+  DEFAULT_ARRAY_SIZE = 32;
+
 var
   RplDatabaseExists: Boolean;
   IsReadUserFromStream: Boolean;
@@ -842,7 +856,7 @@ end;
 { TgdcStreamDataObject }
 
 constructor TgdcStreamDataObject.Create(ADatabase: TIBDatabase = nil;
-  ATransaction: TIBTransaction = nil; const ASize: Integer = 32);
+  ATransaction: TIBTransaction = nil; const ASize: Integer = DEFAULT_ARRAY_SIZE);
 var
   IBSQL: TIBSQL;
 begin
@@ -916,7 +930,7 @@ begin
       FObjectArray[I].ObjectDetailReferences.Free;
     end;
   end;
-  
+
   SetLength(FObjectArray, 0);
 
   SetLength(FReceivedRecords, 0);
@@ -1497,6 +1511,51 @@ begin
   Result := BObject;
 end;
 
+procedure TgdcStreamDataObject.Clear;
+var
+  I: Integer;
+begin
+  // Очистим данные о сохраненных объектах и связанных с ними объектах
+  for I := 0 to FCount - 1 do
+  begin
+    FObjectArray[I].gdcObject.Free;
+    if Assigned(FObjectArray[I].gdcSetObject) then
+      FObjectArray[I].gdcSetObject.Free;
+    FObjectArray[I].CDS.Free;
+
+    if Assigned(FObjectArray[I].ObjectForeignKeyFields) then
+      FObjectArray[I].ObjectForeignKeyFields.Clear;
+    if Assigned(FObjectArray[I].ObjectForeignKeyClasses) then
+      FObjectArray[I].ObjectForeignKeyClasses.Clear;
+    if Assigned(FObjectArray[I].OneToOneTables) then
+      FObjectArray[I].OneToOneTables.Clear;
+    if Assigned(FObjectArray[I].ObjectCrossTables) then
+      FObjectArray[I].ObjectCrossTables.Clear;
+    if Assigned(FObjectArray[I].ObjectDetailReferences) then
+      FObjectArray[I].ObjectDetailReferences.Clear;
+  end;
+  // Очистим массив ссылок на объекты
+  SetLength(FObjectArray, 0);
+  SetLength(FReceivedRecords, 0);
+  SetLength(FReferencedRecords, 0);
+  // Очистим вспомогателльные списки
+  FIncrDatabaseList.Clear;
+  FStorageItemList.Clear;
+
+  // Заново проинициализируем массивы ссылок
+  FCount := 0;
+  FSize := DEFAULT_ARRAY_SIZE;
+  SetLength(FObjectArray, FSize);
+
+  FReceivedRecordsSize := DEFAULT_ARRAY_SIZE;
+  FReceivedRecordsCount := 0;
+  SetLength(FReceivedRecords, FReceivedRecordsSize);
+
+  FReferencedRecordsSize := DEFAULT_ARRAY_SIZE;
+  FReferencedRecordsCount := 0;
+  SetLength(FReferencedRecords, FReferencedRecordsSize);
+end;
+
 { TgdcStreamDataProvider }
 
 constructor TgdcStreamDataProvider.Create(ADatabase: TIBDatabase = nil;
@@ -1516,7 +1575,7 @@ begin
   FNowSavedRecords := TStreamOrderList.Create;
   FReplaceFieldList := TStringList.Create;
 
-  FAnAnswer := 0;
+  FReplaceRecordAnswer := mrNone;
 
   FIDMapping := TLoadedRecordStateList.Create;
   FUpdateList := TObjectList.Create(True);
@@ -1780,7 +1839,6 @@ begin
   begin
     TableName := OneToOneTables[I];
     C := GetBaseClassForRelationByID(TableName, AID, FTransaction);
-    //C := GetClassForObjectByID(FDatabase, FTransaction)
     if Assigned(C.gdClass) then
     begin
       ObjIndex := FDataObject.GetObjectIndex(C.gdClass.Classname, C.SubType);
@@ -2441,7 +2499,7 @@ begin
       end
       else
       begin
-        TargetDS.StreamProcessingAnswer := FAnAnswer;
+        TargetDS.StreamProcessingAnswer := ReplaceRecordAnswer;
         if not TargetDS.CheckTheSame(True) then
         begin
           TargetDS.Post;
@@ -2573,7 +2631,7 @@ begin
   //Проверяем на соответствие поля для отображения
   if not Assigned(CDS.FindField(AObj.GetListField(AObj.SubType))) then
   begin
-    AddText(Format('Объект "%s" (XID = %d, DBID = %d)',
+    AddText(Format('Объект %s (XID = %d, DBID = %d)',
       [AObj.GetDisplayName(AObj.SubType), StreamXID, StreamDBID]), clBlue);
 
     AddWarning('Структура загружаемого объекта не соответствует структуре уже существующего объекта в базе. ' + NEW_LINE +
@@ -2585,12 +2643,12 @@ begin
   else
   begin
     if Assigned(frmStreamSaver) then
-      frmStreamSaver.SetProcessText(Format('"%s"%s  %s%s  (XID = %d, DBID = %d)',
+      frmStreamSaver.SetProcessText(Format('%s%s  "%s"%s  (XID = %d, DBID = %d)',
         [AObj.GetDisplayName(AObj.SubType), NEW_LINE, CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString, NEW_LINE,
          StreamXID, StreamDBID]));
 
     if StreamLoggingType = slAll then
-      AddText(Format('Объект "%s %s" (XID = %d, DBID = %d)',
+      AddText(Format('Объект %s "%s" (XID = %d, DBID = %d)',
         [AObj.GetDisplayName(AObj.SubType), CDS.FieldByName(AObj.GetListField(AObj.SubType)).AsString,
          StreamXID, StreamDBID]), clBlue);
   end;
@@ -3402,7 +3460,7 @@ begin
     Exit;
   end;
 
-  case FAnAnswer of
+  case ReplaceRecordAnswer of
     mrYesToAll:
     begin
       Result := True;
@@ -3422,12 +3480,12 @@ begin
 
       if ABaseRecord.NeedModifyFromStream(ABaseRecord.SubType) <> NeedModifyFromStream then
       begin
-        FAnAnswer := MessageDlg('Объект ' + ABaseRecord.GetDisplayName(ABaseRecord.SubType) + ' ' +
+        ReplaceRecordAnswer := MessageDlg('Объект ' + ABaseRecord.GetDisplayName(ABaseRecord.SubType) + ' ' +
           ABaseRecord.FieldByName(ABaseRecord.GetListField(ABaseRecord.SubType)).AsString + ' с идентификатором ' +
           ABaseRecord.FieldByName(ABaseRecord.GetKeyField(ABaseRecord.SubType)).AsString + ' уже существует в базе. ' +
           'Заменить объект? ', mtConfirmation,
           [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);
-        case FAnAnswer of
+        case ReplaceRecordAnswer of
           mrYes, mrYesToAll: Result := True;
           else Result := False;
         end;
@@ -3520,9 +3578,18 @@ begin
   end;
 end;
 
-procedure TgdcStreamDataProvider.Reset;
+procedure TgdcStreamDataProvider.ClearNowSavedRecordsList;
 begin
-  FNowSavedRecords.Reset;
+  // Очистим список записей которые сохранились при сохранении последнего добавленного объекта
+  FNowSavedRecords.Clear;
+end;
+
+procedure TgdcStreamDataProvider.Clear;
+begin
+  // Очистим вспомогательные списки
+  ClearNowSavedRecordsList;
+  FIDMapping.Clear;
+  FUpdateList.Clear;
 end;
 
 procedure TgdcStreamDataProvider.SaveStorageItem(const ABranchName, AValueName: String);
@@ -3781,9 +3848,14 @@ begin
     FItems[I].Disabled := True;
 end;
 
-procedure TStreamOrderList.Reset;
+procedure TStreamOrderList.Clear;
 begin
+  // Очистим список записей
+  SetLength(FItems, 0);
+  // Заново инициализируем список
   FCount := 0;
+  FSize := 32;
+  SetLength(FItems, FSize);
 end;
 
 { TgdcStreamLoadingOrderList }
@@ -3874,6 +3946,12 @@ begin
       Exit;
     end;
   end;
+end;
+
+procedure TgdcStreamLoadingOrderList.Clear;
+begin
+  inherited;
+  FNext := 0;
 end;
 
 { TgdcStreamWriterReader }
@@ -5364,7 +5442,7 @@ begin
     end;
   end;
 end;
-
+                               
 procedure TgdcStreamXMLWriterReader.SaveStorageToStream(S: TStream);
 var
   I: Integer;
@@ -5734,9 +5812,9 @@ begin
       // Если это BLOB-поле, то нет необходимости убирать управляющие символы
       //  данные уже пропущены через jclMime.MimeEncodeString
       if ABlobField then
-        StreamWriteXMLString(Stream, AddElement('L', StringList.Strings[StringCounter]))
+        StreamWriteXMLString(Stream, AddElement(XML_TAG_MULTILINE_SPLITTER, StringList.Strings[StringCounter]))
       else
-        StreamWriteXMLString(Stream, AddElement('L', QuoteString(StringList.Strings[StringCounter])));
+        StreamWriteXMLString(Stream, AddElement(XML_TAG_MULTILINE_SPLITTER, QuoteString(StringList.Strings[StringCounter])));
   finally
     StringList.Free;
   end;
@@ -5775,9 +5853,9 @@ begin
     // Удаляем отступы форматирования XML
     for StringCounter := 0 to StringList.Count - 1 do
       StringList.Strings[StringCounter] := Trim(StringList.Strings[StringCounter]);
-    // Удаляем теги <L>
-    StringList.Text := StringReplace(StringList.Text, '<L>', '', [rfReplaceAll, rfIgnoreCase]);
-    StringList.Text := StringReplace(StringList.Text, '</L>', '', [rfReplaceAll, rfIgnoreCase]);
+    // Удаляем теги XML_TAG_MULTILINE_SPLITTER
+    StringList.Text := StringReplace(StringList.Text, '<' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
+    StringList.Text := StringReplace(StringList.Text, '</' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
     // Декодируем служебные символы
     Result := UnQuoteString(StringList.Text);
   finally
@@ -6085,7 +6163,8 @@ begin
   end;
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_POS_LIST));
 
-  // Позиции хранилища настройки
+  // 22.03.2010: Мы больше не используем отдельное сохранение/загрузку хранилища
+  {// Позиции хранилища настройки
   StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_STORAGE_POS_LIST));
   CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSettingStorage')];
   if not CDS.IsEmpty then
@@ -6103,7 +6182,8 @@ begin
       CDS.Next;
     end;
   end;
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_STORAGE_POS_LIST));
+  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_STORAGE_POS_LIST));}
+
   // Закроем тег заголовка настройки
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_HEADER));
 
@@ -6170,10 +6250,12 @@ begin
   IsReadUserFromStream := False;
   SilentMode := False;
   IsReplicationMode := False;
+  // По умолчанию сохраняем в новом бинарном формате
   FStreamFormat := sttBinaryNew;
+  // Посмотрим по установкам, насколько подробно логировать действия при работе объекта
   if Assigned(GlobalStorage) then
     Self.StreamLogType := TgsStreamLoggingType(GlobalStorage.ReadInteger('Options', 'StreamLogType', 2));
-
+  // Создадим форму SQL лога
   if not Assigned(frmSQLProcess) then
     frmSQLProcess := TfrmSQLProcess.Create(Application);
 end;
@@ -6203,7 +6285,7 @@ begin
 end;
 
 
-procedure TgdcStreamSaver.SaveToStream(S: TStream; const AFormat: TgsStreamType = sttBinaryNew);
+procedure TgdcStreamSaver.SaveToStream(S: TStream);
 var
   FStreamWriterReader: TgdcStreamWriterReader;
 begin
@@ -6372,6 +6454,18 @@ begin
 end;
 
 
+procedure TgdcStreamSaver.Clear;
+begin
+  // Вызовем функцию очистки в вспомогательных объектах
+  FDataObject.Clear;
+  FStreamDataProvider.Clear;
+  FStreamLoadingOrderList.Clear;
+
+  // Очистим данные в объекте
+  FErrorMessageForSetting := '';
+end;
+
+
 procedure TgdcStreamSaver.SaveSettingDataToStream(S: TStream; ASettingKey: TID);
 var
   ibsqlPos: TIBSQL;
@@ -6459,7 +6553,7 @@ begin
 
         ObjectIndex := FDataObject.GetObjectIndex(ibsqlPos.FieldByName('objectclass').AsString, ibsqlPos.FieldByName('subtype').AsString);
 
-        FStreamDataProvider.Reset;
+        FStreamDataProvider.ClearNowSavedRecordsList;
         FStreamDataProvider.SaveRecord(ObjectIndex, AnID, SaveDetailObjects);
 
         if Assigned(frmStreamSaver) then
@@ -6470,7 +6564,7 @@ begin
 
       // Сохраним собранные данные в поток в выбранном формате
       FSavingSettingData := True;
-      Self.SaveToStream(S, FStreamFormat);
+      Self.SaveToStream(S);
       FSavingSettingData := False;
 
       if Assigned(frmStreamSaver) then
@@ -6619,8 +6713,10 @@ begin
       Position := 0;
     end;
   end;
+
   // Учтем ответ пользователя на вопрос о замене объектов (если вопрос задавался)
-  FStreamDataProvider.AnAnswer := AnAnswer;
+  if AnAnswer <> mrNone then
+    FStreamDataProvider.ReplaceRecordAnswer := AnAnswer;
   try
 
     // загружаем записи из потока на базу
@@ -6721,7 +6817,7 @@ begin
 
     RunMultiConnection;
     // Вернем выбранный пользователем ответ на вопрос о замене объектов
-    AnAnswer := FStreamDataProvider.AnAnswer;
+    AnAnswer := FStreamDataProvider.ReplaceRecordAnswer;
 
     if Assigned(frmStreamSaver) then
       frmStreamSaver.Done;
@@ -7023,7 +7119,7 @@ begin
   C := AgdcObject.GetCurrRecordClass;
   ObjectIndex := FDataObject.GetObjectIndex(C.gdClass.Classname, C.SubType);
   try
-    FStreamDataProvider.Reset;
+    FStreamDataProvider.ClearNowSavedRecordsList;
     FStreamDataProvider.SaveRecord(ObjectIndex, AID, AWithDetail);
   except
     if FTransaction.InTransaction then
@@ -7106,7 +7202,7 @@ begin
   Result := IsReadUserFromStream;
 end;
 
-function TgdcStreamSaver.GetReplaceRecordBehaviour: TReplaceRecordBehaviour;
+{function TgdcStreamSaver.GetReplaceRecordBehaviour: TReplaceRecordBehaviour;
 begin
   Result := FStreamDataProvider.ReplaceRecordBehaviour;
 end;
@@ -7114,7 +7210,7 @@ end;
 procedure TgdcStreamSaver.SetReplaceRecordBehaviour(const Value: TReplaceRecordBehaviour);
 begin
   FStreamDataProvider.ReplaceRecordBehaviour := Value;
-end;
+end;}
 
 function TgdcStreamSaver.GetIsAbortingProcess: Boolean;
 begin
@@ -7163,6 +7259,16 @@ begin
     FStreamFormat := Value
   else
     raise Exception.Create(Format('Передан неизвестный тип потока (%d)', [Integer(Value)]));
+end;
+
+function TgdcStreamSaver.GetReplaceRecordAnswer: Word;
+begin
+  Result := FStreamDataProvider.ReplaceRecordAnswer;
+end;
+
+procedure TgdcStreamSaver.SetReplaceRecordAnswer(const Value: Word);
+begin
+  FStreamDataProvider.ReplaceRecordAnswer := Value;
 end;
 
 { TgdRPLDatabase }

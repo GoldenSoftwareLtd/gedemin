@@ -151,6 +151,8 @@ type
     FShowMovementDlg: Boolean;
     FNoWait: Boolean;
 
+    FUseSelectFromSelect: Boolean;
+
 // Процедура инициализации запросов
     procedure InitIBSQL;
 
@@ -388,6 +390,8 @@ type
     FIsNewDateRemains: Boolean;
     FIsUseCompanyKey: Boolean;
 
+    FUseSelectFromSelect: Boolean;
+
     procedure SetViewFeatures(const Value: TStringList);
     procedure SetSumFeatures(const Value: TStringList);
     procedure ReadFeatures(FFeatures: TStringList; Stream: TStream);
@@ -410,6 +414,7 @@ type
     procedure CustomDelete(Buff: Pointer); override;
     procedure SetSubType(const Value: String); override;
 
+    procedure DoBeforeOpen; override;
     procedure DoBeforeInsert; override;
 
     procedure CreateFields; override;
@@ -452,6 +457,7 @@ type
     property IsNewDateRemains: Boolean read FIsNewDateRemains write FIsNewDateRemains;
     property IsMinusRemains: Boolean read FIsMinusRemains write FIsMinusRemains;
     property IsUseCompanyKey: Boolean read FIsUseCompanyKey write FIsUseCompanyKey;
+    property UseSelectFromSelect: Boolean read FUseSelectFromSelect;
   published
     property OnAfterInitSQL;
   end;
@@ -2221,7 +2227,7 @@ begin
               ibsqlCardList.Transaction := Transaction;
               // Если сервер Firebird 2.0+, и есть поле GOODKEY в INV_MOVEMENT и INV_BALANCE,
               //   то будем брать остатки новыми запросами
-              if Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)
+              if FUseSelectFromSelect
                  and Assigned(atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY'))
                  and GlobalStorage.ReadBoolean('Options\Invent', 'UseNewRemainsMethod', False, False) then
                 if ipMinusRemains then
@@ -3818,7 +3824,7 @@ begin
 
     // Если сервер Firebird 2.0+, и есть поле GOODKEY в INV_MOVEMENT и INV_BALANCE,
     //   то будем брать остатки новыми запросами
-    if Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)
+    if FUseSelectFromSelect
        and Assigned(atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY'))
        and GlobalStorage.ReadBoolean('Options\Invent', 'UseNewRemainsMethod', False, False) then
       ibsql.SQL.Text := GetRemains_GetQueryNew(InvPosition)
@@ -4023,6 +4029,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+  // Определим использовать ли новый метод постоения запроса через SELECT FROM SELECT
+  if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
+    FUseSelectFromSelect := True
+  else
+    FUseSelectFromSelect := False;
+
   inherited;
 
   InitIBSQL;
@@ -4756,7 +4768,6 @@ begin
   FRemainsDate := 0;
 
   RemainsSQLType := irstSimpleSum;
-
 end;
 
 procedure TgdcInvBaseRemains.CreateFields;
@@ -4973,7 +4984,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}     *)
-  if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
+  if UseSelectFromSelect then
   begin
     Result := '';
     exit;
@@ -5152,30 +5163,21 @@ begin
   if csDesigning in ComponentState then
     exit;
 
-  if not CurrentRemains then
+  if not (CurrentRemains or UseSelectFromSelect) then
   begin
-    if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
+    if not FIsNewDateRemains then
     begin
       if FIsMinusRemains then
-        Result := Result + ', SUM(0-M.BALANCE) AS REMAINS '
+        Result := Result + ', SUM(M.CREDIT - M.DEBIT) as REMAINS '
       else
-        Result := Result + ', SUM(M.BALANCE) AS REMAINS ';
-    end else
+        Result := Result + ', SUM(M.DEBIT - M.CREDIT) as REMAINS '
+    end
+    else
     begin
-      if not FIsNewDateRemains then
-      begin
-        if FIsMinusRemains then
-          Result := Result + ', SUM(M.CREDIT - M.DEBIT) as REMAINS '
-        else
-          Result := Result + ', SUM(M.DEBIT - M.CREDIT) as REMAINS '
-      end
+      if FIsMinusRemains then
+        Result := Result + ', SUM(REST.REMAINS - M.BALANCE) as REMAINS '
       else
-      begin
-        if FIsMinusRemains then
-          Result := Result + ', SUM(REST.REMAINS - M.BALANCE) as REMAINS '
-        else
-          Result := Result + ', SUM(M.BALANCE - REST.REMAINS) as REMAINS '
-      end;
+        Result := Result + ', SUM(M.BALANCE - REST.REMAINS) as REMAINS '
     end;
   end
   else
@@ -5205,7 +5207,8 @@ begin
 
   if IsUseCompanyKey then
     S.Add('Cast(C.COMPANYKEY + 0 AS Integer) = :companykey');
-  if not CurrentRemains then
+    
+  if not (CurrentRemains or UseSelectFromSelect) then
   begin
     if not FIsNewDateRemains then
       S.Add(' M.DISABLED = 0 ');
@@ -5337,6 +5340,49 @@ begin
       ibsql.Free;
     end;
   end;
+end;
+
+procedure TgdcInvBaseRemains.DoBeforeOpen;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVBASEREMAINS', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVBASEREMAINS', KEYDOBEFOREOPEN);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREOPEN]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVBASEREMAINS') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVBASEREMAINS',
+  {M}          'DOBEFOREOPEN', KEYDOBEFOREOPEN, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVBASEREMAINS' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  // Определим использовать ли новый метод постоения запроса через SELECT FROM SELECT
+  if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
+    FUseSelectFromSelect := True
+  else
+    FUseSelectFromSelect := False;
+
+  inherited DoBeforeOpen;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVBASEREMAINS', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVBASEREMAINS', 'DOBEFOREOPEN', KEYDOBEFOREOPEN);
+  {M}  end;
+  {END MACRO}
 end;
 
 procedure TgdcInvBaseRemains.DoBeforeInsert;
@@ -5477,7 +5523,7 @@ begin
   begin
     FCurrentRemains := Value;
     FSQLInitialized := False;
-  end; 
+  end;
 end;
 
 { TgdcInvRemains }
@@ -5777,7 +5823,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if Database.IsFirebirdConnect and (DataBase.ServerMajorVersion >= 2) then
+  if UseSelectFromSelect then
   begin
     Result := inherited GetFromClause(ARefresh);
 
@@ -5887,7 +5933,8 @@ begin
     Ignore := FSQLSetup.Ignores.Add;
     Ignore.AliasName := 'CON';
 
-  end else
+  end
+  else
   begin
     Result := inherited GetFromClause(ARefresh);
 
@@ -6125,18 +6172,15 @@ begin
     end;
 
   if Assigned(FSumFeatures) then
-    for i:= 0 to FSumFeatures.Count - 1 do
-      if not CurrentRemains then
+    for i := 0 to FSumFeatures.Count - 1 do
+      if not (CurrentRemains or UseSelectFromSelect) then
       begin
         if not FIsNewDateRemains then
           Result := Result + ', SUM((m.debit - m.credit) * C.' + FSumFeatures[i] + ') as ' +
             'S_' + FSumFeatures[i]
-        else if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
-          Result := Result + ', SUM((m.balance) * C.' + FSumFeatures[i] + ') as ' +
-            'S_' + FSumFeatures[i]
         else
           Result := Result + ', SUM((m.balance - rest.remains) * C.' + FSumFeatures[i] + ') as ' +
-            'S_' + FSumFeatures[i]
+            'S_' + FSumFeatures[i];
       end
       else
         Result := Result + ', SUM(m.balance * C.' + FSumFeatures[i] + ') as ' +
@@ -6144,13 +6188,10 @@ begin
 
   if Assigned(FGoodSumFeatures) then
     for i:= 0 to FGoodSumFeatures.Count - 1 do
-      if not CurrentRemains then
+      if not (CurrentRemains or UseSelectFromSelect) then
       begin
         if not FIsNewDateRemains then
           Result := Result + ', SUM((m.debit - m.credit) * G.' + FGoodSumFeatures[i] + ') as ' +
-            'SG_' + FGoodSumFeatures[i]
-        else if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
-          Result := Result + ', SUM((m.balance) * G.' + FGoodSumFeatures[i] + ') as ' +
             'SG_' + FGoodSumFeatures[i]
         else
           Result := Result + ', SUM((m.balance - rest.remains) * G.' + FGoodSumFeatures[i] + ') as ' +
@@ -7041,7 +7082,7 @@ begin
 
   if not CurrentRemains then
   begin
-    if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
+    if UseSelectFromSelect then
     begin
       if not FisMinusRemains then
       begin
@@ -7050,7 +7091,8 @@ begin
       end
       else
         Result := Result + ' HAVING SUM(M.BALANCE) < 0 ';
-    end else
+    end
+    else
     begin
       if not FIsMinusRemains then
       begin
@@ -7486,7 +7528,7 @@ begin
     end;
     // Если сервер Firebird 2.0+, и есть поле GOODKEY в INV_MOVEMENT и INV_BALANCE,
     //   то будем брать остатки новыми запросами
-    if Self.Database.IsFirebirdConnect and (Self.Database.ServerMajorVersion >= 2)
+    if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2)
        and Assigned(atDatabase.FindRelationField('INV_MOVEMENT', 'GOODKEY')) and (not isCurrent) then
     begin
       SQLText :=

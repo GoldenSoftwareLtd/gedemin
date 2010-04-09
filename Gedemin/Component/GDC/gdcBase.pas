@@ -244,9 +244,10 @@ type
     sLoadFromStream, //идет загрузка с потока
     sMultiple,     // идет обработка одновременно нескольких записей
     sFakeLoad,     // считывание данных и потока без записи в базу
-    sPost          // установлен, если идет Cancel вместо поста
+    sPost,          // установлен, если идет Cancel вместо поста
                    // такое бывает, если запись переведена в режим редактирования
                    // а потом постится, но при этом в ней ничего не менялось
+    sCopy          // объект в состоянии копирования с другого объекта
   );
   TgdcStates = set of TgdcState;
 
@@ -1428,7 +1429,7 @@ type
 
     //
     function TestUserRights(const SS: TgdcTableInfos): Boolean;
-    
+
     //
     class function Class_TestUserRights(const SS: TgdcTableInfos;
       const ST: String): Boolean; virtual;
@@ -3615,9 +3616,9 @@ end;
 function TgdcBase.CopyObject(const ACopyDetailObjects: Boolean = False;
   const AShowEditDialog: Boolean = False): Boolean;
 var
-  MasterObject: TgdcBase;
-  DetailObject: TgdcBase;
+  MasterObject, DetailObject: TgdcBase;
   LinkObj, LinkCopy: TgdcBase;
+  BaseState: TgdcStates;
   DS: TDataSource;
   C, CFull: TgdcFullClass;
   I, J: Integer;
@@ -3626,6 +3627,8 @@ var
   LinkTableList: TStringList;
   OL: TObjectList;
   F, DetailField: TField;
+  DoPostRecord: Boolean;
+  ErrorMessage: String;
 
   // Копирует данные объекта
   procedure CopyRecordData(Source, Dest: TgdcBase);
@@ -3639,20 +3642,125 @@ var
       if Dest.TestCopyField(Dest.Fields[I].FieldName, DontCopyList)       // не входит ли поле в список некопируемых полей
         and (Assigned(Source.FindField(Dest.Fields[I].FieldName))) then
       begin
-        if (Dest.Fields[I] is TBlobField) and (not Source.FieldByName(Dest.Fields[I].FieldName).IsNull) then
+        Dest.Fields[I].Assign(Source.FieldByName(Dest.Fields[I].FieldName));
+        {if (Dest.Fields[I] is TBlobField) and (not Source.FieldByName(Dest.Fields[I].FieldName).IsNull) then
           Dest.Fields[I].AsString := Source.FieldByName(Dest.Fields[I].FieldName).AsString
         else
-          Dest.Fields[I].Value := Source.FieldByName(Dest.Fields[I].FieldName).Value;
+          Dest.Fields[I].Value := Source.FieldByName(Dest.Fields[I].FieldName).Value;}
       end;
     end;
+  end;
+
+  // Проверка существования записи с таким же уникальным ключем как и редактируемая
+  function CheckTheSameRecord(AObject: TgdcBase): Boolean;
+  var
+    ibsql: TIBSQL;
+    ChkStm: String;
+  begin
+    Result := False;
+
+    ChkStm := AObject.CheckTheSameStatement;
+    if ChkStm <> '' then
+    begin
+      ibsql := TIBSQL.Create(Owner);
+      try
+        ibsql.Database := Database;
+        ibsql.Transaction := Transaction;
+        ibsql.SQL.Text := ChkStm;
+        ibsql.ExecQuery;
+        ibsql.Next;
+
+        if ibsql.RecordCount >= 1 then
+          Result := True;
+      finally
+        FreeAndNil(ibsql);
+      end;
+    end;
+  end;
+
+  procedure SetNewListFieldValue(AObject: TgdcBase);
+  var
+    ListField: TField;
+  begin
+    // Получим поле отображения
+    ListField := AObject.FindField(AObject.GetListField(AObject.SubType));
+    if Assigned(ListField) then
+    begin
+      // Если ListField - VARCHAR то дописываем COPY
+      if ListField.DataType = ftString then
+        ListField.AsString := ListField.AsString + '_COPY';
+    end;
+  end;
+
+  // Функция сообщает имеет ли объект поля-множества,
+  // В ASetFKeyList будем заносить внешние ссылок из таблиц-множеств
+  function IsHaveSetRecords(AObject: TgdcBase; ASetFKeyList: TObjectList = nil): Boolean;
+  var
+    SetLinkTableList: TStringList;
+    OL: TObjectList;
+    I, J: Integer;
+  begin
+    // Поиск таблиц присоединенных к объекту (1-к-1)
+    SetLinkTableList := TStringList.Create;
+    OL := TObjectList.Create(False);
+    try
+      atDatabase.ForeignKeys.ConstraintsByReferencedRelation(AObject.GetListTable(AObject.SubType), OL);
+      for I := 0 to OL.Count - 1 do
+        with OL[I] as TatForeignKey do
+      begin
+        if IsSimpleKey
+          and (Relation.PrimaryKey <> nil)
+          and (Relation.PrimaryKey.ConstraintFields.Count = 1)
+          and (ConstraintField = Relation.PrimaryKey.ConstraintFields[0]) then
+        begin
+          SetLinkTableList.Add(Relation.RelationName);
+        end;
+      end;
+
+      SetLinkTableList.Add(AObject.GetListTable(AObject.SubType));
+      // Цикл по таблицам
+      for I := 0 to SetLinkTableList.Count - 1 do
+      begin
+        // Поиск внешних ссылок из таблиц-множеств
+        atDatabase.ForeignKeys.ConstraintsByReferencedRelation(SetLinkTableList[I], OL);
+        for J := 0 to OL.Count - 1 do
+          with OL[J] as TatForeignKey do
+          begin
+            if (Relation.PrimaryKey <> nil)
+              and (Relation.PrimaryKey.ConstraintFields.Count > 1)
+              and (Relation.PrimaryKey.ConstraintFields[0] = ConstraintField) then
+            begin
+              if Assigned(ASetFKeyList) then
+              begin
+                // Если передан список, то занесем ссылку в него
+                ASetFKeyList.Add(OL[J]);
+              end
+              else
+              begin
+                // Иначе просто сообщим что ссылки есть и выйдем из функции
+                Result := True;
+                Exit;
+              end;
+            end;
+          end;
+      end;
+    finally
+      FreeAndNil(OL);
+      FreeAndNil(SetLinkTableList);
+    end;
+
+    // Если ссылки присутствуют возвращаем True, иначе False
+    if Assigned(ASetFKeyList) and (ASetFKeyList.Count > 0) then
+      Result := True
+    else
+      Result := False;
   end;
 
   // Копирование данных объектов-множеств
   procedure CopyRecordSetData(Source, Dest: TgdcBase);
   var
-    LinkTableList: TStringList;
-    OL: TObjectList;
-    I, J, K: Integer;
+    FKeyList: TObjectList;
+    I, K: Integer;
     qin, qout: TIBSQL;
     DidActivate: Boolean;
     FieldsList: String;
@@ -3660,117 +3768,83 @@ var
     qin := nil;
     qout := nil;
     DidActivate := False;
-    LinkTableList := TStringList.Create;
+
+    FKeyList := TObjectList.Create(False);
     try
-      // найдем все таблицы, первичный ключ которых одновременно
-      // является ссылкой на нашу запись, т.е. таблицы связанные
-      // жесткой связью один-к-одному с нашей таблицей
-      // записи в таких таблицах, в совокупности с записью в главной
-      // таблице, представляют данные одного объекта
-      // пример: gd_contact -- gd_company -- gd_companycode
-      OL := TObjectList.Create(False);
-      try
-        atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
-          Source.GetListTable(Source.SubType), OL);
-        for I := 0 to OL.Count - 1 do
-          with OL[I] as TatForeignKey do
+      if IsHaveSetRecords(Source, FKeyList) then
+      begin
+        for I := 0 to FKeyList.Count - 1 do
+          with FKeyList[I] as TatForeignKey do
         begin
-          if IsSimpleKey
-            and (Relation.PrimaryKey <> nil)
-            and (Relation.PrimaryKey.ConstraintFields.Count = 1)
-            and (ConstraintField = Relation.PrimaryKey.ConstraintFields[0]) then
+          if (qin = nil) then
           begin
-            LinkTableList.Add(Relation.RelationName);
-          end;
-        end;
+            qin := TIBSQL.Create(nil);
+            qin.Transaction := Dest.Transaction;
 
-        LinkTableList.Add(Source.GetListTable(Source.SubType));
-        for I := 0 to LinkTableList.Count - 1 do
-        begin
-          atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
-            LinkTableList[I], OL);
-          for J := 0 to OL.Count - 1 do
-            with OL[J] as TatForeignKey do
+            qout := TIBSQL.Create(nil);
+            qout.Transaction := Dest.Transaction;
+
+            if not Dest.Transaction.InTransaction then
             begin
-              if (Relation.PrimaryKey <> nil)
-                and (Relation.PrimaryKey.ConstraintFields.Count > 1)
-                and (Relation.PrimaryKey.ConstraintFields[0] = ConstraintField) then
-              begin
-                if (qin = nil) then
-                begin
-                  qin := TIBSQL.Create(nil);
-                  qin.Transaction := Dest.Transaction;
-
-                  qout := TIBSQL.Create(nil);
-                  qout.Transaction := Dest.Transaction;
-
-                  if not Dest.Transaction.InTransaction then
-                  begin
-                    Dest.Transaction.StartTransaction;
-                    DidActivate := True;
-                  end;
-                end;
-
-                qin.SQL.Text := 'SELECT * FROM ' + Relation.RelationName +
-                  ' WHERE ' + ConstraintField.FieldName + ' = ' +
-                  IntToStr(Source.ID);
-                try
-                  qin.ExecQuery;
-                except
-                  on E: EIBError do
-                  begin
-                    if E.IBErrorCode = isc_no_priv then
-                    begin
-                      MessageBox(ParentHandle,
-                        PChar('Нет прав доступа на таблицу ' + Relation.RelationName + '. Выполните SQL команду GRANT.'),
-                        'Внимание',
-                        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-                    end;
-                    raise;
-                  end
-                  else
-                    raise;
-                end;
-                while not qin.EOF do
-                begin
-                  if qout.Handle = nil then
-                  begin
-                    FieldsList := '';
-                    for K := 0 to qin.Current.Count - 1 do
-                    begin
-                      FieldsList := FieldsList + qin.Fields[K].Name + ',';
-                    end;
-                    SetLength(FieldsList, Length(FieldsList) - 1);
-                    qout.SQL.Text := 'INSERT INTO ' + Relation.RelationName + ' (' +
-                      FieldsList + ') VALUES (';
-                    FieldsList := ':' + StringReplace(FieldsList, ',', ',:', [rfReplaceAll, rfIgnoreCase]);
-                    qout.SQL.Text := qout.SQL.Text + FieldsList + ')';
-                    qout.Prepare;
-                    qout.ParamByName(ConstraintField.FieldName).AsInteger := Dest.ID;
-                  end;
-
-                  for K := 0 to qin.Current.Count - 1 do
-                  begin
-                    if qin.Fields[K].Name <> ConstraintField.FieldName then
-                      qout.ParamByName(qin.Fields[K].Name).Assign(qin.Fields[K]);
-                  end;
-
-                  qout.ExecQuery;
-
-                  qin.Next;
-                end;
-                qin.Close;
-                qout.FreeHandle;
-
-              end;
+              Dest.Transaction.StartTransaction;
+              DidActivate := True;
             end;
-        end;
+          end;
 
-      finally
-        OL.Free;
+          qin.SQL.Text := 'SELECT * FROM ' + Relation.RelationName +
+            ' WHERE ' + ConstraintField.FieldName + ' = ' +
+            IntToStr(Source.ID);
+          try
+            qin.ExecQuery;
+          except
+            on E: EIBError do
+            begin
+              if E.IBErrorCode = isc_no_priv then
+              begin
+                MessageBox(ParentHandle,
+                  PChar('Нет прав доступа на таблицу ' + Relation.RelationName + '. Выполните SQL команду GRANT.'),
+                  'Внимание',
+                  MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+              end;
+              raise;
+            end
+            else
+              raise;
+          end;
+          while not qin.EOF do
+          begin
+            if qout.Handle = nil then
+            begin
+              FieldsList := '';
+              for K := 0 to qin.Current.Count - 1 do
+              begin
+                FieldsList := FieldsList + qin.Fields[K].Name + ',';
+              end;
+              SetLength(FieldsList, Length(FieldsList) - 1);
+              qout.SQL.Text := 'INSERT INTO ' + Relation.RelationName + ' (' +
+                FieldsList + ') VALUES (';
+              FieldsList := ':' + StringReplace(FieldsList, ',', ',:', [rfReplaceAll, rfIgnoreCase]);
+              qout.SQL.Text := qout.SQL.Text + FieldsList + ')';
+              qout.Prepare;
+              qout.ParamByName(ConstraintField.FieldName).AsInteger := Dest.ID;
+            end;
+
+            for K := 0 to qin.Current.Count - 1 do
+            begin
+              if qin.Fields[K].Name <> ConstraintField.FieldName then
+                qout.ParamByName(qin.Fields[K].Name).Assign(qin.Fields[K]);
+            end;
+
+            qout.ExecQuery;
+
+            qin.Next;
+          end;
+          qin.Close;
+          qout.FreeHandle;
+        end;
       end;
     finally
-      LinkTableList.Free;
+      FreeAndNil(FKeyList);
       qin.Free;
       qout.Free;
       if DidActivate and Dest.Transaction.InTransaction then
@@ -3789,68 +3863,107 @@ begin
     C.SubType,
     'ByID',
     -1);
+  MasterObject.ReadTransaction := Self.ReadTransaction;  
+  // Укажем что объект находится в состоянии копирования
+  BaseState := MasterObject.BaseState;
+  Include(BaseState, sCopy);
+  MasterObject.BaseState := BaseState;
 
   CopyEventHandlers(MasterObject, Self);
   DidActivate := False;
+  LinkTableList := TStringList.Create;
   try
     DidActivate := MasterObject.ActivateTransaction;
-
     MasterObject.Open;
-    MasterObject.Insert;
-    try
-      // Копирование данных самой записи
-      CopyRecordData(Self, MasterObject);
-      if (MasterObject is TgdcDocument) and MasterObject.FieldByName('number').IsNull then
-        MasterObject.FieldByName('number').AsString := ' ';
-      MasterObject.Post;
-      // Копирование объектов-множеств
-      CopyRecordSetData(Self, MasterObject);
-    except
-      if MasterObject.State in dsEditModes then
-        MasterObject.Cancel;
-      raise;
-    end;
 
     // есть такая ситуация: копируется накладная. часть информации находится
     // в дополнительном объекте TgdcAttrUserDefined, связанном связью один-к-одному
     // с накладной. Но, на форме просмотра компонента нет, он создается и
     // присутствует только на диалоговом окне. Соответственно, при копировании
     // данные из него не копируются. Теперь, мы решим эту проблему.
-    LinkTableList := TStringList.Create;
+    OL := TObjectList.Create(False);
     try
-      OL := TObjectList.Create(False);
-      try
-        atDatabase.ForeignKeys.ConstraintsByReferencedRelation(GetListTable(SubType), OL);
-        for I := 0 to OL.Count - 1 do
-          with OL[I] as TatForeignKey do
+      atDatabase.ForeignKeys.ConstraintsByReferencedRelation(GetListTable(SubType), OL);
+      for I := 0 to OL.Count - 1 do
+        with OL[I] as TatForeignKey do
+        begin
+          if IsSimpleKey
+            and Assigned(Relation.PrimaryKey)
+            and (Relation.PrimaryKey.ConstraintFields.Count = 1)
+            and (ConstraintField = Relation.PrimaryKey.ConstraintFields[0])
+            and (Pos('USR$', Relation.RelationName) = 1) then
           begin
-            if IsSimpleKey
-              and Assigned(Relation.PrimaryKey)
-              and (Relation.PrimaryKey.ConstraintFields.Count = 1)
-              and (ConstraintField = Relation.PrimaryKey.ConstraintFields[0])
-              and (Pos('USR$', Relation.RelationName) = 1) then
+            if GetBaseClassForRelation(Relation.RelationName).gdClass.ClassName = 'TgdcAttrUserDefined' then
             begin
-              if GetBaseClassForRelation(Relation.RelationName).gdClass.ClassName = 'TgdcAttrUserDefined' then
+              // возможно, что на форме присутствует уже бизнес-объект
+              // связанный с нашим объектов. Скопируем его механизмом
+              // копирования связанных (детальных) объектов чуть ниже (если включено копирование детальных объектов).
+              for J := 0 to Self.DetailLinksCount - 1 do
               begin
-                // возможно, что на форме присутствует уже бизнес-объект
-                // связанный с нашим объектов. Скопируем его механизмом
-                // копирования связанных (детальных) объектов чуть ниже (если включено копирование детальных объектов).
-                for J := 0 to Self.DetailLinksCount - 1 do
-                begin
-                  if AnsiCompareText(
-                       TgdcBase(Self.DetailLinks[J]).GetListTable(TgdcBase(Self.DetailLinks[J]).SubType), Relation.RelationName) = 0 then
-                    Break;
+                if AnsiCompareText(
+                     TgdcBase(Self.DetailLinks[J]).GetListTable(TgdcBase(Self.DetailLinks[J]).SubType), Relation.RelationName) = 0 then
+                  Break;
 
-                  if J = Self.DetailLinksCount - 1 then
-                    LinkTableList.Add(AnsiUpperCase(Relation.RelationName));
-                end;
+                if J = Self.DetailLinksCount - 1 then
+                  LinkTableList.Add(AnsiUpperCase(Relation.RelationName));
               end;
             end;
           end;
-      finally
-        OL.Free;
+        end;
+    finally
+      OL.Free;
+    end;
+
+    // Если у объекта нет дополнительных записей 1-к-1 и записей множеств, то
+    //  не будем делать Post записи, иначе сделаем и обработаем ошибки при Post
+    if (LinkTableList.Count > 0) or IsHaveSetRecords(Self) or ACopyDetailObjects then
+      DoPostRecord := True
+    else
+      DoPostRecord := False;
+
+
+    MasterObject.Insert;
+    try
+      // Копирование данных самой записи
+      CopyRecordData(Self, MasterObject);
+      if (MasterObject is TgdcDocument) and MasterObject.FieldByName('number').IsNull then
+        MasterObject.FieldByName('number').AsString := ' ';
+
+      if DoPostRecord then
+      begin
+        // Если существует такая же запись (с равным уникальным ключем)
+        //  то попытаемся изменить значение нашего ключа
+        if CheckTheSameRecord(MasterObject) then
+          SetNewListFieldValue(MasterObject);
+        try
+          MasterObject.Post;
+        except
+          on E: Exception do
+          begin
+            // Оставим запись в dsInsert, соответственно не будем копировать 1-к-1, детальные и множества
+            DoPostRecord := False;
+
+            ErrorMessage := 'Не удалось скопировать все поля оригинальной записи. Проверьте правильность заполнения!';
+            // Администратору покажем также и текст ошибки
+            if IBLogin.IsUserAdmin then
+              ErrorMessage := ErrorMessage + #13#10 + E.Message;
+            // Покажем сообщение
+            MessageBox(ParentHandle, PChar(ErrorMessage), 'Внимание', MB_OK or MB_ICONINFORMATION);
+          end;
+        end;  
       end;
 
+      // Копирование объектов-множеств
+      if DoPostRecord then
+        CopyRecordSetData(Self, MasterObject);
+    except
+      if MasterObject.State in dsEditModes then
+        MasterObject.Cancel;
+      raise;
+    end;
+
+    if DoPostRecord then
+      // Копирование записей 1-к-1 для нашего объекта
       for I := 0 to LinkTableList.Count - 1 do
       begin
         CFull := GetBaseClassForRelation(LinkTableList[I]);
@@ -3885,12 +3998,9 @@ begin
           LinkObj.Free;
         end;
       end;
-    finally
-      LinkTableList.Free;
-    end;
 
     // Если флаг установлен, то скопируем также детальные объекты
-    if ACopyDetailObjects then
+    if DoPostRecord and ACopyDetailObjects then
     begin
       DS := TDatasource.Create(Owner);
       try
@@ -3926,12 +4036,14 @@ begin
 
             Self.DetailLinks[I].First;
             while not Self.DetailLinks[I].Eof do
+
+
             begin
               DetailObject.Insert;
               try
                 CopyRecordData(Self.DetailLinks[I], DetailObject);
                 // установим ссылку на объект master
-                DetailField := DetailObject.FindField(DetailObject.DetailField);
+                DetailField := DetailObject.FindField(DetailObject.GetFieldNameComparedToParam(DetailObject.DetailField));
                 if Assigned(DetailField) then
                 begin
                   if DetailField.AsInteger <> MasterObject.ID then
@@ -3975,7 +4087,6 @@ begin
           FDSModified := True;   // укажем что объект был модифицирован (ведь мы работали с его копией)
 
         Self.CloseOpen;
-
         try
           Self.ID := NewID;
         except
@@ -3993,27 +4104,45 @@ begin
           if DidActivate then
             MasterObject.Transaction.Rollback
           else
-            MasterObject.Delete;
+            if DoPostRecord then
+              MasterObject.Delete
+            else
+              MasterObject.Cancel;
     end
     else
     begin
+      if not DoPostRecord then
+      begin
+        // Если существует такая же запись (с равным уникальным ключем)
+        //  то попытаемся изменить значение нашего ключа
+        if CheckTheSameRecord(MasterObject) then
+          SetNewListFieldValue(MasterObject);
+        MasterObject.Post;
+      end;  
       NewID := MasterObject.ID;
       if DidActivate and MasterObject.Transaction.InTransaction then
         MasterObject.Transaction.Commit
       else
         FDSModified := True;    // укажем что объект был модифицирован (ведь мы работали с его копией)
 
-      Self.CloseOpen;
+      Self.Close;
       Self.ID := NewID;
+      Self.Open;
     end;
   finally
+    FreeAndNil(LinkTableList);
+    // Укажем что объект выходит из состояния копирования
+    BaseState := MasterObject.BaseState;
+    Exclude(BaseState, sCopy);
+    MasterObject.BaseState := BaseState;
+
     if DidActivate and MasterObject.Transaction.InTransaction then
       MasterObject.Transaction.Rollback;
 
     for I := MasterObject.DetailLinksCount - 1 downto 0 do
       MasterObject.DetailLinks[I].Free;
 
-    MasterObject.Free
+    MasterObject.Free;
   end;
 
   Result := True;
@@ -7924,7 +8053,8 @@ begin
           stRecord);
         inc(RecCount);
         // Внутри _LoadFromStreamInternal поле могло изменится, запомним для других объектов
-        Self.StreamProcessingAnswer := Obj.StreamProcessingAnswer;
+        if Obj.StreamProcessingAnswer <> mrNone then
+          Self.StreamProcessingAnswer := Obj.StreamProcessingAnswer;
 
         if not (sFakeLoad in BaseState) then
         begin
@@ -10253,7 +10383,6 @@ procedure TgdcBase.isUse;
 var
   I: Integer;
   LI: TListItem;
-  //atRelation: TatRelation;
   FTableList, FForeignList, FKeyList: TStringList;
   FKeyField: String;
   FTable, FKey: String;
@@ -10365,14 +10494,14 @@ var
     end;
   end;
 
-  var
-    gdcCurrClass: TgdcBase;
-    gdcClassByRecord: TgdcBase;
-    GroupName: String;
-    FC: TgdcFullClass;
-    qryID: TIBSQL;
-    IDList: TStringList;
-    FNotEof: Boolean;
+var
+  gdcCurrClass: TgdcBase;
+  gdcClassByRecord: TgdcBase;
+  GroupName: String;
+  FC: TgdcFullClass;
+  qryID: TIBSQL;
+  IDList: TStringList;
+  FNotEof: Boolean;
 begin
   if UserStorage.ReadBoolean('Options', 'DelSilent', False, False) then
    exit;
@@ -10676,8 +10805,21 @@ begin
       if (E.IBErrorCode = isc_foreign_key)
         and (sView in FBaseState) then
       begin
-        isUse;
-        Abort;
+        // Покажем администатору текст ошибки, чтобы можно было найти ссылающиеся записи
+        if IBLogin.IsUserAdmin then
+        begin
+          if Application.MessageBox(PChar(Format('%s'#13#10'Провести поиск ссылающихся записей?', [E.Message])),
+            'Внимание', MB_YESNO + MB_ICONERROR + MB_APPLMODAL) = IDYES then
+          begin
+            isUse;
+            Abort;
+          end
+        end
+        else
+        begin
+          isUse;
+          Abort;
+        end;
       end else
         raise EgdcIBError.CreateObj(E, Self);
     end;
@@ -13863,7 +14005,7 @@ begin
         StreamSaver.StreamFormat := StreamFormat;
         S := TFileStream.Create(FileName, fmCreate);
         try
-          StreamSaver.SaveToStream(S, StreamFormat);
+          StreamSaver.SaveToStream(S);
         finally
           S.Free;
         end;

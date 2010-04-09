@@ -10,6 +10,7 @@ uses
   Test_gsMorph_unit
   {$IFDEF GEDEMIN}
   , Test_gdcContact_unit
+  , Test_CopyObject_unit
   {$ENDIF}
   ;
   
