@@ -201,9 +201,8 @@ var
 
       try
         if FIBSQL.FieldByName('akey').AsInteger > -1 then
-          S.ObjectKey := FIBSQL.FieldByName('akey').AsInteger
-        else
-          S.LoadFromDatabase;
+          S.ObjectKey := FIBSQL.FieldByName('akey').AsInteger;
+        S.LoadFromDatabase(FTransaction);
 
         F := S.OpenFolder('', False, False);
         try
@@ -385,8 +384,11 @@ begin
           '    NULL, '#13#10 +
           '    255, '#13#10 +
           '    1 '#13#10 +
-          '  )';
-        FIBSQL.ExecQuery;
+          '  ) ';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
@@ -400,8 +402,11 @@ begin
           '    NULL, '#13#10 +
           '    142, '#13#10 +
           '    1 '#13#10 +
-          '  )';
-        FIBSQL.ExecQuery;
+          '  ) ';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text := 'GRANT ALL ON gd_storage_data TO Administrator ';

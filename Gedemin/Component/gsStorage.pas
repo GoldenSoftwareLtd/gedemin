@@ -540,7 +540,7 @@ type
     constructor Create; override;
 
     procedure SaveToDataBase(const ATr: TIBTransaction = nil); virtual;
-    procedure LoadFromDataBase; virtual;
+    procedure LoadFromDataBase(const ATr: TIBTransaction = nil); virtual;
 
     property ObjectKey: Integer read FObjectKey write SetObjectKey;
   end;
@@ -2534,7 +2534,7 @@ begin
   end;
 end;
 
-procedure TgsIBStorage.LoadFromDataBase;
+procedure TgsIBStorage.LoadFromDataBase(const ATr: TIBTransaction = nil);
 var
   q: TIBSQL;
 
@@ -2615,7 +2615,7 @@ begin
   if (FObjectKey = -1) and (FDataType <> cStorageGlobal) then
     exit;
 
-  if not IBLogin.Database.Connected then
+  if (ATr = nil) and (not IBLogin.Database.Connected) then
     exit;
 
   LockStorage(True);
@@ -2625,7 +2625,10 @@ begin
       SQL := 'AND r.int_data = :ID '
     else
       SQL := '';
-    q.Transaction := gdcBaseManager.ReadTransaction;
+    if ATr = nil then
+      q.Transaction := gdcBaseManager.ReadTransaction
+    else
+      q.Transaction := ATr;
     q.SQL.Text :=
       'SELECT d.id, d.lb, d.rb, d.parent, d.name, d.data_type, d.str_data, ' +
       '  d.int_data, d.datetime_data, d.curr_data, d.blob_data, d.editiondate ' +
@@ -2636,7 +2639,7 @@ begin
     if FDataType <> cStorageGlobal then
       q.ParamByName('ID').AsInteger := FObjectKey;
     q.ExecQuery;
-    FRootFolder.Name := UpdateName;
+    FRootFolder.Name := UpdateName(ATr);
     if not q.EOF then
     begin
       FRootFolder.FChanged := False;
