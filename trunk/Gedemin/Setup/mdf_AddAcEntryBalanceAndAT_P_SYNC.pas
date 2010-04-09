@@ -985,7 +985,7 @@ begin
     (IBDB.ServerMajorVersion < 2) or
     ((IBDB.ServerMajorVersion = 2) and (IBDB.ServerMinorVersion < 5)) then
   begin
-    raise EgsWrongServerVersion.Create('Firebird 2.0+');
+    raise EgsWrongServerVersion.Create('Firebird 2.5');
   end;  
 
   FTransaction := TIBTransaction.Create(nil);

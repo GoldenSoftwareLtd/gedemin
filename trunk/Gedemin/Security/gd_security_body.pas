@@ -1042,10 +1042,10 @@ begin
         if DBVersion < cProcList[0].ModifyVersion then
         begin
           MessageBox(0,
-            PChar('Структура файла базы данных устарела.'#13#10 +
-            'Обратитесь к разработчикам системы Гедымин.'#13#10#13#10 +
-            'Версия вашей БД: ' + DBVersion)
-            ,
+            PChar('Структура файла базы данных устарела.'#13#10#13#10 +
+            'Версия вашей БД: ' + DBVersion + #13#10 +
+            'Требуется версия: ' + cProcList[0].ModifyVersion + #13#10#13#10 +
+            'Обратитесь к разработчикам системы Гедымин.'),
             'Внимание',
             MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
         end
@@ -1053,26 +1053,26 @@ begin
         begin
           if IsIBUserAdmin then
           begin
-            (*
-            if (not Asked) and
-              (MessageBox(0,
-              PChar('Структура файла базы данных устарела. Произвести обновление?'#13#10#13#10 +
-              'Версия вашей БД: ' + DBVersion),
-              'Внимание',
-              MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL or MB_TOPMOST) = IDYES) then
+            if MessageBox(0,
+                PChar(
+                'Структура файла базы устарела и будет обновлена.'#13#10#13#10 +
+                'Версия вашей БД: ' + DBVersion + #13#10 +
+                'Требуется версия: ' + cProcList[cProcCount - 1].ModifyVersion + #13#10#13#10 +
+                'Перед обновлением необходимо создать архивную копию!'),
+                'Внимание',
+              MB_OKCANCEL or MB_ICONQUESTION or MB_TASKMODAL or MB_TOPMOST) = IDOK then
             begin
-              MessageBox(0,
+              {MessageBox(0,
                 'Перед обновлением структуры необходимо создать архивную копию базы данных!',
                 'Внимание',
                 MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
-            *)
 
               MessageBox(0,
                 PChar('Структура файла базы будет обновлена.'#13#10#13#10 +
                 'Версия вашей БД: ' + DBVersion + #13#10#13#10 +
                 'Перед обновлением необходимо создать архивную копию базы данных!'),
                 'Внимание',
-                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
+                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);}
 
               with Tgd_frmBackup.Create(Application) do
               try
@@ -1123,18 +1123,19 @@ begin
               end;
 
               NeedReadDBVersion := True;
-            {end else
-              Asked := True;}
+            end else
+              exit;
           end else
           begin
-            if ServerName = '' then
-            begin
+            {if ServerName = '' then
+            begin}
               MessageBox(0,
                 'Структура файла базы данных устарела.'#13#10 +
                 'Для ее обновления войдите под учетной записью Administrator.',
                 'Внимание',
                 MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
-            end;
+              exit;
+            {end;}
           end;
         end;
         // end modify
