@@ -1,0 +1,159 @@
+package greference;
+
+{$R *.RES}
+{$R '..\Attr\at_sql_setup.dcr'}
+{$R '..\QueryFilter\flt_sqlFilter.dcr'}
+{$R '..\Component\gsDBGrid.dcr'}
+{$R '..\Component\gsIBGrid.dcr'}
+{$R '..\Component\gsReportRegistry.dcr'}
+{$R '..\Component\gsDocNumerator.dcr'}
+{$R '..\Security\gd_security.dcr'}
+{$R '..\Component\xProgr.dcr'}
+{$R '..\Component\Bkground.dcr'}
+{$R '..\Imports\HHCTRLLib_TLB.dcr'}
+{$R '..\Imports\MSScriptControl_TLB.dcr'}
+{$R '..\..\comp5\xBulbBtn.dcr'}
+{$R '..\..\comp5\mmCheckBoxEx.dcr'}
+{$R '..\..\comp5\Xlcdlbl.dcr'}
+{$ALIGN ON}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $1400000}
+{$IMPLICITBUILD ON}
+{$DEFINE SYNEDIT}
+{$DEFINE ENTRY_BALANCE}
+{$DEFINE _QBUILDER}
+{$DEFINE _FR4}
+
+requires
+  Vcl50,
+  Vcldb50,
+  dclaxserver50,
+  tb2k_d5,
+  Vclmid50,
+  vclie50,
+  VclSmp50,
+  SynEdit_D5,
+  vcljpg50,
+  vclado50,
+  Tee50,
+  Fr5;
+
+contains
+  gsDesktopManager in '..\Component\gsDesktopManager.pas',
+  gd_AttrComboBox in '..\Component\gd_AttrComboBox.pas',
+  gsIBLookupComboBox in '..\Component\gsIBLookupComboBox.pas',
+  gsDBTreeView in '..\component\gsdbtreeview.pas',
+  gsTrayIcon in '..\Component\gsTrayIcon.pas',
+  gsDBReduction in '..\Component\gsDBReduction.pas',
+  gsTransaction in '..\NewTransaction\gsTransaction.pas',
+  gsIBCtrlGrid in '..\Component\gsIBCtrlGrid.pas',
+  at_sql_setup in '..\Attr\at_sql_setup.pas',
+  flt_sqlFilter in '..\QueryFilter\flt_sqlFilter.pas',
+  gsDBGrid in '..\Component\gsDBGrid.pas',
+  gsIBGrid in '..\Component\gsIBGrid.pas',
+  gsReportRegistry in '..\Component\gsReportRegistry.pas',
+  at_Container in '..\Attr\at_Container.pas',
+  gdEntryGrid in '..\Component\gdEntryGrid.pas',
+  gsTransactionComboBox in '..\NewTransaction\gsTransactionComboBox.pas',
+  gsImportExport in '..\Component\gsImportExport.pas',
+  gsDocNumerator in '..\Component\gsDocNumerator.pas',
+  xCalculatorEdit in '..\Component\xCalculatorEdit.pas',
+  gsReportManager in '..\Component\gsReportManager.pas',
+  gdcBase in '..\Component\gdc\gdcBase.pas',
+  gd_security in '..\Security\gd_security.pas',
+  flt_ScriptInterface_body in '..\QueryFilter\flt_ScriptInterface_body.pas',
+  flt_ScriptInterface in '..\QueryFilter\flt_ScriptInterface.pas',
+  syn_ManagerInterface_body_unit in '..\Component\syn_ManagerInterface_body_unit.pas',
+  xProgr in '..\Component\xProgr.pas',
+  Bkground in '..\Component\Bkground.pas',
+  xLabel in '..\Component\xLabel.pas',
+  gdcBase_PropEditor in '..\Component\GDC\gdcBase_PropEditor.pas',
+  evt_Base in '..\Property\evt_Base.pas',
+  gd_ScriptFactory in '..\Report\gd_ScriptFactory.pas',
+  gdcRUID in '..\Component\GDC\gdcRUID.pas',
+  gd_MacrosMenu in '..\Component\gd_MacrosMenu.pas',
+  gdEnumComboBox in '..\Component\gdEnumComboBox.pas',
+  gdcContacts in '..\Component\gdc\gdcContacts.pas',
+  gdcCurr in '..\Component\gdc\gdcCurr.pas',
+  gdcCheckList in '..\Component\gdc\gdcCheckList.pas',
+  gdcCurrCommission in '..\Component\gdc\gdcCurrCommission.pas',
+  gdcCurrSellContract in '..\Component\gdc\gdcCurrSellContract.pas',
+  gdcGood in '..\Component\gdc\gdcGood.pas',
+  gdcPayment in '..\Component\gdc\gdcPayment.pas',
+  gdcPlace in '..\Component\gdc\gdcPlace.pas',
+  gdcJournal in '..\Component\GDC\gdcJournal.pas',
+  gdcConst in '..\Component\gdc\gdcConst.pas',
+  gdcDelphiObject in '..\Component\GDC\gdcDelphiObject.pas',
+  gdcMacros in '..\Component\GDC\gdcMacros.pas',
+  gdcFunction in '..\Component\GDC\gdcFunction.pas',
+  gdcReport in '..\Component\GDC\gdcReport.pas',
+  gdcInvDocument_unit in '..\Inventory\gdcInvDocument_unit.pas',
+  gdcInvMovement in '..\Inventory\gdcInvMovement.pas',
+  gdcAcctTransaction in '..\Component\GDC\gdcAcctTransaction.pas',
+  gdcAcctAccount in '..\Component\GDC\gdcAcctAccount.pas',
+  gdcStatement in '..\Component\GDC\gdcStatement.pas',
+  gdcExplorer in '..\Component\GDC\gdcExplorer.pas',
+  IBRegister in '..\IBX\ibregister.pas',
+  gdc_framSetControl_unit in '..\Component\Repository\gdc_framSetControl_unit.pas',
+  gdc_dlgG_unit in '..\Component\Repository\gdc_dlgG_unit.pas',
+  gdc_dlgTR_unit in '..\Component\Repository\gdc_dlgTR_unit.pas',
+  gdc_dlgTRPC_unit in '..\Component\Repository\gdc_dlgTRPC_unit.pas',
+  gdc_frmG_unit in '..\Component\Repository\gdc_frmG_unit.pas',
+  gdc_frmSGR_unit in '..\Component\Repository\gdc_frmSGR_unit.pas',
+  gdc_frmMDH_unit in '..\Component\Repository\gdc_frmMDH_unit.pas',
+  gdc_frmMDV_unit in '..\Component\Repository\gdc_frmMDV_unit.pas',
+  gdc_frmMDVTree_unit in '..\Component\Repository\gdc_frmMDVTree_unit.pas',
+  gdc_frmMDVTree2_unit in '..\Component\Repository\gdc_frmMDVTree2_unit.pas',
+  gdc_frmMDHGr_unit in '..\Component\Repository\gdc_frmMDHGr_unit.pas',
+  gdc_frmMDVGr_unit in '..\Component\Repository\gdc_frmMDVGr_unit.pas',
+  gdc_frmMDVGr2_unit in '..\Component\Repository\gdc_frmMDVGr2_unit.pas',
+  prp_methods in '..\property\prp_Methods.pas',
+  gsFunctionSyncEdit in '..\Component\gsFunctionSyncEdit.pas',
+  gsKeyStrokes in '..\Component\gsKeyStrokes.pas',
+  gdcFilter in '..\Component\GDC\gdcFilter.pas',
+  at_frmSQLProcess in '..\Attr\at_frmSQLProcess.pas' {frmSQLProcess},
+  gdcLedger in '..\Component\GDC\gdcLedger.pas',
+  HHCTRLLib_TLB in '..\Imports\HHCTRLLib_TLB.pas',
+  MSScriptControl_TLB in '..\Imports\MSScriptControl_TLB.pas',
+  gdcWgPosition in '..\Component\GDC\gdcWgPosition.pas',
+  gdcFile in '..\Component\GDC\gdcFile.pas',
+  gdcMessage in '..\Component\GDC\gdcMessage.pas',
+  gdcTableCalendar in '..\Component\GDC\gdcTableCalendar.pas',
+  gsDBLookupComboBox in '..\Component\gsDBLookupComboBox.pas',
+  gdcTemplate in '..\Component\GDC\gdcTemplate.pas',
+  xBulbBtn in '..\..\comp5\xBulbBtn.pas',
+  mmCheckBoxEx in '..\..\comp5\mmCheckBoxEx.pas',
+  mBitButton in '..\..\comp5\mBitButton.pas',
+  xLCDLbl in '..\..\comp5\Xlcdlbl.pas',
+  gdcSQLStatement in '..\Component\GDC\gdcSQLStatement.pas',
+  JvDBImage in '..\Component\JvDBImage.pas',
+  gsListView in '..\Component\gsListView.pas',
+  gdvAcctBase in '..\Transaction\gdvAcctBase.pas',
+  gdvAcctAccReview in '..\Transaction\gdvAcctAccReview.pas',
+  gdvAcctAccCard in '..\Transaction\gdvAcctAccCard.pas',
+  gdvAcctLedger in '..\Transaction\gdvAcctLedger.pas',
+  gdvAcctGeneralLedger in '..\Transaction\gdvAcctGeneralLedger.pas',
+  gdvAcctCirculationList in '..\Transaction\gdvAcctCirculationList.pas',
+  gdcBlockRule in '..\Component\GDC\gdcBlockRule.pas',
+  gdcSQLHistory in '..\Component\GDC\gdcSQLHistory.pas',
+  gdcStorage in '..\Component\GDC\gdcStorage.pas';
+
+end.
