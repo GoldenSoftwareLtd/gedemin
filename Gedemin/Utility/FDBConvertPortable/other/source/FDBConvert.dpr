@@ -9,7 +9,7 @@ uses
   gsFDBConvertConsoleView_unit in 'gsFDBConvertConsoleView_unit.pas',
   gs_frmFunctionEdit_unit in 'gs_frmFunctionEdit_unit.pas' {frmFunctionEdit},
   gsFDBConvertLocalization_unit in 'gsFDBConvertLocalization_unit.pas',
-  dmImages_unit in 'dmImages_unit.pas';
+  dmImages_unit;
 
 {$R *.RES}
 
