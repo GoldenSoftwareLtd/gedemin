@@ -1,7 +1,7 @@
 -$A+
 -$B-
 -$C+
--$D+
+-$D-
 -$E-
 -$F-
 -$G+
@@ -12,7 +12,7 @@
 -$L+
 -$M-
 -$N+
--$O-
+-$O+
 -$P+
 -$Q-
 -$R-
@@ -33,9 +33,10 @@
 -K$00400000
 -E"..\..\"
 -N"..\..\..\..\DCU"
--LE"..\..\..\Bpl"
--LN"..\..\..\Bpl"
--U"..\..\..\..\IBX;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\gedemin;..\..\..\..\Component\SynEdit\Source"
--O"..\..\..\..\IBX;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\gedemin;..\..\..\..\Component\SynEdit\Source"
--I"..\..\..\..\IBX;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\gedemin;..\..\..\..\Component\SynEdit\Source"
--R"..\..\..\..\IBX;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\gedemin;..\..\..\..\Component\SynEdit\Source"
+-LE"..\..\..\..\BPL"
+-LN"..\..\..\..\BPL"
+-U"..\..\..\..\IBX;..\..\..\..\gedemin;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\Component\SynEdit\Source;..\..\..\..\jcl\source\common;..\..\..\..\jcl\source;..\..\..\..\Component;..\..\..\..\ClassTree;..\..\..\..\QueryFilter;..\..\..\..\jcl\source\windows;..\..\..\..\Component\SynEdit\Source;..\..\..\..\Component\TB2k\Source"
+-O"..\..\..\..\IBX;..\..\..\..\gedemin;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\Component\SynEdit\Source;..\..\..\..\jcl\source\common;..\..\..\..\jcl\source;..\..\..\..\Component;..\..\..\..\ClassTree;..\..\..\..\QueryFilter;..\..\..\..\jcl\source\windows;..\..\..\..\Component\SynEdit\Source;..\..\..\..\Component\TB2k\Source"
+-I"..\..\..\..\IBX;..\..\..\..\gedemin;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\Component\SynEdit\Source;..\..\..\..\jcl\source\common;..\..\..\..\jcl\source;..\..\..\..\Component;..\..\..\..\ClassTree;..\..\..\..\QueryFilter;..\..\..\..\jcl\source\windows;..\..\..\..\Component\SynEdit\Source;..\..\..\..\Component\TB2k\Source"
+-R"..\..\..\..\IBX;..\..\..\..\gedemin;..\..\..\..\DCU;..\..\..\..\setup;..\..\..\..\Common;..\..\..\..\Component\SynEdit\Source;..\..\..\..\jcl\source\common;..\..\..\..\jcl\source;..\..\..\..\Component;..\..\..\..\ClassTree;..\..\..\..\QueryFilter;..\..\..\..\jcl\source\windows;..\..\..\..\Component\SynEdit\Source;..\..\..\..\Component\TB2k\Source"
+-D_TARGET_21;_TARGET_30
