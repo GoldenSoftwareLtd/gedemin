@@ -2520,7 +2520,12 @@ begin
     if FDataType <> cStorageGlobal then
       q.ParamByName('int_data').AsInteger := FObjectKey;
 
-    DoRecurse(FRootFolder);
+    try
+      DoRecurse(FRootFolder);
+    except
+      on E: Exception do
+        Application.ShowException(E);
+    end;
 
     if ATr = nil then
       Tr.Commit;

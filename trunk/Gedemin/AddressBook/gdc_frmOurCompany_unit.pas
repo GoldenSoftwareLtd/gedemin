@@ -101,43 +101,23 @@ begin
 end;
 
 procedure Tgdc_frmOurCompany.actDeleteExecute(Sender: TObject);
-var
-  DidActivate: Boolean;
-  q: TIBSQL;
 begin
-  case MessageBox(Handle,
-    'Убрать выбранную компанию из списка рабочих организаций или удалить запись из базы данных?'#13#10#13#10 +
-    'Да (Yes) -- Убрать из рабочих организаций. Компания останется в базе, в справочнике клиентов.'#13#10 +
-    'Нет (No) -- Удалить компанию из базы данных.',
-    'Внимание',
-    MB_YESNOCANCEL or MB_ICONQUESTION) of
-  IDYES:
-    begin
-      DidActivate := False;
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := gdcObject.Transaction;
-        DidActivate := not q.Transaction.InTransaction;
-        if DidActivate then
-          q.Transaction.StartTransaction;
-        q.SQL.Text := 'DELETE FROM gd_ourcompany WHERE companykey = ' +
-          IntToStr(gdcObject.ID);
-        q.ExecQuery;
-        q.Close;
-        if DidActivate and gdcObject.Transaction.InTransaction then
-          gdcObject.Transaction.Commit;
-        gdcObject.Close;
-        gdcObject.Open;
-      finally
-        q.Free;
-        if DidActivate and gdcObject.Transaction.InTransaction then
-          gdcObject.Transaction.Commit;
-      end;
+  try
+    case MessageBox(Handle,
+      'Убрать выбранную компанию из списка рабочих организаций или удалить запись из базы данных?'#13#10#13#10 +
+      'Да (Yes) -- Убрать из рабочих организаций. Компания останется в базе, в справочнике клиентов.'#13#10 +
+      'Нет (No) -- Удалить компанию из базы данных.',
+      'Внимание',
+      MB_YESNOCANCEL or MB_ICONQUESTION) of
+    IDYES: gdcOurCompany.OnlyOurCompany := True;
+    IDNO: gdcOurCompany.OnlyOurCompany := False;
+    else
+      exit;
     end;
-  IDNO:
+
     inherited;
-  else
-    ;
+  finally
+    gdcOurCompany.OnlyOurCompany := False;
   end;
 end;
 
