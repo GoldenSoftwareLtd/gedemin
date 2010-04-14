@@ -246,6 +246,7 @@ type
 
     procedure _DoOnNewRecord; override;
 
+    property OnlyOurCompany: Boolean read FOnlyOurCompany write FOnlyOurCompany;
   end;
 
   TgdcContact = class(TgdcBaseContact)
@@ -2850,6 +2851,7 @@ procedure TgdcOurCompany.CustomDelete(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  S: String;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCOURCOMPANY', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  try
@@ -2873,10 +2875,26 @@ begin
   {END MACRO}
 
   if FieldByName(GetKeyField(Subset)).AsInteger = IbLogin.Companykey then
-    raise Exception.Create('Нельзя удалить текущую компанию!');
+    raise Exception.Create('Нельзя удалить текущую рабочую организацию!');
 
-  CustomExecQuery('DELETE FROM gd_ourcompany ' +
-     ' WHERE companykey = :old_id ', Buff);
+  try
+    CustomExecQuery('DELETE FROM gd_ourcompany WHERE companykey = :old_id ', Buff);
+  except
+    on E: Exception do
+    begin
+      if IBLogin.IsUserAdmin then
+        S := #13#10#13#10'Сообщение об ошибке:'#13#10 + E.Message
+      else
+        S := '';
+
+      MessageBox(ParentHandle,
+        PChar('Нельзя удалить организацию. Возможно по ней созданы документы.' + S),
+        'Внимание',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
+
+      Abort;
+    end;
+  end;
 
   if not FOnlyOurCompany then
     inherited;

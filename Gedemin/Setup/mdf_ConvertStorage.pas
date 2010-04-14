@@ -366,10 +366,12 @@ begin
             'Изменение старых данных пользовательского хранилища заблокировано']);
           FIBSQL.ExecQuery;
 
-          FIBSQL.Close;
+          // не будем блокировать хранилище компании, т.к. потом будут
+          // проблемы с исключением компании из списка раб. организаций
+          {FIBSQL.Close;
           FIBSQL.SQL.Text := Format(cBlockTrigger, ['COMPANYSTORAGE', 'COMPANYSTORAGE',
             'Изменение старых данных хранилища компании заблокировано']);
-          FIBSQL.ExecQuery;
+          FIBSQL.ExecQuery;}
         end;
 
         FIBSQL.Close;
