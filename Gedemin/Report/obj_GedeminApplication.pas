@@ -340,10 +340,7 @@ begin
     except
     end;
 
-    IsEmbedding := False;
-    if ParamCount > 0 then
-      if UpperCase(ParamStr(1)) = '-EMBEDDING' then
-        IsEmbedding := True;
+    IsEmbedding := FindCmdLineSwitch('EMBEDDING', ['-', '/'], True);
 
     if not IsEmbedding then begin
     // Освобождаем главную форму, созданую для COM-server
