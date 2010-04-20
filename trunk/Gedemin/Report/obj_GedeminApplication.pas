@@ -340,7 +340,7 @@ begin
     except
     end;
 
-    IsEmbedding := FindCmdLineSwitch('EMBEDDING', ['-', '/'], True);
+    IsEmbedding := SysUtils.FindCmdLineSwitch('EMBEDDING', ['-', '/'], True);
 
     if not IsEmbedding then begin
     // Освобождаем главную форму, созданую для COM-server
