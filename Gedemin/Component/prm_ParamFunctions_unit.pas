@@ -563,7 +563,8 @@ begin
     MinBound := VarArrayLowBound(AnVarArray, 1);
     MaxBound := VarArrayHighBound(AnVarArray, 1);
     for I := 0 to Count - 1 do
-      if (MinBound <= I) and (MaxBound >= I) then
+      // Проверим на границы диапазона и заполненность значения
+      if (MinBound <= I) and (MaxBound >= I) and (VarIsEmpty(Params[I].ResultValue)) then
         Params[I].ResultValue := AnVarArray[I];
   end;
 end;

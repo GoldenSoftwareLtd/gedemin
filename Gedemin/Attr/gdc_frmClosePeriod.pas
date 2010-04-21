@@ -25,17 +25,14 @@ type
     eExtServer: TEdit;
     GroupBox2: TGroupBox;
     odExtDatabase: TOpenDialog;
-    pbMain: TProgressBar;
     btnRun: TButton;
     lblCloseDate: TLabel;
     xdeCloseDate: TxDateEdit;
     pnlBottomButtons: TPanel;
     btnClose: TButton;
-    lblProcess: TLabel;
     ActionList1: TActionList;
     actChooseDontDeleteDocumentType: TAction;
     actDeleteDontDeleteDocumentType: TAction;
-    mOutput: TMemo;
     tbsInvCardField: TTabSheet;
     GroupBox4: TGroupBox;
     lvAllInvCardField: TListView;
@@ -67,6 +64,17 @@ type
     cbUserDocClearProcess: TCheckBox;
     actChooseUserDocumentToDelete: TAction;
     actDeleteUserDocumentToDelete: TAction;
+    btnInvCardSelectAll: TButton;
+    btnInvCardSelectNone: TButton;
+    actCardSelectAll: TAction;
+    actCardSelectNone: TAction;
+    tbsLog: TTabSheet;
+    mOutput: TMemo;
+    cbOnlyOurRemains: TCheckBox;
+    pnlProgressBar: TPanel;
+    pbMain: TProgressBar;
+    pnlProgressText: TPanel;
+    lblProcess: TLabel;
     procedure FormShow(Sender: TObject);
     procedure btnChooseDatabaseClick(Sender: TObject);
     procedure btnRunClick(Sender: TObject);
@@ -82,6 +90,10 @@ type
     procedure actDeleteUserDocumentToDeleteUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure actCardSelectAllExecute(Sender: TObject);
+    procedure actCardSelectNoneExecute(Sender: TObject);
+    procedure actCardSelectAllUpdate(Sender: TObject);
+    procedure actCardSelectNoneUpdate(Sender: TObject);
   private
     FGlobalStartTime: TDateTime;
     FClosingPeriodObject: TgdClosingPeriod;
@@ -90,8 +102,6 @@ type
     function CheckClosePeriodParams: Boolean;
     // Передача выбранных параметров закрытия в объект
     procedure AssignClosePeriodParams(ClosingObject: TgdClosingPeriod);
-
-    procedure SaveLogToFile;
 
     procedure InitialSetupForm;
     procedure InitialFillInvCardFields;
@@ -117,7 +127,7 @@ implementation
 
 uses
   AcctUtils, contnrs, gdcContacts, gdcClasses, Storages, IBDatabase,
-  gdcBaseInterface, at_classes;
+  gdcBaseInterface, at_classes, jclDateTime;
 
 {$R *.DFM}
 
@@ -142,6 +152,7 @@ begin
     InnerFormVariable.AddLogMessage(TimeToStr(Time) + ': Закончен процесс закрытия периода');
     InnerFormVariable.ActivateControls(True);
     InnerFormVariable.btnRun.Caption := 'Выполнить';
+    InnerFormVariable.btnRun.Enabled := True;
   end;
 end;
 
@@ -228,6 +239,8 @@ begin
     // Проверим правильность заполнения параметров 'закрытия периода'
     if CheckClosePeriodParams then
     begin
+      // Перейдем на вкладку отображения процесса 
+      pcMain.ActivePage := tbsLog;
       // Передадим параметры 'закрытия периода'
       AssignClosePeriodParams(FClosingPeriodObject);
       // Запустим закрытие периода
@@ -237,6 +250,7 @@ begin
   else
   begin
     FClosingPeriodObject.StopProcess;
+    btnRun.Enabled := False;
   end;
 end;
 
@@ -458,8 +472,12 @@ var
   Item: TListItem;
   Index: Integer;
 begin
-  if Assigned(FromList.Selected) then
+  if FromList.Items.Count > 0 then
   begin
+    // Если не выбран ни один элемент, переместим первый по списку
+    if not Assigned(FromList.Selected) then
+      FromList.Selected := FromList.Items[0];
+
     Item := ToList.Items.Add;
     Item.Caption := FromList.Selected.Caption;
     Item.Data := FromList.Selected.Data;
@@ -495,7 +513,7 @@ procedure TfrmClosePeriod.InitialFillOptions;
 var
   DefaultDate: TDateTime;
 begin
-  DefaultDate := EncodeDate(2009, 1, 1);
+  DefaultDate := EncodeDate(YearOfDate(Date), 1, 1);
   if Assigned(GlobalStorage) then
   begin
     // Попробуем считать дату закрытия из хранилища
@@ -552,24 +570,6 @@ begin
     Result := mOutput.Lines.Add(AMessage);
 end;
 
-procedure TfrmClosePeriod.SaveLogToFile;
-var
-  SD: TSaveDialog;
-begin
-  SD := TSaveDialog.Create(Self);
-  try
-    SD.Title := 'Сохранить лог в файл ';
-    SD.DefaultExt := 'txt';
-    SD.Filter := 'Текстовые файлы (*.txt)|*.TXT|' +
-      'Все файлы (*.*)|*.*';
-    SD.FileName := 'close_log';
-    if SD.Execute then
-      mOutput.Lines.SaveToFile(SD.FileName);
-  finally
-    SD.Free;
-  end;
-end;
-
 function TfrmClosePeriod.CheckClosePeriodParams: Boolean;
 begin
   Result := True;
@@ -589,6 +589,8 @@ begin
   ClosingObject.DoDeleteDocuments := cbRemainsClearProcess.Checked;
   ClosingObject.DoDeleteUserDocuments := cbUserDocClearProcess.Checked;
   ClosingObject.DoTransferEntryBalance := cbTransferEntryBalanceProcess.Checked;
+
+  ClosingObject.OnlyOurRemains := cbOnlyOurRemains.Checked;
 
   // Заполним список типов складских документов, которые нельзя удалять
   ClosingObject.ClearDontDeleteDocumentTypes;
@@ -616,6 +618,32 @@ end;
 procedure TfrmClosePeriod.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FClosingPeriodObject);
+end;
+
+procedure TfrmClosePeriod.actCardSelectAllExecute(Sender: TObject);
+var
+  FeatureCounter: Integer;
+begin
+  for FeatureCounter := 0 to lvAllInvCardField.Items.Count - 1 do
+    MoveInvCardField(lvAllInvCardField, lvCheckedInvCardField);
+end;
+
+procedure TfrmClosePeriod.actCardSelectNoneExecute(Sender: TObject);
+var
+  FeatureCounter: Integer;
+begin
+  for FeatureCounter := 0 to lvCheckedInvCardField.Items.Count - 1 do
+    MoveInvCardField(lvCheckedInvCardField, lvAllInvCardField);
+end;
+
+procedure TfrmClosePeriod.actCardSelectAllUpdate(Sender: TObject);
+begin
+  actCardSelectAll.Enabled := (lvAllInvCardField.Items.Count > 0);
+end;
+
+procedure TfrmClosePeriod.actCardSelectNoneUpdate(Sender: TObject);
+begin
+  actCardSelectNone.Enabled := (lvCheckedInvCardField.Items.Count > 0);
 end;
 
 initialization

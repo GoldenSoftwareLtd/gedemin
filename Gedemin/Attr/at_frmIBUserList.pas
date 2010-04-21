@@ -19,11 +19,15 @@ type
     alIBUsers: TActionList;
     actOk: TAction;
     lblCount: TLabel;
-
-    procedure IBUserTimerTimer(Sender: TObject);
+    btnRefresh: TButton;
+    actRefresh: TAction;
+    chbxShowNames: TCheckBox;
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure IBUserTimerTimer(Sender: TObject);
+    procedure actRefreshExecute(Sender: TObject);
+    procedure actRefreshUpdate(Sender: TObject);
 
   private
     FNotBuilt: Boolean;
@@ -142,7 +146,10 @@ begin
       else
         ListItem.SubItems.Add(q.FieldByName('NAME').AsTrimString);
 
-      ListItem.SubItems.Add(ALIPAddrToName(q.FieldByName('MON$REMOTE_ADDRESS').AsString));
+      if chbxShowNames.Checked then
+        ListItem.SubItems.Add(ALIPAddrToName(q.FieldByName('MON$REMOTE_ADDRESS').AsString))
+      else
+        ListItem.SubItems.Add('<имя не определено>');
 
       Inc(I);
       q.Next;
@@ -167,11 +174,6 @@ begin
   end;
 end;
 
-procedure TfrmIBUserList.IBUserTimerTimer(Sender: TObject);
-begin
-  BuildUserList;
-end;
-
 procedure TfrmIBUserList.actOkExecute(Sender: TObject);
 begin
   ModalResult := mrOk;
@@ -190,6 +192,28 @@ begin
     FNotBuilt := False;
   end else
     FNotBuilt := True;
+end;
+
+procedure TfrmIBUserList.IBUserTimerTimer(Sender: TObject);
+var
+  D: DWORD;
+begin
+  D := GetTickCount;
+  actRefresh.Execute;
+  if GetTickCount - D >= DWORD(IBUserTimer.Interval) then
+    chbxShowNames.Checked := False;
+end;
+
+procedure TfrmIBUserList.actRefreshExecute(Sender: TObject);
+begin
+  BuildUserList;
+end;
+
+procedure TfrmIBUserList.actRefreshUpdate(Sender: TObject);
+begin
+  actRefresh.Enabled := (gdcBaseManager <> nil)
+    and (gdcBaseManager.Database <> nil)
+    and gdcBaseManager.Database.Connected;
 end;
 
 end.

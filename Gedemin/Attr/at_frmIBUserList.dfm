@@ -1,6 +1,6 @@
 object frmIBUserList: TfrmIBUserList
-  Left = 243
-  Top = 211
+  Left = 415
+  Top = 480
   BorderStyle = bsDialog
   Caption = 'Пользователи'
   ClientHeight = 351
@@ -64,7 +64,7 @@ object frmIBUserList: TfrmIBUserList
     GridLines = True
     ReadOnly = True
     RowSelect = True
-    TabOrder = 0
+    TabOrder = 1
     ViewStyle = vsReport
   end
   object memoInfo: TMemo
@@ -84,7 +84,7 @@ object frmIBUserList: TfrmIBUserList
       'указанные выше операции, нажмите Продолжить.')
     ParentColor = True
     ReadOnly = True
-    TabOrder = 1
+    TabOrder = 2
   end
   object pnlButtons: TPanel
     Left = 0
@@ -93,7 +93,7 @@ object frmIBUserList: TfrmIBUserList
     Height = 39
     Align = alBottom
     BevelOuter = bvNone
-    TabOrder = 2
+    TabOrder = 0
     object Bevel1: TBevel
       Left = 0
       Top = 0
@@ -123,10 +123,26 @@ object frmIBUserList: TfrmIBUserList
       ModalResult = 1
       TabOrder = 1
     end
+    object btnRefresh: TButton
+      Left = 10
+      Top = 10
+      Width = 75
+      Height = 21
+      Action = actRefresh
+      TabOrder = 2
+    end
+  end
+  object chbxShowNames: TCheckBox
+    Left = 10
+    Top = 291
+    Width = 351
+    Height = 17
+    Caption = 'Показывать сетевые имена компьютеров'
+    TabOrder = 3
   end
   object IBUserTimer: TTimer
     Enabled = False
-    Interval = 10000
+    Interval = 60000
     OnTimer = IBUserTimerTimer
     Left = 90
     Top = 150
@@ -139,6 +155,11 @@ object frmIBUserList: TfrmIBUserList
       Hint = 'Вы можете продолжить, только если подключен один пользователь'
       OnExecute = actOkExecute
       OnUpdate = actOkUpdate
+    end
+    object actRefresh: TAction
+      Caption = 'Обновить'
+      OnExecute = actRefreshExecute
+      OnUpdate = actRefreshUpdate
     end
   end
 end

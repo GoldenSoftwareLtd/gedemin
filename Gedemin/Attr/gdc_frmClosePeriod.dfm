@@ -1,6 +1,7 @@
 object frmClosePeriod: TfrmClosePeriod
   Left = 365
   Top = 70
+  BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Закрытие периода'
   ClientHeight = 505
@@ -28,12 +29,14 @@ object frmClosePeriod: TfrmClosePeriod
     Align = alClient
     TabOrder = 0
     object tbsMain: TTabSheet
+      BorderWidth = 3
       Caption = 'Закрытие периода'
       object GroupBox1: TGroupBox
-        Left = 3
-        Top = 1
-        Width = 681
+        Left = 0
+        Top = 0
+        Width = 684
         Height = 104
+        Align = alTop
         Caption = ' Параметры "закрытой" базы '
         TabOrder = 0
         object lblExtDatabase: TLabel
@@ -112,10 +115,11 @@ object frmClosePeriod: TfrmClosePeriod
         end
       end
       object GroupBox2: TGroupBox
-        Left = 3
-        Top = 108
-        Width = 681
-        Height = 323
+        Left = 0
+        Top = 104
+        Width = 684
+        Height = 327
+        Align = alClient
         Caption = ' Закрытие периода '
         TabOrder = 1
         object lblCloseDate: TLabel
@@ -125,32 +129,13 @@ object frmClosePeriod: TfrmClosePeriod
           Height = 13
           Caption = 'Дата закрытия:'
         end
-        object lblProcess: TLabel
-          Left = 16
-          Top = 76
-          Width = 649
-          Height = 13
-          Alignment = taCenter
-          AutoSize = False
-        end
-        object pbMain: TProgressBar
-          Left = 16
-          Top = 57
-          Width = 649
-          Height = 16
-          Min = 0
-          Max = 100
-          Smooth = True
-          Step = 0
-          TabOrder = 0
-        end
         object btnRun: TButton
-          Left = 200
-          Top = 17
-          Width = 75
+          Left = 258
+          Top = 293
+          Width = 169
           Height = 25
-          Caption = 'Выполнить'
-          TabOrder = 1
+          Caption = 'Выполнить закрытие периода'
+          TabOrder = 0
           OnClick = btnRunClick
         end
         object xdeCloseDate: TxDateEdit
@@ -162,92 +147,91 @@ object frmClosePeriod: TfrmClosePeriod
           Color = 11141119
           EditMask = '!99\.99\.9999;1;_'
           MaxLength = 10
-          TabOrder = 2
+          TabOrder = 1
           Text = '22.12.2008'
         end
-        object mOutput: TMemo
-          Left = 255
-          Top = 90
-          Width = 415
-          Height = 221
-          Color = clBtnFace
-          ScrollBars = ssVertical
-          TabOrder = 3
-          WantReturns = False
-          WordWrap = False
-        end
         object cbEntryCalculate: TCheckBox
-          Left = 15
-          Top = 90
+          Left = 16
+          Top = 50
           Width = 235
           Height = 17
           Caption = 'Вычисление бухгалтерских остатков'
-          TabOrder = 4
+          TabOrder = 2
         end
         object cbRemainsCalculate: TCheckBox
-          Left = 15
-          Top = 138
+          Left = 16
+          Top = 98
           Width = 235
           Height = 17
           Caption = 'Вычисление складских остатков'
-          TabOrder = 5
+          TabOrder = 3
         end
         object cbReBindDepotCards: TCheckBox
-          Left = 15
-          Top = 162
+          Left = 16
+          Top = 146
           Width = 235
           Height = 17
           Caption = 'Перепривязка складских карточек'
-          TabOrder = 6
+          TabOrder = 4
         end
         object cbEntryClearProcess: TCheckBox
-          Left = 15
-          Top = 114
+          Left = 16
+          Top = 74
           Width = 235
           Height = 17
           Caption = 'Удаление проводок'
-          TabOrder = 7
+          TabOrder = 5
         end
         object cbRemainsClearProcess: TCheckBox
-          Left = 15
-          Top = 186
+          Left = 16
+          Top = 170
           Width = 235
           Height = 17
           Caption = 'Удаление документов'
-          TabOrder = 8
+          TabOrder = 6
         end
         object cbTransferEntryBalanceProcess: TCheckBox
-          Left = 15
-          Top = 234
+          Left = 16
+          Top = 218
           Width = 235
           Height = 17
           Caption = 'Копирование бухгалтерских остатков'
-          TabOrder = 9
+          TabOrder = 7
         end
         object cbUserDocClearProcess: TCheckBox
-          Left = 15
-          Top = 210
+          Left = 16
+          Top = 194
           Width = 235
           Height = 17
           Caption = 'Удаление пользоват. документов'
-          TabOrder = 10
+          TabOrder = 8
+        end
+        object cbOnlyOurRemains: TCheckBox
+          Left = 32
+          Top = 122
+          Width = 314
+          Height = 17
+          Caption = 'Вычислять остатки только для рабочих организаций'
+          TabOrder = 9
         end
       end
     end
     object tbsInvCardField: TTabSheet
+      BorderWidth = 3
       Caption = 'Складская карточка'
       ImageIndex = 2
       object GroupBox4: TGroupBox
-        Left = 3
-        Top = 1
-        Width = 681
-        Height = 430
+        Left = 0
+        Top = 0
+        Width = 684
+        Height = 431
+        Align = alClient
         Caption = ' Поля складской карточки '
         TabOrder = 0
         object lvAllInvCardField: TListView
           Left = 10
           Top = 19
-          Width = 325
+          Width = 315
           Height = 400
           Columns = <
             item
@@ -264,9 +248,9 @@ object frmClosePeriod: TfrmClosePeriod
           OnDblClick = lvAllInvCardFieldDblClick
         end
         object lvCheckedInvCardField: TListView
-          Left = 345
+          Left = 355
           Top = 19
-          Width = 325
+          Width = 315
           Height = 400
           Columns = <
             item
@@ -282,16 +266,34 @@ object frmClosePeriod: TfrmClosePeriod
           ViewStyle = vsReport
           OnDblClick = lvCheckedInvCardFieldDblClick
         end
+        object btnInvCardSelectAll: TButton
+          Left = 327
+          Top = 149
+          Width = 25
+          Height = 50
+          Action = actCardSelectAll
+          TabOrder = 2
+        end
+        object btnInvCardSelectNone: TButton
+          Left = 327
+          Top = 232
+          Width = 25
+          Height = 50
+          Action = actCardSelectNone
+          TabOrder = 3
+        end
       end
     end
     object tbsDocumentType: TTabSheet
+      BorderWidth = 3
       Caption = 'Типы документов'
       ImageIndex = 3
       object gbDocumentType: TGroupBox
-        Left = 3
-        Top = 1
-        Width = 681
-        Height = 430
+        Left = 0
+        Top = 0
+        Width = 684
+        Height = 431
+        Align = alClient
         Caption = ' Типы документов '
         TabOrder = 0
         object pnlDontDeleteDocumentType: TPanel
@@ -416,6 +418,65 @@ object frmClosePeriod: TfrmClosePeriod
         end
       end
     end
+    object tbsLog: TTabSheet
+      BorderWidth = 3
+      Caption = 'Лог'
+      ImageIndex = 3
+      object mOutput: TMemo
+        Left = 0
+        Top = 65
+        Width = 684
+        Height = 366
+        Align = alClient
+        Color = clBtnFace
+        ScrollBars = ssVertical
+        TabOrder = 0
+        WantReturns = False
+        WordWrap = False
+      end
+      object pnlProgressBar: TPanel
+        Left = 0
+        Top = 0
+        Width = 684
+        Height = 65
+        Align = alTop
+        BevelOuter = bvNone
+        BorderWidth = 5
+        TabOrder = 1
+        object pbMain: TProgressBar
+          Left = 5
+          Top = 5
+          Width = 674
+          Height = 16
+          Align = alTop
+          Min = 0
+          Max = 100
+          Smooth = True
+          Step = 0
+          TabOrder = 0
+        end
+        object pnlProgressText: TPanel
+          Left = 5
+          Top = 21
+          Width = 674
+          Height = 39
+          Align = alClient
+          BevelOuter = bvNone
+          BorderWidth = 5
+          TabOrder = 1
+          object lblProcess: TLabel
+            Left = 5
+            Top = 5
+            Width = 664
+            Height = 29
+            Align = alClient
+            Alignment = taCenter
+            AutoSize = False
+            WordWrap = True
+          end
+        end
+      end
+    end
   end
   object pnlBottom: TPanel
     Left = 0
@@ -480,6 +541,18 @@ object frmClosePeriod: TfrmClosePeriod
       ImageIndex = 2
       OnExecute = actDeleteUserDocumentToDeleteExecute
       OnUpdate = actDeleteUserDocumentToDeleteUpdate
+    end
+    object actCardSelectAll: TAction
+      Category = 'InvCard'
+      Caption = '>>'
+      OnExecute = actCardSelectAllExecute
+      OnUpdate = actCardSelectAllUpdate
+    end
+    object actCardSelectNone: TAction
+      Category = 'InvCard'
+      Caption = '<<'
+      OnExecute = actCardSelectNoneExecute
+      OnUpdate = actCardSelectNoneUpdate
     end
   end
 end
