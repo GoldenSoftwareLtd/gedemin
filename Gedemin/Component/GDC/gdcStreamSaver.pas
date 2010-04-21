@@ -6111,8 +6111,8 @@ end;
 
 procedure TgdcStreamXMLWriterReader.InternalSaveSettingToStream;
 var
-  DataStr, StorageDataStr: String;
   CDS: TDataSet;
+  AutoAddedExists: Boolean;
 begin
   // заголовок XML-документа
   StreamWriteXMLString(Stream, xmlHeader + NEW_LINE);
@@ -6137,6 +6137,7 @@ begin
   CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSettingPos')];
   if not CDS.IsEmpty then
   begin
+    AutoAddedExists := Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED'));
     TClientDataset(CDS).IndexFieldNames := 'OBJECTORDER';
     CDS.First;
     while not CDS.Eof do
@@ -6148,7 +6149,7 @@ begin
       AddAttribute('objectorder', CDS.FieldByName('OBJECTORDER').AsString);
       AddAttribute('withdetail', CDS.FieldByName('WITHDETAIL').AsString);
       AddAttribute('needmodify', CDS.FieldByName('NEEDMODIFY').AsString);
-      if Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED')) then
+      if AutoAddedExists then
         AddAttribute('autoadded', CDS.FieldByName('AUTOADDED').AsString);
       AddAttribute('objectclass', QuoteString(CDS.FieldByName('OBJECTCLASS').AsString));
       AddAttribute('subtype', QuoteString(CDS.FieldByName('SUBTYPE').AsString));
@@ -6163,45 +6164,15 @@ begin
   end;
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_POS_LIST));
 
-  // 22.03.2010: Мы больше не используем отдельное сохранение/загрузку хранилища
-  {// Позиции хранилища настройки
-  StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_STORAGE_POS_LIST));
-  CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSettingStorage')];
-  if not CDS.IsEmpty then
-  begin
-    CDS.First;
-    while not CDS.Eof do
-    begin
-      AddAttribute('branchname', QuoteString(CDS.FieldByName('BRANCHNAME').AsString));
-      AddAttribute('valuename', QuoteString(CDS.FieldByName('VALUENAME').AsString));
-      AddAttribute('crc', CDS.FieldByName('CRC').AsString);
-      AddAttribute('_xid', CDS.FieldByName('_XID').AsString);
-      AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString);
-
-      StreamWriteXMLString(Stream, AddShortElement(XML_TAG_STORAGE_POS));
-      CDS.Next;
-    end;
-  end;
-  StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_STORAGE_POS_LIST));}
-
   // Закроем тег заголовка настройки
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_HEADER));
 
   CDS := FDataObject.ClientDS[FDataObject.GetObjectIndex('TgdcSetting')];
-  
-  DataStr := CDS.FieldByName('DATA').AsString;
-  StorageDataStr := CDS.FieldByName('STORAGEDATA').AsString;
-
-  // Данные и хранилище настройки
+  // Данные настройки
   StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING_DATA));
-  StreamWriteXMLString(Stream, Trim(DataStr) + NEW_LINE);
+  StreamWriteXMLString(Stream, Trim(CDS.FieldByName('DATA').AsString) + NEW_LINE);
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_DATA));
-  if StrLength(StorageDataStr) > 0 then
-  begin
-    StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_SETTING_STORAGE));
-    StreamWriteXMLString(Stream, StorageDataStr + NEW_LINE);
-    StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING_STORAGE));
-  end;
+
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_SETTING));
 end;
 
