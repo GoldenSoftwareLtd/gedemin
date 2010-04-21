@@ -745,8 +745,6 @@ begin
               // ѕробуем удалить документ
               DeleteSingleDocument(DocumentKeysToDelayedDelete.Keys[I],
                 DocumentKeysToDelayedDelete.ValuesByIndex[I], True);
-              Inc(DeletedCount);
-              Dec(ErrorDocumentCount);
               // ”дал€ем документ из списка отложенных
               DocumentKeysToDelayedDelete.Delete(I);
             except
@@ -1073,12 +1071,15 @@ var
 
   procedure UpdateFirstDocKey(const OldDocKey, NewDocKey: TID; const NewDocDate: TDateTime);
   begin
-    // обновим ссылку на родительскую карточку
-    ibsqlUpdateFirstDocKey.ParamByName('OLDDOCKEY').AsInteger := OldDocKey;
-    ibsqlUpdateFirstDocKey.ParamByName('NEWDOCKEY').AsInteger := NewDocKey;
-    ibsqlUpdateFirstDocKey.ParamByName('NEWDATE').AsDateTime := NewDocDate;
-    ibsqlUpdateFirstDocKey.ExecQuery;
-    ibsqlUpdateFirstDocKey.Close;
+    if NewDocKey > -1 then
+    begin
+      // обновим ссылку на родительскую карточку
+      ibsqlUpdateFirstDocKey.ParamByName('OLDDOCKEY').AsInteger := OldDocKey;
+      ibsqlUpdateFirstDocKey.ParamByName('NEWDOCKEY').AsInteger := NewDocKey;
+      ibsqlUpdateFirstDocKey.ParamByName('NEWDATE').AsDateTime := NewDocDate;
+      ibsqlUpdateFirstDocKey.ExecQuery;
+      ibsqlUpdateFirstDocKey.Close;
+    end;  
   end;
 
   procedure UpdateInvMovement(const OldCardkey, NewCardkey: TID);
@@ -1199,6 +1200,8 @@ begin
     ibsql.ExecQuery;
 
     RecordCounter := 0;
+    FirstDocumentKey := -1;
+    FirstDate := FCloseDate;
     while not ibsql.Eof do
     begin
       // ѕри нажатии Escape прервем процесс

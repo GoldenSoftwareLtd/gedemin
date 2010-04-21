@@ -126,7 +126,8 @@ uses
   gdc_frmStorage_unit,
   gd_ClassList,
   gd_security,
-  Storages;
+  Storages,
+  IB, IBErrorCodes;
 
 procedure Register;
 begin
@@ -254,7 +255,19 @@ begin
           qPos.ParamByName('DBID').AsInteger := DBID;
           qPos.ParamByName('CAT').AsString := TgdcStorage.GetListTable('');
 
-          qPos.ExecQuery;
+          try
+            qPos.ExecQuery;
+          except
+            on E: EIBInterbaseError do
+            begin
+              if E.IBErrorCode = isc_unique_key_violation then
+                AddWarning('При конвертации хранилища пропущен дублирующийся элемент.', clBlack)
+              else
+                raise;
+            end
+            else
+              raise;
+          end;
         finally
           F.Storage.CloseFolder(F, False);
         end;
