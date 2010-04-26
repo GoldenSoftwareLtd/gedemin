@@ -38,26 +38,6 @@ const
   OnlyForClientDataSet = 'Method only for MemTable';
 
 type
-  TgsIBDataSet = class(TIBDataSet)
-  private
-    FParams: TParams;
-    procedure SetParamsList(Value: TParams);
-    //аналогично TIBQuery
-    procedure SetParams;
-    procedure SetParamsFromCursor;
-
-  protected
-    procedure InternalOpen; override;  
-
-  public
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-    function ParamByName(const Value: string): TParam;
-
-    property Params: TParams read FParams write SetParamsList stored False;
-  end;
-
-type
   TgsParam = class(TAutoObject, IgsParam)
   private
     FParam: TParam;
@@ -206,8 +186,7 @@ type
     function  CreateBlobStream(const Field: IgsFieldComponent; Mode: TgsBlobStreamMode): IgsStream; safecall;
     function  Locate(const KeyFields: WideString; KeyValues: OleVariant; CaseIns: WordBool;
                      PartialKey: WordBool): WordBool; safecall;
-    function  Get_RealDataSet: TDataSet; safecall;
-
+    function  Get_Self: Integer; safecall;
   public
     constructor Create(const AnMemTable: Boolean; const AnChildClass: Boolean = False);
     destructor Destroy; override;
@@ -228,6 +207,7 @@ type
     FCurrentField: TField;
     FMasterDetail: TFourStringList;
     FWasCreateTransaction: Boolean;
+    FDataSourceList: TObjectList;
 
     function GetQuery(Index: Integer): TDataSet;
     function GetCount: Integer;
@@ -245,7 +225,7 @@ type
     procedure DeleteByName(const AName: WideString); safecall;
     procedure MainInitialize; safecall;
     procedure Commit; safecall;
-
+    function Get_Self: Integer; safecall;
   public
     constructor Create(const AnDatabase: TIBDatabase; const AnTransaction: TIBTransaction;
      const AnIsRealList: Boolean = False);
@@ -551,24 +531,10 @@ begin
 end;
 
 procedure TgsDataSet.AddField(const FieldName: WideString; const FieldType: WideString;
- FieldSize: Integer; Required: WordBool); safecall;
-//var
-//  LocField: TField;
+  FieldSize: Integer; Required: WordBool); safecall;
 begin
-//  if FDataSet is TClientDataSet then
-    FDataSet.FieldDefs.Add(FieldName, GetFieldTypeFromStr(FieldType), FieldSize,
-     Required)
-{  else
-  begin
-    LocField := TField.Create(nil);
-    LocField.FieldName := FieldName;
-    LocField.FieldKind := fkCalculated;
-    TFieldCracker(LocField).SetDataType(GetFieldTypeFromStr(FieldType));
-//    TFieldCracker(LocField).FDataSize := FieldSize;
-    LocField.Required := Required;
-    LocField.DataSet := FDataSet;
-    FDataSet.Fields.Add(LocField);
-  end;}
+  FDataSet.FieldDefs.Add(FieldName, GetFieldTypeFromStr(FieldType), FieldSize,
+    Required)
 end;
 
 procedure TgsDataSet.ClearFields;
@@ -685,6 +651,7 @@ begin
   end;
   FQueryList := TList.Create;
   FMasterDetail := TFourStringList.Create;
+  FDataSourceList := TObjectList.Create;
 end;
 
 destructor TgsQueryList.Destroy;
@@ -697,6 +664,7 @@ begin
   except
   end;
   FreeAndNil(FMasterDetail);
+  FreeAndNil(FDataSourceList);
 
   inherited Destroy;
 end;
@@ -810,9 +778,9 @@ begin
                 MStr.Clear;
                 CompliteDataSetStream(MStr, Query[J], Get_Query(J).FetchBlob);
                 MStr.Position := 0;
-                LocReportResult.DataSet[I].LoadFromStream(MStr, True);
+                TgsClientDataSet(LocReportResult.DataSet[I]).LoadFromStream(MStr, True);
                 {$ENDIF}
-                LocReportResult.DataSet[I].IndexFieldNames := Get_Query(J).IndexFields;
+                TgsClientDataSet(LocReportResult.DataSet[I]).IndexFieldNames := Get_Query(J).IndexFields;
               finally
                 Query[J].Active := True;
                 Query[J].GotoBookmark(BM);
@@ -859,6 +827,7 @@ procedure TgsQueryList.AddMasterDetail(const MasterTable, MasterField,
 var
   I: Integer;
   TempDS: TDataSet;
+  TempCDS: TClientDataSet;
 begin
   I := GetIndexQueryByName(MasterTable);
   if I > -1 then
@@ -877,6 +846,21 @@ begin
     if not CheckFieldNames(TempDS, DetailField) then
       raise Exception.Create('Specified detail field not found.');
   end;
+
+  if TgsDataSet(FQueryList.Items[I]).DataSet is TClientDataSet then
+  begin
+    TempCDS := TgsDataSet(FQueryList.Items[I]).GetClientDataSet;
+    if TempCDS.MasterSource = nil then
+    begin
+      TempCDS.MasterSource := TDataSource.Create(nil);
+      FDataSourceList.Add(TempCDS.MasterSource);
+    end;
+    TempCDS.MasterSource.DataSet := TgsDataSet(FQueryList.Items[GetIndexQueryByName(MasterTable)]).DataSet;
+    TempCDS.IndexFieldNames := DetailField;
+    TempCDS.MasterFields := MasterField;
+
+  end else
+    raise Exception.Create('Not avaible.');       
 
   FMasterDetail.AddRecord(MasterTable, MasterField, DetailTable, DetailField);
 end;
@@ -933,7 +917,13 @@ begin
   end;
   FQueryList.Clear;
   FMasterDetail.Clear;
+  FDataSourceList.Clear;
   FCurrentField := nil;
+end;
+
+function TgsQueryList.Get_Self: Integer;
+begin
+  Result := Integer(Self);
 end;
 
 { TgsParam }
@@ -2043,141 +2033,9 @@ begin
   Result := FDataSet.Locate(KeyFields, KeyValues, LO);
 end;
 
-function TgsDataSet.Get_RealDataSet: TDataSet;
+function TgsDataSet.Get_Self: Integer;
 begin
-  Result := GetDataSet;
-end;
-
-{ TgsIBDataSet }
-
-constructor TgsIBDataSet.Create(AOwner: TComponent);
-begin
-  inherited Create(AOwner);
-  FParams := TParams.Create(Self);
-end;
-
-destructor TgsIBDataSet.Destroy;
-begin
-  FParams.Free;
-  inherited;
-end;
-
-procedure TgsIBDataSet.InternalOpen;
-begin
-  if DataSource <> nil then
-    SetParamsFromCursor;
-  SetParams;
-
-  inherited InternalOpen;
-end;
-
-function TgsIBDataSet.ParamByName(const Value: string): TParam;
-var
-  i: Integer;
-  L: TParams;
-begin
-  if not InternalPrepared then
-    InternalPrepare;
-  L := TParams.Create(Self);
-  try
-    for i := 0 to QSelect.Params.Count - 1 do
-      TParam(L.Add).Name := QSelect.Params[i].Name;
-
-    FParams.Assign(L);
-  finally
-    L.Free;
-  end;
-  Result := FParams.ParamByName(Value);
-end;
-
-procedure TgsIBDataSet.SetParams;
-var
-  i : integer;
-  Buffer: Pointer;
-begin
-  for I := 0 to FParams.Count - 1 do
-  begin
-    if Params[i].IsNull then
-      SQLParams[i].IsNull := True
-    else begin
-      SQLParams[i].IsNull := False;
-      case Params[i].DataType of
-        ftBytes:
-        begin
-          GetMem(Buffer,Params[i].GetDataSize);
-          try
-            Params[i].GetData(Buffer);
-            SQLParams[i].AsPointer := Buffer;
-          finally
-            FreeMem(Buffer);
-          end;
-        end;
-        ftString, ftFixedChar:
-          SQLParams[i].AsString := Params[i].AsString;
-        ftBoolean, ftSmallint, ftWord:
-          SQLParams[i].AsShort := Params[i].AsSmallInt;
-        ftInteger:
-          SQLParams[i].AsLong := Params[i].AsInteger;
-{        ftLargeInt:
-          SQLParams[i].AsInt64 := Params[i].AsLargeInt;  }
-        ftFloat:
-         SQLParams[i].AsDouble := Params[i].AsFloat;
-        ftBCD, ftCurrency:
-          SQLParams[i].AsCurrency := Params[i].AsCurrency;
-        ftDate:
-          SQLParams[i].AsDate := Params[i].AsDateTime;
-        ftTime:
-          SQLParams[i].AsTime := Params[i].AsDateTime;
-        ftDateTime:
-          SQLParams[i].AsDateTime := Params[i].AsDateTime;
-        ftBlob, ftMemo:
-          SQLParams[i].AsString := Params[i].AsString;
-        else
-          IBError(ibxeNotSupported, [nil]);
-      end;
-    end;
-  end;
-end;
-
-procedure TgsIBDataSet.SetParamsFromCursor;
-var
-  I: Integer;
-  DataSet: TDataSet;
-
-  procedure CheckRequiredParams;
-  var
-    I: Integer;
-  begin
-    for I := 0 to FParams.Count - 1 do
-    with FParams[I] do
-      if not Bound then
-        IBError(ibxeRequiredParamNotSet, [nil]);
-  end;
-begin
-  if DataSource <> nil then
-  begin
-    DataSet := DataSource.DataSet;
-    if DataSet <> nil then
-    begin
-      DataSet.FieldDefs.Update;
-      for I := 0 to FParams.Count - 1 do
-        with FParams[I] do
-          if not Bound then
-          begin
-            AssignField(DataSet.FieldByName(Name));
-            Bound := False;
-          end;
-    end
-    else
-      CheckRequiredParams;
-  end
-  else
-    CheckRequiredParams;
-end;
-
-procedure TgsIBDataSet.SetParamsList(Value: TParams);
-begin
-  FParams.AssignValues(Value);
+  Result := Integer(DataSet);
 end;
 
 initialization

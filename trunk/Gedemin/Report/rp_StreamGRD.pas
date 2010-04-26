@@ -106,6 +106,7 @@ end;
 procedure TGRDReportInterface.CreatePreviewForm;
 begin
   FPreviewForm := TdlgViewResultEx.Create(Application);
+  TdlgViewResultEx(FPreviewForm).ReportForm := True;
 end;
 
 procedure TGRDReportInterface.PrintReport;

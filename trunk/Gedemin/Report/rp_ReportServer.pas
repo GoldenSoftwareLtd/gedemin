@@ -954,7 +954,7 @@ function TBaseReport.ExecuteFunctionWithoutParam(const AnFunction: TrpCustomFunc
 var
   LocDispatch: IDispatch;
   LocReportResult: IgsQueryList;
-  VarResult: Variant;
+{  VarResult: Variant;  }
  {$IFNDEF GEDEMIN}
   LocRpScrCtrl: TReportScript;
  {$ENDIF}
@@ -1002,7 +1002,7 @@ begin
         begin
           LocDispatch := AnParamAndResult;
           LocReportResult := LocDispatch as IgsQueryList;
-          try
+{          try
             VarResult := LocReportResult.ResultStream;
 
             AnReportResult.TempStream.Size := VarArrayHighBound(VarResult, 1) - VarArrayLowBound(VarResult, 1) + 1;
@@ -1016,7 +1016,7 @@ begin
             end;
           finally
             LocReportResult.Clear;
-          end                      
+          end    }                  
         end else
         begin
           Result := False;

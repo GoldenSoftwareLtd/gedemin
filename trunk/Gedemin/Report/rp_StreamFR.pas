@@ -595,6 +595,7 @@ begin
   inherited Create;
 
   FfrDataSetList := TStringList.Create;
+  FfrDataSetList.Sorted := True;
 end;
 
 destructor Tfr_ReportResult.Destroy;
@@ -605,8 +606,6 @@ begin
 
   FreeAndNil(FfrDataSetList);
 end;
-
-{Alexander: вот здесь добавл€ютс€ DataSet'ы в FR}
 
 function Tfr_ReportResult.AddDataSet(const AnName: String): Integer;
 {$IFOPT C+}
@@ -629,7 +628,6 @@ begin
   TfrDBDataSet(FfrDataSetList.Objects[AnIndex]).Free;
   FfrDataSetList.Delete(AnIndex);
   Assert(FfrDataSetList.Count = Count);
-
 end;
 
 function Tfr_ReportResult.frDataSetByName(const AnName: String): TfrDBDataSet;
@@ -648,21 +646,25 @@ begin
 end;
 
 procedure Tfr_ReportResult.AddDataSetList(const AnBaseQueryList: Variant);
-{var
+var
   LocDispatch: IDispatch;
   LocReportResult: IgsQueryList;
-  I, J: Integer;        }
+  I, J, K: Integer;
+  DS: TDataSet;
 begin
   //–азбираем BaseQueryList и добавл€ем его в Fast Report
-{  LocDispatch := AnBaseQueryList;
+  LocDispatch := AnBaseQueryList;
   LocReportResult := LocDispatch as IgsQueryList;
+  QueryList := LocReportResult;
   for J := 0 to LocReportResult.Count - 1 do
   begin
-    I := FfrDataSetList.AddObject(AnsiUpperCase(LocReportResult.Query[J].RealDataSet.Name), TfrDBDataSet.Create(nil));
+    DS := TDataSet(LocReportResult.Query[J].Get_Self);
+    K := inherited AddDataSet(DS.Name, DS);
+    I := FfrDataSetList.AddObject(AnsiUpperCase(DS.Name), TfrDBDataSet.Create(nil));
+    Assert(K = I);
     TfrDBDataSet(FfrDataSetList.Objects[I]).Name := FfrDataSetList.Strings[I];
-    TfrDBDataSet(FfrDataSetList.Objects[I]).DataSet := LocReportResult.Query[J].RealDataSet;
-  end;}
-
+    TfrDBDataSet(FfrDataSetList.Objects[I]).DataSet := DS;
+  end;
 end;
 
 { Tgs_frBand }

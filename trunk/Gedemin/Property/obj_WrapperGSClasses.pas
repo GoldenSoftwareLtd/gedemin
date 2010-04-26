@@ -3697,6 +3697,7 @@ type
     procedure Set_LinkFunctionLanguage(const Value: WideString); safecall;
     function  Get_Required: WordBool; safecall;
     procedure Set_Required(Value: WordBool); safecall;
+    procedure Assign_(const Source: IgsParamData); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3714,6 +3715,7 @@ type
       const AnLinkFunctionLanguage: WideString; const AnComment: WideString): SYSINT; safecall;
     function GetVariantArray: OleVariant; safecall;
     function  Get_Params(Index: Integer): IgsParamData; safecall;
+    procedure Assign_(const Source: IgsParamList); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -17782,6 +17784,11 @@ begin
   Result := GetParamList.AddParam(AnDisplayName, AnDisplayName, StringToParamType(AnParamType), AnComment);
 end;
 
+procedure TwrpGsParamList.Assign_(const Source: IgsParamList);
+begin
+  GetParamList.Assign(InterfaceToObject(Source) as TgsParamList);
+end;
+
 class function TwrpGsParamList.CreateObject(const DelphiClass: TClass;
   const Params: OleVariant): TObject;
 begin
@@ -17926,6 +17933,11 @@ end;
 function TwrpGsParamData.GetParamData: TgsParamData;
 begin
   Result := GetObject as TgsParamData;
+end;
+
+procedure TwrpGsParamData.Assign_(const Source: IgsParamData);
+begin
+  GetParamData.Assign(InterfaceToObject(Source) as TgsParamData);
 end;
 
 { TwrpGsFrmGedeminMain }
