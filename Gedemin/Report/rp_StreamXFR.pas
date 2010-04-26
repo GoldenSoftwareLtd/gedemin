@@ -265,7 +265,7 @@ begin
       end;
     end;
     FReportStream.Destination:= dsFile;
-    FReportStream.OutputFile:= cTempFileName;
+    FReportStream.OutputFile:= ExtractFilePath(Application.ExeName)+ cTempFileName;
     FReportStream.Execute;
     PassThroughFile(cTempFileName);
 {    if FileExists(cTempFileName) then
@@ -291,26 +291,85 @@ type
 
 var
   F: File;
+  F1, F2: Text;
   P: PR;
-begin
-  AssignFile(F, FileName);
-  Reset(F, 1);
-  try
-    GetMem(P, FileSize(F) + SizeOf(Word));
-    try
-      P^.Size := FileSize(F);
-      BlockRead(F, P^.Data, P^.Size);
-      AnsiToOemBuff(@(P^.Data), @(P^.Data), P^.Size);
+  S, S1: String;
+  FileCount: Integer;
+  Flag : Boolean;
+  I, LastPos: Integer;
+  tp: String;
 
-      Printer.BeginDoc;
-      Escape(Printer.Handle, PASSTHROUGH, 0, Pointer(P), nil);
-      Printer.EndDoc;
-    finally
-      FreeMem(P, P^.Size + SizeOf(Word));
+begin
+  tp := ExtractFilePath(Application.ExeName);
+
+  AssignFile(F1, tp + FileName);
+
+  Reset(F1);
+  FileCount := 1;
+  AssignFile(F2, tp + 'Page' + IntToStr(FileCount) + '.xfr');
+  Rewrite(F2);
+  LastPos := 1;
+  while not EOF(F1) do
+  begin
+    ReadLn(F1, S);
+    S1 := '';
+    Flag := False;
+
+    I := 1;
+    while (I <= Length(S)) and (not Flag) do
+    begin
+      if S[I] <> Chr(12) then
+        S1 := S1 + S[I]
+      else
+      begin
+        Flag := true;
+        LastPos := I;
+      end;
+      Inc(I);
     end;
-  finally
-    CloseFile(F);
+
+    if Flag then
+    begin
+      WriteLn(F2, S1);
+      CloseFile(F2);
+      Inc(FileCount);
+      AssignFile(F2, tp + 'Page' + IntToStr(FileCount) + '.xfr');
+      Rewrite(F2);
+      for I := LastPos to Length(S) do
+      begin
+        if S[I] <> Chr(12) then
+          S1 := S1 + S[I] ;
+      end;
+      WriteLn(F2, S1);
+    end
+    else
+      WriteLn(F2, S1);
   end;
-end;
+  CloseFile(F2);
+  CloseFile(F1);
+
+  For I := 1 to FileCount do
+  begin
+    AssignFile(F, tp + 'Page' + IntToStr(I) + '.xfr');
+    Reset(F, 1);
+    try
+      GetMem(P, FileSize(F) + SizeOf(Word));
+      try
+        P^.Size := FileSize(F);
+        BlockRead(F, P^.Data, P^.Size);
+        AnsiToOemBuff(@(P^.Data), @(P^.Data), P^.Size);
+        Printer.BeginDoc;
+        Escape(Printer.Handle, PASSTHROUGH, 0, Pointer(P), nil);
+        Printer.EndDoc;
+      finally
+        FreeMem(P, P^.Size + SizeOf(Word));
+      end;
+    finally
+      CloseFile(F);
+    end;
+    if I < FileCount then
+      Application.MessageBox('Вставте следующую страницу', 'Внимание', MB_OK + MB_SYSTEMMODAL);
+  end
+end; 
 
 end.
