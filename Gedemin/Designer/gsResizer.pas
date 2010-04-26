@@ -3318,6 +3318,7 @@ var
   tr: TIBTransaction;
   gdcEvt: TgdcEvent;
   gdcDO: TgdcDelphiObject;
+  St: TgsIBStorage;
 begin
   if not DoBeforeExit(True) then
     Exit;
@@ -3513,9 +3514,7 @@ begin
 
       end;
 
-
-
-
+      St := GlobalStorage;
       F.Seek(0, soFromBeginning);
       if cfsUserCreated in TCreateableForm(FEditForm).CreateableFormState then
       begin
@@ -3533,12 +3532,13 @@ begin
         else
           GlobalStorage.WriteInteger(st_ds_NewFormPath + '\' + S, st_ds_InternalType, st_ds_SimplyForm);
       end
-      else if FDesignerType = dtGlobal then
-      begin
-          GlobalStorage.WriteStream(FResourceName, FFormSubtype, F)
-      end
-      else
-        UserStorage.WriteStream(FResourceName, FFormSubtype, F);
+      else begin
+        if FDesignerType <> dtGlobal then
+          St := UserStorage;
+
+        St.WriteStream(FResourceName, FFormSubtype, F);
+      end;
+      St.SaveToDatabase;
     end;
   finally
     F.Free;
