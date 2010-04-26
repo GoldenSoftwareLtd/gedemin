@@ -1043,8 +1043,8 @@ begin
         begin
           MessageBox(0,
             PChar('Структура файла базы данных устарела.'#13#10#13#10 +
-            'Версия вашей БД: ' + DBVersion + #13#10 +
-            'Требуется версия: ' + cProcList[0].ModifyVersion + #13#10#13#10 +
+            'Версия вашей БД: ' + DBVersion + #13#10#13#10 +
+            //'Требуется версия: ' + cProcList[0].ModifyVersion + #13#10#13#10 +
             'Обратитесь к разработчикам системы Гедымин.'),
             'Внимание',
             MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
@@ -1056,8 +1056,8 @@ begin
             if MessageBox(0,
                 PChar(
                 'Структура файла базы устарела и будет обновлена.'#13#10#13#10 +
-                'Версия вашей БД: ' + DBVersion + #13#10 +
-                'Требуется версия: ' + cProcList[cProcCount - 1].ModifyVersion + #13#10#13#10 +
+                'Версия вашей БД: ' + DBVersion + #13#10#13#10 +
+                //'Требуется версия: ' + cProcList[cProcCount - 1].ModifyVersion + #13#10#13#10 +
                 'Перед обновлением необходимо создать архивную копию!'),
                 'Внимание',
               MB_OKCANCEL or MB_ICONQUESTION or MB_TASKMODAL or MB_TOPMOST) = IDOK then
