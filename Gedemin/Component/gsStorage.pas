@@ -2487,6 +2487,9 @@ begin
   if (ATr = nil) and (not IBLogin.Database.Connected) then
     exit;
 
+  if not IsModified then
+    exit;  
+
   if ATr = nil then
     Tr := TIBTransaction.Create(nil)
   else
@@ -2546,14 +2549,17 @@ var
   procedure DoRecurse(F: TgsStorageFolder);
   var
     V: TgsStorageValue;
-    RB: Integer;
+    //RB: Integer;
+    Prnt: Integer;
   begin
     F.FID := q.FieldByName('id').AsInteger;
     F.FModified := q.FieldByName('editiondate').AsDateTime;
-    RB := q.FieldByName('rb').AsInteger;
+    //RB := q.FieldByName('rb').AsInteger;
+    Prnt := q.FieldByName('id').AsInteger;
     q.Next;
 
-    while (not q.EOF) and (q.FieldByName('rb').AsInteger <= RB) do
+    //while (not q.EOF) and (q.FieldByName('rb').AsInteger <= RB) do
+    while (not q.EOF) and (q.FieldByName('parent').AsInteger = Prnt) do
     begin
       if q.FieldByName('data_type').AsString = 'F' then
       begin
@@ -2635,11 +2641,19 @@ begin
     else
       q.Transaction := ATr;
     q.SQL.Text :=
-      'SELECT d.id, d.lb, d.rb, d.parent, d.name, d.data_type, d.str_data, ' +
+      'WITH RECURSIVE storage_tree AS ( ' +
+      '  SELECT r.* FROM gd_storage_data r ' +
+      '    WHERE r.data_type = :DT AND r.parent IS NULL ' + SQL +
+      '  UNION ALL ' +
+      '  SELECT d.* FROM gd_storage_data d ' +
+      '    JOIN storage_tree t ON d.parent = t.id ' +
+      ') ' +
+      'SELECT * FROM storage_tree ';
+      {'SELECT d.id, d.lb, d.rb, d.parent, d.name, d.data_type, d.str_data, ' +
       '  d.int_data, d.datetime_data, d.curr_data, d.blob_data, d.editiondate ' +
       'FROM gd_storage_data d JOIN gd_storage_data r ' +
       '  ON d.lb BETWEEN r.lb AND r.rb AND r.data_type = :DT AND r.parent IS NULL ' + SQL +
-      'ORDER BY d.lb';
+      'ORDER BY d.lb';}
     q.ParamByName('DT').AsString := FDataType;
     if FDataType <> cStorageGlobal then
       q.ParamByName('ID').AsInteger := FObjectKey;

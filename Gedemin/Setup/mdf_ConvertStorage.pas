@@ -7,12 +7,13 @@ uses
 
 procedure ConvertStorage(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddEdtiorKeyEditionDate2Storage(IBDB: TIBDatabase; Log: TModifyLog);
+procedure DropLBRBStorageTree(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
 uses
   Classes, DB, IBSQL, IBBlob, SysUtils, mdf_MetaData_unit, gsStorage,
-  gdcLBRBTreeMetaData, gdcStorage_Types;
+  {gdcLBRBTreeMetaData,} gdcStorage_Types;
 
 const
   cCreateDomain =
@@ -34,8 +35,8 @@ const
   cCreateTable =
     'CREATE TABLE gd_storage_data ( '#13#10 +
     '  id             dintkey, '#13#10 +
-    '  lb             dlb, '#13#10 +
-    '  rb             drb, '#13#10 +
+    '  /*lb             dlb,*/ '#13#10 +
+    '  /*rb             drb,*/ '#13#10 +
     '  parent         dparent, '#13#10 +
     '  name           dtext120 NOT NULL, '#13#10 +
     '  data_type      dstorage_data_type, '#13#10 +
@@ -253,8 +254,8 @@ var
   end;
 
 var
-  SL: TStringList;
-  I: Integer;
+  //SL: TStringList;
+  //I: Integer;
   FNeedToCreateMeta: Boolean;
 begin
   FNeedToCreateMeta := False;
@@ -320,7 +321,7 @@ begin
           FTransaction.Commit;
           FTransaction.StartTransaction;
 
-          SL := TStringList.Create;
+          {SL := TStringList.Create;
           try
             CreateLBRBTreeMetaDataScript(SL, 'GD', 'STORAGE_DATA', 'GD_STORAGE_DATA');
             for I := 0 to 2 do
@@ -346,7 +347,7 @@ begin
             end;
           finally
             SL.Free;
-          end;
+          end;}
 
           FIBSQL.Close;
           FIBSQL.SQL.Text := cCreateTrigger;
@@ -432,6 +433,15 @@ begin
         except
         end;
 
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO fin_versioninfo ' +
+          '  VALUES (116, ''0000.0001.0000.0147'', ''26.04.2010'', ''Storage tree is not a lb-rb tree any more'')';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
+
         FTransaction.Commit;
       finally
         FIBSQL.Free;
@@ -496,7 +506,7 @@ begin
             FIBSQL.ExecQuery;
           except
           end;
-        end;  
+        end;
 
         FTransaction.Commit;
       finally
@@ -516,5 +526,155 @@ begin
   end;
 end;
 
+procedure DropLBRBStorageTree(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FIBSQL := TIBSQL.Create(nil);
+      try
+        FTransaction.StartTransaction;
+
+        FIBSQL.Transaction := FTransaction;
+        FIBSQL.ParamCheck := False;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$trigger_name FROM rdb$triggers ' +
+          'WHERE rdb$trigger_name = ''GD_BI_STORAGE_DATA10'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'DROP TRIGGER GD_BI_STORAGE_DATA10 ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$trigger_name FROM rdb$triggers ' +
+          'WHERE rdb$trigger_name = ''GD_BU_STORAGE_DATA10'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'DROP TRIGGER GD_BU_STORAGE_DATA10 ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$procedure_name FROM rdb$procedures ' +
+          'WHERE rdb$procedure_name = ''GD_P_EL_STORAGE_DATA'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'DROP PROCEDURE GD_P_EL_STORAGE_DATA ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$procedure_name FROM rdb$procedures ' +
+          'WHERE rdb$procedure_name = ''GD_P_RESTRUCT_STORAGE_DATA'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'DROP PROCEDURE GD_P_RESTRUCT_STORAGE_DATA ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$procedure_name FROM rdb$procedures ' +
+          'WHERE rdb$procedure_name = ''GD_P_GCHC_STORAGE_DATA'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'DROP PROCEDURE GD_P_GCHC_STORAGE_DATA ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$exception_name FROM rdb$exceptions ' +
+          'WHERE rdb$exception_name = ''GD_E_INVALIDTREESTORAGE_DATA'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'DROP EXCEPTION GD_E_INVALIDTREESTORAGE_DATA ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$field_name FROM rdb$relation_fields ' +
+          'WHERE rdb$relation_name = ''GD_STORAGE_DATA'' AND rdb$field_name = ''LB'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'ALTER TABLE GD_STORAGE_DATA DROP CONSTRAINT GD_CHK_STORAGE_DATA_TR_LMT ';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'DROP INDEX GD_X_STORAGE_DATA_LB ';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'ALTER TABLE GD_STORAGE_DATA DROP LB ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$field_name FROM rdb$relation_fields ' +
+          'WHERE rdb$relation_name = ''GD_STORAGE_DATA'' AND rdb$field_name = ''RB'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.Eof then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'DROP INDEX GD_X_STORAGE_DATA_RB ';
+          FIBSQL.ExecQuery;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := 'ALTER TABLE GD_STORAGE_DATA DROP RB ';
+          FIBSQL.ExecQuery;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO fin_versioninfo ' +
+          '  VALUES (116, ''0000.0001.0000.0147'', ''26.04.2010'', ''Storage tree is not a lb-rb tree any more'')';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
+
+        FTransaction.Commit;
+      finally
+        FIBSQL.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FTransaction.Free;
+  end;
+end;
 
 end.

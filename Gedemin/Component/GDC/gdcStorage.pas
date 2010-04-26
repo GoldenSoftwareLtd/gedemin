@@ -64,7 +64,7 @@ uses
   gdcBaseInterface, IBDataBase, gdcTree, gsStorage;
 
 type
-  TgdcStorage = class(TgdcLBRBTree)
+  TgdcStorage = class(TgdcTree)
   protected
     procedure _DoOnNewRecord; override;
     procedure DoAfterPost; override;
@@ -101,7 +101,6 @@ type
 
   public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetSubSetList: String; override;
   end;
 
   CgdcStorage = class of TgdcStorage;
@@ -379,11 +378,6 @@ begin
   {M}      ClearMacrosStack2('TGDCSTORAGEVALUE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
   {M}  end;
   {END MACRO}
-end;
-
-class function TgdcStorageValue.GetSubSetList: String;
-begin
-  Result := StringReplace(inherited GetSubSetList, ';ByLBRB;ByRootID;ByRootName;', ';', []);
 end;
 
 procedure TgdcStorageValue.GetWhereClauseConditions(S: TStrings);

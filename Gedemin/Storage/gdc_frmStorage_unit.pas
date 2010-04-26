@@ -90,7 +90,7 @@ end;
 procedure Tgdc_frmStorage.lkupStorageChange(Sender: TObject);
 begin
   gdcStorageFolder.Close;
-  gdcStorageFolder.ParamByName('RootID').AsInteger := lkupStorage.CurrentKeyInt;
+  gdcStorageFolder.ParamByName('Parent').AsInteger := lkupStorage.CurrentKeyInt;
   gdcStorageFolder.Open;
 end;
 
