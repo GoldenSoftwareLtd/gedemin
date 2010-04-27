@@ -4031,10 +4031,18 @@ begin
   {END MACRO}
   // ќпределим использовать ли новый метод постоени€ запроса через SELECT FROM SELECT
   if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
-    FUseSelectFromSelect := True
+  begin
+    // ≈сли FUseSelectFromSelect изменилс€, то будем пересобирать запрос
+    FSQLInitialized := (FUseSelectFromSelect = True);
+    FUseSelectFromSelect := True;
+  end
   else
+  begin
+    // ≈сли FUseSelectFromSelect изменилс€, то будем пересобирать запрос
+    FSQLInitialized := (FUseSelectFromSelect = False);
     FUseSelectFromSelect := False;
-
+  end;
+  
   inherited;
 
   InitIBSQL;
@@ -5368,12 +5376,19 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-
   // ќпределим использовать ли новый метод постоени€ запроса через SELECT FROM SELECT
   if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
-    FUseSelectFromSelect := True
+  begin
+    // ≈сли FUseSelectFromSelect изменилс€, то будем пересобирать запрос
+    FSQLInitialized := (FUseSelectFromSelect = True);
+    FUseSelectFromSelect := True;
+  end
   else
+  begin
+    // ≈сли FUseSelectFromSelect изменилс€, то будем пересобирать запрос
+    FSQLInitialized := (FUseSelectFromSelect = False);
     FUseSelectFromSelect := False;
+  end;
 
   inherited DoBeforeOpen;
 

@@ -39,6 +39,9 @@ const
   cBalanceForeignKey =
     'ALTER TABLE ac_entry_balance ADD CONSTRAINT gd_fk_entry_bal_ac FOREIGN KEY (accountkey) REFERENCES ac_account (id) ON UPDATE CASCADE';
 
+  cBalanceIndex01 =
+    'CREATE INDEX ac_entry_balance_accountkey ON ac_entry_balance (accountkey) ';
+
   cBalanceAutoincrementTrigger =
     'CREATE OR ALTER TRIGGER ac_bi_entry_balance FOR ac_entry_balance '#13#10 +
     'ACTIVE BEFORE INSERT POSITION 0 '#13#10 +
@@ -1002,6 +1005,49 @@ begin
         FIBSQL.ExecQuery;
         Log('Корректировка процедуры AT_P_SYNC прошла успешно');
 
+        // Формирование списка полей-признаков из AC_ENTRY
+        AcEntryBalanceStr := cAC_ENTRY_BALANCETemplate;
+        ACFieldList := '';
+        NEWFieldList := '';
+        OLDFieldList := '';
+        ibsqlFields := TIBSQL.Create(nil);
+        gdcField := TgdcField.Create(nil);
+        try
+          gdcField.SubSet := 'ByFieldName';
+          ibsqlFields.Transaction := FTransaction;
+          ibsqlFields.ParamCheck := False;
+          ibsqlFields.SQL.Text :=
+            ' SELECT ' +
+            '   r.rdb$field_name AS FieldName, ' +
+            '   r.rdb$field_source AS DomainName ' +
+            ' FROM ' +
+            '   rdb$relation_fields r ' +
+            ' WHERE ' +
+            '   r.rdb$relation_name = ''AC_ENTRY'' ' +
+            '   AND r.rdb$field_name STARTING WITH ''USR$'' ';
+          ibsqlFields.ExecQuery;
+          while not ibsqlFields.Eof do
+          begin
+            gdcField.Close;
+            gdcField.ParamByName('fieldname').AsString := Trim(ibsqlFields.FieldByName('DomainName').AsString);
+            gdcField.Open;
+
+            ACFieldList := ACFieldList + ', ' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
+            NEWFieldList := NEWFieldList + ', NEW.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
+            OLDFieldList := OLDFieldList + ', OLD.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
+
+            AcEntryBalanceStr := AcEntryBalanceStr + ', ' +
+              Trim(ibsqlFields.FieldByName('FIELDNAME').AsString) + '  ' +
+              gdcField.GetDomainText(False, True);
+
+            ibsqlFields.Next;
+          end;
+          AcEntryBalanceStr := AcEntryBalanceStr + ')';
+        finally
+          gdcField.Free;
+          ibsqlFields.Free;
+        end;
+
         // генератор GD_G_ENTRY_BALANCE_DATE
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
@@ -1022,45 +1068,6 @@ begin
         FIBSQL.ExecQuery;
         if FIBSQL.RecordCount = 0 then
         begin
-          AcEntryBalanceStr := cAC_ENTRY_BALANCETemplate;
-          ibsqlFields := TIBSQL.Create(nil);
-          gdcField := TgdcField.Create(nil);
-          try
-            gdcField.SubSet := 'ByFieldName';
-            ibsqlFields.Transaction := FTransaction;
-            ibsqlFields.ParamCheck := False;
-            ibsqlFields.SQL.Text :=
-              ' SELECT ' +
-              '   r.rdb$field_name AS FieldName, ' +
-              '   r.rdb$field_source AS DomainName ' +
-              ' FROM ' +
-              '   rdb$relation_fields r ' +
-              ' WHERE ' +
-              '   r.rdb$relation_name = ''AC_ENTRY'' ' +
-              '   AND r.rdb$field_name STARTING WITH ''USR$'' ';
-            ibsqlFields.ExecQuery;
-            while not ibsqlFields.Eof do
-            begin
-              gdcField.Close;
-              gdcField.ParamByName('fieldname').AsString := Trim(ibsqlFields.FieldByName('DomainName').AsString);
-              gdcField.Open;
-
-              ACFieldList := ACFieldList + ', ' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
-              NEWFieldList := NEWFieldList + ', NEW.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
-              OLDFieldList := OLDFieldList + ', OLD.' + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString);
-
-              AcEntryBalanceStr := AcEntryBalanceStr + ', ' +
-                Trim(ibsqlFields.FieldByName('FIELDNAME').AsString) + '  ' +
-                gdcField.GetDomainText(False, True);
-
-              ibsqlFields.Next;
-            end;
-            AcEntryBalanceStr := AcEntryBalanceStr + ')';
-          finally
-            gdcField.Free;
-            ibsqlFields.Free;
-          end;
-
           FIBSQL.Close;
           FIBSQL.SQL.Text := AcEntryBalanceStr;
           FIBSQL.ExecQuery;
@@ -1080,6 +1087,18 @@ begin
 
           FIBSQL.Close;
           FIBSQL.SQL.Text := cBalanceGrant;
+          FIBSQL.ExecQuery;
+        end;
+
+        // Индекс на ac_entry_balance.accountkey
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'SELECT rdb$index_name FROM rdb$indices WHERE rdb$index_name = ''AC_ENTRY_BALANCE_ACCOUNTKEY'' ';
+        FIBSQL.ExecQuery;
+        if FIBSQL.RecordCount = 0 then
+        begin
+          FIBSQL.Close;
+          FIBSQL.SQL.Text := cBalanceIndex01;
           FIBSQL.ExecQuery;
         end;
 
@@ -1105,9 +1124,11 @@ begin
 
         // триггер AC_ENTRY_DO_BALANCE на AC_ENTRY
         ACTriggerText :=
-          '  CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry '#13#10 +
-          '  ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15 '#13#10 +
-          '  AS '#13#10 +
+          'CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry '#13#10 +
+          'ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF (GEN_ID(gd_g_entry_balance_date, 0) > 0) THEN '#13#10 +
           '  BEGIN '#13#10 +
           '    IF (INSERTING AND ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
           '    BEGIN '#13#10 +
@@ -1127,65 +1148,66 @@ begin
           '      NEW.creditcurr, '#13#10 +
           '      NEW.crediteq ' +
             NEWFieldList + '); '#13#10 +
-          '  END '#13#10 +
-          '  ELSE '#13#10 +
-          '  IF (UPDATING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-          '      (companykey, accountkey, currkey, '#13#10 +
-          '       debitncu, debitcurr, debiteq, '#13#10 +
-          '       creditncu, creditcurr, crediteq ' +
+          '    END '#13#10 +
+          '    ELSE '#13#10 +
+          '    IF (UPDATING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '        (companykey, accountkey, currkey, '#13#10 +
+          '         debitncu, debitcurr, debiteq, '#13#10 +
+          '         creditncu, creditcurr, crediteq ' +
             ACFieldList + ') '#13#10 +
-          '    VALUES '#13#10 +
-          '      (OLD.companykey, '#13#10 +
-          '       OLD.accountkey, '#13#10 +
-          '       OLD.currkey, '#13#10 +
-          '       -OLD.debitncu, '#13#10 +
-          '       -OLD.debitcurr, '#13#10 +
-          '       -OLD.debiteq, '#13#10 +
-          '       -OLD.creditncu, '#13#10 +
-          '       -OLD.creditcurr, '#13#10 +
-          '       -OLD.crediteq ' +
+          '      VALUES '#13#10 +
+          '        (OLD.companykey, '#13#10 +
+          '         OLD.accountkey, '#13#10 +
+          '         OLD.currkey, '#13#10 +
+          '         -OLD.debitncu, '#13#10 +
+          '         -OLD.debitcurr, '#13#10 +
+          '         -OLD.debiteq, '#13#10 +
+          '         -OLD.creditncu, '#13#10 +
+          '         -OLD.creditcurr, '#13#10 +
+          '         -OLD.crediteq ' +
             OLDFieldList + '); '#13#10 +
-          '    IF ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN '#13#10 +
+          '      IF ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN '#13#10 +
+          '        INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '          (companykey, accountkey, currkey, '#13#10 +
+          '           debitncu, debitcurr, debiteq, '#13#10 +
+          '           creditncu, creditcurr, crediteq '#13#10 +
+            ACFieldList + ') '#13#10 +
+          '         VALUES '#13#10 +
+          '           (NEW.companykey, '#13#10 +
+          '            NEW.accountkey, '#13#10 +
+          '            NEW.currkey, '#13#10 +
+          '            NEW.debitncu, '#13#10 +
+          '            NEW.debitcurr, '#13#10 +
+          '            NEW.debiteq, '#13#10 +
+          '            NEW.creditncu, '#13#10 +
+          '            NEW.creditcurr, '#13#10 +
+          '            NEW.crediteq ' +
+            NEWFieldList + '); '#13#10 +
+          '    END '#13#10 +
+          '    ELSE '#13#10 +
+          '    IF (DELETING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
+          '    BEGIN '#13#10 +
           '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
           '        (companykey, accountkey, currkey, '#13#10 +
           '         debitncu, debitcurr, debiteq, '#13#10 +
           '         creditncu, creditcurr, crediteq '#13#10 +
             ACFieldList + ') '#13#10 +
-          '       VALUES '#13#10 +
-          '         (NEW.companykey, '#13#10 +
-          '          NEW.accountkey, '#13#10 +
-          '          NEW.currkey, '#13#10 +
-          '          NEW.debitncu, '#13#10 +
-          '          NEW.debitcurr, '#13#10 +
-          '          NEW.debiteq, '#13#10 +
-          '          NEW.creditncu, '#13#10 +
-          '          NEW.creditcurr, '#13#10 +
-          '          NEW.crediteq ' +
-            NEWFieldList + '); '#13#10 +
-          '  END '#13#10 +
-          '  ELSE '#13#10 +
-          '  IF (DELETING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
-          '  BEGIN '#13#10 +
-          '    INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-          '      (companykey, accountkey, currkey, '#13#10 +
-          '       debitncu, debitcurr, debiteq, '#13#10 +
-          '       creditncu, creditcurr, crediteq '#13#10 +
-            ACFieldList + ') '#13#10 +
-          '    VALUES '#13#10 +
-          '     (OLD.companykey, '#13#10 +
-          '      OLD.accountkey, '#13#10 +
-          '      OLD.currkey, '#13#10 +
-          '      -OLD.debitncu, '#13#10 +
-          '      -OLD.debitcurr, '#13#10 +
-          '      -OLD.debiteq, '#13#10 +
-          '      -OLD.creditncu, '#13#10 +
-          '      -OLD.creditcurr, '#13#10 +
-          '      -OLD.crediteq ' +
+          '      VALUES '#13#10 +
+          '       (OLD.companykey, '#13#10 +
+          '        OLD.accountkey, '#13#10 +
+          '        OLD.currkey, '#13#10 +
+          '        -OLD.debitncu, '#13#10 +
+          '        -OLD.debitcurr, '#13#10 +
+          '        -OLD.debiteq, '#13#10 +
+          '        -OLD.creditncu, '#13#10 +
+          '        -OLD.creditcurr, '#13#10 +
+          '        -OLD.crediteq ' +
             OLDFieldList + '); '#13#10 +
+          '    END '#13#10 +
           '  END '#13#10 +
-          ' END ';
+          'END ';
         FIBSQL.Close;
         FIBSQL.SQL.Text := ACTriggerText;
         FIBSQL.ExecQuery;

@@ -1,10 +1,10 @@
 object frmCalculateBalance: TfrmCalculateBalance
-  Left = 697
-  Top = 306
+  Left = 448
+  Top = 209
   BorderStyle = bsDialog
   Caption = 'Переход на новый месяц'
-  ClientHeight = 228
-  ClientWidth = 312
+  ClientHeight = 335
+  ClientWidth = 372
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -21,8 +21,8 @@ object frmCalculateBalance: TfrmCalculateBalance
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 312
-    Height = 228
+    Width = 372
+    Height = 335
     Align = alClient
     TabOrder = 0
     object lblPreviousDate: TLabel
@@ -35,8 +35,8 @@ object frmCalculateBalance: TfrmCalculateBalance
     object gbMain: TGroupBox
       Left = 7
       Top = 30
-      Width = 299
-      Height = 157
+      Width = 359
+      Height = 264
       Anchors = [akLeft, akTop, akRight, akBottom]
       Caption = ' Расчет '
       TabOrder = 1
@@ -47,29 +47,13 @@ object frmCalculateBalance: TfrmCalculateBalance
         Height = 13
         Caption = 'Расчитать сальдо на дату:'
       end
-      object lblProgress: TLabel
-        Left = 15
-        Top = 108
-        Width = 268
-        Height = 26
-        AutoSize = False
-        Caption = 'lblProgress'
-        WordWrap = True
-      end
-      object lblTime: TLabel
-        Left = 15
-        Top = 135
-        Width = 268
-        Height = 13
-        AutoSize = False
-        Caption = 'lblTime'
-      end
       object xdeCurrentDate: TxDateEdit
-        Left = 198
+        Left = 264
         Top = 16
-        Width = 92
+        Width = 86
         Height = 21
         Kind = kDate
+        Anchors = [akTop, akRight]
         EditMask = '!99\.99\.9999;1;_'
         MaxLength = 10
         TabOrder = 0
@@ -78,9 +62,9 @@ object frmCalculateBalance: TfrmCalculateBalance
       object pbMain: TProgressBar
         Left = 10
         Top = 82
-        Width = 278
+        Width = 338
         Height = 17
-        Anchors = [akLeft, akTop, akRight, akBottom]
+        Anchors = [akLeft, akTop, akRight]
         Min = 0
         Max = 100
         Smooth = True
@@ -88,21 +72,32 @@ object frmCalculateBalance: TfrmCalculateBalance
         TabOrder = 2
       end
       object btnCalculate: TButton
-        Left = 197
+        Left = 263
         Top = 45
-        Width = 92
+        Width = 86
         Height = 25
+        Anchors = [akTop, akRight]
         Caption = 'Рассчитать'
         TabOrder = 1
         OnClick = btnCalculateClick
       end
+      object mProgress: TMemo
+        Left = 10
+        Top = 107
+        Width = 338
+        Height = 146
+        Color = clBtnFace
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 3
+      end
     end
     object btnClose: TButton
-      Left = 224
-      Top = 195
+      Left = 284
+      Top = 302
       Width = 75
       Height = 25
-      Anchors = [akLeft, akTop, akRight, akBottom]
+      Anchors = [akRight, akBottom]
       Cancel = True
       Caption = 'Закрыть'
       Default = True
@@ -110,11 +105,12 @@ object frmCalculateBalance: TfrmCalculateBalance
       OnClick = btnCloseClick
     end
     object xdePreviousDate: TxDateEdit
-      Left = 205
+      Left = 271
       Top = 6
-      Width = 92
+      Width = 86
       Height = 21
       Kind = kDate
+      Anchors = [akTop, akRight]
       Enabled = False
       EditMask = '!99\.99\.9999;1;_'
       MaxLength = 10

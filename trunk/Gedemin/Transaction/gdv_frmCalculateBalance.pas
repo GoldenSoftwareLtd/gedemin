@@ -18,22 +18,18 @@ type
     xdePreviousDate: TxDateEdit;
     pbMain: TProgressBar;
     btnCalculate: TButton;
-    lblProgress: TLabel;
-    lblTime: TLabel;
+    mProgress: TMemo;
     procedure FormShow(Sender: TObject);
     procedure btnCalculateClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-    FStartTime: TDateTime;
-
     FClosingPeriodObject: TgdClosingPeriod;
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     procedure SetProcessText(AText: String);
-
-    property StartTime: TDateTime read FStartTime write FStartTime;
+    procedure EnableControls(const AIsEnable: Boolean);
   end;
 
 var
@@ -53,10 +49,7 @@ procedure DoBeforeClosingProcess;
 begin
   if Assigned(InnerFormVariable) then
   begin
-    InnerFormVariable.btnCalculate.Enabled := False;
-    InnerFormVariable.btnClose.Enabled := False;
-    InnerFormVariable.StartTime := Time;
-    InnerFormVariable.lblTime.Caption := 'Расчет начат в ' + TimeToStr(InnerFormVariable.StartTime);
+    InnerFormVariable.EnableControls(False);
   end;
 end;
 
@@ -64,10 +57,7 @@ procedure DoAfterClosingProcess;
 begin
   if Assigned(InnerFormVariable) then
   begin
-    InnerFormVariable.lblTime.Caption := 'Расчет начат в ' + TimeToStr(InnerFormVariable.StartTime) +
-      ', продолжался ' + TimeToStr(Time - InnerFormVariable.StartTime);
-    InnerFormVariable.btnCalculate.Enabled := True;
-    InnerFormVariable.btnClose.Enabled := True;
+    InnerFormVariable.EnableControls(True);
   end;
 end;
 
@@ -75,7 +65,8 @@ procedure DoOnClosingProcessInterruption(const AErrorMessage: String);
 begin
   if Assigned(InnerFormVariable) then
   begin
-    InnerFormVariable.SetProcessText(TimeToStr(Time) + ': Критическая ошибка:'#13#10 + AErrorMessage + #13#10'Процесс закрытия прерван!');
+    InnerFormVariable.SetProcessText(TimeToStr(Time) +
+      ': Критическая ошибка:'#13#10 + AErrorMessage + #13#10'Процесс закрытия прерван!');
   end;
 end;
 
@@ -91,10 +82,6 @@ begin
     // Если текущий прогресс превысил максималный, увеличим максимальный
     if APosition > InnerFormVariable.pbMain.Max then
       InnerFormVariable.pbMain.Max := InnerFormVariable.pbMain.Max * 2;
-
-    // лейбл под прогресс баром  
-    InnerFormVariable.lblProgress.Caption :=
-      IntToStr(InnerFormVariable.pbMain.Position) + ' / ' + IntToStr(InnerFormVariable.pbMain.Max);
       
     if AMessage <> '' then
       InnerFormVariable.SetProcessText(TimeToStr(Time) + ': ' + AMessage);
@@ -131,8 +118,7 @@ begin
   end;
 
   pbMain.Position := 0;
-  lblProgress.Caption := '';
-  lblTime.Caption := '';
+  mProgress.Clear;
 end;
 
 procedure TfrmCalculateBalance.btnCalculateClick(Sender: TObject);
@@ -152,9 +138,16 @@ begin
   Self.Close;
 end;
 
+procedure TfrmCalculateBalance.EnableControls(const AIsEnable: Boolean);
+begin
+  btnCalculate.Enabled := AIsEnable;
+  btnClose.Enabled := AIsEnable;
+  xdeCurrentDate.Enabled := AIsEnable;
+end;
+
 procedure TfrmCalculateBalance.SetProcessText(AText: String);
 begin
-  lblProgress.Caption := AText;
+  mProgress.Lines.Add(AText);
 end;
 
 procedure TfrmCalculateBalance.FormCreate(Sender: TObject);
