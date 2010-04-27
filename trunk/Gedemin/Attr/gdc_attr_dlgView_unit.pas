@@ -29,6 +29,8 @@ type
     procedure dbedRelationNameKeyPress(Sender: TObject; var Key: Char);
 
   public
+    constructor Create(AnOwner: TComponent); override;
+
     procedure SetupDialog; override;
   end;
 
@@ -246,6 +248,12 @@ procedure Tgdc_attr_dlgView.dbedRelationNameKeyPress(Sender: TObject;
   var Key: Char);
 begin
   Key:= CheckNameChar(Key);
+end;
+
+constructor Tgdc_attr_dlgView.Create(AnOwner: TComponent);
+begin
+  inherited;
+  FEnterAsTab := 2; // отключим EnterAsTab
 end;
 
 initialization

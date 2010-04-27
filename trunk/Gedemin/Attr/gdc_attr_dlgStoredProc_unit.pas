@@ -34,6 +34,8 @@ type
     procedure BeforePost; override;
 
   public
+    constructor Create(AnOwner: TComponent); override;
+
     function TestCorrect: Boolean; override;
     procedure SetupDialog; override;
     procedure SetupRecord; override;
@@ -327,6 +329,12 @@ begin
     if smProcedureBody.Text = '' then
       smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetCreateProcedureText;
   end;
+end;
+
+constructor Tgdc_attr_dlgStoredProc.Create(AnOwner: TComponent);
+begin
+  inherited;
+  FEnterAsTab := 2; // отключим EnterAsTab
 end;
 
 initialization

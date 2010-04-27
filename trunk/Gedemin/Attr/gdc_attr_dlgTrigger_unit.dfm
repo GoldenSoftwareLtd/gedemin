@@ -2,41 +2,42 @@ inherited gdc_dlgTrigger: Tgdc_dlgTrigger
   Left = 307
   Top = 199
   Width = 435
-  Height = 413
+  Height = 424
   HelpContext = 87
   BorderStyle = bsSizeable
   Caption = 'Редактирование триггера'
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Left = 11
-    Top = 357
+    Left = 2
+    Top = 363
     Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
-    Top = 357
+    Left = 73
+    Top = 363
     Anchors = [akLeft, akBottom]
     Enabled = False
   end
+  inherited btnHelp: TButton
+    Left = 145
+    Top = 363
+    Anchors = [akLeft, akBottom]
+  end
   inherited btnOK: TButton
-    Left = 280
-    Top = 357
+    Left = 277
+    Top = 363
     Anchors = [akRight, akBottom]
-    Default = False
   end
   inherited btnCancel: TButton
-    Left = 352
-    Top = 357
+    Left = 349
+    Top = 363
     Anchors = [akRight, akBottom]
-  end
-  inherited btnHelp: TButton
-    Top = 357
-    Anchors = [akLeft, akBottom]
   end
   object pnHead: TPanel [5]
     Left = 0
     Top = 0
-    Width = 427
+    Width = 419
     Height = 65
     Align = alTop
     BevelOuter = bvNone
@@ -122,8 +123,8 @@ inherited gdc_dlgTrigger: Tgdc_dlgTrigger
   object pnText: TPanel [6]
     Left = 0
     Top = 65
-    Width = 427
-    Height = 288
+    Width = 419
+    Height = 296
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
@@ -131,8 +132,8 @@ inherited gdc_dlgTrigger: Tgdc_dlgTrigger
     object smTriggerBody: TSynMemo
       Left = 0
       Top = 0
-      Width = 427
-      Height = 288
+      Width = 419
+      Height = 296
       Cursor = crIBeam
       Align = alClient
       Font.Charset = DEFAULT_CHARSET

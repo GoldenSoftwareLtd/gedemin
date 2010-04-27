@@ -1,36 +1,35 @@
 inherited gdc_attr_dlgView: Tgdc_attr_dlgView
-  Left = 255
-  Top = 140
+  Left = 518
+  Top = 127
   Width = 527
-  Height = 461
+  Height = 448
   HelpContext = 80
-  ActiveControl = nil
   Caption = 'Редактирование представления'
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 399
+    Top = 386
     TabOrder = 3
   end
   inherited btnNew: TButton
-    Top = 399
+    Top = 386
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Top = 386
+    TabOrder = 5
+  end
   inherited btnOK: TButton
-    Top = 399
+    Top = 386
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Top = 399
+    Top = 386
     TabOrder = 2
   end
-  inherited btnHelp: TButton
-    Top = 399
-    TabOrder = 5
-  end
   inherited pcRelation: TPageControl
-    Width = 519
-    Height = 385
+    Width = 511
+    Height = 382
     TabOrder = 0
     OnChange = pcRelationChange
     inherited tsCommon: TTabSheet
@@ -51,21 +50,17 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
         Width = 134
         Caption = 'Описание представления:'
       end
-      inherited dbedRelationName: TDBEdit
-        OnEnter = dbedRelationNameEnter
-        OnKeyDown = dbedRelationNameKeyDown
-        OnKeyPress = dbedRelationNameKeyPress
-      end
     end
     object tsView: TTabSheet [1]
       Caption = 'Текст представления'
       ImageIndex = 3
       object smViewBody: TSynMemo
-        Left = 8
-        Top = 8
-        Width = 497
-        Height = 313
+        Left = 0
+        Top = 0
+        Width = 503
+        Height = 324
         Cursor = crIBeam
+        Align = alTop
         Anchors = [akLeft, akTop, akRight, akBottom]
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -404,7 +399,7 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
           end>
       end
       object btnCreateView: TButton
-        Left = 430
+        Left = 425
         Top = 330
         Width = 75
         Height = 21
@@ -414,17 +409,57 @@ inherited gdc_attr_dlgView: Tgdc_attr_dlgView
       end
     end
     inherited tsFields: TTabSheet
-      inherited tbFields: TTBToolbar
-        Width = 135
+      inherited ibgrRelationFields: TgsIBGrid
+        Width = 503
+        Height = 328
+      end
+      inherited TBDock1: TTBDock
+        Width = 503
       end
     end
     inherited tsTrigger: TTabSheet
-      inherited smTriggerBody: TSynMemo
-        Height = 170
+      inherited Panel1: TPanel
+        Width = 503
+        Height = 354
+        inherited Splitter1: TSplitter
+          Width = 503
+        end
+        inherited Panel2: TPanel
+          Width = 503
+          inherited tvTriggers: TTreeView
+            Width = 503
+          end
+        end
+        inherited Panel3: TPanel
+          Width = 503
+          Height = 237
+          inherited smTriggerBody: TSynMemo
+            Width = 503
+            Height = 211
+          end
+          inherited TBDock2: TTBDock
+            Width = 503
+          end
+        end
       end
     end
     inherited tsIndices: TTabSheet
       TabVisible = False
+    end
+    inherited tsConstraints: TTabSheet
+      inherited ibgrConstraints: TgsIBGrid
+        Width = 503
+        Height = 328
+      end
+      inherited TBDock4: TTBDock
+        Width = 503
+      end
+    end
+    inherited tsScript: TTabSheet
+      inherited smScriptText: TSynMemo
+        Width = 503
+        Height = 354
+      end
     end
   end
   inherited alBase: TActionList

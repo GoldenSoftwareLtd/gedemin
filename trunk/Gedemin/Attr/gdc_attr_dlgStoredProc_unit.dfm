@@ -9,33 +9,36 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 405
+    Left = 3
+    Top = 399
     Height = 22
     Anchors = [akLeft, akBottom]
     TabOrder = 3
   end
   inherited btnNew: TButton
-    Top = 405
+    Left = 75
+    Top = 399
     Height = 22
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
   inherited btnHelp: TButton
-    Top = 405
+    Left = 147
+    Top = 399
     Height = 22
     Anchors = [akLeft, akBottom]
     TabOrder = 5
   end
   inherited btnOK: TButton
-    Left = 428
-    Top = 405
+    Left = 426
+    Top = 399
     Height = 22
     Anchors = [akRight, akBottom]
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 501
-    Top = 405
+    Left = 499
+    Top = 399
     Height = 22
     Anchors = [akRight, akBottom]
     TabOrder = 2
@@ -43,9 +46,10 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
   object pcStoredProc: TPageControl [5]
     Left = 0
     Top = 0
-    Width = 577
+    Width = 570
     Height = 395
-    ActivePage = tsNameSP
+    ActivePage = tsBodySP
+    Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     OnChange = pcStoredProcChange
@@ -96,7 +100,7 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
       object pProcedureBody: TPanel
         Left = 0
         Top = 0
-        Width = 569
+        Width = 562
         Height = 367
         Align = alClient
         BevelInner = bvLowered
@@ -106,7 +110,7 @@ inherited gdc_attr_dlgStoredProc: Tgdc_attr_dlgStoredProc
         object smProcedureBody: TSynMemo
           Left = 5
           Top = 5
-          Width = 559
+          Width = 552
           Height = 357
           Cursor = crIBeam
           Align = alClient

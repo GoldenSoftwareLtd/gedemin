@@ -1,8 +1,8 @@
 inherited gdc_dlgRelation: Tgdc_dlgRelation
-  Left = 345
-  Top = 222
-  Width = 503
-  Height = 430
+  Left = 375
+  Top = 190
+  Width = 526
+  Height = 444
   HelpContext = 84
   BorderStyle = bsSizeable
   Caption = 'Редактирование таблицы'
@@ -11,36 +11,37 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 3
-    Top = 377
+    Top = 383
     Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
     Left = 79
-    Top = 377
+    Top = 383
     Anchors = [akLeft, akBottom]
     Enabled = False
   end
   inherited btnHelp: TButton
     Left = 155
-    Top = 377
+    Top = 383
     Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
-    Left = 347
-    Top = 377
+    Left = 364
+    Top = 383
     Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
-    Left = 423
-    Top = 377
+    Left = 440
+    Top = 383
     Anchors = [akRight, akBottom]
   end
   object pcRelation: TPageControl [5]
-    Left = 3
-    Top = 8
-    Width = 489
-    Height = 367
+    Left = 0
+    Top = 0
+    Width = 510
+    Height = 381
     ActivePage = tsCommon
+    Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 5
     OnChanging = pcRelationChanging
@@ -246,12 +247,12 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       Caption = 'Поля'
       ImageIndex = 1
       object ibgrRelationFields: TgsIBGrid
-        Left = 3
-        Top = 30
-        Width = 475
-        Height = 305
+        Left = 0
+        Top = 26
+        Width = 502
+        Height = 327
         HelpContext = 3
-        Anchors = [akLeft, akTop, akRight, akBottom]
+        Align = alClient
         DataSource = dsRelationFields
         Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         TabOrder = 0
@@ -272,25 +273,32 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         Aliases = <>
         ShowTotals = False
       end
-      object tbFields: TTBToolbar
-        Left = 3
-        Top = 3
-        Width = 341
-        Height = 22
-        Caption = 'Редактирование таблицы'
-        Images = dmImages.il16x16
-        TabOrder = 1
-        object TBItem3: TTBItem
-          Action = actNewField
-          DisplayMode = nbdmImageAndText
-        end
-        object TBItem2: TTBItem
-          Action = actEditField
-          DisplayMode = nbdmImageAndText
-        end
-        object TBItem1: TTBItem
-          Action = actDeleteField
-          DisplayMode = nbdmImageAndText
+      object TBDock1: TTBDock
+        Left = 0
+        Top = 0
+        Width = 502
+        Height = 26
+        object tbFields: TTBToolbar
+          Left = 0
+          Top = 0
+          BorderStyle = bsNone
+          Caption = 'Редактирование таблицы'
+          DockMode = dmCannotFloatOrChangeDocks
+          FullSize = True
+          Images = dmImages.il16x16
+          TabOrder = 0
+          object TBItem3: TTBItem
+            Action = actNewField
+            DisplayMode = nbdmImageAndText
+          end
+          object TBItem2: TTBItem
+            Action = actEditField
+            DisplayMode = nbdmImageAndText
+          end
+          object TBItem1: TTBItem
+            Action = actDeleteField
+            DisplayMode = nbdmImageAndText
+          end
         end
       end
     end
@@ -300,15 +308,15 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 481
-        Height = 339
+        Width = 502
+        Height = 353
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 0
         object Splitter1: TSplitter
           Left = 0
           Top = 113
-          Width = 481
+          Width = 502
           Height = 4
           Cursor = crVSplit
           Align = alTop
@@ -316,7 +324,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel2: TPanel
           Left = 0
           Top = 0
-          Width = 481
+          Width = 502
           Height = 113
           Align = alTop
           BevelOuter = bvNone
@@ -324,7 +332,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           object tvTriggers: TTreeView
             Left = 0
             Top = 0
-            Width = 481
+            Width = 502
             Height = 113
             Align = alClient
             Images = dmImages.ilToolBarSmall
@@ -348,43 +356,18 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel3: TPanel
           Left = 0
           Top = 117
-          Width = 481
-          Height = 222
+          Width = 502
+          Height = 236
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 1
-          object tbTriggers: TTBToolbar
-            Left = 3
-            Top = 5
-            Width = 229
-            Height = 22
-            Caption = 'Редактирование триггеров'
-            Images = dmImages.il16x16
-            ShowCaption = False
-            TabOrder = 0
-            object TBItem4: TTBItem
-              Action = actNewTrigger
-              DisplayMode = nbdmImageAndText
-              ImageIndex = 0
-            end
-            object TBItem5: TTBItem
-              Action = actEditTrigger
-              DisplayMode = nbdmImageAndText
-              ImageIndex = 1
-            end
-            object TBItem6: TTBItem
-              Action = actDeleteTrigger
-              DisplayMode = nbdmImageAndText
-              ImageIndex = 2
-            end
-          end
           object smTriggerBody: TSynMemo
-            Left = 3
-            Top = 32
-            Width = 474
-            Height = 192
+            Left = 0
+            Top = 26
+            Width = 502
+            Height = 210
             Cursor = crIBeam
-            Anchors = [akLeft, akTop, akRight, akBottom]
+            Align = alClient
             Font.Charset = DEFAULT_CHARSET
             Font.Color = clWindowText
             Font.Height = -13
@@ -392,7 +375,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
             Font.Style = []
             ParentColor = False
             ParentFont = False
-            TabOrder = 1
+            TabOrder = 0
             Gutter.Font.Charset = DEFAULT_CHARSET
             Gutter.Font.Color = clWindowText
             Gutter.Font.Height = -11
@@ -724,42 +707,51 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
               '')
             ReadOnly = True
           end
+          object TBDock2: TTBDock
+            Left = 0
+            Top = 0
+            Width = 502
+            Height = 26
+            object tbTriggers: TTBToolbar
+              Left = 0
+              Top = 0
+              BorderStyle = bsNone
+              Caption = 'Редактирование триггеров'
+              DockMode = dmCannotFloatOrChangeDocks
+              FullSize = True
+              Images = dmImages.il16x16
+              ShowCaption = False
+              TabOrder = 0
+              object TBItem4: TTBItem
+                Action = actNewTrigger
+                DisplayMode = nbdmImageAndText
+                ImageIndex = 0
+              end
+              object TBItem5: TTBItem
+                Action = actEditTrigger
+                DisplayMode = nbdmImageAndText
+                ImageIndex = 1
+              end
+              object TBItem6: TTBItem
+                Action = actDeleteTrigger
+                DisplayMode = nbdmImageAndText
+                ImageIndex = 2
+              end
+            end
+          end
         end
       end
     end
     object tsIndices: TTabSheet
       Caption = 'Индексы'
       ImageIndex = 3
-      object tbIndices: TTBToolbar
-        Left = 3
-        Top = 3
-        Width = 377
-        Height = 22
-        Caption = 'tbIndices'
-        Images = dmImages.il16x16
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 1
-        object tbiNewIndices: TTBItem
-          Action = actNewIndex
-          DisplayMode = nbdmImageAndText
-        end
-        object tbiEditIndices: TTBItem
-          Action = actEditIndex
-          DisplayMode = nbdmImageAndText
-        end
-        object tbiDeleteIndices: TTBItem
-          Action = actDeleteIndex
-          DisplayMode = nbdmImageAndText
-        end
-      end
       object ibgrIndices: TgsIBGrid
-        Left = 3
-        Top = 30
-        Width = 475
-        Height = 305
+        Left = 0
+        Top = 26
+        Width = 502
+        Height = 327
         HelpContext = 3
-        Anchors = [akLeft, akTop, akRight, akBottom]
+        Align = alClient
         DataSource = dsIndices
         Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         ReadOnly = True
@@ -781,16 +773,46 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         Aliases = <>
         ShowTotals = False
       end
+      object TBDock3: TTBDock
+        Left = 0
+        Top = 0
+        Width = 502
+        Height = 26
+        object tbIndices: TTBToolbar
+          Left = 0
+          Top = 0
+          BorderStyle = bsNone
+          Caption = 'tbIndices'
+          DockMode = dmCannotFloatOrChangeDocks
+          FullSize = True
+          Images = dmImages.il16x16
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 0
+          object tbiNewIndices: TTBItem
+            Action = actNewIndex
+            DisplayMode = nbdmImageAndText
+          end
+          object tbiEditIndices: TTBItem
+            Action = actEditIndex
+            DisplayMode = nbdmImageAndText
+          end
+          object tbiDeleteIndices: TTBItem
+            Action = actDeleteIndex
+            DisplayMode = nbdmImageAndText
+          end
+        end
+      end
     end
     object tsConstraints: TTabSheet
       Caption = 'Ограничения'
       ImageIndex = 4
       object ibgrConstraints: TgsIBGrid
-        Left = 3
-        Top = 30
-        Width = 475
-        Height = 305
-        Anchors = [akLeft, akTop, akRight, akBottom]
+        Left = 0
+        Top = 26
+        Width = 502
+        Height = 327
+        Align = alClient
         DataSource = dsConstraints
         Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         TabOrder = 0
@@ -811,27 +833,34 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         Aliases = <>
         ShowTotals = False
       end
-      object tbChecks: TTBToolbar
-        Left = 3
-        Top = 3
-        Width = 464
-        Height = 22
-        Caption = 'tbChecks'
-        Images = dmImages.il16x16
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 1
-        object TBItem7: TTBItem
-          Action = actNewCheck
-          DisplayMode = nbdmImageAndText
-        end
-        object TBItem8: TTBItem
-          Action = actEditCheck
-          DisplayMode = nbdmImageAndText
-        end
-        object TBItem9: TTBItem
-          Action = actDeleteCheck
-          DisplayMode = nbdmImageAndText
+      object TBDock4: TTBDock
+        Left = 0
+        Top = 0
+        Width = 502
+        Height = 26
+        object tbChecks: TTBToolbar
+          Left = 0
+          Top = 0
+          BorderStyle = bsNone
+          Caption = 'tbChecks'
+          DockMode = dmCannotFloatOrChangeDocks
+          FullSize = True
+          Images = dmImages.il16x16
+          ParentShowHint = False
+          ShowHint = True
+          TabOrder = 0
+          object TBItem7: TTBItem
+            Action = actNewCheck
+            DisplayMode = nbdmImageAndText
+          end
+          object TBItem8: TTBItem
+            Action = actEditCheck
+            DisplayMode = nbdmImageAndText
+          end
+          object TBItem9: TTBItem
+            Action = actDeleteCheck
+            DisplayMode = nbdmImageAndText
+          end
         end
       end
     end
@@ -841,8 +870,8 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object smScriptText: TSynMemo
         Left = 0
         Top = 0
-        Width = 481
-        Height = 339
+        Width = 502
+        Height = 353
         Cursor = crIBeam
         Align = alClient
         Font.Charset = DEFAULT_CHARSET

@@ -23,6 +23,7 @@ type
     dbePos: TDBEdit;
     IBTransaction: TIBTransaction;
     procedure cmbTypeChange(Sender: TObject);
+    procedure actOkUpdate(Sender: TObject);
 
   private
     function GetItemIndex(const TypeTrigger :Integer): Integer;
@@ -32,6 +33,8 @@ type
     procedure BeforePost; override;
 
   public
+    constructor Create(AnOwner: TComponent); override;
+
     procedure SetupRecord; override;
     function TestCorrect: Boolean; override;
   end;
@@ -341,6 +344,18 @@ begin
     13: gdcObject.FieldByName('triggername').AsString := RelPrefix + 'AIUD'
       + '_' + RelName;
   end
+end;
+
+constructor Tgdc_dlgTrigger.Create(AnOwner: TComponent);
+begin
+  inherited;
+  FEnterAsTab := 2; // отключим EnterAsTab
+end;
+
+procedure Tgdc_dlgTrigger.actOkUpdate(Sender: TObject);
+begin
+  inherited;
+  btnOK.Default := not smTriggerBody.Focused;
 end;
 
 initialization
