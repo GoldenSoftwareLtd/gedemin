@@ -340,13 +340,15 @@ var
 
 function ShouldProceedLoading: Boolean;
 begin
-  Result :=
-    MessageBox(
-      0,
-      'Программный продукт "GEDEMIN.EXE" уже загружен в память!' + #13#10 +
-        'Продолжить загрузку?',
-      'Внимание',
-      MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES;
+  Result := True;
+  if not FindCmdLineSwitch('q', ['/', '-'], True) then
+    Result :=
+      MessageBox(
+        0,
+        'Программный продукт "GEDEMIN.EXE" уже загружен в память!' + #13#10 +
+          'Продолжить загрузку?',
+        'Внимание',
+        MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES;
 end;
 
 {$IFDEF VER130}
