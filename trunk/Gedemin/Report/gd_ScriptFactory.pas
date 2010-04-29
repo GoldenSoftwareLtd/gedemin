@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2002 by Golden Software of Belarus
+  Copyright (c) 2002 - 2010 by Golden Software of Belarus
 
   Module
 
@@ -31,7 +31,7 @@ interface
 
 uses
   Windows, Classes, gd_i_ScriptFactory, rp_ReportScriptControl,
-  rp_BaseReport_unit, prm_ParamFunctions_unit, Sysutils, dbclient, DB,
+  rp_BaseReport_unit, prm_ParamFunctions_unit, Sysutils, DB,
   rp_report_const, scr_i_FunctionList, IBDataBase, IBQuery, scrMacrosGroup,
   ibsql, scktcomp, rp_ReportServer, rp_msgConnectServer_unit, Forms,
   messages, gd_SetDatabase, rp_prgReportCount_unit, rp_msgErrorReport_unit,
@@ -39,12 +39,10 @@ uses
   contnrs;
 
 type
-  TgdScriptCache = class;
   TgsScriptExceptionError = class;
 
   // Объект данного класса создается один на приложение.
   // Он отвечает за выполнения скрипт-функции,
-  // за локальное кэширование результата и связь с сервером отчетов.
   TgdScriptFactory = class(TComponent, IgdScriptFactory)
   private
     FLocStateDB, FLocStateTR: Boolean;
@@ -53,10 +51,6 @@ type
     FTransaction: TIBTransaction;
     //FormReportCount: TprgReportCount;
     FscrException: EScrException;
-    // Объект для работы с кэшем.
-    FLocalCache : TgdScriptCache;
-    // Список серверов отчетов
-    FServerList: TrpServerSocketList;
     // Если FErrorEvent <> nil, то выполняем с этим обработчиком ошибок
     FErrorEvent: TNotifyEvent;
     FVBReportScript: TReportScript;
@@ -72,10 +66,6 @@ type
     function GetShowRaise: Boolean;
     function GetDatabase: TIBDatabase;
     function GetTransaction: TIBTransaction;
-
-
-    // Создание списка серверов
-    function CreateServerList: Boolean;
 
     // Метод возвращает макрос по ключу функции
     function FindMacros
@@ -101,13 +91,6 @@ type
     procedure PrepareSourceDatabase; virtual;
     procedure UnPrepareSourceDatabase; virtual;
 
-    // метод анализизует данные вернувшиеся от сервера отчетов
-    procedure ReturnEventProc(AnSocketData: TrpSocketData);
-
-    // метод по событию TCustomSocket.OnRead читает данные из буфера сокета
-    // выделяет законченный блок данных и вызывает ReturnEventProc;
-    procedure ClientSocketRead(Sender: TObject; Socket: TCustomWinSocket);
-
     function  FindObjectFunction(const AFuncName,
       AnObjectName: String; AFunction: TrpCustomFunction): Boolean;
     // Добавляет сообщение об ошибке AErrMrg в файл ErrScript.Log
@@ -127,11 +110,6 @@ type
     // Обработчик ошибок
     procedure rsErrorHandler(Sender: TObject);
   protected
-    // Метод передает макрос серверу отчетов
-    function SendMacros
-       (const AFunctionKey: TPrimaryKey;
-        const AParams: Variant;
-        const  AServerKey: TPrimaryKey): Boolean;
 
     function GetErrorList: TgdErrorlList;
     // Функции реализации интерфейса.
@@ -278,28 +256,6 @@ type
     SFKey: Integer;
   end;
 
-  // Данный класс предназначен для кэширования результатов выполнения скрипт-функций.
-  TgdScriptCache = class(TClientDataSet)
-  public
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-
-     // Метод возвращает True если результат найден и False в противном случае.
-    function GetScriptResult
-        (// Функция
-         AnFunction : TrpCustomFunction;
-         // Входные параметры функции
-         AnParams : Variant;
-         // Результат выполнения функции
-         out AnResult : Variant) : Boolean;
-
-     // Метод служит для сохранения результата выполнения функции.
-    procedure SaveScriptResult
-        (AnFunction : TrpCustomFunction;
-         AnParams : Variant;
-         AnResult : Variant);
-  end;
-
 // Регистрация компоненты
 procedure Register;
 
@@ -335,12 +291,9 @@ begin
 
   FInExcepted := False;
 
-  FLocalCache := nil;
-
   if not (csDesigning in ComponentState) then
   begin
     FscrException := EScrException.Create;
-    FLocalCache := TgdScriptCache.Create(nil);
     FErrorList := TgdErrorlList.Create;
   end;
 
@@ -356,8 +309,6 @@ end;
 destructor TgdScriptFactory.Destroy;
 begin
   FVBReportScript.Free;
-
-  FreeAndNil(FLocalCache);
 
   if Assigned(ScriptFactory) then
   begin
@@ -455,39 +406,6 @@ begin
   Result := FTransaction;
 end;
 
-function TgdScriptFactory.CreateServerList: Boolean;
-var
-  ibsqlWork: TIBSQL;
-begin
-  Result := False;
-  if not Assigned(FServerList) then
-  begin
-    try
-      PrepareSourceDatabase;
-      ibsqlWork := TIBSQL.Create(nil);
-      try
-        ibsqlWork.Database := Database;
-        ibsqlWork.Transaction := Transaction;
-        ibsqlWork.SQL.Text := 'SELECT computername, serverport, id ' +
-         'FROM rp_reportserver ORDER BY usedorder';
-        ibsqlWork.ExecQuery;
-        FServerList := TrpServerSocketList.Create;
-        while not (ibsqlWork.Eof) do
-        begin
-          FServerList.AddServerSocket(ibsqlWork.Fields[0].AsString,
-            ibsqlWork.Fields[1].AsInteger, ibsqlWork.Fields[2].AsInteger);
-          ibsqlWork.Next;
-        end;
-        Result := True;
-      finally
-        ibsqlWork.Free;
-      end;
-    finally
-      UnPrepareSourceDatabase;
-    end;
-  end;
-end;
-
 procedure TgdScriptFactory.SetCreateObject(const Value: TOnCreateObject);
 begin
   FVBReportScript.OnCreateObject := Value;
@@ -534,28 +452,6 @@ begin
   end;
 end;
 
-procedure TgdScriptFactory.ReturnEventProc(AnSocketData: TrpSocketData);
-var
-  LocMacros: TscrMacrosItem;
-  ErrorForm: TmsgErrorReport;
-begin
-  ErrorForm := TmsgErrorReport.Create(nil);
-
-  FServerList.Release(AnSocketData);
-  if not AnSocketData.ExecuteResult then
-  begin
-    LocMacros := TscrMacrosItem.Create;
-    try
-      if FindMacros(AnSocketData.ReportKey, LocMacros) then
-        ErrorForm.MessageBox('Ошибка', 'Ошибка при выполнении "' + LocMacros.Name + '" макроса !')
-      else
-        ErrorForm.MessageBox('Ошибка', 'Ошибка при выполнении НЕИЗВЕСТНОГО макроса !');
-    finally
-      LocMacros.Free;
-    end;
-  end;
-end;
-
 function TgdScriptFactory.InputParams
    (const AnFunctionKey : TPrimaryKey;
     out AnParamResult : Variant) : Boolean;
@@ -595,10 +491,6 @@ begin
   // Очищать его надо перед запускам и после
   if FErrorList.Count > 0 then
     FErrorList.Clear;
-
-  if AnUseCache and
-    FLocalCache.GetScriptResult(AnFunction, AnParams, AnResult) then
-      exit;
 
   if PropertySettings.DebugSet.RuntimeSave then
     TCrackerReportScript(FVBReportScript).CalculateRuntimeTicks := True;
@@ -651,8 +543,6 @@ begin
     if FErrorList.Count > 0 then
       FErrorList.Clear;
   end;
-  if AnUseCache then
-    FLocalCache.SaveScriptResult(AnFunction, AnParams, AnResult);
 end;
 
 procedure TgdScriptFactory.ExecuteFunctionEx
@@ -741,52 +631,14 @@ begin
       try
       // ввод параметров
         if InputParams(LocFunction, LocParams) then
-          // выполнять локально
-          // { TODO : макросам на сервере нечего делать }
-          (*
-          if not LMacros.IsLocalExecute then
-          begin
-            // передача макроса серверу
-            if not SendMacros(LocFunction.FunctionKey, LocParams, LMacros.ServerKey) then
-            begin
-              {$IFDEF DEBUG}
-              if UseLog then
-                Log.LogLn(DateTimeToStr(Now) + ': Запущен макрос ' + LocFunction.Name +
-                  '  ИД функции ' + IntToStr(LocFunction.FunctionKey));
-              // если передать не удалось, то выполняется локально
-              try
-              {$ENDIF}
-                if (LocFunction.EnteredParams.Count > 0) and
-                  (AnsiUpperCase(Trim(LocFunction.EnteredParams.Params[0].RealName)) =
-                  VB_OWNERFORM) and (LocFunction.EnteredParams.Params[0].ParamType = prmNoQuery) then
-                  LocParams[0] := OwnerForm;
-
-                ExecuteFunction(LocFunction, LocParams, AnResult);
-
-             {$IFDEF DEBUG}
-                if Assigned(Log) and UseLog then
-                  Log.LogLn(DateTimeToStr(Now) + ': Удачное выполнение макроса ' + LocFunction.Name +
-                    '  ИД функции ' + IntToStr(LocFunction.FunctionKey));
-              except
-                if Assigned(Log) and UseLog then
-                  Log.LogLn(DateTimeToStr(Now) + ': Ошибка во время выполнения макроса ' + LocFunction.Name +
-                    '  ИД функции ' + IntToStr(LocFunction.FunctionKey));
-                raise;
-              end;
-              {$ENDIF}
-            end else
-              FormReportCount.AddRef;
-
-          end else
-          *)
-          begin
-            // локальное выполнение
-            if (LocFunction.EnteredParams.Count > 0) and
-              (AnsiUpperCase(Trim(LocFunction.EnteredParams.Params[0].RealName)) =
-              VB_OWNERFORM) and (LocFunction.EnteredParams.Params[0].ParamType = prmNoQuery) then
-              LocParams[0] := OwnerForm;
-            ExecuteFunction(LocFunction, LocParams, AnResult);
-          end;
+        begin
+          // локальное выполнение
+          if (LocFunction.EnteredParams.Count > 0) and
+            (AnsiUpperCase(Trim(LocFunction.EnteredParams.Params[0].RealName)) =
+            VB_OWNERFORM) and (LocFunction.EnteredParams.Params[0].ParamType = prmNoQuery) then
+            LocParams[0] := OwnerForm;
+          ExecuteFunction(LocFunction, LocParams, AnResult);
+        end;
       finally
         glbFunctionList.ReleaseFunction(LocFunction);
       end;
@@ -798,40 +650,6 @@ begin
       MB_OK or MB_ICONERROR or MB_TOPMOST or MB_TASKMODAL);
 end;
 
-function TgdScriptFactory.SendMacros(const AFunctionKey: TPrimaryKey;
-  const AParams: Variant; const AServerKey: TPrimaryKey): Boolean;
-var
-  TempAr: TDnByteArray;
-  AServerSocket: TrpServerSocket;
-begin
-  Result := False;
-  // Если список серверов не существует, создаем его
-  if not Assigned(FServerList) then
-    CreateServerList;
-
-  // Поиск сервера в списке по ключу
-  if Assigned(FServerList) then
-    AServerSocket := FServerList.QueryServer(AServerKey)
-  else
-  begin
-    MessageBox(0, 'Не удалось создать список серверов отчета!',
-      'Ошибка', MB_OK or MB_ICONWARNING or MB_TOPMOST or MB_TASKMODAL);
-    exit;
-  end;
-
-  // Передача данных серверу отчетов
-  if Assigned(AServerSocket) then
-  begin
-    AServerSocket.ClientSocket.OnRead := ClientSocketRead;
-    AServerSocket.SocketData.ReportKey := AFunctionKey;
-    AServerSocket.SocketData.StaticParam := AParams;
-    AServerSocket.SocketData.ExecuteResult := FunctionIdentifier;
-    AServerSocket.SocketData.WriteData(TempAr);
-    Result := AServerSocket.ClientSocket.Socket.SendBuf(TempAr[0], Length(TempAr)) =
-      Length(TempAr);
-  end
-end;
-
 procedure TgdScriptFactory.ExecuteFunction(const AFunction: TrpCustomFunction;
   AParams: Variant; out AResult: Variant);
 var
@@ -840,42 +658,6 @@ begin
 //  Result := ExecuteFunctionEx(AFunction, AParams, AResult, False);
   LEvent := nil;
   ExecuteFunctionEx(AFunction, AParams, AResult, LEvent, False);
-end;
-
-procedure TgdScriptFactory.ClientSocketRead(Sender: TObject;
-  Socket: TCustomWinSocket);
-var
-  Index, BufSize, CopyIndex: integer;
-  TempBuffer, TooBuffer: TDnByteArray;
-  LocSocketData: TrpSocketData;
-begin
-  BufSize := Socket.ReceiveLength;
-  SetLength(TempBuffer, BufSize);
-  LocSocketData := TrpSocketData.Create;
-  BufSize := Socket.ReceiveBuf(TempBuffer[0], BufSize);
-  SetLength(TempBuffer, BufSize);
-  try
-    repeat
-      CopyIndex := Pos(rpFinishBlock, PString(@TempBuffer)^)  + Length(rpFinishBlock);
-      Dec(CopyIndex);
-      BufSize := Length(TempBuffer);
-
-      SetLength(TooBuffer, CopyIndex);
-      // выделения законченного блока данных в TooBuffer
-      for Index := 0 to CopyIndex - 1 do
-        TooBuffer[Index] := TempBuffer[Index];
-      LocSocketData.ReadData(TooBuffer, CopyIndex);
-
-      ReturnEventProc(LocSocketData);
-      if BufSize > (CopyIndex) then
-      for Index := CopyIndex + 1 to BufSize do
-        TempBuffer[Index - CopyIndex - 1] := TempBuffer[Index - 1];
-      SetLength(TempBuffer, BufSize - CopyIndex);
-      LocSocketData.Clear;
-    until BufSize <= (CopyIndex + Length(rpFinishBlock));
-  finally
-    LocSocketData.Free;
-  end;
 end;
 
 procedure TgdScriptFactory.Reset;
@@ -1937,183 +1719,6 @@ begin
   end;
 end;
 
-{TgdScriptCache}
-
-constructor TgdScriptCache.Create(AOwner: TComponent);
-begin
-  inherited;
-
-  // создание таблицы кэша
-  with FieldDefs.AddFieldDef do
-  begin
-    DataType := ftInteger;
-    Name := 'FunctionKey';
-  end;
-  with FieldDefs.AddFieldDef do
-  begin
-    DataType := ftInteger;
-    Name := 'CRCParam';
-  end;
-  with FieldDefs.AddFieldDef do
-  begin
-    DataType := ftDateTime;
-    Name := 'EditionDate';
-  end;
-  with FieldDefs.AddFieldDef do
-  begin
-    DataType := ftDateTime;
-    Name := 'ResultDate';
-  end;
-  with FieldDefs.AddFieldDef do
-  begin
-    DataType := ftBlob;
-    Name := 'AParam';
-  end;
-  with FieldDefs.AddFieldDef do
-  begin
-    DataType := ftBlob;
-    Name := 'AResult';
-  end;
-  IndexDefs.Add('LocIndex', 'FunctionKey; CRCParam', [ixPrimary]);
-  CreateDataSet;
-
-end;
-
-destructor TgdScriptCache.Destroy;
-begin
-  inherited;
-
-end;
-
-function TgdScriptCache.GetScriptResult
-   (AnFunction : TrpCustomFunction;
-    AnParams : Variant;
-    out AnResult : Variant) : Boolean;
-var
-  CRCFuncParam: Integer;
-  LocParam: Variant;
-  VStr: TVarStream;
-  Str: TStream;
-begin
-// проверка типа функции
-  Result := False;
-  if not ((AnFunction.Module = MainModuleName) or (AnFunction.Module = ParamModuleName) or
-       (AnFunction.Module = EventModuleName) or (AnFunction.Module = scrMacrosModuleName)) then
-  begin
-    Result := False;
-    Exit;
-  end;
-{
-  проверка на наличие в кэше AFunction & AParams
-  по полям     FunctionKey: Integer;
-               EditionDate: TDateTime;
-  и входным параметрам     CFCParam
-                           Param: Variant;
-}
-  CRCFuncParam := GetParamCRC(AnParams);
-  CancelRange;
-  IndexName := 'LocIndex';
-  SetRange([AnFunction.FunctionKey, CRCFuncParam],
-    [AnFunction.FunctionKey, CRCFuncParam]);
-
-  First;
-  while not Eof do
-  begin
-    if AnFunction.ModifyDate > FieldByName('EditionDate').AsDateTime then
-    begin
-      Delete;
-      Continue;
-    end else
-    begin
-      if AnFunction.ModifyDate > FieldByName('ResultDate').AsDateTime then
-      begin
-        Delete;
-        Continue;
-      end else
-      begin
-        Str := CreateBlobStream(FieldByName('AParam'), bmRead);
-        try
-          VStr := TVarStream.Create(Str);
-          try
-            VStr.Read(LocParam);
-          finally
-            VStr.Free;
-          end;
-        finally
-          Str.Free;
-        end;
-
-        if CompareParams(LocParam, AnParams) then
-        begin
-          Result := True;
-          Str := CreateBlobStream(FieldByName('AResult'), bmRead);
-          try
-            VStr := TVarStream.Create(Str);
-            try
-              VStr.Read(AnResult);
-            finally
-              VStr.Free;
-            end;
-          finally
-            Str.Free;
-          end;
-          Break;
-        end;
-      end;
-    end;
-    Next;
-  end;
-end;
-
-procedure TgdScriptCache.SaveScriptResult
-   (AnFunction : TrpCustomFunction;
-    AnParams : Variant;
-    AnResult : Variant);
-var
-  Str: TStream;
-  VStr: TVarStream;
-begin
-  // проверка на тип функции и вернула ли функция результат
-  if ( not ((AnFunction.Module = MainModuleName) or (AnFunction.Module = ParamModuleName) or
-       (AnFunction.Module = EventModuleName) or (AnFunction.Module = scrMacrosModuleName))) or
-       (VarType(AnResult) = varEmpty) then
-    Exit;
-  try
-    Insert;
-    FieldByName('FunctionKey').AsInteger := AnFunction.FunctionKey;
-    FieldByName('CRCParam').AsInteger := GetParamCRC(AnParams);
-    FieldByName('EditionDate').AsDateTime := AnFunction.ModifyDate;
-    FieldByName('ResultDate').AsDateTime := Now;
-    Str := CreateBlobStream(FieldByName('AParam'), bmWrite);
-    try
-      VStr := TVarStream.Create(Str);
-      try
-        VStr.Write(AnParams);
-      finally
-        VStr.Free;
-      end;
-    finally
-      Str.Free;
-    end;
-
-    Str := CreateBlobStream(FieldByName('AResult'), bmWrite);
-    try
-      VStr := TVarStream.Create(Str);
-      try
-        VStr.Write(AnResult);
-      finally
-        VStr.Free;
-      end;
-    finally
-      Str.Free;
-    end;
-
-    Post;
-  except
-    if State in [dsInsert, dsEdit] then
-      Cancel;
-  end;
-end;
 
 initialization
 
