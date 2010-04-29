@@ -650,6 +650,8 @@ type
     FStreamSilentProcessing: Boolean;
     FStreamProcessingAnswer: Word;
 
+    FCopiedObjectKey: TID;
+
     FPostCount: Integer;
     FInDoFieldChange: Boolean;
     FInternalProcess: Boolean;
@@ -1780,6 +1782,8 @@ type
     property StreamDBID: TID read FStreamDBID write FStreamDBID;
     property StreamSilentProcessing: Boolean read FStreamSilentProcessing write FStreamSilentProcessing;
     property StreamProcessingAnswer: Word read FStreamProcessingAnswer write FStreamProcessingAnswer;
+
+    property CopiedObjectKey: TID read FCopiedObjectKey;
 
   published
     //У нас есть класс-функция, которая по умолчанию возвращает для класса
@@ -3618,12 +3622,9 @@ function TgdcBase.CopyObject(const ACopyDetailObjects: Boolean = False;
 var
   MasterObject, DetailObject: TgdcBase;
   LinkObj, LinkCopy: TgdcBase;
-  BaseState: TgdcStates;
   DS: TDataSource;
   C, CFull: TgdcFullClass;
   I, J: Integer;
-  DidActivate: Boolean;
-  NewId: Integer;
   LinkTableList: TStringList;
   OL: TObjectList;
   F, DetailField: TField;
@@ -3640,14 +3641,8 @@ var
     for I := 0 to Dest.FieldCount - 1 do
     begin
       if Dest.TestCopyField(Dest.Fields[I].FieldName, DontCopyList)       // не входит ли поле в список некопируемых полей
-        and (Assigned(Source.FindField(Dest.Fields[I].FieldName))) then
-      begin
+         and (Assigned(Source.FindField(Dest.Fields[I].FieldName))) then
         Dest.Fields[I].Assign(Source.FieldByName(Dest.Fields[I].FieldName));
-        {if (Dest.Fields[I] is TBlobField) and (not Source.FieldByName(Dest.Fields[I].FieldName).IsNull) then
-          Dest.Fields[I].AsString := Source.FieldByName(Dest.Fields[I].FieldName).AsString
-        else
-          Dest.Fields[I].Value := Source.FieldByName(Dest.Fields[I].FieldName).Value;}
-      end;
     end;
   end;
 
@@ -3856,24 +3851,23 @@ begin
   CheckBrowseMode;
 
   C := GetCurrRecordClass;
-  // Создадим рабочий объект того же класса, что и копируемый
+  // Создадим рабочий объект того же класса, что и копируемый, переведем вспомогательный объект на копиремую запись
   MasterObject := C.gdClass.CreateWithParams(Owner,
     Database,
     Transaction,
     C.SubType,
     'ByID',
-    -1);
-  MasterObject.ReadTransaction := Self.ReadTransaction;  
-  // Укажем что объект находится в состоянии копирования
-  BaseState := MasterObject.BaseState;
-  Include(BaseState, sCopy);
-  MasterObject.BaseState := BaseState;
-
+    Self.ID);
+  MasterObject.ReadTransaction := Self.ReadTransaction;
   CopyEventHandlers(MasterObject, Self);
-  DidActivate := False;
+
+  // Укажем что объект находится в состоянии копирования
+  Include(FBaseState, sCopy);
+  // Запомним ID копируемого объекта (можно использовать на _DoOnNewRecord скопированной записи)
+  FCopiedObjectKey := Self.ID;
+
   LinkTableList := TStringList.Create;
   try
-    DidActivate := MasterObject.ActivateTransaction;
     MasterObject.Open;
 
     // есть такая ситуация: копируется накладная. часть информации находится
@@ -3921,141 +3915,149 @@ begin
     else
       DoPostRecord := False;
 
-
-    MasterObject.Insert;
+    // Будет использоваться для связи детальных объектов и вспомогательного объекта
+    DS := TDataSource.Create(Owner);
     try
-      // Копирование данных самой записи
-      CopyRecordData(Self, MasterObject);
-      if (MasterObject is TgdcDocument) and MasterObject.FieldByName('number').IsNull then
-        MasterObject.FieldByName('number').AsString := ' ';
-
-      if DoPostRecord then
+      DS.Dataset := MasterObject;
+      // Копирование детальных бизнес-объектов
+      if DoPostRecord and ACopyDetailObjects then
       begin
-        // Если существует такая же запись (с равным уникальным ключем)
-        //  то попытаемся изменить значение нашего ключа
-        if CheckTheSameRecord(MasterObject) then
-          SetNewListFieldValue(MasterObject);
-        try
-          MasterObject.Post;
-        except
-          on E: Exception do
-          begin
-            // Оставим запись в dsInsert, соответственно не будем копировать 1-к-1, детальные и множества
-            DoPostRecord := False;
-
-            ErrorMessage := 'Не удалось скопировать все поля оригинальной записи. Проверьте правильность заполнения!';
-            // Администратору покажем также и текст ошибки
-            if IBLogin.IsUserAdmin then
-              ErrorMessage := ErrorMessage + #13#10 + E.Message;
-            // Покажем сообщение
-            MessageBox(ParentHandle, PChar(ErrorMessage), 'Внимание', MB_OK or MB_ICONINFORMATION);
-          end;
-        end;  
-      end;
-
-      // Копирование объектов-множеств
-      if DoPostRecord then
-        CopyRecordSetData(Self, MasterObject);
-    except
-      if MasterObject.State in dsEditModes then
-        MasterObject.Cancel;
-      raise;
-    end;
-
-    if DoPostRecord then
-      // Копирование записей 1-к-1 для нашего объекта
-      for I := 0 to LinkTableList.Count - 1 do
-      begin
-        CFull := GetBaseClassForRelation(LinkTableList[I]);
-        LinkObj := CFull.gdClass.CreateWithParams(Owner,
-          Database,
-          Transaction,
-          CFull.SubType,
-          'ByID',
-          Self.ID);
-        try
-          LinkObj.Open;
-          if not LinkObj.EOF then
-          begin
-            LinkCopy := CFull.gdClass.CreateWithParams(Owner,
+        for I := 0 to Self.DetailLinksCount - 1 do
+        begin
+          // Проверим класс текущей записи детального объекта
+          C := TgdcBase(Self.DetailLinks[I]).GetCurrRecordClass;
+          DetailObject := C.gdClass.CreateWithParams(Owner,
               Database,
               Transaction,
-              CFull.SubType,
-              'ByID',
+              TgdcBase(Self.DetailLinks[I]).SubType,
+              TgdcBase(Self.DetailLinks[I]).SubSet,
               -1);
-            try
-              LinkCopy.Open;
-              LinkCopy.Insert;
-              CopyRecordData(LinkObj, LinkCopy);
-              LinkCopy.ID := MasterObject.ID;
-              LinkCopy.Post;
-              CopyRecordSetData(LinkObj, LinkCopy);
-            finally
-              LinkCopy.Free;
-            end;
-          end;
-        finally
-          LinkObj.Free;
+          // Скопируем обработчики событий детального объекта
+          CopyEventHandlers(DetailObject, Self.DetailLinks[I]);
+          // Установим параметры связи master-detail
+          DetailObject.MasterSource := DS;
+          DetailObject.MasterField := Self.DetailLinks[I].MasterField;
+          DetailObject.DetailField := Self.DetailLinks[I].DetailField;
+          DetailObject.Open;
+          // Добавим созданный детальный объект в список MasterObject'а
+          MasterObject.AddDetailLink(DetailObject);
         end;
       end;
 
-    // Если флаг установлен, то скопируем также детальные объекты
-    if DoPostRecord and ACopyDetailObjects then
-    begin
-      DS := TDatasource.Create(Owner);
+      // Создание копии записи
+      Self.Insert;
       try
-        DS.Dataset := MasterObject;
-        for I := 0 to Self.DetailLinksCount - 1 do
+        // Копирование данных самой записи
+        CopyRecordData(MasterObject, Self);
+        // Не будем оставлять номер документа нуллом
+        if (Self is TgdcDocument) and Self.FieldByName('number').IsNull then
+          Self.FieldByName('number').AsString := ' ';
+
+        if DoPostRecord then
+        begin
+          // Если существует такая же запись (с равным уникальным ключем)
+          //  то попытаемся изменить значение нашего ключа
+          if CheckTheSameRecord(Self) then
+            SetNewListFieldValue(Self);
+          try
+            Self.Post;
+          except
+            on E: Exception do
+            begin
+              // Оставим запись в dsInsert, соответственно не будем копировать 1-к-1, детальные и множества
+              DoPostRecord := False;
+
+              ErrorMessage := 'Не удалось скопировать все поля оригинальной записи. Проверьте правильность заполнения!';
+              // Администратору покажем также и текст ошибки
+              if IBLogin.IsUserAdmin then
+                ErrorMessage := ErrorMessage + #13#10 + E.Message;
+              // Покажем сообщение
+              MessageBox(ParentHandle, PChar(ErrorMessage), 'Внимание', MB_OK or MB_ICONINFORMATION);
+            end;
+          end;
+        end;
+
+        // Копирование объектов-множеств
+        if DoPostRecord then
+          CopyRecordSetData(MasterObject, Self);
+      except
+        if Self.State in dsEditModes then
+          Self.Cancel;
+        raise;
+      end;
+
+      if DoPostRecord then
+      begin
+        // Копирование записей 1-к-1 для нашего объекта
+        for I := 0 to LinkTableList.Count - 1 do
+        begin
+          CFull := GetBaseClassForRelation(LinkTableList[I]);
+          LinkObj := CFull.gdClass.CreateWithParams(Owner,
+            Database,
+            Transaction,
+            CFull.SubType,
+            'ByID',
+            MasterObject.ID);
+          try
+            LinkObj.Open;
+            if not LinkObj.EOF then
+            begin
+              LinkCopy := CFull.gdClass.CreateWithParams(Owner,
+                Database,
+                Transaction,
+                CFull.SubType,
+                'ByID',
+                -1);
+              try
+                LinkCopy.Open;
+                LinkCopy.Insert;
+                CopyRecordData(LinkObj, LinkCopy);
+                LinkCopy.ID := Self.ID;
+                LinkCopy.Post;
+                CopyRecordSetData(LinkObj, LinkCopy);
+              finally
+                LinkCopy.Free;
+              end;
+            end;
+          finally
+            LinkObj.Free;
+          end;
+        end;
+      end;
+
+      // Если флаг установлен, то скопируем также детальные объекты
+      if DoPostRecord and ACopyDetailObjects then
+      begin
+        for I := 0 to MasterObject.DetailLinksCount - 1 do
         begin
           // На форме могут быть несколько объектов, подключенных
           // к нашему. Рассмотрим такой случай: на форме лежит объект накладная,
           // объект позиции накладной и объект клиент. Два последних, подключены
           // как детальные к накладной. Очевидно, что при копировании, объект
           // клиент не следует трогать.
-          F := Self.FindField(Self.DetailLinks[I].MasterField);
-          if (not (F is TIntegerField)) or (Self.ID <> F.AsInteger) then
-            continue;
-
-          DetailObject := nil;
-          Self.DetailLinks[I].DisableControls;
-          try
-            C := TgdcBase(Self.DetailLinks[I]).GetCurrRecordClass;
-            DetailObject := C.gdClass.CreateWithParams(Owner,
-                Database,
-                Transaction,
-                TgdcBase(Self.DetailLinks[I]).SubType,
-                TgdcBase(Self.DetailLinks[I]).SubSet,
-                -1);
-
-            CopyEventHandlers(DetailObject, Self.DetailLinks[I]);
-
-            DetailObject.MasterSource := DS;
-            DetailObject.MasterField := Self.DetailLinks[I].MasterField;
-            DetailObject.DetailField := Self.DetailLinks[I].DetailField;
-            DetailObject.Open;
-
-            Self.DetailLinks[I].First;
-            while not Self.DetailLinks[I].Eof do
-
-
+          F := MasterObject.FindField(MasterObject.DetailLinks[I].MasterField);
+          if Assigned(F) and (F is TIntegerField) and (MasterObject.ID = F.AsInteger) then
+          begin
+            MasterObject.DetailLinks[I].First;
+            while not MasterObject.DetailLinks[I].Eof do
             begin
-              DetailObject.Insert;
+              Self.DetailLinks[I].Insert;
               try
-                CopyRecordData(Self.DetailLinks[I], DetailObject);
+                CopyRecordData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
                 // установим ссылку на объект master
-                DetailField := DetailObject.FindField(DetailObject.GetFieldNameComparedToParam(DetailObject.DetailField));
+                DetailField := Self.DetailLinks[I].FindField(Self.DetailLinks[I].GetFieldNameComparedToParam(Self.DetailLinks[I].DetailField));
                 if Assigned(DetailField) then
                 begin
-                  if DetailField.AsInteger <> MasterObject.ID then
-                    DetailField.AsInteger := MasterObject.ID;
+                  if DetailField.AsInteger <> Self.ID then
+                    DetailField.AsInteger := Self.ID;
                 end;
-                DetailObject.Post;
-                CopyRecordSetData(Self.DetailLinks[I], DetailObject);
+                Self.DetailLinks[I].Post;
+                CopyRecordSetData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
               except
                 on E: Exception do
                 begin
-                  if DetailObject.State in dsEditModes then
-                    DetailObject.Cancel;
+                  if Self.DetailLinks[I].State in dsEditModes then
+                    Self.DetailLinks[I].Cancel;
                   MessageBox(ParentHandle,
                     PChar(Format('Ошибка копирования детального объекта: '#13#10'"%s"',
                       [E.Message])),
@@ -4063,51 +4065,26 @@ begin
                     MB_OK or MB_ICONERROR);
                 end;
               end;
-              Self.DetailLinks[I].Next;
+              MasterObject.DetailLinks[I].Next;
             end;
-          finally
-            DetailObject.Free;
-            Self.DetailLinks[I].EnableControls;
-          end
+          end;
         end;
-      finally
-        DS.Free;
       end;
+    finally
+      DS.Free;
     end;
 
     // Если установлен параметр, покажем диалог редактирования скопированного объекта
     if AShowEditDialog then
     begin
-      if MasterObject.EditDialog then
+      FDSModified := True;
+      if not Self.EditDialog then
       begin
-        NewID := MasterObject.ID;
-        if DidActivate and MasterObject.Transaction.InTransaction then
-          MasterObject.Transaction.Commit
-        else
-          FDSModified := True;   // укажем что объект был модифицирован (ведь мы работали с его копией)
-
-        Self.CloseOpen;
-        try
-          Self.ID := NewID;
-        except
-          on E: EgdcException do
-          begin
-            MessageBox(0,
-              'Невозможно отобразить скопированный объект. Возможно, он не соответствует установленному фильтру.',
-              'Внимание',
-              MB_OK or MB_TASKMODAL or MB_ICONEXCLAMATION);
-          end;
-        end;
+        if DoPostRecord then
+          Self.Delete
+        else if Self.State in dsEditModes then
+          Self.Cancel;
       end
-      else
-        if MasterObject.Transaction.InTransaction then
-          if DidActivate then
-            MasterObject.Transaction.Rollback
-          else
-            if DoPostRecord then
-              MasterObject.Delete
-            else
-              MasterObject.Cancel;
     end
     else
     begin
@@ -4115,32 +4092,21 @@ begin
       begin
         // Если существует такая же запись (с равным уникальным ключем)
         //  то попытаемся изменить значение нашего ключа
-        if CheckTheSameRecord(MasterObject) then
-          SetNewListFieldValue(MasterObject);
-        MasterObject.Post;
-      end;  
-      NewID := MasterObject.ID;
-      if DidActivate and MasterObject.Transaction.InTransaction then
-        MasterObject.Transaction.Commit
-      else
-        FDSModified := True;    // укажем что объект был модифицирован (ведь мы работали с его копией)
-
-      Self.Close;
-      Self.ID := NewID;
-      Self.Open;
+        if CheckTheSameRecord(Self) then
+          SetNewListFieldValue(Self);
+        Self.Post;
+      end;
     end;
   finally
     FreeAndNil(LinkTableList);
+    // Очистим ID копируемого объекта
+    FCopiedObjectKey := -1;
     // Укажем что объект выходит из состояния копирования
-    BaseState := MasterObject.BaseState;
-    Exclude(BaseState, sCopy);
-    MasterObject.BaseState := BaseState;
+    Exclude(FBaseState, sCopy);
 
-    if DidActivate and MasterObject.Transaction.InTransaction then
-      MasterObject.Transaction.Rollback;
-
-    for I := MasterObject.DetailLinksCount - 1 downto 0 do
-      MasterObject.DetailLinks[I].Free;
+    // Скопируем привязки к детальным объектам
+    for J := 0 to MasterObject.DetailLinksCount - 1 do
+      MasterObject.DetailLinks[J].Free;
 
     MasterObject.Free;
   end;

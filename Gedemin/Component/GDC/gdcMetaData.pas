@@ -5111,157 +5111,165 @@ begin
   if (AnsiCompareText(FieldByName('relationname').AsString, 'AC_ENTRY') = 0)
      and Assigned(atDatabase.Relations.ByRelationName('AC_ENTRY_BALANCE')) then
   begin
-    // Если поле создается, то сначала создадим его, а потом изменим триггер
-    //  Если удаляется, то наоборот, сначала триггер - потом поле
-    if not IsDrop then
-    begin
-      // Добавляем идентичное поле в AC_ENTRY_BALANCE
-      AcEntryBalanceStr := Format('ALTER TABLE ac_entry_balance ADD %s %s',
-        [FieldByName('fieldname').AsString, FieldByName('fieldsource').AsString]);
-      ResultList.Add(AcEntryBalanceStr);
-    end;
-
-    ibsqlR := TIBSQL.Create(nil);
-    gdcField := TgdcField.Create(nil);
     DidActivate := False;
     try
-      gdcField.SubSet := 'ByFieldName';
-      ibsqlR.Transaction := Transaction;
       DidActivate := ActivateTransaction;
-      ibsqlR.SQL.Text :=
-        'SELECT fieldname, fieldsource FROM at_relation_fields f WHERE relationname = ''AC_ENTRY'' AND fieldname STARTING WITH ''USR$''';
-      ibsqlR.ExecQuery;
-
-      ACFieldList := '';
-      NewFieldList := '';
-      OLDFieldList := '';
-      while not ibsqlR.Eof do
-      begin
-        // Если поле удаляется, то не включаем его в пересоздаваемый триггер
-        if not isDrop or
-          (IsDrop and (ANSICompareText(ibsqlR.FieldByName('fieldname').AsString, FieldByName('fieldname').AsString) <> 0)) then
-        begin
-          gdcField.Close;
-          gdcField.ParamByName('fieldname').AsString := Trim(ibsqlR.FieldByName('fieldsource').AsString);
-          gdcField.Open;
-
-          ACFieldList := ACFieldList + ', ' + Trim(ibsqlR.FieldByName('FIELDNAME').AsString) + #13#10;
-          NEWFieldList := NEWFieldList + ', NEW.' + Trim(ibsqlR.FieldByName('FIELDNAME').AsString) + #13#10;
-          OLDFieldList := OLDFieldList + ', OLD.' + Trim(ibsqlR.FieldByName('FIELDNAME').AsString) + #13#10;
-        end;
-        
-        ibsqlR.Next;
-      end;
-
-      // Если поле создается
+      // Если поле создается, то сначала создадим его, а потом изменим триггер
+      //  Если удаляется, то наоборот, сначала триггер - потом поле
       if not IsDrop then
       begin
-        ACFieldList := ACFieldList + ', ' + Trim(FieldByName('fieldname').AsString) + #13#10;
-        NEWFieldList := NEWFieldList + ', NEW.' + Trim(FieldByName('fieldname').AsString) + #13#10;
-        OLDFieldList := OLDFieldList + ', OLD.' + Trim(FieldByName('fieldname').AsString) + #13#10;
+        // Добавляем идентичное поле в AC_ENTRY_BALANCE
+        gdcField := TgdcField.Create(nil);
+        try
+          // Получим текст домена
+          gdcField.Transaction := Transaction;
+          gdcField.SubSet := 'ByFieldName';
+          gdcField.ParamByName('fieldname').AsString := Trim(FieldByName('fieldsource').AsString);
+          gdcField.Open;
+          // Добавим поле в ac_entry_balance
+          AcEntryBalanceStr := Format('ALTER TABLE ac_entry_balance ADD %s %s',
+            [FieldByName('fieldname').AsString, gdcField.GetDomainText(False, True)]);
+          ResultList.Add(AcEntryBalanceStr);  
+        finally
+          FreeAndNil(gdcField);
+        end;
       end;
 
-      ACTriggerText :=
-        ' CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry '#13#10 +
-        ' ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15 '#13#10 +
-        ' AS '#13#10 +
-        ' BEGIN '#13#10 +
-        '  IF (GEN_ID(gd_g_entry_balance_date, 0) > 0) THEN '#13#10 +
-        '  BEGIN '#13#10 +
-        '    IF (INSERTING AND ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
-        '    BEGIN '#13#10 +
-        '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-        '        (companykey, accountkey, currkey, '#13#10 +
-        '         debitncu, debitcurr, debiteq, '#13#10 +
-        '         creditncu, creditcurr, crediteq ' +
-          ACFieldList + ') '#13#10 +
-        '      VALUES '#13#10 +
-        '     (NEW.companykey, '#13#10 +
-        '      NEW.accountkey, '#13#10 +
-        '      NEW.currkey, '#13#10 +
-        '      NEW.debitncu, '#13#10 +
-        '      NEW.debitcurr, '#13#10 +
-        '      NEW.debiteq, '#13#10 +
-        '      NEW.creditncu, '#13#10 +
-        '      NEW.creditcurr, '#13#10 +
-        '      NEW.crediteq ' +
-          NEWFieldList + '); '#13#10 +
-        '    END '#13#10 +
-        '    ELSE '#13#10 +
-        '    IF (UPDATING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
-        '    BEGIN '#13#10 +
-        '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-        '        (companykey, accountkey, currkey, '#13#10 +
-        '         debitncu, debitcurr, debiteq, '#13#10 +
-        '         creditncu, creditcurr, crediteq ' +
-          ACFieldList + ') '#13#10 +
-        '      VALUES '#13#10 +
-        '        (OLD.companykey, '#13#10 +
-        '         OLD.accountkey, '#13#10 +
-        '         OLD.currkey, '#13#10 +
-        '         -OLD.debitncu, '#13#10 +
-        '         -OLD.debitcurr, '#13#10 +
-        '         -OLD.debiteq, '#13#10 +
-        '         -OLD.creditncu, '#13#10 +
-        '         -OLD.creditcurr, '#13#10 +
-        '         -OLD.crediteq ' +
-          OLDFieldList + '); '#13#10 +
-        '      IF ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN '#13#10 +
-        '        INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-        '          (companykey, accountkey, currkey, '#13#10 +
-        '           debitncu, debitcurr, debiteq, '#13#10 +
-        '           creditncu, creditcurr, crediteq '#13#10 +
-          ACFieldList + ') '#13#10 +
-        '         VALUES '#13#10 +
-        '           (NEW.companykey, '#13#10 +
-        '            NEW.accountkey, '#13#10 +
-        '            NEW.currkey, '#13#10 +
-        '            NEW.debitncu, '#13#10 +
-        '            NEW.debitcurr, '#13#10 +
-        '            NEW.debiteq, '#13#10 +
-        '            NEW.creditncu, '#13#10 +
-        '            NEW.creditcurr, '#13#10 +
-        '            NEW.crediteq ' +
-          NEWFieldList + '); '#13#10 +
-        '    END '#13#10 +
-        '    ELSE '#13#10 +
-        '    IF (DELETING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
-        '    BEGIN '#13#10 +
-        '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
-        '        (companykey, accountkey, currkey, '#13#10 +
-        '         debitncu, debitcurr, debiteq, '#13#10 +
-        '         creditncu, creditcurr, crediteq '#13#10 +
-          ACFieldList + ') '#13#10 +
-        '      VALUES '#13#10 +
-        '       (OLD.companykey, '#13#10 +
-        '        OLD.accountkey, '#13#10 +
-        '        OLD.currkey, '#13#10 +
-        '        -OLD.debitncu, '#13#10 +
-        '        -OLD.debitcurr, '#13#10 +
-        '        -OLD.debiteq, '#13#10 +
-        '        -OLD.creditncu, '#13#10 +
-        '        -OLD.creditcurr, '#13#10 +
-        '        -OLD.crediteq ' +
-          OLDFieldList + '); '#13#10 +
-        '    END '#13#10 +
-        '  END '#13#10 +
-        ' END ';
+      // Получим список полей ac_entry
+      ibsqlR := TIBSQL.Create(nil);
+      try
+        ibsqlR.Transaction := Transaction;
+        ibsqlR.SQL.Text :=
+          'SELECT fieldname, fieldsource FROM at_relation_fields f WHERE relationname = ''AC_ENTRY'' AND fieldname STARTING WITH ''USR$''';
+        ibsqlR.ExecQuery;
 
-      // Пересоздадим триггер на AC_ENTRY
-      ResultList.Add(ACTriggerText);
+        ACFieldList := '';
+        NewFieldList := '';
+        OLDFieldList := '';
+        while not ibsqlR.Eof do
+        begin
+          // Если поле удаляется, то не включаем его в пересоздаваемый триггер
+          if not isDrop or
+            (IsDrop and (ANSICompareText(ibsqlR.FieldByName('fieldname').AsString, FieldByName('fieldname').AsString) <> 0)) then
+          begin
+            ACFieldList := ACFieldList + ', '#13#10 + Trim(ibsqlR.FieldByName('FIELDNAME').AsString);
+            NEWFieldList := NEWFieldList + ', '#13#10'NEW.' + Trim(ibsqlR.FieldByName('FIELDNAME').AsString);
+            OLDFieldList := OLDFieldList + ', '#13#10'OLD.' + Trim(ibsqlR.FieldByName('FIELDNAME').AsString);
+          end;
+
+          ibsqlR.Next;
+        end;
+
+        // Если поле создается
+        if not IsDrop then
+        begin
+          ACFieldList := ACFieldList + ', '#13#10 + Trim(FieldByName('fieldname').AsString);
+          NEWFieldList := NEWFieldList + ', '#13#10'NEW.' + Trim(FieldByName('fieldname').AsString);
+          OLDFieldList := OLDFieldList + ', '#13#10'OLD.' + Trim(FieldByName('fieldname').AsString);
+        end;
+
+        // Текст пересоздаваемого триггера
+        ACTriggerText :=
+          ' CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry '#13#10 +
+          ' ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15 '#13#10 +
+          ' AS '#13#10 +
+          ' BEGIN '#13#10 +
+          '  IF (GEN_ID(gd_g_entry_balance_date, 0) > 0) THEN '#13#10 +
+          '  BEGIN '#13#10 +
+          '    IF (INSERTING AND ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '        (companykey, accountkey, currkey, '#13#10 +
+          '         debitncu, debitcurr, debiteq, '#13#10 +
+          '         creditncu, creditcurr, crediteq' +
+            ACFieldList + ') '#13#10 +
+          '      VALUES '#13#10 +
+          '     (NEW.companykey, '#13#10 +
+          '      NEW.accountkey, '#13#10 +
+          '      NEW.currkey, '#13#10 +
+          '      NEW.debitncu, '#13#10 +
+          '      NEW.debitcurr, '#13#10 +
+          '      NEW.debiteq, '#13#10 +
+          '      NEW.creditncu, '#13#10 +
+          '      NEW.creditcurr, '#13#10 +
+          '      NEW.crediteq' +
+            NEWFieldList + '); '#13#10 +
+          '    END '#13#10 +
+          '    ELSE '#13#10 +
+          '    IF (UPDATING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '        (companykey, accountkey, currkey, '#13#10 +
+          '         debitncu, debitcurr, debiteq, '#13#10 +
+          '         creditncu, creditcurr, crediteq' +
+            ACFieldList + ') '#13#10 +
+          '      VALUES '#13#10 +
+          '        (OLD.companykey, '#13#10 +
+          '         OLD.accountkey, '#13#10 +
+          '         OLD.currkey, '#13#10 +
+          '         -OLD.debitncu, '#13#10 +
+          '         -OLD.debitcurr, '#13#10 +
+          '         -OLD.debiteq, '#13#10 +
+          '         -OLD.creditncu, '#13#10 +
+          '         -OLD.creditcurr, '#13#10 +
+          '         -OLD.crediteq' +
+            OLDFieldList + '); '#13#10 +
+          '      IF ((NEW.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN '#13#10 +
+          '        INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '          (companykey, accountkey, currkey, '#13#10 +
+          '           debitncu, debitcurr, debiteq, '#13#10 +
+          '           creditncu, creditcurr, crediteq' +
+            ACFieldList + ') '#13#10 +
+          '         VALUES '#13#10 +
+          '           (NEW.companykey, '#13#10 +
+          '            NEW.accountkey, '#13#10 +
+          '            NEW.currkey, '#13#10 +
+          '            NEW.debitncu, '#13#10 +
+          '            NEW.debitcurr, '#13#10 +
+          '            NEW.debiteq, '#13#10 +
+          '            NEW.creditncu, '#13#10 +
+          '            NEW.creditcurr, '#13#10 +
+          '            NEW.crediteq' +
+            NEWFieldList + '); '#13#10 +
+          '    END '#13#10 +
+          '    ELSE '#13#10 +
+          '    IF (DELETING AND ((OLD.entrydate - CAST(''17.11.1858'' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN '#13#10 +
+          '    BEGIN '#13#10 +
+          '      INSERT INTO AC_ENTRY_BALANCE '#13#10 +
+          '        (companykey, accountkey, currkey, '#13#10 +
+          '         debitncu, debitcurr, debiteq, '#13#10 +
+          '         creditncu, creditcurr, crediteq' +
+            ACFieldList + ') '#13#10 +
+          '      VALUES '#13#10 +
+          '       (OLD.companykey, '#13#10 +
+          '        OLD.accountkey, '#13#10 +
+          '        OLD.currkey, '#13#10 +
+          '        -OLD.debitncu, '#13#10 +
+          '        -OLD.debitcurr, '#13#10 +
+          '        -OLD.debiteq, '#13#10 +
+          '        -OLD.creditncu, '#13#10 +
+          '        -OLD.creditcurr, '#13#10 +
+          '        -OLD.crediteq' +
+            OLDFieldList + '); '#13#10 +
+          '    END '#13#10 +
+          '  END '#13#10 +
+          ' END ';
+        // Пересоздадим триггер на AC_ENTRY
+        ResultList.Add(ACTriggerText);
+      finally
+        ibsqlR.Free;
+      end;
+
+      // Если поле удаляется
+      if IsDrop then
+      begin
+        // Удаляем поле в AC_ENTRY_BALANCE
+        AcEntryBalanceStr := Format('ALTER TABLE ac_entry_balance DROP %s', [FieldByName('fieldname').AsString]);
+        ResultList.Add(AcEntryBalanceStr);
+      end;
     finally
-      ibsqlR.Free;
-      gdcField.Free;
       if DidActivate and Transaction.InTransaction then
         Transaction.Commit;
-    end;
-
-    // Если поле удаляется
-    if IsDrop then
-    begin
-      // Удаляем поле в AC_ENTRY_BALANCE
-      AcEntryBalanceStr := Format('ALTER TABLE ac_entry_balance DROP %s', [FieldByName('fieldname').AsString]);
-      ResultList.Add(AcEntryBalanceStr);
     end;
   end;
 end;

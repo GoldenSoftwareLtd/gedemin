@@ -46,6 +46,9 @@ function GetActiveAccount(CompanyKey: Integer): Integer;
 procedure UpdateTabOrder(C: TWinControl);
 // Возвращает дату последнего расчета сальдо, если сальдо не рассчитано вернет 0
 function GetCalculatedBalanceDate: TDate;
+// Возвращает список полей по которым не нужно строить бух. сальдо (формат - ';FIELDNAME1;FIELDNAME2;FIELDNAME3;')
+function GetDontBalanceAnalyticList: String;
+
 // Заполняет поля сальдо в Карте и Анализе счета
 procedure SetSaldoValue(AValue: Currency; ADebit, ACredit: TEdit; ADecDigits: Integer);
 
@@ -66,7 +69,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , Graphics;
+  , Graphics, Storages;
 
 const
  cMaxHistoryQuantity = 30;
@@ -583,13 +586,19 @@ begin
       IBSQL.SQL.Text := 'SELECT GEN_ID(gd_g_entry_balance_date, 0) FROM rdb$database';
       IBSQL.ExecQuery;
       if IBSQL.Fields[0].AsInteger > 0 then
-        Result := IBSQL.Fields[0].AsInteger - IBDateDelta
-      else
-        Result := 0;
+        Result := IBSQL.Fields[0].AsInteger - IBDateDelta;
     end;
   finally
     IBSQL.Free;
   end;
+end;
+
+function GetDontBalanceAnalyticList: String;
+begin
+  GetDontBalanceAnalyticList := '';
+  if Assigned(GlobalStorage) then
+    GetDontBalanceAnalyticList := GlobalStorage.ReadString(
+      DontBalanceAnalyticStorageFolder, DontBalanceAnalyticStorageValue, '');
 end;
 
 procedure SetSaldoValue(AValue: Currency; ADebit, ACredit: TEdit; ADecDigits: Integer);

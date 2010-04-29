@@ -570,17 +570,21 @@ var
   I: Integer;
   ibsql: TIBSQL;
   Tr: TIBTransaction;
+  DontBalanceAnalytic: String;
 begin
   inherited;
 
   // Поищем аналитику USR$GS_DOCUMENT, если такая есть то будем строить старым методом
   if FUseEntryBalance then
+  begin
+    DontBalanceAnalytic := GetDontBalanceAnalyticList;
     for I := 0 to FAcctGroupBy.Count - 1 do
       if AnsiPos(';' + FAcctGroupBy.Analytics[I].FieldName + ';', DontBalanceAnalytic) > 0 then
       begin
         FUseEntryBalance := False;
         Break;
       end;
+  end;
 
   if not FMakeEmpty then
   begin

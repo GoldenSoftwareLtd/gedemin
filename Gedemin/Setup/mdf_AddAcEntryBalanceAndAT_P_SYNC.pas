@@ -6,6 +6,7 @@ uses
   IBDatabase, gdModify;
 
 procedure AddAcEntryBalanceAndAT_P_SYNC(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddAcEntryBalanceAndAT_P_SYNC_Second(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddMissedGrantsToAcEntryBalanceProcedures(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
@@ -1315,6 +1316,51 @@ begin
         FIBSQL.SQL.Text :=
           'INSERT INTO fin_versioninfo ' +
           '  VALUES (112, ''0000.0001.0000.0144'', ''25.04.2009'', ''Проставлены пропущенные гранты'') ';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
+
+        FTransaction.Commit;
+      except
+        on E: Exception do
+        begin
+          Log('Произошла ошибка: ' + E.Message);
+          if FTransaction.InTransaction then
+            FTransaction.Rollback;
+          raise;
+        end;
+      end;
+    finally
+      FIBSQL.Free;
+    end;
+  finally
+    FTransaction.Free;
+  end;
+end;
+
+procedure AddAcEntryBalanceAndAT_P_SYNC_Second(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    FIBSQL := TIBSQL.Create(nil);
+    try
+      FIBSQL.Transaction := FTransaction;
+      FIBSQL.ParamCheck := False;
+
+      FTransaction.StartTransaction;
+      try
+
+        // Вызовем обновленную прцедуру апдейта
+        AddAcEntryBalanceAndAT_P_SYNC(IBDB, Log);
+
+        FIBSQL.SQL.Text :=
+          'INSERT INTO fin_versioninfo ' +
+          '  VALUES (117, ''0000.0001.0000.0148'', ''27.04.2010'', ''Добавлен индекс на ac_entry_balance.accountkey'') ';
         try
           FIBSQL.ExecQuery;
         except
