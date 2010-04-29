@@ -54,7 +54,8 @@ const
   fndocumenttypekey = 'documenttypekey';
   fnFunctionKey = 'functionkey';
 
-  DontBalanceAnalytic = ';USR$GS_DOCUMENT;';
+  DontBalanceAnalyticStorageFolder = 'Options\AccOptions';
+  DontBalanceAnalyticStorageValue = 'DontBalanceAnalyticList';
 
 const
 //Шаблоны запросов

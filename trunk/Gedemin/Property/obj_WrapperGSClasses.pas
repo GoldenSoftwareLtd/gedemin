@@ -1685,6 +1685,8 @@ type
     procedure Set_StreamSilentProcessing(Value: WordBool); safecall;
     function  Get_StreamProcessingAnswer: Word; safecall;
     procedure Set_StreamProcessingAnswer(Value: Word); safecall;
+    function  Get_CopiedObjectKey: Integer; safecall;
+    procedure CopyObject(AWithDetail: WordBool; AShowDialog: WordBool); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -6587,6 +6589,8 @@ begin
     Result := Result + 'sLoadFromStream ';
   if sMultiple in GetGDCBase.BaseState then
     Result := Result + 'sMultiple ';
+  if sCopy in GetGDCBase.BaseState then
+    Result := Result + 'sCopy ';
 end;
 
 function TwrpGDCBase.Get_DetailClasses(Index: Integer): WideString;
@@ -7128,6 +7132,16 @@ end;
 procedure TwrpGDCBase.Set_StreamSilentProcessing(Value: WordBool);
 begin
   GetGDCBase.StreamSilentProcessing := Value;
+end;
+
+procedure TwrpGDCBase.CopyObject(AWithDetail, AShowDialog: WordBool);
+begin
+  GetGDCBase.CopyObject(AWithDetail, AShowDialog);
+end;
+
+function TwrpGDCBase.Get_CopiedObjectKey: Integer;
+begin
+  Result := GetGDCBase.CopiedObjectKey;
 end;
 
 { TwrpGDCClassList }

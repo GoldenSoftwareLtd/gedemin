@@ -537,6 +537,7 @@ COMMIT;
 
 ALTER TABLE ac_entry_balance ADD CONSTRAINT pk_ac_entry_bal PRIMARY KEY (id);
 ALTER TABLE ac_entry_balance ADD CONSTRAINT gd_fk_entry_bal_ac FOREIGN KEY (accountkey) REFERENCES ac_account (id) ON UPDATE CASCADE;
+CREATE INDEX ac_entry_balance_accountkey ON ac_entry_balance (accountkey);
 
 COMMIT;
 
@@ -834,6 +835,8 @@ END^
 CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry
 ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15
 AS 
+BEGIN 
+  IF (GEN_ID(gd_g_entry_balance_date, 0) > 0) THEN 
   BEGIN 
     /* Триггер обновляет данные в таблице ac_entry_balance в соответсвии с изменениями в ac_entry */
     IF (INSERTING AND ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
@@ -852,58 +855,59 @@ AS
       NEW.creditncu, 
       NEW.creditcurr, 
       NEW.crediteq);
-  END 
-  ELSE 
-  IF (UPDATING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
-  BEGIN 
-    INSERT INTO ac_entry_balance 
-      (companykey, accountkey, currkey, 
-       debitncu, debitcurr, debiteq, 
-       creditncu, creditcurr, crediteq)
-    VALUES 
-      (OLD.companykey, 
-       OLD.accountkey, 
-       OLD.currkey, 
-       -OLD.debitncu, 
-       -OLD.debitcurr, 
-       -OLD.debiteq, 
-       -OLD.creditncu, 
-       -OLD.creditcurr, 
-       -OLD.crediteq);
-    IF ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN 
+    END 
+    ELSE 
+    IF (UPDATING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
+    BEGIN 
       INSERT INTO ac_entry_balance 
         (companykey, accountkey, currkey, 
          debitncu, debitcurr, debiteq, 
          creditncu, creditcurr, crediteq)
-       VALUES 
-         (NEW.companykey, 
-          NEW.accountkey, 
-          NEW.currkey, 
-          NEW.debitncu, 
-          NEW.debitcurr, 
-          NEW.debiteq, 
-          NEW.creditncu, 
-          NEW.creditcurr, 
-          NEW.crediteq);
-  END 
-  ELSE 
-  IF (DELETING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
-  BEGIN 
-    INSERT INTO ac_entry_balance 
-      (companykey, accountkey, currkey, 
-       debitncu, debitcurr, debiteq, 
-       creditncu, creditcurr, crediteq)
-    VALUES 
-     (OLD.companykey, 
-      OLD.accountkey, 
-      OLD.currkey, 
-      -OLD.debitncu, 
-      -OLD.debitcurr, 
-      -OLD.debiteq, 
-      -OLD.creditncu, 
-      -OLD.creditcurr, 
-      -OLD.crediteq);
-  END 
+      VALUES 
+        (OLD.companykey, 
+         OLD.accountkey, 
+         OLD.currkey, 
+         -OLD.debitncu, 
+         -OLD.debitcurr, 
+         -OLD.debiteq, 
+         -OLD.creditncu, 
+         -OLD.creditcurr, 
+         -OLD.crediteq);
+      IF ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN 
+        INSERT INTO ac_entry_balance 
+          (companykey, accountkey, currkey, 
+           debitncu, debitcurr, debiteq, 
+           creditncu, creditcurr, crediteq)
+         VALUES 
+           (NEW.companykey, 
+            NEW.accountkey, 
+            NEW.currkey, 
+            NEW.debitncu, 
+            NEW.debitcurr, 
+            NEW.debiteq, 
+            NEW.creditncu, 
+            NEW.creditcurr, 
+            NEW.crediteq);
+    END 
+    ELSE 
+    IF (DELETING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
+    BEGIN 
+      INSERT INTO ac_entry_balance 
+        (companykey, accountkey, currkey, 
+         debitncu, debitcurr, debiteq, 
+         creditncu, creditcurr, crediteq)
+      VALUES 
+       (OLD.companykey, 
+        OLD.accountkey, 
+        OLD.currkey, 
+        -OLD.debitncu, 
+        -OLD.debitcurr, 
+        -OLD.debiteq, 
+        -OLD.creditncu, 
+        -OLD.creditcurr, 
+        -OLD.crediteq);
+    END 
+  END
 END
 ^
 

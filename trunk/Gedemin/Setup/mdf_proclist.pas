@@ -45,7 +45,7 @@ uses
   mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage;
 
 const
-  cProcCount = 142;
+  cProcCount = 143;
 
 type
   TModifyProc = record
@@ -294,7 +294,8 @@ const
     (ModifyProc: AddMissedGrantsToAcEntryBalanceProcedures; ModifyVersion: '0000.0001.0000.0143'),
     (ModifyProc: ConvertStorage; ModifyVersion: '0000.0001.0000.0144'),
     (ModifyProc: AddEdtiorKeyEditionDate2Storage; ModifyVersion: '0000.0001.0000.0145'),
-    (ModifyProc: DropLBRBStorageTree; ModifyVersion: '0000.0001.0000.0146')
+    (ModifyProc: DropLBRBStorageTree; ModifyVersion: '0000.0001.0000.0146'),
+    (ModifyProc: AddAcEntryBalanceAndAT_P_SYNC_Second; ModifyVersion: '0000.0001.0000.0147')
   );
 
 implementation

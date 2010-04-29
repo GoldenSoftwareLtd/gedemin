@@ -7,6 +7,8 @@ uses
   IBSQL, forms;
 
 type
+  TgsProcessState = (psUnknown, psWorking, psSuccess, psTerminating, psInterrupted, psError);
+
   TgsBeforeAfterProcessRoutine = procedure;
   TgsOnProcessInterruptionRoutine = procedure(const AErrorMessage: String);
   TgsOnProcessMessage = procedure(const APosition, AMaxPosition: Integer; const AMessage: String);
@@ -16,7 +18,6 @@ type
     FDontDeleteCardArray: TgdKeyArray;
     // Нить на которой закрывается период
     FWorkingThread: TThread;
-    FTerminatingProcess: Boolean;
     // Пишущая транзакция для закрытия периода
     FWriteTransaction: TIBTransaction;
     // Время начало отдельной части закрытия периода
@@ -39,6 +40,8 @@ type
     // Сущестует ли поле-ссылка на позицию прихода
     FAddLineKeyFieldExists: Boolean;
     FInvDocumentTypeKey: TID;
+    // Список аналитик AC_ENTRY по которым не надо расчитывать сальдо
+    FDontBalanceAnalytic: String;
 
     FPseudoClientKey: TID;
 
@@ -94,6 +97,9 @@ type
     procedure InitializeIBSQLQueries;
 
     function GetInProcess: Boolean;
+  protected
+    // Состояние объекта
+    FProcessState: TgsProcessState;
   public
     constructor Create;
     destructor Destroy; override;
@@ -141,6 +147,8 @@ type
 
     // Работает ли сейчас закрытие периода
     property InProcess: Boolean read GetInProcess;
+    // Состояние объекта
+    property ProcessState: TgsProcessState read FProcessState;
     // Дата закрытия периода
     property CloseDate: TDateTime read FCloseDate write FCloseDate;
 
@@ -152,6 +160,8 @@ type
 
     // Считать остатки только по рабочим организациям, или по всем контактам
     property OnlyOurRemains: Boolean read FOnlyOurRemains write FOnlyOurRemains;
+    // Список аналитик AC_ENTRY по которым не надо расчитывать сальдо (;FIELD1;FIELD2;FIELD3;)
+    property DontBalanceAnalytic: String read FDontBalanceAnalytic write FDontBalanceAnalytic;
     // Свойства для доступа к полям, которые определяют, будет ли модель выполнять
     //  соответствующие действия во время закрытия периода
     property DoCalculateEntryBalance: Boolean read FDoCalculateEntryBalance write FDoCalculateEntryBalance;
@@ -175,8 +185,10 @@ type
 implementation
 
 uses
-  gdcInvDocument_unit, at_classes, gd_security,
-  Windows, db, contnrs, AcctUtils, AcctStrings, controls, gdcAcctEntryRegister;
+  gdcInvDocument_unit,          at_classes,             gd_security,
+  Windows,                      db,                     contnrs,
+  AcctUtils,                    AcctStrings,            controls,
+  gdcAcctEntryRegister,         Storages;
 
 const
   InvDocumentRUID = '174849703_1094302532';
@@ -233,6 +245,9 @@ begin
   FEntryAvailableAnalytics := TStringList.Create;
 
   FInsertedEntryBalanceRecordCount := 0;
+  FProcessState := psUnknown;
+  // Получить неучтенные в прошлом закрытии бух. аналитики
+  FDontBalanceAnalytic := GetDontBalanceAnalyticList;
 
   FIBSQLGetDepotHeaderKey := TIBSQL.Create(Application);
   FIBSQLInsertGdDocument := TIBSQL.Create(Application);
@@ -438,12 +453,12 @@ begin
     while not ibsql.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if FTerminatingProcess then
+      if FProcessState = psTerminating then
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
           raise Exception.Create('Выполнение прервано')
         else
-          FTerminatingProcess := False;
+          FProcessState := psWorking;
 
       // Если по полю USR$INV_ADDLINEKEY карточки нашли поставщика, создадим приход остатка с него
       if not ibsql.FieldByName('SUPPLIERKEY').IsNull then
@@ -730,7 +745,7 @@ begin
     while not ibsqlDocument.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if FTerminatingProcess then
+      if FProcessState = psTerminating then
       begin
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
@@ -761,7 +776,7 @@ begin
           raise Exception.Create('Выполнение прервано');
         end
         else
-          FTerminatingProcess := False;
+          FProcessState := psWorking;
       end;
 
       // Проверим можно ли удалять документ
@@ -1003,7 +1018,6 @@ end;
 
 procedure TgdClosingPeriod.DoClosePeriod;
 begin
-  FTerminatingProcess := False;
   // Создадим нить вызывающую процедуры закрытия
   FWorkingThread := TgdClosingThread.Create(True);             
   TgdClosingThread(FWorkingThread).Model := Self;
@@ -1205,12 +1219,12 @@ begin
     while not ibsql.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if FTerminatingProcess then
+      if FProcessState = psTerminating then
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
           raise Exception.Create('Выполнение прервано')
         else
-          FTerminatingProcess := False;  
+          FProcessState := psWorking;
 
       // Визуализация процесса
       Inc(RecordCounter);
@@ -1581,7 +1595,7 @@ begin
     ibsql.SQL.Text := 'DELETE FROM ac_entry_balance';
     ibsql.ExecQuery;
 
-    DoOnProcessMessage(-1, -1, 'Вычисление бухгалтерских остатков...');
+    DoOnProcessMessage(-1, -1, 'Расчет бухгалтерских остатков...');
 
     // Вытянем все счета
     ibsqlAccount.Close;
@@ -1599,12 +1613,12 @@ begin
     while not ibsqlAccount.Eof do
     begin
       // При нажатии Escape прервем процесс
-      if FTerminatingProcess then
+      if FProcessState = psTerminating then
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
           raise Exception.Create('Выполнение прервано')
         else
-          FTerminatingProcess := False;
+          FProcessState := psWorking;
 
       // Визуализация процесса
       Inc(RecordCounter);
@@ -1641,6 +1655,11 @@ begin
     ibsql.SQL.Text :=
       Format('SET GENERATOR gd_g_entry_balance_date TO %d', [Round(FCloseDate) + IBDateDelta]);
     ibsql.ExecQuery;
+
+     // Если процесс завершился успешно, то сохраним введенные неучитываемые аналитики
+    if Assigned(GlobalStorage) then
+      GlobalStorage.WriteString(DontBalanceAnalyticStorageFolder, DontBalanceAnalyticStorageValue,
+        FDontBalanceAnalytic);
 
     // Визуализация процесса
     DoOnProcessMessage(RecordCounter, RecordCounter, 'Вычисление бухгалтерских остатков завершено'#13#10 +
@@ -1749,12 +1768,12 @@ begin
     RecordCounter := 0;
     while not ibsqlSelect.Eof do
     begin
-      if FTerminatingProcess then
+      if FProcessState = psTerminating then
         if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
            MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
           raise Exception.Create('Выполнение прервано')
         else
-          FTerminatingProcess := False;
+          FProcessState := psWorking;
 
       if CurrentCompanyKey <> ibsqlSelect.FieldByName('COMPANYKEY').AsInteger then
       begin
@@ -1888,7 +1907,7 @@ begin
     for AnalyticCounter := 0 to AcAccountRelation.RelationFields.Count - 1 do
     begin
       if AcAccountRelation.RelationFields.Items[AnalyticCounter].IsUserDefined
-         and (AnsiPos(';' + AcAccountRelation.RelationFields.Items[AnalyticCounter].FieldName + ';', DontBalanceAnalytic) = 0) then
+         and (AnsiPos(';' + AcAccountRelation.RelationFields.Items[AnalyticCounter].FieldName + ';', FDontBalanceAnalytic) = 0) then
         FEntryAvailableAnalytics.Add(AcAccountRelation.RelationFields.Items[AnalyticCounter].FieldName);
     end;
   end
@@ -2148,6 +2167,10 @@ end;
 
 procedure TgdClosingPeriod.DoAfterProcess;
 begin
+  // Если процесс не прерывали, и он не прервался из-за ошибки, то укажем что все прошло успешно
+  if not (FProcessState in [psInterrupted, psError]) then
+    FProcessState := psSuccess;
+  // Коммит рабочей транзакции  
   if FWriteTransaction.InTransaction then
     FWriteTransaction.Commit;
   if Assigned(FOnAfterProcess) then
@@ -2156,6 +2179,8 @@ end;
 
 procedure TgdClosingPeriod.DoBeforeProcess;
 begin
+  // Укажем что объект начал работу
+  FProcessState := psWorking;
   if Assigned(FOnBeforeProcess) then
     FOnBeforeProcess;
   FWriteTransaction.StartTransaction;
@@ -2165,6 +2190,11 @@ end;
 
 procedure TgdClosingPeriod.DoOnProcessInterruption(const AErrorMessage: String);
 begin
+  // Если процесс был  прерван пользователем, укажем это, иначе укажем что процесс завершился из-за ошибки
+  if FProcessState = psTerminating then
+    FProcessState := psInterrupted
+  else
+    FProcessState := psError;  
   // Откатим пишущую транзакцию
   if FWriteTransaction.InTransaction then
     FWriteTransaction.Rollback;
@@ -2180,16 +2210,17 @@ end;
 
 function TgdClosingPeriod.GetInProcess: Boolean;
 begin
-  Result := False;
+  Result := (FProcessState = psWorking);
+  {Result := False;
   if Assigned(FWorkingThread) and not FWorkingThread.Suspended then
-    Result := True;
+    Result := True;}
 end;
 
 procedure TgdClosingPeriod.StopProcess;
 begin
   if InProcess then
   begin
-    FTerminatingProcess := True;
+    FProcessState := psTerminating;
   end;
 end;
 

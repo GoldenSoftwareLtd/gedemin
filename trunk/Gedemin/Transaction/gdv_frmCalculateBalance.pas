@@ -5,7 +5,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, StdCtrls, Mask, xDateEdits, gd_createable_form, gd_ClassList,
-  ComCtrls, IBDatabase, gdClosingPeriod;
+  ComCtrls, IBDatabase, gdClosingPeriod, ActnList, TB2Item, TB2Dock,
+  TB2Toolbar, dmImages_unit;
 
 type
   TfrmCalculateBalance = class(TCreateableForm)
@@ -19,13 +20,28 @@ type
     pbMain: TProgressBar;
     btnCalculate: TButton;
     mProgress: TMemo;
+    lblPreviousDontBalanceAnalytic: TLabel;
+    ePreviousDontBalanceAnalytic: TEdit;
+    lblDontBalanceAnalytic: TLabel;
+    eDontBalanceAnalytic: TEdit;
+    alMain: TActionList;
+    actClose: TAction;
+    actCalculate: TAction;
+    actTestAnalyticList: TAction;
+    TBToolbar1: TTBToolbar;
+    TBItem1: TTBItem;
     procedure FormShow(Sender: TObject);
-    procedure btnCalculateClick(Sender: TObject);
-    procedure btnCloseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure actCloseExecute(Sender: TObject);
+    procedure actCalculateExecute(Sender: TObject);
+    procedure actTestAnalyticListExecute(Sender: TObject);
+    procedure actTestAnalyticListUpdate(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
     FClosingPeriodObject: TgdClosingPeriod;
+
+    function ValidateFieldString(const AFieldList: String): String;
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
     procedure SetProcessText(AText: String);
@@ -38,7 +54,9 @@ var
 implementation
 
 uses
-  IBSQL, AcctUtils, at_classes, gdcBaseInterface;
+  IBSQL,                AcctUtils,              AcctStrings,
+  at_classes,           gdcBaseInterface,       gd_KeyAssoc,
+  gdcMetaData;
 
 {$R *.DFM}
 
@@ -116,26 +134,12 @@ begin
     xdePreviousDate.Clear;
     xdeCurrentDate.Date := EncodeDate(Year, Month, 1);
   end;
+  // Выбранные аналитики по которым не велся учет сальдо
+  ePreviousDontBalanceAnalytic.Text := GetDontBalanceAnalyticList;
+  eDontBalanceAnalytic.Text := ePreviousDontBalanceAnalytic.Text;
 
   pbMain.Position := 0;
   mProgress.Clear;
-end;
-
-procedure TfrmCalculateBalance.btnCalculateClick(Sender: TObject);
-begin
-  if Assigned(atDatabase.Relations.ByRelationName('AC_ENTRY_BALANCE'))
-     and (xdeCurrentDate.Date > 0) then
-  begin
-    FClosingPeriodObject.CloseDate := xdeCurrentDate.Date;
-    FClosingPeriodObject.DoCalculateEntryBalance := True;
-
-    FClosingPeriodObject.DoClosePeriod;
-  end;
-end;
-
-procedure TfrmCalculateBalance.btnCloseClick(Sender: TObject);
-begin
-  Self.Close;
 end;
 
 procedure TfrmCalculateBalance.EnableControls(const AIsEnable: Boolean);
@@ -166,6 +170,84 @@ begin
   FreeAndNil(FClosingPeriodObject);
 
   InnerFormVariable := nil;
+end;
+
+procedure TfrmCalculateBalance.actCloseExecute(Sender: TObject);
+begin
+  Self.Close;
+end;
+
+procedure TfrmCalculateBalance.actCalculateExecute(Sender: TObject);
+begin
+  if Assigned(atDatabase.Relations.ByRelationName('AC_ENTRY_BALANCE'))
+     and (xdeCurrentDate.Date > 0) then
+  begin
+    // Установим параметры закрытия
+    FClosingPeriodObject.CloseDate := xdeCurrentDate.Date;
+    // Приведем список аналитик в необходимый формат
+    FClosingPeriodObject.DontBalanceAnalytic := ValidateFieldString(eDontBalanceAnalytic.Text);;
+    FClosingPeriodObject.DoCalculateEntryBalance := True;
+    // Запустим бух. закрытие
+    FClosingPeriodObject.DoClosePeriod;
+  end;
+end;
+
+function TfrmCalculateBalance.ValidateFieldString(const AFieldList: String): String;
+var
+  ibsqlFields: TIBSQL;
+  UpperFieldList: String;
+begin
+  Result := '';
+  UpperFieldList := AnsiUpperCase(AFieldList);
+
+  ibsqlFields := TIBSQL.Create(Self);
+  try
+    ibsqlFields.Transaction := gdcBaseManager.ReadTransaction;
+    ibsqlFields.SQL.Text :=
+      'SELECT ' +
+      '  r.fieldname AS fieldname ' +
+      'FROM ' +
+      '  at_relation_fields r ' +
+      'WHERE ' +
+      '  r.relationname = ''AC_ENTRY'' ' +
+      '  AND r.fieldname STARTING WITH ''USR$'' ';
+    ibsqlFields.ExecQuery;
+
+    // Пройдем по вытянутым полям и будем искать их в переданной строке
+    //  Сформируем строку типа ;FIELD1;FIELD2;FIELD3;
+    while not ibsqlFields.Eof do
+    begin
+      if AnsiPos(ibsqlFields.FieldByName('FIELDNAME').AsString, UpperFieldList) > 0 then
+        Result := Result + Trim(ibsqlFields.FieldByName('FIELDNAME').AsString) + ';';
+      ibsqlFields.Next;
+    end;
+
+    if Result <> '' then
+      Result := ';' + Result;
+  finally
+    FreeAndNil(ibsqlFields);
+  end;
+end;
+
+procedure TfrmCalculateBalance.actTestAnalyticListExecute(Sender: TObject);
+begin
+  eDontBalanceAnalytic.Text := ValidateFieldString(eDontBalanceAnalytic.Text);
+end;
+
+procedure TfrmCalculateBalance.actTestAnalyticListUpdate(Sender: TObject);
+begin
+  actTestAnalyticList.Enabled := (eDontBalanceAnalytic.Text <> '');
+end;
+
+procedure TfrmCalculateBalance.FormCloseQuery(Sender: TObject;
+  var CanClose: Boolean);
+begin
+  if FClosingPeriodObject.ProcessState = psWorking then
+  begin
+    CanClose := False;
+    Application.MessageBox('Дождитесь окончания процесса.', 'Внимание',
+      MB_OK or MB_ICONINFORMATION or MB_APPLMODAL);
+  end;
 end;
 
 initialization

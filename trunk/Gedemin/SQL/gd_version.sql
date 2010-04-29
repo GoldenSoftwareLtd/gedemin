@@ -389,6 +389,9 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (116, '0000.0001.0000.0147', '26.04.2010', 'Storage tree is not a lb-rb tree any more');
+  
+INSERT INTO fin_versioninfo 
+  VALUES (117, '0000.0001.0000.0148', '27.04.2010', 'Добавлен индекс на ac_entry_balance.accountkey');
 
 COMMIT;
 
