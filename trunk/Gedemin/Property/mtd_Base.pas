@@ -6,7 +6,7 @@ interface
 uses
   evt_i_Base, mtd_i_Base, SysUtils, TypInfo, IBDatabase, Classes,
   Contnrs, rp_BaseReport_unit, scr_i_FunctionList, gdcBase, gd_DebugLog,
-  gd_KeyAssoc, gdcBaseInterface;
+  gd_KeyAssoc, gdcBaseInterface, JclStrHashMap;
 
 const
   strStartClass = 'SCS';
@@ -193,9 +193,9 @@ type
   //Список классов с подтипами
   TMethodClassList = class(TObject)
   private
-    FMethodClassList: TStringList;
+    FHashMethodClassList: TStringHashMap;
 
-    function GetMethodClass(Index: Integer): TMethodClass;
+//    function GetMethodClass(Index: Integer): TMethodClass;
   public
     constructor Create;
     destructor Destroy; override;
@@ -247,11 +247,11 @@ type
   // Хранит инф-цию для классов с подтипами для одного метода.
   TmtdCache = class(TObject)
   private
-    FCacheItemList: TStringList;
+    FHashItemList: TStringHashMap;
     FMethodListName: String;
 
     function  GetCacheItem(const AFullClassName: TgdcFullClassName): TmtdCacheItem;
-    function  GetCacheItemByIndex(const Index: Integer): TmtdCacheItem;
+//    function  GetCacheItemByIndex(const Index: Integer): TmtdCacheItem;
     function  FullClassNameToStr(const AFullClassName: TgdcFullClassName): String;
   public
     constructor Create(const AMethodName: String);
@@ -259,8 +259,8 @@ type
 
     // Добавляет информацию о классе в кэш
     // (AChildClassName - имя предыдущего класса в стеке вызавов объекта)
-    function  AddClass(const AFullClassName, AChildClassName: TgdcFullClassName;
-      AScriptFuncion: TrpCustomFunction; const MethodPresent: Boolean): Integer;
+    function AddClass(const AFullClassName, AChildClassName: TgdcFullClassName;
+      AScriptFuncion: TrpCustomFunction; const MethodPresent: Boolean): TmtdCacheItem;
     // Имя кэшировонного метода.
     property MethodListName: String read FMethodListName;
   end;
@@ -863,6 +863,8 @@ begin
   end;
 end;
 
+{TMethodClassList}
+
 function TMethodClassList.AddClass(
   const AnClassKey: Integer; const AnFullClassName: TgdcFullClassName;
   const AnClassReference: TClass): TCustomMethodClass;
@@ -871,13 +873,11 @@ var
   LMethodClass: TMethodClass;
 begin
   // если класс не найден, то добавляем его
-  i := FMethodClassList.IndexOf(AnFullClassName.gdClassName);
-  if i = -1 then
+  if not FHashMethodClassList.Find(AnFullClassName.gdClassName, LMethodClass) then
   begin
     LMethodClass := TMethodClass.Create;
-    FMethodClassList.AddObject(AnFullClassName.gdClassName, LMethodClass);
-  end else
-    LMethodClass := GetMethodClass(i);
+    FHashMethodClassList.Add(AnFullClassName.gdClassName, LMethodClass);
+  end;
 
   if LMethodClass.Class_Name = '' then
     LMethodClass.Class_Name := AnFullClassName.gdClassName;
@@ -898,12 +898,8 @@ begin
 end;
 
 procedure TMethodClassList.Clear;
-var
-  i: Integer;
 begin
   MethodClassListClear;
-  for i := 0 to FMethodClassList.Count - 1 do
-    FMethodClassList.Objects[i].Free;
 end;
 
 constructor TMethodClassList.Create;
@@ -913,14 +909,14 @@ begin
   Inc(MethodClassListCount);
   {$ENDIF}
 
-  FMethodClassList := TStringList.Create;
-  FMethodClassList.Sorted := True;
+  FHashMethodClassList := TStringHashMap.Create(CaseInSensitiveTraits, 512);
 end;
 
 destructor TMethodClassList.Destroy;
 begin
   Clear;
-  FMethodClassList.Free;
+
+  FHashMethodClassList.Free;
   {$IFDEF DEBUGMTD}
   Dec(MethodClassListCount);
   {$ENDIF}
@@ -930,21 +926,19 @@ end;
 
 function TMethodClassList.FindClass(const AnFullClassName: TgdcFullClassName): TCustomMethodClass;
 var
-  I: Integer;
   LMethodClass: TMethodClass;
 begin
-  Result := nil;
-  i := FMethodClassList.IndexOf(AnFullClassName.gdClassName);
-  if i > -1 then
+  if FHashMethodClassList.Find(AnFullClassName.gdClassName, LMethodClass) then
   begin
-    LMethodClass := GetMethodClass(i);
 
     if Trim(AnFullClassName.SubType) <> '' then
     begin
       Result := LMethodClass.GetSubTypeMethodItem(AnFullClassName.SubType);
     end else
       Result := LMethodClass;
-  end;
+  end else
+    Result := nil;
+
 end;
 
 {function TMethodClassList.GetCount: Integer;
@@ -952,10 +946,10 @@ begin
   Result := FMethodClassList.Count;
 end;}
 
-function TMethodClassList.GetMethodClass(Index: Integer): TMethodClass;
+{function TMethodClassList.GetMethodClass(Index: Integer): TMethodClass;
 begin
   Result := TMethodClass(FMethodClassList.Objects[Index]);
-end;
+end;}
 
 procedure TMethodClassList.LoadFromDatabase(AnDatabase: TIBDatabase;
   AnTransaction: TIBTransaction; const AnParent: Variant);
@@ -1030,13 +1024,9 @@ begin
 end;}
 
 procedure TMethodClassList.MethodClassListClear;
-var
-  I: Integer;
 begin
-  for I := 0 to FMethodClassList.Count - 1 do
-    GetMethodClass(I).Free;
-
-  FMethodClassList.Clear;
+  FHashMethodClassList.Iterate(nil, Iterate_FreeObjects);
+  FHashMethodClassList.Clear;
 end;
 
 function TMethodControl.ExecuteMethodNew(
@@ -1469,11 +1459,9 @@ function TMethodControl.AddClassInmtdCache(const AFullClassName,
   const MethodPresent: Boolean): TmtdCacheItem;
 var
   LmtdCache: TmtdCache;
-  i: Integer;
 begin
   LmtdCache := GetmtdCacheByIndex(mtdCacheIndex);
-  i := LmtdCache.AddClass(AFullClassName, AFullChildName, AScriptFunction, MethodPresent);
-  Result := LmtdCache.GetCacheItemByIndex(i);
+  Result := LmtdCache.AddClass(AFullClassName, AFullChildName, AScriptFunction, MethodPresent);
 end;
 
 function TMethodControl.GetmtdCacheByIndex(const Index: Integer): TmtdCache;
@@ -1489,8 +1477,8 @@ end;
 { TmtdCache }
 
 function TmtdCache.AddClass(const AFullClassName,
-  AChildClassName: TgdcFullClassName;AScriptFuncion: TrpCustomFunction;
-  const MethodPresent: Boolean): Integer;
+  AChildClassName: TgdcFullClassName; AScriptFuncion: TrpCustomFunction;
+  const MethodPresent: Boolean): TmtdCacheItem;
 var
   LCacheItem: TmtdCacheItem;
 
@@ -1504,13 +1492,12 @@ var
   end;
 
 begin
-  Result := FCacheItemList.IndexOf(FullClassNameToStr(AFullClassName));
-  if Result > -1 then
+  LCacheItem := nil;
+  if FHashItemList.Find(FullClassNameToStr(AFullClassName), LCacheItem) then
   begin
-    begin
-      AddOwnerItem(TmtdCacheItem(FCacheItemList.Objects[Result]));
-      GetCacheItemByIndex(Result).FIsRealize := True;
-    end;
+    Result := TmtdCacheItem(LCacheItem);
+    AddOwnerItem(Result);
+    TmtdCacheItem(Result).FIsRealize := True;
     Exit;
   end;
 
@@ -1520,26 +1507,23 @@ begin
   LCacheItem.MethodPresent := MethodPresent;
   LCacheItem.OwnerItem := nil;
   AddOwnerItem(LCacheItem);
-  Result := FCacheItemList.AddObject(
-    FullClassNameToStr(AFullClassName), LCacheItem);
+  FHashItemList.Add(FullClassNameToStr(AFullClassName), LCacheItem);
+  Result := LCacheItem;
 end;
 
 constructor TmtdCache.Create(const AMethodName: String);
 begin
   Inherited Create;
 
-  FCacheItemList := TStringList.Create;
-  FCacheItemList.Sorted := True;
+  FHashItemList := TStringHashMap.Create(CaseInSensitiveTraits, 256);
+
   FMethodListName := AMethodName;
 end;
 
 destructor TmtdCache.Destroy;
-var
-  i: Integer;
 begin
-  for i := 0 to FCacheItemList.Count - 1 do
-    FCacheItemList.Objects[i].Free;
-  FCacheItemList.Free;
+  FHashItemList.Iterate(nil, Iterate_FreeObjects);
+  FHashItemList.Free;
 
   inherited;
 end;
@@ -1551,13 +1535,9 @@ begin
 end;
 
 function TmtdCache.GetCacheItem(const AFullClassName: TgdcFullClassName): TmtdCacheItem;
-var
-  i: Integer;
 begin
-  Result := nil;
-  i := FCacheItemList.IndexOf(FullClassNameToStr(AFullClassName));
-  if i > -1 then
-    Result := TmtdCacheItem(FCacheItemList.Objects[i]);
+  if not FHashItemList.Find(FullClassNameToStr(AFullClassName), Result) then
+    Result := nil;
 end;
 
 function TMethodControl.GetmtdCacheIndex(
@@ -1582,12 +1562,6 @@ begin
     Exit;
 
   Result := LmtdCache.GetCacheItem(ACurrentFullName);
-end;
-
-function TmtdCache.GetCacheItemByIndex(
-  const Index: Integer): TmtdCacheItem;
-begin
-  Result := TmtdCacheItem(FCacheItemList.Objects[Index]);
 end;
 
 procedure TMethodControl.ClearMacroCache;
@@ -1833,7 +1807,6 @@ begin
   LClass := nil;
   case ClassType of
     mtd_gdcBase:
-//      LClass := gdcClassList.GetGDCClass(FullClassName);
       LClass := gdcClassList.GetGDCClass(FullClassName);
     mtd_gdcForm:
       LClass := frmClassList.GetFRMClass(FullClassName);
