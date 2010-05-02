@@ -74,6 +74,15 @@ echo *************************************************
 cd ..\exe
 stripreloc gedemin.exe
 
+echo *************************************************
+echo **                                             **
+echo **  update_gedemin:                            **
+echo **  Check in version number changes            **
+echo **                                             **
+echo *************************************************
+
+"c:\program files\StarBase\StarTeam 5.3\stcmd" ci -p "%starteam_connect%/Gedemin" -is -x -stop -f NCI -r "Inc build number" -nologo -q
+
 if "%1"=="/no_ftp" goto :exit
 
 echo *************************************************

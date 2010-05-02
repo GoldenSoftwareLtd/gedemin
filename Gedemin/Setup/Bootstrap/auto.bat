@@ -34,7 +34,7 @@ rem set path=%path%;c:\program files\StarBase\StarTeam 5.3
 @set install_source_path=..\..\..\gedemin_local_fb
 @set setting_source_path=d:\golden\setting
 rem set install_target_path=\Distrib2\GoldSoft\Gedymin\Local
-@set install_target_path=\distr_temp
+@set install_target_path=\Distrib2\GoldSoft\Gedymin\Local
 
 set send_ftp=%1
 
