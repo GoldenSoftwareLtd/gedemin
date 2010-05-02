@@ -195,7 +195,6 @@ type
   private
     FHashMethodClassList: TStringHashMap;
 
-//    function GetMethodClass(Index: Integer): TMethodClass;
   public
     constructor Create;
     destructor Destroy; override;
@@ -251,7 +250,6 @@ type
     FMethodListName: String;
 
     function  GetCacheItem(const AFullClassName: TgdcFullClassName): TmtdCacheItem;
-//    function  GetCacheItemByIndex(const Index: Integer): TmtdCacheItem;
     function  FullClassNameToStr(const AFullClassName: TgdcFullClassName): String;
   public
     constructor Create(const AMethodName: String);
@@ -915,8 +913,8 @@ end;
 destructor TMethodClassList.Destroy;
 begin
   Clear;
-
   FHashMethodClassList.Free;
+
   {$IFDEF DEBUGMTD}
   Dec(MethodClassListCount);
   {$ENDIF}
@@ -940,16 +938,6 @@ begin
     Result := nil;
 
 end;
-
-{function TMethodClassList.GetCount: Integer;
-begin
-  Result := FMethodClassList.Count;
-end;}
-
-{function TMethodClassList.GetMethodClass(Index: Integer): TMethodClass;
-begin
-  Result := TMethodClass(FMethodClassList.Objects[Index]);
-end;}
 
 procedure TMethodClassList.LoadFromDatabase(AnDatabase: TIBDatabase;
   AnTransaction: TIBTransaction; const AnParent: Variant);
@@ -1479,8 +1467,6 @@ end;
 function TmtdCache.AddClass(const AFullClassName,
   AChildClassName: TgdcFullClassName; AScriptFuncion: TrpCustomFunction;
   const MethodPresent: Boolean): TmtdCacheItem;
-var
-  LCacheItem: TmtdCacheItem;
 
   procedure AddOwnerItem(const LOwnerItem: TmtdCacheItem);
   var
@@ -1492,23 +1478,20 @@ var
   end;
 
 begin
-  LCacheItem := nil;
-  if FHashItemList.Find(FullClassNameToStr(AFullClassName), LCacheItem) then
+  if FHashItemList.Find(FullClassNameToStr(AFullClassName), Result) then
   begin
-    Result := TmtdCacheItem(LCacheItem);
     AddOwnerItem(Result);
-    TmtdCacheItem(Result).FIsRealize := True;
-    Exit;
+    Result.FIsRealize := True;
+  end else
+  begin
+    Result := TmtdCacheItem.Create;
+    Result.FullClassName := AFullClassName;
+    Result.ScriptFunction := AScriptFuncion;
+    Result.MethodPresent := MethodPresent;
+    Result.OwnerItem := nil;
+    AddOwnerItem(Result);
+    FHashItemList.Add(FullClassNameToStr(AFullClassName), Result);
   end;
-
-  LCacheItem := TmtdCacheItem.Create;
-  LCacheItem.FullClassName := AFullClassName;
-  LCacheItem.ScriptFunction := AScriptFuncion;
-  LCacheItem.MethodPresent := MethodPresent;
-  LCacheItem.OwnerItem := nil;
-  AddOwnerItem(LCacheItem);
-  FHashItemList.Add(FullClassNameToStr(AFullClassName), LCacheItem);
-  Result := LCacheItem;
 end;
 
 constructor TmtdCache.Create(const AMethodName: String);
