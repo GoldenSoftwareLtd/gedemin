@@ -758,6 +758,8 @@ begin
     tsAccess.TabVisible := True;
     tsFields.TabVisible := True;
     tsLinks.TabVisible := True;
+    btnClassMethods.Enabled := True;
+    btnParentMethods.Enabled := True;
   end else
   begin
     tsAdditional.TabVisible := False;
