@@ -4,7 +4,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
   Caption = 'Свойства объекта'
   ClientHeight = 426
   ClientWidth = 399
-  PixelsPerInch = 96
+  PixelsPerInch = 125
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 102
@@ -42,7 +42,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
     Top = 4
     Width = 391
     Height = 393
-    ActivePage = tsAccess
+    ActivePage = tsGeneral
     TabOrder = 0
     OnChange = tsAccessShow
     object tsGeneral: TTabSheet
