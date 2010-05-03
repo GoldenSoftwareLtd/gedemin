@@ -134,6 +134,7 @@ type
     procedure actAddAll_MinusFeatureExecute(Sender: TObject);
     procedure actRemoveAll_MinusFeatureExecute(Sender: TObject);
     procedure luCreditFromDropDown(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
 
 
   private
@@ -2346,6 +2347,23 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGSETUPINVDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD);
   {M}end;
   {END MACRO}
+end;
+
+procedure Tgdc_dlgSetupInvDocument.FormCreate(Sender: TObject);
+begin
+  inherited;
+
+  if Assigned(IBLogin) and IBLogin.IsUserAdmin then
+    begin
+      Button1.Enabled := True;
+      Button2.Enabled := True;
+    end
+    else
+    begin
+      Button1.Enabled := False;
+      Button2.Enabled := False;
+    end;
+
 end;
 
 initialization

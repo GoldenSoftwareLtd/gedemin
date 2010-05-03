@@ -27,6 +27,12 @@ inherited gdc_dlgAcctTrEntry: Tgdc_dlgAcctTrEntry
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Left = 144
+    Top = 169
+    Anchors = [akLeft, akBottom]
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 217
     Top = 169
@@ -38,12 +44,6 @@ inherited gdc_dlgAcctTrEntry: Tgdc_dlgAcctTrEntry
     Top = 169
     Anchors = [akRight, akBottom]
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Left = 144
-    Top = 169
-    Anchors = [akLeft, akBottom]
-    TabOrder = 5
   end
   object Panel2: TPanel [6]
     Left = 0
