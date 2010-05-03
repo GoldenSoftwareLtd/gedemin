@@ -4,7 +4,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
   Caption = 'Свойства объекта'
   ClientHeight = 426
   ClientWidth = 399
-  PixelsPerInch = 125
+  PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 102
@@ -82,8 +82,6 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Height = -11
         Font.Name = 'Courier New'
         Font.Style = []
-        Lines.Strings = (
-          '')
         ParentFont = False
         ReadOnly = True
         ScrollBars = ssHorizontal
@@ -306,7 +304,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Font.Height = -9
         Font.Name = 'Tahoma'
         Font.Style = []
-        ItemHeight = 11
+        ItemHeight = 0
         ParentFont = False
         TabOrder = 2
       end
