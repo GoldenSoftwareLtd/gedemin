@@ -764,8 +764,8 @@ begin
     tsAccess.TabVisible := False;
     tsFields.TabVisible := False;
     tsLinks.TabVisible := False;
-    btnClassMethods.Enabled := false;
-    btnParentMethods.Enabled := false;
+    btnClassMethods.Enabled := False;
+    btnParentMethods.Enabled := False;
   end;
 
   cbOpenDoc.ItemIndex := 0;
