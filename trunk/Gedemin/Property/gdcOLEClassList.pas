@@ -25,7 +25,7 @@ unit gdcOLEClassList;
 
 interface
 
-uses Classes, ComObj, SysUtils, ActiveX, gd_KeyAssoc;
+uses Classes, ComObj, SysUtils, ActiveX, gd_KeyAssoc, JclStrHashMap;
 
 type
   TWrapperAutoObject = class(TAutoIntfObject)
@@ -87,11 +87,6 @@ type
     function IndexOf(AClass: TClass): Integer;
     function FindOLEClass(AClass: TClass): TWrapperAutoClass;
     function FindOLEClassItem(AClass: TClass): TgdcCOMClassItem;
-    {function FindClass(AClass: TAutoClass): TComponentClass;}
-(*    // Сохранение данных в поток
-    procedure SaveToStream(AStream: TStream);
-    // Считывание данных из потока
-    procedure LoadFromStream(AStream: TStream);*)
     // Присвоение
     procedure Assign(ASource: TgdcOLEClassList);
 
@@ -102,7 +97,7 @@ type
   // TComponentClass <-> TAutoClass
   TgdcOLEClassListNew = class(TgdKeyIntAssoc)
   private
-    FClassNames: TStringList;
+    FHashClassNames: TStringHashMap;
 
   protected
     function Get(Index: Integer): TgdcCOMClassItem;
@@ -125,11 +120,6 @@ type
     function GetClass(const AClassName: String): TClass;
     function GetWrapClass(const AClassName: String; out AClass: TClass): TWrapperAutoClass;
 
-    {function FindClass(AClass: TAutoClass): TComponentClass;}
-(*    // Сохранение данных в поток
-    procedure SaveToStream(AStream: TStream);
-    // Считывание данных из потока
-    procedure LoadFromStream(AStream: TStream);*)
     // Присвоение
     procedure Assign(ASource: TgdcOLEClassListNew);
 
@@ -162,11 +152,6 @@ implementation
 uses
   gs_Exception;
 
-const
-  GDC_OLECLASSLIST = '^OCL';
-
-type
-  TLabelStream = array[0..3] of char;
 
 type
   TgdFreeNotificationComponent = class;
@@ -198,9 +183,6 @@ type
 var
   gdWrapServerList: TgdWrapServerList;
 
-
-const
-  LblSize = SizeOf(TLabelStream);
 
 destructor TgdcOLEClassList.Destroy;
 begin
@@ -253,55 +235,6 @@ function TgdcOLEClassList.FindOLEClass(AClass: TClass): TWrapperAutoClass;
 begin
   Result := FindOLEClassItem(AClass).OLEClass;
 end;
-
-{function TgdcOLEClassList.FindClass(AClass: TAutoClass): TComponentClass;
-var
-  I: Integer;
-begin
-  I := 0;
-  while (I < Count) and (Items[I].OleClass = AClass) do
-    Inc(I);
-  if I = Count then
-    Result := nil
-  else
-    Result := Items[I].DelphiClass;
-end;}
-
-(*procedure TgdcOLEClassList.SaveToStream(AStream: TStream);
-var
-  I: Integer;
-begin
-  AStream.Write(GDC_OLECLASSLIST, LblSize);
-  AStream.Write(Count, SizeOF(Count));
-  for I := 0 to Count - 1 do
-  begin
-    AStream.Write(Items[I].DelphiClass, SizeOF(TClass));
-    AStream.Write(Items[I].OLEClass, SizeOF(TWrapperAutoClass));
-  end;
-end;
-
-procedure TgdcOLEClassList.LoadFromStream(AStream: TStream);
-var
-  I, ItemCount: Integer;
-  LDelphiClass: TClass;
-  LOLEClass: TWrapperAutoClass;
-  Lbl:TLabelStream;
-begin
-  AStream.Read(Lbl, LblSize);
-  if Lbl = GDC_OLECLASSLIST then
-  begin
-    Clear;
-    AStream.Read(ItemCount, SizeOF(Count));
-    for I := 0 to ItemCount - 1 do
-    begin
-      AStream.Read(LDelphiClass, SizeOF(LDelphiClass));
-      AStream.Read(LOLEClass, SizeOF(LOLEClass));
-      Add(LDelphiClass, LOLEClass);
-    end;
-  end else
-    raise Exception.Create(GetGsException(Self, 'Неверный формат данных'));
-end;
-*)
 
 procedure TgdcOLEClassList.Assign(ASource: TgdcOLEClassList);
 var
@@ -480,7 +413,7 @@ begin
     if AClass.InheritsFrom(TPersistent) and not AClass.InheritsFrom(TComponent) then
       RegisterClass(TPersistentClass(AClass));
 
-    FClassNames.AddObject(Copy(UpperCase(AClass.ClassName), 2, 255), Pointer(AClass));
+    FHashClassNames.Add(Copy(AClass.ClassName, 2, 255), Pointer(AClass));
   end else
     Result := -1;
 end;
@@ -506,9 +439,8 @@ end;
 constructor TgdcOLEClassListNew.Create;
 begin
   inherited;
-  FClassNames := TStringList.Create;
-  FClassNames.Duplicates := dupError;
-  FClassNames.Sorted := True;
+
+  FHashClassNames := TStringHashMap.Create(CaseInSensitiveTraits, 1024);
 end;
 
 procedure TgdcOLEClassListNew.DeleteClass(Index: Integer);
@@ -521,7 +453,7 @@ end;
 destructor TgdcOLEClassListNew.Destroy;
 begin
   Clear;
-  FClassNames.Free;
+  FHashClassNames.Free;
 
   inherited;
 end;
@@ -553,36 +485,23 @@ begin
 end;
 
 function TgdcOLEClassListNew.GetClass(const AClassName: String): TClass;
-var
-  I: Integer;
 begin
 { TODO :
 заметим, что в борланде реализация ГетКласс предусматривает
 установку блокировок, чего нет у нас. может тут ошибка?? }
-  I := FClassNames.IndexOf(UpperCase(Copy(AClassName, 2, 255)));
-  if I = -1 then
-    Result := nil
-  else
-    Result := TClass(FClassNames.Objects[I]);
+  if not FHashClassNames.Find(Copy(AClassName, 2, 255), Result) then
+    Result := nil;
 end;
 
 function TgdcOLEClassListNew.GetWrapClass(
   const AClassName: String; out AClass: TClass): TWrapperAutoClass;
-var
-  I: Integer;
 begin
-  I := FClassNames.IndexOf(UpperCase(Copy(AClassName, 2, 255)));
-  if I = -1 then
-    AClass := nil
-  else
-    AClass := TClass(FClassNames.Objects[I]);
-
-  if AClass <> nil then
-  begin
-    I := Integer(FClassNames.Objects[I]);
-    Result := TgdcCOMClassItem(ValuesByKey[I]).OLEClass;
-  end else
+  if FHashClassNames.Find(Copy(AClassName, 2, 255), AClass) then
+    Result := TgdcCOMClassItem(ValuesByKey[Integer(AClass)]).OLEClass
+  else begin
+    AClass := nil;
     Result := nil;
+  end;
 end;
 
 function TgdcOLEClassListNew.IndexOfClass(AClass: TClass): Integer;
