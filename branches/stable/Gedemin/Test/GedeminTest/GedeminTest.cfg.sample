@@ -1,0 +1,41 @@
+-$A+
+-$B-
+-$C+
+-$D+
+-$E-
+-$F-
+-$G+
+-$H+
+-$I+
+-$J+
+-$K-
+-$L+
+-$M-
+-$N+
+-$O-
+-$P+
+-$Q-
+-$R-
+-$S-
+-$T-
+-$U-
+-$V+
+-$W-
+-$X+
+-$YD
+-$Z1
+-cg
+-AWinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+-H+
+-W+
+-M
+-$M16384,1048576
+-K$00400000
+-N"..\..\dcu"
+-LE"..\..\bpl"
+-LN"..\..\bpl"
+-U"..\DUnit\src;..\..\jcl\Source;..\..\jcl\Source\windows;..\..\jcl\Source\vcl;..\..\jcl\Source\common;..\..\jcl\packages;..\..\ibx;..\..\..\comp5\xstorm;..\..\..\comp5;..\..\FastReport 4\Source;..\..\FastReport 4\FastScript;..\..\FastReport 4\Source\ExportPack;..\..\FastReport 4\Source\ADO;..\..\FastReport 4\FastQB;..\..\FastReport 4\Source\IBX;..\..\setup;..\..\imports;..\..\component;..\..\component\diff;..\..\component\textdiff;..\..\component\gdc;..\..\component\repository;..\..\Component\tb2k\Source;..\..\Component\SynEdit\Source;..\..\common;c:\program files\borland\delphi5\Source\Vcl;c:\program files\borland\delphi5\Source\Toolsapi;c:\program files\borland\delphi5\Ocx\Servers;c:\program files\borland\delphi5\lib;..\..\designer;..\..\property;..\..\transaction;..\..\property\functionwizard;..\..\document;..\..\gdcFile;..\..\FastReport\source;..\..\report;..\..\zlib;..\..\..\comp5\async4\source;..\..\const;..\..\inventory;..\..\wage;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\attr;..\..\storage;..\..\bank;..\..\newtransaction;..\..\realization;..\..\gudf;..\..\protect;..\..\gedemin;..\..\images;..\..\tax;..\..\backup;c:\program files\borland\delphi5\Imports;..\..\cattle;..\..\modem;..\..\planning;..\..\Department;..\..\component\repository\gd;..\..\1stclass\source;..\..\component\qexport\delphi5"
+-O"..\DUnit\src;..\..\jcl\Source;..\..\jcl\Source\windows;..\..\jcl\Source\vcl;..\..\jcl\Source\common;..\..\jcl\packages;..\..\ibx;..\..\..\comp5\xstorm;..\..\..\comp5;..\..\FastReport 4\Source;..\..\FastReport 4\FastScript;..\..\FastReport 4\Source\ExportPack;..\..\FastReport 4\Source\ADO;..\..\FastReport 4\FastQB;..\..\FastReport 4\Source\IBX;..\..\setup;..\..\imports;..\..\component;..\..\component\diff;..\..\component\textdiff;..\..\component\gdc;..\..\component\repository;..\..\Component\tb2k\Source;..\..\Component\SynEdit\Source;..\..\common;c:\program files\borland\delphi5\Source\Vcl;c:\program files\borland\delphi5\Source\Toolsapi;c:\program files\borland\delphi5\Ocx\Servers;c:\program files\borland\delphi5\lib;..\..\designer;..\..\property;..\..\transaction;..\..\property\functionwizard;..\..\document;..\..\gdcFile;..\..\FastReport\source;..\..\report;..\..\zlib;..\..\..\comp5\async4\source;..\..\const;..\..\inventory;..\..\wage;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\attr;..\..\storage;..\..\bank;..\..\newtransaction;..\..\realization;..\..\gudf;..\..\protect;..\..\gedemin;..\..\images;..\..\tax;..\..\backup;c:\program files\borland\delphi5\Imports;..\..\cattle;..\..\modem;..\..\planning;..\..\Department;..\..\component\repository\gd;..\..\1stclass\source;..\..\component\qexport\delphi5"
+-I"..\DUnit\src;..\..\jcl\Source;..\..\jcl\Source\windows;..\..\jcl\Source\vcl;..\..\jcl\Source\common;..\..\jcl\packages;..\..\ibx;..\..\..\comp5\xstorm;..\..\..\comp5;..\..\FastReport 4\Source;..\..\FastReport 4\FastScript;..\..\FastReport 4\Source\ExportPack;..\..\FastReport 4\Source\ADO;..\..\FastReport 4\FastQB;..\..\FastReport 4\Source\IBX;..\..\setup;..\..\imports;..\..\component;..\..\component\diff;..\..\component\textdiff;..\..\component\gdc;..\..\component\repository;..\..\Component\tb2k\Source;..\..\Component\SynEdit\Source;..\..\common;c:\program files\borland\delphi5\Source\Vcl;c:\program files\borland\delphi5\Source\Toolsapi;c:\program files\borland\delphi5\Ocx\Servers;c:\program files\borland\delphi5\lib;..\..\designer;..\..\property;..\..\transaction;..\..\property\functionwizard;..\..\document;..\..\gdcFile;..\..\FastReport\source;..\..\report;..\..\zlib;..\..\..\comp5\async4\source;..\..\const;..\..\inventory;..\..\wage;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\attr;..\..\storage;..\..\bank;..\..\newtransaction;..\..\realization;..\..\gudf;..\..\protect;..\..\gedemin;..\..\images;..\..\tax;..\..\backup;c:\program files\borland\delphi5\Imports;..\..\cattle;..\..\modem;..\..\planning;..\..\Department;..\..\component\repository\gd;..\..\1stclass\source;..\..\component\qexport\delphi5"
+-R"..\DUnit\src;..\..\jcl\Source;..\..\jcl\Source\windows;..\..\jcl\Source\vcl;..\..\jcl\Source\common;..\..\jcl\packages;..\..\ibx;..\..\..\comp5\xstorm;..\..\..\comp5;..\..\FastReport 4\Source;..\..\FastReport 4\FastScript;..\..\FastReport 4\Source\ExportPack;..\..\FastReport 4\Source\ADO;..\..\FastReport 4\FastQB;..\..\FastReport 4\Source\IBX;..\..\setup;..\..\imports;..\..\component;..\..\component\diff;..\..\component\textdiff;..\..\component\gdc;..\..\component\repository;..\..\Component\tb2k\Source;..\..\Component\SynEdit\Source;..\..\common;c:\program files\borland\delphi5\Source\Vcl;c:\program files\borland\delphi5\Source\Toolsapi;c:\program files\borland\delphi5\Ocx\Servers;c:\program files\borland\delphi5\lib;..\..\designer;..\..\property;..\..\transaction;..\..\property\functionwizard;..\..\document;..\..\gdcFile;..\..\FastReport\source;..\..\report;..\..\zlib;..\..\..\comp5\async4\source;..\..\const;..\..\inventory;..\..\wage;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\attr;..\..\storage;..\..\bank;..\..\newtransaction;..\..\realization;..\..\gudf;..\..\protect;..\..\gedemin;..\..\images;..\..\tax;..\..\backup;c:\program files\borland\delphi5\Imports;..\..\cattle;..\..\modem;..\..\planning;..\..\Department;..\..\component\repository\gd;..\..\1stclass\source;..\..\component\qexport\delphi5"
+-D_FASTMM;_ManualLeakReportingControl

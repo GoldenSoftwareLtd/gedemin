@@ -1,0 +1,32 @@
+#------------------------------------------------------------------------------
+VERSION = BWS.01
+#------------------------------------------------------------------------------
+!ifndef ROOT
+ROOT = C:\Delphi\D6U2RTL1
+!endif
+#------------------------------------------------------------------------------
+PROJECTPATH=C:\Delphi\IncVerrc
+#------------------------------------------------------------------------------
+LIBADDON =  C:\Delphi\D6U2RTL1\Lib_AddOn
+LIB = C:\Delphi\D6U2RTL1\Lib;$(LIBADDON)\JCL
+MAKE = $(ROOT)\bin\make.exe -$(MAKEFLAGS) -f$**
+#DCU = $(PROJECTPATH)\DCU
+#BIN = $(PROJECTPATH)\BIN
+# -B = Build all units           
+# -E<path> = EXE output directory
+# -I<paths> = Include directories
+# -N<path> = DCU output directory
+# -W = Output warning messages
+# -Q = Quiet compile
+# -CG = GUI target
+DCC = $(ROOT)\bin\dcc32.exe $** -B -e$(BIN) -n$(DCU) -u$(LIB) -w -q -CG           
+BRCC= $(ROOT)\bin\brcc32.exe 
+
+#------------------------------------------------------------------------------
+PROJECTS = IncVerrc.exe
+#------------------------------------------------------------------------------
+
+TestVer.exe: $(PROJECTPATH)\IncVerrc.dpr
+  $(DCC) 
+
+
