@@ -3,7 +3,7 @@ unit rp_StreamFR4;
 interface
 
 uses
-  Classes, SysUtils, FR_Class, rp_BaseReport_unit, DB, DBClient,
+  Classes, SysUtils, FR_Class, rp_BaseReport_unit, DB, {DBClient,}
   Forms, Printers, rp_i_ReportBuilder_unit, rp_StreamFR, frxVariables,
   rp_ErrorMsgFactory, frxDesgn, frxClass, frxDCtrl, frxChart,
   frxRich, frxBarcode, ImgList, ComCtrls, ExtCtrls, frxOLE,
@@ -113,7 +113,7 @@ const
 implementation
 
 uses
-  Gedemin_TLB;
+  Gedemin_TLB, kbmMemTable;
 
 { Tgs_fr4Report }
 
@@ -464,7 +464,7 @@ var
   LocMasterDetail: TFourStringList;
   PrefixData: array[0..2] of Char;
   IndexSL: TStringList;
-  TempDataSet: TClientDataSet;
+  TempDataSet: TkbmMemTable;
 begin
   Clear;
   AnStream.Position := 0;
@@ -484,7 +484,8 @@ begin
       TempStream.Size := LocSize;
       AnStream.ReadBuffer(TempStream.Memory^, LocSize);
       if TempStream.Size <> 0 then
-        TgsClientDataSet(DataSet[J]).LoadFromStream(TempStream);
+        TkbmMemTable(DataSet[J]).DefaultFormat := StreamFormat;
+        TkbmMemTable(DataSet[J]).LoadFromStream(TempStream);
     end;
   finally
     TempStream.Free;
@@ -516,7 +517,7 @@ begin
         IndexSL.LoadFromStream(AnStream);
         for I := 0 to IndexSL.Count - 1 do
         begin
-          TempDataSet := (DataSetByName(IndexSL.Names[I]) as TgsClientDataSet);
+          TempDataSet := (DataSetByName(IndexSL.Names[I]) as TkbmMemTable);
           if TempDataSet <> nil then
             TempDataSet.IndexFieldNames := IndexSL.Values[IndexSL.Names[I]];
         end;

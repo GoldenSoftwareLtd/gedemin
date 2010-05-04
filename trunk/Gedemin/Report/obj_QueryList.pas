@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001 - 2010 by Golden Software of Belarus
 
   Module
 
@@ -29,7 +29,8 @@ interface
 
 uses
   ComObj, ActiveX, AxCtrls, Gedemin_TLB, StdVcl, IBDatabase, SysUtils, Contnrs,
-  IBQuery, Windows, Db, DBClient, Classes, gd_MultiStringList, IBCustomDataSet;
+  IBQuery, Windows, Db, Classes, gd_MultiStringList, IBCustomDataSet,
+  kbmMemTable;
 
 const
   QueryNotAssigned = 'Query not assigned';
@@ -127,7 +128,7 @@ type
     FIndexFields: String;
 
     function GetIBQuery: TIBQuery;
-    function GetClientDataSet: TClientDataSet;
+    function GetClientDataSet: TkbmMemTable;
     procedure SetDatabase(const AnValue: TIBDatabase);
     procedure SetTransaction(const AnValue: TIBTransaction);
     function GetDataSet: TDataSet;
@@ -206,6 +207,7 @@ type
     FQueryList: TList;
     FCurrentField: TField;
     FMasterDetail: TFourStringList;
+    FTempMasterDetail: TFourStringList;
     FWasCreateTransaction: Boolean;
     FDataSourceList: TObjectList;
 
@@ -222,6 +224,7 @@ type
     function  ResultStream: OleVariant; safecall;
     procedure AddMasterDetail(const MasterTable: WideString; const MasterField: WideString;
                               const DetailTable: WideString; const DetailField: WideString); safecall;
+    procedure ResultMasterDetail; safecall;
     procedure DeleteByName(const AName: WideString); safecall;
     procedure MainInitialize; safecall;
     procedure Commit; safecall;
@@ -352,8 +355,6 @@ type
     procedure DestroyObject; safecall;
   end;
 
-procedure CompliteDataSetStream(const AnStream: TStream;
-  const AnDataSet: TDataSet; const AnFetchBlob: Boolean = False);
 function GetFieldTypeFromStr(const AnTypeName: String): TFieldType;
 
 implementation
@@ -366,7 +367,6 @@ type
   TFieldCracker = class(TField);
   TCrackIBCustomDataSet = class(TIBCustomDataSet);
 
-{TgsIBQuery}
 
 constructor TgsDataSet.Create(const AnMemTable: Boolean; const AnChildClass: Boolean = False);
 begin
@@ -375,7 +375,7 @@ begin
   if not AnChildClass then
   begin
     if AnMemTable then
-      FDataSet := TClientDataSet.Create(nil)
+      FDataSet := TkbmMemTable.Create(nil)
     else
       FDataSet := TIBQuery.Create(nil);
     FDataSet.Tag := 0;
@@ -403,11 +403,11 @@ begin
   Result := FDataSet as TIBQuery;
 end;
 
-function TgsDataSet.GetClientDataSet: TClientDataSet;
+function TgsDataSet.GetClientDataSet: TkbmMemTable;
 begin
-  if not (FDataSet is TClientDataSet) then
+  if not (FDataSet is TkbmMemTable) then
     raise Exception.Create(OnlyForClientDataSet);
-  Result := FDataSet as TClientDataSet;
+  Result := FDataSet as TkbmMemTable;
 end;
 
 procedure TgsDataSet.SetDatabase(const AnValue: TIBDatabase);
@@ -454,8 +454,10 @@ begin
   try
     if FDataSet is TIBQuery then
       FDataSet.Open
-    else
-      GetClientDataSet.CreateDataSet;
+    else begin
+      GetClientDataSet.CreateTable;
+      FDataSet.Open;
+    end;
   except
     on E: Exception do
       raise Exception.Create(FDataSet.Name + ': ' + E.Message);
@@ -578,7 +580,8 @@ begin
   if FDataSet is TIBQuery then
     Result := GetIBQuery.ParamCount
   else
-    Result := GetClientDataSet.Params.Count;
+    Result := 0;
+    //GetClientDataSet.Params.Count;
 end;
 
 function TgsDataSet.Get_ParamByName(const ParamName: WideString): IgsParam;
@@ -588,7 +591,8 @@ begin
   if FDataSet is TIBQuery then
     LocParam := GetIBQuery.ParamByName(ParamName)
   else
-    LocParam := GetClientDataSet.Params.ParamByName(ParamName);
+    raise Exception.Create(OnlyForIBQuery);
+    //LocParam := GetClientDataSet.Params.ParamByName(ParamName);
 
   Result := TgsParam.Create(LocParam) as IgsParam;
 end;
@@ -600,7 +604,8 @@ begin
   if FDataSet is TIBQuery then
     LocParam := GetIBQuery.Params[Index]
   else
-    LocParam := GetClientDataSet.Params[Index];
+    raise Exception.Create(OnlyForIBQuery);
+//    LocParam := GetClientDataSet.Params[Index];
 
   Result := TgsParam.Create(LocParam) as IgsParam;
 end;
@@ -608,19 +613,7 @@ end;
 procedure TgsDataSet.Initialize;
 begin
   inherited Initialize;
-{  FConnectionPoints := TConnectionPoints.Create(Self);
-  if AutoFactory.EventTypeInfo <> nil then
-    FConnectionPoint := FConnectionPoints.CreateConnectionPoint(
-      AutoFactory.EventIID, ckSingle, EventConnect)
-  else FConnectionPoint := nil;}
 end;
-
-{procedure TgsDataSet.EventSinkChanged(const EventSink: IUnknown);
-begin
-  FEvents := EventSink as IgsQueryEvents;
-  if FConnectionPoint <> nil then
-     FSinkList := FConnectionPoint.SinkList;
-end;}
 
 {TgsQueryList}
 
@@ -651,6 +644,7 @@ begin
   end;
   FQueryList := TList.Create;
   FMasterDetail := TFourStringList.Create;
+  FTempMasterDetail := TFourStringList.Create;
   FDataSourceList := TObjectList.Create;
 end;
 
@@ -664,6 +658,7 @@ begin
   except
   end;
   FreeAndNil(FMasterDetail);
+  FreeAndNil(FTempMasterDetail);
   FreeAndNil(FDataSourceList);
 
   inherited Destroy;
@@ -692,7 +687,7 @@ begin
       Delete(Result);
       Result := -1;
       raise Exception.Create('Произошла ошибка при создании нового объекта.'#13#10 +
-       E.Message);
+        E.Message);
     end;
   end
   else
@@ -741,74 +736,47 @@ end;
 
 function TgsQueryList.ResultStream: OleVariant;
 var
-  J, I: Integer;
-  LocProvider: TDataSetProvider;
+  J: Integer;
   LocReportResult: TReportResult;
   MStr: TMemoryStream;
-  BM: TBookMark;
-  // Если возникнут ошибки при перегонки данных в клиент датасет,
-  // надо убрать коментарий с объявления флага.
-//{$DEFINE CDS_FETCH}
+  DS: TkbmMemTable;
 begin
-{TODO 1: JKL Это надо переписать. Сделать передачу данных через поток.}
-  LocProvider := TDataSetProvider.Create(nil);
+  ResultMasterDetail;
+
+  LocReportResult := TReportResult.Create;
   try
-    LocReportResult := TReportResult.Create;
+    MStr := TMemoryStream.Create;
     try
-      MStr := TMemoryStream.Create;
-      try
-        for J := 0 to Count - 1 do
-          if (Query[J].Tag <> 0) and (Query[J].Active) then
-          begin
-            Query[J].DisableControls;
-            try
-              BM := Query[J].GetBookmark;
-              try
-                I := LocReportResult.AddDataSet(Query[J].Name);
-                {$IFDEF CDS_FETCH}
-                if Get_Query(J).FetchBlob then
-                  LocProvider.Options := LocProvider.Options + [poFetchBlobsOnDemand]
-                else
-                  LocProvider.Options := LocProvider.Options - [poFetchBlobsOnDemand];
-                Query[J].First;
-                LocProvider.DataSet := Query[J];
-                LocReportResult.DataSet[I].SetProvider(LocProvider);
-                LocReportResult.DataSet[I].Open;
-                {$ELSE}
-                MStr.Clear;
-                CompliteDataSetStream(MStr, Query[J], Get_Query(J).FetchBlob);
-                MStr.Position := 0;
-                TgsClientDataSet(LocReportResult.DataSet[I]).LoadFromStream(MStr, True);
-                {$ENDIF}
-                TgsClientDataSet(LocReportResult.DataSet[I]).IndexFieldNames := Get_Query(J).IndexFields;
-              finally
-                Query[J].Active := True;
-                Query[J].GotoBookmark(BM);
-                Query[J].FreeBookmark(BM);
-              end;
-            finally
-              Query[J].EnableControls;
-            end;
+      for J := 0 to Count - 1 do
+        if (Query[J].Tag <> 0) and (Query[J].Active) then
+        begin
+          Query[J].DisableControls;
+          try
+            //TkbmMemTable уничтожится в LocReportResult.Free
+            DS := TkbmMemTable.Create(nil);
+            DS.LoadFromDataSet(Query[J], [mtcpoStructure, mtcpoProperties, mtcpoFieldIndex]);
+            DS.Open;
+            LocReportResult.AddDataSet(Query[J].Name, DS);
+          finally
+            Query[J].EnableControls;
           end;
+        end;
 
-        for J := 0 to FMasterDetail.Count - 1 do
-          LocReportResult._MasterDetail.AddRecord(FMasterDetail.MasterTable[J],
-           FMasterDetail.MasterField[J], FMasterDetail.DetailTable[J],
-           FMasterDetail.DetailField[J]);
+      for J := 0 to FMasterDetail.Count - 1 do
+        LocReportResult._MasterDetail.AddRecord(FMasterDetail.MasterTable[J],
+         FMasterDetail.MasterField[J], FMasterDetail.DetailTable[J],
+         FMasterDetail.DetailField[J]);
 
-        MStr.Clear;
-        LocReportResult.SaveToStream(MStr);
-        Result := VarArrayCreate([0, MStr.Size - 1], varByte);
-        CopyMemory(VarArrayLock(Result), MStr.Memory, MStr.Size);
-        VarArrayUnLock(Result);
-      finally
-        MStr.Free;
-      end;
+      MStr.Clear;
+      LocReportResult.SaveToStream(MStr);
+      Result := VarArrayCreate([0, MStr.Size - 1], varByte);
+      CopyMemory(VarArrayLock(Result), MStr.Memory, MStr.Size);
+      VarArrayUnLock(Result);
     finally
-      LocReportResult.Free;
+      MStr.Free;
     end;
   finally
-    LocProvider.Free;
+    LocReportResult.Free;
   end;
 end;
 
@@ -827,7 +795,7 @@ procedure TgsQueryList.AddMasterDetail(const MasterTable, MasterField,
 var
   I: Integer;
   TempDS: TDataSet;
-  TempCDS: TClientDataSet;
+  TempCDS: TkbmMemTable;
 begin
   I := GetIndexQueryByName(MasterTable);
   if I > -1 then
@@ -847,7 +815,7 @@ begin
       raise Exception.Create('Specified detail field not found.');
   end;
 
-  if TgsDataSet(FQueryList.Items[I]).DataSet is TClientDataSet then
+  if TgsDataSet(FQueryList.Items[I]).DataSet is TkbmMemTable then
   begin
     TempCDS := TgsDataSet(FQueryList.Items[I]).GetClientDataSet;
     if TempCDS.MasterSource = nil then
@@ -856,11 +824,10 @@ begin
       FDataSourceList.Add(TempCDS.MasterSource);
     end;
     TempCDS.MasterSource.DataSet := TgsDataSet(FQueryList.Items[GetIndexQueryByName(MasterTable)]).DataSet;
-    TempCDS.IndexFieldNames := DetailField;
+    TempCDS.DetailFields := DetailField;
     TempCDS.MasterFields := MasterField;
-
   end else
-    raise Exception.Create('Not avaible.');       
+    FTempMasterDetail.AddRecord(MasterTable, MasterField, DetailTable, DetailField);
 
   FMasterDetail.AddRecord(MasterTable, MasterField, DetailTable, DetailField);
 end;
@@ -917,6 +884,7 @@ begin
   end;
   FQueryList.Clear;
   FMasterDetail.Clear;
+  FTempMasterDetail.Clear;
   FDataSourceList.Clear;
   FCurrentField := nil;
 end;
@@ -924,6 +892,56 @@ end;
 function TgsQueryList.Get_Self: Integer;
 begin
   Result := Integer(Self);
+end;
+
+procedure TgsQueryList.ResultMasterDetail;
+var
+  I, J, Index: Integer;
+  TempDS: TIBQuery;
+  MemTable: TgsDataSet;
+  DS: TkbmMemTable;
+  IsResult: WordBool;
+begin
+  // т.к. TIBQuery не криво поддерживает M-D связь
+  // то заменим детальный TIBQuery на MemTable
+  for J := 0 to FTempMasterDetail.Count - 1 do
+  begin
+    I := GetIndexQueryByName(FMasterDetail.DetailTable[J]);
+    if I > -1 then
+    begin
+      //1. Создаем MemTable и заполняем его
+      TempDS := TgsDataSet(FQueryList.Items[I]).GetIBQuery;
+      IsResult := TgsDataSet(FQueryList.Items[I]).Get_IsResult;
+      MemTable := TgsDataSet.Create(True);
+      try
+        DS := MemTable.GetClientDataSet;
+        DS.LoadFromDataSet(TempDS, [mtcpoStructure, mtcpoProperties, mtcpoFieldIndex]);
+        DS.Open;
+        DS.Name := TgsDataSet(FQueryList.Items[I]).DataSet.Name;
+      except
+        on E: Exception do
+        begin
+          MemTable.Free;
+          raise Exception.Create('Произошла ошибка при создании нового объекта.'#13#10 +
+            E.Message);
+        end;
+      end;
+      //2. Уничтожаем исходный TIBQuery
+      DeleteByName(TgsDataSet(FQueryList.Items[I]).DataSet.Name);
+      //3. Добавляем MemTable в список
+      Index := FQueryList.Add(nil);
+      FQueryList.Items[Index] := MemTable;
+      TgsDataSet(FQueryList.Items[Index])._AddRef;
+      TgsDataSet(FQueryList.Items[Index]).DataSet.Name := DS.Name;
+      TgsDataSet(FQueryList.Items[Index]).Set_IsResult(IsResult);
+      //4. Создаем связь M-D
+      DS.MasterSource := TDataSource.Create(nil);
+      FDataSourceList.Add(DS.MasterSource);
+      DS.MasterSource.DataSet := TgsDataSet(FQueryList.Items[GetIndexQueryByName(FMasterDetail.MasterTable[J])]).DataSet;
+      DS.DetailFields := FMasterDetail.DetailField[J];
+      DS.MasterFields := FMasterDetail.MasterField[J];
+    end;
+  end;
 end;
 
 { TgsParam }
@@ -1682,185 +1700,6 @@ begin
   raise Exception.Create('Set Value Not Supported');
 end;
 
-procedure CompliteDataSetStream(const AnStream: TStream;
-  const AnDataSet: TDataSet; const AnFetchBlob: Boolean = False);
-const
-  LEmptyByte = 1;
-  LEmptyFormat = SizeOf(Byte) * 8 div 2;
-  SizePosition = 14;
-  FreeBufferDelta = $A00000;
-var
-  TempClientDS: TClientDataSet;
-  I, L, OldPosition: Integer;
-  BArray: array of Byte;
-  LBArray: Word;
-  Buffer: Pointer;
-  BufferSize: Integer;
-  FiedNameSize: Byte;
-  FRecordCount: Integer;
-
-  // Процедура одной записи в поток данных
-  procedure WriteRecord;
-  var
-    J, K : Integer;
-    TempStr: TStream;
-    TempField: TField;
-  begin
-    Inc(FRecordCount);
-    // Заполняем структуру NULL-полей
-    FillChar(BArray[0], LBArray, 0);
-    for K := 0 to AnDataSet.FieldCount - 1 do
-    begin
-      TempField := AnDataSet.Fields[K];
-      if (TempField.IsNull) or (not AnFetchBlob and
-       (TempField.DataType in [ftBlob, ftMemo, ftGraphic, ftFmtMemo])) then
-      begin
-        J := (K div LEmptyFormat + 1);
-        BArray[J] := BArray[J] or (1 shl (K mod 4 * 2));
-      end;
-    end;
-
-    // Сохраняем структуру
-    AnStream.Write(BArray[0], LBArray);
-
-    // Сохраняем данные из поля
-    for K := 0 to AnDataSet.FieldCount - 1 do
-    begin
-      TempField := AnDataSet.Fields[K];
-      if not TempField.IsNull then
-        case TempField.DataType of
-          ftBlob, ftMemo, ftGraphic, ftFmtMemo:
-          begin
-            if AnFetchBlob then
-            begin
-              TempStr := AnDataSet.CreateBlobStream(TempField, bmRead);
-              try
-                J := TempStr.Size;
-                AnStream.Write(J, TempField.Tag);
-                if J > 0 then
-                  AnStream.CopyFrom(TempStr, J);
-              finally
-                TempStr.Free;
-              end;
-            end;
-          end;
-          ftBCD:
-          begin
-            TempClientDS.Fields[K].Assign(TempField);
-            if TempField.Tag > BufferSize then
-            begin
-              BufferSize := TempField.Tag;
-              ReallocMem(Buffer, BufferSize);
-            end;
-            TempClientDS.Fields[K].GetData(Buffer);
-            AnStream.Write(Buffer^, TempField.Tag);
-          end;
-          ftWideString, ftString:
-          begin
-            J := Length(TempField.AsString);
-            if J > BufferSize then
-            begin
-              BufferSize := J;
-              ReallocMem(Buffer, BufferSize);
-            end;
-            TempField.GetData(Buffer);
-            AnStream.Write(J, TempField.Tag);
-            AnStream.Write(Buffer^, J);
-          end
-        else
-          if TempField.Tag > BufferSize then
-          begin
-            BufferSize := TempField.Tag;
-            ReallocMem(Buffer, BufferSize);
-          end;
-          TempField.GetData(Buffer);
-          AnStream.Write(Buffer^, TempField.Tag);
-        end;
-    end;
-  end;
-begin
-  AnStream.Position := 0;
-  AnStream.Size := 0;
-  if not AnDataSet.Active then
-    Exit;
-
-  AnDataSet.DisableControls;
-  try
-    // Вытягиваем все записи
-    AnDataSet.Last;
-    // Нужен КлиентДатаСет для создания заголовка
-    TempClientDS := TClientDataSet.Create(nil);
-    try
-      LBArray := LEmptyByte + (AnDataSet.FieldCount - 1) div LEmptyFormat + 1;
-      SetLength(BArray, LBArray);
-
-      // Заполняем поля
-      for I := 0 to AnDataSet.FieldCount - 1 do
-        TempClientDS.FieldDefs.Add(AnDataSet.Fields[I].FieldName, AnDataSet.Fields[I].DataType,
-         AnDataSet.Fields[I].Size, AnDataSet.Fields[I].Required);
-        //TempClientDS.Fields.Add(AnDataSet.Fields[I]);
-
-      // Создаем КлиентДатаСет и сохраняем заголовок
-      TempClientDS.CreateDataSet;
-      TempClientDS.SaveToStream(AnStream);
-
-      // Выделяем память для перекачки данных из обычных полей
-      BufferSize := 10000;
-      if AnStream.Size > BufferSize then
-        BufferSize := AnStream.Size;
-
-      GetMem(Buffer, BufferSize);
-      FillChar(Buffer^, BufferSize, 0);
-      try
-        // Вытягиваем размеры полей из потока. Не соответствуют данным из КлиентДатаСет.
-        AnStream.Position := 0;
-        AnStream.ReadBuffer(Buffer^, AnStream.Size);
-        for I := 0 to AnDataSet.FieldCount - 1 do
-        begin
-          FiedNameSize := Length(AnDataSet.Fields[I].FieldName);
-          L := Pos(Char(FiedNameSize) + AnDataSet.Fields[I].FieldName, PString(@Buffer)^);
-          AnDataSet.Fields[I].Tag := SmallInt(TDnByteArray(Buffer)[L + FiedNameSize + SizeOf(FiedNameSize) - 1]);
-        end;
-
-        // Для перегонки decimal полей
-        TempClientDS.Append;
-        AnDataSet.First;
-        FRecordCount := 0;
-        // Сохраняем по одной записи
-        while not AnDataSet.Eof do
-        begin
-          // Выделяем сразу много памяти, иначе много времени тратится.
-          if AnStream.Size = AnStream.Position then
-          begin
-            OldPosition := AnStream.Position;
-            AnStream.Size := AnStream.Size + FreeBufferDelta;
-            AnStream.Position := OldPosition;
-          end;
-          WriteRecord;
-
-          AnDataSet.Next;
-        end;
-        TempClientDS.Cancel;
-        // Устанавливаем реальный размер потока
-        AnStream.Size := AnStream.Position;
-        // Сохраняем количество записей
-        AnStream.Position := SizePosition;
-        AnStream.Write(FRecordCount, SizeOf(FRecordCount));
-      finally
-        FreeMem(Buffer);
-      end;
-    finally
-      TempClientDS.Close;
-      TempClientDS.FieldDefs.Clear;
-      {for I := 0 to AnDataSet.FieldCount - 1 do
-        TempClientDS.Fields.Remove(AnDataSet.Fields[I]);{}
-      TempClientDS.Free;
-    end;
-  finally
-    AnDataSet.EnableControls;
-  end;
-end;
-
 function TgsDataSet.Get_FetchBlob: WordBool;
 begin
   Result := FFetchBlob;
@@ -1886,7 +1725,7 @@ begin
   if (Trim(Value) > '') and not CheckFieldNames(FDataSet, Value) then
     raise Exception.Create('Some index fields is absence');
   FIndexFields := Value;
-  if FDataSet is TClientDataSet then
+  if FDataSet is TkbmMemTable then
     GetClientDataSet.IndexFieldNames := FIndexFields;
 end;
 
@@ -1931,7 +1770,7 @@ procedure TgsDataSet.AssignFields(const ADataSet: IgsQuery);
 var
   I: Integer;
 begin
-  if FDataSet is TClientDataSet then
+  if FDataSet is TkbmMemTable then
     for I := 0 to ADataSet.FieldCount - 1 do
       AddField(ADataSet.Fields[I].FieldName, ADataSet.Fields[I].FieldType,
        ADataSet.Fields[I].FieldSize, ADataSet.Fields[I].Required)
@@ -1943,7 +1782,7 @@ procedure TgsDataSet.CopyRecord(const ADataSet: IgsQuery);
 var
   I: Integer;
 begin
-  if FDataSet is TClientDataSet then
+  if FDataSet is TkbmMemTable then
     for I := 0 to ADataSet.FieldCount - 1 do
       FDataSet.FieldByName(ADataSet.Fields[I].FieldName).Value := ADataSet.Fields[I].Value
   else

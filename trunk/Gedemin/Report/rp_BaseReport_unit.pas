@@ -26,9 +26,9 @@ unit rp_BaseReport_unit;
 interface
 
 uses
-  Classes, DBClient, IBDatabase, DB, Windows, SysUtils, Contnrs, IBQuery,
+  Classes, IBDatabase, DB, Windows, SysUtils, Contnrs, IBQuery,
   gd_SetDatabase, rp_report_const, gd_MultiStringList, prm_ParamFunctions_unit,
-  gd_KeyAssoc, Gedemin_TLB;
+  gd_KeyAssoc, Gedemin_TLB, kbmMemTable;
 
 const
   MDPrefix = 'MDP';
@@ -114,32 +114,6 @@ type
     property OnBreakPointsPrepared: TNotifyEvent read FOnBreakPointsPrepared write SetOnBreakPointsPrepared;
   end;
 
-// Для тестирования, потом можно будет удалить.
-type
-  TWriteFunction = class(TrpCustomFunction)
-  public
-    property Name: String read FName write FName;
-    property Script: TStrings read FScript write FScript;
-    property Module: String read FModule write FModule;
-    property Language: String read FLanguage write FLanguage;
-  end;
-
-type
-  TgsClientDataSet = class(TClientDataSet)
-  private
-    FTempStream: TMemoryStream;
-    FIsStreamData: Boolean;
-  public
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-
-    procedure LoadFromStream(Stream: TStream; const IsInternal: Boolean = False);
-    procedure SaveToStream(Stream: TStream; Format: TDataPacketFormat = dfBinary);
-
-    property TempStream: TMemoryStream read FTempStream;
-    property IsStreamData: Boolean read FIsStreamData write FIsStreamData;
-  end;
-
 type
   TReportResult = class(TStringList)
   private
@@ -147,16 +121,17 @@ type
     FTempStream: TMemoryStream;
     FIsStreamData: Boolean;
     FBaseQueryList: IgsQueryList;
+    FStreamFormat: TkbmCustomStreamFormat;
 
-    function GetDataSet(const AnIndex: Integer): TDataSet{TgsClientDataSet};
+    function GetDataSet(const AnIndex: Integer): TDataSet;
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure ViewResult;
 
-    property DataSet[const AnIndex: Integer]: {TgsClientDataSet} TDataSet read GetDataSet;
-    function DataSetByName(const AnName: String): TDataSet{TgsClientDataSet};
+    property DataSet[const AnIndex: Integer]: TDataSet read GetDataSet;
+    function DataSetByName(const AnName: String): TDataSet;
     property TempStream: TMemoryStream read FTempStream;
     property IsStreamData: Boolean read FIsStreamData write FIsStreamData;
 
@@ -179,6 +154,7 @@ type
 
     property _MasterDetail: TFourStringList read FMasterDetail;
     property QueryList: IgsQueryList read FBaseQueryList write FBaseQueryList;
+    property StreamFormat: TkbmCustomStreamFormat read FStreamFormat write FStreamFormat;
   end;
 
   TrpResultStructure = class
@@ -390,7 +366,7 @@ uses
    rp_dlgViewResult_unit,
    {$ENDIF}
    jclMath, IBSQL, IBCustomDataSet, gdcBaseInterface,
-   scr_i_FunctionList, gs_Exception, ZLib
+   scr_i_FunctionList, gs_Exception, ZLib, kbmMemBinaryStreamFormat
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1125,6 +1101,7 @@ begin
   FIsStreamData := False;
   FMasterDetail := TFourStringList.Create;
   FTempStream := TMemoryStream.Create;
+  FStreamFormat := TkbmBinaryStreamFormat.Create(nil);
 end;
 
 destructor TReportResult.Destroy;
@@ -1134,17 +1111,18 @@ begin
   FreeAndNil(FTempStream);
   if Assigned(FBaseQueryList) then
     FBaseQueryList.Clear;
+  FStreamFormat.Free;
 
   inherited Destroy;
 end;
 
 function TReportResult.AddDataSet(const AnName: String): Integer;
 begin
-  Result := AddObject(AnsiUpperCase(AnName), TgsClientDataSet.Create(nil));
+  Result := AddObject(AnsiUpperCase(AnName), TkbmMemTable.Create(nil));
   DataSet[Result].Name := Strings[Result];
 end;
 
-function TReportResult.DataSetByName(const AnName: String): TDataSet{TgsClientDataSet};
+function TReportResult.DataSetByName(const AnName: String): TDataSet;
 var
   I: Integer;
 begin
@@ -1204,22 +1182,21 @@ begin
 //  Object free in BaseQuery
   if not Assigned(QueryList) then
   begin
-    if TClientDataSet(Objects[AnIndex]).MasterSource <> nil then
+    if TkbmMemTable(Objects[AnIndex]).MasterSource <> nil then
     begin
-      TClientDataSet(Objects[AnIndex]).MasterFields := '';
-      TClientDataSet(Objects[AnIndex]).MasterSource.Free;
-      TClientDataSet(Objects[AnIndex]).MasterSource := nil;
+      TkbmMemTable(Objects[AnIndex]).MasterFields := '';
+      TkbmMemTable(Objects[AnIndex]).MasterSource.Free;
+      TkbmMemTable(Objects[AnIndex]).MasterSource := nil;
     end;
-    TClientDataSet(Objects[AnIndex]).Free;
+    TkbmMemTable(Objects[AnIndex]).Free;
   end;
   Delete(AnIndex);
 end;
 
-function TReportResult.GetDataSet(const AnIndex: Integer): TDataSet{TgsClientDataSet};
+function TReportResult.GetDataSet(const AnIndex: Integer): TDataSet;
 begin
   Assert((AnIndex >= 0) and (AnIndex < Count));
   Result := TDataSet(Objects[AnIndex]);
-{  Result := TgsClientDataSet(Objects[AnIndex]);  }
 end;
 
 procedure TReportResult.LoadFromStream(AnStream: TStream);
@@ -1230,7 +1207,7 @@ var
   LocMasterDetail: TFourStringList;
   PrefixData: array[0..2] of Char;
   IndexSL: TStringList;
-  TempDataSet: TClientDataSet;
+  TempDataSet: TkbmMemTable;
 begin
   Clear;
   AnStream.Position := 0;
@@ -1250,7 +1227,10 @@ begin
       TempStream.Size := LocSize;
       AnStream.ReadBuffer(TempStream.Memory^, LocSize);
       if TempStream.Size <> 0 then
-        TgsClientDataSet(DataSet[J]).LoadFromStream(TempStream);
+      begin
+        TkbmMemTable(DataSet[I]).DefaultFormat := FStreamFormat;
+        TkbmMemTable(DataSet[J]).LoadFromStream(TempStream);
+      end;  
     end;
   finally
     TempStream.Free;
@@ -1282,7 +1262,7 @@ begin
         IndexSL.LoadFromStream(AnStream);
         for I := 0 to IndexSL.Count - 1 do
         begin
-          TempDataSet := (DataSetByName(IndexSL.Names[I]) as TgsClientDataSet);
+          TempDataSet := (DataSetByName(IndexSL.Names[I]) as TkbmMemTable);
           if TempDataSet <> nil then
             TempDataSet.IndexFieldNames := IndexSL.Values[IndexSL.Names[I]];
         end;
@@ -1310,12 +1290,13 @@ begin
       begin
         SName := Strings[I];
         LocSize := Length(SName);
-        if TgsClientDataSet(DataSet[I]).IndexFieldNames > '' then
-          IndexSL.Add(SName + '=' + TgsClientDataSet(DataSet[I]).IndexFieldNames);
+        if TkbmMemTable(DataSet[I]).IndexFieldNames > '' then
+          IndexSL.Add(SName + '=' + TkbmMemTable(DataSet[I]).IndexFieldNames);
         AnStream.Write(LocSize, SizeOf(LocSize));
         AnStream.Write(SName[1], LocSize);
         TempStream.Clear;
-        TgsClientDataSet(DataSet[I]).SaveToStream(TempStream);
+        TkbmMemTable(DataSet[I]).DefaultFormat := FStreamFormat;
+        TkbmMemTable(DataSet[I]).SaveToStream(TempStream);
         LocSize := TempStream.Size;
         TempStream.Position := 0;
         AnStream.Write(LocSize, SizeOf(LocSize));
@@ -1374,13 +1355,13 @@ end;
 procedure TReportResult.AddMasterDetail(const AnMasterTable, AnMasterField,
   AnDetailTable, AnDetailField: String);
 var
-  TempDs: TClientDataSet;
+  TempDs: TkbmMemTable;
 begin
   Assert(CheckFieldNames(DataSetByName(AnMasterTable), AnMasterField)
     and CheckFieldNames(DataSetByName(AnDetailTable), AnDetailField),
     'Some field of master - detail relation is absent.');
 
-  TempDs := (DataSetByName(AnDetailTable) as TgsClientDataSet);
+  TempDs := (DataSetByName(AnDetailTable) as TkbmMemTable);
   if TempDs.MasterSource = nil then
     TempDs.MasterSource := TDataSource.Create(nil);
   TempDs.MasterSource.DataSet := DataSetByName(AnMasterTable);
@@ -2113,42 +2094,6 @@ begin
       FTransaction.Commit;
     FreeAndNil(ibsqlWork);
   end;
-end;
-
-{ TgsClientDataSet }
-
-constructor TgsClientDataSet.Create(AOwner: TComponent);
-begin
-  inherited Create(AOwner);
-
-  FIsStreamData := False;
-  FTempStream := TMemoryStream.Create;
-end;
-
-destructor TgsClientDataSet.Destroy;
-begin
-  FreeAndNil(FTempStream);
-
-  inherited Destroy;
-end;
-
-procedure TgsClientDataSet.LoadFromStream(Stream: TStream;
-  const IsInternal: Boolean = False);
-begin
-  FIsStreamData := IsInternal;
-  if FIsStreamData then
-    FTempStream.LoadFromStream(Stream)
-  else
-    inherited LoadFromStream(Stream);
-end;
-
-procedure TgsClientDataSet.SaveToStream(Stream: TStream;
-  Format: TDataPacketFormat);
-begin
-  if FIsStreamData then
-    FTempStream.SaveToStream(Stream)
-  else
-    inherited SaveToStream(Stream, Format);
 end;
 
 {$IFDEF DEBUG}
