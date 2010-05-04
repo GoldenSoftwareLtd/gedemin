@@ -1,6 +1,6 @@
 inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
-  Left = 74
-  Top = 0
+  Left = 513
+  Top = 408
   Caption = 'Документ'
   ClientHeight = 423
   ClientWidth = 573
@@ -468,6 +468,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
     object actWizardHeader: TAction
       Caption = 'Конструктор'
       OnExecute = actWizardHeaderExecute
+      OnUpdate = actWizardHeaderUpdate
     end
     object actCreateEvent: TAction
       Category = 'Events'
@@ -484,6 +485,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
     object actWizardLine: TAction
       Caption = 'Конструктор'
       OnExecute = actWizardHeaderExecute
+      OnUpdate = actWizardLineUpdate
     end
     object actDeleteHeaderFunction: TAction
       Caption = 'Удалить'

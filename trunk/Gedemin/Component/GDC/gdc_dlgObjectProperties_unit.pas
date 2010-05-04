@@ -758,16 +758,12 @@ begin
     tsAccess.TabVisible := True;
     tsFields.TabVisible := True;
     tsLinks.TabVisible := True;
-    btnClassMethods.Enabled := True;
-    btnParentMethods.Enabled := True;
   end else
   begin
     tsAdditional.TabVisible := False;
     tsAccess.TabVisible := False;
     tsFields.TabVisible := False;
     tsLinks.TabVisible := False;
-    btnClassMethods.Enabled := False;
-    btnParentMethods.Enabled := False;
   end;
 
   cbOpenDoc.ItemIndex := 0;
@@ -952,7 +948,8 @@ end;
 
 procedure Tgdc_dlgObjectProperties.actGoToMethodsUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil);
+  TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil)
+    and IBLogin.IsIBUserAdmin;
 end;
 
 procedure Tgdc_dlgObjectProperties.actGoToMethodsSubtypeExecute(
@@ -966,7 +963,8 @@ procedure Tgdc_dlgObjectProperties.actGoToMethodsSubtypeUpdate(
   Sender: TObject);
 begin
   TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil)
-    and (gdcObject.SubType > '');
+    and (gdcObject.SubType > '')
+    and IBLogin.IsIBUserAdmin;
 end;
 
 procedure Tgdc_dlgObjectProperties.actGoToMethodsParentExecute(
@@ -979,7 +977,8 @@ end;
 procedure Tgdc_dlgObjectProperties.actGoToMethodsParentUpdate(
   Sender: TObject);
 begin
-  TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil);
+  TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil)
+    and IBLogin.IsIBUserAdmin;
 end;
 
 initialization
