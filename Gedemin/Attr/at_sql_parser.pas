@@ -51,7 +51,7 @@ type
     cUpdate, cSet, cValues, cAs, cCount, cDelete, cFirst, cSkip, cExtract,
     cDay, cHour, cMinute, cMonth, cSecond, cWeakday, cYear, cYearday,
     cNone, cCase, cWhen, cElse, cThen, cEnd, cSubstring,
-    cCoalesce, cIIF, cMatching, cReturning
+    cCoalesce, cIIF, cMatching, cReturning, cRecursive
   );
 
   TClauses = set of TClause;
@@ -91,7 +91,7 @@ const
     'UPDATE', 'SET', 'VALUES', 'AS', 'COUNT', 'DELETE', 'FIRST', 'SKIP',
     'EXTRACT', 'DAY', 'HOUR', 'MINUTE', 'MONTH', 'SECOND', 'WEAKDAY',
     'YEAR', 'YEARDAY', '', 'CASE', 'WHEN', 'ELSE', 'THEN', 'END', 'SUBSTRING',
-    'COALESCE', 'IIF', 'MATCHING', 'RETURNING'
+    'COALESCE', 'IIF', 'MATCHING', 'RETURNING', 'RECURSIVE'
   );
 
 
@@ -579,6 +579,40 @@ type
 
   end;
 
+  TsqlWith = class(TsqlStatement)
+  private
+    FDone, FNeeded: TElementOptions;
+    FRecursive: Boolean;
+    FCTE: TObjectList;
+    FSqlFull: TSQLFull;
+
+    procedure SetDone(const Value: TElementOptions);
+
+  protected
+    procedure ParseStatement; override;
+    procedure BuildStatement(out sql: String); override;
+
+  public
+    constructor Create(AParser: TsqlParser); override;
+    destructor Destroy; override;
+  end;
+
+  TsqlCTE = class(TsqlStatement)
+  private
+    FDone, FNeeded: TElementOptions;
+    FRecursive: Boolean;
+
+    procedure SetDone(const Value: TElementOptions);
+
+  protected
+    procedure ParseStatement; override;
+    procedure BuildStatement(out sql: String); override;
+
+  public
+    constructor Create(AParser: TsqlParser); override;
+    destructor Destroy; override;
+  end;
+
   TsqlTable = class(TsqlStatement)
   private
     FName: String;
@@ -925,6 +959,7 @@ VALUES (<value_list>)
     FPlan: TsqlPlan;
     FHaving: TsqlHaving;
     FSubSelect: Boolean;
+    FWith: TsqlWith;
 
     FNeeded, FDone: TClauses;
 
@@ -945,6 +980,7 @@ VALUES (<value_list>)
     property OrderBy: TsqlOrderBy read FOrderBy;
     property Plan: TsqlPlan read FPlan;
     property Having: TsqlHaving read FHaving;
+    property ClauseWith: TsqlWith read FWith;
 
     property FullAtts: TClauses read FDone write SetDone;
 
@@ -3675,7 +3711,7 @@ begin
       begin
         case Token.Clause of
 
-          cSelect:
+          cSelect, cWith:
           begin
             if eoComplicatedJoin in FNeeded then
             begin
@@ -5722,6 +5758,7 @@ begin
   FGroupBy := nil;
   FPlan := nil;
   FHaving := nil;
+  FWith := nil;
 
   FNeeded := [cSelect, cFrom];
   FDone := [];
@@ -5752,6 +5789,9 @@ begin
 
   if Assigned(FHaving) then
     FreeAndNil(FHaving);
+
+  if Assigned(FWith) then
+    FreeAndNil(FWith);
 
   inherited Destroy;
 end;
@@ -5849,6 +5889,14 @@ begin
             Continue;
           end;
 
+          cWith:
+          begin
+            FWith := TsqlWith.Create(FParser);
+            FWith.ParseStatement;
+            Include(FDone, cWith);
+            Continue;
+          end;
+
           else begin
             Break;
           end;
@@ -5887,6 +5935,12 @@ begin
     sql := '('
   else
     sql := '';
+
+  if Assigned(FWith) then
+  begin
+    FWith.BuildStatement(subsql);
+    sql := sql + subsql + ' ';
+  end;
 
   if Assigned(FSelect) then
   begin
@@ -8530,7 +8584,7 @@ end;
 destructor TsqlReturning.Destroy;
 begin
   FFields.Free;
-  FValues.Free;                    
+  FValues.Free;
 
   inherited Destroy;
 end;
@@ -8624,6 +8678,124 @@ begin
 
     ReadNext;
   end;
+end;
+
+{ TsqlWith }
+
+procedure TsqlWith.BuildStatement(out sql: String);
+begin
+  inherited;
+
+end;
+
+constructor TsqlWith.Create(AParser: TsqlParser);
+begin
+  inherited;
+  FCTE := TObjectList.Create;
+end;
+
+destructor TsqlWith.Destroy;
+begin
+  FCTE.Free;
+  FSqlFull.Free;
+  inherited;
+end;
+
+procedure TsqlWith.ParseStatement;
+var
+  CurrStatement: TsqlCTE;
+begin
+  with FParser do
+  while not (Token.TokenType in [ttClear, ttNone]) do
+  begin
+    case Token.TokenType of
+
+      ttClause:
+      begin
+        case Token.Clause of
+          cWith: ;
+
+          cRecursive: FRecursive := True;
+
+          cSelect:
+          begin
+            if FCTE.Count > 0 then
+            begin
+              FSQLFull := TsqlFull.Create(FParser);
+              FSQLFull.ParseStatement;
+            end;
+            break;
+          end;
+
+          else begin
+            Break;
+          end;
+        end;
+      end;
+
+      ttWord:
+      begin
+        case Token.TextKind of
+          tkText:
+          begin
+            CurrStatement := TsqlCTE.Create(FParser);
+            FCTE.Add(CurrStatement);
+            CurrStatement.ParseStatement;
+            Continue;
+          end;
+        else
+          Break;
+        end;
+      end;
+
+      ttSymbolClause:
+      begin
+        case Token.SymbolClause of
+          scComma: ;
+        else
+          Break;
+        end;
+      end;
+    end;
+
+    ReadNext;
+  end;
+end;
+
+procedure TsqlWith.SetDone(const Value: TElementOptions);
+begin
+
+end;
+
+{ TsqlCTE }
+
+procedure TsqlCTE.BuildStatement(out sql: String);
+begin
+  inherited;
+
+end;
+
+constructor TsqlCTE.Create(AParser: TsqlParser);
+begin
+  inherited;
+
+end;
+
+destructor TsqlCTE.Destroy;
+begin
+  inherited;
+
+end;
+
+procedure TsqlCTE.ParseStatement;
+begin
+  inherited;
+
+end;
+
+procedure TsqlCTE.SetDone(const Value: TElementOptions);
+begin
+
 end;
 
 initialization

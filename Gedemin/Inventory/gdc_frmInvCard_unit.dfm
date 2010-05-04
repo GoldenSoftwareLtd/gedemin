@@ -7,7 +7,7 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 500
+    Top = 501
     Width = 847
   end
   inherited TBDockTop: TTBDock
@@ -256,44 +256,44 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
   end
   inherited TBDockLeft: TTBDock
     Top = 136
-    Height = 364
+    Height = 365
   end
   inherited TBDockRight: TTBDock
     Left = 838
     Top = 136
-    Height = 364
+    Height = 365
   end
   inherited TBDockBottom: TTBDock
-    Top = 519
+    Top = 520
     Width = 847
   end
   inherited pnlWorkArea: TPanel
     Top = 136
     Width = 829
-    Height = 364
+    Height = 365
     inherited spChoose: TSplitter
-      Top = 261
+      Top = 262
       Width = 829
     end
     inherited pnlMain: TPanel
       Width = 829
-      Height = 261
+      Height = 262
       inherited pnlSearchMain: TPanel
-        Height = 261
+        Height = 262
         inherited sbSearchMain: TScrollBox
-          Height = 223
+          Height = 224
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 223
+          Top = 224
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 669
-        Height = 261
+        Height = 262
       end
     end
     inherited pnChoose: TPanel
-      Top = 265
+      Top = 266
       Width = 829
       inherited pnButtonChoose: TPanel
         Left = 724
@@ -340,11 +340,6 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
       Hint = 'Выбор свойств, которые не влияют на формирование карточки'
       ImageIndex = 94
       OnExecute = actChooseIgnoryFeaturesExecute
-    end
-  end
-  inherited pmMain: TPopupMenu
-    inherited nDel_OLD: TMenuItem
-      Enabled = False
     end
   end
   object gdcInvCard: TgdcInvCard

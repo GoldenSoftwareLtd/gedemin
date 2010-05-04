@@ -1,3 +1,4 @@
+
 unit gdc_frmStorage_unit;
 
 interface
@@ -90,7 +91,7 @@ end;
 procedure Tgdc_frmStorage.lkupStorageChange(Sender: TObject);
 begin
   gdcStorageFolder.Close;
-  gdcStorageFolder.ParamByName('Parent').AsInteger := lkupStorage.CurrentKeyInt;
+  gdcStorageFolder.ParamByName('RootID').AsInteger := lkupStorage.CurrentKeyInt;
   gdcStorageFolder.Open;
 end;
 

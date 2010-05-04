@@ -3,7 +3,7 @@ unit rp_StreamFR4;
 interface
 
 uses
-  Classes, SysUtils, FR_Class, rp_BaseReport_unit, DB, {DBClient,}
+  Classes, SysUtils, FR_Class, rp_BaseReport_unit, DB, DBClient,
   Forms, Printers, rp_i_ReportBuilder_unit, rp_StreamFR, frxVariables,
   rp_ErrorMsgFactory, frxDesgn, frxClass, frxDCtrl, frxChart,
   frxRich, frxBarcode, ImgList, ComCtrls, ExtCtrls, frxOLE,
@@ -28,11 +28,9 @@ type
 
     function AddDataSet(const AnName: String): Integer; override;
     procedure DeleteDataSet(const AnIndex: Integer); override;
+    property frDataSet[AnIndex: Integer]: TfrxDBDataSet read GetfrDataSet;
     function frDataSetByName(const AnName: String): TfrxDBDataSet;
     procedure LoadFromStream(AnStream: TStream); override;
-    procedure AddDataSetList(const AnBaseQueryList: Variant); override;
-
-    property frDataSet[AnIndex: Integer]: TfrxDBDataSet read GetfrDataSet;
     property ReportForm: TfrxReport read FReportForm write FReportForm;
   end;
 
@@ -111,9 +109,6 @@ const
   cCategoryName = 'Входные параметры';
 
 implementation
-
-uses
-  Gedemin_TLB, kbmMemTable;
 
 { Tgs_fr4Report }
 
@@ -383,40 +378,11 @@ begin
   TfrxDBDataSet(FfrDataSetList.Objects[Result]).DataSet := DataSet[Result];
 end;
 
-procedure Tfr4_ReportResult.AddDataSetList(const AnBaseQueryList: Variant);
-var
-  LocDispatch: IDispatch;
-  LocReportResult: IgsQueryList;
-  I, J, K: Integer;
-  DS: TDataSet;
-begin
-  //Разбираем BaseQueryList и добавляем его в Fast Report
-  LocDispatch := AnBaseQueryList;
-  LocReportResult := LocDispatch as IgsQueryList;
-  QueryList := LocReportResult;
-  for J := 0 to LocReportResult.Count - 1 do
-  begin
-    DS := TDataSet(LocReportResult.Query[J].Get_Self);
-    K := inherited AddDataSet(DS.Name, DS);
-    I := FfrDataSetList.AddObject(AnsiUpperCase(DS.Name), TfrxDBDataSet.Create(nil));
-    Assert(K = I);
-    TfrxDBDataSet(FfrDataSetList.Objects[K]).Name := FfrDataSetList.Strings[K];
-    TfrxDBDataSet(FfrDataSetList.Objects[K]).DataSet := DS;
-  end;
-
-  for I := 0 to FfrDataSetList.Count - 1 do
-  begin
-    ReportForm.DataSets.Add(TfrxDBDataSet(FfrDataSetList.Objects[I]));
-    ReportForm.EnabledDataSets.Add(TfrxDBDataSet(FfrDataSetList.Objects[I]));
-  end;  
-end;
-
 constructor Tfr4_ReportResult.Create;
 begin
   inherited Create;
 
   FfrDataSetList := TStringList.Create;
-  FfrDataSetList.Sorted := True;
   FMasterDetail := TFourStringList.Create;
 end;
 
@@ -464,8 +430,9 @@ var
   LocMasterDetail: TFourStringList;
   PrefixData: array[0..2] of Char;
   IndexSL: TStringList;
-  TempDataSet: TkbmMemTable;
+  TempDataSet: TClientDataSet;
 begin
+//  inherited LoadFromStream(AnStream);
   Clear;
   AnStream.Position := 0;
   if AnStream.Position >= AnStream.Size then
@@ -484,8 +451,7 @@ begin
       TempStream.Size := LocSize;
       AnStream.ReadBuffer(TempStream.Memory^, LocSize);
       if TempStream.Size <> 0 then
-        TkbmMemTable(DataSet[J]).DefaultFormat := StreamFormat;
-        TkbmMemTable(DataSet[J]).LoadFromStream(TempStream);
+        DataSet[J].LoadFromStream(TempStream);
     end;
   finally
     TempStream.Free;
@@ -517,7 +483,7 @@ begin
         IndexSL.LoadFromStream(AnStream);
         for I := 0 to IndexSL.Count - 1 do
         begin
-          TempDataSet := (DataSetByName(IndexSL.Names[I]) as TkbmMemTable);
+          TempDataSet := DataSetByName(IndexSL.Names[I]);
           if TempDataSet <> nil then
             TempDataSet.IndexFieldNames := IndexSL.Values[IndexSL.Names[I]];
         end;

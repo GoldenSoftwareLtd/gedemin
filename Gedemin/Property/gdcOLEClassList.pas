@@ -413,13 +413,6 @@ begin
     if AClass.InheritsFrom(TPersistent) and not AClass.InheritsFrom(TComponent) then
       RegisterClass(TPersistentClass(AClass));
 
-{ TODO -oAlexander : 
-Надо проверить зачем все время по коду идет:
-Copy(AClassName, 2, 255)
-Похоже, смысл был в том чтобы избавиться от первой буквы Т в имени класса 
-и помочь сортированному списку искать быстрее. 
-Если так, то для хэша это уже не имеет значения.. }
-
     FHashClassNames.Add(Copy(AClass.ClassName, 2, 255), Pointer(AClass));
   end else
     Result := -1;

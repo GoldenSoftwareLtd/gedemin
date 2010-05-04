@@ -42,7 +42,6 @@ type
     Label4: TLabel;
     procedure actWizardExecute(Sender: TObject);
     procedure actWizardUpdate(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
   private
     FScriptChanged: Boolean;
   protected
@@ -395,18 +394,7 @@ begin
     (gdcObject.FieldByName(fndocumenttypekey).AsInteger > 0) and
     (gdcObject.FieldByName(fndocumentpart).AsString > '') and
     (gdcObject.FieldByName(fnAccountKey).AsInteger > 0) and
-    IBLogin.IsUserAdmin
-end;
-
-procedure Tgdc_dlgAcctTrEntry.FormCreate(Sender: TObject);
-begin
-  inherited;
-
-  if Assigned(IBLogin) and IBLogin.IsUserAdmin then
-      BtnFuncWizard.Enabled := True
-    else
-      BtnFuncWizard.Enabled := False;
-
+    IBLogin.IsIBUserAdmin
 end;
 
 initialization
