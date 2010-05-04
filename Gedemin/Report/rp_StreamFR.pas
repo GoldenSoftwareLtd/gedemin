@@ -3,7 +3,7 @@ unit rp_StreamFR;
 interface
 
 uses
-  Classes, SysUtils, FR_Class, rp_BaseReport_unit, DB, DBClient, FR_DBSet,
+  Classes, SysUtils, FR_Class, rp_BaseReport_unit, DB, FR_DBSet,
   FR_DBRel, Forms, Printers, rp_i_ReportBuilder_unit, FR_View, FR_DSet,
   rp_ErrorMsgFactory, rp_fr_view_unit;
 

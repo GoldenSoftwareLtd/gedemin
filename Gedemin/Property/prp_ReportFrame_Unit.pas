@@ -515,6 +515,7 @@ var
 const
   cTemplateWasChange = 'Шаблон был изменен. Сохранить?';
   cThereIsNotResults = 'Нет результата выполнения основной функции.';
+  cErrTesrResult = 'Изменился формат данных. Запустите функцию отчета.';
   cParamName = 'PARAM';
   cSeparator = 's';
 
@@ -553,7 +554,12 @@ begin
       Str := MainFunctionFrame.gdcFunction.CreateBlobStream(
         MainFunctionFrame.gdcFunction.FieldByName('testresult'), DB.bmRead);
       try
-        LfrReport.UpdateDictionary.ReportResult.LoadFromStream(Str);
+        try
+          LfrReport.UpdateDictionary.ReportResult.LoadFromStream(Str);
+        except
+          MainFunctionFrame.gdcFunction.FieldByName('testresult').Clear;
+          raise Exception.Create(cErrTesrResult);
+        end;
       finally
         Str.Free;
       end;
@@ -643,7 +649,12 @@ begin
       Str := MainFunctionFrame.gdcFunction.CreateBlobStream(
         MainFunctionFrame.gdcFunction.FieldByName('testresult'), DB.bmRead);
       try
-        FLastReportResult.LoadFromStream(Str);
+        try
+          FLastReportResult.LoadFromStream(Str);
+        except
+          MainFunctionFrame.gdcFunction.FieldByName('testresult').Clear;
+          raise Exception.Create(cErrTesrResult);
+        end;
       finally
         Str.Free;
       end;
@@ -691,7 +702,12 @@ begin
       Str := MainFunctionFrame.gdcFunction.CreateBlobStream(
         MainFunctionFrame.gdcFunction.FieldByName('testresult'), DB.bmRead);
       try
-        Lfr4Report.ReportResult.LoadFromStream(Str);
+        try
+          Lfr4Report.ReportResult.LoadFromStream(Str);
+        except
+          MainFunctionFrame.gdcFunction.FieldByName('testresult').Clear;
+          raise Exception.Create(cErrTesrResult);
+        end;
       finally
         Str.Free;
       end;
