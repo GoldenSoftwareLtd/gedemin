@@ -83,6 +83,8 @@ type
     procedure edFixLengthChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actAutoNumerationExecute(Sender: TObject);
+    procedure actWizardHeaderUpdate(Sender: TObject);
+    procedure actWizardLineUpdate(Sender: TObject);
 
   private
     FScriptChanged: Boolean;
@@ -599,6 +601,7 @@ begin
   TAction(Sender).Enabled := Assigned(gdcObject)
     and gdcObject.Active
     and not gdcObject.FieldByName('headerfunctionkey').IsNull
+    and IBLogin.IsIBUserAdmin;
 end;
 
 procedure Tgdc_dlgDocumentType.actDeleteLineFunctionUpdate(
@@ -607,6 +610,7 @@ begin
   TAction(Sender).Enabled := Assigned(gdcObject)
     and gdcObject.Active
     and not gdcObject.FieldByName('linefunctionkey').IsNull
+    and IBLogin.IsIBUserAdmin;
 end;
 
 procedure Tgdc_dlgDocumentType.SetupRecord;
@@ -832,6 +836,16 @@ begin
     gbNumber.Visible := True;
     gdcObject.FieldByName('MASK').AsString := '"NUMBER"';
   end;
+end;
+
+procedure Tgdc_dlgDocumentType.actWizardHeaderUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := IBLogin.IsIBUserAdmin;
+end;
+
+procedure Tgdc_dlgDocumentType.actWizardLineUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := IBLogin.IsIBUserAdmin;
 end;
 
 initialization

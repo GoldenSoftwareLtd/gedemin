@@ -42,7 +42,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
     Top = 4
     Width = 391
     Height = 393
-    ActivePage = tsAccess
+    ActivePage = tsGeneral
     TabOrder = 0
     OnChange = tsAccessShow
     object tsGeneral: TTabSheet
