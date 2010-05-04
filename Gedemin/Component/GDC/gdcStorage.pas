@@ -78,6 +78,7 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     function GetCurrRecordClass: TgdcFullClass; override;
 
@@ -798,6 +799,13 @@ begin
   {M}      ClearMacrosStack2('TGDCSTORAGE', 'DOBEFOREDELETE', KEYDOBEFOREDELETE);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcStorage.NeedModifyFromStream(
+  const SubType: String): Boolean;
+begin
+  // По умолчанию выставляем флаг "Перезаписывать из потока"
+  Result := True;
 end;
 
 initialization
