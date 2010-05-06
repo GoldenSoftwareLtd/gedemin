@@ -1365,7 +1365,7 @@ begin
   if TempDs.MasterSource = nil then
     TempDs.MasterSource := TDataSource.Create(nil);
   TempDs.MasterSource.DataSet := DataSetByName(AnMasterTable);
-  TempDs.IndexFieldNames := AnDetailField;
+  TempDs.DetailFields := AnDetailField;
   TempDs.MasterFields := AnMasterField;
 
   FMasterDetail.AddRecord(AnMasterTable, AnMasterField,
