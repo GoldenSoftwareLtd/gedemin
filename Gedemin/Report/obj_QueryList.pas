@@ -741,8 +741,6 @@ var
   MStr: TMemoryStream;
   DS: TkbmMemTable;
 begin
-  ResultMasterDetail;
-
   LocReportResult := TReportResult.Create;
   try
     MStr := TMemoryStream.Create;
@@ -795,7 +793,6 @@ procedure TgsQueryList.AddMasterDetail(const MasterTable, MasterField,
 var
   I: Integer;
   TempDS: TDataSet;
-  TempCDS: TkbmMemTable;
 begin
   I := GetIndexQueryByName(MasterTable);
   if I > -1 then
@@ -815,18 +812,7 @@ begin
       raise Exception.Create('Specified detail field not found.');
   end;
 
-  if TgsDataSet(FQueryList.Items[I]).DataSet is TkbmMemTable then
-  begin
-    TempCDS := TgsDataSet(FQueryList.Items[I]).GetClientDataSet;
-    if TempCDS.MasterSource = nil then
-    begin
-      TempCDS.MasterSource := TDataSource.Create(nil);
-      FDataSourceList.Add(TempCDS.MasterSource);
-    end;
-    TempCDS.MasterSource.DataSet := TgsDataSet(FQueryList.Items[GetIndexQueryByName(MasterTable)]).DataSet;
-    TempCDS.DetailFields := DetailField;
-    TempCDS.MasterFields := MasterField;
-  end else
+  if not (TgsDataSet(FQueryList.Items[I]).DataSet is TkbmMemTable) then
     FTempMasterDetail.AddRecord(MasterTable, MasterField, DetailTable, DetailField);
 
   FMasterDetail.AddRecord(MasterTable, MasterField, DetailTable, DetailField);
@@ -901,9 +887,26 @@ var
   MemTable: TgsDataSet;
   DS: TkbmMemTable;
   IsResult: WordBool;
+  IndexFields: String;
+
+  procedure AddMasterDetail(const AnMasterTable, AnMasterField,
+    AnDetailTable, AnDetailField: String);
+  var
+    TempDs: TkbmMemTable;
+  begin
+    TempDs := ( TgsDataSet(FQueryList.Items[GetIndexQueryByName(AnDetailTable)]).DataSet as TkbmMemTable);
+    if TempDs.MasterSource = nil then
+    begin
+      TempDs.MasterSource := TDataSource.Create(nil);
+      FDataSourceList.Add(TempDs.MasterSource);
+    end;
+    TempDs.MasterSource.DataSet := TgsDataSet(FQueryList.Items[GetIndexQueryByName(AnMasterTable)]).DataSet;
+    TempDs.DetailFields := AnDetailField;
+    TempDs.MasterFields := AnMasterField;
+  end;
+
 begin
-  // т.к. TIBQuery не криво поддерживает M-D связь
-  // то заменим детальный TIBQuery на MemTable
+  //заменим TIBQuery на memtable при необходимости
   for J := 0 to FTempMasterDetail.Count - 1 do
   begin
     I := GetIndexQueryByName(FMasterDetail.DetailTable[J]);
@@ -912,6 +915,7 @@ begin
       //1. Создаем MemTable и заполняем его
       TempDS := TgsDataSet(FQueryList.Items[I]).GetIBQuery;
       IsResult := TgsDataSet(FQueryList.Items[I]).Get_IsResult;
+      IndexFields := TgsDataSet(FQueryList.Items[I]).Get_IndexFields;
       MemTable := TgsDataSet.Create(True);
       try
         DS := MemTable.GetClientDataSet;
@@ -934,14 +938,15 @@ begin
       TgsDataSet(FQueryList.Items[Index])._AddRef;
       TgsDataSet(FQueryList.Items[Index]).DataSet.Name := DS.Name;
       TgsDataSet(FQueryList.Items[Index]).Set_IsResult(IsResult);
-      //4. Создаем связь M-D
-      DS.MasterSource := TDataSource.Create(nil);
-      FDataSourceList.Add(DS.MasterSource);
-      DS.MasterSource.DataSet := TgsDataSet(FQueryList.Items[GetIndexQueryByName(FMasterDetail.MasterTable[J])]).DataSet;
-      DS.DetailFields := FMasterDetail.DetailField[J];
-      DS.MasterFields := FMasterDetail.MasterField[J];
+      if IndexFields <> '' then
+        TgsDataSet(FQueryList.Items[Index]).Set_IndexFields(IndexFields);
     end;
   end;
+
+  //4. Создаем связь M-D
+  for I := 0 to FMasterDetail.Count - 1 do
+    AddMasterDetail(FMasterDetail.MasterTable[I], FMasterDetail.MasterField[I],
+     FMasterDetail.DetailTable[I], FMasterDetail.DetailField[I]);
 end;
 
 { TgsParam }
