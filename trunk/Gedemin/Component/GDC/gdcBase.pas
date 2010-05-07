@@ -4077,7 +4077,10 @@ begin
     // Если установлен параметр, покажем диалог редактирования скопированного объекта
     if AShowEditDialog then
     begin
-      FDSModified := True;
+      // Сделаем холостое изменение объекта, чтобы при нажатии на ОК в диалоге произошел Пост
+      Self.Edit;
+      Self.FieldByName(Self.GetKeyField).AsInteger := Self.FieldByName(Self.GetKeyField).AsInteger;
+      // Вызовем диалог редактирования объекта, если пользователь нажмет Отмену, то удалим объект
       if not Self.EditDialog then
       begin
         if DoPostRecord then
