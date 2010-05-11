@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001 - 2010 by Golden Software of Belarus
 
   Module
 
@@ -32,7 +32,7 @@ interface
 
 uses
   Contnrs,        Classes,   TypInfo,     Forms,        gd_KeyAssoc,
-  gdcBase,        gdc_createable_form,    gdcBaseInterface;
+  gdcBase,        gdc_createable_form,    gdcBaseInterface, gsStringHashList;
 
 // Ключи для перекрытия методов
 const
@@ -264,7 +264,7 @@ type
   // Базовый класс для хранения классов с описанием методов
   TgdcCustomClassList = class(TObject)
   private
-    FClassList: TStrings;
+    FHashClassList: THashedStringList;
 
     function GetClass(Index: Integer): TComponentClass;
     function GetClassMethods(Index: Integer): TgdcClassMethods;
@@ -1057,7 +1057,7 @@ end;
 
 function TgdcCustomClassList.Add(AClass: TComponentClass): Integer;
 begin
-  Result := FClassList.AddObject(AClass.ClassName, TgdcClassMethods.Create(AClass));
+  Result := FHashClassList.AddObject(AClass.ClassName, TgdcClassMethods.Create(AClass));
 end;
 
 function TgdcCustomClassList.AddClassMethods(AClass: TComponentClass;
@@ -1097,11 +1097,10 @@ function TgdcCustomClassList.AddClassMethods(
 var
   I: Integer;
 begin
-  Result :=   FClassList.IndexOf(AClassMethods.gdcClass.ClassName);
-
+  Result := FHashClassList.IndexOf(AClassMethods.gdcClass.ClassName);
   if Result = -1 then
   begin  {Adding methods to existing class}
-    Result := FClassList.AddObject(AClassMethods.gdcClass.ClassName,
+    Result := FHashClassList.AddObject(AClassMethods.gdcClass.ClassName,
       TgdcClassMethods.Create);
     gdcItems[Result].Assign(AClassMethods);
   end else
@@ -1115,17 +1114,17 @@ procedure TgdcCustomClassList.Clear;
 var
   i: Integer;
 begin
-  for i := 0 to FClassList.Count - 1 do
-    FClassList.Objects[i].Free;
-  FClassList.Clear;
+  for i := 0 to FHashClassList.Count - 1 do
+    FHashClassList.Objects[i].Free;
+  FHashClassList.Clear;
 end;
 
 constructor TgdcCustomClassList.Create;
 begin
   inherited;
 
-  FClassList := TStringList.Create;
-  TStringList(FClassList).Sorted := True;
+  FHashClassList := THashedStringList.Create;
+  FHashClassList.CaseSensitive := False;
 
   {$IFDEF DEBUG}
   Inc(glbClassListCount);
@@ -1135,7 +1134,7 @@ end;
 destructor TgdcCustomClassList.Destroy;
 begin
   Clear;
-  FClassList.Free;
+  FHashClassList.Free;
 
   inherited;
 
@@ -1146,19 +1145,19 @@ end;
 
 function TgdcCustomClassList.GetClass(Index: Integer): TComponentClass;
 begin
-  Assert((Index >= 0) and (Index < FClassList.Count), 'Index out of range');
+  Assert((Index >= 0) and (Index < FHashClassList.Count), 'Index out of range');
   Result := gdcItems[Index].FgdcClass;
 end;
 
 function TgdcCustomClassList.GetClassMethods(Index: Integer): TgdcClassMethods;
 begin
-  Assert((Index >= 0) and (Index < FClassList.Count), 'Index out of range');
-  Result := TgdcClassMethods(FClassList.Objects[Index]);
+  Assert((Index >= 0) and (Index < FHashClassList.Count), 'Index out of range');
+  Result := TgdcClassMethods(FHashClassList.Objects[Index]);
 end;
 
 function TgdcCustomClassList.GetCount: Integer;
 begin
-  Result := FClassList.Count;
+  Result := FHashClassList.Count;
 end;
 
 function TgdcCustomClassList.GetCustomClass(
@@ -1167,30 +1166,31 @@ var
   i: Integer;
 begin
   Result := nil;
-  i := FClassList.IndexOf(AFullClassName.gdClassName);
+
+  i := FHashClassList.IndexOf(AFullClassName.gdClassName);
   if i > -1 then
     Result := GetClass(i);
 end;
 
 function TgdcCustomClassList.IndexOf(AClass: TClass): Integer;
 begin
-  Result := FClassList.IndexOf(AClass.ClassName);
+  Result := FHashClassList.IndexOf(AClass.ClassName);
 end;
 
 function TgdcCustomClassList.IndexOfByName(AFullClassName: TgdcFullClassName): Integer;
 begin
-  Result := FClassList.IndexOf(AFullClassName.gdClassName);
+  Result := FHashClassList.IndexOf(AFullClassName.gdClassName);
 end;
 
 procedure TgdcCustomClassList.Remove(AClass: TComponentClass);
 var
   i: Integer;
 begin
-  i := FClassList.IndexOf(AClass.ClassName);
+  i := FHashClassList.IndexOf(AClass.ClassName);
   if i > -1 then
   begin
     gdcItems[i].Free;
-    FClassList.Delete(i);
+    FHashClassList.Delete(i);
   end
   {$IFDEF DEBUG}
   else
