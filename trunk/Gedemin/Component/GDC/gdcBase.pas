@@ -4079,7 +4079,8 @@ begin
     begin
       // Сделаем холостое изменение объекта, чтобы при нажатии на ОК в диалоге произошел Пост
       Self.Edit;
-      Self.FieldByName(Self.GetKeyField).AsInteger := Self.FieldByName(Self.GetKeyField).AsInteger;
+      Self.FieldByName(Self.GetKeyField(Self.SubType)).AsInteger :=
+        Self.FieldByName(Self.GetKeyField(Self.SubType)).AsInteger;
       // Вызовем диалог редактирования объекта, если пользователь нажмет Отмену, то удалим объект
       if not Self.EditDialog then
       begin
