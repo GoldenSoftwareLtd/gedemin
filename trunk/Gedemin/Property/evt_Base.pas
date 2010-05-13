@@ -259,7 +259,7 @@ type
 //  TEventObjectList = class(TStringList)
   private
     // массив хранящий динамические объекты и их обработчики
-    FDinanicEventArray: TgdKeyObjectAssoc;
+    FDinamicEventArray: TgdKeyObjectAssoc;
 
     function  AddDinamicObject(const SourceEventObject: TEventObject; Acceptor: TComponent): Boolean;
     function  GetEventObject(Index: Integer): TEventObject;
@@ -6481,10 +6481,10 @@ begin
     ResetEvents(ObjectList.EventObject[i].SelfObject);
   end;
 
-  for I :=  0 to ObjectList.FDinanicEventArray.Count - 1 do
+  for I :=  0 to ObjectList.FDinamicEventArray.Count - 1 do
   begin
-    ResetAllEvents(TEventObject(ObjectList.FDinanicEventArray.ObjectByIndex[i]).ChildObjects);
-    ResetEvents(TEventObject(ObjectList.FDinanicEventArray.ObjectByIndex[i]).SelfObject);
+    ResetAllEvents(TEventObject(ObjectList.FDinamicEventArray.ObjectByIndex[i]).ChildObjects);
+    ResetEvents(TEventObject(ObjectList.FDinamicEventArray.ObjectByIndex[i]).SelfObject);
   end;
 end;
 
@@ -7262,17 +7262,17 @@ begin
 
   if Assigned(AObject) and (AObject is TCreateableForm) then
   begin
-    i := FDinanicEventArray.IndexOf(Integer(AObject));
+    i := FDinamicEventArray.IndexOf(Integer(AObject));
     if i > -1 then
-      Result := TEventObject(FDinanicEventArray.ObjectByIndex[i])
+      Result := TEventObject(FDinamicEventArray.ObjectByIndex[i])
     else
       if Assigned(EventControl) then
       begin
         EventControl.AssignEvents(
           TCreateableForm(AObject).InitialName, AObject);
-        i := FDinanicEventArray.IndexOf(Integer(AObject));
+        i := FDinamicEventArray.IndexOf(Integer(AObject));
         if i > -1 then
-          Result := TEventObject(FDinanicEventArray.ObjectByIndex[i]);
+          Result := TEventObject(FDinamicEventArray.ObjectByIndex[i]);
       end;
   end;
 
@@ -7282,17 +7282,17 @@ begin
     (AnsiCompareText(TCreateableForm(AObject).InitialName,
     TCreateableForm(AObject).Name) <> 0) then
   begin
-    i := FDinanicEventArray.IndexOf(Integer(AObject));
+    i := FDinamicEventArray.IndexOf(Integer(AObject));
     if i > -1 then
-      Result := TEventObject(FDinanicEventArray.ObjectByIndex[i])
+      Result := TEventObject(FDinamicEventArray.ObjectByIndex[i])
     else
       if Assigned(EventControl) then
       begin
         EventControl.AssignEvents(
           Application.FindComponent(TCreateableForm(AObject).InitialName), AObject);
-        i := FDinanicEventArray.IndexOf(Integer(AObject));
+        i := FDinamicEventArray.IndexOf(Integer(AObject));
         if i > -1 then
-          Result := TEventObject(FDinanicEventArray.ObjectByIndex[i]);
+          Result := TEventObject(FDinamicEventArray.ObjectByIndex[i]);
       end;
   end;
 
@@ -7310,9 +7310,9 @@ begin
     begin
       if LCurObject.InheritsFrom(TCustomForm) then
       begin
-        i := FDinanicEventArray.IndexOf(Integer(LCurObject));
+        i := FDinamicEventArray.IndexOf(Integer(LCurObject));
         if i > -1 then
-          LEventObject := TEventObject(FDinanicEventArray.ObjectByIndex[i]);
+          LEventObject := TEventObject(FDinamicEventArray.ObjectByIndex[i]);
         if not Assigned(LEventObject) then
           Exit
         else
@@ -7343,9 +7343,9 @@ begin
     // если объект не найден, ищем его среди динамических объектов
     if Result = nil then
     begin
-      i := FDinanicEventArray.IndexOf(Integer(AObject));
+      i := FDinamicEventArray.IndexOf(Integer(AObject));
       if i > -1 then
-        Result := TEventObject(FDinanicEventArray.ObjectByIndex[i]);
+        Result := TEventObject(FDinamicEventArray.ObjectByIndex[i]);
     end;
   finally
     LTreeParent.Free;
@@ -7366,10 +7366,10 @@ begin
       Break;
     end;
   if Result = nil then
-  for I := 0 to FDinanicEventArray.Count - 1 do
-    if UpperCase(TEventObject(FDinanicEventArray.ObjectByIndex[I]).ObjectName) = TempStr then
+  for I := 0 to FDinamicEventArray.Count - 1 do
+    if UpperCase(TEventObject(FDinamicEventArray.ObjectByIndex[I]).ObjectName) = TempStr then
     begin
-      Result := TEventObject(FDinanicEventArray.ObjectByIndex[I]);
+      Result := TEventObject(FDinamicEventArray.ObjectByIndex[I]);
       Break;
     end;
 end;
@@ -7620,7 +7620,7 @@ var
 begin
   Result := False;
 //  if (not (Assigned(Source) or Assigned(Acceptor))) or
-//    (FDinanicEventArray.IndexOf(Integer(Acceptor)) > -1) then
+//    (FDinamicEventArray.IndexOf(Integer(Acceptor)) > -1) then
 //    Exit;
   if not Assigned(Source)  then
     Exit;
@@ -7639,8 +7639,8 @@ begin
 //  NewEventObject.FChildObjects.Clear;
   NewEventObject.FObjectKey := 0;
   NewEventObject.FObjectName := Acceptor.Name;
-  i := FDinanicEventArray.Add(Integer(NewEventObject.FSelfObject));
-  FDinanicEventArray.ObjectByIndex[i] := NewEventObject;
+  i := FDinamicEventArray.Add(Integer(NewEventObject.FSelfObject));
+  FDinamicEventArray.ObjectByIndex[i] := NewEventObject;
 
   Result := True;
 }
@@ -7650,14 +7650,14 @@ constructor TEventObjectList.Create;
 begin
   inherited Create;
 
-  FDinanicEventArray := TgdKeyObjectAssoc.Create;
-//  FDinanicEventArray.OwnsObjects := True;
+  FDinamicEventArray := TgdKeyObjectAssoc.Create;
+//  FDinamicEventArray.OwnsObjects := True;
 end;
 
 destructor TEventObjectList.Destroy;
 begin
-  FDinanicEventArray.OwnsObjects := True;
-  FreeAndNil(FDinanicEventArray);
+  FDinamicEventArray.OwnsObjects := True;
+  FreeAndNil(FDinamicEventArray);
 
   inherited;
 end;
@@ -7670,11 +7670,11 @@ begin
   if not Assigned(AnObject) then
     Exit;
 
-  i := FDinanicEventArray.IndexOf(Integer(AnObject));
+  i := FDinamicEventArray.IndexOf(Integer(AnObject));
   if i > -1 then
   begin
-    O := FDinanicEventArray.ObjectByIndex[i];
-    FDinanicEventArray.Delete(i);
+    O := FDinamicEventArray.ObjectByIndex[i];
+    FDinamicEventArray.Delete(i);
     O.Free;
   end;
 end;
@@ -7700,7 +7700,7 @@ begin
 begin
   Result := False;
   if (not Assigned(Acceptor)) or
-    (FDinanicEventArray.IndexOf(Integer(Acceptor)) > -1) then
+    (FDinamicEventArray.IndexOf(Integer(Acceptor)) > -1) then
     Exit;
 
   LEventObject := FindAllObject(SourceName);
@@ -7714,8 +7714,8 @@ begin
 //  NewEventObject.FChildObjects.Clear;
   NewEventObject.FObjectKey := 0;
   NewEventObject.FObjectName := Acceptor.Name;
-  i := FDinanicEventArray.Add(Integer(NewEventObject.FSelfObject));
-  FDinanicEventArray.ObjectByIndex[i] := NewEventObject;
+  i := FDinamicEventArray.Add(Integer(NewEventObject.FSelfObject));
+  FDinamicEventArray.ObjectByIndex[i] := NewEventObject;
 
   Result := True;
 //    FEventObjectList.AddDinamicEventObject(NewEventObject);
@@ -7732,7 +7732,7 @@ var
 begin
   Result := False;
   if (not (Assigned(SourceEventObject) or Assigned(Acceptor))) or
-    (FDinanicEventArray.IndexOf(Integer(Acceptor)) > -1) then
+    (FDinamicEventArray.IndexOf(Integer(Acceptor)) > -1) then
     Exit;
 
   NewEventObject := TEventObject.Create;
@@ -7742,8 +7742,8 @@ begin
 //  NewEventObject.FChildObjects.Clear;
   NewEventObject.FObjectKey := 0;
   NewEventObject.FObjectName := Acceptor.Name;
-  i := FDinanicEventArray.Add(Integer(NewEventObject.FSelfObject));
-  FDinanicEventArray.ObjectByIndex[i] := NewEventObject;
+  i := FDinamicEventArray.Add(Integer(NewEventObject.FSelfObject));
+  FDinamicEventArray.ObjectByIndex[i] := NewEventObject;
 
   Result := True;
 end;
@@ -7771,8 +7771,8 @@ end;
 
 procedure TEventObjectList.Clear;
 begin
-  if FDinanicEventArray <> nil then
-    FDinanicEventArray.Clear;
+  if FDinamicEventArray <> nil then
+    FDinamicEventArray.Clear;
   inherited;
 end;
 
