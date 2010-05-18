@@ -2347,8 +2347,13 @@ begin
     FreeAndNil(FTransaction);
   FreeAndNil(FKnownEventList);
 
-  ResetAllEvents(FEventObjectList);
-  FreeAndNil(FEventObjectList);
+  // FEventObjectList может быть nil
+  // яркий пример, dmClientReport_unit в режиме редактировании в Delphi
+  if Assigned(FEventObjectList) then
+  begin
+    ResetAllEvents(FEventObjectList);
+    FreeAndNil(FEventObjectList);
+  end;
   FEventList.Free;
   FDynamicCreatedEventObjects.Free;
   FgdcReportGroupList.Free;
