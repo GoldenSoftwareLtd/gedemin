@@ -3631,6 +3631,18 @@ var
   DoPostRecord: Boolean;
   ErrorMessage: String;
 
+  procedure ToggleBaseState(AObject: TgdcBase; AState: TgdcState; DoInclude: Boolean);
+  var
+    TempState: TgdcStates;
+  begin
+    TempState := AObject.BaseState;
+    if DoInclude then
+      Include(TempState, AState)
+    else
+      Exclude(TempState, AState);
+    AObject.BaseState := TempState;
+  end;
+
   // Копирует данные объекта
   procedure CopyRecordData(Source, Dest: TgdcBase);
   var
@@ -4010,6 +4022,8 @@ begin
                 -1);
               try
                 LinkCopy.Open;
+                // Укажем что объект находится в состоянии копирования
+                ToggleBaseState(LinkCopy, sCopy, True);
                 LinkCopy.Insert;
                 CopyRecordData(LinkObj, LinkCopy);
                 LinkCopy.ID := Self.ID;
@@ -4038,34 +4052,42 @@ begin
           F := MasterObject.FindField(MasterObject.DetailLinks[I].MasterField);
           if Assigned(F) and (F is TIntegerField) and (MasterObject.ID = F.AsInteger) then
           begin
-            MasterObject.DetailLinks[I].First;
-            while not MasterObject.DetailLinks[I].Eof do
-            begin
-              Self.DetailLinks[I].Insert;
-              try
-                CopyRecordData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
-                // установим ссылку на объект master
-                DetailField := Self.DetailLinks[I].FindField(Self.DetailLinks[I].GetFieldNameComparedToParam(Self.DetailLinks[I].DetailField));
-                if Assigned(DetailField) then
-                begin
-                  if DetailField.AsInteger <> Self.ID then
-                    DetailField.AsInteger := Self.ID;
+            // Укажем что объект находится в состоянии копирования
+            ToggleBaseState(Self.DetailLinks[I], sCopy, True);
+            try
+              // Перейдем на первую запись
+              MasterObject.DetailLinks[I].First;
+              while not MasterObject.DetailLinks[I].Eof do
+              begin
+                Self.DetailLinks[I].Insert;
+                try
+                  CopyRecordData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
+                  // установим ссылку на объект master
+                  DetailField := Self.DetailLinks[I].FindField(Self.DetailLinks[I].GetFieldNameComparedToParam(Self.DetailLinks[I].DetailField));
+                  if Assigned(DetailField) then
+                  begin
+                    if DetailField.AsInteger <> Self.ID then
+                      DetailField.AsInteger := Self.ID;
+                  end;
+                  Self.DetailLinks[I].Post;
+                  CopyRecordSetData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
+                except
+                  on E: Exception do
+                  begin
+                    if Self.DetailLinks[I].State in dsEditModes then
+                      Self.DetailLinks[I].Cancel;
+                    MessageBox(ParentHandle,
+                      PChar(Format('Ошибка копирования детального объекта: '#13#10'"%s"',
+                        [E.Message])),
+                      'Внимание',
+                      MB_OK or MB_ICONERROR);
+                  end;
                 end;
-                Self.DetailLinks[I].Post;
-                CopyRecordSetData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
-              except
-                on E: Exception do
-                begin
-                  if Self.DetailLinks[I].State in dsEditModes then
-                    Self.DetailLinks[I].Cancel;
-                  MessageBox(ParentHandle,
-                    PChar(Format('Ошибка копирования детального объекта: '#13#10'"%s"',
-                      [E.Message])),
-                    'Внимание',
-                    MB_OK or MB_ICONERROR);
-                end;
+                MasterObject.DetailLinks[I].Next;
               end;
-              MasterObject.DetailLinks[I].Next;
+            finally
+              // Укажем что объект вышел из состояния копирования
+              ToggleBaseState(Self.DetailLinks[I], sCopy, False);
             end;
           end;
         end;
@@ -4077,11 +4099,7 @@ begin
     // Если установлен параметр, покажем диалог редактирования скопированного объекта
     if AShowEditDialog then
     begin
-      // Сделаем холостое изменение объекта, чтобы при нажатии на ОК в диалоге произошел Пост
-      Self.Edit;
-      Self.FieldByName(Self.GetKeyField(Self.SubType)).AsInteger :=
-        Self.FieldByName(Self.GetKeyField(Self.SubType)).AsInteger;
-      // Вызовем диалог редактирования объекта, если пользователь нажмет Отмену, то удалим объект
+      FDSModified := True;
       if not Self.EditDialog then
       begin
         if DoPostRecord then
