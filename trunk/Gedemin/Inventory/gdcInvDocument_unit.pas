@@ -56,6 +56,8 @@ const
   gdcInvDocument_Version2_3 = 'IDV2.3';
   // Версия 2.4
   gdcInvDocument_Version2_4 = 'IDV2.4';
+  // Версия 2.5
+  gdcInvDocument_Version2_5 = 'IDV2.5';
 
 {$IFDEF DEBUGMOVE}
 const
@@ -246,6 +248,7 @@ type
     FUseGoodKeyForMakeMovement: Boolean;
     FIsMakeMovementOnFromCardKeyOnly: Boolean;
     FIsUseCompanyKey: Boolean;
+    FSaveRestWindowOption: Boolean;
 
     function EnumCardFields(const Alias: String; Kind: TgdcInvFeatureKind;
       const AsName: String = ''): String;
@@ -324,6 +327,7 @@ type
     property isChangeCardValue: Boolean read FisChangeCardValue write FisChangeCardValue;
     property isAppendCardValue: Boolean read FisAppendCardValue write FisAppendCardValue;
     property isUseCompanyKey: Boolean read FIsUseCompanyKey write FIsUseCompanyKey;
+    property SaveRestWindowOption: Boolean read FSaveRestWindowOption write FSaveRestWindowOption;
     property SavePoint: String read FSavePoint;
 
     property isCheckDestFeatures: Boolean read FisCheckDestFeatures write FisCheckDestFeatures default True;
@@ -824,7 +828,8 @@ begin
          (FCurrentStreamVersion <> gdcInvDocument_Version2_1) and
          (FCurrentStreamVersion <> gdcInvDocument_Version2_2) and
          (FCurrentStreamVersion <> gdcInvDocument_Version2_3) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_4)
+         (FCurrentStreamVersion <> gdcInvDocument_Version2_4) and
+         (FCurrentStreamVersion <> gdcInvDocument_Version2_5)
       then
         //Раньше считывался тип документа
         ReadInteger;
@@ -834,7 +839,8 @@ begin
         (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
         (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
         (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_4)
+        (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
+        (FCurrentStreamVersion = gdcInvDocument_Version2_5)
       then
         //Раньше считывался кей группы отчетов
         ReadInteger;
@@ -983,7 +989,7 @@ begin
       Проверка на случай создания поля с переподключением к DB: gdcInv_Document_Undone.
     }
 
-    WriteString(gdcInvDocument_Version2_4);
+    WriteString(gdcInvDocument_Version2_5);
     WriteString(FRelationName);
     WriteString(FRelationLineName);
     //WriteInteger(FDocumentTypeKey);
@@ -3160,7 +3166,8 @@ begin
       (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
       (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
       (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_4) then
+      (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_5) then
       FLiveTimeRemains := ReadBoolean
     else
       FLiveTimeRemains := False;
@@ -3176,7 +3183,8 @@ begin
     if (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
        (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
        (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_4)
+       (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_5)
     then
       FisMinusRemains := ReadBoolean
     else
@@ -3184,7 +3192,8 @@ begin
 
     if (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
        (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_4)
+       (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_5)
     then
     begin
       ReadListBegin;
@@ -3198,7 +3207,9 @@ begin
 
     end;
 
-    if (FCurrentStreamVersion = gdcInvDocument_Version2_3) then
+    if (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_5) then
     begin
       FIsChangeCardValue := ReadBoolean;
       FIsAppendCardValue := ReadBoolean;
@@ -3208,11 +3219,20 @@ begin
       FIsChangeCardValue := False;
       FIsAppendCardValue := False;
     end;
-    if (FCurrentStreamVersion = gdcInvDocument_Version2_4) then
+
+    if (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_5)
+    then
       FIsUseCompanyKey := ReadBoolean
     else
       FIsUseCompanyKey := True;
-      
+
+    if (FCurrentStreamVersion = gdcInvDocument_Version2_5) then
+      FSaveRestWindowOption := ReadBoolean
+    else
+      FSaveRestWindowOption := False;
+
+
     FSetupProceeded := True;
   finally
     Free;
@@ -3360,6 +3380,7 @@ begin
     WriteBoolean(FIsChangeCardValue);
     WriteBoolean(FIsAppendCardValue);
     WriteBoolean(FIsUseCompanyKey);
+    WriteBoolean(FSaveRestWindowOption);
 
   finally
     Free;

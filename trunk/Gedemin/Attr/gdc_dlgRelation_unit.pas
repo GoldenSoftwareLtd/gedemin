@@ -1517,9 +1517,11 @@ begin
   begin
     q := TIBSQL.Create(nil);
     try
-      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.Transaction := gdcObject.ReadTransaction;
       q.SQL.Text :=
-        'SELECT r.relationname FROM at_relations r WHERE r.lname = :lname';
+        'SELECT r.relationname FROM at_relations r WHERE r.lname = :lname ' +
+        '  AND r.id <> :ID ';
+      q.ParamByName('id').AsInteger := gdcObject.ID;
       q.ParamByName('lname').AsString := gdcObject.FieldByName('lname').AsString;
       q.ExecQuery;
 

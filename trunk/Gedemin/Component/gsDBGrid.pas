@@ -8055,6 +8055,11 @@ begin
           SetupGrid(Master);
         FSettingsModified := True;
       end;
+
+      if Assigned(GlobalStorage) then GlobalStorage.SaveToDatabase;
+      if Assigned(UserStorage) then UserStorage.SaveToDatabase;
+      if Assigned(CompanyStorage) then CompanyStorage.SaveToDatabase;
+      if Assigned(AdminStorage) then AdminStorage.SaveToDatabase;
     finally
       Master.Free;
     end;

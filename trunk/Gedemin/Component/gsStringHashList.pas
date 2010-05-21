@@ -10,6 +10,8 @@ unit gsStringHashList;
 
 interface
 
+{$IFDEF VER130}
+
 uses SysUtils, Classes;
 
 type
@@ -59,8 +61,11 @@ type
     property CaseSensitive: Boolean read FCaseSensitive write SetCaseSensitive;
   end;
 
+{$ENDIF}
 
 implementation
+
+{$IFDEF VER130}
 
 { TStringHash }
 
@@ -259,5 +264,7 @@ begin
       FValueHash.Add(Self[I], I);
   FValueHashValid := True;
 end;
+
+{$ENDIF}
 
 end.

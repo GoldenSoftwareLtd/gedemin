@@ -30,11 +30,11 @@ interface
 uses
   Classes, Windows;
 
-var
-  MainForm: TComponent;
+{var
+  MainForm: TComponent;}
 
 function BuildComponentPath(C: TComponent; const Context: String = ''): String;
-procedure RemoveComponentFromList(C: TComponent);
+{procedure RemoveComponentFromList(C: TComponent);}
 
 implementation
 
@@ -46,7 +46,7 @@ uses
   {$ENDIF}
   ;
 
-var
+{var
   RegisteredCompPath: TStringList;
 
 procedure RemoveComponentFromList(C: TComponent);
@@ -59,7 +59,7 @@ begin
     if I <> -1 then
       RegisteredCompPath.Delete(I);
   end;
-end;
+end;}
 
 function BuildComponentPath(C: TComponent; const Context: String = ''): String;
 
@@ -107,12 +107,21 @@ function BuildComponentPath(C: TComponent; const Context: String = ''): String;
       Result := _BuildComponentPath(C.Owner) + '\' + Format('%s(%s)', [RemoveLastNum(C), C.ClassName]);
   end;
 
-var
-  S: String;
+{var
+  S: String;}
 
 begin
   try
     if not Assigned(C) then
+      Result := Context
+    else begin
+      Result := _BuildComponentPath(C);
+
+      if Context > '' then
+        Result := Result + '\' + Context;
+    end;
+
+    {if not Assigned(C) then
     begin
       Result := Context;
       exit;
@@ -151,7 +160,7 @@ begin
       C.FreeNotification(MainForm);
 
     if Context > '' then
-      Result := Result + '\' + Context;
+      Result := Result + '\' + Context;}
   except
     on E: Exception do
     begin
@@ -162,11 +171,11 @@ begin
   end;
 end;
 
-initialization
+{initialization
   RegisteredCompPath := TStringList.Create;
   RegisteredCompPath.Sorted := True;
   RegisteredCompPath.Duplicates := dupIgnore;
 
 finalization
-  FreeAndNil(RegisteredCompPath);
+  FreeAndNil(RegisteredCompPath);}
 end.

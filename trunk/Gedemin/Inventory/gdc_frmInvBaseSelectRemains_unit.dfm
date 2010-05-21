@@ -18,15 +18,17 @@ inherited gdc_frmInvBaseSelectRemains: Tgdc_frmInvBaseSelectRemains
     Width = 775
     Height = 52
     inherited tbMainCustom: TTBToolbar
-      Left = 739
+      Left = 742
       DockPos = 424
     end
     inherited tbMainInvariant: TTBToolbar
+      Left = 260
       inherited cbAllRemains: TCheckBox
         Top = 4
       end
     end
     inherited tbChooseMain: TTBToolbar
+      Left = 471
       DockPos = 296
       Visible = True
       object tbciBaseRemains: TTBControlItem

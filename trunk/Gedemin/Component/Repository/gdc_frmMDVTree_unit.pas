@@ -685,11 +685,9 @@ var
 begin
   frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
   if ibgrDetail.SelectedRows.Count > 0 then
-    //gdcDetailObject.SaveToFile('', nil, ibgrDetail.SelectedRows, False)
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, nil, ibgrDetail.SelectedRows, False)
+    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject, nil, ibgrDetail.SelectedRows, False)
   else
-    //gdcDetailObject.SaveToFile;
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
+    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject);
   (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
 end;
 
