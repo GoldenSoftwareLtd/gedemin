@@ -28,7 +28,7 @@ interface
 uses
   Classes, IBDatabase, DB, Windows, SysUtils, Contnrs, IBQuery,
   gd_SetDatabase, rp_report_const, gd_MultiStringList, prm_ParamFunctions_unit,
-  gd_KeyAssoc, Gedemin_TLB, kbmMemTable;
+  gd_KeyAssoc, Gedemin_TLB, DBClient;
 
 const
   MDPrefix = 'MDP';
@@ -121,8 +121,7 @@ type
     FTempStream: TMemoryStream;
     FIsStreamData: Boolean;
     FBaseQueryList: IgsQueryList;
-    FStreamFormat: TkbmCustomStreamFormat;
-
+    
     function GetDataSet(const AnIndex: Integer): TDataSet;
   public
     constructor Create;
@@ -154,7 +153,6 @@ type
 
     property _MasterDetail: TFourStringList read FMasterDetail;
     property QueryList: IgsQueryList read FBaseQueryList write FBaseQueryList;
-    property StreamFormat: TkbmCustomStreamFormat read FStreamFormat write FStreamFormat;
   end;
 
   TrpResultStructure = class
@@ -1101,7 +1099,6 @@ begin
   FIsStreamData := False;
   FMasterDetail := TFourStringList.Create;
   FTempStream := TMemoryStream.Create;
-  FStreamFormat := TkbmBinaryStreamFormat.Create(nil);
 end;
 
 destructor TReportResult.Destroy;
@@ -1111,14 +1108,13 @@ begin
   FreeAndNil(FTempStream);
   if Assigned(FBaseQueryList) then
     FBaseQueryList.Clear;
-  FStreamFormat.Free;
 
   inherited Destroy;
 end;
 
 function TReportResult.AddDataSet(const AnName: String): Integer;
 begin
-  Result := AddObject(AnsiUpperCase(AnName), TkbmMemTable.Create(nil));
+  Result := AddObject(AnsiUpperCase(AnName), TClientDataSet.Create(nil));
   DataSet[Result].Name := Strings[Result];
 end;
 
@@ -1182,13 +1178,13 @@ begin
 //  Object free in BaseQuery
   if not Assigned(QueryList) then
   begin
-    if TkbmMemTable(Objects[AnIndex]).MasterSource <> nil then
+    if TClientDataSet(Objects[AnIndex]).MasterSource <> nil then
     begin
-      TkbmMemTable(Objects[AnIndex]).MasterFields := '';
-      TkbmMemTable(Objects[AnIndex]).MasterSource.Free;
-      TkbmMemTable(Objects[AnIndex]).MasterSource := nil;
+      TClientDataSet(Objects[AnIndex]).MasterFields := '';
+      TClientDataSet(Objects[AnIndex]).MasterSource.Free;
+      TClientDataSet(Objects[AnIndex]).MasterSource := nil;
     end;
-    TkbmMemTable(Objects[AnIndex]).Free;
+    TClientDataSet(Objects[AnIndex]).Free;
   end;
   Delete(AnIndex);
 end;
@@ -1207,7 +1203,7 @@ var
   LocMasterDetail: TFourStringList;
   PrefixData: array[0..2] of Char;
   IndexSL: TStringList;
-  TempDataSet: TkbmMemTable;
+  TempDataSet: TClientDataSet;
 begin
   Clear;
   AnStream.Position := 0;
@@ -1227,10 +1223,7 @@ begin
       TempStream.Size := LocSize;
       AnStream.ReadBuffer(TempStream.Memory^, LocSize);
       if TempStream.Size <> 0 then
-      begin
-        TkbmMemTable(DataSet[I]).DefaultFormat := FStreamFormat;
-        TkbmMemTable(DataSet[J]).LoadFromStream(TempStream);
-      end;  
+        TClientDataSet(DataSet[J]).LoadFromStream(TempStream);
     end;
   finally
     TempStream.Free;
@@ -1262,7 +1255,7 @@ begin
         IndexSL.LoadFromStream(AnStream);
         for I := 0 to IndexSL.Count - 1 do
         begin
-          TempDataSet := (DataSetByName(IndexSL.Names[I]) as TkbmMemTable);
+          TempDataSet := (DataSetByName(IndexSL.Names[I]) as TClientDataSet);
           if TempDataSet <> nil then
             TempDataSet.IndexFieldNames := IndexSL.Values[IndexSL.Names[I]];
         end;
@@ -1290,13 +1283,12 @@ begin
       begin
         SName := Strings[I];
         LocSize := Length(SName);
-        if TkbmMemTable(DataSet[I]).IndexFieldNames > '' then
-          IndexSL.Add(SName + '=' + TkbmMemTable(DataSet[I]).IndexFieldNames);
+        if TClientDataSet(DataSet[I]).IndexFieldNames > '' then
+          IndexSL.Add(SName + '=' + TClientDataSet(DataSet[I]).IndexFieldNames);
         AnStream.Write(LocSize, SizeOf(LocSize));
         AnStream.Write(SName[1], LocSize);
         TempStream.Clear;
-        TkbmMemTable(DataSet[I]).DefaultFormat := FStreamFormat;
-        TkbmMemTable(DataSet[I]).SaveToStream(TempStream);
+        TClientDataSet(DataSet[I]).SaveToStream(TempStream);
         LocSize := TempStream.Size;
         TempStream.Position := 0;
         AnStream.Write(LocSize, SizeOf(LocSize));
@@ -1355,17 +1347,17 @@ end;
 procedure TReportResult.AddMasterDetail(const AnMasterTable, AnMasterField,
   AnDetailTable, AnDetailField: String);
 var
-  TempDs: TkbmMemTable;
+  TempDs: TClientDataSet;
 begin
   Assert(CheckFieldNames(DataSetByName(AnMasterTable), AnMasterField)
     and CheckFieldNames(DataSetByName(AnDetailTable), AnDetailField),
     'Some field of master - detail relation is absent.');
 
-  TempDs := (DataSetByName(AnDetailTable) as TkbmMemTable);
+  TempDs := (DataSetByName(AnDetailTable) as TClientDataSet);
   if TempDs.MasterSource = nil then
     TempDs.MasterSource := TDataSource.Create(nil);
   TempDs.MasterSource.DataSet := DataSetByName(AnMasterTable);
-  TempDs.DetailFields := AnDetailField;
+  TempDs.IndexFieldNames := AnDetailField;
   TempDs.MasterFields := AnMasterField;
 
   FMasterDetail.AddRecord(AnMasterTable, AnMasterField,

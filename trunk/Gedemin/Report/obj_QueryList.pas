@@ -29,8 +29,7 @@ interface
 
 uses
   ComObj, ActiveX, AxCtrls, Gedemin_TLB, StdVcl, IBDatabase, SysUtils, Contnrs,
-  IBQuery, Windows, Db, Classes, gd_MultiStringList, IBCustomDataSet,
-  kbmMemTable;
+  IBQuery, Windows, Db, Classes, gd_MultiStringList, IBCustomDataSet, DBClient;
 
 const
   QueryNotAssigned = 'Query not assigned';
@@ -128,7 +127,7 @@ type
     FIndexFields: String;
 
     function GetIBQuery: TIBQuery;
-    function GetClientDataSet: TkbmMemTable;
+    function GetClientDataSet: TClientDataSet;
     procedure SetDatabase(const AnValue: TIBDatabase);
     procedure SetTransaction(const AnValue: TIBTransaction);
     function GetDataSet: TDataSet;
@@ -214,6 +213,7 @@ type
     function GetQuery(Index: Integer): TDataSet;
     function GetCount: Integer;
     function GetIndexQueryByName(const Name: WideString): Integer;
+    procedure CopyDataSet(Source: TgsDataSet; Target: TClientDataSet);    
   protected
     function  Add(const QueryName: WideString; MemQuery: WordBool): Integer; safecall;
     procedure Clear; safecall;
@@ -375,7 +375,7 @@ begin
   if not AnChildClass then
   begin
     if AnMemTable then
-      FDataSet := TkbmMemTable.Create(nil)
+      FDataSet := TClientDataSet.Create(nil)
     else
       FDataSet := TIBQuery.Create(nil);
     FDataSet.Tag := 0;
@@ -403,11 +403,11 @@ begin
   Result := FDataSet as TIBQuery;
 end;
 
-function TgsDataSet.GetClientDataSet: TkbmMemTable;
+function TgsDataSet.GetClientDataSet: TClientDataSet;
 begin
-  if not (FDataSet is TkbmMemTable) then
+  if not (FDataSet is TClientDataSet) then
     raise Exception.Create(OnlyForClientDataSet);
-  Result := FDataSet as TkbmMemTable;
+  Result := FDataSet as TClientDataSet;
 end;
 
 procedure TgsDataSet.SetDatabase(const AnValue: TIBDatabase);
@@ -454,10 +454,8 @@ begin
   try
     if FDataSet is TIBQuery then
       FDataSet.Open
-    else begin
-      GetClientDataSet.CreateTable;
-      FDataSet.Open;
-    end;
+    else
+      GetClientDataSet.CreateDataSet;
   except
     on E: Exception do
       raise Exception.Create(FDataSet.Name + ': ' + E.Message);
@@ -535,8 +533,9 @@ end;
 procedure TgsDataSet.AddField(const FieldName: WideString; const FieldType: WideString;
   FieldSize: Integer; Required: WordBool); safecall;
 begin
-  FDataSet.FieldDefs.Add(FieldName, GetFieldTypeFromStr(FieldType), FieldSize,
-    Required)
+  if FDataSet is TClientDataSet then
+    FDataSet.FieldDefs.Add(FieldName, GetFieldTypeFromStr(FieldType), FieldSize,
+      Required)
 end;
 
 procedure TgsDataSet.ClearFields;
@@ -580,8 +579,7 @@ begin
   if FDataSet is TIBQuery then
     Result := GetIBQuery.ParamCount
   else
-    Result := 0;
-    //GetClientDataSet.Params.Count;
+    Result := GetClientDataSet.Params.Count;
 end;
 
 function TgsDataSet.Get_ParamByName(const ParamName: WideString): IgsParam;
@@ -591,8 +589,7 @@ begin
   if FDataSet is TIBQuery then
     LocParam := GetIBQuery.ParamByName(ParamName)
   else
-    raise Exception.Create(OnlyForIBQuery);
-    //LocParam := GetClientDataSet.Params.ParamByName(ParamName);
+    LocParam := GetClientDataSet.Params.ParamByName(ParamName);
 
   Result := TgsParam.Create(LocParam) as IgsParam;
 end;
@@ -604,8 +601,7 @@ begin
   if FDataSet is TIBQuery then
     LocParam := GetIBQuery.Params[Index]
   else
-    raise Exception.Create(OnlyForIBQuery);
-//    LocParam := GetClientDataSet.Params[Index];
+    LocParam := GetClientDataSet.Params[Index];
 
   Result := TgsParam.Create(LocParam) as IgsParam;
 end;
@@ -739,7 +735,7 @@ var
   J: Integer;
   LocReportResult: TReportResult;
   MStr: TMemoryStream;
-  DS: TkbmMemTable;
+  DS: TClientDataSet;
 begin
   LocReportResult := TReportResult.Create;
   try
@@ -750,10 +746,9 @@ begin
         begin
           Query[J].DisableControls;
           try
-            //TkbmMemTable уничтожится в LocReportResult.Free
-            DS := TkbmMemTable.Create(nil);
-            DS.LoadFromDataSet(Query[J], [mtcpoStructure, mtcpoProperties, mtcpoFieldIndex]);
-            DS.Open;
+            //TClientDataSet уничтожится в LocReportResult.Free
+            DS := TClientDataSet.Create(nil);
+            CopyDataSet(TgsDataSet(FQueryList.Items[J]), DS);
             LocReportResult.AddDataSet(Query[J].Name, DS);
           finally
             Query[J].EnableControls;
@@ -812,7 +807,7 @@ begin
       raise Exception.Create('Specified detail field not found.');
   end;
 
-  if not (TgsDataSet(FQueryList.Items[I]).DataSet is TkbmMemTable) then
+  if not (TgsDataSet(FQueryList.Items[I]).DataSet is TClientDataSet) then
     FTempMasterDetail.AddRecord(MasterTable, MasterField, DetailTable, DetailField);
 
   FMasterDetail.AddRecord(MasterTable, MasterField, DetailTable, DetailField);
@@ -883,25 +878,24 @@ end;
 procedure TgsQueryList.ResultMasterDetail;
 var
   I, J, Index: Integer;
-  TempDS: TIBQuery;
   MemTable: TgsDataSet;
-  DS: TkbmMemTable;
+  DS: TClientDataSet;
   IsResult: WordBool;
   IndexFields: String;
 
   procedure AddMasterDetail(const AnMasterTable, AnMasterField,
     AnDetailTable, AnDetailField: String);
   var
-    TempDs: TkbmMemTable;
+    TempDs: TClientDataSet;
   begin
-    TempDs := ( TgsDataSet(FQueryList.Items[GetIndexQueryByName(AnDetailTable)]).DataSet as TkbmMemTable);
+    TempDs := (TgsDataSet(FQueryList.Items[GetIndexQueryByName(AnDetailTable)]).DataSet as TClientDataSet);
     if TempDs.MasterSource = nil then
     begin
       TempDs.MasterSource := TDataSource.Create(nil);
       FDataSourceList.Add(TempDs.MasterSource);
     end;
     TempDs.MasterSource.DataSet := TgsDataSet(FQueryList.Items[GetIndexQueryByName(AnMasterTable)]).DataSet;
-    TempDs.DetailFields := AnDetailField;
+    TempDs.IndexFieldNames := AnDetailField;
     TempDs.MasterFields := AnMasterField;
   end;
 
@@ -913,14 +907,12 @@ begin
     if I > -1 then
     begin
       //1. Создаем MemTable и заполняем его
-      TempDS := TgsDataSet(FQueryList.Items[I]).GetIBQuery;
       IsResult := TgsDataSet(FQueryList.Items[I]).Get_IsResult;
       IndexFields := TgsDataSet(FQueryList.Items[I]).Get_IndexFields;
       MemTable := TgsDataSet.Create(True);
       try
         DS := MemTable.GetClientDataSet;
-        DS.LoadFromDataSet(TempDS, [mtcpoStructure, mtcpoProperties, mtcpoFieldIndex]);
-        DS.Open;
+        CopyDataSet(FQueryList.Items[I], DS);
         DS.Name := TgsDataSet(FQueryList.Items[I]).DataSet.Name;
       except
         on E: Exception do
@@ -947,6 +939,53 @@ begin
   for I := 0 to FMasterDetail.Count - 1 do
     AddMasterDetail(FMasterDetail.MasterTable[I], FMasterDetail.MasterField[I],
      FMasterDetail.DetailTable[I], FMasterDetail.DetailField[I]);
+end;
+
+procedure TgsQueryList.CopyDataSet(Source: TgsDataSet;
+  Target: TClientDataSet);
+var
+  DS: TDataSet;
+  I, K: Integer;
+  IsFetchBlob: Boolean;
+  TempField: TField;
+  V: array of Variant;
+begin
+  DS := Source.DataSet;
+  IsFetchBlob := Source.Get_FetchBlob;
+  //1. Создаём структуру
+  Target.FieldDefs.Assign(DS.FieldDefs);
+  for I := 0 to Target.FieldDefs.Count - 1 do
+    Target.FieldDefs.Items[I].Attributes := [];
+
+  Target.CreateDataSet;
+  Target.IndexFieldNames := Source.Get_IndexFields;
+
+  //2. Копируем записи
+  SetLength(V, DS.FieldCount);
+  DS.First;
+  while not DS.Eof do
+  begin
+    for I := 0 to DS.FieldCount - 1 do
+    begin
+      TempField := DS.Fields[I];
+      if (TempField.IsNull) or (not IsFetchBlob and
+       (TempField.DataType in [ftBlob, ftMemo, ftGraphic, ftFmtMemo]))
+      then
+        V[I] := null
+      else
+        V[I] := TempField.AsString;
+    end;
+
+    Target.Append;
+    for K := 0 to Target.FieldCount - 1 do
+    if VarIsNull(V[K]) then
+      Target.Fields[K].Clear
+    else
+      Target.Fields[K].AsString := V[K];
+    Target.Post;
+
+    DS.Next
+  end;
 end;
 
 { TgsParam }
@@ -1730,7 +1769,7 @@ begin
   if (Trim(Value) > '') and not CheckFieldNames(FDataSet, Value) then
     raise Exception.Create('Some index fields is absence');
   FIndexFields := Value;
-  if FDataSet is TkbmMemTable then
+  if FDataSet is TClientDataSet then
     GetClientDataSet.IndexFieldNames := FIndexFields;
 end;
 
@@ -1775,7 +1814,7 @@ procedure TgsDataSet.AssignFields(const ADataSet: IgsQuery);
 var
   I: Integer;
 begin
-  if FDataSet is TkbmMemTable then
+  if FDataSet is TClientDataSet then
     for I := 0 to ADataSet.FieldCount - 1 do
       AddField(ADataSet.Fields[I].FieldName, ADataSet.Fields[I].FieldType,
        ADataSet.Fields[I].FieldSize, ADataSet.Fields[I].Required)
@@ -1787,7 +1826,7 @@ procedure TgsDataSet.CopyRecord(const ADataSet: IgsQuery);
 var
   I: Integer;
 begin
-  if FDataSet is TkbmMemTable then
+  if FDataSet is TClientDataSet then
     for I := 0 to ADataSet.FieldCount - 1 do
       FDataSet.FieldByName(ADataSet.Fields[I].FieldName).Value := ADataSet.Fields[I].Value
   else
