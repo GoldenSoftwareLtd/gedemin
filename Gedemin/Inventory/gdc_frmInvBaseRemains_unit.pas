@@ -45,18 +45,24 @@ type
     procedure pnMainResize(Sender: TObject);
     procedure actViewFullCardExecute(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+  private
+    FIsSetup: Boolean;  
   protected
     { Private declarations }
     FSavedMasterSource: TDataSource;
     FSavedSubSet: String;
     procedure SetupInvRemains(gdcInvRemains: TgdcInvRemains);
     function CheckHolding: Boolean; virtual;
+
   public
     { Public declarations }
     procedure LoadSettings; override;
     procedure SaveSettings; override;
 
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+
+    property IsSetup: Boolean read FIsSetup write FIsSetup;
   end;
 
 var
@@ -266,16 +272,18 @@ end;
 procedure Tgdc_frmInvBaseRemains.cbAllRemainsClick(Sender: TObject);
 begin
   inherited;
-  if cbAllRemains.Checked then
-    gdcObject.AddSubSet(cst_AllRemains)
-  else
-    gdcObject.RemoveSubSet(cst_AllRemains);
-  if CheckHolding then
-    gdcObject.AddSubSet(cst_Holding)
-  else
-    gdcObject.RemoveSubSet(cst_Holding);    
-  gdcObject.Open;
-
+  if not IsSetup then
+  begin
+    if cbAllRemains.Checked then
+      gdcObject.AddSubSet(cst_AllRemains)
+    else
+      gdcObject.RemoveSubSet(cst_AllRemains);
+    if CheckHolding then
+      gdcObject.AddSubSet(cst_Holding)
+    else
+      gdcObject.RemoveSubSet(cst_Holding);
+    gdcObject.Open;
+  end;
 end;
 
 procedure Tgdc_frmInvBaseRemains.pnMainResize(Sender: TObject);
@@ -328,6 +336,12 @@ procedure Tgdc_frmInvBaseRemains.actFindExecute(Sender: TObject);
 begin
   SetLocalizeListName(ibgrDetail);
   inherited;
+end;
+
+procedure Tgdc_frmInvBaseRemains.FormCreate(Sender: TObject);
+begin
+  inherited;
+  FIsSetup := False;
 end;
 
 initialization

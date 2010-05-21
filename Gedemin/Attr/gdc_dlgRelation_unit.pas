@@ -191,6 +191,7 @@ type
     procedure SetupRecord; override;
     procedure Post; override;
     procedure SyncControls; override;
+    function TestCorrect: Boolean; override;
 
     procedure SaveSettings; override;
     procedure LoadSettings; override;
@@ -1472,6 +1473,78 @@ begin
     (gdcCheckConstraint.RecordCount > 0)  and
     (gdcCheckConstraint.CanDelete) and
     (ANSIPos(UserPrefix, AnsiUpperCase(gdcCheckConstraint.FieldByName('checkname').AsString)) = 1);
+end;
+
+function Tgdc_dlgRelation.TestCorrect: Boolean;
+var
+  {@UNFOLD MACRO INH_CRFORM_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  q: TIBSQL;
+begin
+  {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGRELATION', 'TESTCORRECT', KEYTESTCORRECT)}
+  {M}Result := True;
+  {M}try
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}  begin
+  {M}    SetFirstMethodAssoc('TGDC_DLGRELATION', KEYTESTCORRECT);
+  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYTESTCORRECT]);
+  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGRELATION') = -1) then
+  {M}    begin
+  {M}      Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGRELATION',
+  {M}        'TESTCORRECT', KEYTESTCORRECT, Params, LResult) then
+  {M}      begin
+  {M}        if VarType(LResult) = $000B then
+  {M}          Result := LResult;
+  {M}        exit;
+  {M}      end;
+  {M}    end else
+  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGRELATION' then
+  {M}      begin
+  {M}        Result := Inherited TestCorrect;
+  {M}        Exit;
+  {M}      end;
+  {M}  end;
+  {END MACRO}
+
+  Result := inherited TestCorrect;
+
+  // Проверка на дублирование локализованного наименования таблицы
+  if Result and (not (sMultiple in gdcObject.BaseState))  then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcObject.ReadTransaction;
+      q.SQL.Text :=
+        'SELECT r.relationname FROM at_relations r WHERE r.lname = :lname ' +
+        '  AND r.id <> :ID ';
+      q.ParamByName('id').AsInteger := gdcObject.ID;
+      q.ParamByName('lname').AsString := gdcObject.FieldByName('lname').AsString;
+      q.ExecQuery;
+
+      if not q.EOF then
+      begin
+        MessageBox(Handle,
+          PChar(
+          'Таблица с таким локализованным названием уже существует в базе данных:'#13#10#13#10 +
+          '  Наименование: ' + q.FieldByName('relationname').AsString + #13#10#13#10 +
+          'Ввод дублирующихся записей запрещен.'), 'Внимание', MB_OK or MB_ICONEXCLAMATION);
+        Result := False;
+      end;
+    finally
+      FreeAndNil(q);
+    end;
+  end;
+
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATION', 'TESTCORRECT', KEYTESTCORRECT)}
+  {M}finally
+  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
+  {M}    ClearMacrosStack('TGDC_DLGRELATION', 'TESTCORRECT', KEYTESTCORRECT);
+  {M}end;
+  {END MACRO}
 end;
 
 initialization

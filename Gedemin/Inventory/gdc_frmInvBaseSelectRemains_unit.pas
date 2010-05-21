@@ -29,13 +29,13 @@ type
 
   private
     procedure ReopenRemains(CurrentRemains: Boolean);
-
   public
     procedure Setup(AnObject: TObject); override;
     procedure SetChoose(AnObject: TgdcBase); override;
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
+
 
   end;
 
@@ -118,25 +118,33 @@ begin
   {M}      end;
   {M}  end;
   {END MACRO}
-
-  gdcObject := AnObject as TgdcBase;
-  gdcGoodGroup.Close;
-  gdcGoodGroup.ReadTransaction := gdcObject.ReadTransaction;
-  SetupInvRemains(gdcObject as TgdcInvRemains);
-  gdcObject.MasterSource := nil;
-  gdcObject.ReadTransaction := gdcGoodGroup.ReadTransaction;
-  if (gdcObject.HasSubSet(cst_ByGoodKey)) then
-  begin
-    pnMain.Width := 0;
-    pnMain.Enabled := False;
-    gdcObject.MasterField := '';
-    gdcObject.DetailField := '';
-    gdcObject.Open;
-  end
-  else
-  begin
-    gdcGoodGroup.Open;
-    gdcObject.MasterSource := dsDetail;
+  IsSetup := True;
+  try
+    if (AnObject as TgdcBase).HasSubSet('AllRemains') then
+      cbAllRemains.Checked := True;
+    if not (AnObject as TgdcInvRemains).CurrentRemains then
+      RadioButton2.Checked := True;
+    gdcObject := AnObject as TgdcBase;
+    gdcGoodGroup.Close;
+    gdcGoodGroup.ReadTransaction := gdcObject.ReadTransaction;
+    SetupInvRemains(gdcObject as TgdcInvRemains);
+    gdcObject.MasterSource := nil;
+    gdcObject.ReadTransaction := gdcGoodGroup.ReadTransaction;
+    if (gdcObject.HasSubSet(cst_ByGoodKey)) then
+    begin
+      pnMain.Width := 0;
+      pnMain.Enabled := False;
+      gdcObject.MasterField := '';
+      gdcObject.DetailField := '';
+      gdcObject.Open;
+    end
+    else
+    begin
+      gdcGoodGroup.Open;
+      gdcObject.MasterSource := dsDetail;
+    end;
+  finally
+    IsSetup := False;
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMINVBASESELECTREMAINS', 'SETUP', KEYSETUP)}
@@ -407,13 +415,15 @@ end;
 procedure Tgdc_frmInvBaseSelectRemains.RadioButton1Click(Sender: TObject);
 begin
   inherited;
-  ReopenRemains(True);
+  if not isSetup then
+    ReopenRemains(True);
 end;
 
 procedure Tgdc_frmInvBaseSelectRemains.RadioButton2Click(Sender: TObject);
 begin
   inherited;
-  ReopenRemains(False);
+  if Assigned(gdcObject) and not isSetup then
+    ReopenRemains(False);
 end;
 
 procedure Tgdc_frmInvBaseSelectRemains.ReopenRemains(

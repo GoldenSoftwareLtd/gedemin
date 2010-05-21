@@ -549,6 +549,11 @@ begin
     if Assigned(IBLogin) then
       IBLogin.AddEvent('Сохранены настройки.');
   end;
+
+  if Assigned(GlobalStorage) then GlobalStorage.SaveToDatabase;
+  if Assigned(UserStorage) then UserStorage.SaveToDatabase;
+  if Assigned(CompanyStorage) then CompanyStorage.SaveToDatabase;
+  if Assigned(AdminStorage) then AdminStorage.SaveToDatabase;
 end;
 
 procedure Tgd_dlgOptions.actUsersExecute(Sender: TObject);

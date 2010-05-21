@@ -26,6 +26,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
   inherited pcMain: TPageControl
     Width = 532
     Height = 422
+    ActivePage = tsReferences
     Align = alTop
     OnChange = pcMainChange
     OnChanging = pcMainChanging
@@ -291,7 +292,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 341
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
@@ -348,7 +349,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 223
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
@@ -358,7 +359,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 223
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end
@@ -469,7 +470,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 341
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
@@ -526,7 +527,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 223
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
@@ -536,7 +537,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 223
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end
@@ -670,9 +671,9 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       end
       object gbMinusFeatures: TGroupBox
         Left = 8
-        Top = 158
+        Top = 181
         Width = 458
-        Height = 223
+        Height = 199
         Hint = 
           'В признаках для выбора из отрицательных остатков используются то' +
           'лько признаки новой карточки'
@@ -684,7 +685,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
           Left = 7
           Top = 21
           Width = 193
-          Height = 191
+          Height = 168
           Columns = <
             item
               AutoSize = True
@@ -734,7 +735,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
           Left = 257
           Top = 21
           Width = 193
-          Height = 191
+          Height = 168
           Columns = <
             item
               AutoSize = True
@@ -757,11 +758,19 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Caption = 'Ограничение на рабочую компанию'
         TabOrder = 8
       end
+      object cbSaveRestWindowOption: TCheckBox
+        Left = 7
+        Top = 156
+        Width = 273
+        Height = 17
+        Caption = 'Сохранять настройки окна остаков'
+        TabOrder = 9
+      end
     end
   end
   inherited alBase: TActionList
-    Left = 246
-    Top = 191
+    Left = 270
+    Top = 255
     object actAddFeature: TAction [10]
       Category = 'Features'
       Caption = '>'
@@ -876,16 +885,16 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
     end
   end
   inherited dsgdcBase: TDataSource
-    Left = 232
-    Top = 175
+    Left = 272
+    Top = 231
   end
   inherited pm_dlgG: TPopupMenu
     Left = 448
     Top = 88
   end
   inherited ibtrCommon: TIBTransaction
-    Left = 280
-    Top = 184
+    Left = 296
+    Top = 248
   end
   inherited gdcFunctionHeader: TgdcFunction
     Left = 334
