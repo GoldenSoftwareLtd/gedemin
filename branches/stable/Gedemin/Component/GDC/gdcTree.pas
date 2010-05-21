@@ -401,7 +401,7 @@ end;}
 class function TgdcTree.GetSubSetList: String;
 begin
   Result := inherited GetSubSetList +
-    'ByParent;TopLevel;ByRootID;ByRootName;ByRootIDInc;ByRootNameInc;'
+    'ByParent;TopLevel;ByRootID;ByRootIDInc;'
 end;
 
 class function TgdcTree.GetTableInfos(
@@ -863,19 +863,6 @@ begin
           [GetKeyField(SubType), GetListTable(SubType), GetParentField(SubType), GetListTableAlias]);
       FSQLSetup.Ignores.AddAliasName('z8');
     end;
-
-    if HasSubSet('ByRootName') or HasSubSet('ByRootNameInc') then
-    begin
-      if HasSubSet('ByRootNameInc') then
-        Sgn := '='
-      else
-        Sgn := '';
-
-      Result := Result +
-        Format(' JOIN %0:s root_item_n ON %1:s.lb >%3:s root_item_n.lb AND %1:s.rb <= root_item_n.rb AND root_item_n.%2:s = :RootName ',
-          [GetListTable(SubType), GetListTableAlias, GetListField(SubType), Sgn]);
-      FSQLSetup.Ignores.AddAliasName('root_item');
-    end;
   end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
@@ -1039,7 +1026,7 @@ end;
 
 class function TgdcLBRBTree.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + 'ByLBRB;';
+  Result := inherited GetSubSetList + 'ByLBRB;ByRootName;ByRootNameInc;';
 end;
 
 class function TgdcLBRBTree.GetTableInfos(

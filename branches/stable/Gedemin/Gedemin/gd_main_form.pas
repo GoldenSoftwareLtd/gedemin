@@ -753,7 +753,7 @@ begin
   _OnActivateForm := _DoOnActivateForm;
   _OnCaptionChange := _DoOnCaptionChange;
 
-  gsStorage_CompPath.MainForm := Self;
+  //gsStorage_CompPath.MainForm := Self;
 
   Application.OnShowHint := ApplicationEventsShowHint;
   
@@ -765,7 +765,7 @@ end;
 
 procedure TfrmGedeminMain.WMQueryEndSession(var Message: TWMQueryEndSession);
 begin
-  gsStorage_CompPath.MainForm := nil;
+  //gsStorage_CompPath.MainForm := nil;
   FExitWindows := True;
   FExitWindowsParam := Message.Unused;
   actExit.Execute;
@@ -810,13 +810,16 @@ begin
 
   DesktopManager.OnDesktopItemCreate := gsDesktopManagerDesktopItemCreate;
   DesktopManager.ReadDesktopNames;
-  if Assigned(UserStorage) and
-    UserStorage.ReadBoolean(st_dt_DesktopOptionsPath, st_dt_LoadDesktopOnStartup, True) then
+  if GetAsyncKeyState(VK_SHIFT) shr 1 > 0 then
   begin
-    if Assigned(gdSplash) then
-      gdSplash.ShowText(sLoadingDesktop);
-    DesktopManager.ReadDesktopData(UserStorage.ReadString(st_dt_DesktopOptionsPath, st_dt_LoadOnStartup, ''));
-    DesktopManager.LoadDesktop;
+    if Assigned(UserStorage) and
+      UserStorage.ReadBoolean(st_dt_DesktopOptionsPath, st_dt_LoadDesktopOnStartup, True) then
+    begin
+      if Assigned(gdSplash) then
+        gdSplash.ShowText(sLoadingDesktop);
+      DesktopManager.ReadDesktopData(UserStorage.ReadString(st_dt_DesktopOptionsPath, st_dt_LoadOnStartup, ''));
+      DesktopManager.LoadDesktop;
+    end;
   end;
   DesktopManager.InitComboBox(cbDesktop);
 
@@ -1712,10 +1715,10 @@ procedure TfrmGedeminMain.Notification(AComponent: TComponent;
 begin
   inherited;
 
-  if Operation = opRemove then
+  {if Operation = opRemove then
   begin
     RemoveComponentFromList(AComponent);
-  end;
+  end;}
 end;
 
 procedure TfrmGedeminMain.actSQLEditorExecute(Sender: TObject);

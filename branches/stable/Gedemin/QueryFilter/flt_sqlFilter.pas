@@ -970,7 +970,10 @@ begin
   SetEnabled(True);
   // Если выбран текущий, то выходим
   if (Sender as TMenuItem).Tag = FCurrentFilter then
+  begin
+    RefreshExecute;  
     Exit;
+  end;
   // Сохраняем текущий
   SaveFilter;
   // Отмечаем

@@ -684,57 +684,58 @@ begin
   UnEventMacro := True;
   UnMethodMacroStor := UnMethodMacro;
   UnMethodMacro := True;
-
-  FIsCreateGlObj := False;
-  FVBConst := TgdKeyArray.Create;
-  FVBClassKey := TgdKeyArray.Create;
   try
-    // Инициализируем OLE
-    {$IFDEF GEDEMIN}
-    if not IBLogin.LoggedIn then
-      exit;
+    FIsCreateGlObj := False;
+    FVBConst := TgdKeyArray.Create;
+    FVBClassKey := TgdKeyArray.Create;
+    try
+      // Инициализируем OLE
+      {$IFDEF GEDEMIN}
+      if not IBLogin.LoggedIn then
+        exit;
 
-    ClientReport1.Database := dmDatabase.ibdbGAdmin;
-    IBTransaction1.DefaultDatabase := dmDatabase.ibdbGAdmin;
-    gdScriptFactory1.Database := dmDatabase.ibdbGAdmin;
-    gdScriptFactory1.Transaction := IBTransaction1;
-    EventControl1.Database := dmDatabase.ibdbGAdmin;
-    MethodControl1.Database := dmDatabase.ibdbGAdmin;
+      ClientReport1.Database := dmDatabase.ibdbGAdmin;
+      IBTransaction1.DefaultDatabase := dmDatabase.ibdbGAdmin;
+      gdScriptFactory1.Database := dmDatabase.ibdbGAdmin;
+      gdScriptFactory1.Transaction := IBTransaction1;
+      EventControl1.Database := dmDatabase.ibdbGAdmin;
+      MethodControl1.Database := dmDatabase.ibdbGAdmin;
 
-    SetLength(FGlObjArray, 0);
-    CreateVBConst;
-    CreateVBClasses;
-    FGlObjectRS := TReportScript.CreateWithParam(nil, True, True);
-    FGlObjectRS.Language := 'VBSCRIPT';
-    FGlObjectRS.OnCreateConst := gdScriptFactory1CreateConst;
-    FGlObjectRS.OnCreateObject := ClientReport1CreateObject;
-    FGlObjectRS.OnCreateVBClasses := gdScriptFactory1.OnCreateVBClasses;
-    FGlObjectRS.OnError := TCrackGdScriptFactory(gdScriptFactory1).OnVBError;
-    gdScriptFactory1.Reset;
-    if VBProposal = nil then
-      VBProposalObject := TVBProposal.Create(nil);
+      SetLength(FGlObjArray, 0);
+      CreateVBConst;
+      CreateVBClasses;
+      FGlObjectRS := TReportScript.CreateWithParam(nil, True, True);
+      FGlObjectRS.Language := 'VBSCRIPT';
+      FGlObjectRS.OnCreateConst := gdScriptFactory1CreateConst;
+      FGlObjectRS.OnCreateObject := ClientReport1CreateObject;
+      FGlObjectRS.OnCreateVBClasses := gdScriptFactory1.OnCreateVBClasses;
+      FGlObjectRS.OnError := TCrackGdScriptFactory(gdScriptFactory1).OnVBError;
+      gdScriptFactory1.Reset;
+      if VBProposal = nil then
+        VBProposalObject := TVBProposal.Create(nil);
 
-    {$ELSE}
-    if dmTestReport <> nil then
-    begin
-      dmTestReport.IBDatabase1.Connected := True;
-      ClientReport1.Database := dmTestReport.IBDatabase1;
-      IBTransaction1.DefaultDatabase := dmTestReport.IBDatabase1;
-      gsFunctionList1.Database := dmTestReport.IBDatabase1;
-      EventControl1.Database := dmTestReport.IBDatabase1;
-      gdScriptFactory1.Database := dmTestReport.IBDatabase1;
+      {$ELSE}
+      if dmTestReport <> nil then
+      begin
+        dmTestReport.IBDatabase1.Connected := True;
+        ClientReport1.Database := dmTestReport.IBDatabase1;
+        IBTransaction1.DefaultDatabase := dmTestReport.IBDatabase1;
+        gsFunctionList1.Database := dmTestReport.IBDatabase1;
+        EventControl1.Database := dmTestReport.IBDatabase1;
+        gdScriptFactory1.Database := dmTestReport.IBDatabase1;
+      end;
+      {$ENDIF}
+    except
+      on E: Exception do
+        Application.ShowException(E);
     end;
-    {$ENDIF}
-  except
-    on E: Exception do
-      Application.ShowException(E);
+
+    EventControl.LoadLists;
+    MethodControl.LoadLists;
+  finally
+    UnEventMacro := UnEventMacroStor;
+    UnMethodMacro := UnMethodMacroStor;
   end;
-
-  EventControl.LoadLists;
-  MethodControl.LoadLists;
-  UnEventMacro := UnEventMacroStor;
-  UnMethodMacro := UnMethodMacroStor;
-
   EventControl1.SetEvents(frmGedeminMain);
 
   if BreakPointList <> nil then

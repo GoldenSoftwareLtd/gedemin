@@ -4010,6 +4010,8 @@ begin
                 -1);
               try
                 LinkCopy.Open;
+                // Укажем что объект находится в состоянии копирования
+                LinkCopy.BaseState := LinkCopy.BaseState + [sCopy];
                 LinkCopy.Insert;
                 CopyRecordData(LinkObj, LinkCopy);
                 LinkCopy.ID := Self.ID;
@@ -4038,34 +4040,42 @@ begin
           F := MasterObject.FindField(MasterObject.DetailLinks[I].MasterField);
           if Assigned(F) and (F is TIntegerField) and (MasterObject.ID = F.AsInteger) then
           begin
-            MasterObject.DetailLinks[I].First;
-            while not MasterObject.DetailLinks[I].Eof do
-            begin
-              Self.DetailLinks[I].Insert;
-              try
-                CopyRecordData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
-                // установим ссылку на объект master
-                DetailField := Self.DetailLinks[I].FindField(Self.DetailLinks[I].GetFieldNameComparedToParam(Self.DetailLinks[I].DetailField));
-                if Assigned(DetailField) then
-                begin
-                  if DetailField.AsInteger <> Self.ID then
-                    DetailField.AsInteger := Self.ID;
+            // Укажем что объект находится в состоянии копирования
+            Self.DetailLinks[I].BaseState := Self.DetailLinks[I].BaseState + [sCopy];
+            try
+              // Перейдем на первую запись
+              MasterObject.DetailLinks[I].First;
+              while not MasterObject.DetailLinks[I].Eof do
+              begin
+                Self.DetailLinks[I].Insert;
+                try
+                  CopyRecordData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
+                  // установим ссылку на объект master
+                  DetailField := Self.DetailLinks[I].FindField(Self.DetailLinks[I].GetFieldNameComparedToParam(Self.DetailLinks[I].DetailField));
+                  if Assigned(DetailField) then
+                  begin
+                    if DetailField.AsInteger <> Self.ID then
+                      DetailField.AsInteger := Self.ID;
+                  end;
+                  Self.DetailLinks[I].Post;
+                  CopyRecordSetData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
+                except
+                  on E: Exception do
+                  begin
+                    if Self.DetailLinks[I].State in dsEditModes then
+                      Self.DetailLinks[I].Cancel;
+                    MessageBox(ParentHandle,
+                      PChar(Format('Ошибка копирования детального объекта: '#13#10'"%s"',
+                        [E.Message])),
+                      'Внимание',
+                      MB_OK or MB_ICONERROR);
+                  end;
                 end;
-                Self.DetailLinks[I].Post;
-                CopyRecordSetData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
-              except
-                on E: Exception do
-                begin
-                  if Self.DetailLinks[I].State in dsEditModes then
-                    Self.DetailLinks[I].Cancel;
-                  MessageBox(ParentHandle,
-                    PChar(Format('Ошибка копирования детального объекта: '#13#10'"%s"',
-                      [E.Message])),
-                    'Внимание',
-                    MB_OK or MB_ICONERROR);
-                end;
+                MasterObject.DetailLinks[I].Next;
               end;
-              MasterObject.DetailLinks[I].Next;
+            finally
+              // Укажем что объект вышел из состояния копирования
+              Self.DetailLinks[I].BaseState := Self.DetailLinks[I].BaseState - [sCopy];
             end;
           end;
         end;

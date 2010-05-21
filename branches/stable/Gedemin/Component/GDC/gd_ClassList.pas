@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001 - 2010 by Golden Software of Belarus
 
   Module
 
@@ -32,7 +32,13 @@ interface
 
 uses
   Contnrs,        Classes,   TypInfo,     Forms,        gd_KeyAssoc,
-  gdcBase,        gdc_createable_form,    gdcBaseInterface;
+  gdcBase,        gdc_createable_form,    gdcBaseInterface,
+  {$IFDEF VER130}
+  gsStringHashList
+  {$ELSE}
+  IniFiles
+  {$ENDIF}
+  ;
 
 // Ключи для перекрытия методов
 const
@@ -264,7 +270,7 @@ type
   // Базовый класс для хранения классов с описанием методов
   TgdcCustomClassList = class(TObject)
   private
-    FClassList: TStrings;
+    FClassList: THashedStringList;
 
     function GetClass(Index: Integer): TComponentClass;
     function GetClassMethods(Index: Integer): TgdcClassMethods;
@@ -1097,8 +1103,7 @@ function TgdcCustomClassList.AddClassMethods(
 var
   I: Integer;
 begin
-  Result :=   FClassList.IndexOf(AClassMethods.gdcClass.ClassName);
-
+  Result := FClassList.IndexOf(AClassMethods.gdcClass.ClassName);
   if Result = -1 then
   begin  {Adding methods to existing class}
     Result := FClassList.AddObject(AClassMethods.gdcClass.ClassName,
@@ -1124,8 +1129,8 @@ constructor TgdcCustomClassList.Create;
 begin
   inherited;
 
-  FClassList := TStringList.Create;
-  TStringList(FClassList).Sorted := True;
+  FClassList := THashedStringList.Create;
+  FClassList.CaseSensitive := False;
 
   {$IFDEF DEBUG}
   Inc(glbClassListCount);
@@ -1167,6 +1172,7 @@ var
   i: Integer;
 begin
   Result := nil;
+
   i := FClassList.IndexOf(AFullClassName.gdClassName);
   if i > -1 then
     Result := GetClass(i);
