@@ -414,12 +414,9 @@ type
     procedure CustomDelete(Buff: Pointer); override;
     procedure SetSubType(const Value: String); override;
 
-    procedure DoBeforeOpen; override;
     procedure DoBeforeInsert; override;
 
     procedure CreateFields; override;
-
-
   public
     constructor Create(anOwner: TComponent); override;
     destructor Destroy; override;
@@ -748,6 +745,10 @@ begin
   FibsqlAddCard.Transaction := Transaction;  
 
   CustomProcess := [cpInsert, cpModify];
+
+  // Предполагается что объект подключен к этой же БД
+  FUseSelectFromSelect :=
+    (gdcBaseManager.Database.IsFirebirdConnect and (gdcBaseManager.Database.ServerMajorVersion >= 2));
 end;
 
 destructor TgdcInvMovement.Destroy;
@@ -3983,6 +3984,14 @@ begin
       Setup((gdcObject as TgdcInvRemains));
       SetChoose(gdcDocumentLine);
       Result := ShowModal = mrOk;
+      if Result then
+      begin
+        UserStorage.WriteBoolean('Options\Invent', 'CurrentRemains', (gdcObject as TgdcInvRemains).CurrentRemains);
+        if gdcObject.HasSubSet(cst_AllRemains) then
+          UserStorage.WriteBoolean('Options\Invent', 'AllRemains', True)
+        else
+          UserStorage.WriteBoolean('Options\Invent', 'AllRemains', False);
+      end;
     finally
       Free;
     end;
@@ -4029,20 +4038,6 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  // Определим использовать ли новый метод постоения запроса через SELECT FROM SELECT
-  if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
-  begin
-    // Если FUseSelectFromSelect изменился, то будем пересобирать запрос
-    FSQLInitialized := (FUseSelectFromSelect = True);
-    FUseSelectFromSelect := True;
-  end
-  else
-  begin
-    // Если FUseSelectFromSelect изменился, то будем пересобирать запрос
-    FSQLInitialized := (FUseSelectFromSelect = False);
-    FUseSelectFromSelect := False;
-  end;
-  
   inherited;
 
   InitIBSQL;
@@ -4776,6 +4771,10 @@ begin
   FRemainsDate := 0;
 
   RemainsSQLType := irstSimpleSum;
+
+  // Предполагается что объект подключен к этой же БД
+  FUseSelectFromSelect :=
+    (gdcBaseManager.Database.IsFirebirdConnect and (gdcBaseManager.Database.ServerMajorVersion >= 2));
 end;
 
 procedure TgdcInvBaseRemains.CreateFields;
@@ -5348,56 +5347,6 @@ begin
       ibsql.Free;
     end;
   end;
-end;
-
-procedure TgdcInvBaseRemains.DoBeforeOpen;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVBASEREMAINS', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVBASEREMAINS', KEYDOBEFOREOPEN);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREOPEN]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVBASEREMAINS') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVBASEREMAINS',
-  {M}          'DOBEFOREOPEN', KEYDOBEFOREOPEN, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVBASEREMAINS' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  // Определим использовать ли новый метод постоения запроса через SELECT FROM SELECT
-  if Database.IsFirebirdConnect and (Database.ServerMajorVersion >= 2) then
-  begin
-    // Если FUseSelectFromSelect изменился, то будем пересобирать запрос
-    FSQLInitialized := (FUseSelectFromSelect = True);
-    FUseSelectFromSelect := True;
-  end
-  else
-  begin
-    // Если FUseSelectFromSelect изменился, то будем пересобирать запрос
-    FSQLInitialized := (FUseSelectFromSelect = False);
-    FUseSelectFromSelect := False;
-  end;
-
-  inherited DoBeforeOpen;
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVBASEREMAINS', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVBASEREMAINS', 'DOBEFOREOPEN', KEYDOBEFOREOPEN);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcInvBaseRemains.DoBeforeInsert;
@@ -7009,6 +6958,13 @@ begin
     end
     else
       SubSet := cst_ByGroupKey;
+
+    if (gdcDocumentLine as TgdcInvDocumentLine).SaveRestWindowOption then
+    begin
+      if UserStorage.ReadBoolean('Options\Invent', 'AllRemains', False) then
+        AddSubSet('AllRemains');
+      CurrentRemains := UserStorage.ReadBoolean('Options\Invent', 'CurrentRemains', True);
+    end;
 
     SubType := FgdcDocumentLine.SubType;  
 

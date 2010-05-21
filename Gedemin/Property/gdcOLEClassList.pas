@@ -413,14 +413,7 @@ begin
     if AClass.InheritsFrom(TPersistent) and not AClass.InheritsFrom(TComponent) then
       RegisterClass(TPersistentClass(AClass));
 
-{ TODO -oAlexander : 
-Надо проверить зачем все время по коду идет:
-Copy(AClassName, 2, 255)
-Похоже, смысл был в том чтобы избавиться от первой буквы Т в имени класса 
-и помочь сортированному списку искать быстрее. 
-Если так, то для хэша это уже не имеет значения.. }
-
-    FHashClassNames.Add(Copy(AClass.ClassName, 2, 255), Pointer(AClass));
+    FHashClassNames.Add(AClass.ClassName, AClass);
   end else
     Result := -1;
 end;
@@ -437,9 +430,7 @@ end;
 
 procedure TgdcOLEClassListNew.Clear;
 begin
-  while Count > 0 do
-    DeleteClass(0);
-
+  while Count > 0 do DeleteClass(0);
   inherited;
 end;
 
@@ -451,9 +442,14 @@ begin
 end;
 
 procedure TgdcOLEClassListNew.DeleteClass(Index: Integer);
+var
+  I: TgdcCOMClassItem;
 begin
-  UnRegisterClass(TPersistentClass(TgdcCOMClassItem(ValuesByIndex[Index]).DelphiClass));
-  TgdcCOMClassItem(ValuesByIndex[Index]).Free;
+  I := TgdcCOMClassItem(ValuesByIndex[Index]);
+  if I.DelphiClass.InheritsFrom(TPersistent) and not I.DelphiClass.InheritsFrom(TComponent) then
+    UnRegisterClass(TPersistentClass(I.DelphiClass));
+  FHashClassNames.RemoveData(I.DelphiClass);  
+  I.Free;
   Delete(Index);
 end;
 
@@ -493,17 +489,14 @@ end;
 
 function TgdcOLEClassListNew.GetClass(const AClassName: String): TClass;
 begin
-{ TODO :
-заметим, что в борланде реализация ГетКласс предусматривает
-установку блокировок, чего нет у нас. может тут ошибка?? }
-  if not FHashClassNames.Find(Copy(AClassName, 2, 255), Result) then
+  if not FHashClassNames.Find(AClassName, Result) then
     Result := nil;
 end;
 
 function TgdcOLEClassListNew.GetWrapClass(
   const AClassName: String; out AClass: TClass): TWrapperAutoClass;
 begin
-  if FHashClassNames.Find(Copy(AClassName, 2, 255), AClass) then
+  if FHashClassNames.Find(AClassName, AClass) then
     Result := TgdcCOMClassItem(ValuesByKey[Integer(AClass)]).OLEClass
   else begin
     AClass := nil;

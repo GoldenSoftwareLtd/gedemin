@@ -653,10 +653,6 @@ begin
       ChangeFullEx(Parser, Parser.Statements[I] as TsqlFull)
     else
 
-    if (Parser.Statements[I] is TsqlUnion)  then
-      ChangeFullEx(Parser, (Parser.Statements[I] as TsqlUnion).Full)
-    else
-
     if Parser.Statements[I] is TsqlUpdate then
       ChangeUpdate(Parser, Parser.Statements[I] as TsqlUpdate)
     else
@@ -1586,6 +1582,9 @@ begin
     WasComment.Free;
     FieldList.Free;
   end;
+
+  if Full.Union <> nil then
+    ChangeFullEx(Parser, Full.Union);
 end;
 
 function TatSQLSetup.IsNecessaryAttr(const AClassName, AFieldName, ARelationName: String; IsNess: Boolean): Boolean;

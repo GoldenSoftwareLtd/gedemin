@@ -3,7 +3,7 @@ unit rp_StreamFR;
 interface
 
 uses
-  Classes, SysUtils, FR_Class, rp_BaseReport_unit, DB, FR_DBSet,
+  Classes, SysUtils, FR_Class, rp_BaseReport_unit, DB, DBClient, FR_DBSet,
   FR_DBRel, Forms, Printers, rp_i_ReportBuilder_unit, FR_View, FR_DSet,
   rp_ErrorMsgFactory, rp_fr_view_unit;
 
@@ -595,7 +595,6 @@ begin
   inherited Create;
 
   FfrDataSetList := TStringList.Create;
-  FfrDataSetList.Sorted := True;
 end;
 
 destructor Tfr_ReportResult.Destroy;
@@ -606,6 +605,8 @@ begin
 
   FreeAndNil(FfrDataSetList);
 end;
+
+{Alexander: вот здесь добавл€ютс€ DataSet'ы в FR}
 
 function Tfr_ReportResult.AddDataSet(const AnName: String): Integer;
 {$IFOPT C+}
@@ -628,6 +629,7 @@ begin
   TfrDBDataSet(FfrDataSetList.Objects[AnIndex]).Free;
   FfrDataSetList.Delete(AnIndex);
   Assert(FfrDataSetList.Count = Count);
+
 end;
 
 function Tfr_ReportResult.frDataSetByName(const AnName: String): TfrDBDataSet;
@@ -646,25 +648,21 @@ begin
 end;
 
 procedure Tfr_ReportResult.AddDataSetList(const AnBaseQueryList: Variant);
-var
+{var
   LocDispatch: IDispatch;
   LocReportResult: IgsQueryList;
-  I, J, K: Integer;
-  DS: TDataSet;
+  I, J: Integer;        }
 begin
   //–азбираем BaseQueryList и добавл€ем его в Fast Report
-  LocDispatch := AnBaseQueryList;
+{  LocDispatch := AnBaseQueryList;
   LocReportResult := LocDispatch as IgsQueryList;
-  QueryList := LocReportResult;
   for J := 0 to LocReportResult.Count - 1 do
   begin
-    DS := TDataSet(LocReportResult.Query[J].Get_Self);
-    K := inherited AddDataSet(DS.Name, DS);
-    I := FfrDataSetList.AddObject(AnsiUpperCase(DS.Name), TfrDBDataSet.Create(nil));
-    Assert(K = I);
+    I := FfrDataSetList.AddObject(AnsiUpperCase(LocReportResult.Query[J].RealDataSet.Name), TfrDBDataSet.Create(nil));
     TfrDBDataSet(FfrDataSetList.Objects[I]).Name := FfrDataSetList.Strings[I];
-    TfrDBDataSet(FfrDataSetList.Objects[I]).DataSet := DS;
-  end;
+    TfrDBDataSet(FfrDataSetList.Objects[I]).DataSet := LocReportResult.Query[J].RealDataSet;
+  end;}
+
 end;
 
 { Tgs_frBand }

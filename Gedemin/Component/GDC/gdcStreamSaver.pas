@@ -440,8 +440,6 @@ type
     // Добавляет XML-атрибут в список аттрибутов текущего элемента
     procedure AddAttribute(const AAttributeName, AValue: String);
 
-    function RepeatString(const StringToRepeat: String; const RepeatCount: Integer): String;
-
     function InternalGetNextElement: String;
 
     function GetXMLElementPosition(const AElementStr: String): TgsXMLElementPosition;
@@ -633,6 +631,9 @@ const
 
   XML_TAG_MULTILINE_SPLITTER = 'L';
 
+  DETAIL_DOMAIN_SIMPLE = 'DMASTERKEY';
+  DETAIL_DOMAIN_TREE = 'DPARENT';
+
   cst_StreamVersionNew = 3;
 
   function GetStreamType(Stream: TStream): TgsStreamType;
@@ -775,7 +776,7 @@ const
 
   xmlHeader = '<?xml version="1.0" encoding="Windows-1251"?>';
 
-  INDENT_STR = '  ';
+  INDENT_STR = ' ';
   NEW_LINE = #13#10;
   RIGHTS_FIELD = ',ACHAG,AVIEW,AFULL,';
 
@@ -1130,7 +1131,8 @@ begin
       for I := 0 to OL.Count - 1 do
       begin
         if TatForeignKey(OL.Items[I]).IsSimpleKey and
-          (TatForeignKey(OL.Items[I]).ConstraintField.Field.FieldName = 'DMASTERKEY') then
+          (AnsiPos(';' + TatForeignKey(OL.Items[I]).ConstraintField.Field.FieldName + ';',
+            ';' + DETAIL_DOMAIN_SIMPLE + ';' + DETAIL_DOMAIN_TREE + ';') > 0) then
         begin
           if (TatForeignKey(OL[I]).Relation.RelationName = 'AC_ENTRY') or
              (TatForeignKey(OL[I]).Relation.RelationName = 'AC_RECORD') then
@@ -1859,34 +1861,77 @@ begin
 
   for I := 0 to ObjDetailReferences.Count - 1 do
   begin
-    FIBSQL.Close;
-    //Мы не проверяем наши таблицы на простой первичный ключ, т.к. в список могли попасть только такие таблицы
-    FIBSQL.SQL.Text := Format('SELECT DISTINCT %s FROM %s WHERE %s = %s ',
-      [TatForeignKey(ObjDetailReferences[I]).Relation.PrimaryKey.ConstraintFields[0].FieldName,
-      TatForeignKey(ObjDetailReferences[I]).Relation.RelationName,
-      TatForeignKey(ObjDetailReferences[I]).ConstraintField.FieldName, IntToStr(AID)]);
-    FIBSQL.ExecQuery;
-    if FIBSQL.RecordCount > 0 then
+    // Если сохраняемый объект - это простой объект (не дерево)
+    if TatForeignKey(ObjDetailReferences.Items[I]).ConstraintField.Field.FieldName = DETAIL_DOMAIN_SIMPLE then
     begin
-      KeyArray := TgdKeyArray.Create;
-      try
-        while not FIBSQL.Eof do
-        begin
-          if KeyArray.IndexOf(FIBSQL.Fields[0].AsInteger) = -1 then
-            KeyArray.Add(FIBSQL.Fields[0].AsInteger);
-          FIBSQL.Next;
+      FIBSQL.Close;
+      //Мы не проверяем наши таблицы на простой первичный ключ, т.к. в список могли попасть только такие таблицы
+      FIBSQL.SQL.Text := Format('SELECT DISTINCT %s FROM %s WHERE %s = %s ',
+        [TatForeignKey(ObjDetailReferences[I]).Relation.PrimaryKey.ConstraintFields[0].FieldName,
+        TatForeignKey(ObjDetailReferences[I]).Relation.RelationName,
+        TatForeignKey(ObjDetailReferences[I]).ConstraintField.FieldName, IntToStr(AID)]);
+      FIBSQL.ExecQuery;
+      if FIBSQL.RecordCount > 0 then
+      begin
+        KeyArray := TgdKeyArray.Create;
+        try
+          // Заполним список идентификаторами детальных объектов
+          while not FIBSQL.Eof do
+          begin
+            if KeyArray.IndexOf(FIBSQL.Fields[0].AsInteger) = -1 then
+              KeyArray.Add(FIBSQL.Fields[0].AsInteger);
+            FIBSQL.Next;
+          end;
+          //Находим базовый класс по первому id, т.к. детальные объекты в одной таблице будут одного класса и сабтайпа
+          C := GetBaseClassForRelationByID(TatForeignKey(ObjDetailReferences[I]).Relation.RelationName,
+            KeyArray.Keys[0], FTransaction);
+          if Assigned(C.gdClass) then
+          begin
+            ObjectIndex := FDataObject.GetObjectIndex(C.gdClass.Classname, C.SubType);
+            for J := 0 to KeyArray.Count - 1 do
+              Self.SaveRecord(ObjectIndex, KeyArray.Keys[J]);
+          end;
+        finally
+          KeyArray.Free;
         end;
-        //Находим базовый класс по первому id, т.к. детальные объекты в одной таблице будут одного класса и сабтайпа
-        C := GetBaseClassForRelationByID(TatForeignKey(ObjDetailReferences[I]).Relation.RelationName,
-          KeyArray.Keys[0], FTransaction);
-        if Assigned(C.gdClass) then
-        begin
-          ObjectIndex := FDataObject.GetObjectIndex(C.gdClass.Classname, C.SubType);
+      end;
+    end
+    // Если сохраняемый объект - дерево
+    else if TatForeignKey(ObjDetailReferences.Items[I]).ConstraintField.Field.FieldName = DETAIL_DOMAIN_TREE then
+    begin
+      FIBSQL.Close;
+      //Мы не проверяем наши таблицы на простой первичный ключ, т.к. в список могли попасть только такие таблицы
+      FIBSQL.SQL.Text := Format('SELECT DISTINCT %s FROM %s WHERE %s = %s ',
+        [TatForeignKey(ObjDetailReferences[I]).Relation.PrimaryKey.ConstraintFields[0].FieldName,
+        TatForeignKey(ObjDetailReferences[I]).Relation.RelationName,
+        TatForeignKey(ObjDetailReferences[I]).ConstraintField.FieldName, IntToStr(AID)]);
+      FIBSQL.ExecQuery;
+      if FIBSQL.RecordCount > 0 then
+      begin
+        KeyArray := TgdKeyArray.Create;
+        try
+          // Заполним список идентификаторами детальных объектов
+          while not FIBSQL.Eof do
+          begin
+            if KeyArray.IndexOf(FIBSQL.Fields[0].AsInteger) = -1 then
+              KeyArray.Add(FIBSQL.Fields[0].AsInteger);
+            FIBSQL.Next;
+          end;
+
           for J := 0 to KeyArray.Count - 1 do
-            Self.SaveRecord(ObjectIndex, KeyArray.Keys[J]);
+          begin
+            //Находим базовый класс для каждого ID, т.к. в дереве могут быть различные вложенные объекты
+            C := GetBaseClassForRelationByID(TatForeignKey(ObjDetailReferences[I]).Relation.RelationName,
+              KeyArray.Keys[J], FTransaction);
+            if Assigned(C.gdClass) then
+            begin
+              ObjectIndex := FDataObject.GetObjectIndex(C.gdClass.Classname, C.SubType);
+              Self.SaveRecord(ObjectIndex, KeyArray.Keys[J]);
+            end;
+          end;
+        finally
+          KeyArray.Free;
         end;
-      finally
-        KeyArray.Free;
       end;
     end;
   end;
@@ -5550,33 +5595,23 @@ begin
   FAttributeList.Free;
 end;
 
-function TgdcStreamXMLWriterReader.RepeatString(
-  const StringToRepeat: String; const RepeatCount: Integer): String;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 0 to RepeatCount - 1 do
-    Result := Result + StringToRepeat;
-end;
-
 function TgdcStreamXMLWriterReader.AddOpenTag(const ATag: String; const ASingleLine: Boolean = false): String;
 var
   AttributeCounter: Integer;
   AttributeName: String;
 begin
-  Result := RepeatString(INDENT_STR, FElementLevel) + '<' + ATag;
+  Result := Format('%s<%s', [StringOfChar(INDENT_STR, FElementLevel * 2), ATag]);
   // Если в списке аттрибутов что-то есть, запишем их в этот элемент
   if FAttributeList.Count > 0 then
   begin
     for AttributeCounter := 0 to FAttributeList.Count - 1 do
     begin
       if not ASingleLine then
-        Result := Result + NEW_LINE + RepeatString(INDENT_STR, FElementLevel + 1)
+        Result := Result + NEW_LINE + StringOfChar(INDENT_STR, (FElementLevel + 1) * 2)
       else
         Result := Result + ' ';
       AttributeName := FAttributeList.Names[AttributeCounter];
-      Result := Result + AttributeName + '="' + FAttributeList.Values[AttributeName] + '"';
+      Result := Format('%s%s="%s"', [Result, AttributeName, FAttributeList.Values[AttributeName]]);
     end;
     // Очистим список аттрибутов
     FAttributeList.Clear;
@@ -5590,7 +5625,7 @@ function TgdcStreamXMLWriterReader.AddCloseTag(const ATag: String): String;
 begin
   // Уменьшим уровень вложенности элемента
   Dec(FElementLevel);
-  Result := RepeatString(INDENT_STR, FElementLevel) + '</' + ATag + '>' + NEW_LINE;
+  Result := Format('%s</%s>%s', [StringOfChar(INDENT_STR, FElementLevel * 2), ATag, NEW_LINE]);
 end;
 
 function TgdcStreamXMLWriterReader.AddElement(const ATag, AValue: String): String;
@@ -5598,20 +5633,20 @@ var
   AttributeCounter: Integer;
   AttributeName: String;
 begin
-  Result := RepeatString(INDENT_STR, FElementLevel) + '<' + ATag;
+  Result := Format('%s<%s', [StringOfChar(INDENT_STR, FElementLevel * 2), ATag]);
   // Если в списке аттрибутов что-то есть, запишем их в этот элемент
   if FAttributeList.Count > 0 then
   begin
     for AttributeCounter := 0 to FAttributeList.Count - 1 do
     begin
       AttributeName := FAttributeList.Names[AttributeCounter];
-      Result := Result + ' ' + AttributeName + '="' + FAttributeList.Values[AttributeName] + '"';
+      Result := Format('%s %s="%s"', [Result, AttributeName, FAttributeList.Values[AttributeName]]);
     end;
     // Очистим список аттрибутов
     FAttributeList.Clear;
   end;
 
-  Result := Result + '>' + AValue + '</' + ATag + '>' + NEW_LINE;
+  Result := Format('%s>%s</%s>%s', [Result, AValue, ATag, NEW_LINE]);
 end;
 
 function TgdcStreamXMLWriterReader.AddShortElement(const ATag: String;
@@ -5620,23 +5655,23 @@ var
   AttributeCounter: Integer;
   AttributeName: String;
 begin
-  Result := RepeatString(INDENT_STR, FElementLevel) + '<' + ATag;
+  Result := Format('%s<%s', [StringOfChar(INDENT_STR, FElementLevel * 2), ATag]);
   // Если в списке аттрибутов что-то есть, запишем их в этот элемент
   if FAttributeList.Count > 0 then
   begin
     for AttributeCounter := 0 to FAttributeList.Count - 1 do
     begin
       if not ASingleLine then
-        Result := Result + NEW_LINE + RepeatString(INDENT_STR, FElementLevel + 1)
+        Result := Result + NEW_LINE + StringOfChar(INDENT_STR, (FElementLevel + 1) * 2)
       else
         Result := Result + ' ';
       AttributeName := FAttributeList.Names[AttributeCounter];
-      Result := Result + AttributeName + '="' + FAttributeList.Values[AttributeName] + '"';
+      Result := Format('%s%s="%s"', [Result, AttributeName, FAttributeList.Values[AttributeName]]);
     end;
     // Очистим список аттрибутов
     FAttributeList.Clear;
   end;
-  Result := Result + '/>' + NEW_LINE;
+  Result := Format('%s/>%s', [Result, NEW_LINE]);
 end;
 
 procedure TgdcStreamXMLWriterReader.AddAttribute(const AAttributeName, AValue: String);
@@ -5800,24 +5835,25 @@ begin
   end;
 end;
 
+// Метод окружает каждую линию в многострочном STRING в теги <L>
+//  и ставит перед ними необходимые отступы
 procedure TgdcStreamXMLWriterReader.SaveMemoTagValue(const AMemoValue: String; const ABlobField: Boolean = False);
 var
-  StringList: TStringList;
-  StringCounter: Integer;
+  MemoString: String;
 begin
-  StringList := TStringList.Create;
-  try
-    StringList.Text := AMemoValue;
-    for StringCounter := 0 to StringList.Count - 1 do
-      // Если это BLOB-поле, то нет необходимости убирать управляющие символы
-      //  данные уже пропущены через jclMime.MimeEncodeString
-      if ABlobField then
-        StreamWriteXMLString(Stream, AddElement(XML_TAG_MULTILINE_SPLITTER, StringList.Strings[StringCounter]))
-      else
-        StreamWriteXMLString(Stream, AddElement(XML_TAG_MULTILINE_SPLITTER, QuoteString(StringList.Strings[StringCounter])));
-  finally
-    StringList.Free;
-  end;
+  // Если это BLOB-поле, то нет необходимости убирать управляющие символы
+  //  данные уже пропущены через jclMime.MimeEncodeString
+  if ABlobField then
+    MemoString := Trim(AMemoValue)
+  else
+    MemoString := Trim(QuoteString(AMemoValue));
+
+  // Заменим все переносы строки на закрытие - открытие тега <L> + отступ + перенос строки
+  MemoString := StringOfChar(INDENT_STR, FElementLevel * 2) + '<L>' +
+    StringReplace(MemoString, #13#10, '</L>'#13#10 + StringOfChar(INDENT_STR, FElementLevel * 2) + '<L>',
+    [rfReplaceAll, rfIgnoreCase]) + '</L>'#13#10;
+  // Запишем в поток
+  StreamWriteXMLString(Stream, MemoString);
 end;
 
 procedure TgdcStreamXMLWriterReader.ParseDatasetFieldValue(AField: TField; const AFieldValue: String);
@@ -5854,10 +5890,10 @@ begin
     for StringCounter := 0 to StringList.Count - 1 do
       StringList.Strings[StringCounter] := Trim(StringList.Strings[StringCounter]);
     // Удаляем теги XML_TAG_MULTILINE_SPLITTER
-    StringList.Text := StringReplace(StringList.Text, '<' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
-    StringList.Text := StringReplace(StringList.Text, '</' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
+    Result := StringReplace(StringList.Text, '<' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
+    Result := StringReplace(Result, '</' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
     // Декодируем служебные символы
-    Result := UnQuoteString(StringList.Text);
+    Result := UnQuoteString(Result);
   finally
     StringList.Free;
   end;

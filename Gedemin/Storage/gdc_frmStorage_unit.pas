@@ -1,3 +1,4 @@
+
 unit gdc_frmStorage_unit;
 
 interface
@@ -36,7 +37,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gdcBaseInterface, IBDatabase, IBSQL;
+  gd_ClassList, gdcBaseInterface, IBDatabase, IBSQL, Storages;
 
 const
   SelSQL =
@@ -56,6 +57,11 @@ procedure Tgdc_frmStorage.FormCreate(Sender: TObject);
 var
   q: TIBSQL;
 begin
+  if GlobalStorage <> nil then GlobalStorage.SaveToDatabase;
+  if UserStorage <> nil then UserStorage.SaveToDatabase;
+  if CompanyStorage <> nil then CompanyStorage.SaveToDatabase;
+  if AdminStorage <> nil then AdminStorage.SaveToDatabase;
+
   gdcObject := gdcStorageFolder;
   gdcDetailObject := gdcStorageValue;
 
@@ -90,7 +96,7 @@ end;
 procedure Tgdc_frmStorage.lkupStorageChange(Sender: TObject);
 begin
   gdcStorageFolder.Close;
-  gdcStorageFolder.ParamByName('Parent').AsInteger := lkupStorage.CurrentKeyInt;
+  gdcStorageFolder.ParamByName('RootID').AsInteger := lkupStorage.CurrentKeyInt;
   gdcStorageFolder.Open;
 end;
 

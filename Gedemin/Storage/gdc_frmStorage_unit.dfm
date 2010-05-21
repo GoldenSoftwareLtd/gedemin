@@ -144,7 +144,7 @@ inherited gdc_frmStorage: Tgdc_frmStorage
     DataSet = gdcStorageValue
   end
   object gdcStorageFolder: TgdcStorageFolder
-    SubSet = 'ByParent'
+    SubSet = 'ByRootIDInc'
     Left = 240
     Top = 328
   end

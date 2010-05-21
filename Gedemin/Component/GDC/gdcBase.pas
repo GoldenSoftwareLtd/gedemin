@@ -3631,18 +3631,6 @@ var
   DoPostRecord: Boolean;
   ErrorMessage: String;
 
-  procedure ToggleBaseState(AObject: TgdcBase; AState: TgdcState; DoInclude: Boolean);
-  var
-    TempState: TgdcStates;
-  begin
-    TempState := AObject.BaseState;
-    if DoInclude then
-      Include(TempState, AState)
-    else
-      Exclude(TempState, AState);
-    AObject.BaseState := TempState;
-  end;
-
   // Копирует данные объекта
   procedure CopyRecordData(Source, Dest: TgdcBase);
   var
@@ -4023,7 +4011,7 @@ begin
               try
                 LinkCopy.Open;
                 // Укажем что объект находится в состоянии копирования
-                ToggleBaseState(LinkCopy, sCopy, True);
+                LinkCopy.BaseState := LinkCopy.BaseState + [sCopy];
                 LinkCopy.Insert;
                 CopyRecordData(LinkObj, LinkCopy);
                 LinkCopy.ID := Self.ID;
@@ -4053,7 +4041,7 @@ begin
           if Assigned(F) and (F is TIntegerField) and (MasterObject.ID = F.AsInteger) then
           begin
             // Укажем что объект находится в состоянии копирования
-            ToggleBaseState(Self.DetailLinks[I], sCopy, True);
+            Self.DetailLinks[I].BaseState := Self.DetailLinks[I].BaseState + [sCopy];
             try
               // Перейдем на первую запись
               MasterObject.DetailLinks[I].First;
@@ -4087,7 +4075,7 @@ begin
               end;
             finally
               // Укажем что объект вышел из состояния копирования
-              ToggleBaseState(Self.DetailLinks[I], sCopy, False);
+              Self.DetailLinks[I].BaseState := Self.DetailLinks[I].BaseState - [sCopy];
             end;
           end;
         end;

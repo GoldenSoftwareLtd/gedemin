@@ -36,6 +36,7 @@ type
     procedure DoAfterPost; override;
     procedure _DoOnNewRecord; override;
 
+    function GetFromClause(const ARefresh: Boolean = False): String; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
 
     //
@@ -399,7 +400,8 @@ end;}
 
 class function TgdcTree.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + 'ByParent;TopLevel;'
+  Result := inherited GetSubSetList +
+    'ByParent;TopLevel;ByRootID;ByRootIDInc;'
 end;
 
 class function TgdcTree.GetTableInfos(
@@ -799,6 +801,77 @@ begin
   inherited;
 end;
 
+function TgdcTree.GetFromClause(const ARefresh: Boolean): String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  Sgn: String;
+begin
+  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCTREE', KEYGETFROMCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTREE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTREE',
+  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTREE' then
+  {M}        begin
+  {M}          Result := Inherited GetFromClause(ARefresh);
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+  Result := inherited GetFromClause(ARefresh);
+
+  if (not (Self is TgdcLBRBTree)) and (not ARefresh) then
+  begin
+    if HasSubSet('ByRootID') or HasSubSet('ByRootIDInc') then
+    begin
+      if HasSubSet('ByRootIDInc') then
+        Sgn := '%0:s = :RootID'
+      else
+        Sgn := '%2:s = :RootID';
+
+      Result := Result +
+        Format(
+          'JOIN ( ' +
+          '  WITH RECURSIVE internal_tree AS ( ' +
+          '    SELECT %0:s FROM %1:s WHERE ' + Sgn +
+          '    UNION ALL ' +
+          '    SELECT z7.%0:s FROM %1:s z7 JOIN internal_tree it7 ON it7.%0:s = z7.%2:s ' +
+          '  ) ' +
+          '  SELECT %0:s FROM internal_tree ' +
+          ') z8 ON %3:s.%0:s = z8.%0:s ',
+          [GetKeyField(SubType), GetListTable(SubType), GetParentField(SubType), GetListTableAlias]);
+      FSQLSetup.Ignores.AddAliasName('z8');
+    end;
+  end;
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
+  {M}  end;
+  {END MACRO}
+end;
+
 { TgdcLBRBTree }
 
 procedure TgdcLBRBTree.CreateFields;
@@ -953,8 +1026,7 @@ end;
 
 class function TgdcLBRBTree.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList +
-    'ByLBRB;ByRootID;ByRootName;ByRootIDInc;ByRootNameInc;';
+  Result := inherited GetSubSetList + 'ByLBRB;ByRootName;ByRootNameInc;';
 end;
 
 class function TgdcLBRBTree.GetTableInfos(

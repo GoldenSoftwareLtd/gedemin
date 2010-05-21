@@ -51,7 +51,7 @@ type
     cUpdate, cSet, cValues, cAs, cCount, cDelete, cFirst, cSkip, cExtract,
     cDay, cHour, cMinute, cMonth, cSecond, cWeakday, cYear, cYearday,
     cNone, cCase, cWhen, cElse, cThen, cEnd, cSubstring,
-    cCoalesce, cIIF, cMatching, cReturning
+    cCoalesce, cIIF, cMatching, cReturning, cRecursive
   );
 
   TClauses = set of TClause;
@@ -91,7 +91,7 @@ const
     'UPDATE', 'SET', 'VALUES', 'AS', 'COUNT', 'DELETE', 'FIRST', 'SKIP',
     'EXTRACT', 'DAY', 'HOUR', 'MINUTE', 'MONTH', 'SECOND', 'WEAKDAY',
     'YEAR', 'YEARDAY', '', 'CASE', 'WHEN', 'ELSE', 'THEN', 'END', 'SUBSTRING',
-    'COALESCE', 'IIF', 'MATCHING', 'RETURNING'
+    'COALESCE', 'IIF', 'MATCHING', 'RETURNING', 'RECURSIVE'
   );
 
 
@@ -176,6 +176,7 @@ type
 type
   TsqlParser = class;
   TsqlFull = class;
+  TsqlUnion = class;
 
   TsqlStatement = class
   private
@@ -579,6 +580,35 @@ type
 
   end;
 
+  TsqlWith = class(TsqlStatement)
+  private
+    FRecursive: Boolean;
+    FCTE: TObjectList;
+
+  protected
+    procedure ParseStatement; override;
+    procedure BuildStatement(out sql: String); override;
+
+  public
+    constructor Create(AParser: TsqlParser); override;
+    destructor Destroy; override;
+  end;
+
+  TsqlCTE = class(TsqlStatement)
+  private
+    FDone, FNeeded: TElementOptions;
+    FName: String;
+    FSQLFull: TsqlFull;
+
+  protected
+    procedure ParseStatement; override;
+    procedure BuildStatement(out sql: String); override;
+
+  public
+    constructor Create(AParser: TsqlParser); override;
+    destructor Destroy; override;
+  end;
+
   TsqlTable = class(TsqlStatement)
   private
     FName: String;
@@ -833,27 +863,6 @@ VALUES (<value_list>)
     property Conditions: TObjectList read FConditions;
   end;
 
-  TsqlUnion = class(TsqlStatement)
-  private
-    FFull: TsqlFull;
-    FDone, FNeeded: TClauses;
-
-    procedure SetDone(const Value: TClauses);
-
-  protected
-    procedure ParseStatement; override;
-    procedure BuildStatement(out sql: String); override;
-
-  public
-    constructor Create(AParser: TsqlParser); override;
-    destructor Destroy; override;
-
-    property Full: TsqlFull read FFull;
-    property UnionAttrs: TClauses read FDone write SetDone;
-
-  end;
-
-
   TsqlPlanItem = class(TsqlStatement)
   private
     FDone, FNeeded: TClauses;
@@ -896,7 +905,6 @@ VALUES (<value_list>)
 
   end;
 
-
   TsqlPlan = class(TsqlStatement)
   private
     FExprs: TObjectList;
@@ -913,7 +921,6 @@ VALUES (<value_list>)
 
   end;
 
-
   TsqlFull = class(TsqlStatement)
   private
     FSelect: TsqlSelect;
@@ -925,6 +932,7 @@ VALUES (<value_list>)
     FPlan: TsqlPlan;
     FHaving: TsqlHaving;
     FSubSelect: Boolean;
+    FWith: TsqlWith;
 
     FNeeded, FDone: TClauses;
 
@@ -945,11 +953,20 @@ VALUES (<value_list>)
     property OrderBy: TsqlOrderBy read FOrderBy;
     property Plan: TsqlPlan read FPlan;
     property Having: TsqlHaving read FHaving;
+    property ClauseWith: TsqlWith read FWith;
+    property Union: TsqlUnion read FUnion;
 
     property FullAtts: TClauses read FDone write SetDone;
-
   end;
 
+  TsqlUnion = class(TsqlFull)
+  private
+    FAll: Boolean;
+
+  protected
+    procedure ParseStatement; override;
+    procedure BuildStatement(out sql: String); override;
+  end;
 
   TsqlParser = class
   private
@@ -2819,21 +2836,24 @@ begin
   Indent := Indent + 2;
   sql := sql + #13#10 + SIndent;
 
-  for I := 0 to FFields.Count - 1 do
-  begin
-    (FFields[I] as TsqlStatement).BuildStatement(subsql);
-    sql := sql + subsql;
-
-    if (I < FFields.Count - 1) then
+  if FFields.Count > 0 then
+    for I := 0 to FFields.Count - 1 do
     begin
-      if not ((FFields[I] is TsqlSelectParam) or
-        ((FFields[I] is TsqlFunction) and
-        ((FFields[I] as TsqlFunction).FuncClause.Cross([cFirst, cSkip]) <> [])))then
-        sql := sql + ', ' + #13#10 + SIndent
-      else
-        sql := sql + ' ' + #13#10 + SIndent
-    end;
-  end;
+      (FFields[I] as TsqlStatement).BuildStatement(subsql);
+      sql := sql + subsql;
+
+      if (I < FFields.Count - 1) then
+      begin
+        if not ((FFields[I] is TsqlSelectParam) or
+          ((FFields[I] is TsqlFunction) and
+          ((FFields[I] as TsqlFunction).FuncClause.Cross([cFirst, cSkip]) <> [])))then
+          sql := sql + ', ' + #13#10 + SIndent
+        else
+          sql := sql + ' ' + #13#10 + SIndent
+      end;
+    end
+  else
+    sql := sql + '* ';  
 
   Indent := Indent - 2;
   sql := sql;
@@ -3675,7 +3695,7 @@ begin
       begin
         case Token.Clause of
 
-          cSelect:
+          cSelect, cWith:
           begin
             if eoComplicatedJoin in FNeeded then
             begin
@@ -5246,79 +5266,24 @@ end;
 
 { TsqlUnion }
 
-constructor TsqlUnion.Create(AParser: TsqlParser);
-begin
-  inherited Create(AParser);
-
-  FFull := nil;
-
-  FDone := [];
-  FNeeded := [cUnion, cSelect];
-end;
-
-destructor TsqlUnion.Destroy;
-begin
-  if Assigned(FFull) then
-    FreeAndNil(FFull);
-
-  inherited Destroy;
-end;
-
 procedure TsqlUnion.ParseStatement;
 begin
-  with FParser do
-  while not (Token.TokenType in [ttClear, ttNone]) do
+  if (FParser.FToken.TokenType = ttClause) and
+    (FParser.FToken.Clause = cUnion) then
   begin
-    case FToken.TokenType of
+    FParser.ReadNext;
+    FParser.ReadNext;
 
-      ttClause:
-      begin
-        case Token.Clause of
+    FAll := (FParser.FToken.TokenType = ttClause) and
+      (FParser.FToken.Clause = cAll);
 
-          cSelect:
-          begin
-            if cUnion in FDone then
-            begin
-              FFull := TsqlFull.Create(FParser);
-              FFull.ParseStatement;
+    if FAll then
+    begin
+      FParser.ReadNext;
+      FParser.ReadNext;
+    end;  
 
-              Include(FDone, cSelect);
-              Exclude(FNeeded, cSelect);
-
-              Continue;
-            end else
-              raise EatParserError.Create('Ошибка в SQL-выражении: ' + Token.Text);
-          end;
-
-          cUnion:
-          begin
-            if cUnion in FDone then
-              break;
-
-            Include(FDone, Token.Clause);
-            Exclude(FNeeded, Token.Clause);
-          end;
-
-          cAll:
-          begin
-            Include(FDone, Token.Clause);
-            Exclude(FNeeded, Token.Clause);
-          end;
-
-          else begin
-            Break;
-          end;
-
-        end;
-      end;
-
-      ttWord, ttSymbolClause:
-      begin
-        Break;
-      end;
-    end;
-
-    ReadNext;
+    inherited;
   end;
 end;
 
@@ -5326,28 +5291,13 @@ procedure TsqlUnion.BuildStatement(out sql: String);
 var
   subsql: String;
 begin
-  if cUnion in FDone then
-  begin
-    sql := #13#10 + ClauseText[cUnion];
+  inherited BuildStatement(subsql);
 
-    if cAll in FDone then
-      sql := sql + '  ' + ClauseText[cAll];
-
-    sql := sql + #13#10;
-
-    if Assigned(FFull) then
-    begin
-      FFull.BuildStatement(subsql);
-      sql := sql + subsql;
-    end;
-  end;
+  if FAll then
+    sql := 'UNION ALL'#13#10 + subsql
+  else
+    sql := 'UNION'#13#10 + subsql;
 end;
-
-procedure TsqlUnion.SetDone(const Value: TClauses);
-begin
-  FDone := Value;
-end;
-
 
 { TsqlPlanItem }
 
@@ -5722,6 +5672,7 @@ begin
   FGroupBy := nil;
   FPlan := nil;
   FHaving := nil;
+  FWith := nil;
 
   FNeeded := [cSelect, cFrom];
   FDone := [];
@@ -5752,6 +5703,9 @@ begin
 
   if Assigned(FHaving) then
     FreeAndNil(FHaving);
+
+  if Assigned(FWith) then
+    FreeAndNil(FWith);
 
   inherited Destroy;
 end;
@@ -5849,6 +5803,14 @@ begin
             Continue;
           end;
 
+          cWith:
+          begin
+            FWith := TsqlWith.Create(FParser);
+            FWith.ParseStatement;
+            Include(FDone, cWith);
+            Continue;
+          end;
+
           else begin
             Break;
           end;
@@ -5887,6 +5849,12 @@ begin
     sql := '('
   else
     sql := '';
+
+  if Assigned(FWith) then
+  begin
+    FWith.BuildStatement(subsql);
+    sql := sql + subsql + ' ';
+  end;
 
   if Assigned(FSelect) then
   begin
@@ -5930,13 +5898,14 @@ begin
     sql := sql + #13#10 + subsql;
   end;
 
+  if Assigned(FUnion) then
+  begin
+    FUnion.BuildStatement(subsql);
+    sql := sql + #13#10 + subsql;
+  end;
+  
   if FSubSelect then
   begin
-    if Assigned(FUnion) then
-    begin
-      FUnion.BuildStatement(subsql);
-      sql := sql + #13#10 + subsql;
-    end;
     sql := sql + ')';
   end;
 end;
@@ -6122,7 +6091,7 @@ begin
       ttClause:
       begin
         case FToken.Clause of
-          cSelect:
+          cSelect, cWith:
           begin
             CurrStatement := TsqlFull.Create(Self);
             FMainStatements.Add(CurrStatement);
@@ -8530,7 +8499,7 @@ end;
 destructor TsqlReturning.Destroy;
 begin
   FFields.Free;
-  FValues.Free;                    
+  FValues.Free;
 
   inherited Destroy;
 end;
@@ -8619,6 +8588,197 @@ begin
           Continue;
         end else
           Break;
+      end;
+    end;
+
+    ReadNext;
+  end;
+end;
+
+{ TsqlWith }
+
+procedure TsqlWith.BuildStatement(out sql: String);
+var
+  S, CTE: String;
+  I: Integer;
+begin
+  S := ClauseText[cWith] + ' ';
+
+  if FRecursive then
+    S := S + 'RECURSIVE '#13#10;
+
+  for I := 0 to FCTE.Count - 1 do
+  begin
+    (FCTE[I] as TsqlCTE).BuildStatement(CTE);
+    if I < FCTE.Count - 1 then
+      CTE := CTE + ',';
+    S := S + CTE + #13#10;
+  end;
+
+  sql := S;
+end;
+
+constructor TsqlWith.Create(AParser: TsqlParser);
+begin
+  inherited;
+  FCTE := TObjectList.Create;
+end;
+
+destructor TsqlWith.Destroy;
+begin
+  FCTE.Free;
+  inherited;
+end;
+
+procedure TsqlWith.ParseStatement;
+var
+  CurrStatement: TsqlCTE;
+begin
+  with FParser do
+  while not (Token.TokenType in [ttClear, ttNone]) do
+  begin
+    case Token.TokenType of
+
+      ttClause:
+      begin
+        case Token.Clause of
+          cWith: ;
+
+          cRecursive: FRecursive := True;
+
+          cSelect:
+          begin
+            if FCTE.Count > 0 then
+              break;
+          end;
+
+          else begin
+            Break;
+          end;
+        end;
+      end;
+
+      ttWord:
+      begin
+        case Token.TextKind of
+          tkText:
+          begin
+            CurrStatement := TsqlCTE.Create(FParser);
+            FCTE.Add(CurrStatement);
+            CurrStatement.ParseStatement;
+            Continue;
+          end;
+        else
+          Break;
+        end;
+      end;
+
+      ttSymbolClause:
+      begin
+        case Token.SymbolClause of
+          scComma: ;
+        else
+          Break;
+        end;
+      end;
+    end;
+
+    ReadNext;
+  end;
+end;
+
+{ TsqlCTE }
+
+procedure TsqlCTE.BuildStatement(out sql: String);
+var
+  subsql: String;
+begin
+  if FSQLFull <> nil then
+    FSQLFull.BuildStatement(subsql);
+  sql := FName + ' AS (' + subsql + ') ';  
+end;
+
+constructor TsqlCTE.Create(AParser: TsqlParser);
+begin
+  inherited;
+  FNeeded := [eoName];
+end;
+
+destructor TsqlCTE.Destroy;
+begin
+  FSQLFull.Free;
+  inherited;
+end;
+
+procedure TsqlCTE.ParseStatement;
+begin
+  with FParser do
+  while not (Token.TokenType in [ttClear, ttNone]) do
+  begin
+    case Token.TokenType of
+
+      ttClause:
+      begin
+        case Token.Clause of
+          cAs: ;
+        else
+          Break;
+        end;
+      end;
+
+      ttSymbolClause:
+      begin
+        case Token.SymbolClause of
+
+          scBracketOpen:
+          begin
+            if FSQLFull <> nil then
+              break;
+
+            ReadNext;
+            FSQLFull := TsqlFull.Create(FParser);
+            FSQLFull.ParseStatement;
+            Continue;
+          end;
+
+          scBracketClose:
+          begin
+            if FSQLFull = nil then
+              break;
+          end;
+
+          scComma:
+          begin
+            if FSQLFull <> nil then
+              break;
+          end;
+
+          else begin
+            Break;
+          end;
+        end;
+      end;
+
+      ttWord:
+      begin
+        case Token.TextKind of
+
+          tkText:
+          begin
+            if eoName in FNeeded then
+            begin
+              FName := Token.Text;
+
+              Include(FDone, eoName);
+              Exclude(FNeeded, eoName);
+            end else
+              Break;
+          end;
+
+          else begin
+            Break;
+          end;
+        end;
       end;
     end;
 
