@@ -100,12 +100,13 @@ end;
 
 procedure TGRDReportInterface.AddParam(const AnName: String; const AnValue: Variant);
 begin
-  // Don't used.
+  // Not used.
 end;
 
 procedure TGRDReportInterface.CreatePreviewForm;
 begin
   FPreviewForm := TdlgViewResultEx.Create(Application);
+  TdlgViewResultEx(FPreviewForm).ReportForm := True;
 end;
 
 procedure TGRDReportInterface.PrintReport;
