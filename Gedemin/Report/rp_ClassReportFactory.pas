@@ -88,6 +88,7 @@ begin
   else
     Terminate;
   ReportIsBuilding := True;
+
   Resume;
 end;
 
@@ -234,8 +235,8 @@ begin
   else
   begin
     if AnReportResult.IsStreamData then
-      Result.ReportResult.LoadFromStream(AnReportResult.TempStream)
-  //    Result.ReportResult.AddDataSetList(AnBaseQueryList)
+//      Result.ReportResult.LoadFromStream(AnReportResult.TempStream)
+      Result.ReportResult.AddDataSetList(AnBaseQueryList)
     else
       Result.ReportResult := AnReportResult;
     Result.ReportTemplate := AnTemplateStructure.ReportTemplate;
