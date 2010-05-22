@@ -266,7 +266,7 @@ const
     'CREATE DESC INDEX ::PREFIX_x_::NAME_rb'#13#10 +
     '  ON ::TABLENAME (rb)',
 
-    'CREATE UNIQUE ASC INDEX ::PREFIX_x_::NAME_lb'#13#10 +
+    'CREATE ASC INDEX ::PREFIX_x_::NAME_lb'#13#10 +
     '  ON ::TABLENAME (lb)',
 
     'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_el_::NAME TO administrator',
