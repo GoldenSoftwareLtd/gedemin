@@ -364,7 +364,7 @@ uses
    rp_dlgViewResult_unit,
    {$ENDIF}
    jclMath, IBSQL, IBCustomDataSet, gdcBaseInterface,
-   scr_i_FunctionList, gs_Exception, ZLib, kbmMemBinaryStreamFormat
+   scr_i_FunctionList, gs_Exception, ZLib
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
