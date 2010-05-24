@@ -30,15 +30,18 @@ type
   TdlgViewResultEx = class(TdlgViewResult)
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     FGridOptionsList: TGridOptionsList;
     FMasterDetail: TFourStringList;
+    FReportForm: Boolean;
     procedure FillGridList(AnReportResult: TReportResult; AnGridOptions: TStream);
   public
     procedure AddPage(const AnDataSet: TDataSet); override;
     procedure SaveOptions;
     function ExecuteDialog(AnReportResult: TReportResult; AnGridOptions: TStream): Boolean;
     function ExecuteView(AnReportResult: TReportResult; AnGridOptions: TStream): Boolean;
+    property ReportForm: Boolean read FReportForm write FReportForm default False;
   end;
 
 var
@@ -327,12 +330,22 @@ procedure TdlgViewResultEx.FormCreate(Sender: TObject);
 begin
   inherited;
   FGridOptionsList := TGridOptionsList.Create;
+  FReportForm := False;
 end;
 
 procedure TdlgViewResultEx.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FGridOptionsList);
   inherited;
+end;
+
+procedure TdlgViewResultEx.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  // для корректного освобождения в отчётах
+  inherited;
+  if FReportForm then
+    Action := caFree;
 end;
 
 end.

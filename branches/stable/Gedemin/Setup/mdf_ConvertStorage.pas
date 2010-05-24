@@ -700,16 +700,13 @@ begin
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
           'select '#13#10 +
-          '  i.rdb$index_name, i.rdb$relation_name, count(*) '#13#10 +
+          '  i.rdb$index_name, i.rdb$relation_name '#13#10 +
           'from '#13#10 +
           '  rdb$indices i join rdb$index_segments s '#13#10 +
           '    on i.rdb$index_name = s.rdb$index_name '#13#10 +
           'where '#13#10 +
           '  s.rdb$field_name = ''LB'' and i.rdb$unique_flag = 1 '#13#10 +
-          'group by '#13#10 +
-          '  1, 2 '#13#10 +
-          'having '#13#10 +
-          '  count(*) = 1';
+          '  and i.rdb$segment_count = 1 and not i.rdb$index_name LIKE ''RDB$%'' ';
         FIBSQL.ExecQuery;
 
         while not FIBSQL.EOF do
