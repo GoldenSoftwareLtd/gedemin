@@ -393,6 +393,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo 
   VALUES (117, '0000.0001.0000.0148', '27.04.2010', 'Добавлен индекс на ac_entry_balance.accountkey');
 
+INSERT INTO fin_versioninfo 
+  VALUES (118, '0000.0001.0000.0149', '22.05.2010', 'Make all LB indices non unique');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
