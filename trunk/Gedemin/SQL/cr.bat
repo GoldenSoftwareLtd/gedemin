@@ -1,18 +1,21 @@
 
 @echo off
 
-if exist makelbrbtree.exe goto create_db
-
 echo  *******************************************************************************************
 echo  *******************************************************************************************
 echo  **                                                                                       **
-echo  **  Please, compile utility gedemin\utility\makelbrbtree\makelbrbtree.dpr                **
-echo  **  and place executable file here.                                                      **
+echo  **  Compiling utility gedemin\utility\makelbrbtree\makelbrbtree.dpr                      **
 echo  **                                                                                       **
 echo  *******************************************************************************************   
 echo  *******************************************************************************************
 
-exit /b 1
+set delphi_path=C:\Program Files\Borland\Delphi5\Bin
+
+cd ..\Utility\MakeLBRBTree
+
+"%delphi_path%\dcc32.exe" -b makelbrbtree.dpr
+
+cd ..\..\sql
 
 :create_db
 
