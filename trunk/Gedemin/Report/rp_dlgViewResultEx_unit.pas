@@ -36,13 +36,12 @@ type
     FMasterDetail: TFourStringList;
     FReportForm: Boolean;
     procedure FillGridList(AnReportResult: TReportResult; AnGridOptions: TStream);
-    procedure SetReportForm(const Value: Boolean);
   public
     procedure AddPage(const AnDataSet: TDataSet); override;
     procedure SaveOptions;
     function ExecuteDialog(AnReportResult: TReportResult; AnGridOptions: TStream): Boolean;
     function ExecuteView(AnReportResult: TReportResult; AnGridOptions: TStream): Boolean;
-    property ReportForm: Boolean read FReportForm write SetReportForm default False;
+    property ReportForm: Boolean read FReportForm write FReportForm default False;
   end;
 
 var
@@ -77,7 +76,7 @@ begin
   I := -1;
   LSplitter := nil;
 
-  // Проверяем если таблица является detail
+  // Проверяем если таблица является детаил
   MDInd := FMasterDetail.IndexOfDetailTable(AnDataSet.Name);
   if MDInd >= 0 then
   begin
@@ -233,11 +232,6 @@ begin
 
   for I := 0 to AnReportResult.Count - 1 do
     AddPage(AnReportResult.DataSet[I]);
-end;
-
-procedure TdlgViewResultEx.SetReportForm(const Value: Boolean);
-begin
-  FReportForm := Value;
 end;
 
 { TGridOptionsList }

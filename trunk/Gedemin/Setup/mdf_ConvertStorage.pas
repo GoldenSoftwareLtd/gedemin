@@ -8,6 +8,7 @@ uses
 procedure ConvertStorage(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddEdtiorKeyEditionDate2Storage(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DropLBRBStorageTree(IBDB: TIBDatabase; Log: TModifyLog);
+procedure MakeLBIndexNonUnique(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -661,6 +662,77 @@ begin
 
         FTransaction.Commit;
       finally
+        FIBSQL.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FTransaction.Free;
+  end;
+end;
+
+procedure MakeLBIndexNonUnique(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL, q: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+
+      FIBSQL := TIBSQL.Create(nil);
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := FTransaction;
+
+        FIBSQL.Transaction := FTransaction;
+        FIBSQL.ParamCheck := False;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'select '#13#10 +
+          '  i.rdb$index_name, i.rdb$relation_name '#13#10 +
+          'from '#13#10 +
+          '  rdb$indices i join rdb$index_segments s '#13#10 +
+          '    on i.rdb$index_name = s.rdb$index_name '#13#10 +
+          'where '#13#10 +
+          '  s.rdb$field_name = ''LB'' and i.rdb$unique_flag = 1 '#13#10 +
+          '  and i.rdb$segment_count = 1 and not i.rdb$index_name LIKE ''RDB$%'' ';
+        FIBSQL.ExecQuery;
+
+        while not FIBSQL.EOF do
+        begin
+          q.SQL.Text := 'DROP INDEX ' + FIBSQL.FieldByName('rdb$index_name').AsString;
+          q.ExecQuery;
+
+          q.SQL.Text := 'CREATE ASC INDEX ' + FIBSQL.FieldByName('rdb$index_name').AsString +
+            ' ON '  + FIBSQL.FieldByName('rdb$relation_name').AsString + '(lb)';
+          q.ExecQuery;
+
+          FIBSQL.Next;
+        end;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'INSERT INTO fin_versioninfo ' +
+          '  VALUES (118, ''0000.0001.0000.0149'', ''22.05.2010'', ''Make all LB indices non unique'')';
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;
+
+        FTransaction.Commit;
+      finally
+        q.Free;
         FIBSQL.Free;
       end;
     except
