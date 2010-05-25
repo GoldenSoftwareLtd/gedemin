@@ -1449,6 +1449,7 @@ procedure TfrmGedeminMain.FormActivate(Sender: TObject);
 var
   S: String[8];
   Msg: String;
+  {$IFDEF DUNIT_TEST}I: Integer;{$ENDIF}
 begin
   { TODO :
 а после подключения к другой базе уже не будет
@@ -1492,7 +1493,13 @@ begin
     FFirstTime := False;
 
     {$IFDEF DUNIT_TEST}
-    GUITestRunner.RunRegisteredTestsModeless;
+    for I := Screen.FormCount - 1 downto 0 do
+    begin
+      if Screen.Forms[I] is TGUITestRunner then
+        break;
+      if I = 0 then
+        GUITestRunner.RunRegisteredTestsModeless;
+    end;
     {$ENDIF}
   end;
 
