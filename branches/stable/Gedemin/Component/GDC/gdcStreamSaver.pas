@@ -646,7 +646,7 @@ uses
   at_sql_parser,            at_sql_setup,            JclStrings,
   at_frmSQLProcess,         graphics,                gdcClasses,
   gdcConstants,             gd_directories_const,    IB,
-  IBErrorCodes,             gdcMetadata,
+  IBErrorCodes,             gdcMetadata,             gdcFilter,
   Storages,                 Forms,                   controls,
   at_dlgCompareRecords,     Dialogs,                 ComObj,
   gdc_frmStreamSaver,       zlib,                    gdcInvDocument_unit,
@@ -2520,7 +2520,7 @@ begin
           if StreamLoggingType = slAll then
             AddText('Объект обновлен данными из потока!', clBlack);
         except
-          on E: EIBError do
+          {on E: EIBError do
           begin
             if (E.IBErrorCode = isc_no_dup) or (E.IBErrorCode = isc_except) then
             begin
@@ -2539,7 +2539,8 @@ begin
             end
             else
               raise;
-          end;
+          end;}
+          raise;
         end;
       end
       else
@@ -3092,8 +3093,7 @@ begin
   LocalID := AObj.ID;
 
   try
-
-    if AnsiCompareText(AObj.Classname, 'TgdcSavedFilter') = 0 then
+    if AObj is TgdcSavedFilter then
     begin
       if not AObj.FieldByName('userkey').IsNull then
       begin
@@ -3104,29 +3104,15 @@ begin
       Exit;
     end;
 
-    if AnsiCompareText(AObj.Classname, 'TgdcUserStorage') = 0 then
-    begin
-      if AObj.ID = UserStorage.ObjectKey then
-      begin
-        //UserStorage.IsModified := True;
-        UserStorage.SaveToDatabase;
-      end;
-      Exit;
-    end;
-
-    if AnsiCompareText(AObj.Classname, 'TgdcField') = 0 then
+    if AObj is TgdcField then
     begin
       //Системные домены не сохраняем!
-      if AnsiPos('RDB$', AnsiUpperCase(AObj.FieldByName('fieldname').AsString)) = 1 then
+      if StrIPos('RDB$', AObj.FieldByName('fieldname').AsString) = 1 then
         Result := False;
       Exit;
     end;
 
-    if (AnsiCompareText(AObj.Classname, 'TgdcRelation') = 0)
-      or (AnsiCompareText(AObj.Classname, 'TgdcBaseTable') = 0)
-      or (AnsiCompareText(AObj.Classname, 'TgdcLBRBTreeTable') = 0)
-      or (AnsiCompareText(AObj.Classname, 'TgdcPrimeTable') = 0)
-      or (AnsiCompareText(AObj.Classname, 'TgdcTreeTable') = 0) then
+    if AObj is TgdcRelation then
     begin
       // Перед сохранением в поток нужно синхронизировать триггеры
       //  т.к. информация о триггерах может не успеть занестись в таблицу at_triggers
@@ -3135,7 +3121,7 @@ begin
       Exit;
     end;
 
-    if AnsiCompareText(AObj.Classname, 'TgdcStoredProc') = 0 then
+    if AObj is TgdcStoredProc then
     begin
       Assert(AObj.State = dsBrowse);
       try
@@ -3146,11 +3132,11 @@ begin
       Exit;
     end;
 
-    if AnsiCompareText(AObj.Classname, 'TgdcIndex') = 0 then
+    if AObj is TgdcIndex then
     begin
       //В поток сохраняем только индексы-атрибуты
       Result := False;
-      if AnsiPos(UserPrefix, AnsiUpperCase(AObj.FieldByName('indexname').AsString)) = 1 then
+      if StrIPos(UserPrefix, AObj.FieldByName('indexname').AsString) = 1 then
       begin
         //если название индекса совпадает с названием ограничения, то не сохраняем его
         FIBSQL.Close;
@@ -3167,7 +3153,7 @@ begin
       Exit;
     end;
 
-    if AnsiCompareText(AObj.Classname, 'TgdcTrigger') = 0 then
+    if AObj is TgdcTrigger then
     begin
       //Мы не будем сохранять триггер USR$_BU_INV_CARD в поток,
       //т.к. он генерируется автоматически при изменении структуры таблицы inv_card
@@ -3183,18 +3169,18 @@ begin
       Exit;
     end;
 
-    if AnsiCompareText(AObj.Classname, 'TgdcGenerator') = 0 then
+    if AObj is TgdcGenerator then
     begin
       //В поток сохраняем только генераторы-атрибуты
-      if not AnsiPos(UserPrefix, AnsiUpperCase(AObj.FieldByName('generatorname').AsString)) = 1 then
+      if StrIPos(UserPrefix, AObj.FieldByName('generatorname').AsString) <> 1 then
         Result := False;
       Exit;
     end;
 
-    if AnsiCompareText(AObj.Classname, 'TgdcCheckConstraint') = 0 then
+    if AObj is TgdcCheckConstraint then
     begin
       //В поток сохраняем только чеки-атрибуты
-      if not AnsiPos(UserPrefix, AnsiUpperCase(AObj.FieldByName('checkname').AsString)) = 1 then
+      if StrIPos(UserPrefix, AObj.FieldByName('checkname').AsString) <> 1 then
         Result := False;
       Exit;
     end;
@@ -3208,11 +3194,6 @@ begin
 end;
 
 function TgdcStreamDataProvider.DoAfterSaving(AObj: TgdcBase): Boolean;
-const
-  PrNameArray: array [1..3] of String =
-    ('USR$_P_EXLIM_%0:S',
-     'USR$_P_CHLDCT_%0:S',
-     'USR$_P_RESTR_%0:S');
 var
   AnObject: TgdcBase;
   I: Integer;
@@ -3220,46 +3201,53 @@ var
   atRelation: TatRelation;
   LocalID: TID;
   KeyArray: TgdKeyArray;
+  ExceptName: String;
+  PrNameArray: array [1..3] of String;
 begin
-  Result := true;
+  Result := True;
 
-  if AnsiCompareText(AObj.Classname, 'TgdcStoredProc') = 0 then
+  if AObj is TgdcStoredProc then
   begin
     (AObj as TgdcStoredProc).PrepareToSaveToStream(false);
     Exit;
   end;
 
-  if AnsiCompareText(AObj.Classname, 'TgdcLBRBTreeTable') = 0 then
+  if AObj is TgdcLBRBTreeTable then
   begin
+    // Получим названия зависимых процедур
+    (AObj as TgdcLBRBTreeTable).GetDependentNames(PrNameArray[1], PrNameArray[2], PrNameArray[3], ExceptName);
+
     ObjectIndex := FDataObject.GetObjectIndex('TgdcStoredProc');
     AnObject := FDataObject.gdcObject[ObjectIndex];
     KeyArray := TgdKeyArray.Create;
     try
-      // выберем ИД необходимых процедур
+      // Выберем ИД необходимых процедур
       for I := 1 to Length(PrNameArray) do
       begin
         AnObject.Close;
         AnObject.SubSet := 'ByProcName';
-        AnObject.ParamByName('procedurename').AsString :=
-          gdcBaseManager.AdjustMetaName(Format(PrNameArray[I], [AnsiUpperCase(AObj.FieldByName('relationname').AsString)]));
+        AnObject.ParamByName('procedurename').AsString := PrNameArray[I];
         AnObject.Open;
-        if (AnObject.ID <> AObj.ID) and (AnObject.RecordCount > 0) then
-          if KeyArray.IndexOf(AnObject.ID) = -1 then
-            KeyArray.Add(AnObject.ID);
+        if not AnObject.EOF then
+          KeyArray.Add(AnObject.ID, True);
       end;
-      // сохраним процедуры в поток
+
       LocalID := AObj.ID;
-      for I := 0 to KeyArray.Count - 1 do
-        Self.SaveRecord(ObjectIndex, KeyArray.Keys[I]);
-      if AObj.ID <> LocalID then
-        AObj.ID := LocalID;
+      try
+        // Cохраним процедуры в поток
+        for I := 0 to KeyArray.Count - 1 do
+          Self.SaveRecord(ObjectIndex, KeyArray.Keys[I]);
+      finally
+        if AObj.ID <> LocalID then
+          AObj.ID := LocalID;
+      end;    
     finally
       KeyArray.Free;
     end;
     Exit;
   end;
 
-  if AnsiCompareText(AObj.Classname, 'TgdcUnknownTable') = 0 then
+  if AObj is TgdcUnknownTable then
   begin
     // Сделано для кросс-таблиц. Если это пользовательская таблица и у нее есть
     //   праймари кей, то сохраним в поток поля, входящие в праймари кей
@@ -3277,9 +3265,12 @@ begin
         for I := 0 to atRelation.PrimaryKey.ConstraintFields.Count - 1 do
         begin
           LocalID := AObj.ID;
-          Self.SaveRecord(ObjectIndex, atRelation.PrimaryKey.ConstraintFields[I].ID);
-          if AObj.ID <> LocalID then
-            AObj.ID := LocalID;
+          try
+            Self.SaveRecord(ObjectIndex, atRelation.PrimaryKey.ConstraintFields[I].ID);
+          finally
+            if AObj.ID <> LocalID then
+              AObj.ID := LocalID;
+          end;    
         end;
       end;
     end;

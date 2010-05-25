@@ -387,18 +387,21 @@ type
     function CreateIntervalTreeTable: String;
 
   protected
-     procedure DropTable; override;
+    procedure DropTable; override;
 
-     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-     procedure _DoOnNewRecord; override;
+    procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
+    procedure _DoOnNewRecord; override;
 
   public
-     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
-     procedure MakePredefinedRelationFields; override;
+    class function GetDisplayName(const ASubType: TgdcSubType): String; override;
+    procedure MakePredefinedRelationFields; override;
 
-     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
-       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
-       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
+    function GetDependentNames(out AChldCtName, AnExLimName,
+      ARestrName, AnExceptName: String): Integer;
+
+    procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
+      PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
+      WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
   end;
 
   TgdcView = class(TgdcRelation)
@@ -7347,130 +7350,39 @@ procedure TgdcLBRBTreeTable.DropTable;
 var
   ibsql: TIBSQL;
   FSQL: TSQLProcessList;
+  ChldCtName, ExLimName, RestrName, ExceptName: String;
 begin
+  if GetDependentNames(ChldCtName, ExLimName, RestrName, ExceptName) > 3 then  // 3 SP 
+    raise EgdcIBError.Create('Нельзя удалить таблицу т.к. она используется в процедурах или представлениях');
+
   ibsql := CreateReadIBSQL;
   FSQL := TSQLProcessList.Create;
   try
-
-    ibsql.SQL.Text := Format('SELECT * FROM rdb$dependencies WHERE rdb$depended_on_name = :depname ' +
-      ' AND (rdb$dependent_type = 1 OR rdb$dependent_type = 5) AND ' +
-      ' (rdb$dependent_name <> ''%1:s'') AND ' +
-      ' (rdb$dependent_name <> ''%2:s'') AND ' +
-      ' (rdb$dependent_name <> ''%3:s'')',
-      [FieldByName('relationname').AsString,
-       AnsiUpperCase(gdcBaseManager.AdjustMetaName('USR$_P_CHLDCT_' + FieldByName('relationname').AsString)),
-       AnsiUpperCase(gdcBaseManager.AdjustMetaName('USR$_P_EXLIM_' + FieldByName('relationname').AsString)),
-       AnsiUpperCase(gdcBaseManager.AdjustMetaName('USR$_P_RESTR_' + FieldByName('relationname').AsString))]);
-    ibsql.ExecQuery;
-    if ibsql.RecordCount > 0 then
-      raise EgdcIBError.Create('Нельзя удалить таблицу т.к. она используется в процедурах или представлениях');
-
-    ibsql.Close;
-    ibsql.SQL.Text := Format('SELECT * FROM rdb$triggers ' +
-      ' WHERE (rdb$trigger_name = ''%0:s'') OR ' +
-      ' (rdb$trigger_name = ''%1:s'')',
-      [AnsiUpperCase(gdcBaseManager.AdjustMetaName('USR$BI_' + FieldByName('relationname').AsString)),
-       AnsiUpperCase(gdcBaseManager.AdjustMetaName('USR$BU_' + FieldByName('relationname').AsString))]);
-    ibsql.ExecQuery;
-    while not ibsql.Eof do
-    begin
-      FSQL.Add(Format('DROP TRIGGER %0:s',
-        [ibsql.FieldByName('rdb$trigger_name').AsString]), False);
-      ibsql.Next;
-    end;
-
-    ibsql.Close;
-    ibsql.SQL.Text := Format('SELECT * FROM rdb$procedures ' +
-      ' WHERE (rdb$procedure_name = ''%0:s'')',
-      [AnsiUpperCase(gdcBaseManager.AdjustMetaName('USR$_P_RESTR_' + FieldByName('relationname').AsString))]);
-    ibsql.ExecQuery;
-    while not ibsql.Eof do
-    begin
-      FSQL.Add(Format('DROP PROCEDURE %0:s',
-        [ibsql.FieldByName('rdb$procedure_name').AsString]), False);
-      ibsql.Next;
-    end;
-
-    ibsql.Close;
-    ibsql.SQL.Text := Format('SELECT * FROM rdb$procedures ' +
-      ' WHERE (rdb$procedure_name = ''%0:s'') ',
-      [AnsiUpperCase(gdcBaseManager.AdjustMetaName('USR$_P_EXLIM_' + FieldByName('relationname').AsString))]);
-    ibsql.ExecQuery;
-    while not ibsql.Eof do
-    begin
-      FSQL.Add(Format('DROP PROCEDURE %0:s',
-        [ibsql.FieldByName('rdb$procedure_name').AsString]), False);
-      ibsql.Next;
-    end;
-
-    ibsql.Close;
-    ibsql.SQL.Text := Format('SELECT * FROM rdb$procedures ' +
-      ' WHERE (rdb$procedure_name = ''%0:s'') ',
-      [AnsiUpperCase(gdcBaseManager.AdjustMetaName('USR$_P_CHLDCT_' + FieldByName('relationname').AsString))]);
-    ibsql.ExecQuery;
-    while not ibsql.Eof do
-    begin
-      FSQL.Add(Format('DROP PROCEDURE %0:s',
-        [ibsql.FieldByName('rdb$procedure_name').AsString]), False);
-      ibsql.Next;
-    end;
-
-    ibsql.Close;
-    ibsql.SQL.Text := Format('SELECT * FROM rdb$exceptions ' +
-      ' WHERE (rdb$exception_name = ''%0:s'') ',
-      [AnsiUpperCase(gdcBaseManager.AdjustMetaName('USR$_E_TR_' + FieldByName('relationname').AsString))]);
-    ibsql.ExecQuery;
-    while not ibsql.Eof do
-    begin
-      FSQL.Add(Format('DROP EXCEPTION %0:s',
-        [ibsql.FieldByName('rdb$exception_name').AsString]), False);
-      ibsql.Next;
-    end;
-
-    ibsql.Close;
-    ibsql.SQL.Text := 'SELECT * FROM rdb$triggers WHERE rdb$relation_name = :relname AND rdb$system_flag = 0';
+    ibsql.SQL.Text :=
+      'SELECT * FROM rdb$triggers WHERE rdb$relation_name = :relname AND rdb$system_flag = 0';
     ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
     ibsql.ExecQuery;
     while not ibsql.EOF do
     begin
-      FSQL.Add(Format('DROP TRIGGER %S',
-        [ibsql.FieldByName('rdb$trigger_name').AsString]), False);
+      FSQL.Add('DROP TRIGGER ' + ibsql.FieldByName('rdb$trigger_name').AsString, False);
       ibsql.Next;
     end;
 
-    ibsql.Close;
-    ibsql.SQL.Text := 'SELECT * FROM rdb$relation_constraints WHERE rdb$relation_name = :relname ' +
-      'AND rdb$constraint_type = ''FOREIGN KEY'' ';
-    ibsql.ParamByName('relname').AsString := FieldByName('relationname').AsString;
-    ibsql.ExecQuery;
-    while not ibsql.EOF do
-    begin
-      FSQL.Add(Format('ALTER TABLE %s DROP CONSTRAINT %s ',
-        [FieldByName('relationname').AsString,
-         ibsql.FieldByName('rdb$constraint_name').AsString]), False);
-      ibsql.Next;
-    end;
+    if RestrName > '' then
+      FSQL.Add('DROP PROCEDURE ' + RestrName, False);
+    if ExLimName > '' then
+      FSQL.Add('DROP PROCEDURE ' + ExLimName, False);
+    if ChldCtName > '' then
+      FSQL.Add('DROP PROCEDURE ' + ChldCtName, False);
+    if ExceptName > '' then
+      FSQL.Add('DROP EXCEPTION ' + ExceptName, False);
 
-    ibsql.Close;
-    ibsql.SQL.Text := 'SELECT * FROM rdb$relation_constraints WHERE rdb$relation_name = :relname ' +
-      'AND rdb$constraint_type = ''PRIMARY KEY'' ';
-    ibsql.ParamByName('RELNAME').AsString := FieldByName('relationname').AsString;
-    ibsql.ExecQuery;
-    while not ibsql.EOF do
-    begin
-      FSQL.Add(Format('ALTER TABLE %s DROP CONSTRAINT %s ',
-        [FieldByName('relationname').AsString,
-         ibsql.FieldByName('rdb$constraint_name').AsString]), False);
-      ibsql.Next;
-    end;
-
-    ibsql.Close;
     DropCrossTable;
+
     FSQL.Add('DROP TABLE ' + FieldByName('relationname').AsString);
+
     FSQL.Add(Format('DELETE FROM GD_COMMAND WHERE classname = ''TgdcAttrUserDefinedLBRBTree'' AND ' +
       ' UPPER(SubType) = UPPER(''%s'')', [FieldByName('relationname').AsString]));
-
-    ibsql.Close;
 
     atDatabase.NotifyMultiConnectionTransaction;
     ShowSQlProcess(FSQL);
@@ -7483,32 +7395,113 @@ end;
 procedure TgdcLBRBTreeTable._SaveToStream(Stream: TStream;
   ObjectSet: TgdcObjectSet; PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
   WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean);
-const
-  PrNameArray: array [1..3] of String =
-    ('USR$_P_EXLIM_%0:S',
-     'USR$_P_CHLDCT_%0:S',
-     'USR$_P_RESTR_%0:S');
 var
   AnObject: TgdcStoredProc;
   I: Integer;
+  ExceptName: String;
+  PrNameArray: array [1..3] of String;
 begin
   inherited;
+
+  GetDependentNames(PrNameArray[1], PrNameArray[2], PrNameArray[3], ExceptName);
+
   { TODO -oЮля : Синхронизация процедур пройдет только при перезагрузке программы.
   Если сохранить в настройку только созданную таблицу, мы не найдем процедуры ... }
   AnObject := TgdcStoredProc.CreateSubType(nil, '', 'ByProcName');
   try
-    for I := 1 to Length(PrNameArray) do
+    for I := 1 to 3 do
     begin
       AnObject.Close;
-      AnObject.ParamByName('procedurename').AsString :=
-        gdcBaseManager.AdjustMetaName(Format(PrNameArray[I],
-          [AnsiUpperCase(FieldByName('relationname').AsString)]));
+      AnObject.ParamByName('procedurename').AsString := PrNameArray[I];
       AnObject.Open;
-      if (AnObject.ID <> ID) and (AnObject.RecordCount > 0) then
+      if not AnObject.EOF then
         AnObject._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
     end;
   finally
     AnObject.Free;
+  end;
+end;
+
+function TgdcLBRBTreeTable.GetDependentNames(out AChldCtName, AnExLimName,
+  ARestrName, AnExceptName: String): Integer;
+var
+  q: TIBSQL;
+  S: String;
+  TrigName: String;
+begin
+  AChldCtName := '';
+  AnExLimName := '';
+  ARestrName := '';
+  AnExceptName := '';
+  TrigName := '';
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ReadTransaction;
+    q.SQL.Text :=
+      'SELECT DISTINCT rdb$dependent_name FROM rdb$dependencies WHERE rdb$depended_on_name = :depname ' +
+      ' AND rdb$dependent_type IN (2, 5)';
+    q.ParamByName('depname').AsString := FieldByName('relationname').AsString;
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin
+      S := q.Fields[0].AsTrimString;
+
+      if (Pos('_P_EL_', S) > 1) or (Pos('_P_EXPANDLIMIT_', S) > 1)
+        or (Pos('_P_EXLIM_', S) > 1) then
+      begin
+        AnExLimName := S;
+      end;
+
+      if (Pos('_P_RESTRUCT_', S) > 1) or (Pos('_P_RESTR_', S) > 1) then
+      begin
+        ARestrName := S;
+      end;
+
+      if (Pos('_P_GCHC_', S) > 1) or (Pos('_P_GETCHILDCOUNT_', S) > 1)
+        or (Pos('_P_CHLDCT_', S) > 1) then
+      begin
+        AChldCtName := S;
+      end;
+
+      if (Pos('_BU_', S) > 1) and (Pos('10', S) > 1) then
+      begin
+        TrigName := S;
+      end;
+
+      q.Next;
+    end;
+
+    q.Close;
+    q.SQL.Text :=
+      'SELECT DISTINCT rdb$depended_on_name FROM rdb$dependencies WHERE rdb$dependent_name = :depname ' +
+      ' AND rdb$depended_on_type = 7';
+    q.ParamByName('depname').AsString := TrigName;
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin
+      S := q.Fields[0].AsTrimString;
+
+      if (Pos('_E_INVALIDTREE', S) > 1) or (Pos('_E_TR_', S) > 1) then
+      begin
+        AnExceptName := S;
+      end;
+
+      q.Next;
+    end;
+
+    q.Close;
+    q.SQL.Text :=
+      'SELECT COUNT(DISTINCT rdb$dependent_name) FROM rdb$dependencies WHERE rdb$depended_on_name = :depname ' +
+      ' AND rdb$dependent_type IN (1, 5)';
+    q.ParamByName('depname').AsString := FieldByName('relationname').AsString;
+    q.ExecQuery;
+
+    Result := q.Fields[0].AsInteger;
+  finally
+    q.Free;
   end;
 end;
 

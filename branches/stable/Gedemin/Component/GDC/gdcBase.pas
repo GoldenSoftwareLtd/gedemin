@@ -4114,9 +4114,9 @@ begin
     // Укажем что объект выходит из состояния копирования
     Exclude(FBaseState, sCopy);
 
-    // Скопируем привязки к детальным объектам
-    for J := 0 to MasterObject.DetailLinksCount - 1 do
-      MasterObject.DetailLinks[J].Free;
+    // Удалим детальные объекты, использованные при копировании
+    while MasterObject.DetailLinksCount > 0 do
+      MasterObject.DetailLinks[0].Free;
 
     MasterObject.Free;
   end;
@@ -9331,10 +9331,10 @@ begin
   //Данная функция может вернуть различные результаты при различных регистрах
   S1 := AnsiUpperCase(S);
 
-  if Length(S1) < 32 then
+  if Length(S1) <= 31 then
     Result := S1
   else begin
-    Tmp := IntToStr(Crc32_P(@S1[1], Length(S1), 0));
+    Tmp := IntToStr(Abs(Crc32_P(@S1[1], Length(S1), 0)));
     Result := Copy(S1, 1, 31 - Length(Tmp)) + Tmp;
   end;
 end;
