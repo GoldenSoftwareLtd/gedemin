@@ -27,13 +27,13 @@ type
     function GetLogRec(Index: Integer): TatLogRec;
     function GetLogText(Index: Integer): String;
     function GetErrorCount: Integer;
-    function GetLogErrorRec(Index: Integer): TatLogRec;
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure AddRecord(const S: String; const ALogType: TatLogType = atltInfo);
     procedure Clear;
+    function GetRealErrorRecIndex(AListIndex: Integer): Integer;
     procedure SaveToFile(const AFileName: String);
 
     property Count: Integer read FCount;
@@ -41,7 +41,6 @@ type
 
     property WasError: Boolean read FWasError;
     property LogRec[Index: Integer]: TatLogRec read GetLogRec;
-    property LogErrorRec[Index: Integer]: TatLogRec read GetLogErrorRec;
     property LogText[Index: Integer]: String read GetLogText;
   end;
 
@@ -116,12 +115,6 @@ begin
   Result := FErrorArray.Count;
 end;
 
-function TatLog.GetLogErrorRec(Index: Integer): TatLogRec;
-begin
-  Assert((Index >= 0) and (Index < ErrorCount));
-  Result := FArray[FErrorArray.Keys[Index]];
-end;
-
 function TatLog.GetLogRec(Index: Integer): TatLogRec;
 begin
   Assert((Index >= 0) and (Index < FCount));
@@ -133,6 +126,14 @@ begin
   FReposition := True;
   FStream.Seek(LogRec[Index].Offset, soFromBeginning);
   Result := FStream.ReadString;
+end;
+
+function TatLog.GetRealErrorRecIndex(AListIndex: Integer): Integer;
+begin
+  if (AListIndex >= 0) and (AListIndex < ErrorCount) then
+    Result := FErrorArray.Keys[AListIndex]
+  else
+    Result := AListIndex;
 end;
 
 procedure TatLog.SaveToFile(const AFileName: String);

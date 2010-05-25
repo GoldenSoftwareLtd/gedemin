@@ -50,7 +50,7 @@ begin
         OriginalRecordKey := gdcObject.ID;
 
         // Скопируем запись
-        gdcObject.CopyObject(False, True);
+        gdcObject.CopyObject(False, False);
 
         Check((gdcObject.ID > -1) and (OriginalRecordKey <> gdcObject.ID), 'Объект не указывает на скопированную запись');
 
