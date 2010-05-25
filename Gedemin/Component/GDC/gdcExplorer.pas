@@ -441,19 +441,19 @@ var
                   'aview = BIN_OR(aview, ' + FieldByName('aview').AsString + '), ' +
                   'achag = BIN_OR(achag, ' + FieldByName('achag').AsString + '), ' +
                   'afull = BIN_OR(afull, ' + FieldByName('afull').AsString + ') ' +
-                  'WHERE relationname = ''' + RelationName + '''');
+                  'WHERE relationname = ''' + RelationName + '''', Tr);
 
                 gdcBaseManager.ExecSingleQuery('UPDATE at_relations SET ' +
                   'aview = BIN_OR(aview, ' + FieldByName('aview').AsString + '), ' +
                   'achag = BIN_OR(achag, ' + FieldByName('achag').AsString + '), ' +
                   'afull = BIN_OR(afull, ' + FieldByName('afull').AsString + ') ' +
-                  'WHERE relationname = ''' + RelationName + '''');
+                  'WHERE relationname = ''' + RelationName + '''', Tr);
 
                 SL.Add(RelationName);
               end;
             end;
           except
-            //on E: EgdcNoTable do ;
+            // TODO: пустой except
           end;
         finally
           O.Free;
@@ -560,19 +560,24 @@ begin
     end;
   end;
 
-  try
-    SL := TStringList.Create;
+  // Через поток поля настройки прав не переносятся,
+  //  поэтому обновлять права у зависимых объектов не надо
+  if not (sLoadFromStream in Self.BaseState) then
+  begin
     try
-      SL.Sorted := True;
-      SL.Duplicates := dupIgnore;
-      DoRecurs(ID);
-    finally
-      SL.Free;
-    end;
-  except
-    on E: Exception do
-    begin
-      Application.ShowException(E);
+      SL := TStringList.Create;
+      try
+        SL.Sorted := True;
+        SL.Duplicates := dupIgnore;
+        DoRecurs(ID);
+      finally
+        SL.Free;
+      end;
+    except
+      on E: Exception do
+      begin
+        Application.ShowException(E);
+      end;
     end;
   end;
 

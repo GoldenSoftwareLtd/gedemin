@@ -11,6 +11,7 @@ uses
   {$IFDEF GEDEMIN}
   , Test_gdcContact_unit
   , Test_CopyObject_unit
+  , Test_gdcMetaData_unit
   {$ENDIF}
   ;
   

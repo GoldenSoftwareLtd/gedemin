@@ -413,19 +413,23 @@ procedure TfrmSQLProcess.PrepareItem(LI: TListItem);
 var
   S: String;
   B, E: Integer;
+  LogRecordIndex: Integer;
   LogRec: TatLogRec;
 begin
-  // ¬ыбираем все записи, или только ошибки и предупреждени€
+  // ≈сли выбрано показывать только ошибки, то сначала надо получить насто€щий индекс записи в логе
+  //  т.к. кол-во отображаемых записей уже не равно кол-ву записей в логе
   if actShowErrors.Checked then
-    LogRec := FLog.LogErrorRec[LI.Index]
+    LogRecordIndex := FLog.GetRealErrorRecIndex(LI.Index) 
   else
-    LogRec := FLog.LogRec[LI.Index];
+    LogRecordIndex := LI.Index;
+
+  LogRec := FLog.LogRec[LogRecordIndex];
   // ќтобразим данные записи
   with LogRec do
   begin
     LI.Caption := FormatDateTime('hh:nn:ss', Logged);
 
-    S := FLog.LogText[LI.Index];
+    S := FLog.LogText[LogRecordIndex];
 
     B := 1;
     while (B <= Length(S)) and (S[B] <= ' ') do

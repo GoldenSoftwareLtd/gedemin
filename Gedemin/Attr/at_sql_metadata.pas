@@ -165,7 +165,7 @@ begin
       frmIBUserList := nil;
 
       if TransferToModal then
-        AddText('Начато создание мета-данных.', clBlack);
+        AddText('Начато изменение мета-данных.', clBlack);
 
       try
         ibsql.Transaction := FTransaction;
@@ -307,13 +307,15 @@ begin
           FTransaction.Rollback;
         if TransferToModal then
         begin
-          AddText('Закончено создание мета-данных.', clBlack);
+          AddText('Закончено изменение мета-данных.', clBlack);
+          {$IFNDEF DUNIT_TEST}
           if Assigned(frmSQLProcess) then
           begin
             if frmSQLProcess.Visible then
               frmSQLProcess.Hide;
             frmSQLProcess.ShowModal;
           end;
+          {$ENDIF}
         end;
       end;
 
