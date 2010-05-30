@@ -523,26 +523,27 @@ var
 
   ibsql: TIBSQL;
 
+
+  // сортировка по наименованию таблиц и наименованию полей.
   function SortFields(List: TStringList; Index1, Index2: Integer): Integer;
   var
     F1, F2: TatRelationField;
+    Comp: Integer;
   begin
     F1 := TatRelationField(List.Objects[Index1]);
     F2 := TatRelationField(List.Objects[Index2]);
 
     if Assigned(F1) and Assigned(F2) then
     begin
-      if AnsiCompareText(F1.Relation.RelationName,
-        F2.Relation.RelationName) > 0
-      then
-        Result := 1 else
+      Comp := AnsiCompareText(F1.Relation.RelationName,
+        F2.Relation.RelationName);
 
-      if AnsiCompareText(F1.Relation.RelationName,
-        F2.Relation.RelationName) < 0
-      then
+      if Comp > 0 then
+        Result := 1
+      else if Comp < 0 then
         Result := -1
       else
-        Result := 0;
+        Result := AnsiCompareText(F1.FieldName, F2.FieldName);
     end else
       Result := 0;
   end;
