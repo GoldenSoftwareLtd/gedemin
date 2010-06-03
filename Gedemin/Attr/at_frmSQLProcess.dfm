@@ -22,7 +22,7 @@ object frmSQLProcess: TfrmSQLProcess
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 549
+    Width = 557
     Height = 33
     Align = alTop
     BevelOuter = bvNone
@@ -30,7 +30,7 @@ object frmSQLProcess: TfrmSQLProcess
     object tbProcessSQL: TTBToolbar
       Left = 7
       Top = 5
-      Width = 379
+      Width = 362
       Height = 22
       Caption = 'tbProcessSQL'
       Images = dmImages.il16x16
@@ -57,8 +57,8 @@ object frmSQLProcess: TfrmSQLProcess
   end
   object stbSQLProcess: TStatusBar
     Left = 0
-    Top = 341
-    Width = 549
+    Top = 352
+    Width = 557
     Height = 19
     Panels = <
       item
@@ -71,8 +71,8 @@ object frmSQLProcess: TfrmSQLProcess
   end
   object pb: TProgressBar
     Left = 0
-    Top = 325
-    Width = 549
+    Top = 336
+    Width = 557
     Height = 16
     Align = alBottom
     Min = 0
@@ -81,8 +81,8 @@ object frmSQLProcess: TfrmSQLProcess
   end
   object Panel1: TPanel
     Left = 0
-    Top = 323
-    Width = 549
+    Top = 334
+    Width = 557
     Height = 2
     Align = alBottom
     BevelOuter = bvNone
@@ -91,8 +91,8 @@ object frmSQLProcess: TfrmSQLProcess
   object lv: TListView
     Left = 0
     Top = 33
-    Width = 549
-    Height = 290
+    Width = 557
+    Height = 301
     Align = alClient
     Columns = <
       item

@@ -7843,7 +7843,7 @@ end;
 
 procedure TgdcMetaBase.ShowSQLProcess(S: TSQLProcessList);
 var
-  TransactionKey: String;
+  TransactionKey: Integer;
   ibsql: TIBSQL;
   DidActivate: Boolean;
   I: Integer;
@@ -7870,7 +7870,7 @@ begin
     try
       if atDatabase.InMultiConnection then
       begin
-        TransactionKey := IntToStr(GetNextID);
+        TransactionKey := GetNextID;
 
         ibsql.Close;
         ibsql.SQL.Text :=
@@ -7889,10 +7889,10 @@ begin
             AddText('Сохранение SQL-скрипта...', clGreen);
             AddText({TranslateText(}S[I]{)} + #13#10, clBlack);
 
-            ibsql.ParamByName('trkey').AsString := TransactionKey;
+            ibsql.ParamByName('trkey').AsInteger := TransactionKey;
             ibsql.ParamByName('numorder').AsInteger := i + 1;
             ibsql.ParamByName('script').AsString := S[I];
-            ibsql.ParamByName('successfull').AsString := IntToStr(S.Successful[I]);
+            ibsql.ParamByName('successfull').AsInteger := S.Successful[I];
             ibsql.ParamCheck := True;
             ibsql.ExecQuery;
             ibsql.Close;
