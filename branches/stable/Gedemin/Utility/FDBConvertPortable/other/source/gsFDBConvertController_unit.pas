@@ -85,7 +85,6 @@ type
     procedure ProcessViewsAndComputedFields;
 
     procedure OnMetadataEditError;
-    procedure OnComputedFieldEditError;
     procedure OnInterruptedProcess;
   public
     procedure Execute; override;
@@ -1093,6 +1092,8 @@ procedure TgsConvertThread.OnMetadataEditError;
 var
   NewFunctionText: String;
   DialogResult: TModalResult;
+  DelimeterPos: Integer;
+  ComputedTableName, ComputedFieldName: String;
 begin
   // Если работаем с оконным интерфейсом, то дадим пользователю исправить функцию
   if Assigned(Controller.ProcessForm) then
@@ -1190,6 +1191,8 @@ begin
                 NewFunctionText := SynEditFunctionText;
                 // Сохраним измененный триггер
                 FgsFunctionEditor.SetViewText(NewFunctionText);
+                // Восстановим гранты для представления
+                FgsFunctionEditor.RestoreGrant(FMetadataName);
                 // Визуализация процесса
                 Controller.ModelObject.MetadataProgressRoutine(Format(GetLocalizedString(lsViewModified), [FMetadataName]),
                   FMetadataMaxProgress, FMetadataCurrentProgress);
@@ -1222,9 +1225,16 @@ begin
             case DialogResult of
               idOk:
               begin
-                NewFunctionText := SynEditFunctionText;
+                NewFunctionText := SynEditFunctionText;        
                 // Сохраним измененный триггер
                 FgsFunctionEditor.SetViewText(NewFunctionText);
+                // Выделим имя таблицы и имя вычисляемого поля
+                DelimeterPos := AnsiPos(COMPUTED_FIELD_DELIMITER, FMetadataName);
+                ComputedTableName := StrLeft(FMetadataName, DelimeterPos - 1);
+                ComputedFieldName := StrRight(FMetadataName, StrLength(FMetadataName) - DelimeterPos);
+                // Восстановим гранты и позицию вычисляемого поля
+                FgsFunctionEditor.RestoreGrant(ComputedFieldName, ComputedTableName);
+                FgsFunctionEditor.RestorePosition(ComputedTableName, ComputedFieldName);
                 // Визуализация процесса
                 Controller.ModelObject.MetadataProgressRoutine(Format(GetLocalizedString(lsComputedFieldModified), [FMetadataName]),
                   FMetadataMaxProgress, FMetadataCurrentProgress);
@@ -1269,42 +1279,12 @@ begin
         Controller.ModelObject.MetadataProgressRoutine(
           Format('%s %s. %s', [GetLocalizedString(lsViewError), FMetadataName, GetLocalizedString(lsObjectLeftCommented)]),
           FMetadataMaxProgress, FMetadataCurrentProgress);
-          
+
       mtComputedField:
         Controller.ModelObject.MetadataProgressRoutine(
           Format('%s %s. %s', [GetLocalizedString(lsComputedFieldError), FMetadataName, GetLocalizedString(lsObjectLeftCommented)]),
           FMetadataMaxProgress, FMetadataCurrentProgress);
     end;
-  end;
-end;
-
-procedure TgsConvertThread.OnComputedFieldEditError;
-var
-  ErrorMessagePartStr: String;
-begin
-  if not FIsRestoringMetadata then
-    ErrorMessagePartStr := GetLocalizedString(lsComputedFieldProcessStartError)
-  else
-    ErrorMessagePartStr := GetLocalizedString(lsComputedFieldProcessFinishError);
-
-  // Если работаем с оконным интерфейсом, то дадим пользователю исправить функцию
-  if Assigned(Controller.ProcessForm) then
-  begin                                    
-    // Покажем сообщение об ошибке
-    Application.MessageBox(
-      PChar(Format('%s %s%s%s',
-        [ErrorMessagePartStr, FMetadataName, #13#10,
-         FgsFunctionEditor.GetFirstNLines(FMetadataError, 25)])),
-      PChar(GetLocalizedString(lsInformationDialogCaption)),
-      MB_OK or MB_ICONERROR or MB_APPLMODAL);
-
-    raise EgsInterruptConvertProcess.Create(Format('%s %s%s%s',
-      [ErrorMessagePartStr, FMetadataName, #13#10, FMetadataError]));
-  end
-  else
-  begin
-    raise EgsInterruptConvertProcess.Create(Format('%s %s%s%s',
-      [ErrorMessagePartStr, FMetadataName, #13#10, FMetadataError]));
   end;
 end;
 
