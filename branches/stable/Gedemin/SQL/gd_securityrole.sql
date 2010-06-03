@@ -361,4 +361,8 @@ GRANT ALL ON RP2_MAIN_BASE TO ADMINISTRATOR;
 GRANT ALL ON rpl_database TO administrator;
 GRANT ALL ON rpl_record TO administrator;
 
+GRANT ALL ON gd_ref_constraints TO administrator;
+GRANT ALL ON gd_ref_constraint_data TO administrator;
+
+
 COMMIT;

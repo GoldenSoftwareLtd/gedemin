@@ -1417,8 +1417,8 @@ BEGIN
   I = GEN_ID(gd_g_attr_version, 1);
 END
 ^
-/*  При подключении IBExpert-ом, IBExpert пытается изменить поле 
-  rdb$description таблицы rdb$database вызывая при этом триггер и 
+/*  При подключении IBExpert-ом, IBExpert пытается изменить поле
+  rdb$description таблицы rdb$database вызывая при этом триггер и
   соответвсенно, увеличивая генератор */
 CREATE TRIGGER gd_au_rdb_relation_fields FOR rdb$relation_fields
   AFTER UPDATE
@@ -1446,3 +1446,87 @@ END
 SET TERM ; ^
 
 COMMIT;
+
+/*
+
+original
+trigger
+
+*/
+
+
+CREATE DOMAIN d_fk_metaname AS CHAR(31)
+  character set unicode_fss;
+
+CREATE TABLE gd_ref_constraints (
+  id               dintkey,
+  constraint_name  d_fk_metaname UNIQUE,
+  const_name_uq    d_fk_metaname,
+  match_option     char(7)  character set none,
+  update_rule      char(11) character set none,
+  delete_rule      char(11) character set none,
+
+  constraint_rel   d_fk_metaname,
+  constraint_field d_fk_metaname,
+  ref_rel          d_fk_metaname,
+  ref_field        d_fk_metaname,
+
+  const_tr_name    d_fk_metaname,
+  ref_tr_name      d_fk_metaname,
+
+  ref_state        char(20) character set none,
+  ref_next_state   char(20) character set none,
+
+  CONSTRAINT gd_pk_ref_constraint PRIMARY KEY (id),
+  CONSTRAINT gd_chk1_ref_contraint CHECK (ref_state IN ('ORIGINAL', 'TRIGGER')),
+  CONSTRAINT gd_chk2_ref_contraint CHECK (ref_next_state IN ('ORIGINAL', 'TRIGGER'))
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_bi_ref_constraints FOR gd_ref_constraints
+  ACTIVE
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+CREATE TABLE gd_ref_constraint_data (
+  id               dintkey,
+  constraintkey    dintkey,
+  value_data       INTEGER,
+  value_count      INTEGER,
+
+  CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (id),
+  CONSTRAINT gd_fk_ref_constraint_data FOREIGN KEY (constraintkey)
+    REFERENCES gd_ref_constraints (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX gd_ref_x_constraint_data ON gd_ref_constraint_data
+  (constraintkey, value_data);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_bi_ref_constraint_data FOR gd_ref_constraint_data
+  ACTIVE
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
