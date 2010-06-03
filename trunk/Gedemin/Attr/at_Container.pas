@@ -535,14 +535,10 @@ var
 
     if Assigned(F1) and Assigned(F2) then
     begin
-      Comp := AnsiCompareText(F1.Relation.RelationName,
+      Result := AnsiCompareText(F1.Relation.RelationName,
         F2.Relation.RelationName);
 
-      if Comp > 0 then
-        Result := 1
-      else if Comp < 0 then
-        Result := -1
-      else
+      if Result = 0 then
         Result := AnsiCompareText(F1.FieldName, F2.FieldName);
     end else
       Result := 0;

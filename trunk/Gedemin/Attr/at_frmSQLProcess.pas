@@ -265,6 +265,9 @@ end;
 
 procedure AddMistake(const T: String; const C: TColor = clRed);
 begin
+  if Windows.GetCurrentThreadId <> System.MainThreadID then
+    exit;
+
   if frmSQLProcess = nil then
     TfrmSQLProcess.Create(Application);
 
@@ -273,6 +276,9 @@ end;
 
 procedure AddWarning(const T: String; const C: TColor);
 begin
+  if Windows.GetCurrentThreadId <> System.MainThreadID then
+    exit;
+
   if frmSQLProcess = nil then
     TfrmSQLProcess.Create(Application);
 
@@ -281,6 +287,9 @@ end;
 
 procedure AddText(const T: String; const C: TColor = clBlack);
 begin
+  if Windows.GetCurrentThreadId <> System.MainThreadID then
+    exit;
+
   if frmSQLProcess = nil then
     TfrmSQLProcess.Create(Application);
 
