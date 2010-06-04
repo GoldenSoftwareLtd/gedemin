@@ -54,14 +54,15 @@ inherited TemplateFrame: TTemplateFrame
           Caption = 'RUID шаблона:'
         end
         inherited dbeName: TprpDBComboBox
-          Width = 289
+          Width = 288
           Style = csDropDown
           DropDownCount = 16
+          OnExit = dbeNameExit
           OnDeleteRecord = dbeNameDeleteRecord
         end
         inherited dbmDescription: TDBMemo
           Top = 56
-          Width = 290
+          Width = 288
           DataField = 'DESCRIPTION'
           ParentFont = False
           TabOrder = 3
@@ -69,7 +70,7 @@ inherited TemplateFrame: TTemplateFrame
         object dblcbType: TDBLookupComboBox
           Left = 144
           Top = 128
-          Width = 289
+          Width = 288
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           DataField = 'TEMPLATETYPE'
@@ -107,6 +108,23 @@ inherited TemplateFrame: TTemplateFrame
             TabOrder = 0
             OnClick = btnCopyRUIDTemplateClick
           end
+        end
+        object mHint: TMemo
+          Left = 144
+          Top = 152
+          Width = 288
+          Height = 76
+          TabStop = False
+          Anchors = [akLeft, akTop, akRight]
+          Color = clInfoBk
+          Lines.Strings = (
+            'Всегда указывайте префикс (пространство имен) при '
+            'именовании шаблона.'
+            ''
+            'Например, "Склад.Торговля.Оборотная ведомость", '
+            'а не "Оборотная ведомость".')
+          ReadOnly = True
+          TabOrder = 5
         end
       end
     end

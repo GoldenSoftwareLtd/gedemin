@@ -98,6 +98,11 @@ begin
       pbUpdateStats.Max := 0;
       pbUpdateStats.Position := 0;
     end;
+
+    CMD_DONE:
+    begin
+      gdcFKManager.CloseOpen;
+    end;
   end;
 end;
 
@@ -105,12 +110,17 @@ procedure Tgdc_frmFKManager.actConvertFKExecute(Sender: TObject);
 begin
   if gdcFKManager.ConvertFK then
   begin
+    MessageBox(Handle,
+      'Для изменения структуры БД необходимо перезапустить Гедымин.',
+      'Внимание',
+      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
   end;
 end;
 
 procedure Tgdc_frmFKManager.actConvertFKUpdate(Sender: TObject);
 begin
-  actConvertFK.Enabled := not gdcFKManager.IsUpdateStatsRunning;
+  actConvertFK.Enabled := (not gdcFKManager.IsUpdateStatsRunning)
+    and (pbUpdateStats.Position > 0);
 end;
 
 initialization

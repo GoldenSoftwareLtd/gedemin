@@ -539,7 +539,7 @@ var
         F2.Relation.RelationName);
 
       if Result = 0 then
-        Result := AnsiCompareText(F1.FieldName, F2.FieldName);
+        Result := F1.FieldPosition - F2.FieldPosition;
     end else
       Result := 0;
   end;
