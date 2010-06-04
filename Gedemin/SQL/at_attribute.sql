@@ -1447,13 +1447,9 @@ SET TERM ; ^
 
 COMMIT;
 
-/*
+CREATE EXCEPTION gd_e_fkmanager_fk_violation 'Foreign key violation';
 
-original
-trigger
-
-*/
-
+CREATE EXCEPTION gd_e_fkmanager_cannot_delete 'Can not delete record';
 
 CREATE DOMAIN d_fk_metaname AS CHAR(31)
   character set unicode_fss;
@@ -1471,11 +1467,8 @@ CREATE TABLE gd_ref_constraints (
   ref_rel          d_fk_metaname,
   ref_field        d_fk_metaname,
 
-  const_tr_name    d_fk_metaname,
-  ref_tr_name      d_fk_metaname,
-
-  ref_state        char(20) character set none,
-  ref_next_state   char(20) character set none,
+  ref_state        char(8) character set none,
+  ref_next_state   char(8) character set none,
 
   CONSTRAINT gd_pk_ref_constraint PRIMARY KEY (id),
   CONSTRAINT gd_chk1_ref_contraint CHECK (ref_state IN ('ORIGINAL', 'TRIGGER')),
@@ -1495,6 +1488,17 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER gd_bd_ref_constraints FOR gd_ref_constraints
+  ACTIVE
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (OLD.ref_state = 'TRIGGER') THEN
+    EXCEPTION gd_e_fkmanager_cannot_delete;
+END
+^
+
 SET TERM ; ^
 
 CREATE TABLE gd_ref_constraint_data (
@@ -1511,7 +1515,7 @@ CREATE TABLE gd_ref_constraint_data (
 );
 
 CREATE UNIQUE INDEX gd_ref_x_constraint_data ON gd_ref_constraint_data
-  (constraintkey, value_data);
+  (value_data, constraintkey);
 
 SET TERM ^ ;
 

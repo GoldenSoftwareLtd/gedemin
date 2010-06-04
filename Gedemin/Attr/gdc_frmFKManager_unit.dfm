@@ -17,7 +17,6 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
     inherited tbMainCustom: TTBToolbar
       object TBItem2: TTBItem
         Action = actConvertFK
-        ImageIndex = 175
       end
       object TBSeparatorItem2: TTBSeparatorItem
       end
@@ -139,6 +138,7 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
     object actConvertFK: TAction
       Category = 'Main'
       Caption = 'actConvertFK'
+      ImageIndex = 175
       OnExecute = actConvertFKExecute
       OnUpdate = actConvertFKUpdate
     end
