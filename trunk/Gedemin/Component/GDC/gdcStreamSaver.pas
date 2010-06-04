@@ -776,6 +776,9 @@ const
   NEW_LINE = #13#10;
   RIGHTS_FIELD = ',ACHAG,AVIEW,AFULL,';
 
+  XID_FIELD = '_XID';
+  DBID_FIELD = '_DBID';
+  MODIFIED_FIELD = '_MODIFIED';
   MODIFY_FROM_STREAM_FIELD = '_MODIFYFROMSTREAM';
   INSERT_FROM_STREAM_FIELD = '_INSERTFROMSTREAM';
   SET_TABLE_FIELD = '_SETTABLE';
@@ -796,6 +799,17 @@ begin
     Result := Str1
   else
     Result := Str2;
+end;
+
+function IsXML(const CheckStr: String): Boolean;
+begin
+  if (AnsiPos(XML_TAG_STREAM, CheckStr) > 0)
+     or (AnsiPos(XML_TAG_SETTING, CheckStr) > 0)
+     or (AnsiPos(xmlHeader, CheckStr) > 0)
+     or (AnsiPos('<?XML', UpperCase(Trim(CheckStr))) = 1) then
+    Result := True
+  else
+    Result := False;
 end;
 
 function GetStreamType(Stream: TStream): TgsStreamType;
@@ -825,9 +839,7 @@ begin
         Stream.Position := 0;
         SetLength(StreamTestString, StreamTestStringSize);
         Stream.ReadBuffer(StreamTestString[1], StreamTestStringSize);
-        if (AnsiPos(XML_TAG_STREAM, StreamTestString) > 0)
-           or (AnsiPos(XML_TAG_SETTING, StreamTestString) > 0)
-           or (AnsiPos(xmlHeader, StreamTestString) > 0) then
+        if IsXML(StreamTestString) then
           Result := sttXML
         else
           Result := sttBinaryNew;
@@ -1147,6 +1159,7 @@ var
   CDS: TDataSet;
   LocName, NotSavedField: String;
   R: TatRelation;
+  TableInfo: TgdcTableInfos;
 begin
   if CheckIndex(Index) then
   begin
@@ -1202,9 +1215,13 @@ begin
     // Для кросс-связок нам не нужны поля РУИДа и даты модификации
     if AObj.SetTable = '' then
     begin
-      CDS.FieldByName('_XID').AsInteger := RUID.XID;
-      CDS.FieldByName('_DBID').AsInteger := RUID.DBID;
-      CDS.FieldByName('_MODIFIED').AsDateTime := AObj.EditionDate;
+      CDS.FieldByName(XID_FIELD).AsInteger := RUID.XID;
+      CDS.FieldByName(DBID_FIELD).AsInteger := RUID.DBID;
+
+      TableInfo := AObj.GetTableInfos(AObj.SubType);
+      // Будем сохранять поле MODIFIED_FIELD только если есть необходимая информация в БО
+      if (tiCreationInfo in TableInfo) or (tiEditionInfo in TableInfo) then
+        CDS.FieldByName(MODIFIED_FIELD).AsDateTime := AObj.EditionDate;
     end
     else
       CDS.FieldByName(SET_TABLE_FIELD).AsString := AObj.SetTable;
@@ -1440,6 +1457,7 @@ var
   I: Integer;
   Dataset: TDataSet;
   FD: TFieldDef;
+  TableInfo: TgdcTableInfos;
 begin
   // создаем соответствующий клиент-датасет
   Dataset := TClientDataSet.Create(nil);
@@ -1459,9 +1477,12 @@ begin
   // Для кросс-связок нам не нужны поля РУИДа и даты модификации
   if ABusinessObject.SetTable = '' then
   begin
-    Dataset.FieldDefs.Add('_XID', ftInteger, 0, True);
-    Dataset.FieldDefs.Add('_DBID', ftInteger, 0, True);
-    Dataset.FieldDefs.Add('_MODIFIED', ftDateTime, 0, True);
+    Dataset.FieldDefs.Add(XID_FIELD, ftInteger, 0, True);
+    Dataset.FieldDefs.Add(DBID_FIELD, ftInteger, 0, True);
+    TableInfo := ABusinessObject.GetTableInfos(ABusinessObject.SubType);
+    // Будем сохранять поле MODIFIED_FIELD только если есть необходимая информация в БО
+    if (tiCreationInfo in TableInfo) or (tiEditionInfo in TableInfo) then
+      Dataset.FieldDefs.Add(MODIFIED_FIELD, ftDateTime, 0, True);
   end;
   Dataset.FieldDefs.Add(INSERT_FROM_STREAM_FIELD, ftBoolean, 0, False);
   Dataset.FieldDefs.Add(MODIFY_FROM_STREAM_FIELD, ftBoolean, 0, False);
@@ -2518,8 +2539,8 @@ begin
               TargetDS.Cancel;
 
               AddText('РУИД некорректен. Попытка найти объект по уникальному ключу.', clBlack);
-              gdcBaseManager.DeleteRUIDByXID(SourceDS.FieldByName('_XID').AsInteger,
-                SourceDS.FieldByName('_DBID').AsInteger, TargetDS.Transaction);
+              gdcBaseManager.DeleteRUIDByXID(SourceDS.FieldByName(XID_FIELD).AsInteger,
+                SourceDS.FieldByName(DBID_FIELD).AsInteger, TargetDS.Transaction);
               InsertRecord(SourceDS, TargetDS);
               NeedAddToIDMapping := False;
             end
@@ -2594,6 +2615,8 @@ begin
 end;
 
 procedure TgdcStreamDataProvider.InsertRecord(SourceDS: TDataSet; TargetDS: TgdcBase);
+var
+  Modified: TDateTime;
 begin
   //Вставляем запись в наш объект
   TargetDS.Insert;
@@ -2601,17 +2624,26 @@ begin
   if CopyRecord(SourceDS, TargetDS) then
   begin
     TargetDS.CheckBrowseMode;
+    // Если в датасете нет поля времени изменения объекта, то возьмем текущее время
+    if Assigned(SourceDS.FindField(MODIFIED_FIELD)) then
+      Modified := SourceDS.FieldByName(MODIFIED_FIELD).AsDateTime
+    else
+      Modified := Now;
+
     //Проверяем сохранен ли РУИД в базе
     if gdcBaseManager.GetRUIDRecByID(TargetDS.ID, FTransaction).XID = -1 then
     begin
       //Если нет, то вставляем в базу
-      gdcBaseManager.InsertRUID(TargetDS.ID, SourceDS.FieldByName('_XID').AsInteger, SourceDS.FieldByName('_DBID').AsInteger,
-        SourceDS.FieldByName('_MODIFIED').AsDateTime, IBLogin.ContactKey, FTransaction);
-    end else
+      gdcBaseManager.InsertRUID(TargetDS.ID, SourceDS.FieldByName(XID_FIELD).AsInteger,
+        SourceDS.FieldByName(DBID_FIELD).AsInteger,
+        Modified, IBLogin.ContactKey, FTransaction);
+    end
+    else
     begin
       //Если да, то обновляем поля грида по его ID
-      gdcBaseManager.UpdateRUIDByID(TargetDS.ID, SourceDS.FieldByName('_XID').AsInteger, SourceDS.FieldByName('_DBID').AsInteger,
-        SourceDS.FieldByName('_MODIFIED').AsDateTime, IBLogin.ContactKey, FTransaction);
+      gdcBaseManager.UpdateRUIDByID(TargetDS.ID, SourceDS.FieldByName(XID_FIELD).AsInteger,
+        SourceDS.FieldByName(DBID_FIELD).AsInteger,
+        Modified, IBLogin.ContactKey, FTransaction);
     end;
     FLoadingOrderList.Remove(SourceDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger);
     SourceDS.Delete;
@@ -2649,9 +2681,13 @@ begin
   end;
 
   StreamID := CDS.FieldByName(AObj.GetKeyField(AObj.SubType)).AsInteger;
-  StreamXID := CDS.FieldByName('_xid').AsInteger;
-  StreamDBID := CDS.FieldByName('_dbid').AsInteger;
-  StreamModified := CDS.FieldByName('_modified').AsDateTime;
+  StreamXID := CDS.FieldByName(XID_FIELD).AsInteger;
+  StreamDBID := CDS.FieldByName(DBID_FIELD).AsInteger;
+  // Если в датасете нет поля времени изменения объекта, то возьмем текущее время
+  if Assigned(CDS.FindField(MODIFIED_FIELD)) then
+    StreamModified := CDS.FieldByName(MODIFIED_FIELD).AsDateTime
+  else
+    StreamModified := Now;
   Modified := StreamModified;
   // используется в GetRUID
   AObj.StreamXID := StreamXID;
@@ -5166,8 +5202,10 @@ begin
           begin
             SettingHeader.RUID := RUID(GetIntegerParamValueByName(XMLElement.ElementString, 'xid'),
               GetIntegerParamValueByName(XMLElement.ElementString, 'dbid'));
-            SettingHeader.Name := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'name'));
-            SettingHeader.Comment := UnQuoteString(GetParamValueByName(XMLElement.ElementString, 'description'));
+            SettingHeader.Name :=
+              UnQuoteString(ConvertUTFToAnsi(GetParamValueByName(XMLElement.ElementString, 'name')));
+            SettingHeader.Comment :=
+              UnQuoteString(ConvertUTFToAnsi(GetParamValueByName(XMLElement.ElementString, 'description')));
             SettingHeader.Date := SafeStrToDateTime(GetParamValueByName(XMLElement.ElementString, 'modifydate'));
             SettingHeader.Version := GetIntegerParamValueByName(XMLElement.ElementString, 'version');
             SettingHeader.Ending := GetIntegerParamValueByName(XMLElement.ElementString, 'ending');
@@ -5431,7 +5469,7 @@ begin
     ftMemo:
     begin
       StreamWriteXMLString(Stream, AddOpenTag(CurrentFieldName));
-      if AnsiPos(xmlHeader, AField.AsString) > 0 then
+      if IsXML(AField.AsString) then
         SaveMemoTagValue(AField.AsString, tgtXML)
       else
         SaveMemoTagValue(AField.AsString, tgtText);
@@ -5444,7 +5482,7 @@ begin
       // Если блоб поле сохраняется для хранилища, то в нем может быть DFM и его не надо кодировать
       if AnsiCompareText(FDataObject.gdcObject[FCurrentDatasetKey].Classname, 'TgdcStorageValue') = 0 then
         SaveStorageValue(AField)
-      else if AnsiPos(xmlHeader, AField.AsString) > 0 then    // Если в сохраняемом поле находится XML, TODO: сделать нормальную проверку
+      else if IsXML(AField.AsString) then    // Если в сохраняемом поле находится XML
         // Разнесём строки на элементы <L>line_text</L>
         SaveMemoTagValue(AField.AsString, tgtXML)
       else
@@ -5477,7 +5515,7 @@ begin
   Prefix := IndentStr + XML_CDATA_BEGIN + #13#10 + IndentStr;
   Postfix := #13#10 + IndentStr + XML_CDATA_END + #13#10;
 
-  // XML не будем обрамлять в <L>
+  {// XML не будем обрамлять в <L>
   if AMLType = tgtXML then
     // Заменим все переносы строки на отступ + перенос строки
     MemoString :=
@@ -5485,7 +5523,7 @@ begin
       StringReplace(MemoString, #13#10, #13#10 + IndentStr,
         [rfReplaceAll, rfIgnoreCase]) +
       Postfix
-  else
+  else}
     // Заменим все переносы строки на закрытие - открытие тега <L> + отступ + перенос строки
     MemoString :=
       Prefix + '<' + XML_TAG_MULTILINE_SPLITTER + '>' +
@@ -5506,7 +5544,7 @@ procedure TgdcStreamXMLWriterReader.ParseDatasetFieldValue(AField: TField; const
 begin
   case AField.DataType of
     ftMemo:
-      if AnsiPos(xmlHeader, AField.AsString) > 0 then
+      if IsXML(AFieldValue) then
         AField.AsString := ParseMemoTagValue(AFieldValue, tgtXML)
       else
         // Поля такого типа хранятся как список элементов <L>element_text</L>
@@ -5518,7 +5556,7 @@ begin
       // Если блоб поле сохраняется для хранилища, то в нем может быть DFM и его не надо кодировать
       if AnsiCompareText(FDataObject.gdcObject[FCurrentDatasetKey].Classname, 'TgdcStorageValue') = 0 then
         AField.AsString := ParseStorageValue(AFieldValue)
-      else if AnsiPos(xmlHeader, AField.AsString) > 0 then    // Если в загружаемом поле находится XML, TODO: сделать нормальную проверку
+      else if IsXML(AFieldValue) then    // Если в загружаемом поле находится XML
         AField.AsString := ParseMemoTagValue(AFieldValue, tgtXML)
       else
         // Поля такого типа хранятся как список элементов <L>element_text</L>
@@ -5550,12 +5588,15 @@ begin
     StringList.Text := Result;
     for StringCounter := 0 to StringList.Count - 1 do
       StringList.Strings[StringCounter] := Trim(StringList.Strings[StringCounter]);
-    if AMLType <> tgtXML then
-    begin
-      // Удаляем теги XML_TAG_MULTILINE_SPLITTER
-      Result := StringReplace(StringList.Text, '<' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
-      Result := StringReplace(Result, '</' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
-    end;
+    // Удаляем строку добавленную с элементом <![CDATA[ 
+    if Trim(StringList.Strings[0]) = '' then
+      StringList.Delete(0);
+    // Удаляем строку добавленную с элементом ]]>
+    if Trim(StringList.Strings[StringList.Count - 1]) = '' then
+      StringList.Delete(StringList.Count - 1);
+    // Удаляем теги XML_TAG_MULTILINE_SPLITTER
+    Result := StringReplace(StringList.Text, '<' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
+    Result := StringReplace(Result, '</' + XML_TAG_MULTILINE_SPLITTER + '>', '', [rfReplaceAll, rfIgnoreCase]);
   finally
     StringList.Free;
   end;
@@ -5633,9 +5674,9 @@ begin
   Dataset.FieldByName('SETTINGSRUID').AsString := GetParamValueByName(ElementStr, 'settingsruid');
   Dataset.FieldByName('MINEXEVERSION').AsString := GetParamValueByName(ElementStr, 'minexeversion');
   Dataset.FieldByName('MINDBVERSION').AsString := GetParamValueByName(ElementStr, 'mindbversion');
-  Dataset.FieldByName('_XID').AsString := GetParamValueByName(ElementStr, 'xid');
-  Dataset.FieldByName('_DBID').AsString := GetParamValueByName(ElementStr, 'dbid');
-  Dataset.FieldByName('_MODIFIED').AsDateTime := Dataset.FieldByName('MODIFYDATE').AsDateTime;
+  Dataset.FieldByName(XID_FIELD).AsString := GetParamValueByName(ElementStr, 'xid');
+  Dataset.FieldByName(DBID_FIELD).AsString := GetParamValueByName(ElementStr, 'dbid');
+  //Dataset.FieldByName(MODIFIED_FIELD).AsDateTime := Dataset.FieldByName('MODIFYDATE').AsDateTime;
   Dataset.Post;
 end;
 
@@ -5664,9 +5705,9 @@ begin
   Dataset.FieldByName('SUBTYPE').AsString := UnQuoteString(GetParamValueByName(ElementStr, 'subtype'));
   Dataset.FieldByName('XID').AsString := GetParamValueByName(ElementStr, 'xid');
   Dataset.FieldByName('DBID').AsString := GetParamValueByName(ElementStr, 'dbid');
-  Dataset.FieldByName('_XID').AsString := GetParamValueByName(ElementStr, '_xid');
-  Dataset.FieldByName('_DBID').AsString := GetParamValueByName(ElementStr, '_dbid');
-  Dataset.FieldByName('_MODIFIED').AsDateTime := Time;
+  Dataset.FieldByName(XID_FIELD).AsString := GetParamValueByName(ElementStr, '_xid');
+  Dataset.FieldByName(DBID_FIELD).AsString := GetParamValueByName(ElementStr, '_dbid');
+  //Dataset.FieldByName(MODIFIED_FIELD).AsDateTime := Time;
   Dataset.Post;
 end;
 
@@ -5805,8 +5846,8 @@ begin
   AddAttribute('name', QuoteString(CDS.FieldByName('NAME').AsString));
   AddAttribute('version', CDS.FieldByName('VERSION').AsString);
   AddAttribute('modifydate', SafeDateTimeToStr(CDS.FieldByName('MODIFYDATE').AsDateTime));
-  AddAttribute('xid', CDS.FieldByName('_XID').AsString);
-  AddAttribute('dbid', CDS.FieldByName('_DBID').AsString);
+  AddAttribute('xid', CDS.FieldByName(XID_FIELD).AsString);
+  AddAttribute('dbid', CDS.FieldByName(DBID_FIELD).AsString);
   AddAttribute('description', QuoteString(CDS.FieldByName('DESCRIPTION').AsString));
   AddAttribute('ending', CDS.FieldByName('ENDING').AsString);
   AddAttribute('settingsruid', CDS.FieldByName('SETTINGSRUID').AsString);
@@ -5837,8 +5878,8 @@ begin
       AddAttribute('subtype', QuoteString(CDS.FieldByName('SUBTYPE').AsString));
       AddAttribute('xid', CDS.FieldByName('XID').AsString);
       AddAttribute('dbid', CDS.FieldByName('DBID').AsString);
-      AddAttribute('_xid', CDS.FieldByName('_XID').AsString);
-      AddAttribute('_dbid', CDS.FieldByName('_DBID').AsString);
+      AddAttribute('_xid', CDS.FieldByName(XID_FIELD).AsString);
+      AddAttribute('_dbid', CDS.FieldByName(DBID_FIELD).AsString);
 
       StreamWriteXMLString(Stream, AddShortElement(XML_TAG_SETTING_POS));
       CDS.Next;
@@ -5982,7 +6023,7 @@ begin
         // Сделаем начальный отступ в строках XML файла, чтобы потом красиво выглядело в полной настройке
         (FStreamWriterReader as TgdcStreamXMLWriterReader).ElementLevel := 2;
         // Не будем вставлять заголовок XML файла
-        (FStreamWriterReader as TgdcStreamXMLWriterReader).DoInsertXMLHeader := False; 
+        (FStreamWriterReader as TgdcStreamXMLWriterReader).DoInsertXMLHeader := False;
       end;
     end;
   else
@@ -6743,20 +6784,20 @@ begin
          Чтобы случайно не удалилось поле One, передаем ид удаляемой настройки =>
          сохраним в список руидов только руид процедуры.}
           StPos.Close;
-          StPos.ParamByName('xid').AsString := CDS.FieldByName('_xid').AsString;
-          StPos.ParamByName('dbid').AsString := CDS.FieldByName('_dbid').AsString;
+          StPos.ParamByName('xid').AsString := CDS.FieldByName(XID_FIELD).AsString;
+          StPos.ParamByName('dbid').AsString := CDS.FieldByName(DBID_FIELD).AsString;
           StPos.Open;
           if StPos.RecordCount > 0 then
           begin
-            RuidList.Add(CDS.FieldByName('_xid').AsString + ',' +
-              CDS.FieldByName('_dbid').AsString + ',' + AnsiUpperCase(Trim(Obj.ClassName)) +
+            RuidList.Add(CDS.FieldByName(XID_FIELD).AsString + ',' +
+              CDS.FieldByName(DBID_FIELD).AsString + ',' + AnsiUpperCase(Trim(Obj.ClassName)) +
               ','+ AnsiUpperCase(Trim(Obj.SubType)));
           end;
         end
         else
         begin
-          RuidList.Add(CDS.FieldByName('_xid').AsString + ',' +
-            CDS.FieldByName('_dbid').AsString + ',' + AnsiUpperCase(Trim(Obj.ClassName)) +
+          RuidList.Add(CDS.FieldByName(XID_FIELD).AsString + ',' +
+            CDS.FieldByName(DBID_FIELD).AsString + ',' + AnsiUpperCase(Trim(Obj.ClassName)) +
             ','+ AnsiUpperCase(Trim(Obj.SubType)));
         end
 

@@ -35,6 +35,7 @@ type
     edtRUIDTemplate: TEdit;
     pnlRUIDTemplate: TPanel;
     btnCopyRUIDTemplate: TButton;
+    mHint: TMemo;
     procedure actEditTemplateUpdate(Sender: TObject);
     procedure dblcbTypeCloseUp(Sender: TObject);
     procedure dblcbTypeDropDown(Sender: TObject);
@@ -47,6 +48,7 @@ type
     procedure pMainResize(Sender: TObject);
     procedure gdcTemplateAfterEdit(DataSet: TDataSet);
     procedure btnCopyRUIDTemplateClick(Sender: TObject);
+    procedure dbeNameExit(Sender: TObject);
   private
     FKeyValue: Variant;
     { Private declarations }
@@ -200,6 +202,18 @@ end;
 procedure TTemplateFrame.btnCopyRUIDTemplateClick(Sender: TObject);
 begin
   Clipboard.AsText:= edtRUIDTemplate.Text;
+end;
+
+procedure TTemplateFrame.dbeNameExit(Sender: TObject);
+begin
+  if Pos('.', TprpDBComboBox(Sender).Text) = 0 then
+  begin
+    MessageBox(0,
+      PChar('Всегда указывайте префикс (пространство имен) при именовании шаблона.'#13#10#13#10 +
+      'Например, "Склад.Торговля.Оборотная ведомость", а не "Оборотная ведомость".'),
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  end;
 end;
 
 initialization
