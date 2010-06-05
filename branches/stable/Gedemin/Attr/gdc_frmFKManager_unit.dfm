@@ -138,6 +138,7 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
     object actConvertFK: TAction
       Category = 'Main'
       Caption = 'actConvertFK'
+      Hint = 'Конвертироват внешние ключи'
       ImageIndex = 175
       OnExecute = actConvertFKExecute
       OnUpdate = actConvertFKUpdate

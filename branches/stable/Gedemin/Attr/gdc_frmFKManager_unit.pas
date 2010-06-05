@@ -9,7 +9,7 @@ uses
   ComCtrls, gdcFKManager, IBCustomDataSet, gdcBase;
 
 type
-  Tgdc_frmFKManager = class(Tgdc_frmMDVGr)
+  Tgdc_frmFKManager = class(Tgdc_frmMDVGR)
     gdcFKManager: TgdcFKManager;
     gdcFKManagerData: TgdcFKManagerData;
     actUpdateStats: TAction;
@@ -45,7 +45,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList;
+  gd_ClassList, gd_security, gdcBaseInterface;
 
 procedure Tgdc_frmFKManager.FormCreate(Sender: TObject);
 begin
@@ -64,7 +64,9 @@ end;
 
 procedure Tgdc_frmFKManager.actUpdateStatsUpdate(Sender: TObject);
 begin
-  actUpdateStats.Enabled := not gdcFKManager.IsUpdateStatsRunning;
+  actUpdateStats.Enabled := (not gdcFKManager.IsUpdateStatsRunning)
+    and (IBLogin <> nil)
+    and IBLogin.IsIBUserAdmin;
 end;
 
 procedure Tgdc_frmFKManager.actCancelUpdateStatsUpdate(Sender: TObject);
@@ -107,20 +109,34 @@ begin
 end;
 
 procedure Tgdc_frmFKManager.actConvertFKExecute(Sender: TObject);
+var
+  I: Integer;
 begin
-  if gdcFKManager.ConvertFK then
+  I := gdcFKManager.ConvertFK;
+  if I > 0 then
   begin
+    if MessageBox(Handle,
+      PChar('Обработано внешних ключей: ' + IntToStr(I) + #13#10#13#10 +
+      'Для изменения структуры БД перезапустите Гедымин.'),
+      'Внимание',
+      MB_OKCANCEL or MB_ICONINFORMATION or MB_TASKMODAL) = IDCANCEL then
+    begin
+      gdcBaseManager.ExecSingleQuery('DELETE FROM at_transaction');
+    end;
+  end else
     MessageBox(Handle,
-      'Для изменения структуры БД необходимо перезапустить Гедымин.',
+      'Нет записей для конвертирования.',
       'Внимание',
       MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-  end;
 end;
 
 procedure Tgdc_frmFKManager.actConvertFKUpdate(Sender: TObject);
 begin
   actConvertFK.Enabled := (not gdcFKManager.IsUpdateStatsRunning)
-    and (pbUpdateStats.Position > 0);
+    {and (pbUpdateStats.Position > 0)
+    and (pbUpdateStats.Position = pbUpdateStats.Max)}
+    and (IBLogin <> nil)
+    and IBLogin.IsIBUserAdmin;
 end;
 
 initialization
