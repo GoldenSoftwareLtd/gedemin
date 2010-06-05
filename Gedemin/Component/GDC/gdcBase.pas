@@ -17914,8 +17914,17 @@ begin
             end;
 
             if RecordCount > 0 then
-              Locate(GetKeyField(SubType), Bm, [])
-            else
+            begin
+              try
+                Locate(GetKeyField(SubType), Bm, []);
+              except
+                on E: EDatabaseError do
+                begin
+                  if not Filtered then
+                    raise;
+                end;
+              end;
+            end else
               First;
           finally
             EnableControls;

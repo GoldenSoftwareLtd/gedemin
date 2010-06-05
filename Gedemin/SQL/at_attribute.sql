@@ -1447,9 +1447,13 @@ SET TERM ; ^
 
 COMMIT;
 
-CREATE EXCEPTION gd_e_fkmanager_fk_violation 'Foreign key violation';
+/*
+ *
+ *   FKManager
+ *
+ */
 
-CREATE EXCEPTION gd_e_fkmanager_cannot_delete 'Can not delete record';
+CREATE EXCEPTION gd_e_fkmanager 'Exception in FK manager code';
 
 CREATE DOMAIN d_fk_metaname AS CHAR(31)
   character set unicode_fss;
@@ -1495,7 +1499,7 @@ CREATE OR ALTER TRIGGER gd_bd_ref_constraints FOR gd_ref_constraints
 AS
 BEGIN
   IF (OLD.ref_state = 'TRIGGER') THEN
-    EXCEPTION gd_e_fkmanager_cannot_delete;
+    EXCEPTION gd_e_fkmanager 'Ref constraint in TRIGGER state';
 END
 ^
 
@@ -1505,7 +1509,7 @@ CREATE TABLE gd_ref_constraint_data (
   id               dintkey,
   constraintkey    dintkey,
   value_data       INTEGER,
-  value_count      INTEGER,
+  value_count      dintkey,
 
   CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (id),
   CONSTRAINT gd_fk_ref_constraint_data FOREIGN KEY (constraintkey)
@@ -1530,7 +1534,41 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER gd_biud_ref_constraint_data FOR gd_ref_constraint_data
+  ACTIVE
+  BEFORE INSERT OR UPDATE OR DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'REF_CONSTRAINT_UNLOCK') <> '1') THEN
+    EXCEPTION gd_e_fkmanager 'Constraint data is locked';
+END
+^
+
 SET TERM ; ^
 
 COMMIT;
+
+CREATE TABLE master (ID INTEGER NOT NULL, PRIMARY KEY(id));
+
+CREATE TABLE detail (ID INTEGER NOT NULL, mkey INTEGER,
+  PRIMARY KEY (id),
+  FOREIGN KEY (mkey) REFERENCES master (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE);
+
+COMMIT;
+
+INSERT INTO master VALUES (1);
+INSERT INTO master VALUES (2);
+INSERT INTO master VALUES (3);
+
+INSERT INTO detail VALUES (1, NULL);
+INSERT INTO detail VALUES (2, 1);
+INSERT INTO detail VALUES (3, 1);
+INSERT INTO detail VALUES (4, 2);
+
+COMMIT;
+
+
 
