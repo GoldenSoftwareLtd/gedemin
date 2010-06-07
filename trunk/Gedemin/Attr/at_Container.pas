@@ -528,7 +528,6 @@ var
   function SortFields(List: TStringList; Index1, Index2: Integer): Integer;
   var
     F1, F2: TatRelationField;
-    Comp: Integer;
   begin
     F1 := TatRelationField(List.Objects[Index1]);
     F2 := TatRelationField(List.Objects[Index2]);
