@@ -1455,8 +1455,7 @@ COMMIT;
 
 CREATE EXCEPTION gd_e_fkmanager 'Exception in FK manager code';
 
-CREATE DOMAIN d_fk_metaname AS CHAR(31)
-  character set unicode_fss;
+CREATE DOMAIN d_fk_metaname AS CHAR(31) CHARACTER SET unicode_fss;
 
 CREATE TABLE gd_ref_constraints (
   id               dintkey,
@@ -1482,7 +1481,6 @@ CREATE TABLE gd_ref_constraints (
 SET TERM ^ ;
 
 CREATE OR ALTER TRIGGER gd_bi_ref_constraints FOR gd_ref_constraints
-  ACTIVE
   BEFORE INSERT
   POSITION 0
 AS
@@ -1493,13 +1491,12 @@ END
 ^
 
 CREATE OR ALTER TRIGGER gd_bd_ref_constraints FOR gd_ref_constraints
-  ACTIVE
   BEFORE DELETE
   POSITION 0
 AS
 BEGIN
-  IF (OLD.ref_state = 'TRIGGER') THEN
-    EXCEPTION gd_e_fkmanager 'Ref constraint in TRIGGER state';
+  IF (OLD.ref_state <> 'ORIGINAL') THEN
+    EXCEPTION gd_e_fkmanager 'Ref constraint is not in ORIGINAL state';
 END
 ^
 
@@ -1523,30 +1520,21 @@ CREATE UNIQUE INDEX gd_ref_x_constraint_data ON gd_ref_constraint_data
 
 SET TERM ^ ;
 
-CREATE OR ALTER TRIGGER gd_bi_ref_constraint_data FOR gd_ref_constraint_data
-  ACTIVE
-  BEFORE INSERT
-  POSITION 0
-AS
-BEGIN
-  IF (NEW.ID IS NULL) THEN
-    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-END
-^
-
-CREATE OR ALTER TRIGGER gd_biud_ref_constraint_data FOR gd_ref_constraint_data
-  ACTIVE
-  BEFORE INSERT OR UPDATE OR DELETE
+CREATE OR ALTER TRIGGER gd_biu_ref_constraint_data FOR gd_ref_constraint_data
+  BEFORE INSERT OR UPDATE
   POSITION 0
 AS
 BEGIN
   IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'REF_CONSTRAINT_UNLOCK') <> '1') THEN
     EXCEPTION gd_e_fkmanager 'Constraint data is locked';
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 END
 ^
 
 SET TERM ; ^
 
+/*
 COMMIT;
 
 CREATE TABLE master (ID INTEGER NOT NULL, PRIMARY KEY(id));
@@ -1567,6 +1555,7 @@ INSERT INTO detail VALUES (1, NULL);
 INSERT INTO detail VALUES (2, 1);
 INSERT INTO detail VALUES (3, 1);
 INSERT INTO detail VALUES (4, 2);
+*/
 
 COMMIT;
 
