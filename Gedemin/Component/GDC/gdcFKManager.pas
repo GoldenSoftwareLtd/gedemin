@@ -136,7 +136,7 @@ const
     'AS '#13#10 +
     'BEGIN '#13#10 +
     '  IF (NEW.<constraint_field> IS NOT DISTINCT FROM OLD.<constraint_field>) THEN'#13#10 +
-    '     EXIT;'#13#10 +
+    '    EXIT;'#13#10 +
     '<check>'#13#10 +
     'END';
 
