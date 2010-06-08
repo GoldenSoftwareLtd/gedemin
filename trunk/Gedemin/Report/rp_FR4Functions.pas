@@ -154,6 +154,8 @@ begin
     Result := GetRubSumStr(Params[0])
   else if MethodName = 'SUMSTR' then
     Result := GetSumStr(Params[0], Params[1])
+  else if MethodName = 'SUMSTR2' then
+    Result := GetSumStr2(Params[0], Params[1], Params[2])
   else if MethodName = 'DATESTR' then
     Result := DateStr(Params[0])
   else if MethodName = 'GETFIOCASE' then
