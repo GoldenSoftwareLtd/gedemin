@@ -152,7 +152,6 @@ implementation
 uses
   gs_Exception;
 
-
 type
   TgdFreeNotificationComponent = class;
 
@@ -177,12 +176,10 @@ type
   TgdFreeNotificationComponent = class(TComponent)
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-
   end;
 
 var
   gdWrapServerList: TgdWrapServerList;
-
 
 destructor TgdcOLEClassList.Destroy;
 begin
@@ -372,18 +369,12 @@ begin
   ObjectKey := FObject;
   FObject := nil;
   try
-    try
-      gdWrapServerList.Remove(ObjectKey);
-    finally
-      try
-        AuxiliaryDesigner.RemoveObject(ObjectKey);
-      finally
-        FreeAndNil(ObjectKey);
-      end;
-    end;
-  except
-    raise;
-  end;
+    gdWrapServerList.Remove(ObjectKey);
+    if Assigned(AuxiliaryDesigner) then
+      AuxiliaryDesigner.RemoveObject(ObjectKey);
+  finally
+    ObjectKey.Free;
+  end;  
 end;
 
 function TWrapperAutoObject.GetObject: TObject;
@@ -527,7 +518,7 @@ var
 begin
   I := FgdWrapServerList.Add(Integer(AnObject));
   FgdWrapServerList.ObjectByIndex[I] := gdcOLEObject;
-  if AnObject.InheritsFrom(TComponent) then
+  if AnObject is TComponent then
     TComponent(AnObject).FreeNotification(FFreeComponentSpy);
 end;
 
@@ -539,9 +530,8 @@ end;
 
 destructor TgdWrapServerList.Destroy;
 begin
-  FgdWrapServerList.Free;
   FFreeComponentSpy.Free;
-
+  FgdWrapServerList.Free;
   inherited;
 end;
 
@@ -565,10 +555,10 @@ end;
 
 procedure TgdWrapServerList.Remove(const AnObject: TObject);
 begin
-  if Assigned(FgdWrapServerList) and Assigned(AnObject) then
+  if Assigned(AnObject) then
   begin
-    if AnObject.InheritsFrom(TComponent) then
-      (AnObject as TComponent).RemoveFreeNotification(FFreeComponentSpy);
+    if AnObject is TComponent then
+      TComponent(AnObject).RemoveFreeNotification(FFreeComponentSpy);
     FgdWrapServerList.Remove(Integer(AnObject));
   end;
 end;
@@ -577,15 +567,12 @@ procedure TgdWrapServerList.NilDelphiObject(const AnObject: TObject);
 var
   I: Integer;
 begin
-  if Assigned(FgdWrapServerList) then
+  I := FgdWrapServerList.IndexOf(Integer(AnObject));
+  if I > -1 then
   begin
-    I := FgdWrapServerList.IndexOf(Integer(AnObject));
-    if I > -1 then
-    begin
-      (FgdWrapServerList.ObjectByIndex[I] as TWrapperAutoObject).FObject := nil;
-      FgdWrapServerList.Delete(I);
-    end;
-  end;  
+    (FgdWrapServerList.ObjectByIndex[I] as TWrapperAutoObject).FObject := nil;
+    FgdWrapServerList.Delete(I);
+  end;
 end;
 
 { TgdFreeNotificationComponent }
@@ -601,12 +588,10 @@ begin
 end;
 
 initialization
-//  OLEClassList := nil;
   gdWrapServerList := TgdWrapServerList.Create;
 
 finalization
   if Assigned(OLEClassList) then
     FreeAndNil(OLEClassList);
   FreeAndNil(gdWrapServerList);
-
 end.
