@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001 - 2010 by Golden Software of Belarus
 
   Module
 
@@ -372,13 +372,17 @@ begin
   ObjectKey := FObject;
   FObject := nil;
   try
-    ObjectKey.Free;
-  finally
     try
       gdWrapServerList.Remove(ObjectKey);
     finally
-      AuxiliaryDesigner.RemoveObject(ObjectKey);
+      try
+        AuxiliaryDesigner.RemoveObject(ObjectKey);
+      finally
+        FreeAndNil(ObjectKey);
+      end;
     end;
+  except
+    raise;
   end;
 end;
 
@@ -561,7 +565,7 @@ end;
 
 procedure TgdWrapServerList.Remove(const AnObject: TObject);
 begin
-  if Assigned(FgdWrapServerList) then
+  if Assigned(FgdWrapServerList) and Assigned(AnObject) then
   begin
     if AnObject.InheritsFrom(TComponent) then
       (AnObject as TComponent).RemoveFreeNotification(FFreeComponentSpy);
