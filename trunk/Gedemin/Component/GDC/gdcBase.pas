@@ -932,8 +932,8 @@ type
     // копирует дл€ заданной главной таблицы все ссылающиес€ записи в детальных
     // таблицах. AnOldID -- идентификатор исходной главной записи
     // ANewID -- идентификатор записи-копии в главной таблице
-    procedure CopyDetailTable(const AMasterTableName: String;
-      const AnOldID, ANewID: Integer);
+    //procedure CopyDetailTable(const AMasterTableName: String;
+    //  const AnOldID, ANewID: Integer);
 
     //
     procedure Loaded; override;
@@ -4314,6 +4314,11 @@ begin
   Result := Self.CopyObject(True);
 end;
 
+{
+
+—ледует переделать определение св€зей не через RDB$ таблицы, а через atDatabase!
+“ак как последний содержит информацию и о модифицированных внешних ключах.
+
 procedure TgdcBase.CopyDetailTable(const AMasterTableName: String;
   const AnOldID, ANewID: Integer);
 var
@@ -4413,7 +4418,7 @@ begin
     ibtS.Free;
     ibtD.Free;
   end;
-end;
+end;}
 
 function TgdcBase.CopyDialog: Boolean;
 var
