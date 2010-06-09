@@ -778,18 +778,6 @@ begin
     (not Assigned(Screen.ActiveForm)) or ([fsModal] * Screen.ActiveForm.FormState = []);
 end;
 
-(*
-procedure TfrmGedeminMain.IBEventsEventAlert(Sender: TObject;
-  EventName: String; EventCount: Integer; var CancelAlerts: Boolean);
-begin
-  CancelAlerts := True;
-  if EventName = 'CloseGedemin' then
-  begin
-    Application.Terminate;
-  end;
-end;
-*)
-
 procedure TfrmGedeminMain.DoAfterChangeCompany;
 begin
   //
@@ -806,11 +794,10 @@ begin
     Tgdc_frmExplorer.CreateAndAssign(Application);
   end;
 
-  //cbDesktop.Enabled := True;
-
   DesktopManager.OnDesktopItemCreate := gsDesktopManagerDesktopItemCreate;
   DesktopManager.ReadDesktopNames;
-  if GetAsyncKeyState(VK_SHIFT) shr 1 > 0 then
+  {$IFNDEF DUNIT_TEST}
+  if GetAsyncKeyState(VK_SHIFT) shr 1 = 0 then
   begin
     if Assigned(UserStorage) and
       UserStorage.ReadBoolean(st_dt_DesktopOptionsPath, st_dt_LoadDesktopOnStartup, True) then
@@ -821,6 +808,7 @@ begin
       DesktopManager.LoadDesktop;
     end;
   end;
+  {$ENDIF}
   DesktopManager.InitComboBox(cbDesktop);
 
   // кожны раз, як карыстальнік мяняе кампанію
@@ -860,7 +848,7 @@ end;
 procedure TfrmGedeminMain.DoBeforeChangeCompany;
 begin
   //
-  //  Сварачиваем рабочий стол
+  //  Сворачиваем рабочий стол
 
   cbDesktop.Items.Clear;
   cbDesktop.Enabled := False;
