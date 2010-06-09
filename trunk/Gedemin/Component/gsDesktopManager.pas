@@ -711,12 +711,7 @@ begin
 
   IBSQL := TIBSQL.Create(nil);
   try
-    IBSQL.Database := FDatabase;
-    IBSQL.Transaction := FTransaction;
-
-    if not FTransaction.InTransaction then
-      FTransaction.StartTransaction;
-
+    IBSQL.Transaction := gdcBaseManager.ReadTransaction;
     IBSQL.SQL.Text := Format('SELECT name FROM gd_desktop WHERE userkey=%d AND ((screenres IS NULL) OR (screenres=%d))',
       [IBLogin.UserKey, GetScreenRes]);
     IBSQL.ExecQuery;
@@ -727,10 +722,6 @@ begin
       Inc(FDesktopCount);
       IBSQL.Next;
     end;
-    IBSQL.Close;
-
-    if FTransaction.InTransaction then
-      FTransaction.Commit;
   finally
     IBSQL.Free;
   end;
