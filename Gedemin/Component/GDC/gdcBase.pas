@@ -2238,7 +2238,9 @@ begin
         exit;
       end;
 
-      Assert(BL.GetDataSet = Obj, 'BookmarkList doesnt belong to the dataset');
+      if BL.GetDataSet <> Obj then
+        raise Exception.CreateFmt('BookmarkList doesnt belong to the dataset %s',
+          [Obj.Name]);
 
       {$ENDIF}
       BL.Refresh;
