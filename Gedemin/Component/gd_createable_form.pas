@@ -182,6 +182,9 @@ type
     property ResizerActivated: Boolean read FResizerActivated;
     property CreatedCarefully: Boolean read FCreatedCarefully;
 
+    // используетс€ дл€ локализации исключений в safecall ф-ци€х
+    function SafeCallException(ExceptObject: TObject; ExceptAddr: Pointer):
+      HResult; override;
   published
     property ShowSpeedButton: Boolean read GetShowSpeedButton write SetShowSpeedButton;
     property Caption: TCaption read GetText write SetText stored IsCaptionStored;
@@ -248,7 +251,7 @@ uses
   , gd_debug
   {$ENDIF}
   , evt_i_Base, PasswordDialog, gd_security, Storages, gsStorage_CompPath,
-  gd_Directories_const, Dialogs, gdc_frmG_unit, gdc_frmExplorer_unit,
+  gd_Directories_const, Dialogs, gdc_frmG_unit, gdc_frmExplorer_unit, ComObj,
   {$IFDEF LOCALIZATION}
   gd_localization,
   {$ENDIF}
@@ -1716,6 +1719,15 @@ begin
     end;
   end else}
     inherited;
+end;
+
+function TCreateableForm.SafeCallException(ExceptObject: TObject;
+  ExceptAddr: Pointer): HResult;
+const
+  TCreateableFormGUID: TGUID = '{F76E3058-A481-4966-9DAC-337F25CD2E97}';
+begin
+  Result := HandleSafeCallException(ExceptObject, ExceptAddr, TCreateableFormGUID,
+    String(ExceptObject.ClassName), '');
 end;
 
 initialization
