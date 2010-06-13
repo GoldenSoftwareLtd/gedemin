@@ -3054,6 +3054,9 @@ begin
       ibsql.Next;
     end;
 
+    if ibsql.RecordCount > 0 then
+      atDatabase.NotifyMultiConnectionTransaction;
+
     ibsql.Close;
     ibsql.SQL.Text := 'SELECT * FROM rdb$relation_constraints WHERE rdb$relation_name = :relname ' +
       'AND rdb$constraint_type = ''PRIMARY KEY'' ';
@@ -3084,24 +3087,6 @@ begin
           ' UPPER(SubType) = UPPER(''%s'')', [FieldByName('relationname').AsString]));
     end;
 
-    //Проверяем есть ли в таблице foreign keys
-    //Если есть, таблицу так сразу не удалишь, а только через переподключение к базе
-    ibsql.Close;
-    ibsql.SQL.Text := 'SELECT rc.rdb$constraint_name, rc.rdb$index_name, ' +
-      ' rf.rdb$update_rule, rf.rdb$delete_rule ' +
-      ' FROM rdb$relations r ' +
-      ' LEFT JOIN rdb$relation_constraints rc ' +
-      '   ON r.rdb$relation_name = rc.rdb$relation_name ' +
-      ' LEFT JOIN rdb$ref_constraints rf ' +
-      '   ON rf.rdb$constraint_name = rc.rdb$constraint_name ' +
-      ' WHERE ' +
-      '   rc.rdb$constraint_type = ''FOREIGN KEY''' +
-      '   AND r.rdb$relation_name = :relationname ';
-    ibsql.ParamByName('relationname').AsString := FieldByName('relationname').AsString;
-    ibsql.ExecQuery;
-
-    if ibsql.RecordCount > 0 then
-      atDatabase.NotifyMultiConnectionTransaction;
     ShowSQLProcess(FSQL);
 
   finally

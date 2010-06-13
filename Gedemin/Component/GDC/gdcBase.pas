@@ -10423,47 +10423,27 @@ var
   // возвращает первичный ключ для заданной таблицы
   function GetPrimary(const TableName: String): String;
   var
-    q: TIBSQL;
+    R: TatRelation;
   begin
-    q := TIBSQL.Create(Self);
-    try
-      q.Database := DataBase;
-      q.Transaction := Transaction;
-      q.SQL.Text :=
-        ' SELECT ' +
-        '   isg1.rdb$field_name primaryname ' +
-        ' FROM ' +
-        '   rdb$index_segments isg1 ' +
-        '   JOIN rdb$relation_constraints rc1 ON rc1.rdb$index_name = isg1.rdb$index_name ' +
-        ' WHERE ' +
-        '   rc1.rdb$relation_name = UPPER(''' + TableName + ''')' +
-        '   AND rc1.rdb$index_name = isg1.rdb$index_name ' +
-        '   AND rc1.rdb$constraint_type = ''PRIMARY KEY''';
-      q.ExecQuery;
-      Result := '';
-      while not q.Eof do
-      begin
-        if Result = '' then
-          Result := q.FieldByName('PrimaryName').AsTrimString
-        else
-          raise EgdcException.CreateObj('gdc.IsUse: Composite primary keys are not supported', Self);
-          // Result := Result + ';' + q.FieldByName('PrimaryName').AsTrimString;
-        q.Next;
-      end;
-    finally
-      q.Free;
+    R := atDatabase.Relations.ByRelationName(TableName);
+    if R = nil then
+      Result := ''
+    else begin
+      if R.PrimaryKey.ConstraintFields.Count <> 1 then
+        raise EgdcException.CreateObj('Composite primary keys are not supported', Self);
+      Result := R.PrimaryKey.ConstraintFields[0].FieldName;
     end;
   end;
 
-  procedure AddTable(TableName: String);
+  procedure AddTable(const TableName: String);
   var
     sql, sqlValue: TIBSQL;
     NewTable, NewPrimary: String;
 
   begin
     try
-      sql := TIBSQL.Create(Self);
-      sqlvalue := TIBSQL.Create(Self);
+      sql := TIBSQL.Create(nil);
+      sqlvalue := TIBSQL.Create(nil);
       try
         sql.Database := Database;
         sql.Transaction := Transaction;
@@ -10484,7 +10464,7 @@ var
           ' WHERE ' +
           '   rc1.rdb$relation_name = UPPER(''' + TableName + ''')' +
           '   AND rc3.rdb$constraint_type = ''PRIMARY KEY''' +
-          '   AND rrc.rdb$delete_rule = ''RESTRICT'' ' +
+          '   AND (rrc.rdb$delete_rule = ''RESTRICT'' OR rrc.rdb$delete_rule = ''NO ACTION'') ' +
           ' ORDER BY ' +
           '   rc2.rdb$relation_name ';
         sql.ExecQuery;
