@@ -4,14 +4,13 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gdc_frmMDVGr_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
+  gdc_frmSGr_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
   ComCtrls, gdcFKManager, IBCustomDataSet, gdcBase;
 
 type
-  Tgdc_frmFKManager = class(Tgdc_frmMDVGR)
+  Tgdc_frmFKManager = class(Tgdc_frmSGR)
     gdcFKManager: TgdcFKManager;
-    gdcFKManagerData: TgdcFKManagerData;
     actUpdateStats: TAction;
     tbiUpdateStats: TTBItem;
     actCancelUpdateStats: TAction;
@@ -52,7 +51,6 @@ begin
   gdcFKManager.SyncWithSystemMetadata;
 
   gdcObject := gdcFKManager;
-  gdcDetailObject := gdcFKManagerData;
 
   inherited;
 end;
@@ -123,7 +121,8 @@ begin
     begin
       gdcBaseManager.ExecSingleQuery('DELETE FROM at_transaction');
     end;
-  end else
+  end
+  else if I = 0 then
     MessageBox(Handle,
       'Нет записей для конвертирования.',
       'Внимание',

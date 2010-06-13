@@ -499,7 +499,6 @@ type
     function IndexOf(AObject: TObject): Integer; virtual; abstract;
 
     // возвращает список фореин-кеев для заданной таблицы
-    // ссылающихся на другие таблицы
     procedure ConstraintsByRelation(const RelationName: String;
       List: TObjectList); virtual; abstract;
     // возвращает список фореин-кеев, ссылающихся на заданную
@@ -509,7 +508,6 @@ type
 
     property Count: Integer read GetCount;
     property Items[Index: Integer]: TatForeignKey read GetItems; default;
-
   end;
 
   TatPrimaryKey = class(TObject)

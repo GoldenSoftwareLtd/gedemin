@@ -1473,6 +1473,26 @@ CREATE TABLE gd_ref_constraints (
   ref_state        char(8) character set none,
   ref_next_state   char(8) character set none,
 
+  constraint_rec_count COMPUTED BY (
+    (SELECT iif(i.rdb$statistics = 0, 0, Round(1/i.rdb$statistics)) FROM rdb$indices i
+      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
+        AND rc.rdb$constraint_type = 'PRIMARY KEY'
+      WHERE rc.rdb$relation_name = constraint_rel)),
+
+  constraint_uq_count COMPUTED BY (
+    (SELECT iif(i.rdb$statistics = 0, 0, Round(1/i.rdb$statistics)) FROM rdb$indices i
+      JOIN rdb$index_segments iseg ON iseg.rdb$index_name = i.rdb$index_name
+        AND iseg.rdb$field_name = constraint_field
+      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
+        AND rc.rdb$constraint_type = 'FOREIGN KEY'
+      WHERE i.rdb$relation_name = constraint_rel AND i.rdb$segment_count = 1)),
+
+  ref_rec_count COMPUTED BY (
+    (SELECT iif(i.rdb$statistics = 0, 0, Round(1/i.rdb$statistics)) FROM rdb$indices i
+      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
+        AND rc.rdb$constraint_type = 'PRIMARY KEY'
+      WHERE rc.rdb$relation_name = ref_rel)),
+
   CONSTRAINT gd_pk_ref_constraint PRIMARY KEY (id),
   CONSTRAINT gd_chk1_ref_contraint CHECK (ref_state IN ('ORIGINAL', 'TRIGGER')),
   CONSTRAINT gd_chk2_ref_contraint CHECK (ref_next_state IN ('ORIGINAL', 'TRIGGER'))
