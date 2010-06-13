@@ -1,6 +1,6 @@
 inherited gdc_frmFKManager: Tgdc_frmFKManager
-  Left = 305
-  Top = 210
+  Left = 302
+  Top = 150
   Width = 870
   Height = 640
   Caption = 'gdc_frmFKManager'
@@ -56,14 +56,12 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
   inherited pnlWorkArea: TPanel
     Width = 844
     Height = 536
-    inherited sMasterDetail: TSplitter
-      Height = 433
-    end
     inherited spChoose: TSplitter
       Top = 433
       Width = 844
     end
     inherited pnlMain: TPanel
+      Width = 844
       Height = 433
       inherited pnlSearchMain: TPanel
         Height = 433
@@ -75,6 +73,7 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
         end
       end
       inherited ibgrMain: TgsIBGrid
+        Width = 684
         Height = 433
       end
     end
@@ -91,46 +90,20 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
         Width = 844
       end
     end
-    inherited pnlDetail: TPanel
-      Width = 615
-      Height = 433
-      inherited TBDockDetail: TTBDock
-        Width = 615
-        inherited tbDetailToolbar: TTBToolbar
-          Images = dmImages.il16x16
-        end
-        inherited tbDetailCustom: TTBToolbar
-          Left = 275
-        end
-      end
-      inherited pnlSearchDetail: TPanel
-        Height = 407
-        inherited sbSearchDetail: TScrollBox
-          Height = 369
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 369
-        end
-      end
-      inherited ibgrDetail: TgsIBGrid
-        Width = 455
-        Height = 407
-      end
-    end
   end
   inherited alMain: TActionList
     object actUpdateStats: TAction
       Category = 'Main'
-      Caption = 'Обновить статистику'
-      Hint = 'Обновить статистику'
+      Caption = 'Анализ...'
+      Hint = 'Анализировать внешние ключи'
       ImageIndex = 209
       OnExecute = actUpdateStatsExecute
       OnUpdate = actUpdateStatsUpdate
     end
     object actCancelUpdateStats: TAction
       Category = 'Main'
-      Caption = 'Прервать обновление статистики'
-      Hint = 'Прервать обновление статистики'
+      Caption = 'Прервать анализ'
+      Hint = 'Прервать процесс анализа внешних ключей'
       ImageIndex = 207
       OnExecute = actCancelUpdateStatsExecute
       OnUpdate = actCancelUpdateStatsUpdate
@@ -147,19 +120,8 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
   inherited dsMain: TDataSource
     DataSet = gdcFKManager
   end
-  inherited dsDetail: TDataSource
-    DataSet = gdcFKManagerData
-  end
   object gdcFKManager: TgdcFKManager
     Left = 182
     Top = 187
-  end
-  object gdcFKManagerData: TgdcFKManagerData
-    MasterSource = dsMain
-    MasterField = 'id'
-    DetailField = 'constraintkey'
-    SubSet = 'ByRefConstraint'
-    Left = 440
-    Top = 248
   end
 end

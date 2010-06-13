@@ -76,8 +76,8 @@ uses
   IBDatabase, IBSQL, SysUtils, at_dlgFKManager_params_unit, Forms, Controls;
 
 const
-  MinRecCount: Integer         = 10000;
-  MaxUqCount: Integer          = 200;
+  MinRecCount: Integer         = 20000;
+  MaxUqCount: Integer          = 40;
   DontProcessCyclicRef:Boolean = True;
 
 procedure Register;
@@ -375,7 +375,7 @@ begin
         'Предыдущее изменение структуры БД не было завершено. Перезапустите Гедымин.',
         'Внимание',
         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-      Result := 0;
+      Result := -1;
       exit;
     end;
 
@@ -513,6 +513,16 @@ begin
     q.Transaction := Tr;
 
     q.SQL.Text :=
+      'DELETE FROM gd_ref_constraints WHERE constraint_rel NOT IN ' +
+      '  (SELECT rdb$relation_name FROM rdb$relations) ';
+    q.ExecQuery;
+
+    q.SQL.Text :=
+      'DELETE FROM gd_ref_constraints WHERE ref_rel NOT IN ' +
+      '  (SELECT rdb$relation_name FROM rdb$relations) ';
+    q.ExecQuery;
+
+    q.SQL.Text :=
       'DELETE FROM gd_ref_constraints WHERE constraint_name NOT IN ' +
       '  (SELECT rdb$constraint_name FROM rdb$ref_constraints) AND ref_state = ''ORIGINAL'' ';
     q.ExecQuery;
@@ -635,15 +645,12 @@ procedure TgdcFKManagerThread.Execute;
 var
   FDB: TIBDatabase;
   Tr: TIBTransaction;
-  qList, qCalc, qInsert, qDelete: TIBSQL;
-  TotalRecCount: Integer;
+  qList, qCalc: TIBSQL;
 begin
   FDB := TIBDatabase.Create(nil);
   Tr := TIBTransaction.Create(nil);
   qList := TIBSQL.Create(nil);
   qCalc := TIBSQL.Create(nil);
-  qInsert := TIBSQL.Create(nil);
-  qDelete := TIBSQL.Create(nil);
   try
     FDB.DatabaseName := gdcBaseManager.Database.DatabaseName;
     FDB.Params.Assign(gdcBaseManager.Database.Params);
@@ -654,76 +661,23 @@ begin
     Tr.StartTransaction;
 
     qCalc.Transaction := Tr;
-    qCalc.SQL.Text := 'DELETE FROM gd_ref_constraint_data WHERE constraintkey IN ' +
-      '(SELECT id FROM gd_ref_constraints WHERE ref_state = ''ORIGINAL'')';
-    qCalc.ExecQuery;
-
-    qInsert.Transaction := Tr;
-    qInsert.SQL.Text := 'INSERT INTO gd_ref_constraint_data (constraintkey, value_data, value_count) ' +
-      'VALUES (:CK, :VD, :VC) ';
-
-    qDelete.Transaction := Tr;
-    qDelete.SQL.Text := 'DELETE FROM gd_ref_constraint_data WHERE constraintkey = :CK';
 
     qList.Transaction := Tr;
-    qList.SQL.Text := 'SELECT RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''1'') FROM rdb$database';
-    qList.ExecQuery;
-
-    qList.Close;
-    qList.SQL.Text := 'SELECT COUNT(*) FROM gd_ref_constraints WHERE ref_state = ''ORIGINAL'' ';
-    if DontProcessCyclicRef then
-      qList.SQL.Add('AND constraint_rel <> ref_rel');
+    qList.SQL.Text := 'SELECT COUNT(rdb$index_name) FROM rdb$indices';
     qList.ExecQuery;
     FTotalCount := qList.Fields[0].AsInteger;
     FDone := 0;
     Synchronize(InitScreen);
 
     qList.Close;
-    qList.SQL.Text := 'SELECT * FROM gd_ref_constraints WHERE ref_state = ''ORIGINAL'' ';
-    if DontProcessCyclicRef then
-      qList.SQL.Add('AND constraint_rel <> ref_rel');
+    qList.SQL.Text := 'SELECT rdb$index_name FROM rdb$indices';
     qList.ExecQuery;
 
     while (not Terminated) and (not qList.EOF) do
     begin
       qCalc.Close;
-      qCalc.SQL.Text :=
-        'SELECT ' + qList.FieldByName('constraint_field').AsTrimString + ', COUNT(*)' +
-        ' FROM ' + qList.FieldByName('constraint_rel').AsTrimString +
-        ' GROUP BY 1';
+      qCalc.SQL.Text := 'SET STATISTICS INDEX "' + qList.Fields[0].AsTrimString + '"';
       qCalc.ExecQuery;
-
-      TotalRecCount := 0;
-      while (not Terminated) and (not qCalc.EOF) do
-      begin
-        qInsert.ParamByName('CK').AsInteger := qList.FieldByName('id').AsInteger;
-        if qCalc.Fields[0].IsNull then
-          qInsert.ParamByName('VD').Clear
-        else
-          qInsert.ParamByName('VD').AsInteger := qCalc.Fields[0].AsInteger;
-        qInsert.ParamByName('VC').AsInteger := qCalc.Fields[1].AsInteger;
-        qInsert.ExecQuery;
-
-        if qCalc.RecordCount > MaxUqCount then
-        begin
-          qDelete.ParamByName('CK').AsInteger := qList.FieldByName('id').AsInteger;
-          qDelete.ExecQuery;
-          break;
-        end;
-
-        TotalRecCount := TotalRecCount + qCalc.Fields[1].AsInteger;
-
-        qCalc.Next;
-      end;
-
-      if Terminated then
-        break;
-
-      if TotalRecCount <= MinRecCount then
-      begin
-        qDelete.ParamByName('CK').AsInteger := qList.FieldByName('id').AsInteger;
-        qDelete.ExecQuery;
-      end;
 
       Inc(FDone);
       Synchronize(UpdateScreen);
@@ -733,31 +687,41 @@ begin
 
     qList.Close;
 
+    Tr.Commit;
+
     if not Terminated then
     begin
-      qList.SQL.Text := 'UPDATE gd_ref_constraints SET ref_next_state = ''ORIGINAL'' ' +
-        'WHERE id NOT IN (SELECT constraintkey FROM gd_ref_constraint_data) ';
-      qList.ExecQuery;
-
-      qList.SQL.Text := 'UPDATE gd_ref_constraints c SET c.ref_next_state = ''ORIGINAL'' ' +
-        'WHERE (SELECT COUNT(*) FROM gd_ref_constraint_data d WHERE d.constraintkey = c.id) > ' +
-        IntToStr(MaxUqCount);
-      qList.ExecQuery;
+      Tr.StartTransaction;
 
       qList.SQL.Text := 'UPDATE gd_ref_constraints SET ref_next_state = ''TRIGGER'' ' +
-        'WHERE id IN (SELECT constraintkey FROM gd_ref_constraint_data) ';
+        'WHERE constraint_rec_count > :CRC AND constraint_uq_count <= :CUC ' +
+        '  AND ref_next_state <> ''TRIGGER'' AND ref_state = ''ORIGINAL'' ';
+      if DontProcessCyclicRef then
+        qList.SQL.Text := qList.SQL.Text +
+          ' AND constraint_rel <> ref_rel ';
+      qList.ParamByName('CRC').AsInteger := MinRecCount;
+      qList.ParamByName('CUC').AsInteger := MaxUqCount;
       qList.ExecQuery;
+
+      qList.SQL.Text := 'UPDATE gd_ref_constraints SET ref_next_state = ''ORIGINAL'' ' +
+        'WHERE (constraint_rec_count <= :CRC OR constraint_uq_count > :CUC) ' +
+        '  AND ref_next_state <> ''ORIGINAL'' AND ref_state = ''ORIGINAL'' ';
+      qList.ParamByName('CRC').AsInteger := MinRecCount;
+      qList.ParamByName('CUC').AsInteger := MaxUqCount;
+      qList.ExecQuery;
+
+      if DontProcessCyclicRef then
+      begin
+        qList.SQL.Text := 'UPDATE gd_ref_constraints SET ref_next_state = ''ORIGINAL'' ' +
+          'WHERE constraint_rel = ref_rel AND ref_next_state <> ''ORIGINAL'' ';
+        qList.ExecQuery;
+      end;
 
       Tr.Commit;
       Synchronize(DoneScreen);
     end else
-    begin
-      Tr.Rollback;
       Synchronize(ClearScreen);
-    end;
   finally
-    qDelete.Free;
-    qInsert.Free;
     qCalc.Free;
     qList.Free;
     Tr.Free;

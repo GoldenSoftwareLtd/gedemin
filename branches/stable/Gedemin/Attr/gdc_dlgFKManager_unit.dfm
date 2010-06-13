@@ -2,33 +2,33 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
   Left = 350
   Top = 202
   Caption = 'gdc_dlgFKManager'
-  ClientHeight = 338
-  ClientWidth = 384
+  ClientHeight = 363
+  ClientWidth = 446
   Font.Charset = DEFAULT_CHARSET
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 310
+    Top = 334
   end
   inherited btnNew: TButton
-    Top = 310
+    Top = 334
   end
   inherited btnHelp: TButton
-    Top = 310
+    Top = 334
   end
   inherited btnOK: TButton
-    Left = 240
-    Top = 310
+    Left = 300
+    Top = 334
     Anchors = []
   end
   inherited btnCancel: TButton
-    Left = 313
-    Top = 310
+    Left = 373
+    Top = 334
   end
   inherited pgcMain: TPageControl
-    Width = 377
-    Height = 296
+    Width = 437
+    Height = 320
     inherited tbsMain: TTabSheet
       object Label1: TLabel
         Left = 8
@@ -93,10 +93,55 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         Height = 13
         Caption = 'Конвертировать:'
       end
+      object Label10: TLabel
+        Left = 304
+        Top = 61
+        Width = 45
+        Height = 13
+        Caption = 'Записей:'
+      end
+      object DBText1: TDBText
+        Left = 354
+        Top = 61
+        Width = 74
+        Height = 17
+        DataField = 'CONSTRAINT_REC_COUNT'
+        DataSource = dsgdcBase
+      end
+      object Label11: TLabel
+        Left = 304
+        Top = 117
+        Width = 45
+        Height = 13
+        Caption = 'Записей:'
+      end
+      object DBText2: TDBText
+        Left = 354
+        Top = 117
+        Width = 74
+        Height = 17
+        DataField = 'REF_REC_COUNT'
+        DataSource = dsgdcBase
+      end
+      object Label12: TLabel
+        Left = 304
+        Top = 85
+        Width = 47
+        Height = 13
+        Caption = 'Ун. знач:'
+      end
+      object DBText3: TDBText
+        Left = 354
+        Top = 85
+        Width = 74
+        Height = 17
+        DataField = 'CONSTRAINT_UQ_COUNT'
+        DataSource = dsgdcBase
+      end
       object dbedConstraintName: TDBEdit
-        Left = 120
+        Left = 112
         Top = 32
-        Width = 241
+        Width = 185
         Height = 21
         Color = clBtnFace
         DataField = 'CONSTRAINT_NAME'
@@ -104,9 +149,9 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         TabOrder = 1
       end
       object dbedConstraintRel: TDBEdit
-        Left = 120
+        Left = 112
         Top = 56
-        Width = 241
+        Width = 185
         Height = 21
         Color = clBtnFace
         DataField = 'CONSTRAINT_REL'
@@ -114,9 +159,9 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         TabOrder = 2
       end
       object dbedConstraintField: TDBEdit
-        Left = 120
+        Left = 112
         Top = 80
-        Width = 241
+        Width = 185
         Height = 21
         Color = clBtnFace
         DataField = 'CONSTRAINT_FIELD'
@@ -124,9 +169,9 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         TabOrder = 3
       end
       object dbedRefRel: TDBEdit
-        Left = 120
+        Left = 112
         Top = 112
-        Width = 241
+        Width = 185
         Height = 21
         Color = clBtnFace
         DataField = 'REF_REL'
@@ -134,19 +179,19 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         TabOrder = 4
       end
       object dbedRefField: TDBEdit
-        Left = 120
+        Left = 112
         Top = 136
-        Width = 241
+        Width = 185
         Height = 21
         Color = clBtnFace
-        DataField = 'REF_REL'
+        DataField = 'REF_FIELD'
         DataSource = dsgdcBase
         TabOrder = 5
       end
       object dbedUpdateRule: TDBEdit
-        Left = 120
+        Left = 112
         Top = 160
-        Width = 241
+        Width = 185
         Height = 21
         Color = clBtnFace
         DataField = 'UPDATE_RULE'
@@ -154,9 +199,9 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         TabOrder = 6
       end
       object dbedDeleteRule: TDBEdit
-        Left = 120
+        Left = 112
         Top = 184
-        Width = 241
+        Width = 185
         Height = 21
         Color = clBtnFace
         DataField = 'DELETE_RULE'
@@ -164,9 +209,9 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         TabOrder = 7
       end
       object dbedRefState: TDBEdit
-        Left = 120
+        Left = 112
         Top = 216
-        Width = 241
+        Width = 185
         Height = 21
         Color = clBtnFace
         DataField = 'REF_STATE'
@@ -174,9 +219,9 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
         TabOrder = 8
       end
       object dbcbRefNextState: TDBComboBox
-        Left = 120
+        Left = 112
         Top = 240
-        Width = 241
+        Width = 185
         Height = 21
         DataField = 'REF_NEXT_STATE'
         DataSource = dsgdcBase
@@ -186,11 +231,23 @@ inherited gdc_dlgFKManager: Tgdc_dlgFKManager
           'TRIGGER')
         TabOrder = 0
       end
+      object Button1: TButton
+        Left = 222
+        Top = 266
+        Width = 75
+        Height = 21
+        Action = actShowValues
+        TabOrder = 9
+      end
     end
   end
   inherited alBase: TActionList
     Left = 310
     Top = 15
+    object actShowValues: TAction
+      Caption = 'Значения...'
+      OnExecute = actShowValuesExecute
+    end
   end
   inherited dsgdcBase: TDataSource
     Left = 288
