@@ -35,24 +35,21 @@ const
     '  ref_next_state   char(8) character set none, '#13#10 +
     ' '#13#10 +
     '  constraint_rec_count COMPUTED BY ('#13#10 +
-    '    (SELECT iif(i.rdb$statistics = 0, 0, Round(1/i.rdb$statistics)) FROM rdb$indices i'#13#10 +
+    '    (SELECT iif(i.rdb$statistics = 0, 0, Ceil(1/i.rdb$statistics)) FROM rdb$indices i'#13#10 +
     '      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name'#13#10 +
-    '        AND rc.rdb$constraint_type = ''PRIMARY KEY'' '#13#10 +
-    '      WHERE rc.rdb$relation_name = constraint_rel)),'#13#10 +
+    '      WHERE rc.rdb$relation_name = constraint_rel AND rc.rdb$constraint_type = ''PRIMARY KEY'')),'#13#10 +
     ''#13#10 +
     '  constraint_uq_count COMPUTED BY ('#13#10 +
-    '    (SELECT iif(i.rdb$statistics = 0, 0, Round(1/i.rdb$statistics)) FROM rdb$indices i'#13#10 +
+    '    (SELECT iif(i.rdb$statistics = 0, 0, Ceil(1/i.rdb$statistics)) FROM rdb$indices i'#13#10 +
     '      JOIN rdb$index_segments iseg ON iseg.rdb$index_name = i.rdb$index_name'#13#10 +
     '        AND iseg.rdb$field_name = constraint_field'#13#10 +
     '      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name'#13#10 +
-    '        AND rc.rdb$constraint_type = ''FOREIGN KEY'' '#13#10 +
-    '      WHERE i.rdb$relation_name = constraint_rel AND i.rdb$segment_count = 1)),'#13#10 +
+    '      WHERE i.rdb$relation_name = constraint_rel AND i.rdb$segment_count = 1 AND rc.rdb$constraint_type = ''FOREIGN KEY'')),'#13#10 +
     ''#13#10 +
     '  ref_rec_count COMPUTED BY ('#13#10 +
-    '    (SELECT iif(i.rdb$statistics = 0, 0, Round(1/i.rdb$statistics)) FROM rdb$indices i'#13#10 +
+    '    (SELECT iif(i.rdb$statistics = 0, 0, Ceil(1/i.rdb$statistics)) FROM rdb$indices i'#13#10 +
     '      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name'#13#10 +
-    '        AND rc.rdb$constraint_type = ''PRIMARY KEY'' '#13#10 +
-    '      WHERE rc.rdb$relation_name = ref_rel)),'#13#10 +
+    '      WHERE rc.rdb$relation_name = ref_rel AND rc.rdb$constraint_type = ''PRIMARY KEY'')),'#13#10 +
     ' '#13#10 +
     '  CONSTRAINT gd_pk_ref_constraint PRIMARY KEY (id), '#13#10 +
     '  CONSTRAINT gd_chk1_ref_contraint CHECK (ref_state IN (''ORIGINAL'', ''TRIGGER'')), '#13#10 +

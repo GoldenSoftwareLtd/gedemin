@@ -6,6 +6,7 @@ uses
   Controls;
 
 const
+  {$IFNDEF GEDEMIN}
   cPrimaryFieldSQL =    '/* Вытягиваем PRIMARY KEY */ '#13#10 +
                         'SELECT '#13#10 +
                         '  isg1.RDB$FIELD_NAME PrimaryName '#13#10 +
@@ -16,6 +17,7 @@ const
                         '  rc1.RDB$RELATION_NAME = :tablename '#13#10 +
                         '  AND rc1.RDB$INDEX_NAME = isg1.RDB$INDEX_NAME '#13#10 +
                         '  AND rc1.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY''';
+  {$ENDIF}                      
 
   cForeignFieldSQL =    '/* Вытягиваем связи много к одному (FOREIGN KEY) */ '#13#10 +
                         'SELECT '#13#10 +

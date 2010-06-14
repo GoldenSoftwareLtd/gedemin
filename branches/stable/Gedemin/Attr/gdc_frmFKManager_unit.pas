@@ -28,6 +28,7 @@ type
     procedure actCancelUpdateStatsExecute(Sender: TObject);
     procedure actConvertFKExecute(Sender: TObject);
     procedure actConvertFKUpdate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
 
   private
     procedure WM_UpdateStats(var Msg: TMessage); message WM_UPDATESTATS;
@@ -49,9 +50,7 @@ uses
 procedure Tgdc_frmFKManager.FormCreate(Sender: TObject);
 begin
   gdcFKManager.SyncWithSystemMetadata;
-
   gdcObject := gdcFKManager;
-
   inherited;
 end;
 
@@ -136,6 +135,12 @@ begin
     and (pbUpdateStats.Position = pbUpdateStats.Max)}
     and (IBLogin <> nil)
     and IBLogin.IsIBUserAdmin;
+end;
+
+procedure Tgdc_frmFKManager.FormDestroy(Sender: TObject);
+begin
+  gdcFKManager.CleanFKList;
+  inherited;
 end;
 
 initialization

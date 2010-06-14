@@ -46,6 +46,7 @@ type
     procedure DoAfterOpen; override;
 
     procedure SyncWithSystemMetadata;
+    procedure CleanFKList;
     procedure UpdateStats(AHandle: THandle);
     function IsUpdateStatsRunning: Boolean;
     procedure CancelUpdateStats;
@@ -94,6 +95,31 @@ begin
   begin
     FThread.Terminate;
     FThread.WaitFor;
+  end;
+end;
+
+procedure TgdcFKManager.CleanFKList;
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    q.SQL.Text :=
+      'DELETE FROM gd_ref_constraints WHERE ref_state = ref_next_state ' +
+      '  AND ref_next_state = ''ORIGINAL'' ';
+    q.ExecQuery;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
   end;
 end;
 
@@ -173,12 +199,12 @@ const
     '  IF (NEW.<ref_field> = OLD.<ref_field>) THEN'#13#10 +
     '    EXIT;'#13#10 +
     ''#13#10 +
+    '  <update_rule_code>'#13#10 +
+    ''#13#10 +
     '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''1'');'#13#10 +
     '  UPDATE gd_ref_constraint_data SET value_data = NEW.<ref_field> WHERE value_data = OLD.<ref_field>'#13#10 +
     '    AND constraintkey = <constraint_key>;'#13#10 +
     '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''0'');'#13#10 +
-    ''#13#10 +
-    '  <update_rule_code>'#13#10 +
     'END';
 
   c_ad_ref_rel_name = 'gd_ad_ref_rel_<constraint_key>';
@@ -189,12 +215,12 @@ const
     '  POSITION 32000'#13#10 +
     'AS'#13#10 +
     'BEGIN'#13#10 +
+    '  <delete_rule_code>'#13#10 +
+    ''#13#10 +
     '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''1'');'#13#10 +
     '  DELETE FROM gd_ref_constraint_data WHERE value_data = OLD.<ref_field>'#13#10 +
     '    AND constraintkey = <constraint_key>;'#13#10 +
     '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''0'');'#13#10 +
-    ''#13#10 +
-    '  <delete_rule_code>'#13#10 +
     'END';
 
   c_bi_ref_rel_name = 'gd_bi_ref_rel_<constraint_key>';
@@ -231,7 +257,9 @@ var
 
   function ExpandMetaVariables(const S: String): String;
   begin
-    Result := StringReplace(S, '<constraint_field>',
+    Result := StringReplace(S, '<except_message>',
+      c_e_message, [rfIgnoreCase, rfReplaceAll]);
+    Result := StringReplace(Result, '<constraint_field>',
       qList.FieldByName('constraint_field').AsTrimString, [rfIgnoreCase, rfReplaceAll]);
     Result := StringReplace(Result, '<constraint_rel>',
       qList.FieldByName('constraint_rel').AsTrimString, [rfIgnoreCase, rfReplaceAll]);
@@ -399,10 +427,13 @@ begin
       qList.Next;
     end;
 
-    if qList.RecordCount > 0 then
+    {if qList.RecordCount > 0 then
       InsertScript('DELETE FROM gd_ref_constraint_data WHERE constraintkey IN ' +
         '(SELECT id FROM gd_ref_constraints WHERE ref_state = ''ORIGINAL'' ' +
-        '  AND ref_state = ref_next_state)');
+        '  AND ref_state = ref_next_state)');}
+
+    InsertScript('DELETE FROM gd_ref_constraints WHERE ref_state = ref_next_state ' +
+      '  AND ref_next_state = ''ORIGINAL'' ');
 
     Result := qList.RecordCount;
     Tr.Commit;
@@ -644,11 +675,12 @@ end;
 procedure TgdcFKManagerThread.Execute;
 var
   FDB: TIBDatabase;
-  Tr: TIBTransaction;
+  Tr, TrStat: TIBTransaction;
   qList, qCalc: TIBSQL;
 begin
   FDB := TIBDatabase.Create(nil);
   Tr := TIBTransaction.Create(nil);
+  TrStat := TIBTransaction.Create(nil);
   qList := TIBSQL.Create(nil);
   qCalc := TIBSQL.Create(nil);
   try
@@ -660,7 +692,8 @@ begin
     Tr.DefaultDatabase := FDB;
     Tr.StartTransaction;
 
-    qCalc.Transaction := Tr;
+    TrStat.DefaultDatabase := FDB;
+    qCalc.Transaction := TrStat;
 
     qList.Transaction := Tr;
     qList.SQL.Text := 'SELECT COUNT(rdb$index_name) FROM rdb$indices';
@@ -675,9 +708,11 @@ begin
 
     while (not Terminated) and (not qList.EOF) do
     begin
-      qCalc.Close;
+      TrStat.StartTransaction;
       qCalc.SQL.Text := 'SET STATISTICS INDEX "' + qList.Fields[0].AsTrimString + '"';
       qCalc.ExecQuery;
+      qCalc.Close;
+      TrStat.Commit;
 
       Inc(FDone);
       Synchronize(UpdateScreen);
@@ -687,12 +722,8 @@ begin
 
     qList.Close;
 
-    Tr.Commit;
-
     if not Terminated then
     begin
-      Tr.StartTransaction;
-
       qList.SQL.Text := 'UPDATE gd_ref_constraints SET ref_next_state = ''TRIGGER'' ' +
         'WHERE constraint_rec_count > :CRC AND constraint_uq_count <= :CUC ' +
         '  AND ref_next_state <> ''TRIGGER'' AND ref_state = ''ORIGINAL'' ';
@@ -717,14 +748,16 @@ begin
         qList.ExecQuery;
       end;
 
-      Tr.Commit;
       Synchronize(DoneScreen);
     end else
       Synchronize(ClearScreen);
+
+    Tr.Commit;
   finally
     qCalc.Free;
     qList.Free;
     Tr.Free;
+    TrStat.Free;
     FDB.Free;
     FFinished := True;
   end;
