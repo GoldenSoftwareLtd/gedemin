@@ -10411,7 +10411,7 @@ begin
     ClientReport.BuildReport(Unassigned, ID);
 end;
 
-procedure TgdcBase.isUse;
+procedure TgdcBase.IsUse;
 var
   I: Integer;
   LI: TListItem;
@@ -10437,11 +10437,44 @@ var
 
   procedure AddTable(const TableName: String);
   var
-    sql, sqlValue: TIBSQL;
-    NewTable, NewPrimary: String;
-
+    sql: TIBSQL;
+    I: Integer;
+    FK: TatForeignKey;
+    Lst: TObjectList;
   begin
+    sql := TIBSQL.Create(nil);
+    Lst := TObjectList.Create(False);
     try
+      if Transaction.InTransaction then
+        sql.Transaction := Transaction
+      else
+        sql.Transaction := ReadTransaction;
+
+      atDatabase.ForeignKeys.ConstraintsByReferencedRelation(TableName, Lst);
+      for I := 0 to Lst.Count - 1 do
+      begin
+        FK := Lst[I] as TatForeignKey;
+
+        if FK.IsSimpleKey {and (FK.DeleteRule in [udrRestrict, udrNoAction])} then
+        begin
+          sql.Close;
+          sql.SQL.Text := 'SELECT * FROM ' + FK.Relation.RelationName +
+            ' WHERE ' + FK.ConstraintFields[0].FieldName + '=' + FKey;
+          sql.ExecQuery;
+          if not sql.EOF then
+          begin
+            FTableList.Add(FK.Relation.RelationName);
+            FForeignList.Add(FK.ConstraintFields[0].FieldName);
+            FKeyList.Add(GetPrimary(FK.Relation.RelationName));
+          end;
+        end;
+      end;
+    finally
+      Lst.Free;
+      sql.Free;
+    end;
+
+    {try
       sql := TIBSQL.Create(nil);
       sqlvalue := TIBSQL.Create(nil);
       try
@@ -10503,7 +10536,7 @@ var
         sqlValue.Free;
       end;
     except
-    end;
+    end;}
   end;
 
 var
@@ -10516,7 +10549,7 @@ var
   FNotEof: Boolean;
 begin
   if UserStorage.ReadBoolean('Options', 'DelSilent', False, False) then
-   exit;
+    exit;
 
   if (GlobalStorage.ReadInteger('Options\Policy',
     GD_POL_CASC_ID, GD_POL_CASC_MASK, False) and IBLogin.InGroup) = 0 then
@@ -10540,7 +10573,7 @@ begin
 
     Assert(FKeyField > '', 'У таблицы отсутствует ключевое поле.');
     AddTable(FTable);
-//вытягиваем все таблицы, которые имеют с главной таблицей связь 1:1
+    //вытягиваем все таблицы, которые имеют с главной таблицей связь 1:1
     OL := TObjectList.Create(False);
     try
       atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
@@ -10560,13 +10593,15 @@ begin
       OL.Free;
     end;
 
-
     if FTableList.Count <> 0 then
     begin
       qryID := TIBSQL.Create(nil);
-      qryID.Database := Database;
-      qryID.Transaction := Transaction;
       try
+        if Transaction.InTransaction then
+          qryID.Transaction := Transaction
+        else
+          qryID.Transaction := ReadTransaction;
+
         with TdlgTableValues.Create(Self) do
         try
           lvTables.Items.BeginUpdate;
@@ -10591,7 +10626,7 @@ begin
             //создаем объект класса по id
             if FC.gdClass.ClassName <> 'TgdcInvBaseRemains' then
             begin
-              gdcCurrClass := FC.gdClass.CreateSingularByID(Self,
+              gdcCurrClass := FC.gdClass.CreateSingularByID(nil,
                 qryID.FieldByName(fnID).AsInteger, FC.SubType);
               try
                 //Добавляем все ID  в список
@@ -10604,24 +10639,21 @@ begin
                 end;
                 //Устанавливаем флаг, считали ли мы весь объект
                 FNotEof := not qryID.Eof;
-                qryID.FreeHandle;
+                qryID.Close;
                 //по текущей записи находим конкретный класс объекта
                 FC := gdcCurrClass.GetCurrRecordClass;
                 if not Assigned(FC.gdClass) then
                   raise EgdcException.Create(Format('Для таблицы "%s" не найден бизнес-класс! ', [FTableList[I]]));
 
                 //создаем объект, чтобы вытянуть его отображаемое имя и добавляем его в список
-                gdcClassByRecord := FC.gdClass.CreateSubType(Self, FC.SubType);
+                gdcClassByRecord := FC.gdClass.CreateSubType(nil, FC.SubType);
                 try
                   if (gdcClassByRecord is TgdcDocument) then
                   begin
                     GroupName := gdcClassByRecord.GetDisplayName(gdcClassByRecord.SubType) +
                       ' (' + (gdcClassByRecord as TgdcDocument).DocumentName[False] + ')';
-                  end
-                  else
-                  begin
+                  end else
                     GroupName := gdcClassByRecord.GetDisplayName(gdcClassByRecord.SubType);
-                  end;
 
                   AddNewObject(GroupName, FC, IDList, FNotEof);
                   LI := lvTables.Items.Add;
@@ -10814,7 +10846,8 @@ begin
   except
     on E: EIBError do
     begin
-      if (E.IBErrorCode = isc_foreign_key)
+      if ((E.IBErrorCode = isc_foreign_key) or ((E.IBErrorCode = isc_except) and (
+          StrIPos('GD_E_FKMANAGER', E.Message) > 0)))
         and (sView in FBaseState) then
       begin
         // Покажем администатору текст ошибки, чтобы можно было найти ссылающиеся записи
@@ -12760,7 +12793,8 @@ begin
   except
     on Ex: EIBError do
     begin
-      if Ex.IBErrorCode = isc_foreign_key then
+      if (Ex.IBErrorCode = isc_foreign_key) or ((Ex.IBErrorCode = isc_except) and (
+        StrIPos('GD_E_FKMANAGER', Ex.Message) > 0)) then
       begin
         isUse;
         Abort;
