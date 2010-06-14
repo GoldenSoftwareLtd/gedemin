@@ -254,7 +254,9 @@ begin
   FConditionLink := TfltStringList.Create;
   FFunctionList := TStringList.Create;
 
+  {$IFNDEF GEDEMIN}
   ibsqlPrimaryField.SQL.Text := cPrimaryFieldSQL;
+  {$ENDIF}
   ibsqlForeignField.SQL.Text := cForeignFieldSQL;
   ibsqlSimpleField.SQL.Text := cSimpleFieldSQL;
   ibsqlSetField.SQL.Text := cSetFieldSQL;
@@ -459,8 +461,10 @@ end;
 // Присваиваем датабэйз и транзакцию все элементам
 procedure TdlgShowFilter.FullIBParams;
 begin
+  {$IFNDEF GEDEMIN}
   ibsqlPrimaryField.Database := Database;
   ibsqlPrimaryField.Transaction := Transaction;
+  {$ENDIF}
   ibsqlForeignField.Database := Database;
   ibsqlForeignField.Transaction := Transaction;
   ibsqlSimpleField.Database := Database;
@@ -724,42 +728,34 @@ begin
     // Определяем список таблиц
     AnLocalTable := GetFieldName(AnLocalTable, AnTableName);
 
-    {ibqryTableName.Open;
-    if ibqryTableName.Locate('tablename', AnTableName, []) then
-      AnLocalTable := Trim(ibqryTableName.FieldByName('name').AsString)
-    else
-      AnLocalTable := AnTableName;}
-
-    // Определяем аттрибуты
-{    ibqryAttrRef.Close;
-    ibqryAttrRef.Params[0].AsString := AnTableName;
-    ibqryAttrRef.Open;}
-
-    OnlySimpleFields := False;
     // Определяем PRIMARY KEY
+    OnlySimpleFields := False;
+    {$IFNDEF GEDEMIN}
     ibsqlPrimaryField.Close;
     ibsqlPrimaryField.Params[0].AsString := AnTableName;
     ibsqlPrimaryField.ExecQuery;
     if not ibsqlPrimaryField.Eof then
     begin
-      AnPrimaryName := Trim(ibsqlPrimaryField.Fields[0].AsString);
+      AnPrimaryName := ibsqlPrimaryField.Fields[0].AsTrimString;
       ibsqlPrimaryField.Next;
       if not ibsqlPrimaryField.Eof then
       begin
-      //{gs}  MessageBox(Self.Handle, PChar(Format('У таблицы %s больше, чем один PRIMARY KEY.', [AnTableName])), 'Внимание',
-      //   MB_OK or MB_ICONINFORMATION);
-         OnlySimpleFields := True;
-        //Result := False;
-        //Exit;
+        OnlySimpleFields := True;
       end;
     end else
     begin
-      //{gs}MessageBox(Self.Handle, PChar(Format('У таблицы %s отсутствует PRIMARY KEY.', [AnTableName])), 'Внимание',
-      // MB_OK or MB_ICONINFORMATION);
-       OnlySimpleFields := True;
-      //Result := False;
-      //Exit;
+      OnlySimpleFields := True;
     end;
+    {$ELSE}
+    if R <> nil then
+    begin
+      if (R.PrimaryKey <> nil) and (R.PrimaryKey.ConstraintFields.Count = 1) then
+      begin
+        AnPrimaryName := R.PrimaryKey.ConstraintFields[0].FieldName;
+      end else
+        OnlySimpleFields := True;
+    end;
+    {$ENDIF}
 
     OrderTreeNode := FSortList.Items.AddObject(nil, AnLocalTable, nil);
     OrderTreeNode.ImageIndex := 1;

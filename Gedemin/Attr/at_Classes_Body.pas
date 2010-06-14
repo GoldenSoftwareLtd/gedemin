@@ -2950,7 +2950,9 @@ begin
       '  REFC.RDB$CONST_NAME_UQ AS FCONSTRAINT, '#13#10 +
       '  RC2.RDB$RELATION_NAME AS FRELATIONNAME, '#13#10 +
       '  RC2.RDB$INDEX_NAME AS FINDEXNAME, '#13#10 +
-      '  INDSEG2.RDB$FIELD_NAME AS FFIELDNAME'#13#10 +
+      '  INDSEG2.RDB$FIELD_NAME AS FFIELDNAME, '#13#10 +
+      '  REFC.RDB$UPDATE_RULE AS UPDATE_RULE, '#13#10 +
+      '  REFC.RDB$DELETE_RULE AS DELETE_RULE '#13#10 +
       ' '#13#10 +
       'FROM '#13#10 +
       '  RDB$RELATION_CONSTRAINTS RC '#13#10 +
@@ -3005,6 +3007,12 @@ begin
 
         atForeignKey.FReferencesIndex :=
           ibsql.FieldByName('FINDEXNAME').AsTrimString;
+
+        atForeignKey.FUpdateRule :=
+          StringToUpdateDeleteRule(ibsql.FieldByName('UPDATE_RULE').AsTrimString);
+
+        atForeignKey.FDeleteRule :=
+          StringToUpdateDeleteRule(ibsql.FieldByName('DELETE_RULE').AsTrimString);
 
         FForeignKeys.Add(atForeignKey);
       end;
@@ -4625,7 +4633,9 @@ begin
       '  REFC.RDB$CONST_NAME_UQ AS FCONSTRAINT, '#13#10 +
       '  RC2.RDB$RELATION_NAME AS FRELATIONNAME, '#13#10 +
       '  RC2.RDB$INDEX_NAME AS FINDEXNAME, '#13#10 +
-      '  INDSEG2.RDB$FIELD_NAME AS FFIELDNAME'#13#10 +
+      '  INDSEG2.RDB$FIELD_NAME AS FFIELDNAME, '#13#10 +
+      '  REFC.RDB$UPDATE_RULE AS UPDATE_RULE, '#13#10 +
+      '  REFC.RDB$DELETE_RULE AS DELETE_RULE '#13#10 +
       ' '#13#10 +
       'FROM '#13#10 +
       '  RDB$RELATION_CONSTRAINTS RC '#13#10 +
@@ -4696,6 +4706,12 @@ begin
 
   FReferencesIndex :=
     ibsql.FieldByName('FINDEXNAME').AsTrimString;
+
+  FUpdateRule :=
+    StringToUpdateDeleteRule(ibsql.FieldByName('UPDATE_RULE').AsTrimString);
+
+  FDeleteRule :=
+    StringToUpdateDeleteRule(ibsql.FieldByName('DELETE_RULE').AsTrimString);
 
   TatBodyRelationFields(FConstraintFields).Clear;
   TatBodyRelationFields(FReferencesFields).Clear;

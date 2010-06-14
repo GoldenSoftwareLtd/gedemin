@@ -452,18 +452,30 @@ end;
  
 function TgsDBReduction.GetPrimary(const aTableName: String): String;
 var
-  sql: TIBSQL;
-  First, DidActivate: Boolean;
-  i: Integer;
+  I: Integer;
   TableName: String;
+  R: TatRelation;
 begin
-  i := Pos(' ', Trim(aTableName));
-  if i = 0 then
-    TableName := aTableName
-  else
-    TableName := Copy(Trim(aTableName), 1, i - 1);
+  Assert(atDatabase <> nil);
 
-  Assert(FDataBase <> nil, 'Не подключен DataBase.');
+  TableName := Trim(aTableName);
+  I := Pos(' ', TableName);
+  if I > 0 then
+    SetLength(TableName, I - 1);
+
+  Result := '';
+  R := atDatabase.Relations.ByRelationName(TableName);
+  if R <> nil then
+  begin
+    for I := 0 to R.PrimaryKey.ConstraintFields.Count - 1 do
+    begin
+      if I > 0 then
+        Result := Result + ',';
+      Result := Result + R.PrimaryKey.ConstraintFields[I].FieldName;
+    end;
+  end;
+
+  {Assert(FDataBase <> nil, 'Не подключен DataBase.');
   Assert(FTransaction <> nil, 'Не подключен Transaction.');
   Assert(TableName > '', 'Table name is not specified');
 
@@ -502,7 +514,7 @@ begin
     sql.Free;
     if DidActivate and FTransaction.InTransaction then
       FTransaction.Commit;
-  end;
+  end;}
 end;
 
 function TgsDBReduction.GetUnique(const TableName, FieldName: String): String;

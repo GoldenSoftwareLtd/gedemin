@@ -74,7 +74,7 @@ uses
   SysUtils, IBSQL, IBCustomDataSet, gdcConstants, Windows,
   gd_security_operationconst, evt_i_Base, gd_ClassList,
   gdc_dlgFunction_unit, rp_report_const, forms, gd_directories_const,
-  gdcEvent, gdcDelphiObject;
+  gdcEvent, gdcDelphiObject, ContNrs, at_classes;
 
 const
   cByID = 'ByID';
@@ -424,60 +424,40 @@ end;
 
 function TgdcFunction.RecordUsed: Integer;
 var
-  sql, sqlValue: TIBSQL;
-
+  sql: TIBSQL;
+  Lst: TObjectList;
+  FK: TatForeignKey;
+  I: Integer;
 begin
   Result := 0;
+
+  sql := TIBSQL.Create(nil);
+  Lst := TObjectList.Create(False);
   try
-    sql := TIBSQL.Create(Self);
-    sqlvalue := TIBSQL.Create(Self);
-    try
-      sql.Transaction := ReadTransaction;
-      sqlValue.Transaction := ReadTransaction;
+    sql.Transaction := gdcBaseManager.ReadTransaction;
 
-      sql.sql.Text :=
-        ' SELECT ' +
-        '     isg2.RDB$FIELD_NAME     TargetField ' +
-        '   , rc2.RDB$RELATION_NAME  TargetTable ' +
-        ' FROM ' +
-        '     RDB$RELATION_CONSTRAINTS rc1 ' +
-        '   , RDB$REF_CONSTRAINTS rfc ' +
-        '   , RDB$RELATION_CONSTRAINTS rc2 ' +
-        '   , RDB$INDEX_SEGMENTS isg2 ' +
-        '   , RDB$RELATION_CONSTRAINTS rc3 ' +
-        '   , rdb$ref_constraints rrc ' +
-        ' WHERE ' +
-        '   rc1.RDB$RELATION_NAME = UPPER(''' + GetListTable(SubType) + ''')' +
-        '   AND rfc.RDB$CONSTRAINT_NAME = rc2.RDB$CONSTRAINT_NAME ' +
-        '   AND rfc.RDB$CONST_NAME_UQ = rc1.RDB$CONSTRAINT_NAME ' +
-        '   AND rc2.RDB$INDEX_NAME = isg2.RDB$INDEX_NAME ' +
-        '   AND rc3.RDB$RELATION_NAME = rc2.RDB$RELATION_NAME ' +
-        '   AND rc3.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY''' +
-        '   AND rrc.RDB$CONSTRAINT_NAME = rc2.RDB$CONSTRAINT_NAME ' +
-        '   AND rrc.RDB$DELETE_RULE = ''RESTRICT'' ' +
-        ' ORDER BY ' +
-        '   rc2.RDB$RELATION_NAME ';
-      sql.ExecQuery;
+    atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
+      GetListTable(SubType), Lst);
+    for I := 0 to Lst.Count - 1 do
+    begin
+      FK := Lst[I] as TatForeignKey;
 
-      while not sql.Eof do
+      if FK.IsSimpleKey then
       begin
-        try
-          sqlValue.Close;
-          sqlValue.sql.Text := 'SELECT (SUM(1)) AS ASUM FROM ' +
-            sql.FieldByName('targettable').AsTrimString +
-            ' WHERE ' + sql.FieldByName('TargetField').AsTrimString +
-            ' = ' + IntToStr(Id);
-          sqlValue.ExecQuery;
-          Result := Result + sqlValue.FieldByName('asum').AsInteger;
-        except
+        sql.Close;
+        sql.SQL.Text := 'SELECT * FROM ' + FK.Relation.RelationName +
+          ' WHERE ' + FK.ConstraintFields[0].FieldName + '=' + IntToStr(Self.ID);
+        sql.ExecQuery;
+        if not sql.EOF then
+        begin
+          Result := 1;
+          break;
         end;
-        sql.Next;
       end;
-    finally
-      sql.Free;
-      sqlValue.Free;
     end;
-  except
+  finally
+    Lst.Free;
+    sql.Free;
   end;
 end;
 
