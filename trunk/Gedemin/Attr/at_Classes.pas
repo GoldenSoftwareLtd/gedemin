@@ -40,8 +40,9 @@ const
   BoolNotNullDomainName = 'DBOOLEAN_NOTNULL';
 
 type
-  TFieldAlignment = (faLeft, faRight, faCenter, faJustify);
-  TatTreeNodeType = (tntNameAndLocalization, tntLocalization, tntName);
+  TFieldAlignment   = (faLeft, faRight, faCenter, faJustify);
+  TatTreeNodeType   = (tntNameAndLocalization, tntLocalization, tntName);
+  TUpdateDeleteRule = (udrUnknown, udrRestrict, udrNoAction, udrSetNull, udrSetDefault, udrCascade);
 
   TatNumerationInfo = record
     Value: String[1];
@@ -452,6 +453,8 @@ type
 
     FIsDropped: Boolean;
 
+    FUpdateRule, FDeleteRule: TUpdateDeleteRule;
+
     function GetConstraintField: TatRelationField; virtual; abstract;
     function GetReferencesField: TatRelationField; virtual; abstract;
 
@@ -479,7 +482,8 @@ type
     property ReferencesIndex: String read FReferencesIndex;
 
     property IsDropped: Boolean read FIsDropped;
-
+    property UpdateRule: TUpdateDeleteRule read FUpdateRule;
+    property DeleteRule: TUpdateDeleteRule read FDeleteRule;
   end;
 
   TatForeignKeys = class(TObject)
@@ -617,6 +621,7 @@ function StringToFieldAlignment(const S: String): TFieldAlignment;
 function FieldAlignmentToString(const FA: TFieldAlignment): String;
 function FieldAlignmentToAlignment(const FA: TFieldAlignment): TAlignment;
 function CheckEnName(const AName: String): Boolean;
+function StringToUpdateDeleteRule(const S: String): TUpdateDeleteRule;
 
 var
   atDatabase: TatDatabase;
@@ -640,13 +645,14 @@ end;
 
 function StringToFieldAlignment(const S: String): TFieldAlignment;
 begin
+  Assert(Length(S) > 0);
   case S[1] of
   'L': Result := faLeft;
   'R': Result := faRight;
   'C': Result := faCenter;
   'J': Result := faJustify;
   else
-    raise Exception.Create('Invalid field alignment string');
+    raise Exception.Create('Invalid field alignment string.');
   end;
 end;
 
@@ -673,6 +679,16 @@ begin
     end;
 end;
 
+function StringToUpdateDeleteRule(const S: String): TUpdateDeleteRule;
+begin
+  if S = 'CASCADE' then Result := udrCascade
+  else if S = 'RESTRICT' then Result := udrRestrict
+  else if S = 'NO ACTION' then Result := udrNoAction
+  else if S = 'SET NULL' then Result := udrSetNull
+  else if S = 'SET DEFAULT' then Result := udrSetNull
+  else
+    raise Exception.Create('Invalid update or delete rule.');
+end;
 
 { TatDatabase }
 
