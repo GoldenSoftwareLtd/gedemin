@@ -1,9 +1,9 @@
 object frmIBUserList: TfrmIBUserList
-  Left = 415
-  Top = 480
+  Left = 421
+  Top = 322
   BorderStyle = bsDialog
   Caption = 'Пользователи'
-  ClientHeight = 351
+  ClientHeight = 366
   ClientWidth = 366
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -40,7 +40,7 @@ object frmIBUserList: TfrmIBUserList
     Width = 3
     Height = 13
   end
-  object lvUser: TListView
+  object lvUser: TgsListView
     Left = 10
     Top = 40
     Width = 350
@@ -58,8 +58,11 @@ object frmIBUserList: TfrmIBUserList
       item
         Caption = 'Компьютер'
         Width = 126
+      end
+      item
+        AutoSize = True
+        Caption = 'Время подключения'
       end>
-    ColumnClick = False
     FlatScrollBars = True
     GridLines = True
     ReadOnly = True
@@ -88,7 +91,7 @@ object frmIBUserList: TfrmIBUserList
   end
   object pnlButtons: TPanel
     Left = 0
-    Top = 312
+    Top = 327
     Width = 366
     Height = 39
     Align = alBottom
@@ -131,10 +134,20 @@ object frmIBUserList: TfrmIBUserList
       Action = actRefresh
       TabOrder = 2
     end
+    object btnDeleteUser: TButton
+      Left = 106
+      Top = 10
+      Width = 75
+      Height = 21
+      Action = actRefresh
+      Caption = 'Отключить'
+      TabOrder = 3
+      OnClick = btnDeleteUserClick
+    end
   end
   object chbxShowNames: TCheckBox
     Left = 10
-    Top = 291
+    Top = 307
     Width = 351
     Height = 17
     Caption = 'Показывать сетевые имена компьютеров'
