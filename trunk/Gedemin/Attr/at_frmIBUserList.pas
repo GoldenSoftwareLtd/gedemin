@@ -4,11 +4,11 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Db, IBSQL, StdCtrls, ComCtrls, ExtCtrls, IBDatabase, ActnList;
+  Db, IBSQL, StdCtrls, ComCtrls, ExtCtrls, IBDatabase, ActnList, gsListView;
 
 type
   TfrmIBUserList = class(TForm)
-    lvUser: TListView;
+    lvUser: TgsListView;
     memoInfo: TMemo;
     pnlButtons: TPanel;
     btnCancel: TButton;
@@ -22,12 +22,14 @@ type
     btnRefresh: TButton;
     actRefresh: TAction;
     chbxShowNames: TCheckBox;
+    btnDeleteUser: TButton;
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure IBUserTimerTimer(Sender: TObject);
     procedure actRefreshExecute(Sender: TObject);
     procedure actRefreshUpdate(Sender: TObject);
+    procedure btnDeleteUserClick(Sender: TObject);
 
   private
     FNotBuilt: Boolean;
@@ -130,7 +132,8 @@ begin
 
     q.Transaction := Tr;
     q.SQL.Text :=
-      'SELECT A.MON$USER, U.NAME, U.FULLNAME, A.MON$REMOTE_ADDRESS ' +
+      'SELECT A.MON$USER, U.NAME, U.FULLNAME, A.MON$REMOTE_ADDRESS, A.MON$TIMESTAMP, ' +
+      '  A.MON$ATTACHMENT_ID ' +
       'FROM MON$ATTACHMENTS A LEFT JOIN GD_USER U ' +
       '  ON A.MON$USER = U.IBNAME ' +
       'WHERE A.MON$STATE = 1 ';
@@ -140,7 +143,7 @@ begin
     begin
       ListItem := lvUser.Items.Add;
       ListItem.Caption := q.FieldByName('MON$USER').AsTrimString;
-
+      ListItem.Data := TObject(q.FieldByName('MON$ATTACHMENT_ID').AsInteger);
       if q.FieldByName('NAME').IsNull then
         ListItem.SubItems.Add('Подключается...')
       else
@@ -149,7 +152,9 @@ begin
       if chbxShowNames.Checked then
         ListItem.SubItems.Add(ALIPAddrToName(q.FieldByName('MON$REMOTE_ADDRESS').AsString))
       else
-        ListItem.SubItems.Add('<имя не определено>');
+        ListItem.SubItems.Add(q.FieldByName('MON$REMOTE_ADDRESS').AsString);
+
+      ListItem.SubItems.Add(q.FieldByName('MON$TIMESTAMP').AsString);
 
       Inc(I);
       q.Next;
@@ -214,6 +219,39 @@ begin
   actRefresh.Enabled := (gdcBaseManager <> nil)
     and (gdcBaseManager.Database <> nil)
     and gdcBaseManager.Database.Connected;
+end;
+
+procedure TfrmIBUserList.btnDeleteUserClick(Sender: TObject);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  if Assigned(lvUser.Selected) and
+    (MessageBox(Handle, 'Отключить выбранного пользователя?', 'Внимание', MB_YESNO or MB_ICONQUESTION) = IDYES) then
+  begin
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    try
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      Tr.StartTransaction;
+
+      q.Transaction := Tr;
+      q.SQL.Text := 'DELETE FROM MON$STATEMENTS ' +
+        '  WHERE MON$ATTACHMENT_ID = :ID ';
+      q.Params[0].AsInteger := Integer(lvUser.Selected.Data);
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text := 'DELETE FROM MON$ATTACHMENTS ' +
+        '  WHERE MON$ATTACHMENT_ID = :ID ';
+      q.Params[0].AsInteger := Integer(lvUser.Selected.Data);
+      q.ExecQuery;
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
+    end;
+  end;
 end;
 
 end.
