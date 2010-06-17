@@ -4,7 +4,7 @@ object frmIBUserList: TfrmIBUserList
   BorderStyle = bsDialog
   Caption = 'Пользователи'
   ClientHeight = 366
-  ClientWidth = 366
+  ClientWidth = 499
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -19,7 +19,7 @@ object frmIBUserList: TfrmIBUserList
   object Label5: TLabel
     Left = 10
     Top = 10
-    Width = 350
+    Width = 483
     Height = 17
     Anchors = [akLeft, akTop, akRight]
     AutoSize = False
@@ -43,7 +43,7 @@ object frmIBUserList: TfrmIBUserList
   object lvUser: TgsListView
     Left = 10
     Top = 40
-    Width = 350
+    Width = 483
     Height = 161
     Anchors = [akLeft, akTop, akRight]
     Columns = <
@@ -73,18 +73,22 @@ object frmIBUserList: TfrmIBUserList
   object memoInfo: TMemo
     Left = 10
     Top = 205
-    Width = 348
+    Width = 481
     Height = 82
     TabStop = False
     Anchors = [akLeft, akTop, akRight]
     BorderStyle = bsNone
     Lines.Strings = (
-      'Для осуществления операций добавления/удаления '
-      'полей-ссылок, полей-множеств '
-      'необходимо отключить других пользователей от базы данных. '
+      
+        'Для осуществления операций добавления/удаления полей-ссылок, пол' +
+        'ей-множеств'
+      'необходимо отключить других пользователей от базы данных.'
       ''
-      'Если пользователи отключены или не производятся '
-      'указанные выше операции, нажмите Продолжить.')
+      
+        'Если пользователи отключены или не производятся указанные выше о' +
+        'перации,'
+      'нажмите Продолжить.'
+      ' ')
     ParentColor = True
     ReadOnly = True
     TabOrder = 2
@@ -92,7 +96,7 @@ object frmIBUserList: TfrmIBUserList
   object pnlButtons: TPanel
     Left = 0
     Top = 327
-    Width = 366
+    Width = 499
     Height = 39
     Align = alBottom
     BevelOuter = bvNone
@@ -100,12 +104,12 @@ object frmIBUserList: TfrmIBUserList
     object Bevel1: TBevel
       Left = 0
       Top = 0
-      Width = 366
+      Width = 499
       Height = 2
       Align = alTop
     end
     object btnCancel: TButton
-      Left = 199
+      Left = 332
       Top = 10
       Width = 75
       Height = 21
@@ -116,7 +120,7 @@ object frmIBUserList: TfrmIBUserList
       TabOrder = 0
     end
     object btnOk: TButton
-      Left = 285
+      Left = 418
       Top = 10
       Width = 75
       Height = 21
@@ -135,14 +139,13 @@ object frmIBUserList: TfrmIBUserList
       TabOrder = 2
     end
     object btnDeleteUser: TButton
-      Left = 106
+      Left = 91
       Top = 10
       Width = 75
       Height = 21
       Action = actRefresh
       Caption = 'Отключить'
       TabOrder = 3
-      OnClick = btnDeleteUserClick
     end
   end
   object chbxShowNames: TCheckBox

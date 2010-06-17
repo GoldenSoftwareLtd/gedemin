@@ -932,20 +932,21 @@ end;
 
 function TgsDBReduction.PrepareTable(RTable: TReductionTable): Boolean;
 var
-  sql: TIBSQL;
   sqlMaster: TIBQuery;
   sqlCondemned: TIBQuery;
-  I: Integer;
+  I, J: Integer;
   Transfer, DidActivate: Boolean;
-  NewTable, NewPrimary: String;
+  FK: TatForeignKey;
+  Lst: TObjectList;
 begin
+  Assert(atDatabase <> nil);
+
   Result := True;
 
   DidActivate := False;
   RTable.OneToOne := True;
-  sqlMaster := TIBQuery.Create(Self);
-  sqlCondemned := TIBQuery.Create(Self);
-  sql := TIBSQL.Create(Self);
+  sqlMaster := TIBQuery.Create(nil);
+  sqlCondemned := TIBQuery.Create(nil);
   try
     DidActivate := not FTransaction.InTransaction;
     if DidActivate then
@@ -953,16 +954,11 @@ begin
 
     sqlMaster.Database := FDatabase;
     sqlMaster.Transaction := FTransaction;
-    sqlCondemned.Database := FDatabase;
-    sqlCondemned.Transaction := FTransaction;
-    sql.Database := FDatabase;
-    sql.Transaction := FTransaction;
-
     sqlMaster.sql.Text := 'SELECT * FROM ' + RTable.Name +
         ' WHERE ' + RTable.ForeignKey +' = ' + FMasterKey;
     sqlMaster.Open;
 
-    if (RTable.Name = FTable) and (sqlMaster.Recordcount = 0) then
+    if (RTable.Name = FTable) and sqlMaster.IsEmpty then
     begin
       Result := False;
       if not FIgnoryQuestion then
@@ -979,7 +975,7 @@ begin
         ' WHERE ' + RTable.ForeignKey + ' = ' + FCondemnedKey;
     sqlCondemned.Open;
 
-    if (RTable.Name = FTable) and (sqlCondemned.Recordcount = 0) then
+    if (RTable.Name = FTable) and sqlCondemned.IsEmpty then
     begin
       Result := False;
       if not FIgnoryQuestion then
@@ -1012,7 +1008,33 @@ begin
               sqlMaster.Fields[I].Value, sqlCondemned.Fields[I].Value, Transfer);
           end;
 
-        sql.Close;
+        Lst := TObjectList.Create(False);
+        try
+          atDatabase.ForeignKeys.ConstraintsByReferencedRelation(RTable.Name, Lst);
+          for I := 0 to Lst.Count - 1 do
+          begin
+            FK := Lst[I] as TatForeignKey;
+
+            if FK.IsSimpleKey then
+            begin
+              J := RTable.ReductionTableList.AddTable(
+                FK.Relation.RelationName, FK.ConstraintFields[0].FieldName);
+
+              if (FK.Relation.PrimaryKey <> nil) and (FK.Relation.PrimaryKey.ConstraintFields.Count = 1)
+                and (FK.ConstraintFields[0].FieldName = FK.Relation.PrimaryKey.ConstraintFields[0].FieldName) then
+              begin
+                Result := PrepareTable(RTable.ReductionTableList.Table[J]);
+              end;
+
+              if not Result then
+                exit;
+            end;
+          end;
+        finally
+          Lst.Free;
+        end;
+
+        {sql.Close;
         sql.sql.Text :=
           ' SELECT ' +
           '     isg2.RDB$FIELD_NAME     TargetField ' +
@@ -1051,13 +1073,12 @@ begin
             exit;
 
           sql.Next;
-        end;
+        end;}
       end;
 
   finally
     sqlMaster.Free;
     sqlCondemned.Free;
-    sql.Free;
 
     if DidActivate and FTransaction.InTransaction then
       FTransaction.Commit;
