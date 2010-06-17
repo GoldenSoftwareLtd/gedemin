@@ -74,12 +74,12 @@ implementation
 
 uses
   gd_ClassList, gdc_dlgFKManager_unit, gdc_frmFKManager_unit,
-  IBDatabase, IBSQL, SysUtils, at_dlgFKManager_params_unit, Forms, Controls;
+  IBDatabase, IBSQL, SysUtils, Forms, Controls;
 
-const
+{const
   MinRecCount: Integer         = 20000;
   MaxUqCount: Integer          = 40;
-  DontProcessCyclicRef:Boolean = True;
+  DontProcessCyclicRef:Boolean = True;}
 
 procedure Register;
 begin
@@ -427,13 +427,12 @@ begin
       qList.Next;
     end;
 
-    {if qList.RecordCount > 0 then
-      InsertScript('DELETE FROM gd_ref_constraint_data WHERE constraintkey IN ' +
+    if qList.RecordCount > 0 then
+      InsertScript('DELETE FROM gd_ref_constraints WHERE ref_state = ref_next_state ' +
+        '  AND ref_next_state = ''ORIGINAL'' ');
+      {InsertScript('DELETE FROM gd_ref_constraint_data WHERE constraintkey IN ' +
         '(SELECT id FROM gd_ref_constraints WHERE ref_state = ''ORIGINAL'' ' +
         '  AND ref_state = ref_next_state)');}
-
-    InsertScript('DELETE FROM gd_ref_constraints WHERE ref_state = ref_next_state ' +
-      '  AND ref_next_state = ''ORIGINAL'' ');
 
     Result := qList.RecordCount;
     Tr.Commit;
@@ -610,7 +609,7 @@ begin
   if IsUpdateStatsRunning then
     exit;
 
-  with Tat_dlgFKManager_params.Create(nil) do
+  {with Tat_dlgFKManager_params.Create(nil) do
   try
     xceMinRecCount.Value := MinRecCount;
     xceMaxUqCount.Value := MaxUqCount;
@@ -622,7 +621,7 @@ begin
     DontProcessCyclicRef := chbxDontProcessCyclicRef.Checked;
   finally
     Free;
-  end;
+  end;}
 
   if FThread <> nil then
     FThread.Free;
@@ -722,7 +721,7 @@ begin
 
     qList.Close;
 
-    if not Terminated then
+    {if not Terminated then
     begin
       qList.SQL.Text := 'UPDATE gd_ref_constraints SET ref_next_state = ''TRIGGER'' ' +
         'WHERE constraint_rec_count > :CRC AND constraint_uq_count <= :CUC ' +
@@ -750,8 +749,9 @@ begin
 
       Synchronize(DoneScreen);
     end else
-      Synchronize(ClearScreen);
+      Synchronize(ClearScreen);}
 
+    Synchronize(DoneScreen);
     Tr.Commit;
   finally
     qCalc.Free;

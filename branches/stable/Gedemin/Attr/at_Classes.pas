@@ -508,7 +508,9 @@ type
     // возвращает список фореин-кеев, ссылающихся на заданную
     // таблицу
     procedure ConstraintsByReferencedRelation(const RelationName: String;
-      List: TObjectList; const ClearList: Boolean = True); virtual; abstract;
+      List: TObjectList; const ClearList: Boolean = True;
+      const IncludeRefTables: Boolean = True;
+      const IncludeSetTables: Boolean = True); virtual; abstract;
 
     property Count: Integer read GetCount;
     property Items[Index: Integer]: TatForeignKey read GetItems; default;

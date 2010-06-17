@@ -17,7 +17,6 @@ const
                         '  rc1.RDB$RELATION_NAME = :tablename '#13#10 +
                         '  AND rc1.RDB$INDEX_NAME = isg1.RDB$INDEX_NAME '#13#10 +
                         '  AND rc1.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY''';
-  {$ENDIF}                      
 
   cForeignFieldSQL =    '/* ¬ыт€гиваем св€зи много к одному (FOREIGN KEY) */ '#13#10 +
                         'SELECT '#13#10 +
@@ -51,8 +50,6 @@ const
                         '  AND rfc.RDB$CONST_NAME_UQ = rc2.RDB$CONSTRAINT_NAME '#13#10 +
                         '  AND rc2.RDB$INDEX_NAME = isg2.RDB$INDEX_NAME';
 
-
-
   cSimpleFieldSQL =     '/* ¬ыт€гивает все простые пол€ */ '#13#10 +
                         'SELECT '#13#10 +
                         '  relf.RDB$FIELD_NAME FieldName '#13#10 +
@@ -73,6 +70,7 @@ const
                         '  AND NOT relf.RDB$FIELD_NAME = ''LB'''#13#10 +
                         '  AND NOT relf.RDB$FIELD_NAME = ''RB'''#13#10 +
                         '  AND NOT relf.RDB$FIELD_NAME IN (''ID'')';
+  {$ENDIF}                      
 
 
   cProcedureFieldSQL =  ' SELECT '#13#10 +
@@ -90,7 +88,7 @@ const
                         '    AND f.RDB$FIELD_NAME = relf.RDB$FIELD_SOURCE '#13#10 +
                         '    AND relf.RDB$PARAMETER_TYPE <> 0 ';
 
-
+  {$IFNDEF GEDEMIN}
   cSetFieldSQL =        '/* ¬ыт€гивает при отношении многий '#13#10 +
                         ' ко многим название св€зующей таблицы, св€зующего пол€, '#13#10 +
                         ' а также другие пол€ в этой таблице €вл€ющиес€ примари '#13#10 +
@@ -190,7 +188,7 @@ const
                         '  AND rc3.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' '#13#10 +
                         '  AND isg3.RDB$INDEX_NAME = rc3.RDB$INDEX_NAME '#13#10 +
                         '  AND NOT rc2.RDB$RELATION_NAME IN (''GD_CONTACTLIST'') /*  */ ';
-
+  {$ENDIF}
 
 
   cSortFieldSQL =       '/* ¬ыт€гивает все пол€ дл€ сортировки */ '#13#10 +
