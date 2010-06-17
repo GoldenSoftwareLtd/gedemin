@@ -632,7 +632,8 @@ begin
       for I := 0 to DL.Count - 1 do
       begin
         if TatForeignKey(DL[I]).IsSimpleKey and
-          (TatForeignKey(DL[I]).ConstraintField.Field.FieldName = 'DMASTERKEY') then
+          (TatForeignKey(DL[I]).ConstraintField.Field.FieldName = 'DMASTERKEY') and
+          (TatForeignKey(DL[I]).Relation.PrimaryKey <> nil) then
         begin
           ibsql.Close;
           //ћы не провер€ем наши таблицы на простой
