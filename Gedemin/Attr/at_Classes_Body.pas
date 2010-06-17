@@ -353,7 +353,9 @@ type
     // возвращает список фореин-кеев, ссылающихся на заданную
     // таблицу
     procedure ConstraintsByReferencedRelation(const RelationName: String;
-      List: TObjectList; const ClearList: Boolean = True); override;
+      List: TObjectList; const ClearList: Boolean = True;
+      const IncludeRefTables: Boolean = True;
+      const IncludeSetTables: Boolean = True); override;
 
     function IndexOf(AObject: TObject): Integer; override;
   end;
@@ -735,7 +737,6 @@ begin
       '  RC2.RDB$RELATION_NAME AS FRELATIONNAME, '#13#10 +
       '  RC2.RDB$INDEX_NAME AS FINDEXNAME, '#13#10 +
       '  INDSEG2.RDB$FIELD_NAME AS FFIELDNAME'#13#10 +
-      ' '#13#10 +
       'FROM '#13#10 +
       '  RDB$RELATION_CONSTRAINTS RC '#13#10 +
       '    JOIN '#13#10 +
@@ -760,10 +761,24 @@ begin
       '    AND '#13#10 +
       '  RC.RDB$RELATION_NAME = :RN '#13#10 +
       ' '#13#10 +
+      'UNION ALL'#13#10 +
+      ' '#13#10 +
+      'SELECT '#13#10 +
+      '  CONSTRAINT_REL AS RELATIONNAME, '#13#10 +
+      '  CONSTRAINT_NAME AS CONSTRAINTNAME, '#13#10 +
+      '  '''' AS INDEXNAME, '#13#10 +
+      '  CONSTRAINT_FIELD AS FIELDNAME, '#13#10 +
+      '  0 AS FIELDPOS, '#13#10 +
+      '  CONST_NAME_UQ AS FCONSTRAINT, '#13#10 +
+      '  REF_REL AS FRELATIONNAME, '#13#10 +
+      '  '''' AS FINDEXNAME, '#13#10 +
+      '  REF_FIELD AS FFIELDNAME'#13#10 +
+      'FROM '#13#10 +
+      '  gd_ref_constraints'#13#10 +
+      'WHERE '#13#10 +
+      '  ref_state <> ''ORIGINAL'' '#13#10 +
       'ORDER BY '#13#10 +
-      '  RC.RDB$CONSTRAINT_NAME, '#13#10 +
-      '  INDSEG.RDB$FIELD_POSITION '#13#10 +
-      ' '#13#10;
+      '  2, 5';
     ibsql.ParamByName('RN').AsString := UpdateIBName(FRelationName);
     ibsql.ExecQuery;
 
@@ -2947,13 +2962,13 @@ begin
       '  RC.RDB$CONSTRAINT_NAME AS CONSTRAINTNAME, '#13#10 +
       '  RC.RDB$INDEX_NAME AS INDEXNAME, '#13#10 +
       '  INDSEG.RDB$FIELD_NAME AS FIELDNAME, '#13#10 +
+      '  INDSEG.RDB$FIELD_POSITION AS FIELDPOS,'#13#10 +
       '  REFC.RDB$CONST_NAME_UQ AS FCONSTRAINT, '#13#10 +
       '  RC2.RDB$RELATION_NAME AS FRELATIONNAME, '#13#10 +
       '  RC2.RDB$INDEX_NAME AS FINDEXNAME, '#13#10 +
       '  INDSEG2.RDB$FIELD_NAME AS FFIELDNAME, '#13#10 +
       '  REFC.RDB$UPDATE_RULE AS UPDATE_RULE, '#13#10 +
       '  REFC.RDB$DELETE_RULE AS DELETE_RULE '#13#10 +
-      ' '#13#10 +
       'FROM '#13#10 +
       '  RDB$RELATION_CONSTRAINTS RC '#13#10 +
       '    JOIN '#13#10 +
@@ -2976,11 +2991,28 @@ begin
       '    AND '#13#10 +
       '  INDSEG.RDB$FIELD_POSITION = INDSEG2.RDB$FIELD_POSITION '#13#10 +
       ' '#13#10 +
+      'UNION ALL'#13#10 +
+      ' '#13#10 +
+      'SELECT '#13#10 +
+      '  CONSTRAINT_REL AS RELATIONNAME, '#13#10 +
+      '  CONSTRAINT_NAME AS CONSTRAINTNAME, '#13#10 +
+      '  '''' AS INDEXNAME, '#13#10 +
+      '  CONSTRAINT_FIELD AS FIELDNAME, '#13#10 +
+      '  0 AS FIELDPOS,'#13#10 +
+      '  CONST_NAME_UQ AS FCONSTRAINT, '#13#10 +
+      '  REF_REL AS FRELATIONNAME, '#13#10 +
+      '  '''' AS FINDEXNAME, '#13#10 +
+      '  REF_FIELD AS FFIELDNAME, '#13#10 +
+      '  UPDATE_RULE AS UPDATE_RULE, '#13#10 +
+      '  DELETE_RULE AS DELETE_RULE '#13#10 +
+      'FROM '#13#10 +
+      '  gd_ref_constraints'#13#10 +
+      'WHERE '#13#10 +
+      '  ref_state <> ''ORIGINAL'' '#13#10 +
       'ORDER BY '#13#10 +
-      '  RC.RDB$RELATION_NAME, '#13#10 +
-      '  RC.RDB$CONSTRAINT_NAME, '#13#10 +
-      '  INDSEG.RDB$FIELD_POSITION '#13#10 +
-      ' '#13#10;
+      '  1, '#13#10 +
+      '  2, '#13#10 +
+      '  5 ';
 
     ibsql.ExecQuery;
 
@@ -4187,7 +4219,9 @@ begin
 end;
 
 procedure TatBodyForeignKeys.ConstraintsByReferencedRelation(
-  const RelationName: String; List: TObjectList; const ClearList: Boolean = True);
+  const RelationName: String; List: TObjectList; const ClearList: Boolean = True;
+  const IncludeRefTables: Boolean = True;
+  const IncludeSetTables: Boolean = True);
 var
   I: Integer;
   R: TatRelation;
@@ -4196,7 +4230,29 @@ begin
     List.Clear;
   R := FDatabase.Relations.ByRelationName(RelationName);
   for I := 0 to Count - 1 do
-    if Items[I].ReferencesRelation = R then List.Add(Items[I]);
+  begin
+    if (Items[I].ReferencesRelation = R)
+      and (Items[I].Relation.PrimaryKey <> nil) then
+    begin
+      if IncludeRefTables and IncludeSetTables then
+        List.Add(Items[I])
+      else
+      begin
+        if (Items[I].Relation.PrimaryKey <> nil)
+          and (Items[I].Relation.PrimaryKey.ConstraintFields.Count = 2)
+          and (Items[I].Relation.PrimaryKey.ConstraintFields[0].ForeignKey = Items[I])
+          and (Items[I].Relation.PrimaryKey.ConstraintFields[1].ForeignKey <> nil) then
+        begin
+          if IncludeSetTables then
+            List.Add(Items[I]);
+        end else
+        begin
+          if IncludeRefTables then
+            List.Add(Items[I]);
+        end;
+      end;
+    end;
+  end;
 end;
 
 function TatBodyForeignKeys.ByRelationAndReferencedRelation(
@@ -4661,11 +4717,27 @@ begin
       '    AND '#13#10 +
       '  RC.RDB$CONSTRAINT_NAME = ''%s'' '#13#10 +
       ' '#13#10 +
+      'UNION ALL'#13#10 +
+      ' '#13#10 +
+      'SELECT '#13#10 +
+      '  CONSTRAINT_REL AS RELATIONNAME, '#13#10 +
+      '  CONSTRAINT_NAME AS CONSTRAINTNAME, '#13#10 +
+      '  '''' AS INDEXNAME, '#13#10 +
+      '  CONSTRAINT_FIELD AS FIELDNAME, '#13#10 +
+      '  0 AS FIELDPOS, '#13#10 +
+      '  CONST_NAME_UQ AS FCONSTRAINT, '#13#10 +
+      '  REF_REL AS FRELATIONNAME, '#13#10 +
+      '  '''' AS FINDEXNAME, '#13#10 +
+      '  REF_FIELD AS FFIELDNAME, '#13#10 +
+      '  UPDATE_RULE AS UPDATE_RULE, '#13#10 +
+      '  DELETE_RULE AS DELETE_RULE '#13#10 +
+      'FROM '#13#10 +
+      '  gd_ref_constraints'#13#10 +
+      'WHERE '#13#10 +
+      '  ref_state <> ''ORIGINAL'' AND constraint_name = ''%s'' '#13#10 +
       'ORDER BY '#13#10 +
-      '  RC.RDB$RELATION_NAME, '#13#10 +
-      '  INDSEG.RDB$FIELD_POSITION '#13#10 +
-      ' '#13#10,
-      [FConstraintName]
+      '  5',
+      [FConstraintName, FConstraintName]
     );
 
     ibsql.ExecQuery;

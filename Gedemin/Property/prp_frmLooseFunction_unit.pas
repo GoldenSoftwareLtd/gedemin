@@ -72,6 +72,9 @@ implementation
 
 {$R *.DFM}
 
+uses
+  ContNrs, at_classes;
+
 procedure TfrmLooseFunctions.FormCreate(Sender: TObject);
 begin
   ibtrMain.DefaultDataBase:= gdcBaseManager.Database;
@@ -115,46 +118,33 @@ end;
 
 procedure TfrmLooseFunctions.actRunExecute(Sender: TObject);
 var
-  q: TIBSQL;
   sTmp, sRel, sType: string;
   i: integer;
+  Lst: TObjectList;
+  FK: TatForeignKey;
 begin
   gdcFunction.Close;
-  q:= TIBSQL.Create(self);
+
+  Lst := TObjectList.Create(False);
   try
-    q.Transaction:= gdcBaseManager.ReadTransaction;
-    q.SQL.Text:=
-      'SELECT                                                                                         ' +
-      '  i_s1.rdb$field_name as fieldname,                                                            ' +
-      '  rc1.rdb$relation_name as relationname                                                        ' +
-      'FROM                                                                                           ' +
-      '  RDB$RELATION_CONSTRAINTS RC                                                                  ' +
-      '  JOIN rdb$ref_constraints ref_c ON ref_c.rdb$const_name_uq = rc.rdb$constraint_name           ' +
-      '  JOIN rdb$relation_constraints rc1 ON rc1.rdb$constraint_name = ref_c.rdb$constraint_name AND ' +
-      '    rc1.rdb$constraint_type = ''FOREIGN KEY''                                                  ' +
-      '  JOIN rdb$index_segments i_s ON i_s.rdb$index_name = rc.rdb$index_name                        ' +
-      '  JOIN rdb$index_segments i_s1 On i_s1.rdb$index_name = rc1.rdb$index_name                     ' +
-      'WHERE                                                                                          ' +
-      '  RC.RDB$RELATION_NAME = ''GD_FUNCTION'' AND i_s.rdb$field_name = ''ID''';
-    q.ExecQuery;
-    i:= 0;
-    sTmp:= '';
-    while not q.Eof do begin
-      if (AnsiUpperCase(Trim(q.FieldByName('relationname').AsString)) = 'RP_ADDITIONALFUNCTION') and
-         (AnsiUpperCase(Trim(q.FieldByName('fieldname').AsString)) = 'MAINFUNCTIONKEY') then begin
-        q.Next;
-        Continue;
-      end;
+    atDatabase.ForeignKeys.ConstraintsByReferencedRelation('GD_FUNCTION', Lst);
+    for I := 0 to Lst.Count - 1 do
+    begin
+      FK := Lst[I] as TatForeignKey;
+
+      if (FK.Relation.RelationName = 'RP_ADDITIONALFUNCTION') and
+         (FK.ConstraintFields[0].FieldName = 'MAINFUNCTIONKEY') then
+        continue;
+
       sTmp:= sTmp + ' AND '#13#10;
       sRel:= ' rel' + IntToStr(i);
-      Inc(i);
-      sTmp:= sTmp + ' NOT EXISTS (SELECT * FROM ' + q.FieldByName('relationname').AsString + sRel +
-        ' WHERE z.id =' + sRel + '.' + q.FieldByName('fieldname').AsString + ') ';
-      q.Next;
+      sTmp:= sTmp + ' NOT EXISTS (SELECT * FROM ' + FK.Relation.RelationName + sRel +
+        ' WHERE z.id =' + sRel + '.' + FK.ConstraintFields[0].FieldName + ') ';
     end;
   finally
-    q.Free;
+    Lst.Free;
   end;
+
   sTmp:= sTmp +
     ' AND NOT EXISTS (SELECT * FROM gd_command gdc JOIN gd_p_getruid(z.id) gdpruid ON ' +
     'gdc.cmd = gdpruid.XID || ''_'' || gdpruid.dbid AND gdc.cmdtype = 1)';
