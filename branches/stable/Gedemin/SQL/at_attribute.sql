@@ -1474,19 +1474,19 @@ CREATE TABLE gd_ref_constraints (
   ref_next_state   char(8) character set none,
 
   constraint_rec_count COMPUTED BY (
-    (SELECT iif(i.rdb$statistics = 0, 0, Ceil(1/i.rdb$statistics)) FROM rdb$indices i
+    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i
       JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
       WHERE rc.rdb$relation_name = constraint_rel AND rc.rdb$constraint_type = 'PRIMARY KEY')),
 
   constraint_uq_count COMPUTED BY (
-    (SELECT iif(i.rdb$statistics = 0, 0, Ceil(1/i.rdb$statistics)) FROM rdb$indices i
+    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i
       JOIN rdb$index_segments iseg ON iseg.rdb$index_name = i.rdb$index_name
         AND iseg.rdb$field_name = constraint_field
       JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
       WHERE i.rdb$relation_name = constraint_rel AND i.rdb$segment_count = 1 AND rc.rdb$constraint_type = 'FOREIGN KEY')),
 
   ref_rec_count COMPUTED BY (
-    (SELECT iif(i.rdb$statistics = 0, 0, Ceil(1/i.rdb$statistics)) FROM rdb$indices i
+    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i
       JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
       WHERE rc.rdb$relation_name = ref_rel AND rc.rdb$constraint_type = 'PRIMARY KEY')),
 
@@ -1550,29 +1550,6 @@ END
 ^
 
 SET TERM ; ^
-
-/*
-COMMIT;
-
-CREATE TABLE master (ID INTEGER NOT NULL, PRIMARY KEY(id));
-
-CREATE TABLE detail (ID INTEGER NOT NULL, mkey INTEGER,
-  PRIMARY KEY (id),
-  FOREIGN KEY (mkey) REFERENCES master (id)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE);
-
-COMMIT;
-
-INSERT INTO master VALUES (1);
-INSERT INTO master VALUES (2);
-INSERT INTO master VALUES (3);
-
-INSERT INTO detail VALUES (1, NULL);
-INSERT INTO detail VALUES (2, 1);
-INSERT INTO detail VALUES (3, 1);
-INSERT INTO detail VALUES (4, 2);
-*/
 
 COMMIT;
 

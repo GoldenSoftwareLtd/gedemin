@@ -94,16 +94,16 @@ inherited gdc_frmFKManager: Tgdc_frmFKManager
   inherited alMain: TActionList
     object actUpdateStats: TAction
       Category = 'Main'
-      Caption = 'Анализ...'
-      Hint = 'Анализировать внешние ключи'
+      Caption = 'Обновить статистику...'
+      Hint = 'Обновить статистику индексов'
       ImageIndex = 209
       OnExecute = actUpdateStatsExecute
       OnUpdate = actUpdateStatsUpdate
     end
     object actCancelUpdateStats: TAction
       Category = 'Main'
-      Caption = 'Прервать анализ'
-      Hint = 'Прервать процесс анализа внешних ключей'
+      Caption = 'Прервать'
+      Hint = 'Прервать обновление статистики индексов'
       ImageIndex = 207
       OnExecute = actCancelUpdateStatsExecute
       OnUpdate = actCancelUpdateStatsUpdate
