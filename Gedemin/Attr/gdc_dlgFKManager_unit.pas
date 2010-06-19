@@ -27,15 +27,26 @@ type
     dbedRefState: TDBEdit;
     Label9: TLabel;
     dbcbRefNextState: TDBComboBox;
-    Button1: TButton;
     actShowValues: TAction;
+    gbStat: TGroupBox;
     Label10: TLabel;
     DBText1: TDBText;
-    Label11: TLabel;
-    DBText2: TDBText;
     Label12: TLabel;
     DBText3: TDBText;
+    Label11: TLabel;
+    DBText2: TDBText;
+    btnUq: TButton;
+    actShowConstraintRel: TAction;
+    btnConstr: TButton;
+    actShowRefRel: TAction;
+    btnRef: TButton;
+    btnActiveValues: TButton;
+    actShowActiveValues: TAction;
     procedure actShowValuesExecute(Sender: TObject);
+    procedure actShowConstraintRelExecute(Sender: TObject);
+    procedure actShowRefRelExecute(Sender: TObject);
+    procedure actShowActiveValuesUpdate(Sender: TObject);
+    procedure actShowActiveValuesExecute(Sender: TObject);
   private
     { Private declarations }
   public
@@ -60,6 +71,43 @@ begin
       'SELECT ' + Trim(gdcObject.FieldByName('constraint_field').AsString) + ', COUNT(*)' +
       ' FROM ' + Trim(gdcObject.FieldByName('constraint_rel').AsString) +
       ' GROUP BY 1 ORDER BY 2 DESC');
+  finally
+    Free;
+  end;
+end;
+
+procedure Tgdc_dlgFKManager.actShowConstraintRelExecute(Sender: TObject);
+begin
+  with TfrmSQLEditorSyn.Create(nil) do
+  try
+    ShowSQL('SELECT * FROM ' + Trim(gdcObject.FieldByName('constraint_rel').AsString));
+  finally
+    Free;
+  end;
+end;
+
+procedure Tgdc_dlgFKManager.actShowRefRelExecute(Sender: TObject);
+begin
+  with TfrmSQLEditorSyn.Create(nil) do
+  try
+    ShowSQL('SELECT * FROM ' + Trim(gdcObject.FieldByName('ref_rel').AsString));
+  finally
+    Free;
+  end;
+end;
+
+procedure Tgdc_dlgFKManager.actShowActiveValuesUpdate(Sender: TObject);
+begin
+  actShowActiveValues.Enabled := (gdcObject <> nil)
+    and (gdcObject.FieldByName('ref_state').AsString <> 'ORIGINAL');
+end;
+
+procedure Tgdc_dlgFKManager.actShowActiveValuesExecute(Sender: TObject);
+begin
+  with TfrmSQLEditorSyn.Create(nil) do
+  try
+    ShowSQL('SELECT * FROM gd_ref_constraint_data WHERE constraintkey = ' + gdcObject.FieldByName('id').AsString +
+      ' ORDER BY value_count DESC');
   finally
     Free;
   end;

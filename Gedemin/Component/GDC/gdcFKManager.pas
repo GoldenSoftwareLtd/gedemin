@@ -58,7 +58,7 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
-  TgdcFKManagerData = class(TgdcBase)
+  {TgdcFKManagerData = class(TgdcBase)
   protected
     procedure GetWhereClauseConditions(S: TStrings); override;
 
@@ -66,7 +66,7 @@ type
     class function GetSubSetList: String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
-  end;
+  end;}
 
 procedure Register;
 
@@ -84,7 +84,7 @@ uses
 procedure Register;
 begin
   RegisterComponents('gdc', [TgdcFKManager]);
-  RegisterComponents('gdc', [TgdcFKManagerData]);
+  //RegisterComponents('gdc', [TgdcFKManagerData]);
 end;
 
 { TgdcFKManager }
@@ -609,20 +609,6 @@ begin
   if IsUpdateStatsRunning then
     exit;
 
-  {with Tat_dlgFKManager_params.Create(nil) do
-  try
-    xceMinRecCount.Value := MinRecCount;
-    xceMaxUqCount.Value := MaxUqCount;
-    chbxDontProcessCyclicRef.Checked := DontProcessCyclicRef;
-    if ShowModal = mrCancel then
-      exit;
-    MinRecCount := Round(xceMinRecCount.Value);
-    MaxUqCount := Round(xceMaxUqCount.Value);
-    DontProcessCyclicRef := chbxDontProcessCyclicRef.Checked;
-  finally
-    Free;
-  end;}
-
   if FThread <> nil then
     FThread.Free;
 
@@ -632,7 +618,7 @@ end;
 
 { TgdcFKManagerData }
 
-class function TgdcFKManagerData.GetListField(
+{class function TgdcFKManagerData.GetListField(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'value_data';
@@ -655,7 +641,7 @@ begin
 
   if HasSubSet('ByRefConstraint') then
     S.Add(' z.constraintkey = :constraintkey ');
-end;
+end;}
 
 { TgdcFKManagerThread }
 
@@ -778,12 +764,11 @@ end;
 initialization
 
   RegisterGdcClass(TgdcFKManager);
-  RegisterGdcClass(TgdcFKManagerData);
+  //RegisterGdcClass(TgdcFKManagerData);
 
 finalization
 
   UnRegisterGdcClass(TgdcFKManager);
-  UnRegisterGdcClass(TgdcFKManagerData);
+  //UnRegisterGdcClass(TgdcFKManagerData);
 
 end.
- 
