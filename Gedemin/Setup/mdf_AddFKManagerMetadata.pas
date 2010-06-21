@@ -78,21 +78,20 @@ const
 
   c_gd_ref_constraint_data =
     'CREATE TABLE gd_ref_constraint_data ( '#13#10 +
-    '  id               dintkey, '#13#10 +
     '  constraintkey    dintkey, '#13#10 +
     '  value_data       INTEGER, '#13#10 +
     '  value_count      dintkey, '#13#10 +
     ' '#13#10 +
-    '  CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (id), '#13#10 +
+    '  CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (value_data, constraintkey), '#13#10 +
     '  CONSTRAINT gd_fk_ref_constraint_data FOREIGN KEY (constraintkey) '#13#10 +
     '    REFERENCES gd_ref_constraints (id) '#13#10 +
     '    ON UPDATE CASCADE '#13#10 +
     '    ON DELETE CASCADE '#13#10 +
     ') ';
 
-  c_gd_ref_x_constraint_data =
+  {c_gd_ref_x_constraint_data =
     'CREATE UNIQUE INDEX gd_ref_x_constraint_data ON gd_ref_constraint_data '#13#10 +
-    '  (value_data, constraintkey) ';
+    '  (value_data, constraintkey) ';}
 
   c_gd_biu_ref_constraint_data =
     'CREATE OR ALTER TRIGGER gd_biu_ref_constraint_data FOR gd_ref_constraint_data '#13#10 +
@@ -102,8 +101,6 @@ const
     'BEGIN '#13#10 +
     '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'') <> ''1'') THEN '#13#10 +
     '    EXCEPTION gd_e_fkmanager ''Constraint data is locked''; '#13#10 +
-    '  IF (NEW.ID IS NULL) THEN '#13#10 +
-    '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
     'END ';
 
   c_command =
@@ -153,9 +150,9 @@ begin
         FIBSQL.SQL.Text := c_gd_ref_constraint_data;
         FIBSQL.ExecQuery;
 
-        FIBSQL.Close;
+        {FIBSQL.Close;
         FIBSQL.SQL.Text := c_gd_ref_x_constraint_data;
-        FIBSQL.ExecQuery;
+        FIBSQL.ExecQuery;}
 
         FIBSQL.Close;
         FIBSQL.SQL.Text := c_gd_biu_ref_constraint_data;

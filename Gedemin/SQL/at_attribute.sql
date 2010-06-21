@@ -1520,20 +1520,16 @@ END
 SET TERM ; ^
 
 CREATE TABLE gd_ref_constraint_data (
-  id               dintkey,
   constraintkey    dintkey,
   value_data       INTEGER,
   value_count      dintkey,
 
-  CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (id),
+  CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (value_data, constraintkey),
   CONSTRAINT gd_fk_ref_constraint_data FOREIGN KEY (constraintkey)
     REFERENCES gd_ref_constraints (id)
     ON UPDATE CASCADE
     ON DELETE CASCADE
 );
-
-CREATE UNIQUE INDEX gd_ref_x_constraint_data ON gd_ref_constraint_data
-  (value_data, constraintkey);
 
 SET TERM ^ ;
 
@@ -1544,8 +1540,6 @@ AS
 BEGIN
   IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'REF_CONSTRAINT_UNLOCK') <> '1') THEN
     EXCEPTION gd_e_fkmanager 'Constraint data is locked';
-  IF (NEW.ID IS NULL) THEN
-    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 END
 ^
 
