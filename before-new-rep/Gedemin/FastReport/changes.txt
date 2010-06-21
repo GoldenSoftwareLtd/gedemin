@@ -1,0 +1,408 @@
+Changes in v2.54:
+-----------------------------------------------------------------------------
+
+- added the Delphi 2005 support
+- bug fixes
+
+Changes in v2.53:
+-----------------------------------------------------------------------------
+
+- bug fixes.
+
+Changes in v2.52:
+-----------------------------------------------------------------------------
+
+- added improved text file export with dot-matrix printer support
+- added HTML file export (based on table/styles)
+- added Excel file export (based on XML (MS Office 2000/XP/2003 supported))
+- modified Excel file export (OLE)
+- modified RTF file export (table structure, MS Office 97-2003 supported)
+- modified FastReport 3.0 (fr3) save from designer 
+- Open QueryBuilder optional install 
+- bug fixes.
+
+Changes in v2.51:
+-----------------------------------------------------------------------------
+
+- Open QueryBuilder (by agreement with the author of original version 
+  Open QBuilder)
+- hypertext links in preview
+- URL links in preview 
+- new script editor with syntax highlight, bookmarks etc.
+- bug fixes.
+
+Changes in v2.5:
+-----------------------------------------------------------------------------
+
+Added:
+- XLS export over OLE (slow)
+- Bitmaps export BMP, JPEG, TIFF - color and monochrome
+- RTF Export (beta)
+- TfrReport properties:
+  ReportComment, ReportName, ReportAutor, ReportDate, ReportLastChange,
+  ReportPasswordProtected, ReportPassword, Advanced ReportVersion 
+  (major, minor, release, build)
+- Global script variables ReportComment, ReportName, ReportAutor,
+  ReportDate, ReportLastChange, ReportPasswordProtected, ReportPassword,
+  Advanced ReportVersion (major, minor, release, build) 
+- New advanced CrossTab
+- Save to FR3.0 Xml format optional in Designer
+- script editor highlight switch (on/off)
+- Undo on/off in designer
+- Prepared page run-time modification 
+- Report rebuild on printer change (TfrReport: RebuildPrinter)
+- FieldIsNull function in script
+
+BugFixes:
+- correct break words
+- TfrPrintTable bugfixes and additions (Title, DoublePass, PreviewButtons, etc)
+- composite report bugfixes
+- BarCode correct resize
+- Correct align by grid on create new object in designer
+- Field names with dots in dictionary possible
+- uncorrect next row Y pos on using MemoView together with SubReport
+- Minor bug fixes.
+
+Changes in v2.47:
+-----------------------------------------------------------------------------
+- Delphi7 support;
+- Script editor with syntax highligt;
+- Default Jpeg support;
+- Full Bi-directional text output
+- Minor bug fixes.
+
+
+Changes in v2.46:
+-----------------------------------------------------------------------------
+- Minor bug fixes.
+
+
+Changes in v2.45:
+-----------------------------------------------------------------------------
+- Bug fixes (cross-tab and kernel);
+- Added visualization in the cross-tab editor;
+- Added new type for BandAlign property: baRest; improved align of objects
+  with baLeft, baRight;
+- Added Greek and Taiwan resources.
+
+
+Changes in v2.44:
+-----------------------------------------------------------------------------
+- Minor bug fixes;
+- Added new cross-tab object (see frdemo, "Advanced cross-tab" report);
+- Added property TfrReport.ShowPrintDialog;
+- Improved "text search" function in preview;
+- Added support of right-to-left languages.
+
+
+Changes in v2.43:
+-----------------------------------------------------------------------------
+- Minor bug fixes;
+- Added Delphi6 dbExpress DBXComponents (see FR\SOURCE\DBX);
+- Added properties TfrDesigner.OpenDir, SaveDir;
+- Added property TfrReport.PrintIfEmpty;
+- String resources now have relative numbering (see files fr_lng1..5.rc).
+  You can easily move the resource range by changing frRes constant in
+  FR_Const.pas file and recompiling the resource files;
+- Fixes, changes and additions in the powerpack.
+
+
+Changes in v2.42:
+-----------------------------------------------------------------------------
+- Minor bug fixes;
+- Improved work with function libraries;
+- Added package for BCB5;
+- Added package for Delphi6.
+
+
+Changes in v2.41:
+-----------------------------------------------------------------------------
+- Minor bug fixes.
+
+
+Changes in v2.4 release:
+-----------------------------------------------------------------------------
+- Minor bug fixes;
+- Added support of several languages at one time (see
+  RES\English\FR_Eng.dpr file);
+- Added Object Inspector localization (see RES\...\FR_Lng5.rc file);
+- Added "Unlimited height" option for designer page - in case if you have
+  not enough space for all bands. See "Page options" dialog;
+- Old datamanager (TfrDataManager) is not installed by default. Remove
+  comment from {$DEFINE DATAMANAGER} line in FR.inc file to install it;
+- Added FORMATTEXT function, similar to Delphi FormatMaskText;
+- Added EXIT procedure to break script execution.
+
+
+Changes in v2.4beta14-16:
+-----------------------------------------------------------------------------
+- Minor bug fixes.
+
+
+Changes in v2.4beta13:
+-----------------------------------------------------------------------------
+- Minor bug fixes;
+- Added ADOComponents (see FR\SOURCE\ADO);
+
+
+Changes in v2.4beta12:
+-----------------------------------------------------------------------------
+- Minor bug fixes;
+- Some common dialogs and units moved from SOURCE\BDE to SOURCE dir. It
+  simplifies creation of new db-aware components (like BDE and IBX
+  components) - you don't need to rewrite it;
+- Added template for easy creation of new db-aware components (SOURCE\XXX
+  folder). Also added small project (SOURCE\NEWENGIN folder) for renaming
+  template names like TfrXXXTable to normal names which you choose;
+- Added TfrPage.Visible property. Now you able to change page visibility
+  from script. 'Page1' is first page of report, 'Page2' is second one etc;
+- Changes in export filters. If you want export report in code, use
+  TfrReport.ExportTo(ExportFilter, FileName), where ExportFilter is
+  reference to appropriate export component from FR palette (e.g.,
+  TfrTextExport);
+- Added TfrReport.MDIPreview property to allow preview windows work
+  properly in MDI applications. Also added new demo called MDI.
+
+
+Changes in v2.4beta11:
+-----------------------------------------------------------------------------
+- Bugs fixed;
+- Added IBXComponents (see FR\SOURCE\IBX);
+- Added new property of GroupHeader band: Master. Now you can group any
+  data, not only master data;
+- Added INC and DEC procedures.
+
+
+Changes in v2.4beta10:
+-----------------------------------------------------------------------------
+- Bugs fixed;
+- Added access to objects that placed on other pages of the report;
+- Added new align in BandAlign property (all objects): alBottom;
+- Now you can change band datasource from script;
+- Return back to the ZIP archives (SFX suxx :)
+
+
+Changes in v2.4beta9:
+-----------------------------------------------------------------------------
+- Lot of bugs fixed ;)
+- Storing fields list in BDEComponents was changed. Check your reports
+  which use BDEComponents. You'll need to recreate all lookup fields which
+  you define;
+- Added new property of Text object: HideZeros;
+- Added new shapes to ShapeObject - diagonal lines;
+- Added FOR operator in FastReport Pascal;
+- Insert Fields window is now resizeable;
+- Added new property to all report objects: BandAlign;
+- Added new option for bands: PrintChildIfInvisible. If true, print band's
+  childs even if band is invisible;
+- Changes in Data Dictionary. Check your old reports that uses DD!
+- Files set is changed. Now I use self-extracting archives instead of ZIP
+  files. Read "Installation" section in readme.txt.
+
+
+Changes in v2.4beta8:
+-----------------------------------------------------------------------------
+- Bug fixes;
+- Now FR contains only one package as before 2.4b6 because of many bugs
+  when using FR designer inside Delphi IDE.
+- Methods and indexed properties support in dialog controls;
+- Attention: more reliable alghoritm was implemented in aggregate functions
+  handling. Check your old reports!
+
+
+Changes in v2.4beta7:
+-----------------------------------------------------------------------------
+- Bug fixes;
+- Added RX DateEdit control to the Dialog controls;
+- New data manager announced. Now only for BDE (see "ENDUSER1" demo).
+  To install new data manager, create BDE folder under FR SOURCE folder
+  and unzip FR_BDE.zip from 240core1.zip to it. Note: use archiver which can
+  handle long file names. After unzipping, install FRBDEx.dpk package.
+
+
+Changes in v2.4beta6:
+-----------------------------------------------------------------------------
+- Bug fixes;
+- Added possibility to excluding particular dataset or entire datamodule from
+  all db-related lists (see TfrDataDictionary.DisabledDatasets and code
+  of main demo);
+- FR package splitted onto five packages:
+  . FRToolsX (where X is 3, 4 or 5) - tool controls;
+  . FREnginX - report engine;
+  . FRAddinX - add-in components and export filters;
+  . FRDesgnX - report designer;
+  . FRDMngrX - datamanager.
+  You should install these packages in this order;
+- Added OnBeforePrint property to the report page (see Object Inspector) and
+  OnActivate event to the dialog form;
+- Now you can tune export options in the export components (TfrTextExport and
+  etc).
+
+
+Changes in v2.4beta5:
+-----------------------------------------------------------------------------
+- Bug fixes;
+- Added another dialog "Insert DB field". It allows you to insert fields to
+  the report by drag&drop necessary field onto report page. Use Insert key
+  or "Tools|Toolbars" menu command to bring up this dialog;
+- Added package, trial unit and demo for C++Builder 4.0;
+- Syntax highlightning components TSyntaxMemo and TDreamMemo are no longer
+  supported. Use mwEdit syntax highlighter by Martin Waldenburg (freeware).
+  See details in FR.inc file.
+
+
+Changes in v2.4beta4:
+-----------------------------------------------------------------------------
+- Bug fixes;
+- Changed main demo (REPORTS), added new reports;
+- Extended information about errors during report building and in data
+  manager (query properties dialog);
+- Saving Data dictionary moved to the designer, "File|Save as..." menu
+  command;
+- "Insert DB field" dialog now inserts aliases instead of real field names
+  (if field has alias).
+
+
+Changes in v2.4beta3:
+-----------------------------------------------------------------------------
+- Bug fixes;
+- Added Data dictionary;
+- Some changes in interface;
+- Added script syntax checking in memo editor;
+- Added TfrReport.PrintPreparedReportDlg method. It shows print dialog
+  before printing report.
+
+
+Changes in v2.4beta2:
+-----------------------------------------------------------------------------
+- Bug fixes;
+- Added TfrReport.OnMouseOverObject event;
+- Report designer now created dynamically, so correct your code like
+  if frDesigner.Modified ... to the: if frReport1.Modified ...
+
+
+Changes in v2.4beta1:
+-----------------------------------------------------------------------------
+- Bug fixes;
+- Added dialog designer.
+
+
+Changes in v2.4beta:
+-----------------------------------------------------------------------------
+- Fixed old bugs, added new;
+- Added mouse wheel support in designer and preview (D4 and above);
+- Added Open QBuilder support (by Sergey Orlik) in Data manager - see
+  FR.inc file for details;
+- You can use syntax hilightning in the query properties dialog (needed
+  TSyntaxMemo component) - see FR.inc file for details;
+- Added TDreamMemo component support - see FR.inc file for details;
+- Object Inspector now looks like Delphi OI;
+- Added expression builder;
+- Added possibility of use RX TDateEdit or standard TDateTimePicker (D3+)
+  in the query parameters dialog;
+- Designer has flat comboboxes;
+- More options for "Text" object: line and char spacing, top and left gaps,
+  "Suppress repeated values" option;
+- Now you can turn off variable processing in the "Text" and "RichText"
+  objects. See "Text only" option of these objects;
+- All objects have restriction flags. You can disable object editing, moving,
+  resizing, deleting;
+- You can disable some designer operations programmatically
+  (moving, resizing, editing, deleting, saving, loading and etc);
+- Added TfrReport.OnObjectClick event. This event fires when user clicks on
+  any object when previewing report;
+- Added new Child band;
+- Improved export filters (frames export in TXT, tables in RTF, pictures
+  in HTML); added more export options;
+- Added paper bins support;
+- Added component for printing table;
+- Added "Columns" property for data-bands. See last report in the demo;
+- Code changed: TfrReport.OnEnterRect now called OnBeforePrint;
+- Code changed: TfrReport.OnUserFunction. Return value now has Variant type;
+- Added TfrDesigner.OnLoadReport, OnSaveReport and CloseQuery properties.
+
+
+Changes in v2.32:
+-----------------------------------------------------------------------------
+- Added Add-In object TfrRoundRectObject;
+- Added double line style;
+- Improved text printing: now text strings showed like in designer mode
+  independently of preview scaling factor;
+- Added syntax hilightning in Script editor. You must install TSyntaxMemo
+  component by David Brock to use this feature (see FR.inc file for details);
+- Fixed bug when using TQuery in master-detail link;
+- Ctrl+End in preview now works properly;
+- Fixed bug when getting picture from empty blob field;
+- Fixed bugs in "Insert fields" wizard;
+- Now you can attach your own popup-menu to the TfrPreview component;
+- Added German, Dutch and Ukrain resources;
+- Fixed another bug with TQuery (AV when trying to preview report in
+  Delphi IDE);
+- Fixed bug - loading report form was incorrect and sometimes gives AV
+  when trying to preview report.
+
+
+Changes in v2.31.2:
+-----------------------------------------------------------------------------
+- Fixed bugs in RichEdit object editor;
+- Fixed bug - non-correct variable inserting in "Insert variable" dialog,
+  "Other variables" category;
+- Fixed bug - line style does'nt work if line width > 2 in designer mode;
+- Fixed bug with inserting CrossXXX band on empty page;
+- Added property TfrReport.PreviewButtons for setting which buttons to
+  show in preview window;
+- Added property TfrReport.InitialZoom for setting initial zoom in preview
+  window;
+- Fixed bug - when editing prepared report if pressing "New report" button
+  and then closing designer.
+- Fixed bug - assigning TQuery to the TfrDBDataSet.DataSet gives AV in
+  Delphi IDE when trying to save report form or entire project;
+- Fixed bug - AV when trying to print prepared report;
+- Now with English, French, Italian, Russian, Spanish resources.
+
+
+Changes in v2.31.1:
+-----------------------------------------------------------------------------
+- Fixed bug with assigning TDataSource to the TfrDBDataSet.DataSource;
+- Fixed bug - text search in the prepared report does'nt works;
+- Fixed bug - PageDown button in the preview window does'nt works;
+- Added property TfrDBDataSet.DataSet: TDataSet for easily connecting to
+  datasets with no TDataSource component needed.
+- Fixed strange bug - assigning TQuery to the TfrDBDataSet gives AV;
+- Fixed fr.cnt file;
+- Fixed autosize bug.
+
+
+Changes in v2.31:
+-----------------------------------------------------------------------------
+- Fixed some old bugs, added new bugs :)
+- Added TfrPreview component for creating custom preview windows;
+- Object's frame can have non-integer width (0.01 - 10);
+- Changes in code:
+  . Parser variable renamed to the frParser;
+  . TParser class renamed to the TfrParser;
+  . DataModule variable renamed to the frDataModule;
+  . use Font: TFont property instead of FontName, FontSize, etc properties
+    of TfrMemoView object;
+  . added TfrReport.ModifyPrepared: Boolean to disable editing of the
+    prepared report.
+- Value of query parameter can be taken from the FR variable;
+- Page tabs in designer reflects what page you editing: normal page or
+  subreport page;
+- Added option "Hide band tabs" in designer options;
+- Object inspector has sizable window;
+- Added Add-in object TfrRXRichObject (RTF 2.0);
+- Added Add-in object TfrBarCodeObject;
+- Cross-reports now can have variable row height;
+- Changed assigning header&footer bands to data bands. Now header&footer
+  assigned to the nearest data band;
+- Stretched and breaked RichObject;
+- Some changes in designer (page margins, column margins);
+- Memo editor has sizable window with splitter (between memo and script
+  editors);
+- Added ability of insertion FR variables (from frVariables object) visually;
+- Added compatibility with the old FRP files;
+- Added IBObjects support in reporter core (but not in data manager!);
+- Added Interbase Express (IBX), ActiveX Data Objects (ADO) support in
+  data manager with no BDE required;
+- Added line style.
