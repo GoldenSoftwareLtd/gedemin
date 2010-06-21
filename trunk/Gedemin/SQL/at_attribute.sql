@@ -1522,7 +1522,6 @@ SET TERM ; ^
 CREATE TABLE gd_ref_constraint_data (
   constraintkey    dintkey,
   value_data       INTEGER,
-  value_count      dintkey,
 
   CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (value_data, constraintkey),
   CONSTRAINT gd_fk_ref_constraint_data FOREIGN KEY (constraintkey)

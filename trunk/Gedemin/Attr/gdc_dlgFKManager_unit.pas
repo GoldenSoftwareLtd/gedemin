@@ -106,8 +106,7 @@ procedure Tgdc_dlgFKManager.actShowActiveValuesExecute(Sender: TObject);
 begin
   with TfrmSQLEditorSyn.Create(nil) do
   try
-    ShowSQL('SELECT * FROM gd_ref_constraint_data WHERE constraintkey = ' + gdcObject.FieldByName('id').AsString +
-      ' ORDER BY value_count DESC');
+    ShowSQL('SELECT * FROM gd_ref_constraint_data WHERE constraintkey = ' + gdcObject.FieldByName('id').AsString);
   finally
     Free;
   end;

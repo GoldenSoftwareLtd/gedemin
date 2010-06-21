@@ -80,7 +80,6 @@ const
     'CREATE TABLE gd_ref_constraint_data ( '#13#10 +
     '  constraintkey    dintkey, '#13#10 +
     '  value_data       INTEGER, '#13#10 +
-    '  value_count      dintkey, '#13#10 +
     ' '#13#10 +
     '  CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (value_data, constraintkey), '#13#10 +
     '  CONSTRAINT gd_fk_ref_constraint_data FOREIGN KEY (constraintkey) '#13#10 +
