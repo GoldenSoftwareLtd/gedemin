@@ -99,7 +99,7 @@ const
     '  POSITION 0 '#13#10 +
     'AS '#13#10 +
     'BEGIN '#13#10 +
-    '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'') <> ''1'') THEN '#13#10 +
+    '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'') IS DISTINCT FROM ''1'') THEN '#13#10 +
     '    EXCEPTION gd_e_fkmanager ''Constraint data is locked''; '#13#10 +
     'END ';
 
