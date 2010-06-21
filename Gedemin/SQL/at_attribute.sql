@@ -1417,8 +1417,8 @@ BEGIN
   I = GEN_ID(gd_g_attr_version, 1);
 END
 ^
-/*  При подключении IBExpert-ом, IBExpert пытается изменить поле 
-  rdb$description таблицы rdb$database вызывая при этом триггер и 
+/*  При подключении IBExpert-ом, IBExpert пытается изменить поле
+  rdb$description таблицы rdb$database вызывая при этом триггер и
   соответвсенно, увеличивая генератор */
 CREATE TRIGGER gd_au_rdb_relation_fields FOR rdb$relation_fields
   AFTER UPDATE
@@ -1446,3 +1446,106 @@ END
 SET TERM ; ^
 
 COMMIT;
+
+/*
+ *
+ *   FKManager
+ *
+ */
+
+CREATE EXCEPTION gd_e_fkmanager 'Exception in FK manager code';
+
+CREATE DOMAIN d_fk_metaname AS CHAR(31) CHARACTER SET unicode_fss;
+
+CREATE TABLE gd_ref_constraints (
+  id               dintkey,
+  constraint_name  d_fk_metaname UNIQUE,
+  const_name_uq    d_fk_metaname,
+  match_option     char(7)  character set none,
+  update_rule      char(11) character set none,
+  delete_rule      char(11) character set none,
+
+  constraint_rel   d_fk_metaname,
+  constraint_field d_fk_metaname,
+  ref_rel          d_fk_metaname,
+  ref_field        d_fk_metaname,
+
+  ref_state        char(8) character set none,
+  ref_next_state   char(8) character set none,
+
+  constraint_rec_count COMPUTED BY (
+    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i
+      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
+      WHERE rc.rdb$relation_name = constraint_rel AND rc.rdb$constraint_type = 'PRIMARY KEY')),
+
+  constraint_uq_count COMPUTED BY (
+    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i
+      JOIN rdb$index_segments iseg ON iseg.rdb$index_name = i.rdb$index_name
+        AND iseg.rdb$field_name = constraint_field
+      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
+      WHERE i.rdb$relation_name = constraint_rel AND i.rdb$segment_count = 1 AND rc.rdb$constraint_type = 'FOREIGN KEY')),
+
+  ref_rec_count COMPUTED BY (
+    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i
+      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
+      WHERE rc.rdb$relation_name = ref_rel AND rc.rdb$constraint_type = 'PRIMARY KEY')),
+
+  CONSTRAINT gd_pk_ref_constraint PRIMARY KEY (id),
+  CONSTRAINT gd_chk1_ref_contraint CHECK (ref_state IN ('ORIGINAL', 'TRIGGER')),
+  CONSTRAINT gd_chk2_ref_contraint CHECK (ref_next_state IN ('ORIGINAL', 'TRIGGER'))
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_bi_ref_constraints FOR gd_ref_constraints
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE OR ALTER TRIGGER gd_bd_ref_constraints FOR gd_ref_constraints
+  BEFORE DELETE
+  POSITION 0
+AS
+BEGIN
+  IF (OLD.ref_state <> 'ORIGINAL') THEN
+    EXCEPTION gd_e_fkmanager 'Ref constraint is not in ORIGINAL state';
+END
+^
+
+SET TERM ; ^
+
+CREATE TABLE gd_ref_constraint_data (
+  constraintkey    dintkey,
+  value_data       INTEGER,
+  value_count      dintkey,
+
+  CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (value_data, constraintkey),
+  CONSTRAINT gd_fk_ref_constraint_data FOREIGN KEY (constraintkey)
+    REFERENCES gd_ref_constraints (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_biu_ref_constraint_data FOR gd_ref_constraint_data
+  BEFORE INSERT OR UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'REF_CONSTRAINT_UNLOCK') <> '1') THEN
+    EXCEPTION gd_e_fkmanager 'Constraint data is locked';
+END
+^
+
+SET TERM ; ^
+
+COMMIT;
+
+
+

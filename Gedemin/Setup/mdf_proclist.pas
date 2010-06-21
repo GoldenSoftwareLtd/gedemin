@@ -42,10 +42,11 @@ uses
   mdf_AddEmployeeCmd, mdf_AddDTBlock, mdf_RemakeAcEntry, mdf_CorrectInvTrigger, mdf_AddInvMakeRest,
   mdf_ModifyBlockTriggers3, mdf_ModifyBlockTriggers4, mdf_wageUpdateFields, mdf_AddGenerators,
   mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
-  mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage;
+  mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage,
+  mdf_AddFKManagerMetadata;
 
 const
-  cProcCount = 144;
+  cProcCount = 145;
 
 type
   TModifyProc = record
@@ -296,7 +297,8 @@ const
     (ModifyProc: AddEdtiorKeyEditionDate2Storage; ModifyVersion: '0000.0001.0000.0145'),
     (ModifyProc: DropLBRBStorageTree; ModifyVersion: '0000.0001.0000.0146'),
     (ModifyProc: AddAcEntryBalanceAndAT_P_SYNC_Second; ModifyVersion: '0000.0001.0000.0147'),
-    (ModifyProc: MakeLBIndexNonUnique; ModifyVersion: '0000.0001.0000.0148')
+    (ModifyProc: MakeLBIndexNonUnique; ModifyVersion: '0000.0001.0000.0148'),
+    (ModifyProc: AddFKManagerMetadata; ModifyVersion: '0000.0001.0000.0149')
   );
 
 implementation

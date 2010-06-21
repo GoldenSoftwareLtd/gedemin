@@ -396,6 +396,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo 
   VALUES (118, '0000.0001.0000.0149', '22.05.2010', 'Make all LB indices non unique');
 
+INSERT INTO fin_versioninfo 
+  VALUES (119, '0000.0001.0000.0150', '06.06.2010', 'Add FK manager metadata');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
