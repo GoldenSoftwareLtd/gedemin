@@ -185,7 +185,7 @@ begin
           try
             if OldScript = '' then
             begin
-              AddText(TranslateText(FOperations[0]), clBlack);
+              //AddText(TranslateText(FOperations[0]), clBlack);
               AddText(FOperations[0], clBlack);
             end;
             ibsql.SQL.Text := FOperations[0];

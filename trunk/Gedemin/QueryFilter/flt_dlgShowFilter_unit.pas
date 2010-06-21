@@ -254,11 +254,13 @@ begin
   FConditionLink := TfltStringList.Create;
   FFunctionList := TStringList.Create;
 
+  {$IFNDEF GEDEMIN}
   ibsqlPrimaryField.SQL.Text := cPrimaryFieldSQL;
   ibsqlForeignField.SQL.Text := cForeignFieldSQL;
   ibsqlSimpleField.SQL.Text := cSimpleFieldSQL;
   ibsqlSetField.SQL.Text := cSetFieldSQL;
   ibsqlChildField.SQL.Text := cChildSetSQL;
+  {$ENDIF}
   ibsqlSortFields.SQL.Text := cSortFieldSQL;
   ibsqlFunctions.SQL.Text := cFunctionSQL;
 end;
@@ -459,6 +461,7 @@ end;
 // Присваиваем датабэйз и транзакцию все элементам
 procedure TdlgShowFilter.FullIBParams;
 begin
+  {$IFNDEF GEDEMIN}
   ibsqlPrimaryField.Database := Database;
   ibsqlPrimaryField.Transaction := Transaction;
   ibsqlForeignField.Database := Database;
@@ -469,12 +472,9 @@ begin
   ibsqlSetField.Transaction := Transaction;
   ibsqlChildField.Database := Database;
   ibsqlChildField.Transaction := Transaction;
+  {$ENDIF}
   ibsqlSortFields.Database := Database;
   ibsqlSortFields.Transaction := Transaction;
-{  ibqryTableName.Database := Database;
-  ibqryTableName.Transaction := Transaction;}
-{  ibqryAttrRef.Database := Database;
-  ibqryAttrRef.Transaction := Transaction;}
   ibsqlFunctions.Database := Database;
   ibsqlFunctions.Transaction := Transaction;
   ibsqlGetID.Database := Database;
@@ -486,6 +486,7 @@ end;
 // Маленькая копия OpenQuery. Используется для связующих таблиц. Без комментариев.
 procedure TdlgShowFilter.OpenSimpleQuery(const ParentNode: TTreeNode; const AnTableName, AnPrimaryName: String);
 var
+{$IFNDEF GEDEMIN}
   I: Integer;
   TepmTreeNode: TTreeNode;
   S: String;
@@ -590,6 +591,99 @@ begin
   end;
 
 end;
+{$ELSE}
+  J: Integer;
+  TepmTreeNode: TTreeNode;
+  S, ExclFields: String;
+  F: TatRelationField;
+  FK: TatForeignKey;
+  Lst: TObjectList;
+  R: TatRelation;
+
+  procedure FillMainFields(const AnFieldData: TfltFieldData);
+  begin
+    AnFieldData.TableName := AnTableName;
+  end;
+
+begin
+  ExclFields := '"' + AnPrimaryName + '"' + '"AFULL""ACHAG""AVIEW""LB""RB"';
+  Lst := TObjectList.Create(False);
+  try
+    atDatabase.ForeignKeys.ConstraintsByRelation(AnTableName, Lst);
+    for J := 0 to Lst.Count - 1 do
+    begin
+      FK := Lst[J] as TatForeignKey;
+
+      if not FK.IsSimpleKey then
+        continue;
+
+      if (FMainWindow or (FK.Relation.RelationName <> FK.ReferencesRelation.RelationName))
+        and CheckVisible(AnTableName, FK.ConstraintFields[0].FieldName)
+        and (AnPrimaryName <> FK.ConstraintFields[0].FieldName) then
+      begin
+        TepmTreeNode := FFieldList.Items.AddChild(ParentNode, '1_' + FK.ConstraintFields[0].FieldName);
+        TepmTreeNode.ImageIndex := 2;
+        TepmTreeNode.Data := TfltFieldData.Create;
+        FFilterBloksList.Add(TepmTreeNode.Data);
+        // Заполняем поля FOREIGN KEY
+        TfltFieldData(TepmTreeNode.Data).FieldName := CheckFieldName(FK.ConstraintFields[0].FieldName);
+        TfltFieldData(TepmTreeNode.Data).FieldType := GD_DT_REF_SET_ELEMENT;
+        TfltFieldData(TepmTreeNode.Data).RefTable := FK.ReferencesRelation.RelationName;
+        TfltFieldData(TepmTreeNode.Data).RefField := FK.ReferencesFields[0].FieldName;
+        FindTable(AnTableName,
+         TfltFieldData(TepmTreeNode.Data).FieldName, S,
+         TfltFieldData(TepmTreeNode.Data).IsReference,
+         TfltFieldData(TepmTreeNode.Data).RefTable);
+        TfltFieldData(TepmTreeNode.Data).DisplayName := S;
+
+        FillMainFields(TfltFieldData(TepmTreeNode.Data));
+
+        if atDatabase <> nil then
+          F := atDatabase.FindRelationField(
+            TfltFieldData(TepmTreeNode.Data).TableName, TfltFieldData(TepmTreeNode.Data).FieldName)
+        else
+          F := nil;
+
+        if F <> nil then
+        begin
+          TfltFieldData(TepmTreeNode.Data).LocalField := Trim(F.LName);
+          TepmTreeNode.Text := TfltFieldData(TepmTreeNode.Data).LocalField + ' (' + TepmTreeNode.Text + ')';
+        end else
+          TfltFieldData(TepmTreeNode.Data).LocalField := '';
+       end;
+
+      ExclFields := ExclFields + '"' + FK.ConstraintFields[0].FieldName + '"';
+    end;
+  finally
+    Lst.Free;
+  end;
+
+  R := atDatabase.Relations.ByRelationName(AnTableName);
+
+  for J := 0 to R.RelationFields.Count - 1 do
+  begin
+    if Pos('"' + R.RelationFields[J].FieldName + '"', ExclFields) <> 0 then
+      continue;
+
+    if CheckVisible(AnTableName, R.RelationFields[J].FieldName) then
+    begin
+      // Заполняем простые поля
+      TepmTreeNode := FFieldList.Items.AddChild(ParentNode, '2_' + R.RelationFields[J].FieldName);
+      TepmTreeNode.ImageIndex := 3;
+      TepmTreeNode.Data := TfltFieldData.Create;
+      FFilterBloksList.Add(TepmTreeNode.Data);
+      TfltFieldData(TepmTreeNode.Data).FieldName := CheckFieldName(R.RelationFields[J].FieldName);
+      TfltFieldData(TepmTreeNode.Data).FieldType := ConvertDataType(R.RelationFields[J].Field.SQLType,
+       R.RelationFields[J].Field.SQLSubType, R.RelationFields[J].Field.FieldName,
+       R.RelationFields[J].Field.FieldLength);
+      FillMainFields(TfltFieldData(TepmTreeNode.Data));
+
+      TfltFieldData(TepmTreeNode.Data).LocalField := R.RelationFields[J].LName;
+      TepmTreeNode.Text := TfltFieldData(TepmTreeNode.Data).LocalField + ' (' + TepmTreeNode.Text + ')';
+    end;
+  end;
+end;
+{$ENDIF}
 
 (*procedure TdlgShowFilter.FindTable(const ATableName: String; var ADisplayName: String; var AIsReference: Boolean);
 begin
@@ -645,6 +739,7 @@ end;
 
 // Создаем список полей
 function TdlgShowFilter.OpenQuery(const AnTableName, AnTableAlias: String): Pointer;
+{$IFNDEF GEDEMIN}
 const
   FReferenceLabel = 'R';
 
@@ -1087,6 +1182,339 @@ begin
     //Result := False;
   end;
 end;
+{$ELSE}
+const
+  FReferenceLabel = 'R';
+
+var
+  AnPrimaryName, AnLocalTable, S, ExclFields: String;
+  L, J: Integer;
+  OrderTreeNode, TepmOrderTreeNode, TepmFieldTreeNode, TableTreeNode: TTreeNode;
+  F: TatRelationField;
+  R: TatRelation;
+  OnlySimpleFields: Boolean;
+  Lst: TObjectList;
+  FK: TatForeignKey;
+
+  // Функция ищет по наименованию таблицы и поля таблицы в запросе
+  function FindLinkTable(const SForeignField, STableName: String): Integer;
+  var
+    M, N: Integer;
+    TTN, TFF: String;
+  begin
+    Result := -1;
+    TTN := AnsiUpperCase(STableName);
+    TFF := AnsiUpperCase(AnTableAlias + SForeignField);
+    for M := 0 to FTableList.Count - 1 do
+      if AnsiUpperCase(FTableList.Names[M]) = TTN then
+        for N := 0 to FConditionLink.Count - 1 do
+          if (((FConditionLink.Names[N] = TFF) and
+           (Pos(AnsiUpperCase(FTableList.ValuesOfIndex[M]), FConditionLink.ValuesOfIndex[N]) = 1)) or
+           ((FConditionLink.ValuesOfIndex[N] = TFF) and
+           (Pos(AnsiUpperCase(FTableList.ValuesOfIndex[M]), FConditionLink.Names[N]) = 1))) then
+          begin
+            FConditionLink.Delete(N);
+            Result := M;
+            Exit;
+          end;
+  end;
+
+  // Заполнение основных полей в структуре
+  procedure FillMainFields(const AnFieldData: TfltFieldData);
+  begin
+    AnFieldData.TableName := AnTableName;
+    AnFieldData.TableAlias := AnTableAlias;
+    AnFieldData.LocalTable := AnLocalTable;
+  end;
+
+  // Заполнение полей для сортировки значениями из полей для фильтрации
+  procedure FillSortItem(const AnFieldData: TfltFieldData; const AnOrderByData: TFilterOrderBy);
+  begin
+    AnOrderByData.TableName := AnFieldData.TableName;
+    AnOrderByData.TableAlias := AnFieldData.TableAlias;
+    AnOrderByData.FieldName := AnFieldData.FieldName;
+    AnOrderByData.LocalField := AnFieldData.LocalField;
+    AnOrderByData.IsAscending := True;
+  end;
+
+  function GetFieldName(const AnLocalName, AnOriginalName: String): String;
+  begin
+    case fltFieldNameMode of
+      fnmOriginal: Result := AnOriginalName;
+      fnmLocalize: Result := AnLocalName;
+      fnmDuplex: Result := AnLocalName + ' (' + AnOriginalName + ')';
+    else
+      Assert(False, 'Filter Field Name Mode not suported.');
+    end;
+  end;
+begin
+  Result := nil;
+  try
+    if atDatabase <> nil then
+      R := atDatabase.Relations.ByRelationName(AnTableName)
+    else
+      R := nil;
+
+    if R <> nil then
+    begin
+      AnLocalTable := R.LName;
+      if AnLocalTable = '' then
+        AnLocalTable := AnTableName;
+    end else
+      AnLocalTable := AnTableName;
+
+    // Определяем список таблиц
+    AnLocalTable := GetFieldName(AnLocalTable, AnTableName);
+
+    // Определяем PRIMARY KEY
+    OnlySimpleFields := False;
+    if R <> nil then
+    begin
+      if (R.PrimaryKey <> nil) and (R.PrimaryKey.ConstraintFields.Count = 1) then
+      begin
+        AnPrimaryName := R.PrimaryKey.ConstraintFields[0].FieldName;
+      end else
+        OnlySimpleFields := True;
+    end;
+
+    OrderTreeNode := FSortList.Items.AddObject(nil, AnLocalTable, nil);
+    OrderTreeNode.ImageIndex := 1;
+    TableTreeNode := FFieldList.Items.AddObject(nil, AnLocalTable, OrderTreeNode);
+    Result := TableTreeNode;
+    TableTreeNode.ImageIndex := 1;
+
+    TepmOrderTreeNode := FSortList.Items.AddChildObject(OrderTreeNode, AnPrimaryName, TFilterOrderBy.Create);
+    TepmOrderTreeNode.ImageIndex := 3;
+    FFilterBloksList.Add(TepmOrderTreeNode.Data);
+    TFilterOrderBy(TepmOrderTreeNode.Data).TableName := AnTableName;
+    TFilterOrderBy(TepmOrderTreeNode.Data).TableAlias := AnTableAlias;
+    TFilterOrderBy(TepmOrderTreeNode.Data).FieldName := CheckFieldName(AnPrimaryName);
+    if atDatabase <> nil then
+      F := atDatabase.FindRelationField(TFilterOrderBy(TepmOrderTreeNode.Data).TableName,
+        TFilterOrderBy(TepmOrderTreeNode.Data).FieldName)
+    else
+      F := nil;
+    if F <> nil then
+      TFilterOrderBy(TepmOrderTreeNode.Data).LocalField := Trim(F.LName);
+    TFilterOrderBy(TepmOrderTreeNode.Data).IsAscending := True;
+    TepmOrderTreeNode.Text := GetFieldName(TFilterOrderBy(TepmOrderTreeNode.Data).LocalField, TepmOrderTreeNode.Text);
+
+    // Определяем FOREIGN KEY
+    ExclFields := '"AFULL""ACHAG""AVIEW""LB""RB"';
+    if not OnlySimpleFields then
+    begin
+      Lst := TObjectList.Create(False);
+      try
+        atDatabase.ForeignKeys.ConstraintsByRelation(AnTableName, Lst);
+        for J := 0 to Lst.Count - 1 do
+        begin
+          FK := Lst[J] as TatForeignKey;
+
+          if not FK.IsSimpleKey then
+            continue;
+
+          if CheckVisible(AnTableName, FK.ConstraintFields[0].FieldName) then
+          begin
+            TepmFieldTreeNode := FFieldList.Items.AddChild(TableTreeNode, '1_' + FK.ConstraintFields[0].FieldName);
+            TepmFieldTreeNode.ImageIndex := 2;
+            TepmFieldTreeNode.Data := TfltFieldData.Create;
+            FFilterBloksList.Add(TepmFieldTreeNode.Data);
+            // Заполняем поля FOREIGN KEY
+            TfltFieldData(TepmFieldTreeNode.Data).FieldName := CheckFieldName(FK.ConstraintFields[0].FieldName);
+            TfltFieldData(TepmFieldTreeNode.Data).IsTree := FK.ReferencesRelation.IsLBRBTreeRelation;
+            TfltFieldData(TepmFieldTreeNode.Data).FieldType := GD_DT_REF_SET_ELEMENT;
+            TfltFieldData(TepmFieldTreeNode.Data).RefTable := FK.ReferencesRelation.RelationName;
+            TfltFieldData(TepmFieldTreeNode.Data).RefField := FK.ReferencesFields[0].FieldName;
+            FindTable(AnTableName,
+             TfltFieldData(TepmFieldTreeNode.Data).FieldName, S,
+             TfltFieldData(TepmFieldTreeNode.Data).IsReference,
+             TfltFieldData(TepmFieldTreeNode.Data).RefTable);
+            TfltFieldData(TepmFieldTreeNode.Data).DisplayName := S;
+            FillMainFields(TfltFieldData(TepmFieldTreeNode.Data));
+
+            TfltFieldData(TepmFieldTreeNode.Data).LocalField := FK.ConstraintFields[0].LName;
+
+            TepmFieldTreeNode.Text := GetFieldName(TfltFieldData(TepmFieldTreeNode.Data).LocalField, TepmFieldTreeNode.Text);
+
+            L := FindLinkTable(TfltFieldData(TepmFieldTreeNode.Data).FieldName,
+             TfltFieldData(TepmFieldTreeNode.Data).RefTable);
+            if L > -1 then
+              if TfltFieldData(TepmFieldTreeNode.Data).LocalField > '' then
+                FTableNames[L] := GetFieldName(TfltFieldData(TepmFieldTreeNode.Data).LocalField, TfltFieldData(TepmFieldTreeNode.Data).FieldName)
+              else
+                FTableNames[L] := GetFieldName(TfltFieldData(TepmFieldTreeNode.Data).LocalField, TepmFieldTreeNode.Text);
+
+            TepmOrderTreeNode := FSortList.Items.AddChildObject(OrderTreeNode, TepmFieldTreeNode.Text, TFilterOrderBy.Create);
+            TepmOrderTreeNode.ImageIndex := 2;
+            FFilterBloksList.Add(TepmOrderTreeNode.Data);
+            FillSortItem(TfltFieldData(TepmFieldTreeNode.Data), TFilterOrderBy(TepmOrderTreeNode.Data));
+          end;
+
+          ExclFields := ExclFields + '"' + FK.ConstraintFields[0].FieldName + '"';
+        end;
+      finally
+        Lst.Free;
+      end;
+
+      ExclFields := ExclFields + '"' + AnPrimaryName + '"';
+    end;
+
+    if R <> nil then
+    begin
+      for J := 0 to R.RelationFields.Count - 1 do
+      begin
+        if Pos('"' + R.RelationFields[J].FieldName + '"', ExclFields) <> 0 then
+          continue;
+
+        if CheckVisible(AnTableName, R.RelationFields[J].FieldName) then
+        begin
+          // Заполняем простые поля
+          TepmFieldTreeNode := FFieldList.Items.AddChild(TableTreeNode, '2_' + R.RelationFields[J].FieldName);
+          TepmFieldTreeNode.ImageIndex := 3;
+          TepmFieldTreeNode.Data := TfltFieldData.Create;
+          FFilterBloksList.Add(TepmFieldTreeNode.Data);
+          TfltFieldData(TepmFieldTreeNode.Data).FieldName := CheckFieldName(R.RelationFields[J].FieldName);
+          TfltFieldData(TepmFieldTreeNode.Data).FieldType := ConvertDataType(R.RelationFields[J].Field.SQLType,
+           R.RelationFields[J].Field.SQLSubType, R.RelationFields[J].Field.FieldName,
+           R.RelationFields[J].Field.FieldLength);
+          FillMainFields(TfltFieldData(TepmFieldTreeNode.Data));
+
+          TfltFieldData(TepmFieldTreeNode.Data).LocalField := R.RelationFields[J].LName;
+
+          TepmFieldTreeNode.Text := GetFieldName(TfltFieldData(TepmFieldTreeNode.Data).LocalField, TepmFieldTreeNode.Text);
+
+          TepmOrderTreeNode := FSortList.Items.AddChildObject(OrderTreeNode, TepmFieldTreeNode.Text, TFilterOrderBy.Create);
+          TepmOrderTreeNode.ImageIndex := 3;
+          FFilterBloksList.Add(TepmOrderTreeNode.Data);
+          FillSortItem(TfltFieldData(TepmFieldTreeNode.Data), TFilterOrderBy(TepmOrderTreeNode.Data));
+        end;
+      end;
+    end; {else R = nil
+
+      это процедура! Мы пока не поддерживаем!
+
+      // Считывание полей процедуры
+      ibsqlSimpleField.Close;
+      ibsqlSimpleField.SQL.Text := cProcedureFieldSQL;
+      ibsqlSimpleField.Params[0].AsString := AnTableName;
+      ibsqlSimpleField.ExecQuery;}
+
+    if not OnlySimpleFields then
+    begin
+      Lst := TObjectList.Create(False);
+      try
+        atDatabase.ForeignKeys.ConstraintsByReferencedRelation(AnTableName, Lst,
+          True, False, True);
+
+        for J := 0 to Lst.Count - 1 do
+        begin
+          FK := Lst[J] as TatForeignKey;
+
+          if CheckVisible(FK.Relation.RelationName,
+            FK.Relation.PrimaryKey.ConstraintFields[1].FieldName) then
+          begin
+            TepmFieldTreeNode := FFieldList.Items.AddChild(TableTreeNode, '4_' + FK.Relation.RelationName + '&' + FK.Relation.PrimaryKey.ConstraintFields[1].FieldName);
+            TepmFieldTreeNode.ImageIndex := 5;
+            TepmFieldTreeNode.Data := TfltFieldData.Create;
+            FFilterBloksList.Add(TepmFieldTreeNode.Data);
+            TfltFieldData(TepmFieldTreeNode.Data).FieldName := CheckFieldName(AnPrimaryName);
+            TfltFieldData(TepmFieldTreeNode.Data).IsTree := FK.Relation.PrimaryKey.ConstraintFields[1].References.IsLBRBTreeRelation;
+            TfltFieldData(TepmFieldTreeNode.Data).FieldType := GD_DT_REF_SET;
+            TfltFieldData(TepmFieldTreeNode.Data).LinkTable := FK.Relation.RelationName;
+            TfltFieldData(TepmFieldTreeNode.Data).LinkSourceField := FK.Relation.PrimaryKey.ConstraintFields[0].FieldName;
+            TfltFieldData(TepmFieldTreeNode.Data).LinkTargetField := FK.Relation.PrimaryKey.ConstraintFields[1].FieldName;
+            TfltFieldData(TepmFieldTreeNode.Data).RefTable := FK.Relation.PrimaryKey.ConstraintFields[1].References.RelationName;
+            TfltFieldData(TepmFieldTreeNode.Data).RefField := FK.Relation.PrimaryKey.ConstraintFields[1].ReferencesField.FieldName;
+            FindTable(AnTableName,
+             TfltFieldData(TepmFieldTreeNode.Data).FieldName, S,
+             TfltFieldData(TepmFieldTreeNode.Data).IsReference,
+             TfltFieldData(TepmFieldTreeNode.Data).RefTable);
+            TfltFieldData(TepmFieldTreeNode.Data).DisplayName := S;
+            FillMainFields(TfltFieldData(TepmFieldTreeNode.Data));
+
+            TfltFieldData(TepmFieldTreeNode.Data).LocalField := FK.Relation.PrimaryKey.ConstraintFields[1].LName;
+
+            TepmFieldTreeNode.Text := GetFieldName(TfltFieldData(TepmFieldTreeNode.Data).LocalField, TepmFieldTreeNode.Text);
+          end;
+        end;
+
+        atDatabase.ForeignKeys.ConstraintsByReferencedRelation(AnTableName, Lst,
+          True, True, False);
+        for J := 0 to Lst.Count - 1 do
+        begin
+          FK := Lst[J] as TatForeignKey;
+
+          if FK.Relation.PrimaryKey = nil then
+            continue;
+
+          if CheckVisible(FK.Relation.RelationName, FK.ConstraintFields[0].FieldName) then
+          begin
+            TepmFieldTreeNode := FFieldList.Items.AddChild(TableTreeNode, '5_' + FK.Relation.RelationName + '&' + FK.ConstraintFields[0].FieldName);
+            TepmFieldTreeNode.ImageIndex := 6;
+            TepmFieldTreeNode.Data := TfltFieldData.Create;
+            FFilterBloksList.Add(TepmFieldTreeNode.Data);
+            TfltFieldData(TepmFieldTreeNode.Data).FieldName := CheckFieldName(FK.ReferencesFields[0].FieldName);
+            TfltFieldData(TepmFieldTreeNode.Data).FieldType := GD_DT_CHILD_SET;
+            TfltFieldData(TepmFieldTreeNode.Data).IsTree := FK.Relation.IsLBRBTreeRelation;
+            TfltFieldData(TepmFieldTreeNode.Data).LinkTable := FK.Relation.RelationName;
+            TfltFieldData(TepmFieldTreeNode.Data).LinkSourceField := FK.ConstraintFields[0].FieldName;
+            TfltFieldData(TepmFieldTreeNode.Data).LinkTargetField := FK.Relation.PrimaryKey.ConstraintFields[0].FieldName;
+            FindTable(AnTableName,
+             TfltFieldData(TepmFieldTreeNode.Data).FieldName, S,
+             TfltFieldData(TepmFieldTreeNode.Data).IsReference,
+             TfltFieldData(TepmFieldTreeNode.Data).LinkTable);
+            TfltFieldData(TepmFieldTreeNode.Data).DisplayName := S;
+            FillMainFields(TfltFieldData(TepmFieldTreeNode.Data));
+
+            TfltFieldData(TepmFieldTreeNode.Data).LocalField := FK.ConstraintFields[0].LName;
+
+            TepmFieldTreeNode.Text := GetFieldName(TfltFieldData(TepmFieldTreeNode.Data).LocalField, TepmFieldTreeNode.Text);
+          end;
+        end;
+      finally
+        Lst.Free;
+      end;
+    end;
+
+    ibsqlSortFields.Close;
+    ibsqlSortFields.Params[0].AsString := AnTableName;
+    ibsqlSortFields.ExecQuery;
+    TepmOrderTreeNode := FIndexList.Items.AddObject(nil, AnLocalTable, TFilterOrderBy.Create);
+    FFilterBloksList.Add(TepmOrderTreeNode.Data);
+    OrderTreeNode.Data := TepmOrderTreeNode;
+    OrderTreeNode := TepmOrderTreeNode;
+    OrderTreeNode.ImageIndex := 1;
+    while not ibsqlSortFields.Eof do
+    begin
+      // Заполняем список полей для сортировки
+      TepmOrderTreeNode := FIndexList.Items.AddChildObject(OrderTreeNode, '6_' + Trim(ibsqlSortFields.FieldByName('fieldname').AsString),
+       TFilterOrderBy.Create);
+      FFilterBloksList.Add(TepmOrderTreeNode.Data);
+      TepmOrderTreeNode.ImageIndex := 2;
+      TFilterOrderBy(TepmOrderTreeNode.Data).TableName := AnTableName;
+      TFilterOrderBy(TepmOrderTreeNode.Data).TableAlias := AnTableAlias;
+      TFilterOrderBy(TepmOrderTreeNode.Data).FieldName := CheckFieldName(ibsqlSortFields.FieldByName('fieldname').AsString);
+
+      if atDatabase <> nil then
+        F := atDatabase.FindRelationField(TFilterOrderBy(TepmOrderTreeNode.Data).TableName,
+          TFilterOrderBy(TepmOrderTreeNode.Data).FieldName)
+      else
+        F := nil;
+
+      if F <> nil then
+        TFilterOrderBy(TepmOrderTreeNode.Data).LocalField := Trim(F.LName);
+
+      TFilterOrderBy(TepmOrderTreeNode.Data).IsAscending := ibsqlSortFields.FieldByName('asctype').AsInteger <> 1;
+
+      TepmOrderTreeNode.Text := GetFieldName(TFilterOrderBy(TepmOrderTreeNode.Data).LocalField, TepmOrderTreeNode.Text);
+
+      ibsqlSortFields.Next;
+    end;
+  except
+    //Result := False;
+  end;
+end;
+{$ENDIF}
 
 // Аналогично ShowFilter только для связующих таблиц. Без комментариев.
 function TdlgShowFilter.ShowLinkTableFilter(const AnConditionList: TFilterConditionList;
