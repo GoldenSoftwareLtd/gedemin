@@ -154,6 +154,7 @@ contains
   gdvAcctCirculationList in '..\Transaction\gdvAcctCirculationList.pas',
   gdcBlockRule in '..\Component\GDC\gdcBlockRule.pas',
   gdcSQLHistory in '..\Component\GDC\gdcSQLHistory.pas',
-  gdcStorage in '..\Component\GDC\gdcStorage.pas';
+  gdcStorage in '..\Component\GDC\gdcStorage.pas',
+  gdcFKManager in '..\Component\GDC\gdcFKManager.pas';
 
 end.
