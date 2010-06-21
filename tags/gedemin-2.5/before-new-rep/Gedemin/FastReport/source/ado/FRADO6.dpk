@@ -1,0 +1,51 @@
+// Package file for Delphi 6
+
+package FRADO6;
+
+{$R *.res}
+{$R 'FR_ADOreg.dcr'}
+{$I FR.inc}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'FastReport 2.5 ADO Components'}
+{$IMPLICITBUILD ON}
+
+requires
+  VCL,
+  VCLDB,
+  ADORTL,
+  VCLSMP,
+  FR6;
+
+
+contains
+  FR_ADOReg in 'FR_ADOReg.pas',
+  FR_ADODB in 'FR_ADODB.pas',
+  FR_ADOMd in 'FR_ADOMd.pas',
+{$IFDEF QBUILDER}
+  FR_ADOQb in 'FR_ADOQb.pas',
+{$ENDIF}
+  FR_ADOQuery in 'FR_ADOQuery.pas',
+  FR_ADOQueryParam in 'FR_ADOQueryParam.pas',
+  FR_ADOTable in 'FR_ADOTable.pas';
+
+end.

@@ -1,0 +1,122 @@
+[Compiler]
+A=1
+B=0
+C=1
+D=1
+E=0
+F=0
+G=1
+H=1
+I=1
+J=1
+K=0
+L=1
+M=0
+N=1
+O=1
+P=1
+Q=0
+R=0
+S=0
+T=0
+U=0
+V=1
+W=0
+X=1
+Y=1
+Z=1
+ShowHints=1
+ShowWarnings=1
+UnitAliases=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+[Linker]
+MapFile=0
+OutputObjs=0
+ConsoleApp=1
+DebugInfo=0
+RemoteSymbols=0
+MinStackSize=16384
+MaxStackSize=1048576
+ImageBase=4194304
+ExeDescription=
+[Directories]
+OutputDir=d:\golden\gedemin\report
+UnitOutputDir=d:\golden\gedemin\dcu
+PackageDLLOutputDir=d:\golden\gedemin\dcu
+PackageDCPOutputDir=d:\golden\gedemin\dcu
+SearchPath=d:\golden\comp5;d:\golden\comp5\xstorm;d:\golden\gedemin\component;d:\golden\gedemin\1stclass\source
+Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;Vclbde50;VCLIB50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50;crbide50;proide50;vcldbx50;direct50;dphcrb50;rcpkg50;stride50;TWAIN_Scanner;pk_gdClasses
+Conditionals=
+DebugSourceDirs=
+UsePackages=0
+[Parameters]
+RunParams=
+HostApplication=
+[Language]
+ActiveLang=
+ProjectLang=$00000423
+RootDir=
+[Version Info]
+IncludeVerInfo=0
+AutoIncBuild=0
+MajorVer=1
+MinorVer=0
+Release=0
+Build=0
+Debug=0
+PreRelease=0
+Special=0
+Private=0
+DLL=0
+Locale=1059
+CodePage=1251
+[Version Info Keys]
+CompanyName=
+FileDescription=
+FileVersion=1.0.0.0
+InternalName=
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=
+ProductName=
+ProductVersion=1.0.0.0
+Comments=
+[Excluded Packages]
+$(DELPHI)\Bin\direct50.bpl=Borland Direct IDE Package
+$(DELPHI)\Bin\stride50.bpl=String Resource Editor IDE Package
+$(DELPHI)\Bin\proide50.bpl=Borland Core IDE Package
+$(DELPHI)\Bin\dphpro50.bpl=Borland Delphi Professional IDE Package
+$(DELPHI)\Bin\dphcrb50.bpl=Borland Delphi Core IDE CORBA Package
+$(DELPHI)\Bin\crbide50.bpl=Borland Core IDE CORBA Package
+$(DELPHI)\Bin\dphmts50.bpl=Borland Delphi Core MTS IDE Package
+$(DELPHI)\Bin\mtside50.bpl=Borland Core MTS IDE Package
+[HistoryLists\hlConditionals]
+Count=2
+Item0=GEDEMIN;_DEBUG;_BMKK;_PRODUCT;_DEPARTMENT
+Item1=GCLASSES_DPK
+[HistoryLists\hlUnitAliases]
+Count=1
+Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
+[HistoryLists\hlSearchPath]
+Count=7
+Item0=d:\golden\comp5;d:\golden\comp5\xstorm;d:\golden\gedemin\component;d:\golden\gedemin\1stclass\source
+Item1=$(DELPHI)\Source\decision cube;d:\golden\comp5;d:\golden\comp5\xstorm;d:\golden\gedemin\gadmin;d:\golden\gedemin\security;d:\golden\gedemin\addressbook;d:\golden\gedemin\bugbase;d:\golden\gedemin\greference;$(DELPHI)\Source\Toolsapi;d:\golden\gedemin\log;d:\golden\gedemin\directorygood;d:\golden\gedemin\messaging;d:\golden\gedemin\queryfilter_;d:\golden\gedemin\classtree;d:\golden\gedemin\1stclass\source;d:\golden\gedemin\component;d:\golden\gedemin\attr;d:\golden\gedemin\storage;d:\golden\gedemin\ibx;d:\golden\gedemin\attr;d:\golden\gedemin\common;d:\golden\gedemin\bank;d:\golden\gedemin\newtransaction;d:\golden\gedemin\realization;D:\Golden\gedemin\Department;D:\Golden\gedemin\planning;D:\Golden\gedemin\component\repository;D:\Golden\gedemin\gudf;D:\Golden\gedemin\cattle;$(DELPHI)\Imports
+Item2=d:\golden\comp5;d:\golden\comp5\xstorm;d:\golden\gedemin\component;d:\golden\gedemin\ibx
+Item3=d:\golden\comp5;d:\golden\comp5\xstorm;d:\golden\gedemin\common;d:\golden\gedemin\ibx
+Item4=d:\golden\comp5;d:\golden\comp5\xstorm;$(DELPHI)\source\toolsapi;d:\golden\gedemin\addressbook;d:\golden\gedemin\gadmin;d:\golden\gedemin\ibx
+Item5=d:\golden\comp5;d:\golden\comp5\xstorm;d:\golden\gedemin\component;d:\golden\gedemin\1stclass\source;d:\golden\gedemin\newtransaction;d:\golden\gedemin\fastreport\source
+Item6=$(DELPHI)\Source\Decision Cube;D:\Golden\gedemin\component;d:\golden\comp5;d:\golden\comp5\xstorm;D:\Golden\gedemin\Security;D:\Golden\gedemin\gadmin;d:\golden\gedemin\addressbook;$(DELPHI)\Source\Toolsapi;d:\golden\gedemin\queryfilter;d:\golden\gedemin\classtree;d:\golden\gedemin\1stclass\source;d:\golden\gedemin\greference;d:\golden\gedemin\storage;d:\golden\gedemin\messaging;d:\golden\gedemin\bank;d:\golden\gedemin\newtransaction;d:\golden\gedemin\common;$(DELPHI)\projects\bpl;d:\golden\gedemin\component\repository;d:\golden\gedemin\gedemin;$(DELPHI)\imports;d:\golden\gedemin\ibx
+[HistoryLists\hlUnitOutputDirectory]
+Count=1
+Item0=d:\golden\gedemin\dcu
+[HistoryLists\hlOutputDirectorry]
+Count=4
+Item0=d:\golden\gedemin\report
+Item1=d:\golden\report
+Item2=d:\golden\gedemin\gedemin
+Item3=d:\golden\gedemin\setup
+[HistoryLists\hlBPLOutput]
+Count=1
+Item0=d:\golden\gedemin\dcu
+[HistoryLists\hlDCPOutput]
+Count=1
+Item0=d:\golden\gedemin\dcu
