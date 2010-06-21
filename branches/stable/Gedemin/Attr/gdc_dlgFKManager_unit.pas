@@ -120,3 +120,6 @@ finalization
   UnRegisterFrmClass(Tgdc_dlgFKManager);
 
 end.
+
+
+

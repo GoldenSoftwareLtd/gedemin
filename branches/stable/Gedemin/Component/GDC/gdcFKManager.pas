@@ -130,7 +130,7 @@ const
   c_check =
     '  IF (NEW.<constraint_field> IS NOT NULL) THEN '#13#10 +
     '  BEGIN '#13#10 +
-    '    IF (NOT EXISTS (SELECT id FROM gd_ref_constraint_data WHERE value_data = NEW.<constraint_field> '#13#10 +
+    '    IF (NOT EXISTS (SELECT * FROM gd_ref_constraint_data WHERE value_data = NEW.<constraint_field> '#13#10 +
     '      AND constraintkey = <constraint_key>)) THEN '#13#10 +
     '    BEGIN'#13#10 +
     '      IF (NOT EXISTS (SELECT <ref_field> FROM <ref_rel> WHERE <ref_field> = NEW.<constraint_field>)) THEN'#13#10 +
@@ -430,9 +430,6 @@ begin
     if qList.RecordCount > 0 then
       InsertScript('DELETE FROM gd_ref_constraints WHERE ref_state = ref_next_state ' +
         '  AND ref_next_state = ''ORIGINAL'' ');
-      {InsertScript('DELETE FROM gd_ref_constraint_data WHERE constraintkey IN ' +
-        '(SELECT id FROM gd_ref_constraints WHERE ref_state = ''ORIGINAL'' ' +
-        '  AND ref_state = ref_next_state)');}
 
     Result := qList.RecordCount;
     Tr.Commit;
