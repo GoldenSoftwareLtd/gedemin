@@ -1,6 +1,6 @@
 object DataBaseCompare: TDataBaseCompare
-  Left = 293
-  Top = 87
+  Left = 112
+  Top = 197
   Width = 1094
   Height = 583
   Caption = 'Сравнение баз данных'
@@ -13,21 +13,22 @@ object DataBaseCompare: TDataBaseCompare
   OldCreateOrder = False
   OnClose = FormClose
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 13
   object pnMain: TPanel
     Left = 0
     Top = 0
-    Width = 1078
-    Height = 545
+    Width = 1086
+    Height = 555
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pnTop: TPanel
       Left = 0
       Top = 0
-      Width = 1078
+      Width = 1086
       Height = 167
       Align = alTop
       BevelOuter = bvNone
@@ -312,15 +313,15 @@ object DataBaseCompare: TDataBaseCompare
     object pnBottom: TPanel
       Left = 0
       Top = 167
-      Width = 1078
-      Height = 378
+      Width = 1086
+      Height = 388
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
       object sbDBCompare: TStatusBar
         Left = 0
-        Top = 359
-        Width = 1078
+        Top = 369
+        Width = 1086
         Height = 19
         Panels = <
           item
@@ -337,8 +338,8 @@ object DataBaseCompare: TDataBaseCompare
       object SuperPageControl1: TSuperPageControl
         Left = 0
         Top = 0
-        Width = 1078
-        Height = 359
+        Width = 1086
+        Height = 369
         BorderStyle = bsNone
         TabsVisible = True
         ActivePage = SuperTabSheet1
@@ -350,8 +351,8 @@ object DataBaseCompare: TDataBaseCompare
           object lvMacros: TgsListView
             Left = 0
             Top = 0
-            Width = 1078
-            Height = 336
+            Width = 1086
+            Height = 346
             Align = alClient
             Columns = <
               item
@@ -399,8 +400,8 @@ object DataBaseCompare: TDataBaseCompare
           object lvMetaData: TgsListView
             Left = 0
             Top = 0
-            Width = 1078
-            Height = 336
+            Width = 1086
+            Height = 346
             Align = alClient
             Columns = <
               item
