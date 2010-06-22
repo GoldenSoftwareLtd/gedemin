@@ -498,7 +498,13 @@ begin
     OldBuilding := FDBTreeView.FBuilding;
     FDBTreeView.FBuilding := True;
     try
-      N := FDBTreeView.Find(FieldByName(FDBTreeView.KeyField).AsInteger);
+      try
+        N := FDBTreeView.Find(FieldByName(FDBTreeView.KeyField).AsInteger);
+      except
+        on ETreeViewError do
+          Abort;
+      end;
+
       if N = nil then
       begin
         if (FTopKey = 0) or (FieldByName(FDBTreeView.KeyField).AsInteger <> FTopKey) then
@@ -1027,17 +1033,21 @@ function TgsCustomDBTreeView.GoToID(const AnID: Integer): Boolean;
 var
   I: Integer;
 begin
-  if ID = AnID then
-    Result := True
-  else begin
-    Result := False;
+  Result := ID = AnID;
+  if not Result then
+  begin
     for I := 0 to Items.Count - 1 do
+    try
       if Integer(Items[I].Data) = AnID then
       begin
         Items[I].Selected := True;
         Result := True;
         exit;
       end;
+    except
+      on ETreeViewError do
+        exit;
+    end;
   end;
 end;
 
