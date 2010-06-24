@@ -1878,7 +1878,11 @@ type
   // недостатком прав у пользователя
   EgdcUserHaventRights = class(EgdcException);
 
+  //в Delphi 5 данный объект автоматически не уничтожается
+  //в Delphi 7+ стоит использовать TDragObjectEx
   TgdcDragObject = class(TDragObject)
+  protected
+    procedure Finished(Target: TObject; X, Y: Integer; Accepted: Boolean); override;
   public
     BL: TBookmarkList;
     SourceControl: TWinControl;
@@ -18249,6 +18253,15 @@ begin
     Result := 'LB,RB'
   else
     Result := 'LB,RB,CREATORKEY,EDITORKEY';
+end;
+
+{ TgdcDragObject }
+
+procedure TgdcDragObject.Finished(Target: TObject; X, Y: Integer;
+  Accepted: Boolean);
+begin
+  inherited;
+  Free;
 end;
 
 initialization
