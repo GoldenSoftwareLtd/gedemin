@@ -155,7 +155,8 @@ begin
     FImages := TImageList.Create(Self);
 
     CreateActionList;
-  end else begin
+  end else
+  begin
     FActionList := nil;
     FImages := nil;
   end;
@@ -184,9 +185,8 @@ end;
 
 procedure TgsListView.OnItemChanging(Sender: TObject; Item: TListItem; Change: TItemChange; var AllowChange: Boolean);
 begin
-  if Change = ctState then begin
+  if Change = ctState then
     LastColumn := -1;
-  end;
 end;
 
 function TgsListView.Count;
@@ -199,7 +199,6 @@ const
   diam = 6;
 var
   x, koef, i, half_diam: integer;
-  pnt: PPoint;
   lPen: LOGPEN;
   aPen: HPEN;
   aBrush: HBRUSH;
@@ -207,21 +206,23 @@ begin
   half_diam := diam div 2;
   if Columns.Count-1 < index then exit;
   SetLength(FHeadCells, Columns.Count);
-  if Visible or (csDesigning in ComponentState) then begin
-    if Columns[index].Alignment = taLeftJustify
-    then begin
+  if Visible or (csDesigning in ComponentState) then
+  begin
+    if Columns[index].Alignment = taLeftJustify then
+    begin
       x := 0;
-      for i := 0 to index - 1 do x := x + Columns[i].Width;
-      if FAdvancedShaft
-      then
+      for i := 0 to index - 1 do
+        x := x + Columns[i].Width;
+      if FAdvancedShaft then
         x := x + Canvas.TextWidth(Columns[index].Caption) + 22
       else
         x := x + Columns[index].Width;
       koef := 1;
-    end
-    else begin
+    end else
+    begin
       x := 0;
-      for i := 0 to index-1 do x := x + Column[i].Width;
+      for i := 0 to index-1 do
+        x := x + Column[i].Width;
       if FAdvancedShaft then
         x := x + Columns[index].Width - Canvas.TextWidth(Columns[index].Caption) - 22;
       koef := -1;
@@ -233,35 +234,37 @@ begin
     SelectObject(DC, aPen);
     aBrush := CreateSolidBrush(ColorToRGB(clBtnShadow));
     SelectObject(DC, aBrush);
-    GetMem(pnt, SizeOf(pnt));
-    case FHeadCells[index].Sort of
-      svUp: begin
-        MoveToEx(DC, x - koef*((17 - diam) div 2 + diam), ((17 - half_diam) div 2) + half_diam, pnt);
-        LineTo(DC, x - koef*((17 - diam) div 2), ((17 - half_diam) div 2) + half_diam);
-        LineTo(DC, x - koef*((17 - diam) div 2 + half_diam), (17 - half_diam) div 2);
-        LineTo(DC, x - koef*((17 - diam) div 2 + diam), ((17 - half_diam) div 2) + half_diam);
-        ExtFloodFill(DC, x - koef*((17 - diam) div 2 + diam div 2), ((17 - half_diam) div 2) + half_diam - 1, ColorToRGB(clBtnShadow), FLOODFILLBORDER);
+    try
+      case FHeadCells[index].Sort of
+        svUp: begin
+          MoveToEx(DC, x - koef*((17 - diam) div 2 + diam), ((17 - half_diam) div 2) + half_diam, nil);
+          LineTo(DC, x - koef*((17 - diam) div 2), ((17 - half_diam) div 2) + half_diam);
+          LineTo(DC, x - koef*((17 - diam) div 2 + half_diam), (17 - half_diam) div 2);
+          LineTo(DC, x - koef*((17 - diam) div 2 + diam), ((17 - half_diam) div 2) + half_diam);
+          ExtFloodFill(DC, x - koef*((17 - diam) div 2 + diam div 2), ((17 - half_diam) div 2) + half_diam - 1, ColorToRGB(clBtnShadow), FLOODFILLBORDER);
+        end;
+        svDown: begin
+          MoveToEx(DC, x - koef*((17 - diam) div 2 + diam), (17 - half_diam) div 2, nil);
+          LineTo(DC, x - koef*((17 - diam) div 2), (17 - half_diam) div 2);
+          LineTo(DC, x - koef*((17 - diam) div 2 + half_diam), ((17 - half_diam) div 2) + half_diam);
+          LineTo(DC, x - koef*((17 - diam) div 2 + diam), (17 - half_diam) div 2);
+          ExtFloodFill(DC, x - koef*((17 - diam) div 2 + diam div 2), ((17 - half_diam) div 2) + 1, ColorToRGB(clBtnShadow), FLOODFILLBORDER);
+        end;
       end;
-      svDown: begin
-        MoveToEx(DC, x - koef*((17 - diam) div 2 + diam), (17 - half_diam) div 2, pnt);
-        LineTo(DC, x - koef*((17 - diam) div 2), (17 - half_diam) div 2);
-        LineTo(DC, x - koef*((17 - diam) div 2 + half_diam), ((17 - half_diam) div 2) + half_diam);
-        LineTo(DC, x - koef*((17 - diam) div 2 + diam), (17 - half_diam) div 2);
-        ExtFloodFill(DC, x - koef*((17 - diam) div 2 + diam div 2), ((17 - half_diam) div 2) + 1, ColorToRGB(clBtnShadow), FLOODFILLBORDER);
-      end;
+    finally
+      DeleteObject(aPen);
+      DeleteObject(aBrush);
     end;
-    DeleteObject(aPen);
-    DeleteObject(aBrush);
   end;
 end;
 
 procedure TgsListView.SetSort(index: Integer; const Value: TSort);
 begin
   SetLength(FHeadCells, Columns.Count);
-  if (index >= 0) and (index <= Count-1)
-  then begin
-    if (ColumnToSort <> index) or (FHeadCells[index].Sort <> Value)
-    then begin
+  if (index >= 0) and (index <= Count-1)then
+  begin
+    if (ColumnToSort <> index) or (FHeadCells[index].Sort <> Value)then
+    begin
       FHeadCells[index].Sort := Value;
       ColumnToSort := index;
       AlphaSort;
@@ -275,16 +278,13 @@ function TgsListView.GetSort(index: Integer): TSort;
 begin
   SetLength(FHeadCells, Columns.Count);
   Result := svDown;
-  if (index >= 0) and (index <= Count-1)
-  then begin
+  if (index >= 0) and (index <= Count-1) then
     Result := FHeadCells[index].Sort;
-  end;
 end;
 
 procedure TgsListView.ReSort(index: Integer);
 begin
-  if FHeadCells[index].Sort = svDown
-  then
+  if FHeadCells[index].Sort = svDown then
     FHeadCells[index].Sort := svUp
   else
     FHeadCells[index].Sort := svDown;
@@ -298,13 +298,11 @@ begin
   ColumnToSort := Column.Index;
   if ColumnToSort = LastColumn then
     ReSort(ColumnToSort);
-  sortAccepted := true;
+  sortAccepted := True;
   if Assigned(FOnSorted) then
     FOnSorted(Self, ColumnToSort, FHeadCells[ColumnToSort].Sort, sortAccepted);
   if sortAccepted then
-  begin
     AlphaSort;
-  end;
   LastColumn := ColumnToSort;
   RedrawWindow(FHeaderHandle, nil, 0, RDW_INVALIDATE);
 end;
@@ -312,8 +310,8 @@ end;
 procedure TgsListView.WMParentNotify(var Message: TWMParentNotify);
 begin
   with Message do
-    if (Event = WM_CREATE) and (FHeaderHandle = 0)   
-    then begin
+    if (Event = WM_CREATE) and (FHeaderHandle = 0) then
+    begin
       FHeaderHandle := ChildWnd;
       FDefHeaderProc := Pointer(GetWindowLong(FHeaderHandle, GWL_WNDPROC));
       SetWindowLong(FHeaderHandle, GWL_WNDPROC, LongInt(FHeaderInstance));
@@ -330,17 +328,18 @@ begin
     begin
       case Msg of
         WM_PAINT:
-        begin
-          Result := CallWindowProc(FDefHeaderProc, FHeaderHandle, Msg, WParam, LParam);
-          if (ColumnToSort > -1) and (Columns.Count-1 >= ColumnToSort)
-          and (Columns[ColumnToSort].Width - Canvas.TextWidth(Columns[ColumnToSort].Caption) >= 22)
-          then begin
-            headDC := GetWindowDC(FHeaderHandle);
-            DrawShaft(ColumnToSort, headDC);
-            ReleaseDC(FHeaderHandle, headDC);
+          begin
+            Result := CallWindowProc(FDefHeaderProc, FHeaderHandle, Msg, WParam, LParam);
+            if (ColumnToSort > -1) and (Columns.Count-1 >= ColumnToSort)
+            and (Columns[ColumnToSort].Width - Canvas.TextWidth(Columns[ColumnToSort].Caption) >= 22) then
+            begin
+              headDC := GetWindowDC(FHeaderHandle);
+              DrawShaft(ColumnToSort, headDC);
+              ReleaseDC(FHeaderHandle, headDC);
+            end;
           end;
-        end;
-        else Result := CallWindowProc(FDefHeaderProc, FHeaderHandle, Msg, WParam, LParam);
+        else
+          Result := CallWindowProc(FDefHeaderProc, FHeaderHandle, Msg, WParam, LParam);
       end;
     end;
   except
@@ -426,10 +425,8 @@ var
 begin
   K := 0;
   if not FromStart then
-  begin
     if Self.Selected <> nil then
       K := Self.Selected.Index + 1;
-  end;
   for I := K to Self.Items.Count - 1 do
   begin
     if (StrIPos(FSearchValue, Self.Items[I].Caption) <> 0)
@@ -464,14 +461,10 @@ procedure TgsListView.KeyDown(var Key: Word; Shift: TShiftState);
 begin
   inherited KeyDown(Key, Shift);
 
-  if (Key = VK_F3) and (Shift = []) then
-  begin
-    if Assigned(FFindNextAct) then FFindNextAct.Execute;
-  end
-  else if (Key = Word('F')) and ([ssCtrl] = Shift) then
-  begin
-    if Assigned(FFindAct) then FFindAct.Execute;
-  end;
+  if (Key = VK_F3) and (Shift = []) and (Assigned(FFindNextAct)) then
+    FFindNextAct.Execute
+  else if (Key = Word('F')) and ([ssCtrl] = Shift) and (Assigned(FFindAct)) then
+    FFindAct.Execute;
 end;
 
 procedure Register;
