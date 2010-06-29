@@ -3138,7 +3138,8 @@ procedure TgdcAcctSimpleRecord.DoBeforeEdit;
   {END MACRO}
 begin
    if (not CanEdit) and (not IBLogin.IsIBUserAdmin) then
-     raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strEdit, ClassName, SubType]);
+     raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+       [strEdit, ClassName, SubType, GetDisplayName(SubType)]);
 
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCACCTSIMPLERECORD', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
   {M}  try

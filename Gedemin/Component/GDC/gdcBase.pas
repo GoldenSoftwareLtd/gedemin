@@ -111,7 +111,7 @@ uses
 
 resourcestring
   strHaventRights =
-    'Отсутствуют права доступа на выполнение операции: %s'#13#10#13#10'Класс: %s'#13#10'Подтип: %s';
+    'Отсутствуют права доступа на выполнение операции: %s'#13#10#13#10'Класс: %s'#13#10'Подтип: %s'#13#10'Название: %s';
   strHaventRightsShort =
     'Отсутствуют права доступа на выполнение операции: %s'#13#10#13#10'Класс: %s';
   strCreate = 'Создание объекта';
@@ -3141,7 +3141,8 @@ begin
     exit;
 
   if (not CanDelete) and (not IBLogin.IsUserAdmin) then
-    raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strDelete, ClassName, SubType]);
+    raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+      [strDelete, ClassName, SubType, GetDisplayName(SubType)]);
 
   if CacheList <> nil then
   begin
@@ -3233,7 +3234,8 @@ begin
       Abort;
 
     if (not CanCreate) and (not IBLogin.IsIBUserAdmin) then
-      raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strCreate, ClassName, SubType]);
+      raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+        [strCreate, ClassName, SubType, GetDisplayName(SubType)]);
 
     inherited;
   end;
@@ -3286,7 +3288,8 @@ begin
     exit;
 
   if (not CanEdit) and (not IBLogin.IsUserAdmin) then
-    raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strEdit, ClassName, SubType]);
+    raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+      [strEdit, ClassName, SubType, GetDisplayName(SubType)]);
 
   if dsEdit = State then
   begin
@@ -4731,7 +4734,8 @@ begin
   {END MACRO}
 
   if (not CanCreate) and (not IBLogin.IsUserAdmin) then
-    raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strCreate, ClassName, SubType]);
+    raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+      [strCreate, ClassName, SubType, GetDisplayName(SubType)]);
 
   DlgForm := nil;
 
@@ -4808,7 +4812,7 @@ begin
         if not CanView then
         begin
           raise EgdcUserHaventRights.CreateFmt(strHaventRights,
-            [strView, ClassName, SubType]);
+            [strView, ClassName, SubType, GetDisplayName(SubType)]);
         end;
 
         LoadDialogDefaults;
@@ -5397,9 +5401,11 @@ begin
   if (not CanView) and (not IBLogin.IsUserAdmin) then
   begin
     if SubType > '' then
-      raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strView, ClassName, SubType])
+      raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+        [strView, ClassName, SubType, GetDisplayName(SubType)])
     else
-      raise EgdcUserHaventRights.CreateFmt(strHaventRightsShort, [strView, ClassName])
+      raise EgdcUserHaventRights.CreateFmt(strHaventRightsShort,
+        [strView, ClassName])
   end;
 
   if not FSQLInitialized then
@@ -5576,7 +5582,7 @@ begin
           if not CanView then
           begin
             raise EgdcUserHaventRights.CreateFmt(strHaventRights,
-              [strView, ClassName, SubType]);
+              [strView, ClassName, SubType, GetDisplayName(SubType)]);
           end;
 
           Setup(Self);
