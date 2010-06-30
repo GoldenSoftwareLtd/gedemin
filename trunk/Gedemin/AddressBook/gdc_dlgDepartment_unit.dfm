@@ -14,7 +14,10 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
     Top = 287
   end
   inherited btnNew: TButton
-    Left = 77
+    Top = 287
+  end
+  inherited btnHelp: TButton
+    Left = 150
     Top = 287
   end
   inherited btnOK: TButton
@@ -23,10 +26,6 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
   end
   inherited btnCancel: TButton
     Left = 435
-    Top = 287
-  end
-  inherited btnHelp: TButton
-    Left = 150
     Top = 287
   end
   inherited pgcMain: TPageControl
@@ -185,15 +184,12 @@ inherited gdc_dlgDepartment: Tgdc_dlgDepartment
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
         Transaction = ibtrCommon
-        DataSource = dsgdcBase
-        DataField = 'PARENT'
         ListTable = 'gd_contact'
         ListField = 'name'
         KeyField = 'ID'
         Condition = 'contacttype=4'
         gdClassName = 'TgdcDepartment'
         OnCreateNewObject = iblkupDepartmentCreateNewObject
-        OnAfterCreateDialog = iblkupDepartmentAfterCreateDialog
         ViewType = vtTree
         ItemHeight = 13
         ParentShowHint = False

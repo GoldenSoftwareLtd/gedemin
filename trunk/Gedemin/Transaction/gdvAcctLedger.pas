@@ -176,7 +176,6 @@ type
   private
     function GetBlocks(Index: Integer): TgdvCustomLedgerTotalBlock;
   public
-    constructor Create;
     procedure Calc;
     procedure SetValues;
     procedure DropValues;
@@ -205,7 +204,7 @@ type
     FDroped: Boolean;
     procedure DoCalc; override;
   public
-    constructor Create; override;
+    constructor Create; override; 
     procedure DropValues; override;
   end;
 
@@ -385,8 +384,6 @@ begin
   FEQCreditAliases := TStringList.Create;
   FQuantDebitAliases := TStringList.Create;
   FQuantCreditAliases := TStringList.Create;
-
-  //FTotals := TgdvLedgerTotals.Create;
 
   FSumJoinClause := '';
   FDebitSumSelectClause := '';
@@ -4679,6 +4676,7 @@ end;
 
 constructor TgdvCustomLedgerTotalBlock.Create;
 begin
+  inherited;
   BeginDebit := TgdvLedgerTotalUnit.Create;
   BeginCredit := TgdvLedgerTotalUnit.Create;
   Debit := TgdvLedgerTotalUnit.Create;
@@ -4893,32 +4891,6 @@ begin
   begin
     Blocks[I].SetValues;
   end;
-end;
-
-constructor TgdvLedgerTotalBlocks.Create;
-{var
-  B: TgdvCustomLedgerTotalBlock;}
-begin
-  inherited;
-
-{  B := TgdvSimpleLedgerTotalBlock.Create;
-  Add(B);
-  B.BeginDebit.FieldName := BaseAcctFieldList[2].FieldName;
-  B.BeginCredit.FieldName := BaseAcctFieldList[3].FieldName;
-  B.Debit.FieldName := BaseAcctFieldList[0].FieldName;
-  B.Credit.FieldName := BaseAcctFieldList[1].FieldName;
-  B.EndDebit.FieldName := BaseAcctFieldList[4].FieldName;
-  B.EndCredit.FieldName := BaseAcctFieldList[5].FieldName;
-
-  B := TgdvSimpleLedgerTotalBlock.Create;
-  Add(B);
-  B.BeginDebit.FieldName := BaseAcctFieldList[8].FieldName;
-  B.BeginCredit.FieldName := BaseAcctFieldList[9].FieldName;
-  B.Debit.FieldName := BaseAcctFieldList[6].FieldName;
-  B.Credit.FieldName := BaseAcctFieldList[7].FieldName;
-  B.EndDebit.FieldName := BaseAcctFieldList[10].FieldName;
-  B.EndCredit.FieldName := BaseAcctFieldList[11].FieldName;}
-
 end;
 
 procedure TgdvLedgerTotalBlocks.DropValues;
