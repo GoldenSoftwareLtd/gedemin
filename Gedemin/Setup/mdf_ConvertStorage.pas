@@ -378,7 +378,7 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview) '#13#10 +
+          'UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview) '#13#10 +
           '  VALUES ( '#13#10 +
           '    740302, '#13#10 +
           '    740300, '#13#10 +
@@ -388,15 +388,12 @@ begin
           '    NULL, '#13#10 +
           '    255, '#13#10 +
           '    1 '#13#10 +
-          '  ) ';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          '  ) MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview) '#13#10 +
+          'UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview) '#13#10 +
           '  VALUES ( '#13#10 +
           '    730805, '#13#10 +
           '    730800, '#13#10 +
@@ -406,11 +403,8 @@ begin
           '    NULL, '#13#10 +
           '    142, '#13#10 +
           '    1 '#13#10 +
-          '  ) ';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          '  ) MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text := 'GRANT ALL ON gd_storage_data TO Administrator ';
@@ -418,30 +412,24 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (114, ''0000.0001.0000.0145'', ''25.09.2009'', ''Storage being converted into new data structures'')';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (114, ''0000.0001.0000.0145'', ''25.09.2009'', ''Storage being converted into new data structures'') ' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (115, ''0000.0001.0000.0146'', ''08.03.2010'', ''Editorkey and editiondate fields were added to storage table'')';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (115, ''0000.0001.0000.0146'', ''08.03.2010'', ''Editorkey and editiondate fields were added to storage table'') ' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (116, ''0000.0001.0000.0147'', ''26.04.2010'', ''Storage tree is not a lb-rb tree any more'')';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (116, ''0000.0001.0000.0147'', ''26.04.2010'', ''Storage tree is not a lb-rb tree any more'')' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FTransaction.Commit;
       finally
@@ -653,12 +641,10 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (116, ''0000.0001.0000.0147'', ''26.04.2010'', ''Storage tree is not a lb-rb tree any more'')';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (116, ''0000.0001.0000.0147'', ''26.04.2010'', ''Storage tree is not a lb-rb tree any more'') ' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FTransaction.Commit;
       finally

@@ -125,6 +125,13 @@ begin
         FIBSQL.Transaction := FTransaction;
         FIBSQL.ParamCheck := False;
 
+        FIBSQL.SQL.Text :=
+          'SELECT * FROM rdb$relations WHERE rdb$relation_name = ''GD_REF_CONSTRAINTS'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.EOF then
+          exit;
+
         FIBSQL.Close;
         FIBSQL.SQL.Text := c_exception;
         FIBSQL.ExecQuery;
@@ -149,10 +156,6 @@ begin
         FIBSQL.SQL.Text := c_gd_ref_constraint_data;
         FIBSQL.ExecQuery;
 
-        {FIBSQL.Close;
-        FIBSQL.SQL.Text := c_gd_ref_x_constraint_data;
-        FIBSQL.ExecQuery;}
-
         FIBSQL.Close;
         FIBSQL.SQL.Text := c_gd_biu_ref_constraint_data;
         FIBSQL.ExecQuery;
@@ -171,12 +174,10 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (119, ''0000.0001.0000.0150'', ''06.06.2010'', ''Add FK manager metadata'')';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (119, ''0000.0001.0000.0150'', ''06.06.2010'', ''Add FK manager metadata'') ' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FTransaction.Commit;
       finally

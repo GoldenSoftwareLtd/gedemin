@@ -607,19 +607,25 @@ begin
         end;
         Close;
 
-        SQL.Text :=
-          'DROP TRIGGER gd_command_bu ';
-        try
+        SQL.Text := 'SELECT rdb$trigger_name FROM rdb$triggers WHERE rdb$trigger_name = ''GD_COMMAND_BU'' ';
+        ExecQuery;
+
+        if not EOF then
+        begin
+          Close;
+          SQL.Text := 'DROP TRIGGER gd_command_bu ';
           ExecQuery;
-        except
         end;
         Close;
 
-        SQL.Text :=
-          'DROP TRIGGER gd_au_command ';
-        try
+        SQL.Text := 'SELECT rdb$trigger_name FROM rdb$triggers WHERE rdb$trigger_name = ''GD_AU_COMMAND'' ';
+        ExecQuery;
+
+        if not EOF then
+        begin
+          Close;
+          SQL.Text := 'DROP TRIGGER gd_au_command ';
           ExecQuery;
-        except
         end;
         Close;
 
@@ -632,11 +638,14 @@ begin
         ExecQuery;
         Close;
 
-        SQL.Text :=
-          'DROP TRIGGER gd_aiu_command ';
-        try
+        SQL.Text := 'SELECT rdb$trigger_name FROM rdb$triggers WHERE rdb$trigger_name = ''GD_AIU_COMMAND'' ';
+        ExecQuery;
+
+        if not EOF then
+        begin
+          Close;
+          SQL.Text := 'DROP TRIGGER gd_aiu_command ';
           ExecQuery;
-        except
         end;
         Close;
 

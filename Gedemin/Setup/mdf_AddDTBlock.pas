@@ -697,13 +697,20 @@ begin
         'UPDATE inv_balance SET balance = 0 WHERE balance IS NULL ';
       q.ExecQuery;
 
-      try
+
+      q.SQL.Text := 'SELECT rdb$field_name FROM rdb$relation_fields WHERE rdb$relation_name = ''GD_PRECIOUSEMETAL'' ' +
+        ' AND rdb$field_name = ''USR$GOODKEY'' ';
+      q.ExecQuery;
+
+      if not q.EOF then
+      begin
+        q.Close;
         q.SQL.Text :=
           'UPDATE gd_preciousemetal SET usr$goodkey = (SELECT FIRST 1 id FROM gd_good) WHERE usr$goodkey IS NULL';
         q.ExecQuery;
-      except
       end;
 
+      q.Close;
       q.SQL.Text :=
         'SET GENERATOR gd_g_block TO 0 ';
       q.ExecQuery;
