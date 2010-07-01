@@ -57,6 +57,10 @@ procedure AddField(Field: TmdfField; DB: TIBDataBase);
 procedure DropField(Field: TmdfField; DB: TIBDataBase);
 procedure AlterField(Field: TmdfField; Db: TIBDataBase);
 
+function FieldExist2(const ARelName, AFieldName: String; ATr: TIBTransaction): Boolean;
+procedure AddField2(const ARelName, AFieldName, AFieldType: String; ATr: TIBTransaction);
+procedure DropField2(const ARelName, AFieldName: String; ATr: TIBTransaction);
+
 function ViewExist(View: TmdfView; Db: TIBDataBase): boolean;
 procedure DropView(View: TmdfView; Db: TIBDataBase);
 
@@ -197,6 +201,59 @@ begin
       Transaction.Commit;
     finally
       Transaction.Free;
+    end;
+  end;
+end;
+
+function FieldExist2(const ARelName, AFieldName: String; ATr: TIBTransaction): Boolean;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text :=
+      'SELECT rdb$field_name FROM rdb$relation_fields WHERE ' +
+      ' rdb$field_name = :fieldname AND rdb$relation_name = :relationname';
+    SQL.ParamByName('fieldname').AsString := UpperCase(AFieldName);
+    SQl.ParamByName('relationname').AsString := Uppercase(ARelName);
+    SQL.ExecQuery;
+    Result := not SQl.EOF;
+  finally
+    SQl.Free;
+  end;
+end;
+
+procedure AddField2(const ARelName, AFieldName, AFieldType: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQl;
+begin
+  if not FieldExist2(ARelName, AFieldName, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text := Format('ALTER TABLE %s ADD %s %s', [ARelName, AFieldName, AFieldType]);
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
+    end;
+  end;
+end;
+
+procedure DropField2(const ARelName, AFieldName: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQl;
+begin
+  if FieldExist2(ARelName, AFieldName, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text := 'ALTER TABLE ' + ARelName + ' DROP ' + AFieldName;
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
     end;
   end;
 end;
