@@ -232,71 +232,77 @@ end;
 
 procedure NewTaxies(IBDB: TIBDatabase; Log: TModifyLog);
 var
+  FTransaction: TIBTransaction;
   I: Integer;
 begin
-  for I := 0 to FieldCount - 1 do
-  begin
-    if not FieldExist(Fields[i], IBDB) then
-    begin
-      Log(Format('Добавление поля %s в таблицу %s', [Fields[i].FieldName,
-        Fields[I].RelationName]));
-      try
-        AddField(Fields[I], IBDB);
-        Log('succes');
-      except
-        on E: Exception do
-          Log(E.Message);
-      end;
-    end;
-  end;
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
 
-  if CreateTaxFunction(IBDB, Log) then
-  begin
-    if IndexExist(GD_IDX_TAXRESULT, IBDB) then
-    begin
-      try
-        DropIndex(GD_IDX_TAXRESULT, IBDB);
-      except
-        on E: Exception do
-          Log(E.Message);
-      end;
-    end;
+      for I := 0 to FieldCount - 1 do
+        AddField2(Fields[I].RelationName, Fields[I].FieldName, Fields[I].Description, FTransaction);
 
-    if FieldExist(TAXFUNCTIONKEY, IBDB) then
-    begin
-      Log('Удаление taxfunctionkey');
-      try
-        DropField(TAXFUNCTIONKEY, IBDB);
-        Log('succes');
-      except
-        on E: Exception do
-          Log(E.Message);
-      end;
-    end;
+      if CreateTaxFunction(IBDB, Log) then
+      begin
+        if IndexExist(GD_IDX_TAXRESULT, IBDB) then
+        begin
+          try
+            DropIndex(GD_IDX_TAXRESULT, IBDB);
+          except
+            on E: Exception do
+              Log(E.Message);
+          end;
+        end;
 
-    if FieldExist(RESULTTYPE, IBDB) then
-    begin
-      Log('Удаление resulttype');
-      try
-        DropField(RESULTTYPE, IBDB);
-        Log('succes');
-      except
-        on E: Exception do
-          Log(E.Message);
-      end;
-    end;
+        if FieldExist(TAXFUNCTIONKEY, IBDB) then
+        begin
+          Log('Удаление taxfunctionkey');
+          try
+            DropField(TAXFUNCTIONKEY, IBDB);
+            Log('succes');
+          except
+            on E: Exception do
+              Log(E.Message);
+          end;
+        end;
 
-    if RelationExist(GD_TAXFUNCTION, IBDB) then
-    begin
-      Log('Удаление gd_taxfunction');
-      try
-        DropRelation(GD_TAXFUNCTION, IBDB);
-        Log('succes');
-      except
-        on E: Exception do
-          Log(E.Message);
+        if FieldExist(RESULTTYPE, IBDB) then
+        begin
+          Log('Удаление resulttype');
+          try
+            DropField(RESULTTYPE, IBDB);
+            Log('succes');
+          except
+            on E: Exception do
+              Log(E.Message);
+          end;
+        end;
+
+        if RelationExist(GD_TAXFUNCTION, IBDB) then
+        begin
+          Log('Удаление gd_taxfunction');
+          try
+            DropRelation(GD_TAXFUNCTION, IBDB);
+            Log('succes');
+          except
+            on E: Exception do
+              Log(E.Message);
+          end;
+        end;
+      end;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        raise;
       end;
     end;
+  finally
+    FTransaction.Free;
   end;
 end;
 

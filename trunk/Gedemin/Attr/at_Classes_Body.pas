@@ -1022,6 +1022,9 @@ begin
       end;
     end;
 
+    if Result = nil then
+      Result := RelationFields.ByFieldName('id');
+
     // Если нет, то первое поле
     if (Result = nil) and (RelationFields.Count > 0) then
       Result := RelationFields[0];

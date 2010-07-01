@@ -117,6 +117,7 @@ begin
     iblkupDepartment.Condition := Format(
       'contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id = %0:d) AND rb <= (SELECT c1.rb FROM gd_contact c1 WHERE c1.id = %0:d)',
       [iblkupCompany.CurrentKeyInt]);
+    iblkupDepartment.ReadOnly := False;
     iblkupDepartment.CurrentKey := iblkupDepartment.CurrentKey;
   end;
 end;
@@ -206,30 +207,13 @@ begin
   try
     q.Transaction := gdcObject.ReadTransaction;
     q.SQL.Text :=
-      'EXECUTE BLOCK (id INTEGER = :id) ' +
-      '  RETURNS (companykey INTEGER) ' +
-      'AS ' +
-      '  DECLARE VARIABLE ct INTEGER; ' +
-      'BEGIN ' +
-      '  ct = 4; ' +
-      '  companykey = 0; ' +
-      ' ' +
-      '  WHILE (:ct = 4 AND NOT :companykey IS NULL) DO ' +
-      '  BEGIN ' +
-      '    companykey = NULL; ' +
-      ' ' +
-      '    SELECT id, parent, contacttype ' +
-      '    FROM gd_contact ' +
-      '    WHERE id = :id ' +
-      '    INTO :companykey, :id, :ct; ' +
-      '  END ' +
-      ' ' +
-      '  SUSPEND; ' +
-      'END ';
+      'SELECT c.id as companykey FROM gd_contact c JOIN gd_contact d ' +
+      '  ON c.lb <= d.lb AND c.rb >= d.rb ' +
+      'WHERE d.id = :ID AND c.contacttype = 3 ';
     q.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
     q.ExecQuery;
 
-    if q.FieldByName('companykey').IsNull then
+    if q.EOF or q.FieldByName('companykey').IsNull then
     begin
       iblkupCompany.CurrentKeyInt := -1;
       iblkupCompany.ReadOnly := False;

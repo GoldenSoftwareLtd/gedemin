@@ -12,30 +12,29 @@ implementation
 uses
   IBSQL, SysUtils, IBScript;
 
-const
-  FieldCount = 2;
-  Fields: array[0..FieldCount - 1] of TmdfField = (
-    (RelationName: 'AC_OVERTURNBYANAL'; FieldName: 'QUANTITY'; Description: 'DTEXT1024'),
-    (RelationName: 'AC_OVERTURNBYANAL'; FieldName: 'ANALYTICFILTER'; Description: 'DTEXT1024'));
 procedure AddQuantityField(IBDB: TIBDatabase; Log: TModifyLog);
 var
-  I: Integer;
+  FTransaction: TIBTransaction;
 begin
-  for I := 0 to FieldCount - 1 do
-  begin
-    if not FieldExist(Fields[I], IBDB) then
-    begin
-      Log(Format('Добавление поля %s в таблицу %s', [Fields[i].FieldName,
-        Fields[i].RelationName]));
-      try
-        AddField(Fields[I], IBDB);
-        Log(Format('Добавление поля %s в таблицу %s прошло успешно', [Fields[i].FieldName,
-          Fields[i].RelationName]));
-      except
-        Log(Format('Ошибка при добавлении поля %s в таблицу %s', [Fields[i].FieldName,
-          Fields[i].RelationName]));
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+
+      AddField2('AC_OVERTURNBYANAL', 'QUANTITY', 'DTEXT1024', FTransaction);
+      AddField2('AC_OVERTURNBYANAL', 'ANALYTICFILTER', 'DTEXT1024', FTransaction);
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        raise;
       end;
     end;
+  finally
+    FTransaction.Free;
   end;
 end;
 
