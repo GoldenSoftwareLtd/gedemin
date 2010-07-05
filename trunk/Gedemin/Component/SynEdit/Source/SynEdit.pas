@@ -8229,6 +8229,7 @@ end;
 
 procedure TSynEditMarkList.Delete(Index: Integer);
 begin
+  Get(Index).Free;
   inherited Delete(Index);
   DoChange;
 end;
