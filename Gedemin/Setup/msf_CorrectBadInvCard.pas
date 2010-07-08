@@ -14,70 +14,67 @@ uses
 
 procedure CorrectBadInvCard(IBDB: TIBDatabase; Log: TModifyLog);
 var
-  ibsql, ibsqlUpdateParent, ibsqlUpdateField, ibsqlInvCard, ibsqlFeatures, ibsqlFirstDocKey: TIBSQL;
-  ibsqlTrigger: TIBSQL;
+  ibsql, ibsqlUpdateParent, ibsqlUpdateField, ibsqlInvCard,
+  ibsqlFeatures, ibsqlFirstDocKey, ibsqlTrigger: TIBSQL;
   ibtr: TIBTransaction;
   i: Integer;
   S: String;
 begin
+  ibtr := TIBTransaction.Create(nil);
+  try
+    ibtr.DefaultDatabase := IBDB;
 
-  if MessageBox(0,
-    'Проверить корректность складских карточек?',
-    'Внимание',
-    MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST) = IDYES then
-  begin
-    ibtr := TIBTransaction.Create(nil);
+    ibsql := TIBSQL.Create(nil);
+    ibsqlUpdateParent := TIBSQL.Create(nil);
+    ibsqlUpdateField := TIBSQL.Create(nil);
+    ibsqlInvCard := TIBSQL.Create(nil);
+    ibsqlFeatures := TIBSQL.Create(nil);
+    ibsqlFirstDocKey := TIBSQL.Create(nil);
+    ibsqlTrigger := TIBSQL.Create(nil);
+
     try
-      ibtr.DefaultDatabase := IBDB;
+      ibtr.StartTransaction;
 
-      ibsql := TIBSQL.Create(nil);
-      ibsqlUpdateParent := TIBSQL.Create(nil);
-      ibsqlUpdateField := TIBSQL.Create(nil);
-      ibsqlInvCard := TIBSQL.Create(nil);
-      ibsqlFeatures := TIBSQL.Create(nil);
-      ibsqlFirstDocKey := TIBSQL.Create(nil);
-      ibsqlTrigger := TIBSQL.Create(nil);
+      Log('Корректировка триггера INV_CARD');
+      ibsqlTrigger.Transaction := ibtr;
+      ibsqlTrigger.SQL.Text :=
+      'ALTER TRIGGER INV_BU_CARD ' + #13#10 +
+      'ACTIVE BEFORE UPDATE POSITION 0 ' + #13#10 +
+      'AS ' + #13#10 +
+      '  DECLARE VARIABLE firstdocumentkey INTEGER; ' + #13#10 +
+      '  DECLARE VARIABLE firstdate DATE; ' + #13#10 +
+      'BEGIN ' + #13#10 +
+      ' ' + #13#10 +
+      '  IF ((OLD.parent <> NEW.parent) OR (OLD.parent IS null and NEW.parent IS NOT NULL)) THEN ' + #13#10 +
+      '  BEGIN ' + #13#10 +
+      '    SELECT firstdocumentkey, firstdate FROM inv_card ' + #13#10 +
+      '    WHERE id = NEW.parent ' + #13#10 +
+      '    INTO :firstdocumentkey, :firstdate; ' + #13#10 +
+      ' ' + #13#10 +
+      '    NEW.firstdocumentkey = :firstdocumentkey; ' + #13#10 +
+      '    NEW.firstdate = :firstdate; ' + #13#10 +
+      '  END ' + #13#10 +
+      ' ' + #13#10 +
+      '  IF ((OLD.firstdocumentkey <> NEW.firstdocumentkey) OR ' + #13#10 +
+      '       (OLD.firstdate <> NEW.firstdate)) THEN ' + #13#10 +
+      '    UPDATE inv_card SET ' + #13#10 +
+      '      firstdocumentkey = NEW.firstdocumentkey, ' + #13#10 +
+      '      firstdate = NEW.firstdate ' + #13#10 +
+      '    WHERE ' + #13#10 +
+      '      parent = NEW.id; ' + #13#10 +
+      ' ' + #13#10 +
+      'END ';
+      ibsqlTrigger.ParamCheck := False;
+      ibsqlTrigger.ExecQuery;
+      ibtr.Commit;
 
-      try
+      if MessageBox(0,
+        'Проверить корректность складских карточек?',
+        'Внимание',
+        MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST) = IDYES then
+      begin
+        ibtr.StartTransaction;
         ibsql.Transaction := ibtr;
-
-        ibtr.StartTransaction;
-
-        Log('Корректировка триггера INV_CARD');
-        ibsqlTrigger.Transaction := ibtr;
-        ibsqlTrigger.SQL.Text :=
-        'ALTER TRIGGER INV_BU_CARD ' + #13#10 +
-        'ACTIVE BEFORE UPDATE POSITION 0 ' + #13#10 +
-        'AS ' + #13#10 +
-        '  DECLARE VARIABLE firstdocumentkey INTEGER; ' + #13#10 +
-        '  DECLARE VARIABLE firstdate DATE; ' + #13#10 +
-        'BEGIN ' + #13#10 +
-        ' ' + #13#10 +
-        '  IF ((OLD.parent <> NEW.parent) OR (OLD.parent IS null and NEW.parent IS NOT NULL)) THEN ' + #13#10 +
-        '  BEGIN ' + #13#10 +
-        '    SELECT firstdocumentkey, firstdate FROM inv_card ' + #13#10 +
-        '    WHERE id = NEW.parent ' + #13#10 +
-        '    INTO :firstdocumentkey, :firstdate; ' + #13#10 +
-        ' ' + #13#10 +
-        '    NEW.firstdocumentkey = :firstdocumentkey; ' + #13#10 +
-        '    NEW.firstdate = :firstdate; ' + #13#10 +
-        '  END ' + #13#10 +
-        ' ' + #13#10 +
-        '  IF ((OLD.firstdocumentkey <> NEW.firstdocumentkey) OR ' + #13#10 +
-        '       (OLD.firstdate <> NEW.firstdate)) THEN ' + #13#10 +
-        '    UPDATE inv_card SET ' + #13#10 +
-        '      firstdocumentkey = NEW.firstdocumentkey, ' + #13#10 +
-        '      firstdate = NEW.firstdate ' + #13#10 +
-        '    WHERE ' + #13#10 +
-        '      parent = NEW.id; ' + #13#10 +
-        ' ' + #13#10 +
-        'END ';
-        ibsqlTrigger.ParamCheck := False;
-        ibsqlTrigger.ExecQuery;
-        Log('Триггер успешно исправлен INV_CARD');
-
-        ibtr.Commit;
-        ibtr.StartTransaction;
 
         Log('Исправление INV_CARD');
 
@@ -104,8 +101,6 @@ begin
         ibsqlInvCard.Transaction := ibtr;
         ibsqlInvCard.SQL.Text := 'SELECT * FROM inv_card WHERE id = :id';
 
-  //      ibtr.StartTransaction;
-
         ibsql.ExecQuery;
         while not ibsql.EOF do
         begin
@@ -129,7 +124,6 @@ begin
             ibsqlInvCard.Close;
             ibsqlInvCard.ParamByName('id').AsInteger := ibsql.FieldByName('ToID').AsInteger;
             ibsqlInvCard.ExecQuery;
-
 
             S := '';
 
@@ -167,22 +161,18 @@ begin
           ibsql.Next;
         end;
         ibtr.Commit;
-
-        Log('Исправление INV_CARD завершено');
-
-
-      finally
-        ibsql.Free;
-        ibsqlUpdateParent.Free;
-        ibsqlUpdateField.Free;
-        ibsqlInvCard.Free;
-        ibsqlFeatures.Free;
-        ibsqlFirstDocKey.Free;
       end;
-
     finally
-      ibtr.Free;
+      ibsql.Free;
+      ibsqlUpdateParent.Free;
+      ibsqlUpdateField.Free;
+      ibsqlInvCard.Free;
+      ibsqlFeatures.Free;
+      ibsqlFirstDocKey.Free;
+      ibsqlTrigger.Free;
     end;
+  finally
+    ibtr.Free;
   end;
 end;
 

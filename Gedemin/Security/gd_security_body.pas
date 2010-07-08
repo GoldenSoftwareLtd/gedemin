@@ -132,6 +132,8 @@ type
 
     FTempTransaction: TIBTransaction;
 
+    FSilentLogin: Boolean;
+
     procedure DoOnConnectionParams(Sender: TObject);
 
     procedure ProceedOpenCompany(NewCompanyKey: Integer; NewCompany: String);
@@ -222,6 +224,7 @@ type
     function LoginSilent(AnUserName: String; APassword: String; const ADBPath: string = ''): Boolean;
     function Logoff: Boolean;
     function GetLoggingOff: Boolean;
+    function IsSilentLogin: Boolean;
     procedure ChangeUser(const AUserKey: Integer; const ACheckMultipleConnections: Boolean = False);
 
     procedure CloneDatabase(ADatabase: TIBDatabase);
@@ -709,7 +712,10 @@ end;
 
 procedure TboLogin.OnModifyLog(const AnLogText: String);
 begin
-  AddText(AnLogText, clBlack);
+  if (StrIPos('ошибк', AnLogText) = 1) or (StrIPos('error', AnLogText) = 1) then
+    AddMistake(AnLogText)
+  else
+    AddText(AnLogText);
 end;
 
 procedure TboLogin.DoOnConnectionParams(Sender: TObject);
@@ -894,7 +900,7 @@ begin
             begin
               Result := False;
               exit;
-            end;  
+            end;
           end;
 
           TryLoginDatabase.Connected := True;
@@ -908,6 +914,17 @@ begin
             //  данным пользователем
 
             Result := False;
+
+            if IsSilentLogin then
+              exit;
+
+            if FindCmdLineSwitch('q', ['/', '-'], True) then
+            begin
+              ExitCode := E.IBErrorCode;
+              Application.Terminate;
+              Abort;
+            end;
+
             if (E.IBErrorCode = 335544528) then
             begin
               if not ReadShutDownKey then
@@ -999,27 +1016,19 @@ begin
             end
             else
             begin
-              if StrIPos(' /Q ', CmdLine + ' ') > 0 then
-              begin
-                ExitCode := 24000;
-                Application.Terminate;
-                Abort;
-              end else
-              begin
-                MessageBox(0,
-                  PChar('Невозможно подключиться к базе данных:'#13#10 +
-                  TryLoginDatabase.DatabaseName + #13#10#13#10 +
-                  'Сообщение об ошибке:'#13#10 +
-                  E.Message),
-                  'Ошибка',
-                  MB_OK or MB_ICONSTOP or MB_TASKMODAL);
+              MessageBox(0,
+                PChar('Невозможно подключиться к базе данных:'#13#10 +
+                TryLoginDatabase.DatabaseName + #13#10#13#10 +
+                'Сообщение об ошибке:'#13#10 +
+                E.Message),
+                'Ошибка',
+                MB_OK or MB_ICONSTOP or MB_TASKMODAL);
 
-                if SelectAnother then
-                  continue;
+              if SelectAnother then
+                continue;
 
-                raise;
-              end;
-            end;
+              raise;
+            end;  
           end;
         end;
       until TryLoginDatabase.Connected;
@@ -1668,7 +1677,6 @@ begin
   FLoginInProgress := True;
   FShouldReadParams := ReadParams;
   FReLogining := ReLogin;
-
   try
     //
     //  Если осуществляется подключение
@@ -1751,6 +1759,7 @@ begin
 
   FLoginInProgress := True;
   FReLogining := True;
+  FSilentLogin := True;
   try
     FParams.Clear;
 
@@ -1823,6 +1832,7 @@ begin
     if not TestConnection then
     begin
       ConnectionLost;
+      FSilentLogin := False;
       Exit;
     end;
   end else
@@ -1864,6 +1874,9 @@ begin
     end;
 
     Result := not LoggedIn;
+
+    if Result then
+      FSilentLogin := False;
   finally
     FLoggingOff := False;
   end;
@@ -2429,6 +2442,11 @@ begin
       Tr.Free;
     end;
   end;
+end;
+
+function TboLogin.IsSilentLogin: Boolean;
+begin
+  Result := FSilentLogin;
 end;
 
 end.

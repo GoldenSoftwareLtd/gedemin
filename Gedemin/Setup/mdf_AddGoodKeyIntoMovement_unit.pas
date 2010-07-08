@@ -33,152 +33,148 @@ begin
         ExecQuery;
         if Eof then
         begin
-          if MessageDlg('Добавить поле GOODKEY в таблицы INV_MOVEMENT и INV_BALANCE?', mtConfirmation, [mbYes, mbNo], 0) = mrYes	then
-          begin
-            Log('Добавление ссылки на товар в inv_movement и inv_balance');
-            Log('Внимание данная процедура может выплняться достаточно долго не снимайте задачу, дождитесь ее выполнения');
-            Log('-------------------------------------------------------------------------------------------------------');
-            Log('Добавление ссылки на товар в inv_movement');
-            Close;
-            SQL.Text :=
-              ' ALTER TABLE inv_movement ADD goodkey dintkey ';
-            ExecQuery;
-            Close;
+          Log('Добавление ссылки на товар в inv_movement и inv_balance');
+          Log('Внимание! Данная процедура может выполняться достаточно долго. Не снимайте задачу!');
+          Log('Добавление ссылки на товар в inv_movement');
+          Close;
+          SQL.Text :=
+            ' ALTER TABLE inv_movement ADD goodkey dintkey ';
+          ExecQuery;
+          Close;
 
-            Log('Добавление ссылки на товар в inv_balance');
-            Close;
-            SQL.Text :=
-              ' ALTER TABLE inv_balance ADD goodkey dintkey ';
-            ExecQuery;
-            Close;
+          Log('Добавление ссылки на товар в inv_balance');
+          Close;
+          SQL.Text :=
+            ' ALTER TABLE inv_balance ADD goodkey dintkey ';
+          ExecQuery;
+          Close;
 
-            Log('Добавление триггера для заполнения GOODKEY в inv_balance');
-            Close;
-            ParamCheck := False;
-            SQL.Text :=
-            'CREATE TRIGGER INV_BI_BALANCE_GOODKEY FOR INV_BALANCE '#13#10 +
-            'ACTIVE BEFORE INSERT POSITION 0 '#13#10 +
+          Log('Добавление триггера для заполнения GOODKEY в inv_balance');
+          Close;
+          ParamCheck := False;
+          SQL.Text :=
+          'CREATE TRIGGER INV_BI_BALANCE_GOODKEY FOR INV_BALANCE '#13#10 +
+          'ACTIVE BEFORE INSERT POSITION 0 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  SELECT goodkey FROM inv_card '#13#10 +
+          '  WHERE id = NEW.cardkey '#13#10 +
+          '  INTO NEW.goodkey; '#13#10 +
+          'END ';
+          ExecQuery;
+          Close;
+
+          SQL.Text :=
+          'CREATE TRIGGER INV_BU_BALANCE_GOODKEY FOR INV_BALANCE '#13#10 +
+          'ACTIVE BEFORE UPDATE POSITION 10 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF ((NEW.cardkey <> OLD.cardkey) OR (NEW.goodkey IS NULL)) THEN '#13#10 +
+          '    SELECT goodkey FROM inv_card '#13#10 +
+          '    WHERE id = NEW.cardkey '#13#10 +
+          '    INTO NEW.goodkey; '#13#10 +
+          'END ';
+          ExecQuery;
+          Close;
+
+          Log('Добавление триггера для заполнения GOODKEY в inv_movement');
+          Close;
+          ParamCheck := False;
+          SQL.Text :=
+          'CREATE TRIGGER INV_BI_MOVEMENT_GOODKEY FOR INV_MOVEMENT '#13#10 +
+          'ACTIVE BEFORE INSERT POSITION 10 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  SELECT goodkey FROM inv_card '#13#10 +
+          '  WHERE id = NEW.cardkey '#13#10 +
+          '  INTO NEW.goodkey; '#13#10 +
+          'END ';
+          ExecQuery;
+          Close;
+
+          SQL.Text :=
+          'CREATE TRIGGER INV_BU_MOVEMENT_GOODKEY FOR INV_MOVEMENT '#13#10 +
+          'ACTIVE BEFORE UPDATE POSITION 10 '#13#10 +
+          'AS '#13#10 +
+          'BEGIN '#13#10 +
+          '  IF ((NEW.cardkey <> OLD.cardkey) OR (NEW.goodkey IS NULL)) THEN '#13#10 +
+          '    SELECT goodkey FROM inv_card '#13#10 +
+          '    WHERE id = NEW.cardkey '#13#10 +
+          '    INTO NEW.goodkey; '#13#10 +
+          'END ';
+          ExecQuery;
+          Close;
+
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
+
+          Log('Добавление триггера для обновления GOODKEY в inv_card');
+
+          SQL.Text :=
+            'CREATE TRIGGER inv_bu_card_goodkey FOR inv_card '#13#10 +
+            '  BEFORE UPDATE '#13#10 +
+            '  POSITION 1 '#13#10 +
             'AS '#13#10 +
             'BEGIN '#13#10 +
-            '  SELECT goodkey FROM inv_card '#13#10 +
-            '  WHERE id = NEW.cardkey '#13#10 +
-            '  INTO NEW.goodkey; '#13#10 +
+            '  IF (NEW.GOODKEY <> OLD.GOODKEY) THEN '#13#10 +
+            '  BEGIN '#13#10 +
+            '    UPDATE inv_movement SET goodkey = NEW.goodkey '#13#10 +
+            '    WHERE cardkey = NEW.id; '#13#10 +
+            ' '#13#10 +
+            '    UPDATE inv_balance SET goodkey = NEW.goodkey '#13#10 +
+            '    WHERE cardkey = NEW.id; '#13#10 +
+            '  END '#13#10 +
             'END ';
-            ExecQuery;
-            Close;
+          ExecQuery;
+          Close;
 
-            SQL.Text :=
-            'CREATE TRIGGER INV_BU_BALANCE_GOODKEY FOR INV_BALANCE '#13#10 +
-            'ACTIVE BEFORE UPDATE POSITION 10 '#13#10 +
-            'AS '#13#10 +
-            'BEGIN '#13#10 +
-            '  IF ((NEW.cardkey <> OLD.cardkey) OR (NEW.goodkey IS NULL)) THEN '#13#10 +
-            '    SELECT goodkey FROM inv_card '#13#10 +
-            '    WHERE id = NEW.cardkey '#13#10 +
-            '    INTO NEW.goodkey; '#13#10 +
-            'END ';
-            ExecQuery;
-            Close;
+          FTransaction.Commit;
+          FTransaction.StartTransaction;
 
-            Log('Добавление триггера для заполнения GOODKEY в inv_movement');
-            Close;
-            ParamCheck := False;
-            SQL.Text :=
-            'CREATE TRIGGER INV_BI_MOVEMENT_GOODKEY FOR INV_MOVEMENT '#13#10 +
-            'ACTIVE BEFORE INSERT POSITION 10 '#13#10 +
-            'AS '#13#10 +
-            'BEGIN '#13#10 +
-            '  SELECT goodkey FROM inv_card '#13#10 +
-            '  WHERE id = NEW.cardkey '#13#10 +
-            '  INTO NEW.goodkey; '#13#10 +
-            'END ';
-            ExecQuery;
-            Close;
+          Log('Заполнение поля GOODKEY  в INV_MOVEMENT');
 
-            SQL.Text :=
-            'CREATE TRIGGER INV_BU_MOVEMENT_GOODKEY FOR INV_MOVEMENT '#13#10 +
-            'ACTIVE BEFORE UPDATE POSITION 10 '#13#10 +
-            'AS '#13#10 +
-            'BEGIN '#13#10 +
-            '  IF ((NEW.cardkey <> OLD.cardkey) OR (NEW.goodkey IS NULL)) THEN '#13#10 +
-            '    SELECT goodkey FROM inv_card '#13#10 +
-            '    WHERE id = NEW.cardkey '#13#10 +
-            '    INTO NEW.goodkey; '#13#10 +
-            'END ';
-            ExecQuery;
-            Close;
+          SQL.Text := 'UPDATE inv_movement SET id = id';
+          ExecQuery;
+          Close;
 
-            FTransaction.Commit;
-            FTransaction.StartTransaction;
+          Log('Заполнение поля GOODKEY  в INV_BALANCE');
 
-            Log('Добавление триггера для обновления GOODKEY в inv_card');
+          SQL.Text := 'UPDATE inv_balance SET cardkey = cardkey ';
+          ExecQuery;
+          Close;
 
-            SQL.Text :=
-              'CREATE TRIGGER inv_bu_card_goodkey FOR inv_card '#13#10 +
-              '  BEFORE UPDATE '#13#10 +
-              '  POSITION 1 '#13#10 +
-              'AS '#13#10 +
-              'BEGIN '#13#10 +
-              '  IF (NEW.GOODKEY <> OLD.GOODKEY) THEN '#13#10 +
-              '  BEGIN '#13#10 +
-              '    UPDATE inv_movement SET goodkey = NEW.goodkey '#13#10 +
-              '    WHERE cardkey = NEW.id; '#13#10 +
-              ' '#13#10 +
-              '    UPDATE inv_balance SET goodkey = NEW.goodkey '#13#10 +
-              '    WHERE cardkey = NEW.id; '#13#10 +
-              '  END '#13#10 +
-              'END ';
-            ExecQuery;
-            Close;
+          FTransaction.Commit;
 
-            FTransaction.Commit;
-            FTransaction.StartTransaction;
+          IBDB.Connected := False;
+          IBDB.Connected := True;
+          FTransaction.StartTransaction;
 
-            Log('Заполнение поля GOODKEY  в INV_MOVEMENT');
+          Log('Добавление индекса в INV_MOVEMENT');
 
-            SQL.Text := 'UPDATE inv_movement SET id = id';
-            ExecQuery;
-            Close;
+          SQL.Text := 'ALTER TABLE inv_movement ADD CONSTRAINT inv_fk_movement_goodk ' +
+                      'FOREIGN KEY (goodkey) REFERENCES gd_good (id) ' +
+                      'ON UPDATE CASCADE ';
+          ExecQuery;
+          Close;
 
-            Log('Заполнение поля GOODKEY  в INV_BALANCE');
+          FTransaction.Commit;
 
-            SQL.Text := 'UPDATE inv_balance SET cardkey = cardkey ';
-            ExecQuery;
-            Close;
+          IBDB.Connected := False;
+          IBDB.Connected := True;
+          FTransaction.StartTransaction;
 
-            FTransaction.Commit;
+          Log('Добавление индекса в INV_BALANCE');
 
-            IBDB.Connected := False;
-            IBDB.Connected := True;
-            FTransaction.StartTransaction;
+          SQL.Text := 'ALTER TABLE inv_balance ADD CONSTRAINT inv_fk_balance_gk ' +
+                      'FOREIGN KEY (goodkey) REFERENCES gd_good (id) ' +
+                      'ON DELETE CASCADE ' +
+                      'ON UPDATE CASCADE ';
+          ExecQuery;
+          Close;
 
-            Log('Добавление индекса в INV_MOVEMENT');
+          FTransaction.Commit;
 
-            SQL.Text := 'ALTER TABLE inv_movement ADD CONSTRAINT inv_fk_movement_goodk ' +
-                        'FOREIGN KEY (goodkey) REFERENCES gd_good (id) ' +
-                        'ON UPDATE CASCADE ';
-            ExecQuery;
-            Close;
-
-            FTransaction.Commit;
-
-            IBDB.Connected := False;
-            IBDB.Connected := True;
-            FTransaction.StartTransaction;
-
-            Log('Добавление индекса в INV_BALANCE');
-
-            SQL.Text := 'ALTER TABLE inv_balance ADD CONSTRAINT inv_fk_balance_gk ' +
-                        'FOREIGN KEY (goodkey) REFERENCES gd_good (id) ' +
-                        'ON DELETE CASCADE ' +
-                        'ON UPDATE CASCADE ';
-            ExecQuery;
-            Close;
-
-            FTransaction.Commit;
-
-            Log('Добавление поля GOODKEY и сопутствующих триггеров и индексов прошло успешно');
-          end;
+          Log('Добавление поля GOODKEY и сопутствующих триггеров и индексов прошло успешно');
         end;
         if not FTransaction.InTransaction then FTransaction.StartTransaction;
         try

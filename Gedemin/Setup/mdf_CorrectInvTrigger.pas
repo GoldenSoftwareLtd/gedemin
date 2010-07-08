@@ -61,7 +61,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -126,7 +126,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       AddFinVersion(80, '0000.0001.0000.0108', 'Возвращены изменения триггеров - параметр ROWCOUNT - возрващал неверное значение', '09.11.2006', IBTr);
@@ -139,7 +139,7 @@ begin
 
   except
     on E: Exception do
-      Log('error:' +  E.Message);
+      Log('Ошибка:' +  E.Message);
   end;
 
 end;

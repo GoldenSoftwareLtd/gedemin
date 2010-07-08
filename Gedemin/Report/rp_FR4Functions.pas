@@ -128,7 +128,7 @@ end;
 
 function TFR4Functions.AdvString: String;
 begin
-  Result := 'Подготовлено в системе Гедымин. Тел.: (017) 292-13-33, 331-35-46. http://gsbelarus.com © Golden Software of Belarus Ltd. ';
+  Result := 'Подготовлено в системе Гедымин. Тел.: (017) 256-17-59, 256-27-83. http://gsbelarus.com © Golden Software of Belarus Ltd. ';
 end;
 
 function TFR4Functions.CallMethod(Instance: TObject; ClassType: TClass;

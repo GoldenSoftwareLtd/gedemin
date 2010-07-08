@@ -9,6 +9,9 @@ procedure AlterBankStatementTrigger(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
+uses
+  mdf_ModifyBlockTriggers4;
+
 const
   TriggerCount = 3;
   Triggers: array[0..TriggerCount - 1] of TmdfTrigger = (
@@ -139,20 +142,27 @@ begin
         AlterTrigger(Triggers[i], IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
     end;
   end;
+
   ibtr := TIBTransaction.Create(nil);
   ibsql := TIBSQL.Create(nil);
   try
     ibtr.DefaultDatabase := IBDB;
+    ibtr.StartTransaction;
+
+    _ModifyBlockTriggers(ibtr);
+    ibtr.Commit;
+
+    ibtr.StartTransaction;
     ibsql.Transaction := ibtr;
     ibsql.SQL.Text := 'UPDATE bn_bankstatementline SET id = id';
-    ibtr.StartTransaction;
     ibsql.ExecQuery;
-  finally
+
     ibtr.Commit;
+  finally
     ibsql.Free;
     ibtr.Free;
   end;

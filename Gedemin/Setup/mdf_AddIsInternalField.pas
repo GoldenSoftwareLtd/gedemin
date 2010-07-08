@@ -315,7 +315,7 @@ begin
       except
         on E: Exception do
         begin
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
           raise;
         end;
       end;
@@ -326,7 +326,7 @@ begin
       except
         on E: Exception do
         begin
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
           raise;
         end;
       end;

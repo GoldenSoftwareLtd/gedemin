@@ -650,7 +650,7 @@ begin
       begin
         if FIBTransaction.InTransaction then
           FIBTransaction.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
       end;
     end;
   finally

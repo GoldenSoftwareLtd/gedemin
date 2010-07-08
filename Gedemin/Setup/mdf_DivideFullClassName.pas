@@ -55,7 +55,7 @@ var
         begin
           if LTransaction.InTransaction then
             LTransaction.Rollback;
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
           raise;
         end;
       end;
@@ -88,7 +88,7 @@ var
         begin
           if LTransaction.InTransaction then
             LTransaction.Rollback;
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
           raise;
         end;
       end;
@@ -138,7 +138,7 @@ var
         begin
           if LTransaction.InTransaction then
             LTransaction.Rollback;
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
           raise;
         end;
       end;
@@ -175,7 +175,7 @@ var
         begin
           if LTransaction.InTransaction then
             LTransaction.Rollback;
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
           raise;
         end;
       end;
@@ -211,7 +211,7 @@ var
         begin
           if LTransaction.InTransaction then
             LTransaction.Rollback;
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
           raise;
         end;
       end;
@@ -259,7 +259,7 @@ var
         begin
           if LTransaction.InTransaction then
             LTransaction.Rollback;
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
           raise;
         end;
       end;
@@ -538,7 +538,7 @@ var
         begin
           if LTransaction.InTransaction then
             LTransaction.Rollback;
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
           raise;
         end;
       end;

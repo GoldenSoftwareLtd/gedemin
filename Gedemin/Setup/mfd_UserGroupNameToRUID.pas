@@ -117,7 +117,7 @@ begin
     FTransaction.DefaultDatabase := IBDB;
     q.Transaction := FTransaction;
 
-    FTransaction.StartTransaction;
+    {FTransaction.StartTransaction;
     try
       q.SQL.Text := 'CREATE GENERATOR gd_g_block';
       q.ExecQuery;
@@ -412,17 +412,7 @@ begin
     except
       if FTransaction.InTransaction then
         FTransaction.Rollback;
-    end;
-
-    {    FTransaction.StartTransaction;
-    try
-      q.SQL.Text := '';
-      q.ExecQuery;
-      FTransaction.Commit;
-    except
-      if FTransaction.InTransaction then
-        FTransaction.Rollback;
-    end; }
+    end;}
 
   finally
     q.Free;

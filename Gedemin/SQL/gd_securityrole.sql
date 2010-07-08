@@ -263,7 +263,7 @@ GRANT EXECUTE ON PROCEDURE GD_P_RELATION_FORMATS TO administrator;
 /*GRANT EXECUTE ON PROCEDURE GD_P_GETTRTYPEDOC TO administrator;*/
 /*GRANT EXECUTE ON PROCEDURE GD_P_RESTRUCT_ATTRSET TO administrator;*/
 GRANT EXECUTE ON PROCEDURE gd_p_SetCompanyToPeople TO administrator;
-GRANT EXECUTE ON PROCEDURE rp_p_checkgrouptree TO administrator;
+/*GRANT EXECUTE ON PROCEDURE rp_p_checkgrouptree TO administrator;*/
 /*GRANT EXECUTE ON PROCEDURE rp_p_reportgrouplist TO administrator;*/
 /*GRANT EXECUTE ON PROCEDURE gd_p_close_gedemin TO administrator;*/
 GRANT EXECUTE ON PROCEDURE bn_p_update_bankstatement TO administrator;
