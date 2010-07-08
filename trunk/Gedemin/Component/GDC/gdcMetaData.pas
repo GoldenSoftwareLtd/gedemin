@@ -396,8 +396,8 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     procedure MakePredefinedRelationFields; override;
 
-    function GetDependentNames(out AChldCtName, AnExLimName,
-      ARestrName, AnExceptName: String): Integer;
+    {function GetDependentNames(out AChldCtName, AnExLimName,
+      ARestrName, AnExceptName: String): Integer;}
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
@@ -7335,9 +7335,9 @@ procedure TgdcLBRBTreeTable.DropTable;
 var
   ibsql: TIBSQL;
   FSQL: TSQLProcessList;
-  ChldCtName, ExLimName, RestrName, ExceptName: String;
+  Names: TLBRBTreeMetaNames;
 begin
-  if GetDependentNames(ChldCtName, ExLimName, RestrName, ExceptName) > 3 then  // 3 SP 
+  if GetLBRBTreeDependentNames(FieldByName('relationname').AsString, ReadTransaction, Names) > 3 then  // 3 SP
     raise EgdcIBError.Create('Нельзя удалить таблицу т.к. она используется в процедурах или представлениях');
 
   ibsql := CreateReadIBSQL;
@@ -7353,14 +7353,14 @@ begin
       ibsql.Next;
     end;
 
-    if RestrName > '' then
-      FSQL.Add('DROP PROCEDURE ' + RestrName, False);
-    if ExLimName > '' then
-      FSQL.Add('DROP PROCEDURE ' + ExLimName, False);
-    if ChldCtName > '' then
-      FSQL.Add('DROP PROCEDURE ' + ChldCtName, False);
-    if ExceptName > '' then
-      FSQL.Add('DROP EXCEPTION ' + ExceptName, False);
+    if Names.RestrName > '' then
+      FSQL.Add('DROP PROCEDURE ' + Names.RestrName, False);
+    if Names.ExLimName > '' then
+      FSQL.Add('DROP PROCEDURE ' + Names.ExLimName, False);
+    if Names.ChldCtName > '' then
+      FSQL.Add('DROP PROCEDURE ' + Names.ChldCtName, False);
+    if Names.ExceptName > '' then
+      FSQL.Add('DROP EXCEPTION ' + Names.ExceptName, False);
 
     DropCrossTable;
 
@@ -7382,32 +7382,39 @@ procedure TgdcLBRBTreeTable._SaveToStream(Stream: TStream;
   WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean);
 var
   AnObject: TgdcStoredProc;
-  I: Integer;
-  ExceptName: String;
-  PrNameArray: array [1..3] of String;
+  Names: TLBRBTreeMetaNames;
 begin
   inherited;
 
-  GetDependentNames(PrNameArray[1], PrNameArray[2], PrNameArray[3], ExceptName);
+  GetLBRBTreeDependentNames(FieldByName('relationname').AsString,
+    ReadTransaction, Names);
 
   { TODO -oЮля : Синхронизация процедур пройдет только при перезагрузке программы.
   Если сохранить в настройку только созданную таблицу, мы не найдем процедуры ... }
   AnObject := TgdcStoredProc.CreateSubType(nil, '', 'ByProcName');
   try
-    for I := 1 to 3 do
-    begin
-      AnObject.Close;
-      AnObject.ParamByName('procedurename').AsString := PrNameArray[I];
-      AnObject.Open;
-      if not AnObject.EOF then
-        AnObject._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
-    end;
+    AnObject.ParamByName('procedurename').AsString := Names.ExLimName;
+    AnObject.Open;
+    if not AnObject.EOF then
+      AnObject._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+
+    AnObject.Close;
+    AnObject.ParamByName('procedurename').AsString := Names.ChldCtName;
+    AnObject.Open;
+    if not AnObject.EOF then
+      AnObject._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+
+    AnObject.Close;
+    AnObject.ParamByName('procedurename').AsString := Names.RestrName;
+    AnObject.Open;
+    if not AnObject.EOF then
+      AnObject._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
   finally
     AnObject.Free;
   end;
 end;
 
-function TgdcLBRBTreeTable.GetDependentNames(out AChldCtName, AnExLimName,
+{function TgdcLBRBTreeTable.GetDependentNames(out AChldCtName, AnExLimName,
   ARestrName, AnExceptName: String): Integer;
 var
   q: TIBSQL;
@@ -7488,7 +7495,7 @@ begin
   finally
     q.Free;
   end;
-end;
+end;}
 
 { TgdcMetaBase }
 

@@ -77,6 +77,9 @@ procedure CreateProcedure(SP: TmdfStoredProcedure; DB: TIBDataBase);
 function ProcedureExist(SP: TmdfStoredProcedure; DB: TIBDataBase):boolean;
 procedure ExecuteProcedure(SP: TmdfStoredProcedure; DB: TIBDataBase);
 
+function ProcedureExist2(const AProcName: String; ATr: TIBTransaction): Boolean;
+procedure DropProcedure2(const AProcName: String; ATr: TIBTransaction);
+
 function RelationExist(Table: TmdfTable; Db: TIbdataBase): boolean;
 procedure CreateRelation(Table: TmdfTable; Db: TIBdatabase);
 procedure DropRelation(Table: TmdfTable; Db: TIBdatabase);
@@ -85,6 +88,9 @@ procedure AlterRelation(Table: TmdfTable; Db: TIBdatabase);
 function TriggerExist(Trigger: TmdfTrigger; Db: TIBDataBase): Boolean;
 procedure CreateTrigger(Trigger: TmdfTrigger; Db: TIBDataBase);
 procedure AlterTrigger(Trigger: TmdfTrigger; Db: TIBDataBase);
+
+function TriggerExist2(const ATriggerName: String; ATr: TIBTransaction): Boolean;
+procedure DropTrigger2(const ATriggerName: String; ATr: TIBTransaction);
 
 function ExceptionExists(Ex: TmdfException; Db: TIBDataBase): boolean;
 procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
@@ -592,6 +598,41 @@ begin
   end;
 end;
 
+function ProcedureExist2(const AProcName: String; ATr: TIBTransaction): Boolean;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text :=
+      'SELECT rdb$procedure_name FROM rdb$procedures WHERE ' +
+      ' rdb$procedure_name = :procedurename ';
+    SQL.ParamByName('procedurename').AsString := UpperCase(AProcName);
+    SQL.ExecQuery;
+    Result := not SQL.EOF;
+  finally
+    SQl.Free;
+  end;
+end;
+
+procedure DropProcedure2(const AProcName: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQL;
+begin
+  if ProcedureExist2(AProcName, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text := 'DROP PROCEDURE ' + AProcName;
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
+    end;
+  end;
+end;
+
 function RelationExist(Table: TmdfTable; Db: TIbdataBase): boolean;
 var
   Transaction: TIBTransaction;
@@ -790,6 +831,41 @@ begin
   end;
 end;
 
+function TriggerExist2(const ATriggerName: String; ATr: TIBTransaction): Boolean;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text :=
+      'SELECT rdb$trigger_name FROM rdb$triggers WHERE ' +
+      ' rdb$trigger_name = :triggername ';
+    SQL.ParamByName('triggername').AsString := UpperCase(ATriggerName);
+    SQL.ExecQuery;
+    Result := not SQL.EOF;
+  finally
+    SQl.Free;
+  end;
+end;
+
+procedure DropTrigger2(const ATriggerName: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQL;
+begin
+  if TriggerExist2(ATriggerName, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text := 'DROP TRIGGER ' + ATriggerName;
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
+    end;
+  end;
+end;
+
 function ExceptionExists(Ex: TmdfException; Db: TIBDataBase ): boolean;
 var
   Transaction: TIBTransaction;
@@ -925,17 +1001,10 @@ begin
   ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := Tr;
-    ibsql.SQL.Text := 'SELECT id FROM fin_versioninfo WHERE VERSIONSTRING = :ver';
-    ibsql.ParamByName('ver').AsString := NumVersion;
+    ibsql.SQL.Text := Format('UPDATE OR INSERT INTO fin_versioninfo ' +
+      'VALUES (%d, ''%s'', ''%s'', ''%s'') MATCHING (id) ',
+      [ID, NumVersion, DateOper, Comment]);
     ibsql.ExecQuery;
-    if ibsql.EOF then
-    begin
-      ibsql.Close;
-      ibsql.SQL.Text :=
-        Format('INSERT INTO fin_versioninfo ' +
-        'VALUES (%d, ''%s'', ''%s'', ''%s''); ', [ID, NumVersion, DateOper, Comment]);
-      ibsql.ExecQuery;
-    end;
   finally
     ibsql.Free;
   end;

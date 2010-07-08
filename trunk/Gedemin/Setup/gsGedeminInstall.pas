@@ -4414,7 +4414,7 @@ begin
 
   except
     on E: Exception do
-      DoLog(E.Message);
+      DoLog('Ошибка: ' + E.Message);
   end;
 end;
 (*
@@ -4489,7 +4489,7 @@ begin
       raise Exception.Create(cExpCantConnectServiceManager);
   except
     on E: Exception do
-      DoLog(E.Message);
+      DoLog('Ошибка: ' + E.Message);
   end;
 end;
 
@@ -4599,7 +4599,7 @@ begin
   except
     on E: Exception do
     begin
-      DoLog(E.Message);
+      DoLog('Ошибка: ' + E.Message);
       Result := False;
     end;
   end;
@@ -4620,7 +4620,7 @@ begin
     end;
   except
     on E: Exception do
-      DoLog(E.Message);
+      DoLog('Ошибка: ' + E.Message);
   end;
 end;
 
@@ -4642,7 +4642,7 @@ begin
     end;
   except
     On E: Exception do
-      DoLog(E.Message);
+      DoLog('Ошибка: ' + E.Message);
   end;
 end;
 

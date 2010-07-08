@@ -333,14 +333,16 @@ begin
       // теперь программа загрузится и без подключения к
       // базе данных. например, если надо сначала распаковать файл
       // с базой, а потом к нему подключаться
+      if not IBLogin.IsSilentLogin then
       try
         if not IBLogin.Login then
         begin
-          if MessageBox(0,
+          if FindCmdLineSwitch('q', ['/', '-'], True)
+            or (MessageBox(0,
             'Подключение к базе данных не было осуществлено.'#13#10 +
             'Продолжить загрузку программы?',
             'Внимание',
-            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
+            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO) then
           begin
             Application.Terminate;
           end;

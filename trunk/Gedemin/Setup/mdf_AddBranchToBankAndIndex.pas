@@ -37,7 +37,6 @@ begin
       F.Description := 'DTEXT20';
       if not FieldExist(F, IBDB) then
         AddField(F, IBDB);
-      Log('Ok');
 
       Log(Format('Модификация индекса %s', ['bankbranch']));
       Index.RelationName := 'gd_bank';
@@ -58,7 +57,7 @@ begin
       except
         on E: Exception do
         begin
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
         end;
       end;
 
@@ -70,7 +69,7 @@ begin
 
   except
     on E: Exception do
-      Log('error:' +  E.Message);
+      Log('Ошибка:' +  E.Message);
   end;
 
 end;
@@ -96,7 +95,6 @@ begin
       F.Description := 'dbankcode';
       if not FieldExist(F, IBDB) then
         AddField(F, IBDB);
-      Log('Ok');
 
       try
         q.SQL.Text := 'UPDATE GD_RUID SET DBID=17 WHERE XID < 147000000 AND DBID <> 17 ';
@@ -104,7 +102,7 @@ begin
       except
         on E: Exception do
         begin
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
         end;
       end;
 
@@ -115,7 +113,7 @@ begin
       except
         on E: Exception do
         begin
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
         end;
       end;
 
@@ -127,7 +125,7 @@ begin
 
   except
     on E: Exception do
-      Log('error:' +  E.Message);
+      Log('Ошибка:' +  E.Message);
   end;
 
 end;

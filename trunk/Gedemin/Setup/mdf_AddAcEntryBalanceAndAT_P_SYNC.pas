@@ -1024,7 +1024,7 @@ begin
             ' FROM ' +
             '   rdb$relation_fields r ' +
             ' WHERE ' +
-            '   r.rdb$relation_name = ''AC_ENTRY'' ' +
+            '   r.rdb$relation_name = ''AC_ACCOUNT'' ' +
             '   AND r.rdb$field_name STARTING WITH ''USR$'' ';
           ibsqlFields.ExecQuery;
           while not ibsqlFields.Eof do

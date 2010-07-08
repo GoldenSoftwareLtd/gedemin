@@ -28,7 +28,7 @@ begin
     ibsql.ParamCheck := False;
     try
       ibsql.SQl.Text:=
-        'RECREATE PROCEDURE INV_GETCARDMOVEMENT(' + #13#10 +
+        'CREATE OR ALTER PROCEDURE INV_GETCARDMOVEMENT(' + #13#10 +
         '    CARDKEY INTEGER,' + #13#10 +
         '    CONTACTKEY INTEGER,' + #13#10 +
         '    DATEEND DATE)' + #13#10 +
@@ -54,32 +54,28 @@ begin
 
       AddFinVersion(81, '0000.0001.0000.0109', 'Добавлена процедура INV_GETCARDMOVEMENT для ускорения вывода остатков на дату', '12.11.2006', FIBTransaction);
 
-      try
+      FIBTransaction.Commit;
+      FIBTransaction.StartTransaction;
+
+      ibsql.Close;
+      ibsql.SQL.Text := 'SELECT COUNT(*) FROM gd_document';
+      ibsql.ExecQuery;
+
+      if (ibsql.Fields[0].AsInteger < 1000000)
+        or (MessageBox(0,
+          'Рекомендуется выполнить проверку складских остатков.'#13#10 +
+          'Проверка может занять длительное время.'#13#10 +
+          'Не выключайте компьютер и не снимайте задачу!'#13#10#13#10 +
+          'Выполнить проверку?',
+          'Внимание',
+          MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDYES) then
+      begin
         ibsql.Close;
-        ibsql.SQL.Text := 'SELECT COUNT(*) FROM gd_document';
+        ibsql.SQL.Text := 'EXECUTE PROCEDURE inv_makerest';
         ibsql.ExecQuery;
-
-        if (ibsql.Fields[0].AsInteger < 100000)
-          or (MessageBox(0,
-            'Рекомендуется выполнить проверку складских остатков.'#13#10 +
-            'Проверка может занять длительное время.'#13#10 +
-            'Не выключайте компьютер и не снимайте задачу!'#13#10#13#10 +
-            'Выполнить проверку?',
-            'Внимание',
-            MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDYES) then
-        begin
-          ibsql.Close;
-          ibsql.SQL.Text :=
-            'EXECUTE PROCEDURE inv_makerest';
-          ibsql.ExecQuery;
-        end;
-
-        ibsql.Close;
-      except
-        on E: Exception do
-          Log('error:' +  E.Message);
       end;
 
+      ibsql.Close;
       AddFinVersion(82, '0000.0001.0000.0110', 'Пересчитываем складские остатки после восстановления складских триггеров', '24.11.2006', FIBTransaction);
 
       FIBTransaction.Commit;
@@ -88,7 +84,7 @@ begin
       begin
         if FIBTransaction.InTransaction then
           FIBTransaction.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
         raise;
       end;
     end;

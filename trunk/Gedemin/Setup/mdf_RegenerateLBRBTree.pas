@@ -26,10 +26,10 @@ const
     '  IF (NEW.name IS NULL) THEN '#13#10 +
     '    NEW.name = ''''; '#13#10 +
     ' '#13#10 +
-    '  IF (NEW.CONTACTTYPE = 0 OR NEW.CONTACTTYPE = 3) THEN '#13#10 +
-    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''LBRB_DELTA'', ''1000''); '#13#10 +
+    '  IF (NEW.CONTACTTYPE = 0) THEN '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''LBRB_DELTA'', ''100''); '#13#10 +
     '  ELSE '#13#10 +
-    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''LBRB_DELTA'', ''10''); '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''LBRB_DELTA'', ''1''); '#13#10 +
     'END ';
 
   c_reportgroup_trigger =
@@ -40,10 +40,11 @@ const
     'BEGIN '#13#10 +
     '  IF (NEW.id IS NULL) THEN '#13#10 +
     '    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+    ' '#13#10 +
     '  IF (NEW.usergroupname IS NULL) THEN '#13#10 +
     '    NEW.usergroupname = CAST(NEW.id AS varchar(60)); '#13#10 +
     ' '#13#10 +
-    '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''LBRB_DELTA'', ''1000''); '#13#10 +
+    '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''LBRB_DELTA'', ''100''); '#13#10 +
     'END ';
 
 var
@@ -75,38 +76,10 @@ begin
         FIBSQL.SQL.Text := c_trigger;
         FIBSQL.ExecQuery;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text := 'SELECT * FROM rdb$procedures WHERE rdb$procedure_name = ''RP_P_CHECKGROUPTREE'' ';
-        FIBSQL.ExecQuery;
-
-        if not FIBSQL.EOF then
-        begin
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := 'DROP PROCEDURE RP_P_CHECKGROUPTREE ';
-          FIBSQL.ExecQuery;
-        end;
-
-        FIBSQL.Close;
-        FIBSQL.SQL.Text := 'SELECT * FROM rdb$triggers WHERE rdb$trigger_name = ''RP_BEFORE_UPDATE_REPORTGROUP'' ';
-        FIBSQL.ExecQuery;
-
-        if not FIBSQL.EOF then
-        begin
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := 'DROP TRIGGER RP_BEFORE_UPDATE_REPORTGROUP ';
-          FIBSQL.ExecQuery;
-        end;
-
-        FIBSQL.Close;
-        FIBSQL.SQL.Text := 'SELECT * FROM rdb$triggers WHERE rdb$trigger_name = ''RP_BEFORE_INSERT10_REPORTGROUP'' ';
-        FIBSQL.ExecQuery;
-
-        if not FIBSQL.EOF then
-        begin
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := 'DROP TRIGGER RP_BEFORE_INSERT10_REPORTGROUP ';
-          FIBSQL.ExecQuery;
-        end;
+        DropTrigger2('RP_BEFORE_UPDATE_REPORTGROUP', FTransaction);
+        DropTrigger2('RP_BEFORE_UPDATE10_REPORTGROUP', FTransaction);
+        DropTrigger2('RP_BEFORE_INSERT10_REPORTGROUP', FTransaction);
+        DropProcedure2('RP_P_CHECKGROUPTREE', FTransaction);
 
         FIBSQL.Close;
         FIBSQL.SQL.Text := c_reportgroup_trigger;
@@ -124,6 +97,10 @@ begin
         FIBSQL.Free;
       end;
 
+      FTransaction.Commit;
+      FTransaction.StartTransaction;
+
+      RestrLBRBTree('', FTransaction);
       FTransaction.Commit;
     except
       on E: Exception do

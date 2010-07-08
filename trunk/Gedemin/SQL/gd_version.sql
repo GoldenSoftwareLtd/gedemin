@@ -399,6 +399,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo 
   VALUES (119, '0000.0001.0000.0150', '06.06.2010', 'Add FK manager metadata');
 
+INSERT INTO fin_versioninfo
+  VALUES (120, '0000.0001.0000.0151', '22.06.2010', 'Added locking into LBRB tree');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

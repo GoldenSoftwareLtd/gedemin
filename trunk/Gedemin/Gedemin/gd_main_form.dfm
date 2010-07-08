@@ -1,6 +1,6 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 274
-  Top = 111
+  Left = 311
+  Top = 59
   Width = 977
   Height = 85
   HelpContext = 76
@@ -51,11 +51,16 @@ object frmGedeminMain: TfrmGedeminMain
         object N14: TTBItem
           Action = actShowUsers
         end
+        object TBSeparatorItem15: TTBSeparatorItem
+        end
         object MenuItem1: TTBItem
           Action = actLogIn
         end
         object N15: TTBItem
           Action = actLogOff
+        end
+        object TBItem27: TTBItem
+          Action = actReconnect
         end
         object N23: TTBSeparatorItem
         end
@@ -361,7 +366,7 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object TBDockForms: TTBDock
     Left = 0
-    Top = 30
+    Top = 31
     Width = 969
     Height = 27
     BoundLines = [blTop]
@@ -451,28 +456,28 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actLogIn: TAction
       Category = 'Actions'
-      Caption = 'Подключиться к базе данных'
+      Caption = 'Подключиться...'
       ImageIndex = 106
       OnExecute = actLogInExecute
       OnUpdate = actLogInUpdate
     end
     object actLogOff: TAction
       Category = 'Actions'
-      Caption = 'Отключиться от базы данных'
+      Caption = 'Отключиться'
       ImageIndex = 109
       OnExecute = actLogOffExecute
       OnUpdate = actLogOffUpdate
     end
     object actLoginSingle: TAction
       Category = 'Actions'
-      Caption = 'Подключиться в однопользовательском режиме'
+      Caption = 'Монопольный режим'
       ImageIndex = 111
       OnExecute = actLoginSingleExecute
       OnUpdate = actLoginSingleUpdate
     end
     object actBringOnline: TAction
       Category = 'Actions'
-      Caption = 'Вернуть базу данных в нормальный режим'
+      Caption = 'Многопользовательский режим'
       OnExecute = actBringOnlineExecute
       OnUpdate = actBringOnlineUpdate
     end
@@ -484,7 +489,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actRestore: TAction
       Category = 'Actions'
-      Caption = 'Восстановление базы данных...'
+      Caption = 'Восстановление из архива...'
       OnExecute = actRestoreExecute
       OnUpdate = actRestoreUpdate
     end
@@ -497,7 +502,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actShowUsers: TAction
       Category = 'Actions'
-      Caption = 'Подключенные пользователи...'
+      Caption = 'Пользователи...'
       ImageIndex = 35
       OnExecute = actShowUsersExecute
       OnUpdate = actShowUsersUpdate
@@ -591,7 +596,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actRecompileStatistics: TAction
       Category = 'Actions'
-      Caption = 'Обновление статистики индексов'
+      Caption = 'Сервис'
       OnExecute = actRecompileStatisticsExecute
       OnUpdate = actRecompileStatisticsUpdate
     end
@@ -609,7 +614,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actCompareDataBases: TAction
       Category = 'Actions'
-      Caption = 'Сравнить базы данных'
+      Caption = 'Сравнить базы данных...'
       Hint = 'Сравнить базы данных'
       ImageIndex = 121
       OnExecute = actCompareDataBasesExecute
@@ -700,7 +705,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actSQLProcess: TAction
       Category = 'Actions'
-      Caption = 'Выполнение SQL команд'
+      Caption = 'Журнал SQL команд...'
       ImageIndex = 211
       OnExecute = actSQLProcessExecute
     end
@@ -724,6 +729,12 @@ object frmGedeminMain: TfrmGedeminMain
       ImageIndex = 34
       OnExecute = actUsersExecute
       OnUpdate = actUsersUpdate
+    end
+    object actReconnect: TAction
+      Category = 'Actions'
+      Caption = 'Переподключиться'
+      OnExecute = actReconnectExecute
+      OnUpdate = actReconnectUpdate
     end
   end
   object IBTransaction: TIBTransaction

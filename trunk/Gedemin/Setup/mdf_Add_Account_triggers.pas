@@ -142,7 +142,7 @@ begin
               CreateException(Exceptions[K], IBDB);
             except
               on E: Exception do
-                Log(Format('Ошибка %s', [E.Message]));
+                Log(Format('Ошибка: %s', [E.Message]));
             end;
           end;
         end;
@@ -155,7 +155,7 @@ begin
               CreateTrigger(Triggers[K], IBDB);
             except
               on E: Exception do
-                Log(Format('Ошибка %s', [E.Message]));
+                Log(Format('Ошибка: %s', [E.Message]));
             end;
           end;
         end;

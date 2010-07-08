@@ -50,12 +50,11 @@ begin
         SQL.Free;
       end;
       Transaction.Commit;
-      Log('success');
     except
       on E: Exception do
       begin
         Transaction.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
       end;
     end;
   finally

@@ -488,7 +488,7 @@ END
 CREATE EXCEPTION gd_e_invalid_contact_parent 'Invalid contact parent'
 ^
 
-CREATE TRIGGER gd_bi_contact FOR gd_contact
+RECREATE TRIGGER gd_bi_contact FOR gd_contact
   BEFORE INSERT
   POSITION 0
 AS
@@ -498,6 +498,11 @@ BEGIN
 
   IF (NEW.name IS NULL) THEN
     NEW.name = '';
+
+  IF (NEW.CONTACTTYPE = 0) THEN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'LBRB_DELTA', '100');
+  ELSE
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'LBRB_DELTA', '1');
 END
 ^
 

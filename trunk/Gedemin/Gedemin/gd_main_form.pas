@@ -171,6 +171,9 @@ type
     actUserGroups: TAction;
     actJournal: TAction;
     actUsers: TAction;
+    TBItem27: TTBItem;
+    actReconnect: TAction;
+    TBSeparatorItem15: TTBSeparatorItem;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -282,6 +285,8 @@ type
     procedure actUserGroupsUpdate(Sender: TObject);
     procedure actJournalUpdate(Sender: TObject);
     procedure actUsersUpdate(Sender: TObject);
+    procedure actReconnectUpdate(Sender: TObject);
+    procedure actReconnectExecute(Sender: TObject);
   private
     FCanClose: Boolean;
     FExitWindowsParam: Longint;
@@ -1104,7 +1109,7 @@ begin
       begin
         MessageBox(0,
           'Количество подключенных к базе данных пользователей превышает лимит, установленный Вашей лицензией!' + #13#10 +
-          'Обратитесь в компанию ''Золотые программы'' по тел. 292-13-33, 331-35-46!',
+          'Обратитесь в компанию ''Золотые программы'' по тел. 256-17-59, 256-27-83!',
           'Внимание',
           MB_OK or MB_ICONHAND or MB_TASKMODAL);
         Application.Terminate;
@@ -2384,6 +2389,22 @@ begin
   except
     tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
   end;
+end;
+
+procedure TfrmGedeminMain.actReconnectUpdate(Sender: TObject);
+begin
+  actReconnect.Enabled := Assigned(IBLogin)
+    {and IBLogin.IsUserAdmin}
+    and IBLogin.LoggedIn
+    and ((not Assigned(Screen.ActiveForm)) or ([fsModal] * Screen.ActiveForm.FormState = []))
+    and (not ((FormAssigned(gd_frmBackup) and gd_frmBackup.ServiceActive) or
+      (FormAssigned(gd_frmRestore) and gd_frmRestore.ServiceActive)));
+end;
+
+procedure TfrmGedeminMain.actReconnectExecute(Sender: TObject);
+begin
+  IBLogin.LogOff;
+  IBLogin.Login(False, True);
 end;
 
 end.

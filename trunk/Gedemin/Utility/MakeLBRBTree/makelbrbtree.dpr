@@ -93,19 +93,24 @@ begin
     Exit;
   end;
 
-  UpdateLBRBTreeBase(SelfTransaction, False, _Writeln);
-
-  if SelfTransaction.InTransaction then
-  try
-    SelfTransaction.Commit;
-  except
-    on E: Exception do
-    begin
+  if not UpdateLBRBTreeBase(SelfTransaction, False, _Writeln) then
+  begin
+    if SelfTransaction.InTransaction then
       SelfTransaction.Rollback;
-      _Writeln('makelbrbtree.exe: ошибка при сохранении изменений.');
-      _Writeln('makelbrbtree.exe: ' + E.Message);
+  end else
+  begin
+    if SelfTransaction.InTransaction then
+    try
+      SelfTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        SelfTransaction.Rollback;
+        _Writeln('makelbrbtree.exe: ошибка при сохранении изменений.');
+        _Writeln('makelbrbtree.exe: ' + E.Message);
+      end;
     end;
-  end;
+  end;  
 
   SelfTransaction.Free;
   SelfDatabase.Free;

@@ -394,8 +394,9 @@ begin
             FTransaction.StartTransaction;
             FIBSQL.Close;
             FIBSQL.SQL.Text :=
-              'INSERT INTO fin_versioninfo ' +
-              '  VALUES (103, ''0000.0001.0000.0130'', ''24.11.2008'', ''gd_block_rule'')';
+              'UPDATE OR INSERT INTO fin_versioninfo ' +
+              '  VALUES (103, ''0000.0001.0000.0130'', ''24.11.2008'', ''gd_block_rule'') ' +
+              '  MATCHING (id) ';
             FIBSQL.ExecQuery;
             FTransaction.Commit;
 

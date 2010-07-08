@@ -43,10 +43,10 @@ uses
   mdf_ModifyBlockTriggers3, mdf_ModifyBlockTriggers4, mdf_wageUpdateFields, mdf_AddGenerators,
   mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
   mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage,
-  mdf_AddFKManagerMetadata;
+  mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree;
 
 const
-  cProcCount = 145;
+  cProcCount = 146;
 
 type
   TModifyProc = record
@@ -298,7 +298,8 @@ const
     (ModifyProc: DropLBRBStorageTree; ModifyVersion: '0000.0001.0000.0146'),
     (ModifyProc: AddAcEntryBalanceAndAT_P_SYNC_Second; ModifyVersion: '0000.0001.0000.0147'),
     (ModifyProc: MakeLBIndexNonUnique; ModifyVersion: '0000.0001.0000.0148'),
-    (ModifyProc: AddFKManagerMetadata; ModifyVersion: '0000.0001.0000.0149')
+    (ModifyProc: AddFKManagerMetadata; ModifyVersion: '0000.0001.0000.0149'),
+    (ModifyProc: RegenerateLBRBTree; ModifyVersion: '0000.0001.0000.0150')
   );
 
 implementation

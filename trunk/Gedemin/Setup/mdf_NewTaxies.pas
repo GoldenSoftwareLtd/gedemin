@@ -252,7 +252,7 @@ begin
             DropIndex(GD_IDX_TAXRESULT, IBDB);
           except
             on E: Exception do
-              Log(E.Message);
+              Log('Ошибка: ' + E.Message);
           end;
         end;
 
@@ -261,10 +261,9 @@ begin
           Log('Удаление taxfunctionkey');
           try
             DropField(TAXFUNCTIONKEY, IBDB);
-            Log('succes');
           except
             on E: Exception do
-              Log(E.Message);
+              Log('Ошибка: ' + E.Message);
           end;
         end;
 
@@ -273,10 +272,9 @@ begin
           Log('Удаление resulttype');
           try
             DropField(RESULTTYPE, IBDB);
-            Log('succes');
           except
             on E: Exception do
-              Log(E.Message);
+              Log('Ошибка: ' + E.Message);
           end;
         end;
 
@@ -285,10 +283,9 @@ begin
           Log('Удаление gd_taxfunction');
           try
             DropRelation(GD_TAXFUNCTION, IBDB);
-            Log('succes');
           except
             on E: Exception do
-              Log(E.Message);
+              Log('Ошибка: ' + E.Message);
           end;
         end;
       end;

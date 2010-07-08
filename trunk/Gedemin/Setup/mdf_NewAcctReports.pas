@@ -697,7 +697,7 @@ begin
     CreateRelation(AC_ACCT_CONFIG, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   Log(Format('Создание таблицы %s', [AC_LEDGER_ACCOUNTS.TableName]));
@@ -705,7 +705,7 @@ begin
     CreateRelation(AC_LEDGER_ACCOUNTS, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   Log(Format('Создание процедуры %s', [AC_L_Q.ProcedureName]));
@@ -713,7 +713,7 @@ begin
     CreateProcedure(AC_L_Q, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   Log(Format('Создание процедуры %s', [AC_L_S.ProcedureName]));
@@ -721,7 +721,7 @@ begin
     CreateProcedure(AC_L_S, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   Log(Format('Создание процедуры %s', [AC_L_S1.ProcedureName]));
@@ -729,7 +729,7 @@ begin
     CreateProcedure(AC_L_S1, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   Log(Format('Создание процедуры %s', [AC_Q_S.ProcedureName]));
@@ -737,7 +737,7 @@ begin
     CreateProcedure(AC_Q_S, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   Log(Format('Создание процедуры %s', [AC_Q_S1.ProcedureName]));
@@ -745,7 +745,7 @@ begin
     CreateProcedure(AC_Q_S1, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   Transaction := TIBTransaction.Create(nil);
@@ -756,56 +756,51 @@ begin
       SQL.Transaction := Transaction;
       Transaction.StartTransaction;
       try
-        SQL.SQl.text := 'DECLARE EXTERNAL FUNCTION G_D_GETDATEPARAM'#13#10 +
-          '    DATE,'#13#10 +
-          '    INTEGER'#13#10 +
-          'RETURNS INTEGER BY VALUE'#13#10 +
-          'ENTRY_POINT ''g_d_getdateparam'' MODULE_NAME ''GUDF.dll''';
+        SQL.SQl.text := 'SELECT * FROM rdb$functions WHERE rdb$function_name = ''G_D_GETDATEPARAM'' ';
         SQL.ExecQuery;
+        if SQL.EOF then
+        begin
+          SQL.Close;
+          SQL.SQl.text :=
+            'DECLARE EXTERNAL FUNCTION G_D_GETDATEPARAM'#13#10 +
+            '    DATE,'#13#10 +
+            '    INTEGER'#13#10 +
+            'RETURNS INTEGER BY VALUE'#13#10 +
+            'ENTRY_POINT ''g_d_getdateparam'' MODULE_NAME ''gudf.dll''';
+          SQL.ExecQuery;
+        end;
         Transaction.Commit;
       except
         on E: Exception do
         begin
           Transaction.Rollback;
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
         end;
       end;
 
       Transaction.StartTransaction;
       try
         SQL.Close;
-        SQL.SQL.Text := 'SELECT * FROM gd_command WHERE id = 714022';
+        SQL.SQL.Text := ' UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, ' +
+          ' classname, hotkey, imgindex) VALUES (714022, 714000, ''Журнал-ордер'', ' +
+          ' '''', ''Tgdv_frmAcctLedger'', NULL, 17) ' +
+          ' MATCHING (id)' ;
         SQL.ExecQuery;
-        if SQL.Eof then
-        begin
-          SQL.Close;
-          SQL.SQL.Text := ' INSERT INTO gd_command (id, parent, name, cmd, ' +
-            ' classname, hotkey, imgindex) VALUES (714022, 714000, ''Журнал-ордер'', ' +
-            ' '''', ''Tgdv_frmAcctLedger'', NULL, 17)';
-          SQL.ExecQuery;
-          SQL.Close;
-        end else
-          SQL.Close;
 
         SQL.Close;
-        SQL.SQL.Text := 'SELECT * FROM gd_command WHERE id = 714098';
+        SQL.SQL.Text := ' UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, ' +
+          ' classname, hotkey, imgindex) VALUES (714098, 714000, ''Карта счета'', ' +
+          ' '''', ''Tgdv_frmAcctAccCard'', NULL, 17) ' +
+          'MATCHING (id)';
         SQL.ExecQuery;
-        if SQL.Eof then
-        begin
-          SQL.Close;
-          SQL.SQL.Text := ' INSERT INTO gd_command (id, parent, name, cmd, ' +
-            ' classname, hotkey, imgindex) VALUES (714098, 714000, ''Карта счета'', ' +
-            ' '''', ''Tgdv_frmAcctAccCard'', NULL, 17)';
-          SQL.ExecQuery;
-          SQL.Close;
-        end else
-          SQL.Close;
+
+        SQL.Close;
         Transaction.Commit;
       except
         on E: Exception do
         begin
           Transaction.Rollback;
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
         end;
       end
     finally
@@ -829,29 +824,18 @@ begin
       SQL.Transaction := Transaction;
       Transaction.StartTransaction;
       try
-        SQL.Close;
-        SQL.SQL.Text := 'SELECT * FROM gd_command WHERE id = 714030';
+        SQL.SQL.Text := ' UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, ' +
+          ' classname, hotkey, imgindex) VALUES (714030, 714000, ''Анализ счета'', ' +
+          ' '''', ''Tgdv_frmAcctAccReview'', NULL, 220) ' +
+          'MATCHING (id)';
         SQL.ExecQuery;
-        if SQL.Eof then begin
-          SQL.Close;
-          SQL.SQL.Text := ' INSERT INTO gd_command (id, parent, name, cmd, ' +
-            ' classname, hotkey, imgindex) VALUES (714030, 714000, ''Анализ счета'', ' +
-            ' '''', ''Tgdv_frmAcctAccReview'', NULL, 220)';
-          SQL.ExecQuery;
-        end
-        else begin
-          SQL.Close;
-          SQL.SQL.Text := ' UPDATE gd_command SET classname = ''Tgdv_frmAcctAccReview'' ' +
-                          ' WHERE id = 714030 ';
-          SQL.ExecQuery;
-        end;
         Transaction.Commit;
       except
         on E: Exception do
         begin
           if Transaction.InTransaction then
             Transaction.Rollback;
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
           raise;
         end;
       end;

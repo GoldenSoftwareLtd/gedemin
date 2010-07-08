@@ -39,10 +39,9 @@ begin
         Fields[I].RelationName]));
       try
         AddField(Fields[I], IBDB);
-        Log('succes');
       except
         on E: Exception do
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
       end;
     end;
   end;
