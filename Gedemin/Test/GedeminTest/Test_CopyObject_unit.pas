@@ -17,8 +17,9 @@ type
 implementation
 
 uses
-  gdcBase, gdcBaseInterface, IBDatabase, Classes, SysUtils, db, gdcInvDocument_unit,
-  gdcAttrUserDefined, gdcCurr, gdcConstants, gdcMetadata, ibsql;
+  gdcBase, gdcBaseInterface, IBDatabase, Classes, SysUtils,
+  db, gdcInvDocument_unit, gdcAttrUserDefined, gdcCurr,
+  gdcConstants, gdcMetadata, ibsql, at_frmSQLProcess;
 
 procedure TTestCopyObject.TestCopySimpleObject;
 var
@@ -226,28 +227,23 @@ begin
           ProcKey := ibsqlProc.FieldByName('ID').AsInteger;
         ibsqlProc.Close;
 
-        if ProcKey > -1 then
-        begin
-          gdcObject.Transaction := WriteTransaction;
-          gdcObject.ReadTransaction := WriteTransaction;
-          gdcObject.Open;
-          // Перейдем на выбранную процедуру
-          gdcObject.ID := ProcKey;
-          OriginalProcName := gdcObject.FieldByName('PROCEDURENAME').AsString;
+        Check(ProcKey > -1, 'Нет ни одной пользовательской процедуры для копирования!');
 
-          // Скопируем запись
-          gdcObject.CopyObject(False, False);
+        gdcObject.Transaction := WriteTransaction;
+        gdcObject.ReadTransaction := WriteTransaction;
+        gdcObject.Open;
+        // Перейдем на выбранную процедуру
+        gdcObject.ID := ProcKey;
+        OriginalProcName := gdcObject.FieldByName('PROCEDURENAME').AsString;
 
-          Check((gdcObject.ID > -1) and (ProcKey <> gdcObject.ID), 'Объект не указывает на скопированную запись');
-          Check((gdcObject.FieldByName('PROCEDURENAME').AsString <> '') and (gdcObject.FieldByName('PROCEDURENAME').AsString <> OriginalProcName),
-            'Ошибка в наименовании скопированного объекта');
+        // Скопируем запись
+        gdcObject.CopyObject(False, False);
 
-          gdcObject.Close;
-        end
-        else
-        begin
-          Fail('Нет ни одной пользовательской процедуры для копирования!');
-        end;
+        Check((gdcObject.ID > -1) and (ProcKey <> gdcObject.ID), 'Объект не указывает на скопированную запись');
+        Check((gdcObject.FieldByName('PROCEDURENAME').AsString <> '') and (gdcObject.FieldByName('PROCEDURENAME').AsString <> OriginalProcName),
+          'Ошибка в наименовании скопированного объекта');
+
+        gdcObject.Close;
       finally
         FreeAndNil(ibsqlProc);
         FreeAndNil(gdcObject);
@@ -262,6 +258,9 @@ begin
       WriteTransaction.Rollback;
     FreeAndNil(WriteTransaction);
   end;
+
+  if frmSQLProcess <> nil then
+    Check(not frmSQLProcess.IsError);
 end;
 
 initialization

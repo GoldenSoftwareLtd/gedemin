@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 117
-  Top = 14
+  Left = 469
+  Top = 34
   Width = 683
   Height = 556
   HelpContext = 121
@@ -586,7 +586,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Left = 0
               Top = 0
               Width = 184
-              Height = 386
+              Height = 375
               Align = alLeft
               BevelOuter = bvNone
               TabOrder = 0
@@ -795,8 +795,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             object lvReads: TListView
               Left = 184
               Top = 0
-              Width = 467
-              Height = 386
+              Width = 459
+              Height = 375
               Align = alClient
               Columns = <
                 item
@@ -1430,6 +1430,12 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 25
       OnExecute = actSaveFieldToFileExecute
       OnUpdate = actSaveFieldToFileUpdate
+    end
+    object actFindNext: TAction
+      Caption = 'Найти далее'
+      ImageIndex = 24
+      ShortCut = 114
+      OnExecute = actFindNextExecute
     end
   end
   object ibsqlPlan: TIBSQL
@@ -2122,17 +2128,6 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     SQLDialect = sqlInterbase6
     Left = 301
     Top = 232
-  end
-  object FindDialog1: TFindDialog
-    OnFind = FindDialog1Find
-    Left = 256
-    Top = 80
-  end
-  object ReplaceDialog1: TReplaceDialog
-    OnFind = FindDialog1Find
-    OnReplace = ReplaceDialog1Replace
-    Left = 360
-    Top = 120
   end
   object ActionList2: TActionList
     Left = 126

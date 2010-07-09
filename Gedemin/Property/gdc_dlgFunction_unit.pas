@@ -9,7 +9,8 @@ uses
   SynCompletionProposal, SynHighlighterJScript, SynEditHighlighter,
   SynHighlighterVBScript, ImgList, prm_ParamFunctions_unit, contnrs,
   prp_dlgEvaluate_unit, rp_BaseReport_unit, Menus, SuperPageControl,
-  gsFunctionSyncEdit, VBParser, SynEditKeyCmds, gd_strings;
+  gsFunctionSyncEdit, VBParser, SynEditKeyCmds, gd_strings,
+  gsSearchReplaceHelper;
 
 type
   Tgdc_dlgFunction = class(Tgdc_dlgG)
@@ -62,8 +63,6 @@ type
     SynCompletionProposal: TSynCompletionProposal;
     OpenDialog1: TOpenDialog;
     SaveDialog1: TSaveDialog;
-    ReplaceDialog1: TReplaceDialog;
-    FindDialog1: TFindDialog;
     lbOwner: TLabel;
     lLabel1: TLabel;
     lEditorName: TLabel;
@@ -75,6 +74,7 @@ type
     DBEdit1: TDBEdit;
     Label2: TLabel;
     tsHistory: TSuperTabSheet;
+    actFindNext: TAction;
     procedure dbcbModuleDropDown(Sender: TObject);
     procedure pcFunctionChange(Sender: TObject);
     procedure pcFunctionChanging(Sender: TObject;
@@ -85,8 +85,6 @@ type
     procedure SetChanged;
     procedure actLoadFromFileExecute(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
-    procedure FindDialog1Find(Sender: TObject);
-    procedure ReplaceDialog1Replace(Sender: TObject);
     procedure actCompileExecute(Sender: TObject);
     procedure actSQLEditorExecute(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
@@ -104,6 +102,7 @@ type
       var CanExecute: Boolean);
     procedure dbseScriptProcessCommand(Sender: TObject;
       var Command: TSynEditorCommand; var AChar: Char; Data: Pointer);
+    procedure actFindNextExecute(Sender: TObject);
   protected
     procedure BeforePost; override;
     procedure ParserInit; virtual;
@@ -122,6 +121,8 @@ type
     FLastReportResult: TReportResult;
     FVBParser: TVBParser;
     HistoryFrame: TFrame;
+    // Вспомогательный объект для поиска по полю ввода
+    FSearchReplaceHelper: TgsSearchReplaceHelper;
 
     function WarningFunctionName(const AnFunctionName, AnScriptText: String): Boolean;
     procedure UpDateSyncs;
@@ -328,72 +329,6 @@ begin
     dbseScript.Lines.SaveToFile(SaveDialog1.FileName);
 end;
 
-procedure Tgdc_dlgFunction.FindDialog1Find(Sender: TObject);
-var
-  rOptions: TSynSearchOptions;
-  dlg: TFindDialog;
-  sSearch: string;
-begin
-  if Sender = ReplaceDialog1 then
-    dlg := ReplaceDialog1
-  else
-    dlg := FindDialog1;
-
-  sSearch := dlg.FindText;
-  if Length(sSearch) = 0 then
-  begin
-    Beep;
-    MessageBox(Handle, MSG_FIND_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING);
-  end else
-  begin
-    rOptions := [];
-    if not (frDown in dlg.Options) then
-      Include(rOptions, ssoBackwards);
-    if frMatchCase in dlg.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in dlg.Options then
-      Include(rOptions, ssoWholeWord);
-    if dbseScript.SearchReplace(sSearch, '', rOptions) = 0 then
-    begin
-      Beep;
-      MessageBox(Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_FIND), MSG_WARNING,
-       MB_OK or MB_ICONWARNING);
-    end;
-  end;
-end;
-
-procedure Tgdc_dlgFunction.ReplaceDialog1Replace(Sender: TObject);
-var
-  rOptions: TSynSearchOptions;
-  sSearch: string;
-begin
-  sSearch := ReplaceDialog1.FindText;
-  if Length(sSearch) = 0 then
-  begin
-    Beep;
-    MessageBox(Handle, MSG_REPLACE_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING);
-  end else
-  begin
-    rOptions := [ssoReplace];
-    if frMatchCase in ReplaceDialog1.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in ReplaceDialog1.Options then
-      Include(rOptions, ssoWholeWord);
-    if frReplaceAll in ReplaceDialog1.Options then
-      Include(rOptions, ssoReplaceAll);
-    if dbseScript.SelAvail then
-      Include(rOptions, ssoSelectedOnly);
-    if dbseScript.SearchReplace(sSearch, ReplaceDialog1.ReplaceText, rOptions) = 0 then
-    begin
-      Beep;
-      MessageBox(Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_REPLACE),
-       MSG_WARNING, MB_OK or MB_ICONWARNING);
-    end;
-  end;
-end;
-
 procedure Tgdc_dlgFunction.actCompileExecute(Sender: TObject);
 var
   CustomFunction: TrpCustomFunction;
@@ -504,20 +439,17 @@ end;
 
 procedure Tgdc_dlgFunction.actFindExecute(Sender: TObject);
 begin
-  if dbseScript.SelAvail then
-    FindDialog1.FindText := dbseScript.SelText
-  else
-    FindDialog1.FindText := dbseScript.WordAtCursor;
-  FindDialog1.Execute;
+  FSearchReplaceHelper.Search;
+end;
+
+procedure Tgdc_dlgFunction.actFindNextExecute(Sender: TObject);
+begin
+  FSearchReplaceHelper.SearchNext;
 end;
 
 procedure Tgdc_dlgFunction.actReplaceExecute(Sender: TObject);
 begin
-  if dbseScript.SelAvail then
-    ReplaceDialog1.FindText := dbseScript.SelText
-  else
-    ReplaceDialog1.FindText := dbseScript.WordAtCursor;
-  ReplaceDialog1.Execute;
+  FSearchReplaceHelper.Replace;
 end;
 
 procedure Tgdc_dlgFunction.actCopySQLExecute(Sender: TObject);
@@ -881,10 +813,12 @@ begin
 
   UpDateSyncs;
   FEnterAsTab := 2; // отключим EnterAsTab
+  FSearchReplaceHelper := TgsSearchReplaceHelper.Create(dbseScript);
 end;
 
 destructor Tgdc_dlgFunction.Destroy;
 begin
+  FreeAndNil(FSearchReplaceHelper);
   FFunctionParams.Free;
   FParamLines.Free;
   FEvaluate.Free;

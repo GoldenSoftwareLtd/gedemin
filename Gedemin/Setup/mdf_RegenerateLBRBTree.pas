@@ -105,7 +105,7 @@ begin
     except
       on E: Exception do
       begin
-        Log('Произошла ошибка: ' + E.Message);
+        Log('Ошибка: ' + E.Message);
         raise;
       end;
     end;

@@ -1,6 +1,6 @@
 object frm_SettingView: Tfrm_SettingView
-  Left = 321
-  Top = 74
+  Left = 462
+  Top = 102
   Width = 789
   Height = 600
   Caption = 'Просмотр настройки'
@@ -19,8 +19,8 @@ object frm_SettingView: Tfrm_SettingView
   object pnlMain: TPanel
     Left = 0
     Top = 0
-    Width = 781
-    Height = 541
+    Width = 773
+    Height = 530
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -28,21 +28,21 @@ object frm_SettingView: Tfrm_SettingView
       Left = 283
       Top = 0
       Width = 3
-      Height = 541
+      Height = 530
       Cursor = crHSplit
     end
     object pnlPositionText: TPanel
       Left = 286
       Top = 0
-      Width = 495
-      Height = 541
+      Width = 487
+      Height = 530
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
       object TBDock1: TTBDock
         Left = 0
         Top = 0
-        Width = 495
+        Width = 487
         Height = 26
         object TBToolbar1: TTBToolbar
           Left = 0
@@ -67,8 +67,8 @@ object frm_SettingView: Tfrm_SettingView
       object sePositionText: TSynEdit
         Left = 0
         Top = 26
-        Width = 495
-        Height = 515
+        Width = 487
+        Height = 504
         Cursor = crIBeam
         Align = alClient
         Font.Charset = DEFAULT_CHARSET
@@ -414,7 +414,7 @@ object frm_SettingView: Tfrm_SettingView
       Left = 0
       Top = 0
       Width = 283
-      Height = 541
+      Height = 530
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 0
@@ -430,7 +430,7 @@ object frm_SettingView: Tfrm_SettingView
         Left = 0
         Top = 87
         Width = 283
-        Height = 454
+        Height = 443
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
@@ -438,7 +438,7 @@ object frm_SettingView: Tfrm_SettingView
           Left = 0
           Top = 25
           Width = 283
-          Height = 429
+          Height = 418
           Align = alClient
           ItemHeight = 13
           Sorted = True
@@ -506,14 +506,14 @@ object frm_SettingView: Tfrm_SettingView
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 541
-    Width = 781
+    Top = 530
+    Width = 773
     Height = 32
     Align = alBottom
     BevelOuter = bvLowered
     TabOrder = 1
     object pnlButtons: TPanel
-      Left = 610
+      Left = 602
       Top = 1
       Width = 170
       Height = 30
@@ -521,7 +521,7 @@ object frm_SettingView: Tfrm_SettingView
       BevelOuter = bvNone
       TabOrder = 0
       object btnClose: TButton
-        Left = 80
+        Left = 91
         Top = 4
         Width = 75
         Height = 25
@@ -538,7 +538,7 @@ object frm_SettingView: Tfrm_SettingView
     Left = 366
     Top = 80
     object actFind: TAction
-      Caption = 'Поиск...'
+      Caption = 'Найти...'
       ImageIndex = 23
       ShortCut = 16454
       OnExecute = actFindExecute
@@ -551,13 +551,9 @@ object frm_SettingView: Tfrm_SettingView
     end
     object actFindNext: TAction
       Caption = 'Найти далее'
+      ImageIndex = 24
       ShortCut = 114
       OnExecute = actFindNextExecute
     end
-  end
-  object fdMain: TFindDialog
-    OnFind = fdMainFind
-    Left = 398
-    Top = 80
   end
 end

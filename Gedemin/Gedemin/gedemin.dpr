@@ -346,8 +346,8 @@ begin
     FindCmdLineSwitch('q', ['/', '-'], True) or
     (MessageBox(
       0,
-      'Программный продукт "GEDEMIN.EXE" уже загружен в память!' + #13#10 +
-        'Продолжить загрузку?',
+      'Программный продукт "GEDEMIN.EXE" уже загружен в память!' + #13#10#13#10 +
+      'Продолжить загрузку?',
       'Внимание',
       MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES);
 end;

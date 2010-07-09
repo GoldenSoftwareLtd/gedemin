@@ -23,14 +23,14 @@ object dlgFunctionWisard: TdlgFunctionWisard
   object TBDock1: TTBDock
     Left = 0
     Top = 0
-    Width = 660
-    Height = 77
+    Width = 652
+    Height = 79
     object TBToolWindow1: TTBToolWindow
       Left = 0
-      Top = 23
+      Top = 25
       Caption = 'TBToolWindow1'
       ClientAreaHeight = 50
-      ClientAreaWidth = 650
+      ClientAreaWidth = 642
       DockMode = dmCannotFloat
       DockPos = 560
       DockRow = 1
@@ -40,7 +40,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       object PageControl: TSuperPageControl
         Left = 0
         Top = 0
-        Width = 650
+        Width = 642
         Height = 50
         BorderStyle = bsNone
         TabsVisible = True
@@ -55,7 +55,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
           object tbtStandart: TTBToolbar
             Left = 0
             Top = 0
-            Width = 646
+            Width = 638
             Height = 22
             Align = alTop
             Caption = 'tbtStandart'
@@ -110,7 +110,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
           object tbtAdditional: TTBToolbar
             Left = 0
             Top = 0
-            Width = 646
+            Width = 638
             Height = 22
             Align = alTop
             Caption = 'tbtAdditional'
@@ -256,14 +256,14 @@ object dlgFunctionWisard: TdlgFunctionWisard
   end
   object Panel1: TPanel
     Left = 0
-    Top = 403
-    Width = 660
+    Top = 392
+    Width = 652
     Height = 32
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object Panel4: TPanel
-      Left = 475
+      Left = 467
       Top = 0
       Width = 185
       Height = 32
@@ -292,9 +292,9 @@ object dlgFunctionWisard: TdlgFunctionWisard
   end
   object Panel2: TPanel
     Left = 0
-    Top = 77
-    Width = 660
-    Height = 326
+    Top = 79
+    Width = 652
+    Height = 313
     Align = alClient
     BevelOuter = bvNone
     Caption = 'Panel2'
@@ -303,14 +303,14 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Left = 297
       Top = 0
       Width = 3
-      Height = 326
+      Height = 313
       Cursor = crHSplit
     end
     object Panel3: TPanel
       Left = 300
       Top = 0
-      Width = 360
-      Height = 326
+      Width = 352
+      Height = 313
       Align = alClient
       BevelOuter = bvLowered
       Caption = 'Panel3'
@@ -318,7 +318,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       object TBDock2: TTBDock
         Left = 1
         Top = 1
-        Width = 358
+        Width = 350
         Height = 26
         object TBToolbar2: TTBToolbar
           Left = 0
@@ -389,8 +389,8 @@ object dlgFunctionWisard: TdlgFunctionWisard
       object seScript: TSynEdit
         Left = 1
         Top = 27
-        Width = 358
-        Height = 298
+        Width = 350
+        Height = 285
         Cursor = crIBeam
         Align = alClient
         Font.Charset = DEFAULT_CHARSET
@@ -749,7 +749,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Left = 0
       Top = 0
       Width = 297
-      Height = 326
+      Height = 313
       Align = alLeft
       BevelOuter = bvLowered
       Caption = 'Panel5'
@@ -758,7 +758,7 @@ object dlgFunctionWisard: TdlgFunctionWisard
         Left = 1
         Top = 1
         Width = 295
-        Height = 324
+        Height = 311
         Align = alClient
         BorderStyle = bsNone
         Constraints.MinHeight = 150
@@ -1025,12 +1025,14 @@ object dlgFunctionWisard: TdlgFunctionWisard
       Caption = 'Поиск'
       Hint = 'Поиск'
       ImageIndex = 23
+      ShortCut = 16454
       OnExecute = actFindExecute
     end
-  end
-  object FindDialog1: TFindDialog
-    OnFind = FindDialog1Find
-    Left = 140
-    Top = 88
+    object actFindNext: TAction
+      Caption = 'Найти далее'
+      ImageIndex = 24
+      ShortCut = 114
+      OnExecute = actFindNextExecute
+    end
   end
 end

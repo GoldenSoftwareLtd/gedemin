@@ -21,7 +21,7 @@ uses
   gdcBase, gdc_frmSQLHistory_unit,
   {$ENDIF}
   SynCompletionProposal, flt_i_SQLProposal, flt_SQLProposal, gd_keyAssoc,
-  gsIBGrid, gdcSQLHistory;
+  gsIBGrid, gdcSQLHistory, gsSearchReplaceHelper;
 
 type
   TCountRead = Record
@@ -48,8 +48,6 @@ type
     imScript: TImageList;
     actOptions: TAction;
     SynSQLSyn: TSynSQLSyn;
-    FindDialog1: TFindDialog;
-    ReplaceDialog1: TReplaceDialog;
     actReplace: TAction;
     ActionList2: TActionList;
     pmQuery: TPopupMenu;
@@ -219,6 +217,7 @@ type
     pmSaveFieldToFile: TPopupMenu;
     actSaveFieldToFile: TAction;
     nSaveFieldToFile: TMenuItem;
+    actFindNext: TAction;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -228,8 +227,6 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure actOptionsExecute(Sender: TObject);
     procedure actOptionsUpdate(Sender: TObject);
-    procedure FindDialog1Find(Sender: TObject);
-    procedure ReplaceDialog1Replace(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
     procedure actReplaceExecute(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -282,6 +279,7 @@ type
     procedure actMakeSelectExecute(Sender: TObject);
     procedure actSaveFieldToFileExecute(Sender: TObject);
     procedure actSaveFieldToFileUpdate(Sender: TObject);
+    procedure actFindNextExecute(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -293,6 +291,7 @@ type
     {$IFDEF GEDEMIN}
     frmSQLHistory: Tgdc_frmSQLHistory;
     {$ENDIF}
+    FSearchReplaceHelper: TgsSearchReplaceHelper;
 
     procedure RemoveNoChange(const Before, After: TStrings);
     function PrepareQuery: Boolean;
@@ -994,104 +993,35 @@ begin
   if SQLProposal = nil then
     SQLProposalObject := TSQLProposal.Create(nil);
   {$ENDIF}
+
+  // Вспомогательный объект для поиска по полю ввода
+  FSearchReplaceHelper := TgsSearchReplaceHelper.Create(seQuery);
 end;
 
 destructor TfrmSQLEditorSyn.Destroy;
 begin
+  FreeAndNil(FSearchReplaceHelper);
   FParams.Free;
   FTableArray.Free;
   inherited;
 end;
 
-
-procedure TfrmSQLEditorSyn.FindDialog1Find(Sender: TObject);
-var
-  rOptions: TSynSearchOptions;
-  dlg: TFindDialog;
-  sSearch: string;
-begin
-  if Sender = ReplaceDialog1 then
-    dlg := ReplaceDialog1
-  else
-    dlg := FindDialog1;
-
-  sSearch := dlg.FindText;
-  if Length(sSearch) = 0 then
-  begin
-    Beep;
-    MessageBox(Application.Handle, MSG_FIND_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-  end else
-  begin
-    rOptions := [];
-    if not (frDown in dlg.Options) then
-      Include(rOptions, ssoBackwards);
-    if frMatchCase in dlg.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in dlg.Options then
-      Include(rOptions, ssoWholeWord);
-    if seQuery.SearchReplace(sSearch, '', rOptions) = 0 then
-    begin
-      Beep;
-      MessageBox(Application.Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_FIND), MSG_WARNING,
-       MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-    end;
-  end;
-end;
-
-procedure TfrmSQLEditorSyn.ReplaceDialog1Replace(Sender: TObject);
-var
-  rOptions: TSynSearchOptions;
-  sSearch: string;
-begin
-  sSearch := ReplaceDialog1.FindText;
-  if Length(sSearch) = 0 then
-  begin
-    Beep;
-    MessageBox(Application.Handle, MSG_REPLACE_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-  end else
-  begin
-    rOptions := [ssoReplace];
-    if frMatchCase in ReplaceDialog1.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in ReplaceDialog1.Options then
-      Include(rOptions, ssoWholeWord);
-    if frReplaceAll in ReplaceDialog1.Options then
-      Include(rOptions, ssoReplaceAll);
-    if seQuery.SelAvail then
-      Include(rOptions, ssoSelectedOnly);
-    if seQuery.SearchReplace(sSearch, ReplaceDialog1.ReplaceText, rOptions) = 0 then
-    begin
-      Beep;
-      MessageBox(Application.Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_REPLACE),
-       MSG_WARNING, MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-    end;
-  end;
-end;
-
 procedure TfrmSQLEditorSyn.actFindExecute(Sender: TObject);
 begin
   if pcMain.ActivePage = tsQuery then
-  begin
-    if seQuery.SelAvail then
-      FindDialog1.FindText := seQuery.SelText
-    else
-      FindDialog1.FindText := seQuery.WordAtCursor;
-    FindDialog1.Execute;
-  end else
-  begin
+    FSearchReplaceHelper.Search
+  else
     dbgResult.FindInGrid;
-  end;
+end;
+
+procedure TfrmSQLEditorSyn.actFindNextExecute(Sender: TObject);
+begin
+  FSearchReplaceHelper.SearchNext;
 end;
 
 procedure TfrmSQLEditorSyn.actReplaceExecute(Sender: TObject);
 begin
-  if seQuery.SelAvail then
-    ReplaceDialog1.FindText := seQuery.SelText
-  else
-    ReplaceDialog1.FindText := seQuery.WordAtCursor;
-  ReplaceDialog1.Execute;
+  FSearchReplaceHelper.Replace;
 end;
 
 procedure TfrmSQLEditorSyn.FormClose(Sender: TObject;
@@ -1634,68 +1564,68 @@ var
 {$ENDIF}
 begin
   {$IFDEF GEDEMIN}
-  {$IFDEF FR4}
-    {$IFDEF TeeChartPro}
-      with ChReads.SeriesList.Items[0] do
+    {$IFDEF FR4}
+      {$IFDEF TeeChartPro}
+        with ChReads.SeriesList.Items[0] do
+      {$ELSE}
+        with ChReads.SeriesList.Series[0] do
+      {$ENDIF}
     {$ELSE}
       with ChReads.SeriesList.Series[0] do
     {$ENDIF}
-  {$ELSE}
-    with ChReads.SeriesList.Series[0] do
-  {$ENDIF}
-  begin
-    Clear;
-    for I := 0 to lvReads.Items.Count - 1 do
     begin
-      for J := 0 to MaxColCount - 1 do
+      Clear;
+      for I := 0 to lvReads.Items.Count - 1 do
       begin
-        case J of
-          0:
-          begin
-            if (tbStatistic.Items[J].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clBlue);
-          end;
-          1:
-          begin
-            if (tbStatistic.Items[J+1].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clRed);
-          end;
-          2:
-          begin
-            if (tbStatistic.Items[J+2].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clTeal);
-          end;
-          3:
-          begin
-            if (tbStatistic.Items[J+3].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clGreen);
-          end;
-          4:
-          begin
-            if (tbStatistic.Items[J+4].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clMaroon);
+        for J := 0 to MaxColCount - 1 do
+        begin
+          case J of
+            0:
+            begin
+              if (tbStatistic.Items[J].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clBlue);
+            end;
+            1:
+            begin
+              if (tbStatistic.Items[J+1].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clRed);
+            end;
+            2:
+            begin
+              if (tbStatistic.Items[J+2].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clTeal);
+            end;
+            3:
+            begin
+              if (tbStatistic.Items[J+3].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clGreen);
+            end;
+            4:
+            begin
+              if (tbStatistic.Items[J+4].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clMaroon);
+            end;
           end;
         end;
-      end;
 
-      //Подсчитаем кол-во всех записей
-      if tbItemAllRecord.Checked then
-      begin
-        FIBSQL := TIBSQL.Create(nil);
-        FIBSQL.Transaction := gdcBaseManager.ReadTransaction;
-        try
-          FIBSQL.SQL.Text :=
-            'SELECT COUNT(*) FROM ' + Trim(lvReads.Items[I].Caption);
-          FIBSQL.ExecQuery;
-          if FIBSQL.RecordCount > 0 then
-            Add(FIBSQL.FieldByName('COUNT').AsInteger, Trim(lvReads.Items[I].Caption), clYellow);
-          FIBSQL.Close
-        finally
-          FIBSQL.Free;
+        //Подсчитаем кол-во всех записей
+        if tbItemAllRecord.Checked then
+        begin
+          FIBSQL := TIBSQL.Create(nil);
+          FIBSQL.Transaction := gdcBaseManager.ReadTransaction;
+          try
+            FIBSQL.SQL.Text :=
+              'SELECT COUNT(*) FROM ' + Trim(lvReads.Items[I].Caption);
+            FIBSQL.ExecQuery;
+            if FIBSQL.RecordCount > 0 then
+              Add(FIBSQL.FieldByName('COUNT').AsInteger, Trim(lvReads.Items[I].Caption), clYellow);
+            FIBSQL.Close
+          finally
+            FIBSQL.Free;
+          end;
         end;
       end;
     end;
-  end;
   {$ENDIF}
 end;
 

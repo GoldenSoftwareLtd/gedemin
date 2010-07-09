@@ -1782,8 +1782,8 @@ type
     property StreamDBID: TID read FStreamDBID write FStreamDBID;
     property StreamSilentProcessing: Boolean read FStreamSilentProcessing write FStreamSilentProcessing;
     property StreamProcessingAnswer: Word read FStreamProcessingAnswer write FStreamProcessingAnswer;
-
-    property CopiedObjectKey: TID read FCopiedObjectKey;
+    // При копировании записи сюда заносится ключ оригинальной записи
+    property CopiedObjectKey: TID read FCopiedObjectKey write FCopiedObjectKey;
 
   published
     //У нас есть класс-функция, которая по умолчанию возвращает для класса
@@ -4062,10 +4062,13 @@ begin
                 MasterObject.DetailLinks[I].First;
                 while not MasterObject.DetailLinks[I].Eof do
                 begin
+                  // Запомним ID оригинальной детальной записи
+                  Self.DetailLinks[I].CopiedObjectKey := MasterObject.DetailLinks[I].ID;
+                  // Вставка копируемой позиции
                   Self.DetailLinks[I].Insert;
                   try
                     CopyRecordData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
-                    // установим ссылку на объект master
+                    // Установим ссылку на объект master
                     DetailField := Self.DetailLinks[I].FindField(Self.DetailLinks[I].GetFieldNameComparedToParam(Self.DetailLinks[I].DetailField));
                     if Assigned(DetailField) then
                     begin
@@ -4073,7 +4076,10 @@ begin
                         DetailField.AsInteger := Self.ID;
                     end;
                     Self.DetailLinks[I].Post;
+                    // Копирование данных множеств связанных с позицией
                     CopyRecordSetData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
+                    // Очистим ID копируемого объекта
+                    Self.DetailLinks[I].CopiedObjectKey := -1;
                   except
                     on E: Exception do
                     begin
