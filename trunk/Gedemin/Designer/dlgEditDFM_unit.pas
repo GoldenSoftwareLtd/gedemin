@@ -6,7 +6,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, SynEdit, SynEditHighlighter, SynHighlighterDfm,
-  TB2Dock, TB2Toolbar, TB2Item, dmImages_unit, Menus, ActnList;
+  TB2Dock, TB2Toolbar, TB2Item, dmImages_unit, Menus, ActnList,
+  gsSearchReplaceHelper;
 
 type
   TdlgEditDFM = class(TForm)
@@ -45,19 +46,22 @@ type
     TBItem7: TTBItem;
     OpenDialog1: TOpenDialog;
     SaveDialog1: TSaveDialog;
-    FindDialog1: TFindDialog;
-    ReplaceDialog1: TReplaceDialog;
+    actFindNext: TAction;
     procedure actLoadFromFileExecute(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
-    procedure ReplaceDialog1Replace(Sender: TObject);
-    procedure FindDialog1Find(Sender: TObject);
     procedure actCopyExecute(Sender: TObject);
     procedure actCutExecute(Sender: TObject);
     procedure actPasteExecute(Sender: TObject);
     procedure actReplaceExecute(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure btnOkClick(Sender: TObject);
+    procedure actFindNextExecute(Sender: TObject);
+  private
+    FSearchReplaceHelper: TgsSearchReplaceHelper;
+  public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
   end;
 
 function EditDFM(const AName: String; var S: String): Boolean;
@@ -92,70 +96,16 @@ begin
   end
 end;
 
-procedure TdlgEditDFM.ReplaceDialog1Replace(Sender: TObject);
-var
-  rOptions: TSynSearchOptions;
-  sSearch: string;
+constructor TdlgEditDFM.Create(AnOwner: TComponent);
 begin
-  sSearch := ReplaceDialog1.FindText;
-  if Length(sSearch) = 0 then
-  begin
-    Beep;
-    MessageBox(Handle, MSG_REPLACE_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING);
-  end else
-  begin
-    rOptions := [ssoReplace];
-    if frMatchCase in ReplaceDialog1.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in ReplaceDialog1.Options then
-      Include(rOptions, ssoWholeWord);
-    if frReplaceAll in ReplaceDialog1.Options then
-      Include(rOptions, ssoReplaceAll);
-    if seDFM.SelAvail then
-      Include(rOptions, ssoSelectedOnly);
-    if seDFM.SearchReplace(sSearch, ReplaceDialog1.ReplaceText, rOptions) = 0 then
-    begin
-      Beep;
-      MessageBox(Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_REPLACE),
-       MSG_WARNING, MB_OK or MB_ICONWARNING);
-    end;
-  end;
+  inherited;
+  FSearchReplaceHelper := TgsSearchReplaceHelper.Create(seDFM);
 end;
 
-procedure TdlgEditDFM.FindDialog1Find(Sender: TObject);
-var
-  rOptions: TSynSearchOptions;
-  dlg: TFindDialog;
-  sSearch: string;
+destructor TdlgEditDFM.Destroy;
 begin
-  if Sender = ReplaceDialog1 then
-    dlg := ReplaceDialog1
-  else
-    dlg := FindDialog1;
-
-  sSearch := dlg.FindText;
-  if Length(sSearch) = 0 then
-  begin
-    Beep;
-    MessageBox(Handle, MSG_FIND_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING);
-  end else
-  begin
-    rOptions := [];
-    if not (frDown in dlg.Options) then
-      Include(rOptions, ssoBackwards);
-    if frMatchCase in dlg.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in dlg.Options then
-      Include(rOptions, ssoWholeWord);
-    if seDFM.SearchReplace(sSearch, '', rOptions) = 0 then
-    begin
-      Beep;
-      Application.MessageBox(PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_FIND), MSG_WARNING,
-       MB_OK or MB_ICONWARNING);
-    end;
-  end;
+  FreeAndNil(FSearchReplaceHelper);
+  inherited;
 end;
 
 procedure TdlgEditDFM.actLoadFromFileExecute(Sender: TObject);
@@ -175,13 +125,18 @@ end;
 
 procedure TdlgEditDFM.actFindExecute(Sender: TObject);
 begin
-  if seDFM.SelAvail then
-    FindDialog1.FindText := seDFM.SelText
-  else
-    FindDialog1.FindText := seDFM.WordAtCursor;
-  FindDialog1.Execute;
+  FSearchReplaceHelper.Search;
 end;
 
+procedure TdlgEditDFM.actFindNextExecute(Sender: TObject);
+begin
+  FSearchReplaceHelper.SearchNext;
+end;
+
+procedure TdlgEditDFM.actReplaceExecute(Sender: TObject);
+begin
+  FSearchReplaceHelper.Replace;
+end;
 
 procedure TdlgEditDFM.actCopyExecute(Sender: TObject);
 begin
@@ -198,22 +153,13 @@ begin
   seDFM.PasteFromClipboard;
 end;
 
-procedure TdlgEditDFM.actReplaceExecute(Sender: TObject);
-begin
-  if seDFM.SelAvail then
-    ReplaceDialog1.FindText := seDFM.SelText
-  else
-    ReplaceDialog1.FindText := seDFM.WordAtCursor;
-  ReplaceDialog1.Execute;
-end;
-
 procedure TdlgEditDFM.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 begin
   if seDFM.Modified then
   begin
     if Messagedlg('Хотите выйти без сохранения?',
-    mtConfirmation, [mbYes, mbNo], 0)  <> mrYes then
+         mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
       CanClose := False;
   end;
 end;

@@ -3,9 +3,9 @@ unit frm_SettingView_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   StdCtrls, ComCtrls, ExtCtrls, Db, TB2Item, ActnList, TB2Dock,
-  TB2Toolbar, SynEdit, gdcStreamSaver, gsStreamHelper;
+  TB2Toolbar, SynEdit, gdcStreamSaver, gsStreamHelper, gsSearchReplaceHelper;
 
 type
   Tfrm_SettingView = class(TForm)
@@ -33,21 +33,19 @@ type
     actSaveToFile: TAction;
     TBItem2: TTBItem;
     TBSeparatorItem1: TTBSeparatorItem;
-    fdMain: TFindDialog;
     sePositionText: TSynEdit;
     actFindNext: TAction;
     procedure FormDestroy(Sender: TObject);
     procedure lbPositionsClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
-    procedure fdMainFind(Sender: TObject);
     procedure actFindUpdate(Sender: TObject);
     procedure actFindNextExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
     FSelectionPos: Integer;
+    FSearchReplaceHelper: TgsSearchReplaceHelper;
 
-    procedure DoFind;
     {function ConvertBinaryToHex(const AStr: String): String;}
     {function ByteToHex(const B: Byte): String;}
 
@@ -55,6 +53,9 @@ type
     procedure ReadSettingNewStream(Stream: TStream; const StreamType: TgsStreamType);
     function FormatDatasetFieldValue(AField: TField): String;
   public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+
     procedure ReadSetting(Stream: TStream);
   end;
 
@@ -367,16 +368,7 @@ end;
 
 procedure Tfrm_SettingView.actFindExecute(Sender: TObject);
 begin
-  if sePositionText.SelAvail then
-    fdMain.FindText := sePositionText.SelText
-  else
-    fdMain.FindText := sePositionText.WordAtCursor;
-  fdMain.Execute;
-end;
-
-procedure Tfrm_SettingView.fdMainFind(Sender: TObject);
-begin
-  DoFind;
+  FSearchReplaceHelper.Search;
 end;
 
 procedure Tfrm_SettingView.actFindUpdate(Sender: TObject);
@@ -386,39 +378,7 @@ end;
 
 procedure Tfrm_SettingView.actFindNextExecute(Sender: TObject);
 begin
-  if Length(fdMain.FindText) > 0 then
-    DoFind
-  else
-    actFind.Execute;
-end;
-
-procedure Tfrm_SettingView.DoFind;
-var
-  rOptions: TSynSearchOptions;
-  sSearch: String;
-begin
-  sSearch := fdMain.FindText;
-  if Length(sSearch) = 0 then
-  begin
-    Beep;
-    MessageBox(Self.Handle, MSG_FIND_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-  end else
-  begin
-    rOptions := [];
-    if not (frDown in fdMain.Options) then
-      Include(rOptions, ssoBackwards);
-    if frMatchCase in fdMain.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in fdMain.Options then
-      Include(rOptions, ssoWholeWord);
-    if sePositionText.SearchReplace(sSearch, '', rOptions) = 0 then
-    begin
-      Beep;
-      MessageBox(Self.Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_FIND), MSG_WARNING,
-       MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-    end;
-  end;
+  FSearchReplaceHelper.SearchNext;
 end;
 
 procedure Tfrm_SettingView.FormCreate(Sender: TObject);
@@ -487,6 +447,19 @@ begin
   else
     Result := TrimmedFieldValue;
   end;
+end;
+
+constructor Tfrm_SettingView.Create(AnOwner: TComponent);
+begin
+  inherited;
+  // Вспомогательный объект для поиска по полю ввода
+  FSearchReplaceHelper := TgsSearchReplaceHelper.Create(sePositionText);
+end;
+
+destructor Tfrm_SettingView.Destroy;
+begin
+  FreeAndNil(FSearchReplaceHelper);
+  inherited;
 end;
 
 end.

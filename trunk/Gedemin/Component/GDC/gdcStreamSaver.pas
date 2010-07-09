@@ -5579,7 +5579,7 @@ begin
     ftFloat, ftCurrency, ftBCD:
       AField.AsFloat := SafeStrToFloat(AFieldValue);
   else
-    AField.AsString := ConvertUTFToANSI(AFieldValue);
+    AField.AsString := UnQuoteString(ConvertUTFToANSI(AFieldValue));
   end;
 end;
 
