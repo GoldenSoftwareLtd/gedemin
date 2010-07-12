@@ -10,7 +10,7 @@ type
   TTestCopyObject = class(TTestCase)
   published
     procedure TestCopySimpleObject;
-    procedure TestCopyObjectWithDetail;
+    {procedure TestCopyObjectWithDetail;} 
     procedure TestCopyProcedure;
   end;
 
@@ -18,7 +18,7 @@ implementation
 
 uses
   gdcBase, gdcBaseInterface, IBDatabase, Classes, SysUtils,
-  db, gdcInvDocument_unit, gdcAttrUserDefined, gdcCurr,
+  db, gdcInvDocument_unit, gdcAttrUserDefined, gdcWgPosition,
   gdcConstants, gdcMetadata, ibsql, at_frmSQLProcess;
 
 procedure TTestCopyObject.TestCopySimpleObject;
@@ -34,7 +34,7 @@ begin
     WriteTransaction.StartTransaction;
     try
       // Создаем новый объект типа Курс валюты
-      gdcObject := TgdcCurrRate.
+      gdcObject := TgdcWgPosition.
         CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, '', ssById);
       try
         gdcObject.Transaction := WriteTransaction;
@@ -42,10 +42,7 @@ begin
         gdcObject.Open;
         // Вставим новую запись
         gdcObject.Insert;
-        gdcObject.FieldByName('FROMCURR').AsInteger := gdcBaseManager.GetIDByRUID(200010, 17);
-        gdcObject.FieldByName('TOCURR').AsInteger := gdcBaseManager.GetIDByRUID(200020, 17);
-        gdcObject.FieldByName('FORDATE').AsDateTime := Date;
-        gdcObject.FieldByName('COEFF').AsCurrency := 100.65;
+        gdcObject.FieldByName('NAME').AsString := 'test_pos';
         gdcObject.Post;
 
         OriginalRecordKey := gdcObject.ID;
@@ -71,7 +68,7 @@ begin
   end;
 end;
 
-procedure TTestCopyObject.TestCopyObjectWithDetail;
+{procedure TTestCopyObject.TestCopyObjectWithDetail;
 const
   GDC_SUBTYPE = '147012468_486813904';
   GDC_ADDINFO = 'USR$INV_ADDINFO';
@@ -89,8 +86,12 @@ begin
     WriteTransaction.StartTransaction;
     try
       // Создаем новый объект типа Накладная на приход
-      gdcObject := TgdcInvDocument.
-        CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, GDC_SUBTYPE, ssById);
+      try
+        gdcObject := TgdcInvDocument.
+          CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, GDC_SUBTYPE, ssById);
+      except
+        Check(False, 'Нет складского документа с SubType = 147012468_486813904')
+      end;
       DS := TDataSource.Create(nil);
       gdcObjectLine := TgdcInvDocumentLine.
         CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, GDC_SUBTYPE, ssById);
@@ -197,7 +198,7 @@ begin
       WriteTransaction.Rollback;
     FreeAndNil(WriteTransaction);
   end;
-end;
+end;}
 
 procedure TTestCopyObject.TestCopyProcedure;
 var

@@ -6770,6 +6770,7 @@ var
   ibsql: TIBSQl;
   S1, S2: String;
   gdcField: TgdcField;
+  ProcedureName: String;
 begin
   Result := '';
   ibsql := CreateReadIBSQL;
@@ -6777,13 +6778,26 @@ begin
   try
     gdcField.Database := Database;
     gdcField.Transaction := Transaction;
-
     gdcField.SubSet := 'ByFieldName';
 
+    ProcedureName := FieldByName('procedurename').AsString;
+    // Если мы находимся в состоянии копирования объекта, то параметры еще не создались,
+    //  поэтому обращаемся к параметрам оригинальной процедуры
+    if (sCopy in BaseState) and (CopiedObjectKey > -1) then
+    begin
+      ibsql.SQL.Text :=
+        'SELECT procedurename FROM at_procedures WHERE id = :id';
+      ibsql.ParamByName('id').AsInteger := CopiedObjectKey;
+      ibsql.ExecQuery;
+      if ibsql.RecordCount > 0 then
+        ProcedureName := ibsql.FieldByName('procedurename').AsString;
+    end;
+
+    ibsql.Close;
     ibsql.SQL.Text := 'SELECT * FROM rdb$procedure_parameters pr ' +
                       'WHERE pr.rdb$procedure_name = :pn AND pr.rdb$parameter_type = :pt ' +
                       'ORDER BY pr.rdb$parameter_number ASC ';
-    ibsql.ParamByName('pn').AsString := FieldByName('procedurename').AsString;
+    ibsql.ParamByName('pn').AsString := ProcedureName;
     ibsql.ParamByName('pt').AsInteger := 0;
     ibsql.ExecQuery;
 
@@ -6913,7 +6927,6 @@ end;
 procedure TgdcStoredProc.SaveStoredProc(const isNew: Boolean);
 var
   FSQL: TSQLProcessList;
-  BracketPos: Integer;
 begin
   FSQL := TSQLProcessList.Create;
   try
@@ -6931,14 +6944,7 @@ begin
     end
     else if sCopy in BaseState then
     begin
-      // При копировании процедуры параметры еще не создались и мы не можем получить из через GetParamText
-      // поэтому формируем текст вручную
-      BracketPos := Pos('(', FieldByName('proceduresource').AsString);
-
-      FSQL.Add(Format('CREATE PROCEDURE %0:s %1:s',
-        [FieldByName('procedurename').AsString,
-         System.Copy(FieldByName('proceduresource').AsString, BracketPos,
-           Length(FieldByName('proceduresource').AsString) - BracketPos + 1)]));
+      FSQL.Add(GetCreateProcedureText);
     end
     else
       FSQL.Add(FieldByName('rdb$procedure_source').AsString);
@@ -7899,7 +7905,7 @@ begin
       begin
         if Trim(S[I]) > '' then
         begin
-          AddText('Запуск SQL-скрипта...', clBlue);
+          //AddText('Запуск SQL-скрипта...', clBlue);
           AddText({TranslateText(}S[I]{)}, clBlack);
 
           ibsql.Close;
