@@ -22,6 +22,7 @@ type
     procedure SortLine;
     function GetQuantityCount: Integer;
   public
+    destructor Destroy; override;
     procedure UpdateQuantityList(AIDList: TList);
 
     property QuantityCount: Integer read GetQuantityCount;
@@ -257,6 +258,13 @@ end;
 procedure TfrEntrySimpleLineQuantity.FrameResize(Sender: TObject);
 begin
   ppMain.Width := ClientWidth;
+end;
+
+destructor TfrEntrySimpleLineQuantity.Destroy;
+begin
+  FreeAndNil(FAnalyticsLineList);
+
+  inherited;
 end;
 
 end.
