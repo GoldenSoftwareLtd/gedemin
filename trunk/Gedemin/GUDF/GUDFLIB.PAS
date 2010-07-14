@@ -462,7 +462,7 @@ begin
 end;
 
 threadvar
-  ThreadResultDate2Str_ymd: array[0..31] of Char;
+  ThreadResultDate2Str_ymd: array[0..63] of Char;
 
 function g_d_date2str_ymd(var IBDateTime: TIBDateTime): PChar;
   cdecl; export;
@@ -475,10 +475,8 @@ begin
   Result := StrPCopy(ThreadResultDate2Str_ymd, FormatDateTime('yyyy.mm.dd', DateTime));
 end;
 
-{
 threadvar
   ThreadResultFormatDateTime: array[0..63] of Char;
-}
 
 function g_d_formatdatetime(F: PChar; var IBDateTime: TIBDateTime): PChar;
   cdecl; export;
@@ -487,7 +485,7 @@ var
 begin
   with IBDateTime do
     DateTime := Days - IBDateDelta + MSec10 / MSecsPerDay10;
-  Result := StrPCopy(F, FormatDateTime(F, DateTime));
+  Result := StrPCopy(ThreadResultFormatDateTime, FormatDateTime(F, DateTime));
 end;
 
 // ==============================================
@@ -582,10 +580,13 @@ begin
   Result := AnsiCompareText(A, B);
 end;
 
+threadvar
+  ThreadResultAnsiUpperCase: array[0..2000] of Char;
+
 function g_s_ansiuppercase(CString: PChar): PChar;
   cdecl; export;
 begin
-  Result := StrPCopy(CString, AnsiUpperCase(CString));
+  Result := StrPCopy(ThreadResultAnsiUpperCase, AnsiUpperCase(CString));
 end;
 
 function g_s_comparename(A, B: PChar): SmallInt;
@@ -612,10 +613,13 @@ begin
   end;
 end;
 
+threadvar
+  ThreadResultAnsiLowerCase: array[0..2000] of Char;
+
 function g_s_ansilowercase(CString: PChar): PChar;
   cdecl; export;
 begin
-  Result := StrPCopy(CString, AnsiLowerCase(CString));
+  Result := StrPCopy(ThreadResultAnsiLowerCase, AnsiLowerCase(CString));
 end;
 
 function g_s_ansipos(A, B: PChar): SmallInt;
@@ -649,6 +653,9 @@ begin
   Result := Pos(A, B);
 end;
 
+threadvar
+  CopyResult: array[0..2000] of Char;
+
 function g_s_copy(A: PChar; var Index, Count: SmallInt): PChar;
   cdecl; export;
 var
@@ -656,7 +663,7 @@ var
 begin
   S := StrPas(A);
   S := Copy(S, Index, Count);
-  Result := StrPCopy(A, S);
+  Result := StrPCopy(CopyResult, S);
 end;
 
 function _TrimStr(const S, S2: String): String;
@@ -669,10 +676,13 @@ begin
       Result := Result + S[I];
 end;
 
+threadvar
+  TrimResult: array[0..2000] of Char;
+
 function g_s_trim(A: PChar; B: PChar): PChar;
   cdecl; export;
 begin
-  Result := StrPCopy(A, _TrimStr(StrPas(A), StrPas(B)));
+  Result := StrPCopy(TrimResult, _TrimStr(StrPas(A), StrPas(B)));
 end;
 
 function g_s_ternary(var F: SmallInt; A: PChar; B: PChar): PChar;
@@ -793,6 +803,9 @@ begin
   Result := StrLen(A);
 end;
 
+threadvar
+  DeleteResult: array[0..2000] of Char;
+
 function g_s_delete(A: PChar; var Index: SmallInt; var Len: SmallInt): PChar;
   cdecl; export;
 var
@@ -800,7 +813,7 @@ var
 begin
   S := StrPas(A);
   Delete(S, Index, Len);
-  Result := StrPCopy(A, S);
+  Result := StrPCopy(DeleteResult, S);
 end;
 
 // Удаляет символы из строки
