@@ -10,15 +10,16 @@ type
   TTestCopyObject = class(TTestCase)
   published
     procedure TestCopySimpleObject;
-    procedure TestCopyObjectWithDetail;
+    {procedure TestCopyObjectWithDetail;} 
     procedure TestCopyProcedure;
   end;
 
 implementation
 
 uses
-  gdcBase, gdcBaseInterface, IBDatabase, Classes, SysUtils, db, gdcInvDocument_unit,
-  gdcAttrUserDefined, gdcCurr, gdcConstants, gdcMetadata, ibsql;
+  gdcBase, gdcBaseInterface, IBDatabase, Classes, SysUtils,
+  db, gdcInvDocument_unit, gdcAttrUserDefined, gdcWgPosition,
+  gdcConstants, gdcMetadata, ibsql, at_frmSQLProcess;
 
 procedure TTestCopyObject.TestCopySimpleObject;
 var
@@ -33,7 +34,7 @@ begin
     WriteTransaction.StartTransaction;
     try
       // Создаем новый объект типа Курс валюты
-      gdcObject := TgdcCurrRate.
+      gdcObject := TgdcWgPosition.
         CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, '', ssById);
       try
         gdcObject.Transaction := WriteTransaction;
@@ -41,10 +42,7 @@ begin
         gdcObject.Open;
         // Вставим новую запись
         gdcObject.Insert;
-        gdcObject.FieldByName('FROMCURR').AsInteger := gdcBaseManager.GetIDByRUID(200010, 17);
-        gdcObject.FieldByName('TOCURR').AsInteger := gdcBaseManager.GetIDByRUID(200020, 17);
-        gdcObject.FieldByName('FORDATE').AsDateTime := Date;
-        gdcObject.FieldByName('COEFF').AsCurrency := 100.65;
+        gdcObject.FieldByName('NAME').AsString := 'test_pos';
         gdcObject.Post;
 
         OriginalRecordKey := gdcObject.ID;
@@ -70,7 +68,7 @@ begin
   end;
 end;
 
-procedure TTestCopyObject.TestCopyObjectWithDetail;
+{procedure TTestCopyObject.TestCopyObjectWithDetail;
 const
   GDC_SUBTYPE = '147012468_486813904';
   GDC_ADDINFO = 'USR$INV_ADDINFO';
@@ -88,8 +86,12 @@ begin
     WriteTransaction.StartTransaction;
     try
       // Создаем новый объект типа Накладная на приход
-      gdcObject := TgdcInvDocument.
-        CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, GDC_SUBTYPE, ssById);
+      try
+        gdcObject := TgdcInvDocument.
+          CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, GDC_SUBTYPE, ssById);
+      except
+        Check(False, 'Нет складского документа с SubType = 147012468_486813904')
+      end;
       DS := TDataSource.Create(nil);
       gdcObjectLine := TgdcInvDocumentLine.
         CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, GDC_SUBTYPE, ssById);
@@ -196,7 +198,7 @@ begin
       WriteTransaction.Rollback;
     FreeAndNil(WriteTransaction);
   end;
-end;
+end;}
 
 procedure TTestCopyObject.TestCopyProcedure;
 var
@@ -226,28 +228,23 @@ begin
           ProcKey := ibsqlProc.FieldByName('ID').AsInteger;
         ibsqlProc.Close;
 
-        if ProcKey > -1 then
-        begin
-          gdcObject.Transaction := WriteTransaction;
-          gdcObject.ReadTransaction := WriteTransaction;
-          gdcObject.Open;
-          // Перейдем на выбранную процедуру
-          gdcObject.ID := ProcKey;
-          OriginalProcName := gdcObject.FieldByName('PROCEDURENAME').AsString;
+        Check(ProcKey > -1, 'Нет ни одной пользовательской процедуры для копирования!');
 
-          // Скопируем запись
-          gdcObject.CopyObject(False, False);
+        gdcObject.Transaction := WriteTransaction;
+        gdcObject.ReadTransaction := WriteTransaction;
+        gdcObject.Open;
+        // Перейдем на выбранную процедуру
+        gdcObject.ID := ProcKey;
+        OriginalProcName := gdcObject.FieldByName('PROCEDURENAME').AsString;
 
-          Check((gdcObject.ID > -1) and (ProcKey <> gdcObject.ID), 'Объект не указывает на скопированную запись');
-          Check((gdcObject.FieldByName('PROCEDURENAME').AsString <> '') and (gdcObject.FieldByName('PROCEDURENAME').AsString <> OriginalProcName),
-            'Ошибка в наименовании скопированного объекта');
+        // Скопируем запись
+        gdcObject.CopyObject(False, False);
 
-          gdcObject.Close;
-        end
-        else
-        begin
-          Fail('Нет ни одной пользовательской процедуры для копирования!');
-        end;
+        Check((gdcObject.ID > -1) and (ProcKey <> gdcObject.ID), 'Объект не указывает на скопированную запись');
+        Check((gdcObject.FieldByName('PROCEDURENAME').AsString <> '') and (gdcObject.FieldByName('PROCEDURENAME').AsString <> OriginalProcName),
+          'Ошибка в наименовании скопированного объекта');
+
+        gdcObject.Close;
       finally
         FreeAndNil(ibsqlProc);
         FreeAndNil(gdcObject);
@@ -262,6 +259,9 @@ begin
       WriteTransaction.Rollback;
     FreeAndNil(WriteTransaction);
   end;
+
+  if frmSQLProcess <> nil then
+    Check(not frmSQLProcess.IsError);
 end;
 
 initialization

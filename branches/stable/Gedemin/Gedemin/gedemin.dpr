@@ -337,15 +337,17 @@ end;
 var
   MutexHandle: THandle;
   MutexCreated, MutexExisted: Boolean;
+  IsEmbedding: Boolean;
   BP: Integer;
 
 function ShouldProceedLoading: Boolean;
 begin
-  Result := FindCmdLineSwitch('q', ['/', '-'], True) or
+  Result := IsEmbedding or
+    FindCmdLineSwitch('q', ['/', '-'], True) or
     (MessageBox(
       0,
-      'Программный продукт "GEDEMIN.EXE" уже загружен в память!' + #13#10 +
-        'Продолжить загрузку?',
+      'Программный продукт "GEDEMIN.EXE" уже загружен в память!' + #13#10#13#10 +
+      'Продолжить загрузку?',
       'Внимание',
       MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES);
 end;
@@ -365,8 +367,6 @@ end;
 
 var
   DC: HDC;
-  LocalCounter: Integer;
-  IsEmbedding: Boolean;
   ApplicationEventsHandler: TgdApplicationEventsHandler;
   FApplicationEvents: TApplicationEvents;
 
@@ -388,31 +388,28 @@ begin
     FApplicationEvents.OnShortCut :=  ApplicationEventsHandler.ApplicationEventsShortCut;
 
     // Проверяем загружено ли приложение в режиме COM-server
-    IsEmbedding := False;
-    for LocalCounter := 1 to ParamCount do
-      if UpperCase(ParamStr(1)) = '-EMBEDDING' then
-      begin
-        IsEmbedding := True;
-        Break;
-      end;
+    IsEmbedding := FindCmdLineSwitch('EMBEDDING', ['-', '/'], True);
 
-    DC := GetDC(0);
-    try
-      BP := GetDeviceCaps(DC, BITSPIXEL);
-      if BP < 8 then
-      begin
-        MessageBox(0,
-          'Для работы программы необходимо установить режим как минимум в 256 цветов.',
-          'Внимание',
-          MB_OK or MB_ICONHAND);
-        exit;
-      end
-      else if BP < 16 then
-      begin
-        GridStripeProh := True;
+    if not IsEmbedding then
+    begin
+      DC := GetDC(0);
+      try
+        BP := GetDeviceCaps(DC, BITSPIXEL);
+        if BP < 8 then
+        begin
+          MessageBox(0,
+            'Для работы программы необходимо установить режим как минимум в 256 цветов.',
+            'Внимание',
+            MB_OK or MB_ICONHAND);
+          exit;
+        end
+        else if BP < 16 then
+        begin
+          GridStripeProh := True;
+        end;
+      finally
+        ReleaseDC(0, DC);
       end;
-    finally
-      ReleaseDC(0, DC);
     end;
 
     /////////////////////////////////////////////////
@@ -468,7 +465,7 @@ begin
       MutexCreated := (MutexHandle <> 0);
 
     try
-      if MutexCreated or (MutexExisted and (IsEmbedding or ShouldProceedLoading)) then
+      if MutexCreated or (MutexExisted and ShouldProceedLoading) then
       begin
 
         try
@@ -481,19 +478,6 @@ begin
               DoInitComServer;
           else
             raise;
- {         begin
-            if E.ErrorCode = -2147319780 then
-            begin
-              MessageBox(0, PChar(
-                'У Вас нет прав для запуска приложения на данном компьютере.'#13#10 +
-                'Возможно, приложение не было установлено надлежащим образом.'#13#10#13#10 +
-                'Обратитесь к системному администратору. ' + E.Message),
-                'Ошибка',
-                MB_OK or MB_ICONSTOP or MB_TASKMODAL);
-              Halt(0);
-            end else
-              raise;
-          end;}
         end;
 
         {$IFDEF NOGEDEMIN}

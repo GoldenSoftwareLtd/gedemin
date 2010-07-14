@@ -574,7 +574,10 @@ type
   EgsStorageError = class(Exception);
   EgsStorageFolderError = class(EgsStorageError);
 
+  //см. комментарии к TgdcDragObject
   TgsStorageDragObject = class(TDragObject)
+  protected
+    procedure Finished(Target: TObject; X, Y: Integer; Accepted: Boolean); override;
   public
     F: TgsStorageFolder;
     TN: TTreeNode;
@@ -4116,6 +4119,13 @@ begin
   inherited Create;
   F := AF;
   TN := ATN;
+end;
+
+procedure TgsStorageDragObject.Finished(Target: TObject; X, Y: Integer;
+  Accepted: Boolean);
+begin
+  inherited;
+  Free;
 end;
 
 { TgsDesktopStorage }

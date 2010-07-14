@@ -56,8 +56,8 @@ object frmIBUserList: TfrmIBUserList
         Caption = 'Имя пользователя'
       end
       item
+        AutoSize = True
         Caption = 'Компьютер'
-        Width = 126
       end
       item
         AutoSize = True
@@ -143,8 +143,7 @@ object frmIBUserList: TfrmIBUserList
       Top = 10
       Width = 75
       Height = 21
-      Action = actRefresh
-      Caption = 'Отключить'
+      Action = actDisconnect
       TabOrder = 3
     end
   end
@@ -176,6 +175,11 @@ object frmIBUserList: TfrmIBUserList
       Caption = 'Обновить'
       OnExecute = actRefreshExecute
       OnUpdate = actRefreshUpdate
+    end
+    object actDisconnect: TAction
+      Caption = 'Отключить'
+      OnExecute = actDisconnectExecute
+      OnUpdate = actDisconnectUpdate
     end
   end
 end

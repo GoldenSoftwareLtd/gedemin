@@ -111,7 +111,7 @@ uses
 
 resourcestring
   strHaventRights =
-    'Отсутствуют права доступа на выполнение операции: %s'#13#10#13#10'Класс: %s'#13#10'Подтип: %s';
+    'Отсутствуют права доступа на выполнение операции: %s'#13#10#13#10'Класс: %s'#13#10'Подтип: %s'#13#10'Название: %s';
   strHaventRightsShort =
     'Отсутствуют права доступа на выполнение операции: %s'#13#10#13#10'Класс: %s';
   strCreate = 'Создание объекта';
@@ -1782,8 +1782,8 @@ type
     property StreamDBID: TID read FStreamDBID write FStreamDBID;
     property StreamSilentProcessing: Boolean read FStreamSilentProcessing write FStreamSilentProcessing;
     property StreamProcessingAnswer: Word read FStreamProcessingAnswer write FStreamProcessingAnswer;
-
-    property CopiedObjectKey: TID read FCopiedObjectKey;
+    // При копировании записи сюда заносится ключ оригинальной записи
+    property CopiedObjectKey: TID read FCopiedObjectKey write FCopiedObjectKey;
 
   published
     //У нас есть класс-функция, которая по умолчанию возвращает для класса
@@ -1878,7 +1878,11 @@ type
   // недостатком прав у пользователя
   EgdcUserHaventRights = class(EgdcException);
 
+  //в Delphi 5 данный объект автоматически не уничтожается
+  //в Delphi 7+ стоит использовать TDragObjectEx
   TgdcDragObject = class(TDragObject)
+  protected
+    procedure Finished(Target: TObject; X, Y: Integer; Accepted: Boolean); override;
   public
     BL: TBookmarkList;
     SourceControl: TWinControl;
@@ -3137,7 +3141,8 @@ begin
     exit;
 
   if (not CanDelete) and (not IBLogin.IsUserAdmin) then
-    raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strDelete, ClassName, SubType]);
+    raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+      [strDelete, ClassName, SubType, GetDisplayName(SubType)]);
 
   if CacheList <> nil then
   begin
@@ -3229,7 +3234,8 @@ begin
       Abort;
 
     if (not CanCreate) and (not IBLogin.IsIBUserAdmin) then
-      raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strCreate, ClassName, SubType]);
+      raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+        [strCreate, ClassName, SubType, GetDisplayName(SubType)]);
 
     inherited;
   end;
@@ -3282,7 +3288,8 @@ begin
     exit;
 
   if (not CanEdit) and (not IBLogin.IsUserAdmin) then
-    raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strEdit, ClassName, SubType]);
+    raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+      [strEdit, ClassName, SubType, GetDisplayName(SubType)]);
 
   if dsEdit = State then
   begin
@@ -4055,10 +4062,13 @@ begin
                 MasterObject.DetailLinks[I].First;
                 while not MasterObject.DetailLinks[I].Eof do
                 begin
+                  // Запомним ID оригинальной детальной записи
+                  Self.DetailLinks[I].CopiedObjectKey := MasterObject.DetailLinks[I].ID;
+                  // Вставка копируемой позиции
                   Self.DetailLinks[I].Insert;
                   try
                     CopyRecordData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
-                    // установим ссылку на объект master
+                    // Установим ссылку на объект master
                     DetailField := Self.DetailLinks[I].FindField(Self.DetailLinks[I].GetFieldNameComparedToParam(Self.DetailLinks[I].DetailField));
                     if Assigned(DetailField) then
                     begin
@@ -4066,7 +4076,10 @@ begin
                         DetailField.AsInteger := Self.ID;
                     end;
                     Self.DetailLinks[I].Post;
+                    // Копирование данных множеств связанных с позицией
                     CopyRecordSetData(MasterObject.DetailLinks[I], Self.DetailLinks[I]);
+                    // Очистим ID копируемого объекта
+                    Self.DetailLinks[I].CopiedObjectKey := -1;
                   except
                     on E: Exception do
                     begin
@@ -4727,7 +4740,8 @@ begin
   {END MACRO}
 
   if (not CanCreate) and (not IBLogin.IsUserAdmin) then
-    raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strCreate, ClassName, SubType]);
+    raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+      [strCreate, ClassName, SubType, GetDisplayName(SubType)]);
 
   DlgForm := nil;
 
@@ -4804,7 +4818,7 @@ begin
         if not CanView then
         begin
           raise EgdcUserHaventRights.CreateFmt(strHaventRights,
-            [strView, ClassName, SubType]);
+            [strView, ClassName, SubType, GetDisplayName(SubType)]);
         end;
 
         LoadDialogDefaults;
@@ -5393,9 +5407,11 @@ begin
   if (not CanView) and (not IBLogin.IsUserAdmin) then
   begin
     if SubType > '' then
-      raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strView, ClassName, SubType])
+      raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+        [strView, ClassName, SubType, GetDisplayName(SubType)])
     else
-      raise EgdcUserHaventRights.CreateFmt(strHaventRightsShort, [strView, ClassName])
+      raise EgdcUserHaventRights.CreateFmt(strHaventRightsShort,
+        [strView, ClassName])
   end;
 
   if not FSQLInitialized then
@@ -5572,7 +5588,7 @@ begin
           if not CanView then
           begin
             raise EgdcUserHaventRights.CreateFmt(strHaventRights,
-              [strView, ClassName, SubType]);
+              [strView, ClassName, SubType, GetDisplayName(SubType)]);
           end;
 
           Setup(Self);
@@ -18249,6 +18265,15 @@ begin
     Result := 'LB,RB'
   else
     Result := 'LB,RB,CREATORKEY,EDITORKEY';
+end;
+
+{ TgdcDragObject }
+
+procedure TgdcDragObject.Finished(Target: TObject; X, Y: Integer;
+  Accepted: Boolean);
+begin
+  inherited;
+  Free;
 end;
 
 initialization

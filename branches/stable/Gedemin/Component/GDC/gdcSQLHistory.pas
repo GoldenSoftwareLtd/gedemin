@@ -5,7 +5,7 @@ interface
 
 uses
   Classes, IBCustomDataSet, gdcBase, Forms, gd_createable_form, Controls, DB,
-  gdcBaseInterface, IBDataBase;
+  gdcBaseInterface, IBDataBase, IBSQL;
 
 type
   TgdcSQLHistory = class(TgdcBase)
@@ -19,6 +19,11 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
+    class function EncodeParamsText(Params: TIBXSQLDA): String;
+
+    procedure DeleteTraceLog;
+    procedure DeleteHistory;
   end;
 
 procedure Register;
@@ -26,9 +31,11 @@ procedure Register;
 implementation
 
 uses
-  SysUtils,
+  SysUtils, IBHeader,
+  flt_SafeConversion_unit,
   gdc_dlgSQLHistory_unit,
   gdc_frmSQLHistory_unit,
+  IBSQLMonitor_Gedemin,
   gd_ClassList;
 
 procedure Register;
@@ -98,7 +105,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := 'ORDER BY z.editiondate DESC';
+  Result := 'ORDER BY z.editiondate DESC, z.id DESC ';
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSQLHISTORY', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
   {M}  finally
@@ -202,10 +209,74 @@ begin
   {END MACRO}
 end;
 
+class function TgdcSQLHistory.EncodeParamsText(Params: TIBXSQLDA): String;
+var
+  K: Integer;
+  js: TStrings;
+  S: String;
+begin
+  if Params.Count > 0 then
+  begin
+    js := TStringList.Create;
+    try
+      for K := 0 to Params.Count - 1 do
+      begin
+        if js.IndexOfName(Params[K].Name) = -1 then
+        begin
+          if not Params[K].IsNull then
+          begin
+            case Params[K].SQLType of
+              SQL_TIMESTAMP, SQL_TYPE_DATE, SQL_TYPE_TIME:
+                S := SafeDateTimeToStr(Params[K].AsDateTime);
+              SQL_SHORT, SQL_LONG, SQL_INT64, SQL_DOUBLE, SQL_FLOAT, SQL_D_FLOAT:
+                S := SafeFloatToStr(Params[K].AsDouble);
+            else
+              S := '"' + ConvertSysChars(Params[K].AsString) + '"';
+            end;
+          end else
+            S := '<NULL>';
+          js.Add(Params[K].Name + '=' + S);
+        end;
+      end;
+      Result := Trim(js.Text);
+    finally
+      js.Free;
+    end;
+  end else
+    Result := '';
+end;
+
+procedure TgdcSQLHistory.DeleteTraceLog;
+var
+  OldEnabled: Boolean;
+begin
+  OldEnabled := MonitorHook.Enabled;
+  try
+    MonitorHook.Enabled := False;
+    ExecSingleQuery('DELETE FROM gd_sql_history WHERE bookmark = ''M'' ');
+    CloseOpen;
+  finally
+    MonitorHook.Enabled := OldEnabled;
+  end;
+end;
+
+procedure TgdcSQLHistory.DeleteHistory;
+var
+  OldEnabled: Boolean;
+begin
+  OldEnabled := MonitorHook.Enabled;
+  try
+    MonitorHook.Enabled := False;
+    ExecSingleQuery('DELETE FROM gd_sql_history WHERE COALESCE(bookmark, '' '') <> ''M'' ');
+    CloseOpen;
+  finally
+    MonitorHook.Enabled := OldEnabled;
+  end;
+end;
+
 initialization
   RegisterGdcClass(TgdcSQLHistory);
 
 finalization
   UnRegisterGdcClass(TgdcSQLHistory);
-
 end.

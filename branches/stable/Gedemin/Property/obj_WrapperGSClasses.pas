@@ -2967,6 +2967,8 @@ type
     function  Get_ValuesByIndex(Index: Integer): WideString; safecall;
     procedure Set_ValuesByIndex(Index: Integer; const Value: WideString); safecall;
     function  Get_ValuesByKey(Key: Integer): WideString; safecall;
+  public
+    class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
 
   TwrpTvState = class(TwrpObject, IgsTvState)
@@ -14977,6 +14979,13 @@ procedure TwrpGdKeyStringAssoc.Set_ValuesByIndex(Index: Integer;
   const Value: WideString);
 begin
   GetGdKeyStringAssoc.ValuesByIndex[Index] := Value;
+end;
+
+class function TwrpGdKeyStringAssoc.CreateObject(const DelphiClass: TClass;
+  const Params: OleVariant): TObject;
+begin
+  Assert(DelphiClass.InheritsFrom(TgdKeyStringAssoc), 'Invalide Delphi class');
+  Result := TgdKeyStringAssoc.Create;
 end;
 
 { TwrpTvState }

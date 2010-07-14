@@ -33,7 +33,7 @@ begin
         except
           on E: Exception do
           begin
-           //Log(E.Message);
+           //Log('Ошибка: ' + E.Message);
             FTransaction.Rollback;
           end;
         end;
@@ -46,7 +46,7 @@ begin
       on E: Exception do
       begin
         FTransaction.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
       end;
     end;
   finally

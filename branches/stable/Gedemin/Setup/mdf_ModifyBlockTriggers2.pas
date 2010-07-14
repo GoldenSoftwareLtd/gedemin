@@ -29,13 +29,8 @@ begin
         Transaction := FTransaction;
         ParamCheck := False;
 
-        SQL.Text :=
-          'DROP TRIGGER ac_bi_entry_block ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER ac_bi_entry_block FOR ac_entry ' +
+        {SQL.Text :=
+          'CREATE OR ALTER TRIGGER ac_bi_entry_block FOR ac_entry ' +
           '  INACTIVE ' +
           '  BEFORE INSERT ' +
           '  POSITION 28017 ' +
@@ -63,12 +58,7 @@ begin
         Close;
 
         SQL.Text :=
-          'DROP TRIGGER ac_bu_entry_block ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER ac_bu_entry_block FOR ac_entry ' +
+          'CREATE OR ALTER TRIGGER ac_bu_entry_block FOR ac_entry ' +
           '  INACTIVE ' +
           '  BEFORE UPDATE ' +
           '  POSITION 28017 ' +
@@ -96,12 +86,7 @@ begin
         Close;
 
         SQL.Text :=
-          'DROP TRIGGER ac_bd_entry_block  ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER ac_bd_entry_block FOR ac_entry ' +
+          'CREATE OR ALTER TRIGGER ac_bd_entry_block FOR ac_entry ' +
           '  INACTIVE ' +
           '  BEFORE DELETE ' +
           '  POSITION 28017 ' +
@@ -129,12 +114,7 @@ begin
         Close;
 
         SQL.Text :=
-          'DROP TRIGGER gd_bi_document_block ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER gd_bi_document_block FOR gd_document ' +
+          'CREATE OR ALTER TRIGGER gd_bi_document_block FOR gd_document ' +
           '  INACTIVE ' +
           '  BEFORE INSERT ' +
           '  POSITION 28017 ' +
@@ -162,12 +142,7 @@ begin
         Close;
 
         SQL.Text :=
-          'DROP TRIGGER gd_bu_document_block ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER gd_bu_document_block FOR gd_document ' +
+          'CREATE OR ALTER TRIGGER gd_bu_document_block FOR gd_document ' +
           '  INACTIVE ' +
           '  BEFORE UPDATE ' +
           '  POSITION 28017 ' +
@@ -195,12 +170,7 @@ begin
         Close;
 
         SQL.Text :=
-          'DROP TRIGGER gd_bd_document_block ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER gd_bd_document_block FOR gd_document ' +
+          'CREATE OR ALTER TRIGGER gd_bd_document_block FOR gd_document ' +
           '  INACTIVE ' +
           '  BEFORE DELETE ' +
           '  POSITION 28017 ' +
@@ -227,16 +197,8 @@ begin
         ExecQuery;
         Close;
 
-        try
-          SQL.Text :=
-            'DROP TRIGGER inv_bi_card_block ';
-          ExecQuery;
-        except
-        end;
-        Close;
-
         SQL.Text :=
-          'CREATE TRIGGER inv_bi_card_block FOR inv_card ' +
+          'CREATE OR ALTER TRIGGER inv_bi_card_block FOR inv_card ' +
           '  INACTIVE ' +
           '  BEFORE INSERT ' +
           '  POSITION 28017 ' +
@@ -272,16 +234,8 @@ begin
         ExecQuery;
         Close;
 
-        try
-          SQL.Text :=
-            'DROP TRIGGER inv_bu_card_block ';
-          ExecQuery;
-        except
-        end;
-        Close;
-
         SQL.Text :=
-          'CREATE TRIGGER inv_bu_card_block FOR inv_card ' +
+          'CREATE OR ALTER TRIGGER inv_bu_card_block FOR inv_card ' +
           '  INACTIVE ' +
           '  BEFORE UPDATE ' +
           '  POSITION 28017 ' +
@@ -317,16 +271,8 @@ begin
         ExecQuery;
         Close;
 
-        try
-          SQL.Text :=
-            'DROP TRIGGER inv_bd_card_block ';
-          ExecQuery;
-        except
-        end;
-        Close;
-
         SQL.Text :=
-          'CREATE TRIGGER inv_bd_card_block FOR inv_card ' +
+          'CREATE OR ALTER TRIGGER inv_bd_card_block FOR inv_card ' +
           '  INACTIVE ' +
           '  BEFORE DELETE ' +
           '  POSITION 28017 ' +
@@ -363,12 +309,7 @@ begin
         Close;
 
         SQL.Text :=
-          'DROP TRIGGER inv_bi_movement_block ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER inv_bi_movement_block FOR inv_movement ' +
+          'CREATE OR ALTER TRIGGER inv_bi_movement_block FOR inv_movement ' +
           '  INACTIVE ' +
           '  BEFORE INSERT ' +
           '  POSITION 28017 ' +
@@ -396,12 +337,7 @@ begin
         Close;
 
         SQL.Text :=
-          'DROP TRIGGER inv_bu_movement_block ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER inv_bu_movement_block FOR inv_movement ' +
+          'CREATE OR ALTER TRIGGER inv_bu_movement_block FOR inv_movement ' +
           '  INACTIVE ' +
           '  BEFORE UPDATE ' +
           '  POSITION 28017 ' +
@@ -429,12 +365,7 @@ begin
         Close;
 
         SQL.Text :=
-          'DROP TRIGGER inv_bd_movement_block ';
-        ExecQuery;
-        Close;
-
-        SQL.Text :=
-          'CREATE TRIGGER inv_bd_movement_block FOR inv_movement ' +
+          'CREATE OR ALTER TRIGGER inv_bd_movement_block FOR inv_movement ' +
           '  INACTIVE ' +
           '  BEFORE DELETE ' +
           '  POSITION 28017 ' +
@@ -459,16 +390,13 @@ begin
           '  END ' +
           'END ';
         ExecQuery;
-        Close;
-
+        Close;}
 
         SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (67, ''0000.0001.0000.0095'', ''22.03.2005'', ''Fixed Some Errors'')';
-        try
-          ExecQuery;
-        except
-        end;  
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (67, ''0000.0001.0000.0095'', ''22.03.2005'', ''Fixed Some Errors'') ' +
+          '  MATCHING (id) ';
+        ExecQuery;
         Close;
 
         FTransaction.Commit;
@@ -477,16 +405,11 @@ begin
       end;
     except
       on E: Exception do
-      begin
         Log('Œ¯Ë·Í‡: ' + E.Message);
-      end;
     end;
   finally
-    if FTransaction.InTransaction then
-      FTransaction.Rollback;
     FTransaction.Free;
   end;
-
 end;
 
 end.

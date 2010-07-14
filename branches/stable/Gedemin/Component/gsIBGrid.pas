@@ -3330,8 +3330,14 @@ begin
     on E: Exception do MessageDlg(E.Message, mtError, [mbOk], 0);
   end;
 
-  FLookupDataSet.Open;
-
+  try
+    FLookupDataSet.Open;
+  except
+    Grid.InplaceEditor.Text := '';  
+    Grid.InplaceEditor.Modified := False;
+    TgsIBGridInplaceEdit(Grid.InplaceEditor).DropDown;
+    raise;
+  end;
 
   Result := FLookupDataSet.RecordCount > 0;
 

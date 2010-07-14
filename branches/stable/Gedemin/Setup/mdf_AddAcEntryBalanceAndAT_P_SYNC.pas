@@ -1024,7 +1024,7 @@ begin
             ' FROM ' +
             '   rdb$relation_fields r ' +
             ' WHERE ' +
-            '   r.rdb$relation_name = ''AC_ENTRY'' ' +
+            '   r.rdb$relation_name = ''AC_ACCOUNT'' ' +
             '   AND r.rdb$field_name STARTING WITH ''USR$'' ';
           ibsqlFields.ExecQuery;
           while not ibsqlFields.Eof do
@@ -1089,6 +1089,53 @@ begin
           FIBSQL.Close;
           FIBSQL.SQL.Text := cBalanceGrant;
           FIBSQL.ExecQuery;
+        end
+        else
+        begin
+          // Если таблица уже есть, проверим все ли поля из AC_ENTRY есть в AC_ENTRY_BALANCE
+          ibsqlFields := TIBSQL.Create(nil);
+          gdcField := TgdcField.Create(nil);
+          try
+            gdcField.SubSet := 'ByFieldName';
+            ibsqlFields.Transaction := FTransaction;
+            ibsqlFields.ParamCheck := False;
+            ibsqlFields.SQL.Text :=
+              'SELECT ' +
+              '  r.rdb$field_name AS fieldname, ' +
+              '  r.rdb$field_source AS domainname ' +
+              'FROM ' +
+              '  rdb$relation_fields r ' +
+              'WHERE ' +
+              '  r.rdb$relation_name = ''AC_ENTRY'' ' +
+              '  AND r.rdb$field_name STARTING WITH ''USR$'' ' +
+              '  AND NOT EXISTS(SELECT ' +
+              '                   inr.rdb$field_name AS fieldname, ' +
+              '                   inr.rdb$field_source AS domainname ' +
+              '                 FROM ' +
+              '                   rdb$relation_fields inr ' +
+              '                 WHERE ' +
+              '                   inr.rdb$relation_name = ''AC_ENTRY_BALANCE'' ' +
+              '                   AND inr.rdb$field_name = r.rdb$field_name) ';
+            ibsqlFields.ExecQuery;
+            while not ibsqlFields.Eof do
+            begin
+              // Тип пропущенного поля
+              gdcField.Close;
+              gdcField.ParamByName('fieldname').AsString := Trim(ibsqlFields.FieldByName('DomainName').AsString);
+              gdcField.Open;
+              // Добавим пропущенное поле
+              FIBSQL.Close;
+              FIBSQL.SQL.Text :=
+                Format('ALTER TABLE ac_entry_balance ADD %s %s',
+                  [ibsqlFields.FieldByName('FIELDNAME').AsString, gdcField.GetDomainText(False, True)]);
+              FIBSQL.ExecQuery;
+
+              ibsqlFields.Next;
+            end;
+          finally
+            gdcField.Free;
+            ibsqlFields.Free;
+          end;
         end;
 
         // Индекс на ac_entry_balance.accountkey
@@ -1239,12 +1286,10 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (109, ''0000.0001.0000.0141'', ''15.10.2008'', ''Добавлен расчет сальдо по проводкам'') ';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (109, ''0000.0001.0000.0141'', ''15.10.2008'', ''Добавлен расчет сальдо по проводкам'') ' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FTransaction.Commit;
       except
@@ -1314,12 +1359,10 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (112, ''0000.0001.0000.0144'', ''25.04.2009'', ''Проставлены пропущенные гранты'') ';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (112, ''0000.0001.0000.0144'', ''25.04.2009'', ''Проставлены пропущенные гранты'') ' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FTransaction.Commit;
       except

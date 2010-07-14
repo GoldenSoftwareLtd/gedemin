@@ -5357,7 +5357,8 @@ procedure TgdcInvBaseRemains.DoBeforeInsert;
   {END MACRO}
 begin
    if (not CanCreate) and (not IBLogin.IsIBUserAdmin) then
-     raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strCreate, ClassName, SubType]);
+     raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+       [strCreate, ClassName, SubType, GetDisplayName(SubType)]);
 
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVBASEREMAINS', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
   {M}  try

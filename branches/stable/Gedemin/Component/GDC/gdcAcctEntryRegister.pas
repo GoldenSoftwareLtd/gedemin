@@ -114,7 +114,7 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
-    procedure CreateReversalEntry(const AReversalEntryDate: TDateTime; const ATransactionKey: TID);
+    procedure CreateReversalEntry(const AReversalEntryDate: TDateTime; const ATransactionKey: TID; const AllDocEntry: Boolean);
 
     property RecordKey: Integer read GetRecordKey;
     property Document: TgdcDocument read GetDocument write SetDocument;
@@ -1101,7 +1101,7 @@ begin
 end;
 
 procedure TgdcAcctBaseEntryRegister.CreateReversalEntry(
-  const AReversalEntryDate: TDateTime; const ATransactionKey: TID);
+  const AReversalEntryDate: TDateTime; const ATransactionKey: TID; const AllDocEntry: Boolean);
 var
   Transaction: TIBTransaction;
   ibsqlInsertDocument, ibsqlInsertEntryRecord, ibsqlInsertEntry: TIBSQL;
@@ -1196,8 +1196,12 @@ begin
       CurrentEntry := TgdcAcctEntryRegister.Create(nil);
       try
         CurrentEntry.Transaction := Transaction;
-        // Ограничиваем по AC_ENTRY.DOCUMENTKEY
-        CurrentEntry.ExtraConditions.Text := 'R.DOCUMENTKEY = ' + Self.FieldByName('DOCUMENTKEY').AsString;
+        // Если было выбрано сторнирование всех проводок по документу, то ограничиваем по документу
+        //  иначе по ключу шапки проводки
+        if AllDocEntry then
+          CurrentEntry.ExtraConditions.Text := 'R.DOCUMENTKEY = ' + Self.FieldByName('DOCUMENTKEY').AsString
+        else
+          CurrentEntry.ExtraConditions.Text := 'R.RECORDKEY = ' + Self.FieldByName('RECORDKEY').AsString;
         CurrentEntry.Open;
 
         // Добавим документ
@@ -3138,7 +3142,8 @@ procedure TgdcAcctSimpleRecord.DoBeforeEdit;
   {END MACRO}
 begin
    if (not CanEdit) and (not IBLogin.IsIBUserAdmin) then
-     raise EgdcUserHaventRights.CreateFmt(strHaventRights, [strEdit, ClassName, SubType]);
+     raise EgdcUserHaventRights.CreateFmt(strHaventRights,
+       [strEdit, ClassName, SubType, GetDisplayName(SubType)]);
 
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCACCTSIMPLERECORD', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
   {M}  try

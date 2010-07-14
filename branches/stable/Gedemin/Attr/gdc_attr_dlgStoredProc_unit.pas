@@ -3,10 +3,11 @@ unit gdc_attr_dlgStoredProc_unit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   gdc_dlgGMetaData_unit, Db, ActnList, StdCtrls, ComCtrls, DBCtrls, Mask, ExtCtrls,
   SynEdit, SynMemo, SynEditHighlighter, SynHighlighterSQL, at_Classes, IBSQL,
-  IBDatabase, Menus, gdc_dlgG_unit;
+  IBDatabase, Menus, gdc_dlgG_unit, TB2Item, TB2Dock, TB2Toolbar,
+  gsSearchReplaceHelper;
 
 type
   Tgdc_attr_dlgStoredProc = class(Tgdc_dlgGMetaData)
@@ -17,10 +18,19 @@ type
     Label2: TLabel;
     dbedProcedureName: TDBEdit;
     dbmDescription: TDBMemo;
-    pProcedureBody: TPanel;
-    smProcedureBody: TSynMemo;
     SynSQLSyn: TSynSQLSyn;
     IBTransaction: TIBTransaction;
+    actSearch: TAction;
+    actReplace: TAction;
+    actSearchNext: TAction;
+    actPrepare: TAction;
+    tbdText: TTBDock;
+    tbtText: TTBToolbar;
+    tbiSearch: TTBItem;
+    tbiReplace: TTBItem;
+    TBSeparatorItem1: TTBSeparatorItem;
+    TBItem1: TTBItem;
+    smProcedureBody: TSynMemo;
     procedure pcStoredProcChanging(Sender: TObject;
       var AllowChange: Boolean);
     procedure actOkUpdate(Sender: TObject);
@@ -29,12 +39,18 @@ type
       Shift: TShiftState);
     procedure dbedProcedureNameKeyPress(Sender: TObject; var Key: Char);
     procedure pcStoredProcChange(Sender: TObject);
-
+    procedure actSearchExecute(Sender: TObject);
+    procedure actSearchUpdate(Sender: TObject);
+    procedure actSearchNextExecute(Sender: TObject);
+    procedure actReplaceExecute(Sender: TObject);
+    procedure actPrepareExecute(Sender: TObject);
+  private
+    FSearchReplaceHelper: TgsSearchReplaceHelper;
   protected
     procedure BeforePost; override;
-
   public
     constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
 
     function TestCorrect: Boolean; override;
     procedure SetupDialog; override;
@@ -56,7 +72,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  ;
+  , ib;
 
 { Tgdc_attr_dlgStoredProc }
 
@@ -335,6 +351,73 @@ constructor Tgdc_attr_dlgStoredProc.Create(AnOwner: TComponent);
 begin
   inherited;
   FEnterAsTab := 2; // отключим EnterAsTab
+  // Вспомогательный объект для поиска по полю ввода
+  FSearchReplaceHelper := TgsSearchReplaceHelper.Create(smProcedureBody);
+end;
+
+destructor Tgdc_attr_dlgStoredProc.Destroy;
+begin
+  FreeAndNil(FSearchReplaceHelper);
+  inherited;
+end;
+
+procedure Tgdc_attr_dlgStoredProc.actSearchExecute(Sender: TObject);
+begin
+  FSearchReplaceHelper.Search;
+end;
+
+procedure Tgdc_attr_dlgStoredProc.actReplaceExecute(Sender: TObject);
+begin
+  FSearchReplaceHelper.Replace;
+end;
+
+procedure Tgdc_attr_dlgStoredProc.actSearchUpdate(Sender: TObject);
+begin
+  actSearch.Enabled := smProcedureBody.Lines.Count > 0;
+  actSearchNext.Enabled := actSearch.Enabled;
+  actReplace.Enabled := actSearch.Enabled;
+end;
+
+procedure Tgdc_attr_dlgStoredProc.actSearchNextExecute(Sender: TObject);
+begin
+  FSearchReplaceHelper.SearchNext;
+end;
+
+procedure Tgdc_attr_dlgStoredProc.actPrepareExecute(Sender: TObject);
+var
+  ibsqlTest: TIBSQL;
+  TestTransaction: TIBTransaction;
+begin
+  ibsqlTest := TIBSQL.Create(nil);
+  TestTransaction := TIBTransaction.Create(nil);
+  try
+    TestTransaction.DefaultDatabase := gdcObject.Database;
+    TestTransaction.StartTransaction;
+    try
+      ibsqlTest.Transaction := TestTransaction;
+      ibsqlTest.SQL.Text := smProcedureBody.Text;
+      ibsqlTest.ParamCheck := False;
+      try
+        ibsqlTest.Prepare;
+      except
+        on E: EIBError do
+        begin
+          MessageBox(Self.Handle, PChar(E.Message), '',
+            MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+        end;
+        on E: Exception do
+        begin
+          MessageBox(Self.Handle, PChar(E.Message), '',
+            MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+        end;
+      end;
+    finally
+      TestTransaction.Rollback;
+    end;
+  finally
+    FreeAndNil(TestTransaction);
+    FreeAndNil(ibsqlTest);
+  end;
 end;
 
 initialization

@@ -137,7 +137,7 @@ begin
       begin
         if ibtr.InTransaction then
           ibtr.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
       end;
     end;
 
@@ -219,7 +219,7 @@ begin
       begin
         if ibtr.InTransaction then
           ibtr.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
       end;
     end;
 

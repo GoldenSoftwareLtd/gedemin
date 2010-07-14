@@ -1267,7 +1267,7 @@ begin
     CreateRelation(AC_LEDGER_ENTRIES, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   if not FieldExist(ISSIMPLE, IBDB) then
@@ -1285,7 +1285,7 @@ begin
             CreateTrigger(Triggers[i], IBDB);
           except
             on E: Exception do
-              Log(Format('Ошибка %s', [E.Message]));
+              Log(Format('Ошибка: %s', [E.Message]));
           end;
         end;
       end;
@@ -1297,12 +1297,12 @@ begin
           CreateProcedure(SET_ISSIMPLE_ENTRY, IBDB);
         except
           on E: Exception do
-            Log(Format('Ошибка %s', [E.Message]));
+            Log(Format('Ошибка: %s', [E.Message]));
         end;
       end;}
     except
       on E: Exception do
-        Log(Format('Ошибка %s', [E.Message]));
+        Log(Format('Ошибка: %s', [E.Message]));
     end;
   end;
 

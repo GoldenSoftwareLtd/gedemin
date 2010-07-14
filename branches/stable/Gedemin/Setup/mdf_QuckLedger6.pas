@@ -1779,7 +1779,7 @@ begin
         CreateProcedure(Procs[i], IBDB);
     except
       on E: Exception do
-        Log(Format('Ошибка %s', [E.Message]));
+        Log(Format('Ошибка: %s', [E.Message]));
     end;
 
   end;

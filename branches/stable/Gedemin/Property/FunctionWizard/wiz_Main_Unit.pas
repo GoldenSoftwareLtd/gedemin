@@ -28,7 +28,8 @@ uses
   StdCtrls, TB2ToolWindow, wiz_FunctionsParams_unit, SuperPageControl,
   prp_frmGedeminProperty_Unit, gd_security_operationconst, gdcBaseInterface,
   obj_i_Debugger, prp_PropertySettings, SynDBEdit, gsFunctionSyncEdit,
-  wiz_Strings_unit, gdcClasses, clipbrd, prp_MessageConst, contnrs;
+  wiz_Strings_unit, gdcClasses, clipbrd, prp_MessageConst, contnrs,
+  gsSearchReplaceHelper;
 
 type
   TdlgFunctionWisard = class;
@@ -252,12 +253,12 @@ type
     actDelete: TAction;
     TBSeparatorItem10: TTBSeparatorItem;
     TBItem42: TTBItem;
-    FindDialog1: TFindDialog;
     actFind: TAction;
     TBSeparatorItem8: TTBSeparatorItem;
     TBItem43: TTBItem;
     actCaseElse: TAction;
     TBItem44: TTBItem;
+    actFindNext: TAction;
     procedure TBItem1Click(Sender: TObject);
     procedure actGenerateExecute(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
@@ -334,13 +335,15 @@ type
     procedure actDeleteUpdate(Sender: TObject);
     procedure actDeleteExecute(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
-    procedure FindDialog1Find(Sender: TObject);
     procedure actCaseElseExecute(Sender: TObject);
     procedure actCaseElseUpdate(Sender: TObject);
+    procedure actFindNextExecute(Sender: TObject);
   private
     FSelectedBlock: TVisualBlock;
     FDebugLink: TWizardDebugLink;
     FDebugLines: TDebugLines;
+    // Вспомогательный объект для поиска по полю ввода
+    FSearchReplaceHelper: TgsSearchReplaceHelper;
 
     function GetScript: string;
     function GetMainFunctionName: string;
@@ -354,7 +357,9 @@ type
     procedure Notification(AComponent: TComponent;
       Operation: TOperation); override;
   public
-    { Public declarations }
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+
     procedure SaveToStream(Stream: TStream);
     procedure LoadFromStream(Stream: TStream);
     procedure Generate;
@@ -1383,6 +1388,18 @@ begin
   FDocumentTypeRUID := Value;
 end;
 
+constructor TdlgFunctionWisard.Create(AnOwner: TComponent);
+begin
+  inherited;
+  FSearchReplaceHelper := TgsSearchReplaceHelper.Create(seScript);
+end;
+
+destructor TdlgFunctionWisard.Destroy;
+begin
+  FreeAndNil(FSearchReplaceHelper);
+  inherited;
+end;
+
 procedure TdlgFunctionWisard.actTransactionUpdate(Sender: TObject);
 begin
   TAction(Sender).Checked := NeedCreate = TTransactionBlock
@@ -1477,37 +1494,12 @@ end;
 
 procedure TdlgFunctionWisard.actFindExecute(Sender: TObject);
 begin
-  if seScript.SelAvail then
-    FindDialog1.FindText := seScript.SelText
-  else
-    FindDialog1.FindText := seScript.WordAtCursor;
-  FindDialog1.Execute;
+  FSearchReplaceHelper.Search;
 end;
 
-procedure TdlgFunctionWisard.FindDialog1Find(Sender: TObject);
-var
-  rOptions: TSynSearchOptions;
-  sSearch: string;
+procedure TdlgFunctionWisard.actFindNextExecute(Sender: TObject);
 begin
-  sSearch := FindDialog1.FindText;
-  if Length(sSearch) = 0 then begin
-    Beep;
-    MessageBox(Handle, MSG_FIND_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING);
-  end else begin
-    rOptions := [];
-    if not (frDown in FindDialog1.Options) then
-      Include(rOptions, ssoBackwards);
-    if frMatchCase in FindDialog1.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in FindDialog1.Options then
-      Include(rOptions, ssoWholeWord);
-    if seScript.SearchReplace(sSearch, '', rOptions) = 0 then begin
-      Beep;
-      MessageBox(Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_FIND), MSG_WARNING,
-       MB_OK or MB_ICONWARNING);
-    end;
-  end;
+  FSearchReplaceHelper.SearchNext;
 end;
 
 procedure TdlgFunctionWisard.actCaseElseExecute(Sender: TObject);

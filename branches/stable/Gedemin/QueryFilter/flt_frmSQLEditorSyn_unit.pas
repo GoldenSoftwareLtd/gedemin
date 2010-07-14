@@ -17,11 +17,12 @@ uses
   gd_createable_form, contnrs, gsStorage, Storages, Menus, TB2Item,
   TB2Dock, TB2Toolbar, SuperPageControl, gsDBGrid, StdActns,
   gsIBLookupComboBox, TeEngine, Series, TeeProcs, Chart, TB2ExtItems,
+  gdc_frmSQLHistory_unit,
   {$IFDEF GEDEMIN}
-  gdcBase, gdc_frmSQLHistory_unit,
+  gdcBase,
   {$ENDIF}
   SynCompletionProposal, flt_i_SQLProposal, flt_SQLProposal, gd_keyAssoc,
-  gsIBGrid, gdcSQLHistory;
+  gsIBGrid, gdcSQLHistory, gsSearchReplaceHelper;
 
 type
   TCountRead = Record
@@ -48,8 +49,6 @@ type
     imScript: TImageList;
     actOptions: TAction;
     SynSQLSyn: TSynSQLSyn;
-    FindDialog1: TFindDialog;
-    ReplaceDialog1: TReplaceDialog;
     actReplace: TAction;
     ActionList2: TActionList;
     pmQuery: TPopupMenu;
@@ -219,6 +218,9 @@ type
     pmSaveFieldToFile: TPopupMenu;
     actSaveFieldToFile: TAction;
     nSaveFieldToFile: TMenuItem;
+    actFindNext: TAction;
+    tsTrace: TSuperTabSheet;
+    pnlTrace: TPanel;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -228,8 +230,6 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure actOptionsExecute(Sender: TObject);
     procedure actOptionsUpdate(Sender: TObject);
-    procedure FindDialog1Find(Sender: TObject);
-    procedure ReplaceDialog1Replace(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
     procedure actReplaceExecute(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -282,6 +282,8 @@ type
     procedure actMakeSelectExecute(Sender: TObject);
     procedure actSaveFieldToFileExecute(Sender: TObject);
     procedure actSaveFieldToFileUpdate(Sender: TObject);
+    procedure actFindNextExecute(Sender: TObject);
+    procedure pnlTraceResize(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -292,7 +294,9 @@ type
     FTop, FLeft: Integer;
     {$IFDEF GEDEMIN}
     frmSQLHistory: Tgdc_frmSQLHistory;
+    frmSQLTrace: Tgdc_frmSQLHistory;
     {$ENDIF}
+    FSearchReplaceHelper: TgsSearchReplaceHelper;
 
     procedure RemoveNoChange(const Before, After: TStrings);
     function PrepareQuery: Boolean;
@@ -310,8 +314,9 @@ type
     {$ENDIF}
 
     procedure AddSQLHistory(const AnExecute: Boolean);
-    procedure UseSQLHistory;
+    procedure UseSQLHistory(AForm: Tgdc_frmSQLHistory);
     procedure OnHistoryDblClick(Sender: TObject);
+    procedure OnTraceLogDblClick(Sender: TObject);
 
   public
     FDatabase: TIBDatabase;
@@ -906,6 +911,10 @@ begin
   frmSQLHistory.tbMainMenu.Visible := False;
   frmSQLHistory.sbMain.Visible := False;
   frmSQLHistory.ibgrMain.OnDblClick := OnHistoryDblClick;
+  frmSQLHistory.actEnableTrace.Visible := False;
+  frmSQLHistory.actDeleteTraceLog.Visible := False;
+  frmSQLHistory.actDeleteHistory.Visible := True;
+  frmSQLHistory.gdcObject.ExtraConditions.Add('COALESCE(z.bookmark, '' '') <> ''M''');
 
   for I := 0 to frmSQLHistory.alMain.ActionCount - 1 do
     if frmSQLHistory.alMain.Actions[I] is TCustomAction then
@@ -914,15 +923,44 @@ begin
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('id')).Visible := False;
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('sql_text')).Visible := True;
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('sql_params')).Visible := False;
-  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('bookmark')).Visible := True;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('bookmark')).Visible := False;
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('creatorkey')).Visible := False;
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('creationdate')).Visible := False;
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('editorkey')).Visible := False;
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('editiondate')).Visible := True;
-  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('creator')).Visible := True;
+  frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('creator')).Visible := False;
   frmSQLHistory.ibgrMain.ColumnByField(frmSQLHistory.gdcObject.FieldByName('exec_count')).Visible := True;
 
   frmSQLHistory.Show;
+
+  frmSQLTrace := Tgdc_frmSQLHistory.Create(Self);
+  frmSQLTrace.ShowSpeedButton := False;
+  frmSQLTrace.Parent := pnlTrace;
+  frmSQLTrace.BorderStyle := bsNone;
+  frmSQLTrace.tbMainMenu.Visible := False;
+  frmSQLTrace.sbMain.Visible := False;
+  frmSQLTrace.ibgrMain.OnDblClick := OnTraceLogDblClick;
+  frmSQLTrace.actEnableTrace.Visible := True;
+  frmSQLTrace.actDeleteTraceLog.Visible := True;
+  frmSQLTrace.actDeleteHistory.Visible := False;
+  frmSQLTrace.gdcObject.ExtraConditions.Add('z.bookmark = ''M''');
+
+  for I := 0 to frmSQLTrace.alMain.ActionCount - 1 do
+    if frmSQLTrace.alMain.Actions[I] is TCustomAction then
+      TCustomAction(frmSQLTrace.alMain.Actions[I]).ShortCut := 0;
+
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('id')).Visible := False;
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('sql_text')).Visible := True;
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('sql_params')).Visible := False;
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('bookmark')).Visible := False;
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('creatorkey')).Visible := False;
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('creationdate')).Visible := False;
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('editorkey')).Visible := False;
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('editiondate')).Visible := True;
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('creator')).Visible := False;
+  frmSQLTrace.ibgrMain.ColumnByField(frmSQLTrace.gdcObject.FieldByName('exec_count')).Visible := False;
+
+  frmSQLTrace.Show;
   {$ENDIF}
 
   pnlRecord.Visible := False;
@@ -994,104 +1032,35 @@ begin
   if SQLProposal = nil then
     SQLProposalObject := TSQLProposal.Create(nil);
   {$ENDIF}
+
+  // Вспомогательный объект для поиска по полю ввода
+  FSearchReplaceHelper := TgsSearchReplaceHelper.Create(seQuery);
 end;
 
 destructor TfrmSQLEditorSyn.Destroy;
 begin
+  FreeAndNil(FSearchReplaceHelper);
   FParams.Free;
   FTableArray.Free;
   inherited;
 end;
 
-
-procedure TfrmSQLEditorSyn.FindDialog1Find(Sender: TObject);
-var
-  rOptions: TSynSearchOptions;
-  dlg: TFindDialog;
-  sSearch: string;
-begin
-  if Sender = ReplaceDialog1 then
-    dlg := ReplaceDialog1
-  else
-    dlg := FindDialog1;
-
-  sSearch := dlg.FindText;
-  if Length(sSearch) = 0 then
-  begin
-    Beep;
-    MessageBox(Application.Handle, MSG_FIND_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-  end else
-  begin
-    rOptions := [];
-    if not (frDown in dlg.Options) then
-      Include(rOptions, ssoBackwards);
-    if frMatchCase in dlg.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in dlg.Options then
-      Include(rOptions, ssoWholeWord);
-    if seQuery.SearchReplace(sSearch, '', rOptions) = 0 then
-    begin
-      Beep;
-      MessageBox(Application.Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_FIND), MSG_WARNING,
-       MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-    end;
-  end;
-end;
-
-procedure TfrmSQLEditorSyn.ReplaceDialog1Replace(Sender: TObject);
-var
-  rOptions: TSynSearchOptions;
-  sSearch: string;
-begin
-  sSearch := ReplaceDialog1.FindText;
-  if Length(sSearch) = 0 then
-  begin
-    Beep;
-    MessageBox(Application.Handle, MSG_REPLACE_EMPTY_STRING, MSG_WARNING,
-     MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-  end else
-  begin
-    rOptions := [ssoReplace];
-    if frMatchCase in ReplaceDialog1.Options then
-      Include(rOptions, ssoMatchCase);
-    if frWholeWord in ReplaceDialog1.Options then
-      Include(rOptions, ssoWholeWord);
-    if frReplaceAll in ReplaceDialog1.Options then
-      Include(rOptions, ssoReplaceAll);
-    if seQuery.SelAvail then
-      Include(rOptions, ssoSelectedOnly);
-    if seQuery.SearchReplace(sSearch, ReplaceDialog1.ReplaceText, rOptions) = 0 then
-    begin
-      Beep;
-      MessageBox(Application.Handle, PChar(MSG_SEACHING_TEXT + sSearch + MSG_NOT_REPLACE),
-       MSG_WARNING, MB_OK or MB_ICONWARNING or MB_TASKMODAL);
-    end;
-  end;
-end;
-
 procedure TfrmSQLEditorSyn.actFindExecute(Sender: TObject);
 begin
   if pcMain.ActivePage = tsQuery then
-  begin
-    if seQuery.SelAvail then
-      FindDialog1.FindText := seQuery.SelText
-    else
-      FindDialog1.FindText := seQuery.WordAtCursor;
-    FindDialog1.Execute;
-  end else
-  begin
+    FSearchReplaceHelper.Search
+  else
     dbgResult.FindInGrid;
-  end;
+end;
+
+procedure TfrmSQLEditorSyn.actFindNextExecute(Sender: TObject);
+begin
+  FSearchReplaceHelper.SearchNext;
 end;
 
 procedure TfrmSQLEditorSyn.actReplaceExecute(Sender: TObject);
 begin
-  if seQuery.SelAvail then
-    ReplaceDialog1.FindText := seQuery.SelText
-  else
-    ReplaceDialog1.FindText := seQuery.WordAtCursor;
-  ReplaceDialog1.Execute;
+  FSearchReplaceHelper.Replace;
 end;
 
 procedure TfrmSQLEditorSyn.FormClose(Sender: TObject;
@@ -1233,7 +1202,7 @@ procedure TfrmSQLEditorSyn.actNextQueryExecute(Sender: TObject);
 begin
   {$IFDEF GEDEMIN}
   frmSQLHistory.gdcObject.Next;
-  UseSQLHistory;
+  UseSQLHistory(frmSQLHistory);
   {$ENDIF}
 end;
 
@@ -1241,7 +1210,7 @@ procedure TfrmSQLEditorSyn.actPrevQueryExecute(Sender: TObject);
 begin
   {$IFDEF GEDEMIN}
   frmSQLHistory.gdcObject.Prior;
-  UseSQLHistory;
+  UseSQLHistory(frmSQLHistory);
   {$ENDIF}
 end;
 
@@ -1282,7 +1251,7 @@ begin
   inherited;
 
   {$IFDEF GEDEMIN}
-  if frmSQLHistory <> nil then UseSQLHistory;
+  if frmSQLHistory <> nil then UseSQLHistory(frmSQLHistory);
   {$ENDIF}  
 end;
 
@@ -1385,38 +1354,12 @@ procedure TfrmSQLEditorSyn.AddSQLHistory(const AnExecute: Boolean);
   {$IFDEF GEDEMIN}
   procedure SaveSQLParams;
   var
-    K: Integer;
-    js: TStrings;
     S: String;
   begin
-    if ibqryWork.ParamCheck and (ibqryWork.Params.Count > 0) then
-    begin
-      js := TStringList.Create;
-      try
-        for K := 0 to ibqryWork.Params.Count - 1 do
-        begin
-          if js.IndexOfName(ibqryWork.Params[K].Name) = -1 then
-          begin
-            if not ibqryWork.Params[K].IsNull then
-            begin
-              case ibqryWork.Params[K].SQLType of
-                SQL_TIMESTAMP, SQL_TYPE_DATE, SQL_TYPE_TIME:
-                  S := SafeDateTimeToStr(ibqryWork.Params[K].AsDateTime);
-                SQL_SHORT, SQL_LONG, SQL_INT64, SQL_DOUBLE, SQL_FLOAT, SQL_D_FLOAT:
-                  S := SafeFloatToStr(ibqryWork.Params[K].AsDouble);
-              else
-                S := '"' + ConvertSysChars(ibqryWork.Params[K].AsString) + '"';
-              end;
-            end else
-              S := '<NULL>';
-            js.Add(ibqryWork.Params[K].Name + '=' + S);
-          end;
-        end;
-        frmSQLHistory.gdcObject.FieldByName('SQL_PARAMS').AsString := js.Text;
-      finally
-        js.Free;
-      end;
-    end else
+    S := TgdcSQLHistory.EncodeParamsText(ibqryWork.Params);
+    if S > '' then
+      frmSQLHistory.gdcObject.FieldByName('SQL_PARAMS').AsString := S
+    else
       frmSQLHistory.gdcObject.FieldByName('SQL_PARAMS').Clear;
   end;
   {$ENDIF}
@@ -1446,7 +1389,7 @@ begin
   {$ENDIF}
 end;
 
-procedure TfrmSQLEditorSyn.UseSQLHistory;
+procedure TfrmSQLEditorSyn.UseSQLHistory(AForm: Tgdc_frmSQLHistory);
 {$IFDEF GEDEMIN}
 var
   SL: TStringList;
@@ -1456,17 +1399,17 @@ var
 {$ENDIF}
 begin
   {$IFDEF GEDEMIN}
-  if not frmSQLHistory.gdcObject.IsEmpty then
+  if not AForm.gdcObject.IsEmpty then
   begin
-    seQuery.Text := frmSQLHistory.gdcObject.FieldByName('SQL_TEXT').AsString;
+    seQuery.Text := AForm.gdcObject.FieldByName('SQL_TEXT').AsString;
 
     FParams.Clear;
 
-    if frmSQLHistory.gdcObject.FieldByName('SQL_PARAMS').AsString > '' then
+    if AForm.gdcObject.FieldByName('SQL_PARAMS').AsString > '' then
     begin
       SL := TStringList.Create;
       try
-        SL.Text := frmSQLHistory.gdcObject.FieldByName('SQL_PARAMS').AsString;
+        SL.Text := AForm.gdcObject.FieldByName('SQL_PARAMS').AsString;
         for I := 0 to SL.Count - 1 do
           if SL.Names[I] > '' then
           begin
@@ -1494,7 +1437,12 @@ end;
 
 procedure TfrmSQLEditorSyn.OnHistoryDblClick(Sender: TObject);
 begin
-  UseSQLHistory;
+  UseSQLHistory(frmSQLHistory);
+end;
+
+procedure TfrmSQLEditorSyn.OnTraceLogDblClick(Sender: TObject);
+begin
+  UseSQLHistory(frmSQLTrace);
 end;
 
 procedure TfrmSQLEditorSyn.actEditBusinessObjectExecute(Sender: TObject);
@@ -1634,68 +1582,68 @@ var
 {$ENDIF}
 begin
   {$IFDEF GEDEMIN}
-  {$IFDEF FR4}
-    {$IFDEF TeeChartPro}
-      with ChReads.SeriesList.Items[0] do
+    {$IFDEF FR4}
+      {$IFDEF TeeChartPro}
+        with ChReads.SeriesList.Items[0] do
+      {$ELSE}
+        with ChReads.SeriesList.Series[0] do
+      {$ENDIF}
     {$ELSE}
       with ChReads.SeriesList.Series[0] do
     {$ENDIF}
-  {$ELSE}
-    with ChReads.SeriesList.Series[0] do
-  {$ENDIF}
-  begin
-    Clear;
-    for I := 0 to lvReads.Items.Count - 1 do
     begin
-      for J := 0 to MaxColCount - 1 do
+      Clear;
+      for I := 0 to lvReads.Items.Count - 1 do
       begin
-        case J of
-          0:
-          begin
-            if (tbStatistic.Items[J].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clBlue);
-          end;
-          1:
-          begin
-            if (tbStatistic.Items[J+1].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clRed);
-          end;
-          2:
-          begin
-            if (tbStatistic.Items[J+2].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clTeal);
-          end;
-          3:
-          begin
-            if (tbStatistic.Items[J+3].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clGreen);
-          end;
-          4:
-          begin
-            if (tbStatistic.Items[J+4].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
-              Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clMaroon);
+        for J := 0 to MaxColCount - 1 do
+        begin
+          case J of
+            0:
+            begin
+              if (tbStatistic.Items[J].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clBlue);
+            end;
+            1:
+            begin
+              if (tbStatistic.Items[J+1].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clRed);
+            end;
+            2:
+            begin
+              if (tbStatistic.Items[J+2].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clTeal);
+            end;
+            3:
+            begin
+              if (tbStatistic.Items[J+3].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clGreen);
+            end;
+            4:
+            begin
+              if (tbStatistic.Items[J+4].Checked) and (StrToInt(lvReads.Items[I].SubItems[J]) > 0) then
+                Add(StrToInt(lvReads.Items[I].SubItems[J]), Trim(lvReads.Items[I].Caption), clMaroon);
+            end;
           end;
         end;
-      end;
 
-      //Подсчитаем кол-во всех записей
-      if tbItemAllRecord.Checked then
-      begin
-        FIBSQL := TIBSQL.Create(nil);
-        FIBSQL.Transaction := gdcBaseManager.ReadTransaction;
-        try
-          FIBSQL.SQL.Text :=
-            'SELECT COUNT(*) FROM ' + Trim(lvReads.Items[I].Caption);
-          FIBSQL.ExecQuery;
-          if FIBSQL.RecordCount > 0 then
-            Add(FIBSQL.FieldByName('COUNT').AsInteger, Trim(lvReads.Items[I].Caption), clYellow);
-          FIBSQL.Close
-        finally
-          FIBSQL.Free;
+        //Подсчитаем кол-во всех записей
+        if tbItemAllRecord.Checked then
+        begin
+          FIBSQL := TIBSQL.Create(nil);
+          FIBSQL.Transaction := gdcBaseManager.ReadTransaction;
+          try
+            FIBSQL.SQL.Text :=
+              'SELECT COUNT(*) FROM ' + Trim(lvReads.Items[I].Caption);
+            FIBSQL.ExecQuery;
+            if FIBSQL.RecordCount > 0 then
+              Add(FIBSQL.FieldByName('COUNT').AsInteger, Trim(lvReads.Items[I].Caption), clYellow);
+            FIBSQL.Close
+          finally
+            FIBSQL.Free;
+          end;
         end;
       end;
     end;
-  end;
   {$ENDIF}
 end;
 
@@ -1955,7 +1903,7 @@ begin
   {$IFDEF GEDEMIN}
   if frmSQLHistory <> nil then
     frmSQLHistory.SetBounds(0, 0, pnlTest.Width, pnlTest.Height);
-  {$ENDIF}  
+  {$ENDIF}
 end;
 
 procedure TfrmSQLEditorSyn.actRefreshMonitorUpdate(Sender: TObject);
@@ -2029,6 +1977,14 @@ end;
 procedure TfrmSQLEditorSyn.actSaveFieldToFileUpdate(Sender: TObject);
 begin
   actSaveFieldToFile.Enabled := actShowRecord.Checked and sbRecord.Visible;
+end;
+
+procedure TfrmSQLEditorSyn.pnlTraceResize(Sender: TObject);
+begin
+  {$IFDEF GEDEMIN}
+  if frmSQLTrace <> nil then
+    frmSQLTrace.SetBounds(0, 0, pnlTrace.Width, pnlTrace.Height);
+  {$ENDIF}
 end;
 
 initialization

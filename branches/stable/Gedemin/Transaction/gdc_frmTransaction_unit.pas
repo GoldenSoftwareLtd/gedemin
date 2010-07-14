@@ -280,10 +280,17 @@ begin
       ParamList.AddParam('STDATE', 'Дата сторно-проводки', prmDate, '');
       ParamList.Params[0].Required := True;
       ParamList.Params[0].ResultValue := Date;
-      ParamList.AddLinkParam('TRANSACTION', 'Привязать к Типовой операции', prmLinkElement, 'AC_TRANSACTION', 'NAME', 'ID', '', '', '');
+
+      ParamList.AddLinkParam('TRANSACTION', 'Привязать к Типовой операции', prmLinkElement,
+        'AC_TRANSACTION', 'NAME', 'ID', '', '', '');
       ParamList.Params[1].Required := True;
       ParamList.Params[1].ResultValue :=
         VarArrayOf([gdcAcctViewEntryRegister.FieldByName('TRANSACTIONKEY').AsInteger]);
+
+      ParamList.AddParam('ALL_DOC_ENTRY', 'Все проводки по документу', prmBoolean,
+        'Сторнировать все проводки по документу текущей проводки');
+      ParamList.Params[2].Required := False;
+      ParamList.Params[2].ResultValue := False;
 
       ParamGlobalDlg.QueryParams(GD_PRM_SCRIPT_DLG, Self.Handle, ParamList, DialogResult);
       if DialogResult then
@@ -293,7 +300,7 @@ begin
           if (ParamResult[0] > 0) and (ParamResult[1][0] > 0) then
           begin
             // Если параметры введены - сторнируем выбранную проводку
-            gdcAcctViewEntryRegister.CreateReversalEntry(ParamResult[0], ParamResult[1][0]);
+            gdcAcctViewEntryRegister.CreateReversalEntry(ParamResult[0], ParamResult[1][0], ParamResult[2]);
             gdcAcctViewEntryRegister.CloseOpen;
             Application.MessageBox('Проводка сторнирована', PChar(Self.Caption),
               MB_OK + MB_ICONINFORMATION + MB_SYSTEMMODAL);

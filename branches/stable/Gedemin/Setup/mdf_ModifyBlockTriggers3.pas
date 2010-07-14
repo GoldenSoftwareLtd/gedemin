@@ -35,34 +35,25 @@ begin
           'BEGIN'#13#10 +
           '  F = 0;'#13#10 +
           'END';
-        try
-          ExecQuery;
-        except
-        end;
-        Close;
+        ExecQuery;
 
+        Close;
         SQL.Text := 'GRANT EXECUTE ON PROCEDURE GD_P_EXCLUDE_BLOCK_DT TO ADMINISTRATOR';
-        try
-          ExecQuery;
-        except
-        end;
-
-        SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (84, ''0000.0001.0000.0112'', ''03.01.2007'', ''Fixed triggers for FireBird 2.0'')';
-        try
-          ExecQuery;
-        except
-        end;
+        ExecQuery;
 
         Close;
         SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (85, ''0000.0001.0000.0113'', ''20.01.2007'', ''Stripped security descriptors from rp_reportgroup'')';
-        try
-          ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (84, ''0000.0001.0000.0112'', ''03.01.2007'', ''Fixed triggers for FireBird 2.0'') ' +
+          '  MATCHING(id) ';
+        ExecQuery;
+
+        Close;
+        SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (85, ''0000.0001.0000.0113'', ''20.01.2007'', ''Stripped security descriptors from rp_reportgroup'') ' +
+          '  MATCHING(id) ';
+        ExecQuery;
 
         Close;
         SQL.Text :=
@@ -109,12 +100,10 @@ begin
 
         Close;
         SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (86, ''0000.0001.0000.0114'', ''22.01.2007'', ''surname field of gd_people became not null'')';
-        try
-          ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (86, ''0000.0001.0000.0114'', ''22.01.2007'', ''surname field of gd_people became not null'') ' +
+          '  MATCHING(id) ';;
+        ExecQuery;
 
         Close;
         SQL.Text :=
@@ -154,13 +143,10 @@ begin
         Close;
 
         SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (87, ''0000.0001.0000.0115'', ''24.01.2007'', ''Fixed block and GD_AU_DOCUMENT triggers'')';
-        try
-          ExecQuery;
-        except
-        end;
-        Close;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (87, ''0000.0001.0000.0115'', ''24.01.2007'', ''Fixed block and GD_AU_DOCUMENT triggers'') ' +
+          '  MATCHING (id)';
+        ExecQuery;
 
         Close;
         SQL.Text :=
@@ -281,12 +267,10 @@ begin
 
         Close;
         SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (88, ''0000.0001.0000.0116'', ''28.01.2007'', ''Some internal changes'')';
-        try
-          ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (88, ''0000.0001.0000.0116'', ''28.01.2007'', ''Some internal changes'') ' +
+          '  MATCHING (id) ';
+        ExecQuery;
       finally
         FIBSQL.Free;
       end;

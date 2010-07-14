@@ -72,10 +72,9 @@ begin
         AlterProcedure(Procs[i], IBDB)
       else
         CreateProcedure(Procs[i], IBDB);
-      Log('Ok');
     except
       on E: Exception do
-        Log('error:' +  E.Message);
+        Log('Ошибка:' +  E.Message);
     end;
   end;
 end;

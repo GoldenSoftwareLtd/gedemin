@@ -1,6 +1,6 @@
 inherited gdc_dlgFunction: Tgdc_dlgFunction
-  Left = 264
-  Top = 290
+  Left = 426
+  Top = 183
   Width = 647
   Height = 529
   BorderStyle = bsSizeable
@@ -42,7 +42,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
   object pnlParam: TPanel [5]
     Left = 0
     Top = 0
-    Width = 639
+    Width = 631
     Height = 468
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -58,7 +58,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
     object pcFunction: TSuperPageControl
       Left = 0
       Top = 27
-      Width = 639
+      Width = 631
       Height = 441
       BorderStyle = bsNone
       TabsVisible = True
@@ -240,7 +240,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object sbCoord: TStatusBar
           Left = 0
           Top = 399
-          Width = 639
+          Width = 631
           Height = 19
           Panels = <
             item
@@ -251,7 +251,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object dbseScript: TgsFunctionSynEdit
           Left = 0
           Top = 0
-          Width = 639
+          Width = 631
           Height = 399
           Cursor = crIBeam
           Align = alClient
@@ -606,7 +606,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object ScrollBox1: TScrollBox
           Left = 0
           Top = 39
-          Width = 639
+          Width = 631
           Height = 379
           VertScrollBar.Style = ssFlat
           Align = alClient
@@ -615,8 +615,8 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
           object Label19: TLabel
             Left = 0
             Top = 0
-            Width = 82
-            Height = 13
+            Width = 631
+            Height = 379
             Align = alClient
             Alignment = taCenter
             Caption = 'Нет параметров'
@@ -626,7 +626,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
         object pnlCaption: TPanel
           Left = 0
           Top = 0
-          Width = 639
+          Width = 631
           Height = 39
           Align = alTop
           BevelInner = bvRaised
@@ -683,7 +683,7 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
     object TBDock4: TTBDock
       Left = 0
       Top = 0
-      Width = 639
+      Width = 631
       Height = 27
       BoundLines = [blBottom]
       object TBToolbar1: TTBToolbar
@@ -845,12 +845,14 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
       Caption = 'Поиск'
       Hint = 'Найти в скрипте '
       ImageIndex = 23
+      ShortCut = 16454
       OnExecute = actFindExecute
     end
     object actReplace: TAction
       Caption = 'Заменить'
       Hint = 'Заменить'
       ImageIndex = 22
+      ShortCut = 16466
       OnExecute = actReplaceExecute
     end
     object actCopySQL: TAction
@@ -877,6 +879,12 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
       ShortCut = 16499
       OnExecute = actEvaluateExecute
     end
+    object actFindNext: TAction
+      Caption = 'Найти далее'
+      ImageIndex = 24
+      ShortCut = 114
+      OnExecute = actFindNextExecute
+    end
   end
   object OpenDialog1: TOpenDialog
     Left = 536
@@ -885,17 +893,6 @@ inherited gdc_dlgFunction: Tgdc_dlgFunction
   object SaveDialog1: TSaveDialog
     Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
     Left = 568
-    Top = 360
-  end
-  object FindDialog1: TFindDialog
-    OnFind = FindDialog1Find
-    Left = 464
-    Top = 360
-  end
-  object ReplaceDialog1: TReplaceDialog
-    OnFind = FindDialog1Find
-    OnReplace = ReplaceDialog1Replace
-    Left = 496
     Top = 360
   end
 end

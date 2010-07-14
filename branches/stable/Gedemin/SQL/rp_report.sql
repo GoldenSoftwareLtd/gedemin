@@ -160,12 +160,15 @@ AS
 BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+    
   IF (NEW.usergroupname IS NULL) THEN
     NEW.usergroupname = CAST(NEW.id AS varchar(60));
+
+  RDB$SET_CONTEXT('USER_TRANSACTION', 'LBRB_DELTA', '100');
 END
 ^
 
-CREATE PROCEDURE rp_p_checkgrouptree (newparent INTEGER, id INTEGER)
+/*CREATE PROCEDURE rp_p_checkgrouptree (newparent INTEGER, id INTEGER)
 RETURNS (
     include INTEGER
 )
@@ -192,10 +195,7 @@ begin
     END
   END
 END
-^
-SET TERM ; ^
-
-SET TERM ^ ;
+^*/
 
 /* для шаблона используются метки */
 /* rp - префикс названия */

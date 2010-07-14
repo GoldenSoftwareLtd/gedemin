@@ -313,33 +313,31 @@ var
 begin
   Result := Str;
 
-  BeginPos := System.Pos(' ' + Str + ' ', AnsiUpperCase(SQL.GetText));
+  BeginPos := System.Pos(' ' + Str + ' ', AnsiUpperCase(SQL.Text));
   if BeginPos > 0 then
   begin
-    while SQL.GetText[BeginPos - 1] = ' ' do
+    while SQL.Text[BeginPos - 1] = ' ' do
       Dec(BeginPos);
 
     EndPos := BeginPos + 1;
-    while ((SQL.GetText[BeginPos - 1] <> ' ') and (SQL.GetText[BeginPos - 1] <> #$A)) do
+    while ((SQL.Text[BeginPos - 1] <> ' ') and (SQL.Text[BeginPos - 1] <> #$A)) do
       Dec(BeginPos);
 
-    BeginPos := BeginPos + 1;
-    Result := System.Copy(SQL.GetText, BeginPos, EndPos - BeginPos);
+    Result := System.Copy(SQL.Text, BeginPos, EndPos - BeginPos);
     exit;
   end;
 
-  BeginPos := System.Pos(' ' + Str + #$D, AnsiUpperCase(SQL.GetText));
+  BeginPos := System.Pos(' ' + Str + #$D, AnsiUpperCase(SQL.Text));
   if BeginPos > 0 then
   begin
-    while SQL.GetText[BeginPos - 1] = ' ' do
+    while SQL.Text[BeginPos - 1] = ' ' do
       Dec(BeginPos);
 
     EndPos := BeginPos +1;
-    while ((SQL.GetText[BeginPos - 1] <> ' ') and (SQL.GetText[BeginPos - 1] <> #$A)) do
+    while ((SQL.Text[BeginPos - 1] <> ' ') and (SQL.Text[BeginPos - 1] <> #$A)) do
       Dec(BeginPos);
 
-    BeginPos := BeginPos + 1;
-    Result := System.Copy(SQL.GetText, BeginPos, EndPos - BeginPos);
+    Result := System.Copy(SQL.Text, BeginPos, EndPos - BeginPos);
     exit;
   end;
 end;
