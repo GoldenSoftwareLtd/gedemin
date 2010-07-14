@@ -3130,6 +3130,8 @@ begin
 end;
 
 procedure TgdcInvDocumentLine.ReadOptions(Stream: TStream);
+var
+  F: TatRelationField;
 begin
   inherited;
   with TReader.Create(Stream, 1024) do
@@ -3142,8 +3144,13 @@ begin
     SetLength(FSourceFeatures, 0);
     while not EndOfList do
     begin
-      SetLength(FSourceFeatures, Length(FSourceFeatures) + 1);
-      FSourceFeatures[Length(FSourceFeatures) - 1] := ReadString;
+      // Проверяем наличие поля в INV_CARD
+      F := atDatabase.FindRelationField('INV_CARD', ReadString);
+      if Assigned(F) then
+      begin
+        SetLength(FSourceFeatures, Length(FSourceFeatures) + 1);
+        FSourceFeatures[Length(FSourceFeatures) - 1] := F.FieldName;
+      end;
     end;
     ReadListEnd;
 
@@ -3151,8 +3158,13 @@ begin
     SetLength(FDestFeatures, 0);
     while not EndOfList do
     begin
-      SetLength(FDestFeatures, Length(FDestFeatures) + 1);
-      FDestFeatures[Length(FDestFeatures) - 1] := ReadString;
+      // Проверяем наличие поля в INV_CARD
+      F := atDatabase.FindRelationField('INV_CARD', ReadString);
+      if Assigned(F) then
+      begin
+        SetLength(FDestFeatures, Length(FDestFeatures) + 1);
+        FDestFeatures[Length(FDestFeatures) - 1] := F.FieldName;
+      end;
     end;
     ReadListEnd;
 
@@ -3200,8 +3212,13 @@ begin
       SetLength(FMinusFeatures, 0);
       while not EndOfList do
       begin
-        SetLength(FMinusFeatures, Length(FMinusFeatures) + 1);
-        FMinusFeatures[Length(FMinusFeatures) - 1] := ReadString;
+        // Проверяем наличие поля в INV_CARD
+        F := atDatabase.FindRelationField('INV_CARD', ReadString);
+        if Assigned(F) then
+        begin
+          SetLength(FMinusFeatures, Length(FMinusFeatures) + 1);
+          FMinusFeatures[Length(FMinusFeatures) - 1] := F.FieldName;
+        end;
       end;
       ReadListEnd;
 

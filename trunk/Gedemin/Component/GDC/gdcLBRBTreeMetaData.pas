@@ -346,63 +346,55 @@ var
   end;
 
 begin
-  if JustAlter then
-  begin
-    GetLBRBTreeDependentNames(ATableName, ATr, Names);
+  GetLBRBTreeDependentNames(ATableName, ATr, Names);
 
-    if (Names.ChldCtName = '')
-      or (Names.ExLimName = '')
-      or (Names.RestrName = '') then
-    begin
-      raise Exception.Create('Invalid database structure. Some components for table ' +
-        ATableName + ' not found.');
-    end;
-
-    AScript.Add(PrepareStr(c_el_procedure, 'ALTER PROCEDURE ' + Names.ExLimName));
-    AScript.Add(PrepareStr(c_gchc_procedure, 'ALTER PROCEDURE ' + Names.ChldCtName));
-    AScript.Add(PrepareStr(c_restruct_procedure, 'ALTER PROCEDURE ' + Names.RestrName));
-
-    if Names.BITriggerName = '' then
-    begin
-      Names.BITriggerName := c_bi_trigger_name;
-      AScript.Add(PrepareStr(c_bi_trigger, 'CREATE TRIGGER ' + c_bi_trigger_name + ' FOR ' + ATableName));
-    end else
-      AScript.Add(PrepareStr(c_bi_trigger, 'ALTER TRIGGER ' + Names.BITriggerName));
-
-    if Names.BUTriggerName = '' then
-    begin
-      Names.BUTriggerName := c_bu_trigger_name;
-      AScript.Add(PrepareStr(c_bu_trigger, 'CREATE TRIGGER ' + c_bu_trigger_name + ' FOR ' + ATableName));
-    end else
-      AScript.Add(PrepareStr(c_bu_trigger, 'ALTER TRIGGER ' + Names.BUTriggerName));
-    
-    {if Names.ExceptName > '' then
-      AScript.Add('DROP EXCEPTION ' + Names.ExceptName);}
-
-    if Names.LBIndexName = '' then
-      AScript.Add(PrepareStr(c_index_lb));
-
-    if Names.RBIndexName = '' then
-      AScript.Add(PrepareStr(c_index_rb));
-  end else
-  begin
+  if JustAlter and (Names.ExLimName > '') then
+    AScript.Add(PrepareStr(c_el_procedure, 'ALTER PROCEDURE ' + Names.ExLimName))
+  else begin
     Names.ExLimName := c_el_procedure_name;
-    Names.ChldCtName := c_gchc_procedure_name;
-    //Names.ExceptName := c_except_name;
-
     AScript.Add(PrepareStr(c_el_procedure, 'CREATE PROCEDURE ' + c_el_procedure_name));
+  end;
+
+  if JustAlter and (Names.ChldCtName > '') then
+    AScript.Add(PrepareStr(c_gchc_procedure, 'ALTER PROCEDURE ' + Names.ChldCtName))
+  else begin
+    Names.ChldCtName := c_gchc_procedure_name;
     AScript.Add(PrepareStr(c_gchc_procedure, 'CREATE PROCEDURE ' + c_gchc_procedure_name));
+  end;
+
+  if JustAlter and (Names.RestrName > '') then
+    AScript.Add(PrepareStr(c_restruct_procedure, 'ALTER PROCEDURE ' + Names.RestrName))
+  else
     AScript.Add(PrepareStr(c_restruct_procedure, 'CREATE PROCEDURE ' + c_restruct_procedure_name));
+
+  if JustAlter and (Names.BITriggerName > '') then
+    AScript.Add(PrepareStr(c_bi_trigger, 'ALTER TRIGGER ' + Names.BITriggerName))
+  else begin
+    Names.BITriggerName := c_bi_trigger_name;
     AScript.Add(PrepareStr(c_bi_trigger, 'CREATE TRIGGER ' + c_bi_trigger_name + ' FOR ' + ATableName));
-    //AScript.Add(PrepareStr(c_except, 'CREATE EXCEPTION ' + c_except_name));
+  end;
+
+  if JustAlter and (Names.BUTriggerName > '') then
+    AScript.Add(PrepareStr(c_bu_trigger, 'ALTER TRIGGER ' + Names.BUTriggerName))
+  else begin
+    Names.BUTriggerName := c_bu_trigger_name;
     AScript.Add(PrepareStr(c_bu_trigger, 'CREATE TRIGGER ' + c_bu_trigger_name + ' FOR ' + ATableName));
-    AScript.Add(PrepareStr(c_check));
-    AScript.Add(PrepareStr(c_index_rb));
+  end;
+
+  if Names.LBIndexName = '' then
     AScript.Add(PrepareStr(c_index_lb));
+
+  if Names.RBIndexName = '' then
+    AScript.Add(PrepareStr(c_index_rb));
+
+  if not JustAlter then
+  begin
+    AScript.Add(PrepareStr(c_check));
+
     AScript.Add(PrepareStr(c_grant1));
     AScript.Add(PrepareStr(c_grant2));
     AScript.Add(PrepareStr(c_grant3));
-  end;
+  end;  
 end;
 
 function GetName(const ATableName: String): String;
@@ -508,107 +500,111 @@ begin
     RBIndexName := '';
   end;
 
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := ATr;
-    q.SQL.Text :=
-      'SELECT DISTINCT rdb$dependent_name FROM rdb$dependencies WHERE rdb$depended_on_name = :depname ' +
-      ' AND rdb$dependent_type = 5';
-    q.ParamByName('depname').AsString := ARelName;
-    q.ExecQuery;
+  if ATr = nil then
+    Result := -1
+  else begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := ATr;
+      q.SQL.Text :=
+        'SELECT DISTINCT rdb$dependent_name FROM rdb$dependencies WHERE rdb$depended_on_name = :depname ' +
+        ' AND rdb$dependent_type = 5';
+      q.ParamByName('depname').AsString := ARelName;
+      q.ExecQuery;
 
-    while not q.EOF do
-    begin
-      S := q.Fields[0].AsTrimString;
-
-      if (Pos('_P_EL_', S) > 1) or (Pos('_P_EXPANDLIMIT_', S) > 1)
-        or (Pos('_P_EXLIM_', S) > 1) then
+      while not q.EOF do
       begin
-        Names.ExLimName := S;
+        S := q.Fields[0].AsTrimString;
+
+        if (Pos('_P_EL_', S) > 1) or (Pos('_P_EXPANDLIMIT_', S) > 1)
+          or (Pos('_P_EXLIM_', S) > 1) then
+        begin
+          Names.ExLimName := S;
+        end;
+
+        if (Pos('_P_RESTRUCT_', S) > 1) or (Pos('_P_RESTR_', S) > 1) then
+        begin
+          Names.RestrName := S;
+        end;
+
+        if (Pos('_P_GCHC_', S) > 1) or (Pos('_P_GETCHILDCOUNT_', S) > 1)
+          or (Pos('_P_CHLDCT_', S) > 1) then
+        begin
+          Names.ChldCtName := S;
+        end;
+
+        q.Next;
       end;
 
-      if (Pos('_P_RESTRUCT_', S) > 1) or (Pos('_P_RESTR_', S) > 1) then
+      q.Close;
+      q.SQL.Text :=
+        'SELECT t.rdb$trigger_name FROM rdb$triggers t ' +
+        '  JOIN rdb$dependencies d ON d.rdb$dependent_name = t.rdb$trigger_name ' +
+        '    AND d.rdb$depended_on_name = :P ' +
+        'WHERE t.rdb$trigger_type = :T ' +
+        '  AND t.rdb$relation_name = :RN';
+      q.ParamByName('T').AsInteger := 1;
+      q.ParamByName('P').AsString := Names.ExLimName;
+      q.ParamByName('RN').AsString := ARelName;
+      q.ExecQuery;
+
+      Names.BITriggerName := q.Fields[0].AsTrimString;
+
+      q.Close;
+      q.ParamByName('T').AsInteger := 3;
+      q.ParamByName('P').AsString := Names.ExLimName;
+      q.ParamByName('RN').AsString := ARelName;
+      q.ExecQuery;
+
+      Names.BUTriggerName := q.Fields[0].AsTrimString;
+
+      q.Close;
+      q.SQL.Text :=
+        'SELECT DISTINCT rdb$depended_on_name FROM rdb$dependencies WHERE rdb$dependent_name = :depname ' +
+        ' AND rdb$depended_on_type = 7';
+      q.ParamByName('depname').AsString := Names.BUTriggerName;
+      q.ExecQuery;
+
+      while not q.EOF do
       begin
-        Names.RestrName := S;
+        S := q.Fields[0].AsTrimString;
+
+        if ((Pos('_E_INVALIDTREE', S) > 1) or (Pos('_E_TR_', S) > 1))
+          and (S <> 'TREE_E_INVALID_PARENT') then
+        begin
+          Names.ExceptName := S;
+        end;
+
+        q.Next;
       end;
 
-      if (Pos('_P_GCHC_', S) > 1) or (Pos('_P_GETCHILDCOUNT_', S) > 1)
-        or (Pos('_P_CHLDCT_', S) > 1) then
-      begin
-        Names.ChldCtName := S;
-      end;
+      q.Close;
+      q.SQL.Text :=
+        'SELECT i.rdb$index_name ' +
+        'FROM rdb$indices i JOIN rdb$index_segments s ON s.rdb$index_name = i.rdb$index_name ' +
+        'WHERE s.rdb$field_name = :F AND i.rdb$relation_name = :RN AND i.rdb$segment_count = 1 ';
+      q.ParamByName('F').AsString := 'LB';
+      q.ParamByName('RN').AsString := ARelName;
+      q.ExecQuery;
+      Names.LBIndexName := q.Fields[0].AsTrimString;
 
-      q.Next;
+      q.Close;
+      q.ParamByName('F').AsString := 'RB';
+      q.ParamByName('RN').AsString := ARelName;
+      q.ExecQuery;
+      Names.RBIndexName := q.Fields[0].AsTrimString;
+
+      q.Close;
+      q.SQL.Text :=
+        'SELECT COUNT(DISTINCT rdb$dependent_name) FROM rdb$dependencies WHERE rdb$depended_on_name = :depname ' +
+        ' AND rdb$dependent_type IN (1, 5)';
+      q.ParamByName('depname').AsString := ARelName;
+      q.ExecQuery;
+
+      Result := q.Fields[0].AsInteger;
+    finally
+      q.Free;
     end;
-
-    q.Close;
-    q.SQL.Text :=
-      'SELECT t.rdb$trigger_name FROM rdb$triggers t ' +
-      '  JOIN rdb$dependencies d ON d.rdb$dependent_name = t.rdb$trigger_name ' +
-      '    AND d.rdb$depended_on_name = :P ' +
-      'WHERE t.rdb$trigger_type = :T ' +
-      '  AND t.rdb$relation_name = :RN';
-    q.ParamByName('T').AsInteger := 1;
-    q.ParamByName('P').AsString := Names.ExLimName;
-    q.ParamByName('RN').AsString := ARelName;
-    q.ExecQuery;
-
-    Names.BITriggerName := q.Fields[0].AsTrimString;
-
-    q.Close;
-    q.ParamByName('T').AsInteger := 3;
-    q.ParamByName('P').AsString := Names.ExLimName;
-    q.ParamByName('RN').AsString := ARelName;
-    q.ExecQuery;
-
-    Names.BUTriggerName := q.Fields[0].AsTrimString;
-
-    q.Close;
-    q.SQL.Text :=
-      'SELECT DISTINCT rdb$depended_on_name FROM rdb$dependencies WHERE rdb$dependent_name = :depname ' +
-      ' AND rdb$depended_on_type = 7';
-    q.ParamByName('depname').AsString := Names.BUTriggerName;
-    q.ExecQuery;
-
-    while not q.EOF do
-    begin
-      S := q.Fields[0].AsTrimString;
-
-      if ((Pos('_E_INVALIDTREE', S) > 1) or (Pos('_E_TR_', S) > 1))
-        and (S <> 'TREE_E_INVALID_PARENT') then
-      begin
-        Names.ExceptName := S;
-      end;
-
-      q.Next;
-    end;
-
-    q.Close;
-    q.SQL.Text :=
-      'SELECT i.rdb$index_name ' +
-      'FROM rdb$indices i JOIN rdb$index_segments s ON s.rdb$index_name = i.rdb$index_name ' +
-      'WHERE s.rdb$field_name = :F AND i.rdb$relation_name = :RN AND i.rdb$segment_count = 1 ';
-    q.ParamByName('F').AsString := 'LB';
-    q.ParamByName('RN').AsString := ARelName;
-    q.ExecQuery;
-    Names.LBIndexName := q.Fields[0].AsTrimString;
-
-    q.Close;
-    q.ParamByName('F').AsString := 'RB';
-    q.ParamByName('RN').AsString := ARelName;
-    q.ExecQuery;
-    Names.RBIndexName := q.Fields[0].AsTrimString;
-
-    q.Close;
-    q.SQL.Text :=
-      'SELECT COUNT(DISTINCT rdb$dependent_name) FROM rdb$dependencies WHERE rdb$depended_on_name = :depname ' +
-      ' AND rdb$dependent_type IN (1, 5)';
-    q.ParamByName('depname').AsString := ARelName;
-    q.ExecQuery;
-
-    Result := q.Fields[0].AsInteger;
-  finally
-    q.Free;
   end;
 end;
 
