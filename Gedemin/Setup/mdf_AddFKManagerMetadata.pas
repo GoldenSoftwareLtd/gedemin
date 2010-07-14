@@ -80,7 +80,6 @@ const
     'CREATE TABLE gd_ref_constraint_data ( '#13#10 +
     '  constraintkey    dintkey, '#13#10 +
     '  value_data       INTEGER, '#13#10 +
-    '  value_count      dintkey, '#13#10 +
     ' '#13#10 +
     '  CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (value_data, constraintkey), '#13#10 +
     '  CONSTRAINT gd_fk_ref_constraint_data FOREIGN KEY (constraintkey) '#13#10 +
@@ -99,7 +98,7 @@ const
     '  POSITION 0 '#13#10 +
     'AS '#13#10 +
     'BEGIN '#13#10 +
-    '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'') <> ''1'') THEN '#13#10 +
+    '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'') IS DISTINCT FROM ''1'') THEN '#13#10 +
     '    EXCEPTION gd_e_fkmanager ''Constraint data is locked''; '#13#10 +
     'END ';
 
@@ -126,6 +125,13 @@ begin
         FIBSQL.Transaction := FTransaction;
         FIBSQL.ParamCheck := False;
 
+        FIBSQL.SQL.Text :=
+          'SELECT * FROM rdb$relations WHERE rdb$relation_name = ''GD_REF_CONSTRAINTS'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.EOF then
+          exit;
+
         FIBSQL.Close;
         FIBSQL.SQL.Text := c_exception;
         FIBSQL.ExecQuery;
@@ -150,10 +156,6 @@ begin
         FIBSQL.SQL.Text := c_gd_ref_constraint_data;
         FIBSQL.ExecQuery;
 
-        {FIBSQL.Close;
-        FIBSQL.SQL.Text := c_gd_ref_x_constraint_data;
-        FIBSQL.ExecQuery;}
-
         FIBSQL.Close;
         FIBSQL.SQL.Text := c_gd_biu_ref_constraint_data;
         FIBSQL.ExecQuery;
@@ -172,12 +174,10 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (119, ''0000.0001.0000.0150'', ''06.06.2010'', ''Add FK manager metadata'')';
-        try
-          FIBSQL.ExecQuery;
-        except
-        end;
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (119, ''0000.0001.0000.0150'', ''06.06.2010'', ''Add FK manager metadata'') ' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
 
         FTransaction.Commit;
       finally

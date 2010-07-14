@@ -1,6 +1,6 @@
 object dlgEditDFM: TdlgEditDFM
-  Left = 255
-  Top = 156
+  Left = 379
+  Top = 150
   Width = 544
   Height = 520
   Caption = 'DFM'
@@ -18,8 +18,8 @@ object dlgEditDFM: TdlgEditDFM
   object seDFM: TSynEdit
     Left = 0
     Top = 22
-    Width = 536
-    Height = 443
+    Width = 528
+    Height = 432
     Cursor = crIBeam
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
@@ -31,12 +31,15 @@ object dlgEditDFM: TdlgEditDFM
     ParentFont = False
     PopupMenu = TBPopupMenu1
     TabOrder = 0
+    Gutter.DigitCount = 2
     Gutter.Font.Charset = DEFAULT_CHARSET
     Gutter.Font.Color = clWindowText
     Gutter.Font.Height = -11
-    Gutter.Font.Name = 'Terminal'
+    Gutter.Font.Name = 'Tahoma'
     Gutter.Font.Style = []
-    Gutter.Width = 18
+    Gutter.LeftOffset = 8
+    Gutter.ShowLineNumbers = True
+    Gutter.Width = 16
     Highlighter = SynDfmSyn1
     Keystrokes = <
       item
@@ -370,8 +373,8 @@ object dlgEditDFM: TdlgEditDFM
   end
   object Panel1: TPanel
     Left = 0
-    Top = 465
-    Width = 536
+    Top = 454
+    Width = 528
     Height = 28
     Align = alBottom
     BevelOuter = bvNone
@@ -402,7 +405,7 @@ object dlgEditDFM: TdlgEditDFM
   object TBToolbar1: TTBToolbar
     Left = 0
     Top = 0
-    Width = 536
+    Width = 528
     Height = 22
     Align = alTop
     Caption = 'TBToolbar1'
@@ -442,7 +445,6 @@ object dlgEditDFM: TdlgEditDFM
     end
   end
   object SynDfmSyn1: TSynDfmSyn
-    DefaultFilter = 'Delphi/C++ Builder Form Files (*.dfm;*.xfm)|*.dfm;*.xfm'
     NumberAttri.Foreground = clBlue
     StringAttri.Foreground = clRed
     Left = 432
@@ -503,6 +505,12 @@ object dlgEditDFM: TdlgEditDFM
       ImageIndex = 8
       OnExecute = actPasteExecute
     end
+    object actFindNext: TAction
+      Category = 'Script'
+      Caption = 'Найти далее'
+      ImageIndex = 24
+      OnExecute = actFindNextExecute
+    end
   end
   object TBPopupMenu1: TTBPopupMenu
     Images = dmImages.il16x16
@@ -547,16 +555,5 @@ object dlgEditDFM: TdlgEditDFM
     Filter = 'DFM файлы|*.dfm|Все файлы|*.*'
     Left = 88
     Top = 32
-  end
-  object FindDialog1: TFindDialog
-    OnFind = FindDialog1Find
-    Left = 144
-    Top = 40
-  end
-  object ReplaceDialog1: TReplaceDialog
-    OnFind = FindDialog1Find
-    OnReplace = ReplaceDialog1Replace
-    Left = 192
-    Top = 40
   end
 end

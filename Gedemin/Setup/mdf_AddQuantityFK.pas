@@ -33,10 +33,9 @@ begin
         AlterConstraints[I].TableName]));
       try
         AddConstraint(AlterConstraints[I], IBDB);
-        Log('Ok');
       except
         on E: Exception do
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
       end;
     end;
   end;

@@ -337,7 +337,7 @@ begin
         AlterProcedure(StoredProcedure, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       IbTr.StartTransaction;
@@ -349,7 +349,7 @@ begin
     except
       on E: Exception do
       begin
-        Log(Format('Ошибка %s', [E.Message]));
+        Log(Format('Ошибка: %s', [E.Message]));
         if IBTr.InTransaction then IBTr.Rollback;
       end;
     end;
@@ -387,7 +387,6 @@ begin
       F.Description := 'DINTKEY';
       if not FieldExist(F, IBDB) then
         AddField(F, IBDB);
-      Log('Ok');
 
       Log('Добавление поля documentkey в AC_ENTRY');
       F.RelationName := 'ac_entry';
@@ -395,7 +394,6 @@ begin
       F.Description := 'DINTKEY';
       if not FieldExist(F, IBDB) then
         AddField(F, IBDB);
-      Log('Ok');
 
       Log('Добавление поля masterdockey в AC_ENTRY');
       F.RelationName := 'ac_entry';
@@ -403,7 +401,6 @@ begin
       F.Description := 'DINTKEY';
       if not FieldExist(F, IBDB) then
         AddField(F, IBDB);
-      Log('Ok');
 
       Log('Добавление поля transactionkey в AC_ENTRY');
       F.RelationName := 'ac_entry';
@@ -411,8 +408,6 @@ begin
       F.Description := 'DINTKEY';
       if not FieldExist(F, IBDB) then
         AddField(F, IBDB);
-      Log('Ok');
-
 
       IBTr.StartTransaction;
 
@@ -425,7 +420,6 @@ begin
         'e.companykey = (SELECT companykey FROM ac_record r WHERE r.id = e.recordkey) ';
       q.ExecQuery;
       q.Close;
-      Log('Ok');
 
       IBTr.Commit;
 
@@ -437,10 +431,9 @@ begin
         AlterConstraints.TableName]));
       try
         AddConstraint(AlterConstraints, IBDB);
-        Log('Ok');
       except
         on E: Exception do
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
       end;
 
       IBDB.Connected := False;
@@ -454,10 +447,9 @@ begin
         AlterConstraints.TableName]));
       try
         AddConstraint(AlterConstraints, IBDB);
-        Log('Ok');
       except
         on E: Exception do
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
       end;
 
       IBDB.Connected := False;
@@ -471,10 +463,9 @@ begin
         AlterConstraints.TableName]));
       try
         AddConstraint(AlterConstraints, IBDB);
-        Log('Ok');
       except
         on E: Exception do
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
       end;
 
       IBDB.Connected := False;
@@ -488,10 +479,9 @@ begin
         AlterConstraints.TableName]));
       try
         AddConstraint(AlterConstraints, IBDB);
-        Log('Ok');
       except
         on E: Exception do
-          Log(E.Message);
+          Log('Ошибка: ' + E.Message);
       end;
 
       IBDB.Connected := False;
@@ -509,10 +499,9 @@ begin
           Index.RelationName]));
         try
           AddIndex(Index, IBDB);
-          Log('Ok');
         except
           on E: Exception do
-            Log(E.Message);
+            Log('Ошибка: ' + E.Message);
         end;
       end;
 
@@ -536,7 +525,7 @@ begin
         CreateTrigger(AlterTrigger, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       AlterTrigger.TriggerName := 'AC_BU_ENTRY_RECORD';
@@ -556,7 +545,7 @@ begin
         CreateTrigger(AlterTrigger, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       StoredProcedure.ProcedureName := 'AC_CIRCULATIONLIST';
@@ -817,7 +806,7 @@ begin
         AlterProcedure(StoredProcedure, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       StoredProcedure.ProcedureName := 'AC_E_L_S';
@@ -969,7 +958,7 @@ begin
         AlterProcedure(StoredProcedure, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       StoredProcedure.ProcedureName := 'AC_E_L_S1';
@@ -1122,7 +1111,7 @@ begin
         AlterProcedure(StoredProcedure, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       StoredProcedure.ProcedureName := 'AC_E_Q_S';
@@ -1214,7 +1203,7 @@ begin
         AlterProcedure(StoredProcedure, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       StoredProcedure.ProcedureName := 'AC_E_Q_S1';
@@ -1307,7 +1296,7 @@ begin
         AlterProcedure(StoredProcedure, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       StoredProcedure.ProcedureName := 'AC_G_L_S';
@@ -1653,7 +1642,7 @@ begin
         AlterProcedure(StoredProcedure, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       StoredProcedure.ProcedureName := 'AC_L_S';
@@ -1991,7 +1980,7 @@ begin
         AlterProcedure(StoredProcedure, IBDB);
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
 
       {$IFDEF GEDEMIN}
@@ -2088,10 +2077,9 @@ begin
       Log(Format('Корректировка поцедуры %s', [StoredProcedure.ProcedureName]));
       try
         AlterProcedure(StoredProcedure, IBDB);
-        Log('Ok');
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
      {$ENDIF}
 
@@ -2104,7 +2092,7 @@ begin
     except
       on E: Exception do
       begin
-        Log(Format('Ошибка %s', [E.Message]));
+        Log(Format('Ошибка: %s', [E.Message]));
         if IBTr.InTransaction then IBTr.Rollback;
       end;
     end;
@@ -2456,7 +2444,7 @@ begin
     AlterProcedure(StoredProcedure, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   StoredProcedure.ProcedureName := 'AC_Q_S';
@@ -2690,7 +2678,7 @@ begin
     AlterProcedure(StoredProcedure, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   StoredProcedure.ProcedureName := 'AC_Q_G_L';
@@ -2838,7 +2826,7 @@ begin
     AlterProcedure(StoredProcedure, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 
   StoredProcedure.ProcedureName := 'AC_Q_S1';
@@ -3070,7 +3058,7 @@ begin
     AlterProcedure(StoredProcedure, IBDB);
   except
     on E: Exception do
-      Log(Format('Ошибка %s', [E.Message]));
+      Log(Format('Ошибка: %s', [E.Message]));
   end;
 end;
 
@@ -3184,10 +3172,9 @@ begin
       Log(Format('Корректировка поцедуры %s', [StoredProcedure.ProcedureName]));
       try
         AlterProcedure(StoredProcedure, IBDB);
-        Log('Ok');
       except
         on E: Exception do
-          Log(Format('Ошибка %s', [E.Message]));
+          Log(Format('Ошибка: %s', [E.Message]));
       end;
      {$ENDIF}
 
@@ -3201,7 +3188,7 @@ begin
     except
       on E: Exception do
       begin
-        Log(Format('Ошибка %s', [E.Message]));
+        Log(Format('Ошибка: %s', [E.Message]));
         if IBTr.InTransaction then IBTr.Rollback;
       end;
     end;

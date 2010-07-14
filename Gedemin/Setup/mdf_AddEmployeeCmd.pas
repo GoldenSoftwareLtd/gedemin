@@ -78,7 +78,7 @@ begin
   except
     on E: Exception do
     begin
-      Log('error:' +  E.Message);
+      Log('Ошибка:' +  E.Message);
       raise;
     end;
   end;

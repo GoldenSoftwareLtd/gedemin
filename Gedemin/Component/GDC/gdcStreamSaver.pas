@@ -645,8 +645,8 @@ uses
   at_dlgCompareRecords,     Dialogs,                 ComObj,
   gdc_frmStreamSaver,       zlib,                    gdcInvDocument_unit,
   flt_SafeConversion_unit,  JclMime,                 jclUnicode,
-
-  gdcFunction, gdcExplorer, gdcMacros, gdcReport;
+  gdcFunction,              gdcExplorer,             gdcMacros,
+  gdcReport,                gdcLBRBTreeMetaData;
 
 type
   TgdcReferenceUpdate = class(TObject)
@@ -3223,8 +3223,7 @@ var
   atRelation: TatRelation;
   LocalID: TID;
   KeyArray: TgdKeyArray;
-  ExceptName: String;
-  PrNameArray: array [1..3] of String;
+  Names: TLBRBTreeMetaNames;
 begin
   Result := True;
 
@@ -3237,22 +3236,33 @@ begin
   if AObj is TgdcLBRBTreeTable then
   begin
     // Получим названия зависимых процедур
-    (AObj as TgdcLBRBTreeTable).GetDependentNames(PrNameArray[1], PrNameArray[2], PrNameArray[3], ExceptName);
+    GetLBRBTreeDependentNames(AObj.FieldByName('relationname').AsString,
+      AObj.ReadTransaction, Names);
 
     ObjectIndex := FDataObject.GetObjectIndex('TgdcStoredProc');
     AnObject := FDataObject.gdcObject[ObjectIndex];
     KeyArray := TgdKeyArray.Create;
     try
-      // Выберем ИД необходимых процедур
-      for I := 1 to Length(PrNameArray) do
-      begin
-        AnObject.Close;
-        AnObject.SubSet := 'ByProcName';
-        AnObject.ParamByName('procedurename').AsString := PrNameArray[I];
-        AnObject.Open;
-        if not AnObject.EOF then
-          KeyArray.Add(AnObject.ID, True);
-      end;
+      AnObject.Close;
+      AnObject.SubSet := 'ByProcName';
+      AnObject.ParamByName('procedurename').AsString := Names.ExLimName;
+      AnObject.Open;
+      if not AnObject.EOF then
+        KeyArray.Add(AnObject.ID, True);
+
+      AnObject.Close;
+      AnObject.SubSet := 'ByProcName';
+      AnObject.ParamByName('procedurename').AsString := Names.ChldCtName;
+      AnObject.Open;
+      if not AnObject.EOF then
+        KeyArray.Add(AnObject.ID, True);
+
+      AnObject.Close;
+      AnObject.SubSet := 'ByProcName';
+      AnObject.ParamByName('procedurename').AsString := Names.RestrName;
+      AnObject.Open;
+      if not AnObject.EOF then
+        KeyArray.Add(AnObject.ID, True);
 
       LocalID := AObj.ID;
       try
@@ -5569,7 +5579,7 @@ begin
     ftFloat, ftCurrency, ftBCD:
       AField.AsFloat := SafeStrToFloat(AFieldValue);
   else
-    AField.AsString := ConvertUTFToANSI(AFieldValue);
+    AField.AsString := UnQuoteString(ConvertUTFToANSI(AFieldValue));
   end;
 end;
 

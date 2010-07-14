@@ -105,6 +105,7 @@ type
     procedure lvMetaDataDblClick(Sender: TObject);
     procedure actAddPosUpdate(Sender: TObject);
     procedure actAddPosExecute(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     FRecordData: TRecordData;
     FNumber: Integer;         //Номер для сортировки
@@ -216,16 +217,6 @@ procedure TDataBaseCompare.FormClose(Sender: TObject;
 begin
   if (Action = caHide) and FShiftDown then
     Action := caFree;
-
-  if Action = caFree then
-  begin
-    if ExtConnected then
-      ibExtDataBase.Close;
-    FList.Free;
-    Diff.Free;
-    Source1.Free;
-    Source2.Free;
-  end;
 end;
 
 procedure TDataBaseCompare.ConnectToDataBase;
@@ -2428,6 +2419,16 @@ begin
   finally
     Tr.Free;
   end;
+end;
+
+procedure TDataBaseCompare.FormDestroy(Sender: TObject);
+begin
+  if ExtConnected then
+    ibExtDataBase.Close;
+  FList.Free;
+  Diff.Free;
+  Source1.Free;
+  Source2.Free;
 end;
 
 initialization

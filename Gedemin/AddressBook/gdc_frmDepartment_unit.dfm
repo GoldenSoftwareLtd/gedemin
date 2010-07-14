@@ -168,7 +168,7 @@ inherited gdc_frmDepartment: Tgdc_frmDepartment
     Top = 270
   end
   object gdcDepartment: TgdcDepartment
-    AfterInsert = gdcDepartmentAfterInsert
+    OnNewRecord = gdcDepartmentNewRecord
     SubSet = 'ByLBRBDepartment'
     Left = 145
     Top = 170

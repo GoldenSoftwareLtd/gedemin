@@ -368,7 +368,7 @@ begin
       begin
         if FTransaction.InTransaction then
           FTransaction.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
         raise;
       end;
     end;

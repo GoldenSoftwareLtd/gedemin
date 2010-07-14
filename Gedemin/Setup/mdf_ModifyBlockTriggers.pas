@@ -30,23 +30,20 @@ begin
         ParamCheck := False;
 
         try
-          SQL.Text :=
-            'CREATE GENERATOR gd_g_block_group ';
+          SQL.Text := 'CREATE GENERATOR gd_g_block_group ';
           ExecQuery;
         except
         end;
-        Close;
 
-        SQL.Text :=
-          'SET GENERATOR gd_g_block_group TO 0';
+        Close;
+        SQL.Text := 'SET GENERATOR gd_g_block_group TO 0';
         ExecQuery;
-        Close;
 
-        SQL.Text :=
-          'SET GENERATOR gd_g_block TO 0';
+        Close;
+        SQL.Text := 'SET GENERATOR gd_g_block TO 0';
         ExecQuery;
-        Close;
 
+        Close;
         SQL.Text :=
          'CREATE TRIGGER AC_AD_ENTRY_DELETERECORD FOR AC_ENTRY ' +
          '  ACTIVE AFTER DELETE POSITION 0 ' +
@@ -55,16 +52,15 @@ begin
          '  DELETE FROM AC_RECORD WHERE ID = OLD.RECORDKEY; ' +
          'END ';
         try
-        ExecQuery;
+          ExecQuery;
         except
         end;
-        Close;
 
-        SQL.Text :=
-         'DROP TRIGGER AC_AD_ENTRY_ISSIMPLE ';
+        Close;
+        SQL.Text := 'DROP TRIGGER AC_AD_ENTRY_ISSIMPLE ';
         ExecQuery;
-        Close;
 
+        Close;
         SQL.Text :=
           'CREATE TRIGGER AC_AD_ENTRY_ISSIMPLE FOR AC_ENTRY ' +
           'ACTIVE AFTER DELETE POSITION 1 ' +
@@ -102,7 +98,7 @@ begin
         ExecQuery;
         Close;
 
-        SQL.Text :=
+        {SQL.Text :=
           'DROP TRIGGER ac_bi_entry_block ';
         ExecQuery;
         Close;
@@ -519,9 +515,9 @@ begin
           '    END ' +
           '  END ' +
           'END ';
-        ExecQuery;
-        Close;
+        ExecQuery;}
 
+        Close;
         SQL.Text :=
           'SELECT * FROM rdb$procedures WHERE rdb$procedure_name = ''INV_MAKEREST''';
         ExecQuery;
@@ -583,21 +579,13 @@ begin
         end else
           Close;
 
-        try
-          SQL.Text :=
-            'CREATE EXCEPTION AC_E_ENTRYBEFOREDOCUMENT ''Entry date before document date'' ';
-          ExecQuery;
-        except
-        end;  
-        Close;
-
         SQL.Text :=
-          'DROP TRIGGER ac_bi_record ';
+          'CREATE OR ALTER EXCEPTION AC_E_ENTRYBEFOREDOCUMENT ''Entry date before document date'' ';
         ExecQuery;
-        Close;
 
+        Close;
         SQL.Text :=
-          'CREATE TRIGGER ac_bi_record FOR ac_record'#13#10 +
+          'CREATE OR ALTER TRIGGER ac_bi_record FOR ac_record'#13#10 +
           '  BEFORE INSERT'#13#10 +
           '  POSITION 0'#13#10 +
           'AS'#13#10 +
@@ -625,15 +613,10 @@ begin
           ''#13#10 +
           'END';
         ExecQuery;
-        Close;
 
-        SQL.Text :=
-          'DROP TRIGGER ac_bu_record ';
-        ExecQuery;
         Close;
-
         SQL.Text :=
-          'CREATE TRIGGER ac_bu_record FOR ac_record '#13#10 +
+          'CREATE OR ALTER TRIGGER ac_bu_record FOR ac_record '#13#10 +
           '  BEFORE UPDATE '#13#10 +
           '  POSITION 0 '#13#10 +
           'AS '#13#10 +
@@ -797,22 +780,15 @@ begin
           ' '#13#10 +
           'END ';
         ExecQuery;
-        Close;
 
-        {
+        Close;
         SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (63, ''0000.0001.0000.0091'', ''10.02.2005'', ''Modify block triggers'')';
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (64, ''0000.0001.0000.0092'', ''01.03.2005'', ''Sync triggers procedures changed'') ' +
+          '  MATCHING (id)';
         ExecQuery;
-        Close;
-        }
 
-        SQL.Text :=
-          'INSERT INTO fin_versioninfo ' +
-          '  VALUES (64, ''0000.0001.0000.0092'', ''01.03.2005'', ''Sync triggers procedures changed'')';
-        ExecQuery;
         Close;
-
         FTransaction.Commit;
       finally
         FIBSQL.Free;

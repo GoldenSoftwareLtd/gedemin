@@ -136,8 +136,8 @@ const
     '      IF (NOT EXISTS (SELECT <ref_field> FROM <ref_rel> WHERE <ref_field> = NEW.<constraint_field>)) THEN'#13#10 +
     '        EXCEPTION gd_e_fkmanager ''<except_message>'' || '' Значение: '' || NEW.<constraint_field>;'#13#10 +
     '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''1'');'#13#10 +
-    '      INSERT INTO gd_ref_constraint_data (constraintkey, value_data, value_count)'#13#10 +
-    '        VALUES (<constraint_key>, NEW.<constraint_field>, 1);'#13#10 +
+    '      INSERT INTO gd_ref_constraint_data (constraintkey, value_data)'#13#10 +
+    '        VALUES (<constraint_key>, NEW.<constraint_field>);'#13#10 +
     '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''0'');'#13#10 +
     '    END'#13#10 +
     '  END';
@@ -232,8 +232,8 @@ const
     'AS'#13#10 +
     'BEGIN'#13#10 +
     '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''1'');'#13#10 +
-    '  INSERT INTO gd_ref_constraint_data (constraintkey, value_data, value_count) '#13#10 +
-    '    VALUES (<constraint_key>, NEW.<ref_field>, 1);'#13#10 +
+    '  INSERT INTO gd_ref_constraint_data (constraintkey, value_data) '#13#10 +
+    '    VALUES (<constraint_key>, NEW.<ref_field>);'#13#10 +
     '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''REF_CONSTRAINT_UNLOCK'', ''0'');'#13#10 +
     'END';
 

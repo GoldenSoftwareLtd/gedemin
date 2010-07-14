@@ -44,14 +44,11 @@ type
     procedure iblkupCompanyChange(Sender: TObject);
     procedure iblkupDepartmentCreateNewObject(Sender: TObject;
       ANewObject: TgdcBase);
-    procedure iblkupDepartmentAfterCreateDialog(Sender: TObject;
-      ANewObject: TgdcBase);
 
   protected
     function NeedVisibleTabSheet(const ARelationName: String): Boolean; override;
 
   public
-    procedure SyncControls; override;
     procedure SetupRecord; override;
     procedure BeforePost; override;
   end;
@@ -95,9 +92,13 @@ begin
 
   inherited;
 
-  if gdcObject.FieldByName('parent').IsNull then
+  if iblkupDepartment.CurrentKey > '' then
   begin
-    if iblkupCompany.CurrentKey > '' then
+    if gdcObject.FieldByName('parent').AsInteger <> iblkupDepartment.CurrentKeyInt then
+      gdcObject.FieldByName('parent').AsInteger := iblkupDepartment.CurrentKeyInt;
+  end else
+  begin
+    if (iblkupCompany.CurrentKey > '') and (gdcObject.FieldByName('parent').AsInteger <> iblkupCompany.CurrentKeyInt) then
       gdcObject.FieldByName('parent').AsInteger := iblkupCompany.CurrentKeyInt;
   end;
 
@@ -113,8 +114,10 @@ procedure Tgdc_dlgDepartment.iblkupCompanyChange(Sender: TObject);
 begin
   if iblkupCompany.CurrentKey > '' then
   begin
-    iblkupDepartment.Condition := Format('contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id = %d) AND rb <= (SELECT c1.rb FROM gd_contact c1 WHERE c1.id = %d)',
-      [iblkupCompany.CurrentKeyInt, iblkupCompany.CurrentKeyInt]);
+    iblkupDepartment.Condition := Format(
+      'contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id = %0:d) AND rb <= (SELECT c1.rb FROM gd_contact c1 WHERE c1.id = %0:d)',
+      [iblkupCompany.CurrentKeyInt]);
+    iblkupDepartment.ReadOnly := False;
     iblkupDepartment.CurrentKey := iblkupDepartment.CurrentKey;
   end;
 end;
@@ -177,7 +180,6 @@ var
   {END MACRO}
 
   q: TIBSQL;
-  P: Integer;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGDEPARTMENT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -199,59 +201,45 @@ begin
   {M}    end;
   {END MACRO}
 
-  if gdcObject.Transaction.InTransaction then
-  begin
-    if iblkupCompany.Transaction <> gdcObject.Transaction then
-    begin
-      iblkupCompany.Transaction := gdcObject.Transaction;
-    end;
-  end;
-
   inherited;
 
-  if not gdcObject.FieldByName('parent').IsNull then
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      if gdcObject.Transaction.InTransaction then
-        q.Transaction := gdcObject.Transaction
-      else
-        q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text := 'SELECT id, parent, lb, rb, contacttype FROM gd_contact WHERE id = :ID';
-      q.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
-      q.ExecQuery;
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcObject.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT c.id as companykey FROM gd_contact c JOIN gd_contact d ' +
+      '  ON c.lb <= d.lb AND c.rb >= d.rb ' +
+      'WHERE d.id = :ID AND c.contacttype = 3 ';
+    q.ParamByName('id').AsInteger := gdcObject.FieldByName('parent').AsInteger;
+    q.ExecQuery;
 
-      if q.FieldByName('contacttype').AsInteger <> 4 then
-        gdcObject.FieldByName('parent').Clear;
+    if q.EOF or q.FieldByName('companykey').IsNull then
+    begin
+      iblkupCompany.CurrentKeyInt := -1;
+      iblkupCompany.ReadOnly := False;
 
-      while
-        (not q.EOF)
-        and (q.FieldByName('contacttype').AsInteger = 4)
-        and (not q.FieldByName('parent').IsNull) do
-      begin
-        P := q.FieldByName('parent').AsInteger;
-        q.Close;
-        q.ParamByName('id').AsInteger := P;
-        q.ExecQuery;
-      end;
+      iblkupDepartment.CurrentKeyInt := -1;
+      iblkupDepartment.ReadOnly := True;
+    end else
+    begin
+      iblkupCompany.CurrentKeyInt := q.FieldByName('companykey').AsInteger;
+      iblkupCompany.ReadOnly := True;
 
-      if not q.EOF then
-      begin
-        if q.FieldByName('contacttype').AsInteger <> 4 then
-          iblkupCompany.CurrentKeyInt := q.FieldByName('id').AsInteger
-        else
-          iblkupDepartment.Condition := Format('contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id=%d) AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id=%d)',
-            [q.FieldByName('id').Asinteger, q.FieldByName('id').AsInteger]);
-      end else
-      begin
-        iblkupDepartment.Condition := 'contacttype=4';
-      end;
-    finally
-      q.Free;
+      iblkupDepartment.Condition :=
+        Format('contacttype=4 AND lb > (SELECT c1.lb FROM gd_contact c1 WHERE c1.id=%0:d) AND rb <= (SELECT c2.rb FROM gd_contact c2 WHERE c2.id=%0:d)',
+        [q.FieldByName('companykey').Asinteger]);
+      iblkupDepartment.CurrentKeyInt := gdcObject.FieldByName('parent').AsInteger;
+      iblkupDepartment.ReadOnly := False;
     end;
+  finally
+    q.Free;
   end;
 
-  iblkupCompany.ReadOnly := iblkupCompany.CurrentKey > '';
+  if not gdcObject.CanChangeRights then
+  begin
+    iblkupCompany.ReadOnly := True;
+    iblkupDepartment.ReadOnly := True;
+  end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGDEPARTMENT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -261,24 +249,11 @@ begin
   {END MACRO}
 end;
 
-
 procedure Tgdc_dlgDepartment.iblkupDepartmentCreateNewObject(
   Sender: TObject; ANewObject: TgdcBase);
 begin
   if iblkupCompany.CurrentKey > '' then
     ANewObject.FieldByName('parent').AsInteger := iblkupCompany.CurrentKeyInt;
-end;
-
-procedure Tgdc_dlgDepartment.iblkupDepartmentAfterCreateDialog(
-  Sender: TObject; ANewObject: TgdcBase);
-begin
-  iblkupCompanyChange(nil);
-end;
-
-procedure Tgdc_dlgDepartment.SyncControls;
-begin
-  inherited;
-  iblkupDepartment.Color := clWindow;
 end;
 
 initialization

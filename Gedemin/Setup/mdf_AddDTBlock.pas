@@ -19,7 +19,6 @@ var
   IBTr: TIBTransaction;
   q: TIBSQL;
 begin
-  Log('Изменение триггеров для исключения определенных типов документов из блокировки периода');
   IBTr := TIBTransaction.Create(nil);
   try
     IBTr.DefaultDatabase := IBDB;
@@ -30,7 +29,7 @@ begin
     q.ParamCheck := False;
 
     try
-      try
+      {try
         q.SQL.Text := 'CREATE GENERATOR gd_g_block_group ';
         q.ExecQuery;
       except
@@ -51,7 +50,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -60,7 +59,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -109,7 +108,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -158,7 +157,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -207,7 +206,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -247,7 +246,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -287,7 +286,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -327,7 +326,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -377,7 +376,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -427,7 +426,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -477,7 +476,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -523,7 +522,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -569,7 +568,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -615,7 +614,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -650,7 +649,7 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
+          Log('Ошибка:' +  E.Message);
       end;
 
       try
@@ -690,27 +689,24 @@ begin
         q.ExecQuery;
       except
         on E: Exception do
-          Log('error:' +  E.Message);
-      end;
+          Log('Ошибка:' +  E.Message);
+      end;}
 
-      q.SQL.Text :=
-        'UPDATE inv_balance SET balance = 0 WHERE balance IS NULL ';
+      q.SQL.Text := 'UPDATE inv_balance SET balance = 0 WHERE balance IS NULL ';
       q.ExecQuery;
 
-      try
+      if FieldExist2('GD_PRECIOUSEMETAL', 'USR$GOODKEY', IBTr) then
+      begin
+        q.Close;
         q.SQL.Text :=
           'UPDATE gd_preciousemetal SET usr$goodkey = (SELECT FIRST 1 id FROM gd_good) WHERE usr$goodkey IS NULL';
         q.ExecQuery;
-      except
       end;
 
       q.SQL.Text :=
-        'SET GENERATOR gd_g_block TO 0 ';
-      q.ExecQuery;
-
-      q.SQL.Text :=
-        'INSERT INTO fin_versioninfo ' +
-        'VALUES (76, ''0000.0001.0000.0104'', ''18.09.2006'', ''Ability to exclude some document types from block period added''); ';
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        'VALUES (76, ''0000.0001.0000.0104'', ''18.09.2006'', ''Ability to exclude some document types from block period added'') ' +
+        'MATCHING (id) ';
       q.ExecQuery;
 
       IBTr.Commit;
@@ -721,7 +717,7 @@ begin
 
   except
     on E: Exception do
-      Log('error:' +  E.Message);
+      Log('Ошибка:' +  E.Message);
   end;
 
 end;

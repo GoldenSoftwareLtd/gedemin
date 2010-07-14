@@ -119,7 +119,7 @@ implementation
 
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
-  IBSQLMonitor;
+  IBSQLMonitor_Gedemin;
 
 procedure Tgd_dlgAbout.FormCreate(Sender: TObject);
 var

@@ -222,6 +222,7 @@ type
     function LoginSilent(AnUserName: String; APassword: String; const ADBPath: string = ''): Boolean;
     function Logoff: Boolean;
     function GetLoggingOff: Boolean;
+    function IsSilentLogin: Boolean;
 
     procedure CloneDatabase(ADatabase: TIBDatabase);
 

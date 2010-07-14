@@ -4,15 +4,14 @@ unit mdf_ChangeJournal;
 interface
 
 uses
-  sysutils, IBDatabase, gdModify;
-
+  IBDatabase, gdModify;
 
 procedure ChangeJournal(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
 uses
-  IBSQL;
+  SysUtils, IBSQL, mdf_MetaData_unit;
 
 procedure ChangeJournal(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -34,65 +33,17 @@ begin
       FIBTransaction.Commit;
       FIBTransaction.StartTransaction;
 
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal DROP subsystemkey';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
+      DropField2('GD_JOURNAL', 'SUBSYSTEMKEY', FIBTransaction);
+      DropField2('GD_JOURNAL', 'SESSIONKEY', FIBTransaction);
+      DropField2('GD_JOURNAL', 'USERKEY', FIBTransaction);
+      DropField2('GD_JOURNAL', 'COMPUTERNAME', FIBTransaction);
+      DropField2('GD_JOURNAL', 'OPERATIONKEY', FIBTransaction);
+      DropField2('GD_JOURNAL', 'BLOB1', FIBTransaction);
 
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal DROP sessionkey';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
-
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal DROP userkey';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
-
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal DROP computername';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
-
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal DROP operationkey';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
-
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal DROP blob1';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
-
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal ADD contactkey dforeignkey';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
-
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal ADD source dtext40';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
-
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal ADD objectid dforeignkey';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
-
-      ibsql.SQL.Text := 'ALTER TABLE gd_journal ADD data dblobtext80_1251';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
+      AddField2('GD_JOURNAL', 'CONTACTKEY', 'DFOREIGNKEY', FIBTransaction);
+      AddField2('GD_JOURNAL', 'SOURCE', 'DTEXT40', FIBTransaction);
+      AddField2('GD_JOURNAL', 'OBJECTID', 'DFOREIGNKEY', FIBTransaction);
+      AddField2('GD_JOURNAL', 'DATA', 'DBLOBTEXT80_1251', FIBTransaction);
 
       ibsql.SQL.Text :=
         'RECREATE TRIGGER gd_bi_journal2 FOR gd_journal '#13#10 +
@@ -110,10 +61,7 @@ begin
         '    INTO NEW.contactkey; '#13#10 +
         '  END '#13#10 +
         'END ';
-      try
-        ibsql.ExecQuery;
-      except
-      end;
+      ibsql.ExecQuery;
 
       ibsql.SQL.Text := 'CREATE DOMAIN dtimestamp_notnull AS TIMESTAMP NOT NULL ';
       try
@@ -129,13 +77,12 @@ begin
       end;
 
       FIBTransaction.Commit;
-      Log('Обновлен GD_JOURNAL');
     except
       on E: Exception do
       begin
         if FIBTransaction.InTransaction then
           FIBTransaction.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
         raise;
       end;
     end;

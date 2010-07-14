@@ -359,13 +359,15 @@ type
 implementation
 
 uses
-  IBIntf, IBBlob, IBSQLMonitor, IBXMLHeader, ComObj,
+  IBIntf, IBBlob, IBXMLHeader, ComObj,
   {$IFDEF IBSQLCACHE}
   IBSQLCache,
   {$ENDIF}
   IBSQL_WaitWindow
   {$IFDEF GEDEMIN}
-  , gdcBaseInterface
+  , gdcBaseInterface, IBSQLMonitor_Gedemin
+  {$ELSE}
+  , IBSQLMonitor
   {$ENDIF}
   {$IFDEF DEBUG}
   , Math

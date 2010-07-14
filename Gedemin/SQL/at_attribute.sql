@@ -1522,7 +1522,6 @@ SET TERM ; ^
 CREATE TABLE gd_ref_constraint_data (
   constraintkey    dintkey,
   value_data       INTEGER,
-  value_count      dintkey,
 
   CONSTRAINT gd_pk_ref_constraint_data PRIMARY KEY (value_data, constraintkey),
   CONSTRAINT gd_fk_ref_constraint_data FOREIGN KEY (constraintkey)
@@ -1538,7 +1537,7 @@ CREATE OR ALTER TRIGGER gd_biu_ref_constraint_data FOR gd_ref_constraint_data
   POSITION 0
 AS
 BEGIN
-  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'REF_CONSTRAINT_UNLOCK') <> '1') THEN
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'REF_CONSTRAINT_UNLOCK') IS DISTINCT FROM '1') THEN
     EXCEPTION gd_e_fkmanager 'Constraint data is locked';
 END
 ^

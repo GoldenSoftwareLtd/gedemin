@@ -65,10 +65,8 @@ implementation
 {$R *.DFM}
 
 uses
-  IB, IBErrorCodes, gd_security,
-  gd_directories_const,
-  gdcBaseInterface,
-  Registry, gd_dlgRestoreWarning_unit
+  IB, IBErrorCodes, gd_security, gd_directories_const, gdcBaseInterface,
+  Registry, gd_dlgRestoreWarning_unit, gdcLBRBTreeMetaData
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -135,7 +133,6 @@ end;
 
 procedure TRestoreThread.Execute;
 var
-  q2: TIBSQL;
   Reg: TRegistry;
 begin
   try
@@ -355,50 +352,24 @@ begin
 
       ibdb.Connected := True;
       ibtr.StartTransaction;
+
+      FNextLine := 'Начато перестроение интервальных деревьев';
+      Synchronize(ShowNextLine);
+
       try
-        FNextLine := 'Начато перестроение интервальных деревьев';
-        Synchronize(ShowNextLine);
-
-        q.SQL.Text := 'select rdb$procedure_name from rdb$procedures where rdb$procedure_name like ''_%_P_RESTR%_%'' ';
-        q.ExecQuery;
-
-        q2 := TIBSQL.Create(nil);
-        try
-          q2.Transaction := ibtr;
-
-          while not q.EOF do
-          begin
-            q2.SQL.Text := 'EXECUTE PROCEDURE ' + q.Fields[0].AsString;
-            try
-              q2.ExecQuery;
-            except
-              on E: Exception do
-              begin
-                FNextLine := 'Ошибка при перестроении инт. дерева: ' + E.Message;
-                Synchronize(ShowNextLine);
-              end;
-            end;
-            q2.Close;
-
-            FNextLine := 'Выполнена процедура ' + q.Fields[0].AsString;
-            Synchronize(ShowNextLine);
-
-            q.Next;
-          end;
-        finally
-          q2.Free;
-        end;
-
-        FNextLine := 'Окончено перестроение интервальных деревьев';
-        Synchronize(ShowNextLine);
-
+        RestrLBRBTree('', ibtr);
       except
-        FNextLine := 'Ошибка при перестроении интервальных деревьев';
-        Synchronize(ShowNextLine);
+        on E: Exception do
+        begin
+          FNextLine := 'Ошибка при перестроении инт. дерева: ' + E.Message;
+          Synchronize(ShowNextLine);
+        end;
       end;
-      q.Close;
-      ibtr.Commit;
 
+      FNextLine := 'Окончено перестроение интервальных деревьев';
+      Synchronize(ShowNextLine);
+
+      ibtr.Commit;
       ibdb.Connected := False;
     end;
 

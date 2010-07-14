@@ -29,6 +29,7 @@ type
   public
     { Public declarations }
     constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
     procedure UpdateAnalytics;
     property Analytics: string read GetAnalytics write SetAnalytics;
     property AccountKey: Integer read FAccountKey write SetAccountKey;
@@ -43,6 +44,18 @@ implementation
 
 constructor TfrAnalytics.Create(AOwner: TComponent);
 begin
+  inherited;
+end;
+
+destructor TfrAnalytics.Destroy;
+begin
+  if Assigned(FAvailAnalyticFields) then
+    FreeAndNil(FAvailAnalyticFields);
+  if Assigned(FAccountAnalyticFields) then
+    FreeAndNil(FAccountAnalyticFields);
+  if Assigned(FAnalyticLines) then
+    FreeandNil(FAnalyticLines);
+
   inherited;
 end;
 

@@ -23,13 +23,15 @@ type
     actRefresh: TAction;
     chbxShowNames: TCheckBox;
     btnDeleteUser: TButton;
+    actDisconnect: TAction;
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure IBUserTimerTimer(Sender: TObject);
     procedure actRefreshExecute(Sender: TObject);
     procedure actRefreshUpdate(Sender: TObject);
-    procedure btnDeleteUserClick(Sender: TObject);
+    procedure actDisconnectExecute(Sender: TObject);
+    procedure actDisconnectUpdate(Sender: TObject);
 
   private
     FNotBuilt: Boolean;
@@ -221,13 +223,15 @@ begin
     and gdcBaseManager.Database.Connected;
 end;
 
-procedure TfrmIBUserList.btnDeleteUserClick(Sender: TObject);
+procedure TfrmIBUserList.actDisconnectExecute(Sender: TObject);
 var
   q: TIBSQL;
   Tr: TIBTransaction;
 begin
-  if Assigned(lvUser.Selected) and
-    (MessageBox(Handle, 'Отключить выбранного пользователя?', 'Внимание', MB_YESNO or MB_ICONQUESTION) = IDYES) then
+  if MessageBox(Handle,
+    'Отключить выбранного пользователя?',
+    'Внимание',
+    MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
   begin
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
@@ -236,22 +240,26 @@ begin
       Tr.StartTransaction;
 
       q.Transaction := Tr;
-      q.SQL.Text := 'DELETE FROM MON$STATEMENTS ' +
-        '  WHERE MON$ATTACHMENT_ID = :ID ';
+      q.SQL.Text := 'DELETE FROM MON$STATEMENTS WHERE MON$ATTACHMENT_ID = :ID ';
       q.Params[0].AsInteger := Integer(lvUser.Selected.Data);
       q.ExecQuery;
 
       q.Close;
-      q.SQL.Text := 'DELETE FROM MON$ATTACHMENTS ' +
-        '  WHERE MON$ATTACHMENT_ID = :ID ';
+      q.SQL.Text := 'DELETE FROM MON$ATTACHMENTS WHERE MON$ATTACHMENT_ID = :ID ';
       q.Params[0].AsInteger := Integer(lvUser.Selected.Data);
       q.ExecQuery;
+
       Tr.Commit;
     finally
       q.Free;
       Tr.Free;
     end;
   end;
+end;
+
+procedure TfrmIBUserList.actDisconnectUpdate(Sender: TObject);
+begin
+  actDisconnect.Enabled := Assigned(lvUser.Selected);
 end;
 
 end.

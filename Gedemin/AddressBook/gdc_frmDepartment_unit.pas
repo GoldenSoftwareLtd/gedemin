@@ -27,7 +27,7 @@ type
     procedure actNewExecute(Sender: TObject);
     procedure actSubNewExecute(Sender: TObject);
     procedure ibcmbCompanyChange(Sender: TObject);
-    procedure gdcDepartmentAfterInsert(DataSet: TDataSet);
+    procedure gdcDepartmentNewRecord(DataSet: TDataSet);
   private
     isHolding: Boolean;
 
@@ -187,10 +187,9 @@ begin
   {END MACRO}
 end;
 
-procedure Tgdc_frmDepartment.gdcDepartmentAfterInsert(DataSet: TDataSet);
+procedure Tgdc_frmDepartment.gdcDepartmentNewRecord(DataSet: TDataSet);
 begin
   inherited;
-
   if DataSet.FieldByName('parent').IsNull and (ibcmbCompany.CurrentKey > '') then
     DataSet.FieldByName('parent').AsInteger := ibcmbCompany.CurrentKeyInt;
 end;

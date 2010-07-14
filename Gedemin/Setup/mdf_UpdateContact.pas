@@ -17,7 +17,7 @@ procedure UpdateContact(IBDB: TIBDatabase; Log: TModifyLog);
 var
   Tr: TIBTransaction;
   q: TIBSQL;
-  K: Integer;
+  K: String;
 begin
   Tr := TIBTransaction.Create(nil);
   try
@@ -37,17 +37,12 @@ begin
         Exit;
       end;
 
-      K := q.Fields[0].AsInteger;
+      K := q.Fields[0].AsString;
       q.Close;
 
-      q.SQL.Text := 'UPDATE gd_contact SET parent = ' + IntToStr(K) +
+      q.SQL.Text := 'UPDATE gd_contact SET parent = ' + K +
         ' WHERE parent IS NULL AND contacttype > 1 ';
       q.ExecQuery;
-
-      if q.RowsAffected > 0 then
-      begin
-        Log(Format('Обновлен Parent для контактов в количестве: %d', [q.RowsAffected]));
-      end;
 
       Tr.Commit;
       Tr.StartTransaction;
@@ -69,12 +64,8 @@ begin
         'update gd_contact set contacttype=3 where id in ( ' +
         'select id from gd_contact where ' +
         'contacttype = 2 and id in (select contactkey from gd_company)) ';
-      try
-        q.ExecQuery;
-      except
-      end;
+      q.ExecQuery;
 
-      q.Close;
       Tr.Commit;
 
     finally

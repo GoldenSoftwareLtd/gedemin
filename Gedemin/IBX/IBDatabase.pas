@@ -459,10 +459,12 @@ procedure GenerateTPB(sl: TStrings; var TPB: string; var TPBLength: Short);
 
 implementation
 
-uses IBIntf, IBSQLMonitor, IBCustomDataSet, IBDatabaseInfo, IBSQL, IBUtils,
+uses IBIntf, IBCustomDataSet, IBDatabaseInfo, IBSQL, IBUtils,
      typInfo, DBLogDlg, IBErrorCodes
      {$IFDEF GEDEMIN}
-     ,at_classes, IBSQLCache
+     ,at_classes, IBSQLCache, IBSQLMonitor_Gedemin
+     {$ELSE}
+     , IBSQLMonitor
      {$ENDIF}
      ;
 
@@ -949,6 +951,9 @@ begin
     _IBSQLCache.Flush;
   {$ENDIF}
 
+  if not (csDesigning in ComponentState) then
+    MonitorHook.DBDisconnect(Self);
+
   if (not HandleIsShared) and
      (Call(isc_detach_database(StatusVector, @FHandle), False) > 0) and
      (not Force) then
@@ -958,9 +963,6 @@ begin
     FHandle := nil;
     FHandleIsShared := False;
   end;
-
-  if not (csDesigning in ComponentState) then
-    MonitorHook.DBDisconnect(Self);
 
   for i := 0 to FSQLObjects.Count - 1 do
     if FSQLObjects[i] <> nil then

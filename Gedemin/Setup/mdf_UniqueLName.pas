@@ -111,13 +111,10 @@ begin
         Tr.Commit;
       except
       end;
-
-      Log('Success');
     finally
       q.Free;
       Tr.free;
     end;
-
   except
     Log('Error while adding fields into gd_company');
   end;

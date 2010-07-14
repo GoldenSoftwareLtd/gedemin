@@ -67,7 +67,7 @@ begin
       on E: Exception do
       begin
         FTransaction.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
       end;
     end;
   finally
@@ -173,7 +173,7 @@ begin
       on E: Exception do
       begin
         FTransaction.Rollback;
-        Log(E.Message);
+        Log('Ошибка: ' + E.Message);
       end;
     end;
   finally
