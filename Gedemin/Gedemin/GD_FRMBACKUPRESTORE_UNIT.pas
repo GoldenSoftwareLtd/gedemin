@@ -223,24 +223,36 @@ begin
       try
         q.SQL.Text := 'DELETE FROM rp_reportresult';
         q.ExecQuery;
-        mProgress.Lines.Insert(0,
-          Format('Удалены результаты отчетов (записей: %d)', [q.RowsAffected]));
+        if q.RowsAffected > 0 then
+          mProgress.Lines.Insert(0,
+            Format('Удалены результаты отчетов (записей: %d)', [q.RowsAffected]));
       except
         mProgress.Lines.Insert(0, 'Ошибка при удалении результатов отчетов');
       end;
       try
         q.SQL.Text := 'DELETE FROM gd_journal';
         q.ExecQuery;
-        mProgress.Lines.Insert(0,
-          Format('Удалены записи из журнала (записей: %d)', [q.RowsAffected]));
+        if q.RowsAffected > 0 then
+          mProgress.Lines.Insert(0,
+            Format('Удалены записи из журнала (записей: %d)', [q.RowsAffected]));
       except
         mProgress.Lines.Insert(0, 'Ошибка при удалении записей из журнала');
       end;
       try
         q.SQL.Text := 'DELETE FROM gd_sql_statement';
         q.ExecQuery;
-        mProgress.Lines.Insert(0,
-          Format('Удалены записи из журнала SQL (записей: %d)', [q.RowsAffected]));
+        if q.RowsAffected > 0 then
+          mProgress.Lines.Insert(0,
+            Format('Удалены записи из старого журнала SQL (записей: %d)', [q.RowsAffected]));
+      except
+        mProgress.Lines.Insert(0, 'Ошибка при удалении записей из старого журнала SQL');
+      end;
+      try
+        q.SQL.Text := 'DELETE FROM gd_sql_history WHERE bookmark = ''M'' ';
+        q.ExecQuery;
+        if q.RowsAffected > 0 then
+          mProgress.Lines.Insert(0,
+            Format('Удалены записи из журнала SQL (записей: %d)', [q.RowsAffected]));
       except
         mProgress.Lines.Insert(0, 'Ошибка при удалении записей из журнала SQL');
       end;
