@@ -77,7 +77,7 @@ var
   begin
     Result := FCursorPos;
     Inc(Result);
-    while  (Result < Length(FStr)) and ((Pos(FStr[Result - 1], Seporators) = 0) or
+    while  (Result < Length(FStr)) and ((Pos(FStr[Result - 1], Separators) = 0) or
       (Pos(FStr[Result], Letters) = 0)) do
     begin
       if FStr[Result] = #10 then Inc(Line);

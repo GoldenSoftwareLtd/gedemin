@@ -156,7 +156,7 @@ type
   end;
 
 const
-  Seporators = ':(),.[] =+-<>'#10#13;
+  Separators = ':(),.[] =+-<>'#10#13;
   Letters = '1234567890_qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM';
   Numbers = '0123456789';
 
@@ -548,14 +548,25 @@ end;
 function TVBParser.NextWord: Integer;
 begin
   Result := FCursorPos;
+
   Inc(Result);
-  while  (Result < Length(FStr)) and ((Pos(FStr[Result - 1], Seporators) = 0) or
-    (Pos(FStr[Result], Letters) = 0)) do
+  while (Result < Length(FStr))
+    and ((Pos(FStr[Result - 1], Separators) = 0) or (Pos(FStr[Result], Letters) = 0)) do
   begin
-    Inc(Result);
+    if FStr[Result] = '"' then
+    begin
+      Inc(Result);
+      while (Result < Length(FStr)) and (FStr[Result] <> '"') do
+      begin
+        Inc(Result);
+      end;
+      if FStr[Result] = '"' then
+        Inc(Result);
+    end else
+      Inc(Result);
   end;
   if Result > Length(FStr) then
-    Result := - 1;
+    Result := -1;
 end;
 
 procedure TVBParser.PrepareScript(const ScriptName: String;
