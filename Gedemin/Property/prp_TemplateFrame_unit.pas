@@ -149,9 +149,8 @@ var
   Str: TStream;
 begin
   inherited;
-  Str := TMemoryStream.Create;
+  Str := gdcTemplate.CreateBlobStream(gdcTemplate.FieldByName('templatedata'), bmRead);
   try
-    Str := gdcTemplate.CreateBlobStream(gdcTemplate.FieldByName('templatedata'), bmRead);
     if Str.Size > 0 then
     begin
       if MessageBox(Application.Handle,
