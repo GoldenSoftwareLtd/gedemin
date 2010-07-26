@@ -41,6 +41,7 @@ type
     procedure SetBlock(const Value: TVisualBlock); override;
   public
     { Public declarations }
+    destructor Destroy; override;
     procedure SaveChanges; override;
   end;
 
@@ -307,6 +308,16 @@ begin
 
     end;
   end;
+end;
+
+destructor TfrTrEntryEditFrame.Destroy;
+begin
+  if Assigned(FAvailAnalyticFields) then
+    FreeAndNil(FAvailAnalyticFields);
+  if Assigned(FAnalyticLines) then
+    FreeAndNil(FAnalyticLines);
+
+  inherited;
 end;
 
 end.
