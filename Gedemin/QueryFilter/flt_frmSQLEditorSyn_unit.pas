@@ -1437,12 +1437,16 @@ end;
 
 procedure TfrmSQLEditorSyn.OnHistoryDblClick(Sender: TObject);
 begin
+  {$IFDEF GEDEMIN}
   UseSQLHistory(frmSQLHistory);
+  {$ENDIF}
 end;
 
 procedure TfrmSQLEditorSyn.OnTraceLogDblClick(Sender: TObject);
 begin
+  {$IFDEF GEDEMIN}
   UseSQLHistory(frmSQLTrace);
+  {$ENDIF}
 end;
 
 procedure TfrmSQLEditorSyn.actEditBusinessObjectExecute(Sender: TObject);

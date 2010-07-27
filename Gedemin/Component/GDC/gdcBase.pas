@@ -121,14 +121,6 @@ resourcestring
   strDelete = 'Удаление объекта';
   strChangeRights = 'Изменение прав';
 
-type
-  Tcst_def_KeyWords =
-    (CURRENT_DATE, CURRENT_TIME, CURRENT_USER, CURRENT_ROLE, CURRENT_TIMESTAMP);
-
-const
-  cst_def_KeyWords: array[Tcst_def_KeyWords] of String =
-    ('CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_USER', 'CURRENT_ROLE', 'CURRENT_TIMESTAMP');
-
 const
   ////////////////////////////////////////////////////////////
   // константы смещения операций, относительно главной ветви
@@ -2061,9 +2053,6 @@ function GetDescendants(AnAncestor: CgdcBase; AClassList: TClassList;
 function GetClassForObjectByID(ADatabase: TIBDatabase; ATransaction: TIBTransaction;
   AClass: CgdcBase; ASubType: TgdcSubType; const AnID: Integer): TgdcFullClass;
 
-//Возвращает значение по-умолчанию в зависимости от переданного параметра
-function GetDefaultExpression(ADefaultExpression: String): Variant;
-
 //
 procedure Register;
 
@@ -2329,33 +2318,6 @@ function MakeFullClass(C: CgdcBase; const ASubType: TgdcSubType): TgdcFullClass;
 begin
   Result.gdClass := C;
   Result.SubType := ASubType;
-end;
-
-//Возвращает значение по-умолчанию в зависимости от переданного параметра
-function GetDefaultExpression(ADefaultExpression: String): Variant;
-begin
-  Assert(IBLogin <> nil);
-{Необходимо обработать ключевые слова}
-{Пока что все они начинаются с CURRENT, если появится др ключ слово, данную проверку убрать}
-  if AnsiPos('CURRENT_', ADefaultExpression) = 1 then
-  begin
-    if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[CURRENT_DATE]) = 0 then
-      Result := Date
-    else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[CURRENT_TIME]) = 0 then
-      Result := Time
-    else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[CURRENT_TIMESTAMP]) = 0 then
-      Result := Now
-    else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[CURRENT_USER]) = 0 then
-      Result := IBLogin.IBName
-    else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[CURRENT_ROLE]) = 0 then
-      Result := IBLogin.IBRole
-    else
-      Result := '';
-  end else
-  begin
-    Result := ADefaultExpression;
-  end;
-
 end;
 
 function GetClassForObjectByID(ADatabase: TIBDatabase; ATransaction: TIBTransaction;
@@ -3299,7 +3261,7 @@ begin
       begin
         FieldByName('EDITORKEY').AsInteger := IBLogin.ContactKey;
         if (not (sLoadFromStream in BaseState)) or FieldByName('EDITIONDATE').IsNull then
-          FieldByName('EDITIONDATE').AsDateTime := Now;
+          FieldByName('EDITIONDATE').AsDateTime := Sysutils.Now;
       end;
     end;
   end;
@@ -14993,6 +14955,7 @@ var
   FN: String;
   I, AView, AChag, AFull: Integer;
   MO: TDataSet;
+  F: TField;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  try
@@ -15121,13 +15084,13 @@ begin
   { TODO : а если для строкового поля дефаулт значение пустая строка? }
   for i := 0 to Fields.Count - 1 do
   begin
-    if (Fields[i].IsNull) and (Fields[i].DefaultExpression <> '') then
-    begin
-      try
-        Fields[i].Value := GetDefaultExpression(Fields[i].DefaultExpression);
-      except
-      end;
-    end;
+    F := Fields[i];
+
+    if F.IsNull and (F.DefaultExpression > '') then
+    try
+      F.Value := GetDefaultExpression(F.DefaultExpression);
+    except
+    end
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}

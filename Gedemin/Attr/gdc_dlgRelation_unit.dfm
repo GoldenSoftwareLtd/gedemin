@@ -11,34 +11,34 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 3
-    Top = 383
+    Top = 389
     Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
     Left = 79
-    Top = 383
+    Top = 389
     Anchors = [akLeft, akBottom]
     Enabled = False
   end
   inherited btnHelp: TButton
     Left = 155
-    Top = 383
+    Top = 389
     Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
     Left = 364
-    Top = 383
+    Top = 389
     Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
     Left = 440
-    Top = 383
+    Top = 389
     Anchors = [akRight, akBottom]
   end
   object pcRelation: TPageControl [5]
     Left = 0
     Top = 0
-    Width = 510
+    Width = 518
     Height = 381
     ActivePage = tsCommon
     Align = alTop
@@ -111,16 +111,16 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object Label5: TLabel
         Left = 6
         Top = 295
-        Width = 169
+        Width = 70
         Height = 13
-        Caption = 'Соответствующий бизнес-класс:'
+        Caption = 'Бизнес-класс:'
       end
       object Label6: TLabel
         Left = 6
         Top = 320
-        Width = 140
+        Width = 42
         Height = 13
-        Caption = 'Соответствующий подтип:'
+        Caption = 'Подтип:'
       end
       object dbedRelationName: TDBEdit
         Left = 256
@@ -224,7 +224,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object lClass: TEdit
         Left = 256
-        Top = 287
+        Top = 295
         Width = 222
         Height = 21
         TabStop = False
@@ -234,7 +234,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       end
       object lSubType: TEdit
         Left = 256
-        Top = 312
+        Top = 320
         Width = 222
         Height = 21
         TabStop = False
@@ -308,7 +308,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 502
+        Width = 510
         Height = 353
         Align = alClient
         BevelOuter = bvNone
@@ -316,7 +316,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Splitter1: TSplitter
           Left = 0
           Top = 113
-          Width = 502
+          Width = 510
           Height = 4
           Cursor = crVSplit
           Align = alTop
@@ -324,7 +324,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel2: TPanel
           Left = 0
           Top = 0
-          Width = 502
+          Width = 510
           Height = 113
           Align = alTop
           BevelOuter = bvNone
@@ -332,7 +332,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           object tvTriggers: TTreeView
             Left = 0
             Top = 0
-            Width = 502
+            Width = 510
             Height = 113
             Align = alClient
             Images = dmImages.ilToolBarSmall
@@ -356,7 +356,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel3: TPanel
           Left = 0
           Top = 117
-          Width = 502
+          Width = 510
           Height = 236
           Align = alClient
           BevelOuter = bvNone

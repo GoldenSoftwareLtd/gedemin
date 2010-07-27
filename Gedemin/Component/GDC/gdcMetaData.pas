@@ -857,6 +857,9 @@ type
   function GetDefValueInQuotes(const DefaultValue: String): String;
   function GetSimulateFieldNameByRel(RelName: String): String;
 
+//¬озвращает значение по-умолчанию в зависимости от переданного параметра
+function GetDefaultExpression(const ADefaultExpression: String): Variant;
+
 const
 //ƒлина имени мета-данных
   cstMetaDataNameLength = 31;
@@ -891,6 +894,26 @@ uses
     , gd_localization_stub
   {$ENDIF}
   ;
+
+type
+  Tcst_def_KeyWords = (
+    KW_CURRENT_DATE,
+    KW_CURRENT_TIME,
+    KW_CURRENT_USER,
+    KW_CURRENT_ROLE,
+    KW_CURRENT_TIMESTAMP,
+    KW_NOW,
+    KW_NULL);
+
+const
+  cst_def_KeyWords: array[Tcst_def_KeyWords] of String = (
+    'CURRENT_DATE',
+    'CURRENT_TIME',
+    'CURRENT_USER',
+    'CURRENT_ROLE',
+    'CURRENT_TIMESTAMP',
+    'NOW',
+    'NULL');
 
 var
 //”казывает, что было съимитировано создание триггера USR$_BU_INV_CARD
@@ -987,6 +1010,39 @@ begin
 
     if DidActivate then
       T.Commit;
+  end;
+end;
+
+//¬озвращает значение по-умолчанию в зависимости от переданного параметра
+function GetDefaultExpression(const ADefaultExpression: String): Variant;
+begin
+  Assert(IBLogin <> nil);
+  Assert(ADefaultExpression > '');
+
+  Result := ADefaultExpression;
+
+  case ADefaultExpression[1] of
+    'C':
+    begin
+      if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_CURRENT_DATE]) = 0 then
+        Result := Date
+      else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_CURRENT_TIME]) = 0 then
+        Result := Time
+      else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_CURRENT_TIMESTAMP]) = 0 then
+        Result := Now
+      else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_CURRENT_USER]) = 0 then
+        Result := IBLogin.IBName
+      else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_CURRENT_ROLE]) = 0 then
+        Result := IBLogin.IBRole;
+    end;
+
+    'N':
+    begin
+      if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_NOW]) = 0 then
+        Result := Now
+      else if AnsiCompareText(ADefaultExpression, cst_def_KeyWords[KW_NULL]) = 0 then
+        Result := System.Null;
+    end;
   end;
 end;
 
@@ -5299,17 +5355,17 @@ begin
   end;
 end;
 
-//«аключает значение по умолчанию в ковычки
-//ѕри этом идет проверка: если значение уже в ковычках, то оно так и возвращаетс€
-//в обратном случае, если ковычка встречаетс€ внутри текста, то она удваиваетс€
+//«аключает значение по умолчанию в кавычки
+//ѕри этом идет проверка: если значение уже в кавычках, то оно так и возвращаетс€
+//в обратном случае, если кавычка встречаетс€ внутри текста, то она удваиваетс€
 function GetDefValueInQuotes(const DefaultValue: String): String;
 var
   I: Integer;
   DefSt: String;
   L: Tcst_def_KeyWords;
 begin
-  if AnsiPos('DEFAULT', Trim(AnsiUpperCase(DefaultValue))) = 1 then
-    DefSt := Trim(Copy(Trim(DefaultValue), 8, Length(Trim(DefaultValue)) - 1))
+  if StrIPos('DEFAULT', Trim(DefaultValue)) = 1 then
+    DefSt := Trim(Copy(Trim(DefaultValue), 8, 32000))
   else
     DefSt := DefaultValue;
 

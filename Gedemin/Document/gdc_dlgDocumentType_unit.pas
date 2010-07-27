@@ -201,7 +201,7 @@ begin
     try
       gdcObject.FieldByName('mask').AsString := dbcMask.Text;
       edExample.Text := EncodeNumber(dbcMask.Text,
-        gdcObject.FieldByName('lastnumber').AsInteger, Now,
+        gdcObject.FieldByName('lastnumber').AsInteger, SysUtils.Now,
         gdcObject.FieldByName('fixlength').AsInteger);
     finally
       dbcMask.OnChange := dbcMaskChange;
@@ -802,7 +802,7 @@ end;
 procedure Tgdc_dlgDocumentType.edFixLengthChange(Sender: TObject);
 begin
   edExample.Text := EncodeNumber(dbcMask.Text,
-    gdcObject.FieldByName('lastnumber').AsInteger, Now,
+    gdcObject.FieldByName('lastnumber').AsInteger, SysUtils.Now,
     StrToIntDef(edFixLength.Text, 0));
 end;
 
