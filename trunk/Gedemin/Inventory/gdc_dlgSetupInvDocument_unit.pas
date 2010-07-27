@@ -962,6 +962,7 @@ begin
   ibsql.Database := Document.Database;
   ibsql.Transaction := Document.Transaction;
 
+  Movement := TgdcInvMovementContactOption.Create;
   with TReader.Create(Stream, 1024) do
   try
     // Общие настройки
@@ -1021,7 +1022,6 @@ begin
 
     UpdateEditingSettings;
 
-    Movement := TgdcInvMovementContactOption.Create;
 
     // Приход
     SetLength(Movement.Predefined, 0);
@@ -1100,7 +1100,6 @@ begin
 
     cbUseIncomeSubClick(cbUseIncomeSub);
 
-    Movement := TgdcInvMovementContactOption.Create;
 
     // Расход
     SetLength(Movement.Predefined, 0);
@@ -1290,6 +1289,7 @@ begin
   finally
     Free;
     ibsql.Free;
+    Movement.Free; 
   end;
 end;
 
