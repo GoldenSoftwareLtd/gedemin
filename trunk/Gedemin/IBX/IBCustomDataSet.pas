@@ -5787,8 +5787,6 @@ begin
 end;
 
 procedure TIBCustomDataSet.Post;
-var
-  i : Integer;
 begin
   if not FDataTransfer then
   begin
@@ -5798,22 +5796,6 @@ begin
 
     if State = dsInsert then
     begin
-      for i := 0 to Fields.Count - 1 do
-      begin
-      //!!!b
-//        if (Fields[i].IsNull) and (Fields[i].DefaultExpression <> '') then
-        {Исключаем keyword, которые начинаются с CURRENT_}
-        if (Fields[i].IsNull) and (Fields[i].DefaultExpression <> '') and
-          (AnsiPos('CURRENT_', Fields[i].DefaultExpression) <> 1) then
-        try
-        //!!!e
-          Fields[i].Value := Fields[i].DefaultExpression;
-        //!!!b
-        except
-        end;
-        //!!!e
-      end;
-
       if FGeneratorField.ApplyEvent = gamOnPost then
         FGeneratorField.Apply;
     end;
