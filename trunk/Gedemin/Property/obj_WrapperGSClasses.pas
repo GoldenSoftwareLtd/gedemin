@@ -3741,7 +3741,7 @@ uses
   obj_WrapperMessageClasses,
   {$ENDIF}
   gd_i_ScriptFactory, comctrls, contnrs, windows, IBSQL, AdPort, jclStrings,
-  gsStreamHelper;
+  gsStreamHelper, dbclient;
 
 type
   TCrackIBControlAndQueryService = class(TIBControlAndQueryService);
@@ -7306,6 +7306,8 @@ begin
     begin
       if (GetCreateableForm.Components[I] is TIBCustomDataSet) and not (GetCreateableForm.Components[I] is TIBTable) then
         FLocalQuery.AddRealQuery(TgsRealDataSet.Create((GetCreateableForm.Components[I] as TIBCustomDataSet)));
+      if (GetCreateableForm.Components[I] is TClientDataSet) then
+        FLocalQuery.AddRealQuery(TgsRealDataSet.Create((GetCreateableForm.Components[I] as TClientDataSet)));
     end;
     Result := FLocalQuery;
   except
