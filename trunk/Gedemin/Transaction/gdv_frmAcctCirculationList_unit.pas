@@ -15,7 +15,7 @@ uses
   gdvParamPanel, gdv_frAcctCompany_unit, gdv_frAcctAnalytics_unit,
   gdv_frAcctSum_unit, gdv_frAcctQuantity_unit, gsIBLookupComboBox,
   gdv_frAcctTreeAnalytic_unit, gdvAcctBase, gdvAcctCirculationList,
-  gdvAcctLedger;
+  gdvAcctLedger, DBClient;
 
 type
   Tgdv_frmAcctCirculationList = class(Tgdv_frmAcctBaseForm)
@@ -35,6 +35,7 @@ type
     N3: TMenuItem;
     cbDisplaceSaldo: TCheckBox;
     ibdsMain: TgdvAcctCirculationList;
+    cdsTotal: TClientDataSet;
     procedure FormCreate(Sender: TObject);
     procedure tvGroupChange(Sender: TObject; Node: TTreeNode);
     procedure actRunUpdate(Sender: TObject);
@@ -76,10 +77,25 @@ uses
 
 const
   cAutoBuildReport = 'AutoBuildReport';
+
+  FIELD_COUNT = 18;
+  FIELD_ARRAY: array [0..(FIELD_COUNT - 1)] of String =
+    ('ncu_begin_debit', 'ncu_begin_credit', 'ncu_debit', 'ncu_credit', 'ncu_end_debit', 'ncu_end_credit',
+     'curr_begin_debit', 'curr_begin_credit', 'curr_debit', 'curr_credit', 'curr_end_debit', 'curr_end_credit',
+     'eq_begin_debit', 'eq_begin_credit', 'eq_debit', 'eq_credit', 'eq_end_debit', 'eq_end_credit');
 { Tgdv_frmAcctCirculationList }
 
 procedure Tgdv_frmAcctCirculationList.FormCreate(Sender: TObject);
+var
+  FieldCounter: Integer;
 begin
+  // Датасет с суммами по основному датасету
+  cdsTotal.Close;
+  for FieldCounter := 0 to FIELD_COUNT - 1 do
+    cdsTotal.FieldDefs.Add(FIELD_ARRAY[FieldCounter], ftCurrency, 0, False);
+  cdsTotal.CreateDataSet;
+  cdsTotal.Open;
+
   inherited;
 
   gdcAcctChart.SubSet := 'All';
@@ -486,10 +502,34 @@ var
 
 begin
   inherited;
+
+  gdvObject.DisableControls;
+  try
+    gdvObject.First;
+    // Сложим значения по строкам и занесем в отдельный датасет
+    cdsTotal.Edit;
+    // Обнулим данные
+    for i:= 0 to cdsTotal.Fields.Count - 1 do
+      cdsTotal.Fields[i].AsCurrency := 0;
+    // Сложим значения по строкам
+    while not gdvObject.Eof do
+    begin
+      for I := 0 to FIELD_COUNT - 1 do
+        cdsTotal.FieldByName(FIELD_ARRAY[I]).AsCurrency :=
+          cdsTotal.FieldByName(FIELD_ARRAY[I]).AsCurrency + gdvObject.FieldByName(FIELD_ARRAY[I]).AsCurrency;
+      gdvObject.Next;
+    end;
+    cdsTotal.Post;
+  finally
+    gdvObject.First;
+    gdvObject.EnableControls;
+  end;
+
   if not FMakeEmpty and cbSubAccount.Checked then begin
     gdvObject.DisableControls;
     try
       gdvObject.First;
+
       if Assigned(FMainAccounts) then
         FreeAndNil(FMainAccounts);
 
@@ -560,21 +600,26 @@ begin
         end;
         for i:= 0 to sl.Count - 1 do begin
           sTmp:= sl.Names[i];
-          if gdvObject.Locate('id', StrToInt(sTmp), []) then begin
+          if gdvObject.Locate('id', StrToInt(sTmp), []) then
+          begin
             gdvObject.Edit;
           end
-          else begin
+          else
+          begin
             sTmp:= sl.Values[sl.Names[i]];
             gdvObject.Locate('id', StrToInt(sTmp), []);
             gdvObject.Insert;
           end;
-          if cbDisplaceSaldo.Checked then begin
+          if cbDisplaceSaldo.Checked then
+          begin
             curNBC:= 0; curNBD:= 0; curNEC:= 0; curNED:= 0;
             curCBC:= 0; curCBD:= 0; curCEC:= 0; curCED:= 0;
             curEBC:= 0; curEBD:= 0; curEEC:= 0; curEED:= 0;
-            for j:= 0 to (sl.Objects[i] as TStringList).Count - 1 do begin
+            for j:= 0 to (sl.Objects[i] as TStringList).Count - 1 do
+            begin
               sName:= AnsiUpperCase((sl.Objects[i] as TStringList).Names[j]);
-              if (Pos('_BEGIN_', sName) < 1) and (Pos('_END_', sName) < 1) then Continue;
+              if (Pos('_BEGIN_', sName) < 1) and (Pos('_END_', sName) < 1) then
+                Continue;
               try
                 curValue:= StrToCurr((sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]]);
               except
@@ -611,7 +656,8 @@ begin
             SetDebitCredit(curCEC, curCED);
             SetDebitCredit(curEBC, curEBD);
             SetDebitCredit(curEEC, curEED);
-            for j:= 0 to (sl.Objects[i] as TStringList).Count - 1 do begin
+            for j:= 0 to (sl.Objects[i] as TStringList).Count - 1 do
+            begin
               sName:= AnsiUpperCase((sl.Objects[i] as TStringList).Names[j]);
 //              if (Pos('_BEGIN_', sName) < 1) and (Pos('_END_', sName) < 1) then Continue;
               if sName = 'NCU_BEGIN_DEBIT' then
@@ -645,7 +691,8 @@ begin
               gdvObject.FieldByName(sName).AsString:= sTmp;
             end;
           end
-          else begin
+          else
+          begin
             for j:= 0 to (sl.Objects[i] as TStringList).Count - 1 do begin
               gdvObject.FieldByName((sl.Objects[i] as TStringList).Names[j]).AsString:=
                 (sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]]
