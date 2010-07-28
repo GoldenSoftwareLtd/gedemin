@@ -245,6 +245,7 @@ type
   private
     function GetDataSet: TDataSet;
     function IsQuery: Boolean;
+    function IsInMemoryDataset: Boolean;
   protected
     procedure Open; override;
     procedure ExecSQL; override;
@@ -272,7 +273,7 @@ type
     function  Get_OnCalcField: LongWord; override;
     procedure Set_OnCalcField(Value: LongWord); override;
   public
-    constructor Create(const AnIBDataSet: TIBCustomDataSet);
+    constructor Create(const AnIBDataSet: TDataSet);
     destructor Destroy; override;
 
     property DataSet: TDataSet read GetDataSet;
@@ -1294,11 +1295,11 @@ end;
 
 { TgsRealDataSet }
 
-constructor TgsRealDataSet.Create(const AnIBDataSet: TIBCustomDataSet);
+constructor TgsRealDataSet.Create(const AnIBDataSet: TDataSet);
 begin
   Assert((AnIBDataSet <> nil) and not (AnIBDataSet is TIBTable));
 
-  inherited Create(False, True);
+  inherited Create((AnIBDataSet is TClientDataSet), True);
 
   FDataSet := AnIBDataSet;
 end;
@@ -1375,7 +1376,7 @@ function TgsRealDataSet.Get_ParamByName(const ParamName: WideString): IgsParam;
 var
   LVar: Variant;
 begin
-  if IsQuery then
+  if IsQuery and (not IsInMemoryDataset) then
     LVar := (FDataSet as TIBQuery).ParamByName(ParamName).Value
   else
     LVar := TCrackIBCustomDataSet((FDataSet as TIBCustomDataSet)).Params.ByName(ParamName).Value;
@@ -1384,7 +1385,7 @@ end;
 
 function TgsRealDataSet.Get_ParamCount: Integer;
 begin
-  if IsQuery then
+  if IsQuery and (not IsInMemoryDataset) then
     Result := (FDataSet as TIBQuery).ParamCount
   else
     Result := TCrackIBCustomDataSet((FDataSet as TIBCustomDataSet)).Params.Count;
@@ -1394,19 +1395,24 @@ function TgsRealDataSet.Get_Params(Index: Integer): IgsParam;
 var
   LVar: Variant;
 begin
-  if IsQuery then
+  if IsQuery and (not IsInMemoryDataset) then
     LVar := (FDataSet as TIBQuery).Params[Index].Value
   else
-    LVar := TCrackIBCustomDataSet((FDataSet as TIBCustomDataSet)).Params[Index].Value;
+    if not IsInMemoryDataset then
+      LVar := TCrackIBCustomDataSet((FDataSet as TIBCustomDataSet)).Params[Index].Value
+    else
+      LVar := (FDataSet as TClientDataset).Params[Index].Value ;
   Result := TgsCustomValue.Create(LVar) as IgsParam;
 end;
 
 function TgsRealDataSet.Get_SQL: WideString;
 begin
-  if IsQuery then
-    Result := (FDataSet as TIBQuery).SQL.Text
-  else
-    Result := TCrackIBCustomDataSet((FDataSet as TIBCustomDataSet)).SelectSQL.Text;
+  Result := '';
+  if not IsInMemoryDataset then
+    if IsQuery then
+      Result := (FDataSet as TIBQuery).SQL.Text
+    else
+      Result := TCrackIBCustomDataSet((FDataSet as TIBCustomDataSet)).SelectSQL.Text;
 end;
 
 function TgsRealDataSet.GetDataSet: TDataSet;
@@ -1452,6 +1458,11 @@ end;
 function TgsRealDataSet.IsQuery: Boolean;
 begin
   Result := FDataSet is TIBQuery;
+end;
+
+function TgsRealDataSet.IsInMemoryDataset: Boolean;
+begin
+  Result := FDataSet is TClientDataset;
 end;
 
 { TgsCustomValue }
