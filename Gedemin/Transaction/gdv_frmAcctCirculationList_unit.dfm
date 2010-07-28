@@ -1,6 +1,6 @@
 inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
-  Left = 284
-  Top = 69
+  Left = 255
+  Top = 72
   Width = 1058
   Height = 629
   HelpContext = 159
@@ -285,5 +285,11 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
       'UPDATE AC_LEDGER_ACCOUNTS SET ACCOUNTKEY = -1')
     Left = 631
     Top = 134
+  end
+  object cdsTotal: TClientDataSet
+    Aggregates = <>
+    Params = <>
+    Left = 448
+    Top = 152
   end
 end
