@@ -1190,9 +1190,10 @@ begin
             if (E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock) then
             begin
               FRecordLocked := True;
-              MessageBox(gdcObject.ParentHandle,
+              MessageBox(gdcObject.ParentHandle, PChar(
                 'ƒругой пользователь уже просматривает и/или измен€ет данную запись.'#13#10 +
-                '¬ы сможете только просматривать данные и не сможете их изменить.',
+                '¬ы сможете только просматривать данные и не сможете их изменить.'#13#10 +
+                'ќбъект заблокирован пользователем: ' + GetUserByTransaction + '.'),
                 '«апись заблокирована',
                 MB_OK or MB_ICONEXCLAMATION);
             end

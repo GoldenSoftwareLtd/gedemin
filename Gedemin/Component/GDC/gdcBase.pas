@@ -2081,6 +2081,8 @@ function _AnsiUpperCase(const T: String): String;
 
 function  CheckNameChar(const Key: Char): Char;
 procedure CheckClipboardForName;
+function GetUserByTransaction: String;
+
 
 implementation
 
@@ -2196,6 +2198,37 @@ begin
   end
   else
     Clipboard.AsText:= '';
+end;
+
+function GetUserByTransaction: String;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Result := '';
+
+  q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT U.NAME || '' ('' || A.MON$REMOTE_ADDRESS || '')'' FROM mon$transactions s ' +
+      'JOIN MON$ATTACHMENTS A ON A.MON$ATTACHMENT_ID = S.MON$ATTACHMENT_ID ' +
+      'LEFT JOIN GD_USER U ON A.MON$USER = U.IBNAME ' +
+      'WHERE s.mon$transaction_id = ' + IntToStr(StatusVectorArray[9]);
+    try
+      q.ExecQuery;
+      if not q.Eof then
+        Result := q.Fields[0].AsTrimString;
+    except
+    end;    
+  finally
+    q.Free;
+    Tr.Free;
+  end;
 end;
 
 function gdcFullClass(const AgdClass: CgdcBase;
@@ -6762,8 +6795,9 @@ begin
                   begin
                     if sDialog in BaseState then
                     begin
-                      MessageBox(ParentHandle,
+                      MessageBox(ParentHandle, PChar(
                         'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
+                        'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
                         'Вероятные причины:'#13#10 +
                         '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
                         '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
@@ -6772,7 +6806,7 @@ begin
                         'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
                         'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
                         ''#13#10 +
-                        'В случае повторения проблемы обратитесь к Администратору.',
+                        'В случае повторения проблемы обратитесь к Администратору.'),
                         'Внимание',
                         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
                       Abort;
@@ -6949,8 +6983,9 @@ begin
                   begin
                     if sDialog in BaseState then
                     begin
-                      MessageBox(ParentHandle,
+                      MessageBox(ParentHandle, PChar(
                         'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
+                        'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
                         'Вероятные причины:'#13#10 +
                         '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
                         '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
@@ -6959,7 +6994,7 @@ begin
                         'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
                         'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
                         ''#13#10 +
-                        'В случае повторения проблемы обратитесь к Администратору.',
+                        'В случае повторения проблемы обратитесь к Администратору.'),
                         'Внимание',
                         MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
                       Abort;
@@ -10764,14 +10799,15 @@ begin
           if ((E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock))
             and (sView in BaseState) then
           begin
-            MessageBox(ParentHandle,
+            MessageBox(ParentHandle, PChar(
               'Произошел конфликт при удалении записи.'#13#10 +
+              'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
               'Возможно, запись изменяется в текущий момент времени'#13#10 +
               'или была недавно изменена (удалена) другим пользователем.'#13#10#13#10 +
               'Отмените редактирование, обновите данные и попробуйте'#13#10 +
               'повторить операцию позже.'#13#10#13#10 +
               'В случае повторения данной ситуации обратитесь'#13#10 +
-              'к системному администратору.',
+              'к системному администратору.'),
               'Внимание',
               MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
             Abort;
@@ -12131,8 +12167,9 @@ begin
                     Tr.StartTransaction;
                   end else
                   begin
-                    MessageBox(Application.Handle,
+                    MessageBox(Application.Handle, PChar(
                       'Возник конфликт транзакций. Данные не могут быть изменены сейчас.'#13#10#13#10 +
+                      'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
                       'Вероятные причины:'#13#10 +
                       '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
                       '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
@@ -12141,7 +12178,7 @@ begin
                       'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
                       'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
                       ''#13#10 +
-                      'В случае повторения проблемы обратитесь к Администратору.',
+                      'В случае повторения проблемы обратитесь к Администратору.'),
                       'Внимание',
                       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
                     Abort;
@@ -12278,8 +12315,9 @@ begin
                   Tr.StartTransaction;
                 end else
                 begin
-                  MessageBox(Application.Handle,
+                  MessageBox(Application.Handle, PChar(
                     'Возник конфликт транзакций. Данные не могут быть изменены сейчас.'#13#10#13#10 +
+                    'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
                     'Вероятные причины:'#13#10 +
                     '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
                     '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
@@ -12288,7 +12326,7 @@ begin
                     'Попробуйте сохранить данные позже или закройте окно (Отмена) и введите сложные данные'#13#10 +
                     'по-отдельности, не используя вызовов одних диалоговых окон из других.'#13#10 +
                     ''#13#10 +
-                    'В случае повторения проблемы обратитесь к Администратору.',
+                    'В случае повторения проблемы обратитесь к Администратору.'),
                     'Внимание',
                     MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
                   Abort;
@@ -12637,14 +12675,15 @@ begin
             else if ((E.IBErrorCode = isc_lock_conflict) or (E.IBErrorCode = isc_deadlock))
               and (sView in BaseState) then
             begin
-              MessageBox(ParentHandle,
+              MessageBox(ParentHandle, PChar(
                 'Произошел конфликт при записи в базу данных.'#13#10 +
+                'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
                 'Возможно, запись изменяется в текущий момент времени'#13#10 +
                 'или была недавно изменена (удалена) другим пользователем.'#13#10#13#10 +
                 'Отмените редактирование, обновите данные и попробуйте'#13#10 +
                 'повторить операцию позже.'#13#10#13#10 +
                 'В случае повторения данной ситуации обратитесь'#13#10 +
-                'к системному администратору.',
+                'к системному администратору.'),
                 'Внимание',
                 MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
               Abort;
