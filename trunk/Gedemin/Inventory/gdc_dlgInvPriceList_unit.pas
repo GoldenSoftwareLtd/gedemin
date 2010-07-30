@@ -183,7 +183,11 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-
+  
+  if Assigned(UserStorage) then
+  begin
+    UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream, FSubType);
+  end;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGINVPRICELIST', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -222,11 +226,7 @@ begin
 
   if UserStorage <> nil then
   begin
-    UserStorage.SaveComponent(ibgrDetail, ibgrDetail.SaveToStream,
-      IntToStr(Document.DocumentTypeKey));
-
-{   UserStorage.SaveComponent(atAttributes, atAttributes.SaveToStream,
-      IntToStr(Document.DocumentTypeKey));}
+    UserStorage.SaveComponent(ibgrDetail, ibgrDetail.SaveToStream, FSubType);
   end;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGINVPRICELIST', 'SAVESETTINGS', KEYSAVESETTINGS)}
   {M}finally
