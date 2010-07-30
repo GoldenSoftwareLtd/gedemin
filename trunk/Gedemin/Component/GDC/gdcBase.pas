@@ -2081,8 +2081,7 @@ function _AnsiUpperCase(const T: String): String;
 
 function  CheckNameChar(const Key: Char): Char;
 procedure CheckClipboardForName;
-function GetUserByTransaction: String;
-
+function GetUserByTransaction(const ATrID: Integer): String;
 
 implementation
 
@@ -2200,34 +2199,26 @@ begin
     Clipboard.AsText:= '';
 end;
 
-function GetUserByTransaction: String;
+function GetUserByTransaction(const ATrID: Integer): String;
 var
   q: TIBSQL;
-  Tr: TIBTransaction;
 begin
-  Result := '';
-
   q := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
   try
-    Tr.DefaultDatabase := gdcBaseManager.Database;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
+    q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT U.NAME || '' ('' || A.MON$REMOTE_ADDRESS || '')'' FROM mon$transactions s ' +
-      'JOIN MON$ATTACHMENTS A ON A.MON$ATTACHMENT_ID = S.MON$ATTACHMENT_ID ' +
-      'LEFT JOIN GD_USER U ON A.MON$USER = U.IBNAME ' +
-      'WHERE s.mon$transaction_id = ' + IntToStr(StatusVectorArray[9]);
-    try
-      q.ExecQuery;
-      if not q.Eof then
-        Result := q.Fields[0].AsTrimString;
-    except
-    end;    
+      'SELECT COALESCE(u.name, a.mon$user) || '' ('' || a.mon$remote_address || '')'' ' +
+      'FROM mon$transactions s ' +
+      'JOIN mon$attachments a ON a.mon$attachment_id = s.mon$attachment_id ' +
+      'LEFT JOIN gd_user u ON a.mon$user = u.ibname ' +
+      'WHERE s.mon$transaction_id = ' + IntToStr(ATrID);
+    q.ExecQuery;
+    if q.Eof then
+      Result := ''
+    else
+      Result := q.Fields[0].AsTrimString;
   finally
     q.Free;
-    Tr.Free;
   end;
 end;
 
@@ -6797,7 +6788,7 @@ begin
                     begin
                       MessageBox(ParentHandle, PChar(
                         'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
-                        'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
+                        'Объект заблокирован пользователем: ' + GetUserByTransaction(StatusVectorArray[9]) + #13#10 +
                         'Вероятные причины:'#13#10 +
                         '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
                         '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
@@ -6985,7 +6976,7 @@ begin
                     begin
                       MessageBox(ParentHandle, PChar(
                         'Возник конфликт транзакций. Данные не могут быть сохранены сейчас.'#13#10#13#10 +
-                        'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
+                        'Объект заблокирован пользователем: ' + GetUserByTransaction(StatusVectorArray[9]) + #13#10 +
                         'Вероятные причины:'#13#10 +
                         '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
                         '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
@@ -10801,7 +10792,7 @@ begin
           begin
             MessageBox(ParentHandle, PChar(
               'Произошел конфликт при удалении записи.'#13#10 +
-              'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
+              'Объект заблокирован пользователем: ' + GetUserByTransaction(StatusVectorArray[9]) + #13#10 +
               'Возможно, запись изменяется в текущий момент времени'#13#10 +
               'или была недавно изменена (удалена) другим пользователем.'#13#10#13#10 +
               'Отмените редактирование, обновите данные и попробуйте'#13#10 +
@@ -12169,7 +12160,7 @@ begin
                   begin
                     MessageBox(Application.Handle, PChar(
                       'Возник конфликт транзакций. Данные не могут быть изменены сейчас.'#13#10#13#10 +
-                      'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
+                      'Объект заблокирован пользователем: ' + GetUserByTransaction(StatusVectorArray[9]) + #13#10 +
                       'Вероятные причины:'#13#10 +
                       '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
                       '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
@@ -12317,7 +12308,7 @@ begin
                 begin
                   MessageBox(Application.Handle, PChar(
                     'Возник конфликт транзакций. Данные не могут быть изменены сейчас.'#13#10#13#10 +
-                    'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
+                    'Объект заблокирован пользователем: ' + GetUserByTransaction(StatusVectorArray[9]) + #13#10 +
                     'Вероятные причины:'#13#10 +
                     '  1. Другой пользователь в сети меняет в данный момент значение записи.'#13#10 +
                     '  2. Значение записи меняется в данный момент в другом окне программы. '#13#10 +
@@ -12677,7 +12668,7 @@ begin
             begin
               MessageBox(ParentHandle, PChar(
                 'Произошел конфликт при записи в базу данных.'#13#10 +
-                'Объект заблокирован пользователем: ' + GetUserByTransaction + #13#10 +
+                'Объект заблокирован пользователем: ' + GetUserByTransaction(StatusVectorArray[9]) + #13#10 +
                 'Возможно, запись изменяется в текущий момент времени'#13#10 +
                 'или была недавно изменена (удалена) другим пользователем.'#13#10#13#10 +
                 'Отмените редактирование, обновите данные и попробуйте'#13#10 +
