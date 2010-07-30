@@ -1197,7 +1197,7 @@ begin
                 'Запись заблокирована',
                 MB_OK or MB_ICONEXCLAMATION);
             end
-            else if (E.IBErrorCode = isc_except) and (Pos('Period', E.Message) > 0) then
+            else if (E.IBErrorCode = isc_except) and (PChar(StatusVectorArray[7]) = 'GD_E_BLOCK') then
             begin
               FRecordLocked := True;
               MessageBox(gdcObject.ParentHandle,

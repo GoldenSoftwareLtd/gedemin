@@ -2114,6 +2114,7 @@ procedure TgdcInvDocumentLine.CustomDelete(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+       S: String;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCINVDOCUMENTLINE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  try
@@ -2163,7 +2164,9 @@ begin
         on E: EIBError do
         begin
           if E.IBErrorCode = isc_except then
-            if (Pos('Period zablokirovan', E.Message) > 0) then
+          begin
+            S := String(PChar(StatusVectorArray[7]));
+            if (S = 'GD_E_BLOCK') then
             begin
               MessageBox(ParentHandle,
                 'Период заблокирован для изменений.'#13#10 +
@@ -2172,7 +2175,11 @@ begin
                 'Период заблокирован',
                 MB_OK or MB_ICONEXCLAMATION);
               abort;
-            end else
+            end
+            else if (Pos('USR', S) > 0) then
+              //пользовательское исключение
+              raise
+            else
             begin
               with Tgdc_dlgViewMovement.Create(ParentForm) do
                 try
@@ -2189,7 +2196,7 @@ begin
                 end;
               abort;
             end
-          else
+          end else
             raise;
         end;
 
