@@ -1700,6 +1700,11 @@ end;
 procedure TfrmSQLEditorSyn.actRefreshMonitorExecute(Sender: TObject);
 begin
   ibdsMonitor.Close;
+
+  if ibtrMonitor.InTransaction then
+    ibtrMonitor.Commit;
+  ibtrMonitor.StartTransaction;
+
   ibdsMonitor.Open;
 end;
 

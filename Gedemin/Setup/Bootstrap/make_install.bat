@@ -28,7 +28,7 @@ goto exit
 
 :proceed
 
-if NOT exist d:\nul subst d: g:\
+if NOT exist d:\nul subst d: k:\
 
 eventcreate /t INFORMATION /id 200 /l application /so gedemin /d "Start making install %4."
 
@@ -44,7 +44,7 @@ echo *************************************************
 @set inno_setup_path=C:\Program Files\Inno Setup 5
 @set fb_path=c:\program files\Firebird 2.5\bin
 @set install_source_path=..\..\..\gedemin_local_fb
-@set database_path=g:\golden\gedemin_local_fb\database
+@set database_path=k:\golden\gedemin_local_fb\database
 @set winrar_path=C:\Program Files\WinRar
 @set setup_path=..\InnoSetup
 @set setting_path=d:\golden\setting
