@@ -2202,10 +2202,15 @@ end;
 function GetUserByTransaction(const ATrID: Integer): String;
 var
   q: TIBSQL;
+  Tr: TIBTransaction;
 begin
   q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
   try
-    q.Transaction := gdcBaseManager.ReadTransaction;
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
     q.SQL.Text :=
       'SELECT COALESCE(u.name, a.mon$user) || '' ('' || a.mon$remote_address || '')'' ' +
       'FROM mon$transactions s ' +
@@ -2219,6 +2224,7 @@ begin
       Result := q.Fields[0].AsTrimString;
   finally
     q.Free;
+    Tr.Free;   
   end;
 end;
 
