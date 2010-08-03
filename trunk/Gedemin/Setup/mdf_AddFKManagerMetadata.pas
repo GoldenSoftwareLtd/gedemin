@@ -125,6 +125,30 @@ begin
         FIBSQL.Transaction := FTransaction;
         FIBSQL.ParamCheck := False;
 
+        {FIBSQL.SQL.Text :=
+          'select '#13#10 +
+          '  c.rdb$constraint_name '#13#10 +
+          'from '#13#10 +
+          '  rdb$check_constraints c join rdb$triggers t '#13#10 +
+          '    on c.rdb$trigger_name = t.rdb$trigger_name '#13#10 +
+          'where '#13#10 +
+          '  exists ( '#13#10 +
+          '    select * '#13#10 +
+          '    from rdb$check_constraints c2 join rdb$triggers t2 '#13#10 +
+          '      on c2.rdb$trigger_name = t2.rdb$trigger_name '#13#10 +
+          '    where '#13#10 +
+          '      c2.rdb$constraint_name <> c.rdb$constraint_name '#13#10 +
+          '      and c2.rdb$trigger_name = c.rdb$trigger_name) ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.Eof then
+        begin
+          raise Exception.Create(
+            'Структура БД повреждена! Обратитесь к системному администратору.'#13#10#13#10 +
+            'Два разных CHECK на разных таблицах ссылаются на один и тот же системный триггер.');
+        end;}
+
+        FIBSQL.Close;
         FIBSQL.SQL.Text :=
           'SELECT * FROM rdb$relations WHERE rdb$relation_name = ''GD_REF_CONSTRAINTS'' ';
         FIBSQL.ExecQuery;
