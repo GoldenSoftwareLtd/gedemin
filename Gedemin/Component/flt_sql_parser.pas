@@ -172,6 +172,39 @@ begin
           break;
       end;
 
+      // конструкция типа Select from select
+      if (Scope = ssFrom) and (IP.TokemType = ttIdentifier) and (IP.LowerTokem = 'select') then
+      begin
+        IP.Rollback;
+        while IP.TokemType = ttSpace do
+          IP.Rollback;
+
+        if IP.LowerTokem = '(' then
+        begin
+          J := 1;
+          while (J > 0) and (not IP.EOF) do
+          begin
+            IP.GetNext;
+            if IP.LowerTokem = '''' then
+            begin
+              repeat
+                IP.GetNext;
+              until IP.EOF or (IP.LowerTokem = '''');
+              continue;
+            end;
+            if IP.LowerTokem = '(' then Inc(J);
+            if IP.LowerTokem = ')' then Dec(J);
+          end;
+          if IP.EOF then
+            raise Exception.Create('Invalid SQL');
+          IP.GetNext;
+        end;
+
+        IP.Rollback;
+        Scope := ssFrom;
+        continue;
+      end;
+
       if (Scope = ssNone) and (IP.TokemType = ttIdentifier) and (IP.LowerTokem = 'select') then
       begin
         // мы мусім прапусціць увесь селект пакуль ня
