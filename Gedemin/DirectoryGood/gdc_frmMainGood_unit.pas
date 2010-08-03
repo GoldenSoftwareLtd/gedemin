@@ -20,8 +20,12 @@ type
     tbiSubNew: TTBItem;
     actNewSub: TAction;
     tblMenuNew: TTBItem;
+    actViewAllCard: TAction;
+    tbiViewAllCard: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actNewSubExecute(Sender: TObject);
+    procedure actViewAllCardUpdate(Sender: TObject);
+    procedure actViewAllCardExecute(Sender: TObject);
 
   protected
     procedure RemoveSubSetList(S:TStrings); override;
@@ -39,7 +43,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList;
+  gd_ClassList, gdc_frmInvCard_unit;
 
 class function Tgdc_frmMainGood.CreateAndAssign(
   AnOwner: TComponent): TForm;
@@ -98,9 +102,29 @@ begin
   {END MACRO}
 end;
 
+procedure Tgdc_frmMainGood.actViewAllCardUpdate(Sender: TObject);
+begin
+  actViewAllCard.Enabled := not gdcDetailObject.IsEmpty;
+end;
+
+procedure Tgdc_frmMainGood.actViewAllCardExecute(Sender: TObject);
+begin
+  with Tgdc_frmInvCard.Create(Self) as Tgdc_frmInvCard do
+  try
+    gdcInvCard.Close;
+    gdcObject := gdcInvCard;
+    gdcObject.SubSet := 'ByHolding,ByGoodOnly';
+    gdcObject.ParamByName('goodkey').AsInteger := gdcDetailObject.ID;
+    RunCard;
+    ShowModal;
+  finally
+    Free;
+  end;
+end;
+
 initialization
   RegisterFrmClass(Tgdc_frmMainGood);
-  //RegisterClass(Tgdc_frmMainGood);
+
 finalization
   UnRegisterFrmClass(Tgdc_frmMainGood);
 
