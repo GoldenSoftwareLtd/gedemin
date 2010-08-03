@@ -6,7 +6,7 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 557
+    Top = 556
   end
   inherited TBDockTop: TTBDock
     inherited tbMainToolbar: TTBToolbar
@@ -69,7 +69,22 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
     end
   end
   inherited TBDockBottom: TTBDock
-    Top = 576
+    Top = 575
+  end
+  inherited pnlWorkArea: TPanel
+    inherited pnlDetail: TPanel
+      inherited TBDockDetail: TTBDock
+        inherited tbDetailToolbar: TTBToolbar
+          Images = dmImages.il16x16
+          object tbiViewAllCard: TTBItem
+            Action = actViewAllCard
+          end
+        end
+        inherited tbDetailCustom: TTBToolbar
+          Left = 298
+        end
+      end
+    end
   end
   inherited alMain: TActionList
     Left = 85
@@ -77,6 +92,14 @@ inherited gdc_frmMainGood: Tgdc_frmMainGood
       Category = 'Main'
       Caption = 'Добавить подуровень...'
       OnExecute = actNewSubExecute
+    end
+    object actViewAllCard: TAction
+      Category = 'Detail'
+      Caption = 'Просмотр карточки по холдингу...'
+      Hint = 'Просмотр карточки по холдингу...'
+      ImageIndex = 74
+      OnExecute = actViewAllCardExecute
+      OnUpdate = actViewAllCardUpdate
     end
   end
   inherited pmMain: TPopupMenu
