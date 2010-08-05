@@ -2073,7 +2073,7 @@ begin
     ibsql.Transaction := ReadTransaction;
     ibsql.SQL.Text :=
       'SELECT id FROM gd_document WHERE number = :number AND ' +
-      ' documenttypekey = :dt AND id <> :id AND parent IS NULL AND companykey = :companykey ';
+      ' documenttypekey = :dt AND id <> :id AND parent + 0 IS NULL AND companykey = :companykey ';
     ibsql.ParamByName('dt').AsInteger := DocumentTypeKey;
     ibsql.ParamByName('id').AsInteger := FieldByName('id').AsInteger;
     ibsql.ParamByName('companykey').AsInteger := FieldByName('companykey').AsInteger;
@@ -3720,7 +3720,7 @@ begin
     raise Exception.Create('Передан неверный Subtype: ' + ASubType);
   XID := System.Copy(ASubType, 1, UnderLinePos - 1);
   DBID := System.Copy(ASubType, UnderLinePos + 1, Length(ASubType) - UnderLinePos);
-  Result := Format('z.documenttypekey = <RUID XID = "%s" DBID = "%s"/> AND z.parent IS NULL ',
+  Result := Format('z.documenttypekey = <RUID XID = "%s" DBID = "%s"/> AND z.parent + 0 IS NULL ',
     [XID, DBID]);
 end;
 
