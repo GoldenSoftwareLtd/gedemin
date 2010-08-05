@@ -26,7 +26,6 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
   inherited pcMain: TPageControl
     Width = 532
     Height = 422
-    ActivePage = tsReferences
     Align = alTop
     OnChange = pcMainChange
     OnChanging = pcMainChanging

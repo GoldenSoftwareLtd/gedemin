@@ -869,7 +869,7 @@ begin
   edEnglishName.Text := '';
   edEnglishName.MaxLength := 14;
 
-  cbTemplate.ItemIndex := -1;
+  cbTemplate.ItemIndex := 0;
   cbDocument.ItemIndex := -1;
 
   { TODO 1 -oденис -cсделать : Нужно вставить загрузку списка складских документов. }
