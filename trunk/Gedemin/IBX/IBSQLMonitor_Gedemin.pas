@@ -76,13 +76,17 @@ end;
 
 procedure TGedeminSQLMonitor.DBConnect(db: TIBDatabase);
 begin
-  WriteToDatabase(tfConnect, db, 'Connect');
+  if FEnabled then
+    WriteToDatabase(tfConnect, db, 'Connect');
 end;
 
 procedure TGedeminSQLMonitor.DBDisconnect(db: TIBDatabase);
 begin
-  WriteToDatabase(tfConnect, db, 'Disconnect');
-  FEnabled := False;
+  if FEnabled then
+  begin
+    WriteToDatabase(tfConnect, db, 'Disconnect');
+    FEnabled := False;
+  end;  
 end;
 
 destructor TGedeminSQLMonitor.Destroy;
@@ -102,37 +106,44 @@ end;
 
 procedure TGedeminSQLMonitor.SendError(Msg: String);
 begin
-  WriteToDatabase(tfError, nil, '', Msg);
+  if FEnabled then
+    WriteToDatabase(tfError, nil, '', Msg);
 end;
 
 procedure TGedeminSQLMonitor.SendError(Msg: String; db: TIBDatabase);
 begin
-  WriteToDatabase(tfError, db, '', Msg);
+  if FEnabled then
+    WriteToDatabase(tfError, db, '', Msg);
 end;
 
 procedure TGedeminSQLMonitor.SendMisc(Msg: String);
 begin
-  WriteToDatabase(tfMisc, nil, '', Msg);
+  if FEnabled then
+    WriteToDatabase(tfMisc, nil, '', Msg);
 end;
 
 procedure TGedeminSQLMonitor.ServiceAttach(service: TIBCustomService);
 begin
-  WriteToDatabase(tfService, service, 'Attach');
+  if FEnabled then
+    WriteToDatabase(tfService, service, 'Attach');
 end;
 
 procedure TGedeminSQLMonitor.ServiceDetach(service: TIBCustomService);
 begin
-  WriteToDatabase(tfService, service, 'Detach');
+  if FEnabled then
+    WriteToDatabase(tfService, service, 'Detach');
 end;
 
 procedure TGedeminSQLMonitor.ServiceQuery(service: TIBCustomService);
 begin
-  WriteToDatabase(tfService, service, 'Query');
+  if FEnabled then
+    WriteToDatabase(tfService, service, 'Query');
 end;
 
 procedure TGedeminSQLMonitor.ServiceStart(service: TIBCustomService);
 begin
-  WriteToDatabase(tfService, service, 'Start');
+  if FEnabled then
+    WriteToDatabase(tfService, service, 'Start');
 end;
 
 procedure TGedeminSQLMonitor.SetEnabled(const Value: Boolean);
@@ -148,42 +159,50 @@ end;
 procedure TGedeminSQLMonitor.SQLExecute(qry: TIBSQL;
   const Duration: Cardinal);
 begin
-  WriteToDatabase(tfQExecute, qry, '', qry.SQL.Text, TgdcSQLHistory.EncodeParamsText(qry.Params));
+  if FEnabled then
+    WriteToDatabase(tfQExecute, qry, '', qry.SQL.Text, TgdcSQLHistory.EncodeParamsText(qry.Params));
 end;
 
 procedure TGedeminSQLMonitor.SQLFetch(qry: TIBSQL);
 begin
-  WriteToDatabase(tfQFetch, qry, 'Fetch');
+  if FEnabled then
+    WriteToDatabase(tfQFetch, qry, 'Fetch');
 end;
 
 procedure TGedeminSQLMonitor.SQLPrepare(qry: TIBSQL);
 begin
-  WriteToDatabase(tfQPrepare, qry, 'Prepare');
+  if FEnabled then
+    WriteToDatabase(tfQPrepare, qry, 'Prepare');
 end;
 
 procedure TGedeminSQLMonitor.TRCommit(tr: TIBTransaction);
 begin
-  WriteToDatabase(tfTransact, tr, 'Commit');
+  if FEnabled then
+    WriteToDatabase(tfTransact, tr, 'Commit');
 end;
 
 procedure TGedeminSQLMonitor.TRCommitRetaining(tr: TIBTransaction);
 begin
-  WriteToDatabase(tfTransact, tr, 'CommitRetaining');
+  if FEnabled then
+    WriteToDatabase(tfTransact, tr, 'CommitRetaining');
 end;
 
 procedure TGedeminSQLMonitor.TRRollback(tr: TIBTransaction);
 begin
-  WriteToDatabase(tfTransact, tr, 'Rollback');
+  if FEnabled then
+    WriteToDatabase(tfTransact, tr, 'Rollback');
 end;
 
 procedure TGedeminSQLMonitor.TRRollbackRetaining(tr: TIBTransaction);
 begin
-  WriteToDatabase(tfTransact, tr, 'RollbackRetaining');
+  if FEnabled then
+    WriteToDatabase(tfTransact, tr, 'RollbackRetaining');
 end;
 
 procedure TGedeminSQLMonitor.TRStart(tr: TIBTransaction);
 begin
-  WriteToDatabase(tfTransact, tr, 'StartTransaction');
+  if FEnabled then
+    WriteToDatabase(tfTransact, tr, 'StartTransaction');
 end;
 
 procedure TGedeminSQLMonitor.WriteToDatabase(F: TTraceFlag; AComp: TComponent; const AMethod: String;
