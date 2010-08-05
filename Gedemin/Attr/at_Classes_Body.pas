@@ -3188,7 +3188,7 @@ begin
     // Удаление мусора из списка таблиц
     ////////////////////////////////////////////////////////////////////////////
 
-    for I := FRelations.Count - 1 downto 0 do
+{    for I := FRelations.Count - 1 downto 0 do
     begin
       if FRelations[I].IsDropped then
         TatBodyRelations(FRelations).FList.Remove(FRelations[I])
@@ -3198,15 +3198,15 @@ begin
           if FRelationFields[K].IsDropped then
             TatBodyRelationFields(FRelationFields).FList.Remove(FRelationFields[K]);
       end;
-    end;
+    end;         }
 
     ////////////////////////////////////////////////////////////////////////////
     // Удаление мусора из списка типов полей
     ////////////////////////////////////////////////////////////////////////////
 
-    for I := FFields.Count - 1 downto 0 do
+{    for I := FFields.Count - 1 downto 0 do
       if FFields[I].IsDropped then
-        TatBodyFields(FFields).FList.Remove(FFields[I]);
+        TatBodyFields(FFields).FList.Remove(FFields[I]);   }
 
     ////////////////////////////////////////////////////////////////////////////
     // Удаление мусора из списка внешних ключей
