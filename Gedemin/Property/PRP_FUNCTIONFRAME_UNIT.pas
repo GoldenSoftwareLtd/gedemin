@@ -580,9 +580,9 @@ begin
   {для начала будем выдавать просто сообщение, в дальнейшем не давать сохранить}
   if (gdcFunction.FieldByName(fnModule).AsString <> scrConst) then
   begin
-    if System.Pos('OPTION EXPLICIT', AnsiUpperCase(gsFunctionSynEdit.Lines.GetText)) > 0 then
+    if System.Pos('OPTION EXPLICIT', AnsiUpperCase(gsFunctionSynEdit.Lines.Text)) > 0 then
     begin
-      if System.Pos('''OPTION EXPLICIT', AnsiUpperCase(gsFunctionSynEdit.Lines.GetText)) > 0 then
+      if System.Pos('''OPTION EXPLICIT', AnsiUpperCase(gsFunctionSynEdit.Lines.Text)) > 0 then
         MessageBox(Application.Handle, 'Option Explicit закомментирован.'#13#10 +
           'Его отключение может приводить к ошибкам в коде.', 'Внимание',
           MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
