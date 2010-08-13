@@ -1,45 +1,45 @@
 inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
-  Left = 513
-  Top = 320
+  Left = 539
+  Top = 311
   Caption = 'Документ'
   ClientHeight = 423
-  ClientWidth = 573
+  ClientWidth = 532
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Left = 2
-    Top = 398
+    Left = 4
+    Top = 400
     Anchors = [akLeft, akBottom]
     TabOrder = 3
   end
   inherited btnNew: TButton
-    Left = 74
-    Top = 398
+    Left = 76
+    Top = 400
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
   inherited btnHelp: TButton
-    Left = 146
-    Top = 398
+    Left = 148
+    Top = 400
     Anchors = [akLeft, akBottom]
     TabOrder = 5
   end
   inherited btnOK: TButton
-    Left = 430
-    Top = 398
+    Left = 388
+    Top = 400
     Anchors = [akRight, akBottom]
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 502
-    Top = 398
+    Left = 460
+    Top = 400
     Anchors = [akRight, akBottom]
     TabOrder = 2
   end
   object pcMain: TPageControl [5]
-    Left = 0
-    Top = 0
-    Width = 573
+    Left = 4
+    Top = 4
+    Width = 524
     Height = 392
     ActivePage = tsCommon
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -48,7 +48,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       Caption = 'Общие'
       object lblDocumentName: TLabel
         Left = 8
-        Top = 7
+        Top = 10
         Width = 135
         Height = 13
         Caption = 'Наименование документа:'
@@ -56,7 +56,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object lblComment: TLabel
         Left = 8
-        Top = 30
+        Top = 33
         Width = 71
         Height = 13
         Caption = 'Комментарий:'
@@ -80,7 +80,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object Label2: TLabel
         Left = 8
-        Top = 169
+        Top = 168
         Width = 148
         Height = 13
         Caption = 'Таблица позиции документа:'
@@ -88,35 +88,33 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object Label3: TLabel
         Left = 8
-        Top = 92
-        Width = 91
-        Height = 26
-        Caption = 'Наименование на английском:'
+        Top = 100
+        Width = 122
+        Height = 13
+        Caption = 'Наименование на англ.:'
         FocusControl = edEnglishName
         WordWrap = True
       end
       object lFunction: TLabel
         Left = 8
-        Top = 186
-        Width = 144
-        Height = 25
-        AutoSize = False
-        Caption = 'Функция типовой операции шапки документа:'
+        Top = 191
+        Width = 100
+        Height = 13
+        Caption = 'Функция ТО шапки:'
         WordWrap = True
       end
       object Label4: TLabel
         Left = 8
-        Top = 211
-        Width = 144
-        Height = 25
-        AutoSize = False
-        Caption = 'Функция типовой операции позиции документа:'
+        Top = 214
+        Width = 109
+        Height = 13
+        Caption = 'Функция ТО позиции:'
         WordWrap = True
       end
       object edDocumentName: TDBEdit
         Left = 157
         Top = 7
-        Width = 284
+        Width = 352
         Height = 21
         Color = clBtnFace
         DataField = 'NAME'
@@ -127,7 +125,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object edDescription: TDBMemo
         Left = 157
         Top = 30
-        Width = 284
+        Width = 352
         Height = 64
         Color = clBtnFace
         DataField = 'DESCRIPTION'
@@ -138,7 +136,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object iblcExplorerBranch: TgsIBLookupComboBox
         Left = 157
         Top = 119
-        Width = 284
+        Width = 352
         Height = 21
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
@@ -159,7 +157,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object iblcHeaderTable: TgsIBLookupComboBox
         Left = 157
         Top = 142
-        Width = 284
+        Width = 352
         Height = 21
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
@@ -182,7 +180,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object iblcLineTable: TgsIBLookupComboBox
         Left = 157
         Top = 165
-        Width = 284
+        Width = 352
         Height = 21
         HelpContext = 1
         Database = dmDatabase.ibdbGAdmin
@@ -205,7 +203,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object edEnglishName: TEdit
         Left = 157
         Top = 96
-        Width = 284
+        Width = 352
         Height = 21
         CharCase = ecUpperCase
         Color = clBtnFace
@@ -214,11 +212,12 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         OnExit = edEnglishNameExit
       end
       object dbcbIsCommon: TDBCheckBox
-        Left = 8
-        Top = 256
-        Width = 121
+        Left = 7
+        Top = 234
+        Width = 163
         Height = 17
-        Caption = 'Общий документ'
+        Alignment = taLeftJustify
+        Caption = 'Общий документ:'
         DataField = 'iscommon'
         DataSource = dsgdcBase
         TabOrder = 12
@@ -228,7 +227,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object dbeFunctionName: TDBEdit
         Left = 157
         Top = 188
-        Width = 204
+        Width = 188
         Height = 21
         Color = clBtnFace
         DataField = 'NAME'
@@ -236,8 +235,8 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         ReadOnly = True
         TabOrder = 6
       end
-      object Button1: TButton
-        Left = 362
+      object btnConstr1: TButton
+        Left = 348
         Top = 188
         Width = 79
         Height = 21
@@ -246,8 +245,8 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       end
       object DBEdit1: TDBEdit
         Left = 157
-        Top = 213
-        Width = 204
+        Top = 211
+        Width = 188
         Height = 21
         Color = clBtnFace
         DataField = 'NAME'
@@ -255,26 +254,26 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         ReadOnly = True
         TabOrder = 9
       end
-      object Button2: TButton
-        Left = 362
-        Top = 213
+      object btnConstr2: TButton
+        Left = 348
+        Top = 211
         Width = 79
         Height = 21
         Action = actWizardLine
         TabOrder = 10
       end
-      object Button3: TButton
-        Left = 443
+      object btnDel1: TButton
+        Left = 429
         Top = 188
-        Width = 54
+        Width = 79
         Height = 21
         Action = actDeleteHeaderFunction
         TabOrder = 8
       end
-      object Button4: TButton
-        Left = 443
-        Top = 213
-        Width = 55
+      object btnDel2: TButton
+        Left = 429
+        Top = 211
+        Width = 79
         Height = 21
         Action = actDeleteLineFunction
         TabOrder = 11
@@ -286,7 +285,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object lblNumCompany: TLabel
         Left = 6
         Top = 6
-        Width = 512
+        Width = 505
         Height = 28
         AutoSize = False
         Color = clInfoBk
@@ -296,7 +295,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object gbNumber: TGroupBox
         Left = 5
         Top = 220
-        Width = 513
+        Width = 506
         Height = 42
         TabOrder = 2
         object lblCurrentNumber: TLabel
@@ -328,7 +327,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         object dbeIncrement: TDBEdit
           Left = 402
           Top = 13
-          Width = 101
+          Width = 94
           Height = 21
           DataField = 'ADDNUMBER'
           DataSource = dsgdcBase
@@ -339,7 +338,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
       object gbMask: TGroupBox
         Left = 5
         Top = 59
-        Width = 513
+        Width = 506
         Height = 157
         TabOrder = 1
         object lblMask: TLabel
@@ -367,7 +366,7 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
           FocusControl = edFixLength
         end
         object lvVariable: TListView
-          Left = 292
+          Left = 286
           Top = 15
           Width = 211
           Height = 131
@@ -424,31 +423,25 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
           OnChange = edFixLengthChange
         end
       end
-      object dbcbIsCheckNumber: TDBCheckBox
-        Left = 7
-        Top = 272
-        Width = 305
-        Height = 17
-        Caption = 'Контроль уникальности номера документа.'
-        DataField = 'ISCHECKNUMBER'
-        DataSource = dsgdcBase
-        TabOrder = 3
-        ValueChecked = '1'
-        ValueUnchecked = '0'
-      end
       object Memo1: TMemo
-        Left = 7
-        Top = 302
-        Width = 505
-        Height = 41
+        Left = 3
+        Top = 329
+        Width = 506
+        Height = 30
         TabStop = False
         BorderStyle = bsNone
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clBtnText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
         Lines.Strings = (
           
             'Изменение номера рекомендуется производить только в монопольном ' +
             'режиме работы, когда '
           'другие пользователи не подключены к базе данных.')
         ParentColor = True
+        ParentFont = False
         ReadOnly = True
         TabOrder = 4
       end
@@ -460,11 +453,32 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
         Action = actAutoNumeration
         TabOrder = 0
       end
+      object dbrgIsCheckNumber: TDBRadioGroup
+        Left = 5
+        Top = 266
+        Width = 506
+        Height = 57
+        Caption = ' Контролировать уникальность номера документа  '
+        Columns = 2
+        DataField = 'ISCHECKNUMBER'
+        DataSource = dsgdcBase
+        Items.Strings = (
+          'Не контролировать'
+          'Для всех документов'
+          'В пределах года'
+          'В пределах месяца')
+        TabOrder = 3
+        Values.Strings = (
+          '0'
+          '1'
+          '2'
+          '3')
+      end
     end
   end
   inherited alBase: TActionList
-    Left = 528
-    Top = 128
+    Left = 456
+    Top = 72
     object actWizardHeader: TAction
       Caption = 'Конструктор'
       OnExecute = actWizardHeaderExecute
@@ -521,25 +535,25 @@ inherited gdc_dlgDocumentType: Tgdc_dlgDocumentType
     MasterField = 'HEADERFUNCTIONKEY'
     DetailField = 'ID'
     SubSet = 'ByID'
-    Left = 440
-    Top = 280
+    Left = 408
+    Top = 16
   end
   object dsFunction: TDataSource
     DataSet = gdcFunctionHeader
-    Left = 408
-    Top = 280
+    Left = 376
+    Top = 16
   end
   object gdcFunctionLine: TgdcFunction
     MasterSource = dsgdcBase
     MasterField = 'LINEFUNCTIONKEY'
     DetailField = 'ID'
     SubSet = 'ByID'
-    Left = 440
-    Top = 312
+    Left = 408
+    Top = 48
   end
   object DataSource1: TDataSource
     DataSet = gdcFunctionLine
-    Left = 408
-    Top = 312
+    Left = 376
+    Top = 48
   end
 end

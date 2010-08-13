@@ -1,33 +1,19 @@
 inherited gdc_dlgUserDocumentSetup: Tgdc_dlgUserDocumentSetup
-  Left = 320
-  Top = 188
+  Left = 480
+  Top = 223
   Caption = 'Документ пользователя'
-  ClientHeight = 461
-  ClientWidth = 578
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 5
-    Top = 432
   end
   inherited btnNew: TButton
     Left = 77
-    Top = 432
-  end
-  inherited btnOK: TButton
-    Left = 434
-    Top = 432
-  end
-  inherited btnCancel: TButton
-    Left = 506
-    Top = 432
   end
   inherited btnHelp: TButton
     Left = 149
-    Top = 432
   end
   inherited pcMain: TPageControl
-    Height = 424
     inherited tsCommon: TTabSheet
       inherited edDocumentName: TDBEdit
         Color = clWindow

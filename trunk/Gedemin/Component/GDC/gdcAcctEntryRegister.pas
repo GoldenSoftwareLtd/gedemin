@@ -1831,8 +1831,8 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  if FieldByName('documenttypekey').AsInteger = DefaultDocumentTypeKey then
-  begin
+//  if FieldByName('documenttypekey').AsInteger = DefaultDocumentTypeKey then
+//  begin
     gdcAcctComplexRecord := TgdcAcctComplexRecord.Create(Self);
     try
       gdcAcctComplexRecord.Transaction := Transaction;
@@ -1848,9 +1848,9 @@ begin
     finally
       gdcAcctComplexRecord.Free;
     end;
-  end
-  else
-    Result := False;
+//  end
+//  else
+//    Result := False;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTVIEWENTRYREGISTER', 'COPYDIALOG', KEYCOPYDIALOG)}
   {M}  finally
