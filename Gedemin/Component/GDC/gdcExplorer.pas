@@ -694,6 +694,7 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   I: Integer;
+  q: TIBSQL;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCEXPLORER', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -732,6 +733,25 @@ begin
         raise EgdcException.Create('Недопустимый символ в подтипе "' +
             FieldByName('subtype').AsString + '".');
       end;
+    end;
+  end;
+
+  if not FieldByName('parent').IsNull then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT AVIEW, ACHAG, AFULL FROM GD_COMMAND ' +
+        ' WHERE ID = ' + FieldByName('parent').AsString;
+      q.ExecQuery;
+      if not q.Eof then
+      begin
+        FieldByName('aview').AsInteger := q.Fields[0].AsInteger;
+        FieldByName('achag').AsInteger := q.Fields[1].AsInteger;
+        FieldByName('afull').AsInteger := q.Fields[2].AsInteger;
+      end;
+    finally
+      q.Free;
     end;
   end;
 
