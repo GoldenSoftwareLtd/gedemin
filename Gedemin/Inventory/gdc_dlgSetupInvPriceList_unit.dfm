@@ -1,54 +1,56 @@
 inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
-  Left = 346
-  Top = 205
+  Left = 438
+  Top = 307
   Caption = 'Настройка прайс-листа'
-  ClientHeight = 445
-  ClientWidth = 512
+  ClientHeight = 423
+  ClientWidth = 532
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 416
+    Left = 4
+    Top = 399
     Anchors = [akLeft, akBottom]
     TabOrder = 3
   end
   inherited btnNew: TButton
-    Top = 416
+    Left = 76
+    Top = 399
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Left = 148
+    Top = 399
+    Anchors = [akLeft, akBottom]
+    TabOrder = 5
+  end
   inherited btnOK: TButton
-    Left = 350
-    Top = 416
+    Left = 384
+    Top = 399
     Anchors = [akRight, akBottom]
     TabOrder = 1
   end
   inherited btnCancel: TButton
-    Left = 430
-    Top = 416
+    Left = 459
+    Top = 399
     Anchors = [akRight, akBottom]
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Top = 416
-    Anchors = [akLeft, akBottom]
-    TabOrder = 5
   end
   object pnlMain: TPanel [5]
     Left = 0
     Top = 0
-    Width = 512
-    Height = 409
+    Width = 532
+    Height = 395
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
     TabOrder = 0
     object pcMain: TPageControl
-      Left = 0
-      Top = 0
-      Width = 512
-      Height = 409
+      Left = 4
+      Top = 4
+      Width = 523
+      Height = 391
       ActivePage = tsCommon
-      Align = alClient
       TabOrder = 0
       OnChange = pcMainChange
       OnChanging = pcMainChanging
@@ -70,24 +72,24 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           Caption = 'Комментарий:'
         end
         object Label1: TLabel
-          Left = 8
-          Top = 137
+          Left = 7
+          Top = 129
           Width = 103
           Height = 13
           Caption = 'Шапка прайс-листа:'
           FocusControl = iblcHeaderTable
         end
         object Label2: TLabel
-          Left = 8
-          Top = 162
+          Left = 7
+          Top = 154
           Width = 111
           Height = 13
           Caption = 'Позиция прайс-листа:'
           FocusControl = iblcLineTable
         end
         object lblExplorer: TLabel
-          Left = 8
-          Top = 112
+          Left = 7
+          Top = 104
           Width = 123
           Height = 13
           Caption = 'Ветка в исследователе:'
@@ -95,7 +97,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         object edDocumentName: TDBEdit
           Left = 157
           Top = 7
-          Width = 254
+          Width = 352
           Height = 21
           DataField = 'NAME'
           DataSource = dsgdcBase
@@ -103,8 +105,8 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object edDescription: TDBMemo
           Left = 157
-          Top = 37
-          Width = 254
+          Top = 32
+          Width = 352
           Height = 64
           DataField = 'DESCRIPTION'
           DataSource = dsgdcBase
@@ -112,8 +114,8 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object iblcHeaderTable: TgsIBLookupComboBox
           Left = 157
-          Top = 133
-          Width = 254
+          Top = 125
+          Width = 352
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -132,8 +134,8 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object iblcLineTable: TgsIBLookupComboBox
           Left = 157
-          Top = 158
-          Width = 254
+          Top = 150
+          Width = 352
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -152,8 +154,8 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object ibcmbExplorer: TgsIBLookupComboBox
           Left = 157
-          Top = 106
-          Width = 254
+          Top = 100
+          Width = 352
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -171,10 +173,11 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object dbcbIsCommon: TDBCheckBox
           Left = 7
-          Top = 200
-          Width = 121
+          Top = 175
+          Width = 163
           Height = 17
-          Caption = 'Общий документ'
+          Alignment = taLeftJustify
+          Caption = 'Общий документ:'
           DataField = 'iscommon'
           DataSource = dsgdcBase
           TabOrder = 5
@@ -188,7 +191,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         object lvMasterAvailable: TListView
           Left = 7
           Top = 12
-          Width = 204
+          Width = 224
           Height = 209
           Columns = <
             item
@@ -204,9 +207,9 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           OnDblClick = actSelectMasterFieldExecute
         end
         object lvMasterUsed: TListView
-          Left = 287
+          Left = 282
           Top = 12
-          Width = 204
+          Width = 224
           Height = 209
           Columns = <
             item
@@ -224,42 +227,42 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           OnSelectItem = lvMasterUsedSelectItem
         end
         object btnMasterAdd: TButton
-          Left = 225
-          Top = 23
-          Width = 48
-          Height = 25
+          Left = 241
+          Top = 55
+          Width = 32
+          Height = 21
           Action = actSelectMasterField
           TabOrder = 2
         end
         object btnMasterAddAll: TButton
-          Left = 225
-          Top = 63
-          Width = 48
-          Height = 25
+          Left = 241
+          Top = 90
+          Width = 32
+          Height = 21
           Action = actSelectMasterAllFields
           TabOrder = 3
         end
         object btnMasterRemove: TButton
-          Left = 225
-          Top = 103
-          Width = 48
-          Height = 25
+          Left = 241
+          Top = 124
+          Width = 32
+          Height = 21
           Action = actDeselectMasterField
           TabOrder = 4
         end
         object btnMasterRemoveAll: TButton
-          Left = 225
-          Top = 143
-          Width = 48
-          Height = 25
+          Left = 241
+          Top = 159
+          Width = 32
+          Height = 21
           Action = actDeselectMasterAllFields
           TabOrder = 5
         end
         object memoHeaderInfo: TMemo
-          Left = 287
+          Left = 282
           Top = 230
-          Width = 204
-          Height = 111
+          Width = 224
+          Height = 127
           TabStop = False
           ScrollBars = ssVertical
           TabOrder = 6
@@ -271,14 +274,14 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         ImageIndex = 2
         object lblCurrency: TLabel
           Left = 7
-          Top = 236
+          Top = 229
           Width = 173
           Height = 13
           Caption = 'Валюта, в которой ведется учет:'
         end
         object lblContact: TLabel
           Left = 7
-          Top = 286
+          Top = 279
           Width = 131
           Height = 13
           Caption = 'Ограничение на контакт:'
@@ -286,7 +289,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         object lvDetailAvailable: TListView
           Left = 7
           Top = 12
-          Width = 204
+          Width = 224
           Height = 209
           Columns = <
             item
@@ -304,9 +307,9 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           OnSelectItem = lvDetailAvailableSelectItem
         end
         object lvDetailUsed: TListView
-          Left = 287
+          Left = 282
           Top = 12
-          Width = 204
+          Width = 224
           Height = 209
           Columns = <
             item
@@ -324,42 +327,42 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           OnSelectItem = lvMasterUsedSelectItem
         end
         object btnDetailAdd: TButton
-          Left = 225
-          Top = 23
-          Width = 48
-          Height = 25
+          Left = 241
+          Top = 55
+          Width = 32
+          Height = 21
           Action = actSelectDetailField
           TabOrder = 2
         end
         object btnDetailAddAll: TButton
-          Left = 225
-          Top = 63
-          Width = 48
-          Height = 25
+          Left = 241
+          Top = 90
+          Width = 32
+          Height = 21
           Action = actSelectDetailAllFields
           TabOrder = 3
         end
         object btnDetailRemove: TButton
-          Left = 225
-          Top = 103
-          Width = 48
-          Height = 25
+          Left = 241
+          Top = 124
+          Width = 32
+          Height = 21
           Action = actDeselectDetailField
           TabOrder = 4
         end
         object btnDetailRemoveAll: TButton
-          Left = 225
-          Top = 143
-          Width = 48
-          Height = 25
+          Left = 241
+          Top = 159
+          Width = 32
+          Height = 21
           Action = actDeselectDetailAllFields
           TabOrder = 5
         end
         object memoLineInfo: TMemo
-          Left = 287
+          Left = 282
           Top = 230
-          Width = 204
-          Height = 111
+          Width = 224
+          Height = 128
           TabStop = False
           ScrollBars = ssVertical
           TabOrder = 6
@@ -367,8 +370,8 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
         end
         object luCurrency: TgsIBLookupComboBox
           Left = 7
-          Top = 251
-          Width = 204
+          Top = 244
+          Width = 224
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -377,15 +380,15 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           ListField = 'name'
           KeyField = 'id'
           gdClassName = 'TgdcCurr'
-          ItemHeight = 0
+          ItemHeight = 13
           ParentShowHint = False
           ShowHint = True
           TabOrder = 7
         end
         object luContact: TgsIBLookupComboBox
           Left = 7
-          Top = 301
-          Width = 204
+          Top = 294
+          Width = 224
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -395,7 +398,7 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
           KeyField = 'id'
           Condition = 'contacttype=2'
           gdClassName = 'TgdcContact'
-          ItemHeight = 0
+          ItemHeight = 13
           ParentShowHint = False
           ShowHint = True
           TabOrder = 8
@@ -520,8 +523,8 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
     MasterField = 'ID'
     DetailField = 'relationkey'
     SubSet = 'ByRelation'
-    Left = 276
-    Top = 88
+    Left = 356
+    Top = 112
   end
   object gdcPriceLineTableField: TgdcTableField
     MasterSource = dsLine
@@ -533,8 +536,8 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
   end
   object gdcHeaderTable: TgdcTable
     SubSet = 'ByID'
-    Left = 244
-    Top = 88
+    Left = 324
+    Top = 112
   end
   object gdcLineTable: TgdcTable
     SubSet = 'ByID'
@@ -543,8 +546,8 @@ inherited dlgSetupInvPriceList: TdlgSetupInvPriceList
   end
   object dsHeader: TDataSource
     DataSet = gdcHeaderTable
-    Left = 276
-    Top = 57
+    Left = 356
+    Top = 81
   end
   object dsLine: TDataSource
     DataSet = gdcLineTable

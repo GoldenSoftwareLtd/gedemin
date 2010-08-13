@@ -46,7 +46,7 @@ uses
   mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean;
 
 const
-  cProcCount = 147;
+  cProcCount = 148;
 
 type
   TModifyProc = record
@@ -300,7 +300,8 @@ const
     (ModifyProc: MakeLBIndexNonUnique; ModifyVersion: '0000.0001.0000.0148'),
     (ModifyProc: AddFKManagerMetadata; ModifyVersion: '0000.0001.0000.0149'),
     (ModifyProc: RegenerateLBRBTree; ModifyVersion: '0000.0001.0000.0150'),
-    (ModifyProc: AddDefaultToBoolean; ModifyVersion: '0000.0001.0000.0151')
+    (ModifyProc: AddDefaultToBoolean; ModifyVersion: '0000.0001.0000.0151'),
+    (ModifyProc: ChangeIsCheckNumberType; ModifyVersion: '0000.0001.0000.0152')
   );
 
 implementation

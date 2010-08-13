@@ -405,6 +405,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (121, '0000.0001.0000.0152', '26.07.2010', 'Added DEFAULT 0 to boolean domains');
 
+INSERT INTO fin_versioninfo
+  VALUES (122, '0000.0001.0000.0153', '12.08.2010', 'IsCheckNumber now allows 4 possible values');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

@@ -30,11 +30,11 @@ CREATE DOMAIN ddocumenttype
 /* Тип документа */
 CREATE TABLE gd_documenttype
 (
-  id                      dintkey,                                                  
-  parent                  dparent,                                                  
-  lb                      dlb,                                                      
-  rb                      drb,                                                      
-                                                                                    
+  id                      dintkey,
+  parent                  dparent,
+  lb                      dlb,
+  rb                      drb,
+
   name                    dname,
   description             dtext180,
 
@@ -54,17 +54,23 @@ CREATE TABLE gd_documenttype
   branchkey               dforeignkey,               /* Ветка в исследователе */
   reportgroupkey          dforeignkey,               /* Группа отчетов */
   reserved                dreserved,
-  ISCOMMON                DBOOLEAN DEFAULT 0,
-  ischecknumber           dboolean DEFAULT 0,         /* Проверять дублирование номеров */
-  HEADERFUNCTIONKEY       DFOREIGNKEY,
-  HEADERFUNCTIONTEMPLATE  DBLOB80,
-  LINEFUNCTIONKEY         DFOREIGNKEY,
-  LINEFUNCTIONTEMPLATE    DBLOB80
+  iscommon                dboolean DEFAULT 0,
+  ischecknumber           SMALLINT DEFAULT 0,        /* Дублирование номеров: 0 -- не проверять, 1 -- всегда, 2 -- в теч года, 3 -- в теч м-ца */
+  headerfunctionkey       dforeignkey,
+  headerfunctiontemplate  dblob80,
+  linefunctionkey         dforeignkey,
+  linefunctiontemplate    dblob80,
+
+  CONSTRAINT gd_chck_icn_documenttype CHECK (ischecknumber BETWEEN 0 AND 3)
 );
+
 COMMIT;
+
 ALTER TABLE gd_documenttype ADD CONSTRAINT gd_pk_documenttype
   PRIMARY KEY (id);
+
 COMMIT;
+
 ALTER TABLE gd_documenttype ADD CONSTRAINT gd_fk_documenttype_parent
   FOREIGN KEY (parent) REFERENCES gd_documenttype(id)
   ON DELETE CASCADE

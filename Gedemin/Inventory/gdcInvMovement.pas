@@ -1406,7 +1406,7 @@ begin
   else
   begin
     {$IFDEF DEBUGMOVE}
-    ShowMessage('Создаем новую карточку');
+  //  ShowMessage('Создаем новую карточку');
     {$ENDIF}
     if ((gdcDocumentLine as TgdcInvDocumentLine).RelationType = irtInventorization) or
       isExistsCardKey(invPosition.ipBaseCardKey) and (GetLastRemains(invPosition.ipBaseCardKey, invPosition.ipSourceContactKey) > 0) then
@@ -1414,7 +1414,7 @@ begin
     else
       TempCardKey := -1;
     {$IFDEF DEBUGMOVE}
-    ShowMessage('Базовая карточка ' + inttostr(TempCardKey) );
+//    ShowMessage('Базовая карточка ' + inttostr(TempCardKey) );
     {$ENDIF}
 
     SourceCardKey := AddInvCard(TempCardKey, invPosition,

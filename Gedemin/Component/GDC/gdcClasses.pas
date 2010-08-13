@@ -46,10 +46,17 @@ const
 {$ENDIF}
 
 type
-  // Вид части документа
-  TgdcDocumentClassPart = (dcpHeader, dcpLine);
-  // dcpHeader - шапка документа
-  // dcpLine - позиция документа
+  TgdcDocumentClassPart = (
+    dcpHeader,        // dcpHeader - шапка документа
+    dcpLine           // dcpLine - позиция документа
+  );
+
+  TIsCheckNumber = (
+    icnNever,         // не проверять уникальность номера
+    icnAlways,        // проверять для всех документов
+    icnYear,          // проверять только в течение года
+    icnMonth          // проверять только в течение месяца
+  );
 
 type
   TgdcDocument = class;
@@ -77,7 +84,7 @@ type
     procedure MakeRollbackNumber;
     function GetgdcAcctEntryRegister: TgdcBase;
     procedure CheckNumber(Field: TField);
-    function GetIsCheckNumber: Boolean;
+    function GetIsCheckNumber: TIsCheckNumber;
 
   protected
     FIsCommon: Boolean;
@@ -153,7 +160,7 @@ type
     property gdcAcctEntryRegister: TgdcBase read GetgdcAcctEntryRegister;
 
     property IsCommon: Boolean read GetIsCommon;
-    property IsCheckNumber: Boolean read GetIsCheckNumber;
+    property IsCheckNumber: TIsCheckNumber read GetIsCheckNumber;
   end;
 
   TgdcBaseDocumentType = class(TgdcLBRBTree)
@@ -363,7 +370,7 @@ type
     FName: string;
     FRUID: string;
     FOptions: String;
-    FIsCheckNumber: Boolean;
+    FIsCheckNumber: TIsCheckNumber;
     FReportGroupKey: Integer;
     FBranchKey: Integer;
     FDTClassName: String;
@@ -375,7 +382,6 @@ type
     procedure SetDescription(const Value: string);
     procedure SetName(const Value: string);
     procedure SetRUID(const Value: string);
-    procedure SetIsCheckNumber(const Value: Boolean);
     procedure SetHeaderRelKey(const Value: Integer);
     procedure SetLineRelKey(const Value: Integer);
   public
@@ -387,7 +393,7 @@ type
     property Name: string read FName write SetName;
     property Description: string read FDescription write SetDescription;
     property RUID: string read FRUID write SetRUID;
-    property IsCheckNumber: Boolean read FIsCheckNumber write SetIsCheckNumber;
+    property IsCheckNumber: TIsCheckNumber read FIsCheckNumber write FIsCheckNumber;
     property Options: String read FOptions write FOptions;
     property ID: Integer read FID write FID;
     property ReportGroupKey: Integer read FReportGroupKey write FReportGroupKey;
@@ -1953,7 +1959,7 @@ begin
       CI.Name := ibsql.FieldByName(fnName).AsString;
       CI.DTClassName := Trim(ibsql.FieldByName(fnClassName).AsString);
       CI.Description := ibsql.FieldByName(fnDescription).AsString;
-      CI.IsCheckNumber := ibsql.FieldByName(fnIsCheckNumber).AsInteger > 0;
+      CI.IsCheckNumber := TIsCheckNumber(ibsql.FieldByName(fnIsCheckNumber).AsInteger);
       CI.RUID := ibsql.FieldByName(fnRUID).AsString;
       CI.Options := ibsql.FieldByName(fnOptions).AsString;
       CI.ReportGroupKey := ibsql.FieldByName(fnReportGroupKey).AsInteger;
@@ -2013,10 +2019,11 @@ end;
 procedure TgdcDocument.CheckNumber(Field: TField);
 var
   ibsql: TIBSQL;
-  V, N: String;
+  V, N, Chck: String;
   FirstCheck: Boolean;
   StartTime: DWORD;
   B, E, I: Integer;
+  Y, M, D: Word;
 begin
   if sLoadFromStream in BaseState then
     exit;
@@ -2063,20 +2070,46 @@ begin
     end;
   end;
 
-  if not IsCheckNumber then
+  if IsCheckNumber = icnNever then
     exit;
 
   FirstCheck := True;
   V := '';
   ibsql := TIBSQL.Create(nil);
   try
+    case IsCheckNumber of
+      icnYear, icnMonth: Chck := 'AND documentdate >= :db AND documentdate < :de';
+    else
+      Chck := '';
+    end;
+
     ibsql.Transaction := ReadTransaction;
     ibsql.SQL.Text :=
       'SELECT id FROM gd_document WHERE number = :number AND ' +
-      ' documenttypekey = :dt AND id <> :id AND parent + 0 IS NULL AND companykey = :companykey ';
+      ' documenttypekey = :dt AND id <> :id AND parent + 0 IS NULL AND companykey = :companykey ' +
+      Chck;
     ibsql.ParamByName('dt').AsInteger := DocumentTypeKey;
     ibsql.ParamByName('id').AsInteger := FieldByName('id').AsInteger;
     ibsql.ParamByName('companykey').AsInteger := FieldByName('companykey').AsInteger;
+    if IsCheckNumber in [icnYear, icnMonth] then
+    begin
+      DecodeDate(FieldByName('documentdate').AsdateTime, Y, M, D);
+      if IsCheckNumber = icnYear then
+      begin
+        ibsql.ParamByName('db').AsDateTime := EncodeDate(Y, 01, 01);
+        ibsql.ParamByName('de').AsDateTime := EncodeDate(Y + 1, 01, 01);
+      end else
+      begin
+        ibsql.ParamByName('db').AsDateTime := EncodeDate(Y, M, 01);
+        Inc(M);
+        if M > 12 then
+        begin
+          M := 1;
+          Inc(Y);
+        end;
+        ibsql.ParamByName('de').AsDateTime := EncodeDate(Y, M, 01);
+      end;
+    end;
     StartTime := GetTickCount;
     repeat
       ibsql.ParamByName('number').AsString := N;
@@ -2313,9 +2346,9 @@ begin
     Result :=
       (not Assigned(MasterSource))
       or
-      (TgdcBase(MasterSource.DataSet).State in dsEditModes)
-      or
       (not (MasterSource.DataSet is TgdcDocument))
+      or
+      (TgdcBase(MasterSource.DataSet).State in dsEditModes)
       or
       (TgdcBase(MasterSource.DataSet).SubType <> Self.SubType)
       or
@@ -2328,13 +2361,13 @@ begin
   raise EgdcException.Create('Документы нельзя объединять!');
 end;
 
-function TgdcDocument.GetIsCheckNumber: Boolean;
+function TgdcDocument.GetIsCheckNumber: TIsCheckNumber;
 begin
   if (not IsEmpty) and (FieldByName('documenttypekey').AsInteger > 0) then
   begin
     Result := DocTypeCache.CacheItemsByIndex[DoCacheDocumentType(FieldByName('documenttypekey').AsInteger, '', False)].IsCheckNumber;
   end else
-    Result := False;
+    Result := icnNever;
 end;
 
 { TgdcBaseDocumentType }
@@ -4659,11 +4692,6 @@ end;
 procedure TDocumentTypeCacheItem.SetHeaderRelKey(const Value: Integer);
 begin
   FHeaderRelKey := Value;
-end;
-
-procedure TDocumentTypeCacheItem.SetIsCheckNumber(const Value: Boolean);
-begin
-  FIsCheckNumber := Value;
 end;
 
 procedure TDocumentTypeCacheItem.SetIsCommon(const Value: Boolean);
