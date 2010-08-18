@@ -68,6 +68,9 @@ function ConstraintExist(Constraint: TmdfConstraint; Db: TIBDataBase): Boolean;
 procedure DropConstraint(Constraint: TmdfConstraint; Db: TIBDataBase);
 procedure AddConstraint(Constraint: TmdfConstraint; Db: TIBDataBase);
 
+function IndexExist2(const AnIndexName: String; ATr: TIBTransaction): boolean;
+procedure DropIndex2(const AnIndexName: String; ATr: TIBTransaction);
+
 function IndexExist(Index: TmdfIndex; DB: TIBDataBase): boolean;
 procedure AddIndex(Index: TmdfIndex; DB: TIBDataBase);
 procedure DropIndex(Index: TmdfIndex; DB: TIBDataBase);
@@ -397,6 +400,38 @@ begin
     finally
       Transaction.Free;
     end;
+  end;
+end;
+
+function IndexExist2(const AnIndexName: String; ATr: TIBTransaction): boolean;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text :=
+      'SELECT rdb$index_name FROM rdb$indices WHERE ' +
+      ' rdb$index_name = :indexname';
+    SQl.ParamByName('indexname').AsString := Uppercase(AnIndexName);
+    SQL.ExecQuery;
+    Result := not SQl.EOF;
+  finally
+    SQl.Free;
+  end;
+end;
+
+procedure DropIndex2(const AnIndexName: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text := 'DROP INDEX ' + AnIndexName;
+    SQL.ExecQuery;
+  finally
+    SQl.Free;
   end;
 end;
 

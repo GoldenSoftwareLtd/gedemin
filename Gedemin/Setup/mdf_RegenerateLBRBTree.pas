@@ -76,6 +76,14 @@ begin
         FIBSQL.SQL.Text := c_trigger;
         FIBSQL.ExecQuery;
 
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'SELECT rdb$index_name FROM rdb$index_segments ' +
+          'WHERE rdb$index_name = ''RP_X_REPORTGROUP_LRN'' AND rdb$field_name = ''LB'' ';
+        FIBSQL.ExecQuery;
+
+        if not FIBSQL.EOF then
+          DropIndex2('RP_X_REPORTGROUP_LRN', FTransaction);
+
         DropTrigger2('RP_BEFORE_UPDATE_REPORTGROUP', FTransaction);
         DropTrigger2('RP_BEFORE_UPDATE10_REPORTGROUP', FTransaction);
         DropTrigger2('RP_BEFORE_INSERT10_REPORTGROUP', FTransaction);
@@ -87,6 +95,10 @@ begin
 
         _Log := Log;
         UpdateLBRBTreeBase(FTransaction, True, _Writeln);
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'CREATE UNIQUE INDEX rp_x_reportgroup_lrn ON rp_reportgroup (name, parent)';
+        FIBSQL.ExecQuery;
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
