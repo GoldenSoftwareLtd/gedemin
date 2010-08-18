@@ -474,6 +474,7 @@ begin
     FTree.ShowTopBranch := False;
     FTree.Database := GetDatabase;
     FTree.CheckBoxes := True;
+    //FTree.Condition := FMainField.Field.SetCondition;
 
     Open;
 

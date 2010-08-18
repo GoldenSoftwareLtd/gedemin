@@ -67,7 +67,8 @@ type
     procedure DoBeforePost; override;
 
     function GetSecCondition: String; override;
-    
+    procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
+
   public
     procedure ShowProgram(const AlwaysCreateWindow: Boolean = False);
     function CreateGdcInstance: TgdcBase;
@@ -806,6 +807,32 @@ begin
     Cl := GetClass(FieldByName('classname').AsString);
     if (Cl <> nil) and Cl.InheritsFrom(TgdcBase) then
       Result := CgdcBase(Cl);
+  end;
+end;
+
+procedure TgdcExplorer.InternalSetFieldData(Field: TField;
+  Buffer: Pointer);
+var
+  Res: OleVariant;
+begin
+  inherited;
+
+  if FDataTransfer then
+    exit;
+
+  if (UpperCase(Field.FieldName) = 'PARENT')
+    and (not (sLoadFromStream in BaseState))
+    and (not Field.IsNull) then
+  begin
+    ExecSingleQueryResult('SELECT aview, achag, afull FROM gd_command WHERE id = :ID',
+      Field.AsInteger, Res);
+
+    if not VarIsEmpty(Res) then
+    begin
+      FieldByName('aview').AsInteger := Res[0, 0];
+      FieldByName('achag').AsInteger := Res[1, 0];
+      FieldByName('afull').AsInteger := Res[2, 0];
+    end;
   end;
 end;
 
