@@ -1,13 +1,13 @@
 inherited gdc_frmMDHGR: Tgdc_frmMDHGR
-  Left = 362
-  Top = 238
+  Left = 299
+  Top = 117
   Width = 613
   Height = 484
   Caption = 'gdc_frmMDHGR'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 438
+    Top = 437
     Width = 605
     OnClick = sbMainClick
   end
@@ -18,25 +18,25 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 380
+    Height = 379
   end
   inherited TBDockRight: TTBDock
     Left = 596
-    Height = 380
+    Height = 379
   end
   inherited TBDockBottom: TTBDock
-    Top = 429
+    Top = 428
     Width = 605
   end
   inherited pnlWorkArea: TPanel
     Width = 587
-    Height = 380
+    Height = 379
     inherited sMasterDetail: TSplitter
       Width = 587
       Beveled = False
     end
     inherited spChoose: TSplitter
-      Top = 277
+      Top = 276
       Width = 587
     end
     inherited pnlMain: TPanel
@@ -73,7 +73,7 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
       end
     end
     inherited pnChoose: TPanel
-      Top = 281
+      Top = 280
       Width = 587
       inherited pnButtonChoose: TPanel
         Left = 482
@@ -87,33 +87,30 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
     end
     inherited pnlDetail: TPanel
       Width = 587
-      Height = 106
+      Height = 105
       BevelOuter = bvNone
       inherited TBDockDetail: TTBDock
         Left = 0
         Top = 0
         Width = 587
-        inherited tbDetailCustom: TTBToolbar
-          Left = 275
-        end
       end
       inherited pnlSearchDetail: TPanel
         Left = 0
         Top = 26
-        Height = 80
+        Height = 79
         TabOrder = 2
         inherited sbSearchDetail: TScrollBox
-          Height = 42
+          Height = 41
         end
         inherited pnlSearchDetailButton: TPanel
-          Top = 42
+          Top = 41
         end
       end
       object ibgrDetail: TgsIBGrid
         Left = 160
         Top = 26
         Width = 427
-        Height = 80
+        Height = 79
         Align = alClient
         BorderStyle = bsNone
         DataSource = dsDetail

@@ -1,8 +1,8 @@
 inherited gdc_frmMDH: Tgdc_frmMDH
-  Left = 237
-  Top = 223
+  Left = 96
+  Top = 124
   Width = 740
-  Height = 478
+  Height = 479
   HelpContext = 115
   Caption = 'gdc_frmMDH'
   Font.Charset = DEFAULT_CHARSET
@@ -154,6 +154,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Caption = 'Панель инструментов (детальная)'
           CloseButton = False
           DockMode = dmCannotFloat
+          Images = dmImages.il16x16
           ParentShowHint = False
           ShowHint = True
           Stretch = True
