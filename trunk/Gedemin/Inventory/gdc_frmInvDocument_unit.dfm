@@ -26,6 +26,7 @@ inherited gdc_frmInvDocument: Tgdc_frmInvDocument
     inherited pnlDetail: TPanel
       inherited TBDockDetail: TTBDock
         inherited tbDetailToolbar: TTBToolbar
+          Images = dmImages.il16x16
           object TBItem3: TTBItem
             Action = actGotoEntry
           end
