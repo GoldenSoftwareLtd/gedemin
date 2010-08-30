@@ -1723,7 +1723,6 @@ var
   dsMain: TDataSource;
   i: Integer;
   DidActivate: Boolean;
-{  DlgForm: TForm;}
 
   procedure MakeMovementOnLine;
   var
@@ -1770,19 +1769,6 @@ var
                 PChar(E.Message),
                 PChar(sAttention),
                 MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-  {            if sDialog in BaseState then
-              begin
-                MessageBox(ParentHandle,
-                  PChar(s_InvBadChangeCloseWindow),
-                  PChar(sAttention),
-                  MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-                DlgForm := FindControl(ParentHandle) as TForm;
-                if DlgForm is Tgdc_dlgG then
-                  (DlgForm as Tgdc_dlgG).ErrorAction := True;
-                PostMessage(ParentHandle, wm_Close, 0, 0);
-              end
-              else
-              begin}
               if DidActivate then
                 Transaction.Rollback
               else
@@ -1831,23 +1817,25 @@ begin
   then
   begin
     if (Field.Dataset.State = dsInsert) or (Field.Dataset.State = dsEdit)
-      {“ак как OldValue хранит первоначальное знаечние проверка с ним может привести к ошибке
-        or (Field.OldValue <> Field.NewValue)}
     then
     begin
-      if FieldByName('documentdate').IsNull  and
-        (not (sLoadFromStream in BaseState)) then
+      if UpperCase(Field.FieldName) = 'DOCUMENTDATE' then
       begin
-        MessageBox(ParentHandle,
-          PChar(sSetDocumentDate),
-          PChar(sAttention),
-          mb_Ok or mb_IconInformation or MB_TASKMODAL);
-        FieldByName('documentdate').FocusControl;
-        abort;
-      end
-      else begin
-        if FieldByName('documentdate').IsNull then
-          exit;
+        if FieldByName('documentdate').IsNull  and
+           (not (sLoadFromStream in BaseState)) then
+        begin
+          MessageBox(ParentHandle,
+            PChar(sSetDocumentDate),
+            PChar(sAttention),
+            mb_Ok or mb_IconInformation or MB_TASKMODAL);
+          FieldByName('documentdate').FocusControl;
+          abort;
+        end
+        else
+        begin
+          if FieldByName('documentdate').IsNull then
+            exit;
+        end;
       end;
 
       DidActivate := False;
@@ -1886,7 +1874,6 @@ begin
       end;
     end;
   end;
-
 end;
 
 function TgdcInvDocument.GetDetailObject: TgdcDocument;
