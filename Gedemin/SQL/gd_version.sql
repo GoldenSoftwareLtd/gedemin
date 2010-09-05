@@ -408,6 +408,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (122, '0000.0001.0000.0153', '12.08.2010', 'IsCheckNumber now allows 4 possible values');
 
+INSERT INTO fin_versioninfo
+  VALUES (123, '0000.0001.0000.0154', '23.08.2010', 'Correct rp_x_reportgroup_lrn index');
+
+INSERT INTO fin_versioninfo
+  VALUES (124, '0000.0001.0000.0155', '23.08.2010', 'Correct rp_x_reportgroup_lrn index #2');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

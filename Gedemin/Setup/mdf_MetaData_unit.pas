@@ -425,14 +425,17 @@ procedure DropIndex2(const AnIndexName: String; ATr: TIBTransaction);
 var
   SQL: TIBSQL;
 begin
-  SQL := TIBSQL.Create(nil);
-  try
-    SQL.Transaction := ATr;
-    SQL.SQL.Text := 'DROP INDEX ' + AnIndexName;
-    SQL.ExecQuery;
-  finally
-    SQl.Free;
-  end;
+  if IndexExist2(AnIndexName, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text := 'DROP INDEX ' + AnIndexName;
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
+    end;
+  end;  
 end;
 
 function IndexExist(Index: TmdfIndex; DB: TIBDataBase): boolean;
