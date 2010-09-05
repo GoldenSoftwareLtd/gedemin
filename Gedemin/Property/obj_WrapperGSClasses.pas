@@ -36,8 +36,8 @@ uses
   gdcAcctAccount, gdcContacts, gdcAcctTransaction, gdcMetaData, gdcCustomTable,
   gdcUser, gdcGood, gdcInvDocument_unit, gdcInvConsts_unit, gdc_dlgTR_unit, gdc_dlgHGR_unit,
   gdcBaseBank, gdcStatement, gdcAttrUserdefined, gdcBugBase,
-  gdcCurr, gdcInvPriceList_unit, gdcJournal, gdc_createable_form, gdc_frmInvDocument_unit,
-  gdcTableCalendar, TB2ToolWindow, TB2Item, IBServices, gdc_dlgG_unit, gdc_frmMDHGR_unit,
+  gdcCurr, gdcInvPriceList_unit, gdcJournal, gdc_createable_form,
+  gdcTableCalendar, TB2ToolWindow, TB2Item, IBServices, gdc_dlgG_unit,
   gd_ScrException, gdcAcctEntryRegister,  gdc_frmG_unit, gdc_frmMDH_unit, gdc_frmMD2H_unit,
   obj_WrapperIBXClasses, flt_sqlfilter_condition_type,  at_classes,
   gsTransaction, tr_Type_unit, at_Container, NumConv,  gsScaner, gsDBTreeView,
@@ -2736,19 +2736,6 @@ type
     function  GetDetailBookmarkList: IgsBookmarkList; safecall;
   end;
 
-  TwrpGdc_FrmMDHGR = class(TwrpGdc_frmMDH, IgsGdc_frmMDHGR)
-  private
-    function GetGdc_frmMDHGR: Tgdc_frmMDHGR;
-  end;
-
-  TwrpGdc_frmInvDocument = class(TwrpGdc_FrmMDHGR, IgsGdc_frmInvDocument)
-  private
-    function GetGdc_frmInvDocument: Tgdc_frmInvDocument;
-  protected
-    function  Get_Document: IgsGdcInvDocument; safecall;
-    function  Get_DocumentLine: IgsGdcInvDocumentLine; safecall;
-  end;
-
   TwrpGdc_frmMD2H = class(TwrpGdc_frmMDH, IgsGdc_frmMD2H)
   private
     function GetGdc_frmMD2H: Tgdc_frmMD2H;
@@ -3121,7 +3108,6 @@ type
     procedure Set_IsInsertMode(Value: WordBool); safecall;
     function  Get_IsAutoCommit: WordBool; safecall;
     procedure Set_IsAutoCommit(Value: WordBool); safecall;
-    function  Get_gdcDetailObject: IgsGDCBase; safecall;
   end;
 
   Twrpgdc_dlgUserComplexDocument = class(TwrpGdc_dlgHGR, Igsgdc_dlgUserComplexDocument)
@@ -15449,11 +15435,6 @@ begin
   GetDlgInvDocument.IsAutoCommit := Value;
 end;
 
-function TwrpDlgInvDocument.Get_gdcDetailObject: IgsGDCBase;
-begin
-  Result := GetGdcOLEObject(GetDlgInvDocument.DocumentLine) as IgsGDCBase;
-end;
-
 { TwrpBtnEdit }
 
 procedure TwrpBtnEdit.AssignSize(const Source: IgsBtnEdit);
@@ -18012,30 +17993,6 @@ begin
     Result := nil;  
 end;
 
-{ TwrpGdc_FrmMDHGR }
-
-function TwrpGdc_FrmMDHGR.GetGdc_frmMDHGR: Tgdc_frmMDHGR;
-begin
-  Result := GetObject as Tgdc_frmMDHGR;
-end;
-
-{ TwrpGdc_frmInvDocument }
-
-function TwrpGdc_frmInvDocument.Get_Document: IgsGdcInvDocument;
-begin
-  Result := GetGdcOLEObject(GetGdc_frmInvDocument.gdcObject) as IgsGdcInvDocument;
-end;
-
-function TwrpGdc_frmInvDocument.Get_DocumentLine: IgsGdcInvDocumentLine;
-begin
-  Result := GetGdcOLEObject(GetGdc_frmInvDocument.gdcDetailObject) as IgsGdcInvDocumentLine;
-end;
-
-function TwrpGdc_frmInvDocument.GetGdc_frmInvDocument: Tgdc_frmInvDocument;
-begin
-  Result := GetObject as Tgdc_frmInvDocument;
-end;
-
 initialization
 
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
@@ -18144,9 +18101,6 @@ initialization
   RegisterGdcOLEClass(Tgdc_frmG, TwrpGdc_frmG, ComServer.TypeLib, IID_IgsGdc_frmG);
   RegisterGdcOLEClass(Tgdc_frmMDH, TwrpGdc_frmMDH, ComServer.TypeLib, IID_IgsGdc_frmMDH);
   RegisterGdcOLEClass(Tgdc_frmMD2H, TwrpGdc_frmMD2H, ComServer.TypeLib, IID_IgsGdc_frmMD2H);
-  RegisterGdcOLEClass(Tgdc_frmMDHGR, TwrpGdc_frmMDHGR, ComServer.TypeLib, IID_IgsGdc_frmMDHGR);
-  RegisterGdcOLEClass(Tgdc_frmInvDocument, TwrpGdc_frmInvDocument, ComServer.TypeLib, IID_IgsGdc_frmInvDocument);
-
   RegisterGdcOLEClass(TGridCheckBox, TwrpGridCheckBox, ComServer.TypeLib, IID_IgsGridCheckBox);
   RegisterGdcOLEClass(TColumnExpand, TwrpColumnExpand, ComServer.TypeLib, IID_IgsColumnExpand);
   RegisterGdcOLEClass(TColumnExpands, TwrpColumnExpands, ComServer.TypeLib, IID_IgsColumnExpands);
