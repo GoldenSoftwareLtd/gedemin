@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-if NOT exist d:\nul subst d: g:\
+if NOT exist d:\nul subst d: k:\
 
 set delphi_path=C:\Program Files\Borland\Delphi5\Bin
 set starteam_connect=Andreik:1@india:49201

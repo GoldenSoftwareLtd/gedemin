@@ -1,6 +1,6 @@
 inherited gdc_dlgField: Tgdc_dlgField
   Left = 207
-  Top = 42
+  Top = 34
   HelpContext = 82
   ActiveControl = dbedTypeName
   BorderIcons = [biSystemMenu]
@@ -19,6 +19,11 @@ inherited gdc_dlgField: Tgdc_dlgField
     Top = 456
     TabOrder = 5
   end
+  inherited btnHelp: TButton
+    Left = 165
+    Top = 456
+    TabOrder = 3
+  end
   inherited btnOK: TButton
     Left = 405
     Top = 456
@@ -28,11 +33,6 @@ inherited gdc_dlgField: Tgdc_dlgField
     Left = 485
     Top = 456
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Left = 165
-    Top = 456
-    TabOrder = 3
   end
   object pnlMain: TPanel [5]
     Left = 0
@@ -905,7 +905,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Width = 271
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 6
           OnChange = comboBusinessClassChange
           OnClick = comboBusinessClassClick
@@ -916,7 +916,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Width = 271
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 7
         end
       end

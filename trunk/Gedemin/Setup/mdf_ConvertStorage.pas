@@ -393,7 +393,21 @@ begin
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
-          'UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview) '#13#10 +
+          'UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) '#13#10 +
+          '  VALUES ( '#13#10 +
+          '    730800, '#13#10 +
+          '    730000, '#13#10 +
+          '    ''Справочник ТМЦ'', '#13#10 +
+          '    ''ref_dir_good'', '#13#10 +
+          '    ''TgdcGood'', '#13#10 +
+          '    NULL, '#13#10 +
+          '    142 '#13#10 +
+          '  ) MATCHING (id)';
+        FIBSQL.ExecQuery;
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex) '#13#10 +
           '  VALUES ( '#13#10 +
           '    730805, '#13#10 +
           '    730800, '#13#10 +
@@ -401,8 +415,7 @@ begin
           '    '''', '#13#10 +
           '    ''TgdcGoodGroup'', '#13#10 +
           '    NULL, '#13#10 +
-          '    142, '#13#10 +
-          '    1 '#13#10 +
+          '    142 '#13#10 +
           '  ) MATCHING (id)';
         FIBSQL.ExecQuery;
 
