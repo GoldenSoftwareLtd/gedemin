@@ -340,14 +340,12 @@ function TraceFlagsToInteger(S: TTraceFlags): Integer;
 implementation
 
 uses
-  IBIntf
+  IBIntf, IBSQLMonitor
   {$IFDEF LOCALIZATION}
   , gd_localization
   {$ENDIF}
   {$IFDEF GEDEMIN}
-  , IBSQL, IBDataBase, IBErrorCodes, gd_security, IBSQLMonitor_Gedemin
-  {$ELSE}
-  , IBSQLMonitor
+  , IBSQL, IBDataBase, IBErrorCodes, gd_security
   {$ENDIF};
 
 var

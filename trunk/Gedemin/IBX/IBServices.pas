@@ -521,13 +521,7 @@ type
 implementation
 
 uses
-  IBIntf,
-  {$IFDEF GEDEMIN}
-  IBSQLMonitor_Gedemin
-  {$ELSE}
-  IBSQLMonitor
-  {$ENDIF}
-  ;
+  IBIntf, IBSQLMonitor;
 
 { TIBCustomService }
 
