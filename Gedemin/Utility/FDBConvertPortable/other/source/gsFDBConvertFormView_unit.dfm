@@ -9975,9 +9975,9 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
         object lblStep04: TLabel
           Left = 8
           Top = 6
-          Width = 312
+          Width = 213
           Height = 23
-          Caption = '4/8 - Заменяемые функции'
+          Caption = '4/8 - UDF функции'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clMaroon
           Font.Height = -19
@@ -9993,14 +9993,14 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
         end
         object lblOriginalFunction: TLabel
           Left = 7
-          Top = 53
+          Top = 48
           Width = 126
           Height = 13
           Caption = 'Заменяемая функция'
         end
         object lblSubstituteFunction: TLabel
           Left = 257
-          Top = 53
+          Top = 48
           Width = 132
           Height = 13
           Caption = 'Заменяющая функция'
@@ -10014,11 +10014,18 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           Caption = 'lblStep04Comment'
           WordWrap = True
         end
+        object lblDeleteUdf: TLabel
+          Left = 7
+          Top = 183
+          Width = 123
+          Height = 13
+          Caption = 'Удаляемые функции'
+        end
         object sgSubstituteList: TStringGrid
           Left = 6
-          Top = 70
+          Top = 65
           Width = 515
-          Height = 242
+          Height = 114
           ColCount = 2
           DefaultColWidth = 246
           DefaultRowHeight = 16
@@ -10028,6 +10035,21 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
           Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goEditing]
           ScrollBars = ssVertical
           TabOrder = 0
+        end
+        object sgDeleteUDF: TStringGrid
+          Left = 6
+          Top = 199
+          Width = 515
+          Height = 114
+          ColCount = 1
+          DefaultColWidth = 490
+          DefaultRowHeight = 16
+          FixedCols = 0
+          RowCount = 200
+          FixedRows = 0
+          Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goEditing]
+          ScrollBars = ssVertical
+          TabOrder = 1
         end
       end
       object tbs05: TTabSheet

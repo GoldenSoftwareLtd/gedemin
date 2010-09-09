@@ -46,6 +46,7 @@ type
      lsOriginalFunction,
      lsSubstituteFunction,
      lsStep04Comment,
+     lsDeleteUDF,
      lsStep05,
      lsStep06,
      lsStep07,
@@ -340,6 +341,7 @@ begin
   SetLocalizedString(lsOriginalFunction, 'Заменяемая функция');
   SetLocalizedString(lsSubstituteFunction, 'Заменяющая функция');
   SetLocalizedString(lsStep04Comment, 'Список функций можно изменять');
+  SetLocalizedString(lsDeleteUDF, 'Удаляемые функции');
   SetLocalizedString(lsStep05, 'Информация');
   SetLocalizedString(lsStep06, 'Ход процесса');
   SetLocalizedString(lsStep07, 'Реклама');
