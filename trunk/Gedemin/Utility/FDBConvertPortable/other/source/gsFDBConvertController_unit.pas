@@ -15,7 +15,7 @@ type
 
     procedure SetProcessForm(const Value: TForm);
 
-    procedure ProcessSubstituteList;
+    procedure ProcessUDFFunctionLists;
     // Проверяет, доступен ли диск для записи.  Если ничего записать не получается, завершаем программу
     procedure CheckDiskWriteAbility(const InFormMode: Boolean);
     // Проверка на наличие и создание путей указанных в параметрах
@@ -134,7 +134,7 @@ end;
 
 procedure TgsFDBConvertController.SetupDialogForm;
 var
-  SubstituteList: TStringList;
+  UDFFunctionList: TStringList;
   StringCounter: Integer;
   CharsetIndex: Integer;
 begin
@@ -166,18 +166,28 @@ begin
         cbCharacterSet.ItemIndex := CharsetIndex
       else
         cbCharacterSet.ItemIndex := cbCharacterSet.Items.Add(DefaultCharacterSet);
-      // Загрузим список заменяемых функций
-      SubstituteList := TStringList.Create;
+
+      UDFFunctionList := TStringList.Create;
       try
-        TgsConfigFileManager.GetSubstituteFunctionList(SubstituteList);
-        for StringCounter := 0 to SubstituteList.Count - 1 do
+        // Загрузим список заменяемых функций
+        TgsConfigFileManager.GetSubstituteFunctionList(UDFFunctionList);
+        for StringCounter := 0 to UDFFunctionList.Count - 1 do
         begin
-          sgSubstituteList.Cells[0, StringCounter] := SubstituteList.Names[StringCounter];
-          sgSubstituteList.Cells[1, StringCounter] := SubstituteList.Values[SubstituteList.Names[StringCounter]];
+          sgSubstituteList.Cells[0, StringCounter] := UDFFunctionList.Names[StringCounter];
+          sgSubstituteList.Cells[1, StringCounter] := UDFFunctionList.Values[UDFFunctionList.Names[StringCounter]];
+        end;
+
+        UDFFunctionList.Clear;
+        // Загрузим список удаляемых функций
+        TgsConfigFileManager.GetDeleteFunctionList(UDFFunctionList);
+        for StringCounter := 0 to UDFFunctionList.Count - 1 do
+        begin
+          sgDeleteUDF.Cells[0, StringCounter] := UDFFunctionList.Names[StringCounter];
         end;
       finally
-        FreeAndNil(SubstituteList);
+        FreeAndNil(UDFFunctionList);
       end;
+      
       // Загрузим значения для подключения по умолчанию
       cbPageSize.Text := IntToStr(TgsConfigFileManager.GetDefaultPageSize);
       eBufferSize.Text := IntToStr(TgsConfigFileManager.GetDefaultNumBuffers);
@@ -193,27 +203,39 @@ begin
   LoadLanguageStrings(ALanguageName);
 end;
 
-procedure TgsFDBConvertController.ProcessSubstituteList;
+procedure TgsFDBConvertController.ProcessUDFFunctionLists;
 var
-  SubstituteList: TStringList;
+  FunctionList: TStringList;
   StringCounter: Integer;
 begin
   with (FProcessForm as TgsFDBConvertFormView) do
   begin
-    // Сохраним введенные замещаемые функции
-    SubstituteList := TStringList.Create;
+    FunctionList := TStringList.Create;
     try
+      // Сохраним введенные замещаемые функции
       for StringCounter := 0 to sgSubstituteList.RowCount - 1 do
       begin
         // Учитываем только правильно указанные записи
         if (sgSubstituteList.Cells[0, StringCounter] <> '')
            and (sgSubstituteList.Cells[1, StringCounter] <> '') then
-          SubstituteList.Add(sgSubstituteList.Cells[0, StringCounter] + '=' + sgSubstituteList.Cells[1, StringCounter]);
+          FunctionList.Add(sgSubstituteList.Cells[0, StringCounter] + '=' + sgSubstituteList.Cells[1, StringCounter]);
       end;
       // Сохранить данные в файлы
-      TgsConfigFileManager.SaveSubstituteFunctionList(SubstituteList);
+      TgsConfigFileManager.SaveSubstituteFunctionList(FunctionList);
+
+      FunctionList.Clear;
+
+      // Сохраним введенные удаляемые функции
+      for StringCounter := 0 to sgDeleteUDF.RowCount - 1 do
+      begin
+        // Учитываем только правильно указанные записи
+        if (sgDeleteUDF.Cells[0, StringCounter] <> '') then
+          FunctionList.Add(sgDeleteUDF.Cells[0, StringCounter] + '=1');
+      end;
+      // Сохранить данные в файлы
+      TgsConfigFileManager.SaveDeleteFunctionList(FunctionList);
     finally
-      FreeAndNil(SubstituteList);
+      FreeAndNil(FunctionList);
     end;
   end;
 end;
@@ -294,7 +316,7 @@ begin
 
         // Обработаем введенные замещаемые функции
         if pcMain.ActivePage = tbs04 then
-          ProcessSubstituteList;
+          ProcessUDFFunctionLists;
       end;
     end
     else
@@ -843,9 +865,10 @@ begin
   Controller.ModelObject.Connect;
   try
     FgsFunctionEditor := TgsMetadataEditor.Create(Controller.ModelObject.Database);
-    // Загрузим список заменяемых функций
+    // Загрузим списки заменяемых и удаляемых функций
     try
       TgsConfigFileManager.GetSubstituteFunctionList(FgsFunctionEditor.SubstituteFunctionList);
+      TgsConfigFileManager.GetDeleteFunctionList(FgsFunctionEditor.DeleteFunctionList);
     except
       on E: EgsConfigFileReadError do
       begin
@@ -863,6 +886,8 @@ begin
           ProcessTriggers;
           ProcessProcedures;
           ProcessViewsAndComputedFields;
+          // Удалим указанные пользователем UDF функции
+          FgsFunctionEditor.DeleteUDFFunctions;
         end
         else
         begin

@@ -104,6 +104,7 @@ type
     FDatabase: TIBDatabase;
     FWriteTransaction: TIBTransaction;
     FSubstituteFunctionList: TStringList;
+    FDeleteFunctionList: TStringList;
 
     FIBSQLRead: TIBSQL;
     FIBSQLWrite: TIBSQL;
@@ -121,6 +122,8 @@ type
     function GetMetadataGrants(const AMetadataName: String; const AFieldName: String = ''): String;
     // Получить позицию вычислемого поля в таблице
     function GetComputedFieldPosition(const ARelationName, AComputedFieldName: String): Integer;
+    // Существует ли UDF-функция
+    function UDFFunctionExists(const AFunctinoName: String): Boolean;
   public
     constructor Create(ADatabase: TIBDatabase);
     destructor Destroy; override;
@@ -139,6 +142,8 @@ type
 
     // Заменяет функции из UDF встроенными
     function ReplaceSubstituteUDFFunction(var AFunctionText: String): Boolean;
+    // Удаляет ненужные больше UDF-функции
+    procedure DeleteUDFFunctions;
     // Комментирует тело процедуры\триггера
     //  DoInsertSuspendClause - вставлять ли SUSPEND заглушку (только для хранимых процедур)
     class function CommentFunctionBody(var AFunctionText: String; const DoInsertSuspendClause: Boolean = False): Boolean;
@@ -187,6 +192,7 @@ type
     class function GetFirstNLines(const AText: String; const ALineCount: Integer): String;
 
     property SubstituteFunctionList: TStringList read FSubstituteFunctionList write FSubstituteFunctionList;
+    property DeleteFunctionList: TStringList read FDeleteFunctionList write FDeleteFunctionList;
   end;
 
 implementation
@@ -917,6 +923,7 @@ begin
     FIBSQLWrite.Transaction := FWriteTransaction;
 
     FSubstituteFunctionList := TStringList.Create;
+    FDeleteFunctionList := TStringList.Create;
   end
   else
     raise Exception.Create('Object TgsMetadataEditor needs database');
@@ -932,6 +939,8 @@ begin
     FreeAndNil(FIBSQLWrite);
   if Assigned(FSubstituteFunctionList) then
     FreeAndNil(FSubstituteFunctionList);
+  if Assigned(FDeleteFunctionList) then
+    FreeAndNil(FDeleteFunctionList);
 end;
 
 procedure TgsMetadataEditor.GetProcedureList(AProcedureList: TStrings);
@@ -2032,6 +2041,61 @@ begin
     raise Exception.Create('TgsMetadataEditor.ReplaceSubstituteUDFFunction'#13#10'  Substitution list not found.');
 end;
 
+procedure TgsMetadataEditor.DeleteUDFFunctions;
+var
+  FunctionCounter: Integer;
+begin
+  if Assigned(FDeleteFunctionList) then
+  begin
+    // Удалим вычисляемое поле
+    FWriteTransaction.StartTransaction;
+    try
+      for FunctionCounter := 0 to FDeleteFunctionList.Count - 1 do
+      begin
+        if UDFFunctionExists(FDeleteFunctionList.Names[FunctionCounter]) then
+        begin
+          FIBSQLWrite.SQL.Text :=
+            'DROP EXTERNAL FUNCTION ' + FDeleteFunctionList.Names[FunctionCounter];
+          try
+            FIBSQLWrite.ExecQuery;
+          finally
+            FIBSQLWrite.Close;
+          end;
+        end;
+      end;
+
+      if FWriteTransaction.InTransaction then
+        FWriteTransaction.Commit;
+    except
+      if FWriteTransaction.InTransaction then
+        FWriteTransaction.Rollback;
+      raise;
+    end;
+  end
+  else
+    raise Exception.Create('TgsMetadataEditor.DeleteUDFFunctions'#13#10'  "Delete UDF" list not found.');
+end;
+
+function TgsMetadataEditor.UDFFunctionExists(const AFunctinoName: String): Boolean;
+begin
+  Result := False;
+
+    // Запрос на вытягивание позиции поля из серверных данных
+  FIBSQLRead.SQL.Text :=
+    ' SELECT rdb$function_name ' +
+    ' FROM rdb$functions ' +
+    ' WHERE UPPER(rdb$function_name) = UPPER(:func_name)';
+  FIBSQLRead.ParamByName('FUNC_NAME').AsString := AFunctinoName;
+
+  try
+    FIBSQLRead.ExecQuery;
+    if FIBSQLRead.RecordCount > 0 then
+      Result := True;
+  finally
+    FIBSQLRead.Close;
+  end;
+end;
+
 class function TgsMetadataEditor.IsCommented(const ACharPosition: Integer;
   const AFunctionText: String): Boolean;
 
@@ -2229,7 +2293,7 @@ begin
     if FIBSQLRead.RecordCount > 0 then
       Result := FIBSQLRead.FieldByName('OBJ_POS').AsInteger
     else
-      Result := -1;  
+      Result := -1;
   finally
     FIBSQLRead.Close;
   end;

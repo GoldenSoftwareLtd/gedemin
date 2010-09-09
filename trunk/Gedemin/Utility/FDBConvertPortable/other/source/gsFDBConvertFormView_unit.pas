@@ -92,6 +92,8 @@ type
     eBufferSize: TEdit;
     cbCharacterSet: TComboBox;
     lblLink: TLabel;
+    sgDeleteUDF: TStringGrid;
+    lblDeleteUdf: TLabel;
     procedure actCloseExecute(Sender: TObject);
     procedure actNextPageExecute(Sender: TObject);
     procedure actPrevPageExecute(Sender: TObject);
@@ -422,6 +424,7 @@ begin
   lblOriginalFunction.Caption := GetLocalizedString(lsOriginalFunction);
   lblSubstituteFunction.Caption := GetLocalizedString(lsSubstituteFunction);
   lblStep04Comment.Caption := GetLocalizedString(lsStep04Comment);
+  lblDeleteUdf.Caption := GetLocalizedString(lsDeleteUDF);
   lblStep05.Caption := '5/7 - ' + GetLocalizedString(lsStep05);
   lblStep06.Caption := '6/7 - ' + GetLocalizedString(lsStep06);
   lblStep07.Caption := '7/7 - ' + GetLocalizedString(lsStep07);

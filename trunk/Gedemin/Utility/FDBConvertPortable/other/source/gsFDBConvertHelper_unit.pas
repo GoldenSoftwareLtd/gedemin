@@ -71,6 +71,10 @@ type
     class procedure GetSubstituteFunctionList(AFunctionList: TStrings);
     // Сохранить список замещаемых функций
     class procedure SaveSubstituteFunctionList(AFunctionList: TStrings);
+    // Получить список удаляемых функций
+    class procedure GetDeleteFunctionList(AFunctionList: TStrings);
+    // Сохранить список удаляемых функций
+    class procedure SaveDeleteFunctionList(AFunctionList: TStrings);
     // Получить список доступных локализаций
     class procedure GetLanguageList(ALanguageList: TStrings);
     // Получить данные конкретной локализации
@@ -144,6 +148,7 @@ const
 
   // Наименования секций и параметров INI файлов
   SUBSTITUTE_SECTION_NAME = 'SUBSTITUTE';
+  DELETE_UDF_SECTION_NAME = 'DELETE_UDF';
   CONNECTION_SECTION_NAME = 'CONNECTION';
   CODE_PAGE_LIST_IDENT = 'CodePageList';
   DEFAULT_USER_NAME_IDENT = 'DefaultUserName';
@@ -698,6 +703,48 @@ begin
         OriginalFunction := AFunctionList.Names[StringCounter];
         SubstituteFunction := AFunctionList.Values[OriginalFunction];
         FunctionFile.WriteString(SUBSTITUTE_SECTION_NAME, OriginalFunction, SubstituteFunction);
+      end;
+    finally
+      FreeAndNil(FunctionFile);
+    end;
+  end;
+end;
+
+class procedure TgsConfigFileManager.GetDeleteFunctionList(AFunctionList: TStrings);
+var
+  FunctionFile: TIniFile;
+begin
+  // Считываем данные об удаляемых функциях
+  FunctionFile := TIniFile.Create(TgsFileSystemHelper.GetAvailableApplicationFile(afSubstitute));
+  try
+    if FunctionFile.SectionExists(DELETE_UDF_SECTION_NAME) then
+      FunctionFile.ReadSectionValues(DELETE_UDF_SECTION_NAME, AFunctionList)
+    else
+      raise EgsConfigFileReadError.Create(GetLocalizedString(lsWrongSubstituteFile) + #13#10 +
+        '  ' + TgsFileSystemHelper.GetAvailableApplicationFile(afSubstitute));
+  finally
+    FreeAndNil(FunctionFile);
+  end;
+end;
+
+class procedure TgsConfigFileManager.SaveDeleteFunctionList(AFunctionList: TStrings);
+var
+  FunctionFileName: String;
+  FunctionFile: TIniFile;
+  StringCounter: Integer;
+  OriginalFunction, SubstituteFunction: String;
+begin
+  FunctionFileName := TgsFileSystemHelper.GetUserApplicationFileName(afSubstitute);
+  if FunctionFileName <> '' then
+  begin
+    FunctionFile := TIniFile.Create(FunctionFileName);
+    try
+      FunctionFile.EraseSection(DELETE_UDF_SECTION_NAME);
+      for StringCounter := 0 to AFunctionList.Count - 1 do
+      begin
+        OriginalFunction := AFunctionList.Names[StringCounter];
+        SubstituteFunction := AFunctionList.Values[OriginalFunction];
+        FunctionFile.WriteString(DELETE_UDF_SECTION_NAME, OriginalFunction, SubstituteFunction);
       end;
     finally
       FreeAndNil(FunctionFile);

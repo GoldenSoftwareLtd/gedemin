@@ -53,7 +53,7 @@ begin
   begin
     Application.Initialize;
     Application.Title := 'FDBConvert';
-  Application.CreateForm(TgsFDBConvertFormView, gsFDBConvertFormView);
+    Application.CreateForm(TgsFDBConvertFormView, gsFDBConvertFormView);
     Application.CreateForm(TdmImages, dmImages);
     Application.Run;
   end;
