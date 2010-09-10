@@ -2151,7 +2151,7 @@ type
   private
     function  GetGdcField: TgdcField;
   protected
-    function  GetDomainText(isCharSet: WordBool): WideString; safecall;
+    function  GetDomainText(isCharSet: WordBool; OnlyDataType: WordBool): WideString; safecall;
   end;
 
   TwrpGdcRelation = class(TwrpGdcMetaBase, IgsGdcRelation)
@@ -8330,9 +8330,9 @@ end;
 
 { TwrpGdcField }
 
-function TwrpGdcField.GetDomainText(isCharSet: WordBool): WideString;
+function TwrpGdcField.GetDomainText(isCharSet: WordBool; OnlyDataType: WordBool): WideString;
 begin
-  Result := GetGdcField.GetDomainText(isCharSet);
+  Result := GetGdcField.GetDomainText(isCharSet, OnlyDataType);
 end;
 
 function TwrpGdcField.GetGdcField: TgdcField;
