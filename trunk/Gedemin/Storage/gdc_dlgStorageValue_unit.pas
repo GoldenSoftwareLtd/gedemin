@@ -81,10 +81,14 @@ var
   S: String;
   StIn, StOut: TStringStream;
   Flag: Boolean;
+  Sign, Grid: String;
 begin
   S := gdcObject.FieldByName('blob_data').AsString;
 
-  if Copy(S, 1, 4) = 'TPF0' then
+  Sign := UpperCase(Copy(S, 0, 3));
+  Grid := UpperCase(Copy(S, 7, 11));
+
+  if (Sign = 'TPF') and (Grid <> 'GRID_STREAM') then
   begin
     StIn := TStringStream.Create(S);
     StOut := TStringStream.Create('');
