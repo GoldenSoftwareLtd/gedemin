@@ -9,14 +9,11 @@ uses
 type
   TframeSum = class(TFrame)
     gbSum: TGroupBox;
-    Bevel4: TBevel;
-    Bevel3: TBevel;
     Label13: TLabel;
     Label14: TLabel;
     Label15: TLabel;
     Label16: TLabel;
     Label10: TLabel;
-    Bevel1: TBevel;
     Bevel2: TBevel;
     gsiblCurrKey: TgsIBLookupComboBox;
     cbInNcu: TCheckBox;
@@ -28,10 +25,15 @@ type
     cbInEQ: TCheckBox;
     Label1: TLabel;
     Bevel5: TBevel;
-    Bevel6: TBevel;
     cbEQScale: TComboBox;
     Label2: TLabel;
     cbEQDecDigits: TComboBox;
+    bvl1: TBevel;
+    Label3: TLabel;
+    cbQuantityDecDigits: TComboBox;
+    Label4: TLabel;
+    cbQuantityScale: TComboBox;
+    lblInQuantity: TLabel;
     procedure cbNcuScaleKeyPress(Sender: TObject; var Key: Char);
   private
     procedure SetCurrDecDigits(const Value: Integer);
@@ -48,14 +50,19 @@ type
     function GetInNcu: Boolean;
     function GetNcuDecDigits: Integer;
     function GetNcuScale: Integer;
-    { Private declarations }
-    function StrToInt(Text: string; DefValue: Integer): Integer;
+
+    function LocalStrToInt(Text: string; DefValue: Integer): Integer;
     function GetEQDecDigits: Integer;
     function GetEQScale: Integer;
     function GetInEQ: Boolean;
     procedure SetEQDecDigits(const Value: Integer);
     procedure SetEQScale(const Value: Integer);
     procedure SetInEQ(const Value: Boolean);
+
+    procedure SetQuantityDecDigits(const Value: Integer);
+    procedure SetQuantityScale(const Value: Integer);
+    function GetQuantityDecDigits: Integer;
+    function GetQuantityScale: Integer;
   public
     { Public declarations }
     property InNcu: Boolean read GetInNcu write SetInNcu;
@@ -70,6 +77,8 @@ type
     property EQDecDigits: Integer read GetEQDecDigits write SetEQDecDigits;
     property EQScale: Integer read GetEQScale write SetEQScale;
 
+    property QuantityDecDigits: Integer read GetQuantityDecDigits write SetQuantityDecDigits;
+    property QuantityScale: Integer read GetQuantityScale write SetQuantityScale;
   end;
 
 implementation
@@ -80,7 +89,7 @@ implementation
 
 function TframeSum.GetCurrDecDigits: Integer;
 begin
-  Result := StrToInt(cbCurrDecDigits.Text, 4);
+  Result := LocalStrToInt(cbCurrDecDigits.Text, 4);
 end;
 
 function TframeSum.GetCurrkey: Integer;
@@ -90,7 +99,7 @@ end;
 
 function TframeSum.GetCurrScale: Integer;
 begin
-  Result := StrToInt(cbCurrScale.Text, 1);
+  Result := LocalStrToInt(cbCurrScale.Text, 1);
   if Result = 0 then
     Result := 1;
 end;
@@ -107,12 +116,12 @@ end;
 
 function TframeSum.GetNcuDecDigits: Integer;
 begin
-  Result := StrToInt(cbNcuDecDigits.Text, 4);
+  Result := LocalStrToInt(cbNcuDecDigits.Text, 4);
 end;
 
 function TframeSum.GetNcuScale: Integer;
 begin
-  Result := StrToInt(cbNcuScale.Text, 1);
+  Result := LocalStrToInt(cbNcuScale.Text, 1);
   if Result = 0 then
     Result := 1;
 end;
@@ -152,7 +161,7 @@ begin
   cbNcuScale.Text := IntToStr(Value);
 end;
 
-function TframeSum.StrToInt(Text: string; DefValue: Integer): Integer;
+function TframeSum.LocalStrToInt(Text: string; DefValue: Integer): Integer;
 begin
   if Text = '' then
     Result := DefValue
@@ -177,12 +186,12 @@ end;
 
 function TframeSum.GetEQDecDigits: Integer;
 begin
-  Result := StrToInt(cbEQDecDigits.Text, 4);
+  Result := LocalStrToInt(cbEQDecDigits.Text, 4);
 end;
 
 function TframeSum.GetEQScale: Integer;
 begin
-  Result := StrToInt(cbEQScale.Text, 1);
+  Result := LocalStrToInt(cbEQScale.Text, 1);
   if Result = 0 then
     Result := 1;
 end;
@@ -205,6 +214,28 @@ end;
 procedure TframeSum.SetInEQ(const Value: Boolean);
 begin
   cbInEQ.Checked := Value;
+end;
+
+function TframeSum.GetQuantityDecDigits: Integer;
+begin
+  Result := LocalStrToInt(cbQuantityDecDigits.Text, 4);
+end;
+
+function TframeSum.GetQuantityScale: Integer;
+begin
+  Result := LocalStrToInt(cbQuantityScale.Text, 1);
+  if Result = 0 then
+    Result := 1;
+end;
+
+procedure TframeSum.SetQuantityDecDigits(const Value: Integer);
+begin
+  cbQuantityDecDigits.Text := IntToStr(Value);
+end;
+
+procedure TframeSum.SetQuantityScale(const Value: Integer);
+begin
+  cbQuantityScale.Text := IntToStr(Value);
 end;
 
 end.

@@ -183,15 +183,15 @@ begin
       if FDoGroup then
         ValueSelect := ValueSelect + ','#13#10 +
           Format('  MAX(%0:s.name) AS QUANTITY_NAME_%1:s,'#13#10 +
-            '  SUM(IIF(e.accountpart = ''D'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0)) AS Q_D_%1:s,'#13#10 +
-            '  SUM(IIF(e.accountpart = ''C'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0)) AS Q_C_%1:s'#13#10,
-            [ValueAlias, CurrentKeyAlias, QuantityAlias])
+            '  CAST(SUM(IIF(e.accountpart = ''D'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0)) / %3:d AS NUMERIC(15, %4:d)) AS Q_D_%1:s,'#13#10 +
+            '  CAST(SUM(IIF(e.accountpart = ''C'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0)) / %3:d AS NUMERIC(15, %4:d)) AS Q_C_%1:s'#13#10,
+            [ValueAlias, CurrentKeyAlias, QuantityAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits])
       else
         ValueSelect := ValueSelect + ','#13#10 +
           Format('  %0:s.name AS QUANTITY_NAME_%1:s,'#13#10 +
-            '  IIF(e.accountpart = ''D'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0) AS Q_D_%1:s,'#13#10 +
-            '  IIF(e.accountpart = ''C'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0) AS Q_C_%1:s'#13#10,
-            [ValueAlias, CurrentKeyAlias, QuantityAlias]);
+            '  CAST(IIF(e.accountpart = ''D'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0) / %3:d AS NUMERIC(15, %4:d)) AS Q_D_%1:s,'#13#10 +
+            '  CAST(IIF(e.accountpart = ''C'' AND (NOT %2:s.quantity IS NULL), %2:s.quantity, 0) / %3:d AS NUMERIC(15, %4:d)) AS Q_C_%1:s'#13#10,
+            [ValueAlias, CurrentKeyAlias, QuantityAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
 
       ValueJoin := ValueJoin + #13#10 +
         Format('  LEFT JOIN ac_quantity %0:s ON %0:s.entrykey = e.id AND '#13#10 +
@@ -366,8 +366,8 @@ begin
     '  LEFT JOIN ac_transaction t ON e.transactionkey = t.id '#13#10 +
     '  LEFT JOIN ac_account a ON a.id = e.accountkey '#13#10 +
     '  LEFT JOIN ac_record r ON e.recordkey = r.id '#13#10 +
-    ValueJoin + #13#10 + AFrom + ACorrFrom +
-    ' where '#13#10 + AccWhere +
+    ValueJoin + #13#10 + AFrom + ACorrFrom + #13#10 +
+    ' WHERE '#13#10 + AccWhere +
     '  ' + CompanyS + ' AND '#13#10 +
     '  (e.debitncu <> 0 OR e.creditncu <> 0 OR e.debitcurr <> 0 OR e.creditcurr <> 0 OR e.debiteq <> 0 OR e.crediteq <> 0) AND'#13#10 +
     '  e.entrydate >= :begindate AND e.entrydate <= :enddate '#13#10 +

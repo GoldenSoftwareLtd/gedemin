@@ -9,23 +9,31 @@ uses
 type
   TfrAcctSum = class(TFrame)
     ppMain: TgdvParamPanel;
-    Label5: TLabel;
-    Label6: TLabel;
-    Label11: TLabel;
-    Label12: TLabel;
-    Label18: TLabel;
+    pnlEQ: TPanel;                                                           
+    pnlQuantity: TPanel;                                 
+    pnlTop: TPanel;
     cbInNcu: TCheckBox;
+    Label5: TLabel;
     cbNcuDecDigits: TComboBox;
+    Label6: TLabel;
     cbNcuScale: TComboBox;
     cbInCurr: TCheckBox;
+    Label11: TLabel;
     cbCurrdecDigits: TComboBox;
+    Label18: TLabel;
     cbCurrScale: TComboBox;
+    Label12: TLabel;
     gsiblCurrKey: TgsIBLookupComboBox;
     cbInEQ: TCheckBox;
     Label1: TLabel;
     cbEQdecDigits: TComboBox;
     Label2: TLabel;
     cbEQScale: TComboBox;
+    lblInQuantity: TLabel;
+    Label3: TLabel;
+    cbQuantityDecDigits: TComboBox;
+    Label4: TLabel;
+    cbQuantityScale: TComboBox;
     procedure cbNcuScaleKeyPress(Sender: TObject; var Key: Char);
     procedure ppMainResize(Sender: TObject);
     procedure cbNcuScaleExit(Sender: TObject);
@@ -40,6 +48,8 @@ type
     function GetNcuScale: Integer;
     function GetEQDecDigits: Integer;
     function GetEQScale: Integer;
+    function GetQuantityDecDigits: Integer;
+    function GetQuantityScale: Integer;
     procedure SetCurrDecDigits(const Value: Integer);
     procedure SetCurrkey(const Value: Integer);
     procedure SetCurrScale(const Value: Integer);
@@ -50,8 +60,11 @@ type
     procedure SetNcuScale(const Value: Integer);
     procedure SetEQDecDigits(const Value: Integer);
     procedure SetEQScale(const Value: Integer);
+    procedure SetQuantityDecDigits(const Value: Integer);
+    procedure SetQuantityScale(const Value: Integer);
     { Private declarations }
-    function StrToInt(Text: string; DefValue: Integer): Integer;
+    function LocalStrToInt(Text: string; DefValue: Integer): Integer;
+    procedure UpdatePanelVisibility;
   public
     procedure SaveToStream(const Stream: TStream);
     procedure LoadFromStream(const Stream: TStream);
@@ -62,11 +75,14 @@ type
     property NcuDecDigits: Integer read GetNcuDecDigits write SetNcuDecDigits;
     property CurrDecDigits: Integer read GetCurrDecDigits write SetCurrDecDigits;
     property EQDecDigits: Integer read GetEQDecDigits write SetEQDecDigits;
+    property QuantityDecDigits: Integer read GetQuantityDecDigits write SetQuantityDecDigits;
     property NcuScale: Integer read GetNcuScale write SetNcuScale;
     property CurrScale: Integer read GetCurrScale write SetCurrScale;
     property EQScale: Integer read GetEQScale write SetEQScale;
+    property QuantityScale: Integer read GetQuantityScale write SetQuantityScale;
     property Currkey: Integer read GetCurrkey write SetCurrkey;
     procedure SetEQVisible(bV: boolean);
+    procedure SetQuantityVisible(bV: boolean);
   end;
 
 implementation
@@ -77,7 +93,7 @@ implementation
 
 function TfrAcctSum.GetCurrDecDigits: Integer;
 begin
-  Result := StrToInt(cbCurrDecDigits.Text, 4);
+  Result := LocalStrToInt(cbCurrDecDigits.Text, 4);
 end;
 
 function TfrAcctSum.GetCurrkey: Integer;
@@ -87,7 +103,7 @@ end;
 
 function TfrAcctSum.GetCurrScale: Integer;
 begin
-  Result := StrToInt(cbCurrScale.Text, 1);
+  Result := LocalStrToInt(cbCurrScale.Text, 1);
   if Result = 0 then
     Result := 1;
 end;
@@ -104,12 +120,12 @@ end;
 
 function TfrAcctSum.GetNcuDecDigits: Integer;
 begin
-  Result := StrToInt(cbNcuDecDigits.Text, 4);
+  Result := LocalStrToInt(cbNcuDecDigits.Text, 4);
 end;
 
 function TfrAcctSum.GetNcuScale: Integer;
 begin
-  Result := StrToInt(cbNcuScale.Text, 1);
+  Result := LocalStrToInt(cbNcuScale.Text, 1);
   if Result = 0 then
     Result := 1;
 end;
@@ -149,7 +165,7 @@ begin
   cbNcuScale.Text := IntToStr(Value);
 end;
 
-function TfrAcctSum.StrToInt(Text: string; DefValue: Integer): Integer;
+function TfrAcctSum.LocalStrToInt(Text: string; DefValue: Integer): Integer;
 begin
   if Text = '' then
     Result := DefValue
@@ -202,7 +218,7 @@ end;
 
 procedure TfrAcctSum.cbNcuScaleExit(Sender: TObject);
 begin
-  if StrToInt(TComboBox(Sender).Text, 1) = 0 then
+  if LocalStrToInt(TComboBox(Sender).Text, 1) = 0 then
   begin
     Beep;
     ShowMessage('Масштаб должен быть больше нуля');
@@ -212,12 +228,12 @@ end;
 
 function TfrAcctSum.GetEQDecDigits: Integer;
 begin
-  Result := StrToInt(cbEqDecDigits.Text, 4);
+  Result := LocalStrToInt(cbEqDecDigits.Text, 4);
 end;
 
 function TfrAcctSum.GetEQScale: Integer;
 begin
-  Result := StrToInt(cbEqScale.Text, 1);
+  Result := LocalStrToInt(cbEqScale.Text, 1);
   if Result = 0 then
     Result := 1;
 end;
@@ -244,15 +260,54 @@ end;
 
 procedure TfrAcctSum.SetEQVisible(bV: boolean);
 begin
-  cbInEQ.Visible:= bV;
-  Label1.Visible:= bV;
-  Label2.Visible:= bV;
-  cbEQdecDigits.Visible:= bV;
-  cbEQScale.Visible:= bV;
-  if bV then
-    ppMain.Height:= 225
+  pnlEQ.Visible := bV;
+  UpdatePanelVisibility;
+end;
+
+function TfrAcctSum.GetQuantityDecDigits: Integer;
+begin
+  Result := LocalStrToInt(cbEqScale.Text, 4);
+end;
+
+function TfrAcctSum.GetQuantityScale: Integer;
+begin
+  Result := LocalStrToInt(cbEqScale.Text, 1);
+  if Result = 0 then
+    Result := 1;
+end;
+
+procedure TfrAcctSum.SetQuantityDecDigits(const Value: Integer);
+begin
+  cbQuantityDecDigits.Text := IntToStr(Value);
+end;
+
+procedure TfrAcctSum.SetQuantityScale(const Value: Integer);
+begin
+  cbQuantityScale.Text := IntToStr(Value);
+end;
+
+procedure TfrAcctSum.SetQuantityVisible(bV: boolean);
+begin
+  pnlQuantity.Visible := bV;
+  UpdatePanelVisibility;
+end;
+
+procedure TfrAcctSum.UpdatePanelVisibility;
+begin
+  if pnlEQ.Visible then
+  begin
+    if pnlQuantity.Visible then
+      ppMain.Height:= 280
+    else
+      ppMain.Height:= 220;
+  end
   else
-    ppMain.Height:= 160;
+  begin
+    if pnlQuantity.Visible then
+      ppMain.Height:= 220
+    else
+      ppMain.Height:= 160;
+  end;
 end;
 
 end.

@@ -12,12 +12,12 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
     Left = 255
     Top = 30
     Width = 5
-    Height = 586
+    Height = 579
     Cursor = crHSplit
     ResizeStyle = rsUpdate
   end
   inherited TBDock1: TTBDock
-    Width = 975
+    Width = 967
     inherited tbMainToolbar: TTBToolbar
       DockMode = dmCannotFloat
       DockPos = 0
@@ -169,13 +169,13 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
   end
   inherited Panel1: TPanel
     Left = 260
-    Width = 706
-    Height = 586
+    Width = 698
+    Height = 579
     object ibgrMain: TgsIBGrid
       Left = 0
       Top = 0
-      Width = 706
-      Height = 586
+      Width = 698
+      Height = 579
       HelpContext = 3
       Align = alClient
       BorderStyle = bsNone
@@ -203,21 +203,21 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
     end
   end
   inherited TBDock2: TTBDock
-    Height = 586
+    Height = 579
   end
   inherited TBDock3: TTBDock
-    Left = 966
-    Height = 586
+    Left = 958
+    Height = 579
   end
   inherited TBDock4: TTBDock
-    Top = 616
-    Width = 975
+    Top = 609
+    Width = 967
   end
   object pLeft: TPanel [6]
     Left = 9
     Top = 30
     Width = 246
-    Height = 586
+    Height = 579
     Align = alLeft
     BevelOuter = bvNone
     Caption = 'pLeft'
@@ -226,7 +226,7 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       Left = 0
       Top = 17
       Width = 246
-      Height = 569
+      Height = 562
       VertScrollBar.Style = ssFlat
       Align = alClient
       BorderStyle = bsNone
@@ -315,42 +315,49 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
           Height = 219
           HorisontalOffset = 5
           FillColor = 16316664
-          inherited Label5: TLabel
-            Color = 15987699
-            ParentColor = False
-            Transparent = True
+          inherited pnlEQ: TPanel
+            Left = 6
+            Width = 234
+            inherited Label1: TLabel
+              ParentColor = False
+            end
+            inherited Label2: TLabel
+              ParentColor = False
+            end
+            inherited cbInEQ: TCheckBox
+              ParentColor = False
+            end
           end
-          inherited Label6: TLabel
-            Transparent = True
+          inherited pnlQuantity: TPanel
+            Left = 6
+            Width = 234
           end
-          inherited Label11: TLabel
-            Transparent = True
-          end
-          inherited Label12: TLabel
-            Transparent = True
-          end
-          inherited Label18: TLabel
-            Transparent = True
-          end
-          inherited Label1: TLabel
-            Color = 16316664
-            ParentColor = False
-          end
-          inherited Label2: TLabel
-            Color = 16316664
-            ParentColor = False
-          end
-          inherited cbInNcu: TCheckBox
-            Color = 16316664
-            ParentColor = False
-          end
-          inherited cbInCurr: TCheckBox
-            Color = 16316664
-            ParentColor = False
-          end
-          inherited cbInEQ: TCheckBox
-            Color = 16316664
-            ParentColor = False
+          inherited pnlTop: TPanel
+            Left = 6
+            Width = 234
+            inherited Label5: TLabel
+              Color = 15987699
+              ParentColor = False
+              Transparent = True
+            end
+            inherited Label6: TLabel
+              Transparent = True
+            end
+            inherited Label11: TLabel
+              Transparent = True
+            end
+            inherited Label18: TLabel
+              Transparent = True
+            end
+            inherited Label12: TLabel
+              Transparent = True
+            end
+            inherited cbInNcu: TCheckBox
+              ParentColor = False
+            end
+            inherited cbInCurr: TCheckBox
+              ParentColor = False
+            end
           end
         end
       end

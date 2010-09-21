@@ -178,26 +178,25 @@ begin
           begin
             if S > '' then
               S := S + ', '#13#10;
-            S := S + Format('  COUNT(a.%0:s) AS %0:s', [FAvailableAnalytics[I].FieldName]);
+            S := S + Format('  SUM(a.%0:s) AS %0:s', [FAvailableAnalytics[I].FieldName]);
           end;
         end;
 
         if S > '' then
         begin
-          ibsql.SQL.Text := 'SELECT '#13#10 + S + #13#10'FROM'#13#10'  ac_entry a ' +
-            ' LEFT JOIN ac_entry e1 ON e1.recordkey = a.recordkey AND e1.id <> a.id ';
-          WhereClause := ' WHERE a.entrydate >= :begindate and a.entrydate <= :enddate AND ' +
-            ' a.companykey IN (' + FCompanyList + ')' ;
+          ibsql.SQL.Text :=
+            'SELECT '#13#10 + S + #13#10'FROM'#13#10'  ac_account a ';
 
           if AccountIDs.Count > 0 then
-            WhereClause := WhereClause + Format('  AND a.accountkey IN (%s)'#13#10, [IDList(AccountIDs)]);
+            WhereClause := WhereClause + Format(' WHERE a.id IN (%s)'#13#10, [IDList(AccountIDs)]);
 
           if CorrAccountIDs.Count > 0 then
-            WhereClause := WhereClause + Format('AND  e1.accountkey IN (%s)'#13#10, [IDList(CorrAccountIDs)]);
+            if AccountIDs.Count > 0 then
+              WhereClause := WhereClause + Format(' OR a.id IN (%s)'#13#10, [IDList(CorrAccountIDs)])
+            else
+              WhereClause := WhereClause + Format(' WHERE a.id IN (%s)'#13#10, [IDList(CorrAccountIDs)]);
 
           ibsql.SQL.Add(WhereClause);
-          ibsql.ParamByName('begindate').AsDateTime := FDateBegin;
-          ibsql.ParamByName('enddate').AsDateTime := FDateEnd;
           ibsql.ExecQuery;
 
           if ibsql.RecordCount > 0 then
@@ -347,9 +346,9 @@ begin
       QuantityAlias := 'q_' + CurrentKeyAlias;
       ValueSelect := ValueSelect + ', '#13#10 +
         Format(
-          '  SUM(IIF(e.accountpart = ''D'' AND (NOT %0:s.quantity IS NULL), %0:s.quantity, 0)) AS Q_D_%1:s,'#13#10 +
-          '  SUM(IIF(e.accountpart = ''C'' AND (NOT %0:s.quantity IS NULL), %0:s.quantity, 0)) AS Q_C_%1:s'#13#10,
-          [QuantityAlias, CurrentKeyAlias]);
+          '  CAST(SUM(IIF(e.accountpart = ''D'' AND (NOT %0:s.quantity IS NULL), %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_D_%1:s,'#13#10 +
+          '  CAST(SUM(IIF(e.accountpart = ''C'' AND (NOT %0:s.quantity IS NULL), %0:s.quantity, 0)) / %2:d AS NUMERIC(15, %3:d)) AS Q_C_%1:s'#13#10,
+          [QuantityAlias, CurrentKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
 
       ValueJoin := ValueJoin + #13#10 +
         Format('  LEFT JOIN ac_quantity %0:s ON %0:s.entrykey = e.id AND '#13#10 +
@@ -452,8 +451,8 @@ begin
   FIBDSCirculation.SelectSQL.Text :=
     Format(
       'SELECT e.accountkey AS id, '#13#10 +
-      '  CAST(SUM(e.debitncu) / %0:d AS NUMERIC(15, %1:d))AS ncu_debit_circulation, '#13#10 +
-      '  CAST(SUM(e.creditncu) / %0:d AS NUMERIC(15, %1:d))AS ncu_credit_circulation, '#13#10 +
+      '  CAST(SUM(e.debitncu) / %0:d AS NUMERIC(15, %1:d)) AS ncu_debit_circulation, '#13#10 +
+      '  CAST(SUM(e.creditncu) / %0:d AS NUMERIC(15, %1:d)) AS ncu_credit_circulation, '#13#10 +
       '  CAST(SUM(e.debitcurr) / %2:d AS NUMERIC(15, %3:d)) AS curr_debit_circulation, '#13#10 +
       '  CAST(SUM(e.creditcurr) / %2:d AS NUMERIC(15, %3:d)) AS curr_credit_circulation, '#13#10 +
       '  CAST(SUM(e.debiteq) / %4:d AS NUMERIC(15, %5:d)) AS eq_debit_circulation, '#13#10 +

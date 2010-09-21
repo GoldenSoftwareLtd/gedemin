@@ -84,8 +84,6 @@ type
     procedure SetAllHolding(const Value: Boolean);
     procedure SetUseEntryBalance(const Value: Boolean);
 
-    function GetQuantitySumInfo: TgdvSumInfo;
-
     { Уменьшает длину текста запроса путем удаления лишних пробелов и отступов }
     {$IFNDEF DEBUG}
     procedure PackSQL(const S: TStrings);
@@ -112,6 +110,7 @@ type
     FNcuSumInfo: TgdvSumInfo;
     FCurrSumInfo: TgdvSumInfo;
     FEQSumInfo: TgdvSumInfo;
+    FQuantitySumInfo: TgdvSumInfo;
     FCurrKey: TID;
 
     FAccounts: TgdKeyArray;
@@ -155,6 +154,7 @@ type
     procedure ShowInNCU(Show: Boolean; DecDigits: Integer = -1; Scale: Integer = 0);
     procedure ShowInCurr(Show: Boolean; DecDigits: Integer = -1; Scale: Integer = 0; CurrKey: TID = -1);
     procedure ShowInEQ(Show: Boolean; DecDigits: Integer = -1; Scale: Integer = 0);
+    procedure ShowInQuantity(DecDigits: Integer = -1; Scale: Integer = 0);
 
     // Добавляет счета, по которому будет выполняться расчет
     procedure AddAccount(AccountKey: TID); 
@@ -191,8 +191,6 @@ type
     property AllTickCount: Cardinal read FAllTickCount;
     property QueryTickCount: Cardinal read FQueryTickCount;
     property UseEntryBalance: Boolean read FUseEntryBalance write SetUseEntryBalance;
-
-    property QuantitySumInfo: TgdvSumInfo read GetQuantitySumInfo;
   published
     { TIBCustomDataSet }
     property BufferChunks;
@@ -818,6 +816,9 @@ begin
       FEQSumInfo.DecDigits := EQDecDigits;
       FEQSumInfo.Scale := EQScale;
 
+      FQuantitySumInfo.DecDigits := QuantityDecDigits;
+      FQuantitySumInfo.Scale := QuantityScale;
+
       if CompanyKey > 0 then
       begin
         FCompanyKey := CompanyKey;
@@ -871,6 +872,9 @@ begin
   Config.EQDecDigits := FEQSumInfo.DecDigits;
   Config.EQScale := FEQSumInfo.Scale;
 
+  Config.QuantityDecDigits := FQuantitySumInfo.DecDigits;
+  Config.QuantityScale := FQuantitySumInfo.Scale;
+
   Config.CompanyKey := FCompanyKey;
   Config.AllHoldingCompanies := FAllHolding;
 end;
@@ -902,6 +906,14 @@ begin
     FEQSumInfo.DecDigits := DecDigits;
   if Scale > 0 then
     FEQSumInfo.Scale := Scale;
+end;
+
+procedure TgdvAcctBase.ShowInQuantity(DecDigits, Scale: Integer);
+begin
+  if DecDigits > -1 then
+    FQuantitySumInfo.DecDigits := DecDigits;
+  if Scale > 0 then
+    FQuantitySumInfo.Scale := Scale;
 end;
 
 procedure TgdvAcctBase.AddAccount(AccountKey: TID);
@@ -1107,6 +1119,11 @@ begin
     DecDigits := DefaultDecDigits;
     Scale := 1;
   end;
+  with FQuantitySumInfo do
+  begin
+    DecDigits := DefaultDecDigits;
+    Scale := 1;
+  end;
   FCurrKey := -1;
 end;
 
@@ -1162,18 +1179,6 @@ end;
 class function TgdvAcctBase.ConfigClassName: string;
 begin
   Result := 'TBaseAcctConfigClass';
-end;
-
-function TgdvAcctBase.GetQuantitySumInfo: TgdvSumInfo;
-begin
-  if FNcuSumInfo.Show then
-    Result := FNcuSumInfo
-  else if FCurrSumInfo.Show then
-    Result := FCurrSumInfo
-  else if FEQSumInfo.Show then
-    Result := FEQSumInfo
-  else
-    Result := FNcuSumInfo;
 end;
 
 {$IFNDEF DEBUG}

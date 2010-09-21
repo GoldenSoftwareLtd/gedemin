@@ -16,6 +16,7 @@ type
     FCheckBoxList: TObjectList;
     procedure SetSelected(const Value: string);
     function GetSelected: string;
+    function GetValueCount: Integer;
   public
     { Public declarations }
     procedure SaveToStream(const Stream: TStream);
@@ -28,6 +29,8 @@ type
     procedure ValueList(const ValueList: TStrings; const AccountList: TList; BeginDate,
       EndDate: TDateTime);
 
+    // Общее число количественных величин на компоненте
+    property ValueCount: Integer read GetValueCount;
     property Selected: string read GetSelected write SetSelected;
   end;
 
@@ -246,6 +249,13 @@ end;
 procedure TfrAcctQuantity.SaveToStream(const Stream: TStream);
 begin
   SaveStringToStream(Selected, Stream);
+end;
+
+function TfrAcctQuantity.GetValueCount: Integer;
+begin
+  Result := 0;
+  if Assigned(FCheckBoxList) then
+    Result := FCheckBoxList.Count;
 end;
 
 end.

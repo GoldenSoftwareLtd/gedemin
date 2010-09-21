@@ -9569,7 +9569,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
       Top = 0
       Width = 539
       Height = 427
-      ActivePage = tbs04
+      ActivePage = tbs01
       Align = alClient
       Style = tsFlatButtons
       TabOrder = 0
@@ -9963,7 +9963,7 @@ object gsFDBConvertFormView: TgsFDBConvertFormView
               Width = 109
               Height = 21
               Style = csDropDownList
-              ItemHeight = 13
+              ItemHeight = 0
               TabOrder = 2
             end
           end
