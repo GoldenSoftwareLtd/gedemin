@@ -152,6 +152,8 @@ type
     procedure SetDisplayText(const AText: String; const AParent: Integer = 0);
     procedure ParseFieldsString(const AFields: String; SL: TStrings);
     function ConvertDate(const S: String): String;
+    function ExtractDate(const S: String; out Y, M, D: Integer): Boolean;
+    function GetParamValue(const S: String): Variant;
 
   protected
     procedure DropDown; override;
@@ -484,7 +486,7 @@ var
       begin
         if (FParams = nil) or (FParams.IndexOfName(Fibsql.Params[I].Name) = -1) then
           raise Exception.Create('TgsIBLookupComboBox: Invalid param name');
-        Fibsql.Params[I].AsString := FParams.Values[Fibsql.Params[I].Name];
+        Fibsql.Params[I].AsVariant := GetParamValue(FParams.Values[Fibsql.Params[I].Name]);
       end;
     end;
   end;
@@ -677,8 +679,8 @@ begin
   begin
     if (FParams = nil) or (FParams.IndexOfName(FdlgDropDown.ibdsList.Params[I].Name) = -1) then
       raise Exception.Create('TgsIBLookupComboBox: Invalid param name');
-    FdlgDropDown.ibdsList.Params[I].AsString :=
-      FParams.Values[FdlgDropDown.ibdsList.Params[I].Name];
+    FdlgDropDown.ibdsList.Params[I].AsVariant :=
+      GetParamValue(FParams.Values[FdlgDropDown.ibdsList.Params[I].Name]);
   end;
 
   try
@@ -1444,8 +1446,8 @@ begin
       begin
         if (FParams = nil) or (FParams.IndexOfName(FdlgDropDown.ibdsList.Params[I].Name) = -1) then
           raise Exception.Create('TgsIBLookupComboBox: Invalid param name');
-        FdlgDropDown.ibdsList.Params[I].AsString :=
-          FParams.Values[FdlgDropDown.ibdsList.Params[I].Name];
+        FdlgDropDown.ibdsList.Params[I].AsVariant :=
+          GetParamValue(FParams.Values[FdlgDropDown.ibdsList.Params[I].Name]);
       end;
 
       FdlgDropDown.ibdsList.Open;
@@ -2939,6 +2941,75 @@ begin
     else if (D > 9) and (D < 32) then
       Result := Result + IntToStr(D);
   end;
+end;
+
+function TgsIBLookupComboBox.ExtractDate(const S: String; out Y, M, D: Integer): Boolean;
+var
+  YF, MF, DF: Boolean;
+  B, E: Integer;
+begin
+  Result := False;
+
+  YF := False;
+  MF := False;
+  DF := False;
+
+  E := Length(S);
+  B := E - 1;
+  while B >= 1 do
+  begin
+    if (S[B] = '.') or (B = 1) then
+    begin
+      if B = 1 then
+        B := 0;
+      if not YF then
+      begin
+        Y := StrToIntDef(Copy(S, B + 1, E - B), -1);
+
+        if (Y < 1800) or (Y > 3000) then
+          exit;
+
+        YF := True;
+      end else
+      if not MF then
+      begin
+        M := StrToIntDef(Copy(S, B + 1, E - B), -1);
+
+        if (M < 1) or (M > 12) then
+          exit;
+
+        MF := True;
+      end else
+      if not DF then
+      begin
+        D := StrToIntDef(Copy(S, B + 1, E - B), -1);
+
+        if (D < 1) or (D > 31) then
+          exit;
+
+        DF := True;
+      end else
+        exit;
+
+      E := B - 1;
+      B := E;
+    end else
+      Dec(B);
+  end;
+
+  Result := YF and MF and DF;
+end;
+
+function TgsIBLookupComboBox.GetParamValue(const S: String): Variant;
+var
+  Y, M, D: Integer;
+begin
+  if (Length(S) >= 10) and (S[1] = '#') and (S[Length(S)] = '#')
+    and ExtractDate(Copy(S, 2, Length(S) - 2), Y, M, D) then
+  begin
+    Result := EncodeDate(Y, M, D)
+  end else
+    Result := S;
 end;
 
 { TgsIBLCBDataLink }

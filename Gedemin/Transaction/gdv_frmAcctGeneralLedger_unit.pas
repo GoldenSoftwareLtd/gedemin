@@ -230,6 +230,8 @@ begin
 
     //Обновляем количественные показатели
     frAcctQuantity.UpdateQuantityList(FAccountIDs);
+    // Отображение настроек количественных сумм
+    frAcctSum.SetQuantityVisible(frAcctQuantity.ValueCount > 0);
 
     ScrollBox.Realign;
   end;

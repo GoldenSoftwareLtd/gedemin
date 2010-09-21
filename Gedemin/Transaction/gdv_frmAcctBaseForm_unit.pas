@@ -452,7 +452,7 @@ begin
         F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].DisplayFieldName, [cNCUPrefix]));
         F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].DisplayFieldName, [cCURRPrefix]));
         F.DisplayFields.Add(Format(BaseAcctQuantityFieldList[J].DisplayFieldName, [cEQPrefix]));
-        F.DisplayFormat := '';
+        F.DisplayFormat := DisplayFormat(frAcctSum.QuantityDecDigits);
       end;
     end;
   end;
@@ -611,6 +611,9 @@ begin
   frAcctQuantity.UpdateQuantityList(FAccountIDs);
   frAcctAnalytics.UpdateAnalyticsList(FAccountIDs);
 
+  // Отображение настроек количественных сумм
+  frAcctSum.SetQuantityVisible(frAcctQuantity.ValueCount > 0);
+
   ScrollBox.Realign;
 end;
 
@@ -624,6 +627,8 @@ begin
 end;
 
 procedure Tgdv_frmAcctBaseForm.FormCreate(Sender: TObject);
+var
+  DefaultDecDigits: Integer;
 begin
   inherited;
   Transaction.DefaultDataBase := gdcBaseManager.Database;
@@ -632,14 +637,18 @@ begin
 
   iblConfiguratior.Condition := Format('CLASSNAME = ''%s''', [ConfigClassName]);
 
-  frAcctSum.NcuDecDigits := LocateDecDigits;
-  frAcctSum.CurrDecDigits := LocateDecDigits;
-  frAcctSum.EQDecDigits := LocateDecDigits;
+  // Настройки вывода сумм
+  DefaultDecDigits := LocateDecDigits;
+  frAcctSum.NcuDecDigits := DefaultDecDigits;
+  frAcctSum.CurrDecDigits := DefaultDecDigits;
+  frAcctSum.EQDecDigits := DefaultDecDigits;
+  frAcctSum.QuantityDecDigits := DefaultDecDigits;
   if Assigned(GlobalStorage) and Assigned(IBLogin)
      and ((GlobalStorage.ReadInteger('Options\Policy', GD_POL_EQ_ID, GD_POL_EQ_MASK, False) and IBLogin.InGroup) = 0) then
   begin
     frAcctSum.SetEQVisible(False);
   end;
+  frAcctSum.SetQuantityVisible(False);
 
   // Построим пустой отчет
   gdvObject.MakeEmpty := True;
@@ -789,6 +798,8 @@ begin
     frAcctSum.EQDecDigits := EQDecDigits;
     frAcctSum.EQScale := EQScale;
 
+    frAcctSum.QuantityDecDigits := QuantityDecDigits;
+    frAcctSum.QuantityScale := QuantityScale;
 
     frAcctQuantity.Selected := Quantity;
     frAcctAnalytics.Values := Analytics;
@@ -828,6 +839,9 @@ begin
     InEQ := frAcctSum.InEQ;
     EQDecDigits := frAcctSum.EQDecDigits;
     EQScale := frAcctsum.EQScale;
+
+    QuantityDecDigits := frAcctSum.QuantityDecDigits;
+    QuantityScale := frAcctsum.QuantityScale;
 
     Quantity := frAcctQuantity.Selected;
     Analytics := frAcctAnalytics.Values;

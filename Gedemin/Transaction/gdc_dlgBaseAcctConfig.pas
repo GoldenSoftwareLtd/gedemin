@@ -317,6 +317,9 @@ begin
     frSum.EQDecDigits := EQDecDigits;
     frSum.EQScale := EQScale;
 
+    frSum.QuantityDecDigits := QuantityDecDigits;
+    frSum.QuantityScale := QuantityScale;
+
     frQuantity.Values := Quantity;
     frAnalytics.Values := Analytics;
 
@@ -345,12 +348,16 @@ begin
     EQDecDigits := frSum.EQDecDigits;
     EQScale := frSum.EQScale;
 
+    QuantityDecDigits := frSum.QuantityDecDigits;
+    QuantityScale := frSum.QuantityScale;
+
     Quantity := frQuantity.Values;
     Analytics := frAnalytics.Values;
 
     ExtendedFields := cbExtendedFields.Checked;
   end;
 end;
+
 procedure TdlgBaseAcctConfig.cbSubAccountsClick(Sender: TObject);
 begin
   if FAccountIDs <> nil then

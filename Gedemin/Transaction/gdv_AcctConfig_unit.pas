@@ -36,6 +36,8 @@ type
     FInEQ: boolean;
     FEQDecDigits: Integer;
     FEQScale: Integer;
+    FQuantityDecDigits: Integer;
+    FQuantityScale: Integer;
 
     procedure SetAccounts(const Value: string);
     procedure SetIncludeInternalMovement(const Value: boolean);
@@ -57,6 +59,8 @@ type
     procedure SetEQDecDigits(const Value: Integer);
     procedure SetEQScale(const Value: Integer);
     procedure SetInEQ(const Value: boolean);
+    procedure SetQuantityDecDigits(const Value: Integer);
+    procedure SetQuantityScale(const Value: Integer);
   protected
     procedure Reset; virtual;
     procedure ResetSize; virtual;
@@ -88,6 +92,9 @@ type
     property InEQ: boolean read FInEQ write SetInEQ;
     property EQDecDigits: Integer read FEQDecDigits write SetEQDecDigits;
     property EQScale: Integer read FEQScale write SetEQScale;
+
+    property QuantityDecDigits: Integer read FQuantityDecDigits write SetQuantityDecDigits;
+    property QuantityScale: Integer read FQuantityScale write SetQuantityScale;
 
     property Quantity: string read FQuantity write SetQuantity;
     property Analytics: string read FAnalytics write SetAnalytics;
@@ -214,7 +221,7 @@ procedure SaveConfigToStream(const Config: TBaseAcctConfig; const Stream: TStrea
 implementation
 
 const
-  StreamVersion = 9;
+  StreamVersion = 10;
 
 procedure SaveConfigToStream(const Config: TBaseAcctConfig; const Stream: TStream);
 begin
@@ -297,40 +304,8 @@ end;
 destructor TBaseAcctConfig.Destroy;
 begin
   inherited;
-//  FAnalytics.Free;
-//  FCompany.Free;
-//  FQuantity.Free;
-//  FSum.Free;
   FGridSettings.Free;
 end;
-
-{function TBaseAcctConfig.GetAnalytics: TStream;
-begin
-  if FAnalytics = nil then
-    FAnalytics := TMemoryStream.Create;
-  Result := FAnalytics;
-end;}
-
-{function TBaseAcctConfig.GetCompany: TStream;
-begin
-   if FCompany = nil then
-    FCompany := TMemoryStream.Create;
-  Result := FCompany;
-end;}
-
-{function TBaseAcctConfig.GetQuantity: TStream;
-begin
-   if FQuantity = nil then
-     FQuantity := TMemoryStream.Create;
-   Result := FQuantity;
-end;}
-
-{function TBaseAcctConfig.GetSum: TStream;
-begin
-   if FSum = nil then
-     FSum := TMemoryStream.Create;
-   Result := FSum;
-end;}
 
 class function TBaseAcctConfig.EditDialogName: string;
 begin
@@ -421,6 +396,12 @@ begin
     FEQDecDigits := ReadIntegerFromStream(Stream);
     FEQScale := ReadIntegerFromStream(Stream);
   end;
+
+  if FStreamVersion >= 10 then
+  begin
+    FQuantityDecDigits := ReadIntegerFromStream(Stream);
+    FQuantityScale := ReadIntegerFromStream(Stream);
+  end;
 end;
 
 procedure TBaseAcctConfig.Reset;
@@ -480,7 +461,8 @@ begin
   SaveIntegerToStream(FEQDecDigits, Stream);
   SaveIntegerToStream(FEQScale, Stream);
 
-
+  SaveIntegerToStream(FQuantityDecDigits, Stream);
+  SaveIntegerToStream(FQuantityScale, Stream);
 end;
 
 procedure TBaseAcctConfig.SetAccounts(const Value: string);
@@ -606,6 +588,16 @@ end;
 procedure TBaseAcctConfig.SetInEQ(const Value: boolean);
 begin
   FInEQ := Value;
+end;
+
+procedure TBaseAcctConfig.SetQuantityDecDigits(const Value: Integer);
+begin
+  FQuantityDecDigits := Value;
+end;
+
+procedure TBaseAcctConfig.SetQuantityScale(const Value: Integer);
+begin
+  FQuantityScale := Value;
 end;
 
 { TAccCardConfig }

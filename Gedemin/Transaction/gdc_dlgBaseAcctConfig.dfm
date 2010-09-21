@@ -18,10 +18,15 @@ inherited dlgBaseAcctConfig: TdlgBaseAcctConfig
     Top = 61
     Anchors = [akTop, akRight]
   end
+  inherited btnHelp: TButton
+    Left = 545
+    Top = 109
+    Anchors = [akTop, akRight]
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 544
     Top = 5
-    Anchors = [akTop, akRight]
     TabOrder = 1
   end
   inherited btnCancel: TButton
@@ -29,12 +34,6 @@ inherited dlgBaseAcctConfig: TdlgBaseAcctConfig
     Top = 29
     Anchors = [akTop, akRight]
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Left = 545
-    Top = 109
-    Anchors = [akTop, akRight]
-    TabOrder = 5
   end
   object PageControl: TPageControl [5]
     Left = 0
@@ -70,18 +69,6 @@ inherited dlgBaseAcctConfig: TdlgBaseAcctConfig
         inherited gbSum: TGroupBox
           Width = 522
           Align = alClient
-          inherited Label13: TLabel
-            Width = 59
-          end
-          inherited Label15: TLabel
-            Width = 59
-          end
-          inherited Label10: TLabel
-            Width = 43
-          end
-          inherited Label1: TLabel
-            Width = 59
-          end
           inherited gsiblCurrKey: TgsIBLookupComboBox
             Width = 81
           end
