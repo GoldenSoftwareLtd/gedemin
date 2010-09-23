@@ -1,3011 +1,1731 @@
+
 unit gsPeriodEdit;
 
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, extctrls,
-  stdctrls, comctrls, Forms, buttons, Commctrl
-  ,dialogs{ для вывода отладочных сообщений }
-  {$IFNDEF MCALENDAR},gsCalendar{$ENDIF};
+  Classes, Windows, Controls, Graphics, ExtCtrls, Messages, StdCtrls, Dialogs, Buttons, forms,ComObj, registry, SysUtils;
 
 type
-  TDMY = record
-    D,M,Y: Word;
-  end;
-  T2DMY = array[1..2] of TDMY;
-
-  TTypePeriod = (tpYear, tpQuarter, tpMonth, tpWeek, tpDay);
-
-  TPeriod = class(TObject)
-  private
-    DMY: T2DMY;
-    FAllowDateEnd: Boolean;
-    FLenYear: Integer;
-  public
-    DBeg, DEnd: TDateTime;
-    constructor Create;
-    procedure SetDates(ADate1: TDateTime; TypePeriod: TTypePeriod; Offset: Integer = 0);
-    //- function GetTwoDates: T2DMY;
-    procedure TwoYMDtoDates(ADate1, ADate2: TDMY);
-    //- procedure DatesToTwoYMD(ADate1, ADate2: TDateTime);
-    procedure SetOrdPeriod(OrdPeriod,Year: Integer; TypePeriod: TTypePeriod);
-    //- function GetType: TTypePeriod;
-    function GetTextPeriod(Part: Integer = 0): string;
-    function DatesToText: string;
-  end;
-
-function GetOrdPeriod(ADate: TDateTime; TypePeriod: TTypePeriod): Integer;
-//function GetTypePeriod(ADate1, ADate2: TDateTime): TTypePeriod;
+  TgsCalendarState = (gscsYear, gscsMonth, gscsDay);
+  TgsMonth = (gscsJan,gscsFev,gscsMar,gscsApr,gscsMay,gscsIun,gscsIul,gscsAvg,gscsSen,gscsOct,gscsNojb,gscsDec);
+  TgsDatePeriodKind = (dpkYear, dpkQuarter, dpkMonth, dpkWeek, dpkDay, dpkFree);
+  const
+  DefCalendarState = gscsYear;
+  DefKind = dpkFree;
+  DefMaxDate = 0;
+    YearNumber : array [1..3, 1..4] of Integer = (
+     (2009, 2010, 2011, 2012),
+     (2013, 2014, 2015, 2016),
+     (2017, 2018, 2019, 2020)
+     );
+    YearColor : array [1..3, 1..4] of TColor = (
+      (clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow)
+      );
+    MonthColor : array [1..3, 1..4] of TColor = (
+      (clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow)
+      );
+    DayColor : array [1..7, 1..7] of TColor = (
+      (clWindow, clWindow, clWindow, clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow, clWindow, clWindow, clWindow),
+      (clWindow, clWindow, clWindow, clWindow, clWindow, clWindow, clWindow)
+      );
+   PanelMonth: array [1..12] of String= ('Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь');
+   LastData:array [1..12] of  Integer = (31,28,31,30,31,30,31,31,30,31,30,31);
 
 type
-  TgsPeriodEdit = class;
-  TgsDropWindow = class;
 
-  TgsPageControl = class(TPageControl)
-  protected
-    procedure WndProc(var Msg: TMessage); override;
-    procedure WMKillFocus(var Message: TWMKillFocus); message WM_KillFocus;
-//    property OnKeyDown;
-  end;
+ EgsDatePeriod = class(Exception)
 
-  {$IFDEF MCALENDAR}
-  TgsMonthCalendar = class(TMonthCalendar)
-  {$ELSE}
-  TgsMonthCalendar = class(TgsCalendar)
-  {$ENDIF}
+ end;
+
+ TgsCalendarPanel = class(TCustomControl)
   private
+    NumberDay: array [1..7, 1..7] of Integer;
+    b, vid : Boolean;
+    FCalendarState : TgsCalendarState;
+    Year,XX,YY,FCalendarMonth,FlX,FlY,NX,NY,FNumberDay, DataToday, YearToday, MonthToday, FTodayDayWeek, VibPeriod, TitleYear, TitleMonth, TitleDay : integer;
+    procedure SetCalendarState(const Value: TgsCalendarState);
+
   protected
-    procedure WMGetDlgCode(var Message: TWMGetDlgCode); message WM_GETDLGCODE;
-    procedure WMKillFocus(var Message: TWMKillFocus); message WM_KillFocus;
-    procedure CMCancelMode(var Message: TCMCancelMode);  message CM_CANCELMODE;
-    procedure WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
-  public
-    constructor Create(AOwner: TComponent); override;
-  end;
-
-  TgsCustomListBox = class(TListBox)
-  private
-    FPeriodEdit: TgsPeriodEdit; // Класс диапазона
-    FLayout: Integer;
-  protected
-    procedure WMGetDlgCode(var Message: TWMGetDlgCode); message WM_GETDLGCODE;
-    procedure WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
-//    procedure WMLButtonDown(var Message: TWMLButtonDown); message WM_LBUTTONDOWN;
-    procedure WMSetFocus(var Message: TWMSetFocus); message WM_SetFocus;
-    procedure WMKillFocus(var Message: TWMKillFocus); message WM_KillFocus;
-    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
-
-    procedure DoOnDrawItem(Control: TWinControl; Index: Integer;
-      Rect: TRect; State: TOwnerDrawState);
-  public
-    constructor Create(AOwner: TComponent); override;
-  end;
-
-  TgsListBox = class(TgsCustomListBox)
-  protected
-    procedure CreateParams(var Params: TCreateParams); override;
-  public
-    //constructor Create(AOwner: TComponent); override;
-  end;
-
-  TgsButton = class(TBitBtn)
-  private
-    //IsActive, IsPressed: Boolean;
-    //Is3D: Boolean;
-
-    FDropWindow: TgsDropWindow;
-    //IsDropped: Boolean;
-    procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
-    procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
-  protected
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState;
-      X, Y: Integer); override;
-    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState;
-      X, Y: Integer); override;
-    //procedure Paint; override;
-  public
-    constructor Create(AOwner: TComponent); override;
-  end;
-
-  {TODO: TgsDropWindow  1}
-  TgsDropWindow = class(TCustomControl)
-  private
-    FPeriodEdit: TgsPeriodEdit; // Класс диапазона
-    //-IsFirst: Boolean;
-
-    FPages: TgsPageControl;
-    FTabHistory: TTabSheet;
-    FTabCal: TTabSheet;
-    FTabDpz: TTabSheet;
-    FTabHelp: TTabSheet;
-
-    lbHistory: TgsCustomListBox;
-    lbMeta: TgsCustomListBox;
-
-    FCal1: TgsMonthCalendar;
-    FCal2: TgsMonthCalendar;
-//    lbDbg: TListBox;
-//    FBtDbg: TSpeedButton;
-
-    lbYear: TgsListBox;
-    lbQuarter: TgsListBox;
-    lbMonth: TgsListBox;
-    lbWeek: TgsListBox;
-
-    FBtnUp: TSpeedButton;
-    FBtnDn: TSpeedButton;
-    FBtnCancel: TSpeedButton;
-    FBtnOk: TSpeedButton;
-
-    FDropText: string;
-
-    FSkipKillFocus: Boolean;
-    FTimeKillFocus: TDateTime;
-//-    procedure WMMouseActivate(var Message: TWMMouseActivate);  message WM_MouseActivate;
-//-    procedure WMWindowPosChanging(var Message: TWMWindowPosChanging);  message WM_WINDOWPOSCHANGING;
-    procedure WMKillFocus(var Message: TWMKillFocus); message WM_KillFocus;
-
-    procedure DoOnBtnUpClick(Sender: TObject);
-    procedure DoOnBtnDnClick(Sender: TObject);
-    procedure DoOnBtnCancelClick(Sender: TObject);
-    procedure DoOnBtnOkClick(Sender: TObject);
-
-    procedure DoOnCalendarChange(Sender: TObject; CloseDropWindow: Boolean);
-    {$IFNDEF MCALENDAR}
-    procedure DoOnDateChangeCalendar(Sender: TObject; FromDate, ToDate: TDateTime);
-    {$ENDIF}
-    procedure DoOnClickCalendar(Sender: TObject);
-    procedure DoOnDblClickCalendar(Sender: TObject);
-
-    procedure DoOnChangePeriod(Sender: TObject; CloseDropWindow: Boolean);
-    procedure DoOnClickPeriod(Sender: TObject);
-    procedure DoOnDblClickPeriod(Sender: TObject);
-
-    procedure DoOnKeyDownDropWindow(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure DoOnChildKeyPress(Sender: TObject; var Key: Char);
-    procedure DoOnPageChange(Sender: TObject);
-
-    procedure BackDates; //возврат дат(ы) до открытия окошка после его закрытия без подтверждения изменений
-    procedure AssignCalDate(ACal: TgsMonthCalendar);
-  protected
-    procedure KeyPress(var Key: Char); override;
-    procedure CreateParams(var Params: TCreateParams); override;
-  public
-    constructor Create(AOwner: TComponent); override;
-  end;
-
-  {TODO: TgsPeriodEdit  1}
-  //TDateTimeKind = (dtkDate, dtkTime);
-  TDTDateFormat = (dfDefault, dfShort, dfLong);
-
-  TgsPeriodEdit = class(TCustomEdit)
-  private
-    FPeriod:     TPeriod;   {класс периода}
-
-    FDateFormat: TDTDateFormat;{4 или 2 цифры для года}
-    FLenY:       Integer;   {длина года 2008 или 08}
-    FLenDate:    Integer;   {длина даты периода (10 или 8), можно и без неё, но с ней понятней{имхо}
-
-    FDiapason:    Boolean;   {только одна дата используется}
-
-    FPageIndex: Integer;
-    FTraceItems: TStrings;
-    FCalBegDate: TDate;
-    FCalEndDate: TDate;
-    FYearPeriod: Integer;
-    //FQuarterIndex: Integer;
-    //FMonthIndex: Integer;
-    //FWeekIndex: Integer;
-
-    FDropButton: TgsButton;     {кнопка для отображения выпад}
-    FDropWindow: TgsDropWindow; {выпадающее окошко}
-
-    FKeepText: string;
-    FKeepDate: TDate;
-    FKeepEndDate: TDate;
-    FOK: Boolean;
-
-    FTimer: TTimer;
-    FMetaStr: string;
-    FMetaStrLast: string;
-
-    FAllowHistoryLoad: Boolean;
-
-    //FSelStart: Integer;
-    //FSelLen: Integer;
-
-    procedure WMSize(var Message: TWMSize);  message WM_SIZE;
-    //-procedure WMMouseMove(var Message: TWMMouseMove); message WM_MouseMove;
-    procedure WMSetFocus(var Message: TWMSetFocus); message WM_SetFocus;
-    //-procedure WMKillFocus(var Message: TWMKillFocus); message WM_KillFocus;
-    //-procedure CMCancelMode(var Message: TCMCancelMode);  message CM_CANCELMODE;
-    //procedure CMCtl3DChanged(var Message: TMessage); message CM_CTL3DCHANGED;
-    procedure CMEnter(var Message: TCMEnter); message CM_ENTER;
-    procedure CMExit(var Message: TCMExit); message CM_EXIT;
-
-    procedure DoOnDropDownClick(Sender: TObject);
-    procedure DoOnTimer(Sender: TObject);
-
-    procedure SetEditRect;
-    function GetEditHeight: Integer;
-    {$HINTS OFF}{чтобы не было хинта "нигде не используется", может ещё пригодится}
-    function GetText1: String;
-    function GetText2: String;
-    {$HINTS ON}
-    function GetDate1: TDate;
-    function GetDate2: TDate;
-
-    procedure SetDate1(Value: TDate);
-    procedure SetDate2(Value: TDate);
-
-    procedure SetDateFormat(const Value: TDTDateFormat);
-    procedure SetDiapason(const Value: Boolean);
-    procedure SetPageIndex(const Value: Integer);
-    procedure SetTraceItems(Values: TStrings);
-    procedure SetYearPeriod(const Value: Integer);
-
-    procedure CNNotify(var Message: TWMNotify); message CN_NOTIFY;
-  protected
-    procedure WMGetDlgCode(var Message: TWMGetDlgCode); message WM_GETDLGCODE;
-    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
-    procedure KeyPress(var Key: Char); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
+    procedure WMMouseMove(var Message: TWMMouseMove);
+      message WM_MouseMove;
+    procedure CMMouseLeave(var Message: TMessage);
+      message CM_MOUSELEAVE;
+    function ControlVid( Var X, Y: Integer):Boolean;
 
-    procedure CreateWnd; override;
-    procedure CreateParams(var Params: TCreateParams); override;
-    procedure Loaded; override;
+  protected
+    function CanResize(var NewWidth, NewHeight: Integer): Boolean; override;
+    procedure Paint; override;
 
-    procedure WndProc(var Message: TMessage); override;
-
-    procedure ListDateText(DateText: string; var Y, M, D: Integer; Part: Integer);
-    function ReadyDate(Part: Integer): Boolean;
-
-//-    function  PartInText(BegP: Integer; Offs: Integer = 0): Integer;
-    procedure ArrangePeriodText(BegSel: Integer = -1);
-    procedure PeriodTextToHistory;
-
-    function FurtherSelLen(CurBeg: Integer; Offs: Integer;
-      var Beg,Len: Integer; Forw: Integer = 0): Integer;
-    procedure SelRange(AStart, ALength: Integer);
-
-    function ValidTraceItem(Item: String; var PeriodAsStr: string): Boolean;
-    procedure HistoryLoad;
-    //~property BorderStyle;
   public
-    constructor Create(AOwner: TComponent); override;
+    constructor Create(AnOwner: TComponent); override;
+  property CalendarState: TgsCalendarState read FCalendarState write SetCalendarState
+      default DefCalendarState;
+  end;
+
+TgsDataPeriod = class(TObject)
+   private
+     Kj, tir, Month, Day, FDayWeek: Integer;
+     Sp: Char;
+     Date, EndDate,FMaxDate, FMinDate :TDate;
+     Kind: TgsDatePeriodKind;
+     Raz: Boolean;
+     procedure SetKindState(const Value: TgsDatePeriodKind);
+     procedure SetKind(const pr: Integer);
+   protected
+     procedure Assign(const ASource: TgsDataPeriod);
+     procedure ProcessShortCut(var Key: char; Text: String);
+     function EncodeString: String;
+     procedure DecodeString(const AString: String);
+   public
+     property PeriodKind: TgsDatePeriodKind read Kind write SetKindState
+      default DefKind;
+     property MaxDate: TDate read FMaxDate write FMaxDate;
+     property MinDate: TDate read FMinDate write FMinDate;
+     constructor Create;
+  end;
+
+  TgsPeriodForm = class(TCustomControl)
+  private
+
+    FObjPanel1, FObjPanel2: TgsCalendarPanel;
+    NumberPeriod: Integer;
+
+
+  protected
+
+    procedure WMActivate(var Message: TWMActivate); message WM_ACTIVATE;
+    procedure CreateParams(var Params: TCreateParams); override;
+    procedure Paint; override;
+    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override; 
+
+  public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+  end;
+
+
+
+  TgsPeriodShortCutEdit = class(TCustomEdit)
+
+  private
+      g: Integer;
+     Data: Boolean;
+     FData: TgsDataPeriod;
+
+  protected
+    procedure KeyUp(var Key: Word; Shift: TShiftState); override;
+
+  public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+  end;
+
+  TgsPeriodEdit = class(TWinControl)
+
+  private
+     DatePeriod: TgsDataPeriod;
+     FPeriodWind: TgsPeriodForm;
+     FEdit: TgsPeriodShortCutEdit;
+     FSpeedButton: TSpeedButton;
+     Kj: Integer;
+     FGuid : TGUID;
+     Text :String;
+     
+  protected
+    procedure KeyPress(Sender: TObject; var Key: Char);
+    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
+    procedure CMMouseLeave(var Message: TMessage);
+      message CM_MOUSELEAVE;
+    procedure Change(Sender: TObject);
+    procedure FOnExit(Sender: TObject);
+    procedure Loaded; override;
+    procedure FormMouseDown(Sender: TObject; Button: TMouseButton;Shift: TShiftState; X, Y: Integer);
+    procedure OnMouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; X, Y: Integer);
+    procedure OnMouseDown(Sender: TObject; Button: TMouseButton;Shift: TShiftState; X, Y: Integer);
+    procedure DoOnButtonClick(Sender: TObject);
+    procedure OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+
+  public
+    constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    property Period: TPeriod read FPeriod;
-
-    procedure SetDates(ADate: TDateTime; TypePeriod: TTypePeriod; Offset: Integer = 0);
-    procedure AssignOrdPeriod(OrdPeriod,Year: Integer; TypePeriod: TTypePeriod);
-
-    property CalBegDate: TDate read FCalBegDate;
-    property CalEndDate: TDate read FCalEndDate;
-
-    //property QuarterIndex: Integer read FQuarterIndex default -1;
-    //property MonthIndex: Integer read FMonthIndex default -1;
-    //property WeekIndex: Integer read FWeekIndex default -1;
-
-    property MaxLength;
   published
-    property Date{PE}: TDate read GetDate1 write SetDate1;
-    property EndDate: TDate read GetDate2 write SetDate2;
-    property DateFormat: TDTDateFormat read FDateFormat write SetDateFormat default dfDefault;
-    property Diapason: Boolean read FDiapason write SetDiapason default false;
-    property PageIndex: Integer read FPageIndex write SetPageIndex default 0;
-    property TraceItems: TStrings read FTraceItems write SetTraceItems;
-    property YearPeriod: Integer read FYearPeriod  write SetYearPeriod;
-
-    property Anchors;
-//    property AutoSelect;
-//    property AutoSize;
-//    property BiDiMode;
-//    property BorderStyle;
-//    property CharCase;
-    property Color;
-    property Constraints;
-//    property Ctl3D;
-//    property DragCursor;
-//    property DragKind;
-//    property DragMode;
-    property Enabled;
-    property Font;
-//    property HideSelection;
-//    property ImeMode;
-//    property ImeName;
-//~   property MaxLength;
-//    property OEMConvert;
-//    property ParentBiDiMode;
-    property ParentColor;
-    property ParentCtl3D;
-    property ParentFont;
-    property ParentShowHint;
-//    property PasswordChar;
-    property PopupMenu;
-    property ReadOnly;
-    property ShowHint;
-    property TabOrder;
-    property TabStop;
-  //property Text;
-    property Visible;
-    property OnChange;
-    property OnClick;
-    property OnContextPopup;
-    property OnDblClick;
-//    property OnDragDrop;
-//    property OnDragOver;
-//    property OnEndDock;
-//    property OnEndDrag;
-    property OnEnter;
-    property OnExit;
-    property OnKeyDown;
-    property OnKeyPress;
-    property OnKeyUp;
-    property OnMouseDown;
-    property OnMouseMove;
-    property OnMouseUp;
-//    property OnStartDock;
-//    property OnStartDrag;
+     property GUID : TGUID read FGUID write FGUID;
   end;
 
-  TObjStr = class(TObject)
-  public
-    Text: string;
-    constructor Create(s: string='');
-  end;
 
-procedure Register;
+
+
 
 implementation
 
-{$R GSPERIODEDIT.RES}
+//uses
+//  SysUtils;
 
-{
-  Регистрация компоненты
-}
+{ TgsCalendarPanel }
 
-procedure Register;
+
+function TgsCalendarPanel.CanResize(var NewWidth,
+  NewHeight: Integer): Boolean;
 begin
-  RegisterComponents('x-VisualControl', [TgsPeriodEdit]);
-end;
-
-
-// размер кнопки для выпадающего окна в правой части элемента
-const
-  DropBtnWidth  = 17;
-  DropBtnHeight = 17;
-
-const
-  FmtYear    = '%d год';
-  FmtQuarter = '%s-й квартал %d года';
-  FmtMonth   = '%s %d года';
-  FmtWeek    = '%d-ая неделя %d года';
-
-  _B = ' ';
-
-  ArQuarter: array[1..4] of string[3] = ('I','II','III','IV');
-
-  //Метасимволы
-  ArMetaConst: array[1..15] of string = (
-    'с',  //сегодня
-    'з',  //завтра
-    'в',  //вчера
-    'н',  //текущая неделя
-    'пн', //прошлая неделя
-    'сн', //следующая неделя
-    'м',  //текущий месяц
-    'пм', //прошлый месяц
-    'см', //следующий месяц
-    'к',  //текущий квартал
-    'пк', //прошлый квартал
-    'ск', //следующий квартал
-    'г',  //текущий год
-    'пг', //прошлый год
-    'сг'  {следующий год}
-  );
-var
-  ArMeta: array[1..2, 1..15] of string;
-
-  //Ниже массивы начал и длин частей дат(ы) в тексте компоненты:
-  //первый массив для года из 4-х цифр, второй для 2-х
-  //по всей видимости это временное решение, избыточное ради
-  //двойного представления года
-
-  //день.месяц.год-день.месяц.год    {нач. дата -кон. дата }
-  ar1Beg: array[1..6] of Integer =   {0  3  6    11 14 17  21}
-    (0, 3, 6, 11, 14, 17);           {^  ^  ^    ^  ^  ^   ^}
-  ar1Len: array[1..6] of Integer =   {01.01.2008-01.11.2008}
-    (2, 2, 4,  2, 2, 4);
-                                     {нач.дата-кон.дата}
-  ar2Beg: array[1..6] of Integer =   {0  3  6  9  12 1517}
-    (0, 3, 6,  9, 12, 15);           {^  ^  ^  ^  ^  ^ ^}
-  ar2Len: array[1..6] of Integer =   {01.01.08-01.11.08}
-    (2, 2, 2,  2, 2, 2);
-
-const
-  ArFmtPeriod: array[1..4] of string = ('%d год', '%s-й квартал %d года',
-    '%s %d года', '%d-ая неделя %d года');
-
-function FmtPeriod(TxtPeriod: string; I: Integer; Period: TPeriod): string;
-var
-  J,JY,p1,p2: Integer;
-  Y, OrdTxt,Fmt,Txt,z: string;
-  IPeriod: Integer;
-  ok: boolean;
-  V,K: Integer;
-  TmpPeriod: TPeriod;
-  TypePeriod: TTypePeriod;
-begin
-  Result := '';
-  TypePeriod := tpDay;{чтобы не было warning}
-  Txt := TxtPeriod;
-
-  Fmt := StringReplace(ArFmtPeriod[I], '%s', '', [rfReplaceAll]);
-  Fmt := StringReplace(Fmt, '%d', '', [rfReplaceAll]);
-
-  if I=1 then z:='год' else z:='года';
-  p2 := pos(' '+z, Txt);
-  if p2 = 0 then exit;
-//if p2 > 0 then delete(Txt, p2, Length(z)+1) else exit;
-
-  Y := ''; JY := 1;
-  for J := p2 - 1 downto 1 do
-    if Txt[J] in ['0'..'9'] then begin
-      Y := Txt[J] + Y;
-      JY := J;
-    end else
-      break;
-  if Length(Y) in [2,4] then IPeriod := StrToInt(Y)
-                        else exit;
-  delete(Txt, JY, Length(Y));
-
-  p1:=0;
-  if I > 1 then begin
-    OrdTxt := '';
-    case I of
-      2: p1:= pos('-й ',TxtPeriod);
-      3: p1:= pos(' ',TxtPeriod);
-      4: p1:= pos('-ая ',TxtPeriod);
-    end;
-    if p1>0 then begin
-      OrdTxt := copy(Txt, 1, p1-1);
-      delete(Txt, 1, p1-1);
-    end;
-
-    ok := false;
-    case I of
-      2: for J := 1 to 4 do
-           if OrdTxt = ArQuarter[J] then begin
-             IPeriod := J;
-             ok := True; break;
-           end;
-      3: for J := 1 to 12 do
-           if OrdTxt = LongMonthNames[J] then begin
-             IPeriod := J;
-             ok := True; break;
-           end;
-      4: begin
-           val(OrdTxt, V,K);
-           if (K=0) and (V in [1..53]) then begin
-             IPeriod := V;
-             ok := True;
-           end;
-         end;
-    end;{<- case}
-
-    if not ok then
-      exit;
-  end;
-  if Fmt <> Txt then
-    exit;
-
-  TmpPeriod := TPeriod.Create;
-  try
-    TmpPeriod.FLenYear := Period.FLenYear;
-    TmpPeriod.FAllowDateEnd := True;
-    case I of 1: TypePeriod := tpYear;  2: TypePeriod := tpQuarter;
-              3: TypePeriod := tpMonth; 4: TypePeriod := tpWeek;
-    end;
-    TmpPeriod.SetOrdPeriod(IPeriod, StrToInt(Y), TypePeriod);
-    Result := TmpPeriod.DatesToText;
-  finally
-    TmpPeriod.Free;
-  end;
-
-end;{<- FmtPeriod}
-
-function BlankDate(YearDigits: Integer): string;
-begin
-  if YearDigits = 4 then
-    Result := '__.__.____'
-  else
-    Result := '__.__.__';
-end;
-
-{ TObjStr }
-constructor TObjStr.Create(s: string='');
-begin
-  Text := s;
-end;
-function objstrText(ss: TStrings; ix: integer; FLenY: Integer): string;
-begin
-  if (ss.Objects[Ix]<>nil) and (ss.Objects[Ix] is TObjStr) then
-    result:=TObjStr(ss.Objects[ix]).Text
-  else
-    result:=BlankDate(FLenY);
-end;
-//function IndexOfObjStr(ss: TStrings; Txt: string): Integer;
-//var
-//  I: Integer;
-//begin
-//  Result := -1;
-//  for I := 0 to ss.Count - 1 do
-//    if (ss.Objects[I]<>nil) and (ss.Objects[I] is TObjStr)
-//      and (Txt = TObjStr(ss.Objects[I]).Str) then
-//    begin
-//      Result := I;
-//      Break;
-//    end;
-//
-//end;
-{$IFDEF DBGWND}
-function WndClass(Wnd: HWND): string;
-begin
-  SetLength(Result, 80);
-  SetLength(Result, GetClassName(WND, PChar(Result), Length(Result)) );
-end;
-
-function WndText(Wnd: HWND): string;
-begin
-  SetLength(Result, 80);
-  SetLength(Result, GetWindowText(WND, PChar(Result), Length(Result)) );
-end;
-{$ENDIF}
-
-procedure ArMetaFill;
-const
-  txtEn = '`qwertyuiop[]asdfghjkl;'''+'zxcvbnm,.';
-  txtRu = 'ёйцукенгшщзхъфывапролджэ' +'ячсмитьбю';
-var
-  I,J,p: Integer;
-begin           {TODO: Задание 5}
- for I:=1 to Length(ArMetaConst) do begin
-   ArMeta[1][I] := ArMetaConst[I];//для русской раскладки
-   for J := 1 to Length(ArMetaConst[I]) do
-   begin
-     p := pos(ArMetaConst[I][J],txtRu);
-     if p > 0 then ArMeta[2][I] := ArMeta[2][I] + txtEn[p] //для английской раскладки
-     else ArMeta[2][I] := ArMeta[2][I] + ArMetaConst[I][J];
-   end;
- end;
-end;
-
-function _DayOfWeek(ADate: TDateTime; MondayFirst: Boolean = True): Integer;
-begin
-  Result := DayOfWeek(ADate);
-  if MondayFirst then
-    if Result = 1 then
-      Result := 7
-    else
-      Result := Result - 1;
-end;
-
-function _DaysPerMonth(AYear, AMonth: Integer): Integer;
-const
-  DaysInMonth: array[1..12] of Integer =
-    (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
-begin
-  Result := DaysInMonth[AMonth];
-  if (AMonth = 2) and IsLeapYear(AYear) then Inc(Result);
-end;
-
-function _getYear(ADate: TDateTime = 0): Integer;
-var  D,M,Y: Word;
-begin
-  if ADate = 0 then
-    ADate := now;
-  DecodeDate(ADate, Y, M, D);
-  Result := Y;
-end;
-
-{  TPeriod  }
-
-function GetOrdPeriod(ADate: TDateTime; TypePeriod: TTypePeriod): Integer;
-var
- D,M,Y: Word;
- //DMY: T2DMY;
-begin
-  //with DMY[1] do
-  begin
-    DecodeDate(ADate, Y, M, D);
-    case TypePeriod of
-      tpYear: Result := Y;
-      tpQuarter: Result := ((M-1) div 3) + 1;
-      tpMonth: Result := M;
-      tpWeek: Result := Trunc( ADate - EncodeDate(Y,1,1)
-             + _DayOfWeek( EncodeDate(Y, 1, 1) - _DayOfWeek(ADate) )
-                              ) div 7  {+ 1};   {TODO: Задание 4}
-      tpDay: Result := Trunc( ADate - EncodeDate(Y, 1, 1) ) + 1;
-      else
-        Result := 0;
-    end;
-  end;
-end;
-
-function TPeriod.GetTextPeriod(Part: Integer = 0): string;
-var
-  Txt1, Txt2: String;
-  fmt: string;
-  ADate1, ADate2: TDateTime;
-begin
-  ADate1 := DBeg; ADate2 := DEnd;
-
-  Txt1 := ''; Txt2 := '';
-  if FLenYear = 4 then Fmt := 'dd.mm.yyyy'
-  else
-    Fmt := 'dd.mm.yy';
-
-  if ADate1 <> 0 then
-    Txt1 := FormatDateTime(Fmt, ADate1)
-  else
-    Txt1 := BlankDate(FLenYear);
-
-  if FAllowDateEnd then
-    if (ADate2 <> 0) then
-      Txt2 := FormatDateTime(Fmt, ADate2)
-    else
-      Txt2 := BlankDate(FLenYear);
-
-  case Part of
-    1: Result := Txt1;
-    2: Result := Txt2;
-    else
-      if FAllowDateEnd then
-        Result := Txt1 + '-' + Txt2
-      else
-        Result := Txt1;
-  end;
-
-end;
-
-constructor TPeriod.Create;
-begin
-  FAllowDateEnd := false;
-end;
-
-procedure TPeriod.TwoYMDtoDates(ADate1, ADate2: TDMY);
-begin
-  with ADate1 do DBeg := EncodeDate(Y, M, D);
-  with ADate2 do DEnd := EncodeDate(Y, M, D);
-end;
-
-//-procedure TPeriod.DatesToTwoYMD(ADate1, ADate2: TDateTime);
-//var
-//  Y, M, D: Word;
-//begin
-//  if ADate1 <> 0 then begin
-//    DecodeDate(ADate1, Y, M, D);
-//    DMY[1].Y := Y; DMY[1].M := M; DMY[1].D := D;
-//  end;
-//  if ADate2 <> 0 then begin
-//    DecodeDate(ADate2, Y, M, D);
-//    DMY[2].Y := Y; DMY[1].M := M; DMY[1].D := D;
-//  end;
-//end;
-
-procedure TPeriod.SetOrdPeriod(OrdPeriod, Year: Integer; TypePeriod: TTypePeriod);
-begin
-  with DMY[1] do begin
-    D := 1;
-    Y := Year;
-    DMY[2].Y := Year;
-    case TypePeriod of
-      tpYear: begin
-         DMY[2].D := 31;
-         M := 1;
-         DMY[2].M := 12;
-      end;
-      tpQuarter: begin
-         DMY[2].M := OrdPeriod * 3;
-         M := DMY[2].M - 2;
-         DMY[2].D := _DaysPerMonth(Y, DMY[2].M);
-      end;
-      tpMonth: begin
-         DMY[2].M := OrdPeriod;
-         M := DMY[2].M;
-         DMY[2].D := _DaysPerMonth(Y, DMY[2].M);
-      end;
-      tpWeek: begin
-         DBeg := EncodeDate(Y,1,1) - _DayOfWeek(EncodeDate(Y, 1, 1)) +
-               (OrdPeriod - 1) * 7 + 1;
-         DEnd := DBeg + 6;
-         exit;
-      end;
-      tpDay: begin
-         DBeg := EncodeDate(Y, 1, 1) + OrdPeriod - 1;
-         if FAllowDateEnd or (DEnd <> 0) then {1'}
-           DEnd := DBeg;
-         exit;
-      end;
-      else
-        exit;
-    end;
-  end;
-  TwoYMDtoDates(DMY[1], DMY[2]);
-end;
-
-function NextDate(ADate1: TDateTime; TypePeriod: TTypePeriod; Offset: Integer = 0): TDateTime;
-var
-  TmpM,TmpD: Integer;
-  D,M,Y: Word;
-begin
-    Result := ADate1;
-    DecodeDate(Result, Y, M, D);
-
-    if Offset <> 0 then{ Смещаем дату на определённый диапазон }
-    begin
-      TmpM := M;
-      case TypePeriod of
-            tpYear: Inc(Y, Offset);
-         tpQuarter,
-           tpMonth: begin
-                      if tpQuarter=TypePeriod then
-                        Offset := Offset * 3;
-                      Y := Y + (Offset div 12);
-                      TmpM := M + (Offset mod 12);
-                      if TmpM < 1 then begin
-                        Dec(Y);
-                        TmpM := 12 + TmpM;
-                      end else if TmpM > 12 then begin
-                        Inc(Y);
-                        TmpM := TmpM - 12;
-                      end;
-                    end;
-            tpWeek: begin
-                      Result := Result + Offset * 7;
-                      DecodeDate(Result, Y, M, D);
-                      TmpM := M;
-                    end;
-            tpDay:  begin
-                      Result := Result + Offset;
-                      exit;
-                      {DecodeDate(Result, Y, M, D); TmpM := M;}
-                     end;
-      end; { <- case TypePeriod}
-      TmpD := _DaysPerMonth(Y, TmpM);
-      if TmpD < D then
-        D := TmpD;
-      Result := EncodeDate(Y, TmpM, D);
-    end; { <- if Offset <> 0}
-end;
-
-procedure TPeriod.SetDates(ADate1: TDateTime; TypePeriod: TTypePeriod; Offset: Integer = 0);
-begin
-  DBeg := NextDate(ADate1, TypePeriod, Offset);
-  with DMY[1] do DecodeDate(DBeg, Y, M, D);
-  if TypePeriod = tpDay then
-  begin
-    if FAllowDateEnd or (DEnd <> 0) then{1'}
-      DEnd := DBeg;
-    exit;
-  end;
-
-  SetOrdPeriod(GetOrdPeriod(DBeg, TypePeriod), DMY[1].Y, TypePeriod);
-end;
-
-//-function TPeriod.GetTwoDates: T2DMY;
-//begin
-//  with Result[1] do DecodeDate(DBeg, Y, M, D);
-//  with Result[2] do DecodeDate(DEnd, Y, M, D);
-//end;
-
-function TPeriod.DatesToText: string;
-begin
-  Result := GetTextPeriod;
-end;
-
-function iif(Switch: Boolean; Var1,Var2: Variant): Variant;
-begin
-  if Switch then Result := Var1 else Result := Var2;
-end;
-
-function ReplaceSubStr(Text,SubStr: string; PStart, PLength: Integer): string;
-begin
-  result := copy(Text, 1, PStart - 1) + SubStr +
-    copy(Text, PStart + PLength, Length(Text) );
-end;
-
-function BlankBefore(_Blank: Char; Text: string; ALength: Integer): string;
-begin
-  Result := Text;
-  While length(Result) < ALength do
-    Result := _Blank + Result;
-end;
-
-function BlankAfter(_Blank: Char; Text: string; ALength: Integer): string;
-begin
-  Result := Text;
-  While length(Result) < ALength do
-    Result := Result + _Blank;
-end;
-
-//день(1), месяц(2) или год(2) текущей даты
-function TextPartOfNow(Part: Integer; YearDigits: Integer): string;
-var Fmt: string;
-begin  //YearDigits нужно только для лет
-  case Part of
-   1: Fmt := 'dd';
-   2: Fmt := 'mm';
-   3: if YearDigits = 4 then Fmt := 'yyyy' else Fmt := 'yy';
-  end;
-  Result := FormatDateTime(Fmt, Now);
-end;
-
-function FocusedWNDIsChild(Owner: TComponent; FocusedWND: HWND): Boolean;
-var I: Integer;
-begin
-  Result := false;
-  with Owner do
-  for I:=0 to ComponentCount - 1 do begin
-    if (Components[I] is TWinControl)
-      and (FocusedWND = TWinControl(Components[I]).Handle)
-    then begin
+  case FCalendarState of
+    gscsYear:
+       begin
+        NewWidth := 37 * 4;
+        NewHeight := 35 * 3 + 30;
         Result := True;
-        break;
-    end;
-  end;
-end;
-
-procedure TgsPageControl.WMKillFocus(var Message: TWMKillFocus);
-begin
-  if not (csDesigning in ComponentState) then
-    if (Message.FocusedWND <> Handle)
-      and not FocusedWNDIsChild(Owner,Message.FocusedWND)
-    then begin
-      TgsDropWindow(Owner).BackDates;
-      TgsDropWindow(Owner).Hide;
-      TWinControl(Owner.Owner).SetFocus;
-    end;
-
-  inherited;
-end;
-
-procedure TgsPageControl.WndProc(var Msg: TMessage);
-begin
-  inherited WndProc(Msg);
-  if (Msg.Msg = TCM_ADJUSTRECT) then begin
-
-      with PRect(Msg.LParam)^ do begin
-        Top := Top -6;
-        Left := 0;
-        Right := ClientWidth;
-        Bottom := ClientHeight;
+       end;
+    gscsMonth:
+       begin
+        NewWidth := 37 * 4;
+        NewHeight := 35 * 3 + 30 ;
+        Result := True;
+       end;
+    gscsDay:
+       begin
+        NewWidth := 21*7;
+        NewHeight := 15*7 + 30 ;
+        Result := True;
+       end;
       end;
-  end;
+
 end;
 
-procedure TgsMonthCalendar.WMKillFocus(var Message: TWMKillFocus);
+constructor TgsCalendarPanel.Create(AnOwner: TComponent);
+  var
+   s, ss: String;
+   I: Integer;
 begin
-  if not (csDesigning in ComponentState) then
-    if (Message.FocusedWND <> Handle)
-      and (Owner is TgsDropWindow) and not TgsDropWindow(Owner).FSkipKillFocus{??}
-      and not FocusedWNDIsChild(Owner, Message.FocusedWND)
-    then begin
-      TgsDropWindow(Owner).BackDates;
-      TgsDropWindow(Owner).Hide;
-      TWinControl(Owner.Owner).SetFocus;
-    end;
-
-  inherited;
-  Refresh;
-end;
-
-procedure TgsMonthCalendar.CMCancelMode(var Message: TCMCancelMode);
-begin
-  inherited;
-  if not (csDesigning in ComponentState) then
-    if (Message.Sender <> Self) and (Message.Sender <> Owner)
-      and ((Message.Sender).Owner <> nil)
-      and not ((Message.Sender).Owner is TgsDropWindow) then
-    begin
-//      if FDropWindow.Visible then begin
-//        FDropWindow.BackDates;
-//        FDropWindow.Hide;
-//      end;
-    end;
-end;
-
-procedure TgsMonthCalendar.WMGetDlgCode(var Message: TWMGetDlgCode);
-begin
-  inherited;
-  Message.Result := Message.Result or DLGC_WANTTAB;
-end;
-
-procedure TgsMonthCalendar.WMMouseWheel(var Message: TWMMouseWheel);
-begin
-  inherited;
-  {$IFNDEF MCALENDAR}
-  if Message.WheelDelta > 0 then begin
-    DoDateChange(Date, IncMonth(Date, -1), false, true);
-  end else
-    DoDateChange(Date, IncMonth(Date, +1), false, true);
-  {$ENDIF}  
-end;
-
-constructor TgsMonthCalendar.Create(AOwner: TComponent);
-begin
-  inherited Create(AOwner);
-
-  Font.Name := 'Arial';
-  Font.Size := 8;
-  ShowToday := false;
-  ShowTodayCircle := false;
-  with CalColors do begin
-    MonthBackColor := $00FFF5E1;
-    TextColor := $00454545;
-    TitleBackColor := $00C08080;
-    TitleTextColor := clWhite;
-    TrailingTextColor := $00B0A080;//$00BFA0A0;//Dasy
-  end;
-  WeekNumbers := True;
-
-  {$IFDEF MCALENDAR}  { TMonthCalendar }
-  MultiSelect := false;
-  AutoSize:=True;
-  with CalColors do begin
-    BackColor := $00FDD8CA;
-  end;
-  {$ELSE}             {   TgsCalendar  }
-  Autosize := True;    Autosize := false;
-  ShowTitle := false;  ShowTitle := True;
-  CellWidth := 19;
-  CellHeight := 16;
-  SelectedShape := ssRectangle;
-  with CalColors do begin
-    HighLightColor := $00FDD8CA;
-  end;
-  //BorderStyle := bsSingle;
-  {$ENDIF}
-end;
-
-procedure TgsCustomListBox.WMMouseWheel(var Message: TWMMouseWheel);
-begin
-  inherited;
-//  SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, @Result, 0);
-//  Mouse.WheelPresent
-  if Message.WheelDelta > 0 then begin
-    if (ItemIndex <> -1) and (ItemIndex <> 0) then
-      ItemIndex := ItemIndex - 1;
-  end else
-    if (ItemIndex <> -1) and (ItemIndex < Items.Count - 1) then
-      ItemIndex := ItemIndex + 1;
-end;
-
-procedure TgsCustomListBox.WMGetDlgCode(var Message: TWMGetDlgCode);
-begin
-  inherited;
-  Message.Result := Message.Result or DLGC_WANTTAB;
-end;
-
-procedure TgsCustomListBox.WMSetFocus(var Message: TWMSetFocus);
-begin
-  inherited;
-//  if ItemIndex <> -1 then
-//    TgsDropWindow(Owner).DoOnChangePeriod(Self, false);
-end;
-
-procedure TgsCustomListBox.WMKillFocus(var Message: TWMKillFocus);
-begin
-  if (Message.FocusedWND <> Handle)
-    and (Owner is TgsDropWindow)
-    and not FocusedWNDIsChild(Owner, Message.FocusedWND)
-    //and (Message.FocusedWND <> TgsPeriodEdit(Owner.Owner).FDropButton.Handle)
-    //and (Message.FocusedWND <> TWinControl(Owner.Owner.Owner).Handle)
-    //and (Message.FocusedWND <> FPeriodEdit.Handle)
-  then begin
-    TgsDropWindow(Owner).BackDates;
-    TgsDropWindow(Owner).Hide;
-    TWinControl(Owner.Owner).SetFocus;
-  end;
-
-  inherited;
-end;
-
-procedure TgsCustomListBox.KeyDown(var Key: Word; Shift: TShiftState);
-begin
-  inherited KeyDown(Key, Shift);
-end;
-
-procedure TgsCustomListBox.DoonDrawItem(Control: TWinControl; Index: Integer;
-  Rect: TRect; State: TOwnerDrawState);
-var TempStr: string;
-begin
-   with TListBox(Control) do begin
-     TempStr := Items.Strings[Index];
-
-     Canvas.Font.Color:=clBlack;
-     if odFocused in State then
-     begin
-       Canvas.Brush.Color := $00FDD8CA;
-     end else  begin
-       Canvas.Brush.Color:=clWhite;
-     end;
-
-     Canvas.FillRect(Rect);
-
-     if Control is TgsListBox then begin
-       DrawText(Canvas.Handle, pChar(TempStr), Length(TempStr), Rect,
-         DT_CENTER + DT_VCENTER + DT_END_ELLIPSIS)
-     end else begin
-       InflateRect(Rect, -2, 0);
-       DrawText(Canvas.Handle, pChar(TempStr) , Length(TempStr), Rect,
-         DT_VCENTER + DT_END_ELLIPSIS);
-       InflateRect(Rect, 2, 0);
-     end;
-
-     if (FLayout=31) and (odSelected in State) then begin
-       Canvas.Brush.Color := $00BD988A;
-       Canvas.FrameRect(Rect);
-     end
-   end;
-end;
-
-constructor TgsCustomListBox.Create(AOwner: TComponent);
-var
-  ColWidth: Integer;
-begin
-  inherited Create(AOwner);
-  BorderStyle := bsNone;
-  Style := lbOwnerDrawFixed;
-  ItemHeight := 14;
-  OnDrawItem := DoOnDrawItem;
-
-  if (Columns > 0) and (Width > 0) then
+  inherited ;
+  s := DateToStr(SysUtils.Now);
+  for I:=1 to Length(s) do
   begin
-    ColWidth := (Width + Columns - 3-1) div Columns;
-    if ColWidth < 1 then ColWidth := 1;
-    SendMessage(Handle, LB_SETCOLUMNWIDTH, ColWidth, 0);
+    if s[I]='.' then
+    begin
+      if I = 3 then
+         DataToday := StrToInt(ss);
+      if I = 6 then
+      begin
+       FCalendarMonth := StrToInt(ss);
+       MonthToday := FCalendarMonth;
+      end;
+    ss:='';
+  end  else
+  ss:=ss+s[i];
+end;
+
+ FTodayDayWeek := DayOfWeek(StrToDate(s));
+ if FTodayDayWeek = 1 then
+     FTodayDayWeek := 7
+ else
+     FTodayDayWeek := FTodayDayWeek - 1;
+   {DefCalendarState;   }
+ FCalendarState :=  gscsDay;
+ Year := StrToInt(ss);;
+ YearToday := Year;
+ FlX := 1;
+ FlY := 2;
+ b := false;
+ vid := false;
+end;
+
+procedure TgsCalendarPanel.Paint;
+const
+  YearCellWidth = 37;
+  YearCellHeight = 35;
+  YearCellXCount = 4;
+  YearCellYCount = 3;
+  MonthCellWidth = 37;
+  MonthCellHeight = 35;
+  MonthCellXCount = 4;
+  MonthCellYCount = 3;
+  DayCellWidth = 21;
+  DayCellHeight = 15;
+  DayCellXCount = 7;
+  DayCellYCount = 7;
+  Month: array [1..3, 1..4] of String = (
+    ('янв', 'фев', 'мар' , 'апр'),
+    ('май', 'июн', 'июл', 'авг'),
+    ('сен', 'окт', 'ноя', 'дек')
+    ) ;
+
+  Day: array [1..7] of String = ('Пн', 'Вт', 'Ср', 'Чт','Пт', 'Сб', 'Вс');
+
+var
+  I, J, X, Y, pF, prom  : Integer;
+  R: TRect;
+  Size: TSize;
+
+begin
+  inherited;
+  Canvas.Font.Name := 'Tahoma';
+  Canvas.Font.Size := 16 ;
+  Canvas.Font.Height := 16;
+
+  if (Year mod 4) = 0 then
+     LastData[2] := 29;
+  case FCalendarState of
+    gscsYear:
+       begin
+        Canvas.Brush.Style := bsSolid;
+        Canvas.Pen.Color := clWindow;
+        if b = false then
+        begin
+           X := 0;
+           for I := 1 to YearCellXCount do
+           begin
+             Y := 30;
+             for J := 1 to YearCellYCount do
+             begin
+               Canvas.Brush.Color := clWindow;
+               R := Rect(X, Y, X + YearCellWidth, Y + YearCellHeight);
+               Canvas.FillRect(R);                             ;
+               Size := Canvas.TextExtent(IntToStr(YearNumber[J, I]));
+               Canvas.TextRect(R, X + ((YearCellWidth - Size.cx) div 2), Y + ((YearCellHeight - Size.cy) div 2),IntToStr(YearNumber[J, I]));
+               Inc(Y, YearCellHeight);
+             end;
+           Inc(X, YearCellWidth);
+         end;
+     end    else
+     begin
+         Canvas.Brush.Color := YearColor[FlY, FlX];
+         R := Rect((FlX - 1) * YearCellWidth, (FlY -2) * YearCellHeight +30 , (FlX - 1) * YearCellWidth + YearCellWidth, (FlY - 2) * YearCellHeight +30 + YearCellHeight);
+         Canvas.FillRect(R);
+         Size := Canvas.TextExtent(IntToStr(YearNumber[FlY - 1, FlX]));
+         Canvas.TextRect(R, (FlX - 1) * YearCellWidth + ((YearCellWidth - Size.cx) div 2), (FlY - 2) * YearCellHeight +30 + ((YearCellHeight - Size.cy) div 2),IntToStr(YearNumber[FlY - 1, FlX]));
+     end;
+    end;
+    gscsMonth:
+       Begin
+          Canvas.Brush.Style := bsSolid;
+          Canvas.Pen.Color := clWindow;
+          if b = false  then
+          Begin
+             X := 0;
+             for I := 1 to MonthCellXCount do
+             begin
+               Y := 30;
+               for J := 1 to MonthCellYCount do
+               begin
+                  Canvas.Brush.Color := clWindow;
+                  R := Rect(X, Y, X + MonthCellWidth, Y + MonthCellHeight);
+                  Canvas.FillRect(R);
+                  Size := Canvas.TextExtent(Month[J,I]);
+                  Canvas.TextRect(R, X + ((MonthCellWidth - Size.cx) div 2), Y + ((MonthCellHeight - Size.cy) div 2), Month[J,I]);
+                  Inc(Y, MonthCellHeight);
+               end;
+            Inc(X, MonthCellWidth);
+          end;
+    end   else
+    if b = true then
+    Begin
+       Canvas.Brush.Color := MonthColor[FlY, FlX];
+       R := Rect((FlX - 1) * MonthCellWidth, (FlY - 2) * MonthCellHeight + 30, (FlX ) * MonthCellWidth , (FlY - 2) * MonthCellHeight + 30 + MonthCellHeight);
+       Canvas.FillRect(R);
+       Size := Canvas.TextExtent(Month[FlY-1,FlX]);
+       Canvas.TextRect(R, (FlX - 1) * MonthCellWidth + ((MonthCellWidth - Size.cx) div 2), (FlY - 2) * MonthCellHeight + 30 + ((MonthCellHeight - Size.cy) div 2),Month[FlY-1,FlX]);
+    end;
+  end;
+    gscsDay:
+       begin
+          pF := DayOfWeek(StrToDate('01.'+IntToStr(FCalendarMonth)+'.'+IntToStr(Year)));
+          if pF = 1 then
+             pF := 7
+          else
+            pF := pF-1;
+          FNumberDay := 1;
+          prom := pF;
+          For I:=1 to 7 do
+          Begin
+             For J:=prom to 7 do
+             begin
+                 if FNumberDay > LastData[FCalendarMonth] then
+                   FNumberDay := 1;
+                 NumberDay[J,I] :=FNumberDay;
+                 FNumberDay := FNumberDay + 1;
+             end;
+             prom:=1;
+             end;
+             if (FCalendarMonth - 1) <= 0 then
+                FNumberDay := LastData[12]
+             else
+                FNumberDay := LastData[FCalendarMonth-1];
+              For J:=1 to pF - 1 do
+              Begin
+                 NumberDay[pF - J,1] := FNumberDay;
+                 FNumberDay := FNumberDay - 1;
+              end;
+       Canvas.Brush.Style := bsSolid;
+       Canvas.Pen.Color := clWindow;
+    if b = false then
+    Begin
+     X := 0;
+     Y := 30;
+     for I := 1 to DayCellXCount do
+     begin
+        Canvas.Brush.Color := clWindow;
+        R := Rect(X, Y, X + DayCellWidth, Y + DayCellHeight);
+        Canvas.FillRect(R);
+        Canvas.TextRect(R, X , Y , Day[I]);
+        Inc(X, DayCellWidth);
+     end;
+     Y :=  DayCellHeight +30;
+     for I := 2 to DayCellYCount do
+     begin
+        X := 0;
+        for J := 1 to DayCellXCount do
+        begin
+          if (NumberDay[J ,I-1] = DataToday) and (Year = YearToday) and (MonthToday = FCalendarMonth) and (FTodayDayWeek = J) then
+             Canvas.Brush.Color := clAqua
+          else
+             Canvas.Brush.Color := clWindow;
+             R := Rect(X, Y, X + DayCellWidth, Y + DayCellHeight + 1);
+             Canvas.FillRect(R);
+             Size := Canvas.TextExtent(IntToStr(NumberDay[J ,I-1]));
+             Canvas.TextRect(R, X + ((DayCellWidth - Size.cx) div 2), Y + ((DayCellHeight - Size.cy) div 2),IntToStr(NumberDay[J ,I-1]));
+             Inc(X, DayCellWidth);
+             Inc(FNumberDay, 1);
+         end;
+       Inc(Y, DayCellHeight);
+      end;
+     end    else
+     Begin
+       if FlY > 2 then
+       begin
+         Canvas.Brush.Color := DayColor[FlX, FlY];
+         R := Rect((FlX - 1) * DayCellWidth, (FlY - 2) * DayCellHeight  + 30 , (FlX ) * DayCellWidth, (FlY - 1) * DayCellHeight + 30);
+         Canvas.FillRect(R);
+         Size := Canvas.TextExtent(IntToStr(NumberDay[FlX  , FlY - 2]));
+         Canvas.TextRect(R, (FlX - 1) * DayCellWidth + ((DayCellWidth - Size.cx) div 2)  , (FlY - 2) * DayCellHeight + 30 + ((DayCellHeight -Size.cy) div 2),IntToStr(NumberDay[FlX  , FlY - 2]));
+       end;
+     end;
+  end;
+ end;
+  if  (b = false) and (FCalendarState = gscsYear)  then
+  begin
+     Canvas.Brush.Color := clWindow;
+     Canvas.Brush.Style := bsSolid;
+     R := Rect(0, 0, 147 , 30 );
+     Canvas.FillRect(R);
+     Size:=Canvas.TextExtent('2009-2020');
+     Canvas.TextOut((147 - Size.cx) div 2,(30 - Size.cy) div 2,'2009-2020');
+  end;
+  if (b = false) and (FCalendarState = gscsMonth)  then
+  begin
+     Canvas.Brush.Color := clWindow;
+     Canvas.Brush.Style := bsSolid;
+     R := Rect(0, 0, 147 , 30 );
+     Canvas.FillRect(R);
+     Canvas.Pen.Color := clBlack;
+     Canvas.MoveTo(10, 11);
+     Canvas.LineTo(10, 18);
+     Canvas.LineTo(5, 15);
+     Canvas.LineTo(10, 11);
+     Canvas.MoveTo(137, 11);
+     Canvas.LineTo(137, 18);
+     Canvas.LineTo(142, 15);
+     Canvas.LineTo(137, 11);
+     Canvas.Brush.Color := clBlack;
+     Canvas.FloodFill(8,15,clWhite,fsSurface);
+     Canvas.FloodFill(139,15,clWhite,fsSurface);
+     Canvas.Brush.Color := clWhite;
+     Size := Canvas.TextExtent(IntToStr(Year));
+     Canvas.TextOut((147 - Size.cx) div 2,(30 - Size.cy) div 2,IntToStr(Year));
+  end;
+  if (b = false) and (FCalendarState = gscsDay) then
+  begin
+     Canvas.Brush.Color := clWindow;
+     Canvas.Brush.Style := bsSolid;
+     R := Rect(0, 0, 147 , 30 );
+     Canvas.FillRect(R);
+     Canvas.Pen.Color := clBlack;
+     Canvas.MoveTo(10, 11);
+     Canvas.LineTo(10, 18);
+     Canvas.LineTo(5, 15);
+     Canvas.LineTo(10, 11);
+     Canvas.MoveTo(137, 11);
+     Canvas.LineTo(137, 18);
+     Canvas.LineTo(142, 15);
+     Canvas.LineTo(137, 11);
+     Canvas.Brush.Color := clBlack;
+     Canvas.FloodFill(8,15,clWhite,fsSurface);
+     Canvas.FloodFill(139,15,clWhite,fsSurface);
+     Canvas.Brush.Color := clWhite;
+     Size := Canvas.TextExtent(PanelMonth[FCalendarMonth]+ '  ' + IntToStr(Year));
+     Canvas.TextOut((147 - Size.cx) div 2,(30 - Size.cy) div 2,PanelMonth[FCalendarMonth]+ '  ' + IntToStr(Year));
   end;
 end;
 
-procedure TgsListBox.CreateParams(var Params: TCreateParams);
+
+procedure TgsCalendarPanel.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+const
+  FocusMonth : array [1..3, 1..4] of Integer = (
+    (1, 2, 3, 4),
+    (5, 6, 7, 8),
+    (9, 10, 11, 12)
+    );
+
 begin
-  inherited CreateParams(Params);
-  // Отключаем Скроллбары!!!
-  Params.Style := Params.Style and ( (not WS_VSCROLL) and (not WS_HSCROLL) );
+inherited MouseDown(Button, Shift, X, Y);
+    b := false;
+    FlX := 2;
+    FlY := 2;
+    Vid := false;
+
+  if (FCalendarState = gscsMonth) and (Y > 30) and (VibPeriod <> 2) and (VibPeriod <>3) then
+  begin
+    FCalendarState := gscsDay;
+    FCalendarMonth := FocusMonth[((Y-30) div 37) + 1, (X div 35) + 1];
+  end else
+   if (VibPeriod = 2) or (VibPeriod = 3)  then
+       FCalendarMonth := FocusMonth[((Y-30) div 37) + 1, (X div 35) + 1];
+  if  (FCalendarState = gscsYear) and (Y > 30) and (VibPeriod <> 1)  then
+  begin
+     FCalendarState := gscsMonth;
+     Year := YearNumber[((Y-30) div 37) + 1, (X div 35) + 1];
+  end else
+   if VibPeriod = 1 then
+        Year := YearNumber[((Y-30) div 37) + 1, (X div 35) + 1];
+
+  if (FCalendarState = gscsMonth) and ((X < 30) and (Y < 30)) then
+     Year := Year - 1;
+
+  if (FCalendarState = gscsMonth) and ((X > 120) and (Y < 30)) then
+     Year := Year + 1;
+
+  if  (FCalendarState = gscsDay) and ((X < 30) and (Y <27)) then
+  begin
+     FCalendarMonth := FCalendarMonth - 1;
+     if FCalendarMonth <= 0 then
+     begin
+        FCalendarMonth := 12;
+        Year := Year - 1;
+     end;
+  end else
+  if  (FCalendarState = gscsDay) and ((X > 120) and (Y <27)) then
+  begin
+    FCalendarMonth := FCalendarMonth + 1;
+    if FCalendarMonth > 12 then
+    begin
+      Year := Year + 1;
+      FCalendarMonth := 1;
+    end;
+  end;
+  if (FCalendarState = gscsDay) and (X >30) and (X < 120) and (Y < 27) then
+        FCalendarState := gscsMonth
+  else
+    if  (FCalendarState = gscsMonth) and (X >30) and (X < 120) and (Y < 27) then
+           FCalendarState := gscsYear;
+  TitleYear := Year;
+  TitleMonth := FCalendarMonth;
+  if  (FCalendarState = gscsDay) and (Y > 30) then
+     TitleDay := NumberDay [((X div 21) + 1), (((Y-30) div 15))];
+  paint;
 end;
 
-{TODO: TgsButton}
-constructor TgsButton.Create(AOwner: TComponent);
-begin
-  inherited Create(AOwner);
 
-  //IsActive := False;
-  //IsPressed := False;
-  //Is3D := True;
+procedure TgsCalendarPanel.MouseMove(Shift: TShiftState; X, Y: Integer);
+begin
+inherited MouseMove(Shift, X, Y);
+end;
+
+procedure TgsCalendarpanel.WMMouseMove(var Message: TWMMouseMove);
+begin
+  inherited ;
+  XX := Message.XPos;
+  YY := Message.YPos;
+  b := ControlVid(XX, YY);
+end;
+
+function TgsCalendarPanel.ControlVid( Var X,Y:Integer):boolean;
+begin
+  if Y > 30 then
+    case FCalendarState of
+    gscsYear:
+       begin
+          NX := (X div 37) + 1;
+          NY := ((Y - 30) div 35) + 2;
+          YearColor[FlY, FlX] := clWhite;
+          YearColor[NY, NX] := $00FFFF99;
+          paint;
+          FlX := NX;
+          FlY := NY;
+          Result := true;
+        end;
+    gscsMonth:
+        begin
+          NX := (X div 37) + 1;
+          NY := ((Y - 30) div 35) + 2;
+          MonthColor[FlY, FlX] := clWhite;
+          MonthColor[NY, NX] := $00FFFF99;
+          paint;
+          FlX := NX;
+          FlY := NY;
+          Result := true;
+        end;
+    gscsDay:
+        begin
+          NX := (X div 21) + 1;
+          NY := ((Y-30) div 15) + 2;
+          DayColor[FlX, FlY] := clWhite;
+          DayColor[NX, NY] := $00FFFF99;
+          paint;
+          FlX := NX;
+          FlY := NY;
+          Result := true;
+        end;
+      end   else
+      begin
+        Result :=false;
+        FlX := 2;
+        FlY := 2;
+      end;
+end;
+
+procedure TgsCalendarPanel.CMMouseLeave(var Message: TMessage);
+var
+ I,J : Integer;
+begin
+  for I := 1 to 4 do
+     for J := 1 to 3 do
+        YearColor[J,I] := clWhite;
+  for I := 1 to 4 do
+     for J := 1 to 3 do
+        MonthColor[J,I] := clWhite;
+  for I := 1 to 7 do
+      for J := 1 to 7 do
+         DayColor[J,I] := clWhite;
+  b:=false;
+  paint;
 end;
 
 
-procedure TgsButton.CMMouseEnter(var Message: TMessage);
+procedure TgsCalendarPanel.SetCalendarState(const Value: TgsCalendarState);
+begin
+  FCalendarState := Value;
+end;
+
+{ TgsPeriodForm }
+
+constructor TgsPeriodForm.Create(AnOwner: TComponent);
 begin
   inherited;
+  FObjPanel2 := TgsCalendarPanel.Create(Self);
+  FObjPanel2.Parent := Self;
+  NumberPeriod := 0;
+  Width := 245;
+  Height := 195;
 
-  //IsActive := True;
-  //Paint;
+  FObjPanel1 := TgsCalendarPanel.Create(Self);
+  FObjPanel1.Parent := Self;
 end;
 
-procedure TgsButton.CMMouseLeave(var Message: TMessage);
+procedure  TgsPeriodform.Paint;
+const
+   GodX = 10;
+   GodY = 28;
+   MonthX = 10;
+   MonthY = 57;
+   KvartX = 10;
+   KvartY = 82;
+   DayX =  10;
+   DayY =  107;
+   PeriodX = 10;
+   PeriodY = 132;
+   HistoryX =10;
+   HistoryY = 157;
+var
+   Size : TSize;
+   Str, ss, sss:String;
+   Reg: TRegistry;
+   I, K, DateX, DateY: Word;
 begin
-  inherited;
+     Canvas.Brush.Color := clWhite;
+     Canvas.Brush.Style := bsSolid;
 
-  //IsActive := False;
-  //Paint;
+     Canvas.Font.Size := 12;
+     Size := Canvas.TextExtent('Год');
+     if NumberPeriod = 1 then
+     begin
+
+       Canvas.Pen.Color := clWhite;
+       Canvas.Brush.Color := clWhite;
+       Canvas.Font.Size := 8;
+       Canvas.Rectangle(88, 171,240,188);
+       Canvas.TextOut(90,171,'Текущий год :' + IntToStr(FObjPanel1.YearToday) + 'г.');
+       Canvas.Brush.Color := clRed;
+       Canvas.Pen.Color := clRed;
+        Canvas.Font.Size := 12;
+     end else
+     begin
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+     end;
+       Canvas.Rectangle(GodX, GodY, GodX + 75, GodY + Size.cy + 10);
+       Canvas.TextOut(GodX, GodY, 'Год');
+       Canvas.Brush.Color :=clWhite;
+       if NumberPeriod = 2 then
+     begin
+       Canvas.Brush.Color := clWindow;
+       Canvas.Rectangle(88, 171,240,188);
+       Canvas.Pen.Color := clRed;
+       Canvas.Font.Size := 8;
+       Canvas.TextOut(90,171,'Месяц:' + PanelMonth[FObjPanel1.MonthToday] + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
+        Canvas.Brush.Color := clRed;
+        Canvas.Font.Size := 12
+     end  else
+     begin
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+     end;
+       Canvas.Rectangle(MonthX, MonthY, MonthX + 75, MonthY + Size.cy + 11);
+       Canvas.TextOut(MonthX, MonthY, 'Месяц');
+
+     if NumberPeriod = 3 then
+     begin
+        Canvas.Pen.Color := clWhite;
+       Canvas.Brush.Color := clWhite;
+
+       Canvas.Font.Size := 8;
+       Canvas.Rectangle(88, 171,240,188);
+       case FObjPanel1.MonthToday of
+         1..3:
+         begin
+          Canvas.TextOut(90,171,'Квартал:' + '1кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
+         end;
+         4..6:
+         begin
+           Canvas.TextOut(90,171,'Квартал:' + '2кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
+         end;
+         7..9:
+         begin
+           Canvas.TextOut(90,171,'Квартал:' + '3кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
+         end;
+         10..12:
+         begin
+           Canvas.TextOut(90,171,'Квартал:' + '4кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
+         end;
+       end;
+       Canvas.Pen.Color := clRed;
+        Canvas.Brush.Color := clRed;
+        Canvas.Font.Size := 12
+     end  else
+     begin
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+     end;
+
+       Canvas.Rectangle(KvartX, KvartY, KvartX + 75, KvartY + Size.cy + 10);
+       Canvas.TextOut(KvartX, KvartY, 'Квартал');
+       Canvas.Brush.Color := clWhite;
+
+     if NumberPeriod = 4 then
+     begin
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+       Canvas.Font.Size := 8;
+       Canvas.Rectangle(88, 171,240,188);
+       Canvas.TextOut(90,171,'Сегодня: ' + DateToStr(SysUtils.Now) + 'г.');
+       Canvas.Brush.Color := clRed;
+       Canvas.Pen.Color := clRed;
+        Canvas.Font.Size := 12;
+     end  else
+     begin
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+     end;
+
+       Canvas.Rectangle(DayX, DayY, DayX + 75, DayY + Size.cy + 10);
+       Canvas.TextOut(DayX, DayY, 'День');
+       Canvas.Brush.Color := clWhite;
+
+     if NumberPeriod = 5 then
+     begin
+
+       Canvas.Font.Size := 8;
+       Canvas.Rectangle(88, 171,410,188);
+       Canvas.TextOut(88,171,'Сегодня: ' + DateToStr(SysUtils.Now) + 'г.');
+       Canvas.TextOut(300,171,'Сегодня: ' + DateToStr(SysUtils.Now) + 'г.');
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+       Canvas.Rectangle(241, 33,258,163);
+       Canvas.Brush.Color := clRed;
+       Canvas.Pen.Color := clRed;
+        Canvas.Font.Size := 12;
+     end  else
+     begin
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+     end;
+       Canvas.Rectangle(PeriodX, PeriodY, PeriodX + 75, PeriodY + Size.cy+6);
+       Canvas.TextOut(PeriodX, PeriodY, 'Период');
+
+     if (NumberPeriod <> 0) and (NumberPeriod <> 5) and (NumberPeriod <> 6) then
+     begin
+
+       Canvas.MoveTo(88, 27);
+       Canvas.Brush.Color := clRed;
+       Canvas.Pen.Color := clRed;
+       Canvas.Pen.Width := 6;
+       Canvas.LineTo(241, 26);
+       Canvas.LineTo(241, 168);
+       Canvas.LineTo(88, 168);
+       Canvas.LineTo(88, 27);
+       Canvas.MoveTo(245, 27);
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+       Canvas.Pen.Width := 6;
+       Canvas.LineTo(410, 26);
+       Canvas.LineTo(410, 168);
+       Canvas.LineTo(245, 168);
+
+     end else
+      begin
+       Canvas.MoveTo(88, 27);
+       Canvas.Brush.Color := clWindow;
+       Canvas.Pen.Color :=clWindow;
+       Canvas.Pen.Width := 6;
+       Canvas.LineTo(235, 26);
+       Canvas.LineTo(235, 168);
+       Canvas.LineTo(88, 168);
+       Canvas.LineTo(88, 27);
+
+     if (NumberPeriod = 5) or (NumberPeriod = 6) then
+      begin
+        Canvas.MoveTo(88, 27);
+        Canvas.Brush.Color := clRed;
+        Canvas.Pen.Color := clRed;
+        Canvas.Pen.Width := 6;
+        Canvas.LineTo(410, 26);
+        Canvas.LineTo(410, 168);
+        Canvas.LineTo(88, 168);
+        Canvas.LineTo(88, 27);
+      end
+
+    end;
+   if NumberPeriod = 6 then
+     begin
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+       Canvas.Rectangle(93, 33,404,164);
+       Canvas.Rectangle(88, 173,410,188);
+
+        Reg:= TRegistry.Create;
+        Reg.RootKey:= HKEY_CURRENT_USER;
+        Reg.OpenKey('\Software\Golden Software\Gedemin\Client\CurrentVersion\TgsCalendarEdit', false);
+        Str := Reg.ReadString('{741D1779-CE77-4843-808F-796DE1BCBB3E}');
+        I := 2;
+
+       if Str <> '' then
+       begin
+         DateX := 93;
+         DateY := 35;
+         for K:=1 to 4 do
+         begin
+           if Str = '' then
+             break;
+          While Str[I] <> '"' do
+            I := I + 1;
+         ss := copy(Str,2,I - 2) + '  ';
+         if  K = 1 then
+         sss := ss
+         else
+         begin
+           Canvas.TextOut(DateX,DateY,sss + '  ' + ss);
+           DateY := DateY + 23;
+         end;
+           Str := copy(Str,I + 2,Length(Str));
+           I:= 2;
+       end;
+     end;
+        Canvas.Brush.Color := clRed;
+        Canvas.Pen.Color := clRed;
+     end  else
+     begin
+       Canvas.Brush.Color := clWhite;
+       Canvas.Pen.Color := clWhite;
+     end ;
+
+       Canvas.Rectangle(HistoryX, HistoryY, HistoryX + 73, HistoryY + Size.cy + 10);
+       Canvas.TextOut(HistoryX, HistoryY, 'История');
+       Canvas.Brush.Color := clWhite;
+
+
 end;
-
-procedure TgsButton.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure TgsPeriodForm.WMActivate(var Message: TWMActivate);
 begin
-  inherited MouseDown(Button, Shift, X, Y);
-
-  //IsPressed := True;
-  //Paint;
+    if Message.Active = WA_INACTIVE then
+    begin
+      Hide;
+    end;
 end;
 
-procedure TgsButton.MouseMove(Shift: TShiftState; X, Y: Integer);
+procedure TgsPeriodForm.MouseMove(Shift: TShiftState; X, Y: Integer);
 begin
   inherited MouseMove(Shift, X, Y);
-  Cursor := crArrow;
 end;
 
-procedure TgsButton.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure TgsPeriodForm.CreateParams(var Params: TCreateParams);
 begin
-  inherited MouseUp(Button, Shift, X, Y);
-
-  //IsPressed := False;
-  //Paint;
-end;
-
-//procedure TgsButton.Paint;
-//var
-//  Y: Integer;
-//begin
-//  if not Is3D then
-//  begin
-//    if not IsPressed then
-//      Canvas.Brush.Color := $0094A2A5
-//    else
-//      Canvas.Brush.Color := clBlack;
-//
-//    Canvas.FillRect(Rect(0, 0, Width, Height));
-//
-//    Canvas.Brush.Color := clBlack;
-//    Canvas.FrameRect(Rect(0, 0, Width, Height));
-//
-//    Y := Height div 2 - 1;
-//
-//    if (IsActive and not TgsPeriodEdit(Parent).FDropWindow.Visible) or IsPressed then
-//      Canvas.Pen.Color := clWhite
-//    else
-//      Canvas.Pen.Color := clBlack;
-//
-//    Canvas.MoveTo(6, Y + 1);
-//    Canvas.LineTo(11, Y + 1);
-//
-//    Canvas.MoveTo(7, Y + 2);
-//    Canvas.LineTo(10, Y + 2);
-//
-//    if (IsActive and not TgsPeriodEdit(Parent).FDropWindow.Visible) or IsPressed then
-//      Canvas.Pixels[8, Y + 3] := clWhite
-//    else
-//      Canvas.Pixels[8, Y + 3] := clBlack;
-//  end else
-//    inherited Paint;
-//end;
-
-{TODO: TgsPeriodEdit}
-
-var arBeg: array[1..6] of Integer;
-    arLen: array[1..6] of Integer;
-
-//Определение части даты(ы) в окошке редактирования
-         //TgsPeriodEdit.
-function PartInText(BegP: Integer; Offs: Integer = 0): Integer;
-var I: Integer;
-    LeftP, RightP: Integer;
-begin
-    Result := 0;
-
-    if (Offs=-1) and (BegP>=arBeg[6] + arLen[6]) then begin
-      Result := 7;{!!1^}
-      exit;
-    end;
-
-    for I:=1 to 6 do
-    begin
-      // если Offs=-1 то точка слева входит в часть даты
-      if Offs=-1 then LeftP := arBeg[I] - 1
-      else LeftP := arBeg[I];
-      // если Offs=1 то точка справа входит в часть даты
-      if Offs=1 then RightP := arBeg[I] + arLen[I] + 1
-      else RightP := arBeg[I] + arLen[I];
-
-      if (BegP >= LeftP) and (BegP < RightP) then
-      begin
-        Result := I;
-        break;
-      end;
-    end;
-end;
-
-//Вычисление части дат(ы) и её начало/длину для выделения в окошке редактирования
-function TgsPeriodEdit.FurtherSelLen(CurBeg: Integer; Offs: Integer;
-  var Beg,Len: Integer; Forw: Integer = 0): Integer;
-var
-  Part: Integer;
-  LastPart: Integer;
-begin
-    Part := PartInText(CurBeg, Offs);
-    if pos('-', Text) > 0 then LastPart := 6
-                          else LastPart := 3;
-
-    if Part > 0 then begin
-      if (Forw = 1) then
-        //if Part = LastPart then Part := 1 else Inc(Part);{круговорот}
-        if Part < LastPart then Inc(Part);
-      if (Forw = -1) then{!!1^}
-        //if Part = 1 then Part := LastPart else Dec(Part);{круговорот}
-        if Part > 1 then Dec(Part);
-
-      Beg := arBeg[Part];
-      Len := arLen[Part];
-    end;
-
-    Result := Part;
-end;
-
-//Выделение определённой части в окошке редактирования
-procedure TgsPeriodEdit.SelRange(AStart, ALength: Integer);
-begin
-  SendMessage(Handle, EM_SETSEL, AStart, AStart+ALength);
-//  SelStart := AStart;
-//  SelLength := ALength;
-end;
-
-
-//установка региона редактирования
-procedure TgsPeriodEdit.SetEditRect;
-var
-  Loc: TRect;
-begin
-  SendMessage(Handle, EM_GETRECT, 0, LongInt(@Loc));
-  Loc.Bottom := ClientHeight + 1;  {+1 is workaround for windows paint bug}
-  Loc.Right := ClientWidth - DropBtnWidth - 1;
-  Loc.Top := 0;
-  Loc.Left := 0;
-  SendMessage(Handle, EM_SETRECT, 0, LongInt(@Loc));
-end;
-
-function TgsPeriodEdit.GetEditHeight: Integer;
-var
-  DC: HDC;
-  SaveFont: HFont;
-  SysMetrics, Metrics: TTextMetric;
-begin
-  DC := GetDC(0);
-
-  try
-    GetTextMetrics(DC, SysMetrics);
-    SaveFont := SelectObject(DC, Font.Handle);
-    GetTextMetrics(DC, Metrics);
-    SelectObject(DC, SaveFont);
-  finally
-    ReleaseDC(0, DC);
-  end;
-
-  Result := SysMetrics.tmHeight;
-  if Result > Metrics.tmHeight then
-    Result := Metrics.tmHeight;
-  Result := Result + 8; 
-end;
-
-procedure TgsPeriodEdit.WMSize(var Message: TWMSize);
-var
-  EditHeight: Integer;
-begin
-  inherited;
-
-  EditHeight := GetEditHeight;
-  if Height <> EditHeight then
-    Height := EditHeight
-  else if FDropButton <> nil then
+ inherited CreateParams(Params);
+  with Params do
   begin
-    if NewStyleControls and Ctl3D then
-      FDropButton.SetBounds(Width - FDropButton.Width - 4, 0, FDropButton.Width, Height - 4)
-    else
-      FDropButton.SetBounds (Width - FDropButton.Width, 0, FDropButton.Width, Height);
-    SetEditRect;
+    Style :=WS_POPUP;
+    ExStyle := WS_EX_STATICEDGE;
+    AddBiDiModeExStyle(ExStyle);
   end;
 end;
 
-//procedure TgsPeriodEdit.WMMouseMove(var Message: TWMMouseMove);
-//begin
-//  inherited;
-////  Cursor := crArrow;
-//end;
-
-procedure TgsPeriodEdit.WMSetFocus(var Message: TWMSetFocus);
+destructor TgsPeriodForm.Destroy;
 begin
-  inherited;
-  HideCaret(Handle);
+  FObjPanel1.free;
+  FObjPanel2.free;
+  inherited Destroy;
 end;
 
-//procedure TgsPeriodEdit.WMKillFocus(var Message: TWMKillFocus);
-//begin
-//  inherited;
-////  ArrangePeriodText;
-////  PeriodTextToHistory;
-//end;
+{ TgsPeriodEdit }
 
-//procedure TgsPeriodEdit.CMCancelMode(var Message: TCMCancelMode);
-//begin
-//  inherited;
-//  {!!}
-//  if not (csDesigning in ComponentState) then
-//    if (Message.Sender <> Self) and (Message.Sender <> FDropWindow)
-//      and (Message.Sender <> FDropButton)
-//      and ((Message.Sender).Owner <> nil)
-//      and ((Message.Sender).Owner <> FDropWindow) then
-//    begin
-//      if FDropWindow.Visible then begin
-//        FDropWindow.BackDates;
-//        FDropWindow.Hide;
-//      end;
-//    end;
-//end;
-
-procedure TgsPeriodEdit.CMEnter(var Message: TCMEnter);
+constructor TgsPeriodEdit.Create(AnOwner: TComponent);
 begin
- //SendMessage(Handle, EM_SETSEL, FSelStart, FSelStart + FSelStart);
+  inherited Create(AnOwner);
+  FEdit := TgsPeriodShortCutEdit.Create(Self);
+  FEdit.Parent := Self;
+  DatePeriod := TgsDataPeriod.Create;
+
+  FEdit.Height := 21;
+  FEdit.Width := 200;
+  FEdit.OnChange := Change;
+  FEdit.OnKeyPress := KeyPress;
+  FSpeedButton := TSpeedButton.Create(Self);
+  FSpeedButton.Caption := '';
+  FSpeedButton.Width := 19;
+  FSpeedButton.Height := 19;
+  FSpeedButton.Visible := True;
+  FSpeedButton.Left := FEdit.Width;
+  FSpeedButton.Parent := Self;
+  FSpeedButton.OnClick := DoOnButtonClick;
+
+  Width := FEdit.Width + FSpeedButton.Width;
+  Height := FEdit.Height;
+  Kj := 0;
+  FPeriodWind := TgsPeriodForm.Create(Self);
+  FPeriodWind.Parent := Self ;
+  FPeriodWind.OnMouseDown := FormMouseDown;
+  FPeriodWind.Visible := false;
+  FPeriodWind.OnKeyDown := OnKeyDown;
+  FPeriodWind.FObjPanel1.OnMouseUp := OnMouseDown;
+  FPeriodWind.FObjPanel2.OnMouseUp := OnMouseUp;
+  FPeriodWind.OnExit := FOnExit;
+  if (csDesigning in ComponentState) and (not (csLoading in ComponentState)) then
+     GUID := StringToGUID(CreateClassID());
+
+
+
+
 end;
-
-procedure TgsPeriodEdit.CMExit(var Message: TCMExit);
+procedure TgsPeriodEdit.OnMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+ var
+  pr : Integer;
 begin
-  ArrangePeriodText;
-  PeriodTextToHistory;
-end;
 
-procedure TgsPeriodEdit.CNNotify(var Message: TWMNotify);
-begin
-//
-end;
+  case  FPeriodWind.NumberPeriod of
+   1:
+   if Y > 30 then
+   begin
+      FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.Year);
+      FPeriodWind.FObjPanel2.Year := FPeriodWind.FObjPanel1.Year;
+      FPeriodWind.Hide;
+   end;
+   2:
+   if  (FPeriodWind.FObjPanel1.FCalendarState = gscsMonth) and (Y > 30)  then
+   begin
+       if  FPeriodWind.FObjPanel1.FCalendarMonth - 10 < 0 then
+          FEdit.Text := '0' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.'  + IntToStr(FPeriodWind.FObjPanel1.Year)
+       else
+          FEdit.Text :=IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.'  + IntToStr(FPeriodWind.FObjPanel1.Year);
+          DatePeriod.Month := FPeriodWind.FObjPanel1.FCalendarMonth;
+          FPeriodWind.Hide;
 
-procedure TgsPeriodEdit.ArrangePeriodText(BegSel: Integer = -1);
-var
-  TxtTmp, Tmp: string;
-  Beg, Len: Integer;
+   end;
+   3: if  (Y > 30) then
+       begin
+         FPeriodWind.FObjPanel1.FCalendarState := gscsMonth;
+         pr := 2;
+         DatePeriod.SetKind(pr);
+         case FPeriodWind.FObjPanel1.FCalendarMonth of
+         1..3:
+           FEdit.Text := '01.01.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-' + '31.03.' + IntToStr(FPeriodWind.FObjPanel1.Year);
+         4..6:
+           FEdit.Text := '01.04.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-' + '30.06.' + IntToStr(FPeriodWind.FObjPanel1.Year);
+         7..9:
+           FEdit.Text := '01.07.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-' + '30.09.' + IntToStr(FPeriodWind.FObjPanel1.Year);
+         10..12:
+           FEdit.Text := '01.10.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-' + '31.12.' + IntToStr(FPeriodWind.FObjPanel1.Year);
+         end;
+       FPeriodWind.Hide;
+        end;
 
-  procedure ArrangeNonYear(var TxtTmp: string; P: Integer);
-  begin
-    Tmp := StringReplace(copy(TxtTmp, P, 2), '_', '', [rfReplaceAll]);
-    if length(Tmp) = 1 then           //BlankBefore('0', Tmp, 2)
-      TxtTmp := ReplaceSubStr(TxtTmp, '0' + Tmp, P, 2);
-  end;
-  procedure ArrangeYear(var TxtTmp: string; P: Integer);
-  begin
-    Tmp := StringReplace(copy(TxtTmp, P, FLenY), '_', '', [rfReplaceAll]);
-    if length(Tmp) in [1 .. FLenY - 1] then
-    begin
-      case length(Tmp) of
-        1: if FLenY = 4 then Tmp := '200' + Tmp
-           else Tmp := '0' + Tmp;
-        2: Tmp := '20' + Tmp;
-        3: Tmp := '2' + Tmp;
-      end;
-      TxtTmp := ReplaceSubStr(TxtTmp, Tmp, 7, FLenY);
-    end;
-  end;
-var I, Part: Integer;
-begin
-{ проверка на недонабранность по всему тексту, }
-{     а не только по текущему выделению        }
-  // !! c
-  if pos('_', Text) = 0 then begin
-    exit;
-  end;
-
-  TxtTmp := Text;
-  if BegSel <> -1 then
-  begin
-    Part := FurtherSelLen(BegSel, 0, Beg,Len, 0);
-    if Part > 0 then
-      Beg := Beg + 1
-    else begin
-      Beg := 1; Len := 0;
-    end;
-  end else begin
-    Beg := 1; Len := 0;
-  end;
-
-  if pos('_', copy(Text, 1,  Beg - 1) + copy(Text, Beg + Len, MaxLength)) = 0 then
-      exit;
-
-  if Beg = -1 then Part := 0
-  else Part := PartInText(BegSel);
-
-  for I := 1 to 6 do begin
-    if (I >= 4) and (pos('-', Text) = 0) then {вторая дата диапазона отсутствует}
-      break;
-
-    if Part <> I then
-      if I in [3,6] then
-        ArrangeYear(TxtTmp, ArBeg[I] + 1)
+   4:
+   if (FPeriodWind.FObjPanel1.FCalendarState = gscsDay) and (Y > 30) then
+     begin
+      if  FPeriodWind.FObjPanel1.FCalendarMonth - 10 < 0 then
+       FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.TitleDay)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year)
       else
-        ArrangeNonYear(TxtTmp, ArBeg[I] + 1);
+       FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.TitleDay)+ '.' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year);
+       DatePeriod.Day := FPeriodWind.FObjPanel1.TitleDay;
+       FPeriodWind.Hide;
+      end;
+   end;
 
-  end;
-
-  if TxtTmp<>Text then
-    Text := TxtTmp;
 end;
 
-procedure TgsPeriodEdit.WndProc(var Message: TMessage);
-var
-  TmpText: string;
-  Txt1, Txt2: string;
-  fmt: string;
-  NewDate1, NewDate2: TDateTime;
-  OldDate1, OldDate2: TDateTime;
-  Date1Ok, Date2Ok: Boolean;
-
-  function CheckDate(Txt: string; Part: Integer): TDateTime;
-  var
-    Y,M,D: Integer;
-//    OldD,OldM: Integer;
-  begin
-    ListDateText(Txt, Y,M,D, Part);
-//    OldD := D; OldM := M;
-    if D > _DaysPerMonth(Y, M) then
-      D := _DaysPerMonth(Y, M);
-    if D = 0 then D := 1;
-
-    if M > 12 then M := 12
-    else if M = 0  then M := 1;
-
-//    if (OldD = D) or (OldM = M) then
-//      exit;
-  //при годе из двух цифр EncodeDate выдавало начало эры
-  //Result := EncodeDate(Y, M, D);
-    if FLenY = 4 then Fmt := '%.2d.%.2d.%.4d' else Fmt := '%.2d.%.2d.%.2d';
-    Result := StrToDate(format(Fmt,[D, M, Y]));
-
-  end;{<- function CheckDate}
-//var  B,E: Integer;
+procedure TgsPeriodEdit.OnMouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; X, Y: Integer);
 begin
-  if (csDesigning in ComponentState) then begin
-    inherited;
-    exit;
-  end;
 
-  case Message.Msg of
-    WM_SETTEXT:
-    begin
-      inherited;
-
-      TmpText:=strpas(PChar(Message.LParam));
-
-      FPeriod.FAllowDateEnd := FDiapason;// and (pos('-', TmpText) > 0);
-
-      Txt1 := copy(TmpText, arBeg[1] + 1, FLenDate);
-      Txt2 := copy(TmpText, arBeg[4] + 1, FLenDate);
-      if FDiapason and (Txt2 = '') then begin {в TraceItems одна дата, а режим диапазона}
-        Txt2 := BlankDate(FLenY);
-        TmpText := Txt1 + '-' + Txt2;
-      end;  
-     //(pos('_', GetText1)=0)   (pos('_', GetText2)=0)
-      Date1Ok := (pos('_', Txt1) = 0);
-               //?? разобраться почему Txt2 первично пустое
-      Date2Ok := (Txt2 <> '') and (pos('_', Txt2) = 0) and (pos('-', TmpText) > 0);
-
-      OldDate1 := FPeriod.DBeg; OldDate2 := FPeriod.DEnd;
-      NewDate1:=0; NewDate2:=0;{чтобы не было warning}
-
-      if Date1Ok then
-        NewDate1 := CheckDate(TmpText, 1);
-      if Date2Ok then
-        NewDate2 := CheckDate(TmpText, 2);
-
-      if Date1Ok then FPeriod.DBeg := NewDate1;  //SetDate1(NewDate1);
-      if Date2Ok then FPeriod.DEnd := NewDate2;  //SetDate2(NewDate2);
-
-      if (Date1Ok)  // and (Date{PE} <> NewDate1
-        or (Date2Ok)  then // and EndDate <> NewDate2
-      begin                                      {TODO: Задание 2}
-        if FDiapason and Date1Ok and Date2Ok and ReadyDate(1) and ReadyDate(1)
-          and ((NewDate1 > EndDate) or (NewDate2 < Date{PE})) then
-        begin
-          ShowMessage('Начальная дата периода не может быть больше его конечной даты.');
-
-          if NewDate1 > EndDate then FPeriod.DBeg := OldDate1;
-          if NewDate2 < Date{PE} then FPeriod.DEnd := OldDate2;
-          if FPeriod.DBeg > FPeriod.DEnd then FPeriod.DBeg := FPeriod.DEnd;
-          TmpText := FPeriod.GetTextPeriod;
-        end else
-        begin
-          if FDiapason then begin
-            Txt1 := copy(TmpText, arBeg[1] + 1, FLenDate);
-            Txt2 := copy(TmpText, arBeg[4] + 1, FLenDate);
-
-            if Date1Ok and Date2Ok then
-              TmpText := FPeriod.GetTextPeriod
-            else begin
-              if not Date1Ok then TmpText := Txt1 + '-' + FPeriod.GetTextPeriod(2)
-              else if not Date2Ok then TmpText := FPeriod.GetTextPeriod(1) + '-' + Txt2;
-            end;
-          end else
-            TmpText := FPeriod.GetTextPeriod;
-        end;
-        if Text <> TmpText then begin
-          Text := TmpText;
-          FKeepText := Text;
-        end;
-
-      end;
-    end;
-
-//    EM_SETSEL:  begin
-//        B:= Message.WParam; E:= Message.LParam;
-//        if E-B=3 then
-//          B:=B;
-//        case B of
-//           0..1: ;
-//          17..20: ;
-//        end;
-//        inherited;
-//    end;
-//
-//    EM_GETSEL:    begin
-//        inherited;
-//    end;
-//
-//    WM_LBUTTONDOWN:
-//    begin
-//      if FDropWindow.Visible then
-//        TmpText := '';{dbg}
-//
-//      inherited;
-//    end;
-
+ if (FPeriodWind.NumberPeriod = 5) and (FPeriodWind.FObjPanel2.FCalendarState = gscsDay) and ( Y > 30) then
+ begin
+  if  FPeriodWind.FObjPanel1.FCalendarMonth - 10 < 0 then
+   FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.TitleDay)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-'
   else
-    inherited;
-  end;
-end;
+    FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.TitleDay)+ '.' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-';
 
-//!! используется лишь один раз
-procedure TgsPeriodEdit.ListDateText(DateText: string; var Y, M, D: Integer; Part: Integer);
-var
-  BegD: Integer; //начало даты
-begin
-  BegD := iif(Part = 1, arBeg[1] + 1, arBeg[4] + 1); {12''}
-
-  D := StrToInt( Copy(DateText, BegD, 2) );
-  M := StrToInt( Copy(DateText, BegD + 3, 2) );
-  Y := StrToInt( Copy(DateText, BegD + 6, FLenY) );
-end;
-
-function TgsPeriodEdit.ReadyDate(Part: Integer): Boolean;
-var
-  Txt: string;
-begin
-  if Part < 4 then Txt := GetText1 else Txt := GetText2;
-  Result := Pos('_', Txt) = 0;
-end;
-
-procedure TgsPeriodEdit.WMGetDlgCode(var Message: TWMGetDlgCode);
-begin
-  inherited;
-//  Message.Result := Message.Result or DLGC_WANTTAB;
-end;
-
-procedure TgsPeriodEdit.KeyPress(var Key: Char);
-var
-  Tmp : string;
-  I: Integer;
-  Beg, Len, Part: Integer;
-begin
-//   if ReadOnly then
-//     Key := #0
-
-    case Key of
-      '~': begin
-             FurtherSelLen(SelStart, +1, Beg,Len, 0);
-             if ( (SelStart = Beg) and ((SelLength > Len) or (SelLength = 0)) )
-               or (SelStart <> Beg) then
-                             SelRange(Beg, Len);
-           end;
-      #27: begin
-             Text := FPeriod.DatesToText;
-           end;
-       #8: begin
-        FurtherSelLen(SelStart, +1, Beg,Len, 0);
-        Text := ReplaceSubStr(Text, StringOfChar('_',Len), Beg+1,Len);
-        FurtherSelLen(Beg, 0, Beg,Len, -1);
-        if (pos('-', Text) = 0) and (Beg >= arBeg[4]) then begin
-          Beg := arBeg[3]; Len := arLen[3];
-        end;
-        SelRange(Beg,Len);
-      end;
-      #32: begin
-        Part := FurtherSelLen(SelStart, 0, Beg,Len, 0);
-        case Part of
-          1,4: Tmp := ReplaceSubStr(Text, TextPartOfNow(1,FLenY), Beg + 1, Len);
-          2,5: Tmp := ReplaceSubStr(Text, TextPartOfNow(2,FLenY), Beg + 1, Len);
-          3,6: Tmp := ReplaceSubStr(Text, TextPartOfNow(3,FLenY), Beg + 1, Len);
-        end;
-        Text := Tmp;
-        FurtherSelLen(Beg, 0, Beg,Len, 1);
-        if (pos('-', Text) = 0) and (Beg >= arBeg[4]) then begin
-          Beg := arBeg[1]; Len := arLen[1];
-        end;
-        SelRange(Beg, Len);
-
-      end;
-
-     '.': begin
-             Part := FurtherSelLen(SelStart, 0, Beg,Len, 0);
-             if Part > 0 then
-             begin
-               Tmp := StringReplace(copy(Text, Beg + 1, Len), '_', '', [rfReplaceAll]);
-               if length(Tmp)>0 then begin
-                 Text := ReplaceSubStr(Text, BlankBefore('0', Tmp, Len), Beg+1,Len);
-                 FurtherSelLen(Beg, 0, Beg,Len, 1);
-                 if (pos('-', Text) = 0) and (Beg >= arBeg[4]) then begin
-                   Beg := arBeg[1]; Len := arLen[1];
-                 end;
-                 SelRange(Beg, Len);
-               end
-             end;
-          end;
-     '-': begin
-            if FDiapason then begin
-              //if (Length(Text) < FLenDate + 1) then Text := Text + '-' + BlankDate(FLenY);
-              SelRange(arBeg[4],arLen[4]);
-            end;
-          end;
-'0'..'9': begin
-            Part := FurtherSelLen(SelStart, 0, Beg,Len, 0);
-            case Part of
-              1,2, 4,5, 3,6:  begin
-                 Tmp := StringReplace(copy(Text, Beg+1, Len), '_', '', [rfReplaceAll]);
-                 //если часть даты полностью набрана, то её убираем и набираем по новой
-                 if Length(Tmp) = Len then Tmp := '';
-
-                 //при добавление цифры получаем законченную часть даты
-                 //проверяем её на правильность
-                 if Length(Tmp) > Len-2 then begin
-                   if (Part in [1,4]) and (StrToInt(Tmp+Key) in [1..31]) //день
-                      or (Part in [2,5]) and (StrToInt(Tmp+Key) in [1..12])//месяц
-                      or (Part in [3,6]) and (FLenY=4) and (StrToInt(Tmp+Key) > 1000) then
-                   begin
-                     Text := ReplaceSubStr(Text, Tmp+Key, Beg + 1, Len);
-                     if (pos('-', Text) = 0) and (Beg = arBeg[3]) or (Beg = arBeg[6]) then
-                      {Part := 1}{круговорот}
-                     else
-                      Inc(Part);
-
-                     SelRange(arBeg[Part], arLen[Part]);//передвигаемся вправо
-                   end
-                   else //если часть даты неправильная, то её убираем и набираем по новой
-                     Tmp := '';
-                 end;
-
-                 //ещё не всё набрано
-                 if Length(Tmp) <= Len-2 then begin //BlankBefore
-                   Text := ReplaceSubStr(Text, BlankAfter('_', Tmp + Key, Len),
-                     Beg + 1, Len);
-                   I := Len - Length(Tmp) - 1;
-                   //устар.    было при выравнивания вправо
-                   //SelRange(Beg + I, Len - I);//выделяем только цифровую часть даты
-                   SelRange(Beg, Len - I);//выделяем только цифровую часть даты
-                 end;
-
-               end
-               else begin // разделитель дат '.' или частей даты '-'
-                   Part := FurtherSelLen(SelStart, 1, Beg,Len, 0);
-                   if Part < 6 then begin
-                     Beg := arBeg[Part+1]; Len := arLen[Part+1];
-                   end;
-                   SelRange(Beg, Len);
-                 end;
-               end; { <- case SelStart у цифр}
-
-          end{цифры}
-          else begin
-            //FTimer.Enabled := True;
-          end;
-    end; { <- case Key }
-    //FSelStart := SelStart;
-    //FSelLen := SelLength;
-
-    FMetaStr := FMetaStr + Key;
-    Key := #0;
-    inherited KeyPress(Key);
-end;  { <- procedure TgsPeriodEdit.KeyPress  }
-
-procedure TgsPeriodEdit.PeriodTextToHistory;
-var
-  Txt1, Txt2: string;
-  IndexH: Integer;
-begin
-  Txt1 := copy(Text, arBeg[1] + 1, FLenDate);
-  Txt2 := copy(Text, arBeg[4] + 1, FLenDate);
-
-  if (pos('_', Txt1) = 0) and (Txt2 = '')
-    or (pos('_', Txt1) = 0) and (Txt2 <> '') and (pos('_', Txt2) = 0) then
-  begin
-
-    FAllowHistoryLoad := false;
-    IndexH := FDropWindow.lbHistory.Items.IndexOf(Text);
-    if IndexH > 0 then begin
-      FDropWindow.lbHistory.Items.Delete(IndexH);
-      FTraceItems.Delete(IndexH);
-    end;
-    if IndexH <> 0 then begin  // если нет(-1) или есть и не верхний
-      FDropWindow.lbHistory.Items.InsertObject(0, Text, TObjStr.Create(Text) );
-      FTraceItems.InsertObject(0, Text, TObjStr.Create(Text) );
-    end;
-    FAllowHistoryLoad := True;
-
-  end;
-end; { <- TgsPeriodEdit.PeriodTextToHistory}
-
-
-function TgsPeriodEdit.ValidTraceItem(Item: String; var PeriodAsStr: string): Boolean;
-var
-  p,J: Integer;
-  Txt1, Txt2: string;
-begin
-  p := pos('-', Item);
-  if p > 0 then begin
-    txt2 := copy(Item, p + 1, Length(Item));
-  end;  
-  if p = 0 then
-    txt1 := Item
+  if   FPeriodWind.FObjPanel2.FCalendarMonth - 10 < 0 then
+    FEdit.Text := FEdit.Text + IntToStr(FPeriodWind.FObjPanel2.TitleDay)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel2.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel2.Year )
   else
-    txt1 := copy(Item, 1, p - 1);
-
-  try
-    StrToDate(Txt1); // raise ERangeError.Create('Некорректная дата');
-    if p > 0 then StrToDate(Txt2);
-    PeriodAsStr := Item;
-    Result := True;
-  except
-    PeriodAsStr := '';
-    for J:= 1 to 4 do begin
-//примеры: '1979 год' 'IV-й квартал 1979 года' 'июнь 1979 года' '3-ая неделя 1979 года'
-      PeriodAsStr := FmtPeriod(Item, J, FPeriod);
-      if PeriodAsStr <> '' then
-        break;
-    end;
-    Result := (PeriodAsStr <> '');
-  end;
+     FEdit.Text := FEdit.Text + IntToStr(FPeriodWind.FObjPanel2.TitleDay)+ '.' + IntToStr(FPeriodWind.FObjPanel2.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel2.Year );
+   FPeriodWind.Hide;
+ end;
+ FPeriodWind.Paint;
 end;
 
-//выполняется при загрузке компоненты и по таймеру
-//проверяет не изменилась ли внешняя история, если да, то меняет внутреннюю
-//историю на внешнюю
-//Прим. На момент изменения внутренней истории FAllowHistoryLoad выставляется
-//в ложь, чтобы исключить срабатывания по таймеру
-//Прим. при изменении внутренней истории аналогично изменяется и внешняя
-procedure TgsPeriodEdit.HistoryLoad;
-var
-  I: Integer;
-  Txt: string;
+procedure TgsPeriodEdit.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-  with FDropWindow do
-    if (lbHistory.Items.Text <> FTraceItems.Text) then
-    begin
-      lbHistory.Clear;
-      for I := FTraceItems.Count - 1 downto 0 do begin
-        if ValidTraceItem(FTraceItems[I], Txt) then
-          lbHistory.Items.InsertObject(0, FTraceItems[I], TObjStr.Create(Txt))
-        else
-          FTraceItems.Delete(I);
-      end;
-
-      if (lbHistory.Items.Count > 0) then begin
-        lbHistory.ItemIndex := 0;
-        DoOnChangePeriod(lbHistory, false)
-  //      Self.Perform(WM_SETTEXT, 0, Longint(TObjStr(lbHistory.Objects[0])).Text);
-      end;
-    end;{<- if}
-end;
-
-procedure TgsPeriodEdit.KeyDown(var Key: Word; Shift: TShiftState);
-var
-  Offs: Integer;
-  Dat: TDate; tp: TTypePeriod;
-  Beg,Len,Part: Integer;
-begin
-  if (Key = VK_DOWN) and not (ssCtrl in Shift) then begin
-    DoOnDropDownClick(Self);
-    Key := 0;
-  end;
-
-  if Key = VK_RETURN then begin
-    ArrangePeriodText;
-    PeriodTextToHistory;
-    Key := 0;
-  end;
-
-  if Key = VK_DELETE then  begin
-    FurtherSelLen(SelStart, +1, Beg,Len);
-    Text := ReplaceSubStr(Text, StringOfChar('_',Len), Beg+1,Len);
-    SelRange(Beg,Len);
-  end;
-
-  Part := PartInText(SelStart);
-  if (ssCtrl in Shift)
-    and ((Key = VK_UP) or (Key = VK_DOWN)) and ReadyDate(Part)
-    {and (not ReadOnly)} then
-  begin
-    Dat := iif(SelStart < arBeg[4], GetDate1, GetDate2);
-    Offs := iif(Key = VK_UP, 1, -1);
-    tp := tpDay;{чтобы не было warning}
-    case Part of 1,4: tp := tpDay; 2,5: tp := tpMonth; 3,6: tp := tpYear; end;
-    FurtherSelLen(SelStart, +1, Beg,Len);//запоминаем тек. выделение
-    dat := NextDate(dat, tp, offs);
-    if SelStart < arBeg[4] then SetDate1(dat) else SetDate2(dat); 
-    //при изменении даты выделяются 2 начальные цифры
-    SelRange(Beg,Len);//поэтому восстанавливаем выделение
-
-    Key := 0;
-  end; {  <- Key = VK_UP) or (Key = VK_DOWN)  }
-
-  if (Key = VK_RIGHT) {and (SelLength > 1)} then begin
-    FurtherSelLen(SelStart, +1, Beg,Len, +1);
-    SelRange(Beg,Len);
-  end;
-
-  if (Key = VK_LEFT) {and (SelLength > 1)} then begin
-    FurtherSelLen(SelStart, -1, Beg,Len, -1);
-    if (pos('-', Text) = 0) and (Beg >= arBeg[4]) then
-      Beg := arBeg[3];
-    SelRange(Beg,Len);
-  end;
-
-  if (Key = VK_HOME) then begin
-    SelRange(0,2);
-  end;
-  if (Key = VK_END) then begin
-    if pos('-', Text) = 0 then SelRange(arBeg[3],arLen[3])
-    else SelRange(arBeg[6],arLen[6]);
-  end;
-
-  if (Key in [VK_DELETE, VK_LEFT, VK_RIGHT, VK_HOME, VK_END, VK_UP] ) then begin
-    Beg := SelStart; Len := SelLength;
-    ArrangePeriodText(SelStart);
-    //!!! временное решение, в будущем отказаться от повторного SelRange, и вначеле его не делать
-    // устанавливать переменные начала и длины выделения и после выравнивания
-    // один применять SelRange
-    if (Beg <> SelStart) or (Len <> SelLength) then
-      SelRange(Beg, Len);
-  end;
-
-  Key := 0;
-  inherited KeyDown(Key, Shift);
-end;  {  <- procedure TzPeriodEdit.KeyDown }
-
-procedure TgsPeriodEdit.MouseDown(Button: TMouseButton; Shift: TShiftState;
-  X, Y: Integer);
-var
-  OldSelStart: Integer;
-  Part,Beg,Len: Integer;
-begin
-  if (Button = mbLeft) then begin
-// if not Focused and CanFocus then
-//      SetFocus;
-    inherited MouseDown(Button, Shift, X, Y);
-
-    OldSelStart := SelStart;
-    ArrangePeriodText;
-    SelStart:= OldSelStart;
-
-    Part := FurtherSelLen(SelStart, 1, Beg,Len);
-    if Part > 0 then
-      SelRange(Beg, Len)
-    else
-      SelRange(0, arBeg[6] + arLen[6]);
+  case Key of
+    VK_Escape: FPeriodWind.Hide;
    end;
 end;
 
-procedure TgsPeriodEdit.CreateWnd;
+procedure TgsPeriodEdit.DoOnButtonClick(Sender: TObject);
 begin
-  inherited CreateWnd;
-  if not (csDesigning in ComponentState) then
-  begin
-    SetEditRect;
-    SelStart := Length(Text) + 1;
-  end;
-end;
-
-procedure TgsPeriodEdit.CreateParams(var Params: TCreateParams);
-begin
-  inherited CreateParams(Params);
-  Params.Style := Params.Style or WS_CLIPCHILDREN or ES_MULTILINE;
-  Params.Style := Params.Style and (not ES_WANTRETURN);
-end;
-
-procedure TgsPeriodEdit.DoOnDropDownClick(Sender: TObject);
-var
-  PEdit, PDrop: TPoint;
-  J: Integer;
-  L,T,H,W,DX: Integer;
-  //DY: Integer;
-begin
-  if FDropWindow = nil then begin
-    SetFocus;
-    exit;
-  end;
-
-  if Now - FDropWindow.FTimeKillFocus < 0.0000033 then begin
-    FDropWindow.FTimeKillFocus := Now;
-    SetFocus;
-    exit;
-  end else
-    FDropWindow.FTimeKillFocus := Now;
-
-  if FDropWindow.Visible then begin
-    FDropWindow.BackDates;
-    FDropWindow.Hide;
-    SetFocus;
-    exit;
-  end;
-
-  FDropWindow.Width := 2 * FDropWindow.FCal1.Width + 12 + 4;
-  FDropWindow.Height := 257;
-
-  PEdit := ClientToScreen(Point(0, 0)) ;
-
-  //если выпадающее окошко выходит за пределы экрана справа, то оно
-  //выравнивается по правой части окошка редактирования, иначе по левой
-  if PEdit.X + FDropWindow.Width > GetSystemMetrics(SM_CXSCREEN) then
-    PDrop.X := PEdit.X + Width - FDropWindow.Width - 2
+  if FPeriodWind.Visible = true then
+    FPeriodWind.Hide
   else
-    PDrop.X := PEdit.X - 2;
-
-  //если выпадающее окошко выходит за пределы экрана снизу, то оно
-  //отображается над окошком редактирования, иначе под ним
-  if PEdit.Y + Height - 1 + FDropWindow.Height > GetSystemMetrics(SM_CYSCREEN) then
-    PDrop.Y := PEdit.Y - FDropWindow.Height - 2
+  begin
+  if FperiodWind.NumberPeriod = 5 then
+     FPeriodWind.Width := 420
   else
-    PDrop.Y := PEdit.Y + Height - 1;
+  FPeriodWind.Width := 245;
 
-  //перед переходом к выпадающему окошку сохраняем даты и текст окошка редактирования
-  FOK := false;
-  FKeepDate := Date{PE};
-  FKeepEndDate := EndDate;
-  FKeepText := Text;
+  FPeriodWind.Left := ClientOrigin.x;
+  FPeriodWind.Top := ClientOrigin.y  + Height;
+  FPeriodWind.Paint;
+  FPeriodWind.Visible := true;
+   end;
+  end;
 
-  with FDropWindow do
+procedure TgsPeriodEdit.FormMouseDown(Sender: TObject; Button: TMouseButton;Shift: TShiftState; X, Y: Integer);
+ var
+  Year, Month, Day: Word;
+
+begin
+     DecodeDate(SysUtils.Now, Year, Month, Day);
+     if (X > 245) and (Y > 170) then
+     begin
+        FPeriodWind.FObjPanel2.Year := Year;
+        FPeriodWind.FObjPanel2.FCalendarMonth := Month;
+        FPeriodWind.FObjPanel2.Paint;
+          end;
+    if (X > 70) and (X < 236) and (Y > 170) and (Y < 190) then
+       begin
+         case FPeriodWind.NumberPeriod of
+          1:
+          begin
+            FEdit.Text := IntToStr(Year);
+            FPeriodWind.Hide;
+          end;
+          2:
+          begin
+            FEdit.Text := IntTostr(Month) + '.'+ IntTostr(Year);
+            FPeriodWind.Hide;
+          end;
+          3:
+          begin
+            case Month of
+             1..3:
+             begin
+              FEdit.Text :='01.01.' + IntTostr(Year) + '-' + '31.03.' + IntTostr(Year);
+              FPeriodWind.Hide;
+             end;
+             4..6:
+             begin
+               FEdit.Text := '01.04.' + IntTostr(Year) + '-' + '30.06.' + IntTostr(Year);
+               FPeriodWind.Hide;
+             end;
+             7..9:
+             begin
+               FEdit.Text := '01.07.' + IntTostr(Year) + '-' + '30.09.' + IntTostr(Year);
+               FPeriodWind.Hide;
+             end;
+             10..12:
+             begin
+               FEdit.Text := '01.10.' + IntTostr(Year) + '-' + '31.12.' + IntTostr(Year);
+               FPeriodWind.Hide;
+             end;
+             end;
+          end;
+          4:
+          begin
+            FEdit.Text := DateToStr(SysUtils.Now);
+            FPeriodWind.Hide;
+          end;
+          5:
+          begin
+          if  (X > 70) and (X < 236) and (Y > 170) and (Y < 190) then
+           begin
+           FPeriodWind.FObjPanel1.Year := Year;
+           FPeriodWind.FObjPanel1.FCalendarMonth := Month;
+           FPeriodWind.FObjPanel1.Paint;
+          end
+
+          end;
+         end;
+       end;
+
+  if (X >10) and (X < 85) and (Y < 180) and (Y > 26) then
   begin
-    AssignCalDate(FCal1);
-    AssignCalDate(FCal2);
-
-    FDropText := '';
-    //Размеры окошка и его контролов
-    SetBounds(PDrop.X, PDrop.Y, Width, Height);
-
-    W := 45; H:= 21;
-    FBtnOk.SetBounds( (Width - 2 * W) div 3 , Height - H - 8, W, H);
-    //W := 14; H:= 14;
-    //FBtnCancel.SetBounds(Width - H - 3, Height - H - 3,    W, H);
-    W := 45; H:= 21;
-    FBtnCancel.SetBounds( w + 2 * ((Width - 2 * W) div 3), Height - H - 8, W, H);
-
-    FPages.SetBounds(0, 0, Width - 2, FBtnOk.Top - 7);
-
-    W := FCal1.Width; H := FCal1.Height;
-    T := (FTabCal.Height - H) div 2;
-    if FDiapason then begin
-      FCal1.SetBounds(4, T, W, H);
-      FCal2.SetBounds(W + 8, T, W, H);
-    end else begin
-      FCal1.SetBounds(Width div 4, T, W, H);
-    end;
-
-    //W := FPages.Width div 2; H := FTabCal.Height;
-    //lbHistory.SetBounds(3, 2, W - 4, H - 4);
-    //lbMeta.SetBounds(W + 2, 2, W - 4, H - 4);
-    lbHistory.Align := alClient;
-    lbMeta.Align := alClient;
-
-    L:=5; W := 75 + 10;
-    DX:= Trunc( (Width - 3*W - 50 - 5*2) / 2) - 1;
-
-    H := FTabCal.Height;
-    lbQuarter.SetBounds(L, H - 15, W, 15);
-    FBtnDn.SetBounds(L, lbQuarter.Top - 10 - 2, W, 10);
-    FBtnUp.SetBounds(L, 1, W, 10);
-    lbYear.SetBounds(L, FBtnUp.BoundsRect.Bottom,
-      W, FBtnDn.Top - FBtnUp.BoundsRect.Bottom - 1);
-//    lbYear.IntegralHeight := True;
-//    H := (lbYear.Height div lbYear.ItemHeight)*lbYear.ItemHeight;
-//    DY := (lbYear.Height - H) Div 2;
-//    FBtnUp.Top:= FBtnUp.Top+Dy;
-//    lbYear.Top:= lbYear.Top+Dy;
-//    FBtnDn.Top:= FBtnDn.Top-Dy;
-
-    H := (lbMonth.ItemHeight) * 12 + 1;
-    T := (FTabDpz.Height - H) div 2;
-    if T < 2 then begin
-      T := 2; H := FTabCal.Height - 4;
-    end;
-    lbMonth.SetBounds(   L+W+DX, T,    W, H);
-    lbWeek.SetBounds(L+2*(W+DX), T, W+50, H);
-//    FBtDbg.SetBounds(99,FTabCal.Height-T, 55, 25);
-
-    Show;
-    SetFocus;
-
-    //На активной странице фокус передаём 1-му управляющему элементу
-    with FPages.ActivePage do
-    for J:=0 to ControlCount - 1 do
-      if (Controls[J] is TgsCustomListBox)
-        or (Controls[J] is TgsMonthCalendar) then
-      begin
-        TWinControl(Controls[J]).SetFocus;
-        break;
+     FPeriodWind.NumberPeriod := (Y - 28) div (57 - 28 - 3) + 1;
+   Case FPeriodWind.NumberPeriod of
+     1:
+     begin
+       FPeriodWind.Width := 245;
+       FPeriodWind.FObjPanel1.FCalendarState := gscsYear;
+       FPeriodWind.FObjPanel1.Show;
+       FPeriodWind.FObjPanel1.VibPeriod := 1;
+       FPeriodWind.FObjPanel2.Hide;
+       FPeriodWind.FObjPanel1.Paint;
+       FPeriodWind.paint;
+     end;
+     2:
+     begin
+        FPeriodWind.Width := 245;
+        FPeriodWind.FObjPanel1.FCalendarState := gscsMonth;
+        FPeriodWind.FObjPanel1.Show;
+        FPeriodWind.FObjPanel1.VibPeriod := 2;
+        FPeriodWind.FObjPanel2.Hide;
+        FPeriodWind.FObjPanel1.Paint;
+        FPeriodWind.paint;
+     end;
+     3:
+     begin
+        FPeriodWind.Width := 245;
+        FPeriodWind.FObjPanel1.FCalendarState := gscsMonth;
+        FPeriodWind.FObjPanel1.Show;
+        FPeriodWind.FObjPanel1.VibPeriod := 3;
+        FPeriodWind.FObjPanel2.Hide;
+        FPeriodWind.FObjPanel1.Paint;
+        FPeriodWind.paint;
+     end;
+     4:
+     begin
+        FPeriodWind.Width := 245;
+        FPeriodWind.FObjPanel1.FCalendarState := gscsDay;
+        FPeriodWind.FObjPanel1.Show;
+        FPeriodWind.FObjPanel1.VibPeriod := 4;
+        FPeriodWind.FObjPanel2.Hide;
+        FPeriodWind.FObjPanel1.Paint;
+        FPeriodWind.paint;
       end;
-  end;
+      5:
+     begin
+       FPeriodWind.Width := 420;
+       FPeriodWind.FObjPanel1.FCalendarState := gscsDay;
+       FPeriodWind.FObjPanel1.Show;
+       FPeriodWind.FObjPanel1.VibPeriod := 5;
+       FPeriodWind.FObjPanel2.Left := 260;
+       FPeriodWind.FObjPanel2.Top :=30 ;
+       FPeriodWind.FObjPanel2.Visible := true;
+       FPeriodWind.FObjPanel1.Paint;
+       FPeriodWind.Paint;
 
-  ArrangePeriodText;
-  //selRange(0, Length(Text) + 1);
-  //SetFocus;
-end; {<- TgsPeriodEdit.DoOnDropDownClick}
+     end;
+     6:
+     begin
+        FPeriodWind.Width := 420;
+        FPeriodWind.FObjPanel1.FCalendarState := gscsDay;
+        FPeriodWind.FObjPanel1.Hide;
+        FPeriodWind.FObjPanel2.Hide;
+        FPeriodWind.paint;
+     end;
+     end;
+     end;
 
-procedure TgsPeriodEdit.DoOnTimer(Sender: TObject);
-var
-  II,I,IFound: Integer;
-  Txt: string;
-begin
-  with FDropWindow,lbYear do begin
-    FBtnUp.Enabled := ItemIndex > 0;{lbYear.TopIndex > 0;}
-    FBtnDn.Enabled := ItemIndex < Items.Count - 1;
-      {(Items.Count - TopIndex)*ItemHeight > lbYear.Height;}
-  end;
-  if FAllowHistoryLoad then
-  begin
-    FAllowHistoryLoad := false;
-    HistoryLoad;
-    FAllowHistoryLoad := True;
-  end;
+     if (Y > 30) and (Y < 165) then
+     begin
+      FPeriodWind.FObjPanel1.Left := 90;
+      FPeriodWind.FObjPanel1.Top := 30;
+     end;
 
-  if Focused then begin
-    Perform(WM_Char, Ord('~'), 0);
-//   GetCursorPos;
-//   mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-//   mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-  end;
-  try
-  IFound := 0;
-  if FMetaStr <> '' then begin
-    Txt := AnsiLowerCase(FMetaStr);
-    for II:=1 to 2 do begin
-      IFound := 0;
-      for I:=1 to Length(ArMeta[II]) do
-        if Txt = ArMeta[II][I] then begin
-          IFound := I;
-          break;
-        end;
-      if IFound > 0 then
-        break;
-    end;
-  end;
-
-  if FMetaStrLast = FMetaStr then begin
-    FTimer.Tag := FTimer.Tag + 1;
-    if FTimer.Tag > 3 then
-    begin
-      try
-        if IFound > 0 then begin
-          FTimer.Tag := IFound;
-          FDropWindow.DoOnChangePeriod(Sender, True);
-        end;
-      finally
-        FTimer.Tag := 0;
-        FMetaStr := '';
-      end;
-    end;
-  end else begin
-    FTimer.Tag := 0;
-    FMetaStrLast := FMetaStr;
-  end;
-
-  finally
-
-  end;
-end;
-
-constructor TgsPeriodEdit.Create(AOwner: TComponent);
-begin
-  inherited Create(AOwner);
-
-  ControlStyle := ControlStyle - [csSetCaption];
-  MaxLength := 21;
-  Width := 140;
-
-  FPeriod := TPeriod.Create;
-  SetDateFormat(dfDefault);//!!
-  //FLenY := 4
-  FDiapason := True;
-
-  FYearPeriod := _getYear(now);
-
-  Text := BlankDate(FLenY)+'-'+BlankDate(FLenY);
-  FKeepText := Text;
-
-  FTimer := TTimer.Create(Self);
-  FTimer.Enabled := false;
-  FTimer.Interval := 170;
-  FTimer.OnTimer := DoOnTimer;
-
-  FMetaStr := '';
-  FMetaStrLast := '';
-
-  FDropButton := TgsButton.Create(Self);
-  FDropButton.Glyph.LoadFromResourceName(hInstance, 'DNBTN');
-  FDropButton.ControlStyle := FDropButton.ControlStyle - [csAcceptsControls, csSetCaption] +
-    [csFramed, csOpaque, csCaptureMouse];
-  FDropButton.TabStop := false;
-
-  FDropButton.Caption := '';
-  FDropButton.Width := DropBtnWidth;
-  FDropButton.Height := DropBtnHeight;
-  FDropButton.Visible := True;
-  FDropButton.Parent := Self;
-  FDropButton.Cursor := crArrow;
-  //FDropButton.OnMouseMove := DoOnButtonMouseMove;
-  FDropButton.OnClick := DoOnDropDownClick;
-
-  FTraceItems := TStringList.Create;
-  FAllowHistoryLoad := false;
-
-  if not (csDesigning in ComponentState) then
-  begin
-    FDropWindow := TgsDropWindow.Create(Self);
-    FDropWindow.FPeriodEdit := Self;
-    FDropWindow.Parent := Self;
-
-    FCalBegDate := FDropWindow.FCal1.Date;
-    FCalEndDate := FDropWindow.FCal2.Date;
-
-    FDropButton.FDropWindow := FDropWindow;
-  end;
-
-  ArMetaFill;//дублирует метасимволы для английской раскладки клавиатуры
-end;
-
-destructor TgsPeriodEdit.Destroy;
-begin
-  FTraceItems.Free;
-  FPeriod.Free;
-  inherited;
 end;
 
 procedure TgsPeriodEdit.Loaded;
-var
-  I,J: Integer;
-  D: TDateTime;
 begin
-  inherited Loaded;
+  inherited ;
+ if GUIDToString(FGUID) = '{00000000-0000-0000-0000-000000000000}' then
+     FGUID := StringToGUID(CreateClassID());
 
-//  if FDropButton <> nil then
-//  begin
-//    FDropButton.Is3D := Ctl3d;
-//    FDropButton.Repaint;
-//  end;
+end;
 
-  if FDropWindow = nil then
-    exit;
+procedure TgsPeriodEdit.KeyPress(Sender: TObject; var Key: Char);
 
-  SelStart := 0; SelLength := 2;
-
-  with FDropWindow do
-  begin
-    FTabHistory.PageControl := FPages;
-    FTabCal.PageControl := FPages;
-    FTabDpz.PageControl := FPages;
-    FTabHelp.PageControl := FPages;
-
-    SetPageIndex(PageIndex);
-    //dbg PageIndex := 2;
-    {$IFNDEF MCALENDAR}
-    FCal1.DoSize; FCal2.DoSize;
-    {$ENDIF}
-    FCal2.Visible := FDiapason;
-
-    for I := 1970 to 2099 do begin
-      lbYear.Items.Add(IntToStr(I));
-      if I = FYearPeriod then
-        lbYear.ItemIndex := lbYear.Items.Count - 1;
-    end;
-
-    for I :=1 to 4 do
-      lbQuarter.Items.Add(ArQuarter[I]);//'IV'
-    {чтобы не было гор. скроллинга вправо при нажатии на крайний правый элемент}
-    {уменьшаем ширину элемента на единицу от дельфийского }
-    {см. TCustomListBox.SetColumnWidth в StdCtrl.pas}
-    with lbQuarter do
-      if (Columns > 0) and (lbQuarter.Width > 0) then
-      begin                      {уменьшаем ширину на единицу}
-        I := (Width + Columns - 3 - 1) div Columns;
-        if I < 1 then I := 1;
-        SendMessage(Handle, LB_SETCOLUMNWIDTH, I, 0);
+begin
+     case Key of
+      'с': Key := 'С';
+      'з': Key := 'З';
+      'в': Key := 'В';
+      'г': Key := 'Г';
+      'т': Key := 'Т';
+      'м': Key := 'М';
+      'н': Key := 'Н';
+      'п': Key := 'П';
+      'к': Key := 'К';
       end;
 
-    for I := 1 to 12 do
-       lbMonth.Items.Add(LongMonthNames[I]);//'Январь'
-
-    //недели !!!
-    D := EncodeDate(2008,12,31) - EncodeDate(2008,1,1) + 1;
-    J := Trunc(D / 7);
-    if Frac(J / 7) > 0 then
-      J := J + 1;
-    for I := 1 to J do
-      lbWeek.Items.Add(IntToStr(I));
-
-    //Метасимволы
-    lbMeta.Items.Text:=
-     // 'Метасимволы'#13''+
-    ' c - сегодня'#13''+
-    ' з - завтра'#13''+
-    ' в - вчера'#13''+
-    ' н - текущая неделя'#13''+
-    ' пн - прошлая неделя'#13''+//5
-    ' сн - следующая неделя'#13''+
-    ' м - текущий месяц'#13''+
-    ' пм - прошлый месяц'#13''+
-    ' см - следующий месяц'#13''+
-    ' к - текущий квартал'#13''+//10
-    ' пк - прошлый квартал'#13''+
-    ' ск - следующий квартал'#13''+
-    ' г - текущий год'#13''+
-    ' пг - прошлый год'#13''+
-    ' сг - следующий год'#13;//15
-
-  end; {<- with FDropWindow}
-
-  HistoryLoad;
-
-  FTimer.Enabled := True;
-  FAllowHistoryLoad := True;
-end;{ <- TgsPeriodEdit.Loaded}
-
-{***************}
-
-function TgsPeriodEdit.GetText1: string;
-begin
-  Result := copy(Text, arBeg[1] + 1, FLenDate);
-end;
-
-function TgsPeriodEdit.GetText2: string;
-begin
-  Result := copy(Text, arBeg[4] + 1, FLenDate);
-end;
-
-function TgsPeriodEdit.GetDate1: TDate;
-begin
-  Result := FPeriod.DBeg;
-end;
-
-function TgsPeriodEdit.GetDate2: TDate;
-begin
-  Result := FPeriod.DEnd;
-end;
-
-procedure TgsPeriodEdit.SetDate1(Value: TDate);
-begin
-  if FPeriod.DBeg <> Value then begin
-    FPeriod.DBeg := Value;
-    {TODO: Задание 3}
-    if Diapason then
-      Text := FPeriod.GetTextPeriod(1) + '-' + getText2
-    else
-      Text := FPeriod.GetTextPeriod(1);
-  end;
-end;
-
-procedure TgsPeriodEdit.SetDate2(Value: TDate);
-begin
-  if FPeriod.DEnd <> Value then begin
-    FPeriod.DEnd := Value;
-    if Diapason then
-      Text := getText1 + '-' + FPeriod.GetTextPeriod(2)
-    else
-      Text := FPeriod.GetTextPeriod(2);
-  end;
-end;
-
-procedure TgsPeriodEdit.SetDates(ADate: TDateTime; TypePeriod: TTypePeriod;
-  Offset: Integer = 0);
-begin
-  FPeriod.SetDates(ADate, TypePeriod, Offset);
-  Text := FPeriod.DatesToText;
-end;
-
-procedure TgsPeriodEdit.AssignOrdPeriod(OrdPeriod,Year: Integer; TypePeriod: TTypePeriod);
-begin
-  FPeriod.SetOrdPeriod(OrdPeriod, Year, TypePeriod);
-  Text := FPeriod.DatesToText;
-end;
-
-procedure TgsPeriodEdit.SetDateFormat(const Value: TDTDateFormat);
-var DateFormat: string;
-    I, Len: Integer;
-begin
-  if (FDateFormat <> Value) or (FLenY = 0) then
-  begin
-    FDateFormat := Value;
-
-    if (Value = dfDefault) then begin
-      DateFormat := lowercase(ShortDateFormat);
-      Len := 0;
-      for I:=1 to Length(DateFormat) do
-        if DateFormat[I]='y' then Inc(Len);
-
-      if Len<=2 then Len := 2
-      else Len := 4;
-    end else if Value = dfLong then
-      Len := 4
-    else
-      Len := 2;
-
-    if Len = 4 then begin
-      FLenY := 4;
-      FLenDate := 10;//FLenDate := arBeg[3]+FLenY
-    end else begin
-      FLenY := 2;
-      FLenDate := 8;
+   case Key of
+   '0'..'9','-':begin
+    Text := Text;
     end;
-
-    if FLenY = 4 then begin
-      move(ar1Beg,arBeg, SizeOf(arBeg));
-      move(ar1Len,arLen, SizeOf(arLen));
-    end else begin
-      move(ar2Beg,arBeg, SizeOf(arBeg));
-      move(ar2Len,arLen, SizeOf(arLen));
-    end;
-
-    FPeriod.FLenYear := FLenY;
-    Text := FPeriod.DatesToText;
-  end;
-
-end; {<- TgsPeriodEdit.SetDateFormat}
-
-
-procedure TgsPeriodEdit.SetDiapason(const Value: Boolean);
-begin
-  if (FDiapason <> Value) then
-  begin
-    FDiapason := Value;
-    FPeriod.FAllowDateEnd := FDiapason; //and (pos('-', Text) > 0);
-    Text := FPeriod.DatesToText;
-
-    if FDropWindow = nil then
-      exit;
-
-    FDropWindow.FCal2.Visible := FDiapason;
-  end;
-end;
-
-procedure TgsPeriodEdit.SetPageIndex(const Value: Integer);
-begin
-  if Value > 3 then
-    raise ERangeError.Create('Некорректный индекс страницы');
-
-  if (FPageIndex <> Value) then
-    FPageIndex := Value;
-
-  if FDropWindow = nil then
-    exit;
-
-  if Value <> FDropWindow.FPages.ActivePageIndex then
-    FDropWindow.DoOnPageChange(Self);
-
-end;
-
-procedure TgsPeriodEdit.SetTraceItems(Values: TStrings);
-var
-  I: Integer;   z: string;
-  ErrMsg: string;
-begin
-  ErrMsg := '';
-
-  FTraceItems.Clear;
-
-  for I := Values.Count - 1 downto 0 do
-  begin
-    if not ValidTraceItem(Values[I], z) then
+   'С','З','В','Г','Т','М','Н','П','К','.':
     begin
-      ErrMsg := ErrMsg + IntToStr(I)+'-й элемент: '+Values[I]+#13#10;
-      Values.Delete(I);
+    DatePeriod.ProcessShortCut(Key, Text);
+    FEdit.Text := DatePeriod.EncodeString;
     end;
-  end;
-
-  if ErrMsg <> '' then
-    ShowMessage('Некорректные значения элементов TraceItems пропущены'#13#10+ErrMsg);
-
-  FTraceItems.Assign(Values);
-  //ShowMessage(Values.Text);//dbg
-end;
-
-procedure TgsPeriodEdit.SetYearPeriod(const Value: Integer);
-var
-  I: Integer;
-begin
-  if (FYearPeriod <> Value) then
-  begin
-    FYearPeriod := Value;
-    if FDropWindow <> nil then begin
-      I := FDropWindow.lbYear.Items.IndexOf( IntToStr(Value) );
-      FDropWindow.lbYear.ItemIndex := I;
-    end;  
-  end;
-end;
-
-{TODO: TgsDropWindow}
-
-//procedure TgsDropWindow.WMMouseActivate(var Message: TWMMouseActivate);
-//begin
-//  Message.Result := MA_NOACTIVATE;
-//end;
-
-procedure TgsDropWindow.WMKillFocus(var Message: TWMKillFocus);
-//var b: boolean;
-begin
-//  b:=(Message.FocusedWND <> Handle)
-//      and (Message.FocusedWND <> FPeriodEdit.Handle)
-//      and not FocusedWNDIsChild(Self, Message.FocusedWND);
-
-  if not (csDesigning in ComponentState) and Visible then
-  begin
-    if (Message.FocusedWND <> Handle)
-      and (Message.FocusedWND <> FPeriodEdit.Handle)
-//      and (Message.FocusedWND = TWinControl(FPeriodEdit.Owner).Handle)
-      and not FocusedWNDIsChild(Self, Message.FocusedWND) then
-    begin
-      BackDates;
-      FPeriodEdit.SetFocus;
-      Hide;
-    end;
-  end;
-
-  inherited;
-end;
-
-procedure TgsDropWindow.DoOnBtnUpClick(Sender: TObject);
-begin
-  if (lbYear.ItemIndex <> -1) and (lbYear.ItemIndex <> 0) then
-    lbYear.ItemIndex := lbYear.ItemIndex - 1;
-  //lbYear.TopIndex := lbYear.TopIndex - 1;
-end;
-
-procedure TgsDropWindow.DoOnBtnDnClick(Sender: TObject);
-begin
-  if (lbYear.ItemIndex <> -1) and (lbYear.ItemIndex < lbYear.Items.Count - 1) then
-    lbYear.ItemIndex := lbYear.ItemIndex + 1;
-  //lbYear.TopIndex := lbYear.TopIndex + 1;
-end;
-
-procedure TgsDropWindow.BackDates;
-begin
-  FTimeKillFocus := Now; 
-  with FPeriodEdit do
-    if not FOK and ( (Date{PE} <> FKeepDate) or (Date{PE} <> FKeepDate)
-      or (Text <> FKeepText) ) then
-    begin
-      Date{PE} := FKeepDate;
-      EndDate   := FKeepEndDate;
-
-      Text := FKeepText;
-    end;
-end;
-
-procedure TgsDropWindow.DoOnBtnCancelClick(Sender: TObject);
-begin
-  BackDates;
-  FPeriodEdit.SetFocus;
-  FPeriodEdit.SelRange(0,2);
-  Hide;
-end;
-
-procedure TgsDropWindow.DoOnBtnOkClick(Sender: TObject);
-var
-  IndexH: Integer;
-begin
-        //сейчас объект элемента листбокса для сравнения содержимого следов
-        //не используется
-        //IndexH := IndexOfObjStr(lbHistory.Items, FPeriodEdit.Text);
-
-  FPeriodEdit.FAllowHistoryLoad := false;
-  IndexH := lbHistory.Items.IndexOf(FDropText);
-  if IndexH > 0 then begin// если есть и вверху, то не трогаем
-    lbHistory.Items.Delete(IndexH);
-    FPeriodEdit.FTraceItems.Delete(IndexH);
-  end;
-  if IndexH <> 0 then begin// если нет(-1) или есть и не верхний
-    lbHistory.Items.InsertObject(0, FDropText, TObjStr.Create(FPeriodEdit.Text) );
-    FPeriodEdit.FTraceItems.InsertObject(0, FDropText, TObjStr.Create(FPeriodEdit.Text) );
-  end;
-  FPeriodEdit.FAllowHistoryLoad := True;
-
-  with FPeriodEdit do begin
-    FOK := True;
-    //FKeepDate := Date{PE};
-    //FKeepEndDate := EndDate;
-    //FKeepText := Text;
-
-    SetFocus;
-    SelRange(0,2);
-  end;
-  Hide;
-end;
-
-{$IFNDEF MCALENDAR}
-procedure TgsDropWindow.DoOnDateChangeCalendar(Sender: TObject; FromDate, ToDate: TDateTime);
-begin                               {TODO: Задание 1}
-   if FPeriodEdit.FDiapason  {(FPeriodEdit.EndDate>0)}
-     and ( (Sender= FCal1) and FPeriodEdit.ReadyDate(2) and (FCal1.Date > FPeriodEdit.EndDate) )
-     or ( (Sender= FCal2) and FPeriodEdit.ReadyDate(1) and (FPeriodEdit.Date > FCal2.Date) )
-   then                     {(FPeriodEdit.Date>0)}
-   begin
-      FSkipKillFocus := True;
-      try
-        MessageBox(0, 'Начальная дата периода не может быть больше его конечной даты.',
-          'Неверный диапазон', MB_ICONWARNING  or MB_OK);
-
-        AssignCalDate(TgsMonthCalendar(Sender));
-
-        if not TWinControl(Sender).Focused then TWinControl(Sender).SetFocus;
-//        raise EConvertError.Create('Начальная дата периода не может быть больше конечной даты.');//CreateFmt]
-      finally
-        FSkipKillFocus := false;
-      end;
-    end;
-end;
-{$ENDIF}
-
-procedure TgsDropWindow.AssignCalDate(ACal: TgsMonthCalendar);
-begin
-   if ACal = FCal1 then
-     FCal1.Date := FPeriodEdit.GetDate1 //FPeriodEdit.FCalBegDate
-   else if ACal = FCal2 then
-     FCal2.Date := FPeriodEdit.GetDate2;//FPeriodEdit.FCalEndDate;
-
-   if ACal.Date = 0 then ACal.Date := Sysutils.Date;
-end;
-
-procedure TgsDropWindow.DoOnClickCalendar(Sender: TObject);
-begin
-  if FSkipKillFocus then exit;
-  DoOnCalendarChange(Sender, false);
-end;
-
-procedure TgsDropWindow.DoOnDblClickCalendar(Sender: TObject);
-begin
-  if FSkipKillFocus then exit;
-  DoOnCalendarChange(Sender, True);
-end;
-
-procedure TgsDropWindow.DoOnCalendarChange(Sender: TObject; CloseDropWindow: Boolean);
-begin
-  if Sender = FCal1 then begin
-//    if ValidPeriod(FCal1) then begin
-//      FPeriodEdit.FCalBegDate := FCal1.Date;
-      FPeriodEdit.SetDate1(FCal1.Date);
-//    end;
-  end else
-  if FPeriodEdit.FDiapason and (Sender = FCal2) then begin
-//    if ValidPeriod(FCal2) then begin
-//      FPeriodEdit.FCalEndDate := FCal2.Date;
-
-      if pos('-', FPeriodEdit.Text) = 0 then
-        FPeriodEdit.Text := FPeriodEdit.Text + '-' + BlankDate(FPeriodEdit.FLenY);
-      FPeriodEdit.SetDate2(FCal2.Date);
-//    end;
-  end;
-
-  FDropText := FPeriodEdit.Text;
-
-  if CloseDropWindow then
-    DoOnBtnOkClick(Sender);
-
-end;{ <- TgsDropWindow.DoOnCalendarChange}
-
-procedure TgsDropWindow.DoOnKeyDownDropWindow(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-//var Idbg: Integer;
-begin
-  if Key = VK_RETURN then begin
-    if Sender = lbHistory then
-      DoOnChangePeriod(Sender, True)
-    else if Sender = lbMeta then
-      DoOnChangePeriod(Sender, True)
-
-    else if Sender = FCal1 then
-      DoOnCalendarChange(Sender, True)
-    else if Sender = FCal2 then
-      DoOnCalendarChange(Sender, True)
-
-    else if Sender = lbYear then
-      DoOnChangePeriod(Sender, True)
-    else if Sender = lbQuarter then
-      DoOnChangePeriod(Sender, True)
-    else if Sender = lbMonth then
-      DoOnChangePeriod(Sender, True)
-    else if Sender = lbWeek then
-      DoOnChangePeriod(Sender, True);
-  end;
-//  if Sender = FPages then
-//    Idbg:=1;
-
-  if Key = VK_ESCAPE then begin
-    BackDates;
-
-    Hide;
-    FPeriodEdit.SetFocus;
-  end;
-end; { <- TgsDropWindow.DoOnKeyDownDropWindow}
-
-
-procedure TgsDropWindow.DoOnDblClickPeriod(Sender: TObject);
-begin
-  DoOnChangePeriod(Sender, True);
-end;
-
-procedure TgsDropWindow.DoOnClickPeriod(Sender: TObject);
-begin
-  DoOnChangePeriod(Sender, false);
-end;
-
-procedure TgsDropWindow.DoOnChangePeriod(Sender: TObject; CloseDropWindow: Boolean);
-var
-  Y: Integer;
-  IndexM: Integer;
-  TypePeriod: TTypePeriod;
-  IPeriod: Integer;
-  DateText: string;
-begin
-
-  if lbYear.ItemIndex <> -1 then
-    Y := StrToInt(lbYear.Items[lbYear.ItemIndex])
-  else
-    Y := _getYear;
-
-  IPeriod := Y;         //Инициализируем, чтобы не
-  TypePeriod := tpYear; //"ругался" компилятор
-
-  if Sender = lbYear then begin
-    if lbYear.ItemIndex = -1 then
-      exit;{это никогда не случится}
-    FPeriodEdit.FYearPeriod := StrToInt( lbYear.Items[lbYear.ItemIndex] );
-
-    Y := StrToInt(lbYear.Items[lbYear.ItemIndex]);
-    IPeriod := Y;
-    TypePeriod := tpYear;
-    FDropText := Format(FmtYear,[Y]);
-  end{<- год}
-  else if Sender = lbQuarter then begin
-    //FPeriodEdit.FQuarterIndex := lbQuarter.ItemIndex;
-                //lbMonth.ItemIndex := 3 * ItemIndex + 2;
-    IPeriod := lbQuarter.ItemIndex + 1;
-    TypePeriod := tpQuarter;
-    FDropText := Format(FmtQuarter, [lbQuarter.Items[lbQuarter.ItemIndex], Y]);
-  end{<- квартал}
-  else if Sender = lbMonth then begin
-    //FPeriodEdit.FMonthIndex := lbMonth.ItemIndex;
-                //lbQuarter.ItemIndex := ItemIndex div 3;
-    IPeriod := lbMonth.ItemIndex + 1;
-    TypePeriod := tpMonth;
-    FDropText := Format(FmtMonth, [lbMonth.Items[lbMonth.ItemIndex], Y]);
-  end{<- месяц}
-  else if Sender = lbWeek then begin
-    //FPeriodEdit.FWeekIndex := lbWeek.ItemIndex;
-                //lbQuarter.ItemIndex := M div 3;
-    IPeriod := lbWeek.ItemIndex + 1;
-    TypePeriod := tpWeek;
-    FDropText := Format(FmtWeek,[lbWeek.ItemIndex+1, Y]);
-  end;{<- неделя}
-
-  if (Sender = lbYear) or (Sender = lbQuarter)  or (Sender = lbMonth)
-    or (Sender = lbWeek) then
-  begin
-    FPeriodEdit.FPeriod.FAllowDateEnd := FPeriodEdit.FDiapason;
-    FPeriodEdit.AssignOrdPeriod(IPeriod, Y, TypePeriod);
-  end
-  else
-  if (Sender = lbMeta)  or (Sender = lbHistory)
-    or (Sender = FPeriodEdit.FTimer) then
-  begin
-    IndexM := -1;//если не -1, то даты(а) вычисляются на основе метасимвола
-
-    if (Sender = FPeriodEdit.FTimer) then begin
-      IndexM := FPeriodEdit.FTimer.Tag;
-    end;
-
-    if (Sender = lbMeta) then begin
-      //раньше самый первый(0-ой) элемент был для информирования о содержимом
-      //листбокса и не использовался для выбора метасимволов
-      //if (lbMeta.ItemIndex < 1) then
-      //  exit;
-    //Отсчёт индекса метасимволов с единицы
-      IndexM := lbMeta.ItemIndex + 1;
-    end;
-
-    if IndexM > 0 then begin
-      FPeriodEdit.FPeriod.FAllowDateEnd := FPeriodEdit.FDiapason;
-
-      case IndexM of
-        1: FPeriodEdit.SetDates(now, tpDay);
-        2: FPeriodEdit.SetDates(now, tpDay, 1);
-        3: FPeriodEdit.SetDates(now, tpDay, -1);
-
-        4: FPeriodEdit.SetDates(now, tpWeek);
-        5: FPeriodEdit.SetDates(now, tpWeek, -1);
-        6: FPeriodEdit.SetDates(now, tpWeek, 1);
-
-        7: FPeriodEdit.SetDates(now, tpMonth);
-        8: FPeriodEdit.SetDates(now, tpMonth, -1);
-        9: FPeriodEdit.SetDates(now, tpMonth, 1);
-
-        10: FPeriodEdit.SetDates(now, tpQuarter);
-        11: FPeriodEdit.SetDates(now, tpQuarter, -1);
-        12: FPeriodEdit.SetDates(now, tpQuarter, 1);
-
-        13: FPeriodEdit.SetDates(now, tpYear);
-        14: FPeriodEdit.SetDates(now, tpYear, -1);
-        15: FPeriodEdit.SetDates(now, tpYear, 1);
-      end;
-    end;
-
-    if Sender = lbHistory then begin
-      if lbHistory.ItemIndex = -1 then
-        exit;
-      DateText := objstrText(lbHistory.Items, lbHistory.ItemIndex, FPeriodEdit.FLenY);
-      FPeriodEdit.Text := DateText;
-      FDropText := lbHistory.Items[lbHistory.ItemIndex];
-    end else
-      FDropText := FPeriodEdit.Text;
-
-  end { <- if (Sender = lbMeta, FPeriodEdit.FTimer, lbHistory}
-  else begin
-    FPeriodEdit.SelRange(0,2);//dbg не должно такого быть
-    exit;
-  end;
-
-  if CloseDropWindow then
-    DoOnBtnOkClick(Sender);
-
-end;{ <- TgsDropWindow.DoOnChangePeriod }
-
-procedure TgsDropWindow.DoOnChildKeyPress(Sender: TObject; var Key: Char);
-var I,EndI,J: Integer;
-    isNextSelect: Boolean;
-    isForward: Boolean;
-    Delta: Integer;
-begin
-  { проверка куда двигаться назад или вперёд }
-  isForward:= GetKeyState(VK_SHIFT) >= 0;
-
-  with TWinControl(Sender) do begin
-  try
-    if Key = #9 then{табуляция}
-    begin
-      if isForward then begin
-        I := 0;
-        EndI := Parent.ControlCount - 1 + 1;
-        Delta := 1;
-      end else begin
-        I := Parent.ControlCount - 1;
-        EndI := 0 - 1;
-        Delta := -1;
-      end;
-
-      while (I<>EndI) do
-      begin
-        if Parent.Controls[I] = Sender then
-        begin
-          isNextSelect := false;{}
-
-          if Parent.Visible then
-          begin
-            J := I + Delta;
-            while (J<>EndI) do  begin
-              if (Parent.Controls[J] is TgsCustomListBox)
-                or (Parent.Controls[J] is TgsMonthCalendar) then
-              begin
-                TwinControl(Parent.Controls[J]).SetFocus;
-                isNextSelect := True;
-                break;
-              end;
-              J := J + Delta;
-            end;{ <- while}
-          end;
-
-          if not isNextSelect then
-            with TPageControl(Parent.Parent) do
-            begin
-              SelectNextPage(isForward)
-              {Обратный ход табуляции}
-              //if GetKeyState(VK_SHIFT) >= 0 then
-//              for J:=ActivePage.ControlCount - 1 downto 0 do
-//                if (ActivePage.Controls[J] is TgsCustomListBox)
-//                  or (ActivePage.Controls[J] is TgsMonthCalendar)
-//                then begin
-//                  TwinControl(ActivePage.Controls[J]).SetFocus;
-//                  break;
-//                end;
-
-            end;{ <- with TPageControl(Parent.Parent)}
-
-          break;
-        end; { <- for if}
-        I := I + Delta;
-      end;
-      Key:=#0;
-    end;{ <- if Key = #9 }
-    if not (Key in [#0,'0'..'9']) then begin
-      //TgsPeriodEdit(Owner.Owner).FTimer.Enabled := True;
-      TgsPeriodEdit(Owner.Owner).FMetaStr := TgsPeriodEdit(Owner.Owner).FMetaStr + Key;
-    end;
-    finally
-
-    end;
-  end;{ <- with}
-
-end;{ <- TgsDropWindow.DoOnChildKeyPress}
-
-procedure TgsDropWindow.DoOnPageChange(Sender: TObject);
-var
-  J: Integer;
-begin
-  with FPages do
-  begin
-    { первому элементу страницы с клавиатурным вводом даём фокус }
-    if Sender = FPages then
-      FPeriodEdit.PageIndex := FPages.ActivePageIndex
+    #32:
+     begin
+       FEdit.Text := Text + DateToStr(SysUtils.Now);
+     end
     else
-      FPages.ActivePageIndex := FPeriodEdit.PageIndex;
-
-    if FPages.ActivePageIndex = 1 then begin
-      AssignCalDate(FCal1);
-      AssignCalDate(FCal2);
-    end;
-
-    if Self.Visible then
-      for J:=0 to ActivePage.ControlCount - 1 do
-        if (ActivePage.Controls[J] is TgsCustomListBox)
-          or (ActivePage.Controls[J] is TgsMonthCalendar)
-        then begin
-          TWinControl(ActivePage.Controls[J]).SetFocus;
-          break;
-        end;
-  end;
-end;
-
-procedure TgsDropWindow.KeyPress(var Key: Char);
-begin
-   if not (Key in ['0'..'9']) then begin
-     //FPeriodEdit.FTimer.Enabled := True;
-     FPeriodEdit.FMetaStr := FPeriodEdit.FMetaStr + Key;
+    Key := #0;
    end;
+   FEdit.SetSelStart(Length(Text));
 
-   Key := #0;
-   inherited KeyPress(Key);
+
 end;
 
-procedure TgsDropWindow.CreateParams(var Params: TCreateParams);
+procedure TgsPeriodEdit.Change(Sender: TObject);   //ставит точки
 begin
-  inherited CreateParams(Params);
-  with Params do
-  begin
-    Style := WS_POPUP or WS_BORDER;
-    ExStyle := WS_EX_TOOLWINDOW;
-  end;
+  Text := FEdit.Text;
 end;
 
-constructor TgsDropWindow.Create(AOwner: TComponent);
+procedure TgsPeriodEdit.FOnExit(Sender: TObject);
+begin
+  if FEdit.Text <> '' then
+    DatePeriod.DecodeString(FEdit.Text);
+end;
+
+destructor TgsPeriodEdit.Destroy;
 var
-  J: Integer;
+ Reg: TRegistry;
+ Str: String;
+ I: Word;
+
 begin
-  inherited Create(AOwner);
+ //DatePeriod.DecodeString(Text);
+ FGUID :=StringToGuid('{741D1779-CE77-4843-808F-796DE1BCBB3E}');
+ // StringToGUID(CreateClassID());
+  Reg:= TRegistry.Create;
+  Reg.RootKey:= HKEY_CURRENT_USER;
+  Reg.OpenKey('\Software\Golden Software\Gedemin\Client\CurrentVersion\TgsCalendarEdit', false);
+  Str := Reg.ReadString(GUIDToString(FGUID));
+  I := 2;
+  if Str <> '' then
+    begin
+  While Str[I] <> '"' do
+   I := I + 1;
+  if (copy(Str,2,I - 2)) = DateToStr(SysUtils.Now) then
+      Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.Date) + '-' + DateToStr(DatePeriod.EndDate) + '"' + copy(Str,I + 1, Length(Str)))
+  else
+       Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.Date) + '-' + DateToStr(DatePeriod.EndDate) + '"' );
+     end
+  else
+    Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.Date) + '-' + DateToStr(DatePeriod.EndDate) + '"' );
+  Reg.Free;
+  DatePeriod.Free;
+  FPeriodWind.Free;
+  FEdit.Free;
+  FSpeedButton.Free;
+  inherited Destroy;
+end;
 
-  Color:=clBtnFace;
-  TabStop := False;
-  Visible := False;
-//- IsFirst := True;
-  FPeriodEdit := nil;
+procedure TgsPeriodEdit.MouseMove(Shift: TShiftState; X, Y: Integer);
+begin
+inherited MouseMove(Shift, X, Y);
+end;
 
-  FPages := TgsPageControl.Create(Self);
-  FPages.Parent := Self;
-  FPages.OnKeyDown := DoOnKeyDownDropWindow;
-  FPages.OnChange := DoOnPageChange;
-
-  FTabHistory := TTabSheet.Create(Self);
-  FTabHistory.Parent := Self;
-  FTabHistory.Caption := 'Что было';
-  FTabHistory.Align := alClient;
-  //^123^ FTabHistory.OnKeyDown := DoOnKeyDownDropWindow;
-
-  FTabCal := TTabSheet.Create(Self);
-  FTabCal.Parent := Self;
-  FTabCal.Caption := 'Выбор дат';
-  FTabCal.Align := alClient;
-
-  FTabDpz := TTabSheet.Create(Self);
-  FTabDpz.Parent := Self;
-  FTabDpz.Caption := 'Диапазоны';
-  FTabDpz.Align := alClient;
-
-  FTabHelp := TTabSheet.Create(Self);
-  FTabHelp.Parent := Self;
-  FTabHelp.Caption := 'Подсказка';
-  FTabHelp.Align := alClient;
-  //^123^ FTabHistory.OnKeyDown := DoOnKeyDownDropWindow;
+procedure TgsPeriodEdit.CMMouseLeave(var Message: TMessage);
+begin
+ if (Text <> '') then
+ begin
+  DatePeriod.DecodeString(Text);
+  DatePeriod.SetKind(3);
+ end;
+end;
 
 
-  lbHistory := TgsCustomListBox.Create(Self);
-  lbHistory.Parent := FTabHistory;
-  lbHistory.FLayout := 11;
+{ TgsPeriodShortCutEdit }
 
-  lbMeta := TgsCustomListBox.Create(Self);
-  lbMeta.Parent := FTabHelp;
-  lbMeta.FLayout := 12;
 
-  FCal1 := TgsMonthCalendar.Create(Self);
-  FCal1.Parent := FTabCal;
+constructor TgsPeriodShortCutEdit.Create(AnOwner: TComponent);
+begin
+  inherited;
+  FData := TgsDataPeriod.Create;
+  Data := false;
+  g := 0;
+end;
 
-  FCal2 := TgsMonthCalendar.Create(Self);
-  FCal2.Parent := FTabCal;
 
-//  lbDbg:= TListBox.Create(Self); //dbg
-//  lbDbg.Parent:= FTabCal;
-//  lbDbg.Left:=111; lbDbg.Top:=0; lbDbg.Width:=211;
-//  FBtDbg := TSpeedButton.Create(Self); //dbg
-//  FBtDbg.Parent := FTabDpz;
-//  FBtDbg.Caption := '12345';
-
-  lbYear := TgsListBox.Create(Self);
-  lbYear.Parent := FTabDpz;
-  lbYear.FLayout := 31;
-
-  FBtnUp := TSpeedButton.Create(Self);
-  FBtnUp.Parent := FTabDpz;
-  FBtnUp.OnClick := DoOnBtnUpClick;
-  FBtnUp.Caption := '';  FBtnUp.Flat := True;
-  FBtnUp.Glyph.LoadFromResourceName(hInstance, 'UPBTN');
-  FBtnUp.Enabled := false;
-
-  FBtnDn := TSpeedButton.Create(Self);
-  FBtnDn.Parent := FTabDpz;
-  FBtnDn.OnClick := DoOnBtnDnClick;
-  FBtnDn.Caption := '';  FBtnDn.Flat := True;
-  FBtnDn.Glyph.LoadFromResourceName(hInstance, 'DNBTN');
-
-  lbQuarter := TgsListBox.Create(Self);
-  lbQuarter.Parent := FTabDpz;
-  lbQuarter.Columns := 4;
-  lbQuarter.FLayout := 32;
-
-  lbMonth := TgsListBox.Create(Self);
-  lbMonth.Parent := FTabDpz;
-  lbMonth.FLayout := 33;
-
-  lbWeek := TgsListBox.Create(Self);
-  lbWeek.Parent := FTabDpz;
-  lbWeek.Columns := 5;
-  lbWeek.FLayout := 34;
-
-  FBtnOk := TSpeedButton.Create(Self);
-  FBtnOk.Parent := Self;
-  FBtnOk.Caption := 'Ok'; FBtnOk.Flat := True;
-  FBtnOk.OnClick := DoOnBtnOkClick;
-
-  FBtnCancel := TSpeedButton.Create(Self);
-  FBtnCancel.Parent := Self;
-  FBtnCancel.Caption := 'Cancel';  FBtnCancel.Flat := True;
-  FBtnCancel.OnClick := DoOnBtnCancelClick;
-  //FBtnCancel.Glyph.LoadFromResourceName(hInstance, 'CLOSEBTN');
-
-  for J:=0 to ComponentCount - 1 do
+procedure TgsPeriodShortCutEdit.KeyUp(var Key: Word; Shift: TShiftState);
+ var
+  s, SS: string;
+  num: Integer;
+begin
+ case Key of
+ 48..57,189, 191:
   begin
-    if (Components[J] is TgsCustomListBox) then begin
-      TgsCustomListBox(Components[J]).FPeriodEdit := FPeriodEdit;
-
-      TgsCustomListBox(Components[J]).OnClick := DoOnClickPeriod;
-      TgsCustomListBox(Components[J]).OnDblClick := DoOnDblClickPeriod;
-      TgsCustomListBox(Components[J]).OnKeyDown := DoOnKeyDownDropWindow;
-
-      TgsCustomListBox(Components[J]).OnKeyPress := DoOnChildKeyPress;
+    S:=trim(Text);
+    if key = 189 then
+      begin
+        FData.tir := 0;
+        g := Length(s);
+      end;
+    if g <> 0 then
+     begin
+     Num := Length(Copy(S,g + 1,Length(S)));
+     SS := Copy(S,g + 1, Length(s))
+     end   else
+     begin
+       Num := Length(Copy(S,g ,Length(S)));
+       SS := Copy(S,g + 1, Length(s))
+     end;
+    if FData.tir = 0 then
+    case Num of
+     1: if StrToInt(SS[1]) > 3 then
+        begin
+          Delete(S,Length(s),1);
+          Text := S;
+          SetSelStart(g + 1);
+        end ;
+     2: if  (StrToInt(SS[1]) = 3) and (StrToInt(SS[2]) > 1) then
+        begin
+          Delete(S,Length(s),1);
+          Text := S;
+          SetSelStart(g +1);
+        end  else
+        begin
+          Text := Text + '.';
+          SetSelStart(Length(Text));
+        end;
+       4: if StrToInt(SS[4]) > 1 then
+          begin
+             Delete(S,Length(s),1);
+             Text := S;
+             SetSelStart(Length(s));
+          end;
+        5: if (StrToInt(SS[4])= 1) and (StrToInt(SS[5]) > 2) then
+           begin
+              Delete(S,Length(s),1);
+              Text := S;
+              SetSelStart(Length(s));
+           end  else
+           begin
+             Text := Text + '.';
+             SetSelStart(Length(Text));
+           end;
+       end   else
+       case Num of
+       3: if StrToInt(SS[4]) > 1 then
+          begin
+           Delete(S,Length(s),1);
+           Text := S;
+           SetSelStart(Length(s));
+         end;
+        4: if (StrToInt(SS[4])= 1) and (StrToInt(SS[5]) > 2) then
+           begin
+              Delete(S,Length(s),1);
+              Text := S;
+              SetSelStart(Length(s));
+           end  else
+           begin
+             Text := Text + '.';
+             SetSelStart(Length(Text));
+           end;
+         end;
+       end;
     end;
-    if (Components[J] is TgsMonthCalendar) then begin
-      //!? FPeriodEdit
-      {$IFNDEF MCALENDAR}
-      TgsMonthCalendar(Components[J]).OnDateChange := DoOnDateChangeCalendar;
-      {$ENDIF}
-      TgsMonthCalendar(Components[J]).OnClick := DoOnClickCalendar;
-      TgsMonthCalendar(Components[J]).OnDblClick := DoOnDblClickCalendar;
-      TgsMonthCalendar(Components[J]).OnKeyDown := DoOnKeyDownDropWindow;
+end;
 
-      TgsMonthCalendar(Components[J]).OnKeyPress := DoOnChildKeyPress;
-    end;
+destructor TgsPeriodShortCutEdit.Destroy;
+begin
+  FData.Free;
+  inherited Destroy;
+end;
+
+
+ {TgsDatePeriod}
+
+constructor TgsDataPeriod.Create;
+begin
+  inherited;
+  tir := 0;
+  FMaxDate := 0;
+  FMinDate := 0;
+  Raz := false;
+end;
+
+procedure TgsDataPeriod.SetKind(const pr: Integer);
+begin
+ case pr of
+  1:  Kind:= dpkWeek;
+  2:  Kind:= dpkQuarter;
+  3:  Kind:= dpkFree;
   end;
+end;
+procedure TgsDataPeriod.ProcessShortCut(Var Key: char; Text: String);
+var
+ Year, Month, Day: Word;
+ YearN,YearL: Word;
+ Next, Last, Today,Result,s: String;
+begin
+   s := DateToStr(SysUtils.Now);
+   FDayWeek := DayOfWeek(StrToDate(s));
+ if FDayWeek = 1 then
+     FDayWeek := 7
+ else
+     FDayWeek := FDayWeek - 1;
+    DecodeDate(SysUtils.Now, Year, Month, Day);
+    YearN := Year;
+    YearL := Year;
+    Today := IntToStr(Month);
+    if StrToInt(Today) + 1 >12 then
+    begin
+     Next := '1';
+     YearN := Year + 1;
+    end  else
+    Next := IntToStr(StrToInt(Today)+ 1);
+    if  StrToInt(Today) - 1 = 0 then
+    begin
+     Last := '12';
+     YearL := Year - 1;
+    end
+    else
+     Last :=  IntToStr(StrToInt(Today) - 1);
+     if StrToInt(Next) < 10 then
+        Next :='0' + Next;
+     if StrToInt(Last) < 10 then
+        Last := '0' + Last;
+     if StrToInt(Today) < 10 then
+        Today := '0' + Today;
+   Kj := Kj + 1;
 
-  FSkipKillFocus := false;
-  FTimeKillFocus := now;
-end;  {<- TgsDropWindow.Create}
+ case Key of
+        '.':
+        begin
+         if (Length(Text) <= 1) or (Length(Text) >= 5) then
+          tir := 1
+         else
+           key := #0;
+          Result := Text;
+        end;
+     #32:
+        begin
+           Result := Text + DateToStr(SysUtils.Now);
+        end;
+     'З':                               
+        begin
+          key := #0;
+         if  Day + 1 <= LastData[Month] then
+           if Month < 10 then
+           Result := IntToStr(Day + 1) + '.' + '0' + IntToStr(Month) + '.' + IntTostr(Year)
+           else
+            Result :=IntToStr(Day + 1) + '.' + IntTostr(Month) + '.' + IntTostr(Year)
+         else
+            Result :='1' + '.' + Next + '.' + IntTostr(YearN);
+         Kj := 0;
+        end;
+         'В':
+        begin
+          key := #0;
+        if  Day - 1 > 0 then
+           Result := IntToStr(Day -1) + '.' + Today + '.' + IntTostr(Year)
+        else
+           Result := IntToStr(LastData[StrToInt(Last)]) + '.' + Last + '.' + IntTostr(YearL);
+         Kj := 0;
+        end;
+         'С':
+         begin
 
+         Key := #0;
+         if (Sp = 'К') and (Kj = 2) then
+         begin
+          Kind := dpkQuarter;
+          case Month + 3 of
+           4..6:
+            Result := '01.04.' + IntToStr(Year) + '-' + '30.06.' + IntToStr(Year);
+           7..9:
+           Result := '01.07.' + IntToStr(Year) + '-' + '30.09.' + IntToStr(Year);
+           10..12:
+          Result := '01.10.' + IntToStr(Year) + '-' + '31.12.' + IntToStr(Year);
+           13..15:
+            Result := '01.01.' + IntToStr(Year + 1) + '-' + '31.03.' + IntToStr(Year + 1);
+          end;
+          Kj := 0;
+         end;
+         if (Sp = 'Г') and (Kj = 2) then
+          begin
+          Result := IntToStr(Year + 1);
+           Kj := 0;
+           end else
+            if  Kj = 1 then
+            begin
+            Result := IntToStr(Day) + '.' + Today + '.' + IntToStr(Year);
+              Kj := 0;
+            end;
+         if (Sp = 'М') and (Kj = 2) then
+          begin
+         Result := Next + '.'  + IntToStr(YearN);
+          Kj := 0;
+         end;
+       if (Sp = 'Н') and (Kj = 2) then
+       begin
+       Kind := dpkWeek;
+         if ((Day +  FDayWeek + 6 )  <  LastData[Month]) and ((Day + 14 - FDayWeek)<=LastData[Month]) then
+         Result := IntToStr(Day + 8 - FDayWeek ) + '.'  + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day + 8 - FDayWeek + 6)  + '.'  + Today  + '.' + IntToStr(Year)
+         else
+           if  Day + FDayWeek + 6 > LastData[Month] then
+              if Day + 8 -  FDayWeek > LastData[Month] then
+               Result := IntToStr(Day + 8 -  FDayWeek - LastData[Month]) + '.'  + Next + '.' + IntToStr(YearN)+ '-' + IntToStr(Day + 8 -  FDayWeek - LastData[Month] + 6)  + '.' + Next + '.' + IntToStr(YearN)
+              else
+              Result := IntToStr(Day + 8 -  FDayWeek ) + '.'  + Next + '.' + IntToStr(YearN)+ '-' + IntToStr(Day + 8 -  FDayWeek - LastData[Month] + 6)  + '.' + Next + '.' + IntToStr(YearN)
+           else
+           Result := IntToStr(Day  -  FDayWeeK + 8) + '.'  + IntToStr(Month ) + '.' + IntToStr(Year)+ '-' + IntToStr(Day + 8 -  FDayWeek - LastData[Month] + 6)  + '.' + Next + '.' + IntToStr(YearN);
+              Kj := 0;
+        end;
+        end;
+        'П':
+          begin
+            key := #0;
+           if (Sp = 'К') and (Kj = 2) then
+           begin
+            Kind := dpkQuarter;
+            Case Month - 3 of
+              1..3:
+               Result := '01.01.' + IntToStr(Year) + '-' + '31.03.' + IntToStr(Year);
+              4..6:
+               Result := '01.04.' + IntToStr(Year) + '-' + '30.06.' + IntToStr(Year);
+              7..9:
+               Result := '01.07.' + IntToStr(Year) + '-' + '30.09.' + IntToStr(Year);
+              -2..0:
+              Result := '01.10.' + IntToStr(Year - 1) + '-' + '31.12.' + IntToStr(Year - 1);
+              end;
+              Kj := 0;
+            end;
+           if (Sp = 'М') and (Kj = 2) then
+           begin
+             if  Month - 10 <= 0 then
+          Result := '0' + IntToStr(Month - 1) + '.'  + IntToStr(Year)
+       else
+         Result :=IntToStr(Month - 1) + '.'  + IntToStr(Year);
+             Kj := 0;
+           end else
+           if (Sp = 'Г') and (Kj = 2) then
+           begin
+          Result := IntToStr(Year - 1);
+              Kj := 0;
+           end;
+           if (Sp = 'Н') and (Kj = 2) then
+           begin
+           Kind := dpkWeek;
+             if (Day - FDayWeek - 6 ) > 0 then
+           Result := IntToStr(Day - FDayWeek -6 ) + '.'  + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day - FDayWeek )  + '.'  + Today + '.' + IntToStr(Year)
+         else
+           if  Day - FDayWeek <= 0 then
+             Result := IntToStr(Day  -  FDayWeek + LastData[StrToInt(Last)] - 6) + '.'  + Last + '.' + IntToStr(YearL)+ '-' + IntToStr(Day  -  FDayWeek + LastData[Month - 1] )  + '.' + Last + '.' + IntToStr(YearL)
+           else
+              Result := IntToStr(Day  -  FDayWeek + LastData[StrToInt(Last)] - 6) + '.' + Last + '.' + IntToStr(Year - 1)+ '-' + IntToStr(Day -  FDayWeeK)  + '.' + Last + '.' + IntToStr(Year);
+              Kj := 0;
+            end;
+               end;
+            'Т':
+           begin
+             key := #0;
+            if (Sp = 'К') and (Kj = 2) then
+             begin
+              Kind := dpkQuarter;
+              case Month of
+              1..3:
+                Result := '01.01.' + IntToStr(Year) + '-' + '31.03.' + IntToStr(Year);
+              4..6:
+                Result := '01.04.' + IntToStr(Year) + '-' + '30.06.' + IntToStr(Year);
+              7..9:
+               Result := '01.07.' + IntToStr(Year) + '-' + '30.09.' + IntToStr(Year);
+              10..12:
+                Result := '01.10.' + IntToStr(Year) + '-' + '31.12.' + IntToStr(Year);
+             end;
+             Kj := 0;
+            end;
+            if (Sp = 'М') and (Kj = 2) then
+            begin
+              Result :=  Today + '.'  + IntToStr(Year);
+                Kj := 0;
+             end else
+             if (Sp = 'Г') and (Kj = 2) then
+             begin
+             Result := IntToStr(Year );
+                 Kj := 0;
+             end;
+            if (Sp = 'Н') and (Kj = 2) then
+            begin
+            Kind := dpkWeek;
+             if ((Day - FDayWeek + 1) > 0) and ((Day - FDayWeek + 7) < LastData[Month]) then
+               Result := IntToStr(Day  - FDayWeek + 1) + '.' + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day  -  FDayWeek +7 )  + '.'  + Today + '.' + IntToStr(Year)
+             else
+               if  (Day - FDayWeek + 1) <= 0 then
+               Result := IntToStr(Day  - FDayWeek + 1 + LastData[StrToInt(Last)]) + '.' + Last + '.' + IntToStr(Year - 1)+ '-' + IntToStr(Day -  FDayWeek +7 )  + '.'  + Today + '.' + IntToStr(Year)
+               else
+                if  (Day - FDayWeek + 7) > LastData[Month] then
+                Result := IntToStr(Day  - FDayWeek + 1) + '.'  + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day  -  FDayWeek +1 + 6 - LastData[Month] )  + '.' + Next + '.' + IntToStr(YearN)
+                else
+               Result := IntToStr(Day  - FDayWeek + 1) + '.'  + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day  -  FDayWeek +1 + 6  )  + '.' + Next + '.' + IntToStr(YearN);
+                 Kj := 0;
+            end
+            end  else
+            begin
+            if (Key <> 'М') and (Key <> 'Н') and (Key <> 'Г') and (Key <> 'К') then
+            begin
+             Kj := 0;
+             Sp :='\';
+            end 
+            else
+            if  Kj = 1 then
+             Sp := key
+            else
+             Kj := 0; 
+             key := #0;
+           end;
+        end;
+      if Kj > 2 then
+      begin
+        Kj := 0;
+        Sp := '\';
+      end;
+   if result <> '' then
+   begin
+   DecodeString(Result);
+   Raz := true;
+   end;     
+end;
+
+procedure TgsDataPeriod.Assign(const ASource: TgsDataPeriod);
+begin
+  Date := ASource.Date;
+  EndDate := ASource.Date;
+  FMaxDate := ASource.FMaxDate;
+  FMinDate := ASource.FMinDate;
+  Kind := ASource.Kind;
+end;
+
+function TgsDataPeriod.EncodeString: String;
+ var
+  Year, Month, Day: Word;
+begin
+ if Raz = true then
+ begin
+ Case Kind of
+  dpkYear:
+  begin
+   DecodeDate(Date,Year, Month, Day);
+    Result := IntToStr(Year);
+   end;
+  dpkWeek:
+  begin
+   Result :=DateToStr(Date) + '-' + DateToStr(EndDate);
+  end;
+  dpkQuarter:
+  begin
+   Result :=DateToStr(Date) + '-' + DateToStr(EndDate);
+  end;
+  dpkMonth:
+  begin
+   DecodeDate(Date,Year, Month, Day);
+   Result := IntToStr(Month) + '.' + IntToStr(Year); 
+  end;
+  dpkDay:
+  begin
+   Result := DateToStr(Date);
+  end;
+  end;
+   Raz := false;
+   end else
+  Result := '';
+end;
+
+procedure TgsDataPeriod.DecodeString(const AString: String);
+ var
+  ss: string;
+  Year, Month, Day, I: Word;
+begin
+  if AString = '' then
+     exit;
+   if StrPos (PChar(AString), '-') <> nil  then
+        begin
+        for I := 1 to Length(AString) do
+           if AString[I] = '-' then
+            begin
+            Date := StrToDate(ss);
+            ss := '';
+            end else
+              ss := ss+ AString[I];
+            EndDate := StrToDate(ss);
+         end
+        else
+        if StrPos (PChar(AString), '.') = nil then
+
+        begin
+          Date := StrToDate('01.01.' + AString);
+          EndDate := StrToDate('31.12.' + AString);
+          Kind := dpkYear;
+        end  else
+        if length(AString) <= 7   then
+        begin
+          Date := StrToDate('01.' + AString);
+          DecodeDate(Date,Year, Month, Day);
+          EndDate := StrToDate(IntToStr(LastData[Month]) + '.' + AString);
+          Kind := dpkMonth;
+        end  else
+        Begin
+          Date := StrToDate(AString);
+          EndDate := StrTodate(AString);
+          Kind := dpkDay;
+        end;
+      if (FMinDate <>FMaxDate) and ((FMinDate <> 0) or (FMaxDate <> 0)) then  
+         if (Date < FMinDate) or (EndDate > FMaxDate) then
+           Raise EgsDatePeriod.Create('превышен диапозон дат');
+end;
+
+procedure TgsDataPeriod.SetKindState(const Value: TgsDatePeriodKind);
+begin
+  Kind := Value;
+end;
 end.
-
-

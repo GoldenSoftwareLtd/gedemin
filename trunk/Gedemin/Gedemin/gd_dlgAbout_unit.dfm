@@ -1,11 +1,11 @@
 object gd_dlgAbout: Tgd_dlgAbout
-  Left = 433
-  Top = 244
+  Left = 424
+  Top = 167
   HelpContext = 119
   BorderStyle = bsDialog
   Caption = 'О программе'
-  ClientHeight = 353
-  ClientWidth = 487
+  ClientHeight = 382
+  ClientWidth = 564
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -17,16 +17,16 @@ object gd_dlgAbout: Tgd_dlgAbout
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object PageControl1: TPageControl
+  object pc: TPageControl
     Left = 8
     Top = 8
-    Width = 472
-    Height = 313
+    Width = 547
+    Height = 339
     ActivePage = TabSheet1
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'О программе'
-      object Label30: TLabel
+      object lblTitle: TLabel
         Left = 6
         Top = 2
         Width = 299
@@ -39,24 +39,20 @@ object gd_dlgAbout: Tgd_dlgAbout
         Font.Style = [fsBold]
         ParentFont = False
       end
-      object Memo1: TMemo
+      object mCredits: TMemo
         Left = 5
         Top = 30
-        Width = 452
-        Height = 247
+        Width = 527
+        Height = 275
         TabStop = False
         BorderStyle = bsNone
         Color = clBtnFace
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
-        Font.Height = -8
+        Font.Height = -9
         Font.Name = 'Tahoma'
         Font.Style = []
         Lines.Strings = (
-          
-            'Copyright (c) 1994-2010 by Golden Software of Belarus, Ltd. All ' +
-            'rights reserved.'
-          ''
           'http://gsbelarus.com, email: support@gsbelarus.com'
           ''
           'Компания Golden Software, Ltd:'
@@ -115,8 +111,8 @@ object gd_dlgAbout: Tgd_dlgAbout
         TabOrder = 0
       end
       object btnMSInfo: TButton
-        Left = 380
-        Top = 256
+        Left = 457
+        Top = 284
         Width = 75
         Height = 21
         Caption = 'О Системе...'
@@ -124,658 +120,375 @@ object gd_dlgAbout: Tgd_dlgAbout
         OnClick = btnMSInfoClick
       end
     end
-    object TabSheet2: TTabSheet
-      Caption = 'Файлы'
-      ImageIndex = 1
-      object gbGDS32: TGroupBox
-        Left = 8
-        Top = 8
-        Width = 446
-        Height = 65
-        Caption = ' Библиотека GDS32 '
-        TabOrder = 0
-        object Label2: TLabel
-          Left = 11
-          Top = 17
-          Width = 77
-          Height = 13
-          Caption = 'Расположение:'
-        end
-        object lGDS32FileName: TLabel
-          Left = 136
-          Top = 17
-          Width = 77
-          Height = 13
-          Caption = 'lGDS32FileName'
-        end
-        object lGDS32Version: TLabel
-          Left = 136
-          Top = 31
-          Width = 69
-          Height = 13
-          Caption = 'lGDS32Version'
-        end
-        object lGDS32FileDescription: TLabel
-          Left = 136
-          Top = 45
-          Width = 87
-          Height = 13
-          Caption = 'lGDS32Description'
-        end
-        object Label3: TLabel
-          Left = 11
-          Top = 31
-          Width = 39
-          Height = 13
-          Caption = 'Версия:'
-        end
-        object Label4: TLabel
-          Left = 11
-          Top = 45
-          Width = 88
-          Height = 13
-          Caption = 'Описание файла:'
-        end
-      end
-      object GroupBox2: TGroupBox
-        Left = 8
-        Top = 74
-        Width = 446
-        Height = 144
-        Caption = ' Сервер '
+    object TabSheet4: TTabSheet
+      Caption = 'Параметры системы'
+      ImageIndex = 6
+      object btnCopy: TButton
+        Left = 404
+        Top = 286
+        Width = 129
+        Height = 21
+        Caption = 'Копировать в буфер'
         TabOrder = 1
-        object lServerVersion: TLabel
-          Left = 136
-          Top = 15
-          Width = 69
-          Height = 13
-          Caption = 'lServerVersion'
-        end
-        object lDBSiteName: TLabel
-          Left = 136
-          Top = 46
-          Width = 60
-          Height = 13
-          Caption = 'lDBSiteName'
-        end
-        object lODSVersion: TLabel
-          Left = 136
-          Top = 61
-          Width = 58
-          Height = 13
-          Caption = 'lODSVersion'
-        end
-        object lPageSize: TLabel
-          Left = 136
-          Top = 77
-          Width = 45
-          Height = 13
-          Caption = 'lPageSize'
-        end
-        object lForcedWrites: TLabel
-          Left = 136
-          Top = 92
-          Width = 66
-          Height = 13
-          Caption = 'lForcedWrites'
-        end
-        object lNumBuffers: TLabel
-          Left = 136
-          Top = 108
-          Width = 58
-          Height = 13
-          Caption = 'lNumBuffers'
-        end
-        object lCurrentMemory: TLabel
-          Left = 136
-          Top = 123
-          Width = 77
-          Height = 13
-          Caption = 'lCurrentMemory'
-        end
-        object Label1: TLabel
-          Left = 11
-          Top = 15
-          Width = 83
-          Height = 13
-          Caption = 'Версия сервера:'
-        end
-        object Label5: TLabel
-          Left = 11
-          Top = 30
-          Width = 75
-          Height = 13
-          Caption = 'Имя файла БД:'
-        end
-        object Label6: TLabel
-          Left = 11
-          Top = 46
-          Width = 89
-          Height = 13
-          Caption = 'Имя компьютера:'
-        end
-        object Label7: TLabel
-          Left = 11
-          Top = 61
-          Width = 63
-          Height = 13
-          Caption = 'ODS версия:'
-        end
-        object Label8: TLabel
-          Left = 11
-          Top = 77
-          Width = 91
-          Height = 13
-          Caption = 'Размер страницы:'
-        end
-        object Label9: TLabel
-          Left = 11
-          Top = 92
-          Width = 114
-          Height = 13
-          Caption = 'Принудительная зап.:'
-        end
-        object Label10: TLabel
-          Left = 11
-          Top = 108
-          Width = 111
-          Height = 13
-          Caption = 'Количество буферов:'
-        end
-        object Label11: TLabel
-          Left = 11
-          Top = 123
-          Width = 114
-          Height = 13
-          Caption = 'Используемая память:'
-        end
-        object eDBFileName: TEdit
-          Left = 136
-          Top = 30
-          Width = 305
-          Height = 15
-          BorderStyle = bsNone
-          Ctl3D = False
-          ParentColor = True
-          ParentCtl3D = False
-          ReadOnly = True
-          TabOrder = 0
-          Text = 'eDBFileName'
-        end
+        OnClick = btnCopyClick
       end
-      object GroupBox3: TGroupBox
-        Left = 8
-        Top = 219
-        Width = 446
-        Height = 62
-        Caption = ' Гедымин '
-        TabOrder = 2
-        object lGedeminFile: TLabel
-          Left = 136
-          Top = 16
-          Width = 59
-          Height = 13
-          Caption = 'lGedeminFile'
-        end
-        object lGedeminPath: TLabel
-          Left = 136
-          Top = 30
-          Width = 65
-          Height = 13
-          Caption = 'lGedeminPath'
-        end
-        object lGedeminVersion: TLabel
-          Left = 136
-          Top = 44
-          Width = 78
-          Height = 13
-          Caption = 'lGedeminVersion'
-        end
-        object Label12: TLabel
-          Left = 11
-          Top = 16
-          Width = 58
-          Height = 13
-          Caption = 'Имя файла:'
-        end
-        object Label13: TLabel
-          Left = 11
-          Top = 30
-          Width = 77
-          Height = 13
-          Caption = 'Расположение:'
-        end
-        object Label14: TLabel
-          Left = 11
-          Top = 44
-          Width = 74
-          Height = 13
-          Caption = 'Версия файла:'
-        end
-      end
-    end
-    object TabSheet3: TTabSheet
-      Caption = 'Переменные среды'
-      ImageIndex = 2
-      object GroupBox4: TGroupBox
-        Left = 8
-        Top = 8
-        Width = 446
-        Height = 273
-        Caption = ' Переменные среды '
+      object mSysData: TSynEdit
+        Left = 3
+        Top = 3
+        Width = 532
+        Height = 277
+        Cursor = crIBeam
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -12
+        Font.Name = 'Courier New'
+        Font.Style = []
+        ParentColor = False
+        ParentFont = False
         TabOrder = 0
-        object lISC_USER: TLabel
-          Left = 114
-          Top = 16
-          Width = 51
-          Height = 13
-          Caption = 'lISC_USER'
-        end
-        object lISC_PASSWORD: TLabel
-          Left = 114
-          Top = 32
-          Width = 82
-          Height = 13
-          Caption = 'lISC_PASSWORD'
-        end
-        object lISC_PATH: TLabel
-          Left = 114
-          Top = 48
-          Width = 51
-          Height = 13
-          Caption = 'lISC_PATH'
-        end
-        object lTemp: TLabel
-          Left = 114
-          Top = 64
-          Width = 28
-          Height = 13
-          Caption = 'lTemp'
-        end
-        object lTmp: TLabel
-          Left = 114
-          Top = 80
-          Width = 22
-          Height = 13
-          Caption = 'lTmp'
-        end
-        object Label15: TLabel
-          Left = 10
-          Top = 16
-          Width = 53
-          Height = 13
-          Caption = 'ISC_USER:'
-        end
-        object Label16: TLabel
-          Left = 10
-          Top = 32
-          Width = 84
-          Height = 13
-          Caption = 'ISC_PASSWORD:'
-        end
-        object Label17: TLabel
-          Left = 10
-          Top = 48
-          Width = 53
-          Height = 13
-          Caption = 'ISC_PATH:'
-        end
-        object Label18: TLabel
-          Left = 10
-          Top = 64
-          Width = 30
-          Height = 13
-          Caption = 'TEMP:'
-        end
-        object Label19: TLabel
-          Left = 10
-          Top = 80
-          Width = 24
-          Height = 13
-          Caption = 'TMP:'
-        end
-        object Label20: TLabel
-          Left = 10
-          Top = 96
-          Width = 30
-          Height = 13
-          Caption = 'PATH:'
-        end
-        object mPath: TMemo
-          Left = 111
-          Top = 96
-          Width = 322
-          Height = 169
-          TabStop = False
-          BorderStyle = bsNone
-          Color = clBtnFace
-          Lines.Strings = (
-            'mPath')
-          ReadOnly = True
-          TabOrder = 0
-        end
-      end
-    end
-    object tsLogin: TTabSheet
-      Caption = 'Подключение'
-      ImageIndex = 3
-      object GroupBox6: TGroupBox
-        Left = 8
-        Top = 8
-        Width = 446
-        Height = 129
-        Caption = ' Пользователь '
-        TabOrder = 0
-        object Label25: TLabel
-          Left = 11
-          Top = 61
-          Width = 101
-          Height = 13
-          Caption = 'ИД учетной записи:'
-        end
-        object Label26: TLabel
-          Left = 11
-          Top = 46
-          Width = 92
-          Height = 13
-          Caption = 'Пользователь ИБ:'
-        end
-        object Label27: TLabel
-          Left = 11
-          Top = 30
-          Width = 47
-          Height = 13
-          Caption = 'Контакт:'
-        end
-        object Label28: TLabel
-          Left = 11
-          Top = 15
-          Width = 84
-          Height = 13
-          Caption = 'Учетная запись:'
-        end
-        object lUser: TLabel
-          Left = 136
-          Top = 15
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-        object lContact: TLabel
-          Left = 136
-          Top = 30
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-        object lIBUser: TLabel
-          Left = 136
-          Top = 46
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-        object lUserKey: TLabel
-          Left = 136
-          Top = 61
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-        object Label33: TLabel
-          Left = 11
-          Top = 77
-          Width = 70
-          Height = 13
-          Caption = 'ИД контакта:'
-        end
-        object lContactKey: TLabel
-          Left = 136
-          Top = 77
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-        object Label29: TLabel
-          Left = 11
-          Top = 93
-          Width = 39
-          Height = 13
-          Caption = 'Сессия:'
-        end
-        object lSession: TLabel
-          Left = 136
-          Top = 93
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-        object Label31: TLabel
-          Left = 11
-          Top = 109
-          Width = 110
-          Height = 13
-          Caption = 'Дата и время подкл.:'
-        end
-        object lDateAndTime: TLabel
-          Left = 136
-          Top = 109
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-      end
-      object GroupBox7: TGroupBox
-        Left = 8
-        Top = 141
-        Width = 446
-        Height = 41
-        Caption = ' Командная строка '
-        TabOrder = 1
-        object Label34: TEdit
-          Left = 8
-          Top = 14
-          Width = 433
-          Height = 21
-          BorderStyle = bsNone
-          Color = clBtnFace
-          ReadOnly = True
-          TabOrder = 0
-        end
-      end
-    end
-    object tsDB: TTabSheet
-      Caption = 'База данных'
-      ImageIndex = 4
-      object GroupBox5: TGroupBox
-        Left = 8
-        Top = 1
-        Width = 446
-        Height = 81
-        Caption = ' Файл базы данных '
-        TabOrder = 0
-        object Label21: TLabel
-          Left = 11
-          Top = 15
-          Width = 91
-          Height = 13
-          Caption = 'Версия файла БД:'
-        end
-        object Label22: TLabel
-          Left = 11
-          Top = 30
-          Width = 71
-          Height = 13
-          Caption = 'ИД файла БД:'
-        end
-        object Label23: TLabel
-          Left = 11
-          Top = 46
-          Width = 85
-          Height = 13
-          Caption = 'Дата релиза БД:'
-        end
-        object Label24: TLabel
-          Left = 11
-          Top = 61
-          Width = 71
-          Height = 13
-          Caption = 'Комментарий:'
-        end
-        object lDBComment: TLabel
-          Left = 136
-          Top = 61
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-        object lDBRelease: TLabel
-          Left = 136
-          Top = 46
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-        object lDBID: TLabel
-          Left = 136
-          Top = 30
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-        object lDBVersion: TLabel
-          Left = 136
-          Top = 15
-          Width = 2
-          Height = 13
-          Caption = 'l'
-        end
-      end
-      object GroupBox8: TGroupBox
-        Left = 8
-        Top = 82
-        Width = 446
-        Height = 79
-        Caption = ' Параметры подключения  '
-        TabOrder = 1
-        object mDBParams: TMemo
-          Left = 9
-          Top = 15
-          Width = 427
-          Height = 55
-          TabStop = False
-          ReadOnly = True
-          TabOrder = 0
-        end
-      end
-      object gbTrace: TGroupBox
-        Left = 8
-        Top = 161
-        Width = 446
-        Height = 59
-        Caption = ' Параметры трассировки подключения к БД '
-        TabOrder = 2
-        object mTrace: TMemo
-          Left = 9
-          Top = 16
-          Width = 427
-          Height = 35
-          TabStop = False
-          ReadOnly = True
-          TabOrder = 0
-        end
-      end
-      object GroupBox9: TGroupBox
-        Left = 8
-        Top = 221
-        Width = 446
-        Height = 60
-        Caption = ' Параметры трассировки SQL монитора '
-        TabOrder = 3
-        object mSQLMonitor: TMemo
-          Left = 9
-          Top = 16
-          Width = 427
-          Height = 35
-          TabStop = False
-          ReadOnly = True
-          TabOrder = 0
-        end
-      end
-    end
-    object tsTempFiles: TTabSheet
-      Caption = 'Врем. файлы'
-      ImageIndex = 5
-      object lblTempPath: TLabel
-        Left = 9
-        Top = 8
-        Width = 35
-        Height = 13
-        Caption = 'Папка:'
-      end
-      object lvTempFiles: TListView
-        Left = 7
-        Top = 32
-        Width = 449
-        Height = 113
-        Columns = <
+        Gutter.Font.Charset = DEFAULT_CHARSET
+        Gutter.Font.Color = clWindowText
+        Gutter.Font.Height = -11
+        Gutter.Font.Name = 'Terminal'
+        Gutter.Font.Style = []
+        Gutter.Visible = False
+        Highlighter = SynIniSyn
+        Keystrokes = <
           item
-            Caption = 'Имя'
-            Width = 280
+            Command = ecUp
+            ShortCut = 38
           end
           item
-            Alignment = taRightJustify
-            AutoSize = True
-            Caption = 'Размер, байт'
+            Command = ecSelUp
+            ShortCut = 8230
+          end
+          item
+            Command = ecScrollUp
+            ShortCut = 16422
+          end
+          item
+            Command = ecDown
+            ShortCut = 40
+          end
+          item
+            Command = ecSelDown
+            ShortCut = 8232
+          end
+          item
+            Command = ecScrollDown
+            ShortCut = 16424
+          end
+          item
+            Command = ecLeft
+            ShortCut = 37
+          end
+          item
+            Command = ecSelLeft
+            ShortCut = 8229
+          end
+          item
+            Command = ecWordLeft
+            ShortCut = 16421
+          end
+          item
+            Command = ecSelWordLeft
+            ShortCut = 24613
+          end
+          item
+            Command = ecRight
+            ShortCut = 39
+          end
+          item
+            Command = ecSelRight
+            ShortCut = 8231
+          end
+          item
+            Command = ecWordRight
+            ShortCut = 16423
+          end
+          item
+            Command = ecSelWordRight
+            ShortCut = 24615
+          end
+          item
+            Command = ecPageDown
+            ShortCut = 34
+          end
+          item
+            Command = ecSelPageDown
+            ShortCut = 8226
+          end
+          item
+            Command = ecPageBottom
+            ShortCut = 16418
+          end
+          item
+            Command = ecSelPageBottom
+            ShortCut = 24610
+          end
+          item
+            Command = ecPageUp
+            ShortCut = 33
+          end
+          item
+            Command = ecSelPageUp
+            ShortCut = 8225
+          end
+          item
+            Command = ecPageTop
+            ShortCut = 16417
+          end
+          item
+            Command = ecSelPageTop
+            ShortCut = 24609
+          end
+          item
+            Command = ecLineStart
+            ShortCut = 36
+          end
+          item
+            Command = ecSelLineStart
+            ShortCut = 8228
+          end
+          item
+            Command = ecEditorTop
+            ShortCut = 16420
+          end
+          item
+            Command = ecSelEditorTop
+            ShortCut = 24612
+          end
+          item
+            Command = ecLineEnd
+            ShortCut = 35
+          end
+          item
+            Command = ecSelLineEnd
+            ShortCut = 8227
+          end
+          item
+            Command = ecEditorBottom
+            ShortCut = 16419
+          end
+          item
+            Command = ecSelEditorBottom
+            ShortCut = 24611
+          end
+          item
+            Command = ecToggleMode
+            ShortCut = 45
+          end
+          item
+            Command = ecCopy
+            ShortCut = 16429
+          end
+          item
+            Command = ecCut
+            ShortCut = 8238
+          end
+          item
+            Command = ecPaste
+            ShortCut = 8237
+          end
+          item
+            Command = ecDeleteChar
+            ShortCut = 46
+          end
+          item
+            Command = ecDeleteLastChar
+            ShortCut = 8
+          end
+          item
+            Command = ecDeleteLastChar
+            ShortCut = 8200
+          end
+          item
+            Command = ecDeleteLastWord
+            ShortCut = 16392
+          end
+          item
+            Command = ecUndo
+            ShortCut = 32776
+          end
+          item
+            Command = ecRedo
+            ShortCut = 40968
+          end
+          item
+            Command = ecLineBreak
+            ShortCut = 13
+          end
+          item
+            Command = ecLineBreak
+            ShortCut = 8205
+          end
+          item
+            Command = ecTab
+            ShortCut = 9
+          end
+          item
+            Command = ecShiftTab
+            ShortCut = 8201
+          end
+          item
+            Command = ecContextHelp
+            ShortCut = 16496
+          end
+          item
+            Command = ecSelectAll
+            ShortCut = 16449
+          end
+          item
+            Command = ecCopy
+            ShortCut = 16451
+          end
+          item
+            Command = ecPaste
+            ShortCut = 16470
+          end
+          item
+            Command = ecCut
+            ShortCut = 16472
+          end
+          item
+            Command = ecBlockIndent
+            ShortCut = 24649
+          end
+          item
+            Command = ecBlockUnindent
+            ShortCut = 24661
+          end
+          item
+            Command = ecLineBreak
+            ShortCut = 16461
+          end
+          item
+            Command = ecInsertLine
+            ShortCut = 16462
+          end
+          item
+            Command = ecDeleteWord
+            ShortCut = 16468
+          end
+          item
+            Command = ecDeleteLine
+            ShortCut = 16473
+          end
+          item
+            Command = ecDeleteEOL
+            ShortCut = 24665
+          end
+          item
+            Command = ecUndo
+            ShortCut = 16474
+          end
+          item
+            Command = ecRedo
+            ShortCut = 24666
+          end
+          item
+            Command = ecGotoMarker0
+            ShortCut = 16432
+          end
+          item
+            Command = ecGotoMarker1
+            ShortCut = 16433
+          end
+          item
+            Command = ecGotoMarker2
+            ShortCut = 16434
+          end
+          item
+            Command = ecGotoMarker3
+            ShortCut = 16435
+          end
+          item
+            Command = ecGotoMarker4
+            ShortCut = 16436
+          end
+          item
+            Command = ecGotoMarker5
+            ShortCut = 16437
+          end
+          item
+            Command = ecGotoMarker6
+            ShortCut = 16438
+          end
+          item
+            Command = ecGotoMarker7
+            ShortCut = 16439
+          end
+          item
+            Command = ecGotoMarker8
+            ShortCut = 16440
+          end
+          item
+            Command = ecGotoMarker9
+            ShortCut = 16441
+          end
+          item
+            Command = ecSetMarker0
+            ShortCut = 24624
+          end
+          item
+            Command = ecSetMarker1
+            ShortCut = 24625
+          end
+          item
+            Command = ecSetMarker2
+            ShortCut = 24626
+          end
+          item
+            Command = ecSetMarker3
+            ShortCut = 24627
+          end
+          item
+            Command = ecSetMarker4
+            ShortCut = 24628
+          end
+          item
+            Command = ecSetMarker5
+            ShortCut = 24629
+          end
+          item
+            Command = ecSetMarker6
+            ShortCut = 24630
+          end
+          item
+            Command = ecSetMarker7
+            ShortCut = 24631
+          end
+          item
+            Command = ecSetMarker8
+            ShortCut = 24632
+          end
+          item
+            Command = ecSetMarker9
+            ShortCut = 24633
+          end
+          item
+            Command = ecNormalSelect
+            ShortCut = 24654
+          end
+          item
+            Command = ecColumnSelect
+            ShortCut = 24643
+          end
+          item
+            Command = ecLineSelect
+            ShortCut = 24652
+          end
+          item
+            Command = ecMatchBracket
+            ShortCut = 24642
           end>
-        GridLines = True
         ReadOnly = True
-        RowSelect = True
-        TabOrder = 0
-        ViewStyle = vsReport
-      end
-      object edTempPath: TEdit
-        Left = 48
-        Top = 4
-        Width = 408
-        Height = 21
-        Color = clBtnFace
-        ReadOnly = True
-        TabOrder = 2
-        Text = 'edTempPath'
-      end
-      object mTempFiles: TMemo
-        Left = 7
-        Top = 152
-        Width = 449
-        Height = 124
-        Color = clBtnFace
-        Lines.Strings = (
-          
-            'Временные файлы используются для кэширования информации из базы ' +
-            'данных и'
-          'ускорения запуска программы.'
-          ''
-          
-            'Для удаления временных файлов вручную: закройте Гедымин, перейди' +
-            'те в'
-          'указанную папку, удалите файлы по списку.'
-          ''
-          
-            'Запретить создание временных файлов можно с помощью параметра ко' +
-            'мандной'
-          'строки /nc.'
-          ' '
-          ' '
-          ' ')
-        ReadOnly = True
-        TabOrder = 1
       end
     end
   end
   object btnOk: TButton
-    Left = 405
-    Top = 328
+    Left = 480
+    Top = 354
     Width = 75
     Height = 21
     Caption = 'Ok'
@@ -785,15 +498,24 @@ object gd_dlgAbout: Tgd_dlgAbout
   end
   object btnHelp: TButton
     Left = 8
-    Top = 328
+    Top = 354
     Width = 75
     Height = 21
     Caption = 'Справка'
     TabOrder = 2
+    Visible = False
     OnClick = btnHelpClick
   end
   object IBDatabaseInfo1: TIBDatabaseInfo
     Left = 328
     Top = 56
+  end
+  object SynIniSyn: TSynIniSyn
+    DefaultFilter = 'INI Files (*.ini)|*.ini'
+    CommentAttri.Style = []
+    SectionAttri.Foreground = clNavy
+    SectionAttri.Style = []
+    Left = 312
+    Top = 112
   end
 end

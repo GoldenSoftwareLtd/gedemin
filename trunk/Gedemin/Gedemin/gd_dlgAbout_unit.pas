@@ -1,113 +1,42 @@
+
 unit gd_dlgAbout_unit;
 
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, IBDatabaseInfo, ComCtrls, Mask, DBCtrls;
+  StdCtrls, IBDatabaseInfo, ComCtrls, Mask, DBCtrls,Registry,WinSock,
+  SynEdit, SynEditHighlighter, SynHighlighterIni;
 
 type
   Tgd_dlgAbout = class(TForm)
     IBDatabaseInfo1: TIBDatabaseInfo;
-    PageControl1: TPageControl;
+    pc: TPageControl;
     TabSheet1: TTabSheet;
-    TabSheet2: TTabSheet;
-    gbGDS32: TGroupBox;
-    Label2: TLabel;
-    lGDS32FileName: TLabel;
-    lGDS32Version: TLabel;
-    lGDS32FileDescription: TLabel;
-    Label3: TLabel;
-    Label4: TLabel;
     btnOk: TButton;
-    GroupBox2: TGroupBox;
-    lServerVersion: TLabel;
-    lDBSiteName: TLabel;
-    lODSVersion: TLabel;
-    lPageSize: TLabel;
-    lForcedWrites: TLabel;
-    lNumBuffers: TLabel;
-    lCurrentMemory: TLabel;
-    GroupBox3: TGroupBox;
-    lGedeminFile: TLabel;
-    lGedeminPath: TLabel;
-    lGedeminVersion: TLabel;
-    Label1: TLabel;
-    Label5: TLabel;
-    Label6: TLabel;
-    Label7: TLabel;
-    Label8: TLabel;
-    Label9: TLabel;
-    Label10: TLabel;
-    Label11: TLabel;
-    Label12: TLabel;
-    Label13: TLabel;
-    Label14: TLabel;
-    Memo1: TMemo;
-    TabSheet3: TTabSheet;
-    GroupBox4: TGroupBox;
-    lISC_USER: TLabel;
-    lISC_PASSWORD: TLabel;
-    lISC_PATH: TLabel;
-    lTemp: TLabel;
-    lTmp: TLabel;
-    Label15: TLabel;
-    Label16: TLabel;
-    Label17: TLabel;
-    Label18: TLabel;
-    Label19: TLabel;
-    Label20: TLabel;
-    mPath: TMemo;
-    eDBFileName: TEdit;
-    tsLogin: TTabSheet;
-    GroupBox6: TGroupBox;
-    Label25: TLabel;
-    Label26: TLabel;
-    Label27: TLabel;
-    Label28: TLabel;
-    lUser: TLabel;
-    lContact: TLabel;
-    lIBUser: TLabel;
-    lUserKey: TLabel;
-    Label33: TLabel;
-    lContactKey: TLabel;
+    mCredits: TMemo;
     btnHelp: TButton;
-    GroupBox7: TGroupBox;
-    Label29: TLabel;
-    lSession: TLabel;
-    Label31: TLabel;
-    lDateAndTime: TLabel;
-    tsDB: TTabSheet;
-    GroupBox5: TGroupBox;
-    Label21: TLabel;
-    Label22: TLabel;
-    Label23: TLabel;
-    Label24: TLabel;
-    lDBComment: TLabel;
-    lDBRelease: TLabel;
-    lDBID: TLabel;
-    lDBVersion: TLabel;
-    GroupBox8: TGroupBox;
-    mDBParams: TMemo;
     btnMSInfo: TButton;
-    Label34: TEdit;
-    Label30: TLabel;
-    gbTrace: TGroupBox;
-    mTrace: TMemo;
-    GroupBox9: TGroupBox;
-    mSQLMonitor: TMemo;
-    tsTempFiles: TTabSheet;
-    lvTempFiles: TListView;
-    lblTempPath: TLabel;
-    edTempPath: TEdit;
-    mTempFiles: TMemo;
+    lblTitle: TLabel;
+    TabSheet4: TTabSheet;
+    btnCopy: TButton;
+    SynIniSyn: TSynIniSyn;
+    mSysData: TSynEdit;
     procedure FormCreate(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure btnMSInfoClick(Sender: TObject);
+    procedure btnCopyClick(Sender: TObject);
+
   private
     procedure FillTempFiles;
+    procedure AddSection(const S: String);
+    procedure AddSpaces(const Name, Value: String);
+    procedure AddLibrary(h: HMODULE; const AName: String);
+    procedure AddEnv(const AName: String);
+    procedure AddBoolean(const AName: String; const AValue: Boolean);
+
   public
-    { Public declarations }
+    procedure FillSysData;
   end;
 
 var
@@ -119,141 +48,86 @@ implementation
 
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
-  IBSQLMonitor_Gedemin;
+  IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
+  {$IFDEF FR4}frxClass,{$ENDIF} ZLIB;
+
+function GetDiskSizeAvail(TheDrive: PChar; var Total: Integer; var Free: Integer): Boolean;
+var
+  lpSectorsPerCluster, lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters: DWORD;
+begin
+  Result := GetDiskFreeSpace(TheDrive, lpSectorsPerCluster, lpBytesPerSector,
+    lpNumberOfFreeClusters, lpTotalNumberOfClusters);
+
+  if Result then
+  begin
+    Total := MulDiv(lpTotalNumberOfClusters, lpSectorsPerCluster * lpBytesPerSector, 1024 * 1024);
+    Free := MulDiv(lpNumberOfFreeClusters, lpSectorsPerCluster * lpBytesPerSector, 1024 * 1024);
+  end;
+end;
+
+function HostToIP(sHost: String): String;
+var
+  pcAddr: PChar;
+  HostEnt: PHostEnt;
+  wsData: TWSAData;
+  P: Integer;
+begin
+  Result := '127.0.0.1';
+
+  P := Pos('/', sHost);
+  if P > 0 then
+    SetLength(sHost, P - 1);
+
+  if sHost = '' then
+    exit;
+
+  WSAStartup($0101, wsData);
+  try
+    HostEnt := GetHostByName(PChar(sHost));
+    if Assigned(HostEnt) and Assigned(HostEnt^.H_Addr_List)
+      and Assigned(HostEnt^.H_Addr_List^) then
+    begin
+      pcAddr := HostEnt^.H_Addr_List^;
+      Result := Format('%d.%d.%d.%d', [Byte(pcAddr[0]), Byte(pcAddr[1]),
+        Byte(pcAddr[2]), Byte(pcAddr[3])]);
+    end;
+  finally
+    WSACleanup;
+  end;
+end;
+
+function GetRAM: string;
+var
+  Info: TMemoryStatus;
+begin
+  Info.dwLength := SizeOf(TMemoryStatus);
+  GlobalMemoryStatus(Info);
+  Result := FormatFloat('#,##0', Info.dwTotalPhys div 1024 div 1024) + ' Мб';
+end;
+
+function GetOS: String;
+var
+  Reg: TRegistry;
+begin
+  Reg := TRegistry.Create(KEY_READ);
+  try
+    Reg.RootKey := HKEY_LOCAL_MACHINE;
+    if Reg.OpenKey('SOFTWARE\Microsoft\Windows NT\CurrentVersion', False)
+      and Reg.ValueExists('ProductName') then
+    begin
+      Result := Reg.ReadString('ProductName');
+      if Reg.ValueExists('CSDVersion') then
+        Result := Result + ', ' + Reg.ReadString('CSDVersion');
+    end else
+      Result := 'неизвестно';
+  finally
+    Reg.Free;
+  end;
+end;
 
 procedure Tgd_dlgAbout.FormCreate(Sender: TObject);
-var
-  Ch: array[0..2048] of Char;
-  T: TTraceFlag;
-  S: String;
 begin
-  GetModuleFileName(GetIBLibraryHandle, Ch, SizeOf(Ch));
-  gbGDS32.Caption := ' ' + ExtractFileName(Ch) + ' ';
-  lGDS32FileName.Caption := Ch;
-  if VersionResourceAvailable(Ch) then
-    with TjclFileVersionInfo.Create(Ch) do
-    try
-      lGDS32Version.Caption := BinFileVersion;
-      lGDS32FileDescription.Caption := FileDescription;
-    finally
-      Free;
-    end;
-
-  if Assigned(IBLogin) and IBLogin.LoggedIn then
-  with TIBDatabaseInfo.Create(nil) do
-  try
-    Database := IBLogin.Database;
-    lServerVersion.Caption := Version;
-    eDBFileName.Text := DBFileName;
-    if IBLogin.ServerName > '' then
-      lDBSiteName.Caption := IBLogin.ServerName + ' (' + DBSiteName + ')'
-    else
-      lDBSiteName.Caption := '<встроенный сервер>';
-    lODSVersion.Caption := IntToStr(ODSMajorVersion) + '.' +
-      IntToStr(ODSMinorVersion);
-    lPageSize.Caption := IntToStr(PageSize);
-    if Boolean(ForcedWrites) then
-      lForcedWrites.Caption := 'включена'
-    else
-      lForcedWrites.Caption := 'отключена';
-    lNumBuffers.Caption := IntToStr(NumBuffers);
-    lCurrentMemory.Caption := FormatFloat('#,##0', CurrentMemory) + ' байт';
-    tsDB.TabVisible := True;
-  finally
-    Free;
-  end else
-  begin
-    lServerVersion.Caption := '';
-    eDBFileName.Text := '';
-    lDBSiteName.Caption := '';
-    lODSVersion.Caption := '';
-    lPageSize.Caption := '';
-    lForcedWrites.Caption := '';
-    lNumBuffers.Caption := '';
-    lCurrentMemory.Caption := '';
-
-    tsDB.TabVisible := False;
-  end;
-
-  lGedeminFile.Caption := ExtractFileName(Application.EXEName);
-  lGedeminPath.Caption := ExtractFilePath(Application.EXEName);
-  if VersionResourceAvailable(Application.EXEName) then
-    with TjclFileVersionInfo.Create(Application.EXEName) do
-    try
-      lGedeminVersion.Caption := BinFileVersion;
-    finally
-      Free;
-    end;
-
-  if GetEnvironmentVariable('ISC_USER', Ch, SizeOf(Ch)) > 0 then
-    lISC_USER.Caption := Ch
-  else
-    lISC_USER.Caption := '<Переменная не определена>';
-
-  if GetEnvironmentVariable('ISC_PASSWORD', Ch, SizeOf(Ch)) > 0 then
-    lISC_PASSWORD.Caption := Ch
-  else
-    lISC_PASSWORD.Caption := '<Переменная не определена>';
-
-  if GetEnvironmentVariable('ISC_PATH', Ch, SizeOf(Ch)) > 0 then
-    lISC_PATH.Caption := Ch
-  else
-    lISC_PATH.Caption := '<Переменная не определена>';
-
-  if GetEnvironmentVariable('TEMP', Ch, SizeOf(Ch)) > 0 then
-    lTemp.Caption := Ch
-  else
-    lTemp.Caption := '<Переменная не определена>';
-
-  if GetEnvironmentVariable('TMP', Ch, SizeOf(Ch)) > 0 then
-    lTmp.Caption := Ch
-  else
-    lTmp.Caption := '<Переменная не определена>';
-
-  if GetEnvironmentVariable('PATH', Ch, SizeOf(Ch)) > 0 then
-    mPath.Lines.Text := Ch
-  else
-    mPath.Lines.Text := '<Переменная не определена>';
-
-  if Assigned(IBLogin) and IBLogin.LoggedIn then
-  with IBLogin do
-  begin
-    tsLogin.TabVisible := True;
-    lDBVersion.Caption := DBVersion;
-    lDBID.Caption := IntToStr(DBID);
-    lDBRelease.Caption := FormatDateTime('dd.mm.yyyy', DBReleaseDate);
-    lDBComment.Caption := DBVersionComment;
-
-    lUser.Caption := UserName;
-    lContact.Caption := ContactName;
-    lIBUser.Caption := IBName;
-    lUserKey.Caption := IntToStr(UserKey);
-    lContactKey.Caption := IntToStr(ContactKey);
-    lSession.Caption := IntToStr(SessionKey);
-    lDateAndTime.Caption := DateTimeToStr(StartTime);
-
-    mDBParams.Lines.Text := Database.Params.Text;
-    if mDBParams.Lines.IndexOfName('USER_NAME') > -1 then
-      mDBParams.Lines.Delete(mDBParams.Lines.IndexOfName('USER_NAME'));
-    if mDBParams.Lines.IndexOfName('PASSWORD') > -1 then
-      mDBParams.Lines.Delete(mDBParams.Lines.IndexOfName('PASSWORD'));
-
-    for T := tfQPrepare to tfMisc do
-    begin
-      S := GetEnumName(TypeInfo(TTraceFlag), Integer(T));
-
-      if T in Database.TraceFlags then
-        mTrace.Lines.Text := mTrace.Lines.Text + '  ' + S;
-
-      if T in MonitorHook.TraceFlags then
-        mSQLMonitor.Lines.Text := mSQLMonitor.Lines.Text + '  ' + S;
-    end;
-  end else
-    tsLogin.TabVisible := False;
-
-  Label34.Text := CmdLine;
-
-  FillTempFiles;
+  FillSysData;
 end;
 
 procedure Tgd_dlgAbout.btnHelpClick(Sender: TObject);
@@ -267,52 +141,333 @@ begin
 end;
 
 procedure Tgd_dlgAbout.FillTempFiles;
-
 var
   TempPath: array[0..1023] of Char;
 
   procedure AddFile(const AFileName: String);
   var
-    FullName: String;
+    FullName, S: String;
     F: THandle;
     Sz: DWORD;
   begin
     FullName := String(TempPath) + '\' + AFileName;
     if FileExists(FullName) then
     begin
-      with lvTempFiles.Items.Add do
-      begin
-        Caption := AFileName;
-
-        F := FileOpen(FullName, fmOpenRead);
-        if F = INVALID_HANDLE_VALUE then
-          SubItems.Add('файл заблокирован')
-        else
-          try
-            Sz := GetFileSize(F, nil);
-            if Sz <> INVALID_FILE_SIZE then
-              SubItems.Add(FormatFloat('#,##0', Sz));
-          finally
-            FileClose(F);
-          end;
+      S := 'файл заблокирован';
+      F := FileOpen(FullName, fmOpenRead);
+      if F <> INVALID_HANDLE_VALUE then
+      try
+        Sz := GetFileSize(F, nil);
+        if Sz <> INVALID_FILE_SIZE then
+          S := FormatFloat('#,##0', Sz) + ' байт';
+      finally
+        FileClose(F);
       end;
+
+      AddSpaces(AFileName, S);
     end;
   end;
 
 begin
-  lvTempFiles.Items.Clear;
-
   if Assigned(IBLogin) and (IBLogin.DBID > -1) and (IBLogin.UserKey > -1)
     and (GetTempPath(SizeOf(TempPath), TempPath) > 0) then
   begin
+    AddSection('Временные файлы');
+    AddSpaces('Расположение', TempPath);
+
     AddFile('g' + IntToStr(IBLogin.DBID) + '.atr');
     AddFile('g' + IntToStr(IBLogin.DBID) + '.sfh');
     AddFile('g' + IntToStr(IBLogin.DBID) + '.sfd');
     AddFile('g' + IntToStr(IBLogin.DBID) + '.gsc');
     AddFile('g' + IntToStr(IBLogin.DBID) + '_' + IntToStr(IBLogin.UserKey) + '.usc');
+
+    mSysData.Lines.Add('');
+    mSysData.Lines.Add('; Временные файлы используются для кэширования информации');
+    mSysData.Lines.Add('; из базы данных и ускорения запуска программы.');
+    mSysData.Lines.Add('; Для удаления временных файлов вручную: закройте Гедымин,');
+    mSysData.Lines.Add('; перейдите в указанную папку, удалите файлы по списку.');
+    mSysData.Lines.Add('; Запретить создание временных файлов можно с помощью');
+    mSysData.Lines.Add('; параметра командной строки /nc.');
+  end;
+end;
+
+procedure Tgd_dlgAbout.btnCopyClick(Sender: TObject);
+var
+  Ch: array[0..KL_NAMELENGTH] of Char;
+  Kl: Integer;
+  FNext: Boolean;
+begin
+  FNext := False;
+
+  GetKeyboardLayoutName(Ch);
+  KL := StrToInt('$' + StrPas(Ch));
+
+  case (KL and $3ff) of
+    LANG_BELARUSIAN, LANG_RUSSIAN: ;
+  else
+    ActivateKeyBoardLayout(HKL_NEXT, 0);
+
+    GetKeyboardLayoutName(Ch);
+    KL := StrToInt('$' + StrPas(Ch));
+
+    case (KL and $3ff) of
+      LANG_BELARUSIAN, LANG_RUSSIAN: FNext := True;
+    else
+      ActivateKeyBoardLayout(HKL_PREV, 0);
+    end;
   end;
 
-  edTempPath.Text := TempPath;
+  Clipboard.AsText := mSysData.Text;
+
+  if FNext then
+    ActivateKeyBoardLayout(HKL_PREV, 0);
+end;
+
+procedure Tgd_dlgAbout.FillSysData;
+var
+  T: TTraceFlag;
+  S: String;
+  I, TotalB, TotalF: Integer;
+  WSAData: TWSAData;
+  CompName: array[0..$FF] of Char;
+  DriveLetter: Char;
+begin
+  mSysData.ClearAll;
+
+  if Assigned(IBLogin) and IBLogin.LoggedIn then
+  begin
+    with TIBDatabaseInfo.Create(nil) do
+    try
+      Database := IBLogin.Database;
+
+      AddSection('Cервер');
+      AddSpaces('Версия сервера',  Version);
+      if IBLogin.ServerName > '' then
+      begin
+        AddSpaces('Имя компьютера/порт',  IBLogin.ServerName);
+        AddSpaces('IP сервера',  HostToIP(IBLogin.ServerName));
+      end;
+      AddBoolean('Встроенный сервер',  IBLogin.ServerName = '');
+      AddSpaces('Имя файла БД',  DBFileName);
+      AddSpaces('ODS версия',  IntToStr(ODSMajorVersion) + '.' + IntToStr(ODSMinorVersion));
+      AddSpaces('Размер страницы',  IntToStr(PageSize));
+      AddBoolean('Принудительная зап.', Boolean(ForcedWrites));
+      AddSpaces('Размер буфера', IntToStr(NumBuffers));
+      AddSpaces('Используемая память', FormatFloat('#,##0', CurrentMemory div 1024) + ' Кб');
+    finally
+      Free;
+    end;
+  end;
+
+  WSAStartup($0101, WSAData);
+  try
+    GetHostName(CompName, SizeOf(CompName));
+  finally
+    WSACleanup;
+  end;
+
+  AddSection('Гедымин');
+  AddSpaces('Название компютера', CompName);
+  AddSpaces('IP адрес', HostToIP(CompName));
+  AddSpaces('ОЗУ', GetRAM);
+  AddSpaces('Версия ОС', GetOS);
+  AddSpaces('Имя файла', ExtractFileName(Application.EXEName));
+  AddSpaces('Расположение', ExtractFilePath(Application.EXEName));
+  if VersionResourceAvailable(Application.EXEName) then
+    with TjclFileVersionInfo.Create(Application.EXEName) do
+    try
+      lblTitle.Caption := 'Платформа Гедымин, v. ' + ProductVersion;
+
+      mCredits.Lines.Insert(0, '');
+      mCredits.Lines.Insert(0, LegalCopyright);
+
+      AddSpaces('Версия файла', BinFileVersion);
+      AddSpaces('Описание', FileDescription);
+    finally
+      Free;
+    end;
+  AddSpaces('Командная строка', CmdLine);
+
+  S := '';
+  {$IFDEF DUNIT_TEST}S := S + 'DUNIT_TEST, ';{$ENDIF}
+  {$IFDEF GEDEMIN_LOCK}S := S + 'GEDEMIN_LOCK, ';{$ENDIF}
+  {$IFDEF SPLASH}S := S + 'SPLASH, ';{$ENDIF}
+  {$IFDEF CATTLE}S := S + 'CATTLE, ';{$ENDIF}
+  {$IFDEF SYNEDIT}S := S + 'SYNEDIT, ';{$ENDIF}
+  {$IFDEF DEBUG}S := S + 'DEBUG, ';{$ENDIF}
+  {$IFDEF FR4}S := S + 'FR4, ';{$ENDIF}
+  {$IFDEF IBSQLCACHE}S := S + 'IBSQLCACHE, ';{$ENDIF}
+  {$IFDEF TEECHARTPRO}S := S + 'TEECHARTPRO, ';{$ENDIF}
+  {$IFDEF QEXPORT}S := S + 'QEXPORT, ';{$ENDIF}
+  {$IFDEF CATTLE}S := S + 'CATTLE, ';{$ENDIF}
+  {$IFDEF MESSAGE}S := S + 'MESSAGE, ';{$ENDIF}
+  {$IFDEF CURRSELLCONTRACT}S := S + 'CURRSELLCONTRACT, ';{$ENDIF}
+  {$IFDEF REALIZATION}S := S + 'REALIZATION, ';{$ENDIF}
+  {$IFDEF PROTECT}S := S + 'PROTECT, ';{$ENDIF}
+  {$IFDEF GEDEMIN}S := S + 'GEDEMIN, ';{$ENDIF}
+  {$IFDEF LOADMODULE}S := S + 'LOADMODULE, ';{$ENDIF}
+  {$IFDEF MODEM}S := S + 'MODEM, ';{$ENDIF}
+  {$IFDEF GED_LOC_RUS}S := S + 'GED_LOC_RUS, ';{$ENDIF}
+  {$IFDEF LOCALIZATION}S := S + 'LOCALIZATION, ';{$ENDIF}
+  {$IFDEF QBUILDER}S := S + 'QBUILDER, ';{$ENDIF}
+  if S > '' then
+  begin
+    SetLength(S, Length(S) - 2);
+    AddSpaces('Символы компиляции', S);
+  end;
+
+  AddSection('Версии библиотек');
+  {$IFDEF FR4}AddSpaces('Fast Report', FR_VERSION);{$ENDIF}
+  AddSpaces('ZLib', ZLIB_VERSION);
+
+  AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
+  AddLibrary(0, MIDAS_DLL);
+  AddLibrary(0, 'gsdbquery.dll');
+
+  AddSection('Жесткие диски');
+  for DriveLetter := 'C' to 'Z' do
+  begin
+    if (GetDriveType(PChar(DriveLetter + ':\')) = DRIVE_FIXED) and
+      GetDiskSizeAvail(PChar(DriveLetter + ':\'), TotalB, TotalF) then
+        AddSpaces(DriveLetter + ':',
+          FormatFloat('#,##0', TotalB) + ' Мб, Свободно: ' + FormatFloat('#,##0', TotalF) + ' Мб');
+  end;
+
+  AddSection('Переменные среды');
+  AddEnv('ISC_USER');
+  AddEnv('ISC_PASSWORD');
+  AddEnv('ISC_PATH');
+  AddEnv('TEMP');
+  AddEnv('TMP');
+  AddEnv('PATH');
+
+  if Assigned(IBLogin) and IBLogin.LoggedIn then
+  with IBLogin do
+  begin
+    AddSection('База данных');
+    AddSpaces('Версия файла БД', DBVersion);
+    AddSpaces('ИД файла БД', IntToStr(DBID));
+    AddSpaces('Дата релиза БД', FormatDateTime('dd.mm.yyyy', DBReleaseDate));
+    AddSpaces('Комментарий', DBVersionComment);
+
+    AddSpaces('ИД организации', IntToStr(CompanyKey));
+    AddSpaces('Организация', CompanyName);
+    AddSpaces('Холдинг', HoldingList);
+    AddSpaces('Текущий ИД', IntToStr(gdcBaseManager.GetNextID));
+
+    AddSection('Параметры подключения');
+    for I := 0 to Database.Params.Count - 1 do
+    begin
+      if I = Database.Params.IndexOfName('USER_NAME') then
+        continue;
+      if I = Database.Params.IndexOfName('PASSWORD') then
+        continue;
+      AddSpaces(Database.Params.Names[I], Database.Params.Values[Database.Params.Names[I]]);
+    end;
+
+    AddSection('Пользователь');
+    AddSpaces('Учетная запись', UserName);
+    AddSpaces('Контакт', ContactName);
+    AddSpaces('Пользователь ФБ', IBName);
+    AddSpaces('ИД учетной записи', IntToStr(UserKey));
+    AddSpaces('ИД контакта', IntToStr(ContactKey));
+    AddSpaces('Сессия',  IntToStr(SessionKey));
+    AddSpaces('Дата и время подкл.',  DateTimeToStr(StartTime));
+
+    AddSection('Параметры трассировки');
+    S := '';
+    for T := tfQPrepare to tfMisc do
+    begin
+      if T in Database.TraceFlags then
+        S := S + GetEnumName(TypeInfo(TTraceFlag), Integer(T)) + ', ';
+    end;
+    if S > '' then
+      SetLength(S, Length(S) - 2);
+    AddSpaces('Подключение к БД', S);
+
+    S := '';
+    for T := tfQPrepare to tfMisc do
+    begin
+      if T in MonitorHook.TraceFlags then
+        S := S + GetEnumName(TypeInfo(TTraceFlag), Integer(T)) + ', ';
+    end;
+    if S > '' then
+      SetLength(S, Length(S) - 2);
+    AddSpaces('SQL монитор', S);
+  end;
+
+  FillTempFiles;
+
+  mSysData.SelStart := 0;
+end;
+
+procedure Tgd_dlgAbout.AddSection(const S: String);
+begin
+  if mSysData.Lines.Count > 0 then
+    mSysData.Lines.Add('');
+  mSysData.Lines.Add('[' + S + ']');
+end;
+
+procedure Tgd_dlgAbout.AddSpaces(const Name, Value: String);
+begin
+  mSysData.Lines.Add(Name + StringOfChar(' ', 20 - Length(Name)) + ' = ' + Value);
+end;
+
+procedure Tgd_dlgAbout.AddLibrary(h: HMODULE; const AName: String);
+var
+  HasLoaded: Boolean;
+  Ch: array[0..2048] of Char;
+begin
+  if h = 0 then
+  begin
+    h := SafeLoadLibrary(AName);
+    HasLoaded := True;
+  end else
+    HasLoaded := False;
+
+  if h > HINSTANCE_ERROR then
+    try
+      GetModuleFileName(h, Ch, SizeOf(Ch));
+
+      AddSection('Библиотека ' + ExtractFileName(Ch));
+      AddSpaces('Имя файла', Ch);
+
+      if VersionResourceAvailable(Ch) then
+        with TjclFileVersionInfo.Create(Ch) do
+        try
+          AddSpaces('Версия', BinFileVersion);
+          AddSpaces('Описание', FileDescription);
+        finally
+          Free;
+        end;
+    finally
+      if HasLoaded then
+        FreeLibrary(h);
+    end
+  else begin
+    AddSection('Библиотека ' + AName);
+    AddSpaces('Имя файла', '<не обнаружен>');
+  end;
+end;
+
+procedure Tgd_dlgAbout.AddEnv(const AName: String);
+var
+  Ch: array[0..2048] of Char;
+begin
+  if GetEnvironmentVariable(PChar(AName), Ch, SizeOf(Ch)) > 0 then
+    AddSpaces(AName, Ch)
+  else
+    AddSpaces(AName, '<не определена>')
+end;
+
+procedure Tgd_dlgAbout.AddBoolean(const AName: String;
+  const AValue: Boolean);
+begin
+  if AValue then
+    AddSpaces(AName, 'Да')
+  else
+    AddSpaces(AName, 'Нет');
 end;
 
 end.
+
