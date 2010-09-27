@@ -37,7 +37,7 @@ type
       (clWindow, clWindow, clWindow, clWindow, clWindow, clWindow, clWindow)
       );
    PanelMonth: array [1..12] of String= ('Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь');
-   LastData:array [1..12] of  Integer = (31,28,31,30,31,30,31,31,30,31,30,31);
+   //LastData:array [1..12] of  Integer = (31,28,31,30,31,30,31,31,30,31,30,31);
 
 type
   EgsDatePeriod = class(Exception);
@@ -164,14 +164,107 @@ type
      property GUID : TGUID read FGUID write FGUID;
   end;
 
+type
+  TDateAddPart = (Year, Month, Week, Day);
 
-
-
+function DateAdd(DatePart: Char; AddNumber: Integer; CurrentDate: TDate): TDate;
 
 implementation
 
 uses
-  jclDateTime, DateTimeUtils;
+  jclDateTime;
+
+function DateAdd(DatePart: Char; AddNumber: Integer; CurrentDate: TDate): TDate;
+var
+  iYear, iMonth, iDay: Word;
+  iToAddDays, iMonthDays: Integer;
+begin
+  iMonthDays := 0;
+  Result := CurrentDate;
+  if AddNumber = 0 then Exit;
+  case DatePart of
+    'Y':
+      begin
+        DecodeDate(CurrentDate, iYear, iMonth, iDay);
+        iYear := iYear + AddNumber;
+        Result := EncodeDate(iYear, iMonth, iDay);
+      end;
+    'M': Result := IncMonth(CurrentDate, AddNumber);
+    'W': Result := DateAdd('D', AddNumber * 7, CurrentDate);
+    'D':
+      begin
+        iToAddDays := AddNumber;
+        DecodeDate(CurrentDate, iYear, iMonth, iDay);
+        if iToAddDays > 0 then
+          while iToAddDays > 0 do
+          begin
+            case iMonth of
+              1, 3, 5, 7, 9, 11: iMonthDays := 31;
+              4, 6, 8, 10, 12: iMonthDays := 30;
+              2:
+                begin
+                  if IsLeapYear(iYear) then
+                    iMonthDays := 29
+                  else
+                    iMonthDays := 28;
+                end;
+            end;  // end case iMonth of
+            if iMonthDays >= (iToAddDays + iDay) then
+            begin
+              iDay := iDay + iToAddDays;
+              iToAddDays := 0;
+            end
+            else  // goto next month
+            begin
+              if iMonth = 12 then
+              begin
+                iMonth := 1;
+                Inc(iYear);
+              end
+              else
+                Inc(iMonth);
+              iToAddDays := iToAddDays - (iMonthDays - iDay);
+              iDay := 0;
+            end;
+          end  // end while iToAddDays > 0
+        else
+          while iToAddDays < 0 do
+          begin
+            if iDay > -iToAddDays then
+            begin
+              iDay := iDay + iToAddDays;
+              iToAddDays := 0;
+            end
+            else  // goto previous month
+            begin
+              if iMonth = 1 then
+              begin
+                iMonth := 12;
+                Dec(iYear);
+              end
+              else
+              begin
+                Dec(iMonth);
+                case iMonth of
+                  1, 3, 5, 7, 9, 11: iMonthDays := 31;
+                  4, 6, 8, 10, 12: iMonthDays := 30;
+                  2:
+                    begin
+                      if IsLeapYear(iYear) then
+                        iMonthDays := 29
+                      else
+                        iMonthDays := 28;
+                    end;
+                end;  // end case iMonth of
+                iToAddDays := iToAddDays + iDay;
+                iDay := iMonthDays;
+              end;
+            end;
+          end; //  end while iToAddDays < 0
+        Result := EncodeDate(iYear, iMonth, iDay);
+      end;
+  end;
+end;
 
 { TgsCalendarPanel }
 
@@ -273,8 +366,8 @@ begin
   Canvas.Font.Size := 16 ;
   Canvas.Font.Height := 16;
 
-  if (Year mod 4) = 0 then
-     LastData[2] := 29;
+ { if (Year mod 4) = 0 then
+     LastData[2] := 29; }
   case FCalendarState of
     gscsYear:
        begin
@@ -318,19 +411,20 @@ begin
                Y := 30;
                for J := 1 to MonthCellYCount do
                begin
-                  Canvas.Brush.Color := clWindow;
-                  R := Rect(X, Y, X + MonthCellWidth, Y + MonthCellHeight);
-                  Canvas.FillRect(R);
-                  Size := Canvas.TextExtent(Month[J,I]);
-                  Canvas.TextRect(R, X + ((MonthCellWidth - Size.cx) div 2), Y + ((MonthCellHeight - Size.cy) div 2), Month[J,I]);
-                  Inc(Y, MonthCellHeight);
+                 Canvas.Brush.Color := clWindow;
+                 R := Rect(X, Y, X + MonthCellWidth, Y + MonthCellHeight);
+                 Canvas.FillRect(R);
+                 Size := Canvas.TextExtent(Month[J,I]);
+                 Canvas.TextRect(R, X + ((MonthCellWidth - Size.cx) div 2), Y + ((MonthCellHeight - Size.cy) div 2), Month[J,I]);
+                 Inc(Y, MonthCellHeight);
                end;
             Inc(X, MonthCellWidth);
           end;
     end   else
     if b = true then
     Begin
-       Canvas.Brush.Color := MonthColor[FlY, FlX];
+         Canvas.Brush.Color := clBlue;
+      // Canvas.Brush.Color := MonthColor[FlY, FlX];
        R := Rect((FlX - 1) * MonthCellWidth, (FlY - 2) * MonthCellHeight + 30, (FlX ) * MonthCellWidth , (FlY - 2) * MonthCellHeight + 30 + MonthCellHeight);
        Canvas.FillRect(R);
        Size := Canvas.TextExtent(Month[FlY-1,FlX]);
@@ -350,17 +444,17 @@ begin
           Begin
              For J:=prom to 7 do
              begin
-                 if FNumberDay > LastData[FCalendarMonth] then
-                   FNumberDay := 1;
-                 NumberDay[J,I] :=FNumberDay;
-                 FNumberDay := FNumberDay + 1;
+               if FNumberDay > DaysInMonth(EncodeDate(Year, FCalendarMonth, 7)) then
+                 FNumberDay := 1;
+               NumberDay[J,I] :=FNumberDay;
+               FNumberDay := FNumberDay + 1;
              end;
              prom:=1;
              end;
              if (FCalendarMonth - 1) <= 0 then
-                FNumberDay := LastData[12]
+                FNumberDay := 31
              else
-                FNumberDay := LastData[FCalendarMonth-1];
+                FNumberDay := DaysInMonth(EncodeDate(Year, FCalendarMonth - 1, 7));
               For J:=1 to pF - 1 do
               Begin
                  NumberDay[pF - J,1] := FNumberDay;
@@ -492,8 +586,8 @@ inherited MouseDown(Button, Shift, X, Y);
        FCalendarMonth := FocusMonth[((Y-30) div 37) + 1, (X div 35) + 1];
   if  (FCalendarState = gscsYear) and (Y > 30) and (VibPeriod <> 1)  then
   begin
-     FCalendarState := gscsMonth;
-     Year := YearNumber[((Y-30) div 37) + 1, (X div 35) + 1];
+    FCalendarState := gscsMonth;
+    Year := YearNumber[((Y-30) div 37) + 1, (X div 35) + 1];
   end else
    if VibPeriod = 1 then
         Year := YearNumber[((Y-30) div 37) + 1, (X div 35) + 1];
@@ -509,8 +603,8 @@ inherited MouseDown(Button, Shift, X, Y);
      FCalendarMonth := FCalendarMonth - 1;
      if FCalendarMonth <= 0 then
      begin
-        FCalendarMonth := 12;
-        Year := Year - 1;
+       FCalendarMonth := 12;
+       Year := Year - 1;
      end;
   end else
   if  (FCalendarState = gscsDay) and ((X > 120) and (Y <27)) then
@@ -550,14 +644,14 @@ begin
     case FCalendarState of
     gscsYear:
        begin
-          NX := (X div 37) + 1;
-          NY := ((Y - 30) div 35) + 2;
-          YearColor[FlY, FlX] := clWhite;
-          YearColor[NY, NX] := $00FFFF99;
-          paint;
-          FlX := NX;
-          FlY := NY;
-          Result := true;
+         NX := (X div 37) + 1;
+         NY := ((Y - 30) div 35) + 2;
+         YearColor[FlY, FlX] := clWhite;
+         YearColor[NY, NX] := $00FFFF99;
+         paint;
+         FlX := NX;
+         FlY := NY;
+         Result := true;
         end;
     gscsMonth:
         begin
@@ -1115,33 +1209,33 @@ begin
      end;
      2:
      begin
-        FPeriodWind.Width := 245;
-        FPeriodWind.FObjPanel1.FCalendarState := gscsMonth;
-        FPeriodWind.FObjPanel1.Show;
-        FPeriodWind.FObjPanel1.VibPeriod := 2;
-        FPeriodWind.FObjPanel2.Hide;
-        FPeriodWind.FObjPanel1.Paint;
-        FPeriodWind.paint;
+       FPeriodWind.Width := 245;
+       FPeriodWind.FObjPanel1.FCalendarState := gscsMonth;
+       FPeriodWind.FObjPanel1.Show;
+       FPeriodWind.FObjPanel1.VibPeriod := 2;
+       FPeriodWind.FObjPanel2.Hide;
+       FPeriodWind.FObjPanel1.Paint;
+       FPeriodWind.paint;
      end;
      3:
      begin
-        FPeriodWind.Width := 245;
-        FPeriodWind.FObjPanel1.FCalendarState := gscsMonth;
-        FPeriodWind.FObjPanel1.Show;
-        FPeriodWind.FObjPanel1.VibPeriod := 3;
-        FPeriodWind.FObjPanel2.Hide;
-        FPeriodWind.FObjPanel1.Paint;
-        FPeriodWind.paint;
+       FPeriodWind.Width := 245;
+       FPeriodWind.FObjPanel1.FCalendarState := gscsMonth;
+       FPeriodWind.FObjPanel1.Show;
+       FPeriodWind.FObjPanel1.VibPeriod := 3;
+       FPeriodWind.FObjPanel2.Hide;
+       FPeriodWind.FObjPanel1.Paint;
+       FPeriodWind.paint;
      end;
      4:
      begin
-        FPeriodWind.Width := 245;
-        FPeriodWind.FObjPanel1.FCalendarState := gscsDay;
-        FPeriodWind.FObjPanel1.Show;
-        FPeriodWind.FObjPanel1.VibPeriod := 4;
-        FPeriodWind.FObjPanel2.Hide;
-        FPeriodWind.FObjPanel1.Paint;
-        FPeriodWind.paint;
+       FPeriodWind.Width := 245;
+       FPeriodWind.FObjPanel1.FCalendarState := gscsDay;
+       FPeriodWind.FObjPanel1.Show;
+       FPeriodWind.FObjPanel1.VibPeriod := 4;
+       FPeriodWind.FObjPanel2.Hide;
+       FPeriodWind.FObjPanel1.Paint;
+       FPeriodWind.paint;
       end;
       5:
      begin
@@ -1158,19 +1252,19 @@ begin
      end;
      6:
      begin
-        FPeriodWind.Width := 420;
-        FPeriodWind.FObjPanel1.FCalendarState := gscsDay;
-        FPeriodWind.FObjPanel1.Hide;
-        FPeriodWind.FObjPanel2.Hide;
-        FPeriodWind.paint;
+       FPeriodWind.Width := 420;
+       FPeriodWind.FObjPanel1.FCalendarState := gscsDay;
+       FPeriodWind.FObjPanel1.Hide;
+       FPeriodWind.FObjPanel2.Hide;
+       FPeriodWind.paint;
      end;
      end;
      end;
 
      if (Y > 30) and (Y < 165) then
      begin
-      FPeriodWind.FObjPanel1.Left := 90;
-      FPeriodWind.FObjPanel1.Top := 30;
+       FPeriodWind.FObjPanel1.Left := 90;
+       FPeriodWind.FObjPanel1.Top := 30;
      end;
 
 end;
@@ -1312,15 +1406,15 @@ begin
         end;
        4: if StrToInt(SS[4]) > 1 then
           begin
-             Delete(S,Length(s),1);
-             Text := S;
-             SetSelStart(Length(s));
+            Delete(S,Length(s),1);
+            Text := S;
+            SetSelStart(Length(s));
           end;
         5: if (StrToInt(SS[4])= 1) and (StrToInt(SS[5]) > 2) then
            begin
-              Delete(S,Length(s),1);
-              Text := S;
-              SetSelStart(Length(s));
+             Delete(S,Length(s),1);
+             Text := S;
+             SetSelStart(Length(s));
            end  else
            begin
              Text := Text + '.';
@@ -1330,15 +1424,15 @@ begin
        case Num of
        3: if StrToInt(SS[4]) > 1 then
           begin
-           Delete(S,Length(s),1);
-           Text := S;
-           SetSelStart(Length(s));
+            Delete(S,Length(s),1);
+            Text := S;
+            SetSelStart(Length(s));
          end;
         4: if (StrToInt(SS[4])= 1) and (StrToInt(SS[5]) > 2) then
            begin
-              Delete(S,Length(s),1);
-              Text := S;
-              SetSelStart(Length(s));
+             Delete(S,Length(s),1);
+             Text := S;
+             SetSelStart(Length(s));
            end  else
            begin
              Text := Text + '.';
@@ -1386,7 +1480,7 @@ var
   TempDate: TDateTime;
 begin
   Result := True;
-  DecodeDate(SysUtils.Now, Year, Month, Day);
+  DecodeDate(SysUtils.Date, Year, Month, Day);
 
   Key := AnsiUpperCase(S);
 
@@ -1481,18 +1575,18 @@ begin
      if Month -1  = 0  then
      begin
        FDate := EncodeDate(Year - 1, 12, 01);
-       FEndDate := EncodeDate(Year, 12, LastData[12]);
+       FEndDate := EncodeDate(Year, 12, 31);
      end else
      begin
        FDate := EncodeDate(Year, Month - 1, 01);
-       FEndDate := EncodeDate(Year, Month - 1, LastData[Month]);
+       FEndDate := EncodeDate(Year, Month - 1, DaysInMonth(EncodeDate(Year, Month, 7)));
      end;
   end
   else if Key = 'ТМ' then
   begin
     Fkind := dpkMonth;
     FDate := EncodeDate(Year, Month, 01);
-    FEndDate := EncodeDate(Year, Month, LastData[Month]);
+    FEndDate := EncodeDate(Year, Month, DaysInMonth(EncodeDate(Year, Month, 7)));
   end
   else if Key = 'ТГ' then
   begin
@@ -1526,7 +1620,7 @@ begin
       end;
     end;
   end
-  else if Key = 'ТН' then
+  else if Key = 'Н' then
   begin
     FKind := dpkWeek;
     NumberWeek := ISOWeekNumber(SysUtils.Now);
@@ -1625,7 +1719,7 @@ begin
         begin
           FDate := StrToDate('01.' + AString);
           DecodeDate(Date,Year, Month, Day);
-          FEndDate := StrToDate(IntToStr(LastData[Month]) + '.' + AString);
+          FEndDate := StrToDate(IntToStr(DaysInMonth(EncodeDate(Year, Month, 7))) + '.' + AString);
           FKind := dpkMonth;
         end  else
         Begin

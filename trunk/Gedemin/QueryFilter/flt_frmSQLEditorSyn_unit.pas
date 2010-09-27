@@ -22,7 +22,7 @@ uses
   gdcBase,
   {$ENDIF}
   SynCompletionProposal, flt_i_SQLProposal, flt_SQLProposal, gd_keyAssoc,
-  gsIBGrid, gdcSQLHistory, gsSearchReplaceHelper;
+  gsIBGrid, gdcSQLHistory, gsSearchReplaceHelper, gsDBTreeView;
 
 type
   TCountRead = Record
@@ -221,6 +221,9 @@ type
     actFindNext: TAction;
     tsTrace: TSuperTabSheet;
     pnlTrace: TPanel;
+    tvResult: TgsDBTreeView;
+    actShowTree: TAction;
+    TBItem30: TTBItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -284,6 +287,8 @@ type
     procedure actSaveFieldToFileUpdate(Sender: TObject);
     procedure actFindNextExecute(Sender: TObject);
     procedure pnlTraceResize(Sender: TObject);
+    procedure actShowTreeUpdate(Sender: TObject);
+    procedure actShowTreeExecute(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -780,6 +785,8 @@ begin
           actCommit.Execute;
         end;
 
+        tvResult.DataSource := nil;
+
         StartTime := Now;
         ibqryWork.Open;
         FExecuteTime := Now - StartTime;
@@ -790,9 +797,13 @@ begin
           pcMain.ActivePage := tsResult;
 
           dbgResult.Visible := True;
+          tvResult.Visible := False;
           pnlRecord.Visible := False;
+
           actShowGrid.Checked := True;
+          actShowTree.Checked := False;
           actShowRecord.Checked := False;
+
           FRepeatQuery := False;
         end else
         begin
@@ -963,9 +974,12 @@ begin
   frmSQLTrace.Show;
   {$ENDIF}
 
-  pnlRecord.Visible := False;
   dbgResult.Visible := True;
+  tvResult.Visible := False;
+  pnlRecord.Visible := False;
+
   actShowGrid.Checked := True;
+  actShowTree.Checked := False;
   actShowRecord.Checked := False;
 
   pcMain.ActivePage := tsQuery;
@@ -1347,6 +1361,12 @@ begin
   finally
     SL.Free;
   end;
+
+  if Result = nil then
+    MessageBox(Handle,
+      'Не удалось создать бизнес-объект для текущей записи.',
+      'Информация',
+      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
 end;
 {$ENDIF}
 
@@ -1814,10 +1834,12 @@ begin
   if not actShowGrid.Checked then
   begin
     dbgResult.Visible := True;
+    tvResult.Visible := False;
     pnlRecord.Visible := False;
 
-    actShowRecord.Checked := False;
     actShowGrid.Checked := True;
+    actShowTree.Checked := False;
+    actShowRecord.Checked := False;
   end;
 end;
 
@@ -1835,10 +1857,12 @@ begin
   if not actShowRecord.Checked then
   begin
     dbgResult.Visible := False;
+    tvResult.Visible := False;
     pnlRecord.Visible := True;
 
-    actShowRecord.Checked := True;
     actShowGrid.Checked := False;
+    actShowTree.Checked := False;
+    actShowRecord.Checked := True;
 
     if sbRecord.ComponentCount = 0 then
     begin
@@ -1994,6 +2018,38 @@ begin
   if frmSQLTrace <> nil then
     frmSQLTrace.SetBounds(0, 0, pnlTrace.Width, pnlTrace.Height);
   {$ENDIF}
+end;
+
+procedure TfrmSQLEditorSyn.actShowTreeUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := ibqryWork.Active
+    and (ibqryWork.FindField('parent') <> nil)
+    and (ibqryWork.FindField('name') <> nil)
+    and (ibqryWork.FindField('id') <> nil);
+end;
+
+procedure TfrmSQLEditorSyn.actShowTreeExecute(Sender: TObject);
+begin
+  if not actShowTree.Checked then
+  begin
+    try
+      tvResult.DataSource := dsResult;
+      
+      dbgResult.Visible := False;
+      tvResult.Visible := True;
+      pnlRecord.Visible := False;
+
+      actShowGrid.Checked := False;
+      actShowTree.Checked := True;
+      actShowRecord.Checked := False;
+    except
+      on E: Exception do
+      begin
+        Application.ShowException(E);
+        tvResult.DataSource := nil;
+      end;
+    end;
+  end;
 end;
 
 initialization

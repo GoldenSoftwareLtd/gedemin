@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 351
-  Top = 246
+  Left = 331
+  Top = 371
   Width = 871
   Height = 556
   HelpContext = 121
@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 464
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsMonitor
+      ActivePage = tsResult
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -435,10 +435,13 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object tbResult: TTBToolbar
             Left = 120
             Top = 0
-            Width = 127
+            Width = 150
             Height = 22
             Caption = 'tbResult'
             Images = dmImages.il16x16
+            Options = [tboShowHint]
+            ParentShowHint = False
+            ShowHint = True
             TabOrder = 1
             object TBItem14: TTBItem
               Action = actEditBusinessObject
@@ -457,6 +460,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Action = actShowGrid
               Caption = 'Показать таблицу'
             end
+            object TBItem30: TTBItem
+              Action = actShowTree
+            end
             object TBItem27: TTBItem
               Action = actShowRecord
               Caption = 'Показать запись'
@@ -473,7 +479,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           DataSource = dsResult
           Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
           ReadOnly = True
-          TabOrder = 1
+          TabOrder = 3
           OnDblClick = dbgResultDblClick
           InternalMenuKind = imkWithSeparator
           Expands = <>
@@ -485,6 +491,23 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           CheckBox.FirstColumn = False
           MinColWidth = 40
           ShowFooter = True
+        end
+        object tvResult: TgsDBTreeView
+          Left = 0
+          Top = 26
+          Width = 839
+          Height = 409
+          KeyField = 'ID'
+          ParentField = 'PARENT'
+          DisplayField = 'NAME'
+          Align = alClient
+          Indent = 19
+          TabOrder = 1
+          Visible = False
+          MainFolderHead = True
+          MainFolder = False
+          MainFolderCaption = 'Все'
+          WithCheckBox = False
         end
         object pnlRecord: TPanel
           Left = 0
@@ -1407,7 +1430,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     end
     object actShowGrid: TAction
       Category = 'Result'
-      Caption = 'actShowGrid'
+      Caption = 'Показать в таблице'
       Hint = 'Показать таблицу'
       ImageIndex = 220
       OnExecute = actShowGridExecute
@@ -1415,7 +1438,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
     end
     object actShowRecord: TAction
       Category = 'Result'
-      Caption = 'actShowRecord'
+      Caption = 'Показать одну запись'
       Hint = 'Показать запись'
       ImageIndex = 176
       OnExecute = actShowRecordExecute
@@ -1449,6 +1472,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 24
       ShortCut = 114
       OnExecute = actFindNextExecute
+    end
+    object actShowTree: TAction
+      Category = 'Result'
+      Caption = 'Показать в виде дерева'
+      Hint = 'Показать в виде дерева'
+      ImageIndex = 219
+      OnExecute = actShowTreeExecute
+      OnUpdate = actShowTreeUpdate
     end
   end
   object ibsqlPlan: TIBSQL
