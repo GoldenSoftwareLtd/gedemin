@@ -175,7 +175,6 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       Height = 107
       inherited TBDockDetail: TTBDock
         Width = 539
-        Height = 10
         inherited tbDetailToolbar: TTBToolbar
           object tbiOpenObject: TTBItem
             Action = actOpenObject
@@ -184,6 +183,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         inherited tbDetailCustom: TTBToolbar
           Left = 255
           DockPos = 255
+          Images = dmImages.il16x16
           Visible = True
           object tbiWithDetail: TTBItem
             Action = actWithDetail
@@ -203,19 +203,17 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         end
       end
       inherited pnlSearchDetail: TPanel
-        Top = 10
-        Height = 97
+        Height = 81
         inherited sbSearchDetail: TScrollBox
-          Height = 59
+          Height = 43
         end
         inherited pnlSearchDetailButton: TPanel
-          Top = 59
+          Top = 43
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Top = 10
         Width = 379
-        Height = 97
+        Height = 81
       end
     end
     object pnlStorage: TPanel
