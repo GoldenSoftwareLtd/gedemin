@@ -1,6 +1,6 @@
 object gd_dlgAbout: Tgd_dlgAbout
-  Left = 424
-  Top = 167
+  Left = 288
+  Top = 275
   HelpContext = 119
   BorderStyle = bsDialog
   Caption = 'О программе'
@@ -110,15 +110,6 @@ object gd_dlgAbout: Tgd_dlgAbout
         ReadOnly = True
         TabOrder = 0
       end
-      object btnMSInfo: TButton
-        Left = 457
-        Top = 284
-        Width = 75
-        Height = 21
-        Caption = 'О Системе...'
-        TabOrder = 1
-        OnClick = btnMSInfoClick
-      end
     end
     object TabSheet4: TTabSheet
       Caption = 'Параметры системы'
@@ -129,7 +120,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Width = 129
         Height = 21
         Caption = 'Копировать в буфер'
-        TabOrder = 1
+        TabOrder = 2
         OnClick = btnCopyClick
       end
       object mSysData: TSynEdit
@@ -483,6 +474,15 @@ object gd_dlgAbout: Tgd_dlgAbout
             ShortCut = 24642
           end>
         ReadOnly = True
+      end
+      object btnMSInfo: TButton
+        Left = 3
+        Top = 286
+        Width = 75
+        Height = 21
+        Caption = 'О Системе...'
+        TabOrder = 1
+        OnClick = btnMSInfoClick
       end
     end
   end

@@ -12,8 +12,6 @@ type
   TgsDatePeriodKind = (dpkYear, dpkQuarter, dpkMonth, dpkWeek, dpkDay, dpkFree);
   const
   DefCalendarState = gscsYear;
-  DefKind = dpkFree;
-  DefMaxDate = 0;
     YearNumber : array [1..3, 1..4] of Integer = (
      (2009, 2010, 2011, 2012),
      (2013, 2014, 2015, 2016),
@@ -42,17 +40,15 @@ type
    LastData:array [1..12] of  Integer = (31,28,31,30,31,30,31,31,30,31,30,31);
 
 type
+  EgsDatePeriod = class(Exception);
 
- EgsDatePeriod = class(Exception)
-
- end;
 
  TgsCalendarPanel = class(TCustomControl)
   private
     NumberDay: array [1..7, 1..7] of Integer;
     b, vid : Boolean;
     FCalendarState : TgsCalendarState;
-    Year,XX,YY,FCalendarMonth,FlX,FlY,NX,NY,FNumberDay, DataToday, YearToday, MonthToday, FTodayDayWeek, VibPeriod, TitleYear, TitleMonth, TitleDay : integer;
+    Year,XX,YY,FCalendarMonth,FlX,FlY,NX,NY,FNumberDay, DataToday, YearToday, MonthToday, FTodayDayWeek, VibPeriod : integer;
     procedure SetCalendarState(const Value: TgsCalendarState);
 
   protected
@@ -74,26 +70,29 @@ type
       default DefCalendarState;
   end;
 
-TgsDataPeriod = class(TObject)
-   private
-     Kj, tir, Month, Day, FDayWeek: Integer;
-     Sp: Char;
-     Date, EndDate,FMaxDate, FMinDate :TDate;
-     Kind: TgsDatePeriodKind;
-     Raz: Boolean;
-     procedure SetKindState(const Value: TgsDatePeriodKind);
-     procedure SetKind(const pr: Integer);
-   protected
-     procedure Assign(const ASource: TgsDataPeriod);
-     procedure ProcessShortCut(var Key: char; Text: String);
-     function EncodeString: String;
-     procedure DecodeString(const AString: String);
-   public
-     property PeriodKind: TgsDatePeriodKind read Kind write SetKindState
-      default DefKind;
-     property MaxDate: TDate read FMaxDate write FMaxDate;
-     property MinDate: TDate read FMinDate write FMinDate;
-     constructor Create;
+  TgsDataPeriod = class(TObject)
+  private
+    Kj, tir, Month, Day, FDayWeek: Integer;
+    Sp: Char;
+    FDate, FEndDate, FMaxDate, FMinDate: TDate;
+    FKind: TgsDatePeriodKind;
+    Raz: Boolean;
+
+    procedure SetKind(const pr: Integer);
+
+  public
+    constructor Create;
+
+    procedure Assign(const ASource: TgsDataPeriod);
+    function ProcessShortCut(const S: String): Boolean;
+    function EncodeString: String;
+    procedure DecodeString(const AString: String);
+
+    property Kind: TgsDatePeriodKind read FKind;
+    property MaxDate: TDate read FMaxDate write FMaxDate;
+    property MinDate: TDate read FMinDate write FMinDate;
+    property Date: TDate read FDate write FDate;
+    property EndDate: TDate read FEndDate write FEndDate;
   end;
 
   TgsPeriodForm = class(TCustomControl)
@@ -121,8 +120,8 @@ TgsDataPeriod = class(TObject)
 
   private
       g: Integer;
-     Data: Boolean;
-     FData: TgsDataPeriod;
+      Data: Boolean;
+       FData: TgsDataPeriod;
 
   protected
     procedure KeyUp(var Key: Word; Shift: TShiftState); override;
@@ -171,8 +170,8 @@ TgsDataPeriod = class(TObject)
 
 implementation
 
-//uses
-//  SysUtils;
+uses
+  jclDateTime, DateTimeUtils;
 
 { TgsCalendarPanel }
 
@@ -500,8 +499,8 @@ inherited MouseDown(Button, Shift, X, Y);
         Year := YearNumber[((Y-30) div 37) + 1, (X div 35) + 1];
 
   if (FCalendarState = gscsMonth) and ((X < 30) and (Y < 30)) then
-     Year := Year - 1;
-
+     Year := Year - 1
+  else
   if (FCalendarState = gscsMonth) and ((X > 120) and (Y < 30)) then
      Year := Year + 1;
 
@@ -528,10 +527,6 @@ inherited MouseDown(Button, Shift, X, Y);
   else
     if  (FCalendarState = gscsMonth) and (X >30) and (X < 120) and (Y < 27) then
            FCalendarState := gscsYear;
-  TitleYear := Year;
-  TitleMonth := FCalendarMonth;
-  if  (FCalendarState = gscsDay) and (Y > 30) then
-     TitleDay := NumberDay [((X div 21) + 1), (((Y-30) div 15))];
   paint;
 end;
 
@@ -905,7 +900,7 @@ begin
   DatePeriod := TgsDataPeriod.Create;
 
   FEdit.Height := 21;
-  FEdit.Width := 200;
+  FEdit.Width := 160;
   FEdit.OnChange := Change;
   FEdit.OnKeyPress := KeyPress;
   FSpeedButton := TSpeedButton.Create(Self);
@@ -982,10 +977,10 @@ begin
    if (FPeriodWind.FObjPanel1.FCalendarState = gscsDay) and (Y > 30) then
      begin
       if  FPeriodWind.FObjPanel1.FCalendarMonth - 10 < 0 then
-       FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.TitleDay)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year)
+       FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.DataToday)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year)
       else
-       FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.TitleDay)+ '.' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year);
-       DatePeriod.Day := FPeriodWind.FObjPanel1.TitleDay;
+       FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.DataToday)+ '.' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year);
+       DatePeriod.Day := FPeriodWind.FObjPanel1.DataToday;
        FPeriodWind.Hide;
       end;
    end;
@@ -998,14 +993,14 @@ begin
  if (FPeriodWind.NumberPeriod = 5) and (FPeriodWind.FObjPanel2.FCalendarState = gscsDay) and ( Y > 30) then
  begin
   if  FPeriodWind.FObjPanel1.FCalendarMonth - 10 < 0 then
-   FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.TitleDay)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-'
+   FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.DataToday)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-'
   else
-    FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.TitleDay)+ '.' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-';
+    FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.DataToday)+ '.' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-';
 
   if   FPeriodWind.FObjPanel2.FCalendarMonth - 10 < 0 then
-    FEdit.Text := FEdit.Text + IntToStr(FPeriodWind.FObjPanel2.TitleDay)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel2.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel2.Year )
+    FEdit.Text := FEdit.Text + IntToStr(FPeriodWind.FObjPanel2.DataToday)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel2.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel2.Year )
   else
-     FEdit.Text := FEdit.Text + IntToStr(FPeriodWind.FObjPanel2.TitleDay)+ '.' + IntToStr(FPeriodWind.FObjPanel2.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel2.Year );
+     FEdit.Text := FEdit.Text + IntToStr(FPeriodWind.FObjPanel2.DataToday)+ '.' + IntToStr(FPeriodWind.FObjPanel2.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel2.Year );
    FPeriodWind.Hide;
  end;
  FPeriodWind.Paint;
@@ -1189,37 +1184,12 @@ begin
 end;
 
 procedure TgsPeriodEdit.KeyPress(Sender: TObject; var Key: Char);
-
+var
+  S : String;
 begin
-     case Key of
-      'Ò': Key := '—';
-      'Á': Key := '«';
-      '‚': Key := '¬';
-      '„': Key := '√';
-      'Ú': Key := '“';
-      'Ï': Key := 'Ã';
-      'Ì': Key := 'Õ';
-      'Ô': Key := 'œ';
-      'Í': Key := ' ';
-      end;
+    S := 'ÒÌ';
+    DatePeriod.ProcessShortCut(S);
 
-   case Key of
-   '0'..'9','-':begin
-    Text := Text;
-    end;
-   '—','«','¬','√','“','Ã','Õ','œ',' ','.':
-    begin
-    DatePeriod.ProcessShortCut(Key, Text);
-    FEdit.Text := DatePeriod.EncodeString;
-    end;
-    #32:
-     begin
-       FEdit.Text := Text + DateToStr(SysUtils.Now);
-     end
-    else
-    Key := #0;
-   end;
-   FEdit.SetSelStart(Length(Text));
 
 
 end;
@@ -1246,6 +1216,7 @@ begin
  FGUID :=StringToGuid('{741D1779-CE77-4843-808F-796DE1BCBB3E}');
  // StringToGUID(CreateClassID());
   Reg:= TRegistry.Create;
+  try
   Reg.RootKey:= HKEY_CURRENT_USER;
   Reg.OpenKey('\Software\Golden Software\Gedemin\Client\CurrentVersion\TgsCalendarEdit', false);
   Str := Reg.ReadString(GUIDToString(FGUID));
@@ -1255,13 +1226,15 @@ begin
   While Str[I] <> '"' do
    I := I + 1;
   if (copy(Str,2,I - 2)) = DateToStr(SysUtils.Now) then
-      Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.Date) + '-' + DateToStr(DatePeriod.EndDate) + '"' + copy(Str,I + 1, Length(Str)))
+      Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.FDate) + '-' + DateToStr(DatePeriod.FEndDate) + '"' + copy(Str,I + 1, Length(Str)))
   else
-       Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.Date) + '-' + DateToStr(DatePeriod.EndDate) + '"' );
+       Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.FDate) + '-' + DateToStr(DatePeriod.FEndDate) + '"' );
      end
   else
-    Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.Date) + '-' + DateToStr(DatePeriod.EndDate) + '"' );
+    Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.FDate) + '-' + DateToStr(DatePeriod.FEndDate) + '"' );
+  finally
   Reg.Free;
+  end;
   DatePeriod.Free;
   FPeriodWind.Free;
   FEdit.Free;
@@ -1388,271 +1361,215 @@ end;
 constructor TgsDataPeriod.Create;
 begin
   inherited;
+
   tir := 0;
   FMaxDate := 0;
   FMinDate := 0;
   Raz := false;
+  FKind := dpkFree;
 end;
 
 procedure TgsDataPeriod.SetKind(const pr: Integer);
 begin
- case pr of
-  1:  Kind:= dpkWeek;
-  2:  Kind:= dpkQuarter;
-  3:  Kind:= dpkFree;
+  case pr of
+    1: FKind:= dpkWeek;
+    2: FKind:= dpkQuarter;
+    3: FKind:= dpkFree;
   end;
 end;
-procedure TgsDataPeriod.ProcessShortCut(Var Key: char; Text: String);
+
+function TgsDataPeriod.ProcessShortCut(const S: String): boolean;
 var
- Year, Month, Day: Word;
- YearN,YearL: Word;
- Next, Last, Today,Result,s: String;
+  Year, Month, Day: Word;
+  NumberWeek, I: Integer;
+  Key : String;
+  TempDate: TDateTime;
 begin
-   s := DateToStr(SysUtils.Now);
-   FDayWeek := DayOfWeek(StrToDate(s));
- if FDayWeek = 1 then
-     FDayWeek := 7
- else
-     FDayWeek := FDayWeek - 1;
-    DecodeDate(SysUtils.Now, Year, Month, Day);
-    YearN := Year;
-    YearL := Year;
-    Today := IntToStr(Month);
-    if StrToInt(Today) + 1 >12 then
-    begin
-     Next := '1';
-     YearN := Year + 1;
-    end  else
-    Next := IntToStr(StrToInt(Today)+ 1);
-    if  StrToInt(Today) - 1 = 0 then
-    begin
-     Last := '12';
-     YearL := Year - 1;
-    end
-    else
-     Last :=  IntToStr(StrToInt(Today) - 1);
-     if StrToInt(Next) < 10 then
-        Next :='0' + Next;
-     if StrToInt(Last) < 10 then
-        Last := '0' + Last;
-     if StrToInt(Today) < 10 then
-        Today := '0' + Today;
-   Kj := Kj + 1;
+  Result := True;
+  DecodeDate(SysUtils.Now, Year, Month, Day);
 
- case Key of
-        '.':
-        begin
-         if (Length(Text) <= 1) or (Length(Text) >= 5) then
-          tir := 1
-         else
-           key := #0;
-          Result := Text;
-        end;
-     #32:
-        begin
-           Result := Text + DateToStr(SysUtils.Now);
-        end;
-     '«':                               
-        begin
-          key := #0;
-         if  Day + 1 <= LastData[Month] then
-           if Month < 10 then
-           Result := IntToStr(Day + 1) + '.' + '0' + IntToStr(Month) + '.' + IntTostr(Year)
-           else
-            Result :=IntToStr(Day + 1) + '.' + IntTostr(Month) + '.' + IntTostr(Year)
-         else
-            Result :='1' + '.' + Next + '.' + IntTostr(YearN);
-         Kj := 0;
-        end;
-         '¬':
-        begin
-          key := #0;
-        if  Day - 1 > 0 then
-           Result := IntToStr(Day -1) + '.' + Today + '.' + IntTostr(Year)
-        else
-           Result := IntToStr(LastData[StrToInt(Last)]) + '.' + Last + '.' + IntTostr(YearL);
-         Kj := 0;
-        end;
-         '—':
-         begin
+  Key := AnsiUpperCase(S);
 
-         Key := #0;
-         if (Sp = ' ') and (Kj = 2) then
-         begin
-          Kind := dpkQuarter;
-          case Month + 3 of
-           4..6:
-            Result := '01.04.' + IntToStr(Year) + '-' + '30.06.' + IntToStr(Year);
-           7..9:
-           Result := '01.07.' + IntToStr(Year) + '-' + '30.09.' + IntToStr(Year);
-           10..12:
-          Result := '01.10.' + IntToStr(Year) + '-' + '31.12.' + IntToStr(Year);
-           13..15:
-            Result := '01.01.' + IntToStr(Year + 1) + '-' + '31.03.' + IntToStr(Year + 1);
-          end;
-          Kj := 0;
-         end;
-         if (Sp = '√') and (Kj = 2) then
-          begin
-          Result := IntToStr(Year + 1);
-           Kj := 0;
-           end else
-            if  Kj = 1 then
-            begin
-            Result := IntToStr(Day) + '.' + Today + '.' + IntToStr(Year);
-              Kj := 0;
-            end;
-         if (Sp = 'Ã') and (Kj = 2) then
-          begin
-         Result := Next + '.'  + IntToStr(YearN);
-          Kj := 0;
-         end;
-       if (Sp = 'Õ') and (Kj = 2) then
-       begin
-       Kind := dpkWeek;
-         if ((Day +  FDayWeek + 6 )  <  LastData[Month]) and ((Day + 14 - FDayWeek)<=LastData[Month]) then
-         Result := IntToStr(Day + 8 - FDayWeek ) + '.'  + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day + 8 - FDayWeek + 6)  + '.'  + Today  + '.' + IntToStr(Year)
-         else
-           if  Day + FDayWeek + 6 > LastData[Month] then
-              if Day + 8 -  FDayWeek > LastData[Month] then
-               Result := IntToStr(Day + 8 -  FDayWeek - LastData[Month]) + '.'  + Next + '.' + IntToStr(YearN)+ '-' + IntToStr(Day + 8 -  FDayWeek - LastData[Month] + 6)  + '.' + Next + '.' + IntToStr(YearN)
-              else
-              Result := IntToStr(Day + 8 -  FDayWeek ) + '.'  + Next + '.' + IntToStr(YearN)+ '-' + IntToStr(Day + 8 -  FDayWeek - LastData[Month] + 6)  + '.' + Next + '.' + IntToStr(YearN)
-           else
-           Result := IntToStr(Day  -  FDayWeeK + 8) + '.'  + IntToStr(Month ) + '.' + IntToStr(Year)+ '-' + IntToStr(Day + 8 -  FDayWeek - LastData[Month] + 6)  + '.' + Next + '.' + IntToStr(YearN);
-              Kj := 0;
-        end;
-        end;
-        'œ':
-          begin
-            key := #0;
-           if (Sp = ' ') and (Kj = 2) then
-           begin
-            Kind := dpkQuarter;
-            Case Month - 3 of
-              1..3:
-               Result := '01.01.' + IntToStr(Year) + '-' + '31.03.' + IntToStr(Year);
-              4..6:
-               Result := '01.04.' + IntToStr(Year) + '-' + '30.06.' + IntToStr(Year);
-              7..9:
-               Result := '01.07.' + IntToStr(Year) + '-' + '30.09.' + IntToStr(Year);
-              -2..0:
-              Result := '01.10.' + IntToStr(Year - 1) + '-' + '31.12.' + IntToStr(Year - 1);
-              end;
-              Kj := 0;
-            end;
-           if (Sp = 'Ã') and (Kj = 2) then
-           begin
-             if  Month - 10 <= 0 then
-          Result := '0' + IntToStr(Month - 1) + '.'  + IntToStr(Year)
-       else
-         Result :=IntToStr(Month - 1) + '.'  + IntToStr(Year);
-             Kj := 0;
-           end else
-           if (Sp = '√') and (Kj = 2) then
-           begin
-          Result := IntToStr(Year - 1);
-              Kj := 0;
-           end;
-           if (Sp = 'Õ') and (Kj = 2) then
-           begin
-           Kind := dpkWeek;
-             if (Day - FDayWeek - 6 ) > 0 then
-           Result := IntToStr(Day - FDayWeek -6 ) + '.'  + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day - FDayWeek )  + '.'  + Today + '.' + IntToStr(Year)
-         else
-           if  Day - FDayWeek <= 0 then
-             Result := IntToStr(Day  -  FDayWeek + LastData[StrToInt(Last)] - 6) + '.'  + Last + '.' + IntToStr(YearL)+ '-' + IntToStr(Day  -  FDayWeek + LastData[Month - 1] )  + '.' + Last + '.' + IntToStr(YearL)
-           else
-              Result := IntToStr(Day  -  FDayWeek + LastData[StrToInt(Last)] - 6) + '.' + Last + '.' + IntToStr(Year - 1)+ '-' + IntToStr(Day -  FDayWeeK)  + '.' + Last + '.' + IntToStr(Year);
-              Kj := 0;
-            end;
-               end;
-            '“':
-           begin
-             key := #0;
-            if (Sp = ' ') and (Kj = 2) then
-             begin
-              Kind := dpkQuarter;
-              case Month of
-              1..3:
-                Result := '01.01.' + IntToStr(Year) + '-' + '31.03.' + IntToStr(Year);
-              4..6:
-                Result := '01.04.' + IntToStr(Year) + '-' + '30.06.' + IntToStr(Year);
-              7..9:
-               Result := '01.07.' + IntToStr(Year) + '-' + '30.09.' + IntToStr(Year);
-              10..12:
-                Result := '01.10.' + IntToStr(Year) + '-' + '31.12.' + IntToStr(Year);
-             end;
-             Kj := 0;
-            end;
-            if (Sp = 'Ã') and (Kj = 2) then
-            begin
-              Result :=  Today + '.'  + IntToStr(Year);
-                Kj := 0;
-             end else
-             if (Sp = '√') and (Kj = 2) then
-             begin
-             Result := IntToStr(Year );
-                 Kj := 0;
-             end;
-            if (Sp = 'Õ') and (Kj = 2) then
-            begin
-            Kind := dpkWeek;
-             if ((Day - FDayWeek + 1) > 0) and ((Day - FDayWeek + 7) < LastData[Month]) then
-               Result := IntToStr(Day  - FDayWeek + 1) + '.' + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day  -  FDayWeek +7 )  + '.'  + Today + '.' + IntToStr(Year)
-             else
-               if  (Day - FDayWeek + 1) <= 0 then
-               Result := IntToStr(Day  - FDayWeek + 1 + LastData[StrToInt(Last)]) + '.' + Last + '.' + IntToStr(Year - 1)+ '-' + IntToStr(Day -  FDayWeek +7 )  + '.'  + Today + '.' + IntToStr(Year)
-               else
-                if  (Day - FDayWeek + 7) > LastData[Month] then
-                Result := IntToStr(Day  - FDayWeek + 1) + '.'  + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day  -  FDayWeek +1 + 6 - LastData[Month] )  + '.' + Next + '.' + IntToStr(YearN)
-                else
-               Result := IntToStr(Day  - FDayWeek + 1) + '.'  + Today + '.' + IntToStr(Year)+ '-' + IntToStr(Day  -  FDayWeek +1 + 6  )  + '.' + Next + '.' + IntToStr(YearN);
-                 Kj := 0;
-            end
-            end  else
-            begin
-            if (Key <> 'Ã') and (Key <> 'Õ') and (Key <> '√') and (Key <> ' ') then
-            begin
-             Kj := 0;
-             Sp :='\';
-            end 
-            else
-            if  Kj = 1 then
-             Sp := key
-            else
-             Kj := 0; 
-             key := #0;
-           end;
-        end;
-      if Kj > 2 then
+  if Key = '—Ã' then
+  begin
+    FKind := dpkMonth;
+    TempDate := EncodeDate(Year, Month, 1);
+    FDate := DateAdd('M', 1, TempDate);
+    FEndDate := DateAdd('M', 2, TempDate) - 1;
+  end
+  else if Key = '—√' then
+  begin
+    FKind := dpkYear;
+    FDate := EncodeDate(Year + 1, 01, 01);
+    FEndDate := EncodeDate(Year + 1, 12, 31);
+  end
+  else if Key = '— ' then
+  begin
+    FKind := dpkQuarter;
+    case Month + 3 of
+      4..6:
       begin
-        Kj := 0;
-        Sp := '\';
+        FDate := EncodeDate(Year, 04, 01);
+        FEndDate := EncodeDate(Year, 06, 30);
       end;
-   if result <> '' then
-   begin
-   DecodeString(Result);
-   Raz := true;
-   end;     
+      7..9:
+      begin
+        FDate := EncodeDate(Year, 07, 01);
+        FEndDate := EncodeDate(Year, 09, 30);
+      end;
+      10..12:
+      begin
+        FDate := EncodeDate(Year, 10, 01);
+        FEndDate := EncodeDate(Year, 12, 31);
+      end;
+      13..15:
+      begin
+        FDate := EncodeDate(Year, 01, 01);
+        FEndDate := EncodeDate(Year, 03, 31);
+      end;
+    end;
+  end
+  else if Key = '—Õ' then
+  begin
+    FKind := dpkWeek;
+    NumberWeek := ISOWeekNumber(SysUtils.Now);
+    FDate := ISOWeekToDateTime(Year, NumberWeek + 1,1);
+    FEndDate := ISOWeekToDateTime(Year, NumberWeek + 1,7);
+  end
+  else if Key = 'œ√' then
+  begin
+    FKind := dpkYear;
+    FDate := EncodeDate(Year - 1, 01, 01);
+    FEndDate := EncodeDate(Year - 1, 12, 31);
+  end
+  else if Key = 'œÕ' then
+  begin
+    FKind := dpkWeek;
+    NumberWeek := ISOWeekNumber(SysUtils.Now);
+    FDate := ISOWeekToDateTime(Year, NumberWeek - 1,1);
+    FEndDate := ISOWeekToDateTime(Year, NumberWeek - 1,7);
+  end
+  else if Key = 'œ ' then
+  begin
+    FKind := dpkQuarter;
+    case Month - 3 of
+     1..3:
+     begin
+       FDate := EncodeDate(Year, 01, 01);
+       FEndDate := EncodeDate(Year , 03, 31);
+     end;
+     4..6:
+     begin
+       FDate := EncodeDate(Year, 04, 01);
+       FEndDate := EncodeDate(Year, 06, 30);
+     end;
+     7..9:
+     begin
+       FDate := EncodeDate(Year, 07, 01);
+       FEndDate := EncodeDate(Year, 09, 30);
+     end;
+     -2..0:
+     begin
+       FDate := EncodeDate(Year - 1, 10, 01);
+       FEndDate := EncodeDate(Year - 1, 12, 31);
+     end;
+    end
+  end
+  else if Key = 'œÃ' then
+  begin
+     FKind := dpkMonth;
+     if Month -1  = 0  then
+     begin
+       FDate := EncodeDate(Year - 1, 12, 01);
+       FEndDate := EncodeDate(Year, 12, LastData[12]);
+     end else
+     begin
+       FDate := EncodeDate(Year, Month - 1, 01);
+       FEndDate := EncodeDate(Year, Month - 1, LastData[Month]);
+     end;
+  end
+  else if Key = '“Ã' then
+  begin
+    Fkind := dpkMonth;
+    FDate := EncodeDate(Year, Month, 01);
+    FEndDate := EncodeDate(Year, Month, LastData[Month]);
+  end
+  else if Key = '“√' then
+  begin
+    FKind := dpkYear;
+    FDate := EncodeDate(Year, 01, 01);
+    FEndDate := EncodeDate(Year, 12, 31);
+  end
+  else if Key = '“ ' then
+  begin
+    FKind := dpkQuarter;
+    case Month of
+      1..3:
+      begin
+        FDate := EncodeDate(Year, 01, 01);
+        FEndDate := EncodeDate(Year, 01, 31);
+      end;
+      4..6:
+      begin
+        FDate := EncodeDate(Year, 04, 01);
+        FEndDate := EncodeDate(Year, 06, 30);
+      end;
+      7..9:
+      begin
+        FDate := EncodeDate(Year, 07, 01);
+        FEndDate := EncodeDate(Year, 09, 30);
+      end;
+      10..12:
+      begin
+        FDate := EncodeDate(Year, 10, 01);
+        FEndDate := EncodeDate(Year, 12, 31);
+      end;
+    end;
+  end
+  else if Key = '“Õ' then
+  begin
+    FKind := dpkWeek;
+    NumberWeek := ISOWeekNumber(SysUtils.Now);
+    Date := ISOWeekToDateTime(Year, NumberWeek ,1);
+    EndDate := ISOWeekToDateTime(Year, NumberWeek ,7);
+  end
+  else if Key = '«' then
+  begin
+    FDate := DateAdd('D', + 1, SysUtils.Now);
+    FEndDate := FDate;
+    FKind := dpkDay;
+  end
+  else if Key = '¬' then
+  begin
+    FDate := DateAdd('D', - 1, SysUtils.Now);
+    FEndDate := FDate;
+    FKind := dpkDay;
+  end
+  else if Key = '—' then
+  begin
+    FKind := dpkDay;
+    FDate := SysUtils.Date;
+    FEndDate := FDate;
+  end else
+    Result := False;
 end;
 
 procedure TgsDataPeriod.Assign(const ASource: TgsDataPeriod);
 begin
-  Date := ASource.Date;
-  EndDate := ASource.Date;
+  FDate := ASource.Date;
+  FEndDate := ASource.Date;
   FMaxDate := ASource.FMaxDate;
   FMinDate := ASource.FMinDate;
-  Kind := ASource.Kind;
+  FKind := ASource.Kind;
 end;
 
 function TgsDataPeriod.EncodeString: String;
  var
   Year, Month, Day: Word;
 begin
- if Raz = true then
- begin
- Case Kind of
+
+
+ Case FKind of
   dpkYear:
   begin
    DecodeDate(Date,Year, Month, Day);
@@ -1660,11 +1577,11 @@ begin
    end;
   dpkWeek:
   begin
-   Result :=DateToStr(Date) + '-' + DateToStr(EndDate);
+   Result :=DateToStr(FDate) + '-' + DateToStr(FEndDate);
   end;
   dpkQuarter:
   begin
-   Result :=DateToStr(Date) + '-' + DateToStr(EndDate);
+   Result :=DateToStr(FDate) + '-' + DateToStr(FEndDate);
   end;
   dpkMonth:
   begin
@@ -1673,12 +1590,9 @@ begin
   end;
   dpkDay:
   begin
-   Result := DateToStr(Date);
+   Result := DateToStr(FDate);
   end;
   end;
-   Raz := false;
-   end else
-  Result := '';
 end;
 
 procedure TgsDataPeriod.DecodeString(const AString: String);
@@ -1693,39 +1607,35 @@ begin
         for I := 1 to Length(AString) do
            if AString[I] = '-' then
             begin
-            Date := StrToDate(ss);
+            FDate := StrToDate(ss);
             ss := '';
             end else
               ss := ss+ AString[I];
-            EndDate := StrToDate(ss);
+            FEndDate := StrToDate(ss);
          end
         else
         if StrPos (PChar(AString), '.') = nil then
 
         begin
-          Date := StrToDate('01.01.' + AString);
-          EndDate := StrToDate('31.12.' + AString);
-          Kind := dpkYear;
+          FDate := StrToDate('01.01.' + AString);
+          FEndDate := StrToDate('31.12.' + AString);
+          FKind := dpkYear;
         end  else
         if length(AString) <= 7   then
         begin
-          Date := StrToDate('01.' + AString);
+          FDate := StrToDate('01.' + AString);
           DecodeDate(Date,Year, Month, Day);
-          EndDate := StrToDate(IntToStr(LastData[Month]) + '.' + AString);
-          Kind := dpkMonth;
+          FEndDate := StrToDate(IntToStr(LastData[Month]) + '.' + AString);
+          FKind := dpkMonth;
         end  else
         Begin
-          Date := StrToDate(AString);
-          EndDate := StrTodate(AString);
-          Kind := dpkDay;
+          FDate := StrToDate(AString);
+          FEndDate := StrTodate(AString);
+          FKind := dpkDay;
         end;
       if (FMinDate <>FMaxDate) and ((FMinDate <> 0) or (FMaxDate <> 0)) then  
-         if (Date < FMinDate) or (EndDate > FMaxDate) then
+         if (FDate < FMinDate) or (FEndDate > FMaxDate) then
            Raise EgsDatePeriod.Create('ÔÂ‚˚¯ÂÌ ‰Ë‡ÔÓÁÓÌ ‰‡Ú');
 end;
 
-procedure TgsDataPeriod.SetKindState(const Value: TgsDatePeriodKind);
-begin
-  Kind := Value;
-end;
 end.
