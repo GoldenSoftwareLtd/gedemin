@@ -24,7 +24,7 @@ implementation
 uses
   Classes, Windows, IB, gdcMetaData, gd_security,
   at_frmSQLProcess, IBSQL, gdcBaseInterface, gd_KeyAssoc,
-  SysUtils, gdcLBRBTreeMetaData;
+  SysUtils, gdcLBRBTreeMetaData, jclStrings;
 
 var
   FLBRBTreeName, FDBState: String;
@@ -97,6 +97,8 @@ var
   LBRBTree: TgdcLBRBTreeTable;
 begin
   Check(IBLogin.LoggedIn);
+
+  Check(StrIPos('test.fdb', IBLogin.Database.DatabaseName) > 0, 'Выполнение возможно только на тестовой БД');
 
   FLBRBTreeName := 'USR$TEST' + IntToStr(Random(10)) + 'LBRBTREE';
   FDBState := GetDBState;

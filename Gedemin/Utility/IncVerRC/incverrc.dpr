@@ -38,43 +38,10 @@ uses
   SysUtils ,
   IncVerRcUnit in 'IncVerRcUnit.pas';
 
-{:Modified version of SysUtils.FindCmdLineSwitch.}
-{function GetCmdLineSwitch(const Switch: string; SwitchChars: TSysCharSet;
-  IgnoreCase: Boolean): string;
-var
-  I: Integer;
-  S: string;
-
-  function SetSwitchValue: string;
-  begin
-    Result := Copy(S, 2 + Length(Switch), MaxInt);
-  end;
-begin
-  Result := '';
-  for I := 1 to ParamCount do
-  begin
-    S := ParamStr(I);
-    if (SwitchChars = []) or (S[1] in SwitchChars) then
-    begin
-      if IgnoreCase then
-      begin
-        if (AnsiCompareText(Copy(S, 2, Length(Switch)), Switch) = 0) then
-          Result := SetSwitchValue;
-      end
-      else begin
-        if (AnsiCompareStr(Copy(S, 2, Length(Switch)), Switch) = 0) then
-          Result := SetSwitchValue;
-      end;
-    end;
-  end;
-end;}
-
 var
   InFileName: string;
   AIncVerRc: TIncVerRc;
 begin
-  //InFileName := GetCmdLineSwitch('F', ['-', '/'], true);
-
   if ParamCount <> 1 then
   begin
     WriteLn('Usage: incverrc filename.rc');

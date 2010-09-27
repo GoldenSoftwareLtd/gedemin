@@ -6,10 +6,10 @@ uses
   TestSQLParser_unit,
   TestGdKeyArray_unit,
   TestMMFStream_unit,
-  Test_gsStorage_unit,
   Test_gsMorph_unit,
   Test_gsPeriodEdit_unit
   {$IFDEF GEDEMIN}
+  , Test_gsStorage_unit
   , Test_gdcContact_unit
   , Test_CopyObject_unit
   , Test_gdcMetaData_unit

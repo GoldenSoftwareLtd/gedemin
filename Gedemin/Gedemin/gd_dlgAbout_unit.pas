@@ -16,12 +16,12 @@ type
     btnOk: TButton;
     mCredits: TMemo;
     btnHelp: TButton;
-    btnMSInfo: TButton;
     lblTitle: TLabel;
     TabSheet4: TTabSheet;
     btnCopy: TButton;
     SynIniSyn: TSynIniSyn;
     mSysData: TSynEdit;
+    btnMSInfo: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure btnMSInfoClick(Sender: TObject);
