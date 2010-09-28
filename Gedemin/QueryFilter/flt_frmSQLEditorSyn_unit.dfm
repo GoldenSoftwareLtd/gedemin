@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 464
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsResult
+      ActivePage = tsQuery
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -501,7 +501,10 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           ParentField = 'PARENT'
           DisplayField = 'NAME'
           Align = alClient
+          HideSelection = False
           Indent = 19
+          ReadOnly = True
+          SortType = stText
           TabOrder = 1
           Visible = False
           MainFolderHead = True
