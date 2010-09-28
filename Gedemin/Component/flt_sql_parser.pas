@@ -823,7 +823,7 @@ begin
           Inc(BracketCount)
         else if Token = ')' then
             Dec(BracketCount)
-        else if Token = 'SUBSTRING' then begin
+        else if (Token = 'SUBSTRING') or (Token = 'EXTRACT') then begin
           bssc:= 0;
           repeat
             Start2 := Current;
@@ -881,7 +881,7 @@ begin
           Inc(BracketCount)
         else if Token = ')' then
             Dec(BracketCount)
-        else if Token = 'SUBSTRING' then begin
+        else if (Token = 'SUBSTRING') or (Token = 'EXTRACT') then begin
           bssc:= 0;
           repeat
             SQLToken := NextSQLToken(Current, Token, CurSection);
@@ -959,7 +959,7 @@ begin
           Inc(BracketCount)
         else if Token = ')' then
             Dec(BracketCount)
-        else if Token = 'SUBSTRING' then begin
+        else if (Token = 'SUBSTRING') or (Token = 'EXTRACT') then begin
           bssc:= 0;
           repeat
             SQLToken := NextSQLToken(Current, Token, CurSection);
@@ -1050,7 +1050,7 @@ begin
           Inc(BracketCount)
         else if Token = ')' then
             Dec(BracketCount)
-        else if Token = 'SUBSTRING' then begin
+        else if (Token = 'SUBSTRING') or (Token = 'EXTRACT') then begin
           bssc:= 0;
           repeat
             SQLToken := NextSQLToken(Current, Token, CurSection);
@@ -1145,7 +1145,7 @@ SELECT ... FROM ... WHERE ...(SELECT...FROM...ORDER BY) корректно обрабатываться
           Inc(BracketCount)
         else if Token = ')' then
             Dec(BracketCount)
-        else if Token = 'SUBSTRING' then begin
+        else if (Token = 'SUBSTRING') or (Token = 'EXTRACT') then begin
           bssc:= 0;
           repeat
             SQLToken := NextSQLToken(Current, Token, CurSection);
