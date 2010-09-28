@@ -80,6 +80,9 @@ function ExtractSQLWhere(const AnSQLText: String): String;
 function ExtractSQLOther(const AnSQLText: String): String;
 // Вытягиваем из запроса ORDER часть
 function ExtractSQLOrderBy(const AnSQLText: String): String;
+// Вытягиваем сразу все части запроса
+procedure ExtractAllSQL(const AnSQLText: String; var SelectSQL, FromSQL,
+  WhereSQL, OtherSQL, OrderBySQL: String);
 // Логично предположить, что весь текст после части ORDER BY (FOR UPDATE ...) не вытягивается
 
 // Вытягиваем наименование процедуры из скрипта ее создающего
@@ -1186,5 +1189,158 @@ SELECT ... FROM ... WHERE ...(SELECT...FROM...ORDER BY) корректно обрабатываться
     SetString(Result, Start1, Start2 - Start1);
   end;
 end;
+
+procedure ExtractAllSQL(const AnSQLText: String; var SelectSQL, FromSQL,
+  WhereSQL, OtherSQL, OrderBySQL: String);
+var
+  TS: String;
+  Start1, Start2, Current: PChar;
+  Token: String;
+  SQLToken, CurSection: TSQLToken;
+  SubSection: Integer;
+  BracketCount, bssc: Integer;
+begin
+  // 1. Часть From
+  // Раздвигаем скобки в тексте
+  TS := PrepareString(AnSQLText);
+  SelectSQL := '';
+
+  // Присваеваем текущую позицию
+  Current := PChar(TS);
+
+  // Производим поиск части SELECT
+  CurSection := stUnknown;
+  repeat
+    Start1 := Current;
+    SQLToken := NextSQLToken(Current, Token, CurSection);
+    //Finalize(Token);
+    if SQLToken in SQLSections then CurSection := SQLToken;
+  until SQLToken in [stEnd, stSelect];
+  // Если SELECT найден, то продолжаем
+  if SQLToken = stSelect then
+  begin
+    // Устанавливаем количество подзапросов
+    SubSection := 0;
+    BracketCount := 0;
+    // Повторяем пока не достигнут FROM либо конец текста.
+    repeat
+      // Если обнаружен FROM, то считается подзапрос закончен
+      // Декремируем кол-во подзапросов
+      if SQLToken = stFrom then
+        Dec(SubSection);
+      // Запоминаем текущую позицию
+      Start2 := Current;
+      // Ищем следующий элемент в тексте
+      SQLToken := NextSQLToken(Current, Token, CurSection);
+      //Finalize(Token);
+      if SQLToken = stFieldName then begin
+        if Token = '(' then
+          Inc(BracketCount)
+        else if Token = ')' then
+            Dec(BracketCount)
+        else if (Token = 'SUBSTRING') or (Token = 'EXTRACT') then begin
+          bssc:= 0;
+          repeat
+            Start2 := Current;
+            SQLToken := NextSQLToken(Current, Token, CurSection);
+            if SQLToken = stFieldName then
+              if Token = '(' then
+                Inc(bssc)
+              else if Token = ')' then
+                  Dec(bssc);
+          until (bssc = 0) or (SQLToken = stEnd)
+        end;
+      end;
+      // Если этот элемент является началом подзапромса то инкремируем счетчик
+      if (CurSection = stSelect) and (SQLToken = stSelect) then
+        Inc(SubSection);
+      // Если нет подзапросов и секция изменилась, то устанавливаем ее.
+      if (SQLToken in SQLSections) and (SubSection = 0) and (BracketCount = 0) then
+        CurSection := SQLToken;
+    until ((CurSection = stFrom) and (SubSection < 1) and (BracketCount = 0)) or (SQLToken = stEnd);
+    // Если FROM достигнут копируем секцию SELECT
+    if SQLToken = stFrom then
+      SetString(SelectSQL, Start1, Start2 - Start1);
+  end;
+
+  //2. Часть From
+  FromSQL := '';
+  Start1 := Start2;
+  BracketCount := 0;
+  if SQLToken = stFrom then
+  begin
+    // В фроме можно использовать подзапрос,
+    // поэтому ищем конец части без лишних проверок
+    repeat
+      Start2 := Current;
+      SQLToken := NextSQLToken(Current, Token, CurSection);
+
+      if Token = '(' then
+        Inc(BracketCount)
+      else
+        if Token = ')' then
+          Dec(BracketCount);
+
+      if (SQLToken in SQLSections) and (BracketCount = 0) then CurSection := SQLToken;
+    until (CurSection <> stFrom) or (SQLToken = stEnd);
+    // Присваиваем результат
+    SetString(FromSQL, Start1, Start2 - Start1);
+  end;
+
+  //3. Часть Where
+  WhereSQL := '';
+  Start1 := Start2;
+  if SQLToken = stWhere then
+  begin
+    // Устанавливаем количество подзапросов 0
+    SubSection := 0;
+    repeat
+      // Если обнаружен ФРОМ уменьшаем количество подзапросов
+      if SQLToken = stFrom then
+        Dec(SubSection);
+      Start2 := Current;
+      // Вытягиваем следующий элемент запроса
+      SQLToken := NextSQLToken(Current, Token, CurSection);
+      // Если обнаружен СЕЛЕКТ, то увеличиваем кол-во подзапросов
+      if (CurSection = stWhere) and (SQLToken = stSelect) then
+        Inc(SubSection);
+      // Если кол-во подзапросов и обнаружена секция, то делаем ее текущей
+      if (SQLToken in SQLSections) and (SubSection = 0) then
+        CurSection := SQLToken;
+      // Повторяем пока текущая секция ВЭА или не достигнут конец текста
+    until (CurSection <> stWhere) or (SQLToken = stEnd);
+    // Присваиваем результат
+    SetString(WhereSQL, Start1, Start2 - Start1);
+  end;
+
+  OtherSQL := '';
+  Start1 := Start2;
+  // Т.к. ORDER BY может быть только один на запрос,
+  // поэтому тоже без лишних сравнений ищем часть ОРДЕР
+  if (SQLToken <> stEnd) and (SQLToken <> stOrderBy) then
+  begin
+    repeat
+      Start2 := Current;
+      SQLToken := NextSQLToken(Current, Token, CurSection);
+      if SQLToken in SQLSections then CurSection := SQLToken;
+    until SQLToken in [stEnd, stOrderBy];
+  end;
+  // Присваиваем результат
+  SetString(OtherSQL, Start1, Start2 - Start1);
+
+  OrderBySQL := '';
+  Start1 := Start2;  
+  if SQLToken = stOrderBy then
+  begin
+    // Ищем конец части ОРДЕР
+    repeat
+      Start2 := Current;
+      SQLToken := NextSQLToken(Current, Token, CurSection);
+      if SQLToken in SQLSections then CurSection := SQLToken;
+    until (CurSection <> stOrderBy) or (SQLToken = stEnd);
+    // Присваиваем результат
+    SetString(OrderBySQL, Start1, Start2 - Start1);
+  end;
+end;  
 
 end.

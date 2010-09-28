@@ -740,12 +740,17 @@ begin
 end;
 
 procedure TgsSQLFilter.SetQueryText(const AnSQLText: String);
+var
+  SelectSQL, FromSQL, WhereSQL, OtherSQL, OrderSQL: String;
 begin
-  FSelectText.Text := ExtractSQLSelect(AnSQLText);
-  FFromText.Text := ExtractSQLFrom(AnSQLText);
-  FWhereText.Text := ExtractSQLWhere(AnSQLText);
-  FOtherText.Text := ExtractSQLOther(AnSQLText);
-  FOrderText.Text := ExtractSQLOrderBy(AnSQLText);
+  ExtractAllSQL(AnSQLText, SelectSQL, FromSQL, WhereSQL,
+    OtherSQL, OrderSQL);
+
+  FSelectText.Text := SelectSQL;
+  FFromText.Text := FromSQL;
+  FWhereText.Text := WhereSQL;
+  FOtherText.Text := OtherSQL;
+  FOrderText.Text := OrderSQL;
 end;
 
 function TgsSQLFilter.AddCondition(AFilterCondition: TFilterCondition): Integer;
@@ -2144,6 +2149,7 @@ procedure TgsQueryFilter.SeparateQuery;
 var
   SL: TStrings;
   S: String;
+  SelectSQL, FromSQL, WhereSQL, OtherSQL, OrderSQL: String;
 begin
   FRecordCount := -1;
   SL := TIBCustomDataSetCracker(FIBDataSet).SelectSQL;
@@ -2153,11 +2159,13 @@ begin
   begin
     S := SL.Text;
     ExtractTablesList(S, TableList);             // Список таблиц
-    FSelectText.Text := ExtractSQLSelect(S);     // Часть СЕЛЕКТ
-    FFromText.Text := ExtractSQLFrom(S);         // Часть ФРОМ
-    FWhereText.Text := ExtractSQLWhere(S);       // Часть ВЭА
-    FOtherText.Text := ExtractSQLOther(S);       // Доп. текст
-    FOrderText.Text := ExtractSQLOrderBy(S);     // Часть ОРДЕР
+    ExtractAllSQL(S, SelectSQL, FromSQL, WhereSQL,
+      OtherSQL, OrderSQL);
+    FSelectText.Text := SelectSQL;     // Часть СЕЛЕКТ
+    FFromText.Text := FromSQL;         // Часть ФРОМ
+    FWhereText.Text := WhereSQL;       // Часть ВЭА
+    FOtherText.Text := OtherSQL;       // Доп. текст
+    FOrderText.Text := OrderSQL;       // Часть ОРДЕР
     ExtractFieldLink(S, FLinkCondition);         // Список связей
 
     FIsSQLTextChanged := False;                 // Запрос изменен
