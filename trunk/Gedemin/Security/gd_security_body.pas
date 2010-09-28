@@ -1608,13 +1608,35 @@ end;
 
 function TboLogin.GetServerName: String;
 var
-  P: Integer;
+  A, B, I: Integer;
 begin
-  P := Pos(':', DatabaseName);
-  if (P > 0) and (Pos(':', Copy(DatabaseName, P + 1, 1024)) > 0) then
-    Result := Copy(DatabaseName, 1, P - 1)
-  else
-    Result := '';
+  A := -1;
+  for I := 1 to Length(DatabaseName) do
+    if DatabaseName[I] = ':' then
+    begin
+      A := I;
+      break;
+    end;
+
+  B := -1;
+  for I := A + 1 to Length(DatabaseName) do
+    if DatabaseName[I] = ':' then
+    begin
+      B := I;
+      break;
+    end;
+
+  if A < 2 then
+    Result := ''
+  else begin
+    Result := Copy(DatabaseName, 1, A - 1);
+
+    if B = -1 then
+    begin
+      if (A = 2) and (A < Length(DatabaseName)) and (DatabaseName[A + 1] in ['\', '/']) then
+        Result := '';
+    end;
+  end;  
 end;
 
 function TboLogin.GetSessionDuration: TDateTime;
