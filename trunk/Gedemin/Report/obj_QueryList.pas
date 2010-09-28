@@ -910,7 +910,7 @@ begin
   //заменим TIBQuery на memtable при необходимости
     for J := 0 to FTempMasterDetail.Count - 1 do
     begin
-      I := GetIndexQueryByName(FMasterDetail.DetailTable[J]);
+      I := GetIndexQueryByName(FTempMasterDetail.DetailTable[J]);
       if I > -1 then
       begin
         //1. Создаем MemTable и заполняем его
