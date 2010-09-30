@@ -1207,7 +1207,6 @@ begin
 
   // Присваеваем текущую позицию
   Current := PChar(TS);
-
   // Производим поиск части SELECT
   CurSection := stUnknown;
   repeat
@@ -1216,6 +1215,7 @@ begin
     //Finalize(Token);
     if SQLToken in SQLSections then CurSection := SQLToken;
   until SQLToken in [stEnd, stSelect];
+  Start2 := Start1;
   // Если SELECT найден, то продолжаем
   if SQLToken = stSelect then
   begin
