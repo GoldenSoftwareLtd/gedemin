@@ -88,7 +88,10 @@ begin
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
           'ALTER TABLE gd_documenttype ADD CONSTRAINT gd_chck_icn_documenttype CHECK (ischecknumber BETWEEN 0 AND 3)';
-        FIBSQL.ExecQuery;
+        try
+          FIBSQL.ExecQuery;
+        except
+        end;  
 
         FIBSQL.Close;
         FIBSQL.SQL.Text :=

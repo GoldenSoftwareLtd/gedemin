@@ -22,7 +22,7 @@ uses
   gdcBase,
   {$ENDIF}
   SynCompletionProposal, flt_i_SQLProposal, flt_SQLProposal, gd_keyAssoc,
-  gsIBGrid, gdcSQLHistory, gsSearchReplaceHelper, gsDBTreeView;
+  gsIBGrid, gdcSQLHistory, gsSearchReplaceHelper, gsDBTreeView, SynDBEdit;
 
 type
   TCountRead = Record
@@ -188,7 +188,6 @@ type
     Panel4: TPanel;
     dbnvMonitor: TDBNavigator;
     tbMonitor: TTBToolbar;
-    ibgrMonitor: TgsIBGrid;
     ibdsMonitor: TIBDataSet;
     dsMonitor: TDataSource;
     actRefreshMonitor: TAction;
@@ -224,6 +223,10 @@ type
     tvResult: TgsDBTreeView;
     actShowTree: TAction;
     TBItem30: TTBItem;
+    pnlMonitor: TPanel;
+    ibgrMonitor: TgsIBGrid;
+    spMonitor: TSplitter;
+    dbseSQLText: TDBSynEdit;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -1720,12 +1723,16 @@ end;
 procedure TfrmSQLEditorSyn.actRefreshMonitorExecute(Sender: TObject);
 begin
   ibdsMonitor.Close;
+  dsMonitor.DataSet := nil;
 
   if ibtrMonitor.InTransaction then
     ibtrMonitor.Commit;
   ibtrMonitor.StartTransaction;
 
   ibdsMonitor.Open;
+  ibdsMonitor.FieldByName('state').Visible := False;
+  ibdsMonitor.FieldByName('sql_text').Visible := False;
+  dsMonitor.DataSet := ibdsMonitor;
 end;
 
 procedure TfrmSQLEditorSyn.actDeleteStatementUpdate(Sender: TObject);

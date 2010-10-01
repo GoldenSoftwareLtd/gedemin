@@ -104,6 +104,11 @@ const
     '    IF (:RightBorder >= (:R + :Diff)) THEN'#13#10 +
     '      Diff = :RightBorder - :R + 1;'#13#10 +
     ''#13#10 +
+    '    IF (:Delta < 1000) THEN'#13#10 +
+    '      Diff = :Diff + :Delta * 10;'#13#10 +
+    '    ELSE'#13#10 +
+    '      Diff = :Diff + 10000;'#13#10 +
+    ''#13#10 +
     '    /* Сдвигаем все интервалы справа */'#13#10 +
     '    UPDATE ::TABLENAME SET lb = lb + :Diff, rb = rb + :Diff'#13#10 +
     '      WHERE lb > :R;'#13#10 +

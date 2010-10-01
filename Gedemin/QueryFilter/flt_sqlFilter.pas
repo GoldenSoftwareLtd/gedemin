@@ -1537,12 +1537,16 @@ var
 {$ENDIF}
 begin
   {$IFDEF GEDEMIN}
-  FVI := JclFileUtils.TJclFileVersionInfo.Create(Application.ExeName);
-  try
-    Result := FVI.OriginalFilename;
-  finally
-    FVI.Free;
-  end;
+  if VersionResourceAvailable(Application.EXEName) then
+  begin
+    FVI := JclFileUtils.TJclFileVersionInfo.Create(Application.ExeName);
+    try
+      Result := FVI.OriginalFilename;
+    finally
+      FVI.Free;
+    end;
+  end else
+    Result := '';
   if Result = '' then
   {$ENDIF}
     Result := ExtractFileName(Application.ExeName);

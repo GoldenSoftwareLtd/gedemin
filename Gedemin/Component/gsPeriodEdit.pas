@@ -15,7 +15,7 @@ type
   PanelMonth: array [1..12] of String= ('Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь');
  type
   EgsDatePeriod = class(Exception);
-
+  
  TgsCalendarPanel = class(TCustomControl)
   private
     NumberDay: array [1..7, 1..7] of Integer;
@@ -47,10 +47,6 @@ type
     tir, Month, Day: Integer;
     FDate, FEndDate, FMaxDate, FMinDate: TDate;
     FKind: TgsDatePeriodKind;
-    Raz: Boolean;
-
-    procedure SetKind(const pr: Integer);
-
   public
     constructor Create;
 
@@ -58,8 +54,7 @@ type
     function ProcessShortCut(const S: String): Boolean;
     function EncodeString: String;
     procedure DecodeString(const AString: String);
-
-    property Kind: TgsDatePeriodKind read FKind;
+    property Kind: TgsDatePeriodKind read FKind write FKind;
     property MaxDate: TDate read FMaxDate write FMaxDate;
     property MinDate: TDate read FMinDate write FMinDate;
     property Date: TDate read FDate write FDate;
@@ -84,7 +79,7 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
   end;
-
+    
 
 
   TgsPeriodShortCutEdit = class(TCustomEdit)
@@ -96,6 +91,7 @@ type
 
   protected
     procedure KeyUp(var Key: Word; Shift: TShiftState); override;
+
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -109,17 +105,18 @@ type
      FPeriodWind: TgsPeriodForm;
      FEdit: TgsPeriodShortCutEdit;
      FSpeedButton: TSpeedButton;
-     Kj: Integer;
+     RunShortCut: Boolean;
      FGuid : TGUID;
      Text :String;
      ShortCut : String[2];
+     Timer: TTimer;
   protected
+    procedure EditExit(Sender: TObject);
+    procedure OnMyTimer(Sender: TObject);
     procedure KeyPress(Sender: TObject; var Key: Char);
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
-    procedure CMMouseLeave(var Message: TMessage);
-      message CM_MOUSELEAVE;
     procedure Change(Sender: TObject);
-    procedure FOnExit(Sender: TObject);
+    procedure FormOnExit(Sender: TObject);
     procedure Loaded; override;
     procedure FormMouseDown(Sender: TObject; Button: TMouseButton;Shift: TShiftState; X, Y: Integer);
     procedure OnMouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; X, Y: Integer);
@@ -149,12 +146,12 @@ function ClickYear(const nx, ny: Integer): Integer;
 const
   YearFirst = 2009;
 begin
-  Result := YearFirst + ((ny - 1) * 4 + (nx - 1));
+  Result := YearFirst + ((nx - 1) * 4 + (ny - 1));
 end;
 
 function ClickMonth(const nx, ny: Integer): Integer;
 begin
-  Result := 1 + ((ny - 1) * 4 + (nx - 1));
+  Result := 1 + ((nx - 1) * 4 + (ny - 1));
 end;
 
 function DateAdd(DatePart: Char; AddNumber: Integer; CurrentDate: TDate): TDate;
@@ -283,11 +280,7 @@ begin
   inherited ;
   DecodeDate(SysUtils.Now, Year, FCalendarMonth, DataToday);
   MonthToday := FCalendarMonth;
-  FTodayDayWeek := DayOfWeek(SysUtils.Now);
-  if FTodayDayWeek = 1 then
-     FTodayDayWeek := 7
-  else
-     FTodayDayWeek := FTodayDayWeek - 1;
+  FTodayDayWeek := ISODayOfWeek(SysUtils.Now); 
    {DefCalendarState;   }
   FCalendarState :=  gscsDay;
   YearToday := Year;
@@ -320,8 +313,7 @@ const
 var
   I, J, X, Y, pF, prom  : Integer;
   R: TRect;
-  Size: TSize;
-
+  Size: TSize; 
 begin
   inherited;
   Canvas.Font.Name := 'Tahoma';
@@ -330,10 +322,10 @@ begin
   case FCalendarState of
     gscsYear:
        begin
-        Canvas.Brush.Style := bsSolid;
-        Canvas.Pen.Color := clWindow;
-        if b = false then
-        begin
+         Canvas.Brush.Style := bsSolid;
+         Canvas.Pen.Color := clWindow;
+         if b = false then
+         begin
            X := 0;
            for I := 1 to YearCellXCount do
            begin
@@ -351,7 +343,7 @@ begin
          end;
      end    else
      begin
-      Canvas.Brush.Color := clWindow;
+       Canvas.Brush.Color := clWindow;
        R := Rect((FlX - 1) * YearCellWidth, (FlY -2) * YearCellHeight +30 , (FlX - 1) * YearCellWidth + YearCellWidth, (FlY - 2) * YearCellHeight +30 + YearCellHeight);
        Canvas.FillRect(R);
        Size := Canvas.TextExtent(IntToStr(ClickYear(FlY - 1, FlX)));
@@ -366,29 +358,29 @@ begin
      end;
     end;
     gscsMonth:
-       Begin
-          Canvas.Brush.Style := bsSolid;
-          Canvas.Pen.Color := clWindow;
-          if b = false  then
-          Begin
-             X := 0;
-             for I := 1 to MonthCellXCount do
+       begin
+         Canvas.Brush.Style := bsSolid;
+         Canvas.Pen.Color := clWindow;
+         if b = false  then
+         begin
+           X := 0;
+           for I := 1 to MonthCellXCount do
+           begin
+             Y := 30;
+             for J := 1 to MonthCellYCount do
              begin
-               Y := 30;
-               for J := 1 to MonthCellYCount do
-               begin
-                 Canvas.Brush.Color := clWindow;
-                 R := Rect(X, Y, X + MonthCellWidth, Y + MonthCellHeight);
-                 Canvas.FillRect(R);
-                 Size := Canvas.TextExtent(Month[J,I]);
-                 Canvas.TextRect(R, X + ((MonthCellWidth - Size.cx) div 2), Y + ((MonthCellHeight - Size.cy) div 2), Month[J,I]);
-                 Inc(Y, MonthCellHeight);
-               end;
+               Canvas.Brush.Color := clWindow;
+               R := Rect(X, Y, X + MonthCellWidth, Y + MonthCellHeight);
+               Canvas.FillRect(R);
+               Size := Canvas.TextExtent(Month[J,I]);
+               Canvas.TextRect(R, X + ((MonthCellWidth - Size.cx) div 2), Y + ((MonthCellHeight - Size.cy) div 2), Month[J,I]);
+               Inc(Y, MonthCellHeight);
+             end;
             Inc(X, MonthCellWidth);
           end;
-    end   else
+    end  else
     if b = true then
-    Begin
+    begin
       Canvas.Brush.Color := clWindow;
       R := Rect((FlX - 1) * MonthCellWidth, (FlY - 2) * MonthCellHeight + 30, (FlX ) * MonthCellWidth , (FlY - 2) * MonthCellHeight + 30 + MonthCellHeight);
       Canvas.FillRect(R);
@@ -404,204 +396,201 @@ begin
   end;
     gscsDay:
        begin
-          pF := DayOfWeek(StrToDate('01.'+IntToStr(FCalendarMonth)+'.'+IntToStr(Year)));
-          if pF = 1 then
-             pF := 7
+         pF := ISODayOfWeek(StrToDate('01.'+IntToStr(FCalendarMonth)+'.'+IntToStr(Year)));
+         FNumberDay := 1;
+         prom := pF;
+         for I:=1 to 7 do
+         begin
+           for J:=prom to 7 do
+           begin
+             if FNumberDay > DaysInMonth(EncodeDate(Year, FCalendarMonth, 7)) then
+               FNumberDay := 1;
+             NumberDay[J,I] :=FNumberDay;
+             FNumberDay := FNumberDay + 1;
+           end;
+           prom:=1;
+          end;
+          if (FCalendarMonth - 1) <= 0 then
+            FNumberDay := 31
           else
-            pF := pF-1;
-          FNumberDay := 1;
-          prom := pF;
-          For I:=1 to 7 do
-          Begin
-             For J:=prom to 7 do
-             begin
-               if FNumberDay > DaysInMonth(EncodeDate(Year, FCalendarMonth, 7)) then
-                 FNumberDay := 1;
-               NumberDay[J,I] :=FNumberDay;
-               FNumberDay := FNumberDay + 1;
-             end;
-             prom:=1;
-             end;
-             if (FCalendarMonth - 1) <= 0 then
-                FNumberDay := 31
-             else
-                FNumberDay := DaysInMonth(EncodeDate(Year, FCalendarMonth - 1, 7));
-              For J:=1 to pF - 1 do
-              Begin
-                 NumberDay[pF - J,1] := FNumberDay;
-                 FNumberDay := FNumberDay - 1;
+            FNumberDay := DaysInMonth(EncodeDate(Year, FCalendarMonth - 1, 7));
+          for J:=1 to pF - 1 do
+          begin
+            NumberDay[pF - J,1] := FNumberDay;
+            FNumberDay := FNumberDay - 1;
+          end;
+          Canvas.Brush.Style := bsSolid;
+          Canvas.Pen.Color := clWindow;
+          if b = false then
+          begin
+            X := 0;
+            Y := 30;
+            for I := 1 to DayCellXCount do
+            begin
+              Canvas.Brush.Color := clWindow;
+              R := Rect(X, Y, X + DayCellWidth, Y + DayCellHeight);
+              Canvas.FillRect(R);
+              Canvas.TextRect(R, X , Y , Day[I]);
+              Inc(X, DayCellWidth);
+            end;
+            Y :=  DayCellHeight +30;
+            for I := 2 to DayCellYCount do
+            begin
+              X := 0;
+              for J := 1 to DayCellXCount do
+              begin
+                if (NumberDay[J ,I-1] = DataToday) and (Year = YearToday) and (MonthToday = FCalendarMonth) and (FTodayDayWeek = J) then
+                  Canvas.Brush.Color := clAqua
+                else
+                  Canvas.Brush.Color := clWindow;
+                R := Rect(X, Y, X + DayCellWidth, Y + DayCellHeight + 1);
+                Canvas.FillRect(R);
+                Size := Canvas.TextExtent(IntToStr(NumberDay[J ,I-1]));
+                Canvas.TextRect(R, X + ((DayCellWidth - Size.cx) div 2), Y + ((DayCellHeight - Size.cy) div 2),IntToStr(NumberDay[J ,I-1]));
+                Inc(X, DayCellWidth);
+                Inc(FNumberDay, 1);
               end;
-       Canvas.Brush.Style := bsSolid;
-       Canvas.Pen.Color := clWindow;
-    if b = false then
-    Begin
-     X := 0;
-     Y := 30;
-     for I := 1 to DayCellXCount do
-     begin
-        Canvas.Brush.Color := clWindow;
-        R := Rect(X, Y, X + DayCellWidth, Y + DayCellHeight);
-        Canvas.FillRect(R);
-        Canvas.TextRect(R, X , Y , Day[I]);
-        Inc(X, DayCellWidth);
-     end;
-     Y :=  DayCellHeight +30;
-     for I := 2 to DayCellYCount do
-     begin
-        X := 0;
-        for J := 1 to DayCellXCount do
+              Inc(Y, DayCellHeight);
+            end;
+        end    else
         begin
-          if (NumberDay[J ,I-1] = DataToday) and (Year = YearToday) and (MonthToday = FCalendarMonth) and (FTodayDayWeek = J) then
-             Canvas.Brush.Color := clAqua
-          else
+          if (FlY > 2) and (NY > 2) then
+          begin
             Canvas.Brush.Color := clWindow;
-            R := Rect(X, Y, X + DayCellWidth, Y + DayCellHeight + 1);
+            R := Rect((FlX - 1) * DayCellWidth, (FlY - 2) * DayCellHeight  + 30 , (FlX ) * DayCellWidth, (FlY - 1) * DayCellHeight + 30);
             Canvas.FillRect(R);
-            Size := Canvas.TextExtent(IntToStr(NumberDay[J ,I-1]));
-            Canvas.TextRect(R, X + ((DayCellWidth - Size.cx) div 2), Y + ((DayCellHeight - Size.cy) div 2),IntToStr(NumberDay[J ,I-1]));
-            Inc(X, DayCellWidth);
-            Inc(FNumberDay, 1);
-         end;
-       Inc(Y, DayCellHeight);
-      end;
-     end    else
-     Begin
-       if (FlY > 2) and (NY > 2) then
-       begin
-         Canvas.Brush.Color := clWindow;
-         R := Rect((FlX - 1) * DayCellWidth, (FlY - 2) * DayCellHeight  + 30 , (FlX ) * DayCellWidth, (FlY - 1) * DayCellHeight + 30);
-         Canvas.FillRect(R);
-         Size := Canvas.TextExtent(IntToStr(NumberDay[FlX  , FlY - 2]));
-         Canvas.TextRect(R, (FlX - 1) * DayCellWidth + ((DayCellWidth - Size.cx) div 2)  , (FlY - 2) * DayCellHeight + 30 + ((DayCellHeight -Size.cy) div 2),IntToStr(NumberDay[FlX  , FlY - 2]));
+            Size := Canvas.TextExtent(IntToStr(NumberDay[FlX  , FlY - 2]));
+            Canvas.TextRect(R, (FlX - 1) * DayCellWidth + ((DayCellWidth - Size.cx) div 2)  , (FlY - 2) * DayCellHeight + 30 + ((DayCellHeight -Size.cy) div 2),IntToStr(NumberDay[FlX  , FlY - 2]));
 
 
-         Canvas.Brush.Color := $00FFFF99;
-         R := Rect((NX - 1) * DayCellWidth, (NY - 2) * DayCellHeight  + 30 , (NX ) * DayCellWidth, (NY - 1) * DayCellHeight + 30);
-         Canvas.FillRect(R);
-         Size := Canvas.TextExtent(IntToStr(NumberDay[NX  , NY - 2]));
-         Canvas.TextRect(R, (NX - 1) * DayCellWidth + ((DayCellWidth - Size.cx) div 2)  , (NY - 2) * DayCellHeight + 30 + ((DayCellHeight -Size.cy) div 2),IntToStr(NumberDay[NX  , NY - 2]));
+            Canvas.Brush.Color := $00FFFF99;
+            R := Rect((NX - 1) * DayCellWidth, (NY - 2) * DayCellHeight  + 30 , (NX ) * DayCellWidth, (NY - 1) * DayCellHeight + 30);
+            Canvas.FillRect(R);
+            Size := Canvas.TextExtent(IntToStr(NumberDay[NX  , NY - 2]));
+            Canvas.TextRect(R, (NX - 1) * DayCellWidth + ((DayCellWidth - Size.cx) div 2)  , (NY - 2) * DayCellHeight + 30 + ((DayCellHeight -Size.cy) div 2),IntToStr(NumberDay[NX  , NY - 2]));
+          end;
        end;
      end;
-  end;
  end;
   if  (b = false) and (FCalendarState = gscsYear)  then
   begin
-     Canvas.Brush.Color := clWindow;
-     Canvas.Brush.Style := bsSolid;
-     R := Rect(0, 0, 147 , 30 );
-     Canvas.FillRect(R);
-     Size:=Canvas.TextExtent('2009-2020');
-     Canvas.TextOut((147 - Size.cx) div 2,(30 - Size.cy) div 2,'2009-2020');
+    Canvas.Brush.Color := clWindow;
+    Canvas.Brush.Style := bsSolid;
+    R := Rect(0, 0, 147 , 30 );
+    Canvas.FillRect(R);
+    Size:=Canvas.TextExtent('2009-2020');
+    Canvas.TextOut((147 - Size.cx) div 2,(30 - Size.cy) div 2,'2009-2020');
   end;
   if (b = false) and (FCalendarState = gscsMonth)  then
   begin
-     Canvas.Brush.Color := clWindow;
-     Canvas.Brush.Style := bsSolid;
-     R := Rect(0, 0, 147 , 30 );
-     Canvas.FillRect(R);
-     Canvas.Pen.Color := clBlack;
-     Canvas.MoveTo(10, 11);
-     Canvas.LineTo(10, 18);
-     Canvas.LineTo(5, 15);
-     Canvas.LineTo(10, 11);
-     Canvas.MoveTo(137, 11);
-     Canvas.LineTo(137, 18);
-     Canvas.LineTo(142, 15);
-     Canvas.LineTo(137, 11);
-     Canvas.Brush.Color := clBlack;
-     Canvas.FloodFill(8,15,clWhite,fsSurface);
-     Canvas.FloodFill(139,15,clWhite,fsSurface);
-     Canvas.Brush.Color := clWhite;
-     Size := Canvas.TextExtent(IntToStr(Year));
-     Canvas.TextOut((147 - Size.cx) div 2,(30 - Size.cy) div 2,IntToStr(Year));
+    Canvas.Brush.Color := clWindow;
+    Canvas.Brush.Style := bsSolid;
+    R := Rect(0, 0, 147 , 30 );
+    Canvas.FillRect(R);
+    Canvas.Pen.Color := clBlack;
+    Canvas.MoveTo(10, 11);
+    Canvas.LineTo(10, 18);
+    Canvas.LineTo(5, 15);
+    Canvas.LineTo(10, 11);
+    Canvas.MoveTo(137, 11);
+    Canvas.LineTo(137, 18);
+    Canvas.LineTo(142, 15);
+    Canvas.LineTo(137, 11);
+    Canvas.Brush.Color := clBlack;
+    Canvas.FloodFill(8,15,clWhite,fsSurface);
+    Canvas.FloodFill(139,15,clWhite,fsSurface);
+    Canvas.Brush.Color := clWhite;
+    Size := Canvas.TextExtent(IntToStr(Year));
+    Canvas.TextOut((147 - Size.cx) div 2,(30 - Size.cy) div 2,IntToStr(Year));
   end;
   if (b = false) and (FCalendarState = gscsDay) then
   begin
-     Canvas.Brush.Color := clWindow;
-     Canvas.Brush.Style := bsSolid;
-     R := Rect(0, 0, 147 , 30 );
-     Canvas.FillRect(R);
-     Canvas.Pen.Color := clBlack;
-     Canvas.MoveTo(10, 11);
-     Canvas.LineTo(10, 18);
-     Canvas.LineTo(5, 15);
-     Canvas.LineTo(10, 11);
-     Canvas.MoveTo(137, 11);
-     Canvas.LineTo(137, 18);
-     Canvas.LineTo(142, 15);
-     Canvas.LineTo(137, 11);
-     Canvas.Brush.Color := clBlack;
-     Canvas.FloodFill(8,15,clWhite,fsSurface);
-     Canvas.FloodFill(139,15,clWhite,fsSurface);
-     Canvas.Brush.Color := clWhite;
-     Size := Canvas.TextExtent(PanelMonth[FCalendarMonth]+ '  ' + IntToStr(Year));
-     Canvas.TextOut((147 - Size.cx) div 2,(30 - Size.cy) div 2,PanelMonth[FCalendarMonth]+ '  ' + IntToStr(Year));
+    Canvas.Brush.Color := clWindow;
+    Canvas.Brush.Style := bsSolid;
+    R := Rect(0, 0, 147 , 30 );
+    Canvas.FillRect(R);
+    Canvas.Pen.Color := clBlack;
+    Canvas.MoveTo(10, 11);
+    Canvas.LineTo(10, 18);
+    Canvas.LineTo(5, 15);
+    Canvas.LineTo(10, 11);
+    Canvas.MoveTo(137, 11);
+    Canvas.LineTo(137, 18);
+    Canvas.LineTo(142, 15);
+    Canvas.LineTo(137, 11);
+    Canvas.Brush.Color := clBlack;
+    Canvas.FloodFill(8,15,clWhite,fsSurface);
+    Canvas.FloodFill(139,15,clWhite,fsSurface);
+    Canvas.Brush.Color := clWhite;
+    Size := Canvas.TextExtent(PanelMonth[FCalendarMonth]+ '  ' + IntToStr(Year));
+    Canvas.TextOut((147 - Size.cx) div 2,(30 - Size.cy) div 2,PanelMonth[FCalendarMonth]+ '  ' + IntToStr(Year));
   end;
 end;
 
 
 procedure TgsCalendarPanel.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-inherited MouseDown(Button, Shift, X, Y);
-    b := false;
-    FlX := 2;
-    FlY := 2;
-    Vid := false;
+  inherited MouseDown(Button, Shift, X, Y);
+  b := false;
+  FlX := 2;
+  FlY := 2;
+  Vid := false;
 
   if (FCalendarState = gscsMonth) and (Y > 30) and (VibPeriod <> 2) and (VibPeriod <>3) then
   begin
     FCalendarState := gscsDay;
     FCalendarMonth := ClickMonth(((Y-30) div 37) + 1, (X div 35) + 1);
-  end else
-   if (VibPeriod = 2) or (VibPeriod = 3)  then
-       FCalendarMonth := ClickMonth(((Y-30) div 37) + 1, (X div 35) + 1);
+  end
+  else
+    if (VibPeriod = 2) or (VibPeriod = 3)  then
+      FCalendarMonth := ClickMonth(((Y-30) div 37) + 1, (X div 35) + 1);
   if  (FCalendarState = gscsYear) and (Y > 30) and (VibPeriod <> 1)  then
   begin
     FCalendarState := gscsMonth;
     Year := ClickYear(((Y-30) div 37) + 1, (X div 35) + 1);
-  end else
-   if VibPeriod = 1 then
-        Year := ClickYear(((Y-30) div 37) + 1, (X div 35) + 1);
-
+  end
+  else
+    if VibPeriod = 1 then
+      Year := ClickYear(((Y-30) div 37) + 1, (X div 35) + 1);
   if (FCalendarState = gscsMonth) and ((X < 30) and (Y < 30)) then
-     Year := Year - 1
+    Year := Year - 1
   else
   if (FCalendarState = gscsMonth) and ((X > 120) and (Y < 30)) then
-     Year := Year + 1;
-
+    Year := Year + 1;
   if  (FCalendarState = gscsDay) and ((X < 30) and (Y <27)) then
   begin
-     FCalendarMonth := FCalendarMonth - 1;
-     if FCalendarMonth <= 0 then
-     begin
-       FCalendarMonth := 12;
-       Year := Year - 1;
-     end;
-  end else
-  if  (FCalendarState = gscsDay) and ((X > 120) and (Y <27)) then
-  begin
-    FCalendarMonth := FCalendarMonth + 1;
-    if FCalendarMonth > 12 then
+    FCalendarMonth := FCalendarMonth - 1;
+    if FCalendarMonth <= 0 then
     begin
-      Year := Year + 1;
-      FCalendarMonth := 1;
+      FCalendarMonth := 12;
+      Year := Year - 1;
     end;
-  end;
+  end
+  else
+    if  (FCalendarState = gscsDay) and ((X > 120) and (Y <27)) then
+    begin
+      FCalendarMonth := FCalendarMonth + 1;
+      if FCalendarMonth > 12 then
+      begin
+        Year := Year + 1;
+        FCalendarMonth := 1;
+      end;
+    end;
   if (FCalendarState = gscsDay) and (X >30) and (X < 120) and (Y < 27) then
-        FCalendarState := gscsMonth
+    FCalendarState := gscsMonth
   else
     if  (FCalendarState = gscsMonth) and (X >30) and (X < 120) and (Y < 27) then
-           FCalendarState := gscsYear;
+      FCalendarState := gscsYear;
   paint;
 end;
 
 
 procedure TgsCalendarPanel.MouseMove(Shift: TShiftState; X, Y: Integer);
 begin
-inherited MouseMove(Shift, X, Y);
+  inherited MouseMove(Shift, X, Y);
 end;
 
-procedure TgsCalendarpanel.WMMouseMove(var Message: TWMMouseMove);
+procedure TgsCalendarPanel.WMMouseMove(var Message: TWMMouseMove);
 begin
   inherited ;
   XX := Message.XPos;
@@ -614,43 +603,43 @@ begin
       FlX := NX;
       FlY := NY;
     end;
-    if (YY < 30) or((FCalendarState = gscsday) and (FlY <= 2) and (NY <= 2)) then
-    begin
-      b := false;
-      paint;
-      FlX := 3;
-      FlY := 5;
-    end  
+  if (YY < 30) or((FCalendarState = gscsday) and (FlY <= 2) and (NY <= 2)) then
+  begin
+    b := false;
+    paint;
+    FlX := 3;
+    FlY := 5;
+  end
 end;
 
 function TgsCalendarPanel.ControlVid( Var X,Y:Integer):boolean;
 begin
   if Y > 30 then
-    case FCalendarState of
+  case FCalendarState of
     gscsYear:
-       begin
-         NX := (X div 37) + 1;
-         NY := ((Y - 30) div 35) + 2;
-         Result := true;
-        end;
+    begin
+      NX := (X div 37) + 1;
+      NY := ((Y - 30) div 35) + 2;
+      Result := true;
+    end;
     gscsMonth:
-        begin
-          Result := true;
-          NX := (X div 37) + 1;
-          NY := ((Y - 30) div 35) + 2;
-        end;
+    begin
+      Result := true;
+      NX := (X div 37) + 1;
+      NY := ((Y - 30) div 35) + 2;
+    end;
     gscsDay:
-        begin
-          NX := (X div 21) + 1;
-          NY := ((Y-30) div 15) + 2;
-          Result := true;
-        end;
-      end   else
-      begin
-        Result := false;
-        FlX := 3;
-        FlY := 4;
-      end;
+    begin
+      NX := (X div 21) + 1;
+      NY := ((Y-30) div 15) + 2;
+      Result := true;
+    end;
+    end   else
+    begin
+      Result := false;
+      FlX := 3;
+      FlY := 4;
+    end;
 end;
 
 procedure TgsCalendarPanel.CMMouseLeave(var Message: TMessage);
@@ -687,245 +676,227 @@ end;
 
 procedure  TgsPeriodform.Paint;
 const
-   GodX = 10;
-   GodY = 28;
-   MonthX = 10;
-   MonthY = 57;
-   KvartX = 10;
-   KvartY = 82;
-   DayX =  10;
-   DayY =  107;
-   PeriodX = 10;
-   PeriodY = 132;
-   HistoryX =10;
-   HistoryY = 157;
+  GodX = 10;
+  GodY = 28;
+  MonthX = 10;
+  MonthY = 57;
+  KvartX = 10;
+  KvartY = 82;
+  DayX =  10;
+  DayY =  107;
+  PeriodX = 10;
+  PeriodY = 132;
+  HistoryX =10;
+  HistoryY = 157;
 var
-   Size : TSize;
-   Str, ss, sss:String;
-   Reg: TRegistry;
-   I, K, DateX, DateY: Word;
+  Size : TSize;
+  Str, ss, sss:String;
+  Reg: TRegistry;
+  I, K, DateX, DateY: Word;
 begin
-     Canvas.Brush.Color := clWhite;
-     Canvas.Brush.Style := bsSolid;
-
-     Canvas.Font.Size := 12;
-     Size := Canvas.TextExtent('Год');
-     if NumberPeriod = 1 then
-     begin
-
-       Canvas.Pen.Color := clWhite;
-       Canvas.Brush.Color := clWhite;
-       Canvas.Font.Size := 8;
-       Canvas.Rectangle(86, 171,240,188);
-       Canvas.TextOut(90,171,'Текущий год :' + IntToStr(FObjPanel1.YearToday) + 'г.');
-       Canvas.Brush.Color := clRed;
-       Canvas.Pen.Color := clRed;
-        Canvas.Font.Size := 12;
-     end else
-     begin
-       Canvas.Brush.Color := clWhite;
-       Canvas.Pen.Color := clWhite;
-     end;
-       Canvas.Rectangle(GodX, GodY, GodX + 75, GodY + Size.cy + 10);
-       Canvas.TextOut(GodX, GodY, 'Год');
-       Canvas.Brush.Color :=clWhite;
-       if NumberPeriod = 2 then
-     begin
-       Canvas.Brush.Color := clWindow;
-       Canvas.Rectangle(86, 171,240,188);
-       Canvas.Pen.Color := clRed;
-       Canvas.Font.Size := 8;
-       Canvas.TextOut(90,171,'Месяц:' + PanelMonth[FObjPanel1.MonthToday] + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
-        Canvas.Brush.Color := clRed;
-        Canvas.Font.Size := 12
-     end  else
-     begin
-       Canvas.Brush.Color := clWhite;
-       Canvas.Pen.Color := clWhite;
-     end;
-       Canvas.Rectangle(MonthX, MonthY, MonthX + 75, MonthY + Size.cy + 11);
-       Canvas.TextOut(MonthX, MonthY, 'Месяц');
-
-     if NumberPeriod = 3 then
-     begin
-        Canvas.Pen.Color := clWhite;
-       Canvas.Brush.Color := clWhite;
-
-       Canvas.Font.Size := 8;
-       Canvas.Rectangle(86, 171,240,188);
-       case FObjPanel1.MonthToday of
-         1..3:
-         begin
-          Canvas.TextOut(90,171,'Квартал:' + '1кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
-         end;
-         4..6:
-         begin
-           Canvas.TextOut(90,171,'Квартал:' + '2кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
-         end;
-         7..9:
-         begin
-           Canvas.TextOut(90,171,'Квартал:' + '3кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
-         end;
-         10..12:
-         begin
-           Canvas.TextOut(90,171,'Квартал:' + '4кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
-         end;
-       end;
-       Canvas.Pen.Color := clRed;
-        Canvas.Brush.Color := clRed;
-        Canvas.Font.Size := 12
-     end  else
-     begin
-       Canvas.Brush.Color := clWhite;
-       Canvas.Pen.Color := clWhite;
-     end;
-
-       Canvas.Rectangle(KvartX, KvartY, KvartX + 75, KvartY + Size.cy + 10);
-       Canvas.TextOut(KvartX, KvartY, 'Квартал');
-       Canvas.Brush.Color := clWhite;
-
-     if NumberPeriod = 4 then
-     begin
-       Canvas.Brush.Color := clWhite;
-       Canvas.Pen.Color := clWhite;
-       Canvas.Font.Size := 8;
-       Canvas.Rectangle(86, 171,240,188);
-       Canvas.TextOut(90,171,'Сегодня: ' + DateToStr(SysUtils.Now) + 'г.');
-       Canvas.Brush.Color := clRed;
-       Canvas.Pen.Color := clRed;
-        Canvas.Font.Size := 12;
-     end  else
-     begin
-       Canvas.Brush.Color := clWhite;
-       Canvas.Pen.Color := clWhite;
-     end;
-
-       Canvas.Rectangle(DayX, DayY, DayX + 75, DayY + Size.cy + 10);
-       Canvas.TextOut(DayX, DayY, 'День');
-       Canvas.Brush.Color := clWhite;
-
-     if NumberPeriod = 5 then
-     begin
-
-       Canvas.Font.Size := 8;
-       Canvas.Rectangle(86, 171,410,188);
-       Canvas.TextOut(88,171,'Сегодня: ' + DateToStr(SysUtils.Now) + 'г.');
-       Canvas.TextOut(300,171,'Сегодня: ' + DateToStr(SysUtils.Now) + 'г.');
-       Canvas.Brush.Color := clWhite;
-       Canvas.Pen.Color := clWhite;
-       Canvas.Rectangle(241, 33,258,163);
-       Canvas.Brush.Color := clRed;
-       Canvas.Pen.Color := clRed;
-        Canvas.Font.Size := 12;
-     end  else
-     begin
-       Canvas.Brush.Color := clWhite;
-       Canvas.Pen.Color := clWhite;
-     end;
-       Canvas.Rectangle(PeriodX, PeriodY, PeriodX + 75, PeriodY + Size.cy+6);
-       Canvas.TextOut(PeriodX, PeriodY, 'Период');
-
-     if (NumberPeriod <> 0) and (NumberPeriod <> 5) and (NumberPeriod <> 6) then
-     begin
-
-       Canvas.MoveTo(86, 27);
-       Canvas.Brush.Color := clRed;
-       Canvas.Pen.Color := clRed;
-       Canvas.Pen.Width := 6;
-       Canvas.LineTo(241, 26);
-       Canvas.LineTo(241, 168);
-       Canvas.LineTo(86, 168);
-       Canvas.LineTo(86, 27);
-       Canvas.MoveTo(245, 27);
-       Canvas.Brush.Color := clWhite;
-       Canvas.Pen.Color := clWhite;
-       Canvas.Pen.Width := 6;
-       Canvas.LineTo(410, 26);
-       Canvas.LineTo(410, 168);
-       Canvas.LineTo(245, 168);
-
-     end else
-      begin
-       Canvas.MoveTo(86, 27);
-       Canvas.Brush.Color := clWindow;
-       Canvas.Pen.Color :=clWindow;
-       Canvas.Pen.Width := 6;
-       Canvas.LineTo(235, 26);
-       Canvas.LineTo(235, 168);
-       Canvas.LineTo(86, 168);
-       Canvas.LineTo(86, 27);
-
-     if (NumberPeriod = 5) or (NumberPeriod = 6) then
-      begin
-        Canvas.MoveTo(86, 27);
-        Canvas.Brush.Color := clRed;
-        Canvas.Pen.Color := clRed;
-        Canvas.Pen.Width := 6;
-        Canvas.LineTo(410, 26);
-        Canvas.LineTo(410, 168);
-        Canvas.LineTo(86, 168);
-        Canvas.LineTo(86, 27);
-      end
-
+  Canvas.Brush.Color := clWhite;
+  Canvas.Brush.Style := bsSolid;
+  Canvas.Font.Size := 12;
+  Size := Canvas.TextExtent('Год');
+  if NumberPeriod = 1 then
+  begin
+    Canvas.Pen.Color := clWhite;
+    Canvas.Brush.Color := clWhite;
+    Canvas.Font.Size := 8;
+    Canvas.Rectangle(86, 171,240,188);
+    Canvas.TextOut(90,171,'Текущий год :' + IntToStr(FObjPanel1.YearToday) + 'г.');
+    Canvas.Brush.Color := clRed;
+    Canvas.Pen.Color := clRed;
+    Canvas.Font.Size := 12;
+  end else
+  begin
+    Canvas.Brush.Color := clWhite;
+    Canvas.Pen.Color := clWhite;
+  end;
+  Canvas.Rectangle(GodX, GodY, GodX + 75, GodY + Size.cy + 10);
+  Canvas.TextOut(GodX, GodY, 'Год');
+  Canvas.Brush.Color :=clWhite;
+  if NumberPeriod = 2 then
+  begin
+    Canvas.Brush.Color := clWindow;
+    Canvas.Rectangle(86, 171,240,188);
+    Canvas.Pen.Color := clRed;
+    Canvas.Font.Size := 8;
+    Canvas.TextOut(90,171,'Месяц:' + PanelMonth[FObjPanel1.MonthToday] + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
+    Canvas.Brush.Color := clRed;
+    Canvas.Font.Size := 12
+  end  else
+  begin
+    Canvas.Brush.Color := clWhite;
+    Canvas.Pen.Color := clWhite;
+  end;
+  Canvas.Rectangle(MonthX, MonthY, MonthX + 75, MonthY + Size.cy + 11);
+  Canvas.TextOut(MonthX, MonthY, 'Месяц');
+  if NumberPeriod = 3 then
+  begin
+    Canvas.Pen.Color := clWhite;
+    Canvas.Brush.Color := clWhite;
+    Canvas.Font.Size := 8;
+    Canvas.Rectangle(86, 171,240,188);
+    case FObjPanel1.MonthToday of
+    1..3:
+    begin
+      Canvas.TextOut(90,171,'Квартал:' + '1кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
     end;
-   if NumberPeriod = 6 then
-     begin
-       Canvas.Brush.Color := clWhite;
-       Canvas.Pen.Color := clWhite;
-       Canvas.Rectangle(93, 33,404,164);
-       Canvas.Rectangle(86, 173,410,188);
-
-       Reg:= TRegistry.Create;
-       try
-       Reg.RootKey:= HKEY_CURRENT_USER;
-       Reg.OpenKey('\Software\Golden Software\Gedemin\Client\CurrentVersion\TgsCalendarEdit', false);
-       Str := Reg.ReadString('{741D1779-CE77-4843-808F-796DE1BCBB3E}');
-       finally
-       Reg.Free;
-       end;
-       I := 2;
-       if Str <> '' then
-       begin
-         DateX := 93;
-         DateY := 35;
-         for K:=1 to 4 do
-         begin
-           if Str = '' then
-             break;
-          While Str[I] <> '"' do
-            I := I + 1;
-         ss := copy(Str,2,I - 2) + '  ';
-         if  K = 1 then
-         sss := ss
-         else
-         begin
-           Canvas.TextOut(DateX,DateY,sss + '  ' + ss);
-           DateY := DateY + 23;
-         end;
-           Str := copy(Str,I + 2,Length(Str));
-           I:= 2;
+    4..6:
+    begin
+      Canvas.TextOut(90,171,'Квартал:' + '2кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
+    end;
+    7..9:
+    begin
+      Canvas.TextOut(90,171,'Квартал:' + '3кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
+    end;
+    10..12:
+    begin
+      Canvas.TextOut(90,171,'Квартал:' + '4кв.' + '  ' + IntToStr(FObjPanel1.YearToday)+'г.');
+    end;
+    end;
+    Canvas.Pen.Color := clRed;
+    Canvas.Brush.Color := clRed;
+    Canvas.Font.Size := 12
+  end  else
+  begin
+    Canvas.Brush.Color := clWhite;
+    Canvas.Pen.Color := clWhite;
+  end;
+  Canvas.Rectangle(KvartX, KvartY, KvartX + 75, KvartY + Size.cy + 10);
+  Canvas.TextOut(KvartX, KvartY, 'Квартал');
+  Canvas.Brush.Color := clWhite;
+  if NumberPeriod = 4 then
+  begin
+    Canvas.Brush.Color := clWhite;
+    Canvas.Pen.Color := clWhite;
+    Canvas.Font.Size := 8;
+    Canvas.Rectangle(86, 171,240,188);
+    Canvas.TextOut(90,171,'Сегодня: ' + DateToStr(SysUtils.Now) + 'г.');
+    Canvas.Brush.Color := clRed;
+    Canvas.Pen.Color := clRed;
+    Canvas.Font.Size := 12;
+  end  else
+  begin
+    Canvas.Brush.Color := clWhite;
+    Canvas.Pen.Color := clWhite;
+  end;
+  Canvas.Rectangle(DayX, DayY, DayX + 75, DayY + Size.cy + 10);
+  Canvas.TextOut(DayX, DayY, 'День');
+  Canvas.Brush.Color := clWhite;
+  if NumberPeriod = 5 then
+  begin
+    Canvas.Brush.Color := clWhite;
+    Canvas.Pen.Color := clWhite;
+    Canvas.Font.Size := 8;
+    Canvas.Rectangle(86, 171,410,188);
+    Canvas.TextOut(88,171,'Сегодня: ' + DateToStr(SysUtils.Now) + 'г.');
+    Canvas.TextOut(300,171,'Сегодня: ' + DateToStr(SysUtils.Now) + 'г.');
+    Canvas.Rectangle(241, 33,258,163);
+    Canvas.Brush.Color := clRed;
+    Canvas.Pen.Color := clRed;
+    Canvas.Font.Size := 12;
+  end  else
+  begin
+    Canvas.Brush.Color := clWhite;
+    Canvas.Pen.Color := clWhite;
+  end;
+  Canvas.Rectangle(PeriodX, PeriodY, PeriodX + 75, PeriodY + Size.cy+6);
+  Canvas.TextOut(PeriodX, PeriodY, 'Период');
+  if (NumberPeriod <> 0) and (NumberPeriod <> 5) and (NumberPeriod <> 6) then
+  begin
+    Canvas.MoveTo(86, 27);
+    Canvas.Brush.Color := clRed;
+    Canvas.Pen.Color := clRed;
+    Canvas.Pen.Width := 6;
+    Canvas.LineTo(241, 26);
+    Canvas.LineTo(241, 168);
+    Canvas.LineTo(86, 168);
+    Canvas.LineTo(86, 27);
+    Canvas.MoveTo(245, 27);
+    Canvas.Brush.Color := clWhite;
+    Canvas.Pen.Color := clWhite;
+    Canvas.Pen.Width := 6;
+    Canvas.LineTo(410, 26);
+    Canvas.LineTo(410, 168);
+    Canvas.LineTo(245, 168);
+  end else
+  begin
+    Canvas.MoveTo(86, 27);
+    Canvas.Brush.Color := clWindow;
+    Canvas.Pen.Color :=clWindow;
+    Canvas.Pen.Width := 6;
+    Canvas.LineTo(235, 26);
+    Canvas.LineTo(235, 168);
+    Canvas.LineTo(86, 168);
+    Canvas.LineTo(86, 27);
+    if (NumberPeriod = 5) or (NumberPeriod = 6) then
+    begin
+      Canvas.MoveTo(86, 27);
+      Canvas.Brush.Color := clRed;
+      Canvas.Pen.Color := clRed;
+      Canvas.Pen.Width := 6;
+      Canvas.LineTo(410, 26);
+      Canvas.LineTo(410, 168);
+      Canvas.LineTo(86, 168);
+      Canvas.LineTo(86, 27);
+    end
+  end;
+  if NumberPeriod = 6 then
+  begin
+    Canvas.Brush.Color := clWhite;
+    Canvas.Pen.Color := clWhite;
+    Canvas.Rectangle(93, 33,404,164);
+    Canvas.Rectangle(86, 173,410,188);
+    Reg:= TRegistry.Create;
+    try
+      Reg.RootKey:= HKEY_CURRENT_USER;
+      Reg.OpenKey('\Software\Golden Software\Gedemin\Client\CurrentVersion\TgsCalendarEdit', false);
+      Str := Reg.ReadString('{741D1779-CE77-4843-808F-796DE1BCBB3E}');
+    finally
+      Reg.Free;
+    end;
+    I := 2;
+    if Str <> '' then
+    begin
+      DateX := 93;
+      DateY := 35;
+      for K:=1 to 4 do
+      begin
+        if Str = '' then
+          break;
+        While Str[I] <> '"' do
+          I := I + 1;
+        ss := copy(Str,2,I - 2) + '  ';
+        if  K = 1 then
+          sss := ss
+        else
+        begin
+          Canvas.TextOut(DateX,DateY,sss + '  ' + ss);
+          DateY := DateY + 23;
+        end;
+        Str := copy(Str,I + 2,Length(Str));
+        I:= 2;
        end;
      end;
-        Canvas.Brush.Color := clRed;
-        Canvas.Pen.Color := clRed;
+     Canvas.Brush.Color := clRed;
+     Canvas.Pen.Color := clRed;
      end  else
      begin
        Canvas.Brush.Color := clWhite;
        Canvas.Pen.Color := clWhite;
-     end ;
-
+     end;
        Canvas.Rectangle(HistoryX, HistoryY + 5, HistoryX + 70, HistoryY + Size.cy + 10);
        Canvas.TextOut(HistoryX, HistoryY + 5, 'История');
        Canvas.Brush.Color := clWhite;
-
-
 end;
 procedure TgsPeriodForm.WMActivate(var Message: TWMActivate);
 begin
-    if Message.Active = WA_INACTIVE then
-    begin
-      Hide;
-    end;
+  if Message.Active = WA_INACTIVE then
+  begin
+    Hide;
+  end;
 end;
 
 procedure TgsPeriodForm.MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -935,7 +906,7 @@ end;
 
 procedure TgsPeriodForm.CreateParams(var Params: TCreateParams);
 begin
- inherited CreateParams(Params);
+  inherited CreateParams(Params);
   with Params do
   begin
     Style :=WS_POPUP;
@@ -964,6 +935,7 @@ begin
   FEdit.Width := 160;
   FEdit.OnChange := Change;
   FEdit.OnKeyPress := KeyPress;
+  FEdit.OnExit := EditExit;
   FSpeedButton := TSpeedButton.Create(Self);
   FSpeedButton.Caption := '';
   FSpeedButton.Width := 19;
@@ -975,7 +947,6 @@ begin
 
   Width := FEdit.Width + FSpeedButton.Width;
   Height := FEdit.Height;
-  Kj := 0;
   FPeriodWind := TgsPeriodForm.Create(Self);
   FPeriodWind.Parent := Self ;
   FPeriodWind.OnMouseDown := FormMouseDown;
@@ -983,27 +954,23 @@ begin
   FPeriodWind.OnKeyDown := OnKeyDown;
   FPeriodWind.FObjPanel1.OnMouseUp := OnMouseDown;
   FPeriodWind.FObjPanel2.OnMouseUp := OnMouseUp;
-  FPeriodWind.OnExit := FOnExit;
+  FPeriodWind.OnExit := FormOnExit;
   if (csDesigning in ComponentState) and (not (csLoading in ComponentState)) then
      GUID := StringToGUID(CreateClassID());
 
   ShortCut := '';
-
-
+  RunShortCut := false;
 end;
 procedure TgsPeriodEdit.OnMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
- var
-  pr : Integer;
 begin
-
   case  FPeriodWind.NumberPeriod of
    1:
    if Y > 30 then
    begin
-      FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.Year);
-      FPeriodWind.FObjPanel2.Year := FPeriodWind.FObjPanel1.Year;
-      FPeriodWind.Hide;
+     FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.Year);
+     FPeriodWind.FObjPanel2.Year := FPeriodWind.FObjPanel1.Year;
+     FPeriodWind.Hide;
    end;
    2:
    if  (FPeriodWind.FObjPanel1.FCalendarState = gscsMonth) and (Y > 30)  then
@@ -1011,13 +978,10 @@ begin
      FEdit.Text :=IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.'  + IntToStr(FPeriodWind.FObjPanel1.Year);
      DatePeriod.Month := FPeriodWind.FObjPanel1.FCalendarMonth;
      FPeriodWind.Hide;
-
    end;
    3: if  (Y > 30) then
        begin
          FPeriodWind.FObjPanel1.FCalendarState := gscsMonth;
-         pr := 2;
-         DatePeriod.SetKind(pr);
          case FPeriodWind.FObjPanel1.FCalendarMonth of
          1..3:
            FEdit.Text := '01.01.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-' + '31.03.' + IntToStr(FPeriodWind.FObjPanel1.Year);
@@ -1028,35 +992,32 @@ begin
          10..12:
            FEdit.Text := '01.10.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-' + '31.12.' + IntToStr(FPeriodWind.FObjPanel1.Year);
          end;
-       FPeriodWind.Hide;
-        end;
-
+         FPeriodWind.Hide;
+       end;
    4:
    if (FPeriodWind.FObjPanel1.FCalendarState = gscsDay) and (Y > 30) then
-     begin
-       FEdit.Text := DateToStr(EncodeDate(FPeriodWind.FObjPanel1.Year, FPeriodWind.FObjPanel1.FCalendarMonth, FPeriodWind.FObjPanel1.DataToday));
-       DatePeriod.Day := FPeriodWind.FObjPanel1.DataToday;
-       FPeriodWind.Hide;
-      end;
+   begin
+     FEdit.Text := DateToStr(EncodeDate(FPeriodWind.FObjPanel1.Year, FPeriodWind.FObjPanel1.FCalendarMonth, FPeriodWind.FObjPanel1.DataToday));
+     DatePeriod.Day := FPeriodWind.FObjPanel1.DataToday;
+     FPeriodWind.Hide;
    end;
-
+  end;
 end;
 
 procedure TgsPeriodEdit.OnMouseUp(Sender: TObject; Button: TMouseButton;Shift: TShiftState; X, Y: Integer);
 begin
+  if (FPeriodWind.NumberPeriod = 5) and (FPeriodWind.FObjPanel2.FCalendarState = gscsDay) and ( Y > 30) then
+  begin
+    if  FPeriodWind.FObjPanel1.FCalendarMonth - 10 < 0 then
+      FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.DataToday)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-'
+    else
+      FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.DataToday)+ '.' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-';
 
- if (FPeriodWind.NumberPeriod = 5) and (FPeriodWind.FObjPanel2.FCalendarState = gscsDay) and ( Y > 30) then
- begin
-  if  FPeriodWind.FObjPanel1.FCalendarMonth - 10 < 0 then
-   FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.DataToday)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-'
-  else
-    FEdit.Text := IntToStr(FPeriodWind.FObjPanel1.DataToday)+ '.' + IntToStr(FPeriodWind.FObjPanel1.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel1.Year) + '-';
-
-  if   FPeriodWind.FObjPanel2.FCalendarMonth - 10 < 0 then
+  if FPeriodWind.FObjPanel2.FCalendarMonth - 10 < 0 then
     FEdit.Text := FEdit.Text + IntToStr(FPeriodWind.FObjPanel2.DataToday)+ '.' + '0' + IntToStr(FPeriodWind.FObjPanel2.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel2.Year )
   else
-     FEdit.Text := FEdit.Text + IntToStr(FPeriodWind.FObjPanel2.DataToday)+ '.' + IntToStr(FPeriodWind.FObjPanel2.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel2.Year );
-   FPeriodWind.Hide;
+    FEdit.Text := FEdit.Text + IntToStr(FPeriodWind.FObjPanel2.DataToday)+ '.' + IntToStr(FPeriodWind.FObjPanel2.FCalendarMonth) + '.' + IntToStr(FPeriodWind.FObjPanel2.Year );
+  FPeriodWind.Hide;
  end;
  FPeriodWind.Paint;
 end;
@@ -1065,7 +1026,7 @@ procedure TgsPeriodEdit.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftS
 begin
   case Key of
     VK_Escape: FPeriodWind.Hide;
-   end;
+  end;
 end;
 
 procedure TgsPeriodEdit.DoOnButtonClick(Sender: TObject);
@@ -1074,90 +1035,86 @@ begin
     FPeriodWind.Hide
   else
   begin
-  if FperiodWind.NumberPeriod = 5 then
-     FPeriodWind.Width := 420
-  else
-  FPeriodWind.Width := 245;
-
+    if FperiodWind.NumberPeriod = 5 then
+      FPeriodWind.Width := 420
+    else
+      FPeriodWind.Width := 245;
   FPeriodWind.Left := ClientOrigin.x;
   FPeriodWind.Top := ClientOrigin.y  + Height;
   FPeriodWind.Paint;
   FPeriodWind.Visible := true;
-   end;
   end;
+end;
 
 procedure TgsPeriodEdit.FormMouseDown(Sender: TObject; Button: TMouseButton;Shift: TShiftState; X, Y: Integer);
- var
+var
   Year, Month, Day: Word;
-
 begin
-     DecodeDate(SysUtils.Now, Year, Month, Day);
-     if (X > 245) and (Y > 170) then
-     begin
-        FPeriodWind.FObjPanel2.Year := Year;
-        FPeriodWind.FObjPanel2.FCalendarMonth := Month;
-        FPeriodWind.FObjPanel2.Paint;
-          end;
-    if (X > 70) and (X < 236) and (Y > 170) and (Y < 190) then
-       begin
-         case FPeriodWind.NumberPeriod of
-          1:
-          begin
-            FEdit.Text := IntToStr(Year);
-            FPeriodWind.Hide;
-          end;
-          2:
-          begin
-            FEdit.Text := IntTostr(Month) + '.'+ IntTostr(Year);
-            FPeriodWind.Hide;
-          end;
-          3:
-          begin
-            case Month of
-             1..3:
-             begin
-              FEdit.Text :='01.01.' + IntTostr(Year) + '-' + '31.03.' + IntTostr(Year);
-              FPeriodWind.Hide;
-             end;
-             4..6:
-             begin
-               FEdit.Text := '01.04.' + IntTostr(Year) + '-' + '30.06.' + IntTostr(Year);
-               FPeriodWind.Hide;
-             end;
-             7..9:
-             begin
-               FEdit.Text := '01.07.' + IntTostr(Year) + '-' + '30.09.' + IntTostr(Year);
-               FPeriodWind.Hide;
-             end;
-             10..12:
-             begin
-               FEdit.Text := '01.10.' + IntTostr(Year) + '-' + '31.12.' + IntTostr(Year);
-               FPeriodWind.Hide;
-             end;
-             end;
-          end;
-          4:
-          begin
-            FEdit.Text := DateToStr(SysUtils.Now);
-            FPeriodWind.Hide;
-          end;
-          5:
-          begin
-          if  (X > 70) and (X < 236) and (Y > 170) and (Y < 190) then
-           begin
-           FPeriodWind.FObjPanel1.Year := Year;
-           FPeriodWind.FObjPanel1.FCalendarMonth := Month;
-           FPeriodWind.FObjPanel1.Paint;
-          end
-
-          end;
-         end;
-       end;
-
+  DecodeDate(SysUtils.Now, Year, Month, Day);
+  if (X > 245) and (Y > 170) then
+  begin
+    FPeriodWind.FObjPanel2.Year := Year;
+    FPeriodWind.FObjPanel2.FCalendarMonth := Month;
+    FPeriodWind.FObjPanel2.Paint;
+  end;
+  if (X > 70) and (X < 236) and (Y > 170) and (Y < 190) then
+  begin
+    case FPeriodWind.NumberPeriod of
+    1:
+    begin
+      FEdit.Text := IntToStr(Year);
+      FPeriodWind.Hide;
+    end;
+    2:
+    begin
+      FEdit.Text := IntTostr(Month) + '.'+ IntTostr(Year);
+      FPeriodWind.Hide;
+    end;
+    3:
+    begin
+      case Month of
+      1..3:
+      begin
+        FEdit.Text :='01.01.' + IntTostr(Year) + '-' + '31.03.' + IntTostr(Year);
+        FPeriodWind.Hide;
+      end;
+      4..6:
+      begin
+        FEdit.Text := '01.04.' + IntTostr(Year) + '-' + '30.06.' + IntTostr(Year);
+        FPeriodWind.Hide;
+      end;
+      7..9:
+      begin
+        FEdit.Text := '01.07.' + IntTostr(Year) + '-' + '30.09.' + IntTostr(Year);
+        FPeriodWind.Hide;
+      end;
+      10..12:
+      begin
+        FEdit.Text := '01.10.' + IntTostr(Year) + '-' + '31.12.' + IntTostr(Year);
+        FPeriodWind.Hide;
+      end;
+      end;
+    end;
+    4:
+    begin
+      FEdit.Text := DateToStr(SysUtils.Now);
+      FPeriodWind.Hide;
+      end;
+    5:
+    begin
+      if  (X > 70) and (X < 236) and (Y > 170) and (Y < 190) then
+      begin
+        FPeriodWind.FObjPanel1.Year := Year;
+        FPeriodWind.FObjPanel1.FCalendarMonth := Month;
+        FPeriodWind.FObjPanel1.Paint;
+      end
+    end;
+    end;
+  end;
   if (X >10) and (X < 85) and (Y < 180) and (Y > 26) then
   begin
-     FPeriodWind.NumberPeriod := (Y - 28) div (57 - 28 - 3) + 1;
-   Case FPeriodWind.NumberPeriod of
+    FPeriodWind.NumberPeriod := (Y - 28) div (57 - 28 - 3) + 1;
+    Case FPeriodWind.NumberPeriod of
      1:
      begin
        FPeriodWind.Width := 245;
@@ -1209,7 +1166,6 @@ begin
        FPeriodWind.FObjPanel2.Visible := true;
        FPeriodWind.FObjPanel1.Paint;
        FPeriodWind.Paint;
-
      end;
      6:
      begin
@@ -1227,33 +1183,68 @@ begin
        FPeriodWind.FObjPanel1.Left := 90;
        FPeriodWind.FObjPanel1.Top := 30;
      end;
-
 end;
 
 procedure TgsPeriodEdit.Loaded;
 begin
   inherited ;
- if GUIDToString(FGUID) = '{00000000-0000-0000-0000-000000000000}' then
+  if GUIDToString(FGUID) = '{00000000-0000-0000-0000-000000000000}' then
      FGUID := StringToGUID(CreateClassID());
-
 end;
 
 procedure TgsPeriodEdit.KeyPress(Sender: TObject; var Key: Char);
+const
+  ArrRus = 'ё"№;:?йцукенгшщзхъфывапролджэячсмитьбю.ЁЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ.';
+  ArrEng = '`@#$^&qwertyuiop[]asdfghjkl;''zxcvbnm,./~QWERTYUIOP[]ASDFGHJKL;''ZXCVBNM,./';
 var
-  Timer: TTimer;
+  Ch: array[0..KL_NAMELENGTH] of Char;
+  Kl, I: Integer;
+begin 
+  case Key of
+  '0'..'9', '-', '.':
   begin
-  Timer := TTimer.Create(self);
-  with Timer do
-  Timer.Interval := 50000000;
-    Timer.Enabled := True; 
-  ShortCut := ShortCut + Key;
-  if Length(ShortCut) = 2 then
-    if DatePeriod.ProcessShortCut(ShortCut) = true then
-      FEdit.Text := DatePeriod.EncodeString
+    FEdit.Text := FEdit.Text;
+
+  end;
+  ' ':
+  begin
+    Key := #0;
+    FEdit.Text := FEdit.Text + DateToStr(SysUtils.Now);
+  end  else
+  begin
+    GetKeyboardLayoutName(Ch);
+    KL := StrToInt('$' + StrPas(Ch));
+    I := 1;
+    if (KL and $3ff) = LANG_ENGLISH then
+    begin
+      While ArrEng[I] <> Key do
+        I := I + 1;
+        Key := ArrRus[I];
+      end;
+    ShortCut := ShortCut + Key;
+    if Length(ShortCut) = 1 then
+    begin
+      Timer := TTimer.Create(nil);
+      Timer.OnTimer := OnMyTimer;
+      Timer.Interval := 1000;
+      Timer.Enabled := true;
+    end
+    else
+    if Length(ShortCut) = 2 then
+    begin
+      Timer.Enabled := false;
+      if DatePeriod.ProcessShortCut(ShortCut) = true then
+    begin
+      FEdit.Text := DatePeriod.EncodeString;
+      RunShortCut := true;
+      ShortCut := '';
+    end
     else
      ShortCut:= Copy(ShortCut,2,1);
-     Key := #0;
-
+    end;
+    Key := #0;
+   end; 
+ end;
 
 end;
 
@@ -1262,7 +1253,7 @@ begin
   Text := FEdit.Text;
 end;
 
-procedure TgsPeriodEdit.FOnExit(Sender: TObject);
+procedure TgsPeriodEdit.FormOnExit(Sender: TObject);
 begin
   if FEdit.Text <> '' then
     DatePeriod.DecodeString(FEdit.Text);
@@ -1270,53 +1261,45 @@ end;
 
 destructor TgsPeriodEdit.Destroy;
 var
- Reg: TRegistry;
- Str: String;
- I: Word;
-
+  Reg: TRegistry;
+  Str: String;
+  I: Word;
 begin
  //DatePeriod.DecodeString(Text);
- FGUID :=StringToGuid('{741D1779-CE77-4843-808F-796DE1BCBB3E}');
+  FGUID :=StringToGuid('{741D1779-CE77-4843-808F-796DE1BCBB3E}');
  // StringToGUID(CreateClassID());
   Reg:= TRegistry.Create;
   try
-  Reg.RootKey:= HKEY_CURRENT_USER;
-  Reg.OpenKey('\Software\Golden Software\Gedemin\Client\CurrentVersion\TgsCalendarEdit', false);
-  Str := Reg.ReadString(GUIDToString(FGUID));
-  I := 2;
-  if Str <> '' then
+    Reg.RootKey:= HKEY_CURRENT_USER;
+    Reg.OpenKey('\Software\Golden Software\Gedemin\Client\CurrentVersion\TgsCalendarEdit', false);
+    Str := Reg.ReadString(GUIDToString(FGUID));
+    I := 2;
+    if Str <> '' then
     begin
-  While Str[I] <> '"' do
-   I := I + 1;
-  if (copy(Str,2,I - 2)) = DateToStr(SysUtils.Now) then
+      While Str[I] <> '"' do
+        I := I + 1;
+    if (copy(Str,2,I - 2)) = DateToStr(SysUtils.Now) then
       Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.FDate) + '-' + DateToStr(DatePeriod.FEndDate) + '"' + copy(Str,I + 1, Length(Str)))
-  else
-       Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.FDate) + '-' + DateToStr(DatePeriod.FEndDate) + '"' );
-     end
-  else
-    Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.FDate) + '-' + DateToStr(DatePeriod.FEndDate) + '"' );
+    else
+      Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.FDate) + '-' + DateToStr(DatePeriod.FEndDate) + '"' );
+    end
+    else
+      Reg.WriteString(GUIDToString(FGUID), '"' + DateToStr(SysUtils.Now) + '"' + ',' + '"' + DateToStr(DatePeriod.FDate) + '-' + DateToStr(DatePeriod.FEndDate) + '"' );
   finally
-  Reg.Free;
+    Reg.Free;
   end;
   DatePeriod.Free;
   FPeriodWind.Free;
   FEdit.Free;
   FSpeedButton.Free;
+  Timer.Free;
   inherited Destroy;
 end;
 
 procedure TgsPeriodEdit.MouseMove(Shift: TShiftState; X, Y: Integer);
 begin
-inherited MouseMove(Shift, X, Y);
-end;
+  inherited MouseMove(Shift, X, Y);
 
-procedure TgsPeriodEdit.CMMouseLeave(var Message: TMessage);
-begin
- {if (Text <> '') then
- begin
-  DatePeriod.DecodeString(Text);
-  DatePeriod.SetKind(3);
- end;}
 end;
 
 
@@ -1333,12 +1316,12 @@ end;
 
 
 procedure TgsPeriodShortCutEdit.KeyUp(var Key: Word; Shift: TShiftState);
- var
+var
   s, SS: string;
   num: Integer;
 begin
- case Key of
- 48..57,189, 191:
+  case Key of
+  48..57,189, 191:
   begin
     S:=trim(Text);
     if key = 189 then
@@ -1424,21 +1407,10 @@ end;
 constructor TgsDataPeriod.Create;
 begin
   inherited;
-
   tir := 0;
   FMaxDate := 0;
   FMinDate := 0;
-  Raz := false;
   FKind := dpkFree;
-end;
-
-procedure TgsDataPeriod.SetKind(const pr: Integer);
-begin
-  case pr of
-    1: FKind:= dpkWeek;
-    2: FKind:= dpkQuarter;
-    3: FKind:= dpkFree;
-  end;
 end;
 
 function TgsDataPeriod.ProcessShortCut(const S: String): boolean;
@@ -1598,13 +1570,13 @@ begin
   end
   else if Key = 'З' then
   begin
-    FDate := DateAdd('D', + 1, SysUtils.Now);
+    FDate := EncodeDate(Year, Month,Day) + 1;
     FEndDate := FDate;
     FKind := dpkDay;
   end
   else if Key = 'В' then
   begin
-    FDate := DateAdd('D', - 1, SysUtils.Now);
+  FDate := EncodeDate(Year, Month,Day) - 1;
     FEndDate := FDate;
     FKind := dpkDay;
   end
@@ -1627,15 +1599,13 @@ begin
 end;
 
 function TgsDataPeriod.EncodeString: String;
- var
+var
   Year, Month, Day: Word;
 begin
-
-
  Case FKind of
   dpkYear:
   begin
-   DecodeDate(Date,Year, Month, Day);
+    DecodeDate(Date,Year, Month, Day);
     Result := IntToStr(Year);
    end;
   dpkWeek:
@@ -1669,20 +1639,26 @@ procedure TgsDataPeriod.DecodeString(const AString: String);
 begin
   if AString = '' then
      exit;
-   if StrPos (PChar(AString), '-') <> nil  then
+   if StrPos(PChar(AString), '-') <> nil  then
         begin
+        FKind := dpkFree;
         for I := 1 to Length(AString) do
            if AString[I] = '-' then
-            begin
-            FDate := StrToDate(ss);
-            ss := '';
+           begin
+             if StrPos(PChar(ss), '.') = nil then
+               FDate := EncodeDate(StrToInt(ss), 01, 01)
+             else
+               FDate := StrToDate(ss);
+               ss := '';
             end else
               ss := ss+ AString[I];
-            FEndDate := StrToDate(ss);
+              if StrPos(PChar(ss), '.') = nil then
+                FEndDate := EncodeDate(StrToInt(ss), 12, 31)
+              else
+                FEndDate := StrToDate(ss);
          end
         else
         if StrPos (PChar(AString), '.') = nil then
-
         begin
           FDate := StrToDate('01.01.' + AString);
           FEndDate := StrToDate('31.12.' + AString);
@@ -1703,6 +1679,26 @@ begin
       if (FMinDate <>FMaxDate) and ((FMinDate <> 0) or (FMaxDate <> 0)) then  
          if (FDate < FMinDate) or (FEndDate > FMaxDate) then
            Raise EgsDatePeriod.Create('превышен диапозон дат');
+end;
+
+procedure TgsPeriodEdit.OnMyTimer(Sender: TObject);
+begin
+   if FEdit.Focused = true then
+     if Length(ShortCut) = 1 then
+       if DatePeriod.ProcessShortCut(ShortCut) = true then
+       begin
+         FEdit.Text := DatePeriod.EncodeString;
+         ShortCut := '';
+         RunShortCut := true;
+       end;
+   Timer.Enabled := false;
+   Timer.Free;
+end;
+
+procedure TgsPeriodEdit.EditExit(Sender: TObject);
+begin
+  if (Length(Text) > 0) and (RunShortCut = false) then
+    DatePeriod.DecodeString(Text);
 end;
 
 end.
