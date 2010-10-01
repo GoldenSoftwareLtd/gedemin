@@ -10,6 +10,8 @@ procedure RegenerateLBRBTree(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DropRGIndex(IBDB: TIBDatabase; Log: TModifyLog);
 procedure CreateRGIndex(IBDB: TIBDatabase; Log: TModifyLog);
 
+procedure RegenerateLBRBTree2(IBDB: TIBDatabase; Log: TModifyLog);
+
 implementation
 
 uses
@@ -26,9 +28,9 @@ const
     '    NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
     ' '#13#10 +
     '  IF (NEW.name IS NULL) THEN '#13#10 +
-    '    NEW.name = ''''; '#13#10 +
+    '    NEW.name = ''<'' || NEW.id || ''>''; '#13#10 +
     ' '#13#10 +
-    '  IF (NEW.CONTACTTYPE = 0) THEN '#13#10 +
+    '  IF (NEW.CONTACTTYPE = 0 OR NEW.contacttype = 4) THEN '#13#10 +
     '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''LBRB_DELTA'', ''100''); '#13#10 +
     '  ELSE '#13#10 +
     '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''LBRB_DELTA'', ''1''); '#13#10 +
@@ -123,6 +125,51 @@ begin
       end;
 
       RestrLBRBTree('', FTransaction);
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Ошибка: ' + E.Message);
+        raise;
+      end;
+    end;
+  finally
+    FTransaction.Free;
+  end;
+end;
+
+procedure RegenerateLBRBTree2(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+
+      FIBSQL := TIBSQL.Create(nil);
+      try
+        FIBSQL.Transaction := FTransaction;
+        FIBSQL.ParamCheck := False;
+
+        FIBSQL.SQL.Text := c_trigger;
+        FIBSQL.ExecQuery;
+
+        _Log := Log;
+        UpdateLBRBTreeBase(FTransaction, True, _Writeln);
+
+        FIBSQL.Close;
+        FIBSQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (125, ''0000.0001.0000.0156'', ''29.09.2010'', ''Strategy for LB-RB tree widening has been changed'') ' +
+          '  MATCHING (id)';
+        FIBSQL.ExecQuery;
+      finally
+        FIBSQL.Free;
+      end;
+
       FTransaction.Commit;
     except
       on E: Exception do

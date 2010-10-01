@@ -17,6 +17,7 @@ type
 
   published
     procedure TestDecodeString;
+    procedure TestEncodeString;
     procedure TestShortCuts;
   end;
 
@@ -55,12 +56,26 @@ begin
     EncodeDate(2010, 10, 30), dpkDay);
   TestDecodeString('01.2010', EncodeDate(2010, 01, 01),
     EncodeDate(2010, 01, 31), dpkMonth);
+  TestDecodeString('01.09.1960-30.09.1960', EncodeDate(1960, 09, 01),
+    EncodeDate(1960, 09, 30), dpkMonth);
   TestDecodeString('7.2010', EncodeDate(2010, 07, 01),
     EncodeDate(2010, 07, 31), dpkMonth);
   TestDecodeString('2010', EncodeDate(2010, 01, 01),
     EncodeDate(2010, 12, 31), dpkYear);
   TestDecodeString('2005-2009', EncodeDate(2005, 01, 01),
     EncodeDate(2009, 12, 31), dpkFree);
+end;
+
+procedure TgsPeriodEditTest.TestEncodeString;
+begin
+  S.Kind := dpkFree;
+  S.Date := EncodeDate(1980, 5, 15);
+  S.EndDate := EncodeDate(1980, 5, 16);
+  Check(S.EncodeString = '15.05.1980-16.05.1980');
+  S.Kind := dpkYear;
+  S.Date := EncodeDate(1976, 1, 1);
+  S.EndDate := EncodeDate(1976, 12, 31);
+  Check(S.EncodeString = '1976');
 end;
 
 procedure TgsPeriodEditTest.TestShortCuts;

@@ -497,9 +497,9 @@ BEGIN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 
   IF (NEW.name IS NULL) THEN
-    NEW.name = '';
+    NEW.name = '<' || NEW.id || '>';
 
-  IF (NEW.CONTACTTYPE = 0) THEN
+  IF (NEW.CONTACTTYPE = 0 OR NEW.CONTACTTYPE = 4) THEN
     RDB$SET_CONTEXT('USER_TRANSACTION', 'LBRB_DELTA', '100');
   ELSE
     RDB$SET_CONTEXT('USER_TRANSACTION', 'LBRB_DELTA', '1');

@@ -414,6 +414,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (124, '0000.0001.0000.0155', '23.08.2010', 'Correct rp_x_reportgroup_lrn index #2');
 
+INSERT INTO fin_versioninfo
+  VALUES (125, '0000.0001.0000.0156', '30.09.2010', 'Strategy for LB-RB tree widening has been changed');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

@@ -23,6 +23,7 @@ uses
 procedure Tgdc_dlgGMetaData.actNewExecute(Sender: TObject);
 begin
   inherited;
+
   if Assigned(frmSQLProcess) and frmSQLProcess.Visible then
   begin
     frmSQLProcess.Hide;

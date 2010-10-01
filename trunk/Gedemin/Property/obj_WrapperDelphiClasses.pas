@@ -6171,14 +6171,16 @@ end;
 procedure TwrpControl.Set_Anchors(const Value: WideString);
 var
   LAnchors: TAnchors;
+  UpperValue: String;
 begin
-  if Pos('AKTOP', Value) > 0 then
+  UpperValue := UpperCase(Value);
+  if Pos('AKTOP', UpperValue) > 0 then
     Include(LAnchors, akTop);
-  if Pos('AKLEFT', Value) > 0 then
+  if Pos('AKLEFT', UpperValue) > 0 then
     Include(LAnchors, akLeft);
-  if Pos('AKRIGHT', Value) > 0 then
+  if Pos('AKRIGHT', UpperValue) > 0 then
     Include(LAnchors, akRight);
-  if Pos('AKBOTTOM', Value) > 0 then
+  if Pos('AKBOTTOM', UpperValue) > 0 then
     Include(LAnchors, akBottom);
   GetControl.Anchors := LAnchors;
 end;

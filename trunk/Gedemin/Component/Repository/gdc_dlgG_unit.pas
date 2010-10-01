@@ -1908,11 +1908,11 @@ begin
         FOnSetupRecord(Self);
     end;
 
-    if Assigned(frmSQLProcess) and frmSQLProcess.Visible then
+    {if Assigned(frmSQLProcess) and frmSQLProcess.Visible then
     begin
       frmSQLProcess.Hide;
       frmSQLProcess.ShowModal;
-    end;
+    end;}
   finally
     FIntermediate := False;
   end;
