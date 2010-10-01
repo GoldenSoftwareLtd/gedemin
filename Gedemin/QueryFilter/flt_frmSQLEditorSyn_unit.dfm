@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 313
-  Top = 115
+  Left = 296
+  Top = 267
   Width = 871
   Height = 556
   HelpContext = 121
@@ -3072,8 +3072,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         'R(36)) AS remote_address, '
       '  st.mon$state as state,'
       
-        '  (SELECT rdb$type_name FROM rdb$types WHERE rdb$type = st.mon$s' +
-        'tate AND rdb$field_name = '#39'MON$STATE'#39') AS state_name,'
+        '  (SELECT TRIM(rdb$type_name) FROM rdb$types WHERE rdb$type = st' +
+        '.mon$state AND rdb$field_name = '#39'MON$STATE'#39') AS state_name,'
       '  st.mon$timestamp AS executed,'
       '  st.mon$sql_text AS sql_text'
       ''
