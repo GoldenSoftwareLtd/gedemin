@@ -80,8 +80,8 @@ object frmGedeminMain: TfrmGedeminMain
         end
         object TBSeparatorItem9: TTBSeparatorItem
         end
-        object tbiSqueze: TTBItem
-          Action = actDBSqueze
+        object tbiSqueeze: TTBItem
+          Action = actDBSqueeze
         end
         object tbiRecompile: TTBItem
           Action = actRecompileStatistics
@@ -739,11 +739,11 @@ object frmGedeminMain: TfrmGedeminMain
       OnExecute = actReconnectExecute
       OnUpdate = actReconnectUpdate
     end
-    object actDBSqueze: TAction
+    object actDBSqueeze: TAction
       Category = 'Service'
       Caption = '—жатие базы данных...'
-      OnExecute = actDBSquezeExecute
-      OnUpdate = actDBSquezeUpdate
+      OnExecute = actDBSqueezeExecute
+      OnUpdate = actDBSqueezeUpdate
     end
   end
   object IBTransaction: TIBTransaction

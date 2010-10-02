@@ -174,8 +174,8 @@ type
     TBItem27: TTBItem;
     actReconnect: TAction;
     TBSeparatorItem15: TTBSeparatorItem;
-    actDBSqueze: TAction;
-    tbiSqueze: TTBItem;
+    actDBSqueeze: TAction;
+    tbiSqueeze: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -289,8 +289,8 @@ type
     procedure actUsersUpdate(Sender: TObject);
     procedure actReconnectUpdate(Sender: TObject);
     procedure actReconnectExecute(Sender: TObject);
-    procedure actDBSquezeUpdate(Sender: TObject);
-    procedure actDBSquezeExecute(Sender: TObject);
+    procedure actDBSqueezeUpdate(Sender: TObject);
+    procedure actDBSqueezeExecute(Sender: TObject);
   private
     FCanClose: Boolean;
     FExitWindowsParam: Longint;
@@ -513,7 +513,7 @@ uses
   {$ENDIF}
   , gdcExplorer,
   gd_dlgStreamSaverOptions,
-  gdDBSqueze;
+  gdDBSqueeze;
 
 type
   TCrackPopupMenu = class(TPopupMenu);
@@ -2413,16 +2413,16 @@ begin
   IBLogin.Login(False, True);
 end;
 
-procedure TfrmGedeminMain.actDBSquezeUpdate(Sender: TObject);
+procedure TfrmGedeminMain.actDBSqueezeUpdate(Sender: TObject);
 begin
-  actDBSqueze.Enabled := (IBLogin <> nil) and IBLogin.IsIBUserAdmin;
+  actDBSqueeze.Enabled := (IBLogin <> nil) and IBLogin.IsIBUserAdmin;
 end;
 
-procedure TfrmGedeminMain.actDBSquezeExecute(Sender: TObject);
+procedure TfrmGedeminMain.actDBSqueezeExecute(Sender: TObject);
 begin
-  with TgdDBSqueze.Create do
+  with TgdDBSqueeze.Create do
   try
-    Squeze;
+    Squeeze;
   finally
     Free;
   end;

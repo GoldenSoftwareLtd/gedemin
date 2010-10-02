@@ -282,7 +282,7 @@ uses
   IBSQL_WaitWindow in '..\IBX\IBSQL_WaitWindow.pas',
   gdcStreamSaver in '..\Component\GDC\gdcStreamSaver.pas',
   gd_dlgStreamSaverOptions in '..\Attr\gd_dlgStreamSaverOptions.pas',
-  gdDBSqueze
+  gdDBSqueeze
   {$IFDEF FR4}
   ,rp_StreamFR4 in '..\Report\rp_StreamFR4.pas',
   rp_FR4Functions in '..\Report\rp_FR4Functions.pas'

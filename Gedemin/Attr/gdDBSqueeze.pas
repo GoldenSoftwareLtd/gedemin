@@ -1,5 +1,5 @@
 
-unit gdDBSqueze;
+unit gdDBSqueeze;
 
 interface
 
@@ -7,7 +7,7 @@ uses
   IBDatabase;
 
 type
-  TgdDBSqueze = class(TObject)
+  TgdDBSqueeze = class(TObject)
   private
     FDatabase: TIBDatabase;
     FTransaction: TIBTransaction;
@@ -17,27 +17,27 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Squeze;
+    procedure Squeeze;
   end;
 
 implementation
 
-{ TgdDBSqueze }
+{ TgdDBSqueeze }
 
-constructor TgdDBSqueze.Create;
+constructor TgdDBSqueeze.Create;
 begin
   FDatabase := TIBDatabase.Create(nil);
   FTransaction := TIBTransaction.Create(nil);
 end;
 
-destructor TgdDBSqueze.Destroy;
+destructor TgdDBSqueeze.Destroy;
 begin
   FTransaction.Free;
   FDatabase.Free;
   inherited;
 end;
 
-procedure TgdDBSqueze.Squeze;
+procedure TgdDBSqueeze.Squeeze;
 begin
   FDatabase.DatabaseName := 'localhost:d:\t.fdb';
   FDatabase.Params.Text := 'user_name=SYSDBA'#13#10'password=masterkey'#13#10'lc_ctype=win1251';
