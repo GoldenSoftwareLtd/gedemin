@@ -51,9 +51,9 @@ begin
   gdcObject := gdcDepartment;
   gdcDetailObject := gdcEmployee;
 
-  ibcmbCompany.CurrentKeyInt := UserStorage.ReadInteger('Department', 'CurrentCompany', IBLogin.CompanyKey);
-  if ibcmbCompany.CurrentKeyInt = -1 then
-    ibcmbCompany.CurrentKeyInt := IBLogin.CompanyKey;
+{  ibcmbCompany.CurrentKeyInt := UserStorage.ReadInteger('Department', 'CurrentCompany', IBLogin.CompanyKey);
+  if ibcmbCompany.CurrentKeyInt = -1 then   }
+  ibcmbCompany.CurrentKeyInt := IBLogin.CompanyKey;
 
   inherited;
 end;
@@ -131,11 +131,11 @@ begin
   {M}    end;
   {END MACRO}
 
-  if Assigned(UserStorage) then
+{  if Assigned(UserStorage) then
   begin
     UserStorage.SaveComponent(ibcmbCompany, ibcmbCompany.SaveToStream);
     UserStorage.WriteInteger('Department', 'CurrentCompany', ibcmbCompany.CurrentKeyInt);
-  end;
+  end; }
 
   inherited;
 
@@ -176,8 +176,8 @@ begin
 
   inherited;
 
-  if Assigned(UserStorage) then
-    UserStorage.LoadComponent(ibcmbCompany, ibcmbCompany.LoadFromStream);
+{  if Assigned(UserStorage) then
+    UserStorage.LoadComponent(ibcmbCompany, ibcmbCompany.LoadFromStream);  }
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMDEPARTMENT', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
