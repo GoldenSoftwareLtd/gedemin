@@ -154,6 +154,7 @@ contains
   gdcBlockRule in '..\Component\GDC\gdcBlockRule.pas',
   gdcSQLHistory in '..\Component\GDC\gdcSQLHistory.pas',
   gdcStorage in '..\Component\GDC\gdcStorage.pas',
-  gdcFKManager in '..\Component\GDC\gdcFKManager.pas';
+  gdcFKManager in '..\Component\GDC\gdcFKManager.pas',
+  gsPeriodEdit in '..\Component\gsPeriodEdit.pas';
 
 end.

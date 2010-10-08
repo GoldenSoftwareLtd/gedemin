@@ -281,8 +281,7 @@ uses
   gd_dlgRestoreWarning_unit in 'gd_dlgRestoreWarning_unit.pas' {gd_dlgRestoreWarning},
   IBSQL_WaitWindow in '..\IBX\IBSQL_WaitWindow.pas',
   gdcStreamSaver in '..\Component\GDC\gdcStreamSaver.pas',
-  gd_dlgStreamSaverOptions in '..\Attr\gd_dlgStreamSaverOptions.pas',
-  gdDBSqueeze
+  gd_dlgStreamSaverOptions in '..\Attr\gd_dlgStreamSaverOptions.pas'
   {$IFDEF FR4}
   ,rp_StreamFR4 in '..\Report\rp_StreamFR4.pas',
   rp_FR4Functions in '..\Report\rp_FR4Functions.pas'

@@ -7,7 +7,6 @@ type
     Hour: Integer;
     Minute: Integer;
     Second: Integer;
-    MSecond: Integer;
   end;
 
   TgsProcessTimeCalculator = class
@@ -100,9 +99,9 @@ begin
     Result.Minute := 0;
 
   Result.Second := MSDuration div MSECOND_IN_SECOND;
-  MSDuration := MSDuration mod MSECOND_IN_SECOND;
-  
-  Result.MSecond := MSDuration;
+  // Всегда оставляем последнюю секунду видимой
+  if (Result.Hour = 0) and (Result.Minute = 0) and (Result.Second = 0) then
+    Result.Second := 1;
 end;
 
 procedure TgsProcessTimeCalculator.StartCalculation(const AMaxPosition: Cardinal);
