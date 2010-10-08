@@ -594,8 +594,10 @@ type
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
 
-    function GetCreateProcedureText: String;
-    function GetAlterProcedureText: String;
+    // Список полей, которые не надо сохранять в поток.
+    class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
+
+    function GetProcedureText: String;
 
     procedure PrepareToSaveToStream(BeforeSave: Boolean);
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
@@ -710,7 +712,6 @@ type
     IsSync: Boolean;
     FChangeName: Boolean;
 
-    procedure MetaDataCreate;
     procedure MetaDataAlter;
     procedure Drop;
 
@@ -744,6 +745,8 @@ type
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
+    // Список полей, которые не надо сохранять в поток.
+    class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
 
     procedure SyncTriggers(const ARelationName: String; const NeedRefresh: Boolean = True);
     procedure SyncAllTriggers(const NeedRefresh: Boolean = True);
@@ -6728,9 +6731,9 @@ begin
   end;
 end;
 
-function TgdcStoredProc.GetAlterProcedureText: String;
+function TgdcStoredProc.GetProcedureText: String;
 begin
-  Result := Format('ALTER PROCEDURE %0:s ' + GetParamsText + ' AS'#13#10'%1:s',
+  Result := Format('CREATE OR ALTER PROCEDURE %0:s ' + GetParamsText + ' AS'#13#10'%1:s',
     [FieldByName('procedurename').AsString,
      FieldByName('rdb$procedure_source').AsString]);
 end;
@@ -6745,13 +6748,6 @@ function TgdcStoredProc.GetCanEdit: Boolean;
 begin
   Result := inherited GetCanEdit and Active and
     (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('procedurename').AsString)) = 1);
-end;
-
-function TgdcStoredProc.GetCreateProcedureText: String;
-begin
-  Result := Format('CREATE PROCEDURE %0:s ' + GetParamsText + ' AS'#13#10'%1:s',
-    [FieldByName('procedurename').AsString,
-     FieldByName('rdb$procedure_source').AsString]);
 end;
 
 class function TgdcStoredProc.GetDisplayName(const ASubType: TgdcSubType): String;
@@ -7000,7 +6996,7 @@ begin
     end
     else if sCopy in BaseState then
     begin
-      FSQL.Add(GetCreateProcedureText);
+      FSQL.Add(GetProcedureText);
     end
     else
       FSQL.Add(FieldByName('rdb$procedure_source').AsString);
@@ -7059,7 +7055,7 @@ begin
   begin
     IsSaveToStream := True;
     Edit;
-    FieldByName('proceduresource').AsString := GetCreateProcedureText;
+    FieldByName('proceduresource').AsString := GetProcedureText;
     Post;
   end
   else
@@ -7079,13 +7075,22 @@ begin
   IsSaveToStream := True;
   try
     Edit;
-    FieldByName('proceduresource').AsString := GetCreateProcedureText;
+    FieldByName('proceduresource').AsString := GetProcedureText;
     Post;
     inherited;
   finally
     IsSaveToStream := False;
   end;
 
+end;
+
+class function TgdcStoredProc.GetNotStreamSavedField(const IsReplicationMode: Boolean): String;
+begin
+  Result := inherited GetNotStreamSavedField(IsReplicationMode);
+  if Result <> '' then
+    Result := Result + ',RDB$PROCEDURE_BLR'
+  else
+    Result := 'RDB$PROCEDURE_BLR';
 end;
 
 { TgdcSimpleTable }
@@ -9457,7 +9462,7 @@ begin
   {M}    end;
   {END MACRO}
   if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('triggername').AsString)) = 1 then
-    MetaDataCreate;
+    MetaDataAlter;
   inherited;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTRIGGER', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
@@ -9657,8 +9662,7 @@ var
 begin
   FSQL := TSQLProcessList.Create;
   try
-    FSQL.Add(Format('DROP TRIGGER %s',
-      [FieldByName('triggername').AsString]));
+    FSQL.Add(Format('DROP TRIGGER %s', [FieldByName('rdb$trigger_name').AsString]));
 
     ShowSQLProcess(FSQL);
   finally
@@ -9799,87 +9803,50 @@ var
 begin
   FSQL := TSQLProcessList.Create;
   try
-      if Trim(FieldByName('triggername').AsString) <>
-      Trim(FieldByName('rdb$trigger_name').AsString) then
-    begin
-    //Если было изменено имя триггера, то ...
+    //Если было изменено имя триггера, то удалим триггер со старым именем
+    if Trim(FieldByName('triggername').AsString) <> Trim(FieldByName('rdb$trigger_name').AsString) then
       Drop;
-      MetaDataCreate;
-    end
-    else begin
-      if FieldByName('trigger_inactive').AsInteger > 0 then
-        activetext := 'INACTIVE'
-      else
-        activetext := 'ACTIVE';
 
-      case FieldByName('rdb$trigger_type').AsInteger of
-        1: subtext := 'BEFORE INSERT';
-        2: subtext := 'AFTER INSERT';
-        3: subtext := 'BEFORE UPDATE';
-        4: subtext := 'AFTER UPDATE';
-        5: subtext := 'BEFORE DELETE';
-        6: subtext := 'AFTER DELETE';
-        17: subtext := 'BEFORE INSERT OR UPDATE';
-        18: subtext := 'AFTER INSERT OR UPDATE';
-        25: subtext := 'BEFORE INSERT OR DELETE';
-        26: subtext := 'AFTER INSERT OR DELETE';
-        27: subtext := 'BEFORE UPDATE OR DELETE';
-        28: subtext := 'AFTER UPDATE OR DELETE';
-        113: subtext := 'BEFORE INSERT OR UPDATE OR DELETE';
-        114: subtext := 'AFTER INSERT OR UPDATE OR DELETE';
-      end;
+    // Создание\изменение триггера
+    if FieldByName('trigger_inactive').AsInteger > 0 then
+      activetext := 'INACTIVE'
+    else
+      activetext := 'ACTIVE';
 
-      FSQL.Add(Format('ALTER TRIGGER %s %s %s POSITION %s ' +
-        ' %s ', [FieldByName('triggername').AsString, activetext,
-         subtext, FieldByName('rdb$trigger_sequence').AsString,
+    case FieldByName('rdb$trigger_type').AsInteger of
+      1: subtext := 'BEFORE INSERT';
+      2: subtext := 'AFTER INSERT';
+      3: subtext := 'BEFORE UPDATE';
+      4: subtext := 'AFTER UPDATE';
+      5: subtext := 'BEFORE DELETE';
+      6: subtext := 'AFTER DELETE';
+      17: subtext := 'BEFORE INSERT OR UPDATE';
+      18: subtext := 'AFTER INSERT OR UPDATE';
+      25: subtext := 'BEFORE INSERT OR DELETE';
+      26: subtext := 'AFTER INSERT OR DELETE';
+      27: subtext := 'BEFORE UPDATE OR DELETE';
+      28: subtext := 'AFTER UPDATE OR DELETE';
+      113: subtext := 'BEFORE INSERT OR UPDATE OR DELETE';
+      114: subtext := 'AFTER INSERT OR UPDATE OR DELETE';
+    else
+      subtext := '';
+    end;
+
+    if subtext > '' then
+    begin
+      FSQL.Add(Format('CREATE OR ALTER TRIGGER %s FOR %s %s %s POSITION %s ' +
+        ' %s ', [FieldByName('triggername').AsString, FieldByName('relationname').AsString,
+         activetext, subtext, FieldByName('rdb$trigger_sequence').AsString,
          FieldByName('rdb$trigger_source').AsString]));
       ShowSQLProcess(FSQL);
-    end;
+    end
+    else
+      AddMistake('Для триггера ' + FieldByName('triggername').AsString +
+        ' неверно указано значение поля rdb$trigger_type.', clRed);
   finally
     FSQL.Free;
+    NeedSingleUser := False;
   end;
-end;
-
-procedure TgdcTrigger.MetaDataCreate;
-var
-  FSQL: TSQLProcessList;
-  subtext: String;
-begin
-  case FieldByName('rdb$trigger_type').AsInteger of
-    1: subtext := 'BEFORE INSERT';
-    2: subtext := 'AFTER INSERT';
-    3: subtext := 'BEFORE UPDATE';
-    4: subtext := 'AFTER UPDATE';
-    5: subtext := 'BEFORE DELETE';
-    6: subtext := 'AFTER DELETE';
-    17: subtext := 'BEFORE INSERT OR UPDATE';
-    18: subtext := 'AFTER INSERT OR UPDATE';
-    25: subtext := 'BEFORE INSERT OR DELETE';
-    26: subtext := 'AFTER INSERT OR DELETE';
-    27: subtext := 'BEFORE UPDATE OR DELETE';
-    28: subtext := 'AFTER UPDATE OR DELETE';
-    113: subtext := 'BEFORE INSERT OR UPDATE OR DELETE';
-    114: subtext := 'AFTER INSERT OR UPDATE OR DELETE';
-  else
-    subtext := '';
-  end;
-
-  if subtext > '' then
-  begin
-    FSQL := TSQLProcessList.Create;
-    try
-      FSQL.Add(Format('CREATE TRIGGER %s FOR %s '#13#10 + '%s'#13#10 + 'POSITION %s ' +
-        ' %s ',[FieldByName('triggername').AsString, FieldByName('relationname').AsString,
-         subtext, FieldByName('rdb$trigger_sequence').AsString,
-         FieldByName('rdb$trigger_source').AsString]));
-      ShowSQLProcess(FSQL);
-    finally
-      FSQL.Free;
-      NeedSingleUser := False;
-    end;
-  end else
-    AddMistake('Для триггера ' + FieldByName('triggername').AsString +
-      ' неверно указано значение поля rdb$trigger_type.', clRed);
 end;
 
 procedure TgdcTrigger.SyncTriggers(const ARelationName: String; const NeedRefresh: Boolean = True);
@@ -10056,6 +10023,15 @@ function TgdcTrigger.GetCanDelete: Boolean;
 begin
   Result := inherited GetCanDelete and Active and
     (AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('triggername').AsString)) = 1);
+end;
+
+class function TgdcTrigger.GetNotStreamSavedField(const IsReplicationMode: Boolean): String;
+begin
+  Result := inherited GetNotStreamSavedField(IsReplicationMode);
+  if Result <> '' then
+    Result := Result + ',RDB$TRIGGER_BLR'
+  else
+    Result := 'RDB$TRIGGER_BLR';
 end;
 
 { TgdcTableToTable }

@@ -921,6 +921,7 @@ begin
 
     FIBSQLWrite := TIBSQL.Create(nil);
     FIBSQLWrite.Transaction := FWriteTransaction;
+    FIBSQLWrite.ParamCheck := False;
 
     FSubstituteFunctionList := TStringList.Create;
     FDeleteFunctionList := TStringList.Create;
@@ -1897,6 +1898,7 @@ begin
   // —охраним вычисл€емое поле во временную таблицу
   FWriteTransaction.StartTransaction;
   try
+    FIBSQLWrite.ParamCheck := True;
     FIBSQLWrite.SQL.Text := Format(
       ' INSERT INTO %0:s' +
       '   (%1:s, %2:s, %3:s, %4:s, %5:s, %6:s) ' +
@@ -1913,6 +1915,7 @@ begin
     try
       FIBSQLWrite.ExecQuery;
     finally
+      FIBSQLWrite.ParamCheck := False;
       FIBSQLWrite.Close;
     end;
 
@@ -1930,6 +1933,7 @@ begin
   // —охраним представление во временную таблицу
   FWriteTransaction.StartTransaction;
   try
+    FIBSQLWrite.ParamCheck := True;
     FIBSQLWrite.SQL.Text := Format(
       ' INSERT INTO %0:s' +
       '   (%1:s, %2:s, %3:s, %4:s) ' +
@@ -1943,6 +1947,7 @@ begin
     try
       FIBSQLWrite.ExecQuery;
     finally
+      FIBSQLWrite.ParamCheck := False;
       FIBSQLWrite.Close;
     end;
 
@@ -2317,6 +2322,7 @@ begin
     begin
       FWriteTransaction.StartTransaction;
       try
+        FIBSQLWrite.ParamCheck := True;
         FIBSQLWrite.SQL.Text :=
           ' UPDATE rdb$relation_fields ' +
           ' SET rdb$field_position = :obj_pos ' +
@@ -2327,6 +2333,7 @@ begin
         try
           FIBSQLWrite.ExecQuery;
         finally
+          FIBSQLWrite.ParamCheck := False;
           FIBSQLWrite.Close;
         end;
 

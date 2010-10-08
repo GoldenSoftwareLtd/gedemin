@@ -263,11 +263,11 @@ begin
   if gdcObject.State = dsEdit then
   begin
     dbedProcedureName.Enabled := False;
-    smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetAlterProcedureText
+    smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetProcedureText
   end
   else if (sCopy in gdcObject.BaseState) and (gdcObject.State = dsInsert) then
   begin
-    smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetCreateProcedureText;
+    smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetProcedureText;
   end
   else
     smProcedureBody.Text := '';
@@ -343,7 +343,7 @@ begin
   if pcStoredProc.ActivePage = tsBodySP then
   begin
     if smProcedureBody.Text = '' then
-      smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetCreateProcedureText;
+      smProcedureBody.Text := (gdcObject as TgdcStoredProc).GetProcedureText;
   end;
 end;
 

@@ -2415,7 +2415,11 @@ end;
 
 procedure TfrmGedeminMain.actDBSqueezeUpdate(Sender: TObject);
 begin
+  {$IFDEF DUNIT_TEST}
   actDBSqueeze.Enabled := (IBLogin <> nil) and IBLogin.IsIBUserAdmin;
+  {$ELSE}
+  actDBSqueeze.Enabled := False;
+  {$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actDBSqueezeExecute(Sender: TObject);
