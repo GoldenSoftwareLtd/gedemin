@@ -49,7 +49,7 @@ implementation
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
-  {$IFDEF FR4}frxClass,{$ENDIF} ZLIB, jclBase, TB2Version;
+  {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase, TB2Version;
 
 function GetDiskSizeAvail(TheDrive: PChar; var Total: Integer; var Free: Integer): Boolean;
 var
@@ -317,7 +317,9 @@ begin
   end;
 
   AddSection('Версии библиотек');
-  {$IFDEF FR4}AddSpaces('Fast Report', FR_VERSION);{$ENDIF}
+  AddSpaces('Fast Report 2', Copy(IntToStr(frCurrentVersion), 1, 1) + '.' +
+    Copy(IntToStr(frCurrentVersion), 2, 255));
+  {$IFDEF FR4}AddSpaces('Fast Report 4', FR_VERSION);{$ENDIF}
   AddSpaces('ZLib', ZLIB_VERSION);
   AddSpaces('JCL', IntToStr(JclVersionMajor) + '.' + IntToStr(JclVersionMinor));
   AddSpaces('Toolbar 2000', Toolbar2000Version);

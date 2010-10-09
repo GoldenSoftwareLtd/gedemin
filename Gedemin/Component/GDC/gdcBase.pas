@@ -1150,6 +1150,7 @@ type
 
     //
     function GetSecCondition: String; virtual;
+
   public
     FReadUserFromStream: Boolean;
     // 1
@@ -1469,6 +1470,10 @@ type
 
     //
     function GetRUID: TRUID;
+
+    // Issue 2162
+    procedure Resync(Mode: TResyncMode); override;
+
 
     // создает форму для просмотра датасета, для заданного БА
     // поскольку форм может быть предусмотрено несколько, то возможна
@@ -1880,9 +1885,9 @@ type
     SourceControl: TWinControl;
   end;
 
+  {
   TIBCustomDataSetCrack = class(TIBCustomDataSet);
 
-  {
   Вместо кода:
 
     ...
@@ -3160,6 +3165,7 @@ procedure TgdcBase.DoBeforeEdit;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  Tmp: PChar;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASE', 'DOBEFOREEDIT', KEYDOBEFOREEDIT)}
   {M}  try
@@ -3180,6 +3186,31 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
+  if Filtered and Assigned(OnFilterRecord)
+    and (not (sDialog in BaseState)) then
+  begin
+    Tmp := AllocRecordBuffer;
+    try
+      if (GetActiveBuf = nil)
+        or (GetRecord(Tmp, gmCurrent, False) <> grOK)
+        or (PRecordData(GetActiveBuf)^.rdRecordNumber <> PRecordData(Tmp)^.rdRecordNumber) then
+      begin
+        if sView in BaseState then
+        begin
+          MessageBox(ParentHandle,
+            PChar('Текущая запись не соответствует установленному фильтру.'#13#10 +
+            'Обновите данные перед редактированием.'),
+            'Внимание',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+          Abort;
+        end else
+          raise EgdcException.CreateObj('Текущая запись не соответствует установленному фильтру.', Self);
+      end;
+    finally
+      FreeRecordBuffer(Tmp);
+    end;
+  end;
 
   inherited;
   if FOldValues <> nil then
@@ -16832,7 +16863,7 @@ begin
     if State = dsBrowse then
     begin
       OldID := ID;
-      InternalRefreshRow;
+      InternalRef\reshRow;
       if OldID = ID then
         Result := inherited CreateBlobStream(Field, Mode)
       else
@@ -18273,6 +18304,22 @@ procedure TgdcDragObject.Finished(Target: TObject; X, Y: Integer;
 begin
   inherited;
   Free;
+end;
+
+procedure TgdcBase.Resync(Mode: TResyncMode);
+begin
+  if (sDialog in FBaseState) or (sSubDialog in FBaseState) then
+  begin
+    FSavedFlag := True;
+    try
+      if GetActiveBuf <> nil then
+        FSavedRN := PRecordData(GetActiveBuf)^.rdRecordNumber;
+      inherited;
+    finally
+      FSavedFlag := False;
+    end;
+  end else
+    inherited;
 end;
 
 initialization
