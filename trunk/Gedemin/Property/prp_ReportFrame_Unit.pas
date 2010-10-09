@@ -36,7 +36,6 @@ type
     procedure MainFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure ParamFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure EventFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
-    procedure gdcReportAfterDelete(DataSet: TDataSet);
     procedure PageControlChange(Sender: TObject);
     procedure TempalteFrameactEditTemplateExecute(Sender: TObject);
     procedure actProperty1Execute(Sender: TObject);
@@ -76,6 +75,8 @@ type
     procedure pMainResize(Sender: TObject);
     procedure MainFunctionFramedbeNameChange(Sender: TObject);
     procedure MainFunctionFramedbeNameDropDown(Sender: TObject);
+    procedure gdcReportAfterInternalDeleteRecord(DataSet: TDataSet);
+    procedure gdcReportAfterDelete(DataSet: TDataSet);
   private
     { Private declarations }
     procedure PrepareTestResult;
@@ -298,74 +299,6 @@ begin
   EventFunctionFrame.gdcFunctionAfterPost(DataSet);
   gdcReport.FieldByName(fnEventFormulaKey).AsInteger :=
      EventFunctionFrame.gdcFunction.Id;
-end;
-
-procedure TReportFrame.gdcReportAfterDelete(DataSet: TDataSet);
-var
-  m, p, e: Integer;
-  SQL: TIBSQL;
-  DidActivate: Boolean;
-  N: TTreeNode;
-begin
-  m := MainFunctionFrame.ObjectId;
-  p := ParamFunctionFrame.ObjectId;
-  e := EventFunctionFrame.ObjectId;
-  N := Node;
-  inherited;
-  if Assigned(N) then
-    N.Delete;
-  SQL := TIBSQL.Create(nil);
-  try
-    SQL.Transaction := gdcReport.Transaction;
-    SQL.SQL.Text := 'DELETE FROM gd_function WHERE id = :id';
-    if MainFunctionFrame.gdcFunction.RecordUsed = 0 then
-    begin
-      DidActivate := not SQL.Transaction.InTransaction;
-      if DidActivate then
-        SQL.Transaction.StartTransaction;
-      try
-        SQL.Params[0].AsInteger := m;
-        SQL.ExecQuery;
-        if DidActivate then
-          SQL.Transaction.Commit;
-      except
-        if DidActivate then
-          SQL.Transaction.Rollback;
-      end;
-    end;
-    if MainFunctionFrame.gdcFunction.RecordUsed = 0 then
-    begin
-      DidActivate := not SQL.Transaction.InTransaction;
-      if DidActivate then
-        SQL.Transaction.StartTransaction;
-      try
-        SQL.Params[0].AsInteger := p;
-        SQL.ExecQuery;
-        if DidActivate then
-          SQL.Transaction.Commit;
-      except
-        if DidActivate then
-          SQL.Transaction.Rollback;
-      end;
-    end;
-    if MainFunctionFrame.gdcFunction.RecordUsed = 0 then
-    begin
-      DidActivate := not SQL.Transaction.InTransaction;
-      if DidActivate then
-        SQL.Transaction.StartTransaction;
-      try
-        SQL.Params[0].AsInteger := e;
-        SQL.ExecQuery;
-        if DidActivate then
-          SQL.Transaction.Commit;
-      except
-        if DidActivate then
-          SQL.Transaction.Rollback;
-      end;
-    end;
-  finally
-    SQL.Free;
-  end;
 end;
 
 procedure TReportFrame.DoOnCreate;
@@ -2526,6 +2459,55 @@ begin
   edtRUIDReport.Width:= pMain.ClientWidth - edtRUIDReport.Left - 87;
   pnlRUIDReport.Left:= edtRUIDReport.Left + edtRUIDReport.Width + 2;
   pnlRUIDReport.Width:= 75;
+end;
+
+procedure TReportFrame.gdcReportAfterInternalDeleteRecord(
+  DataSet: TDataSet);
+var
+  SQL: TIBSQL;
+  S: String;
+begin
+  if MainFunctionFrame.gdcFunction.RecordUsed <= 1 then
+    S := IntToStr(MainFunctionFrame.ObjectId);
+
+  if ParamFunctionFrame.gdcFunction.RecordUsed <= 1 then
+  begin
+    if S > '' then S := S + ',';
+    S := S + IntToStr(ParamFunctionFrame.ObjectId);
+  end;
+
+  if EventFunctionFrame.gdcFunction.RecordUsed <= 1 then
+  begin
+    if S > '' then S := S + ',';
+    S := S + IntToStr(EventFunctionFrame.ObjectId);
+  end;
+
+  if S > '' then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := gdcReport.Transaction;
+      SQL.SQL.Text := 'DELETE FROM gd_function WHERE id IN (' + S + ')';
+      try
+        SQL.ExecQuery;
+      except
+        on E: Exception do
+          Application.ShowException(E);
+      end;
+    finally
+      SQL.Free;
+    end;
+  end;
+end;
+
+procedure TReportFrame.gdcReportAfterDelete(DataSet: TDataSet);
+var
+  N: TTreeNode;
+begin
+  N := Node;
+  inherited;
+  if Assigned(N) then
+    N.Delete;
 end;
 
 initialization

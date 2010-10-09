@@ -28,6 +28,7 @@ object frmGrid: TfrmGrid
     ShowFooter = True
   end
   object dsSource: TDataSource
+    OnStateChange = dsSourceStateChange
     Left = 8
     Top = 8
   end

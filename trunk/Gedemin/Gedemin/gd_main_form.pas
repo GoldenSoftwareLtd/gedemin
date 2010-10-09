@@ -1129,6 +1129,12 @@ begin
   if IBLogin.IsUserAdmin then
     lblDatabase.Caption := '  ' + IBLogin.Database.DatabaseName;
 
+  // Issue 1992  
+  if FormAssigned(gdc_frmExplorer) then
+  begin
+    if (gdc_frmExplorer.gdcObject <> nil) and (not gdc_frmExplorer.gdcObject.Active) then
+      gdc_frmExplorer.gdcObject.Open;
+  end;
 end;
 
 procedure TfrmGedeminMain.DoBeforeDisconnect;

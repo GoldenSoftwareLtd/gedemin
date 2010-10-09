@@ -46,9 +46,12 @@ begin
   TTabSheet(FPageList.Items[J]).PageControl := pcDataSet;
   TTabSheet(FPageList.Items[J]).Visible := True;
   TTabSheet(FPageList.Items[J]).TabVisible := True;
+
   I := FGridList.Add(TfrmGrid.Create(nil));
   TfrmGrid(FGridList.Items[I]).dsSource.DataSet := AnDataSet;
   TfrmGrid(FGridList.Items[I]).Parent := TTabSheet(FPageList.Items[J]);
+  if I = 0 then
+    TfrmGrid(FGridList.Items[I]).ViewForm := Self;
 end;
 
 procedure TdlgViewResult.FormCreate(Sender: TObject);

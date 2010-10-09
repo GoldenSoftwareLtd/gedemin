@@ -183,20 +183,61 @@ const
   VBCLASSES = 'VB классы';
 
 const
-  VB_MACROS_TEMPLATE = 'option explicit'#13#10'sub %s(OwnerForm)'#13#10'end sub';
+  VB_MACROS_TEMPLATE = 'Option Explicit'#13#10'sub %s(OwnerForm)'#13#10'end sub';
   VB_OWNERFORM = 'OWNERFORM';
 
   VB_PARAMFUNCTION_TEMPLATE =
-    'option explicit'#13#10'function %s(OwnerForm)'#13#10'  ''Функция параметров должна возвращать массив с размерностью,'#13#10'  ''соответствующей кол-ву входных параметров основной функции.'#13#10'  ''dim a(<Кол-во входных параметров осн. ф.>-1)'#13#10'  ''%s = a'#13#10'end function';
-  VB_MAINFUNCTION_TEMPLATE = 'option explicit'#13#10'function %s(OwnerForm)'#13#10'  BaseQueryList.Clear'#13#10'  set %s = BaseQueryList'#13#10'end function';
-  VB_EVENTFUNCTION_TEMPLATE = 'option explicit'#13#10'function %s(Params, Value, Name)'#13#10'  ''Результат возвращаемый функцией должен быть True или False'#13#10'  ''  Если функция вернет True, то произойдет закрытие окна предварительного просмотра'#13#10'  %s = False'#13#10'end function';
-  VB_SCRIPTFUNCTION_TEMPLATE = 'option explicit'#13#10'function %s'#13#10'end function';
-  VBClASS_TEMPLATE = 'option explicit'#13#10'Class %s'#13#10'  Private Sub Class_Initialize'#13#10 +
-    '  ''Setup Initialize event.'#13#10#13#10'  End Sub'#13#10#13#10'  Private Sub Class_Terminate'#13#10 +
-    '  ''Setup Terminate event.'#13#10#13#10'  End Sub'#13#10'End Class';
-  VB_CONST = 'option explicit'#13#10'''Константы и переменные';
+    'Option Explicit'#13#10 +
+    'Function %s(OwnerForm)'#13#10 +
+    '  ''Функция параметров должна возвращать массив с размерностью,'#13#10 +
+    '  ''соответствующей кол-ву входных параметров основной функции.'#13#10 +
+    '  ''dim A(<Кол-во входных параметров осн. ф.>-1)'#13#10 +
+    '  ''%s = A'#13#10 +
+    'End Function';
+
+  VB_MAINFUNCTION_TEMPLATE =
+    'Option Explicit'#13#10 +
+    'Function %s(OwnerForm)'#13#10 +
+    '  BaseQueryList.Clear'#13#10 +
+    ''#13#10 +
+    '  Dim q'#13#10 +
+    '  Set q = BaseQueryList.Query(BaseQueryList.Add("q", 0))'#13#10 +
+    '  q.SQL = "введите текст запроса"'#13#10 +
+    '  q.Open'#13#10 +
+    ''#13#10 +
+    '  Set %s = BaseQueryList'#13#10 +
+    'End Function';
+
+  VB_EVENTFUNCTION_TEMPLATE =
+    'Option Explicit'#13#10 +
+    'Function %s(Params, Value, Name)'#13#10 +
+    '  ''Результат возвращаемый функцией должен быть True или False'#13#10 +
+    '  ''  Если функция вернет True, то произойдет закрытие окна предварительного просмотра'#13#10 +
+    '  %s = False'#13#10 +
+    'End Function';
+
+  VB_SCRIPTFUNCTION_TEMPLATE =
+    'Option Explicit'#13#10 +
+    'Function %s'#13#10 +
+    'End function';
+
+  VBClASS_TEMPLATE =
+    'Option Explicit'#13#10 +
+    'Class %s'#13#10 +
+    '  Private Sub Class_Initialize'#13#10 +
+    '  ''Setup Initialize event.'#13#10#13#10 +
+    '  End Sub'#13#10#13#10 +
+    '  Private Sub Class_Terminate'#13#10 +
+    '  ''Setup Terminate event.'#13#10#13#10 +
+    '  End Sub'#13#10 +
+    'End Class';
+
+  VB_CONST =
+    'Option Explicit'#13#10 +
+    '''Константы и переменные';
+
   VB_GLOBAL_OBJECT =
-    'option explicit'#13#10''' объявление глобального объекта'#13#10 +
+    'Option Explicit'#13#10''' объявление глобального объекта'#13#10 +
     'Public %s'#13#10 + #13#10 +
     ''' создание глобального объекта'#13#10 +
     'Sub %s_Initialize'#13#10 +
