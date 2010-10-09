@@ -186,7 +186,7 @@ begin
 
 //!!!TipTop Action = caFree только если окно закрывается с нажатым Shift-ом
 //И если  закоментиировать то все работает правильно
-//  Action := caFree;
+  Action := caFree;
 
 end;
 

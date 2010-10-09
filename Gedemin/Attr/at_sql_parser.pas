@@ -1014,6 +1014,11 @@ implementation
 uses
   jclSelected, JclStrHashMap;
 
+const
+  SQLReservedWords =
+    ',CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,NOW,CURRENT_USER,CURRENT_ROLE,' +
+    'CURRENT_CONNECTION,CURRENT_TRANSACTION,';
+
 var
   ClausesList: TStringHashMap;{TStringList}
 
@@ -1356,6 +1361,8 @@ begin
 end;
 
 procedure TsqlValue.ParseStatement;
+var
+  ValueSet: Boolean;
 begin
   with FParser do
   while not (Token.TokenType in [ttClear, ttNone]) do
@@ -1449,28 +1456,45 @@ begin
 
           tkText:
           begin
-            if eoSubName in FNeeded then
-            begin
-              if FNested then Break;
-              Include(FDone, eoSubName);
-              Exclude(FNeeded, eoSubName);
-              FSubName := Token.Text;
-            end else
+            ValueSet := False;
 
-            if eoCollate in FNeeded then
+            if eoValue in FNeeded then
             begin
-              FCollation := Token.Text;
-              Include(FDone, eoCollate);
-              Exclude(FNeeded, eoCollate);
-            end else
+              if StrIPos(',' + FToken.Text + ',', SQLReservedWords) > 0 then
+              begin
+                FValue := FToken.Text;
+                FSourceValue := FToken.Source;
+                Include(FDone, eoValue);
+                Exclude(FNeeded, eoValue);
+                ValueSet := True;
+              end;
+            end;
 
-            if not (eoSubName in FDone) then
+            if not ValueSet then
             begin
-              if FNested then Break;
-              FSubName := Token.Text;
-              Include(FDone, eoSubName);
-            end else
-              Break;
+              if eoSubName in FNeeded then
+              begin
+                if FNested then Break;
+                Include(FDone, eoSubName);
+                Exclude(FNeeded, eoSubName);
+                FSubName := Token.Text;
+              end else
+
+              if eoCollate in FNeeded then
+              begin
+                FCollation := Token.Text;
+                Include(FDone, eoCollate);
+                Exclude(FNeeded, eoCollate);
+              end else
+
+              if not (eoSubName in FDone) then
+              begin
+                if FNested then Break;
+                FSubName := Token.Text;
+                Include(FDone, eoSubName);
+              end else
+                Break;
+            end;    
           end;
 
           else begin
@@ -1487,9 +1511,11 @@ end;
 procedure TsqlValue.BuildStatement(out sql: String);
 begin
 
-  if IsNumeric(FValue) or IsUserText(FValue) or IsNull(FValue) then
-    sql := FSourceValue
-  else
+  if IsNumeric(FValue) or IsUserText(FValue) or IsNull(FValue)
+    or (StrIPos(',' + FValue + ',', SQLReservedWords) > 0) then
+  begin
+    sql := FSourceValue;
+  end else
     sql := ':' + FSourceValue;
 
   if eoCollate in FDone then
@@ -4807,19 +4833,24 @@ begin
     sql := sql + subsql + ' ' + #13#10;
   end;
 
-  sql := sql + '(';
-
-  for I := 0 to FFields.Count - 1 do
+  if FFields.Count > 0 then
   begin
-    CurrStatement := FFields[I] as TsqlStatement;
-    CurrStatement.BuildStatement(subsql);
-    sql := sql + subsql;
+    sql := sql + '(';
 
-    if I < FFields.Count - 1 then
-      sql := sql + ', ' + #13#10;
-  end;
+    for I := 0 to FFields.Count - 1 do
+    begin
+      CurrStatement := FFields[I] as TsqlStatement;
+      CurrStatement.BuildStatement(subsql);
+      sql := sql + subsql;
 
-  sql := sql + ') ' + ClauseText[cValues] + ' ' + #13#10;
+      if I < FFields.Count - 1 then
+        sql := sql + ', ' + #13#10;
+    end;
+
+    sql := sql + ') ';
+  end;  
+
+  sql := sql + ClauseText[cValues] + ' ' + #13#10;
 
   if FValues.Count > 0 then
   begin

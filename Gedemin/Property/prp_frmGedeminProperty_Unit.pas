@@ -1146,7 +1146,7 @@ begin
       begin
         Restored := False;
         try
-          for I := 0 to FDeskTopSF.Count - 1 do
+          for I := FDeskTopSF.Count - 1 downto 0 do
           begin
             ReopenSf(FDeskTopSF[I]);
           end;

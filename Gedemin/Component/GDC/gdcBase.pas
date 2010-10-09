@@ -12820,15 +12820,33 @@ begin
 end;
 
 procedure TgdcBase._CustomInsert(Buff: Pointer);
+var
+  OldState: TDataSetState;
 begin
+  OldState := State;
   CustomInsert(Buff);
   DoAfterCustomProcess(Buff, cpInsert);
+  if OldState <> State then
+    MessageBox(ParentHandle,
+      PChar('Неожиданное изменение состояния набора данных!'#13#10#13#10 +
+      'См. http://code.google.com/p/gedemin/issues/detail?id=1702'),
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
 end;
 
 procedure TgdcBase._CustomModify(Buff: Pointer);
+var
+  OldState: TDataSetState;
 begin
+  OldState := State;
   CustomModify(Buff);
   DoAfterCustomProcess(Buff, cpModify);
+  if OldState <> State then
+    MessageBox(ParentHandle,
+      PChar('Неожиданное изменение состояния набора данных!'#13#10#13#10 +
+      'См. http://code.google.com/p/gedemin/issues/detail?id=1702'),
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
 end;
 
 procedure TgdcBase._CustomDelete(Buff: Pointer);

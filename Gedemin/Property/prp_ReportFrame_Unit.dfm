@@ -345,6 +345,9 @@ inherited ReportFrame: TReportFrame
                   OnClick = nil
                 end
               end
+              inherited mHint: TMemo
+                Lines.Strings = ()
+              end
             end
           end
         end
@@ -404,6 +407,7 @@ inherited ReportFrame: TReportFrame
   object gdcReport: TgdcReport
     AfterDelete = gdcReportAfterDelete
     AfterEdit = gdcReportAfterEdit
+    AfterInternalDeleteRecord = gdcReportAfterInternalDeleteRecord
     SubSet = 'ByID'
     Left = 16
     Top = 40
