@@ -11019,8 +11019,6 @@ begin
   end;
 end;
 
-
-
 {$IFDEF NEW_GRID}
 procedure TgsCustomDBGrid.DoOnGroup(Sender: TObject);
 begin
@@ -11044,7 +11042,6 @@ begin
       if GroupSortExist then begin
         ClearGroupSort;
         UnGroup(false);
-        //OnPseudoRecordsOn := nil;
       end;
 end;
 

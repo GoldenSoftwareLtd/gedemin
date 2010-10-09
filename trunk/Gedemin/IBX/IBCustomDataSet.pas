@@ -3694,9 +3694,10 @@ begin
 end;
 
 function TIBCustomDataSet.GetCanModify: Boolean;
-begin  { TODO : CanEdit _ GetCanModify v0004.txt}
+begin
   result := ([lmInsert, lmModify, lmDelete] * FLiveMode <> []) or
             (Assigned(FUpdateObject));
+
   {$IFDEF NEW_GRID}
   // раньше 1-ой проверкой был вызов функции ActiveBuffer, но она не срабатывавл если
   // Assigned(FBuffers){приватное поле TDataSet в DB.pas} во время вызова было ложь
@@ -3706,7 +3707,7 @@ begin  { TODO : CanEdit _ GetCanModify v0004.txt}
        and (PRecordData(ActiveBuffer)^.rdRecordKind in [rkRecord{, rkHeaderRecord}]));
   {$ENDIF}
 end;
-   { TODO : ^^^^ GetCurrentRecord} {}
+   
 function TIBCustomDataSet.GetCurrentRecord(Buffer: PChar): Boolean;
 begin
   if not IsEmpty and (GetBookmarkFlag(ActiveBuffer) = bfCurrent) then
