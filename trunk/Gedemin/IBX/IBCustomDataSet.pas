@@ -773,6 +773,7 @@ type
 
     //!!!b
     procedure Sort(F: TField; const Ascending: Boolean = True);
+    procedure SortMultiple(const AFields: String; const Ascending: Boolean = True);
     {$IFDEF NEW_GRID}
     procedure Sort2(BeforeGroup: Boolean = True);
 
@@ -6164,91 +6165,153 @@ begin
 end;
 
 procedure TIBCustomDataSet.Sort(F: TField; const Ascending: Boolean = True);
-const
-  SortSubStringLength = 40;
-var
-  SList: TStringList;
-  Buffer, Buffer2, pRec: PChar;
-  OldFiltered: Boolean;
-  Min, E: Double;
-  I: Integer;
-  WasNotNumber: Boolean;
-
-  procedure QuickSort(SL: TStringList; iLo, iHi: Integer);
-  var
-    Lo, Hi: Integer;
-    S, Mid: String;
-  begin
-    Lo := iLo;
-    Hi := iHi;
-    Mid := SL[(Lo + Hi) div 2];
-    repeat
-      while SL[Lo] < Mid do Inc(Lo);
-      while SL[Hi] > Mid do Dec(Hi);
-      if Lo <= Hi then
-      begin
-        S := SL[Lo];
-        SL[Lo] := SL[Hi];
-        SL[Hi] := S;
-
-        ReadRecordCache(Lo, Buffer, False);
-        ReadRecordCache(Hi, Buffer2, False);
-
-        PRecordData(Buffer)^.rdRecordNumber := Hi;
-        PRecordData(Buffer2)^.rdRecordNumber := Lo;
-
-        WriteRecordCache(Lo, Buffer2);
-        WriteRecordCache(Hi, Buffer);
-
-        Inc(Lo);
-        Dec(Hi);
-      end;
-    until Lo > Hi;
-    if Hi > iLo then QuickSort(SL, iLo, Hi);
-    if Lo < iHi then QuickSort(SL, Lo, iHi);
-  end;
-
-  procedure QuickSortDesc(SL: TStringList; iLo, iHi: Integer);
-  var
-    Lo, Hi: Integer;
-    S, Mid: String;
-  begin
-    Lo := iLo;
-    Hi := iHi;
-    Mid := SL[(Lo + Hi) div 2];
-    repeat
-      while SL[Lo] > Mid do Inc(Lo);
-      while SL[Hi] < Mid do Dec(Hi);
-      if Lo <= Hi then
-      begin
-        S := SL[Lo];
-        SL[Lo] := SL[Hi];
-        SL[Hi] := S;
-
-        ReadRecordCache(Lo, Buffer, False);
-        ReadRecordCache(Hi, Buffer2, False);
-
-        PRecordData(Buffer)^.rdRecordNumber := Hi;
-        PRecordData(Buffer2)^.rdRecordNumber := Lo;
-
-        WriteRecordCache(Lo, Buffer2);
-        WriteRecordCache(Hi, Buffer);
-
-        Inc(Lo);
-        Dec(Hi);
-      end;
-    until Lo > Hi;
-    if Hi > iLo then QuickSortDesc(SL, iLo, Hi);
-    if Lo < iHi then QuickSortDesc(SL, Lo, iHi);
-  end;
-
 begin
   Assert(Assigned(F));
+  SortMultiple(F.FieldName, Ascending);
+end;
 
+procedure TIBCustomDataSet.SortMultiple(const AFields: String; const Ascending: Boolean = True);
+var
+  TempBuff: PChar;
+  Arr: array of TField;
+
+  {$WARNINGS OFF}
+  function Compare(const A, B: Integer): Integer;
+  var
+    Str: String;
+    Int, J: Integer;
+    Dbl: Double;
+    Cur: Currency;
+    Dt: TDateTime;
+    Vr: Variant;
+  begin
+    Result := 0;
+    for J := 0 to Length(Arr) - 1 do
+    begin
+      FPeekBuffer := FBufferCache + A * FRecordBufferSize;
+      try
+        case Arr[J].DataType of
+          ftString, ftMemo, ftFmtMemo: Str := Arr[J].AsString;
+          ftSmallint, ftInteger, ftWord, ftBoolean: Int := Arr[J].AsInteger;
+          ftFloat: Dbl := Arr[J].AsFloat;
+          ftCurrency, ftBCD: Cur := Arr[J].AsCurrency;
+          ftDate, ftTime, ftDateTime: Dt := Arr[J].AsDateTime;
+        else
+          Vr := Arr[J].AsVariant;
+        end;
+
+        FPeekBuffer := FBufferCache + B * FRecordBufferSize;
+        case Arr[J].DataType of
+          ftString, ftMemo, ftFmtMemo: Result := AnsiCompareText(Str, Arr[J].AsString);
+          ftSmallint, ftInteger, ftWord, ftBoolean: Result := Int - Arr[J].AsInteger;
+          ftFloat:
+            if Dbl < Arr[J].AsFloat then
+              Result := -1
+            else if Dbl > Arr[J].AsFloat then
+              Result := 1
+            else
+              Result := 0;
+          ftCurrency, ftBCD:
+            if Cur < Arr[J].AsCurrency then
+              Result := -1
+            else if Cur > Arr[J].AsCurrency then
+              Result := 1
+            else
+              Result := 0;
+          ftDate, ftTime, ftDateTime:
+            if Dt < Arr[J].AsDateTime then
+              Result := -1
+            else if Dt > Arr[J].AsDateTime then
+              Result := 1
+            else
+              Result := 0;
+        else
+          if Vr < Arr[J].AsVariant then
+            Result := -1
+          else if Vr > Arr[J].AsVariant then
+            Result := 1
+          else
+            Result := 0;
+        end;
+      finally
+        FPeekBuffer := nil;
+      end;
+
+      if not Ascending then
+        Result := - Result;
+
+      if Result <> 0 then
+        break;
+    end;
+  end;
+  {$WARNINGS ON}
+
+  procedure QuickSort(iLo, iHi: Integer);
+  var
+    Lo, Hi, Mid: Integer;
+  begin
+    Lo := iLo;
+    Hi := iHi;
+    Mid := (Lo + Hi) div 2;
+    repeat
+      while Compare(Lo, Mid) < 0 do Inc(Lo);
+      while Compare(Hi, Mid) > 0 do Dec(Hi);
+      if Lo <= Hi then
+      begin
+        if Lo <> Hi then
+        begin
+          Move((FBufferCache + Lo * FRecordBufferSize)^, TempBuff^, FRecordBufferSize);
+          Move((FBufferCache + Hi * FRecordBufferSize)^, (FBufferCache + Lo * FRecordBufferSize)^, FRecordBufferSize);
+          Move(TempBuff^, (FBufferCache + Hi * FRecordBufferSize)^, FRecordBufferSize);
+
+          PRecordData(FBufferCache + Hi * FRecordBufferSize)^.rdRecordNumber := Hi;
+          PRecordData(FBufferCache + Lo * FRecordBufferSize)^.rdRecordNumber := Lo;
+        end;
+
+        if Lo = Mid then Mid := Hi
+          else if Hi = Mid then Mid := Lo;
+
+        Inc(Lo);
+        Dec(Hi);
+      end;
+    until Lo > Hi;
+    if Hi > iLo then QuickSort(iLo, Hi);
+    if Lo < iHi then QuickSort(Lo, iHi);
+  end;
+
+var
+  I, B, E: Integer;
+  pRec: PChar;
+
+begin
   CheckBrowseMode;
 
   if UniDirectional then
     exit;
+
+  SetLength(Arr, 0);
+  B := 1;
+  E := 1;
+  while E <= Length(AFields) do
+  begin
+    if AFields[E] = ';' then
+    begin
+      SetLength(Arr, Length(Arr) + 1);
+      Arr[Length(Arr) - 1] := FieldByName(Copy(AFields, B, E - B));
+      B := E + 1;
+    end;
+
+    Inc(E);
+  end;
+
+  if B < E then
+  begin
+    SetLength(Arr, Length(Arr) + 1);
+    Arr[Length(Arr) - 1] := FieldByName(Copy(AFields, B, E - B));
+  end;
+
+  if Length(Arr) = 0 then
+    raise Exception.Create('No field names specified');
 
   DisableControls;
   DoBeforeScroll;
@@ -6274,91 +6337,20 @@ begin
       FCurrentRecord := -1;
     end;
 
-    SList := TStringList.Create;
-
-    {$IFDEF HEAP_STRING_FIELD}
-    Buffer := nil;
-    Buffer2 := nil;
-    IBAlloc(Buffer, 0, FRecordBufferSize);
-    IBAlloc(Buffer2, 0, FRecordBufferSize);
-    {$ELSE}
-    GetMem(Buffer, FRecordBufferSize);
-    GetMem(Buffer2, FRecordBufferSize);
-    {$ENDIF}
-
-    OldFiltered := Filtered;
-    if Filtered then
-      Filtered := False;
-    Min := 0;
-    WasNotNumber := False;
+    GetMem(TempBuff, FRecordBufferSize);
     try
-      Last;
+      if not qSelect.EOF then
+        Last;
 
-      First;
-      while not EOF do
-      begin
-        case F.DataType of
-          ftDate: SList.Add(FormatDateTime('yyyymmdd', F.AsDateTime));
-          ftTime: SList.Add(FormatDateTime('hhnnss'{zzz}, F.AsDateTime));
-          ftDateTime: SList.Add(FormatDateTime('yyyymmddhhnnss'{zzz}, F.AsDateTime));
-          ftSmallInt, ftInteger, ftWord, ftFloat, ftCurrency, ftBCD, ftLargeInt:
-          begin
-            SList.Add(FormatFloat('0000000000000000.0000', F.AsFloat));
-            if F.AsFloat < Min then
-              Min := F.AsFloat;
-          end;
-        else
-          SList.Add(AnsiUpperCase(Copy(F.AsString, 1, SortSubStringLength)));
-          if not WasNotNumber then
-            try
-              StrToFloat(AnsiUpperCase(Copy(F.AsString, 1, SortSubStringLength)));
-            except
-              WasNotNumber := True;
-            end;
-        end;
-        Next;
-      end;
-
-      if SList.Count > 0 then
-      begin
-        if (F.DataType = ftString) and (not WasNotNumber) then
-        begin
-          for I := 0 to SList.Count - 1 do
-          begin
-            E := StrToFloat(SList[I]);
-            SList[I] := FormatFloat('0000000000000000.0000', E);
-            if E < Min then
-              Min := E;
-          end;
-        end;
-
-        if Min < 0 then
-        begin
-          Min := Min - 1; // для того чтобы избежать всяких ошибок с округлениями флоатов
-          for I := 0 to SList.Count - 1 do
-          begin
-            SList[I] := FormatFloat('0000000000000000.0000', StrToFloat(SList[I]) - Min);
-          end;
-        end;
-
-        if Ascending then
-          QuickSort(SList, 0, SList.Count - 1)
-        else
-          QuickSortDesc(SList, 0, SList.Count - 1)
-      end;
+      QuickSort(0, FRecordCount - 1);
 
       {$IFNDEF NEW_GRID}
-      FSortField := F.FieldName;
+      FSortField := Arr[0].FieldName;
       FSortAscending := Ascending;
       {$ENDIF}
 
     finally
-      FreeMem(Buffer, FRecordBufferSize);
-      FreeMem(Buffer2, FRecordBufferSize);
-      SList.Free;
-
-      if Filtered <> OldFiltered then
-        Filtered := OldFiltered;
+      FreeMem(TempBuff, FRecordBufferSize);
 
       FCurrentRecord := 0;
       Resync([]);
