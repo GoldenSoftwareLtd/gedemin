@@ -6984,15 +6984,8 @@ begin
   try
     if (sLoadFromStream in BaseState) then
     begin
-      if isNew then
-        //В поле proceduresource хранится текст для создания процедуры
-        FSQL.Add(FieldByName('proceduresource').AsString)
-      else
-      begin
-        //Если мы находимся в режиме модификации, то заменим Create на Alter
-        FSQL.Add('ALTER ' +  System.Copy(Trim(FieldByName('proceduresource').AsString), Length('CREATE') + 1,
-          Length(FieldByName('proceduresource').AsString) - Length('CREATE')));
-      end;
+      //В поле proceduresource хранится текст для создания процедуры
+      FSQL.Add(FieldByName('proceduresource').AsString);
     end
     else if sCopy in BaseState then
     begin
