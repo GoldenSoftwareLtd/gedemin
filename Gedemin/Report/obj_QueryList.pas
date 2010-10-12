@@ -1923,10 +1923,16 @@ end;
 procedure TgsDataSet.Set_IndexFields(const Value: WideString);
 begin
   if (Trim(Value) > '') and not CheckFieldNames(FDataSet, Value) then
-    raise Exception.Create('Some index fields is absence');
+    raise Exception.Create('Invalid index fields specified');
+
   FIndexFields := Value;
+  
   if FDataSet is TClientDataSet then
-    GetClientDataSet.IndexFieldNames := FIndexFields;
+    (FDataSet as TClientDataSet).IndexFieldNames := FIndexFields
+  else if FDataSet is TIBCustomDataSet then
+    (FDataSet as TIBCustomDataSet).SortMultiple(FIndexFields, True)
+  else
+    raise Exception.Create('Index fields can not be specified');
 end;
 
 function TgsDataSet.Get_RecordCount: Integer;
