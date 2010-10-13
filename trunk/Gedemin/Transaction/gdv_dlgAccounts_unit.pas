@@ -11,13 +11,11 @@ uses
 type
   Tgdv_dlgAccounts = class(TForm)
     Panel1: TPanel;
-    Button1: TButton;
-    Button2: TButton;
     DataSource1: TDataSource;
     gdcAcctAccountChart: TgdcAcctBase;
     gsDBTreeView: TgsDBTreeView;
-    TBDock1: TTBDock;
-    TBToolbar1: TTBToolbar;
+    tbdMain: TTBDock;
+    tbtMain: TTBToolbar;
     ActionList1: TActionList;
     actOk: TAction;
     actCancel: TAction;
@@ -27,6 +25,9 @@ type
     TBItem2: TTBItem;
     Button3: TButton;
     actHelp: TAction;
+    pnlBottomRight: TPanel;
+    Button1: TButton;
+    Button2: TButton;
     procedure actOkExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);

@@ -3188,6 +3188,7 @@ begin
   {END MACRO}
 
   if Filtered and Assigned(OnFilterRecord)
+    and (_CurrentRecord > -1)  // Issue 2175
     and (not (sDialog in BaseState)) then
   begin
     Tmp := AllocRecordBuffer;

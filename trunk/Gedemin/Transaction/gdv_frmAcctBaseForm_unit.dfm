@@ -1,6 +1,6 @@
 inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
-  Left = 218
-  Top = 92
+  Left = 249
+  Top = 255
   Width = 983
   Height = 656
   Caption = 'gdv_frmAcctBaseForm'
@@ -11,13 +11,12 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
   object sLeft: TSplitter [0]
     Left = 255
     Top = 30
-    Width = 5
-    Height = 579
+    Width = 6
+    Height = 590
     Cursor = crHSplit
-    ResizeStyle = rsUpdate
   end
   inherited TBDock1: TTBDock
-    Width = 967
+    Width = 975
     inherited tbMainToolbar: TTBToolbar
       DockMode = dmCannotFloat
       DockPos = 0
@@ -168,14 +167,14 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
     end
   end
   inherited Panel1: TPanel
-    Left = 260
-    Width = 698
-    Height = 579
+    Left = 261
+    Width = 705
+    Height = 590
     object ibgrMain: TgsIBGrid
       Left = 0
       Top = 0
-      Width = 698
-      Height = 579
+      Width = 705
+      Height = 590
       HelpContext = 3
       Align = alClient
       BorderStyle = bsNone
@@ -203,21 +202,21 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
     end
   end
   inherited TBDock2: TTBDock
-    Height = 579
+    Height = 590
   end
   inherited TBDock3: TTBDock
-    Left = 958
-    Height = 579
+    Left = 966
+    Height = 590
   end
   inherited TBDock4: TTBDock
-    Top = 609
-    Width = 967
+    Top = 620
+    Width = 975
   end
   object pLeft: TPanel [6]
     Left = 9
     Top = 30
     Width = 246
-    Height = 579
+    Height = 590
     Align = alLeft
     BevelOuter = bvNone
     Caption = 'pLeft'
@@ -226,7 +225,7 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       Left = 0
       Top = 17
       Width = 246
-      Height = 562
+      Height = 573
       VertScrollBar.Style = ssFlat
       Align = alClient
       BorderStyle = bsNone

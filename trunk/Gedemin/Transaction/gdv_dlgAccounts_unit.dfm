@@ -17,46 +17,55 @@ object gdv_dlgAccounts: Tgdv_dlgAccounts
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
-    Top = 287
-    Width = 327
-    Height = 31
+    Top = 276
+    Width = 319
+    Height = 30
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 0
-    object Button1: TButton
-      Left = 250
-      Top = 10
-      Width = 75
-      Height = 21
-      Action = actCancel
-      Anchors = [akRight, akBottom]
-      TabOrder = 1
-    end
-    object Button2: TButton
-      Left = 170
-      Top = 10
-      Width = 75
-      Height = 21
-      Action = actOk
-      Anchors = [akRight, akBottom]
-      Default = True
-      TabOrder = 0
-    end
     object Button3: TButton
       Left = 0
-      Top = 10
+      Top = 7
       Width = 75
       Height = 21
       Action = actHelp
       Anchors = [akLeft, akBottom]
-      TabOrder = 2
+      TabOrder = 1
+    end
+    object pnlBottomRight: TPanel
+      Left = 134
+      Top = 0
+      Width = 185
+      Height = 30
+      Align = alRight
+      BevelOuter = bvNone
+      TabOrder = 0
+      object Button1: TButton
+        Left = 108
+        Top = 7
+        Width = 75
+        Height = 21
+        Action = actCancel
+        Anchors = [akRight, akBottom]
+        TabOrder = 0
+      end
+      object Button2: TButton
+        Left = 24
+        Top = 7
+        Width = 75
+        Height = 21
+        Action = actOk
+        Anchors = [akRight, akBottom]
+        Default = True
+        TabOrder = 1
+      end
     end
   end
   object gsDBTreeView: TgsDBTreeView
     Left = 0
-    Top = 28
-    Width = 327
-    Height = 259
+    Top = 26
+    Width = 319
+    Height = 250
     DataSource = DataSource1
     KeyField = 'ID'
     ParentField = 'PARENT'
@@ -69,16 +78,17 @@ object gdv_dlgAccounts: Tgdv_dlgAccounts
     MainFolderCaption = 'Все'
     WithCheckBox = True
   end
-  object TBDock1: TTBDock
+  object tbdMain: TTBDock
     Left = 0
     Top = 0
-    Width = 327
-    Height = 28
-    BoundLines = [blTop, blBottom]
-    object TBToolbar1: TTBToolbar
+    Width = 319
+    Height = 26
+    object tbtMain: TTBToolbar
       Left = 0
       Top = 0
-      Caption = 'TBToolbar1'
+      Caption = 'tbtMain'
+      DockMode = dmCannotFloatOrChangeDocks
+      FullSize = True
       Images = dmImages.il16x16
       ParentShowHint = False
       ShowHint = True
@@ -105,29 +115,32 @@ object gdv_dlgAccounts: Tgdv_dlgAccounts
     Left = 96
     Top = 208
     object actOk: TAction
-      Caption = 'Ok'
+      Caption = 'OK'
+      Hint = 'OK'
       ShortCut = 13
       OnExecute = actOkExecute
     end
     object actCancel: TAction
-      Caption = 'Cancel'
+      Caption = 'Отмена'
+      Hint = 'Отмена'
       ShortCut = 27
       OnExecute = actCancelExecute
     end
-    object actSelectAll: TAction
-      Caption = 'actSelectAll'
-      Hint = 'Выбрать все'
-      ImageIndex = 40
-      OnExecute = actSelectAllExecute
-    end
     object actDeselectAll: TAction
-      Caption = 'actDeselectAll'
+      Caption = 'Снять выбор'
       Hint = 'Снять выбор'
       ImageIndex = 41
       OnExecute = actDeselectAllExecute
     end
+    object actSelectAll: TAction
+      Caption = 'Выбрать все'
+      Hint = 'Выбрать все'
+      ImageIndex = 40
+      OnExecute = actSelectAllExecute
+    end
     object actHelp: TAction
       Caption = 'Справка'
+      Hint = 'Справка'
     end
   end
 end
