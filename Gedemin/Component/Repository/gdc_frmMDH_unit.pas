@@ -9,7 +9,7 @@ uses
   gdc_frmG_unit, ExtCtrls, IBDatabase, Db, flt_sqlFilter,
   Menus, ActnList,  ComCtrls, ToolWin, gdcBase, gdcBaseInterface, DBGrids,
   IBCustomDataSet, gdcConst, TB2Item, TB2Dock, TB2Toolbar,
-  StdCtrls, gd_MacrosMenu, Grids, gsDBGrid, gsIBGrid;
+  StdCtrls, gd_MacrosMenu, Grids, gsDBGrid, gsIBGrid, amSplitter;
 
 type
   Tgdc_frmMDH = class(Tgdc_frmG)
@@ -864,6 +864,10 @@ begin
         rmSubSet.Free;
       end;
 
+      tbMainToolbar.Visible := False;
+      tbChooseMain.Visible := False;
+      tbMainCustom.Visible := False;
+
     end else if ((pnlMain.Width > 1) and (pnlMain.Height > 1))
       and (gdcDetailObject.MasterSource = nil)
       and (FSavedSubSet > '') then
@@ -878,8 +882,11 @@ begin
 
       gdcObject.Open;
       gdcDetailObject.Open;
-    end;
 
+      tbMainToolbar.Visible := True;
+      tbChooseMain.Visible := True;
+      tbMainCustom.Visible := True;
+    end;
 
     if Assigned(UserStorage)
       and (not UserStorage.ReadBoolean('Options', 'HideMaster', False))
@@ -887,7 +894,7 @@ begin
       and (gdcDetailObject.MasterSource = nil)
       and (not (cfsSetting in CreateableFormState))
       and (not HideMessage)
-      and ((pnlMain.Width <= 1) or (pnlMain.Height <= 1))      
+      and ((pnlMain.Width <= 1) or (pnlMain.Height <= 1))
     then
     begin
       MessageBox(Handle,

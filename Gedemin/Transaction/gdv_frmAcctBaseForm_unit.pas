@@ -34,7 +34,7 @@ uses
   gdv_frAcctQuantity_unit, gdv_frAcctAnalytics_unit, gdv_frAcctCompany_unit,
   IBDatabase, gd_common_functions, gdv_AcctConfig_unit, gd_createable_form,
   gdcBase, gd_security_operationconst, gdcConstants,
-  gdvAcctBase;
+  gdvAcctBase, amSplitter;
 
 type
 

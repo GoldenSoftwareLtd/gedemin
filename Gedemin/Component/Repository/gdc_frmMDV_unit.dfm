@@ -38,28 +38,28 @@ inherited gdc_frmMDV: Tgdc_frmMDV
     inherited sMasterDetail: TSplitter
       Left = 200
       Top = 0
-      Width = 4
-      Height = 365
+      Width = 6
+      Height = 363
       Cursor = crHSplit
       Align = alLeft
     end
     inherited spChoose: TSplitter
-      Top = 365
+      Top = 363
       Width = 608
     end
     inherited pnlMain: TPanel
       Width = 200
-      Height = 365
+      Height = 363
       Align = alLeft
       Constraints.MinHeight = 100
       Constraints.MinWidth = 1
       inherited pnlSearchMain: TPanel
-        Height = 365
+        Height = 363
         inherited sbSearchMain: TScrollBox
-          Height = 327
+          Height = 325
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 327
+          Top = 325
         end
       end
     end
@@ -77,21 +77,21 @@ inherited gdc_frmMDV: Tgdc_frmMDV
       end
     end
     inherited pnlDetail: TPanel
-      Left = 204
+      Left = 206
       Top = 0
-      Width = 404
-      Height = 365
+      Width = 402
+      Height = 363
       Constraints.MinWidth = 100
       inherited TBDockDetail: TTBDock
-        Width = 402
+        Width = 400
       end
       inherited pnlSearchDetail: TPanel
-        Height = 337
+        Height = 335
         inherited sbSearchDetail: TScrollBox
-          Height = 299
+          Height = 297
         end
         inherited pnlSearchDetailButton: TPanel
-          Top = 299
+          Top = 297
         end
       end
     end

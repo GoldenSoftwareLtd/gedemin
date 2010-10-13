@@ -1,15 +1,15 @@
 inherited gdc_frmMDH: Tgdc_frmMDH
-  Left = 96
-  Top = 124
+  Left = 337
+  Top = 229
   Width = 740
-  Height = 479
+  Height = 482
   HelpContext = 115
   Caption = 'gdc_frmMDH'
   Font.Charset = DEFAULT_CHARSET
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 432
+    Top = 436
     Width = 732
   end
   inherited TBDockTop: TTBDock
@@ -74,33 +74,33 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 374
+    Height = 378
   end
   inherited TBDockRight: TTBDock
     Left = 723
-    Height = 374
+    Height = 378
   end
   inherited TBDockBottom: TTBDock
-    Top = 423
+    Top = 427
     Width = 732
   end
   inherited pnlWorkArea: TPanel
     Width = 714
-    Height = 374
+    Height = 378
     TabOrder = 0
     object sMasterDetail: TSplitter [0]
       Left = 0
       Top = 167
       Width = 714
-      Height = 4
+      Height = 6
       Cursor = crVSplit
       Align = alTop
-      Beveled = True
       MinSize = 20
     end
     inherited spChoose: TSplitter
-      Top = 271
+      Top = 273
       Width = 714
+      Height = 6
     end
     inherited pnlMain: TPanel
       Width = 714
@@ -119,7 +119,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       end
     end
     inherited pnChoose: TPanel
-      Top = 275
+      Top = 279
       Width = 714
       TabOrder = 2
       inherited pnButtonChoose: TPanel
@@ -134,7 +134,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
     object pnlDetail: TPanel
       Left = 0
-      Top = 171
+      Top = 173
       Width = 714
       Height = 100
       Align = alClient
