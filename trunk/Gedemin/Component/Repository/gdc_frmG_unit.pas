@@ -506,20 +506,13 @@ end;
 procedure Tgdc_frmG.actCommitUpdate(Sender: TObject);
 begin
   actCommit.Enabled := (gdcObject <> nil)
-    //and (gdcObject.State = dsBrowse)
-    and gdcObject.CanCreate
-    and gdcObject.CanEdit
-    and gdcObject.CanView;
+    and ((gdcObject.State in [dsEdit, dsInsert]) or gdcObject.Transaction.InTransaction);
 end;
 
 procedure Tgdc_frmG.actRollbackUpdate(Sender: TObject);
 begin
   actRollback.Enabled := (gdcObject <> nil)
-    and (gdcObject.State = dsBrowse)
-{    and gdcObject.CanCreate
-    and gdcObject.CanEdit
-    and gdcObject.CanView}
-    and (gdcObject.Transaction.InTransaction);
+    and ((gdcObject.State in [dsEdit, dsInsert]) or gdcObject.Transaction.InTransaction);
 end;
 
 procedure Tgdc_frmG.actNewExecute(Sender: TObject);
@@ -586,9 +579,15 @@ end;
 
 procedure Tgdc_frmG.actRollbackExecute(Sender: TObject);
 begin
-  if gdcObject.Transaction.InTransaction then
+  if gdcObject.State in dsEditModes then
+    gdcObject.Cancel;
+  if gdcObject.Transaction.InTransaction and
+    (gdcObject.Transaction <> gdcObject.ReadTransaction) then
+  begin
     gdcObject.Transaction.Rollback;
-  gdcObject.CloseOpen;
+  end;
+  if gdcObject.Active then
+    gdcObject.CloseOpen;
 end;
 
 procedure Tgdc_frmG.actCommitExecute(Sender: TObject);
@@ -600,7 +599,8 @@ begin
   begin
     gdcObject.Transaction.Commit;
   end;
-  gdcObject.CloseOpen;
+  if gdcObject.Active then
+    gdcObject.CloseOpen;
 end;
 
 function Tgdc_frmG.GetMainBookmarkList: TBookmarkList;

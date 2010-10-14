@@ -27,6 +27,7 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
+    class function GetNotStreamSavedField(const IsReplicationMode: Boolean = False): String; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -193,6 +194,15 @@ class function TgdcSavedFilter.GetListTable(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'flt_savedfilter';
+end;
+
+class function TgdcSavedFilter.GetNotStreamSavedField(
+  const IsReplicationMode: Boolean): String;
+begin
+  Result := inherited GetNotStreamSavedField(IsReplicationMode);
+  if Result <> '' then
+    Result := Result + ',';
+  Result := Result + 'LASTEXTIME,READCOUNT';
 end;
 
 class function TgdcSavedFilter.GetSubSetList: String;

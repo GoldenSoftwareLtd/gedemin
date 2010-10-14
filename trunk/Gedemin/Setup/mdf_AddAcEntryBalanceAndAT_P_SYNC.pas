@@ -1017,6 +1017,26 @@ begin
           gdcField.SubSet := 'ByFieldName';
           ibsqlFields.Transaction := FTransaction;
           ibsqlFields.ParamCheck := False;
+
+          FIBSQL.Close;
+          FIBSQL.SQL.Text :=
+            'SELECT r.rdb$field_name, r.rdb$field_source FROM rdb$relation_fields r WHERE ' +
+            '  r.rdb$relation_name = ''AC_ACCOUNT'' ' +
+            '  AND r.rdb$field_name LIKE ''USR$%'' ' +
+            '  AND r.rdb$field_name NOT IN (' +
+            '    SELECT rdb$field_name FROM rdb$relation_fields WHERE rdb$relation_name = ''AC_ENTRY'') ';
+          FIBSQL.ExecQuery;
+          while not FIBSQL.EOF do
+          begin
+            ibsqlFields.SQL.Text := 'ALTER TABLE AC_ENTRY ADD ' +
+              FIBSQL.Fields[0].AsTrimString + ' ' +
+              FIBSQL.Fields[1].AsTrimString;
+            ibsqlFields.ExecQuery;
+            FIBSQL.Next;
+          end;
+          FIBSQL.Close;
+
+          ibsqlFields.Close;
           ibsqlFields.SQL.Text :=
             ' SELECT ' +
             '   r.rdb$field_name AS FieldName, ' +

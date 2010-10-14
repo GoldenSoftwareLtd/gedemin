@@ -865,6 +865,7 @@ begin
       end;
 
       tbMainToolbar.Visible := False;
+      tbMainInvariant.Visible := False;
       tbChooseMain.Visible := False;
       tbMainCustom.Visible := False;
 
@@ -884,6 +885,7 @@ begin
       gdcDetailObject.Open;
 
       tbMainToolbar.Visible := True;
+      tbMainInvariant.Visible := True;
       tbChooseMain.Visible := True;
       tbMainCustom.Visible := True;
     end;

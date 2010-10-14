@@ -1108,7 +1108,7 @@ var
 implementation
 
 uses
-  IBIntf, DBConsts, IBErrorCodes,
+  IBIntf, DBConsts, IBErrorCodes, JclAnsiStrings,
   //uDemo1{&&&},
   {$IFDEF GEDEMIN}
   gd_security,
@@ -6174,6 +6174,7 @@ procedure TIBCustomDataSet.SortMultiple(const AFields: String; const Ascending: 
 var
   TempBuff: PChar;
   Arr: array of TField;
+  ArrIsNumber, ArrNumFields: array of Boolean;
 
   {$WARNINGS OFF}
   function Compare(const A, B: Integer): Integer;
@@ -6191,7 +6192,16 @@ var
       FPeekBuffer := FBufferCache + A * FRecordBufferSize;
       try
         case Arr[J].DataType of
-          ftString, ftMemo, ftFmtMemo: Str := Arr[J].AsString;
+          ftString, ftMemo, ftFmtMemo:
+          begin
+            if ArrNumFields[J] then
+              Dbl := Arr[J].AsFloat
+            else
+            begin
+              Str := Arr[J].AsString;
+              ArrIsNumber[J] := ArrIsNumber[J] and StrConsistsofNumberChars(Str);
+            end;
+          end;
           ftSmallint, ftInteger, ftWord, ftBoolean: Int := Arr[J].AsInteger;
           ftFloat: Dbl := Arr[J].AsFloat;
           ftCurrency, ftBCD: Cur := Arr[J].AsCurrency;
@@ -6202,7 +6212,22 @@ var
 
         FPeekBuffer := FBufferCache + B * FRecordBufferSize;
         case Arr[J].DataType of
-          ftString, ftMemo, ftFmtMemo: Result := AnsiCompareText(Str, Arr[J].AsString);
+          ftString, ftMemo, ftFmtMemo:
+          begin
+            if ArrNumFields[J] then
+            begin
+              if Dbl < Arr[J].AsFloat then
+                Result := -1
+              else if Dbl > Arr[J].AsFloat then
+                Result := 1
+              else
+                Result := 0;
+            end else
+            begin
+              Result := AnsiCompareText(Str, Arr[J].AsString);
+              ArrIsNumber[J] := ArrIsNumber[J] and StrConsistsofNumberChars(Arr[J].AsString);
+            end;
+          end;
           ftSmallint, ftInteger, ftWord, ftBoolean: Result := Int - Arr[J].AsInteger;
           ftFloat:
             if Dbl < Arr[J].AsFloat then
@@ -6282,6 +6307,7 @@ var
 var
   I, B, E: Integer;
   pRec: PChar;
+  Resort: Boolean;
 
 begin
   CheckBrowseMode;
@@ -6313,6 +6339,14 @@ begin
   if Length(Arr) = 0 then
     raise Exception.Create('No field names specified');
 
+  SetLength(ArrIsNumber, Length(Arr));
+  for I := 0 to Length(ArrIsNumber) - 1 do
+    ArrIsNumber[I] := True;
+
+  SetLength(ArrNumFields, Length(Arr));
+  for I := 0 to Length(ArrNumFields) - 1 do
+    ArrNumFields[I] := False;
+
   DisableControls;
   DoBeforeScroll;
   DisableScrollEvents;
@@ -6343,6 +6377,19 @@ begin
         Last;
 
       QuickSort(0, FRecordCount - 1);
+
+      Resort := False;
+      for I := 0 to Length(Arr) - 1 do
+      begin
+        if (Arr[I].DataType in [ftString, ftMemo, ftFmtMemo]) and ArrIsNumber[I] then
+        begin
+          ArrNumFields[I] := True;
+          Resort := True;
+        end;
+      end;
+
+      if Resort then
+        QuickSort(0, FRecordCount - 1);
 
       {$IFNDEF NEW_GRID}
       FSortField := Arr[0].FieldName;
