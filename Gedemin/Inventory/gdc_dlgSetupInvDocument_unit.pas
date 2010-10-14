@@ -135,6 +135,9 @@ type
     procedure actAddAll_MinusFeatureExecute(Sender: TObject);
     procedure actRemoveAll_MinusFeatureExecute(Sender: TObject);
     procedure luCreditFromDropDown(Sender: TObject);
+    procedure cbTemplateChange(Sender: TObject);
+    procedure edEnglishNameExit(Sender: TObject);
+    procedure iblcHeaderTableChange(Sender: TObject);
 
 
   private
@@ -869,7 +872,7 @@ begin
   edEnglishName.Text := '';
   edEnglishName.MaxLength := 14;
 
-  cbTemplate.ItemIndex := 0;
+  cbTemplate.ItemIndex := -1;
   cbDocument.ItemIndex := -1;
 
   { TODO 1 -oденис -cсделать : Нужно вставить загрузку списка складских документов. }
@@ -1419,6 +1422,20 @@ procedure Tgdc_dlgSetupInvDocument.TestCommon;
 begin
 //Выполняется отдельно (не через общий механизм) потому как важен порядок проверки
 //и потому что контрол может быть Disabled
+  if Trim(edEnglishName.Text) = '' then
+  begin
+    if edEnglishName.CanFocus then
+      edEnglishName.SetFocus;
+    raise EdlgSetupInvDocument.Create('Укажите наименование на английском языке!');
+  end;
+
+  if cbTemplate.ItemIndex = -1 then
+  begin
+    if cbTemplate.CanFocus then
+      cbTemplate.SetFocus;
+    raise EdlgSetupInvDocument.Create('Укажите шаблон документа!');
+  end;
+
   if gdcObject.FieldByName('headerrelkey').IsNull then
   begin
     gdcObject.FieldByName('headerrelkey').FocusControl;
@@ -1430,7 +1447,6 @@ begin
     gdcObject.FieldByName('linerelkey').FocusControl;
     raise EdlgSetupInvDocument.Create('Укажите таблицу-позицию документа!');
   end;
-
 end;
 
 function Tgdc_dlgSetupInvDocument.TestCorrect: Boolean;
@@ -1485,7 +1501,6 @@ begin
     finally
       Stream.Free;
     end;
-
   end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGSETUPINVDOCUMENT', 'TESTCORRECT', KEYTESTCORRECT)}
@@ -1783,6 +1798,8 @@ begin
     (edDocumentName.Text > '') and
     (edEnglishName.Text > '') and
     (cbTemplate.ItemIndex <> -1) and
+    (not gdcObject.FieldByName('headerrelkey').IsNull) and
+    (not gdcObject.FieldByName('linerelkey').IsNull) and
     IBLogin.IsUserAdmin;
 
   tsIncomeMovement.TabVisible := tsFeatures.TabVisible;
@@ -1802,7 +1819,7 @@ begin
   // Очищаем таблицу от полей ранее выбранного шаблона
 
   //
-  // Верняя таблица
+  // Верхняя таблица
 
   if (Document.State = dsInsert) then
   begin
@@ -2070,8 +2087,13 @@ end;
 
 procedure Tgdc_dlgSetupInvDocument.cbTemplateClick(Sender: TObject);
 begin
-  cbDocument.ItemIndex := 0;
+  //cbDocument.ItemIndex := 0;
 
+  //UpdateTabs;
+end;
+
+procedure Tgdc_dlgSetupInvDocument.cbTemplateChange(Sender: TObject);
+begin
   UpdateTabs;
 end;
 
@@ -2122,9 +2144,7 @@ begin
   else if pcMain.ActivePage = tsReferences then
     SetupMinusFeaturesTab
   else
-    inherited;  
-
-      
+    inherited;
 end;
 
 procedure Tgdc_dlgSetupInvDocument.pcMainChanging(Sender: TObject;
@@ -2137,7 +2157,6 @@ begin
     then
       edEnglishName.Text := UserPrefix + edEnglishName.Text;
 
-
     UpdateTemplate;
   end;
 end;
@@ -2145,7 +2164,6 @@ end;
 procedure Tgdc_dlgSetupInvDocument.rgFeaturesClick(Sender: TObject);
 begin
   SetupFeaturesTab;
-
 end;
 
 procedure Tgdc_dlgSetupInvDocument.iblcLineTableChange(Sender: TObject);
@@ -2153,6 +2171,7 @@ begin
   inherited;
   if iblcLineTable.CurrentKey = '' then
     cbTemplate.Enabled := True;
+  UpdateTabs;  
 end;
 
 procedure Tgdc_dlgSetupInvDocument.cbMinusRemainsClick(Sender: TObject);
@@ -2356,6 +2375,18 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGSETUPINVDOCUMENT', 'SETUPRECORD', KEYSETUPRECORD);
   {M}end;
   {END MACRO}
+end;
+
+procedure Tgdc_dlgSetupInvDocument.edEnglishNameExit(Sender: TObject);
+begin
+  inherited;
+  UpdateTabs;
+end;
+
+procedure Tgdc_dlgSetupInvDocument.iblcHeaderTableChange(Sender: TObject);
+begin
+  inherited;
+  UpdateTabs;
 end;
 
 initialization

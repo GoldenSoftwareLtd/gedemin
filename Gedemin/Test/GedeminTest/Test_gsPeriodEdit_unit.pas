@@ -4,12 +4,12 @@ interface
 
 uses
  Classes, TestFrameWork, Messages, StdCtrls, Dialogs,
- gsPeriodEdit;
+ gsPeriodEdit, gsDatePeriod;
 
 type
   TgsPeriodEditTest = class(TTestCase)
   private
-    S: TgsDataPeriod;
+    S, S2: TgsDatePeriod;
 
   protected
     procedure SetUp; override;
@@ -19,6 +19,7 @@ type
     procedure TestDecodeString;
     procedure TestEncodeString;
     procedure TestShortCuts;
+    procedure TestAssign;
   end;
 
 implementation
@@ -30,12 +31,31 @@ uses
 
 procedure TgsPeriodEditTest.SetUp;
 begin
-  S := TgsDataPeriod.Create;
+  S := TgsDatePeriod.Create;
+  S2 := TgsDatePeriod.Create;
 end;
 
 procedure TgsPeriodEditTest.TearDown;
 begin
+  S2.Free;
   S.Free;
+end;
+
+procedure TgsPeriodEditTest.TestAssign;
+begin
+  S.Kind := dpkYear;
+  S.Date := EncodeDate(1976, 1, 1);
+  S.EndDate := EncodeDate(1976, 12, 31);
+  S.MaxDate := EncodeDate(1976, 12, 31);
+  S.MinDate := EncodeDate(1976, 1, 1);
+
+  S2.Assign(S);
+
+  Check(S.Kind = S2.Kind);
+  Check(S.Date = S2.Date);
+  Check(S.EndDate = S2.EndDate);
+  Check(S.MaxDate = S2.MaxDate);
+  Check(S.MinDate = S2.MinDate);
 end;
 
 procedure TgsPeriodEditTest.TestDecodeString;

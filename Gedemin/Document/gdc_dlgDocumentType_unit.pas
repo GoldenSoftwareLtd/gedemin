@@ -127,7 +127,7 @@ function Tgdc_dlgDocumentType.TestCorrect: Boolean;
   {END MACRO}
 begin
   {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDC_DLGDOCUMENTTYPE', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}Result := True;
+  {M}Result := True;              
   {M}try
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
   {M}  begin
@@ -156,6 +156,13 @@ begin
 
   if Result then
   begin
+    if not CheckEnName(edEnglishName.Text) then
+    begin
+      edEnglishName.SetFocus;
+      raise EgdcIBError.Create(
+        '¬ наименовании на английском должны быть только латинские символы');
+    end;
+
     if (gdcObject.FieldByName('id').AsInteger > cstUserIDStart) and gdcObject.FieldByName('headerrelkey').IsNull then
     begin
       gdcObject.FieldByName('headerrelkey').FocusControl;
@@ -731,7 +738,7 @@ begin
   if gdcObject.FieldByName('name').IsNull then
   begin
     gdcObject.FieldByName('name').FocusControl;
-    DatabaseErrorFmt(SFieldRequired, [gdcObject.FieldByName('name').DisplayName]);
+    raise EgdcIBError.Create('”кажите наименование типового документа!');
   end;
 
   TestCorrect;

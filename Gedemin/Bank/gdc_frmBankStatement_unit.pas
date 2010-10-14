@@ -10,7 +10,7 @@ uses
   gd_security, gd_Security_body, gsIBLookupComboBox, gd_security_OperationConst,
   gsTransaction, gdcBaseInterface, gdcContacts, gdcStatement,
   FrmPlSvr, gdc_frmBankStatementBase_unit, TB2Dock, TB2Item, TB2Toolbar,
-  gdcBaseBank, gdcTree, Buttons, gd_MacrosMenu;
+  gdcBaseBank, gdcTree, Buttons, gd_MacrosMenu, Mask, xDateEdits;
 
 type
   Tgdc_frmBankStatement = class(Tgdc_frmBankStatementBase)

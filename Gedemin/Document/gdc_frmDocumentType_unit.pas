@@ -144,6 +144,10 @@ end;
 
 procedure Tgdc_frmDocumentType.tbsmNewClick(Sender: TObject);
 begin
+  actAddUserDoc.Update;
+  actAddInvPriceList.Update;
+  actAddInvDocument.Update;
+
   if actAddUserDoc.Enabled then
     actAddUserDoc.Execute
   else if actAddInvPriceList.Enabled then

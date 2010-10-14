@@ -55,6 +55,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Color = clWindow
         Enabled = True
         TabOrder = 6
+        OnChange = iblcHeaderTableChange
       end
       inherited iblcLineTable: TgsIBLookupComboBox
         Top = 211
@@ -64,7 +65,7 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         OnChange = iblcLineTableChange
       end
       inherited edEnglishName: TEdit
-        Color = clWindow
+        Color = 11141119
         Enabled = True
       end
       inherited dbcbIsCommon: TDBCheckBox
@@ -102,8 +103,10 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 352
         Height = 21
         Style = csDropDownList
+        Color = 11141119
         ItemHeight = 13
         TabOrder = 4
+        OnChange = cbTemplateChange
         OnClick = cbTemplateClick
         Items.Strings = (
           'Обычный складской документ'
@@ -269,14 +272,15 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        Color = 11141119
+        ItemHeight = 13
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
       object lvDebitMovementValues: TListView
-        Left = 141
+        Left = 140
         Top = 100
-        Width = 296
+        Width = 297
         Height = 77
         Columns = <
           item
@@ -321,29 +325,30 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         OnClick = luCreditFromDropDown
       end
       object luDebitFrom: TComboBox
-        Left = 141
+        Left = 140
         Top = 73
-        Width = 367
+        Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        Color = 11141119
+        ItemHeight = 13
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
       object luDebitSubFrom: TComboBox
-        Left = 141
+        Left = 140
         Top = 253
-        Width = 367
+        Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end
       object lvSubDebitMovementValues: TListView
-        Left = 141
+        Left = 140
         Top = 280
-        Width = 296
+        Width = 297
         Height = 77
         Columns = <
           item
@@ -444,14 +449,15 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        Color = 11141119
+        ItemHeight = 13
         TabOrder = 0
         OnChange = cbDebitMovementChange
       end
       object lvCreditMovementValues: TListView
-        Left = 141
+        Left = 140
         Top = 100
-        Width = 296
+        Width = 297
         Height = 77
         Columns = <
           item
@@ -496,29 +502,30 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         OnClick = luCreditFromDropDown
       end
       object luCreditFrom: TComboBox
-        Left = 141
+        Left = 140
         Top = 73
-        Width = 367
+        Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        Color = 11141119
+        ItemHeight = 13
         TabOrder = 2
         OnDropDown = luCreditFromDropDown
       end
       object luCreditSubFrom: TComboBox
-        Left = 141
+        Left = 140
         Top = 253
-        Width = 367
+        Width = 368
         Height = 21
         Style = csDropDownList
-        ItemHeight = 0
+        ItemHeight = 13
         TabOrder = 8
         OnDropDown = luCreditFromDropDown
       end
       object lvSubCreditMovementValues: TListView
-        Left = 141
+        Left = 140
         Top = 280
-        Width = 296
+        Width = 297
         Height = 77
         Columns = <
           item

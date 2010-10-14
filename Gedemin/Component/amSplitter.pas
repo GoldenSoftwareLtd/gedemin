@@ -7,7 +7,7 @@ unit amSplitter;
 interface
 
 uses
-  Messages, ExtCtrls;
+  Classes, Messages, Controls, ExtCtrls;
 
 type
   TSplitter = class(ExtCtrls.TSplitter)
@@ -17,53 +17,72 @@ type
 
   protected
     procedure Paint; override;
-    procedure Click; override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState;
+      X, Y: Integer); override;
   end;
 
 implementation
 
 uses
-  Windows, Graphics, Controls, Classes;
+  Windows, Graphics;
+
+const
+  MouseThreshold = 22;
 
 var
   LArr, RArr, TArr, BArr: TBitmap;
 
-procedure TSplitter.Click;
+procedure TSplitter.MouseDown(Button: TMouseButton; Shift: TShiftState; X,
+  Y: Integer);
+var
+  R: TRect;
+  CX, CY: integer;
 begin
-  if Align in [alLeft, alRight] then
+  R := ClientRect;
+  if (Align in [alLeft, alRight]) then
   begin
-    if FPosSaved then
+    CY := (R.Top + R.Bottom) div 2;
+    if Abs(Y - CY) < MouseThreshold then
     begin
-      FPosSaved := False;
-      MouseDown(mbLeft, [], 0, 0);
-      MouseMove([ssLeft], -FPosMoved, 0);
-      MouseUp(mbLeft, [], -FPosMoved, 0);
+      if FPosSaved then
+      begin
+        FPosSaved := False;
+        inherited MouseDown(mbLeft, [], 0, 0);
+        MouseMove([ssLeft], -FPosMoved, 0);
+        MouseUp(mbLeft, [], -FPosMoved, 0);
+      end else
+      begin
+        FPosMoved := -Left;
+        FPosSaved := True;
+        inherited MouseDown(mbLeft, [], 0, 0);
+        MouseMove([ssLeft], FPosMoved, 0);
+        MouseUp(mbLeft, [], FPosMoved, 0);
+        FPosMoved := FPosMoved + Left;
+      end;
     end else
-    begin
-      FPosMoved := -Left;
-      FPosSaved := True;
-      MouseDown(mbLeft, [], 0, 0);
-      MouseMove([ssLeft], FPosMoved, 0);
-      MouseUp(mbLeft, [], FPosMoved, 0);
-      FPosMoved := FPosMoved + Left;
-    end;
+      inherited;
   end else
   begin
-    if FPosSaved then
+    CX := (R.Left + R.Right) div 2;
+    if Abs(X - CX) < MouseThreshold then
     begin
-      FPosSaved := False;
-      MouseDown(mbLeft, [], 0, 0);
-      MouseMove([ssLeft], 0, -FPosMoved);
-      MouseUp(mbLeft, [], 0, -FPosMoved);
+      if FPosSaved then
+      begin
+        FPosSaved := False;
+        inherited MouseDown(mbLeft, [], 0, 0);
+        MouseMove([ssLeft], 0, -FPosMoved);
+        MouseUp(mbLeft, [], 0, -FPosMoved);
+      end else
+      begin
+        FPosSaved := True;
+        FPosMoved := -Top;
+        inherited MouseDown(mbLeft, [], 0, 0);
+        MouseMove([ssLeft], 0, FPosMoved);
+        MouseUp(mbLeft, [], 0, FPosMoved);
+        FPosMoved := FPosMoved + Top;
+      end;
     end else
-    begin
-      FPosSaved := True;
-      FPosMoved := -Top;
-      MouseDown(mbLeft, [], 0, 0);
-      MouseMove([ssLeft], 0, FPosMoved);
-      MouseUp(mbLeft, [], 0, FPosMoved);
-      FPosMoved := FPosMoved + Top;
-    end;
+      inherited;
   end;
 end;
 
