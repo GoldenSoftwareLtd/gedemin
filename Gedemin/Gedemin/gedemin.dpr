@@ -47,6 +47,7 @@ uses
   gdc_dlgBaseStatementLine_unit in '..\Bank\gdc_dlgBaseStatementLine_unit.pas' {gdc_dlgBaseStatementLine},
   gdc_dlgTRPC_unit in '..\Component\Repository\gdc_dlgTRPC_unit.pas' {gdc_dlgTRPC},
   gdc_dlgAcctBaseAccount_unit in '..\Transaction\gdc_dlgAcctBaseAccount_unit.pas' {gdc_dlgAcctBaseAccount},
+  gdc_frmInvCard_unit,
   at_Classes in '..\Attr\at_Classes.pas',
   gdcUser in '..\Component\GDC\gdcUser.pas',
   gdcLedger,

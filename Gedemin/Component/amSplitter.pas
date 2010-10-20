@@ -19,6 +19,7 @@ type
     procedure Paint; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState;
       X, Y: Integer); override;
+    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
   end;
 
 implementation
@@ -83,6 +84,28 @@ begin
       end;
     end else
       inherited;
+  end;
+end;
+
+procedure TSplitter.MouseMove(Shift: TShiftState; X, Y: Integer);
+var
+  R: TRect;
+begin
+  inherited;
+
+  R := ClientRect;
+  if Align in [alLeft, alRight] then
+  begin
+    if Abs(Y - ((R.Top + R.Bottom) div 2)) < MouseThreshold then
+      Cursor := crDefault
+    else
+      Cursor := crHSplit;
+  end else
+  begin
+    if Abs(X - ((R.Left + R.Right) div 2)) < MouseThreshold then
+      Cursor := crDefault
+    else
+      Cursor := crVSplit;
   end;
 end;
 

@@ -1684,17 +1684,32 @@ end;
 
 procedure TfrmGedeminMain.TBItem13Click(Sender: TObject);
 begin
-  ShowHelp('VBS55.CHM');
+  ShellExecute(Handle,
+    'open',
+    'http://gsbelarus.com/gs/wiki/index.php/язык_программировани€_VBScript',
+    nil,
+    nil,
+    SW_SHOW);
 end;
 
 procedure TfrmGedeminMain.TBItem16Click(Sender: TObject);
 begin
-  ShowHelp('FR24RUS.CHM');
+  ShellExecute(Handle,
+    'open',
+    'http://www.fast-report.com/ru/download/fast-report-4-download.html',
+    nil,
+    nil,
+    SW_SHOW);
 end;
 
 procedure TfrmGedeminMain.TBItem12Click(Sender: TObject);
 begin
-  ShowHelp('GEDYMINUG.CHM');
+  ShellExecute(Handle,
+    'open',
+    'http://gsbelarus.com/wiki',
+    nil,
+    nil,
+    SW_SHOW);
 end;
 
 procedure TfrmGedeminMain.TBItem11Click(Sender: TObject);

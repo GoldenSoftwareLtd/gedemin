@@ -87,11 +87,11 @@ echo **  Делаем инстоляции                          **
 echo **                                             **
 echo *************************************************
 
+call make_install.bat "%setting_source_path%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf"     ip        ip.jpg      iplocal       ip_setup.rar    "%install_target_path%\Предприниматель\setup.exe" %send_ftp%
+call make_install.bat "%setting_source_path%\Предприниматель\Единый налог\Предприниматель_единый_налог.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar "%install_target_path%\Предприниматель\setup_ed.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Общие\Общие данные.gsf"                                        devel     complex.jpg devellocal    devel_setup.rar "%install_target_path%\Разработчик\setup.exe"         %send_ftp%
 call make_install.bat "%setting_source_path%\Банк\Банк и касса.gsf"                                         plat      doc.jpg     platlocal     plat_setup.rar  "%install_target_path%\Платежные документы\setup.exe" %send_ftp% 
 call make_install.bat "%setting_source_path%\Общие\Комплексная_автоматизация.gsf"                           business  complex.jpg businesslocal compl_setup.rar "%install_target_path%\Комплексная автоматизация\setup.exe" %send_ftp%
-call make_install.bat "%setting_source_path%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf"     ip        ip.jpg      iplocal       ip_setup.rar    "%install_target_path%\Предприниматель\setup.exe" %send_ftp%
-call make_install.bat "%setting_source_path%\Предприниматель\Единый налог\Предприниматель_единый_налог.gsf" ip        ip.jpg      iplocal       ip_setup_ed.rar "%install_target_path%\Предприниматель\setup_ed.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Меню\Бэк-офис\Меню_БэкОфис.gsf"                                menuback     complex.jpg menubacklocal    menuback_setup.rar "%install_target_path%\Меню\setup_back.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Меню\Фронт-офис\00 Меню  Фронтофис.gsf"                        menufront    complex.jpg menufrontlocal   menufront_setup.rar "%install_target_path%\Меню\setup_front.exe" %send_ftp%
 

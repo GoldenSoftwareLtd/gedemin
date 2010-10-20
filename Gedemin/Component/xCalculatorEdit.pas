@@ -47,7 +47,7 @@ uses
   Forms, Dialogs, StdCtrls, Buttons, ExtCtrls, DB, DBCtrls;
 
 const
-  DefDecDigits = {2}-1;  
+  DefDecDigits = {2}-1;
 
 // Действия с числами
 type
@@ -66,7 +66,6 @@ type
   protected
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState;
       X, Y: Integer); override;
-    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState;
       X, Y: Integer); override;
     procedure Paint; override;
@@ -81,7 +80,6 @@ type
     BtnRect: TRect; // Экранные координаты нажатой клавиши
     IsInverted: Boolean; // Произведена ли инвертация
     FCalculatorEdit: TWinControl; // Класс калькулятора
-    IsFirst: Boolean; // Первый раз
 
     procedure WMMouseActivate(var Message: TWMMouseActivate);
       message WM_MouseActivate;
@@ -306,11 +304,6 @@ begin
   Paint;
 end;
 
-procedure TxCalcButton.MouseMove(Shift: TShiftState; X, Y: Integer);
-begin
-  inherited MouseMove(Shift, X, Y);
-end;
-
 procedure TxCalcButton.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   inherited MouseUp(Button, Shift, X, Y);
@@ -388,12 +381,6 @@ begin
     if (WindowPos.flags = SWP_NOSIZE or SWP_NOMOVE or SWP_NOACTIVATE) and (WindowPos.x = 0) and 
       (WindowPos.y = 0) and (WindowPos.cx = 0) and (WindowPos.cy = 0) and Visible then
     begin
-      if IsFirst then
-      begin
-        IsFirst := False;
-        Exit;
-      end;
-      
       (FCalculatorEdit as TxCalculatorEdit).ExpressionAction := eaNone;
       Visible := False;
     end;
@@ -561,7 +548,6 @@ begin
   IsInverted := False;
 
   FCalculatorEdit := nil;
-  IsFirst := True;
 end;
 
 {

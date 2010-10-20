@@ -20,6 +20,8 @@ type
     procedure SetEndDate(const Value: TDate);
     procedure DecodeOneDate(S: String; out Left, Right: TDate;
       out AKind: TgsDatePeriodKind);
+    function GetDurationDays: Integer;
+    procedure SetKind(const Value: TgsDatePeriodKind);
 
   public
     constructor Create;
@@ -29,11 +31,17 @@ type
     function EncodeString: String;
     procedure DecodeString(const AString: String);
 
-    property Kind: TgsDatePeriodKind read FKind write FKind;
+    procedure SetPeriod(const AYear: Integer); overload;
+    procedure SetPeriod(const AYear, AMonth: Integer); overload;
+    procedure SetPeriod(const AYear, AMonth, ADay: Integer); overload;
+    procedure SetPeriod(const ADate, AnEndDate: TDate); overload;
+
+    property Kind: TgsDatePeriodKind read FKind write SetKind;
     property MaxDate: TDate read FMaxDate write FMaxDate;
     property MinDate: TDate read FMinDate write FMinDate;
     property Date: TDate read FDate write SetDate;
     property EndDate: TDate read FEndDate write SetEndDate;
+    property DurationDays: Integer read GetDurationDays;
   end;
 
 function DateAdd(DatePart: Char; AddNumber: Integer; CurrentDate: TDate): TDate;
@@ -212,14 +220,14 @@ begin
         FEndDate := EncodeDate(Year, 12, 31);
       end;
 
-    'Ó', 'J':
+    'Î', 'J':
       begin
         FKind := dpkYear;
         FDate := EncodeDate(Year - 1, 01, 01);
         FEndDate := EncodeDate(Year - 1, 12, 31);
       end;
 
-    'Ò', 'V':
+    'Å', 'V':
       begin
         FKind := dpkYear;
         FDate := EncodeDate(Year + 1, 01, 01);
@@ -232,11 +240,11 @@ end;
 
 procedure TgsDatePeriod.Assign(const ASource: TgsDatePeriod);
 begin
-  FDate := ASource.Date;
-  FEndDate := ASource.EndDate;
+  FKind := ASource.Kind;
   FMaxDate := ASource.MaxDate;
   FMinDate := ASource.MinDate;
-  FKind := ASource.Kind;
+  Date := ASource.Date;
+  EndDate := ASource.EndDate;
 end;
 
 function TgsDatePeriod.EncodeString: String;
@@ -267,14 +275,26 @@ begin
     DecodeOneDate(Copy(AString, 1, P - 1), FDate, Dummy, FKind);
     DecodeOneDate(Copy(AString, P + 1, 255), Dummy, FEndDate, FKind);
 
-    if FDate > FEndDate then
+    if (FDate = 0) and (FEndDate <> 0) then
     begin
-      Dummy := FDate;
       FDate := FEndDate;
-      FEndDate := Dummy;
-    end;
+      FKind := dpkDay;
+    end
+    else if (FDate <> 0) and (FEndDate = 0) then
+    begin
+      FEndDate := FDate;
+      FKind := dpkDay;
+    end else
+    begin
+      if FDate > FEndDate then
+      begin
+        Dummy := FDate;
+        FDate := FEndDate;
+        FEndDate := Dummy;
+      end;
 
-    FKind := dpkFree;
+      FKind := dpkFree;
+    end;  
   end;
 end;
 
@@ -308,13 +328,43 @@ begin
 end;
 
 procedure TgsDatePeriod.SetDate(const Value: TDate);
+var
+  Y, M, D: Word;
 begin
+  DecodeDate(Value, Y, M, D);
+  case FKind of
+    dpkYear:
+      if (M <> 1) or (D <> 1) then
+        raise EgsDatePeriod.Create('Invalid date period');
+    dpkQuarter, dpkMonth:
+      if D <> 1 then
+        raise EgsDatePeriod.Create('Invalid date period');
+    dpkWeek:
+      if ISODayOfWeek(Value) <> 1 then
+        raise EgsDatePeriod.Create('Invalid date period');
+  end;
+
   FDate := Value;
   Validate;
 end;
 
 procedure TgsDatePeriod.SetEndDate(const Value: TDate);
+var
+  Y, M, D: Word;
 begin
+  DecodeDate(Value, Y, M, D);
+  case FKind of
+    dpkYear:
+      if (M <> 12) or (D <> 31) then
+        raise EgsDatePeriod.Create('Invalid date period');
+    dpkQuarter, dpkMonth:
+      if Value <> (IncMonth(EncodeDate(Y, M, 1), 1) - 1) then
+        raise EgsDatePeriod.Create('Invalid date period');
+    dpkWeek:
+      if ISODayOfWeek(Value) <> 7 then
+        raise EgsDatePeriod.Create('Invalid date period');
+  end;
+
   FEndDate := Value;
   Validate;
 end;
@@ -323,17 +373,19 @@ procedure TgsDatePeriod.DecodeOneDate(S: String; out Left, Right: TDate;
   out AKind: TgsDatePeriodKind);
 var
   B, E, Year, Month, Day: Integer;
+  _Y, _M, _D: Word;
 begin
   S := Trim(S);
 
   if S = '' then
   begin
-    Left := 0;
-    Right := 0;
+    Left := SysUtils.Date;
+    Right := SysUtils.Date;
     AKind := dpkFree;
     exit;
   end;
 
+  DecodeDate(SysUtils.Date, _Y, _M, _D);
   Year := 0;
   Month := 0;
   Day := 0;
@@ -358,21 +410,28 @@ begin
     Dec(B);
   end;
 
-  if Year <= 0 then
-    raise EgsDatePeriod.Create('Invalid date string')
-  else if Year < 70 then
-    Year := Year + 2000
-  else if Year < 100 then
-    Year := Year + 1900;
+  if Year <= 0 then Year := _Y;
 
   if Month = 0 then
   begin
-    AKind := dpkYear;
-    Left := EncodeDate(Year, 1, 1);
-    Right := EncodeDate(Year, 12, 31);
+    if Year in [1..12] then
+    begin
+      AKind := dpkMonth;
+      Month := Year;
+      Year := _Y;
+      Left := EncodeDate(Year, Month, 1);
+      Right := IncMonth(EncodeDate(Year, Month, 1), 1) - 1;
+    end else
+    begin
+      AKind := dpkYear;
+      Left := EncodeDate(Year, 1, 1);
+      Right := EncodeDate(Year, 12, 31);
+    end;
   end else
   begin
-    if Day = 0 then
+    if (Month <= 0) or (Month > 12) then
+      Month := _M;
+    if Day <= 0 then
     begin
       AKind := dpkMonth;
       Left := EncodeDate(Year, Month, 1);
@@ -380,8 +439,109 @@ begin
     end else
     begin
       AKind := dpkDay;
+      if (Day >= 31) and (Month in [4, 6, 9, 11]) then
+        Day := 30;
+      if (Day > 28) and (Month = 2) and (not IsLeapYear(Year)) then
+        Day := 28;
       Left := EncodeDate(Year, Month, Day);
       Right := Left;
+    end;
+  end;
+end;
+
+function TgsDatePeriod.GetDurationDays: Integer;
+begin
+  Result := Trunc(FEndDate - FDate + 1);
+end;
+
+procedure TgsDatePeriod.SetPeriod(const AYear, AMonth: Integer);
+begin
+  FKind := dpkMonth;
+  FDate := EncodeDate(AYear, AMonth, 1);
+  FEndDate := IncMonth(EncodeDate(AYear, AMonth, 1), 1) - 1;
+  Validate;
+end;
+
+procedure TgsDatePeriod.SetPeriod(const AYear: Integer);
+begin
+  FKind := dpkYear;
+  FDate := EncodeDate(AYear, 1, 1);
+  FEndDate := EncodeDate(AYear, 12, 31);
+  Validate;
+end;
+
+procedure TgsDatePeriod.SetPeriod(const ADate, AnEndDate: TDate);
+begin
+  FKind := dpkFree;
+  FDate := ADate;
+  FEndDate := AnEndDate;
+  Validate;
+end;
+
+procedure TgsDatePeriod.SetPeriod(const AYear, AMonth, ADay: Integer);
+begin
+  FKind := dpkDay;
+  FDate := EncodeDate(AYear, AMonth, ADay);
+  FEndDate := FDate;
+  Validate;
+end;
+
+procedure TgsDatePeriod.SetKind(const Value: TgsDatePeriodKind);
+var
+  Y, M, D: Word;
+begin
+  if FKind <> Value then
+  begin
+    FKind := Value;
+    DecodeDate(FDate, Y, M, D);
+    case FKind of
+      dpkYear:
+      begin
+        FDate := EncodeDate(Y, 1, 1);
+        FEndDate := EncodeDate(Y, 12, 31);
+      end;
+
+      dpkMonth:
+      begin
+        FDate := EncodeDate(Y, M, 1);
+        FEndDate := IncMonth(EncodeDate(Y, M, 1), 1) - 1;
+      end;
+
+      dpkWeek:
+      begin
+        FDate := FDate - ISODayOfWeek(FDate) + 1;
+        FEndDate := FDate + 6;
+      end;
+
+      dpkQuarter:
+      begin
+        case M of
+          1..3:
+          begin
+            FDate := EncodeDate(Y, 1, 1);
+            FEndDate := EncodeDate(Y, 3, 31);
+          end;
+          4..6:
+          begin
+            FDate := EncodeDate(Y, 4, 1);
+            FEndDate := EncodeDate(Y, 6, 30);
+          end;
+          7..9:
+          begin
+            FDate := EncodeDate(Y, 7, 1);
+            FEndDate := EncodeDate(Y, 9, 30);
+          end;
+          10..12:
+          begin
+            FDate := EncodeDate(Y, 10, 1);
+            FEndDate := EncodeDate(Y, 12, 31);
+          end;
+        end;
+      end;
+
+      dpkFree: ;
+    else
+      FEndDate := FDate;
     end;
   end;
 end;

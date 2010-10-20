@@ -1,13 +1,13 @@
 inherited gdc_frmInvCard: Tgdc_frmInvCard
-  Left = 169
-  Top = 174
+  Left = 317
+  Top = 330
   Width = 855
   Height = 556
   Caption = 'Карточка по ТМЦ'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 500
+    Top = 501
     Width = 847
   end
   inherited TBDockTop: TTBDock
@@ -33,19 +33,12 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
         object lStart: TLabel
           Left = 5
           Top = 5
-          Width = 65
+          Width = 42
           Height = 13
-          Caption = 'Дата начала'
-        end
-        object lFinish: TLabel
-          Left = 151
-          Top = 5
-          Width = 83
-          Height = 13
-          Caption = 'Дата окончания'
+          Caption = 'Период:'
         end
         object sbRun: TSpeedButton
-          Left = 306
+          Left = 202
           Top = 0
           Width = 23
           Height = 22
@@ -87,38 +80,22 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
             FF00E7C6B500EFCEB500EFCEB500EFCEB500EFCEB500E7C6B500E7C6B500EFCE
             B500D6BDB500BD847B00FF00FF00FF00FF00FF00FF00FF00FF00}
         end
-        object xdeStart: TxDateEdit
-          Left = 77
-          Top = 1
-          Width = 67
-          Height = 21
-          Kind = kDate
-          EditMask = '!99\.99\.9999;1;_'
-          MaxLength = 10
-          TabOrder = 0
-          Text = '11.01.2003'
-        end
-        object xdeFinish: TxDateEdit
-          Left = 238
-          Top = 1
-          Width = 67
-          Height = 21
-          Kind = kDate
-          EditMask = '!99\.99\.9999;1;_'
-          MaxLength = 10
-          TabOrder = 1
-          Text = '11.01.2003'
-        end
         object cbAllInterval: TCheckBox
-          Left = 333
+          Left = 229
           Top = 3
           Width = 162
           Height = 17
           Caption = 'За неограниченный период'
           Checked = True
           State = cbChecked
-          TabOrder = 2
+          TabOrder = 1
           OnClick = cbAllIntervalClick
+        end
+        object gsPeriodEdit: TgsPeriodEdit
+          Left = 51
+          Top = 1
+          Width = 148
+          Height = 21
         end
       end
     end
@@ -256,44 +233,44 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
   end
   inherited TBDockLeft: TTBDock
     Top = 136
-    Height = 364
+    Height = 365
   end
   inherited TBDockRight: TTBDock
     Left = 838
     Top = 136
-    Height = 364
+    Height = 365
   end
   inherited TBDockBottom: TTBDock
-    Top = 519
+    Top = 520
     Width = 847
   end
   inherited pnlWorkArea: TPanel
     Top = 136
     Width = 829
-    Height = 364
+    Height = 365
     inherited spChoose: TSplitter
-      Top = 261
+      Top = 262
       Width = 829
     end
     inherited pnlMain: TPanel
       Width = 829
-      Height = 261
+      Height = 262
       inherited pnlSearchMain: TPanel
-        Height = 261
+        Height = 262
         inherited sbSearchMain: TScrollBox
-          Height = 223
+          Height = 224
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 223
+          Top = 224
         end
       end
       inherited ibgrMain: TgsIBGrid
         Width = 669
-        Height = 261
+        Height = 262
       end
     end
     inherited pnChoose: TPanel
-      Top = 265
+      Top = 266
       Width = 829
       inherited pnButtonChoose: TPanel
         Left = 724

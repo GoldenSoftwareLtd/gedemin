@@ -505,14 +505,12 @@ end;
 
 procedure Tgdc_frmG.actCommitUpdate(Sender: TObject);
 begin
-  actCommit.Enabled := (gdcObject <> nil)
-    and ((gdcObject.State in [dsEdit, dsInsert]) or gdcObject.Transaction.InTransaction);
+  actCommit.Enabled := (gdcObject <> nil) and gdcObject.Active;
 end;
 
 procedure Tgdc_frmG.actRollbackUpdate(Sender: TObject);
 begin
-  actRollback.Enabled := (gdcObject <> nil)
-    and ((gdcObject.State in [dsEdit, dsInsert]) or gdcObject.Transaction.InTransaction);
+  actRollback.Enabled := (gdcObject <> nil) and gdcObject.Active;
 end;
 
 procedure Tgdc_frmG.actNewExecute(Sender: TObject);
