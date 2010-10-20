@@ -7,7 +7,8 @@ uses
   gdc_frmSGR_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
   ComCtrls, IBCustomDataSet, gdcBase, gdcInvMovement, gdcInvDocument_unit,
-  Buttons, Mask, xDateEdits, at_classes, IBDatabase, gsIBLookupComboBox;
+  Buttons, Mask, xDateEdits, at_classes, IBDatabase, gsIBLookupComboBox,
+  gsPeriodEdit;
 
 type
   Tgdc_frmInvCard = class(Tgdc_frmSGR)
@@ -15,9 +16,6 @@ type
     Panel1: TPanel;
     TBControlItem1: TTBControlItem;
     lStart: TLabel;
-    xdeStart: TxDateEdit;
-    lFinish: TLabel;
-    xdeFinish: TxDateEdit;
     sbRun: TSpeedButton;
     actRun: TAction;
     cbAllInterval: TCheckBox;
@@ -40,6 +38,7 @@ type
     TBControlItem3: TTBControlItem;
     Label3: TLabel;
     iblcContact: TgsIBLookupComboBox;
+    gsPeriodEdit: TgsPeriodEdit;
     procedure FormCreate(Sender: TObject);
     procedure actEditExecute(Sender: TObject);
     procedure actRunExecute(Sender: TObject);
@@ -146,11 +145,11 @@ var
   NameContact: String;
   isOK: Boolean;
 begin
-  if not cbAllInterval.Checked and (xdeStart.Date > xdeFinish.Date) then
+  {if not cbAllInterval.Checked and (xdeStart.Date > xdeFinish.Date) then
   begin
     MessageBox(Handle, 'Неверен интервал просмотра', 'Внимание', mb_OK or mb_IconInformation);
     exit;
-  end;
+  end;}
 
   if isHolding = -1 then
   begin
@@ -202,8 +201,8 @@ begin
 
       if not cbAllInterval.Checked then
       begin
-        gdcObject.ParamByName('datebegin').AsDateTime := xdeStart.Date;
-        gdcObject.ParamByName('dateend').AsDateTime := xdeFinish.Date;
+        gdcObject.ParamByName('datebegin').AsDateTime := gsPeriodEdit.DatePeriod.Date;
+        gdcObject.ParamByName('dateend').AsDateTime := gsPeriodEdit.DatePeriod.EndDate;
       end;
 
       gdcObject.Open;
@@ -221,7 +220,7 @@ begin
 
   if not cbAllInterval.Checked then
   begin
-    Saldo := gdcInvCard.GetRemainsOnDate(xdeStart.Date - 1, False);
+    Saldo := gdcInvCard.GetRemainsOnDate(gsPeriodEdit.DatePeriod.Date - 1, False);
     edBeginRest.Text := FloatToStr(Saldo);
   end
   else
@@ -271,7 +270,7 @@ begin
   Caption := Format('Карточка по ТМЦ: %s %s по %s ', [gdcInvCard.FieldByName('goodname').AsString,
     gdcInvCard.FieldByName('valuename').AsString, NameContact]);
 
-  Saldo := gdcInvCard.GetRemainsOnDate(xdeFinish.Date, cbAllInterval.Checked);
+  Saldo := gdcInvCard.GetRemainsOnDate(gsPeriodEdit.DatePeriod.Date, cbAllInterval.Checked);
   edEndRest.Text := FloatToStr(Saldo);
 
 end;
@@ -302,9 +301,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
-  xdeStart.Date := UserStorage.ReadDateTime(BuildComponentPath(xdeStart), 'StartDate', xdeStart.Date);
-  xdeFinish.Date := UserStorage.ReadDateTime(BuildComponentPath(xdeFinish), 'FinishDate', xdeFinish.Date);
+
+  gsPeriodEdit.AssignPeriod(UserStorage.ReadString(BuildComponentPath(gsPeriodEdit),
+    'Period', ''));
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMINVCARD', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -340,9 +342,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
-  UserStorage.WriteDateTime(BuildComponentPath(xdeStart), 'StartDate', xdeStart.Date);
-  UserStorage.WriteDateTime(BuildComponentPath(xdeFinish), 'FinishDate', xdeFinish.Date);
+
+  UserStorage.WriteString(BuildComponentPath(gsPeriodEdit), 'Period',
+    gsPeriodEdit.DatePeriod.EncodeString);
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMINVCARD', 'SAVESETTINGS', KEYSAVESETTINGS)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -355,10 +360,8 @@ end;
 procedure Tgdc_frmInvCard.actRunUpdate(Sender: TObject);
 begin
   inherited;
-  xdeStart.Enabled := not cbAllInterval.Checked;
-  xdeFinish.Enabled := not cbAllInterval.Checked;
+  gsPeriodEdit.Enabled := not cbAllInterval.Checked;
   lStart.Enabled := not cbAllInterval.Checked;
-  lFinish.Enabled := not cbAllInterval.Checked;
 end;
 
 procedure Tgdc_frmInvCard.cbAllIntervalClick(Sender: TObject);

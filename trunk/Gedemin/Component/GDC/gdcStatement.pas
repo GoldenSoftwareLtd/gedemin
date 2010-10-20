@@ -1745,10 +1745,14 @@ begin
         ibsql.ExecQuery;
         if ibsql.RecordCount > 0 then
         begin
-          FieldByName('companykeyline').AsInteger := ibsql.FieldByName('companykey').AsInteger;
-          if FieldByName('bankbranch').AsString <> ibsql.FieldByName('bankbranch').AsString then
-            FieldByName('bankbranch').AsString := ibsql.FieldByName('bankbranch').AsString;
-        end;    
+          ibsql.Next;
+          if ibsql.RecordCount = 1 then
+          begin
+            FieldByName('companykeyline').AsInteger := ibsql.FieldByName('companykey').AsInteger;
+            if FieldByName('bankbranch').AsString <> ibsql.FieldByName('bankbranch').AsString then
+              FieldByName('bankbranch').AsString := ibsql.FieldByName('bankbranch').AsString;
+          end;
+        end;
         ibsql.Close;
       finally
         ibsql.Free;
