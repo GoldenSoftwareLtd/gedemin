@@ -21,6 +21,7 @@ type
     procedure DoLoadConfig(const Config: TBaseAcctConfig); override;
     procedure DoSaveConfig(Config: TBaseAcctConfig); override;
 
+    procedure DoBeforeBuildReport; override;
     procedure DoBuildSQL; override;
     procedure DoEmptySQL; override;
   public
@@ -69,9 +70,7 @@ begin
   inherited;
 
   FIBDSSaldoQuantityBegin := TIBDataset.Create(Self);
-  FIBDSSaldoQuantityBegin.Transaction := gdcBaseManager.ReadTransaction;
   FIBDSSaldoQuantityEnd := TIBDataset.Create(Self);
-  FIBDSSaldoQuantityEnd.Transaction := gdcBaseManager.ReadTransaction;
 end;
 
 destructor TgdvAcctAccCard.Destroy;
@@ -572,6 +571,17 @@ end;
 class function TgdvAcctAccCard.ConfigClassName: string;
 begin
   Result := 'TAccCardConfig'; 
+end;
+
+procedure TgdvAcctAccCard.DoBeforeBuildReport;
+begin
+  inherited;
+  if FIBDSSaldoQuantityBegin.Active then
+    FIBDSSaldoQuantityBegin.Close;
+  if FIBDSSaldoQuantityEnd.Active then
+    FIBDSSaldoQuantityEnd.Close;
+  FIBDSSaldoQuantityBegin.Transaction := gdcBaseManager.ReadTransaction;
+  FIBDSSaldoQuantityEnd.Transaction := gdcBaseManager.ReadTransaction;
 end;
 
 end.
