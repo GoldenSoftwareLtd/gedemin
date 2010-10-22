@@ -75,7 +75,7 @@ type
     function TestCorrect: Boolean; override;
     procedure SetupDialog; override;
 
-    procedure LoadSettingsAfterCreate; override;
+    procedure LoadSettings; override;
     procedure SaveSettings; override;
 
     property Document: TgdcInvPriceList read GetDocument;
@@ -156,24 +156,24 @@ begin
   end;
 end;
 
-procedure TdlgInvPriceList.LoadSettingsAfterCreate;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
+procedure TdlgInvPriceList.LoadSettings;
+  {@UNFOLD MACRO INH_CRFORM_PARAMS()}
+  {M}var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
 begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGINVPRICELIST', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
+  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TDLGINVPRICELIST', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}  try
   {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
   {M}    begin
-  {M}      SetFirstMethodAssoc('TDLGINVPRICELIST', KEYLOADSETTINGSAFTERCREATE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYLOADSETTINGSAFTERCREATE]);
+  {M}      SetFirstMethodAssoc('TDLGINVPRICELIST', KEYLOADSETTINGS);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYLOADSETTINGS]);
   {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TDLGINVPRICELIST') = -1) then
   {M}      begin
   {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
   {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TDLGINVPRICELIST',
-  {M}          'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE, Params, LResult) then exit;
+  {M}          'LOADSETTINGS', KEYLOADSETTINGS, Params, LResult) then exit;
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TDLGINVPRICELIST' then
   {M}        begin
@@ -183,15 +183,15 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-  
+
   if Assigned(UserStorage) then
   begin
     UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream, FSubType);
   end;
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGINVPRICELIST', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
+  {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGINVPRICELIST', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TDLGINVPRICELIST', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE);
+  {M}    ClearMacrosStack('TDLGINVPRICELIST', 'LOADSETTINGS', KEYLOADSETTINGS);
   {M}end;
   {END MACRO}
 end;
@@ -561,12 +561,6 @@ begin
 
   SetupMaster;
   SetupDetail;
-
-  if UserStorage <> nil then
-  begin
-    UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream,
-      IntToStr(Document.DocumentTypeKey));
-  end;
 
   ActivateTransaction(gdcObject.Transaction);
 
