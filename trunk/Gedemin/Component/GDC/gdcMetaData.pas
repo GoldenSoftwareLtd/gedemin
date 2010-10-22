@@ -6984,8 +6984,18 @@ begin
   try
     if (sLoadFromStream in BaseState) then
     begin
-      //В поле proceduresource хранится текст для создания процедуры
-      FSQL.Add(FieldByName('proceduresource').AsString);
+      // Если процедура создается, или содержит в тексте CREATE OR ALTER, то не надо редактировать текст создания\обновления
+      if isNew or (AnsiPos('CREATE OR ALTER', FieldByName('proceduresource').AsString) > 0) then
+      begin
+        //В поле proceduresource хранится текст для создания процедуры
+        FSQL.Add(FieldByName('proceduresource').AsString);
+      end
+      else
+      begin
+        //  ... иначе заменим Create на Alter
+        FSQL.Add('ALTER ' +  System.Copy(Trim(FieldByName('proceduresource').AsString), Length('CREATE') + 1,
+          Length(FieldByName('proceduresource').AsString) - Length('CREATE')));
+      end;
     end
     else if sCopy in BaseState then
     begin
