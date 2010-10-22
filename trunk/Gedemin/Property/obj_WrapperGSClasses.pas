@@ -3574,6 +3574,7 @@ type
     procedure ShowInNcu(Show: WordBool; DecDigits: Integer = -1; Scale: Integer = 0); safecall;
     procedure ShowInCurr(Show: WordBool; DecDigits: Integer = -1; Scale: Integer = 0; CurrKey: Integer = -1); safecall;
     procedure ShowInEQ(Show: WordBool; DecDigits: Integer = -1; Scale: Integer = 0); safecall;
+    procedure ShowInQuantity(DecDigits: Integer = -1; Scale: Integer = 0); safecall;
 
     procedure AddAccount(AccountKey: Integer); safecall;
     procedure AddCorrAccount(AccountKey: Integer); safecall;
@@ -17548,6 +17549,11 @@ procedure TwrpGdvAcctBase.ShowInNcu(Show: WordBool; DecDigits,
   Scale: Integer);
 begin
   GetGdvAcctBase.ShowInNcu(Show, DecDigits, Scale);
+end;
+
+procedure TwrpGdvAcctBase.ShowInQuantity(DecDigits, Scale: Integer);
+begin
+  GetGdvAcctBase.ShowInQuantity(DecDigits, Scale);
 end;
 
 procedure TwrpGdvAcctBase.BuildReport;

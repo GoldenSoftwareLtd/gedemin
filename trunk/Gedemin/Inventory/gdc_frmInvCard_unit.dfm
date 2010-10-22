@@ -1,31 +1,32 @@
 inherited gdc_frmInvCard: Tgdc_frmInvCard
-  Left = 317
+  Left = 283
   Top = 330
-  Width = 855
+  Width = 889
   Height = 556
   Caption = 'Карточка по ТМЦ'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
     Top = 501
-    Width = 847
+    Width = 881
   end
   inherited TBDockTop: TTBDock
-    Width = 847
-    Height = 136
+    Width = 881
+    Height = 109
     inherited tbMainCustom: TTBToolbar
       Left = 0
       Top = 49
       DockPos = 0
       DockRow = 2
+      Stretch = False
       Visible = True
       object TBControlItem1: TTBControlItem
         Control = Panel1
       end
       object Panel1: TPanel
         Left = 0
-        Top = 0
-        Width = 841
+        Top = 1
+        Width = 379
         Height = 23
         Align = alClient
         BevelOuter = bvNone
@@ -38,7 +39,7 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
           Caption = 'Период:'
         end
         object sbRun: TSpeedButton
-          Left = 202
+          Left = 352
           Top = 0
           Width = 23
           Height = 22
@@ -81,11 +82,11 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
             B500D6BDB500BD847B00FF00FF00FF00FF00FF00FF00FF00FF00}
         end
         object cbAllInterval: TCheckBox
-          Left = 229
+          Left = 204
           Top = 3
-          Width = 162
+          Width = 147
           Height = 17
-          Caption = 'За неограниченный период'
+          Caption = 'Неограниченный период'
           Checked = True
           State = cbChecked
           TabOrder = 1
@@ -96,6 +97,7 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
           Top = 1
           Width = 148
           Height = 21
+          TabOrder = 0
         end
       end
     end
@@ -116,7 +118,7 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
     end
     object tbGoodInfo: TTBToolbar
       Left = 0
-      Top = 76
+      Top = 79
       Caption = 'tbGoodInfo'
       DockPos = 0
       DockRow = 3
@@ -134,7 +136,7 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
       object Panel2: TPanel
         Left = 0
         Top = 0
-        Width = 649
+        Width = 602
         Height = 26
         Align = alClient
         BevelOuter = bvNone
@@ -183,12 +185,12 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
       end
     end
     object tbContact: TTBToolbar
-      Left = 0
-      Top = 106
+      Left = 392
+      Top = 49
       Caption = 'tbContact'
       DockMode = dmCannotFloat
-      DockPos = 0
-      DockRow = 3
+      DockPos = 392
+      DockRow = 2
       FloatingMode = fmOnTopOfAllForms
       Images = dmImages.il16x16
       TabOrder = 6
@@ -232,54 +234,54 @@ inherited gdc_frmInvCard: Tgdc_frmInvCard
     end
   end
   inherited TBDockLeft: TTBDock
-    Top = 136
-    Height = 365
+    Top = 109
+    Height = 392
   end
   inherited TBDockRight: TTBDock
-    Left = 838
-    Top = 136
-    Height = 365
+    Left = 872
+    Top = 109
+    Height = 392
   end
   inherited TBDockBottom: TTBDock
     Top = 520
-    Width = 847
+    Width = 881
   end
   inherited pnlWorkArea: TPanel
-    Top = 136
-    Width = 829
-    Height = 365
+    Top = 109
+    Width = 863
+    Height = 392
     inherited spChoose: TSplitter
-      Top = 262
-      Width = 829
+      Top = 289
+      Width = 863
     end
     inherited pnlMain: TPanel
-      Width = 829
-      Height = 262
+      Width = 863
+      Height = 289
       inherited pnlSearchMain: TPanel
-        Height = 262
+        Height = 289
         inherited sbSearchMain: TScrollBox
-          Height = 224
+          Height = 251
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 224
+          Top = 251
         end
       end
       inherited ibgrMain: TgsIBGrid
-        Width = 669
-        Height = 262
+        Width = 703
+        Height = 289
       end
     end
     inherited pnChoose: TPanel
-      Top = 266
-      Width = 829
+      Top = 293
+      Width = 863
       inherited pnButtonChoose: TPanel
-        Left = 724
+        Left = 758
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 724
+        Width = 758
       end
       inherited pnlChooseCaption: TPanel
-        Width = 829
+        Width = 863
       end
     end
   end
