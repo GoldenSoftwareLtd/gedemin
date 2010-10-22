@@ -557,6 +557,7 @@ type
     FOnCalcAggregates: TFilterRecordEvent; //добавлено
     FSavedFlag: Boolean; //!!!
     FSavedRN: Integer; //!!!
+    FInitializingEdit: Boolean;
     function CanRefresh: Boolean;
     procedure InternalPostRecord(Qry: TIBSQL; Buff: Pointer); virtual;
     procedure SetInternalSQLParams(Qry: TIBSQL; Buffer: Pointer);
@@ -574,7 +575,7 @@ type
     procedure CopyRecordBuffer(Source, Dest: Pointer);
     procedure DoBeforeOpen; override;
     procedure DoBeforeScroll; override;
-    procedure DoAfterScroll; override;    
+    procedure DoAfterScroll; override;
     //e!!!
 
     //!!!
@@ -642,6 +643,7 @@ type
     function AllocRecordBuffer: PChar; override;
     procedure DoBeforeDelete; override;
     procedure DoBeforeEdit; override;
+    procedure DoAfterEdit; override;
     procedure DoBeforeInsert; override;
     procedure FreeRecordBuffer(var Buffer: PChar); override;
     procedure GetBookmarkData(Buffer: PChar; Data: Pointer); override;
@@ -3647,6 +3649,22 @@ begin
   if FCachedUpdates and (Buff^.rdCachedUpdateStatus in [cusUnmodified, cusInserted]) then
     SaveOldBuffer(PChar(Buff));
   CopyRecordBuffer(GetActiveBuf, FOldBuffer);
+  FInitializingEdit := True;
+end;
+
+procedure TIBCustomDataSet.DoAfterEdit;
+begin
+  inherited;
+
+  if (GetActiveBuf <> nil) and
+    (PRecordData(GetActiveBuf)^.rdRecordNumber <> PRecordData(FOldBuffer)^.rdRecordNumber) then
+  begin
+    FInitializingEdit := False;
+    raise Exception.Create('Текущая запись не соответствует условиям в SQL запросе'#13#10 +
+      'или положение курсора было неожиданно изменено.');
+  end;
+
+  FInitializingEdit := False;
 end;
 
 procedure TIBCustomDataSet.DoBeforeInsert;
@@ -4895,6 +4913,7 @@ begin
   FSortField := '';
   {$ENDIF}
   //!!!e
+  FInitializingEdit := False;
 end;
 
 procedure TIBCustomDataSet.InternalPost;
@@ -5007,7 +5026,8 @@ begin
   //!!!
     InternalRefreshRow;
 end;
-      { TODO : ^^^^ InternalSetToRecord}
+
+{ TODO : ^^^^ InternalSetToRecord}
 procedure TIBCustomDataSet.InternalSetToRecord(Buffer: PChar);
 begin
   InternalGotoBookmark(@(PRecordData(Buffer)^.rdRecordNumber));

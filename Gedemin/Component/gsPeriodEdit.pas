@@ -17,16 +17,16 @@ const
 type
   TgsCalendarPanel = class(TCustomControl)
   private
-    FCalendarState: TgsCalendarState;
+    FCalendarState, FAllowedState: TgsCalendarState;
 
     FMouseCellX, FMouseCellY: Integer;
     FYear, FMonth, FDay: Integer;
     FTodayYear, FTodayMonth, FTodayDay: Integer;
     FYearStart: Integer;
     FOnChange: TNotifyEvent;
-    FAllowedState: TgsCalendarState;
     FMinDate: TDate;
     FMaxDate: TDate;
+    FRightPanel: Boolean;
 
     procedure SetCalendarState(const Value: TgsCalendarState);
     procedure SetAllowedState(const Value: TgsCalendarState);
@@ -46,7 +46,10 @@ type
     procedure SetDate(const Value: TDate);
     procedure SetMaxDate(const Value: TDate);
     procedure SetMinDate(const Value: TDate);
-    function OffRange(const AYear, AMonth, ADay: Integer): Boolean;
+    function OffRange(const AYear, AMonth, ADay: Integer): Boolean; overload;
+    function OffRange(const AYear: Integer): Boolean; overload;
+    function OffRange(const AYear, AMonth: Integer): Boolean; overload;
+    function AdjustDate(const AYear, AMonth, ADay: Integer): Integer;
 
   protected
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
@@ -67,6 +70,7 @@ type
     property Date: TDate read GetDate write SetDate;
     property MinDate: TDate read FMinDate write SetMinDate;
     property MaxDate: TDate read FMaxDate write SetMaxDate;
+    property RightPanel: Boolean read FRightPanel write FRightPanel;
 
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
@@ -233,9 +237,6 @@ const
   ButtonHeight      = 20;
   ButtonWidth       = 15;
 
-  DateDelimiter     = '.';
-  PeriodDelimiter   = '-';
-
   RadioButtonsCount = 4;
   RadioButtonsCaptions: array[1..RadioButtonsCount] of String =
     ('Год', 'Месяц', 'День', 'Период');
@@ -294,16 +295,17 @@ var
   Bitmap: TBitmap;
   I: Integer;
   Src, Dest: TRect;
-  _Y, _M, _D: Word;
+  _M, _D: Word;
   LStep, TStep, RStep, BStep, Tmp: Integer;
+  NeedClose: Boolean;
 begin
   inherited MouseDown(Button, Shift, X, Y);
-
-  CalcMouseCoord(X, Y);
 
   if not Enabled then
     exit;
 
+  NeedClose := False;
+  CalcMouseCoord(X, Y);
   Bitmap := TBitmap.Create;
   try
     Bitmap.Width := Width;
@@ -318,6 +320,7 @@ begin
           if OffRange(Tmp, FMonth, FDay) then
             exit;
           FYear := Tmp;
+          FDay := AdjustDate(FYear, FMonth, FDay);
           if FAllowedState > gscsYear then
           begin
             FCalendarState := gscsMonth;
@@ -338,7 +341,8 @@ begin
               Dest.Bottom := Dest.Bottom + BStep;
               Sleep(40);
             end;
-          end;
+          end else
+            NeedClose := True;
         end;
 
         gscsMonth:
@@ -347,6 +351,7 @@ begin
           if OffRange(FYear, Tmp, FDay) then
             exit;
           FMonth := Tmp;
+          FDay := AdjustDate(FYear, FMonth, FDay);
           if FAllowedState > gscsMonth then
           begin
             FCalendarState := gscsDay;
@@ -367,20 +372,14 @@ begin
               Dest.Bottom := Dest.Bottom + BStep;
               Sleep(40);
             end;
-          end;
+          end else
+            NeedClose := True;
         end;
 
         gscsDay:
         begin
-          DecodeDate(GetDayStart + FMouseCellX  - 1 + (FMouseCellY - 1) * DayCellX, _Y, _M, _D);
-          if OffRange(_Y, _M, _D) then
-            exit;
-          if _M = FMonth then
-          begin
-            FYear := _Y;
-            FMonth := _M;
-            FDay := _D;
-          end;
+          DecodeDate(GetDayStart + FMouseCellX  - 1 + (FMouseCellY - 1) * DayCellX, FYear, FMonth, FDay);
+          NeedClose := FRightPanel;
         end;
       end;
 
@@ -443,6 +442,9 @@ begin
   finally
     Bitmap.Free;
   end;
+
+  if NeedClose and not (ssShift in Shift) then
+    (Owner as TgsPeriodForm).FPeriodEdit.CloseUp(True);
 end;
 
 
@@ -510,7 +512,7 @@ begin
         (I = FMouseCellX) and (J = FMouseCellY) and DrawMouse,
         Yr = FYear,
         Yr = FTodayYear,
-        OffRange(Yr, FMonth, FDay),
+        OffRange(Yr),
         False);
       Inc(X, YearCellWidth);
       Inc(Yr);
@@ -540,7 +542,7 @@ begin
         (I = FMouseCellX) and (J = FMouseCellY) and DrawMouse,
         M = FMonth,
         M = FTodayMonth,
-        OffRange(FYear, M, FDay),
+        OffRange(FYear, M),
         False);
       Inc(X, MonthCellWidth);
       Inc(M);
@@ -717,7 +719,8 @@ end;
 
 procedure TgsCalendarPanel.CMEnabledChanged(var Message: TMessage);
 begin
-  Invalidate;  
+  Invalidate;
+  inherited;  
 end;
 
 function TgsCalendarPanel.GetDate: TDate;
@@ -756,16 +759,45 @@ end;
 function TgsCalendarPanel.OffRange(const AYear, AMonth,
   ADay: Integer): Boolean;
 var
+  NewDay: Integer;
   D: TDate;
 begin
-  if (ADay = 29) and (AMonth = 2) and IsLeapYear(AYear) then
-    D := EncodeDate(AYear, AMonth, 28)
-  else if (ADay = 31) and (AMonth in [4, 6, 9, 11]) then
-    D := EncodeDate(AYear, AMonth, 30)
-  else
-    D := EncodeDate(AYear, AMonth, ADay);
+  NewDay := AdjustDate(AYear, AMonth, ADay);
+  D := EncodeDate(AYear, AMonth, NewDay);
   Result := ((FMinDate <> 0) and (D < FMinDate)) or
-    ((FMaxDate <> 0) and (D > FMaxDate));  
+    ((FMaxDate <> 0) and (D > FMaxDate));
+end;
+
+function TgsCalendarPanel.OffRange(const AYear: Integer): Boolean;
+var
+  MaxYear, MinYear, M, D: Integer;
+begin
+  DecodeDate(FMinDate, MinYear, M, D);
+  DecodeDate(FMaxDate, MaxYear, M, D);
+  Result := ((FMinDate <> 0) and (AYear < MinYear))
+    or ((FMaxDate <> 0) and (AYear > MaxYear));
+end;
+
+function TgsCalendarPanel.OffRange(const AYear, AMonth: Integer): Boolean;
+var
+  MaxYear, MinYear, MaxMonth, MinMonth, D: Integer;
+begin
+  DecodeDate(FMinDate, MinYear, MinMonth, D);
+  DecodeDate(FMaxDate, MaxYear, MaxMonth, D);
+  Result := ((FMinDate <> 0) and ((AYear * 12 + AMonth) < (MinYear * 12 + MinMonth)))
+    or ((FMaxDate <> 0) and ((AYear * 12 + AMonth) > (MaxYear * 12 + MaxMonth)));
+end;
+
+function TgsCalendarPanel.AdjustDate(const AYear, AMonth, ADay: Integer): Integer;
+begin
+  if (AMonth = 2) and (ADay > 29) and IsLeapYear(AYear) then
+    Result := 29
+  else if (AMonth = 2) and (ADay > 28) and not IsLeapYear(AYear) then
+    Result := 28
+  else if (ADay = 31) and (AMonth in [4, 6, 9, 11]) then
+    Result := 30
+  else
+    Result := ADay;
 end;
 
 { TgsPeriodForm }
@@ -814,6 +846,7 @@ begin
   FRight.Align := alRight;
   FRight.Color := $B0FFFF;
   FRight.OnChange := OnCalendarChange;
+  FRight.RightPanel := True;
 
   FInfo := TLabel.Create(Self);
   FInfo.Parent := FBottom;
@@ -829,8 +862,7 @@ begin
   FRBDay := CreateRB(3);
   FRBFree := CreateRB(4);
 
-  FRBFree.Down := True;
-  OnRadioClick(FRBFree);
+  SyncUI;
 
   Width := FLeft.Width + FRight.Width;
   Height := FLeft.Height + FBottom.Height + 2;
@@ -873,10 +905,10 @@ procedure TgsPeriodForm.OnCalendarChange(Sender: TObject);
 begin
   if FRight.Enabled then
   begin
-    if Sender = FLeft then
-      FRight.MinDate := FLeft.Date
-    else
-      FLeft.MaxDate := FRight.Date;
+    if (Sender = FLeft) and (FLeft.Date > FRight.Date) then
+      FRight.Date := FLeft.Date
+    else if (Sender = FRight) and (FRight.Date < FLeft.Date) then
+      FLeft.Date := FRight.Date;
   end;
 
   case FPeriod.Kind of
@@ -948,18 +980,12 @@ begin
 
   FLeft.Date := FPeriod.Date;
   FRight.Date := FPeriod.EndDate;
-
-  if FRight.Enabled then
-  begin
-    FLeft.MaxDate := FRight.Date;
-    FRight.MinDate := FLeft.Date;
-  end;
 end;
 
 procedure TgsPeriodForm.UpdateInfo;
 begin
-  FInfo.Caption :=
-    'Продолжительность: ' + FormatFloat('#,##0', FPeriod.DurationDays) + ' дн.';
+  FInfo.Caption := 'F1=Справка                   Продолжительность: ' +
+    FormatFloat('#,##0', FPeriod.DurationDays) + ' дн.';
 end;
 
 { TgsPeriodEdit }
@@ -981,12 +1007,12 @@ begin
     SetWindowPos(FPeriodForm.Handle, 0, 0, 0, 0, 0, SWP_NOZORDER or
       SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE or SWP_HIDEWINDOW);
     FPeriodVisible := False;
-    Invalidate;
     if Accept then
       AssignPeriod(FPeriodForm.Period)
     else if FSavedPeriod <> nil then
       AssignPeriod(FSavedPeriod);
     FreeAndNil(FSavedPeriod);
+    Invalidate;
   end;
 end;
 
@@ -1121,7 +1147,7 @@ begin
     if Y + FPeriodForm.Height > Screen.Height then Y := P.Y - FPeriodForm.Height;
     FPeriodVisible := True;
     SetWindowPos(FPeriodForm.Handle, HWND_TOP, P.X, Y, 0, 0,
-      SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW);
+      SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW); 
     FPeriodForm.Visible := True;
     SetFocus;
   end;
@@ -1164,12 +1190,35 @@ end;
 procedure TgsPeriodEdit.KeyDown(var Key: Word; Shift: TShiftState);
 begin
   inherited KeyDown(Key, Shift);
-  if (Key = VK_UP) or (Key = VK_DOWN) then
-  begin
-    if FPeriodVisible then CloseUp(True) else DropDown;
-    Key := 0;
+
+  case Key of
+    VK_F1:
+    if Shift = [] then
+    begin
+      ShellExecute(Handle,
+        'open',
+        'http://gsbelarus.com/gs/wiki/index.php/Период_дат',
+        nil,
+        nil,
+        SW_SHOW);
+      Key := 0;
+    end;
+
+    VK_F2..VK_F12, VK_DELETE, VK_INSERT:
+      if FPeriodVisible then CloseUp(True);
+
+    VK_UP, VK_DOWN:
+    begin
+      if FPeriodVisible then
+        CloseUp(True)
+      else
+        DropDown;
+      Key := 0;
+    end;
   end;
-  if (Key <> 0) and FPeriodVisible then FPeriodForm.KeyDown(Key, Shift);
+
+  if (Key <> 0) and FPeriodVisible then
+    FPeriodForm.KeyDown(Key, Shift);
 end;
 
 procedure TgsPeriodEdit.KeyPress(var Key: Char);
@@ -1182,9 +1231,9 @@ procedure TgsPeriodEdit.KeyPress(var Key: Char);
     E := Length(Text);
     while E > 0 do
     begin
-      if Text[E] = PeriodDelimiter then
+      if Text[E] = gsdpPeriodDelimiter then
         break;
-      if Text[E] = DateDelimiter then
+      if Text[E] = gsdpDateDelimiter then
         Inc(Result);
       Dec(E);
     end;
@@ -1200,7 +1249,7 @@ procedure TgsPeriodEdit.KeyPress(var Key: Char);
     for I := 1 to Length(S) do
       PostMessage(Handle, WM_CHAR, Ord(S[I]), 0);
     if N <= 31 then
-      PostMessage(Handle, WM_CHAR, Ord(DateDelimiter), 0);
+      PostMessage(Handle, WM_CHAR, Ord(gsdpDateDelimiter), 0);
   end;
 
   function SingleDigit: Boolean;
@@ -1214,7 +1263,8 @@ var
   Y, M, D: Word;
 begin
   if FPeriodVisible then
-    CloseUp(Key = #13);
+    CloseUp(Key <> #27);
+
   if FDatePeriod.ProcessShortCut(Key) then
   begin
     if (FDatePeriod.Kind = dpkDay) and (SelLength = 0) and (SelStart = Length(Text))
@@ -1231,15 +1281,23 @@ begin
     case Key of
       #0..#31: ;
 
-      PeriodDelimiter: if (Text = '') or (Pos(PeriodDelimiter, Text) > 0) then Key := #0;
+      gsdpPeriodDelimiter:
+        if (Text = '') or (Pos(gsdpPeriodDelimiter, Text) > 0) then
+          Key := #0;
 
-      DateDelimiter: if (Text = '') or ((SelStart = Length(Text)) and (SelStart > 0) and (SelLength = 0)
-             and (Text[SelStart] in [DateDelimiter, PeriodDelimiter])) or (DotCount >= 2) then Key := #0;
+      gsdpDateDelimiter:
+        if (Text = '') or ((SelStart = Length(Text)) and (SelStart > 0) and (SelLength = 0)
+          and (Text[SelStart] in [gsdpDateDelimiter, gsdpPeriodDelimiter])) or (DotCount >= 2) then
+            Key := #0;
 
       #32:
       begin
+        if (SelLength > 0) and (SelLength = Length(Text)) then
+          Text := '';
+
         if (SelStart = Length(Text)) and (SelLength = 0)
-          and ((SelStart = 0) or (Text[SelStart] in [DateDelimiter, PeriodDelimiter])) then
+          and ((SelStart = 0)
+            or (Text[SelStart] in [gsdpDateDelimiter, gsdpPeriodDelimiter])) then
         begin
           DecodeDate(SysUtils.Date, Y, M, D);
 
@@ -1256,9 +1314,9 @@ begin
     else
       Key := #0;
     end;
-
-    inherited;
   end;
+
+  inherited;
 end;
 
 function TgsPeriodEdit.Validate(const Silent: Boolean = False): Boolean;
@@ -1311,9 +1369,8 @@ end;
 
 procedure TgsPeriodEdit.CNKeyDown(var Message: TWMKeyDown);
 begin
-  with Message do
-  begin
-    if (KeyDataToShiftState(KeyData) = []) and (CharCode = VK_F1) then
+  case Message.CharCode of
+    VK_F1:
     begin
       ShellExecute(Handle,
         'open',
@@ -1321,9 +1378,12 @@ begin
         nil,
         nil,
         SW_SHOW);
-      Result := 1;
+      Message.Result := 1;
       exit;
     end;
+
+    VK_F2..VK_F12:
+      if FPeriodVisible then CloseUp(True);
   end;
 
   inherited;

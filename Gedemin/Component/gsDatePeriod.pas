@@ -44,6 +44,10 @@ type
     property DurationDays: Integer read GetDurationDays;
   end;
 
+const
+  gsdpDateDelimiter     = '.';
+  gsdpPeriodDelimiter   = '-';
+
 function DateAdd(DatePart: Char; AddNumber: Integer; CurrentDate: TDate): TDate;
 
 implementation
@@ -66,28 +70,28 @@ begin
   DecodeDate(SysUtils.Date, Year, Month, Day);
 
   case AnsiUpperCase(Key)[1] of
-    'Ñ', 'T':
+    'Ñ', 'C':
       begin
         FKind := dpkDay;
         FDate := SysUtils.Date;
         FEndDate := FDate;
       end;
 
-    'Â', 'Y':
+    'Â', 'D':
       begin
         FKind := dpkDay;
         FDate := SysUtils.Date - 1;
         FEndDate := FDate;
       end;
 
-    'Ç', 'O':
+    'Ç', 'P':
       begin
         FKind := dpkDay;
         FDate := SysUtils.Date + 1;
         FEndDate := FDate;
       end;
 
-    'Í', 'W':
+    'Í', 'Y':
       begin
         FKind := dpkWeek;
         NumberWeek := ISOWeekNumber(SysUtils.Now);
@@ -95,7 +99,7 @@ begin
         FEndDate := ISOWeekToDateTime(Year, NumberWeek, 7);
       end;
 
-    'ß', 'L':
+    'ß', 'Z':
       begin
         FKind := dpkWeek;
         NumberWeek := ISOWeekNumber(SysUtils.Now);
@@ -103,7 +107,7 @@ begin
         FEndDate := ISOWeekToDateTime(Year, NumberWeek - 1, 7);
       end;
 
-    'Þ', 'N':
+    'Ù', 'O':
       begin
         FKind := dpkWeek;
         NumberWeek := ISOWeekNumber(SysUtils.Now);
@@ -111,14 +115,14 @@ begin
         FEndDate := ISOWeekToDateTime(Year, NumberWeek + 1, 7);
       end;
 
-    'Ì', 'M':
+    'Ì', 'V':
       begin
         Fkind := dpkMonth;
         FDate := EncodeDate(Year, Month, 1);
         FEndDate := IncMonth(EncodeDate(Year, Month, 1), 1) - 1;
       end;
 
-    'Ë', 'X':
+    'Ë', 'K':
       begin
         FKind := dpkMonth;
         FDate := DateAdd('M', 1, EncodeDate(Year, Month, 1));
@@ -132,7 +136,7 @@ begin
          FEndDate := EncodeDate(Year, Month, 1) - 1;
       end;
 
-    'Ê', 'Q':
+    'Ê', 'R':
       begin
         FKind := dpkQuarter;
         case Month of
@@ -159,7 +163,7 @@ begin
         end;
       end;
 
-    'È', 'R':
+    'È', 'B':
       begin
         FKind := dpkQuarter;
         case Month of
@@ -186,7 +190,7 @@ begin
         end
       end;
 
-    'É', 'G':
+    'É', 'Q':
       begin
         FKind := dpkQuarter;
         case Month of
@@ -213,7 +217,7 @@ begin
         end;
       end;
 
-    'Ã', 'A':
+    'Ã', 'U':
       begin
         FKind := dpkYear;
         FDate := EncodeDate(Year, 01, 01);
@@ -227,7 +231,7 @@ begin
         FEndDate := EncodeDate(Year - 1, 12, 31);
       end;
 
-    'Å', 'V':
+    'Å', 'T':
       begin
         FKind := dpkYear;
         FDate := EncodeDate(Year + 1, 01, 01);
@@ -257,8 +261,8 @@ begin
       dpkMonth: Result := FormatDateTime('mm.yyyy', FDate);
       dpkDay: Result := FormatDateTime('dd.mm.yyyy', FDate);
     else
-      Result := FormatDateTime('dd.mm.yyyy', FDate) + '-' +
-        FormatDateTime('dd.mm.yyyy', FEndDate);
+      Result := FormatDateTime('dd.mm.yyyy', FDate) +
+        gsdpPeriodDelimiter + FormatDateTime('dd.mm.yyyy', FEndDate);
     end;
 end;
 
@@ -267,7 +271,7 @@ var
   P: Integer;
   Dummy: TDate;
 begin
-  P := Pos('-', AString);
+  P := Pos(gsdpPeriodDelimiter, AString);
   if P = 0 then
     DecodeOneDate(AString, FDate, FEndDate, FKind)
   else
@@ -375,7 +379,13 @@ var
   B, E, Year, Month, Day: Integer;
   _Y, _M, _D: Word;
 begin
-  S := Trim(S);
+  B := 1;
+  while (B <= Length(S)) and (S[B] in [' ', #9, '0']) do
+    Inc(B);
+  E := Length(S);
+  while (E > 0) and (S[E] in [' ', #9]) do
+    Dec(E);
+  S := Copy(S, B, E - B + 1);
 
   if S = '' then
   begin
@@ -383,6 +393,14 @@ begin
     Right := SysUtils.Date;
     AKind := dpkFree;
     exit;
+  end;
+
+  if Pos(gsdpDateDelimiter, S) = 0 then
+  begin
+    if Length(S) > 4 then
+      Insert(gsdpDateDelimiter, S, Length(S) - 3);
+    if Length(S) > 7 then
+      Insert(gsdpDateDelimiter, S, Length(S) - 6);
   end;
 
   DecodeDate(SysUtils.Date, _Y, _M, _D);
@@ -393,7 +411,7 @@ begin
   B := E;
   while B >= 0 do
   begin
-    if (B = 0) or (S[B] = '.') then
+    if (B = 0) or (S[B] = gsdpDateDelimiter) then
     begin
       if Year = 0 then
         Year := StrToIntDef(Copy(S, B + 1, E - B), 0)
@@ -424,11 +442,15 @@ begin
     end else
     begin
       AKind := dpkYear;
+      if Year < 100 then
+        Year := Year + 2000;
       Left := EncodeDate(Year, 1, 1);
       Right := EncodeDate(Year, 12, 31);
     end;
   end else
   begin
+    if Year < 100 then
+      Year := Year + 2000;
     if (Month <= 0) or (Month > 12) then
       Month := _M;
     if Day <= 0 then
@@ -439,9 +461,15 @@ begin
     end else
     begin
       AKind := dpkDay;
-      if (Day >= 31) and (Month in [4, 6, 9, 11]) then
-        Day := 30;
-      if (Day > 28) and (Month = 2) and (not IsLeapYear(Year)) then
+      if Day <= 0 then
+        Day := 1
+      else if (Day > 31) and (Month in [1, 3, 5, 7, 8, 10, 12]) then
+        Day := 31
+      else if (Day > 30) and (Month in [4, 6, 9, 11]) then
+        Day := 30
+      else if (Day > 29) and (Month = 2) and IsLeapYear(Year) then
+        Day := 29
+      else if (Day > 28) and (Month = 2) and not IsLeapYear(Year) then
         Day := 28;
       Left := EncodeDate(Year, Month, Day);
       Right := Left;
