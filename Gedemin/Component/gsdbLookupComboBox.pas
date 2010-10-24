@@ -484,7 +484,7 @@ begin
     if Exact then
       SelectCondition := Format(' (%0:s = ''%1:s'') ', [FieldWithAlias(FListField), Text])
     else
-      SelectCondition := Format('(upper(%0:s) LIKE ''%%%1:s%%'') ',
+      SelectCondition := Format('(UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
         [FieldWithAlias(FListField), AnsiUpperCase(Text)]);
 
     if FFields > '' then
@@ -498,7 +498,7 @@ begin
             SelectCondition := Format('%s OR (%s = ''%s'') ',
               [SelectCondition, FieldWithAlias(Trim(SL[J])), Text])
           else
-            SelectCondition := Format('%s OR (upper(%s) LIKE ''%%%s%%'') ',
+            SelectCondition := Format('%s OR (UPPER(%s) SIMILAR TO ''%%%s%%'') ',
               [SelectCondition, FieldWithAlias(Trim(SL[J])), AnsiUpperCase(Text)])
         end;      
       finally
@@ -903,7 +903,7 @@ begin
 
     if Match > '' then
     begin
-      SelectCondition := Format(' (upper(%0:s) LIKE ''%%%1:s%%'') ',
+      SelectCondition := Format(' (UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
         [FieldWithAlias(FListField), AnsiUpperCase(Match)]);
 
       if FFields > '' then
@@ -912,7 +912,7 @@ begin
         try
           SL.CommaText := FFields;
           for J := 0 to SL.Count - 1 do
-              SelectCondition := Format('%s OR (upper(%s) LIKE ''%%%s%%'') ',
+              SelectCondition := Format('%s OR (UPPER(%s) SIMILAR TO ''%%%s%%'') ',
                 [SelectCondition, FieldWithAlias(Trim(SL[J])), AnsiUpperCase(Match)])
         finally
           SL.Free;
