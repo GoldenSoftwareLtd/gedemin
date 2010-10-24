@@ -155,5 +155,4 @@ contains
   gdcBlockRule in '..\Component\GDC\gdcBlockRule.pas',
   gdcSQLHistory in '..\Component\GDC\gdcSQLHistory.pas',
   gdcStorage in '..\Component\GDC\gdcStorage.pas';
-
 end.
