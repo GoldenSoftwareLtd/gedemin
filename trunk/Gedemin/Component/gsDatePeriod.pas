@@ -443,14 +443,18 @@ begin
     begin
       AKind := dpkYear;
       if Year < 100 then
-        Year := Year + 2000;
+        Year := Year + 2000
+      else if Year >= 3000 then
+        Year := 2999;
       Left := EncodeDate(Year, 1, 1);
       Right := EncodeDate(Year, 12, 31);
     end;
   end else
   begin
     if Year < 100 then
-      Year := Year + 2000;
+      Year := Year + 2000
+    else if Year >= 3000 then
+      Year := 2999;
     if (Month <= 0) or (Month > 12) then
       Month := _M;
     if Day <= 0 then

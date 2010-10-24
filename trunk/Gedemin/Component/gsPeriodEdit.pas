@@ -1183,6 +1183,11 @@ begin
     SetFocus;
     if not FHasFocus then Exit;
     if FPeriodVisible then CloseUp(True);
+    if (SelLength = 0) and (Length(Text) > 0) then
+    begin
+      SelStart := 0;
+      SelLength := Length(Text);
+    end;
   end;
   inherited MouseDown(Button, Shift, X, Y);
 end;

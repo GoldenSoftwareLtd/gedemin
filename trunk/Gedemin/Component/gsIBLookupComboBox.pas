@@ -606,7 +606,7 @@ begin
     if Exact then
       SelectCondition := Format(' (%0:s = ''%1:s'') ', [FieldWithAlias(FListField), Text])
     else
-      SelectCondition := Format('(UPPER(%0:s) LIKE ''%%%1:s%%'') ',
+      SelectCondition := Format('(UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
         [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Text))]);
 
     if FFields > '' then
@@ -620,7 +620,7 @@ begin
             SelectCondition := Format('%s OR (%s = ''%s'') ',
               [SelectCondition, FieldWithAlias(Trim(SL[J])), Text])
           else
-            SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) LIKE ''%%%s%%'') ',
+            SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) SIMILAR TO ''%%%s%%'') ',
               [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Text))])
         end;      
       finally
@@ -1383,7 +1383,7 @@ begin
 
       if Match > '' then
       begin
-        SelectCondition := Format(' (UPPER(%0:s) LIKE ''%%%1:s%%'') ',
+        SelectCondition := Format(' (UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
           [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Match))]);
 
         if FFields > '' then
@@ -1392,7 +1392,7 @@ begin
           try
             ParseFieldsString(FFields, SL);
             for J := 0 to SL.Count - 1 do
-              SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) LIKE ''%%%s%%'') ',
+              SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) SIMILAR TO ''%%%s%%'') ',
                 [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Match))])
           finally
             SL.Free;
