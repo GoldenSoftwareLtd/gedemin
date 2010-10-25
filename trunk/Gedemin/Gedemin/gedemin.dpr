@@ -305,7 +305,7 @@ uses
   , ExceptionDialog_unit in '..\Component\ExceptionDialog_unit.pas' {ExceptionDialog}
   {$ENDIF}
   , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring}
-  , gdcBlockRule in '..\Component\GDC\gdcBlockRule.pas';
+  , gdcBlockRule;
 
 {$R Gedemin.TLB}
 {$R *.RES}

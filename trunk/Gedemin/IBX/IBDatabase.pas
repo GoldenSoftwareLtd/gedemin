@@ -1217,9 +1217,13 @@ procedure TIBDatabase.SetDatabaseName(const Value: TIBFileName);
 begin
   if FDBName <> Value then
   begin
+
     EnsureInactive;
     CheckInactive;
-    FDBName := Value;
+    if Pos(':', Value) = 0 then
+      FDBName := ExtractFilePath(Application.EXEName) + Value
+    else
+      FDBName := Value;
     FSchema.FreeNodes;
   end;
 end;
