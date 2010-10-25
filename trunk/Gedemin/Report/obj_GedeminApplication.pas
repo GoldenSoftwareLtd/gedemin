@@ -727,20 +727,18 @@ begin
 end;
 
 function TgsGedeminApplication.Get_Assigned(AnObject: OleVariant): WordBool;
+var
+  FIgsObject: IgsObject;
 begin
   Result := False;
   if VarType(AnObject) = VarDispatch then
   begin
     if IDispatch(AnObject) <> nil then
     begin
-      { TODO : Не самое лучшее решение, но пока за не имением лучшего }
-      //Смысл в том, что, если это интерфейс врап-объекта, то нужно проверить
-      //наличие делфовского объекта, а не его оболочки
-      try
-        Result := (IDispatch(AnObject) as IgsObject).DelphiObject <> 0;
-      except
+      if Supports(IDispatch(AnObject), IgsObject, FIgsObject) then
+        Result := FIgsObject.DelphiObject <> 0
+      else
         Result := True;
-      end;
     end;
   end;
 end;
