@@ -14,6 +14,14 @@ inherited gdc_frmBlockRule: Tgdc_frmBlockRule
   end
   inherited TBDockTop: TTBDock
     Width = 920
+    inherited tbMainCustom: TTBToolbar
+      object TBItem2: TTBItem
+        Action = actPrevBlockRule
+      end
+      object TBItem1: TTBItem
+        Action = actNextBlockRule
+      end
+    end
   end
   inherited TBDockLeft: TTBDock
     Height = 376
@@ -62,6 +70,20 @@ inherited gdc_frmBlockRule: Tgdc_frmBlockRule
       inherited pnlChooseCaption: TPanel
         Width = 902
       end
+    end
+  end
+  inherited alMain: TActionList
+    object actPrevBlockRule: TAction
+      Category = 'Navigation'
+      Caption = 'Предыдущее правило блокировки'
+      ImageIndex = 47
+      OnExecute = actPrevBlockRuleExecute
+    end
+    object actNextBlockRule: TAction
+      Category = 'Navigation'
+      Caption = 'Следующее правило блокировки'
+      ImageIndex = 48
+      OnExecute = actNextBlockRuleExecute
     end
   end
   object gdcBlockRule: TgdcBlockRule

@@ -11,7 +11,13 @@ uses
 type
   Tgdc_frmBlockRule = class(Tgdc_frmSGR)
     gdcBlockRule: TgdcBlockRule;
+    TBItem1: TTBItem;
+    TBItem2: TTBItem;
+    actPrevBlockRule: TAction;
+    actNextBlockRule: TAction;
     procedure FormCreate(Sender: TObject);
+    procedure actPrevBlockRuleExecute(Sender: TObject);
+    procedure actNextBlockRuleExecute(Sender: TObject);
   private
     { Private declarations }
   public
@@ -29,6 +35,18 @@ procedure Tgdc_frmBlockRule.FormCreate(Sender: TObject);
 begin
   gdcObject := gdcBlockRule;
   inherited;
+end;
+
+procedure Tgdc_frmBlockRule.actPrevBlockRuleExecute(Sender: TObject);
+begin
+  inherited;
+  if not gdcBlockRule.Eof then gdcBlockRule.Next;
+end;
+
+procedure Tgdc_frmBlockRule.actNextBlockRuleExecute(Sender: TObject);
+begin
+  inherited;
+  if not gdcBlockRule.Bof then gdcBlockRule.Prior;
 end;
 
 initialization
