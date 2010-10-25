@@ -33,6 +33,13 @@ type
     function AddLine(Param: TIBXSQLVAR): TfrParamLine;
     procedure DeleteLine;
     procedure ClearLine;
+
+  protected
+    procedure WMWindowPosChanging(var Message: TWMWindowPosChanging);
+      message WM_WINDOWPOSCHANGING;
+    procedure CMVisibleChanged(var Message: TMessage);
+      message CM_VISIBLECHANGED;
+
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -53,6 +60,10 @@ uses
   ;
 
 {$R *.DFM}
+
+var
+  _Left, _Top: Integer;
+  _UseCoords: Boolean;
 
 function TdlgInputParam.AddLine(Param: TIBXSQLVAR): TfrParamLine;
 begin
@@ -139,6 +150,8 @@ end;
 
 destructor TdlgInputParam.Destroy;
 begin
+  _Left := Left;
+  _Top := Top;
   ClearLine;
   FLineList.Free;
   inherited;
@@ -213,4 +226,26 @@ begin
   end;
 end;
 
+procedure TdlgInputParam.WMWindowPosChanging(
+  var Message: TWMWindowPosChanging);
+begin
+  if (_Left > -1) and (_Top > -1) and _UseCoords then
+  begin
+    Message.WindowPos.x := _Left;
+    Message.WindowPos.y := _Top;
+    _UseCoords := False;
+  end;
+  inherited;
+end;
+
+procedure TdlgInputParam.CMVisibleChanged(var Message: TMessage);
+begin
+  _UseCoords := Visible;
+  inherited;
+end;
+
+initialization
+  _Left := -1;
+  _Top := -1;
+  _UseCoords := False;
 end.

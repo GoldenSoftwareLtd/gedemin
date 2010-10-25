@@ -11,7 +11,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  IBDatabaseInfo, Db, IBSQL, IBDatabase, IBCustomDataSet, IBQuery,
+  IBDatabaseInfo, Db, IBSQL, IBDatabase, IBCustomDataSet, IBQuery, CheckLst,
   ActnList, ImgList, ExtCtrls, StdCtrls, ComCtrls, Grids, DBGrids, DBCtrls,
   ToolWin, SynEdit, SynEditHighlighter, SynHighlighterSQL,
   gd_createable_form, contnrs, gsStorage, Storages, Menus, TB2Item,
@@ -124,8 +124,6 @@ type
     TBControlItem2: TTBControlItem;
     Label13: TLabel;
     tsTransaction: TSuperTabSheet;
-    mTransaction: TMemo;
-    mTransactionParams: TMemo;
     Panel3: TPanel;
     actParse: TAction;
     TBItem16: TTBItem;
@@ -178,9 +176,8 @@ type
     tbItemAllRecord: TTBItem;
     SynCompletionProposal: TSynCompletionProposal;
     Label15: TLabel;
-    chbxAutoCommitDDL: TCheckBox;
     mmPlan: TMemo;
-    Splitter1: TSplitter;
+    splQuery: TSplitter;
     pModal: TPanel;
     Button1: TButton;
     Button2: TButton;
@@ -227,6 +224,7 @@ type
     ibgrMonitor: TgsIBGrid;
     spMonitor: TSplitter;
     dbseSQLText: TDBSynEdit;
+    chlbTransactionParams: TCheckListBox;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -265,7 +263,6 @@ type
     procedure SynCompletionProposalExecute(Kind: SynCompletionType;
       Sender: TObject; var AString: String; x, y: Integer;
       var CanExecute: Boolean);
-    procedure chbxAutoCommitDDLClick(Sender: TObject);
     procedure actRefreshMonitorExecute(Sender: TObject);
     procedure actDeleteStatementUpdate(Sender: TObject);
     procedure actDeleteStatementExecute(Sender: TObject);
@@ -292,6 +289,8 @@ type
     procedure pnlTraceResize(Sender: TObject);
     procedure actShowTreeUpdate(Sender: TObject);
     procedure actShowTreeExecute(Sender: TObject);
+    procedure seQuerySpecialLineColors(Sender: TObject; Line: Integer;
+      var Special: Boolean; var FG, BG: TColor);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -299,7 +298,7 @@ type
     FTableArray: TgdKeyStringAssoc;
     FParams: TParams;
     FRepeatQuery: Boolean;
-    FTop, FLeft: Integer;
+    FErrorLine: Integer;
     {$IFDEF GEDEMIN}
     frmSQLHistory: Tgdc_frmSQLHistory;
     frmSQLTrace: Tgdc_frmSQLHistory;
@@ -325,6 +324,10 @@ type
     procedure UseSQLHistory(AForm: Tgdc_frmSQLHistory);
     procedure OnHistoryDblClick(Sender: TObject);
     procedure OnTraceLogDblClick(Sender: TObject);
+    procedure ExtractErrorLine(const S: String);
+    procedure ClearError;
+    function GetTransactionParams: String;
+    function ConcatErrorMessage(const M: String): String;
 
   public
     FDatabase: TIBDatabase;
@@ -481,14 +484,10 @@ begin
       chbxRepeat.Checked := FRepeatQuery;
       chbxRepeat.Enabled := True;
     end;
-    if FLeft > 0 then Left := FLeft;
-    if FTop > 0 then Top := FTop;
 
     Result := SetParams(ibqryWork.Params);
 
     FRepeatQuery := chbxRepeat.Checked;
-    FLeft := Left;
-    FTop := Top;
   finally
     Free;
   end;
@@ -668,12 +667,11 @@ end;
 function TfrmSQLEditorSyn.PrepareQuery: Boolean;
 var
   OldMessage: String;
-  OldSQLCode, OldGDSCode: Integer;
+  OldGDSCode: Integer;
 begin
   if not ibtrEditor.InTransaction then
     ibtrEditor.StartTransaction;
   Result := False;
-  OldSQLCode := 0;
   OldGDSCode := 0;
   ibsqlPlan.Close;
   ibsqlPlan.SQL.Text := seQuery.Text;
@@ -691,10 +689,7 @@ begin
           OldMessage := E.Message;
 
           if E is EIBError then
-          begin
-            OldSQLCode := EIBError(E).SQLCode;
             OldGDSCode := EIBError(E).IBErrorCode;
-          end;
 
           ibsqlPlan.ParamCheck := False;
           ibsqlPlan.Prepare;
@@ -717,17 +712,18 @@ begin
       begin
         if E.Message <> OldMessage then
           E.Message := OldMessage;
-        mmPlan.Text := E.Message;
+        ExtractErrorLine(E.Message);
+        mmPlan.Text := ConcatErrorMessage(E.Message);
         if E is EIBError then
         begin
-          if (OldGDSCode <> 0) or (OldSQLCode <> 0) then
-            mmPlan.Lines.Add('SQLCode: ' + IntToStr(OldSQLCode) +
-              '; GDSCode: ' + IntToStr(OldGDSCode))
+          if OldGDSCode <> 0 then
+            mmPlan.Lines.Add('GDSCode = ' + IntToStr(OldGDSCode))
           else
-            mmPlan.Lines.Add('SQLCode: ' + IntToStr(EIBError(E).SQLCode) +
-              '; GDSCode: ' + IntToStr(EIBError(E).IBErrorCode));
+            mmPlan.Lines.Add('GDSCode = ' + IntToStr(EIBError(E).IBErrorCode));
         end;
         mmPlan.Color := $AAAAFF;
+        mmPlan.SelStart := 0;
+        mmPlan.SelLength := 0;
         AddLogRecord(E.Message);
       end;
     end;
@@ -782,11 +778,8 @@ begin
 
         FPrepareTime := Now - StartTime;
 
-        if (ibqryWork.SQLType = SQLDDL) {and (UserStorage <> nil)
-          and UserStorage.ReadBoolean('Options', 'AutoCommitDDL', True, False)} then
-        begin
+        if ibqryWork.SQLType = SQLDDL then
           actCommit.Execute;
-        end;
 
         tvResult.DataSource := nil;
 
@@ -815,11 +808,8 @@ begin
           tsResult.TabVisible := False;
         end;
 
-        if (ibqryWork.SQLType = SQLDDL) {and (UserStorage <> nil)
-          and UserStorage.ReadBoolean('Options', 'AutoCommitDDL', True, False)} then
-        begin
+        if ibqryWork.SQLType = SQLDDL then
           actCommit.Execute;
-        end;
 
         StartTime := Now;
         ibqryWork.EnableControls;
@@ -830,16 +820,17 @@ begin
         if ibqryWork.QSelect.SQLType in [SQLInsert, SQLUpdate, SQLDelete, SQLExecProcedure] then
           mmPlan.Lines.Add('RowsAffected: ' + IntToStr(ibqryWork.QSelect.RowsAffected));
 
-        if mmPlan.Color <> clWindow then
-          mmPlan.Color := clWindow;
+        ClearError;
       except
         on E: Exception do
         begin
-          mmPlan.Text := E.Message;
+          ExtractErrorLine(E.Message);
+          mmPlan.Text := ConcatErrorMessage(E.Message);
           if E is EIBError then
-            mmPlan.Lines.Add('SQLCode: ' + IntToStr(EIBError(E).SQLCode) +
-              '; GDSCode: ' + IntToStr(EIBError(E).IBErrorCode));
+            mmPlan.Lines.Add('GDSCode = ' + IntToStr(EIBError(E).IBErrorCode));
           mmPlan.Color := $AAAAFF;
+          mmPlan.SelStart := 0;
+          mmPlan.SelLength := 0;
           AddLogRecord(E.Message);
           FRepeatQuery := False;
         end;
@@ -900,11 +891,11 @@ begin
   iblkupTable.Transaction := gdcBaseManager.ReadTransaction;
   {$ENDIF}
 
-  mTransaction.Lines.Text := ibtrEditor.Params.Text;
-  mTransactionParams.Lines.Clear;
+  chlbTransactionParams.Items.Clear;
   for I := Low(TPBConstantNames) to High(TPBConstantNames) do
   begin
-    mTransactionParams.Lines.Add(TPBConstantNames[I]);
+    chlbTransactionParams.Checked[chlbTransactionParams.Items.Add(TPBConstantNames[I])] :=
+      ibtrEditor.Params.IndexOf(TPBConstantNames[I]) <> -1;
   end;
 
   actNew.ShortCut := ShortCut(Ord('N'), [ssCtrl, ssShift]);
@@ -988,9 +979,6 @@ begin
   pcMain.ActivePage := tsQuery;
   ActiveControl := seQuery;
   UpdateSyncs;
-
-  {if UserStorage <> nil then
-    chbxAutoCommitDDL.Checked := UserStorage.ReadBoolean('Options', 'AutoCommitDDL', True, False);}
 end;
 
 procedure TfrmSQLEditorSyn.FormDestroy(Sender: TObject);
@@ -1052,6 +1040,8 @@ begin
 
   // Вспомогательный объект для поиска по полю ввода
   FSearchReplaceHelper := TgsSearchReplaceHelper.Create(seQuery);
+
+  FErrorLine := -1;
 end;
 
 destructor TfrmSQLEditorSyn.Destroy;
@@ -1211,6 +1201,7 @@ end;
 
 procedure TfrmSQLEditorSyn.actNewExecute(Sender: TObject);
 begin
+  ClearError;
   seQuery.Text := '';
   pcMain.ActivePage := tsQuery;
 end;
@@ -1424,6 +1415,7 @@ begin
   {$IFDEF GEDEMIN}
   if not AForm.gdcObject.IsEmpty then
   begin
+    ClearError;
     seQuery.Text := AForm.gdcObject.FieldByName('SQL_TEXT').AsString;
 
     FParams.Clear;
@@ -1456,6 +1448,78 @@ begin
     seQuery.Show;
   end;
   {$ENDIF}
+end;
+
+procedure TfrmSQLEditorSyn.ExtractErrorLine(const S: String);
+const
+  LineLabel = ' line ';
+var
+  B: Integer;
+  N: String;
+begin
+  B := StrIPos(LineLabel, S);
+  if B > 0 then
+  begin
+    N := '';
+    Inc(B, Length(LineLabel));
+    while (B <= Length(S)) and (S[B] in ['0'..'9']) do
+    begin
+      N := N + S[B];
+      Inc(B);
+    end;
+    FErrorLine := StrToIntDef(N, -1);
+  end;
+end;
+
+procedure TfrmSQLEditorSyn.ClearError;
+begin
+  if mmPlan.Color <> clWindow then
+    mmPlan.Color := clWindow;
+  FErrorLine := -1;
+end;
+
+function TfrmSQLEditorSyn.GetTransactionParams: String;
+var
+  I: Integer;
+  S: String;
+begin
+  Result := '';
+  for I := 0 to chlbTransactionParams.Items.Count - 1 do
+  begin
+    if chlbTransactionParams.Checked[I] then
+    begin
+      S := chlbTransactionParams.Items[I];
+      if Pos(' ', S) > 0 then S := '"' + S + '"';
+      Result := Result + S + ',';
+    end;
+  end;
+  if Result > '' then
+    SetLength(Result, Length(Result) - 1);
+end;
+
+function TfrmSQLEditorSyn.ConcatErrorMessage(const M: String): String;
+var
+  SL: TStringList;
+  I: Integer;
+begin
+  SL := TStringList.Create;
+  try
+    SL.Text := M;
+
+    for I := 1 to 5 do
+    begin
+      if SL.Count > 1 then
+      begin
+        if Trim(SL[1]) > '' then
+          SL[0] := SL[0] + '; ' + SL[1];
+        SL.Delete(1);
+      end;
+    end;
+
+    Result := SL.Text;
+  finally
+    SL.Free;
+  end;
 end;
 
 procedure TfrmSQLEditorSyn.OnHistoryDblClick(Sender: TObject);
@@ -1538,28 +1602,32 @@ var
 begin
   if (pcMain.ActivePage = tsTransaction)
     and (ibtrEditor <> nil)
-    and (ibtrEditor.Params.Text <> mTransaction.Lines.Text) then
+    and (ibtrEditor.Params.CommaText <> GetTransactionParams) then
   begin
     Tr := TIBTransaction.Create(nil);
     try
       {$IFDEF GEDEMIN}
       Tr.DefaultDatabase := gdcBaseManager.Database;
-      Tr.Params.Text := mTransaction.Lines.Text;
+      Tr.Params.CommaText := GetTransactionParams;
       try
         Tr.StartTransaction;
+        Tr.Commit;
 
         if ibtrEditor.InTransaction then
           ibtrEditor.Commit;
-        ibtrEditor.Params.Text := mTransaction.Lines.Text;
+        ibtrEditor.Params.CommaText := GetTransactionParams;
         ibtrEditor.StartTransaction;
         tsResult.TabVisible := False;
         AllowChange := True;
       except
-        MessageBox(Handle,
-          'Задан неверный параметр транзакции.',
-          'Внимание',
-          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-        AllowChange := False;
+        on E: Exception do
+        begin
+          MessageBox(Handle,
+            PChar('Задан неверный параметр транзакции.'#13#10#13#10 + E.Message),
+            'Внимание',
+            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+          AllowChange := False;
+        end;
       end;
       {$ENDIF}
     finally
@@ -1709,17 +1777,6 @@ begin
   end;
 end;
 
-procedure TfrmSQLEditorSyn.chbxAutoCommitDDLClick(Sender: TObject);
-begin
-  {if UserStorage <> nil then
-  begin
-    if chbxAutoCommitDDL.Checked then
-      UserStorage.DeleteValue('Options', 'AutoCommitDDL', False)
-    else
-      UserStorage.WriteBoolean('Options', 'AutoCommitDDL', False);
-  end;}
-end;
-
 procedure TfrmSQLEditorSyn.actRefreshMonitorExecute(Sender: TObject);
 begin
   ibdsMonitor.Close;
@@ -1778,6 +1835,7 @@ end;
 
 procedure TfrmSQLEditorSyn.actShowMonitorSQLExecute(Sender: TObject);
 begin
+  ClearError;
   seQuery.Text := ibdsMonitor.FieldByName('sql_text').AsString;
   seQuery.Show;
 end;
@@ -1934,8 +1992,7 @@ end;
 
 procedure TfrmSQLEditorSyn.seQueryChange(Sender: TObject);
 begin
-  if mmPlan.Color <> clWindow then
-    mmPlan.Color := clWindow;
+  ClearError;
 end;
 
 procedure TfrmSQLEditorSyn.pnlTestResize(Sender: TObject);
@@ -1988,6 +2045,7 @@ end;
 
 procedure TfrmSQLEditorSyn.actMakeSelectExecute(Sender: TObject);
 begin
+  ClearError;
   seQuery.Text := 'SELECT * FROM ' + iblkupTable.Text + ' WHERE 1=1';
   seQuery.Show;
 end;
@@ -2056,6 +2114,16 @@ begin
         tvResult.DataSource := nil;
       end;
     end;
+  end;
+end;
+
+procedure TfrmSQLEditorSyn.seQuerySpecialLineColors(Sender: TObject;
+  Line: Integer; var Special: Boolean; var FG, BG: TColor);
+begin
+  if Line = FErrorLine then
+  begin
+    Special := True;
+    BG := clRed;
   end;
 end;
 

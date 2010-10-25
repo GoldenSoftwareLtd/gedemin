@@ -42,11 +42,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       object tsQuery: TSuperTabSheet
         BorderWidth = 3
         Caption = 'Редактирование'
-        object Splitter1: TSplitter
+        object splQuery: TSplitter
           Left = 0
-          Top = 369
+          Top = 368
           Width = 839
-          Height = 4
+          Height = 5
           Cursor = crVSplit
           Align = alBottom
         end
@@ -54,7 +54,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Left = 0
           Top = 0
           Width = 839
-          Height = 369
+          Height = 368
           Cursor = crIBeam
           Align = alClient
           Font.Charset = DEFAULT_CHARSET
@@ -399,6 +399,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               ShortCut = 24642
             end>
           OnChange = seQueryChange
+          OnSpecialLineColors = seQuerySpecialLineColors
         end
         object mmPlan: TMemo
           Left = 0
@@ -406,6 +407,12 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Width = 839
           Height = 62
           Align = alBottom
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -13
+          Font.Name = 'Courier New'
+          Font.Style = []
+          ParentFont = False
           ReadOnly = True
           ScrollBars = ssVertical
           TabOrder = 1
@@ -960,55 +967,32 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       object tsTransaction: TSuperTabSheet
         BorderWidth = 3
         Caption = 'Транзакция'
-        object mTransaction: TMemo
+        object Panel3: TPanel
           Left = 0
           Top = 0
           Width = 839
-          Height = 149
-          Align = alTop
-          Lines.Strings = (
-            '')
-          TabOrder = 0
-        end
-        object mTransactionParams: TMemo
-          Left = 0
-          Top = 190
-          Width = 839
-          Height = 245
-          Align = alClient
-          Color = clBtnFace
-          ReadOnly = True
-          ScrollBars = ssVertical
-          TabOrder = 2
-        end
-        object Panel3: TPanel
-          Left = 0
-          Top = 149
-          Width = 839
-          Height = 41
+          Height = 18
           Align = alTop
           Alignment = taLeftJustify
           BevelOuter = bvNone
-          TabOrder = 1
+          TabOrder = 0
           object Label15: TLabel
-            Left = 0
-            Top = 24
-            Width = 242
+            Left = 1
+            Top = 1
+            Width = 123
             Height = 13
-            Caption = 'Допустимые значения параметров транзакции:'
+            Caption = 'Параметры транзакции:'
           end
-          object chbxAutoCommitDDL: TCheckBox
-            Left = 0
-            Top = 3
-            Width = 409
-            Height = 17
-            Caption = 'Автоматически подтверждать транзакцию на изменение метаданных'
-            Checked = True
-            Enabled = False
-            State = cbChecked
-            TabOrder = 0
-            OnClick = chbxAutoCommitDDLClick
-          end
+        end
+        object chlbTransactionParams: TCheckListBox
+          Left = 0
+          Top = 18
+          Width = 839
+          Height = 417
+          Align = alClient
+          ItemHeight = 13
+          Sorted = True
+          TabOrder = 1
         end
       end
       object tsMonitor: TSuperTabSheet
@@ -1070,7 +1054,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object spMonitor: TSplitter
             Left = 497
             Top = 0
-            Width = 3
+            Width = 5
             Height = 409
             Cursor = crHSplit
           end
@@ -1102,9 +1086,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             ShowTotals = False
           end
           object dbseSQLText: TDBSynEdit
-            Left = 500
+            Left = 502
             Top = 0
-            Width = 339
+            Width = 337
             Height = 409
             Cursor = crIBeam
             DataField = 'sql_text'
