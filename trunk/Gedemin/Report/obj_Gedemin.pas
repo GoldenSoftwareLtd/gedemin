@@ -92,6 +92,8 @@ type
     property  DefaultServer: IgsDlgWindow read Get_DefaultServer;
     procedure BuildReportWithParamPrinter(ReportKey: Integer; Params: OleVariant;
              const PrinterName: WideString; ShowProgress: WordBool); safecall;
+    procedure ExportReportWithParam(ReportKey: Integer; Params: OleVariant; 
+             const FileName: WideString; const ExportType: WideString); safecall;
   end;
 
 type
@@ -165,7 +167,7 @@ uses
 {$IFDEF GEDEMIN_LOCK}
   gd_registration,
 {$ENDIF}
-  rp_BaseReport_unit;
+  rp_BaseReport_unit, rp_i_ReportBuilder_unit;
 
 { TgsGedemin }
 
@@ -580,6 +582,9 @@ procedure TReportSystem.BuildReport(ReportKey: Integer);
 begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
+  ClientReport.IsExport := False;
+  ClientReport.FileName := '';
+  ClientReport.ExportType := etNone;
   ClientReport.BuildReport(Unassigned, ReportKey);
 end;
 
@@ -588,6 +593,9 @@ procedure TReportSystem.BuildReportWithOwnerForm(
 begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
+  ClientReport.IsExport := False;
+  ClientReport.FileName := '';
+  ClientReport.ExportType := etNone;
   ClientReport.BuildReport(OwnerForm, ReportKey);
 end;
 
@@ -596,6 +604,9 @@ procedure TReportSystem.BuildReportWithParam(ReportKey: Integer;
 begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
+  ClientReport.IsExport := False;
+  ClientReport.FileName := '';
+  ClientReport.ExportType := etNone;
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
 end;
 
@@ -603,14 +614,42 @@ procedure TReportSystem.BuildReportWithParamPrinter(ReportKey: Integer;
   Params: OleVariant; const PrinterName: WideString; ShowProgress: WordBool);
 begin
   CheckClientReport;
-  ClientReport.PrinterName:= PrinterName;
-  ClientReport.ShowProgress:= ShowProgress;
+  ClientReport.PrinterName := PrinterName;
+  ClientReport.ShowProgress := ShowProgress;
+  ClientReport.IsExport := False;
+  ClientReport.FileName := '';
+  ClientReport.ExportType := etNone;
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
 end;
 
 procedure TReportSystem.CheckClientReport;
 begin
   Assert(ClientReport <> nil, 'Global var ClientReport was not created.');
+end;
+
+procedure TReportSystem.ExportReportWithParam(ReportKey: Integer;
+  Params: OleVariant; const FileName, ExportType: WideString);
+var
+  FExportType: TExportType;
+begin
+  if FileName = '' then
+    raise Exception.Create('Empty file name');
+  CheckClientReport;
+  ClientReport.ShowProgress := False;
+  ClientReport.IsExport := True;
+  ClientReport.FileName := FileName;
+
+  if Pos('WORD', AnsiUppercase(ExportType)) > 0 then
+    FExportType := etWord
+  else if Pos('EXCEL', AnsiUppercase(ExportType)) > 0 then
+    FExportType := etExcel
+  else if Pos('PDF', AnsiUppercase(ExportType)) > 0 then
+    FExportType := etPdf
+  else
+    FExportType := etNone;
+
+  ClientReport.ExportType := FExportType;
+  TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
 end;
 
 function TReportSystem.Get_DefaultServer: IgsDlgWindow;
@@ -631,7 +670,10 @@ end;
 procedure TReportSystem.RebuildReport(ReportKey: Integer);
 begin
   CheckClientReport;
-  ClientReport.ShowProgress:= True;
+  ClientReport.ShowProgress := True;
+  ClientReport.IsExport := False;
+  ClientReport.FileName := '';
+  ClientReport.ExportType := etNone;
   ClientReport.BuildReport(Unassigned, ReportKey, True);
 end;
 
@@ -639,7 +681,10 @@ procedure TReportSystem.RebuildReportWithParam(ReportKey: Integer;
   Params: OleVariant);
 begin
   CheckClientReport;
-  ClientReport.ShowProgress:= True;
+  ClientReport.ShowProgress := True;
+  ClientReport.IsExport := False;
+  ClientReport.FileName := '';
+  ClientReport.ExportType := etNone;  
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
 end;
 
