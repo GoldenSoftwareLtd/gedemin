@@ -24,15 +24,18 @@ type
     destructor Destroy; override;
 
     procedure ClearTerminate;
-  end;
+  end;   
 
 type
   TReportFactory = class(TComponent)
   private
     FThreadList: TList;
     FOnReportEvent: TReportEvent;
-    FPrinterName: string;
-    FShowProgress: boolean;
+    FPrinterName: String;
+    FShowProgress: Boolean;
+    FIsExport: Boolean;
+    FFileName: String;
+    FExportType: TExportType;
 
     procedure DoTerminate(Sender: TObject);
     function GetReportInterface(const AnTemplateStructure: TTemplateStructure;
@@ -50,7 +53,8 @@ type
      AnReportResult: TReportResult; const AnParams: Variant;
      const AnBuildDate: TDateTime; const AnPreview: Boolean;
      const AnEventFunction: TrpCustomFunction; const AnReportName: String;
-     const AnPrinterName: String; const AnShowProgress: boolean; const AnBaseQueryList: Variant);
+     const AnPrinterName: String; const AnShowProgress: Boolean; const AnBaseQueryList: Variant;
+     const AnIsExport: Boolean; const AnFileName: String; const AnExportType: TExportType);
     procedure Clear;
   published
     property OnReportEvent: TReportEvent read GetReportEvent write SetReportEvent;
@@ -121,7 +125,9 @@ end;
 
 procedure TrpBuildReportThread.ShowForm;
 begin
-  if FReportInterface.Preview then
+  if FReportInterface.IsExport then
+    FReportInterface.ExportReport(FReportInterface.ExportType, FReportInterface.FileName)
+  else if FReportInterface.Preview then
     FReportInterface.BuildReport
   else begin
     
@@ -172,6 +178,8 @@ begin
 
   FThreadList := nil;
   FOnReportEvent := nil;
+  FFileName := '';
+  FExportType := etNone;
 
   if not (csDesigning in ComponentState) then
   begin
@@ -226,8 +234,11 @@ begin
     {$ENDIF}
   end;
 
-  Result.PrinterName:= FPrinterName;
-  Result.ShowProgress:= FShowProgress;
+  Result.PrinterName := FPrinterName;
+  Result.ShowProgress := FShowProgress;
+  Result.IsExport := FIsExport;
+  Result.FileName := FFileName;
+  Result.ExportType := FExportType;
 
   if Result = nil then
     MessageBox(0, PChar(Format('Тип шаблона %s отчета не поддерживается.',
@@ -252,7 +263,8 @@ end;
 procedure TReportFactory.CreateReport(const AnTemplateStructure: TTemplateStructure;
  AnReportResult: TReportResult; const AnParams: Variant; const AnBuildDate: TDateTime;
  const AnPreview: Boolean; const AnEventFunction: TrpCustomFunction; const AnReportName: String;
- const AnPrinterName: String; const AnShowProgress: boolean; const AnBaseQueryList: Variant);
+ const AnPrinterName: String; const AnShowProgress: Boolean; const AnBaseQueryList: Variant;
+ const AnIsExport: Boolean; const AnFileName: String; const AnExportType: TExportType);
 var
   I: Integer;
 begin
@@ -271,10 +283,14 @@ begin
     end;
   end;
 
-  FPrinterName:= AnPrinterName;
-  FShowProgress:= AnShowProgress;
+  FPrinterName := AnPrinterName;
+  FShowProgress := AnShowProgress;
+  FIsExport := AnIsExport;
+  FFileName := AnFileName;
+  FExportType := AnExportType;
+
   I := FThreadList.Add(TrpBuildReportThread.Create(GetReportInterface(AnTemplateStructure,
-   AnReportResult, AnParams, AnBuildDate, AnPreview, AnEventFunction, AnReportName, AnBaseQueryList)));
+    AnReportResult, AnParams, AnBuildDate, AnPreview, AnEventFunction, AnReportName, AnBaseQueryList)));
   TThread(FThreadList.Items[I]).OnTerminate := DoTerminate;
 end;
 
@@ -295,11 +311,6 @@ begin
   end;
 end;
 
-procedure Register;
-begin
-  RegisterComponents('gsReport', [TReportFactory]);
-end;
-
 function TReportFactory.GetReportEvent: TReportEvent;
 begin
   Result := FOnReportEvent;
@@ -308,6 +319,11 @@ end;
 procedure TReportFactory.SetReportEvent(Value: TReportEvent);
 begin
   FOnReportEvent := Value;
+end;
+
+procedure Register;
+begin
+  RegisterComponents('gsReport', [TReportFactory]);
 end;
 
 end.

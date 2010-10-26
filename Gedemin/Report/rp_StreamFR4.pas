@@ -10,7 +10,7 @@ uses
   frxCross, frxDMPExport, frxExportImage, frxExportRTF, frxExportTXT,
   frxExportXML, frxExportXLS, frxExportHTML, frxGZip, frxExportPDF,
   frxChBox, frxExportText, frxExportCSV, frxExportMail,
-  frxADOComponents, frxCrypt, frxExportODF, frxPrinter,
+  frxADOComponents, frxIBXComponents, frxCrypt, frxExportODF, frxPrinter,
   frxDBSet, frxPreview,
   gd_MultiStringList;
 
@@ -95,6 +95,7 @@ type
     function IsProcessed: Boolean; override;
     procedure BuildReport; override;
     procedure PrintReport; override;
+    procedure ExportReport(const AnExportType: TExportType; const AnFileName: String); override;
     procedure Set_ReportResult(const AnReportResult: TReportResult); override;
     function Get_ReportResult: TReportResult; override;
     procedure Set_ReportTemplate(const AnReportTemplate: TReportTemplate); override;
@@ -251,6 +252,45 @@ end;
 procedure TFR4ReportInterface.DoTerminate(Sender: TObject);
 begin
   FErMsg := nil;
+end;
+
+procedure TFR4ReportInterface.ExportReport(const AnExportType: TExportType;
+  const AnFileName: String);
+var
+  FExportFilter: TfrxCustomExportFilter;
+begin
+  case AnExportType of
+    etWord:
+      FExportFilter := Ffr4Report.FrxRTFExport;
+
+    etExcel:
+      FExportFilter := Ffr4Report.FrxXLSExport;
+
+    etPdf:
+      FExportFilter := Ffr4Report.FrxPDFExport;
+  else
+    FExportFilter := nil;
+  end;
+
+  if Assigned(FExportFilter) then
+  begin
+    FExportFilter.FileName := AnFileName;
+    FExportFilter.ShowDialog := False;
+    try
+      Ffr4Report.PrepareReport;
+      //
+//      Application.ProcessMessages;
+      //
+      try
+        Ffr4Report.Export(FExportFilter);
+      except
+        raise; 
+      end;
+    finally
+      FExportFilter.ShowDialog := True;
+      FreeAndNil(FExportFilter);
+    end;
+  end;
 end;
 
 function TFR4ReportInterface.FindReportComponent(

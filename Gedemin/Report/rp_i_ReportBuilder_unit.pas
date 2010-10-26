@@ -15,6 +15,9 @@ type
    const AnEventFunction: TrpCustomFunction; var AnResult: Boolean) of object;
 
 type
+  TExportType = (etNone, etWord, etExcel, etPdf);
+
+type
 
 // *********************************************************************//
 // Interface: IgsReportBuilder
@@ -25,6 +28,7 @@ type
     ['{B5CC4034-1ED7-11D5-AECE-006052067F0D}']
     procedure BuildReport;
     procedure PrintReport;
+    procedure ExportReport(const AnExportType: TExportType; const AnFileName: String);
     function IsProcessed: Boolean;
     procedure Set_ReportResult(const AnReportResult: TReportResult);
     function Get_ReportResult: TReportResult;
@@ -43,19 +47,28 @@ type
     procedure Set_Caption(Value: String);
     function Get_PrinterName: String;
     procedure Set_PrinterName(Value: String);
-    function Get_ShowProgress: boolean;
-    procedure Set_ShowProgress(Value: boolean);
+    function Get_ShowProgress: Boolean;
+    procedure Set_ShowProgress(Value: Boolean);
+    function Get_IsExport: Boolean;
+    procedure Set_IsExport(Value: Boolean);
+    function Get_FileName: String;
+    procedure Set_FileName(Value: String);
+    function Get_ExportType: TExportType;
+    procedure Set_ExportType(Value: TExportType);
 
     property ReportResult: TReportResult read Get_ReportResult write Set_ReportResult;
     property ReportTemplate: TReportTemplate read Get_ReportTemplate write Set_ReportTemplate;
     property Params: Variant read Get_Params write Set_Params;
     property BuildDate: TDateTime write Set_BuildDate;
     property Preview: Boolean read Get_Preview write Set_Preview;
+    property IsExport: Boolean read Get_IsExport write Set_IsExport;
     property OnReportEvent: TReportEvent read Get_ReportEvent write Set_ReportEvent;
     property EventFunction: TrpCustomFunction read Get_EventFunction write Set_EventFunction;
     property Caption: String read Get_Caption write Set_Caption;
-    property PrinterName: string read Get_PrinterName write Set_PrinterName;
-    property ShowProgress: boolean read Get_ShowProgress write Set_ShowProgress;
+    property PrinterName: String read Get_PrinterName write Set_PrinterName;
+    property ShowProgress: Boolean read Get_ShowProgress write Set_ShowProgress;
+    property FileName: String read Get_FileName write Set_FileName;
+    property ExportType: TExportType read Get_ExportType write Set_ExportType;
   end;
 
   TCustomReportBuilder = class(TInterfacedObject, IgsReportBuilder)
@@ -65,7 +78,10 @@ type
     FPreview: Boolean;
     FCaption: String;
     FPrinterName: String;
-    FShowProgress: boolean;
+    FShowProgress: Boolean;
+    FIsExport: Boolean;
+    FFileName: String;
+    FExportType: TExportType;
 
     procedure DoClose(Sender: TObject; var Action: TCloseAction);
     procedure DoDestroy(Sender: TObject);
@@ -80,6 +96,7 @@ type
 
     procedure BuildReport; virtual;
     procedure PrintReport; virtual; abstract;
+    procedure ExportReport(const AnExportType: TExportType; const AnFileName: String); virtual; abstract;
     function IsProcessed: Boolean; virtual;
     procedure Set_ReportResult(const AnReportResult: TReportResult);  virtual; abstract;
     function Get_ReportResult: TReportResult;  virtual; abstract;
@@ -98,8 +115,14 @@ type
     procedure Set_Caption(Value: String);
     function Get_PrinterName: String;
     procedure Set_PrinterName(Value: String);
-    function Get_ShowProgress: boolean;
-    procedure Set_ShowProgress(Value: boolean);
+    function Get_ShowProgress: Boolean;
+    procedure Set_ShowProgress(Value: Boolean);
+    function Get_IsExport: Boolean;
+    procedure Set_IsExport(Value: Boolean);
+    function Get_FileName: String;
+    procedure Set_FileName(Value: String);
+    function Get_ExportType: TExportType;
+    procedure Set_ExportType(Value: TExportType);
   public
     constructor Create;
     destructor Destroy; override;
@@ -109,9 +132,12 @@ type
     property Params: Variant read Get_Params write Set_Params;
     property BuildDate: TDateTime write Set_BuildDate;
     property Preview: Boolean read Get_Preview write Set_Preview;
+    property IsExport: Boolean read Get_IsExport write Set_IsExport;
     property EventFunction: TrpCustomFunction read Get_EventFunction write Set_EventFunction;
     property PrinterName: string read Get_PrinterName write Set_PrinterName;
-    property ShowProgress: boolean read Get_ShowProgress write Set_ShowProgress;
+    property ShowProgress: Boolean read Get_ShowProgress write Set_ShowProgress;
+    property FileName: String read Get_FileName write Set_FileName;
+    property ExportType: TExportType read Get_ExportType write Set_ExportType;
   end;
 
 implementation
@@ -142,6 +168,9 @@ begin
   FPreviewForm := nil;
   FPreview := True;
   FReportEvent := nil;
+  FIsExport := False;
+  FFileName := '';
+  FExportType := etNone;
   FEventFunction := TrpCustomFunction.Create;
   InterlockedIncrement(FRefCount);
 end;
@@ -186,7 +215,7 @@ begin
 
 //!!!TipTop Action = caFree только если окно закрывается с нажатым Shift-ом
 //И если  закоментиировать то все работает правильно
-  Action := caFree;
+//  Action := caFree;
 
 end;
 
@@ -216,6 +245,21 @@ end;
 function TCustomReportBuilder.Get_EventFunction: TrpCustomFunction;
 begin
   Result := FEventFunction;
+end;
+
+function TCustomReportBuilder.Get_ExportType: TExportType;
+begin
+  Result := FExportType;
+end;
+
+function TCustomReportBuilder.Get_FileName: String;
+begin
+  Result := FFileName;
+end;
+
+function TCustomReportBuilder.Get_IsExport: Boolean;
+begin
+  Result := FIsExport;
 end;
 
 function TCustomReportBuilder.Get_Params: Variant;
@@ -265,6 +309,21 @@ end;
 procedure TCustomReportBuilder.Set_EventFunction(Value: TrpCustomFunction);
 begin
   FEventFunction.Assign(Value);
+end;
+
+procedure TCustomReportBuilder.Set_ExportType(Value: TExportType);
+begin
+  FExportType := Value;
+end;
+
+procedure TCustomReportBuilder.Set_FileName(Value: String);
+begin
+  FFileName := Value;
+end;
+
+procedure TCustomReportBuilder.Set_IsExport(Value: Boolean);
+begin
+  FIsExport := Value;
 end;
 
 procedure TCustomReportBuilder.Set_Params(const AnParams: Variant);
