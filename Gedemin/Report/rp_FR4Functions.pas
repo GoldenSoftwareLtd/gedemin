@@ -190,15 +190,15 @@ begin
     Result := ChiefAccountantName
   else if MethodName = 'COMPANYADDRESS' then
     Result := CompanyAddress
-  else if MethodName = 'DIRNAME' then
+  else if MethodName = 'DIRECTORNAME' then
     Result := DirName
   else if MethodName = 'CONTACTNAME' then
     Result := ContactName
   else if MethodName = 'TAXID' then
     Result := TAXID
-  else if MethodName = 'DIRRANK' then
+  else if MethodName = 'DIRECTORRANK' then
     Result := DirRank
-  else if MethodName = 'BUHRANK' then
+  else if MethodName = 'CHIEFACCOUNTANTRANK' then
     Result := BuhRank
   else if MethodName = 'BANKNAME' then
     Result := BankName
@@ -312,12 +312,12 @@ begin
     AddMethod('function COMPANYNAME: String', CallMethod, 'Golden Software', 'COMPANYNAME()/Возвращает название текущей организации.');
     AddMethod('function COMPANYFULLNAME: String', CallMethod, 'Golden Software', 'COMPANYFULLNAME()/Возвращает полное название текущей организации.');
     AddMethod('function COMPANYADDRESS: String', CallMethod, 'Golden Software', 'COMPANYADDRESS()/Возвращает адрес текущей организации.');
-    AddMethod('function DIRNAME: String', CallMethod, 'Golden Software', 'DIRNAME()/Возвращает ФИО директора текущей организации.');
+    AddMethod('function DIRECTORNAME: String', CallMethod, 'Golden Software', 'DIRECTORNAME()/Возвращает ФИО директора текущей организации.');
     AddMethod('function CHIEFACCOUNTANTNAME: String', CallMethod, 'Golden Software', 'CHIEFACCOUNTANTNAME()/Возвращает ФИО гл.бухгалтера текущей организации.');
     AddMethod('function CONTACTNAME: String', CallMethod, 'Golden Software', 'CONTACTNAME()/Возвращает ФИО текущего пользователя.');
     AddMethod('function TAXID: String', CallMethod, 'Golden Software', 'TAXID()/Возвращает УНП текущей организации.');
-    AddMethod('function DIRRANK: String', CallMethod, 'Golden Software', 'DIRRANK()/Возвращает должность директора текущей организации.');
-    AddMethod('function BUHRANK: String', CallMethod, 'Golden Software', 'BUHRANK()/Возвращает должность бухгалтера текущей организации.');
+    AddMethod('function DIRECTORRANK: String', CallMethod, 'Golden Software', 'DIRECTORRANK()/Возвращает должность директора текущей организации.');
+    AddMethod('function CHIEFACCOUNTANTRANK: String', CallMethod, 'Golden Software', 'CHIEFACCOUNTANTRANK()/Возвращает должность бухгалтера текущей организации.');
     AddMethod('function BANKNAME: String', CallMethod, 'Golden Software', 'BANKNAME()/Возвращает наименование банка текущей организации.');
     AddMethod('function BANKADDRESS: String', CallMethod, 'Golden Software', 'BANKADDRESS()/Возвращает адрес банка текущей организации.');
     AddMethod('function MAINACCOUNT: String', CallMethod, 'Golden Software', 'MAINACCOUNT()/Возвращает главный счёт текущей организации.');
