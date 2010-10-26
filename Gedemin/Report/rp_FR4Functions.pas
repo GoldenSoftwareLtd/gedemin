@@ -17,6 +17,11 @@ type
     CacheName, CacheFullCentName,
     CacheName_0, CacheName_1,
     CacheCentName_0, CacheCentName_1: String;
+    FCompanyKey: Integer;
+    FCompanyName, FCompanyFullName, FCompanyAddress,
+    FDirName, FChiefAccountantName, FTAXID,
+    FDirRank, FBuhRank, FBankName, FBankAddress,
+    FMainAccount: String;
 
     function CallMethod(Instance: TObject; ClassType: TClass;
       const MethodName: String; var Params: Variant): Variant;
@@ -38,6 +43,21 @@ type
     function DateStr(D: Variant): String;
     //Остальные
     function AdvString: String;
+
+    function CompanyName: String;
+    function CompanyFullName: String;
+    function CompanyAddress: String;
+    function DirName: String;
+    function ChiefAccountantName: String;
+    function ContactName: String;
+    function TAXID: String;
+    function DirRank: String;
+    function BuhRank: String;
+    function BankName: String;
+    function BankAddress: String;
+    function MainAccount: String;
+
+    procedure UpdateCompanyCache(const AnID: Integer);
   public
     constructor Create(AScript: TfsScript); override;
   end;
@@ -161,7 +181,102 @@ begin
   else if MethodName = 'GETFIOCASE' then
     Result := FIOCase(Params[0], Params[1], Params[2], Params[3], Params[4])
   else if MethodName = 'GETCOMPLEXCASE' then
-    Result := ComplexCase(Params[0], Params[1]);
+    Result := ComplexCase(Params[0], Params[1])
+  else if MethodName = 'COMPANYNAME' then
+    Result := CompanyName
+  else if MethodName = 'COMPANYFULLNAME' then
+    Result := CompanyFullName
+  else if MethodName = 'CHIEFACCOUNTANTNAME' then
+    Result := ChiefAccountantName
+  else if MethodName = 'COMPANYADDRESS' then
+    Result := CompanyAddress
+  else if MethodName = 'DIRNAME' then
+    Result := DirName
+  else if MethodName = 'CONTACTNAME' then
+    Result := ContactName
+  else if MethodName = 'TAXID' then
+    Result := TAXID
+  else if MethodName = 'DIRRANK' then
+    Result := DirRank
+  else if MethodName = 'BUHRANK' then
+    Result := BuhRank
+  else if MethodName = 'BANKNAME' then
+    Result := BankName
+  else if MethodName = 'BANKADDRESS' then
+    Result := BankAddress
+  else if MethodName = 'MAINACCOUNT' then
+    Result := MainAccount;
+end;
+
+function TFR4Functions.ChiefAccountantName: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FChiefAccountantName;
+end;
+
+function TFR4Functions.CompanyAddress: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FCompanyAddress;
+end;
+
+function TFR4Functions.CompanyFullName: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FCompanyFullName;
+end;
+
+function TFR4Functions.CompanyName: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FCompanyName;
+end;
+
+function TFR4Functions.ContactName: String;
+begin
+  Result := IBLogin.ContactName;
+end;
+
+function TFR4Functions.DirName: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FDirName;
+end;
+
+function TFR4Functions.TAXID: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FTAXID;
+end;
+
+function TFR4Functions.BuhRank: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FBuhRank;
+end;
+
+function TFR4Functions.DirRank: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FDirRank;
+end;
+
+function TFR4Functions.BankAddress: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FBankAddress;
+end;
+
+function TFR4Functions.BankName: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FBankName;
+end;
+
+function TFR4Functions.MainAccount: String;
+begin
+  UpdateCompanyCache(FCompanyKey);
+  Result := FMainAccount;
 end;
 
 constructor TFR4Functions.Create(AScript: TfsScript);
@@ -194,7 +309,20 @@ begin
       'GETFIOCASE(<Фамилия>, <Имя>, <Отчество>, <Пол(0 - мужской, 1 - женский)>, <Падеж(1-6)>)/Возвращает ФИО в нужном падеже.');
     AddMethod('function GETCOMPLEXCASE(TheWord: String; TheCase: Word): String', CallMethod, 'Golden Software',
       'GETCOMPLEXCASE(<Строка>, <Падеж(1-6)>)/Возвращает строку вида [[Определение] [Определение]...] Наименование [Остаток] в нужном падеже.');
+    AddMethod('function COMPANYNAME: String', CallMethod, 'Golden Software', 'COMPANYNAME()/Возвращает название текущей организации.');
+    AddMethod('function COMPANYFULLNAME: String', CallMethod, 'Golden Software', 'COMPANYFULLNAME()/Возвращает полное название текущей организации.');
+    AddMethod('function COMPANYADDRESS: String', CallMethod, 'Golden Software', 'COMPANYADDRESS()/Возвращает адрес текущей организации.');
+    AddMethod('function DIRNAME: String', CallMethod, 'Golden Software', 'DIRNAME()/Возвращает ФИО директора текущей организации.');
+    AddMethod('function CHIEFACCOUNTANTNAME: String', CallMethod, 'Golden Software', 'CHIEFACCOUNTANTNAME()/Возвращает ФИО гл.бухгалтера текущей организации.');
+    AddMethod('function CONTACTNAME: String', CallMethod, 'Golden Software', 'CONTACTNAME()/Возвращает ФИО текущего пользователя.');
+    AddMethod('function TAXID: String', CallMethod, 'Golden Software', 'TAXID()/Возвращает УНП текущей организации.');
+    AddMethod('function DIRRANK: String', CallMethod, 'Golden Software', 'DIRRANK()/Возвращает должность директора текущей организации.');
+    AddMethod('function BUHRANK: String', CallMethod, 'Golden Software', 'BUHRANK()/Возвращает должность бухгалтера текущей организации.');
+    AddMethod('function BANKNAME: String', CallMethod, 'Golden Software', 'BANKNAME()/Возвращает наименование банка текущей организации.');
+    AddMethod('function BANKADDRESS: String', CallMethod, 'Golden Software', 'BANKADDRESS()/Возвращает адрес банка текущей организации.');
+    AddMethod('function MAINACCOUNT: String', CallMethod, 'Golden Software', 'MAINACCOUNT()/Возвращает главный счёт текущей организации.');
   end;
+  FCompanyKey := -1;
 end;
 
 function TFR4Functions.DateStr(D: Variant): String;
@@ -446,8 +574,82 @@ begin
   end;
 end;
 
+procedure TFR4Functions.UpdateCompanyCache(const AnID: Integer);
+var
+  q: TIBSQL;
+begin
+  Assert(Assigned(IBLogin));
+  if (AnID <> IBLogin.CompanyKey)
+    or (CacheDBID <> IBLogin.DBID)
+    or (GetTickCount - CacheTime > 4 * 60 * 1000) then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+        'SELECT ' +
+        '  C.ID, C.NAME, COMP.FULLNAME AS COMPFULLNAME, COMP.COMPANYTYPE, ' +
+        '  C.ADDRESS, C.CITY, C.COUNTRY, C.PHONE, C.FAX, ' +
+        '  AC.ACCOUNT, BANK.BANKCODE, BANK.BANKMFO, ' +
+        '  BANKC.NAME AS BANKNAME, BANKC.ADDRESS AS BANKADDRESS, BANKC.CITY, BANKC.COUNTRY, ' +
+        '  CC.TAXID, CC.OKPO, CC.LICENCE, CC.OKNH, CC.SOATO, CC.SOOU, ' +
+        '  DIRECTOR.NAME AS DIRNAME, IIF(DIRECTORPOS.NAME IS NOT NULL, DIRECTORPOS.NAME, ''Директор'') AS DIRPOS, ' +
+        '  BUH.NAME AS BUHNAME, IIF(BUHPOS.NAME IS NOT NULL, BUHPOS.NAME, ''Гл. бухгалтер'') AS BUHPOS ' +
+        'FROM ' +
+        '  GD_CONTACT C ' +
+        '  JOIN GD_COMPANY COMP ON COMP.CONTACTKEY = C.ID ' +
+        '  LEFT JOIN GD_COMPANYACCOUNT AC ON COMP.COMPANYACCOUNTKEY = AC.ID ' +
+        '  LEFT JOIN GD_BANK BANK ON AC.BANKKEY = BANK.BANKKEY ' +
+        '  LEFT JOIN GD_COMPANYCODE CC ON COMP.CONTACTKEY = CC.COMPANYKEY ' +
+        '  LEFT JOIN GD_CONTACT BANKC ON BANK.BANKKEY = BANKC.ID ' +
+        '  LEFT JOIN GD_CONTACT DIRECTOR ON DIRECTOR.ID = COMP.DIRECTORKEY ' +
+        '  LEFT JOIN GD_PEOPLE DIRECTOREMPL ON DIRECTOREMPL.CONTACTKEY = DIRECTOR.ID ' +
+        '  LEFT JOIN WG_POSITION DIRECTORPOS ON DIRECTORPOS.ID = DIRECTOREMPL.WPOSITIONKEY ' +
+        '  LEFT JOIN GD_CONTACT BUH ON BUH.ID = COMP.CHIEFACCOUNTANTKEY ' +
+        '  LEFT JOIN GD_PEOPLE BUHEMPL ON BUHEMPL.CONTACTKEY = BUH.ID ' +
+        '  LEFT JOIN WG_POSITION BUHPOS ON BUHPOS.ID = BUHEMPL.WPOSITIONKEY ' +
+        'WHERE C.ID = :ID ';
+      q.ParamByName('ID').AsInteger := IBLogin.CompanyKey;
+      q.ExecQuery;
+      if not q.EOF then
+      begin
+        FCompanyName := q.FieldByName('NAME').AsString;
+        FCompanyFullName := q.FieldByName('COMPFULLNAME').AsString;
+        FCompanyAddress := q.FieldByName('ADDRESS').AsString;
+        FDirName := q.FieldByName('DIRNAME').AsString;
+        FChiefAccountantName := q.FieldByName('BUHNAME').AsString;
+        FTAXID := q.FieldByName('TAXID').AsString;
+        FDirRank := q.FieldByName('DIRPOS').AsString;
+        FBuhRank := q.FieldByName('BUHPOS').AsString;
+        FBankName := q.FieldByName('BANKNAME').AsString;
+        FBankAddress := q.FieldByName('BANKADDRESS').AsString;
+        FMainAccount := q.FieldByName('ACCOUNT').AsString;
+
+        CacheDBID := IBLogin.DBID;
+        CacheTime := GetTickCount;
+        FCompanyKey := IBLogin.CompanyKey;
+      end else
+      begin
+        FCompanyKey := -1;
+        FCompanyName := '';
+        FCompanyFullName := '';
+        FCompanyAddress := '';
+        FDirName := '';
+        FChiefAccountantName := '';
+        FTAXID := '';
+        FDirRank := 'Директор';
+        FBuhRank := 'Гл. бухгалтер';
+        FBankName := '';
+        FBankAddress := '';
+        FMainAccount := '';
+      end;
+    finally
+      q.Free;
+    end;
+  end;
+end;
+
 initialization
   fsRTTIModules.Add(TFR4Functions);
 
 end.
- 
