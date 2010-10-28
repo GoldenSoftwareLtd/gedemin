@@ -10,6 +10,7 @@ type
   TgsMorphTest = class(TTestCase)
   published
     procedure TestBasicBehavior;
+    procedure TestNumericWordBehavior;
   end;
 
 implementation
@@ -42,8 +43,32 @@ begin
     for J := csNominative to csPreposizionale do
     begin
       Check(ComplexCase(CaseTest[I, csNominative], J) = CaseTest[I, J],
-        'Ошибка при склонении слова "' + CaseTest[I, csNominative] + '"'); 
+        'Ошибка при склонении слова "' + CaseTest[I, csNominative] + '"');
     end;
+  end;
+end;
+
+procedure TgsMorphTest.TestNumericWordBehavior;
+const
+  StringCount = 5;
+  StringArray: array[0..(StringCount - 1), 0..2] of String = (
+    ('', '', ''),
+    ('человек', 'человека', 'человек'),
+    ('гедемин', 'гедемина', 'гедеминов'),
+    ('курица', 'курицы', 'куриц'),
+    ('стол', 'стола', 'столов')
+  );
+var
+  I: Integer;
+begin
+  for I := 0 to StringCount - 1 do
+  begin
+    Check(NumericWordForm(1, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 0],
+      'Ошибка при склонении слова "' + StringArray[I, 0] + '" по числу 1');
+    Check(NumericWordForm(2, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 1],
+      'Ошибка при склонении слова "' + StringArray[I, 0] + '" по числу 2');
+    Check(NumericWordForm(5, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 2],
+      'Ошибка при склонении слова "' + StringArray[I, 0] + '" по числу 5');
   end;
 end;
 
