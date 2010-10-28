@@ -817,8 +817,11 @@ begin
 
         ShowStatistic;
 
-        if ibqryWork.QSelect.SQLType in [SQLInsert, SQLUpdate, SQLDelete, SQLExecProcedure] then
+        if (ibqryWork.QSelect.SQLType in [SQLInsert, SQLUpdate, SQLDelete, SQLExecProcedure])
+          and (ibqryWork.QSelect.RowsAffected >= 0) then
+        begin
           mmPlan.Lines.Add('RowsAffected: ' + IntToStr(ibqryWork.QSelect.RowsAffected));
+        end;  
 
         ClearError;
       except
@@ -833,6 +836,8 @@ begin
           mmPlan.SelLength := 0;
           AddLogRecord(E.Message);
           FRepeatQuery := False;
+          if ibqryWork.SQLType = SQLDDL then
+            actRollback.Execute;
         end;
       end;
     until not FRepeatQuery;
@@ -1209,6 +1214,7 @@ end;
 procedure TfrmSQLEditorSyn.actNextQueryExecute(Sender: TObject);
 begin
   {$IFDEF GEDEMIN}
+  AddSQLHistory(False);
   frmSQLHistory.gdcObject.Next;
   UseSQLHistory(frmSQLHistory);
   {$ENDIF}
@@ -1217,6 +1223,7 @@ end;
 procedure TfrmSQLEditorSyn.actPrevQueryExecute(Sender: TObject);
 begin
   {$IFDEF GEDEMIN}
+  AddSQLHistory(False);
   frmSQLHistory.gdcObject.Prior;
   UseSQLHistory(frmSQLHistory);
   {$ENDIF}
@@ -1379,7 +1386,7 @@ procedure TfrmSQLEditorSyn.AddSQLHistory(const AnExecute: Boolean);
   {$ENDIF}
 begin
   {$IFDEF GEDEMIN}
-  if (frmSQLHistory <> nil) then
+  if (frmSQLHistory <> nil) and (Trim(seQuery.Text) > '') then
   begin
     if frmSQLHistory.gdcObject.FieldByName('SQL_TEXT').AsString <> seQuery.Text then
     begin
@@ -1467,15 +1474,18 @@ begin
       N := N + S[B];
       Inc(B);
     end;
-    FErrorLine := StrToIntDef(N, -1);
-  end;
+    FErrorLine := StrToIntDef(N, 1);
+  end else
+    FErrorLine := 1;
+  seQuery.Invalidate;
 end;
 
 procedure TfrmSQLEditorSyn.ClearError;
 begin
-  if mmPlan.Color <> clWindow then
-    mmPlan.Color := clWindow;
+  mmPlan.Color := clWindow;
+  mmPlan.Lines.Clear;
   FErrorLine := -1;
+  seQuery.Invalidate;
 end;
 
 function TfrmSQLEditorSyn.GetTransactionParams: String;
@@ -1845,7 +1855,12 @@ begin
   if (pcMain.ActivePage = tsMonitor) and (ibdsMonitor <> nil) then
   begin
     actRefreshMonitor.Execute;
-  end else if (pcMain.ActivePage = tsResult) and (not tsResult.TabVisible) then
+  end
+  else if pcMain.ActivePage = tsHistory then
+  begin
+    AddSQLHistory(False);
+  end
+  else if (pcMain.ActivePage = tsResult) and (not tsResult.TabVisible) then
     pcMain.ActivePage := tsQuery;
 end;
 
@@ -2124,6 +2139,7 @@ begin
   begin
     Special := True;
     BG := clRed;
+    FG := clWhite;
   end;
 end;
 

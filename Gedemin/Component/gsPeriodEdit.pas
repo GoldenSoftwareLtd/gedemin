@@ -593,7 +593,7 @@ begin
     end;
   end else
   begin
-    Canvas.Font.Color := clGrayText;
+    Canvas.Font.Color := clLtGray;
     Canvas.Brush.Color := clBtnFace;
   end;
 
@@ -697,8 +697,8 @@ begin
     Canvas.Pen.Color := clWindowText;
   end else
   begin
-    Canvas.Brush.Color := clGrayText;
-    Canvas.Pen.Color := clGrayText;
+    Canvas.Brush.Color := clLtGray;
+    Canvas.Pen.Color := clLtGray;
   end;
   Canvas.Polygon([Point(10, 8), Point(10, 16), Point(6, 12)]);
   Canvas.Polygon([Point(Width - 10, 8), Point(Width - 10, 16), Point(Width - 6, 12)]);

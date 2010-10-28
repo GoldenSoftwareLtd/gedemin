@@ -1,7 +1,12 @@
 inherited TemplateFrame: TTemplateFrame
+  Width = 585
+  Height = 333
   inherited PageControl: TSuperPageControl
+    Width = 585
+    Height = 333
     inherited tsProperty: TSuperTabSheet
       inherited TBDock1: TTBDock
+        Width = 581
         Height = 28
         object TBToolbar1: TTBToolbar
           Left = 0
@@ -31,7 +36,8 @@ inherited TemplateFrame: TTemplateFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 222
+        Width = 581
+        Height = 278
         OnResize = pMainResize
         inherited lbName: TLabel
           Caption = 'Наименование шаблона:'
@@ -54,7 +60,7 @@ inherited TemplateFrame: TTemplateFrame
           Caption = 'RUID шаблона:'
         end
         inherited dbeName: TprpDBComboBox
-          Width = 288
+          Width = 430
           Style = csDropDown
           DropDownCount = 16
           OnExit = dbeNameExit
@@ -62,7 +68,7 @@ inherited TemplateFrame: TTemplateFrame
         end
         inherited dbmDescription: TDBMemo
           Top = 56
-          Width = 288
+          Width = 430
           DataField = 'DESCRIPTION'
           ParentFont = False
           TabOrder = 3
@@ -70,7 +76,7 @@ inherited TemplateFrame: TTemplateFrame
         object dblcbType: TDBLookupComboBox
           Left = 144
           Top = 128
-          Width = 288
+          Width = 430
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           DataField = 'TEMPLATETYPE'
@@ -92,7 +98,7 @@ inherited TemplateFrame: TTemplateFrame
           TabOrder = 1
         end
         object pnlRUIDTemplate: TPanel
-          Left = 357
+          Left = 499
           Top = 32
           Width = 75
           Height = 21
@@ -112,7 +118,7 @@ inherited TemplateFrame: TTemplateFrame
         object mHint: TMemo
           Left = 144
           Top = 152
-          Width = 288
+          Width = 430
           Height = 76
           TabStop = False
           Anchors = [akLeft, akTop, akRight]

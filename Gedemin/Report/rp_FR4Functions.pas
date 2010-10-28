@@ -11,13 +11,16 @@ type
   private
     NumberConvert: TNumberConvert;
 
-    CacheDBID: Integer;
-    CacheTime: DWORD;
-    CacheID: Integer;
+    FCompanyCachedKey, FCompanyCachedDBID: Integer;
+    FCompanyCachedTime: DWORD;
+
+    FCurrCachedKey, FCurrCachedDBID: Integer;
+    FCurrCachedTime: DWORD;
+
     CacheName, CacheFullCentName,
     CacheName_0, CacheName_1,
     CacheCentName_0, CacheCentName_1: String;
-    FCompanyKey: Integer;
+
     FCompanyName, FCompanyFullName, FCompanyAddress,
     FDirName, FChiefAccountantName, FTAXID,
     FDirRank, FBuhRank, FBankName, FBankAddress,
@@ -31,6 +34,7 @@ type
     function GetConstByID(const AnID: Integer): Variant;
     function GetConstByNameForDate(const AName: String; const ADate: String): Variant;
     function GetConstByIDForDate(const AnID: Integer; const ADate: String): Variant;
+
     //Денежные
     procedure UpdateCache(const AnID: Integer);
 
@@ -39,8 +43,10 @@ type
     function GetSumStr2(D1: Variant; const D2: String; D3: Integer): String;
     function GetRubSumStr(D: Variant): String;
     function GetFullRubSumStr(D: Variant): String;
+
     //Дата
     function DateStr(D: Variant): String;
+
     //Остальные
     function AdvString: String;
 
@@ -57,7 +63,8 @@ type
     function BankAddress: String;
     function MainAccount: String;
 
-    procedure UpdateCompanyCache(const AnID: Integer);
+    procedure UpdateCompanyCache;
+
   public
     constructor Create(AScript: TfsScript); override;
   end;
@@ -86,6 +93,8 @@ const
     'ноября',
     'декабря'
   );
+
+  CacheFlushInterval = 120 * 60 * 1000; //2 hrs in msec
 
 type
   TNameSelector = (nsName, nsCentName);
@@ -182,6 +191,8 @@ begin
     Result := FIOCase(Params[0], Params[1], Params[2], Params[3], Params[4])
   else if MethodName = 'GETCOMPLEXCASE' then
     Result := ComplexCase(Params[0], Params[1])
+  else if MethodName = 'GETNUMERICWORDFORM' then
+    Result := gsMorph.GetNumericWordForm(Params[0], Params[1], Params[2], Params[3])
   else if MethodName = 'COMPANYNAME' then
     Result := CompanyName
   else if MethodName = 'COMPANYFULLNAME' then
@@ -210,25 +221,25 @@ end;
 
 function TFR4Functions.ChiefAccountantName: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FChiefAccountantName;
 end;
 
 function TFR4Functions.CompanyAddress: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FCompanyAddress;
 end;
 
 function TFR4Functions.CompanyFullName: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FCompanyFullName;
 end;
 
 function TFR4Functions.CompanyName: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FCompanyName;
 end;
 
@@ -239,49 +250,50 @@ end;
 
 function TFR4Functions.DirName: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FDirName;
 end;
 
 function TFR4Functions.TAXID: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FTAXID;
 end;
 
 function TFR4Functions.BuhRank: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FBuhRank;
 end;
 
 function TFR4Functions.DirRank: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FDirRank;
 end;
 
 function TFR4Functions.BankAddress: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FBankAddress;
 end;
 
 function TFR4Functions.BankName: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FBankName;
 end;
 
 function TFR4Functions.MainAccount: String;
 begin
-  UpdateCompanyCache(FCompanyKey);
+  UpdateCompanyCache;
   Result := FMainAccount;
 end;
 
 constructor TFR4Functions.Create(AScript: TfsScript);
 begin
   inherited Create(AScript);
+  
   with AScript do
   begin
     AddMethod('function AdvString: String', CallMethod, 'Golden Software', 'ADVSTRING()/');
@@ -309,6 +321,8 @@ begin
       'GETFIOCASE(<Фамилия>, <Имя>, <Отчество>, <Пол(0 - мужской, 1 - женский)>, <Падеж(1-6)>)/Возвращает ФИО в нужном падеже.');
     AddMethod('function GETCOMPLEXCASE(TheWord: String; TheCase: Word): String', CallMethod, 'Golden Software',
       'GETCOMPLEXCASE(<Строка>, <Падеж(1-6)>)/Возвращает строку вида [[Определение] [Определение]...] Наименование [Остаток] в нужном падеже.');
+    AddMethod('function GETNUMERICWORDFORM(ANum: Integer; const AStrForm1, AStrForm2, AStrForm5: String): String', CallMethod, 'Golden Software',
+      'GETNUMERICWORDFORM(<Целое число>, <Форма для одного объекта>, <... для двух>, <... для пяти>)/Возвращает переданное существительное в форме соответствующей переданному числу.');
     AddMethod('function COMPANYNAME: String', CallMethod, 'Golden Software', 'COMPANYNAME()/Возвращает название текущей организации.');
     AddMethod('function COMPANYFULLNAME: String', CallMethod, 'Golden Software', 'COMPANYFULLNAME()/Возвращает полное название текущей организации.');
     AddMethod('function COMPANYADDRESS: String', CallMethod, 'Golden Software', 'COMPANYADDRESS()/Возвращает адрес текущей организации.');
@@ -322,7 +336,9 @@ begin
     AddMethod('function BANKADDRESS: String', CallMethod, 'Golden Software', 'BANKADDRESS()/Возвращает адрес банка текущей организации.');
     AddMethod('function MAINACCOUNT: String', CallMethod, 'Golden Software', 'MAINACCOUNT()/Возвращает главный счёт текущей организации.');
   end;
-  FCompanyKey := -1;
+
+  FCompanyCachedKey := -1;
+  FCurrCachedKey := -1;
 end;
 
 function TFR4Functions.DateStr(D: Variant): String;
@@ -442,14 +458,14 @@ var
       gdcCurr := TgdcCurr.Create(nil);
       try
         gdcCurr.SubSet := 'ByID';
-        gdcCurr.ParamByName('ID').AsInteger := CacheID;
+        gdcCurr.ParamByName('ID').AsInteger := FCurrCachedKey;
         gdcCurr.Open;
         if gdcCurr.EOF then
           break;
         if not gdcCurr.EditDialog then
           break;
-        CacheDBID := -1;
-        UpdateCache(CacheID);
+        FCurrCachedDBID := -1;
+        UpdateCache(FCurrCachedKey);
       finally
         gdcCurr.Free;
       end;
@@ -463,7 +479,7 @@ var
 begin
   UpdateCache(VarAsType(D1, varInteger));
 
-  if CacheID = -1 then
+  if FCurrCachedKey = -1 then
     Result := ''
   else begin
     Num := Trunc(Abs(D2));
@@ -542,9 +558,9 @@ var
 begin
   Assert(Assigned(IBLogin));
 
-  if (AnID <> CacheID)
-    or (CacheDBID <> IBLogin.DBID)
-    or (GetTickCount - CacheTime > 4 * 60 * 1000) then
+  if (AnID <> FCurrCachedKey)
+    or (FCurrCachedDBID <> IBLogin.DBID)
+    or (GetTickCount - FCurrCachedTime > CacheFlushInterval) then
   begin
     q := TIBSQL.Create(nil);
     try
@@ -561,27 +577,26 @@ begin
         CacheName_0 := q.FieldByName('name_0').AsString;
         CacheName_1 := q.FieldByName('name_1').AsString;
 
-        CacheID := AnID;
-        CacheDBID := IBLogin.DBID;
-        CacheTime := GetTickCount;
+        FCurrCachedKey := AnID;
       end else
-      begin
-        CacheID := -1;
-      end;
+        FCurrCachedKey := -1;
+        
+      FCurrCachedDBID := IBLogin.DBID;
+      FCurrCachedTime := GetTickCount;
     finally
       q.Free;
     end;
   end;
 end;
 
-procedure TFR4Functions.UpdateCompanyCache(const AnID: Integer);
+procedure TFR4Functions.UpdateCompanyCache;
 var
   q: TIBSQL;
 begin
   Assert(Assigned(IBLogin));
-  if (AnID <> IBLogin.CompanyKey)
-    or (CacheDBID <> IBLogin.DBID)
-    or (GetTickCount - CacheTime > 4 * 60 * 1000) then
+
+  if (FCompanyCachedKey <> IBLogin.CompanyKey) or (FCompanyCachedDBID <> IBLogin.DBID)
+    or (GetTickCount - FCompanyCachedTime > CacheFlushInterval) then
   begin
     q := TIBSQL.Create(nil);
     try
@@ -625,12 +640,10 @@ begin
         FBankAddress := q.FieldByName('BANKADDRESS').AsString;
         FMainAccount := q.FieldByName('ACCOUNT').AsString;
 
-        CacheDBID := IBLogin.DBID;
-        CacheTime := GetTickCount;
-        FCompanyKey := IBLogin.CompanyKey;
+        FCompanyCachedKey := IBLogin.CompanyKey;
       end else
       begin
-        FCompanyKey := -1;
+        FCompanyCachedKey := -1;
         FCompanyName := '';
         FCompanyFullName := '';
         FCompanyAddress := '';
@@ -643,6 +656,9 @@ begin
         FBankAddress := '';
         FMainAccount := '';
       end;
+
+      FCompanyCachedDBID := IBLogin.DBID;
+      FCompanyCachedTime := GetTickCount;
     finally
       q.Free;
     end;

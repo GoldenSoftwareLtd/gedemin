@@ -4427,7 +4427,10 @@ end;
 
 procedure TwrpIBLookupComboBoxX.DoLookup(Exact: WordBool);
 begin
-  GetIBLookupComboBoxX.DoLookup(Exact);
+  if Exact then
+    GetIBLookupComboBoxX.DoLookup(stExact)
+  else
+    GetIBLookupComboBoxX.DoLookup(stLike);
 end;
 
 procedure TwrpIBLookupComboBoxX.Edit;

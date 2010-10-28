@@ -22577,7 +22577,7 @@ end;
 function TwrpApplication.GetNumericWordForm(ANum: Integer; const AStrForm1,
   AStrForm2, AStrForm5: WideString): WideString;
 begin
-  Result := NumericWordForm(ANum, AStrForm1, AStrForm2, AStrForm5);
+  Result := gsMorph.GetNumericWordForm(ANum, AStrForm1, AStrForm2, AStrForm5);
 end;
 
 initialization

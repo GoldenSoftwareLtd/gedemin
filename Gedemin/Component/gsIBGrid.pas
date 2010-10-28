@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2010 by Golden Software of Belarus
 
   Module
 
@@ -3253,10 +3253,10 @@ begin
       SelectCondition := Format(' (%0:s = ''%1:s'') ', [FLookup.FieldWithAlias(FLookup.LookupListField), Grid.InplaceEditor.Text])
     else
       if FListFieldIsBlob then
-        SelectCondition := Format('(UPPER(SUBSTRING(%0:s FROM 1 FOR CHAR_LENGTH(%0:s))) SIMILAR TO ''%%''|| ''%1:s'' || ''%%'') ',
+        SelectCondition := Format('(upper(SUBSTRING(%0:s FROM 1 FOR CHAR_LENGTH(%0:s))) LIKE ''%%''|| ''%1:s'' || ''%%'') ',
           [FLookup.FieldWithAlias(FLookup.LookupListField), AnsiUpperCase(Grid.InplaceEditor.Text)])
       else
-        SelectCondition := Format('(UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
+        SelectCondition := Format('(upper(%0:s) LIKE ''%%%1:s%%'') ',
           [FLookup.FieldWithAlias(FLookup.LookupListField),
           _AnsiUpperCase(Grid.InplaceEditor.Text)]);
 
@@ -3273,7 +3273,7 @@ begin
             {if FListFieldIsBlob then
 
             else}
-              SelectCondition := Format('%0:s OR (UPPER(SUBSTRING('''' || %1:s FROM 1 FOR CHAR_LENGTH('''' || %1:s))) SIMILAR TO ''%%''|| ''%2:s'' || ''%%'') ',
+              SelectCondition := Format('%0:s OR (upper(SUBSTRING('''' || %1:s FROM 1 FOR CHAR_LENGTH('''' || %1:s))) LIKE ''%%''|| ''%2:s'' || ''%%'') ',
                 [SelectCondition, FLookup.FieldWithAlias(Trim(SL[J])), AnsiUpperCase(Grid.InplaceEditor.Text)])
       finally
         SL.Free;
@@ -3461,9 +3461,9 @@ begin
 
     if Match > '' then
       if FListFieldIsBlob then
-        S := S + Format(' WHERE (UPPER(SUBSTRING(%0:s FROM 1 FOR CHAR_LENGTH(%0:s))) SIMILAR TO ''%%''|| ''%1:s'' || ''%%'') ', [FLookup.FieldWithAlias(FLookup.LookupListField), AnsiUpperCase(Match)])
+        S := S + Format(' WHERE (upper(SUBSTRING(%0:s FROM 1 FOR CHAR_LENGTH(%0:s))) LIKE ''%%''|| ''%1:s'' || ''%%'') ', [FLookup.FieldWithAlias(FLookup.LookupListField), AnsiUpperCase(Match)])
       else
-        S := S + Format(' WHERE (UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ', [FLookup.FieldWithAlias(FLookup.LookupListField), _AnsiUpperCase(Match)]);
+        S := S + Format(' WHERE (UPPER(%0:s) LIKE ''%%%1:s%%'') ', [FLookup.FieldWithAlias(FLookup.LookupListField), _AnsiUpperCase(Match)]);
 
     if Trim(FullCondition) > '' then
       if Pos('WHERE ', S) = 0 then

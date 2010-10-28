@@ -905,7 +905,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Width = 271
           Height = 21
           Style = csDropDownList
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 6
           OnChange = comboBusinessClassChange
           OnClick = comboBusinessClassClick
@@ -916,7 +916,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Width = 271
           Height = 21
           Style = csDropDownList
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 7
         end
       end

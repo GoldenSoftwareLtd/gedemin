@@ -80,7 +80,6 @@ type
     procedure comboBusinessClassChange(Sender: TObject);
     procedure comboBusinessClassClick(Sender: TObject);
     procedure dbmComputedChange(Sender: TObject);
-    procedure cmbRuleDeleteChange(Sender: TObject);
     procedure dbedRelationFieldNameEnter(Sender: TObject);
     procedure dbedRelationFieldNameKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
@@ -304,7 +303,6 @@ end;
 procedure Tgdc_dlgRelationField.luFieldTypeChange(Sender: TObject);
 var
   Field: TgdcField;
-  S: String;
 begin
   if gdcObject.State = dsInsert then
   begin
@@ -371,22 +369,11 @@ begin
             cmbRuleDelete.ItemIndex := 0
           else
           begin
-            S := AnsiUpperCase(Trim(gdcObject.FieldByName('deleterule').AsString));
-            if cst_Restrict = S then
-              cmbRuleDelete.ItemIndex := 0
-            else if cst_Cascade = S then
-              cmbRuleDelete.ItemIndex := 1
-            else if cst_SetNull = S then
-              cmbRuleDelete.ItemIndex := 2
-            else if cst_SetDefault = S then
-              cmbRuleDelete.ItemIndex := 3
-            else
-              cmbRuleDelete.ItemIndex := -1;
+            cmbRuleDelete.ItemIndex := cmbRuleDelete.Items.IndexOf(
+              UpperCase(Trim(gdcObject.FieldByName('deleterule').AsString)));
           end;
           lblRuleDelete.Enabled := gdcObject.State = dsInsert;
           cmbRuleDelete.Enabled := gdcObject.State = dsInsert;
-
-
         end else
         begin
           comboBusinessClass.Enabled:= False;
@@ -761,17 +748,8 @@ begin
       gdcObject.FieldByName('gdsubtype').Clear;
     end;
 
-  if (gdcObject.State = dsInsert) and (cmbRuleDelete.Visible) then
-  begin
-    case cmbRuleDelete.ItemIndex of
-      0: gdcObject.FieldByName('deleterule').asString := cst_Restrict;
-      1: gdcObject.FieldByName('deleterule').asString := cst_Cascade;
-      2: gdcObject.FieldByName('deleterule').asString := cst_SetNull;
-      3: gdcObject.FieldByName('deleterule').asString := cst_SetDefault;
-      else
-        gdcObject.FieldByName('deleterule').Clear;
-    end;
-  end;
+  if (gdcObject.State = dsInsert) and cmbRuleDelete.Visible then
+    gdcObject.FieldByName('deleterule').asString := cmbRuleDelete.Text;
   WriteObjectState;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally
@@ -779,12 +757,6 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGRELATIONFIELD', 'BEFOREPOST', KEYBEFOREPOST);
   {M}end;
   {END MACRO}
-end;
-
-procedure Tgdc_dlgRelationField.cmbRuleDeleteChange(Sender: TObject);
-begin
-  inherited;
-  cmbRuleDelete.Hint := cmbRuleDelete.Text;
 end;
 
 procedure Tgdc_dlgRelationField.SetupRecord;
@@ -795,7 +767,6 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   Field: TgdcField;
-  S: String;
 begin
   {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGRELATIONFIELD', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}  try
@@ -895,24 +866,13 @@ begin
         begin
           lblRuleDelete.Visible := True;
           cmbRuleDelete.Visible := True;
-          S := AnsiUpperCase(Trim(gdcObject.FieldByName('deleterule').AsString));
-          if cst_Restrict = S then
-            cmbRuleDelete.ItemIndex := 0
-          else if cst_Cascade = S then
-            cmbRuleDelete.ItemIndex := 1
-          else if cst_SetNull = S then
-            cmbRuleDelete.ItemIndex := 2
-          else if cst_SetDefault = S then
-            cmbRuleDelete.ItemIndex := 3
-          else
-            cmbRuleDelete.ItemIndex := -1;
+          cmbRuleDelete.ItemIndex := cmbRuleDelete.Items.IndexOf(
+            UpperCase(Trim(gdcObject.FieldByName('deleterule').AsString)));
           lblRuleDelete.Enabled := False;
           cmbRuleDelete.Enabled := False;
         end;
       end else
-      begin
         cmbRuleDelete.Enabled := False;
-      end;
     finally
       Field.Free;
     end;

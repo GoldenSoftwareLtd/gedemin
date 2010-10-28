@@ -1128,6 +1128,19 @@ COMMIT;
           256,
           1
         );
+		
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+        VALUES (
+          740080,
+          740050,
+          'Блокировка изменений',
+          '',
+          'TgdcBlockRule',
+          NULL,
+          256,
+          1
+        );
+		
 
         /*
     INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)

@@ -63,11 +63,11 @@ var
 begin
   for I := 0 to StringCount - 1 do
   begin
-    Check(NumericWordForm(1, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 0],
+    Check(GetNumericWordForm(1, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 0],
       'Ошибка при склонении слова "' + StringArray[I, 0] + '" по числу 1');
-    Check(NumericWordForm(2, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 1],
+    Check(GetNumericWordForm(2, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 1],
       'Ошибка при склонении слова "' + StringArray[I, 0] + '" по числу 2');
-    Check(NumericWordForm(5, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 2],
+    Check(GetNumericWordForm(5, StringArray[I, 0], StringArray[I, 1], StringArray[I, 2]) = StringArray[I, 2],
       'Ошибка при склонении слова "' + StringArray[I, 0] + '" по числу 5');
   end;
 end;
