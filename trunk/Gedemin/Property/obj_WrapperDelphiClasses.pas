@@ -989,6 +989,8 @@ type
     function  GetFIOCase(const SurName: WideString; const FirstName: WideString;
                       const MiddleName: WideString; Sex: Integer; TheCase: Integer): WideString; safecall;
     function  GetComplexCase(const TheWord: WideString; TheCase: Integer): WideString; safecall;
+    function  GetNumericWordForm(ANum: Integer; const AStrForm1: WideString;
+                               const AStrForm2: WideString; const AStrForm5: WideString): WideString; safecall;
   end;
 
   TwrpScreen = class(TwrpComponent, IgsScreen)
@@ -22570,6 +22572,12 @@ function TwrpApplication.GetComplexCase(const TheWord: WideString;
   TheCase: Integer): WideString;
 begin
   Result := ComplexCase(TheWord, TheCase);
+end;
+
+function TwrpApplication.GetNumericWordForm(ANum: Integer; const AStrForm1,
+  AStrForm2, AStrForm5: WideString): WideString;
+begin
+  Result := NumericWordForm(ANum, AStrForm1, AStrForm2, AStrForm5);
 end;
 
 initialization
