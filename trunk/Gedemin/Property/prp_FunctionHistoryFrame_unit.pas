@@ -88,12 +88,16 @@ end;
 procedure Tprp_FunctionHistoryFrame.ibdsLogAfterOpen(DataSet: TDataSet);
 begin
   ibgrLog.DontLoadSettings := True;
+  ibgrLog.ScaleColumns := False;
   DataSet.FieldByName('id').Visible := False;
   DataSet.FieldByName('script').Visible := False;
   DataSet.FieldByName('revision').Visible := False;
   DataSet.FieldByName('editiondate').DisplayLabel := 'Дата изменения';
+  DataSet.FieldByName('editiondate').DisplayWidth := 20;
   DataSet.Fields[1].DisplayLabel := 'Ревизия';
   DataSet.Fields[4].DisplayLabel := 'Автор';
+  DataSet.Fields[4].DisplayWidth := 100;
+  ibgrLog.ScaleColumns := True;
   dsLog.DataSet := ibdsLog;
 end;
 

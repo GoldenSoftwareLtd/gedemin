@@ -2,7 +2,7 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
   Left = 0
   Top = 0
   Width = 443
-  Height = 277
+  Height = 276
   Align = alClient
   TabOrder = 0
   object Splitter1: TSplitter
@@ -54,7 +54,7 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
     Left = 0
     Top = 152
     Width = 443
-    Height = 106
+    Height = 105
     Align = alClient
     BevelOuter = bvNone
     Font.Charset = DEFAULT_CHARSET
@@ -67,7 +67,7 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 258
+    Top = 257
     Width = 443
     Height = 19
     Panels = <>
@@ -130,7 +130,9 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
     SelectSQL.Strings = (
       'SELECT'
       '  f.id, CAST('#39'Текущая'#39' AS VARCHAR(7)), 999999 AS revision,'
-      '  f.script, c.name, f.editiondate'
+      
+        '  f.script, c.name, CAST(f.editiondate AS VARCHAR(40)) as editio' +
+        'ndate'
       'FROM'
       '  gd_function f JOIN gd_contact c ON c.id = f.editorkey'
       'WHERE'
@@ -140,7 +142,9 @@ object prp_FunctionHistoryFrame: Tprp_FunctionHistoryFrame
       ''
       'SELECT'
       '  l.id, CAST(l.revision AS VARCHAR(7)), l.revision,'
-      '  l.script, c.name, l.editiondate'
+      
+        '  l.script, c.name, CAST(l.editiondate AS VARCHAR(40)) as editio' +
+        'ndate'
       'FROM'
       '  gd_function_log l JOIN gd_contact c ON c.id = l.editorkey'
       'WHERE'
