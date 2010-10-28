@@ -44,6 +44,8 @@ type
   TOnCreateNewObject = procedure(Sender: TObject; ANewObject: TgdcBase)
     of object;
 
+  TSearchType = (stExact, stLike, stSimilarTo);  
+
 (*
 
   Кампанэнт дазваляе выбраць запіс з даведніка, дадзенага
@@ -181,7 +183,7 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure DoLookup(const Exact: Boolean = False;
+    procedure DoLookup(const SearchType: TSearchType = stLike;
       const CreateIfNotFound: Boolean = True; const ShowDropDown: Boolean = True;
       Exiting: Boolean = False);
     procedure CreateNew(const FC: TgdcFullClass; const Exiting: Boolean = False);
@@ -324,7 +326,7 @@ implementation
 
 uses
   IB,              gd_security,             at_classes,           jclSysUtils,
-  jclStrings,      gsDBGrid,                ContNrs,
+  jclStrings,      gsDBGrid,                ContNrs,              ShellAPI,
   gsDBReduction,   gsIbLookUpComboBox_dlgAction,
   gdc_frmG_unit,
   gdc_frmMDH_unit,
@@ -540,7 +542,7 @@ begin
     if Assigned(OnChange) then OnChange(Self);
 end;
 
-procedure TgsIBLookupComboBox.DoLookup(const Exact: Boolean = False;
+procedure TgsIBLookupComboBox.DoLookup(const SearchType: TSearchType = stLike;
   const CreateIfNotFound: Boolean = True; const ShowDropDown: Boolean = True;
   Exiting: Boolean = False);
 var
@@ -603,11 +605,16 @@ begin
       [FieldWithAlias(FListField), FieldWithAlias(FKeyField),
       StrFields, FListTable, DistinctStr]);
 
-    if Exact then
-      SelectCondition := Format(' (%0:s = ''%1:s'') ', [FieldWithAlias(FListField), Text])
-    else
-      SelectCondition := Format('(UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
-        [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Text))]);
+    case SearchType of
+      stExact:
+        SelectCondition := Format(' (%0:s = ''%1:s'') ', [FieldWithAlias(FListField), Text]);
+      stLike:
+        SelectCondition := Format('(UPPER(%0:s) LIKE ''%%%1:s%%'') ',
+          [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Text))]);
+      stSimilarTo:
+        SelectCondition := Format('(UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
+          [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Text))]);
+    end;
 
     if FFields > '' then
     begin
@@ -616,13 +623,18 @@ begin
         ParseFieldsString(FFields, SL);
         for J := 0 to SL.Count - 1 do
         begin
-          if Exact then
-            SelectCondition := Format('%s OR (%s = ''%s'') ',
-              [SelectCondition, FieldWithAlias(Trim(SL[J])), Text])
-          else
-            SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) SIMILAR TO ''%%%s%%'') ',
-              [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Text))])
-        end;      
+          case SearchType of
+            stExact:
+              SelectCondition := Format('%s OR (%s = ''%s'') ',
+                [SelectCondition, FieldWithAlias(Trim(SL[J])), Text]);
+            stLike:
+              SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) LIKE ''%%%s%%'') ',
+                [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Text))]);
+            stSimilarTo:
+              SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) SIMILAR TO ''%%%s%%'') ',
+                [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Text))]);
+          end;
+        end;
       finally
         SL.Free;
       end;
@@ -1288,7 +1300,7 @@ begin
 
   if CurrentKeyInt = -1 then
   begin
-    DoLookup(False, True, False, False);
+    DoLookup(stLike, True, False, False);
     if CurrentKeyInt = -1 then
       exit;
   end;
@@ -1316,7 +1328,7 @@ begin
 
   if CurrentKeyInt = -1 then
   begin
-    DoLookup(False, True, False, False);
+    DoLookup(stLike, True, False, False);
     if CurrentKeyInt = -1 then
       exit;
   end;
@@ -1628,8 +1640,12 @@ begin
     end else
     begin
       if Text > '' then
-        DoLookup(FFullSearchOnExit, FStrictOnExit, False, True)
-      else
+      begin
+        if FFullSearchOnExit then
+          DoLookup(stExact, FStrictOnExit, False, True)
+        else
+          DoLookup(stLike, FStrictOnExit, False, True);
+      end else
       begin
         FCurrentKey := '';
         Items[0] := '';
@@ -2257,7 +2273,7 @@ begin
 
   if CurrentKeyInt = -1 then
   begin
-    DoLookup(False, True, False, False);
+    DoLookup(stLike, True, False, False);
   end;
 
   if (CurrentKeyInt = -1) then
@@ -2391,6 +2407,7 @@ begin
             '  F4     -- изменение выбранного объекта '#13#10 +
             '  F5     -- текущий ключ '#13#10 +
             '  Ctrl-R -- объединение двух записей '#13#10 +
+            '  F6     -- поиск по регулярным выражениям '#13#10 +
             '  F7     -- точный поиск '#13#10 +
             '  F8     -- удаление выбранного объекта '#13#10 +
             '  F9     -- форма объекта '#13#10 +
@@ -2645,14 +2662,26 @@ begin
         if KeyDataToShiftState(KeyData) = [] then
         begin
           case CharCode of
-            VK_F2, VK_F3, VK_F4, {VK_F6,} VK_F7, VK_F8, VK_F9, VK_F11, VK_F12, VK_DOWN:
+            VK_F1:
+            begin
+              ShellExecute(Handle,
+                'open',
+                'http://gsbelarus.com/gs/wiki/index.php/Выпадающий список',
+                nil,
+                nil,
+                SW_SHOW);
+              Result := 1;
+              exit;
+            end;
+
+            VK_F2, VK_F3, VK_F4, VK_F6, VK_F7, VK_F8, VK_F9, VK_F11, VK_F12, VK_DOWN:
               begin
                 case CharCode of
                   VK_F2: CreateNew(gdcFullClass(nil, ''));
-                  VK_F3: DoLookup(False, True, False);
+                  VK_F3: DoLookup(stLike, True, False);
                   VK_F4: Edit;
-                  //VK_F6: Reduce;
-                  VK_F7: DoLookup(True, True, False);
+                  VK_F6: DoLookup(stSimilarTo, True, False);
+                  VK_F7: DoLookup(stExact, True, False);
                   VK_F8: Delete;
                   VK_F9: ViewForm;
                   VK_F11: ObjectProperties;

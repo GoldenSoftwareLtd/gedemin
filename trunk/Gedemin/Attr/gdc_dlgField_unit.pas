@@ -281,7 +281,7 @@ begin
   pcDataType.ActivePageIndex := 0;
 
   // Строковые данные
-  rgString.ItemIndex := 0;
+  rgString.ItemIndex := 1;
   edStringLength.Text := '';
 
   // Числовые данные

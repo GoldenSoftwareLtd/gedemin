@@ -52,7 +52,7 @@ function ComplexCase(TheWord: String; TheCase: Word): String;
     -> 51, 'объект', 'объекта', 'объектов'
     <- объект
 }
-function NumericWordForm(const ANum: Integer; const AStrForm1, AStrForm2, AStrForm5: String): String;
+function GetNumericWordForm(const ANum: Integer; const AStrForm1, AStrForm2, AStrForm5: String): String;
 
 implementation
 
@@ -671,13 +671,13 @@ begin
     Result := NameCase(StartText, TheCase);
 end;
 
-function NumericWordForm(const ANum: Integer; const AStrForm1, AStrForm2, AStrForm5: String): String;
+function GetNumericWordForm(const ANum: Integer; const AStrForm1, AStrForm2, AStrForm5: String): String;
 var
   Num100, Num10: Integer;
 begin
   Num100 := Abs(ANum) mod 100;
   Num10 := Num100 mod 10;
-  if (Num100 > 10) and (Num100 < 20) then
+  if (Num100 > 10) and (Num100 <= 20) then
     Result := AStrForm5
   else if (Num10 > 1) and (Num10 < 5) then
     Result := AStrForm2

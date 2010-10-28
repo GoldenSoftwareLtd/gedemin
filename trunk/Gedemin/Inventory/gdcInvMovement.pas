@@ -1417,8 +1417,12 @@ begin
 //    ShowMessage('Базовая карточка ' + inttostr(TempCardKey) );
     {$ENDIF}
 
-    SourceCardKey := AddInvCard(TempCardKey, invPosition,
-       (gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtFeatureChange);
+    if (gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtInventorization then
+      SourceCardKey := AddInvCard(TempCardKey, invPosition,
+         (gdcDocumentLine as TgdcInvDocumentLine).RelationType <> irtFeatureChange)
+    else
+      SourceCardKey := AddInvCard(TempCardKey, invPosition, False);
+
   end;
 
 

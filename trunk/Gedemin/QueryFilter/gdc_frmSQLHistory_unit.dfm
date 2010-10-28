@@ -74,6 +74,7 @@ inherited gdc_frmSQLHistory: Tgdc_frmSQLHistory
       inherited ibgrMain: TgsIBGrid
         Width = 844
         Height = 433
+        Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         ScaleColumns = True
       end
     end
