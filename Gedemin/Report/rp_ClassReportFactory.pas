@@ -33,7 +33,6 @@ type
     FOnReportEvent: TReportEvent;
     FPrinterName: String;
     FShowProgress: Boolean;
-    FIsExport: Boolean;
     FFileName: String;
     FExportType: TExportType;
 
@@ -54,7 +53,7 @@ type
      const AnBuildDate: TDateTime; const AnPreview: Boolean;
      const AnEventFunction: TrpCustomFunction; const AnReportName: String;
      const AnPrinterName: String; const AnShowProgress: Boolean; const AnBaseQueryList: Variant;
-     const AnIsExport: Boolean; const AnFileName: String; const AnExportType: TExportType);
+     const AnFileName: String; const AnExportType: TExportType);
     procedure Clear;
   published
     property OnReportEvent: TReportEvent read GetReportEvent write SetReportEvent;
@@ -125,7 +124,7 @@ end;
 
 procedure TrpBuildReportThread.ShowForm;
 begin
-  if FReportInterface.IsExport then
+  if FReportInterface.ExportType <> etNone then
     FReportInterface.ExportReport(FReportInterface.ExportType, FReportInterface.FileName)
   else if FReportInterface.Preview then
     FReportInterface.BuildReport
@@ -236,7 +235,6 @@ begin
 
   Result.PrinterName := FPrinterName;
   Result.ShowProgress := FShowProgress;
-  Result.IsExport := FIsExport;
   Result.FileName := FFileName;
   Result.ExportType := FExportType;
 
@@ -264,7 +262,7 @@ procedure TReportFactory.CreateReport(const AnTemplateStructure: TTemplateStruct
  AnReportResult: TReportResult; const AnParams: Variant; const AnBuildDate: TDateTime;
  const AnPreview: Boolean; const AnEventFunction: TrpCustomFunction; const AnReportName: String;
  const AnPrinterName: String; const AnShowProgress: Boolean; const AnBaseQueryList: Variant;
- const AnIsExport: Boolean; const AnFileName: String; const AnExportType: TExportType);
+ const AnFileName: String; const AnExportType: TExportType);
 var
   I: Integer;
 begin
@@ -285,7 +283,6 @@ begin
 
   FPrinterName := AnPrinterName;
   FShowProgress := AnShowProgress;
-  FIsExport := AnIsExport;
   FFileName := AnFileName;
   FExportType := AnExportType;
 

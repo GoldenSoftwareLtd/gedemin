@@ -59,7 +59,6 @@ type
 
     FPrinterName: String;
     FShowProgress: Boolean;
-    FIsExport: Boolean;
     FFileName: String;
     FExportType: TExportType;
 
@@ -104,7 +103,6 @@ type
     property ReportFactory: TReportFactory read FReportFactory write FReportFactory;
     property PrinterName: String read FPrinterName write FPrinterName;
     property ShowProgress: Boolean read FShowProgress write FShowProgress;
-    property IsExport: Boolean read FIsExport write FIsExport;
     property FileName: String read FFileName write FFileName;
     property ExportType: TExportType read FExportType write FExportType;
   end;
@@ -157,7 +155,6 @@ begin
   FClientEventFactory := nil;
   FFirstRead := False;
   FShowProgress := True;
-  FIsExport := False;
   FFileName := '';
   FExportType := etNone;
 
@@ -203,7 +200,7 @@ begin
   if Assigned(FReportFactory) then
     FReportFactory.CreateReport(AnReport.TemplateStructure, AnReportResult,
      AnParam, AnBuildDate, AnReport.Preview, AnReport.EventFunction, AnReport.ReportName,
-     FPrinterName, FShowProgress, AnBaseQueryList, FIsExport, FFileName, FExportType)
+     FPrinterName, FShowProgress, AnBaseQueryList, FFileName, FExportType)
   else
     raise Exception.Create('Object ReportFactory not assigned.');
 end;
@@ -460,7 +457,6 @@ var
   LocErrorMessage: String;
   OldTime: DWORD;
 begin
-  FIsExport := False;
   FFileName := '';
   FExportType := etNone;
 
