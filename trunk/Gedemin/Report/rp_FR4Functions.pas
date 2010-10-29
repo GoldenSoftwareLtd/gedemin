@@ -24,7 +24,7 @@ type
     FCompanyName, FCompanyFullName, FCompanyAddress,
     FDirName, FChiefAccountantName, FTAXID,
     FDirRank, FBuhRank, FBankName, FBankAddress,
-    FMainAccount: String;
+    FMainAccount, FBankCode: String;
 
     function CallMethod(Instance: TObject; ClassType: TClass;
       const MethodName: String; var Params: Variant): Variant;
@@ -62,6 +62,7 @@ type
     function BankName: String;
     function BankAddress: String;
     function MainAccount: String;
+    function BankCode: String;
 
     procedure UpdateCompanyCache;
 
@@ -216,7 +217,9 @@ begin
   else if MethodName = 'BANKADDRESS' then
     Result := BankAddress
   else if MethodName = 'MAINACCOUNT' then
-    Result := MainAccount;
+    Result := MainAccount
+  else if MethodName = 'BANKCODE' then
+    Result := BankCode;
 end;
 
 function TFR4Functions.ChiefAccountantName: String;
@@ -290,6 +293,12 @@ begin
   Result := FMainAccount;
 end;
 
+function TFR4Functions.BankCode: String;
+begin
+  UpdateCompanyCache;
+  Result := FBankCode;
+end;
+
 constructor TFR4Functions.Create(AScript: TfsScript);
 begin
   inherited Create(AScript);
@@ -335,6 +344,7 @@ begin
     AddMethod('function BANKNAME: String', CallMethod, 'Golden Software', 'BANKNAME()/¬озвращает наименование банка текущей организации.');
     AddMethod('function BANKADDRESS: String', CallMethod, 'Golden Software', 'BANKADDRESS()/¬озвращает адрес банка текущей организации.');
     AddMethod('function MAINACCOUNT: String', CallMethod, 'Golden Software', 'MAINACCOUNT()/¬озвращает главный счЄт текущей организации.');
+    AddMethod('function BANKCODE: String', CallMethod, 'Golden Software', 'BANKCODE()/¬озвращает код банка текущей организации.');
   end;
 
   FCompanyCachedKey := -1;
@@ -639,6 +649,7 @@ begin
         FBankName := q.FieldByName('BANKNAME').AsString;
         FBankAddress := q.FieldByName('BANKADDRESS').AsString;
         FMainAccount := q.FieldByName('ACCOUNT').AsString;
+        FBankCode := q.FieldByName('BANKCODE').AsString;
 
         FCompanyCachedKey := IBLogin.CompanyKey;
       end else
@@ -655,6 +666,7 @@ begin
         FBankName := '';
         FBankAddress := '';
         FMainAccount := '';
+        FBankCode := '';
       end;
 
       FCompanyCachedDBID := IBLogin.DBID;

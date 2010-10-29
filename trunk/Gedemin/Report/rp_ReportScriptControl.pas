@@ -255,6 +255,10 @@ type
     // добавляет в список для перезагрузки
     procedure AddReloadFunction(const AFunctionKey: Integer);
 
+    // используется для локализации исключений в safecall ф-циях
+    function SafeCallException(ExceptObject: TObject; ExceptAddr: Pointer):
+      HResult; override;
+
     property ShowRaise: Boolean read FShowRaise write FShowRaise default False;
     property IsBusy: Boolean read FIsBusy;
     // если True, то до ExecuteFunction необходимо сделать Reset, очистить
@@ -631,7 +635,6 @@ begin
         on E: EOleException do
         begin
           Result := False;
-
           if FShowRaise then
             MessageBox(0, PChar('Произошла ошибка при выполнении скрипта:'#13#10
              + E.Message), 'Ошибка', MB_OK or MB_ICONERROR or MB_TASKMODAL);
@@ -1624,6 +1627,15 @@ begin
   finally
     FAddCodeMode := False;
   end;
+end;
+
+function TReportScript.SafeCallException(ExceptObject: TObject;
+  ExceptAddr: Pointer): HResult;
+const
+  TReportScriptGUID: TGUID = '{BD866588-A0F6-4D7A-BB4D-5B85E4D684B8}';
+begin
+  Result := HandleSafeCallException(ExceptObject, ExceptAddr, TReportScriptGUID,
+    String(ExceptObject.ClassName), '');
 end;
 
 Initialization

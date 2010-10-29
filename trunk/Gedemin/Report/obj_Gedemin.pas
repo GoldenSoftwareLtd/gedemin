@@ -582,7 +582,6 @@ procedure TReportSystem.BuildReport(ReportKey: Integer);
 begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
-  ClientReport.IsExport := False;
   ClientReport.FileName := '';
   ClientReport.ExportType := etNone;
   ClientReport.BuildReport(Unassigned, ReportKey);
@@ -593,7 +592,6 @@ procedure TReportSystem.BuildReportWithOwnerForm(
 begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
-  ClientReport.IsExport := False;
   ClientReport.FileName := '';
   ClientReport.ExportType := etNone;
   ClientReport.BuildReport(OwnerForm, ReportKey);
@@ -604,7 +602,6 @@ procedure TReportSystem.BuildReportWithParam(ReportKey: Integer;
 begin
   CheckClientReport;
   ClientReport.ShowProgress:= True;
-  ClientReport.IsExport := False;
   ClientReport.FileName := '';
   ClientReport.ExportType := etNone;
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
@@ -616,7 +613,6 @@ begin
   CheckClientReport;
   ClientReport.PrinterName := PrinterName;
   ClientReport.ShowProgress := ShowProgress;
-  ClientReport.IsExport := False;
   ClientReport.FileName := '';
   ClientReport.ExportType := etNone;
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);
@@ -636,7 +632,6 @@ begin
     raise Exception.Create('Empty file name');
   CheckClientReport;
   ClientReport.ShowProgress := False;
-  ClientReport.IsExport := True;
   ClientReport.FileName := FileName;
 
   if Pos('WORD', AnsiUppercase(ExportType)) > 0 then
@@ -671,7 +666,6 @@ procedure TReportSystem.RebuildReport(ReportKey: Integer);
 begin
   CheckClientReport;
   ClientReport.ShowProgress := True;
-  ClientReport.IsExport := False;
   ClientReport.FileName := '';
   ClientReport.ExportType := etNone;
   ClientReport.BuildReport(Unassigned, ReportKey, True);
@@ -682,7 +676,6 @@ procedure TReportSystem.RebuildReportWithParam(ReportKey: Integer;
 begin
   CheckClientReport;
   ClientReport.ShowProgress := True;
-  ClientReport.IsExport := False;
   ClientReport.FileName := '';
   ClientReport.ExportType := etNone;  
   TClientReportCracker(ClientReport).BuildReportWithParam(ReportKey, Params);

@@ -49,8 +49,6 @@ type
     procedure Set_PrinterName(Value: String);
     function Get_ShowProgress: Boolean;
     procedure Set_ShowProgress(Value: Boolean);
-    function Get_IsExport: Boolean;
-    procedure Set_IsExport(Value: Boolean);
     function Get_FileName: String;
     procedure Set_FileName(Value: String);
     function Get_ExportType: TExportType;
@@ -61,7 +59,6 @@ type
     property Params: Variant read Get_Params write Set_Params;
     property BuildDate: TDateTime write Set_BuildDate;
     property Preview: Boolean read Get_Preview write Set_Preview;
-    property IsExport: Boolean read Get_IsExport write Set_IsExport;
     property OnReportEvent: TReportEvent read Get_ReportEvent write Set_ReportEvent;
     property EventFunction: TrpCustomFunction read Get_EventFunction write Set_EventFunction;
     property Caption: String read Get_Caption write Set_Caption;
@@ -79,7 +76,6 @@ type
     FCaption: String;
     FPrinterName: String;
     FShowProgress: Boolean;
-    FIsExport: Boolean;
     FFileName: String;
     FExportType: TExportType;
 
@@ -96,7 +92,7 @@ type
 
     procedure BuildReport; virtual;
     procedure PrintReport; virtual; abstract;
-    procedure ExportReport(const AnExportType: TExportType; const AnFileName: String); virtual; abstract;
+    procedure ExportReport(const AnExportType: TExportType; const AnFileName: String); virtual;
     function IsProcessed: Boolean; virtual;
     procedure Set_ReportResult(const AnReportResult: TReportResult);  virtual; abstract;
     function Get_ReportResult: TReportResult;  virtual; abstract;
@@ -117,8 +113,6 @@ type
     procedure Set_PrinterName(Value: String);
     function Get_ShowProgress: Boolean;
     procedure Set_ShowProgress(Value: Boolean);
-    function Get_IsExport: Boolean;
-    procedure Set_IsExport(Value: Boolean);
     function Get_FileName: String;
     procedure Set_FileName(Value: String);
     function Get_ExportType: TExportType;
@@ -132,7 +126,6 @@ type
     property Params: Variant read Get_Params write Set_Params;
     property BuildDate: TDateTime write Set_BuildDate;
     property Preview: Boolean read Get_Preview write Set_Preview;
-    property IsExport: Boolean read Get_IsExport write Set_IsExport;
     property EventFunction: TrpCustomFunction read Get_EventFunction write Set_EventFunction;
     property PrinterName: string read Get_PrinterName write Set_PrinterName;
     property ShowProgress: Boolean read Get_ShowProgress write Set_ShowProgress;
@@ -225,6 +218,12 @@ begin
     FOldDestroy(Sender);
   FPreviewForm := nil;
   _Release;
+end;
+
+procedure TCustomReportBuilder.ExportReport(
+  const AnExportType: TExportType; const AnFileName: String);
+begin
+  Beep;
 end;
 
 procedure TCustomReportBuilder.FreeOldForm;
