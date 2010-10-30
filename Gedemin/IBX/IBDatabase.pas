@@ -373,12 +373,18 @@ type
     procedure CheckNotInTransaction;
     procedure CheckAutoStop;
 
+    procedure ExecSQLImmediate(const SQLText: String);
+    procedure SetSavePoint(const SavePointName: String);
+    procedure RollBackToSavePoint(const SavePointName: String);
+    procedure ReleaseSavePoint(const SavePointName: String);
+
     function AddDatabase(db: TIBDatabase): Integer;
     function FindDatabase(db: TIBDatabase): Integer;
     function FindDefaultDatabase: TIBDatabase;
     procedure RemoveDatabase(Idx: Integer);
     procedure RemoveDatabases;
     procedure CheckDatabasesInList;
+    function MainDatabase: TIBDatabase;
 
     property DatabaseCount: Integer read GetDatabaseCount;
     property Databases[Index: Integer]: TIBDatabase read GetDatabase;
@@ -1217,13 +1223,16 @@ procedure TIBDatabase.SetDatabaseName(const Value: TIBFileName);
 begin
   if FDBName <> Value then
   begin
-
     EnsureInactive;
     CheckInactive;
+    {$IFDEF GEDEMIN}
     if Pos(':', Value) = 0 then
       FDBName := ExtractFilePath(Application.EXEName) + Value
     else
       FDBName := Value;
+    {$ELSE}
+    FDBName := Value;
+    {$ENDIF}
     FSchema.FreeNodes;
   end;
 end;
@@ -2243,6 +2252,41 @@ begin
   finally
     FreeMem(pteb);
   end;
+end;
+
+function TIBTransaction.MainDatabase: TIBDatabase;
+begin
+  if Assigned(DefaultDatabase) then
+    Result := DefaultDatabase
+  else if FDatabases.Count = 0 then
+    Result := nil
+  else
+    Result := FDatabases[0];
+end;
+
+procedure TIBTransaction.ExecSQLImmediate(const SQLText: String);
+begin
+  CheckInTransaction;
+  Call(
+    isc_dsql_execute_immediate(
+       StatusVector, @MainDatabase.Handle, @FHandle, 0,
+       PChar(SQLText), MainDatabase.SQLDialect, nil),
+    True);
+end;
+
+procedure TIBTransaction.SetSavePoint(const SavePointName: String);
+begin
+  ExecSQLImmediate('savepoint ' + SavePointName);
+end;
+
+procedure TIBTransaction.RollBackToSavePoint(const SavePointName: String);
+begin
+  ExecSQLImmediate('rollback to savepoint ' + SavePointName);
+end;
+
+procedure TIBTransaction.ReleaseSavePoint(const SavePointName: String);
+begin
+  ExecSQLImmediate('release savepoint ' + SavePointName);
 end;
 
 procedure TIBTransaction.TimeoutTransaction(Sender: TObject);
