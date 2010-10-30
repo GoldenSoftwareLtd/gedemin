@@ -161,7 +161,6 @@ begin
   FPreviewForm := nil;
   FPreview := True;
   FReportEvent := nil;
-  FIsExport := False;
   FFileName := '';
   FExportType := etNone;
   FEventFunction := TrpCustomFunction.Create;
@@ -256,11 +255,6 @@ begin
   Result := FFileName;
 end;
 
-function TCustomReportBuilder.Get_IsExport: Boolean;
-begin
-  Result := FIsExport;
-end;
-
 function TCustomReportBuilder.Get_Params: Variant;
 begin
   Result := Unassigned;
@@ -318,11 +312,6 @@ end;
 procedure TCustomReportBuilder.Set_FileName(Value: String);
 begin
   FFileName := Value;
-end;
-
-procedure TCustomReportBuilder.Set_IsExport(Value: Boolean);
-begin
-  FIsExport := Value;
 end;
 
 procedure TCustomReportBuilder.Set_Params(const AnParams: Variant);
