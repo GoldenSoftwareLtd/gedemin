@@ -7972,10 +7972,11 @@ begin
           //AddText('Запуск SQL-скрипта...', clBlue);
           AddText({TranslateText(}S[I]{)}, clBlack);
 
-          ibsql.Close;
+          Transaction.ExecSQLImmediate(S[I]);
+{          ibsql.Close;
           ibsql.ParamCheck := False;
           ibsql.SQL.Text := S[I];
-          ibsql.ExecQuery;
+          ibsql.ExecQuery; }
 
           //AddText('SQL-скрипт выполнен!', clBlue);
         end;
