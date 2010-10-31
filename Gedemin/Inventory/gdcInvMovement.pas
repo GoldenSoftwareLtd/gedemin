@@ -1908,7 +1908,8 @@ begin
               StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
               '-', '', [rfReplaceAll]), 1, 30);
           try
-            ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+            Transaction.SetSavePoint(FSavepoint);
+            //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
           except
             FSavepoint := '';
           end;
@@ -1919,7 +1920,8 @@ begin
           Result := MakeMovementLine(Quantity, InvPosition, gdcInvPositionSaveMode) and (InvErrorCode = iecNoErr);
 
           if not Result then
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+            Transaction.RollBackToSavePoint(FSavepoint);
+            //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
   // Удаляем вновь cформированное движение
 //            try
 
@@ -1948,7 +1950,8 @@ begin
               end;
             end;
           end;}
-          ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+          Transaction.ReleaseSavePoint(FSavepoint);
+          //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
         end;
       end
       else
@@ -1961,7 +1964,8 @@ begin
           StringReplace(
             StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
             '-', '', [rfReplaceAll]), 1, 30);
-          ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+          Transaction.SetSavePoint(FSavepoint);
+          //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
 
           try
             DeleteEnableMovement(ipDocumentKey, True);
@@ -1975,9 +1979,11 @@ begin
             Result := MakeMovementLine(Quantity, InvPosition, gdcInvPositionSaveMode) and (InvErrorCode = iecNoErr);
 
           if not Result then
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+            Transaction.RollBackToSavePoint(FSavepoint);
+            //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
 
-          ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+          Transaction.ReleaseSavePoint(FSavepoint);
+          //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
         end
         else
         begin
@@ -2012,8 +2018,8 @@ begin
             StringReplace(
               StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
               '-', '', [rfReplaceAll]), 1, 30);
-            ExecSingleQuery('SAVEPOINT ' + FSavepoint);
-
+            Transaction.SetSavePoint(FSavepoint);
+            //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
 
             try
               DeleteEnableMovement(ipDocumentKey, True);
@@ -2027,10 +2033,11 @@ begin
               Result := MakeMovementLine(Quantity, InvPosition, gdcInvPositionSaveMode) and (InvErrorCode = iecNoErr);
 
             if not Result then
-              ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+              Transaction.RollBackToSavePoint(FSavepoint);
+              //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
 
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
-
+            Transaction.ReleaseSavePoint(FSavepoint);
+            //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
           end;
         end;
       end;
@@ -2745,7 +2752,8 @@ begin
             StringReplace(
               StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
                '-', '', [rfReplaceAll]), 1, 30);
-          ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+          Transaction.SetSavePoint(FSavepoint);
+          //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
           try
             {$IFDEF DEBUG}
             {ShowMessage('EditMovement');}
@@ -2755,11 +2763,13 @@ begin
             if Result and (cmDate in ChangeMove) then
               Result := EditDateMovement(invPosition, gdcInvPositionSaveMode);
           except
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+            Transaction.RollBackToSavePoint(FSavepoint);
+            //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
             FInvErrorCode := iecOtherIBError;
             Result := False;
           end;
-          ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+          Transaction.ReleaseSavePoint(FSavepoint);
+          //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
 
           exit;
         end
