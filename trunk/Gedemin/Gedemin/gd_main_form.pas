@@ -412,11 +412,11 @@ uses
   pr_dlgLicence_unit,
   {$ENDIF}
 
-{$IFDEF GEDEMIN_LOCK}
+{.$IFDEF GEDEMIN_LOCK}
   gd_dlgReg_unit,
   gd_registration,
   IBDatabaseInfo,
-{$ENDIF}
+{.$ENDIF}
 
   gdcGood,
   gdcBase,
@@ -1946,21 +1946,20 @@ end;
 
 procedure TfrmGedeminMain.actRegistrationExecute(Sender: TObject);
 begin
-{$IFDEF GEDEMIN_LOCK}
+{.$IFDEF GEDEMIN_LOCK}
   with Tgd_dlgReg.Create(Self) do
   try
     ShowModal;
   finally
     Free;
   end;
-{$ENDIF}
-
+{.$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actRegistrationUpdate(Sender: TObject);
 begin                                    
 {$IFNDEF GEDEMIN_LOCK}
-  actRegistration.Visible := False;
+//  actRegistration.Visible := False;
 {$ENDIF}
   if (IBLogin <> nil) and IBLogin.Database.Connected then
   begin

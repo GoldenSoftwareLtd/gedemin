@@ -656,7 +656,35 @@ var
       Delete(usr_msg, Length(usr_msg), 1);
   end;
 
+{const
+  DBNLength = 1024;
+var
+  DBN: array[0..DBNLength] of Char;}
 begin
+  {while (CheckStatusVector([isc_lost_db_connection])
+    or CheckStatusVector([isc_net_read_err]) or CheckStatusVector([isc_net_write_err])) do
+  begin
+    if MessageBox(0,
+      'Потеряно соединение с базой данных.'#13#10 +
+      'Установить повторное подключение?',
+      'Внимание!',
+      MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO then
+    begin
+      break;
+    end;
+
+    if Length(FDBName) <= DBNLength then
+      StrPCopy(DBN, FDBName)
+    else
+      StrPCopy(DBN, Copy(FDBName, 1, DBNLength));
+    FHandle := nil;
+    if isc_attach_database(StatusVector, StrLen(DBN), DBN, @FHandle,
+      FDPBLength, FDPB) = 0 then
+    begin
+      Abort;
+    end;
+  end;}
+
   result := ErrCode;
   FCanTimeout := False;
   {Handle when the Error is due to a Database disconnect.  Call the
@@ -1766,7 +1794,8 @@ begin
   FCanTimeout := False;
   {Handle when the Error is due to a Database disconnect.  Pass it on to
    FDatabase so it can handle this}
-  if CheckStatusVector([isc_lost_db_connection]) then
+  if CheckStatusVector([isc_lost_db_connection]) or CheckStatusVector([isc_net_read_err])
+      or CheckStatusVector([isc_net_write_err]) then
     FDefaultDatabase.Call(ErrCode, RaiseError)
   else
     if RaiseError and (result > 0) then

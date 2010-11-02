@@ -30,18 +30,16 @@ implementation
 {$R *.DFM}
 
 uses
-  gsDatePeriod;
+  gsDatePeriod, gdAccessGrid;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-{  with TgsPeriodEdit.Create(Self) do
+  with TgdAccessGrid.Create(Self) do
   begin
     Parent := Self;
     Left := 20;
-    Top := 20;
-    width := 140;
-    Height := 21;
-  end; }
+    Top := 100;
+  end;
 end;
 
 procedure TForm1.SpeedButton1Click(Sender: TObject);

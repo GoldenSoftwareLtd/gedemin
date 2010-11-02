@@ -324,11 +324,11 @@ end;
 
 procedure TgsDatePeriod.Validate;
 begin
-  if (MaxDate = 0) and (MinDate = 0) then
-    exit;
-
-  if (FDate < FMinDate) or (FEndDate > FMaxDate) then
+  if ((FMinDate <> 0) and (FDate < FMinDate))
+    or ((FMaxDate <> 0) and (FEndDate > FMaxDate)) then
+  begin
     raise EgsDatePeriod.Create('Out of range');
+  end;  
 end;
 
 procedure TgsDatePeriod.SetDate(const Value: TDate);
@@ -576,6 +576,8 @@ begin
       FEndDate := FDate;
     end;
   end;
+
+  Validate;
 end;
 
 end.
