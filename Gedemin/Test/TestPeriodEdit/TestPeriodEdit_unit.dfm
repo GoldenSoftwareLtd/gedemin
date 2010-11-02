@@ -2,13 +2,13 @@ object Form1: TForm1
   Left = 323
   Top = 222
   Width = 918
-  Height = 259
+  Height = 567
   Caption = 'Form1'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
@@ -24,14 +24,14 @@ object Form1: TForm1
   object Label1: TLabel
     Left = 112
     Top = 104
-    Width = 32
+    Width = 31
     Height = 13
     Caption = 'Label1'
   end
   object Label2: TLabel
     Left = 112
     Top = 120
-    Width = 32
+    Width = 31
     Height = 13
     Caption = 'Label2'
   end
@@ -39,7 +39,7 @@ object Form1: TForm1
     Left = 40
     Top = 40
     Width = 148
-    Height = 21
+    Height = 13
     TabOrder = 0
     OnChange = gsPeriodEditChange
   end
