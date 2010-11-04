@@ -1744,7 +1744,8 @@ var
             StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
             '-', '', [rfReplaceAll]), 1, 30);
         try
-          ExecSingleQuery('SAVEPOINT ' + FLSavePoint);
+          Transaction.SetSavePoint(FLSavePoint);
+          //ExecSingleQuery('SAVEPOINT ' + FLSavePoint);
         except
           FLSavePoint := '';
         end;
@@ -1773,8 +1774,10 @@ var
                 Transaction.Rollback
               else
               begin
-                ExecSingleQuery('ROLLBACK TO ' + FLSavePoint);
-                ExecSingleQuery('RELEASE SAVEPOINT ' + FLSavePoint);
+                Transaction.RollBackToSavePoint(FLSavePoint);
+                Transaction.ReleaseSavePoint(FLSavePoint);
+                //ExecSingleQuery('ROLLBACK TO ' + FLSavePoint);
+                //ExecSingleQuery('RELEASE SAVEPOINT ' + FLSavePoint);
                 FLSavePoint := '';
                 if sDialog in BaseState then
                   Field.FocusControl;
@@ -1790,7 +1793,8 @@ var
         end;
       finally
         if FLSavePoint <> '' then
-          ExecSingleQuery('RELEASE SAVEPOINT ' + FLSavePoint);
+          Transaction.ReleaseSavePoint(FLSavePoint);
+          //ExecSingleQuery('RELEASE SAVEPOINT ' + FLSavePoint);
         if Transaction.InTransaction and DidActivate then
           Transaction.Commit;
       end;
@@ -1903,7 +1907,8 @@ begin
         StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
         '-', '', [rfReplaceAll]), 1, 30);
     try
-      ExecSingleQuery('SAVEPOINT ' + FLocalSavePoint);
+      Transaction.SetSavePoint(FLocalSavePoint);
+      //ExecSingleQuery('SAVEPOINT ' + FLocalSavePoint);
     except
       FLocalSavePoint := '';
     end;
@@ -1927,8 +1932,10 @@ begin
         try
           if Transaction.InTransaction then
           begin
-            ExecSingleQuery('ROLLBACK TO ' + FLocalSavePoint);
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FLocalSavePoint);
+            Transaction.RollBackToSavePoint(FLocalSavePoint);
+            Transaction.ReleaseSavePoint(FLocalSavePoint);
+            //ExecSingleQuery('ROLLBACK TO ' + FLocalSavePoint);
+            //ExecSingleQuery('RELEASE SAVEPOINT ' + FLocalSavePoint);
             FLocalSavePoint := '';
           end;
           Close;
@@ -1943,7 +1950,8 @@ begin
     begin
       try
         if Transaction.InTransaction then
-          ExecSingleQuery('RELEASE SAVEPOINT ' + FLocalSavePoint);
+          Transaction.ReleaseSavePoint(FLocalSavePoint);
+          //ExecSingleQuery('RELEASE SAVEPOINT ' + FLocalSavePoint);
         FLocalSavePoint := '';
       except
         FLocalSavePoint := '';
@@ -2135,7 +2143,8 @@ begin
             StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
             '-', '', [rfReplaceAll]), 1, 30);
         try
-          ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+          Transaction.SetSavePoint(FSavepoint);
+          //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
         except
           FSavepoint := '';
         end;
@@ -2197,8 +2206,10 @@ begin
         try
           if Transaction.InTransaction then
           begin
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            Transaction.RollBackToSavePoint(FSavepoint);
+            Transaction.ReleaseSavePoint(FSavepoint);
+            //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+            //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
           end;
           FSavepoint := '';
         except
@@ -2209,7 +2220,8 @@ begin
     end;
   finally
     if FSavePoint > '' then
-      ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+      Transaction.ReleaseSavePoint(FSavepoint);
+      //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
   end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTLINE', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
@@ -2368,7 +2380,8 @@ begin
     begin
       try
         if Transaction.InTransaction then
-          ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+          Transaction.ReleaseSavePoint(FSavepoint);
+          //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
         FSavepoint := '';
       except
         FSavepoint := '';
@@ -2435,7 +2448,8 @@ begin
         StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
         '-', '', [rfReplaceAll]), 1, 30);
     try
-      ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+      Transaction.SetSavePoint(FSavepoint);
+      //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
     except
       FSavepoint := '';
     end;
@@ -2496,8 +2510,10 @@ begin
         try
           if Transaction.InTransaction then
           begin
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            Transaction.RollBackToSavePoint(FSavepoint);
+            Transaction.ReleaseSavePoint(FSavepoint);
+            //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+            //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
           end;
           FSavepoint := '';
           FisErrorUpdate := False;
@@ -2520,7 +2536,8 @@ begin
     begin
       try
         if Transaction.InTransaction then
-          ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+          Transaction.ReleaseSavePoint(FSavepoint);
+          //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
         FSavepoint := '';
       except
         FSavepoint := '';
@@ -3262,7 +3279,8 @@ begin
         StringReplace(CreateClassID, '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]),
         '-', '', [rfReplaceAll]), 1, 30);
     try
-      ExecSingleQuery('SAVEPOINT ' + FSavepoint);
+      Transaction.SetSavePoint(FSavepoint);
+      //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
     except
       FSavepoint := '';
     end;
@@ -3285,8 +3303,10 @@ begin
         try
           if Transaction.InTransaction then
           begin
-            ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-            ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+            Transaction.RollBackToSavePoint(FSavepoint);
+            Transaction.ReleaseSavePoint(FSavepoint);
+            //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
+            //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
           end;
           FSavepoint := '';
           Close;
@@ -3301,7 +3321,8 @@ begin
     begin
       try
         if Transaction.InTransaction then
-          ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
+          Transaction.ReleaseSavePoint(FSavepoint);
+          //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
         FSavepoint := '';
       except
         FSavepoint := '';
