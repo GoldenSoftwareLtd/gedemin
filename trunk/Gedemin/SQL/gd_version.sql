@@ -417,6 +417,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (125, '0000.0001.0000.0156', '30.09.2010', 'Strategy for LB-RB tree widening has been changed');
 
+INSERT INTO fin_versioninfo
+  VALUES (126, '0000.0001.0000.0157', '05.11.2010', 'Relation field BN_BANKSTATEMENTLINE.COMMENT has been extended');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

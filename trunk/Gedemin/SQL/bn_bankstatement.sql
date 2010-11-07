@@ -115,7 +115,7 @@ CREATE TABLE bn_bankstatementline
   bankbranch           dbankcode,    /* номер отделения банка */	
   docnumber            dtext20,      /* номер документа(платежки)                   */
 
-  comment              dtext80,      /* каментар                                    */
+  comment              dblobtext80_1251,      /* каментар                                    */
                                      /* например, назначение платежа                */
   accountkey           dforeignkey,  /* ссылка на ac_account */
 

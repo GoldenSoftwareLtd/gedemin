@@ -43,10 +43,10 @@ uses
   mdf_ModifyBlockTriggers3, mdf_ModifyBlockTriggers4, mdf_wageUpdateFields, mdf_AddGenerators,
   mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
   mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage,
-  mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean;
+  mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean, mdf_ConvertBNStatementCommentToBlob;
 
 const
-  cProcCount = 151;
+  cProcCount = 152;
 
 type
   TModifyProc = record
@@ -304,7 +304,8 @@ const
     (ModifyProc: ChangeIsCheckNumberType; ModifyVersion: '0000.0001.0000.0152'),
     (ModifyProc: DropRGIndex; ModifyVersion: '0000.0001.0000.0153'),
     (ModifyProc: CreateRGIndex; ModifyVersion: '0000.0001.0000.0154'),
-    (ModifyProc: RegenerateLBRBTree2; ModifyVersion: '0000.0001.0000.0155')
+    (ModifyProc: RegenerateLBRBTree2; ModifyVersion: '0000.0001.0000.0155'),
+    (ModifyProc: ConvertBNStatementCommentToBlob; ModifyVersion: '0000.0001.0000.0156')
   );
 
 implementation
