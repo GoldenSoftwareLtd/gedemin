@@ -334,22 +334,14 @@ begin
     if Preview then
       Ffr4Report.ShowPreparedReport
     else begin
-      if Assigned(Printer.Printers) then
-      begin
-        if PrinterName > '' then
-        begin
-          if Printer.Printers.IndexOf(PrinterName) < 0 then
-            raise Exception.Create('Принтер "' + PrinterName + '" не доступен.');
-          Printer.PrinterIndex := Printer.Printers.IndexOf(PrinterName);
-        end;
-        Ffr4Report.PrintOptions.ShowDialog := False;
-        Ffr4Report.PrintOptions.PageNumbers := '';
-        Ffr4Report.PrintOptions.Copies := 1;
-        Ffr4Report.PrintOptions.Collate := True;
-        Ffr4Report.PrintOptions.PrintPages := ppAll;
-        Ffr4Report.Print;
-        {FfrReport.PrintPreparedReport('', 1, True, frAll);}
-      end;
+      if PrinterName > '' then
+        Ffr4Report.PrintOptions.Printer := PrinterName;
+      Ffr4Report.PrintOptions.ShowDialog := False;
+      Ffr4Report.PrintOptions.PageNumbers := '';
+      Ffr4Report.PrintOptions.Copies := 1;
+      Ffr4Report.PrintOptions.Collate := True;
+      Ffr4Report.PrintOptions.PrintPages := ppAll;
+      Ffr4Report.Print;
     end;
   except
     on E: Exception do
