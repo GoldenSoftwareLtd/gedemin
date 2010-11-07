@@ -2,7 +2,7 @@ inherited gdc_dlgBankStatementLine: Tgdc_dlgBankStatementLine
   Left = 320
   Top = 156
   Anchors = [akLeft, akBottom]
-  ClientHeight = 362
+  ClientHeight = 392
   ClientWidth = 416
   PixelsPerInch = 96
   TextHeight = 13
@@ -44,34 +44,33 @@ inherited gdc_dlgBankStatementLine: Tgdc_dlgBankStatementLine
     Caption = 'Дебет, вал:'
   end
   inherited Label1: TLabel
-    Top = 284
+    Top = 312
   end
   object Label10: TLabel [15]
     Left = 8
-    Top = 257
+    Top = 285
     Width = 54
     Height = 13
     Caption = 'Операция:'
   end
   inherited lblAcctAccount: TLabel
-    Top = 311
+    Top = 339
   end
   inherited Bevel1: TBevel
-    Top = 332
+    Top = 362
     Width = 416
   end
   inherited btnAccess: TButton
-    Top = 341
+    Top = 371
     TabOrder = 17
   end
   inherited btnNew: TButton
-    Top = 341
+    Top = 371
     TabOrder = 18
   end
-  inherited btnOK: TButton
-    Left = 276
-    Top = 341
-    TabOrder = 15
+  inherited btnHelp: TButton
+    Top = 371
+    TabOrder = 19
   end
   inherited ibcmbCompany: TgsIBLookupComboBox
     Top = 122
@@ -114,20 +113,25 @@ inherited gdc_dlgBankStatementLine: Tgdc_dlgBankStatementLine
     Width = 84
   end
   inherited memComment: TDBMemo
-    Top = 197
+    Left = 8
+    Top = 213
+    Width = 406
+    Height = 63
+    ScrollBars = ssVertical
     TabOrder = 11
+  end
+  inherited btnOK: TButton
+    Left = 276
+    Top = 371
+    TabOrder = 15
   end
   inherited btnCancel: TButton
     Left = 348
-    Top = 341
+    Top = 371
     TabOrder = 16
   end
-  inherited btnHelp: TButton
-    Top = 341
-    TabOrder = 19
-  end
   inherited edDoc: TEdit
-    Top = 280
+    Top = 308
     TabOrder = 13
   end
   inherited dbeAccount: TDBEdit
@@ -136,7 +140,7 @@ inherited gdc_dlgBankStatementLine: Tgdc_dlgBankStatementLine
   end
   object iblkTransaction: TgsIBLookupComboBox [34]
     Left = 128
-    Top = 253
+    Top = 281
     Width = 286
     Height = 21
     HelpContext = 1
@@ -160,7 +164,7 @@ inherited gdc_dlgBankStatementLine: Tgdc_dlgBankStatementLine
     TabOrder = 5
   end
   inherited iblkAccountKey: TgsIBLookupComboBox
-    Top = 307
+    Top = 335
     TabOrder = 14
   end
   inherited alBase: TActionList
