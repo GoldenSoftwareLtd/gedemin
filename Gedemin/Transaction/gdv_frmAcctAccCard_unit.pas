@@ -12,7 +12,7 @@ uses
   gsStorage_CompPath, IBSQL, AcctUtils, gd_security, gdcBaseInterface,
   gdv_frAcctCompany_unit, AcctStrings, IBDatabase, gsIBLookupComboBox,
   gdv_AcctConfig_unit, gdc_frmTransaction_unit, gd_createable_form,
-  gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview;
+  gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gsPeriodEdit;
 
 type
   Tgdv_frmAcctAccCard = class(Tgdv_frmAcctBaseForm)

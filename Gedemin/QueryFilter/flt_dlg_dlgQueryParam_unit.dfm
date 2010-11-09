@@ -1,6 +1,6 @@
 object dlgQueryParam: TdlgQueryParam
-  Left = 376
-  Top = 365
+  Left = 772
+  Top = 285
   BorderStyle = bsDialog
   Caption = '¬ведите параметры'
   ClientHeight = 63

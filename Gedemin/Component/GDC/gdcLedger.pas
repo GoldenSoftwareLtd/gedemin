@@ -153,16 +153,16 @@ var
   F: TatRelationField;
 const
   cFunctionBody =
-    'sub %s (BeginDate, EndDate%s)'#13 +
-    '  set F = Designer.CreateObject(Application, "%s", "") '#13 +
-    '  F.Caption = "%s" '#13 +
-    '  F.FindComponent("xdeStart").Date = BeginDate '#13 +
-    '  F.FindComponent("xdeFinish").Date = EndDate '#13 +
-    '  F.FindComponent("iblConfiguratior").CurrentKeyInt = gdcBaseManager.GetIdByRuidString("%s") '#13 +
+    'Sub %s (DatePeriod%s)'#13 +
+    '  Set F = Designer.CreateObject(Application, "%s", "") '#13#10 +
+    '  F.Caption = "%s" '#13#10 +
+    '  F.DateBegin = DatePeriod(0) '#13#10 +
+    '  F.DateEnd = DatePeriod(1) '#13#10 +
+    '  F.GetComponent("iblConfiguratior").CurrentKeyInt = gdcBaseManager.GetIdByRuidString("%s") '#13#10 +
     '%s' +
-    '  F.FindComponent("actRun").Execute'#13 +
-    '  F.Show '#13 +
-    'end sub';
+    '  F.GetComponent("actRun").Execute'#13#10 +
+    '  F.Show '#13#10 +
+    'End Sub';
 begin
   if FieldByName('showinexplorer').AsInteger <> 1 then
    HideCommand
@@ -174,127 +174,122 @@ begin
       SQL.SQl.Text := 'SELECT id FROM gd_function WHERE name = :N';
       SQL.ParamByName('N').AsString := Format(cFunctionName, [RUIDToStr(GetRUID)]);
       SQL.ExecQuery;
-{      if not SQL.EOF then
-      begin}
-        gdcFunction := TgdcFunction.Create(nil);
+
+      gdcFunction := TgdcFunction.Create(nil);
+      try
+        gdcFunction.Transaction := Transaction;
+        gdcFunction.ReadTransaction := ReadTransaction;
+        gdcFunction.SubSet := 'ByID';
+        gdcFunction.Id := SQL.FieldByName('id').AsInteger;
+        gdcFunction.Open;
+        gdcFunction.Edit;
         try
-          gdcFunction.Transaction := Transaction;
-          gdcFunction.ReadTransaction := ReadTransaction;
-          gdcFunction.SubSet := 'ByID';
-          gdcFunction.Id := SQL.FieldByName('id').AsInteger;
-          gdcFunction.Open;
-          gdcFunction.Edit;
+          gdcFunction.FieldByName(fnName).AsString := Format(cFunctionName, [RUIDToStr(GetRUID)]);
+          gdcFunction.FieldByName(fnModule).AsString := scrUnkonownModule;
+          gdcFunction.FieldByName(fnModuleCode).AsInteger := OBJ_APPLICATION;
+          InputParams := '';
+          SetParams := '';
+          Params := TgsParamList.Create;
           try
-            gdcFunction.FieldByName(fnName).AsString := Format(cFunctionName, [RUIDToStr(GetRUID)]);
-            gdcFunction.FieldByName(fnModule).AsString := scrUnkonownModule;
-            gdcFunction.FieldByName(fnModuleCode).AsInteger := OBJ_APPLICATION;
-            InputParams := '';
-            SetParams := '';
-            Params := TgsParamList.Create;
+            P := TgsParamData.Create(DatePeriod, 'Период', prmPeriod, '');
+            Params.Add(P);
+
+            S := CreateBlobStream(FieldByName('config'), bmRead);
             try
-              P := TgsParamData.Create(BeginDate, 'Начало периода', prmDate, '');
-              Params.Add(P);
-              P := TgsParamData.Create(EndDate, 'Конец периода', prmDate, '');
-              Params.Add(P);
+              CName := ReadStringFromStream(S);
+              TPersistentClass(C) := GetClass(CName);
+              if C <> nil then
+              begin
+                Config := C.Create;
+                try
+                  Config.LoadFromStream(S);
 
-              S := CreateBlobStream(FieldByName('config'), bmRead);
-              try
-                CName := ReadStringFromStream(S);
-                TPersistentClass(C) := GetClass(CName);
-                if C <> nil then
-                begin
-                  Config := C.Create;
+                  V := TStringList.Create;
                   try
-                    Config.LoadFromStream(S);
-
-                    V := TStringList.Create;
-                    try
-                      V.Text := Config.Analytics;
-                      for I := 0 to V.Count - 1 do
+                    V.Text := Config.Analytics;
+                    for I := 0 to V.Count - 1 do
+                    begin
+                      if V.Values[V.Names[I]] = cInputParam then
                       begin
-                        if V.Values[V.Names[I]] = cInputParam then
-                        begin
-                          F := atDatabase.FindRelationField(AC_ENTRY, V.Names[I]);
-                          V[I] := StringReplace(V[I], 'USR$', '', [rfReplaceAll]);
-                          InputParams := InputParams + Format(', %s', [V.Names[I]]);
+                        F := atDatabase.FindRelationField(AC_ENTRY, V.Names[I]);
+                        V[I] := StringReplace(V[I], 'USR$', '', [rfReplaceAll]);
+                        InputParams := InputParams + Format(', %s', [V.Names[I]]);
 
-                          if F <> nil then
+                        if F <> nil then
+                        begin
+                          if (F.ReferencesField <> nil) then
                           begin
-                            if (F.ReferencesField <> nil) then
-                            begin
-                              // Если поле ссылка то к параметру необходимо обращатся как к массиву
-                              SetParams := SetParams + #13 + Format(
-                                '  if CStr(%s(0)) > "" then'#13 +
-                                '    if Values > "" then _'#13 +
-                                '      Values = Values + Chr(13) + Chr(10)'#13 +
-                                '    Values = Values + "%s=" + CStr(%s(0))'#13 +
-                                '  end if', [V.Names[I], F.FieldName, V.Names[I]]);
-                             P := TgsParamData.Create(V.Names[I], F.LName, prmLinkElement, '');
-                             P.LinkTableName := F.References.RelationName;
-                             P.LinkDisplayField := F.Field.RefListFieldName;
-                             P.LinkPrimaryField := F.ReferencesField.FieldName;
-                             Params.Add(P);
-                            end else
-                            begin
-                              SetParams := SetParams + #13 + Format(
-                                '  if CStr(%s) > "" then'#13 +
-                                '    if Values > "" then _'#13 +
-                                '      Values = Values + Chr(13) + Chr(10)'#13 +
-                                '    Values = Values + "%s=" + CStr(%s)'#13 +
-                                '  end if', [V.Names[I], F.FieldName, V.Names[I]]);
-                             P := TgsParamData.Create(V.Names[I], F.LName, prmString, '');
-                             Params.Add(P);
-                            end;
+                            // Если поле ссылка то к параметру необходимо обращатся как к массиву
+                            SetParams := SetParams + #13#10 + Format(
+                              '  If CStr(%s(0)) > "" Then'#13 +
+                              '    If Values > "" Then _'#13 +
+                              '      Values = Values + Chr(13) + Chr(10)'#13#10 +
+                              '    Values = Values + "%s=" + CStr(%s(0))'#13#10 +
+                              '  End If', [V.Names[I], F.FieldName, V.Names[I]]);
+                           P := TgsParamData.Create(V.Names[I], F.LName, prmLinkElement, '');
+                           P.LinkTableName := F.References.RelationName;
+                           P.LinkDisplayField := F.Field.RefListFieldName;
+                           P.LinkPrimaryField := F.ReferencesField.FieldName;
+                           Params.Add(P);
+                          end else
+                          begin
+                            SetParams := SetParams + #13#10 + Format(
+                              '  If CStr(%s) > "" Then'#13#10 +
+                              '    If Values > "" Then _'#13#10 +
+                              '      Values = Values + Chr(13) + Chr(10)'#13#10 +
+                              '    Values = Values + "%s=" + CStr(%s)'#13#10 +
+                              '  End If', [V.Names[I], F.FieldName, V.Names[I]]);
+                           P := TgsParamData.Create(V.Names[I], F.LName, prmString, '');
+                           Params.Add(P);
                           end;
                         end;
                       end;
-                    finally
-                      V.Free;
                     end;
                   finally
-                    Config.Free;
+                    V.Free;
                   end;
+                finally
+                  Config.Free;
                 end;
-              finally
-                S.Free;
-              end;
-
-              S := gdcFunction.CreateBlobStream(gdcFunction.FieldByName('ENTEREDPARAMS'), bmWrite);
-              try
-                Params.SaveToStream(S);
-              finally
-                S.Free;
               end;
             finally
-              Params.Free;
+              S.Free;
             end;
 
-            if SetParams > '' then
-              SetParams :=   '  set frAcctAnalytics = F.FindComponent("frAcctAnalytics")'#13 +
-                '  Values = frAcctAnalytics.Values'#13 + SetParams + #13'  frAcctAnalytics.Values = Values'#13;
-
-
-            gdcFunction.FieldByName(fnScript).AsString := Format(cFunctionBody,
-              [gdcFunction.FieldByName(fnName).AsString,
-              InputParams,
-              GetGDVViewForm,
-              FieldByName(fnName).AsString,
-              RUIDToStr(GetRUID),
-              SetParams]);
-            gdcFunction.FieldByName(fnLanguage).AsString := DefaultLanguage;
-            gdcFunction.Post;
-
-            if ScriptFactory <> nil then
-              ScriptFactory.ReloadFunction(gdcFunction.FieldByName(fnID).AsInteger);
-          except
-            gdcFunction.Cancel;
-            raise;
+            S := gdcFunction.CreateBlobStream(gdcFunction.FieldByName('ENTEREDPARAMS'), bmWrite);
+            try
+              Params.SaveToStream(S);
+            finally
+              S.Free;
+            end;
+          finally
+            Params.Free;
           end;
-          CreateCommand(gdcFunction.GetRUID);
-        finally
-          gdcFunction.Free;
+
+          if SetParams > '' then
+            SetParams := '  Set frAcctAnalytics = F.GetComponent("frAcctAnalytics")'#13#10 +
+              '  Values = frAcctAnalytics.Values'#13#10 + SetParams + #13#10'  frAcctAnalytics.Values = Values'#13#10;
+
+          gdcFunction.FieldByName(fnScript).AsString := Format(cFunctionBody,
+            [gdcFunction.FieldByName(fnName).AsString,
+            InputParams,
+            GetGDVViewForm,
+            FieldByName(fnName).AsString,
+            RUIDToStr(GetRUID),
+            SetParams]);
+          gdcFunction.FieldByName(fnLanguage).AsString := DefaultLanguage;
+          gdcFunction.Post;
+
+          if ScriptFactory <> nil then
+            ScriptFactory.ReloadFunction(gdcFunction.FieldByName(fnID).AsInteger);
+        except
+          gdcFunction.Cancel;
+          raise;
         end;
-{      end;}
+        CreateCommand(gdcFunction.GetRUID);
+      finally
+        gdcFunction.Free;
+      end;
     finally
       SQL.Free;
     end;

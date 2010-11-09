@@ -30,8 +30,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, flt_dlg_frmParamLine_unit, prm_ParamFunctions_unit,
-  ComCtrls, Spin, xCalc, Mask, xDateEdits, xCalculatorEdit, gd_AttrComboBox,
-  IBDatabase, gsIBLookupComboBox, ContNrs;
+  ComCtrls, IBDatabase, ContNrs;
 
 type
   TdlgQueryParam = class(TForm)
@@ -72,7 +71,9 @@ var
 implementation
 
 uses
-  flt_ScriptInterface, flt_EnumComboBox
+  flt_ScriptInterface, flt_EnumComboBox, gsPeriodEdit, gsRadioButtons,
+  gsIBLookupComboBox, xCalculatorEdit, Mask, xDateEdits, 
+  gd_AttrComboBox
   {$IFDEF GEDEMIN}
   , Storages, gd_security
   {$ENDIF}
@@ -91,6 +92,8 @@ type
   TWinControlCrack = class(TWinControl)
   end;
 
+  CWinControl = class of TWinControl;
+
 { TdlgQueryParam }
 
 function TdlgQueryParam.QueryParams(const AnParamList: TgsParamList): Boolean;
@@ -98,6 +101,11 @@ var
   FWinCtrl: TWinControl;
   SizeScreenY: Integer;
   S: String;
+
+  function CreateWinControl(C: CWinControl): TWinControl;
+  begin
+    Result := C.Create(nil);
+  end;
 
   function GetLinesHeight: Integer;
   var
@@ -135,30 +143,23 @@ var
       else begin
         FLineList.Add(Tdlg_frmParamLine.Create(nil));
         case LocParamList.Params[I].ParamType of
-          prmInteger:
+          prmInteger, prmFloat:
           begin
-            FWinCtrl := TSpinEdit.Create(nil);
-            try
-              TSpinEdit(FWinCtrl).Value := LocParamList.Params[I].ResultValue;
-            except
-            end;
+            FWinCtrl := CreateWinControl(TxCalculatorEdit);
             Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
-          end;
-
-          prmFloat:
-          begin
-            FWinCtrl := TxCalculatorEdit.Create(nil);
-            TxCalculatorEdit(FWinCtrl).DecDigits := -1;
+            if LocParamList.Params[I].ParamType = prmInteger then
+              TxCalculatorEdit(FWinCtrl).DecDigits := 0
+            else
+              TxCalculatorEdit(FWinCtrl).DecDigits := -1;
             try
               TxCalculatorEdit(FWinCtrl).Value := LocParamList.Params[I].ResultValue;
             except
             end;
-            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
           end;
 
           prmString:
           begin
-            FWinCtrl := TEdit.Create(nil);
+            FWinCtrl := CreateWinControl(TEdit);
             Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               TEdit(FWinCtrl).Text := LocParamList.Params[I].ResultValue;
@@ -168,11 +169,11 @@ var
 
           prmDate:
           begin
-            FWinCtrl := TxDateEdit.Create(nil);
+            FWinCtrl := CreateWinControl(TxDateEdit);
+            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             TxDateEdit(FWinCtrl).ConvertErrorMessage := False;
             TxDateEdit(FWinCtrl).Kind := kDate;
             TxDateEdit(FWinCtrl).DateTime := Date;
-            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               TxDateEdit(FWinCtrl).DateTime := LocParamList.Params[I].ResultValue;
             except
@@ -181,11 +182,11 @@ var
 
           prmDateTime:
           begin
-            FWinCtrl := TxDateEdit.Create(nil);
+            FWinCtrl := CreateWinControl(TxDateEdit);
+            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             TxDateEdit(FWinCtrl).ConvertErrorMessage := False;
             TxDateEdit(FWinCtrl).Kind := kDateTime;
             TxDateEdit(FWinCtrl).DateTime := Now;
-            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               TxDateEdit(FWinCtrl).DateTime := LocParamList.Params[I].ResultValue;
             except
@@ -194,20 +195,69 @@ var
 
           prmTime:
           begin
-            FWinCtrl := TxDateEdit.Create(nil);
+            FWinCtrl := CreateWinControl(TxDateEdit);
+            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             TxDateEdit(FWinCtrl).ConvertErrorMessage := False;
             TxDateEdit(FWinCtrl).Kind := kTime;
             TxDateEdit(FWinCtrl).DateTime := Time;
-            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               TxDateEdit(FWinCtrl).DateTime := LocParamList.Params[I].ResultValue;
             except
             end;
           end;
 
+          prmPeriod:
+          begin
+            FWinCtrl := CreateWinControl(TgsPeriodEdit);
+            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
+            if VarIsArray(LocParamList.Params[I].ResultValue) and
+              (VarArrayHighBound(LocParamList.Params[I].ResultValue, 1) = 1) then
+            try
+              TgsPeriodEdit(FWinCtrl).AssignPeriod(LocParamList.Params[I].ResultValue[0],
+                LocParamList.Params[I].ResultValue[1]);
+            except
+            end;
+          end;
+
+          prmList:
+          begin
+            FWinCtrl := CreateWinControl(TgsList);
+            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
+            TgsList(FWinCtrl).Required := LocParamList.Params[I].Required;
+            TgsList(FWinCtrl).Items := AnParamList.Params[I].ValuesList;
+            try
+              TgsSelectBase(FWinCtrl).Value := LocParamList.Params[I].ResultValue;
+            except
+            end;
+          end;
+
+          prmRadioButtons:
+          begin
+            FWinCtrl := CreateWinControl(TgsRadioButtons);
+            TgsRadioButtons(FWinCtrl).Required := LocParamList.Params[I].Required;
+            TgsRadioButtons(FWinCtrl).Items := AnParamList.Params[I].ValuesList;
+            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
+            try
+              TgsSelectBase(FWinCtrl).Value := LocParamList.Params[I].ResultValue;
+            except
+            end;
+          end;
+
+          prmCheckBoxs:
+          begin
+            FWinCtrl := CreateWinControl(TgsCheckBoxes);
+            TgsCheckBoxes(FWinCtrl).Required := LocParamList.Params[I].Required;
+            TgsCheckBoxes(FWinCtrl).Items := AnParamList.Params[I].ValuesList;
+            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
+            try
+              TgsSelectBase(FWinCtrl).Value := LocParamList.Params[I].ResultValue;
+            except
+            end;
+          end;
+
           prmLinkSet:
           begin
-            FWinCtrl := TgsComboBoxAttrSet.Create(nil);
+            FWinCtrl := CreateWinControl(TgsComboBoxAttrSet);
             TgsComboBoxAttrSet(FWinCtrl).Style := csDropDownList;
             TgsComboBoxAttrSet(FWinCtrl).TableName := LocParamList.Params[I].LinkTableName;
             TgsComboBoxAttrSet(FWinCtrl).FieldName := LocParamList.Params[I].LinkDisplayField;
@@ -219,10 +269,9 @@ var
             try
               if LocParamList.Params[I].LinkConditionFunction > '' then
               begin
-                if (LocParamList.Params[I].LinkFunctionLanguage > '') and
-                 Assigned(FilterScript) then
+                if (LocParamList.Params[I].LinkFunctionLanguage > '') and Assigned(FilterScript) then
                   Cond := FilterScript.GetScriptResult('=' + LocParamList.Params[I].LinkConditionFunction,
-                   LocParamList.Params[I].LinkFunctionLanguage, TempStr)
+                    LocParamList.Params[I].LinkFunctionLanguage, TempStr)
                 else
                   Cond := LocParamList.Params[I].LinkConditionFunction;
                 TgsComboBoxAttrSet(FWinCtrl).Condition := Cond;
@@ -237,7 +286,7 @@ var
 
           prmLinkElement:
           begin
-            FWinCtrl := TgsIBLookupComboBox.Create(nil);
+            FWinCtrl := CreateWinControl(TgsIBLookupComboBox);
             TgsIBLookupComboBox(FWinCtrl).ListTable := LocParamList.Params[I].LinkTableName;
             TgsIBLookupComboBox(FWinCtrl).ListField := LocParamList.Params[I].LinkDisplayField;
             TgsIBLookupComboBox(FWinCtrl).KeyField := LocParamList.Params[I].LinkPrimaryField;
@@ -265,7 +314,7 @@ var
 
           prmBoolean:
           begin
-            FWinCtrl := TCheckBox.Create(nil);
+            FWinCtrl := CreateWinControl(TCheckBox);
             Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               TCheckBox(FWinCtrl).Checked := LocParamList.Params[I].ResultValue;
@@ -275,12 +324,12 @@ var
 
           prmEnumElement:
           begin
-            FWinCtrl := TfltDBEnumComboBox.Create(nil);
-            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
+            FWinCtrl := CreateWinControl(TfltDBEnumComboBox);
             TfltDBEnumComboBox(FWinCtrl).Style := csDropDownList;
             TfltDBEnumComboBox(FWinCtrl).TableName := LocParamList.Params[I].LinkTableName;
             TfltDBEnumComboBox(FWinCtrl).FieldName := LocParamList.Params[I].LinkDisplayField;
             TfltDBEnumComboBox(FWinCtrl).Database := FDatabase;
+            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               TfltDBEnumComboBox(FWinCtrl).QuoteSelected := LocParamList.Params[I].ResultValue;
             except
@@ -289,12 +338,12 @@ var
 
           prmEnumSet:
           begin
-            FWinCtrl := TfltDBEnumSetComboBox.Create(nil);
-            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
+            FWinCtrl := CreateWinControl(TfltDBEnumSetComboBox);
             TfltDBEnumSetComboBox(FWinCtrl).Style := csDropDownList;
             TfltDBEnumSetComboBox(FWinCtrl).TableName := LocParamList.Params[I].LinkTableName;
             TfltDBEnumSetComboBox(FWinCtrl).FieldName := LocParamList.Params[I].LinkDisplayField;
             TfltDBEnumSetComboBox(FWinCtrl).Database := FDatabase;
+            Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               TfltDBEnumSetComboBox(FWinCtrl).QuoteSelected := LocParamList.Params[I].ResultValue;
             except
@@ -304,6 +353,7 @@ var
         else
           raise Exception.Create('Тип параметра не поддерживается.');
         end;
+
         Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).Parent := Self.ScrollBox1;
         Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).Top := GetLinesHeight;
         Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).Align := alTop;
@@ -474,60 +524,69 @@ var
   begin
     Result := varUnknown;
     if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TxCalculatorEdit then
-      Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxCalculatorEdit).Value
-    else
-      if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TSpinEdit then
-        Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TSpinEdit).Value
+    begin
+      if (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxCalculatorEdit).Text = '' then
+        Result := Unassigned
       else
-        if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TEdit then
-          Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TEdit).Text
+      begin
+        if (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxCalculatorEdit).DecDigits = 0 then
+          Result := Integer(Trunc((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxCalculatorEdit).Value))
         else
-          if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TDateTimePicker then
-            begin
-              TempDateTime := Frac((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TDateTimePicker).Time);
-              Result := VarAsType(TempDateTime, varDate);
-            end
-          else
-            if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TxDateEdit then
-            begin
-              if (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxDateEdit).Kind = kDate then
-              begin
-                TempDateTime := Trunc((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxDateEdit).Date);
-                Inc(DateParamCount);
-                case DateParamCount of
-                  1: FirstDateValue := TempDateTime;
-                  2: TempDateTime := CheckcondDateValue(TempDateTime);
-                end;
-                Result := VarAsType(TempDateTime, varDate);
-              end else
-              begin
-                TempDateTime := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxDateEdit).DateTime;
-                Result := VarAsType(TempDateTime, varDate);
-              end
-            end else
-              if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TCheckBox then
-              begin
-                Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TCheckBox).Checked
-              end else
-                if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TfltDBEnumComboBox then
-                begin
-                  Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TfltDBEnumComboBox).QuoteSelected
-                end else
-                  if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TfltDBEnumSetComboBox then
-                  begin
-                    Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TfltDBEnumSetComboBox).QuoteSelected
-                  end else
-                    if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsIBLookupComboBox then
-                      Result := VarArrayOf([(Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsIBLookupComboBox).CurrentKeyInt])
-                    else
-                      if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsComboBoxAttrSet then
-                      begin
-                        Result := VarArrayCreate([0, (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl
-                         as TgsComboBoxAttrSet).ValueID.Count - 1], varVariant);
-                        for I := 0 to VarArrayHighBound(Result, 1) do
-                          Result[I] := Integer((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsComboBoxAttrSet).ValueID.Objects[I])
-                      end else
-                        Assert(False, 'This TWinControl isn''t known.');
+          Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxCalculatorEdit).Value;
+      end;
+    end
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsPeriodEdit then
+    begin
+      Result := VarArrayCreate([0, 1], varVariant);
+      Result[0] := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsPeriodEdit).Date;
+      Result[1] := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsPeriodEdit).EndDate;
+    end
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsList then
+      Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsList).Value
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsRadioButtons then
+      Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsRadioButtons).Value
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsCheckBoxes then
+      Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsCheckBoxes).Value
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TEdit then
+      Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TEdit).Text
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TDateTimePicker then
+    begin
+      TempDateTime := Frac((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TDateTimePicker).Time);
+      Result := VarAsType(TempDateTime, varDate);
+    end
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TxDateEdit then
+    begin
+      if (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxDateEdit).Kind = kDate then
+      begin
+        TempDateTime := Trunc((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxDateEdit).Date);
+        Inc(DateParamCount);
+        case DateParamCount of
+          1: FirstDateValue := TempDateTime;
+          2: TempDateTime := CheckcondDateValue(TempDateTime);
+        end;
+        Result := VarAsType(TempDateTime, varDate);
+      end else
+      begin
+        TempDateTime := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxDateEdit).DateTime;
+        Result := VarAsType(TempDateTime, varDate);
+      end
+    end
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TCheckBox then
+       Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TCheckBox).Checked
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TfltDBEnumComboBox then
+       Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TfltDBEnumComboBox).QuoteSelected
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TfltDBEnumSetComboBox then
+       Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TfltDBEnumSetComboBox).QuoteSelected
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsIBLookupComboBox then
+       Result := VarArrayOf([(Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsIBLookupComboBox).CurrentKeyInt])
+    else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsComboBoxAttrSet then
+    begin
+       Result := VarArrayCreate([0,
+         (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsComboBoxAttrSet).ValueID.Count - 1], varVariant);
+       for I := 0 to VarArrayHighBound(Result, 1) do
+         Result[I] := Integer((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsComboBoxAttrSet).ValueID.Objects[I]);
+    end else
+       raise Exception.Create('Invalid param type.');
   end;
 
   procedure SetResultFromLine(const LocParamList: TgsParamList);
@@ -559,7 +618,6 @@ var
       if not (ParamType = prmNoQuery) then
       begin
         ResultValue := GetResult(QI);
-
         if Required then
         begin
           if VarIsArray(ResultValue) then

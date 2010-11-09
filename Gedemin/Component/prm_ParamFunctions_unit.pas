@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2010 by Golden Software of Belarus
 
   Module
 
@@ -30,17 +30,29 @@ uses
   SysUtils, Contnrs, Classes;
 
 type
-  TParamType = (prmInteger, prmFloat, prmDate, prmDateTime, prmTime,
-    prmString, prmBoolean, prmLinkElement, prmLinkSet, prmEnumElement, prmEnumSet,
-    prmNoQuery);
-    // prmNoQuery - используется для параметров, кот. не запрашиваются в в диалоге
+  TParamType = (
+    prmInteger,
+    prmFloat,
+    prmDate,
+    prmDateTime,
+    prmTime,
+    prmString,
+    prmBoolean,
+    prmLinkElement,
+    prmLinkSet,
+    prmEnumElement,
+    prmEnumSet,
+    prmNoQuery,       // используется для параметров, кот. не запрашиваются в в диалоге
+    prmPeriod,
+    prmList,
+    prmRadioButtons,
+    prmCheckBoxs);
 
-type
   TSortOrder = 0..2;
 
   TgsParamData = class
   private
-    FRealName, FDisplayName: String;
+    FRealName, FDisplayName, FValuesList: String;
     FParamType: TParamType;
     FComment: String;
     FLinkTableName, FLinkDisplayField, FLinkPrimaryField: String;
@@ -48,36 +60,39 @@ type
     FLinkConditionFunction, FLinkFunctionLanguage: String;
     FRequired: Boolean;
     FSortOrder: TSortOrder;
+
     function GetParamType: TParamType;
     procedure SetLinkPrimaryField(const Value: String);
     procedure SetDisplayName(const Value: String);
     function GetLinkTableName: String;
+
   public
-    constructor Create(const AnRealName, AnDisplayName: String;
-     AnParamType: TParamType; const AnComment: String); overload; virtual;
-    constructor Create(const AnRealName, AnDisplayName: String;
-     AnParamType: TParamType; AnLinkTable, AnLinkDisplay,
-     AnLinkPrimary, AnLinkConditionFunction, AnLinkFunctionLanguage: String;
-     const AnComment: String); overload; virtual;
+    constructor Create(const ARealName, ADisplayName: String;
+      AParamType: TParamType; const AComment: String); overload; virtual;
+    constructor Create(const ARealName, ADisplayName: String;
+      const AParamType: TParamType; const ALinkTable, ALinkDisplay,
+      ALinkPrimary, ALinkConditionFunction, ALinkFunctionLanguage: String;
+      const AComment: String); overload; virtual;
+    constructor Create(const ARealName, ADisplayName: String;
+      AParamType: TParamType; const AComment: String;
+      const AValuesList: String); overload; virtual;
+    constructor Create(const ASource: TgsParamData); overload; virtual;
 
     procedure Assign(const Source: TgsParamData); virtual;
     procedure SaveToStream(AnStream: TStream); virtual;
     procedure LoadFromStream(AnStream: TStream); virtual;
 
+    property ValuesList: String read FValuesList write FValuesList;
     property RealName: String read FRealName write FRealName;
     property DisplayName: String read FDisplayName write SetDisplayName;
     property ParamType: TParamType read GetParamType write FParamType;
     property Comment: String read FComment write FComment;
     property LinkTableName: String read GetLinkTableName write FLinkTableName;
-    property LinkDisplayField: String read FLinkDisplayField
-     write FLinkDisplayField;
-    property LinkPrimaryField: String read FLinkPrimaryField
-     write SetLinkPrimaryField;
+    property LinkDisplayField: String read FLinkDisplayField write FLinkDisplayField;
+    property LinkPrimaryField: String read FLinkPrimaryField write SetLinkPrimaryField;
     property ResultValue: Variant read FResultValue write FResultValue;
-    property LinkConditionFunction: String read FLinkConditionFunction
-     write FLinkConditionFunction;
-    property LinkFunctionLanguage: String read FLinkFunctionLanguage
-     write FLinkFunctionLanguage;
+    property LinkConditionFunction: String read FLinkConditionFunction write FLinkConditionFunction;
+    property LinkFunctionLanguage: String read FLinkFunctionLanguage write FLinkFunctionLanguage;
     property Required: Boolean read FRequired write FRequired;
     property SortOrder: TSortOrder read FSortOrder write FSortOrder;
   end;
@@ -85,29 +100,33 @@ type
 type
   TgsParamList = class(TObjectList)
   private
-    //procedure CheckName(const AName: String);
-
     function GetParam(const I: Integer): TgsParamData;
     procedure SetParam(const I: Integer; const AnParam: TgsParamData);
 
   public
-    function AddParam(AnParamName, AnDisplayName: String;
-     AnParamType: TParamType; const AnComment: String): Integer; virtual;
-    function AddLinkParam(AnParamName, AnDisplayName: String;
-     AnParamType: TParamType; AnTableName, AnDisplayField,
-     AnPrimaryField, AnLinkConditionFunction, AnLinkFunctionLanguage: String;
-     const AnComment: String): Integer; virtual;
+    function AddParam(const AParamName, ADisplayName: String;
+      const AParamType: TParamType; const AComment: String): Integer; virtual;
+    function AddLinkParam(const AParamName, ADisplayName: String;
+      const AParamType: TParamType; const ATableName, ADisplayField,
+      APrimaryField, ALinkConditionFunction, ALinkFunctionLanguage: String;
+      const AComment: String): Integer; virtual;
+    function AddSelectParam(const AParamName, ADisplayName: String;
+      const AParamType: TParamType; const AComment: String; const AValuesList: String): Integer; virtual;
+
     procedure SaveToStream(AnStream: TStream); virtual;
     procedure LoadFromStream(AnStream: TStream); virtual;
+
     procedure Assign(const Source: TgsParamList); virtual;
     function GetVariantArray: Variant;
     procedure SetVariantArray(AnVarArray: Variant);
+
+    function Find(const AParam: TgsParamData): Integer;
 
     property Params[const I: Integer]: TgsParamData read GetParam write SetParam;
   end;
 
   function GetParamsFromText(const AnParamList: TgsParamList;
-   const AnFunctionName, AnText: String): Boolean;
+    const AnFunctionName, AnText: String): Boolean;
   function StringToParamType(const AParamTypeStr: String): TParamType;
   function ParamTypeToString(const AParamType: TParamType): String;
 
@@ -120,13 +139,14 @@ uses
   prp_MessageConst, TypInfo;
 
 const
-  StartParam = 'PRST';
-  FinishParam = 'FNST';
-  StartListParam = 'SLPR';
-  FinishListParam = 'FLPR';
-  RequiredLabel = '^R';
-  SortAscLabel = '^A';
-  SortDescLabel = '^D';
+  StartParam          = 'PRST';
+  FinishParam         = 'FNST';
+  StartListParam      = 'SLPR';
+  FinishListParam     = 'FLPR';
+  RequiredLabel       = '^R';
+  SortAscLabel        = '^A';
+  SortDescLabel       = '^D';
+  ValuesListDelimiter = '^V';
 
 function GetParamsFromText(const AnParamList: TgsParamList;
  const AnFunctionName, AnText: String): Boolean;
@@ -249,15 +269,15 @@ end;
 
 { TgsParamData }
 
-constructor TgsParamData.Create(const AnRealName, AnDisplayName: String;
-  AnParamType: TParamType; const AnComment: String);
+constructor TgsParamData.Create(const ARealName, ADisplayName: String;
+  AParamType: TParamType; const AComment: String);
 begin
   inherited Create;
 
-  FRealName := AnRealName;
-  FDisplayName := AnDisplayName;
-  FParamType := AnParamType;
-  FComment := AnComment;
+  FRealName := ARealName;
+  FDisplayName := ADisplayName;
+  FParamType := AParamType;
+  FComment := AComment;
 end;
 
 procedure TgsParamData.Assign(const Source: TgsParamData);
@@ -274,19 +294,28 @@ begin
   FResultValue := Source.ResultValue;
   FLinkConditionFunction := Source.LinkConditionFunction;
   FLinkFunctionLanguage := Source.LinkFunctionLanguage;
+  FValuesList := Source.ValuesList;
 end;
 
-constructor TgsParamData.Create(const AnRealName, AnDisplayName: String;
-  AnParamType: TParamType; AnLinkTable, AnLinkDisplay,
-  AnLinkPrimary, AnLinkConditionFunction, AnLinkFunctionLanguage: String;
-  const AnComment: String);
+constructor TgsParamData.Create(const ARealName, ADisplayName: String;
+  const AParamType: TParamType; const ALinkTable, ALinkDisplay,
+  ALinkPrimary, ALinkConditionFunction, ALinkFunctionLanguage: String;
+  const AComment: String);
 begin
-  Create(AnRealName, AnDisplayName, AnParamType, AnComment);
-  FLinkTableName := AnLinkTable;
-  FLinkDisplayField := AnLinkDisplay;
-  FLinkPrimaryField := AnLinkPrimary;
-  FLinkConditionFunction := AnLinkConditionFunction;
-  FLinkFunctionLanguage := AnLinkFunctionLanguage;
+  Create(ARealName, ADisplayName, AParamType, AComment);
+  FLinkTableName := ALinkTable;
+  FLinkDisplayField := ALinkDisplay;
+  FLinkPrimaryField := ALinkPrimary;
+  FLinkConditionFunction := ALinkConditionFunction;
+  FLinkFunctionLanguage := ALinkFunctionLanguage;
+end;
+
+constructor TgsParamData.Create(const ARealName, ADisplayName: String;
+  AParamType: TParamType; const AComment: String;
+  const AValuesList: String);
+begin
+  Create(ARealName, ADisplayName, AParamType, AComment);
+  FValuesList := AValuesList;
 end;
 
 procedure TgsParamData.LoadFromStream(AnStream: TStream);
@@ -297,7 +326,7 @@ begin
   Assert(Length(StartParam) = Length(FinishParam));
   AnStream.ReadBuffer(TestLabel[0], Length(StartParam));
   TestLabel[Length(StartParam)] := #0;
-  if StartParam <> TestLabel then
+  if StartParam <> TestLabel  then
     raise Exception.Create('Неверный формат данных параметров');
 
   AnStream.ReadBuffer(I, SizeOf(I));
@@ -348,18 +377,28 @@ begin
   if FRequired then
     Delete(FComment, I, Length(RequiredLabel));
   FSortOrder := 0;
+
   I := Pos(SortAscLabel, FComment);
   if I > 0 then
   begin
     Delete(FComment, I, Length(SortAscLabel));
     FSortOrder := 1;
   end;
+
   I := Pos(SortDescLabel, FComment);
   if I > 0 then
   begin
     Delete(FComment, I, Length(SortDescLabel));
     FSortOrder := 2;
   end;
+
+  I := Pos(ValuesListDelimiter, FComment);
+  if I > 0 then
+  begin
+    FValuesList := Copy(FComment, I + Length(ValuesListDelimiter), 4096);
+    SetLength(FComment, I - 1);
+  end else
+    FValuesList := '';
 
   AnStream.ReadBuffer(TestLabel[0], Length(StartParam));
   TestLabel[Length(StartParam)] := #0;
@@ -411,13 +450,16 @@ begin
   if I > 0 then
     AnStream.Write(FLinkFunctionLanguage[1], I);
 
-  S := FComment;
+  if FValuesList > '' then
+    S := FComment + ValuesListDelimiter + FValuesList;
+
   if FRequired then
     S := S + RequiredLabel;
-  if FSortOrder = 1 then
-    S := S + SortAscLabel;
-  if FSortOrder = 2 then
-    S := S + SortDescLabel;
+
+  case FSortOrder of
+    1: S := S + SortAscLabel;
+    2: S := S + SortDescLabel;
+  end;
 
   I := Length(S);
   AnStream.Write(I, SizeOf(I));
@@ -426,6 +468,7 @@ begin
 
   AnStream.Write(FinishParam, SizeOf(FinishParam));
 end;
+
 
 function TgsParamData.GetParamType: TParamType;
 begin
@@ -447,23 +490,33 @@ begin
   Result := FLinkTableName;
 end;
 
-{ TgsParamList }
-
-function TgsParamList.AddLinkParam(AnParamName, AnDisplayName: String;
-  AnParamType: TParamType; AnTableName, AnDisplayField,
-  AnPrimaryField, AnLinkConditionFunction, AnLinkFunctionLanguage: String;
-  const AnComment: String): Integer;
+constructor TgsParamData.Create(const ASource: TgsParamData);
 begin
-  //CheckName(AnDisplayName);
-  Result := Add(TgsParamData.Create(AnParamName, AnDisplayName, AnParamType, AnTableName,
-    AnDisplayField, AnPrimaryField, AnLinkConditionFunction, AnLinkFunctionLanguage, AnComment));
+  inherited Create;
+  Assign(ASource);
 end;
 
-function TgsParamList.AddParam(AnParamName, AnDisplayName: String;
-  AnParamType: TParamType; const AnComment: String): Integer;
+{ TgsParamList }
+
+function TgsParamList.AddLinkParam(const AParamName, ADisplayName: String;
+  const AParamType: TParamType; const ATableName, ADisplayField,
+  APrimaryField, ALinkConditionFunction, ALinkFunctionLanguage: String;
+  const AComment: String): Integer;
 begin
-  //CheckName(AnParamName);
-  Result := Add(TgsParamData.Create(AnParamName, AnDisplayName, AnParamType, AnComment));
+  Result := Add(TgsParamData.Create(AParamName, ADisplayName, AParamType, ATableName,
+    ADisplayField, APrimaryField, ALinkConditionFunction, ALinkFunctionLanguage, AComment));
+end;
+
+function TgsParamList.AddParam(const AParamName, ADisplayName: String;
+  const AParamType: TParamType; const AComment: String): Integer;
+begin
+  Result := Add(TgsParamData.Create(AParamName, ADisplayName, AParamType, AComment));
+end;
+
+function TgsParamList.AddSelectParam(const AParamName, ADisplayName: String;
+  const AParamType: TParamType; const AComment: String; const AValuesList: String): Integer;
+begin
+  Result := Add(TgsParamData.Create(AParamName, ADisplayName, AParamType, AComment, AValuesList));
 end;
 
 procedure TgsParamList.Assign(const Source: TgsParamList);
@@ -482,21 +535,28 @@ begin
         Params[I].Assign(Source.Params[I]);
       end;
     end;
-  end;  
+  end;
 end;
 
-{
-procedure TgsParamList.CheckName(const AName: String);
+function TgsParamList.Find(const AParam: TgsParamData): Integer;
 var
   I: Integer;
 begin
+  Result := -1;
   for I := 0 to Count - 1 do
   begin
-    if AnsiCompareText(Params[I].DisplayName, AName) = 0 then
-      raise Exception.Create('Дублируется имя параметра "' + AName + '".');
+    if (AnsiCompareText(AParam.LinkTableName, Params[I].LinkTableName) = 0)
+      and (AParam.LinkFunctionLanguage = Params[I].LinkFunctionLanguage)
+      and (AnsiCompareText(AParam.LinkConditionFunction, Params[I].LinkConditionFunction) = 0)
+      and (AnsiCompareText(AParam.LinkPrimaryField, Params[I].LinkPrimaryField) = 0)
+      and (AnsiCompareText(AParam.LinkDisplayField, Params[I].LinkDisplayField) = 0)
+      and (AParam.SortOrder = Params[I].SortOrder) then
+    begin
+      Result := I;
+      break;
+    end;
   end;
 end;
-}
 
 function TgsParamList.GetParam(const I: Integer): TgsParamData;
 begin
@@ -515,7 +575,7 @@ end;
 
 procedure TgsParamList.LoadFromStream(AnStream: TStream);
 var
-  TestLabel: array[0..Length(StartListParam) - 1] of Char;
+  TestLabel: array[0..Length(StartListParam) - 1 ] of Char;
 begin
   Clear;
   if AnStream.Size = 0 then

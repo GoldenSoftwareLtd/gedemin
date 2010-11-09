@@ -10,7 +10,7 @@ uses
   buttons, grids, dbctrls, mask, dbclient, IBDatabaseInfo, IBEvents, IBExtract,
   IBQuery, IBStoredProc, IBTable, IBUpdateSQL, imglist, Outline, filectrl,
   ColorGrd, toolwin, Gauges, Spin, obj_WrapperIBXClasses, dbgrids, contnrs,
-  printers, gdv_frAcctAnalytics_unit, shdocvw, JvDBImage, gsMorph;
+  printers, gdv_frAcctAnalytics_unit, shdocvw, JvDBImage, gsMorph, gsPeriodEdit;
 
 
 type
@@ -4415,6 +4415,15 @@ type
     procedure Refresh; safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
+  end;
+
+  TwrpPeriodEdit  = class(TwrpCustomEdit, IgsPeriodEdit)
+  private
+    function GetPeriodEdit: TgsPeriodEdit;
+  protected
+    function Get_Date: TDateTime; safecall;
+    function Get_EndDate: TDateTime; safecall;
+    procedure AssignPeriod(ADate: TDateTime; AnEndDate: TDateTime); safecall;
   end;
 
 //function InterfaceToObject(AValue: IDispatch): TObject;
@@ -22376,6 +22385,27 @@ begin
   GetFrame.Values := Value
 end;
 
+{TwrpPeriodEdit}
+function TwrpPeriodEdit.GetPeriodEdit: TgsPeriodEdit;
+begin
+  Result := GetObject as TgsPeriodEdit;
+end;
+
+function TwrpPeriodEdit.Get_Date: TDateTime;
+begin
+  Result := GetPeriodEdit.Date;
+end;
+
+function TwrpPeriodEdit.Get_EndDate: TDateTime;
+begin
+  Result := GetPeriodEdit.EndDate;
+end;
+
+procedure TwrpPeriodEdit.AssignPeriod(ADate, AnEndDate: TDateTime);
+begin
+  GetPeriodEdit.AssignPeriod(ADate, AnEndDate);
+end;
+
 { TwrpWebBrowser }
 
 function TwrpWebBrowser.GetWebBrowser: TWebBrowser;
@@ -23011,5 +23041,5 @@ initialization
   RegisterGdcOLEClass(TPrinter, TwrpPrinter, ComServer.TypeLib, IID_IgsPrinter);
   RegisterGdcOLEClass(TfrAcctAnalytics, TwrpfrAcctAnalytics, ComServer.TypeLib, IID_IgsfrAcctAnalytics);
   RegisterGdcOLEClass(TCommonCalendar, TwrpCommonCalendar, ComServer.TypeLib, IID_IgsCommonCalendar);
-
+  RegisterGdcOLEClass(TgsPeriodEdit, TwrpPeriodEdit, ComServer.TypeLib, IID_IgsPeriodEdit);
 end.

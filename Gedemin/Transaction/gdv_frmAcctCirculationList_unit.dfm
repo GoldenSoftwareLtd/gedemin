@@ -1,6 +1,6 @@
 inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
-  Left = 255
-  Top = 72
+  Left = 190
+  Top = 241
   Width = 1058
   Height = 629
   HelpContext = 159
@@ -9,10 +9,10 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
   TextHeight = 13
   inherited sLeft: TSplitter
     Left = 250
-    Height = 552
+    Height = 563
   end
   inherited TBDock1: TTBDock
-    Width = 1042
+    Width = 1050
     inherited tbMainToolbar: TTBToolbar
       CloseButton = False
       object TBItem3_: TTBItem [2]
@@ -29,7 +29,7 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
       end
     end
     inherited TBToolbar1: TTBToolbar
-      Left = 498
+      Left = 457
       inherited pCofiguration: TPanel
         inherited iblConfiguratior: TgsIBLookupComboBox
           gdClassName = 'TgdcAcctCicrilationListConfig'
@@ -38,35 +38,35 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
     end
   end
   inherited Panel1: TPanel
-    Left = 255
-    Width = 778
-    Height = 552
+    Left = 256
+    Width = 785
+    Height = 563
     inherited ibgrMain: TgsIBGrid
-      Width = 778
-      Height = 552
+      Width = 785
+      Height = 563
       OnGetTotal = ibgrMainGetTotal
     end
   end
   inherited TBDock2: TTBDock
-    Height = 552
+    Height = 563
   end
   inherited TBDock3: TTBDock
-    Left = 1033
-    Height = 552
+    Left = 1041
+    Height = 563
   end
   inherited TBDock4: TTBDock
-    Top = 582
-    Width = 1042
+    Top = 593
+    Width = 1050
   end
   inherited pLeft: TPanel
     Width = 241
-    Height = 552
+    Height = 563
     inherited ScrollBox: TScrollBox
       Width = 241
-      Height = 535
+      Height = 546
       inherited Panel5: TPanel
         Top = 220
-        Width = 224
+        Width = 225
         Height = 68
         TabOrder = 1
         inherited Label17: TLabel
@@ -113,35 +113,44 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
       end
       inherited frAcctQuantity: TfrAcctQuantity
         Top = 329
-        Width = 224
+        Width = 225
         TabOrder = 6
         inherited ppMain: TgdvParamPanel
-          Width = 224
+          Width = 225
           Visible = False
         end
       end
       inherited frAcctSum: TfrAcctSum
         Top = 370
-        Width = 224
+        Width = 225
         inherited ppMain: TgdvParamPanel
-          Width = 224
+          Width = 225
+          inherited pnlEQ: TPanel
+            Width = 213
+          end
+          inherited pnlQuantity: TPanel
+            Width = 213
+          end
+          inherited pnlTop: TPanel
+            Width = 213
+          end
         end
       end
       inherited frAcctAnalytics: TfrAcctAnalytics
         Top = 288
-        Width = 224
+        Width = 225
         TabOrder = 2
         Visible = False
         inherited ppAnalytics: TgdvParamPanel
-          Width = 224
+          Width = 225
           Visible = False
         end
       end
       inherited frAcctCompany: TfrAcctCompany
         Top = 591
-        Width = 224
+        Width = 225
         inherited ppMain: TgdvParamPanel
-          Width = 224
+          Width = 225
           inherited cbAllCompanies: TCheckBox
             Width = 188
           end
@@ -152,14 +161,14 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
       end
       inherited ppAppear: TgdvParamPanel
         Top = 651
-        Width = 224
+        Width = 225
         Height = 42
         Visible = False
       end
       object pCardOfAccount: TPanel
         Left = 0
         Top = 0
-        Width = 224
+        Width = 225
         Height = 220
         Align = alTop
         BevelOuter = bvNone
@@ -176,7 +185,7 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
         object ptvGroup: TPanel
           Left = 3
           Top = 16
-          Width = 218
+          Width = 219
           Height = 201
           Align = alBottom
           Anchors = [akLeft, akTop, akRight, akBottom]
@@ -186,7 +195,7 @@ inherited gdv_frmAcctCirculationList: Tgdv_frmAcctCirculationList
           object tvGroup: TgsDBTreeView
             Left = 1
             Top = 1
-            Width = 216
+            Width = 217
             Height = 199
             DataSource = dsAcctChart
             KeyField = 'ID'

@@ -51,26 +51,17 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
         Control = chkAllInterval
       end
       inherited Panel4: TPanel
-        inherited Label1: TLabel
-          Top = 5
-        end
-        inherited Label2: TLabel
+        Width = 227
+        inherited lblPeriod: TLabel
           Top = 5
         end
         inherited SpeedButton1: TSpeedButton
-          Left = 245
-          Top = 2
+          Left = 201
           Hint = 'Построить отчет'
-        end
-        inherited xdeStart: TxDateEdit
-          Top = 1
-        end
-        inherited xdeFinish: TxDateEdit
-          Top = 2
         end
       end
       object chkAllInterval: TCheckBox
-        Left = 275
+        Left = 227
         Top = 4
         Width = 162
         Height = 17
@@ -212,7 +203,6 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
         HelpContext = 1
         TabStop = False
         Database = dmDatabase.ibdbGAdmin
-        Transaction = gdc_frmInvCard.ibtrCommon
         ListTable = 'gd_good'
         ListField = 'name'
         KeyField = 'id'
@@ -228,7 +218,6 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
         HelpContext = 1
         TabStop = False
         Database = dmDatabase.ibdbGAdmin
-        Transaction = gdc_frmInvCard.ibtrCommon
         ListTable = 'gd_contact'
         ListField = 'name'
         KeyField = 'id'

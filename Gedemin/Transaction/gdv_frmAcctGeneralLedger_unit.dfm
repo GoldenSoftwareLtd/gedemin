@@ -1,8 +1,8 @@
 inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
-  Left = 251
-  Top = 105
+  Left = 250
+  Top = 188
   Width = 1066
-  Height = 652
+  Height = 631
   HelpContext = 351
   Caption = 'Главная книга'
   DefaultMonitor = dmDesktop
@@ -10,30 +10,32 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   TextHeight = 13
   inherited sLeft: TSplitter
     Left = 273
-    Height = 575
+    Height = 565
   end
   inherited TBDock1: TTBDock
-    Width = 1050
+    Width = 1058
     inherited tbMainToolbar: TTBToolbar
       DockPos = -5
     end
     inherited TBToolbar2: TTBToolbar
+      Left = 76
       DockPos = 0
       inherited Panel4: TPanel
-        Width = 271
-        inherited Label1: TLabel
-          Left = 3
+        Width = 224
+        inherited lblPeriod: TLabel
+          Left = 2
         end
-        inherited Label2: TLabel
-          Left = 115
+        inherited SpeedButton1: TSpeedButton
+          Left = 198
         end
-        inherited xdeStart: TxDateEdit
-          Left = 46
+        inherited gsPeriodEdit: TgsPeriodEdit
+          Left = 47
         end
       end
     end
     inherited TBToolbar1: TTBToolbar
-      Left = 476
+      Left = 312
+      DockPos = 312
       inherited pCofiguration: TPanel
         inherited iblConfiguratior: TgsIBLookupComboBox
           gdClassName = 'TgdcAcctGeneralLedgerConfig'
@@ -42,36 +44,36 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
     end
   end
   inherited Panel1: TPanel
-    Left = 278
-    Width = 763
-    Height = 575
+    Left = 279
+    Width = 770
+    Height = 565
     TabOrder = 2
     inherited ibgrMain: TgsIBGrid
-      Width = 763
-      Height = 575
+      Width = 770
+      Height = 565
     end
   end
   inherited TBDock2: TTBDock
-    Height = 575
+    Height = 565
   end
   inherited TBDock3: TTBDock
-    Left = 1041
-    Height = 575
+    Left = 1049
+    Height = 565
   end
   inherited TBDock4: TTBDock
-    Top = 605
-    Width = 1050
+    Top = 595
+    Width = 1058
   end
   inherited pLeft: TPanel
     Width = 264
-    Height = 575
+    Height = 565
     TabOrder = 1
     inherited ScrollBox: TScrollBox
       Width = 264
-      Height = 558
+      Height = 548
       inherited Panel5: TPanel
         Top = 184
-        Width = 247
+        Width = 248
         Height = 93
         TabOrder = 1
         inherited Label17: TLabel
@@ -150,44 +152,44 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       end
       inherited frAcctQuantity: TfrAcctQuantity
         Top = 318
-        Width = 247
+        Width = 248
         TabOrder = 4
         inherited ppMain: TgdvParamPanel
-          Width = 247
+          Width = 248
         end
       end
       inherited frAcctSum: TfrAcctSum
         Top = 359
-        Width = 247
+        Width = 248
         TabOrder = 6
         inherited ppMain: TgdvParamPanel
-          Width = 247
+          Width = 248
           inherited pnlEQ: TPanel
-            Width = 235
+            Width = 236
           end
           inherited pnlQuantity: TPanel
-            Width = 235
+            Width = 236
           end
           inherited pnlTop: TPanel
-            Width = 235
+            Width = 236
           end
         end
       end
       inherited frAcctAnalytics: TfrAcctAnalytics
         Top = 277
-        Width = 247
+        Width = 248
         TabOrder = 2
         Visible = False
         inherited ppAnalytics: TgdvParamPanel
-          Width = 247
+          Width = 248
         end
       end
       inherited frAcctCompany: TfrAcctCompany
         Top = 580
-        Width = 247
+        Width = 248
         TabOrder = 3
         inherited ppMain: TgdvParamPanel
-          Width = 247
+          Width = 248
           inherited cbAllCompanies: TCheckBox
             Width = 211
           end
@@ -199,7 +201,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       end
       inherited ppAppear: TgdvParamPanel
         Top = 640
-        Width = 247
+        Width = 248
         Height = 38
         inherited cbExtendedFields: TCheckBox
           Top = 37
@@ -225,7 +227,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       object pCardOfAccount: TPanel
         Left = 0
         Top = 0
-        Width = 247
+        Width = 248
         Height = 184
         Align = alTop
         BevelOuter = bvNone
@@ -242,7 +244,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
         object ptvGroup: TPanel
           Left = 3
           Top = 16
-          Width = 241
+          Width = 242
           Height = 165
           Align = alBottom
           Anchors = [akLeft, akTop, akRight, akBottom]
@@ -252,7 +254,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
           object tvGroup: TgsDBTreeView
             Left = 1
             Top = 1
-            Width = 239
+            Width = 240
             Height = 163
             DataSource = dsAcctChart
             KeyField = 'ID'

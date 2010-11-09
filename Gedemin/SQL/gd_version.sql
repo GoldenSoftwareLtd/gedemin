@@ -420,6 +420,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (126, '0000.0001.0000.0157', '05.11.2010', 'Relation field BN_BANKSTATEMENTLINE.COMMENT has been extended');
 
+INSERT INTO fin_versioninfo
+  VALUES (127, '0000.0001.0000.0158', '08.11.2010', 'Replacing references to xdeStart, xdeFinish components across macros');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

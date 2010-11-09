@@ -2,7 +2,7 @@ object BaseFrame: TBaseFrame
   Left = 0
   Top = 0
   Width = 443
-  Height = 277
+  Height = 270
   Align = alClient
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -18,7 +18,7 @@ object BaseFrame: TBaseFrame
     Left = 0
     Top = 0
     Width = 443
-    Height = 277
+    Height = 270
     BorderStyle = bsNone
     TabsVisible = True
     ActivePage = tsProperty
@@ -40,7 +40,7 @@ object BaseFrame: TBaseFrame
         Left = 0
         Top = 9
         Width = 439
-        Height = 241
+        Height = 234
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1

@@ -1,6 +1,7 @@
+
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2010 by Golden Software of Belarus
 
   Module
 
@@ -18,6 +19,7 @@
   Revisions history
 
     1.00    17.10.02    tiptop        Initial version.
+
 --}
 
 unit prp_FunctionFrame_Unit;
@@ -97,12 +99,6 @@ type
     ScrollBox: TScrollBox;
     Label19: TLabel;
     pnlCaption: TPanel;
-    Label13: TLabel;
-    Label14: TLabel;
-    Label15: TLabel;
-    Label16: TLabel;
-    Label17: TLabel;
-    Label18: TLabel;
     gdcDelphiObject: TgdcDelphiObject;
     dsDelpthiObject: TDataSource;
     SynCompletionProposal: TSynCompletionProposal;
@@ -283,6 +279,7 @@ type
     procedure SetCaretXY(const Value: TPoint); override;
     function GetMasterObject: TgdcBase;override;
     // Обработчик события SynhEdit.OnParamChange
+    procedure edValueChange(Sender: TObject);
     procedure ParamChange(Sender: TObject);
     procedure DoOnCreate; override;
     procedure DoOnDestroy; override;
@@ -494,6 +491,8 @@ begin
           LocParamLine.Parent := ScrollBox;
           LocParamLine.SetParam(ParamDlg.Params[I]);
           LocParamLine.OnParamChange := ParamChange;
+          LocParamLine.edValuesList.OnChange := edValueChange;
+
           FParamLines.Add(LocParamLine);
           ScrollBox.VertScrollBar.Increment := LocParamLine.Height;
         end;
@@ -523,6 +522,11 @@ begin
 end;
 
 procedure TFunctionFrame.ParamChange(Sender: TObject);
+begin
+  Modify := True;
+end;
+
+procedure TFunctionFrame.edValueChange(Sender: TObject);
 begin
   Modify := True;
 end;
@@ -2945,7 +2949,7 @@ begin
               end;
               mLine:
               begin
-                SQL.SQL.Text := 'UPDATE gd_documenttype SET linefunctiontemplate = :functiontemplate WHERE id = :id';
+                SQL.SQL.Text := 'UPDATE gd_documenttype SETlinefunctiontemplate = :functiontemplate WHERE id = :id';
               end;
             end;
 

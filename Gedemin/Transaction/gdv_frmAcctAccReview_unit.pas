@@ -11,7 +11,7 @@ uses
   gsDBGrid, gsIBGrid, gsIBLookupComboBox, Mask, xDateEdits, Buttons,
   TB2Item, TB2Dock, TB2Toolbar, gsStorage_CompPath, gd_ClassList, Storages,
   AcctUtils, AcctStrings, gdv_AcctConfig_unit, gdcBaseInterface, at_classes,
-  gd_createable_form, gdvAcctBase, gdvAcctAccReview;
+  gd_createable_form, gdvAcctBase, gdvAcctAccReview, gsPeriodEdit;
 
 type
   Tgdv_frmAcctAccReview = class(Tgdv_frmAcctBaseForm)

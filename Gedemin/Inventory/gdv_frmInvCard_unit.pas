@@ -10,7 +10,8 @@ uses
   gdvParamPanel, dmImages_unit, gsIBLookupComboBox, IBCustomDataSet, IBSQL,
   gdcBase, gdcInvMovement, dmDatabase_unit, ComCtrls, gdv_InvCardConfig_unit,
   gdcInvDocument_unit, gdv_frAcctTreeAnalytic_unit, contnrs,
-  gdv_frAcctAnalytics_unit, xCalculatorEdit, frFieldVlues_unit, gd_security;
+  gdv_frAcctAnalytics_unit, xCalculatorEdit, frFieldVlues_unit, gd_security,
+  gsPeriodEdit;
 
 type
   TgdvInvCardFieldInfoRec = record
@@ -316,12 +317,8 @@ begin
   DocsC:= frCreditDocs.Lines[0].Condition;
   if (GoodV = '') and (frGoodValues.Condition = '') then
     raise Exception.Create('Необходимо выбрать ТМЦ или задать признаки товара!');
-  if not chkAllInterval.Checked and (xdeStart.Date > xdeFinish.Date) then begin
-    raise Exception.Create('Дата начала должна быть меньше либо равна дате окончания!');
-  end;
 
   gdcObject.Close;
-
   gdcObject.ExtraConditions.Clear;
 
   sDocs:= '';
@@ -333,6 +330,7 @@ begin
     else
       sDocs:= ' debit > 0 AND doct.id' + DocsC;
   end;
+
   gdcObject.ExtraConditions.Add(sDocs);
   if GoodV <> '' then
     gdcObject.ExtraConditions.Add(' z.goodkey' + GoodV);
@@ -340,8 +338,8 @@ begin
     gdcObject.ExtraConditions.Add(' ((m.contactkey' + DeptV + ') or (m.contactkey = :contactkey))');
   if not chkAllInterval.Checked then begin
     gdcObject.ExtraConditions.Add(' m.movementdate >= :datebegin and m.movementdate <= :dateend ');
-    gdcObject.ParamByName('datebegin').AsDateTime := xdeStart.Date;
-    gdcObject.ParamByName('dateend').AsDateTime := xdeFinish.Date;
+    gdcObject.ParamByName('datebegin').AsDateTime := gsPeriodEdit.Date;
+    gdcObject.ParamByName('dateend').AsDateTime := gsPeriodEdit.EndDate;
   end;
 
   gdcInvCard.ViewFeatures.Clear;
@@ -366,13 +364,13 @@ begin
   gdcInvCard.Open;
 
   if not chkAllInterval.Checked then begin
-    Saldo:= gdcInvCard.GetRemainsOnDate(xdeStart.Date - 1, False, DeptV);
+    Saldo:= gdcInvCard.GetRemainsOnDate(gsPeriodEdit.Date - 1, False, DeptV);
     edBeginRest.Text:= FloatToStr(Saldo);
   end
   else
     edBeginRest.Text:= '';
 
-  Saldo:= gdcInvCard.GetRemainsOnDate(xdeFinish.Date, chkAllInterval.Checked, DeptV);
+  Saldo:= gdcInvCard.GetRemainsOnDate(gsPeriodEdit.EndDate, chkAllInterval.Checked, DeptV);
   edEndRest.Text:= FloatToStr(Saldo);
 
   if cmbConfig.CurrentKeyInt > -1 then begin
@@ -396,16 +394,11 @@ begin
       frDebitDocs.Values:= DebitDocsValue;
     if CreditDocsValue <> cInputParam then
       frCreditDocs.Values:= CreditDocsValue;
-    xdeStart.Date:= BeginDate;
-    xdeFinish.Date:= EndDate;
+    gsPeriodEdit.AssignPeriod(BeginDate, EndDate);
     chkInternalOps.Checked:= InternalOps;
     chkAllInterval.Checked:= AllInterval;
-    if not chkAllInterval.Checked then begin
-      if not InputInterval then begin
-        xdeStart.Date:= BeginDate;
-        xdeFinish.Date:= EndDate;
-      end;
-    end;
+    if (not chkAllInterval.Checked) and (not InputInterval) then
+      gsPeriodEdit.AssignPeriod(BeginDate, EndDate);
     gdcObject.Filtered:= not InternalOps;
 
     for i:= 0 to lbCard.Items.Count - 1 do begin
@@ -431,8 +424,8 @@ begin
     DeptValue:= frMainValues.Lines[frMainValues.IndexOf('CONTACTKEY')].Value;
     DebitDocsValue:= frDebitDocs.Values;
     CreditDocsValue:= frCreditDocs.Values;
-    BeginDate:= xdeStart.Date;
-    EndDate:= xdeFinish.Date;
+    BeginDate:= gsPeriodEdit.Date;
+    EndDate:= gsPeriodEdit.EndDate;
     CardValues:= frCardValues.Values;
     GoodValues:= frGoodValues.Values;
     InternalOps:= chkInternalOps.Checked;
@@ -467,10 +460,8 @@ end;
 procedure Tgdv_frmInvCard.actRunUpdate(Sender: TObject);
 begin
   inherited;
-  xdeStart.Enabled := not chkAllInterval.Checked;
-  xdeFinish.Enabled := not chkAllInterval.Checked;
-  Label1.Enabled := not chkAllInterval.Checked;
-  Label2.Enabled := not chkAllInterval.Checked;
+  gsPeriodEdit.Enabled := not chkAllInterval.Checked;
+  lblPeriod.Enabled := not chkAllInterval.Checked;
 end;
 
 function Tgdv_frmInvCard.GetIndexByFieldName(lb: TCheckListBox; Field: string): integer;
@@ -832,10 +823,8 @@ begin
         frCardValues.NeedClearValues:= False;
         frCardValues.Values:= frm.frCardValues.Values;
       end;
-      if not chkAllInterval.Checked then begin
-        xdeStart.Date:= frm.xdeStart.Date;
-        xdeFinish.Date:= frm.xdeFinish.Date;
-      end;
+      if not chkAllInterval.Checked then
+        gsPeriodEdit.AssignPeriod(frm.gsPeriodEdit.Text);
       ppCardFields.Unwraped:= False;
       ppGoodFields.Unwraped:= False;
     end
