@@ -37,11 +37,11 @@ uses
   gdcUser, gdcGood, gdcInvDocument_unit, gdcInvConsts_unit, gdc_dlgTR_unit, gdc_dlgHGR_unit,
   gdcBaseBank, gdcStatement, gdcAttrUserdefined, gdcBugBase,
   gdcCurr, gdcInvPriceList_unit, gdcJournal, gdc_createable_form,
-  gdcTableCalendar, TB2ToolWindow, TB2Item, IBServices, gdc_dlgG_unit,
+  gdcTableCalendar, TB2ToolWindow, TB2Item, IBServices, gdc_dlgG_unit, gdc_frmSGR_unit, 
   gd_ScrException, gdcAcctEntryRegister,  gdc_frmG_unit, gdc_frmMDH_unit, gdc_frmMD2H_unit,
-  obj_WrapperIBXClasses, flt_sqlfilter_condition_type,  at_classes,
+  gdv_frmG_unit, obj_WrapperIBXClasses, flt_sqlfilter_condition_type,  at_classes,
   gsTransaction, tr_Type_unit, at_Container, NumConv,  gsScaner, gsDBTreeView,
-  ColorComboBox, gdc_dlgInvDocument_unit, BtnEdit, gdcTaxFunction,
+  ColorComboBox, gdc_dlgInvDocument_unit, BtnEdit, gdcTaxFunction, gdc_frmInvCard_unit,
   flt_QueryFilterGDC, gsStorage_CompPath, gd_AttrComboBox, gdcSetting, gdcFile,
   gdEnumComboBox, at_sql_setup, gsSupportClasses, gdc_frmInvSelectedGoods_unit, xCalc,
   gdv_dlgSelectDocument_unit, gdcLink, gsComScaner, gdc_dlgUserComplexDocument_unit
@@ -2725,6 +2725,29 @@ type
     procedure Set_gdcLinkChoose(const Value: IgsGDCBase); safecall;
     function  Get_InChoose: WordBool; safecall;
     function  Get_ChosenIDInOrder: OleVariant; safecall;
+  end;
+
+  TwrpGdc_frmSGR = class(TwrpGdc_frmG, IgsGdc_frmSGR)
+  end;
+
+  TwrpGdc_frmInvCard = class(TwrpGdc_frmSGR, IgsGdc_frmInvCard)
+  private
+    function  GetGdc_frmInvCard: Tgdc_frmInvCard;
+  protected
+    function  Get_DateBegin: TDateTime; safecall;
+    procedure Set_DateBegin(Value: TDateTime); safecall;
+    function  Get_DateEnd: TDateTime; safecall;
+    procedure Set_DateEnd(Value: TDateTime); safecall;
+  end;
+
+  TwrpGdv_frmG = class(TwrpGDCCreateableForm, IgsGdv_frmG)
+  private
+    function  GetGdv_frmG: Tgdv_frmG;
+  protected
+    function  Get_DateBegin: TDateTime; safecall;
+    procedure Set_DateBegin(Value: TDateTime); safecall;
+    function  Get_DateEnd: TDateTime; safecall;
+    procedure Set_DateEnd(Value: TDateTime); safecall;
   end;
 
   TwrpGdc_frmMDH = class(TwrpGdc_frmG, IgsGdc_frmMDH)
@@ -18002,6 +18025,60 @@ begin
     Result := nil;  
 end;
 
+{ TwrpGdv_frmG }
+
+function TwrpGdv_frmG.Get_DateBegin: TDateTime;
+begin
+  Result := GetGdv_frmG.DateBegin;
+end;
+
+function TwrpGdv_frmG.Get_DateEnd: TDateTime;
+begin
+  Result := GetGdv_frmG.DateEnd;
+end;
+
+function TwrpGdv_frmG.GetGdv_frmG: Tgdv_frmG;
+begin
+  Result := GetObject as Tgdv_frmG;
+end;
+
+procedure TwrpGdv_frmG.Set_DateBegin(Value: TDateTime);
+begin
+  GetGdv_frmG.DateBegin := Value;
+end;
+
+procedure TwrpGdv_frmG.Set_DateEnd(Value: TDateTime);
+begin
+  GetGdv_frmG.DateEnd := Value;
+end;
+
+{ TwrpGdc_frmInvCard }
+
+function TwrpGdc_frmInvCard.Get_DateBegin: TDateTime;
+begin
+  Result := GetGdc_frmInvCard.gsPeriodEdit.Date;
+end;
+
+function TwrpGdc_frmInvCard.Get_DateEnd: TDateTime;
+begin
+  Result := GetGdc_frmInvCard.gsPeriodEdit.EndDate;
+end;
+
+function TwrpGdc_frmInvCard.GetGdc_frmInvCard: Tgdc_frmInvCard;
+begin
+  Result := GetObject as Tgdc_frmInvCard;
+end;
+
+procedure TwrpGdc_frmInvCard.Set_DateBegin(Value: TDateTime);
+begin
+  GetGdc_frmInvCard.gsPeriodEdit.Date := Value;
+end;
+
+procedure TwrpGdc_frmInvCard.Set_DateEnd(Value: TDateTime);
+begin
+  GetGdc_frmInvCard.gsPeriodEdit.EndDate := Value;
+end;
+
 initialization
 
   RegisterGdcOLEClass(TgsIBGrid, TwrpGsIBGrid, ComServer.TypeLib, IID_IgsGsIBGrid);
@@ -18110,6 +18187,9 @@ initialization
   RegisterGdcOLEClass(Tgdc_frmG, TwrpGdc_frmG, ComServer.TypeLib, IID_IgsGdc_frmG);
   RegisterGdcOLEClass(Tgdc_frmMDH, TwrpGdc_frmMDH, ComServer.TypeLib, IID_IgsGdc_frmMDH);
   RegisterGdcOLEClass(Tgdc_frmMD2H, TwrpGdc_frmMD2H, ComServer.TypeLib, IID_IgsGdc_frmMD2H);
+  RegisterGdcOLEClass(Tgdc_frmSGR, TwrpGdc_frmSGR, ComServer.TypeLib, IID_IgsGdc_frmSGR);
+  RegisterGdcOLEClass(Tgdv_frmG, TwrpGdv_frmG, ComServer.TypeLib, IID_IgsGdv_frmG);
+  RegisterGdcOLEClass(Tgdc_frmInvCard, TwrpGdc_frmInvCard, ComServer.TypeLib, IID_IgsGdc_frmInvCard);
   RegisterGdcOLEClass(TGridCheckBox, TwrpGridCheckBox, ComServer.TypeLib, IID_IgsGridCheckBox);
   RegisterGdcOLEClass(TColumnExpand, TwrpColumnExpand, ComServer.TypeLib, IID_IgsColumnExpand);
   RegisterGdcOLEClass(TColumnExpands, TwrpColumnExpands, ComServer.TypeLib, IID_IgsColumnExpands);

@@ -201,8 +201,8 @@ begin
 
       if not cbAllInterval.Checked then
       begin
-        gdcObject.ParamByName('datebegin').AsDateTime := gsPeriodEdit.DatePeriod.Date;
-        gdcObject.ParamByName('dateend').AsDateTime := gsPeriodEdit.DatePeriod.EndDate;
+        gdcObject.ParamByName('datebegin').AsDateTime := gsPeriodEdit.Date;
+        gdcObject.ParamByName('dateend').AsDateTime := gsPeriodEdit.EndDate;
       end;
 
       gdcObject.Open;
@@ -220,7 +220,7 @@ begin
 
   if not cbAllInterval.Checked then
   begin
-    Saldo := gdcInvCard.GetRemainsOnDate(gsPeriodEdit.DatePeriod.Date - 1, False);
+    Saldo := gdcInvCard.GetRemainsOnDate(gsPeriodEdit.Date - 1, False);
     edBeginRest.Text := FloatToStr(Saldo);
   end
   else
@@ -270,7 +270,7 @@ begin
   Caption := Format('Карточка по ТМЦ: %s %s по %s ', [gdcInvCard.FieldByName('goodname').AsString,
     gdcInvCard.FieldByName('valuename').AsString, NameContact]);
 
-  Saldo := gdcInvCard.GetRemainsOnDate(gsPeriodEdit.DatePeriod.Date, cbAllInterval.Checked);
+  Saldo := gdcInvCard.GetRemainsOnDate(gsPeriodEdit.Date, cbAllInterval.Checked);
   edEndRest.Text := FloatToStr(Saldo);
 
 end;
@@ -345,8 +345,7 @@ begin
 
   inherited;
 
-  UserStorage.WriteString(BuildComponentPath(gsPeriodEdit), 'Period',
-    gsPeriodEdit.DatePeriod.EncodeString);
+  UserStorage.WriteString(BuildComponentPath(gsPeriodEdit), 'Period', gsPeriodEdit.Text);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMINVCARD', 'SAVESETTINGS', KEYSAVESETTINGS)}
   {M}finally

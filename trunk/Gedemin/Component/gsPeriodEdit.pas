@@ -134,7 +134,12 @@ type
 
     procedure DoOnButtonMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure DoOnButtonClick(Sender: TObject);
-    function GetDatePeriod: TgsDatePeriod;
+    //function GetDatePeriod: TgsDatePeriod;
+    function GetDate: TDate;
+    function GetEndDate: TDate;
+    procedure SetDate(const Value: TDate);
+    procedure SetEndDate(const Value: TDate);
+    procedure SyncText;
 
   protected
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
@@ -153,8 +158,14 @@ type
 
     procedure AssignPeriod(APeriod: TgsDatePeriod); overload;
     procedure AssignPeriod(const APeriod: String); overload;
+    procedure AssignPeriod(const ADate, ADateEnd: TDate); overload;
 
-    property DatePeriod: TgsDatePeriod read GetDatePeriod;
+    procedure AssignToDatePeriod(APeriod: TgsDatePeriod);
+
+    property Date: TDate read GetDate write SetDate;
+    property EndDate: TDate read GetEndDate write SetEndDate;
+
+    //property DatePeriod: TgsDatePeriod read GetDatePeriod;
 
   published
     property Anchors;
@@ -521,7 +532,7 @@ begin
   end;
 
   OutputText(Canvas, Rect(0, 0, Width, BottomHeight),
-    IntToStr(FYearStart) + '-' + IntToStr(FYearStart + YearCellX * YearCellY),
+    IntToStr(FYearStart) + gsdpPeriodDelimiter + IntToStr(FYearStart + YearCellX * YearCellY),
     False, False, False, False, True);
   DrawButtons(Canvas);
 end;
@@ -993,9 +1004,7 @@ end;
 procedure TgsPeriodEdit.AssignPeriod(APeriod: TgsDatePeriod);
 begin
   FDatePeriod.Assign(APeriod);
-  Text := FDatePeriod.EncodeString;
-  SelStart := 0;
-  SelLength := Length(Text);
+  SyncText;
 end;
 
 procedure TgsPeriodEdit.CloseUp(Accept: Boolean);
@@ -1273,7 +1282,7 @@ begin
   if FDatePeriod.ProcessShortCut(Key) then
   begin
     if (FDatePeriod.Kind = dpkDay) and (SelLength = 0) and (SelStart = Length(Text))
-      and (SelStart > 0) and (Text[SelStart] = '-') then
+      and (SelStart > 0) and (Text[SelStart] = gsdpPeriodDelimiter) then
     begin
       Text := Text + FDatePeriod.EncodeString;
     end else
@@ -1287,8 +1296,11 @@ begin
       #0..#31: ;
 
       gsdpPeriodDelimiter:
-        if (Text = '') or (Pos(gsdpPeriodDelimiter, Text) > 0) then
+        if (Text = '') or (Pos(gsdpPeriodDelimiter, Text) > 0)
+          or (Text[SelStart] = gsdpDateDelimiter) then
+        begin
           Key := #0;
+        end;
 
       gsdpDateDelimiter:
         if (Text = '') or ((SelStart = Length(Text)) and (SelStart > 0) and (SelLength = 0)
@@ -1398,18 +1410,61 @@ procedure TgsPeriodEdit.AssignPeriod(const APeriod: String);
 begin
   try
     FDatePeriod.DecodeString(APeriod);
-    Text := FDatePeriod.EncodeString;
+    SyncText;
   except
     Text := '';
   end;
-  SelStart := 0;
-  SelLength := Length(Text);
 end;
 
-function TgsPeriodEdit.GetDatePeriod: TgsDatePeriod;
+{function TgsPeriodEdit.GetDatePeriod: TgsDatePeriod;
 begin
   FDatePeriod.DecodeString(Text);
   Result := FDatePeriod;
+end;}
+
+procedure TgsPeriodEdit.AssignPeriod(const ADate, ADateEnd: TDate);
+begin
+  FDatePeriod.SetPeriod(ADate, ADateEnd);
+  SyncText;
+end;
+
+function TgsPeriodEdit.GetDate: TDate;
+begin
+  FDatePeriod.DecodeString(Text);
+  Result := FDatePeriod.Date;
+end;
+
+function TgsPeriodEdit.GetEndDate: TDate;
+begin
+  FDatePeriod.DecodeString(Text);
+  Result := FDatePeriod.EndDate;
+end;
+
+procedure TgsPeriodEdit.SetDate(const Value: TDate);
+begin
+  FDatePeriod.Date := Value;
+  SyncText;
+end;
+
+procedure TgsPeriodEdit.SetEndDate(const Value: TDate);
+begin
+  FDatePeriod.EndDate := Value;
+  SyncText;
+end;
+
+procedure TgsPeriodEdit.SyncText;
+begin
+  Text := FDatePeriod.EncodeString;
+  if WindowHandle <> 0 then
+  begin
+    SelStart := 0;
+    SelLength := Length(Text);
+  end;
+end;
+
+procedure TgsPeriodEdit.AssignToDatePeriod(APeriod: TgsDatePeriod);
+begin
+  APeriod.Assign(FDatePeriod);
 end;
 
 end.

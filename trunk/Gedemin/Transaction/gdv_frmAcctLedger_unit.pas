@@ -13,7 +13,7 @@ uses
   AcctStrings, AcctUtils, gd_security, Contnrs, IBDataBase, gdv_AcctConfig_unit,
   gsIBLookupComboBox, gdv_frAcctBaseAnalyticGroup, gdvParamPanel, gdcConstants,
   gd_createable_form, gdv_frAcctTreeAnalytic_unit, gdv_frAcctTreeAnalyticLine_unit,
-  gdvAcctBase, gdvAcctLedger;
+  gdvAcctBase, gdvAcctLedger, gsPeriodEdit;
 
 type
   Tgdv_ValueList = class;

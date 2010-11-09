@@ -1,6 +1,6 @@
 object gdv_dlgInvCardParams: Tgdv_dlgInvCardParams
-  Left = 276
-  Top = 158
+  Left = 375
+  Top = 247
   Width = 516
   Height = 436
   Caption = 'Ввод значений параметров карточки ТМЦ'
@@ -52,41 +52,13 @@ object gdv_dlgInvCardParams: Tgdv_dlgInvCardParams
         Height = 13
         Caption = 'Период:'
       end
-      object Label6: TLabel
-        Left = 156
-        Top = 8
-        Width = 67
-        Height = 13
-        Caption = 'Дата начала:'
-      end
-      object Label7: TLabel
-        Left = 300
-        Top = 8
-        Width = 85
-        Height = 13
-        Caption = 'Дата окончания:'
-      end
-      object xdeStart: TxDateEdit
-        Left = 225
-        Top = 4
-        Width = 63
+      object gsPeriodEdit: TgsPeriodEdit
+        Left = 53
+        Top = 5
+        Width = 148
         Height = 21
-        Kind = kDate
-        EditMask = '!99\.99\.9999;1;_'
-        MaxLength = 10
         TabOrder = 0
-        Text = '  .  .    '
-      end
-      object xdeFinish: TxDateEdit
-        Left = 387
-        Top = 4
-        Width = 63
-        Height = 21
-        Kind = kDate
-        EditMask = '!99\.99\.9999;1;_'
-        MaxLength = 10
-        TabOrder = 1
-        Text = '  .  .    '
+        Text = 'gsPeriodEdit'
       end
     end
     object pcValues: TPageControl

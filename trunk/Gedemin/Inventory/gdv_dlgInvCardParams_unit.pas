@@ -7,7 +7,8 @@ uses
   StdCtrls, ComCtrls, Mask, xDateEdits, ExtCtrls, frFieldVlues_unit,
   ActnList, frFieldValuesLine_unit, Db, IBCustomDataSet, gdcBase,
   gdcInvMovement, gdcBaseInterface, frFieldValuesLineConfig_unit, contnrs,
-  at_Classes, gd_ClassList, gdc_createable_form, gdv_InvCardConfig_unit;
+  at_Classes, gd_ClassList, gdc_createable_form, gdv_InvCardConfig_unit,
+  gsPeriodEdit;
 
 type
   Tgdv_dlgInvCardParams = class(TgdcCreateableForm)
@@ -28,12 +29,9 @@ type
     frGoodValues: TfrFieldValues;
     Bevel2: TBevel;
     Label8: TLabel;
-    Label6: TLabel;
-    xdeStart: TxDateEdit;
-    Label7: TLabel;
-    xdeFinish: TxDateEdit;
     frDebitDocsValues: TfrFieldValues;
     frCreditDocsValues: TfrFieldValues;
+    gsPeriodEdit: TgsPeriodEdit;
     procedure FormCreate(Sender: TObject);
     procedure actPrepareExecute(Sender: TObject);
     procedure actOkExecute(Sender: TObject);
@@ -162,10 +160,8 @@ begin
   S := TStringList.Create;
   try
     if pnlDate.Visible then begin
-      gdcConfig.Config.BeginDate:= xdeStart.Date;
-      gdcConfig.Config.EndDate:= xdeFinish.Date;
-      if xdeStart.Date > xdeFinish.Date then
-        raise Exception.Create('Дата начала должна быть меньше либо равна дате окончания!');
+      gdcConfig.Config.BeginDate:= gsPeriodEdit.Date;
+      gdcConfig.Config.EndDate:= gsPeriodEdit.EndDate;
     end;
 
     if gdcConfig.Config.GoodValue = cInputParam then

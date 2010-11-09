@@ -247,8 +247,8 @@ begin
   FKind := ASource.Kind;
   FMaxDate := ASource.MaxDate;
   FMinDate := ASource.MinDate;
-  Date := ASource.Date;
-  EndDate := ASource.EndDate;
+  FDate := ASource.Date;
+  FEndDate := ASource.EndDate;
 end;
 
 function TgsDatePeriod.EncodeString: String;
@@ -328,47 +328,22 @@ begin
     or ((FMaxDate <> 0) and (FEndDate > FMaxDate)) then
   begin
     raise EgsDatePeriod.Create('Out of range');
-  end;  
+  end;
+
+  if FDate > FEndDate then
+    raise EgsDatePeriod.Create('Invalid period');
 end;
 
 procedure TgsDatePeriod.SetDate(const Value: TDate);
-var
-  Y, M, D: Word;
 begin
-  DecodeDate(Value, Y, M, D);
-  case FKind of
-    dpkYear:
-      if (M <> 1) or (D <> 1) then
-        raise EgsDatePeriod.Create('Invalid date period');
-    dpkQuarter, dpkMonth:
-      if D <> 1 then
-        raise EgsDatePeriod.Create('Invalid date period');
-    dpkWeek:
-      if ISODayOfWeek(Value) <> 1 then
-        raise EgsDatePeriod.Create('Invalid date period');
-  end;
-
+  FKind := dpkFree;
   FDate := Value;
-  Validate;
+  //Validate;
 end;
 
 procedure TgsDatePeriod.SetEndDate(const Value: TDate);
-var
-  Y, M, D: Word;
 begin
-  DecodeDate(Value, Y, M, D);
-  case FKind of
-    dpkYear:
-      if (M <> 12) or (D <> 31) then
-        raise EgsDatePeriod.Create('Invalid date period');
-    dpkQuarter, dpkMonth:
-      if Value <> (IncMonth(EncodeDate(Y, M, 1), 1) - 1) then
-        raise EgsDatePeriod.Create('Invalid date period');
-    dpkWeek:
-      if ISODayOfWeek(Value) <> 7 then
-        raise EgsDatePeriod.Create('Invalid date period');
-  end;
-
+  FKind := dpkFree;
   FEndDate := Value;
   Validate;
 end;

@@ -7,7 +7,8 @@ uses
   Grids, DBGrids, gsDBGrid, gsIBGrid, ComCtrls, gsDBTreeView, ExtCtrls,
   TB2Dock, TB2Toolbar, gdc_Createable_Form, Db, IBCustomDataSet, gdcBase,
   gdcTree, gdcAcctAccount, IBDatabase, Buttons, StdCtrls, Mask, xDateEdits,
-  TB2Item, ActnList, Menus, gd_MacrosMenu, gd_ReportMenu, flt_sqlFilter;
+  TB2Item, ActnList, Menus, gd_MacrosMenu, gd_ReportMenu, flt_sqlFilter,
+  gsPeriodEdit;
 
 type
   Tgdv_frmG = class(TgdcCreateableForm)
@@ -32,16 +33,14 @@ type
     TBToolbar2: TTBToolbar;
     Panel4: TPanel;
     TBControlItem1: TTBControlItem;
-    Label1: TLabel;
-    xdeStart: TxDateEdit;
-    Label2: TLabel;
-    xdeFinish: TxDateEdit;
+    lblPeriod: TLabel;
     SpeedButton1: TSpeedButton;
     actRun: TAction;
     gdMacrosMenu: TgdMacrosMenu;
     gdReportMenu: TgdReportMenu;
     gsQueryFilter: TgsQueryFilter;
     TBItem4: TTBItem;
+    gsPeriodEdit: TgsPeriodEdit;
     procedure FormCreate(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
     procedure actMacrosExecute(Sender: TObject);
@@ -66,12 +65,12 @@ type
   public
     { Public declarations }
     constructor Create(AnOwner: TComponent); override;
-    
+
     procedure LoadSettings; override;
     procedure SaveSettings; override;
 
     property DateBegin: TDateTime read GetDateBegin write SetDateBegin;
-    property DateEnd: TDateTime read GetDateEnd write SetDateEnd;    
+    property DateEnd: TDateTime read GetDateEnd write SetDateEnd;
   end;
 
 var
@@ -111,10 +110,14 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  inherited;
-  DateBegin := UserStorage.ReadDateTime(BuildComponentPath(xdeStart), 'StartDate', DateBegin);
-  DateEnd := UserStorage.ReadDateTime(BuildComponentPath(xdeFinish), 'FinishDate', DateEnd);
 
+  inherited;
+
+  if Assigned(gsPeriodEdit) then
+  begin
+     gsPeriodEdit.AssignPeriod(
+       UserStorage.ReadString(BuildComponentPath(gsPeriodEdit), 'Period', ''));
+  end;
   TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDV_FRMG', 'LOADSETTINGS', KEYLOADSETTINGS)}
@@ -158,20 +161,11 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
-  if Assigned(UserStorage) then
-  begin
-    // Если период введен неправильно, сохраним период DateEnd-DateEnd
-    if DateBegin <= DateEnd then
-      UserStorage.WriteDateTime(BuildComponentPath(xdeStart), 'StartDate', DateBegin)
-    else
-      UserStorage.WriteDateTime(BuildComponentPath(xdeStart), 'StartDate', DateEnd);
-    UserStorage.WriteDateTime(BuildComponentPath(xdeFinish), 'FinishDate', DateEnd);
-  end;
-
+  UserStorage.WriteString(BuildComponentPath(gsPeriodEdit), 'Period', gsPeriodEdit.Text);
   TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
-
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDV_FRMG', 'SAVESETTINGS', KEYSAVESETTINGS)}
   {M}finally
@@ -229,22 +223,22 @@ end;
 
 function Tgdv_frmG.GetDateBegin: TDateTime;
 begin
-  Result := xdeStart.Date;
+  Result := gsPeriodEdit.Date;
 end;
 
 function Tgdv_frmG.GetDateEnd: TDateTime;
 begin
-  Result := xdeFinish.Date;
+  Result := gsPeriodEdit.EndDate;
 end;
 
 procedure Tgdv_frmG.SetDateBegin(const Value: TDateTime);
 begin
-  xdeStart.Date := Value;
+  gsPeriodEdit.Date := Value;
 end;
 
 procedure Tgdv_frmG.SetDateEnd(const Value: TDateTime);
 begin
-  xdeFinish.Date := Value;
+  gsPeriodEdit.EndDate := Value;
 end;
 
 procedure Tgdv_frmG.actRunExecute(Sender: TObject);

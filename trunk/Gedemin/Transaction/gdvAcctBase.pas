@@ -1,5 +1,7 @@
 unit gdvAcctBase;
 
+// TODO: отсюда и из всех наследников поудалять код относящийся к старому методу построения бух. отчетов
+
 interface
 
 uses
@@ -89,10 +91,6 @@ type
     procedure PackSQL(const S: TStrings);
     {$ENDIF}
   protected
-    // временные переменные для подсчета времени выполнения
-    FAllTickCount: Cardinal;
-    FQueryTickCount: Cardinal;
-    //
     FMakeEmpty: Boolean;
     FEntryBalanceDate: TDate;
     FUseEntryBalance: Boolean;
@@ -187,9 +185,7 @@ type
     property WithSubAccounts: Boolean read FWithSubAccounts write FWithSubAccounts;
     property IncludeInternalMovement: Boolean read FIncludeInternalMovement write FIncludeInternalMovement;
     property ShowExtendedFields: Boolean read FShowExtendedFields write FShowExtendedFields;
-    // временные свойства для доступа к времени выполнения
-    property AllTickCount: Cardinal read FAllTickCount;
-    property QueryTickCount: Cardinal read FQueryTickCount;
+
     property UseEntryBalance: Boolean read FUseEntryBalance write SetUseEntryBalance;
   published
     { TIBCustomDataSet }
@@ -442,11 +438,7 @@ begin
 end;
 
 procedure TgdvAcctBase.BuildReport;
-var
-  ExecuteStartTick: Cardinal;
 begin
-  ExecuteStartTick := GetTickCount;  //
-
   DoBeforeBuildReport;
   if FMakeEmpty then
     DoEmptySQL      // сформируем запрос на пустой отчет
@@ -461,10 +453,8 @@ begin
       Application.MessageBox(PChar(E.Message), 'Внимание!', MB_OK or MB_ICONEXCLAMATION or MB_SYSTEMMODAL);
     end;
   end;
-  FQueryTickCount := GetTickCount - ExecuteStartTick; //
   Self.Open;
   DoAfterBuildReport;
-  FAllTickCount := GetTickCount - ExecuteStartTick;   //
 end;
 
 procedure TgdvAcctBase.ExtendedFields(Field: TatRelationField;

@@ -32,7 +32,7 @@ resourcestring
 
 const
   ENTRYDATE = 'ENTRYDATE';
-  MONTH = 'MONTH';
+  MONTH     = 'MONTH';
 
   EXTRACT_DAY = ' EXTRACT(DAY FROM %0:s) ';
   EXTRACT_MONTH = ' EXTRACT(MONTH FROM %0:s) ';
@@ -40,9 +40,11 @@ const
   EXTRACT_YEAR = ' EXTRACT(YEAR FROM %0:s) ';
 
   AC_ENTRY = 'AC_ENTRY';
-//params
-  BeginDate = 'BEGINDATE';
-  EndDate = 'ENDDATE';
+
+  //params
+  BeginDate  = 'BEGINDATE';
+  EndDate    = 'ENDDATE';
+  DatePeriod = 'DATEPERIOD';
 
   fnImageIndex = 'imageindex';
   fnFolder = 'folder';

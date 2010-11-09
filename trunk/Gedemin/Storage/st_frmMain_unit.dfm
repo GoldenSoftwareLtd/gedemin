@@ -36,6 +36,7 @@ object st_frmMain: Tst_frmMain
       Left = 0
       Top = 23
       Caption = 'Панель инструментов'
+      DockMode = dmCannotFloatOrChangeDocks
       Images = dmImages.il16x16
       TabOrder = 0
       object TBItem7: TTBItem
@@ -105,6 +106,7 @@ object st_frmMain: Tst_frmMain
       Top = 0
       Caption = 'Меню'
       CloseButton = False
+      DockMode = dmCannotFloatOrChangeDocks
       FullSize = True
       Images = dmImages.il16x16
       MenuBar = True

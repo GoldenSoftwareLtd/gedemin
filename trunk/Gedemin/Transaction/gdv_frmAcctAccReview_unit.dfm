@@ -1,13 +1,13 @@
 inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
-  Left = 375
-  Top = 146
+  Left = 112
+  Top = 168
   Width = 938
   Height = 726
   Caption = 'Анализ счета'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sLeft: TSplitter
-    Height = 575
+    Height = 579
   end
   inherited TBDock1: TTBDock
     Width = 930
@@ -24,28 +24,28 @@ inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
     end
   end
   inherited Panel1: TPanel
-    Width = 661
-    Height = 575
+    Width = 660
+    Height = 579
     inherited ibgrMain: TgsIBGrid
-      Width = 661
-      Height = 575
+      Width = 660
+      Height = 579
     end
   end
   inherited TBDock2: TTBDock
-    Height = 575
+    Height = 579
   end
   inherited TBDock3: TTBDock
     Left = 921
-    Height = 575
+    Height = 579
   end
   inherited TBDock4: TTBDock
-    Top = 605
+    Top = 609
     Width = 930
   end
   inherited pLeft: TPanel
-    Height = 575
+    Height = 579
     inherited ScrollBox: TScrollBox
-      Height = 558
+      Height = 562
       inherited Panel5: TPanel
         Height = 65
         inherited bAccounts: TButton
@@ -207,7 +207,7 @@ inherited gdv_frmAcctAccReview: Tgdv_frmAcctAccReview
   end
   object Panel3: TPanel [7]
     Left = 0
-    Top = 614
+    Top = 618
     Width = 930
     Height = 81
     Align = alBottom

@@ -4,52 +4,71 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, StdCtrls, prm_ParamFunctions_unit;
+  ExtCtrls, StdCtrls, prm_ParamFunctions_unit, ComCtrls;
 
 type
   TfrmParamLineSE = class(TFrame)
     Panel1: TPanel;
-    pnlSimple: TPanel;
-    lblParamName: TLabel;
+    pcParam: TPageControl;
+    tsParam: TTabSheet;
     edDisplayName: TEdit;
     cbParamType: TComboBox;
     edHint: TEdit;
-    pnlLink: TPanel;
+    chbxRequired: TCheckBox;
+    tsValuesList: TTabSheet;
+    edValuesList: TEdit;
+    tsLink: TTabSheet;
     edTableName: TEdit;
     edDisplayField: TEdit;
     edPrimaryField: TEdit;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    tsLink2: TTabSheet;
     edConditionScript: TEdit;
     cbLanguage: TComboBox;
-    Bevel1: TBevel;
     cbSortOrder: TComboBox;
-    chbxRequired: TCheckBox;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    Label9: TLabel;
+    tsLink3: TTabSheet;
+    Button1: TButton;
+    Label10: TLabel;
     procedure cbParamTypeChange(Sender: TObject);
     procedure edDisplayNameChange(Sender: TObject);
     procedure chbxRequiredClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+
   private
     FOriginalName: String;
-    FRealHeight: Integer;
     FOnParamChange: TNotifyEvent;
+    FValuesList: String;
 
     procedure DoChange(Sender: TObject);
+
   public
     constructor Create(AOwner: TComponent); override;
 
     procedure SetParam(const AnParam: TgsParamData);
     function GetParam(const AnParam: TgsParamData): Boolean;
     property OnParamChange: TNotifyEvent read FOnParamChange write FOnParamChange;
+    property ValuesList: String read FValuesList write FValuesList;
   end;
 
 implementation
 
 {$R *.DFM}
 
-  {$IFDEF LOCALIZATION}
 uses
+  frmParamTemplate_unit
+  {$IFDEF LOCALIZATION}
   {must be placed after Windows unit!}
-  gd_localization_stub
-  ;
+  ,gd_localization_stub
   {$ENDIF}
+  ;
 
 { TfrmParamLineSE }
 
@@ -58,7 +77,7 @@ var
   I: Integer;
 begin
   FOriginalName := AnParam.RealName;
-  lblParamName.Caption := 'Параметр: ' + AnParam.RealName;
+  tsParam.Caption := AnParam.RealName;
   if AnParam.DisplayName = '' then
     edDisplayName.Text := AnParam.RealName
   else
@@ -69,6 +88,7 @@ begin
   edDisplayField.Text := AnParam.LinkDisplayField;
   edPrimaryField.Text := AnParam.LinkPrimaryField;
   edConditionScript.Text := AnParam.LinkConditionFunction;
+  edValuesList.Text := AnParam.ValuesList;
   cbLanguage.ItemIndex := 0;
   for I := 0 to cbLanguage.Items.Count - 1 do
     if AnsiUpperCase(Trim(cbLanguage.Items[I])) = AnsiUpperCase(Trim(AnParam.LinkFunctionLanguage)) then
@@ -89,6 +109,10 @@ begin
     prmLinkElement:     cbParamType.ItemIndex := 7; // Ссылка на элемент
     prmLinkSet:         cbParamType.ItemIndex := 8; // Ссылка на множество
     prmNoQuery:         cbParamType.ItemIndex := 9; // Не запрашивается
+    prmPeriod:          cbParamType.ItemIndex := 10; //Период
+    prmList:            cbParamType.ItemIndex := 11; //Список
+    prmRadioButtons:    cbParamType.ItemIndex := 12; //Набор радио кнопок
+    prmCheckBoxs:       cbParamType.ItemIndex := 13; //Набор чекбоксов
   else
     Assert(False, 'Данный тип параметра д.о. не поддерживается');
   end;
@@ -97,21 +121,10 @@ end;
 
 procedure TfrmParamLineSE.cbParamTypeChange(Sender: TObject);
 begin
-  pnlLink.Visible := (Sender as TComboBox).ItemIndex in [7, 8];
-  if (Sender as TComboBox).ItemIndex = 9 then
-  begin
-    edHint.Visible := False;
-    Height := 2 * cbParamType.Height;
-  end else
-    begin
-      edHint.Visible := True;
-      Height := FRealHeight;
-    end;
-  if pnlLink.Visible then
-  begin
-    Height := FRealHeight;
-  end else
-    Height := FRealHeight - pnlLink.Height;
+  tsValuesList.TabVisible := (Sender as TComboBox).ItemIndex in [11, 12, 13];
+  tsLink.TabVisible := (Sender as TComboBox).ItemIndex in [7, 8];
+  tsLink2.TabVisible := tsLink.TabVisible;
+  tsLink3.TabVisible := tsLink.TabVisible;
   DoChange(Sender);
 end;
 
@@ -122,6 +135,7 @@ begin
   AnParam.DisplayName := edDisplayName.Text;
   AnParam.Comment := edHint.Text;
   AnParam.Required := chbxRequired.Checked;
+
   // Данный кусок кода менять только с текстом ComboBox и кодом ниже
   case cbParamType.ItemIndex of
     0:  AnParam.ParamType := prmInteger;        // Число целое
@@ -134,9 +148,19 @@ begin
     7:  AnParam.ParamType := prmLinkElement;    // Ссылка на элемент
     8:  AnParam.ParamType := prmLinkSet;        // Ссылка на множество
     9:  AnParam.ParamType := prmNoQuery;        // Не запрашиается в диалоге
+    10: AnParam.ParamType := prmPeriod;         //Период
+    11: AnParam.ParamType := prmList;           //Список
+    12: AnParam.ParamType := prmRadioButtons;   //Набор радио кнопок
+    13: AnParam.ParamType := prmCheckBoxs;      //Набор xtr,jrcjd
   else
     Assert(False, 'Данный тип параметра д.о. не поддерживается');
   end;
+
+  if AnParam.ParamType in [prmList, prmRadioButtons, prmCheckBoxs] then
+     AnParam.ValuesList := edValuesList.Text
+  else
+     AnParam.ValuesList := '';
+
   if AnParam.ParamType in [prmLinkElement, prmLinkSet] then
   begin
     AnParam.LinkTableName := edTableName.Text;
@@ -170,8 +194,6 @@ end;
 constructor TfrmParamLineSE.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-
-  FRealHeight := Height;
 end;
 
 procedure TfrmParamLineSE.edDisplayNameChange(Sender: TObject);
@@ -188,6 +210,28 @@ end;
 procedure TfrmParamLineSE.chbxRequiredClick(Sender: TObject);
 begin
   DoChange(Sender);
+end;
+
+procedure TfrmParamLineSE.Button1Click(Sender: TObject);
+begin
+  with TfrmParamTemplate.Create(nil) do
+  try
+    if (ShowModal = mrOk) and (GetParam <> nil) then
+    begin
+      edDisplayName.Text := GetParam.DisplayName;
+      edHint.Text := GetParam.Comment;
+      edTableName.Text := GetParam.LinkTableName;
+      edDisplayField.Text := GetParam.LinkDisplayField;
+      edPrimaryField.Text := GetParam.LinkPrimaryField;
+      edConditionScript.Text := GetParam.LinkConditionFunction;
+      cbSortOrder.ItemIndex := GetParam.SortOrder;
+      cbLanguage.ItemIndex := cbLanguage.Items.IndexOf(GetParam.LinkFunctionLanguage);
+      
+      pcParam.ActivePageIndex := 0;
+    end;
+  finally
+    Free;
+  end;
 end;
 
 end.

@@ -34,7 +34,7 @@ uses
   gdv_frAcctQuantity_unit, gdv_frAcctAnalytics_unit, gdv_frAcctCompany_unit,
   IBDatabase, gd_common_functions, gdv_AcctConfig_unit, gd_createable_form,
   gdcBase, gd_security_operationconst, gdcConstants,
-  gdvAcctBase, amSplitter;
+  gdvAcctBase, amSplitter, gsPeriodEdit;
 
 type
 
@@ -87,13 +87,6 @@ type
     tbiComeBack: TTBItem;
     actBack: TAction;
     IBReadTr: TIBTransaction;
-    tbsiUseEntryBalance: TTBSeparatorItem;
-    TBControlItem3: TTBControlItem;
-    lblExecuteTime: TLabel;
-    TBControlItem4: TTBControlItem;
-    lblQueryTime: TLabel;
-    cbDontUseEntryBalance: TCheckBox;
-    TBControlItem5: TTBControlItem;
     procedure actShowParamPanelExecute(Sender: TObject);
     procedure actShowParamPanelUpdate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -360,10 +353,6 @@ begin
   finally
     ibgrMain.Columns.EndUpdate;
   end;
-  {$IFDEF DEBUG}
-  lblQueryTime.Caption := ' Query: ' + IntToStr(gdvObject.QueryTickCount) + 'ms';
-  lblExecuteTime.Caption := 'All: ' + IntToStr(gdvObject.AllTickCount) + 'ms ';
-  {$ENDIF}
 end;
 
 procedure Tgdv_frmAcctBaseForm.DoBeforeBuildReport;
@@ -911,7 +900,7 @@ procedure Tgdv_frmAcctBaseForm.SetParams;
 var
   I: Integer;
 begin
-  gdvObject.UseEntryBalance := not cbDontUseEntryBalance.Checked;
+  gdvObject.UseEntryBalance := True;
 
   if not gdvObject.MakeEmpty then
   begin

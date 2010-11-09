@@ -1,6 +1,6 @@
 inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
-  Left = 249
-  Top = 255
+  Left = 182
+  Top = 192
   Width = 983
   Height = 656
   Caption = 'gdv_frmAcctBaseForm'
@@ -12,11 +12,11 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
     Left = 255
     Top = 30
     Width = 6
-    Height = 590
+    Height = 579
     Cursor = crHSplit
   end
   inherited TBDock1: TTBDock
-    Width = 975
+    Width = 967
     inherited tbMainToolbar: TTBToolbar
       DockMode = dmCannotFloat
       DockPos = 0
@@ -55,29 +55,17 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       ParentShowHint = False
       ShowHint = True
       inherited Panel4: TPanel
-        Width = 270
-        inherited Label1: TLabel
-          Left = 2
-        end
-        inherited Label2: TLabel
-          Left = 114
+        Width = 229
+        inherited lblPeriod: TLabel
+          Left = 3
         end
         inherited SpeedButton1: TSpeedButton
-          Left = 243
-        end
-        inherited xdeStart: TxDateEdit
-          Left = 47
-          Top = 3
-          Color = 15329769
-        end
-        inherited xdeFinish: TxDateEdit
-          Left = 175
-          Color = 15329769
+          Left = 201
         end
       end
     end
     object TBToolbar1: TTBToolbar
-      Left = 475
+      Left = 434
       Top = 0
       Caption = 'Конфигурация'
       CloseButton = False
@@ -99,29 +87,6 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       end
       object iClearSaveGrid: TTBItem
         Action = actClearGridSetting
-      end
-      object tbsiUseEntryBalance: TTBSeparatorItem
-      end
-      object TBControlItem5: TTBControlItem
-        Control = cbDontUseEntryBalance
-      end
-      object TBControlItem3: TTBControlItem
-        Control = lblExecuteTime
-      end
-      object TBControlItem4: TTBControlItem
-        Control = lblQueryTime
-      end
-      object lblExecuteTime: TLabel
-        Left = 361
-        Top = 6
-        Width = 3
-        Height = 13
-      end
-      object lblQueryTime: TLabel
-        Left = 364
-        Top = 6
-        Width = 3
-        Height = 13
       end
       object pCofiguration: TPanel
         Left = 0
@@ -156,25 +121,17 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
           OnChange = iblConfiguratiorChange
         end
       end
-      object cbDontUseEntryBalance: TCheckBox
-        Left = 304
-        Top = 4
-        Width = 57
-        Height = 17
-        Caption = 'Old'
-        TabOrder = 1
-      end
     end
   end
   inherited Panel1: TPanel
     Left = 261
-    Width = 705
-    Height = 590
+    Width = 697
+    Height = 579
     object ibgrMain: TgsIBGrid
       Left = 0
       Top = 0
-      Width = 705
-      Height = 590
+      Width = 697
+      Height = 579
       HelpContext = 3
       Align = alClient
       BorderStyle = bsNone
@@ -202,21 +159,21 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
     end
   end
   inherited TBDock2: TTBDock
-    Height = 590
+    Height = 579
   end
   inherited TBDock3: TTBDock
-    Left = 966
-    Height = 590
+    Left = 958
+    Height = 579
   end
   inherited TBDock4: TTBDock
-    Top = 620
-    Width = 975
+    Top = 609
+    Width = 967
   end
   object pLeft: TPanel [6]
     Left = 9
     Top = 30
     Width = 246
-    Height = 590
+    Height = 579
     Align = alLeft
     BevelOuter = bvNone
     Caption = 'pLeft'
@@ -225,7 +182,7 @@ inherited gdv_frmAcctBaseForm: Tgdv_frmAcctBaseForm
       Left = 0
       Top = 17
       Width = 246
-      Height = 573
+      Height = 562
       VertScrollBar.Style = ssFlat
       Align = alClient
       BorderStyle = bsNone

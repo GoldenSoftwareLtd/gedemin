@@ -1,6 +1,6 @@
 inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
-  Left = 374
-  Top = 70
+  Left = 115
+  Top = 142
   Width = 1042
   Height = 755
   HelpContext = 30
@@ -8,7 +8,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
   PixelsPerInch = 96
   TextHeight = 13
   inherited sLeft: TSplitter
-    Height = 604
+    Height = 608
   end
   inherited TBDock1: TTBDock
     Width = 1034
@@ -36,30 +36,30 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
     end
   end
   inherited Panel1: TPanel
-    Width = 765
-    Height = 604
+    Width = 764
+    Height = 608
     TabOrder = 2
     inherited ibgrMain: TgsIBGrid
-      Width = 765
-      Height = 604
+      Width = 764
+      Height = 608
     end
   end
   inherited TBDock2: TTBDock
-    Height = 604
+    Height = 608
   end
   inherited TBDock3: TTBDock
     Left = 1025
-    Height = 604
+    Height = 608
   end
   inherited TBDock4: TTBDock
-    Top = 634
+    Top = 638
     Width = 1034
   end
   inherited pLeft: TPanel
-    Height = 604
+    Height = 608
     TabOrder = 1
     inherited ScrollBox: TScrollBox
-      Height = 587
+      Height = 591
       inherited Panel5: TPanel
         Height = 81
         inherited bAccounts: TButton
@@ -241,7 +241,7 @@ inherited gdv_frmAcctAccCard: Tgdv_frmAcctAccCard
   end
   object Panel3: TPanel [7]
     Left = 0
-    Top = 643
+    Top = 647
     Width = 1034
     Height = 81
     Align = alBottom

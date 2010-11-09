@@ -18,15 +18,21 @@
 
     1.00    30.05.03    tiptop        Initial version.
 --}
+
 unit wiz_FunctionsParams_unit;
 
 interface
-uses prm_ParamFunctions_unit, classes, gd_common_functions;
+
+uses
+  prm_ParamFunctions_unit, Classes, gd_common_functions;
+
 type
   TwizParamData = class(TgsParamData)
   private
     FReferenceType: string;
+
     procedure SetReferenceType(const Value: string);
+
   public
     procedure Assign(const Source: TgsParamData); override;
     procedure SaveToStream(AnStream: TStream); override;
@@ -39,13 +45,17 @@ type
   private
     function GetParam(const I: Integer): TwizParamData;
     procedure SetParam(const I: Integer; const Value: TwizParamData);
+
   public
-    function AddParam(AnParamName, AnDisplayName: String;
-     AnParamType: TParamType; const AnComment: String): Integer; override;
-    function AddLinkParam(AnParamName, AnDisplayName: String;
-     AnParamType: TParamType; AnTableName, AnDisplayField,
-     AnPrimaryField, AnLinkConditionFunction, AnLinkFunctionLanguage: String;
-     const AnComment: String): Integer; override;
+    function AddParam(const AParamName, ADisplayName: String;
+      const AParamType: TParamType; const AComment: String): Integer; override;
+    function AddLinkParam(const AParamName, ADisplayName: String;
+      const AParamType: TParamType; const ATableName, ADisplayField,
+      APrimaryField, ALinkConditionFunction, ALinkFunctionLanguage: String;
+      const AComment: String): Integer; override;
+    function AddSelectParam(const AParamName, ADisplayName: String;
+      const AParamType: TParamType; const AComment: String;
+      const AValuesList: String): Integer; override;
 
     property Params[const I: Integer]: TwizParamData read GetParam write SetParam;
   end;
@@ -80,19 +90,26 @@ end;
 
 { TwizParamList }
 
-function TwizParamList.AddLinkParam(AnParamName, AnDisplayName: String;
-  AnParamType: TParamType; AnTableName, AnDisplayField, AnPrimaryField,
-  AnLinkConditionFunction, AnLinkFunctionLanguage: String;
-  const AnComment: String): Integer;
+function TwizParamList.AddLinkParam(const AParamName, ADisplayName: String;
+  const AParamType: TParamType; const ATableName, ADisplayField, APrimaryField,
+  ALinkConditionFunction, ALinkFunctionLanguage: String;
+  const AComment: String): Integer;
 begin
-  Result := Add(TwizParamData.Create(AnParamName, AnDisplayName, AnParamType, AnTableName,
-   AnDisplayField, AnPrimaryField, AnLinkConditionFunction, AnLinkFunctionLanguage, AnComment));
+  Result := Add(TwizParamData.Create(AParamName, ADisplayName, AParamType, ATableName,
+    ADisplayField, APrimaryField, ALinkConditionFunction, ALinkFunctionLanguage, AComment));
 end;
 
-function TwizParamList.AddParam(AnParamName, AnDisplayName: String;
-  AnParamType: TParamType; const AnComment: String): Integer;
+function TwizParamList.AddParam(const AParamName, ADisplayName: String;
+  const AParamType: TParamType; const AComment: String): Integer;
 begin
-  Result := Add(TwizParamData.Create(AnParamName, AnDisplayName, AnParamType, AnComment));
+  Result := Add(TwizParamData.Create(AParamName, ADisplayName, AParamType, AComment));
+end;
+
+function TwizParamList.AddSelectParam(const AParamName,
+  ADisplayName: String; const AParamType: TParamType; const AComment,
+  AValuesList: String): Integer;
+begin
+  Result := Add(TwizParamData.Create(AParamName, ADisplayName, AParamType, AComment, AValuesList));
 end;
 
 function TwizParamList.GetParam(const I: Integer): TwizParamData;

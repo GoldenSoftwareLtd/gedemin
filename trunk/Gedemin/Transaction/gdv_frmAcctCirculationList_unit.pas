@@ -15,7 +15,7 @@ uses
   gdvParamPanel, gdv_frAcctCompany_unit, gdv_frAcctAnalytics_unit,
   gdv_frAcctSum_unit, gdv_frAcctQuantity_unit, gsIBLookupComboBox,
   gdv_frAcctTreeAnalytic_unit, gdvAcctBase, gdvAcctCirculationList,
-  gdvAcctLedger, DBClient;
+  gdvAcctLedger, DBClient, gsPeriodEdit;
 
 type
   Tgdv_frmAcctCirculationList = class(Tgdv_frmAcctBaseForm)

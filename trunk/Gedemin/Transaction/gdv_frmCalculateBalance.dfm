@@ -3,13 +3,13 @@ object frmCalculateBalance: TfrmCalculateBalance
   Top = 209
   BorderStyle = bsDialog
   Caption = 'Переход на новый месяц'
-  ClientHeight = 375
+  ClientHeight = 358
   ClientWidth = 408
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -23,47 +23,48 @@ object frmCalculateBalance: TfrmCalculateBalance
     Left = 0
     Top = 0
     Width = 408
-    Height = 375
+    Height = 358
     Align = alClient
+    BevelOuter = bvNone
     TabOrder = 0
     object lblPreviousDate: TLabel
       Left = 7
       Top = 10
-      Width = 183
+      Width = 149
       Height = 13
-      Caption = 'Дата предыдущего расчета сальдо:'
+      Caption = 'Дата предыдущего расчета:'
     end
     object lblPreviousDontBalanceAnalytic: TLabel
       Left = 7
       Top = 34
-      Width = 153
+      Width = 144
       Height = 13
-      Caption = 'Неучтенные ранее аналитики:'
+      Caption = 'Не учитывались аналитики:'
     end
     object gbMain: TGroupBox
       Left = 7
       Top = 53
       Width = 395
-      Height = 283
+      Height = 273
       Anchors = [akLeft, akTop, akRight, akBottom]
-      Caption = ' Расчет '
+      Caption = ' Параметры расчета сальдо  '
       TabOrder = 2
       object lblCurrentDate: TLabel
         Left = 10
         Top = 20
-        Width = 134
+        Width = 105
         Height = 13
-        Caption = 'Расчитать сальдо на дату:'
+        Caption = 'Рассчитать на дату:'
       end
       object lblDontBalanceAnalytic: TLabel
         Left = 10
         Top = 44
-        Width = 142
+        Width = 133
         Height = 13
-        Caption = 'Неучитываемые аналитики:'
+        Caption = 'Не учитывать аналитики:'
       end
       object xdeCurrentDate: TxDateEdit
-        Left = 160
+        Left = 152
         Top = 16
         Width = 86
         Height = 21
@@ -76,40 +77,40 @@ object frmCalculateBalance: TfrmCalculateBalance
       end
       object pbMain: TProgressBar
         Left = 10
-        Top = 101
-        Width = 374
+        Top = 93
+        Width = 375
         Height = 17
         Anchors = [akLeft, akTop, akRight]
         Min = 0
         Max = 100
         Smooth = True
         Step = 1
-        TabOrder = 3
+        TabOrder = 4
       end
       object btnCalculate: TButton
-        Left = 299
-        Top = 68
+        Left = 300
+        Top = 66
         Width = 86
-        Height = 25
+        Height = 21
         Action = actCalculate
         Anchors = [akTop, akRight]
-        TabOrder = 2
+        TabOrder = 3
       end
       object mProgress: TMemo
         Left = 10
-        Top = 126
-        Width = 374
-        Height = 147
+        Top = 115
+        Width = 375
+        Height = 148
         Anchors = [akLeft, akTop, akRight, akBottom]
         Color = clBtnFace
         ReadOnly = True
         ScrollBars = ssVertical
-        TabOrder = 4
+        TabOrder = 5
       end
       object eDontBalanceAnalytic: TEdit
-        Left = 160
+        Left = 152
         Top = 40
-        Width = 204
+        Width = 213
         Height = 21
         TabOrder = 1
         Text = 'ePreviousDontBalanceAnalytic'
@@ -120,7 +121,7 @@ object frmCalculateBalance: TfrmCalculateBalance
         Width = 23
         Height = 22
         Caption = 'TBToolbar1'
-        TabOrder = 5
+        TabOrder = 2
         object TBItem1: TTBItem
           Action = actTestAnalyticList
           Images = dmImages.il16x16
@@ -128,10 +129,10 @@ object frmCalculateBalance: TfrmCalculateBalance
       end
     end
     object btnClose: TButton
-      Left = 320
-      Top = 343
+      Left = 326
+      Top = 332
       Width = 75
-      Height = 25
+      Height = 21
       Action = actClose
       Anchors = [akRight, akBottom]
       Cancel = True
@@ -139,7 +140,7 @@ object frmCalculateBalance: TfrmCalculateBalance
       TabOrder = 3
     end
     object xdePreviousDate: TxDateEdit
-      Left = 196
+      Left = 160
       Top = 6
       Width = 86
       Height = 21
@@ -152,9 +153,9 @@ object frmCalculateBalance: TfrmCalculateBalance
       Text = '21.10.2008'
     end
     object ePreviousDontBalanceAnalytic: TEdit
-      Left = 196
+      Left = 160
       Top = 30
-      Width = 205
+      Width = 241
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       Color = clBtnFace

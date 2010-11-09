@@ -522,9 +522,9 @@ inherited FunctionFrame: TFunctionFrame
       ImageIndex = 2
       object ScrollBox: TScrollBox
         Left = 0
-        Top = 36
+        Top = 23
         Width = 439
-        Height = 214
+        Height = 227
         VertScrollBar.Style = ssFlat
         Align = alClient
         BorderStyle = bsNone
@@ -532,8 +532,8 @@ inherited FunctionFrame: TFunctionFrame
         object Label19: TLabel
           Left = 0
           Top = 0
-          Width = 82
-          Height = 13
+          Width = 439
+          Height = 227
           Align = alClient
           Alignment = taCenter
           Caption = 'Нет параметров'
@@ -544,54 +544,13 @@ inherited FunctionFrame: TFunctionFrame
         Left = 0
         Top = 0
         Width = 439
-        Height = 36
+        Height = 23
         Align = alTop
         BevelInner = bvLowered
         BevelOuter = bvNone
-        Color = clBtnHighlight
+        Caption = 'Подведите курсор мыши к полю, чтобы получить подсказку.'
+        Color = clInfoBk
         TabOrder = 1
-        object Label13: TLabel
-          Left = 8
-          Top = 4
-          Width = 49
-          Height = 13
-          Caption = 'Параметр'
-        end
-        object Label14: TLabel
-          Left = 8
-          Top = 20
-          Width = 66
-          Height = 13
-          Caption = 'Имя таблицы'
-        end
-        object Label15: TLabel
-          Left = 160
-          Top = 4
-          Width = 73
-          Height = 13
-          Caption = 'Наименование'
-        end
-        object Label16: TLabel
-          Left = 160
-          Top = 20
-          Width = 72
-          Height = 13
-          Caption = 'Поле таблицы'
-        end
-        object Label17: TLabel
-          Left = 312
-          Top = 4
-          Width = 75
-          Height = 13
-          Caption = 'Тип параметра'
-        end
-        object Label18: TLabel
-          Left = 312
-          Top = 20
-          Width = 75
-          Height = 13
-          Caption = 'Ключ таблицы'
-        end
       end
     end
     object tsDependencies: TSuperTabSheet

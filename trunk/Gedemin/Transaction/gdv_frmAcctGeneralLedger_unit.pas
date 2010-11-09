@@ -15,7 +15,7 @@ uses
   gdv_frAcctAnalyticsGroup_unit, gdvParamPanel, gdv_frAcctCompany_unit,
   gdv_frAcctAnalytics_unit, gdv_frAcctSum_unit, gdv_frAcctQuantity_unit,
   gdcConstants, AcctStrings, gdv_frmAcctBaseForm_unit, DsgnIntf, gdvAcctBase,
-  gdvAcctGeneralLedger, gdvAcctLedger;
+  gdvAcctGeneralLedger, gdvAcctLedger, gsPeriodEdit;
 
 type
   Tgdv_frmGeneralLedger = class(Tgdv_frmAcctBaseForm)

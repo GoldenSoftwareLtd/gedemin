@@ -53,8 +53,8 @@ var
 begin
   P := TgsDatePeriod.Create;
   try
-    Label1.Caption := gsPeriodEdit.DatePeriod.EncodeString;
-    P.Assign(gsPeriodEdit.DatePeriod);
+    gsPeriodEdit.AssignTo(P);
+    Label1.Caption := P.EncodeString;
     P.Kind := dpkFree;
     Label2.Caption := P.EncodeString;
   finally

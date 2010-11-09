@@ -1,6 +1,6 @@
 object gdv_frmG: Tgdv_frmG
-  Left = 368
-  Top = 223
+  Left = 437
+  Top = 493
   Width = 601
   Height = 404
   Caption = 'gdv_frmG'
@@ -61,23 +61,16 @@ object gdv_frmG: Tgdv_frmG
         Height = 26
         BevelOuter = bvNone
         TabOrder = 0
-        object Label1: TLabel
+        object lblPeriod: TLabel
           Left = 4
           Top = 6
-          Width = 41
+          Width = 42
           Height = 13
-          Caption = 'Начало:'
-        end
-        object Label2: TLabel
-          Left = 116
-          Top = 6
-          Width = 60
-          Height = 13
-          Caption = 'Окончание:'
+          Caption = 'Период:'
         end
         object SpeedButton1: TSpeedButton
-          Left = 248
-          Top = 3
+          Left = 202
+          Top = 2
           Width = 23
           Height = 22
           Action = actRun
@@ -118,27 +111,12 @@ object gdv_frmG: Tgdv_frmG
             FF00E7C6B500EFCEB500EFCEB500EFCEB500EFCEB500E7C6B500E7C6B500EFCE
             B500D6BDB500BD847B00FF00FF00FF00FF00FF00FF00FF00FF00}
         end
-        object xdeStart: TxDateEdit
-          Left = 49
+        object gsPeriodEdit: TgsPeriodEdit
+          Left = 50
           Top = 2
-          Width = 63
+          Width = 148
           Height = 21
-          Kind = kDate
-          EditMask = '!99\.99\.9999;1;_'
-          MaxLength = 10
           TabOrder = 0
-          Text = '11.01.2003'
-        end
-        object xdeFinish: TxDateEdit
-          Left = 177
-          Top = 3
-          Width = 63
-          Height = 21
-          Kind = kDate
-          EditMask = '!99\.99\.9999;1;_'
-          MaxLength = 10
-          TabOrder = 1
-          Text = '11.01.2003'
         end
       end
     end
