@@ -7527,6 +7527,7 @@ begin
     StrCat(StrToDelete,PChar(StringOfChar(' ', GetDelLen)));
 
     FirstIndent := -1;
+    FullStrToDelete := nil;
     // Delete string
     if SomethingToDelete then
     begin
@@ -7562,6 +7563,10 @@ begin
       FirstIndent := 0;
     SetCaretAndSelection(OrgCaretPos, Point(BB.x - FirstIndent, BB.Y),
       Point(BE.x - LastIndent, BE.y));
+    if FullStrToDelete <> nil then
+      StrDispose(FullStrToDelete)
+    else
+      StrDispose(StrToDelete);
   end;
 end;
 
