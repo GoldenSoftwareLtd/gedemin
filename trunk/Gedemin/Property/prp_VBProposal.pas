@@ -24,7 +24,7 @@ unit prp_VBProposal;
 
 interface
 uses VBParser, classes,  ActiveX, sysutils, Windows, gd_i_ScriptFactory,
-  Gedemin_TLB, prp_i_VBProposal;
+  Gedemin_TLB, prp_i_VBProposal, contnrs;
 
 type
   TVBProposal = class(TVBParser, IVBProposal)
@@ -49,6 +49,7 @@ type
     FDefaultTypeInfoList: TList;
     FComponentTypeInfo: ITypeInfo;
     FGedeminApplication: IDispatch;
+    FObjectList: TObjectList;
 
     function GetFKObjects: TStrings;
     function GetInsertList: TStrings;
@@ -179,6 +180,7 @@ begin
     FReservedDesignators := TStringList.Create;
     FillReservedDesignators;
     CreateObject;
+    FObjectList := TObjectList.Create;
 
     VBProposal := Self;
   end else
@@ -200,6 +202,7 @@ begin
   FReservedWords.Free;
   FReservedDesignators.Free;
   FFKObjects.Free;
+  FObjectList.Free;
   GedeminApplication := nil;
 
   inherited;
@@ -318,6 +321,7 @@ begin
   end;
   TStringList(FItemList).CustomSort(StringListSortCompare);
   FillInsertList(FItemList);
+  FObjectList.Clear;
 end;
 
 procedure TVBProposal.Statament;
@@ -846,7 +850,10 @@ begin
       begin
         AutoObject := GetGdcOLEObject(FFKObjects.Objects[I]);
         if AutoObject <> nil then
+        begin
           FObjects.Objects[FObjects.Add(FFKObjects[I])] := Pointer(AutoObject.DispTypeInfo);
+          FObjectList.Add(AutoObject);
+        end;
       end;
     end;
   end;
