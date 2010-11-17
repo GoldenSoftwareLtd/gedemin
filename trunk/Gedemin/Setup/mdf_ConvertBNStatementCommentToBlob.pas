@@ -7,6 +7,7 @@ uses
 
 procedure ConvertBNStatementCommentToBlob(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ConvertDatePeriodComponent(IBDB: TIBDatabase; Log: TModifyLog);
+procedure UpdateGDRefConstraints(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -137,6 +138,8 @@ begin
           [rfReplaceAll, rfIgnoreCase]);
         S := StringReplace(S, '+ OwnerForm.GetComponent("xdeFinish").Text', '& OwnerForm.DateEnd',
           [rfReplaceAll, rfIgnoreCase]);
+        S := StringReplace(S, '+ OwnerForm.FindComponent("xdeFinish").Text', '& OwnerForm.DateEnd',
+          [rfReplaceAll, rfIgnoreCase]);
 
         S := StringReplace(S, 'AccountForm.GetComponent("xdeStart").Date =', 'AccountForm.DateBegin =',
           [rfReplaceAll, rfIgnoreCase]);
@@ -151,6 +154,13 @@ begin
         S := StringReplace(S, 'DateBegin = OwnerForm.FindComponent("xdeStart").date', 'DateBegin = OwnerForm.DateBegin',
           [rfReplaceAll, rfIgnoreCase]);
         S := StringReplace(S, 'DateEnd = OwnerForm.FindComponent("xdeFinish").date', 'DateEnd = OwnerForm.DateEnd',
+          [rfReplaceAll, rfIgnoreCase]);
+
+        S := StringReplace(S, 'F.FindComponent("xdeStart").Date = "01/01/2000"', 'F.DateBegin = DateSerial(2000, 1, 1)',
+          [rfReplaceAll, rfIgnoreCase]);
+        S := StringReplace(S, 'F.FindComponent("xdeFinish").Date = Date', 'F.DateEnd = Date',
+          [rfReplaceAll, rfIgnoreCase]);
+        S := StringReplace(S, 'F.FindComponent("xdeStart").Date = Date', 'F.DateBegin = Date',
           [rfReplaceAll, rfIgnoreCase]);
 
         S := StringReplace(S,
@@ -267,6 +277,13 @@ begin
       FIBSQL.ExecQuery;
       FIBSQL.Close;
 
+      FIBSQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (128, ''0000.0001.0000.0159'', ''16.11.2010'', ''Replacing references to xdeStart, xdeFinish components across macros #2'') ' +
+        '  MATCHING (id)';
+      FIBSQL.ExecQuery;
+      FIBSQL.Close;
+
       FTransaction.Commit;
     except
       on E: Exception do
@@ -280,6 +297,60 @@ begin
   finally
     SL.Free;
     qUpdate.Free;
+    FIBSQL.Free;
+    FTransaction.Free;
+  end;
+end;
+
+procedure UpdateGDRefConstraints(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  FIBSQL := TIBSQL.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+      FIBSQL.Transaction := FTransaction;
+
+      FIBSQL.SQL.Text := 'ALTER TABLE gd_ref_constraints ALTER ' +
+        '  constraint_uq_count COMPUTED BY (( '#13#10 +
+        '    SELECT '#13#10 +
+        '      iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) '#13#10 +
+        '    FROM '#13#10 +
+        '      rdb$indices i '#13#10 +
+        '      JOIN rdb$index_segments iseg '#13#10 +
+        '        ON iseg.rdb$index_name = i.rdb$index_name '#13#10 +
+        '      JOIN rdb$relation_constraints rc '#13#10 +
+        '        ON rc.rdb$index_name = i.rdb$index_name '#13#10 +
+        '    WHERE '#13#10 +
+        '      iseg.rdb$field_name = constraint_field '#13#10 +
+        '      AND i.rdb$segment_count = 1 '#13#10 +
+        '      AND rc.rdb$constraint_name = constraint_name '#13#10 +
+        '      AND rc.rdb$constraint_type = ''FOREIGN KEY'' '#13#10 +
+        '  ))';
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (129, ''0000.0001.0000.0160'', ''17.11.2010'', ''Fixed field constraint_uq_count in GD_REF_CONSTRAINTS'') ' +
+        '  MATCHING (id)';
+      FIBSQL.ExecQuery;
+      FIBSQL.Close;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
     FIBSQL.Free;
     FTransaction.Free;
   end;

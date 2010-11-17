@@ -1,7 +1,7 @@
 object frmParamLineSE: TfrmParamLineSE
   Left = 0
   Top = 0
-  Width = 584
+  Width = 521
   Height = 81
   Align = alTop
   ParentShowHint = False
@@ -10,7 +10,7 @@ object frmParamLineSE: TfrmParamLineSE
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 584
+    Width = 521
     Height = 81
     Align = alClient
     BevelOuter = bvNone
@@ -19,21 +19,21 @@ object frmParamLineSE: TfrmParamLineSE
     object pcParam: TPageControl
       Left = 2
       Top = 2
-      Width = 580
+      Width = 517
       Height = 77
       ActivePage = tsParam
       Align = alClient
       TabOrder = 0
       object tsParam: TTabSheet
         Caption = 'Параметр'
-        object Label1: TLabel
+        object lblName: TLabel
           Left = 4
           Top = 5
           Width = 79
           Height = 13
           Caption = 'Наименование:'
         end
-        object Label2: TLabel
+        object lblComment: TLabel
           Left = 4
           Top = 29
           Width = 59
@@ -43,7 +43,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edDisplayName: TEdit
           Left = 88
           Top = 2
-          Width = 346
+          Width = 281
           Height = 21
           Hint = 'Наименование параметра для отображения'
           Anchors = [akLeft, akTop, akRight]
@@ -51,7 +51,7 @@ object frmParamLineSE: TfrmParamLineSE
           OnChange = edDisplayNameChange
         end
         object cbParamType: TComboBox
-          Left = 437
+          Left = 373
           Top = 2
           Width = 133
           Height = 21
@@ -81,7 +81,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edHint: TEdit
           Left = 88
           Top = 26
-          Width = 346
+          Width = 281
           Height = 21
           Hint = 'Описание параметра'
           Anchors = [akLeft, akTop, akRight]
@@ -89,7 +89,7 @@ object frmParamLineSE: TfrmParamLineSE
           OnChange = edDisplayNameChange
         end
         object chbxRequired: TCheckBox
-          Left = 438
+          Left = 373
           Top = 28
           Width = 120
           Height = 17
@@ -103,7 +103,7 @@ object frmParamLineSE: TfrmParamLineSE
       object tsValuesList: TTabSheet
         Caption = 'Список значений'
         ImageIndex = 1
-        object Label3: TLabel
+        object lblExample: TLabel
           Left = 4
           Top = 29
           Width = 379
@@ -115,7 +115,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edValuesList: TEdit
           Left = 3
           Top = 1
-          Width = 566
+          Width = 503
           Height = 21
           Hint = 
             'Список в формате "ОтобрСтрока1=Значение1","ОтобрСтрока2=Значение' +
@@ -127,22 +127,22 @@ object frmParamLineSE: TfrmParamLineSE
       object tsLink: TTabSheet
         Caption = 'Таблица и поля'
         ImageIndex = 2
-        object Label4: TLabel
+        object lblTable: TLabel
           Left = 1
           Top = 4
           Width = 46
           Height = 13
           Caption = 'Таблица:'
         end
-        object Label5: TLabel
+        object lblDisplay: TLabel
           Left = 2
           Top = 29
           Width = 120
           Height = 13
           Caption = 'Поле для отображения:'
         end
-        object Label6: TLabel
-          Left = 421
+        object lblPrimary: TLabel
+          Left = 359
           Top = 29
           Width = 49
           Height = 13
@@ -152,7 +152,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edTableName: TEdit
           Left = 50
           Top = 1
-          Width = 519
+          Width = 456
           Height = 21
           Hint = 'Наименование таблицы для параметра ссылка'
           Anchors = [akLeft, akTop, akRight]
@@ -163,7 +163,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edDisplayField: TEdit
           Left = 125
           Top = 26
-          Width = 290
+          Width = 228
           Height = 21
           Hint = 'Наименование поля для отображения для параметра ссылка'
           Anchors = [akLeft, akTop, akRight]
@@ -172,9 +172,9 @@ object frmParamLineSE: TfrmParamLineSE
           OnChange = edDisplayNameChange
         end
         object edPrimaryField: TEdit
-          Left = 477
+          Left = 410
           Top = 26
-          Width = 92
+          Width = 96
           Height = 21
           Hint = 'Наименование ключа таблицы для параметра ссылки'
           Anchors = [akTop, akRight]
@@ -186,22 +186,22 @@ object frmParamLineSE: TfrmParamLineSE
       object tsLink2: TTabSheet
         Caption = 'Условие и сортировка'
         ImageIndex = 3
-        object Label7: TLabel
+        object lblCondition: TLabel
           Left = 3
           Top = 4
           Width = 85
           Height = 13
           Caption = 'Условие отбора:'
         end
-        object Label8: TLabel
+        object lblLanguage: TLabel
           Left = 4
           Top = 28
           Width = 31
           Height = 13
           Caption = 'Язык:'
         end
-        object Label9: TLabel
-          Left = 380
+        object lblSort: TLabel
+          Left = 316
           Top = 29
           Width = 63
           Height = 13
@@ -211,7 +211,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edConditionScript: TEdit
           Left = 91
           Top = 1
-          Width = 477
+          Width = 415
           Height = 21
           Hint = 'Скрипт для получения условия выборки ссылки'
           Anchors = [akLeft, akTop, akRight]
@@ -235,7 +235,7 @@ object frmParamLineSE: TfrmParamLineSE
             'JScript')
         end
         object cbSortOrder: TComboBox
-          Left = 447
+          Left = 384
           Top = 26
           Width = 122
           Height = 21
@@ -254,21 +254,21 @@ object frmParamLineSE: TfrmParamLineSE
       object tsLink3: TTabSheet
         Caption = 'Шаблоны'
         ImageIndex = 4
-        object Label10: TLabel
+        object lblTempl: TLabel
           Left = 7
           Top = 17
           Width = 306
           Height = 13
           Caption = 'Скопировать данные одного из существующих параметров:'
         end
-        object Button1: TButton
+        object btnTemplate: TButton
           Left = 320
           Top = 13
           Width = 81
           Height = 21
           Caption = 'Параметры...'
           TabOrder = 0
-          OnClick = Button1Click
+          OnClick = btnTemplateClick
         end
       end
     end

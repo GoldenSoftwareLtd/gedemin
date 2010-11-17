@@ -3606,13 +3606,23 @@ begin
   if I > 1 then
   begin
     if StrIsAlphaNumUnderscore(DontCopyList[I - 1]) then
-      I := 0;
+    begin
+      // Если перед найденным именем поля не пустой знак, значит мы наткнулись
+      //  на имя другого поля которое содержит в себе искомое, поищем еще раз без него
+      if Self.TestCopyField(FieldName, StrRestOf(DontCopyList, I + Length(FieldName))) then
+        I := 0;
+    end;
   end;
 
   if I > 0 then
   begin
     if StrIsAlphaNumUnderscore(System.Copy(DontCopyList, I + Length(FieldName), 1)) then
-      I := 0;
+    begin
+      // Если перед найденным именем поля не пустой знак, значит мы наткнулись
+      //  на имя другого поля которое содержит в себе искомое, поищем еще раз без него
+      if Self.TestCopyField(FieldName, StrRestOf(DontCopyList, I + Length(FieldName))) then
+        I := 0;
+    end;
   end;
 
   if I = 0 then

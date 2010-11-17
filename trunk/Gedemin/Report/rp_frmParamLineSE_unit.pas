@@ -21,26 +21,26 @@ type
     edTableName: TEdit;
     edDisplayField: TEdit;
     edPrimaryField: TEdit;
-    Label1: TLabel;
-    Label2: TLabel;
-    Label3: TLabel;
+    lblName: TLabel;
+    lblComment: TLabel;
+    lblExample: TLabel;
     tsLink2: TTabSheet;
     edConditionScript: TEdit;
     cbLanguage: TComboBox;
     cbSortOrder: TComboBox;
-    Label4: TLabel;
-    Label5: TLabel;
-    Label6: TLabel;
-    Label7: TLabel;
-    Label8: TLabel;
-    Label9: TLabel;
+    lblTable: TLabel;
+    lblDisplay: TLabel;
+    lblPrimary: TLabel;
+    lblCondition: TLabel;
+    lblLanguage: TLabel;
+    lblSort: TLabel;
     tsLink3: TTabSheet;
-    Button1: TButton;
-    Label10: TLabel;
+    btnTemplate: TButton;
+    lblTempl: TLabel;
     procedure cbParamTypeChange(Sender: TObject);
     procedure edDisplayNameChange(Sender: TObject);
     procedure chbxRequiredClick(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure btnTemplateClick(Sender: TObject);
 
   private
     FOriginalName: String;
@@ -212,7 +212,7 @@ begin
   DoChange(Sender);
 end;
 
-procedure TfrmParamLineSE.Button1Click(Sender: TObject);
+procedure TfrmParamLineSE.btnTemplateClick(Sender: TObject);
 begin
   with TfrmParamTemplate.Create(nil) do
   try

@@ -917,7 +917,8 @@ end;
 
 procedure TgsTextTemplateFile.LoadFromTextFile(const AFileName: String; var ADatabase: TgsTextDatabase);
 var
-  i: Integer;
+  I: Integer;
+  IsFoundArea: Boolean;
 begin
   DataFile := TgsTextFile.Create(FTrimRightString, FTrimLeftString, FCaseSensitive, FCodePage);
   try
@@ -929,13 +930,23 @@ begin
     else
       while not (DataFile.FindInString(EndFile) or DataFile.FindInString(EofText)) do
       begin
+        // Ищем и считываем области
         for i := 0 to AreaCount - 1 do
           if DataFile.FindInString(AreaList[i].BeginArea) then
-          begin
             ADatabase.AddArea(AreaList[i].CreateAreas);
-          end;
+
+        // Если мы еще не дошли до конца файла анализируем текущую строку
         if not(DataFile.FindInString(EndFile) or DataFile.FindInString(EofText)) then
-          DataFile.NextString;
+        begin
+          // Возможно начало следующей области находится на той же строчке что и конец предыдущей,
+          //  поэтому не переходя на след. строку пробуем искать области снова
+          IsFoundArea := False;
+          for i := 0 to AreaCount - 1 do
+            if DataFile.FindInString(AreaList[i].BeginArea) then
+              IsFoundArea := True;
+          if not IsFoundArea then
+            DataFile.NextString;
+        end;
       end;
    finally
      DataFile.Free;
