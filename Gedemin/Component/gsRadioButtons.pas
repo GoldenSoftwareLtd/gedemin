@@ -314,11 +314,14 @@ var
 begin
   if FComboBox <> nil then
   begin
-    Assert((not VarIsEmpty(Value)) or (not FRequired));
-
     if VarIsEmpty(Value) then
-      FComboBox.ItemIndex := FComboBox.Items.IndexOf('')
-    else
+    begin
+      if FRequired then
+        FComboBox.ItemIndex := 0
+      else
+        FComboBox.ItemIndex := FComboBox.Items.IndexOf('');
+    end else
+    begin
       for I := 0 to FItems.Count - 1 do
       begin
         if FItems.Values[FItems.Names[I]] = Value then
@@ -327,6 +330,10 @@ begin
           break;
         end;
       end;
+
+      if FRequired and (FComboBox.ItemIndex < 0) then
+        FComboBox.ItemIndex := 0;
+    end;
   end;
 end;
 

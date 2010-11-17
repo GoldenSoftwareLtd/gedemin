@@ -77,7 +77,18 @@ type
 
   TgsPeriodEdit = class;
 
-  TgsPeriodForm = class(TCustomControl)
+  TgsDropDownForm = class(TCustomControl)
+  protected
+    procedure CreateParams(var Params: TCreateParams); override;
+    procedure WMMouseActivate(var Message: TWMMouseActivate);
+      message WM_MouseActivate;
+    function HasWindow(Wnd: TControl): Boolean;
+
+  public
+    constructor Create(AnOwner: TComponent); override;
+  end;
+
+  TgsPeriodForm = class(TgsDropDownForm)
   private
     FLeft, FRight: TgsCalendarPanel;
     FBottom: TPanel;
@@ -92,12 +103,6 @@ type
     procedure SyncUI;
     procedure UpdateInfo;
 
-  protected
-    procedure CreateParams(var Params: TCreateParams); override;
-    procedure WMMouseActivate(var Message: TWMMouseActivate);
-      message WM_MouseActivate;
-    function HasWindow(Wnd: TControl): Boolean;
-
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -108,19 +113,17 @@ type
     property PeriodEdit: TgsPeriodEdit write FPeriodEdit;
   end;
 
-  TgsPeriodEdit = class(TCustomEdit)
+  TgsDropDownEdit = class(TCustomEdit)
   private
-    FDatePeriod, FSavedPeriod: TgsDatePeriod;
-    FPeriodForm: TgsPeriodForm;
     FButton: TSpeedButton;
-    FPeriodVisible: Boolean;
+    FDropDownVisible: Boolean;
     FHasFocus: Boolean;
+    FDropDownForm: TgsDropDownForm;
 
-    procedure CMDialogKey(var Message: TCMDialogKey); message CM_DIALOGKEY;
     procedure CMCancelMode(var Message: TCMCancelMode); message CM_CANCELMODE;
     procedure CMCtl3DChanged(var Message: TMessage); message CM_CTL3DCHANGED;
     procedure CMFontChanged(var Message: TMessage); message CM_FONTCHANGED;
-    procedure CNKeyDown(var Message: TWMKeyDown); message CN_KEYDOWN;
+    procedure CMDialogKey(var Message: TCMDialogKey); message CM_DIALOGKEY;
     procedure WMSize(var Message: TWMSize);
       message WM_SIZE;
     procedure WMSetFocus(var Message: TWMSetFocus);
@@ -128,33 +131,50 @@ type
     procedure WMKillFocus(var Message: TWMKillFocus);
       message WM_KillFocus;
 
-    function Validate(const Silent: Boolean = False): Boolean;
-
-    function GetMinHeight: Integer;
-
     procedure DoOnButtonMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure DoOnButtonClick(Sender: TObject);
-    //function GetDatePeriod: TgsDatePeriod;
-    function GetDate: TDate;
-    function GetEndDate: TDate;
-    procedure SetDate(const Value: TDate);
-    procedure SetEndDate(const Value: TDate);
-    procedure SyncText;
+    function GetMinHeight: Integer;
 
   protected
+    function Validate(const Silent: Boolean = False): Boolean; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
-    procedure KeyPress(var Key: Char); override;
     procedure DoExit; override;
     procedure CreateWnd; override;
     procedure CreateParams(var Params: TCreateParams); override;
+    procedure InitDropDown; virtual; abstract;
+    procedure AcceptValue(Accept: Boolean); virtual; abstract;
 
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure CloseUp(Accept: Boolean);
     procedure DropDown;
+    procedure CloseUp(Accept: Boolean);
+  end;
+
+  TgsPeriodEdit = class(TgsDropDownEdit)
+  private
+    FDatePeriod, FSavedPeriod: TgsDatePeriod;
+
+    procedure CNKeyDown(var Message: TWMKeyDown); message CN_KEYDOWN;
+
+    procedure SyncText;
+
+    function GetDate: TDate;
+    function GetEndDate: TDate;
+    procedure SetDate(const Value: TDate);
+    procedure SetEndDate(const Value: TDate);
+
+  protected
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure KeyPress(var Key: Char); override;
+    function Validate(const Silent: Boolean = False): Boolean; override;
+    procedure InitDropDown; override;
+    procedure AcceptValue(Accept: Boolean); override;
+
+  public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
 
     procedure AssignPeriod(APeriod: TgsDatePeriod); overload;
     procedure AssignPeriod(const APeriod: String); overload;
@@ -164,8 +184,6 @@ type
 
     property Date: TDate read GetDate write SetDate;
     property EndDate: TDate read GetEndDate write SetEndDate;
-
-    //property DatePeriod: TgsDatePeriod read GetDatePeriod;
 
   published
     property Anchors;
@@ -836,8 +854,6 @@ constructor TgsPeriodForm.Create(AnOwner: TComponent);
 begin
   inherited;
 
-  ControlStyle := ControlStyle + [csNoDesignVisible, csReplicatable];
-
   FPeriod := TgsDatePeriod.Create;
 
   FBottom := TPanel.Create(Self);
@@ -879,7 +895,13 @@ begin
   Height := FLeft.Height + FBottom.Height + 2;
 end;
 
-procedure TgsPeriodForm.CreateParams(var Params: TCreateParams);
+constructor TgsDropDownForm.Create(AnOwner: TComponent);
+begin
+  inherited;
+  ControlStyle := ControlStyle + [csNoDesignVisible, csReplicatable];
+end;
+
+procedure TgsDropDownForm.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
   with Params do
@@ -941,12 +963,12 @@ begin
   UpdateInfo;
 end;
 
-procedure TgsPeriodForm.WMMouseActivate(var Message: TWMMouseActivate);
+procedure TgsDropDownForm.WMMouseActivate(var Message: TWMMouseActivate);
 begin
   Message.Result := MA_NOACTIVATE;
 end;
 
-function TgsPeriodForm.HasWindow(Wnd: TControl): Boolean;
+function TgsDropDownForm.HasWindow(Wnd: TControl): Boolean;
 begin
   Result := (Wnd <> nil) and ((Wnd = Self) or (Wnd.Owner = Self));
 end;
@@ -1007,31 +1029,27 @@ begin
   SyncText;
 end;
 
-procedure TgsPeriodEdit.CloseUp(Accept: Boolean);
+procedure TgsDropDownEdit.CloseUp(Accept: Boolean);
 begin
-  if FPeriodVisible then
+  if FDropDownVisible then
   begin
     if GetCapture <> 0 then SendMessage(GetCapture, WM_CANCELMODE, 0, 0);
     SetFocus;
-    SetWindowPos(FPeriodForm.Handle, 0, 0, 0, 0, 0, SWP_NOZORDER or
+    SetWindowPos(FDropDownForm.Handle, 0, 0, 0, 0, 0, SWP_NOZORDER or
       SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE or SWP_HIDEWINDOW);
-    FPeriodVisible := False;
-    if Accept then
-      AssignPeriod(FPeriodForm.Period)
-    else if FSavedPeriod <> nil then
-      AssignPeriod(FSavedPeriod);
-    FreeAndNil(FSavedPeriod);
+    FDropDownVisible := False;
+    AcceptValue(Accept);
     Invalidate;
   end;
 end;
 
-procedure TgsPeriodEdit.CMCancelMode(var Message: TCMCancelMode);
+procedure TgsDropDownEdit.CMCancelMode(var Message: TCMCancelMode);
 begin
   if (Message.Sender <> Self) and (Message.Sender <> FButton)
-    and (not FPeriodForm.HasWindow(Message.Sender)) then CloseUp(True);
+    and (not FDropDownForm.HasWindow(Message.Sender)) then CloseUp(True);
 end;
 
-procedure TgsPeriodEdit.CMCtl3DChanged(var Message: TMessage);
+procedure TgsDropDownEdit.CMCtl3DChanged(var Message: TMessage);
 begin
   if NewStyleControls then
   begin
@@ -1041,9 +1059,9 @@ begin
   inherited;
 end;
 
-procedure TgsPeriodEdit.CMDialogKey(var Message: TCMDialogKey);
+procedure TgsDropDownEdit.CMDialogKey(var Message: TCMDialogKey);
 begin
-  if (Message.CharCode in [VK_RETURN, VK_ESCAPE]) and FPeriodVisible then
+  if (Message.CharCode in [VK_RETURN, VK_ESCAPE]) and FDropDownVisible then
   begin
     CloseUp(Message.CharCode = VK_RETURN);
     Message.Result := 1;
@@ -1051,7 +1069,7 @@ begin
     inherited;
 end;
 
-procedure TgsPeriodEdit.CMFontChanged(var Message: TMessage);
+procedure TgsDropDownEdit.CMFontChanged(var Message: TMessage);
 begin
   inherited;
   Height := 0;
@@ -1060,12 +1078,91 @@ end;
 constructor TgsPeriodEdit.Create(AnOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csReplicatable];
   Width := 148;
   Text := '';
 
   FDatePeriod := TgsDatePeriod.Create;
   FSavedPeriod := nil;
+
+  FDropDownForm := TgsPeriodForm.Create(Self);
+  FDropDownForm.Visible := False;
+  FDropDownForm.Parent := Self;
+  (FDropDownForm as TgsPeriodForm).PeriodEdit := Self;
+end;
+
+procedure TgsDropDownEdit.CreateParams(var Params: TCreateParams);
+begin
+  inherited CreateParams(Params);
+  with Params do
+    if NewStyleControls and Ctl3D then
+      ExStyle := ExStyle or WS_EX_CLIENTEDGE
+    else
+      Style := Style or WS_BORDER;
+end;
+
+procedure TgsDropDownEdit.CreateWnd;
+begin
+  inherited CreateWnd;
+  if not (csDesigning in ComponentState) then
+    SendMessage(Handle, EM_SETMARGINS, EC_RIGHTMARGIN,
+      MakeLong(0, DropDownButtonWidth + 2));
+end;
+
+destructor TgsPeriodEdit.Destroy;
+begin
+  FDatePeriod.Free;
+  FSavedPeriod.Free;
+  inherited Destroy;
+end;
+
+procedure TgsDropDownEdit.DoExit;
+begin
+  if not Validate then
+    SetFocus
+  else
+    inherited;
+end;
+
+procedure TgsDropDownEdit.DoOnButtonClick(Sender: TObject);
+begin
+  if not FDropDownVisible then
+    DropDown
+  else
+    CloseUp(True);
+end;
+
+procedure TgsDropDownEdit.DoOnButtonMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  Cursor := crArrow;
+end;
+
+procedure TgsDropDownEdit.DropDown;
+var
+  P: TPoint;
+  Y: Integer;
+begin
+  Assert(Parent <> nil);
+  if not FDropDownVisible then
+  begin
+    if Validate(True) then
+      InitDropDown;
+    P := Parent.ClientToScreen(Point(Left, Top));
+    Y := P.Y + Height;
+    if Y + FDropDownForm.Height > Screen.Height then Y := P.Y - FDropDownForm.Height;
+    FDropDownVisible := True;
+    SetWindowPos(FDropDownForm.Handle, HWND_TOP, P.X, Y, 0, 0,
+      SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW); 
+    FDropDownForm.Visible := True;
+    SetFocus;
+  end;
+end;
+
+constructor TgsDropDownEdit.Create(AnOwner: TComponent);
+begin
+  inherited;
+
+  ControlStyle := ControlStyle + [csReplicatable];
 
   FButton := TSpeedButton.Create(Self);
   FButton.Glyph.LoadFromResourceName(hInstance, 'GSPERIODEDITBTN');
@@ -1079,90 +1176,15 @@ begin
   FButton.Cursor := crArrow;
   FButton.OnMouseMove := DoOnButtonMouseMove;
   FButton.OnClick := DoOnButtonClick;
-
-  FPeriodForm := TgsPeriodForm.Create(Self);
-  FPeriodForm.Visible := False;
-  FPeriodForm.Parent := Self;
-  FPeriodForm.PeriodEdit := Self;
 end;
 
-procedure TgsPeriodEdit.CreateParams(var Params: TCreateParams);
+destructor TgsDropDownEdit.Destroy;
 begin
-  inherited CreateParams(Params);
-  with Params do
-    if NewStyleControls and Ctl3D then
-      ExStyle := ExStyle or WS_EX_CLIENTEDGE
-    else
-      Style := Style or WS_BORDER;
+  inherited;
+
 end;
 
-procedure TgsPeriodEdit.CreateWnd;
-begin
-  inherited CreateWnd;
-  if not (csDesigning in ComponentState) then
-    SendMessage(Handle, EM_SETMARGINS, EC_RIGHTMARGIN,
-      MakeLong(0, DropDownButtonWidth + 2));
-end;
-
-destructor TgsPeriodEdit.Destroy;
-begin
-  FDatePeriod.Free;
-  inherited Destroy;
-end;
-
-procedure TgsPeriodEdit.DoExit;
-begin
-  if not Validate then
-    SetFocus
-  else
-    inherited;
-end;
-
-procedure TgsPeriodEdit.DoOnButtonClick(Sender: TObject);
-begin
-  if Assigned(FPeriodForm) then
-  begin
-    if not FPeriodVisible then
-      DropDown
-    else
-      CloseUp(True);
-  end;
-end;
-
-procedure TgsPeriodEdit.DoOnButtonMouseMove(Sender: TObject;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  Cursor := crArrow;
-end;
-
-procedure TgsPeriodEdit.DropDown;
-var
-  P: TPoint;
-  Y: Integer;
-begin
-  Assert(Parent <> nil);
-  if not FPeriodVisible then
-  begin
-    if Validate(True) then
-    begin
-      FPeriodForm.AssignPeriod(FDatePeriod);
-
-      if FSavedPeriod = nil then
-        FSavedPeriod := TgsDatePeriod.Create;
-      FSavedPeriod.Assign(FDatePeriod);
-    end;
-    P := Parent.ClientToScreen(Point(Left, Top));
-    Y := P.Y + Height;
-    if Y + FPeriodForm.Height > Screen.Height then Y := P.Y - FPeriodForm.Height;
-    FPeriodVisible := True;
-    SetWindowPos(FPeriodForm.Handle, HWND_TOP, P.X, Y, 0, 0,
-      SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW); 
-    FPeriodForm.Visible := True;
-    SetFocus;
-  end;
-end;
-
-function TgsPeriodEdit.GetMinHeight: Integer;
+function TgsDropDownEdit.GetMinHeight: Integer;
 var
   DC: HDC;
   SaveFont: HFont;
@@ -1184,14 +1206,14 @@ begin
     Result := Metrics.tmHeight;
 end;
 
-procedure TgsPeriodEdit.MouseDown(Button: TMouseButton; Shift: TShiftState;
+procedure TgsDropDownEdit.MouseDown(Button: TMouseButton; Shift: TShiftState;
   X, Y: Integer);
 begin
   if Button = mbLeft then
   begin
     SetFocus;
     if not FHasFocus then Exit;
-    if FPeriodVisible then CloseUp(True);
+    if FDropDownVisible then CloseUp(True);
     if (SelLength = 0) and (Length(Text) > 0) then
     begin
       SelStart := 0;
@@ -1219,11 +1241,11 @@ begin
     end;
 
     VK_F2..VK_F12, VK_DELETE, VK_INSERT:
-      if FPeriodVisible then CloseUp(True);
+      if FDropDownVisible then CloseUp(True);
 
     VK_UP, VK_DOWN:
     begin
-      if FPeriodVisible then
+      if FDropDownVisible then
         CloseUp(True)
       else
         DropDown;
@@ -1231,8 +1253,8 @@ begin
     end;
   end;
 
-  if (Key <> 0) and FPeriodVisible then
-    FPeriodForm.KeyDown(Key, Shift);
+  if (Key <> 0) and FDropDownVisible then
+    FDropDownForm.KeyDown(Key, Shift);
 end;
 
 procedure TgsPeriodEdit.KeyPress(var Key: Char);
@@ -1276,7 +1298,7 @@ procedure TgsPeriodEdit.KeyPress(var Key: Char);
 var
   Y, M, D: Word;
 begin
-  if FPeriodVisible then
+  if FDropDownVisible then
     CloseUp(Key <> #27);
 
   if FDatePeriod.ProcessShortCut(Key) then
@@ -1352,20 +1374,20 @@ begin
   end;
 end;
 
-procedure TgsPeriodEdit.WMKillFocus(var Message: TWMKillFocus);
+procedure TgsDropDownEdit.WMKillFocus(var Message: TWMKillFocus);
 begin
   inherited;
   FHasFocus := False;
   CloseUp(True);
 end;
 
-procedure TgsPeriodEdit.WMSetFocus(var Message: TWMSetFocus);
+procedure TgsDropDownEdit.WMSetFocus(var Message: TWMSetFocus);
 begin
   FHasFocus := True;
   inherited;
 end;
 
-procedure TgsPeriodEdit.WMSize(var Message: TWMSize);
+procedure TgsDropDownEdit.WMSize(var Message: TWMSize);
 var
   MinHeight: Integer;
 begin
@@ -1400,7 +1422,7 @@ begin
     end;
 
     VK_F2..VK_F12:
-      if FPeriodVisible then CloseUp(True);
+      if FDropDownVisible then CloseUp(True);
   end;
 
   inherited;
@@ -1415,12 +1437,6 @@ begin
     Text := '';
   end;
 end;
-
-{function TgsPeriodEdit.GetDatePeriod: TgsDatePeriod;
-begin
-  FDatePeriod.DecodeString(Text);
-  Result := FDatePeriod;
-end;}
 
 procedure TgsPeriodEdit.AssignPeriod(const ADate, ADateEnd: TDate);
 begin
@@ -1465,6 +1481,29 @@ end;
 procedure TgsPeriodEdit.AssignToDatePeriod(APeriod: TgsDatePeriod);
 begin
   APeriod.Assign(FDatePeriod);
+end;
+
+function TgsDropDownEdit.Validate(const Silent: Boolean): Boolean;
+begin
+  Result := True;
+end;
+
+procedure TgsPeriodEdit.InitDropDown;
+begin
+  (FDropDownForm as TgsPeriodForm).AssignPeriod(FDatePeriod);
+
+  if FSavedPeriod = nil then
+    FSavedPeriod := TgsDatePeriod.Create;
+  FSavedPeriod.Assign(FDatePeriod);
+end;
+
+procedure TgsPeriodEdit.AcceptValue(Accept: Boolean);
+begin
+  if Accept then
+    AssignPeriod((FDropDownForm as TgsPeriodForm).Period)
+  else if FSavedPeriod <> nil then
+    AssignPeriod(FSavedPeriod);
+  FreeAndNil(FSavedPeriod);
 end;
 
 end.

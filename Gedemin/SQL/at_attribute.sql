@@ -1473,22 +1473,43 @@ CREATE TABLE gd_ref_constraints (
   ref_state        char(8) character set none,
   ref_next_state   char(8) character set none,
 
-  constraint_rec_count COMPUTED BY (
-    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i
-      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
-      WHERE rc.rdb$relation_name = constraint_rel AND rc.rdb$constraint_type = 'PRIMARY KEY')),
+  constraint_rec_count COMPUTED BY ((
+    SELECT
+      iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5))
+    FROM
+      rdb$indices i
+      JOIN rdb$relation_constraints rc
+        ON rc.rdb$index_name = i.rdb$index_name
+      WHERE
+        rc.rdb$relation_name = constraint_rel
+        AND rc.rdb$constraint_type = 'PRIMARY KEY')),
 
-  constraint_uq_count COMPUTED BY (
-    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i
-      JOIN rdb$index_segments iseg ON iseg.rdb$index_name = i.rdb$index_name
-        AND iseg.rdb$field_name = constraint_field
-      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
-      WHERE i.rdb$relation_name = constraint_rel AND i.rdb$segment_count = 1 AND rc.rdb$constraint_type = 'FOREIGN KEY')),
+  constraint_uq_count COMPUTED BY ((
+    SELECT
+      iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5))
+    FROM
+      rdb$indices i
+      JOIN rdb$index_segments iseg
+        ON iseg.rdb$index_name = i.rdb$index_name
+      JOIN rdb$relation_constraints rc
+        ON rc.rdb$index_name = i.rdb$index_name
+    WHERE
+      iseg.rdb$field_name = constraint_field
+      AND i.rdb$segment_count = 1
+      AND rc.rdb$constraint_name = constraint_name
+      AND rc.rdb$constraint_type = 'FOREIGN KEY'
+  )),
 
-  ref_rec_count COMPUTED BY (
-    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i
-      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name
-      WHERE rc.rdb$relation_name = ref_rel AND rc.rdb$constraint_type = 'PRIMARY KEY')),
+  ref_rec_count COMPUTED BY ((
+    SELECT
+      iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5))
+    FROM
+      rdb$indices i
+      JOIN rdb$relation_constraints rc
+        ON rc.rdb$index_name = i.rdb$index_name
+    WHERE
+      rc.rdb$relation_name = ref_rel
+      AND rc.rdb$constraint_type = 'PRIMARY KEY')),
 
   CONSTRAINT gd_pk_ref_constraint PRIMARY KEY (id),
   CONSTRAINT gd_chk1_ref_contraint CHECK (ref_state IN ('ORIGINAL', 'TRIGGER')),

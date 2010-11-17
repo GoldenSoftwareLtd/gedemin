@@ -423,6 +423,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (127, '0000.0001.0000.0158', '08.11.2010', 'Replacing references to xdeStart, xdeFinish components across macros');
 
+INSERT INTO fin_versioninfo
+  VALUES (128, '0000.0001.0000.0159', '16.11.2010', 'Replacing references to xdeStart, xdeFinish components across macros #2');
+
+INSERT INTO fin_versioninfo
+  VALUES (129, '0000.0001.0000.0160', '17.11.2010', 'Fixed field constraint_uq_count in GD_REF_CONSTRAINTS');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

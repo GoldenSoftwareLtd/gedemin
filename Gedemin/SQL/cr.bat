@@ -1,15 +1,35 @@
 
 @echo off
 
-echo  *******************************************************************************************
-echo  *******************************************************************************************
-echo  **                                                                                       **
-echo  **  Compiling utility gedemin\utility\makelbrbtree\makelbrbtree.dpr                      **
-echo  **                                                                                       **
-echo  *******************************************************************************************   
-echo  *******************************************************************************************
+echo  ************************************************************************
+echo  ************************************************************************
+echo  **                                                                    **
+echo  **  Compiling utility gedemin\utility\makelbrbtree\makelbrbtree.dpr   **
+echo  **                                                                    **
+echo  ************************************************************************   
+echo  ************************************************************************
 
+set RegQry=HKLM\Hardware\Description\System\CentralProcessor\0
+reg.exe Query %RegQry% > checkOS.txt
+find /i "x86" < CheckOS.txt > StringCheck.txt
+ 
+if %ERRORLEVEL% == 0 (
+  goto os32
+) else (
+  goto os64
+)
+
+:os32
 set delphi_path=C:\Program Files\Borland\Delphi5\Bin
+goto path_is_set
+
+:os64
+set delphi_path=C:\Program Files (x86)\Borland\Delphi5\Bin
+
+:path_is_set
+
+del StringCheck.txt
+del CheckOS.txt
 
 cd ..\Utility\MakeLBRBTree
 

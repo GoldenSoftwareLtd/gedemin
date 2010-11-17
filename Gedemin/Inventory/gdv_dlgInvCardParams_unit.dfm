@@ -58,7 +58,6 @@ object gdv_dlgInvCardParams: Tgdv_dlgInvCardParams
         Width = 148
         Height = 21
         TabOrder = 0
-        Text = 'gsPeriodEdit'
       end
     end
     object pcValues: TPageControl

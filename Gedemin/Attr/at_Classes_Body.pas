@@ -3341,6 +3341,9 @@ begin
   if FLoaded and not Force then
     exit;
 
+  if not FDatabase.Connected then
+    exit;
+
   try
     GetTempPath(SizeOf(Path), Path);
     FFileName := IncludeTrailingBackslash(Path);

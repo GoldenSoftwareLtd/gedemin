@@ -1286,8 +1286,8 @@ begin
   if Assigned(SelectedNode) then
   begin
     case TCustomTreeItem(SelectedNode.Data).ItemType of
-      tiMacrosFolder: AddMacrosFolder;
-      tiReportFolder: AddReportFolder;
+      tiMacros, tiMacrosFolder: AddMacrosFolder;
+      tiReport, tiReportFolder: AddReportFolder;
     end;
   end;
   // Здесь только отчет, папка обновляется в tvClassesEdited

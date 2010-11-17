@@ -80,6 +80,7 @@ type
     BtnRect: TRect; // Экранные координаты нажатой клавиши
     IsInverted: Boolean; // Произведена ли инвертация
     FCalculatorEdit: TWinControl; // Класс калькулятора
+    IsFirst: Boolean; // Первый раз
 
     procedure WMMouseActivate(var Message: TWMMouseActivate);
       message WM_MouseActivate;
@@ -378,9 +379,15 @@ procedure TxCalculator.WMWindowPosChanging(var Message: TWMWindowPosChanging);
 begin
   with Message do 
   begin
-    if (WindowPos.flags = SWP_NOSIZE or SWP_NOMOVE or SWP_NOACTIVATE) and (WindowPos.x = 0) and 
+    if (WindowPos.flags = SWP_NOSIZE or SWP_NOMOVE or SWP_NOACTIVATE) and (WindowPos.x = 0) and
       (WindowPos.y = 0) and (WindowPos.cx = 0) and (WindowPos.cy = 0) and Visible then
     begin
+      if IsFirst then
+      begin
+        IsFirst := False;
+        Exit;
+      end;
+
       (FCalculatorEdit as TxCalculatorEdit).ExpressionAction := eaNone;
       Visible := False;
     end;
@@ -548,6 +555,7 @@ begin
   IsInverted := False;
 
   FCalculatorEdit := nil;
+  IsFirst := True;
 end;
 
 {

@@ -46,7 +46,7 @@ uses
   mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean, mdf_ConvertBNStatementCommentToBlob;
 
 const
-  cProcCount = 153;
+  cProcCount = 154;
 
 type
   TModifyProc = record
@@ -306,7 +306,8 @@ const
     (ModifyProc: CreateRGIndex; ModifyVersion: '0000.0001.0000.0154'),
     (ModifyProc: RegenerateLBRBTree2; ModifyVersion: '0000.0001.0000.0155'),
     (ModifyProc: ConvertBNStatementCommentToBlob; ModifyVersion: '0000.0001.0000.0156'),
-    (ModifyProc: ConvertDatePeriodComponent; ModifyVersion: '0000.0001.0000.0157')
+    (ModifyProc: ConvertDatePeriodComponent; ModifyVersion: '0000.0001.0000.0158'),
+    (ModifyProc: UpdateGDRefConstraints; ModifyVersion: '0000.0001.0000.0159')
   );
 
 implementation

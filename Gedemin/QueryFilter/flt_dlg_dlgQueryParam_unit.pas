@@ -371,7 +371,10 @@ var
         if Self.Height + Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).Height < SizeScreenY then
           Self.Height := Self.Height + Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).Height;
         if LocParamList.Params[I].Required then
-          TWinControlCrack(FWinCtrl).Color := $A9FFFF;
+        begin
+          if (not (FWinCtrl is TCheckBox)) and (not (FWinCtrl is TgsSelectBase)) then
+            TWinControlCrack(FWinCtrl).Color := $A9FFFF;
+        end;
       end;
     end;
   end;
@@ -538,8 +541,8 @@ var
     else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsPeriodEdit then
     begin
       Result := VarArrayCreate([0, 1], varVariant);
-      Result[0] := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsPeriodEdit).Date;
-      Result[1] := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsPeriodEdit).EndDate;
+      Result[0] := VarAsType((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsPeriodEdit).Date, varDate);
+      Result[1] := VarAsType((Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsPeriodEdit).EndDate, varDate);
     end
     else if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TgsList then
       Result := (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TgsList).Value
