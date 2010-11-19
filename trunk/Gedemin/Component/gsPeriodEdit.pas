@@ -134,6 +134,7 @@ type
     procedure DoOnButtonMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure DoOnButtonClick(Sender: TObject);
     function GetMinHeight: Integer;
+    procedure SetEditRect;
 
   protected
     function Validate(const Silent: Boolean = False): Boolean; virtual;
@@ -1094,18 +1095,20 @@ procedure TgsDropDownEdit.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
   with Params do
+  begin
     if NewStyleControls and Ctl3D then
       ExStyle := ExStyle or WS_EX_CLIENTEDGE
     else
       Style := Style or WS_BORDER;
+
+    Style := Params.Style {or ES_MULTILINE} or WS_CLIPCHILDREN;
+  end;
 end;
 
 procedure TgsDropDownEdit.CreateWnd;
 begin
   inherited CreateWnd;
-  if not (csDesigning in ComponentState) then
-    SendMessage(Handle, EM_SETMARGINS, EC_RIGHTMARGIN,
-      MakeLong(0, DropDownButtonWidth + 2));
+  SetEditRect;
 end;
 
 destructor TgsPeriodEdit.Destroy;
@@ -1162,7 +1165,7 @@ constructor TgsDropDownEdit.Create(AnOwner: TComponent);
 begin
   inherited;
 
-  ControlStyle := ControlStyle + [csReplicatable];
+  ControlStyle := ControlStyle - [csSetCaption];
 
   FButton := TSpeedButton.Create(Self);
   FButton.Glyph.LoadFromResourceName(hInstance, 'GSPERIODEDITBTN');
@@ -1401,8 +1404,7 @@ begin
       FButton.SetBounds(Width - FButton.Width - 4, 0, FButton.Width, Height - 4)
     else
       FButton.SetBounds (Width - FButton.Width, 0, FButton.Width, Height);
-    SendMessage(Handle, EM_SETMARGINS, EC_RIGHTMARGIN,
-      MakeLong(0, DropDownButtonWidth + 2));
+    SetEditRect;
   end;
 end;
 
@@ -1504,6 +1506,20 @@ begin
   else if FSavedPeriod <> nil then
     AssignPeriod(FSavedPeriod);
   FreeAndNil(FSavedPeriod);
+end;
+
+procedure TgsDropDownEdit.SetEditRect;
+{var
+  Loc: TRect;}
+begin
+  (*SendMessage(Handle, EM_GETRECT, 0, LongInt(@Loc));
+  Loc.Bottom := ClientHeight + 1;  {+1 is workaround for windows paint bug}
+  Loc.Right := ClientWidth - FButton.Width - 2;
+  Loc.Top := 0;
+  Loc.Left := 0;
+  SendMessage(Handle, EM_SETRECTNP, 0, LongInt(@Loc));*)
+
+  SendMessage(Handle, EM_SETMARGINS, EC_RIGHTMARGIN or EC_LEFTMARGIN, (DropDownButtonWidth + 2) shl 16);
 end;
 
 end.

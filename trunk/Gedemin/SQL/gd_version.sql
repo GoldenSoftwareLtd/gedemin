@@ -429,6 +429,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (129, '0000.0001.0000.0160', '17.11.2010', 'Fixed field constraint_uq_count in GD_REF_CONSTRAINTS');
 
+INSERT INTO fin_versioninfo
+  VALUES (130, '0000.0001.0000.0161', '19.11.2010', 'Change gd_user_storage trigger');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

@@ -1812,6 +1812,7 @@ var
   BankID: Integer;
   LastCompanyName: String;
   ibsql: TIBSQL;
+  CountCompany: Integer;
 
   procedure SetCompanyAccountInternal;
   begin
@@ -1897,9 +1898,11 @@ begin
           LastCompanyName := '';
           {Пробежимся по записям и проверим:
             Дублируется ли счет с кем-нибудь еще}
-          while not ibsql.Eof do
+          CountCompany := 0;
+          while not ibsql.Eof and (CountCompany < 4) do
           begin
             LastCompanyName := LastCompanyName + ibsql.FieldByName('name').AsString + #13#10;
+            CountCompany := CountCompany + 1;
             ibsql.Next;
           end;
 

@@ -8,6 +8,7 @@ uses
 procedure ConvertBNStatementCommentToBlob(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ConvertDatePeriodComponent(IBDB: TIBDatabase; Log: TModifyLog);
 procedure UpdateGDRefConstraints(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AlterUserStorageTrigger(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -336,6 +337,68 @@ begin
       FIBSQL.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (129, ''0000.0001.0000.0160'', ''17.11.2010'', ''Fixed field constraint_uq_count in GD_REF_CONSTRAINTS'') ' +
+        '  MATCHING (id)';
+      FIBSQL.ExecQuery;
+      FIBSQL.Close;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FIBSQL.Free;
+    FTransaction.Free;
+  end;
+end;
+
+procedure AlterUserStorageTrigger(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  FIBSQL := TIBSQL.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+      FIBSQL.Transaction := FTransaction;
+
+      FIBSQL.SQL.Text := 'DROP TRIGGER gd_biud_userstorage';
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text :=
+        'CREATE TRIGGER gd_biu_userstorage FOR gd_userstorage '#13#10 +
+        '  BEFORE INSERT OR UPDATE /* OR DELETE */ '#13#10 +
+        '  POSITION 0 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  EXCEPTION gd_e_block_old_storage ''Изменение старых данных пользовательского хранилища заблокировано''; '#13#10 +
+        'END ';
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text := 'DROP TRIGGER gd_biud_companystorage';
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text :=
+        'CREATE TRIGGER gd_biu_companystorage FOR gd_companystorage '#13#10 +
+        '  BEFORE INSERT OR UPDATE /* OR DELETE */ '#13#10 +
+        '  POSITION 0 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  EXCEPTION gd_e_block_old_storage ''Изменение старых данных хранилища компании заблокировано''; '#13#10 +
+        'END ';
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (130, ''0000.0001.0000.0161'', ''19.11.2010'', ''Change gd_user_storage trigger'') ' +
         '  MATCHING (id)';
       FIBSQL.ExecQuery;
       FIBSQL.Close;
