@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2000-2010 by Golden Software of Belarus
+  Copyright (c) 2000 - 2010 by Golden Software of Belarus
 
   Module
 
@@ -1898,7 +1898,8 @@ begin
     FCurrentEditor := nil;
   end;
 
-  EditStyle := NewStyle;
+  if not Assigned(FActiveList) then
+    EditStyle := NewStyle;
 
   inherited UpdateContents;
 
