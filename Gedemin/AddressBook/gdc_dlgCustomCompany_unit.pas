@@ -615,7 +615,7 @@ begin
           begin
             S := '';
             C := 0;
-            while (not q.EOF) and (C < 10) do
+            while (not q.EOF) and (C < 4) do
             begin
               S := S + q.Fields[0].AsString + #13#10;
               Inc(C);

@@ -466,8 +466,8 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER gd_biud_userstorage FOR gd_userstorage
-  BEFORE INSERT OR UPDATE OR DELETE
+CREATE TRIGGER gd_biu_userstorage FOR gd_userstorage
+  BEFORE INSERT OR UPDATE /* OR DELETE */
   POSITION 0
 AS
 BEGIN
@@ -475,8 +475,8 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER gd_biud_companystorage FOR gd_companystorage
-  BEFORE INSERT OR UPDATE OR DELETE
+CREATE TRIGGER gd_biu_companystorage FOR gd_companystorage
+  BEFORE INSERT OR UPDATE /* OR DELETE */
   POSITION 0
 AS
 BEGIN
