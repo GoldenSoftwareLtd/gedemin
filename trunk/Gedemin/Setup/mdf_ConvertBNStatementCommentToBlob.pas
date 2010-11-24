@@ -370,8 +370,7 @@ begin
       FTransaction.StartTransaction;
       FIBSQL.Transaction := FTransaction;
 
-      FIBSQL.SQL.Text := 'DROP TRIGGER gd_biud_userstorage';
-      FIBSQL.ExecQuery;
+      DropTrigger2('gd_biud_userstorage', FTransaction);
 
       FIBSQL.SQL.Text :=
         'CREATE TRIGGER gd_biu_userstorage FOR gd_userstorage '#13#10 +
@@ -383,8 +382,7 @@ begin
         'END ';
       FIBSQL.ExecQuery;
 
-      FIBSQL.SQL.Text := 'DROP TRIGGER gd_biud_companystorage';
-      FIBSQL.ExecQuery;
+      DropTrigger2('gd_biud_companystorage', FTransaction);
 
       FIBSQL.SQL.Text :=
         'CREATE TRIGGER gd_biu_companystorage FOR gd_companystorage '#13#10 +

@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2000 - 2010 by Golden Software of Belarus
+  Copyright (c) 2000-2010 by Golden Software of Belarus
 
   Module
 
@@ -1898,8 +1898,7 @@ begin
     FCurrentEditor := nil;
   end;
 
-  if not Assigned(FActiveList) then
-    EditStyle := NewStyle;
+  EditStyle := NewStyle;
 
   inherited UpdateContents;
 
@@ -5824,8 +5823,6 @@ initialization
   TempBitmap.Height := 40;
 
 finalization
-
   FreeAndNil(TempBitmap);
-
 end.
 
