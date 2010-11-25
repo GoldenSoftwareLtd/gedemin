@@ -1388,6 +1388,7 @@ procedure TgsDropDownEdit.WMSetFocus(var Message: TWMSetFocus);
 begin
   FHasFocus := True;
   inherited;
+  SetEditRect;
 end;
 
 procedure TgsDropDownEdit.WMSize(var Message: TWMSize);
@@ -1509,16 +1510,7 @@ begin
 end;
 
 procedure TgsDropDownEdit.SetEditRect;
-{var
-  Loc: TRect;}
 begin
-  (*SendMessage(Handle, EM_GETRECT, 0, LongInt(@Loc));
-  Loc.Bottom := ClientHeight + 1;  {+1 is workaround for windows paint bug}
-  Loc.Right := ClientWidth - FButton.Width - 2;
-  Loc.Top := 0;
-  Loc.Left := 0;
-  SendMessage(Handle, EM_SETRECTNP, 0, LongInt(@Loc));*)
-
   SendMessage(Handle, EM_SETMARGINS, EC_RIGHTMARGIN or EC_LEFTMARGIN, (DropDownButtonWidth + 2) shl 16);
 end;
 
