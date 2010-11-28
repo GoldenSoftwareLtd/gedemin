@@ -286,7 +286,7 @@ begin
     finally
       Free;
     end;
-  AddSpaces('Командная строка', CmdLine);
+  AddSpaces('Командная строка', Trim(Copy(CmdLine, Length(ParamStr(0)) + 1, 8192)));
 
   S := '';
   {$IFDEF DUNIT_TEST}S := S + 'DUNIT_TEST, ';{$ENDIF}

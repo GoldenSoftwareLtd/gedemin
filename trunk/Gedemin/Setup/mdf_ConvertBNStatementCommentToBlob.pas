@@ -373,7 +373,7 @@ begin
       DropTrigger2('gd_biud_userstorage', FTransaction);
 
       FIBSQL.SQL.Text :=
-        'CREATE TRIGGER gd_biu_userstorage FOR gd_userstorage '#13#10 +
+        'CREATE OR ALTER TRIGGER gd_biu_userstorage FOR gd_userstorage '#13#10 +
         '  BEFORE INSERT OR UPDATE /* OR DELETE */ '#13#10 +
         '  POSITION 0 '#13#10 +
         'AS '#13#10 +
@@ -385,7 +385,7 @@ begin
       DropTrigger2('gd_biud_companystorage', FTransaction);
 
       FIBSQL.SQL.Text :=
-        'CREATE TRIGGER gd_biu_companystorage FOR gd_companystorage '#13#10 +
+        'CREATE OR ALTER TRIGGER gd_biu_companystorage FOR gd_companystorage '#13#10 +
         '  BEFORE INSERT OR UPDATE /* OR DELETE */ '#13#10 +
         '  POSITION 0 '#13#10 +
         'AS '#13#10 +

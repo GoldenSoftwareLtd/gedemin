@@ -21,6 +21,7 @@ uses
   gd_directories_const,
   Dialogs,
   IBIntf,
+  IBServices,
   gdcInvDocumentCache_body,
   gd_regionalsettings_dlgEdit,
   gd_security,
@@ -367,6 +368,80 @@ begin
 end;
 {$ENDIF}
 
+function RestoreDatabase: Boolean;
+var
+  I: Integer;
+  IBRestore: TIBRestoreService;
+begin
+  Result := False;
+  for I := 1 to System.ParamCount - 7 do
+  begin
+    if AnsiCompareText(System.ParamStr(I), '/R') = 0 then
+    begin
+      IBRestore := TIBRestoreService.Create(nil);
+      try
+        if AnsiCompareText(System.ParamStr(I + 1), 'EMBEDDED') = 0 then
+        begin
+          IBRestore.Protocol := Local;
+          IBRestore.ServerName := '';
+        end else
+        begin
+          IBRestore.Protocol := TCP;
+          IBRestore.ServerName := System.ParamStr(I + 1);
+        end;
+
+        IBRestore.BackupFile.Text := System.ParamStr(I + 2);
+        IBRestore.DatabaseName.Text := System.ParamStr(I + 3);
+
+        IBRestore.LoginPrompt := False;
+        IBRestore.Params.Clear;
+        IBRestore.Params.Add('user_name=' + System.ParamStr(I + 4));
+        IBRestore.Params.Add('password=' + System.ParamStr(I + 5));
+
+        if (AnsiCompareText(System.ParamStr(I + 6), 'DEFAULT') = 0)
+          or (StrToIntDef(System.ParamStr(I + 6), -1) <= 0) then
+          IBRestore.PageSize := 8192
+        else
+          IBRestore.PageSize := StrToInt(System.ParamStr(I + 6));
+
+        if (AnsiCompareText(System.ParamStr(I + 7), 'DEFAULT') = 0)
+          or (StrToIntDef(System.ParamStr(I + 7), -1) <= 0) then
+          IBRestore.PageBuffers := 8192
+        else
+          IBRestore.PageBuffers := StrToInt(System.ParamStr(I + 7));
+
+        IBRestore.Options := [CreateNewDB];
+        IBRestore.Verbose := False;
+
+        try
+          IBRestore.Active := True;
+          IBRestore.ServiceStart;
+          while (not IBRestore.EOF) and IBRestore.IsServiceRunning do
+          begin
+            IBRestore.GetNextLine;
+          end;
+          IBRestore.Active := False;
+          ExitCode := 0;
+        except
+          on E: Exception do
+          begin
+            MessageBox(0,
+              PChar('Ошибка при распаковке БД: ' + E.Message),
+              'Ошибка',
+              MB_OK or MB_TASKMODAL or MB_ICONHAND);
+            ExitCode := 1;
+          end;
+        end;
+      finally
+        IBRestore.Free;
+      end;
+
+      Result := True;
+      break;
+    end;
+  end;
+end;
+
 var
   DC: HDC;
   ApplicationEventsHandler: TgdApplicationEventsHandler;
@@ -377,6 +452,9 @@ begin
   //Set8087CW($133F);
   DisableProcessWindowsGhosting;
 {$ENDIF}
+
+  if RestoreDatabase then
+    exit;
 
 {$IFDEF GEDEMIN_LOCK}
   IsRegisteredCopy := CheckRegistration;
@@ -427,7 +505,7 @@ begin
     /////////////////////////////////////////////////////
     // Проверка, чтобы не была запущена программа upgrade
 
-    SetLastError(0);
+    {SetLastError(0);
     MutexHandle := OpenMutex(MUTEX_ALL_ACCESS, False, PChar(GedeminSetupMutexName));
     MutexExisted := MutexHandle <> 0;
 
@@ -440,7 +518,7 @@ begin
         MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
       CloseHandle(MutexHandle);
       Exit;
-    end;
+    end;}
 
     SetLastError(0);
     MutexHandle := CreateMutex(nil, False, PChar(GedeminMutexName));

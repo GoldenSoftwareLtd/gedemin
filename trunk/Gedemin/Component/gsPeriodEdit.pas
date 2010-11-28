@@ -130,6 +130,8 @@ type
       message WM_SetFocus;
     procedure WMKillFocus(var Message: TWMKillFocus);
       message WM_KillFocus;
+    procedure WMLButtonDblClk(var Message: TWMLButtonDblClk);
+      message WM_LBUTTONDBLCLK;
 
     procedure DoOnButtonMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure DoOnButtonClick(Sender: TObject);
@@ -139,11 +141,13 @@ type
   protected
     function Validate(const Silent: Boolean = False): Boolean; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure DoExit; override;
     procedure CreateWnd; override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure InitDropDown; virtual; abstract;
     procedure AcceptValue(Accept: Boolean); virtual; abstract;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -1224,6 +1228,7 @@ begin
     end;
   end;
   inherited MouseDown(Button, Shift, X, Y);
+  SetEditRect;
 end;
 
 procedure TgsPeriodEdit.KeyDown(var Key: Word; Shift: TShiftState);
@@ -1512,6 +1517,25 @@ end;
 procedure TgsDropDownEdit.SetEditRect;
 begin
   SendMessage(Handle, EM_SETMARGINS, EC_RIGHTMARGIN or EC_LEFTMARGIN, (DropDownButtonWidth + 2) shl 16);
+end;
+
+procedure TgsDropDownEdit.KeyDown(var Key: Word; Shift: TShiftState);
+begin
+  inherited;
+  SetEditRect;
+end;
+
+procedure TgsDropDownEdit.WMLButtonDblClk(var Message: TWMLButtonDblClk);
+begin
+  inherited;
+  SetEditRect;
+end;
+
+procedure TgsDropDownEdit.MouseUp(Button: TMouseButton; Shift: TShiftState;
+  X, Y: Integer);
+begin
+  inherited;
+  SetEditRect;
 end;
 
 end.
