@@ -32,8 +32,8 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 
 [Files]
 Source: "gedemin.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "fbclient.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "fbclient.dll"; DestDir: "{app}\fbembed.dll"; Flags: ignoreversion
+Source: "gedemin.exe.manifest"; DestDir: "{app}"; Flags: ignoreversion
+Source: "fbembed.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gedemin.jpg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gsdbquery.dll"; DestDir: "{app}"; Flags: ignoreversion regserver
 Source: "UDF\gudf.dll"; DestDir: "{app}\UDF"; Flags: ignoreversion
@@ -47,8 +47,8 @@ Source: "Microsoft.VC80.CRT.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "firebird.msg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Intl\fbintl.dll"; DestDir: "{app}\Intl"; Flags: ignoreversion
 Source: "Intl\fbintl.conf"; DestDir: "{app}\Intl"; Flags: ignoreversion
-Source: "gbak.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "midas.dll"; DestDir: "{sys}"; Flags: regserver onlyifdoesntexist sharedfile
+Source: "midas.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "midas.sxs.manifest"; DestDir: "{app}"; Flags: ignoreversion
 
 Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
@@ -73,11 +73,8 @@ Root: HKCU; SubKey: "Software\Golden Software\Gedemin"; Flags: uninsdeletekeyife
 Root: HKCU; SubKey: "Software\Golden Software"; Flags: uninsdeletekeyifempty
 
 [Run]
-FileName: "{app}\gbak.exe"; Parameters: "-c -p 8192 -bu 4096 -user SYSDBA -pas masterkey Database\{code:GetBKFileName} Database\{code:GetDBFileName}"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden
+FileName: "{app}\gedemin.exe"; Parameters: "/r EMBEDDED ""{app}\Database\{code:GetBKFileName}"" ""{app}\Database\{code:GetDBFileName}"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden
 Filename: "{app}\gedemin.exe"; Description: "{cm:LaunchProgram,{code:GetSafeAppName}}"; WorkingDir: {app}; Flags: nowait postinstall skipifsilent
-
-[UninstallRun]
-FileName: "{app}\gbak.exe"; Parameters: "-b -user SYSDBA -pas masterkey Database\{code:GetDBFileName} Database\{code:GetBKFileName}"; WorkingDir: {app}; StatusMsg: "Архивирование базы данных..."; Flags: waituntilterminated runhidden
 
 [Code]
 
