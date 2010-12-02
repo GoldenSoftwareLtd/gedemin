@@ -1,0 +1,51 @@
+// Package file for Delphi 7
+
+package FRDBX7;
+
+{$R *.res}
+{$R 'FR_DBXreg.dcr'}
+{$I FR.inc}
+
+{$DESCRIPTION 'FastReport 2.5 DBX Components'}
+{$ALIGN ON}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $00400000}
+{$IMPLICITBUILD ON}
+
+requires
+  VCL,
+  VCLDB,
+  DBEXPRESS,
+  VCLSMP,
+  FR7;
+
+contains
+  FR_DBXReg        in 'FR_DBXReg.pas',
+  FR_DBXDB         in 'FR_DBXDB.pas',
+  FR_DBXMd         in 'FR_DBXMd.pas',
+{$IFDEF QBUILDER}
+  FR_DBXQb         in 'FR_DBXQb.pas',
+{$ENDIF}
+  FR_DBXQuery      in 'FR_DBXQuery.pas',
+  FR_DBXQueryParam in 'FR_DBXQueryParam.pas',
+  FR_DBXTable      in 'FR_DBXTable.pas';
+
+end.

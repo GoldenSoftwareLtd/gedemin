@@ -1,0 +1,51 @@
+// Package file for Delphi 6
+
+package FRBDE6;
+
+{$R *.res}
+{$R 'FR_BDEreg.dcr'}
+{$I FR.inc}
+
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'FastReport 2.5 BDE Components'}
+{$IMPLICITBUILD ON}
+
+requires
+  VCL,
+  VCLDB,
+  BDERTL,
+  VCLSMP,
+  FR6;
+
+contains
+  FR_BDEReg in 'FR_BDEReg.pas',
+  FR_BDEDB in 'FR_BDEDB.pas',
+  FR_BDEMd in 'FR_BDEMd.pas',
+  FR_BDEQuery in 'FR_BDEQuery.pas',
+{$IFDEF QBUILDER}
+  FR_BDEQb         in 'FR_BDEQb.pas',
+{$ENDIF}
+  FR_BDEQueryParam in 'FR_BDEQueryParam.pas',
+  FR_BDETable in 'FR_BDETable.pas';
+
+end.

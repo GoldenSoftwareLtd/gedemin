@@ -1,0 +1,52 @@
+package kbmMemD3;
+
+{$R *.RES}
+{$R 'kbmMemTable.dcr'}
+{$ALIGN ON}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $00400000}
+{$DESCRIPTION 'TkbmMemTable package for Delphi 3'}
+{$DESIGNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  vcl30,
+  VCLDB30;
+
+contains
+  kbmMemTable,
+  kbmMemCSVStreamFormat,
+  kbmMemBinaryStreamFormat,
+  kbmCompress,
+  kbmMemResSpa,
+  kbmMemResEng,
+  kbmMemResFra,
+  kbmMemResGer,
+  kbmMemResIta,
+  kbmMemResRom,
+  kbmMemResRus,
+  kbmMemResSky,
+  kbmMemResBra,
+  kbmMemResUkr,
+  kbmMemResHun,
+  Lzh;
+
+end.
