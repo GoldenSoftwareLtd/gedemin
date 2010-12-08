@@ -370,7 +370,7 @@ begin
       '  ( ' +
       '  SELECT ' +
       '    bal.contactkey, ' +
-      '    inv_doc.usr$contactkey AS SupplierKey, ' +
+        IIF(FAddLineKeyFieldExists, ' inv_doc.usr$contactkey ', 'NULL') + ' AS SupplierKey, ' +
       '    bal.goodkey, ' +
       '    bal.companykey, ' +
       '    SUM(bal.balance) AS balance ' +
@@ -381,8 +381,8 @@ begin
       '      b.contactkey, ' +
       '      c.goodkey, ' +
       '      c.companykey, ' +
-      '      c.usr$inv_addlinekey, ' +
       '      SUM(b.balance) AS balance ' +
+        IIF(FAddLineKeyFieldExists, ', c.usr$inv_addlinekey ', '') +
         IIF(cFieldList <> '', ', ' + cFieldList, '') +
       '    FROM ' +
       '      inv_balance b ' +
@@ -397,8 +397,8 @@ begin
       '    GROUP BY ' +
       '      b.contactkey, ' +
       '      c.goodkey, ' +
-      '      c.companykey, ' +
-      '      c.usr$inv_addlinekey ' +
+      '      c.companykey ' +
+        IIF(FAddLineKeyFieldExists, ', c.usr$inv_addlinekey ', '') +
         IIF(cFieldList <> '', ', ' + cFieldList, '') +
       ' ' +
       '    UNION ALL ' +
@@ -407,8 +407,8 @@ begin
       '      m.contactkey, ' +
       '      c.goodkey, ' +
       '      c.companykey, ' +
-      '      c.usr$inv_addlinekey, ' +
       '      - SUM(m.debit - m.credit) AS balance ' +
+        IIF(FAddLineKeyFieldExists, ', c.usr$inv_addlinekey ', '') +
         IIF(cFieldList <> '', ', ' + cFieldList, '') +
       '    FROM ' +
       '      inv_movement m ' +
@@ -424,20 +424,19 @@ begin
       '    GROUP BY ' +
       '      m.contactkey, ' +
       '      c.goodkey, ' +
-      '      c.companykey, ' +
-      '      c.usr$inv_addlinekey ' +
+      '      c.companykey ' +
+        IIF(FAddLineKeyFieldExists, ', c.usr$inv_addlinekey ', '') +
         IIF(cFieldList <> '', ', ' + cFieldList, '') +
       '    ) bal ' +
-      '    LEFT JOIN usr$inv_addwbillline inv_line ON inv_line.documentkey = bal.usr$inv_addlinekey ' +
-      '    LEFT JOIN usr$inv_addwbill inv_doc ON inv_doc.documentkey = inv_line.masterkey ' +
+        IIF(FAddLineKeyFieldExists,
+          '    LEFT JOIN usr$inv_addwbillline inv_line ON inv_line.documentkey = bal.usr$inv_addlinekey ' +
+          '    LEFT JOIN usr$inv_addwbill inv_doc ON inv_doc.documentkey = inv_line.masterkey ', '') +
       '  GROUP BY ' +
       '    bal.contactkey, ' +
-      '    inv_doc.usr$contactkey, ' +
+        IIF(FAddLineKeyFieldExists, ' inv_doc.usr$contactkey, ', '') +
       '    bal.goodkey, ' +
       '    bal.companykey ' +
         IIF(balFieldList <> '', ', ' + balFieldList, '') +
-      '  /*HAVING ' +
-      '    SUM(bal.balance) >= 0*/ ' +
       '  ) move ' +
       '   LEFT JOIN gd_contact cont ON cont.id = move.contactkey ' +
       ' ORDER BY ' +

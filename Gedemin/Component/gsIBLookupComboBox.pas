@@ -3036,9 +3036,33 @@ begin
   if (Length(S) >= 10) and (S[1] = '#') and (S[Length(S)] = '#')
     and ExtractDate(Copy(S, 2, Length(S) - 2), Y, M, D) then
   begin
-    Result := EncodeDate(Y, M, D)
+    Result := EncodeDate(Y, M, D);
+  end
+  else if (Length(S) >= 2) and (S[1] = '''') and (S[Length(S)] = '''') then
+  begin
+    Result := Copy(S, 2, Length(S) - 2);
   end else
+  begin
+{    try
+      Result := StrToInt(S);
+      exit;
+    except
+    end;
+
+    try
+      Result := StrToCurr(S);
+      exit;
+    except
+    end;
+
+    try
+      Result := StrToFloat(S);
+      exit;
+    except
+    end;}
+
     Result := S;
+  end;
 end;
 
 { TgsIBLCBDataLink }
