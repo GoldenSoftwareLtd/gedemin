@@ -412,8 +412,17 @@ end;
 
 procedure TfrmSQLProcess.lvInfoTip(Sender: TObject; Item: TListItem;
   var InfoTip: String);
+var
+  LogRecordIndex: Integer;
 begin
-  InfoTip := FLog.LogText[Item.Index];
+  // Если выбрано показывать только ошибки, то сначала надо получить настоящий индекс записи в логе
+  //  т.к. кол-во отображаемых записей уже не равно кол-ву записей в логе
+  if actShowErrors.Checked then
+    LogRecordIndex := FLog.GetRealErrorRecIndex(Item.Index)
+  else
+    LogRecordIndex := Item.Index;
+
+  InfoTip := FLog.LogText[LogRecordIndex];
   if (Length(InfoTip) < 92) and (Pos(#13, InfoTip) = 0) then
     InfoTip := '';
 end;

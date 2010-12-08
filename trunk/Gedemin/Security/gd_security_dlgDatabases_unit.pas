@@ -62,6 +62,7 @@ type
     procedure actSearchExecute(Sender: TObject);
     procedure actSearchUpdate(Sender: TObject);
     procedure edSearchChange(Sender: TObject);
+    procedure actBrowseDirUpdate(Sender: TObject);
   private
     FAddNew: Boolean;
 
@@ -503,6 +504,11 @@ begin
     SL.Free;
     Reg.Free;
   end;
+end;
+
+procedure Tgd_security_dlgDatabases.actBrowseDirUpdate(Sender: TObject);
+begin
+  actBrowseDir.Enabled := not edDatabase.ReadOnly; 
 end;
 
 end.

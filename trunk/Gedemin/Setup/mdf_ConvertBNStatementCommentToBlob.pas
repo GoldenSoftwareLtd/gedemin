@@ -253,6 +253,11 @@ begin
             [rfReplaceAll, rfIgnoreCase]);
         end;
 
+        S := StringReplace(S, '"за период с " +', '"за период с " &',
+          [rfReplaceAll, rfIgnoreCase]);
+        S := StringReplace(S, '" по " +', '" по " &',
+          [rfReplaceAll, rfIgnoreCase]);
+
         if (FIBSQL.FieldByName('script').AsString <> S) then
         begin
           qUpdate.ParamByName('id').AsInteger := FIBSQL.FieldByName('id').AsInteger;

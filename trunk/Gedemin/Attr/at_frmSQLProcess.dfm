@@ -1,7 +1,7 @@
 object frmSQLProcess: TfrmSQLProcess
   Left = 437
   Top = 205
-  Width = 565
+  Width = 585
   Height = 398
   HelpContext = 25
   BorderIcons = [biSystemMenu, biMaximize]
@@ -22,7 +22,7 @@ object frmSQLProcess: TfrmSQLProcess
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 549
+    Width = 569
     Height = 33
     Align = alTop
     BevelOuter = bvNone
@@ -58,7 +58,7 @@ object frmSQLProcess: TfrmSQLProcess
   object stbSQLProcess: TStatusBar
     Left = 0
     Top = 341
-    Width = 549
+    Width = 569
     Height = 19
     Panels = <
       item
@@ -72,7 +72,7 @@ object frmSQLProcess: TfrmSQLProcess
   object pb: TProgressBar
     Left = 0
     Top = 325
-    Width = 549
+    Width = 569
     Height = 16
     Align = alBottom
     Min = 0
@@ -82,7 +82,7 @@ object frmSQLProcess: TfrmSQLProcess
   object Panel1: TPanel
     Left = 0
     Top = 323
-    Width = 549
+    Width = 569
     Height = 2
     Align = alBottom
     BevelOuter = bvNone
@@ -91,7 +91,7 @@ object frmSQLProcess: TfrmSQLProcess
   object lv: TListView
     Left = 0
     Top = 33
-    Width = 549
+    Width = 569
     Height = 290
     Align = alClient
     Columns = <
@@ -121,6 +121,7 @@ object frmSQLProcess: TfrmSQLProcess
     Top = 112
     object actSaveToFile: TAction
       Caption = 'Сохранить'
+      Enabled = False
       Hint = 'Сохранить лог в файл'
       ImageIndex = 25
       OnExecute = actSaveToFileExecute
@@ -133,12 +134,14 @@ object frmSQLProcess: TfrmSQLProcess
     end
     object actClear: TAction
       Caption = 'Очистить'
+      Enabled = False
       ImageIndex = 123
       OnExecute = actClearExecute
       OnUpdate = actClearUpdate
     end
     object actShowErrors: TAction
       Caption = 'Показать ошибки'
+      Enabled = False
       ImageIndex = 224
       OnExecute = actShowErrorsExecute
       OnUpdate = actShowErrorsUpdate

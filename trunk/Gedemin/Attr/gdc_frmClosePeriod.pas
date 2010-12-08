@@ -94,6 +94,7 @@ type
     procedure actCardSelectNoneExecute(Sender: TObject);
     procedure actCardSelectAllUpdate(Sender: TObject);
     procedure actCardSelectNoneUpdate(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
     FGlobalStartTime: TDateTime;
     FClosingPeriodObject: TgdClosingPeriod;
@@ -141,7 +142,7 @@ begin
     InnerFormVariable.GlobalStartTime := Time;
     InnerFormVariable.ActivateControls(False);
     InnerFormVariable.AddLogMessage(TimeToStr(InnerFormVariable.GlobalStartTime) + ': Начат процесс закрытия периода...');
-    InnerFormVariable.btnRun.Caption := 'Прервать';
+    InnerFormVariable.btnRun.Caption := 'Прервать выполнение';
   end;
 end;
 
@@ -151,7 +152,7 @@ begin
   begin
     InnerFormVariable.AddLogMessage(TimeToStr(Time) + ': Закончен процесс закрытия периода');
     InnerFormVariable.ActivateControls(True);
-    InnerFormVariable.btnRun.Caption := 'Выполнить';
+    InnerFormVariable.btnRun.Caption := 'Выполнить закрытие периода';
     InnerFormVariable.btnRun.Enabled := True;
   end;
 end;
@@ -257,8 +258,14 @@ end;
 procedure TfrmClosePeriod.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
+  SaveSettingsToStorage; 
   Action := caFree;
-  SaveSettingsToStorage;
+end;
+
+procedure TfrmClosePeriod.FormCloseQuery(Sender: TObject;
+  var CanClose: Boolean);
+begin
+  CanClose := not FClosingPeriodObject.InProcess;
 end;
 
 procedure TfrmClosePeriod.btnCloseClick(Sender: TObject);

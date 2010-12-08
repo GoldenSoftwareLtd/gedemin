@@ -210,6 +210,7 @@ object gd_security_dlgDatabases: Tgd_security_dlgDatabases
     object actBrowseDir: TAction
       Caption = '...'
       OnExecute = actBrowseDirExecute
+      OnUpdate = actBrowseDirUpdate
     end
     object actSearchNext: TAction
       Caption = 'Следующая'

@@ -2114,7 +2114,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
   {$ENDIF}
-  , gdc_frmStreamSaver, gdcStreamSaver;
+  , gdc_frmStreamSaver, gdcStreamSaver, gdcLBRBTreeMetaData;
 
 const
   cst_sql_SelectRuidByID = 'SELECT * FROM gd_ruid WHERE id=:id';
@@ -8575,7 +8575,7 @@ var
   CrossDS: TDataSource;
   //Лист для таблиц, участвующих в запросе
   LT: TStrings;
-
+  TreeDependentNames: TLBRBTreeMetaNames;
 begin
   CheckBrowseMode;
 
@@ -8964,6 +8964,11 @@ begin
           try
             atDatabase.ForeignKeys.ConstraintsByReferencedRelation(
               GetListTable(SubType), DL, True);
+
+            // Для деревьев не будем сохранять служебные метаданные
+            if Self is TgdcLBRBTreeTable then
+              GetLBRBTreeDependentNames(Self.FieldByName('relationname').AsString, ReadTransaction, TreeDependentNames);
+
             //Добавим все ключи по таблицам находящимся в связи 1:1
             //к главной таблице
             for I := 0 to LinkTableList.Count - 1 do
@@ -8981,6 +8986,7 @@ begin
                 if not Assigned(TatForeignKey(DL[I]).Relation.PrimaryKey) then
                   raise EgdcIBError.Create('Ошибка при обработке связи мастер-дитейл: ' +
                     ' у таблицы ' + TatForeignKey(DL[I]).Relation.LName + ' отсутствует первичный ключ! ');
+
                 ibsql.Close;
                 //Мы не проверяем наши таблицы на простой
                 //первичный ключ, т.к. в список могли попасть
@@ -9000,7 +9006,7 @@ begin
                   begin
                     //Создаем его экземпляр с одной записью
                     Obj := C.gdClass.CreateSubType(nil, C.SubType, 'ByID');
-                    try
+                    try         
                       Obj.Transaction := Transaction;
                       while not ibsql.Eof do
                       begin
@@ -9013,6 +9019,17 @@ begin
                           Obj.ModifyFromStream := Self.ModifyFromStream;
                         end;
                         Obj.Open;
+
+                        // Для деревьев не будем сохранять служебные метаданные
+                        if Self is TgdcLBRBTreeTable then
+                          if Obj is TgdcTrigger then
+                            if (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), TreeDependentNames.BITriggerName) = 0)
+                               or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), TreeDependentNames.BUTriggerName) = 0) then
+                            begin
+                              ibsql.Next;
+                              Continue;
+                            end;
+
                         if Obj.RecordCount > 0 then
                           Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
                         ibsql.Next;

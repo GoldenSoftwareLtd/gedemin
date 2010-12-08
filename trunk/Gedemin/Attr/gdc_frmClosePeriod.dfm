@@ -15,6 +15,7 @@ object frmClosePeriod: TfrmClosePeriod
   OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
@@ -72,7 +73,7 @@ object frmClosePeriod: TfrmClosePeriod
           Top = 20
           Width = 547
           Height = 21
-          Color = 11141119
+          Color = clWhite
           TabOrder = 0
           Text = 'eExtDatabase'
         end
@@ -90,7 +91,7 @@ object frmClosePeriod: TfrmClosePeriod
           Top = 44
           Width = 153
           Height = 21
-          Color = 11141119
+          Color = clWhite
           TabOrder = 2
           Text = 'eExtUser'
         end
@@ -99,7 +100,7 @@ object frmClosePeriod: TfrmClosePeriod
           Top = 68
           Width = 153
           Height = 21
-          Color = 11141119
+          Color = clWhite
           PasswordChar = '*'
           TabOrder = 3
           Text = 'eExtPassword'
@@ -156,6 +157,8 @@ object frmClosePeriod: TfrmClosePeriod
           Width = 235
           Height = 17
           Caption = 'Вычисление бухгалтерских остатков'
+          Checked = True
+          State = cbChecked
           TabOrder = 2
         end
         object cbRemainsCalculate: TCheckBox
@@ -164,6 +167,8 @@ object frmClosePeriod: TfrmClosePeriod
           Width = 235
           Height = 17
           Caption = 'Вычисление складских остатков'
+          Checked = True
+          State = cbChecked
           TabOrder = 3
         end
         object cbReBindDepotCards: TCheckBox
@@ -172,6 +177,8 @@ object frmClosePeriod: TfrmClosePeriod
           Width = 235
           Height = 17
           Caption = 'Перепривязка складских карточек'
+          Checked = True
+          State = cbChecked
           TabOrder = 4
         end
         object cbEntryClearProcess: TCheckBox
@@ -180,6 +187,8 @@ object frmClosePeriod: TfrmClosePeriod
           Width = 235
           Height = 17
           Caption = 'Удаление проводок'
+          Checked = True
+          State = cbChecked
           TabOrder = 5
         end
         object cbRemainsClearProcess: TCheckBox
@@ -188,6 +197,8 @@ object frmClosePeriod: TfrmClosePeriod
           Width = 235
           Height = 17
           Caption = 'Удаление документов'
+          Checked = True
+          State = cbChecked
           TabOrder = 6
         end
         object cbTransferEntryBalanceProcess: TCheckBox
@@ -196,6 +207,8 @@ object frmClosePeriod: TfrmClosePeriod
           Width = 235
           Height = 17
           Caption = 'Копирование бухгалтерских остатков'
+          Checked = True
+          State = cbChecked
           TabOrder = 7
         end
         object cbUserDocClearProcess: TCheckBox
@@ -212,6 +225,8 @@ object frmClosePeriod: TfrmClosePeriod
           Width = 314
           Height = 17
           Caption = 'Вычислять остатки только для рабочих организаций'
+          Checked = True
+          State = cbChecked
           TabOrder = 9
         end
       end

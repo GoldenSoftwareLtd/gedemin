@@ -286,7 +286,14 @@ begin
     finally
       Free;
     end;
-  AddSpaces('Командная строка', Trim(Copy(CmdLine, Length(ParamStr(0)) + 1, 8192)));
+
+  S := '';
+  for I := 1 to ParamCount do
+    if Pos(' ', ParamStr(I)) = 0 then
+      S := S + ParamStr(I) + ' '
+    else
+      S := S + '"' + ParamStr(I) + '"' + ' ';
+  AddSpaces('Командная строка', S);
 
   S := '';
   {$IFDEF DUNIT_TEST}S := S + 'DUNIT_TEST, ';{$ENDIF}
