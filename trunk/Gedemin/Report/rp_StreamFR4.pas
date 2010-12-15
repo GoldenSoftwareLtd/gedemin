@@ -266,6 +266,9 @@ begin
     etExcel:
       FExportFilter := Ffr4Report.FrxXLSExport;
 
+    etXML:
+      FExportFilter := Ffr4Report.FrxXMLExport;
+
     etPdf:
       FExportFilter := Ffr4Report.FrxPDFExport;
   else
