@@ -1471,7 +1471,7 @@ begin
           ibsql.ParamByName('debit').AsCurrency := abs(aQuantity);
         end;
     {$IFDEF DEBUGMOVE}
-    ShowMessage('Вставляем запись ' + inttostr(TempCardKey) );
+{    ShowMessage('Вставляем запись ' + inttostr(TempCardKey) );}
     {$ENDIF}
 
         Flag := True;
@@ -1500,7 +1500,7 @@ begin
       end;
 
     {$IFDEF DEBUGMOVE}
-    ShowMessage('Вставили ' + inttostr(TempCardKey) );
+{    ShowMessage('Вставили ' + inttostr(TempCardKey) );}
     {$ENDIF}
 
       if ((gdcDocumentLine.FindField('fromcardkey') <> nil) and
@@ -1542,7 +1542,7 @@ begin
         ibsql.ParamByName('debit').AsCurrency := aQuantity;
         ibsql.ParamByName('credit').AsCurrency := 0;
     {$IFDEF DEBUGMOVE}
-    ShowMessage('Вставляем запись ' + inttostr(TempCardKey) );
+{    ShowMessage('Вставляем запись ' + inttostr(TempCardKey) );}
     {$ENDIF}
 
         Flag := True;
@@ -1570,7 +1570,7 @@ begin
         until Flag;
         ibsql.Close;
     {$IFDEF DEBUGMOVE}
-    ShowMessage('Вставили ' + inttostr(TempCardKey) );
+{    ShowMessage('Вставили ' + inttostr(TempCardKey) );}
     {$ENDIF}
 
         if (gdcDocumentLine.FindField('tocardkey') <> nil) and
@@ -1764,7 +1764,11 @@ begin
             begin
               if ((FieldByName('debit').AsCurrency > 0) and (ipQuantity >= 0)) then
               begin
-                PerQuantity := GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger);
+                if not (ipCheckRemains = [])  then
+                  PerQuantity := GetLastRemains(FieldByName('cardkey').AsInteger, FieldByName('contactkey').AsInteger)
+                else
+                  PerQuantity := FieldByName('debit').AsCurrency;
+
                 if PerQuantity >= FieldByName('debit').AsCurrency then
                   PerQuantity := FieldByName('debit').AsCurrency;
                 if PerQuantity > 0 then
@@ -2225,7 +2229,7 @@ begin
 
             {$IFDEF DEBUGMOVE}
             Times := GetTickCount;
-            ShowMessage('Формирование списка');
+{            ShowMessage('Формирование списка');}
             {$ENDIF}
             ibsqlCardList.Close;
             if not ipMinusRemains then
@@ -2288,7 +2292,7 @@ begin
             {$IFDEF DEBUGMOVE}
             TimeQueryList := TimeQueryList + GetTickCount - Times;
             Times := GetTickCount;
-            ShowMessage('Закончили');
+{            ShowMessage('Закончили');}
             {$ENDIF}
             while not ibsqlCardList.EOF do
             begin
@@ -2378,12 +2382,12 @@ begin
               if ipOneRecord and (Quantity > 0) then
               begin
              {$IFDEF DEBUGMOVE}
-                ShowMessage('Начали движение');
+{                ShowMessage('Начали движение');}
              {$ENDIF}
 
                 Result := AddOneMovement(-1, -Quantity, InvPosition);
              {$IFDEF DEBUGMOVE}
-                ShowMessage('Закончили движение');
+{                ShowMessage('Закончили движение');}
              {$ENDIF}
 
               end
@@ -2393,12 +2397,12 @@ begin
                 {ShowMessage('Создаем новое движение');}
                 {$ENDIF}
              {$IFDEF DEBUGMOVE}
-                ShowMessage('Начали движение');
+{                ShowMessage('Начали движение');}
              {$ENDIF}
 
                 Result := AddOneMovement(-1, abs(Quantity), InvPosition);
              {$IFDEF DEBUGMOVE}
-                ShowMessage('Закончили движение');
+{                ShowMessage('Закончили движение');}
              {$ENDIF}
 
               end
@@ -2416,12 +2420,12 @@ begin
           if (ipBaseCardKey <= 0) and (Quantity <> 0) then
           begin
              {$IFDEF DEBUGMOVE}
-                ShowMessage('Началии движение');
+{                ShowMessage('Началии движение');}
              {$ENDIF}
 
             AddOneMovement(-1, Quantity, InvPosition);
              {$IFDEF DEBUGMOVE}
-                ShowMessage('Закончили движение');
+{                ShowMessage('Закончили движение');}
              {$ENDIF}
 
           end;
@@ -4787,8 +4791,8 @@ begin
   RemainsSQLType := irstSimpleSum;
 
   // Предполагается что объект подключен к этой же БД
-  FUseSelectFromSelect :=
-    (gdcBaseManager.Database.IsFirebirdConnect and (gdcBaseManager.Database.ServerMajorVersion >= 2));
+  FUseSelectFromSelect := True;
+ {   (gdcBaseManager.Database.IsFirebirdConnect and (gdcBaseManager.Database.ServerMajorVersion >= 2));}
 end;
 
 procedure TgdcInvBaseRemains.CreateFields;

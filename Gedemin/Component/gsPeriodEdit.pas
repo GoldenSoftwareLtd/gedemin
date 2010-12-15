@@ -75,7 +75,32 @@ type
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
 
+  TgsDropDownEdit = class;
   TgsPeriodEdit = class;
+
+  TgsDropDownBtn = class(TCustomControl)
+  private
+    Glyph: TBitmap;
+    FDown: Boolean;
+
+    function GetEdit: TgsDropDownEdit;
+
+  protected
+    procedure WMMouseActivate(var Message: TWMMouseActivate);
+      message WM_MouseActivate;
+    procedure WMLButtonDown(var Message: TWMLButtonDown);
+      message WM_LButtonDown;
+    procedure WMLButtonUp(var Message: TWMLButtonUp);
+      message WM_LButtonUp;
+    procedure CMMouseLeave(var Message: TMessage);
+      message CM_MOUSELEAVE;
+
+    procedure Paint; override;
+
+  public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+  end;
 
   TgsDropDownForm = class(TCustomControl)
   protected
@@ -115,7 +140,7 @@ type
 
   TgsDropDownEdit = class(TCustomEdit)
   private
-    FButton: TSpeedButton;
+    FButton: TgsDropDownBtn;
     FDropDownVisible: Boolean;
     FHasFocus: Boolean;
     FDropDownForm: TgsDropDownForm;
@@ -130,24 +155,18 @@ type
       message WM_SetFocus;
     procedure WMKillFocus(var Message: TWMKillFocus);
       message WM_KillFocus;
-    procedure WMLButtonDblClk(var Message: TWMLButtonDblClk);
-      message WM_LBUTTONDBLCLK;
 
-    procedure DoOnButtonMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
-    procedure DoOnButtonClick(Sender: TObject);
     function GetMinHeight: Integer;
     procedure SetEditRect;
 
   protected
     function Validate(const Silent: Boolean = False): Boolean; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure DoExit; override;
     procedure CreateWnd; override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure InitDropDown; virtual; abstract;
     procedure AcceptValue(Accept: Boolean); virtual; abstract;
-    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -155,6 +174,8 @@ type
 
     procedure DropDown;
     procedure CloseUp(Accept: Boolean);
+
+    property DropDownVisible: Boolean read FDropDownVisible;
   end;
 
   TgsPeriodEdit = class(TgsDropDownEdit)
@@ -1130,20 +1151,6 @@ begin
     inherited;
 end;
 
-procedure TgsDropDownEdit.DoOnButtonClick(Sender: TObject);
-begin
-  if not FDropDownVisible then
-    DropDown
-  else
-    CloseUp(True);
-end;
-
-procedure TgsDropDownEdit.DoOnButtonMouseMove(Sender: TObject;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  Cursor := crArrow;
-end;
-
 procedure TgsDropDownEdit.DropDown;
 var
   P: TPoint;
@@ -1159,7 +1166,7 @@ begin
     if Y + FDropDownForm.Height > Screen.Height then Y := P.Y - FDropDownForm.Height;
     FDropDownVisible := True;
     SetWindowPos(FDropDownForm.Handle, HWND_TOP, P.X, Y, 0, 0,
-      SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW); 
+      SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW);
     FDropDownForm.Visible := True;
     SetFocus;
   end;
@@ -1168,21 +1175,8 @@ end;
 constructor TgsDropDownEdit.Create(AnOwner: TComponent);
 begin
   inherited;
-
   ControlStyle := ControlStyle - [csSetCaption];
-
-  FButton := TSpeedButton.Create(Self);
-  FButton.Glyph.LoadFromResourceName(hInstance, 'GSPERIODEDITBTN');
-  FButton.ControlStyle := FButton.ControlStyle - [csAcceptsControls, csSetCaption] +
-    [csFramed, csOpaque];
-  FButton.Caption := '';
-  FButton.Width := DropDownButtonWidth;
-  FButton.Height := DropDownButtonHeight;
-  FButton.Visible := True;
-  FButton.Parent := Self;
-  FButton.Cursor := crArrow;
-  FButton.OnMouseMove := DoOnButtonMouseMove;
-  FButton.OnClick := DoOnButtonClick;
+  FButton := TgsDropDownBtn.Create(Self);
 end;
 
 destructor TgsDropDownEdit.Destroy;
@@ -1228,7 +1222,6 @@ begin
     end;
   end;
   inherited MouseDown(Button, Shift, X, Y);
-  SetEditRect;
 end;
 
 procedure TgsPeriodEdit.KeyDown(var Key: Word; Shift: TShiftState);
@@ -1393,7 +1386,6 @@ procedure TgsDropDownEdit.WMSetFocus(var Message: TWMSetFocus);
 begin
   FHasFocus := True;
   inherited;
-  SetEditRect;
 end;
 
 procedure TgsDropDownEdit.WMSize(var Message: TWMSize);
@@ -1516,26 +1508,99 @@ end;
 
 procedure TgsDropDownEdit.SetEditRect;
 begin
-  SendMessage(Handle, EM_SETMARGINS, EC_RIGHTMARGIN or EC_LEFTMARGIN, (DropDownButtonWidth + 2) shl 16);
+  SendMessage(Handle, EM_SETMARGINS, EC_RIGHTMARGIN or EC_LEFTMARGIN,
+    (DropDownButtonWidth + 2) shl 16);
 end;
 
-procedure TgsDropDownEdit.KeyDown(var Key: Word; Shift: TShiftState);
+{ TgsDropDownBtn }
+
+procedure TgsDropDownBtn.CMMouseLeave(var Message: TMessage);
 begin
   inherited;
-  SetEditRect;
+
+  if FDown then
+  begin
+    FDown := False;
+    Invalidate;
+  end;
 end;
 
-procedure TgsDropDownEdit.WMLButtonDblClk(var Message: TWMLButtonDblClk);
+constructor TgsDropDownBtn.Create(AnOwner: TComponent);
 begin
   inherited;
-  SetEditRect;
+
+  Glyph := TBitmap.Create;
+  Glyph.Transparent := True;
+  Glyph.LoadFromResourceName(hInstance, 'GSPERIODEDITBTN');
+
+  Parent := AnOwner as TWinControl;
+  TabStop := False;
+  Width := DropDownButtonWidth;
+  Height := DropDownButtonHeight;
 end;
 
-procedure TgsDropDownEdit.MouseUp(Button: TMouseButton; Shift: TShiftState;
-  X, Y: Integer);
+destructor TgsDropDownBtn.Destroy;
+begin
+  Glyph.Free;
+  inherited;
+end;
+
+function TgsDropDownBtn.GetEdit: TgsDropDownEdit;
+begin
+  Result := Owner as TgsDropDownEdit;
+end;
+
+procedure TgsDropDownBtn.Paint;
+var
+  State, Shift: Integer;
+begin
+  if FDown then
+  begin
+    State := DFCS_PUSHED or DFCS_BUTTONPUSH;
+    Shift := 1;
+  end else
+  begin
+    State := DFCS_BUTTONPUSH;
+    Shift := 0;
+  end;
+
+  DrawFrameControl(Canvas.Handle, Rect(0, 0, Width, Height), DFC_BUTTON, State);
+  Canvas.Draw(3 + Shift, 3+ Shift, Glyph);
+end;
+
+procedure TgsDropDownBtn.WMLButtonDown(var Message: TWMLButtonDown);
 begin
   inherited;
-  SetEditRect;
+
+  if not GetEdit.Focused then
+    GetEdit.SetFocus;
+
+  FDown := True;
+  Invalidate;
+end;
+
+procedure TgsDropDownBtn.WMLButtonUp(var Message: TWMLButtonUp);
+begin
+  inherited;
+
+  if FDown then
+  begin
+    FDown := False;
+    Invalidate;
+
+    with GetEdit do
+    begin
+      if DropDownVisible then
+        CloseUp(True)
+      else
+        DropDown;  
+    end;
+  end;
+end;
+
+procedure TgsDropDownBtn.WMMouseActivate(var Message: TWMMouseActivate);
+begin
+  Message.Result := MA_NOACTIVATE;
 end;
 
 end.

@@ -13,7 +13,7 @@ type
     pcMain: TPageControl;
     pnlBottom: TPanel;
     tbsMain: TTabSheet;
-    GroupBox1: TGroupBox;
+    gbDatabase: TGroupBox;
     eExtDatabase: TEdit;
     lblExtDatabase: TLabel;
     btnChooseDatabase: TButton;
@@ -23,9 +23,8 @@ type
     eExtPassword: TEdit;
     lblExtServer: TLabel;
     eExtServer: TEdit;
-    GroupBox2: TGroupBox;
+    gbClosePeriod: TGroupBox;
     odExtDatabase: TOpenDialog;
-    btnRun: TButton;
     lblCloseDate: TLabel;
     xdeCloseDate: TxDateEdit;
     pnlBottomButtons: TPanel;
@@ -34,11 +33,33 @@ type
     actChooseDontDeleteDocumentType: TAction;
     actDeleteDontDeleteDocumentType: TAction;
     tbsInvCardField: TTabSheet;
-    GroupBox4: TGroupBox;
-    lvAllInvCardField: TListView;
-    lvCheckedInvCardField: TListView;
     tbsDocumentType: TTabSheet;
-    gbDocumentType: TGroupBox;
+    actChooseUserDocumentToDelete: TAction;
+    actDeleteUserDocumentToDelete: TAction;
+    actCardSelectAll: TAction;
+    actCardSelectNone: TAction;
+    pnlObsoleteControls: TPanel;
+    cbEntryCalculate: TCheckBox;
+    cbEntryClearProcess: TCheckBox;
+    cbRemainsCalculate: TCheckBox;
+    cbOnlyOurRemains: TCheckBox;
+    cbReBindDepotCards: TCheckBox;
+    cbRemainsClearProcess: TCheckBox;
+    cbUserDocClearProcess: TCheckBox;
+    cbTransferEntryBalanceProcess: TCheckBox;
+    mOutput: TMemo;
+    pnlBack: TPanel;
+    pnlProgressBar: TPanel;
+    pbMain: TProgressBar;
+    btnRun: TButton;
+    lblProcess: TLabel;
+    pnlGap: TPanel;
+    lblUnCheckedInvCard: TLabel;
+    lvAllInvCardField: TListView;
+    btnInvCardSelectAll: TButton;
+    btnInvCardSelectNone: TButton;
+    lvCheckedInvCardField: TListView;
+    lblCheckedInvCard: TLabel;
     pnlDontDeleteDocumentType: TPanel;
     lvDontDeleteDocumentType: TListView;
     TBDock1: TTBDock;
@@ -55,29 +76,9 @@ type
     TBItem7: TTBItem;
     TBSeparatorItem4: TTBSeparatorItem;
     TBItem8: TTBItem;
-    cbEntryCalculate: TCheckBox;
-    cbRemainsCalculate: TCheckBox;
-    cbReBindDepotCards: TCheckBox;
-    cbEntryClearProcess: TCheckBox;
-    cbRemainsClearProcess: TCheckBox;
-    cbTransferEntryBalanceProcess: TCheckBox;
-    cbUserDocClearProcess: TCheckBox;
-    actChooseUserDocumentToDelete: TAction;
-    actDeleteUserDocumentToDelete: TAction;
-    btnInvCardSelectAll: TButton;
-    btnInvCardSelectNone: TButton;
-    actCardSelectAll: TAction;
-    actCardSelectNone: TAction;
-    tbsLog: TTabSheet;
-    mOutput: TMemo;
-    cbOnlyOurRemains: TCheckBox;
-    pnlProgressBar: TPanel;
-    pbMain: TProgressBar;
-    pnlProgressText: TPanel;
-    lblProcess: TLabel;
+    actRun: TAction;
     procedure FormShow(Sender: TObject);
     procedure btnChooseDatabaseClick(Sender: TObject);
-    procedure btnRunClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure btnCloseClick(Sender: TObject);
     procedure actChooseDontDeleteDocumentTypeExecute(Sender: TObject);
@@ -95,6 +96,8 @@ type
     procedure actCardSelectAllUpdate(Sender: TObject);
     procedure actCardSelectNoneUpdate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure actRunExecute(Sender: TObject);
+    procedure actRunUpdate(Sender: TObject);
   private
     FGlobalStartTime: TDateTime;
     FClosingPeriodObject: TgdClosingPeriod;
@@ -231,28 +234,6 @@ procedure TfrmClosePeriod.btnChooseDatabaseClick(Sender: TObject);
 begin
   if odExtDatabase.Execute then
     eExtDatabase.Text := odExtDatabase.Filename;
-end;
-
-procedure TfrmClosePeriod.btnRunClick(Sender: TObject);
-begin
-  if not FClosingPeriodObject.InProcess then
-  begin
-    // Проверим правильность заполнения параметров 'закрытия периода'
-    if CheckClosePeriodParams then
-    begin
-      // Перейдем на вкладку отображения процесса 
-      pcMain.ActivePage := tbsLog;
-      // Передадим параметры 'закрытия периода'
-      AssignClosePeriodParams(FClosingPeriodObject);
-      // Запустим закрытие периода
-      FClosingPeriodObject.DoClosePeriod;
-    end;
-  end
-  else
-  begin
-    FClosingPeriodObject.StopProcess;
-    btnRun.Enabled := False;
-  end;
 end;
 
 procedure TfrmClosePeriod.FormClose(Sender: TObject;
@@ -433,7 +414,6 @@ var
   INV_CARD: TatRelation;
   FieldCounter: Integer;
   Item: TListItem;
-  SelectedFieldIndex: Integer;
   FeatureList: TStringList;
 begin
   INV_CARD := atDatabase.Relations.ByRelationName('INV_CARD');
@@ -453,12 +433,17 @@ begin
          and (AnsiCompareStr(INV_CARD.RelationFields.Items[FieldCounter].FieldName, 'USR$INV_ADDLINEKEY') <> 0)
          and (AnsiCompareStr(INV_CARD.RelationFields.Items[FieldCounter].FieldName, 'USR$INV_MOVEDOCKEY') <> 0) then
       begin
-        // Если ранее этот признак уже выбирали, то вставим его в список выбранных
-        SelectedFieldIndex := FeatureList.IndexOf(INV_CARD.RelationFields[FieldCounter].FieldName);
-        if SelectedFieldIndex > -1 then
-          Item := lvCheckedInvCardField.Items.Add
+        // Если у на есть список выбранных, то будем ориентироваться на него, иначе заполняем выбранные признаки
+        if FeatureList.Count > 0 then
+        begin
+          // Если ранее этот признак уже выбирали, то вставим его в список выбранных
+          if FeatureList.IndexOf(INV_CARD.RelationFields[FieldCounter].FieldName) > -1 then
+            Item := lvCheckedInvCardField.Items.Add
+          else
+            Item := lvAllInvCardField.Items.Add;
+        end
         else
-          Item := lvAllInvCardField.Items.Add;
+          Item := lvCheckedInvCardField.Items.Add;
 
         // Если указано локализованное имя поля, будем использовать его
         if INV_CARD.RelationFields[FieldCounter].LName > '' then
@@ -589,15 +574,15 @@ begin
   ClosingObject.SetClosingDatabaseParams(eExtDatabase.Text, eExtServer.Text, eExtUser.Text, eExtPassword.Text);
   ClosingObject.CloseDate := xdeCloseDate.Date;
 
-  ClosingObject.DoCalculateEntryBalance := cbEntryCalculate.Checked;
-  ClosingObject.DoCalculateRemains := cbRemainsCalculate.Checked;
-  ClosingObject.DoReBindDepotCards := cbReBindDepotCards.Checked;
-  ClosingObject.DoDeleteEntry := cbEntryClearProcess.Checked;
-  ClosingObject.DoDeleteDocuments := cbRemainsClearProcess.Checked;
-  ClosingObject.DoDeleteUserDocuments := cbUserDocClearProcess.Checked;
-  ClosingObject.DoTransferEntryBalance := cbTransferEntryBalanceProcess.Checked;
+  ClosingObject.DoCalculateEntryBalance := True {cbEntryCalculate.Checked};
+  ClosingObject.DoCalculateRemains := True {cbRemainsCalculate.Checked};
+  ClosingObject.DoReBindDepotCards := True {cbReBindDepotCards.Checked};
+  ClosingObject.DoDeleteEntry := True {cbEntryClearProcess.Checked};
+  ClosingObject.DoDeleteDocuments := True {cbRemainsClearProcess.Checked};
+  ClosingObject.DoDeleteUserDocuments := True {cbUserDocClearProcess.Checked};
+  ClosingObject.DoTransferEntryBalance := True {cbTransferEntryBalanceProcess.Checked};
 
-  ClosingObject.OnlyOurRemains := cbOnlyOurRemains.Checked;
+  ClosingObject.OnlyOurRemains := True {cbOnlyOurRemains.Checked};
 
   // Заполним список типов складских документов, которые нельзя удалять
   ClosingObject.ClearDontDeleteDocumentTypes;
@@ -651,6 +636,33 @@ end;
 procedure TfrmClosePeriod.actCardSelectNoneUpdate(Sender: TObject);
 begin
   actCardSelectNone.Enabled := (lvCheckedInvCardField.Items.Count > 0);
+end;
+
+procedure TfrmClosePeriod.actRunExecute(Sender: TObject);
+begin
+  if not FClosingPeriodObject.InProcess then
+  begin
+    // Проверим правильность заполнения параметров 'закрытия периода'
+    if CheckClosePeriodParams then
+    begin
+      // Передадим параметры 'закрытия периода'
+      AssignClosePeriodParams(FClosingPeriodObject);
+      // Запустим закрытие периода
+      FClosingPeriodObject.DoClosePeriod;
+    end;
+  end
+  else
+  begin
+    FClosingPeriodObject.StopProcess;
+    btnRun.Enabled := False;
+  end;
+end;
+
+procedure TfrmClosePeriod.actRunUpdate(Sender: TObject);
+begin
+  actRun.Enabled := (eExtDatabase.Text > '')
+    and (eExtUser.Text > '')
+    and (eExtPassword.Text > '');
 end;
 
 initialization

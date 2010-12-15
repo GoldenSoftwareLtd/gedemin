@@ -11656,7 +11656,6 @@ begin
     begin
       SetInternalSQLParams(QModify, Buff);
       QModify.ExecQuery;
-      //FRowsAffected := QModify.RowsAffected;
       FLastQuery := lqUpdate;
     end;
 
