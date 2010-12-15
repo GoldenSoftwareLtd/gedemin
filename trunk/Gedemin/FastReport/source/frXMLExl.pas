@@ -178,6 +178,7 @@ var
   OldSeparator: char;
   PageBreak: TStringList;
   S1 : String;
+  Count: Integer;
 
   procedure AlignFR2AlignExcel(Align: integer; var AlignH, AlignV: string);
   begin
@@ -381,7 +382,12 @@ begin
   begin
     WriteExpLn('<PageBreaks xmlns="urn:schemas-microsoft-com:office:excel">');
     WriteExpLn('<RowBreaks>');
-    for i := 0 to Matrix.PagesCount - 2 do
+    {GS}
+    if (Matrix.PagesCount - 2) > (PageBreak.Count - 1) then
+      Count := PageBreak.Count - 1
+    else
+      Count := Matrix.PagesCount - 2;
+    for i := 0 to Count {Matrix.PagesCount - 2} do
     begin
       WriteExpLn('<RowBreak>');
       WriteExpLn('<Row>' + PageBreak[i] + '</Row>');

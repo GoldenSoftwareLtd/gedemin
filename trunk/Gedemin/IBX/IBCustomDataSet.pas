@@ -2761,7 +2761,8 @@ procedure TIBCustomDataSet.InternalPrepare;
   *)
   begin
     try
-      if Trim(SQLText.Text) <> '' then
+      //if Trim(SQLText.Text) <> '' then
+      if SQLText.Count > 0 then
       begin
         (*
         //!!!

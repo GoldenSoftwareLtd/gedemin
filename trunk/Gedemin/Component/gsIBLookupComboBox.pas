@@ -1770,12 +1770,24 @@ begin
 end;
 
 procedure TgsIBLookupComboBox.SetListField(const Value: String);
+var
+  P: Integer;
+  AListField: String;
 begin
-  if FListField <> Trim(Value) then
+  P := Pos(',',  Value);
+
+  if P > 0 then
   begin
-    if StrContainsChars(Value, [',', ';'], False) then
+    AListField := Trim(Copy(Value, 1, P - 1));
+    FFields := Trim(Copy(Value, P + 1, 1024));
+  end else
+    AListField := Trim(Value);
+
+  if FListField <> AListField then
+  begin
+    if Pos(';', AListField) > 0 then
       raise EgsIBLookupComboBoxError.Create('Invalid List field name specified');
-    FListField := Trim(Value);
+    FListField := AListField;
     if FDataField > '' then
     begin
       FCurrentKey := '';
