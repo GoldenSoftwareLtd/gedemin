@@ -627,6 +627,7 @@ procedure TReportSystem.ExportReportWithParam(ReportKey: Integer;
   Params: OleVariant; const FileName, ExportType: WideString);
 var
   FExportType: TExportType;
+  ET: String;
 begin
   if FileName = '' then
     raise Exception.Create('Empty file name');
@@ -634,12 +635,15 @@ begin
   ClientReport.ShowProgress := False;
   ClientReport.FileName := FileName;
 
-  if Pos('WORD', AnsiUppercase(ExportType)) > 0 then
+  ET := AnsiUpperCase(ExportType);
+  if Pos('WORD', ET) > 0 then
     FExportType := etWord
-  else if Pos('EXCEL', AnsiUppercase(ExportType)) > 0 then
+  else if Pos('EXCEL', ET) > 0 then
     FExportType := etExcel
-  else if Pos('PDF', AnsiUppercase(ExportType)) > 0 then
+  else if Pos('PDF', ET) > 0 then
     FExportType := etPdf
+  else if Pos('XML', ET) > 0 then
+    FExportType := etXML
   else
     FExportType := etNone;
 
