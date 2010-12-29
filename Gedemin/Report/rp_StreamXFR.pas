@@ -84,6 +84,7 @@ begin
   FDS := TDataSource.Create(Self);
   DataSource := FDS;
   FReportResult := TReportResult.Create;
+  FReportResult.Sorted := False;
   FReportTemplate := TReportTemplate.Create;
   LinesOnPage := 10000;
 end;
