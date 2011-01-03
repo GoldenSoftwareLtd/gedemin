@@ -145,7 +145,7 @@ begin
     InnerFormVariable.GlobalStartTime := Time;
     InnerFormVariable.ActivateControls(False);
     InnerFormVariable.AddLogMessage(TimeToStr(InnerFormVariable.GlobalStartTime) + ': Начат процесс закрытия периода...');
-    InnerFormVariable.btnRun.Caption := 'Прервать выполнение';
+    //InnerFormVariable.btnRun.Caption := 'Прервать выполнение';
   end;
 end;
 
@@ -155,8 +155,7 @@ begin
   begin
     InnerFormVariable.AddLogMessage(TimeToStr(Time) + ': Закончен процесс закрытия периода');
     InnerFormVariable.ActivateControls(True);
-    InnerFormVariable.btnRun.Caption := 'Выполнить закрытие периода';
-    InnerFormVariable.btnRun.Enabled := True;
+    //InnerFormVariable.btnRun.Caption := 'Старт!';
   end;
 end;
 
@@ -256,7 +255,6 @@ end;
 
 procedure TfrmClosePeriod.ActivateControls(DoActivate: Boolean);
 begin
-  //btnRun.Enabled := DoActivate;
   btnClose.Enabled := DoActivate;
   btnChooseDatabase.Enabled := DoActivate;
 
@@ -653,8 +651,7 @@ begin
   end
   else
   begin
-    FClosingPeriodObject.StopProcess;
-    btnRun.Enabled := False;
+    //FClosingPeriodObject.StopProcess;
   end;
 end;
 

@@ -1,6 +1,6 @@
 object frmClosePeriod: TfrmClosePeriod
-  Left = 525
-  Top = 258
+  Left = 452
+  Top = 155
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Закрытие периода'
@@ -142,8 +142,9 @@ object frmClosePeriod: TfrmClosePeriod
           object lblProcess: TLabel
             Left = 12
             Top = 21
-            Width = 573
+            Width = 653
             Height = 13
+            AutoSize = False
             Caption = 
               'Перед запуском проверьте правильность заполнения параметров "Скл' +
               'адская карточка" и "Типы документов".'
@@ -165,7 +166,7 @@ object frmClosePeriod: TfrmClosePeriod
             EditMask = '!99\.99\.9999;1;_'
             MaxLength = 10
             TabOrder = 0
-            Text = '22.12.2008'
+            Text = '23.12.2010'
           end
           object pnlObsoleteControls: TPanel
             Left = 616
@@ -278,7 +279,7 @@ object frmClosePeriod: TfrmClosePeriod
           object btnRun: TButton
             Left = 220
             Top = 40
-            Width = 73
+            Width = 133
             Height = 21
             Action = actRun
             TabOrder = 3
@@ -499,12 +500,12 @@ object frmClosePeriod: TfrmClosePeriod
               Images = dmImages.il16x16
               TabOrder = 0
               object TBItem7: TTBItem
-                Action = actChooseDontDeleteDocumentType
+                Action = actChooseUserDocumentToDelete
               end
               object TBSeparatorItem4: TTBSeparatorItem
               end
               object TBItem8: TTBItem
-                Action = actDeleteDontDeleteDocumentType
+                Action = actDeleteUserDocumentToDelete
               end
             end
           end
@@ -565,13 +566,15 @@ object frmClosePeriod: TfrmClosePeriod
     end
     object actChooseUserDocumentToDelete: TAction
       Category = 'DocumentType'
-      Caption = 'actChooseUserDocumentToDelete'
+      Caption = 'Выбрать пользовательские документы'
+      Hint = 'Выбрать пользовательские документы'
       ImageIndex = 30
       OnExecute = actChooseUserDocumentToDeleteExecute
     end
     object actDeleteUserDocumentToDelete: TAction
       Category = 'DocumentType'
-      Caption = 'actDeleteUserDocumentToDelete'
+      Caption = 'Удалить выбранные позиции'
+      Hint = 'Удалить выбранные позиции'
       ImageIndex = 2
       OnExecute = actDeleteUserDocumentToDeleteExecute
       OnUpdate = actDeleteUserDocumentToDeleteUpdate

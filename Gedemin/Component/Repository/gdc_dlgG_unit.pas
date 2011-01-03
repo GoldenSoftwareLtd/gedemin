@@ -715,25 +715,31 @@ begin
       end;
     {end;}
 
-    if not IBLogin.IsUserAdmin then
+    for I := 0 to TDataSourceCrack(dsgdcBase).DataLinks.Count - 1 do
     begin
-      for I := 0 to TDataSourceCrack(dsgdcBase).DataLinks.Count - 1 do
+      L := TDataSourceCrack(dsgdcBase).DataLinks[I];
+      if (L is TFieldDataLink) and (TFieldDataLink(L).Field <> nil) then
       begin
-        L := TDataSourceCrack(dsgdcBase).DataLinks[I];
-        if (L is TFieldDataLink) and (TFieldDataLink(L).Field <> nil) then
+        RN := TFieldDataLink(L).Field.Origin;
+        P := Pos('.', RN);
+        if P > 0 then
         begin
-          RN := TFieldDataLink(L).Field.Origin;
-          P := Pos('.', RN);
-          if P > 0 then
+          FN := Copy(RN, P + 1, 1024);
+          SetLength(RN, P - 1);
+          if (Length(FN) > 2) and (FN[1] = '"') then
+            FN := Copy(FN, 2, Length(FN) - 2);
+          if (Length(RN) > 2) and (RN[1] = '"') then
+            RN := Copy(RN, 2, Length(RN) - 2);
+          RF := atDatabase.FindRelationField(RN, FN);
+          if RF <> nil then
           begin
-            FN := Copy(RN, P + 1, 1024);
-            SetLength(RN, P - 1);
-            if (Length(FN) > 2) and (FN[1] = '"') then
-              FN := Copy(FN, 2, Length(FN) - 2);
-            if (Length(RN) > 2) and (RN[1] = '"') then
-              RN := Copy(RN, 2, Length(RN) - 2);
-            RF := atDatabase.FindRelationField(RN, FN);
-            if RF <> nil then
+            if RF.Description > '' then
+            begin
+              TWinControl(TFieldDataLink(L).Control).Hint := RF.Description;
+              TWinControl(TFieldDataLink(L).Control).ShowHint := True; 
+            end;
+
+            if not IBLogin.IsUserAdmin then
             begin
               if (RF.aView and IBLogin.Ingroup) = 0 then
               begin
@@ -758,7 +764,7 @@ begin
               begin
                 TFieldDataLink(L).ReadOnly := True;
               end;
-            end;
+            end;  
           end;
         end;
       end;

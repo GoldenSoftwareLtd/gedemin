@@ -78,6 +78,7 @@ type
     //procedure InsertDatabaseRecord;
     function GetFeatureFieldList(AAlias: String): String;
     function IIF(const Condition: Boolean; const TrueString, FalseString: String): String;
+    function GetQueryRecordCount(InIBSQL: TIBSQL): Integer;
 
     function AddDepotHeader(const FromContact, ToContact, CompanyKey: TID): TID;
     function AddDepotPosition(const FromContact, ToContact, CompanyKey,
@@ -90,6 +91,8 @@ type
     // Процедура пытается удалить записи ссылающиеся на переданную
     procedure TryToDeleteDocumentReferences(const AID: TID; const AdditionalRelationName: String; const ADocTypeKey: Integer = -1);
     function CreateDummyInvDocument(const ADocTypeKey: TID): TID;
+    // Пробуем удалить вес записи доп. таблицы документа
+    function TryToTruncateAdditionalTable(const ADocTypeKey: TID; const AdditionalRelationName: String): Boolean;
 
     procedure DeleteRUID(const AID: Integer);
 
@@ -537,18 +540,12 @@ var
   ibsqlDeleteDocument: TIBSQL;
   ibsqlDeleteEntry: TIBSQL;
   ibsqlUpdateInvCard: TIBSQL;
-  //ibsqlSavepointManager: TIBSQL;
-  ibsqlBlockQuery: TIBSQL;
-  DeletedCount, ErrorDocumentCount: Integer;
+  DeletedCount: Integer;
   I, DocumentListIndex, DontDeleteIndex: Integer;
   GDDocumentReferenceFieldList: TStringList;
   SQLText: String;
-  //PackUpdateInvCardSQLText, PackEntrySQLText: String;
   R: TatRelation;
-  DocumentToDelete, DocumentKeysToDelayedDelete: TgdKeyStringAssoc;
-  //PackDocumentCounter: Integer;
-  AddTableCounter: Integer;
-  AddTableKeys: TStringList;
+  DocumentKeysToDelayedDelete: TgdKeyStringAssoc;
 
   procedure DeleteSingleDocument(const AID: TID; const AdditionalTableName: String; const ForceDelete: Boolean = false);
   begin
@@ -631,17 +628,10 @@ begin
   ibsqlDeleteDocument := TIBSQL.Create(Application);
   ibsqlDeleteEntry := TIBSQL.Create(Application);
   ibsqlUpdateInvCard := TIBSQL.Create(Application);
-  //ibsqlSavepointManager := TIBSQL.Create(Application);
-  ibsqlBlockQuery := TIBSQL.Create(Application);
 
-  // Список для группового удаления документов
-  DocumentToDelete := TgdKeyStringAssoc.Create;
   // Список отложенного удаления документов
   DocumentKeysToDelayedDelete := TgdKeyStringAssoc.Create;
-  // Список ключей документов для группового удаления, сгруппированных по имени таблицы
-  AddTableKeys := TStringList.Create;
   try
-    DocumentToDelete.Sorted := False;
     DocumentKeysToDelayedDelete.Sorted := False;
 
     GDDocumentReferenceFieldList := TStringList.Create;
@@ -694,7 +684,6 @@ begin
       GDDocumentReferenceFieldList.Free;
     end;
 
-    ibsqlBlockQuery.Transaction := FWriteTransaction;
     // Вытянем список документов на читающей транзакции, удалять будем на переданной
     ibsqlDocument.Transaction := gdcBaseManager.ReadTransaction;
     ibsqlDeleteAddRecord.Transaction := FWriteTransaction;
@@ -708,8 +697,6 @@ begin
     ibsqlDeleteDocument.SQL.Text :=
       ' DELETE FROM gd_document WHERE id = :dockey ';
     ibsqlDeleteDocument.Prepare;
-    // создание\уничтожение savepoint
-    //ibsqlSavepointManager.Transaction := FWriteTransaction;
 
     // Запрос на получение складского движения, пытаемся упорядочить движение по времени создания,
     //   начиная с новейших записей
@@ -738,8 +725,6 @@ begin
     ibsqlDocument.ExecQuery;
 
     DeletedCount := 0;
-    ErrorDocumentCount := 0;
-
     // Цикл по найденным документам, подлежащим удалению
     while not ibsqlDocument.Eof do
     begin
@@ -794,8 +779,6 @@ begin
             // Занесем документ в список отложенного удаления
             DocumentListIndex := DocumentKeysToDelayedDelete.Add(ibsqlDocument.FieldByName('DOCUMENTKEY').AsInteger);
             DocumentKeysToDelayedDelete.ValuesByIndex[DocumentListIndex] := ibsqlDocument.FieldByName('ADDTABLENAME').AsString;
-
-            Inc(ErrorDocumentCount);
           end;
         end;
 
@@ -807,9 +790,9 @@ begin
         end;
 
         // Каждые 50000 документов будем запускать отложенное удаление
-        if (DeletedCount > 0) and (DeletedCount mod 50000 = 0) then
+        if (DocumentKeysToDelayedDelete.Count > 0) and (DeletedCount > 0) and (DeletedCount mod 50000 = 0) then
         begin
-          DoOnProcessMessage(-1, -1, 'Ошибок: ' + IntToStr(ErrorDocumentCount));
+          DoOnProcessMessage(-1, -1, 'Ошибок: ' + IntToStr(DocumentKeysToDelayedDelete.Count));
 
           I := 0;
           while (I <= DocumentKeysToDelayedDelete.Count - 1) do
@@ -819,7 +802,6 @@ begin
               DeleteSingleDocument(DocumentKeysToDelayedDelete.Keys[I],
                 DocumentKeysToDelayedDelete.ValuesByIndex[I], True);
               Inc(DeletedCount);
-              Dec(ErrorDocumentCount);
               // Удаляем документ из списка отложенных
               DocumentKeysToDelayedDelete.Delete(I);
             except
@@ -839,25 +821,26 @@ begin
 
     // Последний раз пробуем удалить отложенные документы
     if DocumentKeysToDelayedDelete.Count > 0 then
-      DoOnProcessMessage(-1, -1, 'Не удаленные документы:');
-    I := 0;
-    while (I <= DocumentKeysToDelayedDelete.Count - 1) do
     begin
-      try
-        // Пробуем удалить документ
-        DeleteSingleDocument(DocumentKeysToDelayedDelete.Keys[I],
-          DocumentKeysToDelayedDelete.ValuesByIndex[I], True);
-        Inc(DeletedCount);
-        Dec(ErrorDocumentCount);
-        // Удаляем документ из списка отложенных
-        DocumentKeysToDelayedDelete.Delete(I);
-      except
-        on E: Exception do
-        begin
-          DoOnProcessMessage(-1, -1, E.Message + #13#10 +
-            DocumentKeysToDelayedDelete.ValuesByIndex[I] +
-            ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
-          Inc(I);
+      DoOnProcessMessage(-1, -1, 'Не удаленные документы:');
+      I := 0;
+      while (I <= DocumentKeysToDelayedDelete.Count - 1) do
+      begin
+        try
+          // Пробуем удалить документ
+          DeleteSingleDocument(DocumentKeysToDelayedDelete.Keys[I],
+            DocumentKeysToDelayedDelete.ValuesByIndex[I], True);
+          Inc(DeletedCount);
+          // Удаляем документ из списка отложенных
+          DocumentKeysToDelayedDelete.Delete(I);
+        except
+          on E: Exception do
+          begin
+            DoOnProcessMessage(-1, -1, E.Message + #13#10 +
+              DocumentKeysToDelayedDelete.ValuesByIndex[I] +
+              ' ( ' + IntToStr(DocumentKeysToDelayedDelete.Keys[I]) + ' )');
+            Inc(I);
+          end;
         end;
       end;
     end;
@@ -865,17 +848,11 @@ begin
     // Визуализация процесса
     DoOnProcessMessage(DeletedCount, DeletedCount, '');
     DoOnProcessMessage(-1, -1, TimeToStr(Time) + ': Завершен процесс удаления документов...'#13#10 +
-      IntToStr(DeletedCount) + ' удалено, ' + IntToStr(ErrorDocumentCount) + ' ошибок'#13#10 +
+      IntToStr(DeletedCount) + ' удалено, ' + IntToStr(DocumentKeysToDelayedDelete.Count) + ' ошибок'#13#10 +
       'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
   finally
-    for AddTableCounter := 0 to AddTableKeys.Count - 1 do
-      if Assigned(AddTableKeys.Objects[AddTableCounter]) then
-        AddTableKeys.Objects[AddTableCounter].Free;
-    FreeAndNil(AddTableKeys);
     FreeAndNil(DocumentKeysToDelayedDelete);
-    FreeAndNil(DocumentToDelete);
 
-    FreeAndNil(ibsqlBlockQuery);
     FreeAndNil(ibsqlUpdateInvCard);
     FreeAndNil(ibsqlDeleteEntry);
     FreeAndNil(ibsqlDeleteAddRecord);
@@ -915,8 +892,52 @@ var
   ibsqlDeleteDocument, ibsqlDeleteUserRecord: TIBSQL;
   DocumentTypeCounter: Integer;
   DocumentTypeListStr: String;
-  CurrentRelationName, NextRelationName: String;
-  CurrentDocumentKey: Integer;
+  CurrentRelationName: String;
+  DeletedCount, DocumentListIndex, I, AllRecordCount: Integer;
+  DocumentKeysToDelayedDelete: TgdKeyStringAssoc;
+
+  procedure DeleteSingleDocument(const AID: TID; const AdditionalTableName: String);
+  begin
+    if CurrentRelationName <> AdditionalTableName then
+    begin
+      CurrentRelationName := AdditionalTableName;
+      ibsqlDeleteUserRecord.Close;
+      ibsqlDeleteUserRecord.SQL.Text :=
+        Format('DELETE FROM %0:s WHERE documentkey = :documentkey', [CurrentRelationName]);
+      ibsqlDeleteUserRecord.Prepare;
+    end;
+
+    // Удалим запись из пользовательской таблицы
+    try
+      ibsqlDeleteUserRecord.Close;
+      ibsqlDeleteUserRecord.ParamByName('DOCUMENTKEY').AsInteger := AID;
+      ibsqlDeleteUserRecord.ExecQuery;
+    except
+      // Пробуем удалить ссылки на текущую запись
+      TryToDeleteDocumentReferences(AID, CurrentRelationName);
+      // Снова пробуем удалить запись
+      ibsqlDeleteUserRecord.Close;
+      ibsqlDeleteUserRecord.ParamByName('DOCUMENTKEY').AsInteger := AID;
+      ibsqlDeleteUserRecord.ExecQuery;
+    end;
+
+    // Удалим запись из gd_document
+    try
+      DeleteRUID(AID);
+
+      ibsqlDeleteDocument.Close;
+      ibsqlDeleteDocument.ParamByName('DOCUMENTKEY').AsInteger := AID;
+      ibsqlDeleteDocument.ExecQuery;
+    except
+      // Пробуем удалить ссылки на текущую запись
+      TryToDeleteDocumentReferences(AID, 'GD_DOCUMENT');
+      // Снова пробуем удалить запись
+      ibsqlDeleteDocument.Close;
+      ibsqlDeleteDocument.ParamByName('DOCUMENTKEY').AsInteger := AID;
+      ibsqlDeleteDocument.ExecQuery;
+    end;
+  end;
+
 begin
   FLocalStartTime := Time;
 
@@ -937,6 +958,8 @@ begin
     ibsqlSelectDocument := TIBSQL.Create(Application);
     ibsqlDeleteDocument := TIBSQL.Create(Application);
     ibsqlDeleteUserRecord := TIBSQL.Create(Application);
+    // Список отложенного удаления документов
+    DocumentKeysToDelayedDelete := TgdKeyStringAssoc.Create;
     try
       // Запрос для удаления записи из gd_document по переданному ID
       ibsqlDeleteDocument.Transaction := FWriteTransaction;
@@ -947,10 +970,11 @@ begin
 
       // Запрос выбирает пользовательские документы переданных типов, которые созданы до даты закрытия
       //   сортирует их в порядке убывания по дате, потом по ID
-      ibsqlSelectDocument.Transaction := FWriteTransaction;
+      ibsqlSelectDocument.Transaction := gdcBaseManager.ReadTransaction;
       ibsqlSelectDocument.SQL.Text := Format(
         'SELECT ' +
         '  d.id AS documentkey, ' +
+        '  t.id AS doctypekey, ' +
         '  IIF(d.parent IS NULL, h_rel.relationname, l_rel.relationname) AS add_rel_name ' +
         'FROM ' +
         '  gd_document d ' +
@@ -966,53 +990,88 @@ begin
       ibsqlSelectDocument.ParamByName('CLOSEDATE').AsDateTime := FCloseDate;
       ibsqlSelectDocument.ExecQuery;
 
+      // Попробуем найти кол-во вытащенных записей
+      AllRecordCount := GetQueryRecordCount(ibsqlSelectDocument);
+      if AllRecordCount > -1 then
+        DoOnProcessMessage(0, AllRecordCount, '');
+
       CurrentRelationName := '';
+      DeletedCount := 0;
       while not ibsqlSelectDocument.Eof do
       begin
-        CurrentDocumentKey := ibsqlSelectDocument.FieldByName('DOCUMENTKEY').AsInteger;
-        NextRelationName := ibsqlSelectDocument.FieldByName('ADD_REL_NAME').AsString;
-        if CurrentRelationName <> NextRelationName then
+        // При нажатии Escape прервем процесс
+        if FProcessState = psTerminating then
         begin
-          CurrentRelationName := NextRelationName;
-          ibsqlDeleteUserRecord.Close;
-          ibsqlDeleteUserRecord.SQL.Text :=
-            Format('DELETE FROM %0:s WHERE documentkey = :documentkey', [CurrentRelationName]);
-          ibsqlDeleteUserRecord.Prepare;
+          if Application.MessageBox('Остановить закрытие периода?', 'Внимание',
+             MB_YESNO or MB_ICONQUESTION or MB_SYSTEMMODAL) = IDYES then
+            raise Exception.Create('Выполнение прервано')
+          else
+            FProcessState := psWorking;
         end;
 
-        // Удалим запись из пользовательской таблицы
+        // Удалим текущий документ
         try
-          ibsqlDeleteUserRecord.Close;
-          ibsqlDeleteUserRecord.ParamByName('DOCUMENTKEY').AsInteger := CurrentDocumentKey;
-          ibsqlDeleteUserRecord.ExecQuery;
+          // Пробуем удалить документ
+          DeleteSingleDocument(ibsqlSelectDocument.FieldByName('DOCUMENTKEY').AsInteger,
+            ibsqlSelectDocument.FieldByName('ADD_REL_NAME').AsString);
+          Inc(DeletedCount);
         except
-          // Пробуем удалить ссылки на текущую запись
-          TryToDeleteDocumentReferences(CurrentDocumentKey, CurrentRelationName);
+          // Обрабатываем ошибку удаления документа
+          on E: Exception do
+          begin
+            // Занесем документ в список отложенного удаления
+            DocumentListIndex := DocumentKeysToDelayedDelete.Add(ibsqlSelectDocument.FieldByName('DOCUMENTKEY').AsInteger);
+            DocumentKeysToDelayedDelete.ValuesByIndex[DocumentListIndex] := ibsqlSelectDocument.FieldByName('ADD_REL_NAME').AsString;
+          end;
         end;
-        // Удалим запись из gd_document
-        try
-          ibsqlDeleteDocument.Close;
-          ibsqlDeleteDocument.ParamByName('DOCUMENTKEY').AsInteger := CurrentDocumentKey;
-          ibsqlDeleteDocument.ExecQuery;
 
-          DeleteRUID(CurrentDocumentKey);
-        except
-          // Пробуем удалить ссылки на текущую запись
-          TryToDeleteDocumentReferences(CurrentDocumentKey, 'GD_DOCUMENT');
+        if (DeletedCount > 0) and (DeletedCount mod 5000 = 0) then
+        begin
+          // Рестартанем транзакцию
+          FWriteTransaction.Commit;
+          FWriteTransaction.StartTransaction;
         end;
+
+        // Каждые 50000 документов будем запускать отложенное удаление
+        if (DocumentKeysToDelayedDelete.Count > 0) and (DeletedCount > 0) and (DeletedCount mod 50000 = 0) then
+        begin
+          DoOnProcessMessage(-1, -1, 'Ошибок: ' + IntToStr(DocumentKeysToDelayedDelete.Count));
+
+          I := 0;
+          while (I <= DocumentKeysToDelayedDelete.Count - 1) do
+          begin
+            try
+              // Пробуем удалить документ
+              DeleteSingleDocument(DocumentKeysToDelayedDelete.Keys[I],
+                DocumentKeysToDelayedDelete.ValuesByIndex[I]);
+              Inc(DeletedCount);
+              // Удаляем документ из списка отложенных
+              DocumentKeysToDelayedDelete.Delete(I);
+            except
+              Inc(I);
+              // Если не получилось удалить, то ничего не делаем - пробуем удалить в следующий раз
+            end;
+          end;
+        end;
+
+        // Визуализация процесса
+        DoOnProcessMessage(DeletedCount, -1, '');
 
         ibsqlSelectDocument.Next;
       end;
+
+      // Визуализация процесса
+      DoOnProcessMessage(DeletedCount, DeletedCount, '');
+      DoOnProcessMessage(-1, -1, TimeToStr(Time) + ': Завершен процесс удаления пользовательских документов...'#13#10 +
+        IntToStr(DeletedCount) + ' удалено, ' + IntToStr(DocumentKeysToDelayedDelete.Count) + ' ошибок'#13#10 +
+        'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
     finally
+      FreeAndNil(DocumentKeysToDelayedDelete);
       ibsqlDeleteUserRecord.Free;
       ibsqlDeleteDocument.Free;
       ibsqlSelectDocument.Free;
     end;
   end;
-
-  // Визуализация процесса
-  DoOnProcessMessage(1, 1, 'Завершен процесс удаления пользовательских документов...'#13#10 +
-    'Продолжительность процесса: ' + TimeToStr(Time - FLocalStartTime));
 end;
 
 procedure TgdClosingPeriod.DoClosePeriod;
@@ -2210,9 +2269,6 @@ end;
 function TgdClosingPeriod.GetInProcess: Boolean;
 begin
   Result := (FProcessState = psWorking);
-  {Result := False;
-  if Assigned(FWorkingThread) and not FWorkingThread.Suspended then
-    Result := True;}
 end;
 
 procedure TgdClosingPeriod.StopProcess;
@@ -2398,6 +2454,43 @@ begin
   end;  
 end;
 
+function TgdClosingPeriod.TryToTruncateAdditionalTable(
+  const ADocTypeKey: TID; const AdditionalRelationName: String): Boolean;
+var
+  ibsqlDelete: TIBSQL;
+begin
+  ibsqlDelete := TIBSQL.Create(Application);
+  try
+    ibsqlDelete.Transaction := FWriteTransaction;
+    ibsqlDelete.SQL.Text := Format(
+      'DELETE FROM %s m ' +
+      'WHERE EXISTS(SELECT ' +
+      '               d.id ' +
+      '             FROM ' +
+      '               gd_document d ' +
+      '             WHERE ' +
+      '               d.id = m.documentkey ' +
+      '               AND d.documenttypekey = :doctype ' +
+      '               AND d.documentdate < :closedate) ' +
+      '        OR NOT EXISTS(SELECT ' +
+      '                        d.id ' +
+      '                      FROM ' +
+      '                        gd_document d ' +
+      '                      WHERE ' +
+      '                        d.id = m.documentkey) ', [AdditionalRelationName]);
+    try
+      ibsqlDelete.ParamByName('doctype').AsInteger := ADocTypeKey;
+      ibsqlDelete.ParamByName('closedate').AsDateTime := FCloseDate;
+      ibsqlDelete.ExecQuery;
+      Result := True;
+    except
+      Result := False;
+    end;
+  finally
+    FreeAndNil(ibsqlDelete);
+  end;
+end;
+
 function TgdClosingPeriod.GetReplacementInvCardKey(const AOldCardKey: TID;
   AFeatureDataset: TIBSQL; const AFromContactkey, AToContactkey: TID): TID;
 var
@@ -2446,6 +2539,29 @@ begin
   FIBSQLDeleteRUID.ParamByName('ID').AsInteger := AID;
   FIBSQLDeleteRUID.ExecQuery;
   FIBSQLDeleteRUID.Close;
+end;
+
+function TgdClosingPeriod.GetQueryRecordCount(InIBSQL: TIBSQL): Integer;
+var
+  ibsqlCount: TIBSQL;
+  ParamCounter: Integer;
+begin
+  Result := -1;
+
+  ibsqlCount := TIBSQL.Create(Application);
+  try
+    ibsqlCount.Transaction := InIBSQL.Transaction;
+    ibsqlCount.SQL.Text :=
+      'SELECT count(*) AS rec_count FROM (' + InIBSQL.SQL.Text + ')';
+    for ParamCounter := 0 to InIBSQL.Params.Count - 1 do
+      ibsqlCount.Params[ParamCounter].AsVariant := InIBSQL.Params[ParamCounter].AsVariant;
+    ibsqlCount.ExecQuery;
+
+    if ibsqlCount.RecordCount > 0 then
+      Result := ibsqlCount.FieldByName('rec_count').AsInteger;
+  finally
+    FreeAndNil(ibsqlCount);
+  end;
 end;
 
 { TgdClosingThread }
