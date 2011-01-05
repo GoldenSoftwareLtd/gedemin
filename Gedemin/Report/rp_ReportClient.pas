@@ -533,8 +533,8 @@ end;
 
 procedure TClientReport.Clear;
 begin
-  if Assigned(FReportFactory) then
-    FReportFactory.Clear;
+{  if Assigned(FReportFactory) then
+    FReportFactory.Clear;  }
   FClientEventFactory.Clear;
 end;
 
