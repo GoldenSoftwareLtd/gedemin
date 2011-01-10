@@ -7242,7 +7242,7 @@ begin
             Continue;
           end;
 
-          cIn, cIs, {cNull,} cNot, cExists, cSingular, cAnd, cOr:
+          cIn, cIs, {cNull,} cNot, cExists, cSingular, cAnd, cOr, cBetween:
           begin
             //Если это конструкция на else
             if eoElse in FDone then
