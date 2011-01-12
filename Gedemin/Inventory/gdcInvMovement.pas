@@ -4776,7 +4776,8 @@ constructor TgdcInvBaseRemains.Create(anOwner: TComponent);
 begin
   inherited Create(anOwner);
 
-  FIsNewDateRemains := GlobalStorage.ReadBoolean('Options\Invent', 'UseDelMovement', True);
+  if not (csDesigning in ComponentState) then
+    FIsNewDateRemains := GlobalStorage.ReadBoolean('Options\Invent', 'UseDelMovement', True);
   FViewFeatures := TStringList.Create;
   FSumFeatures := TStringList.Create;
   FGoodViewFeatures := TStringList.Create;
