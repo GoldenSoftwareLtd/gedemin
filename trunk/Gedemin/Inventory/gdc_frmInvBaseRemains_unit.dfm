@@ -27,7 +27,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
       end
     end
     inherited tbMainCustom: TTBToolbar
-      Left = 524
+      Left = 547
       Visible = True
     end
     inherited tbMainMenu: TTBToolbar
@@ -43,13 +43,16 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
       object ibFullCard: TTBItem
         Action = actViewFullCard
       end
+      object ibGoodInfo: TTBItem
+        Action = actViewGood
+      end
       object TBSeparatorItem1: TTBSeparatorItem
       end
       object tbAllRemainsView: TTBControlItem
         Control = cbAllRemains
       end
       object cbAllRemains: TCheckBox
-        Left = 104
+        Left = 127
         Top = 2
         Width = 97
         Height = 17
@@ -60,7 +63,7 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
       end
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 491
+      Left = 514
     end
   end
   inherited TBDockRight: TTBDock
@@ -220,6 +223,14 @@ inherited gdc_frmInvBaseRemains: Tgdc_frmInvBaseRemains
       Hint = 'Полная карточка ТМЦ...'
       ImageIndex = 74
       OnExecute = actViewFullCardExecute
+    end
+    object actViewGood: TAction
+      Category = 'Commands'
+      Caption = 'Просмотр товара'
+      Hint = 'Просмотр товара'
+      ImageIndex = 75
+      OnExecute = actViewGoodExecute
+      OnUpdate = actViewGoodUpdate
     end
   end
   inherited dsMain: TDataSource

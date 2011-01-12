@@ -31,6 +31,8 @@ type
     TBSeparatorItem1: TTBSeparatorItem;
     actViewFullCard: TAction;
     ibFullCard: TTBItem;
+    actViewGood: TAction;
+    ibGoodInfo: TTBItem;
     procedure actOkExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure ibgrDetailAggregateChanged(Sender: TObject);
@@ -46,6 +48,8 @@ type
     procedure actViewFullCardExecute(Sender: TObject);
     procedure actFindExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure actViewGoodExecute(Sender: TObject);
+    procedure actViewGoodUpdate(Sender: TObject);
   private
     FIsSetup: Boolean;  
   protected
@@ -342,6 +346,24 @@ procedure Tgdc_frmInvBaseRemains.FormCreate(Sender: TObject);
 begin
   inherited;
   FIsSetup := False;
+end;
+
+procedure Tgdc_frmInvBaseRemains.actViewGoodExecute(Sender: TObject);
+begin
+  with TgdcGood.Create(Self) do
+  try
+    SubSet := 'ByID';
+    ID := Self.gdcObject.FieldByName('GOODKEY').AsInteger;
+    Open;
+    EditDialog;
+  finally
+    Free;
+  end;
+end;
+
+procedure Tgdc_frmInvBaseRemains.actViewGoodUpdate(Sender: TObject);
+begin
+  actViewGood.Enabled := not Self.gdcObject.IsEmpty;
 end;
 
 initialization
