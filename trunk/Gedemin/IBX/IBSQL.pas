@@ -2998,8 +2998,8 @@ var
   isc_res: ISC_STATUS;
 begin
   try
-    FSQLRecord.Count := 0;  
-    if (FHandle <> nil) and (SQLType in [SQLSelect, SQLSelectForUpdate]) and FOpen then
+    FSQLRecord.Count := 0;
+    if (FHandle <> nil) and (SQLType in [SQLSelect, SQLSelectForUpdate]) then
     begin
       isc_res := Call(
                    isc_dsql_free_statement(StatusVector, @FHandle, DSQL_unprepare),
