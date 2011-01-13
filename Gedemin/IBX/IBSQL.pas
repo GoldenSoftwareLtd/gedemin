@@ -323,6 +323,7 @@ type
     procedure ExecQuery;
     function FieldByName(FieldName: String): TIBXSQLVAR;
     procedure FreeHandle;
+    procedure UnPrepareStatement;
     function Next: TIBXSQLDA;
     procedure Prepare;
     function GetUniqueRelationName: String;
@@ -2761,8 +2762,9 @@ begin
     if Item = nil then
     begin
     {$ENDIF}
-      Call(isc_dsql_alloc_statement2(StatusVector, DBHandle,
-                                      @FHandle), True);
+      if FHandle = nil then
+        Call(isc_dsql_alloc_statement2(StatusVector, DBHandle,
+                                        @FHandle), True);
       //!!!b
       try
       //!!!e
@@ -2973,7 +2975,9 @@ procedure TIBSQL.SQLChanging(Sender: TObject);
 begin
   if Assigned(OnSQLChanging) then
     OnSQLChanging(Self);
-  if FHandle <> nil then FreeHandle;
+  if FHandle <> nil then
+    UnPrepareStatement;  
+    //FreeHandle;
 end;
 
 procedure TIBSQL.BeforeTransactionEnd(Sender: TObject);
@@ -2987,6 +2991,27 @@ begin
   if not Prepared then
     Prepare;
   result := FSQLParams.ByName(Idx);
+end;
+
+procedure TIBSQL.UnPrepareStatement;
+var
+  isc_res: ISC_STATUS;
+begin
+  try
+    FSQLRecord.Count := 0;  
+    if (FHandle <> nil) and (SQLType in [SQLSelect, SQLSelectForUpdate]) and FOpen then
+    begin
+      isc_res := Call(
+                   isc_dsql_free_statement(StatusVector, @FHandle, DSQL_unprepare),
+                   False);
+      if (StatusVector^ = 1) and (isc_res > 0) and (isc_res <> isc_bad_stmt_handle) and
+         (isc_res <> isc_lost_db_connection) then
+        IBDataBaseError;
+      FEOF := True;
+    end;
+  finally
+    FPrepared := False;
+  end;
 end;
 
 { TIBOutputXML }

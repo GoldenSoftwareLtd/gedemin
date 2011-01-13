@@ -38,7 +38,10 @@ const
   ISC_FALSE = 0;
   DSQL_close = 1;
   DSQL_drop = 2;
+  //IB65_UP
   DSQL_cancel = 4;
+  //FB25_UP
+  DSQL_unprepare = 4;  
 
   IBASE_DLL = 'gds32.dll'; {do not localize}
   //!!!
