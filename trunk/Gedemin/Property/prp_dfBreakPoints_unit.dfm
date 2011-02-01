@@ -5,8 +5,8 @@ inherited dfBreakPoints: TdfBreakPoints
   Height = 191
   HelpContext = 307
   Caption = 'Точки остановки'
-  Font.Height = -11
   OldCreateOrder = True
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object lvBreakPoints: TListView [0]

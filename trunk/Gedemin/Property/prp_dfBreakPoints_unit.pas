@@ -58,9 +58,10 @@ type
     procedure actDisableAllExecute(Sender: TObject);
     procedure actEnableUpdate(Sender: TObject);
     procedure actEnableExecute(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     { Private declarations }
-    function GetselectedBreakpoint: TBreakPoint;
+    function GetSelectedBreakpoint: TBreakPoint;
     procedure InvalidateFrame;
     procedure SetBreakPointsEnable(Value: Boolean);
   public
@@ -72,7 +73,9 @@ var
   dfBreakPoints: TdfBreakPoints;
 
 implementation
-uses prp_frmGedeminProperty_Unit, prp_dlgBreakPointProperty_unit, prp_BaseFrame_unit,
+
+uses
+  prp_frmGedeminProperty_Unit, prp_dlgBreakPointProperty_unit, prp_BaseFrame_unit,
   rp_BaseReport_unit;
 
 {$R *.DFM}
@@ -85,8 +88,9 @@ var
   LI: TListItem;
   B: TBreakPoint;
   F: TrpCustomFunction;
+  FNeedSave: Boolean;
 begin
-  if csDestroying in ComponentState then
+  if (csDestroying in ComponentState) or (not Visible) then
     exit;
 
   lvBreakPoints.Items.BeginUpdate;
@@ -94,7 +98,8 @@ begin
     lvBreakPoints.Items.Clear;
     if (BreakPointList <> nil) and (glbFunctionList <> nil) then
     begin
-      for I := 0 to BreakPointList.Count - 1 do
+      FNeedSave := False;
+      for I := BreakPointList.Count - 1 downto 0 do
       begin
         B := BreakPointList[I];
         F := glbFunctionList.FindFunction(B.FunctionKey);
@@ -112,8 +117,15 @@ begin
             Li.ImageIndex := 19;
         finally
           glbFunctionList.ReleaseFunction(F);
+        end
+        else if (F = nil) and (B <> nil) then
+        begin
+          BreakPointList.Remove(B);
+          FNeedSave := True;
         end;
       end;
+      if FNeedSave then
+        BreakPointList.SaveToStorage;
     end;
   finally
     if lvBreakPoints <> nil then
@@ -165,7 +177,7 @@ begin
   end;
 end;
 
-function TdfBreakPoints.GetselectedBreakpoint: TBreakPoint;
+function TdfBreakPoints.GetSelectedBreakpoint: TBreakPoint;
 begin
   Result := nil;
   if lvBreakPoints.Selected <> nil then
@@ -245,7 +257,7 @@ end;
 procedure TdfBreakPoints.actEnableUpdate(Sender: TObject);
 var
  B: TBreakPoint;
- A: Taction;
+ A: TAction;
 begin
   B := GetselectedBreakpoint;
   A := TAction(Sender);
@@ -267,6 +279,12 @@ begin
     lvBreakPoints.Selected.ImageIndex := 19 - Integer(B.Enabled);
     InvalidateFrame;
   end;
+end;
+
+procedure TdfBreakPoints.FormShow(Sender: TObject);
+begin
+  inherited;
+  LoadBreakPoints;
 end;
 
 end.
