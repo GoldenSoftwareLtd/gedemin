@@ -6197,6 +6197,26 @@ var
   Arr: array of TField;
   ArrIsNumber, ArrNumFields: array of Boolean;
 
+  // Перекрыт вызов функции из jclStrings, там не было проверки на позицию минуса
+  function StrConsistsofNumberChars(const S: string): Boolean;
+  var
+    I: Integer;
+  begin
+    if (S > '') and (S[1] in ['0'..'9', '+', '-']) then
+    begin
+      for I := 2 to Length(S) do
+      begin
+        if not (S[I] in ['0'..'9']) then
+        begin
+          Result := False;
+          Exit;
+        end;
+      end;
+      Result := True;
+    end else
+      Result := False;
+  end;
+
   {$WARNINGS OFF}
   function Compare(const A, B: Integer): Integer;
   var
