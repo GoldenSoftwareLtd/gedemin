@@ -273,13 +273,13 @@ begin
       '    NCU_BEGIN_CREDIT NUMERIC(15, %1:d), '#13#10 +
         GetDebitSumSelectClauseBalance +                                // Расшифровка по дебету NCU
       '    NCU_DEBIT NUMERIC(15, %1:d), '#13#10 +
-        GetCreditSumSelectClauseBalance +                              // Расшифровка по кредиту NCU
+        GetCreditSumSelectClauseBalance +                               // Расшифровка по кредиту NCU
       '    NCU_CREDIT NUMERIC(15, %1:d), '#13#10 +
       '    NCU_END_DEBIT NUMERIC(15, %1:d), '#13#10 +
       '    NCU_END_CREDIT NUMERIC(15, %1:d), '#13#10 +
       '    CURR_BEGIN_DEBIT NUMERIC(15, %3:d), '#13#10 +
       '    CURR_BEGIN_CREDIT NUMERIC(15, %3:d), '#13#10 +
-        GetDebitCurrSumSelectClauseBalance +                              // Расшифровка по дебету CURR
+        GetDebitCurrSumSelectClauseBalance +                                // Расшифровка по дебету CURR
       '    CURR_DEBIT NUMERIC(15, %3:d), '#13#10 +
         GetCreditCurrSumSelectClauseBalance +                               // Расшифровка по кредиту CURR
       '    CURR_CREDIT NUMERIC(15, %3:d), '#13#10 +
@@ -287,7 +287,7 @@ begin
       '    CURR_END_CREDIT NUMERIC(15, %3:d), '#13#10 +
       '    EQ_BEGIN_DEBIT NUMERIC(15, %5:d), '#13#10 +
       '    EQ_BEGIN_CREDIT NUMERIC(15, %5:d), '#13#10 +
-        GetDebitEQSumSelectClauseBalance +                             // Расшифровка по дебету EQ
+        GetDebitEQSumSelectClauseBalance +                                // Расшифровка по дебету EQ
       '    EQ_DEBIT NUMERIC(15, %5:d), '#13#10 +
         GetCreditEQSumSelectClauseBalance +                               // Расшифровка по кредиту EQ
       '    EQ_CREDIT NUMERIC(15, %5:d), '#13#10 +
@@ -295,40 +295,61 @@ begin
       '    EQ_END_CREDIT NUMERIC(15, %5:d), '#13#10 +
       '    SORTFIELD INTEGER) '#13#10 +
       'AS '#13#10 +
-      'DECLARE VARIABLE saldobegindebit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldobegincredit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldoenddebit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldoendcredit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldobegindebitcurr NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldobegincreditcurr NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldoenddebitcurr NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldoendcreditcurr NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldobegindebiteq NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldobegincrediteq NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldoenddebiteq NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE saldoendcrediteq NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE varncudebit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE varncucredit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE varcurrdebit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE varcurrcredit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE vareqdebit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE vareqcredit NUMERIC(18,6); '#13#10 +
-      'DECLARE VARIABLE c INTEGER; '#13#10 +
-      'DECLARE VARIABLE accountkey INTEGER; '#13#10 +
-      'DECLARE VARIABLE closedate DATE; '#13#10 +
+      '  DECLARE VARIABLE saldobegindebit      NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldobegincredit     NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldoenddebit        NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldoendcredit       NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldobegindebitcurr  NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldobegincreditcurr NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldoenddebitcurr    NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldoendcreditcurr   NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldobegindebiteq    NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldobegincrediteq   NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldoenddebiteq      NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE saldoendcrediteq     NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE varncudebit          NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE varncucredit         NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE varcurrdebit         NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE varcurrcredit        NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE vareqdebit           NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE vareqcredit          NUMERIC(18, 6);'#13#10 +
+      '  DECLARE VARIABLE c                    INTEGER;'#13#10 +
+      '  DECLARE VARIABLE accountkey           INTEGER;'#13#10 +
+      '  DECLARE VARIABLE closedate            DATE;'#13#10;
+    if AnalyticField <> '' then
+    begin
+      DebitCreditSQL := DebitCreditSQL +
+        '  DECLARE VARIABLE endmonthdate         DATE;'#13#10 +
+        '  DECLARE VARIABLE sd                   NUMERIC(18, 4);'#13#10 +
+        '  DECLARE VARIABLE sc                   NUMERIC(18, 4);'#13#10 +
+        '  DECLARE VARIABLE sdc                  NUMERIC(18, 4);'#13#10 +
+        '  DECLARE VARIABLE scc                  NUMERIC(18, 4);'#13#10 +
+        '  DECLARE VARIABLE sdeq                 NUMERIC(18, 4);'#13#10 +
+        '  DECLARE VARIABLE sceq                 NUMERIC(18, 4);'#13#10;
+    end;
+    DebitCreditSQL := DebitCreditSQL +
       'BEGIN '#13#10 +
-      '  closedate = CAST((CAST(''17.11.1858'' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); '#13#10;
+      '  closedate = CAST((CAST(''17.11.1858'' AS DATE) + GEN_ID(gd_g_entry_balance_date, 0)) AS DATE); '#13#10 +
+      '  saldobegindebit = 0; saldobegincredit = 0; saldoenddebit = 0; saldoendcredit = 0; '#13#10 +
+      '  saldobegindebitcurr = 0; saldobegincreditcurr = 0; saldoenddebitcurr = 0; saldoendcreditcurr = 0; '#13#10 +
+      '  saldobegindebiteq = 0; saldobegincrediteq = 0; saldoenddebiteq = 0; saldoendcrediteq = 0; '#13#10;
 
     if AnalyticField = '' then
     begin
       DebitCreditSQL := DebitCreditSQL +
         '  SELECT '#13#10 +
-        '    COALESCE(SUM(m.debitncu), 0) AS debitncu, '#13#10 +
-        '    COALESCE(SUM(m.creditncu), 0) AS creditncu, '#13#10 +
-        '    COALESCE(SUM(m.debitcurr), 0) AS debitcurr, '#13#10 +
-        '    COALESCE(SUM(m.creditcurr), 0) AS creditcurr, '#13#10 +
-        '    COALESCE(SUM(m.debiteq), 0) AS debiteq, '#13#10 +
-        '    COALESCE(SUM(m.crediteq), 0) AS crediteq '#13#10 +
+        '    IIF((NOT SUM(m.debitncu - m.creditncu) IS NULL) AND (SUM(m.debitncu - m.creditncu) > 0),'#13#10 +
+        '      SUM(m.debitncu - m.creditncu), 0) AS debitncu,'#13#10 +
+        '    IIF((NOT SUM(m.creditncu - m.debitncu) IS NULL) AND (SUM(m.creditncu - m.debitncu) > 0),'#13#10 +
+        '      SUM(m.creditncu - m.debitncu), 0) AS creditncu,'#13#10 +
+        '    IIF((NOT SUM(m.debitcurr - m.creditcurr) IS NULL) AND (SUM(m.debitcurr - m.creditcurr) > 0),'#13#10 +
+        '      SUM(m.debitcurr - m.creditcurr), 0) AS debitcurr,'#13#10 +
+        '    IIF((NOT SUM(m.creditcurr - m.debitcurr) IS NULL) AND (SUM(m.creditcurr - m.debitcurr) > 0),'#13#10 +
+        '      SUM(m.creditcurr - m.debitcurr), 0) AS creditcurr,'#13#10 +
+        '    IIF((NOT SUM(m.debiteq - m.crediteq) IS NULL) AND (SUM(m.debiteq - m.crediteq) > 0),'#13#10 +
+        '      SUM(m.debiteq - m.crediteq), 0) AS debiteq,'#13#10 +
+        '    IIF((NOT SUM(m.crediteq - m.debiteq) IS NULL) AND (SUM(m.crediteq - m.debiteq) > 0),'#13#10 +
+        '      SUM(m.crediteq - m.debiteq), 0) AS crediteq'#13#10 +
         '  FROM '#13#10 +
         '  ( '#13#10 +
         '    SELECT '#13#10 +
@@ -384,18 +405,15 @@ begin
     begin
       DebitCreditSQL := DebitCreditSQL +
         Format(
-          '  saldobegindebit = 0; '#13#10 +
-          '  saldobegincredit = 0; '#13#10 +
-          '  saldobegindebitcurr = 0; '#13#10 +
-          '  saldobegincreditcurr = 0; '#13#10 +
           '    FOR '#13#10 +
           '      SELECT '#13#10 +
-          '        la.accountkey '#13#10 +
+          '        la.id '#13#10 +
           '      FROM '#13#10 +
-          '        ac_ledger_accounts la '#13#10 +
+          '        ac_account la '#13#10 +
           '      WHERE '#13#10 +
-          '        la.sqlhandle = %0:d '#13#10 +
-          '      INTO :accountkey '#13#10 +
+          '        la.id IN (' + AccountIDs + ') '#13#10 +
+          '      INTO '#13#10 +
+          '        :accountkey '#13#10 +
           '    DO '#13#10 +
           '    BEGIN '#13#10 +
           '      SELECT '#13#10 +
@@ -406,7 +424,7 @@ begin
           '        COALESCE(a.eqdebitsaldo, 0), '#13#10 +
           '        COALESCE(a.eqcreditsaldo, 0) '#13#10 +
           '      FROM '#13#10 +
-          '        ac_accountexsaldo_bal(:datebegin, :accountkey, ''%1:s'', %2:d, %3:d, %4:s) a '#13#10 +
+          '        ac_accountexsaldo_bal(:datebegin, :accountkey, ''%0:s'', %1:d, %2:d, %3:s) a '#13#10 +
           '      INTO :varncudebit, '#13#10 +
           '           :varncucredit, '#13#10 +
           '           :varcurrdebit, '#13#10 +
@@ -421,7 +439,7 @@ begin
           '      saldobegindebiteq = :saldobegindebiteq + :vareqdebit; '#13#10 +
           '      saldobegincrediteq = :saldobegincrediteq + :vareqcredit; '#13#10 +
           '    END '#13#10,
-          [FSQLhandle, AnalyticField, FCompanyKey, Integer(FAllHolding), IIF(FCurrKey > 0, IntToStr(FCurrkey), '0')]);
+          [AnalyticField, FCompanyKey, Integer(FAllHolding), IIF(FCurrKey > 0, IntToStr(FCurrkey), '0')]);
     end;
 
     DebitCreditSQL := DebitCreditSQL +
@@ -477,174 +495,143 @@ begin
       '    eq_debit = CAST(:vareqdebit / %4:d AS NUMERIC(15, %5:d)); '#13#10 +
       '    eq_credit = CAST(:vareqcredit / %4:d AS NUMERIC(15, %5:d)); '#13#10 +
       ' '#13#10 +
-      '    ncu_begin_debit = 0;  '#13#10 +
-      '    ncu_begin_credit = 0;  '#13#10 +
-      '    ncu_end_debit = 0;  '#13#10 +
-      '    ncu_end_credit = 0;  '#13#10 +
-      '    curr_begin_debit = 0;  '#13#10 +
-      '    curr_begin_credit = 0;  '#13#10 +
-      '    curr_end_debit = 0;  '#13#10 +
-      '    curr_end_credit = 0;  '#13#10 +
-      '    eq_begin_debit = 0;  '#13#10 +
-      '    eq_begin_credit = 0;  '#13#10 +
-      '    eq_end_debit = 0;  '#13#10 +
-      '    eq_end_credit = 0;  '#13#10 +
-      ' ' +
-      '    /* сальдо на начало */ '#13#10 +
-      '    IF (:saldobegindebit - :saldobegincredit > 0) THEN  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      ncu_begin_debit = CAST((:saldobegindebit - :saldobegincredit) / %0:d AS NUMERIC(15, %1:d));  '#13#10 +
-      '      ncu_begin_credit = 0;  '#13#10 +
-      '    END  '#13#10 +
-      '    ELSE  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      ncu_begin_debit = 0;  '#13#10 +
-      '      ncu_begin_credit = CAST(- (:saldobegindebit - :saldobegincredit) / %0:d AS NUMERIC(15, %1:d));  '#13#10 +
-      '    END  '#13#10 +
-      ' '#13#10 +
-      '    IF (:saldobegindebitcurr - :saldobegincreditcurr > 0) THEN  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      curr_begin_debit = CAST((:saldobegindebitcurr - :saldobegincreditcurr) / %2:d AS NUMERIC(15, %3:d));  '#13#10 +
-      '      curr_begin_credit = 0;  '#13#10 +
-      '    END  '#13#10 +
-      '    ELSE  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      curr_begin_debit = 0;  '#13#10 +
-      '      curr_begin_credit = CAST(- (:saldobegindebitcurr - :saldobegincreditcurr) / %2:d AS NUMERIC(15, %3:d));  '#13#10 +
-      '    END '#13#10 +
-      ' '#13#10 +
-      '    IF (:saldobegindebiteq - :saldobegincrediteq > 0) THEN  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      eq_begin_debit = CAST((:saldobegindebiteq - :saldobegincrediteq) / %4:d AS NUMERIC(15, %5:d));  '#13#10 +
-      '      eq_begin_credit = 0;  '#13#10 +
-      '    END  '#13#10 +
-      '    ELSE  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      eq_begin_debit = 0;  '#13#10 +
-      '      eq_begin_credit = CAST(- (:saldobegindebiteq - :saldobegincrediteq) / %4:d AS NUMERIC(15, %5:d));  '#13#10 +
-      '    END '#13#10 +
-      ' ' +
-      '    /* сальдо на конец */ '#13#10 +
-      '    IF (:saldobegindebit - :saldobegincredit + (:varncudebit - :varncucredit) > 0) THEN  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      saldoenddebit = :saldobegindebit - :saldobegincredit + (:varncudebit - :varncucredit);  '#13#10 +
-      '      saldoendcredit = 0; '#13#10 +
-      '      ncu_end_debit = CAST(:saldoenddebit / %0:d AS NUMERIC(15, %1:d)); '#13#10 +
-      '      ncu_end_credit = 0;   '#13#10 +
-      '    END  '#13#10 +
-      '    ELSE  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      saldoenddebit = 0;  '#13#10 +
-      '      saldoendcredit =  - (:saldobegindebit - :saldobegincredit + (:varncudebit - :varncucredit));  '#13#10 +
-      '      ncu_end_debit = 0;  '#13#10 +
-      '      ncu_end_credit = CAST(:saldoendcredit / %0:d AS NUMERIC(15, %1:d)); '#13#10 +
-      '    END  '#13#10 +
-      ' '#13#10 +
-      '    IF (:saldobegindebitcurr - :saldobegincreditcurr + (:varcurrdebit - :varcurrcredit) > 0) THEN  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      saldoenddebitcurr = :saldobegindebitcurr - :saldobegincreditcurr + (:varcurrdebit - :varcurrcredit);  '#13#10 +
-      '      saldoendcreditcurr = 0;  '#13#10 +
-      '      curr_end_debit = CAST(:saldoenddebitcurr / %2:d AS NUMERIC(15, %3:d)); '#13#10 +
-      '      curr_end_credit = 0;  '#13#10 +
-      '    END  '#13#10 +
-      '    ELSE  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      saldoenddebitcurr = 0;  '#13#10 +
-      '      saldoendcreditcurr =  - (:saldobegindebitcurr - :saldobegincreditcurr + (:varcurrdebit - :varcurrcredit));  '#13#10 +
-      '      curr_end_debit = 0;  '#13#10 +
-      '      curr_end_credit = CAST(:saldoendcreditcurr / %2:d AS NUMERIC(15, %3:d)); '#13#10 +
-      '    END  '#13#10 +
-      ' '#13#10 +
-      '    IF (:saldobegindebiteq - :saldobegincrediteq + (:vareqdebit - :vareqcredit) > 0) THEN  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      saldoenddebiteq = :saldobegindebiteq - :saldobegincrediteq + (:vareqdebit - :vareqcredit);  '#13#10 +
-      '      saldoendcrediteq = 0;  '#13#10 +
-      '      eq_end_debit = CAST(:saldoenddebiteq / %4:d AS NUMERIC(15, %5:d)); '#13#10 +
-      '      eq_end_credit = 0;  '#13#10 +
-      '    END  '#13#10 +
-      '    ELSE  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      saldoenddebiteq = 0;  '#13#10 +
-      '      saldoendcrediteq =  - (:saldobegindebiteq - :saldobegincrediteq + (:vareqdebit - :vareqcredit));  '#13#10 +
-      '      eq_end_debit = 0;  '#13#10 +
-      '      eq_end_credit = CAST(:saldoendcrediteq / %4:d AS NUMERIC(15, %5:d)); '#13#10 +
-      '    END  '#13#10 +
-      ' '#13#10 +
-      '    sortfield = 1;  '#13#10 +
-      '    SUSPEND;  '#13#10 +
-      ' '#13#10 +
-      '    saldobegindebit = :saldoenddebit;  '#13#10 +
-      '    saldobegincredit = :saldoendcredit;  '#13#10 +
-      '    saldobegindebitcurr = :saldoenddebitcurr;  '#13#10 +
-      '    saldobegincreditcurr = :saldoendcreditcurr;  '#13#10 +
-      '    saldobegindebiteq = :saldoenddebiteq;  '#13#10 +
-      '    saldobegincrediteq = :saldoendcrediteq;  '#13#10 +
-      ' '#13#10 +
-      '    c = c + 1;  '#13#10 +
-      '  END  '#13#10 +
-      ' '#13#10 +
-      '  /* Если не было движения в течении указанного периода */ '#13#10 +
-      '  IF (c = 0) THEN  '#13#10 +
-      '  BEGIN  '#13#10 +
-      '    m = EXTRACT(MONTH FROM :datebegin);  '#13#10 +
-      '    y = EXTRACT(YEAR FROM :datebegin);  '#13#10 +
-      ' '#13#10 +
-      '    ncu_debit = 0;  '#13#10 +
-      '    ncu_credit = 0;  '#13#10 +
-      '    curr_debit = 0;  '#13#10 +
-      '    curr_credit = 0;  '#13#10 +
-      '    eq_debit = 0;  '#13#10 +
-      '    eq_credit = 0;  '#13#10 +
-      ' '#13#10 +
-      '    IF (:saldobegindebit - :saldobegincredit > 0) THEN  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      ncu_begin_debit = CAST((:saldobegindebit - :saldobegincredit) / %0:d AS NUMERIC(15, %1:d));  '#13#10 +
-      '      ncu_begin_credit = 0;  '#13#10 +
-      '      ncu_end_debit = CAST((:saldobegindebit - :saldobegincredit) / %0:d AS NUMERIC(15, %1:d));  '#13#10 +
-      '      ncu_end_credit = 0;  '#13#10 +
-      '    END  '#13#10 +
-      '    ELSE  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      ncu_begin_debit = 0;  '#13#10 +
-      '      ncu_begin_credit = CAST(- (:saldobegindebit - :saldobegincredit) / %0:d AS NUMERIC(15, %1:d));  '#13#10 +
-      '      ncu_end_debit = 0;  '#13#10 +
-      '      ncu_end_credit = CAST(- (:saldobegindebit - :saldobegincredit) / %0:d AS NUMERIC(15, %1:d));  '#13#10 +
-      '    END  '#13#10 +
-      ' '#13#10 +
-      '    IF (:saldobegindebitcurr - :saldobegincreditcurr > 0) THEN  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      curr_begin_debit = CAST((:saldobegindebitcurr - :saldobegincreditcurr) / %2:d AS NUMERIC(15, %3:d));  '#13#10 +
-      '      curr_begin_credit = 0;  '#13#10 +
-      '      curr_end_debit = CAST((:saldobegindebitcurr - :saldobegincreditcurr) / %2:d AS NUMERIC(15, %3:d));  '#13#10 +
-      '      curr_end_credit = 0;  '#13#10 +
-      '    END  '#13#10 +
-      '    ELSE  '#13#10 +                        
-      '    BEGIN  '#13#10 +
-      '      curr_begin_debit = 0;  '#13#10 +
-      '      curr_begin_credit = CAST(- (:saldobegindebitcurr - :saldobegincreditcurr) / %2:d AS NUMERIC(15, %3:d));  '#13#10 +
-      '      curr_end_debit = 0;  '#13#10 +
-      '      curr_end_credit = CAST(- (:saldobegindebitcurr - :saldobegincreditcurr) / %2:d AS NUMERIC(15, %3:d));  '#13#10 +
-      '    END '#13#10 +
-      ' '#13#10 +
-      '    IF (:saldobegindebiteq - :saldobegincrediteq > 0) THEN  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      eq_begin_debit = CAST((:saldobegindebiteq - :saldobegincrediteq) / %4:d AS NUMERIC(15, %5:d));  '#13#10 +
-      '      eq_begin_credit = 0;  '#13#10 +
-      '      eq_end_debit = CAST((:saldobegindebiteq - :saldobegincrediteq) / %4:d AS NUMERIC(15, %5:d));  '#13#10 +
-      '      eq_end_credit = 0;  '#13#10 +
-      '    END  '#13#10 +
-      '    ELSE  '#13#10 +
-      '    BEGIN  '#13#10 +
-      '      eq_begin_debit = 0;  '#13#10 +
-      '      eq_begin_credit = CAST(- (:saldobegindebiteq - :saldobegincrediteq) / %4:d AS NUMERIC(15, %5:d));  '#13#10 +
-      '      eq_end_debit = 0;  '#13#10 +
-      '      eq_end_credit = CAST(- (:saldobegindebiteq - :saldobegincrediteq) / %4:d AS NUMERIC(15, %5:d));  '#13#10 +
-      '    END  '#13#10 +
-      ' '#13#10 +
-      '    sortfield = 1;  '#13#10 +
-      '    SUSPEND;  '#13#10 +
-      ' END '#13#10 +
-      ' END ';
+      '    ncu_begin_debit = 0;   ncu_begin_credit = 0;   ncu_end_debit = 0;   ncu_end_credit = 0; '#13#10 +
+      '    curr_begin_debit = 0;  curr_begin_credit = 0;  curr_end_debit = 0;  curr_end_credit = 0; '#13#10 +
+      '    eq_begin_debit = 0;    eq_begin_credit = 0;    eq_end_debit = 0;    eq_end_credit = 0; '#13#10;
+
+    if AnalyticField = '' then
+    begin
+      DebitCreditSQL := DebitCreditSQL +
+        '    /* сальдо на конец */ '#13#10 +
+        '    IF (:saldobegindebit - :saldobegincredit + (:varncudebit - :varncucredit) > 0) THEN  '#13#10 +
+        '    BEGIN  '#13#10 +
+        '      saldoenddebit = :saldobegindebit - :saldobegincredit + (:varncudebit - :varncucredit);  '#13#10 +
+        '      saldoendcredit = 0; '#13#10 +
+        '    END  '#13#10 +
+        '    ELSE  '#13#10 +
+        '    BEGIN  '#13#10 +
+        '      saldoenddebit = 0;  '#13#10 +
+        '      saldoendcredit =  - (:saldobegindebit - :saldobegincredit + (:varncudebit - :varncucredit));  '#13#10 +
+        '    END  '#13#10 +
+        ' '#13#10 +
+        '    IF (:saldobegindebitcurr - :saldobegincreditcurr + (:varcurrdebit - :varcurrcredit) > 0) THEN  '#13#10 +
+        '    BEGIN  '#13#10 +
+        '      saldoenddebitcurr = :saldobegindebitcurr - :saldobegincreditcurr + (:varcurrdebit - :varcurrcredit);  '#13#10 +
+        '      saldoendcreditcurr = 0;  '#13#10 +
+        '    END  '#13#10 +
+        '    ELSE  '#13#10 +
+        '    BEGIN  '#13#10 +
+        '      saldoenddebitcurr = 0;  '#13#10 +
+        '      saldoendcreditcurr =  - (:saldobegindebitcurr - :saldobegincreditcurr + (:varcurrdebit - :varcurrcredit));  '#13#10 +
+        '    END  '#13#10 +
+        ' '#13#10 +
+        '    IF (:saldobegindebiteq - :saldobegincrediteq + (:vareqdebit - :vareqcredit) > 0) THEN  '#13#10 +
+        '    BEGIN  '#13#10 +
+        '      saldoenddebiteq = :saldobegindebiteq - :saldobegincrediteq + (:vareqdebit - :vareqcredit);  '#13#10 +
+        '      saldoendcrediteq = 0;  '#13#10 +
+        '    END  '#13#10 +
+        '    ELSE  '#13#10 +
+        '    BEGIN  '#13#10 +
+        '      saldoenddebiteq = 0;  '#13#10 +
+        '      saldoendcrediteq =  - (:saldobegindebiteq - :saldobegincrediteq + (:vareqdebit - :vareqcredit));  '#13#10 +
+        '    END  '#13#10;
+    end
+    else
+    begin
+      DebitCreditSQL := DebitCreditSQL + Format(
+        '    saldoenddebit = 0;'#13#10 +
+        '    saldoendcredit = 0;'#13#10 +
+        '    saldoenddebitcurr = 0;'#13#10 +
+        '    saldoendcreditcurr = 0;'#13#10 +
+        '    saldoenddebiteq = 0;'#13#10 +
+        '    saldoendcrediteq = 0;'#13#10 +
+        ' '#13#10 +
+        '    endmonthdate = CAST(:y || ''-'' || :m || ''-'' || EXTRACT(DAY FROM g_d_incmonth(1, CAST(:y || ''-'' || :m || ''-'' || 1 AS DATE)) - 1) AS DATE);'#13#10 +
+        '    IF (endmonthdate > :dateend) THEN endmonthdate = :dateend;'#13#10 +
+        ' '#13#10 +
+        '    FOR'#13#10 +
+        '      SELECT'#13#10 +
+        '        la.id'#13#10 +
+        '      FROM'#13#10 +
+        '        ac_account la'#13#10 +
+        '      WHERE'#13#10 +
+        '        la.id IN (' + AccountIDs + ')'#13#10 +
+        '      INTO'#13#10 +
+        '        :accountkey'#13#10 +
+        '    DO'#13#10 +
+        '    BEGIN'#13#10 +
+        '      SELECT'#13#10 +
+        '        COALESCE(a.debitsaldo, 0),'#13#10 +
+        '        COALESCE(a.creditsaldo, 0),'#13#10 +
+        '        COALESCE(a.currdebitsaldo, 0),'#13#10 +
+        '        COALESCE(a.currcreditsaldo, 0),'#13#10 +
+        '        COALESCE(a.eqdebitsaldo, 0),'#13#10 +
+        '        COALESCE(a.eqcreditsaldo, 0)'#13#10 +
+        '      FROM'#13#10 +
+        '        ac_accountexsaldo_bal(:endmonthdate + 1, :accountkey, ''%0:s'', %1:d, %2:d, %3:s) a '#13#10 +
+        '      INTO'#13#10 +
+        '        :sd, :sc, :sdc, :scc, :sdeq, :sceq;'#13#10 +
+        ' '#13#10 +
+        '      saldoenddebit = :saldoenddebit + :sd;'#13#10 +
+        '      saldoendcredit = :saldoendcredit + :sc;'#13#10 +
+        '      saldoenddebitcurr = :saldoenddebitcurr + :sdc;'#13#10 +
+        '      saldoendcreditcurr = :saldoendcreditcurr + :scc;'#13#10 +
+        '      saldoenddebiteq = :saldoenddebiteq + :sdeq;'#13#10 +
+        '      saldoendcrediteq = :saldoendcrediteq + :sceq;'#13#10 +
+        '    END',
+        [AnalyticField, FCompanyKey, Integer(FAllHolding), IIF(FCurrKey > 0, IntToStr(FCurrkey), '0')]);
+    end;
+
+    DebitCreditSQL := DebitCreditSQL +
+      '    ncu_begin_debit = CAST(saldobegindebit / %0:d AS NUMERIC(15, %1:d));' + #13#10 +
+      '    ncu_begin_credit = CAST(saldobegincredit / %0:d AS NUMERIC(15, %1:d));' + #13#10 +
+      '    ncu_end_debit = CAST(saldoenddebit / %0:d AS NUMERIC(15, %1:d));' + #13#10 +
+      '    ncu_end_credit = CAST(saldoendcredit / %0:d AS NUMERIC(15, %1:d));' + #13#10 +
+      '    curr_begin_debit = CAST(saldobegindebitcurr / %2:d AS NUMERIC(15, %3:d));' + #13#10 +
+      '    curr_begin_credit = CAST(saldobegincreditcurr / %2:d AS NUMERIC(15, %3:d));' + #13#10 +
+      '    curr_end_debit = CAST(saldoenddebitcurr / %2:d AS NUMERIC(15, %3:d));' + #13#10 +
+      '    curr_end_credit = CAST(saldoendcreditcurr / %2:d AS NUMERIC(15, %3:d));' + #13#10 +
+      '    eq_begin_debit = CAST(saldobegindebiteq / %4:d AS NUMERIC(15, %5:d));' + #13#10 +
+      '    eq_begin_credit = CAST(saldobegincrediteq / %4:d AS NUMERIC(15, %5:d));' + #13#10 +
+      '    eq_end_debit = CAST(saldoenddebiteq / %4:d AS NUMERIC(15, %5:d));' + #13#10 +
+      '    eq_end_credit = CAST(saldoendcrediteq / %4:d AS NUMERIC(15, %5:d));' + #13#10 +
+      '    sortfield = 1;' + #13#10 +
+      '    SUSPEND;' + #13#10 +
+      '    saldobegindebit = :saldoenddebit;' + #13#10 +
+      '    saldobegincredit = :saldoendcredit;' + #13#10 +
+      '    saldobegindebitcurr = :saldoenddebitcurr;' + #13#10 +
+      '    saldobegincreditcurr = :saldoendcreditcurr;' + #13#10 +
+      '    saldobegindebiteq = :saldoenddebiteq;' + #13#10 +
+      '    saldobegincrediteq = :saldoendcrediteq;' + #13#10 + 
+      '    c = c + 1;' + #13#10 +
+      '  END' + #13#10 +
+      '  /*Если не было движения в течении указанного периода*/' + #13#10 +
+      '  IF (c = 0) THEN' + #13#10 +
+      '  BEGIN' + #13#10 + 
+      '    m = EXTRACT(MONTH FROM :datebegin);' + #13#10 +
+      '    y = EXTRACT(YEAR FROM :datebegin);' + #13#10 +
+      '    ncu_debit = 0;' + #13#10 + 
+      '    ncu_credit = 0;' + #13#10 + 
+      '    curr_debit = 0;' + #13#10 + 
+      '    curr_credit = 0;' + #13#10 +
+      '    eq_debit = 0;' + #13#10 +
+      '    eq_credit = 0;' + #13#10 +
+      '    ncu_begin_debit = CAST(saldobegindebit / %0:d AS NUMERIC(15, %1:d));' + #13#10 +
+      '    ncu_begin_credit = CAST(saldobegincredit / %0:d AS NUMERIC(15, %1:d));' + #13#10 +
+      '    ncu_end_debit = CAST(saldobegindebit / %0:d AS NUMERIC(15, %1:d));' + #13#10 +
+      '    ncu_end_credit = CAST(saldobegincredit / %0:d AS NUMERIC(15, %1:d));' + #13#10 +
+      '    curr_begin_debit = CAST(saldobegindebitcurr / %2:d AS NUMERIC(15, %3:d));' + #13#10 +
+      '    curr_begin_credit = CAST(saldobegincreditcurr / %2:d AS NUMERIC(15, %3:d));' + #13#10 +
+      '    curr_end_debit = CAST(saldobegindebitcurr / %2:d AS NUMERIC(15, %3:d));' + #13#10 +
+      '    curr_end_credit = CAST(saldobegincreditcurr / %2:d AS NUMERIC(15, %3:d));' + #13#10 +
+      '    eq_begin_debit = CAST(saldobegindebiteq / %4:d AS NUMERIC(15, %5:d));' + #13#10 +
+      '    eq_begin_credit = CAST(saldobegincrediteq / %4:d AS NUMERIC(15, %5:d));' + #13#10 +
+      '    eq_end_debit = CAST(saldobegindebiteq / %4:d AS NUMERIC(15, %5:d));' + #13#10 +
+      '    eq_end_credit = CAST(saldobegincrediteq / %4:d AS NUMERIC(15, %5:d));' + #13#10 +
+      '    sortfield = 1;' + #13#10 + 
+      '    SUSPEND;' + #13#10 +
+      '  END' + #13#10 +
+      'END';
 
     Self.SelectSQL.Text := Format(DebitCreditSQL,
       [FNcuSumInfo.Scale, FNcuSumInfo.DecDigits,
