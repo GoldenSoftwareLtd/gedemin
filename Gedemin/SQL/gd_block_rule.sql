@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2001-2010 by Golden Software of Belarus
+  Copyright (c) 2001-2011 by Golden Software of Belarus
 
 
   Script
@@ -15,7 +15,6 @@
 
   Author
 
-    Alex Stav
 */
 
 CREATE TABLE GD_BLOCK_RULE 

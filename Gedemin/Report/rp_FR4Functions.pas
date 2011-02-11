@@ -66,6 +66,9 @@ type
 
     procedure UpdateCompanyCache;
 
+    function GetNameInitials(AFamilyName, AGivenName, AMiddleName: String;
+      const ALeading: Boolean; const ASpace: String): String;
+
   public
     constructor Create(AScript: TfsScript); override;
   end;
@@ -219,7 +222,9 @@ begin
   else if MethodName = 'MAINACCOUNT' then
     Result := MainAccount
   else if MethodName = 'BANKCODE' then
-    Result := BankCode;
+    Result := BankCode
+  else if MethodName = 'GETNAMEINITIALS' then
+    Result := GetNameInitials(Params[0], Params[1], Params[2], Params[3], Params[4]);
 end;
 
 function TFR4Functions.ChiefAccountantName: String;
@@ -302,7 +307,7 @@ end;
 constructor TFR4Functions.Create(AScript: TfsScript);
 begin
   inherited Create(AScript);
-  
+
   with AScript do
   begin
     AddMethod('function AdvString: String', CallMethod, 'Golden Software', 'ADVSTRING()/');
@@ -345,6 +350,9 @@ begin
     AddMethod('function BANKADDRESS: String', CallMethod, 'Golden Software', 'BANKADDRESS()/Возвращает адрес банка текущей организации.');
     AddMethod('function MAINACCOUNT: String', CallMethod, 'Golden Software', 'MAINACCOUNT()/Возвращает главный счёт текущей организации.');
     AddMethod('function BANKCODE: String', CallMethod, 'Golden Software', 'BANKCODE()/Возвращает код банка текущей организации.');
+    AddMethod('function GETNAMEINITIALS(AFamilyName, AGivenName, AMiddleName: String; const ALeading: Boolean; const ASpace: String): String',
+      CallMethod, 'Golden Software',
+      'GETNAMEINITIALS(<Фамилия или Полное имя>, <Имя>, <Отчество>, <Сначала инициалы>, <Разделитель инициалов>)/Возвращает строку вида "Фамилия И.О."');
   end;
 
   FCompanyCachedKey := -1;
@@ -674,6 +682,100 @@ begin
     finally
       q.Free;
     end;
+  end;
+end;
+
+function TFR4Functions.GetNameInitials(AFamilyName, AGivenName,
+  AMiddleName: String; const ALeading: Boolean; const ASpace: String): String;
+var
+  B, E, I: Integer;
+  S: array[1..3] of String;
+  P: array[1..3] of Boolean;
+begin
+  AFamilyName := Trim(AFamilyName);
+
+  for I := 1 to 3 do
+  begin
+    S[I] := '';
+    P[I] := False;
+  end;
+
+  B := 1;
+  E := 1;
+  I := 1;
+  while (I <= 3) and (E <= Length(AFamilyName)) do
+  begin
+    if AFamilyName[E] = '.' then
+    begin
+      S[I] := Copy(AFamilyName, B, E - B);
+      P[I] := True;
+      Inc(I);
+
+      B := E + 1;
+      while (B <= Length(AFamilyName)) and (AFamilyName[B] = ' ') do
+        Inc(B);
+      E := B + 1;
+    end
+    else if AFamilyName[E] = ' ' then
+    begin
+      S[I] := Copy(AFamilyName, B, E - B);
+      Inc(I);
+
+      B := E + 1;
+      while (B <= Length(AFamilyName)) and (AFamilyName[B] = ' ') do
+        Inc(B);
+      E := B + 1;
+    end else
+      Inc(E);
+  end;
+
+  if I <= 3 then
+    S[I] := Copy(AFamilyName, B, 255);
+
+  // И.О. Фамилия
+  if (S[1] > '') and P[1] and (S[2] > '') and P[2] and (S[3] > '') then
+  begin
+    AGivenName := S[1];
+    AMiddleName := S[2];
+    AFamilyName := S[3];
+  end
+  // Фамилия И.О. или Фамилия Имя Отчество
+  else if (S[1] > '') and (not P[1]) and (S[2] > '') then
+  begin
+    AFamilyName := S[1];
+    AGivenName := S[2];
+    AMiddleName := S[3];
+  end
+  // И. Фамилия
+  else if (S[1] > '') and P[1] and (S[2] > '') and (S[3] = '') then
+  begin
+    AGivenName := S[1];
+    AFamilyName := S[2];
+    AMiddleName := '';
+  end else
+  begin
+    AGivenName := Trim(AGivenName);
+    AMiddleName := Trim(AMiddleName);
+  end;
+
+  if AGivenName > '' then
+  begin
+    Result := Copy(AGivenName, 1, 1) + '.';
+    if AMiddleName > '' then
+      Result := Result + ASpace + Copy(AMiddleName, 1, 1) + '.';
+  end else
+    Result := '';
+
+  if ALeading then
+  begin
+    if Result > '' then
+      Result := Result + ' ';
+    Result := Result + AFamilyName;
+  end else
+  begin
+    if Result > '' then
+      AFamilyName := AFamilyName + ' ';
+    Result := AFamilyName + Result;
   end;
 end;
 
