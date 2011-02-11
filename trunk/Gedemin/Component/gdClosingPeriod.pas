@@ -92,7 +92,7 @@ type
     procedure TryToDeleteDocumentReferences(const AID: TID; const AdditionalRelationName: String; const ADocTypeKey: Integer = -1);
     function CreateDummyInvDocument(const ADocTypeKey: TID): TID;
     // ѕробуем удалить вес записи доп. таблицы документа
-    function TryToTruncateAdditionalTable(const ADocTypeKey: TID; const AdditionalRelationName: String): Boolean;
+    //function TryToTruncateAdditionalTable(const ADocTypeKey: TID; const AdditionalRelationName: String): Boolean;
 
     procedure DeleteRUID(const AID: Integer);
 
@@ -2454,7 +2454,7 @@ begin
   end;  
 end;
 
-function TgdClosingPeriod.TryToTruncateAdditionalTable(
+(*function TgdClosingPeriod.TryToTruncateAdditionalTable(
   const ADocTypeKey: TID; const AdditionalRelationName: String): Boolean;
 var
   ibsqlDelete: TIBSQL;
@@ -2489,7 +2489,7 @@ begin
   finally
     FreeAndNil(ibsqlDelete);
   end;
-end;
+end;*)
 
 function TgdClosingPeriod.GetReplacementInvCardKey(const AOldCardKey: TID;
   AFeatureDataset: TIBSQL; const AFromContactkey, AToContactkey: TID): TID;

@@ -223,22 +223,34 @@ end;
 
 function Tgdv_frmG.GetDateBegin: TDateTime;
 begin
-  Result := gsPeriodEdit.Date;
+  if Assigned(gsPeriodEdit) then
+    Result := gsPeriodEdit.Date
+  else
+    raise Exception.Create('Ошибка при обращении к компоненту gsPeriodEdit. Необходимо сбросить настройки формы.');
 end;
 
 function Tgdv_frmG.GetDateEnd: TDateTime;
 begin
-  Result := gsPeriodEdit.EndDate;
+  if Assigned(gsPeriodEdit) then
+    Result := gsPeriodEdit.EndDate
+  else
+    raise Exception.Create('Ошибка при обращении к компоненту gsPeriodEdit. Необходимо сбросить настройки формы.');
 end;
 
 procedure Tgdv_frmG.SetDateBegin(const Value: TDateTime);
 begin
-  gsPeriodEdit.Date := Value;
+  if Assigned(gsPeriodEdit) then
+    gsPeriodEdit.Date := Value
+  else
+    raise Exception.Create('Ошибка при обращении к компоненту gsPeriodEdit. Необходимо сбросить настройки формы.');
 end;
 
 procedure Tgdv_frmG.SetDateEnd(const Value: TDateTime);
 begin
-  gsPeriodEdit.EndDate := Value;
+  if Assigned(gsPeriodEdit) then
+    gsPeriodEdit.EndDate := Value
+  else
+    raise Exception.Create('Ошибка при обращении к компоненту gsPeriodEdit. Необходимо сбросить настройки формы.');
 end;
 
 procedure Tgdv_frmG.actRunExecute(Sender: TObject);
