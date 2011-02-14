@@ -739,7 +739,6 @@ type
 
     procedure UpdateOldValues(Field: TField);
     procedure CheckDoFieldChange;
-    function GetWhereClauseForSet: String;    
   protected
     FgdcDataLink: TgdcDataLink;
     FInternalTransaction: TIBTransaction;
@@ -848,7 +847,6 @@ type
     function GetInsertSQLText: String; virtual;
     function GetDeleteSQLText: String; virtual;
     function GetRefreshSQLText: String; virtual;
-    procedure GetSelectAndRefreshSQLText(var SelectSQL, RefreshSQL: String);
 
     // _н_цыял_зуе СКЛ кампанэнты
     procedure InitSQL;
@@ -6264,6 +6262,92 @@ begin
   {END MACRO}
 end;
 
+function TgdcBase.GetRefreshSQLText: String;
+
+  function GetWhereClauseForSet: String;
+  var
+    I: Integer;
+    KFL: TStringList;
+    R: TatRelation;
+  begin
+    Result := '';
+
+    //проверяем есть ли у нас таблица-множество
+    if (FSetTable = '') or (atDatabase = nil) then
+      Exit;
+
+{    Result := cstSetAlias + '.' + FSetItemField + ' = :NEW_' +
+      cstSetPrefix + FSetItemField;}
+
+    { TODO :
+если пользоваться кодом приведенным ниже, то
+продублируется условие связки множества с мастер
+записью. один раз в джоине и второй раз в условии. }
+   //А если не пользоваться приведенным ниже кодом, то мы можем не учесть ситуации,
+   //когда праймари кей состоит из трех и более полей, например мастер-поле,
+   //второе поле ссылка и дата, как в таблице gd_goodtax
+
+    R := atDatabase.Relations.ByRelationName(FSetTable);
+
+    Assert(Assigned(R));
+
+    if Assigned(R.PrimaryKey)
+    then
+    begin
+      KFL := TStringList.Create;
+      try
+        with atDatabase.Relations.ByRelationName(FSetTable).PrimaryKey do
+        for I := 0 to ConstraintFields.Count - 1 do
+          KFL.Add(AnsiUpperCase(Trim(ConstraintFields[I].FieldName)));
+
+        Result := '';
+        for I := 0 to KFL.Count - 1 do
+        begin
+          if Result > '' then
+            Result := Result + ' AND ';
+          Result := Result + cstSetAlias + '.' + KFL[I] + ' = :NEW_' + cstSetPrefix + KFL[I];
+        end;
+
+      finally
+        KFL.Free;
+      end;
+    end;
+
+  end;
+var
+  SelectClause, FromClause, Cond: String;
+begin
+  SelectClause := GetSelectClause;
+  if Assigned(FOnGetSelectClause) then
+    FOnGetSelectClause(Self, SelectClause);
+
+  FromClause := GetFromClause(True);
+  if Assigned(FOnGetFromClause) then
+    FOnGetFromClause(Self, FromClause);
+
+  if FSetTable > '' then
+  Result :=
+    SelectClause + ' ' + GetSetTableSelect +
+    FromClause + ' ' + GetSetTableJoin +
+    Format('WHERE %s ', [GetWhereClauseForSet])
+  else begin
+    Cond := Format('%s.%s=:NEW_%s', [GetListTableAlias,
+      GetKeyField(SubType), GetKeyField(SubType)]);
+
+    if StrIPos(Cond,
+      StringReplace(FromClause, ' ', '', [rfReplaceAll])) = 0 then
+    begin
+      Result :=
+        SelectClause + ' ' + FromClause + ' ' +
+        'WHERE ' + Cond;
+    end else
+    begin
+      Result :=
+        SelectClause + ' ' + FromClause;
+    end;
+  end;
+end;
+
 class function TgdcBase.GetRestrictCondition(
   const ATableName, ASubType: String): String;
 begin
@@ -6420,69 +6504,19 @@ begin
   end;
 end;
 
-function HasAggregates(S: String): Boolean;
-begin
-  S := StringReplace(S, ' ', '', [rfReplaceAll]);
-  S := StringReplace(S, #13, '', [rfReplaceAll]);
-  S := StringReplace(S, #10, '', [rfReplaceAll]);
-  Result := (StrIPos('SUM(', S) > 0)
-    or (StrIPos('MIN(', S) > 0)
-    or (StrIPos('MAX(', S) > 0)
-    or (StrIPos('AVG(', S) > 0);
-end;
-
-function TgdcBase.GetWhereClauseForSet: String;
-var
-  I: Integer;
-  KFL: TStringList;
-  R: TatRelation;
-begin
-  Result := '';
-
-  //проверяем есть ли у нас таблица-множество
-  if (FSetTable = '') or (atDatabase = nil) then
-    Exit;
-
-{    Result := cstSetAlias + '.' + FSetItemField + ' = :NEW_' +
-    cstSetPrefix + FSetItemField;}
-
-  { TODO :
-если пользоваться кодом приведенным ниже, то
-продублируется условие связки множества с мастер
-записью. один раз в джоине и второй раз в условии. }
- //А если не пользоваться приведенным ниже кодом, то мы можем не учесть ситуации,
- //когда праймари кей состоит из трех и более полей, например мастер-поле,
- //второе поле ссылка и дата, как в таблице gd_goodtax
-
-  R := atDatabase.Relations.ByRelationName(FSetTable);
-
-  Assert(Assigned(R));
-
-  if Assigned(R.PrimaryKey)
-  then
-  begin
-    KFL := TStringList.Create;
-    try
-      with atDatabase.Relations.ByRelationName(FSetTable).PrimaryKey do
-      for I := 0 to ConstraintFields.Count - 1 do
-        KFL.Add(AnsiUpperCase(Trim(ConstraintFields[I].FieldName)));
-
-      Result := '';
-      for I := 0 to KFL.Count - 1 do
-      begin
-        if Result > '' then
-          Result := Result + ' AND ';
-        Result := Result + cstSetAlias + '.' + KFL[I] + ' = :NEW_' + cstSetPrefix + KFL[I];
-      end;
-
-    finally
-      KFL.Free;
-    end;
-  end;
-end;
-
-
 function TgdcBase.GetSelectSQLText: String;
+
+  function HasAggregates(S: String): Boolean;
+  begin
+    S := StringReplace(S, ' ', '', [rfReplaceAll]);
+    S := StringReplace(S, #13, '', [rfReplaceAll]);
+    S := StringReplace(S, #10, '', [rfReplaceAll]);
+    Result := (StrIPos('SUM(', S) > 0)
+      or (StrIPos('MIN(', S) > 0)
+      or (StrIPos('MAX(', S) > 0)
+      or (StrIPos('AVG(', S) > 0);
+  end;
+
 var
   SelectClause, FromClause, WhereClause, GroupClause, OrderClause: String;
 begin
@@ -6520,110 +6554,6 @@ begin
   begin
     Result := Result +
       OrderClause;
-  end;
-end;
-
-function TgdcBase.GetRefreshSQLText: String;
-var
-  SelectClause, FromClause, Cond: String;
-begin
-  SelectClause := GetSelectClause;
-  if Assigned(FOnGetSelectClause) then
-    FOnGetSelectClause(Self, SelectClause);
-
-  FromClause := GetFromClause(True);
-  if Assigned(FOnGetFromClause) then
-    FOnGetFromClause(Self, FromClause);
-
-  if FSetTable > '' then
-  Result :=
-    SelectClause + ' ' + GetSetTableSelect +
-    FromClause + ' ' + GetSetTableJoin +
-    Format('WHERE %s ', [GetWhereClauseForSet])
-  else begin
-    Cond := Format('%s.%s=:NEW_%s', [GetListTableAlias,
-      GetKeyField(SubType), GetKeyField(SubType)]);
-
-    if StrIPos(Cond,
-      StringReplace(FromClause, ' ', '', [rfReplaceAll])) = 0 then
-    begin
-      Result :=
-        SelectClause + ' ' + FromClause + ' ' +
-        'WHERE ' + Cond;
-    end else
-    begin
-      Result :=
-        SelectClause + ' ' + FromClause;
-    end;
-  end;
-end;
-
-procedure TgdcBase.GetSelectAndRefreshSQLText(var SelectSQL,
-  RefreshSQL: String);
-var
-  SelectClause, FromClause, WhereClause, GroupClause, OrderClause: String;
-  Cond, RefreshFromClause, SetTableSelect, SetTableJoin: String;
-begin
-  SelectClause := GetSelectClause;
-  if Assigned(FOnGetSelectClause) then
-    FOnGetSelectClause(Self, SelectClause);
-
-  FromClause := GetFromClause;
-  RefreshFromClause := GetFromClause(True);
-  if Assigned(FOnGetFromClause) then
-    FOnGetFromClause(Self, FromClause);
-
-  WhereClause := GetWhereClause;
-  if Assigned(FOnGetWhereClause) then
-    FOnGetWhereClause(Self, WhereClause);
-
-  GroupClause := GetGroupClause;
-  if Assigned(FOnGetGroupClause) then
-    FOnGetGroupClause(Self, GroupClause);
-
-  OrderClause := GetOrderClause;
-  if Assigned(FOnGetOrderClause) then
-    FOnGetOrderClause(Self, OrderClause);
-
-  SetTableSelect := GetSetTableSelect;
-  SetTableJoin := GetSetTableJoin;
-
-  SelectSQL :=
-    SelectClause + ' ' + SetTableSelect +
-    FromClause + ' ' + SetTableJoin +
-    WhereClause + ' ';
-  if (GroupClause > '') and
-    ((not HasSubSet('ByID')) or (HasAggregates(SelectClause))) then
-  begin
-    SelectSQL := SelectSQL +
-      GroupClause + ' ';
-  end;
-  if (not HasSubSet('ByID')) and (not HasSubSet('ByName')) then
-  begin
-    SelectSQL := SelectSQL +
-      OrderClause;
-  end;
-
-  if FSetTable > '' then
-  RefreshSQL :=
-    SelectClause + ' ' + SetTableSelect +
-    FromClause + ' ' + SetTableJoin +
-    Format('WHERE %s ', [GetWhereClauseForSet])
-  else begin
-    Cond := Format('%s.%s=:NEW_%s', [GetListTableAlias,
-      GetKeyField(SubType), GetKeyField(SubType)]);
-
-    if StrIPos(Cond,
-      StringReplace(FromClause, ' ', '', [rfReplaceAll])) = 0 then
-    begin
-      RefreshSQL :=
-        SelectClause + ' ' + FromClause + ' ' +
-        'WHERE ' + Cond;
-    end else
-    begin
-      RefreshSQL :=
-        SelectClause + ' ' + FromClause;
-    end;
   end;
 end;
 
@@ -6697,7 +6627,6 @@ end;
 procedure TgdcBase.InitSQL;
 var
   SQLText, FullClassName: String;
-  SelectSQLText, RefreshSQLText: String;  
   {$IFDEF DEBUG}T: TDateTime;{$ENDIF}
 begin
   {$IFDEF DEBUG}
@@ -6719,35 +6648,25 @@ begin
     with FSQLSetup do
     begin
       //В Select-запрос вытягиваем только указанные аттрибуты
-      if FSetRefreshSQLOn then
-      begin
-        GetSelectAndRefreshSQLText(SelectSQLText, RefreshSQLText);
-        SelectSQL.Text := PrepareSQL(SelectSQLText, FullClassName);
-        RefreshSQL.Text := PrepareSQL(RefreshSQLText, FullClassName);
-      end else
-      begin
-        SelectSQL.Text := PrepareSQL(GetSelectSQLText, FullClassName);
-        RefreshSQL.Text := '';
-      end;
+      SelectSQL.Text := PrepareSQL(GetSelectSQLText, FullClassName);
       ModifySQL.Text := PrepareSQL(GetModifySQLText, FullClassName);
       InsertSQL.Text := PrepareSQL(GetInsertSQLText, FullClassName);
       DeleteSQL.Text := {PrepareSQL(}GetDeleteSQLText{)};
+      if FSetRefreshSQLOn then
+        RefreshSQL.Text := PrepareSQL(GetRefreshSQLText, FullClassName)
+      else
+        RefreshSQL.Text := '';
     end;
   end else
   begin
-    if FSetRefreshSQLOn then
-    begin
-      GetSelectAndRefreshSQLText(SelectSQLText, RefreshSQLText);
-      SelectSQL.Text := SelectSQLText;
-      RefreshSQL.Text := RefreshSQLText;
-    end else
-    begin
-      SelectSQL.Text := GetSelectSQLText;
-      RefreshSQL.Text := '';
-    end;
+    SelectSQL.Text := GetSelectSQLText;
     ModifySQL.Text := GetModifySQLText;
     InsertSQL.Text := GetInsertSQLText;
     DeleteSQL.Text := GetDeleteSQLText;
+    if FSetRefreshSQLOn then
+      RefreshSQL.Text := GetRefreshSQLText
+    else
+      RefreshSQL.Text := '';
   end;
 
 // Событие на создание запроса. Для возможности его корректировки из вне.
