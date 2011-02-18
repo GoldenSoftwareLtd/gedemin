@@ -323,9 +323,14 @@ begin
           if (str3 = 'ово') or (str3 = 'аго') or (str3 = 'яго') then begin
             Exit;
           end else
+          if (str3 = 'ова') or (str3 = 'eва') or  (str3 = 'ина') or
+            (str3 = 'ына') or (str3 = 'ёва') then begin //Балахонова
+            Delete(TheWord, Length(TheWord), 1);
+            TheWord := TheWord + OFB[TheCase];
+          end else
           if TheWord[Length(TheWord)] = 'а' then begin
-              Delete(TheWord, Length(TheWord), 1);
-              TheWord := TheWord + NFD[TheCase];
+            Delete(TheWord, Length(TheWord), 1);
+            TheWord := TheWord + NFD[TheCase];
           end else
           if TheWord[Length(TheWord)] = 'я' then begin  //например Бетеня
             Delete(TheWord, Length(TheWord), 1);
@@ -516,6 +521,11 @@ begin
             Delete(TheWord, Length (TheWord) - 1, 2);
             TheWord := TheWord + OFA[TheCase];
           end else
+          if (str3 = 'ова') or (str3 = 'eва') or  (str3 = 'ина') or
+            (str3 = 'ына') or (str3 = 'ёва') then begin //Балахонова
+            Delete(TheWord, Length(TheWord), 1);
+            TheWord := TheWord + OFB[TheCase];
+          end else          
           if TheWord[Length(TheWord)] = 'я' then begin  //например Бетеня
             Delete(TheWord, Length(TheWord), 1);
             TheWord := TheWord + NFB[TheCase];
