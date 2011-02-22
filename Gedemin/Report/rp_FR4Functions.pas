@@ -22,8 +22,8 @@ type
     CacheCentName_0, CacheCentName_1: String;
 
     FCompanyName, FCompanyFullName, FCompanyAddress,
-    FDirName, FChiefAccountantName, FTAXID,
-    FDirRank, FBuhRank, FBankName, FBankAddress,
+    FDirectorName, FChiefAccountantName, FTAXID,
+    FDirectorRank, FChiefAccountantRank, FBankName, FBankAddress,
     FMainAccount, FBankCode: String;
 
     function CallMethod(Instance: TObject; ClassType: TClass;
@@ -53,12 +53,12 @@ type
     function CompanyName: String;
     function CompanyFullName: String;
     function CompanyAddress: String;
-    function DirName: String;
+    function DirectorName: String;
     function ChiefAccountantName: String;
     function ContactName: String;
     function TAXID: String;
-    function DirRank: String;
-    function BuhRank: String;
+    function DirectorRank: String;
+    function ChiefAccountantRank: String;
     function BankName: String;
     function BankAddress: String;
     function MainAccount: String;
@@ -161,7 +161,7 @@ end;
 
 function TFR4Functions.AdvString: String;
 begin
-  Result := 'Подготовлено в системе Гедымин. Тел.: (017) 256-17-59, 256-27-83. http://gsbelarus.com © Golden Software of Belarus Ltd. ';
+  Result := 'Подготовлено в системе Гедымин. Тел.: (017) 256-17-59, 256-27-83. http://gsbelarus.com © 1994-2011 Golden Software of Belarus Ltd. ';
 end;
 
 function TFR4Functions.CallMethod(Instance: TObject; ClassType: TClass;
@@ -206,15 +206,15 @@ begin
   else if MethodName = 'COMPANYADDRESS' then
     Result := CompanyAddress
   else if MethodName = 'DIRECTORNAME' then
-    Result := DirName
+    Result := DirectorName
   else if MethodName = 'CONTACTNAME' then
     Result := ContactName
   else if MethodName = 'TAXID' then
     Result := TAXID
   else if MethodName = 'DIRECTORRANK' then
-    Result := DirRank
+    Result := DirectorRank
   else if MethodName = 'CHIEFACCOUNTANTRANK' then
-    Result := BuhRank
+    Result := ChiefAccountantRank
   else if MethodName = 'BANKNAME' then
     Result := BankName
   else if MethodName = 'BANKADDRESS' then
@@ -256,10 +256,10 @@ begin
   Result := IBLogin.ContactName;
 end;
 
-function TFR4Functions.DirName: String;
+function TFR4Functions.DirectorName: String;
 begin
   UpdateCompanyCache;
-  Result := FDirName;
+  Result := FDirectorName;
 end;
 
 function TFR4Functions.TAXID: String;
@@ -268,16 +268,16 @@ begin
   Result := FTAXID;
 end;
 
-function TFR4Functions.BuhRank: String;
+function TFR4Functions.ChiefAccountantRank: String;
 begin
   UpdateCompanyCache;
-  Result := FBuhRank;
+  Result := FChiefAccountantRank;
 end;
 
-function TFR4Functions.DirRank: String;
+function TFR4Functions.DirectorRank: String;
 begin
   UpdateCompanyCache;
-  Result := FDirRank;
+  Result := FDirectorRank;
 end;
 
 function TFR4Functions.BankAddress: String;
@@ -626,7 +626,7 @@ begin
         '  AC.ACCOUNT, BANK.BANKCODE, BANK.BANKMFO, ' +
         '  BANKC.NAME AS BANKNAME, BANKC.ADDRESS AS BANKADDRESS, BANKC.CITY, BANKC.COUNTRY, ' +
         '  CC.TAXID, CC.OKPO, CC.LICENCE, CC.OKNH, CC.SOATO, CC.SOOU, ' +
-        '  DIRECTOR.NAME AS DIRNAME, IIF(DIRECTORPOS.NAME IS NOT NULL, DIRECTORPOS.NAME, ''Директор'') AS DIRPOS, ' +
+        '  DIRECTOR.NAME AS DirectorName, IIF(DIRECTORPOS.NAME IS NOT NULL, DIRECTORPOS.NAME, ''Директор'') AS DIRPOS, ' +
         '  BUH.NAME AS BUHNAME, IIF(BUHPOS.NAME IS NOT NULL, BUHPOS.NAME, ''Гл. бухгалтер'') AS BUHPOS ' +
         'FROM ' +
         '  GD_CONTACT C ' +
@@ -649,11 +649,11 @@ begin
         FCompanyName := q.FieldByName('NAME').AsString;
         FCompanyFullName := q.FieldByName('COMPFULLNAME').AsString;
         FCompanyAddress := q.FieldByName('ADDRESS').AsString;
-        FDirName := q.FieldByName('DIRNAME').AsString;
+        FDirectorName := q.FieldByName('DirectorName').AsString;
         FChiefAccountantName := q.FieldByName('BUHNAME').AsString;
         FTAXID := q.FieldByName('TAXID').AsString;
-        FDirRank := q.FieldByName('DIRPOS').AsString;
-        FBuhRank := q.FieldByName('BUHPOS').AsString;
+        FDirectorRank := q.FieldByName('DIRPOS').AsString;
+        FChiefAccountantRank := q.FieldByName('BUHPOS').AsString;
         FBankName := q.FieldByName('BANKNAME').AsString;
         FBankAddress := q.FieldByName('BANKADDRESS').AsString;
         FMainAccount := q.FieldByName('ACCOUNT').AsString;
@@ -666,11 +666,11 @@ begin
         FCompanyName := '';
         FCompanyFullName := '';
         FCompanyAddress := '';
-        FDirName := '';
+        FDirectorName := '';
         FChiefAccountantName := '';
         FTAXID := '';
-        FDirRank := 'Директор';
-        FBuhRank := 'Гл. бухгалтер';
+        FDirectorRank := 'Директор';
+        FChiefAccountantRank := 'Гл. бухгалтер';
         FBankName := '';
         FBankAddress := '';
         FMainAccount := '';

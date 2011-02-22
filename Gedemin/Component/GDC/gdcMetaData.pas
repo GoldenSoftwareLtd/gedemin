@@ -6700,7 +6700,9 @@ begin
   {END MACRO}
 
   inherited;
-  if (Trim(FieldByName('rdb$procedure_source').AsString) = '') then
+
+  if (not (sLoadFromStream in BaseState) and (Trim(FieldByName('rdb$procedure_source').AsString) = ''))
+     or ((sLoadFromStream in BaseState) and (Trim(FieldByName('proceduresource').AsString) = '')) then
     raise Exception.Create('Тело процедуры пустое!');
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSTOREDPROC', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
@@ -7084,9 +7086,9 @@ class function TgdcStoredProc.GetNotStreamSavedField(const IsReplicationMode: Bo
 begin
   Result := inherited GetNotStreamSavedField(IsReplicationMode);
   if Result <> '' then
-    Result := Result + ',RDB$PROCEDURE_BLR'
+    Result := Result + ',RDB$PROCEDURE_BLR,RDB$PROCEDURE_SOURCE'
   else
-    Result := 'RDB$PROCEDURE_BLR';
+    Result := 'RDB$PROCEDURE_BLR,RDB$PROCEDURE_SOURCE';
 end;
 
 { TgdcSimpleTable }
@@ -7331,31 +7333,29 @@ begin
   Scripts.Add(CreateIntervalTreeTable);
   Scripts.Add(CreateGrantSQL);
   Scripts.Add(CreateEditorForeignKey);
-  if (not (sLoadFromStream in BaseState)) then
-  begin
-    Scripts.Add(CreateInsertEditorTrigger);
-    Scripts.Add(CreateUpdateEditorTrigger);
 
-    N := FieldByName('relationname').AsString;
-    if StrIPos(UserPrefix, N) = 1 then
-      System.Delete(N, 1, Length(UserPrefix));
-    if StrIPos('_', N) = 1 then
-      System.Delete(N, 1, 1);
+  Scripts.Add(CreateInsertEditorTrigger);
+  Scripts.Add(CreateUpdateEditorTrigger);
 
-    SL := TStringList.Create;
-    try
-      CreateLBRBTreeMetaDataScript(SL, UserPrefix, N, FieldByName('relationname').AsString);
-      for I := 0 to SL.Count - 1 do
-      begin
-        Scripts.Add(SL[I]);
-      end;
-    finally
-      SL.Free;
+  N := FieldByName('relationname').AsString;
+  if StrIPos(UserPrefix, N) = 1 then
+    System.Delete(N, 1, Length(UserPrefix));
+  if StrIPos('_', N) = 1 then
+    System.Delete(N, 1, 1);
+
+  SL := TStringList.Create;
+  try
+    CreateLBRBTreeMetaDataScript(SL, UserPrefix, N, FieldByName('relationname').AsString);
+    for I := 0 to SL.Count - 1 do
+    begin
+      Scripts.Add(SL[I]);
     end;
-
-    //будем требовать переподключения, чтобы синхронизировались процедуры
-    atDatabase.NotifyMultiConnectionTransaction;
+  finally
+    SL.Free;
   end;
+
+  //будем требовать переподключения, чтобы синхронизировались процедуры
+  atDatabase.NotifyMultiConnectionTransaction;
 end;
 
 procedure TgdcLBRBTreeTable._DoOnNewRecord;
