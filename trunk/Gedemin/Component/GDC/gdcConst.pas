@@ -143,6 +143,8 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
+  EgdcConst = class(Exception);
+
 procedure Register;
 
 implementation
@@ -363,7 +365,7 @@ begin
           Result := q.Fields[0].AsString;
       end;
     end else
-      raise Exception.Create('Invalid constant ID');
+      raise EgdcConst.Create('Invalid constant ID');
     q.Close;
   finally
     q.Free;
