@@ -83,6 +83,7 @@ const
     ('ncu_begin_debit', 'ncu_begin_credit', 'ncu_debit', 'ncu_credit', 'ncu_end_debit', 'ncu_end_credit',
      'curr_begin_debit', 'curr_begin_credit', 'curr_debit', 'curr_credit', 'curr_end_debit', 'curr_end_credit',
      'eq_begin_debit', 'eq_begin_credit', 'eq_debit', 'eq_credit', 'eq_end_debit', 'eq_end_credit');
+
 { Tgdv_frmAcctCirculationList }
 
 procedure Tgdv_frmAcctCirculationList.FormCreate(Sender: TObject);
@@ -137,8 +138,6 @@ begin
   begin
     ComponentPath := BuildComponentPath(Self);
     cbAutoBuildReport.Checked := UserStorage.ReadBoolean(ComponentPath, cAutoBuildReport, False);
-
-//    UserStorage.WriteInteger(BuildComponentPath(Self), 'PanelHeight', Panel2.Height);
   end;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDV_FRMACCTCIRCULATIONLIST', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
@@ -207,7 +206,7 @@ begin
       SQL.ExecQuery;
       while not SQl.Eof do
       begin
-        if FAccountIDs.IndexOf(Pointer(SQL.FieldByName(fnId).AsInteger)) = - 1 then
+        if FAccountIDs.IndexOf(Pointer(SQL.FieldByName(fnId).AsInteger)) = -1 then
           FAccountIDs.Add(Pointer(SQL.FieldByName(fnId).AsInteger));
         SQL.Next;  
       end;
@@ -232,8 +231,7 @@ end;
 
 procedure Tgdv_frmAcctCirculationList.actRunUpdate(Sender: TObject);
 begin
-//  inherited;
-
+  // Уберем наследованный обработчик
 end;
 
 
@@ -328,9 +326,6 @@ begin
   if Config is TAccCirculationListConfig then
   begin
     C := Config as TAccCirculationListConfig;
-    //cbShowDebit.Checked := C.ShowDebit;
-    //cbShowCredit.Checked := C.ShowCredit;
-    //cbShowCorrSubAccount.Checked := C.ShowCorrSubAccounts;
     cbSubAccount.Checked := C.SubAccountsInMain;
     cbDisplaceSaldo.Checked := C.DisplaceSaldo;
   end;
@@ -344,9 +339,9 @@ begin
   if Config is TAccCirculationListConfig then
   begin
     C := Config as TAccCirculationListConfig;
-    C.ShowDebit := False {cbShowDebit.Checked};
-    C.ShowCredit := False {cbShowCredit.Checked};
-    C.ShowCorrSubAccounts := False {cbShowCorrSubAccount.Checked};
+    C.ShowDebit := False;
+    C.ShowCredit := False;
+    C.ShowCorrSubAccounts := False;
     C.SubAccountsInMain:= cbSubAccount.Checked;
     C.DisplaceSaldo:= cbDisplaceSaldo.Checked;
   end;
@@ -442,17 +437,13 @@ var
   i, k: integer;
 begin
   if not cbSubAccount.Checked or not Assigned(FMainAccounts) or not AggregatesObsolete or
-    (ibgrMain.SelectedRows.Count > 1) then Exit;
-  curValue:= 0;
-  DisplayString:= '';
-  for i:= 0 to FMainAccounts.Count - 1 do begin
-    k:= (FMainAccounts.Objects[i] as TStringList).IndexOfName(FieldName);
-    if k > -1 then begin
-      curValue:= curValue + StrToCurr((FMainAccounts.Objects[i] as TStringList).Values[FieldName]);
-    end;
-  end;
-  if curValue > 0 then
-    DisplayString:= FormatFloat('#,##0.00', curValue);
+     (ibgrMain.SelectedRows.Count > 1) then Exit;
+
+  // Если выбран режим "Включать субсчета в главный", то берем итоговую сумму из датасета с итоговыми суммами
+  if Assigned(cdsTotal.FindField(FieldName)) then
+    DisplayString := FormatFloat('#,##0.00', cdsTotal.FieldByName(FieldName).AsCurrency)
+  else
+    DisplayString := '';
 end;
 
 procedure Tgdv_frmAcctCirculationList.cbSubAccountClick(Sender: TObject);
@@ -484,9 +475,9 @@ procedure Tgdv_frmAcctCirculationList.ibdsMainAfterOpen(DataSet: TDataSet);
 var
   q: TIBSQL;
   sl, slFields: TStringList;
-  sTmp, sName: string;
+  sTmp, sName: String;
   i, j: integer;
-  curValue, curNBC, curNBD, curCBC, curCBD, curEBC, curEBD, curNEC, curNED, curCEC, curCED, curEEC, curEED: currency;
+  curValue, curNBC, curNBD, curCBC, curCBD, curEBC, curEBD, curNEC, curNED, curCEC, curCED, curEEC, curEED: Currency;
 
   procedure SetDebitCredit(var ACredit: currency; var ADebit: currency);
   begin
@@ -505,11 +496,11 @@ begin
 
   gdvObject.DisableControls;
   try
-    gdvObject.First;
     // Сложим значения по строкам и занесем в отдельный датасет
+    gdvObject.First;
     cdsTotal.Edit;
     // Обнулим данные
-    for i:= 0 to cdsTotal.Fields.Count - 1 do
+    for i := 0 to cdsTotal.Fields.Count - 1 do
       cdsTotal.Fields[i].AsCurrency := 0;
     // Сложим значения по строкам
     while not gdvObject.Eof do
@@ -525,7 +516,8 @@ begin
     gdvObject.EnableControls;
   end;
 
-  if not FMakeEmpty and cbSubAccount.Checked then begin
+  if not FMakeEmpty and cbSubAccount.Checked then
+  begin
     gdvObject.DisableControls;
     try
       gdvObject.First;
@@ -533,122 +525,139 @@ begin
       if Assigned(FMainAccounts) then
         FreeAndNil(FMainAccounts);
 
-      q:= TIBSQL.Create(self);
-      sl:= TStringList.Create;
+      q := TIBSQL.Create(self);
+      sl := TStringList.Create;
       try
-        q.Transaction:= gdcBaseManager.ReadTransaction;
-        q.SQL.Text:= 'SELECT a.id, a.alias, a.name FROM ac_account a WHERE a.accounttype = ''A'' AND ' +
+        q.Transaction := gdcBaseManager.ReadTransaction;
+        // Запрос для нахождения родительского счета
+        q.SQL.Text := 'SELECT a.id, a.alias, a.name FROM ac_account a WHERE a.accounttype = ''A'' AND ' +
           ' a.lb <= (SELECT FIRST(1) a1.lb FROM ac_account a1 WHERE a1.id = :id) AND ' +
           ' a.rb >= (SELECT FIRST(1) a2.rb FROM ac_account a2 WHERE a2.id = :id)';
-        while not gdvObject.Eof do begin
+        while not gdvObject.Eof do
+        begin
           q.Close;
           q.ParamByName('id').AsInteger:= gdvObject.FieldByName('id').AsInteger;
           q.ExecQuery;
-          if not q.Eof then begin
-            sTmp:= IntToStr(q.FieldByName('id').AsInteger);
-            i:= sl.IndexOfName(sTmp);
-            if i = -1 then begin
+          if not q.Eof then
+          begin
+            sTmp := IntToStr(q.FieldByName('id').AsInteger);
+            i := sl.IndexOfName(sTmp);
+            if i = -1 then
+            begin
               slFields:= TStringList.Create;
-              for i:= 0 to gdvObject.Fields.Count - 1 do begin
+              for i := 0 to gdvObject.Fields.Count - 1 do
+              begin
                 sName:= gdvObject.Fields[i].FieldName;
                 case gdvObject.Fields[i].DataType of
-                  ftInteger, ftLargeInt: begin
-                      if (sName = 'ID') then
-                        slFields.Add(sName + '=' + q.FieldByName('id').AsString)
-                      else
-                        slFields.Add(sName + '=' + gdvObject.FieldByName(sName).AsString)
-                    end;
-                  ftString: begin
-                      if (sName = 'ALIAS') or (sName = 'NAME') then
-                        slFields.Add(sName + '=' + q.FieldByName(sName).AsString)
-                      else
-                        slFields.Add(sName + '=' + gdvObject.FieldByName(sName).AsString);
-                    end;
-                  ftBCD: begin
-                      if (Pos('CREDIT', sName) > 0) or (Pos('DEBIT', sName) > 0) then
-                        slFields.Add(sName + '=' + gdvObject.FieldByName(sName).AsString);
-                    end
-                  else begin
-                    {ShowMessage(sName);}
+                  ftInteger, ftLargeInt:
+                  begin
+                    if (sName = 'ID') then
+                      slFields.Add(sName + '=' + q.FieldByName('id').AsString)
+                    else
+                      slFields.Add(sName + '=' + gdvObject.FieldByName(sName).AsString)
+                  end;
+
+                  ftString:
+                  begin
+                    if (sName = 'ALIAS') or (sName = 'NAME') then
+                      slFields.Add(sName + '=' + q.FieldByName(sName).AsString)
+                    else
+                      slFields.Add(sName + '=' + gdvObject.FieldByName(sName).AsString);
+                  end;
+
+                  ftBCD:
+                  begin
+                    if (Pos('CREDIT', sName) > 0) or (Pos('DEBIT', sName) > 0) then
+                      slFields.Add(sName + '=' + gdvObject.FieldByName(sName).AsString);
+                  end
+
+                  else
+                  begin
                     sTmp := sTmp;
                   end;
                 end;
               end;
               sl.AddObject(sTmp + '=' + gdvObject.FieldByName('id').AsString, slFields);
             end
-            else begin
-              slFields:= sl.Objects[i] as TStringList;
-              for i:= 0 to gdvObject.Fields.Count - 1 do begin
-                sName:= gdvObject.Fields[i].FieldName;
+            else
+            begin
+              slFields := sl.Objects[i] as TStringList;
+              for i := 0 to gdvObject.Fields.Count - 1 do
+              begin
+                sName := gdvObject.Fields[i].FieldName;
                 case gdvObject.Fields[i].DataType of
-                  ftBCD, ftInteger, ftLargeInt: begin
-                      if (Pos('CREDIT', sName) > 0) or (Pos('DEBIT', sName) > 0) then begin
-                        try
-                          curValue:= StrToCurr(slFields.Values[sName]);
-                        except
-                          curValue:= 0;
-                        end;
-                        curValue:= curValue + gdvObject.FieldByName(sName).AsCurrency;
-                        slFields.Values[sName]:= CurrToStr(curValue);
+                  ftBCD, ftInteger, ftLargeInt:
+                  begin
+                    if (Pos('CREDIT', sName) > 0) or (Pos('DEBIT', sName) > 0) then
+                    begin
+                      try
+                        curValue := StrToCurr(slFields.Values[sName]);
+                      except
+                        curValue := 0;
                       end;
-                    end
+                      curValue := curValue + gdvObject.FieldByName(sName).AsCurrency;
+                      slFields.Values[sName] := CurrToStr(curValue);
+                    end;
+                  end
                 end;
               end;
             end;
           end;
           gdvObject.Next;
         end;
-        for i:= 0 to sl.Count - 1 do begin
-          sTmp:= sl.Names[i];
+
+        for i := 0 to sl.Count - 1 do
+        begin
+          sTmp := sl.Names[i];
           if gdvObject.Locate('id', StrToInt(sTmp), []) then
           begin
             gdvObject.Edit;
           end
           else
           begin
-            sTmp:= sl.Values[sl.Names[i]];
+            sTmp := sl.Values[sl.Names[i]];
             gdvObject.Locate('id', StrToInt(sTmp), []);
             gdvObject.Insert;
           end;
           if cbDisplaceSaldo.Checked then
           begin
-            curNBC:= 0; curNBD:= 0; curNEC:= 0; curNED:= 0;
-            curCBC:= 0; curCBD:= 0; curCEC:= 0; curCED:= 0;
-            curEBC:= 0; curEBD:= 0; curEEC:= 0; curEED:= 0;
-            for j:= 0 to (sl.Objects[i] as TStringList).Count - 1 do
+            curNBC := 0; curNBD := 0; curNEC := 0; curNED := 0;
+            curCBC := 0; curCBD := 0; curCEC := 0; curCED := 0;
+            curEBC := 0; curEBD := 0; curEEC := 0; curEED := 0;
+            for j := 0 to (sl.Objects[i] as TStringList).Count - 1 do
             begin
-              sName:= AnsiUpperCase((sl.Objects[i] as TStringList).Names[j]);
+              sName := AnsiUpperCase((sl.Objects[i] as TStringList).Names[j]);
               if (Pos('_BEGIN_', sName) < 1) and (Pos('_END_', sName) < 1) then
                 Continue;
               try
-                curValue:= StrToCurr((sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]]);
+                curValue := StrToCurr((sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]]);
               except
-                curValue:= 0;
+                curValue := 0;
               end;
               if sName = 'NCU_BEGIN_DEBIT' then
-                curNBD:= curNBD + curValue
+                curNBD := curNBD + curValue
               else if sName = 'NCU_BEGIN_CREDIT' then
-                curNBC:= curNBC + curValue
+                curNBC := curNBC + curValue
               else if sName = 'NCU_END_DEBIT' then
-                curNED:= curNED + curValue
+                curNED := curNED + curValue
               else if sName = 'NCU_END_CREDIT' then
-                curNEC:= curNEC + curValue
+                curNEC := curNEC + curValue
               else if sName = 'CURR_BEGIN_DEBIT' then
-                curCBD:= curCBD + curValue
+                curCBD := curCBD + curValue
               else if sName = 'CURR_BEGIN_CREDIT' then
-                curCBC:= curCBC + curValue
+                curCBC := curCBC + curValue
               else if sName = 'CURR_END_DEBIT' then
-                curCED:= curCED + curValue
+                curCED := curCED + curValue
               else if sName = 'CURR_END_CREDIT' then
-                curCEC:= curCEC + curValue
+                curCEC := curCEC + curValue
               else if sName = 'EQ_BEGIN_DEBIT' then
-                curEBD:= curEBD + curValue
+                curEBD := curEBD + curValue
               else if sName = 'EQ_BEGIN_CREDIT' then
-                curEBC:= curEBC + curValue
+                curEBC := curEBC + curValue
               else if sName = 'EQ_END_DEBIT' then
-                curEED:= curEED + curValue
+                curEED := curEED + curValue
               else if sName = 'EQ_END_CREDIT' then
-                curEEC:= curEEC + curValue;
+                curEEC := curEEC + curValue;
             end;
             SetDebitCredit(curNBC, curNBD);
             SetDebitCredit(curNEC, curNED);
@@ -658,53 +667,53 @@ begin
             SetDebitCredit(curEEC, curEED);
             for j:= 0 to (sl.Objects[i] as TStringList).Count - 1 do
             begin
-              sName:= AnsiUpperCase((sl.Objects[i] as TStringList).Names[j]);
-//              if (Pos('_BEGIN_', sName) < 1) and (Pos('_END_', sName) < 1) then Continue;
+              sName := AnsiUpperCase((sl.Objects[i] as TStringList).Names[j]);
+
               if sName = 'NCU_BEGIN_DEBIT' then
-                sTmp:= CurrToStr(curNBD)
+                sTmp := CurrToStr(curNBD)
               else if sName = 'NCU_BEGIN_CREDIT' then
-                sTmp:= CurrToStr(curNBC)
+                sTmp := CurrToStr(curNBC)
               else if sName = 'NCU_END_DEBIT' then
-                sTmp:= CurrToStr(curNED)
+                sTmp := CurrToStr(curNED)
               else if sName = 'NCU_END_CREDIT' then
-                sTmp:= CurrToStr(curNEC)
+                sTmp := CurrToStr(curNEC)
               else if sName = 'CURR_BEGIN_DEBIT' then
-                sTmp:= CurrToStr(curCBD)
+                sTmp := CurrToStr(curCBD)
               else if sName = 'CURR_BEGIN_CREDIT' then
-                sTmp:= CurrToStr(curCBC)
+                sTmp := CurrToStr(curCBC)
               else if sName = 'CURR_END_DEBIT' then
-                sTmp:= CurrToStr(curCED)
+                sTmp := CurrToStr(curCED)
               else if sName = 'CURR_END_CREDIT' then
-                sTmp:= CurrToStr(curCEC)
+                sTmp := CurrToStr(curCEC)
               else if sName = 'EQ_BEGIN_DEBIT' then
-                sTmp:= CurrToStr(curEBD)
+                sTmp := CurrToStr(curEBD)
               else if sName = 'EQ_BEGIN_CREDIT' then
-                sTmp:= CurrToStr(curEBC)
+                sTmp := CurrToStr(curEBC)
               else if sName = 'EQ_END_DEBIT' then
-                sTmp:= CurrToStr(curEED)
+                sTmp := CurrToStr(curEED)
               else if sName = 'EQ_END_CREDIT' then
-                sTmp:= CurrToStr(curEEC)
+                sTmp := CurrToStr(curEEC)
               else
-                sTmp:= (sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]];
+                sTmp := (sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]];
               if (Pos('_BEGIN_', sName) > 0) or (Pos('_END_', sName) > 0) then
-                (sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]]:= sTmp;
+                (sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]] := sTmp;
               gdvObject.FieldByName(sName).AsString:= sTmp;
             end;
           end
           else
           begin
             for j:= 0 to (sl.Objects[i] as TStringList).Count - 1 do begin
-              gdvObject.FieldByName((sl.Objects[i] as TStringList).Names[j]).AsString:=
+              gdvObject.FieldByName((sl.Objects[i] as TStringList).Names[j]).AsString :=
                 (sl.Objects[i] as TStringList).Values[(sl.Objects[i] as TStringList).Names[j]]
             end;
           end;
           gdvObject.Post;
         end;
       finally
-        FMainAccounts:= sl;
+        FMainAccounts := sl;
         q.Free;
       end;
-      ibgrMain.OnGetTotal:= ibgrMainGetTotal;
+      ibgrMain.OnGetTotal := ibgrMainGetTotal;
     finally
       gdvObject.First;
       gdvObject.EnableControls;
