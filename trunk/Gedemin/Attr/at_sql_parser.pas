@@ -6284,7 +6284,7 @@ procedure TsqlParser.ReadNext;
 
       end else
 
-      if (FSql[FIndex] = ':') and (FToken.Text = '') then
+      if (FSql[FIndex] = ':') and (FIndex = StartIndex) {(FToken.Text = '')} then
       begin
         FToken.TextKind := tkUserText
       end else

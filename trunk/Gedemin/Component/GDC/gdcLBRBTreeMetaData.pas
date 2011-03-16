@@ -311,8 +311,9 @@ const
     '  END'#13#10 +
     'END';
 
+  c_check_name = '::PREFIX_chk_::NAME_tr_lmt';                                       
   c_check =
-    'ALTER TABLE ::TABLENAME ADD CONSTRAINT ::PREFIX_chk_::NAME_tr_lmt'#13#10 +
+    'ALTER TABLE ::TABLENAME ADD CONSTRAINT ::METANAME'#13#10 +
     '  CHECK (lb <= rb)';
 
   c_index_rb =
@@ -323,14 +324,8 @@ const
     'CREATE ASC INDEX ::PREFIX_x_::NAME_lb'#13#10 +
     '  ON ::TABLENAME (lb)';
 
-  c_grant1 =
-    'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_el_::NAME TO administrator';
-
-  c_grant2 =
-    'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_gchc_::NAME TO administrator';
-
-  c_grant3 =
-    'GRANT EXECUTE ON PROCEDURE ::PREFIX_p_restruct_::NAME TO administrator';
+  c_grant =
+    'GRANT EXECUTE ON PROCEDURE ::METANAME TO administrator';
 
 procedure CreateLBRBTreeMetaDataScript(AScript: TStrings;
   const APrefix, AName, ATableName: String;
@@ -339,7 +334,8 @@ procedure CreateLBRBTreeMetaDataScript(AScript: TStrings;
 var
   Names: TLBRBTreeMetaNames;
 
-  function PrepareStr(const S: String; const AMetaName: String = ''): String;
+  function PrepareStr(const S: String; const AMetaName: String = '';
+    const ACheckLength: Boolean = False): String;
   begin
     Result := StringReplace(S, NameLabelsText[nlbExceptName], Names.ExceptName, [rfReplaceAll]);
     Result := StringReplace(Result, NameLabelsText[nlbExLimName], Names.ExLimName, [rfReplaceAll]);
@@ -348,6 +344,8 @@ var
     Result := StringReplace(Result, NameLabelsText[nlbPrefix], APrefix, [rfReplaceAll]);
     Result := StringReplace(Result, NameLabelsText[nlbName], AName, [rfReplaceAll]);
     Result := StringReplace(Result, NameLabelsText[nlbTableName], ATableName, [rfReplaceAll]);
+    if ACheckLength and (Length(Result) > 31) then
+      SetLength(Result, 31);
   end;
 
 begin
@@ -357,33 +355,35 @@ begin
     AScript.Add(PrepareStr(c_el_procedure, 'ALTER PROCEDURE ' + Names.ExLimName))
   else begin
     Names.ExLimName := c_el_procedure_name;
-    AScript.Add(PrepareStr(c_el_procedure, 'CREATE PROCEDURE ' + c_el_procedure_name));
+    AScript.Add(PrepareStr(c_el_procedure, 'CREATE PROCEDURE ' + PrepareStr(c_el_procedure_name, '', True)));
   end;
 
   if JustAlter and (Names.ChldCtName > '') then
     AScript.Add(PrepareStr(c_gchc_procedure, 'ALTER PROCEDURE ' + Names.ChldCtName))
   else begin
     Names.ChldCtName := c_gchc_procedure_name;
-    AScript.Add(PrepareStr(c_gchc_procedure, 'CREATE PROCEDURE ' + c_gchc_procedure_name));
+    AScript.Add(PrepareStr(c_gchc_procedure, 'CREATE PROCEDURE ' + PrepareStr(c_gchc_procedure_name, '', True)));
   end;
 
   if JustAlter and (Names.RestrName > '') then
     AScript.Add(PrepareStr(c_restruct_procedure, 'ALTER PROCEDURE ' + Names.RestrName))
   else
-    AScript.Add(PrepareStr(c_restruct_procedure, 'CREATE PROCEDURE ' + c_restruct_procedure_name));
+    AScript.Add(PrepareStr(c_restruct_procedure, 'CREATE PROCEDURE ' + PrepareStr(c_restruct_procedure_name, '', True)));
 
   if JustAlter and (Names.BITriggerName > '') then
     AScript.Add(PrepareStr(c_bi_trigger, 'ALTER TRIGGER ' + Names.BITriggerName))
   else begin
     Names.BITriggerName := c_bi_trigger_name;
-    AScript.Add(PrepareStr(c_bi_trigger, 'CREATE TRIGGER ' + c_bi_trigger_name + ' FOR ' + ATableName));
+    AScript.Add(PrepareStr(c_bi_trigger, 'CREATE TRIGGER ' + PrepareStr(c_bi_trigger_name, '', True) +
+      ' FOR ' + ATableName));
   end;
 
   if JustAlter and (Names.BUTriggerName > '') then
     AScript.Add(PrepareStr(c_bu_trigger, 'ALTER TRIGGER ' + Names.BUTriggerName))
   else begin
     Names.BUTriggerName := c_bu_trigger_name;
-    AScript.Add(PrepareStr(c_bu_trigger, 'CREATE TRIGGER ' + c_bu_trigger_name + ' FOR ' + ATableName));
+    AScript.Add(PrepareStr(c_bu_trigger, 'CREATE TRIGGER ' + PrepareStr(c_bu_trigger_name, '', True) +
+      ' FOR ' + ATableName));
   end;
 
   if Names.LBIndexName = '' then
@@ -394,12 +394,12 @@ begin
 
   if not JustAlter then
   begin
-    AScript.Add(PrepareStr(c_check));
+    AScript.Add(PrepareStr(c_check, PrepareStr(c_check_name, '', True)));
 
-    AScript.Add(PrepareStr(c_grant1));
-    AScript.Add(PrepareStr(c_grant2));
-    AScript.Add(PrepareStr(c_grant3));
-  end;  
+    AScript.Add(PrepareStr(c_grant, PrepareStr(c_el_procedure_name, '', True)));
+    AScript.Add(PrepareStr(c_grant, PrepareStr(c_gchc_procedure_name, '', True)));
+    AScript.Add(PrepareStr(c_grant, PrepareStr(c_restruct_procedure_name, '', True)));
+  end;
 end;
 
 function GetName(const ATableName: String): String;
