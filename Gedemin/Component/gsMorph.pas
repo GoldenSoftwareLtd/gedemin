@@ -183,7 +183,6 @@ begin
         end;
         gdFeminine: begin          { Женский род }
           { ..ь, ..а, ..ья, остальные как ..ия }
-//          if TheWord[Length(TheWord)] <> 'ь' then { Не склоняются }
             if (str2 = 'га') or (str2 = 'ка') then begin
               Delete(TheWord, Length(TheWord), 1);
               TheWord := TheWord + NFD[TheCase];
@@ -312,7 +311,10 @@ begin
         end;
         gdFeminine: begin          { Женский род }
           { ..ая, остальные как ..а }
-          if Copy(TheWord, Length(TheWord) - 1, 2) = 'ая' then begin
+          if str3 = 'ава' then begin
+            exit;   // см. Issue 2333
+          end else
+          if str2 = 'ая' then begin
             Delete(TheWord, Length (TheWord) - 1, 2);
             TheWord := TheWord + OFA[TheCase];
           end else
@@ -337,7 +339,7 @@ begin
             TheWord := TheWord + NFB[TheCase];
           end else
           if TheWord[Length(TheWord)] in sogl then begin
-            Exit;
+            exit;
           end else begin
             Delete(TheWord, Length(TheWord), 1);
             TheWord := TheWord + OFB[TheCase];

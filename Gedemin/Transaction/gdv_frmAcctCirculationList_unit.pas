@@ -432,9 +432,6 @@ end;
 procedure Tgdv_frmAcctCirculationList.ibgrMainGetTotal(Sender: TObject;
   const FieldName: String; const AggregatesObsolete: Boolean;
   var DisplayString: String);
-var
-  curValue: currency;
-  i, k: integer;
 begin
   if not cbSubAccount.Checked or not Assigned(FMainAccounts) or not AggregatesObsolete or
      (ibgrMain.SelectedRows.Count > 1) then Exit;
