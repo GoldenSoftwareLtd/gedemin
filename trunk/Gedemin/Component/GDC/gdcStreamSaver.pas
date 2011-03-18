@@ -3217,65 +3217,16 @@ end;
 
 function TgdcStreamDataProvider.DoAfterSaving(AObj: TgdcBase): Boolean;
 var
-  AnObject: TgdcBase;
   I: Integer;
   ObjectIndex: Integer;
   atRelation: TatRelation;
   LocalID: TID;
-  KeyArray: TgdKeyArray;
-  Names: TLBRBTreeMetaNames;
 begin
   Result := True;
 
   if AObj is TgdcStoredProc then
   begin
     (AObj as TgdcStoredProc).PrepareToSaveToStream(false);
-    Exit;
-  end;
-
-  if AObj is TgdcLBRBTreeTable then
-  begin
-    // Получим названия зависимых процедур
-    GetLBRBTreeDependentNames(AObj.FieldByName('relationname').AsString,
-      AObj.ReadTransaction, Names);
-
-    ObjectIndex := FDataObject.GetObjectIndex('TgdcStoredProc');
-    AnObject := FDataObject.gdcObject[ObjectIndex];
-    KeyArray := TgdKeyArray.Create;
-    try
-      AnObject.Close;
-      AnObject.SubSet := 'ByProcName';
-      AnObject.ParamByName('procedurename').AsString := Names.ExLimName;
-      AnObject.Open;
-      if not AnObject.EOF then
-        KeyArray.Add(AnObject.ID, True);
-
-      AnObject.Close;
-      AnObject.SubSet := 'ByProcName';
-      AnObject.ParamByName('procedurename').AsString := Names.ChldCtName;
-      AnObject.Open;
-      if not AnObject.EOF then
-        KeyArray.Add(AnObject.ID, True);
-
-      AnObject.Close;
-      AnObject.SubSet := 'ByProcName';
-      AnObject.ParamByName('procedurename').AsString := Names.RestrName;
-      AnObject.Open;
-      if not AnObject.EOF then
-        KeyArray.Add(AnObject.ID, True);
-
-      LocalID := AObj.ID;
-      try
-        // Cохраним процедуры в поток
-        for I := 0 to KeyArray.Count - 1 do
-          Self.SaveRecord(ObjectIndex, KeyArray.Keys[I]);
-      finally
-        if AObj.ID <> LocalID then
-          AObj.ID := LocalID;
-      end;    
-    finally
-      KeyArray.Free;
-    end;
     Exit;
   end;
 
