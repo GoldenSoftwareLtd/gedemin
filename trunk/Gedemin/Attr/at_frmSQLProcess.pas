@@ -364,6 +364,10 @@ end;
 procedure TfrmSQLProcess.AddRecord(const S: String; const ALogType: TatLogType);
 const
   PrevTime: DWORD = 0;
+var  
+  h: THandle;
+  ss: array [0..0] of PChar;
+  LogType: Integer;
 begin
   FLog.AddRecord(TrimRight(S), ALogType);
   lv.Items.Count := FLog.Count;
@@ -371,7 +375,33 @@ begin
   if lv.Items.Count > 0 then
     lv.Items[lv.Items.Count - 1].MakeVisible(False);
 
-  if not FSilent then
+  if FSilent then
+  begin
+    if ALogType <> atltInfo then
+    begin
+      if ALogType = atltWarning then
+        LogType := EVENTLOG_WARNING_TYPE
+      else
+        LogType := EVENTLOG_ERROR_TYPE;
+      ss[0] := PChar(S);
+      h := RegisterEventSource(nil, 'Gedemin');
+      try
+        if h <> 0 then
+          ReportEvent(h,          // event log handle
+            LogType,              // event type
+            0,                    // category zero
+            0,                    // event identifier
+            nil,                  // no user security identifier
+            1,                    // one substitution string
+            0,                    // no data
+            @ss,                  // pointer to string array
+            nil);                 // pointer to data
+        // code from http://stackoverflow.com/questions/397934/writing-to-the-event-log-in-delphi
+      finally
+        DeregisterEventSource(h);
+      end;
+    end;
+  end else
   begin
     if not Visible then
     begin
