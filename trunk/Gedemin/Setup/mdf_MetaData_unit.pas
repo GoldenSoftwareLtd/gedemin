@@ -98,6 +98,8 @@ procedure DropTrigger2(const ATriggerName: String; ATr: TIBTransaction);
 function ExceptionExists(Ex: TmdfException; Db: TIBDataBase): boolean;
 procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
 
+function ExceptionExist2(const AnExceptionName: String; ATr: TIBTransaction): Boolean;
+
 function GenId(Db: TIBdatabase): integer;
 function GetRUIDRecByID(const AnID: Integer; Transaction: TIBTransaction): TRUIDRec;
 function GetRUIDStringByID(const ID: Integer; const Tr: TIBTransaction): TRUIDString;
@@ -901,6 +903,24 @@ begin
     finally
       SQl.Free;
     end;
+  end;
+end;
+
+function ExceptionExist2(const AnExceptionName: String; ATr: TIBTransaction): Boolean;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text :=
+      'SELECT rdb$exception_name FROM rdb$exceptions WHERE ' +
+      ' rdb$exception_name = :name ';
+    SQL.ParamByName('name').AsString := UpperCase(AnExceptionName);
+    SQL.ExecQuery;
+    Result := not SQL.EOF;
+  finally
+    SQl.Free;
   end;
 end;
 

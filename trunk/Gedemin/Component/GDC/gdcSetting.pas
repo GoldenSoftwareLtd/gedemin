@@ -3143,7 +3143,7 @@ begin
   if FindFirst(Path + '*.*', FileAttrs, sr) = 0 then
   begin
     if ( (sr.Attr and faDirectory) = faDirectory) and
-       (sr.Name <> '.') and (sr.Name <> '..') then
+       (sr.Name <> '.') and (sr.Name <> '..') and (sr.Name <> '.svn') then
       GetFilesForPath(Path + sr.Name, lInfo);
     while FindNext(sr) = 0 do
     begin

@@ -9,11 +9,59 @@ procedure ConvertBNStatementCommentToBlob(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ConvertDatePeriodComponent(IBDB: TIBDatabase; Log: TModifyLog);
 procedure UpdateGDRefConstraints(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AlterUserStorageTrigger(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
 uses
   Classes, DB, IBSQL, IBBlob, SysUtils, mdf_MetaData_unit, jclStrings;
+
+procedure AddGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  FIBSQL := TIBSQL.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+      FIBSQL.Transaction := FTransaction;
+      FIBSQL.ParamCheck := False;
+
+      FIBSQL.SQL.Text := 'DELETE FROM gd_ruid WHERE xid < 147000000 AND dbid <> 17';
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text := 'ALTER TABLE gd_ruid ADD CONSTRAINT gd_chk_ruid_etalon ' +
+        'CHECK((xid >= 147000000) OR (dbid = 17))';
+      try
+        FIBSQL.ExecQuery;
+      except
+      end;
+
+      FIBSQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (131, ''0000.0001.0000.0162'', ''24.03.2011'', ''Check to GD_RUID table added.'') ' +
+        '  MATCHING (id)';
+      FIBSQL.ExecQuery;
+      FIBSQL.Close;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FIBSQL.Free;
+    FTransaction.Free;
+  end;
+end;
 
 procedure ConvertBNStatementCommentToBlob(IBDB: TIBDatabase; Log: TModifyLog);
 const
@@ -374,6 +422,13 @@ begin
     try
       FTransaction.StartTransaction;
       FIBSQL.Transaction := FTransaction;
+
+      if not ExceptionExist2('gd_e_block_old_storage', FTransaction) then
+      begin
+        FIBSQL.SQL.Text :=
+          'CREATE EXCEPTION gd_e_block_old_storage ''Изменение старых данных пользовательского хранилища заблокировано'' ';
+        FIBSQL.ExecQuery;
+      end;
 
       DropTrigger2('gd_biud_userstorage', FTransaction);
 

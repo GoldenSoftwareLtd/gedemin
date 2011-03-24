@@ -432,6 +432,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (130, '0000.0001.0000.0161', '19.11.2010', 'Change gd_user_storage trigger');
 
+INSERT INTO fin_versioninfo
+  VALUES (131, '0000.0001.0000.0162', '24.03.2011', 'Check to GD_RUID table added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
