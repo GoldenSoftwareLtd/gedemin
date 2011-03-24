@@ -100,6 +100,8 @@ begin
       end;
       mGSFInfo.Lines.Add('Версия: ' + IntToStr(Version) + Ver);
       mGSFInfo.Lines.Add('Изменен: ' + DateToStr(Date));
+      mGSFInfo.Lines.Add('Путь: ' + FilePath);
+      mGSFInfo.Lines.Add('Имя файла: ' + FileName);
 
     end; // with
   end;   // Assigned

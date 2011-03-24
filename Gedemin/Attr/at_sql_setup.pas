@@ -1060,7 +1060,6 @@ begin
 
   //
   //  Проверяем наличие select, from частей в запросе
-
   if not Assigned(Full.Select) or not Assigned(Full.From) then Exit;
 
   Relations := TObjectList.Create(False);

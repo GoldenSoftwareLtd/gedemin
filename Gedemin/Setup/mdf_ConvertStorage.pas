@@ -625,7 +625,10 @@ begin
         begin
           FIBSQL.Close;
           FIBSQL.SQL.Text := 'ALTER TABLE GD_STORAGE_DATA DROP CONSTRAINT GD_CHK_STORAGE_DATA_TR_LMT ';
-          FIBSQL.ExecQuery;
+          try
+            FIBSQL.ExecQuery;
+          except
+          end;  
 
           FIBSQL.Close;
           FIBSQL.SQL.Text := 'DROP INDEX GD_X_STORAGE_DATA_LB ';

@@ -6427,8 +6427,10 @@ begin
     else
       PK := nil;
 
-    if (PK <> nil) and (PK.ConstraintFields.Count > 1) then
-    begin
+    if (PK = nil) or (PK.ConstraintFields.Count < 2) then
+      raise EgdcException.CreateObj('У таблицы связки ' + FSetTable +
+        ' первичный ключ должен состоять из двух или более полей.', Self)
+    else begin
       FSetItemField := '';
       FSetMasterField := '';
 
@@ -11987,19 +11989,20 @@ begin
           FIBSQL.ExecQuery;
         except
           FIBSQL.Close;
-          FIBSQL.SQL.Text := 'SELECT * FROM gd_ruid WHERE xid=:xid AND dbid=:dbid ';
+          FIBSQL.SQL.Text := cst_sql_SelectRuidByXID;
           FIBSQL.ParamByName(fnxid).AsInteger := AXID;
           FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
           FIBSQL.ExecQuery;
           if FIBSQL.Eof then
-            raise
+            raise EgdcException.Create('Попытка дважды добавить запись с ИД=' +
+              IntToStr(AnID) + ' в таблицу GD_RUID.')
           else
           begin
             if (CacheList <> nil) and CacheList.Has(RUIDToStr(RUID(AXID, ADBID))) then
               CacheList.Remove(RUIDToStr(RUID(AXID, ADBID)));
 
             FIBSQL.Close;
-            FIBSQL.SQL.Text := 'DELETE FROM gd_ruid WHERE xid=:xid AND dbid=:dbid ';
+            FIBSQL.SQL.Text := cst_sql_DeleteRuidByXID;
             FIBSQL.ParamByName(fnxid).AsInteger := AXID;
             FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
             FIBSQL.ExecQuery;
