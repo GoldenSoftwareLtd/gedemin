@@ -10,11 +10,86 @@ procedure ConvertDatePeriodComponent(IBDB: TIBDatabase; Log: TModifyLog);
 procedure UpdateGDRefConstraints(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AlterUserStorageTrigger(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
+procedure ModifyRUIDProcedure(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
 uses
   Classes, DB, IBSQL, IBBlob, SysUtils, mdf_MetaData_unit, jclStrings;
+
+procedure ModifyRUIDProcedure(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  FIBSQL := TIBSQL.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+      FIBSQL.Transaction := FTransaction;
+      FIBSQL.ParamCheck := False;
+
+      FIBSQL.SQL.Text :=
+        'CREATE OR ALTER PROCEDURE GD_P_GETRUID(ID INTEGER) '#13#10 +
+        '  RETURNS (XID INTEGER, DBID INTEGER) '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  XID = NULL; '#13#10 +
+        '  DBID = NULL; '#13#10 +
+        ' '#13#10 +
+        '  IF (NOT :ID IS NULL) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    IF (:ID < 147000000) THEN '#13#10 +
+        '    BEGIN '#13#10 +
+        '      XID = :ID; '#13#10 +
+        '      DBID = 17; '#13#10 +
+        '    END ELSE '#13#10 +
+        '    BEGIN '#13#10 +
+        '      SELECT xid, dbid '#13#10 +
+        '      FROM gd_ruid '#13#10 +
+        '      WHERE id=:ID '#13#10 +
+        '      INTO :XID, :DBID; '#13#10 +
+        ' '#13#10 +
+        '      IF (XID IS NULL) THEN '#13#10 +
+        '      BEGIN '#13#10 +
+        '        XID = ID; '#13#10 +
+        '        DBID = GEN_ID(gd_g_dbid, 0); '#13#10 +
+        ' '#13#10 +
+        '        INSERT INTO gd_ruid(id, xid, dbid, modified, editorkey) '#13#10 +
+        '          VALUES(:ID, :XID, :DBID, CURRENT_TIMESTAMP, NULL); '#13#10 +
+        '      END '#13#10 +
+        '    END '#13#10 +
+        '  END '#13#10 +
+        ' '#13#10 +
+        '  SUSPEND; '#13#10 +
+        'END ';
+
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (132, ''0000.0001.0000.0163'', ''28.03.2011'', ''Modify GD_P_GETRUID procedure.'') ' +
+        '  MATCHING (id)';
+      FIBSQL.ExecQuery;
+      FIBSQL.Close;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FIBSQL.Free;
+    FTransaction.Free;
+  end;
+end;
 
 procedure AddGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
 var

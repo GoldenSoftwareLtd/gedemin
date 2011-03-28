@@ -435,6 +435,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (131, '0000.0001.0000.0162', '24.03.2011', 'Check to GD_RUID table added.');
 
+INSERT INTO fin_versioninfo
+  VALUES (132, '0000.0001.0000.0163', '28.03.2011', 'Modify GD_P_GETRUID procedure.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
