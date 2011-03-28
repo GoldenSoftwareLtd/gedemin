@@ -32,7 +32,7 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE PROCEDURE GD_P_GETRUID(ID INTEGER)
+CREATE OR ALTER PROCEDURE GD_P_GETRUID(ID INTEGER)
   RETURNS (XID INTEGER, DBID INTEGER)
 AS
 BEGIN
@@ -41,18 +41,25 @@ BEGIN
 
   IF (NOT :ID IS NULL) THEN
   BEGIN
-    SELECT xid, dbid
-    FROM gd_ruid
-    WHERE id=:ID
-    INTO :XID, :DBID;
-
-    IF (XID IS NULL) THEN
+    IF (:ID < 147000000) THEN
     BEGIN
-      XID = ID;
-      DBID = GEN_ID(gd_g_dbid, 0);
+      XID = :ID;
+      DBID = 17;
+    END ELSE
+    BEGIN
+      SELECT xid, dbid
+      FROM gd_ruid
+      WHERE id=:ID
+      INTO :XID, :DBID;
 
-      INSERT INTO gd_ruid(id, xid, dbid, modified, editorkey)
-        VALUES(:ID, :XID, :DBID, CURRENT_TIMESTAMP, NULL);
+      IF (XID IS NULL) THEN
+      BEGIN
+        XID = ID;
+        DBID = GEN_ID(gd_g_dbid, 0);
+
+        INSERT INTO gd_ruid(id, xid, dbid, modified, editorkey)
+          VALUES(:ID, :XID, :DBID, CURRENT_TIMESTAMP, NULL);
+      END
     END
   END
 
