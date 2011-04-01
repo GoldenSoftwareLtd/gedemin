@@ -2347,7 +2347,13 @@ var
                 q.ParamByName('id').AsInteger := F.ID;
                 CutOff := 5;
               end else
+              begin
+                MessageBox(0,
+                  PChar('Ошибка при сохранении папки: ' + F.Path),
+                  'Внимание',
+                  MB_OK or MB_TASKMODAL or MB_ICONHAND);
                 raise;
+              end;
             end;
           end;
         end;

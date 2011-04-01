@@ -77,7 +77,7 @@ begin
   TestDecodeString('01.2010', EncodeDate(2010, 01, 01),
     EncodeDate(2010, 01, 31), dpkMonth);
   TestDecodeString('01.09.1960-30.09.1960', EncodeDate(1960, 09, 01),
-    EncodeDate(1960, 09, 30), dpkMonth);
+    EncodeDate(1960, 09, 30), dpkFree);
   TestDecodeString('7.2010', EncodeDate(2010, 07, 01),
     EncodeDate(2010, 07, 31), dpkMonth);
   TestDecodeString('2010', EncodeDate(2010, 01, 01),
@@ -88,19 +88,19 @@ end;
 
 procedure TgsPeriodEditTest.TestEncodeString;
 begin
-  S.Kind := dpkFree;
   S.Date := EncodeDate(1980, 5, 15);
   S.EndDate := EncodeDate(1980, 5, 16);
+  S.Kind := dpkFree;
   Check(S.EncodeString = '15.05.1980-16.05.1980');
-  S.Kind := dpkYear;
   S.Date := EncodeDate(1976, 1, 1);
   S.EndDate := EncodeDate(1976, 12, 31);
+  S.Kind := dpkYear;
   Check(S.EncodeString = '1976');
 end;
 
 procedure TgsPeriodEditTest.TestShortCuts;
 var
-  Y, M, D, MN, YN, MP, YP: Word;
+  Y, M, D, MN, YN, MP, YP, MNN, YNN: Word;
 
   procedure TestShortCut(const AShortCut: Char; const ADate, ADateEnd: TDateTime;
     const AKind: TgsDatePeriodKind);
@@ -122,13 +122,42 @@ begin
         YN := Y;
         MP := 12;
         YP := Y - 1;
+
+        MNN := M + 2;
+        YNN := Y;
       end;
+
+    2:
+      begin
+        MN := M + 1;
+        YN := Y;
+        MP := 1;
+        YP := Y;
+
+        MNN := M + 2;
+        YNN := Y;
+      end;
+
+    11:
+      begin
+        MN := 12;
+        YN := Y;
+        MP := M - 1;
+        YP := Y;
+
+        MNN := 1;
+        YNN := Y + 1;
+      end;
+
     12:
       begin
         MN := 1;
         YN := Y + 1;
         MP := M - 1;
         YP := Y;
+
+        MNN := 2;
+        YNN := Y + 1;
       end;
   else
     begin
@@ -136,28 +165,62 @@ begin
       YN := Y;
       MP := M - 1;
       YP := Y;
+
+      MNN := M + 2;
+      YNN := Y;
     end;
   end;
 
-  {
   TestShortCut('С', Date, Date, dpkDay);
   TestShortCut('З', Date + 1, Date + 1, dpkDay);
   TestShortCut('В', Date - 1, Date - 1, dpkDay);
   TestShortCut('Н', Date - ISODayOfWeek(Date) + 1, Date - ISODayOfWeek(Date) + 7, dpkWeek);
-  TestShortCut('ПН', Date - ISODayOfWeek(Date) + 1 - 7, Date - ISODayOfWeek(Date) + 7 - 7, dpkWeek);
-  TestShortCut('СН', Date - ISODayOfWeek(Date) + 1 + 7, Date - ISODayOfWeek(Date) + 7 + 7, dpkWeek);
+  TestShortCut('Я', Date - ISODayOfWeek(Date) + 1 - 7, Date - ISODayOfWeek(Date) + 7 - 7, dpkWeek);
+  TestShortCut('Щ', Date - ISODayOfWeek(Date) + 1 + 7, Date - ISODayOfWeek(Date) + 7 + 7, dpkWeek);
   TestShortCut('М', EncodeDate(Y, M, 1), EncodeDate(YN, MN, 1) - 1, dpkMonth);
-  TestShortCut('ПМ', EncodeDate(YP, MP, 1), EncodeDate(Y, M, 1) - 1, dpkMonth);
+  TestShortCut('Л', EncodeDate(YN, MN, 1), EncodeDate(YNN, MNN, 1) - 1, dpkMonth);
+  TestShortCut('Р', EncodeDate(YP, MP, 1), EncodeDate(Y, M, 1) - 1, dpkMonth);
+  {TestShortCut('Г', EncodeDate(Y, 1, 1), EncodeDate(Y, 12, 31), dpkYear);
+  TestShortCut('Г', EncodeDate(Y, 1, 1), EncodeDate(Y, 12, 31), dpkYear);
+  TestShortCut('Г', EncodeDate(Y, 1, 1), EncodeDate(Y, 12, 31), dpkYear);}
+  TestShortCut('Г', EncodeDate(Y, 1, 1), EncodeDate(Y, 12, 31), dpkYear);
+  TestShortCut('О', EncodeDate(Y - 1, 1, 1), EncodeDate(Y - 1, 12, 31), dpkYear);
+  TestShortCut('Е', EncodeDate(Y + 1, 1, 1), EncodeDate(Y + 1, 12, 31), dpkYear);
 
- 9. см -- следующий месяц
-10. к -- текущий квартал
-11. пк -- прошлый квартал
-12. ск -- следующий квартал
-13. г -- текущий год
-14. пг -- прошлый год
-15. сг -- следующий год}
+  TestShortCut('C', Date, Date, dpkDay);
+  TestShortCut('P', Date + 1, Date + 1, dpkDay);
+  TestShortCut('D', Date - 1, Date - 1, dpkDay);
+  TestShortCut('Y', Date - ISODayOfWeek(Date) + 1, Date - ISODayOfWeek(Date) + 7, dpkWeek);
+  TestShortCut('Z', Date - ISODayOfWeek(Date) + 1 - 7, Date - ISODayOfWeek(Date) + 7 - 7, dpkWeek);
+  TestShortCut('O', Date - ISODayOfWeek(Date) + 1 + 7, Date - ISODayOfWeek(Date) + 7 + 7, dpkWeek);
+  TestShortCut('V', EncodeDate(Y, M, 1), EncodeDate(YN, MN, 1) - 1, dpkMonth);
+  TestShortCut('K', EncodeDate(YN, MN, 1), EncodeDate(YNN, MNN, 1) - 1, dpkMonth);
+  TestShortCut('H', EncodeDate(YP, MP, 1), EncodeDate(Y, M, 1) - 1, dpkMonth);
+  {TestShortCut('Г', EncodeDate(Y, 1, 1), EncodeDate(Y, 12, 31), dpkYear);
+  TestShortCut('Г', EncodeDate(Y, 1, 1), EncodeDate(Y, 12, 31), dpkYear);
+  TestShortCut('Г', EncodeDate(Y, 1, 1), EncodeDate(Y, 12, 31), dpkYear);}
+  TestShortCut('U', EncodeDate(Y, 1, 1), EncodeDate(Y, 12, 31), dpkYear);
+  TestShortCut('J', EncodeDate(Y - 1, 1, 1), EncodeDate(Y - 1, 12, 31), dpkYear);
+  TestShortCut('T', EncodeDate(Y + 1, 1, 1), EncodeDate(Y + 1, 12, 31), dpkYear);
+  {
+с 	c 	Сегодня
+з 	p 	Завтра
+в 	d 	Вчера
+н 	y 	Текущая неделя
+я 	z 	Прошедшая неделя
+щ 	o 	Следующая неделя
+м 	v 	Текущий месяц
+л 	k 	Следующий месяц
+р 	h 	Прошедший месяц
+к 	r 	Текущий квартал
+и 	b 	Прошедший квартал
+й 	q 	Следующий квартал
+г 	u 	Текущий год
+о 	j 	Прошедший год
+е 	t 	Следующий год
+}
 end;
 
 initialization
-  RegisterTest('', TgsPeriodEditTest.Suite);
+  RegisterTest('UI', TgsPeriodEditTest.Suite);
 end.

@@ -73,5 +73,5 @@ begin
 end;
 
 initialization
-  RegisterTest('', TgsMorphTest.Suite);
+  RegisterTest('Internals', TgsMorphTest.Suite);
 end.

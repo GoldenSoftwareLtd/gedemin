@@ -68,6 +68,6 @@ begin
 end;
 
 initialization
-  RegisterTest('', TgdKeyArrayTest.Suite);
+  RegisterTest('Internals', TgdKeyArrayTest.Suite);
 end.
 

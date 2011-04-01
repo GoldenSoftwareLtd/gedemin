@@ -32,6 +32,6 @@ begin
 end;
 
 initialization
-  RegisterTest('', TdlgAboutTest.Suite);
+  RegisterTest('UI', TdlgAboutTest.Suite);
 end.
 

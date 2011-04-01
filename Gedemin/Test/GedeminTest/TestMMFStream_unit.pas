@@ -110,5 +110,5 @@ begin
 end;
 
 initialization
-  RegisterTest('', TMMFStreamTest.Suite);
+  RegisterTest('Internals', TMMFStreamTest.Suite);
 end.

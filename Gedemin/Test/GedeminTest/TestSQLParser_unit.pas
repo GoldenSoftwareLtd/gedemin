@@ -79,6 +79,6 @@ begin
 end;
 
 initialization
-  RegisterTest('', TSQLParserTest.Suite);
+  RegisterTest('Internals', TSQLParserTest.Suite);
 end.
 
