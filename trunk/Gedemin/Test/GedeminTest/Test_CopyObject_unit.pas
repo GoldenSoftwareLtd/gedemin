@@ -4,10 +4,10 @@ unit Test_CopyObject_unit;
 interface
 
 uses
-  TestFrameWork;
+  TestFrameWork, gsTestFrameWork;
 
 type
-  TTestCopyObject = class(TTestCase)
+  TTestCopyObject = class(TgsDBTestCase)
   published
     procedure TestCopySimpleObject;
     {procedure TestCopyObjectWithDetail;} 
@@ -265,6 +265,6 @@ begin
 end;
 
 initialization
-  RegisterTest('', TTestCopyObject.Suite);
+  RegisterTest('DB', TTestCopyObject.Suite);
 end.
 

@@ -4,10 +4,10 @@ unit Test_gdcMetaData_unit;
 interface
 
 uses
-  TestFrameWork, IBDatabase;
+  TestFrameWork, gsTestFrameWork, IBDatabase;
 
 type
-  TgdcMetaDataTest = class(TTestCase)
+  TgdcMetaDataTest = class(TgsDBTestCase)
   private
     function GetDBState: String;
     procedure CheckConsistency(Tr: TIBTransaction);
@@ -96,10 +96,6 @@ procedure TgdcMetaDataTest.TestCreateLBRBTree;
 var
   LBRBTree: TgdcLBRBTreeTable;
 begin
-  Check(IBLogin.LoggedIn);
-
-  Check(StrIPos('test.fdb', IBLogin.Database.DatabaseName) > 0, 'Выполнение возможно только на тестовой БД');
-
   FLBRBTreeName := 'USR$TEST' + IntToStr(Random(10)) + 'LBRBTREE';
   FDBState := GetDBState;
 
@@ -123,7 +119,6 @@ procedure TgdcMetaDataTest.TestDropLBRBTree;
 var
   LBRBTree: TgdcLBRBTreeTable;
 begin
-  Check(IBLogin.LoggedIn);
   Check(FLBRBTreeName > '');
 
   LBRBTree := TgdcLBRBTreeTable.Create(nil);
@@ -153,7 +148,6 @@ var
   Tr: TIBTransaction;
   //SL: TStringList;
 begin
-  Check(IBLogin.LoggedIn);
   Check(FLBRBTreeName > '');
 
   //SL := TStringList.Create;
@@ -211,7 +205,7 @@ begin
                 //SL.Add(Trim(q.SQL.Text) + ';');
               except
                 on E: Exception do
-                  if Pos('cycle', E.Message) = 0 then
+                  if Pos('Invalid parent specified', E.Message) = 0 then
                     raise;
               end;
             end;
@@ -259,7 +253,7 @@ begin
       end;
     except
       on E: EIBError do
-        Check(False, E.Message + ' Code: ' + IntToStr(E.SQLCode));
+        Check(False, E.Message + ' Code: ' + IntToStr(E.IBErrorCode));
     end;
 
     q.Close;
@@ -280,7 +274,6 @@ procedure TgdcMetaDataTest.TestRestrLBRBTree;
 var
   Tr: TIBTransaction;
 begin
-  Check(IBLogin.LoggedIn);
   Check(FLBRBTreeName > '');
 
   Tr := TIBTransaction.Create(nil);
@@ -297,6 +290,6 @@ begin
 end;
 
 initialization
-  RegisterTest('', TgdcMetaDataTest.Suite);
+  RegisterTest('DB', TgdcMetaDataTest.Suite);
   Randomize;
 end.

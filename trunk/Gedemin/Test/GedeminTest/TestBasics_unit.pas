@@ -23,6 +23,6 @@ begin
 end;
 
 initialization
-  RegisterTest('', TBasicsTest.Suite);
+  RegisterTest('Internals', TBasicsTest.Suite);
 end.
 

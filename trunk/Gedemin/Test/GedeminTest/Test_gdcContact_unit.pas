@@ -4,10 +4,10 @@ unit Test_gdcContact_unit;
 interface
 
 uses
-  Classes, TestFrameWork, gdcContacts;
+  Classes, TestFrameWork, gsTestFrameWork, gdcContacts;
 
 type
-  Tgs_gdcContactTest = class(TTestCase)
+  Tgs_gdcContactTest = class(TgsDBTestCase)
   published
     procedure Test_gdcContact;
   end;
@@ -59,5 +59,5 @@ begin
 end;
 
 initialization
-  RegisterTest('', Tgs_gdcContactTest.Suite);
+  RegisterTest('DB', Tgs_gdcContactTest.Suite);
 end.

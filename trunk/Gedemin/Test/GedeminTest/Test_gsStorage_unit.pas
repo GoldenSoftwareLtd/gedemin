@@ -4,10 +4,10 @@ unit Test_gsStorage_unit;
 interface
 
 uses
-  Classes, TestFrameWork;
+  Classes, TestFrameWork, gsTestFrameWork;
 
 type
-  TgsStorageTest = class(TTestCase)
+  TgsStorageTest = class(TgsDBTestCase)
   published
     procedure TestLoadFromStream;
     procedure TestStorage;
@@ -148,5 +148,5 @@ begin
 end;
 
 initialization
-  RegisterTest('', TgsStorageTest.Suite);
+  RegisterTest('DB', TgsStorageTest.Suite);
 end.
