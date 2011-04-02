@@ -17,6 +17,8 @@ type
     procedure TestLBRBTree;
     procedure TestRestrLBRBTree;
     procedure TestDropLBRBTree;
+
+    procedure TestGD_RUID;
   end;
 
 implementation
@@ -138,6 +140,54 @@ begin
   Check(not frmSQLProcess.IsError);
 
   Check(FDBState = GetDBState);
+end;
+
+procedure TgdcMetaDataTest.TestGD_RUID;
+begin
+  FQ.SQL.Text := 'INSERT INTO gd_ruid (id, xid, dbid, modified) VALUES (:id, :xid, :dbid, CURRENT_TIMESTAMP)';
+
+  FQ.ParamByName('id').AsInteger := 147000000;
+  FQ.ParamByName('xid').AsInteger := 555000000;
+  FQ.ParamByName('dbid').AsInteger := 28;
+  FQ.ExecQuery;
+
+  FQ.ParamByName('id').AsInteger := 1;
+  FQ.ParamByName('xid').AsInteger := 1;
+  FQ.ParamByName('dbid').AsInteger := 17;
+  FQ.ExecQuery;
+
+  FQ.ParamByName('id').AsInteger := 0;
+  FQ.ParamByName('xid').AsInteger := 0;
+  FQ.ParamByName('dbid').AsInteger := 17;
+  StartExpectingException(EIBInterBaseError);
+  FQ.ExecQuery;
+  StopExpectingException('');
+
+  FQ.ParamByName('id').AsInteger := -1;
+  FQ.ParamByName('xid').AsInteger := -1;
+  FQ.ParamByName('dbid').AsInteger := 17;
+  StartExpectingException(EIBInterBaseError);
+  FQ.ExecQuery;
+  StopExpectingException('');
+
+  FQ.ParamByName('id').AsInteger := 146999999;
+  FQ.ParamByName('xid').AsInteger := 146999999;
+  FQ.ParamByName('dbid').AsInteger := 17;
+  FQ.ExecQuery;
+
+  FQ.ParamByName('id').AsInteger := 146999999;
+  FQ.ParamByName('xid').AsInteger := 146999999;
+  FQ.ParamByName('dbid').AsInteger := 28;
+  StartExpectingException(EIBInterBaseError);
+  FQ.ExecQuery;
+  StopExpectingException('');
+
+  FQ.ParamByName('id').AsInteger := 146999999;
+  FQ.ParamByName('xid').AsInteger := 147999999;
+  FQ.ParamByName('dbid').AsInteger := 17;
+  StartExpectingException(EIBInterBaseError);
+  FQ.ExecQuery;
+  StopExpectingException('');
 end;
 
 procedure TgdcMetaDataTest.TestLBRBTree;

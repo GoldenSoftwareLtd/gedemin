@@ -163,7 +163,7 @@ begin
         '¬ наименовании на английском должны быть только латинские символы');
     end;
 
-    if (gdcObject.FieldByName('id').AsInteger > cstUserIDStart) and gdcObject.FieldByName('headerrelkey').IsNull then
+    if (gdcObject.FieldByName('id').AsInteger >= cstUserIDStart) and gdcObject.FieldByName('headerrelkey').IsNull then
     begin
       gdcObject.FieldByName('headerrelkey').FocusControl;
       Result := False;

@@ -58,7 +58,7 @@ type
 implementation
 
 uses
-  DB, SysUtils, IBHeader, at_classes, gd_security;
+  DB, SysUtils, IBHeader, at_classes, gd_security, gd_directories_const;
 
 { TgdDBImpExp }
 
@@ -117,8 +117,8 @@ begin
       end;
       qRUIDInsert.ParamByName('id').AsInteger := AnID;
       qRUIDInsert.ParamByName('xid').AsInteger := AnID;
-      if AnID <= 147000000 then
-        qRUIDInsert.ParamByName('dbid').AsInteger := 17
+      if AnID < cstUserIDStart then
+        qRUIDInsert.ParamByName('dbid').AsInteger := cstEtalonDBID
       else
         qRUIDInsert.ParamByName('dbid').AsInteger := IBLogin.DBID;
       qRUIDInsert.ParamByName('mod').AsDateTime := Now;

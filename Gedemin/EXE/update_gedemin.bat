@@ -110,6 +110,15 @@ if not errorlevel 0 goto exit
 
 del %arc_name%
 
+echo *************************************************
+echo **                                             **
+echo **  for internal usage only                    **
+echo **                                             **
+echo **                                             **
+echo *************************************************
+
+xcopy gedemin.exe g:\common\gedemin\gedemin.exe /Y
+
 :exit
 
 
