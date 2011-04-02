@@ -504,7 +504,7 @@ BEGIN
   ELSE
     RDB$SET_CONTEXT('USER_TRANSACTION', 'LBRB_DELTA', '1');
 END
-^
+^                                  
 
 /*
 CREATE TRIGGER gd_bi_contact_2 FOR gd_contact
