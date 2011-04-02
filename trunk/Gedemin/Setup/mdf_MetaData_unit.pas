@@ -65,6 +65,7 @@ function ViewExist(View: TmdfView; Db: TIBDataBase): boolean;
 procedure DropView(View: TmdfView; Db: TIBDataBase);
 
 function ConstraintExist(Constraint: TmdfConstraint; Db: TIBDataBase): Boolean;
+function ConstraintExist2(const ATableName, AConstraintName: String; ATr: TIBTransaction): Boolean;
 procedure DropConstraint(Constraint: TmdfConstraint; Db: TIBDataBase);
 procedure AddConstraint(Constraint: TmdfConstraint; Db: TIBDataBase);
 
@@ -345,6 +346,24 @@ begin
     Transaction.Commit;
   finally
     Transaction.Free;
+  end;
+end;
+
+function ConstraintExist2(const ATableName, AConstraintName: String; ATr: TIBTransaction): Boolean;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text := 'SELECT * FROM rdb$check_constraints c JOIN rdb$triggers t ' +
+      ' ON t.rdb$trigger_name = c.rdb$trigger_name WHERE t.rdb$relation_name = :RN AND c.rdb$constraint_name = :CN ';
+    SQL.ParamByName('RN').AsString := AnsiUpperCase(ATableName);
+    SQL.ParamByName('CN').AsString := AnsiUpperCase(AConstraintName);
+    SQL.ExecQuery;
+    Result := not SQL.EOF;
+  finally
+    SQL.Free;
   end;
 end;
 

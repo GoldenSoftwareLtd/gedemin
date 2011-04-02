@@ -1649,7 +1649,7 @@ begin
   if (FDataObject.FindReferencedRecord(AID) > -1) or (FLoadingOrderList.Find(AID, ObjectIndex) > -1) then
     Exit;
 
-  // При инкрементном сохранениии не будем сохранять Стандартные записи (ID < 147000000)
+  // При инкрементном сохранениии не будем сохранять Стандартные записи (ID < cstUserIDStart)
   //  предполагаем что они есть на всех базах
   if (FDataObject.TargetBaseKey > -1) and (AID < cstUserIDStart) then
   begin

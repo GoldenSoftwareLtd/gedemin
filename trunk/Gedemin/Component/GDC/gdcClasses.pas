@@ -1403,7 +1403,7 @@ begin
     Exit;
 
   S := '';
-  if (DTK > cstUserIDStart) then
+  if (DTK >= cstUserIDStart) then
   begin
     Idx := DoCacheDocumentType(DTK);
 
@@ -1653,7 +1653,7 @@ begin
   Result.SubType := '';
   if TypeKey = 0 then Exit;
 
-  if TypeKey > cstUserIDStart then
+  if TypeKey >= cstUserIDStart then
   begin
     ibsql := TIBSQL.Create(nil);
     try

@@ -45,7 +45,7 @@ begin
 
       //ѕрописываем класс дл€ каждого типа документов
       ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE classname IS NULL AND ' +
-        ' documenttype = ''D'' AND id <= 147000000';
+        ' documenttype = ''D'' AND id < 147000000';
       ibsql.ExecQuery;
       if ibsql.RecordCount > 0 then
       begin

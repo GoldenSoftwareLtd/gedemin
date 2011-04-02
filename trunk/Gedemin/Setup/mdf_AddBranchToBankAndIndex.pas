@@ -96,15 +96,8 @@ begin
       if not FieldExist(F, IBDB) then
         AddField(F, IBDB);
 
-      try
-        q.SQL.Text := 'UPDATE GD_RUID SET DBID=17 WHERE XID < 147000000 AND DBID <> 17 ';
-        q.ExecQuery;
-      except
-        on E: Exception do
-        begin
-          Log('Ошибка: ' + E.Message);
-        end;
-      end;
+      q.SQL.Text := 'UPDATE GD_RUID SET DBID=17 WHERE XID < 147000000 AND DBID <> 17 ';
+      q.ExecQuery;
 
       try
         q.SQL.Text := 'INSERT INTO fin_versioninfo ' +

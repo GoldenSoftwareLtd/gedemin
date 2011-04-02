@@ -632,7 +632,7 @@ begin
   if Assigned(atDatabase) then
   begin
     Parser := TsqlParser.Create(Text);
-    Parser.ObjectClassName := ObjectClassName;
+    Parser.ObjectClassName := ObjectClassName;  
     try
       Parser.Parse;
       ChangeSQL(Parser);
@@ -920,7 +920,7 @@ begin
 {$ENDIF}
 
   L := Length(Text);
-
+  
   if L = 0 then
     Result := ''
   else
@@ -1036,10 +1036,54 @@ begin
 end;
 
 procedure TatSQLSetup.ChangeFullEx(Parser: TsqlParser; Full: TsqlFull);
+  function FindTableName(Full: TsqlFull; const TableName: String): Boolean;
+  var
+    I, K: Integer;
+  begin
+    Result := False;
+    for I := 0 to Full.From.Tables.Count - 1 do
+    begin
+      if Full.From.Tables[I] is TsqlTable then
+        if AnsiCompareText((Full.From.Tables[I] as TsqlTable).TableName, TableName) = 0 then
+        begin
+          Result := True;
+          exit;
+        end;
+
+      if Full.From.Tables[I] is TsqlTable then
+      with Full.From.Tables[I] as TsqlTable do
+        for K := 0 to Joins.Count - 1 do
+        begin
+          if Joins[K] is TsqlJoin then
+            if (Joins[K] as TsqlJoin).JoinTable is TsqlTable then
+            begin
+              if AnsiCompareText(((Joins[K] as TsqlJoin).JoinTable as TsqlTable).TableName, TableName) = 0 then
+              begin
+                Result := True;
+                exit;
+              end;
+
+              if ((Joins[K] as TsqlJoin).JoinTable as TsqlTable).SubSelect <> nil then
+                if  FindTableName(((Joins[K] as TsqlJoin).JoinTable as TsqlTable).SubSelect,TableName) then
+                begin
+                  Result := True;
+                  exit;
+                end;
+            end
+            else
+              if ((Joins[K] as TsqlJoin).JoinTable is TsqlFunction) then
+                if AnsiCompareText(((Joins[K] as TsqlJoin).JoinTable as TsqlFunction).FuncName, TableName) = 0 then
+                begin
+                  Result := True;
+                  exit;
+                end;
+        end;
+    end;
+  end;
 var
-  Relations, Fields, ToRemove: TObjectList;
+  Relations, Fields, ToRemove, JoinTables: TObjectList;
   CurrTable: TsqlTable;
-  I, K, J, G, H: Integer;
+  I, K, J, G, H, O, L: Integer;
   R: TatRelation;
   F, Fld: TatRelationField;
   CurrField: TsqlField;
@@ -1049,12 +1093,13 @@ var
   LinkTable: TsqlTable;
   LinkCondition: TsqlCondition;
   LinkField: TsqlField;
-  LinkAlias: String;
-  IsBreak: Boolean;
+  LinkAlias, CurrAlias: String;
+  IsBreak, LeftJoinAdd: Boolean;
   WasComment, SL: TStringList;
   NeedCreateField: Boolean;
   FieldList: TStringList;
   FieldPos: String;
+  LeftJoinTableName: String;
 begin
   Assert(Assigned(gdcBaseManager));
 
@@ -1067,6 +1112,7 @@ begin
   ToRemove := TObjectList.Create(False);
   WasComment := TStringList.Create;
   FieldList := TStringList.Create;
+  JoinTables := TObjectList.Create(False);
   try
   //
   // Получаем список отношений
@@ -1081,7 +1127,11 @@ begin
       if Full.From.Tables[I] is TsqlTable then
       with Full.From.Tables[I] as TsqlTable do
         for K := 0 to Joins.Count - 1 do
-          Relations.Add((Joins[K] as TsqlJoin).JoinTable)
+        begin
+          Relations.Add((Joins[K] as TsqlJoin).JoinTable);
+          if Joins[K] is TsqlJoin then
+            JoinTables.Add(Joins[K]);
+        end
       else
 
       //
@@ -1091,10 +1141,9 @@ begin
       if Full.From.Tables[I] is TsqlFunction then
         with Full.From.Tables[I] as TsqlFunction do
           for K := 0 to Joins.Count - 1 do
-            Relations.Add((Joins[K] as TsqlJoin).JoinTable)
+            Relations.Add((Joins[K] as TsqlJoin).JoinTable);
     end;
 
-    //
     //  Осущствляем выбор только таблиц и представлений
 
     for I := Relations.Count - 1 downto 0 do
@@ -1398,89 +1447,136 @@ begin
               else
                 LinkAlias := TableName + '_' + F.FieldName;
               //Проверяем, была ли уже добавлена таблица (предполагается, что алиас уникален)
-
+              LeftJoinAdd := False;
               if not Full.From.FindTableByAlias(LinkAlias) then
               begin
-                //Создаем новый LEFT JOIN
-                LinkJoin := TsqlJoin.Create(Parser);
-                LinkJoin.JoinClause.Add(cLeft);
-                LinkJoin.JoinClause.Add(cJoin);
-                LinkJoin.JoinAttrs := [eoClause, eoOn];
-
-                //Добавляем таблицу
-                LinkTable := TsqlTable.Create(Parser);
-                LinkTable.TableName := F.References.RelationName;
-                if TableAlias <> '' then
-                  LinkTable.TableAlias := TableAlias + '_' + F.FieldName
-                else
-                  LinkTable.TableAlias := TableName + '_' + F.FieldName;
-                LinkTable.TableAttrs := [eoName, eoAlias];
-                LinkJoin.JoinTable := LinkTable;
-
-                //Добавляем условия связи
-                LinkCondition := TsqlCondition.Create(Parser);
-
-                LinkField := TsqlField.Create(Parser, False);
-                LinkField.FieldAlias := LinkTable.TableAlias;
-                LinkField.FieldName := F.ReferencesField.FieldName;
-                LinkField.FieldAttrs := [eoName, eoAlias];
-                LinkCondition.Statements.Add(LinkField);
-
-                LinkCondition.Statements.Add(TsqlMath.Create(Parser));
-                (LinkCondition.Statements[LinkCondition.Statements.Count - 1] as TsqlMath).Math.Add(mcEqual);
-
-                LinkField := TsqlField.Create(Parser, False);
-                if TableAlias > '' then
-                  LinkField.FieldAlias := TableAlias
-                else
-                  LinkField.FieldAlias := TableName;
-                LinkField.FieldName := f.FieldName;
-                LinkField.FieldAttrs := [eoName, eoAlias];
-                LinkCondition.Statements.Add(LinkField);
-
-                LinkJoin.Conditions.Add(LinkCondition);
-
-                //Находим главную таблицу
-                IsBreak := False;
-                for J := 0 to Full.From.Tables.Count - 1 do
-                begin
-                  if Full.From.Tables[J] is TsqlTable then
+                for J := 0 to JoinTables.Count - 1 do
+                  if  LeftJoinAdd then
+                    break
+                  else
                   begin
-                    if Full.From.Tables[J] = Relations[I] then
+                    with JoinTables[J] as TsqlJoin do
                     begin
-                      (Full.From.Tables[J] as TsqlTable).Joins.Add(LinkJoin);
-                       IsBreak := True;
-                       Break;
+                      if JoinTable is TsqlTable then
+                      begin
+                        if ((JoinTable as TsqlTable).SubSelect <> nil) and (FindTableName((JoinTable as TsqlTable).SubSelect, F.References.RelationName)) then
+                        begin
+                          LeftJoinTableName := F.References.RelationName;
+                          CurrAlias := (JoinTable as TsqlTable).TableAlias;
+                        end
+                        else
+                        begin
+                          LeftJoinTableName := (JoinTable as TsqlTable).TableName;
+                          CurrAlias := (JoinTable as TsqlTable).TableAlias;
+                        end;
+                      end
+                      else
+                        if JoinTable is TsqlFunction then
+                        begin
+                          LeftJoinTableName := (JoinTable as TsqlFunction).FuncName;
+                          CurrAlias := (JoinTable as TsqlFunction).FuncAsName;
+                         end;
+                      if LeftJoinTableName = F.References.RelationName then
+                        for L := 0 to Conditions.Count - 1 do
+                          if Conditions[L] is TsqlCondition then
+                            with Conditions[L] as TsqlCondition do
+                            begin
+                              for O := 0 to Statements.Count - 1 do
+                                if Statements[O] is TsqlField then
+                                  with Statements[O] as TsqlField do
+                                  begin
+                                    if (AnsiCompareText(FieldName, F.FieldName) = 0) and (AnsiCompareText(FieldAlias, TableAlias) = 0) then
+                                    begin
+                                      LeftJoinAdd := True;
+                                      Break;
+                                    end;
+                                  end;
+                            end;
+                      end;
                     end;
+                //if (not Full.From.FindTableByAlias(LinkAlias)) and (not LeftJoinAdd) then
+                if not LeftJoinAdd then
+                begin
+                  //Создаем новый LEFT JOIN
+                  LinkJoin := TsqlJoin.Create(Parser);
+                  LinkJoin.JoinClause.Add(cLeft);
+                  LinkJoin.JoinClause.Add(cJoin);
+                  LinkJoin.JoinAttrs := [eoClause, eoOn];
 
-                    for G := 0 to (Full.From.Tables[J] as TsqlTable).Joins.Count - 1 do
-                      if ((Full.From.Tables[J] as TsqlTable).Joins[G] as TsqlJoin).JoinTable = Relations[I] then
+                  //Добавляем таблицу
+                  LinkTable := TsqlTable.Create(Parser);
+                  LinkTable.TableName := F.References.RelationName;
+                  if TableAlias <> '' then
+                    LinkTable.TableAlias := TableAlias + '_' + F.FieldName
+                  else
+                    LinkTable.TableAlias := TableName + '_' + F.FieldName;
+                  LinkTable.TableAttrs := [eoName, eoAlias];
+                  LinkJoin.JoinTable := LinkTable;
+
+                  //Добавляем условия связи
+                  LinkCondition := TsqlCondition.Create(Parser);
+
+                  LinkField := TsqlField.Create(Parser, False);
+                  LinkField.FieldAlias := LinkTable.TableAlias;
+                  LinkField.FieldName := F.ReferencesField.FieldName;
+                  LinkField.FieldAttrs := [eoName, eoAlias];
+                  LinkCondition.Statements.Add(LinkField);
+
+                  LinkCondition.Statements.Add(TsqlMath.Create(Parser));
+                  (LinkCondition.Statements[LinkCondition.Statements.Count - 1] as TsqlMath).Math.Add(mcEqual);
+
+                  LinkField := TsqlField.Create(Parser, False);
+                  if TableAlias > '' then
+                    LinkField.FieldAlias := TableAlias
+                  else
+                    LinkField.FieldAlias := TableName;
+                  LinkField.FieldName := f.FieldName;
+                  LinkField.FieldAttrs := [eoName, eoAlias];
+                  LinkCondition.Statements.Add(LinkField);
+
+                  LinkJoin.Conditions.Add(LinkCondition);
+
+                  //Находим главную таблицу
+                  IsBreak := False;
+                  for J := 0 to Full.From.Tables.Count - 1 do
+                  begin
+                    if Full.From.Tables[J] is TsqlTable then
+                    begin
+                      if Full.From.Tables[J] = Relations[I] then
                       begin
                         (Full.From.Tables[J] as TsqlTable).Joins.Add(LinkJoin);
-                        IsBreak := True;
-                        Break;
+                         IsBreak := True;
+                         Break;
                       end;
-                   end
-                   else if Full.From.Tables[J] is TsqlFunction then
-                   begin
-                      for G := 0 to (Full.From.Tables[J] as TsqlFunction).Joins.Count - 1 do
-                        if ((Full.From.Tables[J] as TsqlFunction).Joins[G] as TsqlJoin).JoinTable = Relations[I] then
+
+                      for G := 0 to (Full.From.Tables[J] as TsqlTable).Joins.Count - 1 do
+                        if ((Full.From.Tables[J] as TsqlTable).Joins[G] as TsqlJoin).JoinTable = Relations[I] then
                         begin
-                          (Full.From.Tables[J] as TsqlFunction).Joins.Add(LinkJoin);
+                          (Full.From.Tables[J] as TsqlTable).Joins.Add(LinkJoin);
                           IsBreak := True;
                           Break;
                         end;
-                   end;
-                   if IsBreak then Break;
+                     end
+                     else if Full.From.Tables[J] is TsqlFunction then
+                     begin
+                        for G := 0 to (Full.From.Tables[J] as TsqlFunction).Joins.Count - 1 do
+                          if ((Full.From.Tables[J] as TsqlFunction).Joins[G] as TsqlJoin).JoinTable = Relations[I] then
+                          begin
+                            (Full.From.Tables[J] as TsqlFunction).Joins.Add(LinkJoin);
+                            IsBreak := True;
+                            Break;
+                          end;
+                     end;
+                     if IsBreak then Break;
+                  end;
+
+                  if not isBreak and (Full.From.Tables.Count = 1) then
+                    if (Full.From.Tables[0] is TsqlTable) then
+                      (Full.From.Tables[0] as TsqlTable).Joins.Add(LinkJoin)
+                    else if (Full.From.Tables[0] is TsqlFunction) then
+                      (Full.From.Tables[0] as TsqlFunction).Joins.Add(LinkJoin);
                 end;
-
-                if not isBreak and (Full.From.Tables.Count = 1) then
-                  if (Full.From.Tables[0] is TsqlTable) then
-                    (Full.From.Tables[0] as TsqlTable).Joins.Add(LinkJoin)
-                  else if (Full.From.Tables[0] is TsqlFunction) then
-                    (Full.From.Tables[0] as TsqlFunction).Joins.Add(LinkJoin);
               end;
-
               IsBreak := False;
               //Проверяем было ли уже добавлено поле для отображения по ссылке
               for G := 0 to Fields.Count - 1 do
@@ -1488,6 +1584,8 @@ begin
                   LinkAlias + '_' +  F.ReferenceListField.FieldName then
                 begin
                   IsBreak := True;
+                  if LeftJoinAdd then
+                    (Fields.Items[G] as TsqlField).FieldAlias := CurrAlias;
                   Break;
                 end;
 
@@ -1496,8 +1594,9 @@ begin
                 //Добавляем поле для отображения
                 CurrField := TsqlField.Create(Parser, False);
                 CurrField.FieldAttrs := [eoName, eoAlias, eoSubName];
-
                 CurrField.FieldName := F.ReferenceListField.FieldName;
+                if LeftJoinAdd then
+                  LinkAlias := CurrAlias;
                 CurrField.FieldAlias := LinkAlias;
                 CurrField.FieldAsName := LinkAlias + '_' +
                    F.ReferenceListField.FieldName;
@@ -1580,6 +1679,7 @@ begin
     ToRemove.Free;
     WasComment.Free;
     FieldList.Free;
+    JoinTables.Free;
   end;
 
   if Full.Union <> nil then

@@ -1,7 +1,3 @@
-{
-      ibsql.SQL.Text := 'UPDATE gd_documenttype SET ruid = CAST(id as VARCHAR(20))||''_17'' WHERE id < 147000000 and ruid IS NULL';
-      ibsql.ExecQuery;
-}
 
 unit mdf_UpdateDocumenttypeRUID;
 
