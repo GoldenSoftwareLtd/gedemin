@@ -17,7 +17,8 @@ type
     BITriggerName,
     BUTriggerName,
     LBIndexName,
-    RBIndexName: String
+    RBIndexName,
+    ChkName: String
   end;
 
 procedure CreateLBRBTreeMetaDataScript(AScript: TStrings;
@@ -392,10 +393,11 @@ begin
   if Names.RBIndexName = '' then
     AScript.Add(PrepareStr(c_index_rb));
 
-  if not JustAlter then
-  begin
+  if Names.ChkName = '' then
     AScript.Add(PrepareStr(c_check, PrepareStr(c_check_name, '', True)));
 
+  if not JustAlter then
+  begin
     AScript.Add(PrepareStr(c_grant, PrepareStr(c_el_procedure_name, '', True)));
     AScript.Add(PrepareStr(c_grant, PrepareStr(c_gchc_procedure_name, '', True)));
     AScript.Add(PrepareStr(c_grant, PrepareStr(c_restruct_procedure_name, '', True)));
@@ -503,6 +505,7 @@ begin
     BUTriggerName := '';
     LBIndexName := '';
     RBIndexName := '';
+    ChkName := '';
   end;
 
   if ATr = nil then
@@ -598,6 +601,19 @@ begin
       q.ParamByName('RN').AsString := ARelName;
       q.ExecQuery;
       Names.RBIndexName := q.Fields[0].AsTrimString;
+
+      q.Close;
+      q.SQL.Text :=
+        'select c.rdb$constraint_name ' +
+        'from rdb$check_constraints c ' +
+        '  join rdb$triggers t on c.rdb$trigger_name = t.rdb$trigger_name ' +
+        'where ' +
+        '  UPPER(t.rdb$trigger_source) LIKE ''%CHECK%(%LB%<=%RB%)%'' ' +
+        '  AND t.rdb$relation_name = :RN ';
+      q.ParamByName('RN').AsString := ARelName;
+      q.ExecQuery;
+      if not q.EOF then
+        Names.ChkName := q.Fields[0].AsTrimString;
 
       q.Close;
       q.SQL.Text :=

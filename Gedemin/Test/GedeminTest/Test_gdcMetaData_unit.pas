@@ -215,7 +215,7 @@ begin
     q.Transaction := Tr;
 
     try
-      for I := 1 to 1200 do
+      for I := 1 to 1800 do
       begin
         q.Close;
 
