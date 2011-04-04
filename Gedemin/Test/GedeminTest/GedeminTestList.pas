@@ -7,7 +7,8 @@ uses
   TestGdKeyArray_unit,
   TestMMFStream_unit,
   Test_gsMorph_unit,
-  Test_gsPeriodEdit_unit
+  Test_gsPeriodEdit_unit,
+  Test_AtSQLSetup_unit
   {$IFDEF GEDEMIN}
   , Test_gsStorage_unit
   , Test_gdcContact_unit

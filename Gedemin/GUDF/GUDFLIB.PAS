@@ -19,7 +19,7 @@ unit GUDFlib;
 interface
 
 uses
-  SysUtils, Classes;
+  {FastMM4,} SysUtils, Classes, cDataStructs, SyncObjs;
 
 type
 // C, C++     Delphi          InterBase
@@ -1155,6 +1155,65 @@ begin
   end;
 end;
 
+//====================================================================
+
+var
+  BitCS: TCriticalSection;
+  BitArray: TBitArray;
+
+function g_bit_init(var ACount: Integer): Integer;
+  cdecl; export;
+begin
+  Result := -1;
+  BitCS.Enter;
+  try
+    if not Assigned(BitArray) then
+      BitArray := TBitArray.Create;
+    BitArray.Clear;
+    BitArray.Count := ACount;
+    Result := ACount;
+  finally
+    BitCS.Leave;
+  end;
+end;
+
+function g_bit_done: Integer;
+  cdecl; export;
+begin
+  Result := 0;
+  BitCS.Enter;
+  try
+    FreeAndNil(BitArray);
+  finally
+    BitCS.Leave;
+  end;
+end;
+
+function g_bit_set(var AnIndex: Integer; var AValue: Integer): Integer;
+  cdecl; export;
+begin
+  Assert(Assigned(BitArray));
+  Result := AValue;
+  BitCS.Enter;
+  try
+    BitArray[AnIndex] := AValue <> 0;
+  finally
+    BitCS.Leave;
+  end;
+end;
+
+function g_bit_get(var AnIndex: Integer): Integer;
+  cdecl; export;
+begin
+  Assert(Assigned(BitArray));
+  BitCS.Enter;
+  try
+    Result := Integer(BitArray[AnIndex]);
+  finally
+    BitCS.Leave;
+  end;
+end;
+
 exports
   g_sec_test,
   g_sec_testall,
@@ -1218,5 +1277,18 @@ exports
   g_blob_size,
   g_blob_search,
   g_blob_blobtocstring,
-  g_blob_cstringtoblob;
+  g_blob_cstringtoblob,
+
+  g_bit_init,
+  g_bit_done,
+  g_bit_set,
+  g_bit_get;
+
+initialization
+  BitCS := TCriticalSection.Create;
+  BitArray := nil;
+
+finalization
+  BitArray.Free;
+  BitCS.Free;
 end.

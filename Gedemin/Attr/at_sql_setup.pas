@@ -1036,50 +1036,67 @@ begin
 end;
 
 procedure TatSQLSetup.ChangeFullEx(Parser: TsqlParser; Full: TsqlFull);
-  function FindTableName(Full: TsqlFull; const TableName: String): Boolean;
+
+  function FindTableName(AFull: TsqlFull; const ATableName: String): Boolean;
   var
     I, K: Integer;
   begin
+    Assert(AFull <> nil);
+    Assert(AFull.From <> nil);
+    Assert(AFull.From.Tables <> nil);
+
     Result := False;
+
     for I := 0 to Full.From.Tables.Count - 1 do
     begin
       if Full.From.Tables[I] is TsqlTable then
-        if AnsiCompareText((Full.From.Tables[I] as TsqlTable).TableName, TableName) = 0 then
+      begin
+        if AnsiCompareText((Full.From.Tables[I] as TsqlTable).TableName, ATableName) = 0 then
         begin
           Result := True;
           exit;
-        end;
-
-      if Full.From.Tables[I] is TsqlTable then
-      with Full.From.Tables[I] as TsqlTable do
-        for K := 0 to Joins.Count - 1 do
+        end else
         begin
-          if Joins[K] is TsqlJoin then
-            if (Joins[K] as TsqlJoin).JoinTable is TsqlTable then
-            begin
-              if AnsiCompareText(((Joins[K] as TsqlJoin).JoinTable as TsqlTable).TableName, TableName) = 0 then
-              begin
-                Result := True;
-                exit;
-              end;
+          Assert((Full.From.Tables[I] as TsqlTable).Joins <> nil);
 
-              if ((Joins[K] as TsqlJoin).JoinTable as TsqlTable).SubSelect <> nil then
-                if  FindTableName(((Joins[K] as TsqlJoin).JoinTable as TsqlTable).SubSelect,TableName) then
+          for K := 0 to (Full.From.Tables[I] as TsqlTable).Joins.Count - 1 do
+          begin
+            if (Full.From.Tables[I] as TsqlTable).Joins[K] is TsqlJoin then
+            begin
+              if ((Full.From.Tables[I] as TsqlTable).Joins[K] as TsqlJoin).JoinTable is TsqlTable then
+              begin
+                if AnsiCompareText((((Full.From.Tables[I] as TsqlTable).Joins[K] as TsqlJoin).JoinTable as TsqlTable).TableName, ATableName) = 0 then
                 begin
                   Result := True;
                   exit;
                 end;
-            end
-            else
-              if ((Joins[K] as TsqlJoin).JoinTable is TsqlFunction) then
-                if AnsiCompareText(((Joins[K] as TsqlJoin).JoinTable as TsqlFunction).FuncName, TableName) = 0 then
+
+                if (((Full.From.Tables[I] as TsqlTable).Joins[K] as TsqlJoin).JoinTable as TsqlTable).SubSelect <> nil then
                 begin
-                  Result := True;
-                  exit;
+                  if FindTableName((((Full.From.Tables[I] as TsqlTable).Joins[K] as TsqlJoin).JoinTable as TsqlTable).SubSelect, ATableName) then
+                  begin
+                    Result := True;
+                    exit;
+                  end;
                 end;
+              end else
+              begin
+                if (((Full.From.Tables[I] as TsqlTable).Joins[K] as TsqlJoin).JoinTable is TsqlFunction) then
+                begin
+                  if AnsiCompareText((((Full.From.Tables[I] as TsqlTable).Joins[K] as TsqlJoin).JoinTable as TsqlFunction).FuncName, ATableName) = 0 then
+                  begin
+                    Result := True;
+                    exit;
+                  end;
+                end;  
+              end;
+            end;
+          end;
         end;
+      end;
     end;
   end;
+
 var
   Relations, Fields, ToRemove, JoinTables: TObjectList;
   CurrTable: TsqlTable;
