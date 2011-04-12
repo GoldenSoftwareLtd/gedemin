@@ -7400,7 +7400,9 @@ var
   FSQL: TSQLProcessList;
   Names: TLBRBTreeMetaNames;
 begin
-  if GetLBRBTreeDependentNames(FieldByName('relationname').AsString, ReadTransaction, Names) > 3 then  // 3 SP
+  // Проверяем, есть ли для нашей таблицы зависимые хранимые процедуры или представления,
+  // кроме стандартных частей интервального дерева.
+  if GetLBRBTreeDependentNames(FieldByName('relationname').AsString, ReadTransaction, Names) > 3 then  // 3 SP 
     raise EgdcIBError.Create('Нельзя удалить таблицу т.к. она используется в процедурах или представлениях');
 
   ibsql := CreateReadIBSQL;

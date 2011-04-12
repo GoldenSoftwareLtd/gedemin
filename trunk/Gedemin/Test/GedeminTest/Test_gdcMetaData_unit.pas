@@ -17,6 +17,7 @@ type
     procedure TestLBRBTree;
     procedure TestRestrLBRBTree;
     procedure TestDropLBRBTree;
+    procedure TestGetDependentNames;
 
     procedure TestGD_RUID;
   end;
@@ -188,6 +189,23 @@ begin
   StartExpectingException(EIBInterBaseError);
   FQ.ExecQuery;
   StopExpectingException('');
+end;
+
+procedure TgdcMetaDataTest.TestGetDependentNames;
+var
+  Names: TLBRBTreeMetaNames;
+begin
+  Check(GetLBRBTreeDependentNames('GD_CONTACT', nil, Names) = -1);
+  Check(GetLBRBTreeDependentNames('GD_CONTACT', FTr, Names) > 5);
+  Check(Names.ChldCtName = 'GD_P_GCHC_CONTACT');
+  Check(Names.ExLimName = 'GD_P_EL_CONTACT');
+  Check(Names.RestrName = 'GD_P_RESTRUCT_CONTACT');
+  Check(Names.ExceptName = '');
+  Check(Names.BITriggerName = 'GD_BI_CONTACT10');
+  Check(Names.BUTriggerName = 'GD_BU_CONTACT10');
+  Check(Names.LBIndexName = 'GD_X_CONTACT_LB');
+  Check(Names.RBIndexName = 'GD_X_CONTACT_RB');
+  Check(Names.ChkName = 'GD_CHK_CONTACT_TR_LMT');
 end;
 
 procedure TgdcMetaDataTest.TestLBRBTree;

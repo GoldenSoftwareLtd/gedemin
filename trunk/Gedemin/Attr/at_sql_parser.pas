@@ -1,7 +1,6 @@
 {++
 
-
-  Copyright (c) 2001-2009 by Golden Software of Belarus
+  Copyright (c) 2001-2011 by Golden Software of Belarus
 
   Module
 
@@ -635,9 +634,7 @@ type
     property TableAlias: String read FAlias write SetAlias;
     property TableAttrs: TElementOptions read FDone write SetDone;
 
-    property SubSelect: TsqlFull read FSubSelect;
     property Joins: TObjectList read FJoins;
-
   end;
 
   TsqlFrom = class(TsqlStatement)
