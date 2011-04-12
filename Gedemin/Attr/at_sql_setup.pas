@@ -919,8 +919,8 @@ begin
   T := Now;
 {$ENDIF}
 
-  L := Length(Text);
-  
+  L := Length(Text);   
+
   if L = 0 then
     Result := ''
   else
@@ -932,7 +932,7 @@ begin
     end else
       I := -1;
     if I = -1 then
-    begin
+    begin 
       Result := AdjustSQL(Text, ObjectClassName);
 
       if (atSQLSetupCache <> nil) and (Ignores.Count = 0) then
@@ -1100,7 +1100,7 @@ procedure TatSQLSetup.ChangeFullEx(Parser: TsqlParser; Full: TsqlFull);
 var
   Relations, Fields, ToRemove, JoinTables: TObjectList;
   CurrTable: TsqlTable;
-  I, K, J, G, H, O, L: Integer;
+  I, K, J, G, H, O, L, N: Integer;
   R: TatRelation;
   F, Fld: TatRelationField;
   CurrField: TsqlField;
@@ -1111,12 +1111,12 @@ var
   LinkCondition: TsqlCondition;
   LinkField: TsqlField;
   LinkAlias, CurrAlias: String;
-  IsBreak, LeftJoinAdd: Boolean;
+  IsBreak, LeftJoinAdd, FieldOne, FieldTwo: Boolean;
   WasComment, SL: TStringList;
   NeedCreateField: Boolean;
   FieldList: TStringList;
   FieldPos: String;
-  LeftJoinTableName: String;
+  LeftJoinTableName, AddTableAlias: String;
 begin
   Assert(Assigned(gdcBaseManager));
 
@@ -1147,7 +1147,8 @@ begin
         begin
           Relations.Add((Joins[K] as TsqlJoin).JoinTable);
           if Joins[K] is TsqlJoin then
-            JoinTables.Add(Joins[K]);
+            if (Joins[K] as TsqlJoin).JoinClause.Include(cLeft) and (Joins[K] as TsqlJoin).JoinClause.Include(cJoin)  then
+              JoinTables.Add(Joins[K]);
         end
       else
 
@@ -1495,6 +1496,9 @@ begin
                          end;
                       if LeftJoinTableName = F.References.RelationName then
                         for L := 0 to Conditions.Count - 1 do
+                        begin
+                          FieldOne := False;
+                          FieldTwo := False;
                           if Conditions[L] is TsqlCondition then
                             with Conditions[L] as TsqlCondition do
                             begin
@@ -1503,12 +1507,26 @@ begin
                                   with Statements[O] as TsqlField do
                                   begin
                                     if (AnsiCompareText(FieldName, F.FieldName) = 0) and (AnsiCompareText(FieldAlias, TableAlias) = 0) then
+                                      FieldTwo := True
+                                    else
+                                    if AnsiCompareText(F.ReferencesField.FieldName, FieldName) = 0 then
+                                        FieldOne := True;
+                                    if FieldOne and FieldTwo then
                                     begin
                                       LeftJoinAdd := True;
+                                      if TableAlias <> '' then
+                                        AddTableAlias := TableAlias + '_' + F.FieldName
+                                      else
+                                        AddTableAlias := TableName + '_' + F.FieldName;
+                                      for N := 0 to Full.Select.Fields.Count -1 do
+                                        if (Full.Select.Fields[N] is TsqlField) then
+                                          if AnsiCompareText((Full.Select.Fields[N] as TsqlField).FieldAlias, AddTableAlias) = 0 then
+                                            (Full.Select.Fields[N] as TsqlField).FieldAlias := CurrAlias; 
                                       Break;
                                     end;
                                   end;
                             end;
+                        end;
                       end;
                     end;
                 //if (not Full.From.FindTableByAlias(LinkAlias)) and (not LeftJoinAdd) then
