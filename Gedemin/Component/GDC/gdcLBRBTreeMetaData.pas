@@ -29,6 +29,7 @@ function UpdateLBRBTreeBase(const Tr: TIBTransaction; const JustAlter: Boolean;
 function GetLBRBTreeDependentNames(const ARelName: String; const ATr: TIBTRansaction;
   out Names: TLBRBTreeMetaNames): Integer;
 function RestrLBRBTree(const ARelName: String; const ATr: TIBTRansaction): Integer;
+procedure InitLBRBTreeDependentNames(out Names: TLBRBTreeMetaNames);
 
 implementation
 
@@ -495,20 +496,9 @@ var
   q: TIBSQL;
   S: String;
 begin
-  with Names do
-  begin
-    ChldCtName := '';
-    ExLimName := '';
-    RestrName := '';
-    ExceptName := '';
-    BITriggerName := '';
-    BUTriggerName := '';
-    LBIndexName := '';
-    RBIndexName := '';
-    ChkName := '';
-  end;
+  InitLBRBTreeDependentNames(Names);
 
-  if ATr = nil then
+  if (ATr = nil) or (not ATr.InTransaction) then
     Result := -1
   else begin
     q := TIBSQL.Create(nil);
@@ -668,6 +658,22 @@ begin
   finally
     q.Free;
     q2.Free;
+  end;
+end;
+
+procedure InitLBRBTreeDependentNames(out Names: TLBRBTreeMetaNames);
+begin
+  with Names do
+  begin
+    ChldCtName := '';
+    ExLimName := '';
+    RestrName := '';
+    ExceptName := '';
+    BITriggerName := '';
+    BUTriggerName := '';
+    LBIndexName := '';
+    RBIndexName := '';
+    ChkName := '';
   end;
 end;
 

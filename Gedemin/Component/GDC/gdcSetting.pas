@@ -5,7 +5,7 @@ interface
 uses
    gdcBase, gd_classlist, Classes, Forms, gd_createable_form, SysUtils, Controls, dialogs,
    db, gd_security, dbgrids, gdcBaseInterface, contnrs, gd_KeyAssoc, IBCustomDataSet,
-   StdCtrls, IBSQL, at_SettingWalker, gsStreamHelper;
+   StdCtrls, IBSQL, at_SettingWalker, gsStreamHelper, gdcLBRBTreeMetaData;
 
 {type
   TSettingError = record
@@ -2004,6 +2004,7 @@ var
   gdcTrigger: TgdcTrigger;
   gdcFunction: TgdcFunction;
   gdcObject: TgdcBase;
+  LBRBTree: TLBRBTreeMetaNames;
 begin
   Assert(HasSubSet('BySetting'));
   Assert(Active);
@@ -2121,6 +2122,11 @@ begin
           else
             FieldByName('withdetail').AsInteger := 0;
 
+          if AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcLBRBTreeTable') = 0 then
+            GetLBRBTreeDependentNames(AnObject.FieldByName('relationname').AsString, Transaction, LBRBTree)
+          else
+            InitLBRBTreeDependentNames(LBRBTree);
+
           Post;
         except
           Cancel;
@@ -2138,7 +2144,6 @@ begin
   finally
     ibsql.Free;
   end;
-
 
   if (AnObject is TgdcMetaBase) and WithDetail then
   begin
@@ -2223,10 +2228,26 @@ begin
                     Obj.Open;
                     if (Obj.RecordCount > 0) and (Obj is TgdcMetaBase) and
                       (TgdcMetaBase(Obj).IsUserDefined)
-                    then
-                    begin
+                    then begin
                       //Мы будем сохранять в настройке только пользовательские мета-данные
-                      AddPos(Obj, WithDetail);
+                      if Obj is TgdcIndex then
+                      begin
+                        if (AnsiCompareText(Obj.FieldByName('indexname').AsString, LBRBTree.LBIndexName) <> 0)
+                          and (AnsiCompareText(Obj.FieldByName('indexname').AsString, LBRBTree.RBIndexName) <> 0) then
+                        begin
+                          AddPos(Obj, WithDetail);
+                        end;
+                      end
+                      else
+                        if Obj is TgdcTrigger then
+                        begin
+                          if (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BITriggerName) <> 0)
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BUTriggerName) <> 0) then
+                          begin
+                            AddPos(Obj, WithDetail);
+                          end;
+                        end else
+                          AddPos(Obj, WithDetail);
                     end;
                     Obj.Close;
                     ibsql.Next;

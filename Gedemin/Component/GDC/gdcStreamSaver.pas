@@ -4,7 +4,7 @@ interface
 
 uses
   gdcBase,              gdcBaseInterface,           classes,
-  IBDatabase,           IBSQL,
+  IBDatabase,           IBSQL,                      gdcLBRBTreeMetaData,
   contnrs,              dbgrids,                    comctrls,
   gd_KeyAssoc,          db,                         gsStorage,
   gsStreamHelper,       gdcSetting,                 dbclient;
@@ -285,6 +285,7 @@ type
 
     FSaveWithDetailList: TgdKeyArray;
     FNeedModifyList: TgdKeyIntAssoc;
+    FLBRBTree: TLBRBTreeMetaNames;
 
     function GetIbsqlRPLRecordSelect: TIBSQL;
     function GetIbsqlRPLRecordInsert: TIBSQL;
@@ -646,7 +647,7 @@ uses
   gdc_frmStreamSaver,       zlib,                    gdcInvDocument_unit,
   flt_SafeConversion_unit,  JclMime,                 jclUnicode,
   gdcFunction,              gdcExplorer,             gdcMacros,
-  gdcReport,                gdcLBRBTreeMetaData;
+  gdcReport;              //  gdcLBRBTreeMetaData;
 
 type
   TgdcReferenceUpdate = class(TObject)
@@ -1623,7 +1624,7 @@ end;
 
 procedure TgdcStreamDataProvider.SaveRecord(const ObjectIndex: Integer;
   const AID: TID; const AWithDetail: Boolean = true);
-begin
+begin 
   Self.SaveRecord(FDataObject.gdcObject[ObjectIndex], ObjectIndex, AID, AWithDetail);
 end;
 
@@ -1634,6 +1635,7 @@ var
   C: TgdcFullClass;
   Index: Integer;
 begin
+   
   // ѕри нажатии Escape прервем процесс
   if not SilentMode and Application.Active and (AbortProcess or ((GetAsyncKeyState(VK_ESCAPE) shr 1) <> 0)) then
   begin
@@ -3160,6 +3162,12 @@ begin
       Result := False;
       if StrIPos(UserPrefix, AObj.FieldByName('indexname').AsString) = 1 then
       begin
+        if (AnsiCompareText(AObj.FieldByName('indexname').AsString, FLBRBTree.LBIndexName) = 0)
+          or (AnsiCompareText(AObj.FieldByName('indexname').AsString, FLBRBTree.RBIndexName) = 0) then
+        begin
+          exit;
+        end;
+
         //если название индекса совпадает с названием ограничени€, то не сохран€ем его
         FIBSQL.Close;
         FIBSQL.SQL.Text :=
@@ -3172,7 +3180,7 @@ begin
         if FIBSQL.RecordCount = 0 then
           Result := True;
       end;
-      Exit;
+      exit;
     end;
 
     if AObj is TgdcTrigger then
@@ -3182,12 +3190,18 @@ begin
       Result := False;
       if (AnsiCompareText('USR$_BU_INV_CARD', Trim(AObj.FieldByName('triggername').AsString)) = 0) then
         Exit;
+
       for I := 1 to MaxInvCardTrigger do
         if (AnsiCompareText(Format('USR$%d_BU_INV_CARD', [I]), Trim(AObj.FieldByName('triggername').AsString)) = 0) then
           Exit;
       //¬ поток сохран€ем только триггеры-атрибуты
       if AnsiPos(UserPrefix, AnsiUpperCase(AObj.FieldByName('triggername').AsString)) = 1 then
+      begin
+        if (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BITriggerName) = 0)
+          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BUTriggerName) = 0) then
+          exit;
         Result := True;
+      end;
       Exit;
     end;
 
@@ -3223,6 +3237,9 @@ var
   LocalID: TID;
 begin
   Result := True;
+
+  if AObj is TgdcLBRBTreeTable then
+    GetLBRBTreeDependentNames(AObj.FieldByName('RELATIONNAME').AsString, FTransaction, FLBRBTree);
 
   if AObj is TgdcStoredProc then
   begin
@@ -4307,7 +4324,6 @@ begin
         if FDataObject.ClientDS[K].RecordCount > 0 then
         begin
           Obj := FDataObject.gdcObject[K];
-
           StreamWriteString(PackStream, Obj.ClassName);
           StreamWriteString(PackStream, Obj.SubType);
           StreamWriteString(PackStream, Obj.SetTable);
@@ -5962,7 +5978,6 @@ begin
   inherited;
 end;
 
-
 procedure TgdcStreamSaver.SaveToStream(S: TStream);
 var
   FStreamWriterReader: TgdcStreamWriterReader;
@@ -5971,7 +5986,7 @@ begin
     raise Exception.Create(GetGsException(Self, 'SaveToStream: Ќе установлен поток'));
 
   FStreamDataProvider.CheckNonConfirmedRecords;
-
+  
   //сохранить полученные данные в поток
   case FStreamFormat of
     sttBinaryNew: FStreamWriterReader := TgdcStreamBinaryWriterReader.Create(FDataObject, FStreamLoadingOrderList);
@@ -6844,14 +6859,12 @@ begin
   end;
 end;
 
-
 procedure TgdcStreamSaver.SetSilent(const Value: Boolean);
 begin
   SilentMode := Value;
   if Assigned(frmSQLProcess) and not Assigned(frmStreamSaver) then
     frmSQLProcess.Silent := Value;
 end;
-
 
 function TgdcStreamSaver.GetSilent: Boolean;
 begin
