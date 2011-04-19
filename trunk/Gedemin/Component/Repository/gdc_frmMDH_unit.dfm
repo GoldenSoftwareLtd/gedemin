@@ -9,11 +9,11 @@ inherited gdc_frmMDH: Tgdc_frmMDH
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 436
-    Width = 732
+    Top = 425
+    Width = 724
   end
   inherited TBDockTop: TTBDock
-    Width = 732
+    Width = 724
     OnRequestDock = TBDockTopRequestDock
     inherited tbMainToolbar: TTBToolbar
       Caption = 'Панель инструментов (главная)'
@@ -74,24 +74,24 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 378
+    Height = 365
   end
   inherited TBDockRight: TTBDock
-    Left = 723
-    Height = 378
+    Left = 715
+    Height = 365
   end
   inherited TBDockBottom: TTBDock
-    Top = 427
-    Width = 732
+    Top = 416
+    Width = 724
   end
   inherited pnlWorkArea: TPanel
-    Width = 714
+    Width = 706
     Height = 378
     TabOrder = 0
     object sMasterDetail: TSplitter [0]
       Left = 0
       Top = 167
-      Width = 714
+      Width = 706
       Height = 6
       Cursor = crVSplit
       Align = alTop
@@ -99,11 +99,11 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
     inherited spChoose: TSplitter
       Top = 273
-      Width = 714
+      Width = 706
       Height = 6
     end
     inherited pnlMain: TPanel
-      Width = 714
+      Width = 706
       Height = 167
       Align = alTop
       Constraints.MinHeight = 1
@@ -120,22 +120,22 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
     inherited pnChoose: TPanel
       Top = 279
-      Width = 714
+      Width = 706
       TabOrder = 2
       inherited pnButtonChoose: TPanel
-        Left = 609
+        Left = 601
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 609
+        Width = 601
       end
       inherited pnlChooseCaption: TPanel
-        Width = 714
+        Width = 706
       end
     end
     object pnlDetail: TPanel
       Left = 0
       Top = 173
-      Width = 714
+      Width = 706
       Height = 100
       Align = alClient
       BevelOuter = bvLowered
@@ -145,7 +145,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       object TBDockDetail: TTBDock
         Left = 1
         Top = 1
-        Width = 712
+        Width = 704
         Height = 26
         OnRequestDock = TBDockDetailRequestDock
         object tbDetailToolbar: TTBToolbar

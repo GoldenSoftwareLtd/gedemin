@@ -575,6 +575,7 @@ type
 
   /////////////////////////////////////////////////////////
   // базавы клас для б_знэс аб'ектаў
+
   TgdcBase = class(TIBCustomDataSet, IgdcBase)
   private
     FParentForm: TWinControl;
@@ -9024,13 +9025,27 @@ begin
 
                         // Для деревьев не будем сохранять служебные метаданные
                         if Self is TgdcLBRBTreeTable then
+                        begin
                           if Obj is TgdcTrigger then
+                          begin
                             if (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), TreeDependentNames.BITriggerName) = 0)
                                or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), TreeDependentNames.BUTriggerName) = 0) then
                             begin
                               ibsql.Next;
                               Continue;
                             end;
+                          end
+                          else
+                           if Obj is TgdcIndex then
+                           begin
+                             if (AnsiCompareText(Trim(Obj.FieldByName('RDB$INDEX_NAME').AsString), TreeDependentNames.LBIndexName) = 0)
+                               or (AnsiCompareText(Trim(Obj.FieldByName('RDB$INDEX_NAME').AsString), TreeDependentNames.RBIndexName) = 0) then
+                             begin
+                               ibsql.Next;
+                               Continue;
+                             end;
+                           end;  
+                        end;
 
                         if Obj.RecordCount > 0 then
                           Obj._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
