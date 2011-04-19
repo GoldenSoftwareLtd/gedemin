@@ -7,17 +7,10 @@ uses
    db, gd_security, dbgrids, gdcBaseInterface, contnrs, gd_KeyAssoc, IBCustomDataSet,
    StdCtrls, IBSQL, at_SettingWalker, gsStreamHelper, gdcLBRBTreeMetaData;
 
-{type
-  TSettingError = record
-    Number: Longint;
-    Description: String;
-  end; }
-
 type
   TgdcSetting = class(TgdcBase)
   private
     FSilent: boolean;
-  // FActivateError: TSettingError;
     FActivateErrorDescription: WideString;
     //Список руидов в настройке. Используется при загрузке из потока
     OldRuidList: TStrings;
@@ -4805,12 +4798,12 @@ var
                   if Assigned(Obj) then
                   begin
                     Obj.Open;
-                    AddText('Удаление объекта ' + Obj.GetDisplayName(Obj.SubType) +
-                      ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
-                      ' с идентификатором ' + IntToStr(AnID), clBlue);
-                    if (Obj.RecordCount > 0) then
+                    if (Obj.RecordCount > 0) and (not IsGedeminSystemID(Obj.ID)) then
                     try
-                      if (not(Obj is TgdcMetaBase)) or (Obj as TgdcMetaBase).IsUserDefined then
+                      AddText('Удаление объекта ' + Obj.GetDisplayName(Obj.SubType) +
+                        ' ' + Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString +
+                        ' с идентификатором ' + IntToStr(AnID), clBlue);
+                      if (not (Obj is TgdcMetaBase)) or (Obj as TgdcMetaBase).IsUserDefined then
                         Obj.Delete;
                     except
                       on E: Exception do

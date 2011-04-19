@@ -18,7 +18,6 @@
 
   Contact address
 
-    a_kireev@yahoo.com
     http://www.gsbelarus.com
 
   Revisions history
@@ -220,6 +219,13 @@ const
   //Хранилище компании
   st_root_Company                 = 'COMPANY';
 
+function IsGedeminSystemID(const AnID: Integer): Boolean;
+
 implementation
+
+function IsGedeminSystemID(const AnID: Integer): Boolean;
+begin
+  Result := AnID < cstUserIDStart;
+end;
 
 end.

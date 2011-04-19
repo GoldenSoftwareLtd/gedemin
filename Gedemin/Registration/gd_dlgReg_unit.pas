@@ -35,7 +35,7 @@ var
 implementation
 
 uses
-  gd_registration
+  gd_registration, Clipbrd
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -91,9 +91,14 @@ begin
   lblRegNumber2.Caption := GetVisRegNumber;
 
   if IsRegisteredCopy then
-    pc.ActivePage := tsReg
-  else
+  begin
+    pc.ActivePage := tsReg;
+    Clipboard.AsText := lblRegNumber2.Caption;
+  end else
+  begin
     pc.ActivePage := tsUnReg;
+    Clipboard.AsText := lblRegNumber.Caption;
+  end;
 end;
 
 

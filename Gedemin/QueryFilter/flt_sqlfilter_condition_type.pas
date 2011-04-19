@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2001 by Golden Software of Belarus
+  Copyright (c) 2000-2011 by Golden Software of Belarus
 
   Module
 
