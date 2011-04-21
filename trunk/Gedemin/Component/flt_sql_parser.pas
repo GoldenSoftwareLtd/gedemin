@@ -88,6 +88,10 @@ procedure ExtractAllSQL(const AnSQLText: String; var SelectSQL, FromSQL,
 // Вытягиваем наименование процедуры из скрипта ее создающего
 function ExtractProcedureName(const AnSQLText: String): String;
 
+// Вытягиваем только Group by
+procedure ExtractSQLGroupBy(const AnSQLText: String; AList: TStringList;
+  const AnExpandFieldNumbers: Boolean = True);
+
 implementation
 
 uses
@@ -1341,6 +1345,75 @@ begin
     // Присваиваем результат
     SetString(OrderBySQL, Start1, Start2 - Start1);
   end;
-end;  
+end;
+
+procedure ExtractSQLGroupBy(const AnSQLText: String; AList: TStringList;
+  const AnExpandFieldNumbers: Boolean = True);
+var
+  SelectFields: TStringList;
+  Temp: String;
+  I, P, PU, PH, PAs: Integer;
+begin
+  Assert(Assigned(AList));
+
+  AList.Clear;
+
+  Temp := ExtractSQLOther(AnSQLText);
+  Temp := StringReplace(Temp, #13, ' ', [rfReplaceAll]);
+  Temp := StringReplace(Temp, #10, ' ', [rfReplaceAll]);
+
+  while Pos('  ', Temp) > 0 do
+    Temp := StringReplace(Temp, '  ', ' ', [rfReplaceAll]);
+
+  P := StrIPos('group by ', Temp);
+
+  if P > 0 then
+  begin
+    Temp := Copy(Temp, Length('group by ') + 1, 65536);
+
+    PU := StrIPos(' union ', Temp);
+    if PU > 0 then
+      SetLength(Temp, PU - 1);
+
+    PH := StrIPos(' having ', Temp);
+    if PH > 0 then
+      SetLength(Temp, PH - 1);
+
+    AList.CommaText := StringReplace(Temp, ' ', '', [rfReplaceAll]);
+
+    if AnExpandFieldNumbers then
+    begin
+      Temp := ExtractSQLSelect(AnSQLText);
+      Temp := StringReplace(Temp, #13, ' ', [rfReplaceAll]);
+      Temp := StringReplace(Temp, #10, ' ', [rfReplaceAll]);
+
+      while Pos('  ', Temp) > 0 do
+        StringReplace(Temp, '  ', ' ', [rfReplaceAll]);
+
+      P := StrIPos('select ', Temp);
+      if P > 0 then
+        Temp := Copy(Temp, P + Length('select '), 65536);
+
+      SelectFields := TStringList.Create;
+      try
+        SelectFields.CommaText := Temp;
+        for I := 0 to AList.Count - 1 do
+        begin
+          P := StrToIntDef(AList[I], -1);
+          if P > 0 then
+          begin
+            Temp := Trim(SelectFields[P - 1]);
+            PAs := StrIPos(' as ', Temp);
+            if PAs > 0 then
+              SetLength(Temp, PAs - 1);
+            AList[I] := Temp;
+          end;
+        end;
+      finally
+        SelectFields.Free;
+      end;
+    end;
+  end;
+end;
 
 end.

@@ -114,6 +114,7 @@ type
     FEnableOrder: Boolean;              // Флаг Допускается ли сортировка
     FIsNewFilter: Boolean;              // Создан ли новый фильтр
     FSQLText: String;                   // Текст запроса начального
+    FGroupByFields: TStringList;
 
     function CheckMainFields: Boolean;  // Проверка корректности заполнения полей
     // Изменить поля по которым идет сортировка
@@ -169,6 +170,7 @@ type
     procedure ClearSortList;
     procedure ClearIndexList;
     function CheckFieldName(AnFieldName: String): String;
+    
   public
     // Эти параметры должны быть присвоены до начала вызова функций
     Database: TIBDatabase;
@@ -203,7 +205,7 @@ var
 implementation
 
 uses
-  flt_frFilterLine_unit, flt_frOrderLine_unit, flt_sql_parser,
+  flt_frFilterLine_unit, flt_frOrderLine_unit, flt_sql_parser, 
   {$IFDEF SYNEDIT}
   flt_frmSQLEditorSyn_unit,
   {$ELSE}
@@ -225,6 +227,7 @@ procedure TdlgShowFilter.FormCreate(Sender: TObject);
 begin
   // Начальные настройки
   FSQLText := '';
+  FGroupByFields := TStringList.Create;
   FSetingCheck := False;
   FIsFill := False;
   FMainWindow := False;
@@ -1283,22 +1286,25 @@ begin
     Result := TableTreeNode;
     TableTreeNode.ImageIndex := 1;
 
-    TepmOrderTreeNode := FSortList.Items.AddChildObject(OrderTreeNode, AnPrimaryName, TFilterOrderBy.Create);
-    TepmOrderTreeNode.ImageIndex := 3;
-    FFilterBloksList.Add(TepmOrderTreeNode.Data);
-    TFilterOrderBy(TepmOrderTreeNode.Data).TableName := AnTableName;
-    TFilterOrderBy(TepmOrderTreeNode.Data).TableAlias := AnTableAlias;
-    TFilterOrderBy(TepmOrderTreeNode.Data).FieldName := CheckFieldName(AnPrimaryName);
-    if atDatabase <> nil then
-      F := atDatabase.FindRelationField(TFilterOrderBy(TepmOrderTreeNode.Data).TableName,
-        TFilterOrderBy(TepmOrderTreeNode.Data).FieldName)
-    else
-      F := nil;
-    if F <> nil then
-      TFilterOrderBy(TepmOrderTreeNode.Data).LocalField := Trim(F.LName);
-    TFilterOrderBy(TepmOrderTreeNode.Data).IsAscending := True;
-    TepmOrderTreeNode.Text := GetFieldName(TFilterOrderBy(TepmOrderTreeNode.Data).LocalField, TepmOrderTreeNode.Text);
+    if (FGroupByFields.IndexOf(AnTableAlias + CheckFieldName(AnPrimaryName)) > -1) or (FGroupByFields.Count = 0) then
+    begin
+      TepmOrderTreeNode := FSortList.Items.AddChildObject(OrderTreeNode, AnPrimaryName, TFilterOrderBy.Create);
+      TepmOrderTreeNode.ImageIndex := 3;
+      FFilterBloksList.Add(TepmOrderTreeNode.Data);
+      TFilterOrderBy(TepmOrderTreeNode.Data).TableName := AnTableName;
+      TFilterOrderBy(TepmOrderTreeNode.Data).TableAlias := AnTableAlias;
+      TFilterOrderBy(TepmOrderTreeNode.Data).FieldName := CheckFieldName(AnPrimaryName);
 
+      if atDatabase <> nil then
+        F := atDatabase.FindRelationField(TFilterOrderBy(TepmOrderTreeNode.Data).TableName,
+          TFilterOrderBy(TepmOrderTreeNode.Data).FieldName)
+      else
+        F := nil;
+      if F <> nil then
+        TFilterOrderBy(TepmOrderTreeNode.Data).LocalField := Trim(F.LName);
+      TFilterOrderBy(TepmOrderTreeNode.Data).IsAscending := True;
+      TepmOrderTreeNode.Text := GetFieldName(TFilterOrderBy(TepmOrderTreeNode.Data).LocalField, TepmOrderTreeNode.Text);
+    end;
     // Определяем FOREIGN KEY
     ExclFields := '"AFULL""ACHAG""AVIEW""LB""RB"';
     if not OnlySimpleFields then
@@ -1344,10 +1350,13 @@ begin
               else
                 FTableNames[L] := GetFieldName(TfltFieldData(TepmFieldTreeNode.Data).LocalField, TepmFieldTreeNode.Text);
 
-            TepmOrderTreeNode := FSortList.Items.AddChildObject(OrderTreeNode, TepmFieldTreeNode.Text, TFilterOrderBy.Create);
-            TepmOrderTreeNode.ImageIndex := 2;
-            FFilterBloksList.Add(TepmOrderTreeNode.Data);
-            FillSortItem(TfltFieldData(TepmFieldTreeNode.Data), TFilterOrderBy(TepmOrderTreeNode.Data));
+            if (FGroupByFields.IndexOf(TfltFieldData(TepmFieldTreeNode.Data).TableAlias + TfltFieldData(TepmFieldTreeNode.Data).FieldName) > -1) or (FGroupByFields.Count = 0) then
+            begin
+              TepmOrderTreeNode := FSortList.Items.AddChildObject(OrderTreeNode, TepmFieldTreeNode.Text, TFilterOrderBy.Create);
+              TepmOrderTreeNode.ImageIndex := 2;
+              FFilterBloksList.Add(TepmOrderTreeNode.Data);
+              FillSortItem(TfltFieldData(TepmFieldTreeNode.Data), TFilterOrderBy(TepmOrderTreeNode.Data));
+            end;
           end;
 
           ExclFields := ExclFields + '"' + FK.ConstraintFields[0].FieldName + '"';
@@ -1383,10 +1392,13 @@ begin
 
           TepmFieldTreeNode.Text := GetFieldName(TfltFieldData(TepmFieldTreeNode.Data).LocalField, TepmFieldTreeNode.Text);
 
-          TepmOrderTreeNode := FSortList.Items.AddChildObject(OrderTreeNode, TepmFieldTreeNode.Text, TFilterOrderBy.Create);
-          TepmOrderTreeNode.ImageIndex := 3;
-          FFilterBloksList.Add(TepmOrderTreeNode.Data);
-          FillSortItem(TfltFieldData(TepmFieldTreeNode.Data), TFilterOrderBy(TepmOrderTreeNode.Data));
+          if (FGroupByFields.IndexOf(TfltFieldData(TepmFieldTreeNode.Data).TableAlias + TfltFieldData(TepmFieldTreeNode.Data).FieldName) > -1) or (FGroupByFields.Count = 0) then
+          begin
+            TepmOrderTreeNode := FSortList.Items.AddChildObject(OrderTreeNode, TepmFieldTreeNode.Text, TFilterOrderBy.Create);
+            TepmOrderTreeNode.ImageIndex := 3;
+            FFilterBloksList.Add(TepmOrderTreeNode.Data);
+            FillSortItem(TfltFieldData(TepmFieldTreeNode.Data), TFilterOrderBy(TepmOrderTreeNode.Data));
+          end;
         end;
       end;
     end; {else R = nil
@@ -1486,29 +1498,31 @@ begin
     OrderTreeNode.ImageIndex := 1;
     while not ibsqlSortFields.Eof do
     begin
+      if (FGroupByFields.IndexOf(AnTableAlias + AnTableName) > -1) or (FGroupByFields.Count = 0) then
+      begin
       // Заполняем список полей для сортировки
-      TepmOrderTreeNode := FIndexList.Items.AddChildObject(OrderTreeNode, '6_' + Trim(ibsqlSortFields.FieldByName('fieldname').AsString),
-       TFilterOrderBy.Create);
-      FFilterBloksList.Add(TepmOrderTreeNode.Data);
-      TepmOrderTreeNode.ImageIndex := 2;
-      TFilterOrderBy(TepmOrderTreeNode.Data).TableName := AnTableName;
-      TFilterOrderBy(TepmOrderTreeNode.Data).TableAlias := AnTableAlias;
-      TFilterOrderBy(TepmOrderTreeNode.Data).FieldName := CheckFieldName(ibsqlSortFields.FieldByName('fieldname').AsString);
+        TepmOrderTreeNode := FIndexList.Items.AddChildObject(OrderTreeNode, '6_' + Trim(ibsqlSortFields.FieldByName('fieldname').AsString),
+         TFilterOrderBy.Create);
+        FFilterBloksList.Add(TepmOrderTreeNode.Data);
+        TepmOrderTreeNode.ImageIndex := 2;
+        TFilterOrderBy(TepmOrderTreeNode.Data).TableName := AnTableName;
+        TFilterOrderBy(TepmOrderTreeNode.Data).TableAlias := AnTableAlias;
+        TFilterOrderBy(TepmOrderTreeNode.Data).FieldName := CheckFieldName(ibsqlSortFields.FieldByName('fieldname').AsString);
 
-      if atDatabase <> nil then
-        F := atDatabase.FindRelationField(TFilterOrderBy(TepmOrderTreeNode.Data).TableName,
-          TFilterOrderBy(TepmOrderTreeNode.Data).FieldName)
-      else
-        F := nil;
+        if atDatabase <> nil then
+          F := atDatabase.FindRelationField(TFilterOrderBy(TepmOrderTreeNode.Data).TableName,
+            TFilterOrderBy(TepmOrderTreeNode.Data).FieldName)
+        else
+          F := nil;
 
-      if F <> nil then
-        TFilterOrderBy(TepmOrderTreeNode.Data).LocalField := Trim(F.LName);
+        if F <> nil then
+          TFilterOrderBy(TepmOrderTreeNode.Data).LocalField := Trim(F.LName);
 
-      TFilterOrderBy(TepmOrderTreeNode.Data).IsAscending := ibsqlSortFields.FieldByName('asctype').AsInteger <> 1;
+        TFilterOrderBy(TepmOrderTreeNode.Data).IsAscending := ibsqlSortFields.FieldByName('asctype').AsInteger <> 1;
 
-      TepmOrderTreeNode.Text := GetFieldName(TFilterOrderBy(TepmOrderTreeNode.Data).LocalField, TepmOrderTreeNode.Text);
-
-      ibsqlSortFields.Next;
+        TepmOrderTreeNode.Text := GetFieldName(TFilterOrderBy(TepmOrderTreeNode.Data).LocalField, TepmOrderTreeNode.Text);
+      end;
+        ibsqlSortFields.Next;
     end;
   except
     //Result := False;
@@ -1588,6 +1602,8 @@ begin
   LocFilterData := TFilterData.Create;
   FComponentKey := AnComponentKey;
   FSQLText := AnSQLText;
+
+  ExtractSQLGroupBy(FSQLText, FGroupByFields);
   try
     // Проверяем права на операцию
     if {gs}False then
@@ -1694,6 +1710,7 @@ var
 begin
   Result := 0;
   FSQLText := AnSQLText;
+  ExtractSQLGroupBy(FSQLText, FGroupByFields);
   LocFilterData := TFilterData.Create;
   try
     // Ищем фильтр
@@ -2114,7 +2131,7 @@ begin
     F.ctbFields.Nodes.Assign(FSortList.Items);
 
   F.ctbFields.Images := ilFields;
-  
+
   // Добавляем в список фрэймов
   I := FOrderList.Add(F);
   if I = 0 then
@@ -2155,6 +2172,7 @@ begin
   FConditionLink.Free;
   FFunctionList.Free;
   SetLength(FTableNames, 0);
+  FGroupByFields.Free;
 end;
 
 procedure TdlgShowFilter.DeleteOrderLine(const AnIndex: Integer);
@@ -2364,7 +2382,7 @@ begin
         ibdsFilter.FieldByName('editorkey').Required := False;
       if Assigned(ibdsFilter.FindField('editiondate')) then
         ibdsFilter.FieldByName('editiondate').Required := False;
-        
+
       if cbOnlyForMe.Checked and (GetUserKey <> -1) then
         ibdsFilter.FieldByName('userkey').AsInteger := GetUserKey
       else
@@ -2429,7 +2447,7 @@ begin
 
   if not Flag then
   begin
-    MessageBox(Self.Handle, PChar('Поле ' + Trim(AnOrderData.TableAlias) + 
+    MessageBox(Self.Handle, PChar('Поле ' + Trim(AnOrderData.TableAlias) +
      Trim(AnOrderData.FieldName) + ' выбранное для сортировки не найдено'), 'Внимание',
      MB_OK or MB_ICONINFORMATION);
     Exit;

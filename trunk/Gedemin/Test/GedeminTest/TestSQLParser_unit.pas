@@ -21,7 +21,7 @@ uses
 
 procedure TSQLParserTest.TestSQLParser;
 var
-  Input, Output, Etalon: TStringList;
+  Input, Output, Etalon, GroupByFields: TStringList;
   I: Integer;
   InputFileName, OutputFileName: String;
 begin
@@ -75,6 +75,36 @@ begin
     Input.Free;
     Output.Free;
     Etalon.Free;
+  end;
+
+
+  GroupByFields := TStringList.Create;
+  try
+    ExtractSQLGroupBy('SELECT a, SUM(b), SUM(c) FROM gd_contact GROUP BY a', GroupByFields);
+    Check(GroupByFields.CommaText = 'a');
+
+    ExtractSQLGroupBy('SELECT a, SUM(b), SUM(c) FROM gd_contact GROUP BY 1', GroupByFields);
+    Check(GroupByFields.CommaText = 'a');
+
+    ExtractSQLGroupBy('SELECT a, b, SUM(c) FROM gd_contact GROUP BY a, B', GroupByFields);
+    Check(GroupByFields.CommaText = 'a,B');
+
+    ExtractSQLGroupBy('SELECT a, b, SUM(c) FROM gd_contact GROUP BY a, B HAVING SUM(c) > 10', GroupByFields);
+    Check(GroupByFields.CommaText = 'a,B');
+
+    ExtractSQLGroupBy('SELECT a, b, SUM(c) FROM gd_contact GROUP BY 1, 2 HAVING SUM(c) > 10', GroupByFields);
+    Check(GroupByFields.CommaText = 'a,b');
+
+    ExtractSQLGroupBy('SELECT a, b, SUM(c) FROM gd_contact GROUP BY'#13#10'2, 1 HAVING SUM(c) > 10', GroupByFields);
+    Check(GroupByFields.CommaText = 'b,a');
+
+    ExtractSQLGroupBy('SELECT a, b, SUM(c) FROM gd_contact GROUP BY a, B HAVING SUM(c) > 10 UNION ALL SELECT a FROM gd_contact GROUP BY a', GroupByFields);
+    Check(GroupByFields.CommaText = 'a,B');
+
+    ExtractSQLGroupBy('SELECT a, b, SUM(c)  FROM gd_contact GROUP BY a,   B'#13#10' HAVING SUM(c) > 10', GroupByFields);
+    Check(GroupByFields.CommaText = 'a,B');
+  finally
+    GroupByFields.Free;
   end;
 end;
 
