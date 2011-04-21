@@ -1388,7 +1388,7 @@ begin
       Temp := StringReplace(Temp, #10, ' ', [rfReplaceAll]);
 
       while Pos('  ', Temp) > 0 do
-        StringReplace(Temp, '  ', ' ', [rfReplaceAll]);
+        Temp := StringReplace(Temp, '  ', ' ', [rfReplaceAll]);
 
       P := StrIPos('select ', Temp);
       if P > 0 then
