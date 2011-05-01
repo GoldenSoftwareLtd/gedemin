@@ -17,7 +17,7 @@ function Translate(const S: String; C: TComponent;
 implementation
 
 uses
-  ComObj, Forms, SysUtils, typInfo;
+  ComObj, Forms, SysUtils, typInfo, gd_CmdLineParams_unit;
 
 var
   LocalDoc: OleVariant;
@@ -26,45 +26,16 @@ var
   LocalSave: Boolean;
 
 procedure LocalizationInitParams;
-var
-  I: Integer;
 begin
   FromLang := 'ru';
-  ToLang := '';
-  LocalFileName := '';
+  ToLang := gd_CmdLineParams.UILanguage;
+  LocalFileName := gd_CmdLineParams.LangFile;
   LocalDoc := Unassigned;
   LocalizationActive := False;
-  LocalSave := False;
-
-  for I := 1 to ParamCount do
-  begin
-    if Pos('/LANG:', UpperCase(ParamStr(I))) = 1 then
-    begin
-      ToLang := LowerCase(Copy(ParamStr(I), 7, 2));
-      Break;
-    end;
-  end;
+  LocalSave := gd_CmdLineParams.LangSave;
 
   if ToLang = '' then
     exit;
-
-  for I := 1 to ParamCount do
-  begin
-    if Pos('/LANGSAVE', UpperCase(ParamStr(I))) = 1 then
-    begin
-      LocalSave := True;
-      Break;
-    end;
-  end;
-
-  for I := 1 to ParamCount do
-  begin
-    if Pos('/LANGFILE:', UpperCase(ParamStr(I))) = 1 then
-    begin
-      LocalFileName := LowerCase(Copy(ParamStr(I), 11, 255));
-      Break;
-    end;
-  end;
 
   if LocalFileName = '' then
     LocalFileName := 'local.xml';

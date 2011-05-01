@@ -352,6 +352,7 @@ uses
   IBIntf,
   ShellAPI,
   gd_frmShell_unit,
+  gd_CmdLineParams_unit,
   {ZLib,}
 
   at_frmIBUserList,
@@ -1176,7 +1177,7 @@ begin
     TgdcJournal.AddEvent('', 'Log off');
   end;
 
-  if FindCmdLineSwitch('rd', ['-', '/'], True) then
+  if gd_CmdLineParams.ClearDBID then
     gdcBaseManager.ExecSingleQuery('SET GENERATOR gd_g_dbid TO 0');
 end;
 
@@ -2122,13 +2123,13 @@ begin
             S := edPath.Text;
 
             if chbxAuto.Checked then
-              S := S + ' /sn ' + edDatabase.Text;
+              S := S + ' /sn "' + edDatabase.Text + '"';
 
             if Trim(edUser.Text) > '' then
-              S := S + ' /user ' + edUser.Text;
+              S := S + ' /user "' + edUser.Text + '"';
 
             if Trim(edPassword.Text) > '' then
-              S := S + ' /password ' + edPassword.Text;
+              S := S + ' /password "' + edPassword.Text + '"';
 
             for I := 1 to Length(S) do
             begin

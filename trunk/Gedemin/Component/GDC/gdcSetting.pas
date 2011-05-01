@@ -288,7 +288,7 @@ var
 implementation
 
 uses
-  gdc_attr_dlgSetting_unit,  gdc_attr_frmSetting_unit,
+  gdc_attr_dlgSetting_unit,  gdc_attr_frmSetting_unit, gd_CmdLineParams_unit,
   gdc_attr_dlgSettingPos_unit, gdcMetadata, gdcJournal,
   gdc_attr_dlgSettingOrder_unit, IBQuery, gdcEvent, Windows,
   gsStorage, Storages, gdcStorage, jclSelected, IBDatabase, at_frmSQLProcess,
@@ -4598,7 +4598,7 @@ begin
             ibquery.ParamByName('ID').AsString := SettingList[StNumber];
             ibquery.ExecQuery;
 
-            if not FindCmdLineSwitch ('sfn ', ['/', '-'], True) then
+            if gd_CmdLineParams.LoadSettingFileName = '' then
             begin
               J := MAX_COMPUTERNAME_LENGTH + 1;
               if GetComputerName(@TempPath, J) then

@@ -12,17 +12,8 @@ type
 
 var
   gdSplash: IgdSplash;
-  NoSplashParam: Boolean;
 
 implementation
 
-{var
-  I: Integer;}
-
-uses
-  SysUtils;  
-
-initialization
-  NoSplashParam := FindCmdLineSwitch('NS', ['/', '-'], True);
 end.
  

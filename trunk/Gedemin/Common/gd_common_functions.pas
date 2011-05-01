@@ -1,7 +1,11 @@
+
 unit gd_common_functions;
 
 interface
-uses classes;
+
+uses
+  Classes;
+
 // используются для сравнения, если версии введены как строка
 function CompareVersion(Ver1, Ver2: String): Integer;
 function GetCurEXEVersion: String;
@@ -15,11 +19,25 @@ procedure SaveIntegerToStream(Value: Integer; Stream: TStream);
 function ReadIntegerFromStream(Stream: TStream): Integer;
 // возвращает корректное имя файла (оставляет допустимые символы)
 function CorrectFileName(const FN: String): String;
+function ExtractServerName(const DatabaseName: String): String;
 
 implementation
 
-uses SysUtils, Forms, jclFileUtils;
-                
+uses
+  SysUtils, Forms, jclFileUtils;
+
+function ExtractServerName(const DatabaseName: String): String;
+var
+  P: Integer;
+begin
+  P := Pos(':', DatabaseName);
+  if (P > 0) and (Pos(':', Copy(DatabaseName, P + 1, 1024)) > 0) then
+  begin
+    Result := Copy(DatabaseName, 1, P - 1);
+  end else
+    Result := '';
+end;
+
 function CompareVersion(Ver1, Ver2: String): Integer;
 var
   i: Integer;

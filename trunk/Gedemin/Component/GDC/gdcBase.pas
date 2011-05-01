@@ -168,8 +168,8 @@ const
   // »мена классов, в которых перекрываюс€ методы макросами
   GDC_BASE               = 'TGDCBASE';
 
-  cCut                     = True;
-  cCopy                    = False;
+  cCut                   = True;
+  cCopy                  = False;
 
   //¬ерси€ сохранени€ в потоке б-о
   cst_StreamVersion = 2;

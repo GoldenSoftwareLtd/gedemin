@@ -92,7 +92,7 @@ begin
     ExtractSQLGroupBy('SELECT a, b, SUM(c) FROM gd_contact GROUP BY a, B HAVING SUM(c) > 10', GroupByFields);
     Check(GroupByFields.CommaText = 'a,B');
 
-    ExtractSQLGroupBy('SELECT a, b, SUM(c) FROM gd_contact GROUP BY 1, 2 HAVING SUM(c) > 10', GroupByFields);
+    ExtractSQLGroupBy('SELECT a,   b,   SUM(c)   FROM gd_contact GROUP BY   1,   2 HAVING SUM(c) > 10', GroupByFields);
     Check(GroupByFields.CommaText = 'a,b');
 
     ExtractSQLGroupBy('SELECT a, b, SUM(c) FROM gd_contact GROUP BY'#13#10'2, 1 HAVING SUM(c) > 10', GroupByFields);

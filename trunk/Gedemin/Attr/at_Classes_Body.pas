@@ -475,7 +475,7 @@ uses
   Windows,           JclSysUtils,       Graphics,          Messages,
   gd_resourcestring, IBCustomDataset,   gdcBase,           ZLib,
   IBStoredProc,      JclStrings,        gd_security,       at_sql_setup,
-  gd_directories_const,                 at_sql_metadata,
+  gd_directories_const,                 at_sql_metadata,   gd_CmdLineParams_unit,
   IBUtils,           gd_splash,         at_frmIBUserList,  iberrorcodes,
   dmDatabase_unit
   {must be placed after Windows unit!}
@@ -3352,7 +3352,7 @@ begin
     else
       FFileName := FFileName + Format(ATTR_FILE_NAME, ['']);
 
-    if FindCmdLineSwitch('NC', ['/', '-'], True) then
+    if gd_CmdLineParams.NoCache then
     begin
       SysUtils.DeleteFile(FFileName);
       FFileName := '';
