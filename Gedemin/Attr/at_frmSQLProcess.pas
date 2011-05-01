@@ -72,7 +72,7 @@ procedure AddWarning(const T: String; const C: TColor);
 implementation
 
 uses
-  at_dlgLoadPackages_unit, at_Classes
+  at_dlgLoadPackages_unit, at_Classes, gd_CmdLineParams_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -300,7 +300,7 @@ constructor TfrmSQLProcess.Create;
 begin
   inherited;
 
-  FSilent := FindCmdLineSwitch('q', ['/', '-'], True);
+  FSilent := gd_CmdLineParams.QuietMode;
   FLog := TatLog.Create;
 
   frmSQLProcess.Free;

@@ -51,7 +51,7 @@ var
 implementation
 
 uses
-  dmDataBase_unit,              gd_security,
+  dmDataBase_unit,              gd_security,           gd_CmdLineParams_unit,
   gd_security_operationconst,   gd_RegionalSettings,   syn_ManagerInterface_unit,
   gsTrayIconInterface,          Storages,              at_classes,
   at_classes_body,              flt_dlg_dlgQueryParam_unit,
@@ -337,8 +337,8 @@ begin
       try
         if not IBLogin.Login then
         begin
-          if FindCmdLineSwitch('q', ['/', '-'], True)
-            or (MessageBox(0,
+          if gd_CmdLineParams.QuietMode or
+            (MessageBox(0,
             'Подключение к базе данных не было осуществлено.'#13#10 +
             'Продолжить загрузку программы?',
             'Внимание',

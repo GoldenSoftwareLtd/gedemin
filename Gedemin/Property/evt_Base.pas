@@ -1067,7 +1067,7 @@ implementation
 
 uses
   IB, IBSQL, IBQuery, gdcOLEClassList, rp_ReportScriptControl,
-  gd_i_ScriptFactory, gd_SetDatabase,
+  gd_i_ScriptFactory, gd_SetDatabase, gd_CmdLineParams_unit,
   gsIBLookupComboBox, flt_sqlfilter_condition_type, prp_dlgScriptError_unit,
   gs_Exception, prp_Methods, gsResizerInterface{, obj_VarParam}, prp_frmEventLog_unit,
   gd_Security, obj_i_Debugger, dlg_gsResizer_ObjectInspector_unit,
@@ -6613,7 +6613,7 @@ var
       FreeAndNil(FSFStream);
       FreeAndNil(FSFHandleStream);
 
-      if FindCmdLineSwitch('NC', ['/', '-'], True) then
+      if gd_CmdLineParams.NoCache then
       begin
         SysUtils.DeleteFile(FSFDHandleName);
         SysUtils.DeleteFile(FSFDFileName);

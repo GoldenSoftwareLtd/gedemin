@@ -91,7 +91,6 @@ type
     function GetPassword: String;
     function GetUserName: String;
     procedure GetPasswordFromRegistry;
-    function ExtractServerName(const DatabaseName: String): String;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -126,7 +125,8 @@ implementation
 uses
   gd_Security, gd_resourcestring, gd_directories_const, inst_const,
   gd_security_dlgDatabases_unit, jclStrings, IBSQL, gdcBaseInterface,
-  IBServices, IB, DBLogDlg, gsDatabaseShutdown, Wcrypt2, dmLogin_unit
+  IBServices, IB, DBLogDlg, gsDatabaseShutdown, Wcrypt2, dmLogin_unit,
+  gd_common_functions, gd_CmdLineParams_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
@@ -716,7 +716,7 @@ function TdlgSecLogIn.TryAdminLogin: Boolean;
 begin
   Result := False;
 
-  if FindCmdLineSwitch('SN', ['/', '-'], True) then
+  if gd_CmdLineParams.ServerName > '' then
     exit;
 
   if FFirstLogin then
@@ -872,7 +872,7 @@ begin
 
       GetPasswordFromRegistry;
       
-      if StrIPos(' /SN ', CmdLine) = 0 then
+      if gd_CmdLineParams.ServerName = '' then
       begin
         FDatabaseChanged := True;
       end;
@@ -912,19 +912,6 @@ end;
 procedure TdlgSecLogIn.cbUserChange(Sender: TObject);
 begin
   GetPasswordFromRegistry;
-end;
-
-function TdlgSecLogIn.ExtractServerName(
-  const DatabaseName: String): String;
-var
-  P: Integer;
-begin
-  P := Pos(':', DatabaseName);
-  if (P > 0) and (Pos(':', Copy(DatabaseName, P + 1, 255)) > 0) then
-  begin
-    Result := Copy(DatabaseName, 1, P - 1);
-  end else
-    Result := '';
 end;
 
 end.

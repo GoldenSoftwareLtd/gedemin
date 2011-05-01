@@ -25,7 +25,8 @@ implementation
 
 uses
   IB, gd_security, gd_resourcestring, gd_security_operationconst,
-  Storages, SysUtils, inst_const, Registry, Windows, dm_i_ClientReport_unit
+  gd_CmdLineParams_unit, Storages, SysUtils, inst_const, Registry,
+  Windows, dm_i_ClientReport_unit
   {$IFDEF GEDEMIN}
   ,prp_frmGedeminProperty_Unit
   {$ENDIF}
@@ -52,7 +53,7 @@ begin
 
   ibdbGAdmin.Params.Text := 'lc_ctype=WIN1251';
 
-  if Pos('/NGC ', UpperCase(CmdLine + ' ')) > 0 then
+  if gd_CmdLineParams.NoGarbageCollect then
     ibdbGAdmin.Params.Add('no_garbage_collect');
 
   {$IFDEF DEBUG}

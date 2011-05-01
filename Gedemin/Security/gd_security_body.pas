@@ -340,7 +340,7 @@ implementation
 
 uses
   Registry,                 gd_directories_const, gd_security_dlgLogIn,
-  gd_createable_form,       gd_frmBackup_unit,
+  gd_createable_form,       gd_frmBackup_unit,    gd_CmdLineParams_unit,
   gd_resourcestring,        gsDatabaseShutdown,   gd_security_dlgChangePass,
   jclSysInfo,               gdcUser,              mtd_i_Base,
   evt_i_base,               IBStoredProc,         gd_splash,
@@ -833,8 +833,7 @@ var
         TryLoginDatabase.Connected := False;
         TryLoginDatabase.DatabaseName := lv.Selected.SubItems[0];
 
-        { TODO : этот код появляется в программе несколько раз }
-        if StrIPos(' /SN ', CmdLine) = 0 then
+        if gd_CmdLineParams.ServerName = '' then
         begin
           Reg := TRegistry.Create(KEY_WRITE);
           try
@@ -918,7 +917,7 @@ begin
             if IsSilentLogin then
               exit;
 
-            if FindCmdLineSwitch('q', ['/', '-'], True) then
+            if gd_CmdLineParams.QuietMode then
             begin
               ExitCode := E.IBErrorCode;
               Application.Terminate;
@@ -1989,111 +1988,46 @@ begin
 end;
 
 procedure TboLogin.ReadCommandLineLoginParams;
-var
-  SL: TStringList;
-  I: Integer;
-  S: String;
 begin
-  SL := TStringList.Create;
+  UnMethodMacro := gd_CmdLineParams.Unmethod;
+  UnEventMacro := gd_CmdLineParams.Unevent;
 
-  UnMethodMacro := False;
-  UnEventMacro := False;
-                                   
-  try
+  if gd_CmdLineParams.UserPassword > '' then
+  begin
+    if FShouldReadParams then
+      FParams.Values[PasswordValue] := gd_CmdLineParams.UserPassword;
+    PasswordParamExists := True;
+  end;
 
-    ExtractStrings([' '], [' '], GetCommandLine, SL);
+  if gd_CmdLineParams.UserName > '' then
+  begin
+    if FShouldReadParams then
+      FParams.Values[UserNameValue] := gd_CmdLineParams.UserName;
+    UserParamExists := True;
+  end;
 
-    for I := 0 to SL.Count - 1 do
-    begin
+  if gd_CmdLineParams.ServerName > '' then
+  begin
+    FParams.Values[ServerNameValue] := gd_CmdLineParams.ServerName;
+  end;
 
-      //
-      //  Имя сервера
+  if gd_CmdLineParams.UseLog then
+    UseLog := True;
 
-      if (CompareAnyString(SL[I], ['-SN', '/SN'])) and (I < SL.Count - 1) then
-      begin
-        // Считываем в любом случае
-        S := SL[I + 1];
-        if (Length(S) > 1) and (S[1] = '"')
-          and (S[Length(S)] = '"') then
-        begin
-          S := Copy(S, 2, Length(S) - 2);
-        end;
-        FParams.Values[ServerNameValue] := S;
-      end else
+  if gd_CmdLineParams.SaveLogToFile then
+  begin
+    UseLog := True;
+    SaveLogToFile := True;
+  end;
 
-      //
-      // Имя пользователя
+  if gd_CmdLineParams.LoadSettingPath > '' then
+  begin
+    LoadSettingPath := gd_CmdLineParams.LoadSettingPath;
+  end;
 
-      if (AnsiCompareText(SL[I], '/USER') = 0) and (I < SL.Count - 1) then
-      begin
-        // Считываем только если нужно считывать параметры
-        if FShouldReadParams then
-          FParams.Values[UserNameValue] := SL[I + 1];
-        UserParamExists := True;
-      end else
-
-      //
-      //  Пароль
-
-      if (AnsiCompareText(SL[I], '/PASSWORD') = 0) and (I < SL.Count - 1) then
-      begin
-        // Считываем только если нужно считывать параметры
-        if FShouldReadParams then
-          FParams.Values[PasswordValue] := SL[I + 1];
-        PasswordParamExists := True;
-      end;
-
-      // Отключение перекрытия методов
-      if (AnsiCompareText(SL[I], '/UNMETHOD') = 0) {and (I < SL.Count - 1)} then
-      begin
-        UnMethodMacro := True;
-      end;
-
-      if (AnsiCompareText(SL[I], '/UNEVENT') = 0) {and (I < SL.Count - 1)} then
-      begin
-        UnEventMacro := True;
-      end;
-
-      if (AnsiCompareText(SL[I], '/LOG') = 0) {and (I < SL.Count - 1)} then
-      begin
-        UseLog := True;
-      end;
-
-      if (AnsiCompareText(SL[I], '/LOGFILE') = 0) {and (I < SL.Count - 1)} then
-      begin
-        UseLog := True;
-        SaveLogToFile := True;
-      end;
-
-      if ( (AnsiCompareText(SL[I], '/SETTINGPATH') = 0) or
-           (AnsiCompareText(SL[I], '/SP') = 0) ) and
-         (I < SL.Count - 1) then
-      begin
-        S := SL[I + 1];
-        if (Length(S) > 1) and (S[1] = '"')
-          and (S[Length(S)] = '"') then
-        begin
-          S := Copy(S, 2, Length(S) - 2);
-        end;
-        LoadSettingPath := S; 
-      end;
-                                                    
-      if ( (AnsiCompareText(SL[I], '/SETTINGFILENAME') = 0) or
-           (AnsiCompareText(SL[I], '/SFN') = 0) )and
-         (I < SL.Count - 1) then
-      begin
-        S := SL[I + 1];
-        if (Length(S) > 1) and (S[1] = '"')
-          and (S[Length(S)] = '"') then
-        begin
-          S := Copy(S, 2, Length(S) - 2);
-        end;
-        LoadSettingFileName := S;
-      end;
-
-    end;
-  finally
-    SL.Free;
+  if gd_CmdLineParams.LoadSettingFileName > '' then
+  begin
+    LoadSettingFileName := gd_CmdLineParams.LoadSettingFileName;
   end;
 end;
 

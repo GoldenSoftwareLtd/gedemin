@@ -25,6 +25,7 @@ uses
   gdcInvDocumentCache_body,
   gd_regionalsettings_dlgEdit,
   gd_security,
+  gd_CmdLineParams_unit,
   gdcRUID,
   dmClientReport_unit in '..\Report\dmClientReport_unit.pas' {dmClientReport: TDataModule},
   gdc_frmG_unit in '..\Component\Repository\gdc_frmG_unit.pas' {gdc_frmG},
@@ -346,7 +347,7 @@ var
 function ShouldProceedLoading: Boolean;
 begin
   Result := IsEmbedding or
-    FindCmdLineSwitch('q', ['/', '-'], True) or
+    gd_CmdLineParams.QuietMode or
     (MessageBox(
       0,
       'Программный продукт "GEDEMIN.EXE" уже загружен в память!' + #13#10#13#10 +
@@ -370,75 +371,62 @@ end;
 
 function RestoreDatabase: Boolean;
 var
-  I: Integer;
   IBRestore: TIBRestoreService;
 begin
   Result := False;
-  for I := 1 to System.ParamCount - 7 do
+
+  if gd_CmdLineParams.RestoreServer > '' then
   begin
-    if AnsiCompareText(System.ParamStr(I), '/R') = 0 then
-    begin
-      IBRestore := TIBRestoreService.Create(nil);
-      try
-        if AnsiCompareText(System.ParamStr(I + 1), 'EMBEDDED') = 0 then
-        begin
-          IBRestore.Protocol := Local;
-          IBRestore.ServerName := '';
-        end else
-        begin
-          IBRestore.Protocol := TCP;
-          IBRestore.ServerName := System.ParamStr(I + 1);
-        end;
-
-        IBRestore.BackupFile.Text := System.ParamStr(I + 2);
-        IBRestore.DatabaseName.Text := System.ParamStr(I + 3);
-
-        IBRestore.LoginPrompt := False;
-        IBRestore.Params.Clear;
-        IBRestore.Params.Add('user_name=' + System.ParamStr(I + 4));
-        IBRestore.Params.Add('password=' + System.ParamStr(I + 5));
-
-        if (AnsiCompareText(System.ParamStr(I + 6), 'DEFAULT') = 0)
-          or (StrToIntDef(System.ParamStr(I + 6), -1) <= 0) then
-          IBRestore.PageSize := 8192
-        else
-          IBRestore.PageSize := StrToInt(System.ParamStr(I + 6));
-
-        if (AnsiCompareText(System.ParamStr(I + 7), 'DEFAULT') = 0)
-          or (StrToIntDef(System.ParamStr(I + 7), -1) <= 0) then
-          IBRestore.PageBuffers := 8192
-        else
-          IBRestore.PageBuffers := StrToInt(System.ParamStr(I + 7));
-
-        IBRestore.Options := [CreateNewDB];
-        IBRestore.Verbose := False;
-
-        try
-          IBRestore.Active := True;
-          IBRestore.ServiceStart;
-          while (not IBRestore.EOF) and IBRestore.IsServiceRunning do
-          begin
-            IBRestore.GetNextLine;
-          end;
-          IBRestore.Active := False;
-          ExitCode := 0;
-        except
-          on E: Exception do
-          begin
-            MessageBox(0,
-              PChar('Ошибка при распаковке БД: ' + E.Message),
-              'Ошибка',
-              MB_OK or MB_TASKMODAL or MB_ICONHAND);
-            ExitCode := 1;
-          end;
-        end;
-      finally
-        IBRestore.Free;
+    IBRestore := TIBRestoreService.Create(nil);
+    try
+      if AnsiCompareText(gd_CmdLineParams.RestoreServer, 'EMBEDDED') = 0 then
+      begin
+        IBRestore.Protocol := Local;
+        IBRestore.ServerName := '';
+      end else
+      begin
+        IBRestore.Protocol := TCP;
+        IBRestore.ServerName := gd_CmdLineParams.RestoreServer;
       end;
 
-      Result := True;
-      break;
+      IBRestore.BackupFile.Text := gd_CmdLineParams.RestoreBKFile;
+      IBRestore.DatabaseName.Text := gd_CmdLineParams.RestoreDBFile;
+
+      IBRestore.LoginPrompt := False;
+      IBRestore.Params.Clear;
+      IBRestore.Params.Add('user_name=' + gd_CmdLineParams.RestoreUser);
+      IBRestore.Params.Add('password=' + gd_CmdLineParams.RestorePassword);
+
+      IBRestore.PageSize := gd_CmdLineParams.RestorePageSize;
+      IBRestore.PageBuffers := gd_CmdLineParams.RestoreBufferSize;
+
+      IBRestore.Options := [CreateNewDB];
+      IBRestore.Verbose := False;
+
+      try
+        IBRestore.Active := True;
+        IBRestore.ServiceStart;
+        while (not IBRestore.EOF) and IBRestore.IsServiceRunning do
+        begin
+          IBRestore.GetNextLine;
+        end;
+        IBRestore.Active := False;
+        ExitCode := 0;
+      except
+        on E: Exception do
+        begin
+          MessageBox(0,
+            PChar('Ошибка при распаковке БД: ' + E.Message),
+            'Ошибка',
+            MB_OK or MB_TASKMODAL or MB_ICONHAND);
+          ExitCode := 1;
+        end;
+      end;
+    finally
+      IBRestore.Free;
     end;
+
+    Result := True;
   end;
 end;
 
@@ -468,7 +456,7 @@ begin
     FApplicationEvents.OnShortCut :=  ApplicationEventsHandler.ApplicationEventsShortCut;
 
     // Проверяем загружено ли приложение в режиме COM-server
-    IsEmbedding := FindCmdLineSwitch('EMBEDDING', ['-', '/'], True);
+    IsEmbedding := gd_CmdLineParams.Embedding;
 
     if not IsEmbedding then
     begin
@@ -571,7 +559,7 @@ begin
           {$IFDEF SPLASH}
           Application.ShowMainForm := False;
           Application.CreateForm(TfrmSplashHidden, frmSplashHidden);
-          if (not NoSplashParam) and (not GridStripeProh) then
+          if (not gd_CmdLineParams.NoSplash) and (not GridStripeProh) then
             try
               Application.CreateForm(TfrmSplash, frmSplash);
             except

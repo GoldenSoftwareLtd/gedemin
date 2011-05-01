@@ -193,7 +193,7 @@ uses
   ComServ, Dialogs, dmClientReport_unit, dmImages_unit,
   gd_main_form, gd_security, Forms, SysUtils, gd_frmOLEMainForm_unit,
   gdcOLEClassList, gdcExplorer, obj_QueryList, obj_Gedemin,
-  gsTextTemplate_unit, scrOpenSaveDialog_unit,
+  gsTextTemplate_unit, scrOpenSaveDialog_unit, gd_CmdLineParams_unit,
   Classes, gsResizerInterface, Windows, prp_Methods,
   controls,{ obj_Designer, } gd_ClassList, obj_GSFunction,
   gd_i_ScriptFactory, gsWinAPI_unit, Storages, gsIBLogin, gsGdcBaseManager_unit,
@@ -340,7 +340,7 @@ begin
     except
     end;
 
-    IsEmbedding := SysUtils.FindCmdLineSwitch('EMBEDDING', ['-', '/'], True);
+    IsEmbedding := gd_CmdLineParams.Embedding;
 
     if not IsEmbedding then begin
     // Освобождаем главную форму, созданую для COM-server

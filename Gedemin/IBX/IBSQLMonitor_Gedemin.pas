@@ -50,7 +50,7 @@ function MonitorHook: TGedeminSQLMonitor;
 implementation
 
 uses
-  Windows, SysUtils, gdcBaseInterface, gdcSQLHistory;
+  Windows, SysUtils, gdcBaseInterface, gdcSQLHistory, gd_CmdLineParams_unit;
 
 var
   GedeminSQLMonitor: TGedeminSQLMonitor;
@@ -61,7 +61,7 @@ begin
   begin
     GedeminSQLMonitor := TGedeminSQLMonitor.Create;
     GedeminSQLMonitor.Enabled := GedeminSQLMonitor.Enabled or
-      FindCmdLineSwitch('trace', ['-', '/'], True);
+      gd_CmdLineParams.TraceSQL;
   end;
   Result := GedeminSQLMonitor;
 end;
