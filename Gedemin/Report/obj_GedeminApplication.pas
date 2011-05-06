@@ -307,8 +307,6 @@ end;
 
 function TgsGedeminApplication.IsConnectable(
   const AnLoginType: TLoginType; const AnUser, AnPassword: String; const DBPath: string = ''): Boolean;
-var
-  IsEmbedding: Boolean;
 begin
   Result := False;
   // Проверяем создан ли dmDatabase
@@ -340,9 +338,8 @@ begin
     except
     end;
 
-    IsEmbedding := gd_CmdLineParams.Embedding;
-
-    if not IsEmbedding then begin
+    if not gd_CmdLineParams.Embedding then
+    begin
     // Освобождаем главную форму, созданую для COM-server
       FreeAndNil(frmOLEMainForm);
 

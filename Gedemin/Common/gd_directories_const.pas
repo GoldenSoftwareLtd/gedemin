@@ -220,12 +220,18 @@ const
   st_root_Company                 = 'COMPANY';
 
 function IsGedeminSystemID(const AnID: Integer): Boolean;
+function IsGedeminNonSystemID(const AnID: Integer): Boolean;
 
 implementation
 
 function IsGedeminSystemID(const AnID: Integer): Boolean;
 begin
   Result := AnID < cstUserIDStart;
+end;
+
+function IsGedeminNonSystemID(const AnID: Integer): Boolean;
+begin
+  Result := AnID >= cstUserIDStart;
 end;
 
 end.

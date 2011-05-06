@@ -46,6 +46,10 @@ type
   private
     procedure ShowQuantity;
     procedure EditDocument(ALine: boolean);
+
+  protected
+    procedure DoOnFilterChanged(Sender: TObject); override;
+
   public
     procedure LoadSettings; override;
     procedure SaveSettings; override;
@@ -83,7 +87,7 @@ begin
 
   gdcObject := gdcAcctTransaction;
   gdcAcctViewEntryRegister.MasterSource := dsMain;
-  gdcDetailObject := gdcAcctViewEntryRegister;
+  gdcDetailObject := gdcAcctViewEntryRegister; 
   gdcAcctQuantity.Open;
 
   ibgrDetail.GroupFieldName := 'RECORDKEY';
@@ -242,6 +246,17 @@ begin
       tmpDocument.EditDialog;
   finally
     tmpDocument.Free;
+  end;
+end;
+
+procedure Tgdc_frmTransaction.DoOnFilterChanged(Sender: TObject);
+begin
+  inherited;
+
+  if gdcDetailObject <> nil then
+  begin
+    cbGroupByDocument.Enabled := (not gdcDetailObject.QueryFiltered)
+      or (gdcDetailObject.Filter.OrderByCount = 0);
   end;
 end;
 

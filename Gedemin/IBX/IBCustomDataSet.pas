@@ -6245,7 +6245,7 @@ var
           end;
           ftSmallint, ftInteger, ftWord, ftBoolean: Int := Arr[J].AsInteger;
           ftFloat: Dbl := Arr[J].AsFloat;
-          ftCurrency, ftBCD: Cur := Arr[J].AsCurrency;
+          ftCurrency, ftBCD, ftLargeInt: Cur := Arr[J].AsCurrency;
           ftDate, ftTime, ftDateTime: Dt := Arr[J].AsDateTime;
         else
           Vr := Arr[J].AsVariant;
@@ -6277,7 +6277,7 @@ var
               Result := 1
             else
               Result := 0;
-          ftCurrency, ftBCD:
+          ftCurrency, ftBCD, ftLargeInt:
             if Cur < Arr[J].AsCurrency then
               Result := -1
             else if Cur > Arr[J].AsCurrency then

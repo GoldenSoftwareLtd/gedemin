@@ -347,6 +347,7 @@ begin
     SL.Free;
   end;
 
+  {$IFDEF DUNIT_TEST}
   if Warning > '' then
   begin
     LogType := EVENTLOG_WARNING_TYPE;
@@ -368,6 +369,7 @@ begin
       DeregisterEventSource(h);
     end;
   end;
+  {$ENDIF}
 end;
 
 function Tgd_CmdLineParams.StripQuotes(const S: String): String;

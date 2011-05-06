@@ -148,7 +148,7 @@ type
     procedure SetNeedModify(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedInsert(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedModifyDefault;
-
+    
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
@@ -2873,7 +2873,6 @@ begin
       Next;
   end;
 end;
-
 
 // ++++++++++++++++++++++++++++++ TSettingHeader ++++++++++++++++++++++++++++++
 constructor TSettingHeader.Create;
