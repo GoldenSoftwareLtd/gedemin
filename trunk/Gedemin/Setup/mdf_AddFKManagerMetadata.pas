@@ -42,9 +42,9 @@ const
     '  constraint_uq_count COMPUTED BY ('#13#10 +
     '    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i'#13#10 +
     '      JOIN rdb$index_segments iseg ON iseg.rdb$index_name = i.rdb$index_name'#13#10 +
-    '        AND iseg.rdb$field_name = constraint_field'#13#10 +
     '      JOIN rdb$relation_constraints rc ON rc.rdb$index_name = i.rdb$index_name'#13#10 +
-    '      WHERE i.rdb$relation_name = constraint_rel AND i.rdb$segment_count = 1 AND rc.rdb$constraint_type = ''FOREIGN KEY'')),'#13#10 +
+    '      WHERE i.rdb$relation_name = constraint_rel AND i.rdb$segment_count = 1 '#13#10 +
+    '        AND rc.rdb$constraint_type = ''FOREIGN KEY'' AND iseg.rdb$field_name = constraint_field)),'#13#10 +
     ''#13#10 +
     '  ref_rec_count COMPUTED BY ('#13#10 +
     '    (SELECT iif(i.rdb$statistics = 0, 0, Trunc(1/i.rdb$statistics + 0.5)) FROM rdb$indices i'#13#10 +

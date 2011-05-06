@@ -26,7 +26,7 @@ type
     dbcbType: TDBLookupComboBox;
     Label2: TLabel;
     dbeFumctionName: TDBEdit;
-    Button1: TButton;
+    btnConstructor: TButton;
     dsFunction: TDataSource;
     gdcFunction: TgdcFunction;
     actWizard: TAction;
@@ -76,6 +76,7 @@ begin
   try
     speRepotDay.Value :=
       dsgdcBase.DataSet.FieldByName(fnReportDay).AsInteger;
+    btnConstructor.Enabled := not (sCopy in gdcObject.BaseState);
   except
   end;
 end;

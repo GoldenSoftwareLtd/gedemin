@@ -30,6 +30,12 @@ inherited gdc_dlgTaxActual: Tgdc_dlgTaxActual
     Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Left = 144
+    Top = 105
+    Anchors = [akLeft, akBottom]
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 233
     Top = 105
@@ -41,12 +47,6 @@ inherited gdc_dlgTaxActual: Tgdc_dlgTaxActual
     Top = 105
     Anchors = [akRight, akBottom]
     TabOrder = 2
-  end
-  inherited btnHelp: TButton
-    Left = 144
-    Top = 105
-    Anchors = [akLeft, akBottom]
-    TabOrder = 5
   end
   object pnlMain: TPanel [6]
     Left = 0
@@ -159,7 +159,7 @@ inherited gdc_dlgTaxActual: Tgdc_dlgTaxActual
       ReadOnly = True
       TabOrder = 4
     end
-    object Button1: TButton
+    object btnConstructor: TButton
       Left = 291
       Top = 71
       Width = 83

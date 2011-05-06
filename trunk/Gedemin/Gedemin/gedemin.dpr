@@ -341,12 +341,11 @@ end;
 var
   MutexHandle: THandle;
   MutexCreated, MutexExisted: Boolean;
-  IsEmbedding: Boolean;
   BP: Integer;
 
 function ShouldProceedLoading: Boolean;
 begin
-  Result := IsEmbedding or
+  Result := gd_CmdLineParams.Embedding or
     gd_CmdLineParams.QuietMode or
     (MessageBox(
       0,
@@ -456,9 +455,7 @@ begin
     FApplicationEvents.OnShortCut :=  ApplicationEventsHandler.ApplicationEventsShortCut;
 
     // Проверяем загружено ли приложение в режиме COM-server
-    IsEmbedding := gd_CmdLineParams.Embedding;
-
-    if not IsEmbedding then
+    if not gd_CmdLineParams.Embedding then
     begin
       DC := GetDC(0);
       try
@@ -553,7 +550,7 @@ begin
         {$ELSE}
         Application.Title := 'Гедымин';
         {$ENDIF}
-        if not IsEmbedding then
+        if not gd_CmdLineParams.Embedding then
         begin
           // При изменении этого блока кода необходимо синхронизировать код в obj_GedeminApplication.IsCanConnect
           {$IFDEF SPLASH}

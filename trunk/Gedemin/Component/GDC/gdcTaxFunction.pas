@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2011 by Golden Software of Belarus
 
   Module
 
@@ -104,6 +104,8 @@ type
 
     function Copy(const AFields: String; AValues: Variant; const ACopyDetail: Boolean = False;
       const APost: Boolean = True; const AnAppend: Boolean = False): Boolean; override;
+    function CopyObject(const ACopyDetailObjects: Boolean = False;
+      const AShowEditDialog: Boolean = False): Boolean; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -523,7 +525,7 @@ begin
   end;
 
   IndexName := 0;
-  
+
   if not Assigned(FpmActualReport) then
     FpmActualReport := TPopupMenu.Create(Self);
   FpmActualReport.AutoLineReduction := Menus.maAutomatic;
@@ -606,6 +608,36 @@ begin
     if B then Post;
   end;
 end;
+
+function TgdcTaxActual.CopyObject(const ACopyDetailObjects: Boolean = False;
+  const AShowEditDialog: Boolean = False): Boolean;
+var
+  gdcTrRecord: TgdcAutoTrRecord;
+  SelfID: TID;
+begin
+  Assert(not EOF);
+
+  SelfID := Self.ID;
+  Result := inherited CopyObject(ACopyDetailObjects, AShowEditDialog);
+
+  if Result and (not EOF) and (Self.ID <> SelfID)
+    and IsGedeminNonSystemID(FieldByName('TRRECORDKEY').AsInteger) then
+  begin
+    gdcTrRecord := TgdcAutoTrRecord.CreateSingularByID(nil,
+      FieldByName('TRRECORDKEY').AsInteger) as TgdcAutoTrRecord;
+    try
+      if gdcTrRecord.CopyObject(False, True) then
+      begin
+        Edit;
+        FieldByName('TRRECORDKEY').AsInteger := gdcTrRecord.ID;
+        Post;
+      end;
+    finally
+      gdcTrRecord.Free;
+    end;
+  end;
+end;
+
 
 function TgdcTaxActual.CreateDialogForm: TCreateableForm;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -984,7 +1016,7 @@ var
 begin
   FolderName := Format(txReportFolder,
     [Self.FieldByName(fntaxname).AsString, Self.FieldByName(fnactualdate).AsString]);
-
+ 
   D := TgdcTaxName.Create(nil);
   try
     D.ReadTransaction := Self.ReadTransaction;

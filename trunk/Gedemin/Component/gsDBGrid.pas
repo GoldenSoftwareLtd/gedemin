@@ -1342,7 +1342,7 @@ implementation
 {$R GSDBGRID.RES}
 
 uses
-  Math, ClipBrd, DsgnIntf, TypInfo, gsdbGrid_dlgFilter
+  Math, ClipBrd, DsgnIntf, TypInfo, gsdbGrid_dlgFilter, jclStrings
   {$IFDEF GEDEMIN}
   , Storages, gd_security, gsDBGrid_dlgMaster, gsdbGrid_dlgFind_unit, ComObj
     {$IFDEF NEW_GRID}
@@ -2113,7 +2113,7 @@ end;
 
 function TCondition.Suits(const DisplayField: TField): Boolean;
 begin
-  Result := AnsiUpperPos(DisplayField.FieldName, FDisplayFields) > 0;
+  Result := StrIPos(';' + DisplayField.FieldName + ';', ';' + FDisplayFields + ';') > 0;
 end;
 
 

@@ -26,7 +26,7 @@ object frmGedeminMain: TfrmGedeminMain
   object TBDockMain: TTBDock
     Left = 0
     Top = 0
-    Width = 961
+    Width = 969
     Height = 26
     LimitToOneRow = True
     object tbMainMenu: TTBToolbar
@@ -311,21 +311,21 @@ object frmGedeminMain: TfrmGedeminMain
         Control = lblDatabase
       end
       object Label1: TLabel
-        Left = 235
+        Left = 224
         Top = 4
         Width = 32
         Height = 13
         Caption = 'Стол: '
       end
       object Label2: TLabel
-        Left = 487
+        Left = 476
         Top = 4
         Width = 73
         Height = 13
         Caption = 'Организация: '
       end
       object lblDatabase: TLabel
-        Left = 734
+        Left = 723
         Top = 4
         Width = 3
         Height = 13
@@ -334,7 +334,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnDblClick = actCopyExecute
       end
       object cbDesktop: TComboBox
-        Left = 267
+        Left = 256
         Top = 0
         Width = 145
         Height = 21
@@ -347,7 +347,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnChange = cbDesktopChange
       end
       object gsiblkupCompany: TgsIBLookupComboBox
-        Left = 560
+        Left = 549
         Top = 0
         Width = 145
         Height = 21
@@ -369,8 +369,8 @@ object frmGedeminMain: TfrmGedeminMain
   end
   object TBDockForms: TTBDock
     Left = 0
-    Top = 26
-    Width = 961
+    Top = 31
+    Width = 969
     Height = 27
     BoundLines = [blTop]
     Color = clWindow
