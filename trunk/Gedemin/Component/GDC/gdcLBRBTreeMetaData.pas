@@ -30,6 +30,7 @@ function GetLBRBTreeDependentNames(const ARelName: String; const ATr: TIBTRansac
   out Names: TLBRBTreeMetaNames): Integer;
 function RestrLBRBTree(const ARelName: String; const ATr: TIBTRansaction): Integer;
 procedure InitLBRBTreeDependentNames(out Names: TLBRBTreeMetaNames);
+procedure GetLBRBTreeList(const ARelName: String; ATr: TIBTransaction; SL: TStrings);
 
 implementation
 
@@ -329,6 +330,37 @@ const
   c_grant =
     'GRANT EXECUTE ON PROCEDURE ::METANAME TO administrator';
 
+procedure GetLBRBTreeList(const ARelName: String; ATr: TIBTransaction; SL: TStrings);
+var
+  q: TIBSQL;
+begin
+  Assert(SL <> nil);
+  Assert(ATr <> nil);
+  Assert(ATr.InTransaction);
+
+  SL.Clear;
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ATr;
+    q.SQL.Text :=
+      'SELECT DISTINCT r.rdb$relation_name FROM rdb$relation_fields r ' +
+      '  JOIN rdb$relation_fields r2 ON r.rdb$relation_name = r2.rdb$relation_name ' +
+      '    AND r2.rdb$field_name = ''RB'' AND r.rdb$field_name = ''LB'' ' +
+      'WHERE r.rdb$view_context is null ';
+    if ARelName > '' then
+      q.SQL.Add('AND r.rdb$relation_name = ''' + UpperCase(ARelName) + ''' ');
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin
+      SL.Add(q.Fields[0].AsTrimString);
+      q.Next;
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
 procedure CreateLBRBTreeMetaDataScript(AScript: TStrings;
   const APrefix, AName, ATableName: String;
   const ATr: TIBTransaction = nil; const JustAlter: Boolean = False);
@@ -431,33 +463,28 @@ end;
 function UpdateLBRBTreeBase(const Tr: TIBTransaction; const JustAlter: Boolean;
   _Writeln: TWritelnCallback): Boolean;
 var
-  qryListTable: TIBSQL;
   FIBSQL: TIBSQL;
-  SQLScript: TStringList;
+  SQLScript, SL: TStringList;
   TN, S: String;
-  I: Integer;
+  I, J: Integer;
 begin
+  Assert(Tr <> nil);
+  Assert(Tr.InTransaction);
+
   Result := False;
 
   SQLScript := TStringList.Create;
-  qryListTable := TIBSQL.Create(nil);
   FIBSQL := TIBSQL.Create(nil);
+  SL := TStringList.Create;
   try
     FIBSQL.Transaction := Tr;
     FIBSQL.ParamCheck := False;
 
-    qryListTable.Transaction := Tr;
-    qryListTable.SQL.Text :=
-      'SELECT DISTINCT rdb$relation_name as tablename ' +
-      ' FROM rdb$relation_fields ' +
-      ' WHERE rdb$field_name in( ''LB'', ''RB'') ' +
-      ' AND (rdb$view_context is null) ';
-    qryListTable.ExecQuery;
-
-    while not qryListTable.Eof do
+    GetLBRBTreeList('', Tr, SL);
+    for J := 0 to SL.Count - 1 do
     begin
       S := '';
-      TN := qryListTable.FieldByName('tablename').AsTrimString;
+      TN := SL[J];
       try
         SQLScript.Clear;
         CreateLBRBTreeMetaDataScript(SQLScript, GetPrefix(TN), GetName(TN), TN,
@@ -479,14 +506,13 @@ begin
           exit;
         end;
       end;
-      qryListTable.Next
     end;
 
     Result := True;
   finally
     SQLScript.Free;
     FIBSQL.Free;
-    qryListTable.Free;
+    SL.Free;
   end;
 end;
 
@@ -621,42 +647,33 @@ end;
 
 function RestrLBRBTree(const ARelName: String; const ATr: TIBTRansaction): Integer;
 var
-  q, q2: TIBSQL;
+  q2: TIBSQL;
   Names: TLBRBTreeMetaNames;
+  SL: TStringList;
+  I: Integer;
 begin
   Assert(ATr <> nil);
   Assert(ATr.InTransaction);
 
   Result := 0;
-  q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
+  SL := TStringList.Create;
   try
+    GetLBRBTreeList(ARelName, ATr, SL);
     q2.Transaction := ATr;
-
-    q.Transaction := ATr;
-    q.SQL.Text :=
-      'SELECT DISTINCT r.rdb$relation_name FROM rdb$relation_fields r ' +
-      '  JOIN rdb$relation_fields r2 ON r.rdb$relation_name = r2.rdb$relation_name ' +
-      '    AND r2.rdb$field_name = ''RB'' AND r.rdb$field_name = ''LB'' ' +
-      'WHERE r.rdb$view_context is null ';
-    if ARelName > '' then
-      q.SQL.Add('AND r.rdb$relation_name = ''' + UpperCase(ARelName) + ''' ');
-    q.ExecQuery;
-
-    while not q.EOF do
+    for I := 0 to SL.Count - 1 do
     begin
-      GetLBRBTreeDependentNames(q.Fields[0].AsTrimString, ATr, Names);
+      GetLBRBTreeDependentNames(SL[I], ATr, Names);
+
       if Names.RestrName > '' then
       begin
         q2.SQL.Text := 'EXECUTE PROCEDURE ' + Names.RestrName;
         q2.ExecQuery;
         Inc(Result);
       end;
-
-      q.Next;
     end;
   finally
-    q.Free;
+    SL.Free;
     q2.Free;
   end;
 end;

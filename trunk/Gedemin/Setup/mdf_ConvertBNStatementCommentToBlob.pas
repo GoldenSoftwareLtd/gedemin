@@ -12,11 +12,13 @@ procedure AlterUserStorageTrigger(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ModifyRUIDProcedure(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ModifyGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
+procedure DeleteLBRBFromSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
 uses
-  Classes, DB, IBSQL, IBBlob, SysUtils, mdf_MetaData_unit, jclStrings;
+  Classes, DB, IBSQL, IBBlob, SysUtils, mdf_MetaData_unit, jclStrings,
+  gdcLBRBTreeMetadata;
 
 procedure ModifyRUIDProcedure(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -124,6 +126,93 @@ begin
       end;
     end;
   finally
+    FIBSQL.Free;
+    FTransaction.Free;
+  end;
+end;
+
+procedure DeleteLBRBFromSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+  SL: TStringList;
+  I, K: Integer;
+  Names: TLBRBTreeMetaNames;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  FIBSQL := TIBSQL.Create(nil);
+  SL := TStringList.Create;
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+      FIBSQL.Transaction := FTransaction;
+
+      FIBSQL.SQL.Text := 'DELETE FROM at_settingpos WHERE objectname = :obj';
+      FIBSQL.Prepare;
+
+      GetLBRBTreeList('', FTransaction, SL);
+
+      K := 0;
+      for I := 0 to SL.Count - 1 do
+      begin
+        GetLBRBTreeDependentNames(SL[I], FTransaction, Names);
+
+        FIBSQL.ParamByName('obj').AsString := Names.ChldCtName;
+        FIBSQL.ExecQuery;
+        K := K + FIBSQL.RowsAffected;
+
+        FIBSQL.ParamByName('obj').AsString := Names.ExLimName;
+        FIBSQL.ExecQuery;
+        K := K + FIBSQL.RowsAffected;
+
+        FIBSQL.ParamByName('obj').AsString := Names.RestrName;
+        FIBSQL.ExecQuery;
+        K := K + FIBSQL.RowsAffected;
+
+        FIBSQL.ParamByName('obj').AsString := Names.BITriggerName;
+        FIBSQL.ExecQuery;
+        K := K + FIBSQL.RowsAffected;
+
+        FIBSQL.ParamByName('obj').AsString := Names.BUTriggerName;
+        FIBSQL.ExecQuery;
+        K := K + FIBSQL.RowsAffected;
+
+        FIBSQL.ParamByName('obj').AsString := Names.LBIndexName;
+        FIBSQL.ExecQuery;
+        K := K + FIBSQL.RowsAffected;
+
+        FIBSQL.ParamByName('obj').AsString := Names.RBIndexName;
+        FIBSQL.ExecQuery;
+        K := K + FIBSQL.RowsAffected;
+
+        FIBSQL.ParamByName('obj').AsString := Names.ChkName;
+        FIBSQL.ExecQuery;
+        K := K + FIBSQL.RowsAffected;
+      end;
+
+      if K > 0 then
+        Log('Удалено метаданных инт. деревьев из at_settingpos: ' + IntToStr(K));
+
+      FIBSQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (134, ''0000.0001.0000.0165'', ''10.05.2011'', ''Delete lbrb tree elements from at_settingpos.'') ' +
+        '  MATCHING (id)';
+      FIBSQL.ExecQuery;
+      FIBSQL.Close;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    SL.Free;
     FIBSQL.Free;
     FTransaction.Free;
   end;

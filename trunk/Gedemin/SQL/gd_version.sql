@@ -441,6 +441,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (133, '0000.0001.0000.0164', '02.04.2011', 'Check for GD_RUID table modified.');
 
+INSERT INTO fin_versioninfo
+  VALUES (134, '0000.0001.0000.0165', '10.05.2011', 'Delete lbrb tree elements from at_settingpos.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
