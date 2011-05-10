@@ -46,7 +46,7 @@ uses
   mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean, mdf_ConvertBNStatementCommentToBlob;
 
 const
-  cProcCount = 158;
+  cProcCount = 159;
 
 type
   TModifyProc = record
@@ -311,7 +311,8 @@ const
     (ModifyProc: AlterUserStorageTrigger; ModifyVersion: '0000.0001.0000.0160'),
     (ModifyProc: AddGDRUIDCheck; ModifyVersion: '0000.0001.0000.0161'),
     (ModifyProc: ModifyRUIDProcedure; ModifyVersion: '0000.0001.0000.0162'),
-    (ModifyProc: ModifyGDRUIDCheck; ModifyVersion: '0000.0001.0000.0163')
+    (ModifyProc: ModifyGDRUIDCheck; ModifyVersion: '0000.0001.0000.0163'),
+    (ModifyProc: DeleteLBRBFromSettingPos; ModifyVersion: '0000.0001.0000.0164')
   );
 
 implementation
