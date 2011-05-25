@@ -136,6 +136,8 @@ type
 
     property Period: TgsDatePeriod read FPeriod;
     property PeriodEdit: TgsPeriodEdit write FPeriodEdit;
+    property LeftPanel: TgsCalendarPanel read FLeft;
+    property RightPanel: TgsCalendarPanel read FRight;
   end;
 
   TgsDropDownEdit = class(TCustomEdit)
@@ -434,7 +436,8 @@ begin
         gscsDay:
         begin
           DecodeDate(GetDayStart + FMouseCellX  - 1 + (FMouseCellY - 1) * DayCellX, FYear, FMonth, FDay);
-          NeedClose := FRightPanel;
+          NeedClose := FRightPanel or ((Owner is TgsPeriodForm) and (TgsPeriodForm(Owner).RightPanel <> nil)
+            and (not TgsPeriodForm(Owner).RightPanel.Enabled));
         end;
       end;
 
