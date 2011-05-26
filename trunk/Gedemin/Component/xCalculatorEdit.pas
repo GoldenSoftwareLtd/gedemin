@@ -1201,6 +1201,8 @@ end;
 procedure TxDBCalculatorEdit.CMEnter(var Message: TCMEnter);
 begin
   SetFocused(True);
+  if (FDataLink <> nil) and (not FDataLink.Editing) then
+    FDataLink.Edit; 
   inherited;
   if SysLocale.FarEast and FDataLink.CanModify then
     inherited ReadOnly := False;
@@ -1371,15 +1373,18 @@ end;
 procedure TxDBCalculatorEdit.KeyPress(var Key: Char);
 begin
   inherited KeyPress(Key);
+
   if (Key in [#32..#255]) and (FDataLink.Field <> nil) and
     not FDataLink.Field.IsValidChar(Key) then
   begin
     MessageBeep(0);
     Key := #0;
   end;
+
   case Key of
     ^H, ^V, ^X, #32..#255:
-      FDataLink.Edit;
+      if not FDataLink.Editing then
+        FDataLink.Edit;
     #27:
       begin
         FDataLink.Reset;
