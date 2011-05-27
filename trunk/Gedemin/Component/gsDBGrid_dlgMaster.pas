@@ -767,6 +767,9 @@ begin
       if NewColumn.WasFrozen then
       begin
         NewColumn.Visible := True;
+        {$IFDEF GEDEMIN}
+        NewColumn.Width := OldColumn.GetRealWidth;
+        {$ENDIF}
       end;
 
       // Создаем список колонок для раздела установок по колонкам
