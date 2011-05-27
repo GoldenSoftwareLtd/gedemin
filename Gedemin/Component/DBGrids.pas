@@ -158,6 +158,9 @@ type
     function  DefaultReadOnly: Boolean;
     function  DefaultWidth: Integer;
     function  Depth: Integer;
+    {$IFDEF GEDEMIN}
+    function  GetRealWidth: Integer;
+    {$ENDIF}
     procedure RestoreDefaults; virtual;
     property  Grid: TCustomDBGrid read GetGrid;
     property  AssignedValues: TColumnValues read FAssignedValues;
@@ -1633,6 +1636,18 @@ begin
     Result := clWindow;
 end;
 
+// нам нужно получить доступ к FWidth, когда
+// колонка не видна.
+{$IFDEF GEDEMIN}
+function  TColumn.GetRealWidth: Integer;
+begin
+  if cvWidth in FAssignedValues then
+    Result := FWidth
+  else
+    Result := DefaultWidth;
+end;
+{$ENDIF}
+
 function TColumn.DefaultFont: TFont;
 var
   Grid: TCustomDBGrid;
@@ -1873,7 +1888,7 @@ begin
     Result := FWidth
   else
     Result := DefaultWidth;
-end;
+end; 
 
 function TColumn.IsAlignmentStored: Boolean;
 begin
