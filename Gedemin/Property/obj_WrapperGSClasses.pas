@@ -888,7 +888,7 @@ type
     function  Get_CheckUserRights: WordBool; safecall;
     procedure Set_CheckUserRights(Value: WordBool); safecall;
     function  Get_SortOrder: TgsgsSortOrder; safecall;
-    procedure Set_SortOrder(Value: TgsgsSortOrder); safecall;
+    procedure Set_SortOrder(Value: TgsgsSortOrder); safecall; 
     function  Get_gdClassName: WideString; safecall;
     procedure Set_gdClassName(const Value: WideString); safecall;
     function  Get_SubType: WideString; safecall;
@@ -1129,6 +1129,8 @@ type
     procedure Set_SubType(const Value: WideString); safecall;
     function  Get_SortOrder: TgsgsSortOrder; safecall;
     procedure Set_SortOrder(Value: TgsgsSortOrder); safecall;
+    function  Get_SortField: WideString; safecall;
+    procedure Set_SortField(const Value: WideString); safecall;
     function  Get_Transaction: IgsIBTransaction; safecall;
     procedure Set_Transaction(const Value: IgsIBTransaction); safecall;
     function  Get_gdClass: WideString; safecall;
@@ -4423,6 +4425,11 @@ begin
   Result := TgsgsSortOrder(GetIBLookupComboBoxX.SortOrder);
 end;
 
+function TwrpIBLookupComboBoxX.Get_SortField: WideString;
+begin
+  Result := GetIBLookupComboBoxX.SortField;
+end;
+
 function TwrpIBLookupComboBoxX.Get_SubType: WideString;
 begin
   Result := GetIBLookupComboBoxX.SubType;
@@ -4529,6 +4536,11 @@ end;
 procedure TwrpIBLookupComboBoxX.Set_SortOrder(Value: TgsgsSortOrder);
 begin
   GetIBLookupComboBoxX.SortOrder := TgsSortOrder(Value);
+end;
+
+procedure TwrpIBLookupComboBoxX.Set_SortField(const Value: WideString);
+begin
+  GetIBLookupComboBoxX.SortField := Value;
 end;
 
 procedure TwrpIBLookupComboBoxX.Set_SubType(const Value: WideString);

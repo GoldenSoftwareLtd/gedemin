@@ -1,7 +1,7 @@
 object frmParamLineSE: TfrmParamLineSE
   Left = 0
   Top = 0
-  Width = 521
+  Width = 584
   Height = 81
   Align = alTop
   ParentShowHint = False
@@ -10,7 +10,7 @@ object frmParamLineSE: TfrmParamLineSE
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 521
+    Width = 584
     Height = 81
     Align = alClient
     BevelOuter = bvNone
@@ -19,7 +19,7 @@ object frmParamLineSE: TfrmParamLineSE
     object pcParam: TPageControl
       Left = 2
       Top = 2
-      Width = 517
+      Width = 580
       Height = 77
       ActivePage = tsParam
       Align = alClient
@@ -27,14 +27,14 @@ object frmParamLineSE: TfrmParamLineSE
       object tsParam: TTabSheet
         Caption = 'Параметр'
         object lblName: TLabel
-          Left = 4
-          Top = 5
+          Left = 1
+          Top = 4
           Width = 79
           Height = 13
           Caption = 'Наименование:'
         end
         object lblComment: TLabel
-          Left = 4
+          Left = 1
           Top = 29
           Width = 59
           Height = 13
@@ -42,8 +42,8 @@ object frmParamLineSE: TfrmParamLineSE
         end
         object edDisplayName: TEdit
           Left = 88
-          Top = 2
-          Width = 281
+          Top = 1
+          Width = 349
           Height = 21
           Hint = 'Наименование параметра для отображения'
           Anchors = [akLeft, akTop, akRight]
@@ -51,8 +51,8 @@ object frmParamLineSE: TfrmParamLineSE
           OnChange = edDisplayNameChange
         end
         object cbParamType: TComboBox
-          Left = 373
-          Top = 2
+          Left = 439
+          Top = 1
           Width = 133
           Height = 21
           Hint = 'Тип параметра'
@@ -81,7 +81,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edHint: TEdit
           Left = 88
           Top = 26
-          Width = 281
+          Width = 349
           Height = 21
           Hint = 'Описание параметра'
           Anchors = [akLeft, akTop, akRight]
@@ -89,7 +89,7 @@ object frmParamLineSE: TfrmParamLineSE
           OnChange = edDisplayNameChange
         end
         object chbxRequired: TCheckBox
-          Left = 373
+          Left = 439
           Top = 28
           Width = 120
           Height = 17
@@ -115,7 +115,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edValuesList: TEdit
           Left = 3
           Top = 1
-          Width = 503
+          Width = 567
           Height = 21
           Hint = 
             'Список в формате "ОтобрСтрока1=Значение1","ОтобрСтрока2=Значение' +
@@ -135,14 +135,14 @@ object frmParamLineSE: TfrmParamLineSE
           Caption = 'Таблица:'
         end
         object lblDisplay: TLabel
-          Left = 2
+          Left = 1
           Top = 29
           Width = 120
           Height = 13
           Caption = 'Поле для отображения:'
         end
         object lblPrimary: TLabel
-          Left = 359
+          Left = 424
           Top = 29
           Width = 49
           Height = 13
@@ -152,7 +152,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edTableName: TEdit
           Left = 50
           Top = 1
-          Width = 456
+          Width = 521
           Height = 21
           Hint = 'Наименование таблицы для параметра ссылка'
           Anchors = [akLeft, akTop, akRight]
@@ -163,7 +163,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edDisplayField: TEdit
           Left = 125
           Top = 26
-          Width = 228
+          Width = 293
           Height = 21
           Hint = 'Наименование поля для отображения для параметра ссылка'
           Anchors = [akLeft, akTop, akRight]
@@ -172,7 +172,7 @@ object frmParamLineSE: TfrmParamLineSE
           OnChange = edDisplayNameChange
         end
         object edPrimaryField: TEdit
-          Left = 410
+          Left = 475
           Top = 26
           Width = 96
           Height = 21
@@ -201,7 +201,7 @@ object frmParamLineSE: TfrmParamLineSE
           Caption = 'Язык:'
         end
         object lblSort: TLabel
-          Left = 316
+          Left = 318
           Top = 29
           Width = 63
           Height = 13
@@ -211,7 +211,7 @@ object frmParamLineSE: TfrmParamLineSE
         object edConditionScript: TEdit
           Left = 91
           Top = 1
-          Width = 415
+          Width = 479
           Height = 21
           Hint = 'Скрипт для получения условия выборки ссылки'
           Anchors = [akLeft, akTop, akRight]
@@ -235,20 +235,19 @@ object frmParamLineSE: TfrmParamLineSE
             'JScript')
         end
         object cbSortOrder: TComboBox
-          Left = 384
+          Left = 386
           Top = 26
-          Width = 122
+          Width = 185
           Height = 21
           Hint = 'Порядок сортировки списка'
-          Style = csDropDownList
           Anchors = [akTop, akRight]
           ItemHeight = 13
           TabOrder = 2
           OnChange = edDisplayNameChange
           Items.Strings = (
-            ''
-            'По возрастанию'
-            'По убыванию')
+            '<Без сортировки>'
+            '<По наименованию, возр>'
+            '<По наименованию, убыв>')
         end
       end
       object tsLink3: TTabSheet

@@ -96,7 +96,10 @@ begin
       cbLanguage.ItemIndex := I;
       Break;
     end;
-  cbSortOrder.ItemIndex := AnParam.SortOrder;
+  if AnParam.SortField > '' then
+    cbSortOrder.Text := AnParam.SortField
+  else
+    cbSortOrder.ItemIndex := AnParam.SortOrder;
   // Данный кусок кода менять только с текстом ComboBox и кодом ниже
   case AnParam.ParamType of
     prmInteger:         cbParamType.ItemIndex := 0; // Число целое
@@ -171,7 +174,15 @@ begin
       AnParam.LinkFunctionLanguage := cbLanguage.Text
     else
       AnParam.LinkFunctionLanguage := '';
-    AnParam.SortOrder := cbSortOrder.ItemIndex;
+    if cbSortOrder.Items.IndexOf(cbSortOrder.Text) > -1 then
+    begin
+      AnParam.SortField := '';
+      AnParam.SortOrder := cbSortOrder.Items.IndexOf(cbSortOrder.Text);
+    end else
+    begin
+      AnParam.SortOrder := 0;
+      AnParam.SortField := Trim(cbSortOrder.Text);
+    end;
     Result := (AnParam.LinkTableName > '') and (AnParam.LinkDisplayField > '') and
      (AnParam.LinkPrimaryField > '');
     if not Result then
@@ -224,7 +235,10 @@ begin
       edDisplayField.Text := GetParam.LinkDisplayField;
       edPrimaryField.Text := GetParam.LinkPrimaryField;
       edConditionScript.Text := GetParam.LinkConditionFunction;
-      cbSortOrder.ItemIndex := GetParam.SortOrder;
+      if GetParam.SortField > '' then
+        cbSortOrder.Text := GetParam.SortField
+      else
+        cbSortOrder.ItemIndex := GetParam.SortOrder;
       cbLanguage.ItemIndex := cbLanguage.Items.IndexOf(GetParam.LinkFunctionLanguage);
       
       pcParam.ActivePageIndex := 0;

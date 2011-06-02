@@ -60,6 +60,7 @@ type
     FLinkConditionFunction, FLinkFunctionLanguage: String;
     FRequired: Boolean;
     FSortOrder: TSortOrder;
+    FSortField: String;
 
     function GetParamType: TParamType;
     procedure SetLinkPrimaryField(const Value: String);
@@ -95,6 +96,7 @@ type
     property LinkFunctionLanguage: String read FLinkFunctionLanguage write FLinkFunctionLanguage;
     property Required: Boolean read FRequired write FRequired;
     property SortOrder: TSortOrder read FSortOrder write FSortOrder;
+    property SortField: String read FSortField write FSortField;
   end;
 
 type
@@ -146,6 +148,8 @@ const
   RequiredLabel       = '^R';
   SortAscLabel        = '^A';
   SortDescLabel       = '^D';
+  StartSortField      = '^SF';
+  FinishSortField     = '^FF';
   ValuesListDelimiter = '^V';
 
 function GetParamsFromText(const AnParamList: TgsParamList;
@@ -288,6 +292,7 @@ begin
   FComment := Source.Comment;
   FRequired := Source.Required;
   FSortOrder := Source.SortOrder;
+  FSortField := Source.SortField;
   FLinkTableName := Source.LinkTableName;
   FLinkDisplayField := Source.LinkDisplayField;
   FLinkPrimaryField := Source.LinkPrimaryField;
@@ -321,7 +326,7 @@ end;
 procedure TgsParamData.LoadFromStream(AnStream: TStream);
 var
   TestLabel: array[0..SizeOf(StartParam)] of Char;
-  I: Integer;
+  I, SFS, SFF: Integer;
 begin
   Assert(Length(StartParam) = Length(FinishParam));
   AnStream.ReadBuffer(TestLabel[0], Length(StartParam));
@@ -392,6 +397,16 @@ begin
     FSortOrder := 2;
   end;
 
+  SFS := Pos(StartSortField, FComment);
+  SFF := Pos(FinishSortField, FComment);
+  if (SFS > 0) and (SFF > SFS) then
+  begin
+    FSortField := Copy(FComment, SFS + Length(StartSortField), SFF - SFS - Length(StartSortField));
+    FSortOrder := 0;
+    Delete(FComment, SFS, SFF - SFS + Length(FinishSortField));
+  end else
+    FSortField := '';
+
   I := Pos(ValuesListDelimiter, FComment);
   if I > 0 then
   begin
@@ -456,10 +471,13 @@ begin
   if FRequired then
     S := S + RequiredLabel;
 
-  case FSortOrder of
-    1: S := S + SortAscLabel;
-    2: S := S + SortDescLabel;
-  end;
+  if FSortField > '' then
+    S := S + StartSortField + FSortField + FinishSortField
+  else
+    case FSortOrder of
+      1: S := S + SortAscLabel;
+      2: S := S + SortDescLabel;
+    end;
 
   I := Length(S);
   AnStream.Write(I, SizeOf(I));

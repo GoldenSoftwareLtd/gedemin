@@ -294,6 +294,7 @@ var
             TgsIBLookupComboBox(FWinCtrl).Transaction := FTransaction;
             TgsIBLookupComboBox(FWinCtrl).ShowHint := True;
             TgsIBLookupComboBox(FWinCtrl).SortOrder := TgsSortOrder(LocParamList.Params[I].SortOrder);
+            TgsIBLookupComboBox(FWinCtrl).SortField := LocParamList.Params[I].SortField;
             TgsIBLookupComboBox(FWinCtrl).ShowDisabled := True;           // Будем отображать записи с DISABLED = 1
             Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
@@ -529,7 +530,7 @@ var
     if Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl is TxCalculatorEdit then
     begin
       if (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxCalculatorEdit).Text = '' then
-        Result := Unassigned
+        Result := Null
       else
       begin
         if (Tdlg_frmParamLine(FLineList.Items[AnIndex]).WinControl as TxCalculatorEdit).DecDigits = 0 then
@@ -638,7 +639,7 @@ var
           else
             IsNull := VarIsNull(ResultValue)
               or ((VarType(ResultValue) = varString) and (ResultValue = ''))
-              or ((VarType(ResultValue) in [varInteger, varDouble, varCurrency, varSingle, varSmallInt]) and (ResultValue = 0))
+              {or ((VarType(ResultValue) in [varInteger, varDouble, varCurrency, varSingle, varSmallInt]) and (ResultValue = 0))}
               or ((VarType(ResultValue) = varDate) and EmptyDate(ResultValue));
 
           if IsNull then

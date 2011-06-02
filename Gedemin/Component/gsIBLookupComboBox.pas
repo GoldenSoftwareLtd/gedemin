@@ -61,6 +61,7 @@ type
     FListTable: String;             // таблица справочник
     FCondition: String;             // условие накладываемое на отбираемые записи
     FSortOrder: TgsSortOrder;       // сортировка датасета
+    FSortField: String;             // ѕол€ дл€ сортировки
     FCheckUserRights: Boolean;      // провер€ть на права пользовател€
     FNeedsRecheck: Boolean;
     FFields: String;                // список полей расширенного отображени€
@@ -156,6 +157,8 @@ type
     function ConvertDate(const S: String): String;
     function ExtractDate(const S: String; out Y, M, D: Integer): Boolean;
     function GetParamValue(const S: String): Variant;
+    procedure SetSortField(const Value: String);
+    procedure SetSortOrder(const Value: TgsSortOrder);
 
   protected
     procedure DropDown; override;
@@ -231,8 +234,9 @@ type
       stored True;
     property KeyField: String read FKeyField write SetKeyField
       stored True;
-    property SortOrder: TgsSortOrder read FSortOrder write FSortOrder
+    property SortOrder: TgsSortOrder read FSortOrder write SetSortOrder
       default DefSortOrder;
+    property SortField: String read FSortField write SetSortField;
     property CheckUserRights: Boolean read FCheckUserRights write SetCheckUserRights
       default DefCheckUserRights;
     // показывает: выбран ли в комбо существующий в базе объект
@@ -407,6 +411,7 @@ begin
   FDataLink := TgsIBLCBDataLink.Create(Self);
   //FDontSync := False;
   FSortOrder := DefSortOrder;
+  FSortField := '';
   FCheckUserRights := DefCheckUserRights;
   FNeedsRecheck := False;
   //FWasDropDownDialog := False;
@@ -677,7 +682,9 @@ begin
       [S, GetTableAlias(FgdClass.GetListTable(FSubType))]);
   end;
 
-  if FSortOrder = soAsc then
+  if FSortField > '' then
+    S := S + ' ORDER BY ' + FieldWithAlias(FSortField)
+  else if FSortOrder = soAsc then
     S := S + ' ORDER BY ' + FieldWithAlias(FListField) + ' ASC '
   else if FSortOrder = soDesc then
     S := S + ' ORDER BY ' + FieldWithAlias(FListField) + ' DESC ';
@@ -1445,7 +1452,9 @@ begin
           [S, GetTableAlias(FgdClass.GetListTable(FSubType))]);
       end;
 
-      if FSortOrder = soAsc then
+      if FSortField > '' then
+        S := S + ' ORDER BY ' + FieldWithAlias(FSortField)
+      else if FSortOrder = soAsc then
         S := S + ' ORDER BY ' + FieldWithAlias(FListField) + ' ASC '
       else if FSortOrder = soDesc then
         S := S + ' ORDER BY ' + FieldWithAlias(FListField) + ' DESC ';
@@ -3075,6 +3084,20 @@ begin
 
     Result := S;
   end;
+end;
+
+procedure TgsIBLookupComboBox.SetSortField(const Value: String);
+begin
+  FSortField := Trim(Value);
+  if (not (csLoading in ComponentState)) and (FSortField > '') then
+    FSortOrder := soNone;
+end;
+
+procedure TgsIBLookupComboBox.SetSortOrder(const Value: TgsSortOrder);
+begin
+  FSortOrder := Value;
+  if (not (csLoading in ComponentState)) and (FSortOrder <> soNone) then
+    FSortField := '';
 end;
 
 { TgsIBLCBDataLink }
