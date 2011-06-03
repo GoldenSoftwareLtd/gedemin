@@ -525,7 +525,7 @@ begin
       while not ibsqlTable.Eof do
       begin
         FTableArray.ValuesByIndex[FTableArray.Add(ibsqlTable.Fields[0].AsInteger)] :=
-          ibsqlTable.Fields[1].AsString;
+          ibsqlTable.Fields[1].AsTrimString;
         ibsqlTable.Next;
       end;
       Result := True;
@@ -738,8 +738,9 @@ end;
 procedure TfrmSQLEditorSyn.actExecuteExecute(Sender: TObject);
 var
   StartTime: TDateTime;
-  I: Integer;
+  I, K: Integer;
   S: String;
+  SL: TStringList;
 begin
   if PrepareQuery then
   begin
@@ -816,14 +817,41 @@ begin
         FFetchTime := Now - StartTime;
 
         ShowStatistic;
-
-        if (ibqryWork.QSelect.SQLType in [SQLInsert, SQLUpdate, SQLDelete, SQLExecProcedure])
-          and (ibqryWork.QSelect.RowsAffected >= 0) then
-        begin
-          mmPlan.Lines.Add('RowsAffected: ' + IntToStr(ibqryWork.QSelect.RowsAffected));
-        end;  
-
         ClearError;
+
+        if (ibqryWork.QSelect.SQLType in [SQLInsert, SQLUpdate, SQLDelete, SQLExecProcedure]) then
+        begin
+          mmPlan.Text := StringReplace(ibqryWork.QSelect.Plan, #$A, #13#10, [rfReplaceAll]) + #13#10#13#10;
+
+          SL := TStringList.Create;
+          try
+            SL.Assign(IBDatabaseInfo.InsertCount);
+            RemoveNoChange(FOldInsert, SL);
+            if SL.Count > 0 then
+            begin
+              for K := 0 to SL.Count - 1 do
+                mmPlan.Lines.Add('В таблицу ' + FTableArray.ValuesByKey[StrToInt(SL.Names[K])] + ' вставлено записей: ' + SL.Values[SL.Names[K]]);
+            end;
+
+            SL.Assign(IBDatabaseInfo.UpdateCount);
+            RemoveNoChange(FOldUpdate, SL);
+            if SL.Count > 0 then
+            begin
+              for K := 0 to SL.Count - 1 do
+                mmPlan.Lines.Add('В таблице ' + FTableArray.ValuesByKey[StrToInt(SL.Names[K])] + ' изменено записей: ' + SL.Values[SL.Names[K]]);
+            end;
+
+            SL.Assign(IBDatabaseInfo.DeleteCount);
+            RemoveNoChange(FOldDelete, SL);
+            if SL.Count > 0 then
+            begin
+              for K := 0 to SL.Count - 1 do
+                mmPlan.Lines.Add('Из таблицы ' + FTableArray.ValuesByKey[StrToInt(SL.Names[K])] + ' удалено записей: ' + SL.Values[SL.Names[K]]);
+            end;    
+          finally
+            SL.Free;
+          end;
+        end;
       except
         on E: Exception do
         begin
