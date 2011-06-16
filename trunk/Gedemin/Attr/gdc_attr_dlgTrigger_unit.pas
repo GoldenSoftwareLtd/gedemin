@@ -268,8 +268,8 @@ begin
     25: Result := 9;
     26: Result := 10;
     27: Result := 11;
-    113: Result := 12;
-    114: Result := 13;
+    112: Result := 12;
+    113: Result := 13;
   else
     Result := TypeTrigger;
   end;

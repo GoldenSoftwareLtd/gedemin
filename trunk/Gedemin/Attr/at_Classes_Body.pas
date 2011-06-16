@@ -43,7 +43,7 @@ uses
 const
   ATTR_FILE_NAME = 'g%s.atr';
   //Изменилась версия!!!
-  _DATABASE_STREAM_VERSION = '1.6v';
+  _DATABASE_STREAM_VERSION = '1.7v';
 
 type
   TIBString = String[31];
@@ -4919,6 +4919,9 @@ begin
 
     ReadListEnd;
 
+    FUpdateRule := TUpdateDeleteRule(ReadInteger);
+    FDeleteRule := TUpdateDeleteRule(ReadInteger);
+
     if IsSimpleKey then
     begin
       TatBodyRelationField(ConstraintField).FReferences := FReferencesRelation;
@@ -4958,6 +4961,9 @@ begin
       WriteString(FReferencesFields[I].FieldName);
 
     WriteListEnd;
+
+    WriteInteger(Integer(FUpdateRule));
+    WriteInteger(Integer(FDeleteRule));
   end;
 end;
 
