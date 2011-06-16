@@ -10703,7 +10703,7 @@ begin
             begin
               raise EgdcException.Create('Невозможно удалить запись "' + GetDisplayName(SubType) + '" '
                 + FieldByName(GetListField(SubType)).AsString + ' с идентификатором: ' + IntToStr(ID) +
-                #13#10#13#10 + 'Вероятно, на данную запись ссылаются другие записи.');
+                #13#10#13#10 + 'На данную запись ссылаются записи в таблице ' + FTableList[I] + '.');
             end;
 
             //создаем объект класса по id
