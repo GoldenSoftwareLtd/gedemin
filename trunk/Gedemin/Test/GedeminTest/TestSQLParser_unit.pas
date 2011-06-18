@@ -4,10 +4,13 @@ unit TestSQLParser_unit;
 interface
 
 uses
-  Classes, TestFrameWork;
+  Classes, TestFrameWork, gsTestFrameWork;
 
 type
-  TSQLParserTest = class(TTestCase)
+  TSQLParserTest = class(TgsDBTestCase)
+  private
+    procedure TestAtSQLParser(const SIn: String);
+
   published
     procedure TestSQLParser;
   end;
@@ -15,15 +18,36 @@ type
 implementation
 
 uses
-  SysUtils, jclStrings, flt_sql_parser;
+  SysUtils, jclStrings, flt_sql_parser, at_sql_parser;
 
 { TSQLParserTest }
+
+procedure TSQLParserTest.TestAtSQLParser(const SIn: String);
+var
+  Parser: TsqlParser;
+  S: String;
+begin
+  Parser := TsqlParser.Create(SIn);
+  try
+    Parser.Parse;
+    Parser.Build(S);
+
+    FQ.Close;
+    FQ.SQL.Text := S;
+    FQ.ParamByName('p').AsInteger := -1;
+    FQ.ExecQuery;
+    Check(FQ.Fields[0].IsNull);
+    FQ.Close;
+  finally
+    Parser.Free;
+  end;
+end;
 
 procedure TSQLParserTest.TestSQLParser;
 var
   Input, Output, Etalon, GroupByFields: TStringList;
   I: Integer;
-  InputFileName, OutputFileName: String;
+  InputFileName, OutputFileName, S: String;
 begin
   // тэставаньне разбору СКЛ запытаў мае на мэце праверыць працу
   // функцыі ExtractTablesList
@@ -106,6 +130,19 @@ begin
   finally
     GroupByFields.Free;
   end;
+
+  TestAtSQLParser(
+    'select IIF(((:p) >= 0) AND ((:p) <= 42), ''1-42'', ' +
+    '  IIF(((:p) >= 43) AND ((:p) <= 140), ''43-140'', ' +
+    '  IIF(((:p) >= 141) AND ((:p) <= 180), ''141-180'', ' +
+    '  IIF((:p) > 180, ''>180'', NULL)))) AS birdage ' +
+    'from rdb$database ');
+  TestAtSQLParser(
+    'select CASE WHEN ((:p) >= 0) AND ((:p) <= 42) THEN ''1-42'' ' +
+    'WHEN ((:p) >= 43) AND ((:p) <= 140) THEN ''43-140'' ' +
+    'WHEN ((:p) >= 141) AND ((:p) <= 180) THEN ''141-180'' ' +
+    'WHEN (:p) > 180 THEN ''>180'' ' +
+    'END AS birdage from rdb$database ');
 end;
 
 initialization

@@ -412,8 +412,8 @@ type
     //Список выражений, которые выполняются на when
     FWhenStatement: TObjectList;
     //Выражение которое выполняется на else
-    FElseStatement: TsqlStatement;
-
+    FElseStatement: TsqlStatement; 
+    
   protected
     procedure ParseStatement; override;
     procedure BuildStatement(out sql: String); override;
@@ -1928,13 +1928,38 @@ begin
               Continue;
             end
           end;
+
           cCase:
+          begin
+            if not (eoClause in FDone) then
+            begin
+              Include(FDone, eoClause);
+              FFuncClause.Add(Token.Clause);
+
+              Exclude(FNeeded, eoClause);
+              Exclude(FNeeded, eoUserFunc);
+              ReadNext;
+
+              CurrArg := TsqlCase.Create(FParser);
+              CurrArg.ParseStatement;
+              FArguments.Add(CurrArg);
+              Continue;
+            end else
+            begin
+              CurrArg := TsqlFunction.Create(FParser, True);
+              CurrArg.ParseStatement;
+              FArguments.Add(CurrArg);
+              Continue;
+            end
+          end;
+
+          {cCase:
           begin
             CurrArg := TsqlCase.Create(FParser);
             CurrArg.ParseStatement;
             FArguments.Add(CurrArg);
             Continue;
-          end;
+          end;}
 
           cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
           cCount, cGen_id, cFirst, cSkip:
@@ -1961,7 +1986,14 @@ begin
           begin
             FFuncClause.Add(Token.Clause);
           end;
-
+          
+          cNull:
+          begin
+            CurrArg := TsqlValue.Create(FParser, True);
+            CurrArg.ParseStatement;
+            FArguments.Add(CurrArg);
+            Continue;
+          end;
 
           cAnd, cOr:
           begin
@@ -1997,7 +2029,7 @@ begin
               Break;
           end;
 
-          cIn, cIs, cNull, cNot:
+          cIn, cIs, {cNull,} cNot:
           begin
             if BracketCount > 0 then
             begin
@@ -2018,7 +2050,7 @@ begin
                   CurrFunction.AssignAndClear(Self);
                   (CurrArg as TsqlCondition).FStatements.Add(CurrFunction);
                 end;
-              end;
+              end; 
 
               Exclude(FNeeded, eoClause);
               Exclude(FNeeded, eoUserFunc);
@@ -2363,10 +2395,11 @@ begin
     for I := 0 to FFuncClause.Count - 1 do
       if FFuncClause.Items[I] in [cDistinct, cAll] then
         sql := sql + ClauseText[FFuncClause.Items[I]] + ' '
-      else if sql = '' then
-          sql := sql + ClauseText[FFuncClause.Items[I]] + '('
+      else if not (FFuncClause.Items[I] in [cCase]) then
+      if sql = '' then
+        sql := sql + ClauseText[FFuncClause.Items[I]] + '('
       else
-          sql := sql + ClauseText[FFuncClause.Items[I]] + ' ';
+        sql := sql + ClauseText[FFuncClause.Items[I]] + ' ';
 
   if (FFuncClause.Count = 0) and not (eoUserFunc in FDone) then
     sql := sql + '(';
@@ -2388,6 +2421,9 @@ begin
 
 {  if ((FArguments.Count > 1) or (ArgSt[1] <> '(') or (ArgSt[Length(ArgSt)] <> ')'))
   then}
+  if FFuncClause.Include(cCase) then
+    sql := sql + ArgSt
+  else
     sql := sql + ArgSt + ')';
 {  else
     sql := Copy(sql, 1, Length(sql) - 1) + ArgSt;}
@@ -2720,7 +2756,7 @@ begin
       begin
         case Token.Clause of
           cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
-          cCast, cCount, cFirst, cSkip, cExtract, cGen_ID, cSubString:
+          cCast, cCase, cCount, cFirst, cSkip, cExtract, cGen_ID, cSubString:
           begin
             CurrStatement := TsqlFunction.Create(FParser, False);
             FFields.Add(CurrStatement);
@@ -2728,14 +2764,14 @@ begin
             Continue;
           end;
 
-          cCase:
+         { cCase:
           begin
             CurrStatement := TsqlCase.Create(FParser);
             FFields.Add(CurrStatement);
             CurrStatement.ParseStatement;
             Continue;
-          end;
-
+          end; }
+          
           cSelect, cDistinct, cAll:
           begin
             Include(FDone, Token.Clause);
@@ -7049,7 +7085,7 @@ begin
   FValue := nil;
 
   FNeeded := [eoEnd, eoCase];
-  FDone := [];
+  FDone := []; 
 end;
 
 destructor TsqlCase.Destroy;
