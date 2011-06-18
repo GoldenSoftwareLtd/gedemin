@@ -223,8 +223,10 @@ begin
       Sender.Canvas.FillRect(Rect);
 
       Sender.Canvas.MoveTo(Item.Left, Item.Top);
-      if P > 0 then
+      while P > 0 do
       begin
+      //if P > 0 then
+      //begin
         Sender.Canvas.Font.Style := [fsBold];
         Str2 :=  System.Copy(Str1, 1, P - 1);
         Sender.Canvas.TextOut(Sender.Canvas.PenPos.X, Sender.Canvas.PenPos.Y, Str2);
@@ -239,8 +241,10 @@ begin
         //Это необходимо чтобы изменения шрифра вступили в силу
         SelectObject(Sender.Canvas.Handle,  Sender.Canvas.Font.Handle);
         System.Delete(Str1, 1, P);
-        Sender.Canvas.TextOut(Sender.Canvas.PenPos.X, Sender.Canvas.PenPos.Y, Str1);
-      end else
+        P := System.Pos(#9, Str1);
+      end;
+        //Sender.Canvas.TextOut(Sender.Canvas.PenPos.X, Sender.Canvas.PenPos.Y, Str1);
+      //end else
         Sender.Canvas.TextOut(Sender.Canvas.PenPos.X, Sender.Canvas.PenPos.Y, Str1);
       DefaultDraw := False;
     finally
