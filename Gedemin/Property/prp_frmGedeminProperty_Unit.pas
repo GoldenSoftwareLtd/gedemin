@@ -428,7 +428,7 @@ var
 implementation
 
 uses
-  prp_BaseFrame_unit,
+  prp_BaseFrame_unit, JclStrings,
   {$IFDEF GEDEMIN}
   prp_FunctionFrame_Unit, prp_EventFrame_unit, prp_MethodFrame_Unit,
   prp_VBClass_unit, prp_ConstFrame_Unit, prp_GOFrame_unit,
@@ -2580,6 +2580,7 @@ var
   L: Integer;
   C: TCursor;
   DateCondition, ModuleCondition: string;
+  Temp: Integer;
 const
   ALPHA = ['A'..'Z', 'a'..'z', '_', '0'..'9'];
 
@@ -2647,8 +2648,15 @@ const
               Continue;
           end;
           Str := FindList[FI];
-          System.Insert(#9, Str, P + Length(SearchText));
-          System.Insert(#9, Str, P);
+          Temp := P;
+          while Temp <> 0 do
+          begin
+            System.Insert(#9, Str, Temp + Length(SearchText));
+            System.Insert(#9, Str, Temp);
+            Temp := StrFind(SearchText, Str, Temp + Length(SearchText) + 2);
+          end;
+          //System.Insert(#9, Str, P + Length(SearchText));
+          //System.Insert(#9, Str, P);
           AddItem(SQL.FieldByName(fnName).AsString + ': ' + Str,
             SQL.FieldByName(fnId).AsInteger, SQL.FieldByName(fnModule).AsString,
             FI + 1, P);
