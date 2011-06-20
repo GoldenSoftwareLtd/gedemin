@@ -86,6 +86,9 @@ type
     procedure ibdsMainAfterOpen(DataSet: TDataSet);
     procedure ibdsMainCalcAggregates(DataSet: TDataSet;
       var Accept: Boolean);
+    procedure actSaveGridSettingUpdate(Sender: TObject);
+    procedure actClearGridSettingUpdate(Sender: TObject);
+    
   private
     FEntryDateIsFirst: Boolean;
     FEntryDateInFields: Boolean;
@@ -113,6 +116,7 @@ type
 
     procedure DoLoadConfig(const Config: TBaseAcctConfig);override;
     procedure DoSaveConfig(Config: TBaseAcctConfig);override;
+    procedure DoAfterBuildReport; override;
     class function ConfigClassName: string; override;
     procedure Go_to(NewWindow: Boolean = false); override;
     function CanGo_to: boolean; override;
@@ -325,6 +329,16 @@ begin
     C.EnchancedSaldo := cbEnchancedSaldo.Checked;
     C.TreeAnalytic := frAcctTreeAnalytic.TreeAnalitic;
   end;
+end;
+
+procedure Tgdv_frmAcctLedger.DoAfterBuildReport;
+begin
+  if cbShowDebit.Checked or cbShowCredit.Checked then
+  begin
+    InitColumns;
+    ibgrMain.ResizeColumns;
+  end else
+    inherited;
 end;
 
 class function Tgdv_frmAcctLedger.ConfigClassName: string;
@@ -1618,6 +1632,17 @@ begin
   end;
 
   Accept := (FSortFieldIndex > -1) and (gdvObject.Fields[FSortFieldIndex].AsInteger = 1);
+end;
+
+procedure Tgdv_frmAcctLedger.actSaveGridSettingUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := (iblConfiguratior.CurrentKey > '') and (not cbShowDebit.Checked) and (not cbShowCredit.Checked);
+  FSaveGridSetting := (iblConfiguratior.CurrentKey > '') and (not cbShowDebit.Checked) and (not cbShowCredit.Checked);
+end;
+
+procedure Tgdv_frmAcctLedger.actClearGridSettingUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := iblConfiguratior.CurrentKey > '';
 end;
 
 initialization

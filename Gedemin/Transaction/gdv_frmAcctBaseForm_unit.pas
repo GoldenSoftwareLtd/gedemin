@@ -123,6 +123,7 @@ type
     FMakeEmpty: Boolean;
     FShowMessage: Boolean;
     FSortColumns: Boolean;
+    FSaveGridSetting: Boolean;
 
     // Функция возвращает объект бухгалтерского отчета, должна быть
     //   переопределена в каждой наследованной форме
@@ -1080,8 +1081,11 @@ begin
 //              if DidActivate then
                 Transaction.Commit;
               iblConfiguratior.CurrentKeyInt := Id;
-              if MessageDlg('Сохранить настройки таблицы?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-                actSaveGridSetting.Execute;
+              if FSaveGridSetting then
+              begin
+                if MessageDlg('Сохранить настройки таблицы?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+                  actSaveGridSetting.Execute;
+              end;
             except
 //              if DidActivate then
                 Transaction.RollBack;
@@ -1136,7 +1140,8 @@ end;
 
 procedure Tgdv_frmAcctBaseForm.actSaveGridSettingUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := iblConfiguratior.CurrentKey > ''
+  TAction(Sender).Enabled := iblConfiguratior.CurrentKey > '';
+  FSaveGridSetting := iblConfiguratior.CurrentKey > '';
 end;
 
 procedure Tgdv_frmAcctBaseForm.actSaveGridSettingExecute(Sender: TObject);
