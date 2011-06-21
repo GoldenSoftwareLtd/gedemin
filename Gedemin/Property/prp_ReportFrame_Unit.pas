@@ -632,24 +632,28 @@ begin
   begin
     Lfr4Report := Tgs_fr4SingleReport.Create(Application);
     try
-      Str := MainFunctionFrame.gdcFunction.CreateBlobStream(
-        MainFunctionFrame.gdcFunction.FieldByName('testresult'), DB.bmRead);
-      try
-        try
-          Lfr4Report.ReportResult.LoadFromStream(Str);
-        except
-          MainFunctionFrame.gdcFunction.FieldByName('testresult').Clear;
-          raise Exception.Create(cErrTesrResult);
-        end;
-      finally
-        Str.Free;
-      end;
-
       RTFStr := TF.gdcTemplate.CreateBlobStream(
         TF.gdcTemplate.FieldByName('templatedata'), DB.bmReadWrite);
       try
+        //Загружаем отчет
         if RTFStr.Size > 0 then
           Lfr4Report.LoadFromStream(RTFStr);
+
+        Lfr4Report.DataSets.Clear;
+        //Загружаем наши наборы данных
+        Str := MainFunctionFrame.gdcFunction.CreateBlobStream(
+          MainFunctionFrame.gdcFunction.FieldByName('testresult'), DB.bmRead);
+        try
+          try
+            Lfr4Report.ReportResult.LoadFromStream(Str);
+          except
+            MainFunctionFrame.gdcFunction.FieldByName('testresult').Clear;
+            raise Exception.Create(cErrTesrResult);
+          end;
+        finally
+          Str.Free;
+        end;
+
         if MainFunctionFrame.FunctionParams <> nil then
         begin
           MS := TMemoryStream.Create;
@@ -665,9 +669,9 @@ begin
                 VS.Free;
               end;
             end;
-         finally
-           MS.Free;
-         end;
+          finally
+            MS.Free;
+          end;
           Lfr4Report.Variables.Clear;
           Lfr4Report.Variables[' ' + cCategoryName] := Null;
           SetParam(Lfr4Report, cParamName, P, AddFR4Param);
