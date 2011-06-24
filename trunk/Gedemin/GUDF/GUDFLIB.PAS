@@ -19,7 +19,7 @@ unit GUDFlib;
 interface
 
 uses
-  {FastMM4,} SysUtils, Classes, cDataStructs, SyncObjs;
+  SysUtils, Classes;
 
 type
 // C, C++     Delphi          InterBase
@@ -65,10 +65,15 @@ const                               // Date translation constants
 implementation
 
 uses
-  JclStrings, FindCompare;
+  JclStrings, FindCompare, GsHugeIntSet, syncobjs;
 
 const
-  SmallNumber = 0.0000000000001;
+  SmallNumber        = 0.0000000000001;
+  HugeIntSetMaxCount = 4;
+
+var
+  arrHugeIntSet: array[0..HugeIntSetMaxCount - 1] of TgsHugeIntSet;
+  csHugeIntSet: TCriticalSection;
 
 (*
 
@@ -1155,62 +1160,57 @@ begin
   end;
 end;
 
-//====================================================================
-
-var
-  BitCS: TCriticalSection;
-  BitArray: TBitArray;
-
-function g_bit_init(var ACount: Integer): Integer;
+function g_his_create: Integer;
   cdecl; export;
+var
+  I: Integer;
 begin
   Result := -1;
-  BitCS.Enter;
+  csHugeIntSet.Enter;
   try
-    if not Assigned(BitArray) then
-      BitArray := TBitArray.Create;
-    BitArray.Clear;
-    BitArray.Count := ACount;
-    Result := ACount;
+    for I := 0 to HugeIntSetMaxCount - 1 do
+    begin
+      if arrHugeIntSet[I] = nil then
+      begin
+        arrHugeIntSet[I] := TgsHugeIntSet.Create;
+        Result := I;
+        break;
+      end;
+    end;
   finally
-    BitCS.Leave;
+    csHugeIntSet.Leave;
   end;
 end;
 
-function g_bit_done: Integer;
-  cdecl; export;
+procedure g_his_exclude(var AnIndex: Integer; var AnElement: Integer); cdecl; export;
 begin
-  Result := 0;
-  BitCS.Enter;
-  try
-    FreeAndNil(BitArray);
-  finally
-    BitCS.Leave;
-  end;
+  if arrHugeIntSet[AnIndex] <> nil then
+    arrHugeIntSet[AnIndex].Exclude(AnElement);
 end;
 
-function g_bit_set(var AnIndex: Integer; var AValue: Integer): Integer;
-  cdecl; export;
+procedure g_his_include(var AnIndex: Integer; var AnElement: Integer); cdecl; export;
 begin
-  Assert(Assigned(BitArray));
-  Result := AValue;
-  BitCS.Enter;
-  try
-    BitArray[AnIndex] := AValue <> 0;
-  finally
-    BitCS.Leave;
-  end;
+  if arrHugeIntSet[AnIndex] <> nil then
+    arrHugeIntSet[AnIndex].Include(AnElement);
 end;
 
-function g_bit_get(var AnIndex: Integer): Integer;
+function g_his_has(var AnIndex: Integer; var AnElement: Integer): Integer;
   cdecl; export;
 begin
-  Assert(Assigned(BitArray));
-  BitCS.Enter;
+  if arrHugeIntSet[AnIndex] <> nil then
+    Result := Integer(arrHugeIntSet[AnIndex].Has(AnElement))
+  else
+    Result := 0;
+end;
+
+procedure g_his_destroy(var AnIndex: Integer); cdecl; export;
+begin
+  csHugeIntSet.Enter;
   try
-    Result := Integer(BitArray[AnIndex]);
+    if arrHugeIntSet[AnIndex] <> nil then
+      FreeAndNil(arrHugeIntSet[AnIndex]);
   finally
-    BitCS.Leave;
+    csHugeIntSet.Leave;
   end;
 end;
 
@@ -1277,18 +1277,18 @@ exports
   g_blob_size,
   g_blob_search,
   g_blob_blobtocstring,
-  g_blob_cstringtoblob,
+  g_blob_cstringtoblob;
 
-  g_bit_init,
-  g_bit_done,
-  g_bit_set,
-  g_bit_get;
+var
+  I: Integer;
 
 initialization
-  BitCS := TCriticalSection.Create;
-  BitArray := nil;
+  csHugeIntSet := TCriticalSection.Create;
+  for I := 0 to HugeIntSetMaxCount - 1 do
+    arrHugeIntSet[I] := nil;
 
 finalization
-  BitArray.Free;
-  BitCS.Free;
+  csHugeIntSet.Free;
+  for I := 0 to HugeIntSetMaxCount - 1 do
+    arrHugeIntSet[I].Free;
 end.
