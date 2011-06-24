@@ -56,7 +56,6 @@ type
   end;
 
 var
-
   UseLog: Boolean;
   SaveLogToFile: Boolean;
 

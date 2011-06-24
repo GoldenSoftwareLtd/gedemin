@@ -1148,6 +1148,8 @@ type
     procedure Set_Distinct(Value: WordBool); safecall;
     function  Get_FullSearchOnExit: WordBool; safecall;
     procedure Set_FullSearchOnExit(Value: WordBool); safecall;
+    function  Get_ShowDisabled: WordBool; safecall;
+    procedure Set_ShowDisabled(Value: WordBool); safecall;
   end;
 
   TwrpXDateEdit = class(TwrpMaskEdit, IgsXDateEdit)
@@ -3220,6 +3222,10 @@ type
     procedure Set_Transaction(const Value: IgsIBTransaction); safecall;
     function  Get_Condition: WideString; safecall;
     procedure Set_Condition(const Value: WideString); safecall;
+    function  Get_SortOrder: TgsgsSortOrder; safecall;
+    procedure Set_SortOrder(Value: TgsgsSortOrder); safecall;
+    function  Get_SortField: WideString; safecall;
+    procedure Set_SortField(const Value: WideString); safecall;
     procedure ValueIDChange; safecall;
     procedure DropDown; safecall;
   end;
@@ -4629,6 +4635,11 @@ begin
   Result := GetIBLookupComboBoxX.FullSearchOnExit;
 end;
 
+function  TwrpIBLookupComboBoxX.Get_ShowDisabled: WordBool;
+begin
+  Result := GetIBLookupComboBoxX.ShowDisabled;
+end;
+
 procedure TwrpIBLookupComboBoxX.Set_Distinct(Value: WordBool);
 begin
   GetIBLookupComboBoxX.Distinct := Value;
@@ -4637,6 +4648,11 @@ end;
 procedure TwrpIBLookupComboBoxX.Set_FullSearchOnExit(Value: WordBool);
 begin
   GetIBLookupComboBoxX.FullSearchOnExit := Value;
+end;
+
+procedure TwrpIBLookupComboBoxX.Set_ShowDisabled(Value: WordBool);
+begin
+  GetIBLookupComboBoxX.ShowDisabled := Value;
 end;
 
 { TwrpXDateEdit }
@@ -15746,6 +15762,16 @@ begin
   Result := GetGdcOLEObject(GetComboBoxAttrSet.Transaction) as IgsIBTransaction;
 end;
 
+function TwrpgsComboBoxAttrSet.Get_SortOrder: TgsgsSortOrder;
+begin
+  Result := TgsgsSortOrder(GetComboBoxAttrSet.SortOrder);
+end;
+
+function TwrpgsComboBoxAttrSet.Get_SortField: WideString;
+begin
+  Result := GetComboBoxAttrSet.SortField;
+end;
+
 function TwrpgsComboBoxAttrSet.Get_ValueID: IgsStrings;
 begin
   Result := GetGdcOLEObject(GetComboBoxAttrSet.ValueID) as IgsStrings;
@@ -15775,7 +15801,7 @@ procedure TwrpgsComboBoxAttrSet.Set_PrimaryName(const Value: WideString);
 begin
   GetComboBoxAttrSet.PrimaryName := Value;
 end;
-
+                
 procedure TwrpgsComboBoxAttrSet.Set_TableName(const Value: WideString);
 begin
   GetComboBoxAttrSet.TableName := Value;
@@ -15790,6 +15816,16 @@ end;
 procedure TwrpgsComboBoxAttrSet.ValueIDChange;
 begin
   GetComboBoxAttrSet.ValueIDChange(GetComboBoxAttrSet);
+end;
+
+procedure TwrpgsComboBoxAttrSet.Set_SortOrder(Value: TgsgsSortOrder);
+begin
+  GetComboBoxAttrSet.SortOrder := TgsComboBoxSortOrder(Value);
+end;
+
+procedure TwrpgsComboBoxAttrSet.Set_SortField(const Value: WideString);
+begin
+  GetComboBoxAttrSet.SortField := Value;
 end;
 
 { TwrpGdcSetting }

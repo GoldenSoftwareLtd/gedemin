@@ -1,7 +1,7 @@
 
 {++
    Component
-   Copyright © 2000- by Golden Software
+   Copyright © 2000-2011 by Golden Software of Belarus
 
    Модуль
 
@@ -36,9 +36,14 @@ uses
   StdCtrls, DB, IBSQL, DBCtrls, IBQuery, IBDatabase, ComCtrls,
   frmSelectSet_unit, IBCustomDataSet;
 
+type
+  TgsComboBoxSortOrder = (soNone, soAsc, soDesc);
+
 const
   SetSeparator = '; ';
-  // ComboBox для заполнения атрибутов ''Множество'' и ''Элемент множества''
+  DefSortOrder = soNone;
+
+// ComboBox для заполнения атрибутов ''Множество'' и ''Элемент множества''
 type
   TgsDBComboBoxAttr = class(TCustomComboBox)
   private
@@ -156,6 +161,8 @@ type
     FPrimaryName: String;
     FItemList: TfrmSelectSet;
     FCondition: String;
+    FSortField: String;
+    FSortOrder: TgsComboBoxSortOrder;
 
     procedure CompileQry;
 
@@ -167,6 +174,8 @@ type
     procedure DataChange(Sender: TObject);
     procedure SetAttrKey(Value: Integer);
     procedure SetValueID(Value: TStrings);
+    procedure SetSortField(const Value: String);
+    procedure SetSortOrder(const Value: TgsComboBoxSortOrder);
   protected
     procedure Loaded; override;
     procedure DropDown; override;
@@ -191,6 +200,9 @@ type
     property Transaction: TIBTransaction read GetTransaction
                                           write SetTransaction;
     property Condition: String read FCondition write FCondition;
+    property SortField: String read FSortField write SetSortField;
+    property SortOrder: TgsComboBoxSortOrder read FSortOrder write SetSortOrder
+      default DefSortOrder;
   end;
 
 procedure Register;
@@ -755,6 +767,8 @@ begin
   FFullQry := False;
   FUserAttr := False;
   FCondition := '';
+  FSortField := '';
+  FSortOrder := DefSortOrder;
 end;
 
 destructor TgsComboBoxAttrSet.Destroy;
@@ -924,6 +938,20 @@ begin
     DataChange(Self);
 end;
 
+procedure TgsComboBoxAttrSet.SetSortField(const Value: String);
+begin
+  FSortField := Trim(Value);
+  if (not (csLoading in ComponentState)) and (FSortField > '') then
+    FSortOrder := soNone;
+end;
+
+procedure TgsComboBoxAttrSet.SetSortOrder(const Value: TgsComboBoxSortOrder);
+begin
+  FSortOrder := Value;
+  if (not (csLoading in ComponentState)) and (FSortOrder <> soNone) then
+    FSortField := '';
+end;
+
 procedure TgsComboBoxAttrSet.CompileQry;
 begin
   // Начальные установки
@@ -996,6 +1024,7 @@ var
   Flag: Boolean;
   I: Integer;
   S: String;
+  Temps: String;
 begin
   FDroping := True;
   if FDialogType then
@@ -1032,8 +1061,18 @@ begin
         ibsqlTarget.Transaction := Transaction;
         ibqryFind.Database := Database;
         ibqryFind.Transaction := Transaction;
+
+        Temps := '';
+        if FSortField = '' then
+        begin
+          if FSortOrder = soAsc then
+            Temps := ' ASC '
+          else if FSortOrder = soDesc then
+            Temps := ' DESC ';
+        end;
+
         // Получаем результат
-        Flag := GetElements(FValueID, TableName, FieldName, PrimaryName, FCondition);
+        Flag := GetElements(FValueID, TableName, FieldName, PrimaryName, FCondition, FSortField, Temps);
         if Flag then
         begin
           Items.Clear;
