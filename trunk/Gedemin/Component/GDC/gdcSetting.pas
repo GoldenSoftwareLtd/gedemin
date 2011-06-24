@@ -25,7 +25,7 @@ type
     FNewPositionOffset: Integer;
     FManualAddedPositions: TStringList;
     FAddedPositions: TStringList;
-    
+
     //Проверяет настройку на удаленные из нее объекты
     procedure CheckSetting;
 
@@ -148,7 +148,7 @@ type
     procedure SetNeedModify(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedInsert(const Value: Boolean; BL: TBookmarkList);
     procedure SetNeedModifyDefault;
-    
+
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
@@ -172,7 +172,7 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
-// тип версия_настройки                                                                                               
+// тип версия_настройки
   TSettingVersion = (svNotInstalled, svNewer, svEqual, svOlder, svIncorrect, svIndefinite);
 // тип несоответствие версий
   TApprVersion = (avNotApprEXEVersion, avNotApprDBVersion);
@@ -296,7 +296,7 @@ uses
   evt_i_Base, mtd_i_Base, gd_i_ScriptFactory, gdcFilter, gdcReport,
   gdcMacros, at_sql_metadata, at_sql_setup, dm_i_ClientReport_unit,
   at_ActivateSetting_unit, gsDesktopManager, TypInfo, at_dlgChoosePackage_unit,
-  gd_common_functions, zlib, gd_frmBackup_unit, gd_frmRestore_unit, gdcClasses
+  gd_common_functions, zlib, gd_frmBackup_unit, gd_frmRestore_unit, gdcClasses, gdcTree
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -463,7 +463,7 @@ begin
     begin
       if not Assigned(frmSQLProcess) then
         frmSQLProcess := TfrmSQLProcess.Create(Owner);
-        
+
       ShowSQL := frmSQLProcess.Silent;
       try
         frmSQLProcess.Silent := True;
@@ -752,7 +752,7 @@ begin
       FieldByName('disabled').AsInteger := 0;
 
     if Trim(FieldByName('description').AsString) = '' then
-      FieldByName('description').Asstring := FieldByName('name').AsString;  
+      FieldByName('description').Asstring := FieldByName('name').AsString;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSETTING', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
@@ -815,7 +815,7 @@ begin
     finally
       FreeAndNil(BlobStream);
     end;
-  end;  
+  end;
   // Если и сейчас не смогли определить формат, значит настройка пуста, сохраним в старом бинарном формате
   if StreamFormat = sttUnknown then
     StreamFormat := sttBinaryOld;
@@ -1024,7 +1024,7 @@ begin
       if Assigned(frmSQLProcess) then
         frmSQLProcess.Silent := ShowLog;
     end;
-    Self.CloseOpen;  
+    Self.CloseOpen;
   end;
 end;
 
@@ -1510,7 +1510,7 @@ begin
         FieldByName('version').AsInteger := FieldByName('version').AsInteger + 1;
 
         Post;
-        
+
       except
         on E: Exception do
         begin
@@ -1537,7 +1537,7 @@ begin
   // Вынесем скрытые записи в позиции настройки
   {if Assigned(atDatabase) and Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED'))
      and InNewFormatTemp then
-    Self.AddMissedPositions;} 
+    Self.AddMissedPositions;}
 end;
 
 procedure TgdcSetting.DoBeforeEdit;
@@ -1664,7 +1664,7 @@ begin
   // Если объект загружается из потока, то запомним ключ загружаемой настройки
   if sLoadFromStream in BaseState then
     LastLoadedSettingKey := Self.ID;
-    
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCSETTING', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1990,6 +1990,7 @@ var
   DL: TObjectList;
   C: TgdcFullClass;
   Obj: TgdcBase;
+  Obj2: TgdcTree;
   DidActivate: Boolean;
   I: Integer;
   WasSynch: Boolean;
@@ -2283,6 +2284,25 @@ begin
       end;
     finally
       gdcFunction.Free;
+    end;
+  end;
+
+  //Если переданный объект дерево
+  if (AnObject is TgdcTree) and WithDetail
+    and AnObject.GetCurrRecordClass.gdClass.InheritsFrom(TgdcTree) then
+  begin
+    Obj2 := AnObject.GetCurrRecordClass.gdClass.CreateSubType(nil,
+      AnObject.GetCurrRecordSubType, 'ByParent') as TgdcTree;
+    try
+      Obj2.Parent := AnObject.ID;
+      Obj2.Open;
+      while not Obj2.EOF do
+      begin
+        AddPos(Obj2, WithDetail);
+        Obj2.Next;
+      end;
+    finally
+      Obj2.Free;
     end;
   end;
 end;
