@@ -139,7 +139,7 @@ type
     procedure CNCommand(var Message: TWMCommand); message CN_COMMAND;
     procedure UpdateHint;
     function GetParams: TStrings;
-    function FieldWithAlias(AFieldName: String): String;
+    function FieldWithAlias(const AFieldName: String): String;
     function GetMainTableName: String;
     procedure SetDistinct(const Value: Boolean);
     function GetDistinct: Boolean;
@@ -1075,9 +1075,11 @@ begin
            FListTable,
            FieldWithAlias(FKeyField)])
       else begin
-        I := Pos('.', FKeyField);
+{        I := Pos('.', FKeyField);
         Fibsql.SQL.Text := Format('SELECT %0:s FROM %1:s WHERE %2:s=:V ',
-          [FListField, MainTableName, Copy(FKeyField, I + 1, 255)]);
+          [FListField, MainTableName, Copy(FKeyField, I + 1, 255)]);   }
+        Fibsql.SQL.Text := Format('SELECT %0:s FROM %1:s WHERE (%2:s = :V) ',
+          [FieldWithAlias(FListField), FListTable, FieldWithAlias(FKeyField)]);
       end;
       try
         Fibsql.Prepare;
@@ -1091,6 +1093,7 @@ begin
       end;
       Fibsql.ParamByName('V').AsString :=
         FDataLink.DataSet.FieldByName(FDataField).AsString;
+
       if FParams <> nil then
       begin
         for I := 0 to Fibsql.Params.Count - 1 do
@@ -1125,6 +1128,18 @@ begin
         end;
         Fibsql.ParamByName('V').AsString :=
           FDataLink.DataSet.FieldByName(FDataField).AsString;
+
+        if FParams <> nil then
+        begin
+          for I := 0 to Fibsql.Params.Count - 1 do
+          begin
+            if Fibsql.Params[I].Name <> 'V' then
+            begin
+              if FParams.IndexOfName(Fibsql.Params[I].Name) <> -1 then
+                Fibsql.Params[I].AsVariant := GetParamValue(FParams.Values[Fibsql.Params[I].Name]);
+            end;
+          end;
+        end;
         Fibsql.ExecQuery;
       end;
 
@@ -1507,22 +1522,22 @@ begin
 
       MAX_LOCATE_WAIT := 7000;
       try
+        I := Pos('.', FListField);
+        if I = 0 then
+          LF := FListField
+        else
+          LF := Copy(FListField, I + 1, 255);
+
         if ValidObject then
         begin
-          if not FdlgDropDown.dsList.DataSet.Locate(FKeyField, FCurrentKey, []) then
-            FdlgDropDown.dsList.DataSet.First;
+          if not FdlgDropDown.ibdsList.Locate(LF, FCurrentKey, []) then
+            FdlgDropDown.ibdsList.First;
         end else
         begin
-          I := Pos('.', FListField);
-          if I = 0 then
-            LF := FListField
-          else
-            LF := Copy(FListField, I + 1, 255);
-
-          if (FdlgDropDown.dsList.DataSet.RecordCount >= DropDownCount)
-            or (not FdlgDropDown.dsList.DataSet.Locate(LF, Text, [loCaseInsensitive])) then
+          if (FdlgDropDown.ibdsList.RecordCount >= DropDownCount)
+            or (not FdlgDropDown.ibdsList.Locate(LF, Text, [loCaseInsensitive])) then
           begin
-            FdlgDropDown.dsList.DataSet.First;
+            FdlgDropDown.ibdsList.First;
           end;
         end;
       finally
@@ -1532,10 +1547,10 @@ begin
       FdlgDropDown.FLastKey := 0;
       if FdlgDropDown.ShowModal = mrOk then
       begin
-        if FCurrentKey <> FdlgDropDown.dsList.DataSet.Fields[1].AsString then
+        if FCurrentKey <> FdlgDropDown.ibdsList.Fields[1].AsString then
         begin
-          FCurrentKey := FdlgDropDown.dsList.DataSet.Fields[1].AsString;
-          SetDisplayText(Trim(FdlgDropDown.dsList.DataSet.Fields[0].AsString));
+          FCurrentKey := FdlgDropDown.ibdsList.Fields[1].AsString;
+          SetDisplayText(Trim(FdlgDropDown.ibdsList.Fields[0].AsString));
           AssignDataField(FCurrentKey);
         end else
         begin
@@ -2465,7 +2480,7 @@ begin
 end;
 {$ENDIF}
 
-function TgsIBLookupComboBox.FieldWithAlias(AFieldName: String): String;
+function TgsIBLookupComboBox.FieldWithAlias(const AFieldName: String): String;
 
   function AddAlias(S: String): String;
   var
