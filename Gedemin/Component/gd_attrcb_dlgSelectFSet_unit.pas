@@ -1,6 +1,7 @@
+
  {++
    Project ADDRESSBOOK
-   Copyright © 2000-2001 by Golden Software
+   Copyright © 2000-2011 by Golden Software
 
    Модуль
 
@@ -89,6 +90,7 @@ type
     procedure actFromAllExecute(Sender: TObject);
     procedure actFromAllUpdate(Sender: TObject);
     procedure FormActivate(Sender: TObject);
+
   private
     FIsTree: Boolean;
     FTableName: String;
@@ -96,7 +98,7 @@ type
     FPrimaryName: String;
     FParentList: TList;
     FValueList: TStringList;
-    FCondition: String;
+    FCondition, FSortOrder, FSortField: String;
 
     procedure ShowAttrSet;
     procedure ShowFind(Qry: Boolean);
@@ -104,9 +106,11 @@ type
     function CheckValue(StartP, EndP, Value: Integer): Integer;
     procedure Draw500Item;
     function SetAliasPrefix(AnCondition, AnAlias: String): String;
+    function FieldWithAlias(AFieldName, AAlias: String): String;
+
   public
     function GetElements(var SetList: TStrings; const TableName, FieldName,
-     PrimaryName, AnCondition: String): Boolean;
+     PrimaryName, ACondition, ASortField, ASortOrder: String): Boolean;
   end;
 
 var
@@ -156,7 +160,8 @@ begin
     ibqryFind.Next;
   end;
 
-  tvAttrSet.AlphaSort;
+  if (not FIsTree) and (FSortField = '') and (FSortOrder = '') then
+    tvAttrSet.AlphaSort;
 end;
 
 procedure TdlgSelectFSet.ShowTargetList(SL: TStrings);
@@ -225,6 +230,8 @@ begin
         ibsqlTarget.SQL.AddStrings(TempList);
         ibsqlTarget.SQL.Add(' AND NOT(' + SetAliasPrefix(FCondition, 'gg1') + ')');
       end;
+      //ibsqlTarget.SQL.Add ('ORDER BY NAME DESC')
+
 // Кусок старого запроса <--
       ibsqlTarget.SQL.Add('UNION');
       ibsqlTarget.SQL.Add('SELECT gg1.' + FPrimaryName + ', 0 isinclude, gg1.lb, ' +
@@ -317,8 +324,11 @@ begin
   end;
   if FIsTree then
     ibqryFind.SQL.Add(' ORDER BY gg1.lb')
-  else
-    ibqryFind.SQL.Add(' ORDER BY gg1.' + FFieldName);
+  else if FSortField > '' then
+    ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FSortField, 'gg1'))
+  else if FSortOrder > '' then
+    ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FFieldName, 'gg1') + FSortOrder);
+
   ibqryFind.Open;
 
   // Визуальное отображение
@@ -368,8 +378,10 @@ begin
       ibqryFind.SQL.Add(' AND ' + SetAliasPrefix(FCondition, 'gg1'));
     if FIsTree then
       ibqryFind.SQL.Add(' AND gg2.lb <= gg1.lb AND gg2.rb >= gg1.rb ORDER BY gg2.lb')
-    else
-      ibqryFind.SQL.Add(' ORDER BY gg1.' + FFieldName);
+    else if FSortField > '' then
+      ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FSortField, 'gg1'))
+    else if FSortOrder > '' then
+      ibqryFind.SQL.Add(' ORDER BY ' + FieldWithAlias(FFieldName, 'gg1') + FSortOrder);
     ibqryFind.Open;
   end;
 
@@ -410,12 +422,17 @@ begin
 end;
 
 function TdlgSelectFSet.GetElements(var SetList: TStrings; const TableName,
- FieldName, PrimaryName, AnCondition: String): Boolean;
+ FieldName, PrimaryName, ACondition, ASortField, ASortOrder: String): Boolean;
 begin
+  Assert(((ASortOrder > '') xor (ASortField > ''))
+    or ((ASortField = '') and (ASortOrder = '')));
+
   FTableName := TableName;
   FFieldName := FieldName;
   FPrimaryName := PrimaryName;
-  FCondition := AnCondition;
+  FCondition := ACondition;
+  FSortField := ASortField;
+  FSortOrder := ASortOrder;
 
   FIsTree := False;
   // Основная функция формы
@@ -503,9 +520,6 @@ begin
         FValueList.AddObject(tvAttrSet.Items[I].Text, tvAttrSet.Items[I].Data);
         Flag := True;
         FValueList.CustomSort(ValueListCompare);
-        {L := lvTarget.Items.Add;
-        L.Caption := tvAttrSet.Items[I].Text;
-        L.Data := tvAttrSet.Items[I].Data;}
       end;
   if Flag then
     ShowTargetList(FValueList);
@@ -665,6 +679,60 @@ procedure TdlgSelectFSet.FormActivate(Sender: TObject);
 begin
   ShowAttrSet;
   edName.Text := '';
+end;
+
+function TdlgSelectFSet.FieldWithAlias(AFieldName, AAlias: String): String;
+
+  procedure ParseFieldsString(const AFields: String; SL: TStrings);
+  var
+    I, B: Integer;
+  begin
+    I := 1;
+    B := 1;
+    while I < Length(AFields) do
+    begin
+      if AFields[I] = '''' then
+      begin
+        repeat
+          Inc(I);
+        until (I >= Length(AFields)) or (AFields[I] = '''');
+      end
+      else if AFields[I] = ',' then
+      begin
+        SL.Add(Copy(AFields, B, I - B));
+        B := I + 1;
+      end;
+      Inc(I);
+    end;
+    if B <= Length(AFields) then
+      SL.Add(Copy(AFields, B, 255));
+  end;
+
+var
+  StList: TStringList;
+  I: Integer;
+begin
+  Result := Trim(AFieldName);
+  if Result > '' then
+  begin
+    if Pos(',', Result) = 0 then
+      Result := AAlias + '.' + Result
+    else begin
+      StList := TStringList.Create;
+      try
+        ParseFieldsString(Result, StList);
+        Result := '';
+        for I := 0 to StList.Count - 1 do
+        begin
+          if I > 0 then
+            Result := Result + ',';
+          Result := Result + AAlias + '.' + Trim(StList[I]);
+        end;
+      finally
+        StList.Free;
+      end;
+    end;
+  end;
 end;
 
 end.

@@ -265,6 +265,8 @@ var
             TgsComboBoxAttrSet(FWinCtrl).Database := FDatabase;
             TgsComboBoxAttrSet(FWinCtrl).Transaction := FTransaction;
             TgsComboBoxAttrSet(FWinCtrl).UserAttr := False;
+            TgsComboBoxAttrSet(FWinCtrl).SortOrder := TgsComboBoxSortOrder(LocParamList.Params[I].SortOrder);
+            TgsComboBoxAttrSet(FWinCtrl).SortField := LocParamList.Params[I].SortField;
             Tdlg_frmParamLine(FLineList.Items[FLineList.Count - 1]).AddWinControl(FWinCtrl);
             try
               if LocParamList.Params[I].LinkConditionFunction > '' then
