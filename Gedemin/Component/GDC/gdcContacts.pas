@@ -160,7 +160,9 @@ type
 
   public
     class function HasLeafs: Boolean; override;
-    class function GetSubSetList: String; override;
+
+    // совершенно непонятно зачем было перекрывать этот метод!
+    //class function GetSubSetList: String; override;
   end;
 
   TgdcGroup = class(TgdcBaseContact)
@@ -1589,10 +1591,10 @@ begin
   {END MACRO}
 end;
 
-class function TgdcFolder.GetSubSetList: String;
+{class function TgdcFolder.GetSubSetList: String;
 begin
   Result := TgdcBase.GetSubSetList;
-end;
+end;}
 
 procedure TgdcFolder.GetWhereClauseConditions(S: TStrings);
 begin
