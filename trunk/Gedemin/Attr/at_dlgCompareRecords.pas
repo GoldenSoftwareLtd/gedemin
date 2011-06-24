@@ -56,7 +56,7 @@ implementation
 
 procedure TdlgCompareRecords.FormShow(Sender: TObject);
 const
-  PassFieldName = ';EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;';
+  PassFieldName = ';ID;EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED;';
 var
   I: Integer;
   FD: TFieldDef;
@@ -76,7 +76,8 @@ begin
     FD := BaseRecord.FieldDefs[I];
     if Assigned(StreamRecord.FindField(FD.Name))
        and (not FD.InternalCalcField)
-       and (AnsiPos(';' + AnsiUpperCase(Trim(FD.Name)) + ';', PassFieldName) = 0) then
+       and (AnsiPos(';' + AnsiUpperCase(Trim(FD.Name)) + ';', PassFieldName) = 0)
+       and (BaseRecord.Fields[I].DataType <> ftBlob) then
     begin
       FSLFields.Add(BaseRecord.Fields[I].FieldName);
       FSLLocFields.Add(BaseRecord.Fields[I].DisplayLabel);
