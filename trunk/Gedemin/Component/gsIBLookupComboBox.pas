@@ -1091,6 +1091,17 @@ begin
       end;
       Fibsql.ParamByName('V').AsString :=
         FDataLink.DataSet.FieldByName(FDataField).AsString;
+      if FParams <> nil then
+      begin
+        for I := 0 to Fibsql.Params.Count - 1 do
+        begin
+          if Fibsql.Params[I].Name <> 'V' then
+          begin
+            if FParams.IndexOfName(Fibsql.Params[I].Name) <> -1 then
+              Fibsql.Params[I].AsVariant := GetParamValue(FParams.Values[Fibsql.Params[I].Name]);
+          end;
+        end;
+      end;
       Fibsql.ExecQuery;
 
       if (Fibsql.RecordCount = 0)
@@ -2471,7 +2482,7 @@ function TgsIBLookupComboBox.FieldWithAlias(AFieldName: String): String;
     end else
       Pref := '';
 
-    if (S > '') and (Pos('.', S) = 0) and (Pos('(', S) = 0) then
+    if (S > '') and (Pos('.', S) = 0) and (Pos('(', S) = 0) and (Pos('(', MainTable) = 0) then
       Result := Pref + MainTable + '.' + S
     else
       Result := Pref + S;

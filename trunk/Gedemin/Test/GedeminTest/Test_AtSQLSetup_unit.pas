@@ -23,6 +23,9 @@ var
   I: Integer;
   InputFileName, OutputFileName: String;
 begin
+  if not FSettingsLoaded then
+    exit;
+
   Input := TStringList.Create;
   Output := TStringList.Create;
   Etalon := TStringList.Create;
