@@ -88,6 +88,8 @@ uses
   ;
 
 procedure Tgd_frmBackupRestore.FormCreate(Sender: TObject);
+var
+  Res: OleVariant;
 begin
   // настраиваем экранные контролы
   { TODO : этот код зависит от формата строки имени базы данных! }
@@ -99,10 +101,25 @@ begin
     lblServer.Visible := False;
   end;
 
-  if IBLogin.ServerName > '' then
-    edDatabase.Text := Copy(IBLogin.DatabaseName, Pos(':', IBLogin.DatabaseName) + 1, 255)
-  else
-    edDatabase.Text := IBLogin.DatabaseName;
+  edDatabase.Text := '';
+
+  if IBLogin.LoggedIn then
+  begin
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT mon$database_name FROM mon$database',
+      Null,
+      Res);
+    if (not VarIsEmpty(Res)) and (Res[0, 0] > '') then
+      edDatabase.Text := Res[0, 0];
+  end;
+
+  if edDatabase.Text = '' then
+  begin
+    if IBLogin.ServerName > '' then
+      edDatabase.Text := Copy(IBLogin.DatabaseName, Pos(':', IBLogin.DatabaseName) + 1, 255)
+    else
+      edDatabase.Text := IBLogin.DatabaseName;
+  end;
 end;
 
 procedure Tgd_frmBackupRestore.actCloseExecute(Sender: TObject);
