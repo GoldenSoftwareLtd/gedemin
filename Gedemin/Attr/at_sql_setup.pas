@@ -1550,30 +1550,31 @@ begin
 
     //
     //  Переносим все поля в Select часть
-
-    for I := 0 to Fields.Count - 1 do
-      Full.Select.Fields.Add(Fields[I]);
+    if (Full.GroupBy = nil) or ((Full.GroupBy.Fields.Count + Fields.Count) <= 255) then
+    begin
+      for I := 0 to Fields.Count - 1 do
+        Full.Select.Fields.Add(Fields[I]);
 
     //
     //  Если используется Group By, добавляем в него все поля тоже
 
-    if Assigned(Full.GroupBy) then
-    begin
-      for I := 0 to Fields.Count - 1 do
-      with Fields[I] as TsqlField do
+      if Assigned(Full.GroupBy) then
       begin
-        //  Пропускаем поля пользователя
-        if (AnsiPos(UserPrefix, FieldName) = 0) and (AnsiPos(UserPrefix, FieldAlias) = 0) then Continue;
+        for I := 0 to Fields.Count - 1 do
+        with Fields[I] as TsqlField do
+        begin
+          //  Пропускаем поля пользователя
+          if (AnsiPos(UserPrefix, FieldName) = 0) and (AnsiPos(UserPrefix, FieldAlias) = 0) then Continue;
 
-        CurrField := TsqlField.Create(Parser, False);
-        CurrField.FieldName := FieldName;
-        CurrField.FieldAlias := FieldAlias;
-        CurrField.FieldCollation := FieldCollation;
-        CurrField.FieldAttrs := FieldAttrs - [eoSubName];
-        Full.GroupBy.Fields.Add(CurrField);
+          CurrField := TsqlField.Create(Parser, False);
+          CurrField.FieldName := FieldName;
+          CurrField.FieldAlias := FieldAlias;
+          CurrField.FieldCollation := FieldCollation;
+          CurrField.FieldAttrs := FieldAttrs - [eoSubName];
+          Full.GroupBy.Fields.Add(CurrField);
+        end;
       end;
     end;
-
   finally
     Relations.Free;
     Fields.Free;
