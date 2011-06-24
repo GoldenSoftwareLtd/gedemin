@@ -12,12 +12,13 @@ type
     procedure TestBasics;
     procedure TestCmdLine;
     procedure TestCommonFunctions;
+    procedure TestHugeIntSet;
   end;
 
 implementation
 
 uses
-  gd_CmdLineParams_unit, gd_common_functions;
+  gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet;
 
 type
   Tgd_CmdLineParamsCrack = class(Tgd_CmdLineParams)
@@ -160,6 +161,58 @@ begin
   Check(ExtractServerName('c:\test\test.fdb') = '');
   Check(ExtractServerName('host:c:\test\test.fdb') = 'host');
   Check(ExtractServerName('server/3030:c:\test\test.fdb') = 'server/3030');
+end;
+
+procedure TBasicsTest.TestHugeIntSet;
+const
+  LoopCount = 1000000;
+var
+  H: TgsHugeIntSet;
+  I, V: Integer;
+begin
+  H := TgsHugeIntSet.Create;
+  try
+    // первое, с чего стоит начать тест -- это проверка
+    // начального состояния созданного объекта
+    Check(H.Count = 0);
+
+    // обязательно проверяем граничные значения
+    H.Include(0);
+    H.Include(High(Integer));
+    Check(H.Has(0));
+    Check(H.Has(High(Integer)));
+    Check(H.Count = 2);
+    H.Exclude(0);
+    H.Exclude(High(Integer));
+    Check(not H.Has(0));
+    Check(not H.Has(High(Integer)));
+    Check(H.Count = 0);
+
+    // выборочный тест
+    for I := 1 to LoopCount do
+    begin
+      V := Random(High(Integer)) + Random(2);
+      H.Include(V);
+      Check(H.Has(V));
+    end;
+
+    for I := 1 to LoopCount do
+    begin
+      V := Random(High(Integer)) + Random(2);
+      H.Exclude(V);
+      Check(not H.Has(V));
+    end;
+
+    H.Clear;
+    Check(H.Count = 0);
+
+    // проверяем область определения
+    StartExpectingException(EgsHugeIntSet);
+    H.Has(-1);
+    StopExpectingException;
+  finally
+    H.Free;
+  end;
 end;
 
 initialization

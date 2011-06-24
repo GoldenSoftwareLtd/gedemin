@@ -107,6 +107,8 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
+    function GetCurrRecordClass: TgdcFullClass; override;
+
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -654,10 +656,17 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-  Result := ' FROM ac_record z JOIN ac_entry r ON z.id = r.recordkey ' +
-            '   LEFT JOIN gd_document doc ON z.documentkey = doc.id ' +
-            '   LEFT JOIN ac_account c ON r.accountkey = c.id ' +
-            '   LEFT JOIN gd_curr cur ON r.currkey = cur.id ';
+
+  if not HasSubSet('ByID') then
+    Result := ' FROM ac_record z JOIN ac_entry r ON z.id = r.recordkey ' +
+              '   JOIN gd_document doc ON z.documentkey = doc.id ' +
+              '   JOIN ac_account c ON r.accountkey = c.id ' +
+              '   JOIN gd_curr cur ON r.currkey = cur.id '
+  else
+    Result := ' FROM ac_record z LEFT JOIN ac_entry r ON r.recordkey = -1 ' +
+              '   LEFT JOIN gd_document doc ON z.documentkey = doc.id ' +
+              '   LEFT JOIN ac_account c ON r.accountkey = c.id ' +
+              '   LEFT JOIN gd_curr cur ON r.currkey = cur.id ';
 
   FSQLSetup.Ignores.AddAliasName('C');
   FSQLSetup.Ignores.AddAliasName('DOC');
@@ -835,7 +844,7 @@ begin
   inherited;
   if not HasSubSet('ByID') then
     S.Add(' z.companykey + 0 in (' + IBLogin.HoldingList + ')');
-    
+
   if HasSubSet(ByDocument) then
     S.Add('z.documentkey = :documentkey');
   if HasSubSet(ByTransaction) then
@@ -1280,6 +1289,12 @@ begin
     ibsqlInsertDocument.Free;
     Transaction.Free;
   end;
+end;
+
+function TgdcAcctBaseEntryRegister.GetCurrRecordClass: TgdcFullClass;
+begin
+  Result.gdClass := TgdcAcctEntryRegister;
+  Result.SubType := '';
 end;
 
 { TgdcAcctEntryRegister }

@@ -7198,7 +7198,7 @@ begin
 
   Result := Format
   (
-    'CREATE TABLE %0:s ( id dintkey, parent dforeignkey, disabled ddisabled,' +
+    'CREATE TABLE %0:s ( id dintkey, parent dparent, disabled ddisabled,' +
     'editiondate deditiondate, ' +
     'editorkey dintkey, ' +
     'PRIMARY KEY (id), ' +
@@ -7222,7 +7222,7 @@ begin
   if (State = dsInsert) and Assigned(gdcTableField) then
   begin
     NewField('PARENT',
-      'Родитель', 'DFOREIGNKEY', 'Родитель', 'Родитель',
+      'Родитель', 'DPARENT', 'Родитель', 'Родитель',
       'L', '10', '1', '0');
     NewField('DISABLED',
       'Не активно', 'DDISABLED', 'Не активно', 'Не активно',
@@ -7282,7 +7282,7 @@ begin
   if (State = dsInsert) and Assigned(gdcTableField) then
   begin
     NewField('PARENT',
-      'Родитель', 'DFOREIGNKEY', 'Родитель', 'Родитель',
+      'Родитель', 'DPARENT', 'Родитель', 'Родитель',
       'L', '10', '1', '0');
     NewField('LB',
       'Левая граница', 'DLB', 'Левая граница', 'Левая граница',
@@ -7308,7 +7308,7 @@ begin
 
   Result := Format
   (
-    'CREATE TABLE %0:s (id dintkey, parent dforeignkey, lb dlb, rb drb, disabled ddisabled,' +
+    'CREATE TABLE %0:s (id dintkey, parent dparent, lb dlb, rb drb, disabled ddisabled,' +
     'editiondate deditiondate, ' +
     'editorkey dintkey, ' +
     'PRIMARY KEY (id), ' +

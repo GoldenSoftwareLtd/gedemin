@@ -273,8 +273,11 @@ begin
                 //SL.Add(Trim(q.SQL.Text) + ';');
               except
                 on E: Exception do
-                  if Pos('Invalid parent specified', E.Message) = 0 then
+                  if (Pos('Invalid parent specified', E.Message) = 0)
+                    and (Pos('TREE_E_INVALID_PARENT', E.Message) = 0) then
+                  begin
                     raise;
+                  end;
               end;
             end;
           end;

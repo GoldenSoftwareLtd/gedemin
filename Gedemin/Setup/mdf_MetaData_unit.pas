@@ -100,6 +100,7 @@ function ExceptionExists(Ex: TmdfException; Db: TIBDataBase): boolean;
 procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
 
 function ExceptionExist2(const AnExceptionName: String; ATr: TIBTransaction): Boolean;
+procedure DropException2(const AnExceptionName: String; ATr: TIBTransaction);
 
 function GenId(Db: TIBdatabase): integer;
 function GetRUIDRecByID(const AnID: Integer; Transaction: TIBTransaction): TRUIDRec;
@@ -940,6 +941,23 @@ begin
     Result := not SQL.EOF;
   finally
     SQl.Free;
+  end;
+end;
+
+procedure DropException2(const AnExceptionName: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQL;
+begin
+  if ExceptionExist2(AnExceptionName, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text := 'DROP EXCEPTION ' + AnExceptionName;
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
+    end;
   end;
 end;
 
