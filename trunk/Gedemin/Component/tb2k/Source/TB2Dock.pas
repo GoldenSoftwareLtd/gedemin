@@ -3058,6 +3058,13 @@ var
   R: TRect;
 begin
   inherited;
+
+  {$IFDEF GEDEMIN}
+  FCloseButton := False;
+  FCloseButtonWhenDocked := False;
+  FDockMode := dmCannotFloatOrChangeDocks;
+  {$ENDIF}
+
   { Adjust coordinates if it was initially floating }
   if not FSavedAtRunTime and not(csDesigning in ComponentState) and
      (Parent is TTBFloatingWindowParent) then begin
