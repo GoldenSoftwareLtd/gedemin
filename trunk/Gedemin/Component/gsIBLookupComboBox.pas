@@ -492,7 +492,7 @@ var
       if Fibsql.Params[I].Name <> 'V' then
       begin
         if (FParams = nil) or (FParams.IndexOfName(Fibsql.Params[I].Name) = -1) then
-          raise Exception.Create('TgsIBLookupComboBox: Invalid param name');
+          raise Exception.Create('TgsIBLookupComboBox: Invalid param name ' + Fibsql.Params[I].Name);
         Fibsql.Params[I].AsVariant := GetParamValue(FParams.Values[Fibsql.Params[I].Name]);
       end;
     end;
@@ -697,7 +697,7 @@ begin
   for I := 0 to FdlgDropDown.ibdsList.Params.Count - 1 do
   begin
     if (FParams = nil) or (FParams.IndexOfName(FdlgDropDown.ibdsList.Params[I].Name) = -1) then
-      raise Exception.Create('TgsIBLookupComboBox: Invalid param name');
+      raise Exception.Create('TgsIBLookupComboBox: Invalid param name ' + FdlgDropDown.ibdsList.Params[I].Name);
     FdlgDropDown.ibdsList.Params[I].AsVariant :=
       GetParamValue(FParams.Values[FdlgDropDown.ibdsList.Params[I].Name]);
   end;
@@ -1492,7 +1492,7 @@ begin
       for I := 0 to FdlgDropDown.ibdsList.Params.Count - 1 do
       begin
         if (FParams = nil) or (FParams.IndexOfName(FdlgDropDown.ibdsList.Params[I].Name) = -1) then
-          raise Exception.Create('TgsIBLookupComboBox: Invalid param name');
+          raise Exception.Create('TgsIBLookupComboBox: Invalid param name ' + FdlgDropDown.ibdsList.Params[I].Name);
         FdlgDropDown.ibdsList.Params[I].AsVariant :=
           GetParamValue(FParams.Values[FdlgDropDown.ibdsList.Params[I].Name]);
       end;
