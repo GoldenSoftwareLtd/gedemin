@@ -15,6 +15,9 @@ type
 
     procedure SetUp; override;
     procedure TearDown; override;
+
+  public
+    property SettingsLoaded: Boolean read FSettingsLoaded;  
   end;
 
 implementation
