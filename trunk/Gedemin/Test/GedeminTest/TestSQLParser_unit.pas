@@ -47,7 +47,7 @@ procedure TSQLParserTest.TestSQLParser;
 var
   Input, Output, Etalon, GroupByFields: TStringList;
   I: Integer;
-  InputFileName, OutputFileName, S: String;
+  InputFileName, OutputFileName: String;
 begin
   // тэставаньне разбору СКЛ запытаў мае на мэце праверыць працу
   // функцыі ExtractTablesList
@@ -56,7 +56,7 @@ begin
   // файлы з карэктным выхадам: output.000, output.001
 
   Input := TStringList.Create;
-  Output := TStringList.Create;
+  Output := TStringList.Create;         
   Etalon := TStringList.Create;
   try
 

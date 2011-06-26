@@ -13,6 +13,7 @@ uses
   {$IFDEF GEDEMIN}
   , Test_gsStorage_unit
   , Test_gdcContact_unit
+  , Test_AcEntry_unit
   , Test_CopyObject_unit
   , Test_gdcMetaData_unit
   , Test_dlgAbout_unit

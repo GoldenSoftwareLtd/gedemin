@@ -183,11 +183,11 @@ var
   SL: TStringList;
   I, J: Integer;
   Value: String;
-{$IFDEF DUNIT_TEST}
+  {$IFDEF DUNIT_TEST}
   h: THandle;
   ss: array [0..0] of PChar;
   LogType: Integer;
-{$ENDIF}  
+  {$ENDIF}
 begin
   Clear;
 

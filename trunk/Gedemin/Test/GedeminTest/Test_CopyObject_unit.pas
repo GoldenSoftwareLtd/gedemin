@@ -10,7 +10,7 @@ type
   TTestCopyObject = class(TgsDBTestCase)
   published
     procedure TestCopySimpleObject;
-    {procedure TestCopyObjectWithDetail;} 
+    {procedure TestCopyObjectWithDetail;}
     procedure TestCopyProcedure;
   end;
 
@@ -27,44 +27,34 @@ var
   gdcObject: TgdcBase;
   OriginalRecordKey: TID;
 begin
-  // Транзакция на запись
   WriteTransaction := TIBTransaction.Create(nil);
   try
     WriteTransaction.DefaultDatabase := gdcBaseManager.Database;
     WriteTransaction.StartTransaction;
+
+    gdcObject := TgdcWgPosition.
+      CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, '', ssById);
     try
-      // Создаем новый объект типа Курс валюты
-      gdcObject := TgdcWgPosition.
-        CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, '', ssById);
-      try
-        gdcObject.Transaction := WriteTransaction;
-        gdcObject.ReadTransaction := WriteTransaction;
-        gdcObject.Open;
-        // Вставим новую запись
-        gdcObject.Insert;
-        gdcObject.FieldByName('NAME').AsString := 'test_pos';
-        gdcObject.Post;
+      gdcObject.Transaction := WriteTransaction;
+      gdcObject.ReadTransaction := WriteTransaction;
+      gdcObject.Open;
 
-        OriginalRecordKey := gdcObject.ID;
+      gdcObject.Insert;
+      gdcObject.FieldByName('NAME').AsString := 'test_pos';
+      gdcObject.Post;
 
-        // Скопируем запись
-        gdcObject.CopyObject(False, False);
+      Check(gdcObject.ID > -1);
+      OriginalRecordKey := gdcObject.ID;
 
-        Check((gdcObject.ID > -1) and (OriginalRecordKey <> gdcObject.ID), 'Объект не указывает на скопированную запись');
+      gdcObject.CopyObject(False, False);
 
-        gdcObject.Close;
-      finally
-        FreeAndNil(gdcObject);
-      end;
-    except
-      if WriteTransaction.InTransaction then
-        WriteTransaction.Rollback;
+      Check(gdcObject.ID > -1);
+      Check(OriginalRecordKey <> gdcObject.ID, 'Объект не указывает на скопированную запись');
+    finally
+      gdcObject.Free;
     end;
   finally
-    // Откатим транзакцию после окончания теста
-    if WriteTransaction.InTransaction then
-      WriteTransaction.Rollback;
-    FreeAndNil(WriteTransaction);
+    WriteTransaction.Free;
   end;
 end;
 
@@ -208,56 +198,52 @@ var
   ibsqlProc: TIBSQL;
   OriginalProcName: String;
 begin
-  // Транзакция на запись
+  if not SettingsLoaded then
+    exit;
+
   WriteTransaction := TIBTransaction.Create(nil);
   try
     WriteTransaction.DefaultDatabase := gdcBaseManager.Database;
     WriteTransaction.StartTransaction;
+
+    ibsqlProc := TIBSQL.Create(nil);
     try
-      // Создаем новый объект типа Курс валюты
-      gdcObject := TgdcStoredProc.
-        CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, '', ssById);
-      ibsqlProc := TIBSQL.Create(nil);
-      try
+      ibsqlProc.Transaction := WriteTransaction;
+      ibsqlProc.SQL.Text := 'SELECT FIRST(1) id FROM at_procedures WHERE procedurename STARTING WITH ''USR$''';
+      ibsqlProc.ExecQuery;
+      if ibsqlProc.RecordCount > 0 then
+        ProcKey := ibsqlProc.FieldByName('ID').AsInteger
+      else
         ProcKey := -1;
 
-        ibsqlProc.Transaction := WriteTransaction;
-        ibsqlProc.SQL.Text := 'SELECT FIRST(1) id FROM at_procedures WHERE procedurename STARTING WITH ''USR$''';
-        ibsqlProc.ExecQuery;
-        if ibsqlProc.RecordCount > 0 then
-          ProcKey := ibsqlProc.FieldByName('ID').AsInteger;
-        ibsqlProc.Close;
+      Check(ProcKey > -1, 'Нет ни одной пользовательской процедуры для копирования!');
+    finally
+      ibsqlProc.Free;
+    end;
 
-        Check(ProcKey > -1, 'Нет ни одной пользовательской процедуры для копирования!');
+    gdcObject := TgdcStoredProc.
+      CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, '', ssById);
+    try
+      gdcObject.Transaction := WriteTransaction;
+      gdcObject.ReadTransaction := WriteTransaction;
+      gdcObject.Open;
+      gdcObject.ID := ProcKey;
 
-        gdcObject.Transaction := WriteTransaction;
-        gdcObject.ReadTransaction := WriteTransaction;
-        gdcObject.Open;
-        // Перейдем на выбранную процедуру
-        gdcObject.ID := ProcKey;
-        OriginalProcName := gdcObject.FieldByName('PROCEDURENAME').AsString;
+      Check(not gdcObject.EOF);
+      OriginalProcName := gdcObject.FieldByName('PROCEDURENAME').AsString;
 
-        // Скопируем запись
-        gdcObject.CopyObject(False, False);
+      gdcObject.CopyObject(False, False);
 
-        Check((gdcObject.ID > -1) and (ProcKey <> gdcObject.ID), 'Объект не указывает на скопированную запись');
-        Check((gdcObject.FieldByName('PROCEDURENAME').AsString <> '') and (gdcObject.FieldByName('PROCEDURENAME').AsString <> OriginalProcName),
-          'Ошибка в наименовании скопированного объекта');
-
-        gdcObject.Close;
-      finally
-        FreeAndNil(ibsqlProc);
-        FreeAndNil(gdcObject);
-      end;
-    except
-      if WriteTransaction.InTransaction then
-        WriteTransaction.Rollback;
+      Check(gdcObject.ID > -1);
+      Check(ProcKey <> gdcObject.ID, 'Объект не указывает на скопированную запись');
+      Check(gdcObject.FieldByName('PROCEDURENAME').AsString > '');
+      Check(gdcObject.FieldByName('PROCEDURENAME').AsString <> OriginalProcName,
+        'Ошибка в наименовании скопированного объекта');
+    finally
+      gdcObject.Free;
     end;
   finally
-    // Откатим транзакцию после окончания теста
-    if WriteTransaction.InTransaction then
-      WriteTransaction.Rollback;
-    FreeAndNil(WriteTransaction);
+    WriteTransaction.Free;
   end;
 
   if frmSQLProcess <> nil then
