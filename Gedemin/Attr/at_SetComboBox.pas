@@ -263,15 +263,13 @@ begin
         begin
           P := ScreenToClient(pt);
           if (P.X < 0) or (P.X > Width) or
-            (P.Y < 0) or (P.Y > Height)
-          then begin
-            ModalResult := mrOk;
-            Hide;
-
-            if GetCapture = Handle then
-              ReleaseCapture;
-
+            (P.Y < 0) or (P.Y > Height) then
+          begin
+            ModalResult := mrCancel;
             Result := 1;
+          end else
+          begin
+            Result := 0;
           end;
         end
       end;
