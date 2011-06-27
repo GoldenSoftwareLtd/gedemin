@@ -4,39 +4,39 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
   BorderIcons = [biSystemMenu]
   BorderWidth = 5
   Caption = 'Счет'
-  ClientHeight = 371
+  ClientHeight = 388
   ClientWidth = 443
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 1
-    Top = 347
+    Top = 364
     TabOrder = 1
   end
   inherited btnNew: TButton
     Left = 80
-    Top = 347
+    Top = 364
     TabOrder = 2
   end
   inherited btnHelp: TButton
     Left = 158
-    Top = 347
+    Top = 364
   end
   inherited btnOK: TButton
     Left = 293
-    Top = 347
+    Top = 364
     TabOrder = 3
   end
   inherited btnCancel: TButton
     Left = 373
-    Top = 347
+    Top = 364
     TabOrder = 4
   end
   inherited pgcMain: TPageControl
     Left = 1
     Top = 1
     Width = 440
-    Height = 339
+    Height = 356
     inherited tbsMain: TTabSheet
       inherited dbtxtID: TDBText
         Left = 121
@@ -173,6 +173,18 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
         DataSource = dsgdcBase
         TabOrder = 3
       end
+      object dbcbDisabled: TDBCheckBox
+        Left = 7
+        Top = 310
+        Width = 138
+        Height = 17
+        Caption = 'Запись отключена'
+        DataField = 'DISABLED'
+        DataSource = dsgdcBase
+        TabOrder = 4
+        ValueChecked = '1'
+        ValueUnchecked = '0'
+      end
     end
     object TabSheet1: TTabSheet [1]
       Caption = 'Аналитика'
@@ -266,7 +278,7 @@ inherited gdc_dlgAcctBaseAccount: Tgdc_dlgAcctBaseAccount
     inherited tbsAttr: TTabSheet
       inherited atcMain: TatContainer
         Width = 432
-        Height = 311
+        Height = 328
         OnAdjustControl = atcMainAdjustControl
       end
     end

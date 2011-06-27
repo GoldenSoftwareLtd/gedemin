@@ -198,8 +198,7 @@ var
   ibsqlProc: TIBSQL;
   OriginalProcName: String;
 begin
-  if not SettingsLoaded then
-    exit;
+  Check(SettingsLoaded, 'Должны быть загружены настройки');
 
   WriteTransaction := TIBTransaction.Create(nil);
   try

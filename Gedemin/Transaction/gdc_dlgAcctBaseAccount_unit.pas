@@ -34,6 +34,7 @@ type
     sbValues: TScrollBox;
     DBMemo1: TDBMemo;
     Label3: TLabel;
+    dbcbDisabled: TDBCheckBox;
     procedure actNewUpdate(Sender: TObject);
     procedure atContainerAdjustControl(Sender: TObject; Control: TControl);
     procedure atcMainAdjustControl(Sender: TObject; Control: TControl);

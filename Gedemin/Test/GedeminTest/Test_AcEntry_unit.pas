@@ -4,10 +4,37 @@ unit Test_AcEntry_unit;
 interface
 
 uses
-  Classes, TestFrameWork, gsTestFrameWork;
+  Classes, TestFrameWork, gsTestFrameWork, IBSQL;
 
 type
   Tgs_AcEntryTest = class(TgsDBTestCase)
+  private
+    // проверяет правильность установки флага issimple
+    // для позиций сложных и простых проводок
+    procedure TestIsSimpleField(q: TIBSQL);
+
+    // метод проверяет соответствие сумм в шапке проводки и
+    // позициях, равенство сумм в шапке для
+    // корректных проводок, а также правильность заполнения
+    // дебетовых сумм для кредлитов и наоборот
+    procedure TestEqualOfDebitAndCreditSum(q: TIBSQL);
+
+    // проверяет наличие в базе проводок, помеченных как incorrect
+    procedure TestIncorrectRecords(q: TIBSQL);
+
+    // проверяет соответствие полей в шапке и позиции
+    // проводки
+    procedure TestEntryConsistency(q: TIBSQL);
+
+    // проверяет отсутствие флагов разблокировки изменения записи
+    procedure TestUnlockFlags(q: TIBSQL);
+
+    // проверяет количество дебетов и кредитов в сложной проводке
+    procedure TestEntryCount(q: TIBSQL);
+
+    // все вышеперечисленные проверки, вместе взятые
+    procedure TestConsistentState(q: TIBSQL);
+
   published
     procedure Test_AcEntry;
   end;
@@ -15,9 +42,114 @@ type
 implementation
 
 uses
-  SysUtils, IBSQL, gdcBaseInterface, gd_security;
+  SysUtils, gdcBaseInterface, gd_security;
 
 { Tgs_AcEntry }
+
+procedure Tgs_AcEntryTest.TestConsistentState(q: TIBSQL);
+begin
+  TestIsSimpleField(q);
+  TestEqualOfDebitAndCreditSum(q);
+  TestIncorrectRecords(q);
+  TestEntryConsistency(q);
+  TestUnlockFlags(q);
+  TestEntryCount(q);
+end;
+
+procedure Tgs_AcEntryTest.TestEntryConsistency(q: TIBSQL);
+begin
+  q.Close;
+  q.SQL.Text :=
+    'SELECT * FROM ac_record r JOIN ac_entry e ON e.recordkey = r.id ' +
+    'WHERE r.recorddate <> e.entrydate OR r.companykey <> e.companykey ' +
+    '  OR r.documentkey <> e.documentkey OR r.masterdockey <> e.masterdockey ' +
+    '  OR r.transactionkey <> e.transactionkey';
+  q.ExecQuery;
+  Check(q.EOF);
+end;
+
+procedure Tgs_AcEntryTest.TestEntryCount(q: TIBSQL);
+begin
+  q.Close;
+  q.SQL.Text :=
+    'SELECT e.recordkey, SUM(IIF(e.accountpart = ''D'', 1, 0)), SUM(IIF(e.accountpart = ''C'', 1, 0)) ' +
+    'FROM ac_entry e ' +
+    'GROUP BY 1 ' +
+    'HAVING SUM(IIF(e.accountpart = ''D'', 1, 0)) > 1 AND SUM(IIF(e.accountpart = ''C'', 1, 0)) > 1 ';
+  q.ExecQuery;
+  Check(q.EOF, 'Сложные проводки с множественными дебетами и кредитами');
+end;
+
+procedure Tgs_AcEntryTest.TestEqualOfDebitAndCreditSum(q: TIBSQL);
+begin
+  q.Close;
+  q.SQL.Text :=
+    'select * from ac_record where ((creditncu <> debitncu and creditncu <> 0 and debitncu <> 0) ' +
+    '  or (creditcurr <> debitcurr and creditcurr <> 0 and debitcurr <> 0)) and incorrect=0 ';
+  q.ExecQuery;
+  Check(q.EOF, 'Проверка дебетовой и кредитовой части в шапке проводки');
+
+  q.Close;
+  q.SQL.Text :=
+    'SELECT * FROM ac_record r ' +
+    'WHERE ' +
+    '  r.debitncu <> COALESCE((SELECT SUM(e.debitncu) FROM AC_ENTRY e WHERE e.recordkey = r.id), 0) OR ' +
+    '  r.creditncu <> COALESCE((SELECT SUM(e.creditncu) FROM AC_ENTRY e WHERE e.recordkey = r.id), 0) OR ' +
+    '  r.debitcurr <> COALESCE((SELECT SUM(e.debitcurr) FROM AC_ENTRY e WHERE e.recordkey = r.id), 0) OR ' +
+    '  r.creditcurr <> COALESCE((SELECT SUM(e.creditcurr) FROM AC_ENTRY e WHERE e.recordkey = r.id), 0) ';
+  q.ExecQuery;
+  Check(q.EOF, 'Проверка соответствия сумм в шапке и позициях проводки');
+
+  q.Close;
+  q.SQL.Text :=
+    'SELECT SUM(ABS(COALESCE(debitncu, 0)) + ABS(COALESCE(debitcurr, 0)) + ABS(COALESCE(debiteq, 0))) ' +
+    'FROM ac_entry WHERE accountpart = ''C'' ';
+  q.ExecQuery;
+  Check(q.Fields[0].AsCurrency = 0, 'Ненулевые суммы по дебету для кредитовых частей');
+
+  q.Close;
+  q.SQL.Text :=
+    'SELECT SUM(ABS(COALESCE(creditncu, 0)) + ABS(COALESCE(creditcurr, 0)) + ABS(COALESCE(crediteq, 0))) ' +
+    'FROM ac_entry WHERE accountpart = ''D'' ';
+  q.ExecQuery;
+  Check(q.Fields[0].AsCurrency = 0, 'Ненулевые суммы по кредиту для дебетовых частей');
+end;
+
+procedure Tgs_AcEntryTest.TestIncorrectRecords(q: TIBSQL);
+begin
+  q.Close;
+  q.SQL.Text := 'SELECT * FROM ac_record WHERE incorrect <> 0';
+  q.ExecQuery;
+  Check(q.EOF, 'Записи в AC_RECORD с incorrect = 1');
+end;
+
+procedure Tgs_AcEntryTest.TestIsSimpleField(q: TIBSQL);
+begin
+  q.Close;
+  q.SQL.Text :=
+    'SELECT recordkey, accountpart, COUNT(*), SUM(issimple) ' +
+    'FROM ac_entry ' +
+    'GROUP BY 1,2 ' +
+    'HAVING (COUNT(*) > 1 AND SUM(issimple) <> 0) ' +
+    '  OR (COUNT(*) = 1 AND SUM(issimple) = 0)';
+  q.ExecQuery;
+  Check(q.EOF, 'Проверка поля issimple');
+end;
+
+procedure Tgs_AcEntryTest.TestUnlockFlags(q: TIBSQL);
+begin
+  q.Close;
+  q.SQL.Text :=
+    'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'') FROM rdb$database';
+  q.ExecQuery;
+  Check(q.Fields[0].IsNull);
+
+  q.Close;
+  q.SQL.Text :=
+    'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'') FROM rdb$database';
+  q.ExecQuery;
+  Check(q.Fields[0].IsNull);
+end;
 
 procedure Tgs_AcEntryTest.Test_AcEntry;
 const
@@ -82,6 +214,7 @@ const
 
   function InsertDoc(q: TIBSQL; const AnID: TID; const N: String): TID;
   begin
+    q.Close;
     q.SQL.Text :=
       'INSERT INTO gd_document ' +
       '  (id, documenttypekey, transactionkey, number, documentdate, companykey, creatorkey, editorkey) ' +
@@ -102,24 +235,50 @@ const
     I: Integer;
   begin
     FQ.Close;
+    FQ.SQL.Text :=
+      'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'') FROM rdb$database';
+    FQ.ExecQuery;
+    Check(FQ.Fields[0].IsNull);
+
+    FQ.Close;
     FQ.SQL.Text := 'SELECT MAX(id) FROM ac_record';
     FQ.ExecQuery;
     if FQ.Fields[0].IsNull then
       MaxID := 0
     else
       MaxID := FQ.Fields[0].AsInteger;
+
     for I := 1 to ACount do
       InsertAcRecord(FQ, gdcBaseManager.GetNextID, ADocID, ACompanyID);
+
     FQ.Close;
     FQ.SQL.Text := 'SELECT COUNT(*) FROM ac_record WHERE id > :id';
     FQ.ParamByName('id').AsInteger := MaxID;
     FQ.ExecQuery;
     Check(FQ.Fields[0].AsInteger = ACount);
+
+    FQ.Close;
+    FQ.SQL.Text :=
+      'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'') FROM rdb$database';
+    FQ.ExecQuery;
+    Check(FQ.Fields[0].AsString > '');
+
     FTr.Commit;
     FTr.StartTransaction;
+
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT COUNT(*) FROM ac_record WHERE id > :id';
     FQ.ParamByName('id').AsInteger := MaxID;
     FQ.ExecQuery;
     Check(FQ.Fields[0].AsInteger = 0);
+
+    FQ.Close;
+    FQ.SQL.Text :=
+      'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'') FROM rdb$database';
+    FQ.ExecQuery;
+    Check(FQ.Fields[0].IsNull);
+
+    TestIncorrectRecords(FQ);
   end;
 
 var
@@ -130,9 +289,8 @@ begin
   DocID := InsertDoc(FQ, gdcBaseManager.GetNextID, '1');
   DocID2 := InsertDoc(FQ, gdcBaseManager.GetNextID, '2');
 
-  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, CompanyID);
-
   // у голой шапки проводки incorrect = 1
+  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, CompanyID);
   FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
   FQ.ParamByName('id').AsInteger := RecID;
   FQ.ExecQuery;
@@ -147,26 +305,11 @@ begin
   FQ.ExecQuery;
   Check(FQ.FieldByName('incorrect').AsInteger = 1);
 
-  // при комите транзакции неверные проводки удаляются из БД
-  FTr.Commit;
-  FTr.StartTransaction;
-  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
-  FQ.ParamByName('id').AsInteger := RecID;
-  FQ.ExecQuery;
-  Check(FQ.EOF);
-
-  // проверим работу списка некорректных проводок, когда
-  // их ИД умещаются в строку
-  TestIncorrectList(10, DocID, CompanyID);
-
-  // проверим работу списка некорректных проводок, когда
-  // их ИД не умещаются в строку
-  TestIncorrectList(1000, DocID, CompanyID);
-
   // проверяем очистку переменной AC_RECORD_INCORRECT
-  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, CompanyID);
+  // без закрытия транзакции
   FQ.Close;
-  FQ.SQL.Text := 'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'') FROM rdb$database';
+  FQ.SQL.Text :=
+    'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'') FROM rdb$database';
   FQ.ExecQuery;
   Check(FQ.Fields[0].AsString > '');
   FQ2.Close;
@@ -177,6 +320,14 @@ begin
   FQ.ExecQuery;
   Check(FQ.Fields[0].IsNull);
 
+  // проверим работу списка некорректных проводок, когда
+  // их ИД умещаются в строку
+  TestIncorrectList(10, DocID, CompanyID);
+
+  // проверим работу списка некорректных проводок, когда
+  // их ИД не умещаются в строку
+  TestIncorrectList(1000, DocID, CompanyID);
+
   // тестируем позиции проводки
   RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, CompanyID);
 
@@ -184,14 +335,6 @@ begin
     100, 100, 100, 100, 100, 100, BelRubID,
     EncodeDate(2000, 01, 01),
     CompanyID, DocID, DocID, TrID);
-
-  // у дебетовой части проводки должны быть нулевые суммы по кредиту
-  FQ.Close;
-  FQ.SQL.Text :=
-    'SELECT ABS(creditncu) + ABS(creditcurr) + ABS(crediteq) FROM ac_entry WHERE id=:ID';
-  FQ.ParamByName('id').AsInteger := EntryID;
-  FQ.ExecQuery;
-  Check(FQ.Fields[0].AsCurrency = 0);
 
   // у шапки неполной проводки incorrect = 1
   FQ.Close;
@@ -205,15 +348,6 @@ begin
     EncodeDate(2000, 01, 01),
     CompanyID, DocID, DocID, TrID);
 
-  // у кредитовой проводки должны быть нулевые суммы по дебету
-  FQ.Close;
-  FQ.SQL.Text := 'SELECT * FROM ac_entry WHERE id=:ID';
-  FQ.ParamByName('id').AsInteger := EntryID2;
-  FQ.ExecQuery;
-  Check(FQ.FieldByName('debitncu').AsCurrency = 0);
-  Check(FQ.FieldByName('debitcurr').AsCurrency = 0);
-  Check(FQ.FieldByName('debiteq').AsCurrency = 0);
-
   // теперь incorrect = 0
   FQ.Close;
   FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
@@ -221,39 +355,8 @@ begin
   FQ.ExecQuery;
   Check(FQ.FieldByName('incorrect').AsInteger = 0);
 
-  // всегда должны совпадать данные в шапке и позиции проводки
-  FQ.Close;
-  FQ.SQL.Text :=
-    'SELECT * FROM ac_record r JOIN ac_entry e ON e.recordkey = r.id ' +
-    'WHERE r.recorddate <> e.entrydate OR r.companykey <> e.companykey ' +
-    '  OR r.documentkey <> e.documentkey OR r.masterdockey <> e.masterdockey ' +
-    '  OR r.transactionkey <> e.transactionkey';
-  FQ.ExecQuery;
-  Check(FQ.EOF);
-
   //
-  FQ.Close;
-  FQ.SQL.Text :=
-    'SELECT * FROM ac_record r ' +
-    'WHERE ' +
-    '  r.debitncu <> COALESCE((SELECT SUM(e.debitncu) FROM AC_ENTRY e WHERE e.recordkey = r.id), 0) OR ' +
-    '  r.creditncu <> COALESCE((SELECT SUM(e.creditncu) FROM AC_ENTRY e WHERE e.recordkey = r.id), 0) OR ' +
-    '  r.debitcurr <> COALESCE((SELECT SUM(e.debitcurr) FROM AC_ENTRY e WHERE e.recordkey = r.id), 0) OR ' +
-    '  r.creditcurr <> COALESCE((SELECT SUM(e.creditcurr) FROM AC_ENTRY e WHERE e.recordkey = r.id), 0) ';
-  FQ.ExecQuery;
-  Check(FQ.EOF);
-
-  // после действий с позициями проводок проверяем удален ли флаг
-  FQ.Close;
-  FQ.SQL.Text := 'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'') FROM rdb$database';
-  FQ.ExecQuery;
-  Check(FQ.Fields[0].IsNull);
-
-  // после действий с позициями проводок проверяем удален ли флаг
-  FQ.Close;
-  FQ.SQL.Text := 'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'') FROM rdb$database';
-  FQ.ExecQuery;
-  Check(FQ.Fields[0].IsNull);
+  TestConsistentState(FQ);
 end;
 
 initialization
