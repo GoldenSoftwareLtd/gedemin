@@ -1,6 +1,6 @@
 inherited gdc_frmTransaction: Tgdc_frmTransaction
-  Left = 202
-  Top = 140
+  Left = 621
+  Top = 396
   Width = 783
   Height = 540
   HelpContext = 158

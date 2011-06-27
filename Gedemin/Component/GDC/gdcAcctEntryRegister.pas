@@ -175,16 +175,15 @@ type
 
   public
     constructor Create(AnOwner: TComponent); override;
+
     class function GetSubSetList: String; override;
 
+    function GetCurrRecordClass: TgdcFullClass; override;
     function CreateDialog(const ADlgClassName: String = ''): Boolean; override;
-
     function CopyDialog: Boolean; override;
-
     function EditDialog(const ADlgClassName: String = ''): Boolean; override;
 
     property EntryGroup: TEntryGroup read FEntryGroup write SetEntryGroup;
-
   end;
 
   TCrackGdcBase = class(TgdcBase);
@@ -892,7 +891,7 @@ end;
 
 function TgdcAcctBaseEntryRegister.GetRefreshSQLText: String;
 begin
-  Result := '';
+  Result := inherited GetRefreshSQLText;
 end;
 
 destructor TgdcAcctBaseEntryRegister.Destroy;
@@ -1294,7 +1293,7 @@ end;
 function TgdcAcctBaseEntryRegister.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := TgdcAcctEntryRegister;
-  Result.SubType := '';
+  Result.SubType := Self.SubType; 
 end;
 
 { TgdcAcctEntryRegister }
@@ -2242,6 +2241,12 @@ begin
   {M}      ClearMacrosStack2('TGDCACCTVIEWENTRYREGISTER', 'EDITDIALOG', KEYEDITDIALOG);
   {M}  end;
   {END MACRO}
+end;
+
+function TgdcAcctViewEntryRegister.GetCurrRecordClass: TgdcFullClass;
+begin
+  Result.gdClass := TgdcAcctViewEntryRegister;
+  Result.SubType := Self.SubType; 
 end;
 
 function TgdcAcctViewEntryRegister.GetDocument: TgdcDocument;
