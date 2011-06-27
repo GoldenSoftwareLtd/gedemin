@@ -23,8 +23,7 @@ var
   I: Integer;
   InputFileName, OutputFileName: String;
 begin
-  if not FSettingsLoaded then
-    exit;
+  Check(SettingsLoaded, 'Должны быть загружены настройки');
 
   Input := TStringList.Create;
   Output := TStringList.Create;
