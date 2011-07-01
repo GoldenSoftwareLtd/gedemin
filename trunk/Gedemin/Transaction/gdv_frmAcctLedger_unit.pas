@@ -337,6 +337,7 @@ begin
   begin
     InitColumns;
     ibgrMain.ResizeColumns;
+    ibgrMain.Columns.EndUpdate;
   end else
     inherited;
 end;
