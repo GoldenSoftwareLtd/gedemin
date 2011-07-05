@@ -1236,26 +1236,6 @@ initialization
     exit;
   end;
 
-  { TODO :
-не будет ли такая проверка долгой?
-может не выгружать библиотеку?
-еще пригодится }
-  {
-  hMidas := LoadLibrary('MIDAS.DLL');
-  if hMidas = 0 then
-  begin
-    MessageBox(0,
-      PChar('Отсутствует необходимая библиотека MIDAS.DLL.'#13#10 +
-      'Повторите установку программного продукта.'#13#10#13#10 +
-      'Если вы переписали файл midas.dll вручную, не забудьте'#13#10 +
-      'зарегистрировать его с помощью утилиты regsvr32.exe.'),
-      'Внимание',
-      MB_OK or MB_ICONHAND or MB_TASKMODAL or MB_TOPMOST);
-    exit;
-  end else
-    FreeLibrary(hMidas);
-  }
-
 { TODO : Ничего лучшего, чем проверить ветку в реестре я не нашел. DAlex }
   if RegOpenKey(HKEY_CLASSES_ROOT,
     PChar('CLSID\' + GUIDToString(CLASS_ScriptControl)), RegKey) <> ERROR_SUCCESS then
@@ -1270,5 +1250,4 @@ initialization
     exit;
   end else
     RegCloseKey(RegKey);
-
 end.

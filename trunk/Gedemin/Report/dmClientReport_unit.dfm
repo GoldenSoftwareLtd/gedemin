@@ -70,6 +70,7 @@ object dmClientReport: TdmClientReport
     OnCreateGlobalObj = gdScriptFactory1CreateGlobalObj
     ReportFactory = ReportFactory1
     ShowProgress = True
+    ExportType = etNone
     Left = 40
     Top = 16
   end
