@@ -313,13 +313,11 @@ uses
 {$R *.RES}
 
 type
-  {TFactoryRegisterClass}
   TFactoryRegisterClass = class(TObject)
   private
     procedure FactoryRegisterClassObject(Factory: TComObjectFactory);
   end;
 
-{TFactoryRegisterClass}
 procedure TFactoryRegisterClass.FactoryRegisterClassObject(
   Factory: TComObjectFactory);
 begin
@@ -429,14 +427,51 @@ begin
   end;
 end;
 
+function CheckRequiredFiles: Boolean;
+const
+  ReqFilesCount = 3;
+  ReqFiles: array[1..ReqFilesCount] of String = (
+    'midas.dll',
+    'midas.sxs.manifest',
+    'gedemin.exe.manifest'
+  );
+var
+  I: Integer;
+  S, AppPath, FullName: String;
+begin
+  AppPath := ExtractFilePath(Application.EXEName);
+  S := '';
+  for I := 1 to ReqFilesCount do
+  begin
+    FullName := AppPath + ReqFiles[I];
+    if not FileExists(FullName) then
+      S := S + FullName + #13#10;
+  end;
+  if S > '' then
+  begin
+    if not gd_CmdLineParams.QuietMode then
+    begin
+      MessageBox(0,
+        PChar('Отсутствуют необходимые файлы:'#13#10#13#10 + S + #13#10 +
+        'Повторите установку программы.'),
+        'Внимание',
+        MB_ICONHAND or MB_TASKMODAL or MB_OK);
+    end;
+    Result := False;
+  end else
+    Result := True;
+end;
+
 var
   DC: HDC;
   ApplicationEventsHandler: TgdApplicationEventsHandler;
   FApplicationEvents: TApplicationEvents;
 
 begin
+  if not CheckRequiredFiles then
+    exit;
+
 {$IFDEF VER130}
-  //Set8087CW($133F);
   DisableProcessWindowsGhosting;
 {$ENDIF}
 
@@ -486,24 +521,6 @@ begin
 
     ///////////////////
     // Создание мютекса
-
-    /////////////////////////////////////////////////////
-    // Проверка, чтобы не была запущена программа upgrade
-
-    {SetLastError(0);
-    MutexHandle := OpenMutex(MUTEX_ALL_ACCESS, False, PChar(GedeminSetupMutexName));
-    MutexExisted := MutexHandle <> 0;
-
-    if MutexExisted then
-    begin
-      MessageBox(0,
-        'В данный момент запущена программа Setup.'#13#10 +
-        'Процесс загрузки прерван!',
-        'Внимание',
-        MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-      CloseHandle(MutexHandle);
-      Exit;
-    end;}
 
     SetLastError(0);
     MutexHandle := CreateMutex(nil, False, PChar(GedeminMutexName));
@@ -566,9 +583,9 @@ begin
           Application.CreateForm(TdmDatabase, dmDatabase);
           Application.CreateForm(TdmImages, dmImages);
 
-          try
+          {try}
             Application.CreateForm(TdmClientReport, dmClientReport);
-          except
+          {except
             on E: Exception do
             begin
               if Pos('MIDAS.DLL', E.Message) > 0 then
@@ -581,7 +598,7 @@ begin
                 exit;
               end;
             end;
-          end;
+          end;}
           Application.CreateForm(TdmLogin, dmLogin);
 
           FreeAndNil(frmSplashHidden);

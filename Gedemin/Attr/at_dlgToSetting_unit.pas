@@ -181,53 +181,28 @@ begin
   FValueName := AValueName;
   FreeAndNil(FgdcObject);
 
-  //Если это хранилище
-  (*
-  FIsStorage := FromStorage;
-  if FIsStorage then
-  begin
-    if FValueName > '' then
-      Caption := cst_DlgCaption + ' параметр ' + FValueName
-    else
-      Caption := cst_DlgCaption + ' ветку хранилища ' + FBranchName;
+  Assert(AgdcObject <> nil);
+  Assert(AgdcObject.RecordCount > 0);
 
-    Assert(FBranchName > '');
-    //Создаем объект для работы со стораджем
-    FgdcSettingObject := TgdcSettingStorage.CreateSubType(nil, '', 'BySetting');
-    SetConditionsForSetting;
+  Caption := cst_DlgCaption + ' объект ' + AgdcObject.GetDisplayName(AgdcObject.SubType);
 
-    qrySetting.Open;
+  FgdcObject := AgdcObject;
+  if (BL = nil) or (BL.Count = 0) then
+    FgdcObject.ID := AgdcObject.ID
+  else
+    FgdcObject.BookMark := BL[0];
 
-    if (qrySetting.RecordCount > 0) and (ibluSetting.CurrentKeyInt = -1) then
-    begin
-      ibluSetting.CurrentKeyInt := qrySetting.FieldByName('id').AsInteger;
-    end;
+  //Создаем объект для работы с позициями настройки типа б-о
+  FgdcSettingObject := TgdcSettingPos.CreateSubType(nil, '', 'BySetting');
 
-  end else *)
-  begin
-    Assert(AgdcObject <> nil);
-    Assert(AgdcObject.RecordCount > 0);
+  gdcBaseManager.GetRUIDByID(FgdcObject.ID, FXID, FDBID, SelfTransaction);
+ //вычисляем руид для записи(ей) переданного объекта
+  qrySetting.Close;
+  qrySetting.SQL.Text := GetSettingSQLByPosRUID;
+  qrySetting.ParamByName('xid').AsInteger := FXID;
+  qrySetting.ParamByName('dbid').AsInteger := FDBID;
+  qrySetting.Open;
 
-    Caption := cst_DlgCaption + ' объект ' + AgdcObject.GetDisplayName(AgdcObject.SubType);
-
-    FgdcObject := AgdcObject;
-    if (BL = nil) or (BL.Count = 0) then
-      FgdcObject.ID := AgdcObject.ID
-    else
-      FgdcObject.BookMark := BL[0];
-
-    //Создаем объект для работы с позициями настройки типа б-о
-    FgdcSettingObject := TgdcSettingPos.CreateSubType(nil, '', 'BySetting');
-
-    gdcBaseManager.GetFullRUIDByID(FgdcObject.ID, FXID, FDBID);
-   //вычисляем руид для записи(ей) переданного объекта
-    qrySetting.Close;
-    qrySetting.SQL.Text := GetSettingSQLByPosRUID;
-    qrySetting.ParamByName('xid').AsInteger := FXID;
-    qrySetting.ParamByName('dbid').AsInteger := FDBID;
-    qrySetting.Open;
-
-  end;
   FgdcSettingObject.Transaction := SelfTransaction;
   FgdcSettingObject.ReadTransaction := SelfTransaction;
   Hint := Caption;
@@ -282,7 +257,6 @@ end;
 procedure TdlgToSetting.actDelFromSettingExecute(Sender: TObject);
 var
   I: Integer;
-//  StMessage: String;
   FXID, FDBID: TID;
   OldID: Integer;
   WithDetail: Boolean;
@@ -292,41 +266,48 @@ begin
   try
     qrySetting.DisableControls;
 
-    {
-    if (ibgrSetting.SelectedRows.Count = 0) or (ibgrSetting.SelectedRows.Count = 1) then
-      StMessage := 'Удалить запись из настройки ' + qrySetting.FieldByName('name').AsString + '?'
-    else
-      StMessage := 'Удалить запись из ' + IntToStr(ibgrSetting.SelectedRows.Count) + ' настроек?';
-    }
+    FgdcSettingObject.Close;
+    if FgdcSettingObject is TgdcSettingPos then
+    begin
+      FgdcSettingObject.SubSet := 'BySetting,ByRUID';
+      gdcBaseManager.GetRUIDByID(FgdcObject.ID, FXID, FDBID, SelfTransaction);
+      FgdcSettingObject.ParamByName('xid').AsInteger := FXID;
+      FgdcSettingObject.ParamByName('dbid').AsInteger := FDBID;
+    end else if FgdcSettingObject is TgdcSettingStorage then
+    begin
+      FgdcSettingObject.SubSet := 'BySetting,ByCRC';
+      FgdcSettingObject.ParamByName('crc').AsInteger := GetCRC32FromText(FBranchName);
+      FgdcSettingObject.ExtraConditions.Add(Format('%s.%s in (%s)',
+        [FgdcSettingObject.GetListTableAlias,
+         FgdcSettingObject.GetKeyField(FgdcSettingObject.SubType),
+         SetConditionsForStorage]));
+      if FValueName > '' then
+        FgdcSettingObject.ExtraConditions.Add(Format('%s.valuename = ''%s''',
+          [FgdcSettingObject.GetListTableAlias, FValueName]))
+      else
+        FgdcSettingObject.ExtraConditions.Add(Format('%s.valuename IS NULL',
+          [FgdcSettingObject.GetListTableAlias]))
+    end;
 
-//    if MessageBox(Handle, PChar(StMessage), 'Внимание!', MB_ICONQUESTION or MB_YESNO) = IDYES
-//    then
-//    begin
-      FgdcSettingObject.Close;
+    if ibgrSetting.SelectedRows.Count = 0 then
+    begin
+      FgdcSettingObject.ParamByName('settingkey').AsInteger :=
+        qrySetting.FieldByName('id').AsInteger;
+      FgdcSettingObject.Open;
       if FgdcSettingObject is TgdcSettingPos then
       begin
-        FgdcSettingObject.SubSet := 'BySetting,ByRUID';
-        gdcBaseManager.GetFullRUIDByID(FgdcObject.ID, FXID, FDBID);
-        FgdcSettingObject.ParamByName('xid').AsInteger := FXID;
-        FgdcSettingObject.ParamByName('dbid').AsInteger := FDBID;
-      end else if FgdcSettingObject is TgdcSettingStorage then
+        WithDetail := FgdcSettingObject.FieldByName('WITHDETAIL').AsInteger = 1;
+        FgdcSettingObject.Delete;
+        DeleteBindedObjects(qrySetting.FieldByName('id').AsInteger, WithDetail);
+      end
+      else
+        FgdcSettingObject.Delete;
+    end
+    else
+      for I := 0 to ibgrSetting.SelectedRows.Count - 1 do
       begin
-        FgdcSettingObject.SubSet := 'BySetting,ByCRC';
-        FgdcSettingObject.ParamByName('crc').AsInteger := GetCRC32FromText(FBranchName);
-        FgdcSettingObject.ExtraConditions.Add(Format('%s.%s in (%s)',
-          [FgdcSettingObject.GetListTableAlias,
-           FgdcSettingObject.GetKeyField(FgdcSettingObject.SubType),
-           SetConditionsForStorage]));
-        if FValueName > '' then
-          FgdcSettingObject.ExtraConditions.Add(Format('%s.valuename = ''%s''',
-            [FgdcSettingObject.GetListTableAlias, FValueName]))
-        else
-          FgdcSettingObject.ExtraConditions.Add(Format('%s.valuename IS NULL',
-            [FgdcSettingObject.GetListTableAlias]))
-      end;
-
-      if ibgrSetting.SelectedRows.Count = 0 then
-      begin
+        qrySetting.Bookmark := ibgrSetting.SelectedRows[I];
+        FgdcSettingObject.Close;
         FgdcSettingObject.ParamByName('settingkey').AsInteger :=
           qrySetting.FieldByName('id').AsInteger;
         FgdcSettingObject.Open;
@@ -338,25 +319,7 @@ begin
         end
         else
           FgdcSettingObject.Delete;
-      end
-      else
-        for I := 0 to ibgrSetting.SelectedRows.Count - 1 do
-        begin
-          qrySetting.Bookmark := ibgrSetting.SelectedRows[I];
-          FgdcSettingObject.Close;
-          FgdcSettingObject.ParamByName('settingkey').AsInteger :=
-            qrySetting.FieldByName('id').AsInteger;
-          FgdcSettingObject.Open;
-          if FgdcSettingObject is TgdcSettingPos then
-          begin
-            WithDetail := FgdcSettingObject.FieldByName('WITHDETAIL').AsInteger = 1;
-            FgdcSettingObject.Delete;
-            DeleteBindedObjects(qrySetting.FieldByName('id').AsInteger, WithDetail);
-          end
-          else
-            FgdcSettingObject.Delete;
-        end;
-    //end;
+      end;
   finally
     SetConditionsForSetting;
     qrySetting.Close;
@@ -364,7 +327,7 @@ begin
     if OldID > 0 then
       qrySetting.Locate('id', OldID, []);
     qrySetting.EnableControls;
-  end;  
+  end;
 end;
 
 procedure TdlgToSetting.actCancelExecute(Sender: TObject);
@@ -440,7 +403,7 @@ begin
             for I := 1 to FBL.Count - 1 do
             begin
               FgdcObject.Bookmark := FBL[I];
-              gdcBaseManager.GetFullRUIDByID(FgdcObject.ID, XID, DBID);
+              gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, SelfTransaction);
               //выполним запрос на исключение записей из всех настроек, кроме выбранных
               if FgdcSettingObject is TgdcSettingPos then
               begin
@@ -608,7 +571,7 @@ begin
   // если удаляется событие или метод, то удалим также и функцию
   if (FgdcObject is TgdcEvent) and (FgdcObject.FieldByName('functionkey').AsInteger > 0) then
   begin
-    gdcBaseManager.GetFullRUIDByID(FgdcObject.FieldByName('functionkey').AsInteger, AXID, ADBID);
+    gdcBaseManager.GetRUIDByID(FgdcObject.FieldByName('functionkey').AsInteger, AXID, ADBID, SelfTransaction);
     FgdcSettingObject.Close;
     FgdcSettingObject.ParamByName('xid').AsInteger := AXID;
     FgdcSettingObject.ParamByName('dbid').AsInteger := ADBID;
@@ -679,7 +642,7 @@ begin
                   then
                   begin
                     //Мы будем удалять из настройки только пользовательские мета-данные
-                    gdcBaseManager.GetFullRUIDByID(Obj.ID, AXID, ADBID);
+                    gdcBaseManager.GetRUIDByID(Obj.ID, AXID, ADBID, SelfTransaction);
                     FgdcSettingObject.Close;
                     FgdcSettingObject.ParamByName('xid').AsInteger := AXID;
                     FgdcSettingObject.ParamByName('dbid').AsInteger := ADBID;
