@@ -1399,7 +1399,7 @@ var
   SelectCondition: String;
   DistinctStr: String;
   WasActive: Boolean;
-  LF: String;
+  LF, KF: String;
 begin
   SetupDropDownDialog;
   if FdlgDropDown.dsList.DataSet <> FdlgDropDown.ibdsList then
@@ -1528,9 +1528,15 @@ begin
         else
           LF := Copy(FListField, I + 1, 255);
 
+        I := Pos('.', FKeyField);
+        if I = 0 then
+          KF := FKeyField
+        else
+          KF := Copy(FKeyField, I + 1, 255);
+
         if ValidObject then
         begin
-          if not FdlgDropDown.ibdsList.Locate(LF, FCurrentKey, []) then
+          if not FdlgDropDown.ibdsList.Locate(KF, FCurrentKey, []) then
             FdlgDropDown.ibdsList.First;
         end else
         begin
