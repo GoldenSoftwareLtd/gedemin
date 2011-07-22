@@ -2732,10 +2732,19 @@ begin
   if FDataType <> cStorageGlobal then
   begin
     if FObjectKey <> Value then
-    begin
+    try
       SaveToDatabase;
       FObjectKey := Value;
       LoadFromDatabase;
+    except
+      on E: Exception do
+      begin
+        MessageBox(0,
+          PChar('Ошибка при сохранении/загрузке хранилища: ' + E.Message),
+          'Ошибка',
+          MB_OK or MB_TASKMODAL or MB_ICONHAND);
+        FObjectKey := -1;  
+      end;
     end;
   end else
     raise EgsStorageError.Create('Can not set id for global storage');  

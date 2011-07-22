@@ -2919,17 +2919,25 @@ begin
 end;
 
 procedure TVisualBlock.Delete;
+var
+  I: integer;
 begin
+  if not Assigned(SelBlockList) then Exit;
   if CanEdit then
   begin
-    if Assigned(OnBlockUnselect) then
-      OnBlockUnSelect(Self);
+    for I:= SelBlockList.Count - 1 downto 0 do
+    begin
+      if Assigned(OnBlockUnselect) then
+        OnBlockUnSelect(SelBlockList[I]);
+      SelBlockList[I].Free;
+    end;
+    SelBlockList.Clear;
+
     if Parent <> nil then
       Parent.SetFocus;
-    Self.Free;
     ReGenerate := True;
     Modified := True;
-  end
+  end;
 end;
 
 function TVisualBlock.CanCopy: Boolean;
@@ -3016,14 +3024,13 @@ begin
 end;
 
 procedure TVisualBlock.Cut;
-var
-  i: integer;
 begin
   if not Assigned(SelBlockList) then Exit;
   Copy;
-  for i:= SelBlockList.Count - 1 downto 0 do
+  Delete;
+  {for i:= SelBlockList.Count - 1 downto 0 do
     TVisualBlock(SelBlockList[i]).Delete;
-  SelBlockList.Clear;
+  SelBlockList.Clear; }
 end;
 
 procedure TVisualBlock.Paste;

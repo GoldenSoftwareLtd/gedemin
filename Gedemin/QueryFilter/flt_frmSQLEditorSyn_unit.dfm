@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 453
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsQuery
+      ActivePage = tsResult
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -532,8 +532,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object sbRecord: TScrollBox
             Left = 1
             Top = 1
-            Width = 837
-            Height = 407
+            Width = 829
+            Height = 396
             Align = alClient
             BorderStyle = bsNone
             TabOrder = 0

@@ -9641,7 +9641,9 @@ begin
               FilteredCache := TStringList.Create;
               FilteredCache.Sorted := True;
               FilteredCache.Duplicates := dupIgnore;
-            end;
+            end
+            else
+              FilteredCache.Clear;
 
             FFilterableColumns.Add(Columns[I]);
           end;
