@@ -739,7 +739,7 @@ procedure TfrmSQLEditorSyn.actExecuteExecute(Sender: TObject);
 var
   StartTime: TDateTime;
   I, K: Integer;
-  S: String;
+  S, TempPlan: String;
   SL: TStringList;
 begin
   if PrepareQuery then
@@ -821,7 +821,11 @@ begin
 
         if (ibqryWork.QSelect.SQLType in [SQLInsert, SQLUpdate, SQLDelete, SQLExecProcedure]) then
         begin
-          mmPlan.Text := StringReplace(ibqryWork.QSelect.Plan, #$A, #13#10, [rfReplaceAll]) + #13#10#13#10;
+          TempPlan := StringReplace(ibqryWork.QSelect.Plan, #$A, #13#10, [rfReplaceAll]);
+          if TempPlan > '' then
+            mmPlan.Text := TempPlan + #13#10#13#10
+          else
+            mmPlan.Clear;
 
           SL := TStringList.Create;
           try
@@ -1415,7 +1419,7 @@ procedure TfrmSQLEditorSyn.AddSQLHistory(const AnExecute: Boolean);
 begin
   {$IFDEF GEDEMIN}
   if (frmSQLHistory <> nil) and (Trim(seQuery.Text) > '') then
-  begin
+  try
     if frmSQLHistory.gdcObject.FieldByName('SQL_TEXT').AsString <> seQuery.Text then
     begin
       frmSQLHistory.gdcObject.First;
@@ -1434,6 +1438,10 @@ begin
 
     if frmSQLHistory.gdcObject.State in dsEditModes then
       frmSQLHistory.gdcObject.Post;
+  except
+    if frmSQLHistory.gdcObject.State in dsEditModes then
+      frmSQLHistory.gdcObject.Cancel;
+    raise;
   end;
   {$ENDIF}
 end;
@@ -1961,6 +1969,7 @@ var
   L: TLabel;
   E: TCustomEdit;
   I, Y: Integer;
+  F: TField;
 begin
   if not actShowRecord.Checked then
   begin
@@ -1979,6 +1988,8 @@ begin
         Y := 6;
         for I := 0 to ibqryWork.FieldCount - 1 do
         begin
+          F := ibqryWork.Fields[I];
+
           L := TLabel.Create(sbRecord);
           L.Parent := sbRecord;
           L.Left := 6;
@@ -1986,21 +1997,20 @@ begin
           L.ParentFont := True;
           L.AutoSize := False;
           L.Width := 150;
-          L.Caption := ibqryWork.Fields[I].FieldName + ':';
+          L.Caption := F.FieldName + ':';
           L.ShowHint := True;
-          L.Hint := ibqryWork.Fields[I].FieldName + #13#10 +
+          L.Hint := F.FieldName + #13#10 +
             //ibqryWork.Fields[I].DisplayLabel + #13#10 +
-            ibqryWork.Fields[I].Origin;
+            F.Origin;
 
-          if ibqryWork.Fields[I] is TBlobField then
+          if ((F is TStringField) or (F is TMemoField)) and (Length(F.AsString) > 80) then
             E := TDBMemo.Create(sbRecord)
           else
             E := TDBEdit.Create(sbRecord);
           E.Parent := sbRecord;
           E.Left := 160;
           E.Top := Y;
-          E.Height := 21;
-          if (ibqryWork.Fields[I] is TNumericField) or (ibqryWork.Fields[I] is TDateTimeField) then
+          if (F is TNumericField) or (F is TDateTimeField) then
             E.Width := 120
           else
             E.Width := sbRecord.Width - 160 - 6 - 18;
@@ -2008,15 +2018,19 @@ begin
           if E is TDBEdit then
           begin
             TDBEdit(E).DataSource := dsResult;
-            TDBEdit(E).DataField := ibqryWork.Fields[I].FieldName;
+            TDBEdit(E).DataField := F.FieldName;
+            E.Height := 21;
           end else
           begin
             TDBMemo(E).DataSource := dsResult;
-            TDBMemo(E).DataField := ibqryWork.Fields[I].FieldName;
+            TDBMemo(E).DataField := F.FieldName;
             TDBMemo(E).PopupMenu := pmSaveFieldToFile;
+            TDBMemo(E).WordWrap := True;
+            TDBMemo(E).ScrollBars := ssVertical;
+            E.Height := 105;
           end;
 
-          Inc(Y, 22);
+          Inc(Y, E.Height + 1);
         end;
       finally
         LockWindowUpdate(0);

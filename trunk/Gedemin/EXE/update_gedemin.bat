@@ -96,7 +96,7 @@ set arc_name=gedemin.rar
 set arc_command="c:\program files\winrar\winrar.exe" a %arc_name%
 
 if exist %arc_name% del %arc_name% 
-%arc_command% gedemin.exe
+%arc_command% gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest
 
 echo *************************************************
 echo **                                             **

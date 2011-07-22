@@ -202,6 +202,8 @@ type
   { TIBStringField allows us to have strings longer than 8196 }
 
   TIBStringField = class(TStringField)
+  protected
+    function GetDefaultWidth: Integer; override;
   public
     constructor Create(AOwner: TComponent); override;
     class procedure CheckTypeSize(Value: Integer); override;
@@ -1174,6 +1176,12 @@ begin
   finally
     FreeMem(Buffer);
   end;
+end;
+
+function TIBStringField.GetDefaultWidth: Integer;
+begin
+  Result := inherited GetDefaultWidth;
+  if Result > 256 then Result := 256;
 end;
 
 { TIBBCDField }

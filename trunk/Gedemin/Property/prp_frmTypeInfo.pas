@@ -56,7 +56,7 @@ begin
   if prpClassesInspector = nil then Exit;
 
   Node := tvTypeInfo.Items.AddFirst(nil, TypeName);
-  if VarType(Variable) = varDispatch then
+  if (VarType(Variable) = varDispatch) and (IDispatch(Variable) <> nil) then
   begin
     FInterfacesNode:= tvTypeInfo.Items.AddChild(Node, 'Интерфейсы');
     AddItemData(FInterfacesNode, ciParentTypeFolder, 'Интерфейсы, возвращаемые методами и свойствами ' + TypeName, self);

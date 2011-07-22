@@ -1208,6 +1208,8 @@ var
   y: Integer;
 
 begin
+  Assert(ClassInterface <> nil);
+
   New(BStrList);
   try
     tmpSortList := TStringList.Create;
