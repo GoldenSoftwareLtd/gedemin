@@ -1527,6 +1527,12 @@ begin
   end;
 end;
 
+function SortItemsDesc(List: TStringList; Index1,
+  Index2: Integer): Integer;
+begin
+  Assert(List <> nil);
+  Result := AnsiCompareText(List[Index2], List[Index1]);
+end;
 
 {
   *********************
@@ -9642,8 +9648,10 @@ begin
               FilteredCache.Sorted := True;
               FilteredCache.Duplicates := dupIgnore;
             end
-            else
+            else begin
               FilteredCache.Clear;
+              FilteredCache.Sorted := True;
+            end;
 
             FFilterableColumns.Add(Columns[I]);
           end;
@@ -9703,6 +9711,14 @@ begin
 
               Prior;
             end;
+
+            for I := 0 to FFilterableColumns.Count - 1 do
+              with TgsColumn(FFilterableColumns[I]) do
+                if (FilteredCache <> nil) and (Field is TDateTimeField) then
+                begin
+                  FilteredCache.Sorted := False;
+                  FilteredCache.CustomSort(SortItemsDesc);
+                end;
           finally
             Screen.Cursor := OldCursor;
             if Filtered <> OldFiltered then
