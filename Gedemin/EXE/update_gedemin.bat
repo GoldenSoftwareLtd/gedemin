@@ -1,10 +1,33 @@
 @echo off
 setlocal
 
+echo *************************************************
+echo **                                             **
+echo **  Usage:                                     **
+echo **  update_gedemin {/ftp /no_ftp} {/d /p}      **
+echo **                                             **
+echo *************************************************
+
+if "%2"=="" goto exit
+
 if NOT exist d:\nul subst d: k:\
 
 set delphi_path=C:\Program Files\Borland\Delphi5\Bin
 set starteam_connect=Andreik:1@india:49201
+
+if "%2"=="/d" goto make_debug 
+
+set gedemin_cfg=gedemin.product.cfg
+set compiler_switch=-b
+set arc_name=gedemin.rar
+goto start_process
+
+:make_debug
+set gedemin_cfg=gedemin.debug.cfg
+set compiler_switch=-b -vt
+set arc_name=gedemin_debug.rar
+
+:start_process
 
 echo *************************************************
 echo **                                             **
@@ -34,7 +57,7 @@ echo *************************************************
 
 cd ..\gedemin
 copy gedemin.cfg gedemin.current.cfg /y
-copy gedemin.product.cfg gedemin.cfg /y
+copy %gedemin_cfg% gedemin.cfg /y
 
 echo *************************************************
 echo **                                             **
@@ -52,7 +75,7 @@ echo **  Compile gedemin.exe                        **
 echo **                                             **
 echo *************************************************
 
-"%delphi_path%\dcc32.exe" -b gedemin.dpr
+"%delphi_path%\dcc32.exe" %compiler_switch% gedemin.dpr
 
 echo *************************************************
 echo **                                             **
@@ -72,7 +95,20 @@ echo **                                             **
 echo *************************************************
 
 cd ..\exe
-stripreloc gedemin.exe
+stripreloc /b gedemin.exe
+
+if "%2"=="/p" goto skip_optimize_debug 
+
+echo *************************************************
+echo **                                             **
+echo **  update_gedemin:                            **
+echo **  Optimize debug information                 **
+echo **                                             **
+echo *************************************************
+
+tdspack -e -o -a gedemin.exe
+
+:skip_optimize_debug
 
 echo *************************************************
 echo **                                             **
@@ -92,7 +128,6 @@ echo **  Make an archive                            **
 echo **                                             **
 echo *************************************************
 
-set arc_name=gedemin.rar
 set arc_command="c:\program files\winrar\winrar.exe" a %arc_name%
 
 if exist %arc_name% del %arc_name% 
@@ -105,10 +140,13 @@ echo **  Upload to FTP                              **
 echo **                                             **
 echo *************************************************
 
-ftp -s:ftp_commands.txt
+if exist temp_ftp_commands.txt del temp_ftp_commands.txt
+call BatchSubstitute.bat gedemin.rar %arc_name% ftp_commands.txt > temp_ftp_commands.txt
+ftp -s:temp_ftp_commands.txt
 if not errorlevel 0 goto exit
 
 del %arc_name%
+del temp_ftp_commands.txt
 
 echo *************************************************
 echo **                                             **

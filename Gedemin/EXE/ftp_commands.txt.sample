@@ -1,3 +1,4 @@
+open <ftp_server>
 <ftp_user_name> 
 <ftp_user_password>
 binary
