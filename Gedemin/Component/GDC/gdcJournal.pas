@@ -15,11 +15,10 @@ type
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
   public
     procedure CreateTriggers;
     procedure DropTriggers;
+    procedure OpenObject;
 
     class procedure AddEvent(const AData: String;
       const ASource: String = '';
@@ -30,6 +29,7 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
   end;
 
@@ -38,7 +38,8 @@ procedure Register;
 implementation
 
 uses
-  Windows, Controls, IBSQL, SysUtils, gd_directories_const, gdc_frmJournal_unit,
+  Windows, Controls, IBSQL, SysUtils, gd_directories_const,
+  gdc_frmJournal_unit, gdc_dlgJournal_unit,
   gd_ClassList, ComObj, gdcMetaData, gd_KeyAssoc, gd_security, Storages
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -52,58 +53,6 @@ begin
 end;
 
 { TgdcJournal }
-
-function TgdcJournal.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCJOURNAL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCJOURNAL', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCJOURNAL') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCJOURNAL',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCJOURNAL' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := nil;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCJOURNAL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCJOURNAL', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
 
 function TgdcJournal.GetFromClause(const ARefresh: Boolean = False): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -673,6 +622,74 @@ begin
 
   if HasSubSet('ByObjectID') then
     S.Add('z.objectid = :ObjectID');
+end;
+
+class function TgdcJournal.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgJournal';
+end;
+
+procedure TgdcJournal.OpenObject;
+var
+  FC: TgdcFullClass;
+  Obj: TgdcBase;
+  C: TPersistentClass;
+  S: String;
+  P: Integer;
+begin
+  S := Trim(FieldByName('source').AsString);
+
+  if (S = '') or (FieldByName('objectid').AsInteger < 0) then
+    exit;
+
+  FC := GetBaseClassForRelation(S);
+  if FC.gdClass <> nil then
+  begin
+    Obj := FC.gdClass.CreateWithID(nil,
+      nil,
+      nil,
+      FieldByName('objectid').AsInteger,
+      FC.SubType);
+    try
+      Obj.Open;
+      if not Obj.IsEmpty then
+        Obj.EditDialog;
+    finally
+      Obj.Free;
+    end;
+  end else
+  begin
+    P := Pos(' ', S);
+    if P = 0 then
+      C := GetClass(S)
+    else
+      C := GetClass(System.Copy(S, 1, P - 1));
+    if (C <> nil) and C.InheritsFrom(TgdcBase) then
+    begin
+      if P > 0 then
+        System.Delete(S, 1, P)
+      else
+        S := '';
+      Obj := CgdcBase(C).CreateWithID(nil,
+        nil,
+        nil,
+        FieldByName('objectid').AsInteger,
+        S);
+      try
+        Obj.Open;
+        if not Obj.IsEmpty then
+          Obj.EditDialog
+        else
+          MessageBox(ParentForm.Handle,
+            PChar('Запись была удалена. Тип объекта: ' + Obj.GetDisplayName(Obj.SubType) + '.'),
+            'Информация',
+            MB_OK or MB_TASKMODAL or MB_ICONINFORMATION);
+      finally
+        Obj.Free;
+      end;
+    end;
+  end;
 end;
 
 initialization

@@ -10,7 +10,6 @@ uses
 
 type
   Tgd_dlgAbout = class(TForm)
-    IBDatabaseInfo1: TIBDatabaseInfo;
     pc: TPageControl;
     TabSheet1: TTabSheet;
     btnOk: TButton;
@@ -49,7 +48,8 @@ implementation
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
-  {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase, TB2Version;
+  {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
+  {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version;
 
 function GetDiskSizeAvail(TheDrive: PChar; var Total: Integer; var Free: Integer): Boolean;
 var
@@ -296,6 +296,7 @@ begin
   AddSpaces('Командная строка', S);
 
   S := '';
+  {$IFDEF EXCMAGIC_GEDEMIN}S := S + 'EXCMAGIC_GEDEMIN, ';{$ENDIF}
   {$IFDEF DUNIT_TEST}S := S + 'DUNIT_TEST, ';{$ENDIF}
   {$IFDEF GEDEMIN_LOCK}S := S + 'GEDEMIN_LOCK, ';{$ENDIF}
   {$IFDEF SPLASH}S := S + 'SPLASH, ';{$ENDIF}
@@ -330,6 +331,7 @@ begin
   AddSpaces('ZLib', ZLIB_VERSION);
   AddSpaces('JCL', IntToStr(JclVersionMajor) + '.' + IntToStr(JclVersionMinor));
   AddSpaces('Toolbar 2000', Toolbar2000Version);
+  {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
   AddLibrary(0, MIDAS_DLL);

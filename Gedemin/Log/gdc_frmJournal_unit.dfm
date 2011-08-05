@@ -9,11 +9,11 @@ inherited gdc_frmJournal: Tgdc_frmJournal
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 485
-    Width = 775
+    Top = 474
+    Width = 767
   end
   inherited TBDockTop: TTBDock
-    Width = 775
+    Width = 767
     inherited tbMainCustom: TTBToolbar
       object tbiCreateTrig: TTBItem
         Action = actCreateTriggers
@@ -44,64 +44,55 @@ inherited gdc_frmJournal: Tgdc_frmJournal
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 436
+    Height = 423
   end
   inherited TBDockRight: TTBDock
-    Left = 766
-    Height = 436
+    Left = 758
+    Height = 423
   end
   inherited TBDockBottom: TTBDock
-    Top = 504
-    Width = 775
+    Top = 493
+    Width = 767
   end
   inherited pnlWorkArea: TPanel
-    Width = 757
-    Height = 436
+    Width = 749
+    Height = 423
     inherited spChoose: TSplitter
-      Top = 333
-      Width = 757
+      Top = 320
+      Width = 749
     end
     inherited pnlMain: TPanel
-      Width = 757
-      Height = 333
+      Width = 749
+      Height = 320
       inherited pnlSearchMain: TPanel
-        Height = 333
+        Height = 320
         inherited sbSearchMain: TScrollBox
-          Height = 295
+          Height = 282
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 295
+          Top = 282
         end
       end
       inherited ibgrMain: TgsIBGrid
-        Width = 597
-        Height = 333
+        Width = 589
+        Height = 320
       end
     end
     inherited pnChoose: TPanel
-      Top = 337
-      Width = 757
+      Top = 324
+      Width = 749
       inherited pnButtonChoose: TPanel
-        Left = 652
+        Left = 644
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 652
+        Width = 644
       end
       inherited pnlChooseCaption: TPanel
-        Width = 757
+        Width = 749
       end
     end
   end
   inherited alMain: TActionList
-    inherited actNew: TAction
-      OnUpdate = actDuplicateUpdate
-    end
-    inherited actEdit: TAction
-      OnUpdate = actDuplicateUpdate
-    end
-    inherited actDelete: TAction
-      OnUpdate = actDuplicateUpdate
-    end
     inherited actMainReduction: TAction
       OnUpdate = actDuplicateUpdate
     end
