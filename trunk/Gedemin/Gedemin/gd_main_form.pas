@@ -506,6 +506,7 @@ uses
   GUITestRunner,
   TestExtensions,
   GedeminTestList,
+  gdDBSqueeze,
   {$ENDIF}
   Registry
   {must be placed after Windows unit!}
@@ -513,8 +514,7 @@ uses
     , gd_localization_stub
   {$ENDIF}
   , gdcExplorer,
-  gd_dlgStreamSaverOptions,
-  gdDBSqueeze;
+  gd_dlgStreamSaverOptions;
 
 type
   TCrackPopupMenu = class(TPopupMenu);
@@ -2437,20 +2437,27 @@ end;
 procedure TfrmGedeminMain.actDBSqueezeUpdate(Sender: TObject);
 begin
   {$IFDEF DUNIT_TEST}
-  actDBSqueeze.Enabled := (IBLogin <> nil) and IBLogin.IsIBUserAdmin;
+  actDBSqueeze.Enabled := Assigned(IBLogin)
+    and Assigned(gdcBaseManager)
+    and (gdcBaseManager.Database <> nil)
+    and (gdcBaseManager.Database.Connected)
+    and IBLogin.IsIBUserAdmin;
   {$ELSE}
   actDBSqueeze.Enabled := False;
+  actDBSqueeze.Visible := False;
   {$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actDBSqueezeExecute(Sender: TObject);
 begin
+  {$IFDEF DUNIT_TEST}
   with TgdDBSqueeze.Create do
   try
     Squeeze;
   finally
     Free;
   end;
+  {$ENDIF}
 end;
 
 end.

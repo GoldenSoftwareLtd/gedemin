@@ -10,6 +10,9 @@ uses
   FastMove,
   RTLVCLOptimize,
   {$ENDIF}
+  {$IFDEF EXCMAGIC_GEDEMIN}
+  ExcMagic_Gedemin,
+  {$ENDIF}
   Forms,
   gd_main_form in 'gd_main_form.pas' {frmGedeminMain},
   dmDataBase_unit in '..\GAdmin\dmDataBase_unit.pas' {dmDatabase: TDataModule},

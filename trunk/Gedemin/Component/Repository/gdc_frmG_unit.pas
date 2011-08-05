@@ -520,13 +520,11 @@ end;
 
 procedure Tgdc_frmG.actEditExecute(Sender: TObject);
 begin
-  //gdcObject.EditMultiple(GetMainBookmarkList);
   gdcObject.EditMultiple2(Get_SelectedKey);
 end;
 
 procedure Tgdc_frmG.actDeleteExecute(Sender: TObject);
 begin
-  //gdcObject.DeleteMultiple(GetMainBookmarkList);
   gdcObject.DeleteMultiple2(Get_SelectedKey);
 end;
 

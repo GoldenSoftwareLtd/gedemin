@@ -506,10 +506,6 @@ object gd_dlgAbout: Tgd_dlgAbout
     Visible = False
     OnClick = btnHelpClick
   end
-  object IBDatabaseInfo1: TIBDatabaseInfo
-    Left = 328
-    Top = 56
-  end
   object SynIniSyn: TSynIniSyn
     DefaultFilter = 'INI Files (*.ini)|*.ini'
     CommentAttri.Style = []

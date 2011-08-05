@@ -34,7 +34,8 @@ type
     procedure actOpenObjectExecute(Sender: TObject);
     procedure actOpenObjectUpdate(Sender: TObject);
     procedure actDuplicateUpdate(Sender: TObject);
-    procedure ibgrMainDblClick(Sender: TObject);
+    procedure actNewUpdate(Sender: TObject);
+    procedure actDeleteUpdate(Sender: TObject);
   end;
 
 var
@@ -76,61 +77,8 @@ begin
 end;
 
 procedure Tgdc_frmJournal.actOpenObjectExecute(Sender: TObject);
-var
-  FC: TgdcFullClass;
-  Obj: TgdcBase;
-  C: TPersistentClass;
-  S: String;
-  P: Integer;
 begin
-  S := Trim(gdcObject.FieldByName('source').AsString);
-  FC := GetBaseClassForRelation(S);
-  if FC.gdClass <> nil then
-  begin
-    Obj := FC.gdClass.CreateWithID(nil,
-      nil,
-      nil,
-      gdcObject.FieldByName('objectid').AsInteger,
-      FC.SubType);
-    try
-      Obj.Open;
-      if not Obj.IsEmpty then
-        Obj.EditDialog;
-    finally
-      Obj.Free;
-    end;
-  end else
-  begin
-    P := Pos(' ', S);
-    if P = 0 then
-      C := GetClass(S)
-    else
-      C := GetClass(Copy(S, 1, P - 1));
-    if (C <> nil) and C.InheritsFrom(TgdcBase) then
-    begin
-      if P > 0 then
-        Delete(S, 1, P)
-      else
-        S := '';  
-      Obj := CgdcBase(C).CreateWithID(nil,
-        nil,
-        nil,
-        gdcObject.FieldByName('objectid').AsInteger,
-        S);
-      try
-        Obj.Open;
-        if not Obj.IsEmpty then
-          Obj.EditDialog
-        else
-          MessageBox(Self.Handle,
-            PChar('Запись была удалена. Тип объекта: ' + Obj.GetDisplayName(Obj.SubType) + '.'),
-            'Информация',
-            MB_OK or MB_TASKMODAL or MB_ICONINFORMATION);
-      finally
-        Obj.Free;
-      end;
-    end;
-  end;
+  gdcJournal.OpenObject;
 end;
 
 procedure Tgdc_frmJournal.actOpenObjectUpdate(Sender: TObject);
@@ -146,19 +94,14 @@ begin
   (Sender as TAction).Enabled := False;
 end;
 
-procedure Tgdc_frmJournal.ibgrMainDblClick(Sender: TObject);
-const
-  Counter: Integer = 0;
+procedure Tgdc_frmJournal.actNewUpdate(Sender: TObject);
 begin
-  if Assigned(gdcObject) then
-  begin
-    if (ibgrMain.GridCoordFromMouse.X >= 0) and
-       (ibgrMain.GridCoordFromMouse.Y >= 0) then
-    begin
-      if not gdcObject.IsEmpty then
-        actOpenObject.Execute;
-    end;
-  end;
+  (Sender as TAction).Enabled := False;
+end;
+
+procedure Tgdc_frmJournal.actDeleteUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := False;
 end;
 
 initialization

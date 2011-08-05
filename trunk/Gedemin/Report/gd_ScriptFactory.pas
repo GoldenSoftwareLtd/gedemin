@@ -262,11 +262,11 @@ procedure Register;
 implementation
 
 uses
-  flt_ScriptInterface, prp_dlgScriptError_unit, mtd_i_Base,
+  flt_ScriptInterface, {prp_dlgScriptError_unit,} mtd_i_Base,
   Controls, evt_i_Base, IBCustomDataSet, gs_Exception, IB, gd_Security,
   gd_security_operationconst, MSScriptControl_TLB, gd_frmErrorInScript,
   prp_MessageConst, prp_methods, gdcOLEClassList, gd_Createable_Form,
-  ActiveX, gdcBaseInterface
+  ActiveX, gdcBaseInterface, gdcJournal
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1258,6 +1258,7 @@ const
         'скрипт-функция ' + FuncName, #13#10 +
         TScriptControl(Sender).Error.Description, TScriptControl(Sender).Error.Text,
         '', FErrorList[0].Line) + #13#10#13#10'Обратитесь к администратору';
+      TgdcJournal.AddEvent(S, 'Macros Exception', -1, nil, True);
       with TfrmErrorInScript.Create(Application) do
       try
         SetErrMessage(S);
