@@ -16,8 +16,9 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
-    procedure CreateTriggers;
-    procedure DropTriggers;
+    procedure CreateTriggers(const ASilent: Boolean = False);
+    procedure DropTriggers(const ASilent: Boolean = False);
+    
     procedure OpenObject;
 
     class procedure AddEvent(const AData: String;
@@ -221,7 +222,7 @@ begin
   Result := 'Tgdc_frmJournal';
 end;
 
-procedure TgdcJournal.CreateTriggers;
+procedure TgdcJournal.CreateTriggers(const ASilent: Boolean = False);
 
   function GetUniqName(const Prefix: String): String;
   begin
@@ -233,7 +234,7 @@ procedure TgdcJournal.CreateTriggers;
 
 const
   cInsertTrigger =
-    'CREATE TRIGGER %s FOR %s' +
+    'CREATE OR ALTER TRIGGER %s FOR %s' +
     '  AFTER INSERT ' +
     '  POSITION 29861 ' +
     'AS ' +
@@ -244,7 +245,7 @@ const
     '';
 
   cInsertTrigger2 =
-    'CREATE TRIGGER %s FOR %s' +
+    'CREATE OR ALTER TRIGGER %s FOR %s' +
     '  AFTER INSERT ' +
     '  POSITION 29861 ' +
     'AS ' +
@@ -255,7 +256,7 @@ const
     '';
 
   cUpdateTrigger =
-    'CREATE TRIGGER %s FOR %s'#13#10 +
+    'CREATE OR ALTER TRIGGER %s FOR %s'#13#10 +
     '  AFTER UPDATE '#13#10 +
     '  POSITION 29861 '#13#10 +
     'AS '#13#10 +
@@ -275,7 +276,7 @@ const
     '';
 
   cUpdateTrigger2 =
-    'CREATE TRIGGER %s FOR %s'#13#10 +
+    'CREATE OR ALTER TRIGGER %s FOR %s'#13#10 +
     '  AFTER UPDATE '#13#10 +
     '  POSITION 29861 '#13#10 +
     'AS '#13#10 +
@@ -295,7 +296,7 @@ const
     '';
 
   cDeleteTrigger =
-    'CREATE TRIGGER %s FOR %s' +
+    'CREATE OR ALTER TRIGGER %s FOR %s' +
     '  AFTER DELETE ' +
     '  POSITION 29861 ' +
     'AS ' +
@@ -306,7 +307,7 @@ const
     '';
 
   cDeleteTrigger2 =
-    'CREATE TRIGGER %s FOR %s' +
+    'CREATE OR ALTER TRIGGER %s FOR %s' +
     '  AFTER DELETE ' +
     '  POSITION 29861 ' +
     'AS ' +
@@ -317,18 +318,8 @@ const
     '';
 
   cCompare =
-    'IF ((NEW.%0:s <> OLD.%0:s) OR (NEW.%0:s IS NULL AND (NOT OLD.%0:s IS NULL)) OR (NOT NEW.%0:s IS NULL AND OLD.%0:s IS NULL)) THEN '#13#10 +
-    'BEGIN '#13#10 +
-    '  IF (NEW.%0:s IS NULL) THEN '#13#10 +
-    '    S = :S || ''%1:s'' || CAST(OLD.%0:s AS VARCHAR(32000)) || '' -> NULL ''; '#13#10 +
-    '  ELSE IF (OLD.%0:s IS NULL) THEN'#13#10 +
-    '    S = :S || ''%1:s'' || '' NULL -> '' || CAST(NEW.%0:s AS VARCHAR(32000)); '#13#10 +
-    '  ELSE '#13#10 +
-    '    S = :S || ''%1:s'' || CAST(OLD.%0:s AS VARCHAR(32000)) || '' -> '' || CAST(NEW.%0:s AS VARCHAR(32000)); '#13#10 +
-    ' ' +
-    'END '#13#10 +
-    ' '#13#10 +
-    ' ';
+    'IF (NEW.%0:s IS DISTINCT FROM OLD.%0:s) THEN '#13#10 +
+    '  S = :S || ''%1:s'' || COALESCE(CAST(OLD.%0:s AS VARCHAR(32000)), ''NULL'') || '' -> '' || COALESCE(CAST(NEW.%0:s AS VARCHAR(32000)), ''NULL''); '#13#10;
 var
   qTables, qTrigger, qFields, qHasID, qTestTable: TIBSQL;
   Tr: TIBTransaction;
@@ -337,35 +328,33 @@ var
   KA: TgdKeyArray;
   V: OleVariant;
 begin
-  if MessageBox(ParentHandle,
-    'Перед созданием триггеров будет выполнен поиск и удаление '#13#10 +
-    'существующих триггеров, регистрирующих изменение данных.',
-    'Внимание',
-    MB_ICONEXCLAMATION or MB_OKCANCEL) = IDCANCEL then
+  if not ASilent then
   begin
-    exit;
-  end;
-
-  DropTriggers;
-
-  KA := nil;
-  try
     if MessageBox(ParentHandle,
-      'Создавать триггеры для всех таблиц?',
-      'Внимание',
-      MB_ICONQUESTION or MB_YESNO) = IDNO then
-    begin
-      KA := TgdKeyArray.Create;
-      if not ChooseItems(TgdcTable, KA, V, '', 'All') then
-        exit;
-    end;
-
-    if MessageBox(ParentHandle,
-      'Создание триггеров может занять несколько минут.',
+      'Перед созданием триггеров будет выполнен поиск и удаление '#13#10 +
+      'существующих триггеров, регистрирующих изменение данных.',
       'Внимание',
       MB_ICONEXCLAMATION or MB_OKCANCEL) = IDCANCEL then
     begin
       exit;
+    end;
+  end;
+
+  DropTriggers(True);
+
+  KA := nil;
+  try
+    if not ASilent then
+    begin
+      if MessageBox(ParentHandle,
+        'Создавать триггеры для всех таблиц?',
+        'Внимание',
+        MB_ICONQUESTION or MB_YESNO) = IDNO then
+      begin
+        KA := TgdKeyArray.Create;
+        if not ChooseItems(TgdcTable, KA, V, '', 'All') then
+          exit;
+      end;
     end;
 
     OldCursor := Screen.Cursor;
@@ -380,6 +369,7 @@ begin
       Tr := TIBTransaction.Create(nil);
       try
         Tr.DefaultDatabase := Database;
+        Tr.StartTransaction;
 
         qTrigger.ParamCheck := False;
         qTrigger.Transaction := Tr;
@@ -403,7 +393,8 @@ begin
         qTables.Transaction := ReadTransaction;
         qTables.SQL.Text := 'SELECT DISTINCT r.rdb$relation_name FROM rdb$relation_fields r WHERE ' +
           ' r.rdb$relation_name <> ''GD_JOURNAL'' AND NOT r.rdb$relation_name STARTING WITH ''RDB$'' ' +
-          ' AND NOT r.rdb$relation_name STARTING WITH ''RPL'' ';
+          ' AND NOT r.rdb$relation_name STARTING WITH ''RPL'' ' +
+          ' AND NOT r.rdb$relation_name STARTING WITH ''GR2$'' ';
 
         if not qTables.Transaction.Active then
           qTables.Transaction.StartTransaction;
@@ -436,15 +427,7 @@ begin
 
           qTrigger.SQL.Text := Format(S2,
             [GetUniqName('ai'), qTables.Fields[0].AsTrimString, qTables.Fields[0].AsTrimString]);
-
-          try
-            qTrigger.Transaction.StartTransaction;
-            qTrigger.ExecQuery;
-            qTrigger.Close;
-            qTrigger.Transaction.Commit;
-          except
-            qTrigger.Transaction.Rollback;
-          end;
+          qTrigger.ExecQuery;
 
           qFields.Close;
           qFields.ParamByName('RN').AsString := qTables.Fields[0].AsTrimString;
@@ -469,15 +452,7 @@ begin
             [GetUniqName('au'), qTables.Fields[0].AsTrimString,
               S,
               qTables.Fields[0].AsTrimString]);
-
-          try
-            qTrigger.Transaction.StartTransaction;
-            qTrigger.ExecQuery;
-            qTrigger.Close;
-            qTrigger.Transaction.Commit;
-          except
-            qTrigger.Transaction.Rollback;
-          end;
+          qTrigger.ExecQuery;
 
           if qHasID.RecordCount > 0 then
             S2 := cDeleteTrigger
@@ -486,20 +461,13 @@ begin
 
           qTrigger.SQL.Text := Format(S2,
             [GetUniqName('ad'), qTables.Fields[0].AsTrimString, qTables.Fields[0].AsTrimString]);
-
-          try
-            qTrigger.Transaction.StartTransaction;
-            qTrigger.ExecQuery;
-            qTrigger.Close;
-            qTrigger.Transaction.Commit;
-          except
-            qTrigger.Transaction.Rollback;
-          end;
+          qTrigger.ExecQuery;
 
           qTables.Next;
         end;
 
         qTables.Close;
+        Tr.Commit;
       finally
         qHasID.Free;
         qTables.Free;
@@ -508,10 +476,13 @@ begin
         Tr.Free;
       end;
 
-      MessageBox(ParentHandle,
-        'Создание триггеров успешно завершено.',
-        'Журнал',
-        MB_OK or MB_ICONINFORMATION);
+      if not ASilent then
+      begin
+        MessageBox(ParentHandle,
+          'Создание триггеров успешно завершено.',
+          'Журнал',
+          MB_OK or MB_ICONINFORMATION);
+      end;    
     finally
       Screen.Cursor := OldCursor;
     end;
@@ -520,7 +491,7 @@ begin
   end;
 end;
 
-procedure TgdcJournal.DropTriggers;
+procedure TgdcJournal.DropTriggers(const ASilent: Boolean = False);
 const
   cDropTrigger = 'DROP TRIGGER %s ';
 var
@@ -535,12 +506,14 @@ begin
     Tr := TIBTransaction.Create(nil);
     try
       Tr.DefaultDatabase := Database;
+      Tr.StartTransaction;
 
       qTrigger.ParamCheck := False;
       qTrigger.Transaction := Tr;
 
       qTriggers.Transaction := ReadTransaction;
-      qTriggers.SQL.Text := 'SELECT rdb$trigger_name FROM rdb$triggers WHERE rdb$trigger_sequence = 29861 ' +
+      qTriggers.SQL.Text :=
+        'SELECT rdb$trigger_name FROM rdb$triggers WHERE rdb$trigger_sequence = 29861 ' +
         'AND rdb$trigger_name STARTING WITH ''A'' ';
 
       if not qTriggers.Transaction.Active then
@@ -548,13 +521,16 @@ begin
 
       qTriggers.ExecQuery;
 
-      if qTriggers.EOF or
-        (MessageBox(ParentHandle,
-        'Удаление триггеров может занять несколько минут.',
-        'Внимание',
-        MB_ICONEXCLAMATION or MB_OKCANCEL) = IDCANCEL) then
+      if not ASilent then
       begin
-        exit;
+        if qTriggers.EOF or
+          (MessageBox(ParentHandle,
+          'Удаление триггеров может занять несколько минут.',
+          'Внимание',
+          MB_ICONEXCLAMATION or MB_OKCANCEL) = IDCANCEL) then
+        begin
+          exit;
+        end;
       end;
 
       Screen.Cursor := crHourGlass;
@@ -563,30 +539,26 @@ begin
       begin
         qTrigger.SQL.Text := Format(cDropTrigger,
           [qTriggers.Fields[0].AsTrimString]);
-
-        try
-          qTrigger.Transaction.StartTransaction;
-          qTrigger.ExecQuery;
-          qTrigger.Close;
-          qTrigger.Transaction.Commit;
-        except
-          qTrigger.Transaction.Rollback;
-        end;
+        qTrigger.ExecQuery;
 
         qTriggers.Next;
       end;
 
       qTriggers.Close;
+      Tr.Commit;
     finally
       qTriggers.Free;
       qTrigger.Free;
       Tr.Free;
     end;
 
-    MessageBox(ParentHandle,
-      'Удаление триггеров успешно завершено.',
-      'Журнал',
-      MB_OK or MB_ICONINFORMATION);
+    if not ASilent then
+    begin
+      MessageBox(ParentHandle,
+        'Удаление триггеров успешно завершено.',
+        'Журнал',
+        MB_OK or MB_ICONINFORMATION);
+    end;
   finally
     Screen.Cursor := OldCursor;
   end;

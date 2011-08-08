@@ -20,6 +20,8 @@ type
     procedure TestGetDependentNames;
 
     procedure TestGD_RUID;
+
+    procedure TestAuditTriggers;
   end;
 
 implementation
@@ -27,7 +29,7 @@ implementation
 uses
   Classes, Windows, IB, gdcMetaData, gd_security,
   at_frmSQLProcess, IBSQL, gdcBaseInterface, gd_KeyAssoc,
-  SysUtils, gdcLBRBTreeMetaData, jclStrings;
+  SysUtils, gdcLBRBTreeMetaData, jclStrings, gdcJournal;
 
 var
   FLBRBTreeName, FDBState: String;
@@ -93,6 +95,30 @@ begin
   finally
     q.Free;
   end;
+end;
+
+procedure TgdcMetaDataTest.TestAuditTriggers;
+var
+  C: Integer;
+  Obj: TgdcJournal;
+begin
+  FQ.SQL.Text := 'SELECT COUNT(*) FROM rdb$triggers';
+  FQ.ExecQuery;
+  C := FQ.Fields[0].AsInteger;
+  FQ.Close;
+
+  Obj := TgdcJournal.Create(nil);
+  try
+    Obj.CreateTriggers(True);
+    Obj.DropTriggers(True);
+  finally
+    Obj.Free;
+  end;
+
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = C);
+
+  FQ.Close;
 end;
 
 procedure TgdcMetaDataTest.TestCreateLBRBTree;
