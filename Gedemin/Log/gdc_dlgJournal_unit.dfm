@@ -3,7 +3,7 @@ inherited gdc_dlgJournal: Tgdc_dlgJournal
   Top = 219
   Caption = 'gdc_dlgJournal'
   ClientHeight = 470
-  ClientWidth = 424
+  ClientWidth = 489
   Font.Charset = DEFAULT_CHARSET
   Font.Name = 'MS Sans Serif'
   OldCreateOrder = False
@@ -60,12 +60,12 @@ inherited gdc_dlgJournal: Tgdc_dlgJournal
     TabOrder = 10
   end
   inherited btnOK: TButton
-    Left = 275
+    Left = 339
     Top = 442
     TabOrder = 6
   end
   inherited btnCancel: TButton
-    Left = 348
+    Left = 412
     Top = 442
     TabOrder = 7
   end
@@ -82,7 +82,7 @@ inherited gdc_dlgJournal: Tgdc_dlgJournal
   object dbmData: TDBMemo [11]
     Left = 8
     Top = 125
-    Width = 409
+    Width = 473
     Height = 313
     DataField = 'DATA'
     DataSource = dsgdcBase
