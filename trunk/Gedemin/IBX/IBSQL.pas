@@ -2730,7 +2730,7 @@ var
   Item: TIBSQLCacheItem;
   I: Integer;
   {$ENDIF}
-  SType: String;
+  //SType: String;
 begin
   CheckClosed;
   FBase.CheckDatabase;
@@ -2788,7 +2788,7 @@ begin
       { After preparing the statement, query the stmt type and possibly
         create a FSQLRecord "holder" }
       { Get the type of the statement }
-      SType := UpperCase(Copy(FProcessedSQL_Text, 1, 9));
+      {SType := UpperCase(Copy(FProcessedSQL_Text, 1, 9));
       if (Pos('SELECT', SType) = 1) and (Pos('UPDATE', UpperCase(FProcessedSQL_Text)) = 0) then
         FSQLType := SQLSelect // второе условие чтобы отсеять SELECT FOR UPDATE
       else if Pos('INSERT', SType) = 1 then
@@ -2807,7 +2807,7 @@ begin
         FSQLType := SQLDDL
       else if Pos('RECREATE', SType) = 1 then
         FSQLType := SQLDDL
-      else begin
+      else} begin
         type_item := Char(isc_info_sql_stmt_type);
         Call(isc_dsql_sql_info(StatusVector, @FHandle, 1, @type_item,
                              SizeOf(res_buffer), res_buffer), True);
