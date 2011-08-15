@@ -1,6 +1,6 @@
 inherited gdc_dlgField: Tgdc_dlgField
-  Left = 207
-  Top = 34
+  Left = 465
+  Top = 166
   HelpContext = 82
   ActiveControl = dbedTypeName
   BorderIcons = [biSystemMenu]
@@ -413,9 +413,9 @@ inherited gdc_dlgField: Tgdc_dlgField
               object Label3: TLabel
                 Left = 12
                 Top = 10
-                Width = 102
+                Width = 111
                 Height = 13
-                Caption = 'Ссылка на таблицу:'
+                Caption = 'Ссылка на таблицу *:'
               end
               object lblRefListField: TLabel
                 Left = 262
@@ -433,6 +433,23 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Caption = 'Условие выбора значений на языке SQL:'
                 WordWrap = True
               end
+              object Label7: TLabel
+                Left = 12
+                Top = 131
+                Width = 467
+                Height = 13
+                Caption = 
+                  '* Внимание! В списке отображаются только таблицы с целочисленным' +
+                  ' первичным ключем.'
+                Color = clBtnFace
+                Font.Charset = RUSSIAN_CHARSET
+                Font.Color = clRed
+                Font.Height = -11
+                Font.Name = 'Tahoma'
+                Font.Style = []
+                ParentColor = False
+                ParentFont = False
+              end
               object luRefRelation: TgsIBLookupComboBox
                 Left = 12
                 Top = 24
@@ -447,7 +464,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 KeyField = 'id'
                 SortOrder = soAsc
                 gdClassName = 'TgdcTable'
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 0
@@ -469,7 +486,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Condition = 'RELATIONKEY = -1'
                 gdClassName = 'TgdcTableField'
                 OnCreateNewObject = luRefListFieldCreateNewObject
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 1
@@ -499,9 +516,9 @@ inherited gdc_dlgField: Tgdc_dlgField
               object Label16: TLabel
                 Left = 12
                 Top = 10
-                Width = 102
+                Width = 111
                 Height = 13
-                Caption = 'Ссылка на таблицу:'
+                Caption = 'Ссылка на таблицу *:'
               end
               object Label17: TLabel
                 Left = 262
@@ -526,6 +543,23 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Caption = 'Условие выбора значений на языке SQL:'
                 WordWrap = True
               end
+              object Label12: TLabel
+                Left = 12
+                Top = 131
+                Width = 467
+                Height = 13
+                Caption = 
+                  '* Внимание! В списке отображаются только таблицы с целочисленным' +
+                  ' первичным ключем.'
+                Color = clBtnFace
+                Font.Charset = RUSSIAN_CHARSET
+                Font.Color = clRed
+                Font.Height = -11
+                Font.Name = 'Tahoma'
+                Font.Style = []
+                ParentColor = False
+                ParentFont = False
+              end
               object luSetRelation: TgsIBLookupComboBox
                 Left = 12
                 Top = 24
@@ -541,7 +575,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 KeyField = 'id'
                 SortOrder = soAsc
                 gdClassName = 'TgdcTable'
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 0
@@ -564,7 +598,7 @@ inherited gdc_dlgField: Tgdc_dlgField
                 Condition = 'RELATIONKEY = -1'
                 gdClassName = 'TgdcTableField'
                 OnCreateNewObject = luSetListFieldCreateNewObject
-                ItemHeight = 0
+                ItemHeight = 13
                 ParentShowHint = False
                 ShowHint = True
                 TabOrder = 1
@@ -905,7 +939,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Width = 271
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 6
           OnChange = comboBusinessClassChange
           OnClick = comboBusinessClassClick
@@ -916,7 +950,7 @@ inherited gdc_dlgField: Tgdc_dlgField
           Width = 271
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 7
         end
       end

@@ -133,6 +133,8 @@ type
     acDeleteNumeration: TAction;
     Button1: TButton;
     actReplaceNum: TAction;
+    Label7: TLabel;
+    Label12: TLabel;
 
     procedure pcDataTypeChange(Sender: TObject);
     procedure pcDataTypeChanging(Sender: TObject;
@@ -1797,6 +1799,17 @@ begin
       FClasses.Add(TgdcClassHandler.Create(
         CgdcBase(gdcClassList[I]), gdcObject.Transaction.DefaultDatabase,
           gdcObject.Transaction));
+
+  luRefRelation.Condition :=
+    '(SELECT COUNT(*) ' +
+    'FROM rdb$relation_constraints rc ' + 
+    '  JOIN rdb$index_segments iseg ON iseg.rdb$index_name = rc.rdb$index_name ' +
+    '  JOIN rdb$relation_fields rf on rf.rdb$field_name = iseg.rdb$field_name AND rf.rdb$relation_name = rc.rdb$relation_name ' +
+    '  JOIN rdb$fields f ON f.rdb$field_name = rf.rdb$field_source ' +
+    'WHERE f.rdb$field_type = 8 AND rc.rdb$constraint_type = ''PRIMARY KEY'' AND rc.rdb$relation_name = relationname) = 1';
+
+  luSetRelation.Condition := luRefRelation.Condition;  
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGFIELD', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
