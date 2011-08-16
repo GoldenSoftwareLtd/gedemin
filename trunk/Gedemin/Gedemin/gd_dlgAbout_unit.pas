@@ -33,6 +33,7 @@ type
     procedure AddLibrary(h: HMODULE; const AName: String);
     procedure AddEnv(const AName: String);
     procedure AddBoolean(const AName: String; const AValue: Boolean);
+    procedure AddComLibrary(const AClsID: String; const AName: String);
 
   public
     procedure FillSysData;
@@ -334,8 +335,8 @@ begin
   {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
-  AddLibrary(0, MIDAS_DLL);
-  AddLibrary(0, 'gsdbquery.dll');
+  AddComLibrary('{9E8D2FA1-591C-11D0-BF52-0020AF32BD64}', 'MIDAS.DLL');
+  AddComLibrary('{7C916B87-94DF-4712-A5AC-10C971C7E160}', 'GSDBQUERY.DLL');
 
   AddSection('Жесткие диски');
   for DriveLetter := 'C' to 'Z' do
@@ -480,6 +481,49 @@ begin
     AddSpaces(AName, 'Да')
   else
     AddSpaces(AName, 'Нет');
+end;
+
+procedure Tgd_dlgAbout.AddComLibrary(const AClsID: String; const AName: String);
+var
+  Reg: TRegistry;
+  FN: String;
+  Flag: Boolean;
+begin
+  Flag := False;
+
+  Reg := TRegistry.Create(KEY_READ);
+  try
+    Reg.RootKey := HKEY_CLASSES_ROOT;
+
+    if Reg.OpenKeyReadOnly('CLSID\' + AClsID + '\InProcServer32')
+      and (Reg.GetDataType('') = rdString) and (Reg.ReadString('') > '') then
+    begin
+      FN := Reg.ReadString('');
+
+      AddSection('Библиотека ' + AName);
+      if FileExists(FN) then
+      begin
+        AddSpaces('Имя файла', FN);
+
+        if VersionResourceAvailable(FN) then
+          with TjclFileVersionInfo.Create(FN) do
+          try
+            AddSpaces('Версия', BinFileVersion);
+            AddSpaces('Описание', FileDescription);
+          finally
+            Free;
+          end;
+      end else
+        AddSpaces('Файл не найден', FN);
+
+      Flag := True;
+    end;
+  finally
+    Reg.Free;
+  end;
+
+  if not Flag then
+    AddLibrary(0, AName);
 end;
 
 end.

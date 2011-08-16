@@ -1,6 +1,6 @@
 object gd_dlgAbout: Tgd_dlgAbout
-  Left = 288
-  Top = 275
+  Left = 616
+  Top = 236
   HelpContext = 119
   BorderStyle = bsDialog
   Caption = 'О программе'
@@ -131,7 +131,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Cursor = crIBeam
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
-        Font.Height = -12
+        Font.Height = -11
         Font.Name = 'Courier New'
         Font.Style = []
         ParentColor = False
