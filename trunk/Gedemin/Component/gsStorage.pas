@@ -2619,6 +2619,16 @@ var
           V.FModified := q.FieldByName('editiondate').AsDateTime;
 
         q.Next;
+
+        if (V <> nil) and (not q.EOF) and (q.FieldByName('parent').AsInteger = V.ID) then
+        begin
+          MessageBox(0,
+            PChar('Ошибка данных хранилища. Обратитесь к системному администратору. ID элемента = ' + q.FieldByName('id').AsString),
+            'Ошибка',
+            MB_ICONEXCLAMATION or MB_OK or MB_TASKMODAL);
+          while (not q.EOF) and (q.FieldByName('parent').AsInteger <> Prnt) do
+            q.Next;
+        end;
       end;
     end;
   end;
