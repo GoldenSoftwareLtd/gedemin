@@ -24,6 +24,8 @@ function LocateDecDigits: integer;
 function DisplayFormat(DecDig: Integer): string;
 //заполн€ет список полей аналитик
 procedure GetAnalyticsFields(const List: TList);
+//провер€ет список аналитик на присутствие в Ѕƒ
+procedure CheckAnalyticsList(const List: TStringList);
 //¬озвращает ид счета по алиасу дл€ астивного плана счетов
 function GetAccountKeyByAlias(Alias: string): Integer; overload;
 //“оже самое, только дл€ указанного плана счетов
@@ -159,6 +161,59 @@ begin
       for I := List.Count - 1 downto 0 do
       begin
         Index := IndexOf(R, TatRelationField(List[I]).FieldName);
+        if Index = - 1 then List.Delete(I);
+      end;
+    end else
+      List.Clear;
+  end;
+{$ENDIF}
+end;
+
+procedure CheckAnalyticsList(const List: TStringList);
+{$IFDEF GEDEMIN}
+var
+  R: TatRelation;
+  I, Index: Integer;
+{$ENDIF}
+
+{$IFDEF GEDEMIN}
+  function IndexOf(Relation: TatRelation; FieldName: string): integer;
+  var
+    I: Integer;
+  begin
+    Result := - 1;
+    if Relation <> nil then
+    begin
+      for I :=  0 to Relation.RelationFields.Count - 1 do
+      begin
+        if Relation.RelationFields[I].FieldName = FieldName then
+        begin
+          Result := I;
+          Exit;
+        end;
+      end;
+    end;
+  end;
+{$ENDIF}
+begin
+{$IFDEF GEDEMIN}
+  if List <> nil then
+  begin
+    R := atDatabase.Relations.ByRelationName('AC_ENTRY');
+    if R <> nil then
+    begin
+      for I := List.Count - 1 downto 0 do
+      begin
+        Index := IndexOf(R, List.Names[I]);
+        if Index = - 1 then List.Delete(I);
+      end;
+    end;
+    R := atDataBase.Relations.ByRelationName('AC_ACCOUNT');
+    if R <> nil then
+    begin
+      for I := List.Count - 1 downto 0 do
+      begin
+        Index := IndexOf(R, List.Names[I]);
         if Index = - 1 then List.Delete(I);
       end;
     end else

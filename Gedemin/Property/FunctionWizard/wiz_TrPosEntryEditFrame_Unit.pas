@@ -261,6 +261,7 @@ begin
   begin
     with Value as TTrEntryPositionBlock do
     begin
+      frAnalytics.ReadAnalytics := Analytics;
       A := SetAccount(Account, FAccountKey);
       Id := FAccountKey;
       beAccount.Text := A;
