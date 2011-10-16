@@ -18,6 +18,7 @@ type
 
     FAccountAnalyticFields: TList;
     FBlock: TVisualBlock;
+    FReadAnalytics: String;
 
     procedure SetAccountKey(const Value: Integer);
     procedure SetBlock(const Value: TVisualBlock);
@@ -34,6 +35,7 @@ type
     property Analytics: string read GetAnalytics write SetAnalytics;
     property AccountKey: Integer read FAccountKey write SetAccountKey;
     property Block: TVisualBlock read FBlock write SetBlock;
+    property ReadAnalytics: String read FReadAnalytics write FReadAnalytics;
   end;
 
 implementation
@@ -170,6 +172,9 @@ var
   Line: TfrAnalyticLine;
   W, T: Integer;
   Lines: TObjectList;
+  S, FAddList: TStringList;
+  FieldName: string;
+  FToAdd: Boolean;
 begin
   if FAvailAnalyticFields = nil then
   begin
@@ -191,6 +196,7 @@ begin
   end else
   begin
     SQL := TIBSQL.Create(nil);
+    FAddList := TStringList.Create;
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
 
@@ -223,14 +229,42 @@ begin
                 if TatRelationField(FAvailAnalyticFields[J]).FieldName = SQL.Current[I].Name then
                 begin
                   FAccountAnalyticFields.Add(FAvailAnalyticFields[J]);
+                  FAddList.Add(SQL.Current[I].Name);
                 end;
               end;
             end;
           end;
         end;
       end;
+
+      S := TStringList.Create;
+      try
+        S.Text := FReadAnalytics;
+        CheckAnalyticsList(S);
+
+        for I := 0 to FAvailAnalyticFields.Count - 1 do
+        begin
+          FToAdd := False;
+          for J := 0 to S.Count - 1 do
+          begin
+            FieldName := S.Names[J];
+            if TatRelationField(FAvailAnalyticFields[I]).FieldName = FieldName then
+            begin
+              if FAddList.IndexOf(FieldName) = -1 then
+                FToAdd := True;
+              break;
+            end;
+          end;
+          
+          if FToAdd then
+            FAccountAnalyticFields.Add(FAvailAnalyticFields[I]);
+        end;
+      finally
+        S.Free;
+      end;
     finally
       SQL.Free;
+      FAddList.Free;
     end;
   end;
 
