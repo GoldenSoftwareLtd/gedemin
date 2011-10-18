@@ -612,9 +612,26 @@ begin
         end;
       end;
     end else
-      FStream.Seek(-SizeOf(Ch), soFromCurrent);
+    begin
+      if Ch = '-' then
+      begin
+        if FStream.Read(Ch, SizeOf(Ch)) = SizeOf(Ch) then
+        begin
+          if (Ch = '-') then
+          begin
+            FStream.ReadBuffer(Ch, SizeOf(Ch));
+            repeat
+              Prev := Ch;
+            until (FStream.Read(Ch, SizeOf(Ch)) = 0) or ((Ch = #10) and (Prev = #13));
+          end else
+          begin
+            FStream.Seek(-SizeOf(Ch) * 2, soFromCurrent);
+          end;
+        end;
+      end else
+        FStream.Seek(-SizeOf(Ch), soFromCurrent);
+    end;
   end;
-
   Result := inherited GetNext;
 end;
 
