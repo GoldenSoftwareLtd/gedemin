@@ -76,7 +76,7 @@ type
     procedure cbShowCorrSubAccountsClick(Sender: TObject);
   private
     procedure EditDocument(ALine: boolean);
-  protected
+  protected    
     procedure InitColumns; override;
     procedure DoBeforeBuildReport; override;
     procedure DoAfterBuildReport; override;
@@ -89,6 +89,7 @@ type
     procedure SetParams; override;
     procedure Go_to(NewWindow: Boolean = false); override;
     function CanGo_to: boolean; override;
+    function CompareParams: boolean; override;
   public
     { Public declarations }
     procedure LoadSettings; override;
@@ -385,6 +386,16 @@ begin
   end;
 end;
 
+function Tgdv_frmAcctAccCard.CompareParams: boolean;
+begin
+  Result := inherited CompareParams
+    and ((FConfig as TAccCardConfig).CorrAccounts = cbCorrAccounts.Text)
+    and ((FConfig as TAccCardConfig).IncCorrSubAccounts = cbShowCorrSubAccounts.Checked)
+    and ((FConfig as TAccCardConfig).Group = cbGroup.Checked)
+    and ((((FConfig as TAccCardConfig).AccountPart = 'D') and (rbDebit.Checked))
+    or  (((FConfig as TAccCardConfig).AccountPart = 'C') and (rbCredit.Checked)));
+end;
+
 procedure Tgdv_frmAcctAccCard.EditDocument(ALine: boolean);
 var
   EntryRegister: TgdcAcctViewEntryRegister;
@@ -528,7 +539,7 @@ begin
       edEndSaldoCreditCurr, frAcctSum.CurrDecDigits);
     SetSaldoValue(TgdvAcctAccCard(gdvObject).SaldoEndEQ, edEndSaldoDebitEQ,
       edEndSaldoCreditEQ, frAcctSum.EQDecDigits);
-  end;
+  end; 
 end;
 
 initialization

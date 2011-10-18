@@ -1114,11 +1114,14 @@ begin
         and (not (sSubDialog in gdcObject.BaseState))
         and (not ResizerActivated)
         and ((UserStorage = nil) or UserStorage.ReadBoolean(st_OptionsPath, st_AskDialogCancel, True)) then
-      case MessageBox(Handle, 'Произведенные изменения будут отменены.', 'Внимание', MB_OKCANCEL or MB_ICONEXCLAMATION) of
-        IDOK: Cancel;
+      case MessageBox(Handle, 'Данные были изменены. Сохранить?', 'Внимание', MB_YESNOCANCEL or MB_ICONQUESTION) of
+        IDYES:
+          begin
+            CallBeforePost;
+            _Ok;
+          end;
+        IDNO: Cancel;
         IDCANCEL: ModalResult := mrNone;
-      else
-        Assert(False, 'Unknown message box result!');
       end
     else if not (sSubDialog in gdcObject.BaseState) then
       Cancel;
@@ -1160,7 +1163,7 @@ procedure Tgdc_dlgG.ActivateTransaction(ATransaction: TIBTransaction);
         O.DetailLinks[I].ReadTransaction := FSharedTransaction;
         O.DetailLinks[I].Active := WasActive;
       end;
-
+ 
       SetupTr(O.DetailLinks[I]);
     end;
   end;

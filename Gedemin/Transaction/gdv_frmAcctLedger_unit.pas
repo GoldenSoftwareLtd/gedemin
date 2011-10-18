@@ -120,6 +120,7 @@ type
     class function ConfigClassName: string; override;
     procedure Go_to(NewWindow: Boolean = false); override;
     function CanGo_to: boolean; override;
+    function CompareParams: boolean; override;
   public
     { Public declarations }
     procedure BuildAcctReport; override;
@@ -1298,6 +1299,33 @@ begin
   end
   else
     Result := False;    
+end;
+
+function Tgdv_frmAcctLedger.CompareParams: Boolean;
+var
+  Stream: TMemoryStream;
+begin
+  Result := inherited CompareParams
+    and ((FConfig as TAccLedgerConfig).ShowDebit = cbShowDebit.Checked)
+    and ((FConfig as TAccLedgerConfig).ShowCredit = cbShowCredit.Checked)
+    and ((FConfig as TAccLedgerConfig).ShowCorrSubAccounts = cbShowCorrSubAccount.Checked)
+    and ((FConfig as TAccLedgerConfig).AnalyticListField = frAcctAnalyticsGroup.AnalyticListFields)
+    and ((FConfig as TAccLedgerConfig).SumNull = cbSumNull.Checked)
+    and ((FConfig as TAccLedgerConfig).EnchancedSaldo = cbEnchancedSaldo.Checked)
+    and ((FConfig as TAccLedgerConfig).TreeAnalytic = frAcctTreeAnalytic.TreeAnalitic);
+
+  if Result then
+  begin
+    Stream := TMemoryStream.Create;
+    try
+      Stream.Size := 0;
+      frAcctAnalyticsGroup.SaveToStream(Stream);
+      Result := ((FConfig as TAccLedgerConfig).AnalyticsGroup.Size = Stream.Size)
+        and (CompareMem(((FConfig as TAccLedgerConfig).AnalyticsGroup as TMemoryStream).Memory, Stream.Memory, Stream.Size));
+    finally
+      FreeAndNil(Stream);
+    end;
+  end;
 end;
 
 procedure Tgdv_frmAcctLedger.actSaveConfigUpdate(Sender: TObject);

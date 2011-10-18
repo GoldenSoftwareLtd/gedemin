@@ -111,6 +111,7 @@ type
     procedure actClearGridSettingExecute(Sender: TObject);
     procedure actBackUpdate(Sender: TObject);
     procedure actBackExecute(Sender: TObject);
+    procedure actPrintExecute(Sender: TObject);
   private
     function GetIncSubAccounts: Boolean;
     procedure SetIncSubAccounts(const Value: Boolean);
@@ -125,6 +126,7 @@ type
     FSortColumns: Boolean;
     FSaveGridSetting: Boolean;
 
+    FConfig: TBaseAcctConfig;
     // Функция возвращает объект бухгалтерского отчета, должна быть
     //   переопределена в каждой наследованной форме
     function GetGdvObject: TgdvAcctBase; virtual;
@@ -153,7 +155,7 @@ type
     procedure PushForm;
     procedure Go_to(NewWindow: Boolean = false); virtual;
     function CanGo_to: boolean; virtual;
-
+    function CompareParams: boolean; virtual;
   public
     { Public declarations }
     procedure BuildAcctReport; virtual;
@@ -241,10 +243,11 @@ begin
           gdvObject.MakeEmpty := True;
 
         DoBeforeBuildReport;
-        // Передадим параметры отчета выбранные на форме в FgdvObject 
+        // Передадим параметры отчета выбранные на форме в FgdvObject
         SetParams;
         DoBuildReport;
         DoAfterBuildReport;
+        DoSaveConfig(FConfig);
       finally
         gdvObject.MakeEmpty := B;
         Screen.Cursor := C;
@@ -329,12 +332,13 @@ begin
   FAccountIDs.Free;
   FCorrAccountIDs.Free;
   FValueList.Free;
+  FConfig.Free;
 end;
 
 procedure Tgdv_frmAcctBaseForm.DoAfterBuildReport;
 var
   Config: TBaseAcctConfig;
-begin
+begin                            
   try
     if iblConfiguratior.CurrentKey > '' then
     begin
@@ -619,6 +623,7 @@ end;
 procedure Tgdv_frmAcctBaseForm.FormCreate(Sender: TObject);
 var
   DefaultDecDigits: Integer;
+  C: TBaseAcctConfigClass;
 begin
   inherited;
   Transaction.DefaultDataBase := gdcBaseManager.Database;
@@ -639,6 +644,10 @@ begin
     frAcctSum.SetEQVisible(False);
   end;
   frAcctSum.SetQuantityVisible(False);
+
+  TPersistentClass(C) := GetClass(ConfigClassName);
+  if C <> nil then
+    FConfig := C.Create;
 
   // Построим пустой отчет
   gdvObject.MakeEmpty := True;
@@ -930,7 +939,7 @@ begin
         if frAcctAnalytics.Analytics[I].IsNull then
         begin
           gdvObject.AddCondition(frAcctAnalytics.Analytics[I].Field.FieldName, '');
-        end;  
+        end;
       end;
 
     // Количественные показатели
@@ -1002,6 +1011,25 @@ end;
 function Tgdv_frmAcctBaseForm.CanGo_to: boolean;
 begin
   Result := Assigned(gdvObject) and gdvObject.Active and not gdvObject.IsEmpty;
+end;
+
+function Tgdv_frmAcctBaseForm.CompareParams: boolean;
+begin
+  if FConfig <> nil then
+    Result := (gdvObject.DateBegin = Self.DateBegin) and (gdvObject.DateEnd = Self.DateEnd)
+      and (FConfig.Accounts = cbAccounts.Text) and (FConfig.IncSubAccounts = cbSubAccount.Checked)
+      and (FConfig.IncludeInternalMovement = cbIncludeInternalMovement.Checked)
+      and (FConfig.InNcu = frAcctSum.InNcu) and (FConfig.NcuDecDigits = frAcctSum.NcuDecDigits)
+      and (FConfig.NcuScale = frAcctsum.NcuScale) and (FConfig.InCurr = frAcctSum.InCurr)
+      and (FConfig.CurrDecDigits = frAcctSum.CurrDecDigits) and (FConfig.CurrScale = frAcctSum.CurrScale)
+      and (FConfig.CurrKey = frAcctSum.Currkey) and (FConfig.InEQ = frAcctSum.InEQ)
+      and (FConfig.EQDecDigits = frAcctSum.EQDecDigits) and (FConfig.EQScale = frAcctsum.EQScale)
+      and (FConfig.QuantityDecDigits = frAcctSum.QuantityDecDigits) and (FConfig.QuantityScale = frAcctsum.QuantityScale)
+      and (FConfig.Quantity = frAcctQuantity.Selected) and (FConfig.Analytics = frAcctAnalytics.Values)
+      and (FConfig.ExtendedFields = cbExtendedFields.Checked) and (FConfig.CompanyKey = frAcctCompany.CompanyKey)
+      and (FConfig.AllHoldingCompanies = frAcctCompany.AllHoldingCompanies)
+  else
+    Result := False;
 end;
 
 procedure Tgdv_frmAcctBaseForm.Execute(Config: TBaseAcctConfig);
@@ -1311,6 +1339,13 @@ end;
 function Tgdv_frmAcctBaseForm.GetGdvObject: TgdvAcctBase;
 begin
   Result := nil;
+end;
+
+procedure Tgdv_frmAcctBaseForm.actPrintExecute(Sender: TObject);
+begin
+  if not CompareParams then
+    BuildAcctReport;
+  inherited;
 end;
 
 initialization

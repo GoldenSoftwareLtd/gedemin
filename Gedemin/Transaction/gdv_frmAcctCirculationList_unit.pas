@@ -55,6 +55,7 @@ type
 
     procedure UpdateControls; override;
     procedure Go_to(NewWindow: Boolean = false); override;
+    function CompareParams: boolean; override;
     class function ConfigClassName: string; override;
     procedure DoLoadConfig(const Config: TBaseAcctConfig);override;
     procedure DoSaveConfig(Config: TBaseAcctConfig);override;
@@ -226,7 +227,7 @@ procedure Tgdv_frmAcctCirculationList.tvGroupChange(Sender: TObject;
 begin
   UpdateControls;
   if cbAutoBuildReport.Checked then
-    BuildAcctReport;
+    BuildAcctReport; 
 end;
 
 procedure Tgdv_frmAcctCirculationList.actRunUpdate(Sender: TObject);
@@ -310,6 +311,13 @@ begin
       C.Free;
     end;
   end;
+end;
+
+function Tgdv_frmAcctCirculationList.CompareParams: boolean;
+begin
+  Result := inherited CompareParams
+    and ((FConfig as TAccCirculationListConfig).SubAccountsInMain = cbSubAccount.Checked)
+    and ((FConfig as TAccCirculationListConfig).DisplaceSaldo = cbDisplaceSaldo.Checked);
 end;
 
 class function Tgdv_frmAcctCirculationList.ConfigClassName: string;

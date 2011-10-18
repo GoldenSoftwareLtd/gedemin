@@ -69,6 +69,7 @@ type
 
     procedure Go_to(NewWindow: Boolean = false); override;
     function  CanGo_to: boolean; override;
+    function  CompareParams: boolean; override;
 
     procedure DoBeforeBuildReport; override;
     procedure DoAfterBuildReport; override;
@@ -547,6 +548,15 @@ begin
     F := gdvObject.FindField('id');
     Result := (F <> nil) and (F.AsInteger > 0);
   end;
+end;
+
+function Tgdv_frmAcctAccReview.CompareParams: boolean;
+begin
+  Result := inherited CompareParams
+    and ((FConfig as TAccReviewConfig).ShowCorrSubAccounts = cbShowCorrSubAccounts.Checked)
+    and ((FConfig as TAccReviewConfig).CorrAccounts = cbCorrAccounts.Text)
+    and ((((FConfig as TAccReviewConfig).AccountPart = 'D') and (rbDebit.Checked))
+    or  (((FConfig as TAccReviewConfig).AccountPart = 'C') and (rbCredit.Checked)));
 end;
 
 function Tgdv_frmAcctAccReview.GetGdvObject: TgdvAcctBase;

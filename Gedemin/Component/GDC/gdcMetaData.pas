@@ -80,6 +80,7 @@ type
     NeedSingleUser: Boolean;
 
     function GetIsUserDefined: Boolean; virtual;
+    function GetIsSystemObject: Boolean; virtual;
     function CheckTheSameStatement: String; override;
 
     procedure ShowSQLProcess(S: TSQLProcessList);
@@ -112,6 +113,7 @@ type
     function GetDialogDefaultsFields: String; override;
 
     property IsUserDefined: Boolean read GetIsUserDefined;
+    property IsSystemObject: Boolean read GetIsSystemObject;
     property RelationName: String read GetRelationName;
   end;
 
@@ -671,6 +673,7 @@ type
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
 
     function GetCanDelete: Boolean; override;
+    function GetIsSystemObject: Boolean; override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -1947,7 +1950,23 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
+
+  if (Trim(StringReplace(FieldByName('fieldname').AsString, 'USR$', '', [rfIgnoreCase])) = '') then
+    raise Exception.Create('Введите наименование домена!');
+
+ //  Имя индекса должно содержать только
+ //  английские символы
+  S := Trim(AnsiUpperCase(FieldByName('fieldname').AsString));
+   for I := 1 to Length(S) do
+     if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
+     begin
+       FieldByName('fieldname').FocusControl;
+       raise Exception.Create('Название домена должно быть на английском языке!');
+     end;
+
+
   FieldByName('defsource').AsString := Trim(FieldByName('defsource').AsString);
   if not (sMultiple in BaseState) then
   begin
@@ -2070,18 +2089,6 @@ begin
       ibsql.Free;
     end;
   end;
-
-  if (Trim(FieldByName('fieldname').AsString) = '') then
-    raise Exception.Create('Введите наименование домена!');
- //  Имя индекса должно содержать только
- //  английские символы
-  S := Trim(AnsiUpperCase(FieldByName('fieldname').AsString));
-   for I := 1 to Length(S) do
-     if not (S[I] in ['A'..'Z', '_', '0'..'9', '$']) then
-     begin
-       FieldByName('fieldname').FocusControl;
-       raise Exception.Create('Название домена должно быть на английском языке!');
-     end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCFIELD', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
@@ -7611,6 +7618,14 @@ begin
   {END MACRO}
 end;
 
+function TgdcMetaBase.GetIsSystemObject: Boolean;
+var
+  F: TField;
+begin
+  F := FindField('RDB$SYSTEM_FLAG');
+  Result := (F is TIntegerField) and (F.AsInteger = 1);
+end;
+
 function TgdcMetaBase.GetIsUserDefined: Boolean;
 begin
   Result := StrIPos(UserPrefix, ObjectName) = 1;
@@ -9164,6 +9179,11 @@ begin
   {M}      ClearMacrosStack2('TGDCINDEX', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
+end;
+
+function TgdcIndex.GetIsSystemObject: Boolean;
+begin
+  Result := (inherited GetIsSystemObject) or (FieldByName('RDB$FOREIGN_KEY').AsString > '');
 end;
 
 { TgdcTrigger }
