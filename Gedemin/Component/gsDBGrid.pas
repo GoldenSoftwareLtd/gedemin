@@ -4752,19 +4752,22 @@ begin
       end;
     end else {  -- if FExpandsActive  --  }
     begin
-      if FFilteredDataSet <> nil then
+      if Assigned(DrawColumn) then
       begin
-        BeginUpdate;
-        OldTitleColor := TitleFont.Color;
-        try
-          TitleFont.Color := clBlue;
+        if FFilteredDataSet <> nil then
+        begin
+          BeginUpdate;
+          OldTitleColor := TitleFont.Color;
+          try
+            TitleFont.Color := clBlue;
+            inherited DrawCell(ACol, ARow, ARect, AState);
+          finally
+            TitleFont.Color := OldTitleColor;
+            EndUpdate;
+          end;
+        end else
           inherited DrawCell(ACol, ARow, ARect, AState);
-        finally
-          TitleFont.Color := OldTitleColor;
-          EndUpdate;
-        end;
-      end else
-        inherited DrawCell(ACol, ARow, ARect, AState);
+      end;
     end;
 
     // трэба намаляваць трохкутнічак для фільтрацыі
