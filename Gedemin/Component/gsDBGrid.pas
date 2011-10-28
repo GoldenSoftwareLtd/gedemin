@@ -4752,7 +4752,7 @@ begin
       end;
     end else {  -- if FExpandsActive  --  }
     begin
-      if Assigned(DrawColumn) then
+      if (ACol >= 0) and (ACol < Columns.Count) then
       begin
         if FFilteredDataSet <> nil then
         begin
