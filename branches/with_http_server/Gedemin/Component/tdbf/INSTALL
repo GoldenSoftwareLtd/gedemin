@@ -1,0 +1,25 @@
+To install:
+
+Delphi / BCB / Kylix
+--------------------
+
+1. Choose File -> Open Project
+2. Select the runtime package for your version of delphi / bcb (see packages.txt)
+3. Compile
+4. Open the design package, and install it
+   (Note BCB 4 and Delphi 3 and 4 don't have run/designtime seperation)
+5. All done.
+
+Lazarus
+-------
+
+The TDbf component is included in the FPC distribution. This is easiest to use:
+1. Project -> Open project
+2. Select the dbflaz.lpk in lazarus/components/tdbf/
+3. Install (note that this needs recompilation of lazarus)
+
+If you have downloaded a seperate version of TDbf, then you need to remove the
+TDbf units from the FPC distribution first, because lazarus will detect them,
+and while compiling, this will give problems. They're usually located in 
+fpc/units/fcl/dbf*.{o,ppu}. Then follow the procedure above, but selecting the
+package included in the tdbf directory: tdbf_l.lpk.

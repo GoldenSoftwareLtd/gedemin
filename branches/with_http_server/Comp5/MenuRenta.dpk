@@ -1,0 +1,66 @@
+package MenuRenta;
+
+{$R *.RES}
+{$R 'xCalc.dcr'}
+{$R 'xBulbLabel.dcr'}
+{$R 'xbulbbtn.dcr'}
+{$R 'xmemtable.dcr'}
+{$R 'xNextCod.dcr'}
+{$R 'xtrspbtn.dcr'}
+{$R 'FrmPlSvr.dcr'}
+{$R 'xDateEdits.dcr'}
+{$R 'xDBLookU.dcr'}
+{$R 'xYellabl.dcr'}
+{$ALIGN ON}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$IMPLICITBUILD OFF}
+
+requires
+  vcl50,
+  Vclx50,
+  Vcldb50,
+  Vclbde50,
+  Vclmid50,
+  VclSmp50;
+
+contains
+  xBasics in 'xStorm\xBasics.pas',
+  xAbout in 'xStorm\xAbout.pas',
+  xCalc in 'xCalc.pas',
+  xBulbImage in 'xBulbImage.pas',
+  xBulbLabel in 'xBulbLabel.pas',
+  xBulbBtn in 'xbulbbtn.pas',
+  xMemTable in 'xmemtable.pas',
+  xNextCod in 'xNextCod.pas',
+  xCalculatorEdit in '..\GEDEMIN\Component\xCalculatorEdit.pas',
+  xTrSpBtn in 'xtrspbtn.pas',
+  xDBCheck in 'xDBCheck.pas',
+  FrmPlSvr in 'FrmPlSvr.pas',
+  xDateEdits in 'xDateEdits.pas',
+  xDBLookU in 'xDBLookU.pas',
+  xYellabl in 'xYellabl.pas',
+  xDBTreeView in 'xDBTreeView.pas',
+  mmRadioButtonEx in 'mmRadioButtonEx.pas',
+  mmDBGrid in 'mmDBgrid.pas',
+  MenuRentaComp in 'MenuRentaComp.pas';
+
+end.

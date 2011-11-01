@@ -1,0 +1,13 @@
+
+select m.*
+from gd_message m, gd_msgattr a, gd_msgattr a1
+where
+m.id = a.msgid and
+a.attrid = 2003 and
+a.attrvalue2 >= "2000.01.01" and
+a.attrvalue2 <= "2001.01.07" and
+m.id = a1.msgid and
+a1.attrid = 2001 and
+a1.attrvalue2 = " ƒ „ƒ Š‚"
+
+

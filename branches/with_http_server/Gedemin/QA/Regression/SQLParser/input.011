@@ -1,0 +1,10 @@
+select iif(z.id is null, z.id, m1.id)
+ FROM inv_card z JOIN inv_movement m ON z.id = 
+m.cardkey
+   LEFT JOIN inv_movement m1 ON m.movementkey = 
+m1.movementkey AND m.id <> m1.id
+   LEFT JOIN gd_contact con ON  con.id = 
+iif(M1.CONTACTKEY is not null, M1.CONTACTKEY, 
+M.CONTACTKEY)
+   LEFT JOIN inv_card c ON c.id = iif(M1.DEBIT > 0, 
+M1.cardkey, M.cardkey)

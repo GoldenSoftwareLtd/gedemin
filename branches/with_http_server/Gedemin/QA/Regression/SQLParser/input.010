@@ -1,0 +1,25 @@
+SELECT 
+  L.*, 
+  g.Name, 
+  fic.usr$fa_invnum, 
+  fic.usr$fa_invcardnum,  
+  fic.usr$fa_actdate, 
+  ic.usr$fa_pricencu, 
+  ic.usr$fa_wearsumncu,  
+  (ic.usr$fa_pricencu - ic.usr$fa_wearsumncu) as DeprCost,  
+  ic.usr$fa_amortterm, ic.usr$fa_correctcoeff,  
+  gr.usr$fa_cipher, 
+  gr.usr$name, 
+  a.Alias,  
+  d.Name As Department,  
+  r.name As Responsible
+
+FROM 
+  usr$fa_p_get_invcardlist(:D, :CompanyKey, ')') L  
+    LEFT JOIN INV_CARD ic ON ic.id = L.invcardkey  
+    LEFT JOIN USR$FA_INVCARD fic ON fic.id = L.fa_invcardkey  
+    LEFT JOIN gd_good g ON g.id = ic.goodkey  
+    LEFT JOIN usr$fa_group gr on ic.usr$fa_groupkey = gr.id  
+    LEFT JOIN ac_account a on a.id = ic.usr$fa_wearacckey  
+    LEFT JOIN gd_contact d on d.id = L.departmentkey  
+    LEFT JOIN gd_contact r on r.id = L.peoplekey

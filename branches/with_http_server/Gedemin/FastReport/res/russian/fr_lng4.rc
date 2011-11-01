@@ -1,0 +1,27 @@
+#include "FR_Const.pas"
+
+STRINGTABLE
+{
+;--- LinesEditorForm resources -------------------------------------------------
+  frRes + 4000, "Редактор строк"
+;--- SQLEditorForm resources -------------------------------------------------
+  frRes + 4010, "Редактор SQL"
+
+;--- String resources ----------------------------------------------------------
+  SInsertLabel, "Вставить элемент управления 'Label'"
+  SInsertEdit, "Вставить элемент управления 'Edit'"
+  SInsertMemo, "Вставить элемент управления 'Memo'"
+  SInsertButton, "Вставить элемент управления 'Button'"
+  SInsertCheckBox, "Вставить элемент управления 'CheckBox'"
+  SInsertRadioButton, "Вставить элемент управления 'RadioButton'"
+  SInsertListBox, "Вставить элемент управления 'ListBox'"
+  SInsertComboBox, "Вставить элемент управления 'ComboBox'"
+  SInsertDateEdit, "Вставить элемент управления 'DateEdit'"
+  SInsertCheckListBox, "Вставить элемент управления 'CheckListBox'"
+
+  SInsertDB, "Вставить компонент 'База данных'"
+  SInsertTable, "Вставить компонент 'Таблица'"
+  SInsertQuery, "Вставить компонент 'Запрос'"
+  SInsertDBLookup, "Вставить элемент управления 'DBLookupComboBox'"
+}
+

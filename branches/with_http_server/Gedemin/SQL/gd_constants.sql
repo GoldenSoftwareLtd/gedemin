@@ -1,0 +1,1668 @@
+/*Используемые диапазоны*/
+
+
+/* GD_SUBSYSTEM */
+/*1 .. 50000 */
+
+/* СПРАВОЧНИКИ*/
+/*GD_REF*/
+/* 50001 .. 100000*/
+
+/* ОПЕРАЦИИ */
+/* 100001 .. 150000 */
+/* ПОЛЬЗОВАТЕЛИ */
+/* GD_USER */
+/* 150001.. 200000*/
+       
+/*Валюты*/
+/* GD_CURR */
+/* 200001 .. 250000 */
+
+/*Атрибуты*/
+/* 250001 .. 300000 */
+	
+/*GD_CARDACCOUNT*/
+/* 300001 .. 350000  */
+
+/* GD_TAXTYPE */
+/*350001..360000*/
+
+/* gd_trtype */
+/* 400001 .. 450000*/
+
+/* msg_box  */
+/* 450001 .. 500000 */
+
+/* Параметры для платежного поручения "безналичный расход" */
+/* gd_trtypevariable */
+/* 500001 .. 550000*/
+
+/*bn_paymentspec*/
+/*600001 650001 */
+
+/* gd_contact */
+/* 650001 .. 700000*/
+
+/* Меню */
+/* gd_command*/
+/* 700001 .. 800000 */
+
+/* gd_documenttype */
+/* 800001 .. 850000 */
+
+/* flt_funcgroup  */
+/* 850001..850099 */
+
+/* globalstorage */
+/* 880000        */
+
+/* flt_function */
+/* 900001..950001 */
+
+
+/*1000001 .. 1010000*/
+
+/* evt_object */
+/* 1010001-1050000 */
+
+/* gd_compacctype */
+/* 1799900-1799999 */
+
+/* gd_place */
+/* 1800000-1900000 */
+
+/*  gd_value */
+/*2000001 .. 3000000*/
+
+/*3100000 .. 3200000*/
+
+
+/*
+
+  Copyright (c) 2000 by Golden Software of Belarus
+
+  Script
+
+    Constants.sql
+
+  Abstract
+
+    An Interbase script with Constants for GEDEMIN  system.
+
+  Author
+
+    Nikolai Kornachenko (18.05.00)
+
+  Revisions history
+
+    Initial  18.05.00  NK    Initial version
+
+  Status 
+    
+    Draft
+
+*/
+
+
+
+/****************************************************/
+/****************************************************/
+/**                                                **/
+/**   Copyright (c) 2000 by                        **/
+/**   Golden Software of Belarus                   **/
+/**                                                **/
+/****************************************************/
+/****************************************************/
+
+/* ПОДСИСТЕМЫ */
+
+/* GD_SUBSYSTEM */
+/*99 .. 50000 */
+/* INSERT INTO gd_subsystem(id, name, disabled, description, reserved) VALUES (,,,,,)*/
+
+INSERT INTO gd_subsystem(id, name, description, reserved)
+  VALUES (1000, 'Администрирование', 'Администрирование системы', NULL);
+
+/* 49000 - Система Deparatment dp_contacts.sql*/
+
+COMMIT;
+
+/* ГРУППЫ */
+
+/* GD_USERGROUP */
+
+/* INSERT INTO gd_usergroup (id, name, description) VALUES (,,); */
+
+INSERT INTO gd_usergroup (id, name, description)
+  VALUES (1, 'Администраторы', 'Системные администраторы');
+INSERT INTO gd_usergroup (id, name, description)
+  VALUES (2, 'Опытные пользователи', 'Опытные пользователи');
+INSERT INTO gd_usergroup (id, name, description)
+  VALUES (3, 'Пользователи', 'Обычные пользователи');
+INSERT INTO gd_usergroup (id, name, description)
+  VALUES (4, 'Операторы архива', 'Операторы архива');
+INSERT INTO gd_usergroup (id, name, description)
+  VALUES (5, 'Операторы печати', 'Операторы печати');
+INSERT INTO gd_usergroup (id, name, description)
+  VALUES (6, 'Гости', 'Гости системы');
+
+COMMIT;
+
+/* Единицы измерения */
+
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000001, 'шт.', 'Штука', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000002, 'кг', 'Килограмм', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000003, 'кв.м.', 'Квадратный метр', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000004, 'куб.м.', 'Кубический метр', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000005, 'т', 'Тонна', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000006, 'л', 'Литр', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000007, 'пачка', 'Пачка', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000008, 'мешок', 'Мешок', 1);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000009, 'уп.', 'Упаковка', 1);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000010, 'комп.', 'Комплект', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000011, 'туб', 'Туба', 0);
+INSERT INTO GD_VALUE (ID, NAME, DESCRIPTION, ISPACK) VALUES (3000012, 'ящик', 'Ящик', 1);
+
+COMMIT;
+
+
+/* ПОЛЬЗОВАТЕЛИ */
+
+/* GD_USER */
+/* 150001.. 200000*/
+/*INSERT INTO gd_user(id, name, passw, ingroup, fullname, description, ibname,
+                      ibpassword, externalkey, disabled, lockedout, mustchange,
+                      cantchangepassw, passwneverexp, expdate, workstart,
+                      workend, icon, reserved)
+       VALUES (,,,,,,,,,,,,,,,,,,);
+*/
+
+INSERT INTO gd_contact(id, contacttype, name)
+    VALUES(650001, 0, 'Контакты');
+INSERT INTO gd_contact(id, parent, contacttype, name)
+    VALUES(650002, 650001, 2, 'Администратор');
+INSERT INTO gd_people(contactkey, surname) VALUES(650002, 'Администратор');
+
+INSERT INTO gd_user (id, name, passw, ingroup, fullname, description, ibname,
+                      ibpassword, externalkey, lockedout, mustchange,
+                      cantchangepassw, passwneverexp, expdate, workstart,
+                      workend, icon, reserved, contactkey)
+VALUES (150001, 'Administrator', 'Administrator', -1, 'Администратор', 'Администратор системы',
+          'SYSDBA', 'masterkey', NULL, 0, 0, 0, 1, NULL, NULL, NULL, NULL, NULL, 650002);
+
+COMMIT;
+
+
+/*****************************************************************************/
+/*    Типы счетов фирм                                                       */
+/*****************************************************************************/
+
+
+/* gd_compacctype */
+/* 1799900-1799999 */
+
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799900, 'Расчетный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799910, 'Ссудный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799920, 'Депозитный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799930, 'Бюджетный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799940, 'Кассовый счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799950, 'Транзитный счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799960, 'Корреспондентский счет');
+INSERT INTO gd_compacctype (id, name)
+   VALUES(1799970, 'Чековая книжка');
+
+COMMIT;
+
+
+/*Валюты*/
+/* 200001 .. 250000 */
+
+
+
+INSERT INTO gd_curr
+  (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
+     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
+  VALUES (200010, 0, 1, 'BYR', 'Белорусский рубль', 'BYR', 'Br',
+     1, 0, 'копейка', 'коп.', 1, NULL, NULL, 'белорусских рублей', 'белорусских рубля', 'копеек', 'копейки');
+
+INSERT INTO gd_curr
+  (id, disabled, isNCU, isEq, code, name, shortname, sign, place, decdigits,
+     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
+  VALUES (200020, 0, 0, 1, 'USD', 'Доллар США', 'USD', '$',
+     0, 2, 'цент', 'ц.', 1, NULL, NULL, 'долларов США', 'доллара США', 'центов', 'цента');
+
+INSERT INTO gd_curr
+  (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
+     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
+  VALUES (200040, 0, 0, 'EUR', 'Евро', 'EUR', 'EUR',
+     1, 2, 'цент', 'ц.', 1, NULL, NULL, 'евро', 'евро', 'центов', 'цента');
+
+INSERT INTO gd_curr
+  (id, disabled, isNCU, code, name, shortname, sign, place, decdigits,
+     fullcentname, shortcentname, centbase, icon, reserved, name_0, name_1, centname_0, centname_1)
+  VALUES (200050, 0, 0, 'RUB', 'Российский рубль', 'RUB', 'р.',
+     1, 2, 'копейка', 'к.', 1, NULL, NULL, 'российских рублей', 'российских рубля', 'копеек', 'копейки');
+
+COMMIT;
+
+INSERT INTO GD_CONTACT
+  (ID,PARENT,CONTACTTYPE,NAME)
+  VALUES
+  (650010,650001,3,'<Ввести наименование организации>');
+
+INSERT INTO GD_COMPANY
+  (CONTACTKEY,FULLNAME)
+  VALUES
+  (650010,'<Ввести наименование организации>');
+
+INSERT INTO GD_OURCOMPANY
+  (COMPANYKEY)
+  VALUES
+  (650010);
+
+INSERT INTO GD_CONTACT
+  (ID,PARENT,CONTACTTYPE,NAME)
+  VALUES
+  (650015,650001,5,'<Ввести наименование банка>');
+
+INSERT INTO GD_COMPANY
+  (CONTACTKEY,FULLNAME)
+  VALUES
+  (650015,'<Ввести наименование банка>');
+
+INSERT INTO GD_BANK
+  (BANKKEY,BANKCODE)
+  VALUES
+  (650015,'<Ввести код банка>');
+
+INSERT INTO GD_COMPANYACCOUNT
+  (ID, COMPANYKEY, BANKKEY, ACCOUNT, ACCOUNTTYPEKEY, CURRKEY)
+  VALUES
+  (650100, 650010, 650015, '<Ввести счет>', 1799900, 200010);
+
+UPDATE GD_COMPANY
+  SET COMPANYACCOUNTKEY = 650100
+  WHERE CONTACTKEY = 650010;
+
+/* ОПЕРАЦИИ */
+/* 100001 .. 150000 */
+
+COMMIT;
+
+/*AC_ACCOUNT*/
+/* 300001 .. 350000  */
+
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300001, NULL, 'План счетов', 'План счетов', 'A', 'C', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (399000, 300001, 'Балансовые счета', 'Балансовые счета', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300002, 300001, 'Забалансовые счета', 'Забалансовые', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300003, 300002, 'Остатки', '00', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300010, 399000, '1. Внеоборотные активы', '1. Внеоборотные акт', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (310000, 399000, '2. Производственные запасы', '2. Производ. запасы', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (320000, 399000, '3. Затраты на производство', '3. Затраты на произ.', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (340000, 399000, '4. Готовая продукция и реализация', '4. Готовая продукция', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (350000, 399000, '5. Денежные средства', '5. Денежные средства', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (360000, 399000, '6. Расчеты', '6. Расчеты', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (380000, 399000, '7. Источники собственных средств', '7. Источн. собст.', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (385000, 399000, '8. Финансовые результаты', '8. Фин результаты', 'A', 'F', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300100, 300010, 'Основные средства', '01', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300101, 300100, 'Собственные основные средства', '01.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300102, 300100, 'Выбытие основных средств', '01.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300200, 300010, 'Износ основных средств', '02', 'P', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300201, 300200, 'Износ собственных основных средств', '02.01', 'P', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300202, 300200, 'Износ имущества сданного в лизинг', '02.02', 'P', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300300, 300010, 'Доходные вложения в материальные ценности', '03', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300301, 300300, 'Имущество для сдачи в аренду', '03.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300302, 300300, 'Имущество, предоставляемое по договору', '03.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300400, 300010, 'Нематериальные активы', '04', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300500, 300010, 'Амортизация нематериальных активов', '05', 'P', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300700, 300010, 'Оборудывание к установке', '07', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300701, 300700, 'Оборудывание к установке отечественное', '07.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300702, 300700, 'Оборудывание к установке импортное', '07.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300800, 300010, 'Капитальные вложения', '08', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300801, 300800, 'Приобретение земельных участков', '08.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300802, 300800, 'Приобретение объектов природопользования', '08.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300803, 300800, 'Строительство объектов основных средств', '08.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300804, 300800, 'Приобретение отдельных объектов основных средств', '08.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300805, 300800, 'Затраты, не увеличивающие стоимости основных средств', '08.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300806, 300800, 'Приобретение нематериальных активов', '08.06', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300807, 300800, 'Перевод молодняка эивотных в основное стадо', '08.07', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300808, 300800, 'Приобретение взрослых животных', '08.08', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (300809, 300800, 'Выполнение научно-исследовательских, опытно-конструкторских и технологических работ', '08.09', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311000, 310000, 'Материалы', '10', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311001, 311000, 'Сырье и материалы', '10.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311002, 311000, 'Покупные полуфабрикаты и комплектующие изделия, конструкции и детали', '10.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311003, 311000, 'Топливо', '10.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311004, 311000, 'Тара и тарные материалы', '10.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311005, 311000, 'Запасные части', '10.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311006, 311000, 'Прочие материалы', '10.06', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311007, 311000, 'Материалы, переданные в переработку на сторону', '10.07', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311008, 311000, 'Строительные материалы', '10.08', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311009, 311000, 'Инвентарь и хояйственные принадлежности', '10.09', NULL, 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311100, 310000, 'Животные на выращивании и откорме', '11', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311010, 311000, 'Специальная оснастка и специальная одежда на складе', '10.10', NULL, 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311011, 311000, 'Специальная оснастка и специальная одежда в эксплуатации', '10.11', NULL, 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311400, 310000, 'Резервы под снижение стоимости материальных ценностей', '14', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311500, 310000, 'Заготовление и приобретение материалов', '15', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311600, 310000, 'Отклонение в стоимости материалов', '16', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393001, 300002, 'Аредованные основные средства', '001', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311900, 310000, 'Налог на добавленную стоимость по приобретенным товарам, работам, услугам', '18', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311901, 311900, 'НДС по приобретенным ОС', '18.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311902, 311900, 'НДС по приобретенным нематериальным активам', '18.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393002, 300002, 'Товарно-материальные ценности, принятые на ответственное хранение', '002', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393003, 300002, 'Материалы, принятые в переработку', '003', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393004, 300002, 'Товары, принятые на комиссию', '004', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322000, 320000, 'Основное производство', '20', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322100, 320000, 'Полуфабрикаты собственного производства', '21', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322300, 320000, 'Вспомогательные производства', '23', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322500, 320000, 'Общепроизводственные расходы', '25', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322600, 320000, 'Общехозяйственные расходы', '26', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322800, 320000, 'Брак в производстве', '28', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322900, 320000, 'Обслуживающие производства и хозяйства', '29', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (323100, 385000, 'Расходы будущих периодов', '97', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393005, 300002, 'Оборудование, принятое для монтажа', '005', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344000, 340000, 'Выпуск продукции работ, услуг', '40', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344100, 340000, 'Товары', '41', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344101, 344100, 'Товары на складах', '41.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344102, 344100, 'Товары в розничной торговле', '41.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344103, 344100, 'Тара под товаром и порожняя', '41.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344104, 344100, 'Покупные изделия', '41.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344200, 340000, 'Торговая наценка', '42', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344201, 344200, 'Торговая наценка (скидка, накидка)', '42.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344202, 344200, 'Скидка поставщиков', '42.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344300, 340000, 'Готовая продукция', '43', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344400, 340000, 'Издержки обращения', '44', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344500, 340000, 'Товары отгруженные', '45', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344501, 344500, 'Товары отгруженные в учетных ценах', '45.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344502, 344500, 'Товары отгруженные в отпускных ценах', '45.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344600, 385000, 'Реализация продукции (работ, услуг)', '90', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344700, 385000, 'Операционные доходы и расходы', '91', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355000, 350000, 'Касса', '50', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355100, 350000, 'Расчетный счет', '51', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355200, 350000, 'Валютный счет', '52', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355201, 355200, 'Внутри страны', '52.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355202, 355200, 'За рубежем', '52.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355500, 350000, 'Специальные счета в банках', '55', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355501, 355500, 'Аккредитивы', '55.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355502, 355500, 'Чековые книжки', '55.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355700, 350000, 'Переводы в пути', '57', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355800, 350000, 'Краткосрочные финансовые вложения', '58', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355801, 355800, 'Облигации и другие ценные бумаги', '58.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355802, 355800, 'Депозиты', '58.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355803, 355800, 'Предоставленные займы', '58.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355804, 355800, 'Прочее', '58.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366000, 360000, 'Расчеты с поставщиками и подрядчиками', '60', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366200, 360000, 'Расчеты с покупателями и заказчиками', '62', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366201, 366200, 'Расчеты в порядке инкассо', '62.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366202, 366200, 'Расчеты плановыми платежами', '62.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366203, 366200, 'Векселя полученные', '62.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366800, 360000, 'Расчеты с бюджетом', '68', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366900, 360000, 'Расчеты по социальному страхованию и обеспечению', '69', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366901, 366900, 'Расчеты по соц. страхованию', '69.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366902, 366900, 'Расчеты по пенсионному обеспечению', '69.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367000, 360000, 'Расчеты по оплате труда', '70', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393006, 300002, 'Бланки строгой отчетности', '006', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367100, 360000, 'Расчеты с подотчетными лицами', '71', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367300, 360000, 'Расчеты с персоналом по прочим операциям', '73', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367301, 367000, 'Расчеты за товары, продан. в кредит', '73.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367302, 367000, 'Расчеты по предоставл. займам', '73.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367303, 367000, 'Расчеты по возмещ. мат. ущерба', '73.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367500, 360000, 'Расчеты с учредителями', '75', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367501, 367500, 'Расчеты по вкладам в УФ', '75.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367502, 367500, 'Расчеты по доходам', '75.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367600, 360000, 'Расчеты с разн. дебиторами и кредиторами', '76', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367900, 360000, 'Внутрихозяйственные расчеты', '79', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367901, 367900, 'По выделенному имущетву', '79.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367902, 367900, 'По текущим операциям', '79.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (380001, 385000, 'Прибыли и убытки', '99', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (380002, 380000, 'Собственные акции (доли)', '81', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (380004, 360000, 'Резервы по сомнительным долгам', '63', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (380005, 385000, 'Доходы будущих периодов', '98', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (380006, 385000, 'Недостачи от порчи мат.ценностей', '94', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (385001, 380000, 'Уставный фонд', '80', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (385002, 380000, 'Резервный фонд', '82', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (385012, 380000, 'Добавочный фонд', '83', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (385003, 380000, 'Нераспределенная прибыль', '84', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (385004, 385000, 'Внереализационные доходы и расходы', '92', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (385005, 385000, 'Резервы предстолщ. расходов', '96', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (390001, 360000, 'Краткосрочные кредиты банков', '66', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (390007, 360000, 'Долгосрочные кредиты банков', '67', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (390005, 380000, 'Целевое финансирование', '86', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322001, 322000, 'Промышленное производство', '20.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322002, 322000, 'Сельскохозяйственное производство', '20.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322003, 322000, 'Эксплуатация транспорта и средств связи', '20.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322004, 322000, 'Производство строительных и монтажных работ', '20.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322005, 322000, 'Производство проектных и изыскательных работ', '20.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322006, 322000, 'Производство геологоразведочных работ', '20.06', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322007, 322000, 'Производство научно технических и конструкторских работ', '20.07', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322008, 322000, 'Содержание и ремонт автомобильных дорог', '20.08', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322009, 322000, 'Общественное питание', '20.09', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322301, 322300, 'Обслуживание различными видами энергии', '23.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322302, 322300, 'Внутризаводское транспортное обслуживание', '23.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322303, 322300, 'Ремонт основных средств', '23.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322304, 322300, 'Изготовление инструментов, штампов, запасных частей, строительных деталей и конструкций', '23.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322305, 322300, 'Эксплуатация мелких транспортных хозяйств', '23.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322306, 322300, 'Возведение временных (нетитульных) сооружений', '23.06', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322307, 322300, 'Добыча нерудных материалов', '23.07', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322308, 322300, 'Лесозаготовки и лесопиление', '23.08', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322309, 322300, 'Переработка сельскохозяйственной продукции', '23.09', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322901, 322900, 'Жилищно комунальные хозяйтва', '29.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322902, 322900, 'Подсобные сельские хозяйства', '29.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322903, 322900, 'Бытовое обслуживание', '29.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322904, 322900, 'Содержание детских дошкольных учреждений', '29.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322905, 322900, 'Содержание домов отдыха, санаториев и других учреждений оздоровительного назначения', '29.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322906, 322900, 'Содержание учреждений культуры', '29.06', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (322907, 322900, 'Содержание подразделений общественного питания', '29.07', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344203, 344200, 'Налог на добавленную стоимость в цене товаров', '42.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344204, 344200, 'Налог с продаж', '42.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344401, 344400, 'Коммерческие расходы', '44.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344402, 344400, 'Издержки обращения', '44.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355001, 355000, 'Касса организации', '50.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355002, 355000, 'Операционная касса', '50.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355003, 355000, 'Денежные документы', '50.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355004, 355000, 'Валютная касса', '50.04', 'A', 'S', 1, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355005, 355000, 'Касса филиалов', '50.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355503, 355500, 'Депозитные счета в официальной денежной единице Республики Беларусь', '55.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355504, 355500, 'Депозитные счета в иностранной валюте', '55.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355505, 355500, 'Специальный счет целевого финансирования', '55.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355506, 355500, 'Текущий счет филиала', '55.06', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355507, 355500, 'Банковские карты', '55.07', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355701, 355700, 'Инкассированные денежные средства', '57.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355702, 355700, 'Денежные средства для покупки валюты', '57.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355703, 355700, 'Валютные средства для продажи', '57.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (355704, 355700, 'Переводы в пути по банковским картам', '57.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (392000, 350000, 'Резервы под обесценение финансовых вложений в ценные бумаги', '59', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366204, 366200, 'Авансы полученные', '62.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366801, 366800, 'Налоги и отчисления включаемые в себестоимость товаров, продукции, работ, услуг', '68.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366802, 366800, 'Налоги, уплачиваемые из выручки от реализации товаров, продукции, работ, услуг', '68.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366803, 366800, 'Налоги уплачиваемые из прибыли', '68.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366804, 366800, 'Налоги на доходы физических лиц', '68.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (366805, 366800, 'Прочие налоги, сборы и отчисления', '68.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367601, 367600, 'Расчеты с организациями и лицами по исполнительным документам', '76.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367602, 367600, 'Расчеты по имущественному и личному страхованию', '76.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367603, 367600, 'Расчеты по претензиям', '76.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367604, 367600, 'Расчеты по причитающим дивидентам и другим доходам', '76.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367605, 367600, 'Расчеты по депонированным суммам', '76.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367606, 367600, 'Расчеты за товары, проданные в кредит', '76.06', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367903, 367900, 'Расчеты по договору доверительного управления имуществом', '79.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344601, 344600, 'Выручка от реализации', '90.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344602, 344600, 'Себестоимость реализации', '90.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344603, 344600, 'Налог на добавленную стоимость', '90.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344604, 344600, 'Акцизы', '90.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344605, 344600, 'Прочие налоги и сборы из выручки', '90.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344606, 344600, 'Экспортные пошлины', '90.06', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344609, 344600, 'Прибыль/убыток от реализации', '90.09', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344701, 344700, 'Операционные доходы', '91.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344702, 344700, 'Операционные расходы', '91.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344703, 344700, 'Налог на добавленную стоимость', '91.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344704, 344700, 'Прочие налоги и сборы из операционных доходов', '91.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344709, 344700, 'Сальдо операционных доходов и расходов', '91.09', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (386001, 385004, 'Внереализационные доходы', '92.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (386002, 385004, 'Внереализационные расходы', '92.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (386003, 385004, 'Налог на добавленную стоимость', '92.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (386004, 385004, 'Прочие налоги и сборы из внереализационных доходов', '92.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (386009, 385004, 'Сальдо внереализационных доходов и расходов', '92.09', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393007, 300002, 'Списанная в убыток задолженность неплатежеспособных дебиторов', '007', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393008, 300002, 'Обеспечение обязательств и платежей полученные', '008', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311903, 311900, 'НДС по приобретенным товарно-материальным ценностям, работам, услугам', '18.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (311904, 311900, 'НДС по приобретенным товарам', '18.04', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (344105, 344100, 'Продукция подсобного сельского х-ва', '41.05', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (391000, 340000, 'Выполненные этапы по незавершенным работам', '46', 'A', 'A', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393010, 300002, 'Амортизационный фонд воспроизводства основных средств', '010', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393011, 300002, 'Основные средства, сданные в аренду', '011', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393012, 300002, 'Нематериальные активы, полученные в пользование', '012', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393013, 300002, 'Амортизационный фонд воспроизводства нематериальных активов', '013', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393014, 300002, 'Потеря стоимости основных средств', '014', 'A', 'A', 0, 1, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393009, 300002, 'Обеспечение обязательств и платежей выданные', '009', 'A', 'A', 0, 1, -1, -1, -1);
+
+
+COMMIT;
+
+/* gd_documenttype */
+/* 800001 .. 850000 */
+
+INSERT INTO gd_documenttype(id, ruid, name, description, documenttype)
+  VALUES (800001, '800001_17', 'Выписка и картотека', 'Выписка и картотека', 'B');
+
+INSERT INTO gd_documenttype(id, ruid, parent, name, description)
+  VALUES (800300, '800300_17', 800001, 'Банковская выписка', 'Банковская выписка');
+
+INSERT INTO gd_documenttype(id, ruid, parent, name, description)
+  VALUES (800350, '800350_17', 800001, 'Банковская картотека', 'Банковская картотека');
+
+/* Складские документы */
+
+INSERT INTO gd_documenttype(id, ruid, name, description, documenttype, classname)
+  VALUES (804000, '804000_17', 'Складские документы',
+    'Документы по приему, перемещению и передаче ТМЦ и услуг', 'B', 'TgdcInvDocumentType');
+
+INSERT INTO gd_documenttype(id, ruid, name, description, documenttype, classname)
+  VALUES (805000, '805000_17', 'Прайс-листы', 'Список прайс-листов', 'B', 'TgdcInvPriceListType');
+
+/* Бухгалтерские документы */
+
+INSERT INTO gd_documenttype(id,
+    ruid,
+    name,
+    description,
+    documenttype,
+    classname)
+  VALUES (806000,
+    '806000_17',
+    'Бухгалтерские документы',
+    'Документы для бухгалтерии',
+    'B',
+    'TgdcDocumentType');
+
+INSERT INTO gd_documenttype(id, ruid, parent, name, description, documenttype, classname)
+  VALUES (806001, '806001_17', 806000,
+    'Хозяйственная операция', 'Документы для отражения произвольных хозяйственных операций', 'D', 'TgdcInvDocumentType');
+
+/* Отчеты бухгалтерии */
+
+INSERT INTO gd_documenttype(id, parent, ruid, name, description, documenttype)
+  VALUES (807005, 806000, '807005_17', 'Отчеты бухгалтерии', 'Документы для расчета налогов отчетов бухгалтерии', 'D');
+
+/* Типовые проводки */
+
+INSERT INTO ac_transaction(id, name) VALUES (807001, 'Произвольные проводки');
+
+INSERT INTO ac_trrecord(id, transactionkey, documenttypekey, description) VALUES (807100, 807001, 806001, 'Произвольная проводка');
+
+/*849000 - 850000 Зарезервировано для проекта DEPARTMENT */
+
+/* gd_trtype */
+/* 400001 .. 450000*/
+
+/* 459001 .. 450000 Зарезервиновано для проекта DEPARTMENT */
+
+/*
+INSERT INTO gd_goodgroup (name) VALUES ('<Ввести наименование группы>');
+*/
+
+
+COMMIT;
+
+/* gd_contact */
+/* 650001 .. 700000*/
+
+COMMIT;
+
+/*
+ *
+ * Меню
+ *
+ *
+ */
+/* gd_command*/
+/* 700001 .. 800000 */
+
+
+/*
+ *
+ * Исследователь
+ *
+ *
+ */
+
+  INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex, aview)
+    VALUES (
+      710000,
+      NULL,
+      'Исследователь',
+      'explorer',
+      NULL,
+      0,
+      1
+    );
+
+  INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex)
+    VALUES (
+      714000,
+      710000,
+      'Бухгалтерия',
+      'accountancy',
+      NULL,
+      0
+    );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730300,
+        714000,
+        'План счетов',
+        'ref_card_account',
+        'TgdcAcctAccount',
+        NULL,
+        219
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730700,
+        714000,
+        'Типовые хоз. операции',
+        'ref_tr_type',
+        'TgdcAcctTransaction',
+        NULL,
+        59
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        714050,
+        714000,
+        'Автоматические хоз. операции',
+        '',
+        'Tgdc_frmAutoTransaction',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        714010,
+        714000,
+        'Журнал хозяйственных операций',
+        'acc_journal',
+        'TgdcAcctViewEntryRegister',
+        NULL,
+        53
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        714022,
+        714000,
+        'Журнал-ордер',
+        '',
+        'Tgdv_frmAcctLedger',
+        NULL,
+        186
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        714030,
+        714000,
+        'Анализ счета',
+        '',
+        'Tgdv_frmAcctAccReview',
+        NULL,
+        220
+      );
+
+    INSERT INTO GD_COMMAND (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,
+       CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+       VALUES (
+         714098,
+         714000,
+         'Карта счета',
+         'acc_AccountCard',
+         0,
+         NULL,
+         220,
+         NULL,
+         'Tgdv_frmAcctAccCard',
+         NULL,
+         -1,
+         -1,
+         -1,
+         0,
+         NULL);
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        714025,
+        714000,
+        'Главная книга',
+        '',
+        'Tgdv_frmGeneralLedger',
+        NULL,
+        85
+      );
+      
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        714200,
+        714000,
+        'Переход на новый месяц',
+        '',
+        'TfrmCalculateBalance',
+        NULL,
+        87
+      );
+
+/*    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        714020,
+        714021,
+        'Настройка журнал-ордера',
+        '',
+        'TgdcLedger',
+        NULL,
+        0
+      );*/
+
+    INSERT INTO GD_COMMAND
+      (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+    VALUES
+      (714090,714000,'Оборотная ведомость','acc_CirculationList',0,NULL,61,NULL,'Tgdv_frmAcctCirculationList',NULL,-1,-1,-1,0,NULL);
+
+    INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex)
+    VALUES (
+      715000,
+      710000,
+      'Банк',
+      'bank',
+      NULL,
+      104
+    );
+
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        715020,
+        715000,
+        'Выписки по р/с',
+        'bn_bank_statement',
+        'TgdcBankStatement',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        715025,
+        715000,
+        'Картотека по р/с',
+        'bn_bank_catalogue',
+        'TgdcBankCatalogue',
+        NULL,
+        0
+      );
+
+
+  INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex)
+    VALUES (
+      730000,
+      710000,
+      'Справочники',
+      'references',
+      NULL,
+      7
+    );
+
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730100,
+        730000,
+        'Клиенты',
+        'ref_contact',
+        'TgdcBaseContact',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730110,
+        730100,
+        'Организации',
+        '',
+        'TgdcCompany',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730115,
+        730110,
+        'Банки',
+        '',
+        'TgdcBank',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730117,
+        730110,
+        'Расчетные счета',
+        '',
+        'TgdcAccount',
+        NULL,
+        0
+      );
+
+      /*
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730119,
+        730110,
+        'Рабочие организации',
+        '',
+        'TgdcOurCompany',
+        NULL,
+        0
+      );
+      */
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730120,
+        730100,
+        'Люди',
+        '',
+        'TgdcContact',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730130,
+        730100,
+        'Группы',
+        '',
+        'TgdcGroup',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730900,
+        730110,
+        'Подразделения',
+        'ref_department',
+        'TgdcDepartment',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730902,
+        730110,
+        'Сотрудники',
+        'ref_employee',
+        'TgdcEmployee',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730200,
+        730000,
+        'Курсы валют',
+        'ref_curr_rate',
+        'TgdcCurrRate',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730210,
+        730200,
+        'Валюты',
+        '',
+        'TgdcCurr',
+        NULL,
+        0
+      );
+
+    /*
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730600,
+        730000,
+        'Рабочие организации',
+        'ref_work_company',
+        'TgdcOurCompany',
+        NULL,
+        0
+      );
+    */
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730800,
+        730000,
+        'Справочник ТМЦ',
+        'ref_dir_good',
+        'TgdcGood',
+        NULL,
+        181
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730805,
+        730800,
+        'Группы ТМЦ',
+        '',
+        'TgdcGoodGroup',
+        NULL,
+        142
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730810,
+        730800,
+        'Драгметаллы',
+        '',
+        'TgdcMetal',
+        NULL,
+        165
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730820,
+        730800,
+        'Налоги',
+        '',
+        'TgdcTax',
+        NULL,
+        185
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730830,
+        730800,
+        'Коды ТНВД',
+        '',
+        'TgdcTNVD',
+        NULL,
+        75
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730840,
+        730800,
+        'Единицы измерения',
+        '',
+        'TgdcValue',
+        NULL,
+        201
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        730950,
+        730000,
+        'Адм.-терр. единицы',
+        'ref_place',
+        'TgdcPlace',
+        NULL,
+        147
+      );
+
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        731050,
+        730000,
+        'Типы банковских счетов',
+        'ref_compacctype',
+        'TgdcCompanyAccountType',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        731100,
+        730000,
+        'График рабочего времени',
+        'ref_tablecalendar',
+        'TgdcTableCalendar',
+        NULL,
+        92
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        731150,
+        730000,
+        'Государственные праздники',
+        'ref_holiday',
+        'TgdcHoliday',
+        NULL,
+        236
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        731200,
+        730000,
+        'Должности',
+        'ref_position',
+        'TgdcWgPosition',
+        NULL,
+        0
+      );
+  /* 739500 - 74000 Справочники DEPARTMENT */
+
+  INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex)
+    VALUES (
+      740000,
+      710000,
+      'Сервис',
+      'service',
+      NULL,
+      144
+    );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+      VALUES (
+        740050,
+        740000,
+        'Администратор',
+        'srv_administrator',
+        '',
+        NULL,
+        155,
+        1 /* только администратору доступно */
+      );
+
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+        VALUES (
+          740055,
+          740050,
+          'Пользователи',
+          'adm_user',
+          'TgdcUser',
+          NULL,
+          0,
+          1 /* только администратору доступно */
+        );
+
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+        VALUES (
+          740060,
+          740050,
+          'Группы пользователей',
+          'adm_user_group',
+          'TgdcUserGroup',
+          NULL,
+          0,
+          1 /* только администратору доступно */
+        );
+
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+        VALUES (
+          740065,
+          740050,
+          'Операции',
+          'adm_operation',
+          'TgdcOperation',
+          NULL,
+          0,
+          1 /* только администратору доступно */
+        );
+
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+        VALUES (
+          740070,
+          740050,
+          'Журнал событий',
+          'srv_eventlog',
+          'TgdcJournal',
+          NULL,
+          256,
+          1
+        );
+		
+      INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+        VALUES (
+          740080,
+          740050,
+          'Блокировка изменений',
+          '',
+          'TgdcBlockRule',
+          NULL,
+          256,
+          1
+        );
+		
+
+        /*
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        740100,
+        740000,
+        'Регистрация ошибок',
+        'srv_bugbase',
+        'TgdcBugBase',
+        NULL,
+        0
+      );
+        */
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+      VALUES (
+        740300,
+        740000,
+        'Хранилище',
+        'srv_storage',
+        'Tst_frmMain',
+        NULL,
+        255,
+        1
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+      VALUES (
+        740302,
+        740300,
+        'Хранилище (б/о)',
+        'srv_storage_new',
+        'TgdcStorage',
+        NULL,
+        255,
+        1
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+      VALUES (
+        740350,
+        740000,
+        'Фильтры',
+        'TgdcComponentFilter',
+        'TgdcComponentFilter',
+        NULL,
+        20,
+        1
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex, aview)
+      VALUES (
+        740400,
+        740000,
+        'Атрибуты',
+        'srv_attribute',
+        '',
+        NULL,
+        0,
+        1
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        740500,
+        740000,
+        'Региональные установки',
+        'regionalsettings',
+        'TdlgRegionalSettings',
+        NULL,
+        154
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        740600,
+        740000,
+        'Типовые документы',
+        'documenttypes',
+        'TgdcDocumentType',
+        NULL,
+        0
+      );
+
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        740900,
+        740000,
+        'Константы',
+        'constants',
+        'TgdcConst',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        740910,
+        740000,
+        'Файлы',
+        'Files',
+        'TgdcFile',
+        NULL,
+        85
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        740915,
+        740000,
+        'Прикрепления',
+        'LinkedObjects',
+        'TgdcLink',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        740920,
+        740000,
+        'Исследователь',
+        'explorer',
+        'TgdcExplorer',
+        NULL,
+        260
+      );
+
+  /*
+  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      750000,
+      710000,
+      'Сообщения',
+      'TgdcBaseMessage',
+      'TgdcBaseMessage',
+      NULL,
+      0
+    );
+  */
+
+
+  /*
+  INSERT INTO gd_command (id, parent, name, cmd, hotkey, imgindex)
+    VALUES (
+      760000,
+      710000,
+      'Реализация',
+      'realization',
+      NULL,
+      0
+    );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        760100,
+        760000,
+        'Прайс-лист',
+        'ref_price',
+        'TfrmPrice',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        760150,
+        760000,
+        'Счета-фактуры',
+        'bill_uni',
+        'TfrmBills',
+        NULL,
+        0
+      );
+
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        760200,
+        760000,
+        'Накладная на отпуск ТМЦ',
+        'billgood',
+        'TfrmRealizationBill',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        760300,
+        760000,
+        'Формирование требований',
+        'makedemand',
+        'TfrmMakeDemand',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        760400,
+        760000,
+        'Договора',
+        'contractsell',
+        'TfrmContractSell',
+        NULL,
+        0
+      );
+
+    INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+      VALUES (
+        760500,
+        760000,
+        'Накладная на возврат',
+        'returnsell',
+        'TfrmReturnBill',
+        NULL,
+        0
+      );
+  */
+
+  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      770000,
+      710000,
+      'Отчеты',
+      'report',
+      'Tgdc_frmReportList',
+      NULL,
+      15
+    );
+
+  /*
+  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      780000,
+      710000,
+      'Расчеты с поставщиками скота',
+      'Cattle',
+      '',
+      NULL,
+      0
+    );
+
+
+  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      780010,
+      780000,
+      'Справочники учета поступления скота',
+      'CattleRef',
+      'Tctl_frmReferences',
+      NULL,
+      0
+    );
+
+  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      780020,
+      780000,
+      'Справочник скота и мяса',
+      'CattleRefGood',
+      'Tctl_frmCattle',
+      NULL,
+      0
+    );
+
+  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      780030,
+      780000,
+      'Справочник поставщиков мяса',
+      'CattleRefClient',
+      'Tctl_frmClient',
+      NULL,
+      0
+    );
+
+  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      780040,
+      780000,
+      'Отвес-накладная',
+      'CattleInvoice',
+      'Tctl_frmCattlePurchasing',
+      NULL,
+      0
+    );
+
+  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      780050,
+      780000,
+      'Приемная квитанция',
+      'CattleReceipt',
+      'Tctl_frmCattleReceipt',
+      NULL,
+      0
+    );
+
+  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      780060,
+      780000,
+      'Транспортные тарифы',
+      'CattleTraffic',
+      'Tctl_frmTransportCoeff',
+      NULL,
+      0
+    );
+  */
+
+  /*  Склад  */
+
+/*  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      714030,
+      714000,
+      'Оборотка по аналитике',
+      '714030_17',
+      'TfrmProcessingAnalitics',
+      NULL,
+      0
+    );*/
+
+/*  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+    VALUES (
+      714040,
+      714000,
+      'Карта по аналитике',
+      '714040_17',
+      'Tgdv_frmMapOfAnalitic',
+      NULL,
+      0
+    );*/
+
+
+INSERT INTO GD_COMMAND
+  (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
+VALUES
+  (741101,'gdcField',0,740400,NULL,'Домены',250,NULL,'TgdcField',NULL,1,1,1,0,NULL);
+INSERT INTO GD_COMMAND
+  (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
+VALUES
+  (741102,'gdcTable',0,740400,NULL,'Таблицы',251,NULL,'TgdcTable',NULL,1,1,1,0,NULL);
+
+INSERT INTO GD_COMMAND
+  (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
+VALUES
+  (741103,'gdcView',0,740400,NULL,'Представления',252,NULL,'TgdcView',NULL,1,1,1,0,NULL);
+
+INSERT INTO GD_COMMAND
+  (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
+VALUES
+  (741104,'gdcStoredProc',0,740400,NULL,'Процедуры',253,NULL,'TgdcStoredProc',NULL,1,1,1,0,NULL);
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741105,740400,'Исключения','gdcExceptions',0,NULL,254,NULL,'TgdcException',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741106,740400,'Настройки','gdcSetting',0,NULL,80,NULL,'TgdcSetting',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741107,740400,'Генераторы','gdcGenerator',0,NULL,236,NULL,'TgdcGenerator',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741120,740400,'Внешние ключи','gdcFKManager',0,NULL,228,NULL,'TgdcFKManager',NULL,1,1,1,0,NULL);
+
+/* 799000 - 800000 Department */
+
+COMMIT;
+
+/* msg_box  */
+/* 450001 .. 500000 */
+INSERT INTO msg_box (id, parent, name) VALUES (450010, NULL, 'inbox');
+INSERT INTO msg_box (id, parent, name) VALUES (450020, NULL, 'outbox');
+INSERT INTO msg_box (id, parent, name) VALUES (450025, NULL, 'sent');
+INSERT INTO msg_box (id, parent, name) VALUES (450030, NULL, 'draft');
+INSERT INTO msg_box (id, parent, name) VALUES (450040, NULL, 'trash');
+
+
+/*
+ Константы для печати через отчета 2000000 - 3000000
+*/
+
+
+/* Банковские выпиские  */
+
+INSERT INTO rp_reportgroup (id, name, usergroupname)
+  VALUES (2000100, 'Банковская выписка', '2000100');
+
+INSERT INTO rp_reportgroup (id, name, usergroupname)
+  VALUES (2000101, 'Картотека', '2000101');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000500, NULL, 'Справочники', '2000500');
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000510, 2000500, 'Клиенты', '2000510');
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000520, 2000500, 'Товары', '2000520');
+
+
+/* Банк                */
+INSERT INTO rp_reportgroup (id, name, usergroupname)
+  VALUES (2000300, 'Банковские документы', '2000300');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000310, 2000300, 'Поручение на перевод валюты', '2000310');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000311, 2000300, 'Договор на продажу валюты', '2000311');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000312, 2000300, 'Поручение на продажу валюты', '2000312');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000313, 2000300, 'Реестр распределения валюты', '2000313');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000314, 2000300, 'Договор на покупку валюты', '2000314');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000315, 2000300, 'Контракт на конвертацию валют', '2000315');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000201, 2000300, 'Платежное поручение', '2000201');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000202, 2000300, 'Платежное требование', '2000202');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000203, 2000300, 'Платежное требование - поручение', '2000203');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000204, 2000300, 'Инкасовое распоряжение', '2000204');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000206, 2000300, 'Реестр чеков', '2000206');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000207, 2000300, 'Сводное платежное поручение', '2000207');
+
+  /*
+INSERT INTO rp_reportgroup (id, name, usergroupname)
+  VALUES (2000301, 'Платежная ведомость (скот)', '2000301');
+  */
+
+/* Бухгалтерия */
+
+INSERT INTO rp_reportgroup (id, name, usergroupname)
+  VALUES (2000600, 'Бухгалтерия ', '2000600');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000601, 2000600, 'План счетов', '2000601');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000602, 2000600, 'Остатки', '2000602');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000603, 2000600, 'Журнал хозяйственных операций', '2000603');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000604, 2000600, 'Типовые операции', '2000604');
+
+/* Скот */
+
+/*
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000700, NULL, 'Скот', '2000700');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000710, 2000700, 'Отвес накладная', '2000710');
+
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000720, 2000700, 'Приемная квитанция', '2000720');
+*/
+
+/* Планаваньне */
+
+
+/*
+INSERT INTO rp_reportgroup (id, parent, name, usergroupname)
+  VALUES (2000400, NULL, 'Планирование', '2000400');
+*/
+
+
+/*DEPARTAMENT 1009900..1010000*/
+
+/*1009501..1010000 Зарезервировано для Department */
+
+/*****************************************************************************/
+/*    Операции и проводки определенные по умолчанию                          */
+/*****************************************************************************/
+
+/*
+
+INSERT INTO GD_LISTTRTYPE (ID, NAME, DESCRIPTION)
+   VALUES(1000, 'Остатки', 'Операция для ввода остатков');
+
+*/
+
+COMMIT;
+
+/***********************************************************/
+/*     Корень глобальных макросов                          */
+/***********************************************************/
+
+INSERT INTO EVT_MACROSGROUP (ID, LB, RB, NAME, ISGLOBAL)
+  VALUES (1020001, 1, 2, 'Глобальные макросы', 1);
+
+/*Поле name должно будет удалено*/
+INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACROSGROUPKEY, PARENTINDEX, OBJECTNAME)
+  VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 1, 'APPLICATION');
+
+COMMIT;
+
+
