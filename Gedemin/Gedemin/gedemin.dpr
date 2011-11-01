@@ -280,7 +280,7 @@ uses
   IBSQLCache in '..\IBX\IBSQLCache.pas',
   dlgClassInfo_unit in '..\Property\dlgClassInfo_unit.pas' {dlgClassInfo},
   gdcUserGroup_dlgSetRights_unit in '..\GAdmin\gdcUserGroup_dlgSetRights_unit.pas' {gdcUserGroup_dlgSetRights},
-  gdDBImpExp_unit in '..\Common\gdDBImpExp_unit.pas',
+  gdDBImpExp_unit in '..\Common\gdDBImpExp_unit.pas',       
   prp_FunctionHistoryFrame_unit in '..\Property\prp_FunctionHistoryFrame_unit.pas' {prp_FunctionHistoryFrame: TFrame},
   prp_ScriptComparer_unit in '..\Property\prp_ScriptComparer_unit.pas' {prp_ScriptComparer},
   cmp_frmDataBaseCompare in '..\Property\cmp_frmDataBaseCompare.pas' {DataBaseCompare},

@@ -49,7 +49,8 @@ uses
   , gsModem
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
-  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form;
+  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form,
+  gd_WebServerControl_unit;
 
 type
   TwrpAnalyze = class(TwrpObject, IgsAnalyze)
@@ -3733,6 +3734,8 @@ type
     procedure Set_LinkFunctionLanguage(const Value: WideString); safecall;
     function  Get_Required: WordBool; safecall;
     procedure Set_Required(Value: WordBool); safecall;
+    function  Get_ValuesList: WideString; safecall;
+    procedure Set_ValuesList(const Value: WideString); safecall;
     procedure Assign_(const Source: IgsParamData); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
@@ -3763,6 +3766,15 @@ type
     procedure AddFormToggleItem(const AForm: IgsForm); safecall;
     function  GetFormToggleItem(const AForm: IgsForm): IgsTBCustomItem; safecall;
     function  GetFormToggleItemIndex(const AForm: IgsForm): Integer; safecall;
+  end;
+
+  TwrpGdWebServerControl = class(TwrpObject, IgdWebServerControl)
+  private
+    function GetWebServerControl: TgdWebServerControl;
+  protected
+    procedure RegisterOnGetEvent(const AComponent: IgsComponent; const AToken: WideString;
+                                 const AEventName: WideString); safecall;
+    procedure UnRegisterOnGetEvent(const AComponent: IgsComponent); safecall;
   end;
 
 implementation
@@ -18040,6 +18052,16 @@ begin
   Result := GetObject as TgsParamData;
 end;
 
+function TwrpGsParamData.Get_ValuesList: WideString;
+begin
+  Result := GetParamData.ValuesList;
+end;
+
+procedure TwrpGsParamData.Set_ValuesList(const Value: WideString);
+begin
+  GetParamData.ValuesList := Value;
+end;
+
 procedure TwrpGsParamData.Assign_(const Source: IgsParamData);
 begin
   GetParamData.Assign(InterfaceToObject(Source) as TgsParamData);
@@ -18125,6 +18147,24 @@ end;
 procedure TwrpGdc_frmInvCard.Set_DateEnd(Value: TDateTime);
 begin
   GetGdc_frmInvCard.gsPeriodEdit.EndDate := Value;
+end;
+
+{ TwrpGdWebServerControl }
+
+function TwrpGdWebServerControl.GetWebServerControl: TgdWebServerControl;
+begin
+  Result := TgdWebServerControl.GetInstance;
+end;
+
+procedure TwrpGdWebServerControl.RegisterOnGetEvent(const AComponent: IgsComponent;
+  const AToken: WideString; const AEventName: WideString);
+begin
+  GetWebServerControl.RegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent, AToken, AEventName);
+end;
+
+procedure TwrpGdWebServerControl.UnRegisterOnGetEvent(const AComponent: IgsComponent);
+begin
+  GetWebServerControl.UnRegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent)
 end;
 
 initialization
@@ -18364,4 +18404,6 @@ initialization
   RegisterGdcOLEClass(TgsParamData, TwrpGsParamData, ComServer.TypeLib, IID_IgsParamData);
 
   RegisterGdcOLEClass(TfrmGedeminMain, TwrpGsFrmGedeminMain, ComServer.TypeLib, IID_IgsFrmGedeminMain);
+
+  RegisterGdcOLEClass(TgdWebServerControl, TwrpGdWebServerControl, ComServer.TypeLib, IID_IgdWebServerControl);
 end.

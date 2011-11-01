@@ -102,7 +102,7 @@ uses
 const
   cFunctionName = 'ReportScriptFunction%s';
   cReportImage = 15;
-  
+
 procedure Register;
 begin
   RegisterComponents('gdc', [TgdcReportGroup]);
@@ -424,7 +424,7 @@ begin
   {END MACRO}
 
   Result := Tgdc_dlgReportGroup.Create(ParentForm);
-  
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORTGROUP', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -631,7 +631,7 @@ begin
     Result := ' ORDER BY z.lb, z.name'
   else
     Result := inherited GetOrderClause;
-    
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORTGROUP', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -986,7 +986,9 @@ begin
   inherited;
 
   if HasSubSet(ssReportGroup) then
-    S.Add(' z.reportgroupkey = :reportgroupkey')
+  begin
+    S.Add(' z.reportgroupkey = :reportgroupkey');
+  end
   else if HasSubSet(ssWithSubGroup) then
   begin
     S.Add(' mg1.id = :id ');
@@ -1152,7 +1154,7 @@ begin
     Result := Format('SELECT id FROM rp_reportlist ' +
       ' WHERE UPPER(name)=''%s'' AND reportgroupkey = %d',
       [AnsiUpperCase(FieldByName('name').AsString), FieldByName('reportgroupkey').AsInteger]);
-      
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

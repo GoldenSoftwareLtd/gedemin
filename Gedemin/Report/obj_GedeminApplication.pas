@@ -28,7 +28,7 @@ interface
 
 uses
   ComObj, Gedemin_TLB, dmDatabase_unit, dmLogin_unit,  obj_Designer,
-  evt_Base, evt_i_Base, ibsql, TypInfo;
+  evt_Base, evt_i_Base, ibsql, TypInfo, gd_WebServerControl_unit;
 
 type
   TgsGedeminApplication = class(TAutoObject, IGedeminApplication)
@@ -53,6 +53,7 @@ type
     FIBLogin: IgsBoLogin;
     FgdcBaseManager: IgsGdcBaseManager;
     FatDatabase: IgsAtDatabase;
+    FgdWebServerControl: IgdWebServerControl;
 
     // ”казывает можно ли подключатьс€ к базе,
     // т.е. созданы ли главные модули
@@ -111,6 +112,7 @@ type
 
     function  Get_Exception: IgsException; safecall;
     function  Get_nil_: IgsObject; safecall;
+    function  Get_WebServerControl: IgdWebServerControl; safecall;
 
     function  NewObject(const VBClassName: WideString): IDispatch; safecall;
     function  GlobalConst(const ConstName: WideString): OleVariant; safecall;
@@ -170,6 +172,7 @@ type
     function GetGSFunction: IgsGSFunction;
     function GetatDatabase: IgsAtDatabase;
     function GetFinallyObject: IFinallyObject;
+    function GetWebServerControl: IgdWebServerControl;
 
 //    procedure FreeAllDesignerObject;
 
@@ -484,6 +487,7 @@ begin
   FIBLogin := nil;
   FgdcBaseManager := nil;
   FatDatabase := nil;
+  FgdWebServerControl := nil;
 //  IGSFunction := nil;
 
 
@@ -522,6 +526,8 @@ begin
   FGlobalStorage := GetGdcOLEObject(GlobalStorage) as IgsGsGlobalStorage;
   FUserStorage := GetGdcOLEObject(UserStorage) as IgsGsUserStorage;
   FIBLogin := TgsIBLogin.Create;
+
+  FgdWebServerControl := GetGdcOLEObject(TgdWebServerControl.GetInstance) as IgdWebServerControl;
 end;
 
 {function TgsGedeminApplication.CreateObject(const Owner: IgsObject;
@@ -938,6 +944,16 @@ end;
 function TgsGedeminApplication.Get_DelphiObject: Integer;
 begin
   Result := Get_Self;
+end;
+
+function TgsGedeminApplication.GetWebServerControl: IgdWebServerControl;
+begin
+  Result := FgdWebServerControl;
+end;
+
+function TgsGedeminApplication.Get_WebServerControl: IgdWebServerControl;
+begin
+  Result := GetWebServerControl;
 end;
 
 procedure TgsGedeminApplication.SetEventHandler(

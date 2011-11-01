@@ -9,6 +9,8 @@ unit flt_frmSQLEditorSyn_unit;
 
 interface
 
+{$I '..\FastReport 4\Source\tee.inc'}
+
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   IBDatabaseInfo, Db, IBSQL, IBDatabase, IBCustomDataSet, IBQuery, CheckLst,

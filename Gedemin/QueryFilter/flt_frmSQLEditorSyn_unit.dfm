@@ -1,6 +1,6 @@
 object frmSQLEditorSyn: TfrmSQLEditorSyn
-  Left = 296
-  Top = 267
+  Left = 330
+  Top = 151
   Width = 871
   Height = 556
   HelpContext = 121
@@ -619,7 +619,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Left = 0
               Top = 0
               Width = 184
-              Height = 386
+              Height = 375
               Align = alLeft
               BevelOuter = bvNone
               TabOrder = 0
@@ -828,8 +828,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             object lvReads: TListView
               Left = 184
               Top = 0
-              Width = 655
-              Height = 386
+              Width = 647
+              Height = 375
               Align = alClient
               Columns = <
                 item
@@ -970,7 +970,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object Panel3: TPanel
           Left = 0
           Top = 0
-          Width = 839
+          Width = 831
           Height = 18
           Align = alTop
           Alignment = taLeftJustify
@@ -987,8 +987,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object chlbTransactionParams: TCheckListBox
           Left = 0
           Top = 18
-          Width = 839
-          Height = 417
+          Width = 831
+          Height = 406
           Align = alClient
           ItemHeight = 13
           Sorted = True
