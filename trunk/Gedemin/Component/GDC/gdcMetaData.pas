@@ -112,6 +112,8 @@ type
 
     function GetDialogDefaultsFields: String; override;
 
+    function GetAutoObjectsNames(SL: TStrings): Boolean; virtual;
+
     property IsUserDefined: Boolean read GetIsUserDefined;
     property IsSystemObject: Boolean read GetIsSystemObject;
     property RelationName: String read GetRelationName;
@@ -396,6 +398,7 @@ type
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     procedure MakePredefinedRelationFields; override;
+    function GetAutoObjectsNames(SL: TStrings): Boolean; override;
   end;
 
   TgdcView = class(TgdcRelation)
@@ -7402,6 +7405,27 @@ begin
   end;
 end;
 
+function TgdcLBRBTreeTable.GetAutoObjectsNames(SL: TStrings): Boolean;
+var
+  LBRBTree: TLBRBTreeMetaNames;
+begin
+  inherited GetAutoObjectsNames(SL);
+
+  GetLBRBTreeDependentNames(FieldByName('relationname').AsString, Transaction, LBRBTree);
+
+  SL.Add(LBRBTree.ChldCtName);
+  SL.Add(LBRBTree.ExLimName);
+  SL.Add(LBRBTree.RestrName);
+  SL.Add(LBRBTree.ExceptName);
+  SL.Add(LBRBTree.BITriggerName);
+  SL.Add(LBRBTree.BUTriggerName);
+  SL.Add(LBRBTree.LBIndexName);
+  SL.Add(LBRBTree.RBIndexName);
+  SL.Add(LBRBTree.ChkName);
+
+  Result := True;
+end;
+
 { TgdcMetaBase }
 
 function TgdcMetaBase.CheckTheSameStatement: String;
@@ -7552,6 +7576,11 @@ begin
   {END MACRO}
 end;
 
+function TgdcMetaBase.GetAutoObjectsNames(SL: TStrings): Boolean;
+begin
+  Result := False;
+end;
+
 function TgdcMetaBase.GetCanCreate: Boolean;
 begin
   Assert(IBLogin <> nil);
@@ -7628,7 +7657,7 @@ end;
 
 function TgdcMetaBase.GetIsUserDefined: Boolean;
 begin
-  Result := StrIPos(UserPrefix, ObjectName) = 1;
+  Result := (not IsSystemObject) and (StrIPos(UserPrefix, ObjectName) = 1);
 end;
 
 function TgdcMetaBase.GetRelationName: String;

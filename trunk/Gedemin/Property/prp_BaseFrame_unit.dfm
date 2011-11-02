@@ -1,8 +1,8 @@
 object BaseFrame: TBaseFrame
   Left = 0
   Top = 0
-  Width = 443
-  Height = 270
+  Width = 435
+  Height = 266
   Align = alClient
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -17,8 +17,8 @@ object BaseFrame: TBaseFrame
   object PageControl: TSuperPageControl
     Left = 0
     Top = 0
-    Width = 443
-    Height = 270
+    Width = 435
+    Height = 266
     BorderStyle = bsNone
     TabsVisible = True
     ActivePage = tsProperty
@@ -32,15 +32,15 @@ object BaseFrame: TBaseFrame
       object TBDock1: TTBDock
         Left = 0
         Top = 0
-        Width = 439
+        Width = 431
         Height = 9
         BoundLines = [blTop, blBottom, blLeft, blRight]
       end
       object pMain: TPanel
         Left = 0
         Top = 9
-        Width = 439
-        Height = 234
+        Width = 431
+        Height = 230
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
