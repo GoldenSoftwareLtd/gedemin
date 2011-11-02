@@ -160,7 +160,7 @@ begin
     ibqryFind.Next;
   end;
 
-  if (not FIsTree) and (FSortField = '') and (FSortOrder = '') then
+  if FIsTree or ((FSortField = '') and (FSortOrder = '')) then
     tvAttrSet.AlphaSort;
 end;
 

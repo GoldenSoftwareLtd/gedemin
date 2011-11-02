@@ -1051,7 +1051,7 @@ end;
 
 procedure TBaseFrame.actAddToSettingUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled := MasterObject.State = dsEdit;
+  TAction(Sender).Enabled := (MasterObject <> nil) and (MasterObject.State = dsEdit);
 end;
 
 procedure TBaseFrame.AlignControls(AControl: TControl; var Rect: TRect);
