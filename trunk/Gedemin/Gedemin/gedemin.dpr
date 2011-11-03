@@ -23,6 +23,7 @@ uses
   SysUtils,
   gd_directories_const,
   Dialogs,
+  Registry,
   IBIntf,
   IBServices,
   gdcInvDocumentCache_body,
@@ -465,12 +466,46 @@ begin
     Result := True;
 end;
 
+function CheckMIDASRegistered: Boolean;
+var
+  Reg: TRegistry;
+  FN: String;
+begin
+  Result := True;
+  Reg := TRegistry.Create(KEY_READ);
+  try
+    Reg.RootKey := HKEY_CLASSES_ROOT;
+
+    if Reg.OpenKeyReadOnly('CLSID\' + MIDAS_GUID + '\InProcServer32')
+      and (Reg.GetDataType('') = rdString) and (Reg.ReadString('') > '') then
+    begin
+      FN := Reg.ReadString('');
+
+      if not FileExists(FN) then
+      begin
+        MessageBox(0,
+          PChar('Библиотека ' + FN + #13#10 +
+          'зарегистрирована в реестре, но отсутствует на диске!'#13#10#13#10 +
+          'Удалите из реестра все элементы, относящиеся к MIDAS.DLL'),
+          'Внимание',
+          MB_OK or MB_ICONHAND or MB_TASKMODAL);
+        Result := False;
+      end;
+    end;
+  finally
+    Reg.Free;
+  end;
+end;
+
 var
   DC: HDC;
   ApplicationEventsHandler: TgdApplicationEventsHandler;
   FApplicationEvents: TApplicationEvents;
 
 begin
+  if not CheckMIDASRegistered then
+    exit;
+
   if not CheckRequiredFiles then
     exit;
 

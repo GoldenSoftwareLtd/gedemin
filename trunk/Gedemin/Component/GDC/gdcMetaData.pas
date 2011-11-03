@@ -6271,8 +6271,7 @@ begin
   {END MACRO}
 
   //ѕроверим на дублирование наименовани€ пол€
-  if (State = dsInsert) and (not CheckFieldName)
-  then
+  if (State = dsInsert) and (not CheckFieldName) then
   begin
     FieldByName('fieldname').FocusControl;
     raise EgdcIBError.Create('Ќазвание пол€ дублируетс€ с уже существующим!');
