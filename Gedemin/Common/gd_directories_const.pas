@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Module
 
@@ -218,6 +218,10 @@ const
   st_root_User                    = 'USER';
   //Хранилище компании
   st_root_Company                 = 'COMPANY';
+
+  // по этим гуидам мы ищем библиотеки в реестре
+  MIDAS_GUID                      = '{9E8D2FA1-591C-11D0-BF52-0020AF32BD64}';
+  GSDBQUERY_GUID                  = '{7C916B87-94DF-4712-A5AC-10C971C7E160}';
 
 function IsGedeminSystemID(const AnID: Integer): Boolean;
 function IsGedeminNonSystemID(const AnID: Integer): Boolean;

@@ -49,6 +49,7 @@ implementation
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
+  gd_directories_const,
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version;
 
@@ -274,6 +275,7 @@ begin
   AddSpaces('Версия ОС', GetOS);
   AddSpaces('Имя файла', ExtractFileName(Application.EXEName));
   AddSpaces('Расположение', ExtractFilePath(Application.EXEName));
+  AddSpaces('Дата файла', FormatDateTime('dd.mm.yyyy', FileDateToDateTime(FileAge(Application.EXEName))));
   if VersionResourceAvailable(Application.EXEName) then
     with TjclFileVersionInfo.Create(Application.EXEName) do
     try
@@ -335,8 +337,8 @@ begin
   {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
-  AddComLibrary('{9E8D2FA1-591C-11D0-BF52-0020AF32BD64}', 'MIDAS.DLL');
-  AddComLibrary('{7C916B87-94DF-4712-A5AC-10C971C7E160}', 'GSDBQUERY.DLL');
+  AddComLibrary(MIDAS_GUID, 'MIDAS.DLL');
+  AddComLibrary(GSDBQUERY_GUID, 'GSDBQUERY.DLL');
 
   AddSection('Жесткие диски');
   for DriveLetter := 'C' to 'Z' do

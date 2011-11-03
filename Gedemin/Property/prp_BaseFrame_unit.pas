@@ -633,17 +633,20 @@ end;
 destructor TBaseFrame.Destroy;
 begin
   FramsList.Remove(Self);
+
   DoOnDestroy;
-  if MasterObject.Active then
+
+  if Assigned(MasterObject) and MasterObject.Active then
     MasterObject.Close;
 
   if FSpeedButton <> nil then
     FSpeedButton := nil;
 
   if Assigned(CustomTreeItem) then
+  begin
     CustomTreeItem.EditorFrame := nil;
-
-  CustomTreeItem := nil;
+    CustomTreeItem := nil;
+  end;
   
   if Assigned(FEvaluate) then
     FEvaluate.Free;

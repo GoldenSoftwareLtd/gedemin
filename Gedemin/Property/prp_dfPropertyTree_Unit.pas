@@ -1532,12 +1532,15 @@ begin
     TN.Data := VBI;
     TN.Selected := True;
     tvClassesDblClick(ActiveTree);
-    try
-      TBaseFrame(VBI.EditorFrame).Post;
-      Result := VBI;
-    except
+    if VBI.EditorFrame is TBaseFrame then
+      try
+        TBaseFrame(VBI.EditorFrame).Post;
+        Result := VBI;
+      except
+        //
+      end;
+    if Result = nil then
       TN.Delete;
-    end;
     EventControl.UpdateReportGroup;
   end;
 end;
