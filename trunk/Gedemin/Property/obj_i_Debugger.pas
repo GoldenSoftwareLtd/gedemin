@@ -539,6 +539,7 @@ begin
         varEmpty: Result := Result + VarEmptyToStr(Variant(P^));
         varNull: Result := Result + VarNullToStr(Variant(P^));
         varBoolean: Result := Result + VarBooleanToStr(Variant(P^));
+        varArray + varVariant: VarArrayToStr(Variant(P^));
       else
         Result := Result + VarToStr(Variant(P^));
       end;
