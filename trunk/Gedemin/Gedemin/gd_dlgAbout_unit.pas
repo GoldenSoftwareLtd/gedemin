@@ -337,7 +337,7 @@ begin
   {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
-  AddComLibrary(MIDAS_GUID, 'MIDAS.DLL');
+  AddComLibrary(MIDAS_GUID1, 'MIDAS.DLL');
   AddComLibrary(GSDBQUERY_GUID, 'GSDBQUERY.DLL');
 
   AddSection('Жесткие диски');
