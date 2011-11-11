@@ -13,6 +13,7 @@ uses
   {$IFDEF EXCMAGIC_GEDEMIN}
   ExcMagic_Gedemin,
   {$ENDIF}
+  Classes,
   Forms,
   gd_main_form in 'gd_main_form.pas' {frmGedeminMain},
   dmDataBase_unit in '..\GAdmin\dmDataBase_unit.pas' {dmDatabase: TDataModule},
@@ -467,6 +468,31 @@ begin
 end;
 
 function CheckMIDASRegistered: Boolean;
+
+  procedure DeleteKey(const K: String);
+  var
+    SL: TStrings;
+    R: TRegistry;
+    I: Integer;
+  begin
+    R := TRegistry.Create(KEY_ALL_ACCESS);
+    SL := TStringList.Create;
+    try
+      R.RootKey := HKEY_CLASSES_ROOT;
+      if R.OpenKey(K, False) then
+      begin
+        R.GetKeyNames(SL);
+        for I := 0 to SL.Count - 1 do
+          DeleteKey(K + '\' + SL[I]);
+        R.CloseKey;
+        R.DeleteKey(K);
+      end;
+    finally
+      SL.Free;
+      R.Free;
+    end;
+  end;
+
 var
   Reg: TRegistry;
   FN: String;
@@ -476,19 +502,39 @@ begin
   try
     Reg.RootKey := HKEY_CLASSES_ROOT;
 
-    if Reg.OpenKeyReadOnly('CLSID\' + MIDAS_GUID + '\InProcServer32')
+    if Reg.OpenKeyReadOnly('CLSID\' + MIDAS_GUID1 + '\InProcServer32')
       and (Reg.GetDataType('') = rdString) and (Reg.ReadString('') > '') then
     begin
       FN := Reg.ReadString('');
 
       if not FileExists(FN) then
       begin
-        MessageBox(0,
+        if MessageBox(0,
           PChar('Библиотека ' + FN + #13#10 +
           'зарегистрирована в реестре, но отсутствует на диске!'#13#10#13#10 +
-          'Удалите из реестра все элементы, относящиеся к MIDAS.DLL'),
+          'Удалить из реестра все элементы, относящиеся к MIDAS.DLL?'),
           'Внимание',
-          MB_OK or MB_ICONHAND or MB_TASKMODAL);
+          MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+        begin
+          Reg.CloseKey;
+          try
+            Reg.Access := KEY_ALL_ACCESS;
+            DeleteKey('TypeLib\' + MIDAS_TYPELIB_GUID);
+            DeleteKey('CLSID\' + MIDAS_GUID1);
+            DeleteKey('CLSID\' + MIDAS_GUID2);
+            DeleteKey('CLSID\' + MIDAS_GUID3);
+            DeleteKey('CLSID\' + MIDAS_GUID4);
+            MessageBox(0,
+              'Для продолжения работы перезапустите программу.',
+              'Внимание',
+            MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+          except
+            MessageBox(0,
+              'Для изменения реестра необходимы права администратора на компьютере!',
+              'Внимание',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL);
+          end;
+        end;
         Result := False;
       end;
     end;
