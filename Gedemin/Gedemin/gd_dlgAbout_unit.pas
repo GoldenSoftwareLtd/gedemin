@@ -447,6 +447,7 @@ begin
 
       AddSection('Библиотека ' + ExtractFileName(Ch));
       AddSpaces('Имя файла', Ch);
+      AddSpaces('Дата файла', FormatDateTime('dd.mm.yyyy', FileDateToDateTime(FileAge(Ch))));
 
       if VersionResourceAvailable(Ch) then
         with TjclFileVersionInfo.Create(Ch) do
@@ -490,6 +491,7 @@ var
   Reg: TRegistry;
   FN: String;
   Flag: Boolean;
+  FAge: Integer;
 begin
   Flag := False;
 
@@ -506,6 +508,10 @@ begin
       if FileExists(FN) then
       begin
         AddSpaces('Имя файла', FN);
+
+        FAge := FileAge(FN);
+        if FAge > -1 then
+          AddSpaces('Дата файла', FormatDateTime('dd.mm.yyyy', FileDateToDateTime(FAge)));
 
         if VersionResourceAvailable(FN) then
           with TjclFileVersionInfo.Create(FN) do
