@@ -14947,7 +14947,7 @@ begin
               and (Field.FieldName = 'DOCUMENTDATE')) then
           begin
             if not TestUserRights([tiAFull]) then
-              raise EgdcUserHaventRights.CreateObj('Нет прав для изменения поля ' + Field.DisplayName + '.',
+              raise EgdcUserHaventRights.CreateObj('Для изменения поля ' + Field.DisplayName + ' необходимы полные права доступа.',
                 Self);
           end;
         end;
