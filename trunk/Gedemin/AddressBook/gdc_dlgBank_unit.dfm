@@ -145,20 +145,6 @@ inherited gdc_dlgBank: Tgdc_dlgBank
         TabOrder = 14
       end
     end
-    inherited TabSheet3: TTabSheet
-      inherited gsiblkupAddress: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsIBlcHeadCompany: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsiblkupChiefAccountant: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-      inherited gsiblkupDirector: TgsIBLookupComboBox
-        ItemHeight = 13
-      end
-    end
   end
   inherited alBase: TActionList
     Left = 255

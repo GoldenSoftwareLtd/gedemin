@@ -778,7 +778,6 @@ inherited gdc_dlgCustomCompany: Tgdc_dlgCustomCompany
     end
   end
   inherited alBase: TActionList
-    Images = dmImages.il16x16
     Left = 159
     Top = 206
     object actAddAccount: TAction [8]
