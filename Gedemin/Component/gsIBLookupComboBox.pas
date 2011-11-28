@@ -615,10 +615,10 @@ begin
         SelectCondition := Format(' (%0:s = ''%1:s'') ', [FieldWithAlias(FListField), Text]);
       stLike:
         SelectCondition := Format('(UPPER(%0:s) LIKE ''%%%1:s%%'') ',
-          [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Text))]);
+          [FieldWithAlias(FListField), AnsiUpperCase(ConvertDate(Text))]);
       stSimilarTo:
         SelectCondition := Format('(UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
-          [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Text))]);
+          [FieldWithAlias(FListField), AnsiUpperCase(ConvertDate(Text))]);
     end;
 
     if FFields > '' then
@@ -634,10 +634,10 @@ begin
                 [SelectCondition, FieldWithAlias(Trim(SL[J])), Text]);
             stLike:
               SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) LIKE ''%%%s%%'') ',
-                [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Text))]);
+                [SelectCondition, FieldWithAlias(Trim(SL[J])), AnsiUpperCase(ConvertDate(Text))]);
             stSimilarTo:
               SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) SIMILAR TO ''%%%s%%'') ',
-                [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Text))]);
+                [SelectCondition, FieldWithAlias(Trim(SL[J])), AnsiUpperCase(ConvertDate(Text))]);
           end;
         end;
       finally
@@ -1429,7 +1429,7 @@ begin
       if Match > '' then
       begin
         SelectCondition := Format(' (UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
-          [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Match))]);
+          [FieldWithAlias(FListField), AnsiUpperCase(ConvertDate(Match))]);
 
         if FFields > '' then
         begin
@@ -1438,7 +1438,7 @@ begin
             ParseFieldsString(FFields, SL);
             for J := 0 to SL.Count - 1 do
               SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) SIMILAR TO ''%%%s%%'') ',
-                [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Match))])
+                [SelectCondition, FieldWithAlias(Trim(SL[J])), AnsiUpperCase(ConvertDate(Match))])
           finally
             SL.Free;
           end;

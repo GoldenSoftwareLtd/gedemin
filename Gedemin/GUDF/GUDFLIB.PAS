@@ -65,7 +65,7 @@ const                               // Date translation constants
 implementation
 
 uses
-  JclStrings, FindCompare, GsHugeIntSet, syncobjs, gsStorageLink;
+  JclStrings, FindCompare, GsHugeIntSet, syncobjs, gsStorageLink, gsListOfLists;
 
 const
   SmallNumber        = 0.0000000000001;
@@ -74,7 +74,7 @@ const
 var
   arrHugeIntSet: array[0..HugeIntSetMaxCount - 1] of TgsHugeIntSet;
   csHugeIntSet: TCriticalSection;
-  StorageID: TgsStorageID;
+  StorageID: TgsStorageID; 
 
 
 (*
@@ -1162,7 +1162,7 @@ begin
   end;
 end;
 
-function g_his_create(var AnIndex: Integer): Integer;
+function g_his_create(var AnIndex: Integer; var ASize: Integer): Integer;
   cdecl; export;
 var
   I: Integer;
@@ -1172,7 +1172,7 @@ begin
   try
     if arrHugeIntSet[AnIndex] = nil then
     begin
-      arrHugeIntSet[AnIndex] := TgsHugeIntSet.Create(PChar(IntToSTr(AnIndex)));
+      arrHugeIntSet[AnIndex] := TgsHugeIntSet.Create(PChar(IntToSTr(AnIndex)), (ASize - 147000000) div 8 + 1, 147000000);
       Result := 1;
     end;
     {for I := 0 to HugeIntSetMaxCount - 1 do
@@ -1204,7 +1204,7 @@ function g_his_include(var AnIndex: Integer; var AnElement: Integer): Integer;
   cdecl; export;
 begin
   Result := 0;
-  if arrHugeIntSet[AnIndex] <> nil then
+  if (AnElement >= 147000000) and (arrHugeIntSet[AnIndex] <> nil) then
   begin
     arrHugeIntSet[AnIndex].Include(AnElement);
     Result := 1;
@@ -1216,12 +1216,22 @@ function g_his_has(var AnIndex: Integer; var AnElement: Integer): Integer;
 begin
   if arrHugeIntSet[AnIndex] <> nil then
   begin
-    if arrHugeIntSet[AnIndex].Has(AnElement) then
+    if (AnElement < 147000000) or (arrHugeIntSet[AnIndex].Has(AnElement)) then
       Result := 1
     else
       Result := 0;
   end else
     Result := 0;
+end;
+
+function g_his_count(var AnIndex: Integer): Integer;
+  cdecl; export;
+begin
+  Result := 0;
+  if arrHugeIntSet[AnIndex] <> nil then
+  begin
+    Result := arrHugeIntSet[AnIndex].Count;
+  end;
 end;
 
 function g_his_destroy(var AnIndex: Integer): Integer;
@@ -1262,6 +1272,17 @@ begin
   end;
 end;
 
+function g_storage_includeID2(var AnItem, AnElement: Cardinal): Integer;
+  cdecl; export;
+begin
+  Result := 0;
+  if StorageID <> nil then
+  begin
+    StorageID.IncludeID2(AnItem, AnElement);
+    Result := 1;
+  end;
+end;
+
 function g_storage_getlink(var AnElement: Cardinal): PChar;
   cdecl; export;
 begin
@@ -1282,6 +1303,17 @@ begin
   end;
 end;
 
+function g_storage_SetStorage_ID: Integer;
+  cdecl; export;
+begin
+  Result := 0;
+  if StorageID <> nil then
+  begin
+    StorageID.SetStorage_ID;
+    Result := 1;
+  end;
+end;
+
 function g_storage_destroy: integer;
   cdecl; export;
 begin
@@ -1289,13 +1321,14 @@ begin
     FreeAndNil(StorageID);
 end;
 
-
 exports
   g_storage_create,
   g_storage_includeID, 
   g_storage_destroy,
   g_storage_getlink,
   g_storage_add,
+  g_storage_includeID2,
+  g_storage_SetStorage_ID,
 
   g_sec_test,
   g_sec_testall,
@@ -1360,6 +1393,7 @@ exports
   g_his_include,
   g_his_exclude,
   g_his_destroy,
+  g_his_count,
 
   g_blob_info,
   g_blob_size,

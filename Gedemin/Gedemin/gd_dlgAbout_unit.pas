@@ -49,7 +49,7 @@ implementation
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
-  gd_directories_const,
+  gd_directories_const, IBSQL,
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version;
 
@@ -233,6 +233,7 @@ var
   WSAData: TWSAData;
   CompName: array[0..$FF] of Char;
   DriveLetter: Char;
+  q: TIBSQL;
 begin
   mSysData.ClearAll;
 
@@ -249,7 +250,7 @@ begin
         AddSpaces('Имя компьютера/порт',  IBLogin.ServerName);
         AddSpaces('IP сервера',  HostToIP(IBLogin.ServerName));
       end;
-      AddBoolean('Встроенный сервер',  IBLogin.ServerName = '');
+      //AddBoolean('Встроенный сервер',  IBLogin.ServerName = '');
       AddSpaces('Имя файла БД',  DBFileName);
       AddSpaces('ODS версия',  IntToStr(ODSMajorVersion) + '.' + IntToStr(ODSMinorVersion));
       AddSpaces('Размер страницы',  IntToStr(PageSize));
@@ -413,6 +414,47 @@ begin
   end;
 
   FillTempFiles;
+
+  if Assigned(IBLogin) and IBLogin.LoggedIn and Assigned(gdcBaseManager) then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT * FROM mon$database';
+      q.ExecQuery;
+      if not q.EOF then
+      begin
+        AddSection('MON$DATABASE');
+        for I := 0 to q.Current.Count - 1 do
+          AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+      end;
+
+      q.Close;
+      q.SQL.Text := 'SELECT * FROM mon$attachments WHERE mon$attachment_id=CURRENT_CONNECTION';
+      q.ExecQuery;
+      if not q.EOF then
+      begin
+        AddSection('Текущее подключение из MON$ATTACHMENTS');
+        for I := 0 to q.Current.Count - 1 do
+          AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+      end;
+
+      q.Close;
+      q.SQL.Text :=
+        'SELECT u.name as username, a.* FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+        'WHERE mon$attachment_id<>CURRENT_CONNECTION';
+      q.ExecQuery;
+      while not q.EOF do
+      begin
+        AddSection(q.FieldByName('username').AsTrimString);
+        for I := 0 to q.Current.Count - 1 do
+          AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+        q.Next;
+      end;
+    finally
+      q.Free;
+    end;
+  end;
 
   mSysData.SelStart := 0;
 end;
