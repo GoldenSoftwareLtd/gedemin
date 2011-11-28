@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001-2009 by Golden Software of Belarus
+  Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
 
@@ -41,9 +41,26 @@ uses
 
 type
   TgdcOnCustomTable = procedure (Sender: TObject; Scripts: TStringList) of object;
-  TgdcTableType = (ttUnknow, ttSimpleTable, ttTree, ttIntervalTree, ttCustomTable,
-    ttDocument, ttDocumentLine, ttInvSimple, ttInvFeature, ttInvInvent, ttInvTransfrom,
-    ttTableToTable, ttPrimeTable);
+
+  TgdcTableType = (
+    ttUnknow,
+    ttSimpleTable,
+    ttTree,
+    ttIntervalTree,
+    ttCustomTable,
+    ttDocument,
+    ttDocumentLine,
+    ttInvSimple,
+    ttInvFeature,
+    ttInvInvent,
+    ttInvTransfrom,
+    ttTableToTable,
+    ttPrimeTable);
+
+  TgdcTablePersistence = (
+    tpRegular,
+    tpGTTConnection,
+    tpGTTTransaction);  
 
 const
   gdcUserTablesBranchKey = 710000;
@@ -196,10 +213,6 @@ type
     function GetSelectClause: String; override;
     function CreateDialogForm: TCreateableForm; override;
 
-{    function DoesExplorerCommandExist: Boolean;
-    procedure CreateExplorerCommand;
-    procedure DeleteExplorerCommand;    }
-
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomDelete(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
@@ -241,7 +254,6 @@ type
     procedure TestRelationName;
 
     class function IsAbstractClass: Boolean; override;
-
   end;
 
   TgdcBaseTable = class(TgdcRelation)
@@ -301,7 +313,7 @@ type
       write FOnCustomTable;
   end;
 
-  //используется для работы с кросс-таблицами при загрузки их из потока
+  //используется для работы с кросс-таблицами при загрузке их из потока
   TgdcUnknownTable = class(TgdcBaseTable)
   private
     function CreateUnknownTable: String;
@@ -2478,16 +2490,6 @@ begin
   {END MACRO}
 
   inherited;
-
-{  if ((TableType <> ttCustomTable) and (TableType <> ttUnknow))
-    or (AnsiUpperCase(FieldByName('relationtype').AsString) = 'V')
-  then
-  begin
-    if FieldByName('branchkey').AsInteger > 0 then
-      CreateExplorerCommand
-    else
-      DeleteExplorerCommand;
-  end;}
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally

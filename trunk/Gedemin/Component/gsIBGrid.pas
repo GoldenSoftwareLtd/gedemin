@@ -3243,7 +3243,6 @@ begin
   else
     DistinctStr := '';
 
-(* g_s_ansiuppercase *)
   if Grid.InplaceEditor.Text > '' then
   begin
     S := Format('SELECT %4:s %0:s, %1:s %2:s FROM %3:s WHERE',
@@ -3259,7 +3258,7 @@ begin
       else
         SelectCondition := Format('(upper(%0:s) LIKE ''%%%1:s%%'') ',
           [FLookup.FieldWithAlias(FLookup.LookupListField),
-          _AnsiUpperCase(Grid.InplaceEditor.Text)]);
+          AnsiUpperCase(Grid.InplaceEditor.Text)]);
 
     if FLookup.FFields > '' then
     begin
@@ -3451,7 +3450,6 @@ begin
 
     if FLookup.IsTree then
       StrFields := StrFields + ', ' + FLookup.FieldWithAlias(FLookup.ParentField);
-(* g_s_ansiuppercase *)
 
     if FLookup.FDistinct then
       DistinctStr := 'DISTINCT'
@@ -3464,7 +3462,7 @@ begin
       if FListFieldIsBlob then
         S := S + Format(' WHERE (upper(SUBSTRING(%0:s FROM 1 FOR CHAR_LENGTH(%0:s))) LIKE ''%%''|| ''%1:s'' || ''%%'') ', [FLookup.FieldWithAlias(FLookup.LookupListField), AnsiUpperCase(Match)])
       else
-        S := S + Format(' WHERE (UPPER(%0:s) LIKE ''%%%1:s%%'') ', [FLookup.FieldWithAlias(FLookup.LookupListField), _AnsiUpperCase(Match)]);
+        S := S + Format(' WHERE (UPPER(%0:s) LIKE ''%%%1:s%%'') ', [FLookup.FieldWithAlias(FLookup.LookupListField), AnsiUpperCase(Match)]);
 
     if Trim(FullCondition) > '' then
       if Pos('WHERE ', S) = 0 then

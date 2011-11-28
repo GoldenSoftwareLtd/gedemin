@@ -23,8 +23,6 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetOrderClause: String; override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
     // настроим поля. В частности, надо снять с поля КонтактНэйм
     // флаг Обязательного наличия
     procedure CreateFields; override;
@@ -100,6 +98,7 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     // функция проверяет наличие на сервере указанного пользователя
     class function CheckIBUser(const AUser, APassw: String): Boolean; overload;
@@ -135,8 +134,6 @@ type
     function GetGroupClause: String; override;
     function GetOrderClause: String; override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
     function AcceptClipboard(CD: PgdcClipboardData): Boolean; override;
 
     // удаление группы требует выполнения следующей операции:
@@ -146,11 +143,12 @@ type
     // когда очередная созданная группа, которой будет присвоен номер ранее
     // существоващей группы, но затем удаленной, получит права на записи
     // которые имела та группа.
-    procedure DeleteGroup;
+    //procedure DeleteGroup;
 
     //
-    procedure CustomDelete(Buff: Pointer); override;
+    //procedure CustomDelete(Buff: Pointer); override;
 
+    procedure CustomInsert(Buff: Pointer); override;
     function CheckTheSameStatement: String; override;
 
   public
@@ -180,6 +178,7 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     //
     class function GetGroupMask(const AGroupID: Integer): Integer; overload;
@@ -208,7 +207,8 @@ uses
   gdc_frmUserGroup_unit,      gdc_dlgUser_unit,           gdc_dlgUserGroup_unit,
   gdc_dlgAddUserToGroup_unit, gdc_dlgAddGroupToUser_unit, gd_security,
   gd_directories_const,       gd_ClassList,               dmImages_unit,
-  Storages,                   gsStorage,                  gdcStorage_Types
+  Storages,                   gsStorage,                  gdcStorage_Types,
+  at_frmIBUserList,           IB,                         IBErrorCodes
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -254,79 +254,38 @@ end;
 
 function TgdcUser.CheckIBUser: Boolean;
 var
-  IBSS: TIBSecurityService;
   q: TIBSQL;
   Tr: TIBTransaction;
 begin
-  CheckActive;
+  Assert(Active and (not EOF));
+  Result := CheckIBUser(FieldByName('ibname').AsString, FieldByName('ibpassw').AsString);
 
-  Result := IBLogin.ServerName = '';
-  if not Result then
+  if Result and Assigned(gdcBaseManager) and Assigned(IBLogin) and IBLogin.IsIBUserAdmin then
   begin
-    CheckSysDBAPassword(FSysDBAPassword);
-    if FSysDBAPassword = '' then exit;
-    IBSS := TIBSecurityService.Create(Self);
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
     try
-      IBSS.ServerName := IBLogin.ServerName;
-      if IBSS.ServerName > '' then
-        IBSS.Protocol := TCP
-      else
-        IBSS.Protocol := Local;
-      IBSS.LoginPrompt := False;
-      IBSS.Params.Add('user_name=' + SysDBAUserName);
-      IBSS.Params.Add('password=' + FSysDBAPassword);
-      try
-        IBSS.Active := True;
-        try
-          IBSS.UserName := FieldByName('ibname').AsString;
-          IBSS.DisplayUser(IBSS.UserName);
-          Result := IBSS.UserInfoCount > 0;
-        finally
-          IBSS.Active := False;
-        end;
-      except
-        MessageBox(ParentHandle,
-          'Невозможно получить доступ к учетной записи пользователя.'#13#10 +
-          'Возможно пароль администратора базы данных введен неверно.',
-          'Ошибка',
-          MB_OK or MB_ICONHAND);
-        FSysDBAPassword := '';
-        Abort;
-      end;
-    finally
-      IBSS.Free;
-    end;
-  end;
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      Tr.StartTransaction;
 
-  if Result then
-  begin
-    if Assigned(gdcBaseManager) then
-    begin
-      q := TIBSQL.Create(nil);
-      Tr := TIBTransaction.Create(nil);
-      try
-        Tr.DefaultDatabase := gdcBaseManager.Database;
-        Tr.StartTransaction;
+      q.Transaction := Tr;
+      q.SQL.Text := 'SELECT * FROM rdb$user_privileges WHERE rdb$privilege=''M'' ' +
+        'AND rdb$relation_name=''ADMINISTRATOR'' AND rdb$user=''' + FieldByName('ibname').AsString + '''';
+      q.ExecQuery;
 
-        q.Transaction := Tr;
-        q.SQL.Text := 'SELECT * FROM rdb$user_privileges WHERE rdb$privilege=''M'' ' +
-          'AND rdb$relation_name=''ADMINISTRATOR'' AND rdb$user=''' + FieldByName('ibname').AsString + '''';
-        q.ExecQuery;
-
-        if q.EOF then
-        begin
-          q.Close;
-          q.SQL.Text := 'GRANT administrator TO ' + FieldByName('ibname').AsString +
-            ' WITH ADMIN OPTION';
-          q.ExecQuery;
-        end;
-
+      if q.EOF then
+      begin
         q.Close;
-        Tr.Commit;
-      finally
-        q.Free;
-        Tr.Free;
+        q.SQL.Text := 'GRANT administrator TO ' + FieldByName('ibname').AsString +
+          ' WITH ADMIN OPTION';
+        q.ExecQuery;
       end;
+
+      q.Close;
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
     end;
   end;
 end;
@@ -337,7 +296,9 @@ var
   IBSS: TIBSecurityService;
 begin
   Assert(IBLogin <> nil);
+
   Result := False;
+
   CheckSysDBAPassword(SysDBAPassw);
   IBSS := TIBSecurityService.Create(nil);
   try
@@ -364,7 +325,6 @@ begin
         'Возможно пароль администратора базы данных введен неверно.',
         'Ошибка',
         MB_OK or MB_ICONHAND or MB_TASKMODAL);
-      SysDBAPassw := '';
       Abort;
     end;
   finally
@@ -391,58 +351,6 @@ begin
       if not LoginDialogEx(IBLogin.ServerName, UserName, ASysDBAPassword, True) then
         ASysDBAPassword := '';
     end;
-end;
-
-function TgdcUser.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCUSER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSER', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSER') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSER',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSER' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgUser.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSER', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcUser.CreateFields;
@@ -487,122 +395,44 @@ begin
 end;
 
 procedure TgdcUser.CreateIBUser;
-var
-  IBSS: TIBSecurityService;
-  q: TIBSQL;
-  ibdb: TIBDatabase;
-  tr: TIBTransaction;
 begin
-  if CheckIBUser then
-    exit;
-
-  IBSS := TIBSecurityService.Create(Self);
-  try
-    IBSS.ServerName := IBLogin.ServerName;
-    IBSS.LoginPrompt := False;
-    if IBLogin.ServerName > '' then
-      IBSS.Protocol := TCP
-    else
-      IBSS.Protocol := Local;
-    IBSS.Params.Add('user_name=' + SysDBAUserName);
-    IBSS.Params.Add('password=' + FSysDBAPassword);
-    IBSS.Active := True;
+  if Active and (not EOF) then
+  begin
     try
-      IBSS.UserName := FieldByName('ibname').AsString;
-      IBSS.FirstName := ''; //FieldByName('fullname').AsString;
-      IBSS.MiddleName := '';
-      IBSS.LastName := '';
-      IBSS.UserID := FieldByName('id').AsInteger;
-      IBSS.GroupID := 0;
-      IBSS.Password := FieldByName('ibpassword').AsString;
-      IBSS.AddUser;
-      while IBSS.IsServiceRunning do Sleep(100);
-    finally
-      IBSS.Active := False;
+      ExecSingleQuery(
+        'CREATE USER ' + FieldByName('ibname').AsString +
+        ' PASSWORD ''' + FieldByName('ibpassword').AsString + '''');
+
+      ExecSingleQuery(
+        'GRANT administrator TO ' + FieldByName('ibname').AsString +
+        ' WITH ADMIN OPTION ');
+    except
+      on E: EIBError do
+      begin
+        // подавляем исключение, если пользователь
+        // с таким именем уже существует
+        if E.IBErrorCode <> isc_gsec_err_rec_not_found then
+          raise;
+      end;
     end;
-  finally
-    IBSS.Free;
-  end;
-
-  {Alexander: ????
-  а зачем здесь создаётся второй коннект к БД, только для админского коннекта,
-  ведь везде проверяется, админ ли создаёт пользователя.}
-
-  ibdb := TIBDatabase.Create(Self);
-  tr := TIBTransaction.Create(Self);
-  q := TIBSQL.Create(Self);
-  try
-    ibdb.DatabaseName := Database.DatabaseName;
-    ibdb.LoginPrompt := False;
-    ibdb.Params.Clear;
-    ibdb.Params.Add('user_name=' + SysDBAUserName);
-    ibdb.Params.Add('password=' + FSysDBAPassword);
-    ibdb.Connected := True;
-
-    tr.DefaultDatabase := ibdb;
-    tr.StartTransaction;
-
-    q.Transaction := tr;
-    q.SQL.Text := 'GRANT administrator TO ' + FieldByName('ibname').AsString + ' WITH ADMIN OPTION ';
-    q.ExecQuery;
-
-    tr.Commit;
-    ibdb.Connected := False;
-  finally
-    q.Free;
-    tr.Free;
-    ibdb.Free;
   end;
 end;
 
 procedure TgdcUser.DeleteIBUser;
-var
-  IBSS: TIBSecurityService;
 begin
-  if IBLogin.ServerName = '' then
-    exit;
-
-  // если не СысДБА и неверно введен пароль администратора
-  // то прирвем удаление. Аборт обязателен так как надо добиться
-  // отката транзакции, чтобы запись из таблицы не удалилась.
-  CheckSysDBAPassword(FSysDBAPassword);
-  if FSysDBAPassword = '' then
-    Abort;
-
-  IBSS := TIBSecurityService.Create(Self);
-  try
-    IBSS.ServerName := IBLogin.ServerName;
-    if IBSS.ServerName > '' then
-      IBSS.Protocol := TCP
-    else
-      IBSS.Protocol := Local;
-    IBSS.LoginPrompt := False;
-    IBSS.Params.Add('user_name=' + SysDBAUserName);
-    IBSS.Params.Add('password=' + FSysDBAPassword);
+  if Active and (not EOF) then
+  begin
     try
-      IBSS.Active := True;
-      try
-        IBSS.UserName := FieldByName('ibname').AsString;
-        {В YA можно удалять пользователей, которых нет на сервере
-        в FB будет возникать ошибка, поэтому проверяем}
-        IBSS.DisplayUser(IBSS.UserName);
-        if IBSS.UserInfoCount > 0 then
-          IBSS.DeleteUser;
-        while IBSS.IsServiceRunning do Sleep(100);
-      finally
-        IBSS.Active := False;
-      end;
+      ExecSingleQuery('DROP USER ' + FieldByName('ibname').AsString);
     except
-      MessageBox(ParentHandle,
-        'Невозможно получить доступ к учетной записи пользователя.'#13#10 +
-        'Возможно пароль администратора базы данных введен неверно.',
-        'Ошибка',
-        MB_OK or MB_ICONHAND);
-      FSysDBAPassword := '';
-      Abort;
+      on E: EIBError do
+      begin
+        // подавляем исключение, если пользователя
+        // с таким именем не существует
+        if E.IBErrorCode <> isc_gsec_err_rec_not_found then
+          raise;
+      end;
     end;
-  finally
-    IBSS.Free;
   end;
 end;
 
@@ -879,10 +709,7 @@ begin
     begin
       if FieldByName('ibname').AsString <> SysDBAUserName then
       begin
-        try
-          DeleteIBUser;
-        except
-        end; 
+        DeleteIBUser;
         Randomize;
         repeat
           U := GetRandomString;
@@ -896,7 +723,6 @@ begin
       end;
       Next;
     end;
-    //Commit(ctHardReopen);
   finally
     Bookmark := Bm;
     EnableControls;
@@ -1001,8 +827,8 @@ begin
   try
     q.Transaction := ReadTransaction;
 
-    q.SQL.Text := 'SELECT id FROM gd_user WHERE UPPER(name)=:N ';
-    q.ParamByName('N').AsString := AnsiUpperCase(AUserName);
+    q.SQL.Text := 'SELECT id FROM gd_user WHERE UPPER(TRIM(name))=:N ';
+    q.ParamByName('N').AsString := Trim(AnsiUpperCase(AUserName));
     q.ExecQuery;
 
     Result := not q.EOF;
@@ -1025,7 +851,7 @@ procedure TgdcUser.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
   if HasSubSet('ByUserGroup') then
-    S.Add(Format('g_b_and(z.ingroup, %d) <> 0', [FGroups]));
+    S.Add(Format('BIN_AND(z.ingroup, %d) <> 0', [FGroups]));
 end;
 
 procedure TgdcUser.CustomInsert(Buff: Pointer);
@@ -1175,7 +1001,7 @@ begin
   else
     Result := Format('SELECT %s FROM %s WHERE UPPER(name) = ''%s''',
       [GetKeyField(SubType), GetListTable(SubType),
-       _AnsiUpperCase(FieldByName('name').AsString)]);
+       AnsiUpperCase(FieldByName('name').AsString)]);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSER', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1463,7 +1289,13 @@ class function TgdcUser.Class_TestUserRights(const SS: TgdcTableInfos;
 begin
   Result := inherited Class_TestUserRights(SS, ST);
   if Result and ((SS * [tiAChag, tiAFull]) <> []) then
-    Result := Assigned(IBLogin) and IBLogin.IsUserAdmin;
+    Result := Assigned(IBLogin) and IBLogin.IsIBUserAdmin;
+end;
+
+class function TgdcUser.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgUser';
 end;
 
 { TgdcUserGroup }
@@ -1487,7 +1319,7 @@ end;
 procedure TgdcUserGroup.AddUser(const AnID: Integer);
 begin
   ExecSingleQuery(Format(
-      'UPDATE gd_user SET ingroup=g_b_or(ingroup, %d) WHERE id=%d',
+      'UPDATE gd_user SET ingroup=BIN_OR(ingroup, %d) WHERE id=%d',
       [GetGroupMask(ID), AnID]));
   FDSModified := True;
 
@@ -1551,7 +1383,7 @@ begin
   else
     Result := Format('SELECT %s FROM %s WHERE UPPER(name) = ''%s''',
       [GetKeyField(SubType), GetListTable(SubType),
-       _AnsiUpperCase(FieldByName('name').AsString)]);
+       AnsiUpperCase(FieldByName('name').AsString)]);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERGROUP', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1574,58 +1406,7 @@ begin
   CustomProcess := [cpDelete];
 end;
 
-function TgdcUserGroup.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCUSERGROUP', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCUSERGROUP', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERGROUP') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERGROUP',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERGROUP' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgUserGroup.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERGROUP', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCUSERGROUP', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
+(*
 procedure TgdcUserGroup.CustomDelete(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -1656,7 +1437,7 @@ begin
 
   DeleteGroup;
   inherited;
-  
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERGROUP', 'CUSTOMDELETE', KEYCUSTOMDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1674,16 +1455,24 @@ var
   OldCursor: TCursor;
 begin
   if sView in BaseState then
-  begin
-    if MessageBox(ParentHandle,
-      PChar('Рекомендуется производить удаление группы только тогда,'#13#10 +
-      'когда к базе данных не подключены другие пользователи.'#13#10#13#10 +
-      'Удаление группы может занять несколько минут. Продолжать?'),
-      'Внимание',
-      MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
+  try
+    if frmIBUserList = nil then
+      frmIBUserList := TfrmIBUserList.Create(nil);
+
+    if not frmIBUserList.CheckUsers then
     begin
-      Abort;
+      if MessageBox(ParentHandle,
+        PChar('Рекомендуется производить удаление группы только тогда,'#13#10 +
+        'когда к базе данных не подключены другие пользователи.'#13#10#13#10 +
+        'Удаление может занять продолжительное время. Продолжать?'),
+        'Внимание',
+        MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO then
+      begin
+        Abort;
+      end;
     end;
+  finally
+    FreeAndNil(frmIBUserList);
   end;
 
   Mask := (not GetGroupMask(ID)) or 1;
@@ -1709,19 +1498,19 @@ begin
     begin
       S := 'UPDATE ' + q.FieldByName('relationname').AsTrimString + ' SET ';
       if q.FieldByName('aview').AsInteger = 1 then
-        S := Format('%s AVIEW=g_b_and(AVIEW, %d),', [S, Mask]);
+        S := Format('%s AVIEW=BIN_AND(AVIEW, %d),', [S, Mask]);
       if q.FieldByName('achag').AsInteger = 1 then
-        S := Format('%s ACHAG=g_b_and(ACHAG, %d),', [S, Mask]);
+        S := Format('%s ACHAG=BIN_AND(ACHAG, %d),', [S, Mask]);
       if q.FieldByName('afull').AsInteger = 1 then
-        S := Format('%s AFULL=g_b_and(AFULL, %d)', [S, Mask]);
+        S := Format('%s AFULL=BIN_AND(AFULL, %d)', [S, Mask]);
       if S[Length(S)] = ',' then SetLength(S, Length(S) - 1);
       S := S + ' WHERE ';
       if q.FieldByName('aview').AsInteger = 1 then
-        S := Format('%s g_b_and(AVIEW, %d) <> 0 OR', [S, GetGroupMask(ID)]);
+        S := Format('%s BIN_AND(AVIEW, %d) <> 0 OR', [S, GetGroupMask(ID)]);
       if q.FieldByName('achag').AsInteger = 1 then
-        S := Format('%s g_b_and(ACHAG, %d) <> 0 OR', [S, GetGroupMask(ID)]);
+        S := Format('%s BIN_AND(ACHAG, %d) <> 0 OR', [S, GetGroupMask(ID)]);
       if q.FieldByName('afull').AsInteger = 1 then
-        S := Format('%s g_b_and(AFULL, %d) <> 0', [S, GetGroupMask(ID)]);
+        S := Format('%s BIN_AND(AFULL, %d) <> 0', [S, GetGroupMask(ID)]);
       if S[Length(S)] <> '0' then SetLength(S, Length(S) - 2);
 
       qu.SQL.Text := S;
@@ -1739,12 +1528,67 @@ begin
     Screen.Cursor := OldCursor;
   end;
 end;
+*)
+
+procedure TgdcUserGroup.CustomInsert(Buff: Pointer);
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  S, M: String;
+begin
+  {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCUSERGROUP', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCUSERGROUP', KEYCUSTOMINSERT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCUSTOMINSERT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCUSERGROUP') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), Integer(Buff)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCUSERGROUP',
+  {M}          'CUSTOMINSERT', KEYCUSTOMINSERT, Params, LResult) then
+  {M}          exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCUSERGROUP' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  M := IntToStr(GetGroupMask(ID));
+  S :=
+    'aview=BIN_OR(aview, ' + M + '),' +
+    'achag=BIN_OR(achag, ' + M + '),' +
+    'afull=BIN_OR(afull, ' + M + ')';
+  ExecSingleQuery('UPDATE gd_command SET ' + S + ' WHERE id IN (740000, 740920)');
+  ExecSingleQuery('UPDATE gd_contact SET ' + S + ' WHERE id = ' + IntToStr(IBLogin.CompanyKey));
+  ExecSingleQuery('UPDATE gd_ourcompany SET ' + S + ' WHERE companykey = ' + IntToStr(IBLogin.CompanyKey));
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERGROUP', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCUSERGROUP', 'CUSTOMINSERT', KEYCUSTOMINSERT);
+  {M}  end;
+  {END MACRO}
+end;
 
 class procedure TgdcUserGroup.GetClassImage(const ASizeX, ASizeY: Integer;
   AGraphic: TGraphic);
 begin
   if (ASizeX = 16) and (ASizeY = 16) and (AGraphic is Graphics.TBitmap) then
     dmImages.il16x16.GetBitMap(35, Graphics.TBitmap(AGraphic));
+end;
+
+class function TgdcUserGroup.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgUserGroup';
 end;
 
 function TgdcUserGroup.GetGroupClause: String;
@@ -1839,22 +1683,33 @@ function TgdcUserGroup.GetNextID(const Increment: Boolean = True;
 var
   q: TIBSQL;
 begin
-  q := TIBSQL.Create(Self);
-  Result := 7;
+  q := TIBSQL.Create(nil);
   try
-    q.Database := Database;
     q.Transaction := ReadTransaction;
-    q.SQL.Text := 'SELECT id FROM gd_usergroup WHERE id >= 7 ORDER BY id';
+    q.SQL.Text :=
+      'select '#13#10 +
+      '  first 1 e.n '#13#10 +
+      'from '#13#10 +
+      '  gd_usergroup g right join ( '#13#10 +
+      '    with recursive enum as ( '#13#10 +
+      '      select 7 as n from rdb$database '#13#10 +
+      '      union all '#13#10 +
+      '      select (e.n + 1) as n from enum e '#13#10 +
+      '      where e.n < 32 '#13#10 +
+      '      ) '#13#10 +
+      '    select '#13#10 +
+      '      n '#13#10 +
+      '    from '#13#10 +
+      '      enum) e on e.n = g.id '#13#10 +
+      'where '#13#10 +
+      '  g.id is null '#13#10 +
+      'order by '#13#10 +
+      '  1';
     q.ExecQuery;
-    while not q.EOF do
-    begin
-      if Result < q.Fields[0].AsInteger then
-        exit;
-      Result := Result + 1;
-      if Result > 32 then
-        raise Exception.Create('Maximum of groups number is reached');
-      q.Next;
-    end;
+    if q.EOF then
+      raise Exception.Create('Достигнут лимит количества групп пользователей')
+    else
+      Result := q.Fields[0].AsInteger;
   finally
     q.Free;
   end;
@@ -1979,9 +1834,9 @@ begin
   inherited;
   if HasSubSet('ByUser') then
     S.Add( ' EXISTS(SELECT * FROM gd_user u WHERE u.id=:USERID AND ' +
-      '(g_b_and(u.ingroup, g_b_shl(1, z.id - 1)) <> 0) ) ')
+      '(BIN_AND(u.ingroup, BIN_SHL(1, z.id - 1)) <> 0) ) ')
   else if HasSubSet('ByMask') then
-    S.Add(Format('WHERE g_b_and(%d, g_b_shl(1, z.id - 1)) <> 0 ', [FMask]));
+    S.Add(Format('WHERE BIN_AND(%d, BIN_SHL(1, z.id - 1)) <> 0 ', [FMask]));
 end;
 
 procedure TgdcUserGroup.RemoveUser(const AnID: Integer);
@@ -1995,13 +1850,13 @@ begin
     raise Exception.Create('Нельзя исключить из группы Администраторы текущего пользователя.');
 
   ExecSingleQueryResult(Format(
-      'SELECT g_b_and(ingroup, %d) FROM gd_user WHERE id=%d',
+      'SELECT BIN_AND(ingroup, %d) FROM gd_user WHERE id=%d',
       [not GetGroupMask(ID), AnID]), varNull, R);
 
   if VarIsEmpty(R) or (R[0, 0] <> 0) then
   begin
     ExecSingleQuery(Format(
-        'UPDATE gd_user SET ingroup=g_b_and(ingroup, %d) WHERE id=%d',
+        'UPDATE gd_user SET ingroup=BIN_AND(ingroup, %d) WHERE id=%d',
         [not GetGroupMask(ID), AnID]));
 
     if Assigned(IBLogin) and (IBLogin.UserKey = AnId) then

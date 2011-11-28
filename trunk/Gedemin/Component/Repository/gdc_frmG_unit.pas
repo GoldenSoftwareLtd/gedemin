@@ -1234,7 +1234,7 @@ begin
                   Obj.ExtraConditions.Add(
                     Format('UPPER(%s) LIKE ''%%%s%%''', [
                       FO.Names[SB.Components[I].Tag],
-                      _AnsiUpperCase(TCustomEdit(SB.Components[I]).Text)]));
+                      AnsiUpperCase(TCustomEdit(SB.Components[I]).Text)]));
                 end;
               end;
 

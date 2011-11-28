@@ -591,7 +591,7 @@ begin
       if GlobalStorage.ReadBoolean('Options', 'CheckName', True)
         and ((gdcObject.State = dsInsert) or gdcObject.FieldChanged('name')) then
       begin
-        S := _AnsiUpperCase(Trim(gdcObject.FieldByName('name').AsString));
+        S := AnsiUpperCase(Trim(gdcObject.FieldByName('name').AsString));
 
         for I := 1 to ArrCount do
         begin

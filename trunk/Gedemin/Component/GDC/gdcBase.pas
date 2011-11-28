@@ -1125,15 +1125,6 @@ type
 
     function GetCanModify: Boolean; override;
 
-    {
-    class function Class_GetCanChangeRights(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanCreate(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanDelete(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanEdit(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanPrint(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanView(const ST: TgdcSubType): Boolean; virtual;
-    }
-
     //
     procedure SetBaseState(const ABaseState: TgdcStates);
 
@@ -2083,8 +2074,6 @@ function gdcFullClassName(const AgdClassName: TgdcClassName;
 function CreateSelectedArr(Obj: TgdcBase;
   BL: TBookmarkList): OleVariant;
 
-function _AnsiUpperCase(const T: String): String;
-
 function  CheckNameChar(const Key: Char): Char;
 procedure CheckClipboardForName;
 function GetUserByTransaction(const ATrID: Integer): String;
@@ -2153,27 +2142,6 @@ type
 procedure Register;
 begin
   RegisterComponents('gdc', [TgdcBaseManager]);
-end;
-
-function _AnsiUpperCase(const T: String): String;
-var
-  I: Integer;
-begin
-  Result := AnsiUpperCase(T);
-
-  { TODO : 
-Yaffil по крайней мере до 885 версии не поддерживает
-белорусские буквы в функции UPPER поэтому мы вводим эту
-нашу функцию, которая бы следовала его поведению.
-
-если в будущем ошибка будет исправлена, то можно убрать эту функцию. }
-  for I := 1 to Length(T) do
-  begin
-    if (T[I] = 'ў') or (T[I] = 'і') then
-    begin
-      Result[I] := T[I];
-    end;
-  end;
 end;
 
 function CheckNameChar(const Key: Char): Char;
@@ -12009,8 +11977,9 @@ begin
           FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
           FIBSQL.ExecQuery;
           if FIBSQL.Eof then
-            raise EgdcException.Create('Попытка дважды добавить запись с ИД=' +
-              IntToStr(AnID) + ' в таблицу GD_RUID.')
+            raise EgdcException.Create(
+              'Попытка добавить запись с повторяющимся ИД в таблицу GD_RUID.'#13#10 +
+              'ID=' + IntToStr(AnID) + ', XID=' + IntToStr(AXID) + ', DBID=' + IntToStr(ADBID))
           else
           begin
             if (CacheList <> nil) and CacheList.Has(RUIDToStr(RUID(AXID, ADBID))) then
@@ -18100,51 +18069,6 @@ begin
   end else
     raise EgdcIBError.Create('Объект должен находиться в состоянии загрузки из потока!');
 end;
-
-(*
-class function TgdcBase.Class_GetCanChangeRights(
-  const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAFull], SubType);
-  {Result := gdcBaseManager.Class_TestUserRights(Self,
-    ST, 2);}
-end;
-
-class function TgdcBase.Class_GetCanCreate(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAChag], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 1);
-end;
-
-class function TgdcBase.Class_GetCanDelete(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAFull], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 2);
-end;
-
-class function TgdcBase.Class_GetCanEdit(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAChag], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 1);
-end;
-
-class function TgdcBase.Class_GetCanPrint(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAView], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 0);
-end;
-
-class function TgdcBase.Class_GetCanView(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAView], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 0);
-end;
-*)
 
 function TgdcBase.GetSecCondition: String;
 begin
