@@ -629,6 +629,9 @@ var
     ibsql: TIBSQL;
     Tr: TIBTransaction;
   begin
+    if (Length(S) = 0) or (Length(S) > 31) then
+      exit; 
+
     tr := TIBTransaction.Create(nil);
     ibsql := TIBSQL.Create(nil);
     try

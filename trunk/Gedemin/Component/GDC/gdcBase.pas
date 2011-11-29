@@ -9449,34 +9449,44 @@ end;
 function TgdcBaseManager.GetRUIDRecByXID(const XID, DBID: TID;
   Transaction: TIBTransaction): TRUIDRec;
 begin
-  FIBSQL.Close;
-  try
-    if Assigned(Transaction) and Transaction.InTransaction then
-      FIBSQL.Transaction := Transaction
-    else
-      FIBSQL.Transaction := ReadTransaction;
-
-    FIBSQL.SQL.Text := cst_sql_SelectRUIDBYXID;
-    FIBSQL.ParamByName(fnXID).AsInteger := XID;
-    FIBSQL.ParamByName(fnDBID).AsInteger := DBID;
-    FIBSQL.ExecQuery;
-
-    if FIBSQL.RecordCount = 0 then
-    begin
-      Result.ID := -1;
-      Result.Modified := 0;
-      Result.EditorKey := -1;
-    end else
-    begin
-      Result.ID := FIBSQL.FieldByName(fnId).AsInteger;
-      Result.Modified := FIBSQL.FieldByName(fnModified).AsDateTime;
-      Result.EditorKey := FIBSQL.FieldByName(fnEditorkey).AsInteger;
-    end;
+  if (XID < cstUserIDStart) and (DBID = 17) then
+  begin
+    Result.ID := XID;
     Result.XID := XID;
     Result.DBID := DBID;
-
-  finally
+    Result.Modified := 0;
+    Result.EditorKey := -1;
+  end else
+  begin
     FIBSQL.Close;
+    try
+      if Assigned(Transaction) and Transaction.InTransaction then
+        FIBSQL.Transaction := Transaction
+      else
+        FIBSQL.Transaction := ReadTransaction;
+
+      FIBSQL.SQL.Text := cst_sql_SelectRUIDBYXID;
+      FIBSQL.ParamByName(fnXID).AsInteger := XID;
+      FIBSQL.ParamByName(fnDBID).AsInteger := DBID;
+      FIBSQL.ExecQuery;
+
+      if FIBSQL.RecordCount = 0 then
+      begin
+        Result.ID := -1;
+        Result.Modified := 0;
+        Result.EditorKey := -1;
+      end else
+      begin
+        Result.ID := FIBSQL.FieldByName(fnId).AsInteger;
+        Result.Modified := FIBSQL.FieldByName(fnModified).AsDateTime;
+        Result.EditorKey := FIBSQL.FieldByName(fnEditorkey).AsInteger;
+      end;
+      Result.XID := XID;
+      Result.DBID := DBID;
+
+    finally
+      FIBSQL.Close;
+    end;
   end;
 end;
 
@@ -11936,6 +11946,15 @@ var
   WasCreate: Boolean;
   S: String;
 begin
+  Assert(
+    ((ADBID = 17) and (AnID = AXID) and (AnID < cstUserIDStart))
+    or
+    ((ADBID <> 17) and (AnID >= cstUserIDStart))
+  );
+
+  if AXID < cstUserIDStart then
+    exit;
+
   if Assigned(Transaction) then
   begin
     WasCreate := False;
@@ -11976,7 +11995,7 @@ begin
           FIBSQL.ParamByName(fnxid).AsInteger := AXID;
           FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
           FIBSQL.ExecQuery;
-          if FIBSQL.Eof then
+          if not FIBSQL.Eof then
             raise EgdcException.Create(
               'Попытка добавить запись с повторяющимся ИД в таблицу GD_RUID.'#13#10 +
               'ID=' + IntToStr(AnID) + ', XID=' + IntToStr(AXID) + ', DBID=' + IntToStr(ADBID))

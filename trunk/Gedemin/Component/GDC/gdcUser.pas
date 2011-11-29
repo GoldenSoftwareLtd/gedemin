@@ -1683,6 +1683,7 @@ function TgdcUserGroup.GetNextID(const Increment: Boolean = True;
 var
   q: TIBSQL;
 begin
+  Result := -1;
   q := TIBSQL.Create(nil);
   try
     q.Transaction := ReadTransaction;
@@ -1707,9 +1708,8 @@ begin
       '  1';
     q.ExecQuery;
     if q.EOF then
-      raise Exception.Create('Достигнут лимит количества групп пользователей')
-    else
-      Result := q.Fields[0].AsInteger;
+      raise Exception.Create('Достигнут лимит количества групп пользователей');
+    Result := q.Fields[0].AsInteger;
   finally
     q.Free;
   end;
