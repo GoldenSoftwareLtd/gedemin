@@ -49,7 +49,7 @@ implementation
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
-  gd_directories_const, IBSQL,
+  gd_directories_const, IBSQL, IBDatabase, 
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version;
 
@@ -233,6 +233,7 @@ var
   WSAData: TWSAData;
   CompName: array[0..$FF] of Char;
   DriveLetter: Char;
+  Tr: TIBTransaction;
   q: TIBSQL;
 begin
   mSysData.ClearAll;
@@ -417,9 +418,13 @@ begin
 
   if Assigned(IBLogin) and IBLogin.LoggedIn and Assigned(gdcBaseManager) then
   begin
+    Tr := TIBTransaction.Create(nil);
     q := TIBSQL.Create(nil);
     try
-      q.Transaction := gdcBaseManager.ReadTransaction;
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      Tr.StartTransaction;
+
+      q.Transaction := Tr;
       q.SQL.Text := 'SELECT * FROM mon$database';
       q.ExecQuery;
       if not q.EOF then
@@ -453,6 +458,7 @@ begin
       end;
     finally
       q.Free;
+      Tr.Free;
     end;
   end;
 
