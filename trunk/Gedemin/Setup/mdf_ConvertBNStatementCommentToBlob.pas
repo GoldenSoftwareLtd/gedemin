@@ -13,6 +13,7 @@ procedure AddGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ModifyRUIDProcedure(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ModifyGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DeleteLBRBFromSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
+procedure RefineTriggersForEntry(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -218,6 +219,212 @@ begin
   end;
 end;
 
+procedure RefineTriggersForEntry(IBDB: TIBDatabase; Log: TModifyLog);
+const
+  c_ac_bi_record =
+    'CREATE OR ALTER TRIGGER ac_bi_record FOR ac_record'#13#10 +
+    '  BEFORE INSERT'#13#10 +
+    '  POSITION 0'#13#10 +
+    'AS'#13#10 +
+    '  DECLARE VARIABLE S VARCHAR(255);'#13#10 +
+    'BEGIN'#13#10 +
+    '  IF (NEW.ID IS NULL) THEN'#13#10 +
+    '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);'#13#10 +
+    ''#13#10 +
+    '  NEW.debitncu = 0;'#13#10 +
+    '  NEW.debitcurr = 0;'#13#10 +
+    '  NEW.creditncu = 0;'#13#10 +
+    '  NEW.creditcurr = 0;'#13#10 +
+    ''#13#10 +
+    '  NEW.incorrect = 1;'#13#10 +
+    '  S = COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''), '''');'#13#10 +
+    '  IF (CHAR_LENGTH(:S) >= 240 OR :S = ''TM'') THEN'#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', ''TM'');'#13#10 +
+    '  ELSE'#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', :S || '','' || NEW.id);'#13#10 +
+    'END';
+
+  c_ac_bu_record =
+    'CREATE OR ALTER TRIGGER ac_bu_record FOR ac_record'#13#10 +
+    '  BEFORE UPDATE'#13#10 +
+    '  POSITION 0'#13#10 +
+    'AS'#13#10 +
+    '  DECLARE VARIABLE WasUnlock INTEGER;'#13#10 +
+    '  DECLARE VARIABLE S VARCHAR(255);'#13#10 +
+    'BEGIN'#13#10 +
+    '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'') IS NULL) THEN'#13#10 +
+    '  BEGIN'#13#10 +
+    '    NEW.debitncu = OLD.debitncu;'#13#10 +
+    '    NEW.creditncu = OLD.creditncu;'#13#10 +
+    '    NEW.debitcurr = OLD.debitcurr;'#13#10 +
+    '    NEW.creditcurr = OLD.creditcurr;'#13#10 +
+    '  END'#13#10 +
+    ''#13#10 +
+    '  IF (NEW.debitncu IS DISTINCT FROM OLD.debitncu OR'#13#10 +
+    '    NEW.creditncu IS DISTINCT FROM OLD.creditncu OR'#13#10 +
+    '    NEW.debitcurr IS DISTINCT FROM OLD.debitcurr OR'#13#10 +
+    '    NEW.creditcurr IS DISTINCT FROM OLD.creditcurr) THEN'#13#10 +
+    '  BEGIN'#13#10 +
+    '    NEW.incorrect = IIF((NEW.debitncu IS DISTINCT FROM NEW.creditncu)'#13#10 +
+    '      OR (NEW.debitcurr IS DISTINCT FROM NEW.creditcurr), 1, 0);'#13#10 +
+    '  END ELSE'#13#10 +
+    '    NEW.incorrect = OLD.incorrect;'#13#10 +
+    ''#13#10 +
+    '  IF (NEW.incorrect = 1 AND OLD.incorrect = 0) THEN'#13#10 +
+    '  BEGIN'#13#10 +
+    '    S = COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''), '''');'#13#10 +
+    '    IF (CHAR_LENGTH(:S) >= 240 OR :S = ''TM'') THEN'#13#10 +
+    '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', ''TM'');'#13#10 +
+    '    ELSE'#13#10 +
+    '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', :S || '','' || NEW.id);'#13#10 +
+    '  END'#13#10 +
+    '  ELSE IF (NEW.incorrect = 0 AND OLD.incorrect = 1) THEN'#13#10 +
+    '  BEGIN'#13#10 +
+    '    S = COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''), '''');'#13#10 +
+    '    S = REPLACE(:S, '','' || NEW.id, '''');'#13#10 +
+    '    IF (:S = '''') THEN'#13#10 +
+    '      S = NULL;'#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', :S);'#13#10 +
+    '  END'#13#10 +
+    ''#13#10 +
+    '  IF (NEW.recorddate <> OLD.recorddate'#13#10 +
+    '    OR NEW.transactionkey <> OLD.transactionkey'#13#10 +
+    '    OR NEW.documentkey <> OLD.documentkey'#13#10 +
+    '    OR NEW.masterdockey <> OLD.masterdockey'#13#10 +
+    '    OR NEW.companykey <> OLD.companykey) THEN'#13#10 +
+    '  BEGIN'#13#10 +
+    '    WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'');'#13#10 +
+    '    IF (:WasUnlock IS NULL) THEN'#13#10 +
+    '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', 1);'#13#10 +
+    '    UPDATE ac_entry e'#13#10 +
+    '    SET e.entrydate = NEW.recorddate,'#13#10 +
+    '      e.transactionkey = NEW.transactionkey,'#13#10 +
+    '      e.documentkey = NEW.documentkey,'#13#10 +
+    '      e.masterdockey = NEW.masterdockey,'#13#10 +
+    '      e.companykey = NEW.companykey'#13#10 +
+    '    WHERE'#13#10 +
+    '      e.recordkey = NEW.id;'#13#10 +
+    '    IF (:WasUnlock IS NULL) THEN'#13#10 +
+    '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL);'#13#10 +
+    '  END'#13#10 +
+    ''#13#10 +
+    '  WHEN ANY DO'#13#10 +
+    '  BEGIN'#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL);'#13#10 +
+    '    EXCEPTION;'#13#10 +
+    '  END'#13#10 +
+    'END';
+
+  c_ac_ad_record =
+    'CREATE OR ALTER TRIGGER ac_ad_record FOR ac_record'#13#10 +
+    '  AFTER DELETE'#13#10 +
+    '  POSITION 0'#13#10 +
+    'AS'#13#10 +
+    '  DECLARE VARIABLE S VARCHAR(255);'#13#10 +
+    'BEGIN'#13#10 +
+    '  IF (OLD.incorrect = 1) THEN'#13#10 +
+    '  BEGIN'#13#10 +
+    '    S = COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT''), '''');'#13#10 +
+    '    S = REPLACE(:S, '','' || OLD.id, '''');'#13#10 +
+    '    IF (:S = '''') THEN'#13#10 +
+    '      S = NULL;'#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'', :S);'#13#10 +
+    '  END'#13#10 +
+    'END';
+
+  c_ac_bi_entry = '';
+
+  c_ac_ai_entry = '';
+
+  c_ac_bu_entry = '';
+
+  c_ac_au_entry = '';
+
+  c_ac_ad_entry = '';
+
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  FIBSQL := TIBSQL.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+      FIBSQL.Transaction := FTransaction;
+      FIBSQL.ParamCheck := False;
+
+      FIBSQL.SQL.Text :=
+        'UPDATE rdb$functions SET rdb$module_name = ''gudf'' WHERE UPPER(rdb$module_name) = ''GUDF.DLL'' ';
+      FIBSQL.ExecQuery;  
+
+      DropTrigger2('AC_BI_ENTRY', FTransaction);
+      DropTrigger2('AC_BI_ENTRY_ENTRYDATE', FTransaction);
+      DropTrigger2('AC_BI_ENTRY_ISSIMPLE', FTransaction);
+      DropTrigger2('AC_BI_ENTRY_RECORD', FTransaction);
+
+      DropTrigger2('AC_AI_ENTRY', FTransaction);
+
+      DropTrigger2('AC_BU_ENTRY', FTransaction);
+      DropTrigger2('AC_BU_ENTRY_ISSIMPLE', FTransaction);
+      DropTrigger2('AC_BU_ENTRY_RECORD', FTransaction);
+
+      DropTrigger2('AC_AU_ENTRY', FTransaction);
+      
+      DropTrigger2('AC_AD_ENTRY', FTransaction);
+      DropTrigger2('AC_AD_ENTRY_ISSIMPLE', FTransaction);
+      DropTrigger2('AC_AD_ENTRY_DELETERECORD', FTransaction);
+
+      DropTrigger2('AC_BI_RECORD', FTransaction);
+      DropTrigger2('AC_BU_RECORD', FTransaction);
+
+      DropException2('AC_E_ENTRYBEFOREDOCUMENT', FTransaction);
+
+      FIBSQL.SQL.Text := c_ac_bi_record;
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text := c_ac_bu_record;
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text := c_ac_bi_entry;
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text := c_ac_ai_entry;
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text := c_ac_bu_entry;
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text := c_ac_au_entry;
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text := c_ac_ad_entry;
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (135, ''0000.0001.0000.0166'', ''11.05.2011'', ''Refined triggers for AC_ENTRY, AC_RECORD.'') ' +
+        '  MATCHING (id)';
+      FIBSQL.ExecQuery;
+      FIBSQL.Close;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FIBSQL.Free;
+    FTransaction.Free;
+  end;
+end;
+
 procedure ModifyGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
 var
   FTransaction: TIBTransaction;
@@ -232,8 +439,13 @@ begin
       FIBSQL.Transaction := FTransaction;
       FIBSQL.ParamCheck := False;
 
-      FIBSQL.SQL.Text := 'UPDATE gd_ruid SET dbid = 17 WHERE xid < 147000000 AND dbid <> 17';
+      {FIBSQL.SQL.Text := 'UPDATE gd_ruid r SET dbid = 17 WHERE xid < 147000000 AND dbid <> 17 and NOT EXISTS (SELECT * FROM gd_ruid r1 WHERE r1.xid = r.xid and r1.dbid = 17) ';
       FIBSQL.ExecQuery;
+
+      FIBSQL.Close;
+      FIBSQL.SQL.Text := 'DELETE FROM gd_ruid r WHERE xid < 147000000 AND dbid <> 17 ';
+      FIBSQL.ExecQuery;}
+
 
       if ConstraintExist2('GD_RUID', 'GD_CHK_RUID_ETALON', FTransaction) then
       begin

@@ -53,6 +53,19 @@ uses
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version;
 
+type
+  TMemoryStatusEx = record
+    dwLength: DWORD;
+    dwMemoryLoad: DWORD;
+    ullTotalPhys: Int64;
+    ullAvailPhys: Int64;
+    ullTotalPageFile: Int64;
+    ullAvailPageFile: Int64;
+    ullTotalVirtual: Int64;
+    ullAvailVirtual: Int64;
+    ullAvailExtendedVirtual: Int64;
+  end;
+
 function GetDiskSizeAvail(TheDrive: PChar; var Total: Integer; var Free: Integer): Boolean;
 var
   lpSectorsPerCluster, lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters: DWORD;
@@ -98,13 +111,28 @@ begin
   end;
 end;
 
-function GetRAM: string;
+function GetGlobalMemoryRecord: TMemoryStatusEx;
+type
+  TGlobalMemoryStatusEx = procedure(var lpBuffer: TMemoryStatusEx); stdcall;
 var
-  Info: TMemoryStatus;
+  h : THandle;
+  gms : TGlobalMemoryStatusEx;
 begin
-  Info.dwLength := SizeOf(TMemoryStatus);
-  GlobalMemoryStatus(Info);
-  Result := FormatFloat('#,##0', Info.dwTotalPhys div 1024 div 1024) + ' Мб';
+  FillChar(Result, SizeOf(Result), 0);
+  h := LoadLibrary(kernel32);
+  try
+    if h <> 0 then
+    begin
+      @gms := GetProcAddress(h, 'GlobalMemoryStatusEx');
+      if @gms <> nil then
+      begin
+        Result.dwLength := SizeOf(Result);
+        gms(Result);
+      end;
+    end;
+  finally
+    FreeLibrary(h);
+  end;
 end;
 
 function GetOS: String;
@@ -244,7 +272,7 @@ begin
     try
       Database := IBLogin.Database;
 
-      AddSection('Cервер');
+      AddSection('Cервер базы данных');
       AddSpaces('Версия сервера',  Version);
       if IBLogin.ServerName > '' then
       begin
@@ -270,11 +298,14 @@ begin
     WSACleanup;
   end;
 
-  AddSection('Гедымин');
+  AddSection('Компьютер');
   AddSpaces('Название компютера', CompName);
   AddSpaces('IP адрес', HostToIP(CompName));
-  AddSpaces('ОЗУ', GetRAM);
+  AddSpaces('ОЗУ всего', FormatFloat('#,##0', GetGlobalMemoryRecord.ullTotalPhys div 1024 div 1024) + ' Мб');
+  AddSpaces('ОЗУ свободно', FormatFloat('#,##0', GetGlobalMemoryRecord.ullAvailPhys div 1024 div 1024) + ' Мб');
   AddSpaces('Версия ОС', GetOS);
+
+  AddSection('Гедымин');
   AddSpaces('Имя файла', ExtractFileName(Application.EXEName));
   AddSpaces('Расположение', ExtractFilePath(Application.EXEName));
   AddSpaces('Дата файла', FormatDateTime('dd.mm.yyyy', FileDateToDateTime(FileAge(Application.EXEName))));
@@ -435,7 +466,9 @@ begin
       end;
 
       q.Close;
-      q.SQL.Text := 'SELECT * FROM mon$attachments WHERE mon$attachment_id=CURRENT_CONNECTION';
+      q.SQL.Text :=
+        'SELECT u.name as username, a.* FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+        'WHERE mon$attachment_id = CURRENT_CONNECTION';
       q.ExecQuery;
       if not q.EOF then
       begin
@@ -444,18 +477,21 @@ begin
           AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
       end;
 
-      q.Close;
-      q.SQL.Text :=
-        'SELECT u.name as username, a.* FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
-        'WHERE mon$attachment_id<>CURRENT_CONNECTION';
-      q.ExecQuery;
-      while not q.EOF do
+      if IBLogin.IsIBUserAdmin then
       begin
-        AddSection(q.FieldByName('username').AsTrimString);
-        for I := 0 to q.Current.Count - 1 do
-          AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
-        q.Next;
-      end;
+        q.Close;
+        q.SQL.Text :=
+          'SELECT u.name as username, a.* FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+          'WHERE mon$attachment_id <> CURRENT_CONNECTION';
+        q.ExecQuery;
+        while not q.EOF do
+        begin
+          AddSection(q.FieldByName('username').AsTrimString);
+          for I := 0 to q.Current.Count - 1 do
+            AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+          q.Next;
+        end;
+      end;  
     finally
       q.Free;
       Tr.Free;
