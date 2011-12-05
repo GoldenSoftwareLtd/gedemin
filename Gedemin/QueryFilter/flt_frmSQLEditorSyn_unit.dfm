@@ -33,7 +33,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       Height = 453
       BorderStyle = bsNone
       TabsVisible = True
-      ActivePage = tsResult
+      ActivePage = tsQuery
       Align = alClient
       TabHeight = 23
       TabOrder = 0
@@ -619,7 +619,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
               Left = 0
               Top = 0
               Width = 184
-              Height = 386
+              Height = 375
               Align = alLeft
               BevelOuter = bvNone
               TabOrder = 0
@@ -828,8 +828,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             object lvReads: TListView
               Left = 184
               Top = 0
-              Width = 655
-              Height = 386
+              Width = 647
+              Height = 375
               Align = alClient
               Columns = <
                 item
@@ -970,7 +970,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object Panel3: TPanel
           Left = 0
           Top = 0
-          Width = 839
+          Width = 831
           Height = 18
           Align = alTop
           Alignment = taLeftJustify
@@ -987,8 +987,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object chlbTransactionParams: TCheckListBox
           Left = 0
           Top = 18
-          Width = 839
-          Height = 417
+          Width = 831
+          Height = 406
           Align = alClient
           ItemHeight = 13
           Sorted = True
@@ -1001,7 +1001,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object Panel4: TPanel
           Left = 0
           Top = 0
-          Width = 839
+          Width = 831
           Height = 26
           Align = alTop
           BevelOuter = bvNone
@@ -1046,8 +1046,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object pnlMonitor: TPanel
           Left = 0
           Top = 26
-          Width = 839
-          Height = 409
+          Width = 831
+          Height = 398
           Align = alClient
           BevelOuter = bvNone
           TabOrder = 1
@@ -1055,14 +1055,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
             Left = 497
             Top = 0
             Width = 5
-            Height = 409
+            Height = 398
             Cursor = crHSplit
           end
           object ibgrMonitor: TgsIBGrid
             Left = 0
             Top = 0
             Width = 497
-            Height = 409
+            Height = 398
             Align = alLeft
             DataSource = dsMonitor
             Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -1088,8 +1088,8 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           object dbseSQLText: TDBSynEdit
             Left = 502
             Top = 0
-            Width = 337
-            Height = 409
+            Width = 329
+            Height = 398
             Cursor = crIBeam
             DataField = 'sql_text'
             DataSource = dsMonitor
@@ -3059,12 +3059,15 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         '  (SELECT TRIM(rdb$type_name) FROM rdb$types WHERE rdb$type = st' +
         '.mon$state AND rdb$field_name = '#39'MON$STATE'#39') AS state_name,'
       '  st.mon$timestamp AS executed,'
-      '  st.mon$sql_text AS sql_text'
+      '  st.mon$sql_text AS sql_text,'
+      '  ROUND(mu.mon$memory_used / 1024 + 0.5) AS mem_used'
       ''
       'FROM'
       '  mon$statements st'
       '  JOIN mon$attachments att'
       '    ON att.mon$attachment_id = st.mon$attachment_id'
+      '  JOIN mon$memory_usage mu'
+      '    ON mu.mon$stat_id = st.mon$stat_id'
       ''
       'WHERE'
       '  st.mon$sql_text > '#39#39
@@ -3072,7 +3075,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       'ORDER BY'
       '  st.mon$attachment_id,'
       '  st.mon$state DESC,'
-      '  st.mon$statement_id')
+      '  st.mon$statement_id'
+      ' '
+      ' ')
     ReadTransaction = ibtrMonitor
     Left = 497
     Top = 369
