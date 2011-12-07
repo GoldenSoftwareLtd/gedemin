@@ -12,7 +12,28 @@ if "%2"=="" goto exit
 
 if NOT exist d:\nul subst d: k:\
 
+set RegQry=HKLM\Hardware\Description\System\CentralProcessor\0
+reg.exe Query %RegQry% > checkOS.txt
+find /i "x86" < CheckOS.txt > StringCheck.txt
+ 
+if %ERRORLEVEL% == 0 (
+  goto os32
+) else (
+  goto os64
+)
+
+:os32
 set delphi_path=C:\Program Files\Borland\Delphi5\Bin
+goto path_is_set
+
+:os64
+set delphi_path=C:\Program Files (x86)\Borland\Delphi5\Bin
+
+:path_is_set
+
+del StringCheck.txt
+del CheckOS.txt
+
 set starteam_connect=Andreik:1@india:49201
 
 if "%2"=="/d" goto make_debug 
@@ -156,6 +177,7 @@ echo **                                             **
 echo *************************************************
 
 xcopy gedemin.exe g:\common\gedemin\gedemin.exe /Y
+
 
 :exit
 
