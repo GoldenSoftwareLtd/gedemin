@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -24,15 +24,6 @@
     Draft
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2001 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 CREATE TABLE inv_price
 (

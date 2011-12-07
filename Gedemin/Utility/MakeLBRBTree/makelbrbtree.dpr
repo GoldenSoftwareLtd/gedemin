@@ -16,9 +16,10 @@ uses
   gdcLBRBTreeMetaData;
 
 var
-  ServerName: String;
+  ServerName, InputFileName, OutputFileName: String;
   SelfTransaction: TIBTransaction;
   SelfDatabase: TIBDatabase;
+  ScriptText: TStringList;
 
   procedure ReadCommandLineParams;
   var
@@ -26,6 +27,7 @@ var
     I: Integer;
   begin
     ServerName := '';
+    OutputFileName := '';
     SL := TStringList.Create;
     try
       ExtractStrings([' '], [' '], GetCommandLine, SL);
@@ -34,7 +36,16 @@ var
         if AnsiSameText(SL[I], '-SN') or AnsiSameText(SL[I], '/SN') then
         begin
           ServerName := SL[I + 1];
-          break;
+        end;
+
+        if AnsiSameText(SL[I], '-FI') or AnsiSameText(SL[I], '/FI') then
+        begin
+          InputFileName := SL[I + 1];
+        end;
+
+        if AnsiSameText(SL[I], '-FO') or AnsiSameText(SL[I], '/FO') then
+        begin
+          OutputFileName := SL[I + 1];
         end;
       end;
     finally
@@ -76,6 +87,8 @@ var
   end;
 
 begin
+  ScriptText := nil;
+
   ReadCommandLineParams;
   if (ServerName = '')
     or ((Pos('\', ServerName) > 0) and (Pos('\', ServerName) < Pos(':', ServerName))) then
@@ -83,8 +96,35 @@ begin
     _Writeln('');
     _Writeln('makelbrbtree.exe: Неверно указаны параметры!');
     _Writeln('');
-    _Writeln('makelbrbtree.exe /sn [имя_сервера[/port]:]путь_к_базе_на_сервере');
+    _Writeln('makelbrbtree.exe /sn [имя_сервера[/port]:]путь_к_базе_на_сервере [/fi имя_файла] [/fo имя_файла]');
     Exit;
+  end;
+
+  if InputFileName = '' then
+    ScriptText := TStringList.Create
+  else begin
+    if not FileExists(InputFileName) then
+    begin
+      _Writeln('');
+      _Writeln('makelbrbtree.exe: входящий файл не найден.');
+      _Writeln('');
+      Exit;
+    end;
+
+    ScriptText := TStringList.Create;
+    try
+      ScriptText.LoadFromFile(InputFileName);
+    except
+      on E: Exception do
+      begin
+        _Writeln('makelbrbtree.exe: ошибка при чтении файла.');
+        _Writeln('makelbrbtree.exe: ' + E.Message);
+        FreeAndNil(ScriptText);
+      end;
+    end;
+
+    if ScriptText = nil then
+      Exit;
   end;
 
   if not InitializeDatabase then
@@ -93,7 +133,7 @@ begin
     Exit;
   end;
 
-  if not UpdateLBRBTreeBase(SelfTransaction, False, _Writeln) then
+  if not UpdateLBRBTreeBase(SelfTransaction, False, _Writeln, ScriptText) then
   begin
     if SelfTransaction.InTransaction then
       SelfTransaction.Rollback;
@@ -110,8 +150,26 @@ begin
         _Writeln('makelbrbtree.exe: ' + E.Message);
       end;
     end;
-  end;  
+  end;
+
+  if ScriptText <> nil then
+  try
+    if OutputFileName = '' then
+      OutputFileName := InputFileName;
+
+    SysUtils.DeleteFile(OutputFileName);
+
+    ScriptText.SaveToFile(OutputFileName);
+  except
+    on E: Exception do
+    begin
+      _Writeln('makelbrbtree.exe: ошибка при записи исходящего файла.');
+      _Writeln('makelbrbtree.exe: ' + E.Message);
+      FreeAndNil(ScriptText);
+    end;
+  end;
 
   SelfTransaction.Free;
   SelfDatabase.Free;
+  ScriptText.Free;
 end.

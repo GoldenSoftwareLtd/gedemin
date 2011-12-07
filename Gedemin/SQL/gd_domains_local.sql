@@ -1,14 +1,4 @@
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Gedemin project                              **/
-/**   Copyright (c) 1999-2000 by                   **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
-
 INSERT INTO at_fields
   (fieldname, lname, description, reftable, reflistfield, refcondition, settable, setlistfield, setcondition,
    alignment, format, visible, colwidth, disabled, reserved)
@@ -61,4 +51,3 @@ VALUES (
 );
 
 COMMIT;
-

@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -21,15 +21,6 @@
     Modification  30.07.2001  Julia
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 CREATE TABLE bn_currcommission
 (

@@ -35,6 +35,8 @@ cd ..\Utility\MakeLBRBTree
 
 "%delphi_path%\dcc32.exe" -b makelbrbtree.dpr
 
+if not errorlevel 0 goto Error
+
 cd ..\..\sql
 
 :create_db
@@ -81,13 +83,9 @@ if "%1"=="embed" (set database_name=%2) else set database_name=%1:%2
 
 if exist %2 del %2 > nul
 
-echo SET NAMES WIN1251;                        >  result.sql
-echo SET SQL DIALECT 3;                        >> result.sql
-echo CREATE DATABASE '%database_name%'         >> result.sql
-echo USER %user_name% PASSWORD %user_pass%     >> result.sql 
-echo PAGE_SIZE 8192                            >> result.sql
-echo DEFAULT CHARACTER SET WIN1251;            >> result.sql
+if exist result.sql del result.sql > nul
 
+copy gd_header.sql                             /a result.sql    > nul
 copy result.sql /a + gd_create.sql             /a result.sql    > nul
 copy result.sql /a + gudf.sql                  /a result.sql    > nul
 copy result.sql /a + gd_domains.sql            /a result.sql    > nul
@@ -124,32 +122,64 @@ copy result.sql /a + gd_file.sql               /a result.sql    > nul
 copy result.sql /a + gd_block_rule.sql         /a result.sql    > nul
 copy result.sql /a + rpl_database.sql          /a result.sql    > nul
 
-isql.exe -i result.sql 
+echo SET NAMES WIN1251;                        >  temp_hdr.sql
+echo SET SQL DIALECT 3;                        >> temp_hdr.sql
+echo CREATE DATABASE '%database_name%'         >> temp_hdr.sql
+echo USER %user_name% PASSWORD %user_pass%     >> temp_hdr.sql 
+echo PAGE_SIZE 8192                            >> temp_hdr.sql
+echo DEFAULT CHARACTER SET WIN1251;            >> temp_hdr.sql
+
+if exist temp.sql del temp.sql > nul
+
+copy temp_hdr.sql /a + result.sql              /a temp.sql      > nul
+
+isql.exe -i temp.sql
 
 if not errorlevel 0 goto Error
 
-makelbrbtree.exe /sn %database_name%    
+makelbrbtree.exe /sn %database_name% /fo result2.sql   
 
 if not errorlevel 0 goto Error
 
-echo SET NAMES WIN1251;                         >  result2.sql
-echo SET SQL DIALECT 3;                         >> result2.sql
-echo CONNECT '%database_name%'                  >> result2.sql
-echo USER %user_name% PASSWORD %user_pass%;     >> result2.sql 
+copy result.sql /a + result2.sql               /a result.sql    > nul
 
-copy result2.sql /a + gd_header.sql             /a result2.sql    > nul
-copy result2.sql /a + gd_addressbook_after.sql  /a result2.sql    > nul
-copy result2.sql /a + rp_report_after.sql       /a result2.sql    > nul
-copy result2.sql /a + gd_constants.sql          /a result2.sql    > nul
-copy result2.sql /a + gd_oper_const.sql         /a result2.sql    > nul
-copy result2.sql /a + gd_securityrole.sql       /a result2.sql    > nul
-copy result2.sql /a + gd_db_triggers.sql        /a result2.sql    > nul
+copy result.sql /a + gd_constants.sql          /a result.sql    > nul
+copy result.sql /a + gd_oper_const.sql         /a result.sql    > nul
+copy result.sql /a + gd_securityrole.sql       /a result.sql    > nul
+copy result.sql /a + gd_db_triggers.sql        /a result.sql    > nul
 
-isql.exe -i result2.sql
+if exist temp.sql del temp.sql > nul
+
+copy temp_hdr.sql /a + result.sql              /a temp.sql      > nul
+
+if exist %2 del %2 > nul
+
+isql.exe -i temp.sql
 
 if not errorlevel 0 goto Error
 
 if not exist %2 goto Error
+
+echo SET NAMES WIN1251;                        >  temp.sql
+echo SET SQL DIALECT 3;                        >> temp.sql
+echo CREATE DATABASE 'put_your_database_name'  >> temp.sql
+echo USER 'SYSDBA' PASSWORD 'masterkey'        >> temp.sql 
+echo PAGE_SIZE 8192                            >> temp.sql
+echo DEFAULT CHARACTER SET WIN1251;            >> temp.sql
+
+copy temp.sql /a + result.sql                  /a temp.sql > nul
+
+if not exist etalon.sql copy temp.sql etalon.sql > nul
+
+FC temp.sql etalon.sql /C | FIND "FC: no dif" > nul 
+IF ERRORLEVEL 1 goto s_files_are_different
+
+goto End
+
+:s_files_are_different
+
+if exist etalon.sql del etalon.sql > nul
+copy temp.sql etalon.sql > nul
 
 goto End
 
@@ -164,141 +194,21 @@ echo **                                         **
 echo *********************************************
 echo *********************************************
 
+if exist temp.sql del temp.sql > nul
+if exist temp_hdr.sql del temp_hdr.sql > nul
+if exist result.sql del result.sql > nul
+if exist result2.sql del result2.sql > nul
+
 endlocal
 exit /b 1
 
 :End
 
+if exist temp.sql del temp.sql > nul
+if exist temp_hdr.sql del temp_hdr.sql > nul
+if exist result.sql del result.sql > nul
+if exist result2.sql del result2.sql > nul
+
 endlocal
 exit /b
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@echo *********************************************
-@echo *********************************************
-@echo **  Закомментировано:                      **
-@echo **    1. ctl_  -- скот                     **
-@echo **    2. pr_   -- регистрация              **
-@echo **    3. gd_realization                    **
-@echo **    4. gd_newtransaction                 **
-@echo *********************************************
-@echo *********************************************
-@echo .
-
-isql -i gd_create.sql
-isql -i gudf.sql
-@rem isql -i fbudf.sql
-isql -i gd_domains.sql
-@rem isql -i gd_link.sql
-isql -i gd_version.sql
-@rem isql -i st_setting.sql
-isql -i gd_link.sql
-
-isql -i gd_security.sql
-isql -i gd_place.sql
-isql -i gd_currency.sql
-isql -i wg_tblcal.sql
-isql -i gd_addressbook.sql
-isql -i gd_ourcompany.sql
-isql -i gd_ruid.sql
-isql -i gd_storage.sql
-isql -i at_attribute.sql
-
-isql -i gd_const.sql
-
-isql -i gd_script.sql
-isql -i gd_document.sql
-isql -i at_sync_procedures.sql
-@rem isql -i gd_cardaccount.sql
-@rem isql -i gd_newtransaction.sql
-isql -i flt_filter.sql
-
-
-@rem isql -i bn_bankorder.sql
-@rem isql -i dp_reference.sql
-@rem isql -i dp_document.sql
-isql -i bn_bankstatement.sql
-@rem isql -i bn_checklist.sql
-@rem isql -i bn_currcommission.sql
-
-
-isql -i gd_upgrade.sql
-isql -i bug_bugbase.sql
-isql -i gd_command.sql
-isql -i gd_good.sql
-
-isql -i ac_accounting.sql
-
-rem isql -i ac_quantity.sql
-
-isql -i msg_messaging.sql
-isql -i rp_registry.sql
-isql -i rp_report.sql
-isql -i evt_script.sql
-@rem isql -i gd_realization.sql
-@rem isql -i dp_report.sql
-@rem isql -i ctl_cattle.sql
-@rem isql -i ctl_cattle_consts.sql
-
-@rem isql -i pr_protect.sql
-isql -i inv_movement.sql
-
-isql -i inv_price.sql
-@rem isql -i inv_invoice.sql
-
-isql -i gd_tax.sql
-
-isql -i at_setting.sql
-
-@rem Заносим локализацию
-@rem isql -i gd_loc_r.sql 
-@rem isql -i gd_loc_f.sql 
-@rem isql -i gd_loc_rf.sql 
-
-@rem isql -i gd_currrate.sql
-
-@rem isql -i gd_productivity.sql
-
-isql -i gd_file.sql
-
-@rem Таблицы для инкрементного сохранения
-isql -i rpl_database.sql
-
-makelbrbtree.exe /sn india:k:\bases\gedemin\etalon.fdb /tmp tst_tree_tbl.sql
-
-isql -i gd_addressbook_after.sql
-isql -i rp_report_after.sql
-
-
-rem Заносим константы и настройки системы
-isql -i gd_constants.sql
-isql -i gd_oper_const.sql
-@rem isql -i dp_constants.sql
-
-
-rem Должно выполняться последним
-isql -i gd_securityrole.sql
-@rem isql -i dp_securityrole.sql
-
-@endlocal

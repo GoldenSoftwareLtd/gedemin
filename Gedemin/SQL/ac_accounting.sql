@@ -1,14 +1,4 @@
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**                                                **/
-/**   Copyright (c) 2001 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
-
 /*
  *
  *  Активность счета
@@ -434,7 +424,7 @@ ALTER TABLE ac_record ADD CONSTRAINT ac_fk_record_compn
 
 CREATE TABLE ac_entry(
   id               dintkey,             /* Идентификатор */
-  recordkey        dmasterkey,             /* Ключ проводки */
+  recordkey        dmasterkey,          /* Ключ проводки */
   entrydate        ddate,               /* Дата проводки */
 
   transactionkey   dintkey,             /* Ключ типовой операции */
@@ -662,178 +652,10 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER AC_BI_ENTRY_ISSIMPLE FOR AC_ENTRY
-ACTIVE BEFORE INSERT POSITION 0
-AS
-begin
-
-  if (exists(select
-    e.id
-  from
-    ac_entry e
-  where
-    e.recordkey = new.recordkey
-    and
-    e.accountpart = new.accountpart
-    and
-    e.id != new.id))
-  then
-  begin
-    new.issimple = 0;
-    update
-      ac_entry e
-    set
-      e.issimple = 1
-    where
-      e.recordkey = new.recordkey
-      and
-      e.accountpart != new.accountpart
-      and
-      e.issimple <> 1;
-
-    update
-      ac_entry e
-    set
-      e.issimple = 0
-    where
-      e.recordkey = new.recordkey
-      and
-      e.accountpart = new.accountpart
-      and
-      e.id != new.id
-      and
-      e.issimple <> 0;
-  end
-  else
-  begin
-    new.issimple = 1;
-  end
-end^
-
-CREATE TRIGGER AC_BU_ENTRY_ISSIMPLE FOR AC_ENTRY
-ACTIVE BEFORE UPDATE POSITION 0
-AS
-begin
-  IF (NEW.debitncu IS NULL) THEN
-    NEW.debitncu = 0;
-
-  IF (NEW.debitcurr IS NULL) THEN
-    NEW.debitcurr = 0;
-
-  IF (NEW.debiteq IS NULL) THEN
-    NEW.debiteq = 0;
-
-  IF (NEW.creditncu IS NULL) THEN
-    NEW.creditncu = 0;
-
-  IF (NEW.creditcurr IS NULL) THEN
-    NEW.creditcurr = 0;
-
-  IF (NEW.crediteq IS NULL) THEN
-    NEW.crediteq = 0;
-
-  if (new.accountpart <> old.accountpart) then
-  begin
-  if (exists(select
-    e.id
-  from
-    ac_entry e
-  where
-    e.recordkey = new.recordkey
-    and
-    e.accountpart = new.accountpart
-    and
-    e.id != new.id))
-  then
-  begin
-    new.issimple = 0;
-    update
-      ac_entry e
-    set
-      e.issimple = 1
-    where
-      e.recordkey = new.recordkey
-      and
-      e.accountpart != new.accountpart
-      and
-      e.issimple <> 1;
-
-    update
-      ac_entry e
-    set
-      e.issimple = 0
-    where
-      e.recordkey = new.recordkey
-      and
-      e.accountpart = new.accountpart
-      and
-      e.id != new.id
-      and
-      e.issimple <> 0;
-  end
-  else
-  begin
-    new.issimple = 1;
-  end
-  end
-end^
-
-
-CREATE TRIGGER AC_AD_ENTRY_ISSIMPLE FOR AC_ENTRY
-ACTIVE AFTER DELETE POSITION 1
-AS
-declare variable CountEntry integer;
-begin
-  CountEntry = 0;
-  if (old.issimple = 0) then
-  begin
-    select
-      count(e.id)
-    from
-      ac_entry e
-    where
-      e.recordkey = old.recordkey
-      and
-      e.accountpart = old.accountpart
-      and
-      e.id != old.id
-    into :CountEntry;
-    if ( CountEntry = 1)
-    then
-    begin
-      update
-        ac_entry e
-      set
-        e.issimple = 1
-      where
-        e.recordkey = old.recordkey
-        and
-        e.accountpart = old.accountpart;
-    end
-  end
-end^
-
-CREATE TRIGGER AC_BI_ENTRY_RECORD FOR AC_ENTRY
-ACTIVE BEFORE INSERT POSITION 10
-AS
-BEGIN
-  SELECT documentkey, masterdockey, transactionkey, companykey FROM ac_record
-  WHERE id = NEW.recordkey
-  INTO NEW.documentkey, NEW.masterdockey, NEW.transactionkey, NEW.companykey;
-END^
-
-CREATE TRIGGER AC_BU_ENTRY_RECORD FOR AC_ENTRY
-ACTIVE BEFORE UPDATE POSITION 10
-AS
-BEGIN
-  SELECT documentkey, masterdockey, transactionkey, companykey FROM ac_record
-  WHERE id = NEW.recordkey
-  INTO NEW.documentkey, NEW.masterdockey, NEW.transactionkey, NEW.companykey;
-END^
-
-
 CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry
-ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15
+  ACTIVE
+  AFTER INSERT OR UPDATE OR DELETE
+  POSITION 15
 AS 
 BEGIN 
   IF (GEN_ID(gd_g_entry_balance_date, 0) > 0) THEN 
@@ -965,20 +787,24 @@ END
 
 /*****************************************************/
 /*                                                   */
-/*    ac_entry                                       */
+/*    ac_record                                      */
 /*    Триггеры и хранимые процедуры                  */
 /*                                                   */
 /*****************************************************/
 
+/*
 CREATE EXCEPTION AC_E_ENTRYBEFOREDOCUMENT 'Entry date before document date'
 ^
+*/
 
-CREATE TRIGGER ac_bi_record FOR ac_record
+CREATE EXCEPTION ac_e_invalidentry 'Invalid entry'^
+
+CREATE OR ALTER TRIGGER ac_bi_record FOR ac_record
   BEFORE INSERT
   POSITION 0
 AS
+  DECLARE VARIABLE S VARCHAR(255);
 BEGIN
-  /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 
@@ -986,26 +812,131 @@ BEGIN
   NEW.debitcurr = 0;
   NEW.creditncu = 0;
   NEW.creditcurr = 0;
-  NEW.incorrect = 0;
+
+  NEW.incorrect = 1;
+  S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
+  IF (CHAR_LENGTH(:S) >= 240 OR :S = 'TM') THEN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', 'TM');
+  ELSE
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S || ',' || NEW.id);
 END
 ^
 
-CREATE TRIGGER ac_bu_record FOR ac_record
+CREATE OR ALTER TRIGGER ac_bu_record FOR ac_record
   BEFORE UPDATE
   POSITION 0
 AS
+  DECLARE VARIABLE WasUnlock INTEGER;
+  DECLARE VARIABLE S VARCHAR(255);
 BEGIN
-  /* Если ключ не присвоен, присваиваем */
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK') IS NULL) THEN
+  BEGIN
+    NEW.debitncu = OLD.debitncu;
+    NEW.creditncu = OLD.creditncu;
+    NEW.debitcurr = OLD.debitcurr;
+    NEW.creditcurr = OLD.creditcurr;
+  END
 
-  IF ((NEW.debitncu <> NEW.creditncu) OR (NEW.debitcurr <> NEW.creditcurr)) THEN
-    NEW.incorrect = 1;
-  ELSE
-    NEW.incorrect = 0;
+  IF (NEW.debitncu IS DISTINCT FROM OLD.debitncu OR
+    NEW.creditncu IS DISTINCT FROM OLD.creditncu OR
+    NEW.debitcurr IS DISTINCT FROM OLD.debitcurr OR
+    NEW.creditcurr IS DISTINCT FROM OLD.creditcurr) THEN
+  BEGIN
+    NEW.incorrect = IIF((NEW.debitncu IS DISTINCT FROM NEW.creditncu)
+      OR (NEW.debitcurr IS DISTINCT FROM NEW.creditcurr), 1, 0);
+  END ELSE
+    NEW.incorrect = OLD.incorrect;
 
-  UPDATE ac_entry e
-    SET e.entrydate = NEW.recorddate
-    WHERE e.recordkey = NEW.id;
+  IF (NEW.incorrect = 1 AND OLD.incorrect = 0) THEN
+  BEGIN
+    S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
+    IF (CHAR_LENGTH(:S) >= 240 OR :S = 'TM') THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', 'TM');
+    ELSE
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S || ',' || NEW.id);
+  END
+  ELSE IF (NEW.incorrect = 0 AND OLD.incorrect = 1) THEN
+  BEGIN
+    S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
+    S = REPLACE(:S, ',' || NEW.id, '');
+    IF (:S = '') THEN
+      S = NULL;
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S);
+  END
 
+  IF (NEW.recorddate <> OLD.recorddate
+    OR NEW.transactionkey <> OLD.transactionkey
+    OR NEW.documentkey <> OLD.documentkey
+    OR NEW.masterdockey <> OLD.masterdockey
+    OR NEW.companykey <> OLD.companykey) THEN
+  BEGIN
+    WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK');
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', 1);
+    UPDATE ac_entry e
+    SET e.entrydate = NEW.recorddate,
+      e.transactionkey = NEW.transactionkey,
+      e.documentkey = NEW.documentkey,
+      e.masterdockey = NEW.masterdockey,
+      e.companykey = NEW.companykey
+    WHERE
+      e.recordkey = NEW.id;
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+  END
+
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+    EXCEPTION;
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER ac_ad_record FOR ac_record
+  AFTER DELETE
+  POSITION 0
+AS
+  DECLARE VARIABLE S VARCHAR(255);
+BEGIN
+  IF (OLD.incorrect = 1) THEN
+  BEGIN
+    S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
+    S = REPLACE(:S, ',' || OLD.id, '');
+    IF (:S = '') THEN
+      S = NULL;
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S);
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER ac_tc_record
+  ACTIVE
+  ON TRANSACTION COMMIT
+  POSITION 9000
+AS
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE S VARCHAR(255);
+  DECLARE VARIABLE STM VARCHAR(512);
+BEGIN
+  S = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT');
+  IF (:S IS NOT NULL) THEN
+  BEGIN
+    STM =
+      'SELECT r.id FROM ac_record r LEFT JOIN ac_entry e ' ||
+      '  ON e.recordkey = r.id LEFT JOIN ac_account a ON a.id = e.accountkey ' ||
+      'WHERE a.offbalance IS DISTINCT FROM 1 AND ';
+
+    IF (:S = 'TM') THEN
+      STM = :STM || ' r.incorrect = 1';
+    ELSE
+      STM = :STM || ' r.id IN (' || RIGHT(:S, CHAR_LENGTH(:S) - 1) || ')';
+
+    FOR EXECUTE STATEMENT (:STM) INTO :ID
+    DO BEGIN
+      EXECUTE STATEMENT ('DELETE FROM ac_record WHERE id=' || :ID);
+    END
+  END
 END
 ^
 
@@ -1016,90 +947,271 @@ END
 /**                                                **/
 /****************************************************/
 
-CREATE TRIGGER ac_bi_entry FOR ac_entry
+CREATE OR ALTER TRIGGER ac_bi_entry FOR ac_entry
   BEFORE INSERT
   POSITION 0
 AS
+  DECLARE VARIABLE Cnt INTEGER = 0;
+  DECLARE VARIABLE Cnt2 INTEGER = 0;
+  DECLARE VARIABLE WasUnLock INTEGER;
 BEGIN
-  /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 
-  IF (NEW.debitncu IS NULL) THEN
+  IF (NEW.accountpart = 'C') THEN
+  BEGIN
     NEW.debitncu = 0;
-
-  IF (NEW.debitcurr IS NULL) THEN
     NEW.debitcurr = 0;
-
-  IF (NEW.debiteq IS NULL) THEN
     NEW.debiteq = 0;
-
-  IF (NEW.creditncu IS NULL) THEN
+    NEW.creditncu = COALESCE(NEW.creditncu, 0);
+    NEW.creditcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.creditcurr, 0));
+    NEW.crediteq = COALESCE(NEW.crediteq, 0);
+  END ELSE
+  BEGIN
     NEW.creditncu = 0;
-
-  IF (NEW.creditcurr IS NULL) THEN
     NEW.creditcurr = 0;
-
-  IF (NEW.crediteq IS NULL) THEN
     NEW.crediteq = 0;
+    NEW.debitncu = COALESCE(NEW.debitncu, 0);
+    NEW.debitcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.debitcurr, 0));
+    NEW.debiteq = COALESCE(NEW.debiteq, 0);
+  END
 
-  UPDATE ac_record SET debitncu = debitncu + NEW.debitncu,
+  SELECT recorddate, transactionkey, documentkey, masterdockey, companykey
+  FROM ac_record
+  WHERE id = NEW.recordkey
+  INTO NEW.entrydate, NEW.transactionkey, NEW.documentkey, NEW.masterdockey, NEW.companykey;
+
+  SELECT SUM(IIF(accountpart = NEW.accountpart, 1, 0)), SUM(IIF(accountpart <> NEW.accountpart, 1, 0))
+  FROM ac_entry
+  WHERE recordkey = NEW.recordkey
+  INTO :Cnt, :Cnt2;
+
+  IF (:Cnt > 0 AND :Cnt2 > 1) THEN
+    EXCEPTION ac_e_invalidentry;
+
+  IF (:Cnt = 0) THEN
+    NEW.issimple = 1;
+  ELSE BEGIN
+    NEW.issimple = 0;
+    IF (:Cnt = 1) THEN
+    BEGIN
+      WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK');
+      IF (:WasUnlock IS NULL) THEN
+        RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', 1);
+      UPDATE ac_entry SET issimple = 0
+      WHERE recordkey = NEW.recordkey AND accountpart = NEW.accountpart;
+      IF (:WasUnlock IS NULL) THEN
+        RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+    END
+  END
+
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+    EXCEPTION;
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER ac_ai_entry FOR ac_entry
+  AFTER INSERT
+  POSITION 0
+AS
+  DECLARE VARIABLE WasUnlock INTEGER;
+BEGIN
+  WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK');
+  IF (:WasUnlock IS NULL) THEN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', 1);
+  UPDATE
+    ac_record
+  SET
+    debitncu = debitncu + NEW.debitncu,
     creditncu = creditncu + NEW.creditncu,
     debitcurr = debitcurr + NEW.debitcurr,
     creditcurr = creditcurr + NEW.creditcurr
   WHERE
     id = NEW.recordkey;
+  IF (:WasUnlock IS NULL) THEN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
 
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
+    EXCEPTION;
+  END
 END
 ^
 
-CREATE TRIGGER AC_BI_ENTRY_ENTRYDATE FOR AC_ENTRY
-ACTIVE BEFORE INSERT POSITION 1 
+CREATE OR ALTER TRIGGER ac_bu_entry FOR ac_entry
+  BEFORE UPDATE
+  POSITION 0
 AS
-BEGIN 
+  DECLARE VARIABLE Cnt INTEGER = 0;
+  DECLARE VARIABLE Cnt2 INTEGER = 0;
+  DECLARE VARIABLE WasUnLock INTEGER;
+BEGIN
+  NEW.recordkey = OLD.recordkey;
 
-  SELECT recorddate FROM ac_record
-  WHERE id = NEW.recordkey 
-  INTO NEW.entrydate; 
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK') IS NULL) THEN
+  BEGIN
+    NEW.entrydate = OLD.entrydate;
+    NEW.transactionkey = OLD.transactionkey;
+    NEW.documentkey = OLD.documentkey;
+    NEW.masterdockey = OLD.masterdockey;
+    NEW.companykey = OLD.companykey;
+    NEW.issimple = OLD.issimple;
+  END
 
+  IF ((NEW.accountpart <> OLD.accountpart)
+    OR (NEW.currkey IS DISTINCT FROM OLD.currkey)) THEN
+  BEGIN
+    IF (NEW.accountpart = 'C') THEN
+    BEGIN
+      NEW.debitncu = 0;
+      NEW.debitcurr = 0;
+      NEW.debiteq = 0;
+      NEW.creditncu = COALESCE(NEW.creditncu, 0);
+      NEW.creditcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.creditcurr, 0));
+      NEW.crediteq = COALESCE(NEW.crediteq, 0);
+    END ELSE
+    BEGIN
+      NEW.creditncu = 0;
+      NEW.creditcurr = 0;
+      NEW.crediteq = 0;
+      NEW.debitncu = COALESCE(NEW.debitncu, 0);
+      NEW.debitcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.debitcurr, 0));
+      NEW.debiteq = COALESCE(NEW.debiteq, 0);
+    END
+
+    SELECT SUM(IIF(accountpart = NEW.accountpart, 1, 0)), SUM(IIF(accountpart <> NEW.accountpart, 1, 0))
+    FROM ac_entry
+    WHERE recordkey = NEW.recordkey AND id <> NEW.id
+    INTO :Cnt, :Cnt2;
+
+    IF (:Cnt > 0 AND :Cnt2 > 1) THEN
+      EXCEPTION ac_e_invalidentry;
+
+    IF (:Cnt = 0) THEN
+      NEW.issimple = 1;
+    ELSE BEGIN
+      NEW.issimple = 0;
+      IF (:Cnt = 1) THEN
+      BEGIN
+        WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK');
+        IF (:WasUnlock IS NULL) THEN
+          RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', 1);
+        UPDATE ac_entry SET issimple = 0
+        WHERE recordkey = NEW.recordkey AND accountpart = NEW.accountpart AND id <> NEW.id;
+        IF (:WasUnlock IS NULL) THEN
+          RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+      END
+    END
+
+    IF (OLD.issimple = 0) THEN
+    BEGIN
+      Cnt = 0;
+      SELECT COUNT(*) FROM ac_entry
+      WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart AND id <> OLD.id
+      INTO :Cnt;
+
+      IF (:Cnt = 1) THEN
+      BEGIN
+        WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK');
+        IF (:WasUnlock IS NULL) THEN
+          RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', 1);
+        UPDATE ac_entry SET issimple = 1
+        WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart AND id <> OLD.id;
+        IF (:WasUnlock IS NULL) THEN
+          RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+      END
+    END
+  END
+
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+    EXCEPTION;
+  END
 END
-^
+^
 
-CREATE TRIGGER ac_au_entry FOR ac_entry
+CREATE OR ALTER TRIGGER ac_au_entry FOR ac_entry
   AFTER UPDATE
   POSITION 0
 AS
+  DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
-
-  IF ((OLD.debitncu <> NEW.debitncu) or (OLD.creditncu <> NEW.creditncu) or 
+  IF ((OLD.debitncu <> NEW.debitncu) or (OLD.creditncu <> NEW.creditncu) or
       (OLD.debitcurr <> NEW.debitcurr) or (OLD.creditcurr <> NEW.creditcurr))
-  THEN
+  THEN BEGIN
+    WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK');
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', 1);
     UPDATE ac_record SET debitncu = debitncu - OLD.debitncu + NEW.debitncu,
       creditncu = creditncu - OLD.creditncu + NEW.creditncu,
       debitcurr = debitcurr - OLD.debitcurr + NEW.debitcurr,
       creditcurr = creditcurr - OLD.creditcurr + NEW.creditcurr
     WHERE
       id = OLD.recordkey;
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
 
+    WHEN ANY DO
+    BEGIN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
+      EXCEPTION;
+    END
+  END
 END
 ^
 
-CREATE TRIGGER ac_ad_entry FOR ac_entry
+CREATE OR ALTER TRIGGER ac_ad_entry FOR ac_entry
   AFTER DELETE
   POSITION 0
 AS
+  DECLARE VARIABLE Cnt INTEGER = 0;
+  DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
-  /* если записей по проводку больше нет - удаляем проводку */
   IF (NOT EXISTS(SELECT id FROM ac_entry WHERE recordkey = OLD.recordkey)) THEN
     DELETE FROM ac_record WHERE id = OLD.recordkey;
-  ELSE
+  ELSE BEGIN
+    WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK');
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', 1);
     UPDATE ac_record SET debitncu = debitncu - OLD.debitncu,
       creditncu = creditncu - OLD.creditncu,
       debitcurr = debitcurr - OLD.debitcurr,
       creditcurr = creditcurr - OLD.creditcurr
     WHERE
       id = OLD.recordkey;
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
 
+    IF (OLD.issimple = 0) THEN
+    BEGIN
+      SELECT COUNT(*) FROM ac_entry
+      WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart
+      INTO :Cnt;
+
+      IF (:Cnt = 1) THEN
+      BEGIN
+        WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK');
+        IF (:WasUnlock IS NULL) THEN
+          RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', 1);
+        UPDATE ac_entry SET issimple = 1
+        WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart;
+        IF (:WasUnlock IS NULL) THEN
+          RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+      END
+    END
+  END
+
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+    EXCEPTION;
+  END
 END
 ^
 
@@ -1330,7 +1442,7 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
         SELECT 
           e.' || fieldname || ', 
           e.debitncu, e.creditncu, 
-          e.debitcurr, e.creditcurr, 
+          e.debitcurr, e.creditcurr,
           e.debiteq, e.crediteq 
         FROM 
           ac_entry e 

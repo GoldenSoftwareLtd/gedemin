@@ -170,7 +170,7 @@ var
   H: TgsHugeIntSet;
   I, V: Integer;
 begin
-  H := TgsHugeIntSet.Create;
+  H := TgsHugeIntSet.Create('X', 1, 1);
   try
     // первое, с чего стоит начать тест -- это проверка
     // начального состояния созданного объекта

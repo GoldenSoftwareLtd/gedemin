@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
 
   Script
@@ -20,15 +20,6 @@
 
     
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /*
  * при продаже каждой программы будем присваивать ей
@@ -117,4 +108,3 @@ ALTER TABLE pr_key ADD CONSTRAINT pr_fk_key_ok
   ON UPDATE CASCADE;
 
 COMMIT;
-

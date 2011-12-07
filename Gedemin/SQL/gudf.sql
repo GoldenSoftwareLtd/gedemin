@@ -3,7 +3,7 @@
 /*                                                       */
 /*      InterBase User Defined Fuctions                  */
 /*      GUDF library                                     */
-/*      Copyright (c) 1999 by Golden Software            */
+/*      Copyright (c) 2000-2012 by Golden Software       */
 /*                                                       */
 /*      Thanks to:                                       */
 /*        Oleg Kukarthev                                 */
@@ -383,5 +383,6 @@ RETURNS
   INTEGER BY VALUE 
 ENTRY_POINT 'g_s_delchar' 
 MODULE_NAME 'gudf';
+
 COMMIT;
 

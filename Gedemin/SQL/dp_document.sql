@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -26,15 +26,6 @@
     Draft
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 ALTER TABLE bn_destcode ADD
   desttype dinteger DEFAULT 0;

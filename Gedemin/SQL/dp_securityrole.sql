@@ -2,7 +2,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -25,15 +25,6 @@
     Draft
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 GRANT ALL ON dp_authority TO administrator;
 GRANT ALL ON dp_assetdest TO administrator;

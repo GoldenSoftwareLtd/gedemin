@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -21,18 +21,7 @@
 
   Status 
     
-    Draft
-
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /****************************************************
 
@@ -469,4 +458,3 @@ ALTER TABLE rp_additionalfunction ADD CONSTRAINT rp_fk_additionalfunction_afk
   ON UPDATE CASCADE;
 
 COMMIT;
-
