@@ -467,7 +467,9 @@ begin
 
       q.Close;
       q.SQL.Text :=
-        'SELECT u.name as username, a.* FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+        'SELECT u.name as username, a.*, ROUND(mu.mon$memory_used / 1024 / 1024 + 0.5) || '' Mb'' AS mon$memory_usage ' +
+        'FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+        '  JOIN mon$memory_usage mu ON mu.mon$stat_id = a.mon$stat_id ' +
         'WHERE mon$attachment_id = CURRENT_CONNECTION';
       q.ExecQuery;
       if not q.EOF then
@@ -481,7 +483,9 @@ begin
       begin
         q.Close;
         q.SQL.Text :=
-          'SELECT u.name as username, a.* FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+          'SELECT u.name as username, a.*, ROUND(mu.mon$memory_used / 1024 / 1024 + 0.5) || '' Mb'' AS mon$memory_usage ' +
+          'FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+          '  JOIN mon$memory_usage mu ON mu.mon$stat_id = a.mon$stat_id ' +
           'WHERE mon$attachment_id <> CURRENT_CONNECTION';
         q.ExecQuery;
         while not q.EOF do

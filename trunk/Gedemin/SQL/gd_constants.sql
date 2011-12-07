@@ -1,6 +1,5 @@
 /*Используемые диапазоны*/
 
-
 /* GD_SUBSYSTEM */
 /*1 .. 50000 */
 
@@ -79,7 +78,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -102,17 +101,6 @@
     Draft
 
 */
-
-
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /* ПОДСИСТЕМЫ */
 
@@ -1664,5 +1652,3 @@ INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACRO
   VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 1, 'APPLICATION');
 
 COMMIT;
-
-

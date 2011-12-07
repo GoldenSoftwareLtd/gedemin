@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2007 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -24,15 +24,6 @@
 
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /****************************************************
 
@@ -707,6 +698,3 @@ GRANT SELECT ON gd_usergroup TO PROCEDURE gd_p_sec_loginuser;
 GRANT SELECT, UPDATE, DELETE ON gd_journal TO PROCEDURE gd_p_sec_loginuser;
 
 COMMIT;
-
-
-

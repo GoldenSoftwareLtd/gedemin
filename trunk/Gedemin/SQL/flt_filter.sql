@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -24,15 +24,6 @@
     Draft
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /****************************************************
 
@@ -258,4 +249,3 @@ ALTER TABLE flt_lastfilter ADD CONSTRAINT flt_fk_lastfilter_lastfilter
   ON DELETE CASCADE;
 
 COMMIT;
-

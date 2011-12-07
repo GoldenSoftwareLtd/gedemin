@@ -3060,7 +3060,7 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         '.mon$state AND rdb$field_name = '#39'MON$STATE'#39') AS state_name,'
       '  st.mon$timestamp AS executed,'
       '  st.mon$sql_text AS sql_text,'
-      '  ROUND(mu.mon$memory_used / 1024 + 0.5) AS mem_used'
+      '  mu.mon$memory_used AS mem_used'
       ''
       'FROM'
       '  mon$statements st'
@@ -3076,6 +3076,10 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       '  st.mon$attachment_id,'
       '  st.mon$state DESC,'
       '  st.mon$statement_id'
+      ' '
+      ' '
+      ' '
+      ' '
       ' '
       ' ')
     ReadTransaction = ibtrMonitor

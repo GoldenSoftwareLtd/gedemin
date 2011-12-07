@@ -1,14 +1,4 @@
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**                                                **/
-/**   Copyright (c) 1999-00 by                     **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
-
 CREATE TABLE fin_versioninfo
 (
   id            dintkey,
@@ -443,6 +433,9 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (134, '0000.0001.0000.0165', '10.05.2011', 'Delete lbrb tree elements from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (135, '0000.0001.0000.0166', '11.05.2011', 'Refined triggers for AC_ENTRY, AC_RECORD.');
 
 COMMIT;
 

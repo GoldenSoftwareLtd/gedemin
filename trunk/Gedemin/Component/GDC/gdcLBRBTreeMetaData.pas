@@ -25,7 +25,7 @@ procedure CreateLBRBTreeMetaDataScript(AScript: TStrings;
   const APrefix, AName, ATableName: String;
   const ATr: TIBTransaction = nil; const JustAlter: Boolean = False);
 function UpdateLBRBTreeBase(const Tr: TIBTransaction; const JustAlter: Boolean;
-  _Writeln: TWritelnCallback): Boolean;
+  _Writeln: TWritelnCallback; const OutputStrings: TStrings = nil): Boolean;
 function GetLBRBTreeDependentNames(const ARelName: String; const ATr: TIBTRansaction;
   out Names: TLBRBTreeMetaNames): Integer;
 function RestrLBRBTree(const ARelName: String; const ATr: TIBTRansaction): Integer;
@@ -461,12 +461,12 @@ begin
 end;
 
 function UpdateLBRBTreeBase(const Tr: TIBTransaction; const JustAlter: Boolean;
-  _Writeln: TWritelnCallback): Boolean;
+  _Writeln: TWritelnCallback; const OutputStrings: TStrings = nil): Boolean;
 var
   FIBSQL: TIBSQL;
-  SQLScript, SL: TStringList;
+  SQLScript, SL, TempSL: TStringList;
   TN, S: String;
-  I, J: Integer;
+  I, J, K: Integer;
 begin
   Assert(Tr <> nil);
   Assert(Tr.InTransaction);
@@ -476,11 +476,24 @@ begin
   SQLScript := TStringList.Create;
   FIBSQL := TIBSQL.Create(nil);
   SL := TStringList.Create;
+  TempSL := TStringList.Create;
   try
     FIBSQL.Transaction := Tr;
     FIBSQL.ParamCheck := False;
 
     GetLBRBTreeList('', Tr, SL);
+
+    if OutputStrings <> nil then
+    begin
+      OutputStrings.Add('');
+      OutputStrings.Add('/*******************************/');
+      OutputStrings.Add('/** Begin LB-RB Tree Metadata **/');
+      OutputStrings.Add('/*******************************/');
+      OutputStrings.Add('');
+      OutputStrings.Add('SET TERM ^ ;');
+      OutputStrings.Add('');
+    end;
+
     for J := 0 to SL.Count - 1 do
     begin
       S := '';
@@ -493,8 +506,19 @@ begin
         for I := 0 to SQLScript.Count - 1 do
         begin
           S := SQLScript[I];
-          FIBSQL.SQL.Text := S;
-          FIBSQL.ExecQuery;
+
+          if OutputStrings <> nil then
+          begin
+            TempSL.Text := S;
+            for K := 0 to TempSL.Count - 1 do
+              OutputStrings.Add(TempSL[K]);
+            OutputStrings.Add('^');
+            OutputStrings.Add('');
+          end else
+          begin
+            FIBSQL.SQL.Text := S;
+            FIBSQL.ExecQuery;
+          end;
         end;
 
         _Writeln('Обработана таблица: ' + TN + '...');
@@ -508,11 +532,23 @@ begin
       end;
     end;
 
+    if OutputStrings <> nil then
+    begin
+      OutputStrings.Add('');
+      OutputStrings.Add('SET TERM ; ^');
+      OutputStrings.Add('');
+      OutputStrings.Add('/*******************************/');
+      OutputStrings.Add('/** End LB-RB Tree Metadata   **/');
+      OutputStrings.Add('/*******************************/');
+      OutputStrings.Add('');
+    end;
+
     Result := True;
   finally
     SQLScript.Free;
     FIBSQL.Free;
     SL.Free;
+    TempSL.Free;
   end;
 end;
 

@@ -1,14 +1,4 @@
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Gedemin project                              **/
-/**   Copyright (c) 1999-2000 by                   **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
-
 /* домен для первичных ключей */
 CREATE DOMAIN dintkey
   AS INTEGER NOT NULL
@@ -374,6 +364,4 @@ CREATE DOMAIN daccountalias
 CREATE DOMAIN dfixlength 
   AS INTEGER CHECK ((VALUE IS NULL) OR (VALUE > 0 AND VALUE <= 20));
 
-
 COMMIT;
-

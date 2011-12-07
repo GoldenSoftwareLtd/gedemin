@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -24,15 +24,6 @@
     Draft
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 CREATE TABLE TST_MAINTABLE (
     ID DINTKEY,
@@ -253,7 +244,5 @@ INSERT INTO TST_SETLINK
   (MAINTABLEKEY,SETTOSETKEY)
 VALUES
   (101,404);
-
-
 
 COMMIT;

@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -24,15 +24,6 @@
     Draft
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /*GRANT ALL ON gd_classes TO administrator;*/
 GRANT ALL ON gd_ruid TO administrator;
@@ -363,6 +354,5 @@ GRANT ALL ON rpl_record TO administrator;
 
 GRANT ALL ON gd_ref_constraints TO administrator;
 GRANT ALL ON gd_ref_constraint_data TO administrator;
-
 
 COMMIT;

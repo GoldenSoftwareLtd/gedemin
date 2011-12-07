@@ -1,13 +1,4 @@
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
-
 INSERT INTO CTL_AUTOTARIFF (CARGOCLASS,DISTANCE,TARIFF_500,TARIFF_1000,TARIFF_1500,TARIFF_2000,TARIFF_5000,TARIFF_S5000,RESERVED) VALUES (1,1,0.83,0.96,1.15,1.3,0.47,0.08,NULL);
 INSERT INTO CTL_AUTOTARIFF (CARGOCLASS,DISTANCE,TARIFF_500,TARIFF_1000,TARIFF_1500,TARIFF_2000,TARIFF_5000,TARIFF_S5000,RESERVED) VALUES (1,2,1.02,1.18,1.42,1.6,0.6,0.12,NULL);
 INSERT INTO CTL_AUTOTARIFF (CARGOCLASS,DISTANCE,TARIFF_500,TARIFF_1000,TARIFF_1500,TARIFF_2000,TARIFF_5000,TARIFF_S5000,RESERVED) VALUES (1,3,1.21,1.4,1.69,1.9,0.73,0.16,NULL);
