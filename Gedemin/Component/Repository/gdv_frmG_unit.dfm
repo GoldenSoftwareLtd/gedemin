@@ -18,7 +18,7 @@ object gdv_frmG: Tgdv_frmG
   object TBDock1: TTBDock
     Left = 0
     Top = 0
-    Width = 593
+    Width = 585
     Height = 30
     object tbMainToolbar: TTBToolbar
       Left = 0
@@ -124,8 +124,8 @@ object gdv_frmG: Tgdv_frmG
   object Panel1: TPanel
     Left = 9
     Top = 30
-    Width = 575
-    Height = 338
+    Width = 567
+    Height = 327
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
@@ -134,20 +134,20 @@ object gdv_frmG: Tgdv_frmG
     Left = 0
     Top = 30
     Width = 9
-    Height = 338
+    Height = 327
     Position = dpLeft
   end
   object TBDock3: TTBDock
-    Left = 584
+    Left = 576
     Top = 30
     Width = 9
-    Height = 338
+    Height = 327
     Position = dpRight
   end
   object TBDock4: TTBDock
     Left = 0
-    Top = 368
-    Width = 593
+    Top = 357
+    Width = 585
     Height = 9
     Position = dpBottom
   end

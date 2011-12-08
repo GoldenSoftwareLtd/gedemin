@@ -160,6 +160,7 @@ const
   Acc00     = 300003;
   Acc01     = 300100;
   Acc08     = 300800;
+  Acc25     = 322500;
   BelRubID  = 200010;
 
   function InsertAcRecord(q: TIBSQL; const AnID, ADocID, ACompanyKey: TID): TID;
@@ -284,8 +285,11 @@ const
 var
   DocID, DocID2: TID;
   RecID: TID;
-  EntryID, EntryID2: TID;
+  EntryID, EntryID2, EntryID3: TID;
 begin
+  //
+  TestConsistentState(FQ);
+
   DocID := InsertDoc(FQ, gdcBaseManager.GetNextID, '1');
   DocID2 := InsertDoc(FQ, gdcBaseManager.GetNextID, '2');
 
@@ -349,6 +353,41 @@ begin
     CompanyID, DocID, DocID, TrID);
 
   // теперь incorrect = 0
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := RecID;
+  FQ.ExecQuery;
+  Check(FQ.FieldByName('incorrect').AsInteger = 0);
+
+  // issimple = 1
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT SUM(issimple) FROM ac_entry WHERE recordkey=' + IntToStr(RecID);
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 2);
+
+  EntryID3:= InsertAcEntry(FQ, gdcBaseManager.GetNextID, RecID, Acc25, 'C',
+    100, 100, 100, 100, 100, 100, BelRubID,
+    EncodeDate(2000, 01, 01),
+    CompanyID, DocID, DocID, TrID);
+
+  // incorrect = 1
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := RecID;
+  FQ.ExecQuery;
+  Check(FQ.FieldByName('incorrect').AsInteger = 1);
+
+  // issimple = 0
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT SUM(issimple) FROM ac_entry WHERE recordkey=' + IntToStr(RecID);
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 0);
+
+  FQ.Close;
+  FQ.SQL.Text := 'UPDATE ac_entry SET debitncu=200, debitcurr=200, debiteq=200 WHERE id=' + IntToStr(EntryID);
+  FQ.ExecQuery;
+
+  // incorrect = 0
   FQ.Close;
   FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
   FQ.ParamByName('id').AsInteger := RecID;

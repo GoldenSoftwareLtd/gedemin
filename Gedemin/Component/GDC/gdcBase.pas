@@ -10116,7 +10116,19 @@ class function TgdcBase.CreateViewForm(AnOwner: TComponent;
 var
   C: TPersistentClass;
 begin
-  { TODO : 
+  Assert(IBLogin <> nil);
+  Assert(atDatabase <> nil);
+
+  if atDatabase.InMultiConnection then
+  begin
+    MessageBox(0,
+      'Необходимо переподключение к базе данных.',
+      'Внимание',
+      MB_OK or MB_ICONHAND or MB_TASKMODAL);
+    Abort;
+  end;
+
+  { TODO :
 внимание! вызов TestConnected может привести 
 к потере производительности! }
   if (not IBLogin.LoggedIn) or (not IBlogin.Database.TestConnected) then
@@ -11946,11 +11958,11 @@ var
   WasCreate: Boolean;
   S: String;
 begin
-  Assert(
+{  Assert(
     ((ADBID = 17) and (AnID = AXID) and (AnID < cstUserIDStart))
     or
     ((ADBID <> 17) and (AnID >= cstUserIDStart))
-  );
+  ); }
 
   if AXID < cstUserIDStart then
     exit;

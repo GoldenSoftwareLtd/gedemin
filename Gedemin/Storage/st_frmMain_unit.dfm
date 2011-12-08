@@ -21,8 +21,8 @@ object st_frmMain: Tst_frmMain
   TextHeight = 13
   object sb: TStatusBar
     Left = 0
-    Top = 434
-    Width = 688
+    Top = 423
+    Width = 680
     Height = 19
     Panels = <>
     SimplePanel = False
@@ -30,11 +30,11 @@ object st_frmMain: Tst_frmMain
   object TBDock1: TTBDock
     Left = 0
     Top = 0
-    Width = 688
-    Height = 49
+    Width = 680
+    Height = 51
     object TBToolbar1: TTBToolbar
       Left = 0
-      Top = 23
+      Top = 25
       Caption = 'Панель инструментов'
       DockMode = dmCannotFloatOrChangeDocks
       Images = dmImages.il16x16
@@ -182,16 +182,16 @@ object st_frmMain: Tst_frmMain
   end
   object pnlWorkArea: TPanel
     Left = 0
-    Top = 49
-    Width = 688
-    Height = 385
+    Top = 51
+    Width = 680
+    Height = 372
     Align = alClient
     BevelOuter = bvLowered
     TabOrder = 2
     object splSearch: TSplitter
       Left = 1
-      Top = 349
-      Width = 686
+      Top = 336
+      Width = 678
       Height = 8
       Cursor = crVSplit
       Align = alBottom
@@ -201,8 +201,8 @@ object st_frmMain: Tst_frmMain
     object Panel1: TPanel
       Left = 1
       Top = 1
-      Width = 686
-      Height = 348
+      Width = 678
+      Height = 335
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
@@ -210,7 +210,7 @@ object st_frmMain: Tst_frmMain
         Left = 98
         Top = 0
         Width = 8
-        Height = 348
+        Height = 335
         Cursor = crHSplit
         Beveled = True
       end
@@ -218,7 +218,7 @@ object st_frmMain: Tst_frmMain
         Left = 9
         Top = 0
         Width = 89
-        Height = 348
+        Height = 335
         Align = alLeft
         BorderStyle = bsNone
         HideSelection = False
@@ -236,16 +236,16 @@ object st_frmMain: Tst_frmMain
       object Panel2: TPanel
         Left = 106
         Top = 0
-        Width = 571
-        Height = 348
+        Width = 563
+        Height = 335
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
         object lv: TListView
           Left = 0
           Top = 0
-          Width = 571
-          Height = 348
+          Width = 563
+          Height = 335
           Align = alClient
           BorderStyle = bsNone
           Columns = <
@@ -278,24 +278,24 @@ object st_frmMain: Tst_frmMain
         end
       end
       object TBDock3: TTBDock
-        Left = 677
+        Left = 669
         Top = 0
         Width = 9
-        Height = 348
+        Height = 335
         Position = dpRight
       end
       object TBDock2: TTBDock
         Left = 0
         Top = 0
         Width = 9
-        Height = 348
+        Height = 335
         Position = dpLeft
       end
     end
     object pnSearch: TPanel
       Left = 1
-      Top = 357
-      Width = 686
+      Top = 344
+      Width = 678
       Height = 27
       Align = alBottom
       BevelOuter = bvNone
@@ -304,7 +304,7 @@ object st_frmMain: Tst_frmMain
       object lvSearch: TListView
         Left = 0
         Top = 0
-        Width = 686
+        Width = 678
         Height = 27
         Align = alClient
         BorderStyle = bsNone

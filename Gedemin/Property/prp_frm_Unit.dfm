@@ -21,7 +21,7 @@ object prp_frm: Tprp_frm
     Left = 49
     Top = 9
     Width = 4
-    Height = 196
+    Height = 185
     Cursor = crHSplit
     AutoSnap = False
     Color = clBtnFace
@@ -30,10 +30,10 @@ object prp_frm: Tprp_frm
     Visible = False
   end
   object VRSplitter: TSplitter
-    Left = 348
+    Left = 340
     Top = 9
     Width = 4
-    Height = 196
+    Height = 185
     Cursor = crHSplit
     Align = alRight
     AutoSnap = False
@@ -44,8 +44,8 @@ object prp_frm: Tprp_frm
   end
   object HSplitter: TSplitter
     Left = 0
-    Top = 214
-    Width = 397
+    Top = 203
+    Width = 389
     Height = 4
     Cursor = crVSplit
     Align = alBottom
@@ -58,14 +58,14 @@ object prp_frm: Tprp_frm
   object tbdTop: TTBDock
     Left = 0
     Top = 0
-    Width = 397
+    Width = 389
     Height = 9
   end
   object LeftDockPanel: TPanel
     Left = 0
     Top = 9
     Width = 49
-    Height = 196
+    Height = 185
     Align = alLeft
     BevelOuter = bvNone
     DockSite = True
@@ -76,10 +76,10 @@ object prp_frm: Tprp_frm
     OnUnDock = LeftDockPanelUnDock
   end
   object RightDockPanel: TPanel
-    Left = 352
+    Left = 344
     Top = 9
     Width = 45
-    Height = 196
+    Height = 185
     Align = alRight
     BevelOuter = bvNone
     DockSite = True
@@ -91,8 +91,8 @@ object prp_frm: Tprp_frm
   end
   object BottomDockPanel: TPanel
     Left = 0
-    Top = 218
-    Width = 397
+    Top = 207
+    Width = 389
     Height = 41
     Align = alBottom
     BevelOuter = bvNone
@@ -108,27 +108,27 @@ object prp_frm: Tprp_frm
     Left = 53
     Top = 9
     Width = 9
-    Height = 196
+    Height = 185
     Position = dpLeft
   end
   object tbdBottom: TTBDock
     Left = 0
-    Top = 205
-    Width = 397
+    Top = 194
+    Width = 389
     Height = 9
     Position = dpBottom
   end
   object tbdRight: TTBDock
-    Left = 339
+    Left = 331
     Top = 9
     Width = 9
-    Height = 196
+    Height = 185
     Position = dpRight
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 259
-    Width = 397
+    Top = 248
+    Width = 389
     Height = 19
     Panels = <>
     SimplePanel = False
