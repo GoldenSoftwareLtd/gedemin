@@ -842,7 +842,7 @@ begin
 
   inherited;
 
-  TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+  //TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMG', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
@@ -881,7 +881,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+  //TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 
   inherited;
 
@@ -1516,6 +1516,8 @@ begin
 
   // идея такая, что пользователь не может скрыть тулбар,
   // если на нем есть кнопки
+  tbMainToolbar.Visible := True;
+  tbMainInvariant.Visible := tbMainInvariant.Items.Count > 0;
   tbMainCustom.Visible := tbMainCustom.Items.Count > 0;
 end;
 

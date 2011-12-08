@@ -279,7 +279,7 @@ begin
   F := UserStorage.OpenFolder(Path, True);
   FBottomDockHeight := F.ReadInteger('BottomDockHeight', ClientHeight div 3);
   UserStorage.CloseFolder(F);
-  TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+  //TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 end;
 
 procedure Tprp_frm.SaveSettings;
@@ -287,7 +287,7 @@ var
   F: TgsStorageFolder;
   Path: string;
 begin
-  TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+  //TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
   Path := Self.Name;
   F := UserStorage.OpenFolder(Path, True);
   F.WriteInteger('BottomDockHeight', FBottomDockHeight);

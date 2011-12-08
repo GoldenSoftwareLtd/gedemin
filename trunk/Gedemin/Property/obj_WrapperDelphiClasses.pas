@@ -1323,7 +1323,7 @@ type
                      var pvaOut: OleVariant); safecall;
     procedure ShowBrowserBar(var pvaClsID: OleVariant; var pvarShow: OleVariant;
                              var pvarSize: OleVariant); safecall;
-    function  Get_RedyState: Integer; safecall;
+    function  Get_ReadyState: Integer; safecall;
     function  Get_Offline: WordBool; safecall;
     procedure Set_Offline(Value: WordBool); safecall;
     function  Get_Silent: WordBool; safecall;
@@ -22510,7 +22510,7 @@ begin
   Result := GetWebBrowser.Offline;
 end;
 
-function TwrpWebBrowser.Get_RedyState: Integer;
+function TwrpWebBrowser.Get_ReadyState: Integer;
 begin
   Result := GetWebBrowser.ReadyState;
 end;

@@ -3914,10 +3914,14 @@ begin
         //выводим диалог дл€ ввода занчени€ по умолчанию
         if (not (sLoadFromStream in BaseState)) then
         begin
-          try
-            gdcBaseManager.ExecSingleQueryResult('SELECT FIRST 1 * FROM ' + FieldByName('relationname').AsString, '', R);
-          except
-          end;
+          gdcBaseManager.ExecSingleQueryResult(
+            'SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN',
+             FieldByName('relationname').AsString, R);
+
+          if not VarIsEmpty(R) then
+            gdcBaseManager.ExecSingleQueryResult(
+              'SELECT FIRST 1 * FROM ' + FieldByName('relationname').AsString,
+              '', R);
 
           if not VarIsEmpty(R) and
             (MessageBox(0,

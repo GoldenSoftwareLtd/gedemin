@@ -2,17 +2,16 @@ inherited gdc_frmSetting: Tgdc_frmSetting
   Left = 317
   Top = 188
   Width = 823
-  Height = 485
   HelpContext = 22
   Caption = 'Настройки'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 439
-    Width = 815
+    Top = 428
+    Width = 807
   end
   inherited TBDockTop: TTBDock
-    Width = 815
+    Width = 807
     inherited tbMainCustom: TTBToolbar
       Left = 431
       DockPos = 431
@@ -122,59 +121,55 @@ inherited gdc_frmSetting: Tgdc_frmSetting
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 381
+    Height = 368
   end
   inherited TBDockRight: TTBDock
-    Left = 806
-    Height = 381
+    Left = 798
+    Height = 368
   end
   inherited TBDockBottom: TTBDock
-    Top = 430
-    Width = 815
+    Top = 419
+    Width = 807
   end
   inherited pnlWorkArea: TPanel
-    Width = 797
-    Height = 381
+    Width = 789
     inherited sMasterDetail: TSplitter
-      Width = 797
+      Width = 789
     end
     inherited spChoose: TSplitter
-      Top = 278
-      Width = 797
+      Width = 789
     end
     object spltStorrage: TSplitter [2]
-      Left = 539
-      Top = 171
+      Left = 531
+      Top = 173
       Width = 3
-      Height = 107
+      Height = 100
       Cursor = crHSplit
       Align = alRight
       Visible = False
     end
     inherited pnlMain: TPanel
-      Width = 797
+      Width = 789
       inherited ibgrMain: TgsIBGrid
-        Width = 637
+        Width = 629
       end
     end
     inherited pnChoose: TPanel
-      Top = 282
-      Width = 797
+      Width = 789
       inherited pnButtonChoose: TPanel
-        Left = 692
+        Left = 684
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 692
+        Width = 684
       end
       inherited pnlChooseCaption: TPanel
-        Width = 797
+        Width = 789
       end
     end
     inherited pnlDetail: TPanel
-      Width = 539
-      Height = 107
+      Width = 531
       inherited TBDockDetail: TTBDock
-        Width = 539
+        Width = 531
         inherited tbDetailToolbar: TTBToolbar
           object tbiOpenObject: TTBItem
             Action = actOpenObject
@@ -202,25 +197,15 @@ inherited gdc_frmSetting: Tgdc_frmSetting
           end
         end
       end
-      inherited pnlSearchDetail: TPanel
-        Height = 81
-        inherited sbSearchDetail: TScrollBox
-          Height = 43
-        end
-        inherited pnlSearchDetailButton: TPanel
-          Top = 43
-        end
-      end
       inherited ibgrDetail: TgsIBGrid
-        Width = 379
-        Height = 81
+        Width = 371
       end
     end
     object pnlStorage: TPanel
-      Left = 542
-      Top = 171
+      Left = 534
+      Top = 173
       Width = 255
-      Height = 107
+      Height = 100
       Align = alRight
       BevelOuter = bvNone
       TabOrder = 3
@@ -266,7 +251,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         Left = 0
         Top = 26
         Width = 160
-        Height = 81
+        Height = 74
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -276,7 +261,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
           Left = 0
           Top = 0
           Width = 160
-          Height = 51
+          Height = 44
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -286,7 +271,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         end
         object pnlSearchStorageButton: TPanel
           Left = 0
-          Top = 51
+          Top = 44
           Width = 160
           Height = 30
           Align = alBottom
@@ -317,7 +302,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         Left = 160
         Top = 26
         Width = 95
-        Height = 81
+        Height = 74
         HelpContext = 3
         Align = alClient
         BorderStyle = bsNone
