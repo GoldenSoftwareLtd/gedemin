@@ -27,10 +27,11 @@ type
     ibluSetting: TgsIBLookupComboBox;
     Label1: TLabel;
     Label2: TLabel;
-    Button1: TButton;
+    btnAddToSetting: TButton;
     Label3: TLabel;
     Button2: TButton;
     Bevel1: TBevel;
+    chbxWithDetail: TCheckBox;
     procedure actAddToSettingExecute(Sender: TObject);
     procedure actDelFromSettingExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
@@ -211,7 +212,7 @@ end;
 procedure TdlgToSetting.actAddToSettingExecute(Sender: TObject);
 var
   NewID: Integer;
-  WithDetail: Boolean;
+  //WithDetail: Boolean;
   OldID: Integer;
 begin
   FWasChange := True;
@@ -229,12 +230,12 @@ begin
         FgdcSettingObject.Open;
         if FgdcSettingObject is TgdcSettingPos then
         begin
-          WithDetail := (MessageBox(HWND(nil), PChar('Сохранять объект ' +
+          {WithDetail := (MessageBox(HWND(nil), PChar('Сохранять объект ' +
             FgdcObject.GetDisplayName(FgdcObject.SubType) +  ' ' +
             FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString +
             ' вместе с детальными?'), 'Внимание!',
-            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES);
-          (FgdcSettingObject as TgdcSettingPos).AddPos(FgdcObject, WithDetail);
+            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES);}
+          (FgdcSettingObject as TgdcSettingPos).AddPos(FgdcObject, chbxWithDetail.Checked);
         end else if FgdcSettingObject is TgdcSettingStorage then
         begin
           (FgdcSettingObject as TgdcSettingStorage).AddPos(FBranchName, FValueName);

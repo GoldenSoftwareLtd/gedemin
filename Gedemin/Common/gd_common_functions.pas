@@ -84,14 +84,16 @@ end;
 
 function CorrectFileName(const FN: String): String;
 const
-  CorrectSymbols = ['A'..'Z', 'a'..'z', 'À'..'ÿ', '_', '0'..'9', ' '];
+  CorrectSymbols = ['A'..'Z', 'a'..'z', 'À'..'ÿ', '_', '0'..'9', ' ', '.', '-'];
 var
   i: Integer;
 begin
   Result := '';
   for I := 1 to Length(FN) do
     if FN[I] in CorrectSymbols then
-      Result := Result + FN[I];
+      Result := Result + FN[I]
+    else
+      Result := Result + '_';
 end;
 
 procedure SaveStringToStream(const Str: String; Stream: TStream);

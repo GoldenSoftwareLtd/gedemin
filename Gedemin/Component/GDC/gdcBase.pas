@@ -14332,11 +14332,6 @@ begin
   begin
     with TSaveDialog.Create(FParentForm) do
     try
-      {if (FParentForm <> nil)
-        and (FParentForm.FindComponent('SDialogRT') = nil) then
-      begin
-        Name := 'SDialogRT';
-      end;}
       Options := [ofOverwritePrompt,ofHideReadOnly,ofPathMustExist,
         ofNoReadOnlyReturn,ofEnableSizing];
       DefaultExt := aDefaultExt;
@@ -14351,7 +14346,6 @@ begin
         //то название файла логичнее сделать Справочники.dat,
         //а не брать имя последнего сохраненного файла 22222.dat
         FileName := CorrectFileName(FieldByName(GetListField(SubType)).AsString);
-
       end;
       {$ENDIF}
       if not Execute then
