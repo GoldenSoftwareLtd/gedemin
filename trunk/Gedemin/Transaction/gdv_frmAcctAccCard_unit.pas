@@ -281,6 +281,7 @@ begin
           SQL.ParamByName('id').AsInteger := StrToInt(Value);
           SQL.ExecQuery;
           cbAccounts.Text := SQl.FieldByName('alias').AsString;
+          cbAccountsChange(Self);
         finally
           SQL.Free;
         end;

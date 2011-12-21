@@ -358,7 +358,7 @@ var
   StID: String; //Строка идентификаторов
   XID, DBID: TID;
   ASettingPos: TgdcSettingPos;
-  WithDetail: Boolean;
+  //WithDetail: Boolean;
 begin
   if not FWasChange then
   begin
@@ -376,9 +376,9 @@ begin
           '?'), 'Внимание!', MB_ICONQUESTION or MB_YESNO) = IDYES
         then
         begin
-          WithDetail := (MessageBox(HWND(nil), PChar('Сохранять выбранные объекты ' +
+          {WithDetail := (MessageBox(HWND(nil), PChar('Сохранять выбранные объекты ' +
             ' вместе с детальными?'), 'Внимание!',
-            MB_YESNO or MB_ICONQUESTION) = IDYES);
+            MB_YESNO or MB_ICONQUESTION) = IDYES);}
   {Т.к. мы можем выбрать несколько записей только в б-о (ветки стораджа выбираются по одной),
    то нам понадобится еще дополнительный б-о типа TgdcSettingPos для манипуляций с записями}
           ASettingPos := TgdcSettingPos.CreateSubType(nil, '', 'BySetting');
@@ -439,7 +439,7 @@ begin
                     ASettingPos.ParamByName('settingkey').AsInteger :=
                       qrySetting.FieldByName('id').AsInteger;
                     ASettingPos.Open;
-                    ASettingPos.AddPos(FgdcObject, WithDetail);
+                    ASettingPos.AddPos(FgdcObject, chbxWithDetail.Checked);
                   end else if FgdcSettingObject is TgdcSettingStorage then
                   begin
                     //Ветки хранилища у нас выбираются по одной

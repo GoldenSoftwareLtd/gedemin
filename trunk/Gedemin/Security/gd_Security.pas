@@ -248,6 +248,8 @@ type
       const AnObjectID: Integer = -1;
       const ATransaction: TObject = nil);
 
+    function GetMainWindowCaption: String;
+
     property LoginParam[ParamName: String]: String read GetLoginParam;
     property ComputerName: String read GetComputerName;
     property IBRole: String read GetIBRole;
@@ -318,6 +320,8 @@ type
     property ServerName: String read GetServerName;
 
     property LoggingOff: Boolean read GetLoggingOff;
+
+    property MainWindowCaption: String read GetMainWindowCaption;
   end;
 
 

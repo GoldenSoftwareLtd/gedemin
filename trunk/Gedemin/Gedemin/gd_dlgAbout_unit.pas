@@ -304,6 +304,7 @@ begin
   AddSpaces('ОЗУ всего', FormatFloat('#,##0', GetGlobalMemoryRecord.ullTotalPhys div 1024 div 1024) + ' Мб');
   AddSpaces('ОЗУ свободно', FormatFloat('#,##0', GetGlobalMemoryRecord.ullAvailPhys div 1024 div 1024) + ' Мб');
   AddSpaces('Версия ОС', GetOS);
+  AddSpaces('Дата и время', FormatDateTime('dd.mm.yyyy hh:nn:ss', Now));
 
   AddSection('Гедымин');
   AddSpaces('Имя файла', ExtractFileName(Application.EXEName));
@@ -454,8 +455,31 @@ begin
     try
       Tr.DefaultDatabase := gdcBaseManager.Database;
       Tr.StartTransaction;
-
       q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'SELECT CURRENT_CONNECTION as conn, CURRENT_ROLE as role, CURRENT_USER as usr, ' +
+        'CURRENT_DATE as dt, CURRENT_TIME as tm  FROM rdb$database';
+      q.ExecQuery;
+      AddSection('Контекстные переменные');
+      AddSpaces('CURRENT_CONNECTION',  q.FieldByName('conn').AsString);
+      AddSpaces('CURRENT_ROLE',  q.FieldByName('role').AsString);
+      AddSpaces('CURRENT_USER',  q.FieldByName('usr').AsString);
+      AddSpaces('CURRENT_DATE',  q.FieldByName('dt').AsString);
+      AddSpaces('CURRENT_TIME',  q.FieldByName('tm').AsString);
+
+      q.Close;
+      q.SQL.Text :=
+        'SELECT mon$variable_name, mon$variable_value ' +
+        'FROM mon$context_variables WHERE mon$transaction_id IS NULL';
+      q.ExecQuery;
+      while not q.EOF do
+      begin
+        AddSpaces(q.Fields[0].AsString,  q.Fields[1].AsString);
+        q.Next;
+      end;
+
+      q.Close;
       q.SQL.Text := 'SELECT * FROM mon$database';
       q.ExecQuery;
       if not q.EOF then

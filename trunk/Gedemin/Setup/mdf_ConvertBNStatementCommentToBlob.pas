@@ -332,15 +332,306 @@ const
     '  END'#13#10 +
     'END';
 
-  c_ac_bi_entry = '';
+  c_ac_bi_entry =
+    'CREATE OR ALTER TRIGGER ac_bi_entry FOR ac_entry '#13#10 +
+    '  BEFORE INSERT '#13#10 +
+    '  POSITION 0 '#13#10 +
+    'AS '#13#10 +
+    '  DECLARE VARIABLE Cnt INTEGER = 0; '#13#10 +
+    '  DECLARE VARIABLE Cnt2 INTEGER = 0; '#13#10 +
+    '  DECLARE VARIABLE WasUnLock INTEGER; '#13#10 +
+    'BEGIN '#13#10 +
+    '  IF (NEW.ID IS NULL) THEN '#13#10 +
+    '    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); '#13#10 +
+    ' '#13#10 +
+    '  IF (NEW.accountpart = ''C'') THEN '#13#10 +
+    '  BEGIN '#13#10 +
+    '    NEW.debitncu = 0; '#13#10 +
+    '    NEW.debitcurr = 0; '#13#10 +
+    '    NEW.debiteq = 0; '#13#10 +
+    '    NEW.creditncu = COALESCE(NEW.creditncu, 0); '#13#10 +
+    '    NEW.creditcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.creditcurr, 0)); '#13#10 +
+    '    NEW.crediteq = COALESCE(NEW.crediteq, 0); '#13#10 +
+    '  END ELSE '#13#10 +
+    '  BEGIN '#13#10 +
+    '    NEW.creditncu = 0; '#13#10 +
+    '    NEW.creditcurr = 0; '#13#10 +
+    '    NEW.crediteq = 0; '#13#10 +
+    '    NEW.debitncu = COALESCE(NEW.debitncu, 0); '#13#10 +
+    '    NEW.debitcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.debitcurr, 0)); '#13#10 +
+    '    NEW.debiteq = COALESCE(NEW.debiteq, 0); '#13#10 +
+    '  END '#13#10 +
+    ' '#13#10 +
+    '  SELECT recorddate, transactionkey, documentkey, masterdockey, companykey '#13#10 +
+    '  FROM ac_record '#13#10 +
+    '  WHERE id = NEW.recordkey '#13#10 +
+    '  INTO NEW.entrydate, NEW.transactionkey, NEW.documentkey, NEW.masterdockey, NEW.companykey; '#13#10 +
+    ' '#13#10 +
+    '  SELECT SUM(IIF(accountpart = NEW.accountpart, 1, 0)), SUM(IIF(accountpart <> NEW.accountpart, 1, 0)) '#13#10 +
+    '  FROM ac_entry '#13#10 +
+    '  WHERE recordkey = NEW.recordkey '#13#10 +
+    '  INTO :Cnt, :Cnt2; '#13#10 +
+    ' '#13#10 +
+    '  IF (:Cnt > 0 AND :Cnt2 > 1) THEN '#13#10 +
+    '    EXCEPTION ac_e_invalidentry; '#13#10 +
+    ' '#13#10 +
+    '  IF (:Cnt = 0) THEN '#13#10 +
+    '    NEW.issimple = 1; '#13#10 +
+    '  ELSE BEGIN '#13#10 +
+    '    NEW.issimple = 0; '#13#10 +
+    '    IF (:Cnt = 1) THEN '#13#10 +
+    '    BEGIN '#13#10 +
+    '      WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK''); '#13#10 +
+    '      IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '        RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', 1); '#13#10 +
+    '      UPDATE ac_entry SET issimple = 0 '#13#10 +
+    '      WHERE recordkey = NEW.recordkey AND accountpart = NEW.accountpart; '#13#10 +
+    '      IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '        RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL); '#13#10 +
+    '    END '#13#10 +
+    '  END '#13#10 +
+    ' '#13#10 +
+    '  WHEN ANY DO '#13#10 +
+    '  BEGIN '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL); '#13#10 +
+    '    EXCEPTION; '#13#10 +
+    '  END '#13#10 +
+    'END ';
 
-  c_ac_ai_entry = '';
+  c_ac_ai_entry =
+    'CREATE OR ALTER TRIGGER ac_ai_entry FOR ac_entry '#13#10 +
+    '  AFTER INSERT '#13#10 +
+    '  POSITION 0 '#13#10 +
+    'AS '#13#10 +
+    '  DECLARE VARIABLE WasUnlock INTEGER; '#13#10 +
+    'BEGIN '#13#10 +
+    '  WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK''); '#13#10 +
+    '  IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', 1); '#13#10 +
+    '  UPDATE '#13#10 +
+    '    ac_record '#13#10 +
+    '  SET '#13#10 +
+    '    debitncu = debitncu + NEW.debitncu, '#13#10 +
+    '    creditncu = creditncu + NEW.creditncu, '#13#10 +
+    '    debitcurr = debitcurr + NEW.debitcurr, '#13#10 +
+    '    creditcurr = creditcurr + NEW.creditcurr '#13#10 +
+    '  WHERE '#13#10 +
+    '    id = NEW.recordkey; '#13#10 +
+    '  IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
 
-  c_ac_bu_entry = '';
+    ' '#13#10 +
+    '  WHEN ANY DO '#13#10 +
+    '  BEGIN '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+    '    EXCEPTION; '#13#10 +
+    '  END '#13#10 +
+    'END ';
 
-  c_ac_au_entry = '';
+  c_ac_bu_entry =
+    'CREATE OR ALTER TRIGGER ac_bu_entry FOR ac_entry '#13#10 +
+    '  BEFORE UPDATE '#13#10 +
+    '  POSITION 0 '#13#10 +
+    'AS '#13#10 +
+    '  DECLARE VARIABLE Cnt INTEGER = 0; '#13#10 +
+    '  DECLARE VARIABLE Cnt2 INTEGER = 0; '#13#10 +
+    '  DECLARE VARIABLE WasUnLock INTEGER; '#13#10 +
+    'BEGIN '#13#10 +
+    '  NEW.recordkey = OLD.recordkey; '#13#10 +
+    ' '#13#10 +
+    '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'') IS NULL) THEN '#13#10 +
+    '  BEGIN '#13#10 +
+    '    NEW.entrydate = OLD.entrydate; '#13#10 +
+    '    NEW.transactionkey = OLD.transactionkey; '#13#10 +
+    '    NEW.documentkey = OLD.documentkey; '#13#10 +
+    '    NEW.masterdockey = OLD.masterdockey; '#13#10 +
+    '    NEW.companykey = OLD.companykey; '#13#10 +
+    '    NEW.issimple = OLD.issimple; '#13#10 +
+    '  END '#13#10 +
+    ' '#13#10 +
+    '  IF ((NEW.accountpart <> OLD.accountpart) '#13#10 +
+    '    OR (NEW.currkey IS DISTINCT FROM OLD.currkey)) THEN '#13#10 +
+    '  BEGIN '#13#10 +
+    '    IF (NEW.accountpart = ''C'') THEN '#13#10 +
+    '    BEGIN '#13#10 +
+    '      NEW.debitncu = 0; '#13#10 +
+    '      NEW.debitcurr = 0; '#13#10 +
+    '      NEW.debiteq = 0; '#13#10 +
+    '      NEW.creditncu = COALESCE(NEW.creditncu, 0); '#13#10 +
+    '      NEW.creditcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.creditcurr, 0)); '#13#10 +
+    '      NEW.crediteq = COALESCE(NEW.crediteq, 0); '#13#10 +
+    '    END ELSE '#13#10 +
+    '    BEGIN '#13#10 +
+    '      NEW.creditncu = 0; '#13#10 +
+    '      NEW.creditcurr = 0; '#13#10 +
+    '      NEW.crediteq = 0; '#13#10 +
+    '      NEW.debitncu = COALESCE(NEW.debitncu, 0); '#13#10 +
+    '      NEW.debitcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.debitcurr, 0)); '#13#10 +
+    '      NEW.debiteq = COALESCE(NEW.debiteq, 0); '#13#10 +
+    '    END '#13#10 +
+    ' '#13#10 +
+    '    SELECT SUM(IIF(accountpart = NEW.accountpart, 1, 0)), SUM(IIF(accountpart <> NEW.accountpart, 1, 0)) '#13#10 +
+    '    FROM ac_entry '#13#10 +
+    '    WHERE recordkey = NEW.recordkey AND id <> NEW.id '#13#10 +
+    '    INTO :Cnt, :Cnt2; '#13#10 +
+    ' '#13#10 +
+    '    IF (:Cnt > 0 AND :Cnt2 > 1) THEN '#13#10 +
+    '      EXCEPTION ac_e_invalidentry; '#13#10 +
+    ' '#13#10 +
+    '    IF (:Cnt = 0) THEN '#13#10 +
+    '      NEW.issimple = 1; '#13#10 +
+    '    ELSE BEGIN '#13#10 +
+    '      NEW.issimple = 0; '#13#10 +
+    '      IF (:Cnt = 1) THEN '#13#10 +
+    '      BEGIN '#13#10 +
+    '        WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK''); '#13#10 +
+    '        IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '          RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', 1); '#13#10 +
+    '        UPDATE ac_entry SET issimple = 0 '#13#10 +
+    '        WHERE recordkey = NEW.recordkey AND accountpart = NEW.accountpart AND id <> NEW.id; '#13#10 +
+    '        IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '          RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL); '#13#10 +
+    '      END '#13#10 +
+    '    END '#13#10 +
+    ' '#13#10 +
+    '    IF (OLD.issimple = 0) THEN '#13#10 +
+    '    BEGIN '#13#10 +
+    '      Cnt = 0; '#13#10 +
+    '      SELECT COUNT(*) FROM ac_entry '#13#10 +
+    '      WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart AND id <> OLD.id '#13#10 +
+    '      INTO :Cnt; '#13#10 +
+    ' '#13#10 +
+    '      IF (:Cnt = 1) THEN '#13#10 +
+    '      BEGIN '#13#10 +
+    '        WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK''); '#13#10 +
+    '        IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '          RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', 1); '#13#10 +
+    '        UPDATE ac_entry SET issimple = 1 '#13#10 +
+    '        WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart AND id <> OLD.id; '#13#10 +
+    '        IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '          RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL); '#13#10 +
+    '      END '#13#10 +
+    '    END '#13#10 +
+    '  END '#13#10 +
+    ' '#13#10 +
+    '  WHEN ANY DO '#13#10 +
+    '  BEGIN '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL); '#13#10 +
+    '    EXCEPTION; '#13#10 +
+    '  END '#13#10 +
+    'END ';
 
-  c_ac_ad_entry = '';
+  c_ac_au_entry =
+    'CREATE OR ALTER TRIGGER ac_au_entry FOR ac_entry '#13#10 +
+    '  AFTER UPDATE '#13#10 +
+    '  POSITION 0 '#13#10 +
+    'AS '#13#10 +
+    '  DECLARE VARIABLE WasUnlock INTEGER; '#13#10 +
+    'BEGIN '#13#10 +
+    '  IF ((OLD.debitncu <> NEW.debitncu) or (OLD.creditncu <> NEW.creditncu) or '#13#10 +
+    '      (OLD.debitcurr <> NEW.debitcurr) or (OLD.creditcurr <> NEW.creditcurr)) '#13#10 +
+    '  THEN BEGIN '#13#10 +
+    '    WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK''); '#13#10 +
+    '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', 1); '#13#10 +
+    '    UPDATE ac_record SET debitncu = debitncu - OLD.debitncu + NEW.debitncu, '#13#10 +
+    '      creditncu = creditncu - OLD.creditncu + NEW.creditncu, '#13#10 +
+    '      debitcurr = debitcurr - OLD.debitcurr + NEW.debitcurr, '#13#10 +
+    '      creditcurr = creditcurr - OLD.creditcurr + NEW.creditcurr '#13#10 +
+    '    WHERE '#13#10 +
+    '      id = OLD.recordkey; '#13#10 +
+    '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+
+    ' '#13#10 +
+    '    WHEN ANY DO '#13#10 +
+    '    BEGIN '#13#10 +
+    '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+    '      EXCEPTION; '#13#10 +
+    '    END '#13#10 +
+    '  END '#13#10 +
+    'END ';
+
+  c_ac_ad_entry =
+    'CREATE OR ALTER TRIGGER ac_ad_entry FOR ac_entry '#13#10 +
+    '  AFTER DELETE '#13#10 +
+    '  POSITION 0 '#13#10 +
+    'AS '#13#10 +
+    '  DECLARE VARIABLE Cnt INTEGER = 0; '#13#10 +
+    '  DECLARE VARIABLE WasUnlock INTEGER; '#13#10 +
+    'BEGIN '#13#10 +
+    '  IF (NOT EXISTS(SELECT id FROM ac_entry WHERE recordkey = OLD.recordkey)) THEN '#13#10 +
+    '    DELETE FROM ac_record WHERE id = OLD.recordkey; '#13#10 +
+    '  ELSE BEGIN '#13#10 +
+    '    WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK''); '#13#10 +
+    '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', 1); '#13#10 +
+    '    UPDATE ac_record SET debitncu = debitncu - OLD.debitncu, '#13#10 +
+    '      creditncu = creditncu - OLD.creditncu, '#13#10 +
+    '      debitcurr = debitcurr - OLD.debitcurr, '#13#10 +
+    '      creditcurr = creditcurr - OLD.creditcurr '#13#10 +
+    '    WHERE '#13#10 +
+    '      id = OLD.recordkey; '#13#10 +
+    '    IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '      RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+
+    ' '#13#10 +
+    '    IF (OLD.issimple = 0) THEN '#13#10 +
+    '    BEGIN '#13#10 +
+    '      SELECT COUNT(*) FROM ac_entry '#13#10 +
+    '      WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart '#13#10 +
+    '      INTO :Cnt; '#13#10 +
+    ' '#13#10 +
+    '      IF (:Cnt = 1) THEN '#13#10 +
+    '      BEGIN '#13#10 +
+    '        WasUnlock = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK''); '#13#10 +
+    '        IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '          RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', 1); '#13#10 +
+    '        UPDATE ac_entry SET issimple = 1 '#13#10 +
+    '        WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart; '#13#10 +
+    '        IF (:WasUnlock IS NULL) THEN '#13#10 +
+    '          RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL); '#13#10 +
+    '      END '#13#10 +
+    '    END '#13#10 +
+    '  END '#13#10 +
+    ' '#13#10 +
+    '  WHEN ANY DO '#13#10 +
+    '  BEGIN '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'', NULL); '#13#10 +
+    '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AC_ENTRY_UNLOCK'', NULL); '#13#10 +
+    '    EXCEPTION; '#13#10 +
+    '  END '#13#10 +
+    'END ';
+
+  c_ac_tc_record =
+    'CREATE OR ALTER TRIGGER ac_tc_record'#13#10 +
+    '  ACTIVE'#13#10 +
+    '  ON TRANSACTION COMMIT'#13#10 +
+    '  POSITION 9000'#13#10 +
+    'AS'#13#10 +
+    '  DECLARE VARIABLE ID INTEGER;'#13#10 +
+    '  DECLARE VARIABLE S VARCHAR(255);'#13#10 +
+    '  DECLARE VARIABLE STM VARCHAR(512);'#13#10 +
+    'BEGIN'#13#10 +
+    '  S = RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_INCORRECT'');'#13#10 +
+    '  IF (:S IS NOT NULL) THEN'#13#10 +
+    '  BEGIN'#13#10 +
+    '    STM ='#13#10 +
+    '      ''SELECT r.id FROM ac_record r LEFT JOIN ac_entry e '' ||'#13#10 +
+    '      ''  ON e.recordkey = r.id LEFT JOIN ac_account a ON a.id = e.accountkey '' ||'#13#10 +
+    '      ''WHERE a.offbalance IS DISTINCT FROM 1 AND '';'#13#10 +
+    ''#13#10 +
+    '    IF (:S = ''TM'') THEN'#13#10 +
+    '      STM = :STM || '' r.incorrect = 1'';'#13#10 +
+    '    ELSE'#13#10 +
+    '      STM = :STM || '' r.id IN ('' || RIGHT(:S, CHAR_LENGTH(:S) - 1) || '')'';'#13#10 +
+    ''#13#10 +
+    '    FOR EXECUTE STATEMENT (:STM) INTO :ID'#13#10 +
+    '    DO BEGIN'#13#10 +
+    '      EXECUTE STATEMENT (''DELETE FROM ac_record WHERE id='' || :ID);'#13#10 +
+    '    END'#13#10 +
+    '  END'#13#10 +
+    'END';
 
 var
   FTransaction: TIBTransaction;
@@ -400,6 +691,9 @@ begin
       FIBSQL.ExecQuery;
 
       FIBSQL.SQL.Text := c_ac_ad_entry;
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text := c_ac_tc_record;
       FIBSQL.ExecQuery;
 
       FIBSQL.SQL.Text :=
