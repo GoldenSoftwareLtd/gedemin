@@ -828,24 +828,13 @@ begin
 
   if Assigned(frmGedeminMain) then
   begin
-    {$IFNDEF BMKK}
-    Caption := 'Гедымин - ' + IBLogin.CompanyName + ' - ' + IBLogin.UserName;
-    {$ENDIF}
+    Caption := IBLogin.GetMainWindowCaption;
+    Application.Title := Caption;
 
     {$IFDEF NOGEDEMIN}
-    Caption := IBLogin.CompanyName + ' - ' + IBLogin.UserName;
     tbsiHelp.Enabled:= False;
     tbsiHelp.Visible:= False;
     {$ENDIF}
-
-    {$IFDEF DEBUG}
-    Caption := Format('%s, IBX: %s, JCL: %d.%d, ZLIB: %s, Started: %s',
-      [Caption, FloatToStr(IBX_Version), JclVersionMajor, JclVersionMinor, {ZLIB_Version}'xxx',
-       FormatDateTime('hh:nn', Now)]);
-    Caption := Caption + ', ' + 'DEBUG MODE';
-    {$ENDIF}
-
-    Application.Title := Caption;
 
     if (gsiblkupCompany.CurrentKeyInt <> IBLogin.CompanyKey)
       or (gsiblkupCompany.Text <> IBLogin.CompanyName) then

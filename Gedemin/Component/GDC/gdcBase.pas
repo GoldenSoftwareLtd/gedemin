@@ -12264,9 +12264,12 @@ begin
           Tr.RollBack;
         raise;
       end;
-    finally
+
       if DidActivate and Tr.InTransaction then
         Tr.Commit;
+    finally
+      if DidActivate and Tr.InTransaction then
+        Tr.Rollback;
       q.Free;
     end;
   finally
