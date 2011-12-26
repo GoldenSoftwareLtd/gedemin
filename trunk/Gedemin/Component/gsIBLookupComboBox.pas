@@ -95,6 +95,9 @@ type
     FFullSearchOnExit: Boolean;
     FViewType: TgsViewType;
 
+    FIsFocused: Boolean;
+    FFocusChanged: Boolean;
+
     procedure SetDatabase(const Value: TIBDatabase);
     procedure SetTransaction(const Value: TIBTransaction);
     procedure SetDataSource(const Value: TDataSource);
@@ -2437,9 +2440,30 @@ end;
 
 procedure TgsIBLookupComboBox.CNCommand(var Message: TWMCommand);
 begin
-  if not ReadOnly then
+  if (not ReadOnly) and (FDataLink.CanModify) then
     case Message.NotifyCode of
-      CBN_DROPDOWN: PostMessage(Handle, WM_KEYDOWN, VK_DOWN, 0);
+      CBN_DROPDOWN:
+        begin
+          FFocusChanged := False;
+          DropDown;
+          if FFocusChanged then
+          begin
+            PostMessage(Handle, WM_CANCELMODE, 0, 0);
+            if not FIsFocused then PostMessage(Handle, CB_SHOWDROPDOWN, 0, 0);
+          end;
+        end;
+      CBN_SETFOCUS:
+        begin
+          FIsFocused := True;
+          FFocusChanged := True;
+          inherited;
+        end;
+      CBN_KILLFOCUS:
+        begin
+          FIsFocused := False;
+          FFocusChanged := True;
+          inherited;
+        end;
       else inherited;
     end;
 end;
@@ -3130,7 +3154,7 @@ begin
   FSortOrder := Value;
   if (not (csLoading in ComponentState)) and (FSortOrder <> soNone) then
     FSortField := '';
-end;
+end; 
 
 { TgsIBLCBDataLink }
 
