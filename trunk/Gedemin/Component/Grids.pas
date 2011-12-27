@@ -2402,7 +2402,7 @@ procedure TCustomGrid.GridRectToScreenRect(GridRect: TGridRect;
       for I := Start to Line - 1 do
       begin
         Inc(Result, GetExtent(I) + EffectiveLineWidth);
-        if Result > GridExtent then
+        if Result > GridExtent + EffectiveLineWidth then
         begin
           Result := 0;
           Exit;
