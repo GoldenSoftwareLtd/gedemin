@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2001-2011 by Golden Software of Belarus
+  Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
 
@@ -3813,6 +3813,18 @@ begin
             FConditions.Add(CurrStatement);
             CurrStatement.ParseStatement;
             Continue;
+          end;
+
+          cCoalesce, cIIF, cSubstring, cExtract, cUpper, cLower:
+          begin
+            if FDone * [eoClause, eoOn] = [eoClause, eoOn] then
+            begin
+              CurrStatement := TsqlCondition.Create(FParser);
+              FConditions.Add(CurrStatement);
+              CurrStatement.ParseStatement;
+              Continue;
+            end else
+              Break;
           end;
 
           else begin
