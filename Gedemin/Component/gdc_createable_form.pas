@@ -94,7 +94,8 @@ type
 
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; virtual;
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-    class function FindForm(const AFormClass: CgdcCreateableForm; const ASubType: TgdcSubType): TgdcCreateableForm;
+    class function FindForm(const AFormClass: CgdcCreateableForm;
+      const ASubType: TgdcSubType; const AnInitialName: String = ''): TgdcCreateableForm;
 
     procedure LoadSettings; override;
     procedure SaveSettings; override;
@@ -836,7 +837,8 @@ end;
 
 class function TgdcCreateableForm.FindForm(
   const AFormClass: CgdcCreateableForm;
-  const ASubType: TgdcSubType): TgdcCreateableForm;
+  const ASubType: TgdcSubType;
+  const AnInitialName: String = ''): TgdcCreateableForm;
 var
   I: Integer;
 begin
@@ -845,7 +847,8 @@ begin
   begin
     if (FormsList[I].ClassName = AFormClass.ClassName)
       and ((FormsList[I] as TgdcCreateableForm).SubType = ASubType)
-      and ((FormsList[I] as TgdcCreateableForm).Parent = nil) then
+      and ((FormsList[I] as TgdcCreateableForm).Parent = nil)
+      and ((AnInitialName = '') or ((FormsList[I] as TgdcCreateableForm).InitialName = AnInitialName)) then
     begin
       Result := FormsList[I] as TgdcCreateableForm;
       break;

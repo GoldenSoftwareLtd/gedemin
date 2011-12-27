@@ -1,10 +1,10 @@
 
 {++
 
-  Copyright (c) 2000-2002 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Module
-  
+
     gdcExplorer.pas
 
   Abstract
@@ -931,11 +931,20 @@ begin
       Cl := GetClass(AnsiUpperCase(GlobalStorage.ReadString(
         st_ds_NewFormPath + '\' + AnClassName, st_ds_FormClass)));
 
-      if Cl <> nil then
+      if (Cl <> nil) and Cl.InheritsFrom(TgdcCreateableForm) then
       begin
-        Result := CgdcCreateableForm(Cl).CreateUser(Application,
-          AnClassName);
-        if Assigned(Result) then
+        if not AlwaysCreateWindow then
+        begin
+          Result := CgdcCreateableForm(Cl).FindForm(CgdcCreateableForm(Cl), '', AnClassName);
+          if Result = nil then
+            Result := CgdcCreateableForm(Cl).CreateUser(Application,
+              AnClassName);
+        end else
+        begin
+          Result := CgdcCreateableForm(Cl).CreateUser(Application,
+            AnClassName);
+        end;
+        if Result <> nil then
           Result.Show;
       end;
     except
