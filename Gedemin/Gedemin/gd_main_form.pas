@@ -1770,8 +1770,7 @@ begin
     begin
       if (Form as TfrmGedeminProperty).Restored then
        (Form as TForm).Free;
-    end
-    else
+    end else if Form is TForm then
       (Form as TForm).Free;
   except
     tbForms.Items.Delete(tbForms.Items.IndexOf(ToggleItem));
@@ -2084,7 +2083,7 @@ const
 var
   Reg: TRegistry;
   S: String;
-  I: Integer;
+  //I: Integer;
 begin
   Reg := TRegistry.Create(KEY_ALL_ACCESS);
   try
@@ -2120,7 +2119,7 @@ begin
             if Trim(edPassword.Text) > '' then
               S := S + ' /password "' + edPassword.Text + '"';
 
-            for I := 1 to Length(S) do
+           {for I := 1 to Length(S) do
             begin
               if S[I] in ['À'..'ß', 'à'..'ÿ', '¨', '¸', '¡', '¢'] then
               begin
@@ -2130,7 +2129,7 @@ begin
                   MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
                 exit;
               end;
-            end;
+            end;}
 
             Reg.WriteString('Shell', S);
           end else

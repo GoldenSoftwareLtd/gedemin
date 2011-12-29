@@ -5205,7 +5205,7 @@ begin
     for Index := 0 to FClassMethodAssoc.Count - 1 do
       if FClassMethodAssoc.IntByIndex[Index] <> 0 then
         TObject(FClassMethodAssoc.IntByIndex[Index]).Free;
-    FClassMethodAssoc.Free;
+    FreeAndNil(FClassMethodAssoc);
   end;  
 
   FVariables.Free;
@@ -16701,6 +16701,7 @@ procedure TgdcBase.ClearMacrosStack2(const AClass, AMethod: String;
 var
   Index: Integer;
 begin
+  Assert(FClassMethodAssoc <> nil);
   if FClassMethodAssoc.StrByKey[AMethodKey] = AClass then
   begin
     Index := FClassMethodAssoc.IndexOf(AMethodKey);

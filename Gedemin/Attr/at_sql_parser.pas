@@ -43,7 +43,7 @@ type
     cSelect, cDistinct, cAll, cInsert, cInto, cFrom, cWhere,
     cGroup, cCollate, cHaving, cUnion, cPlan, cOrder, cBy,
     cFor, cOf, cSum, cAvg, cMax, cMin, cCast,
-    cUpper, cGen_id, cOn, cLeft, cRight, cFull, cOuter,
+    cUpper, cLower, cGen_id, cOn, cLeft, cRight, cFull, cOuter,
     cInner, cJoin, cAnd, cOr, cNot, cBetween, cLike, cIn, cEscape, cIs, cNull,
     cSome, cAny, cExists, cSingular, cContaining, cStarting, cWith,
     cSort, cMerge, cIndex, cNatural, cAsc, cDesc,
@@ -83,7 +83,7 @@ const
     'SELECT', 'DISTINCT', 'ALL', 'INSERT', 'INTO', 'FROM', 'WHERE',
     'GROUP', 'COLLATE', 'HAVING', 'UNION', 'PLAN', 'ORDER', 'BY',
     'FOR', 'OF', 'SUM', 'AVG', 'MAX', 'MIN', 'CAST',
-    'UPPER', 'GEN_ID', 'ON', 'LEFT', 'RIGHT', 'FULL', 'OUTER',
+    'UPPER', 'LOWER', 'GEN_ID', 'ON', 'LEFT', 'RIGHT', 'FULL', 'OUTER',
     'INNER', 'JOIN', 'AND', 'OR', 'NOT', 'BETWEEN', 'LIKE', 'IN', 'ESCAPE',
     'IS', 'NULL', 'SOME', 'ANY', 'EXISTS', 'SINGULAR', 'CONTAINING',
     'STARTING', 'WITH', 'SORT', 'MERGE', 'INDEX', 'NATURAL', 'ASC', 'DESC',
@@ -1961,7 +1961,7 @@ begin
             Continue;
           end;}
 
-          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
+          cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
           cCount, cGen_id, cFirst, cSkip:
           begin
             if BracketCount > 0 then
@@ -2528,7 +2528,7 @@ begin
       ttClause:
       begin
         case Token.Clause of
-          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
+          cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
           cCast, cCount, cFirst, cSkip, cExtract, cSubString:
           begin
             CurrStatement := TsqlFunction.Create(FParser, True);
@@ -2755,7 +2755,7 @@ begin
       ttClause:
       begin
         case Token.Clause of
-          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
+          cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
           cCast, cCase, cCount, cFirst, cSkip, cExtract, cGen_ID, cSubString:
           begin
             CurrStatement := TsqlFunction.Create(FParser, False);
@@ -3320,7 +3320,7 @@ begin
               Break;
           end;
 
-          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
+          cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
           cCast, cCount, cGen_id, cSelect, cFirst, cSkip, cSubString:
           begin
             if GetLastClass = TsqlBoolean then
@@ -3815,7 +3815,7 @@ begin
             Continue;
           end;
 
-          cCoalesce, cIIF, cSubstring, cExtract, cUpper, cLower:
+          cCoalesce, cIIF, cSubstring, cExtract, cUpper, cLower, cCast:
           begin
             if FDone * [eoClause, eoOn] = [eoClause, eoOn] then
             begin
@@ -4275,7 +4275,7 @@ begin
             Continue;
           end;
 
-          cAll, cSome, cAny, cUpper, cCoalesce, cIIF,
+          cAll, cSome, cAny, cUpper, cLower, cCoalesce, cIIF,
           cExists, cSingular, cCast, cSubString, cIs:
           begin
             CurrStatement := TsqlCondition.Create(FParser);
@@ -5287,7 +5287,7 @@ begin
             Continue;
           end;
 
-          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
+          cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
           cCast, cCount, cGen_id, cFirst, cSkip, cSubString:
           begin
             CurrStatement := TsqlCondition.Create(FParser);
@@ -6863,7 +6863,7 @@ begin
       begin
         case Token.Clause of
 
-          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
+          cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
           cCast, cCount, cFirst, cSkip, cExtract, cSubString:
           begin
             if FInternalStatement <> nil then
@@ -7211,7 +7211,7 @@ begin
             Break;
           end;
 
-          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
+          cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
           cCast, cCount, cFirst, cSkip, cExtract, cSubString:
           begin
             //Если это конструкция на else
@@ -7701,7 +7701,7 @@ begin
       ttClause:
       begin
         case Token.Clause of
-          cSum, cAvg, cMax, cMin, cUpper, cCoalesce, cIIF,
+          cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
           cCast, cCount, cFirst, cSkip, cExtract, cSubString:
           begin
             if FInternalStatement <> nil then
