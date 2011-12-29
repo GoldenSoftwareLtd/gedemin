@@ -6634,6 +6634,11 @@ end;
 
 function TfrEMFPages.GetCount: Integer;
 begin
+  {$IFDEF GEDEMIN}
+  if FPages = nil then
+    Result := 0
+  else
+  {$ENDIF}  
   Result := FPages.Count;
 end;
 

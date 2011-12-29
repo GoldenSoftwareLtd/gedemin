@@ -7,12 +7,21 @@ uses
   IniFiles, ContNrs;
 
 type
+  Tgd_UserRec = record
+    Login: String[60];
+    Password: String[60];
+  end;
+
   Tgd_DatabaseItem = class(TObject)
   private
     FAlias: String;
     FServer: String;
     FPort: Integer;
     FFileName: String;
+    //FUsers: array of Tgd_UserRec;
+
+  protected
+    procedure ReadFromIniFile(AnIniFile: TIniFile; const AnIndex: Integer);
 
   public
     constructor Create;
@@ -51,6 +60,12 @@ constructor Tgd_DatabaseItem.Create;
 begin
   inherited;
   FPort := 3050;
+end;
+
+procedure Tgd_DatabaseItem.ReadFromIniFile(AnIniFile: TIniFile;
+  const AnIndex: Integer);
+begin
+
 end;
 
 { Tgd_DatabasesList }

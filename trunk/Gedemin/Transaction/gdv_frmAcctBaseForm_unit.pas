@@ -950,7 +950,7 @@ begin
     gdvObject.ShowInNcu(frAcctSum.InNcu, frAcctSum.NcuDecDigits, frAcctSum.NcuScale);
     gdvObject.ShowInCurr(frAcctSum.InCurr, frAcctSum.CurrDecDigits, frAcctSum.CurrScale, frAcctSum.Currkey);
     gdvObject.ShowInEQ(frAcctSum.InEQ, frAcctSum.EQDecDigits, frAcctSum.EQScale);
-
+    gdvObject.ShowInQuantity(frAcctSum.QuantityDecDigits, frAcctSum.QuantityScale);
   end;
 end;
 

@@ -418,7 +418,7 @@ var
   SNew: TStringStream;}
   FolderName, Path: String;
 begin
-  if Assigned(UserStorage) then
+  if Assigned(UserStorage) and (AGrid <> nil) then
   begin
     if AGrid.SettingsModified then
       Path := UserStorage.SaveComponent(AGrid, AGrid.SaveToStream);

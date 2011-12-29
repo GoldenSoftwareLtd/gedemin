@@ -403,7 +403,7 @@ begin
     end;
     Result := False;
     Index := FCount;
-  end;  
+  end;
 end;
 
 function TgdKeyArray.GetCount: Integer;

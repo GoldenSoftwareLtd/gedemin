@@ -2179,6 +2179,7 @@ end;
 
 function TIBCustomDataSet.GetDatabase: TIBDatabase;
 begin
+  Assert(FBase <> nil);
   result := FBase.Database;
 end;
 
@@ -2226,6 +2227,7 @@ end;
 
 function TIBCustomDataSet.GetTransaction: TIBTransaction;
 begin
+  Assert(FBase <> nil);
   result := FBase.Transaction;
 end;
 
