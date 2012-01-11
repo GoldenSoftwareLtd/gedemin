@@ -242,9 +242,11 @@ begin
     FCorrActualAnalytics.Clear;
 
     CheckAvailAnalytics;
-
-    Self.ActualAnalytics(FAccounts, FCorrAccounts, FActualAnalytics);
-    Self.ActualAnalytics(FCorrAccounts, FAccounts, FCorrActualAnalytics);
+    if not (Self.ClassName = 'TgdvAcctAccReview') then
+    begin
+      Self.ActualAnalytics(FAccounts, FCorrAccounts, FActualAnalytics);
+      Self.ActualAnalytics(FCorrAccounts, FAccounts, FCorrActualAnalytics);
+    end;  
   end;
 end;
 
@@ -254,7 +256,7 @@ var
   AccWhere: String;
   ValueSelect, ValueJoin, ValueAlias, QuantityAlias: string;
   K: Integer;
-  ASelect, AFrom, AGroup, ACorrSelect, ACorrFrom, ACorrGroup: string;
+//  ASelect, AGroup, AFrom, ACorrSelect, ACorrFrom, ACorrGroup: string;
   CompanySBalance, AccWhereBalance: String;
   CurrentKeyAlias: String;
 
@@ -367,8 +369,8 @@ begin
   end;
 
   // Аналитика
-  SQLAnalytics(FActualAnalytics, 'e', ASelect, AFrom, AGroup, '', '');
-  SQLAnalytics(FCorrActualAnalytics, 'e1', ACorrSelect, ACorrFrom, ACorrGroup, 'CORR_', 'Кор. ');
+  //SQLAnalytics(FActualAnalytics, 'e', ASelect, AFrom, AGroup, '', '');
+  //SQLAnalytics(FCorrActualAnalytics, 'e1', ACorrSelect, ACorrFrom, ACorrGroup, 'CORR_', 'Кор. ');
   // Список компаний
   CompanyS := ' (e.companykey + 0 IN (' + FCompanyList + '))';
   // Счета
@@ -593,7 +595,7 @@ begin
         'e.currkey ') + #13#10 +
       '  LEFT JOIN ac_transaction t ON e.transactionkey = t.id '#13#10 +
       '  LEFT JOIN ac_account a ON a.id = e.accountkey '#13#10 +
-      ValueJoin + #13#10 + AFrom + ACorrFrom + #13#10 +
+      ValueJoin + #13#10 + {AFrom + ACorrFrom +} #13#10 +
       ' where '#13#10 + AccWhere + #13#10 + CompanyS + ' AND '#13#10 +
       '  (e.debitncu <> 0 OR e.creditncu <> 0 OR e.debitcurr <> 0 OR e.creditcurr <> 0 OR e.debiteq <> 0 OR e.crediteq <> 0) AND'#13#10 +
       '  e.entrydate >= :begindate AND e.entrydate <= :enddate '#13#10 +
