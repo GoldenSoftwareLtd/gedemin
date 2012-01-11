@@ -181,8 +181,10 @@ begin
 
         if S > '' then
         begin
-          ibsql.SQL.Text := 'SELECT '#13#10 + S + #13#10'FROM'#13#10'  ac_entry a ' +
-            ' LEFT JOIN ac_entry e1 ON e1.recordkey = a.recordkey AND e1.id <> a.id ';
+          S := 'SELECT '#13#10 + S + #13#10'FROM'#13#10'  ac_entry a ';
+          if CorrAccountIDs.Count > 0 then
+            S := S + ' LEFT JOIN ac_entry e1 ON e1.recordkey = a.recordkey AND e1.id <> a.id ';
+          ibsql.SQL.Text := S;
           WhereClause := ' WHERE a.entrydate >= :begindate and a.entrydate <= :enddate AND ' +
             ' a.companykey IN (' + FCompanyList + ')' ;
 
