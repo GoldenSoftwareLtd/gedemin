@@ -340,7 +340,7 @@ function TraceFlagsToInteger(S: TTraceFlags): Integer;
 implementation
 
 uses
-  IBIntf
+  IBIntf, jclStrings
   {$IFDEF LOCALIZATION}
   , gd_localization
   {$ENDIF}
@@ -623,6 +623,7 @@ var
   TableName: String;
   CheckName: String;
   i, k: Integer;
+  PosBegin, PosEnd: Integer;
 
   procedure FillCheckExceptionCache(S: String);
   var
@@ -669,31 +670,39 @@ var
 begin
   Result := msg;
 {Operation violates CHECK constraint USR$CHECK_USR$WG_MOVEMENTLINE61 on view or table USR$WG_MOVEMENTLINE}
-  if AnsiPos(AnsiLowerCase(cst_word_exception), Trim(AnsiLowerCase(msg))) = 1 then
+  if StrIPos(cst_word_exception, Trim(msg)) = 1 then
   begin
-    TableName := Copy(msg, Pos(cst_table, msg) + Length(cst_table) + 1, Length(msg));
-
-    k := Length(cst_word_exception) + 2;
-    for i := k to Length(msg) do
-      if msg[i] = ' ' then Break;
-
-    CheckName := Copy(msg, k, i - k);
-
-    if not Assigned(CheckExceptionCache) then
+    if StrIPos(cst_table, msg) > 0 then
     begin
-      CheckExceptionCache := TStringList.Create;
-      CheckExceptionCache.Sorted := True;
-      CheckExceptionCache.Duplicates := dupIgnore;
+      PosBegin := Pos(cst_table, msg) + Length(cst_table) + 1;
+      PosEnd := Pos(CRLF, msg) - PosBegin;
+      if PosEnd = 0 then
+        PosEnd := Length(msg);
 
-      FillCheckExceptionCache(TableName);
-    end;
+      TableName := Copy(msg, PosBegin, PosEnd);
 
-    if CheckExceptionCache.IndexOfName(CheckName) > -1 then
-      Result := CheckExceptionCache.Values[CheckName]
-    else begin  //т.к. изначально заполняем кэш только для одной таблицы
-      FillCheckExceptionCache(TableName);
+      k := Length(cst_word_exception) + 2;
+      for i := k to Length(msg) do
+        if msg[i] = ' ' then Break;
+
+      CheckName := Copy(msg, k, i - k);
+
+      if not Assigned(CheckExceptionCache) then
+      begin
+        CheckExceptionCache := TStringList.Create;
+        CheckExceptionCache.Sorted := True;
+        CheckExceptionCache.Duplicates := dupIgnore;
+
+        FillCheckExceptionCache(TableName);
+      end;
+
       if CheckExceptionCache.IndexOfName(CheckName) > -1 then
-        Result := CheckExceptionCache.Values[CheckName];
+        Result := CheckExceptionCache.Values[CheckName]
+      else begin  //т.к. изначально заполняем кэш только для одной таблицы
+        FillCheckExceptionCache(TableName);
+        if CheckExceptionCache.IndexOfName(CheckName) > -1 then
+          Result := CheckExceptionCache.Values[CheckName];
+      end;
     end;
   end;
 end;
@@ -729,7 +738,7 @@ begin
       usr_msg := usr_msg + CRLF;
     usr_msg := usr_msg + string(local_buffer);
   end;
-
+                                           
   if (ShowIBMessage in IBDataBaseErrorMessages) then
   begin
     if (ShowSQLCode in IBDataBaseErrorMessages) or

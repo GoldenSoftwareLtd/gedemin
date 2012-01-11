@@ -36,7 +36,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Db, IB, IBCustomDataSet, gdcBase, gdcClasses, gdcInvConsts_unit, IBSQL,
   at_classes, gdcGood, Math, iberrorcodes, IBDataBase, gd_createable_form,
-  gdc_createable_form, gdcBaseInterface, gdv_InvCardConfig_unit, 
+  gdc_createable_form, gdcBaseInterface, gdv_InvCardConfig_unit,
   gsIBGrid, gdcExplorer, gdcFunction, prm_ParamFunctions_unit, rp_report_const,
   gdcConstants, gd_security_operationconst, Storages, gd_i_ScriptFactory;
 
@@ -152,6 +152,7 @@ type
     FNoWait: Boolean;
 
     FUseSelectFromSelect: Boolean;
+    FEndMonthRemains: Boolean;
 
 // Процедура инициализации запросов
     procedure InitIBSQL;
@@ -372,6 +373,7 @@ type
     // Позиция документа
     property gdcDocumentLine: TgdcDocument read FgdcDocumentLine write FgdcDocumentLine;
     property CurrentRemains: Boolean read FCurrentRemains write FCurrentRemains default True;
+    property EndMonthRemains: Boolean read FEndMonthRemains write FEndMonthRemains default False;
   end;
 
 { TgdcInvBaseRemains - базовый класс для работы с остатками }
@@ -391,6 +393,7 @@ type
     FIsUseCompanyKey: Boolean;
 
     FUseSelectFromSelect: Boolean;
+    FEndMonthRemains: Boolean;
 
     procedure SetViewFeatures(const Value: TStringList);
     procedure SetSumFeatures(const Value: TStringList);
@@ -450,6 +453,8 @@ type
     property RemainsDate: TDateTime read FRemainsDate write FRemainsDate;
 // Выводить текущие остатки
     property CurrentRemains: Boolean read FCurrentRemains write SetCurrentRemains;
+// Проверять на остатки на конец месяца
+    property EndMonthRemains: Boolean read FEndMonthRemains write FEndMonthRemains;
 // Использовать для расчета остатков на дату сторед процедуру INV_GETCARDMOVEMENT
     property IsNewDateRemains: Boolean read FIsNewDateRemains write FIsNewDateRemains;
     property IsMinusRemains: Boolean read FIsMinusRemains write FIsMinusRemains;
@@ -715,6 +720,8 @@ begin
   FShowMovementDlg := True;
   FCountPositionChanged := 0;
   FNoWait := True;
+
+  FEndMonthRemains := False;
 
 //  FUseFilter := False;
 
@@ -2181,6 +2188,7 @@ var
   Times: LongWord;
   tmpRemains: Currency;
   isChange: Boolean;
+  Day, Month, Year: Word;
 
 function IsChangeSQLText(MovementDirection: TgdcInvMovementDirection; var InvCardFeatures: array of TgdcInvCardFeature): Boolean;
 var
@@ -2267,7 +2275,15 @@ begin
               ibsqlCardList.ParamByName('contactkey').AsInteger := ipDestContactKey;
 
             if (not CurrentRemains) and not ipMinusRemains then
-              ibsqlCardList.ParamByName('movementdate').AsDateTime := ipDocumentDate;
+            begin
+              if FEndMonthRemains then
+              begin
+                DecodeDate(IncMonth(ipDocumentDate, 1), Year, Month, Day);
+                ibsqlCardList.ParamByName('movementdate').AsDateTime := EncodeDate(Year, Month, 1) - 1;
+              end
+              else
+                ibsqlCardList.ParamByName('movementdate').AsDateTime := ipDocumentDate;
+            end;
 
             if not (gdcDocumentLine as TgdcInvDocumentLine).IsMakeMovementOnFromCardKeyOnly then
             begin
@@ -3810,6 +3826,7 @@ var
   i: Integer;
   InvPosition: TgdcInvPosition;
   DocQuantity: Currency;
+  Day, Month, Year: Word;
 {$IFDEF DEBUGMOVE}
   TimeTmp: LongWord;
 {$ENDIF}
@@ -3855,7 +3872,14 @@ begin
     begin
       DocQuantity := 0;
       ibsql.ParamByName('documentkey').AsInteger := InvPosition.ipDocumentKey;
-      ibsql.ParamByName('movementdate').AsDateTime := InvPosition.ipDocumentDate;
+
+      if FEndMonthRemains then
+      begin
+        DecodeDate(IncMonth(InvPosition.ipDocumentDate, 1), Year, Month, Day);
+        ibsql.ParamByName('movementdate').AsDateTime := EncodeDate(Year, Month, 1) - 1;
+      end
+      else
+        ibsql.ParamByName('movementdate').AsDateTime := InvPosition.ipDocumentDate;
     end
     else
     begin
@@ -4175,6 +4199,7 @@ begin
           ipBaseCardKey := gdcDocumentLine.FieldByName('fromcardkey').AsInteger;
 
         FCurrentRemains := (gdcDocumentLine as TgdcInvDocumentLine).LiveTimeRemains;
+        FEndMonthRemains := (gdcDocumentLine as TgdcInvDocumentLine).EndMonthRemains;
         ipMinusRemains := (gdcDocumentLine as TgdcInvDocumentLine).isMinusRemains;
         if ((gdcDocumentLine as TgdcInvDocumentLine).RelationType = irtTransformation) and
            (gdcDocumentLine.FindField('OUTQUANTITY') <> nil) and
@@ -4788,6 +4813,7 @@ begin
   FIsUseCompanyKey := True;
 
   FRemainsDate := 0;
+  FEndMonthRemains := False;
 
   RemainsSQLType := irstSimpleSum;
 
@@ -6513,6 +6539,7 @@ var
   {END MACRO}
   i: Integer;
   ibsql: TIBSQL;
+  Day, Month, Year: Word;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVREMAINS', 'DOBEFOREOPEN', KEYDOBEFOREOPEN)}
   {M}  try
@@ -6590,7 +6617,13 @@ begin
 
   if not CurrentRemains and (RemainsDate <> 0) then
     try
-      ParamByName('remainsdate').AsDateTime := RemainsDate;
+      if EndMonthRemains then
+      begin
+        DecodeDate(IncMonth(RemainsDate, 1), Year, Month, Day);
+        ParamByName('remainsdate').AsDateTime := EncodeDate(Year, Month, 1) - 1;
+      end  
+      else
+        ParamByName('remainsdate').AsDateTime := RemainsDate;
     except
       // TODO: Пустое исключение
     end;
@@ -6652,6 +6685,7 @@ begin
   with (gdcDocumentLine as TgdcInvDocumentLine) do
   begin
     CurrentRemains := True;//LiveTimeRemains;
+    FEndMonthRemains := EndMonthRemains;
     FIsMinusRemains := isMinusRemains;
     FIsUseCompanyKey := isUseCompanyKey;
 
@@ -6829,6 +6863,8 @@ begin
 
   FgdcDocumentLine := InvMovement.gdcDocumentLine;
 
+  FEndMonthRemains := InvMovement.EndMonthRemains;
+
   with InvPosition do
   begin
     CurrentRemains := True;//InvMovement.CurrentRemains;
@@ -6836,6 +6872,8 @@ begin
     CheckRemains := (tcrSource in ipCheckRemains);
 
     FIsMinusRemains := ipMinusRemains;
+
+ //   FEndMonthRemains := False;
 
     FIsUseCompanyKey := (InvMovement.gdcDocumentLine as TgdcInvDocumentLine).IsUseCompanyKey;
 
