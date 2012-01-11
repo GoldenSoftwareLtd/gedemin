@@ -625,9 +625,9 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
       object cbLiveTimeRemains: TCheckBox
         Left = 7
         Top = 107
-        Width = 281
+        Width = 242
         Height = 17
-        Caption = 'Документ работает только с текущими остатками'
+        Caption = 'Контроль только на текущие остатки'
         TabOrder = 5
         OnClick = cbRemainsClick
       end
@@ -744,6 +744,14 @@ inherited gdc_dlgSetupInvDocument: Tgdc_dlgSetupInvDocument
         Height = 17
         Caption = 'Сохранять настройки окна остаков'
         TabOrder = 8
+      end
+      object cbEndMonthRemains: TCheckBox
+        Left = 276
+        Top = 107
+        Width = 229
+        Height = 17
+        Caption = 'Контроль остатков на конец месяца'
+        TabOrder = 10
       end
     end
   end
