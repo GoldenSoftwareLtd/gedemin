@@ -65,7 +65,7 @@ const                               // Date translation constants
 implementation
 
 uses
-  JclStrings, FindCompare, GsHugeIntSet, syncobjs, gsStorageLink, gsListOfLists;
+  JclStrings, FindCompare, GsHugeIntSet, syncobjs, gsStorageLink;
 
 const
   SmallNumber        = 0.0000000000001;
@@ -74,7 +74,7 @@ const
 var
   arrHugeIntSet: array[0..HugeIntSetMaxCount - 1] of TgsHugeIntSet;
   csHugeIntSet: TCriticalSection;
-  StorageID: TgsStorageID; 
+  StorageID: TgsStorageID;
 
 
 (*
@@ -1164,8 +1164,6 @@ end;
 
 function g_his_create(var AnIndex: Integer; var ASize: Integer): Integer;
   cdecl; export;
-var
-  I: Integer;
 begin
   Result := -1;
   csHugeIntSet.Enter;
