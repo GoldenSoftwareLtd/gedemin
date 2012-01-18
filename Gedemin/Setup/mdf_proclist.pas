@@ -43,10 +43,11 @@ uses
   mdf_ModifyBlockTriggers3, mdf_ModifyBlockTriggers4, mdf_wageUpdateFields, mdf_AddGenerators,
   mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
   mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage,
-  mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean, mdf_ConvertBNStatementCommentToBlob;
+  mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean, mdf_ConvertBNStatementCommentToBlob, mdf_AddFieldReportlistModalPreview,
+  mdf_ChangeUSRCOEF;
 
 const
-  cProcCount = 159;
+  cProcCount = 161;
 
 type
   TModifyProc = record
@@ -312,7 +313,9 @@ const
     (ModifyProc: AddGDRUIDCheck; ModifyVersion: '0000.0001.0000.0161'),
     (ModifyProc: ModifyRUIDProcedure; ModifyVersion: '0000.0001.0000.0162'),
     (ModifyProc: ModifyGDRUIDCheck; ModifyVersion: '0000.0001.0000.0163'),
-    (ModifyProc: DeleteLBRBFromSettingPos; ModifyVersion: '0000.0001.0000.0164')
+    (ModifyProc: DeleteLBRBFromSettingPos; ModifyVersion: '0000.0001.0000.0164'),
+    (ModifyProc: AddFieldReportlistModalPreview; ModifyVersion: '0000.0001.0000.0166'),
+    (ModifyProc: ChangeUSRCOEF; ModifyVersion: '0000.0001.0000.0167')
   );
 
 implementation

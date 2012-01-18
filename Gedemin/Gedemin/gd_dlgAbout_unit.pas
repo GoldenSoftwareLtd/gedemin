@@ -374,6 +374,21 @@ begin
   AddComLibrary(MIDAS_GUID1, 'MIDAS.DLL');
   AddComLibrary(GSDBQUERY_GUID, 'GSDBQUERY.DLL');
 
+  AddSection('Региональные установки');
+  AddSpaces('CurrencyString', CurrencyString);
+  AddSpaces('ThousandSeparator', ThousandSeparator);
+  AddSpaces('DecimalSeparator', DecimalSeparator);
+  AddSpaces('CurrencyDecimals', IntToStr(CurrencyDecimals));
+  AddSpaces('DateSeparator', DateSeparator);
+  AddSpaces('ShortDateFormat', ShortDateFormat);
+  AddSpaces('LongDateFormat', LongDateFormat);
+  AddSpaces('TimeSeparator', TimeSeparator);
+  AddSpaces('TimeAMString', TimeAMString);
+  AddSpaces('TimePMString', TimePMString);
+  AddSpaces('ShortTimeFormat', ShortTimeFormat);
+  AddSpaces('LongTimeFormat', LongTimeFormat);
+  AddSpaces('TwoDigitYearCenturyWindow', IntToStr(TwoDigitYearCenturyWindow));
+
   AddSection('Жесткие диски');
   for DriveLetter := 'C' to 'Z' do
   begin

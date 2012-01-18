@@ -437,6 +437,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (135, '0000.0001.0000.0166', '11.05.2011', 'Refined triggers for AC_ENTRY, AC_RECORD.');
 
+INSERT INTO fin_versioninfo
+  VALUES (136, '0000.0001.0000.0167', '12.01.2012', 'Add field modalpreview to the table rp_reportlist.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
