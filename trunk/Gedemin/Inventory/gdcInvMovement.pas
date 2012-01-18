@@ -5592,7 +5592,7 @@ var
     end;
 
     if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-       (High(DepartmentKeys) > Low(DepartmentKeys))
+       (High(DepartmentKeys) >= Low(DepartmentKeys))
     then
     begin
       if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
@@ -5709,7 +5709,7 @@ var
     end;
 
     if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-       (High(DepartmentKeys) > Low(DepartmentKeys))
+       (High(DepartmentKeys) >= Low(DepartmentKeys))
     then
     begin
       if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
@@ -5850,7 +5850,7 @@ begin
       Result := Result + Format(' AND g_sec_test(g.aview, %d) <> 0 ', [IBLogin.InGroup]);
 
     if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-       (High(DepartmentKeys) > Low(DepartmentKeys))
+       (High(DepartmentKeys) >= Low(DepartmentKeys))
     then
     begin
       if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
@@ -5987,7 +5987,7 @@ begin
       end;
 
     if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-       (High(DepartmentKeys) > Low(DepartmentKeys))
+       (High(DepartmentKeys) >= Low(DepartmentKeys))
     then
     begin
       if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
@@ -6141,7 +6141,7 @@ begin
     Result := inherited GetSelectClause;
 
   if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-     (High(DepartmentKeys) > Low(DepartmentKeys))
+     (High(DepartmentKeys) >= Low(DepartmentKeys))
   then
   begin
     if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then
@@ -7073,7 +7073,7 @@ begin
   {END MACRO}
   Result := inherited GetGroupClause;
   if (High(SubDepartmentKeys) = Low(SubDepartmentKeys)) or
-     (High(DepartmentKeys) > Low(DepartmentKeys))
+     (High(DepartmentKeys) >= Low(DepartmentKeys))
   then
   begin
     if Assigned(gdcDocumentLine) and ((gdcDocumentLine as TgdcInvDocumentLine).MovementSource.ContactType = imctOurPeople) then

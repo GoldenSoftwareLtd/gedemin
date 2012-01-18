@@ -221,6 +221,7 @@ CREATE TABLE rp_reportlist
   serverkey         dforeignkey,
   islocalexecute    dboolean DEFAULT 0,
   preview           dboolean DEFAULT 1,
+  modalpreview      dboolean_notnull DEFAULT 0,
   globalreportkey   dinteger,               /* Глобальный идентификатор отчета     */
                                             /* Должен задаваться программистом     */
   editiondate       deditiondate,           /* Дата последнего редактирования */
