@@ -376,7 +376,7 @@ begin
 
   AddSection('Региональные установки');
   AddSpaces('CurrencyString', CurrencyString);
-  AddSpaces('ThousandSeparator', ThousandSeparator);
+  AddSpaces('ThousandSeparator', '"' + ThousandSeparator + '"');
   AddSpaces('DecimalSeparator', DecimalSeparator);
   AddSpaces('CurrencyDecimals', IntToStr(CurrencyDecimals));
   AddSpaces('DateSeparator', DateSeparator);

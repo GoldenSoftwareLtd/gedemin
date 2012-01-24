@@ -478,14 +478,14 @@ var
     if FullCondition > '' then
       Fibsql.SQL.Text := Fibsql.SQL.Text + ' AND (' + FullCondition + ') ';
 
-    if (not FShowDisabled)
-      and (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
-      and (tiDisabled in FgdClass.GetTableInfos(FSubType))
+    {if (not FShowDisabled)
+      and (FgdClass <> nil) }{and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
+      {and (tiDisabled in FgdClass.GetTableInfos(FSubType))
       and (GetTableAlias(FgdClass.GetListTable(FSubType)) > '') then
     begin
       Fibsql.SQL.Text := Format('%s AND ((%1:s.disabled IS NULL) OR (%1:s.disabled = 0))',
         [Fibsql.SQL.Text, GetTableAlias(FgdClass.GetListTable(FSubType))]);
-    end;
+    end;}
 
     Fibsql.Prepare;
     Fibsql.ParamByName('V').AsString := Value;

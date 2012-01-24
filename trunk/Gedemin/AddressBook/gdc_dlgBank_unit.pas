@@ -97,27 +97,27 @@ begin
     begin
       Temp := 'SELECT FIRST 1 * FROM gd_bank WHERE TRIM(bankcode) = ''' +
         Trim(gdcObject.FieldByName('bankcode').AsString) + ''' ';
+
+      if gdcObject.FieldByName('bankbranch').isNull then
+        Temp := Temp + ' AND bankbranch IS NULL'
+      else
+        Temp := Temp + ' AND TRIM(bankbranch) = ''' +
+          Trim(gdcObject.FieldByName('bankbranch').AsString) + '''';
+
+      Temp := Temp + ' AND bankkey <> ' + gdcObject.FieldByName('bankkey').AsString;
+
+      gdcBaseManager.ExecSingleQueryResult(Temp, 0, Res);
+
+      if (not VarIsEmpty(Res)) then
+      begin
+        MessageBox(Handle,
+          'Банк с таким кодом и номером отделения уже существует в базе данных.',
+          'Внимание',
+          MB_OK or MB_ICONHAND or MB_TASKMODAL);
+        Result := False;
+      end;
     end;
-
-    if gdcObject.FieldByName('bankbranch').isNull then
-      Temp := Temp + ' AND bankbranch IS NULL'
-    else
-      Temp := Temp + ' AND TRIM(bankbranch) = ''' +
-        Trim(gdcObject.FieldByName('bankbranch').AsString) + '''';
-
-    Temp := Temp + ' AND bankkey <> ' + gdcObject.FieldByName('bankkey').AsString;
-
-    gdcBaseManager.ExecSingleQueryResult(Temp, 0, Res);
-
-    if (not VarIsEmpty(Res)) then
-    begin
-      MessageBox(Handle,
-        'Банк с таким кодом и номером отделения уже существует в базе данных.',
-        'Внимание',
-        MB_OK or MB_ICONHAND or MB_TASKMODAL);
-      Result := False;
-    end;
-  end;  
+  end;
 end;
 
 initialization
