@@ -440,6 +440,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (136, '0000.0001.0000.0167', '12.01.2012', 'Add field modalpreview to the table rp_reportlist.');
 
+INSERT INTO fin_versioninfo
+  VALUES (137, '0000.0001.0000.0168', '17.01.2012', 'ALTER DOMAIN USR$FA_CORRECTCOEFF.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

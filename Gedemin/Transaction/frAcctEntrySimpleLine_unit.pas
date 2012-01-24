@@ -447,7 +447,7 @@ begin
             if S.IndexOfName(F.FieldName) > - 1 then
             begin
               V := S.Values[F.FieldName];
-              if F.DataType in [ftDateTime, ftDate, ftTime, ftInteger, ftFloat, ftString, ftBCD] then begin
+              if F.DataType in [ftDateTime, ftDate, ftTime, ftWord, ftSmallint, ftInteger, ftLargeint, ftFloat, ftString, ftBCD] then begin
                 if V[1] = '''' then
                   V:= Copy(V, 2, Length(V) - 2);
                 if F.DataType in [ftDateTime, ftDate] then begin
