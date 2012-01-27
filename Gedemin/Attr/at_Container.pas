@@ -136,7 +136,6 @@ type
 
   end;
 
-
   TatCheckBoxControl = class(TatControl)
   private
     function GetCheckBoxEdit: TDBCheckBox;
