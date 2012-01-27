@@ -200,7 +200,7 @@ begin
   if Assigned(FReportFactory) then
     FReportFactory.CreateReport(AnReport.TemplateStructure, AnReportResult,
      AnParam, AnBuildDate, AnReport.Preview, AnReport.EventFunction, AnReport.ReportName,
-     FPrinterName, FShowProgress, AnBaseQueryList, FFileName, FExportType)
+     FPrinterName, FShowProgress, AnBaseQueryList, FFileName, FExportType, AnReport.ModalPreview)
   else
     raise Exception.Create('Object ReportFactory not assigned.');
 end;

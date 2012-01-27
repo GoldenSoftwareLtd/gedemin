@@ -55,7 +55,7 @@ type
 
     procedure UpdateControls; override;
     procedure Go_to(NewWindow: Boolean = false); override;
-    function CompareParams: boolean; override;
+    function CompareParams(WithDate: Boolean = True): boolean; override;
     class function ConfigClassName: string; override;
     procedure DoLoadConfig(const Config: TBaseAcctConfig);override;
     procedure DoSaveConfig(Config: TBaseAcctConfig);override;
@@ -313,9 +313,9 @@ begin
   end;
 end;
 
-function Tgdv_frmAcctCirculationList.CompareParams: boolean;
+function Tgdv_frmAcctCirculationList.CompareParams(WithDate: Boolean = True): boolean;
 begin
-  Result := inherited CompareParams
+  Result := inherited CompareParams(WithDate)
     and ((FConfig as TAccCirculationListConfig).SubAccountsInMain = cbSubAccount.Checked)
     and ((FConfig as TAccCirculationListConfig).DisplaceSaldo = cbDisplaceSaldo.Checked);
 end;

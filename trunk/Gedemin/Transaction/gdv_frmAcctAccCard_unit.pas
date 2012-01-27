@@ -89,7 +89,7 @@ type
     procedure SetParams; override;
     procedure Go_to(NewWindow: Boolean = false); override;
     function CanGo_to: boolean; override;
-    function CompareParams: boolean; override;
+    function CompareParams(WithDate: Boolean = True): boolean; override;
   public
     { Public declarations }
     procedure LoadSettings; override;
@@ -353,10 +353,19 @@ begin
     with Tgdc_frmTransaction.CreateAndAssign(Application) as Tgdc_frmTransaction do
     begin
       cbGroupByDocument.Checked := False;
+      if MessageBox(Handle, 'Открыть только эту проводку?',
+        'Внимание', MB_ICONQUESTION or MB_YESNO) = IDYES then
+      begin
+        gdcAcctViewEntryRegister.EntrySelect := esRecordKey;
+        gdcAcctViewEntryRegister.Close;
+        gdcAcctViewEntryRegister.ParamByName('rk').AsInteger := gdvObject.FieldByName('id').AsInteger;
+        gdcAcctViewEntryRegister.Open;
+      end else
+        gdcAcctViewEntryRegister.EntrySelect := esAll;
       if tvGroup.GoToID(gdvObject.FieldByName('transactionkey').AsInteger) and
         gdcAcctViewEntryRegister.Active and
         gdcAcctViewEntryRegister.Locate('RECORDKEY', gdvObject.FieldByName('id').AsInteger, []) then
-        Show
+        Show 
       else
         MessageDlg(cMsg, mtWarning, [mbOK], -1);
     end;
@@ -387,9 +396,9 @@ begin
   end;
 end;
 
-function Tgdv_frmAcctAccCard.CompareParams: boolean;
+function Tgdv_frmAcctAccCard.CompareParams(WithDate: Boolean = True): boolean;
 begin
-  Result := inherited CompareParams
+  Result := inherited CompareParams(WithDate)
     and ((FConfig as TAccCardConfig).CorrAccounts = cbCorrAccounts.Text)
     and ((FConfig as TAccCardConfig).IncCorrSubAccounts = cbShowCorrSubAccounts.Checked)
     and ((FConfig as TAccCardConfig).Group = cbGroup.Checked)

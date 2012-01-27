@@ -89,6 +89,7 @@ constructor Tgdc_dlgAcctBaseAccount.Create(AnOwner: TComponent);
 begin
   inherited;
   FValuesArray := TgdKeyObjectAssoc.Create;
+  atContainer.Sorted := True;
 end;
 
 destructor Tgdc_dlgAcctBaseAccount.Destroy;
@@ -307,7 +308,7 @@ begin
 
     ibsql.Close;
 
-    ibsql.SQL.Text := 'SELECT * FROM gd_value';
+    ibsql.SQL.Text := 'SELECT * FROM gd_value ORDER BY name ASC';
     ibsql.ExecQuery;
     if ibsql.Eof then
       Exit;
@@ -347,7 +348,7 @@ begin
     LabelC := FindComponent(Control.Name + '_label');
     if Assigned(LabelC) then
       (LabelC as TLabel).Visible := False;
-  end;    
+  end; 
 end;
 
 procedure Tgdc_dlgAcctBaseAccount.atcMainAdjustControl(Sender: TObject;

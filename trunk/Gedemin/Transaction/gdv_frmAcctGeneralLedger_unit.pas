@@ -50,7 +50,7 @@ type
     procedure DoLoadConfig(const Config: TBaseAcctConfig);override;
     procedure DoSaveConfig(Config: TBaseAcctConfig);override;
     procedure Go_to(NewWindow: Boolean = false); override;
-    function CompareParams: boolean; override;
+    function CompareParams(WithDate: Boolean = True): boolean; override;
   public
     procedure LoadSettings; override;
     procedure SaveSettings; override;
@@ -384,9 +384,9 @@ begin
   end;
 end;
 
-function Tgdv_frmGeneralLedger.CompareParams: boolean;
+function Tgdv_frmGeneralLedger.CompareParams(WithDate: Boolean = True): boolean;
 begin
-  Result := inherited CompareParams
+  Result := inherited CompareParams(WithDate)
     and ((FConfig as TAccGeneralLedgerConfig).ShowDebit = cbShowDebit.Checked)
     and ((FConfig as TAccGeneralLedgerConfig).ShowCredit = cbShowCredit.Checked)
     and ((FConfig as TAccGeneralLedgerConfig).ShowCorrSubAccounts = cbShowCorrSubAccount.Checked); 

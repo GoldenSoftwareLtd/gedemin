@@ -59,6 +59,7 @@ const
 
 type
   TEntryGroup = (egAll, egDocument);
+  TEntrySelect = (esAll, esRecordKey);
 
   TgdcAcctQuantity = class;
 
@@ -159,7 +160,9 @@ type
   TgdcAcctViewEntryRegister = class(TgdcAcctBaseEntryRegister)
   private
     FEntryGroup: TEntryGroup;
+    FEntrySelect: TEntrySelect; 
     procedure SetEntryGroup(const Value: TEntryGroup);
+    procedure SetEntrySelect(const AValue: TEntrySelect);
     procedure DataTransfer(gdcAcctComplexRecord: TgdcAcctComplexRecord);
   protected
     function GetSelectClause: String; override;
@@ -184,6 +187,7 @@ type
     function EditDialog(const ADlgClassName: String = ''): Boolean; override;
 
     property EntryGroup: TEntryGroup read FEntryGroup write SetEntryGroup;
+    property EntrySelect: TEntrySelect read FEntrySelect write SetEntrySelect;
   end;
 
   TCrackGdcBase = class(TgdcBase);
@@ -1878,6 +1882,7 @@ constructor TgdcAcctViewEntryRegister.Create(AnOwner: TComponent);
 begin
   inherited;
   FEntryGroup := egAll;
+  FEntrySelect := esAll;
 end;
 
 function TgdcAcctViewEntryRegister.CreateDialog(
@@ -2553,6 +2558,20 @@ begin
   if HasSubSet('ByLBRB') then
     S.Add('t.LB >= :LB and t.RB <= :RB');
 
+  if FEntrySelect = esRecordKey then
+    S.Add('z.id = :rk');
+
+end;
+
+procedure TgdcAcctViewEntryRegister.SetEntrySelect(const AValue: TEntrySelect);
+begin
+  if FEntrySelect <> AValue then
+  begin
+    FEntrySelect := AValue;
+    Close;
+    FSQLInitialized := False;
+    Open;
+  end;
 end;
 
 procedure TgdcAcctViewEntryRegister.SetEntryGroup(

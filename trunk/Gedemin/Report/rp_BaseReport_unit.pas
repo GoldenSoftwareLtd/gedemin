@@ -248,6 +248,7 @@ type
     FIsRebuild: Boolean;             // Необходимость сохранять результат
     FIsLocalExecute: Boolean;
     FPreview: Boolean;
+    FModalPreview: Boolean;
     FReportGroupKey: Integer;
 
     FAFull, FAChag, FAView: Integer;
@@ -273,6 +274,7 @@ type
     property ServerKey: Variant read FServerKey;
     property IsLocalExecute: Boolean read FIsLocalExecute;
     property Preview: Boolean read FPreview;
+    property ModalPreview: Boolean read FModalPreview;
     property ReportGroupKey: Integer read FReportGroupKey;
     property AFull: Integer read FAFull;
     property AChag: Integer read FAChag;
@@ -1732,6 +1734,7 @@ begin
   FIsLocalExecute := AnDataSet.FieldByName('IsLocalExecute').AsInteger <> 0;
   FServerKey := AnDataSet.FieldByName('serverkey').AsVariant;
   FPreview := AnDataSet.FieldByName('preview').AsInteger <> 0;
+  FModalPreview := AnDataSet.FieldByName('modalpreview').AsInteger <> 0;
   FAFull := AnDataSet.FieldByName('afull').AsInteger;
   FAChag := AnDataSet.FieldByName('achag').AsInteger;
   FAView := AnDataSet.FieldByName('aview').AsInteger;
