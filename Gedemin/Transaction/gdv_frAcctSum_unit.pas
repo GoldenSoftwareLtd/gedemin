@@ -89,6 +89,9 @@ implementation
 
 {$R *.DFM}
 
+const
+  StreamVersion4 = 4;
+
 { TfrAcctSum }
 
 function TfrAcctSum.GetCurrDecDigits: Integer;
@@ -194,26 +197,57 @@ begin
 end;
 
 procedure TfrAcctSum.LoadFromStream(const Stream: TStream);
+var
+  SV: Byte;
+  OldPosition: Integer;
 begin
-  InNcu := ReadBooleanFromStream(Stream);
-  InCurr := ReadBooleanFromStream(Stream);
-  NcuDecDigits := ReadIntegerFromStream(Stream);
-  CurrDecDigits := ReadIntegerFromStream(Stream);
-  NcuScale := ReadIntegerFromStream(Stream);
-  CurrScale := ReadIntegerFromStream(Stream);
-  Currkey := ReadIntegerFromStream(Stream);
-
+  OldPosition := Stream.Position;
+  Stream.Read(SV, Sizeof(SV));
+  if SV <> StreamVersion4 then
+  begin
+    Stream.Position := OldPosition;
+    InNcu := ReadBooleanFromStream(Stream);
+    InCurr := ReadBooleanFromStream(Stream);
+    NcuDecDigits := ReadIntegerFromStream(Stream);
+    CurrDecDigits := ReadIntegerFromStream(Stream);
+    NcuScale := ReadIntegerFromStream(Stream);
+    CurrScale := ReadIntegerFromStream(Stream);
+    Currkey := ReadIntegerFromStream(Stream);
+  end else
+  begin
+    InCurr := ReadBooleanFromStream(Stream);
+    NcuDecDigits := ReadIntegerFromStream(Stream);
+    CurrDecDigits := ReadIntegerFromStream(Stream);
+    NcuScale := ReadIntegerFromStream(Stream);
+    CurrScale := ReadIntegerFromStream(Stream);
+    Currkey := ReadIntegerFromStream(Stream);
+    InEQ := ReadBooleanFromStream(Stream);
+    EQDecDigits := ReadIntegerFromStream(Stream);
+    EQScale := ReadIntegerFromStream(Stream);
+    QuantityDecDigits := ReadIntegerFromStream(Stream);
+    QuantityScale := ReadIntegerFromStream(Stream);
+    InNcu := ReadBooleanFromStream(Stream);
+  end;
 end;
 
 procedure TfrAcctSum.SaveToStream(const Stream: TStream);
+var
+  SV: Byte;
 begin
-  SaveBooleanToStream(InNcu, Stream);
+  SV := StreamVersion4;
+  Stream.Write(SV, SizeOf(SV));
   SaveBooleanToStream(InCurr, Stream);
   SaveIntegerToStream(NcuDecDigits, Stream);
   SaveIntegerToStream(CurrDecDigits, Stream);
   SaveIntegerToStream(NcuScale, Stream);
   SaveIntegerToStream(CurrScale, Stream);
   SaveIntegerToStream(Currkey, Stream);
+  SaveBooleanToStream(InEQ, Stream);
+  SaveIntegerToStream(EQDecDigits, Stream);
+  SaveIntegerToStream(EQScale, Stream);
+  SaveIntegerToStream(QuantityDecDigits, Stream);
+  SaveIntegerToStream(QuantityScale, Stream);
+  SaveBooleanToStream(InNcu, Stream);
 end;
 
 procedure TfrAcctSum.cbNcuScaleExit(Sender: TObject);
@@ -264,14 +298,15 @@ begin
   UpdatePanelVisibility;
 end;
 
+
 function TfrAcctSum.GetQuantityDecDigits: Integer;
 begin
-  Result := LocalStrToInt(cbEqScale.Text, 4);
+  Result := LocalStrToInt(cbQuantityDecDigits.Text, 4);
 end;
 
 function TfrAcctSum.GetQuantityScale: Integer;
 begin
-  Result := LocalStrToInt(cbEqScale.Text, 1);
+  Result := LocalStrToInt(cbQuantityScale.Text, 1);
   if Result = 0 then
     Result := 1;
 end;

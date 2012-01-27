@@ -9,6 +9,7 @@ uses
   Test_gsMorph_unit,
   Test_gsPeriodEdit_unit,
   Test_AtSQLSetup_unit,
+  Test_gsFTPClient_unit,
   TestBasics_unit
   {$IFDEF GEDEMIN}
   , Test_gsStorage_unit

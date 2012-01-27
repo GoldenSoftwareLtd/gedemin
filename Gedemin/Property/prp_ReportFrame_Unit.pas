@@ -33,6 +33,8 @@ type
     btnCopyRUIDReport: TButton;
     edtRUIDReport: TEdit;
     lblRUIDReport: TLabel;
+    dbcbDisplayInMenu: TDBCheckBox;
+    dbcbModalPreview: TDBCheckBox;
     procedure MainFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure ParamFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure EventFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);

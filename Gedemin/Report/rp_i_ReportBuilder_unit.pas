@@ -53,12 +53,15 @@ type
     procedure Set_FileName(Value: String);
     function Get_ExportType: TExportType;
     procedure Set_ExportType(Value: TExportType);
+    function Get_ModalPreview: Boolean;
+    procedure Set_ModalPreview(const AnValue: Boolean);
 
     property ReportResult: TReportResult read Get_ReportResult write Set_ReportResult;
     property ReportTemplate: TReportTemplate read Get_ReportTemplate write Set_ReportTemplate;
     property Params: Variant read Get_Params write Set_Params;
     property BuildDate: TDateTime write Set_BuildDate;
     property Preview: Boolean read Get_Preview write Set_Preview;
+    property ModalPreview: Boolean read Get_ModalPreview write Set_ModalPreview;
     property OnReportEvent: TReportEvent read Get_ReportEvent write Set_ReportEvent;
     property EventFunction: TrpCustomFunction read Get_EventFunction write Set_EventFunction;
     property Caption: String read Get_Caption write Set_Caption;
@@ -73,6 +76,7 @@ type
     FOldClose: TCloseEvent;
     FOldDestroy: TNotifyEvent;
     FPreview: Boolean;
+    FModalPreview: Boolean;
     FCaption: String;
     FPrinterName: String;
     FShowProgress: Boolean;
@@ -117,6 +121,8 @@ type
     procedure Set_FileName(Value: String);
     function Get_ExportType: TExportType;
     procedure Set_ExportType(Value: TExportType);
+    function Get_ModalPreview: Boolean; virtual;
+    procedure Set_ModalPreview(const AnValue: Boolean); virtual;
   public
     constructor Create;
     destructor Destroy; override;
@@ -126,6 +132,7 @@ type
     property Params: Variant read Get_Params write Set_Params;
     property BuildDate: TDateTime write Set_BuildDate;
     property Preview: Boolean read Get_Preview write Set_Preview;
+    property ModalPreview: Boolean read Get_ModalPreview write Set_ModalPreview;
     property EventFunction: TrpCustomFunction read Get_EventFunction write Set_EventFunction;
     property PrinterName: string read Get_PrinterName write Set_PrinterName;
     property ShowProgress: Boolean read Get_ShowProgress write Set_ShowProgress;
@@ -366,7 +373,17 @@ end;
 
 procedure TCustomReportBuilder.Set_ShowProgress(Value: boolean);
 begin
-  FShowProgress:= Value;
+  FShowProgress := Value;
+end;
+
+function TCustomReportBuilder.Get_ModalPreview: Boolean;
+begin
+  Result := FModalPreview;
+end;
+
+procedure TCustomReportBuilder.Set_ModalPreview(const AnValue: Boolean);
+begin
+  FModalPreview := AnValue;
 end;
 
 end.

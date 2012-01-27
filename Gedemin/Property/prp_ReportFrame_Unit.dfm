@@ -1,11 +1,16 @@
 inherited ReportFrame: TReportFrame
+  Width = 444
+  Height = 353
   HelpContext = 325
   inherited PageControl: TSuperPageControl
+    Width = 444
+    Height = 353
     OnDrawTab = PageControlDrawTab
     OwnerDraw = True
     OnChange = PageControlChange
     inherited tsProperty: TSuperTabSheet
       inherited TBDock1: TTBDock
+        Width = 440
         Height = 28
         object TBToolbar1: TTBToolbar
           Left = 0
@@ -24,7 +29,8 @@ inherited ReportFrame: TReportFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 222
+        Width = 440
+        Height = 298
         OnResize = pMainResize
         inherited lbName: TLabel
           Width = 116
@@ -56,18 +62,18 @@ inherited ReportFrame: TReportFrame
           Caption = 'RUID отчета:'
         end
         inherited dbeName: TprpDBComboBox
-          Width = 288
+          Width = 297
         end
         inherited dbmDescription: TDBMemo
           Top = 56
-          Width = 288
+          Width = 297
           DataField = 'DESCRIPTION'
           TabOrder = 3
         end
         object dbeFrqRefresh: TDBEdit
           Left = 144
           Top = 128
-          Width = 288
+          Width = 297
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           DataField = 'FRQREFRESH'
@@ -83,20 +89,20 @@ inherited ReportFrame: TReportFrame
           Caption = 'Отображать отчет перед печатью'
           DataField = 'PREVIEW'
           DataSource = DataSource
-          TabOrder = 7
+          TabOrder = 6
           ValueChecked = '1'
           ValueUnchecked = '0'
           OnClick = dbeFunctionNameChange
         end
         object dbcbSaveResult: TDBCheckBox
           Left = 8
-          Top = 215
+          Top = 231
           Width = 220
           Height = 17
           Caption = 'Перестраивать отчет заново'
           DataField = 'ISREBUILD'
           DataSource = DataSource
-          TabOrder = 8
+          TabOrder = 7
           ValueChecked = '1'
           ValueUnchecked = '0'
           Visible = False
@@ -104,35 +110,22 @@ inherited ReportFrame: TReportFrame
         end
         object dbcbIsLocalExecute: TDBCheckBox
           Left = 8
-          Top = 231
+          Top = 247
           Width = 220
           Height = 17
           Caption = 'Выполнять отчет локально'
           DataField = 'ISLOCALEXECUTE'
           DataSource = DataSource
-          TabOrder = 9
+          TabOrder = 8
           ValueChecked = '1'
           ValueUnchecked = '0'
           Visible = False
           OnClick = dbeFunctionNameChange
         end
-        object dbcbDisplayInMenu: TDBCheckBox
-          Left = 8
-          Top = 183
-          Width = 233
-          Height = 17
-          Caption = 'Отображать в меню отчетов формы'
-          DataField = 'DisplayInMenu'
-          DataSource = DataSource
-          TabOrder = 6
-          ValueChecked = '1'
-          ValueUnchecked = '0'
-          OnClick = dbeFunctionNameChange
-        end
         object iblFolder: TgsIBLookupComboBox
           Left = 144
           Top = 152
-          Width = 288
+          Width = 297
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -151,7 +144,7 @@ inherited ReportFrame: TReportFrame
           OnChange = iblFolderChange
         end
         object pnlRUIDReport: TPanel
-          Left = 357
+          Left = 366
           Top = 32
           Width = 75
           Height = 21
@@ -178,6 +171,32 @@ inherited ReportFrame: TReportFrame
           ReadOnly = True
           TabOrder = 1
         end
+        object dbcbDisplayInMenu: TDBCheckBox
+          Left = 8
+          Top = 183
+          Width = 233
+          Height = 17
+          Caption = 'Отображать в меню отчетов формы'
+          DataField = 'DisplayInMenu'
+          DataSource = DataSource
+          TabOrder = 9
+          ValueChecked = '1'
+          ValueUnchecked = '0'
+          OnClick = dbeFunctionNameChange
+        end
+        object dbcbModalPreview: TDBCheckBox
+          Left = 8
+          Top = 216
+          Width = 209
+          Height = 17
+          Caption = 'Ожидать закрытия печатной формы'
+          DataField = 'ModalPreview'
+          DataSource = DataSource
+          TabOrder = 10
+          ValueChecked = '1'
+          ValueUnchecked = '0'
+          OnClick = dbeFunctionNameChange
+        end
       end
     end
     object tsMainFunction: TSuperTabSheet
@@ -185,17 +204,39 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 1
       inline MainFunctionFrame: TReportFunctionFrame
         Top = 9
-        Height = 245
+        Width = 444
+        Height = 321
         PopupMenu = MainFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 245
+          Width = 444
+          Height = 321
           inherited tsProperty: TSuperTabSheet
+            inherited TBDock1: TTBDock
+              Width = 440
+            end
             inherited pMain: TPanel
-              Height = 190
+              Width = 440
+              Height = 266
               inherited dbeName: TprpDBComboBox
+                Width = 295
                 OnChange = MainFunctionFramedbeNameChange
                 OnDropDown = MainFunctionFramedbeNameDropDown
                 OnSelChange = MainFunctionFramedbeNameSelChange
+              end
+              inherited dbmDescription: TDBMemo
+                Width = 295
+              end
+              inherited dbcbLang: TDBComboBox
+                Width = 295
+              end
+              inherited dbtOwner: TDBEdit
+                Width = 295
+              end
+              inherited dbeLocalName: TDBEdit
+                Width = 294
+              end
+              inherited pnlRUIDFunction: TPanel
+                Left = 364
               end
             end
           end
@@ -226,7 +267,7 @@ inherited ReportFrame: TReportFrame
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 443
+        Width = 444
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -238,17 +279,39 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 2
       inline ParamFunctionFrame: TReportFunctionFrame
         Top = 9
-        Height = 245
+        Width = 444
+        Height = 321
         PopupMenu = ParamFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 245
+          Width = 444
+          Height = 321
           inherited tsProperty: TSuperTabSheet
+            inherited TBDock1: TTBDock
+              Width = 440
+            end
             inherited pMain: TPanel
-              Height = 190
+              Width = 440
+              Height = 266
               inherited dbeName: TprpDBComboBox
+                Width = 295
                 OnNewRecord = ParamFunctionFramedbeNameNewRecord
                 OnSelChange = ParamFunctionFramedbeNameSelChange
                 OnDeleteRecord = ParamFunctionFramedbeNameDeleteRecord
+              end
+              inherited dbmDescription: TDBMemo
+                Width = 295
+              end
+              inherited dbcbLang: TDBComboBox
+                Width = 295
+              end
+              inherited dbtOwner: TDBEdit
+                Width = 295
+              end
+              inherited dbeLocalName: TDBEdit
+                Width = 294
+              end
+              inherited pnlRUIDFunction: TPanel
+                Left = 364
               end
             end
           end
@@ -270,7 +333,7 @@ inherited ReportFrame: TReportFrame
       object Panel2: TPanel
         Left = 0
         Top = 0
-        Width = 443
+        Width = 444
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -282,17 +345,39 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 3
       inline EventFunctionFrame: TReportFunctionFrame
         Top = 9
-        Height = 245
+        Width = 444
+        Height = 321
         PopupMenu = EventFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 245
+          Width = 444
+          Height = 321
           inherited tsProperty: TSuperTabSheet
+            inherited TBDock1: TTBDock
+              Width = 440
+            end
             inherited pMain: TPanel
-              Height = 190
+              Width = 440
+              Height = 266
               inherited dbeName: TprpDBComboBox
+                Width = 295
                 OnNewRecord = EventFunctionFramedbeNameNewRecord
                 OnSelChange = EventFunctionFramedbeNameSelChange
                 OnDeleteRecord = EventFunctionFramedbeNameDeleteRecord
+              end
+              inherited dbmDescription: TDBMemo
+                Width = 295
+              end
+              inherited dbcbLang: TDBComboBox
+                Width = 295
+              end
+              inherited dbtOwner: TDBEdit
+                Width = 295
+              end
+              inherited dbeLocalName: TDBEdit
+                Width = 294
+              end
+              inherited pnlRUIDFunction: TPanel
+                Left = 364
               end
             end
           end
@@ -315,7 +400,7 @@ inherited ReportFrame: TReportFrame
       object Panel3: TPanel
         Left = 0
         Top = 0
-        Width = 443
+        Width = 444
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -327,25 +412,40 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 4
       inline TemplateFrame: TTemplateFrame
         Top = 9
-        Height = 245
+        Width = 444
+        Height = 321
         PopupMenu = TemplateFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 245
+          Width = 444
+          Height = 321
           inherited tsProperty: TSuperTabSheet
+            inherited TBDock1: TTBDock
+              Width = 440
+            end
             inherited pMain: TPanel
-              Height = 190
+              Width = 440
+              Height = 266
               inherited dbeName: TprpDBComboBox
+                Width = 439
                 OnChange = nil
                 OnDropDown = TemplateFramedbeNameDropDown
                 OnNewRecord = TemplateFramedbeNameNewRecord
                 OnSelChange = TemplateFramedbeNameSelChange
               end
+              inherited dbmDescription: TDBMemo
+                Width = 439
+              end
+              inherited dblcbType: TDBLookupComboBox
+                Width = 439
+              end
               inherited pnlRUIDTemplate: TPanel
+                Left = 508
                 inherited btnCopyRUIDTemplate: TButton
                   OnClick = nil
                 end
               end
               inherited mHint: TMemo
+                Width = 439
                 Lines.Strings = ()
               end
             end
@@ -372,7 +472,7 @@ inherited ReportFrame: TReportFrame
       object Panel4: TPanel
         Left = 0
         Top = 0
-        Width = 443
+        Width = 444
         Height = 9
         Align = alTop
         BevelOuter = bvNone
