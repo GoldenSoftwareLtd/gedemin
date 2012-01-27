@@ -3733,6 +3733,8 @@ type
     procedure Set_LinkFunctionLanguage(const Value: WideString); safecall;
     function  Get_Required: WordBool; safecall;
     procedure Set_Required(Value: WordBool); safecall;
+    function  Get_Transaction: IgsIBTransaction; safecall;
+    procedure Set_Transaction(const Value: IgsIBTransaction); safecall;
     procedure Assign_(const Source: IgsParamData); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
@@ -18032,6 +18034,16 @@ end;
 procedure TwrpGsParamData.Set_LinkFunctionLanguage(const Value: WideString);
 begin
   GetParamData.LinkFunctionLanguage := Value;
+end;
+
+function  TwrpGsParamData.Get_Transaction: IgsIBTransaction;
+begin
+  Result := GetGDCOleObject(GetParamData.Transaction) as IgsIBTransaction;
+end;
+
+procedure TwrpGsParamData.Set_Transaction(const Value: IgsIBTransaction);
+begin
+  GetParamData.Transaction := InterfaceToObject(Value) as TIBTransaction;
 end;
 
 procedure TwrpGsParamData.Set_LinkPrimaryField(const Value: WideString);

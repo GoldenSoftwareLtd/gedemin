@@ -27,7 +27,7 @@ unit prm_ParamFunctions_unit;
 interface
 
 uses
-  SysUtils, Contnrs, Classes;
+  SysUtils, Contnrs, Classes, IBDatabase;
 
 type
   TParamType = (
@@ -61,6 +61,7 @@ type
     FRequired: Boolean;
     FSortOrder: TSortOrder;
     FSortField: String;
+    FTransaction: TIBTransaction;
 
     function GetParamType: TParamType;
     procedure SetLinkPrimaryField(const Value: String);
@@ -97,6 +98,7 @@ type
     property Required: Boolean read FRequired write FRequired;
     property SortOrder: TSortOrder read FSortOrder write FSortOrder;
     property SortField: String read FSortField write FSortField;
+    property Transaction: TIBTransaction read FTransaction write FTransaction;
   end;
 
 type
