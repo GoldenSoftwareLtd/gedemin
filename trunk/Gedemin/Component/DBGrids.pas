@@ -3377,6 +3377,11 @@ end;
 function TCustomDBGrid.GetSelectedIndex: Integer;
 begin
   Result := RawToDataColumn(Col);
+
+  // gedemin
+  if Result >= Columns.Count then
+    Result := -1;
+  // gedemin
 end;
 
 function TCustomDBGrid.HighlightCell(DataCol, DataRow: Integer;
