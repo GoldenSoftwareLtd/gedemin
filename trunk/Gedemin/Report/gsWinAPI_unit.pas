@@ -54,6 +54,7 @@ type
     function  SetForegroundWindow(hWnd: LongWord): WordBool; safecall;
     function  SetParent(hWndChild: LongWord; hWndNewParent: LongWord): LongWord; safecall;
     function  SetWindowLong(hWnd: LongWord; nIndex: Integer; dwNewLong: Integer): Integer; safecall;
+    function  GetWindowLong(hWnd: LongWord; nIndex: Integer): Integer; safecall;
     function  SetWindowPos(hWnd: LongWord; hWndInsertAfter: LongWord; x: Integer; y: Integer;
                            cx: Integer; cy: Integer; uFlags: LongWord): WordBool; safecall;
     function  SetWindowText(hWnd: LongWord; const lpString: WideString): WordBool; safecall;
@@ -404,7 +405,7 @@ end;
 function TgsWinAPI.SetWindowLong(hWnd: LongWord; nIndex,
   dwNewLong: Integer): Integer;
 begin
-  result := Windows.SetWindowLong(hWnd, nIndex, dwNewLong)
+  result := Windows.SetWindowLong(hWnd, nIndex, dwNewLong);
 end;
 
 function TgsWinAPI.SetWindowPos(hWnd, hWndInsertAfter: LongWord; x, y, cx,
@@ -1141,6 +1142,11 @@ begin
       FreeMem(Source, SourceLen);
     end;
   end;
+end;
+
+function TgsWinAPI.GetWindowLong(hWnd: LongWord; nIndex: Integer): Integer;
+begin
+  result := Windows.GetWindowLong(hWnd, nIndex);
 end;
 
 initialization
