@@ -626,11 +626,13 @@ begin
           begin
             if CE.Name = 'cSum' then
             begin
+              CurrKey := -1;
               FieldName := 'debitncu';
               CorrFieldName := 'creditncu';
             end
             else
             begin
+              CurrKey := DataSet.FieldByName('currkey').AsInteger;
               FieldName := 'debitcurr';
               CorrFieldName := 'creditcurr';
             end;
@@ -638,21 +640,16 @@ begin
           begin
             if CE.Name = 'cSum' then
             begin
+              CurrKey := -1;
               CorrFieldName := 'debitncu';
               FieldName := 'creditncu';
             end
             else
             begin
+              CurrKey := DataSet.FieldByName('currkey').AsInteger;
               CorrFieldName := 'debitcurr';
               FieldName := 'creditcurr';
             end;
-          end;
-
-          CurrKey := -1;
-          if CE.Name = 'cCurrSum' then
-          begin
-            for I := 0 to EntryLines.Count - 1 do
-              CurrKey := EntryLines[i].FieldByName('currkey').AsInteger;
           end;
 
           for I := 0 to EntryLines.Count - 1 do
@@ -678,9 +675,10 @@ begin
             begin
               for I := 0 to EntryLines.Count - 1 do
               begin
-                if EntryLines[i].FieldByName('accountpart').AsString <> AccountPart then
+                if (EntryLines[i].FieldByName('accountpart').AsString <> AccountPart)
+                  and ((CurrKey = EntryLines[i].FieldByName('currkey').AsInteger) or (CE.Name = 'cSum')) then
                 begin
-                  if not (EntryLines[I].State in [dsEdit, dsInsert]) then EntryLines[I].Edit; 
+                  if not (EntryLines[I].State in [dsEdit, dsInsert]) then EntryLines[I].Edit;
 {                  begin}
                     if EntryLines[I].FieldByName(CorrFieldName).AsCurrency <> Sum then
                     begin
