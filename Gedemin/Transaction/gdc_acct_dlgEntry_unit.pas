@@ -739,6 +739,7 @@ procedure Tgdc_acct_dlgEntry.actNewDebitExecute(Sender: TObject);
 var
   EntryLine: TgdcAcctEntryLine;
   L: TfrAcctEntrySimpleLine;
+  Temp: Integer;
 begin
   EntryLine := (gdcObject as TgdcAcctComplexRecord).AppendLine;
   if EntryLine <> nil then
@@ -746,7 +747,14 @@ begin
     Inc(FNumerator);
     L := TfrAcctEntrySimpleLine.Create(Self);
     L.Name := Format('frAcctEntrySimpleLine_%d', [FNumerator]);
+
+    if sboxDebit.ControlCount > 0 then
+      Temp := sboxDebit.Controls[sboxDebit.ControlCount - 1].Height + sboxDebit.Controls[sboxDebit.ControlCount - 1].Top
+    else
+      Temp := 0;
+
     L.Parent := sboxDebit;
+    L.Top := Temp;
 
     EntryLine.Edit;
     EntryLine.FieldByName('accountpart').AsString := 'D';
@@ -784,6 +792,7 @@ procedure Tgdc_acct_dlgEntry.actNewCreditExecute(Sender: TObject);
 var
   EntryLine: TgdcAcctEntryLine;
   L: TfrAcctEntrySimpleLine;
+  Temp: Integer;
 begin
   EntryLine := (gdcObject as TgdcAcctComplexRecord).AppendLine;
   if EntryLine <> nil then
@@ -791,7 +800,14 @@ begin
     Inc(FNumerator);
     L := TfrAcctEntrySimpleLine.Create(Self);
     L.Name := Format('frAcctEntrySimpleLine_%d', [FNumerator]);
+
+    if sboxCredit.ControlCount > 0 then
+      Temp := sboxCredit.Controls[sboxCredit.ControlCount - 1].Height + sboxCredit.Controls[sboxCredit.ControlCount - 1].Top
+    else
+      Temp := 0;
+
     L.Parent := sboxCredit;
+    L.Top := Temp;
 
     EntryLine.Edit;
     EntryLine.FieldByName('accountpart').AsString := 'C';

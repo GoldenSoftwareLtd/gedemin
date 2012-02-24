@@ -92,6 +92,7 @@ object frAcctAnalyticLine: TfrAcctAnalyticLine
     Width = 157
     Height = 21
     HelpContext = 1
+    SortOrder = soAsc
     Anchors = [akLeft, akTop, akRight]
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText

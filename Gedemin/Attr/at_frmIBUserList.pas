@@ -138,7 +138,8 @@ begin
       '  A.MON$ATTACHMENT_ID ' +
       'FROM MON$ATTACHMENTS A LEFT JOIN GD_USER U ' +
       '  ON A.MON$USER = U.IBNAME ' +
-      'WHERE A.MON$STATE = 1 ';
+      'WHERE A.MON$STATE = 1 ' +
+      'ORDER BY A.MON$USER ';
     q.ExecQuery;
 
     while not q.EOF do

@@ -1,8 +1,8 @@
 inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
-  Left = 302
-  Top = 132
+  Left = 377
+  Top = 298
   Width = 750
-  Height = 556
+  Height = 517
   BorderStyle = bsSizeable
   BorderWidth = 5
   Caption = '’оз€йственна€ операци€'
@@ -13,53 +13,53 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 0
-    Top = 498
+    Top = 446
     Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
     Left = 72
-    Top = 498
+    Top = 446
     Anchors = [akLeft, akBottom]
   end
   inherited btnHelp: TButton
     Left = 144
-    Top = 498
+    Top = 446
     Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
-    Left = 592
-    Top = 498
+    Left = 584
+    Top = 446
     Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
-    Left = 664
-    Top = 498
+    Left = 656
+    Top = 446
     Anchors = [akRight, akBottom]
   end
   inherited pgcMain: TPageControl
     Left = 0
     Top = 25
-    Width = 732
-    Height = 464
+    Width = 724
+    Height = 414
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
     inherited tbsMain: TTabSheet
       inherited labelID: TLabel
         Left = 4
-        Top = 418
+        Top = 368
         Width = 83
         Anchors = [akLeft, akBottom]
         Visible = False
       end
       inherited dbtxtID: TDBText
-        Top = 418
+        Top = 368
         Anchors = [akLeft, akBottom]
         Visible = False
       end
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 724
+        Width = 716
         Height = 69
         Align = alTop
         BevelOuter = bvNone
@@ -125,8 +125,8 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
       object Panel2: TPanel
         Left = 0
         Top = 97
-        Width = 724
-        Height = 339
+        Width = 716
+        Height = 289
         Align = alClient
         BevelOuter = bvNone
         Caption = 'Panel2'
@@ -135,7 +135,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           Left = 356
           Top = 0
           Width = 3
-          Height = 339
+          Height = 289
           Cursor = crHSplit
           AutoSnap = False
         end
@@ -143,7 +143,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           Left = 0
           Top = 0
           Width = 356
-          Height = 339
+          Height = 289
           Align = alLeft
           BevelOuter = bvNone
           Constraints.MinWidth = 100
@@ -194,7 +194,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
             Left = 0
             Top = 43
             Width = 356
-            Height = 296
+            Height = 246
             HorzScrollBar.Visible = False
             VertScrollBar.Increment = 31
             VertScrollBar.Style = ssFlat
@@ -208,8 +208,8 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
         object Panel6: TPanel
           Left = 359
           Top = 0
-          Width = 365
-          Height = 339
+          Width = 357
+          Height = 289
           Align = alClient
           BevelOuter = bvNone
           Constraints.MinWidth = 100
@@ -217,7 +217,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           object Panel7: TPanel
             Left = 0
             Top = 0
-            Width = 365
+            Width = 357
             Height = 17
             Align = alTop
             Alignment = taLeftJustify
@@ -238,7 +238,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           object TBDock2: TTBDock
             Left = 0
             Top = 17
-            Width = 365
+            Width = 357
             Height = 26
             object TBToolbar2: TTBToolbar
               Left = 0
@@ -258,8 +258,8 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           object sboxCredit: TgdvParamScrolBox
             Left = 0
             Top = 43
-            Width = 365
-            Height = 296
+            Width = 357
+            Height = 246
             HorzScrollBar.Style = ssFlat
             HorzScrollBar.Visible = False
             VertScrollBar.Style = ssFlat
@@ -274,7 +274,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
       object pTransaction: TPanel
         Left = 0
         Top = 69
-        Width = 724
+        Width = 716
         Height = 28
         Align = alTop
         BevelOuter = bvNone
@@ -316,7 +316,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
   object pnlHolding: TPanel [6]
     Left = 0
     Top = 0
-    Width = 732
+    Width = 724
     Height = 25
     Align = alTop
     BevelOuter = bvNone
