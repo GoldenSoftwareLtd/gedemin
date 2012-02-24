@@ -41,14 +41,12 @@ type
     procedure actRunUpdate(Sender: TObject);
     procedure actAnalizeRevolutionUpdate(Sender: TObject);
     procedure actGotoLedgerExecute(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure ibgrMainGetTotal(Sender: TObject; const FieldName: String;
       const AggregatesObsolete: Boolean; var DisplayString: String);
     procedure cbSubAccountClick(Sender: TObject);
     procedure ibdsMainAfterOpen(DataSet: TDataSet);
     procedure actGotoLedgerUpdate(Sender: TObject);
-  private
-    FMainAccounts: TStringList;
+  private 
   protected
     function GetGdvObject: TgdvAcctBase; override;
     procedure SetParams; override;
@@ -74,7 +72,8 @@ implementation
 uses
   Storages, gd_ClassList, gd_security,
   gsStorage_CompPath, gd_directories_const,
-  gdv_frmAcctAccCard_Unit, gdv_frmAcctLedger_unit, gdcConstants;
+  gdv_frmAcctAccCard_Unit, gdv_frmAcctLedger_unit,
+  gdcConstants, jclStrings;
 
 const
   cAutoBuildReport = 'AutoBuildReport';
@@ -102,7 +101,7 @@ begin
 
   gdcAcctChart.SubSet := 'All';
   gdcAcctChart.Open;
-
+    
   UpdateControls;
 end;
 
@@ -430,24 +429,23 @@ begin
       [mbOk], -1);
 end;
 
-procedure Tgdv_frmAcctCirculationList.FormDestroy(Sender: TObject);
-begin
-  if Assigned(FMainAccounts) then
-    FreeAndNil(FMainAccounts);
-  inherited;
-end;
-
 procedure Tgdv_frmAcctCirculationList.ibgrMainGetTotal(Sender: TObject;
   const FieldName: String; const AggregatesObsolete: Boolean;
   var DisplayString: String);
+var
+  FormatString: String;
 begin
-  if not cbSubAccount.Checked or not Assigned(FMainAccounts) or not AggregatesObsolete or
+  if not cbSubAccount.Checked or not AggregatesObsolete or
      (ibgrMain.SelectedRows.Count > 1) then Exit;
 
   // Если выбран режим "Включать субсчета в главный", то берем итоговую сумму из датасета с итоговыми суммами
   if Assigned(cdsTotal.FindField(FieldName)) then
-    DisplayString := FormatFloat('#,##0.00', cdsTotal.FieldByName(FieldName).AsCurrency)
-  else
+  begin
+    FormatString := '#,##0';
+    if frAcctSum.NcuDecDigits > 0 then
+      FormatString := FormatString + '.' + StrFillChar('0', frAcctSum.NcuDecDigits);
+    DisplayString := FormatFloat(FormatString, cdsTotal.FieldByName(FieldName).AsCurrency)
+  end else
     DisplayString := '';
 end;
 
@@ -527,23 +525,22 @@ begin
     try
       gdvObject.First;
 
-      if Assigned(FMainAccounts) then
-        FreeAndNil(FMainAccounts);
-
       q := TIBSQL.Create(self);
       sl := TStringList.Create;
       try
         q.Transaction := gdcBaseManager.ReadTransaction;
         // Запрос для нахождения родительского счета
-        q.SQL.Text := 'SELECT a.id, a.alias, a.name FROM ac_account a WHERE a.accounttype = ''A'' AND ' +
-          ' a.lb <= (SELECT FIRST(1) a1.lb FROM ac_account a1 WHERE a1.id = :id) AND ' +
-          ' a.rb >= (SELECT FIRST(1) a2.rb FROM ac_account a2 WHERE a2.id = :id)';
+        q.SQL.Text :=
+          'SELECT a.id, a.alias, a.name ' +
+          'FROM ac_account a JOIN ac_account a_up ' +
+          '  ON a.lb < a_up.lb AND a.rb > a_up.rb ' +
+          'WHERE a.accounttype in (''A'', ''S'') AND a_up.id = :id';
         while not gdvObject.Eof do
         begin
           q.Close;
           q.ParamByName('id').AsInteger:= gdvObject.FieldByName('id').AsInteger;
           q.ExecQuery;
-          if not q.Eof then
+          while not q.Eof do
           begin
             sTmp := IntToStr(q.FieldByName('id').AsInteger);
             i := sl.IndexOfName(sTmp);
@@ -607,6 +604,7 @@ begin
                 end;
               end;
             end;
+            q.Next;
           end;
           gdvObject.Next;
         end;
@@ -715,7 +713,9 @@ begin
           gdvObject.Post;
         end;
       finally
-        FMainAccounts := sl;
+        for I := 0 to sl.Count - 1 do
+          sl.Objects[I].Free;
+        sl.Free;  
         q.Free;
       end;
       ibgrMain.OnGetTotal := ibgrMainGetTotal;
