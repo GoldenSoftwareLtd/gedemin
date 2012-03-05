@@ -1,1 +1,1 @@
-select * from gd_contact
+SELECT * FROM rdb$database

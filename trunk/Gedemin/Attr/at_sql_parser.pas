@@ -1938,7 +1938,6 @@ begin
 
               Exclude(FNeeded, eoClause);
               Exclude(FNeeded, eoUserFunc);
-              ReadNext;
 
               CurrArg := TsqlCase.Create(FParser);
               CurrArg.ParseStatement;
@@ -1952,14 +1951,6 @@ begin
               Continue;
             end
           end;
-
-          {cCase:
-          begin
-            CurrArg := TsqlCase.Create(FParser);
-            CurrArg.ParseStatement;
-            FArguments.Add(CurrArg);
-            Continue;
-          end;}
 
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
           cCount, cGen_id, cFirst, cSkip:
@@ -3321,7 +3312,7 @@ begin
           end;
 
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
-          cCast, cCount, cGen_id, cSelect, cFirst, cSkip, cSubString:
+          cCast, cCount, cGen_id, cSelect, cFirst, cSkip, cSubString, cExtract:
           begin
             if GetLastClass = TsqlBoolean then
             begin
@@ -3815,7 +3806,7 @@ begin
             Continue;
           end;
 
-          cCoalesce, cIIF, cSubstring, cExtract, cUpper, cLower, cCast:
+          cCoalesce, cIIF, cSubstring, cExtract, cUpper, cLower, cCast, cCase:
           begin
             if FDone * [eoClause, eoOn] = [eoClause, eoOn] then
             begin
@@ -4276,7 +4267,8 @@ begin
           end;
 
           cAll, cSome, cAny, cUpper, cLower, cCoalesce, cIIF,
-          cExists, cSingular, cCast, cSubString, cIs:
+          cExists, cSingular, cCast, cSubString, cIs, cExtract,
+          cCase:
           begin
             CurrStatement := TsqlCondition.Create(FParser);
             FConditions.Add(CurrStatement);
@@ -5288,7 +5280,7 @@ begin
           end;
 
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
-          cCast, cCount, cGen_id, cFirst, cSkip, cSubString:
+          cCast, cCount, cGen_id, cFirst, cSkip, cSubString, cExtract:
           begin
             CurrStatement := TsqlCondition.Create(FParser);
             FConditions.Add(CurrStatement);
@@ -7120,6 +7112,10 @@ var
   WhenCount: Integer;
 begin
   WhenCount := 0;
+
+  if (FParser.FToken.TokenType <> ttClause) or (FParser.FToken.Clause <> cCase) then
+    Include(FDone, eoCase);
+
   with FParser do
   while not (Token.TokenType in [ttClear, ttNone]) do
   begin
