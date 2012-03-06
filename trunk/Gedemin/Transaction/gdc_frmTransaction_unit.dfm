@@ -1,6 +1,6 @@
 inherited gdc_frmTransaction: Tgdc_frmTransaction
-  Left = 621
-  Top = 396
+  Left = 311
+  Top = 383
   Width = 783
   Height = 540
   HelpContext = 158
@@ -84,7 +84,7 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
       end
       inherited TBDockDetail: TTBDock
         Width = 577
-        Height = 47
+        Height = 51
         inherited tbDetailToolbar: TTBToolbar
           object TBItem1: TTBItem [0]
             Action = actBack
@@ -109,9 +109,13 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
           object TBControlItem2: TTBControlItem
             Control = cbQuantity
           end
+          object tbiShowAllEntries: TTBItem
+            Action = actShowAllEntries
+            DisplayMode = nbdmTextOnly
+          end
           object cbGroupByDocument: TCheckBox
             Left = 0
-            Top = 0
+            Top = 2
             Width = 169
             Height = 17
             Caption = 'Группировать по документу'
@@ -120,7 +124,7 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
           end
           object cbQuantity: TCheckBox
             Left = 169
-            Top = 0
+            Top = 2
             Width = 240
             Height = 17
             Caption = 'Показывать количественные показатели'
@@ -130,19 +134,19 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
         end
       end
       inherited pnlSearchDetail: TPanel
-        Top = 47
-        Height = 176
+        Top = 51
+        Height = 172
         inherited sbSearchDetail: TScrollBox
-          Height = 138
+          Height = 134
         end
         inherited pnlSearchDetailButton: TPanel
-          Top = 138
+          Top = 134
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Top = 47
+        Top = 51
         Width = 417
-        Height = 176
+        Height = 172
       end
       object pnlQuantity: TPanel
         Left = 0
@@ -203,6 +207,12 @@ inherited gdc_frmTransaction: Tgdc_frmTransaction
       ImageIndex = 236
       OnExecute = actDoReversalEntryExecute
       OnUpdate = actDoReversalEntryUpdate
+    end
+    object actShowAllEntries: TAction
+      Category = 'Main'
+      Caption = 'Отобразить все проводки'
+      OnExecute = actShowAllEntriesExecute
+      OnUpdate = actShowAllEntriesUpdate
     end
   end
   inherited pmMain: TPopupMenu
