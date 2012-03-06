@@ -350,18 +350,9 @@ begin
 
   if not NewWindow or (F = nil) then
   begin
-    with Tgdc_frmTransaction.CreateAndAssign(Application) as Tgdc_frmTransaction do
+    with Tgdc_frmTransaction.CreateAndAssignWithID(Application, gdvObject.FieldByName('id').AsInteger, esRecordKey) as Tgdc_frmTransaction do
     begin
       cbGroupByDocument.Checked := False;
-      if MessageBox(Handle, 'Открыть только эту проводку?',
-        'Внимание', MB_ICONQUESTION or MB_YESNO) = IDYES then
-      begin
-        gdcAcctViewEntryRegister.EntrySelect := esRecordKey;
-        gdcAcctViewEntryRegister.Close;
-        gdcAcctViewEntryRegister.ParamByName('rk').AsInteger := gdvObject.FieldByName('id').AsInteger;
-        gdcAcctViewEntryRegister.Open;
-      end else
-        gdcAcctViewEntryRegister.EntrySelect := esAll;
       if tvGroup.GoToID(gdvObject.FieldByName('transactionkey').AsInteger) and
         gdcAcctViewEntryRegister.Active and
         gdcAcctViewEntryRegister.Locate('RECORDKEY', gdvObject.FieldByName('id').AsInteger, []) then

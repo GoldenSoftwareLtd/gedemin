@@ -59,7 +59,7 @@ const
 
 type
   TEntryGroup = (egAll, egDocument);
-  TEntrySelect = (esAll, esRecordKey);
+  TEntrySelect = (esAll, esRecordKey, esDocumentKey);
 
   TgdcAcctQuantity = class;
 
@@ -2560,6 +2560,9 @@ begin
 
   if FEntrySelect = esRecordKey then
     S.Add('z.id = :rk');
+
+  if FEntrySelect = esDocumentKey then
+    S.Add('z.documentkey = :dk');  
 
 end;
 
