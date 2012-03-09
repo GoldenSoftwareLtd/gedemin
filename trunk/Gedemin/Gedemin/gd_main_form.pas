@@ -462,6 +462,7 @@ uses
 
   Storages,
   gsStorage,
+  scrMacrosGroup,
 
   rp_report_const,
   gd_SetDatabase,
@@ -547,7 +548,7 @@ begin
     end;
 
     IBLogin.AddConnectNotify(Self);
-    IBLogin.AddCompanyNotify(Self);
+    IBLogin.AddCompanyNotify(Self);    
   end;
                                                
   /////////////////////////////////////////////////////////////////////////////
@@ -885,6 +886,9 @@ var
   Res: OleVariant;
   IBService: TIBBackupService;
   J: DWORD;
+  TempMacros: TscrMacrosItem;
+  q: TIBSQL;
+  OwnerForm: IDispatch;
 begin
   ClearFltComponentCache;
 
@@ -1119,11 +1123,45 @@ begin
   if IBLogin.IsUserAdmin then
     lblDatabase.Caption := '  ' + IBLogin.Database.DatabaseName;
 
-  // Issue 1992  
+
+  // Issue 1992
   if FormAssigned(gdc_frmExplorer) then
   begin
     if (gdc_frmExplorer.gdcObject <> nil) and (not gdc_frmExplorer.gdcObject.Active) then
       gdc_frmExplorer.gdcObject.Open;
+  end;
+
+  if Assigned(ScriptFactory) then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+        'SELECT ml.functionkey FROM evt_macroslist ml ' +
+        'JOIN evt_macrosgroup mg ON ml.macrosgroupkey = mg.ID + 0 ' +
+        'WHERE ml.runonlogin = 1 and mg.isglobal = 1 ' +
+        'ORDER BY ml.name ';
+      q.ExecQuery;
+
+      while not q.EOF do
+      begin
+        TempMacros := TscrMacrosItem.Create;
+        try
+          OwnerForm := nil;
+          TempMacros.FunctionKey := q.FieldByName('functionkey').AsInteger;
+          ScriptFactory.ExecuteMacros(OwnerForm, TempMacros);
+        finally
+          TempMacros.Free;
+        end;
+
+        if Application.Terminated or (not q.Open) then
+          break;
+
+        q.Next;
+      end;
+    finally
+      q.Free;
+    end;
   end;
 end;
 

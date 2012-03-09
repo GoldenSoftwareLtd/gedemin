@@ -443,6 +443,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (137, '0000.0001.0000.0168', '17.01.2012', 'ALTER DOMAIN USR$FA_CORRECTCOEFF.');
 
+INSERT INTO fin_versioninfo
+  VALUES (138, '0000.0001.0000.0169', '07.03.2012', 'Add runonlogin field to evt_macroslist table.');
+
+INSERT INTO fin_versioninfo
+  VALUES (139, '0000.0001.0000.0170', '09.03.2012', 'Add runonlogin field to evt_macroslist table. Part #2.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
