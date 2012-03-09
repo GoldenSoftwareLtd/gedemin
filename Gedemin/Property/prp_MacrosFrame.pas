@@ -26,6 +26,7 @@ type
     edtRUIDMacros: TEdit;
     pnlRUIDMacros: TPanel;
     btnCopyRUIDMacros: TButton;
+    dbcbRunOnLogIn: TDBCheckBox;
     procedure actProperty1Execute(Sender: TObject);
     procedure hkMacrosMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
@@ -33,6 +34,7 @@ type
     procedure btnCopyRUIDFunctionClick(Sender: TObject);
     procedure pMainResize(Sender: TObject);
     procedure btnCopyRUIDMacrosClick(Sender: TObject);
+    procedure PageControlChange(Sender: TObject);
   private
     { Private declarations }
     FShortCut: TShortCut;
@@ -127,8 +129,8 @@ begin
 
   inherited;
   gdcFunction.FieldByName(fnScript).AsString := Format(VB_MACROS_TEMPLATE,
-    [gdcFunction.FieldByName(fnName).AsString]);
-end;
+    [gdcFunction.FieldByName(fnName).AsString]); 
+end; 
 
 function TMacrosFrame.GetInfoHint: String;
 begin
@@ -419,6 +421,25 @@ begin
   edtRUIDMacros.Width:= pMain.ClientWidth - edtRUIDMacros.Left - 87;
   pnlRUIDMacros.Left:= edtRUIDMacros.Left + edtRUIDMacros.Width + 2;
   pnlRUIDMacros.Width:= 75;
+end;
+
+procedure TMacrosFrame.PageControlChange(Sender: TObject);
+var
+  R: OleVariant;
+begin
+  Assert(Assigned(gdcMacros));
+
+  inherited;
+
+  if PageControl.ActivePage = tsProperty then
+  begin
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT mg.id FROM evt_macroslist ml ' +
+      'JOIN evt_macrosgroup mg ON ml.macrosgroupkey = mg.ID ' +
+      'WHERE mg.isglobal = 1 AND ml.id = :ID ', gdcMacros.ID, R);
+
+    dbcbRunOnLogIn.Enabled := not VarIsEmpty(R);
+  end;
 end;
 
 initialization

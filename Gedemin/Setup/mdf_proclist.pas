@@ -47,7 +47,7 @@ uses
   mdf_ChangeUSRCOEF;
 
 const
-  cProcCount = 161;
+  cProcCount = 162;
 
 type
   TModifyProc = record
@@ -315,7 +315,8 @@ const
     (ModifyProc: ModifyGDRUIDCheck; ModifyVersion: '0000.0001.0000.0163'),
     (ModifyProc: DeleteLBRBFromSettingPos; ModifyVersion: '0000.0001.0000.0164'),
     (ModifyProc: AddFieldReportlistModalPreview; ModifyVersion: '0000.0001.0000.0166'),
-    (ModifyProc: ChangeUSRCOEF; ModifyVersion: '0000.0001.0000.0167')
+    (ModifyProc: ChangeUSRCOEF; ModifyVersion: '0000.0001.0000.0167'),
+    (ModifyProc: AddFieldMacrosListRunLogIn; ModifyVersion: '0000.0001.0000.0169')
   );
 
 implementation
