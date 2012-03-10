@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1998-2001 by Golden Software of Belarus
+  Copyright (c) 1998-2012 by Golden Software of Belarus
 
   Module
     gd_security.pas
@@ -189,6 +189,7 @@ type
     procedure OnModifyLog(const AnLogText: String);
     function GetReLogining: Boolean;
     function GetMainWindowCaption: String;
+    function GetIsEmbeddedServer: Boolean;
 
   protected
     function EstablishConnection: Boolean;
@@ -322,6 +323,9 @@ type
     //
     property MainWindowCaption: String read GetMainWindowCaption;
 
+    //
+    property IsEmbeddedServer: Boolean read GetIsEmbeddedServer;
+
   published
     property Database: TIBDatabase read GetDatabase write SetDatabase;
     property AutoOpenCompany: Boolean read FAutoOpenCompany write FAutoOpenCompany;
@@ -367,8 +371,8 @@ begin
 end;
 
 const
-  WM_FINISHOPENCOMPANY = WM_USER + 25487;
-  WM_CONNECTIONLOST = WM_USER + 25488;
+  WM_FINISHOPENCOMPANY          = WM_USER + 25487;
+  WM_CONNECTIONLOST             = WM_USER + 25488;
 
 type
   TboLoginControlNexus = class(TForm)
@@ -387,7 +391,6 @@ type
   public
     constructor Create(ALogin: TboLogin); reintroduce;
     destructor Destroy; override;
-
   end;
 
 constructor TboLoginControlNexus.Create(ALogin: TboLogin);
@@ -2407,6 +2410,21 @@ begin
      FormatDateTime('hh:nn', Now)]);
   Result := Result + ', ' + 'DEBUG MODE';
   {$ENDIF}
+end;
+
+function TboLogin.GetIsEmbeddedServer: Boolean;
+var
+  Res: OleVariant;
+begin
+  if LoggedIn then
+  begin
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT mon$remote_protocol FROM mon$attachments WHERE mon$attachment_id = CURRENT_CONNECTION'
+      Null,
+      Res);
+    Result := (not VarIsEmpty(Res)) and VarIsNull(Res[0, 0]);
+  end else
+    Result := False;
 end;
 
 end.

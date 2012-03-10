@@ -399,9 +399,12 @@ begin
   if Active and (not EOF) then
   begin
     try
-      ExecSingleQuery(
-        'CREATE USER ' + FieldByName('ibname').AsString +
-        ' PASSWORD ''' + FieldByName('ibpassword').AsString + '''');
+      if not IBLogin.IsEmbeddedServer then
+      begin
+        ExecSingleQuery(
+          'CREATE USER ' + FieldByName('ibname').AsString +
+          ' PASSWORD ''' + FieldByName('ibpassword').AsString + '''');
+      end;
 
       ExecSingleQuery(
         'GRANT administrator TO ' + FieldByName('ibname').AsString +
@@ -420,7 +423,7 @@ end;
 
 procedure TgdcUser.DeleteIBUser;
 begin
-  if Active and (not EOF) then
+  if Active and (not EOF) and (not IBLogin.IsEmbeddedServer) then
   begin
     try
       ExecSingleQuery('DROP USER ' + FieldByName('ibname').AsString);

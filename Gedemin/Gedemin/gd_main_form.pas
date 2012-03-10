@@ -14,7 +14,7 @@ uses
 
 const
   WM_ACTIVATESETTING = WM_USER + 30000;
-
+  WM_RUNONLOGINMACROS = WM_USER + 25489;
 
 type
   TCrackIBCustomDataset = class(TIBCustomDataset);
@@ -291,18 +291,16 @@ type
     procedure actReconnectExecute(Sender: TObject);
     procedure actDBSqueezeUpdate(Sender: TObject);
     procedure actDBSqueezeExecute(Sender: TObject);
+
   private
     FCanClose: Boolean;
     FExitWindowsParam: Longint;
     FExitWindows: Boolean;
-    //FIconShown: Boolean;
     FFirstTime: Boolean;
 
     procedure OnFormToggleItemClick(Sender: TObject);
 
     procedure EnableCategory(Category: String; DoEnable: Boolean);
-    {procedure WMSysCommand(var Message: TWMSysCommand);
-      message WM_SYSCOMMAND;}
 
     procedure _DoOnCreateForm(Sender: TObject);
     procedure _DoOnDestroyForm(Sender: TObject);
@@ -311,6 +309,9 @@ type
 
     procedure ApplicationEventsShowHint(var HintStr: String;
       var CanShow: Boolean; var HintInfo: THintInfo);
+
+    procedure WMRunOnLoginMacros(var Msg: TMessage);
+      message WM_RUNONLOGINMACROS;
 
   protected
     procedure Loaded; override;
@@ -353,7 +354,7 @@ uses
   ShellAPI,
   gd_frmShell_unit,
   gd_CmdLineParams_unit,
-  {ZLib,}
+  scrMacrosGroup,
 
   at_frmIBUserList,
   at_SQL_Setup,
@@ -361,7 +362,6 @@ uses
   at_sql_metadata,
   at_frmSQLProcess,
   at_dlgLoadPackages_unit,
-//  at_dlgChoosePackage_unit, // delete
 
   flt_dlgShowFilter_unit,
   gd_resourcestring,
@@ -462,7 +462,6 @@ uses
 
   Storages,
   gsStorage,
-  scrMacrosGroup,
 
   rp_report_const,
   gd_SetDatabase,
@@ -886,9 +885,6 @@ var
   Res: OleVariant;
   IBService: TIBBackupService;
   J: DWORD;
-  TempMacros: TscrMacrosItem;
-  q: TIBSQL;
-  OwnerForm: IDispatch;
 begin
   ClearFltComponentCache;
 
@@ -1123,45 +1119,11 @@ begin
   if IBLogin.IsUserAdmin then
     lblDatabase.Caption := '  ' + IBLogin.Database.DatabaseName;
 
-
   // Issue 1992
   if FormAssigned(gdc_frmExplorer) then
   begin
     if (gdc_frmExplorer.gdcObject <> nil) and (not gdc_frmExplorer.gdcObject.Active) then
       gdc_frmExplorer.gdcObject.Open;
-  end;
-
-  if Assigned(ScriptFactory) then
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text :=
-        'SELECT ml.functionkey FROM evt_macroslist ml ' +
-        'JOIN evt_macrosgroup mg ON ml.macrosgroupkey = mg.ID + 0 ' +
-        'WHERE ml.runonlogin = 1 and mg.isglobal = 1 ' +
-        'ORDER BY ml.name ';
-      q.ExecQuery;
-
-      while not q.EOF do
-      begin
-        TempMacros := TscrMacrosItem.Create;
-        try
-          OwnerForm := nil;
-          TempMacros.FunctionKey := q.FieldByName('functionkey').AsInteger;
-          ScriptFactory.ExecuteMacros(OwnerForm, TempMacros);
-        finally
-          TempMacros.Free;
-        end;
-
-        if Application.Terminated or (not q.Open) then
-          break;
-
-        q.Next;
-      end;
-    finally
-      q.Free;
-    end;
   end;
 end;
 
@@ -1523,8 +1485,6 @@ begin
       end;
     end;
 
-    FFirstTime := False;
-
     {$IFDEF DUNIT_TEST}
     for I := Screen.FormCount - 1 downto 0 do
     begin
@@ -1546,6 +1506,13 @@ begin
 
   if Assigned(gdSplash) then
     gdSplash.FreeSplash;
+
+  if FFirstTime then
+  begin
+    FFirstTime := False;
+    if Assigned(IBLogin) and IBLogin.LoggedIn then
+      PostMessage(Handle, WM_RUNONLOGINMACROS, 0, 0);
+  end;
 end;
 
 procedure TfrmGedeminMain.actShowSQLObjectsUpdate(Sender: TObject);
@@ -2484,6 +2451,48 @@ begin
     Free;
   end;
   {$ENDIF}
+end;
+
+procedure TfrmGedeminMain.WMRunOnLoginMacros(var Msg: TMessage);
+var
+  TempMacros: TscrMacrosItem;
+  q: TIBSQL;
+  OwnerForm: IDispatch;
+begin
+  Assert(Assigned(IBLogin) and IBLogin.LoggedIn);
+
+  if Assigned(ScriptFactory) then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+        'SELECT ml.functionkey FROM evt_macroslist ml ' +
+        'JOIN evt_macrosgroup mg ON ml.macrosgroupkey = mg.ID + 0 ' +
+        'WHERE ml.runonlogin = 1 and mg.isglobal = 1 ' +
+        'ORDER BY ml.name ';
+      q.ExecQuery;
+
+      while not q.EOF do
+      begin
+        TempMacros := TscrMacrosItem.Create;
+        try
+          OwnerForm := nil;
+          TempMacros.FunctionKey := q.FieldByName('functionkey').AsInteger;
+          ScriptFactory.ExecuteMacros(OwnerForm, TempMacros);
+        finally
+          TempMacros.Free;
+        end;
+
+        if Application.Terminated or (not q.Open) then
+          break;
+
+        q.Next;
+      end;
+    finally
+      q.Free;
+    end;
+  end;
 end;
 
 end.

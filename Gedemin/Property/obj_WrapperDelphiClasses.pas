@@ -1444,6 +1444,7 @@ type
     function GetCustomForm: TCustomForm;
   protected
     procedure Close; safecall;
+    procedure Release_; safecall;
     function  Get_Active: WordBool; safecall;
     function  Get_BorderStyle: TgsFormBorderStyle; safecall;
     procedure Set_BorderStyle(Value: TgsFormBorderStyle); safecall;
@@ -7056,6 +7057,11 @@ begin
   TCrackCustomForm(GetCustomForm).Activate;
 end;
 
+procedure TwrpCustomForm.Release_;
+begin
+  GetCustomForm.Release;
+end;
+
 { TwrpScrollingWinControl }
 
 procedure TwrpScrollingWinControl.DisableAutoRange;
@@ -7489,7 +7495,10 @@ var
 begin
   LStr := Value;
   LStr := TrimLeft(LStr);
-  TCrackCustomEdit(GetCustomEdit).PasswordChar := Char(LStr[1]);
+  if Length(LStr) > 0 then
+    TCrackCustomEdit(GetCustomEdit).PasswordChar := LStr[1]
+  else
+    TCrackCustomEdit(GetCustomEdit).PasswordChar := #0;
 end;
 
 { TwrpCustomMemo }
@@ -7508,8 +7517,6 @@ procedure TwrpCustomMemo.CaretPos(out X: OleVariant; out Y: OleVariant); safecal
 begin
   X := GetCustomMemo.CaretPos.X;
   Y := GetCustomMemo.CaretPos.Y;
-// X := GetCustomMemo.CaretPos.X;
-// Y := GetCustomMemo.CaretPos.Y;
 end;
 
 function TwrpCustomMemo.Get_Lines: IgsStrings;
