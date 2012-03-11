@@ -2288,21 +2288,28 @@ begin
   end;
 
   //Если переданный объект дерево
-  if (AnObject is TgdcTree) and WithDetail
-    and AnObject.GetCurrRecordClass.gdClass.InheritsFrom(TgdcTree) then
+  if (AnObject is TgdcTree) and WithDetail then
   begin
-    Obj2 := AnObject.GetCurrRecordClass.gdClass.CreateSubType(nil,
-      AnObject.GetCurrRecordSubType, 'ByParent') as TgdcTree;
-    try
-      Obj2.Parent := AnObject.ID;
-      Obj2.Open;
-      while not Obj2.EOF do
-      begin
-        AddPos(Obj2, WithDetail);
-        Obj2.Next;
+    C := AnObject.GetCurrRecordClass;
+
+    if C.gdClass.InheritsFrom(TgdcUserDocument) then
+      C.gdClass := TgdcUserDocumentLine;
+
+    if C.gdClass.InheritsFrom(TgdcTree) then
+    begin
+      Obj2 := C.gdClass.CreateSubType(nil,
+        C.SubType, 'ByParent') as TgdcTree;
+      try
+        Obj2.Parent := AnObject.ID;
+        Obj2.Open;
+        while not Obj2.EOF do
+        begin
+          AddPos(Obj2, WithDetail);
+          Obj2.Next;
+        end;
+      finally
+        Obj2.Free;
       end;
-    finally
-      Obj2.Free;
     end;
   end;
 end;

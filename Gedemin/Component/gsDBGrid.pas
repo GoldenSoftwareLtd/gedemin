@@ -534,8 +534,9 @@ type
     FFilteredCache: TStringList;
     FFiltered: Boolean;
 
-    FTotalType: TgsTotalType;
+    FTotalType: TgsTotalType; 
     FFrozen: Boolean;
+    FTotalWidth: Integer;
 
     function GetGrid: TgsCustomDBGrid;
 
@@ -576,8 +577,9 @@ type
     property Max: Integer read FMax write FMax;
     property FilteredValue: String read FFilteredValue write FFilteredValue;
     property FilteredCache: TStringList read FFilteredCache write FFilteredCache;
-    property Filtered: Boolean read FFiltered write FFiltered;
-
+    property Filtered: Boolean read FFiltered write FFiltered; 
+    property TotalWidth: Integer read FTotalWidth write FTotalWidth;
+    
   published
     property Alignment stored IsAlignmentStored;
     property Color stored IsColorStored;
@@ -588,6 +590,9 @@ type
       stored IsDisplayFormatStored;
     property TotalType: TgsTotalType read FTotalType write SetTotalType
       stored IsTotalTypeStored;
+
+
+
     property Frozen: Boolean read FFrozen write SetFrozen
       default False;
   end;
@@ -1818,7 +1823,7 @@ begin
   if FVisible <> Value then
   begin
     FVisible := Value;
-    
+
     if Assigned(FOwner) and (FOwner.UpdateLock = 0) then
       FOwner.Invalidate;
   end;
@@ -1940,7 +1945,7 @@ begin
       with TColumnTitle(AData) do
         Self.Canvas.Font := Font;
     end;
-  end;  
+  end;
 
   inherited ActivateHintData(Rect, AHint, AData);
 end;
@@ -2030,7 +2035,7 @@ begin
 
     FHint := '';
     FData := nil;
-  end;  
+  end;
 end;
 
 { TCondition }
@@ -2640,7 +2645,7 @@ begin
   if Assigned(Grid) then
     Result := Grid.DataLink
   else
-    Result := nil;   
+    Result := nil;
 end;
 
 {
@@ -2891,7 +2896,7 @@ constructor TGridConditions.Create(Grid: TgsCustomDBGrid);
 begin
   inherited Create(TCondition);
 
-  FGrid := Grid; 
+  FGrid := Grid;
 end;
 
 destructor TGridConditions.Destroy;
@@ -3112,7 +3117,7 @@ begin
     if NewOptions <> FOptions then
     begin
       FOptions := NewOptions;
-      
+
       if Assigned(Grid) then
         Grid.Invalidate;
     end;
@@ -3272,6 +3277,7 @@ begin
   FTotalType := ttNone;
 
   FFrozen := False;
+  FTotalWidth := -1;
 end;
 
 function TgsColumn.CreateTitle: TColumnTitle;
@@ -3522,7 +3528,7 @@ begin
           Items[I].SetFieldFormat;
         end;
       end;
-    end;  
+    end;
   end;
 end;
 
@@ -3697,7 +3703,7 @@ begin
         (Assigned(Application) and not Application.Active)
       then
         GridHintWindow.HideGridHint;
-    end;                  
+    end;
   end;
 end;
 
@@ -4652,7 +4658,7 @@ var
     );
   end;
 
-begin                        
+begin
   if (lv <> nil) and (not lv.Focused) and (not FInInputQuery) then
     FreeAndNil(lv);
 
@@ -4741,9 +4747,9 @@ begin
           ARect, ARect, 2, 2,
           Value, DrawColumn.Title.Alignment,
           UseRightToLeftAlignmentForField(DrawColumn.Field, DrawColumn.Title.Alignment),
-          False
+          FTitlesExpanding
         );
-      end;{if FTitlesExpanding}
+      end;  {if FTitlesExpanding}
 
       if [dgRowLines, dgColLines] * Options = [dgRowLines, dgColLines] then
       begin
@@ -4965,7 +4971,7 @@ begin
 
           {$IFDEF NEW_GRID}
           RecKind := rkRecord;{чтобы была поменьше длина кода при проверке типа записи}
-          
+
           if DataSetIsIBCustom(DataSource) then begin
              RecKind := TIBCustomDataSet(DataSource.DataSet).RecordKind;
           end;
@@ -5341,7 +5347,7 @@ begin
              end else
                if TIBCustomDataSet(DataSource.DataSet).UpdateStatus = usDeleted then
                  Canvas.Brush.Color := $00DBB7FF;
-  
+
            end;     {  --  if DataSetIsIBCustom(DataSource)  -- }
 
            if (RecKind in [rkGroup, rkHeader, rkFooter]) then begin
@@ -5506,7 +5512,7 @@ var
   I: Integer;
 begin
   FDataSetOpenCounter := -1;
-  FFilterDataSetOpenCounter := -1;
+  FFilterDataSetOpenCounter := -1; 
 
   inherited LinkActive(Active);
 
@@ -6242,10 +6248,9 @@ var
   CurrWidth, MaxWidth, CaptionWidth: Integer;
   OldActive: Integer;
   I, J, K: Integer;
-
 begin
-  if DataLink.Active then
-  begin
+ if DataLink.Active then
+  begin 
     for J := 0 to Columns.Count - 1 do
     begin
       SizedColumn := Columns[J];
@@ -6306,9 +6311,17 @@ begin
                       if MaxWidth < CurrWidth then MaxWidth := CurrWidth;
                     end;
                   end;
+
               end;
             finally
               DataLink.ActiveRecord := OldActive;
+
+              if FShowTotals and ((SizedColumn as TgsColumn).TotalWidth <> -1) then
+              begin
+                CurrWidth := (SizedColumn as TgsColumn).TotalWidth;
+                if MaxWidth < CurrWidth then
+                  MaxWidth := CurrWidth;
+              end;
 
               Canvas.Font := SizedColumn.Title.Font;
               CaptionWidth := CountFullCaptionWidth(SizedColumn) + 4;
@@ -6415,6 +6428,13 @@ begin
             end;
           finally
             DataLink.ActiveRecord := OldActive;
+
+            if FShowTotals and ((SizedColumn as TgsColumn).TotalWidth <> -1) then
+              begin
+                CurrWidth := (SizedColumn as TgsColumn).TotalWidth;
+                if MaxWidth < CurrWidth then
+                  MaxWidth := CurrWidth;
+              end;
 
             //Canvas.Font := SizedColumn.Title.Font;
             //CaptionWidth := CountFullCaptionWidth(SizedColumn) + 4;
@@ -7238,6 +7258,8 @@ var
   CurrField: TField;
   Lines: array of Integer;
   I: Integer;
+  temp: Integer;
+  TR: TRect;
 begin
   Result := 1;
   if (not FExpandsActive) or (not DataLink.Active) or (Assigned(Datalink.DataSet) and (not Datalink.DataSet.Active))  then Exit;
@@ -7246,24 +7268,41 @@ begin
 
   for I := 0 to Length(Lines) - 1 do Lines[I] := 1;
 
-  for I := FExpands.Count - 1 downto 0 do
+  if FExpands.Count <> 0 then
   begin
-    CurrExpand := FExpands[I];
-    CurrField := DataLink.DataSet.FindField(CurrExpand.DisplayName);
-
-    if not Assigned(CurrField) then
+    for I := FExpands.Count - 1 downto 0 do
     begin
-      // Если нет поля на расширенное
-      // отображение - удаляем элемент
-      FreeAndNil(CurrExpand);
-      Continue;
-    end else begin
-      if [ceoAddFieldMultiline, ceoAddField] * CurrExpand.Options <> [] then
-        Lines[CurrField.Index] := Lines[CurrField.Index] + 1;
-    end;
+      CurrExpand := FExpands[I];
+      CurrField := DataLink.DataSet.FindField(CurrExpand.DisplayName);
 
-    if Lines[CurrField.Index] > Result then
-      Result := Lines[CurrField.Index];
+      if not Assigned(CurrField) then
+      begin
+        // Если нет поля на расширенное
+        // отображение - удаляем элемент
+        FreeAndNil(CurrExpand);
+        Continue;
+      end else begin
+        if [ceoAddFieldMultiline, ceoAddField] * CurrExpand.Options <> [] then
+          Lines[CurrField.Index] := Lines[CurrField.Index] + 1;
+      end;
+      if Lines[CurrField.Index] > Result then
+        Result := Lines[CurrField.Index];
+    end;
+  end else
+  begin
+    for I := 0 to Columns.Count - 1 do
+    begin
+      if Columns[I].Visible then
+      begin
+        TR := Rect(0, 0, Columns[I].Width - 4, 0);
+        Canvas.Font := TitleFont;
+        DrawText(Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
+          DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
+        temp := (TR.Bottom - TR.Top) div GetDefaultTitleRowHeight + 1;
+        if temp > Result then
+          Result := temp; 
+      end;
+    end;
   end;
 end;
 
@@ -10840,8 +10879,11 @@ begin
               begin
                 Canvas.Font := Self.TableFont;
                 Canvas.Font.Color := clCaptionText;
+
+                (Columns[I] as TgsColumn).TotalWidth := Canvas.TextWidth(S) + 4;
                 if Canvas.TextWidth(S) > (R.Right - R.Left - 4) then
                   S := '########';
+
                 WriteText
                 (
                   Canvas,
@@ -10867,11 +10909,11 @@ begin
                       Canvas.Font := Self.TableFont;
                       Canvas.Font.Color := clCaptionText;
 
-                      V := FormatFloat('#,###.##', Aggregates[J].Value);
+                      V := FormatFloat('#,###.##', Aggregates[J].Value); 
 
+                      (Columns[I] as TgsColumn).TotalWidth := Canvas.TextWidth(V) + 4;
                       if Canvas.TextWidth(V) > (R.Right - R.Left - 4) then
                         V := '########';
-
                       WriteText
                       (
                         Canvas,
@@ -10905,6 +10947,7 @@ begin
               end;
             end;
           end;
+
 
           Canvas.Pen.Color := clCaptionText;
           Canvas.Pen.Style := psSolid;
