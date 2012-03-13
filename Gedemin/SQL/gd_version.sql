@@ -449,6 +449,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (139, '0000.0001.0000.0170', '09.03.2012', 'Add runonlogin field to evt_macroslist table. Part #2.');
 
+INSERT INTO fin_versioninfo
+  VALUES (140, '0000.0001.0000.0171', '14.03.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
