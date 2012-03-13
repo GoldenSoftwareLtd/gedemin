@@ -44,10 +44,10 @@ uses
   mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
   mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage,
   mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean, mdf_ConvertBNStatementCommentToBlob, mdf_AddFieldReportlistModalPreview,
-  mdf_ChangeUSRCOEF;
+  mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount;
 
 const
-  cProcCount = 162;
+  cProcCount = 163;
 
 type
   TModifyProc = record
@@ -316,7 +316,8 @@ const
     (ModifyProc: DeleteLBRBFromSettingPos; ModifyVersion: '0000.0001.0000.0164'),
     (ModifyProc: AddFieldReportlistModalPreview; ModifyVersion: '0000.0001.0000.0166'),
     (ModifyProc: ChangeUSRCOEF; ModifyVersion: '0000.0001.0000.0167'),
-    (ModifyProc: AddFieldMacrosListRunLogIn; ModifyVersion: '0000.0001.0000.0169')
+    (ModifyProc: AddFieldMacrosListRunLogIn; ModifyVersion: '0000.0001.0000.0169'),
+    (ModifyProc: ChangeDuplicateAccount; ModifyVersion: '0000.0001.0000.0170')
   );
 
 implementation

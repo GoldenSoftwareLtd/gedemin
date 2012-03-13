@@ -1255,6 +1255,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (139, '0000.0001.0000.0170', '09.03.2012', 'Add runonlogin field to evt_macroslist table. Part #2.');
 
+INSERT INTO fin_versioninfo
+  VALUES (140, '0000.0001.0000.0171', '14.03.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -8818,9 +8821,12 @@ ALTER TABLE ac_account ADD CONSTRAINT ac_fk_account_anltcf
   ON UPDATE CASCADE
   ON DELETE SET NULL;
 
-ALTER TABLE bn_bankstatementline ADD CONSTRAINT BN_FK_BSL_ACCOUNTKEY 
-  FOREIGN KEY (accountkey) REFERENCES ac_account(id) 
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT BN_FK_BSL_ACCOUNTKEY
+  FOREIGN KEY (accountkey) REFERENCES ac_account(id)
   ON UPDATE CASCADE;
+
+CREATE ASC INDEX ac_x_account_alias
+  ON ac_account(alias);
 
 COMMIT;
 
@@ -8895,13 +8901,39 @@ begin
     if (p <> 'Z') then
       EXCEPTION ac_e_cant_insert_card_in_other;
   end
-end^
-SET TERM ;^
+end
+^
 
-COMMIT;
+CREATE EXCEPTION ac_e_invalidaccountalias 'Duplicate account aliases are not allowed!'
+^
 
-CREATE ASC INDEX ac_x_account_alias
-  ON ac_account(alias);
+CREATE OR ALTER TRIGGER AC_AIU_ACCOUNT_CHECKALIAS FOR AC_ACCOUNT
+  ACTIVE
+  AFTER INSERT OR UPDATE
+  POSITION 32000
+AS
+BEGIN
+  IF (INSERTING OR (NEW.alias <> OLD.alias)) THEN
+  BEGIN
+    IF (EXISTS
+      (SELECT
+         root.id, UPPER(TRIM(allacc.alias)), COUNT(*)
+       FROM ac_account root
+         JOIN ac_account allacc ON allacc.lb > root.lb AND allacc.rb <= root.rb
+       WHERE
+         root.parent IS NULL
+       GROUP BY
+         1, 2
+       HAVING
+         COUNT(*) > 1)
+      )
+     THEN
+       EXCEPTION AC_E_INVALIDACCOUNTALIAS;
+  END
+END
+^
+
+SET TERM ; ^
 
 COMMIT;
 
