@@ -1444,7 +1444,7 @@ type
     function GetCustomForm: TCustomForm;
   protected
     procedure Close; safecall;
-    procedure Release_; safecall;
+    procedure Release; safecall;
     function  Get_Active: WordBool; safecall;
     function  Get_BorderStyle: TgsFormBorderStyle; safecall;
     procedure Set_BorderStyle(Value: TgsFormBorderStyle); safecall;
@@ -7057,7 +7057,7 @@ begin
   TCrackCustomForm(GetCustomForm).Activate;
 end;
 
-procedure TwrpCustomForm.Release_;
+procedure TwrpCustomForm.Release;
 begin
   GetCustomForm.Release;
 end;

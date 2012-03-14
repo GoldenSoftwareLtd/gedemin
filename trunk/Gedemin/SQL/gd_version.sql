@@ -452,6 +452,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (140, '0000.0001.0000.0171', '14.03.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS added.');
 
+INSERT INTO fin_versioninfo
+  VALUES (141, '0000.0001.0000.0172', '14.03.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS added. Part #2.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

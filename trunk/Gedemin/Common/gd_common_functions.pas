@@ -21,10 +21,33 @@ function ReadIntegerFromStream(Stream: TStream): Integer;
 function CorrectFileName(const FN: String): String;
 function ExtractServerName(const DatabaseName: String): String;
 
+function ALIPAddrToName(IPAddr: String): String;
+
 implementation
 
 uses
-  SysUtils, Forms, jclFileUtils;
+  Windows, SysUtils, Forms, jclFileUtils, WinSock;
+
+function ALIPAddrToName(IPAddr: String): String;
+var
+  SockAddrIn: TSockAddrIn;
+  HostEnt: PHostEnt;
+  WSAData: TWSAData;
+begin
+  WSAData.wVersion := 0;
+  WSAStartup(MAKEWORD(2,2), WSAData);
+  try
+    SockAddrIn.sin_addr.s_addr:= inet_addr(PChar(IPAddr));
+    HostEnt:= gethostbyaddr(@SockAddrIn.sin_addr.S_addr, 4, AF_INET);
+    if HostEnt <> nil then
+      Result := StrPas(Hostent^.h_name)
+    else
+      Result := '';
+  finally
+    if WSAData.wVersion = 2 then
+      WSACleanup;
+  end;
+end;
 
 function ExtractServerName(const DatabaseName: String): String;
 var

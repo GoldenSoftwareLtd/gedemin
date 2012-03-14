@@ -8,7 +8,6 @@ uses
 
 type
   TgsWinAPI = class(TAutoObject, IgsWinAPI)
-  private
   protected
     function  GetDC(hWnd: LongWord): LongWord; safecall;
     function  ReleaseDC(hWnd: LongWord; hDC: LongWord): Integer; safecall;
@@ -140,15 +139,13 @@ type
     function  LockWindowUpdate(hWnd: LongWord): WordBool; safecall;
     function  WideCharToMultiByte(CodePage: Integer; const WideCharStr: WideString): WideString; safecall;
     function  MultiByteToWideChar(CodePage: Integer; const MultiByteStr: WideString): WideString; safecall;
-  public
-    destructor Destroy; override;
-
+    function  GetHostByAddr(const Addr: WideString): WideString; safecall;
   end;
 
 implementation
 
 uses
-  Windows, gd_SetDatabase, ShellAPI;
+  Windows, gd_SetDatabase, ShellAPI, gd_common_functions;
 
 procedure WideStrToPChar(var Dest: PChar; const Source: WideString);
 begin
@@ -168,11 +165,6 @@ begin
 end;
 
 { TgsWinAPI }
-
-destructor TgsWinAPI.Destroy;
-begin
-  inherited;
-end;
 
 function TgsWinAPI.GetAsyncKeyState(Param1: Integer): Integer;
 begin
@@ -1147,6 +1139,11 @@ end;
 function TgsWinAPI.GetWindowLong(hWnd: LongWord; nIndex: Integer): Integer;
 begin
   result := Windows.GetWindowLong(hWnd, nIndex);
+end;
+
+function TgsWinAPI.GetHostByAddr(const Addr: WideString): WideString;
+begin
+  Result := ALIPAddrToName(Addr);
 end;
 
 initialization

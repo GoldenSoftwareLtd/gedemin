@@ -317,7 +317,7 @@ const
     (ModifyProc: AddFieldReportlistModalPreview; ModifyVersion: '0000.0001.0000.0166'),
     (ModifyProc: ChangeUSRCOEF; ModifyVersion: '0000.0001.0000.0167'),
     (ModifyProc: AddFieldMacrosListRunLogIn; ModifyVersion: '0000.0001.0000.0169'),
-    (ModifyProc: ChangeDuplicateAccount; ModifyVersion: '0000.0001.0000.0170')
+    (ModifyProc: ChangeDuplicateAccount; ModifyVersion: '0000.0001.0000.0171')
   );
 
 implementation
