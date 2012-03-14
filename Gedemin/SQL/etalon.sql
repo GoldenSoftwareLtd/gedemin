@@ -8830,88 +8830,17 @@ CREATE ASC INDEX ac_x_account_alias
 
 COMMIT;
 
-CREATE EXCEPTION AC_E_MUST_INSERT_ACCOUNT_IN_F 'You must insert account in folder!';
-CREATE EXCEPTION AC_E_MUST_INSERT_FOLDER_IN_F 'You must insert folder in folder!';
-CREATE EXCEPTION AC_E_CANT_INSERT_CARD_IN_OTHER 'You can''t insert card of account in other objects!';
+CREATE EXCEPTION ac_e_invalidaccountalias 'Duplicate account aliases are not allowed!';
+CREATE EXCEPTION ac_e_invalidaccount 'Invalid account!';
 
 SET TERM ^;
-CREATE TRIGGER AC_ACCOUNT_BI11 FOR AC_ACCOUNT
-ACTIVE BEFORE INSERT POSITION 0
-AS
-DECLARE VARIABLE P VARCHAR(1);
-begin
-  p = 'Z';
-  if (not new.parent is null) then
-  begin
-    SELECT
-      a.accounttype
-    FROM
-      ac_account a
-    WHERE
-      a.id = NEW.parent
-    INTO :p;
-  end
-
-  if (new.accounttype = 'A') then
-  begin
-    if (p <> 'F') then
-      EXCEPTION ac_e_must_insert_account_in_f;
-  end else
-  if (NEW.accounttype = 'F') then
-  begin
-    if ((p <> 'C') and (p <> 'F')) then
-      EXCEPTION ac_e_must_insert_folder_in_f;
-  end else
-  if (new.accounttype = 'C') then
-  begin
-    if (p <> 'Z') then
-      EXCEPTION ac_e_cant_insert_card_in_other;
-  end
-end^
-
-CREATE TRIGGER AC_ACCOUNT_BU0 FOR AC_ACCOUNT
-ACTIVE BEFORE UPDATE POSITION 0
-AS
-DECLARE VARIABLE P VARCHAR(1);
-begin
-  p = 'Z';
-  if (not new.parent is null) then
-  begin
-    SELECT
-      a.accounttype
-    FROM
-      ac_account a
-    WHERE
-      a.id = NEW.parent
-    INTO :p;
-  end
-
-  if (new.accounttype = 'A') then
-  begin
-    if (p <> 'F') then
-      EXCEPTION ac_e_must_insert_account_in_f;
-  end else
-  if (NEW.accounttype = 'F') then
-  begin
-    if ((p <> 'C') and (p <> 'F')) then
-      EXCEPTION ac_e_must_insert_folder_in_f;
-  end else
-  if (new.accounttype = 'C') then
-  begin
-    if (p <> 'Z') then
-      EXCEPTION ac_e_cant_insert_card_in_other;
-  end
-end
-^
-
-CREATE EXCEPTION ac_e_invalidaccountalias 'Duplicate account aliases are not allowed!'
-^
 
 CREATE OR ALTER TRIGGER AC_AIU_ACCOUNT_CHECKALIAS FOR AC_ACCOUNT
   ACTIVE
   AFTER INSERT OR UPDATE
   POSITION 32000
 AS
+  DECLARE VARIABLE P VARCHAR(1) = NULL;
 BEGIN
   IF (INSERTING OR (NEW.alias <> OLD.alias)) THEN
   BEGIN
@@ -8928,7 +8857,26 @@ BEGIN
          COUNT(*) > 1)
       )
      THEN
-       EXCEPTION AC_E_INVALIDACCOUNTALIAS;
+       EXCEPTION ac_e_invalidaccountalias;
+  END
+
+  IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)
+    OR (NEW.accounttype <> OLD.accounttype)) THEN
+  BEGIN
+    SELECT accounttype FROM ac_account WHERE id = NEW.parent INTO :P;
+    P = COALESCE(:P, 'Z');
+
+    IF (NOT (
+        (NEW.accounttype = 'C' AND NEW.parent IS NULL)
+        OR
+        (NEW.accounttype = 'F' AND :P IN ('C', 'F'))
+        OR
+        (NEW.accounttype = 'A' AND :P IN ('C', 'F'))
+        OR
+        (NEW.accounttype = 'S' AND :P IN ('A', 'S')) )) THEN
+    BEGIN
+      EXCEPTION ac_e_invalidaccount;
+    END
   END
 END
 ^

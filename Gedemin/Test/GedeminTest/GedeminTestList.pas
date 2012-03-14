@@ -4,6 +4,7 @@ interface
 
 uses
   TestSQLParser_unit,
+  Test_AddDuplicateAccount,
   TestGdKeyArray_unit,
   TestMMFStream_unit,
   Test_gsMorph_unit,
