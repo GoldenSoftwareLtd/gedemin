@@ -33,6 +33,8 @@ type
     btnCopyRUIDReport: TButton;
     edtRUIDReport: TEdit;
     lblRUIDReport: TLabel;
+    actChooseDocumentType: TAction;
+    tbiChooseDocumentType: TTBItem;
     procedure MainFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure ParamFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure EventFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
@@ -77,6 +79,7 @@ type
     procedure MainFunctionFramedbeNameDropDown(Sender: TObject);
     procedure gdcReportAfterInternalDeleteRecord(DataSet: TDataSet);
     procedure gdcReportAfterDelete(DataSet: TDataSet);
+    procedure actChooseDocumentTypeExecute(Sender: TObject);
   private
     { Private declarations }
     procedure PrepareTestResult;
@@ -184,7 +187,7 @@ uses
   gdcConstants, prp_MessageConst, rp_StreamFR, Gedemin_TLB,
   xfr_TemplateBuilder, rp_dlgViewResultEx_unit, rp_ReportClient,
   rp_dlgEnterParam_unit, obj_i_Debugger, evt_i_Base,
-  prp_frmGedeminProperty_Unit,
+  prp_frmGedeminProperty_Unit, gdcClasses, at_classes,
   {$IFDEF FR4}
   rp_StreamFR4,
   {$ENDIF}
@@ -2512,6 +2515,80 @@ begin
   inherited;
   if Assigned(N) then
     N.Delete;
+end;
+
+procedure TReportFrame.actChooseDocumentTypeExecute(Sender: TObject);
+var
+  gdcDocumentType: TgdcDocumentType;
+  A: OleVariant;
+  FSQL: TIBSQL;
+  Transaction: TIBTransaction;
+begin
+  if not Assigned(atDatabase.Relations.ByRelationName('RP_GLOBALREPORTLIST')) then
+    Exit;
+
+  if gdcReport.ID > 0 then
+  begin
+    gdcDocumentType := TgdcDocumentType.Create(Self);
+    try
+      gdcDocumentType.Transaction := gdcBaseManager.ReadTransaction;
+      gdcDocumentType.Open;
+
+      Transaction := TIBTransaction.Create(nil);
+      try
+        Transaction.DefaultDataBase := gdcReport.Transaction.DefaultDataBase;
+        FSQL := TIBSQL.Create(nil);
+        try
+          FSQL.Transaction := Transaction;
+          Transaction.StartTransaction;
+          FSQL.SQL.Text := ' SELECT DOC.ID ' +
+            ' FROM RP_GLOBALREPORTLIST R  ' +
+            ' JOIN GD_DOCUMENTTYPE DOC ON DOC.REPORTGROUPKEY = R.REPORTGROUPKEY ' +
+            ' WHERE R.REPORTLISTKEY = :ID ';
+          FSQL.Params[0].AsInteger := gdcReport.ID;
+          FSQL.ExecQuery;
+          while not FSQL.Eof do
+          begin
+            gdcDocumentType.SelectedID.Add(FSQL.Fields[0].AsInteger);
+            FSQL.Next;
+          end;
+          FSQL.Close;
+
+          if gdcDocumentType.ChooseItems(A) then
+          begin
+            gdcDocumentType.Close;
+            gdcDocumentType.SubSet := 'OnlySelected';
+            gdcDocumentType.Open;
+            gdcDocumentType.First;
+
+            FSQL.SQL.Text := ' DELETE FROM RP_GLOBALREPORTLIST ' +
+              ' WHERE REPORTLISTKEY = ' + gdcReport.FieldByName('ID').AsString;
+            FSQL.ExecQuery;
+            FSQL.Close;
+
+            FSQL.SQL.Text := 'INSERT INTO RP_GLOBALREPORTLIST (REPORTGROUPKEY, REPORTLISTKEY) ' +
+              ' VALUES (:groupkey, ' + gdcReport.FieldByName('ID').AsString + ' ) ';
+
+            while not gdcDocumentType.Eof do
+            begin
+              FSQL.Params[0].AsInteger := gdcDocumentType.FieldByName('REPORTGROUPKEY').AsInteger;
+              FSQL.ExecQuery;
+
+              gdcDocumentType.Next;
+            end;
+            Transaction.Commit;
+          end;
+
+        finally
+          FSQL.Free;
+        end;
+      finally
+        Transaction.Free;
+      end;
+    finally
+      gdcDocumentType.Free;
+    end;
+  end;
 end;
 
 initialization
