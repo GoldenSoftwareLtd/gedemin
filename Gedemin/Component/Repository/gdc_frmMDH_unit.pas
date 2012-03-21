@@ -176,7 +176,6 @@ type
     procedure SaveSettings; override;
     procedure LoadSettings; override;
     procedure LoadSettingsAfterCreate; override;
-
   end;
 
 var
@@ -727,6 +726,46 @@ begin
   {END MACRO}
 end;
 
+function Tgdc_frmMDH.Get_SelectedKey: OleVariant;
+var
+  M, D: Variant;
+  MGr, DGr: TDBGrid;
+  I: Integer;
+begin
+  MGr := nil;
+  DGr := nil;
+
+  for I := 0 to ComponentCount - 1 do
+  begin
+    if (Components[I] is TDBGrid) and (TDBGrid(Components[I]).DataSource <> nil) then
+    begin
+      if TDBGrid(Components[I]).DataSource.DataSet = gdcObject then
+      begin
+        MGr := Components[I] as TDBGrid;
+      end
+      else if TDBGrid(Components[I]).DataSource.DataSet = gdcDetailObject then
+        DGr := Components[I] as TDBGrid;
+    end;
+  end;
+
+  if (MGr = nil) or (DGr = nil) then
+  begin
+    if gdcObject.Active and (gdcObject.RecordCount > 0) then
+      M := VarArrayOf([gdcObject.ID])
+    else
+      M := VarArrayOf([]);
+
+    if gdcDetailObject.Active and (gdcDetailObject.RecordCount > 0) then
+      D := VarArrayOf([gdcDetailObject.ID])
+    else
+      D := VarArrayOf([]);
+
+    Result := VarArrayOf([M, D]);
+  end else
+    Result := VarArrayOf([CreateSelectedArr(gdcObject, MGr.SelectedRows),
+      CreateSelectedArr(gdcDetailObject, DGr.SelectedRows)])
+end;
+
 procedure Tgdc_frmMDH.actDetailQExportExecute(Sender: TObject);
 {$IFDEF QEXPORT}
 var
@@ -1123,11 +1162,6 @@ procedure Tgdc_frmMDH.pnlSearchDetailExit(Sender: TObject);
 begin
   inherited;
   btnOkChoose.Default := True;
-end;
-
-function Tgdc_frmMDH.Get_SelectedKey: OleVariant;
-begin
-  Result := VarArrayOf([VarArrayOf([]), VarArrayOf([])]);
 end;
 
 procedure Tgdc_frmMDH.DoShowAllFields(Sender: TObject);

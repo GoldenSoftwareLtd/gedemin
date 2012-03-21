@@ -120,7 +120,7 @@ type
     class function ConfigClassName: string; override;
     procedure Go_to(NewWindow: Boolean = false); override;
     function CanGo_to: boolean; override;
-    function CompareParams: boolean; override;
+    function CompareParams(WithDate: Boolean = True): boolean; override;
   public
     { Public declarations }
     procedure BuildAcctReport; override;
@@ -1301,11 +1301,11 @@ begin
     Result := False;    
 end;
 
-function Tgdv_frmAcctLedger.CompareParams: Boolean;
+function Tgdv_frmAcctLedger.CompareParams(WithDate: Boolean = True): Boolean;
 var
   Stream: TMemoryStream;
 begin
-  Result := inherited CompareParams
+  Result := inherited CompareParams(WithDate)
     and ((FConfig as TAccLedgerConfig).ShowDebit = cbShowDebit.Checked)
     and ((FConfig as TAccLedgerConfig).ShowCredit = cbShowCredit.Checked)
     and ((FConfig as TAccLedgerConfig).ShowCorrSubAccounts = cbShowCorrSubAccount.Checked)

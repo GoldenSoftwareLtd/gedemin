@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2002 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -17,15 +17,6 @@
 
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2002 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 CREATE DOMAIN dstoragedata
   AS BLOB SUB_TYPE 0 SEGMENT SIZE 1024;
@@ -121,4 +112,3 @@ END
 SET TERM ; ^
 
 COMMIT;
-

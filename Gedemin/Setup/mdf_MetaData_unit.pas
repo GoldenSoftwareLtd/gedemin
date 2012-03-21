@@ -96,8 +96,11 @@ procedure AlterTrigger(Trigger: TmdfTrigger; Db: TIBDataBase);
 function TriggerExist2(const ATriggerName: String; ATr: TIBTransaction): Boolean;
 procedure DropTrigger2(const ATriggerName: String; ATr: TIBTransaction);
 
-function ExceptionExists(Ex: TmdfException; Db: TIBDataBase): boolean;
+function ExceptionExists(Ex: TmdfException; Db: TIBDataBase): Boolean;
+function ExceptionExists2(const AnException: String; ATr: TIBTransaction): Boolean;
+
 procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
+procedure CreateException2(const AnException, AMessage: String; ATr: TIBTransaction);
 
 function ExceptionExist2(const AnExceptionName: String; ATr: TIBTransaction): Boolean;
 procedure DropException2(const AnExceptionName: String; ATr: TIBTransaction);
@@ -986,6 +989,22 @@ begin
   end;
 end;
 
+function ExceptionExists2(const AnException: String; ATr: TIBTransaction): Boolean;
+var
+  SQL: TIBSQl;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text := Format('SELECT * FROM rdb$exceptions WHERE rdb$exception_name  = ''%s''',
+      [UpperCase(AnException)]);
+    SQL.ExecQuery;
+    Result := not SQL.EOF;
+  finally
+    SQL.Free;
+  end;
+end;
+
 procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
 var
   Transaction: TIBTransaction;
@@ -1011,6 +1030,23 @@ begin
       Transaction.Commit;
     finally
       Transaction.Free;
+    end;
+  end;
+end;
+
+procedure CreateException2(const AnException, AMessage: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQL;
+begin
+  if not ExceptionExists2(AnException, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text := Format('CREATE EXCEPTION %s ''%s'' ', [AnException, AMessage]);
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
     end;
   end;
 end;

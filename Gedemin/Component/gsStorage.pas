@@ -465,7 +465,7 @@ type
     destructor Destroy; override;
 
     procedure LoadFromStream(S: TStream);
-    procedure SaveToStream(S: TStream);
+    procedure SaveToStream(S: TStream); virtual;
 
     procedure SaveToStream2(S: TStringStream);
     procedure LoadFromStream2(S: TStringStream);
@@ -538,6 +538,8 @@ type
 
   public
     constructor Create; override;
+
+    procedure SaveToStream(S: TStream); override;
 
     procedure SaveToDataBase(const ATr: TIBTransaction = nil); virtual;
     procedure LoadFromDataBase(const ATr: TIBTransaction = nil); virtual;
@@ -2770,6 +2772,12 @@ end;
 function TgsIBStorage.UpdateName(const Tr: TIBTransaction = nil): String;
 begin
   Result := 'GLOBAL';
+end;
+
+procedure TgsIBStorage.SaveToStream(S: TStream);
+begin
+  SaveToDatabase;
+  inherited;
 end;
 
 { TgsUserStorage }

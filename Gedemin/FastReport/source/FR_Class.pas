@@ -6629,11 +6629,19 @@ destructor TfrEMFPages.Destroy;
 begin
   Clear;
   FPages.Free;
+  {$IFDEF GEDEMIN}
+  FPages := nil;
+  {$ENDIF}
   inherited Destroy;
 end;
 
 function TfrEMFPages.GetCount: Integer;
 begin
+  {$IFDEF GEDEMIN}
+  if FPages = nil then
+    Result := 0
+  else
+  {$ENDIF}  
   Result := FPages.Count;
 end;
 
@@ -8631,6 +8639,7 @@ end;
 
 function TfrPages.GetCount: Integer;
 begin
+  Assert(FPages <> nil);
   Result := FPages.Count;
 end;
  
@@ -9485,6 +9494,7 @@ begin
   FEMFPages.Free;
   FEMFPages := nil;
   FPages.Free;
+  FPages := nil;
 {$IFDEF 1CScript}
   Script.Free;
 {$ENDIF}

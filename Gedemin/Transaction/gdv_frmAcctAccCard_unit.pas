@@ -89,7 +89,7 @@ type
     procedure SetParams; override;
     procedure Go_to(NewWindow: Boolean = false); override;
     function CanGo_to: boolean; override;
-    function CompareParams: boolean; override;
+    function CompareParams(WithDate: Boolean = True): boolean; override;
   public
     { Public declarations }
     procedure LoadSettings; override;
@@ -281,6 +281,7 @@ begin
           SQL.ParamByName('id').AsInteger := StrToInt(Value);
           SQL.ExecQuery;
           cbAccounts.Text := SQl.FieldByName('alias').AsString;
+          cbAccountsChange(Self);
         finally
           SQL.Free;
         end;
@@ -349,13 +350,13 @@ begin
 
   if not NewWindow or (F = nil) then
   begin
-    with Tgdc_frmTransaction.CreateAndAssign(Application) as Tgdc_frmTransaction do
+    with Tgdc_frmTransaction.CreateAndAssignWithID(Application, gdvObject.FieldByName('id').AsInteger, esRecordKey) as Tgdc_frmTransaction do
     begin
       cbGroupByDocument.Checked := False;
       if tvGroup.GoToID(gdvObject.FieldByName('transactionkey').AsInteger) and
         gdcAcctViewEntryRegister.Active and
         gdcAcctViewEntryRegister.Locate('RECORDKEY', gdvObject.FieldByName('id').AsInteger, []) then
-        Show
+        Show 
       else
         MessageDlg(cMsg, mtWarning, [mbOK], -1);
     end;
@@ -386,9 +387,9 @@ begin
   end;
 end;
 
-function Tgdv_frmAcctAccCard.CompareParams: boolean;
+function Tgdv_frmAcctAccCard.CompareParams(WithDate: Boolean = True): boolean;
 begin
-  Result := inherited CompareParams
+  Result := inherited CompareParams(WithDate)
     and ((FConfig as TAccCardConfig).CorrAccounts = cbCorrAccounts.Text)
     and ((FConfig as TAccCardConfig).IncCorrSubAccounts = cbShowCorrSubAccounts.Checked)
     and ((FConfig as TAccCardConfig).Group = cbGroup.Checked)

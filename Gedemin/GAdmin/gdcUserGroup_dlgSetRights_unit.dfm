@@ -1,6 +1,6 @@
 object gdcUserGroup_dlgSetRights: TgdcUserGroup_dlgSetRights
-  Left = 447
-  Top = 394
+  Left = 401
+  Top = 179
   BorderStyle = bsDialog
   Caption = 'Настройка прав группы пользователей'
   ClientHeight = 327

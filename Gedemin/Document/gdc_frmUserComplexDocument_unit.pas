@@ -42,6 +42,7 @@ implementation
 uses
   dmDatabase_unit,
   gd_ClassList,
+  gdcAcctEntryRegister,
   gdc_frmTransaction_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -119,9 +120,9 @@ begin
 
   if Self.gdcDetailObject.FieldByName('transactionkey').AsInteger > 0 then
   begin
-    with Tgdc_frmTransaction.CreateAndAssign(Application) as Tgdc_frmTransaction do
+    with Tgdc_frmTransaction.CreateAndAssignWithID(Application, Self.gdcDetailObject.FieldByName('id').AsInteger, esDocumentKey) as Tgdc_frmTransaction do
     begin
-      cbGroupByDocument.Checked := False;
+      cbGroupByDocument.Checked := False; 
       tvGroup.GoToID(Self.gdcDetailObject.FieldByName('transactionkey').AsInteger);
       gdcAcctViewEntryRegister.Locate('DOCUMENTKEY', Self.gdcDetailObject.FieldByName('id').AsInteger, []);
       Show;
@@ -139,9 +140,9 @@ procedure Tgdc_frmUserComplexDocument.actMainGotoEntryExecute(
 begin
   if Self.gdcObject.FieldByName('transactionkey').AsInteger > 0 then
   begin
-    with Tgdc_frmTransaction.CreateAndAssign(Application) as Tgdc_frmTransaction do
+    with Tgdc_frmTransaction.CreateAndAssignWithID(Application, Self.gdcObject.FieldByName('id').AsInteger, esDocumentKey) as Tgdc_frmTransaction do
     begin
-      cbGroupByDocument.Checked := False;
+      cbGroupByDocument.Checked := False;  
       tvGroup.GoToID(Self.gdcObject.FieldByName('transactionkey').AsInteger);
       gdcAcctViewEntryRegister.Locate('DOCUMENTKEY', Self.gdcObject.FieldByName('id').AsInteger, []);
       Show;

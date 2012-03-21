@@ -3,7 +3,7 @@ unit rp_StreamFR4;
 interface
 
 uses
-  Classes, SysUtils, FR_Class, rp_BaseReport_unit, DB,
+  Classes, SysUtils, controls, FR_Class, rp_BaseReport_unit, DB,
   Forms, Printers, rp_i_ReportBuilder_unit, rp_StreamFR, frxVariables,
   rp_ErrorMsgFactory, frxDesgn, frxClass, frxDCtrl, frxChart,
   frxRich, frxBarcode, ImgList, ComCtrls, ExtCtrls, frxOLE,
@@ -86,7 +86,8 @@ type
     FTempParam: Variant;
 
     procedure DoTerminate(Sender: TObject);
-//    procedure SelfReportEvent(View: TfrView);
+
+    procedure SelfReportEvent(View: TfrxView; Button: TMouseButton; Shift: TShiftState; var Modified: Boolean);
     function FindReportComponent(const AnReport: Tgs_fr4Report): Boolean;
   protected
     procedure CreatePreviewForm; override;
@@ -102,6 +103,8 @@ type
     function Get_ReportTemplate: TReportTemplate; override;
     procedure Set_Params(const AnParams: Variant); override;
     function Get_Params: Variant; override;
+    function Get_ModalPreview: Boolean; override;
+    procedure Set_ModalPreview(const AnValue: Boolean); override;
 
   public
     constructor Create;
@@ -221,7 +224,7 @@ begin
   Ffr4Report.EngineOptions.UseGlobalDataSetList := False;
   Ffr4Report.EnabledDataSets.Clear;
 
-//  Ffr4Report.OnObjectClick := SelfReportEvent;
+  Ffr4Report.OnClickObject := SelfReportEvent;
 end;
 
 procedure TFR4ReportInterface.CreatePreviewForm;
@@ -357,26 +360,26 @@ begin
   end;
 end;
 
-{procedure TFR4ReportInterface.SelfReportEvent(View: TfrView);
+procedure TFR4ReportInterface.SelfReportEvent(View: TfrxView; Button: TMouseButton; Shift: TShiftState; var Modified: Boolean);
 var
   VarArray: Variant;
   LocResult: Boolean;
   TempVar: Variant;
 begin
-  if Assigned(FReportEvent) then
+  if Assigned(FReportEvent) and (View is TfrxCustomMemoView) then
   begin
     VarArray := VarArrayCreate([0, 2], varVariant);
     VarArray[0] := FTempParam;
     TempVar := VarArrayCreate([0, 1], varVariant);
-    TempVar[0] := View.Memo.Text;
-    TempVar[1] := View.Tag;
+    TempVar[0] := (View as TfrxCustomMemoView).Memo.Text;
+    TempVar[1] := View.TagStr;
     VarArray[1] := TempVar;
     VarArray[2] := View.Name;
     FReportEvent(VarArray, FEventFunction, LocResult);
     if LocResult then
       FreeAndNil(FPreviewForm);
   end;
-end;    }
+end;
 
 procedure TFR4ReportInterface.Set_Params(const AnParams: Variant);
 begin
@@ -403,6 +406,16 @@ begin
 
   Ffr4Report.Variables.Clear;
   Ffr4Report.Variables[' ' + cCategoryName] := Null;
+end;
+
+procedure TFR4ReportInterface.Set_ModalPreview(const AnValue: Boolean);
+begin
+  Ffr4Report.PreviewOptions.Modal := AnValue;
+end;
+
+function TFR4ReportInterface.Get_ModalPreview: Boolean;
+begin
+  Result := Ffr4Report.PreviewOptions.Modal;
 end;
 
 { Tfr4_ReportResult }

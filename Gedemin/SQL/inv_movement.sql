@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2001-2007 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
 
   Script
@@ -999,4 +999,3 @@ END
 SET TERM ; ^
 
 COMMIT;
-

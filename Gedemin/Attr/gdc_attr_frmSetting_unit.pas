@@ -177,9 +177,6 @@ type
 
   public
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
-
-    procedure LoadSettings; override;
-    procedure SaveSettings; override;
   end;
 
 var
@@ -496,86 +493,6 @@ begin
     (gdcDetailObject as TgdcSettingPos).SetWithDetail(True, GetDetailBookmarkList)
   else
     (gdcDetailObject as TgdcSettingPos).SetWithDetail(False, GetDetailBookmarkList);
-end;
-
-procedure Tgdc_frmSetting.LoadSettings;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMSETTING', 'LOADSETTINGS', KEYLOADSETTINGS)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_FRMSETTING', KEYLOADSETTINGS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYLOADSETTINGS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_FRMSETTING') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_FRMSETTING',
-  {M}          'LOADSETTINGS', KEYLOADSETTINGS, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_FRMSETTING' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-{  if Assigned(UserStorage) then
-    UserStorage.LoadComponent(ibgrStorage, ibgrStorage.LoadFromStream); }
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMSETTING', 'LOADSETTINGS', KEYLOADSETTINGS)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_FRMSETTING', 'LOADSETTINGS', KEYLOADSETTINGS);
-  {M}end;
-  {END MACRO}
-
-end;
-
-procedure Tgdc_frmSetting.SaveSettings;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_FRMSETTING', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_FRMSETTING', KEYSAVESETTINGS);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYSAVESETTINGS]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_FRMSETTING') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_FRMSETTING',
-  {M}          'SAVESETTINGS', KEYSAVESETTINGS, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_FRMSETTING' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-{  if Assigned(UserStorage) then
-    if ibgrStorage.SettingsModified then
-      UserStorage.SaveComponent(ibgrStorage, ibgrStorage.SaveToStream); }
-  inherited;
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMSETTING', 'SAVESETTINGS', KEYSAVESETTINGS)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_FRMSETTING', 'SAVESETTINGS', KEYSAVESETTINGS);
-  {M}end;
-  {END MACRO}
-
 end;
 
 procedure Tgdc_frmSetting.actReActivateUpdate(Sender: TObject);

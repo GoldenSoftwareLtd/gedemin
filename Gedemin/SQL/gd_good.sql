@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -23,18 +23,8 @@
 
   Status 
     
-    Draft
-
 */
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /****************************************************
 
@@ -561,4 +551,3 @@ FOREIGN KEY (prmetalkey) REFERENCES gd_preciousemetal(id)
   ON UPDATE CASCADE;
 
 COMMIT;
-

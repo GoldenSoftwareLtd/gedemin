@@ -447,7 +447,7 @@ begin
             if S.IndexOfName(F.FieldName) > - 1 then
             begin
               V := S.Values[F.FieldName];
-              if F.DataType in [ftDateTime, ftDate, ftTime, ftInteger, ftFloat, ftString, ftBCD] then begin
+              if F.DataType in [ftDateTime, ftDate, ftTime, ftWord, ftSmallint, ftInteger, ftLargeint, ftFloat, ftString, ftBCD] then begin
                 if V[1] = '''' then
                   V:= Copy(V, 2, Length(V) - 2);
                 if F.DataType in [ftDateTime, ftDate] then begin
@@ -598,6 +598,9 @@ begin
 end;
 
 procedure TfrAcctEntrySimpleLine.CalcCurrency(isCurrency: Boolean);
+var
+  CorrCount, I: Integer;
+  DiffCurrkey: Boolean;
 begin
   if FDataSet <> nil then
   begin
@@ -611,10 +614,27 @@ begin
       if (cRate.Value > 0) then
       begin
         CheckEditMode;
-        if not cbRounded.Checked then
-          FdataSet.FieldByName(cSum.DataField).AsCurrency := cCurrSum.Value * cRate.Value
-        else
-          FdataSet.FieldByName(cSum.DataField).AsCurrency := Round(cCurrSum.Value * cRate.Value + 1/10000);
+
+        CorrCount := 0;
+        DiffCurrKey := False;
+
+        for I := 0 to (gdcObject as TgdcAcctComplexRecord).EntryLines.Count - 1 do
+        begin
+          if (gdcObject as TgdcAcctComplexRecord).EntryLines[I].FieldByName('accountpart').AsString <> FAccountPart then
+          begin
+            if (gdcObject as TgdcAcctComplexRecord).EntryLines[i].FieldByName('currkey').AsInteger <> cbCurrency.CurrentKeyInt then
+              DiffCurrKey := True;
+            Inc(CorrCount);
+          end;
+        end;
+
+        if (CorrCount <> 1) or (not DiffCurrKey) then
+        begin
+          if not cbRounded.Checked then
+            FdataSet.FieldByName(cSum.DataField).AsCurrency := cCurrSum.Value * cRate.Value
+          else
+            FdataSet.FieldByName(cSum.DataField).AsCurrency := Round(cCurrSum.Value * cRate.Value + 1/10000);
+        end; 
       end;
     finally
       EnableControls;

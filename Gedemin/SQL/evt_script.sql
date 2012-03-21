@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -25,17 +25,6 @@
 
 */
 
-
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
-
 /****************************************************
 
    Таблица для хранения объектов.
@@ -48,12 +37,12 @@ CREATE TABLE evt_object
   name           dgdcname,
   description    dtext180,
   parent         dforeignkey,
-  lb               dlb,
-  rb               drb,
+  lb             dlb,
+  rb             drb,
   afull          dsecurity,
   achag          dsecurity,
   aview          dsecurity,
-  objecttype     dsmallint, /* 0-object; 1-class */
+  objecttype     dsmallint,     /* 0-object; 1-class */
   reserved       dinteger,
   macrosgroupkey dforeignkey,
   parentindex    dinteger NOT NULL,
@@ -86,17 +75,6 @@ ALTER TABLE evt_object ADD CONSTRAINT evt_fk_object_reportgrkey
 ALTER TABLE evt_object ADD CONSTRAINT evt_fk_object_editorkey
   FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
   ON UPDATE CASCADE;
-
-/*
-ALTER TABLE evt_object ADD CONSTRAINT evt_chk_object_tree_limit
-  CHECK ((lb <= rb) or ((rb is NULL) and (lb is NULL)));
-
-CREATE DESC INDEX evt_x_object_rb
-  ON evt_object(rb);
-
-CREATE ASC INDEX evt_x_object_lb
-  ON evt_object(lb);
-*/
 
 CREATE ASC INDEX evt_x_object_objectname_upper
   ON evt_object
@@ -344,9 +322,9 @@ SET TERM ; ^
 
 CREATE TABLE evt_objectevent
 (
-  id               dintkey,
-  objectkey             dintkey,
-  eventname           dname,
+  id             dintkey,
+  objectkey      dintkey,
+  eventname      dname,
   functionkey    dforeignkey,
   afull          dsecurity,
   reserved       dinteger,
@@ -408,29 +386,26 @@ SET TERM ; ^
 
 COMMIT;
 
-
 /****************************************************/
 /**                                                **/
 /**   Таблица для хранения дерева макросов         **/
 /**                                                **/
 /****************************************************/
+
 CREATE TABLE evt_macrosgroup (
   id             dintkey,      /* Уникальный ключ */
-  parent      dforeignkey,      /* Парент на родителя */
-  lb             dlb,          /* Левая (верхняя) граница. Одновременно может использоваться */
-                               /* как второй уникальный индекс, если группы и список */
-                               /* находятся в разных таблицах */
-  rb               drb,        /* Правая (нижняя) граница */
+  parent         dforeignkey,  /* Парент на родителя */
+  lb             dlb,
+  rb             drb,
+  name           dname,        /* Наименование поле для примера */
 
-  name          dname,         /* Наименование поле для примера */
+  isglobal       dboolean,
 
-  isglobal      dboolean,
+  description    dblobtext80,  /*  Описание группы */
+  editiondate    deditiondate, /* Дата последнего редактирования */
+  editorkey      dintkey,      /* Ссылка на пользователя, который редактировал запись*/
 
-  description dblobtext80, /*  Описание группы */
-  editiondate     deditiondate,  /* Дата последнего редактирования */
-  editorkey       dintkey,       /* Ссылка на пользователя, который редактировал запись*/
-
-  reserved     dblob         /*Зарезервированно*/
+  reserved       dblob         /*Зарезервированно*/
 );
 
 ALTER TABLE evt_macrosgroup ADD CONSTRAINT evt_pk_macrosgroup_id
@@ -450,13 +425,7 @@ ALTER TABLE evt_macrosgroup ADD CONSTRAINT evt_fk_macrosgroup_editorkey
   FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
   ON UPDATE CASCADE;
 
-/*
-ALTER TABLE evt_macrosgroup ADD CONSTRAINT evt_chk_macrosgroup_tree_limit
-  CHECK (lb <= rb);
-
-CREATE DESC INDEX evt_x_macrosgroup_rb
-  ON evt_macrosgroup(rb);
-*/
+CREATE INDEX evt_x_macrosgroup_isglobal ON evt_macrosgroup (isglobal);  
 
 COMMIT;
 
@@ -494,17 +463,18 @@ SET TERM ; ^
 
 CREATE TABLE evt_macroslist (
   id              dintkey,      /* Уникальный ключ */
-  macrosgroupkey  dforeignkey, /*  Ключ группы макросов */
-  functionkey     dforeignkey,    /*  Ключ макроса */
-  name            dname,         /* Наименование поле для примера */
+  macrosgroupkey  dforeignkey,  /*  Ключ группы макросов */
+  functionkey     dforeignkey,  /*  Ключ макроса */
+  name            dname,        /* Наименование поле для примера */
   serverkey       dforeignkey,
   islocalexecute  dboolean,
   isrebuild       dboolean,
   executedate     dtext254,
   shortcut        dinteger,
   editiondate     deditiondate,  /* Дата последнего редактирования */
-  editorkey       dintkey,        /* Ссылка на пользователя, который редактировал запись*/
-  displayinmenu   dboolean DEFAULT 1,     /* Отображать в меню формы */
+  editorkey       dintkey,       /* Ссылка на пользователя, который редактировал запись*/
+  displayinmenu   dboolean DEFAULT 1,  /* Отображать в меню формы */
+  runonlogin      dboolean_notnull DEFAULT 0,
   achag           dsecurity,
   afull           dsecurity,
   aview           dsecurity

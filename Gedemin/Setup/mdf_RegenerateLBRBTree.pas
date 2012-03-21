@@ -79,6 +79,18 @@ begin
         FIBSQL.SQL.Text := c_trigger;
         FIBSQL.ExecQuery;
 
+        DropIndex2('AC_X_ACCOUNT_LBRB_U', FTransaction);
+        DropIndex2('AC_X_TRANSACTION_LBRB_U', FTransaction);
+        DropIndex2('EVT_X_OBJECT_LBRB_U', FTransaction);
+        DropIndex2('GD_X_GOODGROUP_LBRB_U', FTransaction);
+        DropIndex2('GD_X_FILE_LBRB_U', FTransaction);
+        DropIndex2('EVT_X_MACROSGROUP_LBRB_U', FTransaction);
+        DropIndex2('MSG_X_BOX_LBRB_U', FTransaction);
+        DropIndex2('RP_X_REPORTGROUP_LBRB_U', FTransaction);
+        DropIndex2('GD_X_DOCUMENTTYPE_LBRB_U', FTransaction);
+        DropIndex2('GD_X_CONTACT_LBRB_U', FTransaction);
+        DropIndex2('GD_X_PLACE_LBRB_U', FTransaction);
+
         DropTrigger2('RP_BEFORE_UPDATE_REPORTGROUP', FTransaction);
         DropTrigger2('RP_BEFORE_UPDATE10_REPORTGROUP', FTransaction);
         DropTrigger2('RP_BEFORE_INSERT10_REPORTGROUP', FTransaction);

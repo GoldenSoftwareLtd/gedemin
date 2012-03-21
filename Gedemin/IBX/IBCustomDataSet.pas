@@ -2179,6 +2179,7 @@ end;
 
 function TIBCustomDataSet.GetDatabase: TIBDatabase;
 begin
+  Assert(FBase <> nil);
   result := FBase.Database;
 end;
 
@@ -2226,6 +2227,7 @@ end;
 
 function TIBCustomDataSet.GetTransaction: TIBTransaction;
 begin
+  Assert(FBase <> nil);
   result := FBase.Transaction;
 end;
 
@@ -2319,35 +2321,6 @@ begin
       end;
       Next;
     end;
-
-    {
-    try
-      for j := k to FRecordCount - 1 do
-      begin
-        FPeekBuffer := FBufferCache + j * _RecordBufferSize;
-        if PRecordData(FPeekBuffer)^.rdUpdateStatus = usDeleted then
-          continue;
-
-        if Filtered and Assigned(OnFilterRecord) then
-        begin
-          Accept := True;
-          OnFilterRecord(Self, Accept);
-          if not Accept then
-            continue;
-        end;
-
-        if F.AsInteger = i then
-        begin
-          Result := True;
-          FPeekBuffer := nil;
-          GotoBookmark(@j);
-          exit;
-        end;
-      end;
-    finally
-      FPeekBuffer := nil;
-    end;
-    }
   end else
   begin
     fl := TList.Create;
@@ -2407,7 +2380,7 @@ begin
               end
               else
                 if TField(fl[i]).DataType in [ftDate, ftTime, ftDateTime] then
-                  Result := Result and (DateTimeToStr(val[i]) = DateTimeToStr(fld))
+                  Result := Result and (val[i] > '') and (DateTimeToStr(val[i]) = DateTimeToStr(fld))
                 else
                   result := result and (val[i] = fld);
             end;

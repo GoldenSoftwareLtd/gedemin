@@ -1,6 +1,6 @@
 object dlgToSetting: TdlgToSetting
-  Left = 333
-  Top = 97
+  Left = 364
+  Top = 230
   BorderStyle = bsDialog
   Caption = 'Добавить в настройку'
   ClientHeight = 330
@@ -17,15 +17,15 @@ object dlgToSetting: TdlgToSetting
   TextHeight = 13
   object Label1: TLabel
     Left = 8
-    Top = 72
+    Top = 87
     Width = 148
     Height = 13
     Caption = 'Объект входит в настройки:'
   end
   object Label2: TLabel
-    Left = 8
+    Left = 10
     Top = 8
-    Width = 349
+    Width = 347
     Height = 33
     Anchors = [akLeft, akTop, akRight]
     AutoSize = False
@@ -63,7 +63,7 @@ object dlgToSetting: TdlgToSetting
     Anchors = [akRight, akBottom]
     Default = True
     ModalResult = 1
-    TabOrder = 4
+    TabOrder = 5
   end
   object btnCancel: TButton
     Left = 284
@@ -74,18 +74,18 @@ object dlgToSetting: TdlgToSetting
     Anchors = [akRight, akBottom]
     Cancel = True
     ModalResult = 2
-    TabOrder = 5
+    TabOrder = 6
   end
   object ibgrSetting: TgsIBGrid
     Left = 8
-    Top = 88
+    Top = 103
     Width = 350
-    Height = 130
+    Height = 118
     Anchors = [akLeft, akTop, akRight, akBottom]
     DataSource = dsSetting
     Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgTabs, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
     ReadOnly = True
-    TabOrder = 2
+    TabOrder = 3
     InternalMenuKind = imkWithSeparator
     Expands = <>
     ExpandsActive = False
@@ -102,7 +102,7 @@ object dlgToSetting: TdlgToSetting
     ShowTotals = False
   end
   object ibluSetting: TgsIBLookupComboBox
-    Left = 8
+    Left = 9
     Top = 40
     Width = 271
     Height = 21
@@ -120,7 +120,7 @@ object dlgToSetting: TdlgToSetting
     ShowHint = True
     TabOrder = 0
   end
-  object Button1: TButton
+  object btnAddToSetting: TButton
     Left = 284
     Top = 40
     Width = 75
@@ -136,7 +136,15 @@ object dlgToSetting: TdlgToSetting
     Height = 21
     Action = actDelFromSetting
     Anchors = [akLeft, akRight, akBottom]
-    TabOrder = 3
+    TabOrder = 4
+  end
+  object chbxWithDetail: TCheckBox
+    Left = 9
+    Top = 67
+    Width = 217
+    Height = 17
+    Caption = 'Сохранять вместе с детальными'
+    TabOrder = 2
   end
   object alToSetting: TActionList
     Images = dmImages.il16x16

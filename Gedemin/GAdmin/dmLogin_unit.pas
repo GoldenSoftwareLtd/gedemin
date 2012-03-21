@@ -55,18 +55,17 @@ uses
   gd_security_operationconst,   gd_RegionalSettings,   syn_ManagerInterface_unit,
   gsTrayIconInterface,          Storages,              at_classes,
   at_classes_body,              flt_dlg_dlgQueryParam_unit,
-  rp_BaseReport_unit,           gd_splash,             gsStorage, IBSQL,
-  {st_dlgSetSetting_unit,        }{gsSysUtils,            }Registry,
-  inst_const,                   {st_inistorage,         }gdcSetting,
-  {at_frmSQLProcess,             }gdcBaseInterface,      dm_i_ClientReport_unit,
-  prp_PropertySettings,         gd_i_ScriptFactory,    flt_sqlFilterCache, 
+  rp_BaseReport_unit,           gd_splash,             gsStorage,
+  Registry,                     inst_const,            gdcSetting,
+  gdcBaseInterface,             dm_i_ClientReport_unit,
+  prp_PropertySettings,         gd_i_ScriptFactory,    flt_sqlFilterCache,
 
   {$IFDEF LOCALIZATION}
   gd_localization,
   gd_localization_stub,
   {$ENDIF}
 
-  IBDatabaseInfo;
+  IBSQL;
 
 {$R *.DFM}
 
@@ -76,20 +75,10 @@ var
   T: TDateTime;
 {$ENDIF}
   MS: TMemoryStream;
-  //RegSetting: TgsStorageFolder;
-  I, J: Integer;
+  R: OleVariant;
 begin
   gdcBase.CacheDBID := -1;
 
-  { TODO :
-считывание двух стораджей занимает
-0,7 сек. Надо организовать кэш. Но при этом
-все равно придется брать из базы дату изменения
-стораджей, чтобы знать: считывать из кэша или
-из базы. Выйгрыш можно получить только если
-воткнуть эти параметры в логин сторед процедуру.
-тогда не потребуется дополнительных запросов к базе
-и время можно сократить до 0.1-0.2 сек. }
   {$IFDEF DEBUG}
   T := Now;
   {$ENDIF}
@@ -110,13 +99,6 @@ begin
     UserStorage.ObjectKey := IBLogin.UserKey;
   end;
 
-  {if Assigned(CompanyStorage) then
-  begin
-    if Assigned(gdSplash) then
-      gdSplash.ShowText(sLoadingCompanyStorage);
-    CompanyStorage.CompanyKey := IBLogin.CompanyKey;
-  end;}
-
   {$IFDEF DEBUG}
     OutputDebugString(PChar('UserStorage: ' + FormatDateTime('s.z', Now - T)));
   {$ENDIF}
@@ -124,48 +106,6 @@ begin
   // Мы отказываемся от использования раздельных системных настроек
   // внутри Гедымина
   LoadSystemLocalSettingsIntoDelphiVars;
-  (*
-  if Assigned(GlobalStorage) then
-  begin
-    RegSetting := GlobalStorage.OpenFolder(st_rs_RegionalSettingsPath, False, False);
-    try
-      if Assigned (RegSetting) then
-      with RegSetting do
-        if not ReadBoolean(st_rs_UseSystemSettings) then
-        begin
-          Application.UpdateFormatSettings := False;
-          Application.UpdateMetricSettings := False;
-          CurrencyString := ReadString(st_rs_CurrencyString);
-          CurrencyFormat := ReadInteger(st_rs_CurrencyFormat);
-          NegCurrFormat := ReadInteger(st_rs_NegCurrFormat);
-          ThousandSeparator := ReadString(st_rs_ThousandSeparator)[1];
-          DecimalSeparator := ReadString(st_rs_DecimalSeparator)[1];
-          CurrencyDecimals := ReadInteger(st_rs_CurrencyDecimals);
-          DateSeparator := ReadString(st_rs_DateSeparator)[1];
-          ShortDateFormat := ReadString(st_rs_ShortDateFormat);
-          LongDateFormat := ReadString(st_rs_LongDateFormat);
-          TimeSeparator := ReadString(st_rs_TimeSeparator)[1];
-          TimeAMString := ReadString(st_rs_TimeAMString);
-          TimePMString := ReadString(st_rs_TimePMString);
-          ShortTimeFormat := ReadString(st_rs_ShortTimeFormat);
-          ListSeparator := ReadString(st_rs_ListSeparator)[1];
-
-          NumberDecimals := ReadInteger(st_rs_NumberDecimals);
-          NumberGroupCount := ReadInteger(st_rs_NumberGroupCount);
-          NegativeChar := ReadString(st_rs_NegativeChar, Def_NegativeChar)[1];
-          NegativeFormat := ReadInteger(st_rs_NegativeFormat);
-          LeadingZero := ReadInteger(st_rs_LeadingZero);
-          CurrSeparator := ReadString(st_rs_CurrSeparator, Def_CurrSeparator)[1];
-          CurrThousandSeparator := ReadString(st_rs_CurrThousandSeparator,
-            Def_CurrThousandSeparator)[1];
-          CurrGroup := ReadInteger(st_rs_CurrGroup);
-        end else
-          LoadSystemLocalSettingsIntoDelphiVars;
-    finally
-      GlobalStorage.CloseFolder(RegSetting, False);
-    end;
-  end;
-  *)
 
   if Pos('dd.mm.yy', AnsiLowerCase(ShortDateFormat)) <> 1 then
   begin
@@ -220,39 +160,28 @@ begin
     if Assigned(gdSplash) then
       gdSplash.ShowText(sInitMacrosSystem);
 
-//    dm_i_ClientReport.DoConnect;
     PropertySettings := prp_PropertySettings.LoadSettings;
     if Assigned(ScriptFactory) then
       ScriptFactory.ExceptionFlags := PropertySettings.Exceptions;
   end;
 
-  if not GlobalStorage.ReadBoolean('Options', 'MultipleConnect', True) then
+  if (not GlobalStorage.ReadBoolean('Options', 'MultipleConnect', True))
+    and (not IBLogin.IsIBUserAdmin) then
   begin
-    with TIBDatabaseInfo.Create(nil) do
-    try
-      Database := gdcBaseManager.Database;
-      for I := 0 to UserNames.Count - 1 do
-      begin
-        if UserNames[I] = IBLogin.IBName then
-        begin
-          for J := I + 1 to UserNames.Count - 1 do
-          begin
-            if UserNames[J] = IBLogin.IBName then
-            begin
-              MessageBox(0,
-                'Кто-то уже подключен к базе данных под данной учетной записью.'#13#10 +
-                'Системными установками вторичные подключения запрещены.',
-                'Внимание',
-                MB_OK or MB_ICONHAND or MB_TASKMODAL);
-              Application.Terminate;  
-              break;
-            end;
-          end;
-          break;
-        end;
-      end;
-    finally
-      Free;
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT FIRST 1 mon$remote_address FROM mon$attachments ' +
+      'WHERE mon$attachment_id <> CURRENT_CONNECTION AND mon$user = CURRENT_USER',
+      0, R);
+    if not VarIsEmpty(R)then
+    begin
+      MessageBox(0,
+        PChar(
+          'С IP адреса ' + String(R[0, 0]) + ' уже выполнено'#13#10 +
+          'подключение под данной учетной записью.'#13#10#13#10 +
+          'Системными установками вторичные подключения запрещены.'),
+        'Внимание',
+        MB_OK or MB_ICONHAND or MB_TASKMODAL);
+      Application.Terminate;
     end;
   end;
 end;
@@ -266,24 +195,7 @@ begin
 end;
 
 procedure TdmLogin.boLoginBeforeDisconnect(Sender: TObject);
-{var
-  MS: TMemoryStream; }
 begin
-//  if FSystemConnect then
-//    Exit;
-
-{  if Assigned(UserStorage) and Assigned(SynManager) then
-  begin
-    MS := TMemoryStream.Create;
-    try
-      SynManager.SaveToStream(MS);
-      MS.Position := 0;
-      UserStorage.WriteStream(SM_SYNC_PATH, 'DATA', MS);
-    finally
-      MS.Free;
-    end;
-  end;  }
-
   //TipTop: Перенесено 01.04.2003
   SaveStorages;
 

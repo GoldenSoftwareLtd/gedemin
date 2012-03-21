@@ -49,8 +49,22 @@ implementation
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
+  gd_directories_const, IBSQL, IBDatabase, 
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version;
+
+type
+  TMemoryStatusEx = record
+    dwLength: DWORD;
+    dwMemoryLoad: DWORD;
+    ullTotalPhys: Int64;
+    ullAvailPhys: Int64;
+    ullTotalPageFile: Int64;
+    ullAvailPageFile: Int64;
+    ullTotalVirtual: Int64;
+    ullAvailVirtual: Int64;
+    ullAvailExtendedVirtual: Int64;
+  end;
 
 function GetDiskSizeAvail(TheDrive: PChar; var Total: Integer; var Free: Integer): Boolean;
 var
@@ -97,13 +111,28 @@ begin
   end;
 end;
 
-function GetRAM: string;
+function GetGlobalMemoryRecord: TMemoryStatusEx;
+type
+  TGlobalMemoryStatusEx = procedure(var lpBuffer: TMemoryStatusEx); stdcall;
 var
-  Info: TMemoryStatus;
+  h : THandle;
+  gms : TGlobalMemoryStatusEx;
 begin
-  Info.dwLength := SizeOf(TMemoryStatus);
-  GlobalMemoryStatus(Info);
-  Result := FormatFloat('#,##0', Info.dwTotalPhys div 1024 div 1024) + ' Мб';
+  FillChar(Result, SizeOf(Result), 0);
+  h := LoadLibrary(kernel32);
+  try
+    if h <> 0 then
+    begin
+      @gms := GetProcAddress(h, 'GlobalMemoryStatusEx');
+      if @gms <> nil then
+      begin
+        Result.dwLength := SizeOf(Result);
+        gms(Result);
+      end;
+    end;
+  finally
+    FreeLibrary(h);
+  end;
 end;
 
 function GetOS: String;
@@ -232,6 +261,8 @@ var
   WSAData: TWSAData;
   CompName: array[0..$FF] of Char;
   DriveLetter: Char;
+  Tr: TIBTransaction;
+  q: TIBSQL;
 begin
   mSysData.ClearAll;
 
@@ -241,14 +272,14 @@ begin
     try
       Database := IBLogin.Database;
 
-      AddSection('Cервер');
+      AddSection('Cервер базы данных');
       AddSpaces('Версия сервера',  Version);
       if IBLogin.ServerName > '' then
       begin
         AddSpaces('Имя компьютера/порт',  IBLogin.ServerName);
         AddSpaces('IP сервера',  HostToIP(IBLogin.ServerName));
       end;
-      AddBoolean('Встроенный сервер',  IBLogin.ServerName = '');
+      //AddBoolean('Встроенный сервер',  IBLogin.ServerName = '');
       AddSpaces('Имя файла БД',  DBFileName);
       AddSpaces('ODS версия',  IntToStr(ODSMajorVersion) + '.' + IntToStr(ODSMinorVersion));
       AddSpaces('Размер страницы',  IntToStr(PageSize));
@@ -267,13 +298,18 @@ begin
     WSACleanup;
   end;
 
-  AddSection('Гедымин');
+  AddSection('Компьютер');
   AddSpaces('Название компютера', CompName);
   AddSpaces('IP адрес', HostToIP(CompName));
-  AddSpaces('ОЗУ', GetRAM);
+  AddSpaces('ОЗУ всего', FormatFloat('#,##0', GetGlobalMemoryRecord.ullTotalPhys div 1024 div 1024) + ' Мб');
+  AddSpaces('ОЗУ свободно', FormatFloat('#,##0', GetGlobalMemoryRecord.ullAvailPhys div 1024 div 1024) + ' Мб');
   AddSpaces('Версия ОС', GetOS);
+  AddSpaces('Дата и время', FormatDateTime('dd.mm.yyyy hh:nn:ss', Now));
+
+  AddSection('Гедымин');
   AddSpaces('Имя файла', ExtractFileName(Application.EXEName));
   AddSpaces('Расположение', ExtractFilePath(Application.EXEName));
+  AddSpaces('Дата файла', FormatDateTime('dd.mm.yyyy', FileDateToDateTime(FileAge(Application.EXEName))));
   if VersionResourceAvailable(Application.EXEName) then
     with TjclFileVersionInfo.Create(Application.EXEName) do
     try
@@ -335,8 +371,23 @@ begin
   {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
-  AddComLibrary('{9E8D2FA1-591C-11D0-BF52-0020AF32BD64}', 'MIDAS.DLL');
-  AddComLibrary('{7C916B87-94DF-4712-A5AC-10C971C7E160}', 'GSDBQUERY.DLL');
+  AddComLibrary(MIDAS_GUID1, 'MIDAS.DLL');
+  AddComLibrary(GSDBQUERY_GUID, 'GSDBQUERY.DLL');
+
+  AddSection('Региональные установки');
+  AddSpaces('CurrencyString', CurrencyString);
+  AddSpaces('ThousandSeparator', '"' + ThousandSeparator + '"');
+  AddSpaces('DecimalSeparator', DecimalSeparator);
+  AddSpaces('CurrencyDecimals', IntToStr(CurrencyDecimals));
+  AddSpaces('DateSeparator', DateSeparator);
+  AddSpaces('ShortDateFormat', ShortDateFormat);
+  AddSpaces('LongDateFormat', LongDateFormat);
+  AddSpaces('TimeSeparator', TimeSeparator);
+  AddSpaces('TimeAMString', TimeAMString);
+  AddSpaces('TimePMString', TimePMString);
+  AddSpaces('ShortTimeFormat', ShortTimeFormat);
+  AddSpaces('LongTimeFormat', LongTimeFormat);
+  AddSpaces('TwoDigitYearCenturyWindow', IntToStr(TwoDigitYearCenturyWindow));
 
   AddSection('Жесткие диски');
   for DriveLetter := 'C' to 'Z' do
@@ -412,6 +463,84 @@ begin
 
   FillTempFiles;
 
+  if Assigned(IBLogin) and IBLogin.LoggedIn and Assigned(gdcBaseManager) then
+  begin
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+    try
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      Tr.StartTransaction;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'SELECT CURRENT_CONNECTION as conn, CURRENT_ROLE as role, CURRENT_USER as usr, ' +
+        'CURRENT_DATE as dt, CURRENT_TIME as tm  FROM rdb$database';
+      q.ExecQuery;
+      AddSection('Контекстные переменные');
+      AddSpaces('CURRENT_CONNECTION',  q.FieldByName('conn').AsString);
+      AddSpaces('CURRENT_ROLE',  q.FieldByName('role').AsString);
+      AddSpaces('CURRENT_USER',  q.FieldByName('usr').AsString);
+      AddSpaces('CURRENT_DATE',  q.FieldByName('dt').AsString);
+      AddSpaces('CURRENT_TIME',  q.FieldByName('tm').AsString);
+
+      q.Close;
+      q.SQL.Text :=
+        'SELECT mon$variable_name, mon$variable_value ' +
+        'FROM mon$context_variables WHERE mon$transaction_id IS NULL';
+      q.ExecQuery;
+      while not q.EOF do
+      begin
+        AddSpaces(q.Fields[0].AsString,  q.Fields[1].AsString);
+        q.Next;
+      end;
+
+      q.Close;
+      q.SQL.Text := 'SELECT * FROM mon$database';
+      q.ExecQuery;
+      if not q.EOF then
+      begin
+        AddSection('MON$DATABASE');
+        for I := 0 to q.Current.Count - 1 do
+          AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+      end;
+
+      q.Close;
+      q.SQL.Text :=
+        'SELECT u.name as username, a.*, ROUND(mu.mon$memory_used / 1024 / 1024 + 0.5) || '' Mb'' AS mon$memory_usage ' +
+        'FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+        '  JOIN mon$memory_usage mu ON mu.mon$stat_id = a.mon$stat_id ' +
+        'WHERE mon$attachment_id = CURRENT_CONNECTION';
+      q.ExecQuery;
+      if not q.EOF then
+      begin
+        AddSection('Текущее подключение из MON$ATTACHMENTS');
+        for I := 0 to q.Current.Count - 1 do
+          AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+      end;
+
+      if IBLogin.IsIBUserAdmin then
+      begin
+        q.Close;
+        q.SQL.Text :=
+          'SELECT u.name as username, a.*, ROUND(mu.mon$memory_used / 1024 / 1024 + 0.5) || '' Mb'' AS mon$memory_usage ' +
+          'FROM mon$attachments a JOIN gd_user u ON u.ibname = a.mon$user ' +
+          '  JOIN mon$memory_usage mu ON mu.mon$stat_id = a.mon$stat_id ' +
+          'WHERE mon$attachment_id <> CURRENT_CONNECTION';
+        q.ExecQuery;
+        while not q.EOF do
+        begin
+          AddSection(q.FieldByName('username').AsTrimString);
+          for I := 0 to q.Current.Count - 1 do
+            AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
+          q.Next;
+        end;
+      end;  
+    finally
+      q.Free;
+      Tr.Free;
+    end;
+  end;
+
   mSysData.SelStart := 0;
 end;
 
@@ -445,6 +574,7 @@ begin
 
       AddSection('Библиотека ' + ExtractFileName(Ch));
       AddSpaces('Имя файла', Ch);
+      AddSpaces('Дата файла', FormatDateTime('dd.mm.yyyy', FileDateToDateTime(FileAge(Ch))));
 
       if VersionResourceAvailable(Ch) then
         with TjclFileVersionInfo.Create(Ch) do
@@ -488,6 +618,7 @@ var
   Reg: TRegistry;
   FN: String;
   Flag: Boolean;
+  FAge: Integer;
 begin
   Flag := False;
 
@@ -504,6 +635,10 @@ begin
       if FileExists(FN) then
       begin
         AddSpaces('Имя файла', FN);
+
+        FAge := FileAge(FN);
+        if FAge > -1 then
+          AddSpaces('Дата файла', FormatDateTime('dd.mm.yyyy', FileDateToDateTime(FAge)));
 
         if VersionResourceAvailable(FN) then
           with TjclFileVersionInfo.Create(FN) do

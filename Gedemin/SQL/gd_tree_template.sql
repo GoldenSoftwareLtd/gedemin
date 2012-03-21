@@ -1,20 +1,10 @@
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
-
 /* set windows code page */
 SET NAMES WIN1251;
 
 SET SQL DIALECT 3;
 
-CONNECT 'czech:k:\bases\gedemin\etalon.fdb'
+CONNECT 'localhost:c:\temp\test.fdb'
   USER 'SYSDBA' PASSWORD 'masterkey';
 
 COMMIT;

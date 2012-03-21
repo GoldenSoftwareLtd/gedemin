@@ -27,10 +27,11 @@ type
     ibluSetting: TgsIBLookupComboBox;
     Label1: TLabel;
     Label2: TLabel;
-    Button1: TButton;
+    btnAddToSetting: TButton;
     Label3: TLabel;
     Button2: TButton;
     Bevel1: TBevel;
+    chbxWithDetail: TCheckBox;
     procedure actAddToSettingExecute(Sender: TObject);
     procedure actDelFromSettingExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
@@ -211,7 +212,7 @@ end;
 procedure TdlgToSetting.actAddToSettingExecute(Sender: TObject);
 var
   NewID: Integer;
-  WithDetail: Boolean;
+  //WithDetail: Boolean;
   OldID: Integer;
 begin
   FWasChange := True;
@@ -229,12 +230,12 @@ begin
         FgdcSettingObject.Open;
         if FgdcSettingObject is TgdcSettingPos then
         begin
-          WithDetail := (MessageBox(HWND(nil), PChar('Сохранять объект ' +
+          {WithDetail := (MessageBox(HWND(nil), PChar('Сохранять объект ' +
             FgdcObject.GetDisplayName(FgdcObject.SubType) +  ' ' +
             FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString +
             ' вместе с детальными?'), 'Внимание!',
-            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES);
-          (FgdcSettingObject as TgdcSettingPos).AddPos(FgdcObject, WithDetail);
+            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES);}
+          (FgdcSettingObject as TgdcSettingPos).AddPos(FgdcObject, chbxWithDetail.Checked);
         end else if FgdcSettingObject is TgdcSettingStorage then
         begin
           (FgdcSettingObject as TgdcSettingStorage).AddPos(FBranchName, FValueName);
@@ -357,7 +358,7 @@ var
   StID: String; //Строка идентификаторов
   XID, DBID: TID;
   ASettingPos: TgdcSettingPos;
-  WithDetail: Boolean;
+  //WithDetail: Boolean;
 begin
   if not FWasChange then
   begin
@@ -375,9 +376,9 @@ begin
           '?'), 'Внимание!', MB_ICONQUESTION or MB_YESNO) = IDYES
         then
         begin
-          WithDetail := (MessageBox(HWND(nil), PChar('Сохранять выбранные объекты ' +
+          {WithDetail := (MessageBox(HWND(nil), PChar('Сохранять выбранные объекты ' +
             ' вместе с детальными?'), 'Внимание!',
-            MB_YESNO or MB_ICONQUESTION) = IDYES);
+            MB_YESNO or MB_ICONQUESTION) = IDYES);}
   {Т.к. мы можем выбрать несколько записей только в б-о (ветки стораджа выбираются по одной),
    то нам понадобится еще дополнительный б-о типа TgdcSettingPos для манипуляций с записями}
           ASettingPos := TgdcSettingPos.CreateSubType(nil, '', 'BySetting');
@@ -438,7 +439,7 @@ begin
                     ASettingPos.ParamByName('settingkey').AsInteger :=
                       qrySetting.FieldByName('id').AsInteger;
                     ASettingPos.Open;
-                    ASettingPos.AddPos(FgdcObject, WithDetail);
+                    ASettingPos.AddPos(FgdcObject, chbxWithDetail.Checked);
                   end else if FgdcSettingObject is TgdcSettingStorage then
                   begin
                     //Ветки хранилища у нас выбираются по одной

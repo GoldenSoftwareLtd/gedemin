@@ -46,7 +46,8 @@ begin
   if gdSplash <> nil then
   begin
     Label1.Caption := AText;
-    Application.ProcessMessages;
+    Label1.Repaint;
+    //Application.ProcessMessages;
   end;
 end;
 

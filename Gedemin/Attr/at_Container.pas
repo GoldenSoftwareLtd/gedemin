@@ -136,7 +136,6 @@ type
 
   end;
 
-
   TatCheckBoxControl = class(TatControl)
   private
     function GetCheckBoxEdit: TDBCheckBox;
@@ -248,7 +247,6 @@ type
 
   protected
     procedure ActiveChanged; override;
-//    procedure GetRelationData(out RelationName: String; RelationFields: TStringList);
     procedure EditingChanged; override;
 
     property IBDataSet: TIBCustomDataSet read GetIBDataSet;
@@ -258,31 +256,6 @@ type
     destructor Destroy; override;
 
   end;
-
-
-{  TatPanel = class(TPanel)
-  private
-    FContainer: TatContainer;
-    FCategory: String;
-    FControls: TObjectList;
-
-    function GetLabelIndent: Integer;
-
-  protected
-    function ColWidthToPixels(const Width: Integer): Integer;
-
-    procedure AdjustDefaultValues;
-    procedure PlugControls; dynamic;
-
-    property LabelIndent: Integer read GetLabelIndent;
-
-  public
-    constructor Create(AnOwner: TComponent; AContainer: TatContainer); reintroduce;
-    destructor Destroy; override;
-
-    property Category: String read FCategory write FCategory;
-
-  end;}
 
 
   TCategoryList = class(TStringList)
@@ -307,7 +280,7 @@ type
   private
     FDataLink: TatDataLink;
     FBorderStyle: TBorderStyle;
-    FControls: TObjectList;
+    FControls: TStringList;
 
     FStoredCategories: TObjectList;
 
@@ -316,6 +289,7 @@ type
     FOnRelationNames: TatOnRelationNames;
     FOnAdjustControl: TatOnAdjustControl;
     FReloading: Boolean;
+    FSorted: Boolean;
 
     function GetDataSource: TDataSource;
     procedure SetDataSource(const Value: TDataSource);
@@ -327,6 +301,7 @@ type
     function GetControlByFieldName(AFieldName: String): TControl;
 
     function GetLabelIndent: Integer;
+    
   protected
     procedure ActiveChanged; dynamic;
     procedure CreateParams(var Params: TCreateParams); override;
@@ -346,20 +321,18 @@ type
     procedure PlugControls2;
 
     procedure KillControls;
+    procedure Clear;
 
     function ColWidthToPixels(const Width: Integer): Integer;
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-
-//    procedure LoadFromStream(Stream: TStream);
-//    procedure SaveToStream(Stream: TStream);
-
     property ControlByFieldName[AFieldName: String]: TControl read
       GetControlByFieldName;
 
     property LabelIndent: Integer read GetLabelIndent;
+    property Sorted: Boolean read FSorted write FSorted;
 
   published
     property DataSource: TDataSource read GetDataSource write SetDataSource;
@@ -472,8 +445,6 @@ begin
 end;
 
 constructor TatContainer.Create(AnOwner: TComponent);
-{var
-  I: TMenuItem;}
 begin
   inherited;
 
@@ -485,18 +456,20 @@ begin
 
   FDataLink := TatDataLink.Create(Self);
 
-  FControls := TObjectList.Create;
+  FControls := TStringList.Create;
+  FControls.Sorted := False;
+  FSorted := False;
 
   FCurrRelation := '';
 
   FStoredCategories := TObjectList.Create(True);
-
 end;
 
-destructor TatContainer.Destroy;
+destructor TatContainer.Destroy; 
 begin
   FDataLink.Free;
 
+  Clear;
   FControls.Free;
 
   FStoredCategories.Free;
@@ -521,7 +494,7 @@ var
   F: TatRelationField;
   C: TCategoryList;
 
-  ibsql: TIBSQL;
+  ibsql: TIBSQL; 
 
 
   // сортировка по наименованию таблиц и наименованию полей.
@@ -703,9 +676,13 @@ begin
           atRelationField := RelationFields.Objects[J] as TatRelationField
         else
           atRelationField := nil;
-
         if Assigned(atRelationField) then
-          FControls.Insert(0, CreateControl(RelationFields[J], atRelationField))
+        begin
+          if atRelationField.LName > '' then
+            FControls.InsertObject(0, atRelationField.LName, CreateControl(RelationFields[J], atRelationField))
+          else
+            FControls.InsertObject(0, atRelationField.FieldName, CreateControl(RelationFields[J], atRelationField));
+        end
         else
           C.Delete(K);
       end;
@@ -736,8 +713,11 @@ begin
       try
         TCreateableForm(Owner).Resizer.ReloadComponent(True);
         for I := 0 to FControls.Count - 1 do
-          if TatControl(FControls[I]).Control.InheritsFrom(TgsIBLookupComboBox) then
-            (TatControl(FControls[I]).Control as TgsIBLookupComboBox).SyncWithDataSource;
+        begin
+          Assert(FControls.Objects[I] is TatControl);
+          if TatControl(FControls.Objects[I]).Control.InheritsFrom(TgsIBLookupComboBox) then
+            (TatControl(FControls.Objects[I]).Control as TgsIBLookupComboBox).SyncWithDataSource;
+        end;
       finally
         FReloading := False;
       end
@@ -758,12 +738,23 @@ begin
     or (IBLogin.Database.Connected) then
   begin
     for I := 0 to FControls.Count - 1 do
-      TatControl(FControls[I]).KillControls;
-    FControls.Clear;
-
+    begin
+      Assert(FControls.Objects[I] is TatControl);
+      TatControl(FControls.Objects[I]).KillControls;
+    end;
+    Clear;
     FCurrRelation := '';
     PopupMenu := nil;
   end;
+end;
+
+procedure TatContainer.Clear;
+var
+  I: Integer;
+begin
+  for I := 0 to FControls.Count - 1 do
+    FControls.Objects[I].Free;
+  FControls.Clear;
 end;
 
 procedure TatContainer.SetDataSource(const Value: TDataSource);
@@ -877,7 +868,10 @@ var
   I: Integer;
 begin
   for I := 0 to FControls.Count - 1 do
-    (FControls[I] as TatControl).AdjustDefaultValue;
+  begin
+    Assert(FControls.Objects[I] is TatControl);
+    (FControls.Objects[I] as TatControl).AdjustDefaultValue;
+  end;
 end;
 
 
@@ -933,7 +927,7 @@ var
   K: Integer;
 begin
   for K := 0 to FControls.Count - 1 do
-  with FControls[K] as TatControl do
+  with FControls.Objects[K] as TatControl do
     if AnsiCompareText(FFieldName, AFieldName) = 0 then
     begin
       Result := FControl;
@@ -958,7 +952,7 @@ begin
   Result := 0;
 
   for I := 0 to FControls.Count - 1 do
-  with (FControls[I] as TatControl) do
+  with (FControls.Objects[I] as TatControl) do
     if LabelWidth > Result then
       Result := LabelWidth;
 end;
@@ -969,16 +963,22 @@ var
   I: Integer;
   Indent: Integer;
 begin
+  if FSorted then
+    FControls.Sort; 
+
   CurrX := AT_START_X;
   CurrY := AT_START_Y;
 
   for I := 0 to FControls.Count - 1 do
-    (FControls[I] as TatControl).PrepareToPlug;
+  begin
+    Assert(FControls.Objects[I] is TatControl);
+    (FControls.Objects[I] as TatControl).PrepareToPlug;
+  end;
 
   Indent := LabelIndent;
 
   for I := 0 to FControls.Count - 1 do
-  with FControls[I] as TatControl do
+  with FControls.Objects[I] as TatControl do
   begin
     if AcquireLabel then
     begin

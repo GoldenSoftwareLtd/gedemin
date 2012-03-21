@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -23,14 +23,6 @@
 
 */
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /****************************************************
 
@@ -176,6 +168,4 @@ ALTER TABLE GD_TAXRESULT ADD CONSTRAINT FK_GD_TAXRESULT_D FOREIGN KEY (DOCUMENTK
 ALTER TABLE GD_TAXRESULT ADD CONSTRAINT FK_GD_TAXRESULT_DD FOREIGN KEY (TAXDESIGNDATEKEY) REFERENCES GD_TAXDESIGNDATE (DOCUMENTKEY);
 
 COMMIT;
-
-
 

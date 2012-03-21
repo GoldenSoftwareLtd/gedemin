@@ -95,6 +95,9 @@ type
     FFullSearchOnExit: Boolean;
     FViewType: TgsViewType;
 
+    FIsFocused: Boolean;
+    FFocusChanged: Boolean;
+
     procedure SetDatabase(const Value: TIBDatabase);
     procedure SetTransaction(const Value: TIBTransaction);
     procedure SetDataSource(const Value: TDataSource);
@@ -475,14 +478,14 @@ var
     if FullCondition > '' then
       Fibsql.SQL.Text := Fibsql.SQL.Text + ' AND (' + FullCondition + ') ';
 
-    if (not FShowDisabled)
-      and (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
-      and (tiDisabled in FgdClass.GetTableInfos(FSubType))
+    {if (not FShowDisabled)
+      and (FgdClass <> nil) }{and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
+      {and (tiDisabled in FgdClass.GetTableInfos(FSubType))
       and (GetTableAlias(FgdClass.GetListTable(FSubType)) > '') then
     begin
       Fibsql.SQL.Text := Format('%s AND ((%1:s.disabled IS NULL) OR (%1:s.disabled = 0))',
         [Fibsql.SQL.Text, GetTableAlias(FgdClass.GetListTable(FSubType))]);
-    end;
+    end;}
 
     Fibsql.Prepare;
     Fibsql.ParamByName('V').AsString := Value;
@@ -615,10 +618,10 @@ begin
         SelectCondition := Format(' (%0:s = ''%1:s'') ', [FieldWithAlias(FListField), Text]);
       stLike:
         SelectCondition := Format('(UPPER(%0:s) LIKE ''%%%1:s%%'') ',
-          [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Text))]);
+          [FieldWithAlias(FListField), AnsiUpperCase(ConvertDate(Text))]);
       stSimilarTo:
         SelectCondition := Format('(UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
-          [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Text))]);
+          [FieldWithAlias(FListField), AnsiUpperCase(ConvertDate(Text))]);
     end;
 
     if FFields > '' then
@@ -634,10 +637,10 @@ begin
                 [SelectCondition, FieldWithAlias(Trim(SL[J])), Text]);
             stLike:
               SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) LIKE ''%%%s%%'') ',
-                [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Text))]);
+                [SelectCondition, FieldWithAlias(Trim(SL[J])), AnsiUpperCase(ConvertDate(Text))]);
             stSimilarTo:
               SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) SIMILAR TO ''%%%s%%'') ',
-                [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Text))]);
+                [SelectCondition, FieldWithAlias(Trim(SL[J])), AnsiUpperCase(ConvertDate(Text))]);
           end;
         end;
       finally
@@ -1429,7 +1432,7 @@ begin
       if Match > '' then
       begin
         SelectCondition := Format(' (UPPER(%0:s) SIMILAR TO ''%%%1:s%%'') ',
-          [FieldWithAlias(FListField), _AnsiUpperCase(ConvertDate(Match))]);
+          [FieldWithAlias(FListField), AnsiUpperCase(ConvertDate(Match))]);
 
         if FFields > '' then
         begin
@@ -1438,7 +1441,7 @@ begin
             ParseFieldsString(FFields, SL);
             for J := 0 to SL.Count - 1 do
               SelectCondition := Format('%s OR (UPPER(COALESCE(%s, '''')) SIMILAR TO ''%%%s%%'') ',
-                [SelectCondition, FieldWithAlias(Trim(SL[J])), _AnsiUpperCase(ConvertDate(Match))])
+                [SelectCondition, FieldWithAlias(Trim(SL[J])), AnsiUpperCase(ConvertDate(Match))])
           finally
             SL.Free;
           end;
@@ -2437,9 +2440,30 @@ end;
 
 procedure TgsIBLookupComboBox.CNCommand(var Message: TWMCommand);
 begin
-  if not ReadOnly then
+  if (not ReadOnly) and (FDataLink.CanModify) then
     case Message.NotifyCode of
-      CBN_DROPDOWN: PostMessage(Handle, WM_KEYDOWN, VK_DOWN, 0);
+      CBN_DROPDOWN:
+        begin
+          FFocusChanged := False;
+          DropDown;
+          if FFocusChanged then
+          begin
+            PostMessage(Handle, WM_CANCELMODE, 0, 0);
+            if not FIsFocused then PostMessage(Handle, CB_SHOWDROPDOWN, 0, 0);
+          end;
+        end;
+      CBN_SETFOCUS:
+        begin
+          FIsFocused := True;
+          FFocusChanged := True;
+          inherited;
+        end;
+      CBN_KILLFOCUS:
+        begin
+          FIsFocused := False;
+          FFocusChanged := True;
+          inherited;
+        end;
       else inherited;
     end;
 end;
@@ -3130,7 +3154,7 @@ begin
   FSortOrder := Value;
   if (not (csLoading in ComponentState)) and (FSortOrder <> soNone) then
     FSortField := '';
-end;
+end; 
 
 { TgsIBLCBDataLink }
 

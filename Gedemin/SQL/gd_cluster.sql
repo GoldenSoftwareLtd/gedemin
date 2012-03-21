@@ -1,6 +1,7 @@
+
 /*
 
-  Copyright (c) 2007 by Golden Software of Belarus
+  Copyright (c) 2007-2012 by Golden Software of Belarus
 
   Script
 
@@ -13,15 +14,6 @@
   Status
 
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2007 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 CREATE TABLE gd_cluster_server (
   id         dintkey,
@@ -49,9 +41,3 @@ END
 SET TERM ; ^
 
 COMMIT;
-
-
-
-
-
-

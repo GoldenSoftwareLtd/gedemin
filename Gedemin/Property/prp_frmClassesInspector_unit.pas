@@ -1499,7 +1499,8 @@ begin
     begin
       frmClassesInspector.cbClasses.Items.AddObject(
         Node.Text + '(' + Node.Parent.Text + ')', Node);
-      if TTreeNode(frmClassesInspector.cbClasses.Items.Objects[I]).Parent <> nil then
+      if (frmClassesInspector.cbClasses.Items.Objects[I] is TTreeNode) and
+        (TTreeNode(frmClassesInspector.cbClasses.Items.Objects[I]).Parent <> nil) then
       begin
         frmClassesInspector.cbClasses.Items[I] :=
           frmClassesInspector.cbClasses.Items[I] + '(' +

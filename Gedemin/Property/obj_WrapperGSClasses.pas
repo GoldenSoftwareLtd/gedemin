@@ -49,7 +49,7 @@ uses
   , gsModem
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
-  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form,
+  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form, gsFTPClient,
   gd_WebServerControl_unit;
 
 type
@@ -3736,6 +3736,8 @@ type
     procedure Set_Required(Value: WordBool); safecall;
     function  Get_ValuesList: WideString; safecall;
     procedure Set_ValuesList(const Value: WideString); safecall;
+    function  Get_Transaction: IgsIBTransaction; safecall;
+    procedure Set_Transaction(const Value: IgsIBTransaction); safecall;
     procedure Assign_(const Source: IgsParamData); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
@@ -3775,6 +3777,35 @@ type
     procedure RegisterOnGetEvent(const AComponent: IgsComponent; const AToken: WideString;
                                  const AEventName: WideString); safecall;
     procedure UnRegisterOnGetEvent(const AComponent: IgsComponent); safecall;
+  end;
+
+  TwrpFTPClient = class(TwrpObject, IgsFTPClient)
+  private
+    function GetFTPClient: TgsFTPClient;
+  protected
+    function Get_ServerName: WideString; safecall;
+    procedure Set_ServerName(const Value: WideString); safecall;
+    function Get_ServerPort: Integer; safecall;
+    procedure Set_ServerPort(Value: Integer); safecall;
+    function Get_UserName: WideString; safecall;
+    procedure Set_UserName(const Value: WideString); safecall;
+    function Get_Password: WideString; safecall;
+    procedure Set_Password(const Value: WideString); safecall;
+    function Get_TimeOut: Integer; safecall;
+    procedure Set_TimeOut(Value: Integer); safecall;
+    function Get_Files: WideString; safecall;
+
+    function Connect: WordBool; safecall;
+    function Connected: WordBool; safecall;
+    procedure Close; safecall;
+
+    function GetFile(const RemoteFile: WideString; const LocalFile: WideString; const RemotePath: WideString; Overwrite: Wordbool): WordBool; safecall;
+    function PutFile(const LocalFile: WideString; const RemoteFile: wideString; const RemotePath: WideString; Overwrite: Wordbool): WordBool; safecall;
+    function Deletefile(const RemoteFile: WideString; const RemotePath: WideString): WordBool; safecall;
+    function GetAllFiles(const RemotePath: WideString): WordBool; safecall;
+    function RenameFile(const OldName: WideString; const NewName: WideString; const Path: WideString): WordBool; safecall;
+    function CreateDir(const DirName: WideString): WordBool; safecall;
+    function DeleteDir(const DirName: WideString): WordBool; safecall;
   end;
 
 implementation
@@ -18017,6 +18048,16 @@ begin
   GetParamData.LinkFunctionLanguage := Value;
 end;
 
+function  TwrpGsParamData.Get_Transaction: IgsIBTransaction;
+begin
+  Result := GetGDCOleObject(GetParamData.Transaction) as IgsIBTransaction;
+end;
+
+procedure TwrpGsParamData.Set_Transaction(const Value: IgsIBTransaction);
+begin
+  GetParamData.Transaction := InterfaceToObject(Value) as TIBTransaction;
+end;
+
 procedure TwrpGsParamData.Set_LinkPrimaryField(const Value: WideString);
 begin
   GetParamData.LinkPrimaryField := Value;
@@ -18165,6 +18206,117 @@ end;
 procedure TwrpGdWebServerControl.UnRegisterOnGetEvent(const AComponent: IgsComponent);
 begin
   GetWebServerControl.UnRegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent)
+end;
+
+{ TwrpFTPClient }
+function TwrpFTPClient.GetFTPClient: TgsFTPClient;
+begin
+  Result := GetObject as TgsFTPClient;
+end;
+
+function TwrpFTPClient.Get_ServerName: WideString;
+begin
+  Result := GetFTPClient.ServerName;
+end;
+
+procedure TwrpFTPClient.Set_ServerName(const Value: WideString);
+begin
+  GetFTPClient.ServerName := Value;
+end;
+
+function TwrpFTPClient.Connect: WordBool;
+begin
+  Result := GetFTPClient.Connect;
+end;
+
+function TwrpFTPClient.Get_ServerPort: Integer;
+begin
+  Result := GetFTPClient.ServerPort;
+end;
+
+procedure TwrpFTPClient.Set_ServerPort(Value: Integer);
+begin
+  GetFTPClient.ServerPort := Value;
+end;
+
+function TwrpFTPClient.Get_UserName: WideString;
+begin
+  Result := GetFTPClient.UserName;
+end;
+
+procedure TwrpFTPClient.Set_UserName(const Value: WideString);
+begin
+  GetFTPClient.UserName := Value;
+end;
+
+function TwrpFTPClient.Get_Password: WideString;
+begin
+  Result := GetFTPClient.Password;
+end;
+
+procedure TwrpFTPClient.Set_Password(const Value: WideString);
+begin
+  GetFTPClient.Password := Value;
+end;
+
+function TwrpFTPClient.Get_TimeOut: Integer;
+begin
+  Result := GetFTPClient.TimeOut;
+end;
+
+procedure TwrpFTPClient.Set_TimeOut(Value: Integer); safecall;
+begin
+  GetFTPClient.TimeOut := Value;
+end;
+
+function TwrpFTPClient.Get_Files: WideString;
+begin
+  Result := GetFTPClient.Files;
+end;
+
+function TwrpFTPClient.GetAllFiles(const RemotePath: WideString): WordBool;
+begin
+  Result := GetFTPClient.GetAllFiles(RemotePath);
+end;
+
+function TwrpFTPClient.Connected: WordBool;
+begin
+  Result := GetFTPClient.Connected;
+end;
+
+procedure TwrpFTPClient.Close;
+begin
+  GetFTPClient.Close;
+end;
+
+function TwrpFTPClient.GetFile(const RemoteFile: WideString; const LocalFile: WideString; const RemotePath: WideString; Overwrite: Wordbool): WordBool;
+begin
+  Result := GetFTPClient.GetFile(RemoteFile, LocalFile, RemotePath, OverWrite);
+end;
+
+function TwrpFTPClient.PutFile(const LocalFile: WideString; const RemoteFile: WideString; const RemotePath: WideString; OverWrite: Wordbool): WordBool;
+begin
+  Result := GetFTPClient.PutFile(LocalFile, RemoteFile, RemotePath, OverWrite);
+end;
+
+function TwrpFTPClient.DeleteFile(const RemoteFile: WideString; const RemotePath: WideString): WordBool;
+begin
+  Result := GetFTPClient.DeleteFile(RemoteFile, RemotePath);
+end;
+
+function TwrpFTPClient.RenameFile(const OldName: WideString; const NewName: WideString; const Path: WideString): WordBool;
+begin
+  Result := GetFTPClient.RenameFile(OldName, NewName, Path);
+end;
+
+function TwrpFTPClient.CreateDir(const DirName: WideString): WordBool;
+begin
+  Result := GetFTPClient.CreateDir(DirName);
+end;
+
+function TwrpFTPClient.DeleteDir(const DirName: WideString): WordBool;
+begin
+  Result := GetFTPClient.DeleteDir(DirName);
 end;
 
 initialization
@@ -18406,4 +18558,4 @@ initialization
   RegisterGdcOLEClass(TfrmGedeminMain, TwrpGsFrmGedeminMain, ComServer.TypeLib, IID_IgsFrmGedeminMain);
 
   RegisterGdcOLEClass(TgdWebServerControl, TwrpGdWebServerControl, ComServer.TypeLib, IID_IgdWebServerControl);
-end.
+  RegisterGdcOLEClass(TgsFTPClient, TwrpFTPClient, ComServer.TypeLib, IID_IgsFTPClient);end.

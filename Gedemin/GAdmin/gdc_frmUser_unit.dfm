@@ -8,13 +8,13 @@ inherited gdc_frmUser: Tgdc_frmUser
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 346
-    Width = 741
+    Top = 335
+    Width = 733
   end
   inherited TBDockTop: TTBDock
-    Width = 741
+    Width = 733
     inherited tbMainCustom: TTBToolbar
-      Left = 491
+      Left = 483
       Visible = True
       object TBControlItem1: TTBControlItem
         Control = chbxAllGroups
@@ -70,41 +70,43 @@ inherited gdc_frmUser: Tgdc_frmUser
         end
       end
     end
+    inherited tbChooseMain: TTBToolbar
+      Left = 450
+    end
   end
   inherited TBDockLeft: TTBDock
-    Height = 288
+    Height = 275
   end
   inherited TBDockRight: TTBDock
-    Left = 732
-    Height = 288
+    Left = 724
+    Height = 275
   end
   inherited TBDockBottom: TTBDock
-    Top = 337
-    Width = 741
+    Top = 326
+    Width = 733
   end
   inherited pnlWorkArea: TPanel
-    Width = 723
-    Height = 288
-    TabOrder = 0
+    Width = 715
+    Height = 275
     inherited spChoose: TSplitter
-      Top = 185
-      Width = 723
+      Top = 172
+      Width = 715
     end
     inherited pnlMain: TPanel
-      Width = 723
-      Height = 185
+      Width = 715
+      Height = 172
       inherited pnlSearchMain: TPanel
-        Height = 185
+        Height = 172
         inherited sbSearchMain: TScrollBox
-          Height = 147
+          Height = 134
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 147
+          Top = 134
         end
       end
       inherited ibgrMain: TgsIBGrid
-        Width = 563
-        Height = 185
+        Width = 555
+        Height = 172
         ColumnEditors = <
           item
             Lookup.LookupListField = 'name'
@@ -121,16 +123,16 @@ inherited gdc_frmUser: Tgdc_frmUser
       end
     end
     inherited pnChoose: TPanel
-      Top = 189
-      Width = 723
+      Top = 176
+      Width = 715
       inherited pnButtonChoose: TPanel
-        Left = 618
+        Left = 610
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 618
+        Width = 610
       end
       inherited pnlChooseCaption: TPanel
-        Width = 723
+        Width = 715
       end
     end
   end

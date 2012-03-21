@@ -557,7 +557,8 @@ begin
       q.Transaction := gdcBaseManager.ReadTransaction;
 
       if (gdcObject.FieldByName('taxid').AsString > '')
-        and (GlobalStorage.ReadBoolean('Options', 'CheckUNN', True)) then
+        and (GlobalStorage.ReadBoolean('Options', 'CheckUNN', True))
+        and ((gdcObject.State = dsInsert) or gdcObject.FieldChanged('taxid')) then
       begin
         q.SQL.Text :=
           'SELECT cc.companykey, c.name FROM gd_companycode cc JOIN gd_contact c ON c.id = cc.companykey ' +
@@ -587,9 +588,10 @@ begin
         end;
       end;
 
-      if GlobalStorage.ReadBoolean('Options', 'CheckName', True) then
+      if GlobalStorage.ReadBoolean('Options', 'CheckName', True)
+        and ((gdcObject.State = dsInsert) or gdcObject.FieldChanged('name')) then
       begin
-        S := _AnsiUpperCase(Trim(gdcObject.FieldByName('name').AsString));
+        S := AnsiUpperCase(Trim(gdcObject.FieldByName('name').AsString));
 
         for I := 1 to ArrCount do
         begin

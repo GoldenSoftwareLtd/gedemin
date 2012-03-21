@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -23,14 +23,6 @@
 
 */
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /* Реест чеков */
 
@@ -95,7 +87,6 @@ CREATE TABLE bn_checklistline
   accounttext       dbankaccount,
   sumncu            dcurrency
 );
-
 
 ALTER TABLE bn_checklistline
   ADD CONSTRAINT bn_pk_checklistline PRIMARY KEY (id);

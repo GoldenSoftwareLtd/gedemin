@@ -9,6 +9,7 @@ uses
   procedure AddHolding(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
+
 uses
   IBSQL;
 

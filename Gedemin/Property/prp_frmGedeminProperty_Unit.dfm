@@ -12,21 +12,21 @@ inherited frmGedeminProperty: TfrmGedeminProperty
   TextHeight = 13
   inherited VLSplitter: TSplitter
     Left = 17
-    Top = 76
-    Height = 249
+    Top = 78
+    Height = 236
   end
   inherited VRSplitter: TSplitter
-    Left = 567
-    Top = 76
-    Height = 249
+    Left = 559
+    Top = 78
+    Height = 236
   end
   inherited HSplitter: TSplitter
-    Top = 334
-    Width = 584
+    Top = 323
+    Width = 576
   end
   inherited tbdTop: TTBDock
-    Width = 584
-    Height = 76
+    Width = 576
+    Height = 78
     BoundLines = [blBottom]
     object tbtMenu: TTBToolbar
       Left = 0
@@ -284,7 +284,7 @@ inherited frmGedeminProperty: TfrmGedeminProperty
     end
     object tbtTree: TTBToolbar
       Left = 0
-      Top = 23
+      Top = 25
       Caption = 'Панель инструментов'
       CloseButton = False
       DockMode = dmCannotFloat
@@ -316,7 +316,7 @@ inherited frmGedeminProperty: TfrmGedeminProperty
     end
     object tbtSpeedButtons: TTBToolbar
       Left = 0
-      Top = 49
+      Top = 51
       Caption = 'tbtSpeedButtons'
       CloseButton = False
       DockMode = dmCannotFloat
@@ -329,7 +329,7 @@ inherited frmGedeminProperty: TfrmGedeminProperty
     end
     object TBToolbar5: TTBToolbar
       Left = 85
-      Top = 23
+      Top = 25
       Caption = 'Панель инструментов'
       CloseButton = False
       DockMode = dmCannotFloat
@@ -364,7 +364,7 @@ inherited frmGedeminProperty: TfrmGedeminProperty
     end
     object TBToolbar1: TTBToolbar
       Left = 222
-      Top = 23
+      Top = 25
       Caption = 'Панель инструментов'
       CloseButton = False
       DockMode = dmCannotFloat
@@ -420,7 +420,7 @@ inherited frmGedeminProperty: TfrmGedeminProperty
     end
     object TBToolbar2: TTBToolbar
       Left = 480
-      Top = 23
+      Top = 25
       Caption = 'TBToolbar2'
       DockMode = dmCannotFloat
       DockPos = 456
@@ -433,38 +433,38 @@ inherited frmGedeminProperty: TfrmGedeminProperty
     end
   end
   inherited LeftDockPanel: TPanel
-    Top = 76
+    Top = 78
     Width = 17
-    Height = 249
+    Height = 236
   end
   inherited RightDockPanel: TPanel
-    Left = 571
-    Top = 76
+    Left = 563
+    Top = 78
     Width = 13
-    Height = 249
+    Height = 236
   end
   inherited BottomDockPanel: TPanel
-    Top = 338
-    Width = 584
+    Top = 327
+    Width = 576
     Height = 17
   end
   inherited tbdLeft: TTBDock
     Left = 21
-    Top = 76
-    Height = 249
+    Top = 78
+    Height = 236
   end
   inherited tbdBottom: TTBDock
-    Top = 325
-    Width = 584
+    Top = 314
+    Width = 576
   end
   inherited tbdRight: TTBDock
-    Left = 558
-    Top = 76
-    Height = 249
+    Left = 550
+    Top = 78
+    Height = 236
   end
   inherited StatusBar: TStatusBar
-    Top = 355
-    Width = 584
+    Top = 344
+    Width = 576
     Panels = <
       item
         Alignment = taCenter

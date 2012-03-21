@@ -2834,7 +2834,17 @@ begin
   {END MACRO}
 
   if (FAddCompany) or (sLoadFromStream in BaseState) then
+  try
     inherited;
+  except
+    // суть этого подавления в том, что у нас может быть уже
+    // в базе компания с таким ИД, но она не рабочая компания
+    on E: EIBError do
+    begin
+      if (E.IBErrorCode <> isc_unique_key_violation) or (not (sLoadFromStream in BaseState)) then
+        raise;
+    end;
+  end;
 
   CustomExecQuery('INSERT INTO gd_ourcompany(COMPANYKEY, AVIEW, ACHAG, AFULL) ' +
    ' VALUES (:NEW_ID, :NEW_AVIEW, :NEW_ACHAG, :NEW_AFULL)', Buff);

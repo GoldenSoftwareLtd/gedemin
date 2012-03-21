@@ -42,6 +42,11 @@ implementation
 
 {$R *.DFM}
 
+function LNameSortCompare(Item1, Item2: Pointer): Integer;
+begin
+  Result := AnsiCompareText(Trim(TatRelationField(item1).LName), Trim(TatRelationField(item2).LName));
+end;
+
 { TfrAnalytics }
 
 constructor TfrAnalytics.Create(AOwner: TComponent);
@@ -283,6 +288,7 @@ begin
     FAnalyticLines.Clear;
 
     W := 0;
+    FAccountAnalyticFields.Sort(LNameSortCompare);
     for I := 0 to FAccountAnalyticFields.Count - 1 do
     begin
       Line := nil;

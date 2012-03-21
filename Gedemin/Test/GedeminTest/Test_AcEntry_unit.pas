@@ -160,6 +160,7 @@ const
   Acc00     = 300003;
   Acc01     = 300100;
   Acc08     = 300800;
+  Acc25     = 322500;
   BelRubID  = 200010;
 
   function InsertAcRecord(q: TIBSQL; const AnID, ADocID, ACompanyKey: TID): TID;
@@ -284,8 +285,11 @@ const
 var
   DocID, DocID2: TID;
   RecID: TID;
-  EntryID, EntryID2: TID;
+  EntryID, EntryID2, EntryID3: TID;
 begin
+  //
+  TestConsistentState(FQ);
+
   DocID := InsertDoc(FQ, gdcBaseManager.GetNextID, '1');
   DocID2 := InsertDoc(FQ, gdcBaseManager.GetNextID, '2');
 
@@ -328,6 +332,23 @@ begin
   // их »ƒ не умещаютс€ в строку
   TestIncorrectList(1000, DocID, CompanyID);
 
+  // шапка должна удалитьс€, после удалени€ последней
+  // записи в ac_entry
+  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, CompanyID);
+  EntryID := InsertAcEntry(FQ, gdcBaseManager.GetNextID, RecID, Acc01, 'D',
+    100, 100, 100, 100, 100, 100, BelRubID,
+    EncodeDate(2000, 01, 01),
+    CompanyID, DocID, DocID, TrID);
+  FQ.Close;
+  FQ.SQL.Text := 'DELETE FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID;
+  FQ.ExecQuery;
+
+  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := RecID;
+  FQ.ExecQuery;
+  Check(FQ.EOF);
+
   // тестируем позиции проводки
   RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, CompanyID);
 
@@ -343,6 +364,12 @@ begin
   FQ.ExecQuery;
   Check(FQ.FieldByName('incorrect').AsInteger = 1);
 
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 1);
+
   EntryID2 := InsertAcEntry(FQ, gdcBaseManager.GetNextID, RecID, Acc08, 'C',
     100, 100, 100, 100, 100, 100, BelRubID,
     EncodeDate(2000, 01, 01),
@@ -354,6 +381,118 @@ begin
   FQ.ParamByName('id').AsInteger := RecID;
   FQ.ExecQuery;
   Check(FQ.FieldByName('incorrect').AsInteger = 0);
+
+  // issimple = 1
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 1);
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID2;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 1);
+
+  EntryID3:= InsertAcEntry(FQ, gdcBaseManager.GetNextID, RecID, Acc25, 'C',
+    100, 100, 100, 100, 100, 100, BelRubID,
+    EncodeDate(2000, 01, 01),
+    CompanyID, DocID, DocID, TrID);
+
+  // incorrect = 1
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := RecID;
+  FQ.ExecQuery;
+  Check(FQ.FieldByName('incorrect').AsInteger = 1);
+
+  // issimple
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 1);
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID2;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 0);
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID3;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 0);
+
+  FQ.Close;
+  FQ.SQL.Text := 'UPDATE ac_entry SET debitncu=200, debitcurr=200, debiteq=200 WHERE id=' + IntToStr(EntryID);
+  FQ.ExecQuery;
+
+  // incorrect = 0
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := RecID;
+  FQ.ExecQuery;
+  Check(FQ.FieldByName('incorrect').AsInteger = 0);
+
+  // issimple
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 1);
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID2;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 0);
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT issimple FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID3;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = 0);
+
+  // нельз€ мен€ть док ид у проводки
+  FQ.Close;
+  FQ.SQL.Text := 'UPDATE ac_entry SET documentkey = :DK WHERE id = :ID';
+  FQ.ParamByName('DK').AsInteger := DocID2;
+  FQ.ParamByName('ID').AsInteger := EntryID;
+  FQ.ExecQuery;
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT documentkey FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = DocID);
+
+  // мен€ем док ид у напки
+  FQ.Close;
+  FQ.SQL.Text := 'UPDATE ac_record SET documentkey = :DK WHERE id = :ID';
+  FQ.ParamByName('DK').AsInteger := DocID2;
+  FQ.ParamByName('ID').AsInteger := RecID;
+  FQ.ExecQuery;
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT documentkey FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = DocID2);
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT documentkey FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID2;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = DocID2);
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT documentkey FROM ac_entry WHERE id = :id';
+  FQ.ParamByName('id').AsInteger := EntryID3;
+  FQ.ExecQuery;
+  Check(FQ.Fields[0].AsInteger = DocID2);
 
   //
   TestConsistentState(FQ);

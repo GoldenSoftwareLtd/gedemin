@@ -1125,15 +1125,6 @@ type
 
     function GetCanModify: Boolean; override;
 
-    {
-    class function Class_GetCanChangeRights(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanCreate(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanDelete(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanEdit(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanPrint(const ST: TgdcSubType): Boolean; virtual;
-    class function Class_GetCanView(const ST: TgdcSubType): Boolean; virtual;
-    }
-
     //
     procedure SetBaseState(const ABaseState: TgdcStates);
 
@@ -2083,8 +2074,6 @@ function gdcFullClassName(const AgdClassName: TgdcClassName;
 function CreateSelectedArr(Obj: TgdcBase;
   BL: TBookmarkList): OleVariant;
 
-function _AnsiUpperCase(const T: String): String;
-
 function  CheckNameChar(const Key: Char): Char;
 procedure CheckClipboardForName;
 function GetUserByTransaction(const ATrID: Integer): String;
@@ -2153,27 +2142,6 @@ type
 procedure Register;
 begin
   RegisterComponents('gdc', [TgdcBaseManager]);
-end;
-
-function _AnsiUpperCase(const T: String): String;
-var
-  I: Integer;
-begin
-  Result := AnsiUpperCase(T);
-
-  { TODO : 
-Yaffil по крайней мере до 885 версии не поддерживает
-белорусские буквы в функции UPPER поэтому мы вводим эту
-нашу функцию, которая бы следовала его поведению.
-
-если в будущем ошибка будет исправлена, то можно убрать эту функцию. }
-  for I := 1 to Length(T) do
-  begin
-    if (T[I] = 'ў') or (T[I] = 'і') then
-    begin
-      Result[I] := T[I];
-    end;
-  end;
 end;
 
 function CheckNameChar(const Key: Char): Char;
@@ -5237,7 +5205,7 @@ begin
     for Index := 0 to FClassMethodAssoc.Count - 1 do
       if FClassMethodAssoc.IntByIndex[Index] <> 0 then
         TObject(FClassMethodAssoc.IntByIndex[Index]).Free;
-    FClassMethodAssoc.Free;
+    FreeAndNil(FClassMethodAssoc);
   end;  
 
   FVariables.Free;
@@ -9481,34 +9449,44 @@ end;
 function TgdcBaseManager.GetRUIDRecByXID(const XID, DBID: TID;
   Transaction: TIBTransaction): TRUIDRec;
 begin
-  FIBSQL.Close;
-  try
-    if Assigned(Transaction) and Transaction.InTransaction then
-      FIBSQL.Transaction := Transaction
-    else
-      FIBSQL.Transaction := ReadTransaction;
-
-    FIBSQL.SQL.Text := cst_sql_SelectRUIDBYXID;
-    FIBSQL.ParamByName(fnXID).AsInteger := XID;
-    FIBSQL.ParamByName(fnDBID).AsInteger := DBID;
-    FIBSQL.ExecQuery;
-
-    if FIBSQL.RecordCount = 0 then
-    begin
-      Result.ID := -1;
-      Result.Modified := 0;
-      Result.EditorKey := -1;
-    end else
-    begin
-      Result.ID := FIBSQL.FieldByName(fnId).AsInteger;
-      Result.Modified := FIBSQL.FieldByName(fnModified).AsDateTime;
-      Result.EditorKey := FIBSQL.FieldByName(fnEditorkey).AsInteger;
-    end;
+  if (XID < cstUserIDStart) and (DBID = 17) then
+  begin
+    Result.ID := XID;
     Result.XID := XID;
     Result.DBID := DBID;
-
-  finally
+    Result.Modified := 0;
+    Result.EditorKey := -1;
+  end else
+  begin
     FIBSQL.Close;
+    try
+      if Assigned(Transaction) and Transaction.InTransaction then
+        FIBSQL.Transaction := Transaction
+      else
+        FIBSQL.Transaction := ReadTransaction;
+
+      FIBSQL.SQL.Text := cst_sql_SelectRUIDBYXID;
+      FIBSQL.ParamByName(fnXID).AsInteger := XID;
+      FIBSQL.ParamByName(fnDBID).AsInteger := DBID;
+      FIBSQL.ExecQuery;
+
+      if FIBSQL.RecordCount = 0 then
+      begin
+        Result.ID := -1;
+        Result.Modified := 0;
+        Result.EditorKey := -1;
+      end else
+      begin
+        Result.ID := FIBSQL.FieldByName(fnId).AsInteger;
+        Result.Modified := FIBSQL.FieldByName(fnModified).AsDateTime;
+        Result.EditorKey := FIBSQL.FieldByName(fnEditorkey).AsInteger;
+      end;
+      Result.XID := XID;
+      Result.DBID := DBID;
+
+    finally
+      FIBSQL.Close;
+    end;
   end;
 end;
 
@@ -10138,7 +10116,19 @@ class function TgdcBase.CreateViewForm(AnOwner: TComponent;
 var
   C: TPersistentClass;
 begin
-  { TODO : 
+  Assert(IBLogin <> nil);
+  Assert(atDatabase <> nil);
+
+  if atDatabase.InMultiConnection then
+  begin
+    MessageBox(0,
+      'Необходимо переподключение к базе данных.',
+      'Внимание',
+      MB_OK or MB_ICONHAND or MB_TASKMODAL);
+    Abort;
+  end;
+
+  { TODO :
 внимание! вызов TestConnected может привести 
 к потере производительности! }
   if (not IBLogin.LoggedIn) or (not IBlogin.Database.TestConnected) then
@@ -11968,6 +11958,15 @@ var
   WasCreate: Boolean;
   S: String;
 begin
+{  Assert(
+    ((ADBID = 17) and (AnID = AXID) and (AnID < cstUserIDStart))
+    or
+    ((ADBID <> 17) and (AnID >= cstUserIDStart))
+  ); }
+
+  if AXID < cstUserIDStart then
+    exit;
+
   if Assigned(Transaction) then
   begin
     WasCreate := False;
@@ -12008,9 +12007,10 @@ begin
           FIBSQL.ParamByName(fnxid).AsInteger := AXID;
           FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
           FIBSQL.ExecQuery;
-          if FIBSQL.Eof then
-            raise EgdcException.Create('Попытка дважды добавить запись с ИД=' +
-              IntToStr(AnID) + ' в таблицу GD_RUID.')
+          if not FIBSQL.Eof then
+            raise EgdcException.Create(
+              'Попытка добавить запись с повторяющимся ИД в таблицу GD_RUID.'#13#10 +
+              'ID=' + IntToStr(AnID) + ', XID=' + IntToStr(AXID) + ', DBID=' + IntToStr(ADBID))
           else
           begin
             if (CacheList <> nil) and CacheList.Has(RUIDToStr(RUID(AXID, ADBID))) then
@@ -12264,9 +12264,12 @@ begin
           Tr.RollBack;
         raise;
       end;
-    finally
+
       if DidActivate and Tr.InTransaction then
         Tr.Commit;
+    finally
+      if DidActivate and Tr.InTransaction then
+        Tr.Rollback;
       q.Free;
     end;
   finally
@@ -14332,11 +14335,6 @@ begin
   begin
     with TSaveDialog.Create(FParentForm) do
     try
-      {if (FParentForm <> nil)
-        and (FParentForm.FindComponent('SDialogRT') = nil) then
-      begin
-        Name := 'SDialogRT';
-      end;}
       Options := [ofOverwritePrompt,ofHideReadOnly,ofPathMustExist,
         ofNoReadOnlyReturn,ofEnableSizing];
       DefaultExt := aDefaultExt;
@@ -14351,7 +14349,6 @@ begin
         //то название файла логичнее сделать Справочники.dat,
         //а не брать имя последнего сохраненного файла 22222.dat
         FileName := CorrectFileName(FieldByName(GetListField(SubType)).AsString);
-
       end;
       {$ENDIF}
       if not Execute then
@@ -14947,7 +14944,7 @@ begin
               and (Field.FieldName = 'DOCUMENTDATE')) then
           begin
             if not TestUserRights([tiAFull]) then
-              raise EgdcUserHaventRights.CreateObj('Нет прав для изменения поля ' + Field.DisplayName + '.',
+              raise EgdcUserHaventRights.CreateObj('Для изменения поля ' + Field.DisplayName + ' необходимы полные права доступа.',
                 Self);
           end;
         end;
@@ -16704,6 +16701,7 @@ procedure TgdcBase.ClearMacrosStack2(const AClass, AMethod: String;
 var
   Index: Integer;
 begin
+  Assert(FClassMethodAssoc <> nil);
   if FClassMethodAssoc.StrByKey[AMethodKey] = AClass then
   begin
     Index := FClassMethodAssoc.IndexOf(AMethodKey);
@@ -18100,51 +18098,6 @@ begin
   end else
     raise EgdcIBError.Create('Объект должен находиться в состоянии загрузки из потока!');
 end;
-
-(*
-class function TgdcBase.Class_GetCanChangeRights(
-  const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAFull], SubType);
-  {Result := gdcBaseManager.Class_TestUserRights(Self,
-    ST, 2);}
-end;
-
-class function TgdcBase.Class_GetCanCreate(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAChag], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 1);
-end;
-
-class function TgdcBase.Class_GetCanDelete(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAFull], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 2);
-end;
-
-class function TgdcBase.Class_GetCanEdit(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAChag], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 1);
-end;
-
-class function TgdcBase.Class_GetCanPrint(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAView], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 0);
-end;
-
-class function TgdcBase.Class_GetCanView(const ST: TgdcSubType): Boolean;
-begin
-  Result := Class_TestUserRights([tiAView], SubType);
-//  Result := gdcBaseManager.Class_TestUserRights(Self,
-//    ST, 0);
-end;
-*)
 
 function TgdcBase.GetSecCondition: String;
 begin
