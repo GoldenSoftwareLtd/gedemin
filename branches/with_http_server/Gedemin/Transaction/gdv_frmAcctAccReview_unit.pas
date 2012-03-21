@@ -69,7 +69,7 @@ type
 
     procedure Go_to(NewWindow: Boolean = false); override;
     function  CanGo_to: boolean; override;
-    function  CompareParams: boolean; override;
+    function  CompareParams(WithDate: Boolean = True): boolean; override;
 
     procedure DoBeforeBuildReport; override;
     procedure DoAfterBuildReport; override;
@@ -550,9 +550,9 @@ begin
   end;
 end;
 
-function Tgdv_frmAcctAccReview.CompareParams: boolean;
+function Tgdv_frmAcctAccReview.CompareParams(WithDate: Boolean = True): boolean;
 begin
-  Result := inherited CompareParams
+  Result := inherited CompareParams(WithDate)
     and ((FConfig as TAccReviewConfig).ShowCorrSubAccounts = cbShowCorrSubAccounts.Checked)
     and ((FConfig as TAccReviewConfig).CorrAccounts = cbCorrAccounts.Text)
     and ((((FConfig as TAccReviewConfig).AccountPart = 'D') and (rbDebit.Checked))

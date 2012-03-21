@@ -467,7 +467,6 @@ begin
   else
     DistinctStr := '';
 
-(* g_s_ansiuppercase *)
   if Text > '' then
   begin
 
@@ -891,7 +890,6 @@ begin
     else
       DistinctStr := '';
 
-(* g_s_ansiuppercase *)
     S := Format('SELECT %4:s %0:s, %1:s %2:s FROM %3:s ', [FieldWithAlias(FListField),
       FieldWithAlias(FKeyField), StrFields, FListTable, DistinctStr]);
 

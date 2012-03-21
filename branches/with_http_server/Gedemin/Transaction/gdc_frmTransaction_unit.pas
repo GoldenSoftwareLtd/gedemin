@@ -31,6 +31,8 @@ type
     tbiDetailEditLine: TTBItem;
     actDoReversalEntry: TAction;
     TBItem2: TTBItem;
+    tbiShowAllEntries: TTBItem;
+    actShowAllEntries: TAction;
 
     procedure FormCreate(Sender: TObject);
     procedure cbGroupByDocumentClick(Sender: TObject);
@@ -42,6 +44,8 @@ type
     procedure actDetailEditLineUpdate(Sender: TObject);
     procedure actDoReversalEntryExecute(Sender: TObject);
     procedure actDoReversalEntryUpdate(Sender: TObject);
+    procedure actShowAllEntriesExecute(Sender: TObject);
+    procedure actShowAllEntriesUpdate(Sender: TObject);
 
   private
     procedure ShowQuantity;
@@ -55,6 +59,7 @@ type
     procedure SaveSettings; override;
 
     class function CreateAndAssign(AnOwner: TComponent): TForm; override;
+    class function CreateAndAssignWithID(AnOwner: TComponent; AnID: Integer; AnEntrySelect: TEntrySelect): TForm;
   end;
 
 var
@@ -66,6 +71,10 @@ uses
   gd_ClassList, Storages, gsStorage_CompPath, gdv_frmAcctBaseForm_unit, gdcClasses,
   flt_ScriptInterface, prm_ParamFunctions_unit;
 
+const
+  DefaultColor = clBtnFace;
+  ColorIDOnly = TColor($00C1B6FF);
+
 {$R *.DFM}
 
 { Tgdc_frmTransaction }
@@ -75,18 +84,46 @@ class function Tgdc_frmTransaction.CreateAndAssign(
 begin
   if not FormAssigned(gdc_frmTransaction) then
     gdc_frmTransaction := Tgdc_frmTransaction.Create(AnOwner);
-  Result := gdc_frmTransaction;
 
+  Result := gdc_frmTransaction;
+end;
+
+class function Tgdc_frmTransaction.CreateAndAssignWithID(AnOwner: TComponent; AnID: Integer; AnEntrySelect: TEntrySelect): TForm;
+begin
+  CreateAndAssign(AnOwner);
+  if AnEntrySelect <> esAll then
+  begin
+    gdc_frmTransaction.tvGroup.Color := ColorIDOnly;
+    gdc_frmTransaction.tbDetailToolbar.Color := ColorIDOnly;
+    gdc_frmTransaction.tbDetailCustom.Color := ColorIDOnly;
+    gdc_frmTransaction.tbMainInvariant.Color := ColorIDOnly;
+    gdc_frmTransaction.tbMainToolbar.Color := ColorIDOnly;
+    gdc_frmTransaction.tbMainMenu.Color := ColorIDOnly;
+    gdc_frmTransaction.tbChooseMain.Color := ColorIDOnly;
+
+    gdc_frmTransaction.tvGroup.Refresh;
+    gdc_frmTransaction.gdcAcctViewEntryRegister.EntrySelect := AnEntrySelect;
+
+    gdc_frmTransaction.gdcAcctViewEntryRegister.Close;
+    if AnEntrySelect = esDocumentKey then
+      gdc_frmTransaction.gdcAcctViewEntryRegister.ParamByName('dk').AsInteger := AnID
+    else
+      gdc_frmTransaction.gdcAcctViewEntryRegister.ParamByName('rk').AsInteger := AnID;
+    gdc_frmTransaction.gdcAcctViewEntryRegister.Open;
+  end;
+
+  Result := gdc_frmTransaction;
 end;
 
 procedure Tgdc_frmTransaction.FormCreate(Sender: TObject);
 begin
   gdcAcctViewEntryRegister.MasterSource := nil;
-  
+
   inherited;
 
   gdcObject := gdcAcctTransaction;
   gdcAcctViewEntryRegister.MasterSource := dsMain;
+
   gdcDetailObject := gdcAcctViewEntryRegister; 
   gdcAcctQuantity.Open;
 
@@ -337,6 +374,29 @@ end;
 procedure Tgdc_frmTransaction.actDoReversalEntryUpdate(Sender: TObject);
 begin
   actDoReversalEntry.Enabled := (gdcAcctViewEntryRegister.FieldByName('id').AsInteger > 0);
+end;
+
+procedure Tgdc_frmTransaction.actShowAllEntriesExecute(Sender: TObject);
+begin
+  LockWindowUpdate(Handle);
+  try
+    tvGroup.Color := clWindow;
+    tbDetailToolbar.Color := DefaultColor;
+    tbDetailCustom.Color := DefaultColor;
+    tbMainInvariant.Color := DefaultColor;
+    tbMainToolbar.Color := DefaultColor;
+    tbMainMenu.Color := DefaultColor;
+    tbChooseMain.Color := DefaultColor;
+    gdcAcctViewEntryRegister.EntrySelect := esAll;
+    Invalidate;
+  finally
+    LockWindowUpdate(0);
+  end;
+end;
+
+procedure Tgdc_frmTransaction.actShowAllEntriesUpdate(Sender: TObject);
+begin
+  actShowAllEntries.Enabled := gdcAcctViewEntryRegister.EntrySelect <> esAll;
 end;
 
 initialization

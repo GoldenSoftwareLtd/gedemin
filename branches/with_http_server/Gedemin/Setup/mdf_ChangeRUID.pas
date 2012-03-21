@@ -40,10 +40,10 @@ begin
 
       ibsql.Close;
       {!!!! для стандартных записей с идентификатором < 147000000 устанавливаем значение идентификатора базы = 17}
-      ibsql.SQL.Text := 'UPDATE gd_ruid SET dbid = 17 WHERE dbid <> 17 and id < 147000000';
+      {ibsql.SQL.Text := 'UPDATE gd_ruid SET dbid = 17 WHERE dbid <> 17 and id < 147000000';
       ibsql.ExecQuery;
       if ibsql.RowsAffected > 0 then
-        Log('GD_RUID: Коррекция идентификатора базы для стандартный записей');
+        Log('GD_RUID: Коррекция идентификатора базы для стандартный записей');}
 
       if FIBTransaction.InTransaction then
         FIBTransaction.Commit;

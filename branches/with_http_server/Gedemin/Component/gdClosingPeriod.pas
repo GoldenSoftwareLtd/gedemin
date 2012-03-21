@@ -1750,11 +1750,11 @@ const
     '  ac_entry_balance ';
   ibACEntryWriteBegin =
     ' INSERT INTO ac_entry ' +
-    ' (recordkey, entrydate, transactionkey, documentkey, masterdockey, companykey, accountkey, accountpart, currkey, issimple, ' +
+    ' (recordkey, entrydate, transactionkey, documentkey, masterdockey, companykey, accountkey, accountpart, currkey, ' +
     '  debitncu, creditncu, debitcurr, creditcurr, debiteq, crediteq ';
   ibACEntryWriteValues =
     ' VALUES ' +
-    ' (:recordkey, :entrydate, :transactionkey, :documentkey, :masterdockey, :companykey, :accountkey, :accountpart, :currkey, 1, ' +
+    ' (:recordkey, :entrydate, :transactionkey, :documentkey, :masterdockey, :companykey, :accountkey, :accountpart, :currkey, ' +
     '  :debitncu, :creditncu, :debitcurr, :creditcurr, :debiteq, :crediteq ';
 var
   ibsqlSelect: TIBSQL;

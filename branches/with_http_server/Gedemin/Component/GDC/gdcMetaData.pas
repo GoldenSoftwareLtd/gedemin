@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001-2009 by Golden Software of Belarus
+  Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
 
@@ -41,9 +40,26 @@ uses
 
 type
   TgdcOnCustomTable = procedure (Sender: TObject; Scripts: TStringList) of object;
-  TgdcTableType = (ttUnknow, ttSimpleTable, ttTree, ttIntervalTree, ttCustomTable,
-    ttDocument, ttDocumentLine, ttInvSimple, ttInvFeature, ttInvInvent, ttInvTransfrom,
-    ttTableToTable, ttPrimeTable);
+
+  TgdcTableType = (
+    ttUnknow,
+    ttSimpleTable,
+    ttTree,
+    ttIntervalTree,
+    ttCustomTable,
+    ttDocument,
+    ttDocumentLine,
+    ttInvSimple,
+    ttInvFeature,
+    ttInvInvent,
+    ttInvTransfrom,
+    ttTableToTable,
+    ttPrimeTable);
+
+  TgdcTablePersistence = (
+    tpRegular,
+    tpGTTConnection,
+    tpGTTTransaction);  
 
 const
   gdcUserTablesBranchKey = 710000;
@@ -111,6 +127,8 @@ type
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     function GetDialogDefaultsFields: String; override;
+
+    function GetAutoObjectsNames(SL: TStrings): Boolean; virtual;
 
     property IsUserDefined: Boolean read GetIsUserDefined;
     property IsSystemObject: Boolean read GetIsSystemObject;
@@ -194,10 +212,6 @@ type
     function GetSelectClause: String; override;
     function CreateDialogForm: TCreateableForm; override;
 
-{    function DoesExplorerCommandExist: Boolean;
-    procedure CreateExplorerCommand;
-    procedure DeleteExplorerCommand;    }
-
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomDelete(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
@@ -239,7 +253,6 @@ type
     procedure TestRelationName;
 
     class function IsAbstractClass: Boolean; override;
-
   end;
 
   TgdcBaseTable = class(TgdcRelation)
@@ -299,7 +312,7 @@ type
       write FOnCustomTable;
   end;
 
-  //используется для работы с кросс-таблицами при загрузки их из потока
+  //используется для работы с кросс-таблицами при загрузке их из потока
   TgdcUnknownTable = class(TgdcBaseTable)
   private
     function CreateUnknownTable: String;
@@ -396,6 +409,7 @@ type
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     procedure MakePredefinedRelationFields; override;
+    function GetAutoObjectsNames(SL: TStrings): Boolean; override;
   end;
 
   TgdcView = class(TgdcRelation)
@@ -2476,16 +2490,6 @@ begin
 
   inherited;
 
-{  if ((TableType <> ttCustomTable) and (TableType <> ttUnknow))
-    or (AnsiUpperCase(FieldByName('relationtype').AsString) = 'V')
-  then
-  begin
-    if FieldByName('branchkey').AsInteger > 0 then
-      CreateExplorerCommand
-    else
-      DeleteExplorerCommand;
-  end;}
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCRELATION', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -3909,10 +3913,14 @@ begin
         //выводим диалог для ввода занчения по умолчанию
         if (not (sLoadFromStream in BaseState)) then
         begin
-          try
-            gdcBaseManager.ExecSingleQueryResult('SELECT FIRST 1 * FROM ' + FieldByName('relationname').AsString, '', R);
-          except
-          end;
+          gdcBaseManager.ExecSingleQueryResult(
+            'SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN',
+             FieldByName('relationname').AsString, R);
+
+          if not VarIsEmpty(R) then
+            gdcBaseManager.ExecSingleQueryResult(
+              'SELECT FIRST 1 * FROM ' + FieldByName('relationname').AsString,
+              '', R);
 
           if not VarIsEmpty(R) and
             (MessageBox(0,
@@ -6268,8 +6276,7 @@ begin
   {END MACRO}
 
   //Проверим на дублирование наименования поля
-  if (State = dsInsert) and (not CheckFieldName)
-  then
+  if (State = dsInsert) and (not CheckFieldName) then
   begin
     FieldByName('fieldname').FocusControl;
     raise EgdcIBError.Create('Название поля дублируется с уже существующим!');
@@ -7402,6 +7409,27 @@ begin
   end;
 end;
 
+function TgdcLBRBTreeTable.GetAutoObjectsNames(SL: TStrings): Boolean;
+var
+  LBRBTree: TLBRBTreeMetaNames;
+begin
+  inherited GetAutoObjectsNames(SL);
+
+  GetLBRBTreeDependentNames(FieldByName('relationname').AsString, Transaction, LBRBTree);
+
+  SL.Add(LBRBTree.ChldCtName);
+  SL.Add(LBRBTree.ExLimName);
+  SL.Add(LBRBTree.RestrName);
+  SL.Add(LBRBTree.ExceptName);
+  SL.Add(LBRBTree.BITriggerName);
+  SL.Add(LBRBTree.BUTriggerName);
+  SL.Add(LBRBTree.LBIndexName);
+  SL.Add(LBRBTree.RBIndexName);
+  SL.Add(LBRBTree.ChkName);
+
+  Result := True;
+end;
+
 { TgdcMetaBase }
 
 function TgdcMetaBase.CheckTheSameStatement: String;
@@ -7552,6 +7580,11 @@ begin
   {END MACRO}
 end;
 
+function TgdcMetaBase.GetAutoObjectsNames(SL: TStrings): Boolean;
+begin
+  Result := False;
+end;
+
 function TgdcMetaBase.GetCanCreate: Boolean;
 begin
   Assert(IBLogin <> nil);
@@ -7628,7 +7661,7 @@ end;
 
 function TgdcMetaBase.GetIsUserDefined: Boolean;
 begin
-  Result := StrIPos(UserPrefix, ObjectName) = 1;
+  Result := (not IsSystemObject) and (StrIPos(UserPrefix, ObjectName) = 1);
 end;
 
 function TgdcMetaBase.GetRelationName: String;

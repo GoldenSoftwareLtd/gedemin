@@ -704,6 +704,11 @@ begin
       end;
     end;
   except
+    on E: Exception do
+    begin
+      if StrIPos('MIDAS', E.Message) > 0 then
+        Application.HandleException(E);
+    end;
   end;
   UpdateFrameButtonState(FActiveFrame <> nil);
   {$ENDIF}

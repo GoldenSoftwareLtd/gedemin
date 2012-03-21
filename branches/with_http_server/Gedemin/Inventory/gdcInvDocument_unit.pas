@@ -58,6 +58,9 @@ const
   gdcInvDocument_Version2_4 = 'IDV2.4';
   // Версия 2.5
   gdcInvDocument_Version2_5 = 'IDV2.5';
+  // Версия 2.6
+  gdcInvDocument_Version2_6 = 'IDV2.6';
+
 
 {$IFDEF DEBUGMOVE}
 const
@@ -233,6 +236,7 @@ type
 
     FControlRemains: Boolean; // Нужно ли контролировать остатки
     FLiveTimeRemains: Boolean; // Работа только с текущими остатками
+    FEndMonthRemains: Boolean; // Контроль на конец месяца
 
     FUseCachedUpdates: Boolean; // Нужно ли использовать CachedUpdates
     FCanBeDelayed: Boolean; // Отложенность документа
@@ -317,6 +321,7 @@ type
     property UseCachedUpdates: Boolean read FUseCachedUpdates;
     property CanBeDelayed: Boolean read FCanBeDelayed;
     property LiveTimeRemains: Boolean read FLiveTimeRemains write FLiveTimeRemains;
+    property EndMonthRemains: Boolean read FEndMonthRemains write FEndMonthRemains;
     property isMinusRemains: Boolean read FIsMinusRemains write FIsMinusRemains;
     property isSetFeaturesFromRemains: Boolean read FisSetFeaturesFromRemains
       write FisSetFeaturesFromRemains;
@@ -829,7 +834,8 @@ begin
          (FCurrentStreamVersion <> gdcInvDocument_Version2_2) and
          (FCurrentStreamVersion <> gdcInvDocument_Version2_3) and
          (FCurrentStreamVersion <> gdcInvDocument_Version2_4) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_5)
+         (FCurrentStreamVersion <> gdcInvDocument_Version2_5) and
+         (FCurrentStreamVersion <> gdcInvDocument_Version2_6)
       then
         //Раньше считывался тип документа
         ReadInteger;
@@ -840,7 +846,8 @@ begin
         (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
         (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
         (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_5)
+        (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
+        (FCurrentStreamVersion = gdcInvDocument_Version2_6)
       then
         //Раньше считывался кей группы отчетов
         ReadInteger;
@@ -989,7 +996,7 @@ begin
       Проверка на случай создания поля с переподключением к DB: gdcInv_Document_Undone.
     }
 
-    WriteString(gdcInvDocument_Version2_5);
+    WriteString(gdcInvDocument_Version2_6);
     WriteString(FRelationName);
     WriteString(FRelationLineName);
     //WriteInteger(FDocumentTypeKey);
@@ -1994,6 +2001,7 @@ begin
   FViewMovementPart := impAll;
 
   FLiveTimeRemains := False;
+  FEndMonthRemains := False;
   FUseCachedUpdates := False;
   FCanBeDelayed := False;
 end;
@@ -3191,7 +3199,8 @@ begin
       (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
       (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
       (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-      (FCurrentStreamVersion = gdcInvDocument_Version2_5) then
+      (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_6) then
       FLiveTimeRemains := ReadBoolean
     else
       FLiveTimeRemains := False;
@@ -3208,7 +3217,8 @@ begin
        (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
        (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
        (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_5)
+       (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_6)
     then
       FisMinusRemains := ReadBoolean
     else
@@ -3217,7 +3227,8 @@ begin
     if (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
        (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
        (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_5)
+       (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_6)
     then
     begin
       ReadListBegin;
@@ -3238,7 +3249,8 @@ begin
 
     if (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
        (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_5) then
+       (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_6) then
     begin
       FIsChangeCardValue := ReadBoolean;
       FIsAppendCardValue := ReadBoolean;
@@ -3250,16 +3262,23 @@ begin
     end;
 
     if (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-       (FCurrentStreamVersion = gdcInvDocument_Version2_5)
+       (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_6)
     then
       FIsUseCompanyKey := ReadBoolean
     else
       FIsUseCompanyKey := True;
 
-    if (FCurrentStreamVersion = gdcInvDocument_Version2_5) then
+    if (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
+       (FCurrentStreamVersion = gdcInvDocument_Version2_6) then
       FSaveRestWindowOption := ReadBoolean
     else
       FSaveRestWindowOption := False;
+
+    if (FCurrentStreamVersion = gdcInvDocument_Version2_6) then
+      FEndMonthRemains :=  ReadBoolean
+    else
+      FEndMonthRemains := False;  
 
 
     FSetupProceeded := True;
@@ -3414,6 +3433,7 @@ begin
     WriteBoolean(FIsAppendCardValue);
     WriteBoolean(FIsUseCompanyKey);
     WriteBoolean(FSaveRestWindowOption);
+    WriteBoolean(FEndMonthRemains);
 
   finally
     Free;

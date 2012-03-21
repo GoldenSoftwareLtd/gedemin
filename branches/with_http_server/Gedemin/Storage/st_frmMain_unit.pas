@@ -976,14 +976,14 @@ end;
 procedure Tst_frmMain.LoadSettings;
 begin
   inherited;
-  TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+  //TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 end;
 
 procedure Tst_frmMain.SaveSettings;
 begin
   inherited;
 
-  TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+  //TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 
   if Assigned(UserStorage) then
   begin

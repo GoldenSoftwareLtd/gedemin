@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2002 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -20,17 +20,7 @@
 
     15-02-02    andreik    Initial version.
 
-
 */
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2002 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 CREATE INDEX RDB$D_DNON ON RDB$DEPENDENCIES (RDB$DEPENDENT_NAME, RDB$DEPENDED_ON_NAME);
 CREATE INDEX RDB$LF_FS ON RDB$LOG_FILES (RDB$FILE_SEQUENCE);

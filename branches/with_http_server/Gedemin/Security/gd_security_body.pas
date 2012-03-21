@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1998-2001 by Golden Software of Belarus
+  Copyright (c) 1998-2012 by Golden Software of Belarus
 
   Module
     gd_security.pas
@@ -130,7 +130,7 @@ type
     FHoldingCacheKey: Integer;
     FHoldingCacheValue: Boolean;
 
-    FTempTransaction: TIBTransaction;
+    //FTempTransaction: TIBTransaction;
 
     FSilentLogin: Boolean;
 
@@ -188,6 +188,8 @@ type
 
     procedure OnModifyLog(const AnLogText: String);
     function GetReLogining: Boolean;
+    function GetMainWindowCaption: String;
+    function GetIsEmbeddedServer: Boolean;
 
   protected
     function EstablishConnection: Boolean;
@@ -318,6 +320,12 @@ type
     //
     property DBID: Integer read GetDBID;
 
+    //
+    property MainWindowCaption: String read GetMainWindowCaption;
+
+    //
+    property IsEmbeddedServer: Boolean read GetIsEmbeddedServer;
+
   published
     property Database: TIBDatabase read GetDatabase write SetDatabase;
     property AutoOpenCompany: Boolean read FAutoOpenCompany write FAutoOpenCompany;
@@ -363,8 +371,8 @@ begin
 end;
 
 const
-  WM_FINISHOPENCOMPANY = WM_USER + 25487;
-  WM_CONNECTIONLOST = WM_USER + 25488;
+  WM_FINISHOPENCOMPANY          = WM_USER + 25487;
+  WM_CONNECTIONLOST             = WM_USER + 25488;
 
 type
   TboLoginControlNexus = class(TForm)
@@ -383,7 +391,6 @@ type
   public
     constructor Create(ALogin: TboLogin); reintroduce;
     destructor Destroy; override;
-
   end;
 
 constructor TboLoginControlNexus.Create(ALogin: TboLogin);
@@ -631,7 +638,7 @@ begin
   FParams.Free;
 
   FLoginControlNexus.Free;
-  FTempTransaction.Free;
+  //FTempTransaction.Free;
 
   inherited;
 
@@ -2263,80 +2270,48 @@ procedure TboLogin.ChangeUser(const AUserKey: Integer;
   const ACheckMultipleConnections: Boolean = False);
 var
   q: TIBSQL;
-  I, J: Integer;
+  Tr: TIBTransaction;
 begin
   if AUserKey = FUserKey then
     exit;
 
   if IsIBUserAdmin then
-    raise Exception.Create('Can not change Administrator account.');
+    raise EboLoginError.Create('Can not change Administrator account.');
 
   q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
   try
-    try
-      FreeAndNil(FTempTransaction);
-      if ACheckMultipleConnections then
-      begin
-        FTempTransaction := TIBTransaction.Create(nil);
-        FTempTransaction.DefaultAction := taRollback;
-        FTempTransaction.DefaultDatabase := Database;
-        FTempTransaction.Params.Add('read_committed');
-        FTempTransaction.Params.Add('rec_version');
-        FTempTransaction.Params.Add('nowait');
-        FTempTransaction.StartTransaction;
-        q.Transaction := FTempTransaction;
-        q.SQL.Text := 'UPDATE gd_user SET id = id WHERE id = :ID ';
-        q.ParamByName('ID').AsInteger := AUserKey;
-        try
-          q.ExecQuery;
-        except
-          raise Exception.Create(
-            'Кто-то уже подключен к базе данных под данной учетной записью.'#13#10 +
-            'Системными установками вторичные подключения запрещены.');
-        end;
-      end;
+    Tr.DefaultDatabase := Database;
+    Tr.StartTransaction;
 
-      q.Close;
-      q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text :=
-        'SELECT * FROM gd_user WHERE id = :ID ' +
-        'AND disabled = 0 AND lockedout = 0 ' +
-        'AND COALESCE(workstart, ''00:00:00'') <= CURRENT_TIME ' +
-        'AND COALESCE(workend, ''23:59:59'') >= CURRENT_TIME';
+    q.Transaction := Tr;
+
+    if ACheckMultipleConnections then
+    begin
+      q.SQL.Text := 'select * from mon$attachments where mon$user=' +
+        '(select ibname from gd_user WHERE id=:id)';
       q.ParamByName('ID').AsInteger := AUserKey;
       q.ExecQuery;
-
-      if q.EOF then
-        raise Exception.Create('Invalid user key or account disabled.');
-
-      if AnsiCompareText(q.FieldByName('IBName').AsString, SysDBAUserName) = 0 then
-        raise Exception.Create('Can not switch to Administrator account.');
-
-      if ACheckMultipleConnections then
-        with TIBDatabaseInfo.Create(nil) do
-        try
-          Database := Self.Database;
-          for I := 0 to UserNames.Count - 1 do
-            if UserNames[I] = q.FieldByName('IBName').AsString then
-            begin
-              for J := I + 1 to UserNames.Count - 1 do
-              begin
-                if UserNames[J] = q.FieldByName('IBName').AsString then
-                begin
-                  raise Exception.Create(
-                    'Кто-то уже подключен к базе данных под данной учетной записью.'#13#10 +
-                    'Системными установками вторичные подключения запрещены.');
-                end;
-              end;
-              break;
-            end;
-        finally
-          Free;
-        end;
-    except
-      FreeAndNil(FTempTransaction);
-      raise;
+      if not q.EOF then
+        raise EboLoginError.Create(
+          'Кто-то уже подключен к базе данных под данной учетной записью.'#13#10 +
+          'Системными установками вторичные подключения запрещены.');
     end;
+
+    q.Close;
+    q.SQL.Text :=
+      'SELECT * FROM gd_user WHERE id = :ID ' +
+      'AND disabled = 0 AND lockedout = 0 ' +
+      'AND COALESCE(workstart, ''00:00:00'') <= CURRENT_TIME ' +
+      'AND COALESCE(workend, ''23:59:59'') >= CURRENT_TIME';
+    q.ParamByName('ID').AsInteger := AUserKey;
+    q.ExecQuery;
+
+    if q.EOF then
+      raise Exception.Create('Invalid user key or account disabled.');
+
+    if AnsiCompareText(q.FieldByName('IBName').AsString, SysDBAUserName) = 0 then
+      raise EboLoginError.Create('Can not switch to Administrator account.');
 
     FIBName := q.FieldByName('IBName').AsString;
     FIBPassword := q.FieldByName('IBPassword').AsString;
@@ -2358,9 +2333,23 @@ begin
     q.ExecQuery;
     FSessionKey := q.Fields[0].AsInteger;
 
+    q.Close;
+    q.SQL.Text :=
+      'execute block '#13#10 +
+      'as '#13#10 +
+      'begin '#13#10 +
+      '  RDB$SET_CONTEXT(''USER_SESSION'', ''GD_INGROUP'', (SELECT ingroup FROM gd_user WHERE ibname = CURRENT_USER)); '#13#10 +
+      'end';
+    q.ExecQuery;  
+
     UserStorage.ObjectKey := AUserKey;
+
+    if Application.MainForm <> nil then
+      Application.MainForm.Caption := IBLogin.GetMainWindowCaption;
+    Application.Title := GetMainWindowCaption;
   finally
     q.Free;
+    Tr.Free;
   end;
 end;
 
@@ -2403,6 +2392,39 @@ end;
 function TboLogin.IsSilentLogin: Boolean;
 begin
   Result := FSilentLogin;
+end;
+
+function TboLogin.GetMainWindowCaption: String;
+begin
+  {$IFNDEF BMKK}
+  Result := 'Гедымин - ' + CompanyName + ' - ' + UserName;
+  {$ENDIF}
+
+  {$IFDEF NOGEDEMIN}
+  Result := CompanyName + ' - ' + UserName;
+  {$ENDIF}
+
+  {$IFDEF DEBUG}
+  Result := Format('%s, IBX: %s, JCL: %d.%d, ZLIB: %s, Started: %s',
+    [Caption, FloatToStr(IBX_Version), JclVersionMajor, JclVersionMinor, {ZLIB_Version}'xxx',
+     FormatDateTime('hh:nn', Now)]);
+  Result := Result + ', ' + 'DEBUG MODE';
+  {$ENDIF}
+end;
+
+function TboLogin.GetIsEmbeddedServer: Boolean;
+var
+  Res: OleVariant;
+begin
+  if LoggedIn then
+  begin
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT mon$remote_protocol FROM mon$attachments WHERE mon$attachment_id = CURRENT_CONNECTION'
+      Null,
+      Res);
+    Result := (not VarIsEmpty(Res)) and VarIsNull(Res[0, 0]);
+  end else
+    Result := False;
 end;
 
 end.

@@ -1,14 +1,4 @@
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**                                                **/
-/**   Copyright (c) 2001 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
-
 /*
  *
  *  Активность счета
@@ -96,107 +86,66 @@ ALTER TABLE ac_account ADD CONSTRAINT ac_fk_account_anltcf
   ON UPDATE CASCADE
   ON DELETE SET NULL;
 
-ALTER TABLE bn_bankstatementline ADD CONSTRAINT BN_FK_BSL_ACCOUNTKEY 
-  FOREIGN KEY (accountkey) REFERENCES ac_account(id) 
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT BN_FK_BSL_ACCOUNTKEY
+  FOREIGN KEY (accountkey) REFERENCES ac_account(id)
   ON UPDATE CASCADE;
-
-COMMIT;
-
-CREATE EXCEPTION AC_E_MUST_INSERT_ACCOUNT_IN_F 'You must insert account in folder!';
-CREATE EXCEPTION AC_E_MUST_INSERT_FOLDER_IN_F 'You must insert folder in folder!';
-CREATE EXCEPTION AC_E_CANT_INSERT_CARD_IN_OTHER 'You can''t insert card of account in other objects!';
-
-SET TERM ^;
-CREATE TRIGGER AC_ACCOUNT_BI11 FOR AC_ACCOUNT
-ACTIVE BEFORE INSERT POSITION 0
-AS
-DECLARE VARIABLE P VARCHAR(1);
-begin
-  p = 'Z';
-  if (not new.parent is null) then
-  begin
-    SELECT
-      a.accounttype
-    FROM
-      ac_account a
-    WHERE
-      a.id = NEW.parent
-    INTO :p;
-  end
-
-  if (new.accounttype = 'A') then
-  begin
-    if (p <> 'F') then
-      EXCEPTION ac_e_must_insert_account_in_f;
-  end else
-  if (NEW.accounttype = 'F') then
-  begin
-    if ((p <> 'C') and (p <> 'F')) then
-      EXCEPTION ac_e_must_insert_folder_in_f;
-  end else
-  if (new.accounttype = 'C') then
-  begin
-    if (p <> 'Z') then
-      EXCEPTION ac_e_cant_insert_card_in_other;
-  end
-end^
-
-CREATE TRIGGER AC_ACCOUNT_BU0 FOR AC_ACCOUNT
-ACTIVE BEFORE UPDATE POSITION 0
-AS
-DECLARE VARIABLE P VARCHAR(1);
-begin
-  p = 'Z';
-  if (not new.parent is null) then
-  begin
-    SELECT
-      a.accounttype
-    FROM
-      ac_account a
-    WHERE
-      a.id = NEW.parent
-    INTO :p;
-  end
-
-  if (new.accounttype = 'A') then
-  begin
-    if (p <> 'F') then
-      EXCEPTION ac_e_must_insert_account_in_f;
-  end else
-  if (NEW.accounttype = 'F') then
-  begin
-    if ((p <> 'C') and (p <> 'F')) then
-      EXCEPTION ac_e_must_insert_folder_in_f;
-  end else
-  if (new.accounttype = 'C') then
-  begin
-    if (p <> 'Z') then
-      EXCEPTION ac_e_cant_insert_card_in_other;
-  end
-end^
-SET TERM ;^
-COMMIT;
-/* 
-
-создается автоматом
-
-ALTER TABLE ac_account ADD CONSTRAINT ac_chk_account_tree_limit
-  CHECK ((lb <= rb) or ((rb is NULL) and (lb is NULL)));
-
-CREATE DESC INDEX ac_x_account_rb
-  ON ac_account(rb);
-
-CREATE ASC INDEX ac_x_account_lb
-  ON ac_account(lb);
-
-*/
-
-
-COMMIT;
 
 CREATE ASC INDEX ac_x_account_alias
   ON ac_account(alias);
 
+COMMIT;
+
+CREATE EXCEPTION ac_e_invalidaccount 'Invalid account!';
+
+SET TERM ^;
+
+CREATE OR ALTER TRIGGER AC_AIU_ACCOUNT_CHECKALIAS FOR AC_ACCOUNT
+  ACTIVE
+  AFTER INSERT OR UPDATE
+  POSITION 32000
+AS
+  DECLARE VARIABLE P VARCHAR(1) = NULL;
+BEGIN
+  IF (INSERTING OR (NEW.alias <> OLD.alias)) THEN
+  BEGIN
+    IF (EXISTS
+      (SELECT
+         root.id, UPPER(TRIM(allacc.alias)), COUNT(*)
+       FROM ac_account root
+         JOIN ac_account allacc ON allacc.lb > root.lb AND allacc.rb <= root.rb
+       WHERE
+         root.parent IS NULL
+       GROUP BY
+         1, 2
+       HAVING
+         COUNT(*) > 1)
+      )
+     THEN
+       EXCEPTION ac_e_invalidaccount 'Duplicate account aliases are not allowed!';
+  END
+
+  IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)
+    OR (NEW.accounttype <> OLD.accounttype)) THEN
+  BEGIN
+    SELECT accounttype FROM ac_account WHERE id = NEW.parent INTO :P;
+    P = COALESCE(:P, 'Z');
+
+    IF (NOT (
+        (NEW.accounttype = 'C' AND NEW.parent IS NULL)
+        OR
+        (NEW.accounttype = 'F' AND :P IN ('C', 'F'))
+        OR
+        (NEW.accounttype = 'A' AND :P IN ('C', 'F'))
+        OR
+        (NEW.accounttype = 'S' AND :P IN ('A', 'S')) )) THEN
+    BEGIN
+      EXCEPTION ac_e_invalidaccount;
+    END
+  END
+END
+^
+
+SET TERM ; ^
 
 COMMIT;
 
@@ -279,23 +228,6 @@ ALTER TABLE ac_transaction ADD CONSTRAINT ac_fk_transaction_compn
   ON UPDATE CASCADE
   ON DELETE CASCADE;
 
-/*
-
-создается автоматом
-
-ALTER TABLE ac_transaction ADD CONSTRAINT ac_chk_trnsctn_tree_limit
-  CHECK ((lb <= rb) or ((rb is NULL) and (lb is NULL)));
-
-CREATE DESC INDEX ac_x_transaction_rb
-  ON ac_transaction(rb);
-
-CREATE ASC INDEX ac_x_transaction_lb
-  ON ac_transaction(lb);
-
-*/
-
-COMMIT;
-
 ALTER TABLE gd_document ADD CONSTRAINT gd_fk_doc_transactionkey
   FOREIGN KEY (transactionkey) REFERENCES ac_transaction(id) ON UPDATE CASCADE;
 
@@ -347,7 +279,7 @@ ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_tr
   ON UPDATE CASCADE;
 
 ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_function
-  FOREIGN KEY (functionkey) REFERENCES gd_function(id) 
+  FOREIGN KEY (functionkey) REFERENCES gd_function(id)
   ON UPDATE CASCADE;
 
 ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_documenttype
@@ -359,7 +291,7 @@ ALTER TABLE ac_trrecord ADD CONSTRAINT ac_fk_trrecord_ak
   ON UPDATE CASCADE
   ON DELETE SET NULL;
 
-       
+
 COMMIT;
 
 /*
@@ -434,7 +366,7 @@ ALTER TABLE ac_record ADD CONSTRAINT ac_fk_record_compn
 
 CREATE TABLE ac_entry(
   id               dintkey,             /* Идентификатор */
-  recordkey        dmasterkey,             /* Ключ проводки */
+  recordkey        dmasterkey,          /* Ключ проводки */
   entrydate        ddate,               /* Дата проводки */
 
   transactionkey   dintkey,             /* Ключ типовой операции */
@@ -459,7 +391,7 @@ CREATE TABLE ac_entry(
 
   disabled         dboolean DEFAULT 0,
   reserved         dinteger,
-  ISSIMPLE         DBOOLEAN_NOTNULL NOT NULL  /*Тру казывает на то что
+  issimple         DBOOLEAN_NOTNULL NOT NULL  /*Тру казывает на то что
                    данная часть проводки является простой*/
 );
 
@@ -520,9 +452,9 @@ SET GENERATOR GD_G_ENTRY_BALANCE_DATE TO 0;
 */
 
 CREATE TABLE ac_entry_balance (
-  id                      dintkey, 
+  id                      dintkey,
   companykey              dintkey, 
-  accountkey              dintkey, 
+  accountkey              dintkey,
   currkey                 dintkey,
   
   debitncu                dcurrency, 
@@ -550,9 +482,9 @@ BEGIN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0); 
   IF (NEW.debitncu IS NULL) THEN 
     NEW.debitncu = 0; 
-  IF (NEW.debitcurr IS NULL) THEN 
+  IF (NEW.debitcurr IS NULL) THEN
     NEW.debitcurr = 0; 
-  IF (NEW.debiteq IS NULL) THEN 
+  IF (NEW.debiteq IS NULL) THEN
     NEW.debiteq = 0; 
   IF (NEW.creditncu IS NULL) THEN 
     NEW.creditncu = 0; 
@@ -579,15 +511,8 @@ CREATE DOMAIN daccountingscriptkind
   AS VARCHAR(1)
   CHECK ((VALUE IS NULL) OR (VALUE = 'B') OR (VALUE = 'A') OR (VALUE = 'E'));
 
-/****************************************************/
-/**                                                **/
-/**   Триггер обрабатывающий добавление нового     **/
-/**   элемента дерева, проверяет диапозон,         **/
-/**   вызывает процедуру сдвига если надо          **/
-/**                                                **/
-/****************************************************/
-/*Удален.Создается утилитой*/
 SET TERM ^ ;
+
 CREATE TRIGGER ac_bi_account FOR ac_account
   BEFORE INSERT
   POSITION 0
@@ -596,7 +521,6 @@ BEGIN
   /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-
 END
 ^
 
@@ -662,247 +586,79 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER AC_BI_ENTRY_ISSIMPLE FOR AC_ENTRY
-ACTIVE BEFORE INSERT POSITION 0
-AS
-begin
-
-  if (exists(select
-    e.id
-  from
-    ac_entry e
-  where
-    e.recordkey = new.recordkey
-    and
-    e.accountpart = new.accountpart
-    and
-    e.id != new.id))
-  then
-  begin
-    new.issimple = 0;
-    update
-      ac_entry e
-    set
-      e.issimple = 1
-    where
-      e.recordkey = new.recordkey
-      and
-      e.accountpart != new.accountpart
-      and
-      e.issimple <> 1;
-
-    update
-      ac_entry e
-    set
-      e.issimple = 0
-    where
-      e.recordkey = new.recordkey
-      and
-      e.accountpart = new.accountpart
-      and
-      e.id != new.id
-      and
-      e.issimple <> 0;
-  end
-  else
-  begin
-    new.issimple = 1;
-  end
-end^
-
-CREATE TRIGGER AC_BU_ENTRY_ISSIMPLE FOR AC_ENTRY
-ACTIVE BEFORE UPDATE POSITION 0
-AS
-begin
-  IF (NEW.debitncu IS NULL) THEN
-    NEW.debitncu = 0;
-
-  IF (NEW.debitcurr IS NULL) THEN
-    NEW.debitcurr = 0;
-
-  IF (NEW.debiteq IS NULL) THEN
-    NEW.debiteq = 0;
-
-  IF (NEW.creditncu IS NULL) THEN
-    NEW.creditncu = 0;
-
-  IF (NEW.creditcurr IS NULL) THEN
-    NEW.creditcurr = 0;
-
-  IF (NEW.crediteq IS NULL) THEN
-    NEW.crediteq = 0;
-
-  if (new.accountpart <> old.accountpart) then
-  begin
-  if (exists(select
-    e.id
-  from
-    ac_entry e
-  where
-    e.recordkey = new.recordkey
-    and
-    e.accountpart = new.accountpart
-    and
-    e.id != new.id))
-  then
-  begin
-    new.issimple = 0;
-    update
-      ac_entry e
-    set
-      e.issimple = 1
-    where
-      e.recordkey = new.recordkey
-      and
-      e.accountpart != new.accountpart
-      and
-      e.issimple <> 1;
-
-    update
-      ac_entry e
-    set
-      e.issimple = 0
-    where
-      e.recordkey = new.recordkey
-      and
-      e.accountpart = new.accountpart
-      and
-      e.id != new.id
-      and
-      e.issimple <> 0;
-  end
-  else
-  begin
-    new.issimple = 1;
-  end
-  end
-end^
-
-
-CREATE TRIGGER AC_AD_ENTRY_ISSIMPLE FOR AC_ENTRY
-ACTIVE AFTER DELETE POSITION 1
-AS
-declare variable CountEntry integer;
-begin
-  CountEntry = 0;
-  if (old.issimple = 0) then
-  begin
-    select
-      count(e.id)
-    from
-      ac_entry e
-    where
-      e.recordkey = old.recordkey
-      and
-      e.accountpart = old.accountpart
-      and
-      e.id != old.id
-    into :CountEntry;
-    if ( CountEntry = 1)
-    then
-    begin
-      update
-        ac_entry e
-      set
-        e.issimple = 1
-      where
-        e.recordkey = old.recordkey
-        and
-        e.accountpart = old.accountpart;
-    end
-  end
-end^
-
-CREATE TRIGGER AC_BI_ENTRY_RECORD FOR AC_ENTRY
-ACTIVE BEFORE INSERT POSITION 10
-AS
-BEGIN
-  SELECT documentkey, masterdockey, transactionkey, companykey FROM ac_record
-  WHERE id = NEW.recordkey
-  INTO NEW.documentkey, NEW.masterdockey, NEW.transactionkey, NEW.companykey;
-END^
-
-CREATE TRIGGER AC_BU_ENTRY_RECORD FOR AC_ENTRY
-ACTIVE BEFORE UPDATE POSITION 10
-AS
-BEGIN
-  SELECT documentkey, masterdockey, transactionkey, companykey FROM ac_record
-  WHERE id = NEW.recordkey
-  INTO NEW.documentkey, NEW.masterdockey, NEW.transactionkey, NEW.companykey;
-END^
-
-
 CREATE OR ALTER TRIGGER ac_entry_do_balance FOR ac_entry
-ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 15
-AS 
-BEGIN 
-  IF (GEN_ID(gd_g_entry_balance_date, 0) > 0) THEN 
-  BEGIN 
+  ACTIVE
+  AFTER INSERT OR UPDATE OR DELETE
+  POSITION 15
+AS
+BEGIN
+  IF (GEN_ID(gd_g_entry_balance_date, 0) > 0) THEN
+  BEGIN
     /* Триггер обновляет данные в таблице ac_entry_balance в соответсвии с изменениями в ac_entry */
-    IF (INSERTING AND ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
-    BEGIN 
-      INSERT INTO ac_entry_balance 
-        (companykey, accountkey, currkey, 
-         debitncu, debitcurr, debiteq, 
+    IF (INSERTING AND ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN
+    BEGIN
+      INSERT INTO ac_entry_balance
+        (companykey, accountkey, currkey,
+         debitncu, debitcurr, debiteq,
          creditncu, creditcurr, crediteq)
-      VALUES 
-     (NEW.companykey, 
-      NEW.accountkey, 
-      NEW.currkey, 
-      NEW.debitncu, 
-      NEW.debitcurr, 
-      NEW.debiteq, 
-      NEW.creditncu, 
-      NEW.creditcurr, 
+      VALUES
+     (NEW.companykey,
+      NEW.accountkey,
+      NEW.currkey,
+      NEW.debitncu,
+      NEW.debitcurr,
+      NEW.debiteq,
+      NEW.creditncu,
+      NEW.creditcurr,
       NEW.crediteq);
-    END 
-    ELSE 
-    IF (UPDATING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
-    BEGIN 
-      INSERT INTO ac_entry_balance 
-        (companykey, accountkey, currkey, 
-         debitncu, debitcurr, debiteq, 
+    END
+    ELSE
+    IF (UPDATING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN
+    BEGIN
+      INSERT INTO ac_entry_balance
+        (companykey, accountkey, currkey,
+         debitncu, debitcurr, debiteq,
          creditncu, creditcurr, crediteq)
-      VALUES 
-        (OLD.companykey, 
-         OLD.accountkey, 
-         OLD.currkey, 
-         -OLD.debitncu, 
-         -OLD.debitcurr, 
-         -OLD.debiteq, 
-         -OLD.creditncu, 
-         -OLD.creditcurr, 
+      VALUES
+        (OLD.companykey,
+         OLD.accountkey,
+         OLD.currkey,
+         -OLD.debitncu,
+         -OLD.debitcurr,
+         -OLD.debiteq,
+         -OLD.creditncu,
+         -OLD.creditcurr,
          -OLD.crediteq);
-      IF ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN 
-        INSERT INTO ac_entry_balance 
-          (companykey, accountkey, currkey, 
-           debitncu, debitcurr, debiteq, 
+      IF ((NEW.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0)) THEN
+        INSERT INTO ac_entry_balance
+          (companykey, accountkey, currkey,
+           debitncu, debitcurr, debiteq,
            creditncu, creditcurr, crediteq)
-         VALUES 
-           (NEW.companykey, 
-            NEW.accountkey, 
-            NEW.currkey, 
-            NEW.debitncu, 
-            NEW.debitcurr, 
-            NEW.debiteq, 
-            NEW.creditncu, 
-            NEW.creditcurr, 
+         VALUES
+           (NEW.companykey,
+            NEW.accountkey,
+            NEW.currkey,
+            NEW.debitncu,
+            NEW.debitcurr,
+            NEW.debiteq,
+            NEW.creditncu,
+            NEW.creditcurr,
             NEW.crediteq);
-    END 
-    ELSE 
-    IF (DELETING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN 
-    BEGIN 
-      INSERT INTO ac_entry_balance 
-        (companykey, accountkey, currkey, 
-         debitncu, debitcurr, debiteq, 
+    END
+    ELSE
+    IF (DELETING AND ((OLD.entrydate - CAST('17.11.1858' AS DATE)) < GEN_ID(gd_g_entry_balance_date, 0))) THEN
+    BEGIN
+      INSERT INTO ac_entry_balance
+        (companykey, accountkey, currkey,
+         debitncu, debitcurr, debiteq,
          creditncu, creditcurr, crediteq)
-      VALUES 
-       (OLD.companykey, 
-        OLD.accountkey, 
+      VALUES
+       (OLD.companykey,
+        OLD.accountkey,
         OLD.currkey, 
         -OLD.debitncu, 
         -OLD.debitcurr, 
-        -OLD.debiteq, 
+        -OLD.debiteq,
         -OLD.creditncu, 
         -OLD.creditcurr, 
         -OLD.crediteq);
@@ -910,14 +666,6 @@ BEGIN
   END
 END
 ^
-
-/****************************************************/
-/**                                                **/
-/**   Триггер обрабатывающий добавление нового     **/
-/**   элемента дерева, проверяет диапозон,         **/
-/**   вызывает процедуру сдвига если надо          **/
-/**                                                **/
-/****************************************************/
 
 CREATE TRIGGER ac_bi_transaction FOR ac_transaction
   BEFORE INSERT
@@ -927,7 +675,6 @@ BEGIN
   /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
-
 END
 ^
 
@@ -949,7 +696,7 @@ BEGIN
 END
 ^
 
-CREATE EXCEPTION AC_E_CANTDELETETRENTRY 'Can not  delete this entry'
+CREATE EXCEPTION AC_E_CANTDELETETRENTRY 'Can not delete entry'
 ^
 
 CREATE TRIGGER ac_bd_trrecord FOR ac_trrecord
@@ -965,20 +712,19 @@ END
 
 /*****************************************************/
 /*                                                   */
-/*    ac_entry                                       */
+/*    ac_record                                      */
 /*    Триггеры и хранимые процедуры                  */
 /*                                                   */
 /*****************************************************/
 
-CREATE EXCEPTION AC_E_ENTRYBEFOREDOCUMENT 'Entry date before document date'
-^
+CREATE EXCEPTION ac_e_invalidentry 'Invalid entry'^
 
-CREATE TRIGGER ac_bi_record FOR ac_record
+CREATE OR ALTER TRIGGER ac_bi_record FOR ac_record
   BEFORE INSERT
-  POSITION 0
+  POSITION 31700
 AS
+  DECLARE VARIABLE S VARCHAR(255);
 BEGIN
-  /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 
@@ -986,120 +732,398 @@ BEGIN
   NEW.debitcurr = 0;
   NEW.creditncu = 0;
   NEW.creditcurr = 0;
-  NEW.incorrect = 0;
+
+  NEW.incorrect = 1;
+  S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
+  IF (CHAR_LENGTH(:S) >= 240 OR :S = 'TM') THEN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', 'TM');
+  ELSE
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S || ',' || NEW.id);
 END
 ^
 
-CREATE TRIGGER ac_bu_record FOR ac_record
+CREATE OR ALTER TRIGGER ac_bu_record FOR ac_record
   BEFORE UPDATE
-  POSITION 0
+  POSITION 31700
 AS
+  DECLARE VARIABLE WasUnlock INTEGER;
+  DECLARE VARIABLE S VARCHAR(255);
 BEGIN
-  /* Если ключ не присвоен, присваиваем */
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK') IS NULL) THEN
+  BEGIN
+    NEW.debitncu = OLD.debitncu;
+    NEW.creditncu = OLD.creditncu;
+    NEW.debitcurr = OLD.debitcurr;
+    NEW.creditcurr = OLD.creditcurr;
+  END
 
-  IF ((NEW.debitncu <> NEW.creditncu) OR (NEW.debitcurr <> NEW.creditcurr)) THEN
-    NEW.incorrect = 1;
-  ELSE
-    NEW.incorrect = 0;
+  IF (NEW.debitncu IS DISTINCT FROM OLD.debitncu OR
+    NEW.creditncu IS DISTINCT FROM OLD.creditncu OR
+    NEW.debitcurr IS DISTINCT FROM OLD.debitcurr OR
+    NEW.creditcurr IS DISTINCT FROM OLD.creditcurr) THEN
+  BEGIN
+    NEW.incorrect = IIF((NEW.debitncu IS DISTINCT FROM NEW.creditncu)
+      OR (NEW.debitcurr IS DISTINCT FROM NEW.creditcurr), 1, 0);
+  END ELSE
+    NEW.incorrect = OLD.incorrect;
 
-  UPDATE ac_entry e
-    SET e.entrydate = NEW.recorddate
-    WHERE e.recordkey = NEW.id;
+  IF (NEW.incorrect = 1 AND OLD.incorrect = 0) THEN
+  BEGIN
+    S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
+    IF (CHAR_LENGTH(:S) >= 240 OR :S = 'TM') THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', 'TM');
+    ELSE
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S || ',' || NEW.id);
+  END
+  ELSE IF (NEW.incorrect = 0 AND OLD.incorrect = 1) THEN
+  BEGIN
+    S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
+    S = REPLACE(:S, ',' || NEW.id, '');
+    IF (:S = '') THEN
+      S = NULL;
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S);
+  END
 
+  IF (NEW.recorddate <> OLD.recorddate
+    OR NEW.transactionkey <> OLD.transactionkey
+    OR NEW.documentkey <> OLD.documentkey
+    OR NEW.masterdockey <> OLD.masterdockey
+    OR NEW.companykey <> OLD.companykey) THEN
+  BEGIN
+    WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK');
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', 1);
+    UPDATE ac_entry e
+    SET e.entrydate = NEW.recorddate,
+      e.transactionkey = NEW.transactionkey,
+      e.documentkey = NEW.documentkey,
+      e.masterdockey = NEW.masterdockey,
+      e.companykey = NEW.companykey
+    WHERE
+      e.recordkey = NEW.id;
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+  END
+
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK', NULL);
+    EXCEPTION;
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER ac_ad_record FOR ac_record
+  AFTER DELETE
+  POSITION 31700
+AS
+  DECLARE VARIABLE S VARCHAR(255);
+BEGIN
+  IF (OLD.incorrect = 1) THEN
+  BEGIN
+    S = COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT'), '');
+    S = REPLACE(:S, ',' || OLD.id, '');
+    IF (:S = '') THEN
+      S = NULL;
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT', :S);
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER ac_tc_record
+  ACTIVE
+  ON TRANSACTION COMMIT
+  POSITION 9000
+AS
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE S VARCHAR(255);
+  DECLARE VARIABLE STM VARCHAR(512);
+BEGIN
+  S = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT');
+  IF (:S IS NOT NULL) THEN
+  BEGIN
+    STM =
+      'SELECT r.id FROM ac_record r LEFT JOIN ac_entry e ' ||
+      '  ON e.recordkey = r.id LEFT JOIN ac_account a ON a.id = e.accountkey ' ||
+      'WHERE a.offbalance IS DISTINCT FROM 1 AND ';
+
+    IF (:S = 'TM') THEN
+      STM = :STM || ' r.incorrect = 1';
+    ELSE
+      STM = :STM || ' r.id IN (' || RIGHT(:S, CHAR_LENGTH(:S) - 1) || ')';
+
+    FOR EXECUTE STATEMENT (:STM) INTO :ID
+    DO BEGIN
+      EXECUTE STATEMENT ('DELETE FROM ac_record WHERE id=' || :ID);
+    END
+  END
 END
 ^
 
 /****************************************************/
 /**                                                **/
-/**   Перед сохраненеем проверяем уникальный       **/
+/**   Перед сохранением проверяем уникальный       **/
 /**   идентификатор и значение суммовых полей      **/
 /**                                                **/
 /****************************************************/
 
-CREATE TRIGGER ac_bi_entry FOR ac_entry
+CREATE OR ALTER TRIGGER ac_bi_entry FOR ac_entry
   BEFORE INSERT
-  POSITION 0
+  POSITION 31700
 AS
+  DECLARE VARIABLE Cnt INTEGER = 0;
+  DECLARE VARIABLE Cnt2 INTEGER = 0;
+  DECLARE VARIABLE WasSetIsSimple INTEGER;
 BEGIN
-  /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 
-  IF (NEW.debitncu IS NULL) THEN
+  IF (NEW.accountpart = 'C') THEN
+  BEGIN
     NEW.debitncu = 0;
-
-  IF (NEW.debitcurr IS NULL) THEN
     NEW.debitcurr = 0;
-
-  IF (NEW.debiteq IS NULL) THEN
     NEW.debiteq = 0;
-
-  IF (NEW.creditncu IS NULL) THEN
+    NEW.creditncu = COALESCE(NEW.creditncu, 0);
+    NEW.creditcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.creditcurr, 0));
+    NEW.crediteq = COALESCE(NEW.crediteq, 0);
+  END ELSE
+  BEGIN
     NEW.creditncu = 0;
-
-  IF (NEW.creditcurr IS NULL) THEN
     NEW.creditcurr = 0;
-
-  IF (NEW.crediteq IS NULL) THEN
     NEW.crediteq = 0;
+    NEW.debitncu = COALESCE(NEW.debitncu, 0);
+    NEW.debitcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.debitcurr, 0));
+    NEW.debiteq = COALESCE(NEW.debiteq, 0);
+  END
 
-  UPDATE ac_record SET debitncu = debitncu + NEW.debitncu,
+  SELECT recorddate, transactionkey, documentkey, masterdockey, companykey
+  FROM ac_record
+  WHERE id = NEW.recordkey
+  INTO NEW.entrydate, NEW.transactionkey, NEW.documentkey, NEW.masterdockey, NEW.companykey;
+
+  SELECT
+    COALESCE(SUM(IIF(accountpart = NEW.accountpart, 1, 0)), 0),
+    COALESCE(SUM(IIF(accountpart <> NEW.accountpart, 1, 0)), 0)
+  FROM ac_entry
+  WHERE recordkey = NEW.recordkey
+  INTO :Cnt, :Cnt2;
+
+  IF (:Cnt > 0 AND :Cnt2 > 1) THEN
+    EXCEPTION ac_e_invalidentry;
+
+  IF (:Cnt = 0) THEN
+    NEW.issimple = 1;
+  ELSE BEGIN
+    NEW.issimple = 0;
+    IF (:Cnt = 1) THEN
+    BEGIN
+      WasSetIsSimple = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE');
+      IF (:WasSetIsSimple IS NULL) THEN
+        RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE', 1);
+      UPDATE ac_entry SET issimple = 0
+      WHERE recordkey = NEW.recordkey AND accountpart = NEW.accountpart
+        AND id <> NEW.id;
+      IF (:WasSetIsSimple IS NULL) THEN
+        RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE', NULL);
+    END
+  END
+
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE', NULL);
+    EXCEPTION;
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER ac_ai_entry FOR ac_entry
+  AFTER INSERT
+  POSITION 31700
+AS
+  DECLARE VARIABLE WasUnlock INTEGER;
+BEGIN
+  WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK');
+  IF (:WasUnlock IS NULL) THEN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', 1);
+  UPDATE
+    ac_record
+  SET
+    debitncu = debitncu + NEW.debitncu,
     creditncu = creditncu + NEW.creditncu,
     debitcurr = debitcurr + NEW.debitcurr,
     creditcurr = creditcurr + NEW.creditcurr
   WHERE
     id = NEW.recordkey;
+  IF (:WasUnlock IS NULL) THEN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
 
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
+    EXCEPTION;
+  END
 END
 ^
 
-CREATE TRIGGER AC_BI_ENTRY_ENTRYDATE FOR AC_ENTRY
-ACTIVE BEFORE INSERT POSITION 1 
-AS
-BEGIN 
-
-  SELECT recorddate FROM ac_record
-  WHERE id = NEW.recordkey 
-  INTO NEW.entrydate; 
-
-END
-^
-
-CREATE TRIGGER ac_au_entry FOR ac_entry
-  AFTER UPDATE
-  POSITION 0
+CREATE OR ALTER TRIGGER ac_bu_entry FOR ac_entry
+  BEFORE UPDATE
+  POSITION 31700
 AS
 BEGIN
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE') IS NOT NULL) THEN
+    EXIT;
 
-  IF ((OLD.debitncu <> NEW.debitncu) or (OLD.creditncu <> NEW.creditncu) or 
+  NEW.recordkey = OLD.recordkey;
+
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_UNLOCK') IS NULL) THEN
+  BEGIN
+    NEW.entrydate = OLD.entrydate;
+    NEW.transactionkey = OLD.transactionkey;
+    NEW.documentkey = OLD.documentkey;
+    NEW.masterdockey = OLD.masterdockey;
+    NEW.companykey = OLD.companykey;
+    NEW.issimple = OLD.issimple;
+  END
+
+  IF (NEW.currkey IS NULL) THEN
+  BEGIN
+    NEW.creditcurr = 0;
+    NEW.debitcurr = 0;
+  END
+
+  IF (NEW.accountpart <> OLD.accountpart) THEN
+  BEGIN
+    IF (NEW.accountpart = 'C') THEN
+    BEGIN
+      NEW.debitncu = 0;
+      NEW.debitcurr = 0;
+      NEW.debiteq = 0;
+      NEW.creditncu = COALESCE(NEW.creditncu, 0);
+      NEW.creditcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.creditcurr, 0));
+      NEW.crediteq = COALESCE(NEW.crediteq, 0);
+    END ELSE
+    BEGIN
+      NEW.creditncu = 0;
+      NEW.creditcurr = 0;
+      NEW.crediteq = 0;
+      NEW.debitncu = COALESCE(NEW.debitncu, 0);
+      NEW.debitcurr = IIF(NEW.currkey IS NULL, 0, COALESCE(NEW.debitcurr, 0));
+      NEW.debiteq = COALESCE(NEW.debiteq, 0);
+    END
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER ac_au_entry FOR ac_entry
+  AFTER UPDATE
+  POSITION 31700
+AS
+  DECLARE VARIABLE WasUnlock INTEGER;
+  DECLARE VARIABLE WasSetIsSimple INTEGER;
+  DECLARE VARIABLE Cnt INTEGER;
+  DECLARE VARIABLE Cnt2 INTEGER;
+BEGIN
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE') IS NOT NULL) THEN
+    EXIT;
+
+  IF ((OLD.debitncu <> NEW.debitncu) or (OLD.creditncu <> NEW.creditncu) or
       (OLD.debitcurr <> NEW.debitcurr) or (OLD.creditcurr <> NEW.creditcurr))
-  THEN
+  THEN BEGIN
+    WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK');
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', 1);
     UPDATE ac_record SET debitncu = debitncu - OLD.debitncu + NEW.debitncu,
       creditncu = creditncu - OLD.creditncu + NEW.creditncu,
       debitcurr = debitcurr - OLD.debitcurr + NEW.debitcurr,
       creditcurr = creditcurr - OLD.creditcurr + NEW.creditcurr
     WHERE
       id = OLD.recordkey;
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
+  END
 
+  IF (NEW.accountpart <> OLD.accountpart) THEN
+  BEGIN
+    SELECT
+      COALESCE(SUM(IIF(accountpart = NEW.accountpart, 1, 0)), 0),
+      COALESCE(SUM(IIF(accountpart = OLD.accountpart, 1, 0)), 0)
+    FROM ac_entry
+    WHERE recordkey = NEW.recordkey AND id <> NEW.id
+    INTO :Cnt, :Cnt2;
+
+    IF (:Cnt > 1 AND :Cnt2 > 1) THEN
+      EXCEPTION ac_e_invalidentry;
+
+    WasSetIsSimple = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE');
+    IF (:WasSetIsSimple IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE', 1);
+    UPDATE ac_entry SET
+      issimple = IIF(accountpart = NEW.accountpart,
+        IIF(:Cnt > 1, 0, 1),
+        IIF(:Cnt2 > 1, 0, 1))
+    WHERE recordkey = NEW.recordkey;
+    IF (:WasSetIsSimple IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE', NULL);
+  END
+
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE', NULL);
+    EXCEPTION;
+  END
 END
 ^
 
-CREATE TRIGGER ac_ad_entry FOR ac_entry
+CREATE OR ALTER TRIGGER ac_ad_entry FOR ac_entry
   AFTER DELETE
-  POSITION 0
+  POSITION 31700
 AS
+  DECLARE VARIABLE Cnt INTEGER = 0;
+  DECLARE VARIABLE WasSetIsSimple INTEGER;
+  DECLARE VARIABLE WasUnlock INTEGER;
 BEGIN
-  /* если записей по проводку больше нет - удаляем проводку */
   IF (NOT EXISTS(SELECT id FROM ac_entry WHERE recordkey = OLD.recordkey)) THEN
     DELETE FROM ac_record WHERE id = OLD.recordkey;
-  ELSE
-    UPDATE ac_record SET debitncu = debitncu - OLD.debitncu,
+  ELSE BEGIN
+    WasUnlock = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK');
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', 1);
+    UPDATE ac_record SET
+      debitncu = debitncu - OLD.debitncu,
       creditncu = creditncu - OLD.creditncu,
       debitcurr = debitcurr - OLD.debitcurr,
       creditcurr = creditcurr - OLD.creditcurr
     WHERE
       id = OLD.recordkey;
+    IF (:WasUnlock IS NULL) THEN
+      RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
 
+    IF (OLD.issimple = 0) THEN
+    BEGIN
+      SELECT COUNT(*) FROM ac_entry
+      WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart
+      INTO :Cnt;
+
+      IF (:Cnt = 1) THEN
+      BEGIN
+        WasSetIsSimple = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE');
+        IF (:WasSetIsSimple IS NULL) THEN
+          RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE', 1);
+        UPDATE ac_entry SET issimple = 1
+        WHERE recordkey = OLD.recordkey AND accountpart = OLD.accountpart;
+        IF (:WasSetIsSimple IS NULL) THEN
+          RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE', NULL);
+      END
+    END
+  END
+
+  WHEN ANY DO
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_UNLOCK', NULL);
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AC_ENTRY_SET_ISSIMPLE', NULL);
+    EXCEPTION;
+  END
 END
 ^
 
@@ -1255,7 +1279,7 @@ BEGIN
   DEBITSALDO = 0;
   CREDITSALDO = 0;
   CURRDEBITSALDO = 0; 
-  CURRCREDITSALDO = 0; 
+  CURRCREDITSALDO = 0;
   EQDEBITSALDO = 0;
   EQCREDITSALDO = 0;
   SUSPEND;
@@ -1285,7 +1309,7 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
   DECLARE VARIABLE tempvar VARCHAR(60); 
   DECLARE VARIABLE closedate DATE; 
   DECLARE VARIABLE sqlstatement VARCHAR(2048); 
- BEGIN  
+ BEGIN
   debitsaldo = 0;  
   creditsaldo = 0;  
   currdebitsaldo = 0;  
@@ -1315,7 +1339,7 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
           bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
            AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
             (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
-            AND 
+            AND
               bal.companykey IN ( 
                 SELECT 
                   h.companykey 
@@ -1330,7 +1354,7 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
         SELECT 
           e.' || fieldname || ', 
           e.debitncu, e.creditncu, 
-          e.debitcurr, e.creditcurr, 
+          e.debitcurr, e.creditcurr,
           e.debiteq, e.crediteq 
         FROM 
           ac_entry e 
@@ -1345,7 +1369,7 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
                 SELECT 
                   h.companykey 
                 FROM 
-                  gd_holding h 
+                  gd_holding h
                 WHERE 
                   h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
           AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
@@ -1375,7 +1399,7 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
           bal.accountkey = ' || CAST(:accountkey AS VARCHAR(20)) || ' 
            AND (bal.companykey = ' || CAST(:companykey AS VARCHAR(20)) || ' OR 
             (' || CAST(:allholdingcompanies AS VARCHAR(20)) || ' = 1 
-            AND 
+            AND
               bal.companykey IN ( 
                 SELECT 
                   h.companykey 
@@ -1405,7 +1429,7 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
                 SELECT 
                   h.companykey 
                 FROM 
-                  gd_holding h 
+                  gd_holding h
                 WHERE 
                   h.holdingkey = ' || CAST(:companykey AS VARCHAR(20)) || '))) 
           AND ((0 = ' || CAST(:currkey AS VARCHAR(20)) || ') OR (e.currkey = ' || CAST(:currkey AS VARCHAR(20)) || ')) 
@@ -1435,7 +1459,7 @@ DECLARE VARIABLE saldo NUMERIC(15, 4);
     ELSE 
       currcreditsaldo = currcreditsaldo - saldocurr; 
     IF (saldoeq IS NULL) THEN 
-       saldoeq = 0; 
+       saldoeq = 0;
     IF (saldoeq > 0) THEN 
       eqdebitsaldo = eqdebitsaldo + saldoeq; 
     ELSE 
@@ -1495,7 +1519,7 @@ BEGIN
                                                                                                        
   FOR                                                                                                  
     SELECT a.ID, a.ALIAS, a.activity, f.fieldname, a.Name, a.offbalance                                
-    FROM ac_account a LEFT JOIN at_relation_fields f ON a.analyticalfield = f.id                       
+    FROM ac_account a LEFT JOIN at_relation_fields f ON a.analyticalfield = f.id
     WHERE                                                                                              
       a.accounttype IN ('A', 'S') AND                                                                  
       a.LB >= :LB AND a.RB <= :RB AND a.alias <> '00'                                                  
@@ -1525,7 +1549,7 @@ BEGIN
       INTO :SALDO,                                                                                     
         :SALDOCURR, :SALDOEQ;                                                                          
       ELSE  
-      SELECT                                                                                           
+      SELECT
         SUM(e.DEBITNCU - e.CREDITNCU),                                                                 
         SUM(e.DEBITCURR - e.CREDITCURR),                                                               
         SUM(e.DEBITEQ - e.CREDITEQ)                                                                    
@@ -1555,7 +1579,7 @@ BEGIN
                                                                                                        
                                                                                                        
       IF (SALDO > 0) THEN                                                                              
-        NCU_BEGIN_DEBIT = SALDO;                                                                       
+        NCU_BEGIN_DEBIT = SALDO;
       ELSE                                                                                             
         NCU_BEGIN_CREDIT = 0 - SALDO;                                                                  
                                                                                                        
@@ -1585,7 +1609,7 @@ BEGIN
     IF (ALLHOLDINGCOMPANIES = 0) THEN  
     BEGIN 
       IF (DONTINMOVE = 1) THEN 
-        SELECT 
+        SELECT
           SUM(e.DEBITNCU), 
           SUM(e.CREDITNCU), 
           SUM(e.DEBITCURR), 
@@ -1615,7 +1639,7 @@ BEGIN
           SUM(e.DEBITCURR), 
           SUM(e.CREDITCURR), 
           SUM(e.DEBITEQ), 
-          SUM(e.CREDITEQ) 
+          SUM(e.CREDITEQ)
         FROM 
           ac_entry e 
         WHERE 
@@ -1645,7 +1669,7 @@ BEGIN
           ((0 = :currkey) OR (e.currkey = :currkey)) AND 
           NOT EXISTS( SELECT e_m.id FROM  ac_entry e_m 
               JOIN ac_entry e_cm ON e_cm.recordkey=e_m.recordkey AND 
-               e_cm.accountpart <> e_m.accountpart AND 
+               e_cm.accountpart <> e_m.accountpart AND
                e_cm.accountkey=e_m.accountkey AND 
                (e_m.debitncu=e_cm.creditncu OR 
                 e_m.creditncu=e_cm.debitncu OR 
@@ -1675,7 +1699,7 @@ BEGIN
                                                                                                              
     IF (NCU_DEBIT IS NULL) THEN                                                                        
       NCU_DEBIT = 0;                                                                                   
-                                                                                                       
+
     IF (NCU_CREDIT IS NULL) THEN                                                                       
       NCU_CREDIT = 0;                                                                                  
   
@@ -1705,7 +1729,7 @@ BEGIN
         NCU_END_DEBIT = SALDO;                                                                         
       ELSE 
         NCU_END_CREDIT = 0 - SALDO;                                                                    
-                                                                                                       
+
       SALDOCURR = CURR_BEGIN_DEBIT - CURR_BEGIN_CREDIT + CURR_DEBIT - CURR_CREDIT;                     
       IF (SALDOCURR > 0) THEN                                                                          
         CURR_END_DEBIT = SALDOCURR;                                                                    
@@ -1735,7 +1759,7 @@ BEGIN
           :allholdingcompanies, :INGROUP, :currkey)  
         INTO :NCU_END_DEBIT, :NCU_END_CREDIT, :CURR_END_DEBIT, :CURR_END_CREDIT, :EQ_END_DEBIT, :EQ_END_CREDIT;  
       END  
-    END  
+    END
     IF ((NCU_BEGIN_DEBIT <> 0) OR (NCU_BEGIN_CREDIT <> 0) OR  
       (NCU_DEBIT <> 0) OR (NCU_CREDIT <> 0) OR  
       (CURR_BEGIN_DEBIT <> 0) OR (CURR_BEGIN_CREDIT <> 0) OR  
@@ -1795,7 +1819,7 @@ BEGIN
   FROM 
     ac_account c 
   WHERE 
-    c.id = :accountkey 
+    c.id = :accountkey
   INTO 
     :lb, :rb; 
   
@@ -1825,7 +1849,7 @@ BEGIN
       BEGIN 
         SELECT 
           SUM(main.debitncu - main.creditncu), 
-          SUM(main.debitcurr - main.creditcurr), 
+          SUM(main.debitcurr - main.creditcurr),
           SUM(main.debiteq - main.crediteq) 
         FROM 
         ( 
@@ -1855,7 +1879,7 @@ BEGIN
   
           SELECT 
             e.debitncu, 
-            e.creditncu, 
+            e.creditncu,
             e.debitcurr, 
             e.creditcurr, 
             e.debiteq, 
@@ -1885,7 +1909,7 @@ BEGIN
         SELECT 
           SUM(main.debitncu - main.creditncu), 
           SUM(main.debitcurr - main.creditcurr), 
-          SUM(main.debiteq - main.crediteq) 
+          SUM(main.debiteq - main.crediteq)
         FROM 
         ( 
           SELECT 
@@ -1915,7 +1939,7 @@ BEGIN
           SELECT 
             - e.debitncu, 
             - e.creditncu, 
-            - e.debitcurr, 
+            - e.debitcurr,
             - e.creditcurr, 
             - e.debiteq, 
             - e.crediteq 
@@ -1945,7 +1969,7 @@ BEGIN
       IF (saldocurr IS NULL) THEN 
         saldocurr = 0;  
       IF (saldoeq IS NULL) THEN 
-        saldoeq = 0; 
+        saldoeq = 0;
   
       IF (saldo > 0) THEN 
         ncu_begin_debit = saldo; 
@@ -1975,7 +1999,7 @@ BEGIN
     IF (allholdingcompanies = 0) THEN 
     BEGIN 
       IF (dontinmove = 1) THEN 
-        SELECT 
+        SELECT
           SUM(e.debitncu), 
           SUM(e.creditncu), 
           SUM(e.debitcurr), 
@@ -2005,7 +2029,7 @@ BEGIN
                 OR e.creditcurr=e_cm.debitcurr)) 
         INTO 
           :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, eq_credit; 
-      ELSE 
+      ELSE
         SELECT 
           SUM(e.debitncu), 
           SUM(e.creditncu), 
@@ -2035,7 +2059,7 @@ BEGIN
           SUM(e.debiteq), 
           SUM(e.crediteq) 
         FROM 
-          ac_entry e 
+          ac_entry e
         WHERE 
           e.accountkey = :id 
           AND e.entrydate >= :datebegin 
@@ -2065,7 +2089,7 @@ BEGIN
         INTO 
           :ncu_debit, :ncu_credit, :curr_debit, curr_credit, :eq_debit, :eq_credit; 
       ELSE 
-        SELECT 
+        SELECT
           SUM(e.debitncu), 
           SUM(e.creditncu), 
           SUM(e.debitcurr), 
@@ -2095,7 +2119,7 @@ BEGIN
       ncu_debit = 0;  
     IF (ncu_credit IS NULL) THEN 
       ncu_credit = 0; 
-    IF (curr_debit IS NULL) THEN 
+    IF (curr_debit IS NULL) THEN
       curr_debit = 0; 
     IF (curr_credit IS NULL) THEN 
       curr_credit = 0; 
@@ -2125,7 +2149,7 @@ BEGIN
       ELSE 
         curr_end_credit = 0 - saldocurr; 
   
-      saldoeq = eq_begin_debit - eq_begin_credit + eq_debit - eq_credit; 
+      saldoeq = eq_begin_debit - eq_begin_credit + eq_debit - eq_credit;
       IF (saldoeq > 0) THEN 
         eq_end_debit = saldoeq; 
       ELSE 
@@ -2155,7 +2179,7 @@ BEGIN
       (curr_begin_debit <> 0) OR (curr_begin_credit <> 0) OR 
       (curr_debit <> 0) OR (curr_credit <> 0) OR 
       (eq_begin_debit <> 0) OR (eq_begin_credit <> 0) OR 
-      (eq_debit <> 0) OR (eq_credit <> 0)) THEN 
+      (eq_debit <> 0) OR (eq_credit <> 0)) THEN
       SUSPEND; 
   END 
 END
@@ -2425,7 +2449,7 @@ declare variable c integer;
 BEGIN 
   IF (:SQLHANDLE = 0) THEN 
   BEGIN 
-    SELECT 
+    SELECT
       IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
       IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
       IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
@@ -2455,7 +2479,7 @@ BEGIN
       saldobegineq = 0; 
  
     C = 0; 
-    FORCESHOW = 0; 
+    FORCESHOW = 0;
     FOR 
       SELECT 
         e.entrydate, 
@@ -2485,7 +2509,7 @@ BEGIN
            :OEQ 
     DO 
     BEGIN 
-      DEBITNCUBEGIN = 0; 
+      DEBITNCUBEGIN = 0;
       CREDITNCUBEGIN = 0; 
       DEBITNCUEND = 0; 
       CREDITNCUEND = 0; 
@@ -2515,7 +2539,7 @@ BEGIN
         DEBITCURREND = :SALDOENDCURR; 
       else 
         CREDITCURREND =  - :SALDOENDCURR; 
-      SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
+      SALDOENDEQ = :SALDOBEGINEQ + :OEQ;
       if (SALDOBEGINEQ > 0) then 
         DEBITEQBEGIN = :SALDOBEGINEQ; 
       else 
@@ -2545,7 +2569,7 @@ BEGIN
    
       IF (SALDOBEGINCURR > 0) THEN 
       BEGIN 
-        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
         DEBITCURREND = :SALDOBEGINCURR; 
       END ELSE 
       BEGIN 
@@ -2575,7 +2599,7 @@ BEGIN
       IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
     FROM 
       ac_ledger_accounts a JOIN 
-      ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate 
+      ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate
       AND a.sqlhandle = :sqlhandle  
     WHERE 
       (e1.companykey + 0 = :companykey OR 
@@ -2605,7 +2629,7 @@ BEGIN
       SELECT 
         e.entrydate, 
         SUM(e.debitncu - e.creditncu), 
-        SUM(e.debitcurr - e.creditcurr), 
+        SUM(e.debitcurr - e.creditcurr),
         SUM(e.debiteq - e.crediteq) 
       FROM 
         ac_ledger_accounts a 
@@ -2635,7 +2659,7 @@ BEGIN
       CREDITNCUBEGIN = 0; 
       DEBITNCUEND = 0; 
       CREDITNCUEND = 0; 
-      DEBITCURRBEGIN = 0; 
+      DEBITCURRBEGIN = 0;
       CREDITCURRBEGIN = 0; 
       DEBITCURREND = 0; 
       CREDITCURREND = 0; 
@@ -2665,7 +2689,7 @@ BEGIN
       if (SALDOBEGINEQ > 0) then 
         DEBITEQBEGIN = :SALDOBEGINEQ; 
       else 
-        CREDITEQBEGIN =  - :SALDOBEGINEQ; 
+        CREDITEQBEGIN =  - :SALDOBEGINEQ;
       if (SALDOENDEQ > 0) then 
         DEBITEQEND = :SALDOENDEQ; 
       else 
@@ -2695,7 +2719,7 @@ BEGIN
         DEBITCURRBEGIN = :SALDOBEGINCURR; 
         DEBITCURREND = :SALDOBEGINCURR; 
       END ELSE 
-      BEGIN 
+      BEGIN
         CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
         CREDITCURREND =  - :SALDOBEGINCURR; 
       END 
@@ -2755,7 +2779,7 @@ declare variable saldoendeq numeric(18,4);
 declare variable c integer;
 BEGIN 
   IF (:SQLHANDLE = 0) THEN 
-  BEGIN 
+  BEGIN
     SELECT 
       IIF(NOT SUM(e1.debitncu - e1.creditncu) IS NULL, SUM(e1.debitncu - e1.creditncu),  0), 
       IIF(NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL, SUM(e1.debitcurr - e1.creditcurr), 0), 
@@ -2785,7 +2809,7 @@ BEGIN
       saldobegineq = 0; 
  
     C = 0; 
-    FORCESHOW = 0; 
+    FORCESHOW = 0;
     FOR 
       SELECT 
         SUM(e.debitncu - e.creditncu), 
@@ -2815,7 +2839,7 @@ BEGIN
     DO 
     BEGIN 
       DEBITNCUBEGIN = 0; 
-      CREDITNCUBEGIN = 0; 
+      CREDITNCUBEGIN = 0;
       DEBITNCUEND = 0; 
       CREDITNCUEND = 0; 
       DEBITCURRBEGIN = 0; 
@@ -2845,7 +2869,7 @@ BEGIN
       else 
         CREDITCURREND =  - :SALDOENDCURR; 
       SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
-      if (SALDOBEGINEQ > 0) then 
+      if (SALDOBEGINEQ > 0) then
         DEBITEQBEGIN = :SALDOBEGINEQ; 
       else 
         CREDITEQBEGIN =  - :SALDOBEGINEQ; 
@@ -2875,7 +2899,7 @@ BEGIN
      
       IF (SALDOBEGINCURR > 0) THEN 
       BEGIN 
-        DEBITCURRBEGIN = :SALDOBEGINCURR; 
+        DEBITCURRBEGIN = :SALDOBEGINCURR;
         DEBITCURREND = :SALDOBEGINCURR; 
       END ELSE 
       BEGIN 
@@ -2905,7 +2929,7 @@ BEGIN
       IIF(NOT SUM(e1.debiteq - e1.crediteq) IS NULL, SUM(e1.debiteq - e1.crediteq), 0) 
     FROM 
       ac_ledger_accounts a 
-      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate 
+      JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND e1.entrydate < :abeginentrydate
       AND a.sqlhandle = :sqlhandle  
     WHERE 
       (e1.companykey + 0 = :companykey OR 
@@ -2935,7 +2959,7 @@ BEGIN
         SUM(e.debitncu - e.creditncu), 
         SUM(e.debitcurr - e.creditcurr), 
         SUM(e.debiteq - e.crediteq), 
-        g_d_getdateparam(e.entrydate, :param) 
+        g_d_getdateparam(e.entrydate, :param)
       FROM 
         ac_ledger_accounts a 
         JOIN ac_entry e ON a.accountkey = e.accountkey AND 
@@ -2965,7 +2989,7 @@ BEGIN
       DEBITNCUEND = 0; 
       CREDITNCUEND = 0; 
       DEBITCURRBEGIN = 0; 
-      CREDITCURRBEGIN = 0; 
+      CREDITCURRBEGIN = 0;
       DEBITCURREND = 0; 
       CREDITCURREND = 0; 
       DEBITEQBEGIN = 0; 
@@ -2995,7 +3019,7 @@ BEGIN
         DEBITEQBEGIN = :SALDOBEGINEQ; 
       else 
         CREDITEQBEGIN =  - :SALDOBEGINEQ; 
-      if (SALDOENDEQ > 0) then 
+      if (SALDOENDEQ > 0) then
         DEBITEQEND = :SALDOENDEQ; 
       else 
         CREDITEQEND =  - :SALDOENDEQ; 
@@ -3025,7 +3049,7 @@ BEGIN
         DEBITCURREND = :SALDOBEGINCURR; 
       END ELSE 
       BEGIN 
-        CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
+        CREDITCURRBEGIN =  - :SALDOBEGINCURR;
         CREDITCURREND =  - :SALDOBEGINCURR; 
       END 
  
@@ -3085,7 +3109,7 @@ BEGIN
     WHERE 
       (e1.companykey + 0 = :companykey OR 
       (:ALLHOLDINGCOMPANIES = 1 AND 
-      e1.companykey + 0 IN ( 
+      e1.companykey + 0 IN (
         SELECT 
           h.companykey 
         FROM 
@@ -3115,7 +3139,7 @@ BEGIN
         e.companykey + 0 IN ( 
           SELECT 
             h.companykey 
-          FROM 
+          FROM
             gd_holding h 
           WHERE 
             h.holdingkey = :companykey))) AND 
@@ -3145,7 +3169,7 @@ BEGIN
       else 
         CREDITBEGIN =  - :SALDOBEGIN; 
       if (SALDOEND > 0) then 
-        DEBITEND = :SALDOEND; 
+        DEBITEND = :SALDOEND;
       else 
         CREDITEND =  - :SALDOEND; 
       SUSPEND; 
@@ -3175,7 +3199,7 @@ BEGIN
  
     SELECT 
       IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
-        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0, 
+        SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0,
         SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
         SUM(IIF(e1.accountpart = 'C', q.quantity, 0)), 0) 
     FROM 
@@ -3205,7 +3229,7 @@ BEGIN
       SELECT 
         e.entrydate, 
         SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
-          SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
+          SUM(IIF(e.accountpart = 'C', q.quantity, 0))
       FROM 
         ac_ledger_accounts a 
         JOIN ac_entry e ON a.accountkey = e.accountkey AND 
@@ -3235,7 +3259,7 @@ BEGIN
       CREDITBEGIN = 0; 
       DEBITEND = 0; 
       CREDITEND = 0; 
-      DEBIT = 0; 
+      DEBIT = 0;
       CREDIT = 0; 
       IF (O > 0) THEN 
         DEBIT = :O; 
@@ -3265,7 +3289,7 @@ BEGIN
         DEBITEND = :SALDOBEGIN; 
       END ELSE 
       BEGIN 
-        CREDITBEGIN =  - :SALDOBEGIN; 
+        CREDITBEGIN =  - :SALDOBEGIN;
         CREDITEND =  - :SALDOBEGIN; 
       END 
       SUSPEND; 
@@ -3295,7 +3319,7 @@ begin
   FROM
     ac_entry e
     LEFT JOIN ac_entry e1 ON e1.recordkey = e.recordkey AND
-      e1.accountpart <> e.accountpart 
+      e1.accountpart <> e.accountpart
     LEFT JOIN ac_quantity q ON q.entrykey = iif(e.issimple = 1 and e1.issimple = 1,
       e.id, iif(e.issimple = 0, e.id, e1.id))
   WHERE
@@ -3355,7 +3379,7 @@ BEGIN
     WHERE 
       e1.entrydate < :abeginentrydate AND 
       (e1.companykey + 0 = :companykey OR 
-      (:ALLHOLDINGCOMPANIES = 1 AND 
+      (:ALLHOLDINGCOMPANIES = 1 AND
       e1.companykey + 0 IN ( 
         SELECT 
           h.companykey 
@@ -3385,7 +3409,7 @@ BEGIN
         (e.companykey + 0 = :companykey OR 
         (:ALLHOLDINGCOMPANIES = 1 AND 
         e.companykey + 0 IN ( 
-          SELECT 
+          SELECT
             h.companykey 
           FROM 
             gd_holding h 
@@ -3415,7 +3439,7 @@ BEGIN
       else 
         CREDITBEGIN =  - :SALDOBEGIN; 
       if (SALDOEND > 0) then 
-        DEBITEND = :SALDOEND; 
+        DEBITEND = :SALDOEND;
       else 
         CREDITEND =  - :SALDOEND; 
       SUSPEND; 
@@ -3445,7 +3469,7 @@ BEGIN
     SELECT 
       SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
         SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) 
-    FROM 
+    FROM
       ac_ledger_accounts a 
       JOIN ac_entry e1 ON a.accountkey = e1.accountkey AND 
         e1.entrydate < :abeginentrydate 
@@ -3475,7 +3499,7 @@ BEGIN
         SUM(IIF(e.accountpart = 'D', q.quantity, 0)) - 
           SUM(IIF(e.accountpart = 'C', q.quantity, 0)) 
       FROM 
-        ac_ledger_accounts a 
+        ac_ledger_accounts a
         JOIN ac_entry e ON a.accountkey = e.accountkey AND 
           e.entrydate <= :aendentrydate AND 
           e.entrydate >= :abeginentrydate 
@@ -3505,7 +3529,7 @@ BEGIN
       DEBIT = 0; 
       CREDIT = 0; 
       IF (O > 0) THEN 
-        DEBIT = :O; 
+        DEBIT = :O;
       ELSE 
         CREDIT = - :O; 
    
@@ -3535,7 +3559,7 @@ BEGIN
         CREDITBEGIN =  - :SALDOBEGIN; 
         CREDITEND =  - :SALDOBEGIN; 
       END 
-      SUSPEND; 
+      SUSPEND;
     END 
  
   END 
@@ -3565,7 +3589,7 @@ declare variable saldobegin numeric(15,4);
 declare variable saldoend numeric(15,4);
 declare variable c integer;
 begin 
-  SELECT 
+  SELECT
     IIF(SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
       SUM(IIF(e1.accountpart = 'C', q.quantity, 0)) > 0, 
       SUM(IIF(e1.accountpart = 'D', q.quantity, 0)) - 
@@ -3595,7 +3619,7 @@ begin
     ((0 = :currkey) OR (e1.currkey = :currkey)) 
   INTO :saldobegin; 
   if (saldobegin IS NULL) then 
-    saldobegin = 0; 
+    saldobegin = 0;
  
   C = 0; 
   FOR 
@@ -3625,7 +3649,7 @@ begin
         SELECT 
           h.companykey 
         FROM 
-          gd_holding h 
+          gd_holding h
         WHERE 
           h.holdingkey = :companykey))) AND 
       ((0 = :currkey) OR (e.currkey = :currkey)) 
@@ -3655,7 +3679,7 @@ begin
       DEBITEND = :SALDOEND; 
     else 
       CREDITEND =  - :SALDOEND; 
-    SALDOBEGIN = :SALDOEND; 
+    SALDOBEGIN = :SALDOEND;
     C = C + 1; 
     SUSPEND; 
   END 
@@ -3745,7 +3769,7 @@ BEGIN
         (SUM(e1.debitncu - e1.creditncu) > 0), SUM(e1.debitncu - e1.creditncu),  0), 
       IIF((NOT SUM(e1.creditncu - e1.debitncu) IS NULL) AND 
         (SUM(e1.creditncu - e1.debitncu) > 0), SUM(e1.creditncu - e1.debitncu),  0), 
-      IIF((NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL) AND 
+      IIF((NOT SUM(e1.debitcurr - e1.creditcurr) IS NULL) AND
         (SUM(e1.debitcurr - e1.creditcurr) > 0), SUM(e1.debitcurr - e1.creditcurr),  0), 
       IIF((NOT SUM(e1.creditcurr - e1.debitcurr) IS NULL) AND 
         (SUM(e1.creditcurr - e1.debitcurr) > 0), SUM(e1.creditcurr - e1.debitcurr),  0), 
@@ -3775,7 +3799,7 @@ BEGIN
          :saldobegindebiteq, 
          :saldobegincrediteq; 
   END ELSE 
-  BEGIN 
+  BEGIN
     FOR 
       SELECT 
         la.accountkey 
@@ -3805,7 +3829,7 @@ BEGIN
  
       IF (sd IS NULL) then SD = 0; 
       IF (sc IS NULL) then SC = 0; 
-      IF (sdc IS NULL) then SDC = 0; 
+      IF (sdc IS NULL) then SDC = 0;
       IF (scc IS NULL) then SCC = 0; 
  
       saldobegindebit = :saldobegindebit + :sd; 
@@ -3835,7 +3859,7 @@ BEGIN
     WHERE 
       (e.companykey + 0 = :companykey OR 
       (:ALLHOLDINGCOMPANIES = 1 AND 
-      e.companykey + 0 IN ( 
+      e.companykey + 0 IN (
         SELECT 
           h.companykey 
         FROM 
@@ -3865,7 +3889,7 @@ BEGIN
     ENDDATE = D; 
     DEBITNCUBEGIN = 0; 
     CREDITNCUBEGIN = 0; 
-    DEBITNCUEND = 0; 
+    DEBITNCUEND = 0;
     CREDITNCUEND = 0; 
     DEBITCURRBEGIN = 0; 
     CREDITCURRBEGIN = 0; 
@@ -3895,7 +3919,7 @@ BEGIN
       BEGIN 
         SALDOENDDEBITCURR = 0; 
         SALDOENDCREDITCURR =  - (:saldobegindebitcurr - :saldobegincreditcurr + :ocurr); 
-      END 
+      END
  
       IF (:saldobegindebiteq - :saldobegincrediteq + :oeq > 0) THEN 
       BEGIN 
@@ -3925,7 +3949,7 @@ BEGIN
         INTO :accountkey 
       DO 
       BEGIN 
- 
+
         SELECT 
           a.DEBITSALDO, 
           a.CREDITSALDO, 
@@ -3955,7 +3979,7 @@ BEGIN
         saldoenddebitcurr = :saldoenddebitcurr + :sdc; 
         saldoendcreditcurr = :saldoendcreditcurr + :scc; 
         saldoenddebiteq = :saldoenddebiteq + :sdeq; 
-        saldoendcrediteq = :saldoendcrediteq + :sceq; 
+        saldoendcrediteq = :saldoendcrediteq + :sceq;
       END 
     END 
  
@@ -3985,7 +4009,7 @@ BEGIN
     SALDOBEGINDEBITEQ = :SALDOENDDEBITEQ; 
     SALDOBEGINCREDITEQ = :SALDOENDCREDITEQ; 
  
-    C = C + 1; 
+    C = C + 1;
   END 
   /*Если за указанный период нет движения то выводим сальдо на начало периода*/ 
   IF (C = 0) THEN 
@@ -4075,7 +4099,7 @@ BEGIN
   DO 
   BEGIN 
     DEBITNCUBEGIN = 0; 
-    CREDITNCUBEGIN = 0; 
+    CREDITNCUBEGIN = 0;
     DEBITNCUEND = 0; 
     CREDITNCUEND = 0; 
     DEBITCURRBEGIN = 0; 
@@ -4105,7 +4129,7 @@ BEGIN
     else 
       CREDITCURREND =  - :SALDOENDCURR; 
     SALDOENDEQ = :SALDOBEGINEQ + :OEQ; 
-    if (SALDOBEGINEQ > 0) then 
+    if (SALDOBEGINEQ > 0) then
       DEBITEQBEGIN = :SALDOBEGINEQ; 
     else 
       CREDITEQBEGIN =  - :SALDOBEGINEQ; 
@@ -4135,7 +4159,7 @@ BEGIN
  
     IF (SALDOBEGINCURR > 0) THEN 
     BEGIN 
-      DEBITCURRBEGIN = :SALDOBEGINCURR; 
+      DEBITCURRBEGIN = :SALDOBEGINCURR;
       DEBITCURREND = :SALDOBEGINCURR; 
     END ELSE 
     BEGIN 
@@ -4195,7 +4219,7 @@ BEGIN
   IF (saldobegincurr IS NULL) THEN 
     saldobegincurr = 0; 
   IF (saldobegineq IS NULL) THEN 
-    saldobegineq = 0; 
+    saldobegineq = 0;
   C = 0; 
   FORCESHOW = 0; 
   FOR 
@@ -4225,7 +4249,7 @@ BEGIN
     CREDITCURRBEGIN = 0; 
     DEBITCURREND = 0; 
     CREDITCURREND = 0; 
-    DEBITEQBEGIN = 0; 
+    DEBITEQBEGIN = 0;
     CREDITEQBEGIN = 0; 
     DEBITEQEND = 0; 
     CREDITEQEND = 0; 
@@ -4255,7 +4279,7 @@ BEGIN
     if (SALDOENDEQ > 0) then 
       DEBITEQEND = :SALDOENDEQ; 
     else 
-      CREDITEQEND =  - :SALDOENDEQ; 
+      CREDITEQEND =  - :SALDOENDEQ;
     SUSPEND; 
     SALDOBEGIN = :SALDOEND; 
     SALDOBEGINCURR = :SALDOENDCURR; 
@@ -4285,7 +4309,7 @@ BEGIN
       CREDITCURRBEGIN =  - :SALDOBEGINCURR; 
       CREDITCURREND =  - :SALDOBEGINCURR; 
     END 
- 
+
     IF (SALDOBEGINEQ > 0) THEN 
     BEGIN 
       DEBITEQBEGIN = :SALDOBEGINEQ; 
@@ -4345,7 +4369,7 @@ BEGIN
     DEBITBEGIN = 0; 
     CREDITBEGIN = 0; 
     DEBITEND = 0; 
-    CREDITEND = 0; 
+    CREDITEND = 0;
     DEBIT = 0; 
     CREDIT = 0; 
     IF (O > 0) THEN 
@@ -4375,7 +4399,7 @@ BEGIN
       DEBITBEGIN = :SALDOBEGIN; 
       DEBITEND = :SALDOBEGIN; 
     END ELSE 
-    BEGIN 
+    BEGIN
       CREDITBEGIN =  - :SALDOBEGIN; 
       CREDITEND =  - :SALDOBEGIN; 
     END 
@@ -4405,7 +4429,7 @@ declare variable c integer;
 BEGIN 
   C = 0; 
   if (SALDOBEGIN IS NULL) THEN 
-    SALDOBEGIN = 0; 
+    SALDOBEGIN = 0;
  
   FOR 
     SELECT 
@@ -4435,7 +4459,7 @@ BEGIN
       DEBIT = :O; 
     ELSE 
       CREDIT = - :O; 
- 
+
     SALDOEND = :SALDOBEGIN + :O; 
     if (SALDOBEGIN > 0) then 
       DEBITBEGIN = :SALDOBEGIN; 
@@ -4644,6 +4668,7 @@ begin
     END
   SUSPEND;
 end^
+
 COMMIT^
 
 SET TERM ;^

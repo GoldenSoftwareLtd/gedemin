@@ -535,7 +535,6 @@ end;
 
 { TwrpComponent }
 
-
 function TwrpComponent.Get_ComponentCount: Integer;
 begin
   Result := _GetComponent.ComponentCount;

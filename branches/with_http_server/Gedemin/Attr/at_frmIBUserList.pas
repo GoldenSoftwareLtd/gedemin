@@ -49,26 +49,9 @@ var
 implementation
 
 uses
-  dmDataBase_unit, gdcBaseInterface, WinSock;
+  dmDataBase_unit, gdcBaseInterface, gd_common_functions;
 
 {$R *.DFM}
-
-function ALIPAddrToName(IPAddr : String): String;
-var SockAddrIn: TSockAddrIn;
-    HostEnt: PHostEnt;
-    WSAData: TWSAData;
-begin
-  WSAData.wVersion := 0;
-  WSAStartup(MAKEWORD(2,2), WSAData);
-  Try
-    SockAddrIn.sin_addr.s_addr:= inet_addr(PChar(IPAddr));
-    HostEnt:= gethostbyaddr(@SockAddrIn.sin_addr.S_addr, 4, AF_INET);
-    if HostEnt<>nil then result:=StrPas(Hostent^.h_name)
-    else result:='';
-  finally
-    if WSAData.wVersion = 2 then WSACleanup;
-  end;
-end;
 
 { TfrmIBUserList }
 
@@ -138,7 +121,8 @@ begin
       '  A.MON$ATTACHMENT_ID ' +
       'FROM MON$ATTACHMENTS A LEFT JOIN GD_USER U ' +
       '  ON A.MON$USER = U.IBNAME ' +
-      'WHERE A.MON$STATE = 1 ';
+      'WHERE A.MON$STATE = 1 ' +
+      'ORDER BY A.MON$USER ';
     q.ExecQuery;
 
     while not q.EOF do

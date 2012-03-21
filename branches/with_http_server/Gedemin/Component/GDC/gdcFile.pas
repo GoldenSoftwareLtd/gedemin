@@ -252,7 +252,7 @@ begin
   Result := -1;
   if AFileName = '' then Exit;
 
-  S := _AnsiUpperCase(AFileName);
+  S := AnsiUpperCase(AFileName);
   ParentKey := -1;
   ibsql := CreateReadIBSQL;
   try

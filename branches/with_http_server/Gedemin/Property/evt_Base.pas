@@ -6486,10 +6486,15 @@ begin
     ResetEvents(ObjectList.EventObject[i].SelfObject);
   end;
 
-  for I :=  0 to ObjectList.FDinamicEventArray.Count - 1 do
+  I := ObjectList.FDinamicEventArray.Count - 1;
+  while I >= 0 do
   begin
-    ResetAllEvents(TEventObject(ObjectList.FDinamicEventArray.ObjectByIndex[i]).ChildObjects);
-    ResetEvents(TEventObject(ObjectList.FDinamicEventArray.ObjectByIndex[i]).SelfObject);
+    if I < ObjectList.FDinamicEventArray.Count then
+    begin
+      ResetAllEvents(TEventObject(ObjectList.FDinamicEventArray.ObjectByIndex[i]).ChildObjects);
+      ResetEvents(TEventObject(ObjectList.FDinamicEventArray.ObjectByIndex[i]).SelfObject);
+    end;
+    Dec(I);  
   end;
 end;
 

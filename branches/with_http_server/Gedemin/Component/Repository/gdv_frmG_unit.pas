@@ -118,7 +118,8 @@ begin
      gsPeriodEdit.AssignPeriod(
        UserStorage.ReadString(BuildComponentPath(gsPeriodEdit), 'Period', ''));
   end;
-  TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+
+  //TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDV_FRMG', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
@@ -165,7 +166,8 @@ begin
   inherited;
 
   UserStorage.WriteString(BuildComponentPath(gsPeriodEdit), 'Period', gsPeriodEdit.Text);
-  TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+
+  //TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDV_FRMG', 'SAVESETTINGS', KEYSAVESETTINGS)}
   {M}finally

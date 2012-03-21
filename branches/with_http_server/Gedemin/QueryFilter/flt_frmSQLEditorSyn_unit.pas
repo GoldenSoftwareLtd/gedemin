@@ -1193,13 +1193,13 @@ procedure TfrmSQLEditorSyn.LoadSettings;
 begin
   inherited;
   UpdateHistory;
-  TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+  //TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 end;
 
 procedure TfrmSQLEditorSyn.SaveSettings;
 begin
   inherited;
-  TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
+  //TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 end;
 
 class function TfrmSQLEditorSyn.CreateAndAssign(

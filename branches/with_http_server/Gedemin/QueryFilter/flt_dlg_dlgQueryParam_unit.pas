@@ -263,7 +263,10 @@ var
             TgsComboBoxAttrSet(FWinCtrl).FieldName := LocParamList.Params[I].LinkDisplayField;
             TgsComboBoxAttrSet(FWinCtrl).PrimaryName := LocParamList.Params[I].LinkPrimaryField;
             TgsComboBoxAttrSet(FWinCtrl).Database := FDatabase;
-            TgsComboBoxAttrSet(FWinCtrl).Transaction := FTransaction;
+            if LocParamList.Params[I].Transaction <> nil then
+              TgsComboBoxAttrSet(FWinCtrl).Transaction := LocParamList.Params[I].Transaction
+            else
+              TgsComboBoxAttrSet(FWinCtrl).Transaction := FTransaction;
             TgsComboBoxAttrSet(FWinCtrl).UserAttr := False;
             TgsComboBoxAttrSet(FWinCtrl).SortOrder := TgsComboBoxSortOrder(LocParamList.Params[I].SortOrder);
             TgsComboBoxAttrSet(FWinCtrl).SortField := LocParamList.Params[I].SortField;
@@ -293,7 +296,10 @@ var
             TgsIBLookupComboBox(FWinCtrl).ListField := LocParamList.Params[I].LinkDisplayField;
             TgsIBLookupComboBox(FWinCtrl).KeyField := LocParamList.Params[I].LinkPrimaryField;
             TgsIBLookupComboBox(FWinCtrl).Database := FDatabase;
-            TgsIBLookupComboBox(FWinCtrl).Transaction := FTransaction;
+            if LocParamList.Params[I].Transaction <> nil then
+              TgsIBLookupComboBox(FWinCtrl).Transaction := LocParamList.Params[I].Transaction
+            else
+              TgsIBLookupComboBox(FWinCtrl).Transaction := FTransaction;
             TgsIBLookupComboBox(FWinCtrl).ShowHint := True;
             TgsIBLookupComboBox(FWinCtrl).SortOrder := TgsSortOrder(LocParamList.Params[I].SortOrder);
             TgsIBLookupComboBox(FWinCtrl).SortField := LocParamList.Params[I].SortField;

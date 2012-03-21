@@ -40,6 +40,8 @@ type
     TBItem5: TTBItem;
     TBItem6: TTBItem;
     ibtrCommon: TIBTransaction;
+    cbSubDepartment: TCheckBox;
+    TBControlItem7: TTBControlItem;
 
     procedure FormCreate(Sender: TObject);
     procedure cbCurrentRemainsClick(Sender: TObject);
@@ -53,6 +55,7 @@ type
     procedure cbAllRemainsClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure gdcInvRemainsAfterOpen(DataSet: TDataSet);
+    procedure cbSubDepartmentClick(Sender: TObject);
   private
     { Private declarations }
     FCurrentCompany: Integer;
@@ -60,6 +63,7 @@ type
     isCreate: Boolean;
     isHolding: Boolean;
     isFirst: Boolean;
+    isModify: Boolean;
 
   protected
     procedure DoDestroy; override;
@@ -104,7 +108,8 @@ begin
       gsiblcCompany.CurrentKeyInt := IBLogin.CompanyKey;
 
     gdcInvRemains.SubType := FSubType;
-    gdcInvRemains.SetSubDepartmentKeys([-1]);
+    //gdcInvRemains.SetSubDepartmentKeys([-1]);
+    gdcInvRemains.SetDepartmentKeys([-1]);
     gdcInvRemains.RemainsDate := Date;
     gdcInvRemains.SubSet := cst_ByGroupKey;
 
@@ -119,6 +124,8 @@ begin
 
     gdcInvRemains.ParamByName('LB').AsInteger := 0;
     gdcInvRemains.ParamByName('RB').AsInteger := MaxInt;
+    
+    isModify := False;
 
     dsMain.DataSet := nil;
 
@@ -162,7 +169,33 @@ begin
   end;
   gdcInvRemains.Close;
   gdcInvRemains.CurrentRemains := cbCurrentRemains.Checked;
-  gdcInvRemains.SetSubDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+
+  if not cbSubDepartment.Checked then
+  begin
+    if isModify then
+    begin
+      gdcInvRemains.UnPrepare;
+      gdcInvRemains.SetDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+      gdcInvRemains.SetSubDepartmentKeys([]);
+      gdcInvRemains.Prepare;
+      isModify := False;
+    end
+    else
+      gdcInvRemains.SetDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+  end else
+  begin
+    if isModify then
+    begin
+      gdcInvRemains.UnPrepare;
+      gdcInvRemains.SetSubDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+      gdcInvRemains.SetDepartmentKeys([]);
+      gdcInvRemains.Prepare;
+      isModify := False;
+    end
+    else
+      gdcInvRemains.SetSubDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+  end;
+  
   gdcInvRemains.RemainsDate := deDateRemains.Date;
   if CheckHolding then
     gdcObject.AddSubSet(cst_Holding)
@@ -181,7 +214,33 @@ begin
   FCurrentCompany := gsiblcCompany.CurrentKeyInt;
   FCurrentDate := deDateRemains.Date;
   gdcObject.Close;
-  gdcInvRemains.SetSubDepartmentKeys([CurrentCompany]);
+
+  if not cbSubDepartment.Checked then
+  begin
+    if isModify then
+    begin
+      gdcInvRemains.UnPrepare;
+      gdcInvRemains.SetDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+      gdcInvRemains.SetSubDepartmentKeys([]);
+      gdcInvRemains.Prepare;
+      isModify := False;
+    end
+    else
+      gdcInvRemains.SetDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+  end else
+  begin
+    if isModify then
+    begin
+      gdcInvRemains.UnPrepare;
+      gdcInvRemains.SetSubDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+      gdcInvRemains.SetDepartmentKeys([]);
+      gdcInvRemains.Prepare;
+      isModify := False;
+    end
+    else
+      gdcInvRemains.SetSubDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+  end;
+
   gdcInvRemains.RemainsDate := deDateRemains.Date;
   if CheckHolding then
     gdcObject.AddSubSet(cst_Holding)
@@ -462,9 +521,21 @@ end;
 procedure Tgdc_frmInvViewRemains.cbAllRemainsClick(Sender: TObject);
 begin
   gdcInvRemains.CurrentRemains := cbCurrentRemains.Checked;
-  gdcInvRemains.SetSubDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+
+  if not cbSubDepartment.Checked then
+  begin
+    gdcInvRemains.SetSubDepartmentKeys([]);
+    gdcInvRemains.SetDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+    isModify := False;
+  end else
+  begin
+    gdcInvRemains.SetDepartmentKeys([]);
+    gdcInvRemains.SetSubDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
+    isModify := False;
+  end;
+
   gdcInvRemains.RemainsDate := deDateRemains.Date;
-  inherited;
+  inherited; 
   ibgrDetail.Visible := True;
 end;
 
@@ -501,6 +572,12 @@ begin
     UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream,
         gdcObject.SubType);
   isFirst := False;         
+end;
+
+procedure Tgdc_frmInvViewRemains.cbSubDepartmentClick(Sender: TObject);
+begin
+  inherited;
+  isModify := True;
 end;
 
 initialization

@@ -218,17 +218,16 @@ end;
 
 procedure Tgdc_frmUser.actRecreateAllUsersExecute(Sender: TObject);
 begin
-  if IBLogin.ServerName > '' then
-    gdcUser.RecreateAllUsers
-  else
+  if IBLogin.IsEmbeddedServer then
     MessageBox(Handle,
-      'Вы подключены к базе локально. Пересоздать пользователей'#13#10 +
+      'Вы используете встроенный сервер Firebird. Пересоздать пользователей'#13#10 +
       'можно только при сетевом подключении.'#13#10#13#10 +
       'Проверьте, как указан путь к базе данных в параметрах подключения.'#13#10 +
-      'Формат сетевого подключения: <сервер>:<путь к базе данных>'#13#10 +
-      'Формат локального подключения: <путь к базе данных>',
+      'Формат сетевого подключения: <сервер>:<путь к базе данных>',
       'Внимание',
-      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL)
+  else
+    gdcUser.RecreateAllUsers;
 end;
 
 procedure Tgdc_frmUser.actRecreateAllUsersUpdate(Sender: TObject);

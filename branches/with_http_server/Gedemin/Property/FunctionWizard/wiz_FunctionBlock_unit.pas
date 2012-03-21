@@ -160,7 +160,8 @@ type
     procedure DoGenerate(S: TStrings; Paragraph: Integer); virtual;
     procedure DoGenerateBeginComment(S: TStrings; Paragraph: Integer); virtual;
     procedure DoGenerateEndComment(S: TStrings; Paragraph: Integer); virtual;
-
+    function DoPaste(Stream: TStream; AOwner: TComponent;
+      AParent: TWinControl; ATopPaste: Integer = -1): Integer; virtual;
     procedure ShowException(Msg: string); virtual;
 
     function GetFrameColor: TColor; virtual;
@@ -2186,7 +2187,7 @@ begin
   end else
   if [ssRight] = Shift then
   begin
-    P := ClientToScreen(Point(X, Y));
+    P := ClientToScreen(Point(X, Y)); 
     PopupMenu(P.X, P.Y);
   end;
   FMousePoint := Point(X, Y);
@@ -2499,7 +2500,7 @@ begin
   end;
   V := C.Create(AOwner);
   V.DoLoadFromStream(Stream);
-  V.Parent := AParent;
+  V.Parent := AParent; 
   Stream.ReadBuffer(LCount, SizeOf(LCount));
   for I := 0 to LCount - 1 do
     TVisualBlock.LoadFromStream(Stream, AOwner, V);
@@ -2568,6 +2569,7 @@ begin
   Stream.ReadBuffer(T, SizeOf(T));
   Stream.ReadBuffer(W, sizeOf(W));
   Stream.ReadBuffer(H, SizeOf(H));
+  
   SetBounds(L, T, W, H);
 
   Stream.ReadBuffer(FCannotDelete, SizeOf(FCannotDelete));
@@ -2579,6 +2581,44 @@ begin
       FLocalName := ReadStringFromStream(Stream);
     end;
   end;
+end;
+
+function TVisualBlock.DoPaste(Stream: TStream; AOwner: TComponent;
+      AParent: TWinControl; ATopPaste: Integer = -1): Integer;
+var
+  CName: String;
+  C: TVisualBlockClass;
+  V: TVisualBlock;
+  I, LCount: Integer;
+begin
+  Assert(Stream <> nil);
+
+  Result := - 1;
+  CName := ReadStringFromStream(Stream);
+  C := TVisualBlockClass(GetClass(CName));
+  if C = nil then
+    raise Exception.CreateFmt('Не зарегестрированный класс %s', [CName]);
+
+  if AParent is TVisualBlock then
+  begin
+    if not (TVisualBlock(AParent).CanHasOwnBlock and
+      C.CheckParent(TVisualBlock(AParent)) and TVisualBlock(AParent).CanEdit) then
+    begin
+      exit;
+    end;
+  end;
+
+  V := C.Create(AOwner);
+  V.DoLoadFromStream(Stream);
+  if ATopPaste > - 1 then
+    V.SetBounds(V.Left, ATopPaste, V.Width, V.Height);
+  V.Parent := AParent;
+
+  Result := V.Top + V.Height;
+
+  Stream.ReadBuffer(LCount, SizeOf(LCount));
+  for I := 0 to LCount - 1 do
+    DoPaste(Stream, AOwner, V);
 end;
 
 procedure TVisualBlock.DoSaveToStream(Stream: TStream);
@@ -3037,15 +3077,17 @@ procedure TVisualBlock.Paste;
 var
   Stream: TMemoryStream;
   i: integer;
+  Temp: Integer;
 begin
   if not Assigned(SelBlockList) or not Assigned(CopiedBlockList) then Exit;
   if not LoadCopiedFromClipboard then Exit;
+  Temp := FMousePoint.Y;
   for i:= 0 to CopiedBlockList.Count - 1 do begin
     if TObject(CopiedBlockList[i]) is TMemoryStream then begin
       Stream:= TMemoryStream(CopiedBlockList[i]);
       Stream.Position:= 0;
       CheckLabel(cWizLb, Stream, cLoadStreamError);
-      TVisualBlock.LoadFromStream(Stream, Owner, Self);
+      Temp := DoPaste(Stream, Owner, Self, Temp);
     end;
   end;
 end;

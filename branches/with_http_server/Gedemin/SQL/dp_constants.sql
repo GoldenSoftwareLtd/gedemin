@@ -1,6 +1,7 @@
+
 /*
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Script
 
@@ -24,15 +25,6 @@
 
 */
 
-
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**   Copyright (c) 2000 by                        **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
 
 /* ондяхярелш */
 
@@ -142,5 +134,3 @@ INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
 
 
 COMMIT;
-
-

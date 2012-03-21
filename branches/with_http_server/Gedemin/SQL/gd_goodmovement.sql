@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
 
   Script
@@ -289,10 +289,8 @@ AS
 BEGIN
   IF (NEW.goodentryid <> OLD.goodentryid) THEN
     EXCEPTION gd_e_goodmovementchange;
-END;^
-
-
-
+END
+^
 
 SET TERM ; ^
 

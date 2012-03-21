@@ -104,6 +104,7 @@ type
     cbIsAppendCardValue: TCheckBox;
     cbIsUseCompanyKey: TCheckBox;
     cbSaveRestWindowOption: TCheckBox;
+    cbEndMonthRemains: TCheckBox;
 
     procedure actAddFeatureExecute(Sender: TObject);
     procedure actRemoveFeatureExecute(Sender: TObject);
@@ -1225,7 +1226,8 @@ begin
       (Version = gdcInvDocument_Version2_2) or
       (Version = gdcInvDocument_Version2_3) or
       (Version = gdcInvDocument_Version2_4) or
-      (Version = gdcInvDocument_Version2_5)  then
+      (Version = gdcInvDocument_Version2_5) or
+      (Version = gdcInvDocument_Version2_6)   then
       cbLiveTimeRemains.Checked := ReadBoolean
     else
       cbLiveTimeRemains.Checked := False;
@@ -1246,7 +1248,8 @@ begin
 
     if (Version = gdcInvDocument_Version2_1) or (Version = gdcInvDocument_Version2_2)
        or (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4)
-       or (Version = gdcInvDocument_Version2_5)
+       or (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6)
     then
       cbMinusRemains.Checked := ReadBoolean
     else
@@ -1258,7 +1261,8 @@ begin
       cbMinusRemains.Checked := False;
 
     if (Version = gdcInvDocument_Version2_2) or (Version = gdcInvDocument_Version2_3)
-       or (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5)
+       or (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5) or
+      (Version = gdcInvDocument_Version2_6)
     then
     begin
       ReadListBegin;
@@ -1274,20 +1278,29 @@ begin
     end;
 
     if (Version = gdcInvDocument_Version2_3) or (Version = gdcInvDocument_Version2_4) or
-       (Version = gdcInvDocument_Version2_5) then
+       (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) then
     begin
       cbIsChangeCardValue.Checked := ReadBoolean;
       cbIsAppendCardValue.Checked := ReadBoolean;
     end;
-    if (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5) then
+    if (Version = gdcInvDocument_Version2_4) or (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) then
       cbIsUseCompanyKey.Checked := ReadBoolean
     else
       cbIsUseCompanyKey.Checked := True;
 
-    if (Version = gdcInvDocument_Version2_5) then
+    if (Version = gdcInvDocument_Version2_5)  or
+      (Version = gdcInvDocument_Version2_6) then
       cbSaveRestWindowOption.Checked := ReadBoolean
     else
       cbSaveRestWindowOption.Checked := False;
+
+    if (Version = gdcInvDocument_Version2_6) then
+      cbEndMonthRemains.Checked := ReadBoolean
+    else
+      cbEndMonthRemains.Checked := False;
+
 
   finally
     Free;
@@ -1898,7 +1911,7 @@ begin
   with TWriter.Create(Stream, 1024) do
   try
     // Общие настройки
-    WriteString(gdcInvDocument_Version2_5);
+    WriteString(gdcInvDocument_Version2_6);
 
     R := GetRelation(True);
     RL := GetRelation(False);
@@ -2079,6 +2092,7 @@ begin
     WriteBoolean(cbIsAppendCardValue.Checked);
     WriteBoolean(cbIsUseCompanyKey.Checked);
     WriteBoolean(cbSaveRestWindowOption.Checked);
+    WriteBoolean(cbEndMonthRemains.Checked);
 
   finally
     Free;

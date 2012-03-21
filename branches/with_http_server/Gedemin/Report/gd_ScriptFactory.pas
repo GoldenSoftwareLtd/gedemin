@@ -515,7 +515,8 @@ begin
         if gdScrException <> nil then
         begin
           LE := ExceptionCopier(gdScrException);
-          raise LE;
+          if LE <> nil then
+            raise LE;
         end else
           begin
             if VarType(AnResult) = varString then

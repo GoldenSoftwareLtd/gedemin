@@ -1,14 +1,4 @@
 
-/****************************************************/
-/****************************************************/
-/**                                                **/
-/**                                                **/
-/**   Copyright (c) 1999-00 by                     **/
-/**   Golden Software of Belarus                   **/
-/**                                                **/
-/****************************************************/
-/****************************************************/
-
 CREATE TABLE fin_versioninfo
 (
   id            dintkey,
@@ -443,6 +433,27 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (134, '0000.0001.0000.0165', '10.05.2011', 'Delete lbrb tree elements from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (135, '0000.0001.0000.0166', '11.05.2011', 'Refined triggers for AC_ENTRY, AC_RECORD.');
+
+INSERT INTO fin_versioninfo
+  VALUES (136, '0000.0001.0000.0167', '12.01.2012', 'Add field modalpreview to the table rp_reportlist.');
+
+INSERT INTO fin_versioninfo
+  VALUES (137, '0000.0001.0000.0168', '17.01.2012', 'ALTER DOMAIN USR$FA_CORRECTCOEFF.');
+
+INSERT INTO fin_versioninfo
+  VALUES (138, '0000.0001.0000.0169', '07.03.2012', 'Add runonlogin field to evt_macroslist table.');
+
+INSERT INTO fin_versioninfo
+  VALUES (139, '0000.0001.0000.0170', '09.03.2012', 'Add runonlogin field to evt_macroslist table. Part #2.');
+
+INSERT INTO fin_versioninfo
+  VALUES (140, '0000.0001.0000.0171', '14.03.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS added.');
+
+INSERT INTO fin_versioninfo
+  VALUES (141, '0000.0001.0000.0172', '14.03.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS added. Part #2.');
 
 COMMIT;
 

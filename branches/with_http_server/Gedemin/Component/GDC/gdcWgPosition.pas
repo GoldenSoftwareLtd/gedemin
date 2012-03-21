@@ -76,7 +76,7 @@ begin
   else
     Result := Format('SELECT %s FROM %s WHERE UPPER(name) = ''%s''',
       [GetKeyField(SubType), GetListTable(SubType),
-       _AnsiUpperCase(FieldByName('name').AsString)]);
+       AnsiUpperCase(FieldByName('name').AsString)]);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCWGPOSITION', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

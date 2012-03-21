@@ -112,6 +112,7 @@ type
     procedure actBackUpdate(Sender: TObject);
     procedure actBackExecute(Sender: TObject);
     procedure actPrintExecute(Sender: TObject);
+    procedure actRunUpdate(Sender: TObject);
   private
     function GetIncSubAccounts: Boolean;
     procedure SetIncSubAccounts(const Value: Boolean);
@@ -127,6 +128,7 @@ type
     FSaveGridSetting: Boolean;
 
     FConfig: TBaseAcctConfig;
+    FPrintLoadConfig: Boolean;
     // Функция возвращает объект бухгалтерского отчета, должна быть
     //   переопределена в каждой наследованной форме
     function GetGdvObject: TgdvAcctBase; virtual;
@@ -155,7 +157,7 @@ type
     procedure PushForm;
     procedure Go_to(NewWindow: Boolean = false); virtual;
     function CanGo_to: boolean; virtual;
-    function CompareParams: boolean; virtual;
+    function CompareParams(WithDate: Boolean = True): boolean; virtual;
   public
     { Public declarations }
     procedure BuildAcctReport; virtual;
@@ -248,6 +250,7 @@ begin
         DoBuildReport;
         DoAfterBuildReport;
         DoSaveConfig(FConfig);
+        FPrintLoadConfig := False;
       finally
         gdvObject.MakeEmpty := B;
         Screen.Cursor := C;
@@ -338,7 +341,7 @@ end;
 procedure Tgdv_frmAcctBaseForm.DoAfterBuildReport;
 var
   Config: TBaseAcctConfig;
-begin                            
+begin
   try
     if iblConfiguratior.CurrentKey > '' then
     begin
@@ -649,6 +652,8 @@ begin
   if C <> nil then
     FConfig := C.Create;
 
+  FPrintLoadConfig := False;
+
   // Построим пустой отчет
   gdvObject.MakeEmpty := True;
   try
@@ -733,8 +738,10 @@ begin
     Config := C.Create;
     try
       try
-        Config.LoadFromStream(Stream);
+        Config.LoadFromStream(Stream); 
         DoLoadConfig(Config);
+        DoSaveConfig(FConfig);
+        FPrintLoadConfig := True;
       except
         on E: Exception do
         begin
@@ -950,7 +957,7 @@ begin
     gdvObject.ShowInNcu(frAcctSum.InNcu, frAcctSum.NcuDecDigits, frAcctSum.NcuScale);
     gdvObject.ShowInCurr(frAcctSum.InCurr, frAcctSum.CurrDecDigits, frAcctSum.CurrScale, frAcctSum.Currkey);
     gdvObject.ShowInEQ(frAcctSum.InEQ, frAcctSum.EQDecDigits, frAcctSum.EQScale);
-
+    gdvObject.ShowInQuantity(frAcctSum.QuantityDecDigits, frAcctSum.QuantityScale);
   end;
 end;
 
@@ -1013,11 +1020,15 @@ begin
   Result := Assigned(gdvObject) and gdvObject.Active and not gdvObject.IsEmpty;
 end;
 
-function Tgdv_frmAcctBaseForm.CompareParams: boolean;
+function Tgdv_frmAcctBaseForm.CompareParams(WithDate: Boolean = True): boolean;
 begin
   if FConfig <> nil then
-    Result := (gdvObject.DateBegin = Self.DateBegin) and (gdvObject.DateEnd = Self.DateEnd)
-      and (FConfig.Accounts = cbAccounts.Text) and (FConfig.IncSubAccounts = cbSubAccount.Checked)
+  begin
+    if WithDate then
+      Result := (gdvObject.DateBegin = Self.DateBegin) and (gdvObject.DateEnd = Self.DateEnd)
+    else
+      Result := True;
+    Result := Result and (FConfig.Accounts = cbAccounts.Text) and (FConfig.IncSubAccounts = cbSubAccount.Checked)
       and (FConfig.IncludeInternalMovement = cbIncludeInternalMovement.Checked)
       and (FConfig.InNcu = frAcctSum.InNcu) and (FConfig.NcuDecDigits = frAcctSum.NcuDecDigits)
       and (FConfig.NcuScale = frAcctsum.NcuScale) and (FConfig.InCurr = frAcctSum.InCurr)
@@ -1028,7 +1039,7 @@ begin
       and (FConfig.Quantity = frAcctQuantity.Selected) and (FConfig.Analytics = frAcctAnalytics.Values)
       and (FConfig.ExtendedFields = cbExtendedFields.Checked) and (FConfig.CompanyKey = frAcctCompany.CompanyKey)
       and (FConfig.AllHoldingCompanies = frAcctCompany.AllHoldingCompanies)
-  else
+  end else
     Result := False;
 end;
 
@@ -1343,9 +1354,17 @@ end;
 
 procedure Tgdv_frmAcctBaseForm.actPrintExecute(Sender: TObject);
 begin
-  if not CompareParams then
+  if not CompareParams or FPrintLoadConfig then
     BuildAcctReport;
   inherited;
+end;
+
+procedure Tgdv_frmAcctBaseForm.actRunUpdate(Sender: TObject);
+begin
+  if (iblConfiguratior.CurrentKey > '') and not CompareParams(False) then
+  begin
+    iblConfiguratior.CurrentKey := '';
+  end;
 end;
 
 initialization

@@ -1323,7 +1323,7 @@ type
                      var pvaOut: OleVariant); safecall;
     procedure ShowBrowserBar(var pvaClsID: OleVariant; var pvarShow: OleVariant;
                              var pvarSize: OleVariant); safecall;
-    function  Get_RedyState: Integer; safecall;
+    function  Get_ReadyState: Integer; safecall;
     function  Get_Offline: WordBool; safecall;
     procedure Set_Offline(Value: WordBool); safecall;
     function  Get_Silent: WordBool; safecall;
@@ -1444,6 +1444,7 @@ type
     function GetCustomForm: TCustomForm;
   protected
     procedure Close; safecall;
+    procedure Release; safecall;
     function  Get_Active: WordBool; safecall;
     function  Get_BorderStyle: TgsFormBorderStyle; safecall;
     procedure Set_BorderStyle(Value: TgsFormBorderStyle); safecall;
@@ -7056,6 +7057,11 @@ begin
   TCrackCustomForm(GetCustomForm).Activate;
 end;
 
+procedure TwrpCustomForm.Release;
+begin
+  GetCustomForm.Release;
+end;
+
 { TwrpScrollingWinControl }
 
 procedure TwrpScrollingWinControl.DisableAutoRange;
@@ -7489,7 +7495,10 @@ var
 begin
   LStr := Value;
   LStr := TrimLeft(LStr);
-  TCrackCustomEdit(GetCustomEdit).PasswordChar := Char(LStr[1]);
+  if Length(LStr) > 0 then
+    TCrackCustomEdit(GetCustomEdit).PasswordChar := LStr[1]
+  else
+    TCrackCustomEdit(GetCustomEdit).PasswordChar := #0;
 end;
 
 { TwrpCustomMemo }
@@ -7508,8 +7517,6 @@ procedure TwrpCustomMemo.CaretPos(out X: OleVariant; out Y: OleVariant); safecal
 begin
   X := GetCustomMemo.CaretPos.X;
   Y := GetCustomMemo.CaretPos.Y;
-// X := GetCustomMemo.CaretPos.X;
-// Y := GetCustomMemo.CaretPos.Y;
 end;
 
 function TwrpCustomMemo.Get_Lines: IgsStrings;
@@ -22510,7 +22517,7 @@ begin
   Result := GetWebBrowser.Offline;
 end;
 
-function TwrpWebBrowser.Get_RedyState: Integer;
+function TwrpWebBrowser.Get_ReadyState: Integer;
 begin
   Result := GetWebBrowser.ReadyState;
 end;

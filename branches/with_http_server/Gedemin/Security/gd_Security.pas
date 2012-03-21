@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1998-2000 by Golden Software of Belarus
+  Copyright (c) 1998-2012 by Golden Software of Belarus
 
   Module
 
@@ -248,6 +248,9 @@ type
       const AnObjectID: Integer = -1;
       const ATransaction: TObject = nil);
 
+    function GetMainWindowCaption: String;
+    function GetIsEmbeddedServer: Boolean;
+
     property LoginParam[ParamName: String]: String read GetLoginParam;
     property ComputerName: String read GetComputerName;
     property IBRole: String read GetIBRole;
@@ -318,6 +321,9 @@ type
     property ServerName: String read GetServerName;
 
     property LoggingOff: Boolean read GetLoggingOff;
+
+    property MainWindowCaption: String read GetMainWindowCaption;
+    property IsEmbeddedServer: Boolean read GetIsEmbeddedServer;
   end;
 
 

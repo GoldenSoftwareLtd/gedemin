@@ -2,49 +2,45 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
   Left = 362
   Top = 238
   Width = 613
-  Height = 484
   Caption = 'gdc_frmMDHGR'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 438
-    Width = 605
+    Top = 427
+    Width = 597
     OnClick = sbMainClick
   end
   inherited TBDockTop: TTBDock
-    Width = 605
+    Width = 597
     inherited tbMainInvariant: TTBToolbar
       Left = 327
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 380
+    Height = 367
   end
   inherited TBDockRight: TTBDock
-    Left = 596
-    Height = 380
+    Left = 588
+    Height = 367
   end
   inherited TBDockBottom: TTBDock
-    Top = 429
-    Width = 605
+    Top = 418
+    Width = 597
   end
   inherited pnlWorkArea: TPanel
-    Width = 587
-    Height = 380
+    Width = 579
     inherited sMasterDetail: TSplitter
-      Width = 587
-      Beveled = False
+      Width = 579
     end
     inherited spChoose: TSplitter
-      Top = 277
-      Width = 587
+      Width = 579
     end
     inherited pnlMain: TPanel
-      Width = 587
+      Width = 579
       object ibgrMain: TgsIBGrid
         Left = 160
         Top = 0
-        Width = 427
+        Width = 419
         Height = 167
         Align = alClient
         BorderStyle = bsNone
@@ -73,26 +69,24 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
       end
     end
     inherited pnChoose: TPanel
-      Top = 281
-      Width = 587
+      Width = 579
       inherited pnButtonChoose: TPanel
-        Left = 482
+        Left = 474
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 482
+        Width = 474
       end
       inherited pnlChooseCaption: TPanel
-        Width = 587
+        Width = 579
       end
     end
     inherited pnlDetail: TPanel
-      Width = 587
-      Height = 106
+      Width = 579
       BevelOuter = bvNone
       inherited TBDockDetail: TTBDock
         Left = 0
         Top = 0
-        Width = 587
+        Width = 579
         inherited tbDetailCustom: TTBToolbar
           Left = 275
         end
@@ -100,20 +94,20 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
       inherited pnlSearchDetail: TPanel
         Left = 0
         Top = 26
-        Height = 80
+        Height = 74
         TabOrder = 2
         inherited sbSearchDetail: TScrollBox
-          Height = 42
+          Height = 36
         end
         inherited pnlSearchDetailButton: TPanel
-          Top = 42
+          Top = 36
         end
       end
       object ibgrDetail: TgsIBGrid
         Left = 160
         Top = 26
-        Width = 427
-        Height = 80
+        Width = 419
+        Height = 74
         Align = alClient
         BorderStyle = bsNone
         DataSource = dsDetail

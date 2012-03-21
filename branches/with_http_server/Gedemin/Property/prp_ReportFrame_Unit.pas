@@ -35,6 +35,8 @@ type
     lblRUIDReport: TLabel;
     actChooseDocumentType: TAction;
     tbiChooseDocumentType: TTBItem;
+    dbcbDisplayInMenu: TDBCheckBox;
+    dbcbModalPreview: TDBCheckBox;
     procedure MainFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure ParamFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure EventFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);

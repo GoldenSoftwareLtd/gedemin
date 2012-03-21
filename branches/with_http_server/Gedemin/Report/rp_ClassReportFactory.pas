@@ -19,7 +19,7 @@ type
     function GetReportInterface(const AnTemplateStructure: TTemplateStructure;
      AnReportResult: TReportResult; const AnParams: Variant;
      const AnBuildDate: TDateTime; const AnPreview: Boolean;
-     const AnEventFunction: TrpCustomFunction; const AnReportName: String; const AnBaseQueryList: Variant): IgsReportBuilder;
+     const AnEventFunction: TrpCustomFunction; const AnReportName: String; const AnBaseQueryList: Variant; const AnModalPreview: Boolean): IgsReportBuilder;
     function GetReportEvent: TReportEvent;
     procedure SetReportEvent(Value: TReportEvent);
     procedure ShowForm(const FReportInterface: IgsReportBuilder);
@@ -32,7 +32,7 @@ type
      const AnBuildDate: TDateTime; const AnPreview: Boolean;
      const AnEventFunction: TrpCustomFunction; const AnReportName: String;
      const AnPrinterName: String; const AnShowProgress: Boolean; const AnBaseQueryList: Variant;
-     const AnFileName: String; const AnExportType: TExportType);
+     const AnFileName: String; const AnExportType: TExportType; const AnModalPreview: Boolean);
   published
     property OnReportEvent: TReportEvent read GetReportEvent write SetReportEvent;
   end;
@@ -76,7 +76,7 @@ end;
 function TReportFactory.GetReportInterface(const AnTemplateStructure: TTemplateStructure;
  AnReportResult: TReportResult; const AnParams: Variant; const AnBuildDate: TDateTime;
  const AnPreview: Boolean; const AnEventFunction: TrpCustomFunction;
- const AnReportName: String; const AnBaseQueryList: Variant): IgsReportBuilder;
+ const AnReportName: String; const AnBaseQueryList: Variant; const AnModalPreview: Boolean): IgsReportBuilder;
 begin
   Result := nil;
 
@@ -96,7 +96,8 @@ begin
   end;
 
   Result.PrinterName := FPrinterName;
-  Result.ShowProgress := FShowProgress;
+  Result.ShowProgress := FShowProgress; 
+  Result.ModalPreview := AnModalPreview;
   Result.FileName := FFileName;
   Result.ExportType := FExportType;
 
@@ -123,7 +124,7 @@ procedure TReportFactory.CreateReport(const AnTemplateStructure: TTemplateStruct
  AnReportResult: TReportResult; const AnParams: Variant; const AnBuildDate: TDateTime;
  const AnPreview: Boolean; const AnEventFunction: TrpCustomFunction; const AnReportName: String;
  const AnPrinterName: String; const AnShowProgress: Boolean; const AnBaseQueryList: Variant;
- const AnFileName: String; const AnExportType: TExportType);
+ const AnFileName: String; const AnExportType: TExportType; const AnModalPreview: Boolean);
 begin
   if Assigned(Prn) then
   begin
@@ -139,7 +140,7 @@ begin
   FExportType := AnExportType;
 
   ShowForm(GetReportInterface(AnTemplateStructure,
-    AnReportResult, AnParams, AnBuildDate, AnPreview, AnEventFunction, AnReportName, AnBaseQueryList));
+    AnReportResult, AnParams, AnBuildDate, AnPreview, AnEventFunction, AnReportName, AnBaseQueryList, AnModalPreview));
 end;
 
 function TReportFactory.GetReportEvent: TReportEvent;

@@ -162,7 +162,7 @@ begin
   begin
     try
       ibsql := TIBSQL.Create(nil);
-      frmIBUserList := nil;
+      FreeAndNil(frmIBUserList);
 
       if TransferToModal then
         AddText('Начато изменение мета-данных.', clBlack);
@@ -302,8 +302,8 @@ begin
 
       finally
         ibsql.Free;
-        frmIBUserList.Free;
-        if FTransaction.Active then
+        FreeAndNil(frmIBUserList);
+        if FTransaction.InTransaction then
           FTransaction.Rollback;
         if TransferToModal then
         begin

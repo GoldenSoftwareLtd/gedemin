@@ -498,6 +498,7 @@ begin
     OldBuilding := FDBTreeView.FBuilding;
     FDBTreeView.FBuilding := True;
     try
+      N := nil;
       try
         N := FDBTreeView.Find(FieldByName(FDBTreeView.KeyField).AsInteger);
       except

@@ -128,6 +128,8 @@ type
     function Get_ReportTemplate: TReportTemplate; override;
     procedure Set_Params(const AnParams: Variant); override;
     function Get_Params: Variant; override;
+    function Get_ModalPreview: Boolean; override;
+    procedure Set_ModalPreview(const AnValue: Boolean); override;
   public
     constructor Create;
     destructor Destroy; override;
@@ -977,6 +979,16 @@ begin
     if Result then
       Break;
   end;
+end;
+
+procedure TFRReportInterface.Set_ModalPreview(const AnValue: Boolean);
+begin
+  FfrReport.ModalPreview := AnValue;
+end;
+
+function TFRReportInterface.Get_ModalPreview: Boolean;
+begin
+  Result := FfrReport.ModalPreview;
 end;
 
 { Tgs_frPreviewForm }
