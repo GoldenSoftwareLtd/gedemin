@@ -20,11 +20,14 @@ inherited ReportFrame: TReportFrame
           object TBItem1: TTBItem
             Action = actProperty
           end
+          object tbiChooseDocumentType: TTBItem
+            Action = actChooseDocumentType
+          end
         end
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 222
+        Height = 211
         OnResize = pMainResize
         inherited lbName: TLabel
           Width = 116
@@ -185,13 +188,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 1
       inline MainFunctionFrame: TReportFunctionFrame
         Top = 9
-        Height = 245
+        Height = 234
         PopupMenu = MainFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 245
+          Height = 234
           inherited tsProperty: TSuperTabSheet
             inherited pMain: TPanel
-              Height = 190
+              Height = 179
               inherited dbeName: TprpDBComboBox
                 OnChange = MainFunctionFramedbeNameChange
                 OnDropDown = MainFunctionFramedbeNameDropDown
@@ -226,7 +229,7 @@ inherited ReportFrame: TReportFrame
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 443
+        Width = 435
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -238,13 +241,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 2
       inline ParamFunctionFrame: TReportFunctionFrame
         Top = 9
-        Height = 245
+        Height = 234
         PopupMenu = ParamFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 245
+          Height = 234
           inherited tsProperty: TSuperTabSheet
             inherited pMain: TPanel
-              Height = 190
+              Height = 179
               inherited dbeName: TprpDBComboBox
                 OnNewRecord = ParamFunctionFramedbeNameNewRecord
                 OnSelChange = ParamFunctionFramedbeNameSelChange
@@ -270,7 +273,7 @@ inherited ReportFrame: TReportFrame
       object Panel2: TPanel
         Left = 0
         Top = 0
-        Width = 443
+        Width = 435
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -282,13 +285,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 3
       inline EventFunctionFrame: TReportFunctionFrame
         Top = 9
-        Height = 245
+        Height = 234
         PopupMenu = EventFunctionFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 245
+          Height = 234
           inherited tsProperty: TSuperTabSheet
             inherited pMain: TPanel
-              Height = 190
+              Height = 179
               inherited dbeName: TprpDBComboBox
                 OnNewRecord = EventFunctionFramedbeNameNewRecord
                 OnSelChange = EventFunctionFramedbeNameSelChange
@@ -315,7 +318,7 @@ inherited ReportFrame: TReportFrame
       object Panel3: TPanel
         Left = 0
         Top = 0
-        Width = 443
+        Width = 435
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -327,13 +330,13 @@ inherited ReportFrame: TReportFrame
       ImageIndex = 4
       inline TemplateFrame: TTemplateFrame
         Top = 9
-        Height = 245
+        Height = 234
         PopupMenu = TemplateFrame.PopupMenu
         inherited PageControl: TSuperPageControl
-          Height = 245
+          Height = 234
           inherited tsProperty: TSuperTabSheet
             inherited pMain: TPanel
-              Height = 190
+              Height = 179
               inherited dbeName: TprpDBComboBox
                 OnChange = nil
                 OnDropDown = TemplateFramedbeNameDropDown
@@ -372,7 +375,7 @@ inherited ReportFrame: TReportFrame
       object Panel4: TPanel
         Left = 0
         Top = 0
-        Width = 443
+        Width = 435
         Height = 9
         Align = alTop
         BevelOuter = bvNone
@@ -398,6 +401,12 @@ inherited ReportFrame: TReportFrame
     end
     inherited actProperty: TAction
       OnUpdate = nil
+    end
+    object actChooseDocumentType: TAction
+      Caption = 'Выбрать типовой документ'
+      Hint = 'Выбрать типовой документ для отчета'
+      ImageIndex = 139
+      OnExecute = actChooseDocumentTypeExecute
     end
   end
   object pmReport: TPopupMenu
