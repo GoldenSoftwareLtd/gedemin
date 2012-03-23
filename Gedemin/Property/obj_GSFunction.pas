@@ -59,7 +59,7 @@ type
     procedure InitFIBSQL;
     procedure CheckNumConv;
     function GetNumberConvert: TNumberConvert;
-    function GetAccountKey(Account: String): Integer;
+    function GetAccountKey(const Account: String): Integer;
     procedure SetTransaction(const Value: TIBTransaction);
     procedure SetupTransaction(SQL: TIBSQl);
 
@@ -159,6 +159,8 @@ type
     function  GetSumStr(D1: OleVariant; D2: Shortint): OleVariant; safecall;
     function  GetRubSumStr(D: OleVariant): OleVariant; safecall;
     function  GetFullRubSumStr(D: OleVariant): OleVariant; safecall;
+
+    function  GetAccountKeyByAlias(const AnAlias: WideString): Integer; safecall;
 
     property NumberConvert: TNumberConvert read GetNumberConvert;
 
@@ -1866,22 +1868,12 @@ begin
   end;
 end;
 
-function TobjGSFunction.GetAccountKey(Account: String): Integer;
-const
-  cMaxAlias = 1000;
+function TobjGSFunction.GetAccountKey(const Account: String): Integer;
 begin
-  if Pos('_', Account) > 0 then
-  begin
-    Result := gdcBaseManager.GetIdByRUIDString(Account);
-  end else
-  begin
-    Result := StrToIntDef(Account, 0);
-    if Result < cMaxAlias then
-    begin
-      //Похоже передн алиас
-      Result := GetAccountKeyByAlias(Account);
-    end;
-  end;
+  if CheckRUID(Account) then
+    Result := gdcBaseManager.GetIdByRUIDString(Account)
+  else
+    Result := GetAccountKeyByAlias(Account);
   if Result = 0 then
     raise Exception.Create(Format(MSG_ACCOUNTINCORRECT, [Account]));
 end;
@@ -2262,6 +2254,12 @@ begin
   finally
     FreeAndNil(IBSQL);
   end;
+end;
+
+function TobjGSFunction.GetAccountKeyByAlias(
+  const AnAlias: WideString): Integer;
+begin
+  Result := Self.GetAccountKey(AnAlias);
 end;
 
 { TGsFunctionNotifier }

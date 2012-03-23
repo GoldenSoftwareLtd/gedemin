@@ -3782,6 +3782,7 @@ type
     function Get_TimeOut: Integer; safecall;
     procedure Set_TimeOut(Value: Integer); safecall;
     function Get_Files: WideString; safecall;
+    function Get_LastError: Integer; safecall;
 
     function Connect: WordBool; safecall;
     function Connected: WordBool; safecall;
@@ -18232,6 +18233,11 @@ end;
 function TwrpFTPClient.Get_Files: WideString;
 begin
   Result := GetFTPClient.Files;
+end;
+
+function TwrpFTPClient.Get_LastError: Integer;
+begin
+  Result := GetFTPClient.LastError;
 end;
 
 function TwrpFTPClient.GetAllFiles(const RemotePath: WideString): WordBool;
