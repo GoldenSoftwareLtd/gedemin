@@ -1591,11 +1591,6 @@ begin
   {END MACRO}
 end;
 
-{class function TgdcFolder.GetSubSetList: String;
-begin
-  Result := TgdcBase.GetSubSetList;
-end;}
-
 procedure TgdcFolder.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
