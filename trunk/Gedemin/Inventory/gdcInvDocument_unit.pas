@@ -138,6 +138,7 @@ type
 
     function GetGroupID: Integer; override;
     function GetNotCopyField: String; override;
+    function CheckTheSameStatement: String; override;
 
     property Joins: TStringList read GetJoins write SetJoins;
 
@@ -1135,6 +1136,52 @@ class function TgdcInvBaseDocument.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmInvDocument';
+end;
+
+function TgdcInvBaseDocument.CheckTheSameStatement: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCINVBASEDOCUMENT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVBASEDOCUMENT', KEYCHECKTHESAMESTATEMENT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVBASEDOCUMENT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVBASEDOCUMENT',
+  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TGDCINVBASEDOCUMENT(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVBASEDOCUMENT' then
+  {M}        begin
+  {M}          Result := Inherited CheckTheSameStatement;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+  Result := '';
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVBASEDOCUMENT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVBASEDOCUMENT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
+  {M}  end;
+  {END MACRO}
 end;
 
 { TgdcInvDocument }

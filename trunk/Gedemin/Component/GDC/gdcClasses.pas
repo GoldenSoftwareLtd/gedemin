@@ -1,9 +1,7 @@
 
-
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
 
@@ -37,7 +35,7 @@ uses
   Classes,      IBCustomDataSet,   IBDataBase,     gdcBase,
   gdcTree,      Forms,             gd_createable_form,
   at_classes,   gdcBaseInterface,  DB,             gd_KeyAssoc,
-  gdcConstants, {gdcExplorer, }      gd_i_ScriptFactory,
+  gdcConstants, gd_i_ScriptFactory,
   gd_security,  gdcOLEClassList,   DBGrids;
 
 {$IFDEF DEBUGMOVE}
@@ -297,6 +295,7 @@ type
 
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
+    class function IsAbstractClass: Boolean; override;
 
     procedure ReadOptions(const ARuid: String);
 
@@ -308,8 +307,6 @@ type
 
 
   TgdcUserDocument = class(TgdcUserBaseDocument)
-  private
-
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -330,9 +327,7 @@ type
     destructor Destroy; override;
 
     class function GetSubSetList: String; override;
-
   end;
-
 
   TgdcUserDocumentLine = class(TgdcUserBaseDocument)
   protected
@@ -3759,52 +3754,11 @@ end;
 
 class function TgdcUserBaseDocument.GetSubTypeList(
   SubTypeList: TStrings): Boolean;
-{var
-  ibsql: TIBSQL;
-  ibtr: TIBTransaction;}
 begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList2('TgdcUserDocumentType',
     SubTypeList);
-
-  {
-  if not Assigned(gdcBaseManager) then
-  begin
-    Result := False;
-    exit;
-  end;
-
-  ibsql := TIBSQL.Create(nil);
-  ibtr := TIBTransaction.Create(nil);
-  try
-    ibtr.DefaultDatabase := gdcBaseManager.Database;
-    ibsql.Database := gdcBaseManager.Database;
-    ibsql.Transaction := ibtr;
-
-    ibtr.StartTransaction;
-
-    ibsql.SQL.Text :=
-      'SELECT NAME, RUID FROM GD_DOCUMENTTYPE WHERE CLASSNAME = ''TgdcUserDocumentType'' AND ' +
-      ' DOCUMENTTYPE = ''D''';
-
-    SubTypeList.Clear;
-
-    ibsql.ExecQuery;
-    while not ibsql.EOF do
-    begin
-      SubTypeList.Add(
-        ibsql.FieldByName('NAME').AsString + '=' +
-        ibsql.FieldByName('RUID').AsString);
-      ibsql.Next;
-    end;
-  finally
-    ibsql.Free;
-    ibtr.Free;
-  end;
-
-  Result := SubTypeList.Count > 0;
-  }
 end;
 
 procedure TgdcUserBaseDocument.ReadOptions(const aRuid: String);
@@ -3886,6 +3840,11 @@ begin
       Result := 'Tgdc_frmUserComplexDocument';
   end else
     raise EgdcIBError.Create('Не верен тип документа');
+end;
+
+class function TgdcUserBaseDocument.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcUserBaseDocument');
 end;
 
 { TgdcUserDocument }
@@ -4806,7 +4765,6 @@ begin
 end;
 
 initialization
-
   RegisterGdcClass(TgdcDocument);
   RegisterGdcClass(TgdcBaseDocumentType);
   RegisterGdcClass(TgdcDocumentBranch);
@@ -4817,7 +4775,6 @@ initialization
   RegisterGdcClass(TgdcUserDocumentLine);
 
 finalization
-
   UnRegisterGdcClass(TgdcDocument);
   UnRegisterGdcClass(TgdcBaseDocumentType);
   UnRegisterGdcClass(TgdcDocumentBranch);

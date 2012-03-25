@@ -13243,7 +13243,6 @@ end;
 
 class function TgdcBase.GetListTable(const ASubType: TgdcSubType): String;
 begin
-  //raise EgdcIBError.Create(Self.ClassName + ': GetListTable is not defined');
   Result := '';
 end;
 
@@ -14817,6 +14816,7 @@ function TgdcBase.CheckTheSameStatement: String;
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  F: TField;
 begin
   {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCBASE', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  try
@@ -14843,15 +14843,14 @@ begin
   {M}      end else
   {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBASE' then
   {M}        begin
-  {M}          Result := '';//Inherited CheckTheSameStatement;
+  {M}          Result := '';//inherited CheckTheSameStatement;
   {M}          Exit;
   {M}        end;
   {M}    end;
   {END MACRO}
   //Стандартные записи ищем по идентификатору
-  if (FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart) and
-    not(FieldByName(GetKeyField(SubType)).IsNull)
-  then
+  F := FieldByName(GetKeyField(SubType));
+  if (not EOF) and (F.AsInteger < cstUserIDStart) and (not F.IsNull) then
     Result := Format('SELECT %0:s FROM %1:s WHERE %0:s=%2:s ',
       [GetKeyField(SubType), GetListTable(SubType),
        FieldByName(GetKeyField(SubType)).AsString])
@@ -18166,7 +18165,6 @@ begin
   {M}  end;
   {END MACRO}
 end;
-
 
 function TgdcBase.GetDlgForm: TForm;
 begin
