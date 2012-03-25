@@ -93,7 +93,7 @@ call make_install.bat "%setting_source_path%\Предприниматель\Единый налог\Предпр
 call make_install.bat "%setting_source_path%\Общие\Общие данные.gsf"                                        devel     complex.jpg devellocal    devel_setup.rar "%install_target_path%\Разработчик\setup.exe"         %send_ftp%
 call make_install.bat "%setting_source_path%\Банк\Банк и касса.gsf"                                         plat      doc.jpg     platlocal     plat_setup.rar  "%install_target_path%\Платежные документы\setup.exe" %send_ftp% 
 call make_install.bat "%setting_source_path%\Меню\2011 Бэк-офис\2011 Менюback.gsf"                          menuback     complex.jpg menubacklocal    menuback_setup.rar "%install_target_path%\Меню\setup_back.exe" %send_ftp%
-call make_install.bat "%setting_source_path%\Меню\2011 Фронт-офис\2011  Меню front.gsf"                     menufront    complex.jpg menufrontlocal   menufront_setup.rar "%install_target_path%\Меню\setup_front.exe" %send_ftp%
+call make_install.bat "%setting_source_path%\Меню\2011 Фронт-офис\2011  Menu front.gsf"                     menufront    complex.jpg menufrontlocal   menufront_setup.rar "%install_target_path%\Меню\setup_front.exe" %send_ftp%
 
 if not errorlevel 0 goto Error
 

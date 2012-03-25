@@ -19,6 +19,7 @@ uses
   , Test_CopyObject_unit
   , Test_gdcMetaData_unit
   , Test_dlgAbout_unit
+  , Test_gdcObject_unit
   {$ENDIF}
   ;
   

@@ -108,8 +108,8 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-
     procedure Post; override;
+    class function IsAbstractClass: Boolean; override;
 
     property  CompileScript: Boolean read FCompileScript write SetCompileScript default False;
   end;
@@ -582,6 +582,11 @@ begin
   {M}      ClearMacrosStack2('TGDCCUSTOMFUNCTION', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcCustomFunction.IsAbstractClass: Boolean;
+begin
+  Result := True;
 end;
 
 function TgdcCustomFunction.ObjectChanged: Boolean;
