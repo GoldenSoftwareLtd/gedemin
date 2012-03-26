@@ -74,7 +74,7 @@ begin
         '         COUNT(*) > 1) '#13#10 +
         '      ) '#13#10 +
         '     THEN '#13#10 +
-        '       EXCEPTION ac_e_invalidaccount ''Duplicate account aliases are not allowed!''; '#13#10 +
+        '       EXCEPTION ac_e_invalidaccount ''Account '' || NEW.alias || '' already exists.''; '#13#10 +
         '  END '#13#10 +
         ''#13#10 +
         '  IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent) '#13#10 +
@@ -92,7 +92,7 @@ begin
         '        OR '#13#10 +
         '        (NEW.accounttype = ''S'' AND :P IN (''A'', ''S'')) )) THEN '#13#10 +
         '    BEGIN '#13#10 +
-        '      EXCEPTION ac_e_invalidaccount; '#13#10 +
+        '      EXCEPTION ac_e_invalidaccount ''Invalid account '' || NEW.alias; '#13#10 +
         '    END '#13#10 +
         '  END '#13#10 +
         'END ';

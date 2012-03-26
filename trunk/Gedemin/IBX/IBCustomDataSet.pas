@@ -2380,8 +2380,12 @@ begin
               end
               else
                 if TField(fl[i]).DataType in [ftDate, ftTime, ftDateTime] then
-                  Result := Result and (val[i] > '') and (DateTimeToStr(val[i]) = DateTimeToStr(fld))
-                else
+                begin
+                  if (VarType(fld) = varDouble) and (VarType(val[i]) = varDouble) then
+                    Result := Result and (val[i] = fld)
+                  else
+                    Result := Result and (val[i] > '') and (DateTimeToStr(val[i]) = DateTimeToStr(fld));
+                end else
                   result := result and (val[i] = fld);
             end;
           end;

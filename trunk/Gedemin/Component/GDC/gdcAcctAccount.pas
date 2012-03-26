@@ -499,10 +499,14 @@ begin
   {M}    end;
   {END MACRO}
 
-  Result := inherited CheckTheSameStatement;
+  if EOF then
+    Result := inherited CheckTheSameStatement
+  else begin
+    if FieldByName('parent').IsNull then
+      raise EgdcException.CreateObj('Объект счет или субсчет ' +
+        FieldByName('alias').AsString +
+        ' должен входить в раздел плана счетов', Self);
 
-  if (Result = '') and (not EOF) then
-  begin
     Result :=
       'SELECT ' +
       '  a.id ' +
@@ -514,7 +518,7 @@ begin
       'WHERE ' +
       '  a.accounttype IN (''A'', ''S'') ' +
       '  AND aparent.id = ' + FieldByName('parent').AsString +
-      '  AND a.alias = '' ' + FieldByName('alias').AsString + ''' ';
+      '  AND a.alias = ''' + StringReplace(FieldByName('alias').AsString, '''', '''''', [rfReplaceAll]) + ''' ';
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTACCOUNT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
