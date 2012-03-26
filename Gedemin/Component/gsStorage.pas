@@ -85,7 +85,7 @@ type
     function CheckForName(const AName: String): String; virtual;
     function GetFreeName: String;
     // очищает данные элемента
-    procedure Clear; virtual; abstract;
+    procedure Clear; virtual;
 
     // считывают и сохраняют в форматированный поток
     // где все данные представлены в текстовом виде
@@ -688,7 +688,7 @@ begin
   try
     FreeAndNil(FFolders);
     FreeAndNil(FValues);
-    FID := -1;
+    inherited Clear;
   finally
     FDestroying := False;
   end;
@@ -2874,6 +2874,9 @@ begin
     else
       FName := CheckForName(AName);
   end;
+
+  // код должен быть синхронизирован с кодом
+  // инициализации в методе Clear!
   FChanged := not StorageLoading;
   FModified := Now;
   if FParent <> nil then
@@ -3101,6 +3104,16 @@ end;
 procedure TgsStorageItem.RemoveChildren(SI: TgsStorageItem);
 begin
   raise EAbstractError.Create('TgsStorageItem.RemoveChildren');
+end;
+
+procedure TgsStorageItem.Clear;
+begin
+  // код должен быть синхронизирован с кодом
+  // инициализации в конструкторе!
+  FID := -1;
+  FName := GetFreeName;
+  FChanged := not StorageLoading;
+  FModified := Now;
 end;
 
 { TgsIntegerValue }

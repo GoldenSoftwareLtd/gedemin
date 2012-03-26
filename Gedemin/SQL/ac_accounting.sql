@@ -121,7 +121,7 @@ BEGIN
          COUNT(*) > 1)
       )
      THEN
-       EXCEPTION ac_e_invalidaccount 'Duplicate account aliases are not allowed!';
+       EXCEPTION ac_e_invalidaccount 'Account ' || NEW.alias || ' already exists.';
   END
 
   IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)
@@ -139,7 +139,7 @@ BEGIN
         OR
         (NEW.accounttype = 'S' AND :P IN ('A', 'S')) )) THEN
     BEGIN
-      EXCEPTION ac_e_invalidaccount;
+      EXCEPTION ac_e_invalidaccount 'Invalid account ' || NEW.alias;
     END
   END
 END

@@ -86,9 +86,12 @@ begin
       FIBSQL.SQL.Text := 'UPDATE evt_macroslist SET runonlogin = 0';
       FIBSQL.ExecQuery;
 
-      FIBSQL.Close;
-      FIBSQL.SQL.Text := 'CREATE INDEX evt_x_macrosgroup_isglobal ON evt_macrosgroup (isglobal)';
-      FIBSQL.ExecQuery;
+      if not IndexExist2('evt_x_macrosgroup_isglobal', FTransaction) then
+      begin
+        FIBSQL.Close;
+        FIBSQL.SQL.Text := 'CREATE INDEX evt_x_macrosgroup_isglobal ON evt_macrosgroup (isglobal)';
+        FIBSQL.ExecQuery;
+      end;  
 
       FIBSQL.Close;
       FIBSQL.SQL.Text :=

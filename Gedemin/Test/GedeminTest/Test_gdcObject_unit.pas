@@ -10,17 +10,55 @@ type
   Tgs_gdcObjectTest = class(TgsDBTestCase)
   published
     procedure Test_gdcObject;
+    procedure Test_gdcHoliday;
   end;
 
 implementation
 
 uses
   Forms, SysUtils, IBSQL, gdcBase, gdcBaseInterface, gd_ClassList,
-  gdcClasses, gd_directories_const;
+  gdcClasses, gd_directories_const, gdcTableCalendar;
 
 type
   TgdcBaseCrack = class(TgdcBase)
   end;
+
+procedure Tgs_gdcObjectTest.Test_gdcHoliday;
+const
+  HolidayName = 'test holiday name';
+var
+  Obj: TgdcHoliday;
+begin
+  Obj := TgdcHoliday.Create(nil);
+  try
+    Obj.Open;
+
+    if Obj.EOF then
+      Check(Obj.IsHoliday(EncodeDate(2010, 1, 1)) = False);
+
+    Obj.Insert;
+    Obj.FieldByName('holidaydate').AsDateTime := Date;
+    Obj.FieldByName('name').AsString := HolidayName;
+    Obj.Post;
+
+    Check(Obj.IsHoliday(Date));
+    Check(Obj.QIsHoliday(Date));
+    Check(Obj.FieldByName('name').AsString = HolidayName);
+
+    Obj.Edit;
+    Obj.FieldByName('disabled').AsInteger := 1;
+    Obj.Post;
+
+    Check(not Obj.IsHoliday(Date));
+    Check(not Obj.QIsHoliday(Date));
+
+    Obj.Delete;
+    Check(not Obj.IsHoliday(Date));
+    Check(not Obj.QIsHoliday(Date));
+  finally
+    Obj.Free;
+  end;
+end;
 
 procedure Tgs_gdcObjectTest.Test_gdcObject;
 var
