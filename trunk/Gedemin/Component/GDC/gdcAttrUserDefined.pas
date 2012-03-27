@@ -1,7 +1,8 @@
 
 {++
 
-  Copyright (c) 2001-2012 by Golden Software of Belarus
+
+  Copyright (c) 2001 by Golden Software of Belarus
 
   Module
 
@@ -46,6 +47,8 @@ type
     function GetIsView: Boolean;
 
   protected
+    function GetFromClause(const ARefresh: Boolean = False): String; override;
+
     //Для представлений не должно быть sql на изменение
     function GetModifySQLText: String; override;
     function GetInsertSQLText: String; override;
@@ -78,7 +81,12 @@ type
     function GetRelation: TatRelation;
 
   protected
+    function GetSelectClause: String; override;
+    function GetFromClause(const ARefresh: Boolean = False): String; override;
+
     procedure SetActive(Value: Boolean); override;
+
+    function CreateDialogForm: TCreateableForm; override;
 
     property Relation: TatRelation read GetRelation;
 
@@ -93,7 +101,6 @@ type
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     property RelationName: String read GetRelationName;
   end;
@@ -104,6 +111,10 @@ type
     function GetRelation: TatRelation;
 
   protected
+    function GetSelectClause: String; override;
+    function GetFromClause(const ARefresh: Boolean = False): String; override;
+
+    function CreateDialogForm: TCreateableForm; override;
     procedure SetActive(Value: Boolean); override;
 
     property Relation: TatRelation read GetRelation;
@@ -119,7 +130,6 @@ type
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     property RelationName: String read GetRelationName;
 
@@ -220,6 +230,54 @@ begin
     Result := 'Таблица пользователя';
 end;
 
+function TgdcAttrUserDefined.GetFromClause(const ARefresh: Boolean = False): String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCATTRUSERDEFINED', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINED', KEYGETFROMCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINED') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINED',
+  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINED' then
+  {M}        begin
+  {M}          Result := Inherited GetFromClause(ARefresh);
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := Inherited GetFromClause(ARefresh);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINED', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINED', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
+  {M}  end;
+  {END MACRO}
+end;
+
 function TgdcAttrUserDefined.GetInsertSQLText: String;
 begin
   if not IsView then
@@ -260,16 +318,8 @@ end;
 class function TgdcAttrUserDefined.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
-  I: Integer;
-  S: String;
 begin
-  I := Pos('=', ASubType);
-  if I = 0 then
-    S := ASubType
-  else
-    S := System.Copy(ASubType, I + 1, 1024);
-
-  R := atDatabase.Relations.ByRelationName(S);
+  R := atDatabase.Relations.ByRelationName(ASubType);
   if Assigned(R) then
     Result := R.ListField.FieldName
   else
@@ -277,14 +327,8 @@ begin
 end;
 
 class function TgdcAttrUserDefined.GetListTable(const ASubType: TgdcSubType): String;
-var
-  I: Integer;
 begin
-  I := Pos('=', ASubType);
-  if I = 0 then
-    Result := ASubType
-  else
-    Result := System.Copy(ASubType, I + 1, 1024);  
+  Result := ASubType
 end;
 
 function TgdcAttrUserDefined.GetModifySQLText: String;
@@ -309,14 +353,8 @@ begin
 end;
 
 function TgdcAttrUserDefined.GetRelationName: String;
-var
-  I: Integer;
 begin
-  I := Pos('=', SubType);
-  if I = 0 then
-    Result := SubType
-  else
-    Result := System.Copy(SubType, I + 1, 1024);  
+  Result := SubType;
 end;
 
 class function TgdcAttrUserDefined.GetSubTypeList(SubTypeList: TStrings): Boolean;
@@ -346,19 +384,11 @@ begin
   Result := SubTypeList.Count > 0;
 end;
 
+
 class function TgdcAttrUserDefined.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
-var
-  I: Integer;
-  S: String;
 begin
-  I := Pos('=', ASubType);
-  if I = 0 then
-    S := ASubType
-  else
-    S := System.Copy(ASubType, I + 1, 1024);
-
-  if atDatabase.Relations.ByRelationName(S) = nil then
+  if atDatabase.Relations.ByRelationName(ASubType) = nil then
     Result := ''
   else
     Result := 'Tgdc_frmAttrUserDefined';
@@ -378,6 +408,60 @@ begin
   CustomProcess := [];
 end;
 
+function TgdcAttrUserDefinedTree.CreateDialogForm: TCreateableForm;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCATTRUSERDEFINEDTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
+  {M}  try
+  {M}    Result := nil;
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDTREE', KEYCREATEDIALOGFORM);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDTREE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDTREE',
+  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
+  {M}          begin
+  {M}            Result := nil;
+  {M}            if VarType(LResult) <> varDispatch then
+  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
+  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
+  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
+  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
+  {M}            else
+  {M}              if IDispatch(LResult) = nil then
+  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
+  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
+  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
+  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
+  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDTREE' then
+  {M}        begin
+  {M}          Result := Inherited CreateDialogForm;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := Tgdc_dlgAttrUserDefinedTree.CreateSubType(ParentForm, SubType);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
+  {M}  end;
+  {END MACRO}
+end;
+
 class function TgdcAttrUserDefinedTree.GetDisplayName(
   const ASubType: TgdcSubType): String;
 begin
@@ -385,12 +469,55 @@ begin
     Result := inherited GetDisplayName(aSubType)
   else
     Result := 'Таблица пользователя (простое дерево)';
+
 end;
 
-class function TgdcAttrUserDefinedTree.GetDialogFormClassName(
-  const ASubType: TgdcSubType): String;
+function TgdcAttrUserDefinedTree.GetFromClause(const ARefresh: Boolean = False): String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
 begin
-  Result := 'Tgdc_dlgAttrUserDefinedTree';
+  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCATTRUSERDEFINEDTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDTREE', KEYGETFROMCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDTREE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDTREE',
+  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDTREE' then
+  {M}        begin
+  {M}          Result := Inherited GetFromClause(ARefresh);
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := Inherited GetFromClause(ARefresh);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
+  {M}  end;
+  {END MACRO}
 end;
 
 class function TgdcAttrUserDefinedTree.GetKeyField(const ASubType: TgdcSubType): String;
@@ -401,16 +528,8 @@ end;
 class function TgdcAttrUserDefinedTree.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
-  I: Integer;
-  S: String;
 begin
-  I := Pos('=', ASubType);
-  if I = 0 then
-    S := ASubType
-  else
-    S := System.Copy(ASubType, I + 1, 1024);
-
-  R := atDatabase.Relations.ByRelationName(S);
+  R := atDatabase.Relations.ByRelationName(ASubType);
   if Assigned(R) then
     Result := R.ListField.FieldName
   else
@@ -418,14 +537,8 @@ begin
 end;
 
 class function TgdcAttrUserDefinedTree.GetListTable(const ASubType: TgdcSubType): String;
-var
-  I: Integer;
 begin
-  I := Pos('=', ASubType);
-  if I = 0 then
-    Result := ASubType
-  else
-    Result := System.Copy(ASubType, I + 1, 1024);
+  Result := ASubType;
 end;
 
 function TgdcAttrUserDefinedTree.GetRelation: TatRelation;
@@ -434,14 +547,56 @@ begin
 end;
 
 function TgdcAttrUserDefinedTree.GetRelationName: String;
-var
-  I: Integer;
 begin
-  I := Pos('=', SubType);
-  if I = 0 then
-    Result := SubType
-  else
-    Result := System.Copy(SubType, I + 1, 1024);
+  Result := SubType;
+end;
+
+function TgdcAttrUserDefinedTree.GetSelectClause: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCATTRUSERDEFINEDTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDTREE', KEYGETSELECTCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDTREE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDTREE',
+  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDTREE' then
+  {M}        begin
+  {M}          Result := Inherited GetSelectClause;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := Inherited GetSelectClause;
+  
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
+  {M}  end;
+  {END MACRO}
 end;
 
 class function TgdcAttrUserDefinedTree.GetSubTypeList(SubTypeList: TStrings): Boolean;
@@ -476,17 +631,8 @@ end;
 
 class function TgdcAttrUserDefinedTree.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
-var
-  I: Integer;
-  S: String;
 begin
-  I := Pos('=', ASubType);
-  if I = 0 then
-    S := ASubType
-  else
-    S := System.Copy(ASubType, I + 1, 1024);
-
-  if atDatabase.Relations.ByRelationName(S) = nil then
+  if atDatabase.Relations.ByRelationName(ASubType) = nil then
     Result := ''
   else
     Result := 'Tgdc_frmAttrUserDefinedTree';
@@ -506,6 +652,60 @@ begin
   CustomProcess := [];
 end;
 
+function TgdcAttrUserDefinedLBRBTree.CreateDialogForm: TCreateableForm;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCATTRUSERDEFINEDLBRBTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
+  {M}  try
+  {M}    Result := nil;
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDLBRBTREE', KEYCREATEDIALOGFORM);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDLBRBTREE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDLBRBTREE',
+  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
+  {M}          begin
+  {M}            Result := nil;
+  {M}            if VarType(LResult) <> varDispatch then
+  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
+  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
+  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
+  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
+  {M}            else
+  {M}              if IDispatch(LResult) = nil then
+  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
+  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
+  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
+  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
+  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDLBRBTREE' then
+  {M}        begin
+  {M}          Result := Inherited CreateDialogForm;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := Tgdc_dlgAttrUserDefinedTree.CreateSubType(ParentForm, SubType);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDLBRBTREE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
+  {M}  end;
+  {END MACRO}
+end;
+
 class function TgdcAttrUserDefinedLBRBTree.GetDisplayName(
   const ASubType: TgdcSubType): String;
 begin
@@ -516,10 +716,52 @@ begin
 
 end;
 
-class function TgdcAttrUserDefinedLBRBTree.GetDialogFormClassName(
-  const ASubType: TgdcSubType): String;
+function TgdcAttrUserDefinedLBRBTree.GetFromClause(const ARefresh: Boolean = False): String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
 begin
-  Result := 'Tgdc_dlgAttrUserDefinedTree';
+  {@UNFOLD MACRO INH_ORIG_GETFROMCLAUSE('TGDCATTRUSERDEFINEDLBRBTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDLBRBTREE', KEYGETFROMCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETFROMCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDLBRBTREE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), ARefresh]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDLBRBTREE',
+  {M}          'GETFROMCLAUSE', KEYGETFROMCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETFROMCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDLBRBTREE' then
+  {M}        begin
+  {M}          Result := Inherited GetFromClause(ARefresh);
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := Inherited GetFromClause(ARefresh);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDLBRBTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
+  {M}  end;
+  {END MACRO}
 end;
 
 class function TgdcAttrUserDefinedLBRBTree.GetKeyField(const ASubType: TgdcSubType): String;
@@ -530,16 +772,8 @@ end;
 class function TgdcAttrUserDefinedLBRBTree.GetListField(const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
-  I: Integer;
-  S: String;
 begin
-  I := Pos('=', ASubType);
-  if I = 0 then
-    S := ASubType
-  else
-    S := System.Copy(ASubType, I + 1, 1024);
-
-  R := atDatabase.Relations.ByRelationName(S);
+  R := atDatabase.Relations.ByRelationName(ASubType);
   if Assigned(R) then
     Result := R.ListField.FieldName
   else
@@ -547,14 +781,8 @@ begin
 end;
 
 class function TgdcAttrUserDefinedLBRBTree.GetListTable(const ASubType: TgdcSubType): String;
-var
-  I: Integer;
 begin
-  I := Pos('=', ASubType);
-  if I = 0 then
-    Result := ASubType
-  else
-    Result := System.Copy(ASubType, I + 1, 1024);
+  Result := ASubType
 end;
 
 function TgdcAttrUserDefinedLBRBTree.GetRelation: TatRelation;
@@ -563,15 +791,56 @@ begin
 end;
 
 function TgdcAttrUserDefinedLBRBTree.GetRelationName: String;
-var
-  I: Integer;
 begin
-  I := Pos('=', SubType);
+  Result := SubType;
+end;
 
-  if I = 0 then
-    Result := SubType
-  else
-    Result := System.Copy(SubType, I + 1, 1024);
+function TgdcAttrUserDefinedLBRBTree.GetSelectClause: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_GETSELECTCLAUSE('TGDCATTRUSERDEFINEDLBRBTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCATTRUSERDEFINEDLBRBTREE', KEYGETSELECTCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETSELECTCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCATTRUSERDEFINEDLBRBTREE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCATTRUSERDEFINEDLBRBTREE',
+  {M}          'GETSELECTCLAUSE', KEYGETSELECTCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETSELECTCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCATTRUSERDEFINEDLBRBTREE' then
+  {M}        begin
+  {M}          Result := Inherited GetSelectClause;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  Result := Inherited GetSelectClause;
+  
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCATTRUSERDEFINEDLBRBTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCATTRUSERDEFINEDLBRBTREE', 'GETSELECTCLAUSE', KEYGETSELECTCLAUSE);
+  {M}  end;
+  {END MACRO}
 end;
 
 class function TgdcAttrUserDefinedLBRBTree.GetSubTypeList(SubTypeList: TStrings): Boolean;

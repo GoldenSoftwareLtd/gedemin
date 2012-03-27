@@ -63,10 +63,11 @@ end;
 procedure Tgs_gdcObjectTest.Test_gdcObject;
 var
   C: CgdcBase;
-  I, J, Cnt: Integer;
+  I, J, Cnt, P: Integer;
   Obj: TgdcBase;
   SL: TStringList;
   F: TForm;
+  SS: String;
 begin
   SL := TStringList.Create;
   try
@@ -84,33 +85,39 @@ begin
         for J := 0 to SL.Count - 1 do
         begin
           if SL[J] > '' then
-            Obj := C.CreateSubType(nil, SL[J])
-          else
+          begin
+            P := Pos('=', SL[J]);
+            if P = 0 then
+              SS := SL[J]
+            else
+              SS := System.Copy(SL[J], P + 1, 1024);
+            Obj := C.CreateSubType(nil, SS);
+          end else
             Obj := C.Create(nil);
           try
             Inc(Cnt);
             OutputDebugString(PChar(IntToStr(I) + ': ' + C.ClassName +
               ' (' + IntToStr(J) + ': ' + Obj.SubType + '), ' + IntToStr(Cnt)));
 
-            if (Obj.GetListTable(SL[J]) > '') and
+            if (Obj.GetListTable(Obj.SubType) > '') and
               ((not (Obj is TgdcDocument)) or (TgdcDocument(Obj).DocumentTypeKey > -1)) then
             begin
               Obj.Open;
 
               {Obj.Insert;
-              Obj.Cancel;
+              Obj.Cancel;}
 
-              if not Obj.EOF then
+              {if not Obj.EOF then
               begin
                 Obj.Edit;
                 Obj.Post;
               end;}
 
-              F := TgdcBaseCrack(Obj).CreateDialogForm;
+              {F := TgdcBaseCrack(Obj).CreateDialogForm;
               F.Free;
 
               F := Obj.CreateViewForm(nil, '', Obj.SubType);
-              F.Free;
+              F.Free;}
 
               FQ.Close;
               FQ.SQL.Text := TgdcBaseCrack(Obj).CheckTheSameStatement;
