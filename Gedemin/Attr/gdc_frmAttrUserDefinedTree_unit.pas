@@ -76,11 +76,18 @@ end;
 procedure Tgdc_frmAttrUserDefinedTree.FormCreate(Sender: TObject);
 var
   R: TatRelation;
+  I: Integer;
+  S: String;
 begin
   gdcObject := Master;
-  //gdcObject.SubType := FSubType;
 
-  R := atDatabase.Relations.ByRelationName(FSubType);
+  I := Pos('=', FSubType);
+  if I = 0 then
+    S := FSubType
+  else
+    S := System.Copy(FSubType, I + 1, 1024);
+
+  R := atDatabase.Relations.ByRelationName(S);
   Assert(R <> nil);
 
   if tvGroup.DisplayField = '' then
