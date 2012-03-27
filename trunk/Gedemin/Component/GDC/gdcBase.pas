@@ -11778,6 +11778,7 @@ var
   SL: TStringList;
   I: Integer;
   F: Boolean;
+  S: String;
 begin
   if FSubType <> Value then
   begin
@@ -11815,9 +11816,16 @@ begin
     FSubType := Value;
     FGroupID := -1;
     FgdcTableInfos := GetTableInfos(FSubType);
-    FModifyFromStream := NeedModifyFromStream(SubType);
+    FModifyFromStream := NeedModifyFromStream(FSubType);
     if Assigned(FQueryFilter) then
-      FQueryFilter.Name := 'flt_' + RemoveProhibitedSymbols(FSubType) + System.copy(ClassName, 2, 255);
+    begin
+      I := Pos('=', FSubType);
+      if I = 0 then
+        S := FSubType
+      else
+        S := System.Copy(FSubType, I + 1, 1024);
+      FQueryFilter.Name := 'flt_' + RemoveProhibitedSymbols(S) + System.copy(ClassName, 2, 255);
+    end;
     FSQLInitialized := False;
   end;
 end;

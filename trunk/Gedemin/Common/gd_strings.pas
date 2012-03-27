@@ -23,26 +23,9 @@ uses Clipbrd
   ;
 
 function RemoveProhibitedSymbols(const S: String): String;
-const
-  Alpha = ['A'..'Z', 'a'..'z', '_'];
-  AlphaNumeric = Alpha + ['0'..'9'];
-var
-  I: Integer;
 begin
-  Result := '';
-
-  for I := 1 to Length(S) do
-  begin
-    if S[I] in AlphaNumeric then
-      Result := Result + S[I];
-  end;
-
-  if Result = '' then
-  begin
-    Result := 'A'
-  end
-  else if not (Result[1] in Alpha) then
-    Result := 'A' + Result;
+  Result := StringReplace(StringReplace(S, '$', '_', [rfReplaceAll]),
+    ' ', '_', [rfReplaceAll]);
 end;
 
 function PasteSQL(Editor: TCustomSynEdit): boolean;
@@ -62,7 +45,7 @@ begin
         Editor.SelText:= '';
         ClearStr:= StringOfChar(' ', 4);
       end;
-//      else
+
       if Trim(Editor.LineText) <> '' then begin
         i:= 1;
         ClearStr:= '';
