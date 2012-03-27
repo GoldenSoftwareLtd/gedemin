@@ -154,6 +154,7 @@ type
     procedure ReadOptions(Stream: TStream); virtual;
 
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function IsAbstractClass: Boolean; override;
 
     property MovementSource: TgdcInvMovementContactOption read FMovementSource; // Источник движения
     property MovementTarget: TgdcInvMovementContactOption read FMovementTarget; // получатель движения
@@ -520,6 +521,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   if (csDesigning in ComponentState) or (DocumentTypeKey = -1) then
@@ -529,6 +531,7 @@ begin
 
   for I := 0 to Joins.Count - 1 do
     FieldByName(Joins.Values[Joins.Names[I]]).Required := False;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVBASEDOCUMENT', 'CREATEFIELDS', KEYCREATEFIELDS)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -784,15 +787,11 @@ begin
 end;
 
 class function TgdcInvBaseDocument.GetSubTypeList(SubTypeList: TStrings): Boolean;
-{var
-  ibsql: TIBSQL;
-  ibtr: TIBTransaction;}
 begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList(TgdcInvDocumentType.InvDocumentTypeBranchKey,
     SubTypeList);
-
 end;
 
 function TgdcInvBaseDocument.JoinListFieldByFieldName(
@@ -803,121 +802,123 @@ end;
 
 procedure TgdcInvBaseDocument.ReadOptions(Stream: TStream);
 var
-  Index: Integer;
+  Index, I: Integer;
 begin
   Assert(not Active);
 
-    { TODO -oJulia : Это зачем? }
-    {Active := False;}
+  I := Pos('=', SubType);
 
-    Index := CacheDocumentTypeByRUID(SubType);
-    if Index > - 1 then
+  if I = 0 then
+    Index := CacheDocumentTypeByRUID(SubType)
+  else
+    Index := CacheDocumentTypeByRUID(System.Copy(SubType, I + 1, 1024));
+
+  if Index > - 1 then
+  begin
+    FReportGroupKey := DocTypeCache.CacheItemsByIndex[Index].ReportGroupKey;
+    FBranchKey := DocTypeCache.CacheItemsByIndex[Index].BranchKey;
+  end else
+    raise EgdcInvDocumentType.Create('Складской документ не найден!');
+
+  with TReader.Create(Stream, 1024) do
+  try
+    FCurrentStreamVersion := ReadString;
+
+    if FCurrentStreamVersion = gdcInv_Document_Undone then
+      raise EgdcInvBaseDocument.
+        Create('Попытка загрузить незаконченный складской документ!');
+
+    FRelationName := ReadString;
+    FRelationLineName := ReadString;
+
+    if (FCurrentStreamVersion <> gdcInvDocument_Version2_0) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_1) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_2) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_3) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_4) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_5) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_6)
+    then
+      //Раньше считывался тип документа
+      ReadInteger;
+
+    if (FCurrentStreamVersion = gdcInvDocument_Version1_9) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_0) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_6)
+    then
+      //Раньше считывался кей группы отчетов
+      ReadInteger;
+
+    SetLength(FMovementTarget.Predefined, 0);
+    SetLength(FMovementTarget.SubPredefined, 0);
+
+    FMovementTarget.RelationName := ReadString;
+    FMovementTarget.SourceFieldName := ReadString;
+    FMovementTarget.SubRelationName := ReadString;
+    FMovementTarget.SubSourceFieldName := ReadString;
+    Read(FMovementTarget.ContactType, SizeOf(TgdcInvMovementContactType));
+
+    ReadListBegin;
+    while not EndOfList do
     begin
-      FReportGroupKey := DocTypeCache.CacheItemsByIndex[Index].ReportGroupKey;
-      FBranchKey := DocTypeCache.CacheItemsByIndex[Index].BranchKey;
-    end else
-      raise EgdcInvDocumentType.Create('Складской документ не найден!');
-
-
-    with TReader.Create(Stream, 1024) do
-    try
-      FCurrentStreamVersion := ReadString;
-
-      if FCurrentStreamVersion = gdcInv_Document_Undone then
-        raise EgdcInvBaseDocument.
-          Create('Попытка загрузить незаконченный складской документ!');
-
-      FRelationName := ReadString;
-      FRelationLineName := ReadString;
-
-      if (FCurrentStreamVersion <> gdcInvDocument_Version2_0) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_1) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_2) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_3) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_4) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_5) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_6)
-      then
-        //Раньше считывался тип документа
+      SetLength(FMovementTarget.Predefined,
+        Length(FMovementTarget.Predefined) + 1);
+      FMovementTarget.Predefined[Length(FMovementTarget.Predefined) - 1] :=
         ReadInteger;
-
-      if (FCurrentStreamVersion = gdcInvDocument_Version1_9) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_0) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_6)
-      then
-        //Раньше считывался кей группы отчетов
-        ReadInteger;
-
-      SetLength(FMovementTarget.Predefined, 0);
-      SetLength(FMovementTarget.SubPredefined, 0);
-
-      FMovementTarget.RelationName := ReadString;
-      FMovementTarget.SourceFieldName := ReadString;
-      FMovementTarget.SubRelationName := ReadString;
-      FMovementTarget.SubSourceFieldName := ReadString;
-      Read(FMovementTarget.ContactType, SizeOf(TgdcInvMovementContactType));
-
-      ReadListBegin;
-      while not EndOfList do
-      begin
-        SetLength(FMovementTarget.Predefined,
-          Length(FMovementTarget.Predefined) + 1);
-        FMovementTarget.Predefined[Length(FMovementTarget.Predefined) - 1] :=
-          ReadInteger;
-      end;
-      ReadListEnd;
-
-      ReadListBegin;
-      while not EndOfList do
-      begin
-        SetLength(FMovementTarget.SubPredefined,
-          Length(FMovementTarget.SubPredefined) + 1);
-        FMovementTarget.SubPredefined[Length(FMovementTarget.SubPredefined) - 1] :=
-          ReadInteger;
-      end;
-      ReadListEnd;
-
-
-      SetLength(FMovementSource.Predefined, 0);
-      SetLength(FMovementSource.SubPredefined, 0);
-
-      FMovementSource.RelationName := ReadString;
-      FMovementSource.SourceFieldName := ReadString;
-      FMovementSource.SubRelationName := ReadString;
-      FMovementSource.SubSourceFieldName := ReadString;
-
-      Read(FMovementSource.ContactType, SizeOf(TgdcInvMovementContactType));
-
-      ReadListBegin;
-      while not EndOfList do
-      begin
-        SetLength(FMovementSource.Predefined,
-          Length(FMovementSource.Predefined) + 1);
-        FMovementSource.Predefined[Length(FMovementSource.Predefined) - 1] :=
-          ReadInteger;
-      end;
-      ReadListEnd;
-
-      ReadListBegin;
-      while not EndOfList do
-      begin
-        SetLength(FMovementSource.SubPredefined,
-          Length(FMovementSource.SubPredefined) + 1);
-        FMovementSource.SubPredefined[Length(FMovementSource.SubPredefined) - 1] :=
-          ReadInteger;
-      end;
-      ReadListEnd;
-
-      if Self is TgdcInvDocument then
-        FSetupProceeded := True;
-    finally
-      Free;
     end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FMovementTarget.SubPredefined,
+        Length(FMovementTarget.SubPredefined) + 1);
+      FMovementTarget.SubPredefined[Length(FMovementTarget.SubPredefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+
+    SetLength(FMovementSource.Predefined, 0);
+    SetLength(FMovementSource.SubPredefined, 0);
+
+    FMovementSource.RelationName := ReadString;
+    FMovementSource.SourceFieldName := ReadString;
+    FMovementSource.SubRelationName := ReadString;
+    FMovementSource.SubSourceFieldName := ReadString;
+
+    Read(FMovementSource.ContactType, SizeOf(TgdcInvMovementContactType));
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FMovementSource.Predefined,
+        Length(FMovementSource.Predefined) + 1);
+      FMovementSource.Predefined[Length(FMovementSource.Predefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FMovementSource.SubPredefined,
+        Length(FMovementSource.SubPredefined) + 1);
+      FMovementSource.SubPredefined[Length(FMovementSource.SubPredefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    if Self is TgdcInvDocument then
+      FSetupProceeded := True;
+  finally
+    Free;
+  end;
 end;
 
 procedure TgdcInvBaseDocument.UpdatePredefinedFields;
@@ -1094,7 +1095,8 @@ end;
 procedure TgdcInvBaseDocument.SetSubType(const Value: String);
 var
   Stream: TStream;
-  Index: Integer;
+  Index, I: Integer;
+  RUID: String;
 begin
   if (SubType <> Value) then
   begin
@@ -1104,7 +1106,13 @@ begin
 
     if SubType > '' then
     begin
-      Index := CacheDocumentTypeByRUID(Value);
+      I := Pos('=', Value);
+      if I > 0 then
+        RUID := System.Copy(Value, I + 1, 1024)
+      else
+        RUID := Value;
+
+      Index := CacheDocumentTypeByRUID(RUID);
       if Index > -1 then
       begin
         FDocumentTypeKey := DocTypeCache.CacheItemsByIndex[Index].ID;
@@ -1182,6 +1190,11 @@ begin
   {M}      ClearMacrosStack2('TGDCINVBASEDOCUMENT', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcInvBaseDocument.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcInvBaseDocument');
 end;
 
 { TgdcInvDocument }

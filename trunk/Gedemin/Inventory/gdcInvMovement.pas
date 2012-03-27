@@ -431,6 +431,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListTableAlias: String; override;
+    class function IsAbstractClass: Boolean; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
 
@@ -5037,6 +5038,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}     *)
+
   if UseSelectFromSelect then
   begin
     Result := '';
@@ -5046,7 +5048,7 @@ begin
   Result := ' FROM INV_CARD C JOIN GD_GOOD G ON (G.ID = C.GOODKEY) ';
 
   if not IBLogin.IsUserAdmin then
-    Result := Result + Format(' AND g_sec_test(g.aview, %d) <> 0 ', [IBLogin.InGroup]);
+    Result := Result + Format(' AND BIN_AND(g.aview, %d) <> 0 ', [IBLogin.InGroup]);
 
   if csDesigning in ComponentState then
     exit;
@@ -5334,64 +5336,61 @@ end;
 procedure TgdcInvBaseRemains.SetSubType(const Value: String);
 var
   ibsql: TIBSQL;
-  DidActivate: Boolean;
   Stream: TStringStream;
+  I: Integer;
 begin
   if csDesigning in ComponentState then
     exit;
 
-  if SubType <> Value then
-  begin
-    inherited;
-    ibsql := TIBSQL.Create(Self);
-    try
-      ibsql.Transaction := gdcBaseManager.ReadTransaction;
-      DidActivate := not ibsql.Transaction.Active;
-      if DidActivate then
-        ibsql.Transaction.StartTransaction;
-      ibsql.SQL.Text := 'SELECT * FROM inv_balanceoption WHERE ruid = :ruid';
-      ibsql.ParamByName('ruid').AsString := Value;
-      ibsql.ExecQuery;
-      if ibsql.RecordCount > 0 then
-      begin
-        Stream := TStringStream.Create(ibsql.FieldByName('viewfields').AsString);
-        try
-          ReadFeatures(FViewFeatures, Stream);
-        finally
-          Stream.Free;
-        end;
+  if SubType = Value then
+    exit;
 
-        Stream := TStringStream.Create(ibsql.FieldByName('sumfields').AsString);
-        try
-          ReadFeatures(FSumFeatures, Stream);
-        finally
-          Stream.Free;
-        end;
-
-        Stream := TStringStream.Create(ibsql.FieldByName('goodviewfields').AsString);
-        try
-          ReadGoodFeatures(FGoodViewFeatures, Stream);
-        finally
-          Stream.Free;
-        end;
-
-        Stream := TStringStream.Create(ibsql.FieldByName('goodsumfields').AsString);
-        try
-          ReadGoodFeatures(FGoodSumFeatures, Stream);
-        finally
-          Stream.Free;
-        end;
-
-        isUseCompanyKey := ibsql.FieldByName('usecompanykey').AsInteger = 1;
-
+  inherited;
+  
+  ibsql := TIBSQL.Create(nil);
+  try
+    ibsql.Transaction := gdcBaseManager.ReadTransaction;
+    ibsql.SQL.Text := 'SELECT * FROM inv_balanceoption WHERE ruid = :ruid';
+    I := Pos('=', Value);
+    if I = 0 then
+      ibsql.ParamByName('ruid').AsString := Value
+    else
+      ibsql.ParamByName('ruid').AsString := System.Copy(Value, I + 1, 1024);
+    ibsql.ExecQuery;
+    if not ibsql.EOF then
+    begin
+      Stream := TStringStream.Create(ibsql.FieldByName('viewfields').AsString);
+      try
+        ReadFeatures(FViewFeatures, Stream);
+      finally
+        Stream.Free;
       end;
-      ibsql.Close;
-      if DidActivate then
-        ibsql.Transaction.Commit;
 
-    finally
-      ibsql.Free;
+      Stream := TStringStream.Create(ibsql.FieldByName('sumfields').AsString);
+      try
+        ReadFeatures(FSumFeatures, Stream);
+      finally
+        Stream.Free;
+      end;
+
+      Stream := TStringStream.Create(ibsql.FieldByName('goodviewfields').AsString);
+      try
+        ReadGoodFeatures(FGoodViewFeatures, Stream);
+      finally
+        Stream.Free;
+      end;
+
+      Stream := TStringStream.Create(ibsql.FieldByName('goodsumfields').AsString);
+      try
+        ReadGoodFeatures(FGoodSumFeatures, Stream);
+      finally
+        Stream.Free;
+      end;
+
+      isUseCompanyKey := ibsql.FieldByName('usecompanykey').AsInteger = 1;
     end;
+  finally
+    ibsql.Free;
   end;
 end;
 
@@ -5473,12 +5472,17 @@ end;
 function TgdcInvBaseRemains.GetRemainsName: String;
 var
   ibsql: TIBSQL;
+  I: Integer;
 begin
   ibsql := TIBSQL.Create(Self);
   try
     ibsql.Transaction := ReadTransaction;
     ibsql.SQL.Text := 'SELECT name FROM inv_balanceoption WHERE ruid = :ruid';
-    ibsql.ParamByName('ruid').AsString := SubType;
+    I := Pos('=', SubType);
+    if I = 0 then
+      ibsql.ParamByName('ruid').AsString := SubType
+    else
+      ibsql.ParamByName('ruid').AsString := System.Copy(SubType, I + 1, 1024);
     ibsql.ExecQuery;
     if ibsql.RecordCount > 0 then
       Result := ibsql.FieldByName('name').AsString
@@ -5581,6 +5585,11 @@ begin
   {M}      ClearMacrosStack2('TGDCINVBASEREMAINS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcInvBaseRemains.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcInvBaseRemains');
 end;
 
 { TgdcInvRemains }
