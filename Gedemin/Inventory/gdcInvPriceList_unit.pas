@@ -409,20 +409,15 @@ procedure TgdcInvBasePriceList.ReadOptions(Stream: TStream);
 var
   NewField: TgdcInvPriceField;
   ibsql: TIBSQL;
-  I: Integer;
 begin
   ibsql := CreateReadIBSQL;
   try
     if not Assigned(ibsql.Transaction) then
       ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text := 'SELECT * FROM gd_documenttype WHERE ruid = :ruid';
-    I := Pos('=', SubType);
-    if I = 0 then
-      ibsql.ParamByName('ruid').AsString := SubType
-    else
-      ibsql.ParamByName('ruid').AsString := System.Copy(SubType, I + 1, 1024);
+    ibsql.ParamByName('ruid').AsString := SubType;
     ibsql.ExecQuery;
-    if ibsql.EOF then
+    if ibsql.RecordCount = 0 then
       raise Exception.Create('Прайс-лист не найден!');
     FReportGroupKey := ibsql.FieldByName('reportgroupkey').AsInteger;
   finally
@@ -484,39 +479,33 @@ procedure TgdcInvBasePriceList.SetSubType(const Value: String);
 var
   ibsql: TIBSQL;
   Stream: TStream;
-  I: Integer;
 begin
-  if SubType = Value then
-    exit;
-
-  inherited;
-
-  if SubType = '' then
-    FDocumentTypeKey := -1
-  else begin
-    ibsql := TIBSQL.Create(nil);
-    try
-      ibsql.Transaction := gdcBaseManager.ReadTransaction;
-      ibsql.SQL.Text := 'SELECT id, options FROM gd_documenttype WHERE ruid = :ruid';
-      I := Pos('=', SubType);
-      if I = 0 then
-        ibsql.ParamByName('ruid').AsString := SubType
-      else
-        ibsql.ParamByName('ruid').AsString := System.Copy(SubType, I + 1, 1024);
-      ibsql.ExecQuery;
-      if ibsql.EOF then
-        raise EgdcInvPriceList.Create('Прайс-лист не найден!');
-
-      Stream := TStringStream.Create(ibsql.FieldByName('options').AsString);
+  if SubType <> Value then
+  begin
+    inherited;
+    FDocumentTypeKey := -1;
+    if SubType <> '' then
+    begin
+      ibsql := TIBSQL.Create(nil);
       try
-        ReadOptions(Stream);
-      finally
-        Stream.Free;
-      end;
+        ibsql.Transaction := gdcBaseManager.ReadTransaction;
+        ibsql.SQL.Text := 'SELECT id, options FROM gd_documenttype WHERE ruid = :ruid';
+        ibsql.ParamByName('ruid').AsString := SubType;
+        ibsql.ExecQuery;
+        if ibsql.RecordCount = 0 then
+          raise EgdcInvPriceList.Create('Прайс-лист не найден!');
 
-      FDocumentTypeKey := ibsql.FieldByName('id').AsInteger;
-    finally
-      ibsql.Free;
+        Stream := TStringStream.Create(ibsql.FieldByName('options').AsString);
+        try
+          ReadOptions(Stream);
+        finally
+          Stream.Free;
+        end;
+
+        FDocumentTypeKey := ibsql.FieldByName('id').AsInteger;
+      finally
+        ibsql.Free;
+      end;
     end;
   end;
 end;

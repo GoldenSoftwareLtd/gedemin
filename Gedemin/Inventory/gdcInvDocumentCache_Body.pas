@@ -80,14 +80,6 @@ end;
 
 function TgdcInvDocumentCache.DoCache(const K: Integer;
   const IsClassName: Boolean; SubTypeList: TStrings): Boolean;
-
-  function CheckSubTypeName(const S: String): String;
-  begin
-    if Pos('=', S) > 0 then
-      raise Exception.Create('SubType name can not contain = sign. Value: ' + S);
-    Result := S;
-  end;
-
 var
   ibsql: TIBSQL;
   DidActivate: Boolean;
@@ -143,7 +135,7 @@ begin
           if SubTypeList.IndexOfName(ibsql.FieldByName('name').AsString) = -1 then
           begin
             SubTypeList.Add(
-              CheckSubTypeName(ibsql.FieldByName('name').AsString) + '=' +
+              ibsql.FieldByName('name').AsString + '=' +
               ibsql.FieldByName('ruid').AsString);
           end else
           begin
@@ -170,7 +162,7 @@ begin
             while not ibsql.EOF do
             begin
               SubTypeList.Add(
-                CheckSubTypeName(ibsql.FieldByName('NAME').AsString) + '=' +
+                ibsql.FieldByName('NAME').AsString + '=' +
                 ibsql.FieldByName('RUID').AsString);
               ibsql.Next;
             end;

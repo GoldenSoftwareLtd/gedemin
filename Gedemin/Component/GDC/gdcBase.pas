@@ -11778,7 +11778,6 @@ var
   SL: TStringList;
   I: Integer;
   F: Boolean;
-  S: String;
 begin
   if FSubType <> Value then
   begin
@@ -11816,16 +11815,9 @@ begin
     FSubType := Value;
     FGroupID := -1;
     FgdcTableInfos := GetTableInfos(FSubType);
-    FModifyFromStream := NeedModifyFromStream(FSubType);
+    FModifyFromStream := NeedModifyFromStream(SubType);
     if Assigned(FQueryFilter) then
-    begin
-      I := Pos('=', FSubType);
-      if I = 0 then
-        S := FSubType
-      else
-        S := System.Copy(FSubType, I + 1, 1024);
-      FQueryFilter.Name := 'flt_' + RemoveProhibitedSymbols(S) + System.copy(ClassName, 2, 255);
-    end;
+      FQueryFilter.Name := 'flt_' + RemoveProhibitedSymbols(FSubType) + System.copy(ClassName, 2, 255);
     FSQLInitialized := False;
   end;
 end;
@@ -15389,6 +15381,10 @@ begin
       end;
     end;
     {$ENDIF}
+    {
+    end else
+      raise Exception.Create(GetGsException(Self, 'No dialog form found'));
+    }
   end;
 end;
 
@@ -15444,6 +15440,10 @@ begin
       UserStorage.CloseFolder(UserStorage.OpenFolder('\', False), True);
     end;
     {$ENDIF}
+    {
+    end else
+      raise Exception.Create(GetGsException(Self, 'No dialog form found'));
+    }
   end;
 end;
 

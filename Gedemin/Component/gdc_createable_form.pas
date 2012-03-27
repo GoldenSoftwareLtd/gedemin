@@ -777,18 +777,12 @@ end;
 
 procedure TgdcCreateableForm.Loaded;
 var
-  NewName, S: String;
-  Z, J, I: Integer;
+  NewName: String;
+  Z, J: Integer;
 begin
   if (FSubType > '') and not (cfsUserCreated in CreateableFormState) then
   begin
-    I := Pos('=', FSubType);
-    if I = 0 then
-      S := FSubType
-    else
-      S := System.Copy(FSubType, I + 1, 1024);
-
-    NewName := Copy(ClassName, 2, 255) + RemoveProhibitedSymbols(S);
+    NewName := Copy(ClassName, 2, 255) + RemoveProhibitedSymbols(FSubType);
 
     // Присваивается начальное имя формы
     FInitialName := NewName;
@@ -817,7 +811,25 @@ begin
         Inc(Z);
     end;
 
+    //
+    // Если форма с таким именем есть, вызываем ее,
+    // после этого вызываем "тихое" исключение
+(*    for Z := 0 to Screen.CustomFormCount - 1 do
+      if (Screen.CustomForms[Z] <> Self) and
+        (AnsiCompareText(Screen.CustomForms[Z].Name, NewName) = 0) then
+      begin
+//        Screen.CustomForms[Z].Enabled := False;
+        Screen.CustomForms[Z].Show;
+//        Screen.CustomForms[Z].Enabled := True;
+        Abort;
+      end;*)
+
+
     Name := NewName;
+//    if (Name <> InitialName) and Assigned(EventControl) then
+//    begin
+//      EventControl.AssignEvents(Application.FindComponent(InitialName), Self);
+//    end;
   end;
 
   inherited;

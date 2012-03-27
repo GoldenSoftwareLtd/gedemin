@@ -1913,8 +1913,6 @@ var
   ibsql: TIBSQL;
   CI: TDocumentTypeCacheItem;
 begin
-  Assert((RUID = '') or CheckRUID(RUID));
-
   if ByRUID then
   begin
     Result := DocTypeCache.IndexOfByRUID(RUID);
@@ -1929,8 +1927,7 @@ begin
     Result := DocTypeCache.IndexOf(ADocTypeKey);
   end;
 
-  if Result > - 1 then
-    exit;
+  if Result > - 1 then Exit;
 
   ibsql := TIBSQL.Create(nil);
   try
@@ -3799,18 +3796,11 @@ begin
 end;
 
 procedure TgdcUserBaseDocument.SetSubType(const Value: String);
-var
-  I: Integer;
 begin
   if Value <> SubType then
   begin
     inherited;
-
-    I := Pos('=', Value);
-    if I = 0 then
-      ReadOptions(Value)
-    else
-      ReadOptions(System.Copy(Value, I + 1, 1024));
+    ReadOptions(Value);
   end;
 end;
 
@@ -3829,15 +3819,11 @@ class function TgdcUserBaseDocument.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 var
   R: TatRelation;
-  Index, I: Integer;
+  Index: Integer;
   T: TDocumentTypeCacheItem;
   RL: String;
 begin
-  I := Pos('=', ASubType);
-  if I = 0 then
-    Index := CacheDocumentTypeByRUID(ASubType)
-  else
-    Index := CacheDocumentTypeByRUID(System.Copy(ASubType, I + 1, 1024));
+  Index := CacheDocumentTypeByRUID(ASubType);
   if Index > - 1 then
   begin
     T := DocTypeCache.CacheItemsByIndex[Index];
