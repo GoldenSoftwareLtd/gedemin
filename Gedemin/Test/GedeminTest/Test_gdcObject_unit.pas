@@ -16,8 +16,8 @@ type
 implementation
 
 uses
-  Forms, SysUtils, IBSQL, gdcBase, gdcBaseInterface, gd_ClassList,
-  gdcClasses, gd_directories_const, gdcTableCalendar;
+  Windows, Forms, SysUtils, IBSQL, gdcBase, gdcBaseInterface,
+  gd_ClassList, gdcClasses, gd_directories_const, gdcTableCalendar;
 
 type
   TgdcBaseCrack = class(TgdcBase)
@@ -63,13 +63,14 @@ end;
 procedure Tgs_gdcObjectTest.Test_gdcObject;
 var
   C: CgdcBase;
-  I, J: Integer;
+  I, J, Cnt: Integer;
   Obj: TgdcBase;
   SL: TStringList;
   F: TForm;
 begin
   SL := TStringList.Create;
   try
+    Cnt := 0;
     for I := 0 to gdcClassList.Count - 1 do
     begin
       C := gdcClassList[I];
@@ -87,16 +88,29 @@ begin
           else
             Obj := C.Create(nil);
           try
+            Inc(Cnt);
+            OutputDebugString(PChar(IntToStr(I) + ': ' + C.ClassName +
+              ' (' + IntToStr(J) + ': ' + Obj.SubType + '), ' + IntToStr(Cnt)));
+
             if (Obj.GetListTable(SL[J]) > '') and
               ((not (Obj is TgdcDocument)) or (TgdcDocument(Obj).DocumentTypeKey > -1)) then
             begin
               Obj.Open;
 
+              {Obj.Insert;
+              Obj.Cancel;
+
+              if not Obj.EOF then
+              begin
+                Obj.Edit;
+                Obj.Post;
+              end;}
+
               F := TgdcBaseCrack(Obj).CreateDialogForm;
               F.Free;
 
-              {F := Obj.CreateViewForm(nil);
-              F.Free;}
+              F := Obj.CreateViewForm(nil, '', Obj.SubType);
+              F.Free;
 
               FQ.Close;
               FQ.SQL.Text := TgdcBaseCrack(Obj).CheckTheSameStatement;

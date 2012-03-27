@@ -1487,7 +1487,6 @@ type
     class function IsBigTable: Boolean;
 
     //
-
     class function IsAbstractClass: Boolean; virtual;
 
     // стварае аб'ект _ адкрывае зап_с з дадзеным _Д
@@ -15382,10 +15381,6 @@ begin
       end;
     end;
     {$ENDIF}
-    {
-    end else
-      raise Exception.Create(GetGsException(Self, 'No dialog form found'));
-    }
   end;
 end;
 
@@ -15441,10 +15436,6 @@ begin
       UserStorage.CloseFolder(UserStorage.OpenFolder('\', False), True);
     end;
     {$ENDIF}
-    {
-    end else
-      raise Exception.Create(GetGsException(Self, 'No dialog form found'));
-    }
   end;
 end;
 
