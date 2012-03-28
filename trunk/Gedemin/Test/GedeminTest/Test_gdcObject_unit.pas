@@ -18,7 +18,7 @@ implementation
 uses
   Windows, Forms, SysUtils, IBSQL, gdcBase, gdcBaseInterface,
   gd_ClassList, gdcClasses, gd_directories_const, gdcTableCalendar,
-  gdcInvMovement;
+  gdcInvMovement, Test_Global_unit;
 
 type
   TgdcBaseCrack = class(TgdcBase)
@@ -116,19 +116,29 @@ begin
                 begin
                   Obj.Insert;
                   Obj.Cancel;
-                end;  
 
-                {if not Obj.EOF then
+                  if Obj.GetDialogFormClassName(Obj.SubType) <> 'Tgdc_dlgObjectProperties' then
+                  begin
+                    DUnit_Process_Form_Flag := True;
+                    try
+                      Obj.CreateDialog;
+                    finally
+                      DUnit_Process_Form_Flag := False;
+                    end;
+                  end;
+                end;
+
+                {if (not Obj.EOF) and Obj.CanEdit then
                 begin
                   Obj.Edit;
                   Obj.Post;
                 end;}
               end;
 
-              {F := TgdcBaseCrack(Obj).CreateDialogForm;
+              F := TgdcBaseCrack(Obj).CreateDialogForm;
               F.Free;
 
-              F := Obj.CreateViewForm(nil, '', Obj.SubType);
+              {F := Obj.CreateViewForm(nil, '', Obj.SubType);
               F.Free;}
 
               FQ.Close;
