@@ -17,7 +17,8 @@ implementation
 
 uses
   Windows, Forms, SysUtils, IBSQL, gdcBase, gdcBaseInterface,
-  gd_ClassList, gdcClasses, gd_directories_const, gdcTableCalendar;
+  gd_ClassList, gdcClasses, gd_directories_const, gdcTableCalendar,
+  gdcInvMovement;
 
 type
   TgdcBaseCrack = class(TgdcBase)
@@ -99,19 +100,30 @@ begin
             OutputDebugString(PChar(IntToStr(I) + ': ' + C.ClassName +
               ' (' + IntToStr(J) + ': ' + Obj.SubType + '), ' + IntToStr(Cnt)));
 
-            if (Obj.GetListTable(Obj.SubType) > '') and
-              ((not (Obj is TgdcDocument)) or (TgdcDocument(Obj).DocumentTypeKey > -1)) then
+            if (Obj.GetListTable(Obj.SubType) > '')
+              and ((not (Obj is TgdcDocument)) or (TgdcDocument(Obj).DocumentTypeKey > -1)) then
             begin
               Obj.Open;
 
-              {Obj.Insert;
-              Obj.Cancel;}
-
-              {if not Obj.EOF then
+              if not Obj.InheritsFrom(TgdcInvBaseRemains)
+                and (not Obj.ClassNameIs('TgdcInvCard'))
+                and (not Obj.ClassNameIs('TgdcUserDocumentLine'))
+                and (not Obj.ClassNameIs('TgdcBankStatementLine'))
+                and (not Obj.ClassNameIs('TgdcAcctDocument'))
+                and (not Obj.ClassNameIs('TgdcAcctEntryRegister')) then
               begin
-                Obj.Edit;
-                Obj.Post;
-              end;}
+                if Obj.CanCreate then
+                begin
+                  Obj.Insert;
+                  Obj.Cancel;
+                end;  
+
+                {if not Obj.EOF then
+                begin
+                  Obj.Edit;
+                  Obj.Post;
+                end;}
+              end;
 
               {F := TgdcBaseCrack(Obj).CreateDialogForm;
               F.Free;

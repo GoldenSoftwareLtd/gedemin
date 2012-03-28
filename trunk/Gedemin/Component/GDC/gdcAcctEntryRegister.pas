@@ -116,6 +116,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
+    class function IsAbstractClass: Boolean; override;
 
     procedure CreateReversalEntry(const AReversalEntryDate: TDateTime; const ATransactionKey: TID; const AllDocEntry: Boolean);
 
@@ -1298,6 +1299,11 @@ function TgdcAcctBaseEntryRegister.GetCurrRecordClass: TgdcFullClass;
 begin
   Result.gdClass := TgdcAcctEntryRegister;
   Result.SubType := Self.SubType; 
+end;
+
+class function TgdcAcctBaseEntryRegister.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcAcctBaseEntryRegister');
 end;
 
 { TgdcAcctEntryRegister }

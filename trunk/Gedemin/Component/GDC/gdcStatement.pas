@@ -20,6 +20,7 @@ type
 
   public
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
+    class function IsAbstractClass: Boolean; override;
     //Добавляет счет компании, указанной в выписке/картотеке, если это нужно
     //используется только на диалогах
     procedure SetCompanyAccount;
@@ -110,6 +111,7 @@ type
   public
     function DocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function IsAbstractClass: Boolean; override;
   end;
 
   TgdcBankStatementLine = class(TgdcBaseStatementLine)
@@ -1571,6 +1573,11 @@ begin
 
 end;
 
+class function TgdcBaseStatementLine.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcBaseStatementLine');
+end;
+
 { TgdcBaseLine }
 
 procedure TgdcBaseLine.DoAfterDelete;
@@ -1796,6 +1803,11 @@ end;
 class function TgdcBaseLine.GetDocumentClassPart: TgdcDocumentClassPart;
 begin
   Result := dcpLine;
+end;
+
+class function TgdcBaseLine.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcBaseLine');
 end;
 
 procedure TgdcBaseLine.MakeEntry;
