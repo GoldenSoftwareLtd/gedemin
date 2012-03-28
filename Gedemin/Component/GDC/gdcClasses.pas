@@ -195,10 +195,9 @@ type
     function GetCurrRecordClass: TgdcFullClass; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetSubSetList: String; override;
-
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
+    class function IsAbstractClass: Boolean; override;
   end;
 
   TgdcDocumentBranch = class(TgdcBaseDocumentType)
@@ -2887,6 +2886,11 @@ begin
   {M}      ClearMacrosStack2('TGDCBASEDOCUMENTTYPE', 'GETNOTCOPYFIELD', KEYGETNOTCOPYFIELD);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcBaseDocumentType.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcBaseDocumentType');
 end;
 
 { TgdcDocumentBranch }

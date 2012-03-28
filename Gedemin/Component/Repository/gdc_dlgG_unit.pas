@@ -149,6 +149,17 @@ type
     procedure RestoryTr(O: TgdcBase);
     procedure ReOpenDetails(O: TgdcBase);
 
+    {$IFDEF DUNIT_TEST}
+    procedure DUnitOnTimer(Sender: TObject);
+
+    procedure WMActivate(var Message: TMessage);
+      message WM_ACTIVATE;
+    procedure WMShowWindow(var Message: TMessage);
+      message WM_SHOWWINDOW;
+    procedure WMWindowPosChanged(var Message: TMessage);
+      message WM_WINDOWPOSCHANGED;
+    {$ENDIF}
+
   protected
     // если в диалоговом окне используются два
     // бизнес-объекта, связанные м-ду собой связью
@@ -317,6 +328,9 @@ uses
   gd_security, prp_methods, Gedemin_TLB, gsStorage,
   gdcUser, at_classes, DBCtrls, at_dlgToSetting_unit,
   gdcClasses, DBGrids, gdcJournal, gdHelp_Interface
+  {$IFDEF DUNIT_TEST}
+    , extctrls, Test_Global_unit
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1107,24 +1121,32 @@ begin
       and (not ErrorAction) then
     begin
       _Ok;
-    end
-    else if not ErrorAction
+    end else
+    begin
+      {$IFDEF DUNIT_TEST}
+      Cancel;
+      {$ELSE}
+      if not ErrorAction
         and actOk.Enabled
         and DlgModified
         and (not (sSubDialog in gdcObject.BaseState))
         and (not ResizerActivated)
         and ((UserStorage = nil) or UserStorage.ReadBoolean(st_OptionsPath, st_AskDialogCancel, True)) then
-      case MessageBox(Handle, 'Данные были изменены. Сохранить?', 'Внимание', MB_YESNOCANCEL or MB_ICONQUESTION) of
-        IDYES:
-          begin
-            CallBeforePost;
-            _Ok;
-          end;
-        IDNO: Cancel;
-        IDCANCEL: ModalResult := mrNone;
+      begin
+        case MessageBox(Handle, 'Данные были изменены. Сохранить?', 'Внимание', MB_YESNOCANCEL or MB_ICONQUESTION) of
+          IDYES:
+            begin
+              CallBeforePost;
+              _Ok;
+            end;
+          IDNO: Cancel;
+          IDCANCEL: ModalResult := mrNone;
+        end
       end
-    else if not (sSubDialog in gdcObject.BaseState) then
-      Cancel;
+      else if not (sSubDialog in gdcObject.BaseState) then
+        Cancel;
+      {$ENDIF}
+    end;
 
     CanClose := ModalResult <> mrNone;
   end;
@@ -1978,6 +2000,38 @@ procedure Tgdc_dlgG.LockDocument;
 begin
   FRecordLocked := True;
 end;
+
+{$IFDEF DUNIT_TEST}
+
+procedure Tgdc_dlgG.DUnitOnTimer(Sender: TObject);
+begin
+  (Sender as TTimer).Enabled := False;
+  actCancel.Execute;
+end;
+
+procedure Tgdc_dlgG.WMActivate(var Message: TMessage);
+begin
+  inherited;
+
+  if (Message.WParam <> WA_INACTIVE) and DUnit_Process_Form_Flag then
+  begin
+    with TTimer.Create(Self) do
+      OnTimer := DUnitOnTimer;
+    DUnit_Process_Form_Flag := False;  
+  end;
+end;
+
+procedure Tgdc_dlgG.WMShowWindow(var Message: TMessage);
+begin
+  inherited;
+end;
+
+procedure Tgdc_dlgG.WMWindowPosChanged(var Message: TMessage);
+begin
+  inherited;
+end;
+
+{$ENDIF}
 
 { TFieldsCallList }
 
