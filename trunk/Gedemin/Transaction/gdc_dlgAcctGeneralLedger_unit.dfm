@@ -1,6 +1,6 @@
 inherited dlgAcctGeneralLedger: TdlgAcctGeneralLedger
-  Left = 317
-  Top = 112
+  Left = 518
+  Top = 382
   Caption = 'Конфигурация главной книги'
   ClientHeight = 435
   PixelsPerInch = 96
