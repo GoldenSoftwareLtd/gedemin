@@ -149,17 +149,6 @@ type
     procedure RestoryTr(O: TgdcBase);
     procedure ReOpenDetails(O: TgdcBase);
 
-    {$IFDEF DUNIT_TEST}
-    procedure DUnitOnTimer(Sender: TObject);
-
-    procedure WMActivate(var Message: TMessage);
-      message WM_ACTIVATE;
-    procedure WMShowWindow(var Message: TMessage);
-      message WM_SHOWWINDOW;
-    procedure WMWindowPosChanged(var Message: TMessage);
-      message WM_WINDOWPOSCHANGED;
-    {$ENDIF}
-
   protected
     // если в диалоговом окне используются два
     // бизнес-объекта, связанные м-ду собой связью
@@ -248,6 +237,10 @@ type
     // новая запись, а метод Сетап уже не вызывается.
     procedure SetupRecord; virtual;
 
+    {$IFDEF DUNIT_TEST}
+    procedure DUnitDoTimer; override;
+    {$ENDIF}
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -328,9 +321,6 @@ uses
   gd_security, prp_methods, Gedemin_TLB, gsStorage,
   gdcUser, at_classes, DBCtrls, at_dlgToSetting_unit,
   gdcClasses, DBGrids, gdcJournal, gdHelp_Interface
-  {$IFDEF DUNIT_TEST}
-    , extctrls, Test_Global_unit
-  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -2003,32 +1993,9 @@ end;
 
 {$IFDEF DUNIT_TEST}
 
-procedure Tgdc_dlgG.DUnitOnTimer(Sender: TObject);
+procedure Tgdc_dlgG.DUnitDoTimer;
 begin
-  (Sender as TTimer).Enabled := False;
   actCancel.Execute;
-end;
-
-procedure Tgdc_dlgG.WMActivate(var Message: TMessage);
-begin
-  inherited;
-
-  if (Message.WParam <> WA_INACTIVE) and DUnit_Process_Form_Flag then
-  begin
-    with TTimer.Create(Self) do
-      OnTimer := DUnitOnTimer;
-    DUnit_Process_Form_Flag := False;  
-  end;
-end;
-
-procedure Tgdc_dlgG.WMShowWindow(var Message: TMessage);
-begin
-  inherited;
-end;
-
-procedure Tgdc_dlgG.WMWindowPosChanged(var Message: TMessage);
-begin
-  inherited;
 end;
 
 {$ENDIF}

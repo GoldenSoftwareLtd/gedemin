@@ -1397,7 +1397,8 @@ var
 begin
   for I := tbForms.Items.Count - 1 downto 0 do
     if TForm(Sender) = TForm(tbForms.Items[I].Tag) then
-      tbForms.Items.Delete(I);
+      tbForms.Items[I].Free;
+      //tbForms.Items.Delete(I);
 end;
 
 destructor TfrmGedeminMain.Destroy;
