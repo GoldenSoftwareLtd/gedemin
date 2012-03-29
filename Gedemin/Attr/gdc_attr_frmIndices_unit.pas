@@ -30,6 +30,9 @@ implementation
 
 uses
   gd_ClassList
+  {$IFDEF DUNIT_TEST}
+    , Test_Global_unit
+  {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -54,6 +57,10 @@ end;
 
 procedure Tgdc_frmIndices.actSyncExecute(Sender: TObject);
 begin
+  {$IFDEF DUNIT_TEST}
+  if DUnit_Process_Form_Flag then
+    exit;
+  {$ENDIF}
   if MessageBox(Handle, 'Синхронизировать с базой данных?', 'Загрузка индексов',
     MB_YESNO) = IDYES then
     (gdcDetailObject as TgdcIndex).SyncAllIndices;

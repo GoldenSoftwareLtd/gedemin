@@ -107,6 +107,7 @@ begin
 
               if not Obj.InheritsFrom(TgdcInvBaseRemains)
                 and (not Obj.ClassNameIs('TgdcInvCard'))
+                and (not Obj.ClassNameIs('TgdcLink'))
                 and (not Obj.ClassNameIs('TgdcUserDocumentLine'))
                 and (not Obj.ClassNameIs('TgdcBankStatementLine'))
                 and (not Obj.ClassNameIs('TgdcAcctDocument'))
@@ -121,7 +122,7 @@ begin
                   begin
                     DUnit_Process_Form_Flag := True;
                     try
-                      Obj.CreateDialog;
+                        Obj.CreateDialog;
                     finally
                       DUnit_Process_Form_Flag := False;
                     end;
@@ -135,11 +136,21 @@ begin
                 end;}
               end;
 
-              F := TgdcBaseCrack(Obj).CreateDialogForm;
-              F.Free;
-
-              {F := Obj.CreateViewForm(nil, '', Obj.SubType);
+              {F := TgdcBaseCrack(Obj).CreateDialogForm;
               F.Free;}
+
+              F := Obj.CreateViewForm(nil, '', Obj.SubType);
+              if F <> nil then
+              begin
+                DUnit_Process_Form_Flag := True;
+                try
+                  if not F.Visible then
+                    F.ShowModal;
+                finally
+                  DUnit_Process_Form_Flag := False;
+                  F.Free;
+                end;
+              end;
 
               FQ.Close;
               FQ.SQL.Text := TgdcBaseCrack(Obj).CheckTheSameStatement;

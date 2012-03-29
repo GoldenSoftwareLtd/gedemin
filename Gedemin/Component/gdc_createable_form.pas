@@ -32,6 +32,7 @@ type
     procedure CreateKeyList;
 
     procedure SetCurrentForm(const OwnerForm: TCreateableForm);
+
   protected
     FgdcObject: TgdcBase;
     FSubType: String;
@@ -67,6 +68,14 @@ type
     procedure Notification(AComponent: TComponent;
       Operation: TOperation); override;
 
+    {$IFDEF DUNIT_TEST}
+    procedure DUnitDoTimer; virtual;
+    procedure DUnitOnTimer(Sender: TObject);
+
+    procedure WMActivate(var Message: TMessage);
+      message WM_ACTIVATE;
+    {$ENDIF}
+
   public
     constructor CreateSubType(AnOwner: TComponent; const ASubType: String);
 
@@ -79,8 +88,6 @@ type
 
     // перад выкарыстаньнем акна яго трэба настроiць
     procedure Setup(AnObject: TObject); override;
-
-//    function TestCorrect: Boolean; virtual;
 
     // Свойства для перекрытия методов:
     property gdcMethodControl: IMethodControl read GetGdcMethodControl;
@@ -115,8 +122,13 @@ uses
   SysUtils,             Storages,       gd_directories_const,
   gdcOLEClassList,      gd_ClassList,   mtd_i_Inherited,
   gsStorage,            prp_Methods,    DB,
-  Windows,              Controls,       gd_strings,
-  gdcClasses;
+  Windows,              Controls,       gd_strings
+
+  {$IFDEF DUNIT_TEST}
+    , extctrls, Test_Global_unit
+  {$ENDIF}
+
+  , gdcClasses;
 
 type
   TCrackGdcBase = class(TgdcBase);
@@ -351,6 +363,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDCCREATEABLEFORM', 'SAVESETTINGS', KEYSAVESETTINGS)}
@@ -438,21 +451,6 @@ begin
             if not (F.ValueByName('GrSet') is TgsStringValue) then
               F.DeleteValue('GrSet');
             F.WriteString('GrSet', Path);
-
-            {SNew := TStringStream.Create('');
-            try
-              AGrid.SaveToStream(SNew);
-
-              if not F.ValueExists('GrSet') then
-                F.WriteStream('GrSet', nil);
-              V := F.ValueByName('GrSet');
-              if V is TgsStreamValue then
-              begin
-                (V as TgsStreamValue).LoadDataFromStream(SNew);
-              end;
-            finally
-              SNew.Free;
-            end;}
           end;
         finally
           UserStorage.CloseFolder(F, False);
@@ -467,17 +465,6 @@ begin
   if Assigned(UserStorage) then
     UserStorage.LoadComponent(AGrid, AGrid.LoadFromStream);
 end;
-
-(*procedure TgdcCreateableForm.SaveComp(AComponent: TComponent);
-var
-  M: ^TSaveToStreamMethod;
-  P: Pointer;
-begin
-  P := AComponent.MethodAddress('SaveToStream');
-  M := @P;
-  if Assigned(M^) then
-    UserStorage.SaveComponent(AComponent, M^);
-end;*)
 
 procedure TgdcCreateableForm.LoadSettings;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -505,6 +492,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDCCREATEABLEFORM', 'LOADSETTINGS', KEYLOADSETTINGS)}
@@ -514,173 +502,6 @@ begin
   {M}end;
   {END MACRO}
 end;
-
-(*
-procedure TgdcCreateableForm.BeforePost;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDCCREATEABLEFORM', 'BEFOREPOST', KEYBEFOREPOST)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCREATEABLEFORM', KEYBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCREATEABLEFORM') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCREATEABLEFORM',
-  {M}          'BEFOREPOST', KEYBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCREATEABLEFORM' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDCCREATEABLEFORM', 'BEFOREPOST', KEYBEFOREPOST)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDCCREATEABLEFORM', 'BEFOREPOST', KEYBEFOREPOST);
-  {M}end;
-  {END MACRO}
-end;
-
-procedure TgdcCreateableForm.Cancel;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDCCREATEABLEFORM', 'CANCEL', KEYCANCEL)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCREATEABLEFORM', KEYCANCEL);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCANCEL]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCREATEABLEFORM') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCREATEABLEFORM',
-  {M}          'CANCEL', KEYCANCEL, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCREATEABLEFORM' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDCCREATEABLEFORM', 'CANCEL', KEYCANCEL)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDCCREATEABLEFORM', 'CANCEL', KEYCANCEL);
-  {M}end;
-  {END MACRO}
-end;
-
-procedure TgdcCreateableForm.Post;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDCCREATEABLEFORM', 'POST', KEYPOST)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCREATEABLEFORM', KEYPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCREATEABLEFORM') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCREATEABLEFORM',
-  {M}          'POST', KEYPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCREATEABLEFORM' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDCCREATEABLEFORM', 'POST', KEYPOST)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDCCREATEABLEFORM', 'POST', KEYPOST);
-  {M}end;
-  {END MACRO}
-end;
-
-
-function TgdcCreateableForm.TestCorrect: Boolean;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-  I: Integer;
-begin
-  {@UNFOLD MACRO INH_CRFORM_TESTCORRECT('TGDCCREATEABLEFORM', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}Result := True;
-  {M}try
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}  begin
-  {M}    SetFirstMethodAssoc('TGDCCREATEABLEFORM', KEYTESTCORRECT);
-  {M}    tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYTESTCORRECT]);
-  {M}    if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCREATEABLEFORM') = -1) then
-  {M}    begin
-  {M}      Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}      if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCREATEABLEFORM',
-  {M}        'TESTCORRECT', KEYTESTCORRECT, Params, LResult) then
-  {M}      begin
-  {M}        if VarType(LResult) = $000B then
-  {M}          Result := LResult;
-  {M}        exit;
-  {M}      end;
-  {M}    end else
-  {M}      if tmpStrings.LastClass.gdClassName <> 'TGDCCREATEABLEFORM' then
-  {M}      begin
-  {M}        Result := Inherited TestCorrect;
-  {M}        Exit;
-  {M}      end;
-  {M}  end;
-  {END MACRO}
-
-  if Assigned(gdcObject) then
-    for I := 0 to gdcObject.Fields.Count - 1 do
-      with gdcObject.Fields[I] do
-        if Required and not ReadOnly and (FieldKind = fkData) and IsNull then
-        begin
-          MessageBox(Handle,
-            PChar('Необходимо заполнить поле: ' + DisplayName),
-            'Ошибка',
-            MB_OK or MB_ICONEXCLAMATION);
-          FocusControl;
-          Result := False;
-          exit;
-        end;
-
-  Result := True;
-
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDCCREATEABLEFORM', 'TESTCORRECT', KEYTESTCORRECT)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDCCREATEABLEFORM', 'TESTCORRECT', KEYTESTCORRECT);
-  {M}end;
-  {END MACRO}
-end;
-*)
 
 procedure TgdcCreateableForm.LoadSettingsAfterCreate;
   {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
@@ -811,25 +632,7 @@ begin
         Inc(Z);
     end;
 
-    //
-    // Если форма с таким именем есть, вызываем ее,
-    // после этого вызываем "тихое" исключение
-(*    for Z := 0 to Screen.CustomFormCount - 1 do
-      if (Screen.CustomForms[Z] <> Self) and
-        (AnsiCompareText(Screen.CustomForms[Z].Name, NewName) = 0) then
-      begin
-//        Screen.CustomForms[Z].Enabled := False;
-        Screen.CustomForms[Z].Show;
-//        Screen.CustomForms[Z].Enabled := True;
-        Abort;
-      end;*)
-
-
     Name := NewName;
-//    if (Name <> InitialName) and Assigned(EventControl) then
-//    begin
-//      EventControl.AssignEvents(Application.FindComponent(InitialName), Self);
-//    end;
   end;
 
   inherited;
@@ -884,12 +687,6 @@ begin
         end;
         CM_DEACTIVATE:
           SetCurrentForm(nil);
-{        WM_SETFOCUS, CM_ACTIVATE:
-        begin
-          SetCurrentForm(Self);
-        end;
-        WM_KILLFOCUS, CM_DEACTIVATE:
-          SetCurrentForm(nil);}
       end;
     except
     end;
@@ -942,7 +739,9 @@ begin
   {M}      end;
   {M}  end;
   {END MACRO}
+
   inherited Setup(AnObject);
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDCCREATEABLEFORM', 'SETUP', KEYSETUP)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -950,6 +749,36 @@ begin
   {M}end;
   {END MACRO}
 end;
+
+{$IFDEF DUNIT_TEST}
+
+procedure TgdcCreateableForm.DUnitDoTimer;
+begin
+  if fsModal in FormState then
+    ModalResult := mrCancel
+  else
+    Close;   
+end;
+
+procedure TgdcCreateableForm.DUnitOnTimer(Sender: TObject);
+begin
+  (Sender as TTimer).Enabled := False;
+  DUnitDoTimer;
+end;
+
+procedure TgdcCreateableForm.WMActivate(var Message: TMessage);
+begin
+  inherited;
+
+  if (Message.WParam <> WA_INACTIVE) and DUnit_Process_Form_Flag then
+  begin
+    with TTimer.Create(Self) do
+      OnTimer := DUnitOnTimer;
+    DUnit_Process_Form_Flag := False;
+  end;
+end;
+
+{$ENDIF}
 
 initialization
   RegisterFrmClasses([TgdcCreateableForm]);
