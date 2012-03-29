@@ -28,7 +28,7 @@ end;
 class function TgdcGeneralLedger.GetDialogFormClassName(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'TdlgAcctGeneralLedger';
+  Result := '';
 end;
 
 class function TgdcGeneralLedger.GetListField(
