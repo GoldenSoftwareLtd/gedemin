@@ -3736,6 +3736,8 @@ type
     function  Get_Transaction: IgsIBTransaction; safecall;
     procedure Set_Transaction(const Value: IgsIBTransaction); safecall;
     procedure Assign_(const Source: IgsParamData); safecall;
+    function  Get_ValuesList: WideString; safecall;
+    procedure Set_ValuesList(const Value: WideString); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -18085,6 +18087,16 @@ end;
 procedure TwrpGsParamData.Assign_(const Source: IgsParamData);
 begin
   GetParamData.Assign(InterfaceToObject(Source) as TgsParamData);
+end;
+
+function TwrpGsParamData.Get_ValuesList: WideString;
+begin
+  Result := GetParamData.ValuesList;
+end;
+
+procedure TwrpGsParamData.Set_ValuesList(const Value: WideString);
+begin
+  GetParamData.ValuesList := Value;
 end;
 
 { TwrpGsFrmGedeminMain }
