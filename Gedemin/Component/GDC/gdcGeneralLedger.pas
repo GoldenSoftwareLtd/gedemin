@@ -8,7 +8,6 @@ uses
 type
   TgdcGeneralLedger = class(TgdcBase)
   public
-    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
   end;
@@ -23,12 +22,6 @@ uses
 procedure Register;
 begin
   RegisterComponents('gdc', [TgdcGeneralLedger]);
-end;
-
-class function TgdcGeneralLedger.GetDialogFormClassName(
-  const ASubType: TgdcSubType): String;
-begin
-  Result := '';
 end;
 
 class function TgdcGeneralLedger.GetListField(

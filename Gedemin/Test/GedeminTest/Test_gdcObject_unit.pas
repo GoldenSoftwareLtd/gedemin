@@ -66,11 +66,12 @@ var
   C: CgdcBase;
   I, J, Cnt, P: Integer;
   Obj: TgdcBase;
-  SL: TStringList;
+  SL, Output: TStringList;
   F: TForm;
-  SS: String;
+  SS, DN: String;
 begin
   SL := TStringList.Create;
+  Output := TStringList.Create;
   try
     Cnt := 0;
     for I := 0 to gdcClassList.Count - 1 do
@@ -85,13 +86,17 @@ begin
 
         for J := 0 to SL.Count - 1 do
         begin
+          DN := '';
           if SL[J] > '' then
           begin
             P := Pos('=', SL[J]);
             if P = 0 then
               SS := SL[J]
             else
+            begin
               SS := System.Copy(SL[J], P + 1, 1024);
+              DN := System.Copy(SL[J], 1, P - 1);
+            end;
             Obj := C.CreateSubType(nil, SS);
           end else
             Obj := C.Create(nil);
@@ -99,6 +104,16 @@ begin
             Inc(Cnt);
             OutputDebugString(PChar(IntToStr(I) + ': ' + C.ClassName +
               ' (' + IntToStr(J) + ': ' + Obj.SubType + '), ' + IntToStr(Cnt)));
+
+            if DN = '' then
+            begin
+              if Obj.GetDisplayName(Obj.SubType) <> Obj.GetListTable(Obj.SubType) then
+                DN := Obj.GetDisplayName(Obj.SubType);
+            end;
+            Output.Add('| ' + IntToStr(Cnt) + ' || ' + C.ClassName + ' || ' + Obj.SubType + ' || ' +
+              C.ClassParent.ClassName + ' || ' +
+              '[[' + AnsiUpperCase(Obj.GetListTable(Obj.SubType)) + ']] || ' + DN);
+            Output.Add('|-');
 
             if (Obj.GetListTable(Obj.SubType) > '')
               and ((not (Obj is TgdcDocument)) or (TgdcDocument(Obj).DocumentTypeKey > -1)) then
@@ -173,10 +188,25 @@ begin
             Obj.Free;
           end;
         end;
+      end else
+      begin
+        Inc(Cnt);
+        DN := C.GetDisplayName('');
+        if DN = C.ClassName then
+          DN := ''
+        else
+          DN := '''''''' + DN + '''''''';
+        Output.Add('| ' + IntToStr(Cnt) + ' || ''''''' + C.ClassName + ''''''' ||  || ' +
+          '''''''' + C.ClassParent.ClassName + ''''''' || ' +
+          ' || ' + DN);
+        Output.Add('|-');
       end;
     end;
+
+    //Output.SaveToFile('c:\temp\list.txt');
   finally
     SL.Free;
+    Output.Free;
   end;
 end;
 
