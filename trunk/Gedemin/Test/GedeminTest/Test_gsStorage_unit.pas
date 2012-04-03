@@ -11,6 +11,7 @@ type
   published
     procedure TestLoadFromStream;
     procedure TestStorage;
+    procedure TestDublicateItems;
   end;
 
 implementation
@@ -36,6 +37,17 @@ const
    (FileName: 'ber_admin_data.dat';  FC: 1708; VC: 4524; DataSize:  693951)
   );
   TestFolder = '\golden\gedemin\test\gedemintest\data';
+
+procedure TgsStorageTest.TestDublicateItems;
+begin
+  FQ.SQL.Text :=
+    'select parent,upper(name),count(*) from gd_storage_data ' +
+    'group by 1,2 ' +
+    'having count(*) > 1 ';
+  FQ.ExecQuery;
+  Check(FQ.EOF);
+  FQ.Close;  
+end;
 
 procedure TgsStorageTest.TestLoadFromStream;
 
