@@ -2791,9 +2791,9 @@ end;
 
 procedure TVisualBlock.KeyUp(var Key: Word; Shift: TShiftState);
 begin
-  if (Key = VK_DELETE) and not CannotDelete then
+  if (Key = VK_DELETE) then
   begin
-    PostMessage(Handle, WM_CLOSE, 0, 0);
+    Delete;
   end else
     inherited;
 end;
@@ -2967,9 +2967,12 @@ begin
   begin
     for I:= SelBlockList.Count - 1 downto 0 do
     begin
-      if Assigned(OnBlockUnselect) then
-        OnBlockUnSelect(SelBlockList[I]);
-      SelBlockList[I].Free;
+      if (SelBlockList[I] is TVisualBlock) and (not (SelBlockList[I] as TVisualBlock).CannotDelete) then
+      begin
+        if Assigned(OnBlockUnselect) then
+          OnBlockUnSelect(SelBlockList[I]);
+        SelBlockList[I].Free;
+      end;
     end;
     SelBlockList.Clear;
 

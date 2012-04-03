@@ -2291,7 +2291,7 @@ var
 
   procedure DoRecurse(F: TgsStorageFolder);
   var
-    I, P, J, FoundID: Integer;
+    I, P, J, FoundID, FoundCount: Integer;
     V: TgsStorageValue;
   begin
     if F.Changed then
@@ -2425,7 +2425,14 @@ var
 
         Failed := False;
         CutOff := 5;
+        FoundCount := 0;
         repeat
+          if FoundCount > 1 then
+          begin
+            raise EgsStorageError.Create('Дублируются наименования элементов хранилища в рамках одного родителя!'#13#10 +
+              'Обратитесь к системному администратору!');
+          end;
+
           try
             {$IFDEF DEBUG}LogQuery;{$ENDIF}
             q.ExecQuery;
@@ -2470,6 +2477,7 @@ var
                       q.ParamByName('blob_data').Clear;
                   end;
 
+                  Inc(FoundCount);
                   CutOff := 5;
                 end else
                 begin
