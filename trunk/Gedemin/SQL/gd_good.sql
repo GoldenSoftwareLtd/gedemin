@@ -73,21 +73,9 @@ ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_creatorkey
   FOREIGN KEY (creatorkey) REFERENCES gd_contact(id)
   ON UPDATE CASCADE;
 
-/*
-ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_chk_goodgroup_tree_limit
-  CHECK ((lb <= rb) or ((rb is NULL) and (lb is NULL)));
-
-CREATE DESC INDEX gd_x_goodgroup_rb
-  ON gd_goodgroup(rb);
-
-CREATE ASC INDEX gd_x_goodgroup_lb
-  ON gd_goodgroup(lb);
-*/
-
 COMMIT;
 
-
-COMMIT;
+CREATE EXCEPTION gd_e_cannotchange_goodgroup 'Can not change good group!';
 
 SET TERM ^ ;
 
@@ -102,28 +90,45 @@ BEGIN
 END
 ^
 
-/*
-CREATE TRIGGER gd_bi_goodgroup_2 FOR gd_goodgroup
-  BEFORE INSERT
-  POSITION 2
+CREATE OR ALTER TRIGGER gd_ad_goodgroup_protect FOR gd_goodgroup
+  ACTIVE
+  AFTER DELETE
+  POSITION 0
 AS
-  DECLARE VARIABLE AFULL INTEGER;
-  DECLARE VARIABLE ACHAG INTEGER;
-  DECLARE VARIABLE AVIEW INTEGER;
 BEGIN
-  IF (NEW.parent IS NOT NULL) THEN
+  IF (UPPER(OLD.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ')) THEN
+    EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя удалить группу ' || OLD.Name;
+END
+^
+
+CREATE OR ALTER TRIGGER gd_ai_goodgroup_protect FOR gd_goodgroup
+  ACTIVE
+  AFTER INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (UPPER(NEW.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ')) THEN
   BEGIN
-    SELECT C.AFULL, C.ACHAG, C.AVIEW
-    FROM GD_GOODGROUP C
-    WHERE C.ID = NEW.Parent
-    INTO :AFULL, :ACHAG, :AVIEW;
-    NEW.AFULL = g_b_or(g_b_and(NEW.AFULL, :AFULL), 1);
-    NEW.ACHAG = g_b_or(g_b_and(NEW.ACHAG, :ACHAG), 1);
-    NEW.AVIEW = g_b_or(g_b_and(NEW.AVIEW, :AVIEW), 1);
+    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE UPPER(name) = UPPER(NEW.name))) THEN
+      EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя повторно создать группу ' || NEW.Name;
   END
 END
 ^
-*/
+
+CREATE OR ALTER TRIGGER gd_au_goodgroup_protect FOR gd_goodgroup
+  ACTIVE
+  AFTER UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF ((UPPER(NEW.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ'))
+    OR (UPPER(OLD.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ'))) THEN
+  BEGIN
+    IF (NEW.name <> OLD.name OR NEW.parent IS DISTINCT FROM OLD.parent) THEN
+      EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя изменить группу ' || NEW.Name;
+  END
+END
+^
 
 SET TERM ; ^
 

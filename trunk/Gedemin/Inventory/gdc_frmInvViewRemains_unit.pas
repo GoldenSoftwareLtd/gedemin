@@ -108,8 +108,8 @@ begin
       gsiblcCompany.CurrentKeyInt := IBLogin.CompanyKey;
 
     gdcInvRemains.SubType := FSubType;
-    //gdcInvRemains.SetSubDepartmentKeys([-1]);
-    gdcInvRemains.SetDepartmentKeys([-1]);
+    gdcInvRemains.SetSubDepartmentKeys([-1]);
+    //gdcInvRemains.SetDepartmentKeys([-1]);
     gdcInvRemains.RemainsDate := Date;
     gdcInvRemains.SubSet := cst_ByGroupKey;
 
@@ -170,7 +170,7 @@ begin
   gdcInvRemains.Close;
   gdcInvRemains.CurrentRemains := cbCurrentRemains.Checked;
 
-  if not cbSubDepartment.Checked then
+  if cbSubDepartment.Checked then
   begin
     if isModify then
     begin
@@ -215,7 +215,7 @@ begin
   FCurrentDate := deDateRemains.Date;
   gdcObject.Close;
 
-  if not cbSubDepartment.Checked then
+  if cbSubDepartment.Checked then
   begin
     if isModify then
     begin
@@ -522,7 +522,7 @@ procedure Tgdc_frmInvViewRemains.cbAllRemainsClick(Sender: TObject);
 begin
   gdcInvRemains.CurrentRemains := cbCurrentRemains.Checked;
 
-  if not cbSubDepartment.Checked then
+  if cbSubDepartment.Checked then
   begin
     gdcInvRemains.SetSubDepartmentKeys([]);
     gdcInvRemains.SetDepartmentKeys([gsiblcCompany.CurrentKeyInt]);
