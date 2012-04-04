@@ -89,17 +89,42 @@ CREATE INDEX gd_x_documenttype_ruid
   ON gd_documenttype(ruid);
 
 CREATE UNIQUE INDEX gd_x_documenttype_name ON gd_documenttype
-  /*COMPUTED BY (UPPER(name));*/
   (name);
 
 COMMIT;
-/*
-CREATE DESC INDEX gd_x_documenttype_rb
-  ON gd_documenttype(rb);
 
-CREATE ASC INDEX gd_x_documenttype_lb
-  ON gd_documenttype(lb);
-*/
+CREATE EXCEPTION gd_e_cannotchangebranch 'Can not change branch!';
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_au_documenttype FOR gd_documenttype
+  ACTIVE
+  AFTER UPDATE
+  POSITION 20000
+AS
+  DECLARE VARIABLE new_root dintkey;
+  DECLARE VARIABLE old_root dintkey;
+BEGIN
+  IF (NEW.parent IS DISTINCT FROM OLD.parent) THEN
+  BEGIN
+    SELECT id FROM gd_documenttype
+    WHERE parent IS NULL AND lb <= NEW.lb AND rb >= NEW.rb
+    INTO :new_root;
+
+    SELECT id FROM gd_documenttype
+    WHERE parent IS NULL AND lb <= OLD.lb AND rb >= OLD.rb
+    INTO :old_root;
+
+    IF (:new_root <> :old_root) THEN
+    BEGIN
+      IF (:new_root IN (804000, 805000) OR :old_root IN (804000, 805000)) THEN
+        EXCEPTION gd_e_cannotchangebranch;
+    END
+  END
+END
+^
+
+SET TERM ; ^
 
 /* Ќумераци€ документов */
 
@@ -128,54 +153,6 @@ ALTER TABLE gd_lastnumber ADD CONSTRAINT gd_fk_ln_ourcompanykey
   FOREIGN KEY (ourcompanykey) REFERENCES gd_ourcompany(companykey)
   ON DELETE CASCADE
   ON UPDATE CASCADE;
-
-/* ƒоступные типовые документы дл€ конкретного тип. документа */
-/*
-CREATE TABLE gd_accessdoctype
-(
-  documenttypekey     dintkey,
-  accessdoctypekey    dintkey,
-
-  afull               dsecurity,
-  achag               dsecurity,
-  aview               dsecurity
-);
-
-ALTER TABLE gd_accessdoctype ADD CONSTRAINT gd_pk_accessdoctype
-  PRIMARY KEY (documenttypekey, accessdoctypekey);
-
-ALTER TABLE gd_accessdoctype ADD CONSTRAINT gd_fk_adt_documenttypekey
-  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE;
-
-ALTER TABLE gd_accessdoctype ADD CONSTRAINT gd_fk_adt_accessdoctypekey
-  FOREIGN KEY (accessdoctypekey) REFERENCES gd_documenttype(id)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE;
-*/  
-
-/* “аблица хранит таблицы, которые отвечают за конкретный документ */
-
-/*
-
-CREATE TABLE gd_relationtypedoc
-(
-  doctypekey          dintkey,             
-  relationname        dtablename NOT NULL, 
-  ismaindoc           dboolean             
-                                           
-);
-
-
-ALTER TABLE gd_relationtypedoc ADD CONSTRAINT gd_pk_relationtypedoc
-  PRIMARY KEY (doctypekey, relationname);
-
-ALTER TABLE gd_relationtypedoc ADD CONSTRAINT gd_fk_relationtypedoc_doctype
-  FOREIGN KEY (doctypekey) REFERENCES gd_documenttype (id)
-  ON UPDATE CASCADE;
-
-*/
 
 COMMIT;
 
@@ -267,37 +244,9 @@ CREATE  INDEX gd_x_document_number
   ON gd_document(number);
 
 
-SET TERM ^ ;
-
-
-SET TERM ; ^
-
-
 COMMIT;
 
-/* ƒоступные документы системы */
-/*
-CREATE TABLE gd_documentsystem
-(
-  subsystemkey          dintkey,
-  documenttypekey       dintkey,
-  reserved              dinteger
-);
-
-ALTER TABLE gd_documentsystem ADD CONSTRAINT gd_pk_documentsystem
-  PRIMARY KEY (subsystemkey, documenttypekey);
-
-ALTER TABLE gd_documentsystem ADD CONSTRAINT gd_fk_ds_subsystemkey
-  FOREIGN KEY (subsystemkey) REFERENCES gd_subsystem(id) ON UPDATE CASCADE;
-
-ALTER TABLE gd_documentsystem ADD CONSTRAINT gd_fk_ds_documenttypekey
-  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id) ON UPDATE CASCADE;
-
-COMMIT;
-*/
-
 SET TERM ^ ;
-
 
 /****************************************************/
 /**                                                **/

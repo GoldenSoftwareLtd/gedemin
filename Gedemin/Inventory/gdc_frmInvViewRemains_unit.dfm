@@ -171,7 +171,7 @@ inherited gdc_frmInvViewRemains: Tgdc_frmInvViewRemains
         Top = 2
         Width = 224
         Height = 17
-        Caption = 'Включать вложенные подразделения'
+        Caption = 'Не включать вложенные подразделения'
         TabOrder = 3
         OnClick = cbSubDepartmentClick
       end
