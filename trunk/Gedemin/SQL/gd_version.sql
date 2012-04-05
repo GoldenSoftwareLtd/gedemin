@@ -464,6 +464,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (144, '0000.0001.0000.0175', '04.04.2012', 'Protect system good groups.');
 
+INSERT INTO fin_versioninfo
+  VALUES (145, '0000.0001.0000.0176', '05.04.2012', 'Issue 2764.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
