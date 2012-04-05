@@ -318,7 +318,7 @@ const
     (ModifyProc: ChangeUSRCOEF; ModifyVersion: '0000.0001.0000.0167'),
     (ModifyProc: AddFieldMacrosListRunLogIn; ModifyVersion: '0000.0001.0000.0169'),
     (ModifyProc: ChangeDuplicateAccount; ModifyVersion: '0000.0001.0000.0171'),
-    (ModifyProc: MovementDocument; ModifyVersion: '0000.0001.0000.0174')
+    (ModifyProc: MovementDocument; ModifyVersion: '0000.0001.0000.0175')
   );
 
 implementation
