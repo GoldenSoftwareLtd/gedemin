@@ -6653,7 +6653,7 @@ end;
 
 function TTaxVarBlock.HeaderColor: TColor;
 begin
-  Result := $F2CFF5
+  Result := RGB(221, 160, 221);
 end;
 
 class function TTaxVarBlock.NamePrefix: string;

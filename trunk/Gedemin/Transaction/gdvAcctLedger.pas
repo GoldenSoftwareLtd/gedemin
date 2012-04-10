@@ -1888,9 +1888,9 @@ begin
         '     END '#13#10 +
           IIF(FEntryDateIsFirst,
             ' varncubegin = varncuend; varcurrbegin = varcurrend; vareqbegin = vareqend;'#13#10, '') +
-        ' IF ((ncu_debit <> 0) OR (ncu_credit <> 0) OR (varncubegin <> 0)' +
-          IIF(FCurrSumInfo.Show, ' OR (curr_debit <> 0) OR (curr_credit <> 0) OR (varcurrbegin <> 0)', '') +
-          IIF(FEQSumInfo.Show, ' OR (eq_debit <> 0) OR (eq_credit <> 0) OR (vareqbegin <> 0)', '') + #13#10;
+        ' IF ((ncu_debit <> 0) OR (ncu_credit <> 0) OR (cast((varncubegin / %0:d) AS NUMERIC(15, %1:d)) <> 0)' +
+          IIF(FCurrSumInfo.Show, ' OR (curr_debit <> 0) OR (curr_credit <> 0) OR (cast((varcurrbegin / %2:d) AS NUMERIC(15, %3:d))  <> 0)', '') +
+          IIF(FEQSumInfo.Show, ' OR (eq_debit <> 0) OR (eq_credit <> 0) OR (cast((vareqbegin / %4:d) AS NUMERIC(15, %5:d))  <> 0)', '') + #13#10;
 
       // ƒобавл€ем проверку на неравенство нулю расширенного отображени€ дебета и кредита
       for I := 0 to FNcuDebitAliases.Count - 1 do
