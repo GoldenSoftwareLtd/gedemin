@@ -1267,6 +1267,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (143, '0000.0001.0000.0174', '04.04.2012', 'Some minor changes.');
 
+INSERT INTO fin_versioninfo
+  VALUES (144, '0000.0001.0000.0175', '04.04.2012', 'Protect system good groups.');
+
+INSERT INTO fin_versioninfo
+  VALUES (145, '0000.0001.0000.0176', '05.04.2012', 'Issue 2764.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -15599,7 +15605,7 @@ BEGIN
 END;
 ^
 
-CREATE PROCEDURE INV_GETCARDMOVEMENT (
+CREATE OR ALTER PROCEDURE INV_GETCARDMOVEMENT (
     CARDKEY INTEGER,
     CONTACTKEY INTEGER,
     DATEEND DATE)
@@ -15610,12 +15616,13 @@ BEGIN
   REMAINS = 0;
   SELECT SUM(m.debit - m.credit)
   FROM inv_movement m
-  WHERE m.cardkey = :CARDKEY AND m.contactkey = :CONTACTKEY and m.movementdate > :DATEEND
+  WHERE m.cardkey = :CARDKEY AND m.contactkey = :CONTACTKEY
+    AND m.movementdate > :DATEEND AND m.disabled = 0
   INTO :REMAINS;
   IF (REMAINS IS NULL) THEN
     REMAINS = 0;
   SUSPEND;
-END;
+END
 ^
 
 CREATE TRIGGER INV_BI_BALANCE_GOODKEY FOR INV_BALANCE

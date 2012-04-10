@@ -22,14 +22,19 @@ type
     procedure FormDockDrop(Sender: TObject; Source: TDragDockObject; X,
       Y: Integer);
     procedure cbCorrAccountsChange(Sender: TObject);
+
   private
     FCorrAccountIDs: TList;
+
   protected
     class function ConfigClassName: string; override;
     procedure DoLoadConfig(const Config: TBaseAcctConfig);override;
     procedure DoSaveConfig(Config: TBaseAcctConfig);override;
     procedure UpdateControls; override;
+
   public
+    destructor Destroy; override;
+
     procedure LoadSettings; override;
     procedure SaveSettings; override;
   end;
@@ -42,6 +47,12 @@ implementation
 {$R *.DFM}
 
 { TdlgAcctAccReciewConfig }
+
+destructor TdlgAcctAccReviewConfig.Destroy;
+begin
+  FCorrAccountIDs.Free;
+  inherited;
+end;
 
 class function TdlgAcctAccReviewConfig.ConfigClassName: string;
 begin
@@ -84,6 +95,7 @@ begin
     ComponentPath := BuildComponentPath(Self);
     cbCorrAccounts.Items.Text := UserStorage.ReadString(ComponentPath, 'CorrAccountHistory', '');
   end;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGACCTACCREVIEWCONFIG', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -122,6 +134,7 @@ begin
   {END MACRO}
 
   inherited;
+
   if UserStorage <> nil then
   begin
     ComponentPath := BuildComponentPath(Self);
@@ -213,5 +226,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(TdlgAcctAccReviewConfig);
-
 end.

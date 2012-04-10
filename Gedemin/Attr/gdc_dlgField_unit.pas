@@ -1820,7 +1820,7 @@ end;
 
 procedure Tgdc_dlgField.dbedTypeNameEnter(Sender: TObject);
 var
-  S: string;
+  S: String;
 begin
   S:= '00000409';
   LoadKeyboardLayout(@S[1], KLF_ACTIVATE);
