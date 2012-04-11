@@ -153,11 +153,7 @@ begin
   {M}    end;
   {END MACRO}
 
-//  if ibgrMain.SettingsModified then
-//    if Assigned(UserStorage) then
-//      UserStorage.SaveComponent(ibgrMain, ibgrMain.SaveToStream);
-  if Assigned(ibgrMain) and ibgrMain.SettingsModified then
-    SaveGrid(ibgrMain);
+  SaveGrid(ibgrMain);
   inherited;
   
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMSGR', 'SAVESETTINGS', KEYSAVESETTINGS)}

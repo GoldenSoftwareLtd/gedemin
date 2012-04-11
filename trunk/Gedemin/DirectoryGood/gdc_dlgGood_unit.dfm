@@ -19,6 +19,12 @@ inherited gdc_dlgGood: Tgdc_dlgGood
     Anchors = [akLeft, akBottom]
     TabOrder = 5
   end
+  inherited btnHelp: TButton
+    Left = 165
+    Top = 343
+    Anchors = [akLeft, akBottom]
+    TabOrder = 3
+  end
   inherited btnOK: TButton
     Left = 355
     Top = 343
@@ -28,12 +34,6 @@ inherited gdc_dlgGood: Tgdc_dlgGood
     Left = 435
     Top = 343
     Anchors = [akRight, akBottom]
-  end
-  inherited btnHelp: TButton
-    Left = 165
-    Top = 343
-    Anchors = [akLeft, akBottom]
-    TabOrder = 3
   end
   inherited pgcMain: TPageControl
     Left = 0

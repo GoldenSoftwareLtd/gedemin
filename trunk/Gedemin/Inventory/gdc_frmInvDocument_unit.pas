@@ -217,20 +217,16 @@ end;
 
 procedure Tgdc_frmInvDocument.actNewExecute(Sender: TObject);
 begin
-  if ibgrDetail.SettingsModified then
-    UserStorage.SaveComponent(ibgrDetail, ibgrDetail.SaveToStream);
-
+  SaveGrid(ibgrDetail);
   inherited;
-  UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream);
+  LoadGrid(ibgrDetail);
 end;
 
 procedure Tgdc_frmInvDocument.actEditExecute(Sender: TObject);
 begin
-  if ibgrDetail.SettingsModified then
-    UserStorage.SaveComponent(ibgrDetail, ibgrDetail.SaveToStream);
-
+  SaveGrid(ibgrDetail);
   inherited;
-  UserStorage.LoadComponent(ibgrDetail, ibgrDetail.LoadFromStream);
+  LoadGrid(ibgrDetail);
 end;
 
 procedure Tgdc_frmInvDocument.actCreateEntryExecute(Sender: TObject);

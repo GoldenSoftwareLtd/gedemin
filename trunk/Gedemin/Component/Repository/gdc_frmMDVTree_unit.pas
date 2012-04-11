@@ -267,8 +267,8 @@ begin
 
     SaveGrid(ibgrDetail);
 
-    if FInChoose and ibgrChoose.SettingsModified then
-      UserStorage.SaveComponent(ibgrChoose, ibgrChoose.SaveToStream);
+    if FInChoose then
+      SaveGrid(ibgrChoose);
 
     if not FInChoose then
     begin
@@ -516,10 +516,10 @@ begin
   inherited;
 
   if UserStorage <> nil then
-  begin                                                                       
-    SwitchSubGroups(UserStorage.ReadBoolean(BuildComponentPath(Self), 'ShSG', True));    
+  begin
+    SwitchSubGroups(UserStorage.ReadBoolean(BuildComponentPath(Self), 'ShSG', True));
     SetDragnDropState(UserStorage.ReadBoolean(BuildComponentPath(Self), 'AllowDD', True));
-  end;                        
+  end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMMDVTREE', 'LOADSETTINGSAFTERCREATE', KEYLOADSETTINGSAFTERCREATE)}
   {M}finally

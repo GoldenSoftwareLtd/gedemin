@@ -110,7 +110,6 @@ type
 
     procedure SaveGrid(AGrid: TgsCustomDBGrid);
     procedure LoadGrid(AGrid: TgsCustomDBGrid);
-    //procedure SaveComp(AComponent: TComponent);
 
     property SubType: String read FSubType;
     property gdcObject: TgdcBase read FgdcObject write SetGdcObject;
@@ -427,22 +426,20 @@ procedure TgdcCreateableForm.SaveGrid(AGrid: TgsCustomDBGrid);
 var
   gdcBase: TgdcBase;
   F: TgsStorageFolder;
-  {V: TgsStorageValue;
-  SNew: TStringStream;}
   FolderName, Path: String;
 begin
-  if Assigned(UserStorage) and (AGrid <> nil) then
+  if Assigned(UserStorage) and Assigned(AGrid) then
   begin
-    if AGrid.SettingsModified then
+    if AGrid.SettingsModified or (cfsDistributeSettings in CreateableFormState) then
       Path := UserStorage.SaveComponent(AGrid, AGrid.SaveToStream);
 
     //Сохраняем настройки грида для б.о.
     if (AGrid.DataSource <> nil) and (AGrid.DataSource.DataSet is TgdcDocument) then
     begin
-      gdcBase := TgdcBase(AGrid.DataSource.DataSet);
+      gdcBase := AGrid.DataSource.DataSet as TgdcBase;
       FolderName := 'GDC\' + gdcBase.ClassName + gdcBase.SubType;
       if (not UserStorage.FolderExists(FolderName)) or
-        (AGrid.SettingsModified) then
+        AGrid.SettingsModified or (cfsDistributeSettings in CreateableFormState) then
       begin
         F := UserStorage.OpenFolder(FolderName, True, False);
         try

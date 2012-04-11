@@ -314,7 +314,7 @@ implementation
 {$R *.DFM}
 
 uses
-  IB, IBSQL, IBErrorCodes, gdcBaseInterface,{ gdcLink,}
+  IB, IBSQL, IBErrorCodes, gdcBaseInterface, gd_createable_form,
   IBCustomDataSet, TypInfo, gd_directories_const,
   Storages, gd_ClassList, dmImages_unit, evt_i_Base,
   jclStrings, at_frmSQLProcess, gsStorage_CompPath,

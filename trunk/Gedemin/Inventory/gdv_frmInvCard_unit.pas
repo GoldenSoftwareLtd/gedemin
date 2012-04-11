@@ -614,7 +614,7 @@ begin
   end else begin
     ibgrMain.Options := ibgrMain.Options - [dgEditing, dgIndicator];
   end;
-  ibgrMain.SettingsModified:= True;
+  ibgrMain.SettingsModified := True;
 end;
 
 procedure Tgdv_frmInvCard.actEditExecute(Sender: TObject);
