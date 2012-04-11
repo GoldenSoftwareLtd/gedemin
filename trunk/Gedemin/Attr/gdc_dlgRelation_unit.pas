@@ -1324,7 +1324,7 @@ begin
 //¬ыведем родител€ нашей ветки в исследователе
   if lblBranch.Visible and (gdcObject.FieldByName('branchkey').AsInteger > 0) then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := gdcBaseManager.ReadTRansaction;
       ibsql.SQL.Text := 'SELECT parent FROM gd_command WHERE id = :id';

@@ -62,7 +62,7 @@ var
 begin
   if iblcAccountKey.CurrentKey > '' then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := gdcObject.Transaction;
       ibsql.SQL.Text := 'SELECT b.name FROM gd_companyaccount c, gd_contact b WHERE c.id = ' +

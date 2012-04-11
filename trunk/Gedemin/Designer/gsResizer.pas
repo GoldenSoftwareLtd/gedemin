@@ -3337,8 +3337,8 @@ begin
       UnEventMacro := True;
 
       if (FChangedNames.Count > 0) and Assigned(EventControl) then begin
-        q:= TIBSQL.Create(self);
-        tr:= TIBTransaction.Create(self);
+        q:= TIBSQL.Create(nil);
+        tr:= TIBTransaction.Create(nil);
         try
           tr.DefaultDatabase:= dmDatabase.ibdbGAdmin;
           tr.StartTransaction;

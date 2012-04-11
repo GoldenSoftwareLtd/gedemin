@@ -827,7 +827,7 @@ begin
   end;
 
   DidActivate := False;
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     if (Owner is Tgdc_frmMDH) and (Self = (Owner as Tgdc_frmMDH).gdcDetailObject) then
       GridBm := (Owner as Tgdc_frmMDH).GetDetailBookmarkList
@@ -1076,7 +1076,7 @@ begin
 
     CheckNumber(FieldByName('NUMBER'));
 
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := ReadTransaction;
       ibsql.SQL.Text := cst_sql_GetLastNumber;
@@ -1317,7 +1317,7 @@ begin
     EntryRegister.CreateEntry;
     if FieldByName('PARENT').IsNull then
     begin
-      ibsql := TIBSQL.Create(Self);
+      ibsql := TIBSQL.Create(nil);
       try
         ibsql.Transaction := Transaction;
         ibsql.SQL.Text := 'SELECT id FROM gd_document doc WHERE ' +
@@ -2222,7 +2222,7 @@ function TgdcDocument.HaveIsDetailObject: Boolean;
 var
   ibsql: TIBSQL;
 begin
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text := 'SELECT * FROM gd_document WHERE parent = :id';
@@ -2794,7 +2794,7 @@ begin
   При дублировании наименования, подкорректируем его
   Проверка идет через запрос к базе, никаких кэшей!!!}
 
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     if Transaction.InTransaction then
       ibsql.Transaction := Transaction
@@ -3210,7 +3210,7 @@ begin
     {При загрузке из потока не будем трогать нумерацию}
     if not (sLoadFromStream in BaseState) then
     begin
-      q := TIBSQL.Create(Self);
+      q := TIBSQL.Create(nil);
       try
       //Здесь транзакция должна быть открыта!!!
         q.Transaction := Transaction;

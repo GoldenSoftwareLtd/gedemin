@@ -104,15 +104,15 @@ begin
   if gdcObject.State = dsEdit then
     dbeGeneratorName.Enabled := False;
 
-  if dbeGeneratorName.Text <> '' then
+  if dbeGeneratorName.Text > '' then
   begin
-    IBSQL := TIBSQL.Create(Self);
+    IBSQL := TIBSQL.Create(nil);
     try
       IBSQL.Transaction := gdcBaseManager.ReadTransaction;
-      IBSQL.SQL.Text := 'SELECT GEN_ID(' + dbeGeneratorName.Text + ', 0) AS GenValue FROM RDB$GENERATORS';
+      IBSQL.SQL.Text := 'SELECT GEN_ID(' + dbeGeneratorName.Text + ', 0) AS GenValue FROM RDB$DATABASE';
       IBSQL.ExecQuery;
-      if IBSQL.RecordCount > 0 then
-        edGeneratorValue.Text :=  IBSQL.FieldByName('GenValue').AsString
+      if not IBSQL.EOF then
+        edGeneratorValue.Text := IBSQL.Fields[0].AsString
       else
         edGeneratorValue.Text := '0';
     finally

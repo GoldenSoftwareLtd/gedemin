@@ -151,10 +151,9 @@ begin
 
   if gdcObject.FieldByName('rdb$procedure_source').AsString > '' then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     IBTransaction.StartTransaction;
     try
-      ibsql.Database := gdcObject.Database;
       ibsql.Transaction := IBTransaction;
       ibsql.SQL.Text := gdcObject.FieldByName('rdb$procedure_source').AsString;
       ibsql.ParamCheck := False;
