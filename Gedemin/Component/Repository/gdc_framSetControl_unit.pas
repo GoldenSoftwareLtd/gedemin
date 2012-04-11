@@ -175,9 +175,8 @@ end;
 
 procedure Tgdc_framSetControl.SaveSettings;
 begin
-  if Gr.SettingsModified then
-    if Assigned(UserStorage) then
-      UserStorage.SaveComponent(Gr, Gr.SaveToStream);
+  if Gr.SettingsModified and Assigned(UserStorage) then
+    UserStorage.SaveComponent(Gr, Gr.SaveToStream);
 end;
 
 procedure Tgdc_framSetControl.SetupGrid;

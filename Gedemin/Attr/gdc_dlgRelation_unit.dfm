@@ -38,7 +38,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
   object pcRelation: TPageControl [5]
     Left = 0
     Top = 0
-    Width = 518
+    Width = 510
     Height = 381
     ActivePage = tsCommon
     Align = alTop
@@ -308,7 +308,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 510
+        Width = 502
         Height = 353
         Align = alClient
         BevelOuter = bvNone
@@ -316,7 +316,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Splitter1: TSplitter
           Left = 0
           Top = 113
-          Width = 510
+          Width = 502
           Height = 4
           Cursor = crVSplit
           Align = alTop
@@ -324,7 +324,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel2: TPanel
           Left = 0
           Top = 0
-          Width = 510
+          Width = 502
           Height = 113
           Align = alTop
           BevelOuter = bvNone
@@ -332,7 +332,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
           object tvTriggers: TTreeView
             Left = 0
             Top = 0
-            Width = 510
+            Width = 502
             Height = 113
             Align = alClient
             Images = dmImages.ilToolBarSmall
@@ -356,7 +356,7 @@ inherited gdc_dlgRelation: Tgdc_dlgRelation
         object Panel3: TPanel
           Left = 0
           Top = 117
-          Width = 510
+          Width = 502
           Height = 236
           Align = alClient
           BevelOuter = bvNone

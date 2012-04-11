@@ -153,13 +153,8 @@ begin
 
   if Assigned(UserStorage) then
   begin
-//    if ibgrMain.SettingsModified then
     SaveGrid(ibgrMain);
-//      UserStorage.SaveComponent(ibgrMain, ibgrMain.SaveToStream);
-
-//   if ibgrDetail.SettingsModified then
     SaveGrid(ibgrDetail);
-//      UserStorage.SaveComponent(ibgrDetail, ibgrDetail.SaveToStream);
   end;    
 
   inherited;

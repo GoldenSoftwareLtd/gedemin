@@ -509,14 +509,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
-  if Assigned(UserStorage) then
-  begin
-    UserStorage.LoadComponent(ibgrRelationFields, ibgrRelationFields.LoadFromStream);
-    UserStorage.LoadComponent(ibgrIndices, ibgrIndices.LoadFromStream);    
-    UserStorage.LoadComponent(ibgrConstraints , ibgrConstraints.LoadFromStream);
-  end;
+  LoadGrid(ibgrRelationFields);
+  LoadGrid(ibgrIndices);
+  LoadGrid(ibgrConstraints);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATION', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
@@ -552,17 +550,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
-  if Assigned(UserStorage) then
-  begin
-    if ibgrRelationFields.SettingsModified then
-      UserStorage.SaveComponent(ibgrRelationFields, ibgrRelationFields.SaveToStream);
-    if ibgrIndices.SettingsModified then
-      UserStorage.SaveComponent(ibgrIndices, ibgrIndices.SaveToStream);
-    if ibgrConstraints.SettingsModified then
-      UserStorage.SaveComponent(ibgrConstraints, ibgrConstraints.SaveToStream);
-  end;
+  SaveGrid(ibgrRelationFields);
+  SaveGrid(ibgrIndices);
+  SaveGrid(ibgrConstraints);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATION', 'SAVESETTINGS', KEYSAVESETTINGS)}
   {M}finally

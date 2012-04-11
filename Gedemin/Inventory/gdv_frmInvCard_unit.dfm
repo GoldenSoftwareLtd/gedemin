@@ -11,11 +11,11 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
     Left = 264
     Top = 90
     Width = 5
-    Height = 368
+    Height = 357
     Cursor = crHSplit
   end
   inherited TBDock1: TTBDock
-    Width = 721
+    Width = 713
     Height = 90
     inherited tbMainToolbar: TTBToolbar
       DockPos = 0
@@ -203,6 +203,7 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
         HelpContext = 1
         TabStop = False
         Database = dmDatabase.ibdbGAdmin
+        Transaction = dlgToSetting.SelfTransaction
         ListTable = 'gd_good'
         ListField = 'name'
         KeyField = 'id'
@@ -218,6 +219,7 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
         HelpContext = 1
         TabStop = False
         Database = dmDatabase.ibdbGAdmin
+        Transaction = dlgToSetting.SelfTransaction
         ListTable = 'gd_contact'
         ListField = 'name'
         KeyField = 'id'
@@ -231,13 +233,13 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
   inherited Panel1: TPanel
     Left = 269
     Top = 90
-    Width = 443
-    Height = 368
+    Width = 435
+    Height = 357
     object ibgrMain: TgsIBGrid
       Left = 0
       Top = 49
-      Width = 443
-      Height = 319
+      Width = 435
+      Height = 308
       HelpContext = 3
       Align = alClient
       BorderStyle = bsNone
@@ -272,7 +274,7 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
     object Panel2: TPanel
       Left = 0
       Top = 0
-      Width = 443
+      Width = 435
       Height = 49
       Align = alTop
       BevelOuter = bvNone
@@ -281,7 +283,7 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
       object Bevel1: TBevel
         Left = 0
         Top = 47
-        Width = 443
+        Width = 435
         Height = 2
         Align = alBottom
         Shape = bsFrame
@@ -291,22 +293,22 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
   end
   inherited TBDock2: TTBDock
     Top = 90
-    Height = 368
+    Height = 357
   end
   inherited TBDock3: TTBDock
-    Left = 712
+    Left = 704
     Top = 90
-    Height = 368
+    Height = 357
   end
   inherited TBDock4: TTBDock
-    Top = 458
-    Width = 721
+    Top = 447
+    Width = 713
   end
   object pnlLeft: TPanel [6]
     Left = 9
     Top = 90
     Width = 255
-    Height = 368
+    Height = 357
     Align = alLeft
     BevelOuter = bvNone
     Color = 15329769
@@ -317,14 +319,14 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
       Left = 0
       Top = 0
       Width = 255
-      Height = 368
+      Height = 357
       Align = alClient
       BorderStyle = bsNone
       TabOrder = 0
       object spl1: TSplitter
         Left = 0
         Top = 353
-        Width = 239
+        Width = 238
         Height = 5
         Cursor = crVSplit
         Align = alTop
@@ -332,7 +334,7 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
       object pnlTop: TPanel
         Left = 0
         Top = 0
-        Width = 239
+        Width = 238
         Height = 89
         Align = alTop
         BevelOuter = bvNone
@@ -360,16 +362,16 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
           OnClick = chkInternalOpsClick
         end
         inline frMainValues: TfrFieldValues
-          Width = 239
+          Width = 238
           Height = 57
           Align = alTop
           TabOrder = 1
           OnResize = frMainValuesResize
           inherited ppMain: TgdvParamPanel
-            Width = 239
+            Width = 238
           end
           inherited sbMain: TgdvParamScrolBox
-            Width = 239
+            Width = 238
             Height = 27
             Color = 15329769
           end
@@ -378,7 +380,7 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
       object ppCardFields: TgdvParamPanel
         Left = 0
         Top = 185
-        Width = 239
+        Width = 238
         Height = 168
         Align = alTop
         Caption = 'Отображаемые признаки карточки'
@@ -400,7 +402,7 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
         object lbCard: TCheckListBox
           Left = 1
           Top = 17
-          Width = 237
+          Width = 236
           Height = 150
           Align = alClient
           BorderStyle = bsNone
@@ -421,7 +423,7 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
       object ppGoodFields: TgdvParamPanel
         Left = 0
         Top = 358
-        Width = 239
+        Width = 238
         Height = 171
         Align = alTop
         Caption = 'Отображаемые признаки товара'
@@ -443,7 +445,7 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
         object lbGood: TCheckListBox
           Left = 1
           Top = 17
-          Width = 237
+          Width = 236
           Height = 153
           Align = alClient
           BorderStyle = bsNone
@@ -463,40 +465,40 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
       end
       inline frGoodValues: TfrFieldValues
         Top = 567
-        Width = 239
+        Width = 238
         Height = 48
         Align = alTop
         TabOrder = 3
         inherited ppMain: TgdvParamPanel
-          Width = 239
+          Width = 238
         end
         inherited sbMain: TgdvParamScrolBox
-          Width = 239
+          Width = 238
           Height = 18
         end
       end
       inline frCardValues: TfrFieldValues
         Top = 529
-        Width = 239
+        Width = 238
         Height = 38
         Align = alTop
         TabOrder = 4
         inherited ppMain: TgdvParamPanel
-          Width = 239
+          Width = 238
         end
         inherited sbMain: TgdvParamScrolBox
-          Width = 239
+          Width = 238
           Height = 8
         end
       end
       inline frCreditDocs: TfrFieldValues
         Top = 137
-        Width = 239
+        Width = 238
         Height = 48
         Align = alTop
         TabOrder = 5
         inherited ppMain: TgdvParamPanel
-          Width = 239
+          Width = 238
           Caption = 'Документы расхода'
         end
         inherited sbMain: TgdvParamScrolBox
@@ -508,12 +510,12 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
       end
       inline frDebitDocs: TfrFieldValues
         Top = 89
-        Width = 239
+        Width = 238
         Height = 48
         Align = alTop
         TabOrder = 6
         inherited ppMain: TgdvParamPanel
-          Width = 239
+          Width = 238
           Caption = 'Документы прихода'
         end
         inherited sbMain: TgdvParamScrolBox
@@ -527,8 +529,8 @@ inherited gdv_frmInvCard: Tgdv_frmInvCard
   end
   object StatusBar1: TStatusBar [7]
     Left = 0
-    Top = 467
-    Width = 721
+    Top = 456
+    Width = 713
     Height = 19
     Panels = <>
     SimplePanel = False

@@ -241,8 +241,6 @@ type
     procedure actHlpExecute(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure actCopySettingsFromUserUpdate(Sender: TObject);
-    procedure FormShow(Sender: TObject);
-    procedure FormHide(Sender: TObject);
     procedure tbMainInvariantVisibleChanged(Sender: TObject);
     procedure actLinkObjectUpdate(Sender: TObject);
     procedure actLinkObjectExecute(Sender: TObject);
@@ -253,6 +251,8 @@ type
     procedure actDontSaveSettingsUpdate(Sender: TObject);
     procedure actDontSaveSettingsExecute(Sender: TObject);
     procedure actHlpUpdate(Sender: TObject);
+    procedure FormHide(Sender: TObject);
+    procedure FormShow(Sender: TObject);
 
   private
     FFieldOrigin: TStringList;
@@ -368,47 +368,6 @@ uses
   {$ENDIF}
   , gdc_frmStreamSaver;
 
-{
-var
-  GDC_FRMG_HOOK: HHOOK = 0;
-}  
-
-{
-function gdc_frmG_Hook_Proc(nCode: Integer; wParam: Integer; lParam: Integer): LResult; stdcall;
-var
-  P: TPoint;
-begin
-  Result := CallNextHookEx(GDC_FRMG_HOOK, nCode, wParam, lParam);
-
-  if nCode = HC_ACTION then
-  begin
-    with PMouseHookStruct(lParam)^ do
-    begin
-      case wParam of
-        WM_LBUTTONDOWN, WM_NCLBUTTONDOWN, WM_LBUTTONUP:
-        begin
-          if (Screen.ActiveForm is Tgdc_frmG)
-            and (GetForegroundWindow = Screen.ActiveForm.Handle) then
-          with (Screen.ActiveForm as Tgdc_frmG) do
-          begin
-//            if (pt.x = 0) and (pt.y = 0) then
-            P := ScreenToClient(pt);
-            if (P.X < -4) or (P.X > Width + 4) or
-              (P.Y < -20) or (P.Y > Height + 4) then
-            begin
-              ModalResult := mrCancel;
-              Result := 1;
-            end else
-            begin
-              Result := 0;
-            end;
-          end
-        end;
-      end;
-    end;
-  end;
-end;
-}
 
 procedure Tgdc_frmG.SetShortCut(const Master: Boolean);
 begin
@@ -842,8 +801,6 @@ begin
 
   inherited;
 
-  //TBRegLoadPositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
-
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_FRMG', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -880,8 +837,6 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-
-  //TBRegSavePositions(Self, HKEY_CURRENT_USER, ClientRootRegistrySubKey + 'TB\' + Name);
 
   inherited;
 
@@ -929,7 +884,6 @@ var
 begin
   if gdcObject <> nil then
   begin
-    //gdcObject.SaveToFile;
     frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
     (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
     (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
@@ -942,7 +896,6 @@ var
 begin
   if gdcObject <> nil then
   begin
-    //gdcObject.LoadFromFile;
     frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
     (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
     (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadForm;
@@ -960,14 +913,6 @@ end;
 
 destructor Tgdc_frmG.Destroy;
 begin
-  {
-  if GDC_FRMG_HOOK <> 0 then
-  begin
-    UnhookWindowsHookEx(GDC_FRMG_HOOK);
-    GDC_FRMG_HOOK := 0;
-  end;
-  }
-
 //т.к. для Choose у нас форма создается, а потом уничтожается
 //будем уничтожать объект в Destroy
 //  FgdcChooseObject.Free;
@@ -1902,32 +1847,27 @@ begin
   actSearchMain.Enabled := pnlSearchMain.Visible;
 end;
 
-{procedure Tgdc_frmG.FormMouseDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if (fsModal in Self.FormState) and
-    ((X < 0) or (Y < 0) or (X > Width) or (Y > Height)) then
-  begin
-    MessageBox(Handle,
-      'Закройте текущее окно, чтобы иметь возможность работать с другими окнами.',
-      'Внимание',
-      MB_OK or MB_ICONINFORMATION);
-  end;
-end;}
-
 procedure Tgdc_frmG.actHlpExecute(Sender: TObject);
 var
   HelpID: String;
 begin
   HelpID := gdcObject.GetDisplayName(gdcObject.SubType);
-  {if gdcObject is TgdcDocument then
-    HelpID := HelpID + ' ' + TgdcDocument(gdcObject).DocumentName(False);}
   ShowHelp(HelpID + ' (форма)');
 end;
 
 procedure Tgdc_frmG.FormDestroy(Sender: TObject);
 begin
-//Пришлось вернуть, из-за того, что ссылка могла прописаться в наших ДФМ
+  //Пришлось вернуть, из-за того, что ссылка могла прописаться в наших ДФМ
+end;
+
+procedure Tgdc_frmG.FormHide(Sender: TObject);
+begin
+  //
+end;
+
+procedure Tgdc_frmG.FormShow(Sender: TObject);
+begin
+  //
 end;
 
 procedure Tgdc_frmG.actCopySettingsFromUserUpdate(Sender: TObject);
@@ -1936,49 +1876,6 @@ begin
     and Assigned(IBLogin)
     and ((GlobalStorage.ReadInteger('Options\Policy',
       GD_POL_EDIT_UI_ID, GD_POL_EDIT_UI_MASK, False) and IBLogin.InGroup) <> 0);
-end;
-
-(*
-procedure Tgdc_frmG.FormCanResize(Sender: TObject; var NewWidth,
-  NewHeight: Integer; var Resize: Boolean);
-begin
-  if Assigned(GlobalStorage)
-    and Assigned(IBLogin)
-    and Assigned(DesktopManager)
-    and (DesktopManager.DesktopItems.Find(Self) <> nil)
-    and (not DesktopManager.LoadingDesktop)
-    and ((GlobalStorage.ReadInteger('Options\Policy',
-      GD_POL_DESK_ID, GD_POL_DESK_MASK, False) and IBLogin.InGroup) = 0) then
-  begin
-  {  MessageBox(Handle,
-      'Изменять конфигурацию рабочего стола запрещено текущими настройками политики безопасности.',
-      'Отказано в доступе',
-      MB_OK or MB_ICONHAND or MB_TASKMODAL); }
-    Resize := False;
-  end;
-end;
-*)
-
-procedure Tgdc_frmG.FormShow(Sender: TObject);
-begin
-  {
-  if (fsModal in FormState) and (BorderStyle = bsSizeable) then
-  begin
-    if GDC_FRMG_HOOK = 0 then
-      GDC_FRMG_HOOK := SetWindowsHookEx(WH_MOUSE, @gdc_frmG_Hook_Proc, HINSTANCE, GetCurrentThreadID);
-  end;
-  }
-end;
-
-procedure Tgdc_frmG.FormHide(Sender: TObject);
-begin
-  {
-  if GDC_FRMG_HOOK <> 0 then
-  begin
-    UnhookWindowsHookEx(GDC_FRMG_HOOK);
-    GDC_FRMG_HOOK := 0;
-  end;
-  }
 end;
 
 function Tgdc_frmG.GetChosenIDInOrder: OleVariant;
@@ -2004,8 +1901,7 @@ end;
 
 procedure Tgdc_frmG.tbMainInvariantVisibleChanged(Sender: TObject);
 begin
-  {Это что за фигня????? Кажется отладочную информацию нужно помещать в условную компиляциую}
-// ShowMessage('1');
+  //
 end;
 
 procedure Tgdc_frmG.actLinkObjectUpdate(Sender: TObject);
@@ -2115,5 +2011,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_frmG);
-
 end.

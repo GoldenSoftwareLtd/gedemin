@@ -20,8 +20,8 @@ object at_frmUserForm: Tat_frmUserForm
   TextHeight = 13
   object sbMain: TStatusBar
     Left = 0
-    Top = 399
-    Width = 662
+    Top = 388
+    Width = 654
     Height = 19
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
@@ -41,11 +41,11 @@ object at_frmUserForm: Tat_frmUserForm
   object TBDockTop: TTBDock
     Left = 0
     Top = 0
-    Width = 662
-    Height = 49
+    Width = 654
+    Height = 51
     object tbMainToolbar: TTBToolbar
       Left = 0
-      Top = 23
+      Top = 25
       Caption = 'Панель инструментов'
       CloseButton = False
       DockPos = 16
@@ -195,7 +195,7 @@ object at_frmUserForm: Tat_frmUserForm
     end
     object tbChooseMain: TTBToolbar
       Left = 456
-      Top = 23
+      Top = 25
       Caption = 'Дополнительная панель инструментов'
       CloseButton = False
       DockPos = 456
@@ -216,37 +216,37 @@ object at_frmUserForm: Tat_frmUserForm
   end
   object TBDockLeft: TTBDock
     Left = 0
-    Top = 49
+    Top = 51
     Width = 9
-    Height = 341
+    Height = 328
     Position = dpLeft
   end
   object TBDockRight: TTBDock
-    Left = 653
-    Top = 49
+    Left = 645
+    Top = 51
     Width = 9
-    Height = 341
+    Height = 328
     Position = dpRight
   end
   object TBDockBottom: TTBDock
     Left = 0
-    Top = 390
-    Width = 662
+    Top = 379
+    Width = 654
     Height = 9
     Position = dpBottom
   end
   object pnlWorkArea: TPanel
     Left = 9
-    Top = 49
-    Width = 644
-    Height = 341
+    Top = 51
+    Width = 636
+    Height = 328
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 5
     object spChoose: TSplitter
       Left = 0
-      Top = 239
-      Width = 644
+      Top = 226
+      Width = 636
       Height = 3
       Cursor = crVSplit
       Align = alBottom
@@ -254,8 +254,8 @@ object at_frmUserForm: Tat_frmUserForm
     object pnlMain: TPanel
       Left = 0
       Top = 0
-      Width = 644
-      Height = 239
+      Width = 636
+      Height = 226
       Align = alClient
       BevelOuter = bvNone
       Constraints.MinHeight = 100
@@ -264,8 +264,8 @@ object at_frmUserForm: Tat_frmUserForm
       object ibgrMain: TgsDBGrid
         Left = 0
         Top = 0
-        Width = 644
-        Height = 239
+        Width = 636
+        Height = 226
         Align = alClient
         DataSource = dsMain
         PopupMenu = pmMain
@@ -289,14 +289,14 @@ object at_frmUserForm: Tat_frmUserForm
     end
     object pnChoose: TPanel
       Left = 0
-      Top = 242
-      Width = 644
+      Top = 229
+      Width = 636
       Height = 99
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
       object pnButtonChoose: TPanel
-        Left = 539
+        Left = 531
         Top = 0
         Width = 105
         Height = 99
@@ -335,7 +335,7 @@ object at_frmUserForm: Tat_frmUserForm
       object ibgrChoose: TgsDBGrid
         Left = 0
         Top = 0
-        Width = 539
+        Width = 531
         Height = 99
         Align = alClient
         BorderStyle = bsNone
