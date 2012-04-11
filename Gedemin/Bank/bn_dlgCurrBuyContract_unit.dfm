@@ -15,8 +15,8 @@ inherited gd_dlgCurrBuyContract: Tgd_dlgCurrBuyContract
     Left = 85
     Top = 360
   end
-  inherited btnOK: TButton
-    Left = 270
+  inherited btnHelp: TButton
+    Left = 165
     Top = 360
   end
   object Panel1: TPanel [3]
@@ -130,8 +130,9 @@ inherited gd_dlgCurrBuyContract: Tgd_dlgCurrBuyContract
             Top = 30
             Width = 126
             Height = 21
+            HelpContext = 1
             Database = dmDatabase.ibdbGAdmin
-            Transaction = gdc_frmSGRAccount.IBTransaction
+            Transaction = gdc_frmMDHGRAccount.SelfTransaction
             DataSource = dsgdcBase
             DataField = 'currkey'
             ListTable = 'gd_curr'
@@ -187,8 +188,9 @@ inherited gd_dlgCurrBuyContract: Tgd_dlgCurrBuyContract
           Top = 95
           Width = 265
           Height = 21
+          HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
-          Transaction = gdc_frmSGRAccount.IBTransaction
+          Transaction = gdc_frmMDHGRAccount.SelfTransaction
           DataSource = dsgdcBase
           DataField = 'ACCOUNTKEY'
           ListTable = 'GD_COMPANYACCOUNT'
@@ -205,8 +207,9 @@ inherited gd_dlgCurrBuyContract: Tgd_dlgCurrBuyContract
           Top = 145
           Width = 265
           Height = 21
+          HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
-          Transaction = gdc_frmSGRAccount.IBTransaction
+          Transaction = gdc_frmMDHGRAccount.SelfTransaction
           DataSource = dsgdcBase
           DataField = 'corrcompkey'
           ListTable = 'GD_CONTACT'
@@ -262,12 +265,12 @@ inherited gd_dlgCurrBuyContract: Tgd_dlgCurrBuyContract
       end
     end
   end
-  inherited btnCancel: TButton
-    Left = 350
+  inherited btnOK: TButton
+    Left = 270
     Top = 360
   end
-  inherited btnHelp: TButton
-    Left = 165
+  inherited btnCancel: TButton
+    Left = 350
     Top = 360
   end
   inherited alBase: TActionList

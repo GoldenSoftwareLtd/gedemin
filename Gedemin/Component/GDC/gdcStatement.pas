@@ -1873,7 +1873,7 @@ begin
   if (FieldByName('account').AsString > '') and (FieldByName('bankcode').AsString > '')
     and (FieldByName('companykeyline').AsInteger > 0) then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       DidActivate := False;
       try

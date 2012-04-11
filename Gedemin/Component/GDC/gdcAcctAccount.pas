@@ -565,7 +565,7 @@ begin
   else
     if FieldByName('analyticalfield').AsInteger > 0 then
     begin
-      ibsql := TIBSQL.Create(Self);
+      ibsql := TIBSQL.Create(nil);
       try
         ibsql.Transaction := ReadTransaction;
         ibsql.SQL.Text := 'SELECT fieldname FROM at_relation_fields WHERE id = :id';

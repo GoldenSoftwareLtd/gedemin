@@ -722,7 +722,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     if Transaction.InTransaction then
       ibsql.Transaction := Transaction
@@ -1017,7 +1017,7 @@ begin
   {M}    end;
   {END MACRO}
 
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     if Transaction.InTransaction then
       ibsql.Transaction := Transaction

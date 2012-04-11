@@ -3547,7 +3547,7 @@ begin
     FisSetFeaturesFromRemains := True;
     if isFrom and not FieldByName('FROMCARDKEY').IsNull then
     begin
-      ibsql := TIBSQL.Create(Self);
+      ibsql := TIBSQL.Create(nil);
       try
         ibsql.Transaction := ReadTransaction;
         ibsql.SQL.Text := 'SELECT * FROM inv_card WHERE id = :id';
@@ -3559,7 +3559,6 @@ begin
             FieldByName('FROM_' + FSourceFeatures[i]).AsVariant :=
               ibsql.FieldByName(FSourceFeatures[i]).AsVariant;
         end;
-        ibsql.Close;
       finally
         ibsql.Free;
       end;

@@ -15,6 +15,10 @@ inherited gdc_dlgBankStatement: Tgdc_dlgBankStatement
     Top = 502
     TabOrder = 4
   end
+  inherited btnHelp: TButton
+    Top = 502
+    TabOrder = 5
+  end
   inherited btnOK: TButton
     Left = 733
     Top = 502
@@ -25,25 +29,21 @@ inherited gdc_dlgBankStatement: Tgdc_dlgBankStatement
     Top = 502
     TabOrder = 2
   end
-  inherited btnHelp: TButton
-    Top = 502
-    TabOrder = 5
-  end
   inherited pnlMain: TPanel
-    Width = 888
+    Width = 880
     Height = 495
     TabOrder = 0
     inherited splMain: TSplitter
       Top = 86
-      Width = 888
+      Width = 880
     end
     inherited pnlDetail: TPanel
       Top = 90
-      Width = 888
+      Width = 880
       Height = 405
       TabOrder = 1
       inherited ibgrDetail: TgsIBGrid
-        Width = 870
+        Width = 862
         Height = 370
         Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
         ColumnEditors = <
@@ -109,22 +109,22 @@ inherited gdc_dlgBankStatement: Tgdc_dlgBankStatement
           end>
       end
       inherited tbdTop: TTBDock
-        Width = 888
+        Width = 880
       end
       inherited tbdLeft: TTBDock
         Height = 370
       end
       inherited tbdRight: TTBDock
-        Left = 879
+        Left = 871
         Height = 370
       end
       inherited tbdBottom: TTBDock
         Top = 396
-        Width = 888
+        Width = 880
       end
     end
     inherited pnlMaster: TPanel
-      Width = 888
+      Width = 880
       Height = 86
       TabOrder = 0
       object Label2: TLabel

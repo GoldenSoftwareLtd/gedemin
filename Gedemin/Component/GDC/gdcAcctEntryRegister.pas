@@ -1735,9 +1735,8 @@ var
 begin
   if FCurrNCUKey = -1 then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
-      ibsql.Database := Database;
       ibsql.Transaction := ReadTransaction;
       ibsql.SQL.Text := 'SELECT id FROM gd_curr WHERE isNCU = 1';
       ibsql.ExecQuery;
@@ -3092,7 +3091,7 @@ var
 begin
   if FCurrNCUKey = -1 then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Database := Database;
       ibsql.Transaction := ReadTransaction;
@@ -4380,7 +4379,7 @@ var
 begin
   if FCurrNCUKey = -1 then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Database := Database;
       ibsql.Transaction := ReadTransaction;

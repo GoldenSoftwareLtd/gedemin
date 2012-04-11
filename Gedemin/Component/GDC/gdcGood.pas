@@ -1085,8 +1085,7 @@ function TgdcGood.GetTaxRateByID(const aID, TaxKey: Integer;
 var
   ibsql: TIBSQL;
 begin
-
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     if Transaction.Active then
       ibsql.Transaction := Transaction
@@ -1104,7 +1103,6 @@ begin
       Result := ibsql.FieldByName('rate').AsCurrency
     else
       Result := 0;
-    ibsql.Close;
   finally
     ibsql.Free;
   end;
@@ -1116,7 +1114,7 @@ var
   ibsql: TIBSQL;
 begin
   Result := 0;
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := ReadTransaction;
     ibsql.SQL.Text := 'SELECT id FROM gd_tax WHERE name = :name';
@@ -1131,7 +1129,6 @@ begin
   finally
     ibsql.Free;
   end;
-
 end;
 
 procedure TgdcGood.DoBeforeInsert;

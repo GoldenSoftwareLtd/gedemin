@@ -556,13 +556,13 @@ begin
 
   if not (sMultiple in BaseState) then
   begin
-    q := TIBSQL.Create(Self);
+    q := TIBSQL.Create(nil);
     try
       if Transaction.InTransaction then
         q.Transaction := Transaction
       else
         q.Transaction := ReadTransaction;
-           
+
       q.Close;
       q.SQL.Text := 'SELECT bankcode, bankmfo, swift FROM gd_bank WHERE bankkey = :id';
       q.ParamByName('id').AsString := FieldByName('bankkey').AsString;
@@ -581,7 +581,6 @@ begin
         CheckDouble(FieldByName('account').AsString, FieldByName('bankcode').AsString)))
       then
         raise Exception.Create('Измените расчетный счет!');
-
     finally
       q.Free;
     end;
@@ -853,7 +852,7 @@ begin
   if Process = cpInsert then
   begin
   //Проверим, есть ли у компании главный счет, если нет, то сделаем текущий главным
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := Transaction;
       ibsql.SQL.Text := 'SELECT * FROM gd_company WHERE contactkey = :ck';
@@ -3808,7 +3807,7 @@ begin
   Assert(State in dsEditModes);
   if (FieldByName('parent').AsInteger > 0) and FieldByName('wcompanykey').IsNull then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       if Transaction.InTransaction then
         ibsql.Transaction := Transaction

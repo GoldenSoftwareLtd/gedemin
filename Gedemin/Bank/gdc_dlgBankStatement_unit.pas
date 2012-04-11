@@ -210,7 +210,7 @@ begin
   SetCurrency;
 
   {Обработка курса для валютный счетов}
-  ibsql1 := TIBSQL.Create(Self);
+  ibsql1 := TIBSQL.Create(nil);
   try
     ibsql1.Transaction := gdcObject.ReadTransaction;
     ibsql1.SQL.Text := 'SELECT ca.*, c.isncu FROM gd_companyaccount ca LEFT JOIN gd_curr c ON c.id = ca.currkey ' +
@@ -238,8 +238,6 @@ begin
   finally
     ibsql1.Free;
   end;
-
-
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGBANKSTATEMENT', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
@@ -299,7 +297,7 @@ begin
     if (Field.FieldName = 'ACCOUNTKEY') then SetCurrency;
 
     RateWasChanged := (Field.FieldName = 'RATE');
-    ibsql1 := TIBSQL.Create(Self);
+    ibsql1 := TIBSQL.Create(nil);
     try
       ibsql1.Transaction := gdcObject.ReadTransaction;
       ibsql1.SQL.Text := 'SELECT ca.*, c.isncu FROM gd_companyaccount ca LEFT JOIN gd_curr c ON c.id = ca.currkey ' +
@@ -342,7 +340,6 @@ begin
           NotDoFieldChange := False;
         end;
       end;
-
     finally
       ibsql1.Free;
     end;

@@ -80,7 +80,7 @@ begin
     begin
       WasActive := gdcObject.Active;
       try
-        ibsql := TIBSQL.Create(Self);
+        ibsql := TIBSQL.Create(nil);
         try
           ibsql.SQL.Text := 'SELECT holdingkey FROM gd_holding WHERE holdingkey = ' +
             ibcmbCompany.CurrentKey;

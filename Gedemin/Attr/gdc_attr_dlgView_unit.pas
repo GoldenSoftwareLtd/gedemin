@@ -53,9 +53,8 @@ procedure Tgdc_attr_dlgView.actCreateViewExecute(Sender: TObject);
 var
   ibsql: TIBSQL;
 begin
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
-    ibsql.Database := gdcObject.Database;
     ibsql.Transaction := gdcObject.Transaction;
     ibsql.SQL.Text := smViewBody.Text;
     ibsql.Prepare;
@@ -79,7 +78,6 @@ begin
   finally
     ibsql.Free;
   end;
-
 end;
 
 procedure Tgdc_attr_dlgView.pcRelationChanging(Sender: TObject;
