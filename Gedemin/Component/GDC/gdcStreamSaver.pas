@@ -7,8 +7,8 @@ uses
   IBDatabase,           IBSQL,                      gdcLBRBTreeMetaData,
   contnrs,              dbgrids,                    comctrls,
   gd_KeyAssoc,          db,                         gsStorage,
-  gsStreamHelper,       gdcSetting,                 dbclient;
-
+  gsStreamHelper,       gdcSetting,                 dbclient,
+  gdcTableMetaData;
 type
   // —осто€ние записи после загрузки
   //   lsNotLoaded - запись не загружена (оставлена стара€ запись)
@@ -286,6 +286,8 @@ type
     FSaveWithDetailList: TgdKeyArray;
     FNeedModifyList: TgdKeyIntAssoc;
     FLBRBTree: TLBRBTreeMetaNames;
+    FBaseBITriggerName: String;
+    FBaseTableTriggersName: TBaseTableTriggersName;
 
     function GetIbsqlRPLRecordSelect: TIBSQL;
     function GetIbsqlRPLRecordInsert: TIBSQL;
@@ -538,7 +540,7 @@ type
     //   выт€гивает записи из RPL_RECORD со статусом irsIn(0)
     procedure PrepareForIncrementSaving(const ABasekey: TID = -1);
 
-    // сохран€ет данные переданноо объекта и объектов по ссылкам из него в пам€ть
+    // сохран€ет данные переданного объекта и объектов по ссылкам из него в пам€ть
     procedure AddObject(AgdcObject: TgdcBase; const AWithDetail: Boolean = true);
     // сохран€ет данные о переданных объектах из пам€ти в поток
     procedure SaveToStream(S: TStream);
@@ -1491,7 +1493,7 @@ begin
 
   with Dataset as TClientDataset do
   begin
-    CreateDataSet;
+    CreateDataSet;               
     Open;
     LogChanges := False;
   end;
@@ -3198,7 +3200,11 @@ begin
       if AnsiPos(UserPrefix, AnsiUpperCase(AObj.FieldByName('triggername').AsString)) = 1 then
       begin
         if (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BITriggerName) = 0)
-          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BUTriggerName) = 0) then
+          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BUTriggerName) = 0)
+          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseBITriggerName) = 0)
+          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseTableTriggersName.BITriggerName) = 0)
+          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseTableTriggersName.BI5TriggerName) = 0)
+          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseTableTriggersName.BU5TriggerName) = 0) then
           exit;
         Result := True;
       end;
@@ -3240,6 +3246,12 @@ begin
 
   if AObj is TgdcLBRBTreeTable then
     GetLBRBTreeDependentNames(AObj.FieldByName('RELATIONNAME').AsString, FTransaction, FLBRBTree);
+
+  if (AObj is TgdcPrimeTable) or (AObj is TgdcTableToTable) then
+    FBaseBITriggerName := GetBaseTableBITriggerName(AObj.FieldByName('RELATIONNAME').AsString, FTransaction);
+
+  if (AObj is TgdcSimpleTable) or (AObj is TgdcTreeTable) then
+    GetBaseTableTriggersName(AObj.FieldByName('RELATIONNAME').AsString, FTransaction, FBaseTableTriggersName); 
 
   if AObj is TgdcStoredProc then
   begin

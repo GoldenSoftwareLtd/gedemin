@@ -2103,7 +2103,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
   {$ENDIF}
-  , gdc_frmStreamSaver, gdcStreamSaver, gdcLBRBTreeMetaData;
+  , gdc_frmStreamSaver, gdcStreamSaver, gdcLBRBTreeMetaData, gdcTableMetaData;
 
 const
   cst_sql_SelectRuidByID = 'SELECT * FROM gd_ruid WHERE id=:id';
@@ -5282,8 +5282,7 @@ var
   end;
 
 begin
-//  if FpmReport <> nil then exit;
-//ѕри изменении отчетов, добавлении или удалении необходимо перечитывать меню
+  //ѕри изменении отчетов, добавлении или удалении необходимо перечитывать меню
   if FpmReport <> nil then
   begin
     FpmReport.Free;
@@ -5295,12 +5294,7 @@ begin
   FpmReport.AutoLineReduction := Menus.maAutomatic;
 
   DidActivate := False;
-//  IBSQL := TIBSQL.Create(Self);
   try
-{    IBSQL.Database := DataBase;
-    IBSQL.Transaction := ReadTransaction;
-    DidActivate := ActivateReadTransaction;}
-
     if IBLogin.IsUserAdmin then
     begin
       MenuItem := TMenuItem.Create(FpmReport);
@@ -7384,7 +7378,7 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
           //  если главна€ запись не была загружена или изменена из настройки
           if LoadedRecordState <> lsNotLoaded then
           begin
-            ibsql := TIBSQL.Create(Self);
+            ibsql := TIBSQL.Create(nil);
             try
               ibsql.Transaction := Transaction;
               ibsql.SQL.Text := Format(sql_SetSelect, [SourceDS.FieldByName('_SETTABLE').AsString, S]);
@@ -8546,6 +8540,8 @@ var
   //Ћист дл€ таблиц, участвующих в запросе
   LT: TStrings;
   TreeDependentNames: TLBRBTreeMetaNames;
+  BaseBITriggerName: String;
+  BaseTableTriggersName: TBaseTableTriggersName;
 begin
   CheckBrowseMode;
 
@@ -8939,6 +8935,11 @@ begin
             if Self is TgdcLBRBTreeTable then
               GetLBRBTreeDependentNames(Self.FieldByName('relationname').AsString, ReadTransaction, TreeDependentNames);
 
+            if (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
+             BaseBITriggerName := GetBaseTableBITriggerName(Self.FieldByName('relationname').AsString, ReadTransaction);
+
+            if (Self is TgdcSimpleTable) or (Self is TgdcTreeTable) then
+              GetBaseTableTriggersName(Self.FieldByName('relationname').AsString, ReadTransaction, BaseTableTriggersName);
             //ƒобавим все ключи по таблицам наход€щимс€ в св€зи 1:1
             //к главной таблице
             for I := 0 to LinkTableList.Count - 1 do
@@ -9012,6 +9013,32 @@ begin
                                Continue;
                              end;
                            end;  
+                        end;
+
+                        if (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
+                        begin
+                          if Obj is TgdcTrigger then
+                          begin
+                            if (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseBITriggerName) = 0) then
+                            begin
+                              ibsql.Next;
+                              Continue;
+                            end;
+                          end;
+                        end;
+
+                        if (Self is TgdcSimpleTable) or (Self is TgdcTreeTable) then
+                        begin
+                          if Obj is TgdcTrigger then
+                          begin
+                            if (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BITriggerName) = 0)
+                              or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BI5TriggerName) = 0)
+                              or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BU5TriggerName) = 0) then
+                            begin
+                              ibsql.Next;
+                              Continue;
+                            end;
+                          end;
                         end;
 
                         if Obj.RecordCount > 0 then
@@ -10834,12 +10861,14 @@ begin
               // у нас еще будет шанс на их удаление, когда мы
               // будем удал€ть главную запись.
               try
-                DL.DeleteRecord;
+                if DL.CanDelete then
+                  DL.DeleteRecord
+                else
+                  DL.Next;
               except
                 on EAbort do raise;
               else
                 break;
-                //DL.Next;
               end;
             end;
           finally
@@ -15440,10 +15469,6 @@ begin
       UserStorage.CloseFolder(UserStorage.OpenFolder('\', False), True);
     end;
     {$ENDIF}
-    {
-    end else
-      raise Exception.Create(GetGsException(Self, 'No dialog form found'));
-    }
   end;
 end;
 

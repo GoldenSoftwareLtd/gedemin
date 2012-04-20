@@ -1531,8 +1531,6 @@ begin
   end;
 end;
 
-
-
 class function TgdcBaseStatementLine.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
@@ -1570,7 +1568,6 @@ begin
     FieldByName('csumncu').Clear;
     FieldByName('csumcurr').Clear;
   end;
-
 end;
 
 class function TgdcBaseStatementLine.IsAbstractClass: Boolean;
@@ -1606,9 +1603,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
+
   if FgdcDataLink.Active then
     FgdcDataLink.DataSet.Refresh;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASELINE', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1653,7 +1653,7 @@ begin
       dsBrowse: FgdcDataLink.DataSet.Refresh;
     end;
   end;
-  
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASELINE', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1688,6 +1688,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   if Assigned(MasterSource) and Assigned(MasterSource.DataSet) and
     (MasterSource.DataSet.State in dsEditModes) then
   begin
@@ -2129,6 +2130,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   Result :=  inherited GetFromClause(ARefresh) +
     '  LEFT JOIN bn_bankstatementline bsl ON' +
     '    z.id = bsl.id ' +
@@ -2136,6 +2138,8 @@ begin
     '    dbsl.id = bsl.documentkey ' +
     '  LEFT JOIN gd_contact cc ON '+
     '    bsl.companykey = cc.id '+
+    '  LEFT JOIN gd_contact ctr ON '+
+    '    bsl.contractorkey = ctr.id '+
     '  LEFT JOIN gd_bank bn ON ' +
     '    bn.bankcode = bsl.bankcode and ((bn.bankbranch = bsl.bankbranch) or (bn.bankbranch IS NULL and bsl.bankbranch IS NULL)) ' +
     '  LEFT JOIN gd_contact cb ON '+
@@ -2146,6 +2150,7 @@ begin
     '    ac.id = bsl.accountkey ';
     FSQLSetup.Ignores.AddAliasName('ac');
     FSQLSetup.Ignores.AddAliasName('dbsl');
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKSTATEMENTLINE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -2196,6 +2201,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   Result :=
     inherited GetSelectClause +
     '  , ' +
@@ -2204,7 +2210,9 @@ begin
     '  bsl.bankstatementkey,' +
     '  bsl.companykey as companykeyline,' +
     '  cc.name as companyname, ' +
+    '  ctr.name as contractorname, ' +
     '  t.name as TransactionName, ' +
+    '  bsl.contractorkey,' +
     '  bsl.dsumncu,' +
     '  bsl.dsumcurr,' +
     '  bsl.csumncu,' +
@@ -2215,7 +2223,7 @@ begin
     '  bsl.docnumber,' +
     '  bsl.comment,' +
     '  bsl.bankcode, ' +
-    '  bsl.bankbranch, ' +    
+    '  bsl.bankbranch, ' +
     '  bsl.accountkey, ' +
     '  ac.alias, ' +
     '  cb.name as bankname, ' +

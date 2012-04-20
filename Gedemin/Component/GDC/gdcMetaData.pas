@@ -183,21 +183,6 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
-  {TgdcFieldInfo = class(TgdcMetaBase)
-  protected
-    function GetSelectClause: String; override;
-    function GetFromClause(const ARefresh: Boolean = False): String; override;
-
-    function CreateDialogForm: TCreateableForm; override;
-
-    procedure GetWhereClauseConditions(S: TStrings); override;
-
-  public
-    class function GetListTable(const ASubType: TgdcSubType): String; override;
-    class function GetListField(const ASubType: TgdcSubType): String; override;
-    class function GetKeyField(const ASubType: TgdcSubType): String; override;
-  end;}
-
   TgdcRelation = class(TgdcMetaBase)
   protected
     FTableType: TgdcTableType;
@@ -329,7 +314,6 @@ type
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
   end;
 
-
   TgdcTable = class(TgdcBaseTable)
   end;
 
@@ -343,7 +327,6 @@ type
 
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
-
   end;
 
   TgdcSimpleTable = class(TgdcTable)
@@ -968,7 +951,7 @@ function GetForeignName(const ATableName, ForeignField: String): String;
 begin
   if AnsiPos(UserPrefix, ATableName) = 1 then
   begin
-    Result := 'USR$FK_' + Copy(ATableName, 5, Length(ATableName) - 4) + '_' + ForeignField;
+    Result := 'USR$FK_' + Copy(ATableName, Length(UserPrefix) + 1, 1024) + '_' + ForeignField;
   end else
   begin
     Result := Copy(ATableName, 1, AnsiPos('_', ATableName)) + 'FK_' +
@@ -1991,7 +1974,7 @@ begin
     if FieldByName('description').AsString = '' then
       FieldByName('description').AsString := Trim(FieldByName('lname').AsString);
 
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := Transaction;
       DidActivate := False;
@@ -2551,7 +2534,7 @@ begin
 
   if (sLoadFromStream in BaseState) then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       if Transaction.InTransaction then
         ibsql.Transaction := Transaction
@@ -2594,9 +2577,6 @@ begin
         end;
         FieldByName('lshortname').AsString := S;
       end;
-
-      ibsql.Close;
-
     finally
       ibsql.Free;
     end;
@@ -2956,7 +2936,9 @@ begin
 
     if Assigned(atDatabase) and Assigned(atDatabase.Relations.ByRelationName(DelRelName)) and
       not (atDatabase.InMultiConnection) then
+    begin
       atDatabase.Relations.Remove(atDatabase.Relations.ByRelationName(DelRelName));
+    end;  
 
     if DidActivate and Transaction.InTransaction then
       Transaction.Commit;
@@ -3481,9 +3463,8 @@ begin
   if Assigned(gdcViewField) then
   begin
     DidActivate := False;
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
-      ibsql.Database := Database;
       ibsql.Transaction := Transaction;
 
       DidActivate := ActivateTransaction;
@@ -4239,6 +4220,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   DelFieldName := FieldByName('fieldname').AsString;
   DelFieldRelName := FieldByName('relationname').AsString;
   if Pos(UserPrefix, AnsiUpperCase(FieldByName('fieldname').AsString)) = 0 then
@@ -4660,7 +4642,7 @@ begin
   if S1 = S2 then
     S2 := S2 + '_r';
 
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := Transaction;
     DidActivate := False;
@@ -4790,7 +4772,7 @@ var
   ibsql: TIBSQL;
 begin
   Result := '';
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   if Transaction.Active then
     ibsql.Transaction := Transaction
   else
@@ -5902,8 +5884,8 @@ var
 begin
   NeedSingleUser := True;
   S1 := FieldByName('relationname').AsString;
-  if AnsiPos('USR$', S1) <> 1 then
-    S1 := 'USR$' + S1;
+  if AnsiPos(UserPrefix, S1) <> 1 then
+    S1 := UserPrefix + S1;
 
   FName := GetKeyName(False, FieldByName('crosstable').AsString, GetUniqueID(Database, ReadTransaction));
 
@@ -7065,12 +7047,9 @@ procedure TgdcSimpleTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
   Scripts.Add(CreateSimpleTable);
   Scripts.Add(CreateEditorForeignKey);
-  if (not (sLoadFromStream in BaseState)) then
-  begin
-    Scripts.Add(CreateInsertTrigger);
-    Scripts.Add(CreateInsertEditorTrigger);
-    Scripts.Add(CreateUpdateEditorTrigger);
-  end;
+  Scripts.Add(CreateInsertTrigger);
+  Scripts.Add(CreateInsertEditorTrigger);
+  Scripts.Add(CreateUpdateEditorTrigger);
   Scripts.Add(CreateGrantSQL);
 end;
 
@@ -7151,12 +7130,9 @@ procedure TgdcTreeTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
   Scripts.Add(CreateTreeTable);
   Scripts.Add(CreateEditorForeignKey);
-  if (not (sLoadFromStream in BaseState)) then
-  begin
-    Scripts.Add(CreateInsertTrigger);
-    Scripts.Add(CreateInsertEditorTrigger);
-    Scripts.Add(CreateUpdateEditorTrigger);
-  end;
+  Scripts.Add(CreateInsertTrigger);
+  Scripts.Add(CreateInsertEditorTrigger);
+  Scripts.Add(CreateUpdateEditorTrigger);
   Scripts.Add(CreateGrantSQL);
 end;
 
@@ -9994,11 +9970,7 @@ procedure TgdcTableToTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
   Scripts.Add(CreateNewDomain);
   Scripts.Add(CreateSimpleTable);
-  Scripts.Add(CreateForeignKey);
-  if (not (sLoadFromStream in BaseState)) then
-  begin
-    Scripts.Add(CreateInsertTrigger);
-  end;
+  Scripts.Add(CreateForeignKey); 
   Scripts.Add(CreateGrantSQL);
 end;
 
@@ -10542,10 +10514,7 @@ end;
 procedure TgdcPrimeTable.CreateRelationSQL(Scripts: TSQLProcessList);
 begin
   Scripts.Add(CreatePrimeTable);
-  if (not (sLoadFromStream in BaseState)) then
-  begin
-    Scripts.Add(CreateInsertTrigger);
-  end;
+  Scripts.Add(CreateInsertTrigger);
   Scripts.Add(CreateGrantSQL);
 end;
 
