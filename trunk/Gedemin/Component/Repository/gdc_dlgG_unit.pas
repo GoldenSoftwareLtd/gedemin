@@ -737,7 +737,7 @@ begin
           RF := atDatabase.FindRelationField(RN, FN);
           if RF <> nil then
           begin
-            if RF.Description > '' then
+            if (RF.Description > '') and (TFieldDataLink(L).Control is TWinControl) then
             begin
               TWinControl(TFieldDataLink(L).Control).Hint := RF.Description;
               TWinControl(TFieldDataLink(L).Control).ShowHint := True; 

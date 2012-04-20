@@ -14,6 +14,7 @@ procedure ModifyRUIDProcedure(IBDB: TIBDatabase; Log: TModifyLog);
 procedure ModifyGDRUIDCheck(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DeleteLBRBFromSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
 procedure RefineTriggersForEntry(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddContractorKeyToBNStatementLine(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -734,14 +735,6 @@ begin
       FIBSQL.Transaction := FTransaction;
       FIBSQL.ParamCheck := False;
 
-      {FIBSQL.SQL.Text := 'UPDATE gd_ruid r SET dbid = 17 WHERE xid < 147000000 AND dbid <> 17 and NOT EXISTS (SELECT * FROM gd_ruid r1 WHERE r1.xid = r.xid and r1.dbid = 17) ';
-      FIBSQL.ExecQuery;
-
-      FIBSQL.Close;
-      FIBSQL.SQL.Text := 'DELETE FROM gd_ruid r WHERE xid < 147000000 AND dbid <> 17 ';
-      FIBSQL.ExecQuery;}
-
-
       if ConstraintExist2('GD_RUID', 'GD_CHK_RUID_ETALON', FTransaction) then
       begin
         FIBSQL.SQL.Text := 'ALTER TABLE gd_ruid DROP CONSTRAINT gd_chk_ruid_etalon ';
@@ -1169,6 +1162,52 @@ begin
       FIBSQL.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (130, ''0000.0001.0000.0161'', ''19.11.2010'', ''Change gd_user_storage trigger'') ' +
+        '  MATCHING (id)';
+      FIBSQL.ExecQuery;
+      FIBSQL.Close;
+
+      FTransaction.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if FTransaction.InTransaction then
+          FTransaction.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    FIBSQL.Free;
+    FTransaction.Free;
+  end;
+end;
+
+procedure AddContractorKeyToBNStatementLine(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  FTransaction: TIBTransaction;
+  FIBSQL: TIBSQL;
+begin
+  FTransaction := TIBTransaction.Create(nil);
+  FIBSQL := TIBSQL.Create(nil);
+  try
+    FTransaction.DefaultDatabase := IBDB;
+    try
+      FTransaction.StartTransaction;
+      FIBSQL.Transaction := FTransaction;
+
+      FIBSQL.SQL.Text :=
+        'ALTER TABLE bn_bankstatementline ADD contractorkey dforeignkey ';
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text :=
+        'ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_contractorkey ' +
+        'FOREIGN KEY (contractorkey) REFERENCES gd_company(contactkey) ' +
+        'ON UPDATE CASCADE ';
+      FIBSQL.ExecQuery;
+
+      FIBSQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (152, ''0000.0001.0000.0183'', ''20.04.2012'', ''Contractorkey field added to the bn_statementline table.'') ' +
         '  MATCHING (id)';
       FIBSQL.ExecQuery;
       FIBSQL.Close;

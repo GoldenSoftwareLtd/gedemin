@@ -16,14 +16,102 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
 
+    function GetDBState: String;
+    procedure ReConnect;
+    procedure ActivateSettings(const ASettings: String);
+    procedure SaveStringToFile(const S: String; const FN: String);
+
   public
-    property SettingsLoaded: Boolean read FSettingsLoaded;  
+    property SettingsLoaded: Boolean read FSettingsLoaded;
   end;
 
 implementation
 
 uses
-  gd_security, jclStrings, SysUtils, gdcBaseInterface;
+  Classes, gd_security, jclStrings, SysUtils, gdcBaseInterface,
+  at_frmSQLProcess, at_ActivateSetting_unit;
+
+procedure TgsDBTestCase.ActivateSettings(const ASettings: String);
+var
+  ActiveForm: TActivateSetting;
+begin
+  ActiveForm := TActivateSetting.Create(nil);
+  try
+    ActiveForm.SettingKeys := ASettings;
+    ActiveForm.Perform(WM_ACTIVATESETTING, 0, 1);
+
+    Check(not frmSQLProcess.IsError);
+
+    if not FTr.InTransaction then
+      FTr.StartTransaction;
+  finally
+    ActiveForm.Free;
+  end;
+end;
+
+function TgsDBTestCase.GetDBState: String;
+var
+  q: TIBSQL;
+begin
+  Result := '';
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := FTr;
+
+    q.SQL.Text := 'SELECT LIST(TRIM(rdb$field_name), '','') FROM rdb$relation_fields';
+    q.ExecQuery;
+    Result := Result + q.Fields[0].AsTrimString;
+    q.Close;
+
+    q.SQL.Text := 'SELECT LIST(TRIM(rdb$procedure_name), '','') FROM rdb$procedures';
+    q.ExecQuery;
+    Result := Result + q.Fields[0].AsTrimString;
+    q.Close;
+
+    q.SQL.Text := 'SELECT LIST(TRIM(rdb$trigger_name), '','') FROM rdb$triggers WHERE rdb$system_flag = 0';
+    q.ExecQuery;
+    Result := Result + q.Fields[0].AsTrimString;
+    q.Close;
+
+    q.SQL.Text := 'SELECT LIST(TRIM(rdb$exception_name), '','') FROM rdb$exceptions ';
+    q.ExecQuery;
+    Result := Result + q.Fields[0].AsTrimString;
+    q.Close;
+  finally
+    q.Free;
+  end;
+end;
+
+procedure TgsDBTestCase.ReConnect;
+begin
+  IBLogin.LogOff;
+  IBLogin.Login(False, True);
+
+  if Assigned(frmSQLProcess) then
+    Check(not frmSQLProcess.IsError);
+
+  if not FTr.InTransaction then
+    FTr.StartTransaction;  
+end;
+
+procedure TgsDBTestCase.SaveStringToFile(const S, FN: String);
+var
+  St: TStringStream;
+  FS: TFileStream;
+begin
+  St := TStringStream.Create(S);
+  try
+    FS := TFileStream.Create(FN, fmCreate);
+    try
+      FS.CopyFrom(St, 0);
+    finally
+      FS.Free;
+    end;
+  finally
+    St.Free;
+  end;
+end;
 
 procedure TgsDBTestCase.SetUp;
 begin
