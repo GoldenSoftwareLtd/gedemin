@@ -3201,6 +3201,8 @@ begin
       begin
         if (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BITriggerName) = 0)
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BUTriggerName) = 0)
+          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BI5TriggerName) = 0)
+          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BU5TriggerName) = 0)
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseBITriggerName) = 0)
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseTableTriggersName.BITriggerName) = 0)
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseTableTriggersName.BI5TriggerName) = 0)

@@ -9,6 +9,7 @@ procedure DeleteBITRiggerAtSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DeleteMetaDataSimpleTableAtSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DeleteMetaDataTableToTableAtSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DeleteMetaDataTreeTableAtSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
+procedure DeleteBI5Triggers(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -312,6 +313,82 @@ begin
 
       if Deleted > 0 then
         Log('Удалено триггеров Таблицы простое дерево из at_settingpos: ' + IntToStr(Deleted));
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure DeleteBI5Triggers(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  SQL, q: TIBSQL;
+  Tr: TIBTransaction;
+  Deleted: Integer;
+begin
+  Deleted := 0;
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT t.rdb$trigger_name FROM rdb$triggers t ' +
+      '  JOIN rdb$dependencies d1 ON d1.rdb$dependent_name = t.rdb$trigger_name ' +
+      '    AND d1.rdb$field_name = :F1 ' +
+      '  JOIN rdb$dependencies d2 ON d2.rdb$dependent_name = t.rdb$trigger_name ' +
+      '    AND d2.rdb$field_name = :F2 ' +
+      'WHERE ' +
+      '  t.rdb$trigger_sequence = :P';
+    q.ParamByName('F1').AsString := 'EDITIONDATE';
+    q.ParamByName('F2').AsString := 'EDITORKEY';
+    q.ParamByName('P').AsInteger := 5;
+    try
+      q.ExecQuery;
+
+      SQL := TIBSQL.Create(nil);
+      try
+        SQL.Transaction := Tr;
+
+        while not q.eof do
+        begin
+          SQL.Close;
+          SQL.SQL.Text :=
+            'DELETE FROM at_settingpos t ' +
+            'WHERE ' +
+            '  t.objectclass = ''TgdcTrigger'' ' +
+            '  AND t.objectname = :o ';
+          SQL.ParamByName('o').AsString := q.FieldByName('rdb$trigger_name').AsTrimString;
+          SQL.ExecQuery;
+
+          Deleted := Deleted + SQL.RowsAffected;
+          q.Next;
+        end;
+
+        SQL.Close;
+        SQL.SQL.Text :=
+          'UPDATE OR INSERT INTO fin_versioninfo ' +
+          '  VALUES (153, ''0000.0001.0000.0184'', ''25.04.2012'', ''Delete BI5, BU5 triggers.'') ' +
+          '  MATCHING (id)';
+        SQL.ExecQuery;
+
+        Tr.Commit;
+      finally
+        SQL.Free;
+      end;
+
+      if Deleted > 0 then
+        Log('Удалено триггеров BI5, BU5 из at_settingpos: ' + IntToStr(Deleted));
     except
       on E: Exception do
       begin

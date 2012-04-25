@@ -16,6 +16,8 @@ type
     ExceptName,
     BITriggerName,
     BUTriggerName,
+    BI5TriggerName,
+    BU5TriggerName,
     LBIndexName,
     RBIndexName,
     ChkName: String
@@ -620,6 +622,32 @@ begin
 
       q.Close;
       q.SQL.Text :=
+        'SELECT t.rdb$trigger_name FROM rdb$triggers t ' +
+        '  JOIN rdb$dependencies d1 ON d1.rdb$dependent_name = t.rdb$trigger_name ' +
+        '    AND d1.rdb$field_name = :F1 ' +
+        '  JOIN rdb$dependencies d2 ON d2.rdb$dependent_name = t.rdb$trigger_name ' +
+        '    AND d2.rdb$field_name = :F2 ' +
+        'WHERE t.rdb$trigger_type = :T ' +
+        '  AND t.rdb$relation_name = :RN' +
+        '  AND t.rdb$trigger_sequence = :P';
+      q.ParamByName('T').AsInteger := 1;
+      q.ParamByName('F1').AsString := 'EDITIONDATE';
+      q.ParamByName('F2').AsString := 'EDITORKEY';
+      q.ParamByName('RN').AsString := ARelName;
+      q.ParamByName('P').AsInteger := 5;
+      q.ExecQuery;
+
+      Names.BI5TriggerName := q.Fields[0].AsTrimString;
+
+      q.Close;
+
+      q.ParamByName('T').AsInteger := 3;
+      q.ExecQuery;
+
+      Names.BU5TriggerName := q.Fields[0].AsTrimString;
+
+      q.Close;
+      q.SQL.Text :=
         'SELECT DISTINCT rdb$depended_on_name FROM rdb$dependencies WHERE rdb$dependent_name = :depname ' +
         ' AND rdb$depended_on_type = 7';
       q.ParamByName('depname').AsString := Names.BUTriggerName;
@@ -724,6 +752,8 @@ begin
     ExceptName := '';
     BITriggerName := '';
     BUTriggerName := '';
+    BI5TriggerName := '';
+    BU5TriggerName := '';
     LBIndexName := '';
     RBIndexName := '';
     ChkName := '';

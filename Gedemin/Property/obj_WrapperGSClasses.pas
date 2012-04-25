@@ -3738,6 +3738,10 @@ type
     procedure Assign_(const Source: IgsParamData); safecall;
     function  Get_ValuesList: WideString; safecall;
     procedure Set_ValuesList(const Value: WideString); safecall;
+    function  Get_SortOrder: Shortint; safecall;
+    procedure Set_SortOrder(Value: Shortint); safecall;
+    function  Get_SortField: WideString; safecall;
+    procedure Set_SortField(const Value: WideString); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -18097,6 +18101,26 @@ end;
 procedure TwrpGsParamData.Set_ValuesList(const Value: WideString);
 begin
   GetParamData.ValuesList := Value;
+end;
+
+function TwrpGsParamData.Get_SortOrder: Shortint;
+begin
+  Result := GetParamData.SortOrder;
+end;
+
+procedure TwrpGsParamData.Set_SortOrder(Value: Shortint);
+begin
+  GetParamData.SortOrder := Value;
+end;
+
+function TwrpGsParamData.Get_SortField: WideString;
+begin
+  Result := GetParamData.SortField;
+end;
+
+procedure TwrpGsParamData.Set_SortField(const Value: WideString);
+begin
+  GetParamData.SortField := Value;
 end;
 
 { TwrpGsFrmGedeminMain }
