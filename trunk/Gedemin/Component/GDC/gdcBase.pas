@@ -8997,7 +8997,9 @@ begin
                           if Obj is TgdcTrigger then
                           begin
                             if (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), TreeDependentNames.BITriggerName) = 0)
-                               or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), TreeDependentNames.BUTriggerName) = 0) then
+                               or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), TreeDependentNames.BUTriggerName) = 0)
+                               or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), TreeDependentNames.BI5TriggerName) = 0)
+                               or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), TreeDependentNames.BU5TriggerName) = 0) then
                             begin
                               ibsql.Next;
                               Continue;

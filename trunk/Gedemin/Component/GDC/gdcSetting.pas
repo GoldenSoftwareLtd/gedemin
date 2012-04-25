@@ -2251,6 +2251,8 @@ begin
                         begin
                           if (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BITriggerName) <> 0)
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BUTriggerName) <> 0)
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BI5TriggerName) <> 0)
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BU5TriggerName) <> 0)
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseBITriggerName) <> 0)
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseTableTriggersName.BITriggerName) <> 0)
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseTableTriggersName.BI5TriggerName) <> 0)

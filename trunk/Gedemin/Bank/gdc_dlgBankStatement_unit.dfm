@@ -106,6 +106,21 @@ inherited gdc_dlgBankStatement: Tgdc_dlgBankStatement
             DisplayField = 'alias'
             ValueList.Strings = ()
             DropDownCount = 8
+          end
+          item
+            Lookup.LookupListField = 'NAME'
+            Lookup.LookupKeyField = 'ID'
+            Lookup.LookupTable = 'gd_contact c JOIN gd_company cp ON cp.contactkey = c.id'
+            Lookup.ViewType = vtGrid
+            Lookup.gdClassName = 'TgdcCompany'
+            Lookup.Database = dmDatabase.ibdbGAdmin
+            Lookup.Transaction = ibtrCommon
+            Lookup.Distinct = False
+            EditorStyle = cesLookup
+            FieldName = 'contractorkey'
+            DisplayField = 'CONTRACTORNAME'
+            ValueList.Strings = ()
+            DropDownCount = 8
           end>
       end
       inherited tbdTop: TTBDock

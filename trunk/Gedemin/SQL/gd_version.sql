@@ -488,6 +488,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (152, '0000.0001.0000.0183', '20.04.2012', 'Contractorkey field added to the bn_statementline table.');
 
+INSERT INTO fin_versioninfo
+  VALUES (153, '0000.0001.0000.0184', '25.04.2012', 'Delete BI5, BU5 triggers.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
