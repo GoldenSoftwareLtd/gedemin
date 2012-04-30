@@ -1,6 +1,7 @@
+
 {++
 
-  Copyright (c) 2001 - 2010 by Golden Software of Belarus
+  Copyright (c) 2001 - 2012 by Golden Software of Belarus
 
   Module
 
@@ -150,7 +151,7 @@ var
 implementation
 
 uses
-  FastMM4, gs_Exception;
+  {$IFDEF GEDEMIN}FastMM4,{$ENDIF} gs_Exception;
 
 type
   TgdFreeNotificationComponent = class;
@@ -556,9 +557,11 @@ var
 begin
   if Assigned(AnObject) then
   begin
+    {$IFDEF GEDEMIN}
     C := DetectClassInstance(Pointer(AnObject));
     if (C <> nil) and (C.InheritsFrom(TComponent)) then
       TComponent(AnObject).RemoveFreeNotification(FFreeComponentSpy);
+    {$ENDIF}  
     FgdWrapServerList.Remove(Integer(AnObject));
   end;
 end;

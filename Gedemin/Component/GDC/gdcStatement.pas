@@ -35,7 +35,6 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
-    function CreateDialogForm: TCreateableForm; override;
 
     procedure DoAfterOpen; override;
     procedure CreateFields; override;
@@ -47,6 +46,7 @@ type
     function DocumentTypeKey: Integer; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcBankCatalogueLine = class(TgdcBaseLine)
@@ -57,17 +57,17 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
     procedure _DoOnNewRecord; override;
     procedure DoAfterOpen; override;
     procedure DoBeforePost; override;
 
   public
+    constructor Create(AnOwner: TComponent); override;
+
     function DocumentTypeKey: Integer; override;
 
-    constructor Create(AnOwner: TComponent); override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   TgdcBankStatement = class(TgdcBaseBank)
@@ -87,10 +87,10 @@ type
     function GetDetailObject: TgdcDocument; override;
 
   public
+    function DocumentTypeKey: Integer; override;
+
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-
-    function DocumentTypeKey: Integer; override;
  end;
 
   TgdcBaseStatementLine = class(TgdcBaseLine)
@@ -122,7 +122,7 @@ type
 
     function GetMasterObject: TgdcDocument; override;
 
-  public  
+  public
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
@@ -357,58 +357,6 @@ begin
   Result := BN_DOC_BANKCATALOGUE;
 end;
 
-function TgdcBankCatalogue.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCBANKCATALOGUE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBANKCATALOGUE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBANKCATALOGUE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBANKCATALOGUE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBANKCATALOGUE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgBankCatalogue.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKCATALOGUE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBANKCATALOGUE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcBankCatalogue.DoAfterOpen;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -508,64 +456,18 @@ begin
   Result := TgdcBankCatalogueLine.Create(Owner);
 end;
 
+class function TgdcBankCatalogue.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgBankCatalogue';
+end;
+
 { TgdcBankCatalogueLine }
 
 constructor TgdcBankCatalogueLine.Create(AnOwner: TComponent);
 begin
   inherited;
   CustomProcess := [cpInsert, cpModify];
-end;
-
-function TgdcBankCatalogueLine.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCBANKCATALOGUELINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCBANKCATALOGUELINE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCBANKCATALOGUELINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCBANKCATALOGUELINE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCBANKCATALOGUELINE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgBankCatalogueLine.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKCATALOGUELINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCBANKCATALOGUELINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
 end;
 
 function TgdcBankCatalogueLine.DocumentTypeKey: Integer;
@@ -916,6 +818,12 @@ begin
   {END MACRO}
 end;
 
+class function TgdcBankCatalogueLine.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgBankCatalogueLine';
+end;
+
 { TgdcBankStatement }
 
 procedure TgdcBankStatement.CustomInsert(Buff: Pointer);
@@ -946,10 +854,10 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
- { CustomExecQuery('INSERT INTO bn_bankstatement (documentkey, accountkey, rate' +
+  CustomExecQuery('INSERT INTO bn_bankstatement (documentkey, accountkey, rate' +
       ') VALUES ' +
       '(:NEW_id, :NEW_accountkey, :NEW_rate ' +
-      ') ', Buff); }
+      ') ', Buff); 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKSTATEMENT', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -986,9 +894,9 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
-{  CustomExecQuery('UPDATE bn_bankstatement SET accountkey=:NEW_accountkey, ' +
+  CustomExecQuery('UPDATE bn_bankstatement SET accountkey=:NEW_accountkey, ' +
     ' rate = :NEW_rate ' +
-    ' WHERE documentkey=:OLD_documentkey ', Buff); }
+    ' WHERE documentkey=:OLD_documentkey ', Buff); 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKSTATEMENT', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1258,6 +1166,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
   SetCurrFieldReadOnly;
 
@@ -1649,6 +1558,7 @@ begin
     MasterSource.DataSet.Post;
     MasterSource.DataSet.Edit;
   end;
+  
   inherited;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASELINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
@@ -1694,7 +1604,7 @@ begin
   begin
     if FieldByName('companykeyline').IsNull then
     begin
-      ibsql := TIBSQL.Create(Self);
+      ibsql := TIBSQL.Create(nil);
       try
         ibsql.Transaction := ReadTransaction;
         ibsql.SQL.Text := 'SELECT ac.companykey, b.bankbranch FROM gd_companyaccount ac ' +
@@ -1724,7 +1634,7 @@ begin
          (FieldByName('bankcode').AsString = '')
     then
     begin
-      ibsql := TIBSQL.Create(Self);
+      ibsql := TIBSQL.Create(nil);
       try
         ibsql.Transaction := ReadTransaction;
         ibsql.SQL.Text := 'SELECT ac.account, b.bankcode, b.bankbranch ' +
@@ -1743,8 +1653,7 @@ begin
       finally
         ibsql.Free;
       end;
-    end
-
+    end;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASELINE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
@@ -1931,18 +1840,21 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
-{  try
+
+  try
     CustomExecQuery  ('INSERT INTO bn_bankstatementline (id, documentkey, bankstatementkey, companykey, ' +
-      'dsumncu, dsumcurr, csumncu, csumcurr, paymentmode, operationtype, ' +
+      'contractorkey, dsumncu, dsumcurr, csumncu, csumcurr, paymentmode, operationtype, ' +
       'account, bankcode, bankbranch, docnumber, comment, accountkey) ' +
       'VALUES (:NEW_lineid, :NEW_documentkey, :NEW_bankstatementkey, :NEW_companykeyline, ' +
-      ':NEW_dsumncu, :NEW_dsumcurr, :NEW_csumncu, :NEW_csumcurr, :NEW_paymentmode, :NEW_operationtype, ' +
+      ':NEW_contractorkey, :NEW_dsumncu, :NEW_dsumcurr, :NEW_csumncu, :NEW_csumcurr, :NEW_paymentmode, :NEW_operationtype, ' +
       ':NEW_account, :NEW_bankcode, :NEW_bankbranch, :NEW_docnumber, :NEW_comment, :NEW_accountkey) ', Buff);
   except
     inherited CustomDelete(Buff);
     raise;
-  end;}
+  end;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKSTATEMENTLINE', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1978,14 +1890,17 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
-{  CustomExecQuery ('UPDATE bn_bankstatementline SET documentkey=:NEW_documentkey, bankstatementkey=:NEW_BANKSTATEMENTKEY, ' +
-    'companykey=:NEW_companykeyline, dsumncu=:DSUMNCU, ' +
+
+  CustomExecQuery ('UPDATE bn_bankstatementline SET documentkey=:NEW_documentkey, bankstatementkey=:NEW_BANKSTATEMENTKEY, ' +
+    'companykey=:NEW_companykeyline, contractorkey=:NEW_contractorkey, dsumncu=:DSUMNCU, ' +
     'dsumcurr=:NEW_DSUMCURR, csumncu=:NEW_CSUMNCU, csumcurr=:NEW_CSUMCURR, ' +
     'paymentmode=:NEW_PAYMENTMODE, operationtype=:NEW_OPERATIONTYPE, account=:NEW_ACCOUNT, ' +
     'bankcode=:NEW_BANKCODE, bankbranch=:NEW_BANKBRANCH, docnumber=:NEW_DOCNUMBER, comment=:NEW_COMMENT, ' +
     'accountkey = :NEW_accountkey ' +
-    'WHERE id=:OLD_lineid ', Buff); }
+    'WHERE id=:OLD_lineid ', Buff);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBANKSTATEMENTLINE', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

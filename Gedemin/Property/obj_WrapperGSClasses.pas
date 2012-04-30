@@ -3571,6 +3571,9 @@ type
     function  Get_AllowStreamedEnabled: WordBool; safecall;
     procedure Set_AllowStreamedEnabled(Value: WordBool); safecall;
     procedure PutString(const S: WideString); safecall;
+    function  Get_PacketSize: Integer; safecall;
+    procedure Set_PacketSize(Value: Integer); safecall;
+    function  Get_IntCode: Integer; safecall;
   end;
 
   TwrpStreamSaver = class(TwrpObject, IgsStreamSaver)
@@ -17179,7 +17182,7 @@ end;
 
 procedure TwrpGsComScaner.Set_BarCode(const Value: WideString);
 begin
-  GetGsComScaner.BarCode := Value;
+  //GetGsComScaner.BarCode := Value;
 end;
 
 function TwrpGsComScaner.Get_Enabled: WordBool;
@@ -18319,6 +18322,21 @@ end;
 function TwrpFTPClient.DeleteDir(const DirName: WideString): WordBool;
 begin
   Result := GetFTPClient.DeleteDir(DirName);
+end;
+
+function TwrpGsComScaner.Get_PacketSize: Integer;
+begin
+  Result := GetGsComScaner.PacketSize;
+end;
+
+procedure TwrpGsComScaner.Set_PacketSize(Value: Integer);
+begin
+  GetGsComScaner.PacketSize := Value;
+end;
+
+function TwrpGsComScaner.Get_IntCode: Integer;
+begin
+  Result := GetGsComScaner.IntCode;
 end;
 
 initialization
