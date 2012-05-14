@@ -62,7 +62,7 @@ type
     property CRSuffix: Boolean read FCRSuffix write FCRSuffix default True;
     property LFSuffix: Boolean read FLFSuffix write FLFSuffix default True;
 
-    property BarCode: String read FBarCode;
+    property BarCode: String read FBarCode write SetBarCode;
     property TestCode: String read FTestCode write FTestCode;
     property Enabled: Boolean read FEnabled write SetEnabled default False;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
