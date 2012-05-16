@@ -49,9 +49,9 @@ implementation
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
-  gd_directories_const, IBSQL, IBDatabase, 
+  gd_directories_const, IBSQL, IBDatabase,
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
-  {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version;
+  {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version, FastMM4;
 
 type
   TMemoryStatusEx = record
@@ -368,6 +368,7 @@ begin
   AddSpaces('ZLib', ZLIB_VERSION);
   AddSpaces('JCL', IntToStr(JclVersionMajor) + '.' + IntToStr(JclVersionMinor));
   AddSpaces('Toolbar 2000', Toolbar2000Version);
+  AddSpaces('FastMM', FastMMVersion);
   {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
