@@ -6982,8 +6982,9 @@ begin
   S.Add(lS + 'EntryDate = EndDate');
   S.Add(lS + Format('TrRecordKey = gdcBaseManager.GetIDByRUIDString("%s")', [FTrRecordRUID]));
 //  S.Add(lS + Format('TransactionKey = gdcBaseManager.GetIDByRUIDString("%s")', [FTransactionRUID]));
-  S.Add(lS + 'set Transaction = gdcDocument.Transaction');
-  S.Add(lS + 'set Creator = new TCreator');
+  S.Add(lS + 'Set Transaction = gdcDocument.Transaction');
+  S.Add(lS + 'GS.Transaction = Transaction');
+  S.Add(lS + 'Set Creator = New TCreator');
   FCheckMasterInsertLine := S.Count;
 
   DoGenearteCallExceptFunction(S, Paragraph);
