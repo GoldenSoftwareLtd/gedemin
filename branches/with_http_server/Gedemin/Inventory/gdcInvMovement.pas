@@ -409,6 +409,7 @@ type
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetGroupClause: String; override;
     function GetRefreshSQLText: String; override;
+    function CheckTheSameStatement: String; override;
 
     procedure SetActive(Value: Boolean); override;
 
@@ -420,6 +421,7 @@ type
     procedure DoBeforeInsert; override;
 
     procedure CreateFields; override;
+
   public
     constructor Create(anOwner: TComponent); override;
     destructor Destroy; override;
@@ -430,10 +432,9 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetListTableAlias: String; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
+    class function IsAbstractClass: Boolean; override;
 
     function GetRemainsName: String;
 
@@ -5534,6 +5535,57 @@ begin
     FCurrentRemains := Value;
     FSQLInitialized := False;
   end;
+end;
+
+function TgdcInvBaseRemains.CheckTheSameStatement: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_CHECKTHESAMESTATEMENT('TGDCINVBASEREMAINS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCINVBASEREMAINS', KEYCHECKTHESAMESTATEMENT);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCHECKTHESAMESTATEMENT]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVBASEREMAINS') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVBASEREMAINS',
+  {M}          'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'CHECKTHESAMESTATEMENT' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TGDCINVBASEREMAINS(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVBASEREMAINS' then
+  {M}        begin
+  {M}          Result := Inherited CheckTheSameStatement;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+  Result := '';
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVBASEREMAINS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCINVBASEREMAINS', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT);
+  {M}  end;
+  {END MACRO}
+end;
+
+class function TgdcInvBaseRemains.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcInvBaseRemains');
 end;
 
 { TgdcInvRemains }

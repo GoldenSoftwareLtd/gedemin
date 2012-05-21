@@ -20,6 +20,7 @@ type
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+    class function IsAbstractClass: Boolean; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -472,6 +473,11 @@ class function TgdcAcctBaseConfig.GetListTable(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'AC_ACCT_CONFIG'
+end;
+
+class function TgdcAcctBaseConfig.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcAcctBaseConfig');
 end;
 
 { TgdcAcctLedgerConfig }

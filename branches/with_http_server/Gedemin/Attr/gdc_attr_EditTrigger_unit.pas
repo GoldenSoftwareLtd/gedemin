@@ -97,9 +97,8 @@ begin
   if FCheckTrigger then
   begin
     Result := False;
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
-      ibsql.Database := Database;
       ibsql.Transaction := Transaction;
       ibsql.SQL.Text := TriggerBody;
       ibsql.ParamCheck := False;

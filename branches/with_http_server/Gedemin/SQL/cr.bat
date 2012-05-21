@@ -24,7 +24,7 @@ set delphi_path=C:\Program Files\Borland\Delphi5\Bin
 goto path_is_set
 
 :os64
-set delphi_path=C:\Program Files (x86)\Borland\Delphi5\Bin
+set delphi_path=d:\developing\Borland\Delphi5\Bin
 
 :path_is_set
 
@@ -33,9 +33,9 @@ del CheckOS.txt
 
 cd ..\Utility\MakeLBRBTree
 
-"%delphi_path%\dcc32.exe" -b makelbrbtree.dpr
+rem "%delphi_path%\dcc32.exe" -b makelbrbtree.dpr
 
-if not errorlevel 0 goto Error
+rem if not errorlevel 0 goto Error
 
 cd ..\..\sql
 

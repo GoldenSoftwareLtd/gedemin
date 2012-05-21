@@ -9,10 +9,11 @@ uses
 type
   TgdcHoliday = class(TgdcBase)
   protected
-    function CreateDialogForm: TCreateableForm; override;
     procedure CustomInsert(Buff: Pointer); override;
+
   public
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     // вяртае ці з'яўляецца перададзеная дата сьвяточным днем
     // пошук ідзе па адкрытаму датасету. Выкарыстоўваецца функцыя Locate.
@@ -27,9 +28,6 @@ type
   end;
 
   TgdcTableCalendar = class(TgdcBase)
-  protected
-    function CreateDialogForm: TCreateableForm; override;
-
   public
     procedure CalcSchedule(const DateBegin, DateEnd: TDateTime;
       const UseHolidays: Boolean);
@@ -42,6 +40,7 @@ type
       out TotalDays, WorkDays, WorkHours: Double);
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -315,60 +314,6 @@ begin
   end;
 end;
 
-function TgdcTableCalendar.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCTABLECALENDAR', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCTABLECALENDAR', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCTABLECALENDAR') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCTABLECALENDAR',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCTABLECALENDAR' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Result := Tgdc_wage_dlgTableCalendar.CreateSubType(ParentForm, SubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCTABLECALENDAR', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCTABLECALENDAR', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcTableCalendar.GetDataForPeriod(const DateBegin,
   DateEnd: TDateTime; out TotalDays, WorkDays, WorkHours: Double);
 begin
@@ -418,10 +363,16 @@ begin
   end;
 end;
 
+class function TgdcTableCalendar.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_wage_dlgTableCalendar';
+end;
+
 class function TgdcTableCalendar.GetListField(
   const ASubType: TgdcSubType): String;
 begin
-  Result := 'name';
+  Result := 'NAME';
 end;
 
 class function TgdcTableCalendar.GetListTable(
@@ -668,68 +619,14 @@ begin
   if HasSubSet('ByTableCalendar') then
     S.Add('z.tblcalkey=:TblCalKey');
   if HasSubSet('ByDateInterval') then
-    S.Add('z.theday >= :DateBegin AND z.theday <= :DateEnd');  
+    S.Add('z.theday >= :DateBegin AND z.theday <= :DateEnd');
 end;
 
 { TgdcHoliday }
 
-function TgdcHoliday.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCHOLIDAY', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCHOLIDAY', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCHOLIDAY') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCHOLIDAY',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCHOLIDAY' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Result := Tgdc_wage_dlgHoliday.CreateSubType(ParentForm, SubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCHOLIDAY', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCHOLIDAY', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 class function TgdcHoliday.GetListField(const ASubType: TgdcSubType): String;
 begin
-  Result := 'name';
+  Result := 'NAME';
 end;
 
 class function TgdcHoliday.GetListTable(const ASubType: TgdcSubType): String;
@@ -740,63 +637,27 @@ end;
 class function TgdcHoliday.QIsHoliday(const TheDate: TDate): Boolean;
 var
   q: TIBSQL;
-  DidActivate: Boolean;
-//  Y, M, D: Word;
 begin
   Assert(Assigned(gdcBaseManager));
   Assert(Assigned(gdcBaseManager.ReadTransaction));
 
-{  DecodeDate(TheDate, Y, M, D);
-  DidActivate := False;
   q := TIBSQL.Create(nil);
   try
-    q.Database := gdcBaseManager.Database;
     q.Transaction := gdcBaseManager.ReadTransaction;
-    q.GoToFirstRecordOnExecute := True;
-    DidActivate := not q.Transaction.InTransaction;
-    if DidActivate then
-      q.Transaction.StartTransaction;
     q.SQL.Text :=
-      Format('SELECT id FROM wg_holiday WHERE theday=%d AND themonth=%d',
-        [D, M]);
+      'SELECT id FROM wg_holiday WHERE holidaydate = :d AND COALESCE(disabled, 0) = 0 ';
+    q.ParamByName('d').AsDateTime := TheDate;
     q.ExecQuery;
     Result := not q.EOF;
-    q.Close;
   finally
-    if DidActivate and q.Transaction.InTransaction then
-      q.Transaction.Commit;
-    q.Free;
-  end;}
-  DidActivate := False;
-  q := TIBSQL.Create(nil);
-  try
-    q.Database := gdcBaseManager.Database;
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.GoToFirstRecordOnExecute := True;
-    DidActivate := not q.Transaction.InTransaction;
-    if DidActivate then
-      q.Transaction.StartTransaction;
-    q.SQL.Text :=
-      Format('SELECT id FROM wg_holiday WHERE holidaydate = ''%s''',
-        [DateToStr(TheDate)]);
-    q.ExecQuery;
-    Result := not q.EOF;
-    q.Close;
-  finally
-    if DidActivate and q.Transaction.InTransaction then
-      q.Transaction.Commit;
     q.Free;
   end;
 end;
 
 function TgdcHoliday.IsHoliday(const TheDate: TDate): Boolean;
-{var
-  D, M, Y: Word;
 begin
-  DecodeDate(TheDate, Y, M, D);
-  Result := Locate('theday;themonth', VarArrayOf([D, M]), []);}
-begin
-  Result := Locate('holidaydate', TheDate, []);
+  Result := Locate('holidaydate', TheDate, [])
+    and (FieldByName('disabled').AsInteger = 0);
 end;
 
 class function TgdcHoliday.GetViewFormClassName(
@@ -855,6 +716,12 @@ begin
   {M}      ClearMacrosStack2('TGDCHOLIDAY', 'CUSTOMINSERT', KEYCUSTOMINSERT);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcHoliday.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_wage_dlgHoliday';
 end;
 
 initialization

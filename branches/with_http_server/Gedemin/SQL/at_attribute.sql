@@ -147,6 +147,9 @@ ALTER TABLE at_fields ADD CONSTRAINT at_fk_fields_editorkey
   FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
   ON UPDATE CASCADE;
 
+ALTER TABLE at_fields ADD CONSTRAINT at_chk_fields_numeration
+  CHECK ((NUMERATION IS NULL) OR (OCTET_LENGTH(NUMERATION) > 0));
+
 COMMIT;
 
 CREATE UNIQUE INDEX at_x_fields_fn ON at_fields (fieldname);

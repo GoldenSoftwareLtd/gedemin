@@ -1258,6 +1258,21 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (140, '0000.0001.0000.0171', '14.03.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS added.');
 
+INSERT INTO fin_versioninfo
+  VALUES (141, '0000.0001.0000.0172', '14.03.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS added. Part #2.');
+
+INSERT INTO fin_versioninfo
+  VALUES (142, '0000.0001.0000.0173', '04.04.2012', 'Trigger GD_AU_DOCUMENTTYPE_MOVEMENT added.');
+
+INSERT INTO fin_versioninfo
+  VALUES (143, '0000.0001.0000.0174', '04.04.2012', 'Some minor changes.');
+
+INSERT INTO fin_versioninfo
+  VALUES (144, '0000.0001.0000.0175', '04.04.2012', 'Protect system good groups.');
+
+INSERT INTO fin_versioninfo
+  VALUES (145, '0000.0001.0000.0176', '05.04.2012', 'Issue 2764.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -3532,6 +3547,9 @@ ALTER TABLE at_fields ADD CONSTRAINT at_fk_fields_editorkey
   FOREIGN KEY(editorkey) REFERENCES gd_people(contactkey)
   ON UPDATE CASCADE;
 
+ALTER TABLE at_fields ADD CONSTRAINT at_chk_fields_numeration
+  CHECK ((NUMERATION IS NULL) OR (OCTET_LENGTH(NUMERATION) > 0));
+
 COMMIT;
 
 CREATE UNIQUE INDEX at_x_fields_fn ON at_fields (fieldname);
@@ -5454,17 +5472,42 @@ CREATE INDEX gd_x_documenttype_ruid
   ON gd_documenttype(ruid);
 
 CREATE UNIQUE INDEX gd_x_documenttype_name ON gd_documenttype
-  /*COMPUTED BY (UPPER(name));*/
   (name);
 
 COMMIT;
-/*
-CREATE DESC INDEX gd_x_documenttype_rb
-  ON gd_documenttype(rb);
 
-CREATE ASC INDEX gd_x_documenttype_lb
-  ON gd_documenttype(lb);
-*/
+CREATE EXCEPTION gd_e_cannotchangebranch 'Can not change branch!';
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER gd_au_documenttype FOR gd_documenttype
+  ACTIVE
+  AFTER UPDATE
+  POSITION 20000
+AS
+  DECLARE VARIABLE new_root dintkey;
+  DECLARE VARIABLE old_root dintkey;
+BEGIN
+  IF (NEW.parent IS DISTINCT FROM OLD.parent) THEN
+  BEGIN
+    SELECT id FROM gd_documenttype
+    WHERE parent IS NULL AND lb <= NEW.lb AND rb >= NEW.rb
+    INTO :new_root;
+
+    SELECT id FROM gd_documenttype
+    WHERE parent IS NULL AND lb <= OLD.lb AND rb >= OLD.rb
+    INTO :old_root;
+
+    IF (:new_root <> :old_root) THEN
+    BEGIN
+      IF (:new_root IN (804000, 805000) OR :old_root IN (804000, 805000)) THEN
+        EXCEPTION gd_e_cannotchangebranch;
+    END
+  END
+END
+^
+
+SET TERM ; ^
 
 /* Нумерация документов */
 
@@ -5493,54 +5536,6 @@ ALTER TABLE gd_lastnumber ADD CONSTRAINT gd_fk_ln_ourcompanykey
   FOREIGN KEY (ourcompanykey) REFERENCES gd_ourcompany(companykey)
   ON DELETE CASCADE
   ON UPDATE CASCADE;
-
-/* Доступные типовые документы для конкретного тип. документа */
-/*
-CREATE TABLE gd_accessdoctype
-(
-  documenttypekey     dintkey,
-  accessdoctypekey    dintkey,
-
-  afull               dsecurity,
-  achag               dsecurity,
-  aview               dsecurity
-);
-
-ALTER TABLE gd_accessdoctype ADD CONSTRAINT gd_pk_accessdoctype
-  PRIMARY KEY (documenttypekey, accessdoctypekey);
-
-ALTER TABLE gd_accessdoctype ADD CONSTRAINT gd_fk_adt_documenttypekey
-  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE;
-
-ALTER TABLE gd_accessdoctype ADD CONSTRAINT gd_fk_adt_accessdoctypekey
-  FOREIGN KEY (accessdoctypekey) REFERENCES gd_documenttype(id)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE;
-*/  
-
-/* Таблица хранит таблицы, которые отвечают за конкретный документ */
-
-/*
-
-CREATE TABLE gd_relationtypedoc
-(
-  doctypekey          dintkey,             
-  relationname        dtablename NOT NULL, 
-  ismaindoc           dboolean             
-                                           
-);
-
-
-ALTER TABLE gd_relationtypedoc ADD CONSTRAINT gd_pk_relationtypedoc
-  PRIMARY KEY (doctypekey, relationname);
-
-ALTER TABLE gd_relationtypedoc ADD CONSTRAINT gd_fk_relationtypedoc_doctype
-  FOREIGN KEY (doctypekey) REFERENCES gd_documenttype (id)
-  ON UPDATE CASCADE;
-
-*/
 
 COMMIT;
 
@@ -5632,37 +5627,9 @@ CREATE  INDEX gd_x_document_number
   ON gd_document(number);
 
 
-SET TERM ^ ;
-
-
-SET TERM ; ^
-
-
 COMMIT;
 
-/* Доступные документы системы */
-/*
-CREATE TABLE gd_documentsystem
-(
-  subsystemkey          dintkey,
-  documenttypekey       dintkey,
-  reserved              dinteger
-);
-
-ALTER TABLE gd_documentsystem ADD CONSTRAINT gd_pk_documentsystem
-  PRIMARY KEY (subsystemkey, documenttypekey);
-
-ALTER TABLE gd_documentsystem ADD CONSTRAINT gd_fk_ds_subsystemkey
-  FOREIGN KEY (subsystemkey) REFERENCES gd_subsystem(id) ON UPDATE CASCADE;
-
-ALTER TABLE gd_documentsystem ADD CONSTRAINT gd_fk_ds_documenttypekey
-  FOREIGN KEY (documenttypekey) REFERENCES gd_documenttype(id) ON UPDATE CASCADE;
-
-COMMIT;
-*/
-
 SET TERM ^ ;
-
 
 /****************************************************/
 /**                                                **/
@@ -8256,21 +8223,9 @@ ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_fk_goodgroup_creatorkey
   FOREIGN KEY (creatorkey) REFERENCES gd_contact(id)
   ON UPDATE CASCADE;
 
-/*
-ALTER TABLE gd_goodgroup ADD CONSTRAINT gd_chk_goodgroup_tree_limit
-  CHECK ((lb <= rb) or ((rb is NULL) and (lb is NULL)));
-
-CREATE DESC INDEX gd_x_goodgroup_rb
-  ON gd_goodgroup(rb);
-
-CREATE ASC INDEX gd_x_goodgroup_lb
-  ON gd_goodgroup(lb);
-*/
-
 COMMIT;
 
-
-COMMIT;
+CREATE EXCEPTION gd_e_cannotchange_goodgroup 'Can not change good group!';
 
 SET TERM ^ ;
 
@@ -8285,28 +8240,45 @@ BEGIN
 END
 ^
 
-/*
-CREATE TRIGGER gd_bi_goodgroup_2 FOR gd_goodgroup
-  BEFORE INSERT
-  POSITION 2
+CREATE OR ALTER TRIGGER gd_ad_goodgroup_protect FOR gd_goodgroup
+  ACTIVE
+  AFTER DELETE
+  POSITION 0
 AS
-  DECLARE VARIABLE AFULL INTEGER;
-  DECLARE VARIABLE ACHAG INTEGER;
-  DECLARE VARIABLE AVIEW INTEGER;
 BEGIN
-  IF (NEW.parent IS NOT NULL) THEN
+  IF (UPPER(OLD.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ')) THEN
+    EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя удалить группу ' || OLD.Name;
+END
+^
+
+CREATE OR ALTER TRIGGER gd_ai_goodgroup_protect FOR gd_goodgroup
+  ACTIVE
+  AFTER INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (UPPER(NEW.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ')) THEN
   BEGIN
-    SELECT C.AFULL, C.ACHAG, C.AVIEW
-    FROM GD_GOODGROUP C
-    WHERE C.ID = NEW.Parent
-    INTO :AFULL, :ACHAG, :AVIEW;
-    NEW.AFULL = g_b_or(g_b_and(NEW.AFULL, :AFULL), 1);
-    NEW.ACHAG = g_b_or(g_b_and(NEW.ACHAG, :ACHAG), 1);
-    NEW.AVIEW = g_b_or(g_b_and(NEW.AVIEW, :AVIEW), 1);
+    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE UPPER(name) = UPPER(NEW.name))) THEN
+      EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя повторно создать группу ' || NEW.Name;
   END
 END
 ^
-*/
+
+CREATE OR ALTER TRIGGER gd_au_goodgroup_protect FOR gd_goodgroup
+  ACTIVE
+  AFTER UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF ((UPPER(NEW.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ'))
+    OR (UPPER(OLD.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ'))) THEN
+  BEGIN
+    IF (NEW.name <> OLD.name OR NEW.parent IS DISTINCT FROM OLD.parent) THEN
+      EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя изменить группу ' || NEW.Name;
+  END
+END
+^
 
 SET TERM ; ^
 
@@ -8830,7 +8802,6 @@ CREATE ASC INDEX ac_x_account_alias
 
 COMMIT;
 
-CREATE EXCEPTION ac_e_invalidaccountalias 'Duplicate account aliases are not allowed!';
 CREATE EXCEPTION ac_e_invalidaccount 'Invalid account!';
 
 SET TERM ^;
@@ -8857,7 +8828,7 @@ BEGIN
          COUNT(*) > 1)
       )
      THEN
-       EXCEPTION ac_e_invalidaccountalias;
+       EXCEPTION ac_e_invalidaccount 'Account ' || NEW.alias || ' already exists.';
   END
 
   IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)
@@ -8875,7 +8846,7 @@ BEGIN
         OR
         (NEW.accounttype = 'S' AND :P IN ('A', 'S')) )) THEN
     BEGIN
-      EXCEPTION ac_e_invalidaccount;
+      EXCEPTION ac_e_invalidaccount 'Invalid account ' || NEW.alias;
     END
   END
 END
@@ -15634,7 +15605,7 @@ BEGIN
 END;
 ^
 
-CREATE PROCEDURE INV_GETCARDMOVEMENT (
+CREATE OR ALTER PROCEDURE INV_GETCARDMOVEMENT (
     CARDKEY INTEGER,
     CONTACTKEY INTEGER,
     DATEEND DATE)
@@ -15645,12 +15616,13 @@ BEGIN
   REMAINS = 0;
   SELECT SUM(m.debit - m.credit)
   FROM inv_movement m
-  WHERE m.cardkey = :CARDKEY AND m.contactkey = :CONTACTKEY and m.movementdate > :DATEEND
+  WHERE m.cardkey = :CARDKEY AND m.contactkey = :CONTACTKEY
+    AND m.movementdate > :DATEEND AND m.disabled = 0
   INTO :REMAINS;
   IF (REMAINS IS NULL) THEN
     REMAINS = 0;
   SUSPEND;
-END;
+END
 ^
 
 CREATE TRIGGER INV_BI_BALANCE_GOODKEY FOR INV_BALANCE

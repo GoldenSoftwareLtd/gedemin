@@ -6,7 +6,6 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 427
     Width = 597
     OnClick = sbMainClick
   end
@@ -16,15 +15,10 @@ inherited gdc_frmMDHGR: Tgdc_frmMDHGR
       Left = 327
     end
   end
-  inherited TBDockLeft: TTBDock
-    Height = 367
-  end
   inherited TBDockRight: TTBDock
     Left = 588
-    Height = 367
   end
   inherited TBDockBottom: TTBDock
-    Top = 418
     Width = 597
   end
   inherited pnlWorkArea: TPanel

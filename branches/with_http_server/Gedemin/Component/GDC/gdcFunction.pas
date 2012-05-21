@@ -39,6 +39,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function IsAbstractClass: Boolean; override;
 
     function GetUniqueName(PrefName, Name: string; modulecode: integer): string;
     function CheckFunction(const Name: string; modulecode: integer): Boolean;
@@ -805,6 +806,11 @@ begin
   if Result <> '' then
     Result := Result + ',';
   Result := Result + 'TESTRESULT,EDITORSTATE,BREAKPOINTS,DISPLAYSCRIPT';
+end;
+
+class function TgdcFunction.IsAbstractClass: Boolean;
+begin
+  Result := False;
 end;
 
 initialization

@@ -150,7 +150,7 @@ var
 implementation
 
 uses
-  gs_Exception;
+  FastMM4, gs_Exception;
 
 type
   TgdFreeNotificationComponent = class;
@@ -337,11 +337,8 @@ end;
 
 destructor TWrapperAutoObject.Destroy;
 begin
-  if FObject <> nil then
-    gdWrapServerList.Remove(FObject);
-
+  gdWrapServerList.Remove(FObject);
   FObject := nil;
-  
   inherited Destroy;
 end;
 
@@ -554,10 +551,13 @@ begin
 end;
 
 procedure TgdWrapServerList.Remove(const AnObject: TObject);
+var
+  C: TClass;
 begin
   if Assigned(AnObject) then
   begin
-    if AnObject is TComponent then
+    C := DetectClassInstance(Pointer(AnObject));
+    if (C <> nil) and (C.InheritsFrom(TComponent)) then
       TComponent(AnObject).RemoveFreeNotification(FFreeComponentSpy);
     FgdWrapServerList.Remove(Integer(AnObject));
   end;

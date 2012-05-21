@@ -183,7 +183,7 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
-  TgdcFieldInfo = class(TgdcMetaBase)
+  {TgdcFieldInfo = class(TgdcMetaBase)
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -196,8 +196,7 @@ type
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
-  end;
-
+  end;}
 
   TgdcRelation = class(TgdcMetaBase)
   protected
@@ -1728,6 +1727,7 @@ begin
   Result := inherited GetSubSetList + 'ByFieldName;';
 end;
 
+(*
 function TgdcFieldInfo.CreateDialogForm: TCreateableForm;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -1842,7 +1842,7 @@ end;
 
 class function TgdcFieldInfo.GetKeyField(const ASubType: TgdcSubType): String;
 begin
-  Result := 'rdb$field_name';
+  Result := 'name';
 end;
 
 class function TgdcFieldInfo.GetListField(const ASubType: TgdcSubType): String;
@@ -1925,6 +1925,7 @@ begin
   if HasSubSet('ByFieldName') then
     S.Add('z.rdb$field_name = :FieldName ');
 end;
+*)
 
 class function TgdcField.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
@@ -11692,7 +11693,7 @@ end;
 initialization
   RegisterGdcClass(TgdcMetaBase);
   RegisterGdcClass(TgdcField);
-  RegisterGdcClass(TgdcFieldInfo);
+  //RegisterGdcClass(TgdcFieldInfo);
   RegisterGdcClass(TgdcRelation);
   RegisterGdcClass(TgdcBaseTable);
   RegisterGdcClass(TgdcTable);
@@ -11722,12 +11723,12 @@ initialization
 finalization
   UnRegisterGdcClass(TgdcMetaBase);
   UnRegisterGdcClass(TgdcField);
-  UnRegisterGdcClass(TgdcFieldInfo);
+  //UnRegisterGdcClass(TgdcFieldInfo);
   UnRegisterGdcClass(TgdcRelation);
   UnRegisterGdcClass(TgdcTable);
   UnRegisterGdcClass(TgdcBaseTable);
   UnRegisterGdcClass(TgdcSimpleTable);
-  UnRegisterGdcClass(TgdcPrimeTable);  
+  UnRegisterGdcClass(TgdcPrimeTable);
   UnRegisterGdcClass(TgdcUnknownTable);
   UnRegisterGdcClass(TgdcTableToTable);
   UnRegisterGdcClass(TgdcTreeTable);

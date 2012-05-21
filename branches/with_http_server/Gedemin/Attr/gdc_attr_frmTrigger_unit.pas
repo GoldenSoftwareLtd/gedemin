@@ -54,9 +54,11 @@ end;
 
 procedure Tgdc_frmTrigger.actSyncExecute(Sender: TObject);
 begin
+  {$IFNDEF DUNIT_TEST}
   if MessageBox(Handle, 'Синхронизировать с базой данных?', 'Загрузка триггеров',
     MB_YESNO) = IDYES then
     (gdcDetailObject as TgdcTrigger).SyncAllTriggers;
+  {$ENDIF}
 end;
 
 initialization

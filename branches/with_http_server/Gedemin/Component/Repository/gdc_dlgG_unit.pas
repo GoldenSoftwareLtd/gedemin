@@ -237,6 +237,10 @@ type
     // новая запись, а метод Сетап уже не вызывается.
     procedure SetupRecord; virtual;
 
+    {$IFDEF DUNIT_TEST}
+    procedure DUnitDoTimer; override;
+    {$ENDIF}
+
   public
     constructor Create(AnOwner: TComponent); override;
 
@@ -310,7 +314,7 @@ implementation
 {$R *.DFM}
 
 uses
-  IB, IBSQL, IBErrorCodes, gdcBaseInterface,{ gdcLink,}
+  IB, IBSQL, IBErrorCodes, gdcBaseInterface, gd_createable_form,
   IBCustomDataSet, TypInfo, gd_directories_const,
   Storages, gd_ClassList, dmImages_unit, evt_i_Base,
   jclStrings, at_frmSQLProcess, gsStorage_CompPath,
@@ -1107,24 +1111,32 @@ begin
       and (not ErrorAction) then
     begin
       _Ok;
-    end
-    else if not ErrorAction
+    end else
+    begin
+      {$IFDEF DUNIT_TEST}
+      Cancel;
+      {$ELSE}
+      if not ErrorAction
         and actOk.Enabled
         and DlgModified
         and (not (sSubDialog in gdcObject.BaseState))
         and (not ResizerActivated)
         and ((UserStorage = nil) or UserStorage.ReadBoolean(st_OptionsPath, st_AskDialogCancel, True)) then
-      case MessageBox(Handle, 'Данные были изменены. Сохранить?', 'Внимание', MB_YESNOCANCEL or MB_ICONQUESTION) of
-        IDYES:
-          begin
-            CallBeforePost;
-            _Ok;
-          end;
-        IDNO: Cancel;
-        IDCANCEL: ModalResult := mrNone;
+      begin
+        case MessageBox(Handle, 'Данные были изменены. Сохранить?', 'Внимание', MB_YESNOCANCEL or MB_ICONQUESTION) of
+          IDYES:
+            begin
+              CallBeforePost;
+              _Ok;
+            end;
+          IDNO: Cancel;
+          IDCANCEL: ModalResult := mrNone;
+        end
       end
-    else if not (sSubDialog in gdcObject.BaseState) then
-      Cancel;
+      else if not (sSubDialog in gdcObject.BaseState) then
+        Cancel;
+      {$ENDIF}
+    end;
 
     CanClose := ModalResult <> mrNone;
   end;
@@ -1978,6 +1990,15 @@ procedure Tgdc_dlgG.LockDocument;
 begin
   FRecordLocked := True;
 end;
+
+{$IFDEF DUNIT_TEST}
+
+procedure Tgdc_dlgG.DUnitDoTimer;
+begin
+  actCancel.Execute;
+end;
+
+{$ENDIF}
 
 { TFieldsCallList }
 

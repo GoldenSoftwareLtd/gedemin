@@ -471,6 +471,7 @@ begin
       finally
         qHasID.Free;
         qTables.Free;
+        qFields.Free;
         qTrigger.Free;
         qTestTable.Free;
         Tr.Free;

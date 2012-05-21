@@ -696,6 +696,7 @@ begin
       FIBSQL.SQL.Text := c_ac_tc_record;
       FIBSQL.ExecQuery;
 
+      //!!!
       FIBSQL.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (135, ''0000.0001.0000.0166'', ''11.05.2011'', ''Refined triggers for AC_ENTRY, AC_RECORD.'') ' +

@@ -3341,11 +3341,14 @@ begin
         I := 1;
 
         repeat
-          SQl.Close;
+          SQL.Close;
+
+          if Length(N) > gdcReportGroup.FieldByName(fnName).Size then
+            N := System.Copy(N, 1, gdcReportGroup.FieldByName(fnName).Size);
 
           SQL.ParamByName('name').AsString := N;
           SQL.ExecQuery;
-          if SQL.RecordCount > 0 then
+          if not SQL.EOF then
           begin
             N := '־עקועû(' + Name + '_'+ IntToStr(I) + ')';
             Inc(i)

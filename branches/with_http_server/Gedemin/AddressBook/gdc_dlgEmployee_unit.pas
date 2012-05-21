@@ -176,7 +176,7 @@ var
   DidActivate: Boolean;
 begin
   if MessageBox(Handle,
-    'Сделать данного сотрудника физическим лицом?',
+    'Изменить тип данного объекта с Сотрудник на Физическое лицо?',
     'Внимание',
     MB_YESNO or MB_ICONQUESTION) = IDYES then
   begin
@@ -189,7 +189,7 @@ begin
         gdcObject.FieldByName('parent').AsInteger := ID;
 
         DidActivate := False;
-        q := TIBSQL.Create(Self);
+        q := TIBSQL.Create(nil);
         try
           q.Transaction := gdcObject.Transaction;
           DidActivate := not q.Transaction.InTransaction;
@@ -200,16 +200,13 @@ begin
             IntToStr(gdcObject.ID);
           q.ExecQuery;
 
-          q.Close;
           q.SQL.Text := 'UPDATE gd_company SET chiefaccountantkey=NULL WHERE chiefaccountantkey=' +
             IntToStr(gdcObject.ID);
           q.ExecQuery;
 
-          q.Close;
           if DidActivate and q.Transaction.InTransaction then
             q.Transaction.Commit;
         finally
-          q.Close;
           if DidActivate and q.Transaction.InTransaction then
             q.Transaction.Rollback;
           q.Free;

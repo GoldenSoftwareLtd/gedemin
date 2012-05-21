@@ -1,57 +1,57 @@
 inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
-  Left = 325
-  Top = 198
+  Left = 920
+  Top = 318
   Width = 764
-  Height = 483
+  Height = 495
   Caption = 'gdc_frmBankStatementBase'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 437
-    Width = 756
+    Top = 426
+    Width = 748
   end
   inherited TBDockTop: TTBDock
-    Width = 756
+    Width = 748
     inherited tbMainCustom: TTBToolbar
-      Left = 429
+      Left = 421
       BorderStyle = bsSingle
       inherited ibcmbAccount: TgsIBLookupComboBox
         Condition = '(disabled=0 or (disabled is null))'
       end
     end
     inherited tbMainInvariant: TTBToolbar
-      Left = 344
+      Left = 336
       object TBItem2: TTBItem [3]
         Action = actCreateEntry
       end
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 723
+      Left = 715
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 379
+    Height = 366
   end
   inherited TBDockRight: TTBDock
-    Left = 747
-    Height = 379
+    Left = 739
+    Height = 366
   end
   inherited TBDockBottom: TTBDock
-    Top = 428
-    Width = 756
+    Top = 417
+    Width = 748
   end
   inherited pnlWorkArea: TPanel
-    Width = 738
-    Height = 379
+    Width = 730
+    Height = 378
     inherited sMasterDetail: TSplitter
-      Width = 738
+      Width = 730
     end
     inherited spChoose: TSplitter
-      Top = 276
-      Width = 738
+      Top = 273
+      Width = 730
     end
     inherited pnlMain: TPanel
-      Width = 738
+      Width = 730
       inherited pnlSearchMain: TPanel
         Top = 29
         Height = 138
@@ -64,13 +64,13 @@ inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
       end
       inherited ibgrMain: TgsIBGrid
         Top = 29
-        Width = 578
+        Width = 570
         Height = 138
       end
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 738
+        Width = 730
         Height = 29
         Align = alTop
         TabOrder = 2
@@ -108,34 +108,34 @@ inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
           Left = 93
           Top = 3
           Width = 63
-          Height = 22
+          Height = 21
           Kind = kDate
           CurrentDateTimeAtStart = True
           EditMask = '!99\.99\.9999;1;_'
           MaxLength = 10
           TabOrder = 0
-          Text = '26.01.2006'
+          Text = '11.04.2012'
         end
       end
     end
     inherited pnChoose: TPanel
-      Top = 280
-      Width = 738
+      Top = 279
+      Width = 730
       inherited pnButtonChoose: TPanel
-        Left = 633
+        Left = 625
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 633
+        Width = 625
       end
       inherited pnlChooseCaption: TPanel
-        Width = 738
+        Width = 730
       end
     end
     inherited pnlDetail: TPanel
-      Width = 738
-      Height = 105
+      Width = 730
+      Height = 100
       inherited TBDockDetail: TTBDock
-        Width = 738
+        Width = 730
         inherited tbDetailToolbar: TTBToolbar
           object TBItem1: TTBItem [15]
             Action = actGotoEntry
@@ -147,17 +147,17 @@ inherited gdc_frmBankStatementBase: Tgdc_frmBankStatementBase
         end
       end
       inherited pnlSearchDetail: TPanel
-        Height = 79
+        Height = 74
         inherited sbSearchDetail: TScrollBox
-          Height = 41
+          Height = 36
         end
         inherited pnlSearchDetailButton: TPanel
-          Top = 41
+          Top = 36
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 578
-        Height = 79
+        Width = 570
+        Height = 74
       end
     end
   end

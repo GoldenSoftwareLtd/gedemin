@@ -2,6 +2,7 @@ var
   q: TIBSQL;
   US, OldUS: TgsUserStorage;
   OldCursor: TCursor;
+  OldCFS: TCreateableFormStates;
 begin
   Assert(Assigned(gdcBaseManager));
   Assert(Assigned(gdcBaseManager.ReadTransaction));
@@ -29,10 +30,14 @@ begin
       try
         US.ObjectKey := q.Fields[0].AsInteger;
         OldUS := UserStorage;
+        OldCFS := CreateableFormState;
+        Include(FCreateableFormState, cfsDistributeSettings);
         try
           UserStorage := US;
           SaveSettings;
+          US.SaveToDatabase;
         finally
+          FCreateableFormState := OldCFS;
           UserStorage := OldUS;
         end;
       finally

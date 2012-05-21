@@ -25,17 +25,20 @@ type
       Y: Integer);
     procedure cbCorrAccountsChange(Sender: TObject);
     procedure cbCorrSubAccountsClick(Sender: TObject);
+
   private
-    { Private declarations }
     FCorrAccountIDs: TList;
+
   protected
     procedure UpdateControls; override;
     class function ConfigClassName: string; override;
 
     procedure DoLoadConfig(const Config: TBaseAcctConfig);override;
     procedure DoSaveConfig(Config: TBaseAcctConfig);override;
+
   public
-    { Public declarations }
+    destructor Destroy; override;
+
     procedure LoadSettings; override;
     procedure SaveSettings; override;
   end;
@@ -46,6 +49,13 @@ var
 implementation
 
 {$R *.DFM}
+
+destructor TdlgAcctAccCardConfig.Destroy;
+begin
+  FCorrAccountIDs.Free;
+  inherited;
+end;
+
 procedure TdlgAcctAccCardConfig.actCorrAccountsExecute(Sender: TObject);
 begin
   if AccountDialog(cbCorrAccounts, 0) then
@@ -60,14 +70,13 @@ procedure TdlgAcctAccCardConfig.FormDockDrop(Sender: TObject;
   Source: TDragDockObject; X, Y: Integer);
 begin
   inherited;
-  FCorrAccountIDs.Free;
+  FreeAndNil(FCorrAccountIDs);
 end;
 
 procedure TdlgAcctAccCardConfig.cbCorrAccountsChange(Sender: TObject);
 begin
   if FCorrAccountIDs <> nil then
     FCorrAccountIDs.Clear
-
 end;
 
 procedure TdlgAcctAccCardConfig.cbCorrSubAccountsClick(Sender: TObject);
@@ -166,6 +175,7 @@ begin
     ComponentPath := BuildComponentPath(Self);
     cbCorrAccounts.Items.Text := UserStorage.ReadString(ComponentPath, 'CorrAccountHistory', '');
   end;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TDLGACCTACCCARDCONFIG', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -204,6 +214,7 @@ begin
   {END MACRO}
 
   inherited;
+
   if UserStorage <> nil then
   begin
     ComponentPath := BuildComponentPath(Self);
@@ -224,5 +235,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(TdlgAcctAccCardConfig);
-
 end.

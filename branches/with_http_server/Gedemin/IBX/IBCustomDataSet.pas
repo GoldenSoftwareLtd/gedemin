@@ -2299,27 +2299,26 @@ function TIBCustomDataSet.InternalLocate(const KeyFields: string;
 var
   fl: TList;
   CurBookmark: string;
-  fld : Variant;
   val : Array of Variant;
   i, fld_cnt: Integer;
   fld_str : String;
   T: DWORD;
   F: TField;
 begin
-  result := False;
+  Result := False;
+  T := GetTickCount;
+  CurBookmark := Bookmark;
+  
   F := FindField(KeyFields);
   if (F is TIntegerField) and (VarType(KeyValues) = varInteger) then
   begin
     i := KeyValues;
-
-    while not EOF do
+    while (not Result) and (not EOF) do
     begin
       if F.AsInteger = i then
-      begin
-        Result := True;
-        break;
-      end;
-      Next;
+        Result := True
+      else
+        Next;
     end;
   end else
   begin
@@ -2327,85 +2326,84 @@ begin
     try
       GetFieldList(fl, KeyFields);
       fld_cnt := fl.Count;
-      if fl.Count = 0 then
-        Exit;
+      if fld_cnt = 0 then
+        exit;
 
-      CurBookmark := Bookmark;
       SetLength(val, fld_cnt);
-      if not Eof then
-        for i := 0 to fld_cnt - 1 do
+      for i := 0 to fld_cnt - 1 do
+      begin
+        if VarIsArray(KeyValues) then
         begin
-          if VarIsArray(KeyValues) then
+          if i <= VarArrayHighBound(KeyValues, 1) then
             val[i] := KeyValues[i]
           else
-            val[i] := KeyValues;
-          if (TField(fl[i]).DataType = ftString) and
-             not VarIsNull(val[i]) then
-          begin
-            if (loCaseInsensitive in Options) then
-              val[i] := AnsiUpperCase(val[i]);
-          end;
-        end;
-      T := GetTickCount;
-      while ((not result) and (not Eof)) do
+            val[i] := varNull;
+        end else
+          val[i] := KeyValues;
+        if (VarType(val[i]) = varString) and (loCaseInsensitive in Options) then
+          val[i] := AnsiUpperCase(val[i]);
+      end;
+
+      while (not Result) and (not EOF) do
       begin
         i := 0;
-        result := True;
-        while (result and (i < fld_cnt)) do
+        Result := True;
+        while Result and (i < fld_cnt) do
         begin
-          fld := TField(fl[i]).Value;
-          if VarIsNull(fld) then
-            result := result and VarIsNull(val[i])
-          else
-          begin
+          if TField(fl[i]).IsNull then
+            Result := Result and VarIsNull(val[i])
+          else begin
             // We know the Field is not null so if the passed value is null we are
             //   done with this record
-            result := result and not VarIsNull(val[i]);
-            if result then
+            Result := Result and not VarIsNull(val[i]);
+            if Result then
             begin
-              try
-                fld := VarAsType(fld, VarType(val[i]));
-              except
-                on E: EVariantError do result := False;
-              end;
-              if TField(fl[i]).DataType = ftString then
-              begin
-                fld_str := TField(fl[i]).AsString;
-                if (loCaseInsensitive in Options) then
-                  fld_str := AnsiUpperCase(fld_str);
-                if (loPartialKey in Options) then
-                  result := result and (AnsiPos(val[i], fld_str) = 1)
-                else
-                  result := result and (fld_str = val[i]);
-              end
+              case VarType(val[i]) of
+                varString:
+                begin
+                  fld_str := TField(fl[i]).AsString;
+                  if (loCaseInsensitive in Options) then
+                    fld_str := AnsiUpperCase(fld_str);
+                  if (loPartialKey in Options) then
+                    Result := Result and (AnsiPos(val[i], fld_str) = 1)
+                  else
+                    Result := Result and (fld_str = val[i]);
+                end;
+
+                varDate:
+                begin
+                  Result := Result and (TField(fl[i]).AsDateTime = val[i]);
+                end;
+
+                varDouble:
+                begin
+                  Result := Result and (TField(fl[i]).AsFloat = val[i]);
+                end;
               else
-                if TField(fl[i]).DataType in [ftDate, ftTime, ftDateTime] then
-                  Result := Result and (val[i] > '') and (DateTimeToStr(val[i]) = DateTimeToStr(fld))
-                else
-                  result := result and (val[i] = fld);
+                Result := Result and (TField(fl[i]).Value = val[i]);
+              end;
             end;
           end;
           Inc(i);
         end;
-        if not result then
+
+        if not Result then
         begin
           if GetTickCount - T > MAX_LOCATE_WAIT then
-          begin
             break;
-          end;
-
           Next;
         end;
       end;
-      if not result then
-        Bookmark := CurBookmark
-      else
-        CursorPosChanged;
     finally
       fl.Free;
       val := nil;
     end;
   end;
+
+  if not Result then
+    Bookmark := CurBookmark
+  else
+    CursorPosChanged;
 end;
 
 procedure TIBCustomDataSet.InternalPostRecord(Qry: TIBSQL; Buff: Pointer);

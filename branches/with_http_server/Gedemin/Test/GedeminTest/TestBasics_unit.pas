@@ -165,53 +165,49 @@ end;
 
 procedure TBasicsTest.TestHugeIntSet;
 const
-  LoopCount = 1000000;
+  LoopCount = 10000000;
 var
-  H: TgsHugeIntSet;
+  H, H2: TgsHugeIntSet;
   I, V: Integer;
 begin
-  H := TgsHugeIntSet.Create('X', (High(Integer) div 8) + 1);
+  H2 := TgsHugeIntSet.Create;;
   try
-    // первое, с чего стоит начать тест -- это проверка
-    // начального состояния созданного объекта
-    Check(H.Count = 0);
+    H := TgsHugeIntSet.Create;
+    try
+      // обязательно проверяем граничные значения
+      H.Include(0);
+      H.Include(High(Integer));
+      Check(H.Has(0));
+      Check(H.Has(High(Integer)));
+      H.Exclude(0);
+      H.Exclude(High(Integer));
+      Check(not H.Has(0));
+      Check(not H.Has(High(Integer)));
 
-    // обязательно проверяем граничные значения
-    H.Include(0);
-    H.Include(High(Integer));
-    Check(H.Has(0));
-    Check(H.Has(High(Integer)));
-    Check(H.Count = 2);
-    H.Exclude(0);
-    H.Exclude(High(Integer));
-    Check(not H.Has(0));
-    Check(not H.Has(High(Integer)));
-    Check(H.Count = 0);
+      // выборочный тест
+      for I := 1 to LoopCount do
+      begin
+        V := Random(High(Integer)) + Random(2);
+        H.Include(V);
+        Check(H.Has(V));
+      end;
 
-    // выборочный тест
-    for I := 1 to LoopCount do
-    begin
-      V := Random(High(Integer)) + Random(2);
-      H.Include(V);
-      Check(H.Has(V));
+      for I := 1 to LoopCount do
+      begin
+        V := Random(High(Integer)) + Random(2);
+        H.Exclude(V);
+        Check(not H.Has(V));
+      end;
+
+      // проверяем область определения
+      StartExpectingException(EgsHugeIntSet);
+      H.Has(-1);
+      StopExpectingException;
+    finally
+      H.Free;
     end;
-
-    for I := 1 to LoopCount do
-    begin
-      V := Random(High(Integer)) + Random(2);
-      H.Exclude(V);
-      Check(not H.Has(V));
-    end;
-
-    H.Clear;
-    Check(H.Count = 0);
-
-    // проверяем область определения
-    StartExpectingException(EgsHugeIntSet);
-    H.Has(-1);
-    StopExpectingException;
   finally
-    H.Free;
+    H2.Free;
   end;
 end;
 

@@ -111,6 +111,9 @@ function GetRUIDStringByID(const ID: Integer; const Tr: TIBTransaction): TRUIDSt
 procedure AddFinVersion(const ID: Integer; const NumVersion, Comment, DateOper: String;
   const Tr: TIBTransaction);
 
+function FunctionExist2(const AFunctionName: String; ATr: TIBTransaction): Boolean;
+function HasDependencies(const AName: String; ATr: TIBTransaction): Boolean;
+
 implementation
 
 uses
@@ -1141,5 +1144,38 @@ begin
   end;
 end;
 
+function FunctionExist2(const AFunctionName: String; ATr: TIBTransaction): Boolean;
+var
+  ibsql: TIBSQL;
+begin
+  ibsql := TIBSQL.Create(nil);
+  try
+    ibsql.Transaction := ATr;
+    ibsql.SQL.Text :=
+      'SELECT * FROM rdb$functions WHERE rdb$function_name = :N';
+    ibsql.ParamByName('N').AsString := AFunctionName;
+    ibsql.ExecQuery;
+    Result := not ibsql.EOF;
+  finally
+    ibsql.Free;
+  end;
+end;
+
+function HasDependencies(const AName: String; ATr: TIBTransaction): Boolean;
+var
+  ibsql: TIBSQL;
+begin
+  ibsql := TIBSQL.Create(nil);
+  try
+    ibsql.Transaction := ATr;
+    ibsql.SQL.Text :=
+      'SELECT * FROM rdb$dependencies WHERE rdb$depended_on_name = :N';
+    ibsql.ParamByName('N').AsString := AName;
+    ibsql.ExecQuery;
+    Result := not ibsql.EOF;
+  finally
+    ibsql.Free;
+  end;
+end;
 
 end.
