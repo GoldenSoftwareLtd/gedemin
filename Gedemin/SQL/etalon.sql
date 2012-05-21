@@ -1273,6 +1273,25 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (145, '0000.0001.0000.0176', '05.04.2012', 'Issue 2764.');
 
+INSERT INTO fin_versioninfo
+  VALUES (146, '0000.0001.0000.0177', '11.04.2012', 'Delete system triggers of prime tables from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (147, '0000.0001.0000.0178', '16.04.2012', 'Delete system metadada of simple tables from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (148, '0000.0001.0000.0179', '16.04.2012', 'Delete system triggers of prime tables from at_settingpos. #2');
+
+INSERT INTO fin_versioninfo
+  VALUES (149, '0000.0001.0000.0180', '16.04.2012', 'Delete system metadada of simple tables from at_settingpos. #2');
+
+INSERT INTO fin_versioninfo
+  VALUES (150, '0000.0001.0000.0181', '16.04.2012', 'Delete system triggers of tabletotable tables from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (151, '0000.0001.0000.0182', '16.04.2012', 'Delete system metadada of tree tables from at_settingpos.');
+
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -6915,7 +6934,9 @@ CREATE TABLE bn_bankstatementline
   trtypekey            dforeignkey,  /* ссылка на операцию                          */
 
   companykey           dforeignkey,  /* клиент, реальный плательщик или получатель  */
-                                     
+  contractorkey        dforeignkey,  /* клиент, перед которым или у которого        */
+                                     /* возникает  долг                             */
+
   dsumncu              dcurrency,    /* дебет, сума Ґ Ќ√ј                           */
   dsumcurr             dcurrency,    /* дебет, сума Ґ валюце                        */
 
@@ -6931,7 +6952,7 @@ CREATE TABLE bn_bankstatementline
                                      /* переносим эти пол€ с бумажной выписки:      */
   account              dbankaccount, /* рассчетный счет клиента                     */
   bankcode             dbankcode,    /* код банка клиента                           */
-  bankbranch           dbankcode,    /* номер отделени€ банка */	
+  bankbranch           dbankcode,    /* номер отделени€ банка */
   docnumber            dtext20,      /* номер документа(платежки)                   */
 
   comment              dblobtext80_1251,      /* каментар                                    */
@@ -6963,17 +6984,14 @@ ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_companykey
   FOREIGN KEY (companykey) REFERENCES gd_company(contactkey)
   ON UPDATE CASCADE;
 
+ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_contractorkey
+  FOREIGN KEY (contractorkey) REFERENCES gd_company(contactkey)
+  ON UPDATE CASCADE;
+
 ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_bankstatementkey
   FOREIGN KEY (bankstatementkey) REFERENCES bn_bankstatement(documentkey)
   ON DELETE CASCADE
   ON UPDATE CASCADE;
-
-/*
-ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_trtypekey
-  FOREIGN KEY (trtypekey) REFERENCES gd_listtrtype(id)
-  ON UPDATE CASCADE;
-*/
-
 
 COMMIT;
 
@@ -6983,6 +7001,7 @@ SET TERM ^ ;
   ѕосле добавлени€ позиции по выписке надо обновить
   суммарные значени€ в самой выписке.
 */
+
 CREATE TRIGGER bn_ai_bsl FOR bn_bankstatementline
   AFTER INSERT
   POSITION 0
@@ -7028,8 +7047,10 @@ END
 ^
 
 /*
+
   ѕосле удаление позиции по выписке надо обновить сумарные значени€
   в самой выписке.
+
 */
 CREATE TRIGGER bn_ad_bsl FOR bn_bankstatementline
   AFTER DELETE
@@ -7040,25 +7061,10 @@ AS
   DECLARE VARIABLE old_dsumcurr NUMERIC(15, 4);
   DECLARE VARIABLE old_csumcurr NUMERIC(15, 4);
 BEGIN
-  IF (OLD.dsumncu IS NULL) THEN
-    old_dsumncu = 0;
-  ELSE
-    old_dsumncu = OLD.dsumncu;
-
-  IF (OLD.csumncu IS NULL) THEN
-    old_csumncu = 0;
-  ELSE
-    old_csumncu = OLD.csumncu;
-
-  IF (OLD.dsumcurr IS NULL) THEN
-    old_dsumcurr = 0;
-  ELSE
-    old_dsumcurr = OLD.dsumcurr;
-
-  IF (OLD.csumcurr IS NULL) THEN
-    old_csumcurr = 0;
-  ELSE
-    old_csumcurr = OLD.csumcurr;
+  old_dsumncu = COALESCE(OLD.dsumncu, 0);
+  old_csumncu = COALESCE(OLD.csumncu, 0);
+  old_dsumcurr = COALESCE(OLD.dsumcurr, 0);
+  old_csumcurr = COALESCE(OLD.csumcurr, 0);
 
   UPDATE bn_bankstatement
     SET linecount = linecount - 1,
@@ -7067,12 +7073,6 @@ BEGIN
         dsumcurr = dsumcurr - :old_dsumcurr,
         csumcurr = csumcurr - :old_csumcurr
     WHERE documentkey = OLD.bankstatementkey;
-
-    /*
-  DELETE FROM gd_entrys WHERE documentkey = OLD.bankstatementkey AND
-      positionkey = OLD.id;
-    */  
-
 END
 ^
 
@@ -7176,46 +7176,6 @@ BEGIN
 END
 ^
 
-SET TERM ; ^
-
-/*
-
-  —трока выписки закрывает некоторые документы. Ќапример, проплатили
-  фирме за компьютеры. Ѕыло две счет фактуры, их сумировали и провели одним
-  платежом. ¬ строках выписки будет одна позици€ на эту сумму. Ќам
-  надо св€зать эту строку выписки с документами за которые прошла проплата.
-
-  ƒл€ этого служит таблица bn_bslinedocument
-
-*/
-
-/*CREATE TABLE bn_bslinedocument
-(
-  bslinekey            dintkey,
-  documentkey          dintkey,
-  sumncu               dcurrency,
-  sumcurr              dcurrency */ /* валюта совпадает с валютой выписки, а следовательно */
-                                  /* с валютой счета, по которому отражена выписка       */
-/*);
-
-COMMIT;*/
-
-/* —трока выписки может быть разнесена только по одному акту */
-/*ALTER TABLE bn_bslinedocument
-  ADD CONSTRAINT bn_pk_bslinedocument PRIMARY KEY (bslinekey);
-
-ALTER TABLE bn_bslinedocument ADD CONSTRAINT bn_fk_bsld_bslinekey
-  FOREIGN KEY (bslinekey) REFERENCES bn_bankstatementline(id)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE;
-
-ALTER TABLE bn_bslinedocument ADD CONSTRAINT bn_fk_bsld_documentkey
-  FOREIGN KEY (documentkey) REFERENCES gd_document(id)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE;*/
-
-SET TERM ^ ;
-
 CREATE TRIGGER bn_bi_bsl FOR bn_bankstatementline
   BEFORE INSERT
   POSITION 0
@@ -7225,7 +7185,7 @@ BEGIN
     NEW.id = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 END
 ^
-                                                        
+
 SET TERM ; ^
 
 COMMIT;

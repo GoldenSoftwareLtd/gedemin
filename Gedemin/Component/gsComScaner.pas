@@ -19,6 +19,7 @@ type
     FAfterChar: Word;
     FCRSuffix: Boolean;
     FLFSuffix: Boolean;
+    FPacketSize: Integer;
 
     //
     FApdComPort: TApdComPort;
@@ -28,27 +29,17 @@ type
     FEnabled: Boolean;
     FBarCode: String;
     FTestCode: String;
+    FIntCode: Integer;
 
     FOnChange: TNotifyEvent;
     FAllowStreamedEnabled: Boolean;
     FStreamedEnabled: Boolean;
 
-    procedure SetComNumber(Value: Byte);
-    procedure SetParity(Value: TParity);
-    procedure SetBaudRate(Value: Integer);
-    procedure SetDataBits(Value: Byte);
-    procedure SetStopBits(Value: Byte);
-    procedure SetBeforeChar(Value: Word);
-    procedure SetAfterChar(Value: Word);
-    procedure SetCRSuffix(Value: Boolean);
-    procedure SetLFSuffix(Value: Boolean);
-    procedure SetEndString;
-
     procedure SetBarCode(Value: String);
     procedure SetEnabled(Value: Boolean);
 
-
     procedure OnStringPacket(Sender: TObject; Data : string);
+    procedure OnPacket(Sender: TObject; Data: Pointer; Size: Integer);
   protected
     { Protected declarations }
     procedure DoOnChange; virtual;
@@ -61,15 +52,15 @@ type
 
   published
     { Published declarations }
-    property ComNumber: Byte read FComNumber write SetComNumber default 1;
-    property Parity: TParity read FParity write SetParity default pSpace;
-    property BaudRate: Integer read FBaudRate write SetBaudRate default 9600;
-    property DataBits: Byte read FDataBits write SetDataBits default 7;
-    property StopBits: Byte read FStopBits write SetStopBits default 2;
-    property BeforeChar: Word read FBeforeChar write SetBeforeChar default 0;
-    property AfterChar: Word read FAfterChar write SetAfterChar default 0;
-    property CRSuffix: Boolean read FCRSuffix write SetCRSuffix default True;
-    property LFSuffix: Boolean read FLFSuffix write SetLFSuffix default True;
+    property ComNumber: Byte read FComNumber write FComNumber default 1;
+    property Parity: TParity read FParity write FParity default pSpace;
+    property BaudRate: Integer read FBaudRate write FBaudRate default 9600;
+    property DataBits: Byte read FDataBits write FDataBits default 7;
+    property StopBits: Byte read FStopBits write FStopBits default 2;
+    property BeforeChar: Word read FBeforeChar write FBeforeChar default 0;
+    property AfterChar: Word read FAfterChar write FAfterChar default 0;
+    property CRSuffix: Boolean read FCRSuffix write FCRSuffix default True;
+    property LFSuffix: Boolean read FLFSuffix write FLFSuffix default True;
 
     property BarCode: String read FBarCode write SetBarCode;
     property TestCode: String read FTestCode write FTestCode;
@@ -77,6 +68,8 @@ type
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property AllowStreamedEnabled: Boolean read FAllowStreamedEnabled write FAllowStreamedEnabled
       default False;
+    property PacketSize: Integer read FPacketSize write FPacketSize default 0;
+    property IntCode: Integer read FIntCode;
   end;
 
 procedure Register;
@@ -87,134 +80,36 @@ constructor TgsComScaner.Create(AnOwner: TComponent);
 begin
   inherited Create(AnOwner);
 
-  FApdComPort := TApdComPort.Create(Self);
+  FApdComPort := TApdComPort.Create(nil);
   FApdComPort.AutoOpen := False;
 
-  FApdDataPacket := TApdDataPacket.Create(Self);
+  FApdDataPacket := TApdDataPacket.Create(nil);
   FApdDataPacket.IncludeStrings := False;
   FApdDataPacket.OnStringPacket := OnStringPacket;
+  FApdDataPacket.OnPacket := OnPacket;
   FApdDataPacket.ComPort := FApdComPort;
   FApdDataPacket.TimeOut := 0;
-  FApdDataPacket.Enabled := True;
+  FApdDataPacket.Enabled := False;
+
   FAllowStreamedEnabled := False;
 
-  ComNumber := 1;
-  Parity    := pSpace;
-  BaudRate  := 9600;
-  DataBits  := 7;
-  StopBits  := 2;
-  BeforeChar := 0;
-  AfterChar  := 0;
-  CRSuffix   := True;
-  LFSuffix   := True;
-
+  FComNumber  := 1;
+  FParity     := pSpace;
+  FBaudRate   := 9600;
+  FDataBits   := 7;
+  FStopBits   := 2;
+  FBeforeChar := 0;
+  FAfterChar  := 0;
+  FCRSuffix   := True;
+  FLFSuffix   := True;
 end;
 
 destructor TgsComScaner.Destroy;
 begin
-  if FApdComPort <> nil then
-    FreeAndNil(FApdComPort);
-
-  if FApdDataPacket <> nil then
-    FreeAndNil(FApdDataPacket);
-
+  FreeAndNil(FApdComPort);
+  FreeAndNil(FApdDataPacket);
   inherited Destroy;
 end;
-
-// Номер COM-порта
-procedure TgsComScaner.SetComNumber(Value: Byte);
-begin
-  FApdComPort.ComNumber := Value;
-  FComNumber := FApdComPort.ComNumber;
-end;
-
-// Четность
-procedure TgsComScaner.SetParity(Value: TParity);
-begin
-  FApdComPort.Parity := Value;
-  FParity := FApdComPort.Parity;
-end;
-
-// Скорость
-procedure TgsComScaner.SetBaudRate(Value: Integer);
-begin
-  FApdComPort.Baud := Value;
-  FBaudRate := FApdComPort.Baud;
-end;
-
-// Биты данных
-procedure TgsComScaner.SetDataBits(Value: Byte);
-begin
-  FApdComPort.DataBits := Value;
-  FDataBits := FApdComPort.DataBits;
-end;
-
-// Стоповые биты
-procedure TgsComScaner.SetStopBits(Value: Byte);
-begin
-  FApdComPort.StopBits := Value;
-  FStopBits := FApdComPort.StopBits;
-end;
-
-// Начальный символ
-procedure TgsComScaner.SetBeforeChar(Value: Word);
-begin
-  FBeforeChar := Value;
-  if FBeforeChar <> 0 then
-  begin
-    FApdDataPacket.StartCond := scString;
-    FApdDataPacket.StartString := Chr(FBeforeChar);
-  end else
-  begin
-    FApdDataPacket.StartCond := scAnyData;
-    FApdDataPacket.StartString := '';
-  end
-end;
-
-// Конечный символ
-procedure TgsComScaner.SetAfterChar(Value: Word);
-begin
-  FAfterChar := Value;
-  SetEndString;
-end;
-
-// Суффикс - возврат коретки
-procedure TgsComScaner.SetCRSuffix(Value: Boolean);
-begin
-  FCRSuffix := Value;
-  SetEndString;
-end;
-
-// Суффикс - новая строка
-procedure TgsComScaner.SetLFSuffix(Value: Boolean);
-begin
-  FLFSuffix := Value;
-  SetEndString;
-end;
-
-// установка параметров
-procedure TgsComScaner.SetEndString;
-var
-  S: String;
-begin
-  S := '';
-  if FAfterChar <> 0 then
-    S := S + Chr(FAfterChar);
-  if FCRSuffix then
-    S := S + #13;
-  if FLFSuffix then
-    S := S + #10;
-
-  if S > '' then
-  begin
-    FApdDataPacket.EndCond := [ecString];
-    FApdDataPacket.EndString := S;
-  end else
-  begin
-    FApdDataPacket.EndCond := [];
-    FApdDataPacket.EndString := '';
-  end;
-end; 
 
 // Штрих-код
 procedure TgsComScaner.SetBarCode(Value: String);
@@ -225,15 +120,59 @@ end;
 
 // Enabled/Disabled
 procedure TgsComScaner.SetEnabled(Value: Boolean);
+var
+  S: String;
 begin
   if (csReading in ComponentState) and
      (not (csDesigning in ComponentState)) then
     FStreamedEnabled := Value
   else
     try
+      if not FApdComPort.Open then
+      begin
+        FApdComPort.ComNumber := FComNumber;
+        FApdComPort.Parity := FParity;
+        FApdComPort.Baud := FBaudRate;
+        FApdComPort.DataBits := FDataBits;
+        FApdComPort.StopBits := FStopBits;
+      end;
+
       FApdComPort.Open := Value;
+
       if Value then
-        FApdDataPacket.Enabled := Value;
+      begin
+        if FBeforeChar <> 0 then
+        begin
+          FApdDataPacket.StartCond := scString;
+          FApdDataPacket.StartString := Chr(FBeforeChar);
+        end else
+        begin
+          FApdDataPacket.StartCond := scAnyData;
+          FApdDataPacket.StartString := '';
+        end;
+
+        S := '';
+        if FAfterChar <> 0 then
+          S := S + Chr(FAfterChar);
+        if FCRSuffix then
+          S := S + #13;
+        if FLFSuffix then
+          S := S + #10;
+
+        if S > '' then
+        begin
+          FApdDataPacket.EndCond := [ecString];
+          FApdDataPacket.EndString := S;
+        end else
+        begin
+          FApdDataPacket.EndCond := [ecPacketSize];
+          FApdDataPacket.EndString := '';
+          FApdDataPacket.PacketSize := FPacketSize;
+        end;
+      end;
+
+      FApdDataPacket.Enabled := Value;
+
       FEnabled := FApdComPort.Open and FApdDataPacket.Enabled;
     except
       on E: Exception do
@@ -249,8 +188,28 @@ end;
 // пришли данные
 procedure TgsComScaner.OnStringPacket(Sender: TObject; Data: string);
 begin
-  FBarCode := Data;
-  DoOnChange;
+  if not (ecPacketSize in FApdDataPacket.EndCond) then
+    SetBarCode(Data);
+end;
+
+procedure TgsComScaner.OnPacket(Sender: TObject; Data: Pointer; Size: Integer);
+var
+  I: Integer;
+  S: String;
+begin
+  if ecPacketSize in FApdDataPacket.EndCond then
+  begin
+    S := '';
+    FIntCode := 0;
+    for I := 0 to Size - 1 do
+    begin
+      S := S + IntToHex(PByteArray(Data)^[I], 2);
+
+      if FPacketSize <= SizeOf(FIntCode) then
+        PByteArray(@FIntCode)^[I] := PByteArray(Data)^[I];
+    end;
+    SetBarCode(S);
+  end;
 end;
 
 // считался (или был установлен) штрих-код
@@ -259,14 +218,10 @@ begin
   try
     if Assigned(FOnChange) then FOnChange(Self);
   except
+    on E: Exception do
+      Application.HandleException(E);
   end;
 end;
-
-procedure Register;
-begin
-  RegisterComponents('gsNew', [TgsComScaner]);
-end;
-
 
 procedure TgsComScaner.PutString(S: String);
 begin
@@ -279,6 +234,11 @@ begin
     Enabled := True;
 
   inherited Loaded;
+end;
+
+procedure Register;
+begin
+  RegisterComponents('gsNew', [TgsComScaner]);
 end;
 
 end.

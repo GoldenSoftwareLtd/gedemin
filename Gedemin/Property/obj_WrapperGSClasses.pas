@@ -3572,6 +3572,9 @@ type
     function  Get_AllowStreamedEnabled: WordBool; safecall;
     procedure Set_AllowStreamedEnabled(Value: WordBool); safecall;
     procedure PutString(const S: WideString); safecall;
+    function  Get_PacketSize: Integer; safecall;
+    procedure Set_PacketSize(Value: Integer); safecall;
+    function  Get_IntCode: Integer; safecall;
   end;
 
   TwrpStreamSaver = class(TwrpObject, IgsStreamSaver)
@@ -3734,11 +3737,15 @@ type
     procedure Set_LinkFunctionLanguage(const Value: WideString); safecall;
     function  Get_Required: WordBool; safecall;
     procedure Set_Required(Value: WordBool); safecall;
-    function  Get_ValuesList: WideString; safecall;
-    procedure Set_ValuesList(const Value: WideString); safecall;
     function  Get_Transaction: IgsIBTransaction; safecall;
     procedure Set_Transaction(const Value: IgsIBTransaction); safecall;
     procedure Assign_(const Source: IgsParamData); safecall;
+    function  Get_ValuesList: WideString; safecall;
+    procedure Set_ValuesList(const Value: WideString); safecall;
+    function  Get_SortOrder: Shortint; safecall;
+    procedure Set_SortOrder(Value: Shortint); safecall;
+    function  Get_SortField: WideString; safecall;
+    procedure Set_SortField(const Value: WideString); safecall;
   public
     class function CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject; override;
   end;
@@ -3794,6 +3801,7 @@ type
     function Get_TimeOut: Integer; safecall;
     procedure Set_TimeOut(Value: Integer); safecall;
     function Get_Files: WideString; safecall;
+    function Get_LastError: Integer; safecall;
 
     function Connect: WordBool; safecall;
     function Connected: WordBool; safecall;
@@ -17184,7 +17192,7 @@ end;
 
 procedure TwrpGsComScaner.Set_BarCode(const Value: WideString);
 begin
-  GetGsComScaner.BarCode := Value;
+  //GetGsComScaner.BarCode := Value;
 end;
 
 function TwrpGsComScaner.Get_Enabled: WordBool;
@@ -18093,6 +18101,11 @@ begin
   Result := GetObject as TgsParamData;
 end;
 
+procedure TwrpGsParamData.Assign_(const Source: IgsParamData);
+begin
+  GetParamData.Assign(InterfaceToObject(Source) as TgsParamData);
+end;
+
 function TwrpGsParamData.Get_ValuesList: WideString;
 begin
   Result := GetParamData.ValuesList;
@@ -18103,9 +18116,24 @@ begin
   GetParamData.ValuesList := Value;
 end;
 
-procedure TwrpGsParamData.Assign_(const Source: IgsParamData);
+function TwrpGsParamData.Get_SortOrder: Shortint;
 begin
-  GetParamData.Assign(InterfaceToObject(Source) as TgsParamData);
+  Result := GetParamData.SortOrder;
+end;
+
+procedure TwrpGsParamData.Set_SortOrder(Value: Shortint);
+begin
+  GetParamData.SortOrder := Value;
+end;
+
+function TwrpGsParamData.Get_SortField: WideString;
+begin
+  Result := GetParamData.SortField;
+end;
+
+procedure TwrpGsParamData.Set_SortField(const Value: WideString);
+begin
+  GetParamData.SortField := Value;
 end;
 
 { TwrpGsFrmGedeminMain }
@@ -18274,6 +18302,11 @@ begin
   Result := GetFTPClient.Files;
 end;
 
+function TwrpFTPClient.Get_LastError: Integer;
+begin
+  Result := GetFTPClient.LastError;
+end;
+
 function TwrpFTPClient.GetAllFiles(const RemotePath: WideString): WordBool;
 begin
   Result := GetFTPClient.GetAllFiles(RemotePath);
@@ -18317,6 +18350,21 @@ end;
 function TwrpFTPClient.DeleteDir(const DirName: WideString): WordBool;
 begin
   Result := GetFTPClient.DeleteDir(DirName);
+end;
+
+function TwrpGsComScaner.Get_PacketSize: Integer;
+begin
+  Result := GetGsComScaner.PacketSize;
+end;
+
+procedure TwrpGsComScaner.Set_PacketSize(Value: Integer);
+begin
+  GetGsComScaner.PacketSize := Value;
+end;
+
+function TwrpGsComScaner.Get_IntCode: Integer;
+begin
+  Result := GetGsComScaner.IntCode;
 end;
 
 initialization
