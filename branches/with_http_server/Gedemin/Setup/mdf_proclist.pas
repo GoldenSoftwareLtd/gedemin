@@ -44,10 +44,10 @@ uses
   mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
   mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage,
   mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean, mdf_ConvertBNStatementCommentToBlob, mdf_AddFieldReportlistModalPreview,
-  mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument;
+  mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument, mdf_Delete_BITrigger_AtSettingPos;
 
 const
-  cProcCount = 164;
+  cProcCount = 170;
 
 type
   TModifyProc = record
@@ -318,7 +318,13 @@ const
     (ModifyProc: ChangeUSRCOEF; ModifyVersion: '0000.0001.0000.0167'),
     (ModifyProc: AddFieldMacrosListRunLogIn; ModifyVersion: '0000.0001.0000.0169'),
     (ModifyProc: ChangeDuplicateAccount; ModifyVersion: '0000.0001.0000.0171'),
-    (ModifyProc: MovementDocument; ModifyVersion: '0000.0001.0000.0175')
+    (ModifyProc: MovementDocument; ModifyVersion: '0000.0001.0000.0175'),
+    (ModifyProc: DeleteBITRiggerAtSettingPos; ModifyVersion: '0000.0001.0000.0178'),
+    (ModifyProc: DeleteMetaDataSimpleTableAtSettingPos; ModifyVersion: '0000.0001.0000.0179'),
+    (ModifyProc: DeleteMetaDataTableToTableAtSettingPos; ModifyVersion: '0000.0001.0000.0180'),
+    (ModifyProc: DeleteMetaDataTreeTableAtSettingPos; ModifyVersion: '0000.0001.0000.0181'),
+    (ModifyProc: AddContractorKeyToBNStatementLine; ModifyVersion: '0000.0001.0000.0182'),
+    (ModifyProc: DeleteBI5Triggers; ModifyVersion: '0000.0001.0000.0183')
   );
 
 implementation

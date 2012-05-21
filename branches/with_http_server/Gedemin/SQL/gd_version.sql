@@ -467,6 +467,30 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (145, '0000.0001.0000.0176', '05.04.2012', 'Issue 2764.');
 
+INSERT INTO fin_versioninfo
+  VALUES (146, '0000.0001.0000.0177', '11.04.2012', 'Delete system triggers of prime tables from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (147, '0000.0001.0000.0178', '16.04.2012', 'Delete system metadada of simple tables from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (148, '0000.0001.0000.0179', '16.04.2012', 'Delete system triggers of prime tables from at_settingpos. #2');
+
+INSERT INTO fin_versioninfo
+  VALUES (149, '0000.0001.0000.0180', '16.04.2012', 'Delete system metadada of simple tables from at_settingpos. #2');
+
+INSERT INTO fin_versioninfo
+  VALUES (150, '0000.0001.0000.0181', '16.04.2012', 'Delete system triggers of tabletotable tables from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (151, '0000.0001.0000.0182', '16.04.2012', 'Delete system metadada of tree tables from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (152, '0000.0001.0000.0183', '20.04.2012', 'Contractorkey field added to the bn_statementline table.');
+
+INSERT INTO fin_versioninfo
+  VALUES (153, '0000.0001.0000.0184', '25.04.2012', 'Delete BI5, BU5 triggers.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

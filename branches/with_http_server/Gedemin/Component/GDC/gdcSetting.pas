@@ -1,6 +1,6 @@
 unit gdcSetting;
 
-interface
+interface                                           
 
 uses
    gdcBase, gd_classlist, Classes, Forms, gd_createable_form, SysUtils, Controls, dialogs,
@@ -301,7 +301,7 @@ uses
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdcStreamSaver, gdc_frmStreamSaver;
+  , gdcStreamSaver, gdc_frmStreamSaver, gdcTableMetaData;
 
 const
   cst_strTable = 'Таблица';
@@ -1999,6 +1999,8 @@ var
   gdcFunction: TgdcFunction;
   gdcObject: TgdcBase;
   LBRBTree: TLBRBTreeMetaNames;
+  BaseBITriggerName: String;
+  BaseTableTriggersName: TBaseTableTriggersName;
 begin
   Assert(HasSubSet('BySetting'));
   Assert(Active);
@@ -2121,6 +2123,18 @@ begin
           else
             InitLBRBTreeDependentNames(LBRBTree);
 
+          if (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcPrimeTable') = 0)
+            or (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcTableToTable') = 0) then
+            BaseBITriggerName := GetBaseTableBITriggerName(AnObject.FieldByName('relationname').AsString, Transaction)
+          else
+            BaseBITriggerName := '';
+
+          if (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcSimpleTable') = 0)
+            or (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcTreeTable') = 0) then
+            GetBaseTableTriggersName(AnObject.FieldByName('relationname').AsString, Transaction, BaseTableTriggersName)
+          else
+            InitBaseTableTriggersName(BaseTableTriggersName);
+
           Post;
         except
           Cancel;
@@ -2236,7 +2250,13 @@ begin
                         if Obj is TgdcTrigger then
                         begin
                           if (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BITriggerName) <> 0)
-                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BUTriggerName) <> 0) then
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BUTriggerName) <> 0)
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BI5TriggerName) <> 0)
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BU5TriggerName) <> 0)
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseBITriggerName) <> 0)
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseTableTriggersName.BITriggerName) <> 0)
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseTableTriggersName.BI5TriggerName) <> 0)
+                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseTableTriggersName.BU5TriggerName) <> 0) then
                           begin
                             AddPos(Obj, WithDetail);
                           end;
@@ -4682,9 +4702,11 @@ begin
       if not DontHideForms then
         if Assigned(frmSQLProcess) and AnModalSQLProcess and not frmSQLProcess.Silent then
         begin
+          {$IFNDEF DUNIT_TEST}
           if frmSQLProcess.Visible then
             frmSQLProcess.Hide;
           frmSQLProcess.ShowModal;
+          {$ENDIF}
           frmSQLProcess.BringToFront;
         end;
     end
@@ -5065,7 +5087,7 @@ begin
     begin
       C := FindClass(AClassName);
 
-      Assert(C.InheritsFrom(TgdcBase));
+      Assert((C <> nil) and C.InheritsFrom(TgdcBase));
 
       FIBSQLSelectPos.Close;
       FIBSQLSelectPos.ParamByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
@@ -5134,7 +5156,8 @@ begin
     if not FAddedPositions.Find(IntToStr(XID) + '_' + IntToStr(DBID), TempIndex) then
     begin
       C := FindClass(AClassName);
-      Assert(C.InheritsFrom(TgdcBase));
+
+      Assert((C <> nil) and C.InheritsFrom(TgdcBase));
 
       FIBSQLInsertPos.ParamByName('objectclass').AsString := AClassName;
       FIBSQLInsertPos.ParamByName('subtype').AsString := ASubtype;

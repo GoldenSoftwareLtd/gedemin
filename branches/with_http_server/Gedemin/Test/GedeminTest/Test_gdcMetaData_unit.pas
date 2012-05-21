@@ -4,104 +4,79 @@ unit Test_gdcMetaData_unit;
 interface
 
 uses
-  TestFrameWork, gsTestFrameWork, IBDatabase;
+  TestFrameWork, gsTestFrameWork, IBDatabase, gdcBase, gdcMetaData;
 
 type
-  TgdcMetaDataTest = class(TgsDBTestCase)
-  private
-    function GetDBState: String;
-    procedure CheckConsistency(Tr: TIBTransaction);
+  CgdcStandartTableTest = class of TgdcStandartTableTest;
+  TgdcStandartTableTest = class(TgsDBTestCase)
+  protected
+    FTableName: String;
+    FDBState, FDBStateAfterCreate: String;
+
+    function GetTableClass: CgdcTable; virtual; abstract;
+    function GetFileName: String;
+    procedure InitObject(AnObj: TgdcBase); virtual;
+
+    procedure TestCreateTable; virtual;
+    procedure TestMetaData; virtual; abstract;
+    procedure TestData; virtual;
+    procedure TestAddToSetting;
+    procedure TestDrop;
+    procedure TestLoadSetting;
 
   published
-    procedure TestCreateLBRBTree;
-    procedure TestLBRBTree;
+    procedure DoTest; virtual;
+  end;
+
+  TgdcPrimeTableTest = class(TgdcStandartTableTest)
+  protected
+    function GetTableClass: CgdcTable; override;
+    procedure TestMetaData; override;
+  end;
+
+  TgdcSimpleTableTest = class(TgdcStandartTableTest)
+  protected
+    function GetTableClass: CgdcTable; override;
+    procedure TestMetaData; override;
+  end;
+
+  TgdcTreeTableTest = class(TgdcSimpleTableTest)
+  protected
+    function GetTableClass: CgdcTable; override;
+  end;
+
+  TgdcTableToTableTest = class(TgdcSimpleTableTest)
+  protected
+    function GetTableClass: CgdcTable; override;
+    procedure InitObject(AnObj: TgdcBase); override;
+    procedure TestMetaData; override;
+  end;
+
+  TgdcLBRBTreeTest = class(TgdcSimpleTableTest)
+  private
     procedure TestRestrLBRBTree;
-    procedure TestDropLBRBTree;
-    procedure TestGetDependentNames;
+    procedure TestLBRBTree;
+    procedure CheckConsistency(Tr: TIBTransaction);
 
+  protected
+    function GetTableClass: CgdcTable; override;
+    procedure TestMetaData; override;
+    procedure TestData; override;
+  end;
+
+  TgdcMetaDataTest = class(TgsDBTestCase)
+  published
     procedure TestGD_RUID;
-
     procedure TestAuditTriggers;
   end;
 
 implementation
 
 uses
-  Classes, Windows, IB, gdcMetaData, gd_security,
-  at_frmSQLProcess, IBSQL, gdcBaseInterface, gd_KeyAssoc,
-  SysUtils, gdcLBRBTreeMetaData, jclStrings, gdcJournal;
-
-var
-  FLBRBTreeName, FDBState: String;
-
-procedure TgdcMetaDataTest.CheckConsistency(Tr: TIBTransaction);
-var
-  q: TIBSQL;
-begin
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := Tr;
-
-    q.SQL.Text := 'SELECT a.lb FROM ' + FLBRBTreeName + ' a JOIN ' + FLBRBTreeName
-      + ' b ON a.lb = b.lb AND a.id <> b.id';
-    q.ExecQuery;
-    Check(q.EOF, 'Duplicate LB = ' + q.Fields[0].AsString);
-
-    q.Close;
-    q.SQL.Text := 'SELECT a.id || '','' || b.id FROM ' + FLBRBTreeName + ' a JOIN ' + FLBRBTreeName
-      + ' b ON a.lb < b.lb AND a.rb >= b.lb AND a.rb < b.rb';
-    q.ExecQuery;
-    Check(q.EOF, 'Overlapped intervals (left). ' + q.Fields[0].AsString);
-
-    q.Close;
-    q.SQL.Text := 'SELECT a.id || '','' || b.id FROM ' + FLBRBTreeName + ' a JOIN ' + FLBRBTreeName
-      + ' b ON a.lb > b.lb AND a.lb <= b.rb AND a.rb > b.rb';
-    q.ExecQuery;
-    Check(q.EOF, 'Overlapped intervals (right). ' + q.Fields[0].AsString);
-    q.Close;
-
-    q.SQL.Text := 'SELECT a.id || '','' || b.id FROM ' + FLBRBTreeName + ' a JOIN ' + FLBRBTreeName
-      + ' b ON a.parent = b.id AND a.lb <= b.lb AND a.rb >= b.rb ';
-    q.ExecQuery;
-    Check(q.EOF, 'Parent interval is smaller. ' + q.Fields[0].AsString);
-  finally
-    q.Free;
-  end;
-end;
-
-function TgdcMetaDataTest.GetDBState: String;
-var
-  q: TIBSQL;
-begin
-  Result := '';
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-
-    q.SQL.Text := 'SELECT LIST(TRIM(rdb$field_name)) FROM rdb$relation_fields';
-    q.ExecQuery;
-    Result := Result + q.Fields[0].AsTrimString;
-    q.Close;
-
-    q.SQL.Text := 'SELECT LIST(TRIM(rdb$procedure_name)) FROM rdb$procedures';
-    q.ExecQuery;
-    Result := Result + q.Fields[0].AsTrimString;
-    q.Close;
-
-    q.SQL.Text := 'SELECT LIST(TRIM(rdb$trigger_name)) FROM rdb$triggers';
-    q.ExecQuery;
-    Result := Result + q.Fields[0].AsTrimString;
-    q.Close;
-
-    q.SQL.Text := 'SELECT LIST(TRIM(rdb$exception_name)) FROM rdb$exceptions';
-    q.ExecQuery;
-    Result := Result + q.Fields[0].AsTrimString;
-    q.Close;
-  finally
-    q.Free;
-  end;
-end;
+  Classes, Windows, DB, IB, gd_security, at_frmSQLProcess,
+  IBSQL, gdcBaseInterface, gd_KeyAssoc, SysUtils,
+  gdcLBRBTreeMetaData, jclStrings, gdcJournal, gdcSetting,
+  gdcTableMetaData, gsStreamHelper;
 
 procedure TgdcMetaDataTest.TestAuditTriggers;
 var
@@ -125,54 +100,6 @@ begin
   Check(FQ.Fields[0].AsInteger = C);
 
   FQ.Close;
-end;
-
-procedure TgdcMetaDataTest.TestCreateLBRBTree;
-var
-  LBRBTree: TgdcLBRBTreeTable;
-begin
-  FLBRBTreeName := 'USR$TEST' + IntToStr(Random(10)) + 'LBRBTREE';
-  FDBState := GetDBState;
-
-  LBRBTree := TgdcLBRBTreeTable.Create(nil);
-  try
-    LBRBTree.Open;
-    LBRBTree.Insert;
-    LBRBTree.FieldByName('relationname').AsString := FLBRBTreeName;
-    LBRBTree.Post;
-  finally
-    LBRBTree.Free;
-  end;
-
-  IBLogin.LogOff;
-  IBLogin.Login(False, True);
-
-  Check(not frmSQLProcess.IsError);
-end;
-
-procedure TgdcMetaDataTest.TestDropLBRBTree;
-var
-  LBRBTree: TgdcLBRBTreeTable;
-begin
-  Check(FLBRBTreeName > '');
-
-  LBRBTree := TgdcLBRBTreeTable.Create(nil);
-  try
-    LBRBTree.SubSet := 'ByName';
-    LBRBTree.ParamByName(LBRBTree.GetListField(LBRBTree.SubType)).AsString := FLBRBTreeName;
-    LBRBTree.Open;
-    Check(not LBRBTree.EOF);
-    LBRBTree.Delete;
-  finally
-    LBRBTree.Free;
-  end;
-
-  IBLogin.LogOff;
-  IBLogin.Login(False, True);
-
-  Check(not frmSQLProcess.IsError);
-
-  Check(FDBState = GetDBState);
 end;
 
 procedure TgdcMetaDataTest.TestGD_RUID;
@@ -223,7 +150,250 @@ begin
   StopExpectingException('');
 end;
 
-procedure TgdcMetaDataTest.TestGetDependentNames;
+{ TgdcStandartTableTest }
+
+procedure TgdcStandartTableTest.DoTest;
+begin
+  Check(FTableName = '');
+  TestCreateTable;
+  TestMetaData;
+  TestData;
+  TestAddToSetting;
+  TestDrop;
+  TestLoadSetting;
+end;
+
+function TgdcStandartTableTest.GetFileName: String;
+var
+  TempPath: array[0..1023] of Char;
+begin
+  Check(FTableName > '');
+  GetTempPath(SizeOf(TempPath), TempPath);
+  Result := String(TempPath) + '\' + FTableName + '.xml'
+end;
+
+procedure TgdcStandartTableTest.InitObject(AnObj: TgdcBase);
+begin
+  Assert(Assigned(AnObj) and (AnObj.State = dsInsert));
+  AnObj.FieldByName('relationname').AsString := FTableName;
+end;
+
+procedure TgdcStandartTableTest.TestAddToSetting;
+var
+  FTable: TgdcTable;
+  gdcSetting: TgdcSetting;
+  gdcSettingPos: TgdcSettingPos;
+begin
+  Check(FTableName > '');
+
+  FTable := GetTableClass.Create(nil);
+  try
+    FTable.SubSet := 'ByName';
+    FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
+    FTable.Open;
+    Check(not FTable.EOF);
+
+    gdcSetting := TgdcSetting.Create(nil);
+    try
+      gdcSetting.Open;
+      gdcSetting.Insert;
+      gdcSetting.FieldByName('NAME').AsString := FTableName;
+      gdcSetting.Post;
+
+      gdcSettingPos := TgdcSettingPos.Create(nil);
+      try
+        gdcSettingPos.SubSet := 'BySetting';
+        gdcSettingPos.ParamByName('settingkey').AsInteger := gdcSetting.ID;
+        gdcSettingPos.Open;
+        gdcSettingPos.AddPos(FTable, True);
+      finally
+        gdcSettingPos.Free;
+      end;
+
+      gdcSetting.SaveSettingToBlob(sttXML);
+      gdcSetting.SaveToFile(GetFileName);
+
+      FQ.Close;
+      FQ.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :sk AND objectclass = ''TgdcTrigger'' ';
+      FQ.ParamByName('sk').AsInteger := gdcSetting.ID;
+      FQ.ExecQuery;
+
+      Check(FQ.EOF);
+
+      gdcSetting.Delete;
+    finally
+      gdcSetting.Free;
+    end;
+  finally
+    FTable.Free;
+  end;
+end;
+
+procedure TgdcStandartTableTest.TestCreateTable;
+var
+  FTable: TgdcTable;
+begin
+  FTableName := 'USR$TEST' + IntToStr(Random(1000000)) + 'A';
+  FDBState := GetDBState;
+
+  FTable := GetTableClass.Create(nil);
+  try
+    FTable.Open;
+    FTable.Insert;
+    InitObject(FTable);
+    FTable.Post;
+  finally
+    FTable.Free;
+  end;
+
+  ReConnect;
+
+  FDBStateAfterCreate := GetDBState;
+end;
+
+procedure TgdcStandartTableTest.TestData;
+begin
+  //...
+end;
+
+procedure TgdcStandartTableTest.TestDrop;
+var
+  FTable: TgdcTable;
+begin
+  Check(FTableName > '');
+
+  FTable := GetTableClass.Create(nil);
+  try
+    FTable.SubSet := 'ByName';
+    FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
+    FTable.Open;
+    Check(not FTable.EOF);
+    FTable.Delete;
+  finally
+    FTable.Free;
+  end;
+
+  ReConnect;
+
+  Check(FDBState = GetDBState);
+end;
+
+procedure TgdcStandartTableTest.TestLoadSetting;
+var
+  FTable: TgdcTable;
+  gdcSetting: TgdcSetting;
+begin
+  Check(FTableName > '');
+
+  gdcSetting := TgdcSetting.Create(nil);
+  try
+    gdcSetting.Open;
+    gdcSetting.LoadFromFile(GetFileName);
+    gdcSetting.GoToLastLoadedSetting;
+
+    ActivateSettings(IntToStr(gdcSetting.ID));
+
+    gdcSetting.Close;
+    gdcSetting.SubSet := 'ByName';
+    gdcSetting.ParamByName(gdcSetting.GetListField(gdcSetting.SubType)).AsString := FTableName;
+    gdcSetting.Open;
+    gdcSetting.Delete;
+  finally
+    gdcSetting.Free;
+  end;
+
+  {SaveStringToFile(StringReplace(FDBStateAfterCreate, ',', #13#10, [rfReplaceAll]), 'c:\temp\1.txt');
+  SaveStringToFile(StringReplace(GetDBState, ',', #13#10, [rfReplaceAll]), 'c:\temp\2.txt');}
+
+  Check(FDBStateAfterCreate = GetDBState);
+
+  Check(DeleteFile(GetFileName));
+
+  FTable := GetTableClass.Create(nil);
+  try
+    FTable.SubSet := 'ByName';
+    FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
+    FTable.Open;
+    FTable.Delete;
+  finally
+    FTable.Free;
+  end;
+
+  ReConnect;
+
+  Check(FDBState = GetDBState);
+end;
+
+{ TgdcPrimeTableTest }
+
+function TgdcPrimeTableTest.GetTableClass: CgdcTable;
+begin
+  Result := TgdcPrimeTable;
+end;
+
+procedure TgdcPrimeTableTest.TestMetaData;
+var
+  Temps1, Temps2: String;
+begin
+  Check(FTableName > '');
+
+  Temps1 := 'USR$BI_' + FTableName;
+  Temps2 := GetBaseTableBITriggerName(FTableName, FTr);
+  Check(Temps1 = Temps2);
+end;
+
+{ TgdcSimpleTableTest }
+
+function TgdcSimpleTableTest.GetTableClass: CgdcTable;
+begin
+  Result := TgdcSimpleTable;
+end;
+
+procedure TgdcSimpleTableTest.TestMetaData;
+var
+  SimpleTableMetaNames: TBaseTableTriggersName;
+  Temps: String;
+begin
+  Check(FTableName > '');
+
+  GetBaseTableTriggersName(FTableName, FTr, SimpleTableMetaNames);
+  Temps := 'USR$BI_' + FTableName;
+  Check(Temps = SimpleTableMetaNames.BITriggerName);
+  Temps := StringReplace(FTableName, 'USR$', 'USR$BI_', [rfReplaceAll]) + '5';
+  Check(Temps = SimpleTableMetaNames.BI5TriggerName);
+  Temps := StringReplace(FTableName, 'USR$', 'USR$BU_', [rfReplaceAll]) + '5';
+  Check(Temps = SimpleTableMetaNames.BU5TriggerName);
+end;
+
+{ TgdcTreeTableTest }
+
+function TgdcTreeTableTest.GetTableClass: CgdcTable;
+begin
+  Result := TgdcTreeTable;
+end;
+
+function TgdcTableToTableTest.GetTableClass;
+begin
+  Result := TgdctableToTable;
+end;
+
+procedure TgdcTableToTableTest.TestMetaData;
+var
+  TableToTableMetaNames: TBaseTableTriggersName;
+begin
+  GetBaseTableTriggersName(FTableName, FTr, TableToTableMetaNames);
+
+  Check(TableToTableMetaNames.BITriggerName = '');
+  Check(TableToTableMetaNames.BI5TriggerName = '');
+  Check(TableToTableMetaNames.BU5TriggerName = '');
+end;
+
+function TgdcLBRBTreeTest.GetTableClass;
+begin
+  Result := TgdcLBRBTreeTable;
+end;
+
+procedure TgdcLBRBTreeTest.TestMetaData;
 var
   Names: TLBRBTreeMetaNames;
 begin
@@ -240,7 +410,26 @@ begin
   Check(Names.ChkName = 'GD_CHK_CONTACT_TR_LMT');
 end;
 
-procedure TgdcMetaDataTest.TestLBRBTree;
+procedure TgdcLBRBTreeTest.TestRestrLBRBTree;
+var
+  Tr: TIBTransaction;
+begin
+  Check(FTableName > '');
+
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.DefaultAction := TACommit;
+    Tr.StartTransaction;
+
+    Check(RestrLBRBTree(FTableName, Tr) = 1);
+    CheckConsistency(Tr);
+  finally
+    Tr.Free;
+  end;
+end;
+
+procedure TgdcLBRBTreeTest.TestLBRBTree;
 var
   L: TgdKeyArray;
   I, J, ID: Integer;
@@ -248,7 +437,7 @@ var
   Tr: TIBTransaction;
   //SL: TStringList;
 begin
-  Check(FLBRBTreeName > '');
+  Check(FTableName > '');
 
   //SL := TStringList.Create;
   L := TgdKeyArray.Create;
@@ -276,10 +465,10 @@ begin
             ID := gdcBaseManager.GetNextID;
 
             if (L.Count = 0) or (Random(10) = 9) then
-              q.SQL.Text := 'INSERT INTO ' + FLBRBTreeName +
+              q.SQL.Text := 'INSERT INTO ' + FTableName +
                 ' (id, parent) VALUES (' + IntToStr(ID) + ', NULL)'
             else begin
-              q.SQL.Text := 'INSERT INTO ' + FLBRBTreeName +
+              q.SQL.Text := 'INSERT INTO ' + FTableName +
                 ' (id, parent) VALUES (' + IntToStr(ID) + ', ' + IntToStr(L.Keys[Random(L.Count)]) + ')';
             end;
 
@@ -293,11 +482,11 @@ begin
             if L.Count > 0 then
             begin
               if (L.Count = 0) or (Random(9) = 8) then
-                q.SQL.Text := 'UPDATE ' + FLBRBTreeName +
+                q.SQL.Text := 'UPDATE ' + FTableName +
                   ' SET parent=NULL' +
                   ' WHERE id=' + IntToStr(L.Keys[Random(L.Count)])
               else
-                q.SQL.Text := 'UPDATE ' + FLBRBTreeName +
+                q.SQL.Text := 'UPDATE ' + FTableName +
                   ' SET parent=' + IntToStr(L.Keys[Random(L.Count)]) +
                   ' WHERE id=' + IntToStr(L.Keys[Random(L.Count)]);
               try
@@ -321,10 +510,10 @@ begin
               ID := L.Keys[Random(L.Count)];
 
               q.Close;
-              q.SQL.Text := 'SELECT id FROM ' + FLBRBTreeName +
+              q.SQL.Text := 'SELECT id FROM ' + FTableName +
                 ' WHERE ' +
-                ' lb >= (SELECT lb FROM ' + FLBRBTreeName + ' WHERE id=:ID) ' +
-                '   AND rb <= (SELECT rb FROM ' + FLBRBTreeName + ' WHERE id=:ID)';
+                ' lb >= (SELECT lb FROM ' + FTableName + ' WHERE id=:ID) ' +
+                '   AND rb <= (SELECT rb FROM ' + FTableName + ' WHERE id=:ID)';
               q.ParamByName('id').AsInteger := ID;
               q.ExecQuery;
               while not q.EOF do
@@ -334,7 +523,7 @@ begin
               end;
 
               q.Close;
-              q.SQL.Text := 'DELETE FROM ' + FLBRBTreeName + ' WHERE id=' + IntToStr(ID);
+              q.SQL.Text := 'DELETE FROM ' + FTableName + ' WHERE id=' + IntToStr(ID);
               q.ExecQuery;
               //SL.Add(Trim(q.SQL.Text) + ';');
             end;
@@ -360,39 +549,74 @@ begin
     end;
 
     q.Close;
-    q.SQL.Text := 'SELECT COUNT(*) FROM ' + FLBRBTreeName;
+    q.SQL.Text := 'SELECT COUNT(*) FROM ' + FTableName;
     q.ExecQuery;
     Check(q.Fields[0].AsInteger = L.Count, 'Incorrect number of tree items.');
   finally
     q.Free;
     Tr.Free;
     L.Free;
-
-    //SL.SaveToFile('d:\log.sql');
-    //SL.Free;
   end;
 end;
 
-procedure TgdcMetaDataTest.TestRestrLBRBTree;
-var
-  Tr: TIBTransaction;
+procedure TgdcLBRBTreeTest.TestData;
 begin
-  Check(FLBRBTreeName > '');
+  inherited;
+  TestRestrLBRBTree;
+  TestLBRBTree;
+end;
 
-  Tr := TIBTransaction.Create(nil);
+procedure TgdcLBRBTreeTest.CheckConsistency(Tr: TIBTransaction);
+var
+  q: TIBSQL;
+begin
+  q := TIBSQL.Create(nil);
   try
-    Tr.DefaultDatabase := gdcBaseManager.Database;
-    Tr.DefaultAction := TACommit;
-    Tr.StartTransaction;
+    q.Transaction := Tr;
 
-    Check(RestrLBRBTree(FLBRBTreeName, Tr) = 1);
-    CheckConsistency(Tr);
+    q.SQL.Text := 'SELECT a.lb FROM ' + FTableName + ' a JOIN ' + FTableName
+      + ' b ON a.lb = b.lb AND a.id <> b.id';
+    q.ExecQuery;
+    Check(q.EOF, 'Duplicate LB = ' + q.Fields[0].AsString);
+
+    q.Close;
+    q.SQL.Text := 'SELECT a.id || '','' || b.id FROM ' + FTableName + ' a JOIN ' + FTableName
+      + ' b ON a.lb < b.lb AND a.rb >= b.lb AND a.rb < b.rb';
+    q.ExecQuery;
+    Check(q.EOF, 'Overlapped intervals (left). ' + q.Fields[0].AsString);
+
+    q.Close;
+    q.SQL.Text := 'SELECT a.id || '','' || b.id FROM ' + FTableName + ' a JOIN ' + FTableName
+      + ' b ON a.lb > b.lb AND a.lb <= b.rb AND a.rb > b.rb';
+    q.ExecQuery;
+    Check(q.EOF, 'Overlapped intervals (right). ' + q.Fields[0].AsString);
+    q.Close;
+
+    q.SQL.Text := 'SELECT a.id || '','' || b.id FROM ' + FTableName + ' a JOIN ' + FTableName
+      + ' b ON a.parent = b.id AND a.lb <= b.lb AND a.rb >= b.rb ';
+    q.ExecQuery;
+    Check(q.EOF, 'Parent interval is smaller. ' + q.Fields[0].AsString);
   finally
-    Tr.Free;
+    q.Free;
   end;
+end;
+
+procedure TgdcTableToTableTest.InitObject(AnObj: TgdcBase);
+var
+  R: OleVariant;
+begin
+  inherited;
+  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM at_relations WHERE relationname = :RN',
+    'GD_CONTACT', R, FTr);
+  AnObj.FieldByName('referencekey').AsInteger := R[0, 0];
 end;
 
 initialization
   RegisterTest('DB', TgdcMetaDataTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcPrimeTableTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcSimpleTableTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcTreeTableTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcTableToTableTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcLBRBTreeTest.Suite);
   Randomize;
 end.

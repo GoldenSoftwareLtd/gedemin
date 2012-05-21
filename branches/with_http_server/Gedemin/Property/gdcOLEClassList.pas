@@ -1,6 +1,6 @@
 {++
 
-  Copyright (c) 2001 - 2010 by Golden Software of Belarus
+  Copyright (c) 2001 - 2012 by Golden Software of Belarus
 
   Module
 
@@ -31,6 +31,7 @@ type
   TWrapperAutoObject = class(TAutoIntfObject)
   private
     FObject: TObject;
+    FIsComponent: Boolean;
 
   protected
     function GetObject: TObject;
@@ -150,7 +151,7 @@ var
 implementation
 
 uses
-  FastMM4, gs_Exception;
+  gs_Exception;
 
 type
   TgdFreeNotificationComponent = class;
@@ -170,7 +171,7 @@ type
     function  GetWrapServer(const AnObject: TObject): TWrapperAutoObject;
 
     procedure Add(const AnObject: TObject; const gdcOLEObject: TWrapperAutoObject);
-    procedure Remove(const AnObject: TObject);
+    procedure Remove(const AnObject: TObject; const AnIsComponent: Boolean);
   end;
 
   TgdFreeNotificationComponent = class(TComponent)
@@ -326,8 +327,8 @@ constructor TWrapperAutoObject.Create(AObject: TObject;
 begin
   inherited Create(TypeLib, DispIntf);
   FObject := AObject;
+  FIsComponent := FObject is TComponent;
   gdWrapServerList.Add(FObject, Self);
-//  FObjectKey := FObject;
 end;
 
 class function TWrapperAutoObject.CreateObject(const DelphiClass: TClass; const Params: OleVariant): TObject;
@@ -337,7 +338,7 @@ end;
 
 destructor TWrapperAutoObject.Destroy;
 begin
-  gdWrapServerList.Remove(FObject);
+  gdWrapServerList.Remove(FObject, FIsComponent);
   FObject := nil;
   inherited Destroy;
 end;
@@ -366,7 +367,7 @@ begin
   ObjectKey := FObject;
   FObject := nil;
   try
-    gdWrapServerList.Remove(ObjectKey);
+    gdWrapServerList.Remove(ObjectKey, FIsComponent);
     if Assigned(AuxiliaryDesigner) then
       AuxiliaryDesigner.RemoveObject(ObjectKey);
   finally
@@ -550,15 +551,12 @@ begin
     Result := nil;
 end;
 
-procedure TgdWrapServerList.Remove(const AnObject: TObject);
-var
-  C: TClass;
+procedure TgdWrapServerList.Remove(const AnObject: TObject; const AnIsComponent: Boolean);
 begin
   if Assigned(AnObject) then
   begin
-    C := DetectClassInstance(Pointer(AnObject));
-    if (C <> nil) and (C.InheritsFrom(TComponent)) then
-      TComponent(AnObject).RemoveFreeNotification(FFreeComponentSpy);
+    if AnIsComponent then
+      (AnObject as TComponent).RemoveFreeNotification(FFreeComponentSpy);
     FgdWrapServerList.Remove(Integer(AnObject));
   end;
 end;

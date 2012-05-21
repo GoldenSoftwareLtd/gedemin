@@ -796,11 +796,7 @@ end;
 
 procedure Tgdc_frmMDH.actDeleteExecute(Sender: TObject);
 begin
-{  if gdcDetailObject.IsEmpty
-    or (MessageBox(Self.Handle, 'Существуют детальные объекты. Удалить все равно?', 'Внимание', MB_YESNO or MB_ICONQUESTION) = IDYES) then
-  begin}
-    gdcObject.DeleteMultiple2(Get_SelectedKey[0]);
-{  end;}
+  gdcObject.DeleteMultiple2(Get_SelectedKey[0]);
 end;
 
 procedure Tgdc_frmMDH.actDetailReductionUpdate(Sender: TObject);
@@ -827,7 +823,6 @@ procedure Tgdc_frmMDH.actDetailSaveToFileExecute(Sender: TObject);
 var
   frmStreamSaver: TForm;
 begin
-  //gdcDetailObject.SaveToFile;
   frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
   (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject);
   (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
@@ -845,7 +840,6 @@ procedure Tgdc_frmMDH.actDetailLoadFromFileExecute(Sender: TObject);
 var
   frmStreamSaver: TForm;
 begin
-  //gdcDetailObject.LoadFromFile;
   frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
   (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject);
   (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadForm;

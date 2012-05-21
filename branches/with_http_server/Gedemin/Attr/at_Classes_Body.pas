@@ -150,8 +150,6 @@ type
     function GetListField: TatRelationField; override;
     function GetIsStandartTreeRelation: Boolean; override;
     function GetIsLBRBTreeRelation: Boolean; override;
-//    function GetExtendedFields(Index: Integer): TatRelationField; override;
-//    function GetExtendedFieldsCount: Integer; override;
 
     procedure Clear;
 
@@ -366,6 +364,7 @@ type
 
     procedure Read(Reader: TReader);
     procedure Write(Writer: TWriter);
+
   protected
     procedure LoadFromStream(S: TStream);
     procedure SaveToStream(S: TStream);
@@ -606,6 +605,12 @@ end;
 destructor TatBodyRelation.Destroy;
 begin
   FRelationFields.Free;
+
+  if Assigned(FDatabase) and Assigned(FPrimaryKey) then
+  begin
+    FDatabase.PrimaryKeys.Delete(FDatabase.PrimaryKeys.IndexOf(FPrimaryKey));
+  end;
+
   inherited;
 end;
 
@@ -1117,6 +1122,8 @@ begin
 
   FListField := '';
   FExtendedFields := '';
+
+  FPrimaryKey := nil;
 end;
 
 procedure TatBodyRelation.Read(Reader: TReader);
