@@ -8,55 +8,54 @@ inherited gdc_frmSGR: Tgdc_frmSGR
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 393
-    Width = 599
+    Top = 382
+    Width = 591
   end
   inherited TBDockTop: TTBDock
-    Width = 599
+    Width = 591
     inherited tbMainMenu: TTBToolbar
       DockPos = 8
-      DockRow = 0
     end
     inherited tbMainInvariant: TTBToolbar
       Left = 327
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 344
+    Height = 331
   end
   inherited TBDockRight: TTBDock
-    Left = 590
-    Height = 344
+    Left = 582
+    Height = 331
   end
   inherited TBDockBottom: TTBDock
-    Top = 412
-    Width = 599
+    Top = 401
+    Width = 591
   end
   inherited pnlWorkArea: TPanel
-    Width = 581
-    Height = 344
+    Width = 573
+    Height = 331
     TabOrder = 0
     inherited spChoose: TSplitter
-      Top = 241
-      Width = 581
+      Top = 228
+      Width = 573
     end
     inherited pnlMain: TPanel
-      Width = 581
-      Height = 241
+      Width = 573
+      Height = 228
       inherited pnlSearchMain: TPanel
-        Height = 241
+        Height = 228
         inherited sbSearchMain: TScrollBox
-          Height = 203
+          Height = 190
         end
         inherited pnlSearchMainButton: TPanel
-          Top = 203
+          Top = 190
         end
       end
       object ibgrMain: TgsIBGrid
         Left = 160
         Top = 0
-        Width = 421
-        Height = 241
+        Width = 413
+        Height = 228
         HelpContext = 3
         Align = alClient
         BorderStyle = bsNone
@@ -89,16 +88,16 @@ inherited gdc_frmSGR: Tgdc_frmSGR
       end
     end
     inherited pnChoose: TPanel
-      Top = 245
-      Width = 581
+      Top = 232
+      Width = 573
       inherited pnButtonChoose: TPanel
-        Left = 476
+        Left = 468
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 476
+        Width = 468
       end
       inherited pnlChooseCaption: TPanel
-        Width = 581
+        Width = 573
       end
     end
   end

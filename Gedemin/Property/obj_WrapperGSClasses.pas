@@ -18556,6 +18556,6 @@ initialization
   RegisterGdcOLEClass(TgsParamData, TwrpGsParamData, ComServer.TypeLib, IID_IgsParamData);
 
   RegisterGdcOLEClass(TfrmGedeminMain, TwrpGsFrmGedeminMain, ComServer.TypeLib, IID_IgsFrmGedeminMain);
-
   RegisterGdcOLEClass(TgdWebServerControl, TwrpGdWebServerControl, ComServer.TypeLib, IID_IgdWebServerControl);
-  RegisterGdcOLEClass(TgsFTPClient, TwrpFTPClient, ComServer.TypeLib, IID_IgsFTPClient);end.
+  RegisterGdcOLEClass(TgsFTPClient, TwrpFTPClient, ComServer.TypeLib, IID_IgsFTPClient);
+end.

@@ -116,6 +116,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetKeyField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
+    class function IsAbstractClass: Boolean; override;
 
     procedure CreateReversalEntry(const AReversalEntryDate: TDateTime; const ATransactionKey: TID; const AllDocEntry: Boolean);
 
@@ -1300,6 +1301,11 @@ begin
   Result.SubType := Self.SubType; 
 end;
 
+class function TgdcAcctBaseEntryRegister.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcAcctBaseEntryRegister');
+end;
+
 { TgdcAcctEntryRegister }
 
 constructor TgdcAcctEntryRegister.Create(AnOwner: TComponent);
@@ -1729,9 +1735,8 @@ var
 begin
   if FCurrNCUKey = -1 then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
-      ibsql.Database := Database;
       ibsql.Transaction := ReadTransaction;
       ibsql.SQL.Text := 'SELECT id FROM gd_curr WHERE isNCU = 1';
       ibsql.ExecQuery;
@@ -2607,59 +2612,6 @@ begin
   FTransactionKey := -1;
 end;
 
-(*function TgdcAcctSimpleRecord.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCACCTSIMPLERECORD', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCACCTSIMPLERECORD', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCACCTSIMPLERECORD') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCACCTSIMPLERECORD',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCACCTSIMPLERECORD' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := TCreateableForm(CCreateableForm(FindClass('Tgdc_acct_dlgEntry')).Create(ParentForm));
-//  Result := TCreateableForm(CgdcCreateableForm(FindClass('Tgdc_acct_dlgEntry')).Create(ParentForm));
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTSIMPLERECORD', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCACCTSIMPLERECORD', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;*)
-
 procedure TgdcAcctSimpleRecord.DoBeforePost;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -3139,7 +3091,7 @@ var
 begin
   if FCurrNCUKey = -1 then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Database := Database;
       ibsql.Transaction := ReadTransaction;
@@ -4427,7 +4379,7 @@ var
 begin
   if FCurrNCUKey = -1 then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Database := Database;
       ibsql.Transaction := ReadTransaction;

@@ -53,7 +53,7 @@ type
     FAvailAnalyticFields: TList;
     FAccountAnalyticFields: TList;
     FAnalyticLines: TObjectList;
-
+    FLoadBlock: Boolean;
     FCurrKey: Integer;
   protected
     procedure ClickAccount(Sender: TObject);
@@ -71,6 +71,7 @@ type
     procedure UpdateControls;
   public
     { Public declarations }
+    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function CheckOk: Boolean; override;
     procedure SaveChanges; override;
@@ -84,6 +85,12 @@ uses gdc_frmAccountSel_unit;
 {$R *.DFM}
 
 { TfrTrEntryEditFrame }
+
+constructor TfrTrPosEntryEditFrame.Create(AOwner: TComponent);
+begin
+  inherited;
+  FLoadBlock := False;
+end;
 
 function TfrTrPosEntryEditFrame.CheckAccount: boolean;
 begin
@@ -261,32 +268,37 @@ begin
   begin
     with Value as TTrEntryPositionBlock do
     begin
-      frAnalytics.ReadAnalytics := Analytics;
-      A := SetAccount(Account, FAccountKey);
-      Id := FAccountKey;
-      beAccount.Text := A;
-      FAccountKey := Id;
+      FLoadBlock := True;
+      try
+        frAnalytics.ReadAnalytics := Analytics;
+        A := SetAccount(Account, FAccountKey);
+        Id := FAccountKey;
+        beAccount.Text := A;
+        FAccountKey := Id;
 
-      rbDebit.Checked :=  AccountPart = 'D';
-      rbCredit.Checked := not rbDebit.Checked;
-      beSum.Text := SumNCU;
+        rbDebit.Checked :=  AccountPart = 'D';
+        rbCredit.Checked := not rbDebit.Checked;
+        beSum.Text := SumNCU;
 
-      FCurrKey := 0;
-      if CheckRUID(CurrRUID) then
-      begin
-        Id := gdcBaseManager.GetIDByRUIDString(CurrRUID);
-        beCurr.Text := GetCurrNameById(ID);
-        FCurrKey := Id
-      end else
-        beCurr.Text := CurrRUID;
+        FCurrKey := 0;
+        if CheckRUID(CurrRUID) then
+        begin
+          Id := gdcBaseManager.GetIDByRUIDString(CurrRUID);
+          beCurr.Text := GetCurrNameById(ID);
+          FCurrKey := Id
+        end else
+          beCurr.Text := CurrRUID;
 
-      beSumCurr.Text := SumCurr;
-      beSumEQ.Text := SumEQ;
-      UpdateControls;
-      frAnalytics.Analytics := Analytics;
+        beSumCurr.Text := SumCurr;
+        beSumEQ.Text := SumEQ;
+        UpdateControls;
+        frAnalytics.Analytics := Analytics;
 
-      frQuantity.Quantity := Quantity;
-      frQuantity.Block := Value;
+        frQuantity.Quantity := Quantity;
+        frQuantity.Block := Value;
+      finally
+        FLoadBlock := False;
+      end;
     end;
   end;
   eLocalName.Text := LocalName;
@@ -314,8 +326,9 @@ end;
 procedure TfrTrPosEntryEditFrame.beAccountChange(Sender: TObject);
 begin
   FAccountKey := 0;
-
-end;
+  if not FLoadBlock then
+    frAnalytics.ReadAnalytics := '';
+end;                  
 
 procedure TfrTrPosEntryEditFrame.beAccountExit(Sender: TObject);
 begin

@@ -1,9 +1,7 @@
 
-
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
 
@@ -37,7 +35,7 @@ uses
   Classes,      IBCustomDataSet,   IBDataBase,     gdcBase,
   gdcTree,      Forms,             gd_createable_form,
   at_classes,   gdcBaseInterface,  DB,             gd_KeyAssoc,
-  gdcConstants, {gdcExplorer, }      gd_i_ScriptFactory,
+  gdcConstants, gd_i_ScriptFactory,
   gd_security,  gdcOLEClassList,   DBGrids;
 
 {$IFDEF DEBUGMOVE}
@@ -197,10 +195,9 @@ type
     function GetCurrRecordClass: TgdcFullClass; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetSubSetList: String; override;
-
     class function NeedModifyFromStream(const SubType: String): Boolean; override;
+    class function IsAbstractClass: Boolean; override;
   end;
 
   TgdcDocumentBranch = class(TgdcBaseDocumentType)
@@ -297,6 +294,7 @@ type
 
     class function GetSubTypeList(SubTypeList: TStrings): Boolean; override;
     class function GetRestrictCondition(const ATableName, ASubType: String): String; override;
+    class function IsAbstractClass: Boolean; override;
 
     procedure ReadOptions(const ARuid: String);
 
@@ -308,8 +306,6 @@ type
 
 
   TgdcUserDocument = class(TgdcUserBaseDocument)
-  private
-
   protected
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
@@ -330,9 +326,7 @@ type
     destructor Destroy; override;
 
     class function GetSubSetList: String; override;
-
   end;
-
 
   TgdcUserDocumentLine = class(TgdcUserBaseDocument)
   protected
@@ -833,7 +827,7 @@ begin
   end;
 
   DidActivate := False;
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     if (Owner is Tgdc_frmMDH) and (Self = (Owner as Tgdc_frmMDH).gdcDetailObject) then
       GridBm := (Owner as Tgdc_frmMDH).GetDetailBookmarkList
@@ -1082,7 +1076,7 @@ begin
 
     CheckNumber(FieldByName('NUMBER'));
 
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := ReadTransaction;
       ibsql.SQL.Text := cst_sql_GetLastNumber;
@@ -1323,7 +1317,7 @@ begin
     EntryRegister.CreateEntry;
     if FieldByName('PARENT').IsNull then
     begin
-      ibsql := TIBSQL.Create(Self);
+      ibsql := TIBSQL.Create(nil);
       try
         ibsql.Transaction := Transaction;
         ibsql.SQL.Text := 'SELECT id FROM gd_document doc WHERE ' +
@@ -2228,7 +2222,7 @@ function TgdcDocument.HaveIsDetailObject: Boolean;
 var
   ibsql: TIBSQL;
 begin
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text := 'SELECT * FROM gd_document WHERE parent = :id';
@@ -2800,7 +2794,7 @@ begin
   При дублировании наименования, подкорректируем его
   Проверка идет через запрос к базе, никаких кэшей!!!}
 
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     if Transaction.InTransaction then
       ibsql.Transaction := Transaction
@@ -2892,6 +2886,11 @@ begin
   {M}      ClearMacrosStack2('TGDCBASEDOCUMENTTYPE', 'GETNOTCOPYFIELD', KEYGETNOTCOPYFIELD);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcBaseDocumentType.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcBaseDocumentType');
 end;
 
 { TgdcDocumentBranch }
@@ -3211,7 +3210,7 @@ begin
     {При загрузке из потока не будем трогать нумерацию}
     if not (sLoadFromStream in BaseState) then
     begin
-      q := TIBSQL.Create(Self);
+      q := TIBSQL.Create(nil);
       try
       //Здесь транзакция должна быть открыта!!!
         q.Transaction := Transaction;
@@ -3759,52 +3758,11 @@ end;
 
 class function TgdcUserBaseDocument.GetSubTypeList(
   SubTypeList: TStrings): Boolean;
-{var
-  ibsql: TIBSQL;
-  ibtr: TIBTransaction;}
 begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList2('TgdcUserDocumentType',
     SubTypeList);
-
-  {
-  if not Assigned(gdcBaseManager) then
-  begin
-    Result := False;
-    exit;
-  end;
-
-  ibsql := TIBSQL.Create(nil);
-  ibtr := TIBTransaction.Create(nil);
-  try
-    ibtr.DefaultDatabase := gdcBaseManager.Database;
-    ibsql.Database := gdcBaseManager.Database;
-    ibsql.Transaction := ibtr;
-
-    ibtr.StartTransaction;
-
-    ibsql.SQL.Text :=
-      'SELECT NAME, RUID FROM GD_DOCUMENTTYPE WHERE CLASSNAME = ''TgdcUserDocumentType'' AND ' +
-      ' DOCUMENTTYPE = ''D''';
-
-    SubTypeList.Clear;
-
-    ibsql.ExecQuery;
-    while not ibsql.EOF do
-    begin
-      SubTypeList.Add(
-        ibsql.FieldByName('NAME').AsString + '=' +
-        ibsql.FieldByName('RUID').AsString);
-      ibsql.Next;
-    end;
-  finally
-    ibsql.Free;
-    ibtr.Free;
-  end;
-
-  Result := SubTypeList.Count > 0;
-  }
 end;
 
 procedure TgdcUserBaseDocument.ReadOptions(const aRuid: String);
@@ -3886,6 +3844,11 @@ begin
       Result := 'Tgdc_frmUserComplexDocument';
   end else
     raise EgdcIBError.Create('Не верен тип документа');
+end;
+
+class function TgdcUserBaseDocument.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcUserBaseDocument');
 end;
 
 { TgdcUserDocument }
@@ -4806,7 +4769,6 @@ begin
 end;
 
 initialization
-
   RegisterGdcClass(TgdcDocument);
   RegisterGdcClass(TgdcBaseDocumentType);
   RegisterGdcClass(TgdcDocumentBranch);
@@ -4817,7 +4779,6 @@ initialization
   RegisterGdcClass(TgdcUserDocumentLine);
 
 finalization
-
   UnRegisterGdcClass(TgdcDocument);
   UnRegisterGdcClass(TgdcBaseDocumentType);
   UnRegisterGdcClass(TgdcDocumentBranch);

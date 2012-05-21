@@ -188,7 +188,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         KeyField = 'ID'
         gdClassName = 'TgdcUserGroup'
         StrictOnExit = False
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 5

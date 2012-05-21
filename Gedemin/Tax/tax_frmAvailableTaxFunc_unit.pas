@@ -408,7 +408,7 @@ begin
   if FActualTaxKey <= 0 then
     Exit;
 
-  IBSQL := TIBSQL.Create(Self);
+  IBSQL := TIBSQL.Create(nil);
   try
     IBSQL.Transaction := gdcBaseManager.ReadTransaction;
     IBSQL.SQL.Text :=
@@ -433,7 +433,7 @@ begin
             SetLength(ParamArray, 0);
           end;
       end;
-        
+
       IBSQL.Next;
     end;
   finally

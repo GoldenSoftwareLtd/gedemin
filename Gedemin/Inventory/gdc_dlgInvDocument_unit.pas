@@ -1256,7 +1256,7 @@ procedure TdlgInvDocument.CheckDisabledPosition;
 var
   ibsql: TIBSQL;
 begin
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     if Document.Transaction.InTransaction then
     begin
@@ -1274,7 +1274,7 @@ begin
         DocumentLine.Movement.CreateAllMovement(ipsmDocument, True);
       end;
       ibsql.Close;
-    end;  
+    end;
   finally
     ibsql.Free;
   end;

@@ -58,6 +58,12 @@ begin
       + ' b ON a.lb > b.lb AND a.lb <= b.rb AND a.rb > b.rb';
     q.ExecQuery;
     Check(q.EOF, 'Overlapped intervals (right). ' + q.Fields[0].AsString);
+    q.Close;
+
+    q.SQL.Text := 'SELECT a.id || '','' || b.id FROM ' + FLBRBTreeName + ' a JOIN ' + FLBRBTreeName
+      + ' b ON a.parent = b.id AND a.lb <= b.lb AND a.rb >= b.rb ';
+    q.ExecQuery;
+    Check(q.EOF, 'Parent interval is smaller. ' + q.Fields[0].AsString);
   finally
     q.Free;
   end;

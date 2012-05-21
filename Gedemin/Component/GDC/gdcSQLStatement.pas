@@ -8,13 +8,15 @@ uses
 
 type
   TgdcSQLStatement = class(TgdcBase)
+  protected
+    function GetCanCreate: Boolean; override;
+    function GetCanEdit: Boolean; override;
+    
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
-    function GetCanCreate: Boolean; override;
-    function GetCanEdit: Boolean; override;
   end;
 
 procedure Register;

@@ -20,6 +20,7 @@ type
 
   public
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
+    class function IsAbstractClass: Boolean; override;
     //Добавляет счет компании, указанной в выписке/картотеке, если это нужно
     //используется только на диалогах
     procedure SetCompanyAccount;
@@ -110,6 +111,7 @@ type
   public
     function DocumentTypeKey: Integer; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function IsAbstractClass: Boolean; override;
   end;
 
   TgdcBankStatementLine = class(TgdcBaseStatementLine)
@@ -1571,6 +1573,11 @@ begin
 
 end;
 
+class function TgdcBaseStatementLine.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcBaseStatementLine');
+end;
+
 { TgdcBaseLine }
 
 procedure TgdcBaseLine.DoAfterDelete;
@@ -1798,6 +1805,11 @@ begin
   Result := dcpLine;
 end;
 
+class function TgdcBaseLine.IsAbstractClass: Boolean;
+begin
+  Result := Self.ClassNameIs('TgdcBaseLine');
+end;
+
 procedure TgdcBaseLine.MakeEntry;
 begin
   (gdcAcctEntryRegister as TgdcAcctEntryRegister).Description := FieldByName('comment').AsString;
@@ -1861,7 +1873,7 @@ begin
   if (FieldByName('account').AsString > '') and (FieldByName('bankcode').AsString > '')
     and (FieldByName('companykeyline').AsInteger > 0) then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       DidActivate := False;
       try

@@ -412,6 +412,16 @@ begin
     Add(AddSpaces('Тип объекта:') + gdcObject.ClassName);
     Add(AddSpaces('Тип родителя:') + gdcObject.ClassParent.ClassName);
     Add(AddSpaces('Подтип:') + gdcObject.SubType);
+    if gdcObject.Owner is TCustomForm then
+    begin
+      Add(AddSpaces('Принадлежит форме:') + gdcObject.Owner.Name);
+      Add(AddSpaces('Класс формы:') + gdcObject.Owner.ClassName);
+    end;
+    if gdcObject.GetDlgForm is TCustomForm then
+    begin
+      Add(AddSpaces('Текущая форма:') + gdcObject.GetDlgForm.Name);
+      Add(AddSpaces('Класс тек. формы:') + gdcObject.GetDlgForm.ClassName);
+    end;
     Add(AddSpaces('Подмножество:') + gdcObject.SubSet);
     if Trim(gdcObject.ExtraConditions.CommaText) > '' then
       Add(AddSpaces('Доп. условия:') + Trim(gdcObject.ExtraConditions.CommaText));

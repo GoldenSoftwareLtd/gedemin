@@ -27,9 +27,9 @@ procedure GetAnalyticsFields(const List: TList);
 //провер€ет список аналитик на присутствие в Ѕƒ
 procedure CheckAnalyticsList(const List: TStringList);
 //¬озвращает ид счета по алиасу дл€ астивного плана счетов
-function GetAccountKeyByAlias(Alias: string): Integer; overload;
+function GetAccountKeyByAlias(const AnAlias: String): Integer; overload;
 //“оже самое, только дл€ указанного плана счетов
-function GetAccountKeyByAlias(Alias: string; AccountCardKey: Integer): Integer; overload;
+function GetAccountKeyByAlias(const AnAlias: string; const AnAccountCardKey: Integer): Integer; overload;
 function GetAlias(Id: Integer): string;
 function GetAccountRUIDStringByAlias(Alias: string): string;
 function GetAliasByRUIDString(RUID: string): string;
@@ -222,41 +222,45 @@ begin
 {$ENDIF}
 end;
 
-function GetAccountKeyByAlias(Alias: string): Integer;
+function GetAccountKeyByAlias(const AnAlias: string): Integer;
 var
-  SQl: TIBSQL;
+  SQL: TIBSQL;
 begin
   Result := 0;
   //ѕоле алиас определено как варчар(20), поэтому если длинна переданного
   //параметра больше чем 20, то это заведомо неправильный алиас
-  if Length(Alias) <= 20 then
+  if Length(AnAlias) <= 20 then
   begin
     SQL := TIBSQL.Create(nil);
     try
       SQL.Transaction := gdcBaseManager.ReadTransaction;
 
-      SQL.SQL.Text := 'SELECT a1.id FROM ac_companyaccount ca JOIN ac_account a ' +
-        'ON a.id = ca.accountkey LEFT JOIN ac_account a1 ON a1.lb >= a.lb AND ' +
-        'a1.rb <= a.rb AND a1.alias = :alias WHERE ca.companykey = :companykey AND ca.IsActive = 1';
+      SQL.SQL.Text :=
+        'SELECT a1.id ' +
+        'FROM ac_companyaccount ca JOIN ac_account a ' +
+        '  ON a.id = ca.accountkey JOIN ac_account a1 ON a1.lb > a.lb AND ' +
+        '    a1.rb <= a.rb ' +
+        'WHERE ca.companykey = :companykey AND ca.IsActive = 1 AND a1.alias = :alias';
 
-      SQL.ParamByName(fnAlias).AsString := Alias;
+      SQL.ParamByName(fnAlias).AsString := AnAlias;
       SQL.ParamByName(fnCompanyKey).AsInteger := IBLogin.CompanyKey;
-      SQl.ExecQuery;
-      Result := SQL.FieldByName(fnId).AsInteger;
+      SQL.ExecQuery;
+      if not SQL.EOF then
+        Result := SQL.FieldByName(fnId).AsInteger;
     finally
       SQL.Free;
     end;
   end;
 end;
 
-function GetAccountKeyByAlias(Alias: string; AccountCardKey: Integer): Integer;
+function GetAccountKeyByAlias(const AnAlias: string; const AnAccountCardKey: Integer): Integer;
 var
-  SQl: TIBSQL;
+  SQL: TIBSQL;
 begin
   Result := 0;
   //ѕоле алиас определено как варчар(20), поэтому если длинна переданного
   //параметра больше чем 20, то это заведомо неправильный алиас
-  if Length(Alias) <= 20 then
+  if Length(AnAlias) <= 20 then
   begin
     SQL := TIBSQL.Create(nil);
     try
@@ -266,10 +270,11 @@ begin
         'LEFT JOIN ac_account a1 ON a1.lb >= a.lb AND ' +
         'a1.rb <= a.rb AND a1.alias = :alias WHERE a.id = :id';
 
-      SQL.ParamByName(fnAlias).AsString := Alias;
-      SQL.ParamByName(fnId).AsInteger := AccountCardKey;
-      SQl.ExecQuery;
-      Result := SQL.FieldByName(fnId).AsInteger;
+      SQL.ParamByName(fnAlias).AsString := AnAlias;
+      SQL.ParamByName(fnId).AsInteger := AnAccountCardKey;
+      SQL.ExecQuery;
+      if not SQL.EOF then
+        Result := SQL.FieldByName(fnId).AsInteger;
     finally
       SQL.Free;
     end;

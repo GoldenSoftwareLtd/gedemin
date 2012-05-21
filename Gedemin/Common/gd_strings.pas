@@ -45,7 +45,7 @@ begin
         Editor.SelText:= '';
         ClearStr:= StringOfChar(' ', 4);
       end;
-//      else
+
       if Trim(Editor.LineText) <> '' then begin
         i:= 1;
         ClearStr:= '';

@@ -127,7 +127,7 @@ type
   TgdcTableInfos = set of TgdcTableInfo;
 
   //Проверяет, является ли переданная строка руидом
-  function CheckRuid(RUIDString: string): boolean;
+  function CheckRuid(const RUIDString: String): Boolean;
 
 const
   IDCacheRegKey = ClientRootRegistrySubKey + 'IDCache\';
@@ -145,29 +145,14 @@ implementation
 uses
   SysUtils;
 
-function CheckRuid(RUIDString: string): boolean;
-const
-  RuidSet = ['0'..'9', '_'];
-  NumericSet = ['0'..'9'];
+function CheckRuid(const RUIDString: String): Boolean;
 var
   I: Integer;
 begin
-  if (Length(RUIDString) = 0) or not(RUIDString[1] in NumericSet) then
-  begin
-    Result := False;
-    Exit;
-  end;
-
-  for I := 2 to Length(RUIDString) do
-  begin
-    if not(RUIDString[I] in RuidSet) then
-    begin
-      Result := False;
-      Exit;
-    end;
-  end;
-
-  Result := AnsiPos('_', RuidString) > 0;
+  I := Pos('_', RUIDString);
+  Result := (I > 0)
+    and (StrToIntDef(Copy(RUIDString, 1, I - 1), -1) >= 0)
+    and (StrToIntDef(Copy(RUIDString, I + 1, 1024), -1) >= 0);
 end;
 
 end.

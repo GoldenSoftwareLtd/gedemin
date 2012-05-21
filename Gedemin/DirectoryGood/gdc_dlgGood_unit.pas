@@ -176,11 +176,12 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
+
   if gdcObject.State = dsEdit then
-  begin
     Caption := Caption + gdcObject.FieldByName('name').AsString;
-  end;
+    
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGGOOD', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -215,8 +216,10 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
-  UserStorage.LoadComponent(gdibgrBarCode, gdibgrBarCode.LoadFromStream);
+
+  LoadGrid(gdibgrBarCode);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGGOOD', 'LOADSETTINGS', KEYLOADSETTINGS)}
   {M}finally
@@ -252,10 +255,10 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
-  if gdibgrBarCode.SettingsModified then
-    UserStorage.SaveComponent(gdibgrBarCode, gdibgrBarCode.SaveToStream);
+  SaveGrid(gdibgrBarCode);
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGGOOD', 'SAVESETTINGS', KEYSAVESETTINGS)}
   {M}finally

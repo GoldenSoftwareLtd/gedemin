@@ -2223,11 +2223,9 @@ begin
 
         if AnsiPos('PLAN (', AnsiUpperCase(seQuery.Text)) <= 0 then
         begin
-          SQL := TIBSQL.Create(Self);
-
+          SQL := TIBSQL.Create(nil);
           try
             try
-              SQL.Database := (Self.DataLink.DataSet as TIBCustomDataSet).Database;
               SQL.Transaction := (Self.DataLink.DataSet as TIBCustomDataSet).ReadTransaction;
               SQL.SQL.Text := seQuery.Text;
               SQL.Prepare;

@@ -19,13 +19,15 @@ type
   //cfsAdmin - Текущий пользователь администратор
   //cfsCreating - Форма созданна впервые для редактирования
   //cfsSetting -- идет загрузка или сохранение настроек
+  //cfsDistributeSettings -- распространение настроек формы всем польз.
   TCreateableFormState = (
     cfsDesigning,
     cfsUserCreated,
     cfsCreating,
     cfsCloseAfterDesign,
     cfsLoading,
-    cfsSetting);
+    cfsSetting,
+    cfsDistributeSettings);
 
   TCreateableFormStates = set of TCreateableFormState;
 

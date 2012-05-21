@@ -565,7 +565,7 @@ begin
   end;
   
   DidActivate := False;
-  TempSQL := TIBSQL.Create(Self);
+  TempSQL := TIBSQL.Create(nil);
   try
     // Стартуем транзакции
     if not Transaction.InTransaction then
@@ -1224,82 +1224,29 @@ end;
 procedure TgsQueryFilter.LoadLastFilter;
 var
   LFK: Integer;
-  {ibsqlLast: TIBSQL;
-  DidActivate: Boolean;}
 begin
-  if {(Database = nil)
-    or (not Database.Connected)
-    or (Transaction = nil)
-    or} ((GetAsyncKeyState(VK_SHIFT) shr 1) <> 0) then
-  begin
+  if (GetAsyncKeyState(VK_SHIFT) shr 1) <> 0 then
     exit;
+
+  // Ключ компонента
+  ExtractComponentKey;
+
+  LFK := GetLastFilterKey(FComponentKey);
+  if LFK > -1 then
+  begin
+    // Если найден, то загружаем
+    LoadFilter(LFK);
+    {$IFDEF GEDEMIN}
+    if Assigned(UserStorage) then
+    begin
+      FilterQuery(NULL,
+        UserStorage.ReadBoolean('Options', 'FilterParams', True, False))
+    end else
+    {$ENDIF}
+      FilterQuery(NULL, True);
   end;
 
-  {DidActivate := False;
-  ibsqlLast := TIBSQL.Create(Self);
-  try
-    // Необходимые установки
-    ibsqlLast.Database := Database;
-    ibsqlLast.Transaction := Transaction;}
-
-    // Ключ компонента
-    ExtractComponentKey;
-
-    // Ищем значение фильтра
-    {ibsqlLast.SQL.Text :=
-      'SELECT * FROM flt_lastfilter WHERE userkey '
-      + GetISUserKey
-      + ' AND componentkey = '
-      + IntToStr(FComponentKey);
-    // Стартуем транзакцию
-    if not Transaction.InTransaction then
-    begin
-      Transaction.StartTransaction;
-      DidActivate := True;
-    end;
-    ibsqlLast.ExecQuery;}
-
-    LFK := GetLastFilterKey(FComponentKey);
-    if LFK > -1 then
-    begin
-      // Если найден, то загружаем
-      LoadFilter(LFK);
-      {$IFDEF GEDEMIN}
-      if Assigned(UserStorage) then
-      begin
-        FilterQuery(NULL,
-          UserStorage.ReadBoolean('Options', 'FilterParams', True, False))
-      end else
-      {$ENDIF}
-        FilterQuery(NULL, True);
-    end;
-
-    (*
-    if not ibsqlLast.Eof then
-      if {not ibsqlLast.FieldByName('crc32').IsNull and}
-       CompareVersion(ibsqlLast.FieldByName('crc32').AsInteger,
-        ibsqlLast.FieldByName('dbversion').AsString, True) then
-      begin
-        // Если найден, то загружаем
-        LoadFilter(ibsqlLast.FieldByName('lastfilter').AsInteger);
-        {$IFDEF GEDEMIN}
-        if Assigned(UserStorage) then
-        begin
-          FilterQuery(NULL,
-            UserStorage.ReadBoolean('Options', 'FilterParams', True, False))
-        end else
-        {$ENDIF}
-          FilterQuery(NULL, True);
-      end;
-    *)
-  {finally}
-    FIsLastSave := False;
-    {ibsqlLast.Free;}
-
-    // Закрываем транзакцию
-    {if DidActivate and Transaction.InTransaction then
-      Transaction.Commit;
-  end;}
+  FIsLastSave := False;
 end;
 
 procedure TgsQueryFilter.Notification(AComponent: TComponent;
@@ -1511,15 +1458,6 @@ begin
       Transaction.Commit;
   end;
 end;
-
-// Получаем ключ пользователя
-{function TgsQueryFilter.GetUserKey: String;
-begin
-  if IBLogin <> nil then
-    Result := IntToStr(IBLogin.UserKey)
-  else
-    Result := IntToStr(ADMIN_KEY); // ' NULL '
-end;}
 
 function TgsQueryFilter.GetISUserKey: String;
 begin
@@ -1910,15 +1848,6 @@ begin
 
     TempPM.Add(TMenuItem.Create(TempPM));
     TempPM.Items[TempPM.Count - 1].Action := FActionList.Actions[3];
-
-{    TempPM.Add(TMenuItem.Create(TempPM));
-    TempPM.Items[TempPM.Count - 1].Caption := 'Сохранить в файл';
-    TempPM.Items[TempPM.Count - 1].OnClick := DoOnWriteToFile;
-    TempPM.Items[TempPM.Count - 1].ShortCut := ShortCut(Word('S'), [ssCtrl]);
-    TempPM.Add(TMenuItem.Create(TempPM));
-    TempPM.Items[TempPM.Count - 1].Caption := 'Загрузить из файла';
-    TempPM.Items[TempPM.Count - 1].OnClick := DoOnReadFromFile;
-    TempPM.Items[TempPM.Count - 1].ShortCut := ShortCut(Word('L'), [ssCtrl]);}
 
     TempPM.Add(TMenuItem.Create(TempPM));
     TempPM.Items[TempPM.Count - 1].Action := FActionList.Actions[4];

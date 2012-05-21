@@ -816,9 +816,11 @@ var
 begin
   Assert(gdcBaseManager <> nil);
   Assert(atDataBase <> nil);
-  if gdcObject.State = dsEdit then Exit;
 
-  ibsql := TIBSQL.Create(Self);
+  if gdcObject.State = dsEdit then
+    exit;
+
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text := 'SELECT * FROM at_fields WHERE fieldname = ' + QuotedStr(dbedTypeName.Text);
@@ -968,7 +970,7 @@ begin
 
     if Trim(memRefCondition.Text) > '' then
     begin
-      ibsql := TIBSQL.Create(Self);
+      ibsql := TIBSQL.Create(nil);
       try
         ibsql.Transaction := gdcBaseManager.ReadTransaction;
         ibsql.SQL.Text := 'SELECT ' +
@@ -1027,7 +1029,7 @@ begin
 
     if Trim(memSetCondition.Text) > '' then
     begin
-      ibsql := TIBSQL.Create(Self);
+      ibsql := TIBSQL.Create(nil);
       try
         ibsql.Transaction := gdcBaseManager.ReadTransaction;
         ibsql.SQL.Text := 'SELECT ' +
@@ -1222,7 +1224,7 @@ begin
 
   if pcDataType.ActivePage = tsReference then
   begin
-    ibsql := TIBSQL.Create(Self);
+    ibsql := TIBSQL.Create(nil);
     try
       ibsql.Transaction := gdcObject.Transaction;
       ibsql.SQL.Text := 'SELECT r.relationname FROM at_relations r WHERE r.id = ' +
@@ -1820,7 +1822,7 @@ end;
 
 procedure Tgdc_dlgField.dbedTypeNameEnter(Sender: TObject);
 var
-  S: string;
+  S: String;
 begin
   S:= '00000409';
   LoadKeyboardLayout(@S[1], KLF_ACTIVATE);

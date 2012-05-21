@@ -1,6 +1,6 @@
 inherited dlgBaseAcctConfig: TdlgBaseAcctConfig
-  Left = 284
-  Top = 135
+  Left = 981
+  Top = 188
   BorderWidth = 5
   Caption = 'Конфигурация'
   ClientHeight = 428
