@@ -377,6 +377,8 @@ begin
 end;
 
 procedure Tgdc_frmTransaction.actShowAllEntriesExecute(Sender: TObject);
+var
+  Temp: Integer;
 begin
   LockWindowUpdate(Handle);
   try
@@ -387,8 +389,10 @@ begin
     tbMainToolbar.Color := DefaultColor;
     tbMainMenu.Color := DefaultColor;
     tbChooseMain.Color := DefaultColor;
+    Temp := gdcAcctViewEntryRegister.RecordKey;
     gdcAcctViewEntryRegister.EntrySelect := esAll;
     Invalidate;
+    gdcAcctViewEntryRegister.Locate('RECORDKEY', Temp, []);
   finally
     LockWindowUpdate(0);
   end;
