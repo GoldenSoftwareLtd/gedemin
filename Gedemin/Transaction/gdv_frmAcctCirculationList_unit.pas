@@ -397,6 +397,7 @@ begin
   begin
     C := TAccLedgerConfig.Create;
     try
+      DoSaveConfig(C);
       C.Accounts := GetAlias(gdvObject.FieldByName('id').AsInteger);
       S := TStringList.Create;
       try

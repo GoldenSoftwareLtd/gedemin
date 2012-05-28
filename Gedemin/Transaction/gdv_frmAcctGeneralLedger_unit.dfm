@@ -18,7 +18,6 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       DockPos = -5
     end
     inherited TBToolbar2: TTBToolbar
-      Left = 76
       DockPos = 0
       inherited Panel4: TPanel
         Width = 224
@@ -34,7 +33,7 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
       end
     end
     inherited TBToolbar1: TTBToolbar
-      Left = 312
+      Left = 429
       DockPos = 312
       inherited pCofiguration: TPanel
         inherited iblConfiguratior: TgsIBLookupComboBox
@@ -294,6 +293,10 @@ inherited gdv_frmGeneralLedger: Tgdv_frmGeneralLedger
   end
   inherited alMain: TActionList
     Top = 48
+    inherited actGoto: TAction
+      Caption = 'Перейти на карту счета'
+      Hint = 'Перейти на карту счета'
+    end
   end
   inherited gdMacrosMenu: TgdMacrosMenu
     Top = 48

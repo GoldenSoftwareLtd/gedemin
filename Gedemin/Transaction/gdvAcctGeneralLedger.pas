@@ -684,12 +684,12 @@ begin
 
         QuantitySelectClause := QuantitySelectClause + ','#13#10 +
           Format(
-            '  CAST(IIF(NOT %0:s.debitbegin IS NULL, %0:s.debitbegin, 0) / $2:d AS NUMERIC(15, %3:d)) AS Q_B_D_%1:s,'#13#10 +
-            '  CAST(IIF(NOT %0:s.creditbegin IS NULL, %0:s.creditbegin, 0) / $2:d AS NUMERIC(15, %3:d)) AS Q_B_C_%1:s,'#13#10 +
-            '  CAST(IIF(NOT %0:s.debit IS NULL, %0:s.debit, 0) / $2:d AS NUMERIC(15, %3:d)) AS Q_D_%1:s,'#13#10 +
-            '  CAST(IIF(NOT %0:s.credit IS NULL, %0:s.credit, 0) / $2:d AS NUMERIC(15, %3:d)) AS Q_C_%1:s,'#13#10 +
-            '  CAST(IIF(NOT %0:s.debitend IS NULL, %0:s.debitend, 0) / $2:d AS NUMERIC(15, %3:d)) AS Q_E_D_%1:s,'#13#10 +
-            '  CAST(IIF(NOT %0:s.creditend IS NULL, %0:s.creditend, 0) / $2:d AS NUMERIC(15, %3:d)) AS Q_E_C_%1:s',
+            '  CAST(IIF(NOT %0:s.debitbegin IS NULL, %0:s.debitbegin, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_D_%1:s,'#13#10 +
+            '  CAST(IIF(NOT %0:s.creditbegin IS NULL, %0:s.creditbegin, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_B_C_%1:s,'#13#10 +
+            '  CAST(IIF(NOT %0:s.debit IS NULL, %0:s.debit, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_D_%1:s,'#13#10 +
+            '  CAST(IIF(NOT %0:s.credit IS NULL, %0:s.credit, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_C_%1:s,'#13#10 +
+            '  CAST(IIF(NOT %0:s.debitend IS NULL, %0:s.debitend, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_E_D_%1:s,'#13#10 +
+            '  CAST(IIF(NOT %0:s.creditend IS NULL, %0:s.creditend, 0) / %2:d AS NUMERIC(15, %3:d)) AS Q_E_C_%1:s',
             [QuantityAlias, VKeyAlias, FQuantitySumInfo.Scale, FQuantitySumInfo.DecDigits]);
 
         QuantityGroup := QuantityGroup + ','#13#10;

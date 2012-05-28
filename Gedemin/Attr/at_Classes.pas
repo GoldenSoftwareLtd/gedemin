@@ -38,6 +38,7 @@ const
   SystemPrefix          = 'RDB$'; //Системные мета-данные
   BooleanDomainName     = 'DBOOLEAN';
   BoolNotNullDomainName = 'DBOOLEAN_NOTNULL';
+  CrossTablePrefix      = 'USR$CROSS';
 
 type
   TFieldAlignment   = (faLeft, faRight, faCenter, faJustify);
