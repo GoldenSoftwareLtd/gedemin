@@ -11,6 +11,7 @@ type
   published
     procedure Test_gdcObject;
     procedure Test_gdcHoliday;
+    procedure Test_gdcGoodGroup;
   end;
 
 implementation
@@ -18,11 +19,54 @@ implementation
 uses
   Windows, Forms, SysUtils, IBSQL, gdcBase, gdcBaseInterface,
   gd_ClassList, gdcClasses, gd_directories_const, gdcTableCalendar,
-  gdcInvMovement, Test_Global_unit;
+  gdcInvMovement, Test_Global_unit, gdcGood, IB;
 
 type
   TgdcBaseCrack = class(TgdcBase)
   end;
+
+procedure Tgs_gdcObjectTest.Test_gdcGoodGroup;
+var
+  Obj: TgdcGoodGroup;
+begin
+  Obj := TgdcGoodGroup.Create(nil);
+  try
+    Obj.ExtraConditions.Add('UPPER(z.name)=:n');
+    Obj.ParamByName('n').AsString := '“¿–¿';
+    Obj.Open;
+
+    Check(not Obj.EOF);
+    StartExpectingException(EIBError);
+    Obj.Delete;
+    StopExpectingException;
+
+    Obj.Close;
+    Obj.ParamByName('n').AsString := '—“≈ ÀŒœŒ—”ƒ¿';
+    Obj.Open;
+
+    Check(not Obj.EOF);
+    StartExpectingException(EIBError);
+    Obj.Delete;
+    StopExpectingException;
+
+    StartExpectingException(EIBError);
+    Obj.Edit;
+    Obj.FieldByName('parent').Clear;
+    Obj.Post;
+    StopExpectingException;
+
+    Obj.Close;
+    Obj.ParamByName('n').AsString := 'ƒ–¿√Ã≈“¿ÀÀ€';
+    Obj.Open;
+
+    Check(not Obj.EOF);
+    StartExpectingException(EIBError);
+    Obj.Delete;
+    StopExpectingException;
+  finally
+    Obj.Free;
+  end;
+end;
 
 procedure Tgs_gdcObjectTest.Test_gdcHoliday;
 const

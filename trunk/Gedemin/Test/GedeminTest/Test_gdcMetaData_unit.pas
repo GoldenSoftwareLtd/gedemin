@@ -70,6 +70,22 @@ type
     procedure TestAuditTriggers;
   end;
 
+  TgdcSetTest = class(TgsDBTestCase)
+  private
+    FDomainName, FTableName, FFieldName, FDBState, FDBStateAfterCreate: String;
+    FDomainKey, FTableKey: Integer;
+  protected
+    procedure CreateTable;
+    function GetFileName: String;
+    procedure TestCreateDomain;
+    procedure TestAddFieldToTable;
+    procedure TestAddToSetting;
+    procedure TestLoadSetting;
+    procedure TestDrop;
+  published
+    procedure DoTest;
+  end;
+
 implementation
 
 uses
@@ -611,6 +627,337 @@ begin
   AnObj.FieldByName('referencekey').AsInteger := R[0, 0];
 end;
 
+procedure TgdcSetTest.TestCreateDomain;
+var
+  FField: TgdcField;
+begin
+  FDomainName := 'USR$TEST' + IntToStr(Random(1000000));
+
+  FDBState := GetDBState;
+
+  FField := TgdcField.Create(nil);
+  try
+    FField.Open;
+    FField.Insert;
+    FField.FieldByName('fieldname').AsString := FDomainName;
+    FField.FieldByName('lname').AsString := FDomainName;
+    FField.FieldByName('setlistlname').AsString := 'Контакты';
+    FField.FieldByName('ffieldtype').AsInteger := 37;
+    FField.FieldByName('flength').AsInteger := 120;
+    FField.FieldByName('fcharlength').AsInteger := 120;
+    FField.FieldByName('charset').AsString := 'WIN1251';
+    FField.FieldByName('collation').AsString := 'PXW_CYRL';
+    FField.FieldByName('settable').AsString := 'GD_CONTACT';
+    FField.FieldByName('setlistfield').AsString := 'NAME';
+    FField.FieldByName('settablekey').AsInteger := 147000717;
+    FField.FieldByName('setlistfieldkey').AsInteger := 147001319;
+    FField.Post;
+    FDomainKey := FField.ID;
+  finally
+    FField.Free;
+  end;
+
+  ReConnect;
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT * FROM rdb$fields WHERE rdb$field_name = :fn';
+  FQ.ParamByName('fn').AsString := FDomainName;
+  FQ.ExecQuery;
+
+  Check(not FQ.EOF);
+end;
+
+procedure TgdcSetTest.CreateTable;
+var
+  FTable: TgdcTable;
+begin
+  FTableName := 'USR$TEST' + IntToStr(Random(1000000)) + 'A';
+
+  FTable := TgdcPrimeTable.Create(nil);
+  try
+    FTable.Open;
+    FTable.Insert;
+    FTable.FieldByName('relationname').AsString := FTableName;
+    FTable.Post;
+    FTableKey := FTable.ID;
+  finally
+    FTable.Free;
+  end;
+
+  ReConnect;
+end;
+
+procedure TgdcSetTest.TestAddFieldToTable;
+var
+  FTableField: TgdcTableField;
+  Temps: String;
+begin
+  CreateTable;
+
+  Check(FTableName > '');
+  Check(FDomainName > '');
+  Check(FTableKey > 0);
+  Check(FDomainKey > 0);
+
+  
+  FFieldName := 'USR$TEST' + IntToStr(Random(1000000)) + 'F';
+
+  FTableField := TgdcTableField.Create(nil);
+  try
+    FTableField.Open;
+    FTableField.Insert;
+    FTableField.FieldByName('relationtype').AsString := 'T';
+    FTableField.FieldByName('fieldname').AsString := FFieldName;
+    FTableField.FieldByName('relationname').AsString := FTableName;
+    FTableField.FieldByName('fieldsource').AsString := FDomainName;
+    FTableField.FieldByName('relationkey').AsInteger := FTableKey;
+    FTableField.FieldByName('fieldsourcekey').AsInteger := FDomainKey;
+    FTableField.Post;
+
+    Check(FTableField.FieldByName('crosstable').AsString > '');
+    
+    Temps := FTableField.FieldByName('crosstable').AsString;
+  finally
+    FTableField.Free;
+  end;
+
+  ReConnect;
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT * FROM rdb$relations WHERE rdb$relation_name = :RN';
+  FQ.ParamByName('RN').AsString := Temps;
+  FQ.ExecQuery;
+
+  Check(not FQ.EOF);
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT * FROM rdb$triggers WHERE rdb$trigger_name = :TN AND rdb$relation_name = :RN';
+  FQ.ParamByName('RN').AsString := FTableName;
+  FQ.ParamByName('TN').AsString := 'USR$BI_' + Temps;
+  FQ.ExecQuery;
+
+  Check(not FQ.EOF);
+
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT * FROM rdb$relation_fields WHERE rdb$field_name = :FN AND rdb$relation_name = :RN';
+  FQ.ParamByName('FN').AsString := FFieldName;
+  FQ.ParamByName('RN').AsString := FTableName;
+  FQ.ExecQuery;
+
+  Check(not FQ.EOF);
+    
+  FDBStateAfterCreate := GetDBState;
+end;
+
+procedure TgdcSetTest.TestAddToSetting;
+var
+  FTable: TgdcPrimeTable;
+  gdcSetting: TgdcSetting;
+  gdcSettingPos: TgdcSettingPos;
+begin
+  Check(FTableName > '');
+
+  FTable := TgdcPrimeTable.Create(nil);
+  try
+    FTable.SubSet := 'ByName';
+    FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
+    FTable.Open;
+    Check(not FTable.EOF);
+
+    gdcSetting := TgdcSetting.Create(nil);
+    try
+      gdcSetting.Open;
+      gdcSetting.Insert;
+      gdcSetting.FieldByName('NAME').AsString := FTableName;
+      gdcSetting.Post;
+
+      gdcSettingPos := TgdcSettingPos.Create(nil);
+      try
+        gdcSettingPos.SubSet := 'BySetting';
+        gdcSettingPos.ParamByName('settingkey').AsInteger := gdcSetting.ID;
+        gdcSettingPos.Open;
+        gdcSettingPos.AddPos(FTable, True);
+      finally
+        gdcSettingPos.Free;
+      end;
+
+      gdcSetting.SaveSettingToBlob(sttXML);
+      gdcSetting.AddMissedPositions;
+      gdcSetting.SaveToFile(GetFileName);
+
+      FQ.Close;
+      FQ.SQL.Text := 'SELECT * FROM at_settingpos sp ' +
+        'JOIN gd_ruid r ' +
+        '  ON r.xid = sp.xid AND r.dbid = sp.dbid ' +
+        'JOIN at_relations t ' +
+        '  ON t.id = r.id ' +
+        'WHERE settingkey = :sk ' +
+        '  AND objectclass = ''TgdcUnknownTable'' AND t.relationname like ''USR$CROSS%''';
+      FQ.ParamByName('sk').AsInteger := gdcSetting.ID;
+      FQ.ExecQuery;
+
+      Check(FQ.EOF);
+
+      FQ.Close;
+      FQ.SQL.Text := 'SELECT * FROM at_settingpos WHERE settingkey = :sk AND objectclass = ''TgdcTrigger'' ';
+      FQ.ParamByName('sk').AsInteger := gdcSetting.ID;
+      FQ.ExecQuery;
+
+      Check(FQ.EOF);
+
+      gdcSetting.Delete;
+    finally
+      gdcSetting.Free;
+    end;
+  finally
+    FTable.Free;
+  end;
+end;
+
+function TgdcSetTest.GetFileName: String;
+var
+  TempPath: array[0..1023] of Char;
+begin
+  Check(FTableName > '');
+
+  GetTempPath(SizeOf(TempPath), TempPath);
+  Result := String(TempPath) + '\' + FTableName + '.xml'
+end;
+
+procedure TgdcSetTest.TestDrop;
+var
+  FTableField: TgdcTableField;
+  FTable: TgdcPrimeTable;
+  FDomain: TgdcField;
+begin
+  Check(FFieldName > '');
+  Check(FTableName > '');
+  Check(FDomainName > '');
+
+  FTableField := TgdcTableField.Create(nil);
+  try
+    FTableField.SubSet := 'ByName';
+    FTableField.ParamByName(FTableField.GetListField(FTableField.SubType)).AsString := FFieldName;
+    FTableField.Open;
+    Check(not FTableField.EOF);
+    FTableField.Delete;
+  finally
+    FTableField.Free;
+  end;
+
+  ReConnect;
+
+  FTable := TgdcPrimeTable.Create(nil);
+  try
+    FTable.SubSet := 'ByName';
+    FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
+    FTable.Open;
+    Check(not FTable.EOF);
+    FTable.Delete;
+  finally
+    FTable.Free;
+  end;
+
+  ReConnect;
+
+  FDomain := TgdcField.Create(nil);
+  try
+    FDomain.SubSet := 'ByName';
+    FDomain.ParamByName(FDomain.GetListField(FDomain.SubType)).AsString := FDomainName;
+    FDomain.Open;
+    Check(not FDomain.EOF);
+    FDomain.Delete;
+  finally
+    FDomain.Free;
+  end;
+
+  ReConnect;
+
+  Check(FDBState = GetDBState);
+end;
+
+procedure TgdcSetTest.TestLoadSetting;
+var
+  FTableField: TgdcTableField;
+  FTable: TgdcTable;
+  FDomain: TgdcField;
+  gdcSetting: TgdcSetting;
+begin
+  Check(FFieldName > '');
+  Check(FDomainName > '');
+  Check(FTableName > '');
+
+  gdcSetting := TgdcSetting.Create(nil);
+  try
+    gdcSetting.Open;
+    gdcSetting.LoadFromFile(GetFileName);
+    gdcSetting.GoToLastLoadedSetting;
+
+    ActivateSettings(IntToStr(gdcSetting.ID));
+
+    gdcSetting.Close;
+    gdcSetting.SubSet := 'ByName';
+    gdcSetting.ParamByName(gdcSetting.GetListField(gdcSetting.SubType)).AsString := FTableName;
+    gdcSetting.Open;
+    gdcSetting.Delete;
+  finally
+    gdcSetting.Free;
+  end;
+
+  Check(FDBStateAfterCreate = GetDBState);
+
+  Check(DeleteFile(GetFileName));
+
+  FTableField := TgdcTableField.Create(nil);
+  try
+    FTableField.SubSet := 'ByName';
+    FTableField.ParamByName(FTableField.GetListField(FTableField.SubType)).AsString := FFieldName;
+    FTableField.Open;
+    Check(not FTableField.EOF);
+    FTableField.Delete;
+  finally
+    FTableField.Free;
+  end;
+
+  ReConnect;
+
+  FTable := TgdcPrimeTable.Create(nil);
+  try
+    FTable.SubSet := 'ByName';
+    FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
+    FTable.Open;
+    FTable.Delete;
+  finally
+    FTable.Free;
+  end;
+
+  ReConnect;
+
+  FDomain := TgdcField.Create(nil);
+  try
+    FDomain.SubSet := 'ByName';
+    FDomain.ParamByName(FDomain.GetListField(FDomain.SubType)).AsString := FDomainName;
+    FDomain.Open;
+    Check(not FTable.EOF);
+    FDomain.Delete;
+  finally
+    FDomain.Free;
+  end;
+
+  ReConnect;
+
+  Check(FDBState = GetDBState);
+end; 
+
+procedure TgdcSetTest.DoTest;
+begin
+  TestCreateDomain;
+  TestAddFieldToTable;
+  TestAddToSetting;
+  TestDrop;
+  TestLoadSetting
+end; 
+
 initialization
   RegisterTest('DB', TgdcMetaDataTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcPrimeTableTest.Suite);
@@ -618,5 +965,6 @@ initialization
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcTreeTableTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcTableToTableTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcLBRBTreeTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\Set', TgdcSetTest.Suite);
   Randomize;
 end.
