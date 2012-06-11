@@ -107,6 +107,7 @@ type
     //Подножие блока
     function Fotter: string; virtual;
 
+    function SelectColor: TColor; 
     function HeaderColor: TColor; virtual;
     function BodyColor: TColor; virtual;
     function FotterColor: TColor; virtual;
@@ -2244,7 +2245,13 @@ procedure TVisualBlock.Paint;
 var
   R: TRect;
   L: Integer;
+  TempColor: TColor;
 begin
+  if SelBlockList.IndexOf(self) > -1 then
+    TempColor := SelectColor
+  else
+    TempColor := HeaderColor;
+
   R := GetClientRect;
   Canvas.Brush.Color := GetFrameColor;
   Canvas.FrameRect(R);
@@ -2254,7 +2261,7 @@ begin
   Canvas.Brush.Color := GetFrameColor;
   Canvas.FrameRect(R);
   InflateRect(R, -1, -1);
-  Canvas.Brush.Color := HeaderColor;
+  Canvas.Brush.Color := TempColor;
   Canvas.FillRect(R);
 
   Canvas.Font.Color := clBlack;
@@ -2265,7 +2272,7 @@ begin
     L := R.Right;
     Canvas.Brush.Color := GetFrameColor;
     Canvas.FrameRect(R);
-    Canvas.Brush.Color := HeaderColor;
+    Canvas.Brush.Color := TempColor;
 
     InflateRect(R, -2, -2);
     Canvas.MoveTo(R.Left, R.Top + ((R.Bottom - R.Top) div 2));
@@ -2277,7 +2284,7 @@ begin
     end;
   end;
 
-  Canvas.Brush.Color := HeaderColor;
+  Canvas.Brush.Color := TempColor;
   Canvas.TextOut(L + cTextSpace, cTextSpace, Header);
 
   if FUnWrap then
@@ -2357,11 +2364,39 @@ begin
 end;
 
 procedure TVisualBlock.SetBlockName(const Value: string);
+
+  function CheckUniqueName_(AName: string): boolean;
+  var
+    I: Integer;
+    N: string;
+  begin
+    Result := True;
+    N := UpperCase(AName);
+    for I := 0 to BlockList.Count - 1 do
+    begin
+      if (UpperCase(TVisualBlock(BlockList[I]).BlockName) = N) and
+        (Self <> BlockList[I]) then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+  end;
 begin
-  FBlockName := Value;
-  {$IFDEF GEDEMIN}
-  AdjustSize;
-  {$ENDIF}
+  if NeedRename and not CheckUniqueName_(Value) then
+  begin
+    Application.MessageBox(
+      'Блок с таким именем уже существует.',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    abort;
+  end else
+  begin
+    FBlockName := Value;
+    {$IFDEF GEDEMIN}
+    AdjustSize;
+    {$ENDIF}
+  end;
 end;
 
 procedure TVisualBlock.SetDescription(const Value: string);
@@ -3196,6 +3231,12 @@ end;
 procedure TVisualBlock.OnPastUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := CanPast
+end;
+
+function TVisualBlock.SelectColor: TColor;
+begin
+  //Result := RGB(100, 149, 237);
+  Result := RGB(141, 182, 205);
 end;
 
 { TFunctionBlock }
