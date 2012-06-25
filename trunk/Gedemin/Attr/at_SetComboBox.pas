@@ -472,7 +472,7 @@ begin
     FTree.ShowTopBranch := False;
     FTree.Database := GetDatabase;
     FTree.CheckBoxes := True;
-    //FTree.Condition := FMainField.Field.SetCondition;
+    FTree.Condition := FMainField.Field.SetCondition;
 
     Open;
 
@@ -1066,7 +1066,7 @@ begin
   begin
     gsCOMBOHOOK := SetWindowsHookEx(WH_MOUSE, @gsComboHookProc, HINSTANCE,
       GetCurrentThreadID);
-  end;    
+  end;
 end;
 
 procedure TatSetTree.DoHide;
@@ -1488,8 +1488,33 @@ end;
 
 procedure TatSetLookupComboBox.EditKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-  if Key = VK_DOWN then
-    DropDown;
+  case Key of
+    VK_DOWN: DropDown;
+    VK_BACK:
+    begin
+      if not Assigned(FList) then
+        InitializeList;
+      if FDataLink.DataSet is TgdcBase then
+      begin
+        Assert(FList.FTargetDataset <> nil);
+        
+        FList.FTargetDataset.First;
+        while not FList.FTargetDataSet.EOF do
+          FList.FTargetDataSet.Delete;
+        FList.ClearCheckBoxes;
+
+        FList.FTargetDataSet.ApplyUpdates;
+
+        if not (FDataLink.DataSet.State in [dsEdit, dsInsert]) then
+          FDataLink.DataSet.Edit;
+
+        FEditor.Text := '';
+
+        FDataLink.DataSet.FieldByName(DataField).Assign(FDataLink.DataSet.
+          FieldByName(DataField));
+      end;
+    end;
+  end;
 end;
 
 function TatSetLookupComboBox.GetDataSource: TDataSource;
@@ -1544,7 +1569,7 @@ begin
       FList.FTargetDataset.First;
       while not FList.FTargetDataSet.EOF do
         FList.FTargetDataSet.Delete;
-      FList.ClearCheckBoxes;  
+      FList.ClearCheckBoxes;
     end;
   end;
 

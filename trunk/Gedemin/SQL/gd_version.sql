@@ -491,6 +491,15 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (153, '0000.0001.0000.0184', '25.04.2012', 'Delete BI5, BU5 triggers.');
 
+INSERT INTO fin_versioninfo
+  VALUES (154, '0000.0001.0000.0185', '23.05.2012', 'Delete system metadada of set type from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (155, '0000.0001.0000.0186', '23.05.2012', 'Delete system domains from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (156, '0000.0001.0000.0187', '31.05.2012', 'Correct gd_ai_goodgroup_protect trigger.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

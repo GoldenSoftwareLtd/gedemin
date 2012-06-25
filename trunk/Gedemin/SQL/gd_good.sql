@@ -109,7 +109,7 @@ AS
 BEGIN
   IF (UPPER(NEW.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ')) THEN
   BEGIN
-    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE UPPER(name) = UPPER(NEW.name))) THEN
+    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE id <> NEW.id AND UPPER(name) = UPPER(NEW.name))) THEN
       EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя повторно создать группу ' || NEW.Name;
   END
 END

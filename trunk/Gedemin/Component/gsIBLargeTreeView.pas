@@ -290,16 +290,17 @@ begin
 end;
 
 procedure TgsIBLargeTreeView.ClearCheckBoxes;
-var
+var                   
   I: Integer;
 begin
   Items.BeginUpdate;
-
-  for I := 0 to Items.Count - 1 do
-  with (Items[I] as TgsIBTreeNode) do
-    Checked := not Checked;
-
-  Items.EndUpdate;
+  try
+    for I := 0 to Items.Count - 1 do
+    with (Items[I] as TgsIBTreeNode) do
+      Checked := False;
+  finally
+    Items.EndUpdate;
+  end;  
 end;
 
 constructor TgsIBLargeTreeView.Create(AnOwner: TComponent);
@@ -370,7 +371,7 @@ end;
 
 procedure TgsIBLargeTreeView.Expand(Node: TTreeNode);
 var
-  ibsql: TIBSQL;
+  ibsql, sql: TIBSQL;
   Item, SubItem: TgsIBTreeNode;
   I: Integer;
   Cond: String;
@@ -389,6 +390,7 @@ begin
     not (Node[0] as TgsIBTreeNode).FIsTopBranch
   then begin
     ibsql := TIBSQL.Create(nil);
+    sql := TIBSQL.Create(nil);
     try
       if not Assigned(FTransaction) then
       begin
@@ -398,6 +400,9 @@ begin
 
       ibsql.Database := FDatabase;
       ibsql.Transaction := FTransaction;
+
+      sql.Database := FDatabase;
+      sql.Transaction := FTransaction;
 
       FTransaction.Active := True;
 
@@ -410,6 +415,13 @@ begin
       else
         Cond := '';
 
+      sql.SQl.Text := Format(
+        'SELECT 1 FROM RDB$DATABASE WHERE '#13#10 +
+        'EXISTS(SELECT * FROM %0:s WHERE %1:s = :ID %2:s)',
+        [FRelationName, FIDField, Cond]
+        );
+      sql.Prepare;
+
       if
         ((Node as TgsIBTreeNode).FID = FTopBranchID)
           and
@@ -417,27 +429,27 @@ begin
       then begin
         if FLBRBMode then
           ibsql.SQL.Text := Format(
-            'SELECT %0:s, %1:s, %2:s, %3:s, %4:s FROM %5:s WHERE %1:s IS %6:s %7:s',
+            'SELECT %0:s, %1:s, %2:s, %3:s, %4:s FROM %5:s WHERE %1:s IS %6:s',
             [FIDField, FParentField, FLBField, FRBField, FListField,
-              FRelationName, FTopBranchID, Cond]
+              FRelationName, FTopBranchID]
           )
         else
           ibsql.SQL.Text := Format(
-            'SELECT %0:s, %1:s, %2:s FROM %3:s WHERE %1:s IS %4:s 5:s',
-            [FIDField, FParentField, FListField, FRelationName, FTopBranchID, Cond]
+            'SELECT %0:s, %1:s, %2:s FROM %3:s WHERE %1:s IS %4:s',
+            [FIDField, FParentField, FListField, FRelationName, FTopBranchID]
           );
       end else begin
         if FLBRBMode then
           ibsql.SQL.Text := Format(
-            'SELECT %0:s, %1:s, %2:s, %3:s, %4:s FROM %5:s WHERE %1:s = %6:s %7:s',
+            'SELECT %0:s, %1:s, %2:s, %3:s, %4:s FROM %5:s WHERE %1:s = %6:s',
             [FIDField, FParentField, FLBField, FRBField, FListField,
-              FRelationName, (Node as TgsIBTreeNode).FID, Cond]
+              FRelationName, (Node as TgsIBTreeNode).FID]
           )
         else
           ibsql.SQL.Text := Format(
-            'SELECT %0:s, %1:s, %2:s FROM %3:s WHERE %1:s = %4:s %5:s',
+            'SELECT %0:s, %1:s, %2:s FROM %3:s WHERE %1:s = %4:s',
             [FIDField, FParentField, FListField, FRelationName,
-              (Node as TgsIBTreeNode).FID, Cond]
+              (Node as TgsIBTreeNode).FID]
           );
       end;
 
@@ -472,7 +484,19 @@ begin
           Item.FRB := ibsql.FieldByName(FRBField).AsString;
         end;
 
-        if FCheckBoxes then Item.StateIndex := 1;
+        if FCheckBoxes then
+        begin
+          Item.StateIndex := 1;
+          
+          if FCondition > '' then
+          begin
+            sql.Close;
+            sql.Params.ByName('ID').AsString := Item.FID;
+            sql.ExecQuery;
+            if sql.RecordCount = 0 then
+              Item.StateIndex := -1
+          end 
+        end;
         if Assigned(FOnNewNode) then FOnNewNode(Self, Item);
 
         if
@@ -497,15 +521,10 @@ begin
       //  Проверяем нижний уровень
       //////////////////////////////////////////////////////////////////////////
 
-      if FCondition > '' then
-        Cond := ' AND ' + FCondition
-      else
-        Cond := '';
-
       ibsql.SQL.Text := Format(
         'SELECT 1 FROM RDB$DATABASE WHERE '#13#10 +
-        'EXISTS(SELECT %0:s FROM %1:s WHERE %0:s = :ID %2:s)',
-        [FParentField, FRelationName, Cond]
+        'EXISTS(SELECT %0:s FROM %1:s WHERE %0:s = :ID)',
+        [FParentField, FRelationName]
       );
       ibsql.Prepare;
 
@@ -518,7 +537,20 @@ begin
         if ibsql.RecordCount > 0 then
         begin
           SubItem := Items.AddChild(Item, '') as TgsIBTreeNode;
-          if FCheckBoxes then SubItem.StateIndex := 1;
+          if FCheckBoxes then
+          begin
+            SubItem.StateIndex := 1;
+
+            if FCondition > '' then
+            begin
+              sql.Close;
+              sql.Params.ByName('ID').AsString := Item.FID;
+              sql.ExecQuery;
+              if sql.RecordCount = 0 then
+                SubItem.StateIndex := -1;
+            end;
+          end;
+          
           SubItem.FIsBlank := True;
         end;
 
@@ -528,6 +560,7 @@ begin
       FTransaction.Commit;
       Items.EndUpdate;
     finally
+      sql.Free;
       ibsql.Free;
     end;
   end;
@@ -545,7 +578,7 @@ end;
 
 procedure TgsIBLargeTreeView.LoadFromDatabase;
 var
-  ibsql: TIBSQL;
+  ibsql, sql: TIBSQL;
   Item, SubItem: TgsIBTreeNode;
   I: Integer;
   TopBranch: TgsIBTreeNode;
@@ -556,6 +589,7 @@ begin
 
   FLoaded := True;
   ibsql := TIBSQL.Create(nil);
+  sql := TIBSQL.Create(nil);
   List := TList.Create;
 
   try
@@ -568,41 +602,52 @@ begin
     ibsql.Transaction := FTransaction;
     ibsql.Database := FDatabase;
 
+    sql.Transaction := FTransaction;
+    sql.Database := FDatabase;
+
     FTransaction.Active := True;
 
     ////////////////////////////////////////////////////////////////////////////
     //  Считываем верхний уровень
     ////////////////////////////////////////////////////////////////////////////
 
+
     if FCondition > '' then
       Cond := ' AND ' + FCondition
     else
       Cond := '';
 
+    sql.SQl.Text := Format(
+      'SELECT 1 FROM RDB$DATABASE WHERE '#13#10 +
+      'EXISTS(SELECT * FROM %0:s WHERE %1:s = :ID %2:s)',
+      [FRelationName, FIDField, Cond]
+      );
+    sql.Prepare;
+
     if AnsiCompareText(FTopBranchID, 'NULL') = 0 then
     begin
       if FLBRBMode then
         ibsql.SQL.Text := Format(
-          'SELECT %0:s, %1:s, %2:s, %3:s, %4:s FROM %5:s WHERE %1:s IS %6:s %7:s',
+          'SELECT %0:s, %1:s, %2:s, %3:s, %4:s FROM %5:s WHERE %1:s IS %6:s',
           [FIDField, FParentField, FLBField, FRBField, FListField,
-            FRelationName, FTopBranchID, Cond]
+            FRelationName, FTopBranchID]
         )
       else
         ibsql.SQL.Text := Format(
-          'SELECT %0:s, %1:s, %2:s FROM %3:s WHERE %1:s IS %4:s %5:s',
-          [FIDField, FParentField, FListField, FRelationName, FTopBranchID, Cond]
+          'SELECT %0:s, %1:s, %2:s FROM %3:s WHERE %1:s IS %4:s',
+          [FIDField, FParentField, FListField, FRelationName, FTopBranchID]
         );
     end else begin
       if FLBRBMode then
         ibsql.SQL.Text := Format(
-          'SELECT %0:s, %1:s, %2:s, %3:s, %4:s FROM %5:s WHERE %1:s = %6:s %7:s',
+          'SELECT %0:s, %1:s, %2:s, %3:s, %4:s FROM %5:s WHERE %1:s = %6:s',
           [FIDField, FParentField, FLBField, FRBField, FListField,
-            FRelationName, FTopBranchID, Cond]
+            FRelationName, FTopBranchID]
         )
       else
         ibsql.SQL.Text := Format(
-          'SELECT %0:s, %1:s, %2:s FROM %3:s WHERE %1:s = %4:s %5:s',
-          [FIDField, FParentField, FListField, FRelationName, FTopBranchID, Cond]
+          'SELECT %0:s, %1:s, %2:s FROM %3:s WHERE %1:s = %4:s',
+          [FIDField, FParentField, FListField, FRelationName, FTopBranchID]
         );
     end;
 
@@ -636,7 +681,19 @@ begin
         Item.FRB := ibsql.FieldByName(FRBField).AsString;
       end;
 
-      if FCheckBoxes then Item.StateIndex := 1;
+      if FCheckBoxes then
+      begin
+        Item.StateIndex := 1;
+
+        if FCondition > '' then
+        begin
+          sql.Close;
+          sql.Params.ByName('ID').AsString := Item.FID;
+          sql.ExecQuery;
+          if sql.RecordCount = 0 then
+            Item.StateIndex := -1
+        end;
+      end;
       if Assigned(FOnNewNode) then FOnNewNode(Self, Item);
       List.Add(Item);
 
@@ -649,15 +706,11 @@ begin
     //  Проверяем нижний уровень
     ////////////////////////////////////////////////////////////////////////////
 
-    if FCondition > '' then
-      Cond := ' AND ' + FCondition
-    else
-      Cond := '';
 
     ibsql.SQL.Text := Format(
       'SELECT 1 FROM RDB$DATABASE WHERE '#13#10 +
-      'EXISTS(SELECT %0:s FROM %1:s WHERE %0:s = :ID %2:s)',
-      [FParentField, FRelationName, Cond]
+      'EXISTS(SELECT %0:s FROM %1:s WHERE %0:s = :ID)',
+      [FParentField, FRelationName]
     );
     ibsql.Prepare;
 
@@ -672,7 +725,20 @@ begin
       if ibsql.RecordCount > 0 then
       begin
         SubItem := Items.AddChild(Item, '') as TgsIBTreeNode;
-        if FCheckBoxes then SubItem.StateIndex := 1;
+        if FCheckBoxes then
+        begin
+          SubItem.StateIndex := 1;
+
+          if FCondition > '' then
+          begin
+            sql.Close;
+            sql.Params.ByName('ID').AsString := Item.FID;
+            sql.ExecQuery;
+            if sql.RecordCount = 0 then
+              SubItem.StateIndex := -1;
+          end;
+        end;
+
         SubItem.FIsBlank := True;
       end;
 
@@ -683,6 +749,7 @@ begin
     Items.EndUpdate;
   finally
     ibsql.Free;
+    sql.Free;
     List.Free;
   end;
 end;
@@ -756,12 +823,7 @@ begin
     FTransaction.Active := True;
 
     //
-    // Осуществляем считывание всех ветвей
-
-    if FCondition > '' then
-      Cond := ' AND ' + FCondition
-    else
-      Cond := '';
+    // Осуществляем считывание всех ветвей  
      
     ibsql.SQL.Text := Format(
       'SELECT %s FROM %s WHERE %s = :BRANCH %s',

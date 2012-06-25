@@ -8540,7 +8540,6 @@ var
   //Лист для таблиц, участвующих в запросе
   LT: TStrings;
   TreeDependentNames: TLBRBTreeMetaNames;
-  BaseBITriggerName: String;
   BaseTableTriggersName: TBaseTableTriggersName;
 begin
   CheckBrowseMode;
@@ -8936,8 +8935,7 @@ begin
               GetLBRBTreeDependentNames(Self.FieldByName('relationname').AsString, ReadTransaction, TreeDependentNames);
 
             if (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
-             BaseBITriggerName := GetBaseTableBITriggerName(Self.FieldByName('relationname').AsString, ReadTransaction);
-
+              GetBaseTableTriggersName(Self.FieldByName('relationname').AsString, ReadTransaction, BaseTableTriggersName, True);
             if (Self is TgdcSimpleTable) or (Self is TgdcTreeTable) then
               GetBaseTableTriggersName(Self.FieldByName('relationname').AsString, ReadTransaction, BaseTableTriggersName);
             //Добавим все ключи по таблицам находящимся в связи 1:1
@@ -9017,25 +9015,15 @@ begin
                            end;  
                         end;
 
-                        if (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
-                        begin
-                          if Obj is TgdcTrigger then
-                          begin
-                            if (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseBITriggerName) = 0) then
-                            begin
-                              ibsql.Next;
-                              Continue;
-                            end;
-                          end;
-                        end;
-
-                        if (Self is TgdcSimpleTable) or (Self is TgdcTreeTable) then
+                        if (Self is TgdcSimpleTable) or (Self is TgdcTreeTable)
+                          or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
                         begin
                           if Obj is TgdcTrigger then
                           begin
                             if (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BITriggerName) = 0)
                               or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BI5TriggerName) = 0)
-                              or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BU5TriggerName) = 0) then
+                              or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BU5TriggerName) = 0)
+                              or (StrIPos(';' + Trim(Obj.FieldByName('rdb$trigger_name').AsString) + ';', ';' + BaseTableTriggersName.CrossTriggerName) <> 0) then
                             begin
                               ibsql.Next;
                               Continue;

@@ -121,7 +121,7 @@ end;
 function TgsDatabaseShutdown.GetIsShutdowned: Boolean;
 var
   I, P, J: Integer;
-  SN, DN: String;
+  SN, DN, S: String;
 begin
   Assert(Assigned(FDatabase));
 
@@ -186,15 +186,17 @@ begin
   try
     FStatisticalService.ServiceStart;
     while not FStatisticalService.EOF do
-      if (StrIPos('shutdown', FStatisticalService.GetNextLine) > 0)
-        or (StrIPos('multi-user maintenance', FStatisticalService.GetNextLine) > 0) then
+    begin
+      S := FStatisticalService.GetNextLine;
+      if (StrIPos('shutdown', S) > 0) or (StrIPos('single-user maintenance', S) > 0)
+        or (StrIPos('multi-user maintenance', S) > 0) then
       begin
         Result := True;
       end;
+    end;
   finally
     FStatisticalService.Active := False;
   end;
-  
 end;
 
 function TgsDatabaseShutdown.GetUserNames: TStrings;
