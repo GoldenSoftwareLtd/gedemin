@@ -286,7 +286,6 @@ type
     FSaveWithDetailList: TgdKeyArray;
     FNeedModifyList: TgdKeyIntAssoc;
     FLBRBTree: TLBRBTreeMetaNames;
-    FBaseBITriggerName: String;
     FBaseTableTriggersName: TBaseTableTriggersName;
 
     function GetIbsqlRPLRecordSelect: TIBSQL;
@@ -3133,13 +3132,22 @@ begin
     if AObj is TgdcField then
     begin
       //Системные домены не сохраняем!
-      if StrIPos('RDB$', AObj.FieldByName('fieldname').AsString) = 1 then
+      if (StrIPos(SystemPrefix, AObj.FieldByName('fieldname').AsString) = 1) or
+        (StrIPos(UserPrefix, AObj.FieldByName('fieldname').AsString) <> 1) then
+      begin
         Result := False;
+      end;  
       Exit;
     end;
 
     if AObj is TgdcRelation then
     begin
+      if (AObj is TgdcUnknownTable)
+        and (StrIPos(CrossTablePrefix, AObj.FieldByName('relationname').AsString) = 1) then
+      begin
+        Result := False;
+        Exit;
+      end;
       // Перед сохранением в поток нужно синхронизировать триггеры
       //  т.к. информация о триггерах может не успеть занестись в таблицу at_triggers
       gdcObject := FDataObject.gdcObject[FDataObject.GetObjectIndex('TgdcTrigger')];
@@ -3203,7 +3211,7 @@ begin
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BUTriggerName) = 0)
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BI5TriggerName) = 0)
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FLBRBTree.BU5TriggerName) = 0)
-          or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseBITriggerName) = 0)
+          or (StrIPos(';' + AObj.FieldByName('triggername').AsString + ';', ';' + FBaseTableTriggersName.CrossTriggerName) <> 0)
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseTableTriggersName.BITriggerName) = 0)
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseTableTriggersName.BI5TriggerName) = 0)
           or (AnsicompareText(AObj.FieldByName('triggername').AsString, FBaseTableTriggersName.BU5TriggerName) = 0) then
@@ -3250,7 +3258,7 @@ begin
     GetLBRBTreeDependentNames(AObj.FieldByName('RELATIONNAME').AsString, FTransaction, FLBRBTree);
 
   if (AObj is TgdcPrimeTable) or (AObj is TgdcTableToTable) then
-    FBaseBITriggerName := GetBaseTableBITriggerName(AObj.FieldByName('RELATIONNAME').AsString, FTransaction);
+    GetBaseTableTriggersName(AObj.FieldByName('RELATIONNAME').AsString, FTransaction, FBaseTableTriggersName, True);
 
   if (AObj is TgdcSimpleTable) or (AObj is TgdcTreeTable) then
     GetBaseTableTriggersName(AObj.FieldByName('RELATIONNAME').AsString, FTransaction, FBaseTableTriggersName); 

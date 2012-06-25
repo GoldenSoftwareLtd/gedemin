@@ -6,6 +6,7 @@ uses
   IBDatabase, gdModify, IBSQL, SysUtils;
 
 procedure MovementDocument(IBDB: TIBDatabase; Log: TModifyLog);
+procedure Correct_gd_ai_goodgroup_protect(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -17,7 +18,7 @@ var
   SQL: TIBSQL;
   Tr: TIBTransaction;
 begin
-Tr := TIBTransaction.Create(nil);
+  Tr := TIBTransaction.Create(nil);
   SQL := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := IBDB;
@@ -114,7 +115,7 @@ Tr := TIBTransaction.Create(nil);
         'BEGIN '#13#10 +
         '  IF (UPPER(NEW.name) IN (''ТАРА'', ''СТЕКЛОПОСУДА'', ''ДРАГМЕТАЛЛЫ'')) THEN '#13#10 +
         '  BEGIN '#13#10 +
-        '    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE UPPER(name) = UPPER(NEW.name))) THEN '#13#10 +
+        '    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE id <> NEW.id AND UPPER(name) = UPPER(NEW.name))) THEN '#13#10 +
         '      EXCEPTION gd_e_cannotchange_goodgroup  ''Нельзя повторно создать группу '' || NEW.Name; '#13#10 +
         '  END '#13#10 +
         'END ';
@@ -170,6 +171,58 @@ Tr := TIBTransaction.Create(nil);
       SQL.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (145, ''0000.0001.0000.0176'', ''05.04.2012'', ''Issue 2764.'') ' +
+        '  MATCHING (id)';
+      SQL.ExecQuery;
+      SQL.Close;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    SQL.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure Correct_gd_ai_goodgroup_protect(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  SQL: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  SQL := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    SQL.Transaction := Tr;
+    try
+      SQL.SQL.Text :=
+        'CREATE OR ALTER TRIGGER gd_ai_goodgroup_protect FOR gd_goodgroup '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  AFTER INSERT '#13#10 +
+        '  POSITION 0 '#13#10 +
+        'AS '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (UPPER(NEW.name) IN (''ТАРА'', ''СТЕКЛОПОСУДА'', ''ДРАГМЕТАЛЛЫ'')) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE id <> NEW.id AND UPPER(name) = UPPER(NEW.name))) THEN '#13#10 +
+        '      EXCEPTION gd_e_cannotchange_goodgroup  ''Нельзя повторно создать группу '' || NEW.Name; '#13#10 +
+        '  END '#13#10 +
+        'END ';
+      SQL.ExecQuery;
+      SQL.Close;
+
+      SQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (156, ''0000.0001.0000.0187'', ''31.05.2012'', ''Correct gd_ai_goodgroup_protect trigger.'') ' +
         '  MATCHING (id)';
       SQL.ExecQuery;
       SQL.Close;

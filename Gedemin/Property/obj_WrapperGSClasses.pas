@@ -3246,7 +3246,9 @@ type
     procedure UpdateActivateError; safecall;
     function  Get_ActivateErrorDescription: WideString; safecall;
     procedure Set_ActivateErrorDescription(const Value: WideString); safecall;
-
+    procedure AddToSetting(FromStorage: WordBool; const BranchName: WideString; 
+                           const ValueName: WideString; const AnObject: IgsGDCBase; 
+                           const BL: IgsBookmarkList); safecall;
   end;
 
   TwrpGdcSettingPos = class(TwrpGDCBase, IgsGdcSettingPos)
@@ -3814,7 +3816,7 @@ uses
   obj_WrapperMessageClasses,
   {$ENDIF}
   gd_i_ScriptFactory, comctrls, contnrs, windows, IBSQL, AdPort, jclStrings,
-  gsStreamHelper, dbclient;
+  gsStreamHelper, dbclient, at_dlgToSetting_unit;
 
 type
   TCrackIBControlAndQueryService = class(TIBControlAndQueryService);
@@ -15938,6 +15940,13 @@ end;
 procedure TwrpGdcSetting.UpdateActivateError;
 begin
   GetGdcSetting.UpdateActivateError;
+end;
+
+procedure TwrpGdcSetting.AddToSetting(FromStorage: WordBool; const BranchName: WideString; 
+                           const ValueName: WideString; const AnObject: IgsGDCBase; 
+                           const BL: IgsBookmarkList);
+begin
+  at_dlgToSetting_unit.AddToSetting(FromStorage, BranchName, ValueName, InterfaceToObject(AnObject) as TgdcBase, InterfaceToObject(BL) as TBookmarkList);
 end;
 
 { TwrpGdcSettingPos }

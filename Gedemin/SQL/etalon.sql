@@ -1291,6 +1291,20 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (151, '0000.0001.0000.0182', '16.04.2012', 'Delete system metadada of tree tables from at_settingpos.');
 
+INSERT INTO fin_versioninfo
+  VALUES (152, '0000.0001.0000.0183', '20.04.2012', 'Contractorkey field added to the bn_statementline table.');
+
+INSERT INTO fin_versioninfo
+  VALUES (153, '0000.0001.0000.0184', '25.04.2012', 'Delete BI5, BU5 triggers.');
+
+INSERT INTO fin_versioninfo
+  VALUES (154, '0000.0001.0000.0185', '23.05.2012', 'Delete system metadada of set type from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (155, '0000.0001.0000.0186', '23.05.2012', 'Delete system domains from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (156, '0000.0001.0000.0187', '31.05.2012', 'Correct gd_ai_goodgroup_protect trigger.');
 
 COMMIT;
 
@@ -8219,7 +8233,7 @@ AS
 BEGIN
   IF (UPPER(NEW.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ')) THEN
   BEGIN
-    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE UPPER(name) = UPPER(NEW.name))) THEN
+    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE id <> NEW.id AND UPPER(name) = UPPER(NEW.name))) THEN
       EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя повторно создать группу ' || NEW.Name;
   END
 END
