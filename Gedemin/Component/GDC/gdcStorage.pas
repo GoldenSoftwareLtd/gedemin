@@ -564,6 +564,8 @@ var
   {END MACRO}
   SI, SIParent: TgsStorageItem;
   S: TStream;
+  T1: Char;
+  T2, ExMsg: String;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCSTORAGE', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  try
@@ -612,14 +614,11 @@ begin
         (SIParent as TgsStorageFolder).AddChildren(SI);
       end;
 
-      if SI.GetTypeName <> FieldByName('data_type').AsString then
-      begin
-        if not (FieldByName('parent').IsNull and (SI is TgsRootFolder)) then
-          raise Exception.Create('Storage item data type mismatch');
-      end;
-
+      T1 := SI.GetTypeName;
+      T2 := FieldByName('data_type').AsString;
       if SI is TgsStorageValue then
-        case SI.GetTypeName of
+      try
+        case T1 of
           cStorageInteger:  TgsStorageValue(SI).AsInteger   := FieldByName('int_data').AsInteger;
           cStorageBoolean:  TgsStorageValue(SI).AsBoolean   := FieldByName('int_data').AsInteger <> 0;
           cStorageCurrency: TgsStorageValue(SI).AsCurrency  := FieldByName('curr_data').AsCurrency;
@@ -627,6 +626,17 @@ begin
           cStorageString:   TgsStorageValue(SI).AsString    := FieldByName('str_data').AsString;
           cStorageBLOB:     TgsStorageValue(SI).AsString    := FieldByName('blob_data').AsString;
         end;
+      except
+        on E: EgsStorageTypeCastError do
+        begin
+          ExMsg :=
+            'Существующее значение хранилища ' + SI.Storage.Name + SI.Path + ' имеет тип ' + T1 + '.'#13#10 +
+            'Значение, загружаемое из потока, имеет тип ' + T2 + '.'#13#10#13#10 +
+            'Скорректируйте тип существующего значения или удалите его, затем повторите активизацию настройки.';
+
+          raise EgsStorageTypeCastError.Create(ExMsg);
+        end;
+      end;
     end else
     begin
       if SIParent is TgsStorageFolder then
