@@ -136,6 +136,7 @@ var
   Params: TgsParamList;
   FunctionCreater: TNewEntryFunctionCreater;
   DS: TDataSetState;
+  NewFun: Boolean;
 begin
   F := TdlgFunctionWisard.Create(Application);
   try
@@ -143,7 +144,8 @@ begin
     if D <> nil then
     begin
       DS := gdcFunction.State;
-      if not (gdcFunction.State in [dsEdit, dsInsert]) then
+      NewFun := False;
+      if not (DS in [dsEdit, dsInsert]) then
       begin
         if D.FieldByName(fnFunctionKey).AsInteger = 0 then
         begin
@@ -156,6 +158,7 @@ begin
           gdcFunction.FieldByName(fnName).AsString := Format('AutoEntryScript%d_%d',
             [gdcFunction.FieldByName(fnId).AsInteger, IbLogin.DBID]);
           gdcFunction.FieldByName(fnLANGUAGE).AsString := DefaultLanguage;
+          NewFun := True;
         end else
           gdcFunction.Edit;
       end;
@@ -174,6 +177,13 @@ begin
         finally
           FunctionCreater.Free;
         end;
+
+        if NewFun
+          and (gdcFunction.FieldByName(fnName).AsString <> '')
+          and (AnsiCompareText(F.MainFunctionName, gdcFunction.FieldByName(fnName).AsString) <> 0)  then
+        begin
+          F.MainFunctionName := gdcFunction.FieldByName(fnName).AsString;
+        end;  
 
         FScriptChanged := F.ShowModal = mrOk;
         if FScriptChanged then
