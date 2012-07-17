@@ -1259,7 +1259,7 @@ begin
           Inc(BracketCount)
         else if Token = ')' then
             Dec(BracketCount)
-        else if (Token = 'SUBSTRING') or (Token = 'EXTRACT') then begin
+        else if (Token = 'SUBSTRING') or (Token = 'EXTRACT') or (Token = 'TRIM') then begin
           bssc:= 0;
           repeat
             Start2 := Current;
