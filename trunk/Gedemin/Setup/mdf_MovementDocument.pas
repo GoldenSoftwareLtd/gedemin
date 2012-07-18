@@ -7,6 +7,7 @@ uses
 
 procedure MovementDocument(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Correct_gd_ai_goodgroup_protect(IBDB: TIBDatabase; Log: TModifyLog);
+procedure Correct_ac_companyaccount_triggers(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -223,6 +224,79 @@ begin
       SQL.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (156, ''0000.0001.0000.0187'', ''31.05.2012'', ''Correct gd_ai_goodgroup_protect trigger.'') ' +
+        '  MATCHING (id)';
+      SQL.ExecQuery;
+      SQL.Close;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    SQL.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure Correct_ac_companyaccount_triggers(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  SQL: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  SQL := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    DropTrigger2('ac_bu_companyaccount', Tr);
+
+    SQL.Transaction := Tr;
+    try
+      SQL.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_bi_companyaccount FOR ac_companyaccount'#13#10 +
+        '  BEFORE INSERT OR UPDATE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        '  DECLARE VARIABLE ActiveID INTEGER = NULL;'#13#10 +
+        'BEGIN'#13#10 +
+        '  SELECT FIRST 1 accountkey FROM ac_companyaccount'#13#10 +
+        '    WHERE companykey = NEW.companykey AND isactive = 1'#13#10 +
+        '    INTO :ActiveID;'#13#10 +
+        ''#13#10 +
+        '  IF (:ActiveID IS NULL) THEN'#13#10 +
+        '    NEW.isactive = 1;'#13#10 +
+        '  ELSE'#13#10 +
+        '    IF ((:ActiveID <> NEW.accountkey) AND (NEW.isactive = 1)) THEN'#13#10 +
+        '      UPDATE ac_companyaccount SET isactive = 0'#13#10 +
+        '      WHERE companykey = NEW.companykey AND accountkey = :ActiveID;'#13#10 +
+        'END';
+      SQL.ExecQuery;
+      SQL.Close;
+
+      SQL.SQL.Text :=
+        'CREATE OR ALTER TRIGGER ac_ad_companyaccount FOR ac_companyaccount'#13#10 +
+        '  AFTER DELETE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF (OLD.isactive = 1) THEN'#13#10 +
+        '    UPDATE ac_companyaccount SET isactive = 1'#13#10 +
+        '    WHERE companykey = OLD.companykey AND accountkey <> OLD.accountkey'#13#10 +
+        '    ROWS 1;'#13#10 +
+        'END';
+      SQL.ExecQuery;
+      SQL.Close;
+
+      SQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (157, ''0000.0001.0000.0188'', ''18.07.2012'', ''Correct ac_companyaccount triggers.'') ' +
         '  MATCHING (id)';
       SQL.ExecQuery;
       SQL.Close;
