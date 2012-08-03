@@ -84,22 +84,15 @@ type
   private
     FObjectValueList: TObjectList;
     gdcDynamic: TgdcBase;
-{    FDatabase: TIBDatabase;
-    FTransaction: TIBTransaction;}
-//    procedure ChangeTable;
     procedure ChangeObject;
 
   public
-//    Key: String;
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
     procedure AddNewObject(ADisplayName: String; AnObject: TgdcFullClass;
       AnID: TStrings; NotEof: Boolean);
     property ObjectValueList: TObjectList read FObjectValueList;
-
-{    property Transaction: TIBTransaction read FTransaction write FTransaction;
-    property Database: TIBDatabase read FDatabase write FDatabase;}
   end;
 
 var

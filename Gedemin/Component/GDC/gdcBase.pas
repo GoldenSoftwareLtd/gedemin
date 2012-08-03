@@ -229,23 +229,29 @@ type
   //  Состояние объекта
   TgdcState = (
     sNone,
-    sView,        // объект подключен к форме
-    sDialog,      // объект подключен к диалоговому окну
+    sView,           // объект подключен к форме
+    sDialog,         // объект подключен к диалоговому окну
     sSubDialog,
     sSyncControls,
-    sLoadFromStream, //идет загрузка с потока
-    sMultiple,     // идет обработка одновременно нескольких записей
-    sFakeLoad,     // считывание данных и потока без записи в базу
-    sPost,          // установлен, если идет Cancel вместо поста
-                   // такое бывает, если запись переведена в режим редактирования
-                   // а потом постится, но при этом в ней ничего не менялось
-    sCopy          // объект в состоянии копирования с другого объекта
+    sLoadFromStream, // идет загрузка из потока
+    sMultiple,       // идет обработка одновременно нескольких записей
+    sFakeLoad,       // считывание данных и потока без записи в базу
+    sPost,           // установлен, если идет Cancel вместо поста
+                     // такое бывает, если запись переведена в режим редактирования
+                     // а потом постится, но при этом в ней ничего не менялось
+    sCopy,           // объект в состоянии копирования данных из другого объекта
+    sSkipMultiple,   // идет обработка нескольких записей и пользователь выбрал пропуск
+                     // проблемных записей. Имеет смысл только в совокупности с
+                     // флагом sMultiple
+    sAskMultiple     // идет обработка нескольких записей и пользователя необходимо
+                     // спросить в случае позникновения проблем. Имеет смысл только
+                     // в совокупности с флагом sMultiple
   );
   TgdcStates = set of TgdcState;
 
   TgdcBase = class;
   CgdcBase = class of TgdcBase;
-
+                    
   //Тип для хранения записи счиьываемой из потока
   TgsStreamRecord = record
     StreamVersion: Integer;
@@ -740,6 +746,7 @@ type
 
     procedure UpdateOldValues(Field: TField);
     procedure CheckDoFieldChange;
+
   protected
     FgdcDataLink: TgdcDataLink;
     FInternalTransaction: TIBTransaction;
@@ -1644,7 +1651,7 @@ type
     property Params;
     property gdcTableInfos: TgdcTableInfos read FgdcTableInfos;
 
-    // Состояние объекта на данный момент
+    // Состояние объекта
     property BaseState: TgdcStates read FBaseState write SetBaseState;
 
     property SelectSQL;
@@ -7051,6 +7058,15 @@ begin
           Obj := CgdcBase(C).CreateWithID(Owner, Database, Transaction,
             ID, CFull.SubType);
           try
+            if sMultiple in Self.BaseState then
+            begin
+              Obj.BaseState := Obj.BaseState + [sMultiple];
+              if sAskMultiple in Self.BaseState then
+                Obj.BaseState := Obj.BaseState + [sAskMultiple];
+              if sSkipMultiple in Self.BaseState then
+                Obj.BaseState := Obj.BaseState + [sSkipMultiple];
+            end;
+
             Obj.Open;
             if Obj.RecordCount = 0 then
             begin
@@ -7070,7 +7086,22 @@ begin
                 Abort;
               end;
             end;
+
             Obj.Delete;
+
+            if sMultiple in Self.BaseState then
+            begin
+              if sAskMultiple in Obj.BaseState then
+                Include(FBaseState, sAskMultiple)
+              else
+                Exclude(FBaseState, sAskMultiple);
+
+              if sSkipMultiple in Obj.BaseState then
+                Include(FBaseState, sSkipMultiple)
+              else
+                Exclude(FBaseState, sSkipMultiple);
+            end;
+            
             break;
           finally
             Obj.Free;
@@ -10547,7 +10578,7 @@ var
         if FK.IsSimpleKey {and (FK.DeleteRule in [udrRestrict, udrNoAction])} then
         begin
           sql.Close;
-          sql.SQL.Text := 'SELECT * FROM ' + FK.Relation.RelationName +
+          sql.SQL.Text := 'SELECT FIRST 1 * FROM ' + FK.Relation.RelationName +
             ' WHERE ' + FK.ConstraintFields[0].FieldName + '=' + FKey;
           sql.ExecQuery;
           if not sql.EOF then
@@ -12922,12 +12953,31 @@ begin
       if (Ex.IBErrorCode = isc_foreign_key) or ((Ex.IBErrorCode = isc_except) and (
         StrIPos('GD_E_FKMANAGER', Ex.Message) > 0)) then
       begin
-        isUse;
+        if sMultiple in BaseState then
+        begin
+          if sAskMultiple in BaseState then
+          begin
+            if MessageBox(ParentHandle,
+              PChar('Запись "' + ObjectName + '" невозможно удалить так как на нее ссылаются другие записи.'#13#10#13#10 +
+              'Пропустить указанную запись и продолжить удаление по списку?'),
+              'Внимание',
+              MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+            begin
+              BaseState := BaseState + [sSkipMultiple];
+            end;
+            BaseState := BaseState - [sAskMultiple];
+          end;
+
+          if not (sSkipMultiple in BaseState) then
+            isUse;
+        end else
+          isUse;
         Abort;
       end else
         raise;
     end;
   end;
+
   DoAfterCustomProcess(Buff, cpDelete);
 end;
 
@@ -17845,6 +17895,7 @@ end;
 function TgdcBase.DeleteMultiple2(BL: OleVariant): Boolean;
 var
   I: Integer;
+  OldState: TgdcStates;
 begin
   Result := False;
 
@@ -17874,23 +17925,36 @@ begin
             'Внимание!',
             MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES) then
     begin
-      {
-      DisableControls;
+      {DisableControls;}
+      OldState := FBaseState;
       try
-      }
+        if VarArrayHighBound(BL, 1) > VarArrayLowBound(BL, 1) then
+        begin
+          Include(FBaseState, sMultiple);
+          Include(FBaseState, sAskMultiple);
+          Exclude(FBaseState, sSkipMultiple);
+        end;
+
         for I := VarArrayHighBound(BL, 1) downto VarArrayLowBound(BL, 1) do
         begin
           if Locate(GetKeyField(SubType), BL[I], []) then
           begin
-            if DeleteRecord then
-              Result := True;
+            try
+              if DeleteRecord then
+                Result := True;
+            except
+              on EAbort do
+              begin
+                if not ((sMultiple in FBaseState) and (sSkipMultiple in FBaseState)) then
+                  raise;
+              end;
+            end;
           end;
         end;
-      {
       finally
-        EnableControls;
+        FBaseState := OldState;
+        {EnableControls;}
       end;
-      }
     end;
   end;
 end;
