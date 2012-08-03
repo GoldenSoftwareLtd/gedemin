@@ -1625,12 +1625,15 @@ begin
     end;
 
   B := -1;
-  for I := A + 1 to Length(DatabaseName) do
-    if DatabaseName[I] = ':' then
-    begin
-      B := I;
-      break;
-    end;
+  if A > 0 then
+  begin
+    for I := A + 1 to Length(DatabaseName) do
+      if DatabaseName[I] = ':' then
+      begin
+        B := I;
+        break;
+      end;
+  end;    
 
   if A < 2 then
     Result := ''

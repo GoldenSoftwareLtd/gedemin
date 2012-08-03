@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2002 by Golden Software of Belarus
+  Copyright (c) 2002-2012 by Golden Software of Belarus
 
   Module
 
@@ -6689,8 +6689,16 @@ begin
     Result := Result + 'sLoadFromStream ';
   if sMultiple in GetGDCBase.BaseState then
     Result := Result + 'sMultiple ';
+  if sFakeLoad in GetGDCBase.BaseState then
+    Result := Result + 'sFakeLoad ';
+  if sPost in GetGDCBase.BaseState then
+    Result := Result + 'sPost ';
   if sCopy in GetGDCBase.BaseState then
     Result := Result + 'sCopy ';
+  if sSkipMultiple in GetGDCBase.BaseState then
+    Result := Result + 'sSkipMultiple ';
+  if sAskMultiple in GetGDCBase.BaseState then
+    Result := Result + 'sAskMultiple ';
 end;
 
 function TwrpGDCBase.Get_DetailClasses(Index: Integer): WideString;

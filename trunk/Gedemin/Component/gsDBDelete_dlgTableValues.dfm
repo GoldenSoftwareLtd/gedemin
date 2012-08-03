@@ -19,7 +19,7 @@ object dlgTableValues: TdlgTableValues
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 566
+    Width = 558
     Height = 47
     Align = alTop
     BevelOuter = bvNone
@@ -46,8 +46,8 @@ object dlgTableValues: TdlgTableValues
   object Panel2: TPanel
     Left = 0
     Top = 47
-    Width = 566
-    Height = 301
+    Width = 558
+    Height = 290
     Align = alClient
     BevelOuter = bvNone
     Caption = 'Panel1'
@@ -56,14 +56,14 @@ object dlgTableValues: TdlgTableValues
       Left = 146
       Top = 0
       Width = 3
-      Height = 301
+      Height = 290
       Cursor = crHSplit
     end
     object Panel4: TPanel
       Left = 0
       Top = 0
       Width = 146
-      Height = 301
+      Height = 290
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 0
@@ -71,7 +71,7 @@ object dlgTableValues: TdlgTableValues
         Left = 0
         Top = 0
         Width = 146
-        Height = 301
+        Height = 290
         Align = alClient
         Columns = <
           item
@@ -88,8 +88,8 @@ object dlgTableValues: TdlgTableValues
     object Panel5: TPanel
       Left = 149
       Top = 0
-      Width = 417
-      Height = 301
+      Width = 409
+      Height = 290
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
