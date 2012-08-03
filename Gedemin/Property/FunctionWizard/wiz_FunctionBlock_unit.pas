@@ -598,6 +598,7 @@ type
     procedure DoReleaseVars; override;
     function BodyColor: TColor; override;
     function GetBlockSetMember: TBlockSetMember; override;
+    class function NeedRename: Boolean; override;
   public
     class function NamePrefix: string; override;
   end;
@@ -2364,39 +2365,11 @@ begin
 end;
 
 procedure TVisualBlock.SetBlockName(const Value: string);
-
-  function CheckUniqueName_(AName: string): boolean;
-  var
-    I: Integer;
-    N: string;
-  begin
-    Result := True;
-    N := UpperCase(AName);
-    for I := 0 to BlockList.Count - 1 do
-    begin
-      if (UpperCase(TVisualBlock(BlockList[I]).BlockName) = N) and
-        (Self <> BlockList[I]) then
-      begin
-        Result := False;
-        Exit;
-      end;
-    end;
-  end;
 begin
-  if NeedRename and not CheckUniqueName_(Value) then
-  begin
-    Application.MessageBox(
-      'Блок с таким именем уже существует.',
-      'Внимание',
-      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    abort;
-  end else
-  begin
-    FBlockName := Value;
-    {$IFDEF GEDEMIN}
-    AdjustSize;
-    {$ENDIF}
-  end;
+  FBlockName := Value;
+  {$IFDEF GEDEMIN}
+  AdjustSize;
+  {$ENDIF}
 end;
 
 procedure TVisualBlock.SetDescription(const Value: string);
@@ -3825,6 +3798,11 @@ end;
 function TCycleBlock.GetBlockSetMember: TBlockSetMember;
 begin
   Result := bsCycle;
+end;
+
+class function TCycleBlock.NeedRename: Boolean;
+begin
+  Result := False;
 end;
 
 { TIfBlock }
