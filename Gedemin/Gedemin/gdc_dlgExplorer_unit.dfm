@@ -1,11 +1,11 @@
 inherited gdc_dlgExplorer: Tgdc_dlgExplorer
-  Left = 384
-  Top = 248
+  Left = 390
+  Top = 275
   HelpContext = 110
   ActiveControl = dbeName
   Caption = 'Исследователь'
-  ClientHeight = 311
-  ClientWidth = 371
+  ClientHeight = 353
+  ClientWidth = 372
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel [0]
@@ -112,27 +112,39 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     Height = 2
     Shape = bsTopLine
   end
+  object Bevel5: TBevel [12]
+    Left = 106
+    Top = 287
+    Width = 256
+    Height = 2
+    Shape = bsTopLine
+  end
   inherited btnAccess: TButton
     Left = 6
+    Top = 327
     TabOrder = 11
   end
   inherited btnNew: TButton
     Left = 78
+    Top = 327
     TabOrder = 12
   end
+  inherited btnHelp: TButton
+    Left = 150
+    Top = 327
+    TabOrder = 13
+  end
   inherited btnOK: TButton
-    Left = 225
+    Left = 226
+    Top = 327
     TabOrder = 9
   end
   inherited btnCancel: TButton
     Left = 297
+    Top = 327
     TabOrder = 10
   end
-  inherited btnHelp: TButton
-    Left = 150
-    TabOrder = 13
-  end
-  object dbeName: TDBEdit [17]
+  object dbeName: TDBEdit [18]
     Left = 125
     Top = 32
     Width = 241
@@ -141,7 +153,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     DataSource = dsgdcBase
     TabOrder = 0
   end
-  object ibcmbBranch: TgsIBLookupComboBox [18]
+  object ibcmbBranch: TgsIBLookupComboBox [19]
     Left = 125
     Top = 56
     Width = 241
@@ -161,7 +173,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     ShowHint = True
     TabOrder = 1
   end
-  object iblkupFunction: TgsIBLookupComboBox [19]
+  object iblkupFunction: TgsIBLookupComboBox [20]
     Left = 125
     Top = 216
     Width = 241
@@ -180,7 +192,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     ShowHint = True
     TabOrder = 8
   end
-  object rbFolder: TRadioButton [20]
+  object rbFolder: TRadioButton [21]
     Left = 8
     Top = 112
     Width = 65
@@ -189,7 +201,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     TabOrder = 3
     OnClick = rbFolderClick
   end
-  object rbClass: TRadioButton [21]
+  object rbClass: TRadioButton [22]
     Left = 8
     Top = 136
     Width = 89
@@ -198,7 +210,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     TabOrder = 4
     OnClick = rbFolderClick
   end
-  object rbFunction: TRadioButton [22]
+  object rbFunction: TRadioButton [23]
     Left = 8
     Top = 200
     Width = 73
@@ -207,7 +219,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     TabOrder = 7
     OnClick = rbFolderClick
   end
-  object cbClasses: TComboBox [23]
+  object cbClasses: TComboBox [24]
     Left = 125
     Top = 152
     Width = 241
@@ -219,7 +231,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     TabOrder = 5
     OnChange = cbClassesChange
   end
-  object cbSubTypes: TComboBox [24]
+  object cbSubTypes: TComboBox [25]
     Left = 125
     Top = 176
     Width = 241
@@ -229,7 +241,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     Sorted = True
     TabOrder = 6
   end
-  object cbImages: TComboBox [25]
+  object cbImages: TComboBox [26]
     Left = 125
     Top = 80
     Width = 52
@@ -241,7 +253,7 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     OnDrawItem = cbImagesDrawItem
     OnMeasureItem = cbImagesMeasureItem
   end
-  object rbForm: TRadioButton [26]
+  object rbForm: TRadioButton [27]
     Left = 8
     Top = 240
     Width = 73
@@ -250,12 +262,39 @@ inherited gdc_dlgExplorer: Tgdc_dlgExplorer
     TabOrder = 14
     OnClick = rbFolderClick
   end
-  object edFormClass: TEdit [27]
+  object edFormClass: TEdit [28]
     Left = 125
     Top = 256
     Width = 241
     Height = 21
     TabOrder = 15
+  end
+  object rbReport: TRadioButton [29]
+    Left = 8
+    Top = 278
+    Width = 65
+    Height = 17
+    Caption = 'Отчет'
+    TabOrder = 16
+    OnClick = rbFolderClick
+  end
+  object iblkupReport: TgsIBLookupComboBox [30]
+    Left = 125
+    Top = 296
+    Width = 241
+    Height = 21
+    HelpContext = 1
+    Database = dmDatabase.ibdbGAdmin
+    Transaction = ibtrCommon
+    ListTable = 'rp_reportlist'
+    ListField = 'NAME'
+    KeyField = 'ID'
+    SortOrder = soAsc
+    gdClassName = 'TgdcReport'
+    ItemHeight = 13
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 17
   end
   inherited alBase: TActionList
     Left = 446

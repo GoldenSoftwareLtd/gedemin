@@ -1868,9 +1868,19 @@ end;
 function TobjGSFunction.GetAccountKey(const Account: String): Integer;
 begin
   if CheckRUID(Account) then
-    Result := gdcBaseManager.GetIdByRUIDString(Account)
-  else
-    Result := AcctUtils.GetAccountKeyByAlias(Account);
+  begin
+    Result := gdcBaseManager.GetIdByRUIDString(Account);
+  end else
+  begin
+    // или передан ИД счета, или его номер в текстовом
+    // представлении. Последний или будет коротким (2-3 символа)
+    // или будет содержать не цифровые символыи
+    if StrToIntDef(Account, -1) > 99999 then
+      Result := StrToInt(Account)
+    else
+      Result := AcctUtils.GetAccountKeyByAlias(Account);
+  end;
+
   if Result = 0 then
     raise Exception.Create(Format(MSG_ACCOUNTINCORRECT, [Account]));
 end;

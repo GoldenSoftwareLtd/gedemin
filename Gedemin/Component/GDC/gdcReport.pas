@@ -441,8 +441,8 @@ var
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
   SQL: TIBSQL;
-  N: string;
-  I: Integer;
+  N, S: String;
+  I, L: Integer;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCREPORTGROUP', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -466,38 +466,46 @@ begin
 
   SQL := TIBSQL.Create(nil);
   try
-    SQL.Transaction := Transaction;
     if Transaction.InTransaction then
       SQL.Transaction := Transaction
     else
-      SQl.Transaction := ReadTransaction;
+      SQL.Transaction := ReadTransaction;
+
+    S := 'SELECT FIRST 1 id FROM rp_reportgroup WHERE UPPER(name) = UPPER(:name) AND id <> :id';
 
     if FieldByName('parent').IsNull then
-      SQL.SQL.Text := 'SELECT id FROM rp_reportgroup WHERE name = :name AND parent IS NULL AND id <> :id'
+      SQL.SQL.Text := S + ' AND parent IS NULL'
     else
-      SQL.SQL.Text := 'SELECT id FROM rp_reportgroup WHERE name = :name AND parent = :parent AND id <> :id';
+      SQL.SQL.Text := S + ' AND parent = :parent';
+
     N := FieldByName('name').AsString;
     I := 1;
 
-    repeat
-      SQl.Close;
+    while True do
+    begin
       if not FieldByName('parent').IsNull then
-        SQL.ParamByName('parent').Value := FieldByName('parent').Value;
+        SQL.ParamByName('parent').AsInteger := FieldByName('parent').AsInteger;
       SQL.ParamByName('name').AsString := N;
-      SQl.ParamByname('id').AsInteger := FieldByName('id').AsInteger;
+      SQL.ParamByname('id').AsInteger := FieldByName('id').AsInteger;
       SQL.ExecQuery;
-      if SQL.RecordCount > 0 then
-      begin
-        N := FieldByName('name').AsString + IntToStr(I);
-        Inc(i)
-      end else
-      begin
-        FieldByName('name').AsString := N;
-      end;
-    until SQL.RecordCount = 0;
 
+      if SQL.EOF then
+        break;
+
+      N := FieldByName('name').AsString + IntToStr(I);
+      L := Length(N) - FieldByName('name').Size;
+
+      if L > 0 then
+        N := System.Copy(FieldByName('name').AsString, 1,
+          Length(FieldByName('name').AsString) - L) + IntToStr(I);
+
+      Inc(I);
+      SQL.Close;
+    end;
+
+    FieldByName('name').AsString := N;
   finally
-    SQl.Free;
+    SQL.Free;
   end;
 
   if FindField('aview') <> nil then
