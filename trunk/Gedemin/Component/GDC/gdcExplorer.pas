@@ -2,7 +2,7 @@
 {++
 
   Copyright (c) 2000-2012 by Golden Software of Belarus
-
+                                                               
   Module
 
     gdcExplorer.pas
@@ -34,10 +34,11 @@ uses
   Windows,      Messages,       SysUtils,       Classes,        Graphics,
   Controls,     Forms,          Dialogs,        Db,             IBCustomDataSet,
   gdcBase,      gdcTree,        gd_security,    gd_createable_form, dmDatabase_unit,
-  gdcBaseInterface, gd_KeyAssoc;
+  gdcBaseInterface, gd_KeyAssoc, rp_ReportClient;
 
 
 const
+  cst_expl_cmdtype_report = 2;
   cst_expl_cmdtype_function = 1;
   cst_expl_cmdtype_class = 0;
 
@@ -102,7 +103,7 @@ uses
   scr_i_functionlist,   rp_BaseReport_unit,      gd_i_scriptfactory,
   gdcFunction,          jclStrings,              gsResizerInterface,
   IBUtils,              ContNrs,                 at_classes,
-  IBDatabase,           IBSQL
+  IBDatabase,           IBSQL,                   gdcReport
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -880,6 +881,7 @@ end;
 procedure TgdcExplorer.ShowProgram(const AlwaysCreateWindow: Boolean = False);
 var
   F: TrpCustomFunction;
+  R: TgdcReport;
   P: Variant;
 begin
   CheckBrowseMode;
@@ -895,19 +897,44 @@ begin
     exit;
   end;
 
-  if FieldByName('cmdtype').AsInteger = cst_expl_cmdtype_function then
-  begin
-    F := glbFunctionList.FindFunction(gdcBaseManager.GetIDByRUIDString(FieldByName('cmd').AsString));
-    if Assigned(F) then
-    try
-      P := VarArrayOf([]);
-      if ScriptFactory.InputParams(F, P) then
-        ScriptFactory.ExecuteFunction(F, P);
-    finally
-      glbFunctionList.ReleaseFunction(F);
+  case FieldByName('cmdtype').AsInteger of
+
+    cst_expl_cmdtype_function:
+    begin
+      F := glbFunctionList.FindFunction(gdcBaseManager.GetIDByRUIDString(FieldByName('cmd').AsString));
+      if Assigned(F) then
+      try
+        P := VarArrayOf([]);
+        if ScriptFactory.InputParams(F, P) then
+          ScriptFactory.ExecuteFunction(F, P);
+      finally
+        glbFunctionList.ReleaseFunction(F);
+      end;
     end;
-  end else
-  begin
+
+    cst_expl_cmdtype_report:
+    begin
+      Assert(ClientReport <> nil);
+
+      R := TgdcReport.Create(nil);
+      try
+        R.SubSet := 'ByID';
+        R.ID := gdcBaseManager.GetIDByRUIDString(FieldByName('cmd').AsString);
+        R.Open;
+
+        if not R.Eof then
+          ClientReport.BuildReport(Unassigned, R.ID)
+        else
+          MessageBox(ParentHandle,
+            'Отчет не найден или нет прав доступа.',
+            'Внимание',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL);
+      finally
+        R.Free;
+      end;
+    end;
+
+  else
     if FieldByName('classname').AsString > '' then
     begin
       // JKL: Вынесено в отдельную функцию
@@ -1034,21 +1061,46 @@ procedure TgdcExplorer._SaveToStream(Stream: TStream;
   WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean);
 var
   f: TgdcFunction;
+  R: TgdcReport;
   AnID: Integer;
 begin
   inherited;
-  {Если у нас исследователь связан с функцией, сохраним и ее в поток}
-  if FieldByName('cmdtype').AsInteger = cst_expl_cmdtype_function then
-  begin
-    AnID := gdcBaseManager.GetIDByRUIDString(FieldByName('cmd').AsString);
-    if ((not Assigned(BindedList)) or (BindedList.Find(AnID) = -1)) and (AnID > 0)then
+
+  case FieldByName('cmdtype').AsInteger of
+
+    {Если у нас исследователь связан с функцией, сохраним и ее в поток}
+    cst_expl_cmdtype_function:
     begin
-      f := TgdcFunction.CreateSingularByID(Self, AnID, '') as TgdcFunction;
+      AnID := gdcBaseManager.GetIDByRUIDString(FieldByName('cmd').AsString);
+      if ((not Assigned(BindedList)) or (BindedList.Find(AnID) = -1)) and (AnID > 0)then
+      begin
+        f := TgdcFunction.CreateSingularByID(Self, AnID, '') as TgdcFunction;
+        try
+          f.Open;
+          f._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+        finally
+          f.Free;
+        end;
+      end;
+    end;
+
+    cst_expl_cmdtype_report:
+    begin
+      R := TgdcReport.Create(nil);
       try
-        f.Open;
-        f._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects);
+        R.SubSet := 'ByID';
+        R.ID := gdcBaseManager.GetIDByRUIDString(FieldByName('cmd').AsString);
+        R.Open;
+
+        if not R.Eof then
+          R._SaveToStream(Stream, ObjectSet, PropertyList, BindedList, WithDetailList, SaveDetailObjects)
+        else
+          MessageBox(ParentHandle,
+            PChar('Отчет RUID=' + FieldByName('cmd').AsString + ' не найден или недостаточно прав доступа.'),
+            'Внимание',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL);
       finally
-        f.Free;
+        R.Free;
       end;
     end;
   end;

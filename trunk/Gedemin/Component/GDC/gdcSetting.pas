@@ -1333,8 +1333,18 @@ begin
                       ' (XID = ' +  ibsqlPos.FieldByName('xid').AsString +
                       ', DBID = ' + ibsqlPos.FieldByName('dbid').AsString + ')');
 
-                if Obj.RecordCount > 0 then                         {!!!!!!!!!!!!!!!!!}
-                  Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects)
+                if Obj.RecordCount > 0 then    {!!!!!!!!!!!!!!!!!}
+                begin
+                  if (Obj is TgdcTableField)
+                    and (StrIPos(USERPREFIX, Obj.FieldByName('fieldname').AsString) = 1)
+                    and (Obj.FieldByname('crosstable').AsString > '') then
+                  begin
+                    OS.Add(Obj.FieldByname('crosstablekey').AsInteger, '', '', '');
+                    Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects);
+                    OS.Remove(Obj.FieldByname('crosstablekey').AsInteger);
+                  end else
+                    Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects);
+                end
                 else
                 begin
                   // ≈сли работает репликатор, то не будем прерывать сохранение настройки
