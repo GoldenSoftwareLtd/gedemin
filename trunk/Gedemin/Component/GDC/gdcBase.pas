@@ -3209,6 +3209,25 @@ begin
       raise EgdcUserHaventRights.CreateFmt(strHaventRights,
         [strCreate, ClassName, SubType, GetDisplayName(SubType)]);
 
+    if (not CachedUpdates) and Assigned(MasterSource)
+      and Assigned(MasterSource.DataSet)
+      and (MasterSource.DataSet.State = dsInsert) then
+    begin
+      try
+        MasterSource.DataSet.Post;
+      except
+        on E: Exception do
+        begin
+          MessageBox(ParentHandle,
+            PChar(Format('Ошибка при сохранении записи в мастер объекте:'#13#10#13#10'%s',
+              [E.Message])),
+            'Ошибка',
+            MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+          Abort;
+        end;
+      end;
+    end;
+
     inherited;
   end;
 
