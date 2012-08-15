@@ -4477,6 +4477,9 @@ begin
   {M}    end;
   {END MACRO}
 
+  { перенесено на уровень gdcBase
+    см. http://code.google.com/p/gedemin/issues/detail?id=2867
+
   if Assigned(MasterSource) and Assigned(MasterSource.DataSet) then
   begin
     if MasterSource.DataSet.State = dsInsert then
@@ -4487,12 +4490,14 @@ begin
         on E: Exception do
         begin
           MessageBox(ParentHandle, PChar(Format(s_InvErrorSaveHeadDocument, [E.Message])),
-            PChar(sAttention), mb_ok or mb_IconInformation);
+            PChar(sAttention), MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
           abort;
         end;
       end;
     end;
   end;
+  }
+
   inherited;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTLINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
