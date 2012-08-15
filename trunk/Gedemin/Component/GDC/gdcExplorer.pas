@@ -85,6 +85,7 @@ type
     class function GetListField(const ASubType: TgdcSubType): String; override;
 
     class function GetSubSetList: String; override;
+    class function NeedModifyFromStream(const SubType: String): Boolean; override;
 
     property gdcClass: CgdcBase read Get_gdcClass;
   end;
@@ -782,6 +783,11 @@ class function TgdcExplorer.GetViewFormClassName(
   const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_frmExplorer';
+end;
+
+class function TgdcExplorer.NeedModifyFromStream(const SubType: String): Boolean;
+begin
+  Result := True;
 end;
 
 procedure TgdcExplorer.GetWhereClauseConditions(S: TStrings);
