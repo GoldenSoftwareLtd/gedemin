@@ -6,7 +6,7 @@ object dlgSecLogIn: TdlgSecLogIn
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = '¬ход в систему'
-  ClientHeight = 168
+  ClientHeight = 171
   ClientWidth = 303
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -56,7 +56,7 @@ object dlgSecLogIn: TdlgSecLogIn
   end
   object lKL: TLabel
     Left = 8
-    Top = 148
+    Top = 149
     Width = 3
     Height = 13
     Color = clActiveCaption
@@ -181,7 +181,7 @@ object dlgSecLogIn: TdlgSecLogIn
   end
   object btnOk: TButton
     Left = 139
-    Top = 142
+    Top = 143
     Width = 75
     Height = 21
     Action = actLogin
@@ -189,14 +189,22 @@ object dlgSecLogIn: TdlgSecLogIn
     TabOrder = 1
   end
   object btnCancel: TButton
-    Left = 222
-    Top = 142
+    Left = 221
+    Top = 143
     Width = 75
     Height = 21
     Action = actCancel
     Cancel = True
     ModalResult = 2
     TabOrder = 2
+  end
+  object btnVer: TButton
+    Left = 57
+    Top = 143
+    Width = 21
+    Height = 21
+    Action = actVer
+    TabOrder = 3
   end
   object ActionList: TActionList
     Left = 8
@@ -214,6 +222,10 @@ object dlgSecLogIn: TdlgSecLogIn
       Caption = 'actHelp'
       ShortCut = 112
       OnExecute = actHelpExecute
+    end
+    object actVer: TAction
+      Caption = '?'
+      OnExecute = actVerExecute
     end
   end
   object spUserLogin: TIBStoredProc
@@ -335,7 +347,7 @@ object dlgSecLogIn: TdlgSecLogIn
   end
   object Timer: TTimer
     OnTimer = TimerTimer
-    Left = 40
-    Top = 120
+    Left = 8
+    Top = 128
   end
 end
