@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 1998-2000 by Golden Software of Belarus
+  Copyright (c) 1998-2012 by Golden Software of Belarus
 
   Module
 
@@ -56,6 +56,8 @@ type
     cbDBFileName: TComboBox;
     actHelp: TAction;
     chbxRememberPassword: TCheckBox;
+    actVer: TAction;
+    btnVer: TButton;
 
     procedure actLoginUpdate(Sender: TObject);
     procedure actLoginExecute(Sender: TObject);
@@ -68,6 +70,7 @@ type
     procedure cbDBFileNameChange(Sender: TObject);
     procedure actHelpExecute(Sender: TObject);
     procedure cbUserChange(Sender: TObject);
+    procedure actVerExecute(Sender: TObject);
 
   private
     KL: Integer;
@@ -126,7 +129,7 @@ uses
   gd_Security, gd_resourcestring, gd_directories_const, inst_const,
   gd_security_dlgDatabases_unit, jclStrings, IBSQL, gdcBaseInterface,
   IBServices, IB, DBLogDlg, gsDatabaseShutdown, Wcrypt2, dmLogin_unit,
-  gd_common_functions, gd_CmdLineParams_unit
+  gd_common_functions, gd_CmdLineParams_unit, gd_dlgAbout_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
@@ -912,6 +915,16 @@ end;
 procedure TdlgSecLogIn.cbUserChange(Sender: TObject);
 begin
   GetPasswordFromRegistry;
+end;
+
+procedure TdlgSecLogIn.actVerExecute(Sender: TObject);
+begin
+  with Tgd_dlgAbout.Create(Self) do
+  try
+    ShowModal;
+  finally
+    Free;
+  end;
 end;
 
 end.
