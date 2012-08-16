@@ -3209,25 +3209,6 @@ begin
       raise EgdcUserHaventRights.CreateFmt(strHaventRights,
         [strCreate, ClassName, SubType, GetDisplayName(SubType)]);
 
-    if (not CachedUpdates) and Assigned(MasterSource)
-      and Assigned(MasterSource.DataSet)
-      and (MasterSource.DataSet.State = dsInsert) then
-    begin
-      try
-        MasterSource.DataSet.Post;
-      except
-        on E: Exception do
-        begin
-          MessageBox(ParentHandle,
-            PChar(Format('Ошибка при сохранении записи в мастер объекте:'#13#10#13#10'%s',
-              [E.Message])),
-            'Ошибка',
-            MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-          Abort;
-        end;
-      end;
-    end;
-
     inherited;
   end;
 
@@ -12765,6 +12746,14 @@ begin
       end;
     end else
     begin
+      { см. http://code.google.com/p/gedemin/issues/detail?id=2867}
+      if (not CachedUpdates) and Assigned(MasterSource)
+        and Assigned(MasterSource.DataSet)
+        and (MasterSource.DataSet.State = dsInsert) then
+      begin
+        MasterSource.DataSet.Post;
+      end;
+
       {if State = dsInsert then
       begin}
         for I := 0 to FDetailLinks.Count - 1 do

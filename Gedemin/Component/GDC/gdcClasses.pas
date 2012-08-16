@@ -4477,26 +4477,22 @@ begin
   {M}    end;
   {END MACRO}
 
-  { перенесено на уровень gdcBase
-    см. http://code.google.com/p/gedemin/issues/detail?id=2867
-
-  if Assigned(MasterSource) and Assigned(MasterSource.DataSet) then
+  if (not CachedUpdates) and Assigned(MasterSource)
+    and Assigned(MasterSource.DataSet) and (MasterSource.DataSet.State = dsInsert) then
   begin
-    if MasterSource.DataSet.State = dsInsert then
-    begin
-      try
-        MasterSource.DataSet.Post;
-      except
-        on E: Exception do
-        begin
-          MessageBox(ParentHandle, PChar(Format(s_InvErrorSaveHeadDocument, [E.Message])),
-            PChar(sAttention), MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
-          abort;
-        end;
+    try
+      MasterSource.DataSet.Post;
+    except
+      on E: Exception do
+      begin
+        MessageBox(ParentHandle,
+          PChar(Format(s_InvErrorSaveHeadDocument, [E.Message])),
+          PChar(sAttention),
+          MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+        Abort;
       end;
     end;
   end;
-  }
 
   inherited;
 

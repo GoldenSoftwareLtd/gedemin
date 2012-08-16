@@ -1320,9 +1320,9 @@ var
   SQL: TIBSQL;
 const
   cFunctionBody =
-    'sub %s '#13 +
+    'Sub %s '#13 +
     '  System.ReportSystem.BuildReport(gdcBaseManager.GetIDByRUIDString("%s"))'#13 +
-    'end sub';
+    'End Sub';
 begin
   if FieldByName('FOLDERKEY').IsNull then
     DeleteSF

@@ -3323,9 +3323,9 @@ begin
     lS := StringOfChar(' ', Paragraph);
 
     if FReturnResult then
-      S.Add(lS + 'end function')
+      S.Add(lS + 'End Function')
     else
-      S.Add(lS + 'end sub');
+      S.Add(lS + 'End Sub');
 
     DoGenerateExceptFunction(S, Paragraph);
   finally
@@ -3496,10 +3496,10 @@ begin
   begin
     lS := StringOfChar(' ', Paragraph);
     S.Add('''Функция обработки исключения');
-    S.Add(lS + Format('sub Except%s (Transaction)', [FBlockName]));
+    S.Add(lS + Format('Sub Except%s (Transaction)', [FBlockName]));
     S.Add(lS + '  Transaction.Rollback');
-    S.Add(lS + '  GS.Transaction = nothing');
-    S.Add(lS + 'end sub');
+    S.Add(lS + '  GS.Transaction = Nothing');
+    S.Add(lS + 'End Sub');
     S.Add('');
   end;
 end;
@@ -7286,21 +7286,13 @@ procedure TTrEntryFunctionBlock.DoGenerateExceptFunction(S: TStrings;
   Paragraph: Integer);
 var
   ls: string;
-{  BS: TBlockSet;}
 begin
-{  BS := [];
-  GetBlockSet(BS);}
   lS := StringOfChar(' ', Paragraph);
   S.Add('''Функция обработки исключения');
-{  if BS * [bsCycle, bsEntry] <> [] then
-  begin
-    S.Add(lS + Format('sub Except%s (Transaction, gdcEntry)', [FBlockName]));
-    S.Add(lS + ' Transaction.Rollback');
-  end else}
-  S.Add(lS + Format('sub Except%s (gdcEntry)', [FBlockName]));
+  S.Add(lS + Format('Sub Except%s (gdcEntry)', [FBlockName]));
 
-  S.Add(lS + '  if (gdcEntry.State = 2) or (gdcEntry.State = 3) then gdcEntry.Cancel');
-  S.Add(lS + 'end sub');
+  S.Add(lS + '  If (gdcEntry.State = 2) Or (gdcEntry.State = 3) Then gdcEntry.Cancel');
+  S.Add(lS + 'End Sub');
   S.Add('');
 end;
 
