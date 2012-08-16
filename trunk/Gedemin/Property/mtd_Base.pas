@@ -496,9 +496,9 @@ begin
     end;
     fplVBScript:
     begin
-      OptExplicit := 'option explicit'#13#10;
+      OptExplicit := 'Option Explicit'#13#10;
       LFB := '';
-      LFE := 'end ' + LFN;
+      LFE := 'End ' + LFN;
       InheritedArray := 'Array(' +
         GetDelphiParamName(0, FMethodData^.ParamList, AnLang, LResultParam);
 
@@ -514,12 +514,12 @@ begin
         begin
           if AnsiUpperCase(GetResultType(FMethodData^.ParamCount,
             FMethodData^.ParamList)) = 'OBJECT' then
-              CallInherited := '  set ' + AutoFunctionName + ' = _'#13#10 + '    '
+              CallInherited := '  Set ' + AutoFunctionName + ' = _'#13#10 + '    '
           else
             CallInherited := '  ' + AutoFunctionName + ' = _'#13#10 + '    ';
         end;
         mkSafeProcedure, mkProcedure:
-          CallInherited := '  call ';
+          CallInherited := '  Call ';
       end;
       CallInherited := CallInherited + 'Inherited(' + GetDelphiParamName(0, FMethodData^.ParamList,
         AnLang, LResultParam) + ', ' + '"' + Name + '", ' + InheritedArray + ')';
@@ -626,26 +626,6 @@ begin
   end;
   AnResultParam := Copy(PChar(@LocParams[L + 1]), 1, Byte(LocParams[L]));
 end;
-
-{function TMethodItem.GetObjectName: String;
-begin
-  Result := '';
-  if Assigned(FMethodClass) then
-    Result := FMethodClass.Class_Name + FMethodClass.SubType;
-end;}
-
-{function TMethodItem.GetParamCount: Integer;
-begin
-  Result := FMethodData^.ParamCount;
-end;
-
-function TMethodItem.GetParams(const AnLang: TFuncParamLang): String;
-var
-  LResultParam: String;
-begin
-  Result := GetDelphiParamString(FMethodData^.ParamCount, FMethodData^.ParamList,
-   AnLang, LResultParam);
-end;}
 
 function TMethodItem.GetResultType(const Index: Integer;
   const LocParams: array of Char): String;
@@ -952,7 +932,7 @@ begin
   ibsqlClass := TIBSQL.Create(nil);
   try
     ibsqlClass.Transaction := gdcBaseManager.ReadTransaction;
-    {Сволочь такая не работает с NULL параметром} {gs}
+    {не работает с NULL параметром} {gs}
 
     ibsqlClass.SQL.Text :=
       ' SELECT e.*, oe.id AS methodid, oe.eventname as methodname, ' +
@@ -991,25 +971,6 @@ begin
     ibsqlClass.Free;
   end;
 end;
-
-{procedure TMethodClassList.LoadFromStream(AnStream: TStream);
-var
-  I, J: Integer;
-  strTemp: array[0..SizeOf(strStartClassList)] of Char;
-begin
-  MethodClassListClear;
-  AnStream.ReadBuffer(strTemp, SizeOf(strStartObjList));
-  if strTemp <> strStartClassList then
-    raise Exception.Create(GetGsException(Self, MSG_WRONG_SREAM_DATA));
-
-  AnStream.ReadBuffer(J, SizeOf(J));
-  for I := 0 to J - 1 do
-    MethodClass[AddClass(TMethodClass.Create)].LoadFromStream(AnStream);
-
-  AnStream.ReadBuffer(strTemp, SizeOf(strStartClassList));
-  if strTemp <> strEndClassList then
-    raise Exception.Create(GetGsException(Self, MSG_WRONG_SREAM_DATA));
-end;}
 
 procedure TMethodClassList.MethodClassListClear;
 begin
@@ -1195,36 +1156,30 @@ begin
                   LFullChildName := LCurrentFullClass;
                   LCurrentFullClass.gdClassName :=
                     AnsiUpperCase(GetParentClassName(LCurrentFullClass, LClassType));
-                  {SubTypeList := TStringList.Create;
-                  try}
-                    if AgdcBase.InheritsFrom(TgdcBase) then
+                  if AgdcBase.InheritsFrom(TgdcBase) then
+                  begin
+                    LgdcBaseClass := gdcClassList.GetGDCClass(LCurrentFullClass);
+                    if LgdcBaseClass = nil then
+                      raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
+                    SubTypePresent := LgdcBaseClass.GetSubTypeList(LocalSubTypeList);
+                  end else
                     begin
-                      LgdcBaseClass := gdcClassList.GetGDCClass(LCurrentFullClass);
-                      if LgdcBaseClass = nil then
+                      LgdcCreateableFormClass := frmClassList.GetFRMClass(LCurrentFullClass);
+                      if LgdcCreateableFormClass = nil then
                         raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                      SubTypePresent := LgdcBaseClass.GetSubTypeList(LocalSubTypeList);
-                    end else
-                      begin
-                        LgdcCreateableFormClass := frmClassList.GetFRMClass(LCurrentFullClass);
-                        if LgdcCreateableFormClass = nil then
-                          raise Exception.Create('Ошибка перекрытия метода. Обратитесь к разработчикам.');
-                        SubTypePresent := LgdcCreateableFormClass.GetSubTypeList(LocalSubTypeList);
-                      end;
-
-
-                    if SubTypePresent then
-                    begin
-                      for k := 0 to LocalSubTypeList.Count - 1 do
-                        if ObjectSubType =
-                          AnsiUpperCase(GetSubTypeFromStr(LocalSubTypeList[k])) then
-                        begin
-                          LCurrentFullClass.SubType := ObjectSubType;
-                          break;
-                        end;
+                      SubTypePresent := LgdcCreateableFormClass.GetSubTypeList(LocalSubTypeList);
                     end;
-                  {finally
-                    SubTypeList.Free;
-                  end;}
+
+                  if SubTypePresent then
+                  begin
+                    for k := 0 to LocalSubTypeList.Count - 1 do
+                      if ObjectSubType =
+                        AnsiUpperCase(GetSubTypeFromStr(LocalSubTypeList[k])) then
+                      begin
+                        LCurrentFullClass.SubType := ObjectSubType;
+                        break;
+                      end;
+                  end;
                 end;
             end;
         end;
@@ -1301,37 +1256,9 @@ begin
           ScriptFactory.ExecuteFunction(LFunction, AnParams, AnResult);
         {$IFDEF DEBUG}
         except
-(*          on E: EErrorScript do
-          begin
-            // Если возникла ошибка
-            // админу возможность отключения, другому пользователю только сообщение об ошибке
-            if Not IBLogin.IsIBUserAdmin then
-            begin
-              MessageBox(0, PChar(Format(LMsgMethodUserError, [AMethodName,
-                LCurrentFullClass.gdClassName + LCurrentFullClass.SubType,
-                LFunction.FunctionKey])),
-                'Ошибка', MB_OK or MB_ICONERROR or MB_TOPMOST);
-            end else
-              if (MessageBox(0, PChar(Format(LMsgMethodOffAdmin, [AMethodName,
-                LCurrentFullClass.gdClassName + LCurrentFullClass.SubType,
-                LFunction.FunctionKey])),
-                'Внимание', MB_YESNO or MB_ICONWARNING or MB_TOPMOST) = IDYES) then
-              begin
-                LMethodItem.Disable := True;
-                SaveDisableFlag(LMethodItem);
-//                if Assigned(dlgViewProperty) then
-//                  dlgViewProperty.SetMethodView(LMethodItem);
-              end;
-            Log.LogLn(DateTimeToStr(Now) + ': Ошибка во время выполнения метода ' + LFunction.Name +
-              '  ИД функции ' + IntToStr(LFunction.FunctionKey));
-            raise EAbort.Create('Ошибка в перекрытом методе ' + LFunction.Name);
-          end
-        else
-          begin*)
           Log.LogLn(DateTimeToStr(Now) + ': Ошибка во время выполнения метода ' + LFunction.Name +
             '  ИД функции ' + IntToStr(LFunction.FunctionKey));
           raise;
-//          end;
         end;
         {$ENDIF}
         Result := True;
@@ -1588,7 +1515,6 @@ begin
   Inc(CustomMethodClassCount);
   {$ENDIF}
   FMethodList := TMethodList.Create;
-//  FMethodList.OwnsObjects := True;
   FClass_Key := 0;
   FName := '';
   FSpecDisableMethod := 0;
@@ -1648,9 +1574,6 @@ end;
 
 function TMethodList.Add(const ASource: TMethodItem): Integer;
 begin
-  {$IFDEF DEBUG}
-//  Assert(FMethodList.IndexOf(ASource.Name) = -1);
-  {$ENDIF}
   Result := FMethodList.AddObject(ASource.Name, ASource);
 end;
 
@@ -1675,7 +1598,7 @@ procedure TMethodList.Assign(ASource: TMethodList);
 var
   I: Integer;
 begin
-   Clear;
+  Clear;
   for I := 0 to ASource.Count - 1 do
     Add(ASource.Items[I]);
 end;

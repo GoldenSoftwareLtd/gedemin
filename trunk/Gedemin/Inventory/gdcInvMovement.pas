@@ -9005,14 +9005,14 @@ var
   SQL: TIBSQL;
 const
   cFunctionBody =
-    'sub %s '#13 +
-    '  dim ConfigKey '#13 +
-    '  set Creator = New TCreator '#13 +
-    '  set F = Designer.CreateObject(Application, "%s", "") '#13 +
+    'Sub %s '#13 +
+    '  Dim ConfigKey '#13 +
+    '  Set Creator = New TCreator '#13 +
+    '  Set F = Designer.CreateObject(Application, "%s", "") '#13 +
     '  ConfigKey = gdcBaseManager.GetIdByRuidString("%s") '#13 +
     '  F.FindComponent("cmbConfig").CurrentKeyInt = ConfigKey '#13 +
     '  F.FindComponent("actShowCard").Execute '#13 +
-    'end sub';
+    'End Sub';
 begin
   if FieldByName('showinexplorer').AsInteger <> 1 then
     DeleteSF
