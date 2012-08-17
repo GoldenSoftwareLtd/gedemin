@@ -1,6 +1,6 @@
 inherited gdc_dlgHGR: Tgdc_dlgHGR
-  Left = 256
-  Top = 207
+  Left = 524
+  Top = 339
   Width = 600
   Height = 410
   BorderStyle = bsSizeable
@@ -35,7 +35,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
   object pnlMain: TPanel [5]
     Left = 0
     Top = 0
-    Width = 592
+    Width = 584
     Height = 352
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -44,7 +44,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
     object splMain: TSplitter
       Left = 0
       Top = 152
-      Width = 592
+      Width = 584
       Height = 4
       Cursor = crVSplit
       Align = alTop
@@ -52,7 +52,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
     object pnlDetail: TPanel
       Left = 0
       Top = 156
-      Width = 592
+      Width = 584
       Height = 196
       Align = alClient
       BevelOuter = bvNone
@@ -60,7 +60,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
       object ibgrDetail: TgsIBGrid
         Left = 9
         Top = 26
-        Width = 574
+        Width = 566
         Height = 161
         Align = alClient
         DataSource = dsDetail
@@ -84,7 +84,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
       object tbdTop: TTBDock
         Left = 0
         Top = 0
-        Width = 592
+        Width = 584
         Height = 26
         object tbDetail: TTBToolbar
           Left = 0
@@ -136,7 +136,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
         Position = dpLeft
       end
       object tbdRight: TTBDock
-        Left = 583
+        Left = 575
         Top = 26
         Width = 9
         Height = 161
@@ -145,7 +145,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
       object tbdBottom: TTBDock
         Left = 0
         Top = 187
-        Width = 592
+        Width = 584
         Height = 9
         Position = dpBottom
       end
@@ -153,7 +153,7 @@ inherited gdc_dlgHGR: Tgdc_dlgHGR
     object pnlMaster: TPanel
       Left = 0
       Top = 0
-      Width = 592
+      Width = 584
       Height = 152
       Align = alTop
       BevelOuter = bvNone
