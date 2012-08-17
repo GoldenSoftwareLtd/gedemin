@@ -3235,6 +3235,7 @@ var
   {END MACRO}
   F: TField;
   AFull, AChag, AView: Integer;
+  {MD: TgdcBase;}
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -3304,37 +3305,53 @@ begin
   // значений других) должен проверять на этот флаг и выполнять
   // присваивание только если флаг не установлен.
 
-{ TODO : а если у главной таблицы нет дескрипторов, а у присоединенной есть? }
-//  if not (sMultiple in BaseState) then
-//  begin
-    F := FindField('afull');
+  F := FindField('afull');
 
-    if (F <> nil) then
-    begin
-      AFull := F.AsInteger or 1;
-      if AFull <> F.AsInteger then
-        F.AsInteger := AFull;
-    end;
+  if (F <> nil) then
+  begin
+    AFull := F.AsInteger or 1;
+    if AFull <> F.AsInteger then
+      F.AsInteger := AFull;
+  end;
 
-    if (F <> nil) and (FindField('achag') <> nil) then
-    begin
-      AChag := FieldByName('achag').AsInteger or F.AsInteger;
-      if AChag <> FieldByName('achag').AsInteger then
-        FieldByName('achag').AsInteger := AChag;
-    end;
+  if (F <> nil) and (FindField('achag') <> nil) then
+  begin
+    AChag := FieldByName('achag').AsInteger or F.AsInteger;
+    if AChag <> FieldByName('achag').AsInteger then
+      FieldByName('achag').AsInteger := AChag;
+  end;
 
-    if FindField('AChag') <> nil then
-      F := FindField('AChag');
+  if FindField('AChag') <> nil then
+    F := FindField('AChag');
 
-    if (F <> nil) and (FindField('AView') <> nil) then
-    begin
-      AView := FieldByName('AView').AsInteger or F.AsInteger;
-      if AView <> FieldByName('AView').AsInteger then
-        FieldByName('AView').AsInteger := AView;
-    end;
-//  end;
+  if (F <> nil) and (FindField('AView') <> nil) then
+  begin
+    AView := FieldByName('AView').AsInteger or F.AsInteger;
+    if AView <> FieldByName('AView').AsInteger then
+      FieldByName('AView').AsInteger := AView;
+  end;
 
   inherited DoBeforePost;
+
+  { см. http://code.google.com/p/gedemin/issues/detail?id=2867}
+  {if Assigned(MasterSource) and (MasterSource.DataSet is TgdcBase) then
+  begin
+    MD := MasterSource.DataSet as TgdcBase;
+    if (State = dsInsert)
+      and (not CachedUpdates)
+      and (MD.State = dsInsert)
+      and (AnsiCompareText(MasterField, MD.GetKeyField(MD.SubType)) <> 0)
+      and (Transaction = MD.Transaction)
+      and (MD.FIgnoreDataSet.IndexOf(Self) = -1) then
+    begin
+      MD.FIgnoreDataSet.Add(Self);
+      try
+        MD.Post;
+      finally
+        MD.FIgnoreDataSet.Remove(Self);
+      end;
+    end;
+  end;}
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
@@ -9332,21 +9349,8 @@ begin
   inherited;
 end;
 
-{
-procedure TgdcDataLink.DoOnTimer(Sender: TObject);
-begin
-  if FTimer.Enabled then
-  begin
-    FTimer.Enabled := False;
-    if Assigned(FDetailObject) and FDetailObject.Active then
-      FDetailObject.RefreshParams;
-  end;
-end;
-}
-
 procedure TgdcDataLink.EditingChanged;
 begin
-  //FTimer.Enabled := False;
   if (DataSet <> nil) and (DataSet.State in dsEditModes) then
   begin
     if (FDetailObject <> nil) and (FDetailObject.State in dsEditModes) then
@@ -9354,7 +9358,7 @@ begin
       if (DataSet as TgdcBase).FIgnoreDataSet.IndexOf(FDetailObject) = -1 then
         FDetailObject.Post;
     end;
-  end;  
+  end;
 end;
 
 function TgdcDataLink.GetDetailField: String;
@@ -9369,101 +9373,16 @@ end;
 
 procedure TgdcDataLink.RecordChanged(F: TField);
 begin
-  if ((F = nil) {or (FMasterField.IndexOf(F.FieldName) <> -1)})
-    and Assigned(FDetailObject) and FDetailObject.Active then
+  if (F = nil) and Assigned(FDetailObject) and FDetailObject.Active then
   begin
-    {if (FTimer.Interval = 0)
-      or (not (sView in FDetailObject.BaseState))
-      or (sDialog in FDetailObject.BaseState)
-      or (sLoadFromStream in FDetailObject.BaseState) then
-    begin}
     if DataSet is TgdcBase then
     begin
       if (DataSet as TgdcBase).FIgnoreDataSet.IndexOf(FDetailObject) = -1 then
         FDetailObject.RefreshParams;
     end else
       FDetailObject.RefreshParams;
-    {end else begin
-      FTimer.Enabled := False;
-      FTimer.Enabled := True;
-    end;}
   end;
 end;
-
-(*procedure TgdcDataLink.RefreshParams(const AnyWay: Boolean);
-var
-  Master, Detail: TStringList;
-  I: Integer;
-  ParamsChanged: Boolean;
-
-begin
-  if (DataSet = nil)
-    or (not DataSet.Active)
-    or (FDetailObject = nil)
-    {or (not FgdcObject.Active)} then exit;
-
-  Master := TStringList.Create;
-  Detail := TStringList.Create;
-
-  //FgdcObject.DisableControls;
-  try
-    MakeFieldList(FMasterField, Master);
-    MakeFieldList(FDetailField, Detail);
-
-    ParamsChanged := False;
-
-    if not AnyWay then
-      for I := 0 to Master.Count - 1 do
-        if DataSet.FieldByName(Master[I]).AsString <>
-          FDetailObject.ParamByName(Detail[I]).AsString then
-        begin
-          ParamsChanged := True;
-          Break;
-        end;
-
-    if AnyWay or ParamsChanged then
-    begin
-      FDetailObject.Close;
-
-      //
-      // Присваиваем соответствующее подключение
-      //  и транзакцию
-
-      { TODO :
-тут вопрос. правильнее все эти манипуляции с транзакциями делать
-по присваиванию мастер обжекта а не тут... }
-      {if not Assigned(FgdcObject.Transaction) and (DataSet is TgdcBase) then
-        FgdcObject.Transaction := (DataSet as TgdcBase).Transaction else
-
-      if (DataSet is TgdcBase) and
-        (FgdcObject.Transaction = FgdcObject.FInternalTransaction) then
-      begin
-        FreeAndNil(FgdcObject.FInternalTransaction);
-        FgdcObject.Transaction := (DataSet as TgdcBase).Transaction;
-      end;
-
-      if not Assigned(FgdcObject.Database) and (DataSet is TgdcBase) then
-        FgdcObject.Database := (DataSet as TgdcBase).Database;}
-
-      //
-      // Устанавливаем параметры
-
-      for I := 0 to Master.Count - 1 do
-        if not DataSet.FieldByName(Master[I]).IsNull then
-          FDetailObject.ParamByName(Detail[I]).AsString :=
-              DataSet.FieldByName(Master[I]).AsString
-        else
-          FDetailObject.ParamByName(Detail[I]).Clear;
-
-      FDetailObject.Open;
-    end;
-  finally
-    Master.Free;
-    Detail.Free;
-
-    //FgdcObject.EnableControls;
-  end;
-end;*)
 
 procedure TgdcDataLink.SetDetailField(const Value: String);
 begin
@@ -12746,41 +12665,30 @@ begin
       end;
     end else
     begin
-      { см. http://code.google.com/p/gedemin/issues/detail?id=2867}
-      if (not CachedUpdates) and Assigned(MasterSource)
-        and Assigned(MasterSource.DataSet)
-        and (MasterSource.DataSet.State = dsInsert) then
+      for I := 0 to FDetailLinks.Count - 1 do
       begin
-        MasterSource.DataSet.Post;
-      end;
-
-      {if State = dsInsert then
-      begin}
-        for I := 0 to FDetailLinks.Count - 1 do
+        Det := FDetailLinks[I] as TgdcBase;
+        if (Det.State = dsInsert)
+          and (AnsiCompareText(Det.GetFieldNameComparedToParam(Det.DetailField), Det.GetKeyField(Det.SubType)) = 0)
+          and (Det.Transaction = Self.Transaction)
+          and (AnsiCompareText(Det.MasterField, GetKeyField(SubType)) <> 0) then
         begin
-          Det := FDetailLinks[I] as TgdcBase;
-          if (Det.State = dsInsert)
-            and (AnsiCompareText(Det.GetFieldNameComparedToParam(Det.DetailField), Det.GetKeyField(Det.SubType)) = 0)
-            and (Det.Transaction = Self.Transaction)
-            and (AnsiCompareText(Det.MasterField, GetKeyField(SubType)) <> 0) then
+          F := FindField(Det.MasterField);
+          if F <> nil then
           begin
-            F := FindField(Det.MasterField);
-            if F <> nil then
-            begin
-              FIgnoreDataSet.Add(Det);
-              try
-                F.Clear;
-                inherited Post;
-                Edit;
-                F.AsInteger := Det.ID;
-                Det.Post;
-              finally
-                FIgnoreDataSet.Remove(Det);
-              end;
+            FIgnoreDataSet.Add(Det);
+            try
+              F.Clear;
+              inherited Post;
+              Edit;
+              F.AsInteger := Det.ID;
+              Det.Post;
+            finally
+              FIgnoreDataSet.Remove(Det);
             end;
           end;
         end;
-      //end;
+      end;
 
       if (sMultiple in BaseState) and (sDialog in BaseState) then
       begin
