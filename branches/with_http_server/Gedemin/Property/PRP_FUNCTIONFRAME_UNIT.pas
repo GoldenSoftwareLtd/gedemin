@@ -1392,6 +1392,9 @@ var
   S: TStrings;
   Index: Integer;
 begin
+  if Modify then
+    Post;
+
   CurrentWord := UpperCase(Trim(System.Copy(gsFunctionSynEdit.Lines[gsFunctionSynEdit.CaretY - 1],
     gsFunctionSynEdit.WordStart.X, gsFunctionSynEdit.WordEnd.X -
     gsFunctionSynEdit.WordStart.X)));
@@ -1555,7 +1558,7 @@ begin
       begin
         Beep;
         MessageBox(Application.Handle, PChar(MSG_SEACHING_TEXT + SearchText +
-         MSG_NOT_FIND), MSG_WARNING, MB_OK or MB_ICONWARNING or MB_TASKMODAL);
+          MSG_NOT_FIND), MSG_WARNING, MB_OK or MB_ICONWARNING or MB_TASKMODAL);
       end;
     end;
   end;

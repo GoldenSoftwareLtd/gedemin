@@ -69,7 +69,6 @@ type
   protected
     function Get_Self: TObject;
     //Поиск в списке по ключу функции
-//    function IndexOf(const AnFunctionKey: Integer): Integer;
     function FindFunctionWithoutDB(const AnFunctionKey: Integer): TrpCustomFunction;
     function FindFunctionInDB(const AnFunctionKey: Integer): TrpCustomFunction;
     function FindFunction(const AnFunctionKey: Integer): TrpCustomFunction;
@@ -86,7 +85,6 @@ type
 
     procedure Clear;
     procedure Drop;
-//    function IndexOf(F: TrpCustomFunction): Integer;
 
     property Items[Index: Integer]: TrpCustomFunction read Get_Function;
   end;
@@ -100,8 +98,6 @@ const
   strEndObjList = 'EOLS';
 
 type
-//  TFuncParamLang = (fplDelphi, fplJScript, fplVBScript);
-
   // Класс для хранения данных функциию.
   // Предназначен для связи делфовских данных и данных из БД
   TCustomFunctionItem = class
@@ -121,13 +117,11 @@ type
 
     function GetComplexParams(const AnLang: TFuncParamLang;
       const FunctionName: String = ''): String; virtual; abstract;
-//    function GetComplexParams(const AnLang: TFuncParamLang): String; virtual; abstract;
     function GetParams(const AnLang: TFuncParamLang): String; virtual; abstract;
     function GetParamCount: Integer; virtual; abstract;
     function GetObjectName: String; virtual; abstract;
   public
     // Возвращает шаблон пустой функции в зависимости от языка
-//    property ComplexParams[const AnLang: TFuncParamLang]: String read GetComplexParams;
     function ComplexParams(
       const AnLang: TFuncParamLang; const FunctionName: String = ''): String;
     // Возвращает строку параметров с разделителем и типом в зависимости от языка
@@ -137,7 +131,6 @@ type
     property Name: String read FCustomName write SetName;
     // Наименование объекта которому принадлежит функция
     property ObjectName: String read GetObjectName;
-//    property FunctionKey: Integer read FFunctionKey write FFunctionKey default 0;
     property FunctionKey: Integer read FFunctionKey write SetFunctionKey;
     property OldFunctionKey: Integer read FOldFunctionKey write FOldFunctionKey default 0;
     // поле указывает используется скрипт-метод для метода или нет
@@ -1392,13 +1385,6 @@ begin
     LEventOfObject := LEventObject.EventList.Find(cAfterEditEventName);
     // Выполнение события
     ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterEditEventName);
-    
-    {if Assigned(LEventOfObject.OldEvent.Code) then
-    begin
-      LEvent := @LEventOfObject.OldEvent.Code;
-      LEvent^(DataSet);
-    end;
-    }
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -1479,13 +1465,6 @@ begin
     LEventOfObject := LEventObject.EventList.Find(cAfterPostEventName);
     // Выполнение события
     ExecuteEvent(LEventOfObject, LParams, DataSet, cAfterPostEventName);
-    
-    {if Assigned(LEventOfObject.OldEvent.Code) then
-    begin
-      LEvent := @LEventOfObject.OldEvent.Code;
-      LEvent^(DataSet);
-    end;
-    }
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -1602,7 +1581,7 @@ begin
     LEventOfObject := LEventObject.EventList.Find(cBeforeCancelEventName);
     // Выполнение события
     ExecuteEvent(LEventOfObject, LParams, DataSet, cBeforeCancelEventName);
-    
+
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -1834,7 +1813,7 @@ begin
     LEventOfObject := LEventObject.EventList.Find(cBeforeTransactionEndEventName);
     // Выполнение события
     ExecuteEvent(LEventOfObject, LParams, Sender, cBeforeTransactionEndEventName);
-    
+
   end else
     raise Exception.Create(cMsgCantFindObject);
 end;
@@ -8004,8 +7983,8 @@ begin
     fplVBScript:
     begin
       LFB := '';
-      LFE := 'end ' + LFN;
-      OptExplicit := 'option explicit'#13#10;
+      LFE := 'End ' + LFN;
+      OptExplicit := 'Option Explicit'#13#10;
     end;
   end;
 
@@ -8017,7 +7996,7 @@ begin
     case AnLang of
       fplJScript:
       begin
-        InheritedDim := '  InheritedDim = new Array(' + IntToStr(FEventData^.ParamCount - 1) + ');'#13#10;
+        InheritedDim := '  InheritedDim = New Array(' + IntToStr(FEventData^.ParamCount - 1) + ');'#13#10;
 
         InheritedArray := 'Array(' +
           GetEventParamName(0, FEventData^.ParamList);
@@ -8062,10 +8041,6 @@ begin
             begin
               InheritedArray := InheritedArray + ', ' +
                 GetEventParamName(i, FEventData^.ParamList);
-      //        if ParamIsObject(i, FEventData^.ParamList) then
-      //          InheritedParam := InheritedParam + '  set';
-      //        InheritedParam := InheritedParam + '  InheritedDim(' + IntToStr(i) + ') = ' +
-      //          GetEventParamName(i, FEventData^.ParamList)+ #13#10;
             end;
             InheritedArray := InheritedArray + ')';
 
@@ -8077,8 +8052,6 @@ begin
               ', ' + '"' + Name + '", ' + InheritedArray + ')'#13#10 + ReturnParam;
           end;
 
-  //      CallInherited := CallInherited + '  Inherited(' + GetEventParamName(0, FEventData^.ParamList) +
-  //        ', ' + '"' + Name + '", InheritedDim)' ;
         Comment := Format(InheritedComment, ['''', '''', '''']);
         EndComment := Format(InheritedEndComment, ['''']);
       end;
@@ -8210,7 +8183,7 @@ var
   ibsqlUpdate: TIBSQL;
   ibtrUpdate: TIBTransaction;
 begin
-  Assert(Assigned(EventObject), 'Саша! У тебя ошибка!');
+  Assert(Assigned(EventObject));
 
   if not Assigned(EventObject) then
     exit;
@@ -8347,8 +8320,6 @@ procedure TEventList.SetMethod(Index: Integer; const Value: TMethod);
 begin
   Items[Index].OldEvent := Value;
 end;
-
-{ TCustomFunctionItem }
 
 { TCustomFunctionItem }
 

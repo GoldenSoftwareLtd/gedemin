@@ -187,10 +187,10 @@ const
   MSG_REPORT_GROUP = 'Группа отчетов';
   MSG_INVALID_DATA = 'Invalid data';
 
-  MACROS_TEMPLATE = 'sub %s '#13#10'end sub';
-  PARAMFUNCTION_TEMPLATE = 'function %s'#13#10'  dim a(0)'#13#10'  %s = a'#13#10'end function';
-  MAINFUNCTION_TEMPLATE = 'function %s'#13#10'  set %s = BaseQuery'#13#10'end function';
-  EVENTFUNCTION_TEMPLATE = 'function %s(Params, Value, Name)'#13#10'  %s = 1'#13#10'end function';
+  MACROS_TEMPLATE = 'Sub %s '#13#10'End Sub';
+  PARAMFUNCTION_TEMPLATE = 'Function %s'#13#10'  Dim a(0)'#13#10'  %s = a'#13#10'End Function';
+  MAINFUNCTION_TEMPLATE = 'Function %s'#13#10'  Set %s = BaseQuery'#13#10'End Function';
+  EVENTFUNCTION_TEMPLATE = 'Function %s(Params, Value, Name)'#13#10'  %s = 1'#13#10'End Function';
 
   fnHasChildren = 'haschildren';
 

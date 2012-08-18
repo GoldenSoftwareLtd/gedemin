@@ -582,7 +582,7 @@ var
           Result := VarAsType('', varString);
       end;
 
-      varEmpty, varDispatch:
+      varEmpty, varDispatch, varNull:
       begin
         Result := Unassigned;
       end;
@@ -656,7 +656,7 @@ var
         FStream.Write(S[1], LowB);
       end;
 
-      varEmpty, varDispatch:
+      varEmpty, varDispatch, varNull:
       begin
         // Для "No Query" параметров сохраняется только инф. о типе,
         // как о ссылке

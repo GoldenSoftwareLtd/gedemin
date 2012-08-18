@@ -833,12 +833,14 @@ var
   function SelectAnother: Boolean;
   begin
     Result := False;
-    with Tgd_security_dlgDatabases.Create(Self) do
+    with Tgd_security_dlgDatabases.Create(nil) do
     try
       if (ShowModal = mrOk) and (lv.Selected <> nil) then
       begin
         TryLoginDatabase.Connected := False;
         TryLoginDatabase.DatabaseName := lv.Selected.SubItems[0];
+
+        FParams.Values[ServerNameValue] := TryLoginDatabase.DatabaseName;
 
         if gd_CmdLineParams.ServerName = '' then
         begin
@@ -892,7 +894,7 @@ var
   NeedReadDBVersion: Boolean;
 
 begin
-  TryLoginDatabase := TIBDatabase.Create(Self);
+  TryLoginDatabase := TIBDatabase.Create(nil);
 
   try
     SetupTryLoginDatabase;
@@ -1625,12 +1627,15 @@ begin
     end;
 
   B := -1;
-  for I := A + 1 to Length(DatabaseName) do
-    if DatabaseName[I] = ':' then
-    begin
-      B := I;
-      break;
-    end;
+  if A > 0 then
+  begin
+    for I := A + 1 to Length(DatabaseName) do
+      if DatabaseName[I] = ':' then
+      begin
+        B := I;
+        break;
+      end;
+  end;    
 
   if A < 2 then
     Result := ''

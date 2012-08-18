@@ -144,35 +144,35 @@ const
 
 const
   gdcInvCalcAmountMacrosName =
-  'sub %0:s(Sender) '#13#10 +
-  '  if scrPublicVariables.Value("%1:s") <> "1" then '#13#10 +
+  'Sub %0:s(Sender) '#13#10 +
+  '  If scrPublicVariables.Value("%1:s") <> "1" Then '#13#10 +
   '    scrPublicVariables.AddValue "%1:s", "1" '#13#10 +
   '    Sender.DataSet.FieldByName("%2:s").AsVariant = _ '#13#10 +
   '       Sender.AsVariant * Sender.DataSet.FieldByName("QUANTITY").AsVariant '#13#10 +
   '    scrPublicVariables.AddValue "%1:s", "0" '#13#10 +
-  '  end if '#13#10#13#10 +
-  '  dim EventParams(0) '#13#10 +
-  '  set  EventParams(0) = Sender'#13#10 +
-  '  call Inherited(Sender, "OnChange", EventParams)'#13#10#13#10 +
-  'end sub ';
+  '  End If '#13#10#13#10 +
+  '  Dim EventParams(0) '#13#10 +
+  '  Set  EventParams(0) = Sender'#13#10 +
+  '  Call Inherited(Sender, "OnChange", EventParams)'#13#10#13#10 +
+  'End Sub ';
 
   gdcInvCalcPriceMacrosName =
-  'sub %0:s(Sender) '#13#10 +
-  '  if scrPublicVariables.Value("%2:s") <> "1" then '#13#10 +
+  'Sub %0:s(Sender) '#13#10 +
+  '  If scrPublicVariables.Value("%2:s") <> "1" Then '#13#10 +
   '    scrPublicVariables.AddValue "%2:s", "1" '#13#10 +
-  '    if not IsNull(Sender.DataSet.FieldByName("QUANTITY").AsVariant) and _'#13#10 +
-  '       Sender.DataSet.FieldByName("QUANTITY").AsVariant <> 0 then '#13#10 +
+  '    If Not IsNull(Sender.DataSet.FieldByName("QUANTITY").AsVariant) And _'#13#10 +
+  '       Sender.DataSet.FieldByName("QUANTITY").AsVariant <> 0 Then '#13#10 +
   '      Sender.DataSet.FieldByName("%2:s").AsVariant = _ '#13#10 +
   '         Sender.AsVariant / Sender.DataSet.FieldByName("QUANTITY").AsVariant '#13#10 +
-  '    end if '#13#10 +
+  '    End If '#13#10 +
   '    scrPublicVariables.AddValue "%2:s", "0" '#13#10 +
-  '  end if '#13#10#13#10 +
-  '  dim EventParams(0) '#13#10 +
-  '  set  EventParams(0) = Sender'#13#10 +
-  '  call Inherited(Sender, "OnChange", EventParams)'#13#10#13#10#13#10 +
-  'end sub ';
+  '  End If '#13#10#13#10 +
+  '  Dim EventParams(0) '#13#10 +
+  '  Set  EventParams(0) = Sender'#13#10 +
+  '  Call Inherited(Sender, "OnChange", EventParams)'#13#10#13#10#13#10 +
+  'End Sub ';
 
-  gdcInvQuantityOnChangeHeader = 'sub gdcInvDocumentLine%sOnChange(Sender)';
+  gdcInvQuantityOnChangeHeader = 'Sub gdcInvDocumentLine%sOnChange(Sender)';
   gdcInvQuantityOnChangeBodyLine = '  Sender.DataSet.FieldByName("%0:s").AsVariant = Sender.DataSet.FieldByName("%0:s").AsVariant ';
 
 

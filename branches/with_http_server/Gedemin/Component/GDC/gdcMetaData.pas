@@ -304,7 +304,8 @@ type
 
   protected
     procedure CreateRelationSQL(Scripts: TSQLProcessList); override;
-
+    procedure CustomInsert(Buff: Pointer); override;
+    
   public
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
     procedure MakePredefinedRelationFields; override;
@@ -450,10 +451,10 @@ type
 
     function CreateCrossRelationSQL: String;
     function CreateCrossRelationTriggerSQL: String;
-    function CreateCrossRelationPrimarySQL: String;
-    function CreateCrossRelationForeign1SQL: String;
-    function CreateCrossRelationForeign2SQL: String;
-    function CreateDropCrossSimulateField: String;
+    //function CreateCrossRelationPrimarySQL: String;
+    //function CreateCrossRelationForeign1SQL: String;
+    //function CreateCrossRelationForeign2SQL: String;
+    //function CreateDropCrossSimulateField: String;
     function CreateCrossRelationGrantSQL: String;
 
     procedure CreateInvCardTrigger(ResultList: TSQLProcessList;
@@ -526,6 +527,7 @@ type
     procedure _DoOnNewRecord; override;
     procedure DoBeforeInsert; override;
     procedure DoBeforePost; override;
+    procedure CustomInsert(Buff: Pointer); override;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -982,28 +984,21 @@ end;
 
 // ”никальный идентификатор дл€ Interbase-овских имен
 function GetUniqueID(D: TIBDatabase; T: TIBTransaction;
-  GenName: String = 'gd_g_triggercross'): String;
+  const GenName: String = 'GD_G_TRIGGERCROSS'): String;
 var
   ibsqlWork: TIBSQL;
-  DidActivate: Boolean;
 begin
-  DidActivate := not T.InTransaction;
+  Assert(gdcBaseManager <> nil);
   ibsqlWork := TIBSQL.Create(nil);
   try
-    ibsqlWork.Database := D;
-    ibsqlWork.Transaction := T;
-    if DidActivate then T.StartTransaction;
+    ibsqlWork.Transaction := gdcBaseManager.ReadTransaction;
     ibsqlWork.SQL.Text := Format(
       'SELECT GEN_ID(%s, 1) FROM rdb$database', [GenName]
     );
     ibsqlWork.ExecQuery;
     Result := ibsqlWork.Fields[0].AsString;
   finally
-    ibsqlWork.Close;
     ibsqlWork.Free;
-
-    if DidActivate then
-      T.Commit;
   end;
 end;
 
@@ -3839,18 +3834,18 @@ begin
         {если мы загружаем поле из потока, то кросс-таблица уже создана,
          посему создаем только необходимые форейн-кеи и
          удал€ем поле, которое было времмено создано при создании кросс-таблицы}
-          if (not (sLoadFromStream in BaseState)) then
-          begin
+          {if not (sLoadFromStream in BaseState)) then
+          begin  }
             FQuery.Add(CreateCrossRelationSQL);
             FQuery.Add(CreateCrossRelationTriggerSQL);
             FQuery.Add(CreateCrossRelationGrantSQL);
-          end else
+          {end else
           begin
             FQuery.Add(CreateCrossRelationPrimarySQL);
             FQuery.Add(CreateCrossRelationForeign1SQL);
             FQuery.Add(CreateCrossRelationForeign2SQL);
             FQuery.Add(CreateDropCrossSimulateField);
-          end;
+          end;  }
 
           NeedMultiConnection := True;
         end
@@ -3942,7 +3937,7 @@ begin
         end;
       end;
 
-      if (FieldByName('crosstable').AsString <> '') and not (sLoadFromStream in BaseState) then
+      if (FieldByName('crosstable').AsString <> '') {and not (sLoadFromStream in BaseState)} then
       begin
         atDatabase.NotifyMultiConnectionTransaction;
         CrossTableKey := gdcBaseManager.GetNextID;
@@ -4629,6 +4624,7 @@ var
   S1, S2: String;
   ibsql: TIBSQL;
   DidActivate: Boolean;
+  TriggerPos: String;
 begin
   S1 := FieldByName('relationname').AsString;
   S2 := FieldByName('refcrossrelation').AsString;
@@ -4652,40 +4648,42 @@ begin
       ibsql.SQL.Text := 'SELECT rdb$field_type FROM rdb$fields WHERE rdb$field_name = ''' +
         FieldByName('fieldsource').AsString + '''';
       ibsql.ExecQuery;
-      if RecordCount = 0 then
+      if ibsql.RecordCount = 0 then
         raise EgdcIBError.Create('ƒомен ' + FieldByName('fieldsource').AsString +
           ' не найден! ѕопробуйте перезагрузитьс€! ');
 
       if (ibsql.FieldByName('rdb$field_type').AsInteger in [blr_Text, blr_varying])
       then
       begin
+        TriggerPos := System.Copy(FieldByName('crosstable').AsString, Length(CrossTablePrefix) + 1,
+          AnsiPos('_', FieldByName('crosstable').AsString) - (1 + Length(CrossTablePrefix)));
         Result := Format
         (
           'CREATE TRIGGER %11:s FOR %0:s' + #13#10 +
           '  BEFORE UPDATE ' + #13#10 +
           '  POSITION %1:s ' + #13#10 +
           'AS ' + #13#10 +
-          '  DECLARE VARIABLE attr VARCHAR(60); ' + #13#10 +
-          '  DECLARE VARIABLE text VARCHAR(254); ' + #13#10 +
+          '  DECLARE VARIABLE attr VARCHAR(8192); ' + #13#10 +
+          '  DECLARE VARIABLE text VARCHAR(8192) = ''''; ' + #13#10 +
           'BEGIN '+ #13#10 +
-          '  text = ''''; ' + #13#10 +
           '  FOR '+ #13#10 +
           '    SELECT L.%10:s ' + #13#10 +
           '      FROM ' + #13#10 +
           '        %2:s C JOIN %3:s L ON C.%5:s = L.%6:s ' + #13#10 +
-          '      WHERE C.%4:s = NEW.%9:s ' + #13#10 +
+          '      WHERE C.%4:s = NEW.%9:s AND L.%10:s > '''' ' + #13#10 +
           '      INTO :attr ' + #13#10 +
           '  DO ' + #13#10 +
           '  BEGIN ' + #13#10 +
-          '    IF ((:text <> '''') AND (g_s_length(:text) < 254)) THEN ' + #13#10 +
-          '      text = :text || '' ''; ' + #13#10 +
-          '    text = :text || g_s_copy(:attr, 1, 254 - g_s_length(:text)); ' + #13#10 +
+          '    IF (CHARACTER_LENGTH(:text) > %7:s) THEN ' + #13#10 +
+          '      LEAVE; ' + #13#10 +
+          '    text = :text || SUBSTRING(:attr FROM 1 FOR 254) || '' ''; ' + #13#10 +
           '  END ' + #13#10 +
-          '  NEW.%8:s = g_s_copy(:text, 1, %7:s); ' + #13#10 +
+          '  NEW.%8:s = TRIM(SUBSTRING(:text FROM 1 FOR %7:s)); ' + #13#10 +
           'END',
           [
             FieldByName('relationname').AsString{0},
-            System.Copy(FCrossRelationID, 1, AnsiPos('_', FCrossRelationID) - 1){1},
+            //System.Copy(FCrossRelationID, 1, AnsiPos('_', FCrossRelationID) - 1){1},
+            TriggerPos,
             FieldByName('crosstable').AsString{2},
             FieldByName('refcrossrelation').AsString{3},
             gdcBaseManager.AdjustMetaName(S1 + 'key'){4},
@@ -5501,6 +5499,12 @@ begin
   //„тобы не попали лишние символы типа #13#10
   FieldByName('defsource').AsString := Trim(FieldByName('defsource').AsString);
 
+  //мы не знаем id cross таблицы(дл€ старых настроек)
+  if  (sLoadFromStream in BaseState) and (FieldByName('crosstable').AsString > '') then
+  begin
+    FieldByName('crosstablekey').AsString := ''; 
+  end;
+
   if (not (sMultiple in BaseState)) and (not (sLoadFromStream in BaseState)) then
   begin
     ibsql := CreateReadIBSQL;
@@ -5877,7 +5881,7 @@ begin
     FieldByName('nullflag').AsInteger := 0;
 end;
 
-function TgdcRelationField.CreateCrossRelationForeign1SQL: String;
+{function TgdcRelationField.CreateCrossRelationForeign1SQL: String;
 var
   S1: String;
   FName: String;
@@ -5896,7 +5900,7 @@ begin
      FieldByName('relationname').AsString,
      GetKeyFieldName(FieldByName('relationname').AsString),
      UserPrefix]);
-end;
+end; 
 
 function TgdcRelationField.CreateCrossRelationForeign2SQL: String;
 var
@@ -5957,7 +5961,7 @@ begin
   Result := Format('ALTER TABLE %0:s DROP %1:s ',
     [FieldByName('crosstable').AsString,
      GetSimulateFieldNameByRel(FieldByName('crosstable').AsString)]);
-end;
+end; }
 
 function TgdcRelationField.CreateAccCirculationList(const IsDrop: Boolean = False): String;
 var
@@ -6281,6 +6285,16 @@ begin
   {M}      ClearMacrosStack2('TGDCTABLEFIELD', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
+end;
+
+procedure TgdcTableField.CustomInsert(Buff: Pointer);
+begin
+  //не загружаем пол€ cross таблиц из потока(дл€ старых настроек)
+  if (not (sLoadFromStream in BaseState)) or
+    (StrIPos(CrossTablePrefix, FieldByName('relationname').AsString) <> 1) then
+  begin
+    inherited;
+  end;
 end;
 
 { TgdcViewField }
@@ -10325,6 +10339,15 @@ begin
   begin
     Scripts.Add(CreateUnknownTable);
     Scripts.Add(CreateGrantSQL);
+  end;
+end;
+
+procedure TgdcUnknownTable.CustomInsert(Buff: Pointer);
+begin
+  if (not (sLoadFromStream in BaseState)) or
+    (StrIPos(CrossTablePrefix, FieldByName('relationname').AsString) <> 1) then
+  begin
+    inherited;
   end;
 end;
 

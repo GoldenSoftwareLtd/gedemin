@@ -229,23 +229,29 @@ type
   //  Состояние объекта
   TgdcState = (
     sNone,
-    sView,        // объект подключен к форме
-    sDialog,      // объект подключен к диалоговому окну
+    sView,           // объект подключен к форме
+    sDialog,         // объект подключен к диалоговому окну
     sSubDialog,
     sSyncControls,
-    sLoadFromStream, //идет загрузка с потока
-    sMultiple,     // идет обработка одновременно нескольких записей
-    sFakeLoad,     // считывание данных и потока без записи в базу
-    sPost,          // установлен, если идет Cancel вместо поста
-                   // такое бывает, если запись переведена в режим редактирования
-                   // а потом постится, но при этом в ней ничего не менялось
-    sCopy          // объект в состоянии копирования с другого объекта
+    sLoadFromStream, // идет загрузка из потока
+    sMultiple,       // идет обработка одновременно нескольких записей
+    sFakeLoad,       // считывание данных и потока без записи в базу
+    sPost,           // установлен, если идет Cancel вместо поста
+                     // такое бывает, если запись переведена в режим редактирования
+                     // а потом постится, но при этом в ней ничего не менялось
+    sCopy,           // объект в состоянии копирования данных из другого объекта
+    sSkipMultiple,   // идет обработка нескольких записей и пользователь выбрал пропуск
+                     // проблемных записей. Имеет смысл только в совокупности с
+                     // флагом sMultiple
+    sAskMultiple     // идет обработка нескольких записей и пользователя необходимо
+                     // спросить в случае позникновения проблем. Имеет смысл только
+                     // в совокупности с флагом sMultiple
   );
   TgdcStates = set of TgdcState;
 
   TgdcBase = class;
   CgdcBase = class of TgdcBase;
-
+                    
   //Тип для хранения записи счиьываемой из потока
   TgsStreamRecord = record
     StreamVersion: Integer;
@@ -740,6 +746,7 @@ type
 
     procedure UpdateOldValues(Field: TField);
     procedure CheckDoFieldChange;
+
   protected
     FgdcDataLink: TgdcDataLink;
     FInternalTransaction: TIBTransaction;
@@ -1644,7 +1651,7 @@ type
     property Params;
     property gdcTableInfos: TgdcTableInfos read FgdcTableInfos;
 
-    // Состояние объекта на данный момент
+    // Состояние объекта
     property BaseState: TgdcStates read FBaseState write SetBaseState;
 
     property SelectSQL;
@@ -3228,6 +3235,7 @@ var
   {END MACRO}
   F: TField;
   AFull, AChag, AView: Integer;
+  {MD: TgdcBase;}
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCBASE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  try
@@ -3297,37 +3305,53 @@ begin
   // значений других) должен проверять на этот флаг и выполнять
   // присваивание только если флаг не установлен.
 
-{ TODO : а если у главной таблицы нет дескрипторов, а у присоединенной есть? }
-//  if not (sMultiple in BaseState) then
-//  begin
-    F := FindField('afull');
+  F := FindField('afull');
 
-    if (F <> nil) then
-    begin
-      AFull := F.AsInteger or 1;
-      if AFull <> F.AsInteger then
-        F.AsInteger := AFull;
-    end;
+  if (F <> nil) then
+  begin
+    AFull := F.AsInteger or 1;
+    if AFull <> F.AsInteger then
+      F.AsInteger := AFull;
+  end;
 
-    if (F <> nil) and (FindField('achag') <> nil) then
-    begin
-      AChag := FieldByName('achag').AsInteger or F.AsInteger;
-      if AChag <> FieldByName('achag').AsInteger then
-        FieldByName('achag').AsInteger := AChag;
-    end;
+  if (F <> nil) and (FindField('achag') <> nil) then
+  begin
+    AChag := FieldByName('achag').AsInteger or F.AsInteger;
+    if AChag <> FieldByName('achag').AsInteger then
+      FieldByName('achag').AsInteger := AChag;
+  end;
 
-    if FindField('AChag') <> nil then
-      F := FindField('AChag');
+  if FindField('AChag') <> nil then
+    F := FindField('AChag');
 
-    if (F <> nil) and (FindField('AView') <> nil) then
-    begin
-      AView := FieldByName('AView').AsInteger or F.AsInteger;
-      if AView <> FieldByName('AView').AsInteger then
-        FieldByName('AView').AsInteger := AView;
-    end;
-//  end;
+  if (F <> nil) and (FindField('AView') <> nil) then
+  begin
+    AView := FieldByName('AView').AsInteger or F.AsInteger;
+    if AView <> FieldByName('AView').AsInteger then
+      FieldByName('AView').AsInteger := AView;
+  end;
 
   inherited DoBeforePost;
+
+  { см. http://code.google.com/p/gedemin/issues/detail?id=2867}
+  {if Assigned(MasterSource) and (MasterSource.DataSet is TgdcBase) then
+  begin
+    MD := MasterSource.DataSet as TgdcBase;
+    if (State = dsInsert)
+      and (not CachedUpdates)
+      and (MD.State = dsInsert)
+      and (AnsiCompareText(MasterField, MD.GetKeyField(MD.SubType)) <> 0)
+      and (Transaction = MD.Transaction)
+      and (MD.FIgnoreDataSet.IndexOf(Self) = -1) then
+    begin
+      MD.FIgnoreDataSet.Add(Self);
+      try
+        MD.Post;
+      finally
+        MD.FIgnoreDataSet.Remove(Self);
+      end;
+    end;
+  end;}
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
@@ -7051,6 +7075,15 @@ begin
           Obj := CgdcBase(C).CreateWithID(Owner, Database, Transaction,
             ID, CFull.SubType);
           try
+            if sMultiple in Self.BaseState then
+            begin
+              Obj.BaseState := Obj.BaseState + [sMultiple];
+              if sAskMultiple in Self.BaseState then
+                Obj.BaseState := Obj.BaseState + [sAskMultiple];
+              if sSkipMultiple in Self.BaseState then
+                Obj.BaseState := Obj.BaseState + [sSkipMultiple];
+            end;
+
             Obj.Open;
             if Obj.RecordCount = 0 then
             begin
@@ -7070,7 +7103,22 @@ begin
                 Abort;
               end;
             end;
+
             Obj.Delete;
+
+            if sMultiple in Self.BaseState then
+            begin
+              if sAskMultiple in Obj.BaseState then
+                Include(FBaseState, sAskMultiple)
+              else
+                Exclude(FBaseState, sAskMultiple);
+
+              if sSkipMultiple in Obj.BaseState then
+                Include(FBaseState, sSkipMultiple)
+              else
+                Exclude(FBaseState, sSkipMultiple);
+            end;
+            
             break;
           finally
             Obj.Free;
@@ -8540,7 +8588,6 @@ var
   //Лист для таблиц, участвующих в запросе
   LT: TStrings;
   TreeDependentNames: TLBRBTreeMetaNames;
-  BaseBITriggerName: String;
   BaseTableTriggersName: TBaseTableTriggersName;
 begin
   CheckBrowseMode;
@@ -8936,8 +8983,7 @@ begin
               GetLBRBTreeDependentNames(Self.FieldByName('relationname').AsString, ReadTransaction, TreeDependentNames);
 
             if (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
-             BaseBITriggerName := GetBaseTableBITriggerName(Self.FieldByName('relationname').AsString, ReadTransaction);
-
+              GetBaseTableTriggersName(Self.FieldByName('relationname').AsString, ReadTransaction, BaseTableTriggersName, True);
             if (Self is TgdcSimpleTable) or (Self is TgdcTreeTable) then
               GetBaseTableTriggersName(Self.FieldByName('relationname').AsString, ReadTransaction, BaseTableTriggersName);
             //Добавим все ключи по таблицам находящимся в связи 1:1
@@ -9017,25 +9063,15 @@ begin
                            end;  
                         end;
 
-                        if (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
-                        begin
-                          if Obj is TgdcTrigger then
-                          begin
-                            if (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseBITriggerName) = 0) then
-                            begin
-                              ibsql.Next;
-                              Continue;
-                            end;
-                          end;
-                        end;
-
-                        if (Self is TgdcSimpleTable) or (Self is TgdcTreeTable) then
+                        if (Self is TgdcSimpleTable) or (Self is TgdcTreeTable)
+                          or (Self is TgdcPrimeTable) or (Self is TgdcTableToTable) then
                         begin
                           if Obj is TgdcTrigger then
                           begin
                             if (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BITriggerName) = 0)
                               or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BI5TriggerName) = 0)
-                              or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BU5TriggerName) = 0) then
+                              or (AnsiCompareText(Trim(Obj.FieldByName('rdb$trigger_name').AsString), BaseTableTriggersName.BU5TriggerName) = 0)
+                              or (StrIPos(';' + Trim(Obj.FieldByName('rdb$trigger_name').AsString) + ';', ';' + BaseTableTriggersName.CrossTriggerName) <> 0) then
                             begin
                               ibsql.Next;
                               Continue;
@@ -9313,21 +9349,8 @@ begin
   inherited;
 end;
 
-{
-procedure TgdcDataLink.DoOnTimer(Sender: TObject);
-begin
-  if FTimer.Enabled then
-  begin
-    FTimer.Enabled := False;
-    if Assigned(FDetailObject) and FDetailObject.Active then
-      FDetailObject.RefreshParams;
-  end;
-end;
-}
-
 procedure TgdcDataLink.EditingChanged;
 begin
-  //FTimer.Enabled := False;
   if (DataSet <> nil) and (DataSet.State in dsEditModes) then
   begin
     if (FDetailObject <> nil) and (FDetailObject.State in dsEditModes) then
@@ -9335,7 +9358,7 @@ begin
       if (DataSet as TgdcBase).FIgnoreDataSet.IndexOf(FDetailObject) = -1 then
         FDetailObject.Post;
     end;
-  end;  
+  end;
 end;
 
 function TgdcDataLink.GetDetailField: String;
@@ -9350,101 +9373,16 @@ end;
 
 procedure TgdcDataLink.RecordChanged(F: TField);
 begin
-  if ((F = nil) {or (FMasterField.IndexOf(F.FieldName) <> -1)})
-    and Assigned(FDetailObject) and FDetailObject.Active then
+  if (F = nil) and Assigned(FDetailObject) and FDetailObject.Active then
   begin
-    {if (FTimer.Interval = 0)
-      or (not (sView in FDetailObject.BaseState))
-      or (sDialog in FDetailObject.BaseState)
-      or (sLoadFromStream in FDetailObject.BaseState) then
-    begin}
     if DataSet is TgdcBase then
     begin
       if (DataSet as TgdcBase).FIgnoreDataSet.IndexOf(FDetailObject) = -1 then
         FDetailObject.RefreshParams;
     end else
       FDetailObject.RefreshParams;
-    {end else begin
-      FTimer.Enabled := False;
-      FTimer.Enabled := True;
-    end;}
   end;
 end;
-
-(*procedure TgdcDataLink.RefreshParams(const AnyWay: Boolean);
-var
-  Master, Detail: TStringList;
-  I: Integer;
-  ParamsChanged: Boolean;
-
-begin
-  if (DataSet = nil)
-    or (not DataSet.Active)
-    or (FDetailObject = nil)
-    {or (not FgdcObject.Active)} then exit;
-
-  Master := TStringList.Create;
-  Detail := TStringList.Create;
-
-  //FgdcObject.DisableControls;
-  try
-    MakeFieldList(FMasterField, Master);
-    MakeFieldList(FDetailField, Detail);
-
-    ParamsChanged := False;
-
-    if not AnyWay then
-      for I := 0 to Master.Count - 1 do
-        if DataSet.FieldByName(Master[I]).AsString <>
-          FDetailObject.ParamByName(Detail[I]).AsString then
-        begin
-          ParamsChanged := True;
-          Break;
-        end;
-
-    if AnyWay or ParamsChanged then
-    begin
-      FDetailObject.Close;
-
-      //
-      // Присваиваем соответствующее подключение
-      //  и транзакцию
-
-      { TODO :
-тут вопрос. правильнее все эти манипуляции с транзакциями делать
-по присваиванию мастер обжекта а не тут... }
-      {if not Assigned(FgdcObject.Transaction) and (DataSet is TgdcBase) then
-        FgdcObject.Transaction := (DataSet as TgdcBase).Transaction else
-
-      if (DataSet is TgdcBase) and
-        (FgdcObject.Transaction = FgdcObject.FInternalTransaction) then
-      begin
-        FreeAndNil(FgdcObject.FInternalTransaction);
-        FgdcObject.Transaction := (DataSet as TgdcBase).Transaction;
-      end;
-
-      if not Assigned(FgdcObject.Database) and (DataSet is TgdcBase) then
-        FgdcObject.Database := (DataSet as TgdcBase).Database;}
-
-      //
-      // Устанавливаем параметры
-
-      for I := 0 to Master.Count - 1 do
-        if not DataSet.FieldByName(Master[I]).IsNull then
-          FDetailObject.ParamByName(Detail[I]).AsString :=
-              DataSet.FieldByName(Master[I]).AsString
-        else
-          FDetailObject.ParamByName(Detail[I]).Clear;
-
-      FDetailObject.Open;
-    end;
-  finally
-    Master.Free;
-    Detail.Free;
-
-    //FgdcObject.EnableControls;
-  end;
-end;*)
 
 procedure TgdcDataLink.SetDetailField(const Value: String);
 begin
@@ -10559,7 +10497,7 @@ var
         if FK.IsSimpleKey {and (FK.DeleteRule in [udrRestrict, udrNoAction])} then
         begin
           sql.Close;
-          sql.SQL.Text := 'SELECT * FROM ' + FK.Relation.RelationName +
+          sql.SQL.Text := 'SELECT FIRST 1 * FROM ' + FK.Relation.RelationName +
             ' WHERE ' + FK.ConstraintFields[0].FieldName + '=' + FKey;
           sql.ExecQuery;
           if not sql.EOF then
@@ -12727,33 +12665,30 @@ begin
       end;
     end else
     begin
-      {if State = dsInsert then
-      begin}
-        for I := 0 to FDetailLinks.Count - 1 do
+      for I := 0 to FDetailLinks.Count - 1 do
+      begin
+        Det := FDetailLinks[I] as TgdcBase;
+        if (Det.State = dsInsert)
+          and (AnsiCompareText(Det.GetFieldNameComparedToParam(Det.DetailField), Det.GetKeyField(Det.SubType)) = 0)
+          and (Det.Transaction = Self.Transaction)
+          and (AnsiCompareText(Det.MasterField, GetKeyField(SubType)) <> 0) then
         begin
-          Det := FDetailLinks[I] as TgdcBase;
-          if (Det.State = dsInsert)
-            and (AnsiCompareText(Det.GetFieldNameComparedToParam(Det.DetailField), Det.GetKeyField(Det.SubType)) = 0)
-            and (Det.Transaction = Self.Transaction)
-            and (AnsiCompareText(Det.MasterField, GetKeyField(SubType)) <> 0) then
+          F := FindField(Det.MasterField);
+          if F <> nil then
           begin
-            F := FindField(Det.MasterField);
-            if F <> nil then
-            begin
-              FIgnoreDataSet.Add(Det);
-              try
-                F.Clear;
-                inherited Post;
-                Edit;
-                F.AsInteger := Det.ID;
-                Det.Post;
-              finally
-                FIgnoreDataSet.Remove(Det);
-              end;
+            FIgnoreDataSet.Add(Det);
+            try
+              F.Clear;
+              inherited Post;
+              Edit;
+              F.AsInteger := Det.ID;
+              Det.Post;
+            finally
+              FIgnoreDataSet.Remove(Det);
             end;
           end;
         end;
-      //end;
+      end;
 
       if (sMultiple in BaseState) and (sDialog in BaseState) then
       begin
@@ -12934,12 +12869,31 @@ begin
       if (Ex.IBErrorCode = isc_foreign_key) or ((Ex.IBErrorCode = isc_except) and (
         StrIPos('GD_E_FKMANAGER', Ex.Message) > 0)) then
       begin
-        isUse;
+        if sMultiple in BaseState then
+        begin
+          if sAskMultiple in BaseState then
+          begin
+            if MessageBox(ParentHandle,
+              PChar('Запись "' + ObjectName + '" невозможно удалить так как на нее ссылаются другие записи.'#13#10#13#10 +
+              'Пропустить указанную запись и продолжить удаление по списку?'),
+              'Внимание',
+              MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+            begin
+              BaseState := BaseState + [sSkipMultiple];
+            end;
+            BaseState := BaseState - [sAskMultiple];
+          end;
+
+          if not (sSkipMultiple in BaseState) then
+            isUse;
+        end else
+          isUse;
         Abort;
       end else
         raise;
     end;
   end;
+
   DoAfterCustomProcess(Buff, cpDelete);
 end;
 
@@ -17857,6 +17811,7 @@ end;
 function TgdcBase.DeleteMultiple2(BL: OleVariant): Boolean;
 var
   I: Integer;
+  OldState: TgdcStates;
 begin
   Result := False;
 
@@ -17886,23 +17841,36 @@ begin
             'Внимание!',
             MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES) then
     begin
-      {
-      DisableControls;
+      {DisableControls;}
+      OldState := FBaseState;
       try
-      }
+        if VarArrayHighBound(BL, 1) > VarArrayLowBound(BL, 1) then
+        begin
+          Include(FBaseState, sMultiple);
+          Include(FBaseState, sAskMultiple);
+          Exclude(FBaseState, sSkipMultiple);
+        end;
+
         for I := VarArrayHighBound(BL, 1) downto VarArrayLowBound(BL, 1) do
         begin
           if Locate(GetKeyField(SubType), BL[I], []) then
           begin
-            if DeleteRecord then
-              Result := True;
+            try
+              if DeleteRecord then
+                Result := True;
+            except
+              on EAbort do
+              begin
+                if not ((sMultiple in FBaseState) and (sSkipMultiple in FBaseState)) then
+                  raise;
+              end;
+            end;
           end;
         end;
-      {
       finally
-        EnableControls;
+        FBaseState := OldState;
+        {EnableControls;}
       end;
-      }
     end;
   end;
 end;

@@ -209,7 +209,7 @@ procedure SetIBLibraryName(const AName: String);
 
 implementation
 
-uses SysUtils, IB, IBXMLHeader;
+uses SysUtils, IB, IBXMLHeader, Forms;
 
 var
   IBLibrary: THandle;
@@ -419,6 +419,16 @@ end;
 
 function TryIBLoad: Boolean;
 begin
+  if IBLibraryName = '' then
+  begin
+    if FileExists(ExtractFilePath(Application.EXEName) + 'intl\fbintl.dll')
+      and FileExists(ExtractFilePath(Application.EXEName) + 'udf\gudf.dll') then
+    begin
+      IBLibraryName := FBEMB_DLL;
+    end else
+      IBLibraryName := FBASE_DLL;
+  end;
+
   if (IBLibrary <= HINSTANCE_ERROR) then
     LoadIBLibrary;
 
@@ -651,7 +661,6 @@ begin
 end;
 
 initialization
-  IBLibraryName := FBEMB_DLL;  
 
 finalization
   FreeIBLibrary;

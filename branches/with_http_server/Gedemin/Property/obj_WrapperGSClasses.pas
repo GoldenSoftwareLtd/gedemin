@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2002 by Golden Software of Belarus
+  Copyright (c) 2002-2012 by Golden Software of Belarus
 
   Module
 
@@ -3247,7 +3247,9 @@ type
     procedure UpdateActivateError; safecall;
     function  Get_ActivateErrorDescription: WideString; safecall;
     procedure Set_ActivateErrorDescription(const Value: WideString); safecall;
-
+    procedure AddToSetting(FromStorage: WordBool; const BranchName: WideString; 
+                           const ValueName: WideString; const AnObject: IgsGDCBase; 
+                           const BL: IgsBookmarkList); safecall;
   end;
 
   TwrpGdcSettingPos = class(TwrpGDCBase, IgsGdcSettingPos)
@@ -3824,7 +3826,7 @@ uses
   obj_WrapperMessageClasses,
   {$ENDIF}
   gd_i_ScriptFactory, comctrls, contnrs, windows, IBSQL, AdPort, jclStrings,
-  gsStreamHelper, dbclient;
+  gsStreamHelper, dbclient, at_dlgToSetting_unit;
 
 type
   TCrackIBControlAndQueryService = class(TIBControlAndQueryService);
@@ -6697,8 +6699,16 @@ begin
     Result := Result + 'sLoadFromStream ';
   if sMultiple in GetGDCBase.BaseState then
     Result := Result + 'sMultiple ';
+  if sFakeLoad in GetGDCBase.BaseState then
+    Result := Result + 'sFakeLoad ';
+  if sPost in GetGDCBase.BaseState then
+    Result := Result + 'sPost ';
   if sCopy in GetGDCBase.BaseState then
     Result := Result + 'sCopy ';
+  if sSkipMultiple in GetGDCBase.BaseState then
+    Result := Result + 'sSkipMultiple ';
+  if sAskMultiple in GetGDCBase.BaseState then
+    Result := Result + 'sAskMultiple ';
 end;
 
 function TwrpGDCBase.Get_DetailClasses(Index: Integer): WideString;
@@ -15948,6 +15958,13 @@ end;
 procedure TwrpGdcSetting.UpdateActivateError;
 begin
   GetGdcSetting.UpdateActivateError;
+end;
+
+procedure TwrpGdcSetting.AddToSetting(FromStorage: WordBool; const BranchName: WideString; 
+                           const ValueName: WideString; const AnObject: IgsGDCBase; 
+                           const BL: IgsBookmarkList);
+begin
+  at_dlgToSetting_unit.AddToSetting(FromStorage, BranchName, ValueName, InterfaceToObject(AnObject) as TgdcBase, InterfaceToObject(BL) as TBookmarkList);
 end;
 
 { TwrpGdcSettingPos }

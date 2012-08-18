@@ -10,6 +10,8 @@ procedure DeleteMetaDataSimpleTableAtSettingPos(IBDB: TIBDatabase; Log: TModifyL
 procedure DeleteMetaDataTableToTableAtSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DeleteMetaDataTreeTableAtSettingPos(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DeleteBI5Triggers(IBDB: TIBDatabase; Log: TModifyLog);
+procedure DeleteMetaDataSet(IBDB: TIBDatabase; Log: TModifyLog);
+procedure DeleteDomain(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -399,6 +401,154 @@ begin
       end;
     end;
   finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure DeleteMetaDataSet(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  SQL, q: TIBSQL;
+  Tr: TIBTransaction;
+  Deleted: Integer;
+begin
+  Deleted := 0;
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  SQL := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    SQL.Transaction := Tr;
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT f.crosstable ' +
+      'FROM  at_settingpos  t ' +
+      '  JOIN gd_ruid g ON g.xid = t.xid AND g.dbid = t.dbid ' +
+      '  JOIN at_relations r ON r.id = g.id ' +
+      '  JOIN at_relation_fields f ON r.relationname = f.relationname AND TRIM(f.crosstable) > ''''' +
+      'WHERE t.objectclass = ''TgdcTreeTable'' ' +
+      '  OR t.objectclass = ''TgdcPrimeTable'' ' +
+      '  OR t.objectclass = ''TgdcSimpleTable'' ' +
+      '  OR t.objectclass = ''TgdcTableToTable'' ' +
+      '  OR t.objectclass = ''TgdcLBRBTreeTable'' ' +
+      '  AND r.relationname LIKE ''USR$%'' ';
+    SQL.SQL.Text :=
+      'DELETE FROM at_settingpos t ' +
+      'WHERE ' +
+      '  t.objectclass = :oc ' +
+      '  AND t.objectname = :o ';
+
+    try
+      q.ExecQuery;
+
+      while not q.EOF do
+      begin
+        SQL.ParamByName('oc').AsString := 'TgdcTrigger';
+        SQL.ParamByName('o').AsString := 'USR$BI_' + q.FieldByName('crosstable').AsTrimString;
+        SQL.ExecQuery;
+        Deleted := Deleted + SQL.RowsAffected;
+
+        SQL.ParamByName('oc').AsString := 'TgdcUnknownTable';
+        SQL.ParamByName('o').AsString := q.FieldByName('crosstable').AsTrimString;
+        SQL.ExecQuery;
+
+        Deleted := Deleted + SQL.RowsAffected;
+        q.Next;
+      end;
+      q.Close;
+
+      SQL.Close;
+      SQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (154, ''0000.0001.0000.0185'', ''23.05.2012'', ''Delete system metadada of set type from at_settingpos .'') ' +
+        '  MATCHING (id)';
+      SQL.ExecQuery;
+
+      Tr.Commit;
+
+      if Deleted > 0 then
+          Log('Удалено системных объектов типа множество из at_settingpos: ' + IntToStr(Deleted));
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    SQL.Free;
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure DeleteDomain(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  SQL, q: TIBSQL;
+  Tr: TIBTransaction;
+  Deleted: Integer;
+begin
+  Deleted := 0;
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  SQL := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    SQL.Transaction := Tr;
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT g.xid, g.dbid ' +
+      'FROM  at_settingpos  t ' +
+      '  JOIN gd_ruid g on g.xid = t.xid and g.dbid = t.dbid ' +
+      '  JOIN at_fields f on f.id = g.id '+
+      'WHERE t.objectclass = ''TgdcField'' AND f.fieldname not LIKE ''USR$%'' ';
+    SQL.SQL.Text :=
+      'DELETE FROM at_settingpos t ' +
+      'WHERE t.xid = :X ' +
+      '  AND t.dbid = :D ';
+
+    try
+      q.ExecQuery;
+      while not q.eof do
+      begin
+        SQL.Close;
+        SQL.ParamByName('X').AsInteger := q.FieldByName('xid').AsInteger;
+        SQL.ParamByName('D').AsInteger := q.FieldByName('dbid').AsInteger;
+
+        SQL.ExecQuery;
+
+        Deleted := Deleted + SQL.RowsAffected;
+        q.Next;
+      end;
+
+      SQL.Close;
+      SQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (155, ''0000.0001.0000.0186'', ''23.05.2012'', ''Delete system domains from at_settingpos.'') ' +
+        '  MATCHING (id)';
+      SQL.ExecQuery;
+
+      Tr.Commit;
+
+      if Deleted > 0 then
+        Log('Удалено системных доменов из at_settingpos: ' + IntToStr(Deleted));
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    SQL.Free;
     q.Free;
     Tr.Free;
   end;

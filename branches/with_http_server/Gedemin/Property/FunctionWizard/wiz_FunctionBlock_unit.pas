@@ -598,6 +598,7 @@ type
     procedure DoReleaseVars; override;
     function BodyColor: TColor; override;
     function GetBlockSetMember: TBlockSetMember; override;
+    class function NeedRename: Boolean; override;
   public
     class function NamePrefix: string; override;
   end;
@@ -2364,39 +2365,11 @@ begin
 end;
 
 procedure TVisualBlock.SetBlockName(const Value: string);
-
-  function CheckUniqueName_(AName: string): boolean;
-  var
-    I: Integer;
-    N: string;
-  begin
-    Result := True;
-    N := UpperCase(AName);
-    for I := 0 to BlockList.Count - 1 do
-    begin
-      if (UpperCase(TVisualBlock(BlockList[I]).BlockName) = N) and
-        (Self <> BlockList[I]) then
-      begin
-        Result := False;
-        Exit;
-      end;
-    end;
-  end;
 begin
-  if NeedRename and not CheckUniqueName_(Value) then
-  begin
-    Application.MessageBox(
-      'Блок с таким именем уже существует.',
-      'Внимание',
-      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    abort;
-  end else
-  begin
-    FBlockName := Value;
-    {$IFDEF GEDEMIN}
-    AdjustSize;
-    {$ENDIF}
-  end;
+  FBlockName := Value;
+  {$IFDEF GEDEMIN}
+  AdjustSize;
+  {$ENDIF}
 end;
 
 procedure TVisualBlock.SetDescription(const Value: string);
@@ -3350,9 +3323,9 @@ begin
     lS := StringOfChar(' ', Paragraph);
 
     if FReturnResult then
-      S.Add(lS + 'end function')
+      S.Add(lS + 'End Function')
     else
-      S.Add(lS + 'end sub');
+      S.Add(lS + 'End Sub');
 
     DoGenerateExceptFunction(S, Paragraph);
   finally
@@ -3523,10 +3496,10 @@ begin
   begin
     lS := StringOfChar(' ', Paragraph);
     S.Add('''Функция обработки исключения');
-    S.Add(lS + Format('sub Except%s (Transaction)', [FBlockName]));
+    S.Add(lS + Format('Sub Except%s (Transaction)', [FBlockName]));
     S.Add(lS + '  Transaction.Rollback');
-    S.Add(lS + '  GS.Transaction = nothing');
-    S.Add(lS + 'end sub');
+    S.Add(lS + '  GS.Transaction = Nothing');
+    S.Add(lS + 'End Sub');
     S.Add('');
   end;
 end;
@@ -3825,6 +3798,11 @@ end;
 function TCycleBlock.GetBlockSetMember: TBlockSetMember;
 begin
   Result := bsCycle;
+end;
+
+class function TCycleBlock.NeedRename: Boolean;
+begin
+  Result := False;
 end;
 
 { TIfBlock }
@@ -7308,21 +7286,13 @@ procedure TTrEntryFunctionBlock.DoGenerateExceptFunction(S: TStrings;
   Paragraph: Integer);
 var
   ls: string;
-{  BS: TBlockSet;}
 begin
-{  BS := [];
-  GetBlockSet(BS);}
   lS := StringOfChar(' ', Paragraph);
   S.Add('''Функция обработки исключения');
-{  if BS * [bsCycle, bsEntry] <> [] then
-  begin
-    S.Add(lS + Format('sub Except%s (Transaction, gdcEntry)', [FBlockName]));
-    S.Add(lS + ' Transaction.Rollback');
-  end else}
-  S.Add(lS + Format('sub Except%s (gdcEntry)', [FBlockName]));
+  S.Add(lS + Format('Sub Except%s (gdcEntry)', [FBlockName]));
 
-  S.Add(lS + '  if (gdcEntry.State = 2) or (gdcEntry.State = 3) then gdcEntry.Cancel');
-  S.Add(lS + 'end sub');
+  S.Add(lS + '  If (gdcEntry.State = 2) Or (gdcEntry.State = 3) Then gdcEntry.Cancel');
+  S.Add(lS + 'End Sub');
   S.Add('');
 end;
 

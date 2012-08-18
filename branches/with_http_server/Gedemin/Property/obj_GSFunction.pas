@@ -190,8 +190,8 @@ var
 const
   ISNULL = 'IS NULL';
 
-  MSG_INVALID_NAME = 'Аналитика с именем %s не найдена';
-  MSG_INVALID_VALUE = 'Некорректное значение аналитики %s';
+  MSG_INVALID_NAME = 'Аналитика с именем "%s" не найдена.'#13#10'Используйте формат: <Имя_поля_аналитического_признака1>=<Значение1>[;<Имя_поля_аналитического_признака2>=<Значение2>...]';
+  MSG_INVALID_VALUE = 'Некорректное значение аналитики "%s"';
 
 function GetKopWord(Value: Double): String;
 var
@@ -273,9 +273,7 @@ begin
     CAccountKey := GetAccountKey(AccCred);
     with IBSQL do
     begin
-      Transaction := gdcBaseManager.ReadTransaction;
-
-      AnalDebReady :=  GetAnalyticsSQL(AnalyticsDeb, 'ed');
+      AnalDebReady := GetAnalyticsSQL(AnalyticsDeb, 'ed');
       if AnalDebReady > '' then
       begin
         AnalDebReady :=
@@ -307,7 +305,6 @@ begin
         'WHERE ' +
            GetCompCondition('ed.companykey');
 
-
       ParamByName('bdate').AsDate := BDate;
       ParamByName('edate').AsDate := EDate;
 
@@ -315,7 +312,7 @@ begin
 
       while not Eof do
       begin
-        Result := Result +  Fields[0].AsCurrency;
+        Result := Result + Fields[0].AsCurrency;
         Next;
       end;
     end;
@@ -623,7 +620,7 @@ begin
       AN := S.Names[I];
       AV := Trim(S.Values[AN]);
       AN := Trim(AN);
-      Index := FFieldList.IndexOf(Trim(AN));
+      Index := FFieldList.IndexOf(AN);
       if Index > - 1 then
       begin
         F := TatRelationField(FFieldList.Objects[Index]);
@@ -636,8 +633,8 @@ begin
         begin
           if F.ReferencesField <> nil then
           begin
-            //Если поле ссылка то должен быть переда РУИД или Ид
-            if Pos('_', AV) > 0 then
+            //Если поле ссылка то должен быть передан РУИД или Ид
+            if CheckRUID(AV) then
             begin
               try
                 Id := gdcBaseManager.GetIDByRUIDString(AV);
@@ -1871,9 +1868,19 @@ end;
 function TobjGSFunction.GetAccountKey(const Account: String): Integer;
 begin
   if CheckRUID(Account) then
-    Result := gdcBaseManager.GetIdByRUIDString(Account)
-  else
-    Result := AcctUtils.GetAccountKeyByAlias(Account);
+  begin
+    Result := gdcBaseManager.GetIdByRUIDString(Account);
+  end else
+  begin
+    // или передан ИД счета, или его номер в текстовом
+    // представлении. Последний или будет коротким (2-3 символа)
+    // или будет содержать не цифровые символыи
+    if StrToIntDef(Account, -1) > 99999 then
+      Result := StrToInt(Account)
+    else
+      Result := AcctUtils.GetAccountKeyByAlias(Account);
+  end;
+
   if Result = 0 then
     raise Exception.Create(Format(MSG_ACCOUNTINCORRECT, [Account]));
 end;
@@ -2007,16 +2014,6 @@ begin
 end;
 
 { TgsSetTaxFunction }
-
-{procedure TgsSetTaxFunction.SetBPeriod(const ADate: TDate);
-begin
-  FBPeriod := ADate;
-end;
-
-procedure TgsSetTaxFunction.SetEPeriod(const ADate: TDate);
-begin
-  FEPeriod := ADate;
-end;}
 
 procedure TobjGSFunction.FillCalcBalanceDate;
 begin

@@ -1333,8 +1333,18 @@ begin
                       ' (XID = ' +  ibsqlPos.FieldByName('xid').AsString +
                       ', DBID = ' + ibsqlPos.FieldByName('dbid').AsString + ')');
 
-                if Obj.RecordCount > 0 then                         {!!!!!!!!!!!!!!!!!}
-                  Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects)
+                if Obj.RecordCount > 0 then    {!!!!!!!!!!!!!!!!!}
+                begin
+                  if (Obj is TgdcTableField)
+                    and (StrIPos(USERPREFIX, Obj.FieldByName('fieldname').AsString) = 1)
+                    and (Obj.FieldByname('crosstable').AsString > '') then
+                  begin
+                    OS.Add(Obj.FieldByname('crosstablekey').AsInteger, '', '', '');
+                    Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects);
+                    OS.Remove(Obj.FieldByname('crosstablekey').AsInteger);
+                  end else
+                    Obj._SaveToStream(MS, OS, PropertyList, nil, DL, SaveDetailObjects);
+                end
                 else
                 begin
                   // ≈сли работает репликатор, то не будем прерывать сохранение настройки
@@ -1998,8 +2008,7 @@ var
   gdcTrigger: TgdcTrigger;
   gdcFunction: TgdcFunction;
   gdcObject: TgdcBase;
-  LBRBTree: TLBRBTreeMetaNames;
-  BaseBITriggerName: String;
+  LBRBTree: TLBRBTreeMetaNames; 
   BaseTableTriggersName: TBaseTableTriggersName;
 begin
   Assert(HasSubSet('BySetting'));
@@ -2125,16 +2134,14 @@ begin
 
           if (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcPrimeTable') = 0)
             or (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcTableToTable') = 0) then
-            BaseBITriggerName := GetBaseTableBITriggerName(AnObject.FieldByName('relationname').AsString, Transaction)
+            GetBaseTableTriggersName(AnObject.FieldByName('relationname').AsString, Transaction, BaseTableTriggersName, True)
           else
-            BaseBITriggerName := '';
-
-          if (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcSimpleTable') = 0)
-            or (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcTreeTable') = 0) then
-            GetBaseTableTriggersName(AnObject.FieldByName('relationname').AsString, Transaction, BaseTableTriggersName)
-          else
-            InitBaseTableTriggersName(BaseTableTriggersName);
-
+            if (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcSimpleTable') = 0)
+              or (AnsiCompareText(AnObject.GetCurrRecordClass.gdClass.ClassName, 'TgdcTreeTable') = 0) then
+              GetBaseTableTriggersName(AnObject.FieldByName('relationname').AsString, Transaction, BaseTableTriggersName)
+            else
+              InitBaseTableTriggersName(BaseTableTriggersName);
+              
           Post;
         except
           Cancel;
@@ -2253,7 +2260,7 @@ begin
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BUTriggerName) <> 0)
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BI5TriggerName) <> 0)
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, LBRBTree.BU5TriggerName) <> 0)
-                            and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseBITriggerName) <> 0)
+                            and (StrIPos(';' + Obj.FieldByName('triggername').AsString + ';', ';' + BaseTableTriggersName.CrossTriggerName) = 0)
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseTableTriggersName.BITriggerName) <> 0)
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseTableTriggersName.BI5TriggerName) <> 0)
                             and (AnsiCompareText(Obj.FieldByName('triggername').AsString, BaseTableTriggersName.BU5TriggerName) <> 0) then
