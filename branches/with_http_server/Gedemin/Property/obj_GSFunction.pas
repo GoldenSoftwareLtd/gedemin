@@ -1873,7 +1873,7 @@ begin
   if CheckRUID(Account) then
     Result := gdcBaseManager.GetIdByRUIDString(Account)
   else
-    Result := GetAccountKeyByAlias(Account);
+    Result := AcctUtils.GetAccountKeyByAlias(Account);
   if Result = 0 then
     raise Exception.Create(Format(MSG_ACCOUNTINCORRECT, [Account]));
 end;
@@ -2250,7 +2250,7 @@ begin
       LocIncSecond(Number);
     end;
 
-    Result := FormResultDate;
+    Result := FormResultDate;            
   finally
     FreeAndNil(IBSQL);
   end;
