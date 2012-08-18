@@ -28,7 +28,11 @@ interface
 
 uses
   ComObj, Gedemin_TLB, dmDatabase_unit, dmLogin_unit,  obj_Designer,
-  evt_Base, evt_i_Base, ibsql, TypInfo, gd_WebServerControl_unit;
+  evt_Base, evt_i_Base, ibsql, TypInfo
+  {$IFDEF WITH_INDY}
+  , gd_WebServerControl_unit
+  {$ENDIF}
+  ;
 
 type
   TgsGedeminApplication = class(TAutoObject, IGedeminApplication)
@@ -173,7 +177,7 @@ type
     function GetatDatabase: IgsAtDatabase;
     function GetFinallyObject: IFinallyObject;
     function GetWebServerControl: IgdWebServerControl;
-
+    
 //    procedure FreeAllDesignerObject;
 
     function  CmdLine: WideString; safecall;
@@ -488,8 +492,7 @@ begin
   FgdcBaseManager := nil;
   FatDatabase := nil;
   FgdWebServerControl := nil;
-//  IGSFunction := nil;
-
+  //  IGSFunction := nil;
 
   if GedeminApplication = Self then
     GedeminApplication := nil;
@@ -526,8 +529,9 @@ begin
   FGlobalStorage := GetGdcOLEObject(GlobalStorage) as IgsGsGlobalStorage;
   FUserStorage := GetGdcOLEObject(UserStorage) as IgsGsUserStorage;
   FIBLogin := TgsIBLogin.Create;
-
+  {$IFDEF WITH_INDY}
   FgdWebServerControl := GetGdcOLEObject(TgdWebServerControl.GetInstance) as IgdWebServerControl;
+  {$ENDIF}
 end;
 
 {function TgsGedeminApplication.CreateObject(const Owner: IgsObject;
@@ -946,16 +950,6 @@ begin
   Result := Get_Self;
 end;
 
-function TgsGedeminApplication.GetWebServerControl: IgdWebServerControl;
-begin
-  Result := FgdWebServerControl;
-end;
-
-function TgsGedeminApplication.Get_WebServerControl: IgdWebServerControl;
-begin
-  Result := GetWebServerControl;
-end;
-
 procedure TgsGedeminApplication.SetEventHandler(
   const AnComponent: IgsComponent; const EventName,
   FunctionName: WideString);
@@ -1095,6 +1089,16 @@ end;
 function TgsGedeminApplication.GDCClassesCount: Integer;
 begin
   Result := gdcClassList.Count;
+end;
+
+function TgsGedeminApplication.Get_WebServerControl: IgdWebServerControl;
+begin
+  Result := GetWebServerControl;
+end;
+
+function TgsGedeminApplication.GetWebServerControl: IgdWebServerControl;
+begin
+  Result := FgdWebServerControl;
 end;
 
 initialization
