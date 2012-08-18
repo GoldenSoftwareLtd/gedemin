@@ -10772,7 +10772,7 @@ var
   TheField: TField;
   R: TRect;
   I, J, SR: Integer;
-  DrawInfo: TGridDrawInfo;
+  DrawInfo: TGridDrawInfo; 
   A: TgdcAggregate;
   S, V: String;
   bInAggregates: boolean;
@@ -10868,7 +10868,10 @@ begin
                   with DataSource.DataSet as TIBCustomDataSet do begin
                     for J := 0 to Aggregates.Count - 1 do
                       if AnsiCompareText(Aggregates[J].Expression, TheField.FieldName) = 0 then begin
-                        S := FormatFloat('#,###.##', Aggregates[J].Value);
+                        if (Columns[I] as TgsColumn).DisplayFormat > '' then
+                          S := FormatFloat((Columns[I] as TgsColumn).DisplayFormat, Aggregates[J].Value)
+                        else
+                          S := Aggregates[J].Value;
                         bInAggregates:= True;
                         Break;
                       end;
@@ -10909,8 +10912,10 @@ begin
                       Canvas.Font := Self.TableFont;
                       Canvas.Font.Color := clCaptionText;
 
-                      V := FormatFloat('#,###.##', Aggregates[J].Value); 
-
+                      if (Columns[I] as TgsColumn).DisplayFormat > '' then
+                        V := FormatFloat((Columns[I] as TgsColumn).DisplayFormat, Aggregates[J].Value)
+                      else 
+                        V := Aggregates[J].Value;
                       (Columns[I] as TgsColumn).TotalWidth := Canvas.TextWidth(V) + 4;
                       if Canvas.TextWidth(V) > (R.Right - R.Left - 4) then
                         V := '########';

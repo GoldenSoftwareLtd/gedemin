@@ -3,11 +3,11 @@
   Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
-
+                                                           
     at_sql_parser.pas
 
   Abstract
-
+                                                    
     Delphi non-visual component - part of Gedemin project.
     Prepares sql objects - parse the sql-statements.
 
@@ -50,7 +50,7 @@ type
     cUpdate, cSet, cValues, cAs, cCount, cDelete, cFirst, cSkip, cExtract,
     cDay, cHour, cMinute, cMonth, cSecond, cWeakday, cYear, cYearday,
     cNone, cCase, cWhen, cElse, cThen, cEnd, cSubstring,
-    cCoalesce, cIIF, cMatching, cReturning, cRecursive
+    cCoalesce, cIIF, cMatching, cReturning, cRecursive, cNulls, cLast
   );
 
   TClauses = set of TClause;
@@ -90,7 +90,7 @@ const
     'UPDATE', 'SET', 'VALUES', 'AS', 'COUNT', 'DELETE', 'FIRST', 'SKIP',
     'EXTRACT', 'DAY', 'HOUR', 'MINUTE', 'MONTH', 'SECOND', 'WEAKDAY',
     'YEAR', 'YEARDAY', '', 'CASE', 'WHEN', 'ELSE', 'THEN', 'END', 'SUBSTRING',
-    'COALESCE', 'IIF', 'MATCHING', 'RETURNING', 'RECURSIVE'
+    'COALESCE', 'IIF', 'MATCHING', 'RETURNING', 'RECURSIVE', 'NULLS', 'LAST'
   );
 
 
@@ -164,7 +164,7 @@ type
   (
     eoName, eoAlias, eoValue, eoSubName, eoClause, eoSubClause, eoAsc, eoDesc,
     eoUserFunc, eoMath, eoOn, eoBefore, eoCollate, eoUnderCast, eoComplicatedJoin,
-    eoFraction, eoType, eoWhen, eoEnd, eoElse, eoThen, eoCase, eoFor, eoFrom
+    eoFraction, eoType, eoWhen, eoEnd, eoElse, eoThen, eoCase, eoFor, eoFrom, eoNullPos
   );
 
   TElementOptions = set of TElementOption;
@@ -268,6 +268,7 @@ type
     FAlias: String;
     FSubName: String;
     FCollation: String;
+    FNullsPos: String;
     FComment: TStringList;
 
     FDone, FNeeded: TElementOptions;
@@ -1235,7 +1236,6 @@ begin
   Result := AnsiCompareText(Text, ClauseText[cNull]) = 0;
 end;
 
-
 constructor TsqlMath.Create(AParser: TsqlParser);
 begin
   inherited Create(AParser);
@@ -1346,7 +1346,7 @@ begin
   FValue := '';
   FSourceValue := '';
   FSubName := '';
-  FCollation := '';
+  FCollation := ''; 
 
   FDone := [];
   FNeeded := [eoValue];
@@ -1528,7 +1528,7 @@ begin
 
   if eoDesc in FDone then
     sql := sql + ' ' + ClauseText[cDesc];
-   
+       
 end;
 
 procedure TsqlValue.SetValue(const Value: String);
@@ -1586,6 +1586,7 @@ begin
   FAlias := '';
   FSubName := '';
   FCollation := '';
+  FNullsPos := '';
 
   FDone := [];
   FNeeded := [eoName];
@@ -1636,6 +1637,21 @@ begin
             Include(FDone, eoDesc);
           end;
 
+          cNulls:
+          begin
+            Include(FNeeded, eoNullPos);
+          end;
+
+          cFirst, cLast:
+          begin
+            if (eoNullPos in FNeeded) then
+            begin
+              FNullsPos := FToken.Text;
+              Include(FDone, eoNullPos);
+              Exclude(FNeeded, eoNullPos);
+            end;
+          end;          
+          
           else begin
             Break;
           end;
@@ -1794,6 +1810,9 @@ begin
 
   if eoDesc in FDone then
     sql := sql + ' ' + ClauseText[cDesc];
+
+  if eoNullPos in FDone then
+    sql := sql + ' ' + ClauseText[cNulls] + ' ' + FNullsPos;
 end;
 
 procedure TsqlField.SetName(const Value: String);
@@ -1950,6 +1969,14 @@ begin
               FArguments.Add(CurrArg);
               Continue;
             end
+          end;
+
+          cExists:
+          begin
+            CurrArg := TsqlCondition.Create(FParser);
+            FArguments.Add(CurrArg);
+            CurrArg.ParseStatement;
+            Continue;
           end;
 
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
@@ -4385,7 +4412,7 @@ begin
           cOrder, cBy:
           begin
             Include(FDone, Token.Clause);
-          end;
+          end; 
 
           else begin
             Break;
