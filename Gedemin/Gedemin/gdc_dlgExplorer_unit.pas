@@ -33,6 +33,9 @@ type
     rbForm: TRadioButton;
     Bevel4: TBevel;
     edFormClass: TEdit;
+    rbReport: TRadioButton;
+    iblkupReport: TgsIBLookupComboBox;
+    Bevel5: TBevel;
     procedure rbFolderClick(Sender: TObject);
     procedure cbClassesChange(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
@@ -75,6 +78,7 @@ begin
     cbClasses.Enabled := False;
     cbSubTypes.Enabled := False;
     iblkupFunction.Enabled := False;
+    iblkupReport.Enabled := False;
     edFormClass.Enabled := False;
   end
   else if rbClass.Checked then
@@ -83,6 +87,7 @@ begin
     cbClasses.Enabled := True;
     cbSubTypes.Enabled := True;
     iblkupFunction.Enabled := False;
+    iblkupReport.Enabled := False;
     edFormClass.Enabled := False;
   end
   else if rbFunction.Checked then
@@ -91,6 +96,16 @@ begin
     cbClasses.Enabled := False;
     cbSubTypes.Enabled := False;
     iblkupFunction.Enabled := True;
+    iblkupReport.Enabled := False;
+    edFormClass.Enabled := False;
+  end
+  else if rbReport.Checked then
+  begin
+    gdcObject.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;
+    cbClasses.Enabled := False;
+    cbSubTypes.Enabled := False;
+    iblkupFunction.Enabled := False;
+    iblkupReport.Enabled := True;
     edFormClass.Enabled := False;
   end else
   begin
@@ -98,6 +113,7 @@ begin
     cbClasses.Enabled := False;
     cbSubTypes.Enabled := False;
     iblkupFunction.Enabled := False;
+    iblkupReport.Enabled := False;
     edFormClass.Enabled := True;
   end;
 end;
@@ -165,6 +181,14 @@ begin
     gdcObject.FieldByName('classname').AsString := '';
     gdcObject.FieldByName('subtype').AsString := '';
   end
+  else if rbReport.Checked then
+  begin
+    gdcObject.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;
+    gdcObject.FieldByName('cmd').AsString :=
+      gdcBaseManager.GetRUIDStringByID(iblkupReport.CurrentKeyInt);
+    gdcObject.FieldByName('classname').AsString := '';
+    gdcObject.FieldByName('subtype').AsString := '';
+  end
   else if rbClass.Checked then
   begin
     gdcObject.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_class;
@@ -220,6 +244,8 @@ begin
 
   if rbFunction.Checked then
     E := iblkupFunction.CurrentKey > ''
+  else if rbReport.Checked then
+    E := iblkupReport.CurrentKey > ''
   else
     E := True;
 
@@ -270,6 +296,10 @@ begin
   begin
     rbFunction.Checked := True;
     iblkupFunction.CurrentKeyInt := gdcBaseManager.GetIDByRUIDString(gdcObject.FieldByName('cmd').AsString);
+  end else if gdcObject.FieldByName('cmdtype').AsInteger = cst_expl_cmdtype_report then
+  begin
+    rbReport.Checked := True;
+    iblkupReport.CurrentKeyInt := gdcBaseManager.GetIDByRUIDString(gdcObject.FieldByName('cmd').AsString);
   end else if gdcObject.FieldByName('classname').AsString > '' then
   begin
     PC := GetClass(gdcObject.FieldByName('classname').AsString);

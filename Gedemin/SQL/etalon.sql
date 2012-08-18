@@ -1291,6 +1291,23 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (151, '0000.0001.0000.0182', '16.04.2012', 'Delete system metadada of tree tables from at_settingpos.');
 
+INSERT INTO fin_versioninfo
+  VALUES (152, '0000.0001.0000.0183', '20.04.2012', 'Contractorkey field added to the bn_statementline table.');
+
+INSERT INTO fin_versioninfo
+  VALUES (153, '0000.0001.0000.0184', '25.04.2012', 'Delete BI5, BU5 triggers.');
+
+INSERT INTO fin_versioninfo
+  VALUES (154, '0000.0001.0000.0185', '23.05.2012', 'Delete system metadada of set type from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (155, '0000.0001.0000.0186', '23.05.2012', 'Delete system domains from at_settingpos.');
+
+INSERT INTO fin_versioninfo
+  VALUES (156, '0000.0001.0000.0187', '31.05.2012', 'Correct gd_ai_goodgroup_protect trigger.');
+
+INSERT INTO fin_versioninfo
+  VALUES (157, '0000.0001.0000.0188', '18.07.2012', 'Correct ac_companyaccount triggers.');
 
 COMMIT;
 
@@ -8219,7 +8236,7 @@ AS
 BEGIN
   IF (UPPER(NEW.name) IN ('ТАРА', 'СТЕКЛОПОСУДА', 'ДРАГМЕТАЛЛЫ')) THEN
   BEGIN
-    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE UPPER(name) = UPPER(NEW.name))) THEN
+    IF (EXISTS (SELECT * FROM gd_goodgroup WHERE id <> NEW.id AND UPPER(name) = UPPER(NEW.name))) THEN
       EXCEPTION gd_e_cannotchange_goodgroup  'Нельзя повторно создать группу ' || NEW.Name;
   END
 END
@@ -9197,59 +9214,34 @@ END
  *  другие счета автоматически делаем не активными.
  */
 
-CREATE TRIGGER ac_bi_companyaccount FOR ac_companyaccount
-  BEFORE INSERT
+CREATE OR ALTER TRIGGER ac_bi_companyaccount FOR ac_companyaccount
+  BEFORE INSERT OR UPDATE
   POSITION 0
 AS
+  DECLARE VARIABLE ActiveID INTEGER = NULL;
 BEGIN
-  IF (NEW.isactive = 1) THEN
-  BEGIN
-    UPDATE ac_companyaccount
-    SET isactive = 0
-    WHERE companykey = NEW.companykey;
-  END ELSE
-  BEGIN
-    IF ((NEW.isactive IS NULL) OR (NEW.isactive = 0)) THEN
-    BEGIN
-      IF (NOT (EXISTS (SELECT * FROM ac_companyaccount
-        WHERE companykey=NEW.companykey AND isactive=1))) THEN
-      BEGIN
-        NEW.isactive = 1;
-      END
-    END
-  END
+  SELECT FIRST 1 accountkey FROM ac_companyaccount
+    WHERE companykey = NEW.companykey AND isactive = 1
+    INTO :ActiveID;
+
+  IF (:ActiveID IS NULL) THEN
+    NEW.isactive = 1;
+  ELSE
+    IF ((:ActiveID <> NEW.accountkey) AND (NEW.isactive = 1)) THEN
+      UPDATE ac_companyaccount SET isactive = 0
+      WHERE companykey = NEW.companykey AND accountkey = :ActiveID;
 END
 ^
 
-/*
- *
- *  Если изменился активный план счетов
- *  другие счета автоматически делаем не активными.
- */
-
-CREATE TRIGGER ac_bu_companyaccount FOR ac_companyaccount
-  BEFORE UPDATE
+CREATE OR ALTER TRIGGER ac_ad_companyaccount FOR ac_companyaccount
+  AFTER DELETE
   POSITION 0
 AS
 BEGIN
-  IF (NEW.isactive = 1) THEN
-  BEGIN
-    UPDATE ac_companyaccount
-    SET isactive = 0
-    WHERE companykey = NEW.companykey
-      AND accountkey <> NEW.accountkey;
-  END ELSE
-  BEGIN
-    IF ((NEW.isactive IS NULL) OR (NEW.isactive = 0)) THEN
-    BEGIN
-      IF (NOT (EXISTS (SELECT * FROM ac_companyaccount
-        WHERE companykey=NEW.companykey AND isactive=1
-        AND accountkey <> NEW.accountkey))) THEN
-      BEGIN
-        NEW.isactive = 1;
-      END
-    END
-  END
+  IF (OLD.isactive = 1) THEN
+    UPDATE ac_companyaccount SET isactive = 1
+    WHERE companykey = OLD.companykey AND accountkey <> OLD.accountkey
+    ROWS 1;
 END
 ^
 

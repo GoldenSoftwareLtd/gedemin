@@ -7290,17 +7290,20 @@ begin
     end;
   end else
   begin
-    for I := 0 to Columns.Count - 1 do
+    if FTitlesExpanding then
     begin
-      if Columns[I].Visible then
+      for I := 0 to Columns.Count - 1 do
       begin
-        TR := Rect(0, 0, Columns[I].Width - 4, 0);
-        Canvas.Font := TitleFont;
-        DrawText(Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
-          DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
-        temp := (TR.Bottom - TR.Top) div GetDefaultTitleRowHeight + 1;
-        if temp > Result then
-          Result := temp; 
+        if Columns[I].Visible then
+        begin
+          TR := Rect(0, 0, Columns[I].Width - 4, 0);
+          Canvas.Font := TitleFont;
+          DrawText(Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
+            DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
+          temp := (TR.Bottom - TR.Top) div GetDefaultTitleRowHeight + 1;
+          if temp > Result then
+            Result := temp;
+        end;
       end;
     end;
   end;

@@ -47,7 +47,7 @@ uses
   mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument, mdf_Delete_BITrigger_AtSettingPos;
 
 const
-  cProcCount = 170;
+  cProcCount = 174;
 
 type
   TModifyProc = record
@@ -324,7 +324,11 @@ const
     (ModifyProc: DeleteMetaDataTableToTableAtSettingPos; ModifyVersion: '0000.0001.0000.0180'),
     (ModifyProc: DeleteMetaDataTreeTableAtSettingPos; ModifyVersion: '0000.0001.0000.0181'),
     (ModifyProc: AddContractorKeyToBNStatementLine; ModifyVersion: '0000.0001.0000.0182'),
-    (ModifyProc: DeleteBI5Triggers; ModifyVersion: '0000.0001.0000.0183')
+    (ModifyProc: DeleteBI5Triggers; ModifyVersion: '0000.0001.0000.0183'),
+    (ModifyProc: DeleteMetaDataSet; ModifyVersion: '0000.0001.0000.0184'),
+    (ModifyProc: DeleteDomain; ModifyVersion: '0000.0001.0000.0185'),
+    (ModifyProc: Correct_gd_ai_goodgroup_protect; ModifyVersion: '0000.0001.0000.0186'),
+    (ModifyProc: Correct_ac_companyaccount_triggers; ModifyVersion: '0000.0001.0000.0187')
   );
 
 implementation

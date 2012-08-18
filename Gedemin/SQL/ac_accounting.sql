@@ -530,59 +530,34 @@ END
  *  другие счета автоматически делаем не активными.
  */
 
-CREATE TRIGGER ac_bi_companyaccount FOR ac_companyaccount
-  BEFORE INSERT
+CREATE OR ALTER TRIGGER ac_bi_companyaccount FOR ac_companyaccount
+  BEFORE INSERT OR UPDATE
   POSITION 0
 AS
+  DECLARE VARIABLE ActiveID INTEGER = NULL;
 BEGIN
-  IF (NEW.isactive = 1) THEN
-  BEGIN
-    UPDATE ac_companyaccount
-    SET isactive = 0
-    WHERE companykey = NEW.companykey;
-  END ELSE
-  BEGIN
-    IF ((NEW.isactive IS NULL) OR (NEW.isactive = 0)) THEN
-    BEGIN
-      IF (NOT (EXISTS (SELECT * FROM ac_companyaccount
-        WHERE companykey=NEW.companykey AND isactive=1))) THEN
-      BEGIN
-        NEW.isactive = 1;
-      END
-    END
-  END
+  SELECT FIRST 1 accountkey FROM ac_companyaccount
+    WHERE companykey = NEW.companykey AND isactive = 1
+    INTO :ActiveID;
+
+  IF (:ActiveID IS NULL) THEN
+    NEW.isactive = 1;
+  ELSE
+    IF ((:ActiveID <> NEW.accountkey) AND (NEW.isactive = 1)) THEN
+      UPDATE ac_companyaccount SET isactive = 0
+      WHERE companykey = NEW.companykey AND accountkey = :ActiveID;
 END
 ^
 
-/*
- *
- *  Если изменился активный план счетов
- *  другие счета автоматически делаем не активными.
- */
-
-CREATE TRIGGER ac_bu_companyaccount FOR ac_companyaccount
-  BEFORE UPDATE
+CREATE OR ALTER TRIGGER ac_ad_companyaccount FOR ac_companyaccount
+  AFTER DELETE
   POSITION 0
 AS
 BEGIN
-  IF (NEW.isactive = 1) THEN
-  BEGIN
-    UPDATE ac_companyaccount
-    SET isactive = 0
-    WHERE companykey = NEW.companykey
-      AND accountkey <> NEW.accountkey;
-  END ELSE
-  BEGIN
-    IF ((NEW.isactive IS NULL) OR (NEW.isactive = 0)) THEN
-    BEGIN
-      IF (NOT (EXISTS (SELECT * FROM ac_companyaccount
-        WHERE companykey=NEW.companykey AND isactive=1
-        AND accountkey <> NEW.accountkey))) THEN
-      BEGIN
-        NEW.isactive = 1;
-      END
-    END
-  END
+  IF (OLD.isactive = 1) THEN
+    UPDATE ac_companyaccount SET isactive = 1
+    WHERE companykey = OLD.companykey AND accountkey <> OLD.accountkey
+    ROWS 1;
 END
 ^
 

@@ -54,6 +54,7 @@ type
   public
     procedure LoadSettings; override;
     procedure SaveSettings; override;
+    procedure BuildAcctReport; override;
   end;
 
 var
@@ -178,6 +179,19 @@ begin
   {END MACRO}
 end;
 
+procedure Tgdv_frmGeneralLedger.BuildAcctReport;
+begin
+  if (not ibdsMain.MakeEmpty)
+    and ((FAccountIDs = nil) or (FAccountIDs.Count = 0)) then
+  begin
+    MessageBox(Handle,
+      'Выберите счет',
+      'Внимание',
+      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+  end else
+    inherited; 
+end;
+
 procedure Tgdv_frmGeneralLedger.UpdateControls;
 var
   SQL: TIBSQL;
@@ -215,7 +229,7 @@ begin
 //            ' WHERE a1.lb >= %d AND a1.rb <= %d ', [gdcAcctChart.FieldByName('lb').AsInteger, gdcAcctChart.FieldByName('rb').AsInteger]);
 //          else
             ' WHERE a1.id = %d ', [gdcAcctChart.FieldByName('id').AsInteger]);
-        end;
+        end;                
 
         SQL.ExecQuery;
         while not SQl.Eof do

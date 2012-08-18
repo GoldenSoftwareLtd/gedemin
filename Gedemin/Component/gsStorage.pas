@@ -574,6 +574,7 @@ type
   TgsGlobalStorage = class(TgsIBStorage);
 
   EgsStorageError = class(Exception);
+  EgsStorageTypeCastError = class(EgsStorageError);
   EgsStorageFolderError = class(EgsStorageError);
 
   //см. комментарии к TgdcDragObject
@@ -3603,32 +3604,32 @@ end;
 
 function TgsStorageValue.GetAsBoolean: Boolean;
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 function TgsStorageValue.GetAsInteger: Integer;
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 function TgsStorageValue.GetAsCurrency: Currency;
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 function TgsStorageValue.GetAsDateTime: TDateTime;
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 procedure TgsStorageValue.SetAsCurrency(const Value: Currency);
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 function TgsStorageValue.GetAsString: String;
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 procedure TgsStorageValue.LoadFromStream;
@@ -3682,22 +3683,22 @@ end;
 
 procedure TgsStorageValue.SetAsBoolean(const Value: Boolean);
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 procedure TgsStorageValue.SetAsDateTime(const Value: TDateTime);
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 procedure TgsStorageValue.SetAsInteger(const Value: Integer);
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 procedure TgsStorageValue.SetAsString(const Value: String);
 begin
-  raise EgsStorageError.Create('Invalid typecast');
+  raise EgsStorageTypeCastError.Create('Invalid typecast');
 end;
 
 function TgsStorageValue.Find(AList: TStringList; const ASearchString: String;

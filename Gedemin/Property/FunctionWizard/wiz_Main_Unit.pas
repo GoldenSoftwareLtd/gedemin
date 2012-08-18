@@ -352,6 +352,7 @@ type
     procedure _OnBlockSelect(Sender: TObject);
     procedure _OnBlockUnSelect(Sender: TObject);
     procedure CheckLink;
+    procedure SetMainFunctionName(const Value: String);
 
   protected
     procedure Notification(AComponent: TComponent;
@@ -366,7 +367,7 @@ type
 
     procedure CreateNewFunction(FunctionCreater: TCustomNewFunctionCreater);overload;
     property Script: string read GetScript;
-    property MainFunctionName: string read GetMainFunctionName;
+    property MainFunctionName: string read GetMainFunctionName write SetmainFunctionName;
     property Params: TwizParamList read GetParams;
     property FunctionRUID: string write SetFunctionRUID;
   end;
@@ -618,6 +619,12 @@ begin
   Result := '';
   if MainFunction <> nil then
     Result := MainFunction.BlockName;
+end;
+
+procedure TdlgFunctionWisard.SetMainFunctionName(const Value: String);
+begin
+  if MainFunction <> nil then
+    MainFunction.BlockName := Value;
 end;
 
 

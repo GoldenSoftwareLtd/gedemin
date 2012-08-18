@@ -50,7 +50,8 @@ type
     cUpdate, cSet, cValues, cAs, cCount, cDelete, cFirst, cSkip, cExtract,
     cDay, cHour, cMinute, cMonth, cSecond, cWeakday, cYear, cYearday,
     cNone, cCase, cWhen, cElse, cThen, cEnd, cSubstring,
-    cCoalesce, cIIF, cMatching, cReturning, cRecursive, cNulls, cLast
+    cCoalesce, cIIF, cMatching, cReturning, cRecursive, cNulls, cLast,
+    cTrim, cLeading, cTrailing, cBoth
   );
 
   TClauses = set of TClause;
@@ -90,7 +91,8 @@ const
     'UPDATE', 'SET', 'VALUES', 'AS', 'COUNT', 'DELETE', 'FIRST', 'SKIP',
     'EXTRACT', 'DAY', 'HOUR', 'MINUTE', 'MONTH', 'SECOND', 'WEAKDAY',
     'YEAR', 'YEARDAY', '', 'CASE', 'WHEN', 'ELSE', 'THEN', 'END', 'SUBSTRING',
-    'COALESCE', 'IIF', 'MATCHING', 'RETURNING', 'RECURSIVE', 'NULLS', 'LAST'
+    'COALESCE', 'IIF', 'MATCHING', 'RETURNING', 'RECURSIVE', 'NULLS', 'LAST',
+    'TRIM', 'LEADING', 'TRAILING', 'BOTH'
   );
 
 
@@ -1979,8 +1981,17 @@ begin
             Continue;
           end;
 
+          cLeading, cTrailing, cBoth:
+          begin
+            if FFuncClause.Include(cTrim) then
+            begin
+              FFuncClause.Add(Token.Clause);
+            end else
+              Break;
+          end;
+
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
-          cCount, cGen_id, cFirst, cSkip:
+          cCount, cGen_id, cFirst, cSkip, cTrim:
           begin
             if BracketCount > 0 then
             begin
@@ -2241,6 +2252,21 @@ begin
               FArguments.Add(CurrArg);
               ReadNext;
               Break;
+            end else
+            if FFuncClause.Include(cTrim) and (BracketCount > 0) then
+            begin
+              while Token.SymbolClause <> scBracketClose do
+              begin
+                if (Token.TokenType <> ttSpace) then
+                begin
+                  CurrArg := TsqlValue.Create(FParser, True);
+                  (CurrArg as TsqlValue).Value := Token.Text;
+                  FArguments.Add(CurrArg);
+                end;
+
+                ReadNext;
+              end;
+              Continue;
             end
             else
             begin
@@ -2278,6 +2304,22 @@ begin
                 FSubName := Token.Text;
                 Exclude(FNeeded, eoSubName);
                 Include(FDone, eoSubName);
+              end else
+
+              if FFuncClause.Include(cTrim) and (BracketCount > 0) then
+              begin
+                while Token.SymbolClause <> scBracketClose do
+                begin
+                  if (Token.TokenType <> ttSpace) then
+                  begin
+                    CurrArg := TsqlValue.Create(FParser, True);
+                    (CurrArg as TsqlValue).Value := Token.Text;
+                    FArguments.Add(CurrArg);
+                  end;
+
+                  ReadNext;
+                end;
+                Continue;
               end else
 
               if not (eoAlias in FDone) and (BracketCount = 0) then
@@ -2422,12 +2464,13 @@ begin
   if (FFuncClause.Count = 0) and not (eoUserFunc in FDone) then
     sql := sql + '(';
 
-  if FFuncClause.Include(cExtract) then
-   AddSt := ' '
+  if FFuncClause.Include(cExtract) or FFuncClause.Include(cTrim) then
+    AddSt := ' '
   else
-   AddSt := ', ';
+    AddSt := ', ';
 
   ArgSt := '';
+
   for I := 0 to FArguments.Count - 1 do
   begin
     (FArguments[I] as TsqlStatement).BuildStatement(subsql);
@@ -2547,7 +2590,7 @@ begin
       begin
         case Token.Clause of
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
-          cCast, cCount, cFirst, cSkip, cExtract, cSubString:
+          cCast, cCount, cFirst, cSkip, cExtract, cSubString, cTrim:
           begin
             CurrStatement := TsqlFunction.Create(FParser, True);
             FExprs.Add(CurrStatement);
@@ -2774,7 +2817,7 @@ begin
       begin
         case Token.Clause of
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
-          cCast, cCase, cCount, cFirst, cSkip, cExtract, cGen_ID, cSubString:
+          cCast, cCase, cCount, cFirst, cSkip, cExtract, cGen_ID, cSubString, cTrim:
           begin
             CurrStatement := TsqlFunction.Create(FParser, False);
             FFields.Add(CurrStatement);
@@ -6883,7 +6926,7 @@ begin
         case Token.Clause of
 
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
-          cCast, cCount, cFirst, cSkip, cExtract, cSubString:
+          cCast, cCount, cFirst, cSkip, cExtract, cSubString, cTrim:
           begin
             if FInternalStatement <> nil then
               raise Exception.Create('Ошибка в Cast-выражении!');
@@ -7235,7 +7278,7 @@ begin
           end;
 
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
-          cCast, cCount, cFirst, cSkip, cExtract, cSubString:
+          cCast, cCount, cFirst, cSkip, cExtract, cSubString, cTrim:
           begin
             //Если это конструкция на else
             if eoElse in FDone then
@@ -7725,23 +7768,38 @@ begin
       begin
         case Token.Clause of
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
-          cCast, cCount, cFirst, cSkip, cExtract, cSubString:
+          cCast, cCount, cFirst, cSkip, cExtract, cSubString, cTrim:
           begin
-            if FInternalStatement <> nil then
-              raise Exception.Create('Ошибка в Cast-выражении!');
+            // FInternalStatement <> nil then
+             //raise Exception.Create('Ошибка в Cast-выражении!');
             FInternalStatement := TsqlFunction.Create(FParser, True);
             FInternalStatement.ParseStatement;
+            if (eoFrom in FDone) and (eoFor in FDone) then
+            begin
+              if Assigned(FFor) then
+                FFor.Free;
+              FFor := FInternalStatement;
+            end else
+              Include(FDone, eoUserFunc);
             Include(FDone, eoValue);
+            Include(FDone, eoUserFunc);
             Exclude(FNeeded, eoValue);
             Continue;
           end;
 
           cCase:
           begin
-            if FInternalStatement <> nil then
-              raise Exception.Create('Ошибка в Cast-выражении!');
+           // if FInternalStatement <> nil then
+             // raise Exception.Create('Ошибка в Cast-выражении!');
             FInternalStatement := TsqlCase.Create(FParser);
             FInternalStatement.ParseStatement;
+            if (eoFrom in FDone) and (eoFor in FDone) then
+            begin
+              if Assigned(FFor) then
+                FFor.Free;
+              FFor := FInternalStatement;
+            end else
+              Include(FDone, eoUserFunc);
             Include(FDone, eoValue);
             Exclude(FNeeded, eoValue);
             Continue;
@@ -7762,6 +7820,13 @@ begin
             begin
               FInternalStatement := TsqlValue.Create(FParser, True);
               FInternalStatement.ParseStatement;
+              if (eoFrom in FDone) and (eoFor in FDone) then
+              begin
+              if Assigned(FFor) then
+                FFor.Free;
+              FFor := FInternalStatement;
+              end else
+                Include(FDone, eoUserFunc);
               Include(FDone, eoValue);
               Exclude(FNeeded, eoValue);
               Continue;
@@ -7777,6 +7842,13 @@ begin
               Include(FDone, eoFor);
               Exclude(FNeeded, eoFor);
               Include(FNeeded, eoValue);
+              if eoUserFunc in FDone then
+              begin
+                if Assigned(FValue) then
+                  FFrom.Free;
+                FFrom := FInternalStatement;
+                Exclude(FDone, eoUserFunc);
+              end;
               ReadNext;
               Continue;
             end
@@ -7790,6 +7862,13 @@ begin
               Include(FDone, eoFrom);
               Exclude(FNeeded, eoFrom);
               Include(FNeeded, eoValue);
+              if eoUserFunc in FDone then
+              begin
+                if Assigned(FValue) then
+                  FValue.Free;
+                FValue := FInternalStatement;
+                Exclude(FDone, eoUserFunc);
+              end;
               ReadNext;
               Continue;
             end
@@ -7920,20 +7999,32 @@ begin
             Exclude(FNeeded, eoValue);
             if (eoFrom in FNeeded) then
             begin
-              if Assigned(FValue) then
+              if Assigned(FValue)
+                and ((FInternalStatement as TsqlExpr).FExprs.IndexOf(FValue) = -1) then
+              begin
                 FValue.Free;
+              end;
+
               FValue := FInternalStatement
             end
             else if (eoFor in FNeeded) then
             begin
-              if Assigned(FFrom) then
+              if Assigned(FFrom)
+                and ((FInternalStatement as TsqlExpr).FExprs.IndexOf(FFrom) = -1) then
+              begin
                 FFrom.Free;
+              end;
+
               FFrom := FInternalStatement
             end
             else
             begin
-              if Assigned(FFor) then
+              if Assigned(FFor)
+                and ((FInternalStatement as TsqlExpr).FExprs.IndexOf(FFor) = -1) then
+              begin
                 FFor.Free;
+              end;
+              
               FFor := FInternalStatement;
             end;
 

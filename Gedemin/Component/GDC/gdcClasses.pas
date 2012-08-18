@@ -4477,22 +4477,23 @@ begin
   {M}    end;
   {END MACRO}
 
-  if Assigned(MasterSource) and Assigned(MasterSource.DataSet) then
+  if (not CachedUpdates) and Assigned(MasterSource)
+    and Assigned(MasterSource.DataSet) and (MasterSource.DataSet.State = dsInsert) then
   begin
-    if MasterSource.DataSet.State = dsInsert then
-    begin
-      try
-        MasterSource.DataSet.Post;
-      except
-        on E: Exception do
-        begin
-          MessageBox(ParentHandle, PChar(Format(s_InvErrorSaveHeadDocument, [E.Message])),
-            PChar(sAttention), mb_ok or mb_IconInformation);
-          abort;
-        end;
+    try
+      MasterSource.DataSet.Post;
+    except
+      on E: Exception do
+      begin
+        MessageBox(ParentHandle,
+          PChar(Format(s_InvErrorSaveHeadDocument, [E.Message])),
+          PChar(sAttention),
+          MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+        Abort;
       end;
     end;
   end;
+
   inherited;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCUSERDOCUMENTLINE', 'DOBEFOREINSERT', KEYDOBEFOREINSERT)}
