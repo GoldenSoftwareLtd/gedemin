@@ -20,7 +20,7 @@
     1.00    27.02.2002    DAlex        Initial version.
 
 --}
-                                           
+
 unit obj_WrapperGSClasses;
 
 interface
@@ -49,7 +49,11 @@ uses
   , gsModem
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
-  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form, gsFTPClient;
+  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form, gsFTPClient
+  {$IFDEF WITH_INDY}
+  , gd_WebServerControl_unit
+  {$ENDIF}
+  ;
 
 type
   TwrpAnalyze = class(TwrpObject, IgsAnalyze)
@@ -3777,6 +3781,17 @@ type
     function  GetFormToggleItem(const AForm: IgsForm): IgsTBCustomItem; safecall;
     function  GetFormToggleItemIndex(const AForm: IgsForm): Integer; safecall;
   end;
+
+  {$IFDEF WITH_INDY}
+  TwrpGdWebServerControl = class(TwrpObject, IgdWebServerControl)
+  private
+    function GetWebServerControl: TgdWebServerControl;
+  protected
+    procedure RegisterOnGetEvent(const AComponent: IgsComponent; const AToken: WideString;
+                                 const AEventName: WideString); safecall;
+    procedure UnRegisterOnGetEvent(const AComponent: IgsComponent); safecall;
+  end;
+  {$ENDIF}
 
   TwrpFTPClient = class(TwrpObject, IgsFTPClient)
   private
@@ -18225,6 +18240,25 @@ begin
   GetGdc_frmInvCard.gsPeriodEdit.EndDate := Value;
 end;
 
+{$IFDEF WITH_INDY}
+{ TwrpGdWebServerControl }
+function TwrpGdWebServerControl.GetWebServerControl: TgdWebServerControl;
+begin
+  Result := TgdWebServerControl.GetInstance;
+end;
+
+procedure TwrpGdWebServerControl.RegisterOnGetEvent(const AComponent: IgsComponent;
+  const AToken: WideString; const AEventName: WideString);
+begin
+  GetWebServerControl.RegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent, AToken, AEventName);
+end;
+
+procedure TwrpGdWebServerControl.UnRegisterOnGetEvent(const AComponent: IgsComponent);
+begin
+  GetWebServerControl.UnRegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent)
+end;
+{$ENDIF}
+
 { TwrpFTPClient }
 function TwrpFTPClient.GetFTPClient: TgsFTPClient;
 begin
@@ -18593,5 +18627,8 @@ initialization
   RegisterGdcOLEClass(TgsParamData, TwrpGsParamData, ComServer.TypeLib, IID_IgsParamData);
 
   RegisterGdcOLEClass(TfrmGedeminMain, TwrpGsFrmGedeminMain, ComServer.TypeLib, IID_IgsFrmGedeminMain);
+  {$IFDEF WITH_INDY}
+  RegisterGdcOLEClass(TgdWebServerControl, TwrpGdWebServerControl, ComServer.TypeLib, IID_IgdWebServerControl);
+  {$ENDIF}
   RegisterGdcOLEClass(TgsFTPClient, TwrpFTPClient, ComServer.TypeLib, IID_IgsFTPClient);
 end.
