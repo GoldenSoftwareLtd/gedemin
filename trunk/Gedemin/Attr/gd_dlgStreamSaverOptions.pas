@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, ComCtrls, ActnList, gd_createable_form, gd_ClassList,
-  at_frmIncrDatabaseList;
+  at_frmIncrDatabaseList, xCalculatorEdit;
 
 type
   TdlgStreamSaverOptions = class(TCreateableForm)
@@ -33,12 +33,18 @@ type
     cbSettingFormat: TComboBox;
     lblDefaultFormat: TLabel;
     lblSettingFormat: TLabel;
+    tbsWebServer: TTabSheet;
+    lblWebServerPort: TLabel;
+    btnTestWebServerPort: TButton;
+    actTestWevServerPort: TAction;
+    eWebServerPort: TxCalculatorEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure actClearRPLRecordsExecute(Sender: TObject);
     procedure actOKExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure chbxUseIncrementSavingClick(Sender: TObject);
+    procedure actTestWevServerPortExecute(Sender: TObject);
   private
     frameDatabases: TfrmIncrDatabaseList;
   public
@@ -52,7 +58,11 @@ implementation
 
 uses
   Storages, gd_security, at_classes, gdcBaseInterface, IBDatabase, IBSQL,
-  gsStreamHelper;
+  gsStreamHelper
+  {$IFDEF WITH_INDY}
+  , IdHTTPServer, IdSocketHandle, gd_WebServerControl_unit
+  {$ENDIF}
+  ;
 
 {$R *.DFM}
 
@@ -83,6 +93,9 @@ begin
       rgReplaceRecordBehaviuor.ItemIndex := ReadInteger('Options', 'StreamReplaceRecordBehaviuor', 0);
       rgLogType.ItemIndex := ReadInteger('Options', 'StreamLogType', 2);
       chbxUseIncrementSaving.Checked := ReadBoolean('Options', 'UseIncrementSaving', False);
+      {$IFDEF WITH_INDY}
+      eWebServerPort.Value := ReadInteger('Options', gd_WebServerControl_unit.STORAGE_WEB_SERVER_PORT_VALUE_NAME, gd_WebServerControl_unit.DEFAULT_WEB_SERVER_PORT);
+      {$ENDIF}
     end;
                                                
   if IBLogin.IsUserAdmin then
@@ -180,6 +193,9 @@ begin
       WriteInteger('Options', 'StreamReplaceRecordBehaviuor', rgReplaceRecordBehaviuor.ItemIndex);
       WriteInteger('Options', 'StreamLogType', rgLogType.ItemIndex);
       WriteBoolean('Options', 'UseIncrementSaving', chbxUseIncrementSaving.Checked);
+      {$IFDEF WITH_INDY}
+      WriteInteger('Options', gd_WebServerControl_unit.STORAGE_WEB_SERVER_PORT_VALUE_NAME, Round(eWebServerPort.Value));
+      {$ENDIF}
     end;
 
   if Assigned(frameDatabases) then
@@ -203,6 +219,52 @@ begin
   pnlSSDatabases.Enabled := chbxUseIncrementSaving.Checked;
   actClearRPLRecords.Enabled := chbxUseIncrementSaving.Checked;
   actCreateDatabaseFile.Enabled := chbxUseIncrementSaving.Checked;
+end;
+
+procedure TdlgStreamSaverOptions.actTestWevServerPortExecute(Sender: TObject);
+{$IFDEF WITH_INDY}
+var
+  PortNumber: Integer;
+  HttpServer: TIdHTTPServer;
+  Binding : TIdSocketHandle;
+{$ENDIF}
+begin
+{$IFDEF WITH_INDY}
+  PortNumber := Round(eWebServerPort.Value);
+  eWebServerPort.Value := PortNumber;
+
+  if (PortNumber >= 1024) and (PortNumber <= 65535) then
+  begin
+    HttpServer := TIdHTTPServer.Create(nil);
+    try
+      HttpServer.ServerSoftware := 'GedeminHttpServer';
+      // Привязка к порту
+      HttpServer.Bindings.Clear;
+      Binding := HttpServer.Bindings.Add;
+      Binding.Port := PortNumber;
+      Binding.IP := '127.0.0.1';
+      try
+        HttpServer.Active := True;
+        // При успешном занятии порта, сообщим пользователю и выключим сервер
+        Application.MessageBox(PChar('Порт ' + IntToStr(PortNumber) + ' свободен для работы веб-сервера.'), 'HTTP сервер', MB_OK + MB_APPLMODAL + MB_ICONINFORMATION);
+        HttpServer.Active := False;
+      except
+        on E: Exception do
+        begin
+          eWebServerPort.Text := '';
+          Application.MessageBox(PChar('При проверке порта возникла ошибка:'#13#10 + E.Message), 'Ошибка HTTP сервера', MB_OK + MB_APPLMODAL + MB_ICONEXCLAMATION);
+        end;
+      end;
+    finally
+      FreeAndNil(HttpServer);
+    end;
+  end
+  else
+  begin
+    eWebServerPort.Text := '';
+    Application.MessageBox(PChar('Можно указать только порт в границах 1024-65535.'), 'Ошибка HTTP сервера', MB_OK + MB_APPLMODAL + MB_ICONEXCLAMATION);
+  end;
+{$ENDIF}
 end;
 
 initialization

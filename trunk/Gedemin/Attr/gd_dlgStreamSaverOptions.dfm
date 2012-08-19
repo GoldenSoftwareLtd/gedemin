@@ -1,6 +1,6 @@
 object dlgStreamSaverOptions: TdlgStreamSaverOptions
-  Left = 379
-  Top = 130
+  Left = 1033
+  Top = 204
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Опции переноса данных'
@@ -23,7 +23,7 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
     Top = 0
     Width = 386
     Height = 409
-    ActivePage = tbsMain
+    ActivePage = tbsWebServer
     Align = alClient
     TabOrder = 0
     object tbsMain: TTabSheet
@@ -55,7 +55,7 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
           Width = 250
           Height = 21
           Style = csDropDownList
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 0
         end
         object cbSettingFormat: TComboBox
@@ -64,7 +64,7 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
           Width = 250
           Height = 21
           Style = csDropDownList
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 1
         end
       end
@@ -92,6 +92,33 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
           'кратко'
           'подробно')
         TabOrder = 2
+      end
+    end
+    object tbsWebServer: TTabSheet
+      Caption = 'Веб-сервер'
+      ImageIndex = 2
+      object lblWebServerPort: TLabel
+        Left = 10
+        Top = 14
+        Width = 164
+        Height = 13
+        Caption = 'Порт для входящих соединений:'
+      end
+      object btnTestWebServerPort: TButton
+        Left = 272
+        Top = 8
+        Width = 97
+        Height = 25
+        Action = actTestWevServerPort
+        TabOrder = 0
+      end
+      object eWebServerPort: TxCalculatorEdit
+        Left = 190
+        Top = 10
+        Width = 65
+        Height = 21
+        TabOrder = 1
+        DecDigits = 0
       end
     end
     object tbsIncrement: TTabSheet
@@ -197,6 +224,10 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
     end
     object actCreateDatabaseFile: TAction
       Caption = 'Сформировать файл со списком баз'
+    end
+    object actTestWevServerPort: TAction
+      Caption = 'Проверить порт'
+      OnExecute = actTestWevServerPortExecute
     end
   end
 end
