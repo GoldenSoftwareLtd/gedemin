@@ -26,15 +26,15 @@ inherited gdc_dlgGenerator: Tgdc_dlgGenerator
   inherited btnNew: TButton
     Top = 77
   end
+  inherited btnHelp: TButton
+    Top = 77
+  end
   inherited btnOK: TButton
     Left = 289
     Top = 77
   end
   inherited btnCancel: TButton
     Left = 361
-    Top = 77
-  end
-  inherited btnHelp: TButton
     Top = 77
   end
   object dbeGeneratorName: TDBEdit [7]

@@ -448,8 +448,8 @@ begin
             if not (F.ValueByName('GrSet') is TgsStringValue) then
               F.DeleteValue('GrSet');
             F.WriteString('GrSet', Path);
-              end;
-            finally
+          end;
+        finally
           UserStorage.CloseFolder(F, False);
         end;
       end;
@@ -684,7 +684,7 @@ begin
         end;
         CM_DEACTIVATE:
           SetCurrentForm(nil);
-        end;
+      end;
     except
     end;
   inherited;
