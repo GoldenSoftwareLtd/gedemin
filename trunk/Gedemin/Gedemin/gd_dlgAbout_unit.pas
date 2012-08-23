@@ -5,7 +5,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, IBDatabaseInfo, ComCtrls, Mask, DBCtrls,Registry,WinSock,
+  StdCtrls, IBDatabaseInfo, ComCtrls, Mask, DBCtrls, Registry, WinSock,
   SynEdit, SynEditHighlighter, SynHighlighterIni;
 
 type
@@ -51,7 +51,8 @@ uses
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
   gd_directories_const, IBSQL, IBDatabase,
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
-  {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version, FastMM4;
+  {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version{$IFDEF GEDEMIN}, FastMM4{$ENDIF}
+  {$IFDEF WITH_INDY}, IdGlobal{$ENDIF};
 
 type
   TMemoryStatusEx = record
@@ -355,6 +356,7 @@ begin
   {$IFDEF GED_LOC_RUS}S := S + 'GED_LOC_RUS, ';{$ENDIF}
   {$IFDEF LOCALIZATION}S := S + 'LOCALIZATION, ';{$ENDIF}
   {$IFDEF QBUILDER}S := S + 'QBUILDER, ';{$ENDIF}
+  {$IFDEF WITH_INDY}S := S + 'WITH_INDY, ';{$ENDIF}
   if S > '' then
   begin
     SetLength(S, Length(S) - 2);
@@ -368,8 +370,9 @@ begin
   AddSpaces('ZLib', ZLIB_VERSION);
   AddSpaces('JCL', IntToStr(JclVersionMajor) + '.' + IntToStr(JclVersionMinor));
   AddSpaces('Toolbar 2000', Toolbar2000Version);
-  AddSpaces('FastMM', FastMMVersion);
+  {$IFDEF GEDEMIN}AddSpaces('FastMM', FastMMVersion);{$ENDIF}
   {$IFDEF EXCMAGIC_GEDEMIN}AddSpaces('Exceptional Magic', ExceptionHook.Version);{$ENDIF}
+  {$IFDEF WITH_INDY}AddSpaces(gsIdProductName, gsIdVersion);{$ENDIF}
 
   AddLibrary(GetIBLibraryHandle, 'fbclient.dll');
   AddComLibrary(MIDAS_GUID1, 'MIDAS.DLL');

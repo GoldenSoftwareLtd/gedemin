@@ -10,7 +10,7 @@ DCC = $(ROOT)\bin\dcc32.exe $**
 BRCC = $(ROOT)\bin\brcc32.exe $**
 #------------------------------------------------------------------------------
 PROJECTS = SynEdit_D5.bpl tb2k_d5.bpl tb2kdsgn_d5.bpl Fr5.bpl greference.bpl \
-  gedemin.exe Gudf.dll
+  fs5.bpl fqb50.bpl frx5.bpl dclfrx5.bpl gedemin.exe Gudf.dll
 #------------------------------------------------------------------------------
 default: $(PROJECTS)
 #------------------------------------------------------------------------------
@@ -34,6 +34,18 @@ tb2kdsgn_d5.bpl: Component\tb2k\Packages\tb2kdsgn_d5.dpk
   $(DCC)
 
 tb2k_d5.bpl: Component\tb2k\Packages\tb2k_d5.dpk
+  $(DCC)
+
+dclfrx5.bpl: FastReport 4\Source\dclfrx5.dpk
+  $(DCC)
+
+frx5.bpl: FastReport 4\Source\frx5.dpk
+  $(DCC)
+
+fqb50.bpl: FastReport 4\FastQB\fqb50.dpk
+  $(DCC)
+
+fs5.bpl: FastReport 4\FastScript\fs5.dpk
   $(DCC)
 
 

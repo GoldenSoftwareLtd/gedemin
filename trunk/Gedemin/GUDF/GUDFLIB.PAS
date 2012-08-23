@@ -1170,7 +1170,7 @@ begin
   try
     if arrHugeIntSet[AnIndex] = nil then
     begin
-      arrHugeIntSet[AnIndex] := TgsHugeIntSet.Create(PChar(IntToSTr(AnIndex)), (ASize - 147000000) div 8 + 1, 147000000);
+      arrHugeIntSet[AnIndex] := TgsHugeIntSet.Create;
       Result := 1;
     end;
     {for I := 0 to HugeIntSetMaxCount - 1 do
@@ -1226,10 +1226,10 @@ function g_his_count(var AnIndex: Integer): Integer;
   cdecl; export;
 begin
   Result := 0;
-  if arrHugeIntSet[AnIndex] <> nil then
+  {if arrHugeIntSet[AnIndex] <> nil then
   begin
     Result := arrHugeIntSet[AnIndex].Count;
-  end;
+  end;}
 end;
 
 function g_his_destroy(var AnIndex: Integer): Integer;
