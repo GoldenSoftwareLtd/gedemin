@@ -49,8 +49,11 @@ uses
   , gsModem
   {$ENDIF}
   , gdcStreamSaver, gdvAcctBase, gdvAcctAccCard, gdvAcctAccReview, gdvAcctLedger,
-  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form, gsFTPClient,
-  gd_WebServerControl_unit;
+  gdvAcctGeneralLedger, gdvAcctCirculationList, prm_ParamFunctions_unit, gd_main_form, gsFTPClient
+  {$IFDEF WITH_INDY}
+  , gd_WebServerControl_unit
+  {$ENDIF}
+  ;
 
 type
   TwrpAnalyze = class(TwrpObject, IgsAnalyze)
@@ -3779,6 +3782,7 @@ type
     function  GetFormToggleItemIndex(const AForm: IgsForm): Integer; safecall;
   end;
 
+  {$IFDEF WITH_INDY}
   TwrpGdWebServerControl = class(TwrpObject, IgdWebServerControl)
   private
     function GetWebServerControl: TgdWebServerControl;
@@ -3787,6 +3791,7 @@ type
                                  const AEventName: WideString); safecall;
     procedure UnRegisterOnGetEvent(const AComponent: IgsComponent); safecall;
   end;
+  {$ENDIF}
 
   TwrpFTPClient = class(TwrpObject, IgsFTPClient)
   private
@@ -18235,8 +18240,8 @@ begin
   GetGdc_frmInvCard.gsPeriodEdit.EndDate := Value;
 end;
 
+{$IFDEF WITH_INDY}
 { TwrpGdWebServerControl }
-
 function TwrpGdWebServerControl.GetWebServerControl: TgdWebServerControl;
 begin
   Result := TgdWebServerControl.GetInstance;
@@ -18252,6 +18257,7 @@ procedure TwrpGdWebServerControl.UnRegisterOnGetEvent(const AComponent: IgsCompo
 begin
   GetWebServerControl.UnRegisterOnGetEvent(InterfaceToObject(AComponent) as TComponent)
 end;
+{$ENDIF}
 
 { TwrpFTPClient }
 function TwrpFTPClient.GetFTPClient: TgsFTPClient;
@@ -18621,6 +18627,8 @@ initialization
   RegisterGdcOLEClass(TgsParamData, TwrpGsParamData, ComServer.TypeLib, IID_IgsParamData);
 
   RegisterGdcOLEClass(TfrmGedeminMain, TwrpGsFrmGedeminMain, ComServer.TypeLib, IID_IgsFrmGedeminMain);
+  {$IFDEF WITH_INDY}
   RegisterGdcOLEClass(TgdWebServerControl, TwrpGdWebServerControl, ComServer.TypeLib, IID_IgdWebServerControl);
+  {$ENDIF}
   RegisterGdcOLEClass(TgsFTPClient, TwrpFTPClient, ComServer.TypeLib, IID_IgsFTPClient);
 end.

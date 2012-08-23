@@ -58,7 +58,11 @@ implementation
 
 uses
   Storages, gd_security, at_classes, gdcBaseInterface, IBDatabase, IBSQL,
-  gsStreamHelper, IdHTTPServer, IdSocketHandle, gd_WebServerControl_unit;
+  gsStreamHelper
+  {$IFDEF WITH_INDY}
+  , IdHTTPServer, IdSocketHandle, gd_WebServerControl_unit
+  {$ENDIF}
+  ;
 
 {$R *.DFM}
 
@@ -89,7 +93,9 @@ begin
       rgReplaceRecordBehaviuor.ItemIndex := ReadInteger('Options', 'StreamReplaceRecordBehaviuor', 0);
       rgLogType.ItemIndex := ReadInteger('Options', 'StreamLogType', 2);
       chbxUseIncrementSaving.Checked := ReadBoolean('Options', 'UseIncrementSaving', False);
+      {$IFDEF WITH_INDY}
       eWebServerPort.Value := ReadInteger('Options', gd_WebServerControl_unit.STORAGE_WEB_SERVER_PORT_VALUE_NAME, gd_WebServerControl_unit.DEFAULT_WEB_SERVER_PORT);
+      {$ENDIF}
     end;
                                                
   if IBLogin.IsUserAdmin then
@@ -187,7 +193,9 @@ begin
       WriteInteger('Options', 'StreamReplaceRecordBehaviuor', rgReplaceRecordBehaviuor.ItemIndex);
       WriteInteger('Options', 'StreamLogType', rgLogType.ItemIndex);
       WriteBoolean('Options', 'UseIncrementSaving', chbxUseIncrementSaving.Checked);
+      {$IFDEF WITH_INDY}
       WriteInteger('Options', gd_WebServerControl_unit.STORAGE_WEB_SERVER_PORT_VALUE_NAME, Round(eWebServerPort.Value));
+      {$ENDIF}
     end;
 
   if Assigned(frameDatabases) then
@@ -213,13 +221,15 @@ begin
   actCreateDatabaseFile.Enabled := chbxUseIncrementSaving.Checked;
 end;
 
-procedure TdlgStreamSaverOptions.actTestWevServerPortExecute(
-  Sender: TObject);
+procedure TdlgStreamSaverOptions.actTestWevServerPortExecute(Sender: TObject);
+{$IFDEF WITH_INDY}
 var
   PortNumber: Integer;
   HttpServer: TIdHTTPServer;
   Binding : TIdSocketHandle;
+{$ENDIF}
 begin
+{$IFDEF WITH_INDY}
   PortNumber := Round(eWebServerPort.Value);
   eWebServerPort.Value := PortNumber;
 
@@ -254,6 +264,7 @@ begin
     eWebServerPort.Text := '';
     Application.MessageBox(PChar('Можно указать только порт в границах 1024-65535.'), 'Ошибка HTTP сервера', MB_OK + MB_APPLMODAL + MB_ICONEXCLAMATION);
   end;
+{$ENDIF}
 end;
 
 initialization

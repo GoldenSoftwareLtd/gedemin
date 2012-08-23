@@ -25,6 +25,11 @@ inherited gdc_attr_EditTrigger: Tgdc_attr_EditTrigger
     Anchors = [akRight, akBottom]
     Visible = False
   end
+  inherited btnHelp: TButton
+    Top = 421
+    Anchors = [akRight, akBottom]
+    Visible = False
+  end
   inherited btnOK: TButton
     Left = 417
     Top = 421
@@ -36,15 +41,10 @@ inherited gdc_attr_EditTrigger: Tgdc_attr_EditTrigger
     Top = 421
     Anchors = [akRight, akBottom]
   end
-  inherited btnHelp: TButton
-    Top = 421
-    Anchors = [akRight, akBottom]
-    Visible = False
-  end
   object pMainTrigger: TPanel [6]
     Left = 0
     Top = 0
-    Width = 579
+    Width = 571
     Height = 401
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -55,7 +55,7 @@ inherited gdc_attr_EditTrigger: Tgdc_attr_EditTrigger
     object smTriggerBody: TSynMemo
       Left = 5
       Top = 5
-      Width = 569
+      Width = 561
       Height = 391
       Cursor = crIBeam
       Align = alClient
