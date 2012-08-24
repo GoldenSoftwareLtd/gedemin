@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+
+<assemblyIdentity
+    type="win32"
+    name="midas.sxs"
+    version="1.0.0.0" />
+
+<file name="midas.dll">
+
+    <comClass
+        description="Borland Midas DSBase 1"
+        clsid="{9E8D2FA1-591C-11D0-BF52-0020AF32BD64}"
+        threadingModel="Apartment"
+        progid="Borland.Midas_DSBase" />
+
+    <comClass
+        description="Borland Midas DSCursor 1"
+        clsid="{9E8D2FA3-591C-11D0-BF52-0020AF32BD64}"
+        threadingModel="Apartment"
+        progid="Borland.Midas_DSCursor" />
+
+    <comClass
+        description="Borland Midas DatapacketRead"
+        clsid="{9E8D2FA7-591C-11D0-BF52-0020AF32BD64}"
+        threadingModel="Apartment" />
+
+    <comClass
+        description="Borland Midas DatapacketWrite"
+        clsid="{9E8D2FA5-591C-11D0-BF52-0020AF32BD64}"
+        threadingModel="Apartment" />
+
+</file>
+
+</assembly>
