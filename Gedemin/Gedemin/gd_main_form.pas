@@ -613,8 +613,7 @@ end;
 
 procedure TfrmGedeminMain.actExplorerUpdate(Sender: TObject);
 begin
-  actExplorer.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn
-    {and gdcBaseManager.Class_TestUserRights(TgdcExplorer, '', 0)};
+  actExplorer.Enabled := Assigned(IBLogin) and IBLogin.LoggedIn;
   actExplorer.Checked := FormAssigned(gdc_frmExplorer) and (gdc_frmExplorer.Visible);
 end;
 
@@ -643,19 +642,6 @@ end;
 
 procedure TfrmGedeminMain.cbDesktopChange(Sender: TObject);
 begin
-  {if cbDesktop.Text = DesktopManager.CurrentDesktopName then
-    DesktopManager.LoadDesktop
-  else}
-
-  {
-  if Assigned(GlobalStorage) and Assigned(IBLogin)
-    and ((GlobalStorage.ReadInteger('Options\Policy',
-      GD_POL_DESK_ID, GD_POL_DESK_MASK, False) and IBLogin.InGroup) = 0) then
-  begin
-    raise Exception.Create('Изменение рабочего стола запрещено текущими настройками политики безопасности.');
-  end;
-  }
-
   if DesktopManager.ReadDesktopData(cbDesktop.Text) then
   begin
     DesktopManager.LoadDesktop;
@@ -943,22 +929,7 @@ begin
   end;
   {$ENDIF}
 
-  //{$IFDEF DEBUG}
-  //if Assigned(GlobalStorage)
-  //  and GlobalStorage.ReadBoolean('Options', 'MSQL', False, False) then
-  //begin
-  //  gdcBaseManager.Database.TraceFlags := IntegerToTraceFlags(
-  //    GlobalStorage.ReadInteger('Options', 'MSQLF', 0, False));
-  //  if gdcBaseManager.Database.TraceFlags <> [] then
-  //  begin
-  //    if SQLMonitor = nil then
-  //      SQLMonitor := TgdSQLMonitor.Create(nil);
-  //  end else
-  //    FreeAndNil(SQLMonitor);
-  //end;
-  //{$ELSE}
   gdcBaseManager.Database.TraceFlags := [];
-  //{$ENDIF}
 
   if Assigned(GlobalStorage)
     and GlobalStorage.ReadBoolean('Options\Arch', 'Enabled', False, False)
@@ -1146,14 +1117,6 @@ begin
   tbForms.Items.Clear;
 
   _IBSQLCache.Enabled := False;
-
-  //{$IFDEF DEBUG}
-  //if SQLMonitor <> nil then
-  //begin
-  //  SQLMonitor.Flush;
-  //  FreeAndNil(SQLMonitor);
-  //end;
-  //{$ENDIF}
 
   gdcBaseManager.IDCacheFlush;
   ClearLookupCache;

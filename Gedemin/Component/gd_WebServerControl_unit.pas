@@ -1,12 +1,12 @@
 unit gd_WebServerControl_unit;
 
 interface
-                                        
+
 uses
   Classes, Contnrs, IdHTTPServer, IdCustomHTTPServer, IdTCPServer, evt_i_Base;
 
 const
-  DEFAULT_WEB_SERVER_PORT = 50060;
+  DEFAULT_WEB_SERVER_PORT = 80;
   STORAGE_WEB_SERVER_PORT_VALUE_NAME = 'WebServerPort';
 
 type
@@ -24,25 +24,32 @@ type
     function GetVarParam(const AnValue: Variant): OleVariant;
 
     // Асинхронный обработчик HTTP GET запроса
-    procedure ServerOnCommandGet(AThread: TIdPeerThread; ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
+    procedure ServerOnCommandGet(AThread: TIdPeerThread;
+      ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
+
     // Запускаемая на потоке приложения процедура обработки GET запроса
     procedure ServerOnCommandGetSync;
+
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+
   public
     constructor Create(AOwner: TComponent); override;
-    class function GetInstance: TgdWebServerControl;
     destructor Destroy; override;
 
-    procedure RegisterOnGetEvent(const AComponent: TComponent; const AToken, AFunctionName: String);
+    class function GetInstance: TgdWebServerControl;
+
+    procedure RegisterOnGetEvent(const AComponent: TComponent;
+      const AToken, AFunctionName: String);
     procedure UnRegisterOnGetEvent(const AComponent: TComponent);
   end;
 
 implementation
 
 uses
-  SysUtils, ibsql, forms, windows, IdSocketHandle, gdcOLEClassList, gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
-  gdcBaseInterface, prp_methods, Gedemin_TLB, Storages;
+  SysUtils, ibsql, Forms, Windows, IdSocketHandle, gdcOLEClassList,
+  gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
+  gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock;
 
 type
   TgdHttpHandler = class(TObject)
@@ -68,6 +75,55 @@ begin
 end;
 
 constructor TgdWebServerControl.Create(AOwner: TComponent);
+
+  function GetLocalIP: String;
+  var
+    wsaData: TWSAData;
+    addr: TSockAddrIn;
+    Phe: PHostEnt;
+    szHostName: array[0..128] of Char;
+  begin
+    Result := '';
+    if WSAStartup($101, WSAData) <> 0 then
+      Exit;
+    try
+      if GetHostName(szHostName, 128) <> SOCKET_ERROR then
+      begin
+        Phe := GetHostByName(szHostName);
+        if Assigned(Phe) then
+        begin
+          addr.sin_addr.S_addr := longint(plongint(Phe^.h_addr_list^)^);
+          Result := inet_ntoa(addr.sin_addr);
+        end;
+      end;
+    finally
+      WSACleanup;
+    end;
+  end;
+
+  function GetIP: String;
+  var
+    wsaData: TWSAData;
+    addr: TSockAddrIn;
+    Phe: PHostEnt;
+    szHostName: array[0..128] of Char;
+  begin
+    Result := '';
+    if WSAStartup($101, WSAData) <> 0 then
+      Exit;
+    try
+      szHostName := 'gs.selfip.biz';
+      Phe := GetHostByName(szHostName);
+      if Assigned(Phe) then
+      begin
+        addr.sin_addr.S_addr := longint(plongint(Phe^.h_addr_list^)^);
+        Result := inet_ntoa(addr.sin_addr);
+      end;
+    finally
+      WSACleanup;
+    end;
+  end;
+
 var
   Binding : TIdSocketHandle;
 begin
@@ -78,8 +134,17 @@ begin
   // Привязка к порту
   FHttpServer.Bindings.Clear;
   Binding := FHttpServer.Bindings.Add;
-  Binding.Port := 50060;
+  Binding.Port := DEFAULT_WEB_SERVER_PORT;
+  Binding.IP := GetLocalIP;
+
+  Binding := FHttpServer.Bindings.Add;
+  Binding.Port := DEFAULT_WEB_SERVER_PORT;
   Binding.IP := '127.0.0.1';
+
+  {Binding := FHttpServer.Bindings.Add;
+  Binding.Port := DEFAULT_WEB_SERVER_PORT;
+  Binding.IP := GetIP;}
+
   // Обработчик GET запроса
   FHttpServer.OnCommandGet := ServerOnCommandGet;
 
@@ -104,8 +169,7 @@ end;
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent; const AToken, AFunctionName: String);
 var
   Handler: TgdHttpHandler;
-  FunctionKey: Integer;
-  PortNumber: Integer;
+  FunctionKey, PortNumber: Integer;
 
   function GetFunctionKey: Integer;
   var
@@ -118,36 +182,32 @@ var
       q.Transaction := gdcBaseManager.ReadTransaction;
 
       if Assigned(AComponent) then
+      begin
         q.SQL.Text :=
           ' SELECT f.id ' +
           ' FROM gd_function f ' +
-          '   JOIN evt_object o ON o.id = f.modulecode AND o.name = ' + QuotedStr(AComponent.Name) +
-          ' WHERE f.name = ' + QuotedStr(AFunctionName)
-      else
-        q.SQL.Text := 'SELECT id FROM gd_function WHERE name = ' + QuotedStr(AFunctionName);
-      q.ExecQuery;
-
-      if not q.Eof then
-      begin
-        Result := q.FieldByName('id').AsInteger;
-      end
-      else
-      begin
-        if Assigned(AComponent) then
-        begin
-          q.Close;
-          q.SQL.Text:= 'SELECT id FROM gd_function WHERE name = ' + QuotedStr(AFunctionName);
-          q.ExecQuery;
-          if not q.Eof then
-            Result := q.FieldByName('id').AsInteger
-          else
-            raise Exception.Create('Фунция "' + AFunctionName + '" не найдена.');
-        end
-        else
-          raise Exception.Create('Фунция "' + AFunctionName + '" не найдена.');
+          '   JOIN evt_object o ON o.id = f.modulecode AND o.name = :CN ' +
+          ' WHERE f.name = :FN';
+        q.ParamByName('CN').AsString := AComponent.Name;
+        q.ParamByName('FN').AsString := AFunctionName;
+        q.ExecQuery;
+        if not q.Eof then
+          Result := q.FieldByName('id').AsInteger;
       end;
+
+      if Result = -1 then
+      begin
+        q.SQL.Text := 'SELECT id FROM gd_function WHERE name = :FN';
+        q.ParamByName('FN').AsString := AFunctionName;
+        q.ExecQuery;
+        if not q.Eof then
+          Result := q.FieldByName('id').AsInteger;
+      end;
+
+      if Result = -1 then
+        raise Exception.Create('Фунция "' + AFunctionName + '" не найдена.');
     finally
-      FreeAndNil(q);
+      q.Free;
     end;
   end;
 
@@ -164,23 +224,31 @@ begin
     // Добавим обработчик в список
     FHttpGetHandlerList.Add(Handler);
     // Попросим компонент сообщить о своем уничтожении
-    AComponent.FreeNotification(Self);
-    
+    if Assigned(AComponent) then
+      AComponent.FreeNotification(Self);
+
     // Запустим сервер, если он не запущен
     if not FHttpServer.Active then
       try
         // Считаем номер порта для прослушки из хранилища
-        PortNumber := 0;
         if Assigned(GlobalStorage) then
-          PortNumber := GlobalStorage.ReadInteger('Options', STORAGE_WEB_SERVER_PORT_VALUE_NAME, DEFAULT_WEB_SERVER_PORT);
-        // Если чтение успешно, и порт подходит, занесем его в биндинг по умолчанию
-        if (PortNumber >= 1024) and (PortNumber <= 65535) then
-          FHttpServer.Bindings[0].Port := PortNumber;
+        begin
+          PortNumber := GlobalStorage.ReadInteger('Options',
+            STORAGE_WEB_SERVER_PORT_VALUE_NAME,
+            DEFAULT_WEB_SERVER_PORT);
+
+          // Если чтение успешно, и порт подходит, занесем его в биндинг по умолчанию
+          if (PortNumber >= 1024) and (PortNumber <= 65535) then
+            FHttpServer.Bindings[0].Port := PortNumber;
+        end;
 
         FHttpServer.Active := True;
       except
         on E: Exception do
-          Application.MessageBox(PChar('При запуске HTTP сервера возникла ошибка:'#13#10 + E.Message), 'Ошибка HTTP сервера', MB_OK + MB_APPLMODAL + MB_ICONEXCLAMATION);
+          Application.MessageBox(
+            PChar('При запуске HTTP сервера возникла ошибка:'#13#10 + E.Message),
+            'Ошибка HTTP сервера',
+            MB_OK + MB_TASKMODAL + MB_ICONEXCLAMATION);
       end;
   end;
 end;
@@ -220,12 +288,12 @@ var
   HandlerFunction: TrpCustomFunction;
   LParams, LResult: Variant;
 begin
-  // По умолчанию возвращаем код ошибки 
+  // По умолчанию возвращаем код ошибки
   FResponse.ResponseNo := 404;
   // По токену запроса мы определяем какие обработчики выполнять
   RequestToken := AnsiLowerCase(Trim(FRequest.Params.Values[PARAM_TOKEN]));
-  if RequestToken <> '' then
-  begin
+  {if RequestToken <> '' then
+  begin}
     FResponse.ContentType := 'text/xml; charset=Windows-1251';
 
     // Идем по списку обработчиков, определяем нужный по токену
@@ -234,10 +302,10 @@ begin
     begin
       Handler := TgdHttpHandler(FHttpGetHandlerList[HandlerCounter]);
       // Не уничтожен ли компонент к которому привязан обработчик
-      if Assigned(Handler.Component) and (Handler.FunctionKey > 0) then
-      begin
+      {if Assigned(Handler.Component) and (Handler.FunctionKey > 0) then
+      begin}
         // Если обработчик подходит по токену
-        if AnsiCompareText(Handler.Token, RequestToken) = 0 then
+        if (Handler.Token = '') or (AnsiCompareText(Handler.Token, RequestToken) = 0) then
         begin
             // Поиск и получение объекта функции
             HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
@@ -262,14 +330,13 @@ begin
         end;
         // Перейдем к следующему обработчику
         Inc(HandlerCounter);
-      end
-      else
+      {end else
       begin
         // Удалим такой обработчик
         FHttpGetHandlerList.Delete(HandlerCounter)
-      end;
+      end;}
     end;
-  end;
+  {end;}
 end;
 
 function TgdWebServerControl.GetVarInterface(
@@ -308,8 +375,7 @@ begin
       begin
         AComponent.RemoveFreeNotification(Self);
         FHttpGetHandlerList.Delete(I);
-      end
-      else
+      end else
         Inc(I);
     end;
 
