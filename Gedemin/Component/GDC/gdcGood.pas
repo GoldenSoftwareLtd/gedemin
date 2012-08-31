@@ -1,21 +1,13 @@
 {
   Товары
 
-  TgdcGoodValue   - Единицы измерения товаров
   TgdcTNVD        - ТНВД
-  TgdcGoodTax     - Налог в товара
-  TgdcGoodMetal   - Драг метал в товаре
   TgdcGoodBarCode - Штрих код товара
   TgdcGoodGroup   - Группа товаров
   TgdcGood        - товар
-
-
-  ToDo:
-  Скорее всего необходимо будет сделать дополнительные классы
   TgdcValue       - Единицы измерения
   TgdcTax         - Налоги
   TgdcMetal       - Драг металы
-  TgdcGoodSet     - Комплекты
 
   Revisions history
 

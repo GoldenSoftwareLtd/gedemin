@@ -459,9 +459,9 @@ type
     // —охран€ет BLOB-значение хранилища
     procedure SaveStorageValue(AField: TField);
     // —охран€ет метаданные и данные датасета
-    procedure SaveDataset(CDS: TDataSet);
+    procedure SaveDataset(CDS: TDataSet; const AFields: String);
     // —охран€ет значение пол€ датасета в виде отдельного тега
-    procedure SaveDatasetFieldValue(AField: TField);
+    procedure SaveDatasetFieldValue(AField: TField; const RUID: Boolean = False);
     // —охран€ет многостроковое значение как последовательность тегов <L>
     procedure SaveMemoTagValue(const AMemoValue: String; AMLType: TgsMultiLineXMLTagValueType = tgtText);
 
@@ -626,6 +626,8 @@ const
 
   XML_TAG_MULTILINE_SPLITTER = 'L';
 
+  XML_TAG_RUID = 'R';
+
   DETAIL_DOMAIN_SIMPLE = 'DMASTERKEY';
   DETAIL_DOMAIN_TREE = 'DPARENT';
 
@@ -648,7 +650,7 @@ uses
   gdc_frmStreamSaver,       zlib,                    gdcInvDocument_unit,
   flt_SafeConversion_unit,  JclMime,                 jclUnicode,
   gdcFunction,              gdcExplorer,             gdcMacros,
-  gdcReport;              //  gdcLBRBTreeMetaData;
+  gdcReport;               //  gdcLBRBTreeMetaData;
 
 type
   TgdcReferenceUpdate = class(TObject)
@@ -1043,7 +1045,6 @@ begin
            and Obj.ClassType.InheritsFrom(GetBaseClassForRelation(LT[I]).gdClass) then
           TableList.Add(LT[I]);
       end;
-
       // ѕробежимс€ по найденным таблицам, и выберем пол€-ссылки
       for J := 0 to TableList.Count - 1 do
       begin
@@ -4598,6 +4599,7 @@ var
   LoadSetTable: ShortString;
   SettingHeaderKey, SettingElementIterator: Integer;
   C: TClass;
+  Temps: String;
 begin
   inherited;
 
@@ -4668,7 +4670,11 @@ begin
 
         etReferencedRecord:
         begin
-          I := GetIntegerParamValueByName(XMLElement.ElementString, 'id');
+          Temps := GetParamValueByName(XMLElement.ElementString, 'id');
+          if CheckRuid(Temps) then
+            I := gdcBaseManager.GetIDByRUIDString(Temps)
+          else  
+            I := GetIntegerParamValueByName(XMLElement.ElementString, 'id');
           J := GetIntegerParamValueByName(XMLElement.ElementString, 'xid');
           K := GetIntegerParamValueByName(XMLElement.ElementString, 'dbid');
           FDataObject.AddReferencedRecord(I, J, K);
@@ -4677,7 +4683,11 @@ begin
         etOrderItem:
         begin
           I := GetIntegerParamValueByName(XMLElement.ElementString, 'objectkey');
-          J := GetIntegerParamValueByName(XMLElement.ElementString, 'recordid');
+          Temps := GetParamValueByName(XMLElement.ElementString, 'recordid');
+          if CheckRuid(Temps) then
+            J := gdcBaseManager.GetIDByRUIDString(Temps)
+          else
+            J := GetIntegerParamValueByName(XMLElement.ElementString, 'recordid');
           FLoadingOrderList.AddItem(J, I);
         end;
 
@@ -4829,7 +4839,7 @@ begin
     InternalSaveToStream;
 end;
 
-procedure TgdcStreamXMLWriterReader.SaveDataset(CDS: TDataSet);
+procedure TgdcStreamXMLWriterReader.SaveDataset(CDS: TDataSet; const AFields: String);
 var
   I: Integer;
   FD: TFieldDef;
@@ -4840,6 +4850,7 @@ begin
   for I := 0 to CDS.FieldDefs.Count - 1 do
   begin
     FD := CDS.FieldDefs[I];
+
     if AnsiPos('$', FD.Name) > 0 then
     begin
       AddAttribute('name', UpperCase(StringReplace(CDS.Fields[I].FieldName, '$', '_', [rfReplaceAll])));
@@ -4876,7 +4887,16 @@ begin
     for I := 0 to CDS.FieldCount - 1 do
     begin
       if not CDS.Fields[I].IsNull then
-        SaveDatasetFieldValue(CDS.Fields[I]);
+      begin
+        if ((StrIPos(';' + CDS.Fields[I].FieldName + ';', ';' + AFields + ';') <> 0)
+          or (CDS.Fields[I].FieldName = 'ID'))
+          and (StrToIntDef(CDS.Fields[I].AsString, -1) >= 0)
+        then
+
+          SaveDatasetFieldValue(CDS.Fields[I], True)
+        else
+          SaveDatasetFieldValue(CDS.Fields[I], False);
+      end;
     end;
     StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_DATASET_ROW));
     CDS.Next;
@@ -5458,7 +5478,7 @@ begin
   Dataset.Post;
 end;
 
-procedure TgdcStreamXMLWriterReader.SaveDatasetFieldValue(AField: TField);
+procedure TgdcStreamXMLWriterReader.SaveDatasetFieldValue(AField: TField; const RUID: Boolean = False);
 var
   CurrentFieldName: String;
 begin
@@ -5495,7 +5515,10 @@ begin
     ftFloat, ftCurrency, ftBCD:
       StreamWriteXMLString(Stream, AddElement(CurrentFieldName, SafeFloatToStr(AField.AsFloat)));
   else
-    StreamWriteXMLString(Stream, AddElement(CurrentFieldName, QuoteString(AField.AsString)));
+    if RUID then
+      StreamWriteXMLString(Stream, AddElement(CurrentFieldName, '<' + XML_TAG_RUID + '>' + QuoteString(gdcBaseManager.GetRUIDStringByID(AField.AsInteger)) + '</' + XML_TAG_RUID +'>'))
+    else
+      StreamWriteXMLString(Stream, AddElement(CurrentFieldName, QuoteString(AField.AsString)));
   end;
 end;
 
@@ -5540,6 +5563,9 @@ begin
 end;
 
 procedure TgdcStreamXMLWriterReader.ParseDatasetFieldValue(AField: TField; const AFieldValue: String);
+var
+  Temps: String;
+
 begin
   case AField.DataType of
     ftMemo:
@@ -5568,7 +5594,15 @@ begin
     ftFloat, ftCurrency, ftBCD:
       AField.AsFloat := SafeStrToFloat(AFieldValue);
   else
-    AField.AsString := UnQuoteString(ConvertUTFToANSI(AFieldValue));
+  begin 
+    if StrIPos('<' + XML_TAG_RUID +'>', AFieldValue) <> 0 then
+    begin
+      Temps := StringReplace(AFieldValue, '<' + XML_TAG_RUID + '>', '', [rfReplaceAll, rfIgnoreCase]);
+      Temps := StringReplace(Temps, '</' + XML_TAG_RUID + '>', '', [rfReplaceAll, rfIgnoreCase]);
+      AField.AsInteger := gdcBaseManager.GetIDByRUIDString(UnQuoteString(ConvertUTFToANSI(Temps)));
+    end else
+      AField.AsString := UnQuoteString(ConvertUTFToANSI(AFieldValue));
+  end;
   end;
 end;
 
@@ -5712,8 +5746,10 @@ end;
 
 procedure TgdcStreamXMLWriterReader.InternalSaveToStream;
 var
-  I, K: Integer;
+  I, K, J: Integer;
   IBSQL: TIBSQL;
+  RN, FN, Temps: String;
+  ForeignKeyList: TStringList;
 begin
     // «аголовок XML-документа
   if FDoInsertXMLHeader then
@@ -5780,7 +5816,7 @@ begin
     StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_REFERENCED_RECORD_LIST));
     for K := 0 to I - 1 do
     begin
-      AddAttribute('id', IntToStr(FDataObject.ReferencedRecord[K].SourceID));
+      AddAttribute('id', gdcBaseManager.GetRUIDStringByID(FDataObject.ReferencedRecord[K].SourceID));
       AddAttribute('xid', IntToStr(FDataObject.ReferencedRecord[K].RUID.XID));
       AddAttribute('dbid', IntToStr(FDataObject.ReferencedRecord[K].RUID.DBID));
       StreamWriteXMLString(Stream, AddShortElement(XML_TAG_REFERENCED_RECORD));
@@ -5795,7 +5831,7 @@ begin
     begin
       AddAttribute('index', IntToStr(Items[K].Index));
       AddAttribute('objectkey', IntToStr(Items[K].DSIndex));
-      AddAttribute('recordid', IntToStr(Items[K].RecordID));
+      AddAttribute('recordid', gdcBaseManager.GetRUIDStringByID(Items[K].RecordID));//(Items[K].RecordID));
       StreamWriteXMLString(Stream, AddShortElement(XML_TAG_LOADING_ORDER_ITEM));
     end;
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_LOADING_ORDER));
@@ -5808,7 +5844,7 @@ begin
   for K := 0 to FDataObject.Count - 1 do            //FDataObject.gdcObject[FCurrentDatasetKey].Classname
   begin
     if FDataObject.ClientDS[K].RecordCount > 0 then
-    begin                                                    
+    begin
       FCurrentDatasetKey := K;
       try
         AddAttribute('objectkey', IntToStr(K));
@@ -5817,7 +5853,17 @@ begin
         AddAttribute('settable', QuoteString(FDataObject.ClientDS[K].FieldByName(SET_TABLE_FIELD).AsString));
         StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_DATASET));
 
-        SaveDataset(DataObject.ClientDS[K]);
+        Temps := '';
+        ForeignKeyList := FDataObject.ObjectForeignKeyFields[K];
+
+        for J := 0 to ForeignKeyList.Count - 1 do
+        begin
+          RN := ForeignKeyList.Names[J];
+          FN := Copy(ForeignKeyList[J], Length(RN) + 2, MaxInt); 
+          Temps := Temps + FN + ';';
+        end;
+
+        SaveDataset(DataObject.ClientDS[K], Temps);
 
         StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_DATASET));
       finally
