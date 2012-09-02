@@ -73,7 +73,7 @@ uses
   gd_directories_const, IBSQL, IBDatabase, gd_ClassList,
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version{$IFDEF GEDEMIN}, FastMM4{$ENDIF}
-  {$IFDEF WITH_INDY}, IdGlobal{$ENDIF};
+  {$IFDEF WITH_INDY}, IdGlobal, gd_WebClientControl_unit{$ENDIF};
 
 type
   TMemoryStatusEx = record
@@ -365,6 +365,10 @@ begin
     SetLength(S, Length(S) - 2);
     AddSpaces('Символы компиляции', S);
   end;
+
+  {$IFDEF WITH_INDY}
+  AddSpaces('WebServer', gdWebClientThread.gdWebServerURL);
+  {$ENDIF}
 
   AddSection('Версии библиотек');
   AddSpaces('Fast Report 2', Copy(IntToStr(frCurrentVersion), 1, 1) + '.' +
