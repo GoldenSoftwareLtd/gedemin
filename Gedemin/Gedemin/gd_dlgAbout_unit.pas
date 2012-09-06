@@ -6,10 +6,36 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, IBDatabaseInfo, ComCtrls, Mask, DBCtrls, Registry, WinSock,
-  SynEdit, SynEditHighlighter, SynHighlighterIni;
+  SynEdit, SynEditHighlighter, SynHighlighterIni, gdc_createable_form;
 
 type
-  Tgd_dlgAbout = class(TForm)
+  TgdSysInfo = class(TObject)
+  private
+    FLines: TStrings;
+    FTitle: String;
+    FCopyright: String;
+
+    procedure FillTempFiles;
+    procedure AddSection(const S: String);
+    procedure AddSpaces(const Name, Value: String);
+    procedure AddLibrary(h: HMODULE; const AName: String);
+    procedure AddEnv(const AName: String);
+    procedure AddBoolean(const AName: String; const AValue: Boolean);
+    procedure AddComLibrary(const AClsID: String; const AName: String);
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure FillSysData;
+    procedure CopyToClipboard;
+
+    property Title: String read FTitle;
+    property Copyright: String read FCopyright;
+    property Lines: TStrings read FLines;
+  end;
+
+  Tgd_dlgAbout = class(TgdcCreateableForm)
     pc: TPageControl;
     TabSheet1: TTabSheet;
     btnOk: TButton;
@@ -27,16 +53,11 @@ type
     procedure btnCopyClick(Sender: TObject);
 
   private
-    procedure FillTempFiles;
-    procedure AddSection(const S: String);
-    procedure AddSpaces(const Name, Value: String);
-    procedure AddLibrary(h: HMODULE; const AName: String);
-    procedure AddEnv(const AName: String);
-    procedure AddBoolean(const AName: String; const AValue: Boolean);
-    procedure AddComLibrary(const AClsID: String; const AName: String);
+    FSysInfo: TgdSysInfo;
 
   public
-    procedure FillSysData;
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
   end;
 
 var
@@ -49,10 +70,10 @@ implementation
 uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
-  gd_directories_const, IBSQL, IBDatabase,
+  gd_directories_const, IBSQL, IBDatabase, gd_ClassList,
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version{$IFDEF GEDEMIN}, FastMM4{$ENDIF}
-  {$IFDEF WITH_INDY}, IdGlobal{$ENDIF};
+  {$IFDEF WITH_INDY}, IdGlobal, gd_WebClientControl_unit{$ENDIF};
 
 type
   TMemoryStatusEx = record
@@ -158,7 +179,16 @@ end;
 
 procedure Tgd_dlgAbout.FormCreate(Sender: TObject);
 begin
-  FillSysData;
+  with FSysInfo do
+  begin
+    lblTitle.Caption := Title;
+
+    mCredits.Lines.Insert(0, '');
+    mCredits.Lines.Insert(0, Copyright);
+
+    mSysData.Lines.Assign(Lines);
+    mSysData.SelStart := 0;
+  end;
 end;
 
 procedure Tgd_dlgAbout.btnHelpClick(Sender: TObject);
@@ -171,7 +201,7 @@ begin
   ShellExecute(Handle, 'open', 'msinfo32.exe', nil, nil, SW_SHOW);
 end;
 
-procedure Tgd_dlgAbout.FillTempFiles;
+procedure TgdSysInfo.FillTempFiles;
 var
   TempPath: array[0..1023] of Char;
 
@@ -212,49 +242,22 @@ begin
     AddFile('g' + IntToStr(IBLogin.DBID) + '.gsc');
     AddFile('g' + IntToStr(IBLogin.DBID) + '_' + IntToStr(IBLogin.UserKey) + '.usc');
 
-    mSysData.Lines.Add('');
-    mSysData.Lines.Add('; Временные файлы используются для кэширования информации');
-    mSysData.Lines.Add('; из базы данных и ускорения запуска программы.');
-    mSysData.Lines.Add('; Для удаления временных файлов вручную: закройте Гедымин,');
-    mSysData.Lines.Add('; перейдите в указанную папку, удалите файлы по списку.');
-    mSysData.Lines.Add('; Запретить создание временных файлов можно с помощью');
-    mSysData.Lines.Add('; параметра командной строки /nc.');
+    FLines.Add('');
+    FLines.Add('; Временные файлы используются для кэширования информации');
+    FLines.Add('; из базы данных и ускорения запуска программы.');
+    FLines.Add('; Для удаления временных файлов вручную: закройте Гедымин,');
+    FLines.Add('; перейдите в указанную папку, удалите файлы по списку.');
+    FLines.Add('; Запретить создание временных файлов можно с помощью');
+    FLines.Add('; параметра командной строки /nc.');
   end;
 end;
 
 procedure Tgd_dlgAbout.btnCopyClick(Sender: TObject);
-var
-  Ch: array[0..KL_NAMELENGTH] of Char;
-  Kl: Integer;
-  FNext: Boolean;
 begin
-  FNext := False;
-
-  GetKeyboardLayoutName(Ch);
-  KL := StrToInt('$' + StrPas(Ch));
-
-  case (KL and $3ff) of
-    LANG_BELARUSIAN, LANG_RUSSIAN: ;
-  else
-    ActivateKeyBoardLayout(HKL_NEXT, 0);
-
-    GetKeyboardLayoutName(Ch);
-    KL := StrToInt('$' + StrPas(Ch));
-
-    case (KL and $3ff) of
-      LANG_BELARUSIAN, LANG_RUSSIAN: FNext := True;
-    else
-      ActivateKeyBoardLayout(HKL_PREV, 0);
-    end;
-  end;
-
-  Clipboard.AsText := mSysData.Text;
-
-  if FNext then
-    ActivateKeyBoardLayout(HKL_PREV, 0);
+  FSysInfo.CopyToClipboard;
 end;
 
-procedure Tgd_dlgAbout.FillSysData;
+procedure TgdSysInfo.FillSysData;
 var
   T: TTraceFlag;
   S: String;
@@ -265,7 +268,9 @@ var
   Tr: TIBTransaction;
   q: TIBSQL;
 begin
-  mSysData.ClearAll;
+  FLines.Clear;
+  FTitle := '';
+  FCopyright := '';
 
   if Assigned(IBLogin) and IBLogin.LoggedIn then
   begin
@@ -314,10 +319,8 @@ begin
   if VersionResourceAvailable(Application.EXEName) then
     with TjclFileVersionInfo.Create(Application.EXEName) do
     try
-      lblTitle.Caption := 'Платформа Гедымин, v. ' + ProductVersion;
-
-      mCredits.Lines.Insert(0, '');
-      mCredits.Lines.Insert(0, LegalCopyright);
+      FTitle := 'Платформа Гедымин, v. ' + ProductVersion;
+      FCopyright := LegalCopyright;
 
       AddSpaces('Версия файла', BinFileVersion);
       AddSpaces('Описание', FileDescription);
@@ -362,6 +365,11 @@ begin
     SetLength(S, Length(S) - 2);
     AddSpaces('Символы компиляции', S);
   end;
+
+  {$IFDEF WITH_INDY}
+  AddSpaces('WebServer', gdWebClientThread.gdWebServerURL);
+  AddSpaces('ServerResponse', gdWebClientThread.ServerResponse);
+  {$ENDIF}
 
   AddSection('Версии библиотек');
   AddSpaces('Fast Report 2', Copy(IntToStr(frCurrentVersion), 1, 1) + '.' +
@@ -544,23 +552,21 @@ begin
       Tr.Free;
     end;
   end;
-
-  mSysData.SelStart := 0;
 end;
 
-procedure Tgd_dlgAbout.AddSection(const S: String);
+procedure TgdSysInfo.AddSection(const S: String);
 begin
-  if mSysData.Lines.Count > 0 then
-    mSysData.Lines.Add('');
-  mSysData.Lines.Add('[' + S + ']');
+  if FLines.Count > 0 then
+    FLines.Add('');
+  FLines.Add('[' + S + ']');
 end;
 
-procedure Tgd_dlgAbout.AddSpaces(const Name, Value: String);
+procedure TgdSysInfo.AddSpaces(const Name, Value: String);
 begin
-  mSysData.Lines.Add(Name + StringOfChar(' ', 20 - Length(Name)) + ' = ' + Value);
+  FLines.Add(Name + StringOfChar(' ', 20 - Length(Name)) + ' = ' + Value);
 end;
 
-procedure Tgd_dlgAbout.AddLibrary(h: HMODULE; const AName: String);
+procedure TgdSysInfo.AddLibrary(h: HMODULE; const AName: String);
 var
   HasLoaded: Boolean;
   Ch: array[0..2048] of Char;
@@ -598,7 +604,7 @@ begin
   end;
 end;
 
-procedure Tgd_dlgAbout.AddEnv(const AName: String);
+procedure TgdSysInfo.AddEnv(const AName: String);
 var
   Ch: array[0..2048] of Char;
 begin
@@ -608,7 +614,7 @@ begin
     AddSpaces(AName, '<не определена>')
 end;
 
-procedure Tgd_dlgAbout.AddBoolean(const AName: String;
+procedure TgdSysInfo.AddBoolean(const AName: String;
   const AValue: Boolean);
 begin
   if AValue then
@@ -617,7 +623,7 @@ begin
     AddSpaces(AName, 'Нет');
 end;
 
-procedure Tgd_dlgAbout.AddComLibrary(const AClsID: String; const AName: String);
+procedure TgdSysInfo.AddComLibrary(const AClsID: String; const AName: String);
 var
   Reg: TRegistry;
   FN: String;
@@ -665,5 +671,66 @@ begin
     AddLibrary(0, AName);
 end;
 
+constructor TgdSysInfo.Create;
+begin
+  FLines := TStringList.Create;
+  FillSysData;
+end;
+
+destructor TgdSysInfo.Destroy;
+begin
+  FLines.Free;
+  inherited;
+end;
+
+constructor Tgd_dlgAbout.Create(AnOwner: TComponent);
+begin
+  inherited Create(AnOwner);
+  FSysInfo := TgdSysInfo.Create;
+end;
+
+destructor Tgd_dlgAbout.Destroy;
+begin
+  FSysInfo.Free;
+  inherited;
+end;
+
+procedure TgdSysInfo.CopyToClipboard;
+var
+  Ch: array[0..KL_NAMELENGTH] of Char;
+  Kl: Integer;
+  FNext: Boolean;
+begin
+  FNext := False;
+
+  GetKeyboardLayoutName(Ch);
+  KL := StrToInt('$' + StrPas(Ch));
+
+  case (KL and $3ff) of
+    LANG_BELARUSIAN, LANG_RUSSIAN: ;
+  else
+    ActivateKeyBoardLayout(HKL_NEXT, 0);
+
+    GetKeyboardLayoutName(Ch);
+    KL := StrToInt('$' + StrPas(Ch));
+
+    case (KL and $3ff) of
+      LANG_BELARUSIAN, LANG_RUSSIAN: FNext := True;
+    else
+      ActivateKeyBoardLayout(HKL_PREV, 0);
+    end;
+  end;
+
+  Clipboard.AsText := FLines.Text;
+
+  if FNext then
+    ActivateKeyBoardLayout(HKL_PREV, 0);
+end;
+
+initialization
+  RegisterFrmClass(Tgd_dlgAbout);
+
+finalization
+  UnRegisterFrmClass(Tgd_dlgAbout);
 end.
 

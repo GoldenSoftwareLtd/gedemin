@@ -275,6 +275,9 @@ var
   MS: TMemoryStream;
 begin
   inherited;
+
+  SaveGrid(gDocument);
+  SaveGrid(gDocumentLine);
   if UserStorage <> nil then
   begin
     MS := TMemoryStream.Create;
@@ -292,6 +295,9 @@ var
   MS: TMemoryStream;
 begin
   inherited;
+
+  LoadGrid(gDocument);
+  LoadGrid(gDocumentLine);
   if UserStorage <> nil then
   begin
     MS := TMemoryStream.Create;

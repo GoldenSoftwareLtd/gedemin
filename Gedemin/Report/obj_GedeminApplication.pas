@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
 
@@ -42,10 +42,6 @@ type
     FTextConverter: IgsTextConverter;
     FscrPublicVariables: IscrPublicVariables;
     FgdcClassList: IgsGDCClassList;
-//    FgdcBaseList: IgdcBaseList;
-//    FDesignerInterface: IgsDesigner;
-//    FDesigner: TobjDesigner;
-//    FDesigner: TobjDesigner;
     FException: IgsException;
     FWinAPI: IgsWinAPI;
     FApplication: IgsApplication;
@@ -65,6 +61,7 @@ type
     function IsConnectable(const AnLoginType: TLoginType; const AnUser, AnPassword: String; const DBPath: string = ''): Boolean;
     // Здесь должны создаваться все объекты
     procedure CreateOLEObjects;
+
   protected
     // IGedeminApplication
     function  LoginSilent(const User: WideString; const Password: WideString;
@@ -120,8 +117,6 @@ type
 
     function  NewObject(const VBClassName: WideString): IDispatch; safecall;
     function  GlobalConst(const ConstName: WideString): OleVariant; safecall;
-{    function  CreateObject(const Owner: IgsObject; const AClass: WideString; const AName: WideString): IgsObject; safecall;
-    procedure DestroyObject(const AObject: IgsObject); safecall;}
 
     // IComponent
     function  Get_Name: WideString; safecall;
@@ -178,8 +173,6 @@ type
     function GetFinallyObject: IFinallyObject;
     function GetWebServerControl: IgdWebServerControl;
     
-//    procedure FreeAllDesignerObject;
-
     function  CmdLine: WideString; safecall;
     function  ParamStr(Index: Integer): WideString; safecall;
     function  ParamCount: Integer; safecall;
@@ -234,8 +227,6 @@ end;
 function TgsGedeminApplication.GetViewFormByClass(const ClassName,
   SubType: WideString): IgsObject;
 begin
-  { TODO : изменилась спецификация! }
-  //Result := GetGdcOLEObject(ViewFormByClass(ClassName, SubType)) as IgsObject;
   Result := nil;
 end;
 
@@ -307,9 +298,7 @@ end;
 
 procedure TgsGedeminApplication.Initialize;
 begin
-//  MessageDlg('BeforeOLEInitialize', mtInformation, [MBOK], 0);
   inherited;
-//  MessageDlg('AfterOLEInitialize', mtInformation, [MBOK], 0);
 end;
 
 function TgsGedeminApplication.IsConnectable(
@@ -467,16 +456,9 @@ begin
 end;
 
 destructor TgsGedeminApplication.Destroy;
-//var
-//  i: Integer;
 begin
   FBaseQueryList := nil;
   FGedemin := nil;
-//  InterfaceToObject(FDesigner);
-//  for i := 1 to (InterfaceToObject(FDesigner) as TComObject).RefCount do
-//    FDesigner._Release;
-//  FDesignerInterface := nil;
-//  FDesigner := nil;
   FWinAPI := nil;
   FgdcClassList := nil;
   FscrPublicVariables := nil;
@@ -492,7 +474,6 @@ begin
   FgdcBaseManager := nil;
   FatDatabase := nil;
   FgdWebServerControl := nil;
-  //  IGSFunction := nil;
 
   if GedeminApplication = Self then
     GedeminApplication := nil;
@@ -505,20 +486,14 @@ begin
   // Здесь должны создаваться все объекты
   FBaseQueryList := TgsQueryList.Create(IBLogin.Database, dmClientReport.IBTransaction1);
   FGedemin := TgsGedemin.Create(IBLogin.Database, dmClientReport.IBTransaction1);
-//  FgdcBaseList := TgdcBaseList.Create(IBLogin.Database, dmClientReport.IBTransaction1);
-//  FDesigner := TobjDesigner.Create;
-//  FDesignerInterface := FDesigner;
   FWinAPI := TgsWinAPI.Create;
   FApplication := GetGdcOLEObject(Application) as IgsApplication;
   FScreen := GetGdcOLEObject(Screen) as IgsScreen;
   FMouse := GetGdcOLEObject(Mouse) as IgsMouse;
-//  FgdcClassList := TwrpGDCClassList.Create(nil);
   FgdcClassList := GetGdcOLEObject(gdcClassList) as IgsGDCClassList;
   FgdcBaseManager := TgsGdcBaseManager.Create as IgsGdcBaseManager;
 
   FatDatabase := GetGdcOLEObject(atDatabase) as IgsAtDatabase;
-//  FatDatabase := TobjAtDatabase.Create as IgsAtDatabase;
-//  IGSFunction := TobjGSFunction.Create as IDispatch;
 
   FException := GetGdcOLEObject(ScriptFactory.scrException) as IgsException;
 
@@ -534,67 +509,6 @@ begin
   {$ENDIF}
 end;
 
-{function TgsGedeminApplication.CreateObject(const Owner: IgsObject;
-  const AClass, AName: WideString): IgsObject;
-var
-  LObjectClass: TPersistentClass;
-  LObject: TPersistent;
-  LOwner, LiveObject : TComponent;
-  str: String;
-
-begin
-  Result := nil;
-
-  if Pos(AnsiUpperCase(MACROSCOMPONENT_PREFIX), AnsiUpperCase(AName)) <> 1 then
-  begin
-    str := 'Объект с именем ' + AName + 'не создан.'#10#13 + 'Имя объекта должно содержать префикс usrL_'#10#13 +
-      'Например: usrL_' + AName;
-    Windows.MessageBox(0, PChar(str), PChar('Ошибка создания объекта!'),
-      MB_OK or MB_ICONERROR or MB_TOPMOST);
-    exit;
-  end;
-
-  LObjectClass := GetClass(AClass);
-  if Assigned(LObjectClass) then
-  begin
-    try
-      LOwner := InterfaceToObject(Owner) as TComponent;
-      LiveObject := LOwner.FindComponent(AName);
-      if Assigned(LiveObject) then
-      begin
-        Result := GetGdcOLEObject(LiveObject) as IgsObject;
-        exit;
-      end;
-      LObject := TComponentClass(LObjectClass).Create(LOwner);
-      TComponent(LObject).Name := AName;
-      if LObject is TWinControl then
-        TWinControl(LObject).Parent := LOwner as TWinControl;
-      Result := GetGdcOLEObject(LObject) as IgsObject;
-    except
-      begin
-        FreeAndNil(LObject);
-        Result := nil;
-        raise Exception.Create('Ошибка создания объекта ' + AName);
-      end;
-    end;
-  end else
-    raise Exception.Create('Класс для переданного имени класса не найден!');
-end;
-
-procedure TgsGedeminApplication.DestroyObject(const AObject: IgsObject);
-var
-  LObject: TObject;
-begin
-  if not Assigned(AObject) then
-    exit;
-  LObject := InterfaceToObject(AObject);
-  if LObject is TComponent then
-    if Pos(AnsiUpperCase(MACROSCOMPONENT_PREFIX), AnsiUpperCase(TComponent(LObject).Name)) = 1 then
-      FreeAndNil(LObject)
-    else
-      Windows.MessageBox(0, PChar('Объект ' + TComponent(LObject).Name +' невозможно удалить из макроса'), PChar('Ошибка удаления объекта!'), MB_OK or MB_ICONERROR or MB_TOPMOST);
-end;}
-
 function TgsGedeminApplication.GetBaseQueryList: IgsQueryList;
 begin
   Result := FBaseQueryList;
@@ -608,7 +522,6 @@ end;
 function TgsGedeminApplication.GetgdcBaseList: IgdcBaseList;
 begin
   raise Exception.Create('Объект gdcBaseList не поддерживается.');
-//  Result := FgdcBaseList;
 end;
 
 function TgsGedeminApplication.Get_Designer: IgsDesigner;
@@ -693,7 +606,6 @@ end;
 
 function TgsGedeminApplication.GetDesigner: IgsDesigner;
 begin
-//  Result := FDesignerInterface;
   Result := Designer;
 end;
 
@@ -790,11 +702,6 @@ function TgsGedeminApplication.Get_OwnerForm: IgsForm;
 begin
   Result := nil;
 end;
-
-{procedure TgsGedeminApplication.FreeAllDesignerObject;
-begin
-  FDesigner.FreeAllObject;
-end;}
 
 function TgsGedeminApplication.GetScreen: IgsScreen;
 begin
@@ -942,7 +849,7 @@ end;
 
 procedure TgsGedeminApplication.DestroyObject;
 begin
-// Don't support
+ // Not supported
 end;
 
 function TgsGedeminApplication.Get_DelphiObject: Integer;
@@ -956,7 +863,7 @@ procedure TgsGedeminApplication.SetEventHandler(
 var
   sl: TStringList;
   comp: TComponent;
-  Index: integer;
+  Index, FunctionKey: Integer;
   EvtObj: TEventObject;
   EvtCtrl: TEventControl;
   EvtItem: TEventItem;
@@ -987,34 +894,42 @@ var
   end;
 
 begin
-  sl:= TStringList.Create;
-  q:= TIBSQL.Create(nil);
+  sl := TStringList.Create;
+  q := TIBSQL.Create(nil);
   try
     q.Transaction:= gdcBaseManager.ReadTransaction;
+    FunctionKey := -1;
+
     if Assigned(AnComponent.OwnerForm) then
+    begin
       q.SQL.Text:=
         ' SELECT f.id ' +
         ' FROM gd_function f ' +
-        '   JOIN evt_object o ON o.id = f.modulecode AND o.name = ' + QuotedStr(AnComponent.OwnerForm.Name) +
-        ' WHERE f.name = ' + QuotedStr(FunctionName)
-    else
-      q.SQL.Text:= 'SELECT id FROM gd_function WHERE name = ' + QuotedStr(FunctionName);
-    q.ExecQuery;
-    if q.Eof then begin
-      if Assigned(AnComponent.OwnerForm) then begin
-        q.Close;
-        q.SQL.Text:= 'SELECT id FROM gd_function WHERE name = ' + QuotedStr(FunctionName);
-        q.ExecQuery;
-        if q.Eof then
-          raise Exception.Create('Фунция "' + FunctionName + '" не найдена.');
-      end
-      else
-        raise Exception.Create('Фунция "' + FunctionName + '" не найдена.');
+        '   JOIN evt_object o ON o.id = f.modulecode ' +
+        ' WHERE f.name = :FN AND o.name = :ON';
+      q.ParamByName('ON').AsString := AnComponent.OwnerForm.Name;
+      q.ParamByName('FN').AsString := FunctionName;
+      q.ExecQuery;
+      if not q.EOF then
+        FunctionKey := q.FieldByName('id').AsInteger;
     end;
-    comp:= InterfaceToObject(AnComponent) as TComponent;
+
+    if FunctionKey = -1 then
+    begin
+      q.Close;
+      q.SQL.Text:= 'SELECT id FROM gd_function WHERE name = :FN';
+      q.ParamByName('FN').AsString := FunctionName;
+      q.ExecQuery;
+      if not q.EOF then
+        FunctionKey := q.FieldByName('id').AsInteger;
+    end;
+
+    if FunctionKey = -1 then
+      raise Exception.Create('Фунция "' + FunctionName + '" не найдена.');
+
+    comp := InterfaceToObject(AnComponent) as TComponent;
     EventControl.ObjectEventList(comp, sl);
-    sl.Text:= AnsiUpperCase(sl.Text);
-    if sl.IndexOfName(AnsiUpperCase(EventName)) = -1 then
+    if sl.IndexOfName(EventName) = -1 then
       raise Exception.Create('Передано имя несуществующего события.');
     EvtCtrl:= EventControl.Get_Self as TEventControl;
     EvtObj:= GetEvtObj(comp);
@@ -1022,22 +937,22 @@ begin
       EvtItem:= EvtObj.EventList.Find(EventName);
       if Assigned(EvtItem) then begin
         if EvtItem.OldFunctionKey = 0 then
-          EvtItem.OldFunctionKey:= EvtItem.FunctionKey;
-        EvtItem.FunctionKey:= q.FieldByName('id').AsInteger;
-      end
-      else begin
-        Index:= EvtObj.EventList.Add(EventName, q.FieldByName('id').AsInteger);
-        EvtItem:= EvtObj.EventList[Index];
+          EvtItem.OldFunctionKey := EvtItem.FunctionKey;
+        EvtItem.FunctionKey := FunctionKey;
+      end else
+      begin
+        Index := EvtObj.EventList.Add(EventName, FunctionKey);
+        EvtItem := EvtObj.EventList[Index];
         TempPropInfo := GetPropInfo(comp, EventName);
         EvtItem.OldEvent := GetMethodProp(comp, TempPropInfo);
-        EvtItem.EventData:= GetTypeData(TempPropInfo^.PropType^);
-        EvtItem.EventObject:= EvtObj;
+        EvtItem.EventData := GetTypeData(TempPropInfo^.PropType^);
+        EvtItem.EventObject := EvtObj;
       end;
       EventControl.RebootEvents(comp);
     end;
   finally
-    sl.Free;
     q.Free;
+    sl.Free;
   end;
 end;
 
@@ -1055,8 +970,7 @@ begin
   try
     comp:= InterfaceToObject(AnComponent) as TComponent;
     EventControl.ObjectEventList(comp, sl);
-    sl.Text:= AnsiUpperCase(sl.Text);
-    if sl.IndexOfName(AnsiUpperCase(EventName)) = -1 then
+    if sl.IndexOfName(EventName) = -1 then
       raise Exception.Create('Передано имя несуществующего события.');
 
     EvtCtrl:= EventControl.Get_Self as TEventControl;
@@ -1108,5 +1022,4 @@ initialization
 
 finalization                         
   GedeminApplication := nil;
-
 end.

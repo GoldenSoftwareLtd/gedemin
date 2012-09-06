@@ -86,13 +86,71 @@ type
     procedure DoTest;
   end;
 
+  TgdcStandartSaveToXMLTest = class(TgsDBTestCase)
+  protected
+    FTableName, FFieldName: String;
+    FDBState, FDBStateAfterCreate: String;
+
+    function AddTableField(const AName, ATableName, ADomainName: String): Boolean;
+    function GetTableClass: CgdcTable; virtual; abstract;
+    function GetRecordClass: String; virtual;
+    function GetFileName(ANumber: Integer): String;
+    procedure InitObject(AnObj: TgdcBase); virtual;
+
+    procedure CreateTable; virtual;
+    procedure TestMetaData; virtual; abstract;
+    procedure AddRecordToTable; virtual; abstract;
+    procedure TestAddToSetting;
+    procedure TestDrop; virtual;
+    procedure TestLoadSetting;
+  published
+    procedure DoTest;
+  end;
+
+  TgdcSimpleTableSaveToXMLTest = class(TgdcStandartSaveToXMLTest)
+  protected
+    function GetTableClass: CgdcTable; override; 
+    procedure AddRecordToTable; override;
+    procedure TestMetaData; override;
+  end;
+
+  TgdcTreeTableSaveToXMLTest = class(TgdcStandartSaveToXMLTest)
+  protected
+    function GetTableClass: CgdcTable; override;
+    function GetRecordClass: String; override;
+    procedure AddRecordToTable; override;
+    procedure TestMetaData; override;
+  end;
+
+  TgdcTableToTableSaveToXMLTest = class(TgdcStandartSaveToXMLTest)
+  protected
+    function GetTableClass: CgdcTable; override;
+    procedure InitObject(AnObj: TgdcBase); override;
+    procedure AddRecordToTable; override;
+    procedure TestMetaData; override;
+  end;
+
+  TgdcSetSaveToXMLTest = class(TgdcStandartSaveToXMLTest)
+  protected
+    FDomainName: String;
+    function GetTableClass: CgdcTable; override;
+    procedure AddRecordToTable; override;
+    procedure CreateTable; override;
+    procedure TestMetaData; override;
+    procedure TestDrop; override;
+  end;
+
 implementation
 
 uses
   Classes, Windows, DB, IB, gd_security, at_frmSQLProcess,
   IBSQL, gdcBaseInterface, gd_KeyAssoc, SysUtils,
   gdcLBRBTreeMetaData, jclStrings, gdcJournal, gdcSetting,
-  gdcTableMetaData, gsStreamHelper;
+  gdcTableMetaData, gsStreamHelper, gdcAttrUserDefined;
+
+
+const
+  DomainName = 'DTEXT60';  
 
 procedure TgdcMetaDataTest.TestAuditTriggers;
 var
@@ -322,6 +380,8 @@ begin
   SaveStringToFile(StringReplace(GetDBState, ',', #13#10, [rfReplaceAll]), 'c:\temp\2.txt');}
 
   Check(FDBStateAfterCreate = GetDBState);
+
+  TestMetaData;
 
   Check(DeleteFile(GetFileName));
 
@@ -699,7 +759,7 @@ begin
   Check(FTableKey > 0);
   Check(FDomainKey > 0);
 
-  
+
   FFieldName := 'USR$TEST' + IntToStr(Random(1000000)) + 'F';
 
   FTableField := TgdcTableField.Create(nil);
@@ -715,7 +775,7 @@ begin
     FTableField.Post;
 
     Check(FTableField.FieldByName('crosstable').AsString > '');
-    
+
     Temps := FTableField.FieldByName('crosstable').AsString;
   finally
     FTableField.Free;
@@ -947,7 +1007,7 @@ begin
   ReConnect;
 
   Check(FDBState = GetDBState);
-end; 
+end;
 
 procedure TgdcSetTest.DoTest;
 begin
@@ -956,6 +1016,584 @@ begin
   TestAddToSetting;
   TestDrop;
   TestLoadSetting
+end;
+
+function TgdcStandartSaveToXMLTest.AddTableField(const AName, ATableName, ADomainName: String): Boolean;
+var
+  F, R: OleVariant;
+  FTableField: TgdcTableField;
+begin
+  Result := False;
+
+  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM at_relations WHERE relationname = :RN',
+    ATableName, R, FTr);
+
+  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM at_fields WHERE fieldname = :FN',
+    ADomainName, F, FTr);
+
+  if (not VarIsEmpty(R)) and (not VarIsEmpty(F)) then
+  begin
+    FTableField := TgdcTableField.Create(nil);
+    try
+      FTableField.Open;
+      FTableField.Insert;
+      FTableField.FieldByName('relationtype').AsString := 'T';
+      FTableField.FieldByName('fieldname').AsString := AName;
+      FTableField.FieldByName('relationname').AsString := ATableName;
+      FTableField.FieldByName('fieldsource').AsString := ADomainName;
+      FTableField.FieldByName('relationkey').AsInteger := R[0, 0];
+      FTableField.FieldByName('fieldsourcekey').AsInteger := F[0, 0];
+      FTableField.Post;
+      Result := True;
+    finally
+      FTableField.Free;
+    end;
+  end;
+end;
+
+procedure TgdcStandartSaveToXMLTest.CreateTable;
+var
+  FTable: TgdcTable;
+begin
+  FTableName := 'USR$TEST' + IntToStr(Random(1000000)) + 'A';
+  FDBState := GetDBState;
+
+  FTable := GetTableClass.Create(nil);
+  try
+    FTable.Open;
+    FTable.Insert;
+    InitObject(FTable);
+    FTable.Post;
+  finally
+    FTable.Free;
+  end;
+
+  FFieldName := 'USR$TEST' + IntToStr(Random(1000000)) + 'F';
+  Check(AddTableField(FFieldName, FTableName, DomainName));
+
+  ReConnect;
+
+  AddRecordToTable;
+
+  FDBStateAfterCreate := GetDBState;
+end;
+
+function TgdcStandartSaveToXMLTest.GetFileName(ANumber: Integer): String;
+var
+  TempPath: array[0..1023] of Char;
+begin
+  Check(FTableName > '');
+  GetTempPath(SizeOf(TempPath), TempPath);
+  Result := String(TempPath) + '\' + FTableName + 'part' + IntToStr(ANumber) + '.xml';
+end;
+
+procedure TgdcStandartSaveToXMLTest.InitObject(AnObj: TgdcBase);
+begin
+  Assert(Assigned(AnObj) and (AnObj.State = dsInsert));
+  AnObj.FieldByName('relationname').AsString := FTableName;
+end;
+
+procedure TgdcStandartSaveToXMLTest.TestAddToSetting;
+var
+  FTable: TgdcTable;
+  Obj: TgdcBase;
+  gdcSetting: TgdcSetting;
+  gdcSettingPos: TgdcSettingPos;
+begin
+  Check(FTableName > '');
+
+  FTable := GetTableClass.Create(nil);
+  try
+    FTable.SubSet := 'ByName';
+    FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
+    FTable.Open;
+    Check(not FTable.EOF);
+
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT id FROM ' + FTableName;
+    FQ.ExecQuery;
+    Check(not FQ.EOF);
+
+    gdcSetting := TgdcSetting.Create(nil);
+    try
+      gdcSetting.Open;
+      gdcSetting.Insert;
+      gdcSetting.FieldByName('NAME').AsString := FTableName + 'part1';
+      gdcSetting.Post;
+
+      gdcSettingPos := TgdcSettingPos.Create(nil);
+      try
+        gdcSettingPos.SubSet := 'BySetting';
+        gdcSettingPos.ParamByName('settingkey').AsInteger := gdcSetting.ID;
+        gdcSettingPos.Open;
+        gdcSettingPos.AddPos(FTable, True);
+        gdcSettingPos.Close;
+
+        gdcSetting.SaveSettingToBlob(sttXML);
+        gdcSetting.SaveToFile(GetFileName(1));
+        gdcSetting.Delete;
+
+        gdcSetting.Insert;
+        gdcSetting.FieldByName('NAME').AsString := FTableName + 'part2';
+        gdcSetting.Post;
+
+        gdcSettingPos.ParamByName('settingkey').AsInteger := gdcSetting.ID;
+        gdcSettingPos.Open;
+
+        Obj := CgdcBase(GetClass(GetRecordClass)).CreateSubType(nil, FTableName, 'ByID');
+        try
+          Obj.Database := gdcBaseManager.Database;
+          Obj.Transaction := gdcBaseManager.ReadTransaction; 
+          while not FQ.Eof do
+          begin
+            Obj.ID := FQ.FieldByName('ID').AsInteger;
+            Obj.Open;
+            gdcSettingPos.AddPos(Obj, False);
+            Obj.Close;
+            FQ.Next;
+          end;
+        finally  
+          Obj.Free;
+        end;
+
+        gdcSetting.SaveSettingToBlob(sttXML);
+        gdcSetting.SaveToFile(GetFileName(2));
+        gdcSetting.Delete;
+      finally
+        gdcSettingPos.Free;
+      end; 
+    finally
+      gdcSetting.Free;
+    end;
+  finally
+    FTable.Free;
+  end;
+end;
+
+procedure TgdcStandartSaveToXMLTest.TestDrop;
+var
+  FTable: TgdcTable; 
+begin
+  Check(FTableName > '');  
+
+  FTable := GetTableClass.Create(nil);
+  try
+    FTable.SubSet := 'ByName';
+    FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
+    FTable.Open;
+    Check(not FTable.EOF);
+    FTable.Delete;
+  finally
+    FTable.Free;
+  end;
+
+  ReConnect;
+
+  Check(FDBState = GetDBState);
+end;
+
+procedure TgdcStandartSaveToXMLTest.TestLoadSetting;
+var
+  gdcSetting: TgdcSetting;
+begin
+  Check(FTableName > '');
+
+  gdcSetting := TgdcSetting.Create(nil);
+  try
+    gdcSetting.Open;
+    gdcSetting.LoadFromFile(GetFileName(1));
+    gdcSetting.GoToLastLoadedSetting;
+
+    ActivateSettings(IntToStr(gdcSetting.ID));
+
+    gdcSetting.LoadFromFile(GetFileName(2));
+    gdcSetting.GoToLastLoadedSetting;
+
+    ActivateSettings(IntToStr(gdcSetting.ID));
+
+    gdcSetting.Close;
+    gdcSetting.SubSet := 'ByName';
+    gdcSetting.ParamByName(gdcSetting.GetListField(gdcSetting.SubType)).AsString := FTableName + 'part1';
+    gdcSetting.Open;
+    gdcSetting.Delete;
+
+    gdcSetting.Close;
+    gdcSetting.ParamByName(gdcSetting.GetListField(gdcSetting.SubType)).AsString := FTableName + 'part2';
+    gdcSetting.Open;
+    gdcSetting.Delete;
+  finally
+    gdcSetting.Free;
+  end;
+
+  ReConnect;
+
+  TestMetaData;
+  Check(FDBStateAfterCreate = GetDBState);
+
+  Check(DeleteFile(GetFileName(1)));
+  Check(DeleteFile(GetFileName(2)));
+
+  TestDrop;
+end;
+
+procedure TgdcStandartSaveToXMLTest.DoTest;
+begin
+  CreateTable;
+  TestAddToSetting;
+  TestDrop;
+  TestLoadSetting;
+end;
+
+function TgdcStandartSaveToXMLTest.GetRecordClass: String;
+begin
+  Result := 'TgdcAttrUserDefined';
+end;
+
+function TgdcTreeTableSaveToXMLTest.GetTableClass: CgdcTable;
+begin
+  Result := TgdcTreeTable;
+end;
+
+function TgdcTreeTableSaveToXMLTest.GetRecordClass: String;
+begin
+  Result := 'TgdcAttrUserDefinedTree';
+end;
+
+procedure TgdcTreeTableSaveToXMLTest.AddRecordToTable;
+var
+  g: TgdcBase;
+  Parent: Integer;
+begin
+  g := CgdcBase(GetClass(GetRecordClass)).Create(nil);
+  try
+    g.SubType := FTableName;
+    g.SubSet := 'ByName';
+    g.Open;
+
+    g.Insert;
+    g.FieldByName(FFieldName).AsVariant := 'TEST1';
+    Parent := g.ID;
+    g.Post;
+
+    g.Insert;
+    g.FieldByName(FFieldName).AsVariant := 'TEST2';
+    g.FieldByName('PARENT').AsInteger := Parent;
+    g.Post;
+
+    ReConnect;
+
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT count(*) FROM ' + FTableName;
+    FQ.ExecQuery;
+
+    Check(not FQ.Eof);
+    Check(FQ.FieldByName('count').AsInteger = 2);
+  finally
+    g.Free;
+  end;
+end;
+
+procedure TgdcTreeTableSaveToXMLTest.TestMetaData;
+begin
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT count(*) FROM ' + FTableName;
+  FQ.ExecQuery;
+
+  Check(not FQ.Eof);
+  Check(FQ.FieldByName('count').AsInteger = 2);
+end;
+
+function TgdcSimpleTableSaveToXMLTest.GetTableClass: CgdcTable;
+begin
+  Result := TgdcSimpleTable;
+end;
+
+procedure TgdcSimpleTableSaveToXMLTest.AddRecordToTable;
+var
+  g: TgdcBase;
+begin
+  g := CgdcBase(GetClass(GetRecordClass)).Create(nil);
+  try
+    g.SubType := FTableName;
+    g.SubSet := 'ByName';
+    g.Open;
+
+    g.Insert;
+    g.FieldByName(FFieldName).AsVariant := 'TEST1';
+    g.Post;
+
+    ReConnect;
+
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT count(*) FROM ' + FTableName;
+    FQ.ExecQuery;
+
+    Check(not FQ.Eof);
+    Check(FQ.FieldByName('count').AsInteger = 1);
+  finally
+    g.Free;
+  end;
+end;
+
+procedure TgdcSimpleTableSaveToXMLTest.TestMetaData;
+begin
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT count(*) FROM ' + FTableName;
+  FQ.ExecQuery;
+
+  Check(not FQ.Eof);
+  Check(FQ.FieldByName('count').AsInteger = 1);
+end;
+
+function TgdcTableToTableSaveToXMLTest.GetTableClass: CgdcTable;
+begin
+  Result := TgdcTableToTable;
+end;
+
+procedure TgdcTableToTableSaveToXMLTest.InitObject(AnObj: TgdcBase);
+var
+  R: OleVariant;
+begin
+  inherited;
+  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM at_relations WHERE relationname = :RN',
+    'GD_CONTACT', R, FTr);
+  AnObj.FieldByName('referencekey').AsInteger := R[0, 0];
+end;
+
+procedure TgdcTableTotableSaveToXMLTest.AddRecordToTable;
+var
+  g: TgdcBase;
+begin
+  g := CgdcBase(GetClass(GetRecordClass)).Create(nil);
+  try
+    g.SubType := FTableName;
+    g.SubSet := 'ByName';
+    g.Open;
+
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT id FROM gd_contact';
+    FQ.ExecQuery;
+
+    g.Insert;
+    g.FieldByName('ID').AsInteger := FQ.FieldByName('ID').AsInteger;
+    g.FieldByName(FFieldName).AsVariant := 'TEST1';
+    g.Post;
+
+    ReConnect;
+
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT count(*) FROM ' + FTableName;
+    FQ.ExecQuery;
+
+    Check(not FQ.Eof);
+    Check(FQ.FieldByName('count').AsInteger = 1);
+  finally
+    g.Free;
+  end;
+end;
+
+procedure TgdcTableToTableSaveToXMLTest.TestMetaData;
+begin
+  FQ.Close;
+  FQ.SQL.Text := 'SELECT count(*) FROM ' + FTableName;
+  FQ.ExecQuery;
+
+  Check(not FQ.Eof);
+  Check(FQ.FieldByName('count').AsInteger = 1);
+end;
+
+function TgdcSetSaveToXMLTest.GetTableClass: CgdcTable;
+begin
+  Result := TgdcPrimeTable;
+end;
+
+procedure TgdcSetSaveToXMLTest.AddRecordToTable; 
+var
+  g: TgdcBase;
+  CrossTable, Fields: String;
+begin
+  g := CgdcBase(GetClass(GetRecordClass)).Create(nil);
+  try
+    g.SubType := FTableName;
+    g.SubSet := 'ByName';
+    g.Open;
+
+    g.Insert;
+    g.Post;
+
+    ReConnect;
+
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT count(*) FROM ' + FTableName;
+    FQ.ExecQuery;
+
+    Check(not FQ.Eof);
+    Check(FQ.FieldByName('count').AsInteger = 1);
+
+    FQ.Close;
+    FQ.SQL.Text := 'SELECT crosstable FROM at_relation_fields WHERE relationname = :RN and fieldname = :FN';
+    FQ.ParamByName('RN').AsString := FTableName;
+    FQ.ParamByName('FN').AsString := FFieldName;
+    FQ.ExecQuery;
+
+    CrossTable := FQ.FieldByName('crosstable').AsString;
+
+    FQ2.SQL.Text := 'SELECT LIST(FieldName) as names FROM at_relation_fields where relationname = :RN';
+    FQ2.ParamByName('RN').AsString := CrossTable;
+    FQ2.ExecQuery;
+
+    Fields := FQ2.FieldByName('names').AsString;
+
+    FQ2.Close;
+    FQ2.SQL.Text := 'SELECT id FROM AC_ACCOUNT';
+    FQ2.ExecQuery;
+
+    FQ.Close;
+    FQ.SQl.Text := 'INSERT INTO ' + CrossTable + '(' + Fields + ') VALUES (:ID1, :ID2)';
+    FQ.ParamByName('ID1').AsInteger := g.ID;
+    FQ.ParamByName('ID2').AsInteger := FQ2.FieldByName('ID').AsInteger;
+    FQ.ExecQuery;
+    FQ.Close;
+    FQ2.Next;
+
+    FQ.ParamByName('ID1').AsInteger := g.ID;
+    FQ.ParamByName('ID2').AsInteger := FQ2.FieldByName('ID').AsInteger;
+    FQ.ExecQuery;
+
+    if FTr.InTransaction then
+    begin
+      FTr.Commit;
+      FTr.StartTransaction;
+    end;
+  finally
+    g.Free;
+  end;
+end;
+
+procedure TgdcSetSaveToXMLTest.TestMetaData;
+begin
+   FQ.Close;
+   FQ.SQL.Text := 'SELECT count(*) FROM ' + FTableName;
+   FQ.ExecQuery;
+   Check(FQ.FieldByName('count').AsInteger = 1);
+
+   FQ.Close;
+   FQ.SQL.Text := 'SELECT crosstable FROM at_relation_fields WHERE relationname = :RN and fieldname = :FN';
+   FQ.ParamByName('RN').AsString := FTableName;
+   FQ.ParamByName('FN').AsString := FFieldName;
+   FQ.ExecQuery;
+
+   FQ2.Close;
+   FQ2.SQL.Text := 'SELECT count(*) FROM ' + FQ.FieldByName('crosstable').AsString;
+   FQ2.ExecQuery;
+
+   Check(FQ2.FieldByName('count').AsInteger = 2);
+end;
+
+procedure TgdcSetSaveToXMLTest.CreateTable;
+var
+  FTable: TgdcTable;
+  FField: TgdcField;
+begin
+  FTableName := 'USR$TEST' + IntToStr(Random(1000000)) + 'A';
+  FDBState := GetDBState;
+
+  FTable := GetTableClass.Create(nil);
+  try
+    FTable.Open;
+    FTable.Insert;
+    InitObject(FTable);
+    FTable.Post;
+  finally
+    FTable.Free;
+  end;
+
+  FDomainName := 'USR$TEST' + IntToStr(Random(1000000));
+
+  FField := TgdcField.Create(nil);
+  try
+    FField.Open;
+    FField.Insert;
+    FField.FieldByName('fieldname').AsString := FDomainName;
+    FField.FieldByName('lname').AsString := FDomainName;
+    FField.FieldByName('setlistlname').AsString := '—чета';
+    FField.FieldByName('ffieldtype').AsInteger := 37;
+    FField.FieldByName('flength').AsInteger := 120;
+    FField.FieldByName('fcharlength').AsInteger := 120;
+    FField.FieldByName('charset').AsString := 'WIN1251';
+    FField.FieldByName('collation').AsString := 'PXW_CYRL';
+    FField.FieldByName('settable').AsString := 'AC_ACCOUNT';
+    FField.FieldByName('setlistfield').AsString := 'NAME';
+    FField.FieldByName('settablekey').AsInteger := 147000794;
+    FField.FieldByName('setlistfieldkey').AsInteger := 147001549;
+    FField.Post;
+  finally
+    FField.Free;
+  end;
+
+  ReConnect;
+
+  FFieldName := 'USR$TEST' + IntToStr(Random(1000000)) + 'F';
+
+  Check(AddTableField(FFieldName, FTableName, FDomainName));
+
+  ReConnect;
+
+  AddRecordToTable;
+
+  FDBStateAfterCreate := GetDBState;
+end;
+
+procedure TgdcSetSaveToXMLTest.TestDrop;
+var
+  FTableField: TgdcTableField;
+  FTable: TgdcTable;
+  FDomain: TgdcField;
+begin
+  Check(FFieldName > '');
+  Check(FTableName > '');
+  Check(FDomainName > '');
+
+  FTableField := TgdcTableField.Create(nil);
+  try
+    FTableField.SubSet := 'ByName';
+    FTableField.ParamByName(FTableField.GetListField(FTableField.SubType)).AsString := FFieldName;
+    FTableField.Open;
+    Check(not FTableField.EOF);
+    FTableField.Delete;
+  finally
+    FTableField.Free;
+  end;
+
+  ReConnect;
+
+  FTable :=  GetTableClass.Create(nil);
+  try
+    FTable.SubSet := 'ByName';
+    FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
+    FTable.Open;
+    Check(not FTable.EOF);
+    FTable.Delete;
+  finally
+    FTable.Free;
+  end;
+
+  ReConnect;
+
+  FDomain := TgdcField.Create(nil);
+  try
+    FDomain.SubSet := 'ByName';
+    FDomain.ParamByName(FDomain.GetListField(FDomain.SubType)).AsString := FDomainName;
+    FDomain.Open;
+    Check(not FDomain.EOF);
+    FDomain.Delete;
+  finally
+    FDomain.Free;
+  end;
+
+  ReConnect;
+
+  Check(FDBState = GetDBState);
 end; 
 
 initialization
@@ -966,5 +1604,9 @@ initialization
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcTableToTableTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcLBRBTreeTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\Set', TgdcSetTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\SaveSettingXML', TgdcTreeTableSaveToXMLTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\SaveSettingXML', TgdcSimpleTableSaveToXMLTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\SaveSettingXML', TgdcTableToTableSaveToXMLTest.Suite);
+  RegisterTest('DB\TgdcMetaDataTest\SaveSettingXML', TgdcSetSaveToXMLTest.Suite);
   Randomize;
 end.

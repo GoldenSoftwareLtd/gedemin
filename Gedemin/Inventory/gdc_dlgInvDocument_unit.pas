@@ -788,16 +788,343 @@ begin
           end
           else
           begin
-            C := Grid.ColumnEditors.Add;
-            C.EditorStyle := cesLookup;
-            C.FieldName := CurrDocLine.Fields[I].FieldName;
-            C.DisplayField := CurrDocLine.Fields[I].FieldName;
 
-            C.Lookup.Transaction := ibtrCommon;
-            C.Lookup.LookupListField := F.FieldName;
-            C.Lookup.LookupKeyField := F.FieldName;
-            C.Lookup.LookupTable := 'INV_CARD';
-            C.Lookup.GroupBy := F.FieldName;
+            case F.Field.FieldType of
+
+              //
+              // Логические данные
+              ftBoolean:
+              begin
+                C := Grid.ColumnEditors.Add;
+                C.EditorStyle := cesValueList;
+                C.DisplayField := CurrDocLine.Fields[I].FieldName;
+                C.FieldName := CurrDocLine.Fields[I].FieldName;
+                C.ValueList.Add('Истина=1');
+                C.ValueList.Add('Ложь=0');
+              end;
+
+              //
+              // Числовые данные
+
+              ftSmallInt, ftBCD, ftInteger, ftFloat, ftLargeInt:
+              begin
+                C := Grid.ColumnEditors.Add;
+
+                //
+                // Если не является ни ссылкой, ни множеством на другую таблицу
+
+                if (F.References = nil) and (F.CrossRelation = nil) then
+                begin
+                  C.EditorStyle := cesCalculator;
+                  C.DisplayField := CurrDocLine.Fields[I].FieldName;
+                  C.FieldName := CurrDocLine.Fields[I].FieldName;
+                end else
+
+                //
+                // Если ссылка на таблицу-множество для данной таблицы
+
+                if F.CrossRelation <> nil then
+                begin
+                  if F.CrossRelation.IsStandartTreeRelation then
+                    C.EditorStyle := cesSetTree
+                  else
+                    C.EditorStyle := cesSetGrid;
+
+                  C.FieldName := CurrDocLine.Fields[I].FieldName;
+                  C.DisplayField := CurrDocLine.Fields[I].FieldName;
+                  { TODO 1 -oденис -cсделать : Доделать для множеств }
+                end else
+
+                //
+                // Если поле из таблицы-карточки по складу
+
+                //
+                // Если обычная ссылка на другую таблицу
+
+                begin
+                  if AnsiCompareText(R.RelationName, 'INV_CARD') = 0 then
+                  begin
+                  {Если наше поле принадлежит таблице INV_CARD}
+                    if CurrDocLine.RelationType = irtFeatureChange then
+                    {Если это документ с изменением свойств, то нас интересует inv_card с алиасом tocard}
+                      AliasName := 'TOCARD'
+                    else
+                      AliasName := 'CARD';
+                  end
+                  else
+                    if AnsiCompareText(R.RelationName, CurrDocLine.RelationLineName) = 0 then
+                    {Наше поле из таблицы позиции складского документа}
+                      AliasName := 'INVLINE'
+                    else
+                    {другая таблица}
+                      if AnsiCompareText(R.RelationName, 'GD_DOCUMENT') = 0 then
+                        AliasName := 'Z';
+
+                  if AliasName > '' then
+                  begin
+                  {Наше поле из inv_card или invline}
+                    C.EditorStyle := cesLookup;
+                    C.FieldName := CurrDocLine.Fields[I].FieldName;
+
+                    {Устанавливаем лист-таблицу, поле для отображения, класс, подтип}
+                    if F.gdClassName > '' then
+                    begin
+                      C.Lookup.SubType := F.gdSubType;
+                      C.Lookup.gdClassName := F.gdClassName;
+                      if Assigned(F.Field.RefListField) then
+                        C.Lookup.LookupListField := F.Field.RefListField.FieldName;
+                    end else begin
+                      if Assigned(F.Field.RefListField) then
+                        C.Lookup.LookupListField := F.Field.RefListField.FieldName
+                      else
+                        C.Lookup.LookupListField := F.References.ListField.FieldName;
+
+                      C.Lookup.LookupKeyField := F.References.PrimaryKey.
+                        ConstraintFields[0].FieldName;
+                      C.Lookup.LookupTable := F.References.RelationName;
+                    end;
+
+                    {Поле, в которм будет выводится контрол}
+                    C.DisplayField := gdcBaseManager.AdjustMetaName(CurrDocLine.JoinListFieldByFieldName(F.FieldName, AliasName,
+                       C.Lookup.LookupListField));
+                    {Условие}
+                    C.Lookup.Condition := F.Field.RefCondition;
+                    {Транзакция}
+                    C.Lookup.Transaction := ibtrCommon;
+
+                    {Инициализация флагов}
+                    IsAsConstraint := False;  {Наша ссылка - это ссылка из дополнительного ограничения по расходу}
+                    HasConstraint := False;   {Имеет дополнительное ограничение на поля-ссылки на контакт прихода-расхода}
+
+                    //
+                    // Проверка на случай использования поля, как указателя на получателя
+                    // и источник ТМЦ
+
+                    //
+                    // Если расход в нижней таблице
+
+                    if  {Расход выполняется на контакт из позиции и наша ссылка является этим контактом}
+                      (AnsiCompareText(CurrDocLine.MovementSource.RelationName,
+                        CurrDocLine.RelationLineName) = 0)
+                        and
+                      (AnsiCompareText(CurrDocLine.MovementSource.SourceFieldName,
+                        C.FieldName) = 0)
+                    then begin
+                      {Устанавливаем флаг дополнительного ограничения по расходу}
+                      HasConstraint := (CurrDocLine.MovementSource.SubRelationName > '') and
+                        (CurrDocLine.MovementSource.SubSourceFieldName > '');
+                      {Считываем тип контакта, на который оформляется расход}
+                      ContactType := CurrDocLine.MovementSource.ContactType;
+                      {Считываем возможные значения контакта, на кот оформляется расход}
+                      Predefined := GetArrAsCommaText(CurrDocLine.MovementSource.Predefined);
+                    end else
+
+                    //
+                    // Если приход в нижней таблице
+
+                    if {Приход выполняется на контакт из позиции и наша ссылка является этим контактом}
+                      (AnsiCompareText(CurrDocLine.MovementTarget.RelationName,
+                        CurrDocLine.RelationLineName) = 0)
+                        and
+                      (AnsiCompareText(CurrDocLine.MovementTarget.SourceFieldName,
+                        C.FieldName) = 0)
+                    then begin
+                     {Устанавливаем флаг дополнительного ограничения по приходу}
+                      HasConstraint := (CurrDocLine.MovementTarget.SubRelationName > '') and
+                        (CurrDocLine.MovementTarget.SubSourceFieldName > '');
+                      {Считываем тип контакта, на который оформляется приход}
+                      ContactType := CurrDocLine.MovementTarget.ContactType;
+                      {Считываем возможные значения контакта, на кот оформляется приход}
+                      Predefined := GetArrAsCommaText(CurrDocLine.MovementTarget.Predefined);
+                    end else
+
+                    //
+                    //  Если ограничение по расходу в нижней таблице
+
+                    if
+                      (AnsiCompareText(CurrDocLine.MovementSource.SubRelationName,
+                        CurrDocLine.RelationLineName) = 0)
+                        and
+                      (AnsiCompareText(CurrDocLine.MovementSource.SubSourceFieldName,
+                        C.FieldName) = 0)
+                    then begin
+                      {Наша ссылка - это ссылка из дополнительного ограничения по расходу}
+                      IsAsConstraint := True;
+                      {Считываем тип контакта, ограничивающего расход}
+                      ContactType := CurrDocLine.MovementSource.ContactType;
+                      {На поле контакт позиции вешаем свой обработчик OnChange }
+                      CurrDocLine.FieldByName(CurrDocLine.MovementSource.SubSourceFieldName).OnChange :=
+                        OnSubLineMovementOptionFieldChange;
+                     {Считываем возможные значения контакта, ограничивающего  расход}
+                      Predefined := GetArrAsCommaText(CurrDocLine.MovementSource.SubPredefined);
+                    end else
+
+                    //
+                    //  Если ограничение по приходу в нижней таблице
+
+                    if
+                      (AnsiCompareText(CurrDocLine.MovementTarget.SubRelationName,
+                        CurrDocLine.RelationLineName) = 0)
+                        and
+                      (AnsiCompareText(CurrDocLine.MovementTarget.SubSourceFieldName,
+                        C.FieldName) = 0)
+                    then begin
+                      {Наша ссылка - это ссылка из дополнительного ограничения по приходу}
+                      IsAsConstraint := True;
+                      {Считываем тип контакта, ограничивающего приход}
+                      ContactType := CurrDocLine.MovementTarget.ContactType;
+                      {На поле контакт позиции вешаем свой обработчик OnChange }
+                      CurrDocLine.FieldByName(CurrDocLine.MovementTarget.SubSourceFieldName).OnChange :=
+                        OnSubLineMovementOptionFieldChange;
+                     {Считываем возможные значения контакта, ограничивающего приход}
+                      Predefined := GetArrAsCommaText(CurrDocLine.MovementTarget.SubPredefined);
+                    end else
+                      Continue; {Все остальные ссылки из таблиц inv_card, invline пропускаем}
+
+                    //
+                    // Если идет работа с ограничением - необходимо трансформировать тип контакта
+
+                    if IsAsConstraint then
+                    case ContactType of
+                      imctOurCompany: // Пропускаем
+                        Continue;
+                      imctOurDepartment: // Оставляем подразделение
+                        ContactType := imctOurDepartment;
+                      imctOurPeople: // Если сотрудник - устанавливаем подразделение
+                        ContactType := imctOurDepartment;
+                      imctCompany: // Пропускаем
+                        Continue;
+                      imctCompanyDepartment: // Если подразделение клиента - клиент
+                        ContactType := imctCompany;
+                      imctCompanyPeople: // Если сотрудник клиента - клиент
+                        ContactType := imctCompany;
+                      imctPeople: // Пропускаем
+                        Continue;
+                    end;
+
+                    //
+                    // Обрабатываем все виды полей-указателей на получателя или источник
+
+                    case ContactType of
+                      imctOurCompany:
+                      begin
+                        C.Lookup.gdClassName :=  'TgdcOurCompany';
+                      end;
+                      imctOurDepartment:  //Приход/расход оформлен на наше подразделение
+                      begin
+                        C.Lookup.gdClassName :=  'TgdcDepartment';
+                        C.Lookup.LookupTable := 'gd_contact c JOIN gd_contact cp ON cp.lb <= c.lb AND cp.rb >= c.rb ';
+                        C.Lookup.Condition := 'c.contacttype = 4 AND cp.id = :ck';
+                        C.Lookup.Params.Clear;
+                        if HasConstraint then //Есть дополнительное ограничение
+                          C.Lookup.Params.Add('ck=0')
+                        else
+                          C.Lookup.Params.Add('ck=' + IntToStr(IBLogin.CompanyKey));
+                        Alias := 'c.';
+                      end;
+                      imctOurPeople:  //Приход/расход оформлен на нашего сотрудника
+                      begin
+                        C.Lookup.gdClassName :=  'TgdcEmployee';
+                        C.Lookup.LookupTable := 'gd_contact c JOIN gd_contact cp ON cp.lb <= c.lb AND cp.rb >= c.rb ';
+                        C.Lookup.Condition := 'c.contacttype = 2 AND cp.id = :ck';
+                        C.Lookup.Params.Clear;
+                        if HasConstraint then //Есть дополнительное ограничение
+                          C.Lookup.Params.Add('ck=0')
+                        else
+                          C.Lookup.Params.Add('ck=' + IntToStr(IBLogin.CompanyKey));
+                        Alias := 'c.';
+                      end;
+                      imctCompany: //Приход/расход оформлен на клиента
+                      begin
+                        C.Lookup.gdClassName :=  'TgdcCompany';
+                        C.Lookup.Condition := 'contacttype in (3, 5)';
+                      end;
+                      imctCompanyDepartment:
+                      begin
+                        C.Lookup.gdClassName :=  'TgdcDepartment';
+                        C.Lookup.LookupTable := 'gd_contact c JOIN gd_contact cp ON cp.lb <= c.lb AND cp.rb >= c.rb ';
+                        C.Lookup.Condition := 'c.contacttype = 4 AND cp.id = :ck';
+                        C.Lookup.Params.Clear;
+                        C.Lookup.Params.Add('ck=0');
+                        Alias := 'c.';
+                      end;
+                      imctCompanyPeople: //Приход/расход оформлен на сотрудника клиента
+                      begin
+                        C.Lookup.gdClassName :=  'TgdcEmployee';
+                        C.Lookup.LookupTable := 'gd_contact c JOIN gd_contact cp ON cp.lb <= c.lb AND cp.rb >= c.rb ';
+                        C.Lookup.Condition := 'c.contacttype = 2 AND cp.id = :ck';
+                        C.Lookup.Params.Clear;
+                        C.Lookup.Params.Add('ck=0');
+                        Alias := 'c.';
+                      end;
+                      imctPeople: //Приход/расход оформлен на физ лицо
+                      begin
+                        C.Lookup.gdClassName :=  'TgdcContact';
+                        C.Lookup.Condition := 'contacttype = 2';
+                      end;
+                    end;
+
+                    //
+                    // Если есть предустановленные значения, заполняем их
+
+                    if Predefined > '' then
+                    begin
+                      if C.Lookup.Condition > '' then
+                        S :=  C.Lookup.Condition + ' AND '
+                      else
+                        S := '';
+
+                      S := S + Format('(%s%s IN (%s))', [Alias, C.Lookup.LookupKeyField, Predefined]);
+
+                      C.Lookup.Condition := S;
+                    end;
+                  end;
+                end;
+              end;
+
+              ftDateTime, ftTime:
+              begin
+      //          !!!!!Здесь ничего?????
+                C := Grid.ColumnEditors.Add;
+                C.DisplayField := F.FieldName;
+                C.FieldName := F.FieldName;
+                C.EditorStyle := cesNone;
+              end;
+              ftDate:
+              begin
+                C := Grid.ColumnEditors.Add;
+                C.DisplayField := F.FieldName;
+                C.FieldName := F.FieldName;
+                C.EditorStyle := cesDate;
+              end;
+              ftMemo:
+              begin
+                // nothing??????????
+              end;
+              ftBlob:
+              begin
+                // nothing??????????
+              end;
+              ftString:
+              begin
+      {!!!!!b Julia}
+                if Length(F.Field.Numerations) > 0 then
+                begin
+                  C := Grid.ColumnEditors.Add;
+                  C.EditorStyle := cesValueList;
+                  C.DisplayField := CurrDocLine.Fields[I].FieldName;
+                  C.FieldName := CurrDocLine.Fields[I].FieldName;
+
+                  for J := 0 to Length(F.Field.Numerations) - 1 do
+                  begin
+                    C.ValueList.Add(F.Field.Numerations[J].Name + '=' + F.Field.Numerations[J].Value);
+                  end;
+                end;
+      {!!!!!e Julia}
+                //
+                //  Контролы для карточки
+              end;
+            end;
           end;
         end
         else

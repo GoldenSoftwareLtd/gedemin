@@ -1,17 +1,6 @@
 
 unit ct_main_form;
 
-{TODO }
-{TODO }
-{TODO }
-{TODO }
-{TODO }
-{TODO }
-{TODO }
-{TODO }
-{TODO }
-{TODO }
-
 interface
 
 uses
