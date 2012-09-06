@@ -41,12 +41,12 @@ ExeDescription=Internet Direct (Indy) for D5 Property and Component Editors
 [Directories]
 OutputDir=
 UnitOutputDir=..\..\dcu
-PackageDLLOutputDir=..\..\dcu
-PackageDCPOutputDir=..\..\dcu
-SearchPath=..\..\dcu
+PackageDLLOutputDir=..\..\bpl
+PackageDCPOutputDir=..\..\bpl
+SearchPath=
 Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;vclado50;ibevnt50;Vclbde50;vcldbx50;Qrpt50;TeeUI50;TeeDB50;Tee50;Dss50;TeeQR50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50
 Conditionals=
-DebugSourceDirs=..\..\dcu
+DebugSourceDirs=
 UsePackages=0
 [Parameters]
 RunParams=
@@ -76,10 +76,7 @@ OriginalFilename=
 ProductName=
 ProductVersion=1.0.0.0
 [Excluded Packages]
-D:\Golden\gedemin\FastReport 4\LibD5\dclfrx5.bpl=FastReport 4.0 Components
-D:\Golden\gedemin\DCU\A406_R50.bpl=TurboPower Async Professional 4.06 Runtime Package - VCL50
 $(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
-$(DELPHI)\Bin\DCLIB50.bpl=InterBase Data Access Components
 [HistoryLists\hlDebugSourcePath]
 Count=2
 Item0=..\..\dcu
@@ -96,10 +93,12 @@ Count=2
 Item0=..\..\dcu
 Item1=$(DELPHI)\Projects\indy_test\dcu
 [HistoryLists\hlBPLOutput]
-Count=2
-Item0=..\..\dcu
-Item1=$(DELPHI)\Projects\indy_test\dcu
+Count=3
+Item0=..\..\bpl
+Item1=..\..\dcu
+Item2=$(DELPHI)\Projects\indy_test\dcu
 [HistoryLists\hlDCPOutput]
-Count=2
-Item0=..\..\dcu
-Item1=$(DELPHI)\Projects\indy_test\dcu
+Count=3
+Item0=..\..\bpl
+Item1=..\..\dcu
+Item2=$(DELPHI)\Projects\indy_test\dcu
