@@ -40,8 +40,6 @@ type
     FResizerActivated: Boolean;
     FVariables: TgdVariables;
     FObjects: TgdObjects;
-    //FAUTimerInitialized: Boolean;
-    //FOldTickCount: DWORD;
 
     FShowSpeedButton: Boolean;
     FOnSaveSettings: TNotifyEvent;
@@ -248,7 +246,7 @@ var
 implementation
 
 uses
-  SysUtils, SyncObjs, gsDesktopManager, Menus//, Controls
+  SysUtils, SyncObjs, gsDesktopManager, Menus
   {$IFDEF DEBUG}
   , gd_debug
   {$ENDIF}
@@ -633,8 +631,7 @@ begin
   finally
     Exclude(FCreateableFormState, cfsSetting);
   end;
-{  if Assigned(_OnCreateForm) and FShowSpeedButton then
-    _OnCreateForm(Self);}
+
   FShiftDown := False;
 end;
 
@@ -872,7 +869,6 @@ begin
       if FormAssigned(gdc_frmExplorer) and
         ((gdc_frmExplorer.Left + gdc_frmExplorer.Width) > DRight) and
         ((gdc_frmExplorer.Left + gdc_frmExplorer.Width) < Left)
-//        ((gdc_frmExplorer.Left + gdc_frmExplorer.Width) > (Screen.DesktopWidth - DRight))
       then
         Width := gdc_frmExplorer.Left - Left;
     end;
@@ -993,7 +989,6 @@ end;
 procedure TCreateableForm.SetName(const NewName: TComponentName);
 begin
   Assert(NewName <> '');
-//  Assert(FInitialName = '');
 
   { TODO : зачем вторая проверка?? }
   if (cfsUserCreated in CreateableFormState) and (FInitialName = '') then
@@ -1334,7 +1329,6 @@ begin
       begin
         if (Self <> Application.MainForm)
           and (not (cfsDesigning in FCreateableFormState))
-          {and (Self.ClassName <> 'Tgdc_frmExplorer')}
           and (not (fsModal in Self.FormState))
           and (Self.BorderStyle = bsSizeable)
           and Assigned(UserStorage)
@@ -1385,12 +1379,7 @@ begin
              RCurr.Bottom - RCurr.Top);
 
           exit;
-        end
-        {else if (fsModal in Self.FormState)
-          and (Self is Tgdc_frmG) then
-        begin
-          exit;
-        end};
+        end;
       end;
   end;
 
@@ -1646,7 +1635,7 @@ end;
 procedure TCreateableForm.DoClose(var Action: TCloseAction);
 begin
   inherited;
-  { TODO -oЮлия : Зачем здесь такая проверка? }
+
   if not Assigned(OnClose) then
   begin
     if (Action = caHide) and FShiftDown and (not(fsModal in FormState)) then
@@ -1694,33 +1683,8 @@ begin
 end;
 
 procedure TCreateableForm.UpdateActions;
-{var
-  T: DWORD;}
 begin
-  {if Active and (IBLogin <> nil) and (IBLogin.IsIBUserAdmin) then
-  begin
-    T := GetTickCount;
-    inherited;
-    if GetTickCount - T > 16 then
-    begin
-      if not FAUTimerInitialized then
-        FAUTimerInitialized := True
-      else
-        if GetTickCount - FOldTickCount > 60000 then
-        begin
-          MessageBox(Handle,
-            PChar('Слишком длительное выполнение (' + IntToStr(GetTickCount - T) + ' ms) ' +
-            'обработчиков событий'#13#10 +
-            'OnUpdate у компонентов TAction на форме ' + Name + '.'#13#10#13#10 +
-            'Убедитесь, что внутри обработчиков нет обращений к базе данных,'#13#10 +
-            'файлам и/или громоздких вычислений.'),
-            'Внимание',
-            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-          FOldTickCount := GetTickCount;
-        end;
-    end;
-  end else}
-    inherited;
+  inherited;
 end;
 
 function TCreateableForm.SafeCallException(ExceptObject: TObject;

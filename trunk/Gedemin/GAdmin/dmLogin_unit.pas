@@ -6,6 +6,9 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gd_security_body, syn_ManagerInterface_body_unit, gdcBase,
   gsDesktopManager, IBDatabase, flt_ScriptInterface_body,
+  {$IFDEF WITH_INDY}
+  gd_WebClientControl_unit,
+  {$ENDIF}
   prm_ParamFunctions_unit, FileCtrl, gd_resourcestring;
 
 type
@@ -37,7 +40,6 @@ type
     constructor CreateAndConnect(AOwner: TComponent; const ALoginType: TLoginType;
       const AUser: String = ''; const APassword: String = ''; const ADBPath: string = '');
 
-//    procedure LoadSettings(const AnFirstStart: Boolean = True);
     procedure LoadSettings;
   end;
 
@@ -184,6 +186,11 @@ begin
       Application.Terminate;
     end;
   end;
+
+  {$IFDEF WITH_INDY}
+  if not Application.Terminated then
+    gdWebClientThread.AfterConnection;
+  {$ENDIF}  
 end;
 
 procedure TdmLogin.boLoginAfterChangeCompany(Sender: TObject);
@@ -351,7 +358,8 @@ begin
               UserStorage.WriteStream(LocFilterFolderName + IntToStr(AnFirstKey), IntToStr(AnSecondKey), MS);
             end;
           except
-            // Нам до звезды запишет оно или нет
+            on E: Exception do
+              Application.ShowException(E);
           end;
         finally
           if DidActivate and ibtrGlobalDlg.InTransaction then
@@ -473,395 +481,9 @@ begin
     end;
 end;
 
-(*
-procedure TdmLogin.LoadSettings(const AnFirstStart: Boolean = True);
-const
-  cFirststart = 0;
-  cDisable = 1;
-  cDontShow = 2;
-  cComplete = 3;
-var
-  ibsqlSetting: TIBSQL;
-  K: Integer;
-  S: String;
-  SettingName: String;
-  Reg: TRegistry;
-  Breaked: Boolean;
-  SL, SourceList: TStrings;
-  SettingStorage: TIniSettingsStorage;
-  SetRUID: TRUID;
-  gdcAllSetting: TgdcSetting;
-
-  procedure ActivateSettings(AnList: TStrings; AnSettings: TIniSettingsStorage);
-  var
-    I, J{, L}: Integer;
-    gdcSetting: TgdcSetting;
-    TempFileName: String;
-    OldSettingList, NewSettingList: TStrings;
-  begin
-    gdcSetting := TgdcSetting.Create(nil);
-    try
-      FSystemConnect := True;
-
-      OldSettingList := TStringList.Create;
-      try
-        NewSettingList := TStringList.Create;
-        try
-          for I := 0 to AnList.Count - 1 do
-            for J := 0 to AnSettings.Count - 1 do
-              if AnList[I] = AnSettings.Setting[J].RUID then
-              begin
-                TempFileName := AnSettings.Setting[J].FullFileName;
-                // Проверяем существование файла и запрашиваем путь если не находим
-                if not FileExists(TempFileName) then
-                begin
-                  MessageBox(Application.Handle, PChar('Не удалось обнаружить файл ' +
-                   TempFileName + ' выберите его вручную.'), 'Внимание', MB_OK or MB_ICONWARNING);
-                  while not FileExists(SettingName) do
-                  begin
-                    with TOpenDialog.Create(nil) do
-                    try
-                      InitialDir := ExtractFileDir(TempFileName);
-                      Filter := TempFileName + '|' + TempFileName;
-                      Breaked := not Execute;
-                      if Execute then
-                        TempFileName := FileName
-                      else
-                        raise Exception.Create('Файл ' + TempFileName + ' не найден');
-                    finally
-                      Free;
-                    end;
-                  end;
-                end;
-                // Сохраняем список
-                gdcSetting.SubSet := 'All';
-                gdcSetting.Open;
-{                gdcSetting.First;
-                OldSettingList.Clear;
-                while not gdcSetting.Eof do
-                begin
-                  OldSettingList.Add(gdcSetting.FieldByName('id').AsString);
-                  gdcSetting.Next;
-                end;}
-                // Загружаем настройку
-                gdcSetting.LoadFromFile(TempFileName);
-                // Проверка ошибки
-                if Assigned(frmSQLProcess) then
-                begin
-                  if frmSQLProcess.Visible then
-                    frmSQLProcess.Hide;
-                  if frmSQLProcess.IsError then
-                    raise Exception.Create('Ошибка при загрузке настройки ' +
-                      AnSettings.Setting[J].RUID);
-                end;
-                // Получаем ключи новых настроек
-                gdcSetting.Close;
-                gdcSetting.Open;
-                gdcSetting.First;
-//                NewSettingList.Clear;
-                SetRUID := StrToRUID(AnSettings.Setting[J].RUID);
-                NewSettingList.Add(IntToStr(gdcBaseManager.GetIDByRUID(SetRUID.XID, SetRUID.DBID)));
-{ TODO -oJKL -cSetting :
-Если в одну настройку включены другие, то будет активирована
-только главная, т.к. никто не возвращает RUIDы считанных объектов. }
-{                while not gdcSetting.Eof do
-                begin
-                  if (OldSettingList.IndexOf(gdcSetting.FieldByName('id').AsString) = -1) and
-                   (NewSettingList.IndexOf(gdcSetting.FieldByName('id').AsString) = -1) then
-                    NewSettingList.Add(gdcSetting.FieldByName('id').AsString);
-                  gdcSetting.Next;
-                end;
-                gdcSetting.Close;
-                // Активируем настройки
-                gdcSetting.SubSet := 'ByID';
-                gdcSetting.ID := -1;
-                gdcSetting.Open;
-                for L := 0 to NewSettingList.Count - 1 do
-                begin
-                  gdcSetting.ID := StrToInt(NewSettingList[L]);
-
-                  gdcSetting.ActivateSetting(nil, nil, False);
-                  // Проверка ошибки
-                  if Assigned(frmSQLProcess) then
-                  begin
-                    if frmSQLProcess.Visible then
-                      frmSQLProcess.Hide;
-                    if frmSQLProcess.IsError then
-                      raise Exception.Create('Ошибка при активизации настройки ' +
-                        AnSettings.Setting[J].RUID);
-                  end;
-                end;}
-
-                Break;
-              end;
-
-          if NewSettingList.Count > 0 then
-          begin
-            gdcSetting.SubSet := 'ByID';
-            gdcSetting.ActivateSetting(NewSettingList, nil, False);
-            gdcSetting.Open;
-            // Проверка ошибки
-            if Assigned(frmSQLProcess) then
-            begin
-              if frmSQLProcess.Visible then
-                frmSQLProcess.Hide;
-              if frmSQLProcess.IsError then
-                raise Exception.Create('Ошибка при активизации настройки '{ +
-                  AnSettings.Setting[J].RUID});
-            end;
-          end;
-        finally
-          NewSettingList.Free;
-        end;
-      finally
-        OldSettingList.Free;
-      end;
-    finally
-      gdcSetting.Free;
-      FSystemConnect := False;
-    end;
-  end;
-begin
-  if FSystemConnect then
-    Exit;
-
-  // Проверка необходимости запуска
-  ibsqlSetting := TIBSQL.Create(nil);
-  try
-    ibsqlSetting.Transaction := TIBTransaction.Create(nil);
-    try
-      ibsqlSetting.Transaction.DefaultDatabase := IBLogin.Database;
-      ibsqlSetting.Transaction.StartTransaction;
-      ibsqlSetting.Database := IBLogin.Database;
-      ibsqlSetting.GoToFirstRecordOnExecute := True;
-      ibsqlSetting.SQL.Text :=
-        'SELECT rdb$relation_name FROM rdb$relations WHERE rdb$relation_name = ''ST_SETTINGSTATE''';
-      ibsqlSetting.ExecQuery;
-      if not ibsqlSetting.Eof then
-      begin
-        ibsqlSetting.Close;
-        ibsqlSetting.SQL.Text := 'SELECT * FROM st_settingstate ORDER BY statedate DESC';
-        ibsqlSetting.ExecQuery;
-
-        if not ibsqlSetting.Eof and AnFirstStart then
-          K := ibsqlSetting.FieldByName('status').AsInteger
-        else
-          K := cFirststart;
-
-        S := 'Gedemin user: ' + IBLogin.UserName +
-         '; WindowsUser: ' + GetUserNameString +
-         '; ComputerName: ' + GetComputerNameString;
-
-        case K of
-          // 0
-          cFirststart: begin
-            with TdlgSetSetting.Create(nil) do
-            try
-              case Execute(AnFirstStart) of
-                stYes:
-                try
-                  ibsqlSetting.Close;
-                  ibsqlSetting.SQL.Text := 'INSERT INTO st_settingstate ' +
-                   '(STATUS, COMMENT) VALUES(:STATUS, :COMMENT)';
-                  ibsqlSetting.ParamByName('status').AsInteger := cDisable;
-                  ibsqlSetting.ParamByName('comment').AsString := S;
-                  ibsqlSetting.ExecQuery;
-                  ibsqlSetting.Transaction.Commit;
-
-                  Reg := TRegistry.Create(KEY_READ);
-                  try
-                    Reg.RootKey := HKEY_LOCAL_MACHINE;
-                    if Reg.OpenKeyReadOnly(cSettingRegPath) then
-                    begin
-                      SettingName := Reg.ReadString(cSettingIni);
-                      Reg.CloseKey;
-                    end;
-                  finally
-                    Reg.Free;
-                  end;
-
-                  Breaked := False;
-                  while not FileExists(SettingName) and not Breaked do
-                  begin
-                    MessageBox(Application.Handle, 'Не удалось обнаружить файл ' +
-                     cMainSettingFile + '. Выберите его вручную' , 'Внимание', MB_OK or MB_ICONWARNING);
-                    with TOpenDialog.Create(Application) do
-                    try
-                      InitialDir := ExtractFileDir(SettingName);
-                      Filter := cMainSettingFile + '|' + cMainSettingFile;
-                      Breaked := not Execute;
-                      if not Breaked then
-                        SettingName := FileName;
-                    finally
-                      Free;
-                    end;
-                  end;
-
-                  if Breaked then
-                    raise EAbort.Create('Файл ' + cMainSettingFile + ' не найден.');
-
-                  SettingStorage := TIniSettingsStorage.Create;
-                  try
-                    SettingStorage.IniName := SettingName;
-                    SettingStorage.ReadFromIni;
-                    SL := TStringList.Create;
-                    try
-                      SourceList := TStringList.Create;
-                      try
-                        gdcAllSetting := TgdcSetting.Create(nil);
-                        try
-                          gdcAllSetting.SubSet := 'All';
-                          gdcAllSetting.Open;
-                          gdcAllSetting.First;
-                          while not gdcAllSetting.Eof do
-                          begin
-                            gdcBaseManager.GetFullRUIDByID(gdcAllSetting.FieldByName('id').AsInteger,
-                             SetRUID.XID, SetRUID.DBID);
-                            SourceList.Add(RUIDToStr(SetRUID));
-
-                            gdcAllSetting.Next;
-                          end;
-
-                          SL.Assign(SourceList);
-
-                          if SettingStorage.SelectSettings(SL) then
-                          begin
-                            if SL.Count = 0 then
-                              raise EAbort.Create('Не выбрано ни одной настройки.');
-                            SettingStorage.ExtractSortQueue(SL, SourceList);
-                            ActivateSettings(SL, SettingStorage);
-                          end else
-                            raise EAbort.Create('Пользователь не выбрал настройки.');
-                        finally
-                          gdcAllSetting.Free;
-                        end;
-                      finally
-                        SourceList.Free;
-                      end;
-                    finally
-                      SL.Free;
-                    end;
-                  finally
-                    SettingStorage.Free;
-                  end;
-
-                  ibsqlSetting.Transaction.StartTransaction;
-                  ibsqlSetting.Close;
-                  ibsqlSetting.SQL.Text := 'INSERT INTO st_settingstate ' +
-                   '(STATUS, COMMENT) VALUES(:STATUS, :COMMENT)';
-                  ibsqlSetting.ParamByName('status').AsInteger := cComplete;
-                  ibsqlSetting.ParamByName('comment').AsString := S;
-                  ibsqlSetting.ExecQuery;
-                  ibsqlSetting.Transaction.Commit;
-
-                  MessageBox(Application.Handle, 'Настройки загружены успешно.',
-                   'Внимание', MB_OK or MB_ICONINFORMATION);
-                except
-                  on E: EAbort do
-                  begin
-                    ibsqlSetting.Transaction.StartTransaction;
-                    ibsqlSetting.Close;
-                    ibsqlSetting.SQL.Text := 'INSERT INTO st_settingstate ' +
-                     '(STATUS, COMMENT) VALUES(:STATUS, :COMMENT)';
-                    if AnFirstStart then
-                      ibsqlSetting.ParamByName('status').AsInteger := cFirststart
-                    else
-                      ibsqlSetting.ParamByName('status').AsInteger := cComplete;
-                    ibsqlSetting.ParamByName('comment').AsString := S;
-                    ibsqlSetting.ExecQuery;
-                    ibsqlSetting.Transaction.Commit;
-                    if AnFirstStart then
-                      MessageBox(Application.Handle, PChar('Gedemin будет загружен без настроек. ' +
-                       E.Message), 'Ошибка', MB_OK or MB_ICONWARNING);
-                  end;
-                  on E: Exception do
-                  begin
-                    ibsqlSetting.Transaction.StartTransaction;
-                    ibsqlSetting.Close;
-                    ibsqlSetting.SQL.Text := 'INSERT INTO st_settingstate ' +
-                     '(STATUS, COMMENT) VALUES(:STATUS, :COMMENT)';
-                    if AnFirstStart then
-                      ibsqlSetting.ParamByName('status').AsInteger := cFirststart
-                    else
-                      ibsqlSetting.ParamByName('status').AsInteger := cComplete;
-                    ibsqlSetting.ParamByName('comment').AsString := S;
-                    ibsqlSetting.ExecQuery;
-                    ibsqlSetting.Transaction.Commit;
-                    MessageBox(Application.Handle, PChar('Произошла ошибка при ' +
-                     'загрузке настроек: ' + E.Message), 'Ошибка', MB_OK or MB_ICONERROR);
-                  end;
-                end;
-                stNoDontShow:
-                begin
-                  ibsqlSetting.Close;
-                  ibsqlSetting.SQL.Text := 'INSERT INTO st_settingstate ' +
-                   '(STATUS, COMMENT) VALUES(:STATUS, :COMMENT)';
-                  ibsqlSetting.ParamByName('status').AsInteger := cDontShow;
-                  ibsqlSetting.ParamByName('comment').AsString := S;
-                  ibsqlSetting.ExecQuery;
-                  ibsqlSetting.Transaction.Commit;
-                end;
-                //stNo:;
-              end;
-            finally
-              Free;
-            end;
-          end;
-          // 1
-          cDisable:
-          begin
-            if IBLogin.IsIBUserAdmin then
-              if MessageBox(Application.Handle, 'Идет процесс установки настроек. ' +
-               'Вход в систему может привести к нежелательным последствиям. ' +
-               'Хотите прекратить загрузку программы?', 'Внимание', MB_YESNO or MB_ICONSTOP) = IDYES then
-              begin
-                Application.Terminate;
-                Exit;
-              end else
-              begin
-                ibsqlSetting.Close;
-                ibsqlSetting.SQL.Text := 'INSERT INTO st_settingstate ' +
-                 '(STATUS, COMMENT) VALUES(:STATUS, :COMMENT)';
-                ibsqlSetting.ParamByName('status').AsInteger := cDontShow;
-                ibsqlSetting.ParamByName('comment').AsString := S;
-                ibsqlSetting.ExecQuery;
-                ibsqlSetting.Transaction.Commit;
-              end
-            else
-            begin
-              MessageBox(Application.Handle, 'Идет процесс установки настроек. ' +
-               'Вход в систему заблокирован. Обратитесь к администратору системы.',
-               'Внимание', MB_OK or MB_ICONSTOP);
-              Application.Terminate;
-              Exit;
-            end;
-          end;
-        else
-          // 2, 3
-          Exit;
-        end;
-      end
-{$IFNDEF DEPARTMENT}
-{      else
-        MessageBox(Application.Handle, 'Необходимо выполнить апгрейд базы данных.',
-         'Внимание', MB_OK or MB_ICONINFORMATION)
-         }
-{$ENDIF}
-      ;
-    finally
-      ibsqlSetting.Transaction.Free;
-    end;
-  finally
-    ibsqlSetting.Free;
-  end;
-end;
-*)
-
 initialization
-
   UserParamExists := False;
   PasswordParamExists := False;
   LoadSettingPath := '';
   LoadSettingFileName := '';
-
 end.
