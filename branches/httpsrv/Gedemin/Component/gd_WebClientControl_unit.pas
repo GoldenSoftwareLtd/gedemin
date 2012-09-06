@@ -12,6 +12,7 @@ type
     FidHTTP: TidHTTP;
     FCreatedEvent: TEvent;
     FgdWebServerURL: String;
+    FServerResponse: String;
 
   protected
     procedure Execute; override;
@@ -24,6 +25,7 @@ type
     procedure AfterConnection;
 
     property gdWebServerURL: String read FgdWebServerURL;
+    property ServerResponse: String read FServerResponse;
   end;
 
 var
@@ -37,6 +39,7 @@ uses
 const
   WM_GD_EXIT_THREAD = WM_USER + 117;
   WM_GD_AFTER_CONNECTION = WM_USER + 118;
+  WM_GD_QUERY_SERVER = WM_USER + 119;
 
 { TgdWebClientThread }
 
@@ -76,9 +79,22 @@ procedure TgdWebClientThread.Execute;
     if LocalDoc.Load('http://gsbelarus.com/gs/gedemin/gdwebserver.xml') then
     begin
       LocalDoc.SetProperty('SelectionLanguage', 'XPath');
-      Sel := LocalDoc.SelectNodes('/GDWEBSERVER/VERSION/URL[1]');
+      Sel := LocalDoc.SelectNodes('/GDWEBSERVER/VERSION_1/URL[1]');
       if Sel.Length > 0 then
         FgdWebServerURL := Sel.Item(0).NodeTypedValue;
+    end;
+  end;
+
+  procedure QueryServer;
+  var
+    LocalDoc: OleVariant;
+  begin
+    Assert(FgdWebServerURL > '');
+    LocalDoc := CreateOleObject('MSXML.DOMDocument');
+    LocalDoc.Async := False;
+    if LocalDoc.Load(FgdWebServerURL) then
+    begin
+      FServerResponse := LocalDoc.Text;
     end;
   end;
 
@@ -94,7 +110,14 @@ begin
       and (Msg.Message <> WM_GD_EXIT_THREAD) do
     begin
       case Msg.Message of
-        WM_GD_AFTER_CONNECTION: LoadWebServerURL;
+        WM_GD_AFTER_CONNECTION:
+        begin
+          LoadWebServerURL;
+          if FgdWebServerURL > '' then
+            PostThreadMessage(ThreadID, WM_GD_QUERY_SERVER, 0, 0);
+        end;
+
+        WM_GD_QUERY_SERVER: QueryServer;
       else
         TranslateMessage(Msg);
         DispatchMessage(Msg);
