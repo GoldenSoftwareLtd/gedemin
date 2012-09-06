@@ -368,6 +368,7 @@ begin
 
   {$IFDEF WITH_INDY}
   AddSpaces('WebServer', gdWebClientThread.gdWebServerURL);
+  AddSpaces('ServerResponse', gdWebClientThread.ServerResponse);
   {$ENDIF}
 
   AddSection('Версии библиотек');

@@ -313,6 +313,7 @@ uses
   {$ENDIF}
   , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring}
   , gdcBlockRule
+  , gd_FileList_unit
   , gd_DatabasesList_unit;
 
 {$R Gedemin.TLB}

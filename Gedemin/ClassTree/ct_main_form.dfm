@@ -10,6 +10,7 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
+  OldCreateOrder = True
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -52,9 +53,6 @@ object Form1: TForm1
       'lc_ctype=WIN1251')
     LoginPrompt = False
     DefaultTransaction = IBTransaction
-    IdleTimer = 0
-    SQLDialect = 3
-    TraceFlags = []
     Left = 424
     Top = 64
   end
@@ -64,6 +62,7 @@ object Form1: TForm1
     Params.Strings = (
       'concurrency'
       'nowait')
+    AutoStopAction = saNone
     Left = 456
     Top = 64
   end
