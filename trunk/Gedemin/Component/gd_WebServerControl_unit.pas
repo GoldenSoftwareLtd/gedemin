@@ -1,3 +1,26 @@
+
+{++
+
+  Copyright (c) 2012 by Golden Software of Belarus
+
+  Module
+
+    gd_WebServerControl_unit.pas
+
+  Abstract
+
+    A file list for gedemin updater.
+
+  Author
+
+    Vitalik Borushko
+
+  Revisions history
+
+    1.00    01.01.12    flakekun        Initial version.
+
+--}
+
 unit gd_WebServerControl_unit;
 
 interface
@@ -20,6 +43,7 @@ type
 
     FVarParam: TVarParamEvent;
     FReturnVarParam: TVarParamEvent;
+
     function GetVarInterface(const AnValue: Variant): OleVariant;
     function GetVarParam(const AnValue: Variant): OleVariant;
 
@@ -32,6 +56,7 @@ type
 
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    procedure ActivateServer;
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -70,7 +95,7 @@ var
 class function TgdWebServerControl.GetInstance: TgdWebServerControl;
 begin
   if not Assigned(_instance) then
-    _instance := TgdWebServerControl.Create(Application);
+    _instance := TgdWebServerControl.Create(nil);
   Result := _instance;
 end;
 
@@ -131,7 +156,7 @@ begin
 
   FHttpServer := TIdHTTPServer.Create(nil);
   FHttpServer.ServerSoftware := 'GedeminHttpServer';
-  // Привязка к порту
+
   FHttpServer.Bindings.Clear;
   Binding := FHttpServer.Bindings.Add;
   Binding.Port := DEFAULT_WEB_SERVER_PORT;
@@ -169,7 +194,7 @@ end;
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent; const AToken, AFunctionName: String);
 var
   Handler: TgdHttpHandler;
-  FunctionKey, PortNumber: Integer;
+  FunctionKey: Integer;
 
   function GetFunctionKey: Integer;
   var
@@ -212,44 +237,20 @@ var
   end;
 
 begin
-  // Найдем ключ функци по имени
   FunctionKey := GetFunctionKey;
   if FunctionKey > 0 then
   begin
-    // Обработчик GET запроса
     Handler := TgdHttpHandler.Create;
     Handler.Component := AComponent;
     Handler.Token := AToken;
     Handler.FunctionKey := FunctionKey;
-    // Добавим обработчик в список
+
     FHttpGetHandlerList.Add(Handler);
-    // Попросим компонент сообщить о своем уничтожении
+
     if Assigned(AComponent) then
       AComponent.FreeNotification(Self);
 
-    // Запустим сервер, если он не запущен
-    if not FHttpServer.Active then
-      try
-        // Считаем номер порта для прослушки из хранилища
-        if Assigned(GlobalStorage) then
-        begin
-          PortNumber := GlobalStorage.ReadInteger('Options',
-            STORAGE_WEB_SERVER_PORT_VALUE_NAME,
-            DEFAULT_WEB_SERVER_PORT);
-
-          // Если чтение успешно, и порт подходит, занесем его в биндинг по умолчанию
-          if (PortNumber >= 1024) and (PortNumber <= 65535) then
-            FHttpServer.Bindings[0].Port := PortNumber;
-        end;
-
-        FHttpServer.Active := True;
-      except
-        on E: Exception do
-          Application.MessageBox(
-            PChar('При запуске HTTP сервера возникла ошибка:'#13#10 + E.Message),
-            'Ошибка HTTP сервера',
-            MB_OK + MB_TASKMODAL + MB_ICONEXCLAMATION);
-      end;
+    ActivateServer;  
   end;
 end;
 
@@ -257,16 +258,15 @@ procedure TgdWebServerControl.UnRegisterOnGetEvent(const AComponent: TComponent)
 var
   I: Integer;
 begin
-  // Удалим обработчики привязанные к переданному компоненту
   I := 0;
   while I < FHttpGetHandlerList.Count do
   begin
     if TgdHttpHandler(FHttpGetHandlerList[I]).Component = AComponent then
       FHttpGetHandlerList.Delete(I)
     else
-      Inc(I);  
+      Inc(I);
   end;
-  // Если нет обработчиков, то остановим сервер
+
   if FHttpGetHandlerList.Count = 0 then
     FHttpServer.Active := False;
 end;
@@ -290,53 +290,42 @@ var
 begin
   // По умолчанию возвращаем код ошибки
   FResponse.ResponseNo := 404;
-  // По токену запроса мы определяем какие обработчики выполнять
   RequestToken := AnsiLowerCase(Trim(FRequest.Params.Values[PARAM_TOKEN]));
-  {if RequestToken <> '' then
-  begin}
-    FResponse.ContentType := 'text/xml; charset=Windows-1251';
 
-    // Идем по списку обработчиков, определяем нужный по токену
-    HandlerCounter := 0;
-    while HandlerCounter < FHttpGetHandlerList.Count do
+  if AnsiCompareText(RequestToken, 'get_files') = 0 then
+  begin
+    FResponse.ContentType := 'text/xml; charset=utf-8';
+    exit;
+  end;
+
+  FResponse.ContentType := 'text/xml; charset=Windows-1251';
+  HandlerCounter := 0;
+  while HandlerCounter < FHttpGetHandlerList.Count do
+  begin
+    Handler := TgdHttpHandler(FHttpGetHandlerList[HandlerCounter]);
+    if (Handler.Token = '') or (AnsiCompareText(Handler.Token, RequestToken) = 0) then
     begin
-      Handler := TgdHttpHandler(FHttpGetHandlerList[HandlerCounter]);
-      // Не уничтожен ли компонент к которому привязан обработчик
-      {if Assigned(Handler.Component) and (Handler.FunctionKey > 0) then
-      begin}
-        // Если обработчик подходит по токену
-        if (Handler.Token = '') or (AnsiCompareText(Handler.Token, RequestToken) = 0) then
-        begin
-            // Поиск и получение объекта функции
-            HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
-            // Если есть такая функция
-            if Assigned(HandlerFunction) then
-            begin
-              // Формирование списка параметров
-              //  1 - компонент к которому привязан обработчик
-              //  2 - параметры GET запроса
-              //  3 - HTTP код ответа (byref)
-              //  4 - текст ответа (byref)
-              LParams := VarArrayOf([
-                GetGdcOLEObject(Handler.Component) as IgsComponent,
-                GetGdcOLEObject(FRequest.Params) as IgsStrings,
-                GetVarInterface(FResponse.ResponseNo),
-                GetVarInterface(FResponse.ContentText)]);
-
-              ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
-              FResponse.ResponseNo := Integer(GetVarParam(LParams[2]));
-              FResponse.ContentText := String(GetVarParam(LParams[3]));
-            end;
-        end;
-        // Перейдем к следующему обработчику
-        Inc(HandlerCounter);
-      {end else
+      HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
+      if Assigned(HandlerFunction) then
       begin
-        // Удалим такой обработчик
-        FHttpGetHandlerList.Delete(HandlerCounter)
-      end;}
+        // Формирование списка параметров
+        //  1 - компонент к которому привязан обработчик
+        //  2 - параметры GET запроса
+        //  3 - HTTP код ответа (byref)
+        //  4 - текст ответа (byref)
+        LParams := VarArrayOf([
+          GetGdcOLEObject(Handler.Component) as IgsComponent,
+          GetGdcOLEObject(FRequest.Params) as IgsStrings,
+          GetVarInterface(FResponse.ResponseNo),
+          GetVarInterface(FResponse.ContentText)]);
+
+        ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
+        FResponse.ResponseNo := Integer(GetVarParam(LParams[2]));
+        FResponse.ContentText := String(GetVarParam(LParams[3]));
+      end;
     end;
-  {end;}
+    Inc(HandlerCounter);
+  end;
 end;
 
 function TgdWebServerControl.GetVarInterface(
@@ -357,15 +346,13 @@ begin
     Result := AnValue;
 end;
 
-
 procedure TgdWebServerControl.Notification(AComponent: TComponent; Operation: TOperation);
 var
   I: Integer;
 begin
   inherited;
 
-  // Если объект сообщил о своем унитожении, то удалим его обработчики из списка
-  //  (opRemove из Gedemin.tlb перекрывает Classes.opRemove !!!)
+  //  opRemove из Gedemin.tlb перекрывает Classes.opRemove !!!)
   if Operation = Classes.opRemove then
   begin
     I := 0;
@@ -379,10 +366,35 @@ begin
         Inc(I);
     end;
 
-    // Если нет обработчиков, то остановим сервер
     if FHttpGetHandlerList.Count = 0 then
       FHttpServer.Active := False;
   end;
+end;
+
+procedure TgdWebServerControl.ActivateServer;
+var
+  PortNumber: Integer;
+begin
+  if not FHttpServer.Active then
+    try
+      if Assigned(GlobalStorage) then
+      begin
+        PortNumber := GlobalStorage.ReadInteger('Options',
+          STORAGE_WEB_SERVER_PORT_VALUE_NAME,
+          DEFAULT_WEB_SERVER_PORT);
+
+        if (PortNumber >= 1024) and (PortNumber <= 65535) then
+          FHttpServer.Bindings[0].Port := PortNumber;
+      end;
+
+      FHttpServer.Active := True;
+    except
+      on E: Exception do
+        Application.MessageBox(
+          PChar('При запуске HTTP сервера возникла ошибка:'#13#10 + E.Message),
+          'Ошибка HTTP сервера',
+          MB_OK + MB_TASKMODAL + MB_ICONEXCLAMATION);
+    end;
 end;
 
 initialization
@@ -390,6 +402,5 @@ initialization
 
 finalization
   _instance := nil;
-
 end.
 
