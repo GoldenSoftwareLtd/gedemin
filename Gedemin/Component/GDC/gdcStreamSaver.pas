@@ -1,7 +1,7 @@
 unit gdcStreamSaver;
 
 interface
-
+                                                     
 uses
   gdcBase,              gdcBaseInterface,           classes,
   IBDatabase,           IBSQL,                      gdcLBRBTreeMetaData,
@@ -1145,7 +1145,7 @@ begin
               ' у таблицы ' + TatForeignKey(OL.Items[I]).Relation.LName + ' отсутствует первичный ключ!');
         end;
       end;
-    finally
+    finally        
       OL.Free;
     end;
 
@@ -2259,7 +2259,7 @@ begin
         TempObj.Open;
         TempObj.First;
         while not TempObj.Eof do
-        begin
+        begin               
           if SetKeyArray.IndexOf(TempObj.ID) = -1 then
             SetKeyArray.Add(TempObj.ID);
           // сохранить множество
@@ -2921,9 +2921,7 @@ begin
           CDS.First;
           while not CDS.Eof do
           begin
-            // Если для главного объекта множества был установлен флаг "Перезаписывать из потока"
-            if CDS.FieldByName(MODIFY_FROM_STREAM_FIELD).AsBoolean then
-              Self.LoadSetRecord(CDS, Obj);
+            Self.LoadSetRecord(CDS, Obj);
             CDS.Next;
           end;
         end
@@ -4891,8 +4889,7 @@ begin
         if ((StrIPos(';' + CDS.Fields[I].FieldName + ';', ';' + AFields + ';') <> 0)
           or (CDS.Fields[I].FieldName = 'ID'))
           and (StrToIntDef(CDS.Fields[I].AsString, -1) >= 0)
-        then
-
+        then 
           SaveDatasetFieldValue(CDS.Fields[I], True)
         else
           SaveDatasetFieldValue(CDS.Fields[I], False);
@@ -5749,6 +5746,8 @@ var
   I, K, J: Integer;
   IBSQL: TIBSQL;
   RN, FN, Temps: String;
+  R: TatRelation;
+  F: TField;
   ForeignKeyList: TStringList;
 begin
     // Заголовок XML-документа
@@ -5854,15 +5853,24 @@ begin
         StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_DATASET));
 
         Temps := '';
-        ForeignKeyList := FDataObject.ObjectForeignKeyFields[K];
-
-        for J := 0 to ForeignKeyList.Count - 1 do
+        if StrIPos('USR$CROSS', FDataObject.gdcObject[K].SetTable) = 1 then
         begin
-          RN := ForeignKeyList.Names[J];
-          FN := Copy(ForeignKeyList[J], Length(RN) + 2, MaxInt); 
-          Temps := Temps + FN + ';';
-        end;
-
+          R := atDatabase.Relations.ByRelationName(FDataObject.gdcObject[K].SetTable);
+          for J := 0 to R.RelationFields.Count -1 do
+          begin
+            F := FDataObject.gdcObject[K].FindField(R.RelationName, R.RelationFields[J].FieldName);
+            Temps := Temps + F.FieldName + ';';
+          end;
+        end else
+        begin
+          ForeignKeyList := FDataObject.ObjectForeignKeyFields[K];
+          for J := 0 to ForeignKeyList.Count - 1 do
+          begin
+            RN := ForeignKeyList.Names[J];
+            FN := Copy(ForeignKeyList[J], Length(RN) + 2, MaxInt);
+            Temps := Temps + FN + ';';
+          end;
+        end;  
         SaveDataset(DataObject.ClientDS[K], Temps);
 
         StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_DATASET));

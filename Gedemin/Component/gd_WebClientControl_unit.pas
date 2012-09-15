@@ -9,14 +9,13 @@ uses
 type
   TgdWebClientThread = class(TThread)
   private
-    FidHTTP: TidHTTP;
     FCreatedEvent: TEvent;
     FgdWebServerURL: String;
     FServerResponse: String;
 
   protected
     procedure Execute; override;
-    procedure PostExitMsg;
+    procedure PostMsg(const AMsg: Word);
 
   public
     constructor Create;
@@ -46,55 +45,64 @@ const
 constructor TgdWebClientThread.Create;
 begin
   inherited Create(True);
+  FreeOnTerminate := False;
   Priority := tpLowest;
-  FidHTTP := TidHTTP.Create(nil);
-  FidHTTP.HandleRedirects := True;
   FCreatedEvent := TEvent.Create(nil, True, False, 'gdWebThreadMsgLoopCreated');
 end;
 
 destructor TgdWebClientThread.Destroy;
 begin
   if (not Terminated) and (not Suspended) then
-    PostExitMsg;
+    PostMsg(WM_GD_EXIT_THREAD);
   inherited;
 
   FCreatedEvent.Free;
-  FidHTTP.Free;
-end;
-
-procedure TgdWebClientThread.PostExitMsg;
-begin
-  if FCreatedEvent.WaitFor(INFINITE) = wrSignaled then
-    PostThreadMessage(ThreadID, WM_GD_EXIT_THREAD, 0, 0);
 end;
 
 procedure TgdWebClientThread.Execute;
+var
+  LocalDoc: OleVariant;
 
   procedure LoadWebServerURL;
   var
-    LocalDoc, Sel: OleVariant;
+    Sel: OleVariant;
+    FHTTP: TidHTTP;
   begin
-    LocalDoc := CreateOleObject('MSXML.DOMDocument');
-    LocalDoc.Async := False;
-    if LocalDoc.Load('http://gsbelarus.com/gs/gedemin/gdwebserver.xml') then
-    begin
-      LocalDoc.SetProperty('SelectionLanguage', 'XPath');
-      Sel := LocalDoc.SelectNodes('/GDWEBSERVER/VERSION_1/URL[1]');
-      if Sel.Length > 0 then
-        FgdWebServerURL := Sel.Item(0).NodeTypedValue;
+    FHTTP := TidHTTP.Create(nil);
+    try
+      FHTTP.HandleRedirects := True;
+      FHTTP.ReadTimeout := 4000;
+      FHTTP.ConnectTimeout := 4000;
+      try
+        if LocalDoc.LoadXML(FHTTP.Get('http://gsbelarus.com/gs/gedemin/gdwebserver.xml')) then
+        begin
+          Sel := LocalDoc.SelectSingleNode('/GDWEBSERVER/VERSION_1/URL');
+          if not VarIsEmpty(Sel) then
+            FgdWebServerURL := Sel.NodeTypedValue;
+        end;
+      except
+      end;
+    finally
+      FHTTP.Free;
     end;
   end;
 
-  procedure QueryServer;
+  procedure QueryWebServer;
   var
-    LocalDoc: OleVariant;
+    FHTTP: TidHTTP;
   begin
-    Assert(FgdWebServerURL > '');
-    LocalDoc := CreateOleObject('MSXML.DOMDocument');
-    LocalDoc.Async := False;
-    if LocalDoc.Load(FgdWebServerURL) then
-    begin
-      FServerResponse := LocalDoc.Text;
+    FHTTP := TidHTTP.Create(nil);
+    try
+      FHTTP.HandleRedirects := True;
+      FHTTP.ReadTimeout := 4000;
+      FHTTP.ConnectTimeout := 4000;
+      if FgdWebServerURL > '' then
+      try
+        FServerResponse := FHTTP.Get(FgdWebServerURL);
+      except
+      end;
+    finally
+      FHTTP.Free;
     end;
   end;
 
@@ -103,6 +111,10 @@ var
 begin
   CoInitialize(nil);
   try
+    LocalDoc := CreateOleObject('MSXML.DOMDocument');
+    LocalDoc.Async := False;
+    LocalDoc.SetProperty('SelectionLanguage', 'XPath');
+
     PeekMessage(Msg, 0, WM_USER, WM_USER, PM_NOREMOVE);
     FCreatedEvent.SetEvent;
 
@@ -112,12 +124,13 @@ begin
       case Msg.Message of
         WM_GD_AFTER_CONNECTION:
         begin
-          LoadWebServerURL;
+          if FgdWebServerURL = '' then
+            LoadWebServerURL;
           if FgdWebServerURL > '' then
             PostThreadMessage(ThreadID, WM_GD_QUERY_SERVER, 0, 0);
         end;
 
-        WM_GD_QUERY_SERVER: QueryServer;
+        WM_GD_QUERY_SERVER: QueryWebServer;
       else
         TranslateMessage(Msg);
         DispatchMessage(Msg);
@@ -130,8 +143,13 @@ end;
 
 procedure TgdWebClientThread.AfterConnection;
 begin
+  PostMsg(WM_GD_AFTER_CONNECTION);
+end;
+
+procedure TgdWebClientThread.PostMsg(const AMsg: Word);
+begin
   if FCreatedEvent.WaitFor(INFINITE) = wrSignaled then
-    PostThreadMessage(ThreadID, WM_GD_AFTER_CONNECTION, 0, 0);
+    PostThreadMessage(ThreadID, AMsg, 0, 0);
 end;
 
 initialization

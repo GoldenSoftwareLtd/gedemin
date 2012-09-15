@@ -13,12 +13,13 @@ type
     procedure TestCmdLine;
     procedure TestCommonFunctions;
     procedure TestHugeIntSet;
+    procedure TestgdFSOCollection;
   end;
 
 implementation
 
 uses
-  gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet;
+  gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet, gd_FileList_unit;
 
 type
   Tgd_CmdLineParamsCrack = class(Tgd_CmdLineParams)
@@ -161,6 +162,25 @@ begin
   Check(ExtractServerName('c:\test\test.fdb') = '');
   Check(ExtractServerName('host:c:\test\test.fdb') = 'host');
   Check(ExtractServerName('server/3030:c:\test\test.fdb') = 'server/3030');
+end;
+
+procedure TBasicsTest.TestgdFSOCollection;
+var
+  S: String;
+  C1, C2: TgdFSOCollection;
+begin
+  C1 := TgdFSOCollection.Create;
+  C2 := TgdFSOCollection.Create;
+  try
+    C1.Build;
+    S := C1.GetXML;
+    Check(S > '');
+    C2.ParseXML(S);
+    Check(S = C2.GetXML);
+  finally
+    C1.Free;
+    C2.Free;
+  end;
 end;
 
 procedure TBasicsTest.TestHugeIntSet;

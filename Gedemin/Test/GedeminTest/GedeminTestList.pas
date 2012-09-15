@@ -13,6 +13,9 @@ uses
   Test_AtSQLSetup_unit,
   Test_gsFTPClient_unit,
   TestBasics_unit
+  {$IFDEF WITH_INDY}
+  , Test_Indy_unit 
+  {$ENDIF}
   {$IFDEF GEDEMIN}
   , Test_gsStorage_unit
   , Test_gdcContact_unit
