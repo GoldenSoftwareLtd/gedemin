@@ -56,7 +56,6 @@ type
 
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-    procedure ActivateServer;
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -64,6 +63,7 @@ type
 
     class function GetInstance: TgdWebServerControl;
 
+    procedure ActivateServer;
     procedure RegisterOnGetEvent(const AComponent: TComponent;
       const AToken, AFunctionName: String);
     procedure UnRegisterOnGetEvent(const AComponent: TComponent);
