@@ -6,9 +6,6 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gd_security_body, syn_ManagerInterface_body_unit, gdcBase,
   gsDesktopManager, IBDatabase, flt_ScriptInterface_body,
-  {$IFDEF WITH_INDY}
-  gd_WebClientControl_unit,
-  {$ENDIF}
   prm_ParamFunctions_unit, FileCtrl, gd_resourcestring;
 
 type
@@ -61,6 +58,10 @@ uses
   Registry,                     inst_const,            gdcSetting,
   gdcBaseInterface,             dm_i_ClientReport_unit,
   prp_PropertySettings,         gd_i_ScriptFactory,    flt_sqlFilterCache,
+
+  {$IFDEF WITH_INDY}
+  gd_WebServerControl_unit, gd_WebClientControl_unit,
+  {$ENDIF}
 
   {$IFDEF LOCALIZATION}
   gd_localization,
@@ -189,7 +190,10 @@ begin
 
   {$IFDEF WITH_INDY}
   if not Application.Terminated then
+  begin
+    TgdWebServerControl.GetInstance.ActivateServer;
     gdWebClientThread.AfterConnection;
+  end;
   {$ENDIF}  
 end;
 
