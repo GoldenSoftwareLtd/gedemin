@@ -191,7 +191,7 @@ begin
   {$IFDEF WITH_INDY}
   if not Application.Terminated then
   begin
-    TgdWebServerControl.GetInstance.ActivateServer;
+    gdWebServerControl.ActivateServer;
     gdWebClientThread.AfterConnection;
   end;
   {$ENDIF}  
@@ -207,7 +207,13 @@ end;
 
 procedure TdmLogin.boLoginBeforeDisconnect(Sender: TObject);
 begin
-  //TipTop: Перенесено 01.04.2003
+  {$IFDEF WITH_INDY}
+  if not Application.Terminated then
+  begin
+    gdWebServerControl.DeactivateServer;
+  end;
+  {$ENDIF}
+
   SaveStorages;
 
   gdcBase.CacheDBID := -1;

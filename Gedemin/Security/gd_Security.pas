@@ -29,7 +29,6 @@
 
 --}
 
-
 unit gd_security;
 
 interface
@@ -332,7 +331,7 @@ type
 var
   IBLogin: IboLogin;
 
-  // Перевод 8 символьной строки в 4 байтовое число
+// Перевод 8 символьной строки в 4 байтовое число
 //  function HexToInt(S: String): DWord;
 {function UserRight2Str(const UR: TUserRight): String;
 function UserRights2Str(const UR: TUserRights): String;
@@ -340,7 +339,6 @@ function UserRights2Str(const UR: TUserRights): String;
   function FindDigit(const Symbol: Char): Boolean;
   function ExtractTableName(KeyWord: String; S: TStrings): String;
 
-//  function EncryptPassword(const APassword: String): String;
   function DecryptPassword(const APassword: String): String;
 
   //
@@ -366,12 +364,6 @@ uses
 
 // функцыі для шыфроўкі/дэшыфроўкі пароля
 
-{function EncryptPassword(APassword: String): String;
-begin
-  Assert(Length(APassword) >= 8);
-  Result := APassword;
-end;}
-
 function GetCompCondition(const CompKeyFieldName: String): String;
 begin
   Result := '';
@@ -396,12 +388,6 @@ begin
     Delete(Result, Pos('\', Result), 1);
   end;
 end;
-
-
-//function FindDigit(Symbol: Char): Boolean;
-//begin
-//  Result := (Pos(Symbol, ' -+0123456789') <> 0);
-//end;
 
 function FindDigit(const Symbol: Char): Boolean;
 const

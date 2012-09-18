@@ -697,4 +697,41 @@ GRANT SELECT ON gd_subsystem TO PROCEDURE gd_p_sec_loginuser;
 GRANT SELECT ON gd_usergroup TO PROCEDURE gd_p_sec_loginuser;
 GRANT SELECT, UPDATE, DELETE ON gd_journal TO PROCEDURE gd_p_sec_loginuser;
 
+/****************************************************
+
+   Таблицы веб сервера
+
+*****************************************************/
+
+CREATE DOMAIN gd_dipaddress
+  VARCHAR(15) NOT NULL
+  CHECK (VALUE SIMILAR TO
+    '(([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-6]).){3}([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-6])');
+
+CREATE TABLE gd_web_log
+(
+  id           dintkey,
+  dbid         dintkey,
+  customername dname,
+  ipaddress    gd_dipaddress,
+  op           CHAR(4) NOT NULL,
+  datetime     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+  CONSTRAINT gd_pk_web_log PRIMARY KEY (id)
+);
+
+SET TERM ^ ;
+
+CREATE TRIGGER gd_bi_web_log FOR gd_web_log
+  BEFORE INSERT
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.ID IS NULL) THEN
+    NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+SET TERM ; ^
+
 COMMIT;

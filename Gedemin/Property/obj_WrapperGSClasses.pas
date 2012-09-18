@@ -18239,11 +18239,12 @@ begin
   GetGdc_frmInvCard.gsPeriodEdit.EndDate := Value;
 end;
 
-{$IFDEF WITH_INDY}
 { TwrpGdWebServerControl }
+
+{$IFDEF WITH_INDY}
 function TwrpGdWebServerControl.GetWebServerControl: TgdWebServerControl;
 begin
-  Result := TgdWebServerControl.GetInstance;
+  Result := gdWebServerControl;
 end;
 
 procedure TwrpGdWebServerControl.RegisterOnGetEvent(const AComponent: IgsComponent;
