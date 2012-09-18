@@ -147,6 +147,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
     procedure Initialize; override;
     procedure DestroyObject; safecall;
 
@@ -505,7 +506,7 @@ begin
   FUserStorage := GetGdcOLEObject(UserStorage) as IgsGsUserStorage;
   FIBLogin := TgsIBLogin.Create;
   {$IFDEF WITH_INDY}
-  FgdWebServerControl := GetGdcOLEObject(TgdWebServerControl.GetInstance) as IgdWebServerControl;
+  FgdWebServerControl := GetGdcOLEObject(gdWebServerControl) as IgdWebServerControl;
   {$ENDIF}
 end;
 

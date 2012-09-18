@@ -579,7 +579,6 @@ type
     property FilteredCache: TStringList read FFilteredCache write FFilteredCache;
     property Filtered: Boolean read FFiltered write FFiltered; 
     property TotalWidth: Integer read FTotalWidth write FTotalWidth;
-    
   published
     property Alignment stored IsAlignmentStored;
     property Color stored IsColorStored;
@@ -819,6 +818,7 @@ type
 
     FAllowDrawTotals: Boolean;
     FInDrawTotals: Boolean;
+    FIsResize: Boolean;
 
     FTempKey: Word;
     //^^^
@@ -3924,6 +3924,7 @@ begin
 
   FAllowDrawTotals := True;
   FInDrawTotals := False;
+  FIsResize := False;
 
   //^^^
   //_FDataLink:=TgsDataLink.Create;
@@ -6249,8 +6250,9 @@ var
   OldActive: Integer;
   I, J, K: Integer;
 begin
- if DataLink.Active then
-  begin 
+  if DataLink.Active then
+  begin
+    FIsResize := True;
     for J := 0 to Columns.Count - 1 do
     begin
       SizedColumn := Columns[J];
@@ -6316,7 +6318,7 @@ begin
             finally
               DataLink.ActiveRecord := OldActive;
 
-              if FShowTotals and ((SizedColumn as TgsColumn).TotalWidth <> -1) then
+              if FShowTotals and ((SizedColumn as TgsColumn).TotalWidth > -1) then
               begin
                 CurrWidth := (SizedColumn as TgsColumn).TotalWidth;
                 if MaxWidth < CurrWidth then
@@ -6425,7 +6427,7 @@ begin
                     if MaxWidth < CurrWidth then MaxWidth := CurrWidth;
                   end;
                 end;
-            end;
+            end;       
           finally
             DataLink.ActiveRecord := OldActive;
 
@@ -10779,6 +10781,7 @@ var
   A: TgdcAggregate;
   S, V: String;
   bInAggregates: boolean;
+  W: Integer;
 begin
   if FInDrawTotals then
     exit;
@@ -10885,8 +10888,11 @@ begin
               begin
                 Canvas.Font := Self.TableFont;
                 Canvas.Font.Color := clCaptionText;
+                W := Canvas.TextWidth(S) + 4;
+                (Columns[I] as TgsColumn).TotalWidth := W;
+                if FIsResize and (Columns[I].Width < W) then
+                  Columns[I].Width := W;
 
-                (Columns[I] as TgsColumn).TotalWidth := Canvas.TextWidth(S) + 4;
                 if Canvas.TextWidth(S) > (R.Right - R.Left - 4) then
                   S := '########';
 
@@ -10919,7 +10925,11 @@ begin
                         V := FormatFloat((Columns[I] as TgsColumn).DisplayFormat, Aggregates[J].Value)
                       else 
                         V := Aggregates[J].Value;
-                      (Columns[I] as TgsColumn).TotalWidth := Canvas.TextWidth(V) + 4;
+                      W := Canvas.TextWidth(V) + 4;
+                      (Columns[I] as TgsColumn).TotalWidth := W;
+                      if FIsResize and (Columns[I].Width < W) then
+                        Columns[I].Width := W;
+                        
                       if Canvas.TextWidth(V) > (R.Right - R.Left - 4) then
                         V := '########';
                       WriteText
@@ -11043,6 +11053,7 @@ begin
       Canvas.LineTo(R.Right, R.Bottom);
     end;
   finally
+    FIsResize := False;
     FInDrawTotals := False;
   end;
 end;

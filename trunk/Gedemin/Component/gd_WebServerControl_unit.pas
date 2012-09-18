@@ -47,12 +47,11 @@ type
     function GetVarInterface(const AnValue: Variant): OleVariant;
     function GetVarParam(const AnValue: Variant): OleVariant;
 
-    // Асинхронный обработчик HTTP GET запроса
     procedure ServerOnCommandGet(AThread: TIdPeerThread;
       ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
-
-    // Запускаемая на потоке приложения процедура обработки GET запроса
     procedure ServerOnCommandGetSync;
+    procedure CreateHTTPServer;
+    procedure ProcessQueryRequest;
 
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -61,20 +60,24 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    class function GetInstance: TgdWebServerControl;
-
     procedure ActivateServer;
+    procedure DeactivateServer;
+
     procedure RegisterOnGetEvent(const AComponent: TComponent;
       const AToken, AFunctionName: String);
     procedure UnRegisterOnGetEvent(const AComponent: TComponent);
   end;
+
+var
+  gdWebServerControl: TgdWebServerControl;
 
 implementation
 
 uses
   SysUtils, ibsql, Forms, Windows, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
-  gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock;
+  gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock,
+  ComObj;
 
 type
   TgdHttpHandler = class(TObject)
@@ -87,101 +90,13 @@ type
 const
   PARAM_TOKEN = 'token';
 
-var
-  _instance: TgdWebServerControl;
-
 { TgdWebServerControl }
 
-class function TgdWebServerControl.GetInstance: TgdWebServerControl;
-begin
-  if not Assigned(_instance) then
-    _instance := TgdWebServerControl.Create(nil);
-  Result := _instance;
-end;
-
 constructor TgdWebServerControl.Create(AOwner: TComponent);
-
-  function GetLocalIP: String;
-  var
-    wsaData: TWSAData;
-    addr: TSockAddrIn;
-    Phe: PHostEnt;
-    szHostName: array[0..128] of Char;
-  begin
-    Result := '';
-    if WSAStartup($101, WSAData) <> 0 then
-      Exit;
-    try
-      if GetHostName(szHostName, 128) <> SOCKET_ERROR then
-      begin
-        Phe := GetHostByName(szHostName);
-        if Assigned(Phe) then
-        begin
-          addr.sin_addr.S_addr := longint(plongint(Phe^.h_addr_list^)^);
-          Result := inet_ntoa(addr.sin_addr);
-        end;
-      end;
-    finally
-      WSACleanup;
-    end;
-  end;
-
-  function GetIP: String;
-  var
-    wsaData: TWSAData;
-    addr: TSockAddrIn;
-    Phe: PHostEnt;
-    szHostName: array[0..128] of Char;
-  begin
-    Result := '';
-    if WSAStartup($101, WSAData) <> 0 then
-      Exit;
-    try
-      szHostName := 'gs.selfip.biz';
-      Phe := GetHostByName(szHostName);
-      if Assigned(Phe) then
-      begin
-        addr.sin_addr.S_addr := longint(plongint(Phe^.h_addr_list^)^);
-        Result := inet_ntoa(addr.sin_addr);
-      end;
-    finally
-      WSACleanup;
-    end;
-  end;
-
-var
-  Binding : TIdSocketHandle;
 begin
   inherited Create(AOwner);
-
-  FHttpServer := TIdHTTPServer.Create(nil);
-  FHttpServer.ServerSoftware := 'GedeminHttpServer';
-
-  FHttpServer.Bindings.Clear;
-  Binding := FHttpServer.Bindings.Add;
-  Binding.Port := DEFAULT_WEB_SERVER_PORT;
-  Binding.IP := GetLocalIP;
-
-  Binding := FHttpServer.Bindings.Add;
-  Binding.Port := DEFAULT_WEB_SERVER_PORT;
-  Binding.IP := '127.0.0.1';
-
-  {Binding := FHttpServer.Bindings.Add;
-  Binding.Port := DEFAULT_WEB_SERVER_PORT;
-  Binding.IP := GetIP;}
-
-  // Обработчик GET запроса
-  FHttpServer.OnCommandGet := ServerOnCommandGet;
-
-  // Список ключей функций-обработчиков GET запросов
+  FHttpServer := nil;
   FHttpGetHandlerList := TObjectList.Create(True);
-
-  // Функции обрабатывающие variant переменные в\из VBScript
-  if Assigned(EventControl) then
-  begin
-    FVarParam := EventControl.OnVarParamEvent;
-    FReturnVarParam := EventControl.OnReturnVarParam;
-  end;
 end;
 
 destructor TgdWebServerControl.Destroy;
@@ -250,7 +165,7 @@ begin
     if Assigned(AComponent) then
       AComponent.FreeNotification(Self);
 
-    ActivateServer;  
+    ActivateServer;
   end;
 end;
 
@@ -258,17 +173,14 @@ procedure TgdWebServerControl.UnRegisterOnGetEvent(const AComponent: TComponent)
 var
   I: Integer;
 begin
-  I := 0;
-  while I < FHttpGetHandlerList.Count do
+  for I := FHttpGetHandlerList.Count - 1 downto 0 do
   begin
     if TgdHttpHandler(FHttpGetHandlerList[I]).Component = AComponent then
-      FHttpGetHandlerList.Delete(I)
-    else
-      Inc(I);
+      FHttpGetHandlerList.Delete(I);
   end;
 
   if FHttpGetHandlerList.Count = 0 then
-    FHttpServer.Active := False;
+    DeactivateServer;
 end;
 
 procedure TgdWebServerControl.ServerOnCommandGet(AThread: TIdPeerThread;
@@ -287,22 +199,19 @@ var
   Handler: TgdHttpHandler;
   HandlerFunction: TrpCustomFunction;
   LParams, LResult: Variant;
+  Processed: Boolean;
 begin
-  // По умолчанию возвращаем код ошибки
-  FResponse.ResponseNo := 404;
-  RequestToken := AnsiLowerCase(Trim(FRequest.Params.Values[PARAM_TOKEN]));
-
-  if AnsiCompareText(RequestToken, 'get_files') = 0 then
+  if AnsiCompareText(FRequest.Document, '/query') = 0 then
   begin
-    FResponse.ContentType := 'text/xml; charset=utf-8';
+    ProcessQueryRequest;
     exit;
   end;
 
-  FResponse.ContentType := 'text/xml; charset=Windows-1251';
-  HandlerCounter := 0;
-  while HandlerCounter < FHttpGetHandlerList.Count do
+  Processed := False;
+  RequestToken := AnsiLowerCase(Trim(FRequest.Params.Values[PARAM_TOKEN]));
+  for HandlerCounter := 0 to FHttpGetHandlerList.Count - 1 do
   begin
-    Handler := TgdHttpHandler(FHttpGetHandlerList[HandlerCounter]);
+    Handler := FHttpGetHandlerList[HandlerCounter] as TgdHttpHandler;
     if (Handler.Token = '') or (AnsiCompareText(Handler.Token, RequestToken) = 0) then
     begin
       HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
@@ -321,10 +230,21 @@ begin
 
         ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
         FResponse.ResponseNo := Integer(GetVarParam(LParams[2]));
+        FResponse.ContentType := 'text/xml; charset=Windows-1251';
         FResponse.ContentText := String(GetVarParam(LParams[3]));
+
+        Processed := True;
       end;
     end;
-    Inc(HandlerCounter);
+  end;
+
+  if not Processed then
+  begin
+    FResponse.ResponseNo := 200;
+    FResponse.ContentType := 'text/html;';
+    FResponse.ContentText :=
+      '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
+      '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>Hello World!</BODY></HTML>';
   end;
 end;
 
@@ -352,22 +272,19 @@ var
 begin
   inherited;
 
-  //  opRemove из Gedemin.tlb перекрывает Classes.opRemove !!!)
   if Operation = Classes.opRemove then
   begin
-    I := 0;
-    while I < FHttpGetHandlerList.Count do
+    for I := FHttpGetHandlerList.Count - 1 downto 0 do
     begin
       if TgdHttpHandler(FHttpGetHandlerList[I]).Component = AComponent then
       begin
         AComponent.RemoveFreeNotification(Self);
         FHttpGetHandlerList.Delete(I);
-      end else
-        Inc(I);
+      end;
     end;
 
     if FHttpGetHandlerList.Count = 0 then
-      FHttpServer.Active := False;
+      DeactivateServer;
   end;
 end;
 
@@ -375,7 +292,10 @@ procedure TgdWebServerControl.ActivateServer;
 var
   PortNumber: Integer;
 begin
-  if not FHttpServer.Active then
+  if not Assigned(FHTTPServer) then
+    CreateHTTPServer;
+
+  if not FHTTPServer.Active then
     try
       if Assigned(GlobalStorage) then
       begin
@@ -397,10 +317,123 @@ begin
     end;
 end;
 
+procedure TgdWebServerControl.DeactivateServer;
+begin
+  if Assigned(FHTTPServer) then
+    FHttpServer.Active := False;
+end;
+
+procedure TgdWebServerControl.CreateHTTPServer;
+
+  function GetLocalIP: String;
+  var
+    wsaData: TWSAData;
+    addr: TSockAddrIn;
+    Phe: PHostEnt;
+    szHostName: array[0..128] of Char;
+  begin
+    Result := '';
+    if WSAStartup($101, WSAData) <> 0 then
+      Exit;
+    try
+      if GetHostName(szHostName, 128) <> SOCKET_ERROR then
+      begin
+        Phe := GetHostByName(szHostName);
+        if Assigned(Phe) then
+        begin
+          addr.sin_addr.S_addr := longint(plongint(Phe^.h_addr_list^)^);
+          Result := inet_ntoa(addr.sin_addr);
+        end;
+      end;
+    finally
+      WSACleanup;
+    end;
+  end;
+
+  function GetIP: String;
+  var
+    wsaData: TWSAData;
+    addr: TSockAddrIn;
+    Phe: PHostEnt;
+    szHostName: array[0..128] of Char;
+  begin
+    Result := '';
+    if WSAStartup($101, WSAData) <> 0 then
+      Exit;
+    try
+      szHostName := 'gs.selfip.biz';
+      Phe := GetHostByName(szHostName);
+      if Assigned(Phe) then
+      begin
+        addr.sin_addr.S_addr := longint(plongint(Phe^.h_addr_list^)^);
+        Result := inet_ntoa(addr.sin_addr);
+      end;
+    finally
+      WSACleanup;
+    end;
+  end;
+
+var
+  Binding : TIdSocketHandle;
+begin
+  Assert(FHTTPServer = nil);
+
+  FHttpServer := TIdHTTPServer.Create(nil);
+  FHttpServer.ServerSoftware := 'GedeminHttpServer';
+
+  FHttpServer.Bindings.Clear;
+  Binding := FHttpServer.Bindings.Add;
+  Binding.Port := DEFAULT_WEB_SERVER_PORT;
+  Binding.IP := GetLocalIP;
+
+  Binding := FHttpServer.Bindings.Add;
+  Binding.Port := DEFAULT_WEB_SERVER_PORT;
+  Binding.IP := '127.0.0.1';
+
+  {Binding := FHttpServer.Bindings.Add;
+  Binding.Port := DEFAULT_WEB_SERVER_PORT;
+  Binding.IP := GetIP;}
+
+  FHttpServer.OnCommandGet := ServerOnCommandGet;
+
+  if Assigned(EventControl) then
+  begin
+    FVarParam := EventControl.OnVarParamEvent;
+    FReturnVarParam := EventControl.OnReturnVarParam;
+  end;
+end;
+
+procedure TgdWebServerControl.ProcessQueryRequest;
+var
+  LocalDoc, Sel: OleVariant;
+  Params: Variant;
+begin
+  LocalDoc := CreateOleObject('MSXML.DOMDocument');
+  LocalDoc.Async := False;
+  LocalDoc.SetProperty('SelectionLanguage', 'XPath');
+
+  if LocalDoc.LoadXML(FRequest.Params.Text) then
+  begin
+    Params := VarArrayCreate([0, 2], varVariant);
+
+    Sel := LocalDoc.SelectSingleNode('/QUERY/VERSION_1/DBID');
+    if not VarIsEmpty(Sel) then
+      Params[0] := Sel.NodeTypedValue;
+    Sel := LocalDoc.SelectSingleNode('/QUERY/VERSION_1/CUSTOMERNAME');
+    if not VarIsEmpty(Sel) then
+      Params[1] := Sel.NodeTypedValue;
+    Params[2] := FRequest.RemoteIP;
+
+    gdcBaseManager.ExecSingleQuery(
+      'INSERT INTO gd_web_log (dbid, customername, ipaddress, op) ' +
+      'VALUES (:dbid, :customername, :ipaddress, ''QURY'')', Params);
+  end;
+end;
+
 initialization
-  _instance := nil;
+  gdWebServerControl := TgdWebServerControl.Create(nil);
 
 finalization
-  _instance := nil;
+  FreeAndNil(gdWebServerControl);
 end.
 

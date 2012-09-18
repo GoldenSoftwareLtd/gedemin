@@ -40,7 +40,8 @@ var
 implementation
 
 uses
-  Windows, Messages, SysUtils, ComObj, ActiveX, gdcJournal, gd_FileList_unit;
+  Windows, Messages, SysUtils, ComObj, ActiveX, gdcJournal, gd_FileList_unit,
+  gd_security, JclSimpleXML;
 
 const
   WM_GD_EXIT_THREAD =      WM_USER + 117;
@@ -126,20 +127,35 @@ end;
 function TgdWebClientThread.QueryWebServer: Boolean;
 var
   HTTP: TidHTTP;
+  XML: TStringList;
 begin
+  Assert(Assigned(IBLogin));
+
   Result := False;
+
   if FgdWebServerURL > '' then
   begin
     HTTP := CreateHTTP;
+    XML := TStringList.Create;
     try
+      XML.Text :=
+        '<?xml version="1.0" encoding="Windows-1251"?>'#13#10 +
+        '<QUERY>'#13#10 +
+        '  <VERSION_1>'#13#10 +
+        '    <DBID>' + IntToStr(IBLogin.DBID) + '</DBID>'#13#10 +
+        '    <CUSTOMERNAME>' + EntityEncode(IBLogin.CompanyName) + '</CUSTOMERNAME>'#13#10 +
+        '  </VERSION_1>'#13#10 +
+        '</QUERY>';
+
       try
-        FServerResponse := HTTP.Get(FgdWebServerURL);
+        FServerResponse := HTTP.Post(FgdWebServerURL + '/query', XML);
         Result := FServerResponse > '';
       except
         on E: Exception do
           FErrorMessage := E.Message + ' URL: ' + FgdWebServerURL;
       end;
     finally
+      XML.Free;
       HTTP.Free;
     end;
   end;
@@ -176,7 +192,8 @@ begin
         if not VarIsEmpty(Sel) then
         begin
           FgdWebServerURL := Sel.NodeTypedValue;
-          FgdWebServerURL := 'http://192.168.0.45';
+          //FgdWebServerURL := 'http://192.168.0.45';
+          FgdWebServerURL := 'http://192.168.0.58';
           Result := FgdWebServerURL > '';
         end;
       end;
