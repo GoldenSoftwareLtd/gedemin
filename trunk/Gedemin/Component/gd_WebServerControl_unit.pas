@@ -52,6 +52,8 @@ type
     procedure ServerOnCommandGetSync;
     procedure CreateHTTPServer;
     procedure ProcessQueryRequest;
+    function GetActive: Boolean;
+    procedure SetActive(const Value: Boolean);
 
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -66,6 +68,9 @@ type
     procedure RegisterOnGetEvent(const AComponent: TComponent;
       const AToken, AFunctionName: String);
     procedure UnRegisterOnGetEvent(const AComponent: TComponent);
+    function GetBindings: String;
+
+    property Active: Boolean read GetActive write SetActive;
   end;
 
 var
@@ -77,7 +82,7 @@ uses
   SysUtils, ibsql, Forms, Windows, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
   gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock,
-  ComObj;
+  ComObj, JclSimpleXML;
 
 type
   TgdHttpHandler = class(TObject)
@@ -412,7 +417,7 @@ begin
   LocalDoc.Async := False;
   LocalDoc.SetProperty('SelectionLanguage', 'XPath');
 
-  if LocalDoc.LoadXML(FRequest.Params.Text) then
+  if LocalDoc.LoadXML(FRequest.UnparsedParams) then
   begin
     Params := VarArrayCreate([0, 2], varVariant);
 
@@ -421,13 +426,44 @@ begin
       Params[0] := Sel.NodeTypedValue;
     Sel := LocalDoc.SelectSingleNode('/QUERY/VERSION_1/CUSTOMERNAME');
     if not VarIsEmpty(Sel) then
-      Params[1] := Sel.NodeTypedValue;
+      Params[1] := Copy(EntityDecode(Sel.NodeTypedValue), 1, 60);
     Params[2] := FRequest.RemoteIP;
 
     gdcBaseManager.ExecSingleQuery(
       'INSERT INTO gd_web_log (dbid, customername, ipaddress, op) ' +
       'VALUES (:dbid, :customername, :ipaddress, ''QURY'')', Params);
+
+    FResponse.ResponseNo := 200;
+    FResponse.ContentType := 'application/octet-stream;';
+    FResponse.ContentStream := TStringStream.Create('abc');
   end;
+end;
+
+function TgdWebServerControl.GetActive: Boolean;
+begin
+  Result := Assigned(FHTTPServer) and FHTTPServer.Active;
+end;
+
+procedure TgdWebServerControl.SetActive(const Value: Boolean);
+begin
+  if Value then
+    ActivateServer
+  else
+    DeactivateServer;  
+end;
+
+function TgdWebServerControl.GetBindings: String;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to FHTTPServer.Bindings.Count - 1 do
+  begin
+    Result := Result + (FHTTPServer.Bindings[I] as TidSocketHandle).IP +
+      ':' + IntToStr((FHTTPServer.Bindings[I] as TidSocketHandle).Port) + ';';
+  end;
+  if Result > '' then
+    SetLength(Result, Length(Result) - 1);
 end;
 
 initialization
