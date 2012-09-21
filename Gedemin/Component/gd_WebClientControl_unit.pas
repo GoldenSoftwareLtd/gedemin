@@ -4,29 +4,43 @@ unit gd_WebClientControl_unit;
 interface
 
 uses
-  Classes, idHTTP, SyncObjs;
+  Classes, Windows, Messages, idHTTP, SyncObjs;
 
 type
-  TgdWebClientThread = class(TThread)
+  TgdMessagedThread = class(TThread)
   private
     FCreatedEvent: TEvent;
-    FgdWebServerURL: String;
-    FServerResponse: String;
     FErrorMessage: String;
 
+  protected
     procedure PostMsg(const AMsg: Word);
-    procedure LogError;
+    procedure Execute; override;
+    procedure Setup; virtual;
+    procedure TearDown; virtual;
+    function ProcessMessage(var Msg: TMsg): Boolean; virtual;
+    procedure LogError; virtual;
+
+  public
+    constructor Create(CreateSuspended: Boolean);
+    destructor Destroy; override;
+  end;
+
+  TgdWebClientThread = class(TgdMessagedThread)
+  private
+    FgdWebServerURL: String;
+    FServerResponse: String;
+
     function QueryWebServer: Boolean;
     function LoadWebServerURL: Boolean;
     function CreateHTTP: TidHTTP;
     procedure UpdateFiles;
 
   protected
-    procedure Execute; override;
+    function ProcessMessage(var Msg: TMsg): Boolean; override;
+    procedure LogError; override;
 
   public
     constructor Create;
-    destructor Destroy; override;
 
     procedure AfterConnection;
 
@@ -40,7 +54,7 @@ var
 implementation
 
 uses
-  Windows, Messages, SysUtils, ComObj, ActiveX, gdcJournal, gd_FileList_unit,
+  SysUtils, ComObj, ActiveX, gdcJournal, gd_FileList_unit,
   gd_security, JclSimpleXML;
 
 const
@@ -56,52 +70,6 @@ begin
   inherited Create(True);
   FreeOnTerminate := False;
   Priority := tpLowest;
-  FCreatedEvent := TEvent.Create(nil, True, False, 'gdWebThreadMsgLoopCreated');
-end;
-
-destructor TgdWebClientThread.Destroy;
-begin
-  if (not Terminated) and (not Suspended) then
-    PostMsg(WM_GD_EXIT_THREAD);
-  inherited;
-
-  FCreatedEvent.Free;
-end;
-
-procedure TgdWebClientThread.Execute;
-var
-  Msg: TMsg;
-begin
-  CoInitialize(nil);
-  try
-    PeekMessage(Msg, 0, WM_USER, WM_USER, PM_NOREMOVE);
-    FCreatedEvent.SetEvent;
-
-    while (not Terminated) and GetMessage(Msg, 0, 0, 0)
-      and (Msg.Message <> WM_GD_EXIT_THREAD) do
-    begin
-      case Msg.Message of
-        WM_GD_AFTER_CONNECTION:
-          if LoadWebServerURL then
-            PostThreadMessage(ThreadID, WM_GD_QUERY_SERVER, 0, 0);
-
-        WM_GD_QUERY_SERVER:
-          if QueryWebServer or True then
-            PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
-
-        WM_GD_UPDATE_FILES:
-          UpdateFiles;
-      else
-        TranslateMessage(Msg);
-        DispatchMessage(Msg);
-      end;
-
-      if FErrorMessage > '' then
-        Synchronize(LogError);
-    end;
-  finally
-    CoUninitialize;
-  end;
 end;
 
 procedure TgdWebClientThread.AfterConnection;
@@ -109,25 +77,11 @@ begin
   PostMsg(WM_GD_AFTER_CONNECTION);
 end;
 
-procedure TgdWebClientThread.PostMsg(const AMsg: Word);
-begin
-  if FCreatedEvent.WaitFor(INFINITE) = wrSignaled then
-    PostThreadMessage(ThreadID, AMsg, 0, 0);
-end;
-
-procedure TgdWebClientThread.LogError;
-begin
-  if FErrorMessage > '' then
-  begin
-    TgdcJournal.AddEvent(FErrorMessage, 'HTTPClient', -1, nil, True);
-    FErrorMessage := '';
-  end;
-end;
-
 function TgdWebClientThread.QueryWebServer: Boolean;
 var
   HTTP: TidHTTP;
-  XML: TStringList;
+  XML: TStringStream;
+  ResponseData: TMemoryStream;
 begin
   Assert(Assigned(IBLogin));
 
@@ -136,25 +90,28 @@ begin
   if FgdWebServerURL > '' then
   begin
     HTTP := CreateHTTP;
-    XML := TStringList.Create;
+    XML := TStringStream.Create('');
+    ResponseData := TMemoryStream.Create;
     try
-      XML.Text :=
+      XML.WriteString(
         '<?xml version="1.0" encoding="Windows-1251"?>'#13#10 +
         '<QUERY>'#13#10 +
         '  <VERSION_1>'#13#10 +
         '    <DBID>' + IntToStr(IBLogin.DBID) + '</DBID>'#13#10 +
         '    <CUSTOMERNAME>' + EntityEncode(IBLogin.CompanyName) + '</CUSTOMERNAME>'#13#10 +
         '  </VERSION_1>'#13#10 +
-        '</QUERY>';
+        '</QUERY>');
 
       try
-        FServerResponse := HTTP.Post(FgdWebServerURL + '/query', XML);
+        HTTP.Post(FgdWebServerURL + '/query', XML, ResponseData);
+        FServerResponse := IntToStr(ResponseData.Size);
         Result := FServerResponse > '';
       except
         on E: Exception do
           FErrorMessage := E.Message + ' URL: ' + FgdWebServerURL;
       end;
     finally
+      ResponseData.Free;
       XML.Free;
       HTTP.Free;
     end;
@@ -193,7 +150,7 @@ begin
         begin
           FgdWebServerURL := Sel.NodeTypedValue;
           //FgdWebServerURL := 'http://192.168.0.45';
-          FgdWebServerURL := 'http://192.168.0.58';
+          //FgdWebServerURL := 'http://192.168.0.58';
           Result := FgdWebServerURL > '';
         end;
       end;
@@ -216,6 +173,104 @@ begin
   finally
     LocalFiles.Free;
   end;
+end;
+
+function TgdWebClientThread.ProcessMessage(var Msg: TMsg): Boolean;
+begin
+  Result := True;
+  case Msg.Message of
+    WM_GD_AFTER_CONNECTION:
+      if LoadWebServerURL then
+        PostThreadMessage(ThreadID, WM_GD_QUERY_SERVER, 0, 0);
+
+    WM_GD_QUERY_SERVER:
+      if QueryWebServer or True then
+        PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
+
+    WM_GD_UPDATE_FILES:
+      UpdateFiles;
+  else
+    Result := False;
+  end;
+end;
+
+procedure TgdWebClientThread.LogError;
+begin
+  if FErrorMessage > '' then
+  begin
+    TgdcJournal.AddEvent(FErrorMessage, 'HTTPClient', -1, nil, True);
+    FErrorMessage := '';
+  end;
+end;
+
+{ TgdMessagedThread }
+
+constructor TgdMessagedThread.Create(CreateSuspended: Boolean);
+begin
+  inherited Create(CreateSuspended);
+  FCreatedEvent := TEvent.Create(nil, True, False, 'gdWebThreadMsgLoopCreated');
+end;
+
+destructor TgdMessagedThread.Destroy;
+begin
+  if (not Terminated) and (not Suspended) then
+    PostMsg(WM_GD_EXIT_THREAD);
+  inherited;
+
+  FCreatedEvent.Free;
+end;
+
+procedure TgdMessagedThread.Execute;
+var
+  Msg: TMsg;
+begin
+  Setup;
+  try
+    PeekMessage(Msg, 0, WM_USER, WM_USER, PM_NOREMOVE);
+    FCreatedEvent.SetEvent;
+
+    while (not Terminated) and GetMessage(Msg, 0, 0, 0)
+      and (Msg.Message <> WM_GD_EXIT_THREAD) do
+    begin
+      if not ProcessMessage(Msg) then
+      begin
+        TranslateMessage(Msg);
+        DispatchMessage(Msg);
+      end;
+
+      if FErrorMessage > '' then
+        Synchronize(LogError);
+    end;
+  finally
+    TearDown;
+  end;
+end;
+
+procedure TgdMessagedThread.LogError;
+begin
+  FErrorMessage := '';
+end;
+
+
+procedure TgdMessagedThread.PostMsg(const AMsg: Word);
+begin
+  if FCreatedEvent.WaitFor(INFINITE) = wrSignaled then
+    PostThreadMessage(ThreadID, AMsg, 0, 0);
+end;
+
+function TgdMessagedThread.ProcessMessage(var Msg: TMsg): Boolean;
+begin
+  Result := False;
+end;
+
+procedure TgdMessagedThread.Setup;
+begin
+  CoInitialize(nil);
+end;
+
+procedure TgdMessagedThread.TearDown;
+begin
+  CoUninitialize;
 end;
 
 initialization

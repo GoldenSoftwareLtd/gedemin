@@ -3849,7 +3849,7 @@ begin
     Result := inherited CheckTheSameStatement
   else
     Result := Format('SELECT %s FROM %s WHERE entrykey = %s AND valuekey = %s',
-      [GetKeyField(SubType), GetListTable(SubType), FieldByName('entrykey').AsInteger, FieldByName('valuekey').AsInteger]);
+      [GetKeyField(SubType), GetListTable(SubType), FieldByName('entrykey').AsString, FieldByName('valuekey').AsString]);
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTQUANTITY', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then

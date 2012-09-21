@@ -209,9 +209,7 @@ procedure TdmLogin.boLoginBeforeDisconnect(Sender: TObject);
 begin
   {$IFDEF WITH_INDY}
   if not Application.Terminated then
-  begin
     gdWebServerControl.DeactivateServer;
-  end;
   {$ENDIF}
 
   SaveStorages;

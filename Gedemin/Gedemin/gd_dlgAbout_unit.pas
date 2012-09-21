@@ -73,7 +73,7 @@ uses
   gd_directories_const, IBSQL, IBDatabase, gd_ClassList,
   {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version{$IFDEF GEDEMIN}, FastMM4{$ENDIF}
-  {$IFDEF WITH_INDY}, IdGlobal, gd_WebClientControl_unit{$ENDIF};
+  {$IFDEF WITH_INDY}, IdGlobal, gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF};
 
 type
   TMemoryStatusEx = record
@@ -367,6 +367,9 @@ begin
   end;
 
   {$IFDEF WITH_INDY}
+  AddSection('WebServer');
+  AddBoolean('Активен', gdWebServerControl.Active);
+  AddSpaces('Bindings', gdWebServerControl.GetBindings);
   AddSpaces('WebServer', gdWebClientThread.gdWebServerURL);
   AddSpaces('ServerResponse', gdWebClientThread.ServerResponse);
   {$ENDIF}
