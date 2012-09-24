@@ -2410,9 +2410,6 @@ begin
   {$ENDIF}
 
   {$IFDEF DEBUG}
-  Result := Format('%s, IBX: %s, JCL: %d.%d, ZLIB: %s, Started: %s',
-    [Caption, FloatToStr(IBX_Version), JclVersionMajor, JclVersionMinor, {ZLIB_Version}'xxx',
-     FormatDateTime('hh:nn', Now)]);
   Result := Result + ', ' + 'DEBUG MODE';
   {$ENDIF}
 end;

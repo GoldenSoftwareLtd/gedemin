@@ -177,7 +177,7 @@ begin
                   Obj.Insert;
                   Obj.Cancel;
 
-                  if Obj.GetDialogFormClassName(Obj.SubType) <> 'Tgdc_dlgObjectProperties' then
+                  if (Obj.GetDialogFormClassName(Obj.SubType) <> 'Tgdc_dlgObjectProperties') then
                   begin
                     DUnit_Process_Form_Flag := True;
                     try

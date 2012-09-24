@@ -693,10 +693,17 @@ end;
 procedure TgdcSetTest.TestCreateDomain;
 var
   FField: TgdcField;
+  R, F: OleVariant;
 begin
   FDomainName := 'USR$TEST' + IntToStr(Random(1000000));
 
   FDBState := GetDBState;
+
+  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM at_relations WHERE relationname = :RN',
+    'GD_CONTACT', R, FTr);
+
+  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM at_relation_fields WHERE relationkey = :RK AND fieldname = ''NAME''',
+    R[0, 0], F, FTr);
 
   FField := TgdcField.Create(nil);
   try
@@ -712,8 +719,8 @@ begin
     FField.FieldByName('collation').AsString := 'PXW_CYRL';
     FField.FieldByName('settable').AsString := 'GD_CONTACT';
     FField.FieldByName('setlistfield').AsString := 'NAME';
-    FField.FieldByName('settablekey').AsInteger := 147000717;
-    FField.FieldByName('setlistfieldkey').AsInteger := 147001319;
+    FField.FieldByName('settablekey').AsInteger := R[0, 0];
+    FField.FieldByName('setlistfieldkey').AsInteger := F[0, 0];
     FField.Post;
     FDomainKey := FField.ID;
   finally
