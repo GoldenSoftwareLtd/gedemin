@@ -31,7 +31,9 @@ type
   TBackupThread = class(TThread)
   protected
     FNextLine: String;
+    {$IFDEF GEDEMIN}
     FOldNotification: String;
+    {$ENDIF}
 
     procedure ShowStartInfo;
     procedure ShowNextLine;
@@ -49,7 +51,11 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_security, gd_directories_const, Storages, gdNotifierThread_unit
+  gd_security, gd_directories_const,
+  {$IFDEF GEDEMIN}
+  gdNotifierThread_unit,
+  {$ENDIF}
+  Storages
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -326,8 +332,10 @@ begin
   except
   end;
 
+  {$IFDEF GEDEMIN}
   gdNotifierThread.Notification := FOldNotification;
   gdNotifierThread.StopTimer;
+  {$ENDIF}
 end;
 
 procedure TBackupThread.ShowNextLine;
@@ -345,9 +353,11 @@ begin
   gd_frmBackup.mProgress.Lines.Insert(0, 'Начат процесс архивирования базы данных: ' +
     FormatDateTime('hh:nn:ss, dd mmmm yyyy', Now));
 
+  {$IFDEF GEDEMIN}
   FOldNotification := gdNotifierThread.Notification;
   gdNotifierThread.Notification := 'Архивирование базы ' + gd_frmBackup.edDatabase.Text;
   gdNotifierThread.StartTimer;
+  {$ENDIF}
 end;
 
 procedure Tgd_frmBackup.FormClose(Sender: TObject;
