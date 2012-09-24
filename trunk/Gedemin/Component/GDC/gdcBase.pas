@@ -18347,7 +18347,10 @@ finalization
 
   {$IFDEF DEBUG}
   if InvokeCounts <> nil then
+  try
     InvokeCounts.SaveToFile('d:\invoke.log');
+  except
+  end;  
   FreeAndNil(InvokeCounts);
   {$ENDIF}
 

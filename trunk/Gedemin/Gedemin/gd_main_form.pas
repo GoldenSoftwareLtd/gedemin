@@ -413,11 +413,11 @@ uses
   pr_dlgLicence_unit,
   {$ENDIF}
 
-{.$IFDEF GEDEMIN_LOCK}
+{$IFDEF GEDEMIN_LOCK}
   gd_dlgReg_unit,
   gd_registration,
   IBDatabaseInfo,
-{.$ENDIF}
+{$ENDIF}
 
   gdcGood,
   gdcBase,
@@ -514,6 +514,7 @@ uses
     , gd_localization_stub
   {$ENDIF}
   , gdcExplorer,
+  gdNotifierThread_unit,
   gd_dlgStreamSaverOptions;
 
 type
@@ -1088,7 +1089,8 @@ begin
 {$ENDIF}
 
   if IBLogin.IsUserAdmin then
-    lblDatabase.Caption := '  ' + IBLogin.Database.DatabaseName;
+    gdNotifierThread.Notification := '  ' + IBLogin.Database.DatabaseName;
+    //lblDatabase.Caption := '  ' + IBLogin.Database.DatabaseName;
 
   // Issue 1992
   if FormAssigned(gdc_frmExplorer) then
@@ -1904,14 +1906,14 @@ end;
 
 procedure TfrmGedeminMain.actRegistrationExecute(Sender: TObject);
 begin
-{.$IFDEF GEDEMIN_LOCK}
+{$IFDEF GEDEMIN_LOCK}
   with Tgd_dlgReg.Create(Self) do
   try
     ShowModal;
   finally
     Free;
   end;
-{.$ENDIF}
+{$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actRegistrationUpdate(Sender: TObject);

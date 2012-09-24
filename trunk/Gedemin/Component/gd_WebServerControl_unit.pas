@@ -106,9 +106,9 @@ end;
 
 destructor TgdWebServerControl.Destroy;
 begin
-  FreeAndNil(FHttpGetHandlerList);
-  FreeAndNil(FHttpServer);
   inherited;
+  FreeAndNil(FHttpServer);
+  FreeAndNil(FHttpGetHandlerList);
 end;
 
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent; const AToken, AFunctionName: String);
@@ -157,6 +157,8 @@ var
   end;
 
 begin
+  Assert(FHTTPGetHandlerList <> nil);
+
   FunctionKey := GetFunctionKey;
   if FunctionKey > 0 then
   begin
@@ -206,6 +208,8 @@ var
   LParams, LResult: Variant;
   Processed: Boolean;
 begin
+  Assert(FHTTPGetHandlerList <> nil);
+
   if AnsiCompareText(FRequest.Document, '/query') = 0 then
   begin
     ProcessQueryRequest;
@@ -275,6 +279,8 @@ procedure TgdWebServerControl.Notification(AComponent: TComponent; Operation: TO
 var
   I: Integer;
 begin
+  Assert(FHTTPGetHandlerList <> nil);
+
   inherited;
 
   if Operation = Classes.opRemove then
@@ -395,9 +401,14 @@ begin
   Binding.Port := DEFAULT_WEB_SERVER_PORT;
   Binding.IP := '127.0.0.1';
 
-  {Binding := FHttpServer.Bindings.Add;
-  Binding.Port := DEFAULT_WEB_SERVER_PORT;
-  Binding.IP := GetIP;}
+  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  if GetLocalIP = '192.168.0.35' then
+  begin
+    Binding := FHttpServer.Bindings.Add;
+    Binding.Port := DEFAULT_WEB_SERVER_PORT;
+    Binding.IP := GetIP;
+  end;
+  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   FHttpServer.OnCommandGet := ServerOnCommandGet;
 
