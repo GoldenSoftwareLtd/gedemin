@@ -39,13 +39,15 @@ implementation
 
 uses
   SysUtils, ComObj, ActiveX, gdcJournal, gd_FileList_unit,
-  gd_security, JclSimpleXML;
+  gd_security, JclSimpleXML, gdNotifierThread_unit;
 
 const
   WM_GD_AFTER_CONNECTION = WM_USER + 1118;
   WM_GD_QUERY_SERVER =     WM_USER + 1119;
   WM_GD_UPDATE_FILES =     WM_USER + 1120;
 
+  NameServerURL = 'http://gsbelarus.com/gs/gedemin/gdwebserver.xml';
+  
 { TgdWebClientThread }
 
 constructor TgdWebClientThread.Create;
@@ -110,8 +112,6 @@ begin
 end;
 
 function TgdWebClientThread.LoadWebServerURL: Boolean;
-const
-  NameServerURL = 'http://gsbelarus.com/gs/gedemin/gdwebserver.xml';
 var
   LocalDoc: OleVariant;
   Sel: OleVariant;
@@ -164,11 +164,17 @@ begin
   case Msg.Message of
     WM_GD_AFTER_CONNECTION:
       if LoadWebServerURL then
+      begin
         PostThreadMessage(ThreadID, WM_GD_QUERY_SERVER, 0, 0);
+        gdNotifierThread.Add('Подключение к серверу ' + NameServerURL, 0, 2000);
+      end;
 
     WM_GD_QUERY_SERVER:
       if QueryWebServer or True then
+      begin
         PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
+        gdNotifierThread.Add('Подключение к серверу ' + FgdWebServerURL, 0, 2000);
+      end;
 
     WM_GD_UPDATE_FILES:
       UpdateFiles;

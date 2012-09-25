@@ -7,7 +7,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, ToolWin, ComCtrls, IBDatabase, dmDatabase_unit, gd_security,
   IBSQL, ActnList, Menus, gsDesktopManager,  StdCtrls,
-  dmImages_unit, gd_security_OperationConst, {gsTrayIcon,}
+  dmImages_unit, gd_security_OperationConst, gdNotifierThread_unit,
   AppEvnts, Db, IBCustomDataSet, IBServices, gdHelp_Body,
   gd_createable_form, TB2Item, TB2Dock, TB2Toolbar,
   gsIBLookupComboBox, TB2ExtItems;
@@ -19,7 +19,8 @@ const
 type
   TCrackIBCustomDataset = class(TIBCustomDataset);
 
-  TfrmGedeminMain = class(TCreateableForm, ICompanyChangeNotify, IConnectChangeNotify)
+  TfrmGedeminMain = class(TCreateableForm, ICompanyChangeNotify,
+      IConnectChangeNotify, IgdNotifierWindow)
     ActionList: TActionList;
     actExit: TAction;
     actAbout: TAction;
@@ -313,6 +314,8 @@ type
     procedure WMRunOnLoginMacros(var Msg: TMessage);
       message WM_RUNONLOGINMACROS;
 
+    procedure UpdateNotification(const ANotification: String);  
+
   protected
     procedure Loaded; override;
 
@@ -514,18 +517,15 @@ uses
     , gd_localization_stub
   {$ENDIF}
   , gdcExplorer,
-  gdNotifierThread_unit,
   gd_dlgStreamSaverOptions;
 
 type
   TCrackPopupMenu = class(TPopupMenu);
 
 procedure TfrmGedeminMain.FormCreate(Sender: TObject);
-{var
-  RemotePath, FileName, RemoteFileName, TempFileName: String;
-  TempPath: array[0..256] of char;
-  SearchR: TSearchRec;}
 begin
+  gdNotifierThread.NotifierWindow := Self;
+
   if Assigned(IBLogin) then
   begin
     // раз иблогин был создан и подключен к базе
@@ -548,57 +548,8 @@ begin
     end;
 
     IBLogin.AddConnectNotify(Self);
-    IBLogin.AddCompanyNotify(Self);    
+    IBLogin.AddCompanyNotify(Self);
   end;
-                                               
-  /////////////////////////////////////////////////////////////////////////////
-  // live updates
-  // пры кожнай загрузцы мы глядзім у сховішча і, калі жывыя аднаўленьні
-  // ўключаны і вэрсія файла на сэрвере большая за нашую, тады капіруем
-  // файл сабе на кампутар і пры наступнай перазагрузцы замяняем яго.
-  //
-  {if GlobalStorage.ReadBoolean(st_lu_OptionsPath, st_lu_Enabled, True) then
-  begin
-    FileName := ExtractFileName(Application.EXEName);
-    RemotePath := GlobalStorage.ReadString(st_lu_OptionsPath, st_lu_Server);
-    RemoteFileName := IncludeTrailingBackslash(RemotePath) + FileName;
-
-    if (RemotePath > '') and FileExists(RemoteFileName)
-      and (VersionResourceAvailable(Application.EXEName)) and () then
-    begin
-    end;
-
-
-    if VersionResourceAvailable(Application.EXEName) then
-      with TjclFileVersionInfo.Create(Application.EXEName) do
-      try
-        if FileVersion < GlobalStorage.ReadString(st_lu_OptionsPath, st_lu_Version) then
-        begin
-          FileName := ExtractFileName(Application.EXEName);
-          RemotePath := GlobalStorage.ReadString(st_lu_OptionsPath, st_lu_Server);
-          RemoteFileName := IncludeTrailingBackslash(RemotePath) + FileName;
-          if (RemotePath > '') and FileExists(RemoteFileName) and
-            (MessageBox(0,
-              'Обнаружена новая версия файла. Произвести обновление?',
-              'Внимание',
-              MB_ICONQUESTION or MB_YESNO) = IDYES)
-            then
-          begin
-            TempFileName := Application.EXEName + '.TMP';
-            if CopyFile(PChar(RemoteFileName), PChar(TempFileName), False) then
-            begin
-              MoveFileEx(PChar(TempFileName), PChar(Application.EXEName), MOVEFILE_DELAY_UNTIL_REBOOT or MOVEFILE_REPLACE_EXISTING);
-              MessageBox(0,
-                'Обновление произойдет при следующей перезагрузке компьютера.',
-                'Информация',
-                MB_ICONINFORMATION or MB_OK);
-            end;
-          end;
-        end;
-      finally
-        Free;
-      end;
-  end;}
 end;
 
 procedure TfrmGedeminMain.actExplorerExecute(Sender: TObject);
@@ -689,7 +640,7 @@ end;
 procedure TfrmGedeminMain.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 var
-  i: Integer;  
+  i: Integer;
 begin
   if Assigned(IBLogin) and (IBLogin.Database <> nil)
     and (not IBLogin.Database.TestConnected) then
@@ -735,8 +686,6 @@ begin
       Inc(I);
   end;
 
-//  if Assigned(ScriptFactory) then
-//    ScriptFactory.Reset;
   OleUninitialize;
 end;
 
@@ -751,8 +700,6 @@ begin
   _OnDestroyForm := _DoOnDestroyForm;
   _OnActivateForm := _DoOnActivateForm;
   _OnCaptionChange := _DoOnCaptionChange;
-
-  //gsStorage_CompPath.MainForm := Self;
 
   Application.OnShowHint := ApplicationEventsShowHint;
   
@@ -1089,8 +1036,7 @@ begin
 {$ENDIF}
 
   if IBLogin.IsUserAdmin then
-    gdNotifierThread.Notification := '  ' + IBLogin.Database.DatabaseName;
-    //lblDatabase.Caption := '  ' + IBLogin.Database.DatabaseName;
+    gdNotifierThread.Add(IBLogin.Database.DatabaseName);
 
   // Issue 1992
   if FormAssigned(gdc_frmExplorer) then
@@ -1108,10 +1054,6 @@ begin
 
   {$IFDEF NOGEDEMIN}
   Caption := '';
-  {$ENDIF}
-
-  {$IFDEF DEPARTMENT}
-  Caption := 'Департамент';
   {$ENDIF}
 
   FFirstTime := True;
@@ -1159,28 +1101,6 @@ begin
       (CurrAction as TAction).Enabled := DoEnable;
   end;
 end;
-
-{
-procedure TfrmGedeminMain.actCloseAllGedeminsExecute(Sender: TObject);
-var
-  Tr: TIBTransaction;
-  q: TIBSQL;
-begin
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  try
-    Tr.DefaultDatabase := dmDatabase.ibdbGAdmin;
-    q.Transaction := Tr;
-    Tr.StartTransaction;
-    q.SQL.Text := 'EXECUTE PROCEDURE gd_p_close_gedemin';
-    q.ExecQuery;
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-  end;
-end;
-}
 
 procedure TfrmGedeminMain.actLogInExecute(Sender: TObject);
 begin
@@ -1529,28 +1449,12 @@ end;
 procedure TfrmGedeminMain.actOptionsExecute(Sender: TObject);
 begin
   with Tgd_dlgOptions.Create(Self) do
-  try      
+  try
     ShowModal;
   finally
     Free;
   end;
 end;
-
-(*
-procedure TfrmGedeminMain.actCloseAllGedeminsUpdate(Sender: TObject);
-begin
-  actCloseAllGedemins.Enabled := Assigned(IBLogin)
-    and IBLogin.LoggedIn
-    and IBLogin.IsUserAdmin;
-
-  {$IFDEF DEPARTMENT}
-    if not IBLogin.IsUserAdmin then
-      actCloseAllGedemins.Visible := False
-    else
-      actCloseAllGedemins.Visible := True;
-  {$ENDIF}
-end;
-*)
 
 procedure TfrmGedeminMain.actOptionsUpdate(Sender: TObject);
 begin
@@ -1586,8 +1490,6 @@ begin
 end;
 
 procedure TfrmGedeminMain.gsiblkupCompanyChange(Sender: TObject);
-{const
-  SavedDesktop: String = '';}
 begin
   if gsiblkupCompany.CurrentKeyInt <> IBLogin.CompanyKey then
   begin
@@ -1917,10 +1819,7 @@ begin
 end;
 
 procedure TfrmGedeminMain.actRegistrationUpdate(Sender: TObject);
-begin                                    
-{$IFNDEF GEDEMIN_LOCK}
-//  actRegistration.Visible := False;
-{$ENDIF}
+begin
   if (IBLogin <> nil) and IBLogin.Database.Connected then
   begin
     actRegistration.Enabled := IBLogin.IsUserAdmin;
@@ -1987,10 +1886,6 @@ begin
 end;
 
 procedure TfrmGedeminMain.actSQLMonitorExecute(Sender: TObject);
-//{$IFDEF DEBUG}
-//var
-//  F: TCustomForm;
-//{$ENDIF}
 begin
   //{$IFDEF DEBUG}
   //F := FindForm(Tgd_frmSQLMonitor);
@@ -2002,6 +1897,8 @@ end;
 
 procedure TfrmGedeminMain.DoDestroy;
 begin
+  gdNotifierThread.NotifierWindow := nil;
+
   inherited;
 
   if ExitCode = 0 then
@@ -2054,7 +1951,6 @@ const
 var
   Reg: TRegistry;
   S: String;
-  //I: Integer;
 begin
   Reg := TRegistry.Create(KEY_ALL_ACCESS);
   try
@@ -2089,18 +1985,6 @@ begin
 
             if Trim(edPassword.Text) > '' then
               S := S + ' /password "' + edPassword.Text + '"';
-
-           {for I := 1 to Length(S) do
-            begin
-              if S[I] in ['А'..'Я', 'а'..'я', 'Ё', 'ё', 'Ў', 'ў'] then
-              begin
-                MessageBox(Handle,
-                  'Имя файла содержит недопустимые символы!',
-                  'Ошибка',
-                  MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-                exit;
-              end;
-            end;}
 
             Reg.WriteString('Shell', S);
           end else
@@ -2459,6 +2343,12 @@ begin
       q.Free;
     end;
   end;
+end;
+
+procedure TfrmGedeminMain.UpdateNotification(const ANotification: String);
+begin
+  if (not (csDestroying in ComponentState)) and Visible then
+    lblDatabase.Caption := ANotification;
 end;
 
 end.

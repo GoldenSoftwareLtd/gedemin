@@ -4670,7 +4670,7 @@ begin
         begin
           Temps := GetParamValueByName(XMLElement.ElementString, 'id');
           if CheckRuid(Temps) then
-            I := gdcBaseManager.GetIDByRUIDString(Temps)
+            I := gdcBaseManager.GetIDByRUIDString(Temps, FDataObject.Transaction)
           else  
             I := GetIntegerParamValueByName(XMLElement.ElementString, 'id');
           J := GetIntegerParamValueByName(XMLElement.ElementString, 'xid');
@@ -4683,7 +4683,7 @@ begin
           I := GetIntegerParamValueByName(XMLElement.ElementString, 'objectkey');
           Temps := GetParamValueByName(XMLElement.ElementString, 'recordid');
           if CheckRuid(Temps) then
-            J := gdcBaseManager.GetIDByRUIDString(Temps)
+            J := gdcBaseManager.GetIDByRUIDString(Temps, FDataObject.Transaction)
           else
             J := GetIntegerParamValueByName(XMLElement.ElementString, 'recordid');
           FLoadingOrderList.AddItem(J, I);
@@ -5513,7 +5513,7 @@ begin
       StreamWriteXMLString(Stream, AddElement(CurrentFieldName, SafeFloatToStr(AField.AsFloat)));
   else
     if RUID then
-      StreamWriteXMLString(Stream, AddElement(CurrentFieldName, '<' + XML_TAG_RUID + '>' + QuoteString(gdcBaseManager.GetRUIDStringByID(AField.AsInteger)) + '</' + XML_TAG_RUID +'>'))
+      StreamWriteXMLString(Stream, AddElement(CurrentFieldName, '<' + XML_TAG_RUID + '>' + QuoteString(gdcBaseManager.GetRUIDStringByID(AField.AsInteger, FDataObject.Transaction)) + '</' + XML_TAG_RUID +'>'))
     else
       StreamWriteXMLString(Stream, AddElement(CurrentFieldName, QuoteString(AField.AsString)));
   end;
@@ -5596,7 +5596,7 @@ begin
     begin
       Temps := StringReplace(AFieldValue, '<' + XML_TAG_RUID + '>', '', [rfReplaceAll, rfIgnoreCase]);
       Temps := StringReplace(Temps, '</' + XML_TAG_RUID + '>', '', [rfReplaceAll, rfIgnoreCase]);
-      AField.AsInteger := gdcBaseManager.GetIDByRUIDString(UnQuoteString(ConvertUTFToANSI(Temps)));
+      AField.AsInteger := gdcBaseManager.GetIDByRUIDString(UnQuoteString(ConvertUTFToANSI(Temps)), FDataObject.Transaction);
     end else
       AField.AsString := UnQuoteString(ConvertUTFToANSI(AFieldValue));
   end;
@@ -5815,7 +5815,7 @@ begin
     StreamWriteXMLString(Stream, AddOpenTag(XML_TAG_REFERENCED_RECORD_LIST));
     for K := 0 to I - 1 do
     begin
-      AddAttribute('id', gdcBaseManager.GetRUIDStringByID(FDataObject.ReferencedRecord[K].SourceID));
+      AddAttribute('id', gdcBaseManager.GetRUIDStringByID(FDataObject.ReferencedRecord[K].SourceID, FDataObject.Transaction));
       AddAttribute('xid', IntToStr(FDataObject.ReferencedRecord[K].RUID.XID));
       AddAttribute('dbid', IntToStr(FDataObject.ReferencedRecord[K].RUID.DBID));
       StreamWriteXMLString(Stream, AddShortElement(XML_TAG_REFERENCED_RECORD));
@@ -5830,7 +5830,7 @@ begin
     begin
       AddAttribute('index', IntToStr(Items[K].Index));
       AddAttribute('objectkey', IntToStr(Items[K].DSIndex));
-      AddAttribute('recordid', gdcBaseManager.GetRUIDStringByID(Items[K].RecordID));//(Items[K].RecordID));
+      AddAttribute('recordid', gdcBaseManager.GetRUIDStringByID(Items[K].RecordID, FDataObject.Transaction));//(Items[K].RecordID));
       StreamWriteXMLString(Stream, AddShortElement(XML_TAG_LOADING_ORDER_ITEM));
     end;
   StreamWriteXMLString(Stream, AddCloseTag(XML_TAG_LOADING_ORDER));
