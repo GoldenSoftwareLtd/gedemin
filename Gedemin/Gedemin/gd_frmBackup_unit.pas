@@ -31,9 +31,7 @@ type
   TBackupThread = class(TThread)
   protected
     FNextLine: String;
-    {$IFDEF GEDEMIN}
-    FOldNotification: String;
-    {$ENDIF}
+    FNotificationContext: Integer;
 
     procedure ShowStartInfo;
     procedure ShowNextLine;
@@ -52,9 +50,7 @@ implementation
 
 uses
   gd_security, gd_directories_const,
-  {$IFDEF GEDEMIN}
   gdNotifierThread_unit,
-  {$ENDIF}
   Storages
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -325,17 +321,19 @@ begin
 end;
 
 procedure TBackupThread.ShowFinishInfo;
+var
+  S: String;
 begin
+  S := 'Закончен процесс архивирования базы данных: ' +
+    FormatDateTime('hh:nn:ss, dd mmmm yyyy', Now);
+
   try
-    gd_frmBackup.mProgress.Lines.Insert(0, 'Закончен процесс архивирования базы данных: ' +
-      FormatDateTime('hh:nn:ss, dd mmmm yyyy', Now));
+    gd_frmBackup.mProgress.Lines.Insert(0, S);
   except
   end;
 
-  {$IFDEF GEDEMIN}
-  gdNotifierThread.Notification := FOldNotification;
-  gdNotifierThread.StopTimer;
-  {$ENDIF}
+  gdNotifierThread.DeleteContext(FNotificationContext);
+  gdNotifierThread.Add(S, 0, 4000);
 end;
 
 procedure TBackupThread.ShowNextLine;
@@ -353,11 +351,9 @@ begin
   gd_frmBackup.mProgress.Lines.Insert(0, 'Начат процесс архивирования базы данных: ' +
     FormatDateTime('hh:nn:ss, dd mmmm yyyy', Now));
 
-  {$IFDEF GEDEMIN}
-  FOldNotification := gdNotifierThread.Notification;
-  gdNotifierThread.Notification := 'Архивирование базы ' + gd_frmBackup.edDatabase.Text;
-  gdNotifierThread.StartTimer;
-  {$ENDIF}
+  FNotificationContext := gdNotifierThread.GetNextContext;
+  gdNotifierThread.Add('Архивирование базы ' + gd_frmBackup.edDatabase.Text + '... <tmr>',
+    FNotificationContext);
 end;
 
 procedure Tgd_frmBackup.FormClose(Sender: TObject;

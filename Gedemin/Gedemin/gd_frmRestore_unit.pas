@@ -45,9 +45,7 @@ type
   protected
     FNextLine: String;
     FCancel: Boolean;
-    {$IFDEF GEDEMIN}
-    FOldNotification: String;
-    {$ENDIF}
+    FNotificationContext: Integer;
 
     procedure ShowStartInfo;
     procedure ShowNextLine;
@@ -69,11 +67,7 @@ implementation
 
 uses
   IB, IBErrorCodes, gd_security, gd_directories_const, gdcBaseInterface,
-  Registry, gd_dlgRestoreWarning_unit,
-  {$IFDEF GEDEMIN}
-  gdNotifierThread_unit,
-  {$ENDIF}
-  gdcLBRBTreeMetaData
+  Registry, gd_dlgRestoreWarning_unit, gdNotifierThread_unit, gdcLBRBTreeMetaData
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -419,18 +413,19 @@ begin
 end;
 
 procedure TRestoreThread.ShowFinishInfo;
+var
+  S: String;
 begin
+  S := 'Закончен процесс восстановления базы данных: ' +
+    FormatDateTime('hh:nn:ss, dd mmmm yyyy', Now);
   try
-    gd_frmRestore.mProgress.Lines.Insert(0, 'Закончен процесс восстановления базы данных: ' +
-      FormatDateTime('hh:nn:ss, dd mmmm yyyy', Now));
+    gd_frmRestore.mProgress.Lines.Insert(0, S);
   except
     // под Windows98 ограничение на размер мемо в 64К
   end;
 
-  {$IFDEF GEDEMIN}
-  gdNotifierThread.Notification := FOldNotification;
-  gdNotifierThread.StopTimer;
-  {$ENDIF}
+  gdNotifierThread.DeleteContext(FNotificationContext);
+  gdNotifierThread.Add(S, 0, 4000);
 end;
 
 procedure TRestoreThread.ShowNextLine;
@@ -448,11 +443,9 @@ begin
   gd_frmRestore.mProgress.Lines.Insert(0, 'Начат процесс восстановления базы данных: ' +
     FormatDateTime('hh:nn:ss, dd mmmm yyyy', Now));
 
-  {$IFDEF GEDEMIN}
-  FOldNotification := gdNotifierThread.Notification;
-  gdNotifierThread.Notification := 'Восстановление базы ' + gd_frmRestore.edDatabase.Text;
-  gdNotifierThread.StartTimer;
-  {$ENDIF}
+  FNotificationContext := gdNotifierThread.GetNextContext;
+  gdNotifierThread.Add('Восстановление базы ' + gd_frmRestore.edDatabase.Text + '... <tmr>',
+    FNotificationContext);
 end;
 
 constructor Tgd_frmRestore.Create(AnOwner: TComponent);

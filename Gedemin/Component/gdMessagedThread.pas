@@ -125,7 +125,8 @@ end;
 
 procedure TgdMessagedThread.SetTimeout(const ATimeout: DWORD);
 begin
-  PostMsg(WM_GD_UPDATE_TIMER, 0, ATimeout);
+  if FTimeout <> ATimeout then
+    PostMsg(WM_GD_UPDATE_TIMER, 0, ATimeout);
 end;
 
 procedure TgdMessagedThread.Setup;
