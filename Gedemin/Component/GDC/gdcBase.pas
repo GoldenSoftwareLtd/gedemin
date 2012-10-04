@@ -7175,11 +7175,15 @@ begin
      {Возможно нам выставили флаг "Обновлять из потока" вручную,
       тогда нас не интересует ни дата обновления, ни содержимое уже существующей записи}
       begin
+        {$IFDEF DUNIT_TEST}
+        Self.StreamProcessingAnswer := mrYesToAll;
+        {$ELSE}
         Self.StreamProcessingAnswer := MessageDlg('Объект ' + GetDisplayName(SubType) + ' ' +
           FieldByName(GetListField(SubType)).AsString + ' с идентификатором ' +
           FieldByName(GetKeyField(SubType)).AsString + ' уже существует в базе. ' +
           'Заменить объект? ', mtConfirmation,
-          [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);                  
+          [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);
+        {$ENDIF}
         case Self.StreamProcessingAnswer of
           mrYes, mrYesToAll: Result := True;
           else Result := False;
@@ -7263,11 +7267,15 @@ begin
             if IsDifferent then
             begin
               //Если загружаемая запись отличается от существующей уточним, нужно ли ее считывать
+              {$IFDEF DUNIT_TEST}
+              Self.StreamProcessingAnswer := mrYesToAll;
+              {$ELSE}
               Self.StreamProcessingAnswer := MessageDlg('Объект ' + GetDisplayName(SubType) + ' ' +
                 FieldByName(GetListField(SubType)).AsString + ' с идентификатором ' +
                 FieldByName(GetKeyField(SubType)).AsString + ' имеет более позднюю модификацию, ' +
                 'чем загружаемый из потока. Заменить объект? ', mtConfirmation,
                 [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);
+              {$ENDIF}  
               case Self.StreamProcessingAnswer of
                 mrYes, mrYesToAll: Result := True;
                 else Result := False;

@@ -382,15 +382,6 @@ ALTER TABLE gd_company ADD CONSTRAINT gd_fk_company_companyaccountkey
   ON UPDATE CASCADE
   ON DELETE SET NULL;
 
-/*
-этот индекс не нужен так как заменяется индексом:
-
-gd_uk_companyaccount
-
-CREATE INDEX gd_x_companyaccount_acc
-  ON gd_companyaccount (account);
-*/
-
 COMMIT;
 
 CREATE TABLE gd_contactlist

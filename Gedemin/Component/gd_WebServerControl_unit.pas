@@ -26,7 +26,8 @@ unit gd_WebServerControl_unit;
 interface
 
 uses
-  Classes, Contnrs, IdHTTPServer, IdCustomHTTPServer, IdTCPServer, evt_i_Base;
+  Classes, Contnrs, IdHTTPServer, IdCustomHTTPServer, IdTCPServer, evt_i_Base,
+  gd_FileList_unit;
 
 const
   DEFAULT_WEB_SERVER_PORT = 80;
@@ -37,12 +38,11 @@ type
   private
     FHttpServer: TIdHTTPServer;
     FHttpGetHandlerList: TObjectList;
-
     FRequest: TIdHTTPRequestInfo;
     FResponse: TIdHTTPResponseInfo;
-
     FVarParam: TVarParamEvent;
     FReturnVarParam: TVarParamEvent;
+    FFileList: TFLCollection;
 
     function GetVarInterface(const AnValue: Variant): OleVariant;
     function GetVarParam(const AnValue: Variant): OleVariant;
@@ -82,7 +82,7 @@ uses
   SysUtils, ibsql, Forms, Windows, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
   gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock,
-  ComObj, JclSimpleXML;
+  ComObj, JclSimpleXML, gd_directories_const;
 
 type
   TgdHttpHandler = class(TObject)
@@ -109,6 +109,7 @@ begin
   inherited;
   FreeAndNil(FHttpServer);
   FreeAndNil(FHttpGetHandlerList);
+  FreeAndNil(FFileList);
 end;
 
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent; const AToken, AFunctionName: String);
@@ -424,7 +425,7 @@ var
   LocalDoc, Sel: OleVariant;
   Params: Variant;
 begin
-  LocalDoc := CreateOleObject('MSXML.DOMDocument');
+  LocalDoc := CreateOleObject(ProgID_MSXML_DOMDocument);
   LocalDoc.Async := False;
   LocalDoc.SetProperty('SelectionLanguage', 'XPath');
 
@@ -432,10 +433,10 @@ begin
   begin
     Params := VarArrayCreate([0, 2], varVariant);
 
-    Sel := LocalDoc.SelectSingleNode('/QUERY/VERSION_1/DBID');
+    Sel := LocalDoc.SelectSingleNode('/QUERY/DBID');
     if not VarIsEmpty(Sel) then
       Params[0] := Sel.NodeTypedValue;
-    Sel := LocalDoc.SelectSingleNode('/QUERY/VERSION_1/CUSTOMERNAME');
+    Sel := LocalDoc.SelectSingleNode('/QUERY/CUSTOMERNAME');
     if not VarIsEmpty(Sel) then
       Params[1] := Copy(EntityDecode(Sel.NodeTypedValue), 1, 60);
     Params[2] := FRequest.RemoteIP;
@@ -444,9 +445,15 @@ begin
       'INSERT INTO gd_web_log (dbid, customername, ipaddress, op) ' +
       'VALUES (:dbid, :customername, :ipaddress, ''QURY'')', Params);
 
+    if FFileList = nil then
+    begin
+      FFileList := TFLCollection.Create;
+      FFileList.BuildEtalonFileSet;
+    end;
+
     FResponse.ResponseNo := 200;
     FResponse.ContentType := 'application/octet-stream;';
-    FResponse.ContentStream := TStringStream.Create('abc');
+    FResponse.ContentStream := TStringStream.Create(FFileList.GetXML);
   end;
 end;
 

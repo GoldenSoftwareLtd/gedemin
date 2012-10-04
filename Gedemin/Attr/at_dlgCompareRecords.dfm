@@ -1,6 +1,6 @@
 object dlgCompareRecords: TdlgCompareRecords
-  Left = 318
-  Top = 149
+  Left = 424
+  Top = 228
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Сравнение записей'
@@ -22,8 +22,10 @@ object dlgCompareRecords: TdlgCompareRecords
     Left = 0
     Top = 0
     Width = 507
-    Height = 375
+    Height = 384
     Align = alClient
+    BevelOuter = bvNone
+    BorderWidth = 4
     TabOrder = 0
     object Label1: TLabel
       Left = 8
@@ -33,7 +35,7 @@ object dlgCompareRecords: TdlgCompareRecords
       Caption = 'Тип объекта:'
     end
     object lblClassName: TLabel
-      Left = 96
+      Left = 93
       Top = 27
       Width = 76
       Height = 13
@@ -53,7 +55,7 @@ object dlgCompareRecords: TdlgCompareRecords
       Caption = 'Наименование:'
     end
     object lblName: TLabel
-      Left = 96
+      Left = 93
       Top = 45
       Width = 46
       Height = 13
@@ -73,7 +75,7 @@ object dlgCompareRecords: TdlgCompareRecords
       Caption = 'ИД:'
     end
     object lblID: TLabel
-      Left = 96
+      Left = 93
       Top = 63
       Width = 27
       Height = 13
@@ -96,16 +98,23 @@ object dlgCompareRecords: TdlgCompareRecords
       WordWrap = True
     end
     object sgMain: TStringGrid
-      Left = 2
-      Top = 83
-      Width = 501
-      Height = 288
+      Left = 4
+      Top = 82
+      Width = 499
+      Height = 298
+      Align = alBottom
       ColCount = 3
       DefaultRowHeight = 18
       Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing]
       TabOrder = 1
       OnDrawCell = sgMainDrawCell
       OnMouseDown = sgMainMouseDown
+      RowHeights = (
+        18
+        18
+        18
+        18
+        18)
     end
     object cbShowOnlyDiff: TCheckBox
       Left = 268
@@ -119,26 +128,27 @@ object dlgCompareRecords: TdlgCompareRecords
   end
   object Panel2: TPanel
     Left = 0
-    Top = 375
+    Top = 384
     Width = 507
-    Height = 41
+    Height = 32
     Align = alBottom
+    BevelOuter = bvNone
     TabOrder = 1
     object btnOK: TButton
-      Left = 266
-      Top = 8
+      Left = 339
+      Top = 3
       Width = 75
-      Height = 25
+      Height = 21
       Caption = 'Применить'
       Default = True
       TabOrder = 0
       OnClick = actOKExecute
     end
     object Button1: TButton
-      Left = 420
-      Top = 8
+      Left = 422
+      Top = 3
       Width = 75
-      Height = 25
+      Height = 21
       Caption = 'Отмена'
       TabOrder = 1
       OnClick = actCancelExecute

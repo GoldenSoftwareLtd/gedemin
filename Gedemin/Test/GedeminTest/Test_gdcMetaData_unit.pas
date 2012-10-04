@@ -147,7 +147,7 @@ implementation
 
 uses
   Classes, Windows, DB, IB, gd_security, at_frmSQLProcess,
-  IBSQL, gdcBaseInterface, gd_KeyAssoc, SysUtils,
+  IBSQL, gdcBaseInterface, gd_KeyAssoc, SysUtils, at_classes,
   gdcLBRBTreeMetaData, jclStrings, gdcJournal, gdcSetting,
   gdcTableMetaData, gsStreamHelper, gdcAttrUserDefined, at_log;
 
@@ -696,6 +696,7 @@ var
   R, F: OleVariant;
 begin
   FDomainName := 'USR$TEST' + IntToStr(Random(1000000));
+  Check(atDatabase.Fields.ByFieldName(FDomainName) = nil, 'Duplicate domain name.');
 
   FDBState := GetDBState;
 
@@ -729,12 +730,7 @@ begin
 
   ReConnect;
 
-  FQ.Close;
-  FQ.SQL.Text := 'SELECT * FROM rdb$fields WHERE rdb$field_name = :fn';
-  FQ.ParamByName('fn').AsString := FDomainName;
-  FQ.ExecQuery;
-
-  Check(not FQ.EOF);
+  Check(atDatabase.Fields.ByFieldName(FDomainName) <> nil, 'Domain not found in the atDatabase.');
 end;
 
 procedure TgdcSetTest.CreateTable;
@@ -764,11 +760,10 @@ var
 begin
   CreateTable;
 
-  Check(FTableName > '');
-  Check(FDomainName > '');
-  Check(FTableKey > 0);
-  Check(FDomainKey > 0);
-
+  Check(FTableName > '', 'Empty table name');
+  Check(FDomainName > '', 'Empty domain name');
+  Check(FTableKey > 0, 'Unknown table');
+  Check(FDomainKey > 0, 'Unknown domain');
 
   FFieldName := 'USR$TEST' + IntToStr(Random(1000000)) + 'F';
 
@@ -784,7 +779,7 @@ begin
     FTableField.FieldByName('fieldsourcekey').AsInteger := FDomainKey;
     FTableField.Post;
 
-    Check(FTableField.FieldByName('crosstable').AsString > '');
+    Check(FTableField.FieldByName('crosstable').AsString > '', 'Cross table not set.');
 
     Temps := FTableField.FieldByName('crosstable').AsString;
   finally
@@ -798,7 +793,7 @@ begin
   FQ.ParamByName('RN').AsString := Temps;
   FQ.ExecQuery;
 
-  Check(not FQ.EOF);
+  Check(not FQ.EOF, 'Relation not found');
 
   FQ.Close;
   FQ.SQL.Text := 'SELECT * FROM rdb$triggers WHERE rdb$trigger_name = :TN AND rdb$relation_name = :RN';
@@ -806,7 +801,7 @@ begin
   FQ.ParamByName('TN').AsString := 'USR$BI_' + Temps;
   FQ.ExecQuery;
 
-  Check(not FQ.EOF);
+  Check(not FQ.EOF, 'Trigger not found');
 
   FQ.Close;
   FQ.SQL.Text := 'SELECT * FROM rdb$relation_fields WHERE rdb$field_name = :FN AND rdb$relation_name = :RN';
@@ -814,8 +809,8 @@ begin
   FQ.ParamByName('RN').AsString := FTableName;
   FQ.ExecQuery;
 
-  Check(not FQ.EOF);
-    
+  Check(not FQ.EOF, 'Relation fields not found');
+
   FDBStateAfterCreate := GetDBState;
 end;
 
@@ -891,7 +886,7 @@ begin
   Check(FTableName > '');
 
   GetTempPath(SizeOf(TempPath), TempPath);
-  Result := String(TempPath) + '\' + FTableName + '.xml'
+  Result := IncludeTrailingBackslash(TempPath) + FTableName + '.xml'
 end;
 
 procedure TgdcSetTest.TestDrop;

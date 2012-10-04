@@ -19,9 +19,11 @@ type
     FTimer: Boolean;
     FCreated: TDateTime;
     FWasShownOn: TDateTime;
+    FWasFirstShownOn: TDateTime;
 
     function GetShownInMS: DWORD;
     function GetExpired: Boolean;
+    procedure SetWasShownOn(const Value: TDateTime);
 
   public
     constructor Create(Collection: TCollection); override;
@@ -31,7 +33,7 @@ type
     property ShowTime: DWORD read FShowTime write FShowTime;
     property Timer: Boolean read FTimer write FTimer;
     property Created: TDateTime read FCreated;
-    property WasShownOn: TDateTime read FWasShownOn write FWasShownOn;
+    property WasShownOn: TDateTime read FWasShownOn write SetWasShownOn;
     property ShownInMS: DWORD read GetShownInMS;
     property Expired: Boolean read GetExpired;
   end;
@@ -350,11 +352,18 @@ begin
 end;
 
 function TgdNotifierItem.GetExpired: Boolean;
+var
+  MS: DWORD;
 begin
-  if ShowTime = INFINITE then
-    Result := False
+  if FWasFirstShownOn = 0 then
+    FWasFirstShownOn := FWasShownOn;
+
+  if FWasFirstShownOn = 0 then
+    MS := 0
   else
-    Result := ShowTime <= ShownInMS;
+    MS := Trunc((Now - FWasFirstShownOn) * 24 * 60 * 60 * 1000) + 1;
+
+  Result := (ShowTime <> INFINITE) and (ShowTime < MS);
 end;
 
 function TgdNotifierItem.GetShownInMS: DWORD;
@@ -363,6 +372,13 @@ begin
     Result := 0
   else
     Result := Trunc((Now - FWasShownOn) * 24 * 60 * 60 * 1000) + 1;
+end;
+
+procedure TgdNotifierItem.SetWasShownOn(const Value: TDateTime);
+begin
+  FWasShownOn := Value;
+  if FWasFirstShownOn = 0 then
+    FWasFirstShownOn := FWasShownOn;
 end;
 
 initialization
