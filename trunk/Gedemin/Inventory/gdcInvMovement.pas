@@ -7532,7 +7532,6 @@ begin
   {M}      ClearMacrosStack2('TGDCINVCARD', 'GETORDERCLAUSE', KEYGETORDERCLAUSE);
   {M}  end;
   {END MACRO}
-  
 end;
 
 function TgdcInvCard.GetRefreshSQLText: String;

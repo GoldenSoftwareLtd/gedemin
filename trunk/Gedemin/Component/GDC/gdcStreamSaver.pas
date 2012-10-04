@@ -9,6 +9,7 @@ uses
   gd_KeyAssoc,          db,                         gsStorage,
   gsStreamHelper,       gdcSetting,                 dbclient,
   gdcTableMetaData;
+  
 type
   // Состояние записи после загрузки
   //   lsNotLoaded - запись не загружена (оставлена старая запись)
@@ -3537,11 +3538,15 @@ begin
 
       if ABaseRecord.NeedModifyFromStream(ABaseRecord.SubType) <> NeedModifyFromStream then
       begin
+        {$IFDEF DUNIT_TEST}
+        ReplaceRecordAnswer := mrYesToAll;
+        {$ELSE}
         ReplaceRecordAnswer := MessageDlg('Объект ' + ABaseRecord.GetDisplayName(ABaseRecord.SubType) + ' ' +
           ABaseRecord.FieldByName(ABaseRecord.GetListField(ABaseRecord.SubType)).AsString + ' с идентификатором ' +
           ABaseRecord.FieldByName(ABaseRecord.GetKeyField(ABaseRecord.SubType)).AsString + ' уже существует в базе. ' +
           'Заменить объект? ', mtConfirmation,
           [mbYes, mbYesToAll, mbNo, mbNoToAll], 0);
+        {$ENDIF}  
         case ReplaceRecordAnswer of
           mrYes, mrYesToAll: Result := True;
           else Result := False;
@@ -3628,7 +3633,7 @@ begin
               Result := False;
           finally
             Free;
-          end;
+          end; 
         end;
       end;
     end;
@@ -4670,8 +4675,11 @@ begin
         begin
           Temps := GetParamValueByName(XMLElement.ElementString, 'id');
           if CheckRuid(Temps) then
-            I := gdcBaseManager.GetIDByRUIDString(Temps, FDataObject.Transaction)
-          else  
+          begin
+            I := gdcBaseManager.GetIDByRUIDString(Temps, FDataObject.Transaction);
+            if I = -1 then
+              I := StrToRUID(Temps).XID;
+          end else
             I := GetIntegerParamValueByName(XMLElement.ElementString, 'id');
           J := GetIntegerParamValueByName(XMLElement.ElementString, 'xid');
           K := GetIntegerParamValueByName(XMLElement.ElementString, 'dbid');
@@ -4683,8 +4691,11 @@ begin
           I := GetIntegerParamValueByName(XMLElement.ElementString, 'objectkey');
           Temps := GetParamValueByName(XMLElement.ElementString, 'recordid');
           if CheckRuid(Temps) then
-            J := gdcBaseManager.GetIDByRUIDString(Temps, FDataObject.Transaction)
-          else
+          begin
+            J := gdcBaseManager.GetIDByRUIDString(Temps, FDataObject.Transaction);
+            if J = -1 then
+              J := StrToRUID(TempS).XID;
+          end else
             J := GetIntegerParamValueByName(XMLElement.ElementString, 'recordid');
           FLoadingOrderList.AddItem(J, I);
         end;
@@ -5562,7 +5573,6 @@ end;
 procedure TgdcStreamXMLWriterReader.ParseDatasetFieldValue(AField: TField; const AFieldValue: String);
 var
   Temps: String;
-
 begin
   case AField.DataType of
     ftMemo:
@@ -5596,7 +5606,10 @@ begin
     begin
       Temps := StringReplace(AFieldValue, '<' + XML_TAG_RUID + '>', '', [rfReplaceAll, rfIgnoreCase]);
       Temps := StringReplace(Temps, '</' + XML_TAG_RUID + '>', '', [rfReplaceAll, rfIgnoreCase]);
-      AField.AsInteger := gdcBaseManager.GetIDByRUIDString(UnQuoteString(ConvertUTFToANSI(Temps)), FDataObject.Transaction);
+      Temps := UnQuoteString(ConvertUTFToANSI(Temps));
+      AField.AsInteger := gdcBaseManager.GetIDByRUIDString(Temps, FDataObject.Transaction);
+      if AField.AsInteger = -1 then
+        AField.AsInteger := StrToRUID(Temps).XID;
     end else
       AField.AsString := UnQuoteString(ConvertUTFToANSI(AFieldValue));
   end;

@@ -13,13 +13,14 @@ type
     procedure TestCmdLine;
     procedure TestCommonFunctions;
     procedure TestHugeIntSet;
-    procedure TestgdFSOCollection;
+    procedure TestNotifierThread;
   end;
 
 implementation
 
 uses
-  gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet, gd_FileList_unit;
+  gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet,
+  gdNotifierThread_unit;
 
 type
   Tgd_CmdLineParamsCrack = class(Tgd_CmdLineParams)
@@ -164,25 +165,6 @@ begin
   Check(ExtractServerName('server/3030:c:\test\test.fdb') = 'server/3030');
 end;
 
-procedure TBasicsTest.TestgdFSOCollection;
-var
-  S: String;
-  C1, C2: TgdFSOCollection;
-begin
-  C1 := TgdFSOCollection.Create;
-  C2 := TgdFSOCollection.Create;
-  try
-    C1.Build;
-    S := C1.GetXML;
-    Check(S > '');
-    C2.ParseXML(S);
-    Check(S = C2.GetXML);
-  finally
-    C1.Free;
-    C2.Free;
-  end;
-end;
-
 procedure TBasicsTest.TestHugeIntSet;
 const
   LoopCount = 10000000;
@@ -229,6 +211,13 @@ begin
   finally
     H2.Free;
   end;
+end;
+
+procedure TBasicsTest.TestNotifierThread;
+begin
+  gdNotifierThread.Add('Это сообщение с таймером и будет показываться 60 сек... <tmr>', 0, 60000);
+  gdNotifierThread.Add('Это сообщение будет показываться 30 сек...', 0, 30000);
+  Check(gdNotifierThread.Suspended = False);
 end;
 
 initialization

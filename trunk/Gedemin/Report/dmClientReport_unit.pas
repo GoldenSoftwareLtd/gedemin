@@ -740,8 +740,6 @@ begin
 
   if BreakPointList <> nil then
     BreakPointList.LoadFromStorage;
-  if VBCompiler = nil then
-    VBCompiler := TgsVBCompiler.Create;
 end;
 
 procedure TdmClientReport.DoDisconnect;
@@ -750,7 +748,7 @@ begin
     Debugger.Enabled := True;
 
   gdScriptFactory1.ResetNow;
-// ”ничтожаетс€ в FR_Class
+  // ”ничтожаетс€ в FR_Class
   if Assigned(FGlObjectRS) then
   begin
     ClearGlObjArray;
@@ -771,12 +769,10 @@ begin
   // ƒелаем Uninitialize OLE
   OleUninitialize;
 
-  if VBCompiler <> nil then
-    VBCompiler.ClearList;
+  VBCompiler.ClearList;
 
   EventControl1.ResetEvents(frmGedeminMain);
 
-    
   gdScriptFactory1.Reset;
 end;
 

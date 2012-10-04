@@ -1017,7 +1017,6 @@ begin
   {$IFDEF LogReport}
   if FLogFileName = '' then
     FLogFileName := ChangeFileExt(Application.EXEName, '.log');
-//    FLogFileName := rpGetTemporaryFileName('rpsrvlog');
 
   try
     AssignFile(F, FLogFileName);

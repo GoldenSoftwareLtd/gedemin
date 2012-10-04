@@ -50,7 +50,7 @@ begin
     LocalFileName := ''
   else
     try
-      LocalDoc := CreateOleObject('MSXML2.DOMDocument');
+      LocalDoc := CreateOleObject(ProgID_MSXML_DOMDocument);
       if LocalDoc.Load(LocalFileName) then
       begin
         LocalDoc.SetProperty('SelectionLanguage', 'XPath');

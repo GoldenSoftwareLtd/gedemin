@@ -1,6 +1,7 @@
+
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
 
@@ -90,7 +91,6 @@ type
     FDelFunctionKey: Integer;
     FDelModuleCode: Integer;
 
-//    procedure InternalScriptList(const Script: String; NameList: TStrings);
     procedure SetCompileScript(const Value: Boolean);
   protected
     FInternalSciptNameList: TStrings;
@@ -118,19 +118,27 @@ type
     AnScript: String; const ModuleCode: Integer; const Transaction: TIBTransaction);
   function TestCyclicRef(const FunctionKey: Integer; SL: TStrings;
     ErrorList: TObjectList): Boolean;
-
-var
-  VBCompiler: TgsVBCompiler;
+  function VBCompiler: TgsVBCompiler;
 
 implementation
 
 uses
   gd_security_operationconst, Windows, sysutils, gd_ClassList, gd_security,
   prp_frmGedeminProperty_Unit, prp_MessageConst, gd_ScriptCompiler, gdcConstants,
-  forms, scr_i_FunctionList, rp_BaseReport_unit, IBQuery;
+  forms, scr_i_FunctionList, rp_BaseReport_unit, IBQuery, IBIntf;
 
 type
   TAddType = (atAddInfo, atChangeInfo, atIgnore);
+
+var
+  _VBCompiler: TgsVBCompiler;
+
+function VBCompiler: TgsVBCompiler;
+begin
+  if _VBCompiler = nil then
+    _VBCompiler := TgsVBCompiler.Create;
+  Result := _VBCompiler;
+end;
 
 function TestCyclicRef(const FunctionKey: Integer; SL: TStrings;
   ErrorList: TObjectList): Boolean;
@@ -162,8 +170,6 @@ var
           [ibsqlCyclic.Fields[1].AsString, CompileItem.ReferenceToSF]);
         CompileItem.SFID := FunctionKey;
         ErrorList.Add(CompileItem);
-//          CompileItem.
-//          Break;
       end;
       AddSFID := ibsqlCyclic.Fields[2].AsInteger;
       if (AlreadyTestedList.IndexOf(AddSFID) = -1) then
@@ -201,30 +207,6 @@ begin
             SFIDList.Add(SL.Objects[i]);
             AlreadyTestedList.Add(Integer(SL.Objects[i]));
           end;
-          {if ibsqlCyclic.Open then
-            ibsqlCyclic.Close;
-          ibsqlCyclic.Params[0].AsInteger := Integer(SL.Objects[i]);
-          ibsqlCyclic.ExecQuery;
-          while not ibsqlCyclic.Eof do
-          begin
-            if ibsqlCyclic.Fields[0].AsInteger = FunctionKey then
-            begin
-              Result := False;
-              CompileItem := TgdCompileItem.Create;
-              CompileItem.AutoClear := True;
-              CompileItem.ReferenceToSF := Integer(SL.Objects[i]);
-              CompileItem.Line := 0;
-              CompileItem.Msg := Format(MSG_ERROR_CYCLICREF,
-                [ibsqlCyclic.Fields[1].AsString, CompileItem.ReferenceToSF]);
-              CompileItem.SFID := FunctionKey;
-              ErrorList.Add(CompileItem);
-    //          CompileItem.
-    //          Break;
-            end;
-            SFIDList.Add(ibsqlCyclic.Fields[0].AsInteger);
-            ibsqlCyclic.Next;
-          end;
-          }
         end;
         while SFIDList.Count > 0 do
         begin
@@ -419,6 +401,7 @@ begin
   {END MACRO}
 
   inherited;
+
   // Удаляем инф. о ф-ции из списка
   VBCompiler.DeleteFuncInfo(FDelModuleCode, FDelFunctionKey);
 
@@ -456,8 +439,9 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
-  // сохранение инф. о именах ф-ции
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCUSTOMFUNCTION', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -535,6 +519,7 @@ begin
   {END MACRO}
 
   inherited;
+
   // сохраняем ключ и код модуля редактируемой ф-ции
   FDelFunctionKey := FieldByName('id').AsInteger;
   FDelModuleCode := FieldByName('modulecode').AsInteger;
@@ -573,8 +558,8 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
-  // тест ф-ции на корректность имени
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCUSTOMFUNCTION', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
@@ -649,7 +634,6 @@ var
 
 begin
   LErrorList := nil;
-//  tmpFunction := nil;
   try
     if FCompileScript then
     begin
@@ -673,12 +657,6 @@ begin
           dsInsert: AddType := atAddInfo;
           dsEdit:
           begin
-{            if ObjectChanged then
-            begin
-              if MessageBox(0, 'Backup', 'dfgf', MB_YESNO or MB_TASKMODAL) = IDYES then
-                glBackup.SaveObject(self, ID);
-            end;
-            }
             DeletteeList := TStringList.Create;
             VBCompiler.DeleteFuncInfo(FDelModuleCode, FDelFunctionKey, DeletteeList);
             AddType := atChangeInfo;
@@ -688,7 +666,7 @@ begin
         end;
 
         try
-          if Assigned(frmGedeminProperty) and FCompileScript and Assigned(VBCompiler) then
+          if Assigned(frmGedeminProperty) and FCompileScript then
           begin
             frmGedeminProperty.ClearErrorResult;
             try
@@ -969,6 +947,9 @@ end;
 
 destructor TgsVBCompiler.Destroy;
 begin
+  if _VBCompiler = Self then
+    _VBCompiler := nil;
+
   FIBSQL.Free;
   FModuleList.Free;
   FErrorList.Free;
@@ -1236,13 +1217,11 @@ begin
 end;
 
 initialization
+  _VBCompiler := nil;
   RegisterGdcClass(TgdcCustomFunction);
-  if VBCompiler = nil then
-    VBCompiler := TgsVBCompiler.Create;
 
 finalization
   UnRegisterGdcClass(TgdcCustomFunction);
-  if VBCompiler <> nil then
-    VBCompiler.Free;
+  FreeAndNil(_VBCompiler);
 end.
 

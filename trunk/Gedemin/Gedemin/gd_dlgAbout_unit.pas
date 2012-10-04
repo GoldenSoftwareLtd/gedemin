@@ -22,6 +22,7 @@ type
     procedure AddEnv(const AName: String);
     procedure AddBoolean(const AName: String; const AValue: Boolean);
     procedure AddComLibrary(const AClsID: String; const AName: String);
+    function TestGetMem: Int64;
 
   public
     constructor Create;
@@ -305,10 +306,11 @@ begin
   end;
 
   AddSection('Компьютер');
-  AddSpaces('Название компютера', CompName);
+  AddSpaces('Название компьютера', CompName);
   AddSpaces('IP адрес', HostToIP(CompName));
   AddSpaces('ОЗУ всего', FormatFloat('#,##0', GetGlobalMemoryRecord.ullTotalPhys div 1024 div 1024) + ' Мб');
   AddSpaces('ОЗУ свободно', FormatFloat('#,##0', GetGlobalMemoryRecord.ullAvailPhys div 1024 div 1024) + ' Мб');
+  AddSpaces('Удалось выделить', FormatFloat('#,##0', TestGetMem) + ' Мб');
   AddSpaces('Версия ОС', GetOS);
   AddSpaces('Дата и время', FormatDateTime('dd.mm.yyyy hh:nn:ss', Now));
 
@@ -371,7 +373,6 @@ begin
   AddBoolean('Активен', gdWebServerControl.Active);
   AddSpaces('Bindings', gdWebServerControl.GetBindings);
   AddSpaces('WebServer', gdWebClientThread.gdWebServerURL);
-  AddSpaces('ServerResponse', gdWebClientThread.ServerResponse);
   {$ENDIF}
 
   AddSection('Версии библиотек');
@@ -728,6 +729,40 @@ begin
 
   if FNext then
     ActivateKeyBoardLayout(HKL_PREV, 0);
+end;
+
+function TgdSysInfo.TestGetMem: Int64;
+const
+  PointersCount = 4000;
+  BlockSize = 1024 * 1024;
+var
+  Pointers: array[1..PointersCount] of Pointer;
+  Cnt: Integer;
+begin
+  Cnt := 0;
+  try
+    while Cnt < PointersCount do
+    begin
+      Inc(Cnt);
+      try
+        GetMem(Pointers[Cnt], BlockSize);
+      except
+        on EOutOfMemory do
+        begin
+          Dec(Cnt);
+          break;
+        end;
+      end;
+    end;
+
+    Result := Cnt;
+  finally
+    while Cnt > 0 do
+    begin
+      FreeMem(Pointers[Cnt]);
+      Dec(Cnt);
+    end;
+  end;
 end;
 
 initialization

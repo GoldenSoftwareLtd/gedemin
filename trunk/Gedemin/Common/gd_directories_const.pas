@@ -227,6 +227,10 @@ const
   MIDAS_GUID4                     = '{9E8D2FA1-591C-11D0-BF52-0020AF32BD64}';
   GSDBQUERY_GUID                  = '{7C916B87-94DF-4712-A5AC-10C971C7E160}';
 
+  //
+  ProgID_MSXML_DOMDocument        = 'MSXML2.DOMDocument.6.0';
+  ProgID_MSXML_XMLSchemaCache     = 'MSXML2.XMLSchemaCache.6.0';
+
 function IsGedeminSystemID(const AnID: Integer): Boolean;
 function IsGedeminNonSystemID(const AnID: Integer): Boolean;
 

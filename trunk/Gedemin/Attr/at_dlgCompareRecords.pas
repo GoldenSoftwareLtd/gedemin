@@ -93,8 +93,6 @@ begin
         FSLStreamValues.Add(StreamRecord.FieldByName(BaseRecord.Fields[I].FieldName).AsString)
       else
         FSLStreamValues.Add(Trim(StreamRecord.FieldByName(BaseRecord.Fields[I].FieldName).AsString));
-      //FSLBaseValues.Add(BaseRecord.Fields[I].AsString);
-      //FSLStreamValues.Add(StreamRecord.FieldByName(BaseRecord.Fields[I].FieldName).AsString);
     end;
   end;
 
@@ -126,6 +124,10 @@ begin
   SetLength(FIsNewValue, FSLFields.Count);
   for I := 0 to FSLFields.Count - 1 do
     FIsNewValue[I] := True;
+
+  {$IFDEF DUNIT_TEST}
+  PostMessage(btnOk.Handle, BM_CLICK, 0, 0);
+  {$ENDIF}
 end;
 
 procedure TdlgCompareRecords.FormDestroy(Sender: TObject);
