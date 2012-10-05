@@ -54,6 +54,12 @@ begin
     KA2.Assign(KA1);
     Check(KA1.CommaText = KA2.CommaText);
 
+    KA1.Clear;
+    Check(KA1.Count = 0, 'Array #1 is not empty');
+
+    KA1.CommaText := KA2.CommaText;
+    Check(KA1.CommaText = KA2.CommaText);
+
     for I := 0 to KA2.Count - 1 do
       KA1.Remove(KA2[I]);
     Check(KA1.Count = 0, 'Array #1 is not empty');

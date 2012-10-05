@@ -6,7 +6,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, IBDatabaseInfo, ComCtrls, Mask, DBCtrls, Registry, WinSock,
-  SynEdit, SynEditHighlighter, SynHighlighterIni, gdc_createable_form;
+  SynEdit, SynEditHighlighter, SynHighlighterIni, gdc_createable_form,
+  SynHighlighterXML;
 
 type
   TgdSysInfo = class(TObject)
@@ -38,16 +39,19 @@ type
 
   Tgd_dlgAbout = class(TgdcCreateableForm)
     pc: TPageControl;
-    TabSheet1: TTabSheet;
+    tsAbout: TTabSheet;
     btnOk: TButton;
     mCredits: TMemo;
     btnHelp: TButton;
     lblTitle: TLabel;
-    TabSheet4: TTabSheet;
-    btnCopy: TButton;
+    tsParams: TTabSheet;
     SynIniSyn: TSynIniSyn;
     mSysData: TSynEdit;
+    tsFiles: TTabSheet;
+    mFiles: TSynEdit;
     btnMSInfo: TButton;
+    btnCopy: TButton;
+    SynXMLSyn: TSynXMLSyn;
     procedure FormCreate(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure btnMSInfoClick(Sender: TObject);
@@ -72,7 +76,7 @@ uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
   gd_directories_const, IBSQL, IBDatabase, gd_ClassList,
-  {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
+  {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase, gd_FileList_unit,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version{$IFDEF GEDEMIN}, FastMM4{$ENDIF}
   {$IFDEF WITH_INDY}, IdGlobal, gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF};
 
@@ -179,6 +183,8 @@ begin
 end;
 
 procedure Tgd_dlgAbout.FormCreate(Sender: TObject);
+var
+  FL: TFLCollection;
 begin
   with FSysInfo do
   begin
@@ -189,6 +195,15 @@ begin
 
     mSysData.Lines.Assign(Lines);
     mSysData.SelStart := 0;
+  end;
+
+  FL := TFLCollection.Create;
+  try
+    FL.BuildEtalonFileSet;
+    mFiles.Text := FL.GetXML;
+    mFiles.SelStart := 0;
+  finally
+    FL.Free;
   end;
 end;
 
