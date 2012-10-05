@@ -51,6 +51,8 @@ type
     function GetKeys(Index: Integer): Integer;
     function GetSize: Integer;
     procedure SetSorted(const Value: Boolean);
+    function GetCommaText: String;
+    procedure SetCommaText(const Value: String);
 
   protected
     procedure Changed; virtual;
@@ -83,8 +85,6 @@ type
     property Count: Integer read GetCount;
     property Size: Integer read GetSize;
 
-    function CommaText: String;
-
     //Устанавливается в Истина при изменении содержимого.
     //Исключение загрузка из потока
     //Пригодится при сохранении объектов в UserStorage
@@ -96,6 +96,9 @@ type
 
     //
     property Sorted: Boolean read FSorted write SetSorted default True;
+
+    //
+    property CommaText: String read GetCommaText write SetCommaText;
 
   published
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -315,19 +318,6 @@ begin
   Changed;
 end;
 
-function TgdKeyArray.CommaText: String;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 0 to Count - 1 do
-  begin
-    if Result > '' then
-      Result := Result + ',';
-    Result := Result + IntToStr(Keys[I]);
-  end;
-end;
-
 constructor TgdKeyArray.Create;
 begin
   FCount := 0;
@@ -404,6 +394,17 @@ begin
     Result := False;
     Index := FCount;
   end;
+end;
+
+function TgdKeyArray.GetCommaText: String;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+    Result := Result + IntToStr(Keys[I]) + ',';
+  if Result > '' then
+    SetLength(Result, Length(Result) - 1);  
 end;
 
 function TgdKeyArray.GetCount: Integer;
@@ -489,6 +490,28 @@ begin
   S.Write(FCount, SizeOf(FCount));
   if FCount > 0 then
     S.Write(FArray[0], FCount * SizeOf(FArray[0]));
+end;
+
+procedure TgdKeyArray.SetCommaText(const Value: String);
+
+  function ExtractInt(const V: String; var B: Integer): Integer;
+  var
+    E: Integer;
+  begin
+    E := B + 1;
+    while (B <= Length(V)) and (E <= Length(V)) and (V[E] <> ',') do
+      Inc(E);
+    Result := StrToInt(Copy(V, B, E - B));
+    B := E + 1;
+  end;
+
+var
+  P: Integer;
+begin
+  Clear;
+  P := 1;
+  while P <= Length(Value) do
+    Add(ExtractInt(Value, P));
 end;
 
 procedure TgdKeyArray.SetSorted(const Value: Boolean);
