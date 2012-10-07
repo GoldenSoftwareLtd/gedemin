@@ -14,11 +14,14 @@ type
     FgdWebServerURL: String;
     FServerFileList: TFLCollection;
     FConnected: Boolean;
+    FLCommands: TFLCommands;
+    FHTTP: TidHTTP;
 
     function QueryWebServer: Boolean;
     function LoadWebServerURL: Boolean;
-    function CreateHTTP: TidHTTP;
-    procedure UpdateFiles;
+    function UpdateFiles: Boolean;
+    function ProcessUpdateCommand: Boolean;
+
     function GetgdWebServerURL: String;
     procedure SetgdWebServerURL(const Value: String);
 
@@ -44,15 +47,15 @@ implementation
 
 uses
   SysUtils, ComObj, ActiveX, gdcJournal, gd_security, JclSimpleXML,
-  gdNotifierThread_unit, gd_directories_const;
+  gdNotifierThread_unit, gd_directories_const, JclFileUtils, idURI;
 
 const
-  WM_GD_AFTER_CONNECTION = WM_USER + 1118;
-  WM_GD_QUERY_SERVER =     WM_USER + 1119;
-  WM_GD_UPDATE_FILES =     WM_USER + 1120;
+  WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
+  WM_GD_QUERY_SERVER           = WM_USER + 1119;
+  WM_GD_GET_FILES_LIST         = WM_USER + 1120;
+  WM_GD_UPDATE_FILES           = WM_USER + 1121;
+  WM_GD_PROCESS_UPDATE_COMMAND = WM_USER + 1122;
 
-  NameServerURL = 'http://gsbelarus.com/gs/gedemin/gdwebserver.xml';
-  
 { TgdWebClientThread }
 
 constructor TgdWebClientThread.Create;
@@ -61,6 +64,10 @@ begin
   FreeOnTerminate := False;
   Priority := tpLowest;
   FCS := TCriticalSection.Create;
+  FHTTP := TidHTTP.Create(nil);
+  FHTTP.HandleRedirects := True;
+  FHTTP.ReadTimeout := 8000;
+  FHTTP.ConnectTimeout := 4000;
 end;
 
 procedure TgdWebClientThread.AfterConnection;
@@ -70,101 +77,55 @@ end;
 
 function TgdWebClientThread.QueryWebServer: Boolean;
 var
-  HTTP: TidHTTP;
-  XML: TStringStream;
   ResponseData: TStringStream;
 begin
-  Assert(Assigned(IBLogin));
-
   Result := False;
-
-  if gdWebServerURL > '' then
-  begin
-    HTTP := CreateHTTP;
-    XML := TStringStream.Create('');
+  if IBLogin = nil then
+    FErrorMessage := 'IBLogin is not assigned.'
+  else if gdWebServerURL = '' then
+    FErrorMessage := 'gdWebServerURL is not assigned.'
+  else begin
     ResponseData := TStringStream.Create('');
     try
-      XML.WriteString(
-        '<?xml version="1.0" encoding="Windows-1251"?>'#13#10 +
-        '<QUERY version="1.0">'#13#10 +
-        '  <DBID>' + IntToStr(IBLogin.DBID) + '</DBID>'#13#10 +
-        '  <CUSTOMERNAME>' + EntityEncode(IBLogin.CompanyName) + '</CUSTOMERNAME>'#13#10 +
-        '</QUERY>');
-
-      try
-        HTTP.Post(gdWebServerURL + '/query', XML, ResponseData);
-
-        if FServerFileList = nil then
-          FServerFileList := TFLCollection.Create;
-        FServerFileList.ParseXML(ResponseData.DataString);
-        Result := True;
-      except
-        on E: Exception do
-          FErrorMessage := E.Message + ' URL: ' + gdWebServerURL;
-      end;
+      FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/query?' +
+        'dbid=' + IntToStr(IBLogin.DBID) +
+        '&cust_name=' + IBLogin.CompanyName), ResponseData);
+      if FServerFileList = nil then
+        FServerFileList := TFLCollection.Create;
+      FServerFileList.ParseXML(ResponseData.DataString);
+      Result := True;
     finally
       ResponseData.Free;
-      XML.Free;
-      HTTP.Free;
     end;
   end;
-end;
-
-function TgdWebClientThread.CreateHTTP: TidHTTP;
-begin
-  Result := TidHTTP.Create(nil);
-  Result.HandleRedirects := True;
-  Result.ReadTimeout := 4000;
-  Result.ConnectTimeout := 2000;
 end;
 
 function TgdWebClientThread.LoadWebServerURL: Boolean;
-var
-  LocalDoc: OleVariant;
-  Sel: OleVariant;
-  FHTTP: TidHTTP;
 begin
-  Result := False;
-
   gdWebServerURL := '';
-  FHTTP := CreateHTTP;
-  try
-    try
-      LocalDoc := CreateOleObject(ProgID_MSXML_DOMDocument);
-      LocalDoc.Async := False;
-      LocalDoc.SetProperty('SelectionLanguage', 'XPath');
-
-      if LocalDoc.LoadXML(FHTTP.Get(NameServerURL)) then
-      begin
-        Sel := LocalDoc.SelectSingleNode('/GDWEBSERVER/URL');
-        if not VarIsEmpty(Sel) then
-        begin
-          gdWebServerURL := Sel.NodeTypedValue;
-          //gdWebServerURL := 'http://192.168.0.45';
-          //gdWebServerURL := 'http://192.168.0.58';
-          Result := gdWebServerURL > '';
-        end;
-      end;
-    except
-      on E: Exception do
-        FErrorMessage := E.Message + ' URL: ' + NameServerURL;
-    end;
-  finally
-    FHTTP.Free;
-  end;
+  gdWebServerURL := FHTTP.Get(Gedemin_NameServerURL);
+  //!!!
+  //gdWebServerURL := 'http://192.168.0.35';
+  gdWebServerURL := 'http://127.0.0.1';
+  //!!!
+  Result := gdWebServerURL > '';
 end;
 
-procedure TgdWebClientThread.UpdateFiles;
-var
-  FLCommands: TFLCommands;
+function TgdWebClientThread.UpdateFiles: Boolean;
 begin
-  Assert(FServerFileList <> nil);
-
-  FLCommands := TFLCommands.Create;
-  try
-    FServerFileList.UpdateFiles(FLCommands);
-  finally
-    FLCommands.Free;
+  Result := False;
+  if FServerFileList = nil then
+    FErrorMessage := 'FServerFileList is not assigned.'
+  else begin
+    if FLCommands = nil then
+      FLCommands := TFLCommands.Create;
+    try
+      FServerFileList.AnalyzeFiles(FLCommands);
+      Result := FLCommands.Count > 0
+    finally
+      if not Result then
+        FreeAndNil(FLCommands);
+    end;
   end;
 end;
 
@@ -176,7 +137,7 @@ begin
       if (not FConnected) and LoadWebServerURL then
       begin
         PostThreadMessage(ThreadID, WM_GD_QUERY_SERVER, 0, 0);
-        gdNotifierThread.Add('Подключение к серверу ' + NameServerURL, 0, 2000);
+        gdNotifierThread.Add('Подключение к серверу ' + Gedemin_NameServerURL, 0, 2000);
         FConnected := True;
       end;
 
@@ -188,7 +149,12 @@ begin
       end;
 
     WM_GD_UPDATE_FILES:
-      UpdateFiles;
+      if UpdateFiles then
+        PostThreadMessage(ThreadID, WM_GD_PROCESS_UPDATE_COMMAND, 0, 0);
+
+    WM_GD_PROCESS_UPDATE_COMMAND:
+      if ProcessUpdateCommand then
+        PostThreadMessage(ThreadID, WM_GD_PROCESS_UPDATE_COMMAND, 0, 0);
   else
     Result := False;
   end;
@@ -206,7 +172,7 @@ end;
 procedure TgdWebClientThread.Setup;
 begin
   inherited;
-  CoInitialize(nil);
+  Assert(CoInitialize(nil) = S_OK);
 end;
 
 procedure TgdWebClientThread.TearDown;
@@ -220,6 +186,8 @@ begin
   inherited;
   FCS.Free;
   FServerFileList.Free;
+  FLCommands.Free;
+  FHTTP.Free;
 end;
 
 function TgdWebClientThread.GetgdWebServerURL: String;
@@ -234,6 +202,48 @@ begin
   FCS.Enter;
   FgdWebServerURL := Value;
   FCS.Leave;
+end;
+
+function TgdWebClientThread.ProcessUpdateCommand: Boolean;
+var
+  Cmd, Arg, FileName: String;
+  FS: TFileStream;
+begin
+  Result := False;
+  if FLCommands = nil then
+    FErrorMessage := 'FLCommands is not assigned'
+  else
+    try
+      if FLCommands.GetCommand(Cmd, Arg) then
+      begin
+        if Cmd = 'BF' then
+        begin
+          gdNotifierThread.Add('Создание архивной копии файла ' + Arg, 0, 1200);
+          Result := FileCopy(Arg, Arg + '.bak', True);
+        end else
+        if Cmd = 'UF' then
+        begin
+          gdNotifierThread.Add('Загрузка файла ' + Arg, 0, 1200);
+
+          FileName := Arg + '.tmp';
+          if FileExists(FileName) and (not DeleteFile(FileName)) then
+            exit;
+
+          FS := TFileStream.Create(FileName, fmCreate);
+          try
+            FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_file?fn=' + Arg), FS);
+          finally
+            FS.Free;
+          end;
+
+          Result := True;
+        end else
+          Result := True;
+      end;
+    finally
+      if not Result then
+        FreeAndNil(FLCommands);
+    end;
 end;
 
 initialization

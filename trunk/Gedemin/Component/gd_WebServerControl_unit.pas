@@ -38,11 +38,11 @@ type
   private
     FHttpServer: TIdHTTPServer;
     FHttpGetHandlerList: TObjectList;
-    FRequest: TIdHTTPRequestInfo;
-    FResponse: TIdHTTPResponseInfo;
     FVarParam: TVarParamEvent;
     FReturnVarParam: TVarParamEvent;
     FFileList: TFLCollection;
+    FRequestInfo: TIdHTTPRequestInfo;
+    FResponseInfo: TIdHTTPResponseInfo;
 
     function GetVarInterface(const AnValue: Variant): OleVariant;
     function GetVarParam(const AnValue: Variant): OleVariant;
@@ -51,7 +51,9 @@ type
       ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
     procedure ServerOnCommandGetSync;
     procedure CreateHTTPServer;
-    procedure ProcessQueryRequest;
+    procedure ProcessQueryRequest(ARequestInfo: TIdHTTPRequestInfo;
+      AResponseInfo: TIdHTTPResponseInfo);
+    procedure ProcessFileRequest;
     function GetActive: Boolean;
     procedure SetActive(const Value: Boolean);
 
@@ -82,7 +84,7 @@ uses
   SysUtils, ibsql, Forms, Windows, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
   gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock,
-  ComObj, JclSimpleXML, gd_directories_const;
+  ComObj, JclSimpleXML, gd_directories_const, ActiveX;
 
 type
   TgdHttpHandler = class(TObject)
@@ -112,7 +114,8 @@ begin
   FreeAndNil(FFileList);
 end;
 
-procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent; const AToken, AFunctionName: String);
+procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
+  const AToken, AFunctionName: String);
 var
   Handler: TgdHttpHandler;
   FunctionKey: Integer;
@@ -194,10 +197,15 @@ end;
 procedure TgdWebServerControl.ServerOnCommandGet(AThread: TIdPeerThread;
   ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
 begin
-  FRequest := ARequestInfo;
-  FResponse := AResponseInfo;
-
-  AThread.Synchronize(ServerOnCommandGetSync);
+  if AnsiCompareText(ARequestInfo.Document, '/query') = 0 then
+    ProcessQueryRequest(ARequestInfo, AResponseInfo)
+  else if AnsiCompareText(ARequestInfo.Document, '/get_file') = 0 then
+    ProcessFileRequest
+  else begin
+    FRequestInfo := ARequestInfo;
+    FResponseInfo := AResponseInfo;
+    AThread.Synchronize(ServerOnCommandGetSync);
+  end;
 end;
 
 procedure TgdWebServerControl.ServerOnCommandGetSync;
@@ -211,14 +219,8 @@ var
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
-  if AnsiCompareText(FRequest.Document, '/query') = 0 then
-  begin
-    ProcessQueryRequest;
-    exit;
-  end;
-
   Processed := False;
-  RequestToken := AnsiLowerCase(Trim(FRequest.Params.Values[PARAM_TOKEN]));
+  RequestToken := FRequestInfo.Params.Values[PARAM_TOKEN];
   for HandlerCounter := 0 to FHttpGetHandlerList.Count - 1 do
   begin
     Handler := FHttpGetHandlerList[HandlerCounter] as TgdHttpHandler;
@@ -234,14 +236,14 @@ begin
         //  4 - текст ответа (byref)
         LParams := VarArrayOf([
           GetGdcOLEObject(Handler.Component) as IgsComponent,
-          GetGdcOLEObject(FRequest.Params) as IgsStrings,
-          GetVarInterface(FResponse.ResponseNo),
-          GetVarInterface(FResponse.ContentText)]);
+          GetGdcOLEObject(FRequestInfo.Params) as IgsStrings,
+          GetVarInterface(FResponseInfo.ResponseNo),
+          GetVarInterface(FResponseInfo.ContentText)]);
 
         ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
-        FResponse.ResponseNo := Integer(GetVarParam(LParams[2]));
-        FResponse.ContentType := 'text/xml; charset=Windows-1251';
-        FResponse.ContentText := String(GetVarParam(LParams[3]));
+        FResponseInfo.ResponseNo := Integer(GetVarParam(LParams[2]));
+        FResponseInfo.ContentType := 'text/xml; charset=Windows-1251';
+        FResponseInfo.ContentText := String(GetVarParam(LParams[3]));
 
         Processed := True;
       end;
@@ -250,9 +252,9 @@ begin
 
   if not Processed then
   begin
-    FResponse.ResponseNo := 200;
-    FResponse.ContentType := 'text/html;';
-    FResponse.ContentText :=
+    FResponseInfo.ResponseNo := 200;
+    FResponseInfo.ContentType := 'text/html;';
+    FResponseInfo.ContentText :=
       '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
       '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>Hello World!</BODY></HTML>';
   end;
@@ -420,41 +422,34 @@ begin
   end;
 end;
 
-procedure TgdWebServerControl.ProcessQueryRequest;
+procedure TgdWebServerControl.ProcessQueryRequest(ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
 var
-  LocalDoc, Sel: OleVariant;
   Params: Variant;
 begin
-  LocalDoc := CreateOleObject(ProgID_MSXML_DOMDocument);
-  LocalDoc.Async := False;
-  LocalDoc.SetProperty('SelectionLanguage', 'XPath');
+  Params := VarArrayCreate([0, 2], varVariant);
 
-  if LocalDoc.LoadXML(FRequest.UnparsedParams) then
+  Params[0] := ARequestInfo.Params.Values['dbid'];
+  Params[1] := Copy(ARequestInfo.Params.Values['cust_name'], 1, 60);
+  Params[2] := ARequestInfo.RemoteIP;
+
+  gdcBaseManager.ExecSingleQuery(
+    'INSERT INTO gd_web_log (dbid, customername, ipaddress, op) ' +
+    'VALUES (:dbid, :customername, :ipaddress, ''QURY'')', Params);
+
+  if FFileList = nil then
   begin
-    Params := VarArrayCreate([0, 2], varVariant);
-
-    Sel := LocalDoc.SelectSingleNode('/QUERY/DBID');
-    if not VarIsEmpty(Sel) then
-      Params[0] := Sel.NodeTypedValue;
-    Sel := LocalDoc.SelectSingleNode('/QUERY/CUSTOMERNAME');
-    if not VarIsEmpty(Sel) then
-      Params[1] := Copy(EntityDecode(Sel.NodeTypedValue), 1, 60);
-    Params[2] := FRequest.RemoteIP;
-
-    gdcBaseManager.ExecSingleQuery(
-      'INSERT INTO gd_web_log (dbid, customername, ipaddress, op) ' +
-      'VALUES (:dbid, :customername, :ipaddress, ''QURY'')', Params);
-
-    if FFileList = nil then
-    begin
+    Assert(CoInitialize(nil) = S_OK);
+    try
       FFileList := TFLCollection.Create;
       FFileList.BuildEtalonFileSet;
+    finally
+      CoUninitialize;
     end;
-
-    FResponse.ResponseNo := 200;
-    FResponse.ContentType := 'application/octet-stream;';
-    FResponse.ContentStream := TStringStream.Create(FFileList.GetXML);
   end;
+
+  AResponseInfo.ResponseNo := 200;
+  AResponseInfo.ContentType := 'application/octet-stream;';
+  AResponseInfo.ContentStream := TStringStream.Create(FFileList.GetXML);
 end;
 
 function TgdWebServerControl.GetActive: Boolean;
@@ -482,6 +477,11 @@ begin
   end;
   if Result > '' then
     SetLength(Result, Length(Result) - 1);
+end;
+
+procedure TgdWebServerControl.ProcessFileRequest;
+begin
+
 end;
 
 initialization

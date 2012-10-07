@@ -31,10 +31,13 @@ uses
 type
   TFLCommands = class(TStringList)
   private
+    FCurr: Integer;
+
     procedure CheckCommand(const ACommand: String);
 
   public
-    procedure AddCommand(const ACommand, AnArg1, AnArg2: String);
+    procedure AddCommand(const ACommand, AnArg: String);
+    function GetCommand(out ACommand, AnArg: String): Boolean;
   end;
 
   TFLFlag = (
@@ -74,7 +77,7 @@ type
 
     function GetXML: String;
     procedure ParseXML(ANode: OleVariant);
-    procedure UpdateFile(ACommandList: TFLCommands);
+    procedure AnalyzeFile(ACommandList: TFLCommands);
     procedure Scan;
 
   public
@@ -106,7 +109,7 @@ type
   public
     constructor Create;
 
-    procedure UpdateFiles(ACommandList: TFLCommands);
+    procedure AnalyzeFiles(ACommandList: TFLCommands);
     procedure BuildEtalonFileSet;
     function GetXML: String;
     procedure ParseXML(const AnXML: String);
@@ -326,12 +329,12 @@ end;
 
 { TFLCollection }
 
-procedure TFLCollection.UpdateFiles(ACommandList: TFLCommands);
+procedure TFLCollection.AnalyzeFiles(ACommandList: TFLCommands);
 var
   I: Integer;
 begin
   for I := 0 to Count - 1 do
-    (Items[I] as TFLItem).UpdateFile(ACommandList);
+    (Items[I] as TFLItem).AnalyzeFile(ACommandList);
 end;
 
 procedure TFLCollection.BuildEtalonFileSet;
@@ -508,6 +511,10 @@ end;
 procedure TFLItem.Scan;
 begin
   InternalScan(FullName, IsDirectory, FExists, FDate, FSize, FVersion);
+
+  //!!!
+  Include(FFlags, flAlwaysOverwrite);
+  //!!!
 end;
 
 class function TFLItem.Str2Boolean(const S: String): Boolean;
@@ -572,13 +579,13 @@ begin
   end;
 end;
 
-procedure TFLItem.UpdateFile(ACommandList: TFLCommands);
+procedure TFLItem.AnalyzeFile(ACommandList: TFLCommands);
 
-  procedure AddUpdateCommand;
+  procedure AddFileCommand(const ACmd: String);
   begin
     if not (flDontBackup in Flags) then
-      ACommandList.AddCommand('BF', RelativeName, '');
-    ACommandList.AddCommand('UF', RelativeName, '');
+      ACommandList.AddCommand('BF', RelativeName);
+    ACommandList.AddCommand(ACmd, RelativeName);
   end;
 
 var
@@ -593,29 +600,29 @@ begin
   if IsDirectory then
   begin
     if Exists and (not LocalExists) then
-      ACommandList.AddCommand('CD', RelativeName, '')
+      ACommandList.AddCommand('CD', RelativeName)
     else if flRemove in Flags then
-      ACommandList.AddCommand('RD', RelativeName, '');
+      ACommandList.AddCommand('RD', RelativeName);
   end else
   begin
     if Exists and (not LocalExists) then
-      ACommandList.AddCommand('CF', RelativeName, '')
+      ACommandList.AddCommand('CF', RelativeName)
     else if flRemove in Flags then
-      ACommandList.AddCommand('RF', RelativeName, '')
+      AddFileCommand('RF')
     else if Exists and LocalExists and (not (flNeverOverwrite in Flags)) then
     begin
       if flAlwaysOverwrite in Flags then
-        AddUpdateCommand
+        AddFileCommand('UF')
       else if flOverwriteIfNewer in Flags then
       begin
         if (Version > '') and (LocalVersion > '') then
         begin
           if CompareVersionStrings(Version, LocalVersion) > 0 then
-            AddUpdateCommand;
+            AddFileCommand('UF');
         end else
         begin
           if Date > LocalFileDate then
-            AddUpdateCommand;
+            AddFileCommand('UF');
         end;
       end;
     end;
@@ -632,21 +639,37 @@ end;
 
 { TFLCommands }
 
-procedure TFLCommands.AddCommand(const ACommand, AnArg1, AnArg2: String);
+procedure TFLCommands.AddCommand(const ACommand, AnArg: String);
 begin
   CheckCommand(ACommand);
 
   Add(ACommand);
-  Add(AnArg1);
-  Add(AnArg2);
+  Add(AnArg);
 end;
 
 procedure TFLCommands.CheckCommand(const ACommand: String);
 begin
-  if (ACommand <> 'CD') and (ACommand <> 'RD') then
+  if (ACommand <> 'CD')
+    and (ACommand <> 'RD')
+    and (ACommand <> 'BF')
+    and (ACommand <> 'UF')
+    and (ACommand <> 'CF')
+    and (ACommand <> 'RF') then
   begin
     raise EFLError.Create('Invalid command.');
   end;
+end;
+
+function TFLCommands.GetCommand(out ACommand, AnArg: String): Boolean;
+begin
+  if (FCurr >= 0) and (FCurr < Count - 1) then
+  begin
+    ACommand := Strings[FCurr];
+    AnArg := Strings[FCurr + 1];
+    Inc(FCurr, 2);
+    Result := True;
+  end else
+    Result := False;
 end;
 
 end.
