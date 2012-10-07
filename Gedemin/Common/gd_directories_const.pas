@@ -231,6 +231,9 @@ const
   ProgID_MSXML_DOMDocument        = 'MSXML2.DOMDocument.6.0';
   ProgID_MSXML_XMLSchemaCache     = 'MSXML2.XMLSchemaCache.6.0';
 
+  //
+  Gedemin_NameServerURL           = 'http://gsbelarus.com/gs/gedemin/gdwebserver';
+
 function IsGedeminSystemID(const AnID: Integer): Boolean;
 function IsGedeminNonSystemID(const AnID: Integer): Boolean;
 

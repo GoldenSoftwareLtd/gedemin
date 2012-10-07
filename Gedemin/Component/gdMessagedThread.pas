@@ -33,7 +33,7 @@ type
 implementation
 
 uses
-  Messages;
+  SysUtils, Messages;
 
 const
   WM_GD_EXIT_THREAD  =      WM_USER + 117;
@@ -79,14 +79,23 @@ begin
             WM_GD_EXIT_THREAD: exit;
             WM_GD_UPDATE_TIMER: FTimeout := Msg.LParam;
           else
-            if not ProcessMessage(Msg) then
-            begin
-              TranslateMessage(Msg);
-              DispatchMessage(Msg);
+            try
+              if not ProcessMessage(Msg) then
+              begin
+                TranslateMessage(Msg);
+                DispatchMessage(Msg);
+              end;
+            except
+              on E: Exception do
+                FErrorMessage := E.Message;
             end;
 
             if FErrorMessage > '' then
+            begin
+              FErrorMessage := FErrorMessage + #13#10 +
+                'Message ID: ' + IntToStr(Msg.Message);
               Synchronize(LogError);
+            end;
           end;
         end;
       end;
