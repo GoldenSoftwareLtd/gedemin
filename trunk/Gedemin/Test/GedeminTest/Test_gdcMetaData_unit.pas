@@ -7,6 +7,11 @@ uses
   TestFrameWork, gsTestFrameWork, IBDatabase, gdcBase, gdcMetaData;
 
 type
+  TDatabaseTest = class(TgsDBTestCase)
+  published
+    procedure TestRoleRights;
+  end;
+
   CgdcStandartTableTest = class of TgdcStandartTableTest;
   TgdcStandartTableTest = class(TgsDBTestCase)
   protected
@@ -1919,7 +1924,32 @@ begin
   TestDrop;  
 end;
 
+{ TDatabaseTest }
+
+procedure TDatabaseTest.TestRoleRights;
+begin
+  FQ.SQL.Text :=
+    'SELECT'#13#10 +
+    '  r.rdb$relation_name,'#13#10 +
+    '  p.cnt'#13#10 +
+    'FROM'#13#10 +
+    '  rdb$relations r LEFT JOIN'#13#10 +
+    '  ('#13#10 +
+    '    SELECT rdb$relation_name, COUNT(*) AS cnt'#13#10 +
+    '    FROM rdb$user_privileges'#13#10 +
+    '    WHERE rdb$user = ''ADMINISTRATOR'' '#13#10 +
+    '      AND rdb$user_type = 13 AND rdb$object_type = 0'#13#10 +
+    '    GROUP BY rdb$relation_name'#13#10 +
+    '  ) p ON r.rdb$relation_name = p.rdb$relation_name'#13#10 +
+    'WHERE'#13#10 +
+    '  r.rdb$system_flag = 0 AND COALESCE(p.cnt, 0) <> 5';
+  FQ.ExecQuery;
+  Check(FQ.EOF);
+end;
+
 initialization
+  RegisterTest('DB', TDatabaseTest.Suite);
+
   RegisterTest('DB', TgdcMetaDataTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcPrimeTableTest.Suite);
   RegisterTest('DB\TgdcMetaDataTest\StandartTables', TgdcSimpleTableTest.Suite);

@@ -1063,7 +1063,7 @@ begin
       if Result > '' then
         Result := Result + ' AND '#13#10;
       if Trim(FAcctConditions.Values[FAcctConditions.Names[I]]) <> '' then
-        Result := Result + Alias + '.' + FAcctConditions.Strings[I]
+        Result := Result + Format('%s.%s IN(%s)', [Alias, FAcctConditions.Names[I], FAcctConditions.Values[FAcctConditions.Names[I]]])
       else
         Result := Result + Alias + '.' + FAcctConditions.Names[I] + ' IS NULL ';
     end;

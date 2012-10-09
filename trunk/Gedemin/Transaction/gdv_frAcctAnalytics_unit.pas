@@ -30,6 +30,7 @@ type
     function GetCondition: string;
     procedure SetOnValueChange(const Value: TNotifyEvent);
     procedure SetNeedNull(const Value: boolean);
+    procedure OnFrameResize(Sender: TObject);
   public
     { Public declarations }
     destructor Destroy; override;
@@ -59,9 +60,7 @@ var
 begin
   if FAnalyticsLineList <> nil then
     for I := 0 to FAnalyticsLineList.Count - 1 do
-    begin
-      Analytics[I].Value := '';
-    end;
+      Analytics[I].Clear;
 end;
 
 destructor TfrAcctAnalytics.Destroy;
@@ -229,7 +228,7 @@ var
   I, Index: Integer;
   SQL: TIBSQl;
   Line: TfrAcctAnalyticLine;
-  H, W: Integer;
+  H: Integer;
   P, C: Integer;
   LAnaliseLines: TObjectList;
 //  F: TatRelationField;
@@ -317,12 +316,12 @@ begin
               begin
                 Name := 'frAcctAnaliticLine_' + StringReplace(TatRelationField(FAnalyticsFieldList[i]).FieldName, '$', '_', [rfReplaceAll]);
                 Field := TatRelationField(FAnalyticsFieldList[i]);
-                cbAnalitic.Transaction := gdcBaseManager.ReadTransaction;
                 Parent := ppAnalytics;
                 Color := ppAnalytics.FillColor;
                 Align := alTop;
               end;
               Line.OnValueChange := OnValueChange;
+              Line.OnResize := OnFrameResize;
             end else
             begin
               Line := TfrAcctAnalyticLine(LAnaliseLines[Index]);
@@ -348,18 +347,7 @@ begin
   finally
     LAnaliseLines.Free;
   end;
-
-  W := 0;
-  for I := 0 to ppAnalytics.ControlCount - 1 do
-  begin
-    W := Max(TfrAcctAnalyticLine(ppAnalytics.Controls[i]).lAnaliticName.Left +
-      TfrAcctAnalyticLine(ppAnalytics.Controls[i]).lAnaliticName.Width, W);
-  end;
-  W := W + 5;
-  for I := 0 to ppAnalytics.ControlCount - 1 do
-  begin
-    TfrAcctAnalyticLine(ppAnalytics.Controls[i]).SetControlPosition(W);
-  end;
+  
   SortLine;
   UpdateTabOrder(ppAnalytics);
 end;
@@ -389,13 +377,37 @@ begin
 end;
 
 procedure TfrAcctAnalytics.FrameResize(Sender: TObject);
+var
+  I: Integer;
 begin
-  ppAnalytics.Width := ClientWidth
+  ppAnalytics.Width := ClientWidth;
+  if FAnalyticsLineList <> nil then
+  begin
+    for I := 0 to FAnalyticsLineList.Count - 1 do
+      (FAnalyticsLineList[I] as TfrAcctAnalyticLine).ResizeControls;
+  end;
 end;
 
 procedure TfrAcctAnalytics.SetNeedNull(const Value: boolean);
 begin
   FNeedNull := Value;
+end;
+
+procedure TfrAcctAnalytics.OnFrameResize(Sender: TObject);
+var
+  I, P: Integer;
+  Line: TfrAcctAnalyticLine;
+begin
+  if FAnalyticsLineList <> nil then
+  begin
+    P := ppAnalytics.ClientRect.Top;
+    for I := FAnalyticsLineList.Count - 1 downto 0 do
+    begin
+      Line :=  FAnalyticsLineList[I] as TfrAcctAnalyticLine;
+      P := P + Line.Height;
+    end;
+    ppAnalytics.UpdateHeight(Max(P + 4, cMinUnwrapedHeight));
+  end; 
 end;
 
 end.

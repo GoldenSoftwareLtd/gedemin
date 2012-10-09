@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Mask, xDateEdits, StdCtrls, at_classes, gsIBLookupComboBox, ActnList,
-  Buttons, ExtCtrls;
+  Buttons, ExtCtrls, contnrs, gd_KeyAssoc;
 
 
 type
@@ -14,17 +14,23 @@ type
   TfrAcctAnalyticLine = class(TFrame)
     lAnaliticName: TLabel;
     eAnalitic: TEdit;
-    cbAnalitic: TgsIBLookupComboBox;
     xdeDateTime: TxDateEdit;
-    spSelectDocument: TSpeedButton;
     chkNull: TCheckBox;
-    procedure actSelectDocumentUpdate(Sender: TObject);
-    procedure actSelectDocumentExecute(Sender: TObject);
+    actList: TActionList;
+    actVisible: TAction;
+    procedure chkNullClick(Sender: TObject);
+    procedure actVisibleUpdate(Sender: TObject);
   private
     FField: TatRelationField;
     FOnValueChange: TNotifyEvent;
     FNeedNull: boolean;
+    FButtons, FLookUp: TObjectList;
+    FKASet: TgdKeyArray;
     { Private declarations }
+    procedure BtnPress(Sender: TObject);
+    procedure LookUpChange(Sender: TObject);
+    function CreateLookUp: TgsIBLookupComboBox;
+    function CreateButton: TSpeedButton;
     procedure SetField(const Value: TatRelationField);
     procedure Check;
     procedure SetValue(const Value: string);
@@ -40,7 +46,11 @@ type
 
   public
     { Public declarations }
-    procedure SetControlPosition(ALeft: Integer);
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+
+    procedure ReSizeControls;
+    procedure Clear;
     property Field: TatRelationField read FField write SetField;
     property Value: string read GetValue write SetValue;
     function IsEmpty: boolean;
@@ -50,10 +60,35 @@ type
   end;
 
 implementation
-uses gdv_dlgSelectDocument_unit;
+uses gdv_dlgSelectDocument_unit, dmDataBase_unit, gdcBaseInterface;
+
+const
+  FrameHeight = 22;
+  ButtonHeight = 18;
+  ButtonWidth = 14;
 {$R *.DFM}
 
 { TfrAcctAnalyticLine }
+
+constructor TfrAcctAnalyticLine.Create(AOwner: TComponent);
+begin
+  inherited;
+
+  FButtons := TObjectList.Create;
+  FLookUp := TObjectList.Create;
+  Height := FrameHeight;
+  FKASet := TgdKeyArray.Create;
+  lAnaliticName.Enabled := False;
+  ParentFont := False; 
+end;
+
+destructor TfrAcctAnalyticLine.Destroy;
+begin
+  FLookUp.Free;
+  FButtons.Free;
+  FKASet.Free;
+  inherited;  
+end;
 
 procedure TfrAcctAnalyticLine.AlignControls(AControl: TControl;
   var Rect: TRect);
@@ -97,6 +132,7 @@ function TfrAcctAnalyticLine.GetValue: string;
 var
   lDateSeparator: char;
   lShortDateFormat: string;
+  I: Integer;
 begin
   Check;
   Result := '';
@@ -108,8 +144,17 @@ begin
   try
     DateSeparator := '-';
     ShortDateFormat := 'yyyy-MM-dd';
+
     case FieldType of
-      aftReference: Result := cbAnalitic.CurrentKey;
+      aftReference:
+      begin
+        FKASet.Clear;
+        for I := 0 to FLookUp.Count - 1 do
+          if (FLookUp[I] as TgsIBLookupComboBox).CurrentKey <> '' then
+            FKASet.Add((FLookUp[I] as TgsIBLookupComboBox).CurrentKeyInt, True);
+        Result := FKASet.CommaText;
+      end;
+
       aftDate:
       begin
         if xdeDateTime.Date <> 0 then
@@ -137,7 +182,7 @@ end;
 
 function TfrAcctAnalyticLine.IsEmpty: boolean;
 begin
-  Result := Value = '';
+  Result := (Value = '') or (not chkNull.Checked);
 end;
 
 procedure TfrAcctAnalyticLine.SetField(const Value: TatRelationField);
@@ -145,25 +190,11 @@ begin
   FField := Value;
   if FField <> nil then
   begin
-    lAnaliticName.Caption := FField.LName + ':';
+    lAnaliticName.Caption := FField.LName;
     if FField.References <> nil then
     begin
-      cbAnalitic.SubType := FField.gdSubType;
-      cbAnalitic.gdClassName := FField.gdClassName;
-    
-      cbAnalitic.ListTable := FField.References.RelationName;
-      if FField.Field.RefListFieldName <> '' then
-        cbAnalitic.ListField := FField.Field.RefListFieldName
-      else
-        cbAnalitic.ListField := FField.References.ListField.FieldName;
-
-      cbAnalitic.KeyField := FField.ReferencesField.FieldName;
-      cbAnalitic.Visible := True;
-
-      {cbAnalitic.Condition := 'EXISTS (SELECT * FROM ac_entry e WHERE e.' +
-        Value.FieldName + ' = ' +
-        Value.Field.RefTable.RelationName + '.' +
-        Value.Field.RefTable.PrimaryKey.ConstraintFields[0].FieldName + ')';}
+      FLookUp.Add(CreateLookUp);
+      FButtons.Add(CreateButton);
     end else
     begin
       if FField.Field.SQLType in [12, 13, 35] then
@@ -177,6 +208,7 @@ begin
       end else
         eAnalitic.Visible := True;
     end;
+    ReSizeControls;
   end;
 end;
 
@@ -184,11 +216,12 @@ procedure TfrAcctAnalyticLine.SetOnValueChange(const Value: TNotifyEvent);
 begin
   FOnValueChange := Value;
   eAnalitic.OnChange := OnValueChange;
-  cbAnalitic.OnChange := OnValueChange;
   xdeDateTime.OnChange := OnValueChange;
 end;
 
 procedure TfrAcctAnalyticLine.SetValue(const Value: string);
+var
+  I: Integer;
 
 function ConvertStrToDate(const strDate: String): TDateTime;
 var
@@ -213,8 +246,19 @@ begin
     chkNull.Checked:= True;
     Exit;
   end;
+  if Value <> '' then
+    chkNull.Checked:= True;
+    
   case FieldType of
-    aftReference: cbAnalitic.CurrentKey := Value;
+    aftReference:
+    begin  
+      FKASet.CommaText := Value;
+      if FKASet.Count > 0 then
+      begin
+        for I := 0 to FKASet.Count - 1 do
+          (FLookUp[I] as TgsIBLookupComboBox).CurrentKeyInt := FKASet[I]; 
+      end;
+    end;
     aftDate:
     begin
       if Value > '' then
@@ -241,51 +285,6 @@ begin
   end;
 end;
 
-procedure TfrAcctAnalyticLine.actSelectDocumentUpdate(Sender: TObject);
-begin
-  TAction(Sender).Visible := (cbAnalitic <> nil) and (UpperCase(cbAnalitic.ListTable) = 'GD_DOCUMENT');
-end;
-
-procedure TfrAcctAnalyticLine.actSelectDocumentExecute(Sender: TObject);
-var
-  F: TdlgSelectDocument;
-begin
-  F := TdlgSelectDocument.Create(nil);
-  try
-    F.ShowModal;
-    if F.SelectedId > - 1 then
-    begin
-      cbAnalitic.CurrentKeyInt := F.SelectedId;
-    end;
-  finally
-    F.Free;
-  end;
-end;
-
-procedure TfrAcctAnalyticLine.SetControlPosition(ALeft: Integer);
-var
-  W: Integer;
-begin
-  if (cbAnalitic = nil) or ((cbAnalitic <> nil) and (UpperCase(cbAnalitic.ListTable) <> 'GD_DOCUMENT')) then
-  begin
-    W := ClientWidth - 2 - ALeft;
-    spSelectDocument.Visible := False;
-  end else
-  begin
-    spSelectDocument.Left := ClientWidth - spSelectDocument.Width;
-    W := spSelectDocument.Left - 2 - ALeft;
-    spSelectDocument.Visible := True;
-  end;
-
-  ALeft:= ALeft;
-  cbAnalitic.Left := ALeft;
-  cbAnalitic.Width := W;
-  eAnalitic.Left := ALeft;
-  eAnalitic.Width := W;
-  xdeDateTime.Left := ALeft;
-  xdeDateTime.Width := W;
-end;
-
 function TfrAcctAnalyticLine.GetIsNull: boolean;
 begin
   Result:= chkNull.Checked and (Value = '');
@@ -307,4 +306,159 @@ begin
   chkNull.Visible:= FNeedNull;
 end;
 
+procedure TfrAcctAnalyticLine.BtnPress(Sender: TObject);
+var
+  Index: Integer;
+begin
+  if FButtons.Count > 1 then
+  begin
+    Index := FButtons.IndexOf(Sender as TSpeedButton);
+    if Index <> -1 then
+    begin
+      FLookUp.Delete(Index);
+      FButtons.Delete(Index);
+    end;
+    ReSizeControls;
+  end else
+    if FButtons.Count = 1 then
+      (FLookUp[0] as TgsIBLookupComboBox).CurrentKey := '';
+end;
+
+procedure TfrAcctAnalyticLine.LookUpChange(Sender: TObject);
+var
+  Index: Integer;
+begin
+  Index := FLookUp.IndexOf(Sender as TgsIBLookupComboBox);
+  if (Index = FLookUp.Count - 1) and ((Sender as TgsIBLookupComboBox).CurrentKey <> '') then
+  begin
+    FLookUp.Add(CreateLookUp);
+    FButtons.Add(CreateButton);
+    ReSizeControls;
+  end;  
+end;
+
+procedure TfrAcctAnalyticLine.ReSizeControls;
+var
+  AllHeight, I, LH: Integer;
+begin
+  if FField <> nil then
+  begin
+    AllHeight := FrameHeight;
+    case FieldType of
+      aftReference:
+      begin
+        if (FLookUp.Count > 0) and (FButtons.Count > 0) then
+        begin
+          LH := (FLookUp[0] as TgsIBLookupComboBox).Height + 2;
+          for I := 0 to FLookUp.Count - 1 do
+          begin
+            (FLookUp[I] as TgsIBLookupComboBox).Top := AllHeight;
+            (FLookUp[I] as TgsIBLookupComboBox).Width := Self.ClientWidth - ButtonWidth - 2;
+            (FButtons[I] as TSpeedButton).Top := AllHeight;
+            (FButtons[I] as TSpeedButton).Left := Self.ClientWidth - ButtonWidth;
+            AllHeight :=  AllHeight + LH;
+          end;
+        end;
+      end;
+      aftDate, aftTime, aftDateTime:
+      begin
+        xdeDateTime.Top := AllHeight;
+        xdeDateTime.Width := ClientWidth - 2;
+        xdeDateTime.Left := 2;
+        AllHeight := AllHeight + xdeDateTime.Height;
+      end;
+      aftString:
+      begin
+        eAnalitic.Top := AllHeight;
+        eAnalitic.Width := ClientWidth - 2;
+        eAnalitic.Left := 2;
+        AllHeight := AllHeight + eAnalitic.Height;
+      end;
+    end;
+    if chkNull.Checked then
+      Self.Height := AllHeight
+    else
+      Self.Height := FrameHeight;
+  end;
+end;
+
+function TfrAcctAnalyticLine.CreateLookUp: TgsIBLookupComboBox;
+begin
+  Result := TgsIBLookupComboBox.Create(Self);
+  with Result do
+  begin
+    Parent := Self;
+    ParentFont := False;
+    ParentColor := False;
+    Font.Name := 'MS Sans Serif';
+    Font.Size := 8;
+    Font.Color := clWindowText;
+    Style := csDropDown;
+    Database := dmDatabase.ibdbGAdmin;
+    Transaction := gdcBaseManager.ReadTransaction;
+    SubType := FField.gdSubType;
+    gdClassName := FField.gdClassName;
+    ListTable := FField.References.RelationName;
+
+    if FField.Field.RefListFieldName <> '' then
+       ListField := FField.Field.RefListFieldName
+    else
+      ListField := FField.References.ListField.FieldName;
+
+    KeyField := FField.ReferencesField.FieldName;
+    ParentShowHint := False;
+    SortOrder := soAsc;
+    Left := 2;
+    Width := Self.ClientWidth - ButtonWidth - 2;
+    Visible := True;
+    OnChange := LookUpChange;
+  end;
+end;
+
+function TfrAcctAnalyticLine.CreateButton: TSpeedButton;
+begin
+  Result := TSpeedButton.Create(Self);
+  with Result do
+  begin
+    Parent := Self;
+    ParentFont := False;
+    Caption := 'X';
+    Font.Style := [fsBold];
+    Action := actVisible;
+    Visible := True;
+    Height := ButtonHeight;
+    Left := Self.ClientWidth - ButtonWidth;
+    Width := ButtonWidth;
+    OnClick := BtnPress;
+  end;
+end;
+
+procedure TfrAcctAnalyticLine.chkNullClick(Sender: TObject);
+begin
+  lAnaliticName.Enabled := chkNull.Checked;
+  ReSizeControls;
+end;
+
+procedure TfrAcctAnalyticLine.Clear;
+begin
+  if FField.References <> nil then
+  begin
+    FKASet.Clear;
+    While FLookUp.Count > 1 do
+    begin
+      FLookUp.Delete(0);
+      FButtons.Delete(0);
+    end;
+
+    if FLookUp.Count = 1 then
+      (FLookUp[0] as TgsIBLookupComboBox).CurrentKey := '';
+  end else
+    SetValue(''); 
+end;
+
+procedure TfrAcctAnalyticLine.actVisibleUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := (FButtons.Count > 1)
+    or ((FButtons.Count = 1) and (FLookUp.Count = 1) and ((FLookUp[0] as TgsIBLookupComboBox).CurrentKey <> ''));
+end;
 end.
