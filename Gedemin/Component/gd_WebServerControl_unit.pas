@@ -26,8 +26,8 @@ unit gd_WebServerControl_unit;
 interface
 
 uses
-  Classes, Contnrs, IdHTTPServer, IdCustomHTTPServer, IdTCPServer, evt_i_Base,
-  gd_FileList_unit;
+  Classes, Contnrs, SyncObjs, IdHTTPServer, IdCustomHTTPServer, IdTCPServer,
+  evt_i_Base, gd_FileList_unit;
 
 const
   DEFAULT_WEB_SERVER_PORT = 80;
@@ -51,9 +51,10 @@ type
       ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
     procedure ServerOnCommandGetSync;
     procedure CreateHTTPServer;
-    procedure ProcessQueryRequest(ARequestInfo: TIdHTTPRequestInfo;
-      AResponseInfo: TIdHTTPResponseInfo);
+    procedure ProcessQueryRequest;
     procedure ProcessFileRequest;
+    procedure Log(const AnIPAddress: String; const AnOp: String;
+      const Names: array of String; const Values: array of String);
     function GetActive: Boolean;
     procedure SetActive(const Value: Boolean);
 
@@ -81,7 +82,7 @@ var
 implementation
 
 uses
-  SysUtils, ibsql, Forms, Windows, IdSocketHandle, gdcOLEClassList,
+  SysUtils, Forms, Windows, IBSQL, IBDatabase, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
   gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock,
   ComObj, JclSimpleXML, gd_directories_const, ActiveX;
@@ -197,15 +198,9 @@ end;
 procedure TgdWebServerControl.ServerOnCommandGet(AThread: TIdPeerThread;
   ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
 begin
-  if AnsiCompareText(ARequestInfo.Document, '/query') = 0 then
-    ProcessQueryRequest(ARequestInfo, AResponseInfo)
-  else if AnsiCompareText(ARequestInfo.Document, '/get_file') = 0 then
-    ProcessFileRequest
-  else begin
-    FRequestInfo := ARequestInfo;
-    FResponseInfo := AResponseInfo;
-    AThread.Synchronize(ServerOnCommandGetSync);
-  end;
+  FRequestInfo := ARequestInfo;
+  FResponseInfo := AResponseInfo;
+  AThread.Synchronize(ServerOnCommandGetSync);
 end;
 
 procedure TgdWebServerControl.ServerOnCommandGetSync;
@@ -219,44 +214,50 @@ var
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
-  Processed := False;
-  RequestToken := FRequestInfo.Params.Values[PARAM_TOKEN];
-  for HandlerCounter := 0 to FHttpGetHandlerList.Count - 1 do
-  begin
-    Handler := FHttpGetHandlerList[HandlerCounter] as TgdHttpHandler;
-    if (Handler.Token = '') or (AnsiCompareText(Handler.Token, RequestToken) = 0) then
+  if AnsiCompareText(FRequestInfo.Document, '/query') = 0 then
+    ProcessQueryRequest
+  else if AnsiCompareText(FRequestInfo.Document, '/get_file') = 0 then
+    ProcessFileRequest
+  else begin
+    Processed := False;
+    RequestToken := FRequestInfo.Params.Values[PARAM_TOKEN];
+    for HandlerCounter := 0 to FHttpGetHandlerList.Count - 1 do
     begin
-      HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
-      if Assigned(HandlerFunction) then
+      Handler := FHttpGetHandlerList[HandlerCounter] as TgdHttpHandler;
+      if (Handler.Token = '') or (AnsiCompareText(Handler.Token, RequestToken) = 0) then
       begin
-        // Формирование списка параметров
-        //  1 - компонент к которому привязан обработчик
-        //  2 - параметры GET запроса
-        //  3 - HTTP код ответа (byref)
-        //  4 - текст ответа (byref)
-        LParams := VarArrayOf([
-          GetGdcOLEObject(Handler.Component) as IgsComponent,
-          GetGdcOLEObject(FRequestInfo.Params) as IgsStrings,
-          GetVarInterface(FResponseInfo.ResponseNo),
-          GetVarInterface(FResponseInfo.ContentText)]);
+        HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
+        if Assigned(HandlerFunction) then
+        begin
+          // Формирование списка параметров
+          //  1 - компонент к которому привязан обработчик
+          //  2 - параметры GET запроса
+          //  3 - HTTP код ответа (byref)
+          //  4 - текст ответа (byref)
+          LParams := VarArrayOf([
+            GetGdcOLEObject(Handler.Component) as IgsComponent,
+            GetGdcOLEObject(FRequestInfo.Params) as IgsStrings,
+            GetVarInterface(FResponseInfo.ResponseNo),
+            GetVarInterface(FResponseInfo.ContentText)]);
 
-        ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
-        FResponseInfo.ResponseNo := Integer(GetVarParam(LParams[2]));
-        FResponseInfo.ContentType := 'text/xml; charset=Windows-1251';
-        FResponseInfo.ContentText := String(GetVarParam(LParams[3]));
+          ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
+          FResponseInfo.ResponseNo := Integer(GetVarParam(LParams[2]));
+          FResponseInfo.ContentType := 'text/xml; charset=Windows-1251';
+          FResponseInfo.ContentText := String(GetVarParam(LParams[3]));
 
-        Processed := True;
+          Processed := True;
+        end;
       end;
     end;
-  end;
 
-  if not Processed then
-  begin
-    FResponseInfo.ResponseNo := 200;
-    FResponseInfo.ContentType := 'text/html;';
-    FResponseInfo.ContentText :=
-      '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
-      '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>Hello World!</BODY></HTML>';
+    if not Processed then
+    begin
+      FResponseInfo.ResponseNo := 200;
+      FResponseInfo.ContentType := 'text/html;';
+      FResponseInfo.ContentText :=
+        '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
+        '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>Hello World!</BODY></HTML>';
+    end;
   end;
 end;
 
@@ -422,34 +423,20 @@ begin
   end;
 end;
 
-procedure TgdWebServerControl.ProcessQueryRequest(ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
-var
-  Params: Variant;
+procedure TgdWebServerControl.ProcessQueryRequest;
 begin
-  Params := VarArrayCreate([0, 2], varVariant);
-
-  Params[0] := ARequestInfo.Params.Values['dbid'];
-  Params[1] := Copy(ARequestInfo.Params.Values['cust_name'], 1, 60);
-  Params[2] := ARequestInfo.RemoteIP;
-
-  gdcBaseManager.ExecSingleQuery(
-    'INSERT INTO gd_web_log (dbid, customername, ipaddress, op) ' +
-    'VALUES (:dbid, :customername, :ipaddress, ''QURY'')', Params);
+  Log(FRequestInfo.RemoteIP, 'QERY', ['dbid', 'customer_name'],
+    [FRequestInfo.Params.Values['dbid'], FRequestInfo.Params.Values['cust_name']]);
 
   if FFileList = nil then
   begin
-    Assert(CoInitialize(nil) = S_OK);
-    try
-      FFileList := TFLCollection.Create;
-      FFileList.BuildEtalonFileSet;
-    finally
-      CoUninitialize;
-    end;
+    FFileList := TFLCollection.Create;
+    FFileList.BuildEtalonFileSet;
   end;
 
-  AResponseInfo.ResponseNo := 200;
-  AResponseInfo.ContentType := 'application/octet-stream;';
-  AResponseInfo.ContentStream := TStringStream.Create(FFileList.GetXML);
+  FResponseInfo.ResponseNo := 200;
+  FResponseInfo.ContentType := 'application/octet-stream;';
+  FResponseInfo.ContentStream := TStringStream.Create(FFileList.GetXML);
 end;
 
 function TgdWebServerControl.GetActive: Boolean;
@@ -481,7 +468,64 @@ end;
 
 procedure TgdWebServerControl.ProcessFileRequest;
 begin
+  Log(FRequestInfo.RemoteIP, 'RQFL', [], []);
+end;
 
+procedure TgdWebServerControl.Log(const AnIPAddress: String;
+  const AnOp: String; const Names: array of String; const Values: array of String);
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+  I, ID: Integer;
+begin
+  Assert(Low(Names) = Low(Values));
+  Assert(High(Names) = High(Values));
+  Assert(Length(AnIPAddress) <= 15);
+  Assert(Length(AnOp) <= 4);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+
+    ID := gdcBaseManager.GetNextID;
+    q.SQL.Text :=
+      'INSERT INTO gd_weblog (id, ipaddress, op) ' +
+      'VALUES (:id, :ipaddress, :op)';
+    q.ParamByName('id').AsInteger := ID;
+    q.ParamByName('ipaddress').AsString := AnIPAddress;
+    q.ParamByName('op').AsString := AnOp;
+    q.ExecQuery;
+
+    q.SQL.Text :=
+      'INSERT INTO gd_weblogdata (logkey, valuename, valuestr, valueblob) ' +
+      'VALUES (:logkey, :vn, :vs, :vb)';
+    q.ParamByName('logkey').AsInteger := ID;
+
+    for I := Low(Names) to High(Names) do
+    begin
+      q.ParamByName('vn').AsString := Names[I];
+
+      if Length(Values[I]) <= 254 then
+      begin
+        q.ParamByName('vs').AsString := Values[I];
+        q.ParamByName('vb').Clear;
+      end else
+      begin
+        q.ParamByName('vb').AsString := Values[I];
+        q.ParamByName('vs').Clear;
+      end;
+
+      q.ExecQuery;
+    end;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
 end;
 
 initialization
