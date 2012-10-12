@@ -409,7 +409,8 @@ begin
         if (FAvailFieldList[i].Field <> nil) and
           (FAvailFieldList[i].FieldName <> ENTRYDATE) and
           (FAvailFieldList[i].FieldName <> 'ACCOUNTKEY') and
-          (FAvailFieldList[i].FieldName <> 'CURRKEY') then
+          (FAvailFieldList[i].FieldName <> 'CURRKEY') and
+          (FAvailFieldList[i].FieldName <> 'COMPANYKEY') then
         begin
           if SQL.SQL.Count > 0 then
             SQL.SQL.Add(', ');
@@ -448,6 +449,7 @@ begin
             (FAvailFieldList[i].FieldName <> ENTRYDATE) and
             (FAvailFieldList[i].FieldName <> 'ACCOUNTKEY') and
             (FAvailFieldList[i].FieldName <> 'CURRKEY') and
+            (FAvailFieldList[i].FieldName <> 'COMPANYKEY') and
             ((SQL.Fields[i].AsInteger = AIDList.Count) or (AIDList.Count = 0)) then
           begin
             ListBoxAvail.Items.AddObject(FAvailFieldList[i].Caption,

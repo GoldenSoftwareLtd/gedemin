@@ -304,24 +304,12 @@ begin
 end;
 
 procedure TgdWebServerControl.ActivateServer;
-var
-  PortNumber: Integer;
 begin
   if not Assigned(FHTTPServer) then
     CreateHTTPServer;
 
   if not FHTTPServer.Active then
     try
-      if Assigned(GlobalStorage) then
-      begin
-        PortNumber := GlobalStorage.ReadInteger('Options',
-          STORAGE_WEB_SERVER_PORT_VALUE_NAME,
-          DEFAULT_WEB_SERVER_PORT);
-
-        if (PortNumber >= 1024) and (PortNumber <= 65535) then
-          FHttpServer.Bindings[0].Port := PortNumber;
-      end;
-
       FHttpServer.Active := True;
     except
       on E: Exception do
@@ -390,26 +378,38 @@ procedure TgdWebServerControl.CreateHTTPServer;
 
 var
   Binding : TIdSocketHandle;
+  PortNumber: Integer;
 begin
   Assert(FHTTPServer = nil);
+
+  if Assigned(GlobalStorage) then
+  begin
+    PortNumber := GlobalStorage.ReadInteger('Options',
+      STORAGE_WEB_SERVER_PORT_VALUE_NAME,
+      DEFAULT_WEB_SERVER_PORT);
+
+    if (PortNumber < 1024) or (PortNumber > 65535) then
+      PortNumber := DEFAULT_WEB_SERVER_PORT;
+  end else
+    PortNumber := DEFAULT_WEB_SERVER_PORT;
 
   FHttpServer := TIdHTTPServer.Create(nil);
   FHttpServer.ServerSoftware := 'GedeminHttpServer';
 
   FHttpServer.Bindings.Clear;
   Binding := FHttpServer.Bindings.Add;
-  Binding.Port := DEFAULT_WEB_SERVER_PORT;
+  Binding.Port := PortNumber;
   Binding.IP := GetLocalIP;
 
   Binding := FHttpServer.Bindings.Add;
-  Binding.Port := DEFAULT_WEB_SERVER_PORT;
+  Binding.Port := PortNumber;
   Binding.IP := '127.0.0.1';
 
   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   if GetLocalIP = '192.168.0.35' then
   begin
     Binding := FHttpServer.Bindings.Add;
-    Binding.Port := DEFAULT_WEB_SERVER_PORT;
+    Binding.Port := PortNumber;
     Binding.IP := GetIP;
   end;
   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

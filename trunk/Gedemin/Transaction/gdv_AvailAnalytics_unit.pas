@@ -60,9 +60,9 @@ var
   A: TgdvAnalytics;
 begin
   A := TgdvAnalytics.Create;
+  A.Field := Field;
   A.FieldName := FieldName;
   A.Caption := Caption;
-  A.Field := Field;
   A.Additional := Additional;
   Add(A);
 end;
@@ -126,11 +126,17 @@ begin
   begin
     AddAnalytics('ACCOUNTKEY', 'Счета и субсчета', F, '')
   end;
-
+  
   F := atDatabase.FindRelationField(AC_ENTRY, 'CURRKEY');
   if F <> nil then
   begin
     AddAnalytics('CURRKEY', 'Валюта', F, '')
+  end;
+
+  F := atDatabase.FindRelationField(AC_ENTRY, 'COMPANYKEY');
+  if F <> nil then
+  begin
+    AddAnalytics('COMPANYKEY', 'Рабочая компания', F, '');
   end;
 end;
 
