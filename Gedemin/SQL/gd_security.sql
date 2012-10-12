@@ -708,21 +708,35 @@ CREATE DOMAIN gd_dipaddress
   CHECK (VALUE SIMILAR TO
     '(([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-6]).){3}([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-6])');
 
-CREATE TABLE gd_web_log
+CREATE TABLE gd_weblog
 (
   id           dintkey,
-  dbid         dintkey,
-  customername dname,
   ipaddress    gd_dipaddress,
   op           CHAR(4) NOT NULL,
   datetime     TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-  CONSTRAINT gd_pk_web_log PRIMARY KEY (id)
+  CONSTRAINT gd_pk_weblog PRIMARY KEY (id)
+);
+
+COMMIT;
+
+CREATE TABLE gd_weblogdata
+(
+  logkey       dintkey,
+  valuename    dname,
+  valuestr     dtext254,
+  valueblob    BLOB SUB_TYPE 1 CHARACTER SET WIN1251 COLLATE PXW_CYRL,
+
+  CONSTRAINT gd_pk_weblogdata PRIMARY KEY (logkey, valuename),
+  CONSTRAINT gd_fk_weblogdata_logkey FOREIGN KEY (logkey)
+    REFERENCES gd_weblog (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
 );
 
 SET TERM ^ ;
 
-CREATE TRIGGER gd_bi_web_log FOR gd_web_log
+CREATE TRIGGER gd_bi_weblog FOR gd_weblog
   BEFORE INSERT
   POSITION 0
 AS

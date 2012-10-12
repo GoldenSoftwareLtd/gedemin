@@ -171,7 +171,8 @@ begin
           if Assigned(FAvailableAnalytics[I].Field)
              and (FAvailableAnalytics[I].FieldName <> ENTRYDATE)
              and (FAvailableAnalytics[I].FieldName <> 'ACCOUNTKEY')
-             and (FAvailableAnalytics[I].FieldName <> 'CURRKEY') then
+             and (FAvailableAnalytics[I].FieldName <> 'CURRKEY')
+             and (FAvailableAnalytics[I].FieldName <> 'COMPANYKEY') then
           begin
             if S > '' then
               S := S + ', '#13#10;
