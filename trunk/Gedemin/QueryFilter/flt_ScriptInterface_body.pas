@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2001 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Module
 
@@ -82,7 +82,8 @@ procedure Register;
 implementation
 
 uses
-  gd_i_ScriptFactory
+  gd_i_ScriptFactory, IBSQL, rp_BaseReport_unit, gdcBaseInterface,
+  scr_i_FunctionList, JclStrings, gd_security_operationconst
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -127,54 +128,88 @@ end;
 
 function TfltGlobalScript.GetScriptResult(const AnScriptText,
   AnLanguage: String; out AnSign: String): Variant;
+
+  function ExtractToken(const S: String; var B: Integer; out Token: String): Boolean;
+  var
+    E: Integer;
+  begin
+    while (B <= Length(S)) and (not (S[B] in ['a'..'z', 'A'..'Z'])) do
+      Inc(B);
+    E := B + 1;
+    while (E <= Length(S)) and (S[E] in ['a'..'z', 'A'..'Z', '_', '0'..'9']) do
+      Inc(E);
+    Token := Copy(S, B, E - B);
+    B := E + 1;
+    Result := Token > '';
+  end;
+
 const
-  MORE_OR_EQUAL = '>=';
-  LESS_OR_EQUAL = '<=';
-  NOT_EQUAL = '<>';
-  MORE = '>';
-  LESS = '<';
-  EQUAL = '=';
-  LIKE = 'LIKE';
+  Signs: array[1..8] of String =
+    ('>=', '<=', '<>', '>', '<', '=', 'LIKE', 'SIMILAR TO');
 var
-  TempStr: String;
+  I, P: Integer;
+  TempStr, Cond, Tkn: String;
+  q: TIBSQL;
+  F: TrpCustomFunction;
 begin
   {$IFNDEF GEDEMIN}
   if not Assigned(FScriptControl) then
     raise Exception.Create('Класс TScriptControl не зарегистрирован');
   TCrackerReportScript(FScriptControl).SetLanguage(AnLanguage);
   {$ENDIF}
+
+  AnSign := '';
   TempStr := Trim(AnScriptText);
-  if Pos(MORE_OR_EQUAL, TempStr) = 1 then
-    AnSign := MORE_OR_EQUAL
-  else
-    if Pos(LESS_OR_EQUAL, TempStr) = 1 then
-      AnSign := LESS_OR_EQUAL
-    else
-      if Pos(NOT_EQUAL, TempStr) = 1 then
-        AnSign := NOT_EQUAL
-      else
-        if Pos(MORE, TempStr) = 1 then
-          AnSign := MORE
-        else
-          if Pos(LESS, TempStr) = 1 then
-            AnSign := LESS
-          else
-            if Pos(EQUAL, TempStr) = 1 then
-              AnSign := EQUAL
-            else
-              if Pos(LIKE, TempStr) = 1 then
-                AnSign := LIKE
-              else
-                raise Exception.Create(
-                  'Выражение должно иметь следующий формат: <оператор сравнения><выражение>,'#13#10 +
-                  'где <оператор сравнения> -- это один из следующих операторов: <, >, =, <>, <=, >=, LIKE,'#13#10 +
-                  'а выражение, это вычисляемое выражение на языке VBScript.'#13#10 +
-                  'Из выражения возможен доступ к глобальным объектам Гедымина, функциям.');
+
+  for I := Low(Signs) to High(Signs) do
+    if Pos(Signs[I], TempStr) = 1 then
+    begin
+      AnSign := Signs[I];
+      break;
+    end;
+
+  if AnSign = '' then
+    raise Exception.Create(
+      'Выражение должно иметь следующий формат: <оператор сравнения> <выражение VBScript>,'#13#10 +
+      'где <оператор сравнения> -- это один из следующих операторов: <, >, =, <>, <=, >=, LIKE, SIMILAR TO.'#13#10 +
+      'Внутри <выражения VBScript> допускается обращение к глобальным объектам и вызов скрипт-функций.');
+
+  TempStr := Copy(TempStr, Length(AnSign) + 1, 32000);
 
   {$IFDEF GEDEMIN}
-  Result := ScriptFactory.Eval(Copy(TempStr, Length(AnSign) + 1, Length(TempStr)));
+  P := 1;
+  Cond := '';
+  while ExtractToken(TempStr, P, Tkn) do
+    Cond := Cond + '''' + Tkn + ''',';
+  if Cond > '' then
+  begin
+    SetLength(Cond, Length(Cond) - 1);
+
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+        'SELECT f.id, f.name ' +
+        'FROM gd_function f ' +
+        'WHERE f.modulecode = 1010001 AND f.module = ''UNKNOWN'' ' +
+        '  AND UPPER(f.name) IN (' + AnsiUpperCase(Cond) + ')';
+      q.ExecQuery;
+
+      while not q.Eof do
+      begin
+        F := glbFunctionList.FindFunction(q.FieldByName('id').AsInteger);
+        if Assigned(F) then
+          ScriptFactory.AddScript(F, OBJ_APPLICATION, False);
+        q.Next;
+      end;
+    finally
+      q.Free;
+    end;
+  end;
+
+  Result := ScriptFactory.Eval(TempStr);
   {$ELSE}
-  Result := FScriptControl.Eval(Copy(TempStr, Length(AnSign) + 1, Length(TempStr)));
+  Result := FScriptControl.Eval(TempStr);
   {$ENDIF}
   AnSign := ' ' + AnSign + ' ';
 end;

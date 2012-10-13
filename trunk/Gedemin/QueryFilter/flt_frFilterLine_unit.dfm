@@ -230,8 +230,7 @@ object frFilterLine: TfrFilterLine
           ItemHeight = 13
           TabOrder = 1
           Items.Strings = (
-            'VBScript'
-            'JScript')
+            'VBScript')
         end
         object edScript: TEdit
           Left = 2
