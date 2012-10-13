@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2011 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Module
 
@@ -171,8 +171,10 @@ const
   CharSize = SizeOf(Char);
   LblSize = SizeOf(TLabelStream);
 
-  LanguageCount = 2;
-  LanguageList: array[0..LanguageCount - 1] of String[20] = ('VBScript', 'JScript');
+  //LanguageCount = 2;
+  //LanguageList: array[0..LanguageCount - 1] of String[20] = ('VBScript', 'JScript');
+  LanguageCount = 1;
+  LanguageList: array[0..LanguageCount - 1] of String = ('VBScript');
 
 type
   TFilterOrderBy = class(TObject)
@@ -2754,10 +2756,10 @@ var
       end;
       GD_DT_CHAR:
       begin
-        // Кавычки добавляем
+        if AnConditionData.ConditionType = GD_FC_SCRIPT then
+          FValue1 := AnsiUpperCase(FValue1);
         FValue1 := '''' + FValue1 + '''';
         FValue2 := '''' + FValue2 + '''';
-        // Регистр устанавливаем
         SimpleField := 'UPPER(' + AnPrefixName + FieldName + ')';
       end;
       GD_DT_BLOB_TEXT:
