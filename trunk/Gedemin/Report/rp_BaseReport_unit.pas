@@ -735,7 +735,6 @@ end;
 procedure TrpCustomFunction.ReadFromDataSet(const DataSet: TDataSet);
 var
   BStr: TStream;
-//  I: Integer;
 begin
   Assert(DataSet is TIBCustomDataSet);
 

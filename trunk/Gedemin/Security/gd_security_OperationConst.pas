@@ -359,6 +359,7 @@ const
 
   //Бухгалтерия
   AC_ACCOUNTANCY = 714000;
+  
 type
   TSecurityDescriptor = Integer;
 

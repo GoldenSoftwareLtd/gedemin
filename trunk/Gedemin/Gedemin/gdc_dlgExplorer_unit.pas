@@ -45,6 +45,9 @@ type
     procedure cbImagesDrawItem(Control: TWinControl; Index: Integer;
       Rect: TRect; State: TOwnerDrawState);
 
+  private
+    function CheckReport(const AReportKey: Integer): Boolean;
+
   public
     procedure BeforePost; override;
     procedure SetupRecord; override;
@@ -52,7 +55,7 @@ type
     function TestCorrect: Boolean; override;
     procedure Post; override;
   end;
-
+                                                   
 var
   gdc_dlgExplorer: Tgdc_dlgExplorer;
 
@@ -61,7 +64,8 @@ implementation
 uses
   gdcBase, gdcBaseInterface, gd_classlist, IBSQL, gd_security, gdcExplorer,
   dmImages_unit, Storages, gsStorage, gdcAttrUserDefined, gdcClasses,
-  jclStrings, gsResizerInterface, gd_directories_const
+  jclStrings, gsResizerInterface, gd_directories_const, prp_MessageConst,
+  prm_ParamFunctions_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -467,82 +471,96 @@ begin
 
   Result := inherited TestCorrect;
 
-  if Result then
+  if not Result then
+    exit;
+
+  if rbReport.Checked then
   begin
-    cbSubTypes.Text := Trim(cbSubTypes.Text);
-
-    if cbSubTypes.Enabled and (cbSubTypes.Text > '') 
-      and (cbSubTypes.Items.IndexOf(cbSubTypes.Text) = -1) then
+    if not CheckReport(iblkupReport.CurrentKeyInt) then
     begin
-      cbSubTypes.Text := UpperCase(Trim(cbSubTypes.Text));
-
-      for I := 1 to Length(cbSubTypes.Text) do
-      begin
-        if not (cbSubTypes.Text[I] in cst_sbt_Symbols) then
-        begin
-          MessageBox(Handle,
-            'Недопустимый символ в подтипе.',
-            'Внимание',
-            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-          Result := False;
-          exit;
-        end;
-      end;
-    end;
-
-    if cbSubTypes.Enabled and (cbSubTypes.Text > '')
-      and (cbSubTypes.Items.IndexOf(cbSubTypes.Text) = -1) then
-    begin
-      Result := MessageBox(Handle,
-        'Введен нестандартный подтип. Сохранить?',
+      MessageBox(Handle,
+        PChar('Отчет предназначен для вызова только из формы просмотра'#13#10 +
+        '(содержит входной параметр OwnerForm)'),
         'Внимание',
-        MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES;
-
-      if not Result then
-        cbSubTypes.Text := '';
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      Result := False;
+      exit;
     end;
+  end;
 
-    if edFormClass.Enabled then
-    begin
-      edFormClass.Text := Trim(edFormClass.Text);
-      if StrIPos(USERFORM_PREFIX, edFormClass.Text) = 1 then
-      begin
-        if GetClass(AnsiUpperCase(GlobalStorage.ReadString(
-          st_ds_NewFormPath + '\' + edFormClass.Text, st_ds_FormClass))) = nil then
-        begin
-          MessageBox(Handle,
-            'Неверное имя класса пользовательской формы.',
-            'Внимание',
-            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-          Result := False;
-          exit;
-        end;
-      end else
-      begin
-        PC := GetClass(edFormClass.Text);
-        if (PC = nil) or (not PC.InheritsFrom(TCustomForm)) then
-        begin
-          MessageBox(Handle,
-            'Неверное имя класса формы.',
-            'Внимание',
-            MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-          Result := False;
-          exit;
-        end;
-      end;
-    end;
+  cbSubTypes.Text := Trim(cbSubTypes.Text);
 
-    if iblkupFunction.Enabled then
+  if cbSubTypes.Enabled and (cbSubTypes.Text > '')
+    and (cbSubTypes.Items.IndexOf(cbSubTypes.Text) = -1) then
+  begin
+    cbSubTypes.Text := UpperCase(Trim(cbSubTypes.Text));
+
+    for I := 1 to Length(cbSubTypes.Text) do
     begin
-      if iblkupFunction.CurrentKey = '' then
+      if not (cbSubTypes.Text[I] in cst_sbt_Symbols) then
       begin
         MessageBox(Handle,
-          'Не задана скрипт-функция.',
+          'Недопустимый символ в подтипе.',
           'Внимание',
           MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
         Result := False;
         exit;
       end;
+    end;
+  end;
+
+  if cbSubTypes.Enabled and (cbSubTypes.Text > '')
+    and (cbSubTypes.Items.IndexOf(cbSubTypes.Text) = -1) then
+  begin
+    Result := MessageBox(Handle,
+      'Введен нестандартный подтип. Сохранить?',
+      'Внимание',
+      MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES;
+
+    if not Result then
+      cbSubTypes.Text := '';
+  end;
+
+  if edFormClass.Enabled then
+  begin
+    edFormClass.Text := Trim(edFormClass.Text);
+    if StrIPos(USERFORM_PREFIX, edFormClass.Text) = 1 then
+    begin
+      if GetClass(AnsiUpperCase(GlobalStorage.ReadString(
+        st_ds_NewFormPath + '\' + edFormClass.Text, st_ds_FormClass))) = nil then
+      begin
+        MessageBox(Handle,
+          'Неверное имя класса пользовательской формы.',
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        Result := False;
+        exit;
+      end;
+    end else
+    begin
+      PC := GetClass(edFormClass.Text);
+      if (PC = nil) or (not PC.InheritsFrom(TCustomForm)) then
+      begin
+        MessageBox(Handle,
+          'Неверное имя класса формы.',
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+        Result := False;
+        exit;
+      end;
+    end;
+  end;
+
+  if iblkupFunction.Enabled then
+  begin
+    if iblkupFunction.CurrentKey = '' then
+    begin
+      MessageBox(Handle,
+        'Не задана скрипт-функция.',
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      Result := False;
+      exit;
     end;
   end;
 
@@ -627,6 +645,42 @@ begin
   {M}    ClearMacrosStack('TGDC_DLGEXPLORER', 'POST', KEYPOST);
   {M}end;
   {END MACRO}
+end;
+
+function Tgdc_dlgExplorer.CheckReport(const AReportKey: Integer): Boolean;
+var
+  LocParamList: TgsParamList;
+  Script: OleVariant;
+  I: Integer;
+begin
+  Assert(gdcBaseManager <> nil);
+
+  Result := True;
+  gdcBaseManager.ExecSingleQueryResult(
+    'SELECT f.name, f.Script ' +
+    'FROM rp_reportlist r ' +
+    '  JOIN gd_function f on f.id = r.mainformulakey ' +
+    'WHERE r.id = :id ',
+    AReportKey,
+    Script);
+  if not VarIsEmpty(Script) then
+  begin
+    LocParamList := TgsParamList.Create;
+    try
+      GetParamsFromText(LocParamList, Script[0, 0], Script[1, 0]);
+
+      for I := 0 to LocParamList.Count - 1 do
+      begin
+        if AnsiCompareText(LocParamList.Params[I].RealName, VB_OWNERFORM) = 0 then
+        begin
+          Result := False;
+          break;
+        end;
+      end;
+    finally
+      LocParamList.Free;
+    end;
+  end;
 end;
 
 initialization
