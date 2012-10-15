@@ -171,10 +171,13 @@ const
   CharSize = SizeOf(Char);
   LblSize = SizeOf(TLabelStream);
 
-  //LanguageCount = 2;
-  //LanguageList: array[0..LanguageCount - 1] of String[20] = ('VBScript', 'JScript');
+  {$IFNDEF GEDEMIN}
+  LanguageCount = 2;
+  LanguageList: array[0..LanguageCount - 1] of String[20] = ('VBScript', 'JScript');
+  {$ELSE}
   LanguageCount = 1;
   LanguageList: array[0..LanguageCount - 1] of String = ('VBScript');
+  {$ENDIF}
 
 type
   TFilterOrderBy = class(TObject)

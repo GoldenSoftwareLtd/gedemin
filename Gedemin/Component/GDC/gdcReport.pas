@@ -53,10 +53,8 @@ type
     function CheckTheSameStatement: String; override;
     procedure DoBeforePost; override;
 
-    procedure DeleteSF;
-    procedure CreateSF;
-    procedure CreateCommand(SFRUID: TRUID);
-    procedure DeleteCommand(SFRUID: TRUID);
+    procedure CreateCommand;
+    procedure DeleteCommand;
 
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
   public
@@ -1262,9 +1260,9 @@ begin
   inherited;
 
   if Process = cpDelete then
-    DeleteSF
+    DeleteCommand
   else
-    CreateSF;
+    CreateCommand;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORT', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1273,158 +1271,56 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcReport.CreateCommand(SFRUID: TRUID);
+procedure TgdcReport.CreateCommand;
 var
-  SQL: TIBSQL;
   gdcExplorer: TgdcExplorer;
+  RUIDStr: String;
 begin
-  SQL := TIBSQL.Create(nil);
-  try
-    SQL.Transaction := Transaction;
-    SQL.SQL.Text := 'SELECT * FROM gd_command WHERE cmd = ''' + RUIDToStr(SFRUID) + '''';
-    SQL.ExecQuery;
-
-    gdcExplorer := TgdcExplorer.Create(nil);
-    try
-      gdcExplorer.Transaction := Transaction;
-      gdcExplorer.ReadTransaction := ReadTransaction;
-      gdcExplorer.SubSet := 'ByID';
-      gdcExplorer.Id := SQL.FieldByName('id').AsInteger;
-      gdcExplorer.Open;
-      gdcExplorer.Edit;
-      try
-        if FieldByName('folderkey').IsNull then
-          gdcExplorer.FieldByName('parent').Clear
-        else
-          gdcExplorer.FieldByName('parent').AsInteger := FieldByName('folderkey').AsInteger;
-        gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
-        gdcExplorer.FieldByName('cmd').AsString := RUIDToStr(SFRUID);
-        gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_function;
-        gdcExplorer.FieldByName('imgindex').AsInteger := cReportImage;
-        gdcExplorer.Post;
-      except
-        gdcExplorer.Cancel;
-        raise;
-      end;
-    finally
-      gdcExplorer.Free;
-    end;
-  finally
-    SQL.Free;
-  end;
-end;
-
-procedure TgdcReport.CreateSF;
-var
-  gdcFunction: TgdcFunction;
-  SQL: TIBSQL;
-const
-  cFunctionBody =
-    'Sub %s '#13 +
-    '  System.ReportSystem.BuildReport(gdcBaseManager.GetIDByRUIDString("%s"))'#13 +
-    'End Sub';
-begin
-  if FieldByName('FOLDERKEY').IsNull then
-    DeleteSF
-  else
+  if not FieldByName('folderkey').IsNull then
   begin
-    SQL := TIBSQL.Create(nil);
-    try
-      SQL.Transaction := ReadTransaction;
-      SQL.SQl.Text := 'SELECT id FROM gd_function WHERE name = ''' +
-        Format(cFunctionName, [RUIDToStr(GetRUID)]) + '''';
-      SQL.ExecQuery;
-      gdcFunction := TgdcFunction.Create(nil);
-      try
-        gdcFunction.Transaction := Transaction;
-        gdcFunction.ReadTransaction := ReadTransaction;
-        gdcFunction.SubSet := 'ByID';
-        gdcFunction.Id := SQL.FieldByName('Id').AsInteger;
-        gdcFunction.Open;
-        gdcFunction.Edit;
-        try
-          gdcFunction.FieldByName(fnName).AsString := Format(cFunctionName, [RUIDToStr(GetRUID)]);
-          gdcFunction.FieldByName(fnModule).AsString := scrUnkonownModule;
-          gdcFunction.FieldByName(fnModuleCode).AsInteger := OBJ_APPLICATION;
-
-          gdcFunction.FieldByName(fnScript).AsString := Format(cFunctionBody,
-            [gdcFunction.FieldByName(fnName).AsString,
-            RUIDToStr(GetRUID)]);
-          gdcFunction.FieldByName(fnLanguage).AsString := DefaultLanguage;
-          gdcFunction.Post;
-
-          if ScriptFactory <> nil then
-            ScriptFactory.ReloadFunction(gdcFunction.FieldByName(fnID).AsInteger);
-        except
-          gdcFunction.Cancel;
-          raise;
-        end;
-        CreateCommand(gdcFunction.GetRUID);
-      finally
-        gdcFunction.Free;
-      end;
-    finally
-      SQL.Free;
-    end;
-  end;
-end;
-
-procedure TgdcReport.DeleteCommand(SFRUID: TRUID);
-var
-  SQL: TIBSQL;
-  gdcExplorer: TgdcExplorer;
-begin
-  SQL := TIBSQL.Create(nil);
-  try
-    SQL.Transaction := Transaction;
-    SQL.SQL.Text := 'SELECT * FROM gd_command WHERE cmd = ''' + RUIDToStr(SFRUID) + '''';
-    SQL.ExecQuery;
-
+    RUIDStr := RUIDToStr(GetRUID);
     gdcExplorer := TgdcExplorer.Create(nil);
     try
       gdcExplorer.Transaction := Transaction;
       gdcExplorer.ReadTransaction := ReadTransaction;
-      gdcExplorer.SubSet := 'ByID';
-      gdcExplorer.Id := SQL.FieldByName('id').AsInteger;
+      gdcExplorer.SubSet := 'All';
+      gdcExplorer.ExtraConditions.Add('z.cmd = ''' + RUIDStr + ''' ');
       gdcExplorer.Open;
-      if not gdcExplorer.Eof then
-        gdcExplorer.Delete;
+
+      if gdcExplorer.EOF then
+        gdcExplorer.Insert
+      else
+        gdcExplorer.Edit;
+
+      gdcExplorer.FieldByName('parent').AsInteger := FieldByName('folderkey').AsInteger;
+      gdcExplorer.FieldByName('name').AsString := FieldByName('name').AsString;
+      gdcExplorer.FieldByName('cmd').AsString := RUIDStr;
+      gdcExplorer.FieldByName('cmdtype').AsInteger := cst_expl_cmdtype_report;
+      gdcExplorer.FieldByName('imgindex').AsInteger := cReportImage;
+      gdcExplorer.Post;
     finally
       gdcExplorer.Free;
     end;
-  finally
-    SQL.Free;
-  end;
+  end else
+    DeleteCommand;
 end;
 
-procedure TgdcReport.DeleteSF;
+procedure TgdcReport.DeleteCommand;
 var
-  gdcFunction: TgdcFunction;
-  SQL: TIBSQL;
+  gdcExplorer: TgdcExplorer;
 begin
-  SQL := TIBSQL.Create(nil);
+  gdcExplorer := TgdcExplorer.Create(nil);
   try
-    SQL.Transaction := ReadTransaction;
-    SQl.SQl.Text := 'SELECT id FROM gd_function WHERE name = ''' +
-      Format(cFunctionName, [RUIDToStr(GetRUID)]) + '''';
-    SQL.ExecQuery;
-    if SQL.FieldByName('id').AsInteger > 0 then
-    begin
-      gdcFunction := TgdcFunction.Create(nil);
-      try
-        gdcFunction.Transaction := Transaction;
-        gdcFunction.ReadTransaction := ReadTransaction;
-        gdcFunction.SubSet := 'ByID';
-        gdcFunction.Id := SQL.FieldByName('Id').AsInteger;
-        gdcFunction.Open;
-        DeleteCommand(gdcFunction.GetRUID);
-        gdcFunction.Delete;
-      finally
-        gdcFunction.Free;
-      end;
-    end;
+    gdcExplorer.Transaction := Transaction;
+    gdcExplorer.ReadTransaction := ReadTransaction;
+    gdcExplorer.SubSet := 'All';
+    gdcExplorer.ExtraConditions.Add('z.cmd = ''' + RUIDToStr(GetRUID) + ''' ');
+    gdcExplorer.Open;
+
+    if not gdcExplorer.Eof then
+      gdcExplorer.Delete;
   finally
-    SQL.Free;
+    gdcExplorer.Free;
   end;
 end;
 

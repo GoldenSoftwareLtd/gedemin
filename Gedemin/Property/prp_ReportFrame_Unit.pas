@@ -1,3 +1,4 @@
+
 unit prp_ReportFrame_Unit;
 
 interface
@@ -35,6 +36,7 @@ type
     lblRUIDReport: TLabel;
     dbcbDisplayInMenu: TDBCheckBox;
     dbcbModalPreview: TDBCheckBox;
+    iblFolder: TgsIBLookupComboBox;
     procedure MainFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure ParamFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
     procedure EventFunctionFramegdcFunctionAfterPost(DataSet: TDataSet);
@@ -186,7 +188,7 @@ uses
   gdcConstants, prp_MessageConst, rp_StreamFR, Gedemin_TLB,
   xfr_TemplateBuilder, rp_dlgViewResultEx_unit, rp_ReportClient,
   rp_dlgEnterParam_unit, obj_i_Debugger, evt_i_Base,
-  prp_frmGedeminProperty_Unit,
+  prp_frmGedeminProperty_Unit, prm_ParamFunctions_unit,
   {$IFDEF FR4}
   rp_StreamFR4,
   {$ENDIF}
@@ -1261,12 +1263,7 @@ end;
 
 function TReportFrame.CanLoadFromFile: Boolean;
 begin
-  Result := True;{((PageControl.ActivePage = tsMainFunction) and
-    (MainFunctionFrame.CanLoadFromFile)) or
-    ((PageControl.ActivePage = tsParamFunction) and
-    (ParamFunctionFrame.CanLoadFromFile)) or
-    ((PageControl.ActivePage = tsEventFunction) and
-    (EventFunctionFrame.CanLoadFromFile));}
+  Result := True;
 end;
 
 procedure TReportFrame.LoadFromFile;
@@ -1546,23 +1543,6 @@ begin
         ClientReport.BuildReport(Unassigned, gdcReport.Id)
       else
         ClientReport.BuildReport(GetGdcOLEObject(Frm) as IDispatch, gdcReport.Id)
-
-        {
-      if Assigned(Frm) and Frm.InheritsFrom(TCreateableForm) then
-        ClientReport.BuildReport(GetGdcOLEObject(Frm) as IDispatch, gdcReport.Id)
-      else
-        begin
-          if (AnsiCompareText(PropertyTreeForm.cbObjectList.Text, 'Application') = 0) or
-            (MessageBox(0,
-             PChar('Не найдена OwnerForm "' + PropertyTreeForm.cbObjectList.Text + '"'#13#10 +
-                    'Возможно форма закрыта.'#13#10#13#10 +
-                    'Все равно запустить отчет?'),
-             PChar('Ошибка подготовки отчета.'),
-             MB_ICONERROR or MB_TOPMOST or MB_TASKMODAL or MB_YESNO) = id_Yes)
-          then
-          ClientReport.BuildReport(Unassigned, gdcReport.Id);
-        end;
-        }
     end;
   finally
     if Assigned(Debugger) then
@@ -1954,14 +1934,12 @@ begin
     if gdcReport.FieldByName(FieldName).IsNull then
     begin
       Control.Canvas.Font.Color := clInactiveCaption;
-//      Control.Canvas.Font.Style := Control.Canvas.Font.Style + [fsStrikeout	];
     end;
 
   if Frame <> nil then
     if (not Frame.Modify) and (Frame.MasterObject.State = dsInsert) then
     begin
       Control.Canvas.Font.Color := clInactiveCaption;
-//      Control.Canvas.Font.Style := Control.Canvas.Font.Style + [fsStrikeout	];
     end;
 
   Control.Canvas.TextOut(Rect.Left + cExtraSpace, cExtraSpace + cDivExtraSpace,
@@ -2280,13 +2258,6 @@ var
       end;
       if Assigned(CurFrame) then
         CurFrame.Modify := True;
-{      case RepFuncType of
-        rsEvent:
-          EventFunctionFrame.Modify := True;
-        rsParams:
-          ParamFunctionFrame.Modify := True;
-      end;
-      }
     end;
   end;
 
@@ -2409,8 +2380,46 @@ begin
 end;
 
 procedure TReportFrame.iblFolderChange(Sender: TObject);
+var
+  LocParamList: TgsParamList;
+  Script: OleVariant;
+  I: Integer;
 begin
   Modify := True;
+
+  if (gdcReport <> nil) and (iblFolder.CurrentKey > '')
+    and (gdcBaseManager <> nil) then
+  begin
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT f.name, f.Script ' +
+      'FROM gd_function f ' +
+      'WHERE f.id = :id ',
+      gdcReport.FieldByName('mainformulakey').AsInteger,
+      Script);
+
+    if not VarIsEmpty(Script) then
+    begin
+      LocParamList := TgsParamList.Create;
+      try
+        GetParamsFromText(LocParamList, Script[0, 0], Script[1, 0]);
+        for I := 0 to LocParamList.Count - 1 do
+        begin
+          if AnsiCompareText(LocParamList.Params[I].RealName, VB_OWNERFORM) = 0 then
+          begin
+            iblFolder.CurrentKey := '';
+            Application.MessageBox(
+              'Отчет предназначен для вызова только из формы просмотра'#13#10 +
+              '(содержит входной параметр OwnerForm)',
+              'Внимание',
+              MB_OK or MB_ICONHAND or MB_TASKMODAL);
+            break;
+          end;
+        end;
+      finally
+        LocParamList.Free;
+      end;
+    end;
+  end;
 end;
 
 class function TReportFrame.GetNameById(Id: Integer): string;
@@ -2440,13 +2449,13 @@ var
 begin
   SQL := TIBSQl.Create(nil);
   try
-    SQl.Transaction := gdcBaseManager.ReadTransaction;
-    SQl.SQl.Text := 'SELECT mainformulakey FROM rp_reportlist WHERE id = :id';
+    SQL.Transaction := gdcBaseManager.ReadTransaction;
+    SQL.SQl.Text := 'SELECT mainformulakey FROM rp_reportlist WHERE id = :id';
     SQL.ParamByName('id').AsInteger := Id;
     SQL.ExecQuery;
     Result := SQL.FieldByName('mainformulakey').AsInteger;
   finally
-    SQl.Free;
+    SQL.Free;
   end;
 end;
 
@@ -2520,5 +2529,4 @@ initialization
   RegisterClass(TReportFrame);
 finalization
   UnRegisterClass(TReportFrame);
-
 end.
