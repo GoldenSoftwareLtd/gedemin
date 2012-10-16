@@ -2825,14 +2825,6 @@ begin
             Continue;
           end;
 
-         { cCase:
-          begin
-            CurrStatement := TsqlCase.Create(FParser);
-            FFields.Add(CurrStatement);
-            CurrStatement.ParseStatement;
-            Continue;
-          end; }
-          
           cSelect, cDistinct, cAll:
           begin
             Include(FDone, Token.Clause);
@@ -3382,7 +3374,8 @@ begin
           end;
 
           cSum, cAvg, cMax, cMin, cUpper, cLower, cCoalesce, cIIF,
-          cCast, cCount, cGen_id, cSelect, cFirst, cSkip, cSubString, cExtract:
+          cCast, cCount, cGen_id, cSelect, cFirst, cSkip, cSubString, cExtract,
+          cTrim:
           begin
             if GetLastClass = TsqlBoolean then
             begin
@@ -3876,7 +3869,7 @@ begin
             Continue;
           end;
 
-          cCoalesce, cIIF, cSubstring, cExtract, cUpper, cLower, cCast, cCase:
+          cCoalesce, cIIF, cSubstring, cExtract, cUpper, cLower, cCast, cCase, cTrim:
           begin
             if FDone * [eoClause, eoOn] = [eoClause, eoOn] then
             begin
@@ -4338,7 +4331,7 @@ begin
 
           cAll, cSome, cAny, cUpper, cLower, cCoalesce, cIIF,
           cExists, cSingular, cCast, cSubString, cIs, cExtract,
-          cCase:
+          cCase, cTrim:
           begin
             CurrStatement := TsqlCondition.Create(FParser);
             FConditions.Add(CurrStatement);

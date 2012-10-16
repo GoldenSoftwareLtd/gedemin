@@ -1,32 +1,29 @@
+
 unit gdcReport;
 
 interface
 
 uses
-  gdcBase, DB, gdcDelphiObject, Classes, gdcTree, gd_createable_form, gdcBaseInterface,
-  gd_KeyAssoc;
+  gdcBase, DB, gdcDelphiObject, Classes, gdcTree, gd_createable_form,
+  gdcBaseInterface, gd_KeyAssoc;
 
 type
   TgdcReportGroup = class(TgdcLBRBTree)
   protected
-    // Формирование запроса
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
     function GetOrderClause: String; override;
-
     function AcceptClipboard(CD: PgdcClipboardData): Boolean; override;
-    function CreateDialogForm: TCreateableForm; override;
-
     function CheckTheSameStatement: String; override;
-
     procedure DoBeforePost; override;
+
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
     class function GetSubSetList: String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
@@ -57,6 +54,7 @@ type
     procedure DeleteCommand;
 
     procedure DoAfterCustomProcess(Buff: Pointer; Process: TgsCustomProcess); override;
+
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -69,7 +67,6 @@ type
     // Возвращает униканое имя в базе.
     //
     function GetUniqueName(PrefName, Name: string; ReportGroupKey: Integer): string;
-
     function EditDialog(const ADlgClassName: String = ''): Boolean; override;
     function CreateDialog(const ADlgClassName: String = ''): Boolean; override;
 
@@ -92,10 +89,11 @@ function GetObjectKeyByReportId(ReportId: Integer): Integer;
 implementation
 
 uses
-  gd_ClassList, IBSQL, gd_SetDatabase, Sysutils, gdcConstants,
+  Windows, gd_ClassList, IBSQL, gd_SetDatabase, Sysutils, gdcConstants,
   gdcFunction, IBCustomDataSet, gdc_frmReport_unit, evt_i_Base, Forms,
   gdc_dlgReportGroup_unit, gd_directories_const, prp_dfPropertyTree_Unit,
-  gd_security_operationconst, gdcExplorer, rp_report_const, gd_i_ScriptFactory;
+  gd_security_operationconst, gdcExplorer, rp_report_const,
+  gd_i_ScriptFactory, prm_ParamFunctions_unit, prp_MessageConst;
 
 const
   cFunctionName = 'ReportScriptFunction%s';
@@ -377,60 +375,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcReportGroup.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCREPORTGROUP', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCREPORTGROUP', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCREPORTGROUP') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCREPORTGROUP',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCREPORTGROUP' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Result := Tgdc_dlgReportGroup.Create(ParentForm);
-  
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORTGROUP', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCREPORTGROUP', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcReportGroup.DoBeforePost;
 var
   {@UNFOLD MACRO INH_ORIG_PARAMS()}
@@ -521,6 +465,12 @@ begin
   {M}      ClearMacrosStack2('TGDCREPORTGROUP', 'DOBEFOREPOST', KEYDOBEFOREPOST);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcReportGroup.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgReportGroup'; 
 end;
 
 class function TgdcReportGroup.GetDisplayName(
@@ -878,11 +828,6 @@ begin
   {END MACRO}
 end;
 
-{class function TgdcReport.GetKeyField(const ASubType: TgdcSubType): String;
-begin
-  Result := fnId;
-end;}
-
 class function TgdcReport.GetListField(const ASubType: TgdcSubType): String;
 begin
   Result := fnName;
@@ -943,11 +888,6 @@ begin
   {M}  end;
   {END MACRO}
 end;
-
-{function TgdcReport.GetSelectClause: String;
-begin
-  Result := 'SELECT z.* ';
-end;}
 
 class function TgdcReport.GetSubSetList: String;
 begin
@@ -1181,6 +1121,10 @@ begin
 end;
 
 procedure TgdcReport.DoBeforePost;
+var
+  LocParamList: TgsParamList;
+  Script: OleVariant;
+  I: Integer;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
   {M}  Params, LResult: Variant;
@@ -1206,15 +1150,53 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
+
   if sLoadFromStream in BaseState then
   begin
     if CheckReport(FieldByName(fnName).AsString,
       FieldByName(fnReportGroupKey).AsInteger) then
+    begin
       FieldByName(fnName).AsString := GetUniqueName('renamed',
         FieldByName(fnName).AsString,
         FieldByName(fnReportGroupKey).AsInteger);
+    end;
   end;
+
+  if not FieldByName('folderkey').IsNull then
+  begin
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT f.name, f.Script ' +
+      'FROM gd_function f ' +
+      'WHERE f.id = :id ',
+      FieldByName('mainformulakey').AsInteger,
+      Script);
+
+    if not VarIsEmpty(Script) then
+    begin
+      LocParamList := TgsParamList.Create;
+      try
+        GetParamsFromText(LocParamList, Script[0, 0], Script[1, 0]);
+        for I := 0 to LocParamList.Count - 1 do
+        begin
+          if AnsiCompareText(LocParamList.Params[I].RealName, VB_OWNERFORM) = 0 then
+          begin
+            MessageBox(ParentHandle,
+              PChar('Отчет предназначен для вызова только из формы просмотра'#13#10 +
+              '(содержит входной параметр OwnerForm)'),
+              'Внимание',
+              MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+            FieldByName('folderkey').Clear;
+            break;
+          end;
+        end;
+      finally
+        LocParamList.Free;
+      end;
+    end;
+  end;
+  
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1257,12 +1239,14 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited;
 
   if Process = cpDelete then
     DeleteCommand
   else
     CreateCommand;
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCREPORT', 'DOAFTERCUSTOMPROCESS', KEYDOAFTERCUSTOMPROCESS)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
