@@ -188,7 +188,7 @@ uses
   gdcConstants, prp_MessageConst, rp_StreamFR, Gedemin_TLB,
   xfr_TemplateBuilder, rp_dlgViewResultEx_unit, rp_ReportClient,
   rp_dlgEnterParam_unit, obj_i_Debugger, evt_i_Base,
-  prp_frmGedeminProperty_Unit, prm_ParamFunctions_unit,
+  prp_frmGedeminProperty_Unit,
   {$IFDEF FR4}
   rp_StreamFR4,
   {$ENDIF}
@@ -2380,46 +2380,8 @@ begin
 end;
 
 procedure TReportFrame.iblFolderChange(Sender: TObject);
-var
-  LocParamList: TgsParamList;
-  Script: OleVariant;
-  I: Integer;
 begin
   Modify := True;
-
-  if (gdcReport <> nil) and (iblFolder.CurrentKey > '')
-    and (gdcBaseManager <> nil) then
-  begin
-    gdcBaseManager.ExecSingleQueryResult(
-      'SELECT f.name, f.Script ' +
-      'FROM gd_function f ' +
-      'WHERE f.id = :id ',
-      gdcReport.FieldByName('mainformulakey').AsInteger,
-      Script);
-
-    if not VarIsEmpty(Script) then
-    begin
-      LocParamList := TgsParamList.Create;
-      try
-        GetParamsFromText(LocParamList, Script[0, 0], Script[1, 0]);
-        for I := 0 to LocParamList.Count - 1 do
-        begin
-          if AnsiCompareText(LocParamList.Params[I].RealName, VB_OWNERFORM) = 0 then
-          begin
-            iblFolder.CurrentKey := '';
-            Application.MessageBox(
-              'Отчет предназначен для вызова только из формы просмотра'#13#10 +
-              '(содержит входной параметр OwnerForm)',
-              'Внимание',
-              MB_OK or MB_ICONHAND or MB_TASKMODAL);
-            break;
-          end;
-        end;
-      finally
-        LocParamList.Free;
-      end;
-    end;
-  end;
 end;
 
 class function TReportFrame.GetNameById(Id: Integer): string;

@@ -4,7 +4,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   HelpContext = 119
   BorderStyle = bsDialog
   Caption = 'О программе'
-  ClientHeight = 400
+  ClientHeight = 415
   ClientWidth = 564
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -21,7 +21,7 @@ object gd_dlgAbout: Tgd_dlgAbout
     Left = 8
     Top = 8
     Width = 547
-    Height = 357
+    Height = 371
     ActivePage = tsAbout
     TabOrder = 0
     object tsAbout: TTabSheet
@@ -43,7 +43,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Left = 5
         Top = 29
         Width = 527
-        Height = 298
+        Height = 309
         TabStop = False
         BorderStyle = bsNone
         Color = clBtnFace
@@ -109,13 +109,15 @@ object gd_dlgAbout: Tgd_dlgAbout
             'ырев, Игорь Волк, Мария Прохорова,'
           
             'Дмитрий Образцов, Алексей Гайдуков, Александр Кишко, Наталья Шук' +
-            'лина, Жанна Хилько, Александр Харитоненко.'
+            'лина, Жанна Хилько, Ольга Борисенко,'
+          'Юрий Шойхет, Александр Харитоненко.'
           ''
           'Отдельное спасибо:'
           
             'ООО Святогор, Владимир Гетманец, Stefan Boether, Евгений Кучеряв' +
             'енко, Сергей "Дейрас" Борисовец,'
           'Андрей Башун, Наталья Белковская.'
+          ' '
           ' '
           ' '
           ' '
@@ -846,7 +848,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   end
   object btnOk: TButton
     Left = 480
-    Top = 372
+    Top = 386
     Width = 75
     Height = 21
     Caption = 'Ok'
@@ -856,7 +858,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   end
   object btnHelp: TButton
     Left = 8
-    Top = 372
+    Top = 386
     Width = 75
     Height = 21
     Caption = 'Справка'
@@ -866,7 +868,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   end
   object btnMSInfo: TButton
     Left = 89
-    Top = 372
+    Top = 386
     Width = 75
     Height = 21
     Caption = 'О Системе...'
@@ -875,7 +877,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   end
   object btnCopy: TButton
     Left = 170
-    Top = 372
+    Top = 386
     Width = 129
     Height = 21
     Caption = 'Копировать в буфер'
