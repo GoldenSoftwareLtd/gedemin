@@ -506,6 +506,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (158, '0000.0001.0000.0189', '26.09.2012', 'Change way of reports being called from Explorer tree.');  
 
+INSERT INTO fin_versioninfo
+  VALUES (159, '0000.0001.0000.0190', '17.19.2012', 'Delete InvCardForm params from userstorage.');  
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

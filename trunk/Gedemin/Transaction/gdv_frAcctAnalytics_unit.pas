@@ -1,3 +1,4 @@
+
 unit gdv_frAcctAnalytics_unit;
 
 interface
@@ -11,13 +12,14 @@ type
   TfrAcctAnalytics = class(TFrame)
     ppAnalytics: TgdvParamPanel;
     procedure FrameResize(Sender: TObject);
+
   private
-    { Private declarations }
     FAnalyticsLineList: TObjectList;
     FAnalyticsFieldList: TList;
     FAlias: string;
     FOnValueChange: TNotifyEvent;
-    FNeedNull: boolean;
+    FNeedNull: Boolean;
+    FNeedSet: Boolean;
 
     procedure SortLine;
     function GetAnalyticsCount: Integer;
@@ -29,12 +31,11 @@ type
     function IndexOf(FieldName: string): Integer;
     function GetCondition: string;
     procedure SetOnValueChange(const Value: TNotifyEvent);
-    procedure SetNeedNull(const Value: boolean);
     procedure OnFrameResize(Sender: TObject);
+
   public
-    { Public declarations }
     destructor Destroy; override;
-    procedure UpdateAnalyticsList(AIDList: TList; const ANeedNull: boolean = True);
+    procedure UpdateAnalyticsList(AIDList: TList; const ANeedNull: boolean = True; const ANeedSet: boolean = True);
     procedure SaveToStream(const Stream: TStream);
     procedure LoadFromStream(const Stream: TStream);
 
@@ -45,11 +46,14 @@ type
     property Values: string read GetValues write SetValues;
     property Condition: string read GetCondition;
     property OnValueChange: TNotifyEvent read FOnValueChange write SetOnValueChange;
-    property NeedNull: boolean read FNeedNull write SetNeedNull;
+    property NeedNull: Boolean read FNeedNull write FNeedNull;
+    property NeedSet: Boolean read FNeedSet write FNeedSet;
   end;
 
 implementation
+
 uses Math;
+
 {$R *.DFM}
 
 { TfrAcctAnalytics }
@@ -103,7 +107,7 @@ begin
       begin
         if Result > '' then
           Result := Result + ' AND '#13#10;
-        Result := Result + FAlias + '.' + F.FieldName + ' = ' + Line.Value;
+        Result := Result + Format('%s.%s IN (%s)', [FAlias, F.FieldName, Line.Value]);
       end
       else begin
         if FNeedNull and Line.IsNull then begin
@@ -223,7 +227,7 @@ begin
   end;
 end;
 
-procedure TfrAcctAnalytics.UpdateAnalyticsList(AIDList: TList; const ANeedNull: boolean);
+procedure TfrAcctAnalytics.UpdateAnalyticsList(AIDList: TList; const ANeedNull: boolean = True; const ANeedSet: boolean = True);
 var
   I, Index: Integer;
   SQL: TIBSQl;
@@ -231,7 +235,6 @@ var
   H: Integer;
   P, C: Integer;
   LAnaliseLines: TObjectList;
-//  F: TatRelationField;
 
   function IndexOf(Field: TatRelationField): Integer;
   var
@@ -289,20 +292,14 @@ begin
 
       for I := 0 to FAnalyticsFieldList.Count - 1 do
       begin
-        C := 0;
 
         if AIDList.Count > 0 then
-        begin
-{          SQL.SQL.Text := Format('SELECT COUNT(*) FROM AC_ACCOUNT WHERE (%s = 1) AND id IN (%s)',
-            [TatRelationField(FAnalyticsFieldList[i]).FieldName, AcctUtils.IdList(AIdList)]);
-          SQL.ExecQuery;
-          C := SQL.Fields[0].AsInteger;}
-          C := SQL.Fields[i].AsInteger;
-        end;
+          C := SQL.Fields[i].AsInteger
+        else
+          C := 0;
 
         try
           if (C = AIDList.Count)
-            //or (AIDList.Count = 0)
             or (TatRelationField(FAnalyticsFieldList[i]).FieldName = 'ACCOUNTKEY')
             or (TatRelationField(FAnalyticsFieldList[i]).FieldName = 'CURRKEY') then
           begin
@@ -310,7 +307,8 @@ begin
             if Index = - 1 then
             begin
               Line := TfrAcctAnalyticLine.Create(Self);
-              Line.NeedNull:= FNeedNull;
+              Line.NeedNull := ANeedNull;
+              Line.NeedSet := ANeedSet;
               FAnalyticsLineList.Add(Line);
               with Line do
               begin
@@ -386,11 +384,6 @@ begin
     for I := 0 to FAnalyticsLineList.Count - 1 do
       (FAnalyticsLineList[I] as TfrAcctAnalyticLine).ResizeControls;
   end;
-end;
-
-procedure TfrAcctAnalytics.SetNeedNull(const Value: boolean);
-begin
-  FNeedNull := Value;
 end;
 
 procedure TfrAcctAnalytics.OnFrameResize(Sender: TObject);

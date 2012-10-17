@@ -1929,8 +1929,15 @@ end;
 
 procedure TDatabaseTest.TestExternal_BIN_AND;
 begin
+  FQ.SQL.Text :=
+    'SELECT * FROM rdb$functions WHERE rdb$module_name = ''ib_udf'' ' +
+       'AND rdb$function_name IN (''BIN_AND'', ''BIN_OR'', ''BIN_SHL'') ';
+  FQ.ExecQuery;
+  Check(FQ.EOF);
+
   // если используетс€ внешн€€ функци€ BIN_AND, то на таком
   // запросе произойдет исключение
+  FQ.Close;
   FQ.SQL.Text :=
     'SELECT BIN_AND(536871184, BIN_SHL(1, 32 - 1)) from rdb$database';
   FQ.ExecQuery;

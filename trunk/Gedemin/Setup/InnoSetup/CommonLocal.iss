@@ -7,7 +7,7 @@ AppPublisher=Golden Software of Belarus, Ltd
 AppPublisherURL=http://www.gsbelarus.com
 AppSupportURL=http://www.gsbelarus.com
 AppUpdatesURL=http://www.gsbelarus.com
-AppSupportPhone=+375-17-2921333, +375-17-3313546
+AppSupportPhone=+375-17-2561759
 DefaultDirName={pf}\Golden Software\Gedemin 2.5\Local
 DefaultGroupName=Golden Software Гедымин 2.5
 DisableProgramGroupPage=yes
@@ -34,7 +34,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 Source: "gedemin.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gedemin.exe.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "fbembed.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "gedemin.jpg"; DestDir: "{app}"; Flags: ignoreversion
+; Source: "gedemin.jpg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gsdbquery.dll"; DestDir: "{app}"; Flags: ignoreversion regserver
 Source: "UDF\gudf.dll"; DestDir: "{app}\UDF"; Flags: ignoreversion
 Source: "ib_util.dll"; DestDir: "{app}"; Flags: ignoreversion
