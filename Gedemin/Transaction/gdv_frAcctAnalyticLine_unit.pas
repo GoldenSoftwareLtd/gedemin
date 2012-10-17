@@ -1,3 +1,4 @@
+
 unit gdv_frAcctAnalyticLine_unit;
 
 interface
@@ -20,13 +21,15 @@ type
     actVisible: TAction;
     procedure chkNullClick(Sender: TObject);
     procedure actVisibleUpdate(Sender: TObject);
+
   private
     FField: TatRelationField;
     FOnValueChange: TNotifyEvent;
     FNeedNull: boolean;
+    FNeedSet: Boolean;
     FButtons, FLookUp: TObjectList;
     FKASet: TgdKeyArray;
-    { Private declarations }
+
     procedure BtnPress(Sender: TObject);
     procedure LookUpChange(Sender: TObject);
     function CreateLookUp: TgsIBLookupComboBox;
@@ -39,7 +42,7 @@ type
     procedure SetOnValueChange(const Value: TNotifyEvent);
     function GetIsNull: boolean;
     procedure SetIsNull(const Value: boolean);
-    procedure SetNeedNull(const Value: boolean);
+    procedure SetNeedNull(const Value: Boolean);
 
   protected
     procedure AlignControls(AControl: TControl; var Rect: TRect); override;
@@ -56,17 +59,21 @@ type
     function IsEmpty: boolean;
     property IsNull: boolean read GetIsNull write SetIsNull;
     property OnValueChange: TNotifyEvent read FOnValueChange write SetOnValueChange;
-    property NeedNull: boolean read FNeedNull write SetNeedNull;
+    property NeedNull: Boolean read FNeedNull write SetNeedNull;
+    property NeedSet: Boolean read FNeedSet write FNeedSet;
   end;
 
 implementation
-uses gdv_dlgSelectDocument_unit, dmDataBase_unit, gdcBaseInterface;
+
+uses
+  gdv_dlgSelectDocument_unit, dmDataBase_unit, gdcBaseInterface;
+
+{$R *.DFM}
 
 const
   FrameHeight = 22;
   ButtonHeight = 18;
   ButtonWidth = 14;
-{$R *.DFM}
 
 { TfrAcctAnalyticLine }
 
@@ -94,13 +101,6 @@ procedure TfrAcctAnalyticLine.AlignControls(AControl: TControl;
   var Rect: TRect);
 begin
   inherited;
-{  lAnaliticName.Left := 5;
-  cbAnalitic.Left := lAnaliticName.Left + lAnaliticName.Width + 3;
-  eAnalitic.Left := cbAnalitic.Left;
-  xdeDateTime.Left := cbAnalitic.Left;
-  cbAnalitic.Width := Width - cbAnalitic.Left - 5;
-  eAnalitic.Width := Width - eAnalitic.Left - 5;
-  xdeDateTime.Width := Width - xdeDateTime.Left - 5;}
 end;
 
 procedure TfrAcctAnalyticLine.Check;
@@ -182,7 +182,7 @@ end;
 
 function TfrAcctAnalyticLine.IsEmpty: boolean;
 begin
-  Result := (Value = '') or (not chkNull.Checked);
+  Result := (Value = '') or (not chkNull.Checked and FNeedNull);
 end;
 
 procedure TfrAcctAnalyticLine.SetField(const Value: TatRelationField);
@@ -246,8 +246,8 @@ begin
     chkNull.Checked:= True;
     Exit;
   end;
-  if Value <> '' then
-    chkNull.Checked:= True;
+  lAnaliticName.Enabled :=  not FNeedNull;
+  chkNull.Checked := (Value <> '') and FNeedNull; 
     
   case FieldType of
     aftReference:
@@ -282,7 +282,7 @@ begin
     end;
   else
     eAnalitic.Text := Value;
-  end;
+  end; 
 end;
 
 function TfrAcctAnalyticLine.GetIsNull: boolean;
@@ -298,8 +298,10 @@ end;
 procedure TfrAcctAnalyticLine.SetNeedNull(const Value: boolean);
 begin
   FNeedNull := Value;
-  if not FNeedNull then begin
-    lAnaliticName.Left:= 8;
+  if not FNeedNull then
+  begin
+    lAnaliticName.Enabled := True;
+    lAnaliticName.Left:= 2;
   end
   else
     lAnaliticName.Left:= 16;
@@ -329,7 +331,8 @@ var
   Index: Integer;
 begin
   Index := FLookUp.IndexOf(Sender as TgsIBLookupComboBox);
-  if (Index = FLookUp.Count - 1) and ((Sender as TgsIBLookupComboBox).CurrentKey <> '') then
+  if (Index = FLookUp.Count - 1) and ((Sender as TgsIBLookupComboBox).CurrentKey <> '')
+    and FNeedSet then
   begin
     FLookUp.Add(CreateLookUp);
     FButtons.Add(CreateButton);
@@ -375,7 +378,7 @@ begin
         AllHeight := AllHeight + eAnalitic.Height;
       end;
     end;
-    if chkNull.Checked then
+    if (chkNull.Checked) or (not FNeedNull) then
       Self.Height := AllHeight
     else
       Self.Height := FrameHeight;
@@ -461,4 +464,5 @@ begin
   TAction(Sender).Enabled := (FButtons.Count > 1)
     or ((FButtons.Count = 1) and (FLookUp.Count = 1) and ((FLookUp[0] as TgsIBLookupComboBox).CurrentKey <> ''));
 end;
+
 end.

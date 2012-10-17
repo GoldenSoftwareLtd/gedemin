@@ -1310,7 +1310,7 @@ INSERT INTO fin_versioninfo
   VALUES (157, '0000.0001.0000.0188', '18.07.2012', 'Correct ac_companyaccount triggers.');
   
 INSERT INTO fin_versioninfo
-  VALUES (158, '0000.0001.0000.0189', '26.09.2012', 'Set type report.');  
+  VALUES (158, '0000.0001.0000.0189', '26.09.2012', 'Change way of reports being called from Explorer tree.');  
 
 COMMIT;
 

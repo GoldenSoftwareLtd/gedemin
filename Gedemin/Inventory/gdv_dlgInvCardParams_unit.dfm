@@ -11,6 +11,7 @@ object gdv_dlgInvCardParams: Tgdv_dlgInvCardParams
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13

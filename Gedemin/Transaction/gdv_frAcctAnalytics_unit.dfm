@@ -1,7 +1,7 @@
 object frAcctAnalytics: TfrAcctAnalytics
   Left = 0
   Top = 0
-  Width = 443
+  Width = 435
   Height = 41
   Align = alTop
   AutoScroll = False
@@ -13,7 +13,7 @@ object frAcctAnalytics: TfrAcctAnalytics
   object ppAnalytics: TgdvParamPanel
     Left = 0
     Top = 0
-    Width = 443
+    Width = 435
     Height = 41
     Align = alTop
     Caption = 'Значения аналитик'

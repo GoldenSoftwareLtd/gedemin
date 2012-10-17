@@ -1,3 +1,4 @@
+
 unit frAcctEntrySimpleLine_unit;
 
 interface
@@ -71,7 +72,7 @@ type
     procedure SetgdcObject(const Value: TgdcBase);
     procedure CheckEditMode;
     function GetCRate: Currency;
-  protected
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -96,7 +97,7 @@ implementation
 {$R *.DFM}
 
 const
-  cMinHeight = 49;
+  cMinHeight = 49; 
   cEQHeight = 23;
   cMaxHeight = 117;
 
@@ -165,7 +166,7 @@ begin
     L := TList.Create;
     try
       L.Add(Pointer(cbAccount.CurrentKeyInt));
-      frAcctAnalytics.UpdateAnalyticsList(L, False);
+      frAcctAnalytics.UpdateAnalyticsList(L, False, False);
       frQuantity.UpdateQuantityList(L);
     finally
       L.Free;
@@ -214,7 +215,7 @@ begin
     cRate.Top:= cbCurrency.Top + cEQHeight;
     lSumCurr.Top:= lRate.Top + cEQHeight;
     cCurrSum.Top:= cRate.Top + cEQHeight;
-    lCurr.Enabled := FMultyCurr;
+    lCurr.Enabled := FMultyCurr;                   
     cbCurrency.Enabled := FMultyCurr;
     lRate.Enabled := FMultyCurr;
     cRate.Enabled := FMultyCurr;
@@ -234,6 +235,8 @@ begin
     Panel5.Height := HeightArray[FMultyCurr][FEQ];
 
     frAcctAnalytics.Visible := frAcctAnalytics.AnalyticsCount > 0;
+    if frAcctAnalytics.Visible then
+      frAcctAnalytics.FrameResize(frAcctAnalytics);
     frAcctAnalytics.Top := Panel5.Top + Panel5.Height;
     frQuantity.Visible := frQuantity.QuantityCount > 0;
     frQuantity.Top := fracctAnalytics.Top + fracctAnalytics.Height;
@@ -241,6 +244,7 @@ begin
     Panel1.ClientHeight := ppMain.Height;
     ClientHeight := Panel1.Height;
   end;
+
 end;
 
 procedure TfrAcctEntrySimpleLine.cRateChange(Sender: TObject);
@@ -283,9 +287,6 @@ begin
   ppMain.ClientHeight := Panel5.Height;
   Panel1.ClientHeight := ppMain.Height;
   ClientHeight := Panel1.Height;
-
-//  frAcctAnalytics.ppAnalytics.Unwraped := False;
-//  frQuantity.ppMain.Unwraped := False;
 end;
 
 procedure TfrAcctEntrySimpleLine.SetDataSet(const Value: TDataSet);
@@ -338,7 +339,7 @@ begin
     for I := 0 to L.Count - 1 do
     begin
       FFocused := (TObject(L.Items[I]) is TWinControl) and
-        (Message.Sender = L.Items[I]){ and (Message.Sender.Focused)};
+        (Message.Sender = L.Items[I]);
       if FFocused then break;
     end;
   finally
@@ -582,14 +583,7 @@ end;
 procedure TfrAcctEntrySimpleLine.EnableControls;
 begin
   if FDisableCount > 0 then
-  begin
     Dec(FDisableCount);
-{    if FDisableCount = 0 then
-    begin
-      UpdateCaption;
-      UpdateControls;
-    end;}
-  end;
 end;
 
 function TfrAcctEntrySimpleLine.ControlEnabled: Boolean;
@@ -598,9 +592,6 @@ begin
 end;
 
 procedure TfrAcctEntrySimpleLine.CalcCurrency(isCurrency: Boolean);
-var
-  CorrCount, I: Integer;
-  DiffCurrkey: Boolean;
 begin
   if FDataSet <> nil then
   begin
@@ -615,26 +606,11 @@ begin
       begin
         CheckEditMode;
 
-        CorrCount := 0;
-        DiffCurrKey := False;
+        if not cbRounded.Checked then
+          FdataSet.FieldByName(cSum.DataField).AsCurrency := cCurrSum.Value * cRate.Value
+        else
+          FdataSet.FieldByName(cSum.DataField).AsCurrency := Round(cCurrSum.Value * cRate.Value + 1/10000);
 
-        for I := 0 to (gdcObject as TgdcAcctComplexRecord).EntryLines.Count - 1 do
-        begin
-          if (gdcObject as TgdcAcctComplexRecord).EntryLines[I].FieldByName('accountpart').AsString <> FAccountPart then
-          begin
-            if (gdcObject as TgdcAcctComplexRecord).EntryLines[i].FieldByName('currkey').AsInteger <> cbCurrency.CurrentKeyInt then
-              DiffCurrKey := True;
-            Inc(CorrCount);
-          end;
-        end;
-
-        if (CorrCount <> 1) or (not DiffCurrKey) then
-        begin
-          if not cbRounded.Checked then
-            FdataSet.FieldByName(cSum.DataField).AsCurrency := cCurrSum.Value * cRate.Value
-          else
-            FdataSet.FieldByName(cSum.DataField).AsCurrency := Round(cCurrSum.Value * cRate.Value + 1/10000);
-        end; 
       end;
     finally
       EnableControls;
@@ -657,7 +633,6 @@ begin
     end;
   end;
 end;
-
 
 procedure TfrAcctEntrySimpleLine.FrameResize(Sender: TObject);
 begin
@@ -691,8 +666,8 @@ begin
     CompanyStorage.WriteBoolean(ComponentPath, 'Rounded', cbRounded.Checked);
   except
   end;
-  inherited;
 
+  inherited;
 end;
 
 procedure TfrAcctEntrySimpleLine.SetCurrRate(CurrKey: Integer;

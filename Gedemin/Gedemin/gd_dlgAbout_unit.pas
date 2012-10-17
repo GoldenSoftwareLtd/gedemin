@@ -565,7 +565,21 @@ begin
             AddSpaces(q.Current[I].Name,  q.Current[I].AsString);
           q.Next;
         end;
-      end;  
+
+        AddSection('UDF');
+        q.Close;
+        q.SQL.Text :=
+          'SELECT rdb$function_name, rdb$module_name ' +
+          'FROM rdb$functions ' +
+          'ORDER BY rdb$function_name ';
+        q.ExecQuery;
+        while not q.EOF do
+        begin
+          AddSpaces(q.FieldByName('rdb$function_name').AsString,
+            q.FieldByName('rdb$module_name').AsString);
+          q.Next;
+        end;
+      end;
     finally
       q.Free;
       Tr.Free;

@@ -153,6 +153,9 @@ set arc_command="c:\program files\winrar\winrar.exe" a %arc_name%
 
 if exist %arc_name% del %arc_name% 
 %arc_command% gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest
+%arc_command% ib_util.dll icudt30.dll icuin30.dll icuuc30.dll
+%arc_command% fbembed.dll firebird.msg
+%arc_command% microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll
 
 echo *************************************************
 echo **                                             **
