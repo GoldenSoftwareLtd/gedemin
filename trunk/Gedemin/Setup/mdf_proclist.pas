@@ -47,7 +47,7 @@ uses
   mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument, mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams;
 
 const
-  cProcCount = 176;
+  cProcCount = 177;
 
 type
   TModifyProc = record
@@ -330,7 +330,8 @@ const
     (ModifyProc: Correct_gd_ai_goodgroup_protect; ModifyVersion: '0000.0001.0000.0186'),
     (ModifyProc: Correct_ac_companyaccount_triggers; ModifyVersion: '0000.0001.0000.0187'),
     (ModifyProc: DeleteSF; ModifyVersion: '0000.0001.0000.0188'),
-    (ModifyProc: DeleteCardParamsItem; ModifyVersion: '0000.0001.0000.0189')
+    (ModifyProc: DeleteCardParamsItem; ModifyVersion: '0000.0001.0000.0189'),
+    (ModifyProc: Correct_inv_bu_movement_triggers; ModifyVersion: '0000.0001.0000.0190')
   );
 
 implementation

@@ -507,7 +507,11 @@ INSERT INTO fin_versioninfo
   VALUES (158, '0000.0001.0000.0189', '26.09.2012', 'Change way of reports being called from Explorer tree.');  
 
 INSERT INTO fin_versioninfo
-  VALUES (159, '0000.0001.0000.0190', '17.19.2012', 'Delete InvCardForm params from userstorage.');  
+  VALUES (159, '0000.0001.0000.0190', '17.10.2012', 'Delete InvCardForm params from userstorage.');
+  
+INSERT INTO fin_versioninfo
+  VALUES (160, '0000.0001.0000.0191', '19.10.2012', 'Corrected inv_bu_movement trigger.');
+
 
 COMMIT;
 
