@@ -1,3 +1,4 @@
+
 unit mdf_MovementDocument;
 
 interface
@@ -8,6 +9,7 @@ uses
 procedure MovementDocument(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Correct_gd_ai_goodgroup_protect(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Correct_ac_companyaccount_triggers(IBDB: TIBDatabase; Log: TModifyLog);
+procedure Correct_inv_bu_movement_triggers(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -317,4 +319,96 @@ begin
   end;
 end;
 
+procedure Correct_inv_bu_movement_triggers(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  SQL: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  SQL := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    SQL.Transaction := Tr;
+    try
+      SQL.SQL.Text :=
+        'ALTER TRIGGER INV_BU_MOVEMENT '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  BEFORE UPDATE '#13#10 +
+        '  POSITION 0 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE balance NUMERIC(15, 4); '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (RDB$GET_CONTEXT(''USER_TRANSACTION'', ''GD_MERGING_RECORDS'') IS NULL) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    IF (NEW.documentkey <> OLD.documentkey) THEN '#13#10 +
+        '      EXCEPTION inv_e_movementchange; '#13#10 +
+        ' '#13#10 +
+        '    IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN '#13#10 +
+        '    BEGIN '#13#10 +
+        '      IF (OLD.debit > 0) THEN '#13#10 +
+        '      BEGIN '#13#10 +
+        '        SELECT balance FROM inv_balance '#13#10 +
+        '        WHERE contactkey = OLD.contactkey '#13#10 +
+        '          AND cardkey = OLD.cardkey '#13#10 +
+        '        INTO :balance; '#13#10 +
+        '        IF (COALESCE(:balance, 0) < OLD.debit) THEN '#13#10 +
+        '          EXCEPTION INV_E_INVALIDMOVEMENT; '#13#10 +
+        '      END '#13#10 +
+        '    END ELSE '#13#10 +
+        '    BEGIN '#13#10 +
+        '      IF (OLD.debit > NEW.debit) THEN '#13#10 +
+        '      BEGIN '#13#10 +
+        '        SELECT balance FROM inv_balance '#13#10 +
+        '        WHERE contactkey = OLD.contactkey '#13#10 +
+        '          AND cardkey = OLD.cardkey '#13#10 +
+        '        INTO :balance; '#13#10 +
+        '        balance = COALESCE(:balance, 0); '#13#10 +
+        '        IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN '#13#10 +
+        '          EXCEPTION INV_E_INVALIDMOVEMENT; '#13#10 +
+        '      END ELSE '#13#10 +
+        '      BEGIN '#13#10 +
+        '        IF (NEW.credit > OLD.credit) THEN '#13#10 +
+        '        BEGIN '#13#10 +
+        '          SELECT balance FROM inv_balance '#13#10 +
+        '          WHERE contactkey = OLD.contactkey '#13#10 +
+        '            AND cardkey = OLD.cardkey '#13#10 +
+        '          INTO :balance; '#13#10 +
+        '          balance = COALESCE(:balance, 0); '#13#10 +
+        '          IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN '#13#10 +
+        '            EXCEPTION INV_E_INVALIDMOVEMENT; '#13#10 +
+        '        END '#13#10 +
+        '      END '#13#10 +
+        '    END '#13#10 +
+        '  END '#13#10 +
+        'END ';
+      SQL.ExecQuery;
+      SQL.Close;
+
+      SQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (160, ''0000.0001.0000.0191'', ''19.10.2012'', ''Corrected inv_bu_movement trigger.'') ' +
+        '  MATCHING (id)';
+      SQL.ExecQuery;
+      SQL.Close;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    SQL.Free;
+    Tr.Free;
+  end;
+end;
+
 end.
+
+

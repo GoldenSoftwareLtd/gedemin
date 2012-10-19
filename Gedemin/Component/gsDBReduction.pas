@@ -1,3 +1,4 @@
+
 {++
 
 
@@ -474,47 +475,6 @@ begin
       Result := Result + R.PrimaryKey.ConstraintFields[I].FieldName;
     end;
   end;
-
-  {Assert(FDataBase <> nil, 'Не подключен DataBase.');
-  Assert(FTransaction <> nil, 'Не подключен Transaction.');
-  Assert(TableName > '', 'Table name is not specified');
-
-  DidActivate := False;
-  sql := TIBSQL.Create(Self);
-  try
-    DidActivate := not FTransaction.InTransaction;
-    if DidActivate then
-      FTransaction.StartTransaction;
-    sql.Database := FDataBase;
-    sql.Transaction := FTransaction;
-    sql.sql.Text :=
-      ' SELECT ' +
-      '   isg1.RDB$FIELD_NAME PrimaryName ' +
-      ' FROM ' +
-      '   RDB$INDEX_SEGMENTS isg1 ' +
-      '   , RDB$RELATION_CONSTRAINTS rc1 ' +
-      ' WHERE ' +
-      '   rc1.RDB$RELATION_NAME = UPPER(''' + TableName + ''')' +
-      '   AND rc1.RDB$INDEX_NAME = isg1.RDB$INDEX_NAME ' +
-      '   AND rc1.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY''';
-    sql.ExecQuery;
-    First := True;
-    Result := '';
-    while not sql.Eof do
-    begin
-      if First then
-        Result := sql.FieldByName('PrimaryName').AsString
-      else
-        Result := Result + ',' + sql.FieldByName('PrimaryName').AsString;
-      First := False;
-      sql.Next;
-    end;
-    sql.Close;
-  finally
-    sql.Free;
-    if DidActivate and FTransaction.InTransaction then
-      FTransaction.Commit;
-  end;}
 end;
 
 function TgsDBReduction.GetUnique(const TableName, FieldName: String): String;
@@ -527,30 +487,18 @@ begin
   Assert(TableName > '', 'Table name is not specified');
 
   DidActivate := False;
-  sql := TIBSQL.Create(Self);
+  sql := TIBSQL.Create(nil);
   try
-//  Result := ' FROM at_indices z LEFT JOIN rdb$indices ri ON ri.rdb$index_name = z.indexname ';
     DidActivate := not FTransaction.InTransaction;
     if DidActivate then
       FTransaction.StartTransaction;
     sql.Database := FDataBase;
     sql.Transaction := FTransaction;
-{ TODO : Сделать через RDB... }               
     sql.sql.Text :=
       ' SELECT ind.FIELDSLIST list ' +
       ' FROM AT_INDICES ind ' +
       ' WHERE ind.RELATIONNAME = UPPER(''' + TableName + ''') ' +
       ' AND ind.UNIQUE_FLAG = 1 ';
-{    sql.sql.Text :=
-      ' SELECT ' +
-      '   isg1.RDB$FIELD_NAME UniqueName ' +
-      ' FROM ' +
-      '   RDB$INDEX_SEGMENTS isg1 ' +
-      '   , RDB$INDICES in1 ' +
-      ' WHERE ' +
-      '   in1.RDB$RELATION_NAME = UPPER(''' + TableName + ''') ' +
-      '   AND in1.RDB$INDEX_NAME = isg1.RDB$INDEX_NAME ' +
-      '   AND in1.RDB$UNIQUE_FLAG = 1 ';}
     sql.ExecQuery;
     while not sql.Eof do
     begin
@@ -624,7 +572,7 @@ begin
   begin
     DidActivate := False;
     try
-      sql := TIBSQL.Create(Self);
+      sql := TIBSQL.Create(nil);
       try
         DidActivate := not FTransaction.InTransaction;
         if DidActivate then
@@ -999,8 +947,7 @@ begin
         if RTable.TypeReduction = 0 then
           for I := 0 to sqlMaster.Fields.Count - 1 do
           if not isHideField(sqlMaster.Fields[I].FieldName) and
-            (sqlMaster.Fields[I].FieldName <> RTable.ForeignKey) {and
-            (sqlMaster.Fields[I].AsString <> sqlCondemned.Fields[I].AsString) }then
+            (sqlMaster.Fields[I].FieldName <> RTable.ForeignKey) then
           begin
             Transfer := (sqlMaster.Fields[I].IsNull or ((sqlMaster.Fields[I] is TStringField)
               and ((sqlMaster.Fields[I] as TStringField).AsString = ''))) and (not sqlMaster.Fields[I].ReadOnly);
@@ -1033,47 +980,6 @@ begin
         finally
           Lst.Free;
         end;
-
-        {sql.Close;
-        sql.sql.Text :=
-          ' SELECT ' +
-          '     isg2.RDB$FIELD_NAME     TargetField ' +
-          '   , rc2.RDB$RELATION_NAME  TargetTable ' +
-          ' FROM ' +
-          '     RDB$RELATION_CONSTRAINTS rc1 ' +
-          '   , RDB$REF_CONSTRAINTS rfc ' +
-          '   , RDB$RELATION_CONSTRAINTS rc2 ' +
-          '   , RDB$INDEX_SEGMENTS isg2 ' +
-          '   , RDB$RELATION_CONSTRAINTS rc3 ' +
-          ' WHERE ' +
-          '   rc1.RDB$RELATION_NAME = UPPER(''' + RTable.Name + ''')' +
-          '   AND rfc.RDB$CONSTRAINT_NAME = rc2.RDB$CONSTRAINT_NAME ' +
-          '   AND rfc.RDB$CONST_NAME_UQ = rc1.RDB$CONSTRAINT_NAME ' +
-          '   AND rc2.RDB$INDEX_NAME = isg2.RDB$INDEX_NAME ' +
-          '   AND rc3.RDB$RELATION_NAME = rc2.RDB$RELATION_NAME ' +
-          '   AND rc3.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY''' +
-          ' ORDER BY ' +
-          '   rc2.RDB$RELATION_NAME ';
-        sql.ExecQuery;
-
-        while not sql.Eof do
-        begin
-          if NewTable <> sql.FieldByName('targettable').AsString then
-          begin
-            NewTable := sql.FieldByName('targettable').AsString;
-            NewPrimary := GetPrimary(NewTable);
-          end;
-
-          RTable.ReductionTableList.AddTable(NewTable, sql.FieldByName('targetfield').AsString);
-
-          if NewPrimary = sql.FieldByName('targetfield').AsString then
-            Result := PrepareTable(RTable.ReductionTableList.Table[RTable.ReductionTableList.Count - 1]);
-
-          if not Result then
-            exit;
-
-          sql.Next;
-        end;}
       end;
 
   finally
@@ -1114,123 +1020,52 @@ begin
 end;
 
 function TgsDBReduction.MakeReduction: Boolean;
-(*
-function CheckForeign(aReductionTable: TReductionTable): Boolean;
 var
-  i, k, l: Integer;
-  OL: TObjectList;
-  sql: TIBSQL;
-begin
-{}
-{      LinkTableList := TStringList.Create;
-      try}
-  OL := TObjectList.Create(False);
-  try
-    for i := 0 to aReductionTable.ReductionTableList.Count-1 do
-    begin
-  {    ShowMessage(RTable.ReductionTableList.Table[i].Name + '. ' +
-        RTable.ReductionTableList.Table[i].ForeignKey + '. ' +
-        IntToStr(RTable.ReductionTableList.Table[i].ReductionTableList.Count));}
-
-  // находим все внешние ключи таблицы
-      atDatabase.ForeignKeys.ConstraintsByRelation(Trim(aReductionTable.ReductionTableList.Table[i].Name), OL);
-      for k := 0 to atDatabase.ForeignKeys.Count-1 do
-      begin
-// среди внешних ключей ищем тот, кот. ссылается на текущую таблицу
-// и поле входит в первичный ключ
-        with atDatabase.ForeignKeys.Items[k] do
-        if (Relation.PrimaryKey <> nil) and
-           ( ConstraintField.FieldName =
-             Trim(aReductionTable.ReductionTableList.Table[i].ForeignKey) ) then
-          for l := 0 to Relation.PrimaryKey.ConstraintFields.Count - 1 do
-          begin
-            if ConstraintField = Relation.PrimaryKey.ConstraintFields[l] then
-            begin
-{              ShowMessage(Relation.RelationName + '. ' + ConstraintField.FieldName + '. ' + #13#10 +
-                ReferencesRelation.RelationName + '. ' + ReferencesField.FieldName);}
-
-
-        sql := TIBSQL.Create(Self);
-        try
-          sql.Database := FDataBase;
-          sql.Transaction := FTransaction;
-          sql.SQL.Text := 'select * from ' + Relation.RelationName + ' where ';
-          case aReductionTable.TypeReduction of
-            0: ;
-            1: ;
-            2:
-              begin
-{                 if FTransferData then
-                 begin
-                    for I := 0 to RTable.ReductionField.Count - 1 do
-                      if RTable.ReductionField.Fields[I].FieldName = ConstraintField.FieldName then
-                      begin
-                      if RTable.ReductionField.Fields[I].Summa then
-                      begin
-                        if VarType(RTable.ReductionField.Fields[I].MasterValue) = varString then
-                          Sign := ' || '' '' || '
-                        else
-                          Sign := ' + ';
-                        sql.SQL.Text := sql.SQL.Text +
-                          ConstraintField.FieldName + ' = ' +
-                            RTable.ReductionField.Fields[I].FieldName + Sign +
-                            RTable.ReductionField.Fields[I].FieldName
-                      end else
-                        if RTable.ReductionField.Fields[I].Transfer then
-                        begin
-                        end;
-                        Break;
-                      end;
-                      if RTable.ReductionField.Fields[I].Summa then
-                      begin
-                        if VarType(RTable.ReductionField.Fields[I].MasterValue) = varString then
-                          Sign := ' || '' '' || '
-                        else
-                          Sign := ' + ';
-                        if UpdateSQL = '' then
-                          UpdateSQL := RTable.ReductionField.Fields[I].FieldName + ' = :' +
-                            RTable.ReductionField.Fields[I].FieldName + Sign +
-                            RTable.ReductionField.Fields[I].FieldName
-                        else
-                          UpdateSQL := UpdateSQL + ', ' + RTable.ReductionField.Fields[I].FieldName + ' = :' +
-                            RTable.ReductionField.Fields[I].FieldName + Sign +
-                            RTable.ReductionField.Fields[I].FieldName;
-                      end else
-
-                      if RTable.ReductionField.Fields[I].Transfer then
-                        if UpdateSQL = '' then
-                          UpdateSQL := RTable.ReductionField.Fields[I].FieldName + ' = :' +
-                            RTable.ReductionField.Fields[I].FieldName
-                        else
-                          UpdateSQL := UpdateSQL + ', ' + RTable.ReductionField.Fields[I].FieldName + ' = :' +
-                            RTable.ReductionField.Fields[I].FieldName;
-                 end;}
-              end
-          end;
-        finally
-          sql.Free;
-        end;
-            end;
-          end;
-      end;
-
-      CheckForeign(aReductionTable.ReductionTableList.Table[i]);
-    end;
-  finally
-    OL.Free;
-  end;
-{}
-end;
-*)
+  q: TIBSQL;
+  DidActivate: Boolean;
 begin
   Assert(FDataBase <> nil, 'Не подключен DataBase.');
   Assert(FTransaction <> nil, 'Не подключен Transaction.');
 
-  Result := ReduceRecord(ReductionTable);
-  if Result then
-    FTransaction.CommitRetaining
-  else
-    FTransaction.RollbackRetaining;
+  q := TIBSQL.Create(nil);
+  try
+    DidActivate := not FTransaction.InTransaction;
+    if DidActivate then
+      FTransaction.StartTransaction;
+
+    q.Transaction := FTransaction;
+    q.SQL.Text :=
+      'EXECUTE BLOCK AS'#13#10 +
+      'BEGIN'#13#10 +
+      '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''GD_MERGING_RECORDS'', 1);'#13#10 +
+      'END';
+    q.ExecQuery;
+
+    Result := ReduceRecord(ReductionTable);
+
+    if DidActivate then
+    begin
+      if Result then
+        FTransaction.Commit
+      else
+        FTransaction.Rollback;
+    end else
+    begin
+      if Result then
+        FTransaction.CommitRetaining
+      else
+        FTransaction.RollbackRetaining;
+
+      q.SQL.Text :=
+        'EXECUTE BLOCK AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  RDB$SET_CONTEXT(''USER_TRANSACTION'', ''GD_MERGING_RECORDS'', NULL);'#13#10 +
+        'END';
+      q.ExecQuery;
+    end;
+  finally
+    q.Free;
+  end;
 end;
 
 {TgsDBReductionWizard ------------------------------------}

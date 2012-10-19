@@ -1312,6 +1312,13 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (158, '0000.0001.0000.0189', '26.09.2012', 'Change way of reports being called from Explorer tree.');  
 
+INSERT INTO fin_versioninfo
+  VALUES (159, '0000.0001.0000.0190', '17.10.2012', 'Delete InvCardForm params from userstorage.');
+  
+INSERT INTO fin_versioninfo
+  VALUES (160, '0000.0001.0000.0191', '19.10.2012', 'Corrected inv_bu_movement trigger.');
+
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -15462,63 +15469,54 @@ END;
 ^
 
 CREATE TRIGGER INV_BU_MOVEMENT FOR INV_MOVEMENT
-ACTIVE BEFORE UPDATE POSITION 0
+  ACTIVE
+  BEFORE UPDATE
+  POSITION 0
 AS
- DECLARE VARIABLE balance NUMERIC(15, 4);
+  DECLARE VARIABLE balance NUMERIC(15, 4);
 BEGIN
-  IF (NEW.documentkey <> OLD.documentkey) THEN
-    EXCEPTION inv_e_movementchange;
+  IF (RDB$GET_CONTEXT('USER_TRANSACTION', 'GD_MERGING_RECORDS') IS NULL) THEN
+  BEGIN
+    IF (NEW.documentkey <> OLD.documentkey) THEN
+      EXCEPTION inv_e_movementchange;
 
-  IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN
-  BEGIN
-    IF (OLD.debit > 0) THEN
+    IF ((NEW.disabled = 1) OR (NEW.contactkey <> OLD.contactkey) OR (NEW.cardkey <> OLD.cardkey)) THEN
     BEGIN
-      SELECT balance FROM inv_balance
-      WHERE
-        contactkey = OLD.contactkey
-        AND cardkey = OLD.cardkey
-      INTO :balance;
-      IF (:balance IS NULL) THEN
-        balance = 0;
-      IF (:balance < OLD.debit) THEN
-      BEGIN
-        EXCEPTION INV_E_INVALIDMOVEMENT;
-      END
-    END
-  END
-  ELSE
-  BEGIN
-    IF (OLD.debit > NEW.debit) THEN
-    BEGIN
-      SELECT balance FROM inv_balance
-      WHERE
-        contactkey = OLD.contactkey
-        AND cardkey = OLD.cardkey
-      INTO :balance;
-      IF (:balance IS NULL) THEN
-        balance = 0;
-      IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN
-      BEGIN
-        EXCEPTION INV_E_INVALIDMOVEMENT;
-      END
-    END
-    ELSE
-      IF (NEW.credit > OLD.credit) THEN
+      IF (OLD.debit > 0) THEN
       BEGIN
         SELECT balance FROM inv_balance
-        WHERE
-          contactkey = OLD.contactkey
+        WHERE contactkey = OLD.contactkey
           AND cardkey = OLD.cardkey
         INTO :balance;
-        IF (:balance IS NULL) THEN
-          balance = 0;
-        IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN
-        BEGIN
+        IF (COALESCE(:balance, 0) < OLD.debit) THEN
           EXCEPTION INV_E_INVALIDMOVEMENT;
+      END
+    END ELSE
+    BEGIN
+      IF (OLD.debit > NEW.debit) THEN
+      BEGIN
+        SELECT balance FROM inv_balance
+        WHERE contactkey = OLD.contactkey
+          AND cardkey = OLD.cardkey
+        INTO :balance;
+        balance = COALESCE(:balance, 0);
+        IF ((:balance > 0) AND (:balance < OLD.debit - NEW.debit)) THEN
+          EXCEPTION INV_E_INVALIDMOVEMENT;
+      END ELSE
+      BEGIN
+        IF (NEW.credit > OLD.credit) THEN
+        BEGIN
+          SELECT balance FROM inv_balance
+          WHERE contactkey = OLD.contactkey
+            AND cardkey = OLD.cardkey
+          INTO :balance;
+          balance = COALESCE(:balance, 0);
+          IF ((:balance > 0) AND (:balance < NEW.credit - OLD.credit)) THEN
+            EXCEPTION INV_E_INVALIDMOVEMENT;
         END
       END
+    END
   END
-
 END;
 ^
 
