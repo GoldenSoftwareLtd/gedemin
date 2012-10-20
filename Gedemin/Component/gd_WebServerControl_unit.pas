@@ -85,7 +85,7 @@ uses
   SysUtils, Forms, Windows, IBSQL, IBDatabase, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
   gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock,
-  ComObj, JclSimpleXML, gd_directories_const, ActiveX;
+  ComObj, JclSimpleXML, gd_directories_const, ActiveX, zlib;
 
 type
   TgdHttpHandler = class(TObject)
@@ -467,8 +467,40 @@ begin
 end;
 
 procedure TgdWebServerControl.ProcessFileRequest;
+var
+  FI: TFLItem;
+  MS: TMemoryStream;
+  FS: TFileStream;
+  ZS: TZCompressionStream;
 begin
-  Log(FRequestInfo.RemoteIP, 'RQFL', [], []);
+  Log(FRequestInfo.RemoteIP, 'RQFL', ['file_name'],
+    [FRequestInfo.Params.Values['fn']]);
+
+  FResponseInfo.ResponseNo := 400;
+
+  if FFileList <> nil then
+  begin
+    FI := FFileList.FindItem(FRequestInfo.Params.Values['fn']);
+    if FI <> nil then
+    begin
+      MS := TMemoryStream.Create;
+      ZS := TZCompressionStream.Create(MS);
+      try
+        FS := TFileStream.Create(FI.FullName, fmOpenRead or fmShareCompat);
+        try
+          ZS.CopyFrom(FS, 0);
+        finally
+          FS.Free;
+        end;
+      finally
+        ZS.Free;
+      end;
+
+      FResponseInfo.ResponseNo := 200;
+      FResponseInfo.ContentType := 'application/octet-stream;';
+      FResponseInfo.ContentStream := MS;
+    end;
+  end;
 end;
 
 procedure TgdWebServerControl.Log(const AnIPAddress: String;
