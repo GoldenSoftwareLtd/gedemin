@@ -345,7 +345,7 @@ end;
 
 var
   MutexHandle: THandle;
-  MutexCreated, MutexExisted: Boolean;
+  MutexExisted: Boolean;
   BP: Integer;
 
 function ShouldProceedLoading: Boolean;
@@ -612,28 +612,9 @@ begin
     MutexHandle := CreateMutex(nil, False, PChar(GedeminMutexName));
     MutexExisted := GetLastError = ERROR_ALREADY_EXISTS;
 
-    /////////////////////////////
-    // Если мютекс был создан, то
-    // получаем его и копируем
-
-    if MutexExisted then
-    begin
-      // Получаем мютекс
-      MutexHandle := OpenMutex(MUTEX_ALL_ACCESS, False,
-        PChar(GedeminMutexName));
-
-      // Если мютекс получен, копируем его
-      if MutexHandle <> 0 then
-      begin
-        MutexCreated := Boolean(DuplicateHandle(hInstance, MutexHandle, hInstance,
-          PHandle(@MutexHandle), DUPLICATE_SAME_ACCESS, False, DUPLICATE_SAME_ACCESS))
-      end else
-        MutexCreated := False;
-    end else
-      MutexCreated := (MutexHandle <> 0);
-
     try
-      if MutexCreated or (MutexExisted and ShouldProceedLoading) then
+      if (MutexHandle = 0) or (not MutexExisted)
+        or (MutexExisted and ShouldProceedLoading) then
       begin
 
         try
@@ -669,22 +650,7 @@ begin
           Application.CreateForm(TdmDatabase, dmDatabase);
           Application.CreateForm(TdmImages, dmImages);
 
-          {try}
-            Application.CreateForm(TdmClientReport, dmClientReport);
-          {except
-            on E: Exception do
-            begin
-              if Pos('MIDAS.DLL', E.Message) > 0 then
-              begin
-                MessageBox(0,
-                  'Библиотека MIDAS.DLL не зарегистрирована.'#13#10 +
-                  'Повторите установку программы.',
-                  'Ошибка',
-                  MB_OK or MB_ICONHAND or MB_SYSTEMMODAL);
-                exit;
-              end;
-            end;
-          end;}
+          Application.CreateForm(TdmClientReport, dmClientReport);
           Application.CreateForm(TdmLogin, dmLogin);
 
           FreeAndNil(frmSplashHidden);
@@ -702,8 +668,7 @@ begin
       end;
 
     finally
-      if MutexCreated and not MutexExisted then
-        CloseHandle(MutexHandle);
+      CloseHandle(MutexHandle);
     end;
   finally
     ApplicationEventsHandler.Free;

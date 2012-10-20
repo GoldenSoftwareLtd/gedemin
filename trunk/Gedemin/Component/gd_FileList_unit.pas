@@ -113,6 +113,7 @@ type
     procedure BuildEtalonFileSet;
     function GetXML: String;
     procedure ParseXML(const AnXML: String);
+    function FindItem(ARelativeName: String): TFLItem;
 
     property RootPath: String read FRootPath write FRootPath;
   end;
@@ -122,7 +123,8 @@ type
 implementation
 
 uses
-  Forms, FileCtrl, ComObj, jclFileUtils, gd_directories_const;
+  Windows, Forms, FileCtrl, ComObj, jclFileUtils, gd_directories_const,
+  JclWin32;
 
 const
   FileListSchema =
@@ -265,6 +267,53 @@ const
     '    <GS:NAME>Microsoft.VC80.CRT.manifest</GS:NAME>'#13#10 +
     '  </GS:FILE>'#13#10 +
     '</GS:GEDEMIN_FILES>';
+
+function CheckFileAccess(const FileName: string; const CheckedAccess: Cardinal): Cardinal;
+var
+  Token: THandle;
+  Status: LongBool;
+  Access: Cardinal;
+  SecDescSize: Cardinal;
+  PrivSetSize: Cardinal;
+  PrivSet: PRIVILEGE_SET;
+  Mapping: GENERIC_MAPPING;
+  SecDesc: PSECURITY_DESCRIPTOR;
+begin
+  Result := 0;
+
+  if not GetFileSecurity(PChar(Filename),
+    OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION or DACL_SECURITY_INFORMATION,
+    nil, 0, SecDescSize) then
+  begin
+    exit;
+  end;
+
+  SecDesc := GetMemory(SecDescSize);
+  try
+    if GetFileSecurity(PChar(Filename),
+      OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION
+      or DACL_SECURITY_INFORMATION, SecDesc, SecDescSize, SecDescSize)
+      and ImpersonateSelf(SecurityImpersonation) then
+    begin
+      if OpenThreadToken(GetCurrentThread, TOKEN_QUERY, False, Token) and (Token <> 0) then
+      begin
+        Mapping.GenericRead := FILE_GENERIC_READ;
+        Mapping.GenericWrite := FILE_GENERIC_WRITE;
+        Mapping.GenericExecute := FILE_GENERIC_EXECUTE;
+        Mapping.GenericAll := FILE_ALL_ACCESS;
+
+        MapGenericMask(Access, Mapping);
+        PrivSetSize := SizeOf(PrivSet);
+        AccessCheck(SecDesc, Token, CheckedAccess, Mapping, PrivSet, PrivSetSize, Access, Status);
+        CloseHandle(Token);
+        if Status then
+          Result := Access;
+      end;
+    end;
+  finally
+    FreeMem(SecDesc, SecDescSize);
+  end;
+end;
 
 class function TFLItem.Boolean2Str(const B: Boolean): String;
 begin
@@ -456,6 +505,22 @@ constructor TFLCollection.Create;
 begin
   inherited Create(TFLItem);
   FRootPath := ExtractFilePath(Application.EXEName);
+end;
+
+function TFLCollection.FindItem(ARelativeName: String): TFLItem;
+var
+  I: Integer;
+begin
+  Result := nil;
+  ARelativeName := StringReplace(ARelativeName, '/', '\', [rfReplaceAll]);
+  for I := 0 to Count - 1 do
+  begin
+    if (Items[I] as TFLItem).RelativeName = ARelativeName then
+    begin
+      Result := Items[I] as TFLItem;
+      break;
+    end;
+  end;
 end;
 
 function TFLCollection.GetXML: String;

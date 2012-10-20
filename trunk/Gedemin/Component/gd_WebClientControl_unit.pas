@@ -66,8 +66,8 @@ begin
   FCS := TCriticalSection.Create;
   FHTTP := TidHTTP.Create(nil);
   FHTTP.HandleRedirects := True;
-  FHTTP.ReadTimeout := 8000;
-  FHTTP.ConnectTimeout := 4000;
+  FHTTP.ReadTimeout := 88000;
+  FHTTP.ConnectTimeout := 44000;
 end;
 
 procedure TgdWebClientThread.AfterConnection;
@@ -208,26 +208,38 @@ function TgdWebClientThread.ProcessUpdateCommand: Boolean;
 var
   Cmd, Arg, FileName: String;
   FS: TFileStream;
+  FI: TFLItem;
 begin
   Result := False;
-  if FLCommands = nil then
-    FErrorMessage := 'FLCommands is not assigned'
+  if (FLCommands = nil) or (FServerFileList = nil) then
+    FErrorMessage := 'FLCommands or FServerFileList is not assigned'
   else
     try
       if FLCommands.GetCommand(Cmd, Arg) then
       begin
+        FI := FServerFileList.FindItem(Arg);
+
+        if FI = nil then
+        begin
+          FErrorMessage := 'Unknown file';
+          exit;
+        end;
+
         if Cmd = 'BF' then
         begin
-          gdNotifierThread.Add('Создание архивной копии файла ' + Arg, 0, 1200);
-          Result := FileCopy(Arg, Arg + '.bak', True);
+          gdNotifierThread.Add('Создание архивной копии файла ' + FI.FullName, 0, 1200);
+          Result := FileCopy(FI.FullName, FI.FullName + '.bak', True);
         end else
         if Cmd = 'UF' then
         begin
-          gdNotifierThread.Add('Загрузка файла ' + Arg, 0, 1200);
+          gdNotifierThread.Add('Загрузка файла ' + FI.FullName, 0, 1200);
 
-          FileName := Arg + '.tmp';
+          FileName := FI.FullName + '.tmp';
           if FileExists(FileName) and (not DeleteFile(FileName)) then
+          begin
+            FErrorMessage := 'Can not delete file ' + FileName;
             exit;
+          end;
 
           FS := TFileStream.Create(FileName, fmCreate);
           try
