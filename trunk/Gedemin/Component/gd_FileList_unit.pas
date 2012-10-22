@@ -26,20 +26,9 @@ unit gd_FileList_unit;
 interface
 
 uses
-  Classes, ContNrs, SysUtils;
+  Classes, ContNrs, SysUtils, idHTTP;
 
 type
-  TFLCommands = class(TStringList)
-  private
-    FCurr: Integer;
-
-    procedure CheckCommand(const ACommand: String);
-
-  public
-    procedure AddCommand(const ACommand, AnArg: String);
-    function GetCommand(out ACommand, AnArg: String): Boolean;
-  end;
-
   TFLFlag = (
     flAlwaysOverwrite,
     flNeverOverwrite,
@@ -70,6 +59,7 @@ type
 
     function GetFullName: String;
     function GetRelativeName: String;
+    function GetParentFolder: String;
 
   protected
     class procedure InternalScan(const AFullName: String; const IsDirectory: Boolean;
@@ -77,7 +67,7 @@ type
 
     function GetXML: String;
     procedure ParseXML(ANode: OleVariant);
-    procedure AnalyzeFile(ACommandList: TFLCommands);
+    procedure UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList);
     procedure Scan;
 
   public
@@ -90,11 +80,15 @@ type
     class function Str2DateTime(const S: String): TDateTime;
     class function CompareVersionStrings(const V1, V2: String): Integer;
 
+    procedure ReadFromDisk(AStream: TStream);
+    procedure WriteToDisk(const AFileName: String; AStream: TStream);
+
     property Name: String read FName;
     property IsDirectory: Boolean read FIsDirectory;
     property Path: String read FPath;
     property FullName: String read GetFullName;
     property RelativeName: String read GetRelativeName;
+    property ParentFolder: String read GetParentFolder;
     property Exists: Boolean read FExists;
     property Date: TDateTime read FDate;
     property Version: String read FVersion;
@@ -105,17 +99,20 @@ type
   TFLCollection = class(TCollection)
   private
     FRootPath: String;
+    FCurr: Integer;
+    
+    procedure SetRootPath(const Value: String);
 
   public
     constructor Create;
 
-    procedure AnalyzeFiles(ACommandList: TFLCommands);
+    function UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList): Boolean;
     procedure BuildEtalonFileSet;
     function GetXML: String;
     procedure ParseXML(const AnXML: String);
     function FindItem(ARelativeName: String): TFLItem;
 
-    property RootPath: String read FRootPath write FRootPath;
+    property RootPath: String read FRootPath write SetRootPath;
   end;
 
   EFLError = class(Exception);
@@ -124,7 +121,7 @@ implementation
 
 uses
   Windows, Forms, FileCtrl, ComObj, jclFileUtils, gd_directories_const,
-  JclWin32;
+  JclWin32, zlib, idURI;
 
 const
   FileListSchema =
@@ -268,7 +265,7 @@ const
     '  </GS:FILE>'#13#10 +
     '</GS:GEDEMIN_FILES>';
 
-function CheckFileAccess(const FileName: string; const CheckedAccess: Cardinal): Cardinal;
+{function CheckFileAccess(const FileName: string; const CheckedAccess: Cardinal): Cardinal;
 var
   Token: THandle;
   Status: LongBool;
@@ -313,7 +310,7 @@ begin
   finally
     FreeMem(SecDesc, SecDescSize);
   end;
-end;
+end;}
 
 class function TFLItem.Boolean2Str(const B: Boolean): String;
 begin
@@ -373,17 +370,20 @@ end;
 
 function TFLItem.GetFullName: String;
 begin
-  Result := IncludeTrailingBackSlash((Collection as TFLCollection).RootPath) + RelativeName;
+  Result := (Collection as TFLCollection).RootPath + RelativeName;
 end;
 
 { TFLCollection }
 
-procedure TFLCollection.AnalyzeFiles(ACommandList: TFLCommands);
-var
-  I: Integer;
+function TFLCollection.UpdateFile(AHTTP: TidHTTP; const AnURL: String;
+  ACmdList: TStringList): Boolean;
 begin
-  for I := 0 to Count - 1 do
-    (Items[I] as TFLItem).AnalyzeFile(ACommandList);
+  Result := FCurr < Count;
+  if Result then
+  begin
+    (Items[FCurr] as TFLItem).UpdateFile(AHTTP, AnURL, ACmdList);
+    Inc(FCurr);
+  end;
 end;
 
 procedure TFLCollection.BuildEtalonFileSet;
@@ -505,6 +505,7 @@ constructor TFLCollection.Create;
 begin
   inherited Create(TFLItem);
   FRootPath := ExtractFilePath(Application.EXEName);
+  FCurr := 0;
 end;
 
 function TFLCollection.FindItem(ARelativeName: String): TFLItem;
@@ -644,13 +645,20 @@ begin
   end;
 end;
 
-procedure TFLItem.AnalyzeFile(ACommandList: TFLCommands);
+procedure TFLItem.UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList);
 
-  procedure AddFileCommand(const ACmd: String);
+  procedure DownloadFile(const ALocalName: String);
+  var
+    MS: TMemoryStream;
   begin
-    if not (flDontBackup in Flags) then
-      ACommandList.AddCommand('BF', RelativeName);
-    ACommandList.AddCommand(ACmd, RelativeName);
+    MS := TMemoryStream.Create;
+    try
+      AHTTP.Get(TidURI.URLEncode(AnURL + '/get_file?fn=' + RelativeName), MS);
+      MS.Position := 0;
+      WriteToDisk(ALocalName, MS);
+    finally
+      MS.Free;
+    end;
   end;
 
 var
@@ -659,35 +667,57 @@ var
   LocalFileDate: TDateTime;
   LocalVersion: String;
 begin
+  Assert(Assigned(AHTTP));
+  Assert(Assigned(ACmdList));
+
   InternalScan(FullName, IsDirectory, LocalExists, LocalFileDate,
     LocalSize, LocalVersion);
 
   if IsDirectory then
   begin
     if Exists and (not LocalExists) then
-      ACommandList.AddCommand('CD', RelativeName)
+      ACmdList.Add('CD ' + FullName)
     else if flRemove in Flags then
-      ACommandList.AddCommand('RD', RelativeName);
+      ACmdList.Add('RD ' + FullName);
   end else
   begin
     if Exists and (not LocalExists) then
-      ACommandList.AddCommand('CF', RelativeName)
-    else if flRemove in Flags then
-      AddFileCommand('RF')
+    begin
+      DownloadFile(FullName + '.new');
+      ACmdList.Add('CF ' + FullName);
+    end else if flRemove in Flags then
+      ACmdList.Add('RF ' + FullName)
     else if Exists and LocalExists and (not (flNeverOverwrite in Flags)) then
     begin
-      if flAlwaysOverwrite in Flags then
-        AddFileCommand('UF')
-      else if flOverwriteIfNewer in Flags then
+      if (flAlwaysOverwrite in Flags)
+        or
+         (
+           (flOverwriteIfNewer in Flags)
+           and
+           (
+             (
+               (Version > '')
+               and (LocalVersion > '')
+               and (CompareVersionStrings(Version, LocalVersion) > 0)
+             )
+             or
+             (
+               (Version = '')
+               and (LocalVersion = '')
+               and (Date > LocalFileDate)
+             )
+           )
+         ) then
       begin
-        if (Version > '') and (LocalVersion > '') then
+        if not (flDontBackup in Flags) then
+          FileCopy(FullName, FullName + '.bak', True);
+        if AnsiCompareText(Name, Gedemin_Updater) = 0 then
         begin
-          if CompareVersionStrings(Version, LocalVersion) > 0 then
-            AddFileCommand('UF');
+          DownloadFile(FullName);
         end else
         begin
-          if Date > LocalFileDate then
-            AddFileCommand('UF');
+          DownloadFile(FullName + '.new');
+          ACmdList.Add('UF ' + FullName);
         end;
       end;
     end;
@@ -699,42 +729,74 @@ begin
   if Path = '' then
     Result := Name
   else
-    Result := IncludeTrailingBackslash(Path) + Name;  
+    Result := IncludeTrailingBackslash(Path) + Name;
 end;
 
-{ TFLCommands }
-
-procedure TFLCommands.AddCommand(const ACommand, AnArg: String);
+procedure TFLItem.ReadFromDisk(AStream: TStream);
+var
+  Version, FSize: Int64;
+  ZS: TZCompressionStream;
+  FS: TFileStream;
 begin
-  CheckCommand(ACommand);
+  if IsDirectory then
+    raise EFLError.Create('Can not read a directory.');
 
-  Add(ACommand);
-  Add(AnArg);
-end;
+  Version := 1;
+  FSize := FileGetSize(FullName);
+  AStream.WriteBuffer(Version, SizeOf(Version));
+  AStream.WriteBuffer(FSize, SizeOf(FSize));
 
-procedure TFLCommands.CheckCommand(const ACommand: String);
-begin
-  if (ACommand <> 'CD')
-    and (ACommand <> 'RD')
-    and (ACommand <> 'BF')
-    and (ACommand <> 'UF')
-    and (ACommand <> 'CF')
-    and (ACommand <> 'RF') then
-  begin
-    raise EFLError.Create('Invalid command.');
+  ZS := TZCompressionStream.Create(AStream);
+  try
+    FS := TFileStream.Create(FullName, fmOpenRead or fmShareCompat);
+    try
+      ZS.CopyFrom(FS, 0);
+    finally
+      FS.Free;
+    end;
+  finally
+    ZS.Free;
   end;
 end;
 
-function TFLCommands.GetCommand(out ACommand, AnArg: String): Boolean;
+function TFLItem.GetParentFolder: String;
 begin
-  if (FCurr >= 0) and (FCurr < Count - 1) then
-  begin
-    ACommand := Strings[FCurr];
-    AnArg := Strings[FCurr + 1];
-    Inc(FCurr, 2);
-    Result := True;
-  end else
-    Result := False;
+  Result := (Collection as TFLCollection).RootPath + Path;
+end;
+
+procedure TFLItem.WriteToDisk(const AFileName: String; AStream: TStream);
+var
+  Version, FSize: Int64;
+  ZS: TZDecompressionStream;
+  FS: TFileStream;
+begin
+  if IsDirectory then
+    raise EFLError.Create('Can not write a directory.');
+
+  AStream.ReadBuffer(Version, SizeOf(Version));
+  if Version <> 1 then
+    raise EFLError.Create('Invalid stream format');
+
+  AStream.ReadBuffer(FSize, SizeOf(FSize));
+
+  ZS := TZDecompressionStream.Create(AStream);
+  try
+    FS := TFileStream.Create(AFileName, fmCreate);
+    try
+      FS.CopyFrom(ZS, FSize);
+    finally
+      FS.Free;
+    end;
+  finally
+    ZS.Free;
+  end;
+end;
+
+procedure TFLCollection.SetRootPath(const Value: String);
+begin
+  if not DirectoryExists(Value) then
+    raise EFLError.Create('Invalid root path');
+  FRootPath := IncludeTrailingBackslash(Value);
 end;
 
 end.

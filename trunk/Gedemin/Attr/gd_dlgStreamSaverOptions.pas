@@ -58,7 +58,7 @@ implementation
 
 uses
   Storages, gd_security, at_classes, gdcBaseInterface, IBDatabase, IBSQL,
-  gsStreamHelper
+  gsStreamHelper, gd_directories_const
   {$IFDEF WITH_INDY}
   , IdHTTPServer, IdSocketHandle, gd_WebServerControl_unit
   {$ENDIF}
@@ -94,7 +94,7 @@ begin
       rgLogType.ItemIndex := ReadInteger('Options', 'StreamLogType', 2);
       chbxUseIncrementSaving.Checked := ReadBoolean('Options', 'UseIncrementSaving', False);
       {$IFDEF WITH_INDY}
-      eWebServerPort.Value := ReadInteger('Options', gd_WebServerControl_unit.STORAGE_WEB_SERVER_PORT_VALUE_NAME, gd_WebServerControl_unit.DEFAULT_WEB_SERVER_PORT);
+      eWebServerPort.Value := ReadInteger('Options', STORAGE_WEB_SERVER_PORT_VALUE_NAME, DEFAULT_WEB_SERVER_PORT);
       {$ENDIF}
     end;
                                                
@@ -194,7 +194,7 @@ begin
       WriteInteger('Options', 'StreamLogType', rgLogType.ItemIndex);
       WriteBoolean('Options', 'UseIncrementSaving', chbxUseIncrementSaving.Checked);
       {$IFDEF WITH_INDY}
-      WriteInteger('Options', gd_WebServerControl_unit.STORAGE_WEB_SERVER_PORT_VALUE_NAME, Round(eWebServerPort.Value));
+      WriteInteger('Options', STORAGE_WEB_SERVER_PORT_VALUE_NAME, Round(eWebServerPort.Value));
       {$ENDIF}
     end;
 

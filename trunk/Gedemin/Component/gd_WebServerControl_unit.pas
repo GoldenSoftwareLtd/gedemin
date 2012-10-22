@@ -29,10 +29,6 @@ uses
   Classes, Contnrs, SyncObjs, IdHTTPServer, IdCustomHTTPServer, IdTCPServer,
   evt_i_Base, gd_FileList_unit;
 
-const
-  DEFAULT_WEB_SERVER_PORT = 80;
-  STORAGE_WEB_SERVER_PORT_VALUE_NAME = 'WebServerPort';
-
 type
   TgdWebServerControl = class(TComponent)
   private
@@ -85,7 +81,7 @@ uses
   SysUtils, Forms, Windows, IBSQL, IBDatabase, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
   gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock,
-  ComObj, JclSimpleXML, gd_directories_const, ActiveX, zlib;
+  ComObj, JclSimpleXML, gd_directories_const, ActiveX;
 
 type
   TgdHttpHandler = class(TObject)
@@ -431,6 +427,9 @@ begin
   if FFileList = nil then
   begin
     FFileList := TFLCollection.Create;
+    //!!!
+    FFileList.RootPath := 'd:\golden\gedemin_local_fb';
+    //!!!
     FFileList.BuildEtalonFileSet;
   end;
 
@@ -470,8 +469,6 @@ procedure TgdWebServerControl.ProcessFileRequest;
 var
   FI: TFLItem;
   MS: TMemoryStream;
-  FS: TFileStream;
-  ZS: TZCompressionStream;
 begin
   Log(FRequestInfo.RemoteIP, 'RQFL', ['file_name'],
     [FRequestInfo.Params.Values['fn']]);
@@ -484,18 +481,7 @@ begin
     if FI <> nil then
     begin
       MS := TMemoryStream.Create;
-      ZS := TZCompressionStream.Create(MS);
-      try
-        FS := TFileStream.Create(FI.FullName, fmOpenRead or fmShareCompat);
-        try
-          ZS.CopyFrom(FS, 0);
-        finally
-          FS.Free;
-        end;
-      finally
-        ZS.Free;
-      end;
-
+      FI.ReadFromDisk(MS);
       FResponseInfo.ResponseNo := 200;
       FResponseInfo.ContentType := 'application/octet-stream;';
       FResponseInfo.ContentStream := MS;
