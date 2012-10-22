@@ -234,6 +234,15 @@ const
   //
   Gedemin_NameServerURL           = 'http://gsbelarus.com/gs/gedemin/gdwebserver';
 
+  //
+  Gedemin_Updater                 = 'gedemin_upd.exe';
+  Gedemin_Updater_Ini             = 'gedemin_upd.ini';
+  Gedemin_Updater_Log             = 'gedemin_upd.log';
+
+  //
+  DEFAULT_WEB_SERVER_PORT            = 80;
+  STORAGE_WEB_SERVER_PORT_VALUE_NAME = 'WebServerPort';
+
 function IsGedeminSystemID(const AnID: Integer): Boolean;
 function IsGedeminNonSystemID(const AnID: Integer): Boolean;
 

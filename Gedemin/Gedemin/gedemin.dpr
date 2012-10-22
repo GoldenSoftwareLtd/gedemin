@@ -608,10 +608,8 @@ begin
     ///////////////////
     // Создание мютекса
 
-    SetLastError(0);
-    MutexHandle := CreateMutex(nil, False, PChar(GedeminMutexName));
+    MutexHandle := CreateMutex(nil, True, PChar(GedeminMutexName));
     MutexExisted := GetLastError = ERROR_ALREADY_EXISTS;
-
     try
       if (MutexHandle = 0) or (not MutexExisted)
         or (MutexExisted and ShouldProceedLoading) then
@@ -668,7 +666,8 @@ begin
       end;
 
     finally
-      CloseHandle(MutexHandle);
+      {ReleaseMutex(MutexHandle);
+      CloseHandle(MutexHandle);}
     end;
   finally
     ApplicationEventsHandler.Free;

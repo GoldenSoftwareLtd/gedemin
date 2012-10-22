@@ -23,7 +23,6 @@ type
     procedure AddEnv(const AName: String);
     procedure AddBoolean(const AName: String; const AValue: Boolean);
     procedure AddComLibrary(const AClsID: String; const AName: String);
-    function TestGetMem: Int64;
 
   public
     constructor Create;
@@ -76,9 +75,11 @@ uses
   IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
   IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
   gd_directories_const, IBSQL, IBDatabase, gd_ClassList,
-  {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase, gd_FileList_unit,
+  {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
   {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version{$IFDEF GEDEMIN}, FastMM4{$ENDIF}
-  {$IFDEF WITH_INDY}, IdGlobal, gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF};
+  {$IFDEF WITH_INDY}
+  , gd_FileList_unit, IdGlobal, gd_WebClientControl_unit, gd_WebServerControl_unit
+  {$ENDIF};
 
 type
   TMemoryStatusEx = record
@@ -183,8 +184,10 @@ begin
 end;
 
 procedure Tgd_dlgAbout.FormCreate(Sender: TObject);
+{$IFDEF WITH_INDY}
 var
   FL: TFLCollection;
+{$ENDIF}
 begin
   with FSysInfo do
   begin
@@ -197,6 +200,7 @@ begin
     mSysData.SelStart := 0;
   end;
 
+  {$IFDEF WITH_INDY}
   FL := TFLCollection.Create;
   try
     FL.BuildEtalonFileSet;
@@ -205,6 +209,7 @@ begin
   finally
     FL.Free;
   end;
+  {$ENDIF}
 end;
 
 procedure Tgd_dlgAbout.btnHelpClick(Sender: TObject);
@@ -325,7 +330,6 @@ begin
   AddSpaces('IP адрес', HostToIP(CompName));
   AddSpaces('ОЗУ всего', FormatFloat('#,##0', GetGlobalMemoryRecord.ullTotalPhys div 1024 div 1024) + ' Мб');
   AddSpaces('ОЗУ свободно', FormatFloat('#,##0', GetGlobalMemoryRecord.ullAvailPhys div 1024 div 1024) + ' Мб');
-  AddSpaces('Удалось выделить', FormatFloat('#,##0', TestGetMem) + ' Мб');
   AddSpaces('Версия ОС', GetOS);
   AddSpaces('Дата и время', FormatDateTime('dd.mm.yyyy hh:nn:ss', Now));
 
@@ -758,40 +762,6 @@ begin
 
   if FNext then
     ActivateKeyBoardLayout(HKL_PREV, 0);
-end;
-
-function TgdSysInfo.TestGetMem: Int64;
-const
-  PointersCount = 4000;
-  BlockSize = 1024 * 1024;
-var
-  Pointers: array[1..PointersCount] of Pointer;
-  Cnt: Integer;
-begin
-  Cnt := 0;
-  try
-    while Cnt < PointersCount do
-    begin
-      Inc(Cnt);
-      try
-        GetMem(Pointers[Cnt], BlockSize);
-      except
-        on EOutOfMemory do
-        begin
-          Dec(Cnt);
-          break;
-        end;
-      end;
-    end;
-
-    Result := Cnt;
-  finally
-    while Cnt > 0 do
-    begin
-      FreeMem(Pointers[Cnt]);
-      Dec(Cnt);
-    end;
-  end;
 end;
 
 initialization

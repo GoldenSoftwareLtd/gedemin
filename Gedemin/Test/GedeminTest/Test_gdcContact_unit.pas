@@ -4,7 +4,7 @@ unit Test_gdcContact_unit;
 interface
 
 uses
-  Classes, TestFrameWork, gsTestFrameWork, gdcContacts;
+  Classes, TestFrameWork, gsTestFrameWork;
 
 type
   Tgs_gdcContactTest = class(TgsDBTestCase)
@@ -12,10 +12,15 @@ type
     procedure Test_gdcContact;
   end;
 
+  Tgs_gdcGoodTest = class(TgsDBTestCase)
+  published
+    procedure Test_gdcMetal;
+  end;
+
 implementation
 
 uses
-  SysUtils, IBSQL, gdcBaseInterface, gd_security;
+  SysUtils, IBSQL, gdcBaseInterface, gd_security, gdcContacts, gdcGood;
 
 { Tgs_gdcContactTest }
 
@@ -55,6 +60,24 @@ begin
   end;
 end;
 
+{ Tgs_gdcGoodTest }
+
+procedure Tgs_gdcGoodTest.Test_gdcMetal;
+var
+  M: TgdcMetal;
+begin
+  M := TgdcMetal.Create(nil);
+  try
+    M.Open;
+    M.Insert;
+    M.FieldByName('name').AsString := 'Золото';
+    M.Post;
+  finally
+    M.Free;
+  end;
+end;
+
 initialization
   RegisterTest('DB', Tgs_gdcContactTest.Suite);
+  RegisterTest('DB', Tgs_gdcGoodTest.Suite);
 end.

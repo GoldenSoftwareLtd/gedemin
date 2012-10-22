@@ -1,3 +1,4 @@
+
 {
   Товары
 
@@ -13,14 +14,14 @@
 
     1.00    29.10.01    sai        Initial version.
     1.01    02.11.01    sai        Добавлены
-        TgdcValue       - Единицы измерения
-        TgdcTax         - Налоги
-        TgdcMetal       - Драг металы
-        TgdcGoodSet     - Комплекты
-        ViewForm - ы для
+                                     TgdcValue       - Единицы измерения
+                                     TgdcTax         - Налоги
+                                     TgdcMetal       - Драг металы
+                                     TgdcGoodSet     - Комплекты
+                                     ViewForm - ы для
     1.02    03.11.01    michael    Добавлен iherited в GetWhere_Clause для поддержки
                                    SubSet = 'ByID'
-    1.03    05.11.01    sai   Переделаны методы ChooseElement
+    1.03    05.11.01    sai        Переделаны методы ChooseElement
 }
 
 unit gdcGood;
@@ -32,8 +33,8 @@ uses
   gdcBaseInterface, contnrs;
 
 const
-  cst_byGroup = 'byGroup';
-  cst_byGood = 'byGood';
+  cst_byGroup     = 'byGroup';
+  cst_byGood      = 'byGood';
   cst_GoodGroupID = 2000520;
 
 type
@@ -63,7 +64,7 @@ type
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
   end;
 
-  TgdcMetal = class(TgdcBase) {gd_PreciouseMetal}
+  TgdcMetal = class(TgdcBase)
   protected
     function GetSelectClause: String; override;
 
@@ -200,8 +201,6 @@ begin
   RegisterComponents('gdcGood', [TgdcTax]);
   RegisterComponents('gdcGood', [TgdcMetal]);
   RegisterComponents('gdcGood', [TgdcSelectedGood]);
-
-
 end;
 
 { TgdcValue }
@@ -599,7 +598,6 @@ end;
 constructor TgdcGoodBarCode.Create(AnOwner: TComponent);
 begin
   inherited Create(AnOwner);
-
   CustomProcess := [];
 end;
 
@@ -810,7 +808,6 @@ begin
   {M}    end;
   {END MACRO}
   Result := '';
-  //Result := ' ORDER BY z.name ';
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGOODGROUP', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -891,11 +888,13 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   inherited _DoOnNewRecord;
 
   if FGroupKey > 0 then
     FieldByName('GroupKey').AsInteger := FGroupKey;
   FieldByName('discipline').AsString := 'F';
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCGOOD', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -957,16 +956,6 @@ begin
   {M}  end;
   {END MACRO}
 end;
-
-{function TgdcGood.GetCopyFieldName: String;
-begin
-  Result := 'groupkey';
-end;
-
-function TgdcGood.GetCopyValue: Variant;
-begin
-  Result := GroupKey;
-end;}
 
 function TgdcGood.GetGroupID: Integer;
 begin
@@ -1160,7 +1149,6 @@ begin
   {M}      ClearMacrosStack2('TGDCGOOD', 'DOBEFOREINSERT', KEYDOBEFOREINSERT);
   {M}  end;
   {END MACRO}
-
 end;
 
 class function TgdcGood.GetDisplayName(
@@ -1186,7 +1174,6 @@ begin
 end;
 
 { TgdcSelectedGood }
-
 
 procedure TgdcGood.CreateFields;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
@@ -1256,5 +1243,4 @@ finalization
   UnRegisterGdcClass(TgdcTax);
   UnRegisterGdcClass(TgdcMetal);
   UnRegisterGdcClass(TgdcSelectedGood);
-
 end.

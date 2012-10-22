@@ -14,13 +14,14 @@ type
     FgdWebServerURL: String;
     FServerFileList: TFLCollection;
     FConnected: Boolean;
-    FLCommands: TFLCommands;
     FHTTP: TidHTTP;
+    FCmdList: TStringList;
 
     function QueryWebServer: Boolean;
     function LoadWebServerURL: Boolean;
     function UpdateFiles: Boolean;
     function ProcessUpdateCommand: Boolean;
+    procedure FinishUpdate;
 
     function GetgdWebServerURL: String;
     procedure SetgdWebServerURL(const Value: String);
@@ -47,7 +48,8 @@ implementation
 
 uses
   SysUtils, ComObj, ActiveX, gdcJournal, gd_security, JclSimpleXML,
-  gdNotifierThread_unit, gd_directories_const, JclFileUtils, idURI;
+  gdNotifierThread_unit, gd_directories_const, JclFileUtils, idURI,
+  Forms;
 
 const
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
@@ -55,6 +57,7 @@ const
   WM_GD_GET_FILES_LIST         = WM_USER + 1120;
   WM_GD_UPDATE_FILES           = WM_USER + 1121;
   WM_GD_PROCESS_UPDATE_COMMAND = WM_USER + 1122;
+  WM_GD_FINISH_UPDATE          = WM_USER + 1123;
 
 { TgdWebClientThread }
 
@@ -113,19 +116,14 @@ end;
 
 function TgdWebClientThread.UpdateFiles: Boolean;
 begin
-  Result := False;
-  if FServerFileList = nil then
+  Result := FServerFileList <> nil;
+  if not Result then
     FErrorMessage := 'FServerFileList is not assigned.'
   else begin
-    if FLCommands = nil then
-      FLCommands := TFLCommands.Create;
-    try
-      FServerFileList.AnalyzeFiles(FLCommands);
-      Result := FLCommands.Count > 0
-    finally
-      if not Result then
-        FreeAndNil(FLCommands);
-    end;
+    if FCmdList = nil then
+      FCmdList := TStringList.Create
+    else
+      FCmdList.Clear;  
   end;
 end;
 
@@ -154,7 +152,12 @@ begin
 
     WM_GD_PROCESS_UPDATE_COMMAND:
       if ProcessUpdateCommand then
-        PostThreadMessage(ThreadID, WM_GD_PROCESS_UPDATE_COMMAND, 0, 0);
+        PostThreadMessage(ThreadID, WM_GD_PROCESS_UPDATE_COMMAND, 0, 0)
+      else
+        PostThreadMessage(ThreadID, WM_GD_FINISH_UPDATE, 0, 0);
+
+    WM_GD_FINISH_UPDATE:
+      FinishUpdate;        
   else
     Result := False;
   end;
@@ -186,8 +189,8 @@ begin
   inherited;
   FCS.Free;
   FServerFileList.Free;
-  FLCommands.Free;
   FHTTP.Free;
+  FCmdList.Free;
 end;
 
 function TgdWebClientThread.GetgdWebServerURL: String;
@@ -205,57 +208,36 @@ begin
 end;
 
 function TgdWebClientThread.ProcessUpdateCommand: Boolean;
-var
-  Cmd, Arg, FileName: String;
-  FS: TFileStream;
-  FI: TFLItem;
 begin
-  Result := False;
-  if (FLCommands = nil) or (FServerFileList = nil) then
-    FErrorMessage := 'FLCommands or FServerFileList is not assigned'
-  else
-    try
-      if FLCommands.GetCommand(Cmd, Arg) then
+  Result := FServerFileList.UpdateFile(FHTTP, FgdWebServerURL, FCmdList);
+end;
+
+procedure TgdWebClientThread.FinishUpdate;
+var
+  StartupInfo: TStartupInfo;
+  ProcessInfo: TProcessInformation;
+  FPath, FName: String;
+begin
+  if Assigned(FCmdList) then
+  try
+    if FCmdList.Count > 0 then
+    begin
+      FPath := ExtractFilePath(Application.ExeName);
+      FCmdList.SaveToFile(FPath + Gedemin_Updater_Ini);
+      FName := FPath + Gedemin_Updater;
+      FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
+      StartupInfo.cb := SizeOf(TStartupInfo);
+      if not CreateProcess(PChar(FName), nil, nil, nil, False,
+        NORMAL_PRIORITY_CLASS or CREATE_NO_WINDOW, nil, nil,
+        StartupInfo, ProcessInfo) then
       begin
-        FI := FServerFileList.FindItem(Arg);
-
-        if FI = nil then
-        begin
-          FErrorMessage := 'Unknown file';
-          exit;
-        end;
-
-        if Cmd = 'BF' then
-        begin
-          gdNotifierThread.Add('Создание архивной копии файла ' + FI.FullName, 0, 1200);
-          Result := FileCopy(FI.FullName, FI.FullName + '.bak', True);
-        end else
-        if Cmd = 'UF' then
-        begin
-          gdNotifierThread.Add('Загрузка файла ' + FI.FullName, 0, 1200);
-
-          FileName := FI.FullName + '.tmp';
-          if FileExists(FileName) and (not DeleteFile(FileName)) then
-          begin
-            FErrorMessage := 'Can not delete file ' + FileName;
-            exit;
-          end;
-
-          FS := TFileStream.Create(FileName, fmCreate);
-          try
-            FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_file?fn=' + Arg), FS);
-          finally
-            FS.Free;
-          end;
-
-          Result := True;
-        end else
-          Result := True;
+        FErrorMessage := 'Can not start ' + Gedemin_Updater + '. ' +
+          SysErrorMessage(GetLastError);
       end;
-    finally
-      if not Result then
-        FreeAndNil(FLCommands);
     end;
+  finally
+    FreeAndNil(FCmdList);
+  end;
 end;
 
 initialization
