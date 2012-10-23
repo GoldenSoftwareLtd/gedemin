@@ -227,8 +227,9 @@ begin
       FName := FPath + Gedemin_Updater;
       FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
       StartupInfo.cb := SizeOf(TStartupInfo);
-      if not CreateProcess(PChar(FName), nil, nil, nil, False,
-        NORMAL_PRIORITY_CLASS or CREATE_NO_WINDOW, nil, nil,
+      if not CreateProcess(PChar(FName),
+        PChar('"' + FName + '" ' + IntToStr(GetCurrentProcessID)),
+        nil, nil, False, NORMAL_PRIORITY_CLASS or CREATE_NO_WINDOW, nil, nil,
         StartupInfo, ProcessInfo) then
       begin
         FErrorMessage := 'Can not start ' + Gedemin_Updater + '. ' +

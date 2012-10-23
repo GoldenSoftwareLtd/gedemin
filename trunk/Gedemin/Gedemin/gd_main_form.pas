@@ -298,6 +298,7 @@ type
     FExitWindowsParam: Longint;
     FExitWindows: Boolean;
     FFirstTime: Boolean;
+    FNotificationID: Integer;
 
     procedure OnFormToggleItemClick(Sender: TObject);
 
@@ -695,6 +696,7 @@ begin
   FCanClose := False;
   FExitWindows := False;
   FFirstTime := True;
+  FNotificationID := -1;
 
   _OnCreateForm := _DoOnCreateForm;
   _OnDestroyForm := _DoOnDestroyForm;
@@ -1036,7 +1038,9 @@ begin
 {$ENDIF}
 
   if IBLogin.IsUserAdmin then
-    gdNotifierThread.Add(IBLogin.Database.DatabaseName);
+    FNotificationID := gdNotifierThread.Add(IBLogin.Database.DatabaseName)
+  else
+    FNotificationID := -1;
 
   // Issue 1992
   if FormAssigned(gdc_frmExplorer) then
@@ -1065,7 +1069,11 @@ begin
   gdcBaseManager.IDCacheFlush;
   ClearLookupCache;
 
-  lblDatabase.Caption := '';
+  if FNotificationID >= 0 then
+  begin
+    gdNotifierThread.DeleteNotification(FNotificationID);
+    FNotificationID := -1;
+  end;
 
   if Assigned(GlobalStorage) and
     GlobalStorage.ReadBoolean('Options', 'AllowAudit', False, False) then

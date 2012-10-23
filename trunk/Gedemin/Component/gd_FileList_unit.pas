@@ -650,6 +650,7 @@ procedure TFLItem.UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStr
   procedure DownloadFile(const ALocalName: String);
   var
     MS: TMemoryStream;
+    f: THandle;
   begin
     MS := TMemoryStream.Create;
     try
@@ -658,6 +659,17 @@ procedure TFLItem.UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStr
       WriteToDisk(ALocalName, MS);
     finally
       MS.Free;
+    end;
+
+    if Date <> 0 then
+    begin
+      f := FileOpen(ALocalName, fmOpenReadWrite);
+      try
+        if f <> 0 then
+          FileSetDate(f, DateTimeToFileDate(Date));
+      finally
+        FileClose(f);
+      end;
     end;
   end;
 

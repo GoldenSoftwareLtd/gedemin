@@ -55,6 +55,7 @@ type
     function HasUrgent: Boolean;
     procedure DeleteCurrItem;
     function DeleteContext(const AContext: Integer): Boolean;
+    function DeleteNotification(const AnID: Integer): Boolean;
 
     property Curr: Integer read FCurr;
     property EOF: Boolean read GetEOF;
@@ -82,6 +83,7 @@ type
     function Add(const AText: String; const AContext: Integer = 0;
       const AShowTime: DWORD = INFINITE): Integer;
     procedure DeleteContext(const AContext: Integer);
+    procedure DeleteNotification(const AnID: Integer);
 
     property NotifierWindow: IgdNotifierWindow read FNotifierWindow write FNotifierWindow;
   end;
@@ -131,6 +133,17 @@ begin
   Priority := tpLowest;
   FCriticalSection := TCriticalSection.Create;
   FQueue := TgdNotifierQueue.Create;
+end;
+
+procedure TgdNotifierThread.DeleteNotification(const AnID: Integer);
+begin
+  FCriticalSection.Enter;
+  try
+    if FQueue.DeleteNotification(AnID) then
+      PostMsg(WM_GD_UPDATE_NOTIFIER);
+  finally
+    FCriticalSection.Leave;
+  end;
 end;
 
 procedure TgdNotifierThread.DeleteContext(const AContext: Integer);
@@ -283,6 +296,23 @@ begin
     Delete(FCurr);
     if FCurr >= Count then
       FCurr := 0;
+  end;
+end;
+
+function TgdNotifierQueue.DeleteNotification(const AnID: Integer): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := Count - 1 downto 0 do
+  begin
+    if (Items[I] as TgdNotifierItem).ID = AnID then
+    begin
+      Delete(I);
+      if I < FCurr then Dec(FCurr);
+      Result := True;
+      break;
+    end;
   end;
 end;
 
