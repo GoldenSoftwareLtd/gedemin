@@ -39,12 +39,16 @@ set starteam_connect=Andreik:1@india:49201
 if "%2"=="/d" goto make_debug 
 
 set gedemin_cfg=gedemin.product.cfg
+set gedemin_upd_cfg=gedemin_upd.product.cfg
+set gudf_cfg=gudf.product.cfg
 set compiler_switch=-b
 set arc_name=gedemin.rar
 goto start_process
 
 :make_debug
 set gedemin_cfg=gedemin.debug.cfg
+set gedemin_upd_cfg=gedemin_upd.debug.cfg
+set gudf_cfg=gudf.debug.cfg
 set compiler_switch=-b -vt
 set arc_name=gedemin_debug.rar
 
@@ -133,6 +137,78 @@ tdspack -e -o -a gedemin.exe
 
 echo *************************************************
 echo **                                             **
+echo **  gedemin_upd:                               **
+echo **  Prepare .cfg files                         **
+echo **                                             **
+echo *************************************************
+
+cd ..\gedemin
+copy gedemin_upd.cfg gedemin_upd.current.cfg /y
+copy %gedemin_upd_cfg% gedemin_upd.cfg /y
+
+echo *************************************************
+echo **                                             **
+echo **  gedemin_upd:                               **
+echo **  Compile gedemin_upd.exe                    **
+echo **                                             **
+echo *************************************************
+
+"%delphi_path%\dcc32.exe" %compiler_switch% gedemin_upd.dpr
+
+echo *************************************************
+echo **                                             **
+echo **  gedemin_upd:                               **
+echo **  Restore .cfg files                         **
+echo **                                             **
+echo *************************************************
+
+copy gedemin_upd.current.cfg gedemin_upd.cfg /y
+del gedemin_upd.current.cfg > nul
+
+echo *************************************************
+echo **                                             **
+echo **  gedemin_upd:                               **
+echo **  Strip relocation information               **
+echo **                                             **
+echo *************************************************
+
+cd ..\exe
+stripreloc /b gedemin_upd.exe
+
+echo *************************************************
+echo **                                             **
+echo **  gudf.dll:                                  **
+echo **  Prepare .cfg files                         **
+echo **                                             **
+echo *************************************************
+
+cd ..\gudf
+copy gudf.cfg gudf.current.cfg /y
+copy %gudf_cfg% gudf.cfg /y
+
+echo *************************************************
+echo **                                             **
+echo **  gudf.dll:                                  **
+echo **  Compile gudf.dll                           **
+echo **                                             **
+echo *************************************************
+
+"%delphi_path%\dcc32.exe" %compiler_switch% gudf.dpr
+
+echo *************************************************
+echo **                                             **
+echo **  gudf.dll:                                  **
+echo **  Restore .cfg files                         **
+echo **                                             **
+echo *************************************************
+
+copy gudf.current.cfg gudf.cfg /y
+del gudf.current.cfg > nul
+
+cd ..\exe
+
+echo *************************************************
+echo **                                             **
 echo **  update_gedemin:                            **
 echo **  Check in version number changes            **
 echo **                                             **
@@ -149,6 +225,13 @@ echo **  Make an archive                            **
 echo **                                             **
 echo *************************************************
 
+del *.bak /s
+del *.tmp /s
+del *.new /s
+del *.~* /s
+del gedemin_upd.ini
+del gudf.dll
+
 set arc_command="c:\program files\winrar\winrar.exe" a %arc_name%
 
 if exist %arc_name% del %arc_name% 
@@ -156,6 +239,8 @@ if exist %arc_name% del %arc_name%
 %arc_command% ib_util.dll icudt30.dll icuin30.dll icuuc30.dll
 %arc_command% fbembed.dll firebird.msg
 %arc_command% microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll
+%arc_command% gedemin_upd.exe
+%arc_command% udf\gudf.dll intl\fbintl.conf intl\fbintl.dll
 
 echo *************************************************
 echo **                                             **
