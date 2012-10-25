@@ -456,13 +456,16 @@ var
   I: Integer;
 begin
   Result := '';
-  for I := 0 to FHTTPServer.Bindings.Count - 1 do
+  if Assigned(FHTTPServer) then
   begin
-    Result := Result + (FHTTPServer.Bindings[I] as TidSocketHandle).IP +
-      ':' + IntToStr((FHTTPServer.Bindings[I] as TidSocketHandle).Port) + ';';
+    for I := 0 to FHTTPServer.Bindings.Count - 1 do
+    begin
+      Result := Result + (FHTTPServer.Bindings[I] as TidSocketHandle).IP +
+        ':' + IntToStr((FHTTPServer.Bindings[I] as TidSocketHandle).Port) + ';';
+    end;
+    if Result > '' then
+      SetLength(Result, Length(Result) - 1);
   end;
-  if Result > '' then
-    SetLength(Result, Length(Result) - 1);
 end;
 
 procedure TgdWebServerControl.ProcessFileRequest;

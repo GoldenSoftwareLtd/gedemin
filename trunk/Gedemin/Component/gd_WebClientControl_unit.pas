@@ -4,8 +4,8 @@ unit gd_WebClientControl_unit;
 interface
 
 uses
-  Classes, Windows, Messages, SyncObjs, idHTTP, gdMessagedThread,
-  gd_FileList_unit;
+  Classes, Windows, Messages, SyncObjs, SysUtils, idHTTP, idURI, idComponent,
+  gdMessagedThread, gd_FileList_unit, gd_ProgressNotifier_unit;
 
 type
   TgdWebClientThread = class(TgdMessagedThread)
@@ -13,9 +13,12 @@ type
     FCS: TCriticalSection;
     FgdWebServerURL: String;
     FServerFileList: TFLCollection;
-    FConnected: Boolean;
+    FConnected, FInUpdate: Boolean;
     FHTTP: TidHTTP;
     FCmdList: TStringList;
+    FURI: TidURI;
+    FProgressWatch: IgdProgressWatch;
+    FPI: TgdProgressInfo;
 
     function QueryWebServer: Boolean;
     function LoadWebServerURL: Boolean;
@@ -25,6 +28,10 @@ type
 
     function GetgdWebServerURL: String;
     procedure SetgdWebServerURL(const Value: String);
+
+    procedure DoOnWork(Sender: TObject; AWorkMode: TWorkMode; const AWorkCount: Integer);
+    procedure DoOnProgressWatch(Sender: TObject; const AProgressInfo: TgdProgressInfo);
+    procedure SyncProgressWatch;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -37,9 +44,13 @@ type
     destructor Destroy; override;
 
     procedure AfterConnection;
+    procedure StartUpdateFiles;
 
     property gdWebServerURL: String read GetgdWebServerURL write SetgdWebServerURL;
+    property ProgressWatch: IgdProgressWatch read FProgressWatch write FProgressWatch;
   end;
+
+  EgdWebClientThread = class(Exception);
 
 var
   gdWebClientThread: TgdWebClientThread;
@@ -47,8 +58,8 @@ var
 implementation
 
 uses
-  SysUtils, ComObj, ActiveX, gdcJournal, gd_security, JclSimpleXML,
-  gdNotifierThread_unit, gd_directories_const, JclFileUtils, idURI,
+  ComObj, ActiveX, gdcJournal, gd_security, JclSimpleXML,
+  gdNotifierThread_unit, gd_directories_const, JclFileUtils,
   Forms;
 
 const
@@ -71,6 +82,8 @@ begin
   FHTTP.HandleRedirects := True;
   FHTTP.ReadTimeout := 88000;
   FHTTP.ConnectTimeout := 44000;
+  FHTTP.OnWork := DoOnWork;
+  FURI := TidURI.Create;
 end;
 
 procedure TgdWebClientThread.AfterConnection;
@@ -87,7 +100,11 @@ begin
     FErrorMessage := 'IBLogin is not assigned.'
   else if gdWebServerURL = '' then
     FErrorMessage := 'gdWebServerURL is not assigned.'
+  else if FInUpdate then
+    FErrorMessage := 'Update process is running.'
   else begin
+    FURI.URI := gdWebServerURL;
+    gdNotifierThread.Add('Подключение к серверу: ' + FURI.Host + '...', 0, 2000);
     ResponseData := TStringStream.Create('');
     try
       FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/query?' +
@@ -105,7 +122,8 @@ end;
 
 function TgdWebClientThread.LoadWebServerURL: Boolean;
 begin
-  gdWebServerURL := '';
+  FURI.URI := Gedemin_NameServerURL;
+  gdNotifierThread.Add('Опрос сервера: ' + FURI.Host + '...', 0, 2000);
   gdWebServerURL := FHTTP.Get(Gedemin_NameServerURL);
   //!!!
   //gdWebServerURL := 'http://192.168.0.35';
@@ -123,7 +141,8 @@ begin
     if FCmdList = nil then
       FCmdList := TStringList.Create
     else
-      FCmdList.Clear;  
+      FCmdList.Clear;
+    FServerFileList.OnProgressWatch := DoOnProgressWatch;
   end;
 end;
 
@@ -133,17 +152,13 @@ begin
   case Msg.Message of
     WM_GD_AFTER_CONNECTION:
       if (not FConnected) and LoadWebServerURL then
-      begin
-        PostThreadMessage(ThreadID, WM_GD_QUERY_SERVER, 0, 0);
-        gdNotifierThread.Add('Подключение к серверу ' + Gedemin_NameServerURL, 0, 2000);
         FConnected := True;
-      end;
 
     WM_GD_QUERY_SERVER:
       if QueryWebServer then
       begin
+        FInUpdate := True;
         PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
-        gdNotifierThread.Add('Подключение к серверу ' + gdWebServerURL, 0, 2000);
       end;
 
     WM_GD_UPDATE_FILES:
@@ -157,7 +172,10 @@ begin
         PostThreadMessage(ThreadID, WM_GD_FINISH_UPDATE, 0, 0);
 
     WM_GD_FINISH_UPDATE:
-      FinishUpdate;        
+      begin
+        FinishUpdate;
+        FInUpdate := False;
+      end;
   else
     Result := False;
   end;
@@ -191,6 +209,7 @@ begin
   FServerFileList.Free;
   FHTTP.Free;
   FCmdList.Free;
+  FURI.Free;
 end;
 
 function TgdWebClientThread.GetgdWebServerURL: String;
@@ -239,6 +258,32 @@ begin
   finally
     FreeAndNil(FCmdList);
   end;
+  FServerFileList.OnProgressWatch := nil;
+end;
+
+procedure TgdWebClientThread.StartUpdateFiles;
+begin
+  PostMsg(WM_GD_QUERY_SERVER);
+end;
+
+procedure TgdWebClientThread.DoOnWork(Sender: TObject;
+  AWorkMode: TWorkMode; const AWorkCount: Integer);
+begin
+  if Terminated then
+    Abort;
+end;
+
+procedure TgdWebClientThread.DoOnProgressWatch(Sender: TObject;
+  const AProgressInfo: TgdProgressInfo);
+begin
+  FPI := AProgressInfo;
+  Synchronize(SyncProgressWatch);
+end;
+
+procedure TgdWebClientThread.SyncProgressWatch;
+begin
+  if Assigned(FProgressWatch) then
+    FProgressWatch.UpdateProgress(FPI);
 end;
 
 initialization

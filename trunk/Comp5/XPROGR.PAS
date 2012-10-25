@@ -64,6 +64,9 @@ type
   public
     constructor Create(AnOwner: TComponent); override;
 
+    procedure SetValues(const AValue, AMin, AMax: LongInt;
+      const AForceRedraw: Boolean = False);
+
   published
     property Value: LongInt index 1 read FValue write SetParam
       default DefaultValue;
@@ -123,7 +126,7 @@ procedure Register;
 
 implementation
 
-{$R XPROGR.RES}
+{$R xprogr.res}
 
 { xProgressBase ------------------------------------------}
 
@@ -144,15 +147,41 @@ begin
 end;
 
 procedure TxProgressBase.SetParam(Index: Integer; AParam: LongInt);
+var
+  Changed: Boolean;
 begin
+  Changed := False;
+
   case Index of
-    1: FValue := AParam;
-    2: FMin := AParam;
-    3: FMax := AParam;
+    1:
+      if FValue <> AParam then
+      begin
+        FValue := AParam;
+        Changed := True;
+      end;
+
+    2:
+      if FMin <> AParam then
+      begin
+        FMin := AParam;
+        Changed := True;
+      end;
+
+    3:
+      if FMax <> AParam then
+      begin
+        FMax := AParam;
+        Changed := True;
+      end;
   end;
-  DrawProgress;
-  if Index = 1 then
-    Application.ProcessMessages; {!!!}
+
+  if Changed then
+  begin
+    if csDesigning in ComponentState then
+      Invalidate
+    else
+      DrawProgress;
+  end;
 end;
 
 { xProgressBar -------------------------------------------}
@@ -175,6 +204,9 @@ var
   W, H, I, C, TotalC: LongInt;
   Rgn: HRgn;
 begin
+  if (not Visible) and (not (csDesigning in ComponentState)) then
+    exit;
+
   if (FMax <= FMin) or (FValue < FMin) or (FValue > FMax) then
     exit;
 
@@ -192,7 +224,11 @@ begin
       H := R.Bottom - R.Top;
       TotalC := ((R.Right - R.Left) div (H + Gap));
       W := Trunc((R.Right - R.Left - TotalC * Gap + Gap) / TotalC);
-      C := Round(TotalC  * ( (FValue - FMin) / (FMax - FMin) ));
+
+      if FMax = 0 then
+        C := 0
+      else
+        C := Round(TotalC  * ( (FValue - FMin) / (FMax - FMin) ));
 
       for I := 0 to TotalC - 1 do
       begin
@@ -341,6 +377,19 @@ procedure Register;
 begin
   RegisterComponents('gsVC', [TxProgressBar]);
   RegisterComponents('gsVC', [TxRunningMan]);
+end;
+
+procedure TxProgressBase.SetValues(const AValue, AMin, AMax: Integer;
+  const AForceRedraw: Boolean);
+begin
+  FValue := AValue;
+  FMin := AMin;
+  FMax := AMax;
+
+  if AForceRedraw then
+    DrawProgress
+  else
+    Invalidate;  
 end;
 
 end.

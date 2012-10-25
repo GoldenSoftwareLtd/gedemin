@@ -13,7 +13,6 @@ var
   MutexHandle, GedProcHandle, LogHandle: THandle;
   I, LogType: Integer;
   S, Cmd, FName, IniName: String;
-  Res: Boolean;
   GedProcID: DWORD;
   ss: array [0..0] of PChar;
 
@@ -64,26 +63,64 @@ begin
             Cmd := Copy(S, 1, 2);
             FName := Copy(S, 4, 1024);
 
-            Res := False;
+            LogType := EVENTLOG_SUCCESS;
+            ss[0] := PChar(S);
             try
               if Cmd = 'CD' then
-                Res := CreateDir(FName)
+              begin
+                if not CreateDir(FName) then
+                begin
+                  LogType := EVENTLOG_ERROR_TYPE;
+                  ss[0] := PChar('Can not create directory ' + FName);
+                end;
+              end
               else if Cmd = 'RD' then
-                Res := DelTree(FName)
+              begin
+                if not DelTree(FName) then
+                begin
+                  LogType := EVENTLOG_ERROR_TYPE;
+                  ss[0] := PChar('Can not delete directory ' + FName);
+                end;
+              end
               else if Cmd = 'CF' then
-                Res := RenameFile(FName + '.new', FName)
+              begin
+                if not FileExists(FName + '.new') then
+                begin
+                  LogType := EVENTLOG_ERROR_TYPE;
+                  ss[0] := PChar('File not found ' + FName + '.new');
+                end
+                else if not RenameFile(FName + '.new', FName) then
+                begin
+                  LogType := EVENTLOG_ERROR_TYPE;
+                  ss[0] := PChar('Can not rename file ' + FName + '.new');
+                end
+              end
               else if Cmd = 'RF' then
-                Res := DeleteFile(FName)
+              begin
+                if not DeleteFile(FName) then
+                begin
+                  LogType := EVENTLOG_ERROR_TYPE;
+                  ss[0] := PChar('Can not delete file ' + FName);
+                end;
+              end
               else if Cmd = 'UF' then
               begin
-                Res := FileExists(FName + '.new');
-                if Res then Res := DeleteFile(FName);
-                if Res then Res := RenameFile(FName + '.new', FName);
+                if not FileExists(FName + '.new') then
+                begin
+                  LogType := EVENTLOG_ERROR_TYPE;
+                  ss[0] := PChar('File not found ' + FName + '.new');
+                end
+                else if FileExists(FName) and (not DeleteFile(FName)) then
+                begin
+                  LogType := EVENTLOG_ERROR_TYPE;
+                  ss[0] := PChar('Can not delete file ' + FName);
+                end
+                else if not RenameFile(FName + '.new', FName) then
+                begin
+                  LogType := EVENTLOG_ERROR_TYPE;
+                  ss[0] := PChar('Can not rename file ' + FName + '.new');
+                end
               end;
-
-              ss[0] := PChar(S);
-              if Res then LogType := EVENTLOG_SUCCESS
-                else LogType := EVENTLOG_ERROR_TYPE;
             except
               on E: Exception do
               begin

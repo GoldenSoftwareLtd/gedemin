@@ -1,6 +1,6 @@
 object gd_dlgOptions: Tgd_dlgOptions
-  Left = 262
-  Top = 184
+  Left = 412
+  Top = 268
   BorderStyle = bsDialog
   Caption = 'Опции системы'
   ClientHeight = 438
