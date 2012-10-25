@@ -5,6 +5,7 @@ interface
 uses
   TestSQLParser_unit,
   Test_MovementDocumenttype,
+  Test_gdcInvMovement,
   Test_AddDuplicateAccount,
   TestGdKeyArray_unit,
   TestMMFStream_unit,

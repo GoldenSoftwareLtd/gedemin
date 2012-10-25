@@ -8,7 +8,7 @@ package greference;
 {$R '..\Component\gsReportRegistry.dcr'}
 {$R '..\Component\gsDocNumerator.dcr'}
 {$R '..\Security\gd_security.dcr'}
-{$R '..\Component\xProgr.dcr'}
+{$R '..\..\Comp5\xProgr.dcr'}
 {$R '..\Component\Bkground.dcr'}
 {$R '..\Imports\HHCTRLLib_TLB.dcr'}
 {$R '..\Imports\MSScriptControl_TLB.dcr'}
@@ -81,7 +81,7 @@ contains
   flt_ScriptInterface_body in '..\QueryFilter\flt_ScriptInterface_body.pas',
   flt_ScriptInterface in '..\QueryFilter\flt_ScriptInterface.pas',
   syn_ManagerInterface_body_unit in '..\Component\syn_ManagerInterface_body_unit.pas',
-  xProgr in '..\Component\xProgr.pas',
+  xProgr in '..\..\Comp5\xProgr.pas',
   Bkground in '..\Component\Bkground.pas',
   xLabel in '..\Component\xLabel.pas',
   gdcBase_PropEditor in '..\Component\GDC\gdcBase_PropEditor.pas',

@@ -26,7 +26,7 @@ unit gd_FileList_unit;
 interface
 
 uses
-  Classes, ContNrs, SysUtils, idHTTP;
+  Classes, ContNrs, SysUtils, idHTTP, idComponent, gd_ProgressNotifier_unit;
 
 type
   TFLFlag = (
@@ -100,8 +100,21 @@ type
   private
     FRootPath: String;
     FCurr: Integer;
-    
+    FOldWorkBegin: TWorkBeginEvent;
+    FOldWorkEnd: TWorkEndEvent;
+    FOldWork: TWorkEvent;
+    FOnProgressWatch: TProgressWatchEvent;
+
+    procedure DoWorkBegin(Sender: TObject; AWorkMode: TWorkMode; const AWorkCountMax: Integer);
+    procedure DoWorkEnd(Sender: TObject; AWorkMode: TWorkMode);
+    procedure DoWork(Sender: TObject; AWorkMode: TWorkMode; const AWorkCount: Integer);
+
     procedure SetRootPath(const Value: String);
+
+  protected
+    FPI: TgdProgressInfo;
+
+    procedure DoProgressWatch;
 
   public
     constructor Create;
@@ -113,6 +126,7 @@ type
     function FindItem(ARelativeName: String): TFLItem;
 
     property RootPath: String read FRootPath write SetRootPath;
+    property OnProgressWatch: TProgressWatchEvent read FOnProgressWatch write FOnProgressWatch;
   end;
 
   EFLError = class(Exception);
@@ -381,8 +395,47 @@ begin
   Result := FCurr < Count;
   if Result then
   begin
-    (Items[FCurr] as TFLItem).UpdateFile(AHTTP, AnURL, ACmdList);
-    Inc(FCurr);
+    if FCurr = 0 then
+    begin
+      FPI.InProgress := True;
+      FPI.Started := Now;
+      FPI.ProcessName := 'Обновление файлов';
+      FPI.NumberOfSteps := Count;
+    end;
+
+    FPI.CurrentStep := FCurr;
+    FPI.CurrentStepName := 'Загрузка файла ' + (Items[FCurr] as TFLItem).RelativeName + '...';
+    FPI.CurrentStepMax := 0;
+    FPI.CurrentStepDone := 0;
+    DoProgressWatch;
+
+    FOldWorkBegin := AHTTP.OnWorkBegin;
+    FOldWorkEnd := AHTTP.OnWorkEnd;
+    FOldWork := AHTTP.OnWork;
+    try
+      AHTTP.OnWorkBegin := DoWorkBegin;
+      AHTTP.OnWorkEnd := DoWorkEnd;
+      AHTTP.OnWork := DoWork;
+
+      (Items[FCurr] as TFLItem).UpdateFile(AHTTP, AnURL, ACmdList);
+      Inc(FCurr);
+    finally
+      AHTTP.OnWorkBegin := FOldWorkBegin;
+      AHTTP.OnWorkEnd := FOldWorkEnd;
+      AHTTP.OnWork := FOldWork;
+    end;
+
+    DoProgressWatch;
+  end else
+  begin
+    if FCurr > 0 then
+    begin
+      FPI.CurrentStep := FCurr;
+      FPI.CurrentStepName := '';
+      FPI.CurrentStepMax := 0;
+      FPI.CurrentStepDone := 0;
+      DoProgressWatch;
+    end;
   end;
 end;
 
@@ -809,6 +862,39 @@ begin
   if not DirectoryExists(Value) then
     raise EFLError.Create('Invalid root path');
   FRootPath := IncludeTrailingBackslash(Value);
+end;
+
+procedure TFLCollection.DoWork(Sender: TObject; AWorkMode: TWorkMode;
+  const AWorkCount: Integer);
+begin
+  if Assigned(FOldWork) then
+    FOldWork(Sender, AWorkMode, AWorkCount);
+
+  FPI.CurrentStepDone := AWorkCount;
+  DoProgressWatch;
+end;
+
+procedure TFLCollection.DoWorkBegin(Sender: TObject; AWorkMode: TWorkMode;
+  const AWorkCountMax: Integer);
+begin
+  if Assigned(FOldWorkBegin) then
+    FOldWorkBegin(Sender, AWOrkMode, AWorkCountMax);
+
+  FPI.CurrentStepMax := AWorkCountMax;
+end;
+
+procedure TFLCollection.DoWorkEnd(Sender: TObject; AWorkMode: TWorkMode);
+begin
+  if Assigned(FOldWorkEnd) then
+    FOldWorkEnd(Sender, AWorkMode);
+
+  FPI.CurrentStepDone := FPI.CurrentStepMax;
+end;
+
+procedure TFLCollection.DoProgressWatch;
+begin
+  if Assigned(FOnProgressWatch) then
+    FOnProgressWatch(Self, FPI);
 end;
 
 end.

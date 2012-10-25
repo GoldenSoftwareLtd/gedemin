@@ -22,7 +22,7 @@ object gd_dlgAbout: Tgd_dlgAbout
     Top = 8
     Width = 547
     Height = 371
-    ActivePage = tsAbout
+    ActivePage = tsUpdate
     TabOrder = 0
     object tsAbout: TTabSheet
       Caption = 'О программе'
@@ -116,18 +116,7 @@ object gd_dlgAbout: Tgd_dlgAbout
           
             'ООО Святогор, Владимир Гетманец, Stefan Boether, Евгений Кучеряв' +
             'енко, Сергей "Дейрас" Борисовец,'
-          'Андрей Башун, Наталья Белковская.'
-          ' '
-          ' '
-          ' '
-          ' '
-          ' '
-          ' '
-          ' '
-          ' '
-          ' '
-          ' '
-          ' ')
+          'Андрей Башун, Наталья Белковская.')
         ParentFont = False
         ReadOnly = True
         TabOrder = 0
@@ -140,7 +129,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Left = 3
         Top = 3
         Width = 532
-        Height = 323
+        Height = 336
         Cursor = crIBeam
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -496,7 +485,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Left = 3
         Top = 3
         Width = 532
-        Height = 323
+        Height = 336
         Cursor = crIBeam
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -845,6 +834,46 @@ object gd_dlgAbout: Tgd_dlgAbout
         ReadOnly = True
       end
     end
+    object tsUpdate: TTabSheet
+      Caption = 'Обновление'
+      ImageIndex = 3
+      object lblStep: TLabel
+        Left = 88
+        Top = 200
+        Width = 3
+        Height = 13
+      end
+      object lblAll: TLabel
+        Left = 88
+        Top = 160
+        Width = 3
+        Height = 13
+      end
+      object Button1: TButton
+        Left = 32
+        Top = 40
+        Width = 75
+        Height = 21
+        Action = actUpdate
+        TabOrder = 0
+      end
+      object xpbAll: TxProgressBar
+        Left = 80
+        Top = 176
+        Width = 401
+        Height = 17
+        TabOrder = 1
+        Value = 0
+      end
+      object xpbStep: TxProgressBar
+        Left = 80
+        Top = 216
+        Width = 401
+        Height = 17
+        TabOrder = 2
+        Value = 0
+      end
+    end
   end
   object btnOk: TButton
     Left = 480
@@ -897,5 +926,14 @@ object gd_dlgAbout: Tgd_dlgAbout
     WantBracesParsed = False
     Left = 448
     Top = 88
+  end
+  object al: TActionList
+    Left = 468
+    Top = 312
+    object actUpdate: TAction
+      Caption = 'Обновить'
+      OnExecute = actUpdateExecute
+      OnUpdate = actUpdateUpdate
+    end
   end
 end

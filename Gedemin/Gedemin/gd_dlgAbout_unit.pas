@@ -7,7 +7,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, IBDatabaseInfo, ComCtrls, Mask, DBCtrls, Registry, WinSock,
   SynEdit, SynEditHighlighter, SynHighlighterIni, gdc_createable_form,
-  SynHighlighterXML;
+  SynHighlighterXML, ActnList, gd_ProgressNotifier_unit, ExtCtrls, xProgr;
 
 type
   TgdSysInfo = class(TObject)
@@ -36,7 +36,7 @@ type
     property Lines: TStrings read FLines;
   end;
 
-  Tgd_dlgAbout = class(TgdcCreateableForm)
+  Tgd_dlgAbout = class(TgdcCreateableForm, IgdProgressWatch)
     pc: TPageControl;
     tsAbout: TTabSheet;
     btnOk: TButton;
@@ -51,13 +51,26 @@ type
     btnMSInfo: TButton;
     btnCopy: TButton;
     SynXMLSyn: TSynXMLSyn;
+    tsUpdate: TTabSheet;
+    Button1: TButton;
+    al: TActionList;
+    actUpdate: TAction;
+    xpbAll: TxProgressBar;
+    xpbStep: TxProgressBar;
+    lblStep: TLabel;
+    lblAll: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure btnMSInfoClick(Sender: TObject);
     procedure btnCopyClick(Sender: TObject);
+    procedure actUpdateExecute(Sender: TObject);
+    procedure actUpdateUpdate(Sender: TObject);
 
   private
     FSysInfo: TgdSysInfo;
+
+  protected
+    procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -189,6 +202,8 @@ var
   FL: TFLCollection;
 {$ENDIF}
 begin
+  pc.ActivePage := tsAbout;
+
   with FSysInfo do
   begin
     lblTitle.Caption := Title;
@@ -728,6 +743,9 @@ end;
 
 destructor Tgd_dlgAbout.Destroy;
 begin
+  {$IFDEF WITH_INDY}
+  gdWebClientThread.ProgressWatch := nil;
+  {$ENDIF}
   FSysInfo.Free;
   inherited;
 end;
@@ -762,6 +780,44 @@ begin
 
   if FNext then
     ActivateKeyBoardLayout(HKL_PREV, 0);
+end;
+
+procedure Tgd_dlgAbout.actUpdateExecute(Sender: TObject);
+begin
+  {$IFDEF WITH_INDY}
+  gdWebClientThread.ProgressWatch := Self;
+  gdWebClientThread.StartUpdateFiles;
+  {$ENDIF}
+end;
+
+procedure Tgd_dlgAbout.actUpdateUpdate(Sender: TObject);
+begin
+  {$IFDEF WITH_INDY}
+  actUpdate.Enabled := Assigned(gdWebClientThread);
+  {$ELSE}
+  actUpdate.Enabled := False;
+  {$ENDIF}
+end;
+
+procedure Tgd_dlgAbout.UpdateProgress(const AProgressInfo: TgdProgressInfo);
+begin
+  lblAll.Caption := AProgressInfo.ProcessName + '... Прошло: '
+    + FormatDateTime('hh:nn:ss', Now - AProgressInfo.Started);
+  xpbAll.SetValues(AProgressInfo.CurrentStep, 0, AProgressInfo.NumberOfSteps);
+  if AProgressInfo.CurrentStepMax > 0 then
+  begin
+    lblStep.Caption := AProgressInfo.CurrentStepName + ' '
+      + IntToStr(AProgressInfo.CurrentStepDone div 1024) + 'K из '
+      + IntToStr(AProgressInfo.CurrentStepMax div 1024);
+    xpbStep.SetValues(AProgressInfo.CurrentStepDone, 0, AProgressInfo.CurrentStepMax);
+  end else
+  begin
+    lblStep.Caption := AProgressInfo.CurrentStepName;
+    if lblStep.Caption > '' then
+      xpbStep.SetValues(1, 0, 1)
+    else
+      xpbStep.SetValues(0, 0, 1);
+  end;
 end;
 
 initialization
