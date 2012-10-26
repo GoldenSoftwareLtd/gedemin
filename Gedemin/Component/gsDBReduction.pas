@@ -1065,7 +1065,7 @@ begin
     end;
   finally
     q.Free;
-  end;
+  end;                       
 end;
 
 {TgsDBReductionWizard ------------------------------------}

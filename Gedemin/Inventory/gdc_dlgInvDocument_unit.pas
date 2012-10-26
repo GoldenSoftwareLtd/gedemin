@@ -2116,7 +2116,8 @@ end;
 
 procedure TdlgInvDocument.actDetailNewUpdate(Sender: TObject);
 begin
-  actDetailNew.Enabled := actOk.Enabled and ((
+  actDetailNew.Enabled := actOk.Enabled and
+    Assigned(DocumentLine) and Assigned(FSecondDocumentLine) and ((
     (
       (ibgrdTop.Focused or not Assigned(FBottomGrid)) and
       not (DocumentLine.State in dsEditModes)
@@ -2130,7 +2131,8 @@ end;
 
 procedure TdlgInvDocument.actDetailEditUpdate(Sender: TObject);
 begin
-  actDetailEdit.Enabled := actOk.Enabled and ((
+  actDetailEdit.Enabled := actOk.Enabled and
+    Assigned(DocumentLine) and Assigned(FSecondDocumentLine) and ((
     (
       (ibgrdTop.Focused or not Assigned(FBottomGrid)) and
       not (DocumentLine.State in dsEditModes) and
@@ -2146,7 +2148,8 @@ end;
 
 procedure TdlgInvDocument.actDetailDeleteUpdate(Sender: TObject);
 begin
-  actDetailDelete.Enabled := actOk.Enabled and ((
+  actDetailDelete.Enabled := actOk.Enabled and
+    Assigned(DocumentLine) and Assigned(FSecondDocumentLine) and ((
     (
       (ibgrdTop.Focused or not Assigned(FBottomGrid)) and
       not (DocumentLine.State in dsEditModes) and

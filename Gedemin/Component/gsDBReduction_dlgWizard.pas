@@ -1,8 +1,6 @@
+
 {++
-
-                                                                                
          28.08.2003     Yuri     ѕодправил работу с таблицей (св-во ChangeDestEnabled)
-
 --}
 
 unit gsDBReduction_dlgWizard;
@@ -104,9 +102,11 @@ end;
 
 procedure TdlgWizard.actNextUpdate(Sender: TObject);
 begin
+  {$IFNDEF DUNIT_TEST}
   if pcReduce.ActivePage = tsThird then
     TAction(Sender).Enabled := cbOk.Checked
   else
+  {$ENDIF}
     TAction(Sender).Enabled := True;
 end;
 
@@ -129,9 +129,6 @@ procedure TdlgWizard.actNextExecute(Sender: TObject);
       if sgReduction.RowCount = 2 then
         sgReduction.FixedRows := 1;
       sgReduction.Rows[sgReduction.RowCount - 1].Clear;
-      // !!!!
-      // перед этим € убрал локализацию
-      // надо будет поставить назад
 
       Field := atDatabase.FindRelationField(RTable.Name, RTable.ReductionField.Fields[I].FieldName);
 
@@ -284,10 +281,17 @@ begin
     pcReduce.ActivePageIndex := 0;
     gsibluCondemned.CurrentKey := '';
     gsibluCondemned.Text := '';
+    {$IFDEF DUNIT_TEST}
+    PostMessage(bClose.Handle, BM_CLICK, 0, 0);
+    {$ENDIF}
   end
   else
+  begin
     pcReduce.ActivePageIndex := pcReduce.ActivePageIndex + 1;
-
+    {$IFDEF DUNIT_TEST}
+    PostMessage(bForward.Handle, BM_CLICK, 0, 0);
+    {$ENDIF}
+  end;
 end;
 
 procedure TdlgWizard.actPriorExecute(Sender: TObject);
@@ -374,11 +378,6 @@ begin
   begin
     (sgReduction.Rows[sgReduction.Row].Objects[2] as TrField).Transfer :=
       sgReduction.Col = 1;
-
-{    sgReductionDrawCell(sgReduction, sgReduction.Col, sgReduction.Row,
-      sgReduction.CellRect(1, sgReduction.Row), [gdSelected]);
-    sgReductionDrawCell(sgReduction, sgReduction.Col, sgReduction.Row,
-      sgReduction.CellRect(2, sgReduction.Row), [gdSelected])}
     sgReduction.Refresh;
   end;
 end;
@@ -387,6 +386,10 @@ procedure TdlgWizard.FormActivate(Sender: TObject);
 begin
   if Visible and (pcReduce.ActivePage = tsFirst) then
     gsibluCondemned.SetFocus;
+
+  {$IFDEF DUNIT_TEST}
+  PostMessage(bForward.Handle, BM_CLICK, 0, 0);
+  {$ENDIF}
 end;
 
 procedure TdlgWizard.FormCreate(Sender: TObject);
@@ -437,7 +440,6 @@ end;
 
 procedure TdlgWizard.actSumExecute(Sender: TObject);
 begin
-//  if ChangeDestEnabled and
   if Assigned(sgReduction.Rows[sgReduction.Row].Objects[2]) then
   begin
     actSum.Checked := not actSum.Checked;
@@ -484,3 +486,4 @@ begin
 end;
 
 end.
+
