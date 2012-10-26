@@ -201,7 +201,6 @@ var
   Obj2: TgdcInvDocumentLine;
   dsMain: TDataSource;
   Remains: TgdcInvGoodRemains;
-  CurrRemains: Integer;
   I: Integer;
 begin
   FQ.Close;
@@ -221,7 +220,7 @@ begin
     FDocID.Add('147013043_109092844=' + IntToStr(Obj.ID));
 
     dsMain := TDataSource.Create(nil);
-    Obj2 :=  TgdcInvDocumentLine.Create(nil);
+    Obj2 := TgdcInvDocumentLine.Create(nil);
     try
       dsMain.Dataset := Obj;
       Obj2.SubSet := 'ByParent';
@@ -267,18 +266,12 @@ end;
 
 procedure TgsInvMovementDocuments.Merge;
 var
-  FgsDBReduction: TgsDBReductionWizard;
-  C: TClass;
-  S: String;
-  DidActivate: Boolean;
   Company: TgdcCompany;
 begin
   Company := TgdcCompany.Create(nil);
   try
-    Company.SubSet := 'ByID';
-    Company.ParamByName('id').AsInteger := FCompanyID1;
     Company.Open;
-    Check(Company.Reduction(nil));
+    Check(Company.InternalReduction(FCompanyID1, FCompanyID2));
   finally
     Company.Free;
   end;

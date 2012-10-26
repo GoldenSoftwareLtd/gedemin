@@ -1403,6 +1403,7 @@ type
 
     // Слияние двух записей
     function Reduction(BL: TBookmarkList): Boolean; virtual;
+    function InternalReduction(const ACondemnedKey: TID = -1; const AMasterKey: TID = -1): Boolean;
 
     // метод проверяет находится ли Датасет в активном
     // состоянии, в режиме просмотра и не пустой ли он
@@ -10210,25 +10211,23 @@ end;
 
 // Слияние
 function TgdcBase.Reduction(BL: TBookmarkList): Boolean;
+begin
+  if BL <> nil then
+    BL.Refresh;
+
+  if (BL <> nil) and (BL.Count > 1) then
+    Result := InternalReduction(GetIDForBookmark(BL[0]), GetIDForBookmark(BL[1]))
+  else
+    Result := InternalReduction;
+end;
+
+function TgdcBase.InternalReduction(const ACondemnedKey: TID = -1; const AMasterKey: TID = -1): Boolean;
 var
   FgsDBReduction: TgsDBReductionWizard;
   C: TClass;
   S: String;
   DidActivate: Boolean;
 begin
-  {
-  if Assigned(atDatabase)
-    and (atDatabase.Relations.ByRelationName('RPL$LOG') <> nil) then
-  begin
-    MessageBox(0,
-      'Объединение записей невозможно, так как настроена схема репликации.',
-      'Внимание',
-      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    Result := False;
-    exit;
-  end;
-  }
-
   if Assigned(GlobalStorage) and Assigned(IBLogin)
     and ((GlobalStorage.ReadInteger('Options\Policy',
       GD_POL_REDUCT_ID, GD_POL_REDUCT_MASK, False) and IBLogin.InGroup) = 0) then
@@ -10237,11 +10236,9 @@ begin
   end;
 
   DidActivate := False;
-  FgsDBReduction := TgsDBReductionWizard.Create(Self);
+  FgsDBReduction := TgsDBReductionWizard.Create(nil);
   try
     DidActivate := ActivateTransaction;
-    if not Assigned(FgsDBReduction) then
-      FgsDBReduction := TgsDBReductionWizard.Create(Self);
 
     FgsDBReduction.Database := DataBase;
     FgsDBReduction.Transaction := Transaction;
@@ -10253,15 +10250,13 @@ begin
     FgsDBReduction.AddCondition := GetReductionCondition;
     FgsDBReduction.HideFields := HideFieldsList + 'LB;RB;';
 
-    if Assigned(BL) then
-      BL.Refresh;
+    if ACondemnedKey >= 0 then
+      FgsDBReduction.CondemnedKey := IntToStr(ACondemnedKey)
+    else
+      FgsDBReduction.CondemnedKey := IntToStr(ID);
 
-    if (BL = nil) or (BL.Count <= 1) then
-      FgsDBReduction.CondemnedKey := IntToStr(ID)
-    else begin
-      FgsDBReduction.CondemnedKey := IntToStr(GetIDForBookmark(BL[0]));
-      FgsDBReduction.MasterKey := IntToStr(GetIDForBookmark(BL[1]));
-    end;
+    if AMasterKey >= 0 then
+      FgsDBReduction.MasterKey := IntToStr(AMasterKey);
 
     C := GetCurrRecordClass.gdClass;
 
@@ -10271,9 +10266,12 @@ begin
       S := '';
 
     Result := FgsDBReduction.Wizard(S, SubType);
-  finally
+
     if DidActivate then
       Transaction.Commit;
+  finally
+    if DidActivate and Transaction.InTransaction then
+      Transaction.Rollback;
     FgsDBReduction.Free;
   end;
 end;
