@@ -6,6 +6,7 @@ uses
   IBDatabase, gdModify, IBSQL, SysUtils;
 
 procedure ChangeDuplicateAccount(IBDB: TIBDatabase; Log: TModifyLog);
+procedure ChangeDuplicateAccount2(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -13,7 +14,7 @@ uses
   mdf_metadata_unit;
 
 procedure ChangeDuplicateAccount(IBDB: TIBDatabase; Log: TModifyLog);
-var 
+var
   SQL: TIBSQL;
   Tr: TIBTransaction;
 begin
@@ -121,6 +122,93 @@ begin
       SQL.ExecQuery;
       SQL.Close;
 
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    SQL.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure ChangeDuplicateAccount2(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  SQL: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  SQL := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    SQL.Transaction := Tr;
+    try
+      CreateException2('ac_e_duplicateaccount', 'Duplicate account!', Tr);
+
+      SQL.Close;
+      SQL.ParamCheck := False;
+      SQL.SQL.Text :=
+        'CREATE OR ALTER TRIGGER AC_AIU_ACCOUNT_CHECKALIAS FOR AC_ACCOUNT '#13#10 +
+        '  ACTIVE '#13#10 +
+        '  AFTER INSERT OR UPDATE '#13#10 +
+        '  POSITION 32000 '#13#10 +
+        'AS '#13#10 +
+        '  DECLARE VARIABLE P VARCHAR(1) = NULL; '#13#10 +
+        'BEGIN '#13#10 +
+        '  IF (INSERTING OR (NEW.alias <> OLD.alias)) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    IF (EXISTS '#13#10 +
+        '      (SELECT'#13#10 +
+        '         root.id, UPPER(TRIM(allacc.alias)), COUNT(*) '#13#10 +
+        '       FROM ac_account root '#13#10 +
+        '         JOIN ac_account allacc ON allacc.lb > root.lb AND allacc.rb <= root.rb '#13#10 +
+        '       WHERE '#13#10 +
+        '         root.parent IS NULL '#13#10 +
+        '       GROUP BY '#13#10 +
+        '         1, 2 '#13#10 +
+        '       HAVING '#13#10 +
+        '         COUNT(*) > 1) '#13#10 +
+        '      ) '#13#10 +
+        '     THEN '#13#10 +
+        '       EXCEPTION ac_e_duplicateaccount ''Account '' || NEW.alias || '' already exists.''; '#13#10 +
+        '  END '#13#10 +
+        ''#13#10 +
+        '  IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent) '#13#10 +
+        '    OR (NEW.accounttype <> OLD.accounttype)) THEN '#13#10 +
+        '  BEGIN '#13#10 +
+        '    SELECT accounttype FROM ac_account WHERE id = NEW.parent INTO :P; '#13#10 +
+        '    P = COALESCE(:P, ''Z''); '#13#10 +
+        ' '#13#10 +
+        '    IF (NOT ( '#13#10 +
+        '        (NEW.accounttype = ''C'' AND NEW.parent IS NULL) '#13#10 +
+        '        OR '#13#10 +
+        '        (NEW.accounttype = ''F'' AND :P IN (''C'', ''F'')) '#13#10 +
+        '        OR '#13#10 +
+        '        (NEW.accounttype = ''A'' AND :P IN (''C'', ''F'')) '#13#10 +
+        '        OR '#13#10 +
+        '        (NEW.accounttype = ''S'' AND :P IN (''A'', ''S'')) )) THEN '#13#10 +
+        '    BEGIN '#13#10 +
+        '      EXCEPTION ac_e_invalidaccount ''Invalid account '' || NEW.alias; '#13#10 +
+        '    END '#13#10 +
+        '  END '#13#10 +
+        'END ';
+      SQL.ExecQuery;
+
+      SQL.Close;
+      SQL.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (161, ''0000.0001.0000.0192'', ''29.10.2012'', ''Trigger AC_AIU_ACCOUNT_CHECKALIAS modified.'') ' +
+        '  MATCHING (id)';
+      SQL.ExecQuery;
+      SQL.Close;
       Tr.Commit;
     except
       on E: Exception do

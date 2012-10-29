@@ -96,6 +96,7 @@ CREATE ASC INDEX ac_x_account_alias
 COMMIT;
 
 CREATE EXCEPTION ac_e_invalidaccount 'Invalid account!';
+CREATE EXCEPTION ac_e_duplicateaccount 'Duplicate account!';
 
 SET TERM ^;
 
@@ -121,7 +122,7 @@ BEGIN
          COUNT(*) > 1)
       )
      THEN
-       EXCEPTION ac_e_invalidaccount 'Account ' || NEW.alias || ' already exists.';
+       EXCEPTION ac_e_duplicateaccount 'Account ' || NEW.alias || ' already exists.';
   END
 
   IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)

@@ -353,7 +353,7 @@ begin
     Transaction.Commit;
   finally
     Transaction.Free;
-  end;
+  end;                       
 end;
 
 function ConstraintExist2(const ATableName, AConstraintName: String; ATr: TIBTransaction): Boolean;
@@ -363,8 +363,8 @@ begin
   SQL := TIBSQL.Create(nil);
   try
     SQL.Transaction := ATr;
-    SQL.SQL.Text := 'SELECT * FROM rdb$check_constraints c JOIN rdb$triggers t ' +
-      ' ON t.rdb$trigger_name = c.rdb$trigger_name WHERE t.rdb$relation_name = :RN AND c.rdb$constraint_name = :CN ';
+    SQL.SQL.Text := 'SELECT * FROM rdb$relation_constraints WHERE rdb$relation_name = :RN ' +
+      'AND rdb$constraint_name = :CN';
     SQL.ParamByName('RN').AsString := AnsiUpperCase(ATableName);
     SQL.ParamByName('CN').AsString := AnsiUpperCase(AConstraintName);
     SQL.ExecQuery;

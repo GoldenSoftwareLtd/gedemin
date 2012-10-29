@@ -512,6 +512,8 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (160, '0000.0001.0000.0191', '19.10.2012', 'Corrected inv_bu_movement trigger.');
 
+INSERT INTO fin_versioninfo
+  VALUES (161, '0000.0001.0000.0192', '29.10.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS modified.');
 
 COMMIT;
 
