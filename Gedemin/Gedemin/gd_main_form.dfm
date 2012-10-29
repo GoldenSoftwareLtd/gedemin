@@ -53,6 +53,9 @@ object frmGedeminMain: TfrmGedeminMain
         end
         object TBSeparatorItem15: TTBSeparatorItem
         end
+        object tbiDatabasesList: TTBItem
+          Action = actDatabasesList
+        end
         object MenuItem1: TTBItem
           Action = actLogIn
         end
@@ -744,6 +747,12 @@ object frmGedeminMain: TfrmGedeminMain
       Caption = '—жатие базы данных...'
       OnExecute = actDBSqueezeExecute
       OnUpdate = actDBSqueezeUpdate
+    end
+    object actDatabasesList: TAction
+      Category = 'Actions'
+      Caption = '—писок баз данных...'
+      OnExecute = actDatabasesListExecute
+      OnUpdate = actDatabasesListUpdate
     end
   end
   object IBTransaction: TIBTransaction

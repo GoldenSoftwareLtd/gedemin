@@ -81,7 +81,7 @@ uses
   SysUtils, Forms, Windows, IBSQL, IBDatabase, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
   gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock,
-  ComObj, JclSimpleXML, gd_directories_const, ActiveX;
+  ComObj, JclSimpleXML, gd_directories_const, ActiveX, FileCtrl;
 
 type
   TgdHttpHandler = class(TObject)
@@ -428,7 +428,8 @@ begin
   begin
     FFileList := TFLCollection.Create;
     //!!!
-    FFileList.RootPath := 'd:\golden\gedemin_local_fb';
+    if DirectoryExists('d:\golden\gedemin_local_fb') then
+      FFileList.RootPath := 'd:\golden\gedemin_local_fb';
     //!!!
     FFileList.BuildEtalonFileSet;
   end;

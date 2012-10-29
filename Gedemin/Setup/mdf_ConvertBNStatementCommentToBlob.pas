@@ -1195,15 +1195,20 @@ begin
       FTransaction.StartTransaction;
       FIBSQL.Transaction := FTransaction;
 
-      FIBSQL.SQL.Text :=
-        'ALTER TABLE bn_bankstatementline ADD contractorkey dforeignkey ';
-      FIBSQL.ExecQuery;
+      AddField2('BN_BANKSTATEMENTLINE', 'CONTRACTORKEY', 'dforeignkey', FTransaction);
 
-      FIBSQL.SQL.Text :=
-        'ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_contractorkey ' +
-        'FOREIGN KEY (contractorkey) REFERENCES gd_company(contactkey) ' +
-        'ON UPDATE CASCADE ';
-      FIBSQL.ExecQuery;
+     { FIBSQL.SQL.Text :=
+        'ALTER TABLE bn_bankstatementline ADD contractorkey dforeignkey ';
+      FIBSQL.ExecQuery;  }
+
+      if not ConstraintExist2('BN_BANKSTATEMENTLINE', 'BN_FK_BSL_CONTRACTORKEY', FTransaction) then
+      begin
+        FIBSQL.SQL.Text :=
+          'ALTER TABLE bn_bankstatementline ADD CONSTRAINT bn_fk_bsl_contractorkey ' +
+          'FOREIGN KEY (contractorkey) REFERENCES gd_company(contactkey) ' +
+          'ON UPDATE CASCADE ';
+        FIBSQL.ExecQuery;
+      end;  
 
       FIBSQL.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +

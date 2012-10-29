@@ -91,6 +91,7 @@ echo **  Compile resources                          **
 echo **                                             **
 echo *************************************************
 
+del gedemin.res
 "%delphi_path%\brcc32.exe" -fogedemin.res -i..\images gedemin.rc
 
 echo *************************************************
@@ -100,7 +101,10 @@ echo **  Compile gedemin.exe                        **
 echo **                                             **
 echo *************************************************
 
+del gedemin.exe
 "%delphi_path%\dcc32.exe" %compiler_switch% gedemin.dpr
+
+if not exist gedemin.exe eventcreate /t error /id 1 /l application /so gedemin /d "gedemin.exe compilation error"
 
 echo *************************************************
 echo **                                             **
@@ -153,7 +157,10 @@ echo **  Compile gedemin_upd.exe                    **
 echo **                                             **
 echo *************************************************
 
+del gedemin_upd.exe
 "%delphi_path%\dcc32.exe" %compiler_switch% gedemin_upd.dpr
+
+if not exist gedemin_upd.exe eventcreate /t error /id 1 /l application /so gedemin /d "gedemin_upd.exe compilation error"
 
 echo *************************************************
 echo **                                             **
@@ -193,7 +200,10 @@ echo **  Compile gudf.dll                           **
 echo **                                             **
 echo *************************************************
 
+del gudf.dll
 "%delphi_path%\dcc32.exe" %compiler_switch% gudf.dpr
+
+if not exist gudf.dll eventcreate /t error /id 1 /l application /so gedemin /d "gudf.dll compilation error"
 
 echo *************************************************
 echo **                                             **

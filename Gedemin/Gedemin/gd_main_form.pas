@@ -177,6 +177,8 @@ type
     TBSeparatorItem15: TTBSeparatorItem;
     actDBSqueeze: TAction;
     tbiSqueeze: TTBItem;
+    tbiDatabasesList: TTBItem;
+    actDatabasesList: TAction;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -292,6 +294,8 @@ type
     procedure actReconnectExecute(Sender: TObject);
     procedure actDBSqueezeUpdate(Sender: TObject);
     procedure actDBSqueezeExecute(Sender: TObject);
+    procedure actDatabasesListExecute(Sender: TObject);
+    procedure actDatabasesListUpdate(Sender: TObject);
 
   private
     FCanClose: Boolean;
@@ -377,6 +381,7 @@ uses
   gd_dlgDeleteDesktop_unit,
   gd_dlgDesktopName_unit,
   gd_dlgAbout_unit,
+  gd_DatabasesList_unit,
 
   gdHelp_Interface,
 
@@ -2357,6 +2362,17 @@ procedure TfrmGedeminMain.UpdateNotification(const ANotification: String);
 begin
   if (not (csDestroying in ComponentState)) and Visible then
     lblDatabase.Caption := ANotification;
+end;
+
+procedure TfrmGedeminMain.actDatabasesListExecute(Sender: TObject);
+begin
+  gd_DatabasesList.ShowViewForm;
+end;
+
+procedure TfrmGedeminMain.actDatabasesListUpdate(Sender: TObject);
+begin
+  actDatabasesList.Enabled := (gd_DatabasesList <> nil)
+    and (IBLogin <> nil) and IBLogin.IsUserAdmin;
 end;
 
 end.
