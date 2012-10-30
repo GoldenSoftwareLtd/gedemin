@@ -1001,6 +1001,9 @@ begin
         J := 0;
         for I := 0 to SL.Count - 1 do
         begin
+          if SL.Names[I] = '*' then
+            continue;
+
           // Обратимся к полю датасета
           Fld := Obj.FieldByName(copy(SL.Names[I], 1, 31));
           if ((Fld is TNumericField) or (Fld is TStringField) or (Fld is TDateTimeField)) and

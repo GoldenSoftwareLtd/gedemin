@@ -10,6 +10,7 @@ type
   TSQLSetupTest = class(TgsDBTestCase)
   published
     procedure TestAtSQLSetup;
+    procedure TestGetTableAliasOriginField;
   end;
 
 implementation
@@ -65,6 +66,29 @@ begin
     Input.Free;
     Output.Free;
     Etalon.Free;
+  end;
+end;
+
+procedure TSQLSetupTest.TestGetTableAliasOriginField;
+var
+  SL: TStringList;
+begin
+  SL := TStringList.Create;
+  try
+    GetTableAliasOriginField('SELECT * FROM gd_contact', SL);
+    Check(SL.CommaText = '*=.*');
+    GetTableAliasOriginField('SELECT c.name FROM gd_contact c', SL);
+    Check(AnsiCompareText(SL.CommaText, 'name=c.name') = 0);
+    GetTableAliasOriginField('SELECT c.* FROM gd_contact c', SL);
+    Check(AnsiCompareText(SL.CommaText, '*=c.*') = 0);
+    GetTableAliasOriginField('SELECT c.name as n FROM gd_contact c', SL);
+    Check(AnsiCompareText(SL.CommaText, 'n=c.name') = 0);
+    GetTableAliasOriginField('SELECT name as n FROM gd_contact', SL);
+    Check(AnsiCompareText(SL.CommaText, 'n=.name') = 0);
+    GetTableAliasOriginField('SELECT c.name as c_n, co.name as co_n FROM gd_contact c JOIN gd_company co ON co.contactkey=c.id', SL);
+    Check(AnsiCompareText(SL.CommaText, 'c_n=c.name,co_n=co.name') = 0);
+  finally
+    SL.Free;
   end;
 end;
 

@@ -761,7 +761,6 @@ type
     procedure MetaDataAlter;
     procedure Drop;
   protected
-    function CreateDialogForm: TCreateableForm; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetSelectClause: String; override;
 
@@ -769,7 +768,7 @@ type
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
 
-    procedure _DoOnNewRecord; override;    
+    procedure _DoOnNewRecord; override;
     procedure DoBeforeEdit; override;
     procedure DoBeforePost; override;
 
@@ -778,12 +777,13 @@ type
     function CheckTheSameStatement: String; override;
 
     function GetCanDelete: Boolean; override;
-    function GetCanEdit: Boolean; override;    
+    function GetCanEdit: Boolean; override;
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -11144,58 +11144,6 @@ begin
   CustomProcess := [cpInsert, cpModify, cpDelete];
 end;
 
-function TgdcCheckConstraint.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCHECKCONSTRAINT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCHECKCONSTRAINT', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCHECKCONSTRAINT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCHECKCONSTRAINT',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCHECKCONSTRAINT' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-    Result := Tgdc_dlgCheckConstraint.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCHECKCONSTRAINT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCHECKCONSTRAINT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcCheckConstraint.CustomDelete(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -11680,6 +11628,12 @@ begin
   {M}      ClearMacrosStack2('TGDCCHECKCONSTRAINT', '_DOONNEWRECORD', KEY_DOONNEWRECORD);
   {M}  end;
   {END MACRO}
+end;
+
+class function TgdcCheckConstraint.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgCheckConstraint';
 end;
 
 initialization

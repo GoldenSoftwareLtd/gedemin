@@ -186,7 +186,7 @@ INSERT INTO fin_versioninfo
   VALUES (49, '0000.0001.0000.0047', '03.09.2003', 'Added fields into AT_SETTING');
 
 INSERT INTO fin_versioninfo
-  VALUES (50, '0000.0001.0000.0048', '20.09.2003', 'Computed indice adde');
+  VALUES (50, '0000.0001.0000.0048', '20.09.2003', 'Computed indice added');
 
 INSERT INTO fin_versioninfo
   VALUES (51, '0000.0001.0000.0049', '22.09.2003', 'Additional fields into gd_company added');
