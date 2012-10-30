@@ -101,10 +101,10 @@ echo **  Compile gedemin.exe                        **
 echo **                                             **
 echo *************************************************
 
-del gedemin.exe
+del ..\exe\gedemin.exe
 "%delphi_path%\dcc32.exe" %compiler_switch% gedemin.dpr
 
-if not exist gedemin.exe eventcreate /t error /id 1 /l application /so gedemin /d "gedemin.exe compilation error"
+if not exist ..\exe\gedemin.exe eventcreate /t error /id 1 /l application /so gedemin /d "gedemin.exe compilation error"
 
 echo *************************************************
 echo **                                             **
@@ -157,10 +157,10 @@ echo **  Compile gedemin_upd.exe                    **
 echo **                                             **
 echo *************************************************
 
-del gedemin_upd.exe
+del ..\exe\gedemin_upd.exe
 "%delphi_path%\dcc32.exe" %compiler_switch% gedemin_upd.dpr
 
-if not exist gedemin_upd.exe eventcreate /t error /id 1 /l application /so gedemin /d "gedemin_upd.exe compilation error"
+if not exist ..\exe\gedemin_upd.exe eventcreate /t error /id 1 /l application /so gedemin /d "gedemin_upd.exe compilation error"
 
 echo *************************************************
 echo **                                             **
@@ -200,10 +200,10 @@ echo **  Compile gudf.dll                           **
 echo **                                             **
 echo *************************************************
 
-del gudf.dll
+del ..\exe\udf\gudf.dll
 "%delphi_path%\dcc32.exe" %compiler_switch% gudf.dpr
 
-if not exist gudf.dll eventcreate /t error /id 1 /l application /so gedemin /d "gudf.dll compilation error"
+if not exist ..\exe\udf\gudf.dll eventcreate /t error /id 1 /l application /so gedemin /d "gudf.dll compilation error"
 
 echo *************************************************
 echo **                                             **
