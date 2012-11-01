@@ -80,7 +80,8 @@ implementation
 {$R *.DFM}
 
 uses
-  DBLogDlg, gd_security, gd_directories_const, gdcBaseInterface, jclStrings
+  DBLogDlg, gd_security, gd_directories_const, gdcBaseInterface, jclStrings,
+  gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -90,16 +91,16 @@ uses
 procedure Tgd_frmBackupRestore.FormCreate(Sender: TObject);
 var
   Res: OleVariant;
+  Server, FileName: String;
+  Port: Integer;
 begin
-  // настраиваем экранные контролы
-  { TODO : этот код зависит от формата строки имени базы данных! }
   edServer.Text := IBLogin.ServerName;
 
-  if (edServer.Text = '') and IBLogin.LoggedIn then
+  {if (edServer.Text = '') and IBLogin.LoggedIn then
   begin
     edServer.Visible := False;
     lblServer.Visible := False;
-  end;
+  end;}
 
   edDatabase.Text := '';
 
@@ -115,10 +116,8 @@ begin
 
   if edDatabase.Text = '' then
   begin
-    if IBLogin.ServerName > '' then
-      edDatabase.Text := Copy(IBLogin.DatabaseName, Pos(':', IBLogin.DatabaseName) + 1, 255)
-    else
-      edDatabase.Text := IBLogin.DatabaseName;
+    ParseDatabaseName(IBLogin.DatabaseName, Server, Port, FileName);
+    edDatabase.Text := FileName;
   end;
 end;
 

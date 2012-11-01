@@ -751,6 +751,7 @@ object frmGedeminMain: TfrmGedeminMain
     object actDatabasesList: TAction
       Category = 'Actions'
       Caption = 'Список баз данных...'
+      ImageIndex = 105
       OnExecute = actDatabasesListExecute
       OnUpdate = actDatabasesListUpdate
     end

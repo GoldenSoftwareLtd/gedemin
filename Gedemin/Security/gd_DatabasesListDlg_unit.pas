@@ -12,8 +12,6 @@ type
     edName: TEdit;
     Label2: TLabel;
     edServer: TEdit;
-    Label3: TLabel;
-    edPort: TEdit;
     Label4: TLabel;
     edFileName: TEdit;
     Button1: TButton;

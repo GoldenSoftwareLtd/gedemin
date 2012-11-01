@@ -1,6 +1,6 @@
 object gd_DatabasesListView: Tgd_DatabasesListView
-  Left = 620
-  Top = 294
+  Left = 450
+  Top = 162
   Width = 677
   Height = 447
   Caption = 'Список зарегистрированных баз данных'
@@ -32,12 +32,21 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       BevelOuter = bvNone
       TabOrder = 0
       object btnOk: TButton
-        Left = 98
+        Left = 4
         Top = 6
         Width = 75
         Height = 21
         Action = actOk
+        Default = True
         TabOrder = 0
+      end
+      object Button1: TButton
+        Left = 88
+        Top = 5
+        Width = 75
+        Height = 21
+        Action = actCancel
+        TabOrder = 1
       end
     end
   end
@@ -56,26 +65,23 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       Height = 347
       Align = alClient
       BorderStyle = bsNone
-      Checkboxes = True
       Columns = <
         item
           Caption = 'Наименование'
-          Width = 120
+          Width = 200
         end
         item
           Caption = 'Сервер'
-          Width = 74
-        end
-        item
-          Caption = 'Порт'
+          Width = 94
         end
         item
           AutoSize = True
           Caption = 'Файл БД'
         end>
+      ColumnClick = False
       GridLines = True
       HideSelection = False
-      MultiSelect = True
+      ReadOnly = True
       RowSelect = True
       SortType = stText
       TabOrder = 0
@@ -113,20 +119,31 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       end
       object TBSeparatorItem1: TTBSeparatorItem
       end
+      object TBItem1: TTBItem
+        Action = actImport
+      end
+      object TBSeparatorItem2: TTBSeparatorItem
+      end
       object TBControlItem1: TTBControlItem
         Control = Label1
       end
-      object tbiFilter: TTBEditItem
-        Caption = 'Фильтр:'
-        EditCaption = 'Фильтр:'
-        EditWidth = 240
+      object TBControlItem2: TTBControlItem
+        Control = edFilter
       end
       object Label1: TLabel
-        Left = 75
+        Left = 104
         Top = 4
         Width = 48
         Height = 13
         Caption = ' Фильтр: '
+      end
+      object edFilter: TEdit
+        Left = 152
+        Top = 0
+        Width = 121
+        Height = 21
+        TabOrder = 0
+        OnChange = edFilterChange
       end
     end
   end
@@ -137,19 +154,33 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     object actOk: TAction
       Caption = 'Ok'
       OnExecute = actOkExecute
+      OnUpdate = actOkUpdate
     end
     object actCreate: TAction
       Caption = 'Создать...'
       ImageIndex = 0
       OnExecute = actCreateExecute
+      OnUpdate = actImportUpdate
     end
     object actEdit: TAction
       Caption = 'Изменить...'
       ImageIndex = 1
+      OnUpdate = actImportUpdate
     end
     object actDelete: TAction
       Caption = 'Удалить'
       ImageIndex = 2
+      OnUpdate = actImportUpdate
+    end
+    object actImport: TAction
+      Caption = 'Импорт из системного реестра'
+      ImageIndex = 230
+      OnExecute = actImportExecute
+      OnUpdate = actImportUpdate
+    end
+    object actCancel: TAction
+      Caption = 'Отмена'
+      OnExecute = actCancelExecute
     end
   end
 end

@@ -358,7 +358,7 @@ uses
   gd_security_dlgDatabases_unit,                  jclStrings,
   IBServices,               DBLogDlg,             at_frmSQLProcess,
   Storages,                 mdf_proclist,         gdModify,
-  IBDatabaseInfo
+  IBDatabaseInfo,           gd_security_dlgLogIn2
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1785,7 +1785,7 @@ end;
 function TboLogin.LoginSilent(AnUserName, APassword: String; const ADBPath: string = ''): Boolean;
 begin
   //
-  //  Осущствляем проверку подключения
+  //  Осуществляем проверку подключения
 
   if LoggedIn then
     raise EboLoginError.Create('Can''t login twice!');

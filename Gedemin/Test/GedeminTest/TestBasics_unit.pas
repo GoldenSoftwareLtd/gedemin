@@ -19,7 +19,7 @@ type
 implementation
 
 uses
-  gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet,
+  SysUtils, gd_CmdLineParams_unit, gd_common_functions, gsHugeIntSet,
   gdNotifierThread_unit;
 
 type
@@ -159,10 +159,59 @@ begin
 end;
 
 procedure TBasicsTest.TestCommonFunctions;
+var
+  Server, FileName: String;
+  Port: Integer;
 begin
-  Check(ExtractServerName('c:\test\test.fdb') = '');
-  Check(ExtractServerName('host:c:\test\test.fdb') = 'host');
-  Check(ExtractServerName('server/3030:c:\test\test.fdb') = 'server/3030');
+  ParseDatabaseName('c:\test\test.fdb', Server, Port, FileName);
+  Check(Server = '');
+  Check(Port = 0);
+  Check(FileName = 'c:\test\test.fdb');
+
+  ParseDatabaseName('host:alias', Server, Port, FileName);
+  Check(Server = 'host');
+  Check(Port = 0);
+  Check(FileName = 'alias');
+
+  ParseDatabaseName('host:c:\test\test.fdb', Server, Port, FileName);
+  Check(Server = 'host');
+  Check(Port = 0);
+  Check(FileName = 'c:\test\test.fdb');
+
+  ParseDatabaseName('server/3030:c:\test\test.fdb', Server, Port, FileName);
+  Check(Server = 'server/3030');
+  Check(Port = 3030);
+  Check(FileName = 'c:\test\test.fdb');
+
+  try
+    ParseDatabaseName('server/d:c:\test\test.fdb', Server, Port, FileName);
+    Check(False);
+  except
+  end;
+
+  try
+    ParseDatabaseName('server/-2:c:\test\test.fdb', Server, Port, FileName);
+    Check(False);
+  except
+  end;
+
+  try
+    ParseDatabaseName('server/65536:c:\test\test.fdb', Server, Port, FileName);
+    Check(False);
+  except
+  end;
+
+  try
+    ParseDatabaseName('server:', Server, Port, FileName);
+    Check(False);
+  except
+  end;
+
+  try
+    ParseDatabaseName('server/:c', Server, Port, FileName);
+    Check(False);
+  except
+  end;
 end;
 
 procedure TBasicsTest.TestHugeIntSet;
