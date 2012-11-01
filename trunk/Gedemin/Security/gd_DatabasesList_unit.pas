@@ -4,7 +4,7 @@ unit gd_DatabasesList_unit;
 interface
 
 uses
-  Classes, IniFiles, ContNrs, gd_directories_const;
+  Classes, SysUtils, IniFiles, ContNrs, gd_directories_const;
 
 const
   MaxUserCount = 4;
@@ -19,15 +19,16 @@ type
   private
     FName: String;
     FServer: String;
-    FPort: Integer;
     FFileName: String;
     FUsers: array[1..MaxUserCount] of Tgd_UserRec;
     FUserCount: Integer;
     FDBParams: String;
     FIniFile: String;
 
+    procedure SetName(const Value: String);
+
   protected
-    procedure ReadFromIniFile(AnIniFile: TIniFile; const AnIndex: Integer);
+    procedure ReadFromIniFile(AnIniFile: TIniFile);
     procedure WriteToIniFile(AnIniFile: TIniFile);
 
   public
@@ -35,9 +36,8 @@ type
 
     function EditInDialog: Boolean;
 
-    property Name: String read FName write FName;
+    property Name: String read FName write SetName;
     property Server: String read FServer write FServer;
-    property Port: Integer read FPort write FPort;
     property FileName: String read FFileName write FFileName;
     property DBParams: String read FDBParams write FDBParams;
   end;
@@ -54,9 +54,12 @@ type
     procedure WriteToIniFile;
     procedure ReadFromRegistry;
     procedure ScanDirectory;
+    function FindByName(const AName: String): Tgd_DatabaseItem;
 
     function ShowViewForm: Boolean;
   end;
+
+  Egd_DatabasesList = class(Exception);
 
 var
   gd_DatabasesList: Tgd_DatabasesList;
@@ -64,7 +67,7 @@ var
 implementation
 
 uses
-  Windows, Forms, Controls, SysUtils, JclFileUtils, gd_common_functions, Registry,
+  Windows, Forms, Controls, JclFileUtils, gd_common_functions, Registry,
   gd_DatabasesListView_unit, gd_DatabasesListDlg_unit;
 
 { Tgd_DatabaseItem }
@@ -76,17 +79,12 @@ end;
 
 function Tgd_DatabaseItem.EditInDialog: Boolean;
 var
-  P: Integer;
   Dlg: Tgd_DatabasesListDlg;
 begin
   Dlg := Tgd_DatabasesListDlg.Create(nil);
   try
     Dlg.edName.Text := Name;
     Dlg.edServer.Text := Server;
-    if Port > 0 then
-      Dlg.edPort.Text := IntToStr(Port)
-    else
-      Dlg.edPort.Text := '';
     Dlg.edFileName.Text := FileName;
     Dlg.edDBParams.Text := DBParams;
 
@@ -96,9 +94,6 @@ begin
     begin
       Name := Dlg.edName.Text;
       Server := Dlg.edServer.Text;
-      P := StrToIntDef(Dlg.edPort.Text, 0);
-      if (P > 0) and (P < 65536) then
-        Port := P;
       FileName := Dlg.edFileName.Text;
       DBParams := Dlg.edDBParams.Text;
     end;
@@ -107,18 +102,39 @@ begin
   end;
 end;
 
-procedure Tgd_DatabaseItem.ReadFromIniFile(AnIniFile: TIniFile;
-  const AnIndex: Integer);
+procedure Tgd_DatabaseItem.ReadFromIniFile(AnIniFile: TIniFile);
 begin
+  Assert(Assigned(AnIniFile));
+  Server := AnIniFile.ReadString(Name, 'Server', '');
+  FileName := AnIniFile.ReadString(Name, 'FileName', '');
+  DBParams := AnIniFile.ReadString(Name, 'DBParams', '');
+end;
 
+procedure Tgd_DatabaseItem.SetName(const Value: String);
+var
+  V: String;
+begin
+  V := Trim(Value);
+
+  if V = '' then
+    raise Egd_DatabasesList.Create('Empty name');
+
+  if V <> FName then
+  begin
+    if (Collection as Tgd_DatabasesList).FindByName(V) <> nil then
+      raise Egd_DatabasesList.Create('Duplicate name');
+    FName := V;
+  end;  
 end;
 
 procedure Tgd_DatabaseItem.WriteToIniFile(AnIniFile: TIniFile);
 begin
+  Assert(Assigned(AnIniFile));
+  Assert(Name > '');
+  if AnIniFile.SectionExists(Name) then
+    AnIniFile.EraseSection(Name);
   if Server > '' then
     AnIniFile.WriteString(Name, 'Server', Server);
-  if Port > 0 then
-    AnIniFile.WriteInteger(Name, 'Port', Port);
   AnIniFile.WriteString(Name, 'FileName', FileName);
   if DBParams > '' then
     AnIniFile.WriteString(Name, 'DBParams', DBParams);
@@ -130,15 +146,16 @@ constructor Tgd_DatabasesList.Create;
 begin
   inherited Create(Tgd_DatabaseItem);
   FIniFileName := ExtractFilePath(Application.EXEName) + 'databases.ini';
+  ReadFromIniFile;
 end;
 
 procedure Tgd_DatabasesList.ReadFromRegistry;
 var
   SL: TStringList;
   Reg: TRegistry;
-  Path, S, DB: String;
+  Path, FileName, Server: String;
   DI: Tgd_DatabaseItem;
-  I, P: Integer;
+  I, Port: Integer;
 begin
   SL := TStringList.Create;
   Reg := TRegistry.Create(KEY_READ);
@@ -152,21 +169,14 @@ begin
       begin
         if Reg.OpenKey(SL[I], False) then
         begin
-          DI := Self.Add as Tgd_DatabaseItem;
-          DI.Name := SL[I];
-          DB := Reg.ReadString('Database');
-          S := ExtractServerName(DB);
-          P := Pos('/', S);
-          if P = 0 then
+          if FindByName(SL[I]) = nil then
           begin
-            DI.Server := S;
-            DI.Port := 0;
-          end else
-          begin
-            DI.Server := Copy(S, 1, P - 1);
-            DI.Port := StrToIntDef(Copy(S, P + 1, 5), 0);
+            DI := Self.Add as Tgd_DatabaseItem;
+            DI.Name := SL[I];
+            ParseDatabaseName(Reg.ReadString('Database'), Server, Port, FileName);
+            DI.Server := Server;
+            DI.FileName := FileName;
           end;
-          DI.FileName := Copy(DB, Length(S) + 1, 1024);
           Reg.CloseKey;
           Reg.OpenKey(Path, False);
         end;
@@ -181,27 +191,26 @@ end;
 procedure Tgd_DatabasesList.ReadFromIniFile;
 var
   IniFile: TIniFile;
-  IniFileName: String;
   Sections: TStringList;
   DI: Tgd_DatabaseItem;
   I: Integer;
 begin
-  IniFileName := ExtractFilePath(Application.EXEName) + 'databases.ini';
-
-  if FileExists(IniFileName) then
+  if FileExists(FIniFileName) then
   begin
-    IniFile := TIniFile.Create(IniFileName);
+    IniFile := TIniFile.Create(FIniFileName);
     try
       Sections := TStringList.Create;
       try
         IniFile.ReadSections(Sections);
         for I := 0 to Sections.Count - 1 do
         begin
-          DI := Self.Add as Tgd_DatabaseItem;
-          DI.Name := IniFile.ReadString(Sections[I], 'Name', '');
-          DI.Server := IniFile.ReadString(Sections[I], 'Server', '');
-          DI.Port := IniFile.ReadInteger(Sections[I], 'Port', 0);
-          DI.FileName := IniFile.ReadString(Sections[I], 'FileName', '');
+          DI := FindByName(Sections[I]);
+          if DI = nil then
+          begin
+            DI := Self.Add as Tgd_DatabaseItem;
+            DI.Name := Sections[I];
+          end;
+          DI.ReadFromIniFile(IniFile);
         end;
       finally
         Sections.Free;
@@ -219,25 +228,20 @@ end;
 procedure Tgd_DatabasesList.WriteToIniFile;
 var
   IniFile: TIniFile;
-  SL: TStringList;
   I: Integer;
 begin
   IniFile := TIniFile.Create(FIniFileName);
-  SL := TStringList.Create;
   try
-    IniFile.ReadSections(SL);
-    for I := 0 to SL.Count - 1 do
-      IniFile.EraseSection(SL[I]);
     for I := 0 to Count - 1 do
-      (Items[I] as Tgd_DatabaseItem).WriteToIniFile(IniFile);  
+      (Items[I] as Tgd_DatabaseItem).WriteToIniFile(IniFile);
   finally
-    SL.Free;
     IniFile.Free;
   end;
 end;
 
 destructor Tgd_DatabasesList.Destroy;
 begin
+  WriteToIniFile;
   inherited;
 end;
 
@@ -247,10 +251,27 @@ begin
   try
     Result := ShowModal = mrOk;
     if Result then
-      WriteToIniFile;
+      WriteToIniFile
+    else begin
+      Clear;
+      ReadFromIniFile;
+    end;
   finally
     Free;
   end;
+end;
+
+function Tgd_DatabasesList.FindByName(const AName: String): Tgd_DatabaseItem;
+var
+  I: Integer;
+begin
+  Result := nil;
+  for I := 0 to Count - 1 do
+    if AnsiCompareText((Items[I] as Tgd_DatabaseItem).Name, Trim(AName)) = 0 then
+    begin
+      Result := Items[I] as Tgd_DatabaseItem;
+      break;
+    end;
 end;
 
 initialization

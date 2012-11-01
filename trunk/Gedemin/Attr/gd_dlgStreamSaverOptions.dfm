@@ -1,6 +1,6 @@
 object dlgStreamSaverOptions: TdlgStreamSaverOptions
-  Left = 1033
-  Top = 204
+  Left = 523
+  Top = 179
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'Опции переноса данных'
@@ -22,8 +22,8 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
     Left = 0
     Top = 0
     Width = 386
-    Height = 409
-    ActivePage = tbsWebServer
+    Height = 414
+    ActivePage = tbsMain
     Align = alClient
     TabOrder = 0
     object tbsMain: TTabSheet
@@ -55,7 +55,7 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
           Width = 250
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 0
         end
         object cbSettingFormat: TComboBox
@@ -64,7 +64,7 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
           Width = 250
           Height = 21
           Style = csDropDownList
-          ItemHeight = 0
+          ItemHeight = 13
           TabOrder = 1
         end
       end
@@ -181,16 +181,17 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
   end
   object pnlBottom: TPanel
     Left = 0
-    Top = 409
+    Top = 414
     Width = 386
-    Height = 41
+    Height = 36
     Align = alBottom
+    BevelOuter = bvNone
     TabOrder = 1
     object btnOK: TButton
       Left = 208
       Top = 8
       Width = 75
-      Height = 25
+      Height = 21
       Action = actOK
       Default = True
       ModalResult = 1
@@ -200,7 +201,7 @@ object dlgStreamSaverOptions: TdlgStreamSaverOptions
       Left = 304
       Top = 8
       Width = 75
-      Height = 25
+      Height = 21
       Action = actCancel
       Cancel = True
       ModalResult = 2

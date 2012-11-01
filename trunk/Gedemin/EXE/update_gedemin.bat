@@ -67,6 +67,17 @@ echo *************************************************
 echo *************************************************
 echo **                                             **
 echo **  update_gedemin:                            **
+echo **  Remove old DCUs                            **
+echo **                                             **
+echo *************************************************
+
+cd ..\dcu
+del *.dcu
+cd ..\exe
+
+echo *************************************************
+echo **                                             **
+echo **  update_gedemin:                            **
 echo **  Increment version number                   **
 echo **                                             **
 echo *************************************************
@@ -191,7 +202,7 @@ echo *************************************************
 
 cd ..\gudf
 copy gudf.cfg gudf.current.cfg /y
-copy %gudf_cfg% gudf.cfg /y
+copy gudf.product.cfg gudf.cfg /y
 
 echo *************************************************
 echo **                                             **
@@ -258,6 +269,27 @@ echo **  update_gedemin:                            **
 echo **  Upload to FTP                              **
 echo **                                             **
 echo *************************************************
+
+if exist temp_ftp_commands.txt del temp_ftp_commands.txt
+call BatchSubstitute.bat gedemin.rar %arc_name% ftp_commands.txt > temp_ftp_commands.txt
+ftp -s:temp_ftp_commands.txt
+if not errorlevel 0 goto exit
+
+del %arc_name%
+del temp_ftp_commands.txt
+
+echo *************************************************
+echo **                                             **
+echo **  update_gedemin:                            **
+echo **  Upload gudf.rar                            **
+echo **                                             **
+echo *************************************************
+
+set arc_name=gudf.rar
+set arc_command="c:\program files\winrar\winrar.exe" a %arc_name%
+
+if exist %arc_name% del %arc_name% 
+%arc_command% udf\gudf.dll
 
 if exist temp_ftp_commands.txt del temp_ftp_commands.txt
 call BatchSubstitute.bat gedemin.rar %arc_name% ftp_commands.txt > temp_ftp_commands.txt

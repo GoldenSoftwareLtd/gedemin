@@ -29,13 +29,6 @@ object gd_DatabasesListDlg: Tgd_DatabasesListDlg
     Height = 13
     Caption = 'Сервер:'
   end
-  object Label3: TLabel
-    Left = 232
-    Top = 40
-    Width = 28
-    Height = 13
-    Caption = 'Порт:'
-  end
   object Label4: TLabel
     Left = 16
     Top = 72
@@ -66,20 +59,12 @@ object gd_DatabasesListDlg: Tgd_DatabasesListDlg
     TabOrder = 1
     Text = 'edServer'
   end
-  object edPort: TEdit
-    Left = 264
-    Top = 40
-    Width = 121
-    Height = 21
-    TabOrder = 2
-    Text = 'edPort'
-  end
   object edFileName: TEdit
     Left = 104
     Top = 64
     Width = 249
     Height = 21
-    TabOrder = 3
+    TabOrder = 2
     Text = 'edFileName'
   end
   object Button1: TButton
@@ -89,7 +74,7 @@ object gd_DatabasesListDlg: Tgd_DatabasesListDlg
     Height = 21
     Caption = 'Ok'
     ModalResult = 1
-    TabOrder = 4
+    TabOrder = 3
   end
   object Button2: TButton
     Left = 304
@@ -98,14 +83,14 @@ object gd_DatabasesListDlg: Tgd_DatabasesListDlg
     Height = 21
     Caption = 'Отмена'
     ModalResult = 2
-    TabOrder = 5
+    TabOrder = 4
   end
   object edDBParams: TEdit
     Left = 104
     Top = 112
     Width = 281
     Height = 21
-    TabOrder = 6
+    TabOrder = 5
     Text = 'edDBParams'
   end
   object Button3: TButton
@@ -114,6 +99,6 @@ object gd_DatabasesListDlg: Tgd_DatabasesListDlg
     Width = 21
     Height = 21
     Caption = '...'
-    TabOrder = 7
+    TabOrder = 6
   end
 end

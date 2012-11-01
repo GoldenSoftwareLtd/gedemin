@@ -627,10 +627,11 @@ procedure TdlgSecLogIn.PrepareSelf;
 var
   Reg: TRegistry;
   SL: TStringList;
-  I: Integer;
-  Path: String;
+  I, Port: Integer;
+  Path, Server, FileName: String;
 begin
-  lServerName.Caption := ExtractServerName(Database.DatabaseName);
+  ParseDatabaseName(Database.DatabaseName, Server, Port, FileName);
+  lServerName.Caption := Server;
 
   FSL.Clear;
   cbDBFileName.Items.Clear;
@@ -736,10 +737,10 @@ procedure TdlgSecLogIn.cbDBFileNameChange(Sender: TObject);
 var
   OldK: Boolean;
   OldD: String;
-  I: Integer;
+  I, Port: Integer;
   IBSS: TIBSecurityService;
   FSysDBAUserName, FSysDBAPassword: String;
-  //DbShut: TgsDatabaseShutdown;
+  Server, FileName: String;
 begin
   FAutoCloseCounter := MaxInt;
   edPassword.Text := '';
@@ -801,30 +802,7 @@ begin
       except
         on E: EIBError do
         begin
-          {if E.IBErrorCode = 335544528 then
-          begin
-            if MessageBox(Handle,
-              '¬ыбранна€ база данных находитс€ в однопользовательском режиме.'#13#10 +
-              'ѕеревести ее в многопользовательский режим?',
-              '¬нимание',
-              MB_YESNO or MB_ICONQUESTION) = IDNO then
-            begin
-              raise;
-            end;
-
-            DbShut := TgsDatabaseShutdown.Create(Self);
-            try
-              DbShut.Database := Database;
-              if DbShut.IsShutDowned then
-                DbShut.BringOnline;
-            finally
-              DbShut.Free;
-            end;
-
-            Abort;
-
-          end
-          else} if (E.IBErrorCode = 335544472) then
+          if (E.IBErrorCode = 335544472) then
           begin
             // сервер есть но старт юзера нет
             if MessageBox(Handle,
@@ -840,12 +818,13 @@ begin
             FSysDBAPassword := 'masterkey';
             FSysDBAUserName := SysDBAUserName;
 
-            if not LoginDialogEx(ExtractServerName(Database.DatabaseName), FSysDBAUserName, FSysDBAPassword, True) then
+            ParseDatabaseName(Database.DatabaseName, Server, Port, FileName);
+            if not LoginDialogEx(Server, FSysDBAUserName, FSysDBAPassword, True) then
               raise;
 
             IBSS := TIBSecurityService.Create(Self);
             try
-              IBSS.ServerName := ExtractServerName(Database.DatabaseName);
+              IBSS.ServerName := Server;
               IBSS.LoginPrompt := False;
               IBSS.Protocol := TCP;
               IBSS.Params.Add('user_name=' + SysDBAUserName);

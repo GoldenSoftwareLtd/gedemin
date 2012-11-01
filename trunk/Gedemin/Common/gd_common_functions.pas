@@ -19,8 +19,8 @@ procedure SaveIntegerToStream(Value: Integer; Stream: TStream);
 function ReadIntegerFromStream(Stream: TStream): Integer;
 // возвращает корректное имя файла (оставляет допустимые символы)
 function CorrectFileName(const FN: String): String;
-function ExtractServerName(const DatabaseName: String): String;
-
+procedure ParseDatabaseName(ADatabaseName: String; out AServer: String;
+  out APort: Integer; out AFileName: String);
 function ALIPAddrToName(IPAddr: String): String;
 
 implementation
@@ -49,16 +49,43 @@ begin
   end;
 end;
 
-function ExtractServerName(const DatabaseName: String): String;
+procedure ParseDatabaseName(ADatabaseName: String; out AServer: String;
+  out APort: Integer; out AFileName: String);
 var
   P: Integer;
 begin
-  P := Pos(':', DatabaseName);
-  if (P > 0) and (Pos(':', Copy(DatabaseName, P + 1, 1024)) > 0) then
+  ADatabaseName := Trim(ADatabaseName);
+
+  P := Pos(':', ADatabaseName);
+  if P = 0 then
   begin
-    Result := Copy(DatabaseName, 1, P - 1);
+    AServer := '';
+    APort := 0;
+    AFileName := ADatabaseName;
   end else
-    Result := '';
+  begin
+    if Copy(ADatabaseName, P + 1, 1) = '\' then
+    begin
+      AServer := '';
+      APort := 0;
+      AFileName := ADatabaseName;
+    end else
+    begin
+      AServer := Copy(ADatabaseName, 1, P - 1);
+      AFileName := Copy(ADatabaseName, P + 1, 1024);
+      P := Pos('/', AServer);
+      if P > 0 then
+        APort := StrToIntDef(Copy(AServer, P + 1, 1024), -1)
+      else
+        APort := 0;  
+    end;
+  end;
+
+  if (APort < 0) or (APort > MAXWORD) then
+    raise Exception.Create('Invalid port number');
+
+  if AFileName = '' then
+    raise Exception.Create('Invalid database file name or alias');
 end;
 
 function CompareVersion(Ver1, Ver2: String): Integer;

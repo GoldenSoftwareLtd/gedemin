@@ -2116,49 +2116,46 @@ end;
 
 procedure TdlgInvDocument.actDetailNewUpdate(Sender: TObject);
 begin
-  actDetailNew.Enabled := actOk.Enabled and
-    Assigned(DocumentLine) and Assigned(FSecondDocumentLine) and ((
+  actDetailNew.Enabled := actOk.Enabled and ((
     (
       (ibgrdTop.Focused or not Assigned(FBottomGrid)) and
-      not (DocumentLine.State in dsEditModes)
+      Assigned(DocumentLine) and not (DocumentLine.State in dsEditModes)
     ))
       or
     (
       Assigned(FBottomGrid) and FBottomGrid.Focused and
-      not (FSecondDocumentLine.State in dsEditModes)
+      Assigned(FSecondDocumentLine) and not (FSecondDocumentLine.State in dsEditModes)
     ));
 end;
 
 procedure TdlgInvDocument.actDetailEditUpdate(Sender: TObject);
 begin
-  actDetailEdit.Enabled := actOk.Enabled and
-    Assigned(DocumentLine) and Assigned(FSecondDocumentLine) and ((
+  actDetailEdit.Enabled := actOk.Enabled and ((
     (
       (ibgrdTop.Focused or not Assigned(FBottomGrid)) and
-      not (DocumentLine.State in dsEditModes) and
+      Assigned(DocumentLine) and not (DocumentLine.State in dsEditModes) and
       (DocumentLine.RecordCount > 0)
     ))
       or
     (
       Assigned(FBottomGrid) and FBottomGrid.Focused and
-      not (FSecondDocumentLine.State in dsEditModes) and
+      Assigned(FSecondDocumentLine) and not (FSecondDocumentLine.State in dsEditModes) and
       (FSecondDocumentLine.RecordCount > 0)
     ));
 end;
 
 procedure TdlgInvDocument.actDetailDeleteUpdate(Sender: TObject);
 begin
-  actDetailDelete.Enabled := actOk.Enabled and
-    Assigned(DocumentLine) and Assigned(FSecondDocumentLine) and ((
+  actDetailDelete.Enabled := actOk.Enabled and ((
     (
       (ibgrdTop.Focused or not Assigned(FBottomGrid)) and
-      not (DocumentLine.State in dsEditModes) and
+      Assigned(DocumentLine) and not (DocumentLine.State in dsEditModes) and
       (DocumentLine.RecordCount > 0)
     ))
       or
     (
       Assigned(FBottomGrid) and FBottomGrid.Focused and
-      not (FSecondDocumentLine.State in dsEditModes) and
+      Assigned(FSecondDocumentLine) and not (FSecondDocumentLine.State in dsEditModes) and
       (FSecondDocumentLine.RecordCount > 0)
     ));
 end;

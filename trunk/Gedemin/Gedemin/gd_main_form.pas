@@ -494,7 +494,8 @@ uses
   st_frmMain_unit,
 
   gd_dlgOptions_unit,
-
+  gd_security_dlgLogIn2,
+  
   contnrs,
   gdUpdateIndiceStat,
   IB,
@@ -2366,6 +2367,13 @@ end;
 
 procedure TfrmGedeminMain.actDatabasesListExecute(Sender: TObject);
 begin
+  with TdlgSecLogin2.Create(Self) do
+  try
+    ShowModal;
+  finally
+    Free;
+  end;
+
   gd_DatabasesList.ShowViewForm;
 end;
 
