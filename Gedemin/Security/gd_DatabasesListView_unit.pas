@@ -42,9 +42,11 @@ type
     procedure actCancelExecute(Sender: TObject);
     procedure edFilterChange(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
+    procedure lvChange(Sender: TObject; Item: TListItem;
+      Change: TItemChange);
 
   public
-    procedure InitDatabasesList;
+    procedure SyncControls;
   end;
 
 var
@@ -62,18 +64,12 @@ begin
   ModalResult := mrOk;
 end;
 
-procedure Tgd_DatabasesListView.InitDatabasesList;
+procedure Tgd_DatabasesListView.SyncControls;
 var
   I: Integer;
   DI: Tgd_DatabaseItem;
   LI: TListItem;
-  Saved: String;
 begin
-  if lv.Selected <> nil then
-    Saved := lv.Selected.Caption
-  else
-    Saved := '';
-
   lv.Items.Clear;
   for I := 0 to gd_DatabasesList.Count - 1 do
   begin
@@ -86,7 +82,7 @@ begin
       LI.Caption := DI.Name;
       LI.SubItems.Add(DI.Server);
       LI.SubItems.Add(DI.FileName);
-      if (LI.Caption = Saved) or (lv.Items.Count = 1) then
+      if DI.Selected then
         LI.Selected := True;
     end;
   end;
@@ -100,11 +96,14 @@ begin
     lv.Color := clInfoBK;
     edFilter.Color := clInfoBk;
   end;
+
+  if lv.Selected <> nil then
+    lv.Selected.MakeVisible(False);
 end;
 
 procedure Tgd_DatabasesListView.FormCreate(Sender: TObject);
 begin
-  InitDatabasesList;
+  SyncControls;
 end;
 
 procedure Tgd_DatabasesListView.actCreateExecute(Sender: TObject);
@@ -114,8 +113,10 @@ begin
   DI := gd_DatabasesList.Add as Tgd_DatabaseItem;
   try
     if DI.EditInDialog then
-      InitDatabasesList
-    else
+    begin
+      DI.Selected := True;
+      SyncControls;
+    end else
       DI.Free;
   except
     DI.Free;
@@ -131,7 +132,7 @@ end;
 procedure Tgd_DatabasesListView.actImportExecute(Sender: TObject);
 begin
   gd_DatabasesList.ReadFromRegistry;
-  InitDatabasesList;
+  SyncControls;
 end;
 
 procedure Tgd_DatabasesListView.actCancelExecute(Sender: TObject);
@@ -141,12 +142,26 @@ end;
 
 procedure Tgd_DatabasesListView.edFilterChange(Sender: TObject);
 begin
-  InitDatabasesList;
+  SyncControls;
 end;
 
 procedure Tgd_DatabasesListView.actOkUpdate(Sender: TObject);
 begin
-  actOk.Enabled := lv.Selected <> nil;
+  actOk.Enabled := (gd_DatabasesList.Count = 0) or
+    (gd_DatabasesList.FindSelected <> nil);
+end;
+
+procedure Tgd_DatabasesListView.lvChange(Sender: TObject; Item: TListItem;
+  Change: TItemChange);
+var
+  DI: Tgd_DatabaseItem;
+begin
+  if lv.Selected <> nil then
+  begin
+    DI := gd_DatabasesList.FindByName(lv.Selected.Caption);
+    if DI <> nil then
+      DI.Selected := True;
+  end;
 end;
 
 end.

@@ -2370,6 +2370,7 @@ begin
   with TdlgSecLogin2.Create(Self) do
   try
     ShowModal;
+    gd_DatabasesList.WriteToINIFile;
   finally
     Free;
   end;

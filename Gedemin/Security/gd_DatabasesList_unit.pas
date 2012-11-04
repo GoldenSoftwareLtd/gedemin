@@ -7,25 +7,28 @@ uses
   Classes, SysUtils, IniFiles, ContNrs, gd_directories_const;
 
 const
-  MaxUserCount = 4;
+  MaxUserCount = 10;
 
 type
-  Tgd_UserRec = record
-    Login: String[60];
-    Password: String[60];
-  end;
-
   Tgd_DatabaseItem = class(TCollectionItem)
   private
     FName: String;
     FServer: String;
     FFileName: String;
-    FUsers: array[1..MaxUserCount] of Tgd_UserRec;
-    FUserCount: Integer;
+    FUsers: TStringList;
     FDBParams: String;
-    FIniFile: String;
+    FSelected: Boolean;
+    FRememberPassword: Boolean;
+    FEnteredLogin: String;
+    FEnteredPassword: String;
 
     procedure SetName(const Value: String);
+    procedure SetSelected(const Value: Boolean);
+    procedure SetRememberPassword(const Value: Boolean);
+
+    function ConvertString(const S: String): String;
+    function RestoreString(const S: String): String;
+    function GetCryptoKey: String;
 
   protected
     procedure ReadFromIniFile(AnIniFile: TIniFile);
@@ -33,13 +36,21 @@ type
 
   public
     constructor Create(Collection: TCollection); override;
+    destructor Destroy; override;
 
     function EditInDialog: Boolean;
+    procedure AddUser(ALogin: String; APassword: String);
+    procedure GetUsers(S: TStrings);
+    function GetPassword(ALogin: String): String;
 
     property Name: String read FName write SetName;
     property Server: String read FServer write FServer;
     property FileName: String read FFileName write FFileName;
     property DBParams: String read FDBParams write FDBParams;
+    property Selected: Boolean read FSelected write SetSelected;
+    property RememberPassword: Boolean read FRememberPassword write SetRememberPassword;
+    property EnteredLogin: String read FEnteredLogin write FEnteredLogin;
+    property EnteredPassword: String read FEnteredPassword write FEnteredPassword;
   end;
 
   Tgd_DatabasesList = class(TCollection)
@@ -55,6 +66,7 @@ type
     procedure ReadFromRegistry;
     procedure ScanDirectory;
     function FindByName(const AName: String): Tgd_DatabaseItem;
+    function FindSelected: Tgd_DatabaseItem;
 
     function ShowViewForm: Boolean;
   end;
@@ -67,14 +79,40 @@ var
 implementation
 
 uses
-  Windows, Forms, Controls, JclFileUtils, gd_common_functions, Registry,
+  Windows, Wcrypt2, Forms, Controls, JclFileUtils, gd_common_functions, Registry,
   gd_DatabasesListView_unit, gd_DatabasesListDlg_unit;
 
 { Tgd_DatabaseItem }
 
+procedure Tgd_DatabaseItem.AddUser(ALogin, APassword: String);
+var
+  I: Integer;
+begin
+  ALogin := ConvertString(ALogin);
+  APassword := ConvertString(APassword);
+  I := FUsers.IndexOfName(ALogin);
+  if I > -1 then
+    FUsers.Delete(I);
+  FUsers.Insert(0, ALogin + '=' + APassword);
+  while FUsers.Count > MaxUserCount do
+    FUsers.Delete(FUsers.Count - 1);
+end;
+
+function Tgd_DatabaseItem.ConvertString(const S: String): String;
+begin
+  Result := StringReplace(S, '=', '&eq;', [rfReplaceAll]);
+end;
+
 constructor Tgd_DatabaseItem.Create(Collection: TCollection);
 begin
   inherited Create(Collection);
+  FUsers := TStringList.Create;
+end;
+
+destructor Tgd_DatabaseItem.Destroy;
+begin
+  FUsers.Free;
+  inherited;
 end;
 
 function Tgd_DatabaseItem.EditInDialog: Boolean;
@@ -102,12 +140,99 @@ begin
   end;
 end;
 
+function Tgd_DatabaseItem.GetCryptoKey: String;
+var
+  CompName: array[0..MAX_COMPUTERNAME_LENGTH] of Char;
+  CompNameSize: DWORD;
+begin
+  GetComputerName(CompName, CompNameSize);
+  Result := CompName + Name + Server;
+end;
+
+function Tgd_DatabaseItem.GetPassword(ALogin: String): String;
+begin
+  ALogin := ConvertString(ALogin);
+  if FUsers.IndexOfName(ALogin) > -1 then
+    Result := RestoreString(FUsers.Values[ALogin])
+  else
+    Result := '';
+end;
+
+procedure Tgd_DatabaseItem.GetUsers(S: TStrings);
+var
+  I: Integer;
+begin
+  S.Clear;
+  for I := 0 to FUsers.Count - 1 do
+    S.Add(RestoreString(FUsers.Names[I]));
+end;
+
 procedure Tgd_DatabaseItem.ReadFromIniFile(AnIniFile: TIniFile);
+var
+  S: String;
+  hProv: HCRYPTPROV;
+  Key: HCRYPTKEY;
+  Hash: HCRYPTHASH;
+  CryptoKey, PassHex: String;
+  Len, I, P: Integer;
 begin
   Assert(Assigned(AnIniFile));
   Server := AnIniFile.ReadString(Name, 'Server', '');
   FileName := AnIniFile.ReadString(Name, 'FileName', '');
   DBParams := AnIniFile.ReadString(Name, 'DBParams', '');
+  Selected := AnIniFile.ReadBool(Name, 'Selected', False);
+  RememberPassword := AnIniFile.ReadBool(Name, 'RememberPassword', False);
+
+  FUsers.Clear;
+  PassHex :=
+    AnIniFile.ReadString(Name, 'Data0', '') +
+    AnIniFile.ReadString(Name, 'Data1', '') +
+    AnIniFile.ReadString(Name, 'Data2', '') +
+    AnIniFile.ReadString(Name, 'Data3', '');
+  Len := Length(PassHex) div 2;
+  SetLength(S, Len);
+  I := 1; P := 1;
+  while P <= Len do
+  begin
+    try
+      S[P] := HexToAnsiChar(PassHex, I);
+    except
+      S := '';
+      break;
+    end;
+    Inc(I, 2);
+    Inc(P);
+  end;
+
+  if S > '' then
+  begin
+    CryptAcquireContext(@hProv, nil, nil, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+    try
+      CryptCreateHash(hProv, CALG_SHA, 0, 0, @Hash);
+      try
+        CryptoKey := GetCryptoKey;
+        CryptHashData(Hash, @CryptoKey[1], Length(CryptoKey), 0);
+        CryptDeriveKey(hProv, CALG_RC4, Hash, 0, @Key);
+        CryptDecrypt(Key, 0, True, 0, @S[1], @Len);
+      finally
+        CryptDestroyHash(Hash);
+      end;
+    finally
+      CryptReleaseContext(hProv, 0);
+    end;
+
+    if Copy(S, 1, 4) = '0001' then
+    begin
+      if Pos(#00, S) > 0 then
+        SetLength(S, Pos(#00, S) - 1);
+      FUsers.CommaText := Copy(S, 5, 1024);
+    end;
+  end;
+end;
+
+function Tgd_DatabaseItem.RestoreString(const S: String): String;
+begin
+  Result := StringReplace(S, '&eq;', '=', [rfReplaceAll]);
 end;
 
 procedure Tgd_DatabaseItem.SetName(const Value: String);
@@ -127,17 +252,92 @@ begin
   end;  
 end;
 
+procedure Tgd_DatabaseItem.SetRememberPassword(const Value: Boolean);
+var
+  I: Integer;
+begin
+  FRememberPassword := Value;
+  if not FRememberPassword then
+    for I := 0 to FUsers.Count - 1 do
+      FUsers[I] := FUsers.Names[I] + '=';
+end;
+
+procedure Tgd_DatabaseItem.SetSelected(const Value: Boolean);
+var
+  I: Integer;
+begin
+  FSelected := Value;
+  if FSelected then
+    for I := 0 to Collection.Count - 1 do
+      if Collection.Items[I] <> Self then
+        (Collection.Items[I] as Tgd_DatabaseItem).Selected := False;
+end;
+
 procedure Tgd_DatabaseItem.WriteToIniFile(AnIniFile: TIniFile);
+const
+  HexInARow    = 64;
+  MaxDataBlock = HexINARow * 4;
+var
+  S: String;
+  hProv: HCRYPTPROV;
+  Key: HCRYPTKEY;
+  Hash: HCRYPTHASH;
+  CryptoKey, PassHex: String;
+  Len, I: Integer;
 begin
   Assert(Assigned(AnIniFile));
   Assert(Name > '');
   if AnIniFile.SectionExists(Name) then
     AnIniFile.EraseSection(Name);
-  if Server > '' then
-    AnIniFile.WriteString(Name, 'Server', Server);
+  AnIniFile.WriteString(Name, 'Server', Server);
   AnIniFile.WriteString(Name, 'FileName', FileName);
   if DBParams > '' then
     AnIniFile.WriteString(Name, 'DBParams', DBParams);
+  AnIniFile.WriteBool(Name, 'Selected', Selected);
+  AnIniFile.WriteBool(Name, 'RememberPassword', RememberPassword);
+
+  if FUsers.Count > 0 then
+  begin
+    S := '0001' + FUsers.CommaText;
+    if Length(S) > MaxDataBlock then
+    begin
+      Len := MaxDataBlock;
+      SetLength(S, Len)
+    end else
+    begin
+      Len := (Length(S) div HexInARow + 1) * HexInARow;
+      S := S + StringOfChar(#00, Len - Length(S));
+    end;
+
+    CryptAcquireContext(@hProv, nil, nil, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+    try
+      CryptCreateHash(hProv, CALG_SHA, 0, 0, @Hash);
+      try
+        CryptoKey := GetCryptoKey;
+        CryptHashData(Hash, @CryptoKey[1], Length(CryptoKey), 0);
+        CryptDeriveKey(hProv, CALG_RC4, Hash, 0, @Key);
+        CryptEncrypt(Key, 0, True, 0, @S[1], @Len, Len);
+      finally
+        CryptDestroyHash(Hash);
+      end;
+    finally
+      CryptReleaseContext(hProv, 0);
+    end;
+
+    PassHex := '';
+    I := 1;
+    while I <= Len do
+    begin
+      PassHex := PassHex + AnsiCharToHex(S[I]);
+      if (I mod HexInARow = 0) or (I = Len) then
+      begin
+        if PassHex > '' then
+          AnIniFile.WriteString(Name, 'Data' + IntToStr(I div HexInARow - 1), PassHex);
+        PassHex := '';
+      end;
+      Inc(I);
+    end;
+  end;
 end;
 
 { Tgd_DatabasesList }
@@ -212,6 +412,9 @@ begin
           end;
           DI.ReadFromIniFile(IniFile);
         end;
+
+        if (Count > 0) and (FindSelected = nil) then
+          (Items[0] as Tgd_DatabaseItem).Selected := True;
       finally
         Sections.Free;
       end;
@@ -272,6 +475,24 @@ begin
       Result := Items[I] as Tgd_DatabaseItem;
       break;
     end;
+end;
+
+function Tgd_DatabasesList.FindSelected: Tgd_DatabaseItem;
+var
+  I: Integer;
+begin
+  if Count = 0 then
+    Result := nil
+  else
+    Result := Items[0] as Tgd_DatabaseItem;
+  for I := 0 to Count - 1 do
+    if (Items[I] as Tgd_DatabaseItem).Selected then
+    begin
+      Result := Items[I] as Tgd_DatabaseItem;
+      break;
+    end;
+  if not Result.Selected then
+    Result.Selected := True;
 end;
 
 initialization

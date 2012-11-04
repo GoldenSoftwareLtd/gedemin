@@ -752,14 +752,6 @@ end;
 procedure Tgdc_frmSetting.OnObjectLoad2(Sender: TatSettingWalker;
   const AClassName, ASubType: String;
   ADataSet: TDataSet; APrSet: TgdcPropertySet; const ASR: TgsStreamRecord);
-
-  function ByteToHex(const B: Byte): String;
-  const
-    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
-  begin
-    Result := HexDigits[B div 16] + HexDigits[B mod 16];
-  end;
-
 const
   HexInRow = 16;
   DontSaveList = ';LB;RB;AFULL;ACHAG;AVIEW;EDITORKEY;CREATORKEY;EDITIONDATE;CREATIONDATE;_MODIFIED;';
@@ -897,7 +889,7 @@ begin
                   begin
                     if J mod HexInRow = 1 then
                       C := StrCat(C, '    ') + StrLen(C);
-                    C := StrCat(C, PChar(ByteToHex(Byte(T[J])) + ' ')) + StrLen(C);
+                    C := StrCat(C, PChar(AnsiCharToHex(T[J]) + ' ')) + StrLen(C);
                     if J mod HexInRow = 0 then
                       C := StrCat(C, #13#10) + StrLen(C);
                   end;
@@ -958,19 +950,11 @@ end;
 procedure Tgdc_frmSetting.OnStartLoading2(Sender: TatSettingWalker;
   AnObjectSet: TgdcObjectSet);
 begin
-  //SList.Clear;
+  //
 end;
 
 procedure Tgdc_frmSetting.OnObjectLoad2New(Sender: TatSettingWalker;
   const AClassName, ASubType: String; ADataSet: TDataSet);
-
-  function ByteToHex(const B: Byte): String;
-  const
-    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
-  begin
-    Result := HexDigits[B div 16] + HexDigits[B mod 16];
-  end;
-
 const
   HexInRow = 16;
   DontSaveList = ';LB;RB;AFULL;ACHAG;AVIEW;EDITORKEY;CREATORKEY;EDITIONDATE;CREATIONDATE;_MODIFIED;';
@@ -1090,7 +1074,7 @@ begin
                 begin
                   if J mod HexInRow = 1 then
                     C := StrCat(C, '    ') + StrLen(C);
-                  C := StrCat(C, PChar(ByteToHex(Byte(T[J])) + ' ')) + StrLen(C);
+                  C := StrCat(C, PChar(AnsiCharToHex(T[J]) + ' ')) + StrLen(C);
                   if J mod HexInRow = 0 then
                     C := StrCat(C, #13#10) + StrLen(C);
                 end;

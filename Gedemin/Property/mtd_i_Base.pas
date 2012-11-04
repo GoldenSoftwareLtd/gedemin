@@ -55,19 +55,9 @@ begin
       Result[i] := '_';
 end;
 
-{ TClassListForMethod }
-
-{function TClassListForMethod.Add(const S: string): Integer;
-begin
-  Result := IndexOf(S);
-  if Result = -1 then
-    Result := inherited Add(S)
-end;}
-
 initialization
   MethodControl := nil;
 
 finalization
-
 
 end.

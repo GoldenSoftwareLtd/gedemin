@@ -145,14 +145,6 @@ begin
 end;
 
 procedure TdlgSecLogIn.GetPasswordFromRegistry;
-
-  function HexToByte(const St: String): Byte;
-  const
-    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
-  begin
-    Result := (Pos(St[1], HexDigits) - 1) * 16 + (Pos(St[2], HexDigits) - 1);
-  end;
-
 var
   Reg: TRegistry;
   hProv: HCRYPTPROV;
@@ -190,7 +182,7 @@ begin
         I := 3;
         while I < Length(Pass) do
         begin
-          UnHexPass := UnHexPass + Chr(HexToByte(Copy(Pass, I, 2)));
+          UnHexPass := UnHexPass + HexToAnsiChar(Copy(Pass, I, 2));
           Inc(I, 2);
         end;
         Pass := UnHexPass;
@@ -231,14 +223,6 @@ end;
 }
 
 procedure TdlgSecLogIn.actLoginExecute(Sender: TObject);
-
-  function ByteToHex(const B: Byte): String;
-  const
-    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
-  begin
-    Result := HexDigits[B div 16] + HexDigits[B mod 16];
-  end;
-
 var
   Reg: TRegistry;
   hProv: HCRYPTPROV;
@@ -304,7 +288,7 @@ begin
               begin
                 PassHex := '';
                 for I := 1 to Len do
-                  PassHex := PassHex + ByteToHex(Ord(Pass[I]));
+                  PassHex := PassHex + AnsiCharToHex(Pass[I]);
                 Reg.WriteString(cbUser.Text, '02' + PassHex);
 
                 //Reg.WriteString(cbUser.Text, '01' + Pass);

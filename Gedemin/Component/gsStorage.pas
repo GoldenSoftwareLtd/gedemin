@@ -597,7 +597,7 @@ type
 implementation
 
 uses
-  JclSysUtils, ZLib, Windows, st_dlgfolderprop_unit,
+  JclSysUtils, ZLib, Windows, st_dlgfolderprop_unit, gd_common_functions,
   st_dlgeditvalue_unit, gsStorage_CompPath, DB, IB, IBErrorCodes,
   IBBlob, gdcBaseInterface, jclStrings, gdcStorage_Types
   {$IFDEF GEDEMIN}
@@ -3923,13 +3923,6 @@ procedure TgsStreamValue.LoadFromStream2(S: TStringStream);
 var
   TempBuffer: String;
 
-  function HexToByte(const St: String): Byte;
-  const
-    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
-  begin
-    Result := (Pos(St[1], HexDigits) - 1) * 16 + (Pos(St[2], HexDigits) - 1);
-  end;
-
   function ReadUntilEOL(S: TStringStream): String;
   var
     Ch: Char;
@@ -3978,7 +3971,6 @@ var
   var
     ByteStr: String;
     I: Integer;
-    B: Byte;
   begin
     ByteStr := '';
     for I := 1 to Length(Str) do
@@ -3987,8 +3979,7 @@ var
         ByteStr := ByteStr + Str[I];
         if Length(ByteStr) = 2 then
         begin
-          B := HexToByte(ByteStr);
-          TempBuffer := TempBuffer + Char(B);
+          TempBuffer := TempBuffer + HexToAnsiChar(ByteStr);
           ByteStr := '';
         end;
       end;
@@ -4038,17 +4029,8 @@ begin
 end;
 
 procedure TgsStreamValue.SaveToStream2(S: TStringStream);
-
-  function ByteToHex(const B: Byte): String;
-  const
-    HexDigits: array[0..15] of Char = '0123456789ABCDEF';
-  begin
-    Result := HexDigits[B div 16] + HexDigits[B mod 16];
-  end;
-
 const
   HexInRow = 16;
-
 var
   I: Integer;
   T: String;
@@ -4069,7 +4051,7 @@ begin
     begin
       if I mod HexInRow = 1 then
         C := StrCat(C, '    ') + StrLen(C);
-      C := StrCat(C, PChar(ByteToHex(Byte(T[I])) + ' ')) + StrLen(C);
+      C := StrCat(C, PChar(AnsiCharToHex(T[I]) + ' ')) + StrLen(C);
       if I mod HexInRow = 0 then
         C := StrCat(C, #13#10) + StrLen(C);
     end;
@@ -4079,7 +4061,6 @@ begin
     FreeMem(B, Size);
   end;
 end;
-
 
 procedure TgsStreamValue.SetAsString(const Value: String);
 begin
