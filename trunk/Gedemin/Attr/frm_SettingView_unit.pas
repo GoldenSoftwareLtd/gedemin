@@ -46,9 +46,6 @@ type
     FSelectionPos: Integer;
     FSearchReplaceHelper: TgsSearchReplaceHelper;
 
-    {function ConvertBinaryToHex(const AStr: String): String;}
-    {function ByteToHex(const B: Byte): String;}
-
     procedure ReadSettingOldStream(Stream: TStream);
     procedure ReadSettingNewStream(Stream: TStream; const StreamType: TgsStreamType);
     function FormatDatasetFieldValue(AField: TField): String;
@@ -74,10 +71,8 @@ uses
   {$ENDIF}
   , prp_MessageConst, syn_ManagerInterface_unit;
 
-
 const
   HexInRow = 16;
-  HexDigits: array[0..15] of Char = '0123456789ABCDEF';
   RecordDivider = #13#10'----------------------------------------------------------------------'#13#10#13#10;
   LoadingOrderLineText = '0. Порядок загрузки записей';
 
@@ -390,40 +385,6 @@ begin
     mSettingInfo.Font.Assign(SynManager.GetHighlighterFont);
   end;
 end;
-
-{function Tfrm_SettingView.ConvertBinaryToHex(const AStr: String): String;
-var
-  CharCounter: Integer;
-  Size: Integer;
-  B, C: PChar;
-begin
-  Result := '';
-
-  Size := Length(AStr);
-  Size := Size * 3 + ((Size div HexInRow) + 1) * (2 + 4) + 32;
-  GetMem(B, Size);
-  try
-    C := B;
-    C[0] := #0;
-    for CharCounter := 1 to Length(AStr) do
-    begin
-      if CharCounter mod HexInRow = 1 then
-        C := StrCat(C, '    ') + StrLen(C);
-      C := StrCat(C, PChar(ByteToHex(Byte(AStr[CharCounter])) + ' ')) + StrLen(C);
-      if CharCounter mod HexInRow = 0 then
-        C := StrCat(C, #13#10) + StrLen(C);
-    end;
-    StrCat(C, #13#10);
-    Result := #13#10'Size ' + IntToStr(Size) + #13#10 + B;
-  finally
-    FreeMem(B, Size);
-  end;
-end;}
-
-{function Tfrm_SettingView.ByteToHex(const B: Byte): String;
-begin
-  Result := HexDigits[B div 16] + HexDigits[B mod 16];
-end;}
 
 function Tfrm_SettingView.FormatDatasetFieldValue(AField: TField): String;
 var

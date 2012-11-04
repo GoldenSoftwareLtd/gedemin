@@ -819,8 +819,6 @@ begin
 end;
 
 function TboLogin.EstablishConnection: Boolean;
-{const
-  Asked: Boolean = False;}
 var
   TryLoginDatabase: TIBDatabase;
   Tr: TIBTransaction;

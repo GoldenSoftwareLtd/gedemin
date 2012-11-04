@@ -9,9 +9,7 @@ uses
 // используются для сравнения, если версии введены как строка
 function CompareVersion(Ver1, Ver2: String): Integer;
 function GetCurEXEVersion: String;
-//сохраняет строку в поток
 procedure SaveStringToStream(const Str: String; Stream: TStream);
-//читает строку из потока
 function ReadStringFromStream(Stream: TStream): string;
 procedure SaveBooleanToStream(Value: Boolean; Stream: TStream);
 function ReadBooleanFromStream(Stream: TStream): Boolean;
@@ -22,11 +20,27 @@ function CorrectFileName(const FN: String): String;
 procedure ParseDatabaseName(ADatabaseName: String; out AServer: String;
   out APort: Integer; out AFileName: String);
 function ALIPAddrToName(IPAddr: String): String;
+function AnsiCharToHex(const B: AnsiChar): String;
+function HexToAnsiChar(const St: AnsiString; const P: Integer = 1): AnsiChar;
 
 implementation
 
 uses
   Windows, SysUtils, Forms, jclFileUtils, WinSock;
+
+const
+  HexDigits: array[0..15] of Char = '0123456789ABCDEF';
+
+function HexToAnsiChar(const St: AnsiString; const P: Integer = 1): AnsiChar;
+begin
+  Assert((Length(St) - P) > 0);
+  Result := Chr((Pos(St[P], HexDigits) - 1) * 16 + (Pos(St[P + 1], HexDigits) - 1));
+end;
+
+function AnsiCharToHex(const B: AnsiChar): String;
+begin
+  Result := HexDigits[Byte(B) div 16] + HexDigits[Byte(B) mod 16];
+end;
 
 function ALIPAddrToName(IPAddr: String): String;
 var

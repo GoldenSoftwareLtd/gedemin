@@ -353,7 +353,7 @@ begin
     gd_CmdLineParams.QuietMode or
     (MessageBox(
       0,
-      'Программный продукт "GEDEMIN.EXE" уже загружен в память!' + #13#10#13#10 +
+      'Программный продукт GEDEMIN.EXE уже загружен в память!' + #13#10#13#10 +
       'Продолжить загрузку?',
       'Внимание',
       MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES);
@@ -603,6 +603,7 @@ begin
 
     Assert(SizeOf(TID) = SizeOf(Integer));
     Assert(SizeOf(Integer) = SizeOf(Pointer));
+    Assert(SizeOf(AnsiChar) = SizeOf(Byte));
 
     ///////////////////
     // Создание мютекса
@@ -665,7 +666,8 @@ begin
       end;
 
     finally
-      {ReleaseMutex(MutexHandle);
+      {при завершении процесса удалятся операционной системой
+      ReleaseMutex(MutexHandle);
       CloseHandle(MutexHandle);}
     end;
   finally

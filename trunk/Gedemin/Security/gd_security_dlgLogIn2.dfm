@@ -17,6 +17,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
   FormStyle = fsStayOnTop
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object imgSecurity: TImage
@@ -131,6 +132,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Height = 21
       ItemHeight = 13
       TabOrder = 0
+      OnChange = cbUserChange
     end
     object chbxRememberPassword: TCheckBox
       Left = 88
@@ -212,6 +214,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
     object actLogin: TAction
       Caption = 'Войти'
       OnExecute = actLoginExecute
+      OnUpdate = actLoginUpdate
     end
     object actCancel: TAction
       Caption = 'Отмена'

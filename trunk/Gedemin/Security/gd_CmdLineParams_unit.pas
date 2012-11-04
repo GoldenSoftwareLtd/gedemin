@@ -372,6 +372,27 @@ begin
     end;
   end;
   {$ENDIF}
+
+  {$IFDEF DEBUG}
+  LogType := EVENTLOG_INFORMATION_TYPE;
+  ss[0] := PChar('Параметры командной строки: ' + ACmdLine);
+  h := RegisterEventSource(nil, 'Gedemin');
+  try
+    if h <> 0 then
+      ReportEvent(h,          // event log handle
+        LogType,              // event type
+        0,                    // category zero
+        0,                    // event identifier
+        nil,                  // no user security identifier
+        1,                    // one substitution string
+        0,                    // no data
+        @ss,                  // pointer to string array
+        nil);                 // pointer to data
+    // code from http://stackoverflow.com/questions/397934/writing-to-the-event-log-in-delphi
+  finally
+    DeregisterEventSource(h);
+  end;
+  {$ENDIF}
 end;
 
 function Tgd_CmdLineParams.StripQuotes(const S: String): String;

@@ -64,9 +64,14 @@ type
     procedure chbxWithoutConnectionClick(Sender: TObject);
     procedure actSelectDBUpdate(Sender: TObject);
     procedure actLoginExecute(Sender: TObject);
+    procedure actLoginUpdate(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure cbUserChange(Sender: TObject);
 
   private
     KL: Integer;
+
+    procedure SyncControls;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -141,7 +146,8 @@ end;
 
 procedure TdlgSecLogIn2.actSelectDBExecute(Sender: TObject);
 begin
-  gd_DatabasesList.ShowViewForm;
+  if gd_DatabasesList.ShowViewForm then
+    SyncControls;
 end;
 
 procedure TdlgSecLogIn2.chbxWithoutConnectionClick(Sender: TObject);
@@ -165,8 +171,102 @@ begin
 end;
 
 procedure TdlgSecLogIn2.actLoginExecute(Sender: TObject);
+var
+  DI: Tgd_DatabaseItem;
 begin
+  if not chbxWithoutConnection.Checked then
+  begin
+    if gd_DatabasesList <> nil then
+    begin
+      DI := gd_DatabasesList.FindSelected;
+      if DI <> nil then
+      begin
+        DI.EnteredLogin := cbUser.Text;
+
+        if edPassword.Text = '<<saved_password>>' then
+          DI.EnteredPassword := DI.GetPassword(cbUser.Text)
+        else
+          DI.EnteredPassword := edPassword.Text;
+
+        DI.AddUser(DI.EnteredLogin, DI.EnteredPassword);
+        DI.RememberPassword := chbxRememberPassword.Checked;
+      end;
+    end;
+  end;
+
   ModalResult := mrOk;
+end;
+
+procedure TdlgSecLogIn2.actLoginUpdate(Sender: TObject);
+begin
+  actLogin.Enabled := chbxWithoutConnection.Checked
+    or ((cbUser.Text > '') and (gd_DatabasesList.FindSelected <> nil));
+end;
+
+procedure TdlgSecLogIn2.SyncControls;
+var
+  DI: Tgd_DatabaseItem;
+begin
+  chbxWithoutConnection.Checked := False;
+
+  if gd_DatabasesList <> nil then
+    DI := gd_DatabasesList.FindSelected
+  else
+    DI := nil;
+
+  if DI <> nil then
+  begin
+    edDBName.Text := DI.Name;
+    DI.GetUsers(cbUser.Items);
+    if cbUser.Items.Count > 0 then
+      cbUser.Text := cbUser.Items[0]
+    else
+      cbUser.Text := '';
+    if DI.GetPassword(cbUser.Text) > '' then
+      edPassword.Text := '<<saved_password>>'
+    else
+      edPassword.Text := '';
+    chbxRememberPassword.Checked := DI.RememberPassword;
+  end else
+  begin
+    edDBName.Text := '';
+    cbUser.Items.Clear;
+    cbUser.Text := '';
+    edPassword.Text := '';
+    chbxRememberPassword.Checked := False;
+  end;
+
+  if cbUser.Items.IndexOf('Administrator') = -1 then
+    cbUser.Items.Add('Administrator');
+
+  if edDBName.Text = '' then
+    ActiveControl := btnSelectDB
+  else if cbUser.Text= '' then
+    ActiveControl := cbUser
+  else
+    ActiveControl := edPassword;
+end;
+
+procedure TdlgSecLogIn2.FormCreate(Sender: TObject);
+begin
+  SyncControls;
+end;
+
+procedure TdlgSecLogIn2.cbUserChange(Sender: TObject);
+var
+  DI: Tgd_DatabaseItem;
+begin
+  if gd_DatabasesList <> nil then
+  begin
+    DI := gd_DatabasesList.FindSelected;
+    if DI <> nil then
+    begin
+      if DI.GetPassword(cbUser.Text) > '' then
+        edPassword.Text := '<<saved_password>>'
+      else
+        edPassword.Text := '';
+    end;
+  end;
 end;
 
 end.

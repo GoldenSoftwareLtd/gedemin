@@ -22,7 +22,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     Height = 34
     Align = alBottom
     BevelOuter = bvNone
-    TabOrder = 0
+    TabOrder = 1
     object pnlButtons: TPanel
       Left = 476
       Top = 0
@@ -32,8 +32,8 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       BevelOuter = bvNone
       TabOrder = 0
       object btnOk: TButton
-        Left = 4
-        Top = 6
+        Left = 23
+        Top = 7
         Width = 75
         Height = 21
         Action = actOk
@@ -41,8 +41,8 @@ object gd_DatabasesListView: Tgd_DatabasesListView
         TabOrder = 0
       end
       object Button1: TButton
-        Left = 88
-        Top = 5
+        Left = 104
+        Top = 7
         Width = 75
         Height = 21
         Action = actCancel
@@ -57,7 +57,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     Height = 349
     Align = alClient
     BevelOuter = bvLowered
-    TabOrder = 1
+    TabOrder = 0
     object lv: TListView
       Left = 1
       Top = 1
@@ -86,6 +86,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       SortType = stText
       TabOrder = 0
       ViewStyle = vsReport
+      OnChange = lvChange
     end
   end
   object TBDock: TTBDock
