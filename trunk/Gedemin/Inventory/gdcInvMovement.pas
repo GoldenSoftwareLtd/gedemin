@@ -7880,10 +7880,22 @@ begin
     ParamByName('goodkey').AsInteger := gdcInvDocumentLine.FieldByName('goodkey').AsInteger;
 
     RemainsFeatures.Clear;
-    if (gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.ContactType in [imctOurCompany, imctOurDepartment, imctOurPeople] then
+
+    if (gdcInvDocumentLine as TgdcInvDocumentLine).RelationType = irtTransformation then
     begin
-    
-      FieldPrefix := 'FROM_';
+      if (gdcInvDocumentLine as TgdcInvDocumentLine).ViewMovementPart in [impIncome, impAll] then
+        FieldPrefix := INV_DESTFEATURE_PREFIX
+      else
+        FieldPrefix := INV_SOURCEFEATURE_PREFIX;
+    end else
+
+    if (gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.ContactType in [imctOurCompany, imctOurDepartment, imctOurPeople] then
+      FieldPrefix := INV_SOURCEFEATURE_PREFIX
+    else
+      FieldPrefix := INV_DESTFEATURE_PREFIX;
+
+    if FieldPrefix = INV_SOURCEFEATURE_PREFIX then
+    begin
       if not HasSubSet('ByGoodOnly') then
         SetFeatures(gdcInvDocumentLine, FieldPrefix, (gdcInvDocumentLine as TgdcInvDocumentLine).SourceFeatures);
 
@@ -7925,8 +7937,7 @@ begin
       end;
     end
     else
-    begin
-      FieldPrefix := 'TO_';
+    begin 
       if not HasSubSet('ByGoodOnly') then
         SetFeatures(gdcInvDocumentLine, FieldPrefix, (gdcInvDocumentLine as TgdcInvDocumentLine).DestFeatures);
 
@@ -7964,7 +7975,7 @@ begin
 
           if ((gdcInvDocumentLine as TgdcInvBaseDocument).MovementSource.SourceFieldName > '') then
             ParamByName('contactkey').AsInteger := gdcInvDocumentLine.FieldByName((gdcInvDocumentLine as TgdcInvBaseDocument).MovementTarget.SourceFieldName).AsInteger;
-        end;    
+        end;
       end;
 {      for i:= Low((gdcInvDocumentLine as TgdcInvDocumentLine).DestFeatures) to
         High((gdcInvDocumentLine as TgdcInvDocumentLine).DestFeatures) do

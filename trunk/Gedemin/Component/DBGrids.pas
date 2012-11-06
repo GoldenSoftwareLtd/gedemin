@@ -4291,6 +4291,10 @@ begin
   if FDatalink.Active and HandleAllocated and not (csLoading in ComponentState) then
   begin
     NewRow := FDatalink.ActiveRecord + FTitleOffset;
+    {$IFDEF GEDEMIN}
+    if NewRow >= RowCount then
+      NewRow := RowCount - 1;
+    {$ENDIF}
     if Row <> NewRow then
     begin
       if not (dgAlwaysShowEditor in Options) then HideEditor;

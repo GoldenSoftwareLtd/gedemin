@@ -109,13 +109,13 @@ type
   TgdKeyDuplArray = class(TgdKeyArray)
   private
     FDuplicates: TDuplicates;
-    procedure SetDuplicates(const Value: TDuplicates);
+
   public
     constructor Create;
 
     function Add(const Value: Integer): Integer;
 
-    property Duplicates: TDuplicates read FDuplicates write SetDuplicates;
+    property Duplicates: TDuplicates read FDuplicates write FDuplicates;
   end;
 
 
@@ -1029,11 +1029,6 @@ constructor TgdKeyDuplArray.Create;
 begin
   inherited Create;
   FDuplicates := dupError;
-end;
-
-procedure TgdKeyDuplArray.SetDuplicates(const Value: TDuplicates);
-begin
-  FDuplicates := Value;
 end;
 
 end.

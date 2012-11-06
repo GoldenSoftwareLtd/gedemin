@@ -24,7 +24,7 @@ uses
   SysUtils,
   gd_directories_const,
   Dialogs,
-  Registry,
+  Registry,  
   IBIntf,
   IBServices,
   gdcInvDocumentCache_body,

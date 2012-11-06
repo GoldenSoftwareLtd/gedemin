@@ -11,12 +11,13 @@ type
   published
     procedure TestAtSQLSetup;
     procedure TestGetTableAliasOriginField;
+    procedure TestIgnoresTable;
   end;
 
 implementation
 
 uses
-  SysUtils, at_sql_setup, at_sql_parser, jclStrings, gdcBaseInterface;
+  SysUtils, at_sql_setup, at_sql_parser, jclStrings, gdcBaseInterface, at_classes;
 
 procedure TSQLSetupTest.TestAtSQLSetup;
 var
@@ -89,6 +90,44 @@ begin
     Check(AnsiCompareText(SL.CommaText, 'c_n=c.name,co_n=co.name') = 0);
   finally
     SL.Free;
+  end;
+end;
+
+procedure TSQLSetupTest.TestIgnoresTable;
+var
+  Text: String;
+begin
+  Check(SettingsLoaded, 'Должны быть загружены настройки');
+
+  with TatSQLSetup.Create(nil) do
+  try
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.* FROM GD_CONTACT Z'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('USR$', Text) > 0);
+    Check(StrIPos('Z.NAME', Text) > 0);
+    Check(StrIPos('JOIN', Text) > 0);
+
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.ID FROM GD_CONTACT Z'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('USR$', Text) > 0);
+    Check(StrIPos('Z.NAME', Text) = 0);
+    Check(StrIPos('JOIN', Text) > 0);
+
+    Ignores.AddAliasName('Z');
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.* FROM GD_CONTACT Z'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('USR$', Text) = 0);
+    Check(StrIPos('Z.NAME', Text) > 0);
+    Check(StrIPos('JOIN', Text) > 0);
+
+    Ignores.AddAliasName('Z');
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.ID FROM GD_CONTACT Z'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('USR$', Text) = 0);
+    Check(StrIPos('Z.NAME', Text) = 0);
+    Check(StrIPos('JOIN', Text) = 0);
+  finally
+    Free;
   end;
 end;
 
