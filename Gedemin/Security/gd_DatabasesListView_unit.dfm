@@ -1,5 +1,5 @@
 object gd_DatabasesListView: Tgd_DatabasesListView
-  Left = 450
+  Left = 566
   Top = 162
   Width = 677
   Height = 447
