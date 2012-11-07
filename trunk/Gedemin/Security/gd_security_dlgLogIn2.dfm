@@ -1,5 +1,5 @@
 object dlgSecLogIn2: TdlgSecLogIn2
-  Left = 317
+  Left = 399
   Top = 222
   HelpContext = 39
   ActiveControl = edPassword

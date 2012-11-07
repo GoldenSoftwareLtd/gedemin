@@ -1115,17 +1115,26 @@ begin
 
           CurrField := Full.Select.Fields[K] as TsqlField;
 
-          if (AnsiCompareText(Temps, CurrField.FieldAlias) = 0)
-            and (CurrField.FieldName = '*') then
+          if ((AnsiCompareText(Temps, CurrField.FieldAlias) = 0) and
+            (StrIPos('USR$', CurrField.FieldName) <> 1)) or
+            ((Full.From.Tables.IndexOf(Relations[I]) <> -1) and
+            (Full.Select.Fields.Count = 1) and
+            (CurrField.FieldName = '*') and
+            not (eoAlias in CurrField.FieldAttrs)) then
           begin
             R := atDatabase.Relations.ByRelationName((Relations[I] as TsqlTable).TableName);
             if not Assigned(R) then Break;
 
-            Full.Select.Fields.Remove(CurrField);
-
             FieldList.Clear;
             for J := 0 to R.RelationFields.Count - 1 do
-              FieldList.AddObject(R.RelationFields[J].FieldPosition, R.RelationFields[J]);
+            begin
+              F := R.RelationFields[J];
+              if F.IsUserDefined or (CurrField.FieldName = '*') then
+                FieldList.AddObject(F.FieldPosition, F);
+            end;
+
+            if CurrField.FieldName = '*' then
+              Full.Select.Fields.Remove(CurrField);
 
             for J := 0 to FieldList.Count - 1 do
             begin

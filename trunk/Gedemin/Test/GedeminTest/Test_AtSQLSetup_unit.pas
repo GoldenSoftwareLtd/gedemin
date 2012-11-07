@@ -101,31 +101,96 @@ begin
 
   with TatSQLSetup.Create(nil) do
   try
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT * FROM GD_CONTACT Z'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.NAME', Text) > 0);
+    Check(StrIPos('JOIN', Text) > 0);
+
     Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.* FROM GD_CONTACT Z'));
     Check(StrIPos('Z.*', Text) = 0);
-    Check(StrIPos('USR$', Text) > 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
     Check(StrIPos('Z.NAME', Text) > 0);
     Check(StrIPos('JOIN', Text) > 0);
 
     Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.ID FROM GD_CONTACT Z'));
     Check(StrIPos('Z.*', Text) = 0);
-    Check(StrIPos('USR$', Text) > 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.ID', Text) > 0);
     Check(StrIPos('Z.NAME', Text) = 0);
     Check(StrIPos('JOIN', Text) > 0);
 
-    Ignores.AddAliasName('Z');
-    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.* FROM GD_CONTACT Z'));
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.ID, Z.NAME FROM GD_CONTACT Z'));
     Check(StrIPos('Z.*', Text) = 0);
-    Check(StrIPos('USR$', Text) = 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.ID', Text) > 0);
     Check(StrIPos('Z.NAME', Text) > 0);
+    Check(StrIPos('Z.CONTACTTYPE', Text) = 0);
+    Check(StrIPos('JOIN', Text) > 0);
+
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL(
+      'SELECT Z.ID, Z.NAME, CO.CONTACTKEY FROM GD_CONTACT Z JOIN GD_COMPANY CO ON CO.CONTACTKEY = Z.ID'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.ID', Text) > 0);
+    Check(StrIPos('Z.NAME', Text) > 0);
+    Check(StrIPos('Z.CONTACTTYPE', Text) = 0);
+    Check(StrIPos('CO.CONTACTKEY', Text) > 0);
+    Check(StrIPos('CO.FULLNAME', Text) = 0);
+    Check(StrIPos('CO.USR$', Text) > 0);
+    Check(StrIPos('JOIN', Text) > 0);
+
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL(
+      'SELECT Z.ID, Z.NAME FROM GD_CONTACT Z JOIN GD_COMPANY CO ON CO.CONTACTKEY = Z.ID'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.ID', Text) > 0);
+    Check(StrIPos('Z.NAME', Text) > 0);
+    Check(StrIPos('Z.CONTACTTYPE', Text) = 0);
+    Check(StrIPos('CO.FULLNAME', Text) = 0);
+    Check(StrIPos('CO.USR$', Text) > 0);
     Check(StrIPos('JOIN', Text) > 0);
 
     Ignores.AddAliasName('Z');
+
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT * FROM GD_CONTACT Z'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.NAME', Text) > 0);
+    Check(StrIPos('JOIN', Text) = 0);
+
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.* FROM GD_CONTACT Z'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.ID', Text) > 0);
+    Check(StrIPos('Z.NAME', Text) > 0);
+    Check(StrIPos('JOIN', Text) = 0);
+
     Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.ID FROM GD_CONTACT Z'));
     Check(StrIPos('Z.*', Text) = 0);
-    Check(StrIPos('USR$', Text) = 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.ID', Text) > 0);
     Check(StrIPos('Z.NAME', Text) = 0);
     Check(StrIPos('JOIN', Text) = 0);
+
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL('SELECT Z.ID, Z.PLACEKEY FROM GD_CONTACT Z'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.ID', Text) > 0);
+    Check(StrIPos('Z.PLACEKEY', Text) > 0);
+    Check(StrIPos('Z.NAME', Text) = 0);
+    Check(StrIPos('JOIN', Text) = 0);
+
+    Text := PrepareSQL(gdcBaseManager.ProcessSQL(
+      'SELECT Z.ID, Z.NAME FROM GD_CONTACT Z JOIN GD_COMPANY CO ON CO.CONTACTKEY = Z.ID'));
+    Check(StrIPos('Z.*', Text) = 0);
+    Check(StrIPos('Z.USR$', Text) > 0);
+    Check(StrIPos('Z.ID', Text) > 0);
+    Check(StrIPos('Z.NAME', Text) > 0);
+    Check(StrIPos('Z.CONTACTTYPE', Text) = 0);
+    Check(StrIPos('CO.FULLNAME', Text) = 0);
+    Check(StrIPos('CO.USR$', Text) > 0);
+    Check(StrIPos('JOIN', Text) > 0);
   finally
     Free;
   end;

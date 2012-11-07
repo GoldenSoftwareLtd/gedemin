@@ -130,8 +130,6 @@ type
     FHoldingCacheKey: Integer;
     FHoldingCacheValue: Boolean;
 
-    //FTempTransaction: TIBTransaction;
-
     FSilentLogin: Boolean;
 
     procedure DoOnConnectionParams(Sender: TObject);
@@ -1695,12 +1693,8 @@ end;
 
 function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): Boolean;
 begin
-  //
-  //  Осущствляем проверку подключения
-
-
   if LoggedIn then
-    raise EboLoginError.Create('Can''t login twice!');
+    raise EboLoginError.Create('Can not login twice!');
 
   if Assigned(gdSplash) then
     gdSplash.ShowText(sDBConnect);
@@ -2155,7 +2149,7 @@ end;
 
 function TboLogin.RunLoginDialog(UnderDatabase: TIBDatabase): Boolean;
 begin
-  with TdlgSecLogIn.Create(Self) do
+  with TdlgSecLogIn.Create(nil) do
   try
     Database := UnderDatabase;
 

@@ -1,5 +1,5 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 366
+  Left = 389
   Top = 83
   Width = 977
   Height = 85
