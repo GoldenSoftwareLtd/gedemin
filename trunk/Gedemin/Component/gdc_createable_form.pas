@@ -266,11 +266,11 @@ end;
 
 function TgdcCreateableForm.GetGdcMethodControl: IMethodControl;
 begin
-  Result := nil;
   if Assigned(MethodControl) and (not FOnDesigner) and
-    (not UnMethodMacro) and Self.InheritsFrom(TgdcCreateableForm)
-    { Assigned(FClassMethodAssoc)} then
-    Result := MethodControl;
+    (not UnMethodMacro) and Self.InheritsFrom(TgdcCreateableForm) then
+    Result := MethodControl
+  else
+    Result := nil;
 end;
 
 function TgdcCreateableForm.OnInvoker(const Name: WideString;

@@ -4,9 +4,9 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gd_security_body, syn_ManagerInterface_body_unit, gdcBase,
-  gsDesktopManager, IBDatabase, flt_ScriptInterface_body,
-  prm_ParamFunctions_unit, FileCtrl, gd_resourcestring;
+  gd_security_body, syn_ManagerInterface_body_unit, gdcBase, gsDesktopManager,
+  IBDatabase, flt_ScriptInterface_body, prm_ParamFunctions_unit, FileCtrl,
+  gd_resourcestring;
 
 type
   TLoginType = (ltQuery, ltSilent, ltSingle, ltMulti, ltSingleSilent, ltMultiSilent);
@@ -257,23 +257,10 @@ begin
     begin
       IBLogin.SubSystemKey := GD_SYS_GADMIN;
 
-      // теперь программа загрузится и без подключения к
-      // базе данных. например, если надо сначала распаковать файл
-      // с базой, а потом к нему подключаться
       if not IBLogin.IsSilentLogin then
       try
         if not IBLogin.Login then
-        begin
-          if gd_CmdLineParams.QuietMode or
-            (MessageBox(0,
-            'Подключение к базе данных не было осуществлено.'#13#10 +
-            'Продолжить загрузку программы?',
-            'Внимание',
-            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO) then
-          begin
-            Application.Terminate;
-          end;
-        end;
+          Application.Terminate;
       except
         on E: Exception do
         begin
@@ -492,6 +479,6 @@ end;
 initialization
   UserParamExists := False;
   PasswordParamExists := False;
-  LoadSettingPath := '';
-  LoadSettingFileName := '';
+  LoadSettingPath := gd_CmdLineParams.LoadSettingPath;
+  LoadSettingFileName := gd_CmdLineParams.LoadSettingFileName;
 end.

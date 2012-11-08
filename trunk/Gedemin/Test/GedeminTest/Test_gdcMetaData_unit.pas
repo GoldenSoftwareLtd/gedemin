@@ -385,9 +385,6 @@ begin
     gdcSetting.Free;
   end;
 
-  {SaveStringToFile(StringReplace(FDBStateAfterCreate, ',', #13#10, [rfReplaceAll]), 'c:\temp\1.txt');
-  SaveStringToFile(StringReplace(GetDBState, ',', #13#10, [rfReplaceAll]), 'c:\temp\2.txt');}
-
   Check(FDBStateAfterCreate = GetDBState);
 
   TestMetaData;

@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2012 by Golden Software of Belarus
 
   Module
 
@@ -259,12 +259,9 @@ type
 
     procedure DoAfterTransactionEnd(Sender: TObject); override;
 
-//    function CreateDialogForm: TCreateableForm; override;
-
     function GetNotCopyField: String; override;
 
   public
-    //class function GetDialogFormClassName(const ASubType: TgdcSubType): string; override;
     constructor Create(AnOwner: TComponent); override;
 
     function GetDialogDefaultsFields: String; override;
@@ -375,7 +372,6 @@ uses
     , gd_localization_stub
   {$ENDIF}
   ;
-//  gdc_createable_form;
 
 procedure Register;
 begin
@@ -569,7 +565,6 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTBASEENTRYREGISTER', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
   {M}  finally
@@ -958,7 +953,6 @@ begin
   {END MACRO}
 
   inherited;
-//  FgdcQuantity.CachedUpdates := True;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTBASEENTRYREGISTER', 'DOAFTERINSERT', KEYDOAFTERINSERT)}
   {M}  finally
@@ -998,8 +992,6 @@ begin
   inherited;
   if FgdcQuantity.CachedUpdates then
     FgdcQuantity.ApplyUpdates;
-
-//  FgdcQuantity.CachedUpdates := False;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTBASEENTRYREGISTER', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  finally
@@ -1577,7 +1569,6 @@ var
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
-//  FM, FD: TField;
 begin
   {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCACCTENTRYREGISTER', 'DOAFTERPOST', KEYDOAFTERPOST)}
   {M}  try
@@ -1854,26 +1845,22 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//  if FieldByName('documenttypekey').AsInteger = DefaultDocumentTypeKey then
-//  begin
-    gdcAcctComplexRecord := TgdcAcctComplexRecord.Create(Self);
-    try
-      gdcAcctComplexRecord.Transaction := Transaction;
-      gdcAcctComplexRecord.SubSet := 'ByID';
-      gdcAcctComplexRecord.ID := FieldByName('recordkey').AsInteger;
-      gdcAcctComplexRecord.Open;
-      Result := gdcAcctComplexRecord.CopyDialog;
-      if Result then
-      begin
-        DataTransfer(gdcAcctComplexRecord);
-      end;
-      gdcAcctComplexRecord.Close;
-    finally
-      gdcAcctComplexRecord.Free;
+
+  gdcAcctComplexRecord := TgdcAcctComplexRecord.Create(Self);
+  try
+    gdcAcctComplexRecord.Transaction := Transaction;
+    gdcAcctComplexRecord.SubSet := 'ByID';
+    gdcAcctComplexRecord.ID := FieldByName('recordkey').AsInteger;
+    gdcAcctComplexRecord.Open;
+    Result := gdcAcctComplexRecord.CopyDialog;
+    if Result then
+    begin
+      DataTransfer(gdcAcctComplexRecord);
     end;
-//  end
-//  else
-//    Result := False;
+    gdcAcctComplexRecord.Close;
+  finally
+    gdcAcctComplexRecord.Free;
+  end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTVIEWENTRYREGISTER', 'COPYDIALOG', KEYCOPYDIALOG)}
   {M}  finally
@@ -2907,7 +2894,7 @@ begin
     '  recorddate = :NEW_recorddate, documentkey = :NEW_documentkey, ' +
     '  masterdockey = :NEW_masterdockey, companykey = :NEW_companykey, afull = :NEW_afull, '  +
     '  achag = :NEW_achag, aview = :NEW_AVIEW, disabled = :NEW_DISABLED, reserved = :NEW_reserved, ' +
-    '  description = :NEW_description ' + 
+    '  description = :NEW_description ' +
     'WHERE id = :NEW_id ', Buff);
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTSIMPLERECORD', 'CUSTOMMODIFY', KEYCUSTOMMODIFY)}
@@ -3382,15 +3369,6 @@ begin
   {END MACRO}
 end;
 
-{
-class function TgdcAcctSimpleRecord.GetDialogFormClassName(
-  const ASubType: TgdcSubType): string;
-begin
-  Result := 'Tgdc_acct_dlgEntry'
-end;
-}
-
-
 function TgdcAcctSimpleRecord.CopyObject(const ACopyDetailObjects,
   AShowEditDialog: Boolean): Boolean;
 begin
@@ -3844,12 +3822,13 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
-//Стандартные записи ищем по идентификатору
+
   if FieldByName(GetKeyField(SubType)).AsInteger < cstUserIDStart then
     Result := inherited CheckTheSameStatement
   else
     Result := Format('SELECT %s FROM %s WHERE entrykey = %s AND valuekey = %s',
       [GetKeyField(SubType), GetListTable(SubType), FieldByName('entrykey').AsString, FieldByName('valuekey').AsString]);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTQUANTITY', 'CHECKTHESAMESTATEMENT', KEYCHECKTHESAMESTATEMENT)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -4248,11 +4227,9 @@ begin
         if FEntryLines[i].Active then
         begin
           FEntryLines[i].Cancel;
-          //FEntryLines[i].Refresh;
         end;
       end;
     end;
-//    Refresh;
   end;
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTCOMPLEXRECORD', 'DOAFTERTRANSACTIONEND', KEYDOAFTERTRANSACTIONEND)}
   {M}  finally

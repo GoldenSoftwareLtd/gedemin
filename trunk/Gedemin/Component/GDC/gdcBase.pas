@@ -4670,7 +4670,7 @@ begin
   FClassMethodAssoc := TgdKeyIntAndStrAssoc.Create;
 
   if Assigned(InheritedMethodInvoker) and (not UnMethodMacro) then
-      InheritedMethodInvoker.RegisterMethodInvoker(Self, OnInvoker);
+    InheritedMethodInvoker.RegisterMethodInvoker(Self, OnInvoker);
 
   FFieldsCallDoChange := TStringList.Create;
   FFieldsCallDoChange.Sorted := True;
