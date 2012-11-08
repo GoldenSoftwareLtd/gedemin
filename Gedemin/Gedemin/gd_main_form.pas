@@ -494,7 +494,6 @@ uses
   st_frmMain_unit,
 
   gd_dlgOptions_unit,
-  gd_security_dlgLogIn2,
   
   contnrs,
   gdUpdateIndiceStat,
@@ -1148,34 +1147,24 @@ end;
 
 procedure TfrmGedeminMain.actLoginSingleExecute(Sender: TObject);
 begin
-  IBLogin.LoginSingle;
+  //IBLogin.LoginSingle;
 end;
 
 procedure TfrmGedeminMain.actBringOnlineExecute(Sender: TObject);
 begin
-  IBLogin.BringOnLine;
+  //IBLogin.BringOnLine;
 end;
 
 procedure TfrmGedeminMain.actLoginSingleUpdate(Sender: TObject);
 begin
-  actLoginSingle.Enabled := (not IBLogin.LoggedIn);
-  {$IFDEF DEPARTMENT}
-  if not IBLogin.IsUserAdmin then
-    actLoginSingle.Visible := False
-  else
-    actLoginSingle.Visible := True;
-  {$ENDIF}
+  actLoginSingle.Visible := False;
+  //actLoginSingle.Enabled := (not IBLogin.LoggedIn);
 end;
 
 procedure TfrmGedeminMain.actBringOnlineUpdate(Sender: TObject);
 begin
-  actBringOnline.Enabled := not IBLogin.LoggedIn and IBLogin.ShutDown;
-  {$IFDEF DEPARTMENT}
-  if not IBLogin.IsUserAdmin then
-    actBringOnline.Visible := False
-  else
-    actBringOnline.Visible := True;
-  {$ENDIF}
+  actBringOnline.Visible := False;
+  //actBringOnline.Enabled := not IBLogin.LoggedIn and IBLogin.ShutDown;
 end;
 
 procedure TfrmGedeminMain.actBackupExecute(Sender: TObject);
@@ -2367,14 +2356,6 @@ end;
 
 procedure TfrmGedeminMain.actDatabasesListExecute(Sender: TObject);
 begin
-  with TdlgSecLogin2.Create(Self) do
-  try
-    ShowModal;
-    gd_DatabasesList.WriteToINIFile;
-  finally
-    Free;
-  end;
-
   gd_DatabasesList.ShowViewForm;
 end;
 

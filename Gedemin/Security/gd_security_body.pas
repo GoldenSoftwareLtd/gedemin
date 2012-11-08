@@ -356,7 +356,7 @@ uses
   gd_security_dlgDatabases_unit,                  jclStrings,
   IBServices,               DBLogDlg,             at_frmSQLProcess,
   Storages,                 mdf_proclist,         gdModify,
-  IBDatabaseInfo,           gd_security_dlgLogIn2
+  IBDatabaseInfo,           gd_security_dlgLogIn2,gd_DatabasesList_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1696,6 +1696,20 @@ begin
   if LoggedIn then
     raise EboLoginError.Create('Can not login twice!');
 
+  {with TdlgSecLogin2.Create(Self) do
+  try
+    Result := ShowModal = mrOk;
+    gd_DatabasesList.WriteToINIFile;
+
+    if Result and chbxWithoutConnection.Checked then
+      exit;
+  finally
+    Free;
+  end;
+
+  if not Result then
+    exit;}
+
   if Assigned(gdSplash) then
     gdSplash.ShowText(sDBConnect);
 
@@ -1993,9 +2007,6 @@ end;
 
 procedure TboLogin.ReadCommandLineLoginParams;
 begin
-  UnMethodMacro := gd_CmdLineParams.Unmethod;
-  UnEventMacro := gd_CmdLineParams.Unevent;
-
   if gd_CmdLineParams.UserPassword > '' then
   begin
     if FShouldReadParams then
@@ -2013,25 +2024,6 @@ begin
   if gd_CmdLineParams.ServerName > '' then
   begin
     FParams.Values[ServerNameValue] := gd_CmdLineParams.ServerName;
-  end;
-
-  if gd_CmdLineParams.UseLog then
-    UseLog := True;
-
-  if gd_CmdLineParams.SaveLogToFile then
-  begin
-    UseLog := True;
-    SaveLogToFile := True;
-  end;
-
-  if gd_CmdLineParams.LoadSettingPath > '' then
-  begin
-    LoadSettingPath := gd_CmdLineParams.LoadSettingPath;
-  end;
-
-  if gd_CmdLineParams.LoadSettingFileName > '' then
-  begin
-    LoadSettingFileName := gd_CmdLineParams.LoadSettingFileName;
   end;
 end;
 

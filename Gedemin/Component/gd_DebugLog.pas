@@ -64,7 +64,7 @@ function Log: TMacrosLog;
 implementation
 
 uses
-  Forms, Sysutils
+  Forms, Sysutils, gd_CmdLineParams_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -83,7 +83,6 @@ begin
 
   Result := _Log;
 end;
-{ TMacrosLog }
 
 procedure TMacrosLog.Log(AString: string);
 begin
@@ -136,7 +135,6 @@ end;
 procedure TMacrosLog.SetStrings(const Value: TStrings);
 begin
   FStrings := Value;
-  
 end;
 
 procedure TMacrosLog.SetOnAddLog(const Value: TOnAddLog);
@@ -172,10 +170,9 @@ begin
 end;
 
 initialization
-  UseLog := False;
-  SaveLogToFile := True;
+  SaveLogToFile := gd_CmdLineParams.SaveLogToFile;
+  UseLog := SaveLogToFile or gd_CmdLineParams.UseLog;
 
 finalization
   FreeAndNil(_Log);
-
 end.

@@ -6,32 +6,41 @@ uses
   Classes, rp_report_const, forms, windows;
 
 type
-  TEditMode = (emNone, emEvent, emMethod, emMacros, emReport);
-  TShowMode = (smEvent, smMethod, smMacros, smReport, smScriptFunction,
+  TEditMode = (
+    emNone,
+    emEvent,
+    emMethod,
+    emMacros,
+    emReport);
+
+  TShowMode = (
+    smEvent,
+    smMethod,
+    smMacros,
+    smReport,
+    smScriptFunction,
     smVBClasses);
+
   TShowModeSet = set of TShowMode;
 
   type
-    TPrpOperation = (poInsert, poRemove, poPost, poCancel, poRename);
+    TPrpOperation = (
+      poInsert,
+      poRemove,
+      poPost,
+      poCancel,
+      poRename);
 
 const
   smAll = [smEvent, smMethod, smMacros, smReport, smScriptFunction, smVBClasses];
 
 type
   TEventSynchronize = procedure(const AnObjectName, AnEventName: String) of object;
-
-type
   TVarParamEvent = function(AnVarParam: Variant): OleVariant of object;
-
-type
-  // Поддерживается только один язык fplVBScript
   TFuncParamLang = (fplDelphi, fplJScript, fplVBScript);
-
-type
   TChangeReportType = (ctReportGroupAdd, ctReportGroupDelete, ctReportGroupDrag,
     ctReportAdd, ctReportDelete, ctReportDrag);
 
-type
   IEventControl = interface
   ['{AF83FB96-DD8F-11D5-B631-00C0DF0E09D1}']
     function Get_KnownEventList: TStrings;
@@ -52,8 +61,6 @@ type
     procedure RebootEvents(AnComponent: TComponent);
     // Снятие событий для компоненты
     procedure ResetEvents(AnComponent: TComponent);
-    // Переустановка событий для компонента
-//    procedure OversetEvents(AnComponent: TComponent);
     // Установка событий для дочерних компоненты
     procedure SetChildEvents(AnComponent: TComponent);
     // Установка событий для компоненты
@@ -133,8 +140,12 @@ var
 
 implementation
 
+uses
+  gd_CmdLineParams_unit;
+
 initialization
   EventControl := nil;
+  UnEventMacro := gd_CmdLineParams.UnEvent;
 
 finalization
 

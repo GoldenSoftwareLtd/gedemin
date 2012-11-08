@@ -98,7 +98,7 @@ begin
   if (APort < 0) or (APort > MAXWORD) then
     raise Exception.Create('Invalid port number');
 
-  if AFileName = '' then
+  if (ADatabaseName > '') and (AFileName = '') then
     raise Exception.Create('Invalid database file name or alias');
 end;
 

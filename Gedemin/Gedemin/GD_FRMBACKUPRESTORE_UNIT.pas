@@ -135,7 +135,11 @@ end;
 procedure Tgd_frmBackupRestore.actDoItUpdate(Sender: TObject);
 begin
   actDoIt.Enabled :=
-    ((not IBLogin.LoggedIn) or IBLogin.IsUserAdmin or ((IBLogin.InGroup and GD_UG_ARCHIVEOPERATORS) <> 0))
+    (Trim(edDatabase.Text) > '')
+    and (cdsBackupFiles.RecordCount > 0)
+    and (Trim(cdsBackupFiles.Fields[0].AsString) > '')
+    and ((not IBLogin.LoggedIn) or IBLogin.IsUserAdmin
+      or ((IBLogin.InGroup and GD_UG_ARCHIVEOPERATORS) <> 0))
     and (IBService <> nil)
     and (not FServiceActive);
 end;

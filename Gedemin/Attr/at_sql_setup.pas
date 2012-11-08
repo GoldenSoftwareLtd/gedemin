@@ -20,7 +20,9 @@
 
     1.0    Denis    31.12.2001    Initial version.
 
+
 --}
+
 
 unit at_sql_setup;
 
@@ -28,7 +30,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Contnrs,
-  Db, IBSQL, IBHeader, IBCustomDataSet, IBUpdateSQL, IBDatabase, IBQuery,
+  Db, IBSQL, IBHeader, IBCustomDataSet, IBUpdateSQL, IBDatabase, IBQuery, 
   at_Classes, at_sql_parser, gdcBaseInterface;
 
 const
@@ -38,8 +40,11 @@ const
 
 type
   TsqlSetupState = (ssPrepared, ssUnprepared);
+
+type
   TatSQLSetup = class;
   TatIgnoryType = (itFull, itReferences, itFields);
+
 
   TatIgnore = class(TCollectionItem)
   private
@@ -189,7 +194,7 @@ type
 implementation
 
 uses
-  jclSelected, ZLib, gd_KeyAssoc;
+  jclSelected, ZLib;
 
 var
   atSQLSetupCache: TStringList;
@@ -1047,9 +1052,8 @@ var
   IsBreak: Boolean;
   WasComment, SL: TStringList;
   NeedCreateField: Boolean;
-  FieldList: TgdKeyObjectAssoc;
+  FieldList: TStringList;
   FieldPos: String;
-  Temps: String;
 begin
   Assert(Assigned(gdcBaseManager));
 
@@ -1062,12 +1066,11 @@ begin
   Fields := TObjectList.Create(False);
   ToRemove := TObjectList.Create(False);
   WasComment := TStringList.Create;
-  FieldList := TgdKeyObjectAssoc.Create(False);
+  FieldList := TStringList.Create;
   try
-    FieldList.Duplicates := dupAccept;
+  //
+  // ѕолучаем список отношений
 
-    //
-    // ѕолучаем список отношений
     for I := 0 to Full.From.Tables.Count - 1 do
     begin
       Relations.Add(Full.From.Tables[I]);
@@ -1104,53 +1107,9 @@ begin
       //  пропуска таблицы
 
       if IsIgnored((Relations[I] as TsqlTable).TableName,
-        (Relations[I] as TsqlTable).TableAlias, FCurrLink <> nil) then
-      begin
-        Temps := (Relations[I] as TsqlTable).TableAlias;
-        
-        for K := 0 to Full.Select.Fields.Count - 1 do
-        begin
-          if not(Full.Select.Fields[K] is TsqlField) then
-            Continue;
-
-          CurrField := Full.Select.Fields[K] as TsqlField;
-
-          if ((AnsiCompareText(Temps, CurrField.FieldAlias) = 0) and
-            (StrIPos('USR$', CurrField.FieldName) <> 1)) or
-            ((Full.From.Tables.IndexOf(Relations[I]) <> -1) and
-            (Full.Select.Fields.Count = 1) and
-            (CurrField.FieldName = '*') and
-            not (eoAlias in CurrField.FieldAttrs)) then
-          begin
-            R := atDatabase.Relations.ByRelationName((Relations[I] as TsqlTable).TableName);
-            if not Assigned(R) then Break;
-
-            FieldList.Clear;
-            for J := 0 to R.RelationFields.Count - 1 do
-            begin
-              F := R.RelationFields[J];
-              if F.IsUserDefined or (CurrField.FieldName = '*') then
-                FieldList.AddObject(F.FieldPosition, F);
-            end;
-
-            if CurrField.FieldName = '*' then
-              Full.Select.Fields.Remove(CurrField);
-
-            for J := 0 to FieldList.Count - 1 do
-            begin
-              CurrField := TsqlField.Create(Parser, False);
-
-              CurrField.FieldAttrs := [eoName, eoAlias];
-              CurrField.FieldName := (FieldList.ObjectByIndex[J] as TatRelationField).FieldName;
-              CurrField.FieldAlias := Temps; 
-              
-              Full.Select.Fields.Add(CurrField);
-            end;
-            Break;
-          end;
-        end;        
+        (Relations[I] as TsqlTable).TableAlias, FCurrLink <> nil)
+      then
         Relations.Delete(I);
-      end;
 
       //”дал€ем таблицы, добавленные вручную по полю ссылке
     for  I := Relations.Count - 1 downto 0 do
@@ -1285,19 +1244,25 @@ begin
 
           //
           //  ƒобавл€ем все пол€ таблицы
+
           FieldList.Clear;
           for J := 0 to R.RelationFields.Count - 1 do
-            FieldList.AddObject(R.RelationFields[J].FieldPosition, R.RelationFields[J]);
+          begin
+            FieldPos := IntToStr(R.RelationFields[J].FieldPosition);
+            while Length(FieldPos) < 4 do
+              FieldPos := '0' + FieldPos;
+            FieldList.AddObject(FieldPos , R.RelationFields[J]);
+          end;
+          FieldList.Sort;
 
           for J := 0 to FieldList.Count - 1 do
           begin
-            if (FieldList.ObjectByIndex[J] as TatRelationField).IsUserDefined then
-              continue;
+            if (FieldList.Objects[J] as TatRelationField).IsUserDefined then Continue;
 
             CurrField := TsqlField.Create(Parser, False);
 
             CurrField.FieldAttrs := [eoName, eoAlias];
-            CurrField.FieldName := (FieldList.ObjectByIndex[J] as TatRelationField).FieldName;
+            CurrField.FieldName := (FieldList.Objects[J] as TatRelationField).FieldName;
             CurrField.FieldAlias := CurrTable.TableAlias;
             if J = 0 then
               CurrField.Comment.Assign(WasComment);
@@ -1337,8 +1302,10 @@ begin
 
     for I := 0 to Relations.Count - 1 do
     begin
+
       //
       //  ѕолучаем таблицу из структуры базы данных
+
       CurrTable := Relations[I] as TsqlTable;
       R := atDatabase.Relations.ByRelationName(CurrTable.TableName);
       if not Assigned(R) then Continue;
@@ -1346,15 +1313,22 @@ begin
       FieldList.Clear;
       for K := 0 to R.RelationFields.Count - 1 do
       begin
+        //Nick
         if not (Assigned(Full.GroupBy) and (R.RelationFields[K].SQLType  = blr_blob)) then
-          FieldList.AddObject(R.RelationFields[K].FieldPosition, R.RelationFields[K]);
+        begin
+          FieldPos := IntToStr(R.RelationFields[K].FieldPosition);
+          while Length(FieldPos) < 4 do
+            FieldPos := '0' + FieldPos;
+
+          FieldList.AddObject(FieldPos, R.RelationFields[K]);
+        end
       end;
+      FieldList.Sort;
 
       for K := 0 to FieldList.Count - 1 do
       begin
-        F := (FieldList.ObjectByIndex[K] as TatRelationField);
-        if not F.IsUserDefined and not ShouldLoadAllFields then
-          continue;
+        F := (FieldList.Objects[K] as TatRelationField);
+        if not F.IsUserDefined and not ShouldLoadAllFields then Continue;
 
         CurrField := nil;
 

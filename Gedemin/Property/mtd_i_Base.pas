@@ -28,7 +28,7 @@ type
 
     // !!! пока TObject, вообще возвращает TCustomMethodClass
     function  AddClass(const AnClassKey: Integer;  const AnFullClassName: TgdcFullClassName;
-      const AnClassReference: TClass): TObject;// overload;
+      const AnClassReference: TClass): TObject;
 
     procedure SaveDisableFlag(
       const ID: Integer; const DisableFlag: Boolean);
@@ -43,7 +43,7 @@ var
 implementation
 
 uses
-  Sysutils;
+  Sysutils, gd_CmdLineParams_unit;
 
 function ChangeIncorrectSymbol(const SubType: String): String;
 var
@@ -57,6 +57,7 @@ end;
 
 initialization
   MethodControl := nil;
+  UnMethodMacro := gd_CmdLineParams.Unmethod;
 
 finalization
 

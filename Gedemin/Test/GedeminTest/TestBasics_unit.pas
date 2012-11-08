@@ -163,6 +163,11 @@ var
   Server, FileName: String;
   Port: Integer;
 begin
+  ParseDatabaseName('', Server, Port, FileName);
+  Check(Server = '');
+  Check(FileName = '');
+  Check(Port = 0);
+
   ParseDatabaseName('c:\test\test.fdb', Server, Port, FileName);
   Check(Server = '');
   Check(Port = 0);

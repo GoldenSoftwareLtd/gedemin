@@ -37,12 +37,13 @@ type
 
   published
     procedure Test_AcEntry;
+    procedure Test_gdcAcctEntryRegister;
   end;
 
 implementation
 
 uses
-  SysUtils, gdcBaseInterface, gd_security;
+  SysUtils, gdcBaseInterface, gd_security, gdcAcctEntryRegister, jclStrings;
 
 { Tgs_AcEntry }
 
@@ -496,6 +497,20 @@ begin
 
   //
   TestConsistentState(FQ);
+end;
+
+procedure Tgs_AcEntryTest.Test_gdcAcctEntryRegister;
+var
+  Obj: TgdcAcctEntryRegister;
+begin
+  Obj := TgdcAcctEntryRegister.Create(nil);
+  try
+    Obj.Open;
+    Check(StrIPos('DOC.USR$SORTNUMBER', Obj.SelectSQL.Text) = 0);
+    Check(StrIPos('C.USR$GS_CUSTOMER', Obj.SelectSQL.Text) = 0);
+  finally
+    Obj.Free;
+  end;
 end;
 
 initialization
