@@ -32,6 +32,7 @@ type
     function GetCondition: string;
     procedure SetOnValueChange(const Value: TNotifyEvent);
     procedure OnFrameResize(Sender: TObject);
+    function GetDescription: String;
 
   public
     destructor Destroy; override;
@@ -48,6 +49,7 @@ type
     property OnValueChange: TNotifyEvent read FOnValueChange write SetOnValueChange;
     property NeedNull: Boolean read FNeedNull write FNeedNull;
     property NeedSet: Boolean read FNeedSet write FNeedSet;
+    property Description: String read GetDescription;
   end;
 
 implementation
@@ -401,6 +403,24 @@ begin
     end;
     ppAnalytics.UpdateHeight(Max(P + 4, cMinUnwrapedHeight));
   end; 
+end;
+
+function TfrAcctAnalytics.GetDescription: String;
+var
+  I: Integer;
+begin
+  Result := '';
+
+  if FAnalyticsLineList <> nil then
+  begin
+    for I := 0 to FAnalyticsLineList.Count - 1 do
+    begin
+      if (FAnalyticsLineList[I] as TfrAcctAnalyticLine).Description > '' then
+        Result := Result + (FAnalyticsLineList[I] as TfrAcctAnalyticLine).Description + '; ';
+    end;
+    if Result > '' then
+      SetLength(Result, Length(Result) - 2);
+  end;
 end;
 
 end.

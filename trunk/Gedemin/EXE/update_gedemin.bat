@@ -113,6 +113,10 @@ echo **                                             **
 echo *************************************************
 
 del ..\exe\gedemin.exe
+
+if exist ..\exe\gedemin.exe eventcreate /t error /id 1 /l application /so gedemin /d "Can not delete gedemin.exe"
+if exist ..\exe\gedemin.exe goto exit
+
 "%delphi_path%\dcc32.exe" %compiler_switch% gedemin.dpr
 
 if not exist ..\exe\gedemin.exe eventcreate /t error /id 1 /l application /so gedemin /d "gedemin.exe compilation error"
@@ -169,6 +173,10 @@ echo **                                             **
 echo *************************************************
 
 del ..\exe\gedemin_upd.exe
+
+if exist ..\exe\gedemin_upd.exe eventcreate /t error /id 1 /l application /so gedemin /d "Can not delete gedemin_upd.exe"
+if exist ..\exe\gedemin_upd.exe goto exit
+
 "%delphi_path%\dcc32.exe" %compiler_switch% gedemin_upd.dpr
 
 if not exist ..\exe\gedemin_upd.exe eventcreate /t error /id 1 /l application /so gedemin /d "gedemin_upd.exe compilation error"

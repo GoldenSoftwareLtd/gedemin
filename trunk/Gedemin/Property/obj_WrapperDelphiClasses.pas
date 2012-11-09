@@ -1779,6 +1779,7 @@ type
   protected
     function  Get_Values: WideString; safecall;
     procedure Set_Values(const Value: WideString); safecall;
+    function  Get_Description: WideString; safecall;
     property Values: WideString read Get_Values write Set_Values;
   end;
 
@@ -22390,6 +22391,11 @@ end;
 procedure TwrpfrAcctAnalytics.Set_Values(const Value: WideString);
 begin
   GetFrame.Values := Value
+end;
+
+function  TwrpfrAcctAnalytics.Get_Description: WideString;
+begin
+  Result := GetFrame.Description;
 end;
 
 {TwrpPeriodEdit}

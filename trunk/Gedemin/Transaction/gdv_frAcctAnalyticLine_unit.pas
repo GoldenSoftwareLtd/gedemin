@@ -43,6 +43,7 @@ type
     function GetIsNull: boolean;
     procedure SetIsNull(const Value: boolean);
     procedure SetNeedNull(const Value: Boolean);
+    function GetDescription: String;
 
   protected
     procedure AlignControls(AControl: TControl; var Rect: TRect); override;
@@ -61,6 +62,7 @@ type
     property OnValueChange: TNotifyEvent read FOnValueChange write SetOnValueChange;
     property NeedNull: Boolean read FNeedNull write SetNeedNull;
     property NeedSet: Boolean read FNeedSet write FNeedSet;
+    property Description: String read GetDescription;
   end;
 
 implementation
@@ -463,6 +465,34 @@ procedure TfrAcctAnalyticLine.actVisibleUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := (FButtons.Count > 1)
     or ((FButtons.Count = 1) and (FLookUp.Count = 1) and ((FLookUp[0] as TgsIBLookupComboBox).CurrentKey <> ''));
+end;
+
+function TfrAcctAnalyticLine.GetDescription: String;
+var
+  I: Integer;
+begin
+  Result := '';
+
+  case FieldType of
+    aftReference:
+    begin
+      for I := 0 to FLookUp.Count - 1 do
+      begin
+        if (FLookUp[I] as TgsIBLookupComboBox).CurrentKey > '' then
+          Result := lAnaliticName.Caption + ' ' + (FLookUp[I] as TgsIBLookupComboBox).Text + '; ';
+      end;
+      if Result > '' then
+        SetLength(Result, Length(Result) - 2);
+    end;
+
+    aftDate, aftTime, aftDateTime:
+      if xdeDateTime.Text > '' then
+        Result := lAnaliticName.Caption + ' ' + xdeDateTime.Text;
+
+    aftString:
+      if eAnalitic.Text > '' then
+        Result := lAnaliticName.Caption + ' ' + eAnalitic.Text;
+  end;
 end;
 
 end.
