@@ -43,9 +43,9 @@ const
     (FieldName: 'ALIAS'; Caption: 'Счет'; DisplayFieldName: ''),
     (FieldName: 'CORRALIAS'; Caption: 'Корр. счет'; DisplayFieldName: ''),
     (FieldName: 'CURRENCYNAME'; Caption: 'Валюта'; DisplayFieldName: ''),
-    (FieldName: 'NAME'; Caption: 'Наименование операции'; DisplayFieldName: ''),
+    (FieldName: 'NAME'; Caption: 'Наименование документа'; DisplayFieldName: ''),
     (FieldName: 'TRANSACTIONKEY'; Caption: 'Ключ операции'; DisplayFieldName: ''),
-    (FieldName: 'TRANSACTIONNAME'; Caption: 'Тип операции'; DisplayFieldName: ''),
+    (FieldName: 'TRANSACTIONNAME'; Caption: 'Типовая хоз. операция'; DisplayFieldName: ''),
     (FieldName: 'DESCRIPTION'; Caption: 'Описание'; DisplayFieldName: ''),
     (FieldName: 'NUMBER'; Caption: 'Номер'; DisplayFieldName: ''),
     (FieldName: 'ENTRYDATE'; Caption: 'Дата проводки'; DisplayFieldName: '')

@@ -43,7 +43,7 @@ type
 implementation
 
 uses
-  SysUtils, gdcBaseInterface, gd_security, gdcAcctEntryRegister, jclStrings;
+  DB, SysUtils, gdcBaseInterface, gd_security, gdcAcctEntryRegister, jclStrings;
 
 { Tgs_AcEntry }
 
@@ -508,6 +508,7 @@ begin
     Obj.Open;
     Check(StrIPos('DOC.USR$SORTNUMBER', Obj.SelectSQL.Text) = 0);
     Check(StrIPos('C.USR$GS_CUSTOMER', Obj.SelectSQL.Text) = 0);
+    Check(Obj.FieldByName('USR$GS_CUSTOMER').DataType = ftInteger);
   finally
     Obj.Free;
   end;
