@@ -18,6 +18,7 @@ type
     FRememberPassword: Boolean;
     FEnteredLogin: String;
     FEnteredPassword: String;
+    FCmdLineParam: Boolean;
 
     procedure SetName(const Value: String);
     procedure SetSelected(const Value: Boolean);
@@ -26,6 +27,7 @@ type
     function ConvertString(const S: String): String;
     function RestoreString(const S: String): String;
     function GetCryptoKey: String;
+    function GetDatabaseName: String;
 
   protected
     procedure ReadFromIniFile(AnIniFile: TIniFile);
@@ -48,6 +50,8 @@ type
     property RememberPassword: Boolean read FRememberPassword write SetRememberPassword;
     property EnteredLogin: String read FEnteredLogin write FEnteredLogin;
     property EnteredPassword: String read FEnteredPassword write FEnteredPassword;
+    property CmdLineParam: Boolean read FCmdLineParam write FCmdLineParam;
+    property DatabaseName: String read GetDatabaseName;
   end;
 
   Tgd_DatabasesList = class(TCollection)
@@ -56,7 +60,8 @@ type
 
     procedure ReadFromIniFile;
     procedure WriteToIniFile;
-    
+    procedure ReadFromCmdLine;
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -67,7 +72,8 @@ type
     function FindSelected: Tgd_DatabaseItem;
 
     function ShowViewForm: Boolean;
-    function LoginDlg(out WithoutConnection: Boolean): Boolean;
+    function LoginDlg(out WithoutConnection, SingleUserMode: Boolean;
+      out DI: Tgd_DatabaseItem): Boolean;
   end;
 
   Egd_DatabasesList = class(Exception);
@@ -78,8 +84,9 @@ var
 implementation
 
 uses
-  Windows, Wcrypt2, Forms, Controls, JclFileUtils, gd_common_functions, Registry,
-  gd_DatabasesListView_unit, gd_DatabasesListDlg_unit, gd_security_dlgLogIn2;
+  Windows, Wcrypt2, Forms, Controls, JclFileUtils, gd_common_functions,
+  Registry, gd_DatabasesListView_unit, gd_DatabasesListDlg_unit,
+  gd_security_dlgLogIn2, gd_CmdLineParams_unit;
 
 const
   MaxUserCount = 10;
@@ -151,6 +158,14 @@ begin
   Result := CompName + Name + Server;
 end;
 
+function Tgd_DatabaseItem.GetDatabaseName: String;
+begin
+  if Server > '' then
+    Result := Server + ':' + FileName
+  else
+    Result := FileName;
+end;
+
 function Tgd_DatabaseItem.GetPassword(ALogin: String): String;
 begin
   ALogin := ConvertString(ALogin);
@@ -178,6 +193,7 @@ var
   CryptoKey, PassHex: String;
   Len, I, P: Integer;
 begin
+  Assert(FCmdLineParam = False);
   Assert(Assigned(AnIniFile));
   Server := AnIniFile.ReadString(Name, 'Server', '');
   FileName := AnIniFile.ReadString(Name, 'FileName', '');
@@ -287,6 +303,9 @@ var
   CryptoKey, PassHex: String;
   Len, I: Integer;
 begin
+  if FCmdLineParam then
+    exit;
+
   Assert(Assigned(AnIniFile));
   Assert(Name > '');
   if AnIniFile.SectionExists(Name) then
@@ -349,6 +368,7 @@ begin
   inherited Create(Tgd_DatabaseItem);
   FIniFileName := ExtractFilePath(Application.EXEName) + 'databases.ini';
   ReadFromIniFile;
+  ReadFromCmdLine;
 end;
 
 procedure Tgd_DatabasesList.ReadFromRegistry;
@@ -496,7 +516,8 @@ begin
     Result.Selected := True;
 end;
 
-function Tgd_DatabasesList.LoginDlg(out WithoutConnection: Boolean): Boolean;
+function Tgd_DatabasesList.LoginDlg(out WithoutConnection, SingleUserMode: Boolean;
+  out DI: Tgd_DatabaseItem): Boolean;
 begin
   with TdlgSecLogin2.Create(nil) do
   try
@@ -506,9 +527,34 @@ begin
     begin
       WriteToINIFile;
       WithoutConnection := chbxWithoutConnection.Checked;
+      SingleUserMode := chbxSingleUser.Checked;
+      DI := FindSelected;
     end;
   finally
     Free;
+  end;
+end;
+
+procedure Tgd_DatabasesList.ReadFromCmdLine;
+var
+  Server, FileName: String;
+  Port: Integer;
+  DI: Tgd_DatabaseItem;
+begin
+  ParseDatabaseName(gd_CmdLineParams.ServerName, Server, Port, FileName);
+
+  if FileName > '' then
+  begin
+    while FindByName(FileName) <> nil do
+      FileName := FileName + '_';
+    DI := Self.Add as Tgd_DatabaseItem;
+    DI.Name := FileName;
+    DI.Server := Server;
+    DI.FileName := FileName;
+    DI.FEnteredLogin := gd_CmdLineParams.UserName;
+    DI.FEnteredPassword := gd_CmdLineParams.UserPassword;
+    DI.CmdLineParam := True;
+    DI.Selected := True;
   end;
 end;
 
