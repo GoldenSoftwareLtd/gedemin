@@ -356,7 +356,7 @@ uses
   gd_security_dlgDatabases_unit,                  jclStrings,
   IBServices,               DBLogDlg,             at_frmSQLProcess,
   Storages,                 mdf_proclist,         gdModify,
-  IBDatabaseInfo,           gd_DatabasesList_unit
+  IBDatabaseInfo,           gd_DatabasesList_unit,gd_security_operationconst 
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1075,29 +1075,12 @@ begin
                 'Внимание',
               MB_OKCANCEL or MB_ICONQUESTION or MB_TASKMODAL or MB_TOPMOST) = IDOK then
             begin
-              {MessageBox(0,
-                'Перед обновлением структуры необходимо создать архивную копию базы данных!',
-                'Внимание',
-                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
-
-              MessageBox(0,
-                PChar('Структура файла базы будет обновлена.'#13#10#13#10 +
-                'Версия вашей БД: ' + DBVersion + #13#10#13#10 +
-                'Перед обновлением необходимо создать архивную копию базы данных!'),
-                'Внимание',
-                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);}
-
               with Tgd_frmBackup.Create(Application) do
               try
                 ShowModal;
               finally
                 Free;
               end;
-
-              {MessageBox(0,
-                'Перепишите архив на съемный носитель и сохраните в надежном месте!',
-                'Внимание',
-                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);}
 
               try
                 with TgdModify.Create(nil) do
@@ -1692,16 +1675,147 @@ begin
 end;
 
 function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): Boolean;
+
+  procedure InitDBID(AQ: TIBSQL);
+  begin
+    // каждая база данных должна иметь свой уникальный идентификатор, который
+    // содержится в генераторе GD_G_DBID. сгенерированная, эталонная база
+    // имеет идентификатор равный нулю. при каждом подключении мы проверяем,
+    // если идентификатор базы равен нулю, то это первое подключение к чистой
+    // базе и надо установить ей DBID.
+    AQ.SQL.Text :=
+      'EXECUTE BLOCK ' +
+      'AS ' +
+      'BEGIN ' +
+      '  IF ((SELECT GEN_ID(gd_g_dbid, 0) FROM rdb$database) = 0) THEN ' +
+      '    EXECUTE STATEMENT ''SET GENERATOR gd_g_dbid TO ' + IntToStr(gdcBaseManager.GenerateNewDBID) + '''; ' +
+      'END';
+    AQ.ExecQuery;
+    AQ.Close;
+  end;
+
 var
-  WithoutConnection: Boolean;
+  WithoutConnection, SingleUserMode: Boolean;
+  DI: Tgd_DatabaseItem;
+  SP: TIBStoredProc;
+  Tr: TIBTransaction;
+  q: TIBSQL;
+  ErrorString: String;
 begin
+  Assert(gdcBaseManager <> nil);
+  Assert(gd_DatabasesList <> nil);
+  Assert(Database <> nil);
+
   if LoggedIn then
     raise EboLoginError.Create('Can not login twice!');
 
-  Result := gd_DatabasesList.LoginDlg(WithoutConnection);
+  repeat
+    Database.Connected := False;
+    Result := gd_DatabasesList.LoginDlg(WithoutConnection, SingleUserMode, DI);
+    if (not Result) or WithoutConnection or (DI = nil) then
+      exit;
 
-  if (not Result) or WithoutConnection then
-    exit;
+    Database.DatabaseName := DI.DatabaseName;
+    Database.Params.Values['user_name'] := 'STARTUSER';
+    Database.Params.Values['password'] := 'startuser';
+
+    try
+      Database.Connected := True;
+
+      Tr := TIBTransaction.Create(nil);
+      q := TIBSQL.Create(nil);
+      SP := TIBStoredProc.Create(nil);
+      try
+        Tr.DefaultDatabase := Database;
+        Tr.StartTransaction;
+        q.Transaction := Tr;
+        SP.Transaction := Tr;
+
+        try
+          InitDBID(q);
+
+          SP.StoredProcName := 'GD_P_SEC_LOGINUSER';
+          SP.Prepare;
+          SP.ParamByName('username').AsString := DI.EnteredLogin;
+          SP.ParamByName('passw').AsString := DI.EnteredPassword;
+          SP.ParamByName('subsystem').AsInteger := GD_SYS_GADMIN;
+          SP.ExecProc;
+          if SP.ParamByName('result').IsNull then
+            raise EboLoginError.Create('Ошибка проверки прав доступа');
+        except
+          on E: Exception do
+          begin
+            if not gd_CmdLineParams.QuietMode then
+              MessageBox(0,
+                PChar(
+                  'Произошел системный сбой при проверке прав пользователя. '#13#10 +
+                  'Возможно, указанная база данных повреждена или не является '#13#10 +
+                  'базой данных платформы Гедымин.'#13#10#13#10 +
+                  'Ошибка: ' + E.Message),
+                  'Внимание',
+                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+            Result := False;
+            exit;
+          end;
+        end;
+
+        case SP.ParamByName('result').AsInteger of
+          GD_LGN_UNKNOWN_SUBSYSTEM:
+            ErrorString := 'Код подсистемы задан неверно.';
+          GD_LGN_SUBSYSTEM_DISABLED:
+            ErrorString := 'Подсистема заблокирована. Вход запрещен.';
+          GD_LGN_UNKNOWN_USER:
+            ErrorString := 'Имя пользователя задано неверно.';
+          GD_LGN_INVALID_PASSWORD:
+            ErrorString := sIncorrectPassword;
+          GD_LGN_USER_DISABLED:
+            ErrorString := 'Учетная запись пользователя заблокирована.'#13#10 +
+              'Обратитесь к администратору системы.';
+          GD_LGN_WORK_TIME_VIOLATION:
+            ErrorString := 'Вход не в рабочее время запрещен.';
+          GD_LGN_USER_ACCESS_DENIED:
+            ErrorString := 'Пользователь не имеет прав на вход в подсистему.';
+          GD_LGN_GROUP_DISABLED:
+            ErrorString := 'Группы, используемые пользователем, заблокированы.';
+          GD_LGN_OK_CHANGE_PASSWORD:
+          begin
+            ErrorString := '';
+            FChangePass := True;
+          end;
+        else
+          ErrorString := '';
+        end;
+
+        if SingleUserMode and
+          (AnsiComparetext(spUserLogin.ParamByName('ibname').AsString, SysDBAUserName) <> 0) then
+        begin
+          ErrorString :=
+            'Подключение в однопользовательском режиме '#13#10 +
+            'возможно только под учетной записью Administrator!';
+        end;
+
+        Tr.Commit;
+      finally
+        SP.Free;
+        q.Free;
+        Tr.Free;
+      end;
+
+      if ErrorString > '' then
+      begin
+        MessageBox(0,
+          PChar(ErrorString),
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      end;
+    except
+      on E: EIBError do
+      begin
+      end;
+    end;
+  until ErrorString = '';
+
+  Database.Connected := False;
 
   if Assigned(gdSplash) then
     gdSplash.ShowText(sDBConnect);

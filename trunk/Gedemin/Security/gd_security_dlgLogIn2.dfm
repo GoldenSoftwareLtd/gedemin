@@ -1,6 +1,6 @@
 object dlgSecLogIn2: TdlgSecLogIn2
-  Left = 325
-  Top = 163
+  Left = 587
+  Top = 452
   HelpContext = 39
   ActiveControl = edPassword
   BorderIcons = [biSystemMenu]
@@ -80,14 +80,14 @@ object dlgSecLogIn2: TdlgSecLogIn2
     TabOrder = 0
     object lblUser: TLabel
       Left = 8
-      Top = 89
+      Top = 72
       Width = 76
       Height = 13
       Caption = 'Пользователь:'
     end
     object lblPassword: TLabel
       Left = 8
-      Top = 114
+      Top = 97
       Width = 41
       Height = 13
       Caption = 'Пароль:'
@@ -102,7 +102,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
     end
     object bvl2: TBevel
       Left = 1
-      Top = 77
+      Top = 60
       Width = 266
       Height = 2
       Shape = bsTopLine
@@ -116,7 +116,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
     end
     object edPassword: TEdit
       Left = 88
-      Top = 111
+      Top = 94
       Width = 175
       Height = 21
       Ctl3D = True
@@ -127,7 +127,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
     end
     object cbUser: TComboBox
       Left = 88
-      Top = 85
+      Top = 68
       Width = 175
       Height = 21
       ItemHeight = 13
@@ -136,7 +136,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
     end
     object chbxRememberPassword: TCheckBox
       Left = 88
-      Top = 135
+      Top = 118
       Width = 129
       Height = 17
       Caption = 'Запомнить пароль'
@@ -152,7 +152,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Ctl3D = True
       ParentCtl3D = False
       ReadOnly = True
-      TabOrder = 4
+      TabOrder = 5
       Text = 'Комлексная автоматизация'
     end
     object btnSelectDB: TButton
@@ -161,7 +161,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Width = 23
       Height = 20
       Action = actSelectDB
-      TabOrder = 5
+      TabOrder = 6
     end
     object chbxWithoutConnection: TCheckBox
       Left = 88
@@ -169,16 +169,16 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Width = 153
       Height = 17
       Caption = 'Без подключения к БД'
-      TabOrder = 3
+      TabOrder = 4
       OnClick = chbxWithoutConnectionClick
     end
     object chbxSingleUser: TCheckBox
       Left = 88
-      Top = 57
+      Top = 135
       Width = 169
       Height = 17
       Caption = 'Монопольный режим'
-      TabOrder = 6
+      TabOrder = 3
     end
   end
   object btnOk: TButton

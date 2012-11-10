@@ -174,8 +174,10 @@ procedure TdlgSecLogIn2.actLoginExecute(Sender: TObject);
 var
   DI: Tgd_DatabaseItem;
 begin
-  if not chbxWithoutConnection.Checked then
-  begin
+  if chbxWithoutConnection.Checked then
+    ModalResult := mrOk
+  else begin
+    ModalResult := mrCancel;
     if gd_DatabasesList <> nil then
     begin
       DI := gd_DatabasesList.FindSelected;
@@ -190,11 +192,10 @@ begin
 
         DI.AddUser(DI.EnteredLogin, DI.EnteredPassword);
         DI.RememberPassword := chbxRememberPassword.Checked;
+        ModalResult := mrOk;
       end;
     end;
   end;
-
-  ModalResult := mrOk;
 end;
 
 procedure TdlgSecLogIn2.actLoginUpdate(Sender: TObject);

@@ -9,8 +9,7 @@ object dmDatabase: TdmDatabase
     Params.Strings = (
       'user_name=SYSDBA'
       'password=masterkey'
-      'lc_ctype=WIN1251'
-      '')
+      'lc_ctype=WIN1251')
     LoginPrompt = False
     AllowStreamedConnected = False
     AfterConnect = ibdbGAdminAfterConnect
