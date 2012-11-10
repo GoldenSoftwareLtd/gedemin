@@ -87,7 +87,7 @@ begin
     S := C1.GetXML;
     Check(S > '');
 
-    StF := TFileStream.Create('d:\temp\test.xml', fmCreate);
+    StF := TFileStream.Create(ExtractFileDrive(Application.EXEName) + ':\temp\test.xml', fmCreate);
     StS := TStringStream.Create(S);
     try
       StF.CopyFrom(StS, 0);

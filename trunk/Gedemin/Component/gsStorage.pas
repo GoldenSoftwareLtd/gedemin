@@ -2553,8 +2553,6 @@ begin
     if ATr = nil then
       Tr.Commit;
   finally
-   {$IFDEF DEBUG}{LogSL.SaveToFile('d:\log.txt');}{$ENDIF}
-
     qID.Free;
     q.Free;
     if ATr = nil then

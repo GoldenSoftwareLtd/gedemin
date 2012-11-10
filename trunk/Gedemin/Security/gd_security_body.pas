@@ -356,7 +356,7 @@ uses
   gd_security_dlgDatabases_unit,                  jclStrings,
   IBServices,               DBLogDlg,             at_frmSQLProcess,
   Storages,                 mdf_proclist,         gdModify,
-  IBDatabaseInfo,           gd_security_dlgLogIn2,gd_DatabasesList_unit
+  IBDatabaseInfo,           gd_DatabasesList_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1692,23 +1692,16 @@ begin
 end;
 
 function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): Boolean;
+var
+  WithoutConnection: Boolean;
 begin
   if LoggedIn then
     raise EboLoginError.Create('Can not login twice!');
 
-  {with TdlgSecLogin2.Create(Self) do
-  try
-    Result := ShowModal = mrOk;
-    gd_DatabasesList.WriteToINIFile;
+  Result := gd_DatabasesList.LoginDlg(WithoutConnection);
 
-    if Result and chbxWithoutConnection.Checked then
-      exit;
-  finally
-    Free;
-  end;
-
-  if not Result then
-    exit;}
+  if (not Result) or WithoutConnection then
+    exit;
 
   if Assigned(gdSplash) then
     gdSplash.ShowText(sDBConnect);

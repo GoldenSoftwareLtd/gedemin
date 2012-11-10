@@ -8891,7 +8891,6 @@ end;
 procedure TgdcInvCardConfig.SaveGrid(Grid: TgsIBGrid);
 begin
   Grid.SaveToStream(Config.GridSettings);
-//  Config.GridSettings.SaveToFile('d:\1.str');
   SaveConfig;
 end;
 
