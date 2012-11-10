@@ -2,7 +2,7 @@
 @echo off
 setlocal
 
-set spath=d:\golden\setting
+set spath=%~d0:\golden\setting
 set dpath=\\alex2006\Distrib2\GoldSoft\Gedymin\Local
 
 call make_install "%spath%\Общие\Комплексная_автоматизация.gsf" business complex.jpg busilocal_wo_demo compl_setup.rar "%dpath%\Комплексная автоматизация\setup.exe" N

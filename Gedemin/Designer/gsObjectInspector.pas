@@ -1261,17 +1261,6 @@ begin
       end;
     end
   finally
-    {sl:= TStringList.Create;
-    if FileExists('d:\ItemList.txt') then
-      sl.LoadFromFile('d:\ItemList.txt');
-    for i:= 0 to FItemList.Count - 1 do begin
-      if not Assigned(FItemList.PropItem[i].FClass) and (FItemList.PropItem[i].FTypeName <> '')
-          and (FItemList.PropItem[i].FTypeName[1] = 'T') and not (FItemList.PropItem[i].FDataType in [tkSet, tkEnumeration]) then
-        if sl.IndexOfName(FItemList.PropItem[i].FTypeName) = -1 then
-          sl.Add(FItemList.PropItem[i].FTypeName + '=' + FItemList.PropItem[i].FName);
-    end;
-    sl.SaveToFile('d:\ItemList.txt');
-    sl.Free;}
     if TempPropList <> FItemList then
       TempPropList.Free;
     TempPropList := nil;

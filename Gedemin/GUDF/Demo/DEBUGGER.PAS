@@ -13,7 +13,7 @@ var
   const
     // This is a path on IB Server !!!
     // D: is native (not mapped) server drive, change it as you need
-    DebuggerFileName = 'd:\ib\bin\UDFDemo.log';
+    DebuggerFileName = '...\UDFDemo.log';
 {$Endif}
 
 implementation

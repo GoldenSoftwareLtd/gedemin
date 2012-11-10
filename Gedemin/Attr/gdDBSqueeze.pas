@@ -86,7 +86,7 @@ end;
 
 procedure TgdDBSqueeze.Squeeze;
 begin
-  FDatabase.DatabaseName := 'localhost:d:\t.fdb';
+  FDatabase.DatabaseName := '...';
   FDatabase.Params.Text := 'user_name=SYSDBA'#13#10'password=masterkey'#13#10'lc_ctype=win1251';
   FDatabase.LoginPrompt := False;
   FDatabase.Connected := True;

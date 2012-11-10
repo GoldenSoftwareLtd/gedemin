@@ -6,9 +6,6 @@ interface
 uses
   Classes, SysUtils, IniFiles, ContNrs, gd_directories_const;
 
-const
-  MaxUserCount = 10;
-
 type
   Tgd_DatabaseItem = class(TCollectionItem)
   private
@@ -57,18 +54,20 @@ type
   private
     FIniFileName: String;
 
+    procedure ReadFromIniFile;
+    procedure WriteToIniFile;
+    
   public
     constructor Create;
     destructor Destroy; override;
 
-    procedure ReadFromIniFile;
-    procedure WriteToIniFile;
     procedure ReadFromRegistry;
     procedure ScanDirectory;
     function FindByName(const AName: String): Tgd_DatabaseItem;
     function FindSelected: Tgd_DatabaseItem;
 
     function ShowViewForm: Boolean;
+    function LoginDlg(out WithoutConnection: Boolean): Boolean;
   end;
 
   Egd_DatabasesList = class(Exception);
@@ -80,7 +79,10 @@ implementation
 
 uses
   Windows, Wcrypt2, Forms, Controls, JclFileUtils, gd_common_functions, Registry,
-  gd_DatabasesListView_unit, gd_DatabasesListDlg_unit;
+  gd_DatabasesListView_unit, gd_DatabasesListDlg_unit, gd_security_dlgLogIn2;
+
+const
+  MaxUserCount = 10;
 
 { Tgd_DatabaseItem }
 
@@ -444,7 +446,6 @@ end;
 
 destructor Tgd_DatabasesList.Destroy;
 begin
-  WriteToIniFile;
   inherited;
 end;
 
@@ -493,6 +494,22 @@ begin
     end;
   if not Result.Selected then
     Result.Selected := True;
+end;
+
+function Tgd_DatabasesList.LoginDlg(out WithoutConnection: Boolean): Boolean;
+begin
+  with TdlgSecLogin2.Create(nil) do
+  try
+    Result := ShowModal = mrOk;
+
+    if Result then
+    begin
+      WriteToINIFile;
+      WithoutConnection := chbxWithoutConnection.Checked;
+    end;
+  finally
+    Free;
+  end;
 end;
 
 initialization

@@ -17,7 +17,8 @@ type
 implementation
 
 uses
-  SysUtils, at_sql_setup, at_sql_parser, jclStrings, gdcBaseInterface, at_classes;
+  Forms, SysUtils, at_sql_setup, at_sql_parser,
+  jclStrings, gdcBaseInterface, at_classes;
 
 procedure TSQLSetupTest.TestAtSQLSetup;
 var
@@ -33,8 +34,8 @@ begin
   try
     for I := 0 to MAXINT do
     begin
-      InputFileName :=  Format('D:\Golden\Gedemin\Test\GedeminTest\Data\AtSQLSetup\input.%.3d.sql', [I]);
-      OutputFileName := Format('D:\Golden\Gedemin\Test\GedeminTest\Data\AtSQLSetup\output.%.3d.sql', [I]);
+      InputFileName :=  Format(ExtractFileDrive(Application.EXEName) + ':\Golden\Gedemin\Test\GedeminTest\Data\AtSQLSetup\input.%.3d.sql', [I]);
+      OutputFileName := Format(ExtractFileDrive(Application.EXEName) + ':\Golden\Gedemin\Test\GedeminTest\Data\AtSQLSetup\output.%.3d.sql', [I]);
 
       if I = 0 then
       begin

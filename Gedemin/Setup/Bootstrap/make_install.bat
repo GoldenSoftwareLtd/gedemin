@@ -28,7 +28,7 @@ goto exit
 
 :proceed
 
-if NOT exist d:\nul subst d: k:\
+rem if NOT exist d:\nul subst d: k:\
 
 eventcreate /t INFORMATION /id 200 /l application /so gedemin /d "Start making install %4."
 
@@ -47,7 +47,7 @@ echo *************************************************
 @set database_path=k:\golden\gedemin_local_fb\database
 @set winrar_path=C:\Program Files\WinRar
 @set setup_path=..\InnoSetup
-@set setting_path=d:\golden\setting
+@set setting_path=%~d0:\golden\setting
 
 @set server_name=localhost/3053
 

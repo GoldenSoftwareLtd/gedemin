@@ -428,8 +428,8 @@ begin
   begin
     FFileList := TFLCollection.Create;
     //!!!
-    if DirectoryExists('d:\golden\gedemin_local_fb') then
-      FFileList.RootPath := 'd:\golden\gedemin_local_fb';
+    if DirectoryExists(ExtractFileDrive(Application.EXEName) + ':\golden\gedemin_local_fb') then
+      FFileList.RootPath := ExtractFileDrive(Application.EXEName) + ':\golden\gedemin_local_fb';
     //!!!
     FFileList.BuildEtalonFileSet;
   end;

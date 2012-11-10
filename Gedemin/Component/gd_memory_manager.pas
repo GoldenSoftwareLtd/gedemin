@@ -140,7 +140,7 @@ var
 begin
   try
     S := 0;
-    AssignFile(T, 'd:\temp.log');
+    AssignFile(T, ExtractFilePath(Application.EXEName) + 'temp.log');
     Rewrite(T);
   except
     exit;
@@ -171,7 +171,7 @@ begin
   if LS.Count > 14 then
   begin
     MessageBox(0,
-      'Не вся память удалена. Подробно: d:\temp.log',
+      'Не вся память удалена. Подробно: temp.log',
       'Память!',
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
   end;

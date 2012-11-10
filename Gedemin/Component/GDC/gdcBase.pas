@@ -18354,7 +18354,7 @@ finalization
   {$IFDEF DEBUG}
   if InvokeCounts <> nil then
   try
-    InvokeCounts.SaveToFile('d:\invoke.log');
+    InvokeCounts.SaveToFile(ExtractFilePath(Application.EXEName) + 'invoke.log');
   except
   end;  
   FreeAndNil(InvokeCounts);

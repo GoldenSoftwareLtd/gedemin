@@ -1,6 +1,6 @@
 object dlgSecLogIn2: TdlgSecLogIn2
-  Left = 399
-  Top = 222
+  Left = 325
+  Top = 163
   HelpContext = 39
   ActiveControl = edPassword
   BorderIcons = [biSystemMenu]
