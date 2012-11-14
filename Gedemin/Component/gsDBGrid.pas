@@ -7298,10 +7298,18 @@ begin
       begin
         if Columns[I].Visible then
         begin
-          TR := Rect(0, 0, Columns[I].Width - 4, 0);
-          Canvas.Font := TitleFont;
-          DrawText(Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
-            DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
+          TR := Rect(0, 0, 10, 0);
+          if not HandleAllocated then
+          begin
+            DrawBitmap.Canvas.Font := TitleFont;
+            DrawText(DrawBitmap.Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
+              DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
+          end else
+          begin
+            Canvas.Font := TitleFont;
+            DrawText(Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
+              DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
+          end;
           temp := (TR.Bottom - TR.Top) div GetDefaultTitleRowHeight + 1;
           if temp > Result then
             Result := temp;

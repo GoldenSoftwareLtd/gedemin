@@ -356,7 +356,8 @@ uses
   gd_security_dlgDatabases_unit,                  jclStrings,
   IBServices,               DBLogDlg,             at_frmSQLProcess,
   Storages,                 mdf_proclist,         gdModify,
-  IBDatabaseInfo,           gd_DatabasesList_unit,gd_security_operationconst 
+  IBDatabaseInfo,           gd_DatabasesList_unit,gd_security_operationconst,
+  IBErrorCodes,             gd_common_functions 
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -1694,6 +1695,71 @@ function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): B
     AQ.Close;
   end;
 
+  function CreateStartUser(const ADBName: String): Boolean;
+  var
+    DB: TIBDatabase;
+    Tr: TIBTransaction;
+    q: TIBSQL;
+    FSysDBAPassword, FSysDBAUserName: String;
+    Server, FileName: String;
+    Port: Integer;
+  begin
+    Result := False;
+
+    FSysDBAPassword := 'masterkey';
+    FSysDBAUserName := SysDBAUserName;
+
+    DB := TIBDatabase.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+    try
+      repeat
+        try
+          DB.LoginPrompt := False;
+          DB.SQLDialect := 3;
+          DB.Params.Clear;
+          DB.Params.Add('user_name=' + FSysDBAUserName);
+          DB.Params.Add('password=' + FSysDBAPassword);
+          DB.DatabaseName := ADBName;
+          DB.Connected := True;
+        except
+          FSysDBAPassword := '';
+          ParseDatabaseName(ADBName, Server, Port, FileName);
+          if Server = '' then Server := 'Firebird';
+          MessageBox(0,
+            PChar('Сервер ' + Server + ' должен быть настроен для подключения платформы Гедымин.'),
+            'Внимание',
+            MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+          if not InputQuery(Server, 'Введите пароль учетной записи SYSDBA:', FSysDBAPassword) then
+            exit;
+        end;
+      until DB.Connected;
+
+      Tr.DefaultDatabase := DB;
+      Tr.StartTransaction;
+
+      q.Transaction := Tr;
+      try
+        q.SQL.Text := 'DROP USER STARTUSER';
+        q.ExecQuery;
+        Tr.Commit;
+      except
+        Tr.Rollback;
+      end;
+
+      Tr.StartTransaction;
+      q.SQL.Text := 'CREATE USER STARTUSER PASSWORD ''startuser'' ';
+      q.ExecQuery;
+      Tr.Commit;
+
+      Result := True;
+    finally
+      q.Free;
+      Tr.Free;
+      DB.Free;
+    end;
+  end;
+
 var
   WithoutConnection, SingleUserMode: Boolean;
   DI: Tgd_DatabaseItem;
@@ -1709,6 +1775,8 @@ begin
   if LoggedIn then
     raise EboLoginError.Create('Can not login twice!');
 
+
+  (*
   repeat
     Database.Connected := False;
     Result := gd_DatabasesList.LoginDlg(WithoutConnection, SingleUserMode, DI);
@@ -1787,7 +1855,7 @@ begin
         end;
 
         if SingleUserMode and
-          (AnsiComparetext(spUserLogin.ParamByName('ibname').AsString, SysDBAUserName) <> 0) then
+          (AnsiComparetext(SP.ParamByName('ibname').AsString, SysDBAUserName) <> 0) then
         begin
           ErrorString :=
             'Подключение в однопользовательском режиме '#13#10 +
@@ -1800,22 +1868,45 @@ begin
         q.Free;
         Tr.Free;
       end;
-
-      if ErrorString > '' then
-      begin
-        MessageBox(0,
-          PChar(ErrorString),
-          'Внимание',
-          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-      end;
     except
       on E: EIBError do
       begin
+        if E.IBErrorCode = isc_network_error then
+        begin
+          ErrorString :=
+            'Невозможно получить доступ к серверу ' + DI.Server + '.'#13#10#13#10 +
+            'Сообщение об ошибке:'#13#10 + E.Message + #13#10#13#10 +
+            'Возможные причины:'#13#10 +
+            '1) Неверно указано имя сервера или номер порта.'#13#10 +
+            '2) Сервер выключен или не подсоединен к сети.'#13#10 +
+            '3) На сервере не установлена СУБД Firebird.'#13#10 +
+            '4) Сетевое соединение сервера заблокировано файрволлом.';
+        end
+        else if E.IBErrorCode = isc_io_error then
+        begin
+          ErrorString := 'Невозможно открыть файл базы данных.'#13#10#13#10 +
+            'Сообщение об ошибке:'#13#10 + E.Message;
+        end
+        else if E.IBErrorCode = isc_login then
+        begin
+          if not CreateStartUser(DI.DatabaseName) then
+            ErrorString := 'Невозможно настроить сервер для подключения платформы Гедымин.';
+        end else
+          ErrorString := E.Message;
       end;
+    end;
+
+    if ErrorString > '' then
+    begin
+      MessageBox(0,
+        PChar(ErrorString),
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
     end;
   until ErrorString = '';
 
   Database.Connected := False;
+  *)
 
   if Assigned(gdSplash) then
     gdSplash.ShowText(sDBConnect);

@@ -239,6 +239,7 @@ const
   Gedemin_Updater_Ini             = 'gedemin_upd.ini';
 
   //
+  //DEFAULT_WEB_SERVER_PORT            = 50060;
   DEFAULT_WEB_SERVER_PORT            = 80;
   STORAGE_WEB_SERVER_PORT_VALUE_NAME = 'WebServerPort';
 

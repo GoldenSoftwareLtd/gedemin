@@ -6,7 +6,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Вход в систему'
-  ClientHeight = 200
+  ClientHeight = 243
   ClientWidth = 333
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -55,7 +55,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
   end
   object lKL: TLabel
     Left = 8
-    Top = 176
+    Top = 135
     Width = 3
     Height = 13
     Color = clActiveCaption
@@ -71,7 +71,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
     Left = 56
     Top = 8
     Width = 270
-    Height = 156
+    Height = 116
     BevelInner = bvRaised
     BevelOuter = bvLowered
     Ctl3D = False
@@ -80,14 +80,14 @@ object dlgSecLogIn2: TdlgSecLogIn2
     TabOrder = 0
     object lblUser: TLabel
       Left = 8
-      Top = 72
+      Top = 47
       Width = 76
       Height = 13
       Caption = 'Пользователь:'
     end
     object lblPassword: TLabel
       Left = 8
-      Top = 97
+      Top = 72
       Width = 41
       Height = 13
       Caption = 'Пароль:'
@@ -95,56 +95,49 @@ object dlgSecLogIn2: TdlgSecLogIn2
     end
     object lblDBName: TLabel
       Left = 8
-      Top = 35
+      Top = 10
       Width = 69
       Height = 13
       Caption = 'База данных:'
     end
     object bvl2: TBevel
       Left = 1
-      Top = 60
-      Width = 266
-      Height = 2
-      Shape = bsTopLine
-    end
-    object bvl1: TBevel
-      Left = 1
-      Top = 25
+      Top = 35
       Width = 266
       Height = 2
       Shape = bsTopLine
     end
     object edPassword: TEdit
       Left = 88
-      Top = 94
+      Top = 69
       Width = 175
       Height = 21
       Ctl3D = True
       MaxLength = 20
       ParentCtl3D = False
       PasswordChar = '*'
-      TabOrder = 1
+      TabOrder = 2
     end
     object cbUser: TComboBox
       Left = 88
-      Top = 68
+      Top = 43
       Width = 175
       Height = 21
       ItemHeight = 13
-      TabOrder = 0
+      TabOrder = 1
       OnChange = cbUserChange
     end
     object chbxRememberPassword: TCheckBox
       Left = 88
-      Top = 118
+      Top = 93
       Width = 129
       Height = 17
       Caption = 'Запомнить пароль'
-      TabOrder = 2
+      TabOrder = 3
     end
     object edDBName: TEdit
       Left = 88
-      Top = 33
+      Top = 8
       Width = 151
       Height = 21
       TabStop = False
@@ -152,38 +145,21 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Ctl3D = True
       ParentCtl3D = False
       ReadOnly = True
-      TabOrder = 5
+      TabOrder = 4
       Text = 'Комлексная автоматизация'
     end
     object btnSelectDB: TButton
       Left = 239
-      Top = 32
+      Top = 7
       Width = 23
       Height = 20
       Action = actSelectDB
-      TabOrder = 6
-    end
-    object chbxWithoutConnection: TCheckBox
-      Left = 88
-      Top = 5
-      Width = 153
-      Height = 17
-      Caption = 'Без подключения к БД'
-      TabOrder = 4
-      OnClick = chbxWithoutConnectionClick
-    end
-    object chbxSingleUser: TCheckBox
-      Left = 88
-      Top = 135
-      Width = 169
-      Height = 17
-      Caption = 'Монопольный режим'
-      TabOrder = 3
+      TabOrder = 0
     end
   end
   object btnOk: TButton
     Left = 168
-    Top = 172
+    Top = 131
     Width = 75
     Height = 21
     Action = actLogin
@@ -192,7 +168,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
   end
   object btnCancel: TButton
     Left = 250
-    Top = 172
+    Top = 131
     Width = 75
     Height = 21
     Action = actCancel
@@ -200,13 +176,50 @@ object dlgSecLogIn2: TdlgSecLogIn2
     ModalResult = 2
     TabOrder = 2
   end
-  object btnVer: TButton
+  object btnMore: TButton
     Left = 56
-    Top = 172
+    Top = 131
     Width = 24
     Height = 21
-    Action = actVer
+    Action = actMore
     TabOrder = 3
+  end
+  object pnlAdditionalInfo: TPanel
+    Left = 56
+    Top = 160
+    Width = 270
+    Height = 76
+    BevelInner = bvRaised
+    BevelOuter = bvLowered
+    Ctl3D = False
+    ParentColor = True
+    ParentCtl3D = False
+    TabOrder = 4
+    object chbxWithoutConnection: TCheckBox
+      Left = 9
+      Top = 8
+      Width = 256
+      Height = 17
+      Caption = 'Вход без подключения к базе данных'
+      TabOrder = 0
+      OnClick = chbxWithoutConnectionClick
+    end
+    object chbxSingleUser: TCheckBox
+      Left = 9
+      Top = 27
+      Width = 256
+      Height = 17
+      Caption = 'Монопольный режим подключения'
+      TabOrder = 1
+    end
+    object btnVer: TButton
+      Left = 8
+      Top = 47
+      Width = 96
+      Height = 21
+      Action = actVer
+      TabOrder = 2
+    end
   end
   object ActionList: TActionList
     Left = 8
@@ -226,13 +239,17 @@ object dlgSecLogIn2: TdlgSecLogIn2
       OnExecute = actHelpExecute
     end
     object actVer: TAction
-      Caption = 'i'
+      Caption = 'Информация...'
       OnExecute = actVerExecute
     end
     object actSelectDB: TAction
       Caption = '...'
       OnExecute = actSelectDBExecute
       OnUpdate = actSelectDBUpdate
+    end
+    object actMore: TAction
+      Caption = '»'
+      OnExecute = actMoreExecute
     end
   end
   object Timer: TTimer

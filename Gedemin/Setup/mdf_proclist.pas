@@ -44,10 +44,11 @@ uses
   mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
   mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage,
   mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean, mdf_ConvertBNStatementCommentToBlob, mdf_AddFieldReportlistModalPreview,
-  mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument, mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams;
+  mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument, mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
+  mdf_DeletecbAnalyticFromScript;
 
 const
-  cProcCount = 178;
+  cProcCount = 179;
 
 type
   TModifyProc = record
@@ -332,7 +333,8 @@ const
     (ModifyProc: DeleteSF; ModifyVersion: '0000.0001.0000.0188'),
     (ModifyProc: DeleteCardParamsItem; ModifyVersion: '0000.0001.0000.0189'),
     (ModifyProc: Correct_inv_bu_movement_triggers; ModifyVersion: '0000.0001.0000.0190'),
-    (ModifyProc: ChangeDuplicateAccount2; ModifyVersion: '0000.0001.0000.0191')
+    (ModifyProc: ChangeDuplicateAccount2; ModifyVersion: '0000.0001.0000.0191'),
+    (ModifyProc: DeletecbAnalyticFromScript; ModifyVersion: '0000.0001.0000.0192')
   );
 
 implementation

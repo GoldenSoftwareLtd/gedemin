@@ -83,10 +83,10 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       HideSelection = False
       ReadOnly = True
       RowSelect = True
-      SortType = stText
       TabOrder = 0
       ViewStyle = vsReport
       OnChange = lvChange
+      OnDblClick = lvDblClick
     end
   end
   object TBDock: TTBDock

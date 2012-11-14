@@ -2,7 +2,7 @@
 
 {++
 
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2012 by Golden Software of Belarus
 
   Module
 
@@ -92,8 +92,8 @@ type
 implementation
 
 uses
-  IB, JclStrings, gsDatabaseShutdown_dlgShowUsers_unit, Forms,
-  Controls, Windows, SysUtils, gd_resourcestring, IBErrorCodes
+  IB, JclStrings, gsDatabaseShutdown_dlgShowUsers_unit, Forms, Controls, Windows,
+  SysUtils, gd_resourcestring, IBErrorCodes, gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -105,9 +105,9 @@ uses
 constructor TgsDatabaseShutdown.Create(AnOwner: TComponent);
 begin
   inherited;
-  FDatabaseInfo := TIBDatabaseInfo.Create(Self);
-  FConfigService := TIBConfigService.Create(Self);
-  FStatisticalService := TIBStatisticalService.Create(Self);
+  FDatabaseInfo := TIBDatabaseInfo.Create(nil);
+  FConfigService := TIBConfigService.Create(nil);
+  FStatisticalService := TIBStatisticalService.Create(nil);
   FShowUserDisconnectDialog := True;
   FSL := TStringList.Create;
 end;
@@ -116,27 +116,21 @@ destructor TgsDatabaseShutdown.Destroy;
 begin
   inherited;
   FSL.Free;
+  FDatabaseInfo.Free;
+  FConfigService.Free;
+  FStatisticalService.Free;
 end;
 
 function TgsDatabaseShutdown.GetIsShutdowned: Boolean;
 var
-  I, P, J: Integer;
+  I, J, Port: Integer;
   SN, DN, S: String;
 begin
-  Assert(Assigned(FDatabase));
+  Assert(FDatabase <> nil);
 
   Result := False;
 
-  P := Pos(':', FDatabase.DatabaseName);
-  if (P > 0) and (Pos(':', Copy(FDatabase.DatabaseName, P + 1, 1024)) > 0) then
-    SN := Copy(FDatabase.DatabaseName, 1, P - 1)
-  else
-    SN := '';
-
-  if SN = '' then
-    DN := FDatabase.DatabaseName
-  else
-    DN := Copy(FDatabase.DatabaseName, Length(SN) + 2, 1024);
+  ParseDatabaseName(FDatabase.DatabaseName, SN, Port, DN);
 
   FStatisticalService.ServerName := SN;
   FStatisticalService.DatabaseName := DN;
@@ -241,8 +235,6 @@ begin
     FDatabaseInfo.Database := FDatabase;
     if Value <> nil then
       Value.FreeNotification(Self);
-    // кампанэнт FConfigService будзем настраіваць кожным разам
-    // перад выкарыстаньнем
   end;
 end;
 
@@ -264,16 +256,10 @@ end;
 
 function TgsDatabaseShutdown.Shutdown(const Mode: TShutdownMode = Forced): Boolean;
 var
-  I: Integer;
+  I, Port: Integer;
+  SN, DN: String;
 begin
   Assert(Assigned(FDatabase));
-
-  {
-  Result := IsShutdowned;
-
-  if Result then
-    exit;
-  }
 
   Result := False;
 
@@ -294,16 +280,14 @@ begin
     end;
   end;
 
-  FConfigservice.ServerName := Copy(FDatabase.DatabaseName, 1, Pos(':', FDatabase.DatabaseName) - 1);
-  FConfigService.DatabaseName := Copy(FDatabase.DatabaseName, Pos(':', FDatabase.DatabaseName) + 1, 1024);
+  ParseDatabaseName(FDatabase.DatabaseName, SN, Port, DN);
+  FConfigservice.ServerName := SN;
+  FConfigService.DatabaseName := DN;
 
-  if Pos(':', FConfigService.DatabaseName) > 0 then
+  if SN > '' then
     FConfigService.Protocol := TCP
   else begin
     FConfigService.Protocol := Local;
-    FConfigservice.ServerName := '';
-    FConfigService.DatabaseName := FDatabase.DatabaseName;
-
     Result := True;
     Exit;
   end;
@@ -344,23 +328,16 @@ end;
 
 function TgsDatabaseShutdown.BringOnline: Boolean;
 var
-  I, P: Integer;
+  I, Port: Integer;
   SN, DN: String;
 begin
+  Assert(FDatabase <> nil);
+
   Result := not IsShutdowned;
 
   if not Result then
   begin
-    P := Pos(':', FDatabase.DatabaseName);
-    if (P > 0) and (Pos(':', Copy(FDatabase.DatabaseName, P + 1, 1024)) > 0) then
-      SN := Copy(FDatabase.DatabaseName, 1, P - 1)
-    else
-      SN := '';
-
-    if SN = '' then
-      DN := FDatabase.DatabaseName
-    else
-      DN := Copy(FDatabase.DatabaseName, Length(SN) + 2, 1024);
+    ParseDatabaseName(FDatabase.DatabaseName, SN, Port, DN);
 
     FConfigservice.ServerName := SN;
     FConfigService.DatabaseName := DN;
@@ -394,7 +371,7 @@ begin
         Result := True;
       except
         MessageBox(0,
-          'Базу данных не удалось перевести рабочий режим.',
+          'Базу данных не удалось перевести в рабочий режим.',
           'Внимание!',
           MB_OK or MB_ICONHAND or MB_TASKMODAL);
       end;

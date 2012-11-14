@@ -502,18 +502,18 @@ function Tgd_DatabasesList.FindSelected: Tgd_DatabaseItem;
 var
   I: Integer;
 begin
-  if Count = 0 then
-    Result := nil
-  else
-    Result := Items[0] as Tgd_DatabaseItem;
+  Result := nil;
   for I := 0 to Count - 1 do
     if (Items[I] as Tgd_DatabaseItem).Selected then
     begin
       Result := Items[I] as Tgd_DatabaseItem;
       break;
     end;
-  if not Result.Selected then
+  if (Result = nil) and (Count > 0) then
+  begin
+    Result := Items[0] as Tgd_DatabaseItem;
     Result.Selected := True;
+  end;
 end;
 
 function Tgd_DatabasesList.LoginDlg(out WithoutConnection, SingleUserMode: Boolean;

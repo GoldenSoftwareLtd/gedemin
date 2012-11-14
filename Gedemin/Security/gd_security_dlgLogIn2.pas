@@ -48,13 +48,15 @@ type
     actHelp: TAction;
     chbxRememberPassword: TCheckBox;
     actVer: TAction;
-    btnVer: TButton;
+    btnMore: TButton;
     edDBName: TEdit;
     btnSelectDB: TButton;
     actSelectDB: TAction;
+    actMore: TAction;
+    pnlAdditionalInfo: TPanel;
     chbxWithoutConnection: TCheckBox;
     chbxSingleUser: TCheckBox;
-    bvl1: TBevel;
+    btnVer: TButton;
 
     procedure actCancelExecute(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
@@ -67,6 +69,7 @@ type
     procedure actLoginUpdate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure cbUserChange(Sender: TObject);
+    procedure actMoreExecute(Sender: TObject);
 
   private
     KL: Integer;
@@ -152,8 +155,6 @@ end;
 
 procedure TdlgSecLogIn2.chbxWithoutConnectionClick(Sender: TObject);
 begin
-  bvl1.Enabled := not chbxWithoutConnection.Checked;
-  bvl2.Enabled := not chbxWithoutConnection.Checked;
   lblDBName.Enabled := not chbxWithoutConnection.Checked;
   lblUser.Enabled := not chbxWithoutConnection.Checked;
   lblPassword.Enabled := not chbxWithoutConnection.Checked;
@@ -248,11 +249,6 @@ begin
     ActiveControl := edPassword;
 end;
 
-procedure TdlgSecLogIn2.FormCreate(Sender: TObject);
-begin
-  SyncControls;
-end;
-
 procedure TdlgSecLogIn2.cbUserChange(Sender: TObject);
 var
   DI: Tgd_DatabaseItem;
@@ -267,6 +263,29 @@ begin
       else
         edPassword.Text := '';
     end;
+  end;
+end;
+
+procedure TdlgSecLogIn2.FormCreate(Sender: TObject);
+begin
+  SyncControls;
+  Height := 188;
+  pnlAdditionalInfo.Visible := False;
+  ActiveControl := cbUser;
+end;
+
+procedure TdlgSecLogIn2.actMoreExecute(Sender: TObject);
+begin
+  if Height < 271 then
+  begin
+    Height := 271;
+    pnlAdditionalInfo.Visible := True;
+    actMore.Caption := Chr(171);
+  end else
+  begin
+    Height := 188;
+    pnlAdditionalInfo.Visible := False;
+    actMore.Caption := Chr(187);
   end;
 end;
 
