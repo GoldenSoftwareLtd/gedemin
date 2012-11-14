@@ -515,6 +515,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (161, '0000.0001.0000.0192', '29.10.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS modified.');
 
+INSERT INTO fin_versioninfo
+  VALUES (162, '0000.0001.0000.0193', '14.11.2012', 'Delete cbAnalytic from script.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

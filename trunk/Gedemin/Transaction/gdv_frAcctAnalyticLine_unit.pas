@@ -479,7 +479,7 @@ begin
       for I := 0 to FLookUp.Count - 1 do
       begin
         if (FLookUp[I] as TgsIBLookupComboBox).CurrentKey > '' then
-          Result := lAnaliticName.Caption + ' ' + (FLookUp[I] as TgsIBLookupComboBox).Text + '; ';
+          Result := Result + lAnaliticName.Caption + ' ' + (FLookUp[I] as TgsIBLookupComboBox).Text + '; ';
       end;
       if Result > '' then
         SetLength(Result, Length(Result) - 2);

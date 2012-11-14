@@ -44,6 +44,7 @@ type
     procedure actOkUpdate(Sender: TObject);
     procedure lvChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
+    procedure lvDblClick(Sender: TObject);
 
   public
     procedure SyncControls;
@@ -162,6 +163,11 @@ begin
     if DI <> nil then
       DI.Selected := True;
   end;
+end;
+
+procedure Tgd_DatabasesListView.lvDblClick(Sender: TObject);
+begin
+  actOk.Execute;
 end;
 
 end.
