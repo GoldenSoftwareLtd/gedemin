@@ -1221,7 +1221,7 @@ end;
 
 procedure TfrmGedeminMain.actShowUsersExecute(Sender: TObject);
 begin
-  with TfrmIBUserList.Create(Self) do
+  with TfrmIBUserList.Create(nil) do
   try
     ShowUsers;
   finally
