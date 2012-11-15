@@ -15,7 +15,6 @@ type
     btnOk: TButton;
     Bevel1: TBevel;
     Label5: TLabel;
-    IBUserTimer: TTimer;
     alIBUsers: TActionList;
     actOk: TAction;
     lblCount: TLabel;
@@ -26,16 +25,12 @@ type
     actDisconnect: TAction;
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
-    procedure IBUserTimerTimer(Sender: TObject);
     procedure actRefreshExecute(Sender: TObject);
     procedure actRefreshUpdate(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
     procedure actDisconnectUpdate(Sender: TObject);
 
   private
-    FNotBuilt: Boolean;
-
     procedure BuildUserList;
 
   public
@@ -49,7 +44,7 @@ var
 implementation
 
 uses
-  dmDataBase_unit, gdcBaseInterface, gd_common_functions;
+  dmDataBase_unit, gdcBaseInterface, gd_common_functions, gd_security;
 
 {$R *.DFM}
 
@@ -57,22 +52,8 @@ uses
 
 function TfrmIBUserList.CheckUsers: Boolean;
 begin
-  if FNotBuilt then
-  begin
-    BuildUserList;
-    FNotBuilt := False;
-  end;
-
-  if lvUser.Items.Count > 1 then
-  begin
-    IBUserTimer.Enabled := True;
-    try
-      Result := ShowModal = mrOk;
-    finally
-      IBUserTimer.Enabled := False;
-    end;
-  end else
-    Result := True;
+  BuildUserList;
+  Result := (lvUser.Items.Count <= 1) or (ShowModal = mrOk);
 end;
 
 procedure TfrmIBUserList.ShowUsers;
@@ -85,12 +66,8 @@ begin
 
   lvUser.Height := lvUser.Height + memoInfo.Height;
 
-  IBUserTimer.Enabled := True;
-  try
-    ShowModal;
-  finally
-    IBUserTimer.Enabled := False;
-  end;
+  BuildUserList;
+  ShowModal;
 end;
 
 procedure TfrmIBUserList.BuildUserList;
@@ -175,26 +152,6 @@ begin
   actOk.Enabled := (lvUser.Items.Count = 1) or btnOk.Cancel;
 end;
 
-procedure TfrmIBUserList.FormCreate(Sender: TObject);
-begin
-  if gdcBaseManager.Database.Connected then
-  begin
-    BuildUserList;
-    FNotBuilt := False;
-  end else
-    FNotBuilt := True;
-end;
-
-procedure TfrmIBUserList.IBUserTimerTimer(Sender: TObject);
-var
-  D: DWORD;
-begin
-  D := GetTickCount;
-  actRefresh.Execute;
-  if GetTickCount - D >= DWORD(IBUserTimer.Interval) then
-    chbxShowNames.Checked := False;
-end;
-
 procedure TfrmIBUserList.actRefreshExecute(Sender: TObject);
 begin
   BuildUserList;
@@ -228,6 +185,9 @@ begin
       q.Params[0].AsInteger := Integer(lvUser.Selected.Data);
       q.ExecQuery;
 
+      Tr.Commit;
+      Tr.StartTransaction;
+
       q.Close;
       q.SQL.Text := 'DELETE FROM MON$ATTACHMENTS WHERE MON$ATTACHMENT_ID = :ID ';
       q.Params[0].AsInteger := Integer(lvUser.Selected.Data);
@@ -243,7 +203,9 @@ end;
 
 procedure TfrmIBUserList.actDisconnectUpdate(Sender: TObject);
 begin
-  actDisconnect.Enabled := Assigned(lvUser.Selected);
+  actDisconnect.Enabled := Assigned(lvUser.Selected)
+    and Assigned(IBLogin)
+    and IBLogin.IsIBUserAdmin;
 end;
 
 end.

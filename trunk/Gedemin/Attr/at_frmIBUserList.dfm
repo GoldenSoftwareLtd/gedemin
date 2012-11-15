@@ -1,6 +1,6 @@
 object frmIBUserList: TfrmIBUserList
-  Left = 421
-  Top = 322
+  Left = 540
+  Top = 441
   BorderStyle = bsDialog
   Caption = 'Пользователи'
   ClientHeight = 366
@@ -13,7 +13,6 @@ object frmIBUserList: TfrmIBUserList
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
-  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object Label5: TLabel
@@ -154,13 +153,6 @@ object frmIBUserList: TfrmIBUserList
     Height = 17
     Caption = 'Показывать сетевые имена компьютеров'
     TabOrder = 3
-  end
-  object IBUserTimer: TTimer
-    Enabled = False
-    Interval = 60000
-    OnTimer = IBUserTimerTimer
-    Left = 90
-    Top = 150
   end
   object alIBUsers: TActionList
     Left = 272
