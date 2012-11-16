@@ -6,7 +6,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Вход в систему'
-  ClientHeight = 243
+  ClientHeight = 276
   ClientWidth = 333
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
@@ -66,6 +66,19 @@ object dlgSecLogIn2: TdlgSecLogIn2
     Font.Style = []
     ParentColor = False
     ParentFont = False
+  end
+  object Label1: TLabel
+    Left = 56
+    Top = 240
+    Width = 268
+    Height = 29
+    AutoSize = False
+    Caption = 
+      'Для учетной записи Administrator по-умолчанию  установлен пароль' +
+      ' Administrator.'
+    Color = clInfoBk
+    ParentColor = False
+    WordWrap = True
   end
   object pnlLoginParams: TPanel
     Left = 56
@@ -209,7 +222,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Top = 27
       Width = 256
       Height = 17
-      Caption = 'Монопольный режим подключения'
+      Caption = 'Однопользовательский режим подключения'
       TabOrder = 1
     end
     object btnVer: TButton

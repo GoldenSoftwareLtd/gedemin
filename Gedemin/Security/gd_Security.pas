@@ -205,7 +205,6 @@ type
     function GetShutDownRequested: Boolean;
     function GetReLogining: Boolean;
     function GetIsIBUserAdmin: Boolean;
-    function GetIsShutDown: Boolean;
     function GetServerName: String;
     function GetDBID: Integer;
     function GetActiveAccount: Integer;
@@ -220,6 +219,7 @@ type
     function Login(ReadParams: Boolean = True; ReLogin: Boolean = False): Boolean;
     function LoginSilent(AnUserName: String; APassword: String; const ADBPath: string = ''): Boolean;
     function Logoff: Boolean;
+    function Relogin: Boolean;
     function GetLoggingOff: Boolean;
     function IsSilentLogin: Boolean;
 
@@ -274,7 +274,6 @@ type
     property GroupName: String read GetGroupName;
     property IsUserAdmin: Boolean read GetIsUserAdmin;
     property IsIBUserAdmin: Boolean read GetIsIBUserAdmin;
-    property IsShutDown: Boolean read GetIsShutDown;
 
     // Подсистема
     property SubSystemKey: Integer read GetSubSystemKey write SetSubSystemKey;

@@ -4,7 +4,7 @@ object frmIBUserList: TfrmIBUserList
   BorderStyle = bsDialog
   Caption = 'Пользователи'
   ClientHeight = 366
-  ClientWidth = 499
+  ClientWidth = 552
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -15,10 +15,10 @@ object frmIBUserList: TfrmIBUserList
   Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
-  object Label5: TLabel
-    Left = 10
-    Top = 10
-    Width = 483
+  object lblCapt: TLabel
+    Left = 8
+    Top = 8
+    Width = 537
     Height = 17
     Anchors = [akLeft, akTop, akRight]
     AutoSize = False
@@ -34,16 +34,18 @@ object frmIBUserList: TfrmIBUserList
     Layout = tlCenter
   end
   object lblCount: TLabel
-    Left = 13
-    Top = 289
-    Width = 3
+    Left = 424
+    Top = 303
+    Width = 121
     Height = 13
+    Alignment = taRightJustify
+    AutoSize = False
   end
   object lvUser: TgsListView
-    Left = 10
-    Top = 40
-    Width = 483
-    Height = 161
+    Left = 7
+    Top = 31
+    Width = 539
+    Height = 263
     Anchors = [akLeft, akTop, akRight]
     Columns = <
       item
@@ -66,51 +68,28 @@ object frmIBUserList: TfrmIBUserList
     GridLines = True
     ReadOnly = True
     RowSelect = True
-    TabOrder = 1
+    TabOrder = 0
     ViewStyle = vsReport
-  end
-  object memoInfo: TMemo
-    Left = 10
-    Top = 205
-    Width = 481
-    Height = 82
-    TabStop = False
-    Anchors = [akLeft, akTop, akRight]
-    BorderStyle = bsNone
-    Lines.Strings = (
-      
-        'Для осуществления операций добавления/удаления полей-ссылок, пол' +
-        'ей-множеств'
-      'необходимо отключить других пользователей от базы данных.'
-      ''
-      
-        'Если пользователи отключены или не производятся указанные выше о' +
-        'перации,'
-      'нажмите Продолжить.'
-      ' ')
-    ParentColor = True
-    ReadOnly = True
-    TabOrder = 2
   end
   object pnlButtons: TPanel
     Left = 0
     Top = 327
-    Width = 499
+    Width = 552
     Height = 39
     Align = alBottom
     BevelOuter = bvNone
-    TabOrder = 0
+    TabOrder = 3
     object Bevel1: TBevel
       Left = 0
       Top = 0
-      Width = 499
+      Width = 552
       Height = 2
       Align = alTop
     end
     object btnCancel: TButton
-      Left = 332
+      Left = 374
       Top = 10
-      Width = 75
+      Width = 82
       Height = 21
       Anchors = [akTop, akRight]
       Cancel = True
@@ -119,9 +98,9 @@ object frmIBUserList: TfrmIBUserList
       TabOrder = 0
     end
     object btnOk: TButton
-      Left = 418
+      Left = 463
       Top = 10
-      Width = 75
+      Width = 82
       Height = 21
       Action = actOk
       Anchors = [akTop, akRight]
@@ -129,30 +108,38 @@ object frmIBUserList: TfrmIBUserList
       ModalResult = 1
       TabOrder = 1
     end
-    object btnRefresh: TButton
-      Left = 10
-      Top = 10
-      Width = 75
-      Height = 21
-      Action = actRefresh
-      TabOrder = 2
-    end
     object btnDeleteUser: TButton
-      Left = 91
+      Left = 7
       Top = 10
-      Width = 75
+      Width = 108
       Height = 21
       Action = actDisconnect
+      TabOrder = 2
+    end
+    object btnDeleteAll: TButton
+      Left = 121
+      Top = 10
+      Width = 108
+      Height = 21
+      Action = actDisconnectAll
       TabOrder = 3
     end
   end
   object chbxShowNames: TCheckBox
-    Left = 10
-    Top = 307
-    Width = 351
+    Left = 113
+    Top = 302
+    Width = 255
     Height = 17
     Caption = 'Показывать сетевые имена компьютеров'
-    TabOrder = 3
+    TabOrder = 2
+  end
+  object btnRefresh: TButton
+    Left = 7
+    Top = 300
+    Width = 95
+    Height = 21
+    Action = actRefresh
+    TabOrder = 1
   end
   object alIBUsers: TActionList
     Left = 272
@@ -164,14 +151,20 @@ object frmIBUserList: TfrmIBUserList
       OnUpdate = actOkUpdate
     end
     object actRefresh: TAction
-      Caption = 'Обновить'
+      Caption = 'Обновить (F5)'
+      ShortCut = 116
       OnExecute = actRefreshExecute
       OnUpdate = actRefreshUpdate
     end
     object actDisconnect: TAction
-      Caption = 'Отключить'
+      Caption = 'Отключить одного'
       OnExecute = actDisconnectExecute
       OnUpdate = actDisconnectUpdate
+    end
+    object actDisconnectAll: TAction
+      Caption = 'Отключить всех'
+      OnExecute = actDisconnectAllExecute
+      OnUpdate = actDisconnectAllUpdate
     end
   end
 end

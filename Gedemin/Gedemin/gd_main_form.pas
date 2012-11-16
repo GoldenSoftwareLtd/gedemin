@@ -2276,8 +2276,7 @@ end;
 
 procedure TfrmGedeminMain.actReconnectExecute(Sender: TObject);
 begin
-  IBLogin.LogOff;
-  IBLogin.Login(False, True);
+  IBLogin.Relogin;
 end;
 
 procedure TfrmGedeminMain.actDBSqueezeUpdate(Sender: TObject);

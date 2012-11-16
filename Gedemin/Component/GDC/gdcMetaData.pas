@@ -92,7 +92,7 @@ type
 
   protected
     //»змен€етс€ при создании мета-данных
-    //”казывает, нужно ли подключение в монопольном режиме
+    //”казывает, нужно ли подключение в однопользовательском режиме
     NeedSingleUser: Boolean;
 
     function GetIsUserDefined: Boolean; virtual;

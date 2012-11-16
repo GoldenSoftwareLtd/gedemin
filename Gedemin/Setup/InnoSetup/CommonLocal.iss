@@ -61,16 +61,16 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{code:GetSafeAppNa
 Name: "{group}\{cm:UninstallProgram,{code:GetSafeAppName}}"; Filename: "{uninstallexe}"; WorkingDir: "{app}"
 
 [Registry]
-Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access"; ValueType: string; ValueName: "UserName"; ValueData: ""; Flags: deletevalue uninsdeletevalue
-Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\ExecuteFiles"; ValueType: dword; ValueName: "{app}\gedemin.exe"; ValueData: 0; Flags: deletevalue uninsdeletevalue
-Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion"; ValueType: string; ValueName: "ServerName"; ValueData: "{app}\Database\{code:GetDBFileName}"; Flags: deletevalue uninsdeletevalue
-Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access\{code:GetRegAccessSubKey}"; ValueType: string; ValueName: "Database"; ValueData: "{app}\Database\{code:GetDBFileName}"; Flags: deletekey uninsdeletekey
-Root: HKLM; SubKey: "Software\Golden Software"; Flags: uninsdeletekeyifempty
-Root: HKLM; Subkey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Setting"; Flags: uninsdeletekey
-Root: HKCU; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access\{code:GetRegAccessSubKey}"; Flags: deletekey uninsdeletekey
-Root: HKCU; SubKey: "Software\Golden Software\Gedemin\Client"; Flags: uninsdeletekey
-Root: HKCU; SubKey: "Software\Golden Software\Gedemin"; Flags: uninsdeletekeyifempty
-Root: HKCU; SubKey: "Software\Golden Software"; Flags: uninsdeletekeyifempty
+;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access"; ValueType: string; ValueName: "UserName"; ValueData: ""; Flags: deletevalue uninsdeletevalue
+;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\ExecuteFiles"; ValueType: dword; ValueName: "{app}\gedemin.exe"; ValueData: 0; Flags: deletevalue uninsdeletevalue
+;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion"; ValueType: string; ValueName: "ServerName"; ValueData: "{app}\Database\{code:GetDBFileName}"; Flags: deletevalue uninsdeletevalue
+;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access\{code:GetRegAccessSubKey}"; ValueType: string; ValueName: "Database"; ValueData: "{app}\Database\{code:GetDBFileName}"; Flags: deletekey uninsdeletekey
+;Root: HKLM; SubKey: "Software\Golden Software"; Flags: uninsdeletekeyifempty
+;Root: HKLM; Subkey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Setting"; Flags: uninsdeletekey
+;Root: HKCU; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access\{code:GetRegAccessSubKey}"; Flags: deletekey uninsdeletekey
+;Root: HKCU; SubKey: "Software\Golden Software\Gedemin\Client"; Flags: uninsdeletekey
+;Root: HKCU; SubKey: "Software\Golden Software\Gedemin"; Flags: uninsdeletekeyifempty
+;Root: HKCU; SubKey: "Software\Golden Software"; Flags: uninsdeletekeyifempty
 
 [Run]
 FileName: "{app}\gedemin.exe"; Parameters: "/r EMBEDDED ""{app}\Database\{code:GetBKFileName}"" ""{app}\Database\{code:GetDBFileName}"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden
