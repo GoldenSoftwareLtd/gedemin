@@ -57,6 +57,7 @@ type
     chbxWithoutConnection: TCheckBox;
     chbxSingleUser: TCheckBox;
     btnVer: TButton;
+    Label1: TLabel;
 
     procedure actCancelExecute(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
@@ -221,9 +222,7 @@ begin
     edDBName.Text := DI.Name;
     DI.GetUsers(cbUser.Items);
     if cbUser.Items.Count > 0 then
-      cbUser.Text := cbUser.Items[0]
-    else
-      cbUser.Text := '';
+      cbUser.Text := cbUser.Items[0];
     if DI.GetPassword(cbUser.Text) > '' then
       edPassword.Text := '<<saved_password>>'
     else
@@ -240,6 +239,8 @@ begin
 
   if cbUser.Items.IndexOf('Administrator') = -1 then
     cbUser.Items.Add('Administrator');
+  if cbUser.Text = '' then
+    cbUser.Text := cbUser.Items[0];
 
   if edDBName.Text = '' then
     ActiveControl := btnSelectDB
@@ -262,6 +263,10 @@ begin
         edPassword.Text := '<<saved_password>>'
       else
         edPassword.Text := '';
+    end else
+    begin
+      if (cbUser.Text = 'Administrator') and (edPassword.Text = '') then
+        edPassword.Text := 'Administrator';
     end;
   end;
 end;
@@ -276,9 +281,9 @@ end;
 
 procedure TdlgSecLogIn2.actMoreExecute(Sender: TObject);
 begin
-  if Height < 271 then
+  if Height < 304 then
   begin
-    Height := 271;
+    Height := 304;
     pnlAdditionalInfo.Visible := True;
     actMore.Caption := Chr(171);
   end else

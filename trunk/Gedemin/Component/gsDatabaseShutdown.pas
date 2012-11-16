@@ -92,7 +92,7 @@ type
 implementation
 
 uses
-  IB, JclStrings, gsDatabaseShutdown_dlgShowUsers_unit, Forms, Controls, Windows,
+  IB, JclStrings, at_frmIBUserList, Forms, Controls, Windows,
   SysUtils, gd_resourcestring, IBErrorCodes, gd_common_functions
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
@@ -240,15 +240,9 @@ end;
 
 procedure TgsDatabaseShutdown.ShowUsers;
 begin
-  with TgsDatabaseShutdown_dlgShowUsers.Create(nil) do
+  with TfrmIBUserList.Create(nil) do
   try
-    Caption := sgsDatabaseShutdownShowUsersDlgCaption;
-    btnOk.Caption := 'Закрыть';
-    btnCancel.Visible := False;
-    DatabaseShutdown := Self;
-    edDatabaseName.Text := FDatabase.DatabaseName;
-    Timer.Enabled := True;
-    ShowModal;
+    ShowUsers;
   finally
     Free;
   end;
@@ -265,20 +259,14 @@ begin
 
   if FDatabase.Connected and (UsersCount > 1) and FShowUserDisconnectDialog then
   begin
-    with TgsDatabaseShutdown_dlgShowUsers.Create(nil) do
+    with TfrmIBUserList.Create(nil) do
     try
-      Caption := sgsDatabaseShutdownShutdownDlgCaption;
-      btnOk.Caption := 'Перевести';
-      btnCancel.Visible := True;
-      DatabaseShutdown := Self;
-      edDatabaseName.Text := FDatabase.DatabaseName;
-      Timer.Enabled := True;
-      if ShowModal = mrCancel then
+      if not CheckUsers then
         exit;
     finally
       Free;
     end;
-  end;
+  end;  
 
   ParseDatabaseName(FDatabase.DatabaseName, SN, Port, DN);
   FConfigservice.ServerName := SN;

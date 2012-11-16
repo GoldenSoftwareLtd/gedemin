@@ -175,7 +175,6 @@ type
     procedure SetSubSystemKey(const Value: Integer);
     procedure SetIngroup(const Value: Integer);
     function GetIsIBUserAdmin: Boolean;
-    function GetIsShutDown: Boolean;
     function GetServerName: String;
     function GetDBID: Integer;
     function GetIsHolding: Boolean;
@@ -188,6 +187,9 @@ type
     function GetReLogining: Boolean;
     function GetMainWindowCaption: String;
     function GetIsEmbeddedServer: Boolean;
+    function BringDatabaseOnline(const ADBName: String): Boolean;
+    function DoConnect: Boolean;
+    function DoLogin(NeedReadDBVersion: Boolean): Boolean;
 
   protected
     function EstablishConnection: Boolean;
@@ -223,6 +225,7 @@ type
     function Login(ReadParams: Boolean = True; ReLogin: Boolean = False): Boolean;
     function LoginSilent(AnUserName: String; APassword: String; const ADBPath: string = ''): Boolean;
     function Logoff: Boolean;
+    function Relogin: Boolean;
     function GetLoggingOff: Boolean;
     function IsSilentLogin: Boolean;
     procedure ChangeUser(const AUserKey: Integer; const ACheckMultipleConnections: Boolean = False);
@@ -282,7 +285,6 @@ type
     property GroupName: String read GetGroupName;
     property IsUserAdmin: Boolean read GetIsUserAdmin;
     property IsIBUserAdmin: Boolean read FIsIBUserAdmin;
-    property IsShutDown: Boolean read GetIsShutDown;
 
     // Подсистема
     property SubSystemKey: Integer read GetSubSystemKey write SetSubSystemKey;
@@ -428,15 +430,6 @@ begin
   Result := False;
 end;
 
-procedure TimedDelay(MilSecs: DWord);
-var
-  TickCount: DWord;
-begin
-  TickCount := GetTickCount + MilSecs;
-  while TickCount > GetTickCount do
-    Application.ProcessMessages;
-end;
-
 { TboLogin }
 
 procedure TboLogin.AddCompanyNotify(Notify: ICompanyChangeNotify);
@@ -446,7 +439,6 @@ begin
   begin
     FCompanyNotifiers.Add(Pointer(Notify));
     ClearHoldingListCache;
-    {if Login then Notify.DoAfterChangeCompany;}
   end;
 end;
 
@@ -510,38 +502,20 @@ begin
 end;
 
 function TboLogin.CloseConnection: Boolean;
-//var
-//  Msg: TMsg;
-  {$IFDEF DEBUG}var I: Integer;{$ENDIF}
 begin
-  try
-    //
-    //  Закрываем подключение,
-    //  если закрыть не удается - заставляем закрыться
+  Assert(Database <> nil);
 
+  Result := True;
+  try
     try
       Database.Connected := False;
-      Result := True;
     except
-      {$IFDEF DEBUG}
-      for I := 0 to Database.TransactionCount - 1 do
-        if (Database.Transactions[I] <> nil) and Database.Transactions[I].Active then
-        begin
-          if Database.Transactions[I].Owner <> nil then
-            OutputDebugString(PChar('Transaction: ' + Database.Transactions[I].Name +
-              ' Owner: ' + Database.Transactions[I].Owner.Name))
-          else
-            OutputDebugString(PChar('Transaction: ' + Database.Transactions[I].Name));
-        end;
-      {$ENDIF}
-      TimedDelay(1000);
-      if Database.Connected then
-      begin
-        Database.ForceClose;
-        Result := True;
-      end else
-        raise;
+      on E: Exception do
+        Application.ShowException(E);
     end;
+
+    if Database.Connected then
+      Database.ForceClose;
 
     FCompanyOpened := False;
     FDBIDRead := False;
@@ -552,6 +526,9 @@ begin
       Result := False;
     end;
   end;
+
+  if Result and Shutdown and IsIBUserAdmin then
+    BringDatabaseOnline(Database.DatabaseName);
 end;
 
 procedure TboLogin.ConnectionLost;
@@ -661,6 +638,12 @@ procedure TboLogin.DoAfterSuccessfullConnection;
 var
   I: Integer;
 begin
+  if Assigned(gdSplash) then
+    gdSplash.ShowText(sReadingDbScheme);
+
+  InitDatabase(dmLogin.ibtrAttr);
+  atDatabase.ProceedLoading(True);
+
   ClearHoldingListCache;
 
   if dm_i_ClientReport <> nil then begin
@@ -761,60 +744,67 @@ end;
 
 function TboLogin.EnterCompany: Boolean;
 var
-  ibsql: TIBSQL;
+  q: TIBSQL;
+  Tr: TIBTransaction;
 begin
-  FCompanyName := '';
-  ibsql := TIBSQL.Create(nil);
+  Assert(Database <> nil);
+  Assert(Database.Connected);
+  Assert(UserKey > -1);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
   try
-    ibsql.Transaction := FTransaction;
+    Tr.DefaultDatabase := Database;
+    Tr.StartTransaction;
 
-    if not FTransaction.InTransaction then
-      FTransaction.StartTransaction;
-
-    ibsql.SQL.Text :=
+    q.Transaction := Tr;
+    q.SQL.Text :=
       'SELECT uc.companykey AS CompanyKey, oc.afull AS AFull, c.name AS CompanyName ' +
       'FROM gd_usercompany uc JOIN gd_contact c ON c.id = uc.companykey  ' +
       '  JOIN gd_ourcompany oc ON oc.companykey = c.id ' +
       'WHERE uc.userkey = :UK';
-    ibsql.ParamByName('UK').AsInteger := IBLogin.UserKey;
-    ibsql.ExecQuery;
+    q.ParamByName('UK').AsInteger := UserKey;
+    q.ExecQuery;
 
-    if ibsql.EOF then
+    if q.EOF then
     begin
-      ibsql.Close;
-      ibsql.SQL.Text :=
+      q.Close;
+      q.SQL.Text :=
         'SELECT oc.companykey AS CompanyKey, c.afull AS AFull, c.name AS CompanyName ' +
-        'FROM gd_ourcompany oc JOIN gd_contact c ON c.id = oc.companykey';
-      {TODO: под ФБ 2.5 добавить код ниже}
-      {WHERE BIN_AND(BIN_OR(oc.afull, 1), <ingroup>) <> 0}  
-      ibsql.ExecQuery;
+        'FROM gd_ourcompany oc JOIN gd_contact c ON c.id = oc.companykey ';
+        //'WHERE BIN_AND(BIN_OR(oc.afull, 1), :ig) <> 0';
+        //q.ParamByName('ig').AsInteger := InGroup;
+      q.ExecQuery;
     end;
 
-    if (ibsql.RecordCount > 0) and
-      (((ibsql.FieldByName('afull').AsInteger or 1) and FIngroup) <> 0) then
+    if (not q.EOF) and
+      (((q.FieldByName('afull').AsInteger or 1) and Ingroup) <> 0) then
     begin
       if FCompanyOpened then DoBeforeChangeCompany;
-      FCompanyKey := ibsql.FieldByName('CompanyKey').AsInteger;
-      FCompanyName := ibsql.FieldByName('CompanyName').AsString;
+      FCompanyKey := q.FieldByName('CompanyKey').AsInteger;
+      FCompanyName := q.FieldByName('CompanyName').AsString;
       FCompanyOpened := True;
       DoAfterChangeCompany;
     end else
     begin
       MessageBox(0,
         PChar('У пользователя ' + FUserName + ' нет прав доступа к выбранной '#13#10 +
-        'рабочей организации "' + ibsql.FieldByName('CompanyName').AsString + '".'#13#10#13#10 +
+        'рабочей организации "' + q.FieldByName('CompanyName').AsString + '".'#13#10#13#10 +
         'Зайдите под учетной записью Administrator и установите'#13#10 +
         'в справочнике клиентов полные права доступа на эту организацию.'),
         'Внимание',
         MB_OK or MB_ICONHAND or MB_TASKMODAL);
+      FCompanyKey := -1;
+      FCompanyName := '';
     end;
-  finally
-    if FTransaction.InTransaction then
-      FTransaction.Commit;
-    ibsql.Free;
-  end;
 
-  Result := FCompanyName > '';
+    Result := FCompanyName > '';
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
 end;
 
 function TboLogin.EstablishConnection: Boolean;
@@ -1569,11 +1559,6 @@ begin
   Result := FIsIBUserAdmin;
 end;
 
-function TboLogin.GetIsShutDown: Boolean;
-begin
-  Result := FShutDown;
-end;
-
 function TboLogin.GetIsUserAdmin: Boolean;
 begin
   Result := Boolean(FIngroup and 1) or IsIBUserAdmin;
@@ -1760,157 +1745,419 @@ function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): B
     end;
   end;
 
+  function ShutdownDatabase(const ADBName: String): Boolean;
+  var
+    SN, DN, FSysDBAPassword, FSysDBAUserName: String;
+    Port: Integer;
+    CS: TIBConfigService;
+  begin
+    Result := False;
+
+    ParseDatabaseName(ADBName, SN, Port, DN);
+
+    if (DN = '') or (MessageBox(0,
+      PChar('В процессе перевода все пользователи будут отключены.'#13#10#13#10 +
+      'Перевести БД в однопользовательский режим?'),
+      'Внимание',
+      MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO) then
+    begin
+      exit;
+    end;
+
+    FSysDBAPassword := SysDBAPassword;
+    FSysDBAUserName := SysDBAUserName;
+
+    CS := TIBConfigService.Create(nil);
+    try
+      CS.ServerName := SN;
+      CS.DatabaseName := DN;
+      if SN > '' then
+        CS.Protocol := TCP
+      else
+        CS.Protocol := Local;
+      CS.LoginPrompt := False;
+      CS.Params.Clear;
+      CS.Params.Add('user_name=' + FSysDBAUserName);
+      CS.Params.Add('password=' + FSysDBAPassword);
+
+      repeat
+        try
+          CS.Active := True;
+          CS.ShutdownDatabase(Forced, 0);
+          // на классике сервер сразу возвращает выполнение
+          // и последующее подключение не пройдет, так как
+          // база еще будет переводиться в шатдауна.
+          // вроде бы, начиная с версии 2.1 эта пауза уже не
+          // будет нужна
+          Sleep(4000);
+          while CS.IsServiceRunning do Sleep(100);
+          Result := True;
+        except
+          on E: Exception do
+          begin
+            MessageBox(0, PChar(E.Message), 'Внимание!', MB_OK or MB_ICONHAND or MB_TASKMODAL);
+            FSysDBAPassword := '';
+            if not InputQuery(SN, 'Введите пароль учетной записи SYSDBA:', FSysDBAPassword) then
+              exit;
+          end;
+        end;
+      until Result;
+    finally
+      CS.Free;
+    end;
+  end;
+
+  procedure ReadConnectionParams(ASP: TIBStoredProc);
+  begin
+    FDBVersion := ASP.ParamByName('DBVersion').AsString;
+    FDBReleaseDate := ASP.ParamByName('DBReleaseDate').AsDateTime;
+    FDBVersionID := ASP.ParamByName('DBVersionID').AsInteger;
+    FDBVersionComment := ASP.ParamByName('DBVersionComment').AsString;
+
+    FIBName := ASP.ParamByName('ibname').AsString;
+    FIBPassword := ASP.ParamByName('ibpassword').AsString;
+    FIBRole := '';
+    FIsIBUserAdmin := AnsiCompareText(FIBName, SysDBAUserName) = 0;
+
+    FStartTime := Now;
+    FUserKey := ASP.ParamByName('UserKey').AsInteger;
+    FIngroup := ASP.ParamByName('Ingroup').AsInteger;
+    if FInGroup = 0 then FInGroup := 1;
+    FContactKey := ASP.ParamByName('ContactKey').AsInteger;
+
+    FSessionKey := ASP.ParamByName('Session').AsInteger;
+    FSubSystemName := ASP.ParamByName('SubsystemName').AsString;
+    FGroupName := ASP.ParamByName('GroupName').AsString;
+    FUserName := ASP.ParamByName('username').AsString;
+
+    FAuditLevel := TAuditLevel(ASP.ParamByName('auditlevel').AsInteger);
+    FAuditCache := ASP.ParamByName('auditcache').AsInteger;
+    FAuditMaxDays := ASP.ParamByName('auditmaxdays').AsInteger;
+    FAllowUserAudit := ASP.ParamByName('allowuseraudit').AsInteger <> 0;
+
+    FLastUserName := FUserName;
+    FLastPassword := ASP.ParamByName('passw').AsString;
+  end;
+
+  function StartUserConnect(out WithoutConnection, SingleUserMode: Boolean): Boolean;
+  var
+    DI: Tgd_DatabaseItem;
+    SP: TIBStoredProc;
+    Tr: TIBTransaction;
+    q: TIBSQL;
+    ErrorString: String;
+    ContFlag: Boolean;
+  begin
+    Assert(not Database.Connected);
+    repeat
+      ErrorString := '';
+      Result := gd_DatabasesList.LoginDlg(WithoutConnection, SingleUserMode, DI)
+        and (DI <> nil);
+      if (not Result) or WithoutConnection then
+        exit;
+
+      Database.DatabaseName := DI.DatabaseName;
+      Database.Params.Values[UserNameValue] := 'STARTUSER';
+      Database.Params.Values[PasswordValue] := 'startuser';
+
+      repeat
+        ContFlag := True;
+        try
+          Database.Connected := True;
+
+          Tr := TIBTransaction.Create(nil);
+          q := TIBSQL.Create(nil);
+          SP := TIBStoredProc.Create(nil);
+          try
+            Tr.DefaultDatabase := Database;
+            Tr.StartTransaction;
+            q.Transaction := Tr;
+            SP.Transaction := Tr;
+
+            try
+              InitDBID(q);
+
+              SP.StoredProcName := 'GD_P_SEC_LOGINUSER';
+              SP.Prepare;
+              SP.ParamByName('username').AsString := DI.EnteredLogin;
+              SP.ParamByName('passw').AsString := DI.EnteredPassword;
+              SP.ParamByName('subsystem').AsInteger := GD_SYS_GADMIN;
+              SP.ExecProc;
+              if SP.ParamByName('result').IsNull then
+                raise EboLoginError.Create('Ошибка проверки прав доступа');
+            except
+              on E: Exception do
+              begin
+                if not gd_CmdLineParams.QuietMode then
+                  MessageBox(0,
+                    PChar(
+                      'Произошел системный сбой при проверке прав пользователя. '#13#10 +
+                      'Возможно, указанная база данных повреждена или не является '#13#10 +
+                      'базой данных платформы Гедымин.'#13#10#13#10 +
+                      'Ошибка: ' + E.Message),
+                      'Внимание',
+                    MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+                Result := False;
+                exit;
+              end;
+            end;
+
+            case SP.ParamByName('result').AsInteger of
+              GD_LGN_UNKNOWN_SUBSYSTEM:
+                ErrorString := 'Код подсистемы задан неверно.';
+              GD_LGN_SUBSYSTEM_DISABLED:
+                ErrorString := 'Подсистема заблокирована. Вход запрещен.';
+              GD_LGN_UNKNOWN_USER:
+                ErrorString := 'Имя пользователя задано неверно.';
+              GD_LGN_INVALID_PASSWORD:
+              begin
+                if DI.IsAdminLogin and (DI.EnteredPassword = '') then
+                  ErrorString :=
+                    'Если это ваше первое подключение к базе данных,'#13#10 +
+                    'используйте пароль Administrator для учетной'#13#10 +
+                    'записи Administrator.'#13#10#13#10 +
+                    'В целях безопасности следует после входа в систему'#13#10 +
+                    'изменить стандартный пароль.'#13#10#13#10 +
+                    'Это можно сделать в Исследователе, в разделе'#13#10 +
+                    'Сервис\Администратор\Пользователи.'#13#10 +
+                    'Там же можно создать новые учетные записи'#13#10 +
+                    'для всех пользователей системы.'#13#10#13#10 +
+                    'Не рекомендуется осуществлять повседневную'#13#10 +
+                    'работу с системой под учетной записью Administrator.'
+                else
+                  ErrorString := sIncorrectPassword;
+              end;
+              GD_LGN_USER_DISABLED:
+                ErrorString := 'Учетная запись пользователя заблокирована.'#13#10 +
+                  'Обратитесь к администратору системы.';
+              GD_LGN_WORK_TIME_VIOLATION:
+                ErrorString := 'Вход не в рабочее время запрещен.';
+              GD_LGN_USER_ACCESS_DENIED:
+                ErrorString := 'Пользователь не имеет прав на вход в подсистему.';
+              GD_LGN_GROUP_DISABLED:
+                ErrorString := 'Группы, используемые пользователем, заблокированы.';
+              GD_LGN_OK_CHANGE_PASSWORD:
+              begin
+                ErrorString := '';
+                FChangePass := True;
+              end;
+            else
+              ErrorString := '';
+            end;
+
+            if ErrorString = '' then
+            begin
+              if SingleUserMode and
+                (AnsiComparetext(SP.ParamByName('ibname').AsString, SysDBAUserName) <> 0) then
+              begin
+                ErrorString :=
+                  'Подключение в однопользовательском режиме '#13#10 +
+                  'возможно только под учетной записью Administrator!';
+              end else
+                ReadConnectionParams(SP);
+            end;
+
+            Tr.Commit;
+          finally
+            SP.Free;
+            q.Free;
+            Tr.Free;
+            Database.Connected := False;
+          end;
+        except
+          on E: EIBError do
+          begin
+            if E.IBErrorCode = isc_network_error then
+            begin
+              ErrorString :=
+                'Невозможно получить доступ к серверу ' + DI.Server + '.'#13#10#13#10 +
+                'Сообщение об ошибке:'#13#10 + E.Message + #13#10#13#10 +
+                'Возможные причины:'#13#10 +
+                '1) Неверно указано имя сервера или номер порта.'#13#10 +
+                '2) Сервер выключен или не подсоединен к сети.'#13#10 +
+                '3) На сервере не установлена СУБД Firebird.'#13#10 +
+                '4) Сетевое соединение сервера заблокировано файрволлом.';
+            end
+            else if E.IBErrorCode = isc_io_error then
+            begin
+              ErrorString := 'Невозможно открыть файл базы данных.'#13#10#13#10 +
+                'Сообщение об ошибке:'#13#10 + E.Message;
+            end
+            else if E.IBErrorCode = isc_login then
+            begin
+              if CreateStartUser(DI.DatabaseName) then
+                ContFlag := False
+              else
+                ErrorString := 'Невозможно настроить сервер для подключения платформы Гедымин.';
+            end
+            else if E.IBErrorCode = isc_shutdown then
+            begin
+              if DI.IsAdminLogin then
+              begin
+                if BringDatabaseOnline(DI.DatabaseName) then
+                  ContFlag := False
+                else
+                  ErrorString :=
+                    'База данных не была переведена в многопользовательский режим.'#13#10#13#10 +
+                    'Для продолжения работы войдите под учетной записью Administrator'#13#10 +
+                    'и переведите базу данных в многопользовательский режим.';
+              end else
+                ErrorString :=
+                  'База данных находится в однопользовательском режиме.'#13#10 +
+                  'Для перевода в многопользовательский режим войдите'#13#10 +
+                  'под учетной записью Administrator.';
+            end else
+              ErrorString := E.Message;
+          end;
+        end;
+      until ContFlag;
+
+      if ErrorString > '' then
+      begin
+        MessageBox(0,
+          PChar(ErrorString),
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+      end;
+    until ErrorString = '';
+  end;
+
+  function CheckForModify(out NeedReadDBVersion: Boolean): Boolean;
+  var
+    Mdf: TgdModify;
+  begin
+    Result := False;
+    NeedReadDBVersion := False;
+
+    if DBVersion < cProcList[0].ModifyVersion then
+    begin
+      MessageBox(0,
+        PChar('Структура файла базы данных устарела.'#13#10#13#10 +
+        'Версия вашей БД: ' + DBVersion + #13#10#13#10 +
+        'Обратитесь к разработчикам системы Гедымин.'),
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
+    end
+    else if DBVersion <= cProcList[cProcCount - 1].ModifyVersion then
+    begin
+      if IsIBUserAdmin then
+      begin
+        if MessageBox(0,
+            PChar(
+            'Необходимо обновить структуру базы данных.'#13#10#13#10 +
+            'Версия вашей БД: ' + DBVersion + #13#10#13#10 +
+            'Перед обновлением следует создать архивную копию!'),
+            'Внимание',
+          MB_OKCANCEL or MB_ICONQUESTION or MB_TASKMODAL or MB_TOPMOST) = IDOK then
+        begin
+          with Tgd_frmBackup.Create(nil) do
+          try
+            ShowModal;
+          finally
+            Free;
+          end;
+
+          try
+            NeedReadDBVersion := True;
+
+            Mdf := TgdModify.Create(nil);
+            try
+              Mdf.Database := Database;
+              Mdf.IBUser := FIBName;
+              Mdf.IBPassword := FIBPassword;
+              Mdf.ShutdownNeeded := True;
+              Mdf.OnLog := OnModifyLog;
+              Mdf.Execute;
+            finally
+              Mdf.Free;
+            end;
+
+            // в процессе модифая мог проскочить код, который
+            // открыл подключение к БД. Закрываем
+            Database.Connected := False;
+
+            MessageBox(0,
+              'Процесс обновления завершен.'#13#10#13#10 +
+              'Если вы используете сетевую версию программы, убедитесь что на всех'#13#10 +
+              'рабочих местах установлена новейшая версия модуля gedemin.exe.',
+              'Внимание',
+              MB_OK or MB_ICONINFORMATION or MB_TASKMODAL or MB_TOPMOST);
+
+            Result := True;
+          except
+            on E: Exception do
+            begin
+              MessageBox(0,
+                PChar('Произошла ошибка, процесс обновления прерван!'#13#10#13#10 +
+                E.Message + #13#10#13#10 +
+                'Устраните ошибки и повторите процесс обновления'),
+                'Внимание',
+                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
+            end;
+          end;
+        end;
+      end else
+      begin
+        MessageBox(0,
+          'Структура файла базы данных устарела.'#13#10 +
+          'Для ее обновления войдите под учетной записью Administrator.',
+          'Внимание',
+          MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL or MB_TOPMOST);
+      end;
+    end else
+      Result := True;
+  end;
+
 var
-  WithoutConnection, SingleUserMode: Boolean;
-  DI: Tgd_DatabaseItem;
-  SP: TIBStoredProc;
-  Tr: TIBTransaction;
-  q: TIBSQL;
-  ErrorString: String;
+  WithoutConnection, SingleUserMode, NeedReadDBVersion: Boolean;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(gd_DatabasesList <> nil);
   Assert(Database <> nil);
+  Assert(atDatabase <> nil);
 
   if LoggedIn then
     raise EboLoginError.Create('Can not login twice!');
 
+  Result := False;
 
-  (*
-  repeat
-    Database.Connected := False;
-    Result := gd_DatabasesList.LoginDlg(WithoutConnection, SingleUserMode, DI);
-    if (not Result) or WithoutConnection or (DI = nil) then
+  Database.LoginPrompt := False;
+  Database.SQLDialect := 3;
+  Database.Params.Clear;
+  Database.Params.Add('user_name=');
+  Database.Params.Add('password=');
+  Database.Params.Add(Lc_ctypeValue + '=' + DefaultLc_ctype);
+
+  if not StartUserConnect(WithoutConnection, SingleUserMode) then
+    exit;
+
+  if WithoutConnection then
+  begin
+    Result := True;
+    exit;
+  end;
+
+  if SingleUserMode and IsIBUserAdmin then
+    FShutdown := ShutdownDatabase(Database.DatabaseName);
+
+  FLoginInProgress := True;
+  FShouldReadParams := ReadParams;
+  FReLogining := ReLogin;
+  try
+    Database.Params.Values[UserNameValue] := FIBName;
+    Database.Params.Values[PasswordValue] := FIBPassword;
+
+    if not CheckForModify(NeedReadDBVersion) then
       exit;
 
-    Database.DatabaseName := DI.DatabaseName;
-    Database.Params.Values['user_name'] := 'STARTUSER';
-    Database.Params.Values['password'] := 'startuser';
+    Result := DoLogin(NeedReadDBVersion);
+  finally
+    FShouldReadParams := False;
+    FReLogining := False;
+    FLoginInProgress := False;
+  end;
 
-    try
-      Database.Connected := True;
-
-      Tr := TIBTransaction.Create(nil);
-      q := TIBSQL.Create(nil);
-      SP := TIBStoredProc.Create(nil);
-      try
-        Tr.DefaultDatabase := Database;
-        Tr.StartTransaction;
-        q.Transaction := Tr;
-        SP.Transaction := Tr;
-
-        try
-          InitDBID(q);
-
-          SP.StoredProcName := 'GD_P_SEC_LOGINUSER';
-          SP.Prepare;
-          SP.ParamByName('username').AsString := DI.EnteredLogin;
-          SP.ParamByName('passw').AsString := DI.EnteredPassword;
-          SP.ParamByName('subsystem').AsInteger := GD_SYS_GADMIN;
-          SP.ExecProc;
-          if SP.ParamByName('result').IsNull then
-            raise EboLoginError.Create('Ошибка проверки прав доступа');
-        except
-          on E: Exception do
-          begin
-            if not gd_CmdLineParams.QuietMode then
-              MessageBox(0,
-                PChar(
-                  'Произошел системный сбой при проверке прав пользователя. '#13#10 +
-                  'Возможно, указанная база данных повреждена или не является '#13#10 +
-                  'базой данных платформы Гедымин.'#13#10#13#10 +
-                  'Ошибка: ' + E.Message),
-                  'Внимание',
-                MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-            Result := False;
-            exit;
-          end;
-        end;
-
-        case SP.ParamByName('result').AsInteger of
-          GD_LGN_UNKNOWN_SUBSYSTEM:
-            ErrorString := 'Код подсистемы задан неверно.';
-          GD_LGN_SUBSYSTEM_DISABLED:
-            ErrorString := 'Подсистема заблокирована. Вход запрещен.';
-          GD_LGN_UNKNOWN_USER:
-            ErrorString := 'Имя пользователя задано неверно.';
-          GD_LGN_INVALID_PASSWORD:
-            ErrorString := sIncorrectPassword;
-          GD_LGN_USER_DISABLED:
-            ErrorString := 'Учетная запись пользователя заблокирована.'#13#10 +
-              'Обратитесь к администратору системы.';
-          GD_LGN_WORK_TIME_VIOLATION:
-            ErrorString := 'Вход не в рабочее время запрещен.';
-          GD_LGN_USER_ACCESS_DENIED:
-            ErrorString := 'Пользователь не имеет прав на вход в подсистему.';
-          GD_LGN_GROUP_DISABLED:
-            ErrorString := 'Группы, используемые пользователем, заблокированы.';
-          GD_LGN_OK_CHANGE_PASSWORD:
-          begin
-            ErrorString := '';
-            FChangePass := True;
-          end;
-        else
-          ErrorString := '';
-        end;
-
-        if SingleUserMode and
-          (AnsiComparetext(SP.ParamByName('ibname').AsString, SysDBAUserName) <> 0) then
-        begin
-          ErrorString :=
-            'Подключение в однопользовательском режиме '#13#10 +
-            'возможно только под учетной записью Administrator!';
-        end;
-
-        Tr.Commit;
-      finally
-        SP.Free;
-        q.Free;
-        Tr.Free;
-      end;
-    except
-      on E: EIBError do
-      begin
-        if E.IBErrorCode = isc_network_error then
-        begin
-          ErrorString :=
-            'Невозможно получить доступ к серверу ' + DI.Server + '.'#13#10#13#10 +
-            'Сообщение об ошибке:'#13#10 + E.Message + #13#10#13#10 +
-            'Возможные причины:'#13#10 +
-            '1) Неверно указано имя сервера или номер порта.'#13#10 +
-            '2) Сервер выключен или не подсоединен к сети.'#13#10 +
-            '3) На сервере не установлена СУБД Firebird.'#13#10 +
-            '4) Сетевое соединение сервера заблокировано файрволлом.';
-        end
-        else if E.IBErrorCode = isc_io_error then
-        begin
-          ErrorString := 'Невозможно открыть файл базы данных.'#13#10#13#10 +
-            'Сообщение об ошибке:'#13#10 + E.Message;
-        end
-        else if E.IBErrorCode = isc_login then
-        begin
-          if not CreateStartUser(DI.DatabaseName) then
-            ErrorString := 'Невозможно настроить сервер для подключения платформы Гедымин.';
-        end else
-          ErrorString := E.Message;
-      end;
-    end;
-
-    if ErrorString > '' then
-    begin
-      MessageBox(0,
-        PChar(ErrorString),
-        'Внимание',
-        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    end;
-  until ErrorString = '';
-
-  Database.Connected := False;
-  *)
-
-  if Assigned(gdSplash) then
-    gdSplash.ShowText(sDBConnect);
-
+  (*
   FLoginInProgress := True;
   FShouldReadParams := ReadParams;
   FReLogining := ReLogin;
@@ -1984,6 +2231,7 @@ begin
     FReLogining := False;
     FLoginInProgress := False;
   end;
+  *)
 end;
 
 function TboLogin.LoginSilent(AnUserName, APassword: String; const ADBPath: string = ''): Boolean;
@@ -2023,7 +2271,7 @@ begin
     if Result then begin
       Assert(atDatabase <> nil, 'Не создана база атрибутов');
       try
-        InitDatabase(dmDatabase.ibdbGAdmin, dmLogin.ibtrAttr);
+        InitDatabase(dmLogin.ibtrAttr);
         //Будем обязательно перечитывать базу
         atDatabase.ProceedLoading(True);
       except
@@ -2062,22 +2310,20 @@ end;
 
 function TboLogin.Logoff: Boolean;
 begin
-  if LoggedIn then
-  begin
-    Result := False;
+  if not LoggedIn then
+    raise EboLoginError.Create('You did not login!');
 
-    if not TestConnection then
-    begin
-      ConnectionLost;
-      FSilentLogin := False;
-      Exit;
-    end;
-  end else
-    raise EboLoginError.Create('You havn''t logged in yet!');
+  Result := False;
+
+  if not TestConnection then
+  begin
+    ConnectionLost;
+    FSilentLogin := False;
+    exit;
+  end;
 
   FLoggingOff := True;
   try
-
     DoBeforeDisconnect;
 
     // DoBeforeChangeCompany поставили после DoBeforeDisconnect
@@ -2085,35 +2331,11 @@ begin
     if FCompanyOpened then
       DoBeforeChangeCompany;
 
-    CloseConnection;
-
-    //
-    //  Если база данных была переведена в однопользовательский
-    //  режим - необходимо восстановить ее.
-
-    if FShutDownRequested and FShutDown then
-    with TgsDatabaseShutdown.Create(Self) do
-    try
-      Database := Self.Database;
-      ShowUserDisconnectDialog := False;
-      FShutDown := IsShutdowned;
-
-      if FShutDown then
-        FShutDown := not BringOnline;
-
-      if not FShutDown then
-      begin
-        FShutDownRequested := False;
-        WriteShutDownKey(False);
-      end;
-    finally
-      Free;
-    end;
-
-    Result := not LoggedIn;
-
-    if Result then
+    if CloseConnection then
+    begin
       FSilentLogin := False;
+      Result := True;
+    end;
   finally
     FLoggingOff := False;
   end;
@@ -2126,16 +2348,18 @@ var
   ACompanyName: String;
   Res: OleVariant;
 begin
-  if not LoggedIn and (not FLoginInProgress) then
-    raise EboLoginError.Create('You havn''t logged in yet!');
+  Assert(Assigned(gdcBaseManager));
 
+  if (not LoggedIn) and (not FLoginInProgress) then
+    raise EboLoginError.Create('You did not login!');
+
+  Result := True;
   ACompanyKey := CK;
   ACompanyName := CN;
 
-  if ACompanyKey = -1 then
-  begin
-    Assert(Assigned(gdcBaseManager));
-
+  if ACompanyKey > -1 then
+    TgdcOurCompany.SaveOurCompany(ACompanyKey)
+  else begin
     gdcBaseManager.ExecSingleQueryResult(
       'SELECT companykey FROM gd_userCompany WHERE userkey = ' +
         IntToStr(IBLogin.UserKey),
@@ -2148,7 +2372,7 @@ begin
     if ACompanyKey = -1 then
     begin
       gdcBaseManager.ExecSingleQueryResult(
-        'SELECT companykey FROM gd_ourcompany WHERE disabled IS NULL OR disabled = 0 ',
+        'SELECT companykey FROM gd_ourcompany WHERE COALESCE(disabled, 0) = 0 ',
         Null,
         Res);
 
@@ -2161,18 +2385,12 @@ begin
           63);
     end;
 
-    Result := (ACompanyKey <> -1) and
-      ((Self.CompanyKey <> ACompanyKey) or (not FCompanyOpened));
-
-    if Result then
+    if (ACompanyKey <> -1) and ((Self.CompanyKey <> ACompanyKey) or (not FCompanyOpened)) then
     begin
       TgdcOurCompany.SaveOurCompany(ACompanyKey);
       ACompanyName := TgdcOurCompany.GetListNameByID(ACompanyKey);
-    end;
-  end else
-  begin
-    Result := True;
-    TgdcOurCompany.SaveOurCompany(ACompanyKey);
+    end else
+      Result := False;
   end;
 
   if Result then
@@ -2297,38 +2515,35 @@ end;
 
 function TboLogin.RunChangePassDialog: Boolean;
 var
-  ibsql: TIBSQL;
+  Tr: TIBTransaction;
+  q: TIBSQL;
 begin
-  with TdlgChangePass.Create(Self) do
+  Assert(Database <> nil);
+  Assert(Database.Connected);
+
+  with TdlgChangePass.Create(nil) do
   try
     UserName := FUserName;
 
-    if Execute then
+    if ShowModal = mrOk then
     begin
-      ibsql := TIBSQL.Create(nil);
+      Tr := TIBTransaction.Create(nil);
+      q := TIBSQL.Create(nil);
       try
-        if not FTransaction.Active then
-          FTransaction.StartTransaction;
+        Tr.DefaultDatabase := Database;
+        Tr.StartTransaction;
 
-        ibsql.Transaction := FTransaction;
-        ibsql.SQL.Text :=
-          'UPDATE gd_user SET passw = ''' + edPassword.Text +
-          ''', mustchange = 0 WHERE id = ' + IntToStr(UserKey);
+        q.Transaction := FTransaction;
+        q.SQL.Text := 'UPDATE gd_user SET passw = :p, mustchange = 0 WHERE id = :id';
+        q.ParamByName('id').AsInteger := UserKey;
+        q.ParamByName('p').AsString := Copy(edPassword.Text, 1, max_password_length);
+        q.ExecQuery;
 
-        try
-          ibsql.ExecQuery;
-          if FTransaction.InTransaction then
-            FTransaction.Commit;
-
-          Result := True;
-        except
-          if FTransaction.InTransaction then
-            FTransaction.Rollback;
-
-          Result := False;
-        end;
+        Tr.Commit;
+        Result := True;
       finally
-        ibsql.Free;
+        q.Free;
+        Tr.Free;
       end;
     end else
       Result := False;
@@ -2550,29 +2765,29 @@ var
   q: TIBSQL;
   Tr: TIBTransaction;
 begin
-  if (Database <> nil) and Database.Connected then
-  begin
-    Tr := TIBTransaction.Create(nil);
-    q := TIBSQL.Create(nil);
-    try
-      Tr.DefaultDatabase := Database;
-      Tr.StartTransaction;
+  Assert(Database <> nil);
+  Assert(Database.Connected);
 
-      q.Transaction := Tr;
-      q.SQL.Text := 'SELECT FIRST 1 * FROM fin_versioninfo ORDER BY id DESC';
-      q.ExecQuery;
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := Database;
+    Tr.StartTransaction;
 
-      FDBVersion := q.FieldByName('versionstring').AsString;
-      FDBReleaseDate := q.FieldByName('releasedate').AsDateTime;
-      FDBVersionID := q.FieldByName('id').AsInteger;
-      FDBVersionComment := q.FieldByName('comment').AsString;
+    q.Transaction := Tr;
+    q.SQL.Text := 'SELECT FIRST 1 * FROM fin_versioninfo ORDER BY id DESC';
+    q.ExecQuery;
 
-      q.Close;
-      Tr.Commit;
-    finally
-      q.Free;
-      Tr.Free;
-    end;
+    FDBVersion := q.FieldByName('versionstring').AsString;
+    FDBReleaseDate := q.FieldByName('releasedate').AsDateTime;
+    FDBVersionID := q.FieldByName('id').AsInteger;
+    FDBVersionComment := q.FieldByName('comment').AsString;
+
+    q.Close;
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
   end;
 end;
 
@@ -2594,6 +2809,9 @@ begin
   {$IFDEF DEBUG}
   Result := Result + ', ' + 'DEBUG MODE';
   {$ENDIF}
+
+  if FShutdown then
+    Result := Result + ', ' + 'Однопользовательский режим';
 end;
 
 function TboLogin.GetIsEmbeddedServer: Boolean;
@@ -2609,6 +2827,169 @@ begin
     Result := (not VarIsEmpty(Res)) and VarIsNull(Res[0, 0]);
   end else
     Result := False;
+end;
+
+function TboLogin.BringDatabaseOnline(const ADBName: String): Boolean;
+var
+  SN, DN, FSysDBAPassword, FSysDBAUserName: String;
+  Port: Integer;
+  CS: TIBConfigService;
+begin
+  Result := False;
+
+  ParseDatabaseName(ADBName, SN, Port, DN);
+
+  if (DN = '') or (MessageBox(0,
+    PChar('База данных находится в однопользовательском режиме.'#13#10#13#10 +
+    'Перевести в многопользовательский режим?'),
+    'Внимание',
+    MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDNO) then
+  begin
+    exit;
+  end;
+
+  FSysDBAPassword := SysDBAPassword;
+  FSysDBAUserName := SysDBAUserName;
+
+  CS := TIBConfigService.Create(nil);
+  try
+    CS.ServerName := SN;
+    CS.DatabaseName := DN;
+    if SN > '' then
+      CS.Protocol := TCP
+    else
+      CS.Protocol := Local;
+    CS.LoginPrompt := False;
+    CS.Params.Clear;
+    CS.Params.Add('user_name=' + FSysDBAUserName);
+    CS.Params.Add('password=' + FSysDBAPassword);
+
+    repeat
+      try
+        CS.Active := True;
+        CS.BringDatabaseOnline;
+        // на классике сервер сразу возвращает выполнение
+        // и последующее подключение не пройдет, так как
+        // база еще будет выводиться из шатдауна.
+        // вроде бы, начиная с версии 2.1 эта пауза уже не
+        // будет нужна
+        Sleep(4000);
+        while CS.IsServiceRunning do Sleep(100);
+        Result := True;
+      except
+        on E: Exception do
+        begin
+          MessageBox(0, PChar(E.Message), 'Внимание!', MB_OK or MB_ICONHAND or MB_TASKMODAL);
+          FSysDBAPassword := '';
+          if not InputQuery(SN, 'Введите пароль учетной записи SYSDBA:', FSysDBAPassword) then
+            exit;
+        end;
+      end;
+    until Result;
+  finally
+    CS.Free;
+  end;
+end;
+
+function TboLogin.Relogin: Boolean;
+begin
+  Result := Logoff and DoLogin(False);
+end;
+
+function TboLogin.DoConnect: Boolean;
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Assert(Database <> nil);
+  Assert(not Database.Connected);
+
+  Result := False;
+  repeat
+    try
+      Database.Connected := True;
+
+      if Database.LoginPrompt then
+      begin
+        FIBName := Database.Params.Values[UserNameValue];
+        FIBPassword := Database.Params.Values[PasswordValue];
+
+        Tr := TIBTransaction.Create(nil);
+        q := TIBSQL.Create(nil);
+        try
+          Tr.DefaultDatabase := Database;
+          Tr.StartTransaction;
+          q.Transaction := Tr;
+          q.SQL.Text := 'UPDATE gd_user SET ibpassword=:P where ibname=:N';
+          q.ParamByName('P').AsString := FIBPassword;
+          q.ParamByName('N').AsString := FIBName;
+          q.ExecQuery;
+          Tr.Commit;
+        finally
+          q.Free;
+          Tr.Free;
+        end;
+      end;
+
+      Result := True;
+    except
+      on E: EIBError do
+      begin
+        if (E.IBErrorCode = isc_login) and IsIBUserAdmin then
+        begin
+          MessageBox(0,
+            'На сервере базы данных был изменен пароль для учетной записи SYSDBA.',
+            'Внимание',
+            MB_OK or MB_TASKMODAL or MB_ICONQUESTION);
+          Database.LoginPrompt := True;
+        end
+        else if not TgdcUser.CheckIBUser(FIBName, FIBPassword) then
+        begin
+          MessageBox(0,
+            'Отсутствует учетная запись пользователя на сервере базы данных.'#13#10 +
+            'Вероятно, файл базы данных был перенесен на другой сервер или сервер '#13#10 +
+            'Firebird был переустановлен.'#13#10 +
+            ''#13#10 +
+            'Зайдите в систему под учетной записью Administrator и в разделе'#13#10 +
+            'Исследователь\Сервис\Администратор\Пользователи выполните команду'#13#10 +
+            'Пересоздать учетные записи.',
+            'Внимание',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL);
+          break;
+        end else
+          raise;
+      end;
+    end;
+  until Database.Connected;
+end;
+
+function TboLogin.DoLogin(NeedReadDBVersion: Boolean): Boolean;
+begin
+  if Assigned(gdSplash) then
+    gdSplash.ShowText(sDBConnect);
+
+  Result := False;
+
+  if DoConnect then
+  try
+    if (not FChangePass) or RunChangePassDialog then
+    begin
+      if NeedReadDBVersion then
+        ReadDBVersion;
+
+      DoAfterSuccessfullConnection;
+
+      Result := (not FAutoOpenCompany) or EnterCompany or OpenCompany;
+    end;
+
+    if not Result then
+      Database.Connected := False;
+  except
+    Database.Connected := False;
+    if Assigned(gdSplash) then
+      gdSplash.FreeSplash;
+    raise;
+  end;
 end;
 
 end.

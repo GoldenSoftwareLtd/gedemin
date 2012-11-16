@@ -28,6 +28,7 @@ type
     function RestoreString(const S: String): String;
     function GetCryptoKey: String;
     function GetDatabaseName: String;
+    function GetIsAdminLogin: Boolean;
 
   protected
     procedure ReadFromIniFile(AnIniFile: TIniFile);
@@ -52,6 +53,7 @@ type
     property EnteredPassword: String read FEnteredPassword write FEnteredPassword;
     property CmdLineParam: Boolean read FCmdLineParam write FCmdLineParam;
     property DatabaseName: String read GetDatabaseName;
+    property IsAdminLogin: Boolean read GetIsAdminLogin;
   end;
 
   Tgd_DatabasesList = class(TCollection)
@@ -164,6 +166,11 @@ begin
     Result := Server + ':' + FileName
   else
     Result := FileName;
+end;
+
+function Tgd_DatabaseItem.GetIsAdminLogin: Boolean;
+begin
+  Result := AnsiCompareText(FEnteredLogin, 'Administrator') = 0;
 end;
 
 function Tgd_DatabaseItem.GetPassword(ALogin: String): String;
@@ -458,7 +465,16 @@ begin
   IniFile := TIniFile.Create(FIniFileName);
   try
     for I := 0 to Count - 1 do
+    try
       (Items[I] as Tgd_DatabaseItem).WriteToIniFile(IniFile);
+    except
+      MessageBox(0,
+        PChar('Невозможно записать данные в файл ' + FIniFileName + '.'#13#10#13#10 +
+        'Возможно, недостаточно прав доступа или установлен атрибут "только для чтения".'),
+        'Ошибка',
+        MB_ICONHAND or MB_OK or MB_TASKMODAL);
+      break;
+    end;
   finally
     IniFile.Free;
   end;
@@ -519,6 +535,14 @@ end;
 function Tgd_DatabasesList.LoginDlg(out WithoutConnection, SingleUserMode: Boolean;
   out DI: Tgd_DatabaseItem): Boolean;
 begin
+  Result := False;
+
+  if FindSelected = nil then
+  begin
+    if (not ShowViewForm) or (FindSelected = nil) then
+      exit;
+  end;
+
   with TdlgSecLogin2.Create(nil) do
   try
     Result := ShowModal = mrOk;

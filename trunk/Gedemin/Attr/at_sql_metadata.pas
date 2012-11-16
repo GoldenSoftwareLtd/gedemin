@@ -217,7 +217,7 @@ begin
             //Сохраняем скрипт который не выполнился
             on E: Exception do
             begin
-              if (E is EIBError) and (EIBError(E).IBErrorCode = 335544721) then
+              if (E is EIBError) and (EIBError(E).IBErrorCode = isc_network_error) then
               begin
                 MessageBox(0,
                   'Внимание! '#13#10#13#10 +

@@ -458,7 +458,7 @@ type
 
   EatDatabaseError = class(Exception);
 
-procedure InitDatabase(IBDatabase: TIBDatabase; IBTransaction: TIBTransaction);
+procedure InitDatabase(IBTransaction: TIBTransaction);
 
 procedure GetTableName(DS: TDataSet; const FieldName: String; out AliasName, TableName: String);
 //procedure LocalizeDataSet(DS: TDataSet);
@@ -565,14 +565,17 @@ begin
   end;
 end;
 
-procedure InitDatabase(IBDatabase: TIBDatabase; IBTransaction: TIBTransaction);
+procedure InitDatabase(IBTransaction: TIBTransaction);
 begin
+  Assert(IBTransaction <> nil);
+  Assert(IBTransaction.DefaultDatabase <> nil);
+
   if not Assigned(atDatabase) then
     atDatabase := TatBodyDatabase.Create;
 
-  atDatabase.Database := IBDatabase;
+  atDatabase.Database := IBTransaction.DefaultDatabase;
   atDatabase.Transaction := IBTransaction;
-  atDatabase.Dialect := IBDatabase.SQLDialect;
+  atDatabase.Dialect := IBTransaction.DefaultDatabase.SQLDialect;
 end;
 
 function ReadField(F: TIBXSQLVAR; const Default: String): String; overload;

@@ -35,6 +35,7 @@ uses
 
 const
   SysDBAUserName  = 'SYSDBA';
+  SysDBAPassword  = 'masterkey';
   UserNameValue   = 'USER_NAME';
   PasswordValue   = 'PASSWORD';
   ShutDownValue   = 'SHUTDOWN';

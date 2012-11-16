@@ -10,10 +10,9 @@ type
   TdlgChangePass = class(TForm)
     edPassword: TEdit;
     lblUse: TLabel;
-    Label1: TLabel;
+    lblMsg: TLabel;
     edPasswordDouble: TEdit;
     Label2: TLabel;
-    lblUser: TLabel;
     btnOk: TButton;
     btnCancel: TButton;
 
@@ -24,10 +23,7 @@ type
     procedure SetUserName(const Value: String);
 
   public
-    function Execute: Boolean;
-
     property UserName: String write SetUserName;
-
   end;
 
 var
@@ -46,25 +42,28 @@ uses
 
 procedure TdlgChangePass.btnOkClick(Sender: TObject);
 begin
-  if (edPassword.Text <> edPasswordDouble.Text) or (edPassword.Text = '') then
+  if Trim(edPassword.Text) = '' then
   begin
-    MessageBox(Self.Handle, 'Неверно подтвержден пароль', 'Внимание', MB_OK or MB_ICONEXCLAMATION);
+    MessageBox(Self.Handle,
+      'Введен пустой пароль!',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    edPassword.SetFocus;
+    ModalResult := mrNone;
+  end
+  else if edPassword.Text <> edPasswordDouble.Text then
+  begin
+    MessageBox(Self.Handle,
+      'Неверно подтвержден пароль!',
+      'Внимание',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
     edPasswordDouble.SetFocus;
     ModalResult := mrNone;
   end;
 end;
 
-function TdlgChangePass.Execute: Boolean;
-begin
-  MessageBox(Handle, 'Вам необходимо сменить пароль.',
-    'Внимание', MB_OK or MB_ICONEXCLAMATION);
-
-  Result := ShowModal = mrOk;
-end;
-
 procedure TdlgChangePass.FormCreate(Sender: TObject);
 begin
-  lblUser.Caption := '';
   edPassword.Text := '';
   edPasswordDouble.Text := '';
 
@@ -75,7 +74,7 @@ end;
 
 procedure TdlgChangePass.SetUserName(const Value: String);
 begin
-  lblUser.Caption := Value;
+  lblMsg.Caption := StringReplace(lblMsg.Caption, '%user%', Value, []);
 end;
 
 end.

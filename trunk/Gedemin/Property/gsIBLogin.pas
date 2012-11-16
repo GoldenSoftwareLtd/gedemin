@@ -118,17 +118,17 @@ end;
 
 function TgsIBLogin.Get_ComputerName: WideString;
 begin
-  Result := IBLogin.ComputerName
+  Result := IBLogin.ComputerName;
 end;
 
 function TgsIBLogin.Get_ContactKey: Integer;
 begin
-  Result := IBLogin.ContactKey
+  Result := IBLogin.ContactKey;
 end;
 
 function TgsIBLogin.Get_ContactName: WideString;
 begin
-  Result := IBLogin.ContactName
+  Result := IBLogin.ContactName;
 end;
 
 function TgsIBLogin.Get_Database: IgsIBDatabase;
@@ -138,138 +138,138 @@ end;
 
 function TgsIBLogin.Get_DatabaseName: WideString;
 begin
-  Result := IBLogin.DatabaseName
+  Result := IBLogin.DatabaseName;
 end;
 
 function TgsIBLogin.Get_DBID: Integer;
 begin
-  Result := IBLogin.DBID
+  Result := IBLogin.DBID;
 end;
 
 function TgsIBLogin.Get_DBReleaseDate: TDateTime;
 begin
-  Result := IBLogin.DBReleaseDate
+  Result := IBLogin.DBReleaseDate;
 end;
 
 function TgsIBLogin.Get_DBVersion: WideString;
 begin
-  Result := IBLogin.DBVersion
+  Result := IBLogin.DBVersion;
 end;
 
 function TgsIBLogin.Get_DBVersionComment: WideString;
 begin
-  Result := IBLogin.DBVersionComment
+  Result := IBLogin.DBVersionComment;
 end;
 
 function TgsIBLogin.Get_DBVersionID: Integer;
 begin
-  Result := IBLogin.DBVersionID
+  Result := IBLogin.DBVersionID;
 end;
 
 function TgsIBLogin.Get_GroupName: WideString;
 begin
-  Result := IBLogin.GroupName
+  Result := IBLogin.GroupName;
 end;
 
 function TgsIBLogin.Get_IBName: WideString;
 begin
-  Result := IBLogin.IBName
+  Result := IBLogin.IBName;
 end;
 
 function TgsIBLogin.Get_IBPassword: WideString;
 begin
-  Result := IBLogin.IBPassword
+  Result := IBLogin.IBPassword;
 end;
 
 function TgsIBLogin.Get_Ingroup: Integer;
 begin
-  Result := IBLogin.Ingroup
+  Result := IBLogin.Ingroup;
 end;
 
 function TgsIBLogin.Get_IsIBUserAdmin: WordBool;
 begin
-  Result := IBLogin.IsIBUserAdmin
+  Result := IBLogin.IsIBUserAdmin;
 end;
 
 function TgsIBLogin.Get_IsShutDown: WordBool;
 begin
-  Result := IBLogin.IsShutDown
+  Result := IBLogin.ShutDown;
 end;
 
 function TgsIBLogin.Get_IsUserAdmin: WordBool;
 begin
-  Result := IBLogin.IsUserAdmin
+  Result := IBLogin.IsUserAdmin;
 end;
 
 function TgsIBLogin.Get_LoggedIn: WordBool;
 begin
-  Result := IBLogin.LoggedIn
+  Result := IBLogin.LoggedIn;
 end;
 
 function TgsIBLogin.Get_LoginParam(
   const ParamName: WideString): WideString;
 begin
-  Result := IBLogin.LoginParam[ParamName]
+  Result := IBLogin.LoginParam[ParamName];
 end;
 
 function TgsIBLogin.Get_ServerName: WideString;
 begin
-  Result := IBLogin.ServerName
+  Result := IBLogin.ServerName;
 end;
 
 function TgsIBLogin.Get_SessionDuration: TDateTime;
 begin
-  Result := IBLogin.SessionDuration
+  Result := IBLogin.SessionDuration;
 end;
 
 function TgsIBLogin.Get_SessionKey: Integer;
 begin
-  Result := IBLogin.SessionKey
+  Result := IBLogin.SessionKey;
 end;
 
 function TgsIBLogin.Get_ShutDown: WordBool;
 begin
-  Result := IBLogin.ShutDown
+  Result := IBLogin.ShutDown;
 end;
 
 function TgsIBLogin.Get_ShutDownRequested: WordBool;
 begin
-  Result := IBLogin.ShutDownRequested
+  Result := IBLogin.ShutDownRequested;
 end;
 
 function TgsIBLogin.Get_StartTime: TDateTime;
 begin
-  Result := IBLogin.StartTime
+  Result := IBLogin.StartTime;
 end;
 
 function TgsIBLogin.Get_SubSystemKey: Integer;
 begin
-  Result := IBLogin.SubSystemKey
+  Result := IBLogin.SubSystemKey;
 end;
 
 function TgsIBLogin.Get_SubSystemName: WideString;
 begin
-  Result := IBLogin.SubSystemName
+  Result := IBLogin.SubSystemName;
 end;
 
 function TgsIBLogin.Get_UserKey: Integer;
 begin
-  Result := IBLogin.UserKey
+  Result := IBLogin.UserKey;
 end;
 
 function TgsIBLogin.Get_UserName: WideString;
 begin
-  Result := IBLogin.UserName
+  Result := IBLogin.UserName;
 end;
 
 function TgsIBLogin.Login: WordBool; safecall;
 begin
-  IBLogin.Login
+  IBLogin.Login;
 end;
 
 function TgsIBLogin.Logoff: WordBool; safecall;
 begin
-  IBLogin.Logoff
+  IBLogin.Logoff;
 end;
 
 function TgsIBLogin.OpenCompany(ShowDialogAnyway: WordBool): WordBool;
@@ -289,12 +289,12 @@ end;
 
 procedure TgsIBLogin.UpdateCompanyData;
 begin
-  IBLogin.UpdateCompanyData
+  IBLogin.UpdateCompanyData;
 end;
 
 procedure TgsIBLogin.UpdateUserData;
 begin
-  IBLogin.UpdateUserData
+  IBLogin.UpdateUserData;
 end;
 
 procedure TgsIBLogin.AddEvent(const AData, ASourse: WideString;

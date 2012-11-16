@@ -9,29 +9,29 @@ uses
 type
   TfrmIBUserList = class(TForm)
     lvUser: TgsListView;
-    memoInfo: TMemo;
     pnlButtons: TPanel;
     btnCancel: TButton;
     btnOk: TButton;
     Bevel1: TBevel;
-    Label5: TLabel;
+    lblCapt: TLabel;
     alIBUsers: TActionList;
     actOk: TAction;
     lblCount: TLabel;
-    btnRefresh: TButton;
     actRefresh: TAction;
     chbxShowNames: TCheckBox;
     btnDeleteUser: TButton;
     actDisconnect: TAction;
+    btnDeleteAll: TButton;
+    actDisconnectAll: TAction;
+    btnRefresh: TButton;
     procedure actOkExecute(Sender: TObject);
     procedure actOkUpdate(Sender: TObject);
     procedure actRefreshExecute(Sender: TObject);
     procedure actRefreshUpdate(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
     procedure actDisconnectUpdate(Sender: TObject);
-
-  private
-    procedure BuildUserList;
+    procedure actDisconnectAllUpdate(Sender: TObject);
+    procedure actDisconnectAllExecute(Sender: TObject);
 
   public
     function CheckUsers: Boolean;
@@ -52,25 +52,33 @@ uses
 
 function TfrmIBUserList.CheckUsers: Boolean;
 begin
-  BuildUserList;
+  lblCapt.Caption := 'Для выполнения действий необходимо отключить всех пользователей!';
+  lblCapt.Color := clRed;
+  actRefresh.Execute;
   Result := (lvUser.Items.Count <= 1) or (ShowModal = mrOk);
 end;
 
 procedure TfrmIBUserList.ShowUsers;
 begin
   btnCancel.Visible := False;
-  memoInfo.Visible := False;
-
   btnOk.Caption := 'Закрыть';
   btnOk.Cancel := True;
 
-  lvUser.Height := lvUser.Height + memoInfo.Height;
-
-  BuildUserList;
+  actRefresh.Execute;
   ShowModal;
 end;
 
-procedure TfrmIBUserList.BuildUserList;
+procedure TfrmIBUserList.actOkExecute(Sender: TObject);
+begin
+  ModalResult := mrOk;
+end;
+
+procedure TfrmIBUserList.actOkUpdate(Sender: TObject);
+begin
+  actOk.Enabled := (lvUser.Items.Count = 1) or btnOk.Cancel;
+end;
+
+procedure TfrmIBUserList.actRefreshExecute(Sender: TObject);
 var
   I, K: Integer;
   ListItem: TListItem;
@@ -142,21 +150,6 @@ begin
   end;
 end;
 
-procedure TfrmIBUserList.actOkExecute(Sender: TObject);
-begin
-  ModalResult := mrOk;
-end;
-
-procedure TfrmIBUserList.actOkUpdate(Sender: TObject);
-begin
-  actOk.Enabled := (lvUser.Items.Count = 1) or btnOk.Cancel;
-end;
-
-procedure TfrmIBUserList.actRefreshExecute(Sender: TObject);
-begin
-  BuildUserList;
-end;
-
 procedure TfrmIBUserList.actRefreshUpdate(Sender: TObject);
 begin
   actRefresh.Enabled := (gdcBaseManager <> nil)
@@ -181,7 +174,8 @@ begin
       Tr.StartTransaction;
 
       q.Transaction := Tr;
-      q.SQL.Text := 'DELETE FROM MON$STATEMENTS WHERE MON$ATTACHMENT_ID = :ID ';
+      q.SQL.Text := 'DELETE FROM MON$STATEMENTS WHERE MON$ATTACHMENT_ID = :ID ' +
+        ' AND MON$ATTACHMENT_ID <> CURRENT_CONNECTION';
       q.Params[0].AsInteger := Integer(lvUser.Selected.Data);
       q.ExecQuery;
 
@@ -189,7 +183,8 @@ begin
       Tr.StartTransaction;
 
       q.Close;
-      q.SQL.Text := 'DELETE FROM MON$ATTACHMENTS WHERE MON$ATTACHMENT_ID = :ID ';
+      q.SQL.Text := 'DELETE FROM MON$ATTACHMENTS WHERE MON$ATTACHMENT_ID = :ID ' +
+        ' AND MON$ATTACHMENT_ID <> CURRENT_CONNECTION';
       q.Params[0].AsInteger := Integer(lvUser.Selected.Data);
       q.ExecQuery;
 
@@ -198,14 +193,61 @@ begin
       q.Free;
       Tr.Free;
     end;
+
+    actRefresh.Execute;
   end;
 end;
 
 procedure TfrmIBUserList.actDisconnectUpdate(Sender: TObject);
 begin
   actDisconnect.Enabled := Assigned(lvUser.Selected)
+    and (lvUser.Items.Count > 1)
     and Assigned(IBLogin)
     and IBLogin.IsIBUserAdmin;
+end;
+
+procedure TfrmIBUserList.actDisconnectAllUpdate(Sender: TObject);
+begin
+  actDisconnectAll.Enabled := (lvUser.Items.Count > 1)
+    and Assigned(IBLogin)
+    and IBLogin.IsIBUserAdmin;
+end;
+
+procedure TfrmIBUserList.actDisconnectAllExecute(Sender: TObject);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  if MessageBox(Handle,
+    'Отключить всех пользователей?',
+    'Внимание',
+    MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+  begin
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    try
+      Tr.DefaultDatabase := gdcBaseManager.Database;
+      Tr.StartTransaction;
+
+      q.Transaction := Tr;
+      q.SQL.Text := 'DELETE FROM MON$STATEMENTS WHERE MON$ATTACHMENT_ID <> CURRENT_CONNECTION';
+      q.ExecQuery;
+
+      Tr.Commit;
+      Tr.StartTransaction;
+
+      q.Close;
+      q.SQL.Text := 'DELETE FROM MON$ATTACHMENTS WHERE MON$ATTACHMENT_ID <> CURRENT_CONNECTION';
+      q.ExecQuery;
+
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
+    end;
+
+    actRefresh.Execute;
+  end;
 end;
 
 end.
