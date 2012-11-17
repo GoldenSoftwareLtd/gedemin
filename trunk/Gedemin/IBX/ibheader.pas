@@ -1843,6 +1843,17 @@ const
   isc_dpb_shut_transaction       =          4;
   isc_dpb_shut_force             =          8;
 
+  isc_spb_prp_force_shutdown     =         41;
+  isc_spb_prp_attachments_shutdown =       42;
+  isc_spb_prp_transactions_shutdown=       43;
+  isc_spb_prp_shutdown_mode      =         44;
+  isc_spb_prp_online_mode        =         45;
+
+  isc_spb_prp_sm_normal          =          0;
+  isc_spb_prp_sm_multi           =          1;
+  isc_spb_prp_sm_single          =          2;
+  isc_spb_prp_sm_full            =          3;
+
 (****************************************)
 (** Bit assignments in RDB$SYSTEM_FLAG **)
 (****************************************)

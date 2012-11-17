@@ -246,6 +246,7 @@ type
     procedure SetServiceStartOptions; virtual;
     procedure ServiceStartAddParam (Value: string; param: Integer); overload;
     procedure ServiceStartAddParam (Value: Integer; param: Integer); overload;
+    procedure ServiceStartAddByteParam (Value: Byte; param: Integer);
     procedure InternalServiceStart;
 
   public
@@ -270,7 +271,9 @@ type
     property BufferSize;
   end;
 
-  TShutdownMode = (Forced, DenyTransaction, DenyAttachment);
+  //TShutdownMode = (Forced, DenyTransaction, DenyAttachment);
+  TShutdownModeEx = (smeForce, smeAttachment, smeTransaction);
+  TOperationMode = (omNormal, omMulti, omSingle, omFull);
 
   TIBConfigService = class(TIBControlService)
   private
@@ -280,7 +283,8 @@ type
 
   public
     procedure ServiceStart; override;
-    procedure ShutdownDatabase (Options: TShutdownMode; Wait: Integer);
+    //procedure ShutdownDatabase (Options: TShutdownMode; Wait: Integer);
+    procedure ShutdownDatabase (Options: TShutdownModeEx; Wait: Integer; OperationMode: TOperationMode);
     procedure SetSweepInterval (Value: Integer);
     procedure SetDBSqlDialect (Value: Integer);
     procedure SetPageBuffers (Value: Integer);
@@ -1244,6 +1248,13 @@ begin
                    PChar(@Value)[3];
 end;
 
+procedure TIBControlService.ServiceStartAddByteParam (Value: Byte; param: Integer);
+begin
+  FStartParams  := FStartParams +
+                   Char(Param) +
+                   PChar(@Value)[0];
+end;
+
 constructor TIBControlService.Create(AOwner: TComponent);
 begin
   inherited create(AOwner);
@@ -1379,17 +1390,34 @@ begin
   InternalServiceStart;
 end;
 
-procedure TIBConfigService.ShutdownDatabase(Options: TShutdownMode;
-  Wait: Integer);
+{
+  changes for 2.5 as discussed here:
+  http://firebird.1100200.n4.nabble.com/New-shutdown-online-mode-via-Delphi-unrecognized-service-parameter-block-td1126894.html
+}
+procedure TIBConfigService.ShutdownDatabase(Options: TShutdownModeEx;
+  Wait: Integer; OperationMode: TOperationMode);
 begin
-  ServiceStartParams  := Char(isc_action_svc_properties);
+  ServiceStartParams := AnsiChar(isc_action_svc_properties);
+  ServiceStartAddParam (FDatabaseName, SPBConstantValues[isc_spb_dbname]);
+  case OperationMode of
+    omNormal: ServiceStartAddByteParam(isc_spb_prp_sm_normal, isc_spb_prp_shutdown_mode);
+    omMulti: ServiceStartAddByteParam(isc_spb_prp_sm_multi, isc_spb_prp_shutdown_mode);
+    omSingle: ServiceStartAddByteParam(isc_spb_prp_sm_single, isc_spb_prp_shutdown_mode);
+    omFull: ServiceStartAddByteParam(isc_spb_prp_sm_full, isc_spb_prp_shutdown_mode);
+  end;
+  case Options of
+    smeForce: ServiceStartAddParam(Wait, isc_spb_prp_force_shutdown);
+    smeAttachment: ServiceStartAddParam(Wait, isc_spb_prp_attachments_shutdown);
+    smeTransaction: ServiceStartAddParam(Wait, isc_spb_prp_transactions_shutdown);
+  end;
+  {ServiceStartParams  := Char(isc_action_svc_properties);
   ServiceStartAddParam (FDatabaseName, SPBConstantValues[isc_spb_dbname]);
   if (Options = Forced) then
     ServiceStartAddParam (Wait, isc_spb_prp_shutdown_db)
   else if (Options = DenyTransaction) then
     ServiceStartAddParam (Wait, isc_spb_prp_deny_new_transactions)
   else
-    ServiceStartAddParam (Wait, isc_spb_prp_deny_new_attachments);
+    ServiceStartAddParam (Wait, isc_spb_prp_deny_new_attachments);}
   InternalServiceStart;
 end;
 
