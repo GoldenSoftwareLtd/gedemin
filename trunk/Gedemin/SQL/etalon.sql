@@ -992,7 +992,7 @@ INSERT INTO fin_versioninfo
   VALUES (49, '0000.0001.0000.0047', '03.09.2003', 'Added fields into AT_SETTING');
 
 INSERT INTO fin_versioninfo
-  VALUES (50, '0000.0001.0000.0048', '20.09.2003', 'Computed indice adde');
+  VALUES (50, '0000.0001.0000.0048', '20.09.2003', 'Computed indice added');
 
 INSERT INTO fin_versioninfo
   VALUES (51, '0000.0001.0000.0049', '22.09.2003', 'Additional fields into gd_company added');
@@ -1318,6 +1318,11 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (160, '0000.0001.0000.0191', '19.10.2012', 'Corrected inv_bu_movement trigger.');
 
+INSERT INTO fin_versioninfo
+  VALUES (161, '0000.0001.0000.0192', '29.10.2012', 'Trigger AC_AIU_ACCOUNT_CHECKALIAS modified.');
+
+INSERT INTO fin_versioninfo
+  VALUES (162, '0000.0001.0000.0193', '14.11.2012', 'Delete cbAnalytic from script.');
 
 COMMIT;
 
@@ -4184,39 +4189,24 @@ COMMIT;
 SET TERM ^ ;
 
 CREATE TRIGGER AT_AIUD_CHECK_CONSTRAINTS FOR AT_CHECK_CONSTRAINTS
-ACTIVE AFTER INSERT OR UPDATE OR DELETE POSITION 0
-AS 
-  DECLARE VARIABLE VERSION INTEGER; 
-BEGIN 
-  VERSION = GEN_ID(gd_g_attr_version, 1); 
+  ACTIVE
+  AFTER INSERT OR UPDATE OR DELETE
+  POSITION 0
+AS
+  DECLARE VARIABLE VERSION INTEGER;
+BEGIN
+  VERSION = GEN_ID(gd_g_attr_version, 1);
 END
 ^
 
 CREATE TRIGGER AT_BI_CHECK_CONSTRAINTS FOR AT_CHECK_CONSTRAINTS
 ACTIVE BEFORE INSERT POSITION 0
-AS 
-BEGIN 
-  IF (NEW.id IS NULL) THEN 
-    NEW.id =  GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1); 
-/*  IF (NEW.editorkey IS NULL) THEN 
-    NEW.editorkey = 650002; 
- IF (NEW.editiondate IS NULL) THEN 
-    NEW.editiondate = CURRENT_TIMESTAMP; */
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id =  GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
 END
 ^
-/*
-
-CREATE TRIGGER AT_BU_CHECK_CONSTRAINTS FOR AT_CHECK_CONSTRAINTS
-ACTIVE BEFORE UPDATE POSITION 27000
-AS 
-BEGIN 
-  IF (NEW.editorkey IS NULL) THEN 
-    NEW.editorkey = 650002; 
- IF (NEW.editiondate IS NULL) THEN 
-    NEW.editiondate = CURRENT_TIMESTAMP; 
-END
-^
-*/
 
 SET TERM ; ^
 
@@ -8832,6 +8822,7 @@ CREATE ASC INDEX ac_x_account_alias
 COMMIT;
 
 CREATE EXCEPTION ac_e_invalidaccount 'Invalid account!';
+CREATE EXCEPTION ac_e_duplicateaccount 'Duplicate account!';
 
 SET TERM ^;
 
@@ -8857,7 +8848,7 @@ BEGIN
          COUNT(*) > 1)
       )
      THEN
-       EXCEPTION ac_e_invalidaccount 'Account ' || NEW.alias || ' already exists.';
+       EXCEPTION ac_e_duplicateaccount 'Account ' || NEW.alias || ' already exists.';
   END
 
   IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)

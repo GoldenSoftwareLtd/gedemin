@@ -85,8 +85,7 @@ end;
 
 procedure TgsDBTestCase.ReConnect;
 begin
-  IBLogin.LogOff;
-  IBLogin.Login(False, True);
+  IBLogin.Relogin;
 
   if Assigned(frmSQLProcess) then
     Check(not frmSQLProcess.IsError);

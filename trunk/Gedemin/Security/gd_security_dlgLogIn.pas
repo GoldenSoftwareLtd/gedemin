@@ -128,7 +128,7 @@ implementation
 uses
   gd_Security, gd_resourcestring, gd_directories_const, inst_const,
   gd_security_dlgDatabases_unit, jclStrings, IBSQL, gdcBaseInterface,
-  IBServices, IB, DBLogDlg, gsDatabaseShutdown, Wcrypt2, dmLogin_unit,
+  IBServices, IB, DBLogDlg, Wcrypt2, dmLogin_unit,
   gd_common_functions, gd_CmdLineParams_unit, gd_dlgAbout_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}

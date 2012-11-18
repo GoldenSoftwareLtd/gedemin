@@ -7,18 +7,19 @@ uses
   Classes, SysUtils, IniFiles, ContNrs, gd_directories_const;
 
 type
+  Tgd_DIType = (ditINI, ditCmdLine, ditSilent);
+
   Tgd_DatabaseItem = class(TCollectionItem)
   private
     FName: String;
     FServer: String;
     FFileName: String;
     FUsers: TStringList;
-    FDBParams: String;
     FSelected: Boolean;
     FRememberPassword: Boolean;
     FEnteredLogin: String;
     FEnteredPassword: String;
-    FCmdLineParam: Boolean;
+    FDIType: Tgd_DIType;
 
     procedure SetName(const Value: String);
     procedure SetSelected(const Value: Boolean);
@@ -38,6 +39,7 @@ type
     constructor Create(Collection: TCollection); override;
     destructor Destroy; override;
 
+    procedure Assign(Source: TPersistent); override;
     function EditInDialog: Boolean;
     procedure AddUser(ALogin: String; APassword: String);
     procedure GetUsers(S: TStrings);
@@ -46,14 +48,13 @@ type
     property Name: String read FName write SetName;
     property Server: String read FServer write FServer;
     property FileName: String read FFileName write FFileName;
-    property DBParams: String read FDBParams write FDBParams;
     property Selected: Boolean read FSelected write SetSelected;
     property RememberPassword: Boolean read FRememberPassword write SetRememberPassword;
     property EnteredLogin: String read FEnteredLogin write FEnteredLogin;
     property EnteredPassword: String read FEnteredPassword write FEnteredPassword;
-    property CmdLineParam: Boolean read FCmdLineParam write FCmdLineParam;
     property DatabaseName: String read GetDatabaseName;
     property IsAdminLogin: Boolean read GetIsAdminLogin;
+    property DIType: Tgd_DIType read FDIType write FDIType;
   end;
 
   Tgd_DatabasesList = class(TCollection)
@@ -73,7 +74,7 @@ type
     function FindByName(const AName: String): Tgd_DatabaseItem;
     function FindSelected: Tgd_DatabaseItem;
 
-    function ShowViewForm: Boolean;
+    function ShowViewForm(const ChangeSelected: Boolean): Boolean;
     function LoginDlg(out WithoutConnection, SingleUserMode: Boolean;
       out DI: Tgd_DatabaseItem): Boolean;
   end;
@@ -109,6 +110,12 @@ begin
     FUsers.Delete(FUsers.Count - 1);
 end;
 
+procedure Tgd_DatabaseItem.Assign(Source: TPersistent);
+begin
+  FServer := (Source as Tgd_DatabaseItem).Server;
+  FFileName := (Source as Tgd_DatabaseItem).FileName;
+end;
+
 function Tgd_DatabaseItem.ConvertString(const S: String): String;
 begin
   Result := StringReplace(S, '=', '&eq;', [rfReplaceAll]);
@@ -118,6 +125,7 @@ constructor Tgd_DatabaseItem.Create(Collection: TCollection);
 begin
   inherited Create(Collection);
   FUsers := TStringList.Create;
+  FDIType := ditINI;
 end;
 
 destructor Tgd_DatabaseItem.Destroy;
@@ -132,20 +140,8 @@ var
 begin
   Dlg := Tgd_DatabasesListDlg.Create(nil);
   try
-    Dlg.edName.Text := Name;
-    Dlg.edServer.Text := Server;
-    Dlg.edFileName.Text := FileName;
-    Dlg.edDBParams.Text := DBParams;
-
+    Dlg.DI := Self;
     Result := Dlg.ShowModal = mrOk;
-
-    if Result then
-    begin
-      Name := Dlg.edName.Text;
-      Server := Dlg.edServer.Text;
-      FileName := Dlg.edFileName.Text;
-      DBParams := Dlg.edDBParams.Text;
-    end;
   finally
     Dlg.Free;
   end;
@@ -200,11 +196,10 @@ var
   CryptoKey, PassHex: String;
   Len, I, P: Integer;
 begin
-  Assert(FCmdLineParam = False);
+  Assert(FDIType = ditINI);
   Assert(Assigned(AnIniFile));
   Server := AnIniFile.ReadString(Name, 'Server', '');
   FileName := AnIniFile.ReadString(Name, 'FileName', '');
-  DBParams := AnIniFile.ReadString(Name, 'DBParams', '');
   Selected := AnIniFile.ReadBool(Name, 'Selected', False);
   RememberPassword := AnIniFile.ReadBool(Name, 'RememberPassword', False);
 
@@ -310,7 +305,7 @@ var
   CryptoKey, PassHex: String;
   Len, I: Integer;
 begin
-  if FCmdLineParam then
+  if FDIType <> ditINI then
     exit;
 
   Assert(Assigned(AnIniFile));
@@ -319,8 +314,6 @@ begin
     AnIniFile.EraseSection(Name);
   AnIniFile.WriteString(Name, 'Server', Server);
   AnIniFile.WriteString(Name, 'FileName', FileName);
-  if DBParams > '' then
-    AnIniFile.WriteString(Name, 'DBParams', DBParams);
   AnIniFile.WriteBool(Name, 'Selected', Selected);
   AnIniFile.WriteBool(Name, 'RememberPassword', RememberPassword);
 
@@ -485,14 +478,17 @@ begin
   inherited;
 end;
 
-function Tgd_DatabasesList.ShowViewForm: Boolean;
+function Tgd_DatabasesList.ShowViewForm(const ChangeSelected: Boolean): Boolean;
 begin
   with Tgd_DatabasesListView.Create(nil) do
   try
     Result := ShowModal = mrOk;
     if Result then
-      WriteToIniFile
-    else begin
+    begin
+      if ChangeSelected and (Chosen <> nil) then
+        Chosen.Selected := True;
+      WriteToIniFile;
+    end else begin
       Clear;
       ReadFromIniFile;
     end;
@@ -535,28 +531,29 @@ end;
 function Tgd_DatabasesList.LoginDlg(out WithoutConnection, SingleUserMode: Boolean;
   out DI: Tgd_DatabaseItem): Boolean;
 begin
-  Result := False;
+  DI := FindSelected;
 
-  if FindSelected = nil then
-  begin
-    if (not ShowViewForm) or (FindSelected = nil) then
-      exit;
-  end;
+  if (DI = nil) and ShowViewForm(True) then
+    DI := FindSelected;
 
-  with TdlgSecLogin2.Create(nil) do
-  try
-    Result := ShowModal = mrOk;
+  if DI = nil then
+    Result := False
+  else begin
+    with TdlgSecLogin2.Create(nil) do
+    try
+      Result := ShowModal = mrOk;
 
-    if Result then
-    begin
-      WriteToINIFile;
-      WithoutConnection := chbxWithoutConnection.Checked;
-      SingleUserMode := chbxSingleUser.Checked;
-      DI := FindSelected;
+      if Result then
+      begin
+        WriteToINIFile;
+        WithoutConnection := chbxWithoutConnection.Checked;
+        SingleUserMode := chbxSingleUser.Checked;
+        DI := FindSelected;
+      end;
+    finally
+      Free;
     end;
-  finally
-    Free;
-  end;
+  end;  
 end;
 
 procedure Tgd_DatabasesList.ReadFromCmdLine;
@@ -577,7 +574,7 @@ begin
     DI.FileName := FileName;
     DI.FEnteredLogin := gd_CmdLineParams.UserName;
     DI.FEnteredPassword := gd_CmdLineParams.UserPassword;
-    DI.CmdLineParam := True;
+    DI.DIType := ditCmdLine;
     DI.Selected := True;
   end;
 end;

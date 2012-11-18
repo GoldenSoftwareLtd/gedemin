@@ -49,7 +49,7 @@ uses
 
 function TgdModify.BringOnLine: Boolean;
 begin
-  with TgsDatabaseShutdown.Create(Self) do
+  with TgsDatabaseShutdown.Create(nil) do
   try
     Database := FIBDatabase;
     ShowUserDisconnectDialog := False;
@@ -189,7 +189,7 @@ end;
 
 function TgdModify.ShutDown: Boolean;
 begin
-  with TgsDatabaseShutdown.Create(Self) do
+  with TgsDatabaseShutdown.Create(nil) do
   try
     Database := FIBDatabase;
     ShowUserDisconnectDialog := False;

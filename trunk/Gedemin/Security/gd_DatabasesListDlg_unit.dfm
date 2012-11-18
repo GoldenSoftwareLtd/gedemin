@@ -1,104 +1,112 @@
 object gd_DatabasesListDlg: Tgd_DatabasesListDlg
-  Left = 776
-  Top = 370
+  Left = 582
+  Top = 424
   BorderStyle = bsDialog
-  Caption = 'gd_DatabasesListDlg'
-  ClientHeight = 205
-  ClientWidth = 394
+  Caption = 'База данных'
+  ClientHeight = 115
+  ClientWidth = 384
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
-    Left = 16
-    Top = 16
-    Width = 79
+    Left = 11
+    Top = 11
+    Width = 77
     Height = 13
     Caption = 'Наименование:'
   end
   object Label2: TLabel
-    Left = 16
-    Top = 44
-    Width = 40
+    Left = 11
+    Top = 38
+    Width = 69
     Height = 13
-    Caption = 'Сервер:'
+    Caption = 'Сервер/порт:'
   end
   object Label4: TLabel
-    Left = 16
-    Top = 72
-    Width = 60
+    Left = 11
+    Top = 65
+    Width = 58
     Height = 13
     Caption = 'Имя файла:'
   end
-  object Label5: TLabel
-    Left = 16
-    Top = 96
-    Width = 132
+  object Label3: TLabel
+    Left = 224
+    Top = 40
+    Width = 3
     Height = 13
-    Caption = 'Параметры подключения:'
   end
   object edName: TEdit
-    Left = 104
-    Top = 13
+    Left = 94
+    Top = 8
     Width = 281
     Height = 21
     TabOrder = 0
-    Text = 'edName'
   end
   object edServer: TEdit
-    Left = 104
-    Top = 40
+    Left = 94
+    Top = 34
     Width = 121
     Height = 21
     TabOrder = 1
-    Text = 'edServer'
   end
   object edFileName: TEdit
-    Left = 104
-    Top = 64
-    Width = 249
+    Left = 94
+    Top = 60
+    Width = 261
     Height = 21
     TabOrder = 2
-    Text = 'edFileName'
   end
-  object Button1: TButton
-    Left = 224
-    Top = 160
+  object btnOk: TButton
+    Left = 221
+    Top = 88
     Width = 75
     Height = 21
-    Caption = 'Ok'
+    Action = actOk
+    Default = True
     ModalResult = 1
-    TabOrder = 3
-  end
-  object Button2: TButton
-    Left = 304
-    Top = 160
-    Width = 75
-    Height = 21
-    Caption = 'Отмена'
-    ModalResult = 2
     TabOrder = 4
   end
-  object edDBParams: TEdit
-    Left = 104
-    Top = 112
-    Width = 281
+  object btnCancel: TButton
+    Left = 301
+    Top = 88
+    Width = 75
     Height = 21
+    Cancel = True
+    Caption = 'Отмена'
+    ModalResult = 2
     TabOrder = 5
-    Text = 'edDBParams'
   end
-  object Button3: TButton
-    Left = 360
-    Top = 64
+  object btnSelectFile: TButton
+    Left = 355
+    Top = 60
     Width = 21
     Height = 21
     Caption = '...'
-    TabOrder = 6
+    TabOrder = 3
+    OnClick = btnSelectFileClick
+  end
+  object ActionList: TActionList
+    Left = 304
+    Top = 32
+    object actOk: TAction
+      Caption = 'Ok'
+      OnExecute = actOkExecute
+      OnUpdate = actOkUpdate
+    end
+  end
+  object OpenDialog: TOpenDialog
+    DefaultExt = 'fdb'
+    Filter = 'Базы данных Firebird|*.fdb|Все файлы|*.*'
+    Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofNoReadOnlyReturn, ofEnableSizing]
+    Title = 'Выбрать файл базы данных'
+    Left = 176
+    Top = 40
   end
 end

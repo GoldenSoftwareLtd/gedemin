@@ -47,7 +47,7 @@ unit gsDatabaseShutdown;
 interface
 
 uses
-  Classes, IBDatabaseInfo, IBDatabase, IBServices;
+  Classes, IBDatabase, IBServices;
 
 type
   TOnGetUserNameEvent = procedure(var UserName: String) of object;
@@ -56,16 +56,10 @@ type
   private
     FDatabase: TIBDatabase;
     FShowUserDisconnectDialog: Boolean;
-    FDatabaseInfo: TIBDatabaseInfo;
     FConfigService: TIBConfigService;
-    FStatisticalService: TIBStatisticalService;
-    FOnGetUserName: TOnGetUserNameEvent;
-    FSL: TStringList;
 
-    function GetUsersCount: Integer;
     procedure SetDatabase(const Value: TIBDatabase);
-    function GetIsShutdowned: Boolean;
-    function GetUserNames: TStrings;
+    function GetShutdownCode: Integer;
 
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -74,26 +68,20 @@ type
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
-    function Shutdown(const Mode: TShutdownMode = Forced): Boolean;
+    function Shutdown: Boolean;
     function BringOnline: Boolean;
-    procedure ShowUsers;
-
-    property UserNames: TStrings read GetUserNames;
-    property UsersCount: Integer read GetUsersCount;
-    property IsShutdowned: Boolean read GetIsShutdowned;
 
   published
     property Database: TIBDatabase read FDatabase write SetDatabase;
     property ShowUserDisconnectDialog: Boolean read FShowUserDisconnectDialog
       write FShowUserDisconnectDialog default True;
-    property OnGetUserName: TOnGetUserNameEvent read FOnGetUserName write FOnGetUserName;
   end;
 
 implementation
 
 uses
-  IB, JclStrings, at_frmIBUserList, Forms, Controls, Windows,
-  SysUtils, gd_resourcestring, IBErrorCodes, gd_common_functions
+  Windows, IB, IBSQL, SysUtils, at_frmIBUserList,
+  gd_common_functions, gd_directories_const
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -105,116 +93,14 @@ uses
 constructor TgsDatabaseShutdown.Create(AnOwner: TComponent);
 begin
   inherited;
-  FDatabaseInfo := TIBDatabaseInfo.Create(nil);
   FConfigService := TIBConfigService.Create(nil);
-  FStatisticalService := TIBStatisticalService.Create(nil);
   FShowUserDisconnectDialog := True;
-  FSL := TStringList.Create;
 end;
 
 destructor TgsDatabaseShutdown.Destroy;
 begin
-  inherited;
-  FSL.Free;
-  FDatabaseInfo.Free;
   FConfigService.Free;
-  FStatisticalService.Free;
-end;
-
-function TgsDatabaseShutdown.GetIsShutdowned: Boolean;
-var
-  I, J, Port: Integer;
-  SN, DN, S: String;
-begin
-  Assert(FDatabase <> nil);
-
-  Result := False;
-
-  ParseDatabaseName(FDatabase.DatabaseName, SN, Port, DN);
-
-  FStatisticalService.ServerName := SN;
-  FStatisticalService.DatabaseName := DN;
-  if SN > '' then
-    FStatisticalService.Protocol := TCP
-  else
-    FStatisticalService.Protocol := Local;
-  FStatisticalService.Params.Text := FDatabase.Params.Text;
-  if FStatisticalService.Params.IndexOfName('user_name') = -1 then
-    FStatisticalService.Params.Add('user_name=SYSDBA');
-  J := 0;
-  for I := FStatisticalService.Params.Count - 1 downto 0 do
-  begin
-    if AnsiCompareText(FStatisticalService.Params.Names[I], 'password') = 0 then
-    begin
-      Inc(J);
-      continue;
-    end;
-    if AnsiCompareText(FStatisticalService.Params.Names[I], 'user_name') = 0 then
-    begin
-      Inc(J);
-      continue;
-    end;
-    FStatisticalService.Params.Delete(I);
-  end;
-  FStatisticalService.LoginPrompt := J <> 2;
-  FStatisticalService.Options := [HeaderPages];
-
-  repeat
-    try
-      FStatisticalService.Active := True;
-    except
-      on E: EIBError do
-      begin
-        if E.IBErrorCode = isc_login then
-        begin
-          FStatisticalService.LoginPrompt := True;
-        end else
-          raise;
-      end;
-    end;
-  until FStatisticalService.Active;
-
-  FDatabase.Params.Values['user_name'] := FStatisticalService.Params.Values['user_name'];
-  FDatabase.Params.Values['password'] := FStatisticalService.Params.Values['password'];
-
-  try
-    FStatisticalService.ServiceStart;
-    while not FStatisticalService.EOF do
-    begin
-      S := FStatisticalService.GetNextLine;
-      if (StrIPos('shutdown', S) > 0) or (StrIPos('single-user maintenance', S) > 0)
-        or (StrIPos('multi-user maintenance', S) > 0) then
-      begin
-        Result := True;
-      end;
-    end;
-  finally
-    FStatisticalService.Active := False;
-  end;
-end;
-
-function TgsDatabaseShutdown.GetUserNames: TStrings;
-var
-  I: Integer;
-  S: String;
-begin
-  if Assigned(FOnGetUserName) then
-  begin
-    FSL.Assign(FDatabaseInfo.UserNames);
-    for I := 0 to FSL.Count - 1 do
-    begin
-      S := FSL[I];
-      FOnGetUserName(S);
-      FSL[I] := S;
-    end;
-    Result := FSL;
-  end else
-    Result := FDatabaseInfo.UserNames;
-end;
-
-function TgsDatabaseShutdown.GetUsersCount: Integer;
-begin
-  Result := FDatabaseInfo.UserNames.Count;
+  inherited;
 end;
 
 procedure TgsDatabaseShutdown.Notification(AComponent: TComponent;
@@ -226,75 +112,72 @@ begin
 end;
 
 procedure TgsDatabaseShutdown.SetDatabase(const Value: TIBDatabase);
+var
+  I, Port: Integer;
+  SN, DN: String;
 begin
   if FDatabase <> Value then
   begin
     if FDatabase <> nil then
       FDatabase.RemoveFreeNotification(Self);
     FDatabase := Value;
-    FDatabaseInfo.Database := FDatabase;
-    if Value <> nil then
-      Value.FreeNotification(Self);
+    if FDatabase <> nil then
+    begin
+      FDatabase.FreeNotification(Self);
+
+      ParseDatabaseName(FDatabase.DatabaseName, SN, Port, DN);
+      FConfigService.ServerName := SN;
+      FConfigService.DatabaseName := DN;
+      FConfigService.LoginPrompt := False;
+
+      if SN > '' then
+        FConfigService.Protocol := TCP
+      else
+        FConfigService.Protocol := Local;
+
+      FConfigService.Params.Clear;
+      I := FDatabase.Params.IndexOfName(UserNameValue);
+      if I > -1 then
+        FConfigService.Params.Add(FDatabase.Params[I]);
+      I := FDatabase.Params.IndexOfName(PasswordValue);
+      if I > -1 then
+        FConfigService.Params.Add(FDatabase.Params[I]);
+    end;
   end;
 end;
 
-procedure TgsDatabaseShutdown.ShowUsers;
-begin
-  with TfrmIBUserList.Create(nil) do
-  try
-    ShowUsers;
-  finally
-    Free;
-  end;
-end;
-
-function TgsDatabaseShutdown.Shutdown(const Mode: TShutdownMode = Forced): Boolean;
-var
-  I, Port: Integer;
-  SN, DN: String;
+function TgsDatabaseShutdown.Shutdown: Boolean;
 begin
   Assert(Assigned(FDatabase));
 
-  Result := False;
-
-  if FDatabase.Connected and (UsersCount > 1) and FShowUserDisconnectDialog then
+  if FDatabase.Connected then
   begin
-    with TfrmIBUserList.Create(nil) do
-    try
-      if not CheckUsers then
-        exit;
-    finally
-      Free;
+    if GetShutdownCode > 0 then
+    begin
+      Result := True;
+      exit;
     end;
-  end;  
 
-  ParseDatabaseName(FDatabase.DatabaseName, SN, Port, DN);
-  FConfigservice.ServerName := SN;
-  FConfigService.DatabaseName := DN;
-
-  if SN > '' then
-    FConfigService.Protocol := TCP
-  else begin
-    FConfigService.Protocol := Local;
-    Result := True;
-    Exit;
+    if FShowUserDisconnectDialog then
+    begin
+      with TfrmIBUserList.Create(nil) do
+      try
+        if not CheckUsers then
+        begin
+          Result := False;
+          exit;
+        end;
+      finally
+        Free;
+      end;
+    end;
   end;
 
-  FConfigService.Params.Text := FDatabase.Params.Text;
-  for I := FConfigService.Params.Count - 1 downto 0 do
-  begin
-    if AnsiCompareText(FConfigService.Params.Names[I], 'password') = 0 then
-      continue;
-    if AnsiCompareText(FConfigService.Params.Names[I], 'user_name') = 0 then
-      continue;
-    FConfigService.Params.Delete(I);
-  end;
-  FConfigService.LoginPrompt := False;
-
+  Result := False;
   FConfigService.Active := True;
   try
     try
-      FConfigService.ShutdownDatabase(Mode, 0);
+      FConfigService.ShutdownDatabase(smeForce, 0, omSingle);
       // на классике сервер сразу возвращает выполнение
       // и последующее подключение не пройдет, так как
       // база еще будет выводиться из шатдауна.
@@ -304,10 +187,12 @@ begin
       while FConfigService.IsServiceRunning do Sleep(100);
       Result := True;
     except
-      MessageBox(0,
-        'Базу данных не удалось перевести в однопользовательский режим.',
-        'Внимание!',
-        MB_OK or MB_ICONHAND or MB_TASKMODAL);
+      on E: Exception do
+        MessageBox(0,
+          PChar('Базу данных не удалось перевести в однопользовательский режим.'#13#10#13#10 +
+          E.Message),
+          'Внимание!',
+          MB_OK or MB_ICONHAND or MB_TASKMODAL);
     end;
   finally
     FConfigService.Active := False;
@@ -315,57 +200,64 @@ begin
 end;
 
 function TgsDatabaseShutdown.BringOnline: Boolean;
-var
-  I, Port: Integer;
-  SN, DN: String;
 begin
   Assert(FDatabase <> nil);
 
-  Result := not IsShutdowned;
-
-  if not Result then
+  if FDatabase.Connected and (GetShutdownCode = 0) then
   begin
-    ParseDatabaseName(FDatabase.DatabaseName, SN, Port, DN);
+    Result := True;
+    exit;
+  end;
 
-    FConfigservice.ServerName := SN;
-    FConfigService.DatabaseName := DN;
-    if SN > '' then
-      FConfigService.Protocol := TCP
-    else
-      FConfigService.Protocol := Local;
-    FConfigService.Params.Text := FDatabase.Params.Text;
-
-    for I := FConfigService.Params.Count - 1 downto 0 do
-    begin
-      if AnsiCompareText(FConfigService.Params.Names[I], 'password') = 0 then
-        continue;
-      if AnsiCompareText(FConfigService.Params.Names[I], 'user_name') = 0 then
-        continue;
-      FConfigService.Params.Delete(I);
-    end;
-    FConfigService.LoginPrompt := False;
-
-    FConfigService.Active := True;
+  Result := False;
+  FConfigService.Active := True;
+  try
     try
-      try
-        FConfigService.BringDatabaseOnline;
-        // на классике сервер сразу возвращает выполнение
-        // и последующее подключение не пройдет, так как
-        // база еще будет выводиться из шатдауна.
-        // вроде бы, начиная с версии 2.1 эта пауза уже не
-        // будет нужна
-        Sleep(4000);
-        while FConfigService.IsServiceRunning do Sleep(100);
-        Result := True;
-      except
+      FConfigService.BringDatabaseOnline;
+      // на классике сервер сразу возвращает выполнение
+      // и последующее подключение не пройдет, так как
+      // база еще будет выводиться из шатдауна.
+      // вроде бы, начиная с версии 2.1 эта пауза уже не
+      // будет нужна
+      Sleep(4000);
+      while FConfigService.IsServiceRunning do Sleep(100);
+      Result := True;
+    except
+      on E: Exception do
         MessageBox(0,
-          'Базу данных не удалось перевести в рабочий режим.',
+          PChar('Базу данных не удалось перевести в многопользовательский режим.'#13#10#13#10 +
+          E.Message),
           'Внимание!',
           MB_OK or MB_ICONHAND or MB_TASKMODAL);
-      end;
-    finally
-      FConfigService.Active := False;
     end;
+  finally
+    FConfigService.Active := False;
+  end;
+end;
+
+function TgsDatabaseShutdown.GetShutdownCode: Integer;
+var
+  Tr: TIBTransaction;
+  q: TIBSQL;
+begin
+  Assert(FDatabase <> nil);
+  Assert(FDatabase.Connected);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text := 'SELECT mon$shutdown_mode FROM mon$database';
+    q.ExecQuery;
+
+    Assert(not q.EOF);
+    Result := q.Fields[0].AsInteger;
+  finally
+    q.Free;
+    Tr.Free;
   end;
 end;
 

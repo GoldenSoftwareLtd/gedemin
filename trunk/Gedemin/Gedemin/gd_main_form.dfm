@@ -55,6 +55,7 @@ object frmGedeminMain: TfrmGedeminMain
         end
         object tbiDatabasesList: TTBItem
           Action = actDatabasesList
+          ImageIndex = 107
         end
         object MenuItem1: TTBItem
           Action = actLogIn
@@ -181,7 +182,6 @@ object frmGedeminMain: TfrmGedeminMain
         end
         object TBItem23: TTBItem
           Action = actShowMonitoring
-          Caption = 'Монитор подлючений'
         end
         object TBItem17: TTBItem
           Action = actCompareDataBases
@@ -451,6 +451,7 @@ object frmGedeminMain: TfrmGedeminMain
     object actActiveFormList: TAction
       Category = 'Actions'
       Caption = 'Список активных окон...'
+      ImageIndex = 226
       OnExecute = actActiveFormListExecute
       OnUpdate = actActiveFormListUpdate
     end
@@ -463,21 +464,20 @@ object frmGedeminMain: TfrmGedeminMain
     object actLogIn: TAction
       Category = 'Actions'
       Caption = 'Подключиться...'
-      ImageIndex = 106
+      ImageIndex = 111
       OnExecute = actLogInExecute
       OnUpdate = actLogInUpdate
     end
     object actLogOff: TAction
       Category = 'Actions'
       Caption = 'Отключиться'
-      ImageIndex = 109
+      ImageIndex = 102
       OnExecute = actLogOffExecute
       OnUpdate = actLogOffUpdate
     end
     object actLoginSingle: TAction
       Category = 'Actions'
       Caption = 'Монопольный режим'
-      ImageIndex = 111
       OnExecute = actLoginSingleExecute
       OnUpdate = actLoginSingleUpdate
     end
@@ -490,12 +490,14 @@ object frmGedeminMain: TfrmGedeminMain
     object actBackup: TAction
       Category = 'Actions'
       Caption = 'Архивное копирование...'
+      ImageIndex = 109
       OnExecute = actBackupExecute
       OnUpdate = actBackupUpdate
     end
     object actRestore: TAction
       Category = 'Actions'
       Caption = 'Восстановление из архива...'
+      ImageIndex = 106
       OnExecute = actRestoreExecute
       OnUpdate = actRestoreUpdate
     end
@@ -508,7 +510,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actShowUsers: TAction
       Category = 'Actions'
-      Caption = 'Пользователи...'
+      Caption = 'Подключенные пользователи...'
       ImageIndex = 35
       OnExecute = actShowUsersExecute
       OnUpdate = actShowUsersUpdate
@@ -527,7 +529,7 @@ object frmGedeminMain: TfrmGedeminMain
       OnUpdate = actPropertyUpdate
     end
     object actOptions: TAction
-      Caption = 'Опции...'
+      Caption = 'Параметры...'
       ImageIndex = 28
       OnExecute = actOptionsExecute
       OnUpdate = actOptionsUpdate
@@ -540,7 +542,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actSQLEditor: TAction
       Caption = 'SQL редактор...'
-      ImageIndex = 108
+      ImageIndex = 72
       OnExecute = actSQLEditorExecute
       OnUpdate = actSQLEditorUpdate
     end
@@ -581,7 +583,8 @@ object frmGedeminMain: TfrmGedeminMain
       OnUpdate = actWorkingCompaniesUpdate
     end
     object actHelp: TAction
-      Caption = 'actHelp'
+      Caption = 'Справка'
+      ImageIndex = 12
       ShortCut = 112
       OnExecute = actHelpExecute
     end
@@ -602,7 +605,8 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actRecompileStatistics: TAction
       Category = 'Actions'
-      Caption = 'Сервис'
+      Caption = 'Обновление статистики индексов...'
+      ImageIndex = 144
       OnExecute = actRecompileStatisticsExecute
       OnUpdate = actRecompileStatisticsUpdate
     end
@@ -628,6 +632,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actShell: TAction
       Caption = 'Использовать как оболочку...'
+      ImageIndex = 85
       OnExecute = actShellExecute
       OnUpdate = actShellUpdate
     end
@@ -696,14 +701,14 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actStreamSaverOptions: TAction
       Category = 'Service'
-      Caption = 'Опции переноса данных'
+      Caption = 'Параметры переноса данных...'
       ImageIndex = 228
       OnExecute = actStreamSaverOptionsExecute
       OnUpdate = actStreamSaverOptionsUpdate
     end
     object actShowMonitoring: TAction
       Category = 'Actions'
-      Caption = 'actMonitoring'
+      Caption = 'Монитор подлючений'
       Hint = 'Монитор подлючений'
       ImageIndex = 120
       OnExecute = actShowMonitoringExecute
@@ -739,6 +744,7 @@ object frmGedeminMain: TfrmGedeminMain
     object actReconnect: TAction
       Category = 'Actions'
       Caption = 'Переподключиться'
+      ImageIndex = 108
       OnExecute = actReconnectExecute
       OnUpdate = actReconnectUpdate
     end

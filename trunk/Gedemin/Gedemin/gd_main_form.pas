@@ -1234,7 +1234,7 @@ begin
   actShowUsers.Enabled := (IBLogin <> nil)
     and (IBLogin.Database <> nil)
     and (IBLogin.Database.Connected)
-    and (IBLogin.IsUserAdmin);
+    and (IBLogin.IsIBUserAdmin);
 end;
 
 procedure TfrmGedeminMain.TBItem3Click(Sender: TObject);
@@ -2355,7 +2355,7 @@ end;
 
 procedure TfrmGedeminMain.actDatabasesListExecute(Sender: TObject);
 begin
-  gd_DatabasesList.ShowViewForm;
+  gd_DatabasesList.ShowViewForm(False);
 end;
 
 procedure TfrmGedeminMain.actDatabasesListUpdate(Sender: TObject);

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls;
+  StdCtrls, ActnList;
 
 type
   TdlgChangePass = class(TForm)
@@ -15,9 +15,11 @@ type
     Label2: TLabel;
     btnOk: TButton;
     btnCancel: TButton;
-
-    procedure btnOkClick(Sender: TObject);
+    ActionList: TActionList;
+    actOk: TAction;
     procedure FormCreate(Sender: TObject);
+    procedure actOkExecute(Sender: TObject);
+    procedure actOkUpdate(Sender: TObject);
 
   private
     procedure SetUserName(const Value: String);
@@ -33,34 +35,12 @@ implementation
 
 {$R *.DFM}
 
-  {$IFDEF LOCALIZATION}
+{$IFDEF LOCALIZATION}
 uses
   {must be placed after Windows unit!}
   gd_localization_stub, gd_localization
   ;
-  {$ENDIF}
-
-procedure TdlgChangePass.btnOkClick(Sender: TObject);
-begin
-  if Trim(edPassword.Text) = '' then
-  begin
-    MessageBox(Self.Handle,
-      'Введен пустой пароль!',
-      'Внимание',
-      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    edPassword.SetFocus;
-    ModalResult := mrNone;
-  end
-  else if edPassword.Text <> edPasswordDouble.Text then
-  begin
-    MessageBox(Self.Handle,
-      'Неверно подтвержден пароль!',
-      'Внимание',
-      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    edPasswordDouble.SetFocus;
-    ModalResult := mrNone;
-  end;
-end;
+{$ENDIF}
 
 procedure TdlgChangePass.FormCreate(Sender: TObject);
 begin
@@ -75,6 +55,17 @@ end;
 procedure TdlgChangePass.SetUserName(const Value: String);
 begin
   lblMsg.Caption := StringReplace(lblMsg.Caption, '%user%', Value, []);
+end;
+
+procedure TdlgChangePass.actOkExecute(Sender: TObject);
+begin
+  ModalResult := mrOk;
+end;
+
+procedure TdlgChangePass.actOkUpdate(Sender: TObject);
+begin
+  actOk.Enabled := (edPassword.Text > '')
+    and (edPassword.Text = edPasswordDouble.Text);
 end;
 
 end.
