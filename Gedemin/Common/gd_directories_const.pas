@@ -34,13 +34,16 @@ uses
   Windows, Registry, inst_const;
 
 const
-  SysDBAUserName  = 'SYSDBA';
-  SysDBAPassword  = 'masterkey';
-  UserNameValue   = 'USER_NAME';
-  PasswordValue   = 'PASSWORD';
-  ShutDownValue   = 'SHUTDOWN';
+  SysDBAUserName                  = 'SYSDBA';
+  SysDBAPassword                  = 'masterkey';
+  UserNameValue                   = 'USER_NAME';
+  PasswordValue                   = 'PASSWORD';
+  ShutDownValue                   = 'SHUTDOWN';
+  SQLRoleNameValue                = 'sql_role_name';
+  DefaultSQLRoleName              = 'ADMINISTRATOR';
+  Lc_ctypeValue                   = 'Lc_ctype';
+  DefaultLc_ctype                 = 'win1251';
 
-const
   // імя файла базы дадзеных
   DatabaseFileName                = 'GDBASE.FDB';
   // Mutex
@@ -81,15 +84,6 @@ const
 
   // шлях да сэрвера і файла базы дадзеных на ім
   ServerNameValue                 = 'SERVERNAME';
-
-  // кодавая табліца для падключэньня да сэрвера
-  Lc_ctypeValue                   = 'Lc_ctype';
-  DefaultLc_ctype                 = 'win1251';
-  //
-  SQL_Role_NameValue              = 'sql_role_name';
-  DefaultSQL_Role_Name            = 'ADMINISTRATOR';
-
-  User_NameValue                  = 'user_name';
 
   // Interbase user prefix
   UserNamePrefix                  = 'USER_';

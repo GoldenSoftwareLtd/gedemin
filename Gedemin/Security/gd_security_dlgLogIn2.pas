@@ -150,7 +150,7 @@ end;
 
 procedure TdlgSecLogIn2.actSelectDBExecute(Sender: TObject);
 begin
-  if gd_DatabasesList.ShowViewForm then
+  if gd_DatabasesList.ShowViewForm(True) then
     SyncControls;
 end;
 

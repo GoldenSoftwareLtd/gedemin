@@ -4690,9 +4690,9 @@ begin
           if IBLogin.LoggedIn then
           begin
             Clear_atSQLSetupCache;
-            IBLogin.Logoff;
-          end;
-          IBLogin.Login(True, True);
+            IBLogin.Relogin;
+          end else
+            IBLogin.Login;
         end;  
 
       finally
@@ -5041,9 +5041,10 @@ begin
         if IBLogin.LoggedIn then
         begin
           Clear_atSQLSetupCache;
-          IBLogin.Logoff;
-        end;
-        IBLogin.Login(True, True);
+          IBLogin.Relogin;
+        end else
+          IBLogin.Login;
+          
         atDatabase.ForceLoadFromDatabase;
       finally
         ibquery.Free;

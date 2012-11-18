@@ -3,7 +3,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   Top = 119
   Width = 677
   Height = 447
-  Caption = 'Список зарегистрированных баз данных'
+  Caption = 'Список баз данных'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -85,7 +85,6 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       RowSelect = True
       TabOrder = 0
       ViewStyle = vsReport
-      OnChange = lvChange
       OnDblClick = lvDblClick
     end
   end
@@ -106,11 +105,16 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       FullSize = True
       Images = dmImages.il16x16
       MenuBar = True
+      ParentShowHint = False
       ProcessShortCuts = True
+      ShowHint = True
       ShrinkMode = tbsmWrap
       TabOrder = 0
       object tbiCreate: TTBItem
         Action = actCreate
+      end
+      object TBItem4: TTBItem
+        Action = actCopy
       end
       object tbiEdit: TTBItem
         Action = actEdit
@@ -119,6 +123,14 @@ object gd_DatabasesListView: Tgd_DatabasesListView
         Action = actDelete
       end
       object TBSeparatorItem1: TTBSeparatorItem
+      end
+      object TBItem3: TTBItem
+        Action = actBackup
+      end
+      object TBItem2: TTBItem
+        Action = actRestore
+      end
+      object TBSeparatorItem3: TTBSeparatorItem
       end
       object TBItem1: TTBItem
         Action = actImport
@@ -132,14 +144,14 @@ object gd_DatabasesListView: Tgd_DatabasesListView
         Control = edFilter
       end
       object Label1: TLabel
-        Left = 104
+        Left = 179
         Top = 4
         Width = 48
         Height = 13
         Caption = ' Фильтр: '
       end
       object edFilter: TEdit
-        Left = 152
+        Left = 227
         Top = 0
         Width = 121
         Height = 21
@@ -166,12 +178,14 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     object actEdit: TAction
       Caption = 'Изменить...'
       ImageIndex = 1
-      OnUpdate = actImportUpdate
+      OnExecute = actEditExecute
+      OnUpdate = actEditUpdate
     end
     object actDelete: TAction
       Caption = 'Удалить'
       ImageIndex = 2
-      OnUpdate = actImportUpdate
+      OnExecute = actDeleteExecute
+      OnUpdate = actDeleteUpdate
     end
     object actImport: TAction
       Caption = 'Импорт из системного реестра'
@@ -182,6 +196,22 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     object actCancel: TAction
       Caption = 'Отмена'
       OnExecute = actCancelExecute
+    end
+    object actBackup: TAction
+      Caption = 'Архивное копирование...'
+      ImageIndex = 109
+      OnExecute = actBackupExecute
+    end
+    object actRestore: TAction
+      Caption = 'Восстановление из архива...'
+      ImageIndex = 106
+      OnExecute = actRestoreExecute
+    end
+    object actCopy: TAction
+      Caption = 'Дублировать...'
+      ImageIndex = 3
+      OnExecute = actCopyExecute
+      OnUpdate = actCopyUpdate
     end
   end
 end

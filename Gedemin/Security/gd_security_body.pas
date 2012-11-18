@@ -459,14 +459,11 @@ end;
 function TboLogin.BringOnLine: Boolean;
 begin
   if FShutDown then
-  with TgsDatabaseShutdown.Create(Self) do
+  with TgsDatabaseShutdown.Create(nil) do
   try
     Database := Self.Database;
     ShowUserDisconnectDialog := False;
-    FShutDown := IsShutdowned;
-
-    if FShutDown then
-      FShutDown := not BringOnline;
+    FShutDown := not BringOnline;
 
     if not FShutDown then
     begin
@@ -940,17 +937,12 @@ begin
 
               FShutDown := True;
 
-              with TgsDatabaseShutdown.Create(Self) do
+              Database.DatabaseName := FParams.Values[ServerNameValue];
+              with TgsDatabaseShutdown.Create(nil) do
               try
                 Database := Self.Database;
-                Database.DatabaseName := FParams.Values[ServerNameValue];
                 ShowUserDisconnectDialog := False;
-                FShutDown := IsShutdowned;
-
-                if FShutDown then
-                begin
-                  FShutDown := not BringOnline;
-                end;
+                FShutDown := not BringOnline;
 
                 if not FShutDown then
                   WriteShutDownKey(False);
@@ -1137,22 +1129,14 @@ begin
         //  в однопользовательский режим
 
         if FShutDownRequested then
-          with TgsDatabaseShutdown.Create(Self) do
+          with TgsDatabaseShutdown.Create(nil) do
           try
             Database := Self.Database;
             ShowUserDisconnectDialog := False;
-            FShutDown := IsShutdowned;
-
-            if FShutDownRequested then
-            begin
-              if not FShutDown then
-                FShutDown := Shutdown;
-
-              Result := FShutDown;
-
-              if Result then
-                WriteShutDownKey(True);
-            end;
+            FShutDown := Shutdown;
+            Result := FShutDown;
+            if Result then
+              WriteShutDownKey(True);
           finally
             Free;
           end;
@@ -1783,7 +1767,7 @@ function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): B
       repeat
         try
           CS.Active := True;
-          CS.ShutdownDatabase(Forced, 0);
+          CS.ShutdownDatabase(smeForce, 0, omSingle);
           // на классике сервер сразу возвращает выполнение
           // и последующее подключение не пройдет, так как
           // база еще будет переводиться в шатдауна.
@@ -1846,13 +1830,34 @@ function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): B
     Tr: TIBTransaction;
     q: TIBSQL;
     ErrorString: String;
-    ContFlag: Boolean;
+    ContFlag, FirstPass: Boolean;
   begin
     Assert(not Database.Connected);
+    FirstPass := True;
     repeat
-      ErrorString := '';
-      Result := gd_DatabasesList.LoginDlg(WithoutConnection, SingleUserMode, DI)
-        and (DI <> nil);
+      DI := gd_DatabasesList.FindSelected;
+      if (DI <> nil) and
+        (
+          ((DI.DIType = ditCmdLine) and (DI.EnteredLogin > '') and (DI.EnteredPassword > ''))
+          or
+          (DI.DIType = ditSilent)
+        ) then
+      begin
+        WithoutConnection := False;
+        SingleUserMode := False;
+        Result := FirstPass;
+
+        if (not Result) and (DI.DIType = ditCmdLine) then
+        begin
+          MessageBox(0,
+            PChar('Проверьте параметры в командной строке:'#13#10#13#10 + CmdLine),
+            'Внимание',
+            MB_OK or MB_ICONHAND or MB_TASKMODAL);
+        end;
+      end else
+        Result := gd_DatabasesList.LoginDlg(WithoutConnection, SingleUserMode, DI)
+          and (DI <> nil);
+
       if (not Result) or WithoutConnection then
         exit;
 
@@ -1967,6 +1972,19 @@ function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): B
         except
           on E: EIBError do
           begin
+            if IsSilentLogin then
+            begin
+              Result := False;
+              exit;
+            end;
+
+            if gd_CmdLineParams.QuietMode then
+            begin
+              ExitCode := E.IBErrorCode;
+              Application.Terminate;
+              Abort;
+            end;
+
             if E.IBErrorCode = isc_network_error then
             begin
               ErrorString :=
@@ -1980,7 +1998,11 @@ function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): B
             end
             else if E.IBErrorCode = isc_io_error then
             begin
-              ErrorString := 'Невозможно открыть файл базы данных.'#13#10#13#10 +
+              ErrorString :=
+                'Невозможно открыть файл базы данных.'#13#10#13#10 +
+                '1) Возможно неверно указано полное имя файла БД.'#13#10 +
+                '2) Или к базе данных уже кто-то подключен '#13#10 +
+                '   в однопользовательском режиме.'#13#10#13#10 +
                 'Сообщение об ошибке:'#13#10 + E.Message;
             end
             else if E.IBErrorCode = isc_login then
@@ -1999,8 +2021,8 @@ function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): B
                 else
                   ErrorString :=
                     'База данных не была переведена в многопользовательский режим.'#13#10#13#10 +
-                    'Для продолжения работы войдите под учетной записью Administrator'#13#10 +
-                    'и переведите базу данных в многопользовательский режим.';
+                    'Войдите под учетной записью Administrator и переведите базу'#13#10 +
+                    'данных в многопользовательский режим.';
               end else
                 ErrorString :=
                   'База данных находится в однопользовательском режиме.'#13#10 +
@@ -2019,6 +2041,8 @@ function TboLogin.Login(ReadParams: Boolean = True; ReLogin: Boolean = False): B
           'Внимание',
           MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
       end;
+
+      FirstPass := False;
     until ErrorString = '';
   end;
 
@@ -2146,6 +2170,7 @@ begin
   try
     Database.Params.Values[UserNameValue] := FIBName;
     Database.Params.Values[PasswordValue] := FIBPassword;
+    Database.Params.Values[SQLRoleNameValue] := DefaultSQLRoleName;
 
     if not CheckForModify(NeedReadDBVersion) then
       exit;
@@ -2235,65 +2260,39 @@ begin
 end;
 
 function TboLogin.LoginSilent(AnUserName, APassword: String; const ADBPath: string = ''): Boolean;
+var
+  Server, FileName: String;
+  Port: Integer;
+  DI, SelDI: Tgd_DatabaseItem;
 begin
-  //
-  //  Осуществляем проверку подключения
-
-  if LoggedIn then
-    raise EboLoginError.Create('Can''t login twice!');
-
-  FLoginInProgress := True;
-  FReLogining := True;
-  FSilentLogin := True;
-  try
-    FParams.Clear;
-
-    if ADBPath = '' then
-      ReadRegistryLoginParams
-    else
-      FParams.Values[ServerNameValue]:= ADBPath;
-    ReadCommandLineLoginParams;
-
-    FParams.Values[UserNameValue] := AnUserName;
-    FParams.Values[PasswordValue] := APassword;
-
-    if FParams.IndexOfName(Lc_ctypeValue) = -1 then
-      FParams.Add(Lc_ctypeValue + '=win1251');
-
-    //
-    //  Непосредственно осуществляем подключение
-    //  и открытие компании
-
-    EstablishConnection;
-
-    Result := LoggedIn;
-
-    if Result then begin
-      Assert(atDatabase <> nil, 'Не создана база атрибутов');
-      try
-        InitDatabase(dmLogin.ibtrAttr);
-        //Будем обязательно перечитывать базу
-        atDatabase.ProceedLoading(True);
-      except
-        on E:Exception do
-        begin
-          Database.Connected := False;
-          Result := False;
-          if Assigned(gdSplash) then
-            gdSplash.FreeSplash;
-        end;
-      end;
-      DoAfterSuccessfullConnection;
+  if ADBPath > '' then
+    ParseDatabaseName(ADBPath, Server, Port, FileName)
+  else begin
+    SelDI := gd_DatabasesList.FindSelected;
+    if SelDI = nil then
+      FileName := ''
+    else begin
+      Server := SelDI.Server;
+      FileName := SelDI.FileName;
     end;
-    //
-    //  Осуществляем открытие компании
+  end;
 
-    if Result and (not FAutoOpenCompany or not EnterCompany) then
-      OpenCompany
+  if FileName = '' then
+    Result := False
+  else begin
+    while gd_DatabasesList.FindByName(FileName) <> nil do
+      FileName := FileName + '_';
+    DI := gd_DatabasesList.Add as Tgd_DatabaseItem;
+    DI.Name := FileName;
+    DI.Server := Server;
+    DI.FileName := FileName;
+    DI.EnteredLogin := AnUserName;
+    DI.EnteredPassword := APassword;
+    DI.DIType := ditSilent;
+    DI.Selected := True;
 
-  finally
-    FLoginInProgress := False;
-    FReLogining := True;
+    FSilentLogin := True;
+    Result := Login;
   end;
 end;
 
@@ -2319,26 +2318,26 @@ begin
   begin
     ConnectionLost;
     FSilentLogin := False;
-    exit;
-  end;
+  end else
+  begin
+    FLoggingOff := True;
+    try
+      DoBeforeDisconnect;
 
-  FLoggingOff := True;
-  try
-    DoBeforeDisconnect;
+      // DoBeforeChangeCompany поставили после DoBeforeDisconnect
+      // для избежания двойного сохранения CompanyStorage
+      if FCompanyOpened then
+        DoBeforeChangeCompany;
 
-    // DoBeforeChangeCompany поставили после DoBeforeDisconnect
-    // для избежания двойного сохранения CompanyStorage
-    if FCompanyOpened then
-      DoBeforeChangeCompany;
-
-    if CloseConnection then
-    begin
-      FSilentLogin := False;
-      Result := True;
+      if CloseConnection then
+      begin
+        FSilentLogin := False;
+        Result := True;
+      end;
+    finally
+      FLoggingOff := False;
     end;
-  finally
-    FLoggingOff := False;
-  end;
+  end;  
 end;
 
 function TboLogin.OpenCompany(const ShowDialogAnyway: Boolean = False;
@@ -2618,7 +2617,7 @@ begin
     Params.Values[UserNameValue] := FIBName;
     Params.Values[PasswordValue] := FIBPassword;
     Params.Values[Lc_ctypeValue] := FParams.Values[Lc_ctypeValue];
-    Params.Values[SQL_Role_NameValue] := DefaultSQL_Role_Name;
+    Params.Values[SQLRoleNameValue] := DefaultSQLRoleName;
     DatabaseName := FParams.Values[ServerNameValue];
   end;
 end;
@@ -2877,12 +2876,25 @@ begin
         while CS.IsServiceRunning do Sleep(100);
         Result := True;
       except
-        on E: Exception do
+        on E: EIBError do
         begin
-          MessageBox(0, PChar(E.Message), 'Внимание!', MB_OK or MB_ICONHAND or MB_TASKMODAL);
-          FSysDBAPassword := '';
-          if not InputQuery(SN, 'Введите пароль учетной записи SYSDBA:', FSysDBAPassword) then
-            exit;
+          if E.IBErrorCode = isc_shutdown then
+          begin
+            MessageBox(0,
+              PChar(
+                'В настоящий момент времени другой пользователь'#13#10 +
+                'уже подключен к базе данных в однопользовательском режиме.'#13#10#13#10 +
+                'Дождитесь завершения его работы и повторите вход в систему.'),
+              'Внимание!',
+              MB_OK or MB_ICONHAND or MB_TASKMODAL);
+            exit;  
+          end else
+          begin
+            MessageBox(0, PChar(E.Message), 'Внимание!', MB_OK or MB_ICONHAND or MB_TASKMODAL);
+            FSysDBAPassword := '';
+            if not InputQuery(SN, 'Введите пароль учетной записи SYSDBA:', FSysDBAPassword) then
+              exit;
+          end;
         end;
       end;
     until Result;

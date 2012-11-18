@@ -4,7 +4,7 @@ object dlgChangePass: TdlgChangePass
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Пароль пользователя'
-  ClientHeight = 138
+  ClientHeight = 133
   ClientWidth = 295
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,17 +19,17 @@ object dlgChangePass: TdlgChangePass
   TextHeight = 13
   object lblUse: TLabel
     Left = 16
-    Top = 61
-    Width = 41
+    Top = 57
+    Width = 76
     Height = 13
-    Caption = 'Пароль:'
+    Caption = 'Новый пароль:'
     FocusControl = edPassword
   end
   object lblMsg: TLabel
     Left = 16
     Top = 14
     Width = 273
-    Height = 35
+    Height = 32
     AutoSize = False
     Caption = 'Необходимо ввести новый пароль для пользователя %user%.'
     FocusControl = edPassword
@@ -37,16 +37,16 @@ object dlgChangePass: TdlgChangePass
   end
   object Label2: TLabel
     Left = 16
-    Top = 85
-    Width = 129
-    Height = 16
+    Top = 81
+    Width = 126
+    Height = 13
     Caption = 'Подтверждение пароля:'
     FocusControl = edPasswordDouble
     WordWrap = True
   end
   object edPassword: TEdit
     Left = 160
-    Top = 58
+    Top = 54
     Width = 121
     Height = 21
     Ctl3D = True
@@ -56,7 +56,7 @@ object dlgChangePass: TdlgChangePass
   end
   object edPasswordDouble: TEdit
     Left = 160
-    Top = 82
+    Top = 78
     Width = 121
     Height = 21
     Ctl3D = True
@@ -66,23 +66,31 @@ object dlgChangePass: TdlgChangePass
   end
   object btnOk: TButton
     Left = 124
-    Top = 110
+    Top = 106
     Width = 75
     Height = 21
-    Caption = 'OK'
+    Action = actOk
     Default = True
     ModalResult = 1
     TabOrder = 2
-    OnClick = btnOkClick
   end
   object btnCancel: TButton
     Left = 206
-    Top = 110
+    Top = 106
     Width = 75
     Height = 21
     Cancel = True
     Caption = 'Отмена'
     ModalResult = 2
     TabOrder = 3
+  end
+  object ActionList: TActionList
+    Left = 40
+    Top = 104
+    object actOk: TAction
+      Caption = 'Ok'
+      OnExecute = actOkExecute
+      OnUpdate = actOkUpdate
+    end
   end
 end
