@@ -153,7 +153,6 @@ uses
   tax_frmAddParamsFunc_unit in '..\Tax\tax_frmAddParamsFunc_unit.pas' {frmAddParamsFunc},
   gd_dlgAbout_unit in 'gd_dlgAbout_unit.pas' {gd_dlgAbout},
   gsDBGrid_dlgFind_unit in '..\Component\gsDBGrid_dlgFind_unit.pas' {gsdbGrid_dlgFind},
-  gd_security_dlgDatabases_unit in '..\Security\gd_security_dlgDatabases_unit.pas' {gd_security_dlgDatabases},
   gd_dlgEntryFunctionWizard in '..\Component\gd_dlgEntryFunctionWizard.pas' {dlgEntryFunctionWizard},
   prp_VBStandart_const in '..\Property\prp_VBStandart_const.pas',
   gd_dlgEntryFunctionEdit in '..\Component\gd_dlgEntryFunctionEdit.pas' {dlgEntryFunctionEdit.pas},
@@ -312,8 +311,8 @@ uses
   , ExceptionDialog_unit in '..\Component\ExceptionDialog_unit.pas' {ExceptionDialog}
   {$ENDIF}
   , gd_frmMonitoring_unit in 'gd_frmMonitoring_unit.pas' {gd_frmMonitoring}
-  , gdcBlockRule
-  , gd_DatabasesList_unit;
+  , gd_GlobalParams_unit
+  , gdcBlockRule;
 
 {$R Gedemin.TLB}
 {$R *.RES}
@@ -614,6 +613,7 @@ begin
       if (MutexHandle = 0) or (not MutexExisted)
         or (MutexExisted and ShouldProceedLoading) then
       begin
+        gd_GlobalParams.SecondaryInstance := True;
 
         try
           Application.Initialize;

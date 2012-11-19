@@ -212,11 +212,11 @@ type
     procedure SetSubSystemKey(const Value: Integer);
 
     function LoginSingle: Boolean;
-    function BringOnLine: Boolean;
+    function BringOnLine(const ADBName: String = ''): Boolean;
     procedure ConnectionLost;
     procedure ConnectionLostMessage;
 
-    function Login(ReadParams: Boolean = True; ReLogin: Boolean = False): Boolean;
+    function Login: Boolean;
     function LoginSilent(AnUserName: String; APassword: String; const ADBPath: string = ''): Boolean;
     function Logoff: Boolean;
     function Relogin: Boolean;

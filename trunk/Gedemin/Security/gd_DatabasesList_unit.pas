@@ -69,7 +69,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure ReadFromRegistry;
+    procedure ReadFromRegistry(const CanClear: Boolean);
     procedure ScanDirectory;
     function FindByName(const AName: String): Tgd_DatabaseItem;
     function FindSelected: Tgd_DatabaseItem;
@@ -77,6 +77,8 @@ type
     function ShowViewForm(const ChangeSelected: Boolean): Boolean;
     function LoginDlg(out WithoutConnection, SingleUserMode: Boolean;
       out DI: Tgd_DatabaseItem): Boolean;
+
+    property IniFileName: String read FIniFileName;  
   end;
 
   Egd_DatabasesList = class(Exception);
@@ -89,7 +91,7 @@ implementation
 uses
   Windows, Wcrypt2, Forms, Controls, JclFileUtils, gd_common_functions,
   Registry, gd_DatabasesListView_unit, gd_DatabasesListDlg_unit,
-  gd_security_dlgLogIn2, gd_CmdLineParams_unit;
+  gd_security_dlgLogIn2, gd_CmdLineParams_unit, gd_GlobalParams_unit;
 
 const
   MaxUserCount = 10;
@@ -366,16 +368,71 @@ end;
 constructor Tgd_DatabasesList.Create;
 begin
   inherited Create(Tgd_DatabaseItem);
-  FIniFileName := ExtractFilePath(Application.EXEName) + 'databases.ini';
+  if gd_GlobalParams.NetworkDrive or gd_GlobalParams.CDROMDrive then
+    FIniFileName := IncludeTrailingBackslash(gd_GlobalParams.LocalAppDataDir)
+  else
+    FIniFileName := ExtractFilePath(Application.EXEName);
+  FIniFileName := FIniFileName + 'databases.ini';
   ReadFromIniFile;
   ReadFromCmdLine;
 end;
 
-procedure Tgd_DatabasesList.ReadFromRegistry;
+procedure Tgd_DatabasesList.ReadFromRegistry(const CanClear: Boolean);
+
+  procedure ClearRegistry;
+
+    procedure DeleteSubKeys(Reg: TRegistry);
+    var
+      SL: TStringList;
+      I: Integer;
+    begin
+      SL := TStringList.Create;
+      try
+        if Reg.OpenKey(ClientAccessRegistrySubKey, False) then
+        begin
+          Reg.GetKeyNames(SL);
+          for I := 0 to SL.Count - 1 do
+            Reg.DeleteKey(SL[I]);
+          Reg.CloseKey;
+        end;
+
+        Reg.DeleteKey(ClientAccessRegistrySubKey);
+      finally
+        SL.Free;
+      end;
+    end;
+
+  var
+    Reg: TRegistry;
+  begin
+    try
+      Reg := TRegistry.Create(KEY_ALL_ACCESS);
+      try
+        Reg.RootKey := HKEY_LOCAL_MACHINE;
+        if Reg.OpenKey(ClientRootRegistrySubKey, False) then
+        begin
+          Reg.DeleteValue('ServerName');
+          Reg.CloseKey;
+        end;
+        DeleteSubKeys(Reg);
+
+        Reg.RootKey := HKEY_CURRENT_USER;
+        DeleteSubKeys(Reg);
+      finally
+        Reg.Free;
+      end;
+    except
+      MessageBox(0,
+        'Недостаточно прав для удаления информации из системного реестра.',
+        'Внимание',
+        MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+    end;
+  end;
+
 var
   SL: TStringList;
   Reg: TRegistry;
-  Path, FileName, Server: String;
+  Path, FileName, Server, DefDB: String;
   DI: Tgd_DatabaseItem;
   I, Port: Integer;
 begin
@@ -383,6 +440,14 @@ begin
   Reg := TRegistry.Create(KEY_READ);
   try
     Reg.RootKey := ClientRootRegistryKey;
+
+    if Reg.OpenKey(ClientRootRegistrySubKey, False) then
+    begin
+      DefDB := Reg.ReadString('ServerName');
+      Reg.CloseKey;
+    end else
+      DefDB := '';
+
     if Reg.OpenKey(ClientAccessRegistrySubKey, False) then
     begin
       Reg.GetKeyNames(SL);
@@ -398,6 +463,7 @@ begin
             ParseDatabaseName(Reg.ReadString('Database'), Server, Port, FileName);
             DI.Server := Server;
             DI.FileName := FileName;
+            DI.Selected := (DefDB > '') and (Reg.ReadString('Database') = DefDB);
           end;
           Reg.CloseKey;
           Reg.OpenKey(Path, False);
@@ -407,6 +473,12 @@ begin
   finally
     SL.Free;
     Reg.Free;
+  end;
+
+  if CanClear then
+  begin
+    WriteToIniFile;
+    ClearRegistry;
   end;
 end;
 

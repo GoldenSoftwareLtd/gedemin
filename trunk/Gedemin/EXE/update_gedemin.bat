@@ -43,6 +43,7 @@ set gedemin_upd_cfg=gedemin_upd.product.cfg
 set gudf_cfg=gudf.product.cfg
 set compiler_switch=-b
 set arc_name=gedemin.rar
+set gudf_arc_name=gudf.rar
 goto start_process
 
 :make_debug
@@ -51,6 +52,7 @@ set gedemin_upd_cfg=gedemin_upd.debug.cfg
 set gudf_cfg=gudf.debug.cfg
 set compiler_switch=-b -vt
 set arc_name=gedemin_debug.rar
+set gudf_arc_name=gudf_debug.rar
 
 :start_process
 
@@ -293,18 +295,17 @@ echo **  Upload gudf.rar                            **
 echo **                                             **
 echo *************************************************
 
-set arc_name=gudf.rar
-set arc_command="c:\program files\winrar\winrar.exe" a %arc_name%
+set arc_command="c:\program files\winrar\winrar.exe" a %gudf_arc_name%
 
-if exist %arc_name% del %arc_name% 
+if exist %gudf_arc_name% del %gudf_arc_name% 
 %arc_command% udf\gudf.dll
 
 if exist temp_ftp_commands.txt del temp_ftp_commands.txt
-call BatchSubstitute.bat gedemin.rar %arc_name% ftp_commands.txt > temp_ftp_commands.txt
+call BatchSubstitute.bat gedemin.rar %gudf_arc_name% ftp_commands.txt > temp_ftp_commands.txt
 ftp -s:temp_ftp_commands.txt
 if not errorlevel 0 goto exit
 
-del %arc_name%
+del %gudf_arc_name%
 del temp_ftp_commands.txt
 
 echo *************************************************
@@ -314,7 +315,7 @@ echo **                                             **
 echo **                                             **
 echo *************************************************
 
-xcopy gedemin.exe g:\common\gedemin\gedemin.exe /Y
+rem xcopy gedemin.exe g:\common\gedemin\gedemin.exe /Y
 
 
 :exit
