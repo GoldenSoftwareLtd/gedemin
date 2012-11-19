@@ -342,7 +342,10 @@ end;
 function TgsIBLogin.LoginWithParams(ReadParams,
   ReLogin: WordBool): WordBool;
 begin
-  Result := IBLogin.Login(ReadParams, ReLogin);
+  if ReLogin then
+    Result := IBLogin.Relogin
+  else
+    Result := IBLogin.Login;
 end;
 
 procedure TgsIBLogin.ClearHoldingListCache;

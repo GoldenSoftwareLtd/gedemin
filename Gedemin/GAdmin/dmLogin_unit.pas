@@ -56,7 +56,7 @@ uses
   at_classes_body,              flt_dlg_dlgQueryParam_unit,
   rp_BaseReport_unit,           gd_splash,             gsStorage,
   Registry,                     inst_const,            gdcSetting,
-  gdcBaseInterface,             dm_i_ClientReport_unit,
+  gdcBaseInterface,             dm_i_ClientReport_unit,gd_GlobalParams_unit,
   prp_PropertySettings,         gd_i_ScriptFactory,    flt_sqlFilterCache,
 
   {$IFDEF WITH_INDY}
@@ -191,7 +191,8 @@ begin
   {$IFDEF WITH_INDY}
   if not Application.Terminated then
   begin
-    gdWebServerControl.ActivateServer;
+    if not gd_GlobalParams.SecondaryInstance then
+      gdWebServerControl.ActivateServer;
     gdWebClientThread.AfterConnection;
   end;
   {$ENDIF}  

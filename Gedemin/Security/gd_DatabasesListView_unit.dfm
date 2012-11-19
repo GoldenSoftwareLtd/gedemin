@@ -2,7 +2,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   Left = 461
   Top = 119
   Width = 677
-  Height = 447
+  Height = 547
   Caption = 'Список баз данных'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -17,7 +17,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   TextHeight = 13
   object pnlBottom: TPanel
     Left = 0
-    Top = 375
+    Top = 475
     Width = 661
     Height = 34
     Align = alBottom
@@ -54,7 +54,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     Left = 0
     Top = 26
     Width = 661
-    Height = 349
+    Height = 449
     Align = alClient
     BevelOuter = bvLowered
     TabOrder = 0
@@ -62,7 +62,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       Left = 1
       Top = 1
       Width = 659
-      Height = 347
+      Height = 447
       Align = alClient
       BorderStyle = bsNone
       Columns = <

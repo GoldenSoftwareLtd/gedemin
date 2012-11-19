@@ -1118,7 +1118,7 @@ end;
 procedure TfrmGedeminMain.actLogInExecute(Sender: TObject);
 begin
   if not IBLogin.LoggedIn then
-    IBLogin.Login(False);
+    IBLogin.Login;
 end;
 
 procedure TfrmGedeminMain.actLogOffExecute(Sender: TObject);
@@ -1152,7 +1152,7 @@ end;
 
 procedure TfrmGedeminMain.actBringOnlineExecute(Sender: TObject);
 begin
-  //IBLogin.BringOnLine;
+  actReconnect.Execute;
 end;
 
 procedure TfrmGedeminMain.actLoginSingleUpdate(Sender: TObject);
@@ -1163,8 +1163,10 @@ end;
 
 procedure TfrmGedeminMain.actBringOnlineUpdate(Sender: TObject);
 begin
-  actBringOnline.Visible := False;
-  //actBringOnline.Enabled := not IBLogin.LoggedIn and IBLogin.ShutDown;
+  actBringOnline.Enabled := (IBLogin <> nil)
+    and IBLogin.LoggedIn
+    and IBLogin.IsIBUserAdmin
+    and IBLogin.ShutDown;
 end;
 
 procedure TfrmGedeminMain.actBackupExecute(Sender: TObject);

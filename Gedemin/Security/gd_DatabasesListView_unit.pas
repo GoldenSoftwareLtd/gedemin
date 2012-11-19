@@ -63,6 +63,7 @@ type
     FChosen: Tgd_DatabaseItem;
 
     function AddListItem(DI: Tgd_DatabaseItem): TListItem;
+    function AssignListItem(LI: TListItem; DI: Tgd_DatabaseItem): TListItem;
 
   public
     procedure SyncControls;
@@ -163,7 +164,12 @@ end;
 
 procedure Tgd_DatabasesListView.actImportExecute(Sender: TObject);
 begin
-  gd_DatabasesList.ReadFromRegistry;
+  gd_DatabasesList.ReadFromRegistry(
+    MessageBox(Handle,
+      'Удалить информацию из системного реестра после успешного импорта?',
+      'Внимание',
+      MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES
+  );
   SyncControls;
 end;
 
@@ -200,9 +206,8 @@ begin
   if lv.Selected <> nil then
   begin
     DI := gd_DatabasesList.FindByName(lv.Selected.Caption);
-    if DI <> nil then
-      if DI.EditInDialog then
-        SyncControls;
+    if (DI <> nil) and DI.EditInDialog then
+      AssignListItem(lv.Selected, DI);
   end;
 end;
 
@@ -297,9 +302,17 @@ end;
 function Tgd_DatabasesListView.AddListItem(
   DI: Tgd_DatabaseItem): TListItem;
 begin
+  Result := AssignListItem(lv.Items.Add, DI);
+end;
+
+function Tgd_DatabasesListView.AssignListItem(LI: TListItem;
+  DI: Tgd_DatabaseItem): TListItem;
+begin
   Assert(DI <> nil);
-  Result := lv.Items.Add;
+  Assert(LI <> nil);
+  Result := LI;
   Result.Caption := DI.Name;
+  Result.SubItems.Clear;
   Result.SubItems.Add(DI.Server);
   Result.SubItems.Add(DI.FileName);
 end;

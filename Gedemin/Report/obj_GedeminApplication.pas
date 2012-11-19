@@ -354,7 +354,7 @@ begin
   // Если нет, то должно произойти внутри процедуры
   if IsConnectable(ltQuery, '', '') then
     // Иначе подключаемся
-    Result := IBLogin.Login(False)
+    Result := IBLogin.Login
   else
     // Проверяем произошло ли подключение
     // Если возникает ошибка при подключении в первый раз, то dmDatabase освобождается

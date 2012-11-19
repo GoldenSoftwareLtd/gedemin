@@ -484,6 +484,7 @@ object frmGedeminMain: TfrmGedeminMain
     object actBringOnline: TAction
       Category = 'Actions'
       Caption = 'Многопользовательский режим'
+      ImageIndex = 31
       OnExecute = actBringOnlineExecute
       OnUpdate = actBringOnlineUpdate
     end
@@ -503,7 +504,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actEditForm: TAction
       Category = 'Actions'
-      Caption = 'Редактор форм...'
+      Caption = 'Редактор экранных форм...'
       ImageIndex = 115
       OnExecute = actEditFormExecute
       OnUpdate = actEditFormUpdate
@@ -541,7 +542,7 @@ object frmGedeminMain: TfrmGedeminMain
       OnUpdate = actScanTemplateUpdate
     end
     object actSQLEditor: TAction
-      Caption = 'SQL редактор...'
+      Caption = 'Редактор SQL...'
       ImageIndex = 72
       OnExecute = actSQLEditorExecute
       OnUpdate = actSQLEditorUpdate
@@ -708,7 +709,7 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actShowMonitoring: TAction
       Category = 'Actions'
-      Caption = 'Монитор подлючений'
+      Caption = 'Монитор подключений...'
       Hint = 'Монитор подлючений'
       ImageIndex = 120
       OnExecute = actShowMonitoringExecute
