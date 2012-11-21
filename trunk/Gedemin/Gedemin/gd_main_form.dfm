@@ -174,6 +174,9 @@ object frmGedeminMain: TfrmGedeminMain
         object tbiSettings: TTBItem
           Action = actSettings
         end
+        object TBItem17: TTBItem
+          Action = actCompareDataBases
+        end
         object TBItem22: TTBItem
           Action = actLoadPackage
           Caption = 'Установить пакеты настроек...'
@@ -183,14 +186,13 @@ object frmGedeminMain: TfrmGedeminMain
         object TBItem23: TTBItem
           Action = actShowMonitoring
         end
-        object TBItem17: TTBItem
-          Action = actCompareDataBases
+        object tbiScanTemplate: TTBItem
+          Action = actScanTemplate
+        end
+        object TBSeparatorItem16: TTBSeparatorItem
         end
         object TBItem20: TTBItem
           Action = actShell
-        end
-        object tbiScanTemplate: TTBItem
-          Action = actScanTemplate
         end
         object TBSeparatorItem6: TTBSeparatorItem
         end
@@ -209,21 +211,27 @@ object frmGedeminMain: TfrmGedeminMain
         object tbiSQLProcessWindow: TTBItem
           Action = actSQLProcess
         end
-        object TBSeparatorItem1: TTBSeparatorItem
-        end
         object N25: TTBItem
           Action = actActiveFormList
         end
-        object N26: TTBItem
-          Action = actClear
-        end
-        object TBSeparatorItem3: TTBSeparatorItem
+        object TBSeparatorItem1: TTBSeparatorItem
         end
         object TBItem7: TTBItem
           Action = actSaveDesktop
         end
         object TBItem8: TTBItem
           Action = actDeleteDesktop
+        end
+        object TBSeparatorItem3: TTBSeparatorItem
+        end
+        object TBItem29: TTBItem
+          Action = actHideAll
+        end
+        object TBItem28: TTBItem
+          Action = actCloseAll
+        end
+        object N26: TTBItem
+          Action = actClear
         end
       end
       object tbsiHelp: TTBSubmenuItem
@@ -427,16 +435,16 @@ object frmGedeminMain: TfrmGedeminMain
     end
     object actSaveDesktop: TAction
       Category = 'Просмотр'
-      Caption = 'Сохранить стол...'
-      Hint = 'Сохранить стол'
+      Caption = 'Сохранить текущий рабочий стол...'
+      Hint = 'Сохранить текущий рабочий стол'
       ImageIndex = 38
       OnExecute = actSaveDesktopExecute
       OnUpdate = actSaveDesktopUpdate
     end
     object actDeleteDesktop: TAction
       Category = 'Просмотр'
-      Caption = 'Удалить стол'
-      Hint = 'Удалить стол'
+      Caption = 'Удалить рабочий стол...'
+      Hint = 'Удалить рабочий стол'
       ImageIndex = 39
       OnExecute = actDeleteDesktopExecute
       OnUpdate = actDeleteDesktopUpdate
@@ -550,14 +558,14 @@ object frmGedeminMain: TfrmGedeminMain
     object actCloseForm: TAction
       Category = 'Forms'
       Caption = 'Закрыть форму'
-      Hint = 'Закрыть форму'
+      Hint = 'Закрыть форму просмотра'
       OnExecute = actCloseFormExecute
       OnUpdate = actCloseFormUpdate
     end
     object actCloseAll: TAction
       Category = 'Forms'
       Caption = 'Закрыть все'
-      Hint = 'Закрыть все'
+      Hint = 'Закрыть все формы просмотра'
       ImageIndex = 42
       OnExecute = actCloseAllExecute
       OnUpdate = actCloseAllUpdate
@@ -565,14 +573,14 @@ object frmGedeminMain: TfrmGedeminMain
     object actHideForm: TAction
       Category = 'Forms'
       Caption = 'Свернуть форму'
-      Hint = 'Свернуть форму'
+      Hint = 'Свернуть форму просмотра'
       OnExecute = actHideFormExecute
       OnUpdate = actHideFormUpdate
     end
     object actHideAll: TAction
       Category = 'Forms'
       Caption = 'Свернуть все'
-      Hint = 'Свернуть все'
+      Hint = 'Свернуть все формы просмотра'
       OnExecute = actHideAllExecute
       OnUpdate = actHideAllUpdate
     end

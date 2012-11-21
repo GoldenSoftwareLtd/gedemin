@@ -1,8 +1,8 @@
 object gd_DatabasesListView: Tgd_DatabasesListView
-  Left = 461
-  Top = 119
-  Width = 677
-  Height = 547
+  Left = 349
+  Top = 90
+  Width = 741
+  Height = 606
   Caption = 'Список баз данных'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -17,14 +17,14 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   TextHeight = 13
   object pnlBottom: TPanel
     Left = 0
-    Top = 475
-    Width = 661
+    Top = 534
+    Width = 725
     Height = 34
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
     object pnlButtons: TPanel
-      Left = 476
+      Left = 540
       Top = 0
       Width = 185
       Height = 34
@@ -53,16 +53,16 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   object pnlWorkArea: TPanel
     Left = 0
     Top = 26
-    Width = 661
-    Height = 449
+    Width = 725
+    Height = 508
     Align = alClient
     BevelOuter = bvLowered
     TabOrder = 0
     object lv: TListView
       Left = 1
       Top = 1
-      Width = 659
-      Height = 447
+      Width = 723
+      Height = 506
       Align = alClient
       BorderStyle = bsNone
       Columns = <
@@ -83,6 +83,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       HideSelection = False
       ReadOnly = True
       RowSelect = True
+      SortType = stText
       TabOrder = 0
       ViewStyle = vsReport
       OnDblClick = lvDblClick
@@ -91,7 +92,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   object TBDock: TTBDock
     Left = 0
     Top = 0
-    Width = 661
+    Width = 725
     Height = 26
     AllowDrag = False
     LimitToOneRow = True

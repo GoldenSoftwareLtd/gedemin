@@ -44,7 +44,11 @@ procedure Tgd_DatabasesListDlg.btnSelectFileClick(Sender: TObject);
 begin
   OpenDialog.FileName := edFileName.Text;
   if OpenDialog.Execute then
+  begin
     edFileName.Text := OpenDialog.FileName;
+    if edName.Text = '' then
+      edName.Text := ExtractFileName(edFileName.Text);
+  end;
 end;
 
 procedure Tgd_DatabasesListDlg.actOkUpdate(Sender: TObject);

@@ -5,13 +5,12 @@ interface
 
 uses
   Classes, Windows, Messages, SyncObjs, SysUtils, idHTTP, idURI, idComponent,
-  gdMessagedThread, gd_FileList_unit, gd_ProgressNotifier_unit;
+  idThreadSafe, gdMessagedThread, gd_FileList_unit, gd_ProgressNotifier_unit;
 
 type
   TgdWebClientThread = class(TgdMessagedThread)
   private
-    FCS: TCriticalSection;
-    FgdWebServerURL: String;
+    FgdWebServerURL: TidThreadSafeString;
     FServerFileList: TFLCollection;
     FConnected, FInUpdate: Boolean;
     FHTTP: TidHTTP;
@@ -19,6 +18,11 @@ type
     FURI: TidURI;
     FProgressWatch: IgdProgressWatch;
     FPI: TgdProgressInfo;
+    FDBID: Integer;
+    FCompanyName, FCompanyRUID: String;
+    FLocalIP: String;
+    FEXEVer: String;
+    FUpdateToken: String;
 
     function QueryWebServer: Boolean;
     function LoadWebServerURL: Boolean;
@@ -60,7 +64,7 @@ implementation
 uses
   ComObj, ActiveX, gdcJournal, gd_security, JclSimpleXML,
   gdNotifierThread_unit, gd_directories_const, JclFileUtils,
-  Forms;
+  Forms, gd_CmdLineParams_unit;
 
 const
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
@@ -77,17 +81,18 @@ begin
   inherited Create(True);
   FreeOnTerminate := False;
   Priority := tpLowest;
-  FCS := TCriticalSection.Create;
   FHTTP := TidHTTP.Create(nil);
   FHTTP.HandleRedirects := True;
   FHTTP.ReadTimeout := 88000;
   FHTTP.ConnectTimeout := 44000;
   FHTTP.OnWork := DoOnWork;
   FURI := TidURI.Create;
+  FgdWebServerURL := TidThreadSafeString.Create;
 end;
 
 procedure TgdWebClientThread.AfterConnection;
 begin
+  gdWebServerURL := gd_CmdLineParams.RemoteServer;
   PostMsg(WM_GD_AFTER_CONNECTION);
 end;
 
@@ -97,11 +102,11 @@ var
 begin
   Result := False;
   if IBLogin = nil then
-    FErrorMessage := 'IBLogin is not assigned.'
+    ErrorMessage := 'IBLogin is not assigned.'
   else if gdWebServerURL = '' then
-    FErrorMessage := 'gdWebServerURL is not assigned.'
+    ErrorMessage := 'gdWebServerURL is not assigned.'
   else if FInUpdate then
-    FErrorMessage := 'Update process is running.'
+    ErrorMessage := 'Update process is running.'
   else begin
     FURI.URI := gdWebServerURL;
     gdNotifierThread.Add('Подключение к серверу: ' + FURI.Host + '...', 0, 2000);
@@ -122,21 +127,29 @@ end;
 
 function TgdWebClientThread.LoadWebServerURL: Boolean;
 begin
-  FURI.URI := Gedemin_NameServerURL;
-  gdNotifierThread.Add('Опрос сервера: ' + FURI.Host + '...', 0, 2000);
-  gdWebServerURL := FHTTP.Get(Gedemin_NameServerURL);
-  //!!!
-  //gdWebServerURL := 'http://192.168.0.35';
-  gdWebServerURL := 'http://127.0.0.1';
-  //!!!
-  Result := gdWebServerURL > '';
+  if gdWebServerURL = '' then
+  begin
+    FURI.URI := Gedemin_NameServerURL;
+    gdNotifierThread.Add('Опрос сервера: ' + FURI.Host + '...', 0, 2000);
+    gdWebServerURL := FHTTP.Get(Gedemin_NameServerURL);
+  end;
+
+  if gdWebServerURL > '' then
+  begin
+    gdNotifierThread.Add('Определен адрес удаленного сервера: ' + gdWebServerURL, 0, 2000);
+    Result := True;
+  end else
+  begin
+    gdNotifierThread.Add('Адрес удаленного сервера не определен.', 0, 2000);
+    Result := False;
+  end;
 end;
 
 function TgdWebClientThread.UpdateFiles: Boolean;
 begin
   Result := FServerFileList <> nil;
   if not Result then
-    FErrorMessage := 'FServerFileList is not assigned.'
+    ErrorMessage := 'FServerFileList is not assigned.'
   else begin
     if FCmdList = nil then
       FCmdList := TStringList.Create
@@ -183,10 +196,10 @@ end;
 
 procedure TgdWebClientThread.LogError;
 begin
-  if FErrorMessage > '' then
+  if ErrorMessage > '' then
   begin
-    TgdcJournal.AddEvent(FErrorMessage, 'HTTPClient', -1, nil, True);
-    FErrorMessage := '';
+    TgdcJournal.AddEvent(ErrorMessage, 'HTTPClient', -1, nil, True);
+    ErrorMessage := '';
   end;
 end;
 
@@ -205,7 +218,7 @@ end;
 destructor TgdWebClientThread.Destroy;
 begin
   inherited;
-  FCS.Free;
+  FgdWebServerURL.Free;
   FServerFileList.Free;
   FHTTP.Free;
   FCmdList.Free;
@@ -214,21 +227,17 @@ end;
 
 function TgdWebClientThread.GetgdWebServerURL: String;
 begin
-  FCS.Enter;
-  Result := FgdWebServerURL;
-  FCS.Leave;
+  Result := FgdWebServerURL.Value;
 end;
 
 procedure TgdWebClientThread.SetgdWebServerURL(const Value: String);
 begin
-  FCS.Enter;
-  FgdWebServerURL := Value;
-  FCS.Leave;
+  FgdWebServerURL.Value := Value;
 end;
 
 function TgdWebClientThread.ProcessUpdateCommand: Boolean;
 begin
-  Result := FServerFileList.UpdateFile(FHTTP, FgdWebServerURL, FCmdList);
+  Result := FServerFileList.UpdateFile(FHTTP, gdWebServerURL, FCmdList);
 end;
 
 procedure TgdWebClientThread.FinishUpdate;
@@ -251,7 +260,7 @@ begin
         nil, nil, False, NORMAL_PRIORITY_CLASS or CREATE_NO_WINDOW, nil, nil,
         StartupInfo, ProcessInfo) then
       begin
-        FErrorMessage := 'Can not start ' + Gedemin_Updater + '. ' +
+        ErrorMessage := 'Can not start ' + Gedemin_Updater + '. ' +
           SysErrorMessage(GetLastError);
       end;
     end;

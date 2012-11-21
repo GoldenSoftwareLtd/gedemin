@@ -179,6 +179,9 @@ type
     tbiSqueeze: TTBItem;
     tbiDatabasesList: TTBItem;
     actDatabasesList: TAction;
+    TBSeparatorItem16: TTBSeparatorItem;
+    TBItem28: TTBItem;
+    TBItem29: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actExplorerExecute(Sender: TObject);
     procedure actExplorerUpdate(Sender: TObject);
@@ -1688,7 +1691,7 @@ var
   I: Integer;
   Form: TObject;
 begin
-  if MessageBox(Handle, 'Закрыть все формы?', 'Внимание', MB_YESNO or MB_ICONQUESTION) = IDYES then
+  if MessageBox(Handle, 'Закрыть все формы просмотра?', 'Внимание', MB_YESNO or MB_ICONQUESTION) = IDYES then
   begin
     for I := tbForms.Items.Count - 1 downto 0 do
       if tbForms.Items[I] is TTBItem then
