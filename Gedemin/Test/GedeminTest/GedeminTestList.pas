@@ -25,6 +25,7 @@ uses
   , Test_gdcMetaData_unit
   , Test_dlgAbout_unit
   , Test_gdcObject_unit
+  , Test_gd_Security_unit
   {$ENDIF}
   ;
   

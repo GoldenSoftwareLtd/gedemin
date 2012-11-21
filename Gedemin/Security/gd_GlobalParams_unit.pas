@@ -13,6 +13,7 @@ type
     FNetworkDrive: Boolean;
     FCDROMDrive: Boolean;
     FSecondaryInstance: Boolean;
+    FUpdateToken: String;
 
   public
     constructor Create;
@@ -21,6 +22,7 @@ type
     property NetworkDrive: Boolean read FNetworkDrive;
     property CDROMDrive: Boolean read FCDROMDrive;
     property SecondaryInstance: Boolean read FSecondaryInstance write FSecondaryInstance;
+    property UpdateToken: String read FUpdateToken;
   end;
 
 var
@@ -48,6 +50,7 @@ begin
     IncludeTrailingBackslash(ExtractFileDrive(Application.ExeName))));
   FNetworkDrive := DriveType = DRIVE_REMOTE;
   FCDROMDrive := DriveType = DRIVE_CDROM;
+  FUpdateToken := 'NORMAL';
 end;
 
 initialization

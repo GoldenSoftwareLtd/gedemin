@@ -10,6 +10,7 @@ type
   TgdMessagedThread = class(TThread)
   private
     FCreatedEvent: TEvent;
+    FCriticalSection: TCriticalSection;
     FTimeout: DWORD;
 
   protected
@@ -24,6 +25,10 @@ type
     function ProcessMessage(var Msg: TMsg): Boolean; virtual;
     procedure LogError; virtual;
     procedure SetTimeout(const ATimeout: DWORD);
+    procedure Lock;
+    procedure Unlock;
+
+    property ErrorMessage: String read FErrorMessage write FErrorMessage;
 
   public
     constructor Create(CreateSuspended: Boolean);
@@ -45,7 +50,8 @@ constructor TgdMessagedThread.Create(CreateSuspended: Boolean);
 begin
   inherited Create(CreateSuspended);
   FTimeOut := INFINITE;
-  FCreatedEvent := TEvent.Create(nil, True, False, 'gdMessagedThreadMsgLoopCreated');
+  FCreatedEvent := TEvent.Create(nil, True, False, '');
+  FCriticalSection := TCriticalSection.Create;
 end;
 
 destructor TgdMessagedThread.Destroy;
@@ -55,10 +61,11 @@ begin
     if FCreatedEvent.WaitFor(INFINITE) = wrSignaled then
       PostThreadMessage(ThreadID, WM_GD_EXIT_THREAD, 0, 0);
   end;
-  
+
   inherited;
 
   FCreatedEvent.Free;
+  FCriticalSection.Free;
 end;
 
 procedure TgdMessagedThread.Execute;
@@ -66,6 +73,8 @@ var
   Msg: TMsg;
   HArr: array[0..0] of THandle;
 begin
+  PeekMessage(Msg, 0, WM_USER, WM_USER, PM_NOREMOVE);
+  FCreatedEvent.SetEvent;
   Setup;
   try
     while (not Terminated) do
@@ -105,6 +114,11 @@ begin
   end;
 end;
 
+procedure TgdMessagedThread.Lock;
+begin
+  FCriticalSection.Enter;
+end;
+
 procedure TgdMessagedThread.LogError;
 begin
   if FErrorMessage > '' then
@@ -139,11 +153,8 @@ begin
 end;
 
 procedure TgdMessagedThread.Setup;
-var
-  Msg: TMsg;
 begin
-  PeekMessage(Msg, 0, WM_USER, WM_USER, PM_NOREMOVE);
-  FCreatedEvent.SetEvent;
+  //
 end;
 
 procedure TgdMessagedThread.TearDown;
@@ -154,6 +165,11 @@ end;
 procedure TgdMessagedThread.Timeout;
 begin
   //
+end;
+
+procedure TgdMessagedThread.Unlock;
+begin
+  FCriticalSection.Leave;
 end;
 
 end.

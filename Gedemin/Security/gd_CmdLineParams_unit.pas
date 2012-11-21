@@ -38,6 +38,7 @@ type
     FRestoreBKFile: String;
     FRestoreDBFile: String;
     FWarning: String;
+    FRemoteServer: String;
 
     function StripQuotes(const S: String): String;
     function CompareAnyString(const S: String; const S2: array of String): Boolean; overload;
@@ -79,6 +80,7 @@ type
     property RestorePageSize: Integer read FRestorePageSize;
     property RestoreBufferSize: Integer read FRestoreBufferSize;
     property Warning: String read FWarning;
+    property RemoteServer: String read FRemoteServer;
   end;
 
 var
@@ -309,6 +311,13 @@ begin
       if CompareAnyString(SL[I], ['TRACE']) then
       begin
         FTraceSQL := True;
+      end else
+
+      if CompareAnyString(SL[I], ['RS'])
+        and (I < SL.Count - 1) then
+      begin
+        Inc(I);
+        FRemoteServer := SL[I];
       end else
 
       if CompareAnyString(SL[I], ['SETTINGPATH', 'SP'])

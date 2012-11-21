@@ -63,7 +63,6 @@ type
 
   TgdNotifierThread = class(TgdMessagedThread)
   private
-    FCriticalSection: TCriticalSection;
     FQueue: TgdNotifierQueue;
     FNotification: String;
     FNotifierWindow: IgdNotifierWindow;
@@ -112,7 +111,7 @@ function TgdNotifierThread.Add(const AText: String; const AContext: Integer = 0;
 var
   Item: TgdNotifierItem;
 begin
-  FCriticalSection.Enter;
+  Lock;
   try
     Item := FQueue.Add as TgdNotifierItem;
     Item.Text := AText;
@@ -123,7 +122,7 @@ begin
 
     PostMsg(WM_GD_UPDATE_NOTIFIER, Item.ID);
   finally
-    FCriticalSection.Leave;
+    Unlock;
   end;
 end;
 
@@ -131,36 +130,34 @@ constructor TgdNotifierThread.Create;
 begin
   inherited Create(True);
   Priority := tpLowest;
-  FCriticalSection := TCriticalSection.Create;
   FQueue := TgdNotifierQueue.Create;
 end;
 
 procedure TgdNotifierThread.DeleteNotification(const AnID: Integer);
 begin
-  FCriticalSection.Enter;
+  Lock;
   try
     if FQueue.DeleteNotification(AnID) then
       PostMsg(WM_GD_UPDATE_NOTIFIER);
   finally
-    FCriticalSection.Leave;
+    Unlock;
   end;
 end;
 
 procedure TgdNotifierThread.DeleteContext(const AContext: Integer);
 begin
-  FCriticalSection.Enter;
+  Lock;
   try
     if FQueue.DeleteContext(AContext) then
       PostMsg(WM_GD_UPDATE_NOTIFIER);
   finally
-    FCriticalSection.Leave;
+    Unlock;
   end;
 end;
 
 destructor TgdNotifierThread.Destroy;
 begin
   inherited;
-  FCriticalSection.Free;
   FQueue.Free;
 end;
 
@@ -174,11 +171,11 @@ end;
 
 function TgdNotifierThread.GetNextContext: Integer;
 begin
-  FCriticalSection.Enter;
+  Lock;
   try
     Result := FQueue.GetNextContext;
   finally
-    FCriticalSection.Leave;
+    Unlock;
   end;
 end;
 
@@ -205,7 +202,7 @@ var
   NeedSync: Boolean;
 begin
   NeedSync := False;
-  FCriticalSection.Enter;
+  Lock;
   try
     CurrItem := FQueue.GetCurrItem;
 
@@ -244,7 +241,7 @@ begin
           if FQueue.HasUrgent then
             SetTimeout(GetMin(MinShowTime, CurrItem.ShowTime))
           else
-            SetTimeout(GetMin(MaxShowTime, CurrItem.ShowTime));  
+            SetTimeout(GetMin(MaxShowTime, CurrItem.ShowTime));
         end;
       end;
     end else
@@ -259,7 +256,7 @@ begin
       FNotification := S;
     end;
   finally
-    FCriticalSection.Leave;
+    Unlock;
   end;
 
   if NeedSync then

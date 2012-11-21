@@ -128,12 +128,14 @@ begin
       lv.Color := clInfoBK;
       edFilter.Color := clInfoBk;
     end;
-
-    if lv.Selected <> nil then
-      lv.Selected.MakeVisible(False);
   finally
     lv.Items.EndUpdate;
   end;
+
+  if lv.Selected <> nil then
+    lv.Selected.MakeVisible(False)
+  else if lv.Items.Count > 0 then
+    lv.Items[0].Selected := True;
 end;
 
 procedure Tgd_DatabasesListView.FormCreate(Sender: TObject);
