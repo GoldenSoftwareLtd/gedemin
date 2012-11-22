@@ -13,6 +13,7 @@ uses
   Test_gsPeriodEdit_unit,
   Test_AtSQLSetup_unit,
   Test_gsFTPClient_unit,
+  Test_yaml_unit,
   TestBasics_unit
   {$IFDEF WITH_INDY}
   , Test_Indy_unit 
