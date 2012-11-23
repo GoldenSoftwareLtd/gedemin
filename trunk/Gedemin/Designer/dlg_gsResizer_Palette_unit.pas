@@ -1,3 +1,4 @@
+
 {++
   Copyright (c) 2002 by Golden Software of Belarus
 

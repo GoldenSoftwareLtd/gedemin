@@ -69,6 +69,8 @@ type
 
     procedure SyncNotification;
     function GetMin(const A, B: DWORD): DWORD;
+    function GetNotifierWindow: IgdNotifierWindow;
+    procedure SetNotifierWindow(const Value: IgdNotifierWindow);
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -84,7 +86,8 @@ type
     procedure DeleteContext(const AContext: Integer);
     procedure DeleteNotification(const AnID: Integer);
 
-    property NotifierWindow: IgdNotifierWindow read FNotifierWindow write FNotifierWindow;
+    property NotifierWindow: IgdNotifierWindow read GetNotifierWindow
+      write SetNotifierWindow;
   end;
 
 var
@@ -261,6 +264,27 @@ begin
 
   if NeedSync then
     Synchronize(SyncNotification);
+end;
+
+function TgdNotifierThread.GetNotifierWindow: IgdNotifierWindow;
+begin
+  Lock;
+  try
+    Result := FNotifierWindow;
+  finally
+    Unlock;
+  end;
+end;
+
+procedure TgdNotifierThread.SetNotifierWindow(
+  const Value: IgdNotifierWindow);
+begin
+  Lock;
+  try
+    FNotifierWindow := Value;
+  finally
+    Unlock;
+  end;
 end;
 
 { TgdNotifierQueue }

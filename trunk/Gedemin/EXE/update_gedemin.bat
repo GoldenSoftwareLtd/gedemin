@@ -84,7 +84,7 @@ echo **  Increment version number                   **
 echo **                                             **
 echo *************************************************
 
-incverrc.exe ..\gedemin\gedemin.rc
+incverrc.exe ..\gedemin\gedemin_ver.rc
 
 echo *************************************************
 echo **                                             **
@@ -106,6 +106,11 @@ echo *************************************************
 
 del gedemin.res
 "%delphi_path%\brcc32.exe" -fogedemin.res -i..\images gedemin.rc
+if not exist gedemin.res eventcreate /t error /id 1 /l application /so gedemin /d "gedemin.res compilation error"
+
+del gedemin_ver.res
+"%delphi_path%\brcc32.exe" -fogedemin_ver.res -i..\images gedemin_ver.rc
+if not exist gedemin_ver.res eventcreate /t error /id 1 /l application /so gedemin /d "gedemin_ver.res compilation error"
 
 echo *************************************************
 echo **                                             **

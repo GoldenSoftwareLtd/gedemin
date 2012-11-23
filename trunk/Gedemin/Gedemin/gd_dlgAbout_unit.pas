@@ -85,14 +85,12 @@ implementation
 {$R *.DFM}
 
 uses
-  IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo,
-  IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface,
-  gd_directories_const, IBSQL, IBDatabase, gd_ClassList,
-  {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB, jclBase,
-  {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version{$IFDEF GEDEMIN}, FastMM4{$ENDIF}
-  {$IFDEF WITH_INDY}
-  , gd_FileList_unit, IdGlobal, gd_WebClientControl_unit, gd_WebServerControl_unit
-  {$ENDIF};
+  IB, IBIntf, jclFileUtils, gd_security, ShellAPI, TypInfo, jclSysInfo,
+  IBSQLMonitor_Gedemin, Clipbrd, MidConst, gdcBaseInterface, gd_directories_const,
+  IBSQL, IBDatabase, gd_ClassList, {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB,
+  jclBase, {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version
+  {$IFDEF GEDEMIN}, FastMM4{$ENDIF} {$IFDEF WITH_INDY}, gd_FileList_unit, IdGlobal,
+  gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF};
 
 type
   TMemoryStatusEx = record
@@ -123,33 +121,15 @@ end;
 
 function HostToIP(sHost: String): String;
 var
-  pcAddr: PChar;
-  HostEnt: PHostEnt;
-  wsData: TWSAData;
   P: Integer;
 begin
-  Result := '127.0.0.1';
-
   P := Pos('/', sHost);
   if P > 0 then
     SetLength(sHost, P - 1);
-
   if sHost = '' then
-    exit;
-
-  WSAStartup($0101, wsData);
-  try
-    HostEnt := GetHostByName(PChar(sHost));
-    if Assigned(HostEnt) and Assigned(HostEnt^.H_Addr_List)
-      and Assigned(HostEnt^.H_Addr_List^) then
-    begin
-      pcAddr := HostEnt^.H_Addr_List^;
-      Result := Format('%d.%d.%d.%d', [Byte(pcAddr[0]), Byte(pcAddr[1]),
-        Byte(pcAddr[2]), Byte(pcAddr[3])]);
-    end;
-  finally
-    WSACleanup;
-  end;
+    Result := ''
+  else
+    Result := GetIPAddress(sHost);
 end;
 
 function GetGlobalMemoryRecord: TMemoryStatusEx;
@@ -298,8 +278,7 @@ var
   T: TTraceFlag;
   S: String;
   I, TotalB, TotalF: Integer;
-  WSAData: TWSAData;
-  CompName: array[0..$FF] of Char;
+  CompName: String;
   DriveLetter: Char;
   Tr: TIBTransaction;
   q: TIBSQL;
@@ -333,16 +312,11 @@ begin
     end;
   end;
 
-  WSAStartup($0101, WSAData);
-  try
-    GetHostName(CompName, SizeOf(CompName));
-  finally
-    WSACleanup;
-  end;
+  CompName := GetLocalComputerName;
 
   AddSection('Компьютер');
   AddSpaces('Название компьютера', CompName);
-  AddSpaces('IP адрес', HostToIP(CompName));
+  AddSpaces('IP адрес', GetIPAddress(CompName));
   AddSpaces('ОЗУ всего', FormatFloat('#,##0', GetGlobalMemoryRecord.ullTotalPhys div 1024 div 1024) + ' Мб');
   AddSpaces('ОЗУ свободно', FormatFloat('#,##0', GetGlobalMemoryRecord.ullAvailPhys div 1024 div 1024) + ' Мб');
   AddSpaces('Версия ОС', GetOS);

@@ -23,9 +23,10 @@ type
     FLocalIP: String;
     FEXEVer: String;
     FUpdateToken: String;
+    FPath: String;
 
-    function QueryWebServer: Boolean;
     function LoadWebServerURL: Boolean;
+    function QueryWebServer: Boolean;
     function UpdateFiles: Boolean;
     function ProcessUpdateCommand: Boolean;
     procedure FinishUpdate;
@@ -36,6 +37,8 @@ type
     procedure DoOnWork(Sender: TObject; AWorkMode: TWorkMode; const AWorkCount: Integer);
     procedure DoOnProgressWatch(Sender: TObject; const AProgressInfo: TgdProgressInfo);
     procedure SyncProgressWatch;
+    function GetProgressWatch: IgdProgressWatch;
+    procedure SetProgressWatch(const Value: IgdProgressWatch);
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -51,7 +54,7 @@ type
     procedure StartUpdateFiles;
 
     property gdWebServerURL: String read GetgdWebServerURL write SetgdWebServerURL;
-    property ProgressWatch: IgdProgressWatch read FProgressWatch write FProgressWatch;
+    property ProgressWatch: IgdProgressWatch read GetProgressWatch write SetProgressWatch;
   end;
 
   EgdWebClientThread = class(Exception);
@@ -62,9 +65,9 @@ var
 implementation
 
 uses
-  ComObj, ActiveX, gdcJournal, gd_security, JclSimpleXML,
+  ComObj, ActiveX, gdcJournal, gd_security, JclSimpleXML, gdcBaseInterface,
   gdNotifierThread_unit, gd_directories_const, JclFileUtils,
-  Forms, gd_CmdLineParams_unit;
+  Forms, gd_CmdLineParams_unit, gd_GlobalParams_unit, jclSysInfo;
 
 const
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
@@ -88,11 +91,28 @@ begin
   FHTTP.OnWork := DoOnWork;
   FURI := TidURI.Create;
   FgdWebServerURL := TidThreadSafeString.Create;
+  FPath := ExtractFilePath(Application.ExeName);
 end;
 
 procedure TgdWebClientThread.AfterConnection;
 begin
+  Assert(IBLogin <> nil);
+
   gdWebServerURL := gd_CmdLineParams.RemoteServer;
+
+  FDBID := IBLogin.DBID;
+  FCompanyName := IBLogin.CompanyName;
+  FCompanyRUID := gdcBaseManager.GetRUIDStringByID(IBLogin.CompanyKey);
+  FLocalIP := GetIPAddress(IBLogin.ComputerName);
+  if VersionResourceAvailable(Application.EXEName) then
+    with TjclFileVersionInfo.Create(Application.EXEName) do
+    try
+      FEXEVer := BinFileVersion;
+    finally
+      Free;
+    end;
+  FUpdateToken := gd_GlobalParams.UpdateToken;
+
   PostMsg(WM_GD_AFTER_CONNECTION);
 end;
 
@@ -101,9 +121,7 @@ var
   ResponseData: TStringStream;
 begin
   Result := False;
-  if IBLogin = nil then
-    ErrorMessage := 'IBLogin is not assigned.'
-  else if gdWebServerURL = '' then
+  if gdWebServerURL = '' then
     ErrorMessage := 'gdWebServerURL is not assigned.'
   else if FInUpdate then
     ErrorMessage := 'Update process is running.'
@@ -113,8 +131,12 @@ begin
     ResponseData := TStringStream.Create('');
     try
       FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/query?' +
-        'dbid=' + IntToStr(IBLogin.DBID) +
-        '&cust_name=' + IBLogin.CompanyName), ResponseData);
+        'dbid=' + IntToStr(FDBID) +
+        '&c_name=' + FCompanyName +
+        '&c_ruid=' + FCompanyRUID +
+        '&loc_ip=' + FLocalIP +
+        '&exe_ver=' + FExeVer +
+        '&update_token=' + FUpdateToken), ResponseData);
       if FServerFileList = nil then
         FServerFileList := TFLCollection.Create;
       FServerFileList.ParseXML(ResponseData.DataString);
@@ -196,11 +218,7 @@ end;
 
 procedure TgdWebClientThread.LogError;
 begin
-  if ErrorMessage > '' then
-  begin
-    TgdcJournal.AddEvent(ErrorMessage, 'HTTPClient', -1, nil, True);
-    ErrorMessage := '';
-  end;
+  TgdcJournal.AddEvent(ErrorMessage, 'HTTPClient', -1, nil, True);
 end;
 
 procedure TgdWebClientThread.Setup;
@@ -244,13 +262,12 @@ procedure TgdWebClientThread.FinishUpdate;
 var
   StartupInfo: TStartupInfo;
   ProcessInfo: TProcessInformation;
-  FPath, FName: String;
+  FName: String;
 begin
   if Assigned(FCmdList) then
   try
     if FCmdList.Count > 0 then
     begin
-      FPath := ExtractFilePath(Application.ExeName);
       FCmdList.SaveToFile(FPath + Gedemin_Updater_Ini);
       FName := FPath + Gedemin_Updater;
       FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
@@ -293,6 +310,27 @@ procedure TgdWebClientThread.SyncProgressWatch;
 begin
   if Assigned(FProgressWatch) then
     FProgressWatch.UpdateProgress(FPI);
+end;
+
+function TgdWebClientThread.GetProgressWatch: IgdProgressWatch;
+begin
+  Lock;
+  try
+    Result := FProgressWatch;
+  finally
+    Unlock;
+  end;
+end;
+
+procedure TgdWebClientThread.SetProgressWatch(
+  const Value: IgdProgressWatch);
+begin
+  Lock;
+  try
+    FProgressWatch := Value;
+  finally
+    Unlock;
+  end;
 end;
 
 initialization

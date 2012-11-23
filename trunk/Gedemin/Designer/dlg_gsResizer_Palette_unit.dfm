@@ -23,14 +23,14 @@ object dlg_gsResizer_Palette: Tdlg_gsResizer_Palette
     Left = 0
     Top = 0
     Width = 94
-    Height = 69
+    Height = 58
     Align = alLeft
     TabOrder = 0
     object tbButons: TTBToolbar
       Left = 1
       Top = 1
       Width = 92
-      Height = 67
+      Height = 56
       Align = alClient
       AutoResize = False
       Caption = 'tbButons'
@@ -92,7 +92,7 @@ object dlg_gsResizer_Palette: Tdlg_gsResizer_Palette
   object pnTab: TPanel
     Left = 94
     Top = 0
-    Width = 574
+    Width = 566
     Height = 62
     Align = alClient
     Constraints.MaxHeight = 62
@@ -101,7 +101,7 @@ object dlg_gsResizer_Palette: Tdlg_gsResizer_Palette
     object pcPalette: TPageControl
       Left = 1
       Top = 1
-      Width = 572
+      Width = 564
       Height = 60
       Align = alClient
       Constraints.MaxHeight = 60

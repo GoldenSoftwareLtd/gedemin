@@ -104,6 +104,7 @@ begin
               FErrorMessage := FErrorMessage + #13#10 +
                 'Message ID: ' + IntToStr(Msg.Message);
               Synchronize(LogError);
+              FErrorMessage := '';
             end;
           end;
         end;
@@ -121,14 +122,10 @@ end;
 
 procedure TgdMessagedThread.LogError;
 begin
-  if FErrorMessage > '' then
-  begin
-    MessageBox(0,
-      PChar(FErrorMessage),
-      'Error',
-      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
-    FErrorMessage := '';
-  end;
+  MessageBox(0,
+    PChar(FErrorMessage),
+    'Error',
+    MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
 end;
 
 procedure TgdMessagedThread.PostMsg(const AMsg: Word; const AWParam: WPARAM = 0;
@@ -148,8 +145,7 @@ end;
 
 procedure TgdMessagedThread.SetTimeout(const ATimeout: DWORD);
 begin
-  if FTimeout <> ATimeout then
-    PostMsg(WM_GD_UPDATE_TIMER, 0, ATimeout);
+  PostMsg(WM_GD_UPDATE_TIMER, 0, ATimeout);
 end;
 
 procedure TgdMessagedThread.Setup;
