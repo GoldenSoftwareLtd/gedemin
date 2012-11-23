@@ -50,7 +50,6 @@ begin
     IncludeTrailingBackslash(ExtractFileDrive(Application.ExeName))));
   FNetworkDrive := DriveType = DRIVE_REMOTE;
   FCDROMDrive := DriveType = DRIVE_CDROM;
-  FUpdateToken := 'NORMAL';
 end;
 
 initialization

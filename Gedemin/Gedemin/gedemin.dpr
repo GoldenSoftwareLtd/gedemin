@@ -315,7 +315,8 @@ uses
   , gdcBlockRule;
 
 {$R Gedemin.TLB}
-{$R *.RES}
+{$R GEDEMIN.RES}
+{$R GEDEMIN_VER.RES}
 
 type
   TFactoryRegisterClass = class(TObject)

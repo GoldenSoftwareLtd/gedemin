@@ -33,8 +33,6 @@ unit gd_security;
 
 interface
 
-{ TODO 2 -oандрэй -cзрабіць : Мабыць называць UseFinTransaction?? Каб не блытацца з IBTransaction }
-
 uses
   Windows,            Messages,           SysUtils,           Classes,
   Graphics,           Controls,           Forms,              Dialogs,
@@ -325,35 +323,30 @@ type
   end;
 
 
+function FindDigit(const Symbol: Char): Boolean;
+function ExtractTableName(KeyWord: String; S: TStrings): String;
+
+function DecryptPassword(const APassword: String): String;
+
+//
+// Для ІБ патрэбна, каб усе кампутары падключаліся выкарыстоўваючы
+// адзіны шлях да сэрвера і файла базы дадзеных.
+//
+// Дадзеная функцыя прыабразуе імёны кшталту:
+//    \\servername\fullpathtodatabasefile         (NetBEUI)
+// да выгляду:
+//    servername:fullpathtodatabasefile           (TCP/IP)
+//
+function AdjustServerName(const AServerName: String): String;
+
+// Функция формирует условие выбора текущей компании с учетом холдинга
+// CompKeyFieldName - имя поля (с алиасом) в запросе
+function GetCompCondition(const CompKeyFieldName: String): String;
+
 // Глобальная переменная общего текущего пользователя всей системы
 // ВНИМАНИЕ! Должен быть только один такой компонент
 var
   IBLogin: IboLogin;
-
-// Перевод 8 символьной строки в 4 байтовое число
-//  function HexToInt(S: String): DWord;
-{function UserRight2Str(const UR: TUserRight): String;
-function UserRights2Str(const UR: TUserRights): String;
- }
-  function FindDigit(const Symbol: Char): Boolean;
-  function ExtractTableName(KeyWord: String; S: TStrings): String;
-
-  function DecryptPassword(const APassword: String): String;
-
-  //
-  // Для ІБ патрэбна, каб усе кампутары падключаліся выкарыстоўваючы
-  // адзіны шлях да сэрвера і файла базы дадзеных.
-  //
-  // Дадзеная функцыя прыабразуе імёны кшталту:
-  //    \\servername\fullpathtodatabasefile         (NetBEUI)
-  // да выгляду:
-  //    servername:fullpathtodatabasefile           (TCP/IP)
-  //
-  function AdjustServerName(const AServerName: String): String;
-
-  // Функция формирует условие выбора текущей компании с учетом холдинга
-  // CompKeyFieldName - имя поля (с алиасом) в запросе
-  function GetCompCondition(const CompKeyFieldName: String): String;
 
 implementation
 
@@ -365,10 +358,10 @@ uses
 
 function GetCompCondition(const CompKeyFieldName: String): String;
 begin
-  Result := '';
-  if IBLogin = nil then
-    Exit;
-  Result := ' ' + CompKeyFieldName + ' IN (' + IBLogin.HoldingList + ') ';
+  if IBLogin <> nil then
+    Result := ' ' + CompKeyFieldName + ' IN (' + IBLogin.HoldingList + ') '
+  else
+    Result := '';
 end;
 
 function DecryptPassword(const APassword: String): String;

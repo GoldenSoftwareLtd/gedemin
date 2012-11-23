@@ -46,7 +46,6 @@ type
   private
     FIBBase: TIBBase;
     FTransaction: TIBTransaction;
-    FParams: TStringList;
 
     FShutDown: Boolean;
 
@@ -540,8 +539,6 @@ begin
   FIBBase := TIBBase.Create(Self);
   FIBBase.Transaction := FTransaction;
 
-  FParams := TStringList.Create;
-
   FConnectNotifiers := TList.Create;
   FCompanyNotifiers := TList.Create;
 
@@ -572,7 +569,6 @@ begin
   FIBBase.Free;
   FConnectNotifiers.Free;
   FCompanyNotifiers.Free;
-  FParams.Free;
 
   FLoginControlNexus.Free;
 
@@ -836,7 +832,10 @@ end;
 
 function TboLogin.GetDatabaseName: String;
 begin
-  Result := FParams.Values[ServerNameValue];
+  if Database <> nil then
+    Result := Database.DatabaseName
+  else
+    Result := '';
 end;
 
 function TboLogin.GetDBID: Integer;
@@ -1025,7 +1024,10 @@ end;
 
 function TboLogin.GetLoginParam(ParamName: String): String;
 begin
-  Result := FParams.Values[ParamName];
+  if Database <> nil then
+    Result := Database.Params.Values[ParamName]
+  else
+    Result := '';  
 end;
 
 function TboLogin.GetServerName: String;

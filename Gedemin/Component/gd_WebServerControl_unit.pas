@@ -79,9 +79,9 @@ implementation
 
 uses
   SysUtils, Forms, Windows, IBSQL, IBDatabase, IdSocketHandle, gdcOLEClassList,
-  gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit,
-  gdcBaseInterface, prp_methods, Gedemin_TLB, Storages, WinSock,
-  ComObj, JclSimpleXML, gd_directories_const, ActiveX, FileCtrl;
+  gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit, gdcBaseInterface,
+  prp_methods, Gedemin_TLB, Storages, WinSock, ComObj, JclSimpleXML, jclSysInfo,
+  gd_directories_const, ActiveX, FileCtrl;
 
 type
   TgdHttpHandler = class(TObject)
@@ -323,55 +323,6 @@ begin
 end;
 
 procedure TgdWebServerControl.CreateHTTPServer;
-
-  function GetLocalIP: String;
-  var
-    wsaData: TWSAData;
-    addr: TSockAddrIn;
-    Phe: PHostEnt;
-    szHostName: array[0..128] of Char;
-  begin
-    Result := '';
-    if WSAStartup($101, WSAData) <> 0 then
-      Exit;
-    try
-      if GetHostName(szHostName, 128) <> SOCKET_ERROR then
-      begin
-        Phe := GetHostByName(szHostName);
-        if Assigned(Phe) then
-        begin
-          addr.sin_addr.S_addr := longint(plongint(Phe^.h_addr_list^)^);
-          Result := inet_ntoa(addr.sin_addr);
-        end;
-      end;
-    finally
-      WSACleanup;
-    end;
-  end;
-
-  function GetIP: String;
-  var
-    wsaData: TWSAData;
-    addr: TSockAddrIn;
-    Phe: PHostEnt;
-    szHostName: array[0..128] of Char;
-  begin
-    Result := '';
-    if WSAStartup($101, WSAData) <> 0 then
-      Exit;
-    try
-      szHostName := 'gs.selfip.biz';
-      Phe := GetHostByName(szHostName);
-      if Assigned(Phe) then
-      begin
-        addr.sin_addr.S_addr := longint(plongint(Phe^.h_addr_list^)^);
-        Result := inet_ntoa(addr.sin_addr);
-      end;
-    finally
-      WSACleanup;
-    end;
-  end;
-
 var
   Binding : TIdSocketHandle;
   PortNumber: Integer;
@@ -395,18 +346,18 @@ begin
   FHttpServer.Bindings.Clear;
   Binding := FHttpServer.Bindings.Add;
   Binding.Port := PortNumber;
-  Binding.IP := GetLocalIP;
+  Binding.IP := '127.0.0.1';
 
   Binding := FHttpServer.Bindings.Add;
   Binding.Port := PortNumber;
-  Binding.IP := '127.0.0.1';
+  Binding.IP := GetIPAddress(GetLocalComputerName);
 
   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  if GetLocalIP = '192.168.0.35' then
+  if Binding.IP = '192.168.0.35' then
   begin
     Binding := FHttpServer.Bindings.Add;
     Binding.Port := PortNumber;
-    Binding.IP := GetIP;
+    Binding.IP := GetIPAddress('gs.selfip.biz');
   end;
   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -421,8 +372,14 @@ end;
 
 procedure TgdWebServerControl.ProcessQueryRequest;
 begin
-  Log(FRequestInfo.RemoteIP, 'QERY', ['dbid', 'customer_name'],
-    [FRequestInfo.Params.Values['dbid'], FRequestInfo.Params.Values['cust_name']]);
+  Log(FRequestInfo.RemoteIP, 'QERY',
+    ['dbid', 'c_name', 'c_ruid', 'loc_ip', 'exe_ver', 'update_token'],
+    [FRequestInfo.Params.Values['dbid'],
+     FRequestInfo.Params.Values['c_name'],
+     FRequestInfo.Params.Values['c_ruid'],
+     FRequestInfo.Params.Values['loc_ip'],
+     FRequestInfo.Params.Values['exe_ver'],
+     FRequestInfo.Params.Values['update_token']]);
 
   if FFileList = nil then
   begin
