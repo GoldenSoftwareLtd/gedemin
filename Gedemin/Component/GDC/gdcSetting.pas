@@ -277,7 +277,6 @@ const
   girOK = 0;
   girUserCancel = 1;
   girNotFound = 2;
-//  girIncorrect = 2;
 
   cst_StreamValue = 'Value';
 
@@ -289,14 +288,14 @@ implementation
 
 uses
   gdc_attr_dlgSetting_unit,  gdc_attr_frmSetting_unit, gd_CmdLineParams_unit,
-  gdc_attr_dlgSettingPos_unit, gdcMetadata, gdcJournal,
-  gdc_attr_dlgSettingOrder_unit, IBQuery, gdcEvent, Windows,
+  gdc_attr_dlgSettingPos_unit, gdcMetadata, gdcJournal, gd_FileList_unit,
+  gdc_attr_dlgSettingOrder_unit, IBQuery, gdcEvent, Windows, gdcTree,
   gsStorage, Storages, gdcStorage, jclSelected, IBDatabase, at_frmSQLProcess,
   Graphics, at_classes, gd_directories_const, dbclient, gdcFunction,
   evt_i_Base, mtd_i_Base, gd_i_ScriptFactory, gdcFilter, gdcReport,
   gdcMacros, at_sql_metadata, at_sql_setup, dm_i_ClientReport_unit,
   at_ActivateSetting_unit, gsDesktopManager, TypInfo, at_dlgChoosePackage_unit,
-  gd_common_functions, zlib, gd_frmBackup_unit, gd_frmRestore_unit, gdcClasses, gdcTree
+  gd_common_functions, zlib, gd_frmBackup_unit, gd_frmRestore_unit, gdcClasses
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -3301,10 +3300,10 @@ begin
       if Ending = 1 then
       begin                          
         if (MinExeVersion > '') then  
-          if CompareVersion(MinExeVersion, CurExeVersion) > 0 then
+          if TFLItem.CompareVersionStrings(MinExeVersion, CurExeVersion) > 0 then
             Include(ApprVersion, avNotApprEXEVersion);
         if (MinDBVersion > '') then
-          if CompareVersion(MinDBVersion, CurDBVersion) > 0 then
+          if TFLItem.CompareVersionStrings(MinDBVersion, CurDBVersion) > 0 then
             Include(ApprVersion, avNotApprDBVersion);
       end;
 // ---

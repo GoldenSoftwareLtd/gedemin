@@ -24,6 +24,7 @@ type
     FEXEVer: String;
     FUpdateToken: String;
     FPath: String;
+    FWebServerResponse: String;
 
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
@@ -117,8 +118,6 @@ begin
 end;
 
 function TgdWebClientThread.QueryWebServer: Boolean;
-var
-  ResponseData: TStringStream;
 begin
   Result := False;
   if gdWebServerURL = '' then
@@ -128,22 +127,14 @@ begin
   else begin
     FURI.URI := gdWebServerURL;
     gdNotifierThread.Add('Подключение к серверу: ' + FURI.Host + '...', 0, 2000);
-    ResponseData := TStringStream.Create('');
-    try
-      FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/query?' +
-        'dbid=' + IntToStr(FDBID) +
-        '&c_name=' + FCompanyName +
-        '&c_ruid=' + FCompanyRUID +
-        '&loc_ip=' + FLocalIP +
-        '&exe_ver=' + FExeVer +
-        '&update_token=' + FUpdateToken), ResponseData);
-      if FServerFileList = nil then
-        FServerFileList := TFLCollection.Create;
-      FServerFileList.ParseXML(ResponseData.DataString);
-      Result := True;
-    finally
-      ResponseData.Free;
-    end;
+    FWebServerResponse := FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/query?' +
+      'dbid=' + IntToStr(FDBID) +
+      '&c_name=' + FCompanyName +
+      '&c_ruid=' + FCompanyRUID +
+      '&loc_ip=' + FLocalIP +
+      '&exe_ver=' + FExeVer +
+      '&update_token=' + FUpdateToken));
+    Result := True;
   end;
 end;
 
@@ -168,17 +159,32 @@ begin
 end;
 
 function TgdWebClientThread.UpdateFiles: Boolean;
+var
+  ResponseData: TStringStream;
 begin
-  Result := FServerFileList <> nil;
-  if not Result then
-    ErrorMessage := 'FServerFileList is not assigned.'
+  if gd_GlobalParams.NetworkDrive or gd_GlobalParams.CDROMDrive then
+    Result := False
   else begin
+    if FServerFileList = nil then
+    begin
+      ResponseData := TStringStream.Create('');
+      try
+        FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_files_list'), ResponseData);
+        FServerFileList := TFLCollection.Create;
+        FServerFileList.ParseXML(ResponseData.DataString);
+        FServerFileList.OnProgressWatch := DoOnProgressWatch;
+      finally
+        ResponseData.Free;
+      end;
+    end;
+
     if FCmdList = nil then
       FCmdList := TStringList.Create
     else
       FCmdList.Clear;
-    FServerFileList.OnProgressWatch := DoOnProgressWatch;
-  end;
+
+    Result := True;
+  end;  
 end;
 
 function TgdWebClientThread.ProcessMessage(var Msg: TMsg): Boolean;
@@ -192,8 +198,11 @@ begin
     WM_GD_QUERY_SERVER:
       if QueryWebServer then
       begin
-        FInUpdate := True;
-        PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
+        if Pos('UPDATE', FWebServerResponse) > 0 then
+        begin
+          FInUpdate := True;
+          PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
+        end;
       end;
 
     WM_GD_UPDATE_FILES:

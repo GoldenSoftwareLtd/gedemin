@@ -78,7 +78,8 @@ type
     class function Boolean2Str(const B: Boolean): String;
     class function Str2Boolean(const S: String): Boolean;
     class function Str2DateTime(const S: String): TDateTime;
-    class function CompareVersionStrings(const V1, V2: String): Integer;
+    class function CompareVersionStrings(const V1, V2: String;
+      const CompareFirst: Integer = 4): Integer;
 
     procedure ReadFromDisk(AStream: TStream);
     procedure WriteToDisk(const AFileName: String; AStream: TStream);
@@ -334,14 +335,18 @@ begin
     Result := 'false';
 end;
 
-class function TFLItem.CompareVersionStrings(const V1, V2: String): Integer;
+class function TFLItem.CompareVersionStrings(const V1, V2: String;
+  const CompareFirst: Integer = 4): Integer;
 var
-  B1, B2: Integer;
+  B1, B2, J: Integer;
 begin
-  B1 := 1; B2 := 1;
+  B1 := 1; B2 := 1; J := 0;
   repeat
+    Inc(J);
     Result := ExtractInt(V1, B1, ['.']) - ExtractInt(V2, B2, ['.']);
-  until (Result <> 0) or ((B1 > Length(V1)) and (B2 > Length(V2)));
+  until (Result <> 0)
+    or ((B1 > Length(V1)) and (B2 > Length(V2)))
+    or (J >= CompareFirst);
 end;
 
 constructor TFLItem.Create(Collection: TCollection);

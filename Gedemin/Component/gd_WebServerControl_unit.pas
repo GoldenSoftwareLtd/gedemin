@@ -48,6 +48,7 @@ type
     procedure ServerOnCommandGetSync;
     procedure CreateHTTPServer;
     procedure ProcessQueryRequest;
+    procedure ProcessFilesListRequest;
     procedure ProcessFileRequest;
     procedure Log(const AnIPAddress: String; const AnOp: String;
       const Names: array of String; const Values: array of String);
@@ -212,6 +213,8 @@ begin
 
   if AnsiCompareText(FRequestInfo.Document, '/query') = 0 then
     ProcessQueryRequest
+  else if AnsiCompareText(FRequestInfo.Document, '/get_files_list') = 0 then
+    ProcessFilesListRequest
   else if AnsiCompareText(FRequestInfo.Document, '/get_file') = 0 then
     ProcessFileRequest
   else begin
@@ -372,6 +375,10 @@ end;
 
 procedure TgdWebServerControl.ProcessQueryRequest;
 begin
+  FResponseInfo.ResponseNo := 200;
+  FResponseInfo.ContentType := 'text/plain;';
+  FResponseInfo.ContentText := '';
+
   Log(FRequestInfo.RemoteIP, 'QERY',
     ['dbid', 'c_name', 'c_ruid', 'loc_ip', 'exe_ver', 'update_token'],
     [FRequestInfo.Params.Values['dbid'],
@@ -391,9 +398,12 @@ begin
     FFileList.BuildEtalonFileSet;
   end;
 
-  FResponseInfo.ResponseNo := 200;
-  FResponseInfo.ContentType := 'application/octet-stream;';
-  FResponseInfo.ContentStream := TStringStream.Create(FFileList.GetXML);
+  if (FFileList.FindItem('gedemin.exe') <> nil) and
+    (TFLItem.CompareVersionStrings(FFileList.FindItem('gedemin.exe').Version,
+      FRequestInfo.Params.Values['exe_ver'], 4) > 0) then
+    begin
+      FResponseInfo.ContentText := 'UPDATE';
+    end;
 end;
 
 function TgdWebServerControl.GetActive: Boolean;
@@ -505,6 +515,14 @@ begin
     q.Free;
     Tr.Free;
   end;
+end;
+
+procedure TgdWebServerControl.ProcessFilesListRequest;
+begin
+  Assert(FFileList <> nil);
+  FResponseInfo.ResponseNo := 200;
+  FResponseInfo.ContentType := 'application/octet-stream;';
+  FResponseInfo.ContentStream := TStringStream.Create(FFileList.GetXML);
 end;
 
 initialization
