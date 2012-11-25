@@ -6,8 +6,6 @@ interface
 uses
   Classes;
 
-// используются для сравнения, если версии введены как строка
-function CompareVersion(Ver1, Ver2: String): Integer;
 function GetCurEXEVersion: String;
 procedure SaveStringToStream(const Str: String; Stream: TStream);
 function ReadStringFromStream(Stream: TStream): string;
@@ -100,37 +98,6 @@ begin
 
   if (ADatabaseName > '') and (AFileName = '') then
     raise Exception.Create('Invalid database file name or alias');
-end;
-
-function CompareVersion(Ver1, Ver2: String): Integer;
-var
-  i: Integer;
-  v1, v2: String;
-begin
-  Result := 0;
-  i := 1;
-  while (i <= 4) and (Result = 0) do
-  begin
-    if i < 4 then
-    begin
-      v1 := Copy(Ver1, 1, Pos('.', Ver1)-1);
-      v2 := Copy(Ver2, 1, Pos('.', Ver2)-1);
-      Delete(Ver1, 1, Pos('.', Ver1));
-      Delete(Ver2, 1, Pos('.', Ver2));
-    end else
-    begin
-      v1 := Ver1;
-      v2 := Ver2;
-    end;
-
-    try
-      Result := StrToInt(v1) - StrToInt(v2);
-      Inc(i);
-    except
-      Result := -10;
-      Break;
-    end;
-  end;
 end;
 
 function GetCurEXEVersion: String;

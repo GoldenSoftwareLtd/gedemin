@@ -14,7 +14,8 @@ type
     tDocumentStart,
     tDocumentEnd,
     tSequenceStart,
-    tScalar);
+    tScalar,
+    tKey);
 
   TyamlScalarQuoting = (
     qPlain,
@@ -60,6 +61,8 @@ type
     FScalar: String;
     FQuoting: TyamlScalarQuoting;
     FStyle: TyamlScalarStyle;
+    FIndent: Integer;
+    FKey: String;
 
     procedure ReadNextBlock;
     procedure CheckEOF;
@@ -69,6 +72,7 @@ type
     procedure Skip(N: Integer; const Spaces: Boolean = False);
     function GetIndent: Integer;
     function GetChar: Char;
+    function GetString(N: Integer): String;
     function PeekChar(const Offset: Integer = 0): Char;
 
   public
@@ -81,6 +85,8 @@ type
     property Quoting: TyamlScalarQuoting read FQuoting;
     property Scalar: String read FScalar;
     property Style: TyamlScalarStyle read FStyle;
+    property Indent: Integer read FIndent;
+    property Key: String read FKey;
   end;
 
   EyamlException = class(Exception);
@@ -143,13 +149,13 @@ end;
 
 function TyamlScanner.GetNextToken: TyamlToken;
 var
-  Indent: Integer;
   QuoteMatched: Boolean;
+  L: Integer;
 begin
   Result := tUndefined;
   while (Result = tUndefined) and (not EOF) do
   begin
-    Indent := GetIndent;
+    FIndent := GetIndent;
 
     if EOF then
       continue;
@@ -191,7 +197,7 @@ begin
             FStyle := sFolded;
             SkipUntilEOL;
           end else
-            FStyle := sLiteral;  
+            FStyle := sLiteral;
           Result := tDocumentStart;
         end
         else if (PeekChar = '.')
@@ -204,7 +210,8 @@ begin
           case PeekChar of
             '-':
             begin
-              SkipSpaces;
+              Skip(1, True);
+              FState := sDocument;
               Result := tSequenceStart;
             end;
 
@@ -224,9 +231,22 @@ begin
               FState := sScalar;
             end;
           else
-            FQuoting := qPlain;
-            FScalar := '';
-            FState := sScalar;
+            L := 0;
+            while (not EOF) and (not (PeekChar(L) in [#13, #10, ':'])) do
+              Inc(L);
+
+            if (not EOF) and (L > 0) and (PeekChar(L) = ':') then
+            begin
+              FKey := Trim(GetString(L));
+              Skip(1, True);
+              FState := sDocument;
+              Result := tKey;
+            end else
+            begin
+              FQuoting := qPlain;
+              FScalar := '';
+              FState := sScalar;
+            end;  
           end;
       end;
 
@@ -282,6 +302,19 @@ begin
 
   if Result = tUndefined then
     Result := tStreamEnd;
+end;
+
+function TyamlScanner.GetString(N: Integer): String;
+var
+  L: Integer;
+begin
+  SetLength(Result, N);
+  L := 1;
+  while L <= N do
+  begin
+    Result[L] := GetChar;
+    Inc(L);
+  end;
 end;
 
 function TyamlScanner.PeekChar(const Offset: Integer = 0): Char;

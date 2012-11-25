@@ -59,6 +59,8 @@ type
     xpbStep: TxProgressBar;
     lblStep: TLabel;
     lblAll: TLabel;
+    mSendData: TSynEdit;
+    Label1: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure btnMSInfoClick(Sender: TObject);
@@ -90,7 +92,7 @@ uses
   IBSQL, IBDatabase, gd_ClassList, {$IFDEF FR4}frxClass,{$ENDIF} FR_Class, ZLIB,
   jclBase, {$IFDEF EXCMAGIC_GEDEMIN}ExcMagic,{$ENDIF} TB2Version
   {$IFDEF GEDEMIN}, FastMM4{$ENDIF} {$IFDEF WITH_INDY}, gd_FileList_unit, IdGlobal,
-  gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF};
+  gd_WebClientControl_unit, gd_WebServerControl_unit{$ENDIF}, gd_GlobalParams_unit;
 
 type
   TMemoryStatusEx = record
@@ -204,6 +206,24 @@ begin
   finally
     FL.Free;
   end;
+
+  if (IBLogin <> nil) and IBLogin.LoggedIn and (gdcBaseManager <> nil) then
+  begin
+    mSendData.Lines.Add('DBID = ' + IntToStr(IBLogin.DBID));
+    mSendData.Lines.Add('C_NAME = ' + IBLogin.CompanyName);
+    mSendData.Lines.Add('C_RUID = ' + gdcBaseManager.GetRUIDStringByID(IBLogin.CompanyKey));
+    mSendData.Lines.Add('LOC_IP = ' + GetIPAddress(IBLogin.ComputerName));
+    if VersionResourceAvailable(Application.EXEName) then
+      with TjclFileVersionInfo.Create(Application.EXEName) do
+      try
+        mSendData.Lines.Add('EXE_VER = ' + BinFileVersion);
+      finally
+        Free;
+      end;
+    mSendData.Lines.Add('UPDATE_TOKEN = ' + gd_GlobalParams.UpdateToken);
+  end;
+  {$ELSE}
+  tsUpdate.Visible := False;
   {$ENDIF}
 end;
 
