@@ -489,8 +489,9 @@ var
   DI: Tgd_DatabaseItem;
   I: Integer;
 begin
-  if FileExists(FIniFileName) then
-  begin
+  if not FileExists(FIniFileName) then
+    ReadFromRegistry(True)
+  else begin
     IniFile := TIniFile.Create(FIniFileName);
     try
       Sections := TStringList.Create;

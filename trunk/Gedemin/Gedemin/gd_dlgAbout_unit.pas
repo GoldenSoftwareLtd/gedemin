@@ -397,10 +397,10 @@ begin
   end;
 
   {$IFDEF WITH_INDY}
-  AddSection('WebServer');
+  AddSection('Web Server');
   AddBoolean('Активен', gdWebServerControl.Active);
   AddSpaces('Bindings', gdWebServerControl.GetBindings);
-  AddSpaces('WebServer', gdWebClientThread.gdWebServerURL);
+  AddSpaces('Remote Server', gdWebClientThread.gdWebServerURL);
   {$ENDIF}
 
   AddSection('Версии библиотек');

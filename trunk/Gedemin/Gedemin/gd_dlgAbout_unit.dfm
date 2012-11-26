@@ -851,7 +851,7 @@ object gd_dlgAbout: Tgd_dlgAbout
       end
       object Label1: TLabel
         Left = 5
-        Top = 213
+        Top = 223
         Width = 391
         Height = 13
         Caption = 
@@ -884,10 +884,11 @@ object gd_dlgAbout: Tgd_dlgAbout
       end
       object mSendData: TSynEdit
         Left = 3
-        Top = 232
+        Top = 240
         Width = 532
-        Height = 107
+        Height = 99
         Cursor = crIBeam
+        Color = clInfoBk
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11

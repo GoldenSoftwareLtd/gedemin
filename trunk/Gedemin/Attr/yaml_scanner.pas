@@ -91,16 +91,11 @@ type
     property Key: String read FKey;
   end;
 
-  EyamlException = class(Exception);
-  EyamlSyntaxError = class(EyamlException);
-
 implementation
 
 const
   DefBufferSize  = 65536;
   DefBufferShift = 16384;
-
-  EOL = [#13, #10];
 
 { TyamlScanner }
 
@@ -124,7 +119,7 @@ begin
   GetMem(FBuffer, FBufferSize);
   ReadNextBlock;
   FState := sAtStreamStart;
-  FStyle := sLiteral;
+  FStyle := sPlain;
 end;
 
 destructor TyamlScanner.Destroy;
@@ -226,7 +221,7 @@ begin
             FStyle := sFolded;
             SkipUntilEOL;
           end else
-            FStyle := sLiteral;
+            FStyle := sPlain;
           Result := tDocumentStart;
         end
         else if (PeekChar = '.')

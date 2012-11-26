@@ -52,6 +52,10 @@ begin
   Check(TFLItem.CompareVersionStrings('8.8.888.', '8.8.888.8888') < 0);
   Check(TFLItem.CompareVersionStrings('9', '8.8.888.8888') > 0);
   Check(TFLItem.CompareVersionStrings('...4', '0000.0000.0000.0005') < 0);
+
+  Check(TFLItem.CompareVersionStrings('1.1.1.2', '1.1.1.1', 3) = 0);
+  Check(TFLItem.CompareVersionStrings('1.1.1.1.5', '1.1.1.1.6') = 0);
+  Check(TFLItem.CompareVersionStrings('1.1.1.1.5', '1.1.1.1.6', 5) < 0);
 end;
 
 procedure TgsIndyTest.Test_FLCollection;

@@ -9,9 +9,10 @@ uses
 type
   TgdMessagedThread = class(TThread)
   private
-    FCreatedEvent: TEvent;
+    FCreatedEvent, FWaitingEvent: TEvent;
     FCriticalSection: TCriticalSection;
     FTimeout: DWORD;
+    function GetWaiting: Boolean;
 
   protected
     FErrorMessage: String;
@@ -33,6 +34,8 @@ type
   public
     constructor Create(CreateSuspended: Boolean);
     destructor Destroy; override;
+
+    property Waiting: Boolean read GetWaiting;
   end;
 
 implementation
@@ -51,6 +54,7 @@ begin
   inherited Create(CreateSuspended);
   FTimeOut := INFINITE;
   FCreatedEvent := TEvent.Create(nil, True, False, '');
+  FWaitingEvent := TEvent.Create(nil, True, False, '');
   FCriticalSection := TCriticalSection.Create;
 end;
 
@@ -65,6 +69,7 @@ begin
   inherited;
 
   FCreatedEvent.Free;
+  FWaitingEvent.Free;
   FCriticalSection.Free;
 end;
 
@@ -72,6 +77,7 @@ procedure TgdMessagedThread.Execute;
 var
   Msg: TMsg;
   HArr: array[0..0] of THandle;
+  Res: DWORD;
 begin
   PeekMessage(Msg, 0, WM_USER, WM_USER, PM_NOREMOVE);
   FCreatedEvent.SetEvent;
@@ -79,7 +85,14 @@ begin
   try
     while (not Terminated) do
     begin
-      if MsgWaitForMultipleObjects(0, HArr, False, FTimeout, QS_ALLINPUT) = WAIT_TIMEOUT then
+      FWaitingEvent.SetEvent;
+      try
+        Res := MsgWaitForMultipleObjects(0, HArr, False, FTimeout, QS_ALLINPUT);
+      finally
+        FWaitingEvent.ResetEvent;
+      end;
+
+      if Res = WAIT_TIMEOUT then
         Timeout
       else begin
         while (not Terminated) and PeekMessage(Msg, 0, 0, $FFFFFFFF, PM_REMOVE) do
@@ -113,6 +126,11 @@ begin
   finally
     TearDown;
   end;
+end;
+
+function TgdMessagedThread.GetWaiting: Boolean;
+begin
+  Result := FWaitingEvent.WaitFor(0) = wrSignaled;
 end;
 
 procedure TgdMessagedThread.Lock;

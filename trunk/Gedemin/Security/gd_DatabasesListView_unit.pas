@@ -41,6 +41,9 @@ type
     TBSeparatorItem3: TTBSeparatorItem;
     actCopy: TAction;
     TBItem4: TTBItem;
+    TBSeparatorItem4: TTBSeparatorItem;
+    TBControlItem3: TTBControlItem;
+    lblIniFile: TLabel;
     procedure actOkExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure actCreateExecute(Sender: TObject);
@@ -97,6 +100,8 @@ var
   LI: TListItem;
   PrevSelected: String;
 begin
+  lblIniFile.Caption := 'Файл со списком БД: ' + gd_DatabasesList.IniFileName;
+
   lv.Items.BeginUpdate;
   try
     if lv.Selected <> nil then
