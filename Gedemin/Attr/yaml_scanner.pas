@@ -4,7 +4,7 @@ unit yaml_scanner;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, yaml_common;
 
 type
   TyamlToken = (
@@ -16,15 +16,6 @@ type
     tSequenceStart,
     tScalar,
     tKey);
-
-  TyamlScalarQuoting = (
-    qPlain,
-    qSingleQuoted,
-    qDoubleQuoted);
-
-  TyamlScalarStyle = (
-    sLiteral,
-    sFolded);
 
   TyamlScannerState = (
     sAtStreamStart,
@@ -45,6 +36,15 @@ type
   |             |--BufferCount--|     |
                 |                     |
                 |-----BufferSize------|
+
+
+  =====================================
+  ... | * | * |#13|#10| * | * | * | ...
+  ======================^==============
+                        |
+                    FLineStart
+
+  FLineStart = 0 at the beggining of a file.                  
 }
 
 type
@@ -61,19 +61,21 @@ type
     FScalar: String;
     FQuoting: TyamlScalarQuoting;
     FStyle: TyamlScalarStyle;
-    FIndent: Integer;
+    FIndent, FBlockIndent: Integer;
     FKey: String;
+    FLastBufferChar: AnsiChar;
+    FLineStart: Integer;
 
     procedure ReadNextBlock;
     procedure CheckEOF;
     procedure ShiftBuffer(const Offset: Integer);
     procedure SkipUntilEOL;
-    procedure SkipSpaces;
+    procedure SkipSpacesUntilEOL;
     procedure Skip(N: Integer; const Spaces: Boolean = False);
-    function GetIndent: Integer;
-    function GetChar: Char;
+    procedure GetIndent;
+    function GetChar: AnsiChar;
     function GetString(N: Integer): String;
-    function PeekChar(const Offset: Integer = 0): Char;
+    function PeekChar(const Offset: Integer = 0): AnsiChar;
 
   public
     constructor Create(AStream: TStream; const ABufferSize: Integer = 0);
@@ -97,6 +99,8 @@ implementation
 const
   DefBufferSize  = 65536;
   DefBufferShift = 16384;
+
+  EOL = [#13, #10];
 
 { TyamlScanner }
 
@@ -129,21 +133,45 @@ begin
   inherited;
 end;
 
-function TyamlScanner.GetChar: Char;
+function TyamlScanner.GetChar: AnsiChar;
 begin
   CheckEOF;
   Result := FBuffer[FPosition];
+  if Result in EOL then
+    FLineStart := FPosition + 1;
   Inc(FPosition);
   ReadNextBlock;
 end;
 
-function TyamlScanner.GetIndent: Integer;
+procedure TyamlScanner.GetIndent;
+var
+  PrevChar: AnsiChar;
 begin
-  Result := 0;
-  while PeekChar = #32 do
+  while not EOF do
   begin
-    Inc(Result);
-    GetChar;
+    if PeekChar in EOL then
+    begin
+      SkipSpacesUntilEOL;
+      continue;
+    end;
+
+    if FPosition > 0 then
+      PrevChar := FBuffer[FPosition - 1]
+    else
+      PrevChar := FLastBufferChar;
+
+    if PrevChar in [#00, #13, #10] then
+    begin
+      FIndent := 0;
+      while PeekChar(FIndent) = #32 do
+        Inc(FIndent);
+      if not (PeekChar(FIndent + 1) in EOL) then
+      begin
+        Skip(FIndent, False);
+        break;
+      end;  
+    end else
+      break;
   end;
 end;
 
@@ -155,7 +183,7 @@ begin
   Result := tUndefined;
   while (Result = tUndefined) and (not EOF) do
   begin
-    FIndent := GetIndent;
+    GetIndent;
 
     if EOF then
       continue;
@@ -186,6 +214,7 @@ begin
           and (PeekChar(1) = '-')
           and (PeekChar(2) = '-') then
         begin
+          FBlockIndent := 0;
           Skip(3, True);
           if PeekChar = '|' then
           begin
@@ -204,12 +233,14 @@ begin
           and (PeekChar(1) = '.')
           and (PeekChar(2) = '.') then
         begin
+          FBlockIndent := 0;
           Skip(3, True);
           Result := tDocumentEnd;
         end else
           case PeekChar of
             '-':
             begin
+              FBlockIndent := FPosition - FLineStart;
               Skip(1, True);
               FState := sDocument;
               Result := tSequenceStart;
@@ -232,11 +263,12 @@ begin
             end;
           else
             L := 0;
-            while (not EOF) and (not (PeekChar(L) in [#13, #10, ':'])) do
+            while not (PeekChar(L) in [#00, #13, #10, ':', '#']) do
               Inc(L);
 
-            if (not EOF) and (L > 0) and (PeekChar(L) = ':') then
+            if (L > 0) and (PeekChar(L) = ':') then
             begin
+              FBlockIndent := FPosition - FLineStart;
               FKey := Trim(GetString(L));
               Skip(1, True);
               FState := sDocument;
@@ -280,10 +312,12 @@ begin
               QuoteMatched := True;
             end;
           end
-          else if PeekChar in [#10, #13] then
+          else if (PeekChar in EOL) or ((PeekChar = '#') and (FQuoting = qPlain)) then
           begin
-            while PeekChar in [#10, #13] do GetChar;
-            if (FQuoting = qPlain) and (GetIndent = 0) then
+            if PeekChar = '#' then
+              SkipUntilEOL;
+            GetIndent;
+            if EOF or ((FQuoting = qPlain) and (FIndent <= FBlockIndent)) then
               break;
             if FStyle = sLiteral then
               FScalar := FScalar + #13#10
@@ -294,7 +328,8 @@ begin
         end;
         if (not QuoteMatched) and (FQuoting in [qSingleQuoted, qDoubleQuoted]) then
           raise EyamlSyntaxError.Create('Syntax error');
-        SkipSpaces;
+        SkipSpacesUntilEOL;
+        FScalar := TrimRight(FScalar);
         FState := sDocument;
       end;
     end;
@@ -317,9 +352,9 @@ begin
   end;
 end;
 
-function TyamlScanner.PeekChar(const Offset: Integer = 0): Char;
+function TyamlScanner.PeekChar(const Offset: Integer = 0): AnsiChar;
 begin
-  if (Offset < 0) or (Offset >= FBufferSize) then
+  if (Offset < 0) or (Offset >= DefBufferShift) then
     raise EyamlException.Create('Invalid offset');
   if FEOF then
     Result := #0
@@ -336,7 +371,10 @@ procedure TyamlScanner.ReadNextBlock;
 begin
   if FPosition = FBufferCount then
   begin
+    if FBufferCount > 0 then
+      FLastBufferChar := FBuffer[FBufferCount - 1];
     Inc(FBufferStart, FBufferCount);
+    Dec(FLineStart, FPosition);
     FPosition := 0;
     FBufferCount := FStream.Read(FBuffer^, FBufferSize);
     FEOF := FBufferCount = 0;
@@ -352,11 +390,18 @@ begin
     Shift := FPosition + Offset - FBufferCount + 1;
     if Shift < DefBufferShift then Shift := DefBufferShift;
     if Shift > FPosition then Shift := FPosition;
-    Move(FBuffer[Shift], FBuffer[0], FBufferCount - Shift);
-    Dec(FPosition, Shift);
-    Dec(FBufferCount, Shift);
-    Inc(FBufferStart, Shift);
-    Inc(FBufferCount, FStream.Read(FBuffer[FBufferCount], FBufferSize - FBufferCount));
+    if Shift > 0 then
+    begin
+      if FPosition = Shift then
+        FLastBufferChar := FBuffer[Shift - 1];
+      Dec(FLineStart, Shift);  
+      Move(FBuffer[Shift], FBuffer[0], FBufferCount - Shift);
+      Dec(FPosition, Shift);
+      Dec(FBufferCount, Shift);
+      Inc(FBufferStart, Shift);
+      Inc(FBufferCount, FStream.Read(FBuffer[FBufferCount],
+        FBufferSize - FBufferCount));
+    end;
   end;
 end;
 
@@ -369,19 +414,21 @@ begin
   end;
 
   if Spaces then
-    SkipSpaces;
+    SkipSpacesUntilEOL;
 end;
 
-procedure TyamlScanner.SkipSpaces;
+procedure TyamlScanner.SkipSpacesUntilEOL;
 begin
-  while PeekChar in [#32, #10, #13] do
+  while PeekChar = #32 do
+    GetChar;
+  while PeekChar in EOL do
     GetChar;
 end;
 
 procedure TyamlScanner.SkipUntilEOL;
 begin
-  while (not EOF) and (not (PeekChar in [#10, #13])) do GetChar;
-  while (not EOF) and (PeekChar in [#10, #13]) do GetChar;
+  while not (PeekChar in [#00, #10, #13]) do GetChar;
+  while PeekChar in EOL do GetChar;
 end;
 
 end.
