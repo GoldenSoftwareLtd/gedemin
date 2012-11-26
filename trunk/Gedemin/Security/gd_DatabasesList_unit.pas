@@ -526,9 +526,19 @@ procedure Tgd_DatabasesList.WriteToIniFile;
 var
   IniFile: TIniFile;
   I: Integer;
+  Sections: TStringList;
 begin
   IniFile := TIniFile.Create(FIniFileName);
   try
+    Sections := TStringList.Create;
+    try
+      IniFile.ReadSections(Sections);
+      for I := 0 to Sections.Count - 1 do
+        IniFile.EraseSection(Sections[I]);
+    finally
+      Sections.Free;
+    end;
+
     for I := 0 to Count - 1 do
     try
       (Items[I] as Tgd_DatabaseItem).WriteToIniFile(IniFile);
