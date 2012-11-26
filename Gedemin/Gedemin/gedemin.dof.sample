@@ -56,8 +56,8 @@ ActiveLang=
 ProjectLang=$00000419
 RootDir=
 [Version Info]
-IncludeVerInfo=1
-AutoIncBuild=1
+IncludeVerInfo=0
+AutoIncBuild=0
 MajorVer=1
 MinorVer=4
 Release=9

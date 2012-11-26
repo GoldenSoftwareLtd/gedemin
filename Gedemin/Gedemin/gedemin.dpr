@@ -614,7 +614,7 @@ begin
       if (MutexHandle = 0) or (not MutexExisted)
         or (MutexExisted and ShouldProceedLoading) then
       begin
-        gd_GlobalParams.SecondaryInstance := True;
+        gd_GlobalParams.SecondaryInstance := MutexExisted;
 
         try
           Application.Initialize;

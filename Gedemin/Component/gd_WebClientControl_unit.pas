@@ -87,8 +87,10 @@ begin
   Priority := tpLowest;
   FHTTP := TidHTTP.Create(nil);
   FHTTP.HandleRedirects := True;
+  //!!!!!
   FHTTP.ReadTimeout := 88000;
   FHTTP.ConnectTimeout := 44000;
+  //!!!!!
   FHTTP.OnWork := DoOnWork;
   FURI := TidURI.Create;
   FgdWebServerURL := TidThreadSafeString.Create;
@@ -99,7 +101,16 @@ procedure TgdWebClientThread.AfterConnection;
 begin
   Assert(IBLogin <> nil);
 
-  gdWebServerURL := gd_CmdLineParams.RemoteServer;
+  if gd_GlobalParams.GetWebServerActive then
+    exit;
+
+  gdWebServerURL := gd_GlobalParams.GetRemoteServer;
+  if gdWebServerURL > '' then
+  begin
+    FURI.URLDecode(gdWebServerURL);
+    if FURI.Protocol = '' then
+      gdWebServerURL := 'http://' + gdWebServerURL;
+  end;    
 
   FDBID := IBLogin.DBID;
   FCompanyName := IBLogin.CompanyName;
@@ -127,14 +138,20 @@ begin
   else begin
     FURI.URI := gdWebServerURL;
     gdNotifierThread.Add('Подключение к серверу: ' + FURI.Host + '...', 0, 2000);
-    FWebServerResponse := FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/query?' +
-      'dbid=' + IntToStr(FDBID) +
-      '&c_name=' + FCompanyName +
-      '&c_ruid=' + FCompanyRUID +
-      '&loc_ip=' + FLocalIP +
-      '&exe_ver=' + FExeVer +
-      '&update_token=' + FUpdateToken));
-    Result := True;
+    try
+      FWebServerResponse := FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/query?' +
+        'dbid=' + IntToStr(FDBID) +
+        '&c_name=' + FCompanyName +
+        '&c_ruid=' + FCompanyRUID +
+        '&loc_ip=' + FLocalIP +
+        '&exe_ver=' + FExeVer +
+        '&update_token=' + FUpdateToken));
+      Result := True;
+      gdNotifierThread.Add('Подключение прошло успешно.', 0, 2000);
+    except
+      gdNotifierThread.Add('Произошла ошибка в процессе подключения!', 0, 2000);
+      raise;
+    end;
   end;
 end;
 
@@ -193,21 +210,26 @@ begin
   case Msg.Message of
     WM_GD_AFTER_CONNECTION:
       if (not FConnected) and LoadWebServerURL then
+      begin
         FConnected := True;
+        PostThreadMessage(ThreadID, WM_GD_QUERY_SERVER, 0, 0);
+      end;
 
     WM_GD_QUERY_SERVER:
       if QueryWebServer then
       begin
         if Pos('UPDATE', FWebServerResponse) > 0 then
-        begin
-          FInUpdate := True;
           PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
-        end;
       end;
 
     WM_GD_UPDATE_FILES:
-      if UpdateFiles then
-        PostThreadMessage(ThreadID, WM_GD_PROCESS_UPDATE_COMMAND, 0, 0);
+      begin
+        FInUpdate := True;
+        if UpdateFiles then
+          PostThreadMessage(ThreadID, WM_GD_PROCESS_UPDATE_COMMAND, 0, 0)
+        else
+          FInUpdate := False;
+      end;
 
     WM_GD_PROCESS_UPDATE_COMMAND:
       if ProcessUpdateCommand then
@@ -298,7 +320,7 @@ end;
 
 procedure TgdWebClientThread.StartUpdateFiles;
 begin
-  PostMsg(WM_GD_QUERY_SERVER);
+  PostMsg(WM_GD_UPDATE_FILES);
 end;
 
 procedure TgdWebClientThread.DoOnWork(Sender: TObject;

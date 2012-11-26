@@ -82,7 +82,7 @@ uses
   SysUtils, Forms, Windows, IBSQL, IBDatabase, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit, gdcBaseInterface,
   prp_methods, Gedemin_TLB, Storages, WinSock, ComObj, JclSimpleXML, jclSysInfo,
-  gd_directories_const, ActiveX, FileCtrl;
+  gd_directories_const, ActiveX, FileCtrl, gd_GlobalParams_unit;
 
 type
   TgdHttpHandler = class(TObject)
@@ -309,7 +309,11 @@ begin
 
   if not FHTTPServer.Active then
     try
-      FHttpServer.Active := True;
+      if gd_GlobalParams.GetWebServerActive and (FHTTPServer.Bindings.Count > 0)
+        and ((FHTTPServer.Bindings[0] as TidSocketHandle).IP <> '0.0.0.0') then
+      begin
+        FHttpServer.Active := True;
+      end;  
     except
       on E: Exception do
         Application.MessageBox(
@@ -328,7 +332,8 @@ end;
 procedure TgdWebServerControl.CreateHTTPServer;
 var
   Binding : TIdSocketHandle;
-  PortNumber: Integer;
+  PortNumber, I: Integer;
+  SL: TStringList;
 begin
   Assert(FHTTPServer = nil);
 
@@ -347,22 +352,25 @@ begin
   FHttpServer.ServerSoftware := 'GedeminHttpServer';
 
   FHttpServer.Bindings.Clear;
-  Binding := FHttpServer.Bindings.Add;
-  Binding.Port := PortNumber;
-  Binding.IP := '127.0.0.1';
 
-  Binding := FHttpServer.Bindings.Add;
-  Binding.Port := PortNumber;
-  Binding.IP := GetIPAddress(GetLocalComputerName);
-
-  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  if Binding.IP = '192.168.0.35' then
-  begin
-    Binding := FHttpServer.Bindings.Add;
-    Binding.Port := PortNumber;
-    Binding.IP := GetIPAddress('gs.selfip.biz');
+  SL := TStringList.Create;
+  try
+    SL.CommaText := gd_GlobalParams.GetServerBindings;
+    for I := 0 to SL.Count - 1 do
+    begin
+      if Length(SL[I]) > 0 then
+      begin
+        Binding := FHttpServer.Bindings.Add;
+        Binding.Port := PortNumber;
+        if SL[I][1] in ['0'..'9'] then
+          Binding.IP := SL[I]
+        else
+          Binding.IP := GetIPAddress(SL[I]);
+      end;
+    end;
+  finally
+    SL.Free;
   end;
-  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   FHttpServer.OnCommandGet := ServerOnCommandGet;
 
@@ -452,10 +460,18 @@ begin
     if FI <> nil then
     begin
       MS := TMemoryStream.Create;
-      FI.ReadFromDisk(MS);
-      FResponseInfo.ResponseNo := 200;
-      FResponseInfo.ContentType := 'application/octet-stream;';
-      FResponseInfo.ContentStream := MS;
+      try
+        FI.ReadFromDisk(MS);
+      except
+        FreeAndNil(MS);
+      end;
+
+      if MS <> nil then
+      begin
+        FResponseInfo.ResponseNo := 200;
+        FResponseInfo.ContentType := 'application/octet-stream;';
+        FResponseInfo.ContentStream := MS;
+      end;  
     end;
   end;
 end;

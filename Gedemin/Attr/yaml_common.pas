@@ -13,8 +13,15 @@ type
     qDoubleQuoted);
 
   TyamlScalarStyle = (
+    sPlain,
     sLiteral,
     sFolded);
+
+  EyamlException = class(Exception);
+  EyamlSyntaxError = class(EyamlException);
+  
+const
+  EOL = [#13, #10];
 
 implementation
 

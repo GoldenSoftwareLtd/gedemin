@@ -1,6 +1,6 @@
 object gd_DatabasesListView: Tgd_DatabasesListView
   Left = 349
-  Top = 90
+  Top = 113
   Width = 741
   Height = 606
   Caption = 'Список баз данных'
@@ -144,12 +144,24 @@ object gd_DatabasesListView: Tgd_DatabasesListView
       object TBControlItem2: TTBControlItem
         Control = edFilter
       end
+      object TBSeparatorItem4: TTBSeparatorItem
+      end
+      object TBControlItem3: TTBControlItem
+        Control = lblIniFile
+      end
       object Label1: TLabel
         Left = 179
         Top = 4
         Width = 48
         Height = 13
         Caption = ' Фильтр: '
+      end
+      object lblIniFile: TLabel
+        Left = 354
+        Top = 4
+        Width = 38
+        Height = 13
+        Caption = 'lblIniFile'
       end
       object edFilter: TEdit
         Left = 227
