@@ -23,9 +23,12 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function GetServerBindings: String;
-    function GetRemoteServer: String;
+    function GetWebClientRemoteServer: String;
+    function GetWebClientTimeout: Integer;
+
     function GetWebServerActive: Boolean;
+    function GetWebServerBindings: String;
+    function GetWebServerUpdatePath: String;
 
     property LocalAppDataDir: String read FLocalAddDataDir;
     property NetworkDrive: Boolean read FNetworkDrive;
@@ -76,22 +79,22 @@ begin
   inherited;
 end;
 
-function Tgd_GlobalParams.GetRemoteServer: String;
+function Tgd_GlobalParams.GetWebClientRemoteServer: String;
 begin
   if gd_CmdLineParams.RemoteServer > '' then
     Result := gd_CmdLineParams.RemoteServer
   else if FIniFile <> nil then
-    Result := FIniFile.ReadString('GEDEMIN UPDATE', 'RemoteServer', '')
+    Result := FIniFile.ReadString('WEB CLIENT', 'RemoteServer', '')
   else
     Result := '';
 end;
 
-function Tgd_GlobalParams.GetServerBindings: String;
+function Tgd_GlobalParams.GetWebServerBindings: String;
 begin
   if FIniFile <> nil then
     Result := FIniFile.ReadString('WEB SERVER', 'Bindings', '')
   else
-    Result := '';  
+    Result := '';
 end;
 
 function Tgd_GlobalParams.GetWebServerActive: Boolean;
@@ -99,7 +102,7 @@ begin
   if FIniFile <> nil then
     Result := FIniFile.ReadBool('WEB SERVER', 'Active', False)
   else
-    Result := False;  
+    Result := False;
 end;
 
 procedure Tgd_GlobalParams.ReadFromIniFile;
@@ -108,8 +111,24 @@ begin
   begin
     if FIniFile = nil then
       FIniFile := TIniFile.Create(FIniFileName);
-    FUpdateToken := FIniFile.ReadString('GEDEMIN UPDATE', 'Token', '');
+    FUpdateToken := FIniFile.ReadString('WEB CLIENT', 'Token', '');
   end;
+end;
+
+function Tgd_GlobalParams.GetWebServerUpdatePath: String;
+begin
+  if FIniFile <> nil then
+    Result := FIniFile.ReadString('WEB SERVER', 'UpdatePath', '')
+  else
+    Result := '';
+end;
+
+function Tgd_GlobalParams.GetWebClientTimeout: Integer;
+begin
+  if FIniFile <> nil then
+    Result := FIniFile.ReadInteger('WEB CLIENT', 'Timeout', 2000)
+  else
+    Result := 2000;
 end;
 
 initialization
