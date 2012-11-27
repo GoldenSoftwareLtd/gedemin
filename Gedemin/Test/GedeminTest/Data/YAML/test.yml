@@ -31,7 +31,24 @@ a: - Item1 # comment
 # comment
    - Item2
 b: - Item3
-   - Item4       
+   - Item4
+   - "Item5"
+     Item6: |
+       123 456
+       789 111
+       568
+     Item7: >
+       123 456
+       789 111
+       568
+     Item8: "test | test"
+     Item9: !!int 67
+c: !!seq
+  - Item1
+
+
+
+
 
 
 

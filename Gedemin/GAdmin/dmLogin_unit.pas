@@ -187,23 +187,20 @@ begin
       Application.Terminate;
     end;
   end;
-
-  {$IFDEF WITH_INDY}
-  if not Application.Terminated then
-  begin
-    if not gd_GlobalParams.SecondaryInstance then
-      gdWebServerControl.ActivateServer;
-    gdWebClientThread.AfterConnection;
-  end;
-  {$ENDIF}  
 end;
 
 procedure TdmLogin.boLoginAfterChangeCompany(Sender: TObject);
 begin
-  {.$IFDEF GEDEMIN}
-  CompanyStorage.ObjectKey := IBLogin.CompanyKey;
-  if TrayIcon <> nil then TrayIcon.ToolTip := IBLogin.CompanyName;
-  {.$ENDIF}
+  if not Application.Terminated then
+  begin
+    CompanyStorage.ObjectKey := IBLogin.CompanyKey;
+    if TrayIcon <> nil then TrayIcon.ToolTip := IBLogin.CompanyName;
+    {$IFDEF WITH_INDY}
+    if not gd_GlobalParams.SecondaryInstance then
+      gdWebServerControl.ActivateServer;
+    gdWebClientThread.AfterConnection;
+    {$ENDIF}
+  end;
 end;
 
 procedure TdmLogin.boLoginBeforeDisconnect(Sender: TObject);

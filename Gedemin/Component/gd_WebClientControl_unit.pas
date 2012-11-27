@@ -11,8 +11,9 @@ type
   TgdWebClientThread = class(TgdMessagedThread)
   private
     FgdWebServerURL: TidThreadSafeString;
+    FConnected: TidThreadSafeInteger;
     FServerFileList: TFLCollection;
-    FConnected, FInUpdate: Boolean;
+    FInUpdate: Boolean;
     FHTTP: TidHTTP;
     FCmdList: TStringList;
     FURI: TidURI;
@@ -87,13 +88,12 @@ begin
   Priority := tpLowest;
   FHTTP := TidHTTP.Create(nil);
   FHTTP.HandleRedirects := True;
-  //!!!!!
-  FHTTP.ReadTimeout := 88000;
-  FHTTP.ConnectTimeout := 44000;
-  //!!!!!
+  FHTTP.ReadTimeout := gd_GlobalParams.GetWebClientTimeout;
+  FHTTP.ConnectTimeout := gd_GlobalParams.GetWebClientTimeout;
   FHTTP.OnWork := DoOnWork;
   FURI := TidURI.Create;
   FgdWebServerURL := TidThreadSafeString.Create;
+  FConnected := TidThreadSafeInteger.Create;
   FPath := ExtractFilePath(Application.ExeName);
 end;
 
@@ -101,10 +101,13 @@ procedure TgdWebClientThread.AfterConnection;
 begin
   Assert(IBLogin <> nil);
 
+  if FConnected.Value <> 0 then
+    exit;
+
   if gd_GlobalParams.GetWebServerActive then
     exit;
 
-  gdWebServerURL := gd_GlobalParams.GetRemoteServer;
+  gdWebServerURL := gd_GlobalParams.GetWebClientRemoteServer;
   if gdWebServerURL > '' then
   begin
     FURI.URLDecode(gdWebServerURL);
@@ -209,9 +212,9 @@ begin
   Result := True;
   case Msg.Message of
     WM_GD_AFTER_CONNECTION:
-      if (not FConnected) and LoadWebServerURL then
+      if (FConnected.Value = 0) and LoadWebServerURL then
       begin
-        FConnected := True;
+        FConnected.Value := 1;
         PostThreadMessage(ThreadID, WM_GD_QUERY_SERVER, 0, 0);
       end;
 
@@ -268,6 +271,7 @@ destructor TgdWebClientThread.Destroy;
 begin
   inherited;
   FgdWebServerURL.Free;
+  FConnected.Free;
   FServerFileList.Free;
   FHTTP.Free;
   FCmdList.Free;

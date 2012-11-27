@@ -27,6 +27,13 @@ type
     procedure WriteDocumentEnd;
     procedure WriteInteger(const I: Integer; const StartNewLine: Boolean = True);
     procedure WriteKey(const AKey: String; const StartNewLine: Boolean = True);
+    procedure WriteChar(const Ch: Char; const StartNewLine: Boolean = True);
+    procedure WriteString(const AStr: String; const StartNewLine: Boolean = True);
+    procedure WriteTag(const ASuffix: String; const StartNewLine: Boolean = True);
+    procedure WriteSequenceIndicator(const StartNewLine: Boolean = True);
+    procedure WriteMultipleLine(const AText: String; AStyle: TyamlScalarStyle);
+    procedure WriteScalar(const AScalar: String; AStyle: TyamlScalarQuoting; const StartNewLine: Boolean = True);
+    procedure WriteComment(const AComment: String; const StartNewLine: Boolean = True);
 
     procedure IncIndent;
     procedure DecIndent;
@@ -90,6 +97,62 @@ begin
     sLiteral: WriteBuffer('--- | ');
     sFolded:  WriteBuffer('--- > ');
   end;
+end;
+
+procedure TyamlWriter.WriteSequenceIndicator(const StartNewLine: Boolean = True);
+begin
+  WriteBuffer('- ', StartNewLine);
+end;
+
+procedure TyamlWriter.WriteChar(const Ch: Char; const StartNewLine: Boolean = True);
+begin
+  WriteBuffer(Ch, StartNewLine);
+end;
+
+procedure TyamlWriter.WriteString(const AStr: String; const StartNewLine: Boolean = True);
+begin
+  WriteBuffer(AStr, StartNewLine);
+end;
+
+procedure TyamlWriter.WriteMultipleLine(const AText: String; AStyle: TyamlScalarStyle);
+var
+  Temps: String;
+  I: Integer;
+begin
+  if AStyle = sLiteral then
+  begin
+    WriteChar('|', False);
+    Temps := '';
+    for I := 1 to Length(AText) do
+    begin
+      if not (AText[I] in EOL) then
+        Temps := Temps + AText[I]
+      else if Temps > '' then
+      begin
+        WriteString(Temps);
+        Temps := '';
+      end;
+    end;
+  end;
+end;
+
+procedure TyamlWriter.WriteTag(const ASuffix: String; const StartNewLine: Boolean = True);
+begin
+  WriteBuffer('!!' + ASuffix, StartNewLine);
+end;
+
+procedure TyamlWriter.WriteScalar(const AScalar: String; AStyle: TyamlScalarQuoting; const StartNewLine: Boolean = True);
+begin
+  case AStyle of
+    qDoubleQuoted:  WriteBuffer('"' + AScalar + '"', StartNewLine);
+    qSingleQuoted:  WriteBuffer('''' + AScalar + '''', StartNewLine);
+    qPlain: WriteBuffer(AScalar, StartNewLine);
+  end;
+end;
+
+procedure TyamlWriter.WriteComment(const AComment: String; const StartNewLine: Boolean = True);
+begin
+  WriteBuffer('#' + AComment, StartNewLine);
 end;
 
 procedure TyamlWriter.WriteBuffer(const ABuffer: AnsiString;

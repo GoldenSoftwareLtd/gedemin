@@ -15,13 +15,15 @@ type
     tDocumentEnd,
     tSequenceStart,
     tScalar,
-    tKey);
+    tKey,
+    tTag);
 
   TyamlScannerState = (
     sAtStreamStart,
     sDirective,
     sDocument,
-    sScalar);
+    sScalar,
+    sTag);
 
 {
   |-----------FileSize----------|
@@ -65,6 +67,7 @@ type
     FKey: String;
     FLastBufferChar: AnsiChar;
     FLineStart: Integer;
+    FTag: String;
 
     procedure ReadNextBlock;
     procedure CheckEOF;
@@ -89,6 +92,7 @@ type
     property Style: TyamlScalarStyle read FStyle;
     property Indent: Integer read FIndent;
     property Key: String read FKey;
+    property Tag: String read FTag;
   end;
 
 implementation
@@ -164,7 +168,7 @@ begin
       begin
         Skip(FIndent, False);
         break;
-      end;  
+      end;
     end else
       break;
   end;
@@ -176,6 +180,7 @@ var
   L: Integer;
 begin
   Result := tUndefined;
+  FStyle := sPlain;
   while (Result = tUndefined) and (not EOF) do
   begin
     GetIndent;
@@ -211,17 +216,6 @@ begin
         begin
           FBlockIndent := 0;
           Skip(3, True);
-          if PeekChar = '|' then
-          begin
-            FStyle := sLiteral;
-            SkipUntilEOL;
-          end
-          else if PeekChar = '>' then
-          begin
-            FStyle := sFolded;
-            SkipUntilEOL;
-          end else
-            FStyle := sPlain;
           Result := tDocumentStart;
         end
         else if (PeekChar = '.')
@@ -249,12 +243,30 @@ begin
               FState := sScalar;
             end;
 
+            '>':
+            begin
+              FStyle := sFolded;
+              SkipUntilEOL;
+            end;
+
+            '|':
+            begin
+              FStyle := sLiteral;
+              SkipUntilEOL;
+            end;
+
             '''':
             begin
               Skip(1, False);
               FQuoting := qSingleQuoted;
               FScalar := '';
               FState := sScalar;
+            end;
+
+            '!':
+            begin
+              FTag := '';
+              FState := sTag;
             end;
           else
             L := 0;
@@ -273,7 +285,7 @@ begin
               FQuoting := qPlain;
               FScalar := '';
               FState := sScalar;
-            end;  
+            end;
           end;
       end;
 
@@ -317,7 +329,7 @@ begin
             if FStyle = sLiteral then
               FScalar := FScalar + #13#10
             else
-              FScalar := FScalar + ' ';    
+              FScalar := FScalar + ' ';
           end else
             FScalar := FScalar + GetChar;
         end;
@@ -325,6 +337,17 @@ begin
           raise EyamlSyntaxError.Create('Syntax error');
         SkipSpacesUntilEOL;
         FScalar := TrimRight(FScalar);
+        FState := sDocument;
+      end;
+
+      sTag:
+      begin
+        Result := tTag;
+        while not (PeekChar in [#00, #32, #13, #10]) do
+          FTag := FTag + GetChar;
+        if EOF or (FTag = '!') or (FTag = '!!') then
+          raise EyamlSyntaxError.Create('Syntax error');
+        SkipSpacesUntilEOL;
         FState := sDocument;
       end;
     end;

@@ -355,7 +355,7 @@ begin
 
   SL := TStringList.Create;
   try
-    SL.CommaText := gd_GlobalParams.GetServerBindings;
+    SL.CommaText := gd_GlobalParams.GetWebServerBindings;
     for I := 0 to SL.Count - 1 do
     begin
       if Length(SL[I]) > 0 then
@@ -382,8 +382,11 @@ begin
 end;
 
 procedure TgdWebServerControl.ProcessQueryRequest;
+var
+  UP: String;
+  FI: TFLItem;
 begin
-  FResponseInfo.ResponseNo := 200;
+  FResponseInfo.ResponseNo := 400;
   FResponseInfo.ContentType := 'text/plain;';
   FResponseInfo.ContentText := '';
 
@@ -396,22 +399,37 @@ begin
      FRequestInfo.Params.Values['exe_ver'],
      FRequestInfo.Params.Values['update_token']]);
 
-  if FFileList = nil then
-  begin
-    FFileList := TFLCollection.Create;
-    //!!!
-    if DirectoryExists(ExtractFileDrive(Application.EXEName) + ':\golden\gedemin_local_fb') then
-      FFileList.RootPath := ExtractFileDrive(Application.EXEName) + ':\golden\gedemin_local_fb';
-    //!!!
-    FFileList.BuildEtalonFileSet;
-  end;
+  UP := gd_GlobalParams.GetWebServerUpdatePath;
 
-  if (FFileList.FindItem('gedemin.exe') <> nil) and
-    (TFLItem.CompareVersionStrings(FFileList.FindItem('gedemin.exe').Version,
-      FRequestInfo.Params.Values['exe_ver'], 4) > 0) then
+  if UP > '' then
+  begin
+    if FRequestInfo.Params.Values['update_token'] > '' then
+      UP := IncludeTrailingBackslash(UP) + 'Normal'
+    else
+      UP := IncludeTrailingBackslash(UP) +
+        FRequestInfo.Params.Values['update_token'];
+
+    if DirectoryExists(UP) then
     begin
-      FResponseInfo.ContentText := 'UPDATE';
+      if FFileList = nil then
+        FFileList := TFLCollection.Create;
+      if FFileList.RootPath <> UP then
+      begin
+        FFileList.RootPath := UP;
+        FFileList.BuildEtalonFileSet;
+      end;
+      FI := FFileList.FindItem('gedemin.exe');
+      if FI <> nil then
+      begin
+        FResponseInfo.ResponseNo := 200;
+        if TFLItem.CompareVersionStrings(FI.Version,
+          FRequestInfo.Params.Values['exe_ver'], 4) > 0 then
+        begin
+          FResponseInfo.ContentText := 'UPDATE';
+        end;
+      end;
     end;
+  end;
 end;
 
 function TgdWebServerControl.GetActive: Boolean;
