@@ -1,3 +1,4 @@
+
 unit yaml_writer;
 
 interface
@@ -10,12 +11,11 @@ type
   private
     FStream: TStream;
     FBuffer: PAnsiChar;
+    FBufferStart: Integer;
     FPosition: Integer;
     FIndent: Integer;
-    FBOF: Boolean;
 
-    procedure WriteBuffer(const ABuffer: AnsiString;
-      const StartNewLine: Boolean = True);
+    procedure WriteBuffer(const ABuffer: AnsiString);
 
   public
     constructor Create(AStream: TStream);
@@ -25,15 +25,21 @@ type
 
     procedure WriteDocumentStart(const Folding: TyamlScalarStyle = sPlain);
     procedure WriteDocumentEnd;
-    procedure WriteInteger(const I: Integer; const StartNewLine: Boolean = True);
-    procedure WriteKey(const AKey: String; const StartNewLine: Boolean = True);
-    procedure WriteChar(const Ch: Char; const StartNewLine: Boolean = True);
-    procedure WriteString(const AStr: String; const StartNewLine: Boolean = True);
-    procedure WriteTag(const ASuffix: String; const StartNewLine: Boolean = True);
-    procedure WriteSequenceIndicator(const StartNewLine: Boolean = True);
-    procedure WriteMultipleLine(const AText: String; AStyle: TyamlScalarStyle);
-    procedure WriteScalar(const AScalar: String; AStyle: TyamlScalarQuoting; const StartNewLine: Boolean = True);
-    procedure WriteComment(const AComment: String; const StartNewLine: Boolean = True);
+    procedure WriteInteger(const I: Integer);
+    procedure WriteTimestamp(const Timestamp: TDateTime; const tzbias: Integer = 0);
+    procedure WriteDate(const Date: TDateTime);
+    procedure WriteFloat(const I: Extended);
+    procedure WriteBoolean(const Value: Boolean);
+    procedure WriteNull;
+    procedure WriteKey(const AKey: AnsiString);
+    procedure WriteChar(const Ch: AnsiChar);
+    procedure WriteString(const AStr: AnsiString);
+    procedure WriteTag(const ATag: AnsiString);
+    procedure WriteSequenceIndicator;
+    procedure WriteText(const AText: AnsiString; AQuoting: TyamlScalarQuoting = qPlain; AStyle: TyamlScalarStyle = sPlain);
+    procedure WriteComment(const AComment: AnsiString);
+    procedure WriteEOL;
+    procedure StartNewLine;
 
     procedure IncIndent;
     procedure DecIndent;
@@ -54,16 +60,14 @@ begin
 
   FStream := AStream;
   GetMem(FBuffer, DefBufferSize);
-  FillChar(FBuffer^, DefBufferSize, #32);
-  FBOF := True;
 end;
 
 procedure TyamlWriter.Flush;
 begin
   if FPosition > 0 then
   begin
+    Inc(FBufferStart, FPosition);
     FStream.WriteBuffer(FBuffer^, FPosition);
-    FillChar(FBuffer^, FPosition, #32);
     FPosition := 0;
   end;  
 end;
@@ -81,13 +85,13 @@ end;
 
 procedure TyamlWriter.DecIndent;
 begin
-  Assert(FIndent >= 2);
-  Dec(FIndent, 2);
+  Assert(FIndent >= DefIndent);
+  Dec(FIndent, DefIndent);
 end;
 
 procedure TyamlWriter.IncIndent;
 begin
-  Inc(FIndent, 2);
+  Inc(FIndent, DefIndent);
 end;
 
 procedure TyamlWriter.WriteDocumentStart(const Folding: TyamlScalarStyle = sPlain);
@@ -99,86 +103,134 @@ begin
   end;
 end;
 
-procedure TyamlWriter.WriteSequenceIndicator(const StartNewLine: Boolean = True);
+procedure TyamlWriter.WriteSequenceIndicator;
 begin
-  WriteBuffer('- ', StartNewLine);
+  WriteBuffer('- ');
 end;
 
-procedure TyamlWriter.WriteChar(const Ch: Char; const StartNewLine: Boolean = True);
+procedure TyamlWriter.WriteChar(const Ch: AnsiChar);
 begin
-  WriteBuffer(Ch, StartNewLine);
+  WriteBuffer(Ch);
 end;
 
-procedure TyamlWriter.WriteString(const AStr: String; const StartNewLine: Boolean = True);
+procedure TyamlWriter.WriteString(const AStr: AnsiString);
 begin
-  WriteBuffer(AStr, StartNewLine);
+  WriteBuffer(AStr);
 end;
 
-procedure TyamlWriter.WriteMultipleLine(const AText: String; AStyle: TyamlScalarStyle);
-var
-  Temps: String;
-  I: Integer;
+procedure TyamlWriter.WriteFloat(const I: Extended);
 begin
-  if AStyle = sLiteral then
+  WriteBuffer(FloatToStr(I));
+end;
+
+procedure TyamlWriter.WriteTimestamp(const Timestamp: TDateTime; const tzbias: Integer = 0);
+
+  function ISO8601Timezone(tzbias: Integer): AnsiString;
+  var
+    Sign: AnsiChar;
   begin
-    WriteChar('|', False);
-    Temps := '';
-    for I := 1 to Length(AText) do
+    if tzbias = 0 then
+      Result := 'Z'
+    else
     begin
-      if not (AText[I] in EOL) then
-        Temps := Temps + AText[I]
-      else if Temps > '' then
+      if tzbias < 0 then
       begin
-        WriteString(Temps);
-        Temps := '';
-      end;
+        tzbias := -tzbias;
+        Sign := '-';
+      end else
+        Sign := '+';
+      Result := Result + Format(' %s%2.2d:%2.2d',
+        [Sign, tzbias div 60, tzbias mod 60]);
     end;
   end;
+  
+begin
+  WriteBuffer(FormatDateTime('yyyy-mm-dd" "hh":"nn":"ss', Timestamp) + ISO8601Timezone(tzbias));
 end;
 
-procedure TyamlWriter.WriteTag(const ASuffix: String; const StartNewLine: Boolean = True);
+procedure TyamlWriter.WriteDate(const Date: TDateTime);
 begin
-  WriteBuffer('!!' + ASuffix, StartNewLine);
+  WriteBuffer(FormatDateTime('yyyy-mm-dd', Date));
 end;
 
-procedure TyamlWriter.WriteScalar(const AScalar: String; AStyle: TyamlScalarQuoting; const StartNewLine: Boolean = True);
+procedure TyamlWriter.WriteBoolean(const Value: Boolean);
 begin
-  case AStyle of
-    qDoubleQuoted:  WriteBuffer('"' + AScalar + '"', StartNewLine);
-    qSingleQuoted:  WriteBuffer('''' + AScalar + '''', StartNewLine);
-    qPlain: WriteBuffer(AScalar, StartNewLine);
+  if Value then
+    WriteBuffer('True')
+  else
+    WriteBuffer('False');
+end;
+
+procedure TyamlWriter.WriteNull;
+begin
+  WriteBuffer('NULL');
+end;
+
+procedure TyamlWriter.WriteTag(const ATag: AnsiString);
+begin
+  WriteBuffer(ATag + ' ');
+end;
+
+procedure TyamlWriter.WriteText(const AText: AnsiString; AQuoting: TyamlScalarQuoting = qPlain;
+  AStyle: TyamlScalarStyle = sPlain);
+
+  function BreakLine(const S: AnsiString; var B: Integer): AnsiString;
+  var
+    E: Integer;
+  begin
+    E := B;
+    while (E <= Length(S)) and (not (S[E] in EOL)) do
+      Inc(E);
+    Result := Copy(S, B, E - B);
+    B := E;
+    while (B <= Length(S)) and (S[B] in EOL) do
+      Inc(B);
+  end;
+
+  function QuoteString(const S: AnsiString; QuoteChar: AnsiChar): AnsiString;
+  begin
+    Result := QuoteChar +
+      StringReplace(S, QuoteChar, QuoteChar + QuoteChar, [rfReplaceAll]) +
+      QuoteChar;
+  end;
+
+var
+  P: Integer;
+begin
+  if AStyle = sPlain then
+    case AQuoting of
+      qDoubleQuoted:  WriteBuffer(QuoteString(AText, '"'));
+      qSingleQuoted:  WriteBuffer(QuoteString(AText, ''''));
+      qPlain: WriteBuffer(AText);
+    end
+  else begin
+    if AStyle = sLiteral then
+      WriteString('| ')
+    else
+      WriteString('> ');
+    IncIndent;
+    P := 1;
+    while P <= Length(AText) do
+    begin
+      StartNewLine;
+      WriteString(BreakLine(AText, P));
+    end;
+    DecIndent;
   end;
 end;
 
-procedure TyamlWriter.WriteComment(const AComment: String; const StartNewLine: Boolean = True);
+procedure TyamlWriter.WriteComment(const AComment: AnsiString);
 begin
-  WriteBuffer('#' + AComment, StartNewLine);
+  WriteBuffer('#' + AComment);
 end;
 
-procedure TyamlWriter.WriteBuffer(const ABuffer: AnsiString;
-  const StartNewLine: Boolean = True);
+procedure TyamlWriter.WriteBuffer(const ABuffer: AnsiString);
 var
   L, TL: Integer;
 begin
   L := Length(ABuffer);
 
-  if StartNewLine and (not FBOF) then
-  begin
-    TL := 2 + FIndent + L;
-    if TL > DefBufferSize then
-      raise EyamlException.Create('Data too long');
-    if FPosition + TL > DefBufferSize then
-      Flush;
-    FBuffer[FPosition] := #13;
-    FBuffer[FPosition + 1] := #10;
-    Inc(FPosition, 2 + FIndent);
-    if L > 0 then
-    begin
-      Move(ABuffer[1], FBuffer[FPosition], L);
-      Inc(FPosition, L);
-    end;
-  end
-  else if L > 0 then
+  if L > 0 then
   begin
     if L > DefBufferSize then
       raise EyamlException.Create('Data too long');
@@ -186,7 +238,6 @@ begin
       Flush;
     Move(ABuffer[1], FBuffer[FPosition], L);
     Inc(FPosition, L);
-    FBOF := False;
   end;
 end;
 
@@ -195,16 +246,25 @@ begin
   WriteBuffer('...');
 end;
 
-procedure TyamlWriter.WriteInteger(const I: Integer;
-  const StartNewLine: Boolean = True);
+procedure TyamlWriter.WriteInteger(const I: Integer);
 begin
-  WriteBuffer(IntToStr(I), StartNewLine);
+  WriteBuffer(IntToStr(I));
 end;
 
-procedure TyamlWriter.WriteKey(const AKey: String;
-  const StartNewLine: Boolean);
+procedure TyamlWriter.WriteKey(const AKey: AnsiString);
 begin
-  WriteBuffer(AKey + ': ', StartNewLine);
+  WriteBuffer(AKey + ': ');
+end;
+
+procedure TyamlWriter.WriteEOL;
+begin
+  WriteBuffer(#13#10);
+end;
+
+procedure TyamlWriter.StartNewLine;
+begin
+  if (FPosition > 0) or (FBufferStart > 0) then
+    WriteBuffer(#13#10 + StringOfChar(#32, FIndent));
 end;
 
 end.

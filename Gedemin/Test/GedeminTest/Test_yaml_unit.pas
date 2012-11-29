@@ -4,12 +4,13 @@ unit Test_yaml_unit;
 interface
 
 uses
-  Classes, TestFrameWork, yaml_scanner, yaml_common, yaml_writer;
+  Classes, TestFrameWork, gsTestFrameWork;
 
 type
-  TyamlTest = class(TTestCase)
+  TyamlTest = class(TgsTestCase)
   private
     procedure TransformationStream(AInPut, AOutPut: TStream);
+
   published
     procedure Test;
     procedure Test_CompareStream;
@@ -18,7 +19,7 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils, yaml_reader, yaml_scanner, yaml_common, yaml_writer;
 
 { TyamlTest }
 
@@ -26,13 +27,18 @@ procedure TyamlTest.Test;
 var
   FS: TFileStream;
   Scanner: TyamlScanner;
+  Reader: TyamlReader;
 begin
-  FS := TFileStream.Create('c:\golden\gedemin\test\gedemintest\data\yaml\test.yml', fmOpenRead);
+  FS := TFileStream.Create(TestDataPath + '\yaml\test.yml', fmOpenRead);
+  Reader := TyamlReader.Create(FS);
   try
-    Scanner := TyamlScanner.Create(FS);
+    Scanner := TyamlScanner.Create(Reader);
     try
       Check(Scanner.GetNextToken = tStreamStart);
       Check(Scanner.GetNextToken = tDocumentStart);
+      Check(Scanner.Line = 1);
+      Check(Scanner.Indent = 0);
+
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = 'aaa "bbb');
       Check(Scanner.Quoting = qDoubleQuoted);
@@ -69,6 +75,9 @@ begin
 
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'a');
+      Check(Scanner.Line = 19);
+      Check(Scanner.Indent = 2);
+
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = '89');
       Check(Scanner.Quoting = qPlain);
@@ -93,7 +102,6 @@ begin
       Check(Scanner.Key = 'nm');
 
       Check(Scanner.GetNextToken = tSequenceStart);
-
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'a');
       Check(Scanner.GetNextToken = tScalar);
@@ -107,7 +115,6 @@ begin
       Check(Scanner.Quoting = qPlain);
 
       Check(Scanner.GetNextToken = tSequenceStart);
-
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'c');
       Check(Scanner.GetNextToken = tScalar);
@@ -129,6 +136,7 @@ begin
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = 'Item1');
       Check(Scanner.Quoting = qPlain);
+
       Check(Scanner.GetNextToken = tSequenceStart);
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = 'Item2');
@@ -167,7 +175,7 @@ begin
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item9');
       Check(Scanner.GetNextToken = tTag);
-      Check(Scanner.Tag = '!!int');
+      Check(Scanner.Tag = '!!int'); 
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = '67');
       Check(Scanner.GetNextToken = tKey);
@@ -184,87 +192,75 @@ begin
       Scanner.Free;
     end;
   finally
+    Reader.Free;
     FS.Free;
   end;
 end;
 
 procedure TyamlTest.TransformationStream(AInPut, AOutPut: TStream);
 var
+  Reader: TyamlReader;
   Scanner: TyamlScanner;
   Writer: TyamlWriter;
   Token: TyamlToken;
-  Indents: TList;
-  LastToken: TyamlToken;
-
-  function ChangeIndent: Boolean;
-  begin
-    Result := True;
-    if Scanner.Indent > Integer(Indents.Last) then
-    begin
-      Writer.IncIndent;
-      Indents.Add(Pointer(Scanner.Indent))
-    end
-    else if Scanner.Indent < Integer(Indents.Last) then
-    begin
-      Writer.DecIndent;
-      Indents.Delete(Indents.Count - 1);
-    end else
-      Result := False;
-  end;
+  PrevIndent, CurrLine: Integer;
 begin
-  Scanner := TyamlScanner.Create(AInPut);
+  Reader := TyamlReader.Create(AInput);
+  Scanner := TyamlScanner.Create(Reader);
+  Writer := TyamlWriter.Create(AOutPut);
   try
-    Writer := TyamlWriter.Create(AOutPut);
-    try
-      Token := Scanner.GetNextToken;
-      Indents := TList.Create;
-      try
-        Indents.Add(Pointer(Scanner.Indent));
-        While Token <> tStreamEnd do
-        begin
-          case Token of
-            tDocumentStart: Writer.WriteDocumentStart;
-            tKey:
-            begin
-             if (not ChangeIndent) and  (LastToken = tSequenceStart) then
-               Writer.WriteKey(Scanner.Key, False)
-             else
-               Writer.WriteKey(Scanner.Key)
-            end;
-            tScalar: Writer.WriteScalar(Scanner.Scalar, Scanner.Quoting, False);
-            tSequenceStart:
-            begin
-              ChangeIndent;
-              Writer.WriteSequenceIndicator;
-            end;
-          end;
-          LastToken := Token;
-          Token := Scanner.GetNextToken;
-        end;
-      finally
-        Indents.Free;
+    Token := Scanner.GetNextToken;
+    PrevIndent := Scanner.Indent;
+    CurrLine := Scanner.Line;
+
+    while Token <> tStreamEnd do
+    begin
+      if Scanner.Indent > PrevIndent then
+        Writer.IncIndent
+      else if Scanner.Indent < PrevIndent then
+        Writer.DecIndent;
+
+      if Scanner.Line > CurrLine then
+        Writer.StartNewLine;
+
+      case Token of
+        tDocumentStart: Writer.WriteDocumentStart;
+        tDocumentEnd: Writer.WriteDocumentEnd;
+        tKey: Writer.WriteKey(Scanner.Key);
+        tScalar: Writer.WriteText(Scanner.Scalar, Scanner.Quoting,
+          Scanner.Style);
+        tSequenceStart: Writer.WriteSequenceIndicator;
+        tTag: Writer.WriteTag(Scanner.Tag);
       end;
-    finally
-      Writer.Flush;
-      Writer.Free;
+
+      PrevIndent := Scanner.Indent;
+      CurrLine := Scanner.Line;
+      Token := Scanner.GetNextToken;
     end;
   finally
+    Reader.Free;
+    Writer.Free;
     Scanner.Free;
   end;
 end;
 
 procedure TyamlTest.Test_CompareStream;
 var
-  InPutFS: TFileStream;
-  OutPutFS: TFileStream;
+  FS: TFileStream;
+  S1, S2: TStringStream;
 begin
-  InPutFS := TFileStream.Create('c:\input.yml', fmOpenRead);
-  OutPutFS := TFileStream.Create('c:\output.yml', fmCreate);
+  FS := TFileStream.Create(TestDataPath + '\yaml\test.yml', fmOpenRead);
+  S1 := TStringStream.Create('');
+  S2 := TStringStream.Create('');
   try
-    TransformationStream(InPutFS, OutPutFS);
+    TransformationStream(FS, S1);
+    S1.Position := 0;
+    TransformationStream(S1, S2);
+    Check(S1.DataString = S2.DataString);
   finally
-    InPutFS.Free;
-    OutPutFS.Free;
+    FS.Free;
+    S1.Free;
+    S2.Free;
   end;
 end;
 
