@@ -10,7 +10,7 @@ uses
   buttons, grids, dbctrls, mask, dbclient, IBDatabaseInfo, IBEvents, IBExtract,
   IBQuery, IBStoredProc, IBTable, IBUpdateSQL, imglist, Outline, filectrl,
   ColorGrd, toolwin, Gauges, Spin, obj_WrapperIBXClasses, dbgrids, contnrs,
-  printers, gdv_frAcctAnalytics_unit, shdocvw, JvDBImage, gsMorph, gsPeriodEdit;
+  printers, gdv_frAcctAnalytics_unit, shdocvw, JvDBImage, gsMorph, gsPeriodEdit, gsPanel;
 
 
 type
@@ -2324,6 +2324,30 @@ type
     procedure Set_BevelInner(Value: TgsPanelBevel); safecall;
     function  Get_BevelOuter: TgsBevelCut; safecall;
     procedure Set_BevelOuter(Value: TgsBevelCut); safecall;
+  end;
+
+  TwrpgsPanel = class(TwrpPanel, IgsgsPanel)
+  private
+    function GetPanel: TgsPanel;
+  protected
+    function  Get_BorderColor: Integer; safecall;
+    procedure Set_BorderColor(Value: Integer); safecall;
+    function  Get_TextArea1: IgsStrings; safecall;
+    procedure Set_TextArea1(const Value: IgsStrings); safecall;
+    function  Get_TextArea2: IgsStrings; safecall;
+    procedure Set_TextArea2(const Value: IgsStrings); safecall;
+    function  Get_FontArea2: IgsFont; safecall;
+    procedure Set_FontArea2(const Value: IgsFont); safecall;
+    function  Get_FontArea3: IgsFont; safecall;
+    procedure Set_FontArea3(const Value: IgsFont); safecall;
+    function  Get_HeightArea1: Integer; safecall;
+    procedure Set_HeightArea1(Value: Integer); safecall;
+    function  Get_WidthArea2: Integer; safecall;
+    procedure Set_WidthArea2(Value: Integer); safecall;
+    function  Get_TextArea3: IgsStrings; safecall;
+    procedure Set_TextArea3(const Value: IgsStrings); safecall;
+    function  Get_FontArea1: IgsFont; safecall;
+    procedure Set_FontArea1(const Value: IgsFont); safecall;
   end;
 
   TwrpCustomActionList = class(TwrpComponent, IgsCustomActionList)
@@ -22623,6 +22647,104 @@ begin
   Result := gsMorph.GetNumericWordForm(ANum, AStrForm1, AStrForm2, AStrForm5);
 end;
 
+{ TwrpgsPanel }
+
+
+function TwrpgsPanel.Get_FontArea1: IgsFont;
+begin
+  Result := GetGdcOLEObject(GetPanel.FontArea1) as IgsFont;
+end;
+
+function TwrpgsPanel.Get_FontArea2: IgsFont;
+begin
+  Result := GetGdcOLEObject(GetPanel.FontArea2) as IgsFont;
+end;
+
+function TwrpgsPanel.Get_FontArea3: IgsFont;
+begin
+  Result := GetGdcOLEObject(GetPanel.FontArea3) as IgsFont;
+end;
+
+function TwrpgsPanel.Get_HeightArea1: Integer;
+begin
+  Result := GetPanel.HeightArea1;
+end;
+
+function TwrpgsPanel.Get_TextArea1: IgsStrings;
+begin
+  Result := TStringsToIgsStrings(GetPanel.TextArea1);
+end;
+
+function TwrpgsPanel.Get_TextArea2: IgsStrings;
+begin
+  Result := TStringsToIgsStrings(GetPanel.TextArea2);
+end;
+
+function TwrpgsPanel.Get_TextArea3: IgsStrings;
+begin
+  Result := TStringsToIgsStrings(GetPanel.TextArea3);
+end;
+
+function TwrpgsPanel.Get_WidthArea2: Integer;
+begin
+  Result := GetPanel.WidthArea2;
+end;
+
+function TwrpgsPanel.GetPanel: TgsPanel;
+begin
+  Result := GetObject as TgsPanel;
+end;
+
+procedure TwrpgsPanel.Set_FontArea1(const Value: IgsFont);
+begin
+  GetPanel.FontArea1 := InterfaceToObject(Value) as TFont;
+end;
+
+procedure TwrpgsPanel.Set_FontArea2(const Value: IgsFont);
+begin
+  GetPanel.FontArea2 := InterfaceToObject(Value) as TFont;
+end;
+
+procedure TwrpgsPanel.Set_FontArea3(const Value: IgsFont);
+begin
+  GetPanel.FontArea3 := InterfaceToObject(Value) as TFont;
+end;
+
+procedure TwrpgsPanel.Set_HeightArea1(Value: Integer);
+begin
+  GetPanel.HeightArea1 := Value;
+end;
+
+procedure TwrpgsPanel.Set_TextArea1(const Value: IgsStrings);
+begin
+  GetPanel.TextArea1 := IgsStringsToTStrings(Value);
+end;
+
+procedure TwrpgsPanel.Set_TextArea2(const Value: IgsStrings);
+begin
+  GetPanel.TextArea2 := IgsStringsToTStrings(Value);
+end;
+
+procedure TwrpgsPanel.Set_TextArea3(const Value: IgsStrings);
+begin
+  GetPanel.TextArea3 := IgsStringsToTStrings(Value);
+end;
+
+procedure TwrpgsPanel.Set_WidthArea2(Value: Integer);
+begin
+  GetPanel.WidthArea2 := Value;
+end;
+
+function TwrpgsPanel.Get_BorderColor: Integer;
+begin
+  Result := GetPanel.BorderColor;
+end;
+
+procedure TwrpgsPanel.Set_BorderColor(Value: Integer);
+begin
+  GetPanel.BorderColor := Value;
+end;
+
 initialization
 (*  TAutoObjectFactory.Create(ComServer, TwrpObject, CLASS_gs_Object,
     ciMultiInstance, tmApartment);
@@ -22883,6 +23005,7 @@ initialization
   RegisterGdcOLEClass(TGroupBox, TwrpGroupBox, ComServer.TypeLib, IID_IgsGroupBox);
   RegisterGdcOLEClass(TRadioGroup, TwrpRadioGroup, ComServer.TypeLib, IID_IgsRadioGroup);
   RegisterGdcOLEClass(TPanel, TwrpPanel, ComServer.TypeLib, IID_IgsPanel);
+  RegisterGdcOLEClass(TgsPanel, TwrpgsPanel, ComServer.TypeLib, IID_IgsgsPanel);
   RegisterGdcOLEClass(TActionList, TwrpActionList, ComServer.TypeLib, IID_IgsActionList);
   RegisterGdcOLEClass(TMenuItem, TwrpMenuItem, ComServer.TypeLib, IID_IgsMenuItem);
   RegisterGdcOLEClass(TIBTransaction, TwrpIBTransaction, ComServer.TypeLib, IID_IgsIBTransaction);

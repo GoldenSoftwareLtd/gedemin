@@ -34,8 +34,8 @@ begin
   try
     for I := 0 to MAXINT do
     begin
-      InputFileName :=  Format(ExtractFileDrive(Application.EXEName) + ':\Golden\Gedemin\Test\GedeminTest\Data\AtSQLSetup\input.%.3d.sql', [I]);
-      OutputFileName := Format(ExtractFileDrive(Application.EXEName) + ':\Golden\Gedemin\Test\GedeminTest\Data\AtSQLSetup\output.%.3d.sql', [I]);
+      InputFileName :=  Format(TestDataPath + '\AtSQLSetup\input.%.3d.sql', [I]);
+      OutputFileName := Format(TestDataPath + '\AtSQLSetup\output.%.3d.sql', [I]);
 
       if I = 0 then
       begin

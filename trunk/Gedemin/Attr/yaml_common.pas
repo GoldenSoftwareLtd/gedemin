@@ -21,7 +21,8 @@ type
   EyamlSyntaxError = class(EyamlException);
   
 const
-  EOL = [#13, #10];
+  EOL       = [#13, #10];
+  DefIndent = 2;
 
 implementation
 

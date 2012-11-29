@@ -7,7 +7,18 @@ uses
   TestFrameWork, IBDatabase, IBSQL;
 
 type
-  TgsDBTestCase = class(TTestCase)
+  TgsTestCase = class(TTestCase)
+  private
+    function GetTestDataPath: String;
+
+  protected
+    procedure SetUp; override;
+
+  public
+    property TestDataPath: String read GetTestDataPath;
+  end;
+
+  TgsDBTestCase = class(TgsTestCase)
   protected
     FSettingsLoaded: Boolean;
     FQ, FQ2: TIBSQL;
@@ -28,8 +39,8 @@ type
 implementation
 
 uses
-  Classes, gd_security, jclStrings, SysUtils, gdcBaseInterface,
-  at_frmSQLProcess, at_ActivateSetting_unit;
+  Classes, Forms, FileCtrl, gd_security, jclStrings, SysUtils,
+  gdcBaseInterface, at_frmSQLProcess, at_ActivateSetting_unit;
 
 procedure TgsDBTestCase.ActivateSettings(const ASettings: String);
 var
@@ -151,6 +162,22 @@ begin
   FreeAndNil(FQ);
   FreeAndNil(FTr);
   inherited;
+end;
+
+{ TgsTestCase }
+
+function TgsTestCase.GetTestDataPath: String;
+begin
+  Result := ExtractFileDrive(Application.EXEName) +
+    '\Golden\Gedemin\Test\GedeminTest\Data';
+end;
+
+procedure TgsTestCase.SetUp;
+begin
+  inherited;
+
+  if not DirectoryExists(TestDataPath) then
+    StopTests('Путь к тестовым данным не найден.');
 end;
 
 end.
