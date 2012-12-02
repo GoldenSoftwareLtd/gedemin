@@ -12,27 +12,26 @@ type
     procedure TransformationStream(AInPut, AOutPut: TStream);
 
   published
-    procedure Test;
-    procedure Test_CompareStream;
+    procedure TestScanner;
+    procedure TestWriter;
+    procedure TestParser;
   end;
 
 implementation
 
 uses
-  SysUtils, yaml_reader, yaml_scanner, yaml_common, yaml_writer;
+  SysUtils, yaml_reader, yaml_scanner, yaml_common, yaml_writer, yaml_parser;
 
 { TyamlTest }
 
-procedure TyamlTest.Test;
+procedure TyamlTest.TestScanner;
 var
   FS: TFileStream;
   Scanner: TyamlScanner;
-  Reader: TyamlReader;
 begin
   FS := TFileStream.Create(TestDataPath + '\yaml\test.yml', fmOpenRead);
-  Reader := TyamlReader.Create(FS);
   try
-    Scanner := TyamlScanner.Create(Reader);
+    Scanner := TyamlScanner.Create(FS);
     try
       Check(Scanner.GetNextToken = tStreamStart);
       Check(Scanner.GetNextToken = tDocumentStart);
@@ -161,7 +160,7 @@ begin
       Check(Scanner.Key = 'Item6');
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = '123 456'#13#10'789 111'#13#10'568');
-      Check(Scanner.Quoting = qPlain); 
+      Check(Scanner.Quoting = qPlain);
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item7');
       Check(Scanner.GetNextToken = tScalar);
@@ -175,7 +174,7 @@ begin
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item9');
       Check(Scanner.GetNextToken = tTag);
-      Check(Scanner.Tag = '!!int'); 
+      Check(Scanner.Tag = '!!int');
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = '67');
       Check(Scanner.GetNextToken = tKey);
@@ -192,22 +191,19 @@ begin
       Scanner.Free;
     end;
   finally
-    Reader.Free;
     FS.Free;
   end;
 end;
 
 procedure TyamlTest.TransformationStream(AInPut, AOutPut: TStream);
 var
-  Reader: TyamlReader;
   Scanner: TyamlScanner;
   Writer: TyamlWriter;
   Token: TyamlToken;
   PrevIndent, CurrLine: Integer;
 begin
-  Reader := TyamlReader.Create(AInput);
-  Scanner := TyamlScanner.Create(Reader);
-  Writer := TyamlWriter.Create(AOutPut);
+  Scanner := TyamlScanner.Create(AInput);
+  Writer := TyamlWriter.Create(AOutput);
   try
     Token := Scanner.GetNextToken;
     PrevIndent := Scanner.Indent;
@@ -238,13 +234,12 @@ begin
       Token := Scanner.GetNextToken;
     end;
   finally
-    Reader.Free;
     Writer.Free;
     Scanner.Free;
   end;
 end;
 
-procedure TyamlTest.Test_CompareStream;
+procedure TyamlTest.TestWriter;
 var
   FS: TFileStream;
   S1, S2: TStringStream;
@@ -261,6 +256,21 @@ begin
     FS.Free;
     S1.Free;
     S2.Free;
+  end;
+end;
+
+procedure TyamlTest.TestParser;
+var
+  FS: TFileStream;
+  Parser: TyamlParser;
+begin
+  FS := TFileStream.Create(TestDataPath + '\yaml\test.yml', fmOpenRead);
+  Parser := TyamlParser.Create;
+  try
+    Parser.Parse(FS);
+  finally
+    Parser.Free;
+    FS.Free;
   end;
 end;
 

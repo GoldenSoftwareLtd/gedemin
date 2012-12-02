@@ -226,7 +226,7 @@ end;
 
 procedure TyamlWriter.WriteBuffer(const ABuffer: AnsiString);
 var
-  L, TL: Integer;
+  L: Integer;
 begin
   L := Length(ABuffer);
 
@@ -263,7 +263,9 @@ end;
 
 procedure TyamlWriter.StartNewLine;
 begin
-  if (FPosition > 0) or (FBufferStart > 0) then
+  if (FPosition = 0) and (FBufferStart = 0) then
+    WriteBuffer(StringOfChar(#32, FIndent))
+  else
     WriteBuffer(#13#10 + StringOfChar(#32, FIndent));
 end;
 
