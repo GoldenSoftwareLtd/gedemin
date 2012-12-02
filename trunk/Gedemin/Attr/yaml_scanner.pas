@@ -42,7 +42,8 @@ type
     function GetEOF: Boolean;
 
   public
-    constructor Create(AReader: TyamlReader);
+    constructor Create(AStream: TStream);
+    destructor Destroy; override;
 
     function GetNextToken: TyamlToken;
 
@@ -64,13 +65,17 @@ uses
 
 { TyamlScanner }
 
-constructor TyamlScanner.Create(AReader: TyamlReader);
+constructor TyamlScanner.Create(AStream: TStream);
 begin
-  if AReader = nil then
-    raise EyamlException.Create('Reader is not assigned');
-  FReader := AReader;
+  FReader := TyamlReader.Create(AStream);
   FState := sAtStreamStart;
   FStyle := sPlain;
+end;
+
+destructor TyamlScanner.Destroy;
+begin
+  FReader.Free;
+  inherited;
 end;
 
 function TyamlScanner.GetEOF: Boolean;
