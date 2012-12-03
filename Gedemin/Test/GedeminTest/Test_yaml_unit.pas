@@ -35,7 +35,7 @@ begin
     try
       Check(Scanner.GetNextToken = tStreamStart);
       Check(Scanner.GetNextToken = tDocumentStart);
-      Check(Scanner.Line = 1);
+      Check(Scanner.Line = 2);
       Check(Scanner.Indent = 0);
 
       Check(Scanner.GetNextToken = tScalar);
@@ -74,7 +74,7 @@ begin
 
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'a');
-      Check(Scanner.Line = 19);
+      Check(Scanner.Line = 20);
       Check(Scanner.Indent = 2);
 
       Check(Scanner.GetNextToken = tScalar);

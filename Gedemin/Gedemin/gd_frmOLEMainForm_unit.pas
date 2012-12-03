@@ -6,12 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs;
 
 type
-  TfrmOLEMainForm = class(TForm)
-  private
-    { Private declarations }
-  public
-    { Public declarations }
-  end;
+  TfrmOLEMainForm = class(TForm);
 
 var
   frmOLEMainForm: TfrmOLEMainForm;

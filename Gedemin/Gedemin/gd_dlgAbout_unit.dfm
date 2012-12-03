@@ -22,7 +22,7 @@ object gd_dlgAbout: Tgd_dlgAbout
     Top = 8
     Width = 547
     Height = 371
-    ActivePage = tsUpdate
+    ActivePage = tsFiles
     TabOrder = 0
     object tsAbout: TTabSheet
       Caption = 'Î ïğîãğàììå'
@@ -501,7 +501,7 @@ object gd_dlgAbout: Tgd_dlgAbout
         Gutter.Font.Name = 'Terminal'
         Gutter.Font.Style = []
         Gutter.Visible = False
-        Highlighter = SynXMLSyn
+        Highlighter = SynGeneralSyn
         Keystrokes = <
           item
             Command = ecUp
@@ -1298,5 +1298,16 @@ object gd_dlgAbout: Tgd_dlgAbout
       OnExecute = actUpdateExecute
       OnUpdate = actUpdateUpdate
     end
+  end
+  object SynGeneralSyn: TSynGeneralSyn
+    Comments = []
+    DetectPreprocessor = False
+    IdentifierChars = 
+      '!"#$%&'#39'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`' +
+      'abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡ˆ‰Š‹Œ‘’“”•–—˜™š›œŸ ' +
+      '¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏĞÑÒÓÔÕÖ×ØÙÚÛÜİŞßà' +
+      'áâãäåæçèéêëìíîïğñòóôõö÷øùúûüışÿ'
+    Left = 460
+    Top = 144
   end
 end

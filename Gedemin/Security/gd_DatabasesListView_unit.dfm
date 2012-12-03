@@ -178,7 +178,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     Left = 32
     Top = 232
     object actOk: TAction
-      Caption = 'Ok'
+      Caption = 'Сохранить'
       OnExecute = actOkExecute
       OnUpdate = actOkUpdate
     end

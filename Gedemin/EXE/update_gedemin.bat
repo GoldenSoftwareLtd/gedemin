@@ -10,7 +10,7 @@ echo *************************************************
 
 if "%2"=="" goto exit
 
-rem if NOT exist d:\nul subst d: k:\
+if NOT exist d:\nul subst d: k:\
 
 set RegQry=HKLM\Hardware\Description\System\CentralProcessor\0
 reg.exe Query %RegQry% > checkOS.txt

@@ -26,6 +26,7 @@ type
     tbiUsersGroups: TTBItem;
     tbiRecreateAllUsers: TTBItem;
     tbi_mm_sep5_2: TTBSeparatorItem;
+    TBSeparatorItem1: TTBSeparatorItem;
 
     procedure FormCreate(Sender: TObject);
     procedure chbxAllGroupsClick(Sender: TObject);
@@ -199,16 +200,16 @@ begin
     end;
     gdcObject.Open;
     DoOnFilterChanged(Self);
-  end;   
+  end;
 end;
 
 procedure Tgdc_frmUser.DoOnFilterChanged(Sender: TObject);
 begin
   inherited;
-  if chbxAllGroups.Checked or (ibcbUserGroup.CurrentKey = '') then
-    //sbMain.Panels[0].Text := 'Все группы. ' + sbMain.Panels[0].Text
+  if (not chbxAllGroups.Checked) and (ibcbUserGroup.CurrentKey > '') then
+    sbMain.Panels[0].Text := 'Входят в группу: ' + ibcbUserGroup.Text + '. ' + sbMain.Panels[0].Text
   else
-    sbMain.Panels[0].Text := 'Входят в группу: ' + ibcbUserGroup.Text + '. ' + sbMain.Panels[0].Text;
+    sbMain.Panels[0].Text := '';
 end;
 
 procedure Tgdc_frmUser.actUserGroupsExecute(Sender: TObject);
@@ -220,10 +221,12 @@ procedure Tgdc_frmUser.actRecreateAllUsersExecute(Sender: TObject);
 begin
   if IBLogin.IsEmbeddedServer then
     MessageBox(Handle,
-      'Вы используете встроенный сервер Firebird. Пересоздать пользователей'#13#10 +
-      'можно только при сетевом подключении.'#13#10#13#10 +
-      'Проверьте, как указан путь к базе данных в параметрах подключения.'#13#10 +
-      'Формат сетевого подключения: <сервер>:<путь к базе данных>',
+      'Вы используете встроенный сервер Firebird.'#13#10#13#10 +
+      'Пересоздать пользователей можно только при '#13#10 +
+      'сетевом подключении.'#13#10#13#10 +
+      'Проверьте, как указан путь к базе данных'#13#10 +
+      'в параметрах подключения. Формат сетевого'#13#10 +
+      'подключения: <сервер>:<путь к базе данных>',
       'Внимание',
       MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL)
   else
@@ -234,7 +237,8 @@ procedure Tgdc_frmUser.actRecreateAllUsersUpdate(Sender: TObject);
 begin
   actRecreateAllUsers.Enabled := gdcUser.Active
     and (gdcUser.RecordCount > 0)
-    and Assigned(IBLogin);
+    and Assigned(IBLogin)
+    and IBLogin.IsIBUserAdmin;
 end;
 
 initialization
