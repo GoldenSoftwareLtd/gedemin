@@ -385,6 +385,7 @@ uses
   gd_dlgDesktopName_unit,
   gd_dlgAbout_unit,
   gd_DatabasesList_unit,
+  gd_common_functions,
 
   gdHelp_Interface,
 
@@ -825,10 +826,12 @@ procedure TfrmGedeminMain.DoAfterSuccessfullConnection;
 var
   TempPath: array[0..256] of char;
   SearchR: TSearchRec;
-  S, FN, FE: String;
+  S, FN, FE, ArcS: String;
   Res: OleVariant;
   IBService: TIBBackupService;
   J: DWORD;
+  Port: Integer;
+  Server, FileName: String;
 begin
   ClearFltComponentCache;
 
@@ -910,18 +913,20 @@ begin
     gd_dlgAutoBackup := Tgd_dlgAutoBackup.Create(Application);
     try
       try
-        gd_dlgAutoBackup.Show;
-        Application.ProcessMessages;
-
         gdcBaseManager.ExecSingleQueryResult(
           'SELECT ibpassword FROM gd_user WHERE ibname=''SYSDBA'' ',
           Unassigned, Res);
 
-        if not VarIsEmpty(Res) then
+        gd_dlgAutoBackup.Show;
+        Application.ProcessMessages;
+
+        if (not VarIsEmpty(Res)) and (not Application.Terminated) then
         begin
-          IBService := TIBBackupService.Create(Application);
+          ParseDatabaseName(IBLogin.DatabaseName, Server, Port, FileName);
+
+          IBService := TIBBackupService.Create(nil);
           try
-            IBService.ServerName := IBLogin.ServerName;
+            IBService.ServerName := Server;
 
             if IBService.ServerName > '' then
               IBService.Protocol := TCP
@@ -946,11 +951,7 @@ begin
 
             IBService.Verbose := False;
             IBService.Options := [NoGarbageCollection];
-            if IBservice.ServerName > '' then
-              IBService.DatabaseName := StringReplace(IBLogin.DatabaseName,
-                IBLogin.ServerName + ':', '', [rfIgnoreCase])
-            else
-              IBService.DatabaseName := IBLogin.DatabaseName;
+            IBService.DatabaseName := FileName;
 
             FN := GlobalStorage.ReadString('Options\Arch', 'FileName', '', False);
             if not GlobalStorage.ReadBoolean('Options\Arch', 'OneFile', True, False) then
@@ -984,11 +985,17 @@ begin
 
               if GlobalStorage.ReadBoolean('Options\Arch', 'Copy', True, False) then
               begin
+                if Server > '' then
+                  ArcS := 'Архивный файл находится на компьютере: ' + Server + #13#10
+                else
+                  ArcS := '';
+
                 MessageBox(gd_dlgAutoBAckup.Handle,
                   PChar(
-                  'Не забудьте скопировать архивный файл на съемный носитель'#13#10 +
-                  'данных и хранить его в надежном месте. Сделайте это прямо сейчас.'#13#10 +
-                  'Архивный файл находится на компьютере: ' + IBLogin.ServerName + '.'#13#10 +
+                  'Не забудьте скопировать архивный файл на съемный'#13#10 +
+                  'носитель данных и хранить его в надежном месте.'#13#10#13#10 +
+                  'Сделайте это прямо сейчас!'#13#10#13#10 +
+                  ArcS +
                   'Имя файла: ' + IBService.BackupFile[0]),
                   'Внимание',
                   MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);

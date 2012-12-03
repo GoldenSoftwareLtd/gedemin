@@ -14,7 +14,7 @@ inherited gdc_frmUser: Tgdc_frmUser
   inherited TBDockTop: TTBDock
     Width = 733
     inherited tbMainCustom: TTBToolbar
-      Left = 483
+      Left = 477
       Visible = True
       object TBControlItem1: TTBControlItem
         Control = chbxAllGroups
@@ -26,6 +26,8 @@ inherited gdc_frmUser: Tgdc_frmUser
       end
       object TBItem3: TTBItem
         Action = actUserGroups
+      end
+      object TBSeparatorItem1: TTBSeparatorItem
       end
       object TBItem4: TTBItem
         Action = actRecreateAllUsers
@@ -71,7 +73,7 @@ inherited gdc_frmUser: Tgdc_frmUser
       end
     end
     inherited tbChooseMain: TTBToolbar
-      Left = 450
+      Left = 444
     end
   end
   inherited TBDockLeft: TTBDock

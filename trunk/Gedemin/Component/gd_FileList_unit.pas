@@ -26,7 +26,8 @@ unit gd_FileList_unit;
 interface
 
 uses
-  Classes, ContNrs, SysUtils, idHTTP, idComponent, gd_ProgressNotifier_unit;
+  Classes, ContNrs, SysUtils, idHTTP, idComponent, gd_ProgressNotifier_unit,
+  yaml_writer;
 
 type
   TFLFlag = (
@@ -67,6 +68,7 @@ type
 
     function GetXML: String;
     procedure ParseXML(ANode: OleVariant);
+    procedure GetYAML(W: TyamlWriter);
     procedure UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList);
     procedure Scan;
 
@@ -124,6 +126,8 @@ type
     procedure BuildEtalonFileSet;
     function GetXML: String;
     procedure ParseXML(const AnXML: String);
+    function GetYAML: String;
+    procedure ParseYAML(const AnYAML: String);
     function FindItem(ARelativeName: String): TFLItem;
 
     property RootPath: String read FRootPath write SetRootPath;
@@ -136,7 +140,7 @@ implementation
 
 uses
   Windows, Forms, FileCtrl, ComObj, jclFileUtils, gd_directories_const,
-  JclWin32, zlib, idURI;
+  JclWin32, zlib, idURI, yaml_parser;
 
 const
   FileListSchema =
@@ -902,4 +906,100 @@ begin
     FOnProgressWatch(Self, FPI);
 end;
 
-end.
+function TFLCollection.GetYAML: String;
+var
+  I: Integer;
+  S: TStringStream;
+  W: TyamlWriter;
+begin
+  S := TStringStream.Create('%YAML 1.0'#13#10);
+  W := TyamlWriter.Create(S);
+  try
+    W.WriteKey('Version');
+    W.WriteInteger(1);
+    W.StartNewLine;
+    W.WriteKey('Items');
+    W.IncIndent;
+    for I := 0 to Count - 1 do
+    begin
+      W.StartNewLine;
+      W.WriteSequenceIndicator;
+      W.IncIndent;
+      (Items[I] as TFLItem).GetYAML(W);
+      W.DecIndent;
+    end;
+    W.Flush;
+    Result := S.DataString;
+  finally
+    W.Free;
+    S.Free;
+  end;
+end;
+
+procedure TFLItem.GetYAML(W: TyamlWriter);
+begin
+  W.StartNewLine;
+  W.WriteKey('Type   ');
+  if IsDirectory then
+    W.WriteString('Directory')
+  else
+    W.WriteString('File');
+
+  W.StartNewLine;
+  W.WriteKey('Name   ');
+  W.WriteString(Name);
+
+  if Path > '' then
+  begin
+    W.StartNewLine;
+    W.WriteKey('Path   ');
+    W.WriteString(Path);
+  end;  
+
+  W.StartNewLine;
+  W.WriteKey('Exists ');
+  W.WriteBoolean(FExists);
+
+  W.StartNewLine;
+  W.WriteKey('Flags  ');
+  W.WriteString(Flags2Str(Flags));
+
+  if (not IsDirectory) and Exists then
+  begin
+    W.StartNewLine;
+    W.WriteKey('Size   ');
+    W.WriteInteger(FSize);
+
+    if FDate > 0 then
+    begin
+      W.StartNewLine;
+      W.WriteKey('Date   ');
+      W.WriteTimestamp(FDate);
+    end;
+
+    if FVersion > '' then
+    begin
+      W.StartNewLine;
+      W.WriteKey('Version');
+      W.WriteString(FVersion);
+    end;
+  end;
+end;
+
+procedure TFLCollection.ParseYAML(const AnYAML: String);
+var
+  P: TyamlParser;
+  S: TStringStream;
+begin
+  Clear;
+
+  S := TStringStream.Create(AnYAML);
+  P := TyamlParser.Create;
+  try
+  finally
+    P.Free;
+    S.Free;
+  end;
+end;
+
+end.                      

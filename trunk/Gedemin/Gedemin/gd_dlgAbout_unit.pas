@@ -7,7 +7,8 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, IBDatabaseInfo, ComCtrls, Mask, DBCtrls, Registry, WinSock,
   SynEdit, SynEditHighlighter, SynHighlighterIni, gdc_createable_form,
-  SynHighlighterXML, ActnList, gd_ProgressNotifier_unit, ExtCtrls, xProgr;
+  SynHighlighterXML, ActnList, gd_ProgressNotifier_unit, ExtCtrls, xProgr,
+  SynHighlighterGeneral;
 
 type
   TgdSysInfo = class(TObject)
@@ -61,6 +62,7 @@ type
     lblAll: TLabel;
     mSendData: TSynEdit;
     Label1: TLabel;
+    SynGeneralSyn: TSynGeneralSyn;
     procedure FormCreate(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure btnMSInfoClick(Sender: TObject);
@@ -201,7 +203,7 @@ begin
   FL := TFLCollection.Create;
   try
     FL.BuildEtalonFileSet;
-    mFiles.Text := FL.GetXML;
+    mFiles.Text := FL.GetYAML;
     mFiles.SelStart := 0;
   finally
     FL.Free;

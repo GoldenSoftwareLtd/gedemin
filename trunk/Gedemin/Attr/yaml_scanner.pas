@@ -38,6 +38,7 @@ type
     FTag: AnsiString;
     FIndent: Integer;
     FLine: Integer;
+    FToken: TyamlToken;
 
     function GetEOF: Boolean;
 
@@ -51,6 +52,7 @@ type
     property Indent: Integer read FIndent;
     property Line: Integer read FLine;
 
+    property Token: TyamlToken read FToken;
     property Quoting: TyamlScalarQuoting read FQuoting;
     property Scalar: AnsiString read FScalar;
     property Style: TyamlScalarStyle read FStyle;
@@ -272,6 +274,8 @@ begin
 
   if Result = tUndefined then
     Result := tStreamEnd;
+
+  FToken := Result;  
 end;
 
 end.
