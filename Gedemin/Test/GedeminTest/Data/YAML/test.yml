@@ -1,7 +1,6 @@
 %YAML 1.0
 ---
 "aaa ""bbb"
-...
 ---
 'aaa ''bbb'
 ---
@@ -46,6 +45,28 @@ b: - Item3
      Item9: !!int 67
 c: !!seq
   - Item1
+---
+- 
+  a: b
+  c: d
+- 
+  f: e
+  g: i
+- 
+  - 
+    n: m
+    k: s
+  - 
+    t: o
+    p: q
+  - 
+    - 
+      a: b
+    - 
+      d: e
+- 
+  z: x
+...
 
 
 

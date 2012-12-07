@@ -27,7 +27,7 @@ interface
 
 uses
   Classes, ContNrs, SysUtils, idHTTP, idComponent, gd_ProgressNotifier_unit,
-  yaml_writer;
+  yaml_writer, yaml_parser;
 
 type
   TFLFlag = (
@@ -69,6 +69,7 @@ type
     function GetXML: String;
     procedure ParseXML(ANode: OleVariant);
     procedure GetYAML(W: TyamlWriter);
+    procedure ParseYAML(ANode: TyamlNode);
     procedure UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList);
     procedure Scan;
 
@@ -126,8 +127,8 @@ type
     procedure BuildEtalonFileSet;
     function GetXML: String;
     procedure ParseXML(const AnXML: String);
-    function GetYAML: String;
-    procedure ParseYAML(const AnYAML: String);
+    procedure GetYAML(AStream: TStream);
+    procedure ParseYAML(AStream: TStream);
     function FindItem(ARelativeName: String): TFLItem;
 
     property RootPath: String read FRootPath write SetRootPath;
@@ -140,7 +141,7 @@ implementation
 
 uses
   Windows, Forms, FileCtrl, ComObj, jclFileUtils, gd_directories_const,
-  JclWin32, zlib, idURI, yaml_parser;
+  JclWin32, zlib, idURI;
 
 const
   FileListSchema =
@@ -906,14 +907,12 @@ begin
     FOnProgressWatch(Self, FPI);
 end;
 
-function TFLCollection.GetYAML: String;
+procedure TFLCollection.GetYAML(AStream: TStream);
 var
   I: Integer;
-  S: TStringStream;
   W: TyamlWriter;
 begin
-  S := TStringStream.Create('%YAML 1.0'#13#10);
-  W := TyamlWriter.Create(S);
+  W := TyamlWriter.Create(AStream);
   try
     W.WriteKey('Version');
     W.WriteInteger(1);
@@ -929,10 +928,8 @@ begin
       W.DecIndent;
     end;
     W.Flush;
-    Result := S.DataString;
   finally
     W.Free;
-    S.Free;
   end;
 end;
 
@@ -954,7 +951,7 @@ begin
     W.StartNewLine;
     W.WriteKey('Path   ');
     W.WriteString(Path);
-  end;  
+  end;
 
   W.StartNewLine;
   W.WriteKey('Exists ');
@@ -986,20 +983,53 @@ begin
   end;
 end;
 
-procedure TFLCollection.ParseYAML(const AnYAML: String);
+procedure TFLCollection.ParseYAML(AStream: TStream);
 var
   P: TyamlParser;
-  S: TStringStream;
+  D: TyamlDocument;
+  N: TyamlSequence;
+  I: Integer;
+  FSOItem: TFLItem;
 begin
   Clear;
 
-  S := TStringStream.Create(AnYAML);
   P := TyamlParser.Create;
   try
+    P.Parse(AStream);
+    if P.YAMLStream.Count = 1 then
+    begin
+      D := P.YAMLStream[0] as TyamlDocument;
+      if D.ReadInteger('Version') = 1 then
+      begin
+        N := D.FindByName('Items') as TyamlSequence;
+        for I := 0 to N.Count - 1 do
+        begin
+          FSOItem := Add as TFLItem;
+          FSOItem.ParseYAML(N[I]);
+        end;
+      end;
+    end;
   finally
     P.Free;
-    S.Free;
   end;
 end;
 
-end.                      
+procedure TFLItem.ParseYAML(ANode: TyamlNode);
+begin
+  if not (ANode is TyamlContainer) then
+    raise EFLError.Create('Invalid data format.');
+
+  FIsDirectory := TyamlContainer(ANode).TestString('Type', 'DIRECTORY');
+  FName := TyamlContainer(ANode).ReadString('Name');
+  FPath := TyamlContainer(ANode).ReadString('Path');
+  FFlags := Str2Flags(TyamlContainer(ANode).ReadString('Flags'));
+  FExists := TyamlContainer(ANode).ReadBoolean('Exists');
+  FDate := TyamlContainer(ANode).ReadDateTime('Date');
+  FSize := TyamlContainer(ANode).ReadInteger('Size');
+  FVersion := TyamlContainer(ANode).ReadString('Version');
+
+  if FName = '' then
+    raise EFLError.Create('Name is not specified.');
+end;
+
+end.

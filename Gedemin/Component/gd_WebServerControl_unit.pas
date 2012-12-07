@@ -556,7 +556,8 @@ begin
   Assert(FFileList <> nil);
   FResponseInfo.ResponseNo := 200;
   FResponseInfo.ContentType := 'application/octet-stream;';
-  FResponseInfo.ContentStream := TStringStream.Create(FFileList.GetXML);
+  FResponseInfo.ContentStream := TMemoryStream.Create;
+  FFileList.GetYAML(FResponseInfo.ContentStream);
 end;
 
 initialization
