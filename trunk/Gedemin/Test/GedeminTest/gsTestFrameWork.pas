@@ -10,12 +10,14 @@ type
   TgsTestCase = class(TTestCase)
   private
     function GetTestDataPath: String;
+    function GetTempPath: String;
 
   protected
     procedure SetUp; override;
 
   public
     property TestDataPath: String read GetTestDataPath;
+    property TempPath: String read GetTempPath;
   end;
 
   TgsDBTestCase = class(TgsTestCase)
@@ -39,7 +41,7 @@ type
 implementation
 
 uses
-  Classes, Forms, FileCtrl, gd_security, jclStrings, SysUtils,
+  Classes, Forms, Windows, FileCtrl, gd_security, jclStrings, SysUtils,
   gdcBaseInterface, at_frmSQLProcess, at_ActivateSetting_unit;
 
 procedure TgsDBTestCase.ActivateSettings(const ASettings: String);
@@ -165,6 +167,14 @@ begin
 end;
 
 { TgsTestCase }
+
+function TgsTestCase.GetTempPath: String;
+var
+  Buff: array[0..1024] of Char;
+begin
+  Windows.GetTempPath(SizeOf(Buff), Buff);
+  Result := Buff;
+end;
 
 function TgsTestCase.GetTestDataPath: String;
 begin

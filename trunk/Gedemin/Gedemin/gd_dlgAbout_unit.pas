@@ -184,6 +184,7 @@ procedure Tgd_dlgAbout.FormCreate(Sender: TObject);
 {$IFDEF WITH_INDY}
 var
   FL: TFLCollection;
+  S: TStringStream;
 {$ENDIF}
 begin
   pc.ActivePage := tsAbout;
@@ -203,7 +204,13 @@ begin
   FL := TFLCollection.Create;
   try
     FL.BuildEtalonFileSet;
-    mFiles.Text := FL.GetYAML;
+    S := TStringStream.Create('');
+    try
+      FL.GetYAML(S);
+      mFiles.Text := S.DataString;
+    finally
+      S.Free;
+    end;
     mFiles.SelStart := 0;
   finally
     FL.Free;

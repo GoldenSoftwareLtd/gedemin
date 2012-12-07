@@ -72,11 +72,7 @@ type
     FDataLink: TgsIBLCBDataLink;    // куда записывать данные
 
     FIBBase: TIBBase;
-    //FDatabase: TIBDatabase;         // база данных
-    //FTransaction: TIBTransaction;   // транзакция
-
     Fibsql: TIBSQL;
-    //FDontSync: Boolean;
 
     FCurrentKey: String;            // текущий ключ
 
@@ -565,9 +561,6 @@ var
   NewClass: CgdcBase;
   dlgAction: TgsIBLkUp_dlgAction;
 begin
-  {if (FListTable = '') or (FListField = '') or (FKeyField = '') then
-    exit;}
-
   if (not Assigned(Database)) or (not Database.Connected) then
     exit;
 
@@ -666,13 +659,13 @@ begin
     and (not IBLogin.IsUserAdmin) then
   begin
     if Pos('WHERE ', S) = 0 then
-      S := S + Format(' WHERE (g_sec_test(%s.aview, %d) <> 0) ', [MainTable, IBLogin.InGroup])
+      S := S + Format(' WHERE (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup])
     else
-      S := S + Format(' AND (g_sec_test(%s.aview, %d) <> 0) ', [MainTable, IBLogin.InGroup]);
+      S := S + Format(' AND (BIN_AND(BIN_OR(%s.aview, 1), %d) <> 0) ', [MainTable, IBLogin.InGroup]);
   end;
 
   if (not FShowDisabled)
-    and (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
+    and (FgdClass <> nil) 
     and (tiDisabled in FgdClass.GetTableInfos(FSubType))
     and (GetTableAlias(FgdClass.GetListTable(FSubType)) > '') then
   begin
@@ -1078,9 +1071,6 @@ begin
            FListTable,
            FieldWithAlias(FKeyField)])
       else begin
-{        I := Pos('.', FKeyField);
-        Fibsql.SQL.Text := Format('SELECT %0:s FROM %1:s WHERE %2:s=:V ',
-          [FListField, MainTableName, Copy(FKeyField, I + 1, 255)]);   }
         Fibsql.SQL.Text := Format('SELECT %0:s FROM %1:s WHERE (%2:s = :V) ',
           [FieldWithAlias(FListField), FListTable, FieldWithAlias(FKeyField)]);
       end;
@@ -1468,7 +1458,7 @@ begin
       end;
 
       if (not FShowDisabled)
-        and (FgdClass <> nil) {and (AnsiCompareText(FListTable, FgdClass.GetListTable(FSubType)) = 0)}
+        and (FgdClass <> nil)
         and (tiDisabled in FgdClass.GetTableInfos(FSubType))
         and (GetTableAlias(FgdClass.GetListTable(FSubType)) > '') then
       begin

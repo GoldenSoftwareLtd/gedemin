@@ -4,10 +4,10 @@ unit Test_Indy_unit;
 interface
 
 uses
-  Classes, SysUtils, TestFrameWork;
+  Classes, SysUtils, TestFrameWork, gsTestFrameWork;
 
 type
-  TgsIndyTest = class(TTestCase)
+  TgsIndyTest = class(TgsTestCase)
   protected
     procedure SetUp; override;
     procedure TearDown; override;
@@ -17,6 +17,7 @@ type
     procedure Test_FLFlags;
     procedure Test_FLCollection;
     procedure Test_FLCollectionXML;
+    procedure Test_FLCollectionYAML;
     procedure Test_CompareVersionStrings;
   end;
 
@@ -91,7 +92,7 @@ begin
     S := C1.GetXML;
     Check(S > '');
 
-    StF := TFileStream.Create(ExtractFileDrive(Application.EXEName) + ':\temp\test.xml', fmCreate);
+    StF := TFileStream.Create(TempPath + '\test.xml', fmCreate);
     StS := TStringStream.Create(S);
     try
       StF.CopyFrom(StS, 0);
@@ -103,6 +104,34 @@ begin
     C2.ParseXML(S);
     Check(S = C2.GetXML);
   finally
+    C1.Free;
+    C2.Free;
+  end;
+end;
+
+procedure TgsIndyTest.Test_FLCollectionYAML;
+var
+  S: String;
+  C1, C2: TFLCollection;
+  StS: TStringStream;
+begin
+  C1 := TFLCollection.Create;
+  C2 := TFLCollection.Create;
+  StS := TStringStream.Create('');
+  try
+    C1.BuildEtalonFileSet;
+    C1.GetYAML(StS);
+    S := StS.DataString;
+    Check(S > '');
+
+    StS.Position := 0;
+    C2.ParseYAML(StS);
+    StS.Size := 0;
+    C2.GetYAML(StS);
+    
+    Check(S = StS.DataString);
+  finally
+    StS.Free;
     C1.Free;
     C2.Free;
   end;

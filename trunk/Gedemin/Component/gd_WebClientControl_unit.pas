@@ -191,7 +191,7 @@ begin
       try
         FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_files_list'), ResponseData);
         FServerFileList := TFLCollection.Create;
-        FServerFileList.ParseXML(ResponseData.DataString);
+        FServerFileList.ParseYAML(ResponseData);
         FServerFileList.OnProgressWatch := DoOnProgressWatch;
       finally
         ResponseData.Free;

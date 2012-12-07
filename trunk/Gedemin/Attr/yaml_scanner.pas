@@ -138,10 +138,18 @@ begin
           case FReader.PeekChar of
             '-':
             begin
-              FBlockIndent := FReader.PositionInLine;
-              FReader.Skip(1, True);
-              FState := sDocument;
-              Result := tSequenceStart;
+              if FReader.PeekChar(1) in [#32, #13, #10] then
+              begin
+                FBlockIndent := FReader.PositionInLine;
+                FReader.Skip(1, True);
+                FState := sDocument;
+                Result := tSequenceStart;
+              end else
+              begin
+                FQuoting := qPlain;
+                FScalar := '';
+                FState := sScalar;
+              end;
             end;
 
             '"':
@@ -228,7 +236,7 @@ begin
               QuoteMatched := True;
             end;
           end
-          else if (FReader.PeekChar = '#') and (FQuoting = qPlain) then
+          else if (FReader.PeekChar = '#')  and (FQuoting = qPlain) then
           begin
             FReader.SkipUntilEOL;
             if EOF or ((FQuoting = qPlain) and (FReader.Indent <= FBlockIndent)) then
@@ -241,7 +249,7 @@ begin
           else if FReader.PeekChar in EOL then
           begin
             FReader.SkipUntilEOL;
-            if (FQuoting = qPlain) and (FReader.Indent <= FBlockIndent) then
+            if (FQuoting = qPlain) and ((FReader.Indent <= FBlockIndent) or (FReader.PeekChar in ['-', '!'])) then
               break;
             if FStyle = sLiteral then
               FScalar := FScalar + #13#10
@@ -275,7 +283,7 @@ begin
   if Result = tUndefined then
     Result := tStreamEnd;
 
-  FToken := Result;  
+  FToken := Result;
 end;
 
 end.

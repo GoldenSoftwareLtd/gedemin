@@ -41,7 +41,6 @@ begin
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = 'aaa "bbb');
       Check(Scanner.Quoting = qDoubleQuoted);
-      Check(Scanner.GetNextToken = tDocumentEnd);
 
       Check(Scanner.GetNextToken = tDocumentStart);
       Check(Scanner.GetNextToken = tScalar);
@@ -74,7 +73,7 @@ begin
 
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'a');
-      Check(Scanner.Line = 20);
+      Check(Scanner.Line = 19);
       Check(Scanner.Indent = 2);
 
       Check(Scanner.GetNextToken = tScalar);
@@ -186,6 +185,81 @@ begin
       Check(Scanner.Scalar = 'Item1');
       Check(Scanner.Quoting = qPlain);
 
+      Check(Scanner.GetNextToken = tDocumentStart);
+
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'a');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'b');
+      Check(Scanner.Quoting = qPlain);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'c');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'd');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'f');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'e');
+      Check(Scanner.Quoting = qPlain);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'g');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'i');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tSequenceStart);
+
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'n');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'm');
+      Check(Scanner.Quoting = qPlain);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'k');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 's');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 't');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'o');
+      Check(Scanner.Quoting = qPlain);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'p');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'q');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tSequenceStart);
+
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'a');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'b');
+      Check(Scanner.Quoting = qPlain);
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'd');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'e');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'z');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'x');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tDocumentEnd);
       Check(Scanner.GetNextToken = tStreamEnd);
     finally
       Scanner.Free;
@@ -268,6 +342,10 @@ begin
   Parser := TyamlParser.Create;
   try
     Parser.Parse(FS);
+
+    Check(((Parser.YAMLStream[0] as TYAMLDocument)[0] as TyamlString).AsString = 'aaa "bbb');
+    Check(((Parser.YAMLStream[1] as TYAMLDocument)[0] as TyamlString).AsString = 'aaa ''bbb');
+    Check(((Parser.YAMLStream[2] as TYAMLDocument)[0] as TyamlInteger).AsInteger = 123);
   finally
     Parser.Free;
     FS.Free;
