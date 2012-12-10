@@ -23,6 +23,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    function GetWebClientActive: Boolean;
     function GetWebClientRemoteServer: String;
     function GetWebClientTimeout: Integer;
 
@@ -129,6 +130,14 @@ begin
     Result := FIniFile.ReadInteger('WEB CLIENT', 'Timeout', 2000)
   else
     Result := 2000;
+end;
+
+function Tgd_GlobalParams.GetWebClientActive: Boolean;
+begin
+  if FIniFile <> nil then
+    Result := FIniFile.ReadBool('WEB CLIENT', 'Active', True)
+  else
+    Result := True;
 end;
 
 initialization

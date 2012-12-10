@@ -13,7 +13,7 @@ type
     FTag: AnsiString;
 
   protected
-    function ExtractNode(Scanner: TyamlScanner): TyamlNode;
+    function ExtractNode(Scanner: TyamlScanner; const ATag: String = ''): TyamlNode;
 
   public
     constructor Create; virtual;
@@ -80,7 +80,8 @@ type
     procedure SetAsInteger(const Value: Integer); override;
 
   public
-    constructor CreateInteger(const AValue: Integer);
+    constructor CreateInteger(const AValue: Integer); overload;
+    constructor CreateInteger(const AValue: AnsiString); overload;
   end;
 
   TyamlDateTime = class(TyamlScalar)
@@ -92,7 +93,8 @@ type
     procedure SetAsDateTime(const Value: TDateTime); override;
 
   public
-    constructor CreateDateTime(const AValue: TDateTime);
+    constructor CreateDateTime(const AValue: TDateTime); overload;
+    constructor CreateDateTime(const AValue: String); overload;
   end;
 
   TyamlDate = class(TyamlScalar)
@@ -116,7 +118,8 @@ type
     procedure SetAsFloat(const Value: Double); override;
 
   public
-    constructor CreateFloat(const AValue: Double);
+    constructor CreateFloat(const AValue: Double); overload;
+    constructor CreateFloat(const AValue: String); overload;
   end;
 
   TyamlBoolean = class(TyamlScalar)
@@ -128,12 +131,29 @@ type
     procedure SetAsBoolean(const Value: Boolean); override;
 
   public
-    constructor CreateBoolean(const AValue: Boolean);
+    constructor CreateBoolean(const AValue: Boolean); overload;
+    constructor CreateBoolean(const AValue: String); overload;
   end;
 
   TyamlNull = class(TyamlScalar)
   protected
     function GetIsNull: Boolean; override;
+  end;
+
+  TyamlKeyValue = class(TyamlNode)
+  private
+    FKey: AnsiString;
+    FValue: TyamlNode;
+
+    procedure SetValue(const Value: TyamlNode);
+
+  public
+    destructor Destroy; override;
+
+    procedure Parse(Scanner: TyamlScanner); override;
+
+    property Key: AnsiString read FKey write FKey;
+    property Value: TyamlNode read FValue write SetValue;
   end;
 
   TyamlContainer = class(TyamlNode)
@@ -170,23 +190,12 @@ type
     procedure Parse(Scanner: TyamlScanner); override;
   end;
 
-  TyamlMapping = class(TyamlNode)
-  private
-    FKey: AnsiString;
-    FValue: TyamlNode;
-
-    procedure SetValue(const Value: TyamlNode);
-
+  TyamlSequence = class(TyamlContainer)
   public
-    destructor Destroy; override;
-
     procedure Parse(Scanner: TyamlScanner); override;
-
-    property Key: AnsiString read FKey write FKey;
-    property Value: TyamlNode read FValue write SetValue;
   end;
 
-  TyamlSequence = class(TyamlContainer)
+  TyamlMapping = class(TyamlContainer)
   public
     procedure Parse(Scanner: TyamlScanner); override;
   end;
@@ -208,6 +217,12 @@ implementation
 
 uses
   SysUtils;
+
+function ConvertToInteger(const S: AnsiString; out I: Integer): Boolean;
+begin
+  I := StrToIntDef(S, MAXINT);
+  Result := (I <> MAXINT) or (StrToIntDef(S, -1) <> -1);
+end;
 
 function ConvertToBoolean(const S: AnsiString; out B: Boolean): Boolean;
 begin
@@ -296,7 +311,7 @@ var
   I: Integer;
 begin
   for I := 1 to Length(S) do
-    if S[I] in ['.', ','] then
+    if (S[I] in ['.', ',']) and (S[I] <> DecimalSeparator) then
       S[I] := DecimalSeparator;
   try
     F := StrToFloat(S);
@@ -389,12 +404,13 @@ begin
   FIndent := 0;
 end;
 
-function TyamlNode.ExtractNode(Scanner: TyamlScanner): TyamlNode;
+function TyamlNode.ExtractNode(Scanner: TyamlScanner; const ATag: String = ''): TyamlNode;
 var
   DT: TDateTime;
   F: Double;
   Tag: AnsiString;
   B: Boolean;
+  I: Integer;
 begin
   case Scanner.Token of
     tKey:
@@ -405,25 +421,46 @@ begin
 
     tScalar:
     begin
-      if (Scanner.Quoting in [qSingleQuoted, qDoubleQuoted])
-          or (Scanner.Style <> sPlain) then
+      if ATag = '' then
+      begin
+        if (Scanner.Quoting in [qSingleQuoted, qDoubleQuoted])
+            or (Scanner.Style <> sPlain) then
+          Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
+            Scanner.Style)
+        else if ConvertToDateTime(Scanner.Scalar, DT) then
+          Result := TyamlDateTime.CreateDateTime(DT)
+        else if ConvertToDate(Scanner.Scalar, DT) then
+          Result := TyamlDate.CreateDate(DT)
+        else if ConvertToInteger(Scanner.Scalar, I) then
+          Result := TyamlInteger.CreateInteger(I)
+        else if ConvertToFloat(Scanner.Scalar, F) then
+          Result := TyamlFloat.CreateFloat(F)
+        else if ConvertToBoolean(Scanner.Scalar, B) then
+          Result := TyamlBoolean.CreateBoolean(B)
+        else if Scanner.Scalar = '~' then
+          Result := TyamlNull.Create
+        else
+          Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
+            Scanner.Style);
+      end
+      else if ATag = '!!str' then
         Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
           Scanner.Style)
-      else if ConvertToDateTime(Scanner.Scalar, DT) then
-        Result := TyamlDateTime.CreateDateTime(DT)
-      else if ConvertToDate(Scanner.Scalar, DT) then
-        Result := TyamlDate.CreateDate(DT)
-      else if StrToIntDef(Scanner.Scalar, MAXINT) <> MAXINT then
-        Result := TyamlInteger.CreateInteger(StrToInt(Scanner.Scalar))
-      else if ConvertToFloat(Scanner.Scalar, F) then
-        Result := TyamlFloat.CreateFloat(F)
-      else if ConvertToBoolean(Scanner.Scalar, B) then
-        Result := TyamlBoolean.CreateBoolean(B)
-      else if Scanner.Scalar = '~' then
+      else if ATag = '!!int' then
+        Result := TyamlInteger.CreateInteger(Scanner.Scalar)
+      else if ATag = '!!float' then
+        Result := TyamlFloat.CreateFloat(Scanner.Scalar)
+      else if ATag = '!!bool' then
+        Result := TyamlBoolean.CreateBoolean(Scanner.Scalar)
+      else if ATag = '!!timestamp' then
+        Result := TyamlDateTime.CreateDateTime(Scanner.Scalar)
+      else if ATag = '!!null' then
         Result := TyamlNull.Create
       else
-        Result := TyamlString.CreateString(Scanner.Scalar, Scanner.Quoting,
-          Scanner.Style);
+        raise EyamlSyntaxError.Create('Unknown tag');  
+
+      if ATag <> '!!null' then
+        Scanner.GetNextToken;
     end;
 
     tSequenceStart:
@@ -436,15 +473,16 @@ begin
     begin
       Tag := Scanner.Tag;
       Scanner.GetNextToken;
-      Result := ExtractNode(Scanner);
+      Result := ExtractNode(Scanner, Tag);
       if Result = nil then
-        raise EyamlSyntaxError.Create('Syntax error')
-      else
-        Result.Tag := Tag;  
+        raise EyamlSyntaxError.Create('Invalid tag placement');
     end;
   else
     Result := nil;
   end;
+
+  if Result <> nil then
+    Result.Tag := ATag; 
 end;
 
 { TyamlContainer }
@@ -473,10 +511,10 @@ var
 begin
   Result := nil;
   for I := 0 to Count - 1 do
-    if (Items[I] is TyamlMapping) and
-      (AnsiCompareText((Items[I] as TyamlMapping).Key, AName) = 0) then
+    if (Items[I] is TyamlKeyValue) and
+      (AnsiCompareText((Items[I] as TyamlKeyValue).Key, AName) = 0) then
     begin
-      Result := (Items[I] as TyamlMapping).Value;
+      Result := (Items[I] as TyamlKeyValue).Value;
     end;
 end;
 
@@ -491,25 +529,8 @@ begin
 end;
 
 procedure TyamlContainer.Parse(Scanner: TyamlScanner);
-var
-  N: TyamlNode;
-  Indent: Integer;
 begin
-  Indent := Scanner.Indent;
-  while Scanner.Token <> tStreamEnd do
-  begin
-    if Scanner.Indent < Indent then
-      break;
-
-    N := ExtractNode(Scanner);
-    if N <> nil then
-      Add(N)
-    else
-      break;
-
-    if (N = nil) or (N is TyamlScalar) then
-      Scanner.GetNextToken;
-  end;
+  //
 end;
 
 function TyamlContainer.ReadBoolean(const AName: String;
@@ -583,12 +604,8 @@ var
 begin
   Scanner := TyamlScanner.Create(AStream);
   try
-    if not Scanner.EOF then
-    begin
-      Scanner.GetNextToken;
-      if Scanner.Token = tStreamStart then
-        FYAMLStream.Parse(Scanner);
-    end;
+    if Scanner.GetNextToken <> tStreamEnd then
+      FYAMLStream.Parse(Scanner);
   finally
     Scanner.Free;
   end;
@@ -600,6 +617,13 @@ constructor TyamlInteger.CreateInteger(const AValue: Integer);
 begin
   inherited Create;
   FValue := AValue;
+end;
+
+constructor TyamlInteger.CreateInteger(const AValue: AnsiString);
+begin
+  inherited Create;
+  if not ConvertToInteger(AValue, FValue) then
+    raise EyamlSyntaxError.Create('Not an integer value');
 end;
 
 function TyamlInteger.GetAsInteger: Integer;
@@ -651,6 +675,13 @@ begin
   FValue := AValue;
 end;
 
+constructor TyamlDateTime.CreateDateTime(const AValue: String);
+begin
+  inherited Create;
+  if not ConvertToDateTime(AValue, FValue) then
+    raise EyamlSyntaxError.Create('Not a timestamp value');
+end;
+
 function TyamlDateTime.GetAsDateTime: TDateTime;
 begin
   Result := FValue;
@@ -687,6 +718,13 @@ begin
   FValue := AValue;
 end;
 
+constructor TyamlFloat.CreateFloat(const AValue: String);
+begin
+  inherited Create;
+  if not ConvertToFloat(AValue, FValue) then
+    raise EyamlSyntaxError.Create('Not a float value');
+end;
+
 function TyamlFloat.GetAsFloat: Double;
 begin
   Result := FValue;
@@ -703,6 +741,13 @@ constructor TyamlBoolean.CreateBoolean(const AValue: Boolean);
 begin
   inherited Create;
   FValue := AValue;
+end;
+
+constructor TyamlBoolean.CreateBoolean(const AValue: String);
+begin
+  inherited Create;
+  if not ConvertToBoolean(AValue, FValue) then
+    raise EyamlSyntaxError.Create('Not a boolean value');
 end;
 
 function TyamlBoolean.GetAsBoolean: Boolean;
@@ -722,70 +767,61 @@ begin
   Result := True;
 end;
 
-{ TyamlMapping }
+{ TyamlKeyValue }
 
-destructor TyamlMapping.Destroy;
+destructor TyamlKeyValue.Destroy;
 begin
   FValue.Free;
   inherited;
 end;
 
-procedure TyamlMapping.SetValue(const Value: TyamlNode);
+procedure TyamlKeyValue.SetValue(const Value: TyamlNode);
 begin
   FValue.Free;
   FValue := Value;
 end;
 
-procedure TyamlMapping.Parse(Scanner: TyamlScanner); 
+procedure TyamlKeyValue.Parse(Scanner: TyamlScanner); 
 begin
   Assert(FValue = nil);
   if Scanner.Token <> tKey then
-    raise EyamlSyntaxError.Create('Invalid token!');
+    raise EyamlSyntaxError.Create('Mapping key expected');
   FKey := Scanner.Key;
   Scanner.GetNextToken;
   FValue := ExtractNode(Scanner);
   if FValue = nil then
-    raise EyamlSyntaxError.Create('Invalid token!');
-  Scanner.GetNextToken;
+    raise EyamlSyntaxError.Create('Invalid mapping value!');
 end;
 
 { TyamlDocument }
 
 procedure TyamlDocument.Parse(Scanner: TyamlScanner);
-var
-  N: TyamlNode;
 begin
   if Scanner.Token = tDocumentStart then
     Scanner.GetNextToken;
 
-  while Scanner.Token <> tStreamEnd do
-  begin
-    case Scanner.Token of
-      tDocumentStart:
-        break;
+  if Scanner.Token in [tSequenceStart, tKey, tScalar] then
+    Add(ExtractNode(Scanner));
 
-      tDocumentEnd:
-      begin
-        Scanner.GetNextToken;
-        break;
-      end;
+  while not (Scanner.Token in [tDocumentEnd, tDocumentStart, tStreamEnd]) do
+    Scanner.GetNextToken;
 
-    else
-      N := ExtractNode(Scanner);
-      if N <> nil then
-        Add(N);
-      if (N = nil) or (N is TyamlScalar) then
-        Scanner.GetNextToken;
-    end;
-  end;
+  if Scanner.Token = tDocumentEnd then
+    Scanner.GetNextToken;
 end;
 
 procedure TyamlSequence.Parse(Scanner: TyamlScanner);
+var
+  I: Integer;
+  N: TyamlNode;
 begin
-  while Scanner.Token = tSequenceStart do
+  I := Scanner.Indent;
+  while (Scanner.Token = tSequenceStart) and (Scanner.Indent = I) do
   begin
     Scanner.GetNextToken;
-    Add(TyamlContainer.Create).Parse(Scanner);
+    N := ExtractNode(Scanner);
+    if N <> nil then
+      Add(N);
   end;
 end;
 
@@ -794,10 +830,20 @@ end;
 procedure TyamlStream.Parse(Scanner: TyamlScanner);
 begin
   if Scanner.Token <> tStreamStart then
-    raise EyamlSyntaxError.Create('Syntax error');
-  Scanner.GetNextToken;  
-  while not Scanner.EOF do
+    raise EyamlSyntaxError.Create('Not at stream start');
+  while Scanner.GetNextToken <> tStreamEnd do
     Add(TyamlDocument.Create).Parse(Scanner);
+end;
+
+{ TyamlMapping }
+
+procedure TyamlMapping.Parse(Scanner: TyamlScanner);
+var
+  I: Integer;
+begin
+  I := Scanner.Indent;
+  while (Scanner.Token = tKey) and (Scanner.Indent = I) do
+    Add(TyamlKeyValue.Create).Parse(Scanner);
 end;
 
 end.

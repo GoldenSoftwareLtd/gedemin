@@ -190,11 +190,11 @@ begin
             while not (FReader.PeekChar(L) in [#00, #13, #10, ':', '#']) do
               Inc(L);
 
-            if (L > 0) and (FReader.PeekChar(L) = ':') then
+            if (L > 0) and (FReader.PeekChar(L) = ':') and (FReader.PeekChar(L + 1) in [#32, #13, #10]) then
             begin
               FBlockIndent := FReader.PositionInLine;
               FKey := Trim(FReader.GetString(L));
-              FReader.Skip(1, True);
+              FReader.Skip(2, True);
               FState := sDocument;
               Result := tKey;
             end else
@@ -283,7 +283,7 @@ begin
   if Result = tUndefined then
     Result := tStreamEnd;
 
-  FToken := Result;
+  FToken := Result; 
 end;
 
 end.

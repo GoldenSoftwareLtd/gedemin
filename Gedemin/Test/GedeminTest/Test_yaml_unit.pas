@@ -68,12 +68,13 @@ begin
       Check(Scanner.Scalar = 'abc  def');
       Check(Scanner.Quoting = qPlain);
 
+      Check(Scanner.GetNextToken = tDocumentStart);
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'abc');
 
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'a');
-      Check(Scanner.Line = 19);
+      Check(Scanner.Line = 20);
       Check(Scanner.Indent = 2);
 
       Check(Scanner.GetNextToken = tScalar);
@@ -85,6 +86,9 @@ begin
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = '90');
       Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'c');
 
       Check(Scanner.GetNextToken = tSequenceStart);
       Check(Scanner.GetNextToken = tScalar);
@@ -155,6 +159,7 @@ begin
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = 'Item5');
       Check(Scanner.Quoting = qDoubleQuoted);
+      Check(Scanner.GetNextToken = tSequenceStart);
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item6');
       Check(Scanner.GetNextToken = tScalar);
