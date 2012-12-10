@@ -19,7 +19,7 @@ type
 
   EyamlException = class(Exception);
   EyamlSyntaxError = class(EyamlException);
-  
+
 const
   EOL       = [#13, #10];
   DefIndent = 2;

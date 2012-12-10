@@ -198,7 +198,8 @@ begin
     {$IFDEF WITH_INDY}
     if not gd_GlobalParams.SecondaryInstance then
       gdWebServerControl.ActivateServer;
-    gdWebClientThread.AfterConnection;
+    if gd_GlobalParams.GetWebClientActive then
+      gdWebClientThread.AfterConnection;
     {$ENDIF}
   end;
 end;

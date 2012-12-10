@@ -15,11 +15,13 @@ abc  def
   789 876
   543
 abc  def
+---
 abc:
   a: 89 # comment
   b: 90
-- Item 1
-- Item 2
+  c:
+    - Item 1
+    - Item 2
 nm: #comment
   - a: 1
     b: 2
@@ -27,22 +29,25 @@ nm: #comment
       678 9078
     d: 55
 ---
-a: - Item1 # comment
+a: 
+  - Item1 # comment
 # comment
-   - Item2
-b: - Item3
-   - Item4
-   - "Item5"
-     Item6: |
+  - Item2
+b: 
+  - Item3
+  - Item4
+  - "Item5"
+  - 
+    Item6: |
        123 456
        789 111
        568
-     Item7: >
+    Item7: >
        123 456
        789 111
        568
-     Item8: "test | test"
-     Item9: !!int 67
+    Item8: "test | test"
+    Item9: !!int 67
 c: !!seq
   - Item1
 ---
