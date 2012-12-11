@@ -22,7 +22,7 @@ object gd_dlgAbout: Tgd_dlgAbout
     Top = 8
     Width = 547
     Height = 371
-    ActivePage = tsFiles
+    ActivePage = tsUpdate
     TabOrder = 0
     object tsAbout: TTabSheet
       Caption = 'О программе'
@@ -838,55 +838,64 @@ object gd_dlgAbout: Tgd_dlgAbout
       Caption = 'Обновление'
       ImageIndex = 3
       object lblStep: TLabel
-        Left = 88
-        Top = 200
-        Width = 3
+        Left = 10
+        Top = 108
+        Width = 37
         Height = 13
+        Caption = '<step>'
       end
       object lblAll: TLabel
-        Left = 88
-        Top = 160
-        Width = 3
+        Left = 10
+        Top = 73
+        Width = 26
         Height = 13
+        Caption = '<all>'
       end
       object Label1: TLabel
         Left = 5
-        Top = 223
+        Top = 231
         Width = 391
         Height = 13
         Caption = 
           'Следующая информация будет передана на сервер в процессе обновле' +
           'ния:'
       end
+      object lblUpdateStatus: TLabel
+        Left = 10
+        Top = 8
+        Width = 76
+        Height = 13
+        Caption = 'lblUpdateStatus'
+      end
       object Button1: TButton
-        Left = 32
-        Top = 40
+        Left = 11
+        Top = 34
         Width = 75
         Height = 21
         Action = actUpdate
         TabOrder = 0
       end
       object xpbAll: TxProgressBar
-        Left = 72
+        Left = 10
         Top = 88
-        Width = 401
+        Width = 527
         Height = 17
         TabOrder = 1
         Value = 0
       end
       object xpbStep: TxProgressBar
-        Left = 72
-        Top = 120
-        Width = 401
+        Left = 10
+        Top = 123
+        Width = 527
         Height = 17
         TabOrder = 2
         Value = 0
       end
       object mSendData: TSynEdit
         Left = 3
-        Top = 240
+        Top = 248
         Width = 532
-        Height = 99
+        Height = 91
         Cursor = crIBeam
         Color = clInfoBk
         Font.Charset = DEFAULT_CHARSET

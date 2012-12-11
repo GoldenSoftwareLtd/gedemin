@@ -63,6 +63,7 @@ type
     mSendData: TSynEdit;
     Label1: TLabel;
     SynGeneralSyn: TSynGeneralSyn;
+    lblUpdateStatus: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure btnMSInfoClick(Sender: TObject);
@@ -231,8 +232,18 @@ begin
       end;
     mSendData.Lines.Add('UPDATE_TOKEN = ' + gd_GlobalParams.UpdateToken);
   end;
+
+  if Assigned(gdWebClientThread) and gdWebClientThread.Connected then
+  begin
+    if Pos('UPDATE', gdWebClientThread.WebServerResponse) > 0 then
+      lblUpdateStatus.Caption := 'Доступно обновление для файлов платформы.'
+    else
+      lblUpdateStatus.Caption := 'Файлы платформы не нуждаются в обновлении.';
+    tsUpdate.TabVisible := True;
+  end else
+    tsUpdate.TabVisible := False;
   {$ELSE}
-  tsUpdate.Visible := False;
+  tsUpdate.TabVisible := False;
   {$ENDIF}
 end;
 
@@ -796,7 +807,9 @@ end;
 procedure Tgd_dlgAbout.actUpdateUpdate(Sender: TObject);
 begin
   {$IFDEF WITH_INDY}
-  actUpdate.Enabled := Assigned(gdWebClientThread);
+  actUpdate.Enabled := Assigned(gdWebClientThread)
+    and gdWebClientThread.Connected
+    and (not gdWebClientThread.InUpdate);
   {$ELSE}
   actUpdate.Enabled := False;
   {$ENDIF}

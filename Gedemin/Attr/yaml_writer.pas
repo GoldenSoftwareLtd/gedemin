@@ -183,7 +183,7 @@ procedure TyamlWriter.WriteText(const AText: AnsiString; AQuoting: TyamlScalarQu
       Inc(E);
     Result := Copy(S, B, E - B);
     B := E;
-    while (B <= Length(S)) and (S[B] in EOL) do
+    while (B <= Length(S)) and (S[B] in EOL) and (B - E < 2) do
       Inc(B);
   end;
 

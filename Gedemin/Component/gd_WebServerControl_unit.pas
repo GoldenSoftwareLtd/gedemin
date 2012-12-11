@@ -386,7 +386,7 @@ var
   UP: String;
   FI: TFLItem;
 begin
-  FResponseInfo.ResponseNo := 400;
+  FResponseInfo.ResponseNo := 200;
   FResponseInfo.ContentType := 'text/plain;';
   FResponseInfo.ContentText := '';
 
@@ -399,15 +399,16 @@ begin
      FRequestInfo.Params.Values['exe_ver'],
      FRequestInfo.Params.Values['update_token']]);
 
-  UP := gd_GlobalParams.GetWebServerUpdatePath;
-
-  if UP > '' then
+  if DirectoryExists(gd_GlobalParams.GetWebServerUpdatePath) then
   begin
-    if FRequestInfo.Params.Values['update_token'] > '' then
-      UP := IncludeTrailingBackslash(UP) + 'Normal'
+    if FRequestInfo.Params.Values['update_token'] = '' then
+      UP := IncludeTrailingBackslash(gd_GlobalParams.GetWebServerUpdatePath) + 'Normal'
     else
-      UP := IncludeTrailingBackslash(UP) +
+      UP := IncludeTrailingBackslash(gd_GlobalParams.GetWebServerUpdatePath) +
         FRequestInfo.Params.Values['update_token'];
+
+    if not DirectoryExists(UP) then
+      UP := IncludeTrailingBackslash(gd_GlobalParams.GetWebServerUpdatePath) + 'Normal';
 
     if DirectoryExists(UP) then
     begin
@@ -421,7 +422,6 @@ begin
       FI := FFileList.FindItem('gedemin.exe');
       if FI <> nil then
       begin
-        FResponseInfo.ResponseNo := 200;
         if TFLItem.CompareVersionStrings(FI.Version,
           FRequestInfo.Params.Values['exe_ver'], 4) > 0 then
         begin
@@ -566,4 +566,4 @@ initialization
 finalization
   FreeAndNil(gdWebServerControl);
 end.
-
+                   

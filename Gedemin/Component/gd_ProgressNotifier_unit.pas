@@ -4,8 +4,10 @@ unit gd_ProgressNotifier_unit;
 interface
 
 type
+  TgdProgressState = (psInit, psProgress, psDone, psError);
+
   TgdProgressInfo = record
-    InProgress: Boolean;
+    State: TgdProgressState;
     Started: TDateTime;
     ProcessName: String;
     NumberOfSteps: Integer;
