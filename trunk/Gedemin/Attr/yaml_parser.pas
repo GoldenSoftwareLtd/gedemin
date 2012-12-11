@@ -169,12 +169,6 @@ type
 
     procedure Parse(Scanner: TyamlScanner); override;
     function Add(Node: TyamlNode): TyamlNode;
-    function FindByName(const AName: String): TyamlNode;
-    function ReadString(const AName: String; const DefValue: String = ''): String;
-    function ReadInteger(const AName: String; const DefValue: Integer = 0): Integer;
-    function ReadDateTime(const AName: String; const DefValue: TDateTime = 0): TDateTime;
-    function ReadBoolean(const AName: String; const DefValue: Boolean = False): Boolean;
-    function TestString(const AName: String; const AString: String): Boolean;
 
     property Items[Index: Integer]: TyamlNode read GetItems; default;
     property Count: Integer read GetCount;
@@ -198,6 +192,12 @@ type
   TyamlMapping = class(TyamlContainer)
   public
     procedure Parse(Scanner: TyamlScanner); override;
+    function FindByName(const AName: String): TyamlNode;
+    function ReadString(const AName: String; const DefValue: String = ''): String;
+    function ReadInteger(const AName: String; const DefValue: Integer = 0): Integer;
+    function ReadDateTime(const AName: String; const DefValue: TDateTime = 0): TDateTime;
+    function ReadBoolean(const AName: String; const DefValue: Boolean = False): Boolean;
+    function TestString(const AName: String; const AString: String): Boolean;
   end;
 
   TyamlParser = class(TObject)
@@ -505,14 +505,13 @@ begin
   inherited;
 end;
 
-function TyamlContainer.FindByName(const AName: String): TyamlNode;
+function TyamlMapping.FindByName(const AName: String): TyamlNode;
 var
   I: Integer;
 begin
   Result := nil;
   for I := 0 to Count - 1 do
-    if (Items[I] is TyamlKeyValue) and
-      (AnsiCompareText((Items[I] as TyamlKeyValue).Key, AName) = 0) then
+    if AnsiCompareText((Items[I] as TyamlKeyValue).Key, AName) = 0 then
     begin
       Result := (Items[I] as TyamlKeyValue).Value;
     end;
@@ -533,7 +532,7 @@ begin
   //
 end;
 
-function TyamlContainer.ReadBoolean(const AName: String;
+function TyamlMapping.ReadBoolean(const AName: String;
   const DefValue: Boolean): Boolean;
 var
   N: TyamlNode;
@@ -545,7 +544,7 @@ begin
     Result := DefValue;
 end;
 
-function TyamlContainer.ReadDateTime(const AName: String;
+function TyamlMapping.ReadDateTime(const AName: String;
   const DefValue: TDateTime): TDateTime;
 var
   N: TyamlNode;
@@ -557,7 +556,7 @@ begin
     Result := DefValue;
 end;
 
-function TyamlContainer.ReadInteger(const AName: String;
+function TyamlMapping.ReadInteger(const AName: String;
   const DefValue: Integer): Integer;
 var
   N: TyamlNode;
@@ -569,7 +568,7 @@ begin
     Result := DefValue;
 end;
 
-function TyamlContainer.ReadString(const AName, DefValue: String): String;
+function TyamlMapping.ReadString(const AName, DefValue: String): String;
 var
   N: TyamlNode;
 begin
@@ -580,7 +579,7 @@ begin
     Result := DefValue;
 end;
 
-function TyamlContainer.TestString(const AName, AString: String): Boolean;
+function TyamlMapping.TestString(const AName, AString: String): Boolean;
 begin
   Result := AnsiCompareText(AString, ReadString(AName)) = 0;
 end;
@@ -830,7 +829,7 @@ end;
 procedure TyamlStream.Parse(Scanner: TyamlScanner);
 begin
   if Scanner.Token <> tStreamStart then
-    raise EyamlSyntaxError.Create('Not at stream start');
+    raise EyamlSyntaxError.Create('Not at a stream start');
   while Scanner.GetNextToken <> tStreamEnd do
     Add(TyamlDocument.Create).Parse(Scanner);
 end;

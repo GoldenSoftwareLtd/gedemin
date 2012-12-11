@@ -44,6 +44,7 @@ set gudf_cfg=gudf.product.cfg
 set compiler_switch=-b
 set arc_name=gedemin.rar
 set gudf_arc_name=gudf.rar
+set target_dir=normal
 goto start_process
 
 :make_debug
@@ -53,6 +54,7 @@ set gudf_cfg=gudf.debug.cfg
 set compiler_switch=-b -vt
 set arc_name=gedemin_debug.rar
 set gudf_arc_name=gudf_debug.rar
+set target_dir=debug
 
 :start_process
 
@@ -268,7 +270,7 @@ del *.~* /s
 del gedemin_upd.ini
 del gudf.dll
 
-set arc_command="c:\program files\winrar\winrar.exe" a %arc_name%
+set arc_command="c:\program files\winrar\winrar.exe" a -ibck %arc_name%
 
 if exist %arc_name% del %arc_name% 
 %arc_command% gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest
@@ -322,7 +324,11 @@ echo *************************************************
 
 rem xcopy gedemin.exe g:\common\gedemin\gedemin.exe /Y
 
-
+for %%F in (gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest ib_util.dll) do xcopy %%F \\vienna\web\%target_dir% /Y
+for %%F in (icudt30.dll icuin30.dll icuuc30.dll fbembed.dll firebird.msg) do xcopy %%F \\vienna\web\%target_dir% /Y
+for %%F in (microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll gedemin_upd.exe) do xcopy %%F \\vienna\web\%target_dir% /Y
+for %%F in (udf\gudf.dll intl\fbintl.conf intl\fbintl.dll) do xcopy %%F \\vienna\web\%target_dir% /Y
+ 
 :exit
 
 

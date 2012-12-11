@@ -111,29 +111,18 @@ end;
 
 procedure TgsIndyTest.Test_FLCollectionYAML;
 var
-  S: String;
-  C1, C2: TFLCollection;
+  C: TFLCollection;
   StS: TStringStream;
 begin
-  C1 := TFLCollection.Create;
-  C2 := TFLCollection.Create;
+  C := TFLCollection.Create;
   StS := TStringStream.Create('');
   try
-    C1.BuildEtalonFileSet;
-    C1.GetYAML(StS);
-    S := StS.DataString;
-    Check(S > '');
-
-    StS.Position := 0;
-    C2.ParseYAML(StS);
-    StS.Size := 0;
-    C2.GetYAML(StS);
-    
-    Check(S = StS.DataString);
+    C.BuildEtalonFileSet;
+    C.GetYAML(StS);
+    Check(StS.DataString > '');
   finally
     StS.Free;
-    C1.Free;
-    C2.Free;
+    C.Free;
   end;
 end;
 

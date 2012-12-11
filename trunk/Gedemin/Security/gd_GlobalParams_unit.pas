@@ -26,6 +26,7 @@ type
     function GetWebClientActive: Boolean;
     function GetWebClientRemoteServer: String;
     function GetWebClientTimeout: Integer;
+    function GetAutoUpdate: Boolean;
 
     function GetWebServerActive: Boolean;
     function GetWebServerBindings: String;
@@ -138,6 +139,14 @@ begin
     Result := FIniFile.ReadBool('WEB CLIENT', 'Active', True)
   else
     Result := True;
+end;
+
+function Tgd_GlobalParams.GetAutoUpdate: Boolean;
+begin
+  if FIniFile <> nil then
+    Result := FIniFile.ReadBool('WEB CLIENT', 'AutoUpdate', False)
+  else
+    Result := False;
 end;
 
 initialization

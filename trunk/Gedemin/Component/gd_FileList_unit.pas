@@ -144,7 +144,7 @@ uses
   JclWin32, zlib, idURI;
 
 const
-  FileListSchema =
+  FileListSchemaXML =
     '<?xml version="1.0" encoding="utf-8"?>'#13#10 +
     '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"'#13#10 +
     '  targetNamespace="http://gsbelarus.com/gedemin_files" xmlns="http://gsbelarus.com/gedemin_files"'#13#10 +
@@ -215,7 +215,7 @@ const
     '  </xs:element>'#13#10 +
     '</xs:schema>';
 
-  GedeminDirectoryLayout =
+  GedeminDirectoryLayoutXML =
     '<?xml version="1.0" encoding="windows-1251"?>'#13#10 +
     '<GS:GEDEMIN_FILES VERSION="1.0" xmlns:GS="http://gsbelarus.com/gedemin_files">'#13#10 +
     '  <GS:DIRECTORY>'#13#10 +
@@ -407,12 +407,14 @@ begin
   begin
     if FCurr = 0 then
     begin
-      FPI.InProgress := True;
+      FPI.State := psInit;
       FPI.Started := Now;
       FPI.ProcessName := 'Обновление файлов';
       FPI.NumberOfSteps := Count;
+      DoProgressWatch;
     end;
 
+    FPI.State := psProgress;
     FPI.CurrentStep := FCurr;
     FPI.CurrentStepName := 'Загрузка файла ' + (Items[FCurr] as TFLItem).RelativeName + '...';
     FPI.CurrentStepMax := 0;
@@ -440,6 +442,7 @@ begin
   begin
     if FCurr > 0 then
     begin
+      FPI.State := psDone;
       FPI.CurrentStep := FCurr;
       FPI.CurrentStepName := '';
       FPI.CurrentStepMax := 0;
@@ -453,7 +456,7 @@ procedure TFLCollection.BuildEtalonFileSet;
 var
   I: Integer;
 begin
-  ParseXML(GedeminDirectoryLayout);
+  ParseXML(GedeminDirectoryLayoutXML);
   for I := 0 to Count - 1 do
     (Items[I] as TFLItem).Scan;
 end;
@@ -614,7 +617,7 @@ begin
 
   oXSD := CreateOLEObject(ProgID_MSXML_DOMDocument);
   oXSD.Async := False;
-  if oXSD.LoadXML(FileListSchema) then
+  if oXSD.LoadXML(FileListSchemaXML) then
     sNamespace := oXSD.documentElement.getAttribute('targetNamespace')
   else
     raise EFLError.Create('Can not load XML schema.');
@@ -987,6 +990,7 @@ procedure TFLCollection.ParseYAML(AStream: TStream);
 var
   P: TyamlParser;
   D: TyamlDocument;
+  M: TyamlMapping;
   N: TyamlSequence;
   I: Integer;
   FSOItem: TFLItem;
@@ -999,13 +1003,17 @@ begin
     if P.YAMLStream.Count = 1 then
     begin
       D := P.YAMLStream[0] as TyamlDocument;
-      if D.ReadInteger('Version') = 1 then
+      if D.Count > 0 then
       begin
-        N := D.FindByName('Items') as TyamlSequence;
-        for I := 0 to N.Count - 1 do
+        M := D.Items[0] as TyamlMapping;
+        if M.ReadInteger('Version') = 1 then
         begin
-          FSOItem := Add as TFLItem;
-          FSOItem.ParseYAML(N[I]);
+          N := M.FindByName('Items') as TyamlSequence;
+          for I := 0 to N.Count - 1 do
+          begin
+            FSOItem := Add as TFLItem;
+            FSOItem.ParseYAML(N[I]);
+          end;
         end;
       end;
     end;
@@ -1019,14 +1027,17 @@ begin
   if not (ANode is TyamlContainer) then
     raise EFLError.Create('Invalid data format.');
 
-  FIsDirectory := TyamlContainer(ANode).TestString('Type', 'DIRECTORY');
-  FName := TyamlContainer(ANode).ReadString('Name');
-  FPath := TyamlContainer(ANode).ReadString('Path');
-  FFlags := Str2Flags(TyamlContainer(ANode).ReadString('Flags'));
-  FExists := TyamlContainer(ANode).ReadBoolean('Exists');
-  FDate := TyamlContainer(ANode).ReadDateTime('Date');
-  FSize := TyamlContainer(ANode).ReadInteger('Size');
-  FVersion := TyamlContainer(ANode).ReadString('Version');
+  with ANode as TyamlMapping do
+  begin
+    FIsDirectory := TestString('Type', 'DIRECTORY');
+    FName := ReadString('Name');
+    FPath := ReadString('Path');
+    FFlags := Str2Flags(ReadString('Flags'));
+    FExists := ReadBoolean('Exists');
+    FDate := ReadDateTime('Date');
+    FSize := ReadInteger('Size');
+    FVersion := ReadString('Version');
+  end;
 
   if FName = '' then
     raise EFLError.Create('Name is not specified.');
