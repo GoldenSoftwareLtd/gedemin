@@ -89,10 +89,11 @@ begin
                   LogType := EVENTLOG_ERROR_TYPE;
                   ss[0] := PChar('File not found ' + FName + '.new');
                 end
-                else if not RenameFile(FName + '.new', FName) then
+                else if not MoveFileEx(PChar(FName + '.new'), PChar(FName), MOVEFILE_REPLACE_EXISTING) then
                 begin
                   LogType := EVENTLOG_ERROR_TYPE;
-                  ss[0] := PChar('Can not rename file ' + FName + '.new');
+                  ss[0] := PChar('Can not rename file ' + FName + '.new'#13#10 +
+                    'Error code: ' + IntToStr(GetLastError));
                 end
               end
               else if Cmd = 'RF' then
@@ -110,15 +111,16 @@ begin
                   LogType := EVENTLOG_ERROR_TYPE;
                   ss[0] := PChar('File not found ' + FName + '.new');
                 end
-                else if FileExists(FName) and (not DeleteFile(FName)) then
+                else if not MoveFileEx(PChar(FName + '.new'), PChar(FName), MOVEFILE_REPLACE_EXISTING) then
                 begin
-                  LogType := EVENTLOG_ERROR_TYPE;
-                  ss[0] := PChar('Can not delete file ' + FName);
-                end
-                else if not RenameFile(FName + '.new', FName) then
-                begin
-                  LogType := EVENTLOG_ERROR_TYPE;
-                  ss[0] := PChar('Can not rename file ' + FName + '.new');
+                  Sleep(2000);
+                  if not MoveFileEx(PChar(FName + '.new'), PChar(FName), MOVEFILE_REPLACE_EXISTING) then
+                  begin
+                    LogType := EVENTLOG_ERROR_TYPE;
+                    ss[0] := PChar('Can not rename file ' + FName + '.new'#13#10 +
+                      'Error code: ' + IntToStr(GetLastError));
+                    MoveFileEx(PChar(FName + '.bak'), PChar(FName), MOVEFILE_REPLACE_EXISTING);
+                  end;    
                 end
               end;
             except

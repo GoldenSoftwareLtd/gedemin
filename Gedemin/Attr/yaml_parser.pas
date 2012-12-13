@@ -137,6 +137,7 @@ type
 
   TyamlNull = class(TyamlScalar)
   protected
+    function GetAsString: AnsiString; override;
     function GetIsNull: Boolean; override;
   end;
 
@@ -761,6 +762,11 @@ end;
 
 { TyamlNull }
 
+function TyamlNull.GetAsString: AnsiString;
+begin
+  Result := '';
+end;
+
 function TyamlNull.GetIsNull: Boolean;
 begin
   Result := True;
@@ -780,14 +786,20 @@ begin
   FValue := Value;
 end;
 
-procedure TyamlKeyValue.Parse(Scanner: TyamlScanner); 
+procedure TyamlKeyValue.Parse(Scanner: TyamlScanner);
+var
+  I: Integer;
 begin
   Assert(FValue = nil);
   if Scanner.Token <> tKey then
     raise EyamlSyntaxError.Create('Mapping key expected');
   FKey := Scanner.Key;
+  I := Scanner.Indent;
   Scanner.GetNextToken;
-  FValue := ExtractNode(Scanner);
+  if Scanner.Indent < I then
+    FValue := TyamlNull.Create
+  else
+    FValue := ExtractNode(Scanner);
   if FValue = nil then
     raise EyamlSyntaxError.Create('Invalid mapping value!');
 end;

@@ -16,7 +16,7 @@ type
     procedure Test;
     procedure Test_FLFlags;
     procedure Test_FLCollection;
-    procedure Test_FLCollectionXML;
+    //procedure Test_FLCollectionXML;
     procedure Test_FLCollectionYAML;
     procedure Test_CompareVersionStrings;
   end;
@@ -79,7 +79,7 @@ begin
   end;
 end;
 
-procedure TgsIndyTest.Test_FLCollectionXML;
+{procedure TgsIndyTest.Test_FLCollectionXML;
 var
   S: String;
   C1, C2: TFLCollection;
@@ -107,7 +107,7 @@ begin
     C1.Free;
     C2.Free;
   end;
-end;
+end;}
 
 procedure TgsIndyTest.Test_FLCollectionYAML;
 var

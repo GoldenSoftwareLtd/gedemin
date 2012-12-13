@@ -27,12 +27,16 @@ type
     FPath: String;
     FWebServerResponse: TidThreadSafeString;
     FAutoUpdate: Boolean;
+    FQuietMode: Boolean;
+    FCanUpdate: Boolean;
+    FMandatoryUpdate: Boolean;
 
     function LoadWebServerURL: Boolean;
     function QueryWebServer: Boolean;
     function LoadFilesList: Boolean;
     function ProcessUpdateCommand: Boolean;
     procedure FinishUpdate;
+    procedure SyncFinishUpdate;
 
     function GetgdWebServerURL: String;
     procedure SetgdWebServerURL(const Value: String);
@@ -74,9 +78,9 @@ var
 implementation
 
 uses
-  ComObj, ActiveX, gdcJournal, gd_security, JclSimpleXML, gdcBaseInterface,
-  gdNotifierThread_unit, gd_directories_const, JclFileUtils,
-  Forms, gd_CmdLineParams_unit, gd_GlobalParams_unit, jclSysInfo;
+  gdcJournal, gd_security, gdcBaseInterface, gdNotifierThread_unit,
+  gd_directories_const, JclFileUtils, Forms, gd_CmdLineParams_unit,
+  gd_GlobalParams_unit, jclSysInfo;
 
 const
   WM_GD_AFTER_CONNECTION       = WM_USER + 1118;
@@ -133,7 +137,9 @@ begin
       Free;
     end;
   FUpdateToken := gd_GlobalParams.UpdateToken;
-  FAutoUpdate := gd_GlobalParams.GetAutoUpdate;
+  FAutoUpdate := gd_GlobalParams.AutoUpdate;
+  FQuietMode := gd_CmdLineParams.QuietMode;
+  FCanUpdate := gd_GlobalParams.CanUpdate;
 
   PostMsg(WM_GD_AFTER_CONNECTION);
 end;
@@ -187,14 +193,14 @@ end;
 
 function TgdWebClientThread.LoadFilesList: Boolean;
 var
-  ResponseData: TMemoryStream;
+  ResponseData: TStringStream;
 begin
-  if gd_GlobalParams.NetworkDrive or gd_GlobalParams.CDROMDrive then
+  if not gd_GlobalParams.CanUpdate then
     Result := False
   else begin
     if FServerFileList = nil then
     begin
-      ResponseData := TMemoryStream.Create;
+      ResponseData := TStringStream.Create('');
       try
         FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_files_list'), ResponseData);
         if ResponseData.Size > 0 then
@@ -230,7 +236,7 @@ begin
     WM_GD_QUERY_SERVER:
       if QueryWebServer then
       begin
-        if (Pos('UPDATE', FWebServerResponse.Value) > 0) and FAutoUpdate then
+        if (Pos('UPDATE', FWebServerResponse.Value) > 0) and FAutoUpdate and FCanUpdate then
           PostThreadMessage(ThreadID, WM_GD_UPDATE_FILES, 0, 0);
       end;
 
@@ -262,17 +268,24 @@ end;
 procedure TgdWebClientThread.LogError;
 begin
   TgdcJournal.AddEvent(ErrorMessage, 'HTTPClient', -1, nil, True);
+
+  if InUpdate then
+  begin
+    FPI.State := psError;
+    FPI.Message := ErrorMessage;
+    Synchronize(SyncProgressWatch);
+  end;
 end;
 
 procedure TgdWebClientThread.Setup;
 begin
   inherited;
-  Assert(CoInitialize(nil) = S_OK);
+  //Assert(CoInitialize(nil) = S_OK);
 end;
 
 procedure TgdWebClientThread.TearDown;
 begin
-  CoUninitialize;
+  //CoUninitialize;
   inherited;
 end;
 
@@ -301,7 +314,8 @@ end;
 
 function TgdWebClientThread.ProcessUpdateCommand: Boolean;
 begin
-  Result := FServerFileList.UpdateFile(FHTTP, gdWebServerURL, FCmdList);
+  Result := FServerFileList.UpdateFile(FHTTP, gdWebServerURL,
+    FCmdList, FMandatoryUpdate);
 end;
 
 procedure TgdWebClientThread.FinishUpdate;
@@ -331,12 +345,17 @@ begin
     FreeAndNil(FCmdList);
   end;
   FServerFileList.OnProgressWatch := nil;
+  if ErrorMessage = '' then
+    Synchronize(SyncFinishUpdate);
 end;
 
 procedure TgdWebClientThread.StartUpdateFiles;
 begin
-  if FConnected.Value <> 0 then
+  if gd_GlobalParams.CanUpdate and (FConnected.Value <> 0) then
+  begin
+    FMandatoryUpdate := True;
     PostMsg(WM_GD_UPDATE_FILES);
+  end;
 end;
 
 procedure TgdWebClientThread.DoOnWork(Sender: TObject;
@@ -393,6 +412,21 @@ end;
 function TgdWebClientThread.GetWebServerResponse: String;
 begin
   Result := FWebServerResponse.Value;
+end;
+
+procedure TgdWebClientThread.SyncFinishUpdate;
+begin
+  gd_GlobalParams.NeedRestartForUpdate := True;
+  if not FQuietMode then
+  begin
+    MessageBox(0,
+      PChar(
+        'Для завершения процесса обновления необходимо'#13#10 +
+        'перезапустить приложение.'#13#10#13#10 +
+        'Прежние версии файлов сохранены с расширением .BAK'),
+      'Обновление файлов',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  end;
 end;
 
 initialization

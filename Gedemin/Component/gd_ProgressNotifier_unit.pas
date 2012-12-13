@@ -15,6 +15,7 @@ type
     CurrentStepName: String;
     CurrentStepMax: Integer;
     CurrentStepDone: Integer;
+    Message: String;
   end;
 
   IgdProgressWatch = interface
