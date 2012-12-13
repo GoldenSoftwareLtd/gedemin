@@ -53,23 +53,28 @@ type
     btnCopy: TButton;
     SynXMLSyn: TSynXMLSyn;
     tsUpdate: TTabSheet;
-    Button1: TButton;
     al: TActionList;
     actUpdate: TAction;
-    xpbAll: TxProgressBar;
-    xpbStep: TxProgressBar;
-    lblStep: TLabel;
-    lblAll: TLabel;
-    mSendData: TSynEdit;
-    Label1: TLabel;
     SynGeneralSyn: TSynGeneralSyn;
+    chbxAutoUpdate: TCheckBox;
+    lblAutoUpdate: TLabel;
+    gbUpdate: TGroupBox;
     lblUpdateStatus: TLabel;
+    btnUpdate: TButton;
+    lblAll: TLabel;
+    xpbAll: TxProgressBar;
+    lblStep: TLabel;
+    xpbStep: TxProgressBar;
+    Label1: TLabel;
+    mSendData: TSynEdit;
+    lblMessage: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure btnMSInfoClick(Sender: TObject);
     procedure btnCopyClick(Sender: TObject);
     procedure actUpdateExecute(Sender: TObject);
     procedure actUpdateUpdate(Sender: TObject);
+    procedure chbxAutoUpdateClick(Sender: TObject);
 
   private
     FSysInfo: TgdSysInfo;
@@ -232,6 +237,8 @@ begin
       end;
     mSendData.Lines.Add('UPDATE_TOKEN = ' + gd_GlobalParams.UpdateToken);
   end;
+
+  chbxAutoUpdate.Checked := gd_GlobalParams.AutoUpdate;
 
   if Assigned(gdWebClientThread) and gdWebClientThread.Connected then
   begin
@@ -806,34 +813,86 @@ end;
 
 procedure Tgd_dlgAbout.actUpdateUpdate(Sender: TObject);
 begin
-  {$IFDEF WITH_INDY}
-  actUpdate.Enabled := Assigned(gdWebClientThread)
-    and gdWebClientThread.Connected
-    and (not gdWebClientThread.InUpdate);
-  {$ELSE}
-  actUpdate.Enabled := False;
-  {$ENDIF}
+  actUpdate.Enabled := gd_GlobalParams.CanUpdate;
 end;
 
 procedure Tgd_dlgAbout.UpdateProgress(const AProgressInfo: TgdProgressInfo);
-begin
-  lblAll.Caption := AProgressInfo.ProcessName + '... Прошло: '
-    + FormatDateTime('hh:nn:ss', Now - AProgressInfo.Started);
-  xpbAll.SetValues(AProgressInfo.CurrentStep, 0, AProgressInfo.NumberOfSteps);
-  if AProgressInfo.CurrentStepMax > 0 then
+
+  function FormatTime: String;
+  var
+    I: Integer;
   begin
-    lblStep.Caption := AProgressInfo.CurrentStepName + ' '
-      + IntToStr(AProgressInfo.CurrentStepDone div 1024) + 'K из '
-      + IntToStr(AProgressInfo.CurrentStepMax div 1024);
-    xpbStep.SetValues(AProgressInfo.CurrentStepDone, 0, AProgressInfo.CurrentStepMax);
-  end else
-  begin
-    lblStep.Caption := AProgressInfo.CurrentStepName;
-    if lblStep.Caption > '' then
-      xpbStep.SetValues(1, 0, 1)
-    else
-      xpbStep.SetValues(0, 0, 1);
+    Result := FormatDateTime('hh:nn:ss', Now - AProgressInfo.Started);
+    I := 1;
+    while (I < Length(Result)) and (Result[I] in ['0', ':']) do
+      Inc(I);
+    Result := Copy(Result, I, 1024);
+    if Result = '0' then
+      Result := '1';
+    if Length(Result) <= 2 then
+      Result := Result + ' сек';
   end;
+
+begin
+  case AProgressInfo.State of
+    psInit:
+    begin
+      lblAll.Caption := '';
+      lblAll.Visible := True;
+      xpbAll.SetValues(0, 0, 1);
+      xpbAll.Visible := True;
+      lblStep.Caption := '';
+      lblStep.Visible := True;
+      xpbStep.SetValues(0, 0, 1);
+      xpbStep.Visible := True;
+      lblMessage.Visible := False;
+    end;
+
+    psProgress:
+    begin
+      lblAll.Caption := AProgressInfo.ProcessName + '...    Прошло: ' + FormatTime;
+      xpbAll.SetValues(AProgressInfo.CurrentStep, 0, AProgressInfo.NumberOfSteps, True);
+      if AProgressInfo.CurrentStepMax > 0 then
+      begin
+        lblStep.Caption := AProgressInfo.CurrentStepName + '    '
+          + IntToStr(AProgressInfo.CurrentStepDone div 1024) + ' Kб из '
+          + IntToStr(AProgressInfo.CurrentStepMax div 1024) + ' Kб';
+        xpbStep.SetValues(AProgressInfo.CurrentStepDone, 0, AProgressInfo.CurrentStepMax, True);
+      end else
+      begin
+        lblStep.Caption := AProgressInfo.CurrentStepName;
+        if lblStep.Caption > '' then
+          xpbStep.SetValues(1, 0, 1)
+        else
+          xpbStep.SetValues(0, 0, 1);
+      end;
+    end;
+
+    psDone:
+    begin
+      lblAll.Visible := False;
+      xpbAll.Visible := False;
+      lblStep.Visible := False;
+      xpbStep.Visible := False;
+      lblMessage.Caption := AProgressInfo.Message;
+      lblMessage.Visible := True;
+    end;
+
+    psError:
+    begin
+      lblAll.Visible := False;
+      xpbAll.Visible := False;
+      lblStep.Visible := False;
+      xpbStep.Visible := False;
+      lblMessage.Caption := AProgressInfo.Message;
+      lblMessage.Visible := True;
+    end;
+  end;
+end;
+
+procedure Tgd_dlgAbout.chbxAutoUpdateClick(Sender: TObject);
+begin
+  gd_GlobalParams.AutoUpdate := chbxAutoUpdate.Checked;
 end;
 
 initialization

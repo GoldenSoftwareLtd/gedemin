@@ -82,7 +82,7 @@ uses
   SysUtils, Forms, Windows, IBSQL, IBDatabase, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit, gdcBaseInterface,
   prp_methods, Gedemin_TLB, Storages, WinSock, ComObj, JclSimpleXML, jclSysInfo,
-  gd_directories_const, ActiveX, FileCtrl, gd_GlobalParams_unit;
+  gd_directories_const, ActiveX, FileCtrl, gd_GlobalParams_unit, gdcJournal;
 
 type
   TgdHttpHandler = class(TObject)
@@ -211,52 +211,57 @@ var
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
-  if AnsiCompareText(FRequestInfo.Document, '/query') = 0 then
-    ProcessQueryRequest
-  else if AnsiCompareText(FRequestInfo.Document, '/get_files_list') = 0 then
-    ProcessFilesListRequest
-  else if AnsiCompareText(FRequestInfo.Document, '/get_file') = 0 then
-    ProcessFileRequest
-  else begin
-    Processed := False;
-    RequestToken := FRequestInfo.Params.Values[PARAM_TOKEN];
-    for HandlerCounter := 0 to FHttpGetHandlerList.Count - 1 do
-    begin
-      Handler := FHttpGetHandlerList[HandlerCounter] as TgdHttpHandler;
-      if (Handler.Token = '') or (AnsiCompareText(Handler.Token, RequestToken) = 0) then
+  try
+    if AnsiCompareText(FRequestInfo.Document, '/query') = 0 then
+      ProcessQueryRequest
+    else if AnsiCompareText(FRequestInfo.Document, '/get_files_list') = 0 then
+      ProcessFilesListRequest
+    else if AnsiCompareText(FRequestInfo.Document, '/get_file') = 0 then
+      ProcessFileRequest
+    else begin
+      Processed := False;
+      RequestToken := FRequestInfo.Params.Values[PARAM_TOKEN];
+      for HandlerCounter := 0 to FHttpGetHandlerList.Count - 1 do
       begin
-        HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
-        if Assigned(HandlerFunction) then
+        Handler := FHttpGetHandlerList[HandlerCounter] as TgdHttpHandler;
+        if (Handler.Token = '') or (AnsiCompareText(Handler.Token, RequestToken) = 0) then
         begin
-          // Формирование списка параметров
-          //  1 - компонент к которому привязан обработчик
-          //  2 - параметры GET запроса
-          //  3 - HTTP код ответа (byref)
-          //  4 - текст ответа (byref)
-          LParams := VarArrayOf([
-            GetGdcOLEObject(Handler.Component) as IgsComponent,
-            GetGdcOLEObject(FRequestInfo.Params) as IgsStrings,
-            GetVarInterface(FResponseInfo.ResponseNo),
-            GetVarInterface(FResponseInfo.ContentText)]);
+          HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
+          if Assigned(HandlerFunction) then
+          begin
+            // Формирование списка параметров
+            //  1 - компонент к которому привязан обработчик
+            //  2 - параметры GET запроса
+            //  3 - HTTP код ответа (byref)
+            //  4 - текст ответа (byref)
+            LParams := VarArrayOf([
+              GetGdcOLEObject(Handler.Component) as IgsComponent,
+              GetGdcOLEObject(FRequestInfo.Params) as IgsStrings,
+              GetVarInterface(FResponseInfo.ResponseNo),
+              GetVarInterface(FResponseInfo.ContentText)]);
 
-          ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
-          FResponseInfo.ResponseNo := Integer(GetVarParam(LParams[2]));
-          FResponseInfo.ContentType := 'text/xml; charset=Windows-1251';
-          FResponseInfo.ContentText := String(GetVarParam(LParams[3]));
+            ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
+            FResponseInfo.ResponseNo := Integer(GetVarParam(LParams[2]));
+            FResponseInfo.ContentType := 'text/xml; charset=Windows-1251';
+            FResponseInfo.ContentText := String(GetVarParam(LParams[3]));
 
-          Processed := True;
+            Processed := True;
+          end;
         end;
       end;
-    end;
 
-    if not Processed then
-    begin
-      FResponseInfo.ResponseNo := 200;
-      FResponseInfo.ContentType := 'text/html;';
-      FResponseInfo.ContentText :=
-        '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
-        '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>Hello World!</BODY></HTML>';
+      if not Processed then
+      begin
+        FResponseInfo.ResponseNo := 200;
+        FResponseInfo.ContentType := 'text/html;';
+        FResponseInfo.ContentText :=
+          '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
+          '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>Hello World!</BODY></HTML>';
+      end;
     end;
+  except
+    on E: Exception do
+      TgdcJournal.AddEvent(E.Message, 'HTTPServer', -1, nil, True);
   end;
 end;
 

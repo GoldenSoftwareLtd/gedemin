@@ -92,9 +92,11 @@ begin
         FWaitingEvent.ResetEvent;
       end;
 
-      if Res = WAIT_TIMEOUT then
+      if (not Terminated) and (Res = WAIT_TIMEOUT) then
+      begin
         Timeout
-      else begin
+      end else
+      begin
         while (not Terminated) and PeekMessage(Msg, 0, 0, $FFFFFFFF, PM_REMOVE) do
         begin
           case Msg.Message of

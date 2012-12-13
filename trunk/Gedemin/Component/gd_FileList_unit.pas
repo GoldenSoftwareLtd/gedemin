@@ -66,11 +66,12 @@ type
     class procedure InternalScan(const AFullName: String; const IsDirectory: Boolean;
       out AnExists: Boolean; out ADate: TDateTime; out ASize: Int64; out AVersion: String);
 
-    function GetXML: String;
-    procedure ParseXML(ANode: OleVariant);
+    //function GetXML: String;
+    //procedure ParseXML(ANode: OleVariant);
     procedure GetYAML(W: TyamlWriter);
     procedure ParseYAML(ANode: TyamlNode);
-    procedure UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList);
+    procedure UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList;
+      const AMandatoryUpdate: Boolean = False);
     procedure Scan;
 
   public
@@ -78,9 +79,9 @@ type
 
     class function Flags2Str(const Flags: TFLFlags): String;
     class function Str2Flags(const S: String): TFLFlags;
-    class function Boolean2Str(const B: Boolean): String;
+    {class function Boolean2Str(const B: Boolean): String;
     class function Str2Boolean(const S: String): Boolean;
-    class function Str2DateTime(const S: String): TDateTime;
+    class function Str2DateTime(const S: String): TDateTime;}
     class function CompareVersionStrings(const V1, V2: String;
       const CompareFirst: Integer = 4): Integer;
 
@@ -123,10 +124,11 @@ type
   public
     constructor Create;
 
-    function UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList): Boolean;
+    function UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList;
+      const AMandatoryUpdate: Boolean = False): Boolean;
     procedure BuildEtalonFileSet;
-    function GetXML: String;
-    procedure ParseXML(const AnXML: String);
+    //function GetXML: String;
+    //procedure ParseXML(const AnXML: String);
     procedure GetYAML(AStream: TStream);
     procedure ParseYAML(AStream: TStream);
     function FindItem(ARelativeName: String): TFLItem;
@@ -140,11 +142,11 @@ type
 implementation
 
 uses
-  Windows, Forms, FileCtrl, ComObj, jclFileUtils, gd_directories_const,
+  Windows, Forms, FileCtrl, jclFileUtils, gd_directories_const,
   JclWin32, zlib, idURI;
 
 const
-  FileListSchemaXML =
+  {FileListSchemaXML =
     '<?xml version="1.0" encoding="utf-8"?>'#13#10 +
     '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"'#13#10 +
     '  targetNamespace="http://gsbelarus.com/gedemin_files" xmlns="http://gsbelarus.com/gedemin_files"'#13#10 +
@@ -251,6 +253,9 @@ const
     '    <GS:NAME>gedemin.exe</GS:NAME>'#13#10 +
     '  </GS:FILE>'#13#10 +
     '  <GS:FILE>'#13#10 +
+    '    <GS:NAME>gedemin_upd.exe</GS:NAME>'#13#10 +
+    '  </GS:FILE>'#13#10 +
+    '  <GS:FILE>'#13#10 +
     '    <GS:NAME>fbembed.dll</GS:NAME>'#13#10 +
     '  </GS:FILE>'#13#10 +
     '  <GS:FILE>'#13#10 +
@@ -283,7 +288,97 @@ const
     '  <GS:FILE>'#13#10 +
     '    <GS:NAME>Microsoft.VC80.CRT.manifest</GS:NAME>'#13#10 +
     '  </GS:FILE>'#13#10 +
-    '</GS:GEDEMIN_FILES>';
+    '</GS:GEDEMIN_FILES>';}
+
+  GedeminDirectoryLayoutYAML =
+    'Version: 1'#13#10 +
+    'Items: '#13#10 +
+    '  - '#13#10 +
+    '    Type   : Directory'#13#10 +
+    '    Name   : INTL'#13#10 +
+    '  - '#13#10 +
+    '    Type   : Directory'#13#10 +
+    '    Name   : UDF'#13#10 +
+    '  - '#13#10 +
+    '    Type   : Directory'#13#10 +
+    '    Name   : HELP'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : gudf.dll'#13#10 +
+    '    Path   : UDF'#13#10 +
+    '    Flags  : OverwriteIfNewer'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : fbintl.conf'#13#10 +
+    '    Path   : INTL'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : fbintl.dll'#13#10 +
+    '    Path   : INTL'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : fr24rus.chm'#13#10 +
+    '    Path   : HELP'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : vbs55.chm'#13#10 +
+    '    Path   : HELP'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : gedemin.exe'#13#10 +
+    '    Flags  : OverwriteIfNewer'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : gedemin_upd.exe'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : fbembed.dll'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : firebird.msg'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : ib_util.dll'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : icudt30.dll'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : icuin30.dll'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : icuuc30.dll'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : midas.dll'#13#10 +
+    '    Flags  : OverwriteIfNewer'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : midas.sxs.manifest'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : msvcp80.dll'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : msvcr80.dll'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup'#13#10 +
+    '  - '#13#10 +
+    '    Type   : File'#13#10 +
+    '    Name   : Microsoft.VC80.CRT.manifest'#13#10 +
+    '    Flags  : OverwriteIfNewer DontBackup';
 
 {function CheckFileAccess(const FileName: string; const CheckedAccess: Cardinal): Cardinal;
 var
@@ -332,13 +427,13 @@ begin
   end;
 end;}
 
-class function TFLItem.Boolean2Str(const B: Boolean): String;
+{class function TFLItem.Boolean2Str(const B: Boolean): String;
 begin
   if B then
     Result := 'true'
   else
     Result := 'false';
-end;
+end;}
 
 class function TFLItem.CompareVersionStrings(const V1, V2: String;
   const CompareFirst: Integer = 4): Integer;
@@ -400,7 +495,7 @@ end;
 { TFLCollection }
 
 function TFLCollection.UpdateFile(AHTTP: TidHTTP; const AnURL: String;
-  ACmdList: TStringList): Boolean;
+  ACmdList: TStringList; const AMandatoryUpdate: Boolean = False): Boolean;
 begin
   Result := FCurr < Count;
   if Result then
@@ -411,6 +506,7 @@ begin
       FPI.Started := Now;
       FPI.ProcessName := 'Обновление файлов';
       FPI.NumberOfSteps := Count;
+      FPI.Message := '';
       DoProgressWatch;
     end;
 
@@ -429,7 +525,7 @@ begin
       AHTTP.OnWorkEnd := DoWorkEnd;
       AHTTP.OnWork := DoWork;
 
-      (Items[FCurr] as TFLItem).UpdateFile(AHTTP, AnURL, ACmdList);
+      (Items[FCurr] as TFLItem).UpdateFile(AHTTP, AnURL, ACmdList, AMandatoryUpdate);
       Inc(FCurr);
     finally
       AHTTP.OnWorkBegin := FOldWorkBegin;
@@ -447,6 +543,9 @@ begin
       FPI.CurrentStepName := '';
       FPI.CurrentStepMax := 0;
       FPI.CurrentStepDone := 0;
+      FPI.Message :=
+        'Для завершения процесса обновления необходимо перезапустить приложение.'#13#10 +
+        'Прежние версии файлов сохранены с расширением .BAK';
       DoProgressWatch;
     end;
   end;
@@ -455,13 +554,19 @@ end;
 procedure TFLCollection.BuildEtalonFileSet;
 var
   I: Integer;
+  S: TStringStream;
 begin
-  ParseXML(GedeminDirectoryLayoutXML);
-  for I := 0 to Count - 1 do
-    (Items[I] as TFLItem).Scan;
+  S := TStringStream.Create(GedeminDirectoryLayoutYAML);
+  try
+    ParseYAML(S);
+    for I := 0 to Count - 1 do
+      (Items[I] as TFLItem).Scan;
+  finally
+    S.Free;
+  end;
 end;
 
-function TFLItem.GetXML: String;
+{function TFLItem.GetXML: String;
 const
   Indent  = '  ';
   Indent2 = Indent + Indent;
@@ -531,10 +636,33 @@ begin
 
   if FName = '' then
     raise EFLError.Create('Name is not specified.');
-end;
+end;}
 
 class procedure TFLItem.InternalScan(const AFullName: String; const IsDirectory: Boolean;
   out AnExists: Boolean; out ADate: TDateTime; out ASize: Int64; out AVersion: String);
+
+  function GetFileLastWrite: TDateTime;
+  var
+    T: TFileTime;
+    S: TSystemTime;
+    f: THandle;
+  begin
+    Result := 0;
+    begin
+      f := FileOpen(AFullName, fmOpenRead or fmShareDenyNone);
+      try
+        if (f <> 0) and GetFileTime(f, nil, nil, @T)
+          and FileTimeToSystemTime(T, S) then
+        begin
+          Result := EncodeDate(S.wYear, S.wMonth, S.wDay) +
+            EncodeTime(S.wHour, S.wMinute, S.wSecond, 0);
+        end;
+      finally
+        FileClose(f);
+      end;
+    end;
+  end;
+
 begin
   AVersion := '';
   ADate := 0;
@@ -546,14 +674,14 @@ begin
     if DirectoryExists(AFullName) then
     begin
       AnExists := True;
-      GetFileLastWrite(AFullName, ADate);
+      ADate := GetFileLastWrite;
     end;
   end else
   begin
     if FileExists(AFullName) then
     begin
       AnExists := True;
-      GetFileLastWrite(AFullName, ADate);
+      ADate := GetFileLastWrite;
       ASize := FileGetSize(AFullName);
       if VersionResourceAvailable(AFullName) then
         with TjclFileVersionInfo.Create(AFullName) do
@@ -590,7 +718,7 @@ begin
   end;
 end;
 
-function TFLCollection.GetXML: String;
+{function TFLCollection.GetXML: String;
 var
   I: Integer;
 begin
@@ -638,18 +766,14 @@ begin
     end;
   end else
     raise EFLError.Create('Can not load XML.');
-end;
+end;}
 
 procedure TFLItem.Scan;
 begin
   InternalScan(FullName, IsDirectory, FExists, FDate, FSize, FVersion);
-
-  //!!!
-  Include(FFlags, flAlwaysOverwrite);
-  //!!!
 end;
 
-class function TFLItem.Str2Boolean(const S: String): Boolean;
+{class function TFLItem.Str2Boolean(const S: String): Boolean;
 begin
   if (S = 'true') or (S = '1') then
     Result := True
@@ -675,7 +799,7 @@ begin
     Sec := ExtractInt(S, B, ['.']);
     Result := Result + EncodeTime(H, N, Sec, 0);
   end;
-end;
+end;}
 
 class function TFLItem.Str2Flags(const S: String): TFLFlags;
 var
@@ -702,7 +826,9 @@ begin
       else if SubStr = 'DONTBACKUP' then
         Include(Result, flDontBackup)
       else if SubStr = 'ASKPERMISSION' then
-        Include(Result, flAskPermission);
+        Include(Result, flAskPermission)
+      else
+        raise EFLError.Create('Invalid flag value');  
 
       B := E + 1;
       E := B + 1;
@@ -711,12 +837,15 @@ begin
   end;
 end;
 
-procedure TFLItem.UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStringList);
+procedure TFLItem.UpdateFile(AHTTP: TidHTTP; const AnURL: String;
+  ACmdList: TStringList; const AMandatoryUpdate: Boolean = False);
 
   procedure DownloadFile(const ALocalName: String);
   var
     MS: TMemoryStream;
     f: THandle;
+    T: TFileTime;
+    S: TSystemTime;
   begin
     MS := TMemoryStream.Create;
     try
@@ -729,10 +858,13 @@ procedure TFLItem.UpdateFile(AHTTP: TidHTTP; const AnURL: String; ACmdList: TStr
 
     if Date <> 0 then
     begin
-      f := FileOpen(ALocalName, fmOpenReadWrite);
+      DecodeDate(Date, S.wYear, S.wMonth, S.wDay);
+      DecodeTime(Date, S.wHour, S.wMinute, S.wSecond, S.wMilliseconds);
+      S.wMilliseconds := 0;
+      f := FileOpen(ALocalName, fmOpenWrite or fmShareDenyNone);
       try
-        if f <> 0 then
-          FileSetDate(f, DateTimeToFileDate(Date));
+        if (f <> 0) and SystemTimeToFileTime(S, T) then
+          SetFileTime(f, nil, nil, @T);
       finally
         FileClose(f);
       end;
@@ -768,6 +900,8 @@ begin
     else if Exists and LocalExists and (not (flNeverOverwrite in Flags)) then
     begin
       if (flAlwaysOverwrite in Flags)
+        or
+        AMandatoryUpdate
         or
          (
            (flOverwriteIfNewer in Flags)
@@ -960,9 +1094,12 @@ begin
   W.WriteKey('Exists ');
   W.WriteBoolean(FExists);
 
-  W.StartNewLine;
-  W.WriteKey('Flags  ');
-  W.WriteString(Flags2Str(Flags));
+  if Flags <> [] then
+  begin
+    W.StartNewLine;
+    W.WriteKey('Flags  ');
+    W.WriteString(Flags2Str(Flags));
+  end;  
 
   if (not IsDirectory) and Exists then
   begin
