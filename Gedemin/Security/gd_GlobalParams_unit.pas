@@ -102,7 +102,9 @@ end;
 
 function Tgd_GlobalParams.GetWebServerActive: Boolean;
 begin
-  Result := FIniFile.ReadBool('WEB SERVER', 'Active', False);
+  Result := FIniFile.ReadBool('WEB SERVER', 'Active', False)
+    and (not gd_GlobalParams.SecondaryInstance)
+    and (gd_CmdLineParams.LoadSettingFileName = '');
 end;
 
 procedure Tgd_GlobalParams.ReadFromIniFile;
@@ -122,12 +124,14 @@ end;
 
 function Tgd_GlobalParams.GetWebClientActive: Boolean;
 begin
-  Result := FIniFile.ReadBool('WEB CLIENT', 'Active', True);
+  Result := FIniFile.ReadBool('WEB CLIENT', 'Active', True)
+    and (gd_CmdLineParams.LoadSettingFileName = '')
+    and (not gd_GlobalParams.GetWebServerActive);
 end;
 
 function Tgd_GlobalParams.GetAutoUpdate: Boolean;
 begin
-  Result := FIniFile.ReadBool('WEB CLIENT', 'AutoUpdate', False);
+  Result := FIniFile.ReadBool('WEB CLIENT', 'AutoUpdate', True);
 end;
 
 procedure Tgd_GlobalParams.SetAutoUpdate(const Value: Boolean);

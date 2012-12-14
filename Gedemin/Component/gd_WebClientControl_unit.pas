@@ -114,7 +114,7 @@ procedure TgdWebClientThread.AfterConnection;
 begin
   Assert(IBLogin <> nil);
 
-  if (FConnected.Value <> 0) or gd_GlobalParams.GetWebServerActive then
+  if FConnected.Value <> 0 then
     exit;
 
   gdWebServerURL := gd_GlobalParams.GetWebClientRemoteServer;

@@ -47,7 +47,7 @@ echo *************************************************
 @set database_path=k:\golden\gedemin_local_fb\database
 @set winrar_path=C:\Program Files\WinRar
 @set setup_path=..\InnoSetup
-@set setting_path=%~d0:\golden\setting
+@set setting_path=%~d0\golden\setting
 
 @set server_name=localhost/3053
 
@@ -100,12 +100,12 @@ echo **                                             **
 echo *************************************************
 
 copy ..\..\images\splash\%3 "%install_source_path%\gedemin.jpg" /Y
+if exist "%~dp6setup.exe" del "%~dp6setup.exe"
 "%inno_setup_path%\iscc.exe" "%setup_path%\%4.iss" "/o%~dp6" /fsetup /q
-if not errorlevel 0 goto Error
+if not exist "%~dp6setup.exe" goto Error
 
 if exist "%~dp6\%5" del "%~dp6\%5" 
-echo "%winrar_path%\winrar" a -m5 -ep "%~dp6%5" "%~dp6setup.exe"
-"%winrar_path%\winrar" a -m5 -ep "%~dp6%5" "%~dp6setup.exe"
+"%winrar_path%\winrar" a -m5 -ep -ibck "%~dp6%5" "%~dp6setup.exe"
 if not errorlevel 0 goto Error
 
 eventcreate /t INFORMATION /id 201 /l application /so gedemin /d "End making install %4."

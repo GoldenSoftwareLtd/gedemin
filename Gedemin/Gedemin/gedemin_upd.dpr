@@ -82,20 +82,6 @@ begin
                   ss[0] := PChar('Can not delete directory ' + FName);
                 end;
               end
-              else if Cmd = 'CF' then
-              begin
-                if not FileExists(FName + '.new') then
-                begin
-                  LogType := EVENTLOG_ERROR_TYPE;
-                  ss[0] := PChar('File not found ' + FName + '.new');
-                end
-                else if not MoveFileEx(PChar(FName + '.new'), PChar(FName), MOVEFILE_REPLACE_EXISTING) then
-                begin
-                  LogType := EVENTLOG_ERROR_TYPE;
-                  ss[0] := PChar('Can not rename file ' + FName + '.new'#13#10 +
-                    'Error code: ' + IntToStr(GetLastError));
-                end
-              end
               else if Cmd = 'RF' then
               begin
                 if not DeleteFile(FName) then
@@ -104,7 +90,7 @@ begin
                   ss[0] := PChar('Can not delete file ' + FName);
                 end;
               end
-              else if Cmd = 'UF' then
+              else if (Cmd = 'UF') or (Cmd = 'CF') then
               begin
                 if not FileExists(FName + '.new') then
                 begin
@@ -119,8 +105,10 @@ begin
                     LogType := EVENTLOG_ERROR_TYPE;
                     ss[0] := PChar('Can not rename file ' + FName + '.new'#13#10 +
                       'Error code: ' + IntToStr(GetLastError));
-                    MoveFileEx(PChar(FName + '.bak'), PChar(FName), MOVEFILE_REPLACE_EXISTING);
-                  end;    
+                    if (not FileExists(FName)) and FileExists(FName + '.bak') then
+                      MoveFileEx(PChar(FName + '.bak'), PChar(FName), 0);
+                    DeleteFile(FName + '.new');
+                  end;
                 end
               end;
             except

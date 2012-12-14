@@ -314,8 +314,8 @@ begin
 
   if not FHTTPServer.Active then
     try
-      if gd_GlobalParams.GetWebServerActive and (FHTTPServer.Bindings.Count > 0)
-        and ((FHTTPServer.Bindings[0] as TidSocketHandle).IP <> '0.0.0.0') then
+      if (FHTTPServer.Bindings.Count > 0) and
+        ((FHTTPServer.Bindings[0] as TidSocketHandle).IP <> '0.0.0.0') then
       begin
         FHttpServer.Active := True;
       end;  

@@ -196,9 +196,9 @@ begin
     CompanyStorage.ObjectKey := IBLogin.CompanyKey;
     if TrayIcon <> nil then TrayIcon.ToolTip := IBLogin.CompanyName;
     {$IFDEF WITH_INDY}
-    if not gd_GlobalParams.SecondaryInstance then
-      gdWebServerControl.ActivateServer;
-    if gd_GlobalParams.GetWebClientActive then
+    if gd_GlobalParams.GetWebServerActive then
+      gdWebServerControl.ActivateServer
+    else if gd_GlobalParams.GetWebClientActive then
       gdWebClientThread.AfterConnection;
     {$ENDIF}
   end;
@@ -476,8 +476,8 @@ begin
 end;
 
 initialization
-  UserParamExists := False;
-  PasswordParamExists := False;
+  UserParamExists := gd_CmdLineParams.UserName > '';
+  PasswordParamExists := gd_CmdLineParams.UserPassword > '';
   LoadSettingPath := gd_CmdLineParams.LoadSettingPath;
   LoadSettingFileName := gd_CmdLineParams.LoadSettingFileName;
 end.

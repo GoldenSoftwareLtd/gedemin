@@ -47,7 +47,6 @@ begin
   begin
     Label1.Caption := AText;
     Label1.Repaint;
-    //Application.ProcessMessages;
   end;
 end;
 
