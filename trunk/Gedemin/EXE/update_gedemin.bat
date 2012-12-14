@@ -44,7 +44,7 @@ set gudf_cfg=gudf.product.cfg
 set compiler_switch=-b
 set arc_name=gedemin.rar
 set gudf_arc_name=gudf.rar
-set target_dir=normal
+set target_dir=beta
 goto start_process
 
 :make_debug
@@ -202,16 +202,6 @@ del gedemin_upd.current.cfg > nul
 
 echo *************************************************
 echo **                                             **
-echo **  gedemin_upd:                               **
-echo **  Strip relocation information               **
-echo **                                             **
-echo *************************************************
-
-cd ..\exe
-stripreloc /b gedemin_upd.exe
-
-echo *************************************************
-echo **                                             **
 echo **  gudf.dll:                                  **
 echo **  Prepare .cfg files                         **
 echo **                                             **
@@ -302,7 +292,7 @@ echo **  Upload gudf.rar                            **
 echo **                                             **
 echo *************************************************
 
-set arc_command="c:\program files\winrar\winrar.exe" a %gudf_arc_name%
+set arc_command="c:\program files\winrar\winrar.exe" a -ibck %gudf_arc_name%
 
 if exist %gudf_arc_name% del %gudf_arc_name% 
 %arc_command% udf\gudf.dll
@@ -327,7 +317,9 @@ rem xcopy gedemin.exe g:\common\gedemin\gedemin.exe /Y
 for %%F in (gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest ib_util.dll) do xcopy %%F \\vienna\web\%target_dir% /Y
 for %%F in (icudt30.dll icuin30.dll icuuc30.dll fbembed.dll firebird.msg) do xcopy %%F \\vienna\web\%target_dir% /Y
 for %%F in (microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll gedemin_upd.exe) do xcopy %%F \\vienna\web\%target_dir% /Y
-for %%F in (udf\gudf.dll intl\fbintl.conf intl\fbintl.dll) do xcopy %%F \\vienna\web\%target_dir% /Y
+xcopy udf\gudf.dll     \\vienna\web\%target_dir%\udf\ /Y
+xcopy intl\fbintl.conf \\vienna\web\%target_dir%\intl\ /Y
+xcopy intl\fbintl.dll  \\vienna\web\%target_dir%\intl\ /Y
  
 :exit
 

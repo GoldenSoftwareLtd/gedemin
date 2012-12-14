@@ -1613,6 +1613,11 @@ begin
     if not CheckForModify(NeedReadDBVersion) then
       exit;
 
+    {$IFNDEF DEBUG}
+    if Assigned(gdSplash) then
+      gdSplash.ShowSplash;
+    {$ENDIF}
+
     Result := DoLogin(NeedReadDBVersion);
   finally
     FLoginInProgress := False;

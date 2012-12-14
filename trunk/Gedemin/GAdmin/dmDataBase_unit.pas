@@ -35,10 +35,10 @@ uses
 {TdmDataBase ---------------------------------------------}
 
 procedure TdmDatabase.DataModuleCreate(Sender: TObject);
-var
-  Reg: TRegistry;
+{var
+  Reg: TRegistry;}
 begin
-  Reg := TRegistry.Create(KEY_WRITE);
+  {Reg := TRegistry.Create(KEY_WRITE);
   try
     Reg.RootKey := HKEY_LOCAL_MACHINE;
     if Reg.OpenKey(cExecuteRegPath, True) then
@@ -49,7 +49,7 @@ begin
     end;
   finally
     Reg.Free;
-  end;
+  end;}
 
   ibdbGAdmin.Params.Text := 'lc_ctype=WIN1251';
 

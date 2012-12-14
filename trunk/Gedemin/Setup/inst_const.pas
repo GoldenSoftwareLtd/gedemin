@@ -14,7 +14,7 @@ const
   cClientRegPath = 'SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion';
   cSettingRegPath = cClientRegPath + '\Setting';
 
-  cExecuteRegPath = 'SOFTWARE\Golden Software\Gedemin\Client\ExecuteFiles';
+  //cExecuteRegPath = 'SOFTWARE\Golden Software\Gedemin\Client\ExecuteFiles';
   cAddDatabaseRegPath = cServerRegPath + '\Database';
 
   // Наименование переменных в реестре

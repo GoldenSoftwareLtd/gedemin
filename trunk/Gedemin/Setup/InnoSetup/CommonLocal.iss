@@ -11,14 +11,14 @@ AppSupportPhone=+375-17-2561759
 DefaultDirName={pf}\Golden Software\Gedemin 2.5\Local
 DefaultGroupName=Golden Software Гедымин 2.5
 DisableProgramGroupPage=yes
-OutputDir=d:\temp\setup
+OutputDir=c:\temp\setup
 OutputBaseFilename=setup
 Compression=lzma/ultra
 SolidCompression=yes
 MinVersion=0,5.01sp2
 Uninstallable=yes
 ShowLanguageDialog=auto
-SourceDir=D:\Golden\Gedemin_Local_FB\
+SourceDir=k:\Golden\Gedemin_Local_FB\
 UsePreviousAppDir=yes
 DisableReadyPage=yes
 
@@ -49,9 +49,14 @@ Source: "Intl\fbintl.dll"; DestDir: "{app}\Intl"; Flags: ignoreversion
 Source: "Intl\fbintl.conf"; DestDir: "{app}\Intl"; Flags: ignoreversion
 Source: "midas.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "midas.sxs.manifest"; DestDir: "{app}"; Flags: ignoreversion
+;Source: "databases.ini"; DestDir: "{app}"; Flags: onlyifdoesntexist
 
 Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
+
+[INI]
+Filename: "{app}\databases.ini"; Section: "{code:GetSafeAppName}"; Key: "FileName"; String: "Database\{code:GetDBFileName}"
+Filename: "{app}\databases.ini"; Section: "{code:GetSafeAppName}"; Key: "Selected"; String: "1"
 
 [Icons]
 Name: "{group}\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; WorkingDir: "{app}"
@@ -60,7 +65,7 @@ Name: "{commondesktop}\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; Ta
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; Tasks: quicklaunchicon
 Name: "{group}\{cm:UninstallProgram,{code:GetSafeAppName}}"; Filename: "{uninstallexe}"; WorkingDir: "{app}"
 
-[Registry]
+;[Registry]
 ;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access"; ValueType: string; ValueName: "UserName"; ValueData: ""; Flags: deletevalue uninsdeletevalue
 ;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\ExecuteFiles"; ValueType: dword; ValueName: "{app}\gedemin.exe"; ValueData: 0; Flags: deletevalue uninsdeletevalue
 ;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion"; ValueType: string; ValueName: "ServerName"; ValueData: "{app}\Database\{code:GetDBFileName}"; Flags: deletevalue uninsdeletevalue

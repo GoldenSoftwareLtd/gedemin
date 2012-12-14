@@ -197,7 +197,7 @@ end;
 
 procedure Tgd_DatabasesListView.lvDblClick(Sender: TObject);
 begin
-  actEdit.Execute;
+  actOk.Execute;
 end;
 
 procedure Tgd_DatabasesListView.actEditUpdate(Sender: TObject);

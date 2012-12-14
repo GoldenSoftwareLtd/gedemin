@@ -42,7 +42,10 @@ implementation
 
 procedure Tgd_DatabasesListDlg.btnSelectFileClick(Sender: TObject);
 begin
-  OpenDialog.FileName := edFileName.Text;
+  if edFileName.Text > '' then
+    OpenDialog.FileName := edFileName.Text
+  else
+    OpenDialog.InitialDir := ExtractFilePath(Application.EXEName);
   if OpenDialog.Execute then
   begin
     edFileName.Text := OpenDialog.FileName;
