@@ -156,7 +156,6 @@ contains
   gdcStorage in '..\Component\GDC\gdcStorage.pas',
   gdcFKManager in '..\Component\GDC\gdcFKManager.pas',
   gsPeriodEdit in '..\Component\gsPeriodEdit.pas',
-  xFileList in '..\..\Comp5\xStorm\xFileList.pas',
-  gdcNamespace in '..\Component\GDC\gdcNamespace.pas';
+  xFileList in '..\..\Comp5\xStorm\xFileList.pas';
 
 end.

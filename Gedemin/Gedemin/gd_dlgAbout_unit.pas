@@ -75,6 +75,7 @@ type
     procedure actUpdateExecute(Sender: TObject);
     procedure actUpdateUpdate(Sender: TObject);
     procedure chbxAutoUpdateClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
 
   private
     FSysInfo: TgdSysInfo;
@@ -813,7 +814,10 @@ end;
 
 procedure Tgd_dlgAbout.actUpdateUpdate(Sender: TObject);
 begin
-  actUpdate.Enabled := gd_GlobalParams.CanUpdate;
+  {$IFDEF WITH_INDY}
+  actUpdate.Enabled := gd_GlobalParams.CanUpdate
+    and (not gdWebClientThread.InUpdate);
+  {$ENDIF}
 end;
 
 procedure Tgd_dlgAbout.UpdateProgress(const AProgressInfo: TgdProgressInfo);
@@ -893,6 +897,13 @@ end;
 procedure Tgd_dlgAbout.chbxAutoUpdateClick(Sender: TObject);
 begin
   gd_GlobalParams.AutoUpdate := chbxAutoUpdate.Checked;
+end;
+
+procedure Tgd_dlgAbout.FormDestroy(Sender: TObject);
+begin
+  {$IFDEF WITH_INDY}
+  gdWebClientThread.ProgressWatch := nil;
+  {$ENDIF}
 end;
 
 initialization

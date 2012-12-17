@@ -49,8 +49,6 @@ Source: "Intl\fbintl.dll"; DestDir: "{app}\Intl"; Flags: ignoreversion
 Source: "Intl\fbintl.conf"; DestDir: "{app}\Intl"; Flags: ignoreversion
 Source: "midas.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "midas.sxs.manifest"; DestDir: "{app}"; Flags: ignoreversion
-;Source: "databases.ini"; DestDir: "{app}"; Flags: onlyifdoesntexist
-
 Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 

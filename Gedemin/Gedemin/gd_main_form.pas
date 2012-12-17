@@ -13,8 +13,8 @@ uses
   gsIBLookupComboBox, TB2ExtItems;
 
 const
-  WM_ACTIVATESETTING = WM_USER + 30000;
-  WM_RUNONLOGINMACROS = WM_USER + 25489;
+  WM_GD_RELOGIN          = WM_USER + 25488;
+  WM_GD_RUNONLOGINMACROS = WM_USER + 25489;
 
 type
   TCrackIBCustomDataset = class(TIBCustomDataset);
@@ -320,9 +320,11 @@ type
       var CanShow: Boolean; var HintInfo: THintInfo);
 
     procedure WMRunOnLoginMacros(var Msg: TMessage);
-      message WM_RUNONLOGINMACROS;
+      message WM_GD_RUNONLOGINMACROS;
+    procedure WMRelogin(var Msg: TMessage);
+      message WM_GD_RELOGIN;
 
-    procedure UpdateNotification(const ANotification: String);  
+    procedure UpdateNotification(const ANotification: String);
 
   protected
     procedure Loaded; override;
@@ -366,6 +368,7 @@ uses
   gd_frmShell_unit,
   gd_CmdLineParams_unit,
   scrMacrosGroup,
+  gd_dlgInitialInfo_unit,
 
   at_frmIBUserList,
   at_SQL_Setup,
@@ -426,10 +429,12 @@ uses
   pr_dlgLicence_unit,
   {$ENDIF}
 
-{$IFDEF GEDEMIN_LOCK}
-  gd_dlgReg_unit,
-  gd_registration,
-  IBDatabaseInfo,
+{$IFNDEF WITH_INDY}
+  {$IFDEF GEDEMIN_LOCK}
+    gd_dlgReg_unit,
+    gd_registration,
+    IBDatabaseInfo,
+  {$ENDIF}
 {$ENDIF}
 
   gdcGood,
@@ -461,16 +466,12 @@ uses
   gdcContacts,
 
   gdcReport,
-
   gdcUser,
-
   gdcClasses,
 
-  {Скрипт-функции}
-  {prp_dlgViewProperty_unit,} evt_i_Base,
+  evt_i_Base,
 
   gdcBugBase,
-
   gd_ClassList,
 
   Storages,
@@ -498,7 +499,7 @@ uses
   st_frmMain_unit,
 
   gd_dlgOptions_unit,
-  
+
   contnrs,
   gdUpdateIndiceStat,
   IB,
@@ -508,7 +509,6 @@ uses
   mtd_i_Base,
   dm_i_ClientReport_unit,
   gdcBaseInterface, dmLogin_unit,
-  //gd_frmSQLMonitor_unit,
   gd_dlgAutoBackup_unit,
   prp_frmGedeminProperty_Unit,
   cmp_frmDataBaseCompare,
@@ -737,9 +737,25 @@ end;
 
 procedure TfrmGedeminMain.DoAfterChangeCompany;
 begin
+  if (IBLogin <> nil) and (IBLogin.CompanyKey < cstUserIDStart) then
+  begin
+    if Assigned(gdSplash) then
+      gdSplash.FreeSplash;
+      
+    with Tgd_dlgInitialInfo.Create(nil) do
+    try
+      if ShowModal = mrOk then
+      begin
+        PostMessage(Self.Handle, WM_GD_RELOGIN, 0, 0);
+        exit;
+      end;
+    finally
+      Free;
+    end;
+  end;
+
   //
   //  Загружаем рабочий стол
-
   EnableCategory('Tray', True);
   EnableCategory('Документ', True);
   EnableCategory('Просмотр', True);
@@ -1412,7 +1428,7 @@ begin
   begin
     FFirstTime := False;
     if Assigned(IBLogin) and IBLogin.LoggedIn then
-      PostMessage(Handle, WM_RUNONLOGINMACROS, 0, 0);
+      PostMessage(Handle, WM_GD_RUNONLOGINMACROS, 0, 0);
   end;
 end;
 
@@ -1823,22 +1839,28 @@ end;
 
 procedure TfrmGedeminMain.actRegistrationExecute(Sender: TObject);
 begin
-{$IFDEF GEDEMIN_LOCK}
-  with Tgd_dlgReg.Create(Self) do
-  try
-    ShowModal;
-  finally
-    Free;
-  end;
+{$IFNDEF WITH_INDY}
+  {$IFDEF GEDEMIN_LOCK}
+    with Tgd_dlgReg.Create(Self) do
+    try
+      ShowModal;
+    finally
+      Free;
+    end;
+  {$ENDIF}
 {$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actRegistrationUpdate(Sender: TObject);
 begin
-  if (IBLogin <> nil) and IBLogin.Database.Connected then
+  {$IFDEF WITH_INDY}
+  actRegistration.Visible := False;
+  {$ELSE}
+  if (IBLogin <> nil) and IBLogin.LoggedIn then
   begin
     actRegistration.Enabled := IBLogin.IsUserAdmin;
   end;
+  {$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actRecompileStatisticsExecute(Sender: TObject);
@@ -2374,6 +2396,11 @@ procedure TfrmGedeminMain.actDatabasesListUpdate(Sender: TObject);
 begin
   actDatabasesList.Enabled := (gd_DatabasesList <> nil)
     and (IBLogin <> nil) and IBLogin.IsUserAdmin;
+end;
+
+procedure TfrmGedeminMain.WMRelogin(var Msg: TMessage);
+begin
+  if IBLogin <> nil then IBLogin.Relogin;
 end;
 
 end.
