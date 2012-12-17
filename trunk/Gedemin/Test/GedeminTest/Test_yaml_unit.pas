@@ -264,6 +264,14 @@ begin
       Check(Scanner.Scalar = 'x');
       Check(Scanner.Quoting = qPlain);
 
+      Check(Scanner.GetNextToken = tDocumentStart);
+
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tSequenceStart);
+      Check(Scanner.GetNextToken = tSequenceStart);
+
       Check(Scanner.GetNextToken = tDocumentEnd);
       Check(Scanner.GetNextToken = tStreamEnd);
     finally
@@ -351,6 +359,7 @@ begin
     Check(((Parser.YAMLStream[0] as TYAMLDocument)[0] as TyamlString).AsString = 'aaa "bbb');
     Check(((Parser.YAMLStream[1] as TYAMLDocument)[0] as TyamlString).AsString = 'aaa ''bbb');
     Check(((Parser.YAMLStream[2] as TYAMLDocument)[0] as TyamlInteger).AsInteger = 123);
+    Check(((Parser.YAMLStream[8] as TYAMLDocument)[0] as TyamlSequence)[1] is TyamlSequence);
   finally
     Parser.Free;
     FS.Free;

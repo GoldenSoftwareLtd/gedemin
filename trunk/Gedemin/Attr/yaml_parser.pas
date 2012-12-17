@@ -830,9 +830,13 @@ begin
   while (Scanner.Token = tSequenceStart) and (Scanner.Indent = I) do
   begin
     Scanner.GetNextToken;
-    N := ExtractNode(Scanner);
-    if N <> nil then
-      Add(N);
+    if (Scanner.Indent = I) then
+      Add(TyamlNull.Create)
+    else begin
+      N := ExtractNode(Scanner);
+      if N <> nil then
+        Add(N);
+    end;    
   end;
 end;
 

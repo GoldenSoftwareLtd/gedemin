@@ -15,6 +15,7 @@ object gd_dlgAbout: Tgd_dlgAbout
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object pc: TPageControl
