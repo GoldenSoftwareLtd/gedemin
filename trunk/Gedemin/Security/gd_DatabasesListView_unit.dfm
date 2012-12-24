@@ -12,6 +12,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
@@ -175,6 +176,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   end
   object al: TActionList
     Images = dmImages.il16x16
+    OnUpdate = alUpdate
     Left = 32
     Top = 232
     object actOk: TAction

@@ -8,7 +8,7 @@ AppPublisherURL=http://www.gsbelarus.com
 AppSupportURL=http://www.gsbelarus.com
 AppUpdatesURL=http://www.gsbelarus.com
 AppSupportPhone=+375-17-2561759
-DefaultDirName={pf}\Golden Software\Gedemin 2.5\Local
+DefaultDirName={sd}\Golden Software\Gedemin 2.5\Local
 DefaultGroupName=Golden Software Гедымин 2.5
 DisableProgramGroupPage=yes
 OutputDir=c:\temp\setup
@@ -27,11 +27,13 @@ Name: "english"; MessagesFile: "compiler:default.isl"
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 
 [Tasks]
+Name: "databasefile"; Description: "Установить файл базы данных"; GroupDescription: "База данных:"; Flags:
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags:
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
 Source: "gedemin.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "gedemin_upd.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gedemin.exe.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "fbembed.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; Source: "gedemin.jpg"; DestDir: "{app}"; Flags: ignoreversion
@@ -76,8 +78,17 @@ Name: "{group}\{cm:UninstallProgram,{code:GetSafeAppName}}"; Filename: "{uninsta
 ;Root: HKCU; SubKey: "Software\Golden Software"; Flags: uninsdeletekeyifempty
 
 [Run]
-FileName: "{app}\gedemin.exe"; Parameters: "/r EMBEDDED ""{app}\Database\{code:GetBKFileName}"" ""{app}\Database\{code:GetDBFileName}"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden
+FileName: "{app}\gedemin.exe"; Parameters: "/r EMBEDDED ""{app}\Database\{code:GetBKFileName}"" ""{app}\Database\{code:GetDBFileName}"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden; Tasks: databasefile
 Filename: "{app}\gedemin.exe"; Description: "{cm:LaunchProgram,{code:GetSafeAppName}}"; WorkingDir: {app}; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+Type: files; Name: "{app}\gedemin.ini"
+Type: files; Name: "{app}\*.bak"
+Type: files; Name: "{app}\*.new"
+Type: filesandordirs; Name: "{app}\udf"
+Type: filesandordirs; Name: "{app}\Intl"
+Type: filesandordirs; Name: "{app}\Help"
+Type: dirifempty; Name: "{app}\Database"
 
 [Code]
 

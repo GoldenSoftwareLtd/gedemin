@@ -893,8 +893,14 @@ begin
   begin
     if Exists and (not LocalExists) then
     begin
-      DownloadFile(FullName + '.new');
-      ACmdList.Add('CF ' + FullName);
+      if AnsiCompareText(Name, Gedemin_Updater) = 0 then
+      begin
+        DownloadFile(FullName);
+      end else
+      begin
+        DownloadFile(FullName + '.new');
+        ACmdList.Add('CF ' + FullName);
+      end;  
     end else if flRemove in Flags then
       ACmdList.Add('RF ' + FullName)
     else if Exists and LocalExists and (not (flNeverOverwrite in Flags)) then

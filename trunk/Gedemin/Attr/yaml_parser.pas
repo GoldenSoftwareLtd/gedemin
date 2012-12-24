@@ -830,7 +830,7 @@ begin
   while (Scanner.Token = tSequenceStart) and (Scanner.Indent = I) do
   begin
     Scanner.GetNextToken;
-    if (Scanner.Indent = I) then
+    if (Scanner.Indent = I) and (Scanner.Token = tSequenceStart) then
       Add(TyamlNull.Create)
     else begin
       N := ExtractNode(Scanner);
