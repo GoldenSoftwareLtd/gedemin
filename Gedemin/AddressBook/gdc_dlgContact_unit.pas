@@ -123,9 +123,6 @@ type
 
   protected
     function NeedVisibleTabSheet(const ARelationName: String): Boolean; override;  
-
-  public
-    procedure BeforePost; override;  
   end;
 
 var
@@ -288,49 +285,6 @@ procedure Tgdc_dlgContact.actMakeEmployeeUpdate(Sender: TObject);
 begin
   actMakeEmployee.Enabled := Assigned(gdcObject)
     and (gdcObject.State = dsEdit);
-end;
-
-procedure Tgdc_dlgContact.BeforePost;
-  {@UNFOLD MACRO INH_CRFORM_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_CRFORM_WITHOUTPARAMS('TGDC_DLGCONTACT', 'BEFOREPOST', KEYBEFOREPOST)}
-  {M}  try
-  {M}    if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDC_DLGCONTACT', KEYBEFOREPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYBEFOREPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDC_DLGCONTACT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDC_DLGCONTACT',
-  {M}          'BEFOREPOST', KEYBEFOREPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDC_DLGCONTACT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  inherited;
-
-  if Assigned(gdcObject) and (gdcObject.FieldByName('nickname').AsString = '') then
-  begin
-    gdcObject.FieldByName('nickname').AsString :=
-      gdcObject.FieldByName('name').AsString;
-  end;
-
-  {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGCONTACT', 'BEFOREPOST', KEYBEFOREPOST)}
-  {M}finally
-  {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
-  {M}    ClearMacrosStack('TGDC_DLGCONTACT', 'BEFOREPOST', KEYBEFOREPOST);
-  {M}end;
-  {END MACRO}
 end;
 
 initialization

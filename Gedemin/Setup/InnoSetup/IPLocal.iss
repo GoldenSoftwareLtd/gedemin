@@ -7,7 +7,7 @@ AppName=Гедымин: Индивидуальный предприниматель
 AppVerName=Гедымин: Индивидуальный предприниматель
 
 [Files]
-Source: "Database\ip.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall
+Source: "Database\ip.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
 
 [Code]
 function GetSafeAppName(Param: String): String;

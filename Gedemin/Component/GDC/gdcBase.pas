@@ -967,9 +967,7 @@ type
     procedure DoBeforeDelete; override;
     procedure DoBeforeEdit; override;
     procedure DoBeforeInsert; override;
-//    procedure DoBeforeOpen; override;
     procedure DoBeforePost; override;
-//    procedure DoOnNewRecord; override;
     function CallDoFieldChange(Field: TField): Boolean; virtual;
     procedure DoFieldChange(Field: TField); virtual;
 
@@ -9621,7 +9619,7 @@ begin
     (not CacheList.Find(RUID, Result)) then
   begin
     R := StrToRUID(RUID);
-    Result := GetIDByRUID(R.XID, R.DBID);
+    Result := GetIDByRUID(R.XID, R.DBID, Tr);
   end;
 end;
 

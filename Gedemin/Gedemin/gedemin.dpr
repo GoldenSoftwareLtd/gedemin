@@ -376,10 +376,20 @@ function RestoreDatabase: Boolean;
 var
   IBRestore: TIBRestoreService;
 begin
-  Result := False;
+  if gd_CmdLineParams.RestoreServer = '' then
+    Result := False
+  else begin
+    Result := True;
 
-  if gd_CmdLineParams.RestoreServer > '' then
-  begin
+    if AnsiCompareText(gd_CmdLineParams.RestoreServer, 'EMBEDDED') = 0 then
+    begin
+      if FileExists(gd_CmdLineParams.RestoreDBFile)
+        or (not (FileExists(gd_CmdLineParams.RestoreBKFile))) then
+      begin
+        exit;
+      end;
+    end;
+
     IBRestore := TIBRestoreService.Create(nil);
     try
       if AnsiCompareText(gd_CmdLineParams.RestoreServer, 'EMBEDDED') = 0 then
@@ -428,8 +438,6 @@ begin
     finally
       IBRestore.Free;
     end;
-
-    Result := True;
   end;
 end;
 

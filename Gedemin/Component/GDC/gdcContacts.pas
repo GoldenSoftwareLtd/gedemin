@@ -252,14 +252,14 @@ type
 
     procedure CustomInsert(Buff: Pointer); override;
     procedure CustomModify(Buff: Pointer); override;
+    procedure DoBeforePost; override;
 
-    function CreateDialogForm: TCreateableForm; override;
     function GetNotCopyField: String; override;
 
   public
     procedure _DoOnNewRecord; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-    //
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class procedure GetClassImage(const ASizeX, ASizeY: Integer; AGraphic: TGraphic); override;
   end;
 
@@ -1948,60 +1948,6 @@ begin
   {END MACRO}
 end;
 
-function TgdcContact.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCCONTACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCCONTACT', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCONTACT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCONTACT',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCONTACT' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-
-  Result := Tgdc_dlgContact.CreateSubType(ParentForm, SubType);
-
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCONTACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCCONTACT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcContact._DoOnNewRecord;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -2054,6 +2000,77 @@ begin
     dmImages.il16x16.GetBitmap(148, Graphics.TBitmap(AGraphic))
   else
     inherited;
+end;
+
+class function TgdcContact.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgContact';
+end;
+
+procedure TgdcContact.DoBeforePost;
+var
+  TempS: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCCONTACT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCCONTACT', KEYDOBEFOREPOST);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOBEFOREPOST]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCCONTACT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCCONTACT',
+  {M}          'DOBEFOREPOST', KEYDOBEFOREPOST, Params, LResult) then exit;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCCONTACT' then
+  {M}        begin
+  {M}          Inherited;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  inherited;
+
+  if (FieldByName('nickname').AsString = '')
+    and (FieldByName('surname').AsString > '') then
+  begin
+    Temps := AnsiUpperCase(System.Copy(FieldByName('surname').AsString, 1, 1))
+      + System.Copy(FieldByName('surname').AsString, 2, 1024);
+
+    if FieldByName('firstname').AsString > '' then
+    begin
+      TempS := TempS + ' '
+        + AnsiUpperCase(System.Copy(FieldByName('firstname').AsString, 1, 1))
+        + '.';
+
+      if FieldByName('middlename').AsString > '' then
+      begin
+        TempS := TempS + ' '
+          + AnsiUpperCase(System.Copy(FieldByName('middlename').AsString, 1, 1))
+          + '.';
+      end;
+    end;
+
+    FieldByName('nickname').AsString := System.Copy(TempS, 1, FieldByName('nickname').Size);
+  end;
+
+  if FieldByName('name').AsString = '' then
+    FieldByName('name').AsString := FieldByName('nickname').AsString;
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCCONTACT', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCCONTACT', 'DOBEFOREPOST', KEYDOBEFOREPOST);
+  {M}  end;
+  {END MACRO}
 end;
 
 { TgdcCompany }
@@ -2446,62 +2463,27 @@ end;
 
 class procedure TgdcOurCompany.SaveOurCompany(const ACompanyKey: Integer);
 var
-  IBSQL: TIBSQL;
+  q: TIBSQL;
   Tr: TIBTransaction;
 begin
   Tr := TIBTransaction.Create(nil);
-  IBSQL := TIBSQL.Create(nil);
+  q := TIBSQL.Create(nil);
   try
     Tr.DefaultDatabase := gdcBaseManager.Database;
-
-    IBSQL.DataBase := gdcBaseManager.DataBase;
-    IBSQL.Transaction := Tr;
-
+    q.Transaction := Tr;
     Tr.StartTransaction;
-
-    IBSQL.SQL.Text := 'SELECT companykey FROM gd_userCompany WHERE userkey = ' +
-      IntToStr(IBLogin.UserKey);
-    IBSQL.ExecQuery;
-
-    if IBSQL.RecordCount > 0 then
-    begin
-      if IBSQL.Fields[0].AsInteger <> ACompanyKey then
-      begin
-        IBSQL.Close;
-        IBSQL.SQL.Text := Format(
-          'UPDATE gd_userCompany SET companykey = %d WHERE userkey = %d',
-          [ACompanyKey, IBLogin.UserKey]);
-        IBSQL.ExecQuery;
-      end;  
-    end
-    else
-    begin
-      IBSQL.Close;
-      IBSQL.SQL.Text := Format(
-        'INSERT INTO gd_userCompany(userkey, companykey) VALUES (%d, %d)',
-        [IBLogin.UserKey, ACompanyKey]);
-      IBSQL.ExecQuery;
-    end;
-
-    IBSQL.Close;
+    q.SQL.Text :=
+      'UPDATE OR INSERT INTO gd_usercompany (userkey, companykey) ' +
+      'VALUES (:uk, :ck) MATCHING (userkey)';
+    q.ParamByName('uk').AsInteger := IBLogin.UserKey;
+    q.ParamByName('ck').AsInteger := ACompanyKey;
+    q.ExecQuery;
     Tr.Commit;
   finally
-    IBSQL.Free;
+    q.Free;
     Tr.Free;
   end;
 end;
-
-{procedure TgdcOurCompany.ChooseElement(F: TgdcFindObject);
-begin
-  FAddCompany := False;
-  Insert;
-  FieldByName('name').AsString := F.Values.Values['NAME'];
-  FieldByName('companykey').AsString := F.ID;
-  FieldByName('id').AsString := F.ID;
-  Post;
-  FAddCompany := True;
-end;}
-
 
 function TgdcOurCompany.GetFromClause(const ARefresh: Boolean = False): String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}

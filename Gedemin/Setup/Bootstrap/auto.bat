@@ -79,6 +79,10 @@ echo *************************************************
 
 @copy ..\..\exe\gedemin.exe %install_source_path%\gedemin.exe /Y
 if not errorlevel 0 goto Error
+@copy ..\..\exe\gedemin_upd.exe %install_source_path%\gedemin_upd.exe /Y
+if not errorlevel 0 goto Error
+@copy ..\..\exe\udf\gudf.dll %install_source_path%\udf\gudf.dll /Y
+if not errorlevel 0 goto Error
 
 echo *************************************************
 echo **                                             **

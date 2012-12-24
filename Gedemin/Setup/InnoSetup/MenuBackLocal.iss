@@ -7,7 +7,7 @@ AppName=Гедымин: Меню бэк-офис
 AppVerName=Гедымин: Меню бэк-офис
 
 [Files]
-Source: "Database\menuback.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall
+Source: "Database\menuback.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
 
 [Code]
 function GetSafeAppName(Param: String): String;

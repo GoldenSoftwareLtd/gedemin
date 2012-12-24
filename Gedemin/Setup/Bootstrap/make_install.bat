@@ -134,6 +134,23 @@ del %5 > nul
 del ftp.txt > nul
 if not errorlevel 0 goto Error
 
+echo *************************************************
+echo **                                             **
+echo **  make_install:                              **
+echo **  Делаем переносимую инстоляцию              **
+echo **                                             **
+echo *************************************************
+
+rem set arc_command="c:\program files\winrar\winrar.exe" a -ibck %arc_name%
+
+rem if exist %arc_name% del %arc_name% 
+rem %arc_command% gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest
+rem %arc_command% ib_util.dll icudt30.dll icuin30.dll icuuc30.dll
+rem %arc_command% fbembed.dll firebird.msg
+rem %arc_command% microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll
+rem %arc_command% gedemin_upd.exe
+rem %arc_command% udf\gudf.dll intl\fbintl.conf intl\fbintl.dll
+
 goto Exit
 
 :Error

@@ -61,6 +61,8 @@ type
     procedure actRestoreExecute(Sender: TObject);
     procedure actCopyUpdate(Sender: TObject);
     procedure actCopyExecute(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure alUpdate(Action: TBasicAction; var Handled: Boolean);
 
   private
     FChosen: Tgd_DatabaseItem;
@@ -82,7 +84,7 @@ implementation
 {$R *.DFM}
 
 uses
-  jclStrings, gd_frmBackup_unit, gd_frmRestore_unit;
+  jclStrings, gd_createable_form, gd_frmBackup_unit, gd_frmRestore_unit;
 
 procedure Tgd_DatabasesListView.actOkExecute(Sender: TObject);
 begin
@@ -250,7 +252,7 @@ var
   DI: Tgd_DatabaseItem;
   BF: Tgd_frmBackup;
 begin
-  BF := Tgd_frmBackup.CreateAndAssign(Application) as Tgd_frmBackup;
+  BF := Tgd_frmBackup.CreateAndAssign(Self) as Tgd_frmBackup;
   if lv.Selected <> nil then
   begin
     DI := gd_DatabasesList.FindByName(lv.Selected.Caption);
@@ -268,7 +270,7 @@ var
   DI: Tgd_DatabaseItem;
   RF: Tgd_frmRestore;
 begin
-  RF := Tgd_frmRestore.CreateAndAssign(Application) as Tgd_frmRestore;
+  RF := Tgd_frmRestore.CreateAndAssign(Self) as Tgd_frmRestore;
   if lv.Selected <> nil then
   begin
     DI := gd_DatabasesList.FindByName(lv.Selected.Caption);
@@ -322,6 +324,33 @@ begin
   Result.SubItems.Clear;
   Result.SubItems.Add(DI.Server);
   Result.SubItems.Add(DI.FileName);
+end;
+
+procedure Tgd_DatabasesListView.FormCloseQuery(Sender: TObject;
+  var CanClose: Boolean);
+begin
+  // если архивирование или восстановление базы в самом
+  // разгаре, то выходить из программы нельзя
+  if (TCreateableForm.FormAssigned(gd_frmBackup) and gd_frmBackup.ServiceActive) or
+    (TCreateableForm.FormAssigned(gd_frmRestore) and gd_frmRestore.ServiceActive) then
+  begin
+    CanClose := False;
+    exit;
+  end;
+end;
+
+procedure Tgd_DatabasesListView.alUpdate(Action: TBasicAction;
+  var Handled: Boolean);
+begin
+  if (TCreateableForm.FormAssigned(gd_frmBackup) and gd_frmBackup.ServiceActive) or
+    (TCreateableForm.FormAssigned(gd_frmRestore) and gd_frmRestore.ServiceActive) then
+  begin
+    if Action is TAction then
+    begin
+      TAction(Action).Enabled := False;
+      Handled := True;
+    end;
+  end;
 end;
 
 end.

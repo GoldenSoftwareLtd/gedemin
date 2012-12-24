@@ -16,16 +16,16 @@ inherited gdc_dlgContact: Tgdc_dlgContact
     Left = 82
     Top = 344
   end
+  inherited btnHelp: TButton
+    Left = 158
+    Top = 344
+  end
   inherited btnOK: TButton
     Left = 311
     Top = 344
   end
   inherited btnCancel: TButton
     Left = 388
-    Top = 344
-  end
-  inherited btnHelp: TButton
-    Left = 158
     Top = 344
   end
   inherited pgcMain: TPageControl
@@ -682,7 +682,7 @@ inherited gdc_dlgContact: Tgdc_dlgContact
         ListField = 'name'
         KeyField = 'ID'
         gdClassName = 'TgdcPlace'
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
@@ -787,7 +787,7 @@ inherited gdc_dlgContact: Tgdc_dlgContact
         KeyField = 'ID'
         SortOrder = soAsc
         gdClassName = 'TgdcWgPosition'
-        ItemHeight = 13
+        ItemHeight = 0
         ParentShowHint = False
         ShowHint = True
         TabOrder = 4

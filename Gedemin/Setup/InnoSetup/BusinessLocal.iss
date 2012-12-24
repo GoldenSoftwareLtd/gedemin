@@ -7,7 +7,7 @@ AppName=Гедымин: Комплексная автоматизация
 AppVerName=Гедымин: Комплексная автоматизация
 
 [Files]
-Source: "Database\business.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall
+Source: "Database\business.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
 
 [Code]
 function GetSafeAppName(Param: String): String;

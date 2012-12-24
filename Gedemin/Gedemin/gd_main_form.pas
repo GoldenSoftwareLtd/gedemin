@@ -736,12 +736,19 @@ begin
 end;
 
 procedure TfrmGedeminMain.DoAfterChangeCompany;
+var
+  ShouldShowExplorer: Boolean;
 begin
-  if (IBLogin <> nil) and (IBLogin.CompanyKey < cstUserIDStart) then
+  {$IFNDEF DUNIT_TEST}
+  if (IBLogin <> nil)
+    and IBLogin.IsIBUserAdmin
+    and (IBLogin.CompanyKey < cstUserIDStart)
+    and (not gd_CmdLineParams.QuietMode)
+    and (gd_CmdLineParams.LoadSettingFileName = '') then
   begin
     if Assigned(gdSplash) then
       gdSplash.FreeSplash;
-      
+
     with Tgd_dlgInitialInfo.Create(nil) do
     try
       if ShowModal = mrOk then
@@ -753,6 +760,7 @@ begin
       Free;
     end;
   end;
+  {$ENDIF}
 
   //
   //  Загружаем рабочий стол
@@ -767,6 +775,8 @@ begin
     Tgdc_frmExplorer.CreateAndAssign(Application);
   end;
 
+  ShouldShowExplorer := True;
+
   DesktopManager.OnDesktopItemCreate := gsDesktopManagerDesktopItemCreate;
   DesktopManager.ReadDesktopNames;
   {$IFNDEF DUNIT_TEST}
@@ -779,6 +789,8 @@ begin
         gdSplash.ShowText(sLoadingDesktop);
       DesktopManager.ReadDesktopData(UserStorage.ReadString(st_dt_DesktopOptionsPath, st_dt_LoadOnStartup, ''));
       DesktopManager.LoadDesktop;
+      if DesktopManager.DesktopItems.Count > 0 then
+        ShouldShowExplorer := False;
     end;
   end;
   {$ENDIF}
@@ -802,6 +814,13 @@ begin
     begin
       gsiblkupCompany.CurrentKeyInt := IBLogin.CompanyKey;
     end;
+  end;
+
+  if ShouldShowExplorer
+    and (gdc_frmExplorer <> nil)
+    and (not gdc_frmExplorer.Visible) then
+  begin
+    gdc_frmExplorer.Show;
   end;
 
   _IBSQLCache.Enabled := True;
