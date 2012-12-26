@@ -8,7 +8,7 @@ AppPublisherURL=http://www.gsbelarus.com
 AppSupportURL=http://www.gsbelarus.com
 AppUpdatesURL=http://www.gsbelarus.com
 AppSupportPhone=+375-17-2561759
-DefaultDirName={sd}\Golden Software\Gedemin 2.5\Local
+DefaultDirName={sd}\Golden Software\Gedemin
 DefaultGroupName=Golden Software Гедымин 2.5
 DisableProgramGroupPage=yes
 OutputDir=c:\temp\setup
@@ -83,6 +83,7 @@ Filename: "{app}\gedemin.exe"; Description: "{cm:LaunchProgram,{code:GetSafeAppN
 
 [UninstallDelete]
 Type: files; Name: "{app}\gedemin.ini"
+Type: files; Name: "{app}\gedemin_upd.ini"
 Type: files; Name: "{app}\*.bak"
 Type: files; Name: "{app}\*.new"
 Type: filesandordirs; Name: "{app}\udf"

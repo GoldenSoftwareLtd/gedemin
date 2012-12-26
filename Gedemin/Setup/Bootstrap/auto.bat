@@ -92,6 +92,9 @@ echo **                                             **
 echo *************************************************
 
 call make_install.bat "%setting_source_path%\Общие\Общие данные.gsf"                                        devel     complex.jpg devellocal    devel_setup.rar "%install_target_path%\Разработчик\setup.exe"         %send_ftp%
+
+goto exit
+
 call make_install.bat "%setting_source_path%\Банк\Банк и касса.gsf"                                         plat      doc.jpg     platlocal     plat_setup.rar  "%install_target_path%\Платежные документы\setup.exe" %send_ftp% 
 call make_install.bat "%setting_source_path%\Общие\Комплексная_автоматизация.gsf"                           business  complex.jpg businesslocal compl_setup.rar "%install_target_path%\Комплексная автоматизация\setup.exe" %send_ftp%
 call make_install.bat "%setting_source_path%\Предприниматель\Подоходный\Предприниматель_подоходный.gsf"     ip        ip.jpg      iplocal       ip_setup.rar    "%install_target_path%\Предприниматель\setup.exe" %send_ftp%

@@ -613,8 +613,44 @@ end;
 
 function Tgd_DatabasesList.LoginDlg(out WithoutConnection, SingleUserMode: Boolean;
   out DI: Tgd_DatabaseItem): Boolean;
+var
+  Path: String;
+  SL: TStringList;
+  I: Integer;
 begin
   DI := FindSelected;
+
+  if DI = nil then
+  begin
+    Path := ExtractFilePath(Application.ExeName) + 'Database';
+    if DirectoryExists(Path) then
+    begin
+      SL := TStringList.Create;
+      try
+        if BuildFileList(IncludeTrailingBackslash(Path) + '*.fdb', faAnyFile, SL) then
+        begin
+          for I := 0 to SL.Count - 1 do
+          begin
+            DI := Add as Tgd_DatabaseItem;
+            DI.FileName := 'Database\' + SL[I];
+            if AnsiCompareText(SL[I], 'devel.fdb') = 0 then
+              DI.Name := 'Разработчик'
+            else if AnsiCompareText(SL[I], 'plat.fdb') = 0 then
+              DI.Name := 'Платежные документы'
+            else if AnsiCompareText(SL[I], 'business.fdb') = 0 then
+              DI.Name := 'Комплексная автоматизация'
+            else if AnsiCompareText(SL[I], 'ip.fdb') = 0 then
+              DI.Name := 'Индивидуальный предприниматель'
+            else
+              DI.Name := DI.FileName;
+            DI.Selected := True;  
+          end;
+        end;
+      finally
+        SL.Free;
+      end;
+    end;
+  end;
 
   if (DI = nil) and ShowViewForm(True) then
     DI := FindSelected;
