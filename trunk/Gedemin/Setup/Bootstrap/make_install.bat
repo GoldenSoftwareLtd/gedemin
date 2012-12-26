@@ -88,7 +88,7 @@ del "%database_path%\%2.bk" > nul
 "%fb_path%\gbak" -b "%server_name%:%database_path%\%2.fdb" "%database_path%\%2.bk" -user SYSDBA -pas masterkey
 if not errorlevel 0 goto Error
 
-del "%database_path%\%2.fdb" > nul
+rem del "%database_path%\%2.fdb" > nul
 if not errorlevel 0 goto Error
 
 echo *************************************************
@@ -141,15 +141,36 @@ echo **  Делаем переносимую инстоляцию              **
 echo **                                             **
 echo *************************************************
 
-rem set arc_command="c:\program files\winrar\winrar.exe" a -ibck %arc_name%
+xcopy %install_source_path%\*.* Gedemin /Y /I
+xcopy %install_source_path%\udf\*.* Gedemin\UDF /Y /I
+xcopy %install_source_path%\intl\*.* Gedemin\Intl /Y /I
+xcopy %install_source_path%\help\*.* Gedemin\Help /Y /I
 
-rem if exist %arc_name% del %arc_name% 
-rem %arc_command% gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest
-rem %arc_command% ib_util.dll icudt30.dll icuin30.dll icuuc30.dll
-rem %arc_command% fbembed.dll firebird.msg
-rem %arc_command% microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll
-rem %arc_command% gedemin_upd.exe
-rem %arc_command% udf\gudf.dll intl\fbintl.conf intl\fbintl.dll
+md Gedemin\Database
+
+copy %install_source_path%\database\%2.fdb Gedemin\Database\%2.fdb /Y 
+
+pause
+
+del databases.ini > nul
+del gedemin.ini > nul
+del gedemin.jpg > nul
+
+"c:\program files\winrar\winrar.exe" a -ibck %2_portable.rar Gedemin
+
+if exist ftp.txt del ftp.txt
+copy ftp_commands.txt ftp.txt
+echo send %2_portable.rar %2_portable.rar >> ftp.txt
+echo quit >> ftp.txt
+
+ftp -s:ftp.txt
+
+if not errorlevel 0 goto Error
+
+del %2_portable.rar > nul
+del ftp.txt > nul
+rd Gedemin /s /q
+if not errorlevel 0 goto Error
 
 goto Exit
 
