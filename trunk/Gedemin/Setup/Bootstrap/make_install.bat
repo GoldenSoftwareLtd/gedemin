@@ -150,11 +150,9 @@ md Gedemin\Database
 
 copy %install_source_path%\database\%2.fdb Gedemin\Database\%2.fdb /Y 
 
-pause
-
-del databases.ini > nul
-del gedemin.ini > nul
-del gedemin.jpg > nul
+del Gedemin\databases.ini > nul
+del Gedemin\gedemin.ini > nul
+del Gedemin\gedemin.jpg > nul
 
 "c:\program files\winrar\winrar.exe" a -ibck %2_portable.rar Gedemin
 
