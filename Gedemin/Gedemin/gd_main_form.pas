@@ -738,6 +738,7 @@ end;
 procedure TfrmGedeminMain.DoAfterChangeCompany;
 var
   ShouldShowExplorer: Boolean;
+  q: TIBSQL;
 begin
   {$IFNDEF DUNIT_TEST}
   if (IBLogin <> nil)
@@ -746,18 +747,30 @@ begin
     and (not gd_CmdLineParams.QuietMode)
     and (gd_CmdLineParams.LoadSettingFileName = '') then
   begin
-    if Assigned(gdSplash) then
-      gdSplash.FreeSplash;
-
-    with Tgd_dlgInitialInfo.Create(nil) do
+    q := TIBSQL.Create(nil);
     try
-      if ShowModal = mrOk then
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT COUNT(*) FROM gd_ourcompany';
+      q.ExecQuery;
+
+      if q.EOF or (q.Fields[0].AsInteger <= 1) then
       begin
-        PostMessage(Self.Handle, WM_GD_RELOGIN, 0, 0);
-        exit;
-      end;
+        if Assigned(gdSplash) then
+          gdSplash.FreeSplash;
+
+        with Tgd_dlgInitialInfo.Create(nil) do
+        try
+          if ShowModal = mrOk then
+          begin
+            PostMessage(Self.Handle, WM_GD_RELOGIN, 0, 0);
+            exit;
+          end;
+        finally
+          Free;
+        end;
+      end;  
     finally
-      Free;
+      q.Free;
     end;
   end;
   {$ENDIF}

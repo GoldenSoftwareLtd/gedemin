@@ -114,9 +114,6 @@ end;
 
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
   const AToken, AFunctionName: String);
-var
-  Handler: TgdHttpHandler;
-  FunctionKey: Integer;
 
   function GetFunctionKey: Integer;
   var
@@ -158,23 +155,43 @@ var
     end;
   end;
 
+var
+  HandlerCounter: Integer;
+  Found: Boolean;
+  Handler: TgdHttpHandler;
+  FunctionKey: Integer;
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
   FunctionKey := GetFunctionKey;
   if FunctionKey > 0 then
   begin
-    Handler := TgdHttpHandler.Create;
-    Handler.Component := AComponent;
-    Handler.Token := AToken;
-    Handler.FunctionKey := FunctionKey;
+    Found := False;
 
-    FHttpGetHandlerList.Add(Handler);
+    for HandlerCounter := 0 to FHttpGetHandlerList.Count - 1 do
+    begin
+      Handler := FHttpGetHandlerList[HandlerCounter] as TgdHttpHandler;
+      if AnsiCompareText(Handler.Token, AToken) = 0 then
+      begin
+        Handler.FunctionKey := FunctionKey;
+        Found := True;
+      end;
+    end;
 
-    if Assigned(AComponent) then
-      AComponent.FreeNotification(Self);
+    if not Found then
+    begin
+      Handler := TgdHttpHandler.Create;
+      Handler.Component := AComponent;
+      Handler.Token := AToken;
+      Handler.FunctionKey := FunctionKey;
 
-    ActivateServer;
+      FHttpGetHandlerList.Add(Handler);
+
+      if Assigned(AComponent) then
+        AComponent.FreeNotification(Self);
+
+      ActivateServer;
+    end;
   end;
 end;
 
@@ -229,6 +246,8 @@ begin
           HandlerFunction := glbFunctionList.FindFunction(Handler.FunctionKey);
           if Assigned(HandlerFunction) then
           begin
+            Log(FRequestInfo.RemoteIP, 'TOKN', ['token'], [FRequestInfo.Params.Values[PARAM_TOKEN]]);
+            
             // Формирование списка параметров
             //  1 - компонент к которому привязан обработчик
             //  2 - параметры GET запроса
@@ -242,11 +261,26 @@ begin
 
             ScriptFactory.ExecuteFunction(HandlerFunction, LParams, LResult);
             FResponseInfo.ResponseNo := Integer(GetVarParam(LParams[2]));
-            FResponseInfo.ContentType := 'text/xml; charset=Windows-1251';
             FResponseInfo.ContentText := String(GetVarParam(LParams[3]));
+
+            if Copy(FResponseInfo.ContentText, 1, 5) = '<?xml' then
+              FResponseInfo.ContentType := 'text/xml; charset=Windows-1251'
+            else if Copy(FResponseInfo.ContentText, 1, 14) = '<!DOCTYPE HTML' then
+              FResponseInfo.ContentType := 'text/html; charset=Windows-1251'
+            else
+              FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
 
             Processed := True;
           end;
+        end
+        else if RequestToken > '' then
+        begin
+          FResponseInfo.ResponseNo := 200;
+          FResponseInfo.ContentType := 'text/html;';
+          FResponseInfo.ContentText :=
+            '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
+            '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>Unregistered token.</BODY></HTML>';
+          Processed := True;
         end;
       end;
 

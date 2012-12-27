@@ -312,8 +312,6 @@ echo **                                             **
 echo **                                             **
 echo *************************************************
 
-rem xcopy gedemin.exe g:\common\gedemin\gedemin.exe /Y
-
 for %%F in (gedemin.exe midas.dll midas.sxs.manifest gedemin.exe.manifest ib_util.dll) do xcopy %%F \\vienna\web\%target_dir% /Y
 for %%F in (icudt30.dll icuin30.dll icuuc30.dll fbembed.dll firebird.msg) do xcopy %%F \\vienna\web\%target_dir% /Y
 for %%F in (microsoft.vc80.crt.manifest msvcp80.dll msvcr80.dll gedemin_upd.exe) do xcopy %%F \\vienna\web\%target_dir% /Y

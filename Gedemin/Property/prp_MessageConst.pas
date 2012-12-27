@@ -183,7 +183,7 @@ const
   VBCLASSES = 'VB классы';
 
 const
-  VB_MACROS_TEMPLATE = 'Option Explicit'#13#10'sub %s(OwnerForm)'#13#10'end sub';
+  VB_MACROS_TEMPLATE = 'Option Explicit'#13#10'Sub %s(OwnerForm)'#13#10'End Sub';
   VB_OWNERFORM = 'OWNERFORM';
 
   VB_PARAMFUNCTION_TEMPLATE =
