@@ -578,7 +578,6 @@ object gd_dlgInitialInfo: Tgd_dlgInitialInfo
       Top = 24
       Width = 241
       Height = 21
-      Color = 10526975
       TabOrder = 0
     end
     object edBankCode: TEdit
@@ -586,7 +585,6 @@ object gd_dlgInitialInfo: Tgd_dlgInitialInfo
       Top = 48
       Width = 241
       Height = 21
-      Color = 10526975
       TabOrder = 1
     end
     object edAccount: TEdit

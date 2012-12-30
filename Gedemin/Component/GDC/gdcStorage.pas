@@ -84,7 +84,7 @@ type
 
     function FindStorageItem(out SI: TgsStorageItem): Boolean; overload;
     function FindStorageItem(const AnID: Integer; out SI: TgsStorageItem): Boolean; overload;
-    function GetPath: String;
+    function GetPath(const AnIncludeSelf: Boolean = True): String; override;
   end;
 
   TgdcStorageFolder = class(TgdcStorage)
@@ -462,48 +462,14 @@ begin
   {END MACRO}
 end;
 
-function TgdcStorage.GetPath: String;
+function TgdcStorage.GetPath(const AnIncludeSelf: Boolean = True): String;
 var
   SI: TgsStorageItem;
-  q: TIBSQL;
 begin
   if FindStorageItem(SI) then
     Result := SI.Path
-  else begin
-    q := TIBSQL.Create(nil);
-    try
-      if ReadTransaction.InTransaction then
-        q.Transaction := ReadTransaction
-      else
-        q.Transaction := gdcBaseManager.ReadTransaction;
-
-      q.SQL.Text :=
-        'WITH RECURSIVE ' +
-        '  st AS ( ' +
-        '    SELECT id, CAST('''' AS varchar(8192)) AS path ' +
-        '      FROM gd_storage_data WHERE parent IS NULL ' +
-        '    UNION ALL ' +
-        '    SELECT s.id, h.path || ''\'' || s.name ' +
-        '      FROM gd_storage_data s JOIN st h ON ' +
-        '        s.parent = h.id ' +
-        '  ) ' +
-        'SELECT ' +
-        '  s.id, iif(s.path = '''', ''\'', s.path) AS path ' +
-        'FROM ' +
-        '  st s ' +
-        'WHERE s.id = :ID ';
-      q.ParamByName('id').AsInteger := ID;
-      q.ExecQuery;
-
-      if q.EOF then
-        Result := ''
-      else
-        Result := q.FieldByName('path').AsString;
-
-    finally
-      q.Free;
-    end;
-  end;
+  else
+    Result := inherited GetPath(AnIncludeSelf);
 end;
 
 procedure TgdcStorage.DoBeforeEdit;
