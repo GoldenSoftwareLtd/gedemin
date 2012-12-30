@@ -53,7 +53,6 @@ type
     procedure InsertChildren;
 
     function CreateChildrenDialog: Boolean; overload; virtual;
-    { TODO : а передавать тип с подтипом? }
     function CreateChildrenDialog(C: CgdcBase): Boolean; overload; virtual;
 
     // функция создает и возвращает объект, на который ссылается
@@ -62,15 +61,15 @@ type
 
     procedure Post; override;
 
-    //
-    //function GetCopyFieldName: String; override;
-
     // указывается список полей. для всех записей
     // которые являются детьми по отношению к текущей записи
     // и для всех их детей и т.д. значения указанных полей
     // устанавливаются как у родительской записи.
     // поля разделяются точкой с запятой.
     procedure Propagate(const AFields: String; const AnOnlyFirstLevel: Boolean = False);
+
+    //
+    function GetPath(const AnIncludeSelf: Boolean = True): String; virtual;
 
     //
     class function GetParentField(const ASubType: TgdcSubType): String; virtual;
@@ -870,6 +869,46 @@ begin
   {M}      ClearMacrosStack2('TGDCTREE', 'GETFROMCLAUSE', KEYGETFROMCLAUSE);
   {M}  end;
   {END MACRO}
+end;
+
+function TgdcTree.GetPath(const AnIncludeSelf: Boolean): String;
+var
+  q: TIBSQL;
+begin
+  Assert(ReadTransaction <> nil);
+  Assert(ReadTransaction.InTransaction);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ReadTransaction;
+    q.SQL.Text :=
+      'EXECUTE BLOCK (ID INTEGER = :ID)'#13#10 +
+      '  RETURNS(Path VARCHAR(8192))'#13#10 +
+      'AS'#13#10 +
+      'BEGIN'#13#10 +
+      '  Path = '''';'#13#10 +
+      '  WHILE (:ID IS DISTINCT FROM NULL) DO'#13#10 +
+      '  BEGIN'#13#10 +
+      '    SELECT ' + GetListField(SubType) + ' || ''\'' || :Path, parent'#13#10 +
+      '    FROM ' + GetListTable(SubType) + #13#10 +
+      '    WHERE id = :ID'#13#10 +
+      '    INTO :Path, :ID;'#13#10 +
+      '  END'#13#10 +
+      '  Path = SUBSTRING(:Path FROM 1 FOR CHARACTER_LENGTH(:Path) - 1);'#13#10 +
+      '  SUSPEND;'#13#10 +
+      'END';
+    if AnIncludeSelf then
+      q.ParamByName('ID').AsInteger := ID
+    else
+      q.ParamByName('ID').AsInteger := Parent;
+    q.ExecQuery;
+    if q.EOF then
+      Result := ''
+    else
+      Result := q.Fields[0].AsString;  
+  finally
+    q.Free;
+  end;
 end;
 
 { TgdcLBRBTree }

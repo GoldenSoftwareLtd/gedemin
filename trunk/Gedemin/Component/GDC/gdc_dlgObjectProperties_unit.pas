@@ -1257,29 +1257,7 @@ begin
                       begin
                         if Obj is TgdcTree then
                         begin
-                          q.Close;
-                          q.SQL.Text :=
-                            'EXECUTE BLOCK (ID INTEGER = :ID)'#13#10 +
-                              'RETURNS(Path VARCHAR(8192))'#13#10 +
-                            'AS'#13#10 +
-                            'BEGIN'#13#10 +
-                              'Path = '''';'#13#10 +
-                              'WHILE (:ID IS DISTINCT FROM NULL) DO'#13#10 +
-                              'BEGIN'#13#10 +
-                                'SELECT '  + Obj.GetListField(Obj.SubType) + ' || ''\'' || :Path, parent'#13#10 +
-                                'FROM ' + Obj.GetListTable(Obj.SubType) + #13#10 +
-                                'WHERE id = :ID'#13#10 +
-                                'INTO :Path, :ID;'#13#10 +
-                              'END'#13#10 +
-                              'Path = SUBSTRING(:Path FROM 1'#13#10 +
-                                'FOR CHARACTER_LENGTH(:Path) - 1);'#13#10 +
-                              'SUSPEND;'#13#10 +
-                            'END';
-
-                          q.ParamByName('id').AsInteger := Obj.ID;  
-                          q.ExecQuery;
-                          if q.RecordCount > 0 then
-                            FN := q.FieldByname('path').AsString;
+                          FN := TgdcTree(Obj).GetPath
                         end else
                           FN := Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString;
                       end;
