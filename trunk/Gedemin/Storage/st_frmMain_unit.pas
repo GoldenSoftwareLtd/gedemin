@@ -191,7 +191,7 @@ implementation
 uses
   Storages,               gdcUser,           gd_security,
   st_dlgEditValue_unit,   dlgEditDFM_unit,   gdcStorage,
-  at_dlgToSetting_unit,   gsDesktopManager,  gd_directories_const,
+  at_AddToSetting,        gsDesktopManager,  gd_directories_const,
   gsStorage_CompPath,     IBSQL,             gdcBaseInterface,
   gdcStorage_Types
   {must be placed after Windows unit!}

@@ -20,15 +20,15 @@ object DataBaseCompare: TDataBaseCompare
   object pnMain: TPanel
     Left = 0
     Top = 0
-    Width = 1086
-    Height = 555
+    Width = 1078
+    Height = 545
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
     object pnTop: TPanel
       Left = 0
       Top = 0
-      Width = 1086
+      Width = 1078
       Height = 167
       Align = alTop
       BevelOuter = bvNone
@@ -313,15 +313,15 @@ object DataBaseCompare: TDataBaseCompare
     object pnBottom: TPanel
       Left = 0
       Top = 167
-      Width = 1086
-      Height = 388
+      Width = 1078
+      Height = 378
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
       object sbDBCompare: TStatusBar
         Left = 0
-        Top = 369
-        Width = 1086
+        Top = 359
+        Width = 1078
         Height = 19
         Panels = <
           item
@@ -338,8 +338,8 @@ object DataBaseCompare: TDataBaseCompare
       object SuperPageControl1: TSuperPageControl
         Left = 0
         Top = 0
-        Width = 1086
-        Height = 369
+        Width = 1078
+        Height = 359
         BorderStyle = bsNone
         TabsVisible = True
         ActivePage = SuperTabSheet1
@@ -351,8 +351,8 @@ object DataBaseCompare: TDataBaseCompare
           object lvMacros: TgsListView
             Left = 0
             Top = 0
-            Width = 1086
-            Height = 346
+            Width = 1078
+            Height = 336
             Align = alClient
             Columns = <
               item

@@ -1,6 +1,7 @@
+
 {++
 
-  Copyright (c) 2002-2012 by Golden Software of Belarus
+  Copyright (c) 2002-2013 by Golden Software of Belarus
 
   Module
 
@@ -3830,7 +3831,7 @@ uses
   obj_WrapperMessageClasses,
   {$ENDIF}
   gd_i_ScriptFactory, comctrls, contnrs, windows, IBSQL, AdPort, jclStrings,
-  gsStreamHelper, dbclient, at_dlgToSetting_unit;
+  gsStreamHelper, dbclient, at_AddToSetting;
 
 type
   TCrackIBControlAndQueryService = class(TIBControlAndQueryService);
@@ -15968,7 +15969,8 @@ procedure TwrpGdcSetting.AddToSetting(FromStorage: WordBool; const BranchName: W
                            const ValueName: WideString; const AnObject: IgsGDCBase; 
                            const BL: IgsBookmarkList);
 begin
-  at_dlgToSetting_unit.AddToSetting(FromStorage, BranchName, ValueName, InterfaceToObject(AnObject) as TgdcBase, InterfaceToObject(BL) as TBookmarkList);
+  at_AddToSetting.AddToSetting(FromStorage, BranchName, ValueName,
+    InterfaceToObject(AnObject) as TgdcBase, InterfaceToObject(BL) as TBookmarkList);
 end;
 
 { TwrpGdcSettingPos }

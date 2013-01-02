@@ -319,7 +319,7 @@ uses
   Storages, gd_ClassList, dmImages_unit, evt_i_Base,
   jclStrings, at_frmSQLProcess, gsStorage_CompPath,
   gd_security, prp_methods, Gedemin_TLB, gsStorage,
-  gdcUser, at_classes, DBCtrls, at_dlgToSetting_unit,
+  gdcUser, at_classes, DBCtrls, at_AddToSetting,
   gdcClasses, DBGrids, gdcJournal, gdHelp_Interface
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}

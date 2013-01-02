@@ -1,6 +1,7 @@
+
 {++
 
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -279,7 +280,7 @@ uses
   prp_MessageConst,
   prp_PropertySettings,
   evt_i_Base,
-  at_dlgToSetting_unit,
+  at_AddToSetting,
   obj_i_Debugger,
   mtd_i_Base,
   gd_ClassList,
@@ -1044,7 +1045,7 @@ end;
 
 procedure TBaseFrame.AddTosetting;
 begin
-  at_dlgToSetting_unit.AddToSetting(False, '', '', MasterObject, nil);
+  at_AddToSetting.AddToSetting(False, '', '', MasterObject, nil);
 end;
 
 procedure TBaseFrame.actAddToSettingExecute(Sender: TObject);
