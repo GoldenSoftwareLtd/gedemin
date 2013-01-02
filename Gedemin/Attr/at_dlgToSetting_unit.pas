@@ -91,9 +91,6 @@ type
     procedure LoadSettings; virtual;
   end;
 
-  procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
-    AgdcObject: TgdcBase; BL: TBookmarkList);
-
 var
   dlgToSetting: TdlgToSetting;
 
@@ -107,23 +104,10 @@ uses
   {$ENDIF}
   , gdcEvent, contnrs, gdcMetaData, at_classes;
 
+{$R *.DFM}
+
 const
   cst_dlgCaption = 'Добавить в настройку';
-
-  {$R *.DFM}
-
-procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
-  AgdcObject: TgdcBase; BL: TBookmarkList);
-
-begin
-  with TdlgToSetting.Create(nil) do
-  try
-    Setup(FromStorage, ABranchName, AValueName, AgdcObject, BL);
-    ShowModal;
-  finally
-    Free;
-  end;
-end;
 
 { TdlgToSetting }
 
@@ -230,11 +214,6 @@ begin
         FgdcSettingObject.Open;
         if FgdcSettingObject is TgdcSettingPos then
         begin
-          {WithDetail := (MessageBox(HWND(nil), PChar('Сохранять объект ' +
-            FgdcObject.GetDisplayName(FgdcObject.SubType) +  ' ' +
-            FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString +
-            ' вместе с детальными?'), 'Внимание!',
-            MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES);}
           (FgdcSettingObject as TgdcSettingPos).AddPos(FgdcObject, chbxWithDetail.Checked);
         end else if FgdcSettingObject is TgdcSettingStorage then
         begin
@@ -358,7 +337,6 @@ var
   StID: String; //Строка идентификаторов
   XID, DBID: TID;
   ASettingPos: TgdcSettingPos;
-  //WithDetail: Boolean;
 begin
   if not FWasChange then
   begin
@@ -376,11 +354,6 @@ begin
           '?'), 'Внимание!', MB_ICONQUESTION or MB_YESNO) = IDYES
         then
         begin
-          {WithDetail := (MessageBox(HWND(nil), PChar('Сохранять выбранные объекты ' +
-            ' вместе с детальными?'), 'Внимание!',
-            MB_YESNO or MB_ICONQUESTION) = IDYES);}
-  {Т.к. мы можем выбрать несколько записей только в б-о (ветки стораджа выбираются по одной),
-   то нам понадобится еще дополнительный б-о типа TgdcSettingPos для манипуляций с записями}
           ASettingPos := TgdcSettingPos.CreateSubType(nil, '', 'BySetting');
           ASettingPos.Transaction := SelfTransaction;
           ASettingPos.ReadTransaction := SelfTransaction;
@@ -517,21 +490,7 @@ end;
 procedure TdlgToSetting.SetConditionsForSetting;
 begin
   qrySetting.Close;
-  if FgdcSettingObject is TgdcSettingStorage then
-  begin
-    Assert(False, 'Работа с элементами хранилища должна осуществляться через б/о');
-    {
-    qrySetting.SQL.Text := 'SELECT s.id, s.name FROM at_setting s ';
-    if FValueName > '' then
-      qrySetting.SQL.Text := qrySetting.SQL.Text + Format('WHERE EXISTS(SELECT * FROM at_setting_storage ' +
-        ' WHERE settingkey = s.id AND crc = %s AND id in (%s) AND valuename = ''%s'')',
-        [IntToStr(GetCRC32FromText(FBranchName)), SetConditionsForStorage, FValueName])
-    else
-      qrySetting.SQL.Text := qrySetting.SQL.Text + Format('WHERE EXISTS(SELECT * FROM at_setting_storage ' +
-        ' WHERE settingkey = s.id AND crc = %s AND id in (%s) AND valuename IS NULL)',
-        [IntToStr(GetCRC32FromText(FBranchName)), SetConditionsForStorage]);
-    }
-  end;
+  Assert(FgdcSettingObject is TgdcSettingStorage, 'Работа с элементами хранилища должна осуществляться через б/о');
 end;
 
 function TdlgToSetting.GetSettingSQLByPosRUID: String;

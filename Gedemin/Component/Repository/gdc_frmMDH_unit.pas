@@ -189,7 +189,7 @@ uses
   {$IFDEF QEXPORT}
   VExportDlg,
   {$ENDIF}
-  gd_security, Storages, gd_ClassList, at_dlgToSetting_unit,
+  gd_security, Storages, gd_ClassList, at_AddToSetting,
   prp_methods
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}

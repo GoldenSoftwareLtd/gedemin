@@ -359,7 +359,7 @@ uses
   VExportDlg,
   {$ENDIF}
   at_sql_setup, gd_createable_form, gd_ClassList,
-  at_dlgToSetting_unit, Storages, gsStorage_CompPath,
+  at_AddToSetting, Storages, gsStorage_CompPath,
   gdcUser, gsStorage, prp_methods, gsDBTreeView,
   gsDesktopManager, IBSQL, jclSelected, gdHelp_Interface
   {must be placed after Windows unit!}

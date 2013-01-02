@@ -137,7 +137,7 @@ implementation
 {$R *.DFM}
 
 uses
-  at_dlgToSetting_unit, gd_ClassList, gsStorage, Storages,
+  at_AddToSetting, gd_ClassList, gsStorage, Storages,
   gd_directories_const, dlg_NewForm_Wzrd_unit,
   gsResizerInterface, dlgEditDfm_unit
   {must be placed after Windows unit!}

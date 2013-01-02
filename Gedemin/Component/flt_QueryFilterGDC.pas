@@ -24,7 +24,7 @@ implementation
 uses
   gdcBase, gdc_createable_form, Classes, SysUtils, Forms,
   flt_sqlfilter_condition_type, Menus, gdcFilter, flt_dlgFilterList_unit,
-  at_dlgToSetting_unit;
+  at_AddToSetting;
 
 procedure Register;
 begin
