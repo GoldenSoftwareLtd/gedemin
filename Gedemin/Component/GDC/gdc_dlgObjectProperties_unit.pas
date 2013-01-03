@@ -8,7 +8,7 @@ uses
   gsIBLookupComboBox, Grids, DBGrids, gsDBGrid, gsIBGrid, IBCustomDataSet,
   gdcBase, gdcBaseInterface, gdcUser, DBCtrls, Menus, gd_security, TB2Dock,
   TB2Toolbar, TB2Item, evt_i_base, SynEdit, SynEditHighlighter,
-  SynHighlighterGeneral, yaml_parser;
+  SynHighlighterGeneral;
 
 type
   Tgdc_dlgObjectProperties = class(Tgdc_dlgTR)
@@ -70,10 +70,6 @@ type
     tsYAML: TTabSheet;
     mYAMLFile: TSynEdit;
     SynGeneralSyn: TSynGeneralSyn;
-    bLoad: TButton;
-    bSave: TButton;
-    actSaveYAML: TAction;
-    actLoadYAML: TAction;
     procedure cbAccessClassChange(Sender: TObject);
     procedure actExcludeUpdate(Sender: TObject);
     procedure actExcludeExecute(Sender: TObject);
@@ -95,10 +91,8 @@ type
     procedure actGoToMethodsUpdate(Sender: TObject);
     procedure actGoToMethodsSubtypeUpdate(Sender: TObject);
     procedure actGoToMethodsParentUpdate(Sender: TObject); 
-    procedure actSaveYAMLExecute(Sender: TObject);
-    procedure actLoadYAMLExecute(Sender: TObject);
 
-  private 
+  private
     function GetCurrentSecField(const ATI: TgdcTableInfos = []): TField;
 
     procedure LabelDblClick(Sender: TObject);
@@ -106,8 +100,6 @@ type
       Shift: TShiftState; X, Y: Integer);
 
     procedure BuildLinks;
-    procedure BuildYAML(AStream: TStream); 
-    procedure LoadObject(AMapping: TyamlMapping; ATr: TIBTransaction);
 
   protected
     procedure SyncCombo;
@@ -134,7 +126,7 @@ implementation
 uses
   gdcTree, Clipbrd, gd_ClassList, flt_frmSQLEditorSyn_unit,
   ContNrs, at_classes, gdcMetaData, IBUtils, IBSQL, gdcClasses,
-  yaml_common, yaml_writer, jclStrings, at_sql_parser;
+  gdcNamespace, yaml_writer, jclStrings, at_sql_parser;
 
 { Tgdc_dlgObjectProperties }
 
@@ -276,6 +268,7 @@ procedure Tgdc_dlgObjectProperties.tsAccessShow(Sender: TObject);
 var
   OldCursor: TCursor;
   SS: TStringStream;
+  W: TyamlWriter;
 begin
   SyncCombo;
 
@@ -294,14 +287,19 @@ begin
         MB_OK or MB_ICONHAND or MB_TASKMODAL);
       pcMain.ActivePage := tsGeneral;
     end;
-  end else
-  if pcMain.ActivePage = tsYAML then
+  end
+  else if pcMain.ActivePage = tsYAML then
   begin
     if Assigned(gdcObject) then
     begin
       SS := TStringStream.Create('');
       try
-        BuildYAML(SS);
+        W := TyamlWriter.Create(SS);
+        try
+          TgdcNamespace.WriteObject(gdcObject, W);
+        finally
+          W.Free;
+        end;
         mYAMLFile.Text := SS.DataString;
       finally
         SS.Free;
@@ -1018,609 +1016,6 @@ begin
   TAction(Sender).Enabled:= (gdcObject <> nil) and (EventControl <> nil)
     and IBLogin.IsIBUserAdmin;
 end;
-
-procedure Tgdc_dlgObjectProperties.BuildYAML(AStream: TStream);
-
-  function AddSpaces(const Name: String): String;
-  begin
-    Result := Name + StringOfChar(' ', 20 - Length(Name));
-  end;
-
-  function BinToHexString(Source: AnsiString): string;
-  const
-    DefSymbol = 16;
-  var
-    I: Integer;
-  begin
-    Result := '';
-    for I := 1 to Length(Source) do
-    begin
-      Result := Result + IntToHex(Ord(Source[I]), 2) + #32;
-      if (I mod DefSymbol) = 0 then
-        Result := Result + #13#10;
-    end;
-
-    if Length(Source) mod DefSymbol = 0 then
-      SetLength(Result, Length(Result) - 3)
-    else
-      SetLength(Result, Length(Result) - 1);
-  end;
-
-  procedure AddSet(AObj: TgdcBase; AWriter: TyamlWriter);
-  var
-    I, K: Integer;
-    F, FD: TatRelationField;
-    AddedTitle: Boolean;
-    q: TIBSQL;
-    RL, LT: TStrings;
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := gdcBaseManager.ReadTransaction;
-      AddedTitle := False;
-
-      RL := TStringList.Create;
-      try
-        if AObj.GetListTable(AObj.SubType) <> '' then
-          RL.Add(AnsiUpperCase(AObj.GetListTable(AObj.SubType)));
-
-        LT := TStringList.Create;
-        try
-          (LT as TStringList).Duplicates := dupIgnore;
-          GetTablesName(AObj.SelectSQL.Text, LT);
-          for I := 0 to LT.Count - 1 do
-          begin
-            if (RL.IndexOf(LT[I]) = -1)
-              and AObj.ClassType.InheritsFrom(GetBaseClassForRelation(LT[I]).gdClass)
-            then
-              RL.Add(LT[I]);
-          end;
-        finally
-          LT.Free;
-        end;
-
-        for I := 0 to atDatabase.PrimaryKeys.Count - 1 do
-          with atDatabase.PrimaryKeys[I] do
-          if ConstraintFields.Count > 1 then
-          begin
-            F := nil;
-            FD := nil;
-
-            for K := 0 to RL.Count - 1 do
-            begin
-              if (ConstraintFields[0].References <> nil) and
-                (AnsiCompareText(ConstraintFields[0].References.RelationName,
-                 RL[K]) = 0)
-              then
-              begin
-                F := ConstraintFields[0];
-                Break;
-              end;
-            end;
-
-            if not Assigned(F) then
-              continue;
-
-            for K := 1 to ConstraintFields.Count - 1 do
-            begin
-              if (ConstraintFields[K].References <> nil) and
-                 (ConstraintFields[K] <> F) and (FD = nil)
-              then
-              begin
-                FD := ConstraintFields[K];
-                Break;
-              end else
-
-              if (ConstraintFields[K].References <> nil) and
-                 (ConstraintFields[K] <> F) and (FD <> nil)
-              then
-              begin
-                continue;
-              end;
-            end;
-
-            if not Assigned(FD) then
-              continue;
-
-              q.Close;
-              q.SQL.Text := 'SELECT ' + FD.FieldName +
-                ' FROM ' + FD.Relation.RelationName +
-                ' WHERE ' + F.FieldName + ' = ' + AObj.FieldByName(F.ReferencesField.FieldName).AsString;
-              q.ExecQuery;
-
-              if q.RecordCount > 0 then
-              begin
-                if not AddedTitle then
-                begin
-                  AddedTitle := True;
-                  AWriter.StartNewLine;
-                  AWriter.WriteKey('$Set');
-                  AWriter.IncIndent;
-                end;
-
-                AWriter.StartNewLine;
-                AWriter.WriteKey('Table');
-                AWriter.WriteString(FD.Relation.RelationName);
-
-                AWriter.StartNewLine;
-                AWriter.WriteKey('Items');
-
-                AWriter.IncIndent;
-                while not q.Eof do
-                begin
-                  AWriter.StartNewLine;
-                  AWriter.WriteSequenceIndicator;
-                  AWriter.WriteString(gdcBaseManager.GetRUIDStringByID(q.Fields[0].AsInteger, AObj.Transaction));
-                  q.Next;
-                end;
-                AWriter.DecIndent;
-
-                if AddedTitle then
-                  AWriter.DecIndent;
-              end;
-          end;
-        finally
-          RL.Free;
-        end;
-    finally
-      q.Free;
-    end;
-  end;
-
-const
-  PassFieldName = ';ID;EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;';
-var
-  I, L: Integer;
-  R: TatRelation;
-  F: TField;
-  FN: String;
-  RF: TatRelationField;
-  FK: TatForeignKey;
-  RN: String;
-  Writer: TyamlWriter;
-  C: TgdcFullClass;
-  Obj: TgdcBase;
-  q: TIBSQL;
-begin
-  q := TIBSQL.Create(nil);
-  Writer := TyamlWriter.Create(AStream);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    C := gdcObject.GetCurrRecordClass;
-    Writer.WriteDocumentStart;
-    Writer.StartNewLine;
-    Writer.WriteKey(AddSpaces('$ObjectClass'));
-    Writer.WriteString(C.gdClass.Classname);
-    if C.SubType <> '' then
-    begin
-      Writer.StartNewLine;
-      Writer.WriteKey(AddSpaces('$SubType'));
-      Writer.WriteText(C.SubType);
-    end;
-    Writer.StartNewLine;
-    Writer.WriteKey(AddSpaces('$RUID'));
-    Writer.WriteString(gdcBaseManager.GetRUIDStringByID(gdcObject.ID, gdcObject.Transaction));
-
-    for I := 0 to gdcObject.Fields.Count - 1 do
-    begin
-      FN := '';
-
-      F := gdcObject.Fields[I];
-      if (StrIPos(F.FieldName, PassFieldName) > 0) or F.IsNull then
-      begin
-        continue;
-      end else
-        if (F.Origin > '') then
-        begin
-          L := 0;
-          RN := '';
-          while F.Origin[L] <> '.' do
-          begin
-            if F.Origin[L] <> '"' then
-              RN := RN + F.Origin[L];
-            Inc(L);
-          end;
-
-          if RN > '' then
-          begin
-            R := atDatabase.Relations.ByRelationName(RN);
-            if Assigned(R) then
-            begin
-              RF := R.RelationFields.ByFieldName(F.FieldName);
-              if Assigned(RF) then
-              begin
-                if Assigned(RF.CrossRelation) then
-                begin
-                  continue;
-                end else
-                if Assigned(RF.ForeignKey) then
-                begin
-                  FK := RF.ForeignKey;
-
-                  if FK.IsSimpleKey and Assigned(FK.Relation.PrimaryKey)
-                    and (FK.Relation.PrimaryKey.ConstraintFields.Count = 1)
-                    and (FK.ConstraintField = FK.Relation.PrimaryKey.ConstraintFields[0])
-                  then
-                    continue;
-
-                  C := GetBaseClassForRelation(RF.References.RelationName);
-                  if C.gdClass <> nil then
-                  begin
-                    Obj := C.gdClass.CreateWithID(nil,
-                      nil,
-                      nil,
-                      F.AsInteger,
-                      C.SubType);
-                    try
-                      Obj.Open;
-                      if (Obj.RecordCount > 0) and (Obj.GetListField(Obj.SubType) <> '') then
-                      begin
-                        if Obj is TgdcTree then
-                        begin
-                          FN := TgdcTree(Obj).GetPath
-                        end else
-                          FN := Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString;
-                      end;
-                    finally
-                      Obj.Free;
-                    end;
-                  end;
-
-                  Writer.StartNewLine;
-                  Writer.WriteKey(AddSpaces(F.FieldName));
-                  Writer.WriteString(gdcBaseManager.GetRUIDStringByID(F.AsInteger, gdcObject.Transaction));
-                  Writer.WriteChar(' ');
-                  Writer.WriteText(FN, qSingleQuoted);
-                  continue;
-                end;
-              end;
-            end;
-          end;
-        end;
-
-        Writer.StartNewLine;
-        Writer.WriteKey(AddSpaces(F.FieldName));
-        case F.DataType of
-          ftDate: Writer.WriteDate(F.AsDateTime);
-          ftDateTime: Writer.WriteTimestamp(F.AsDateTime);
-          ftMemo: Writer.WriteText(F.AsString, qPlain, sLiteral);
-          ftBlob, ftGraphic: Writer.WriteText(BinToHexString(F.AsString), qPlain, sFolded);
-          ftInteger, ftLargeint, ftSmallint, ftWord: Writer.WriteInteger(F.AsInteger);
-          ftBoolean: Writer.WriteBoolean(F.AsBoolean);
-          ftFloat, ftCurrency: Writer.WriteFloat(F.AsFloat);
-        else
-          Writer.WriteText(F.AsString, qSingleQuoted);
-        end;
-
-    end;
-
-    AddSet(gdcObject, Writer);
-
-    Writer.StartNewLine;
-    Writer.WriteDocumentEnd;
-    Writer.StartNewLine;
-  finally
-    q.Free;
-    Writer.Free;
-  end;
-end;
-
-procedure Tgdc_dlgObjectProperties.actSaveYAMLExecute(Sender: TObject);
-var
-  Stream: TFileStream;
-begin
-  with TSaveDialog.Create(Self) do
-  try
-    DefaultExt := '*.yml';
-    Filter := '*.yml|*.yml';
-    Title := 'Сохранить объект в файл.';
-    if Execute then
-    begin
-      if
-        not FileExists(FileName)
-          or
-        (MessageBox(Handle, PChar(Format('Заменить существующий файл %s?', [FileName])),
-          'Внимание', MB_YESNO or MB_ICONQUESTION) = ID_YES)
-      then
-      try
-        Stream := TFileStream.Create(FileName, fmCreate);
-
-        try
-          BuildYAML(Stream);
-        finally
-          Stream.Free;
-        end;
-      except
-        raise EgsDBGridException.Create(Format('Can''t write to file %s', [FileName]));
-      end;
-    end;
-  finally
-    Free;
-  end;
-
-end;
-
-procedure Tgdc_dlgObjectProperties.actLoadYAMLExecute(Sender: TObject);
-var
-  FS: TFileStream;
-  Parser: TyamlParser;
-  D: TyamlDocument;
-  I: Integer;
-  Transaction: TIBTransaction;
-begin
-  with TOpenDialog.Create(Self) do
-  try
-    DefaultExt := '*.yml';
-    Filter := '*.yml|*.yml';
-    Title := 'Загрузить объект из файла.';
-    if Execute then
-    begin
-      try
-        FS := TFileStream.Create(FileName, fmOpenRead);
-        Parser := TyamlParser.Create;
-        Transaction := TIBTransaction.Create(nil);
-        try
-          Transaction.DefaultDatabase := IBLogin.Database;
-          Transaction.StartTransaction;
-          try
-
-            Parser.Parse(FS);
-            for I := 0 to Parser.YAMLStream.Count - 1 do
-            begin
-              D := Parser.YAMLStream[I] as TyamlDocument;
-              if (D[0] is TyamlMapping) then
-                LoadObject(D[0] as TyamlMapping, Transaction)
-              else
-                raise Exception.Create('Invalid object!');
-            end;
-
-            if Transaction.InTransaction then
-              Transaction.Commit;
-          except
-            on E: Exception do
-            begin
-              if Transaction.InTransaction then
-                Transaction.Rollback;
-              raise;
-            end;
-          end;
-        finally
-          Parser.Free;
-          FS.Free;
-          Transaction.Free;
-        end;
-
-       { Stream := TFileStream.Create(FileName, fmOpenRead);
-        Parser := TyamlParser.Create;
-        try
-          Parser.Parse(Stream);
-          CreateObject(Parser.YAMLStream[0] as TyamlDocument);
-        finally
-          Parser.Free;
-          Stream.Free;
-        end;  }
-      except
-        raise EgsDBGridException.Create(Format('Can''t read from file %s', [FileName]));
-      end;
-    end;
-  finally
-    Free;
-  end;
-
-end;
-
-procedure Tgdc_dlgObjectProperties.LoadObject(AMapping: TyamlMapping; ATr: TIBTransaction);
-
-  function HexStringToBin(const HexStr: AnsiString): String;
-  var
-    I: Integer;
-  begin
-    SetLength(Result, round(Length(HexStr)/2));
-    I := HexToBin(PAnsiChar(HexStr), PAnsiChar(Result), Length(result));
-    SetLength(Result, I);
-  end;
-
-  procedure LoadSet(AValue: TyamlMapping; AnID: Integer; ATransaction: TIBTransaction);
-  var
-    RN: String;
-    I, J: Integer;
-    q: TIBSQL;
-    R: TatRelation;
-    Items: TyamlSequence;
-    ID: Integer;
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := ATransaction;
-
-      RN := '';
-      for I := 0 to AValue.Count - 1 do
-      begin
-        if (AValue[I] as TyamlKeyValue).Key = 'Table' then
-        begin
-          RN := ((AValue[I] as TyamlKeyValue).Value as TyamlScalar).AsString;
-          if RN = '' then
-            raise Exception.Create('Table not found!');
-          continue;
-        end else
-        if (AValue[I] as TyamlKeyValue).Key = 'Items' then
-        begin
-          R := atDatabase.Relations.ByRelationName(RN);
-          if Assigned(R) then
-          begin
-            q.Close;
-            q.SQl.Text := 'INSERT INTO ' + RN + '(' + R.PrimaryKey.ConstraintFields[0].FieldName +
-              ', ' + R.PrimaryKey.ConstraintFields[1].FieldName + ') VALUES(:id1, :id2)';
-
-            if not ((AValue[I] as TyamlKeyValue).Value is TyamlSequence) then
-              raise Exception.Create('Invalid set object!');
-
-            Items := (AValue[I] as TyamlKeyValue).Value as TyamlSequence;
-
-            for J := 0 to Items.Count - 1 do
-            begin
-              if not (Items[J] is TyamlScalar) then
-                raise Exception.Create('Invalid data!');
-
-              ID := gdcBaseManager.GetIDByRUIDString((Items[J] as TyamlScalar).AsString, ATransaction);
-              if ID > 0 then
-              begin
-                q.Close;
-                q.ParamByName('id1').AsInteger := AnID;
-                q.ParambyName('id2').AsInteger := ID;
-                q.ExecQuery;
-              end else
-                raise Exception.Create('Id not found!');
-            end;
-          end else
-            raise Exception.Create('Table ''' +  RN + ''' not found in databese!');
-
-          RN := '';
-        end;
-      end;
-    finally
-      q.Free;
-    end;
-  end;
-
-var
-  I, K: Integer;
-  SubType, ClassName: string;
-  Obj: TgdcBase;
-  RN, Temps: String;
-  ID: Integer;
-  F: TField;
-  L: Integer;
-  R: TatRelation;
-  RF: TatRelationField;
-  Value: TyamlNode;
-  RUID: String;
-  RuidRec: TRuidRec;
-begin
-  Assert(ATr <> nil);
-  Assert(gdcBaseManager <> nil);
-  Assert(AMapping <> nil);
-
-  ClassName := AMapping.ReadString('$ObjectClass');
-  SubType := AMapping.ReadString('$SubType');
-  RUID := AMapping.ReadString('$RUID');
-
-  if (ClassName = '') or (RUID = '') then
-   raise Exception.Create('Invalid object!');
-
-
-  Obj := CgdcBase(GetClass(ClassName)).CreateWithParams(nil, ATr.DefaultDatabase, ATr, SubType);
-  try
-   RuidRec := gdcBaseManager.GetRUIDRecByXID(StrToRUID(RUID).XID, StrToRUID(RUID).DBID, ATr);
-   if RuidRec.ID > 0 then
-   begin
-     Obj.Subset := 'ByID';
-     Obj.ID := RuidRec.ID;
-     Obj.Open;
-     if Obj.RecordCount = 0 then
-     begin
-       gdcBaseManager.DeleteRUIDbyXID(RuidRec.XID, RuidRec.DBID, ATr);
-       Obj.Insert;
-     end else
-       Obj.Edit;
-   end else
-   begin
-     Obj.Open;
-     Obj.Insert;
-   end;
-
-   for I := 0 to Obj.Fields.Count - 1 do
-   begin
-     F := Obj.Fields[I];
-     Value := AMapping.FindByName(F.FieldName);
-     if Value <> nil then
-     begin
-       if not (Value is TyamlScalar) then
-         raise Exception.Create('Invalid data!');
-
-       if (F.Origin > '') then
-       begin
-         L := 0;
-         RN := '';
-         while F.Origin[L] <> '.' do
-         begin
-           if F.Origin[L] <> '"' then
-             RN := RN + F.Origin[L];
-           Inc(L);
-         end;
-
-         if RN > '' then
-         begin
-           R := atDatabase.Relations.ByRelationName(RN);
-           if Assigned(R) then
-           begin
-             RF := R.RelationFields.ByFieldName(F.FieldName);
-             if Assigned(RF) and Assigned(RF.ForeignKey)then
-             begin
-               Temps := (Value as TyamlScalar).AsString;
-               RUID := '';
-               for K := 1 to Length(Temps) do
-               begin
-                 if not CharIsDigit(Temps[K]) and (Temps[K] <> '_') then
-                   break;
-                 RUID := RUID + Temps[K];
-               end;
-
-               if (RUID > '') and (CheckRUID(RUID)) then
-               begin
-                 ID := gdcBaseManager.GetIDByRUIDString(RUID, ATr);
-                 if ID > 0 then
-                 begin
-                   Obj.FieldByName(F.FieldName).AsInteger := ID;
-                   continue;
-                 end
-                 else
-                   raise Exception.Create('Id not found!');
-               end else
-                 raise Exception.Create('Invalid RUID!');
-             end;
-           end;
-         end;
-       end;
-       case F.DataType of
-         ftDateTime: Obj.FieldByName(F.FieldName).AsDateTime := (Value as TyamlDateTime).AsDateTime;
-         ftDate: Obj.FieldByName(F.FieldName).AsDateTime := (Value as TyamlDate).AsDate;
-         ftInteger, ftLargeint, ftSmallint, ftWord: Obj.FieldByName(F.FieldName).AsInteger := (Value as TyamlScalar).AsInteger;
-         ftFloat, ftCurrency: Obj.FieldByName(F.FieldName).AsFloat := (Value as TyamlScalar).AsFloat;
-         ftBlob, ftGraphic:
-         begin
-           Temps := (Value as TyamlScalar).AsString;
-           Temps := StringReplace(Temps, #32, '', [rfReplaceAll]);
-           Obj.FieldByName(F.FieldName).AsString := HexStringToBin(Temps);
-         end;
-       else
-         Obj.FieldByName(F.FieldName).AsString := Trim((Value as TyamlScalar).AsString);
-       end;
-     end;
-   end;
-
-   Obj.Post;
-
-    if gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr).XID = -1 then
-    begin
-      gdcBaseManager.InsertRUID(Obj.ID, RuidRec.XID,
-        RuidRec.DBID,
-        Now, IBLogin.ContactKey, ATr);
-    end else
-    begin 
-      gdcBaseManager.UpdateRUIDByID(Obj.ID, RuidRec.XID,
-        RuidRec.DBID,
-        Now, IBLogin.ContactKey, ATr);
-    end;
-
-   Value := AMapping.FindByName('$Set');
-   if (Value <> nil) and (Value is TyamlMapping) then
-     LoadSet(Value as TyamlMapping, Obj.ID, ATr);
-
-  finally
-   Obj.Free;
-  end; 
-end; 
 
 initialization
   RegisterFrmClass(Tgdc_dlgObjectProperties);
