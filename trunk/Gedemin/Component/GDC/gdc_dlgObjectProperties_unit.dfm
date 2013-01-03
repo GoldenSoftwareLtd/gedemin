@@ -422,7 +422,7 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Left = 0
         Top = 1
         Width = 383
-        Height = 328
+        Height = 364
         Cursor = crIBeam
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -772,22 +772,6 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
           '')
         ReadOnly = True
       end
-      object bLoad: TButton
-        Left = 182
-        Top = 336
-        Width = 87
-        Height = 25
-        Action = actLoadYAML
-        TabOrder = 1
-      end
-      object bSave: TButton
-        Left = 292
-        Top = 336
-        Width = 87
-        Height = 25
-        Action = actSaveYAML
-        TabOrder = 2
-      end
     end
   end
   inherited alBase: TActionList
@@ -842,14 +826,6 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
       Hint = 'Перейти на методы класса'
       OnExecute = actGoToMethodsParentExecute
       OnUpdate = actGoToMethodsParentUpdate
-    end
-    object actSaveYAML: TAction
-      Caption = 'Сохранить'
-      OnExecute = actSaveYAMLExecute
-    end
-    object actLoadYAML: TAction
-      Caption = 'Загрузить'
-      OnExecute = actLoadYAMLExecute
     end
   end
   inherited dsgdcBase: TDataSource
