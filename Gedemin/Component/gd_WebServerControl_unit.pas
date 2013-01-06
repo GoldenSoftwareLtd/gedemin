@@ -50,6 +50,7 @@ type
     procedure ProcessQueryRequest;
     procedure ProcessFilesListRequest;
     procedure ProcessFileRequest;
+    procedure ProcessBLOBRequest;
     procedure Log(const AnIPAddress: String; const AnOp: String;
       const Names: array of String; const Values: array of String);
     function GetActive: Boolean;
@@ -235,6 +236,8 @@ begin
       ProcessFilesListRequest
     else if AnsiCompareText(FRequestInfo.Document, '/get_file') = 0 then
       ProcessFileRequest
+    else if AnsiCompareText(FRequestInfo.Document, '/get_blob') = 0 then
+      ProcessBLOBRequest
     else begin
       Processed := False;
       RequestToken := FRequestInfo.Params.Values[PARAM_TOKEN];
@@ -528,7 +531,7 @@ begin
         FResponseInfo.ResponseNo := 200;
         FResponseInfo.ContentType := 'application/octet-stream;';
         FResponseInfo.ContentStream := MS;
-      end;  
+      end;
     end;
   end;
 end;
@@ -597,6 +600,40 @@ begin
   FResponseInfo.ContentType := 'application/octet-stream;';
   FResponseInfo.ContentStream := TMemoryStream.Create;
   FFileList.GetYAML(FResponseInfo.ContentStream);
+end;
+
+procedure TgdWebServerControl.ProcessBLOBRequest;
+var
+  MS: TMemoryStream;
+  q: TIBSQL;
+begin
+  Log(FRequestInfo.RemoteIP, 'RQBL', ['table_name', 'field_name', 'ruid'],
+    [FRequestInfo.Params.Values['table'],
+     FRequestInfo.Params.Values['field'],
+     FRequestInfo.Params.Values['ruid']]);
+
+  FResponseInfo.ResponseNo := 400;
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT ' + FRequestInfo.Params.Values['field'] +
+      ' FROM ' + FRequestInfo.Params.Values['table'] +
+      ' WHERE id=' +
+      IntToStr(gdcBaseManager.GetIDByRUIDString(FRequestInfo.Params.Values['ruid']));
+    q.ExecQuery;
+    if not q.EOF then
+    begin
+      MS := TMemoryStream.Create;
+      q.Fields[0].SaveToStream(MS);
+      FResponseInfo.ResponseNo := 200;
+      FResponseInfo.ContentType := 'application/octet-stream;';
+      FResponseInfo.ContentStream := MS;
+    end;
+  finally
+    q.Free;
+  end;
 end;
 
 initialization

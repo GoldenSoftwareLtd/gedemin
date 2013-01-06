@@ -45,6 +45,9 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       object TBItem9: TTBItem
         Action = actSet2Txt
       end
+      object TBItem11: TTBItem
+        Action = actSet2NS
+      end
     end
     inherited tbMainMenu: TTBToolbar
       inherited tbsiMainMenuObject: TTBSubmenuItem
@@ -502,6 +505,10 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       ImageIndex = 251
       OnExecute = actSet2TxtExecute
       OnUpdate = actSet2TxtUpdate
+    end
+    object actSet2NS: TAction
+      Caption = 'NS'
+      OnExecute = actSet2NSExecute
     end
   end
   inherited dsMain: TDataSource

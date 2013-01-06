@@ -8,7 +8,7 @@ uses
   gdc_frmSGR_unit, gd_MacrosMenu, Db, Menus, ActnList, Grids, DBGrids,
   gsDBGrid, gsIBGrid, StdCtrls, ExtCtrls, TB2Item, TB2Dock, TB2Toolbar,
   ComCtrls, IBCustomDataSet, gdcBase, gdcSetting, gdc_frmG_unit,
-  gdc_frmMDHGR_unit, IBSQL, gd_KeyAssoc, at_SettingWalker;
+  gdc_frmMDHGR_unit, IBSQL, gd_KeyAssoc, at_SettingWalker, gdcNamespace;
 
 type
   Tgdc_frmSetting = class(Tgdc_frmMDHGR)
@@ -94,6 +94,8 @@ type
     actSet2Txt: TAction;
     TBItem9: TTBItem;
     TBItem10: TTBItem;
+    actSet2NS: TAction;
+    TBItem11: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actSetActiveExecute(Sender: TObject);
@@ -147,6 +149,7 @@ type
     procedure actSet2TxtExecute(Sender: TObject);
     procedure actSet2TxtUpdate(Sender: TObject);
     procedure ibgrDetailDblClick(Sender: TObject);
+    procedure actSet2NSExecute(Sender: TObject);
 
   private
     FFieldStorageOrigin: TStringList;
@@ -160,6 +163,9 @@ type
     FakeStream: TStream;
     FakeRUIDList, FakeName: String;
 
+    gdcNamespace: TgdcNamespace;
+    gdcNamespaceObject: TgdcNamespaceObject;
+
     procedure OnStartLoading2(Sender: TatSettingWalker;
       AnObjectSet: TgdcObjectSet);
     procedure OnObjectLoad2(Sender: TatSettingWalker;
@@ -169,6 +175,16 @@ type
 
     procedure OnStartLoading2New(Sender: TatSettingWalker);
     procedure OnObjectLoad2New(Sender: TatSettingWalker; const AClassName, ASubType: String; ADataSet: TDataSet);
+
+    procedure OnStartLoading2_NS(Sender: TatSettingWalker;
+      AnObjectSet: TgdcObjectSet);
+    procedure OnObjectLoad2_NS(Sender: TatSettingWalker;
+      const AClassName, ASubType: String;
+      ADataSet: TDataSet; APrSet: TgdcPropertySet;
+      const ASR: TgsStreamRecord);
+
+    procedure OnStartLoading2New_NS(Sender: TatSettingWalker);
+    procedure OnObjectLoad2New_NS(Sender: TatSettingWalker; const AClassName, ASubType: String; ADataSet: TDataSet);
 
     procedure OnFakeLoad(Sender: TgdcBase; CDS: TDataSet);
 
@@ -1404,7 +1420,7 @@ begin
     FakeRUIDList := CDS.FieldByName('settingsruid').AsString;
     (CDS.FieldByName('data') as TBlobField).SaveToStream(FakeStream);
     FakeStream.Position := 0;
-  end;  
+  end;
 end;
 
 procedure Tgdc_frmSetting.ibgrDetailDblClick(Sender: TObject);
@@ -1434,6 +1450,180 @@ begin
       end;
     end;
   end;
+end;
+
+procedure Tgdc_frmSetting.actSet2NSExecute(Sender: TObject);
+var
+  WorkedOut: TList;
+
+  procedure ParseSetting(const AnID: Integer;
+    const AFileName: String = '');
+  var
+    Obj: TgdcBase;
+    SW: TatSettingWalker;
+  begin
+    if WorkedOut.IndexOf(Pointer(AnID)) <> -1 then
+      exit;
+
+    Obj := TgdcSetting.CreateSingularByID(Self, AnID, gdcObject.SubType);
+    try
+      IDLink.Clear;
+
+      SW := TatSettingWalker.Create;
+      try
+        SW.StartLoading := OnStartLoading2_NS;
+        SW.ObjectLoad := OnObjectLoad2_NS;
+
+        SW.StartLoadingNew := OnStartLoading2New_NS;
+        SW.ObjectLoadNew := OnObjectLoad2New_NS;
+
+        SW.SettingObj := Obj;
+        SW.Stream := Obj.CreateBlobStream(Obj.FieldByName('data'), bmRead);
+        try
+          SW.ParseStream;
+        finally
+          SW.Stream.Free;
+        end;
+
+        WorkedOut.Add(Pointer(AnID));
+      finally
+        SW.Free;
+      end;
+    finally
+      Obj.Free;
+    end;
+  end;
+
+var
+  OldCursor: TCursor;
+begin
+  DontSave := False;
+  UseRUID := True;
+  SaveDependencies := False;
+  DontSaveBLOB := False;
+  OnlyDup := False;
+  OnlyDiff := False;
+
+  gdcNamespace := TgdcNamespace.Create(nil);
+  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+
+  OldCursor := Screen.Cursor;
+  WorkedOut := TList.Create;
+  SList := TStringList.Create;
+  SCount := TStringList.Create;
+  SDiff := TStringList.Create;
+  SCRC32 := TStringList.Create;
+  IDLink := TgdKeyStringAssoc.Create;
+  FakeStream := TMemoryStream.Create;
+  FakeRUIDList := '';
+  FakeName := '';
+  Pass := 0;
+  try
+    Screen.Cursor := crHourGlass;
+
+    SCount.Sorted := True;
+    SCount.Duplicates := dupError;
+
+    SDiff.Sorted := True;
+    SDiff.Duplicates := dupError;
+
+    SCRC32.Sorted := True;
+    SCRC32.Duplicates := dupError;
+
+    gdcNamespace.Open;
+    gdcNamespace.Insert;
+    gdcNamespace.FieldByName('name').AsString := gdcObject.ObjectName;
+    gdcNamespace.Post;
+
+    gdcNamespaceObject.Open;
+
+    ParseSetting(gdcObject.ID);
+
+    gdcNamespaceObject.Close;
+    gdcNamespace.Close;
+  finally
+    gdcNamespaceObject.Free;
+    gdcNamespace.Free;
+    SList.Free;
+    SCount.Free;
+    SDiff.Free;
+    SCRC32.Free;
+    IDLink.Free;
+    WorkedOut.Free;
+    FakeStream.Free;
+    Screen.Cursor := OldCursor;
+  end;
+end;
+
+procedure Tgdc_frmSetting.OnObjectLoad2_NS(Sender: TatSettingWalker;
+  const AClassName, ASubType: String; ADataSet: TDataSet;
+  APrSet: TgdcPropertySet; const ASR: TgsStreamRecord);
+begin
+  ADataSet.First;
+  while not ADataSet.EOF do
+  begin
+    gdcNamespaceObject.Insert;
+    gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
+    if ADataSet.FindField('name') <> nil then
+      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
+    else if ADataSet.FindField('usr$name') <> nil then
+      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('usr$name').AsString
+    else
+      gdcNamespaceObject.FieldByName('objectname').AsString :=
+        ADataSet.FieldByName('_xid').AsString + '_' + ADataSet.FieldByName('_dbid').AsString;
+    gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
+    gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
+    gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+    gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
+    gdcNamespaceObject.Post;
+
+    ADataSet.Next;
+  end;
+
+  (*
+    if Added then
+    begin
+      if APrSet.Count > 0 then
+        SList.Add(#13#10'Свойства'#13#10);
+      for I := 0 to APrSet.Count - 1 do
+        SList.Add(Format({'%2d: }'%20s', [{I, }APrSet.Name[I]]) + ':  ' + VarToStr(APrSet.Value[APrSet.Name[I]]));
+      SList.Add('');
+    end else
+      SList.Delete(SList.Count - 1);
+  *)
+end;
+
+procedure Tgdc_frmSetting.OnObjectLoad2New_NS(Sender: TatSettingWalker;
+  const AClassName, ASubType: String; ADataSet: TDataSet);
+begin
+  if not ADataSet.EOF then
+  begin
+    gdcNamespaceObject.Insert;
+    gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
+    if ADataSet.FindField('name') <> nil then
+      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
+    else if ADataSet.FindField('usr$name') <> nil then
+      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('usr$name').AsString
+    else
+      gdcNamespaceObject.FieldByName('objectname').AsString :=
+        ADataSet.FieldByName('_xid').AsString + '_' + ADataSet.FieldByName('_dbid').AsString;
+    gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
+    gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
+    gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+    gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
+    gdcNamespaceObject.Post;
+  end;
+end;
+
+procedure Tgdc_frmSetting.OnStartLoading2_NS(Sender: TatSettingWalker;
+  AnObjectSet: TgdcObjectSet);
+begin
+  //
+end;
+
+procedure Tgdc_frmSetting.OnStartLoading2New_NS(Sender: TatSettingWalker);
+begin
+  //
 end;
 
 initialization

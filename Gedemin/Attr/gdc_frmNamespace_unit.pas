@@ -14,9 +14,14 @@ type
     gdcNamespaceObject: TgdcNamespaceObject;
     actSetObjectPos: TAction;
     TBItem1: TTBItem;
+    actCompareWithData: TAction;
+    TBItem2: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actSetObjectPosExecute(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
+    procedure actCompareWithDataExecute(Sender: TObject);
+    procedure actCompareWithDataUpdate(Sender: TObject);
+    procedure actSetObjectPosUpdate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -46,6 +51,25 @@ end;
 procedure Tgdc_frmNamespace.actSaveToFileExecute(Sender: TObject);
 begin
   (gdcObject as TgdcNamespace).SaveNamespaceToFile;
+end;
+
+procedure Tgdc_frmNamespace.actCompareWithDataExecute(Sender: TObject);
+begin
+  (gdcObject as TgdcNamespace).CompareWithData;
+end;
+
+procedure Tgdc_frmNamespace.actCompareWithDataUpdate(Sender: TObject);
+begin
+  actCompareWithData.Enabled := (gdcObject <> nil)
+    and (gdcObject.State = dsBrowse)
+    and (not gdcObject.EOF);
+end;
+
+procedure Tgdc_frmNamespace.actSetObjectPosUpdate(Sender: TObject);
+begin
+  actSetObjectPos.Enabled := (gdcObject <> nil)
+    and (gdcObject.State = dsBrowse)
+    and (not gdcObject.EOF);
 end;
 
 initialization

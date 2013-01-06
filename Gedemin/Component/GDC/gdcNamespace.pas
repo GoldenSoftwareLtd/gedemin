@@ -9,9 +9,9 @@ uses
 type
   TgdcNamespace = class(TgdcBase)
   private
-    procedure LoadObject(AMapping: TyamlMapping; APos: Integer; ATr: TIBTransaction);
+    procedure LoadObject(AMapping: TyamlMapping; ATr: TIBTransaction);
     procedure LoadSet(AValue: TyamlMapping; AnID: Integer; ATransaction: TIBTransaction);
-    function CheckUses(AValue: TyamlMapping): Boolean;
+    procedure CheckUses(AValue: TyamlSequence; AWriter: TyamlWriter);
 
   protected
     procedure _DoOnNewRecord; override;
@@ -26,7 +26,9 @@ type
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
 
+    procedure SaveNamespaceToStream(St: TStream);
     procedure SaveNamespaceToFile(const AFileName: String = '');
+    procedure CompareWithData;
   end;
 
   TgdcNamespaceObject = class(TgdcBase)
@@ -45,8 +47,9 @@ type
 implementation
 
 uses
-  Controls, ComCtrls, gdc_dlgNamespace_unit, gdc_frmNamespace_unit, at_sql_parser,
-  jclStrings, gdcTree, yaml_common, gdc_dlgNamespaceObjectPos_unit;
+  Controls, ComCtrls, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
+  at_sql_parser, jclStrings, gdcTree, yaml_common, gdc_dlgNamespaceObjectPos_unit,
+  prp_ScriptComparer_unit;
 
 const
   cst_str_WithoutName = 'Без наименования';
@@ -54,40 +57,11 @@ const
 procedure Register;
 begin
   RegisterComponents('gdcNamespace', [TgdcNamespace, TgdcNamespaceObject]);
-end;
-
-function HexStringToBin(const HexStr: AnsiString): String;
-var
-  I: Integer;
-begin
-  SetLength(Result, round(Length(HexStr)/2));
-  I := HexToBin(PAnsiChar(HexStr), PAnsiChar(Result), Length(result));
-  SetLength(Result, I);
-end;
+end; 
 
 function AddSpaces(const Name: String): String;
 begin
   Result := Name + StringOfChar(' ', 20 - Length(Name));
-end;
-
-function BinToHexString(Source: AnsiString): string;
-const
-  DefSymbol = 16;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 1 to Length(Source) do
-  begin
-    Result := Result + IntToHex(Ord(Source[I]), 2) + #32;
-    if (I mod DefSymbol) = 0 then
-      Result := Result + #13#10;
-  end;
-
-  if Length(Source) mod DefSymbol = 0 then
-    SetLength(Result, Length(Result) - 3)
-  else
-    SetLength(Result, Length(Result) - 1);
 end;
 
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
@@ -199,8 +173,9 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
                 if not AddedTitle then
                 begin
                   AddedTitle := True;
+                  AWriter.DecIndent;
                   AWriter.StartNewLine;
-                  AWriter.WriteKey('$Set');
+                  AWriter.WriteKey('Set');
                   AWriter.IncIndent;
                 end;
 
@@ -222,9 +197,6 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
                 AWriter.DecIndent;
               end;
           end;
-
-          if AddedTitle then
-            AWriter.DecIndent;
       finally
         RL.Free;
       end;
@@ -245,6 +217,7 @@ var
   RN: String;
   Obj: TgdcBase;
   C: TgdcFullClass;
+  BlobStream: TStream;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(AgdcObject <> nil);
@@ -279,7 +252,7 @@ begin
 
       FN := '';
 
-      if (F.Origin > '') then
+      if (F.Origin > '') and not F.IsNull then
       begin
         L := 0;
         RN := '';
@@ -348,17 +321,29 @@ begin
 
       AWriter.StartNewLine;
       AWriter.WriteKey(AddSpaces(F.FieldName));
-      case F.DataType of
-        ftDate: AWriter.WriteDate(F.AsDateTime);
-        ftDateTime: AWriter.WriteTimestamp(F.AsDateTime);
-        ftMemo: AWriter.WriteText(F.AsString, qPlain, sLiteral);
-        ftBlob, ftGraphic: AWriter.WriteText(BinToHexString(F.AsString), qPlain, sFolded);
-        ftInteger, ftLargeint, ftSmallint, ftWord: AWriter.WriteInteger(F.AsInteger);
-        ftBoolean: AWriter.WriteBoolean(F.AsBoolean);
-        ftFloat, ftCurrency: AWriter.WriteFloat(F.AsFloat);
-      else
-        AWriter.WriteText(F.AsString, qSingleQuoted);
-      end;
+      if not F.IsNull then
+      begin
+        case F.DataType of
+          ftDate: AWriter.WriteDate(F.AsDateTime);
+          ftDateTime: AWriter.WriteTimestamp(F.AsDateTime);
+          ftMemo: AWriter.WriteText(F.AsString, qPlain, sLiteral);
+          ftBlob, ftGraphic:
+          begin
+            BlobStream := AgdcObject.CreateBlobStream(F, bmRead);
+            try
+              AWriter.WriteBinary(BlobStream);
+            finally
+              FreeAndNil(BlobStream);
+            end;
+          end;
+          ftInteger, ftLargeint, ftSmallint, ftWord: AWriter.WriteInteger(F.AsInteger);
+          ftBoolean: AWriter.WriteBoolean(F.AsBoolean);
+          ftFloat, ftCurrency: AWriter.WriteFloat(F.AsFloat);
+        else
+          AWriter.WriteText(F.AsString, qSingleQuoted);
+        end;
+      end else
+         AWriter.WriteNull;
     end;
 
     WriteSet(AgdcObject, AWriter);
@@ -430,42 +415,49 @@ begin
   end;
 end;
 
-function TgdcNamespace.CheckUses(AValue: TyamlMapping): Boolean;
+procedure TgdcNamespace.CheckUses(AValue: TyamlSequence; AWriter: TyamlWriter);
 var
   q: TIBSQL;
   I: Integer;
-  Node: TyamlNode;
 begin
   Assert(gdcBaseManager <> nil);
-  Result := False;
-  Node := AValue.FindByName('$USES');
+  Assert(AWriter <> nil);
 
-  if (Node <> nil) then
+  
+  if AValue.Count > 0 then
   begin
-    if not (Node is TyamlSequence) then
-      raise Exception.Create('Invalid uses object!');
-      
-    Result := True;
+    AWriter.WriteKey('Uses');
+    AWriter.IncIndent;
+
     q := TIBSQL.Create(nil);
     try
       q.Transaction := gdcBaseManager.ReadTransaction;
       q.SQL.Text := 'SELECT * FROM at_namespace WHERE UPPER(Trim(name)) = UPPER(Trim(:n))';
 
-      for I := 0 to (Node as TyamlSequence).Count - 1 do
+      for I := 0 to AValue.Count - 1 do
       begin
-        if not ((Node as TyamlSequence)[I] is TyamlScalar) then
+        if not (AValue[I] is TyamlScalar) then
           raise Exception.Create('Invalid uses value!');
 
         q.Close;
-        q.ParamByName('n').AsString := ((Node as TyamlSequence)[I] as TyamlScalar).AsString;
+        q.ParamByName('n').AsString := (AValue[I] as TyamlString).AsString;
         q.ExecQuery;
 
-        if q.RecordCount = 0 then
-          raise Exception.Create('Uses ''' + ((Node as TyamlSequence)[I] as TyamlScalar).AsString + ''' not found!');
+        if q.RecordCount <> 0 then
+        begin
+          AWriter.StartNewLine;
+          AWriter.WriteSequenceIndicator;
+          AWriter.WriteString((AValue[I] as TyamlString).AsString);
+        end else
+          raise Exception.Create('Uses ''' + (AValue[I] as TyamlString).AsString + ''' not found!');
+
       end;
     finally
       q.Free;
     end;
+
+    AWriter.DecIndent;
+    AWriter.StartNewLine;
   end;
 end;
 
@@ -475,11 +467,13 @@ var
   FS: TFileStream;
   Parser: TyamlParser; 
   BlobStream: TStream;
+  SS: TStringStream;
   Temps: String;
   I: Integer;
-  DidActivate: Boolean;
-  D: TyamlDocument;
-  P: Integer;
+  DidActivate: Boolean; 
+  M: TyamlMapping;
+  N: TyamlNode;
+  Writer: TyamlWriter;
 begin
   if AFileName = '' then
     FN := QueryLoadFileName(AFileName, 'yml', 'Модули|*.yml')
@@ -495,54 +489,90 @@ begin
         DidActivate := not Transaction.InTransaction;
         if DidActivate then
           Transaction.StartTransaction;
-          
-        if Active then Close;
-        SubSet := 'ByName';
-        Temps := ExtractFileName(FN);
-        SetLength(Temps, Length(Temps) - Length(ExtractFileExt(FN)));
-        ParamByName(GetListField(SubType)).AsString := Temps;
-        Open;
-
-        if not Eof then
-          Edit
-        else
-          Insert;
-
-        FieldByName('name').AsString := Temps;
-        BlobStream := CreateBlobStream(FieldByName('Data'), bmWrite);
-        try
-          BlobStream.CopyFrom(FS, 0);
-        finally
-          FreeAndNil(BlobStream);
-        end;
-
-        Post;
-        
         Parser := TyamlParser.Create;
         try
-          FS.Position := 0;
           Parser.Parse(FS);
-          P := 1;
-          for I := 0 to Parser.YAMLStream.Count - 1 do
+          M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
+          Temps := M.ReadString('Name');
+          if Temps = '' then
+            raise Exception.Create('Invalid namespace name!');
+
+          if Active then Close;
+          SubSet := 'ByName';
+          ParamByName(GetListField(SubType)).AsString := Temps;
+          Open;
+
+          if not Eof then
+            Edit
+          else
           begin
-            D := Parser.YAMLStream[I] as TyamlDocument;
-            if (D[0] is TyamlMapping) then
-            begin
-              if not CheckUses(D[0] as TyamlMapping) then
-              begin
-                LoadObject(D[0] as TyamlMapping, P, Transaction);
-                Inc(P);
+            Insert;
+            FieldByName('name').AsString := Temps;
+          end;
+
+
+          N := M.FindByName('Properties');
+          if N <> nil then
+          begin
+            SS := TStringStream.Create('');
+            try
+              Writer := TyamlWriter.Create(SS);
+              try
+                Writer.WriteKey('Properties');
+                Writer.IncIndent;
+
+                N := (N as TyamlMapping).FindByName('Version');
+                if N <> nil then
+                begin
+                  Writer.StartNewLine;
+                  Writer.WriteKey('Version');
+                  Writer.WriteString(FloatToStr((N as TyamlFloat).AsFloat));
+                end;
+                Writer.DecIndent;
+                Writer.StartNewLine;
+
+                N := M.FindByName('Uses');
+                if N <> nil then
+                begin
+                 if not (N is TyamlSequence) then
+                   raise Exception.Create('Invalid uses object!');
+
+                 CheckUses(N as TyamlSequence, Writer);
+                end;
+              finally
+                Writer.Free;
               end;
-            end else
-              raise Exception.Create('Invalid object!');
+
+              BlobStream := CreateBlobStream(FieldByName('header'), bmWrite);
+              try
+                BlobStream.CopyFrom(SS, 0);
+              finally
+                FreeAndNil(BlobStream);
+              end;
+            finally
+              SS.Free;
+            end;
+          end;
+
+          Post;
+
+          N := M.FindByName('Objects');
+          if N <> nil then
+          begin
+            if not (N is TyamlSequence) then
+              raise Exception.Create('Invalid objects!');
+            with N as TyamlSequence do
+            begin
+              for I := 0 to Count - 1 do
+                LoadObject(Items[I] as TyamlMapping, Transaction)
+            end;
           end;
         finally
           Parser.Free;
-        end; 
+        end;
 
         if DidActivate and Transaction.InTransaction then
           Transaction.Commit;
-
       except
         on E: Exception do
         begin
@@ -632,7 +662,24 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.LoadObject(AMapping: TyamlMapping; APos: Integer; ATr: TIBTransaction);
+procedure TgdcNamespace.LoadObject(AMapping: TyamlMapping; ATr: TIBTransaction);
+
+  procedure CheckDataType(F: TField; Value: TyamlNode);
+  var
+    Flag: Boolean;
+  begin
+    Flag := False;
+    case F.DataType of
+      ftDateTime: Flag := Value is TyamlDateTime;
+      ftDate: Flag := Value is TyamlDate;
+      ftInteger, ftLargeint, ftSmallint, ftWord: Flag := Value is TyamlInteger;
+      ftFloat, ftCurrency: Flag := Value is TyamlNumeric;
+      ftBlob, ftGraphic: Flag := Value is TyamlBinary;
+    end;
+    if not Flag then
+      raise Exception.Create('Invalid data type');
+  end;
+
 var
   I, K: Integer;
   SubType, ClassName: string;
@@ -648,164 +695,173 @@ var
   AtObj: TgdcNamespaceObject;
   OV: OleVariant;
   RuidRec: TRuidRec;
+  Fields: TyamlMapping;
 begin
   Assert(ATr <> nil);
   Assert(gdcBaseManager <> nil);
   Assert(AMapping <> nil);
 
-  ClassName := AMapping.ReadString('$Class');
-  SubType := AMapping.ReadString('$SubType');
-  RUID := AMapping.ReadString('$RUID');
+  Value := AMapping.FindByName('Properties');
+
+  if Value <> nil then
+  begin
+    ClassName := (Value as TyamlMapping).ReadString('Class');
+    SubType := (Value as TyamlMapping).ReadString('SubType');
+    RUID := (Value as TyamlMapping).ReadString('RUID');
+  end else
+    raise Exception.Create('Invalid properties');
 
   if (ClassName = '') or (RUID = '') then
-   raise Exception.Create('Invalid object!');
+    raise Exception.Create('Invalid object!');
 
-
-  Obj := CgdcBase(GetClass(ClassName)).CreateWithParams(nil, ATr.DefaultDatabase, ATr, SubType);
-  try
-   RuidRec := gdcBaseManager.GetRUIDRecByXID(StrToRUID(RUID).XID, StrToRUID(RUID).DBID, ATr);
-   if RuidRec.ID > 0 then
-   begin
-     Obj.Subset := 'ByID';
-     Obj.ID := RuidRec.ID;
-     Obj.Open;
-     if Obj.RecordCount = 0 then
-     begin
-       gdcBaseManager.DeleteRUIDbyXID(RuidRec.XID, RuidRec.DBID, ATr);
-       Obj.Insert;
-     end else
-       Obj.Edit;
-   end else
-   begin
-     Obj.Open;
-     Obj.Insert;
-   end;
-
-   for I := 0 to Obj.Fields.Count - 1 do
-   begin
-     F := Obj.Fields[I];
-     Value := AMapping.FindByName(F.FieldName);
-     if Value <> nil then
-     begin
-       if not (Value is TyamlScalar) then
-         raise Exception.Create('Invalid data!');
-
-       if (F.Origin > '') then
-       begin
-         L := 0;
-         RN := '';
-         while F.Origin[L] <> '.' do
-         begin
-           if F.Origin[L] <> '"' then
-             RN := RN + F.Origin[L];
-           Inc(L);
-         end;
-
-         if RN > '' then
-         begin
-           R := atDatabase.Relations.ByRelationName(RN);
-           if Assigned(R) then
-           begin
-             RF := R.RelationFields.ByFieldName(F.FieldName);
-             if Assigned(RF) and Assigned(RF.ForeignKey)then
-             begin
-               Temps := (Value as TyamlScalar).AsString;
-               RUID := '';
-               for K := 1 to Length(Temps) do
-               begin
-                 if not CharIsDigit(Temps[K]) and (Temps[K] <> '_') then
-                   break;
-                 RUID := RUID + Temps[K];
-               end;
-
-               if (RUID > '') and (CheckRUID(RUID)) then
-               begin
-                 ID := gdcBaseManager.GetIDByRUIDString(RUID, ATr);
-                 if ID > 0 then
-                 begin
-                   Obj.FieldByName(F.FieldName).AsInteger := ID;
-                   continue;
-                 end else
-                   raise Exception.Create('Id not found!');
-               end else
-                 raise Exception.Create('Invalid RUID!');
-             end;
-           end;
-         end;
-       end;
-       case F.DataType of
-         ftDateTime: Obj.FieldByName(F.FieldName).AsDateTime := (Value as TyamlDateTime).AsDateTime;
-         ftDate: Obj.FieldByName(F.FieldName).AsDateTime := (Value as TyamlDate).AsDate;
-         ftInteger, ftLargeint, ftSmallint, ftWord: Obj.FieldByName(F.FieldName).AsInteger := (Value as TyamlScalar).AsInteger;
-         ftFloat, ftCurrency: Obj.FieldByName(F.FieldName).AsFloat := (Value as TyamlScalar).AsFloat;
-         ftBlob, ftGraphic:
-         begin
-           Temps := (Value as TyamlScalar).AsString;
-           Temps := StringReplace(Temps, #32, '', [rfReplaceAll]);
-           Obj.FieldByName(F.FieldName).AsString := HexStringToBin(Temps);
-         end;
-       else
-         Obj.FieldByName(F.FieldName).AsString := Trim((Value as TyamlScalar).AsString);
-       end;
-     end;
-   end;
-
-   Obj.Post;
-
-    if gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr).XID = -1 then
-    begin
-      gdcBaseManager.InsertRUID(Obj.ID, RuidRec.XID,
-        RuidRec.DBID,
-        Now, IBLogin.ContactKey, ATr);
-    end else
-    begin 
-      gdcBaseManager.UpdateRUIDByID(Obj.ID, RuidRec.XID,
-        RuidRec.DBID,
-        Now, IBLogin.ContactKey, ATr);
-    end;
-
-    AtObj := TgdcNamespaceObject.CreateWithParams(nil, ATr.DefaultDatabase, ATr);
+  Fields := AMapping.FindByName('Fields') as TyamlMapping;
+  if Fields <> nil then
+  begin
+    Obj := CgdcBase(GetClass(ClassName)).CreateWithParams(nil, ATr.DefaultDatabase, ATr, SubType);
     try
-      gdcBaseManager.ExecSingleQueryResult(
-        'SELECT id FROM at_object WHERE namespacekey = :ns and xid = ' + IntToStr(RuidRec.XID) +
-        ' and dbid = ' + IntToStr(RuidRec.dbid),
-        Self.ID,
-        OV,
-        ATr);
-
-      if not VarIsEmpty(OV) then
+      RuidRec := gdcBaseManager.GetRUIDRecByXID(StrToRUID(RUID).XID, StrToRUID(RUID).DBID, ATr);
+      if RuidRec.ID > 0 then
       begin
-        AtObj.Subset := 'ByID';
-        AtObj.ID := OV[0, 0];
-        AtObj.Open;
-        AtObj.Edit;
+        Obj.Subset := 'ByID';
+        Obj.ID := RuidRec.ID;
+        Obj.Open;
+        if Obj.RecordCount = 0 then
+        begin
+          gdcBaseManager.DeleteRUIDbyXID(RuidRec.XID, RuidRec.DBID, ATr);
+          Obj.Insert;
+        end else
+          Obj.Edit;
       end else
       begin
-        AtObj.Open;
-        AtObj.Insert;
+        Obj.Open;
+        Obj.Insert;
       end;
 
-      AtObj.FieldByName('namespacekey').AsInteger := Self.ID;
-      AtObj.FieldByName('xid').AsInteger := RuidRec.XID;
-      AtObj.FieldByName('dbid').AsInteger := RuidRec.DBID;
-      AtObj.FieldByName('objectname').AsString := Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString;
-      AtObj.FieldByName('objectclass').AsString := ClassName;
-      AtObj.FieldByName('subtype').AsString := SubType;
-      AtObj.FieldByName('objectpos').AsInteger := APos;
-      AtObj.Post;
+      for I := 0 to Obj.Fields.Count - 1 do
+      begin
+        F := Obj.Fields[I];
+        Value := Fields.FindByName(F.FieldName);
+        if Value <> nil then
+        begin
+          if not (Value is TyamlScalar) then
+            raise Exception.Create('Invalid data!');
 
-      //AtObj.MakeObject;
+          if (F.Origin > '') and not TyamlScalar(Value).IsNull then
+          begin
+            L := 0;
+            RN := '';
+            while F.Origin[L] <> '.' do
+            begin
+              if F.Origin[L] <> '"' then
+                RN := RN + F.Origin[L];
+              Inc(L);
+            end;
+
+            if RN > '' then
+            begin
+              R := atDatabase.Relations.ByRelationName(RN);
+              if Assigned(R) then
+              begin
+                RF := R.RelationFields.ByFieldName(F.FieldName);
+                if Assigned(RF) and Assigned(RF.ForeignKey) then
+                begin
+                  Temps := TyamlScalar(Value).AsString;
+                  RUID := '';
+                  for K := 1 to Length(Temps) do
+                  begin
+                    if not CharIsDigit(Temps[K]) and (Temps[K] <> '_') then
+                      break;
+                    RUID := RUID + Temps[K];
+                  end;
+
+                  if (RUID > '') and (CheckRUID(RUID)) then
+                  begin
+                    ID := gdcBaseManager.GetIDByRUIDString(RUID, ATr);
+                    if ID > 0 then
+                    begin
+                      Obj.FieldByName(F.FieldName).AsInteger := ID;
+                      continue;
+                    end else
+                      raise Exception.Create('Id not found!');
+                  end else
+                    raise Exception.Create('Invalid RUID!');
+                end;
+              end;
+            end;
+          end;
+
+          if TyamlScalar(Value).IsNull then
+            Obj.FieldByName(F.FieldName).Clear
+          else begin
+            CheckDataType(F, Value);
+            case F.DataType of
+              ftDateTime: Obj.FieldByName(F.FieldName).AsDateTime := TyamlDateTime(Value).AsDateTime;
+              ftDate: Obj.FieldByName(F.FieldName).AsDateTime := TyamlDate(Value).AsDate;
+              ftInteger, ftLargeint, ftSmallint, ftWord: Obj.FieldByName(F.FieldName).AsInteger := TyamlScalar(Value).AsInteger;
+              ftFloat, ftCurrency: Obj.FieldByName(F.FieldName).AsFloat := TyamlScalar(Value).AsFloat;
+              ftBlob, ftGraphic: TBlobField(F).LoadFromStream(TyamlBinary(Value).AsStream);
+            else
+              Obj.FieldByName(F.FieldName).AsString := Trim(TyamlScalar(Value).AsString);
+            end;
+          end;
+        end;
+      end;
+
+      Obj.Post;
+
+      if gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr).XID = -1 then
+      begin
+        gdcBaseManager.InsertRUID(Obj.ID, RuidRec.XID,
+          RuidRec.DBID,
+          Now, IBLogin.ContactKey, ATr);
+      end else
+      begin
+        gdcBaseManager.UpdateRUIDByID(Obj.ID, RuidRec.XID,
+          RuidRec.DBID,
+          Now, IBLogin.ContactKey, ATr);
+      end;
+
+      AtObj := TgdcNamespaceObject.CreateWithParams(nil, ATr.DefaultDatabase, ATr);
+      try
+        gdcBaseManager.ExecSingleQueryResult(
+          'SELECT id FROM at_object WHERE namespacekey = :ns and xid = ' + IntToStr(RuidRec.XID) +
+          ' and dbid = ' + IntToStr(RuidRec.dbid),
+          Self.ID,
+          OV,
+          ATr);
+
+        if not VarIsEmpty(OV) then
+        begin
+          AtObj.Subset := 'ByID';
+          AtObj.ID := OV[0, 0];
+          AtObj.Open;
+          AtObj.Edit;
+        end else
+        begin
+          AtObj.Open;
+          AtObj.Insert;
+        end;
+
+        AtObj.FieldByName('namespacekey').AsInteger := Self.ID;
+        AtObj.FieldByName('xid').AsInteger := RuidRec.XID;
+        AtObj.FieldByName('dbid').AsInteger := RuidRec.DBID;
+        AtObj.FieldByName('objectname').AsString := Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString;
+        AtObj.FieldByName('objectclass').AsString := ClassName;
+        AtObj.FieldByName('subtype').AsString := SubType;
+        AtObj.Post;
+      finally
+        AtObj.Free;
+      end;
+
+      Value := AMapping.FindByName('Set');
+      if (Value <> nil) and (Value is TyamlMapping) then
+       LoadSet(Value as TyamlMapping, Obj.ID, ATr);
+
     finally
-      AtObj.Free;
+      Obj.Free;
     end;
-
-   Value := AMapping.FindByName('$Set');
-   if (Value <> nil) and (Value is TyamlMapping) then
-     LoadSet(Value as TyamlMapping, Obj.ID, ATr);
-
-  finally
-   Obj.Free;
-  end;
+  end else
+    raise Exception.Create('Invalid fields!');
 end;
 
 class function TgdcNamespaceObject.GetListTable(const ASubType: TgdcSubType): String;
@@ -815,7 +871,7 @@ end;
 
 class function TgdcNamespaceObject.GetListField(const ASubType: TgdcSubType): String;
 begin
-  Result := 'objectclass';
+  Result := 'objectname';
 end;
 
 class function TgdcNamespaceObject.GetSubSetList: String;
@@ -839,11 +895,6 @@ procedure TgdcNamespace.SaveNamespaceToFile(const AFileName: String = '');
 var
   FN: String;
   FS: TFileStream;
-  Obj: TgdcNamespaceObject;
-  W: TyamlWriter;
-  InstID: Integer;
-  InstObj: TgdcBase;
-  InstClass: TPersistentClass;
 begin
   if AFileName > '' then
     FN := AFileName
@@ -854,64 +905,13 @@ begin
   begin
     FS := TFileStream.Create(FN, fmCreate);
     try
-      W := TyamlWriter.Create(FS);
+      SaveNamespaceToStream(FS);
+      Edit;
       try
-        W.WriteKey('Name');
-        W.WriteString(FieldByName('name').AsString);
-        W.StartNewLine;
+        FS.Position := 0;
+        (FieldByName('data') as TBLOBField).LoadFromStream(FS);
       finally
-        W.Free;
-      end;
-
-      (FieldByName('header') as TBLOBField).SaveToStream(FS);
-
-      W := TyamlWriter.Create(FS);
-      try
-        W.WriteKey('Objects');
-        W.IncIndent;
-
-        Obj := TgdcNamespaceObject.Create(nil);
-        try
-          Obj.SubSet := 'ByNamespace';
-          Obj.ParamByName('namespacekey').AsInteger := Self.ID;
-          Obj.Open;
-          while not Obj.Eof do
-          begin
-            InstID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
-              Obj.FieldByName('dbid').AsInteger);
-
-            InstClass := GetClass(Obj.FieldByName('objectclass').AsString);
-            if InstClass <> nil then
-            begin
-              InstObj := CgdcBase(InstClass).CreateSubType(nil,
-                Obj.FieldByName('subtype').AsString, 'ByID');
-              try
-                InstObj.ID := InstID;
-                InstObj.Open;
-                if not InstObj.EOF then
-                begin
-                  W.StartNewLine;
-                  W.WriteSequenceIndicator;
-                  W.IncIndent;
-                  try
-                    W.StartNewLine;
-                    WriteObject(InstObj, W);
-                  finally
-                    W.DecIndent;
-                  end;
-                end;
-              finaLLY
-                InstObj.Free;
-              end;
-            end;
-
-            Obj.Next;
-          end;
-        finally
-          Obj.Free;
-        end;
-      finally
-        W.Free;
+        Post;
       end;
     finally
       FS.Free;
@@ -953,11 +953,15 @@ begin
   begin
     FieldByName('header').AsString :=
       'Properties: '#13#10 +
-      '  Version: 1.0'#13#10 +
+      '  Version: 1.0.0.0'#13#10 +
+      '  Optional: False'#13#10 +
+      '  Internal: True'#13#10 +
+      '  DBVersion: ' + IBLogin.DBVersion + #13#10 +
+      '  AlwaysOverwrite: True'#13#10 +
       'Uses: '#13#10 +
-      '  - NS1'#13#10 +
-      '  - NS2'#13#10 +
-      '  - NSn'#13#10;
+      '  - '#13#10 +
+      '  - '#13#10 +
+      '  - '#13#10;
   end;
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCNAMESPACE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
@@ -968,6 +972,106 @@ begin
   {END MACRO}
 end;
 
+procedure TgdcNamespace.CompareWithData;
+var
+  ScriptComparer: Tprp_ScriptComparer;
+  S1, S2: TStringStream;
+begin
+  S1 := TStringStream.Create('');
+  S2 := TStringStream.Create('');
+  ScriptComparer := Tprp_ScriptComparer.Create(nil);
+  try
+    SaveNamespaceToStream(S1);
+    (FieldByName('data') as TBlobField).SaveToStream(S2);
+
+    ScriptComparer.Compare(S1.DataString, S2.DataString);
+    ScriptComparer.LeftCaption('Текущее состояние в базе данных:');
+    ScriptComparer.RightCaption('Сохраненная версия:');
+    ScriptComparer.ShowModal;
+  finally
+    S1.Free;
+    S2.Free;
+    ScriptComparer.Free;
+  end;
+end;
+
+procedure TgdcNamespace.SaveNamespaceToStream(St: TStream);
+var
+  Obj: TgdcNamespaceObject;
+  W: TyamlWriter;
+  InstID: Integer;
+  InstObj: TgdcBase;
+  InstClass: TPersistentClass;
+begin
+  Assert(St <> nil);
+
+  if State <> dsBrowse then
+    raise EgdcException.CreateObj('Not in a browse state', Self);
+
+  W := TyamlWriter.Create(St);
+  try
+    W.WriteKey('StructureVersion');
+    W.WriteString('1.0');
+    W.StartNewLine;
+    W.WriteKey('Name');
+    W.WriteString(FieldByName('name').AsString);
+    W.StartNewLine;
+  finally
+    W.Free;
+  end;
+
+  (FieldByName('header') as TBLOBField).SaveToStream(St);
+
+  W := TyamlWriter.Create(St);
+  try
+    W.WriteKey('Objects');
+    W.IncIndent;
+
+    Obj := TgdcNamespaceObject.Create(nil);
+    try
+      Obj.SubSet := 'ByNamespace';
+      Obj.ParamByName('namespacekey').AsInteger := Self.ID;
+      Obj.Open;
+      while not Obj.Eof do
+      begin
+        InstID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
+          Obj.FieldByName('dbid').AsInteger);
+
+        InstClass := GetClass(Obj.FieldByName('objectclass').AsString);
+        if InstClass <> nil then
+        begin
+          InstObj := CgdcBase(InstClass).CreateSubType(nil,
+            Obj.FieldByName('subtype').AsString, 'ByID');
+          try
+            InstObj.ID := InstID;
+            InstObj.Open;
+            if not InstObj.EOF then
+            begin
+              W.StartNewLine;
+              W.WriteSequenceIndicator;
+              W.IncIndent;
+              try
+                W.StartNewLine;
+                WriteObject(InstObj, W);
+              finally
+                W.DecIndent;
+              end;
+            end;
+          finaLLY
+            InstObj.Free;
+          end;
+        end;
+
+        Obj.Next;
+      end;
+    finally
+      Obj.Free;
+    end;
+  finally
+    W.Free;
+  end;
+end;
+
 initialization
   RegisterGDCClass(TgdcNamespace);
   RegisterGDCClass(TgdcNamespaceObject);
@@ -975,5 +1079,4 @@ initialization
 finalization
   UnRegisterGDCClass(TgdcNamespace);
   UnRegisterGDCClass(TgdcNamespaceObject);
-  
 end.

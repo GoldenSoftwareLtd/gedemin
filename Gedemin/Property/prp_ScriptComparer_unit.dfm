@@ -17,27 +17,27 @@ object prp_ScriptComparer: Tprp_ScriptComparer
   TextHeight = 13
   object pnBottom: TPanel
     Left = 0
-    Top = 596
-    Width = 857
-    Height = 41
+    Top = 591
+    Width = 849
+    Height = 35
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 0
     object btnOK: TButton
-      Left = 686
-      Top = 8
+      Left = 681
+      Top = 6
       Width = 75
-      Height = 25
+      Height = 21
       Anchors = [akRight, akBottom]
       Caption = 'ОК'
       ModalResult = 1
       TabOrder = 0
     end
     object btnCancel: TButton
-      Left = 771
-      Top = 8
+      Left = 764
+      Top = 6
       Width = 75
-      Height = 25
+      Height = 21
       Anchors = [akRight, akBottom]
       Caption = 'Отмена'
       ModalResult = 2
@@ -47,8 +47,8 @@ object prp_ScriptComparer: Tprp_ScriptComparer
   object pnMain: TPanel
     Left = 0
     Top = 28
-    Width = 857
-    Height = 568
+    Width = 849
+    Height = 563
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
@@ -56,7 +56,7 @@ object prp_ScriptComparer: Tprp_ScriptComparer
   object pnToolBar: TPanel
     Left = 0
     Top = 0
-    Width = 857
+    Width = 849
     Height = 28
     Align = alTop
     BevelOuter = bvNone
@@ -64,11 +64,12 @@ object prp_ScriptComparer: Tprp_ScriptComparer
     object TBDock1: TTBDock
       Left = 0
       Top = 0
-      Width = 857
+      Width = 849
       Height = 26
       object TBToolbar1: TTBToolbar
         Left = 0
         Top = 0
+        BorderStyle = bsNone
         Caption = 'TBToolbar1'
         DefaultDock = TBDock1
         DockMode = dmCannotFloatOrChangeDocks

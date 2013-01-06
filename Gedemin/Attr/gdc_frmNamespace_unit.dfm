@@ -17,6 +17,9 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       object TBItem1: TTBItem
         Action = actSetObjectPos
       end
+      object TBItem2: TTBItem
+        Action = actCompareWithData
+      end
     end
   end
   inherited TBDockLeft: TTBDock
@@ -84,6 +87,12 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
     object actSetObjectPos: TAction
       Caption = 'actSetObjectPos'
       OnExecute = actSetObjectPosExecute
+      OnUpdate = actSetObjectPosUpdate
+    end
+    object actCompareWithData: TAction
+      Caption = 'actCompareWithData'
+      OnExecute = actCompareWithDataExecute
+      OnUpdate = actCompareWithDataUpdate
     end
   end
   object gdcNamespace: TgdcNamespace

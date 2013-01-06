@@ -164,12 +164,18 @@ begin
             begin
               FStyle := sFolded;
               FReader.SkipUntilEOL;
+              FQuoting := qPlain;
+              FScalar := '';
+              FState := sScalar;
             end;
 
             '|':
             begin
               FStyle := sLiteral;
               FReader.SkipUntilEOL;
+              FQuoting := qPlain;
+              FScalar := '';
+              FState := sScalar;
             end;
 
             '''':
