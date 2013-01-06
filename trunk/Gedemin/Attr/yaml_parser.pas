@@ -38,7 +38,6 @@ type
     procedure SetAsInteger(const Value: Integer); virtual;
     procedure SetAsString(const Value: AnsiString); virtual;
     procedure SetAsBoolean(const Value: Boolean); virtual;
-
   public
     procedure Parse(Scanner: TyamlScanner); override;
 
@@ -50,6 +49,8 @@ type
     property AsBoolean: Boolean read GetAsBoolean write SetAsBoolean;
     property IsNull: Boolean read GetIsNull;
   end;
+
+  TyamlNumeric = class(TyamlScalar);
 
   TyamlString = class(TyamlScalar)
   private
@@ -71,7 +72,7 @@ type
     property Style: TyamlScalarStyle read FStyle write FStyle;
   end;
 
-  TyamlInteger = class(TyamlScalar)
+  TyamlInteger = class(TyamlNumeric)
   private
     FValue: Integer;
 
@@ -109,7 +110,7 @@ type
     constructor CreateDate(const AValue: TDateTime);
   end;
 
-  TyamlFloat = class(TyamlScalar)
+  TyamlFloat = class(TyamlNumeric)
   private
     FValue: Double;
 
@@ -139,6 +140,20 @@ type
   protected
     function GetAsString: AnsiString; override;
     function GetIsNull: Boolean; override;
+  end;
+
+  TyamlBinary = class(TyamlScalar)
+  private
+    MS: TStream;
+
+    procedure HexStringToBin(const AHexString: AnsiString);
+    function GetAsStream: TStream;
+
+  public
+    constructor CreateBinary(const AValue: AnsiString);
+    destructor Destroy; override;
+
+    property AsStream: TStream read GetAsStream;
   end;
 
   TyamlKeyValue = class(TyamlNode)
@@ -457,7 +472,9 @@ begin
         Result := TyamlDateTime.CreateDateTime(Scanner.Scalar)
       else if ATag = '!!null' then
         Result := TyamlNull.Create
-      else
+      else if ATag = '!stream' then
+        Result := TyamlBinary.CreateBinary(Scanner.Scalar)
+      else  
         raise EyamlSyntaxError.Create('Unknown tag');  
 
       if ATag <> '!!null' then
@@ -770,6 +787,44 @@ end;
 function TyamlNull.GetIsNull: Boolean;
 begin
   Result := True;
+end;
+
+{ TyamlBinary }
+
+constructor TyamlBinary.CreateBinary(const AValue: AnsiString);
+begin
+  inherited Create;
+  MS := TMemoryStream.Create;
+  HexStringToBin(AValue);
+end;
+
+destructor TyamlBinary.Destroy;
+begin
+  MS.Free;
+  inherited;
+end;
+
+function TyamlBinary.GetAsStream: TStream;
+begin
+  Result := MS;
+end;
+
+procedure TyamlBinary.HexStringToBin(const AHexString: AnsiString);
+const
+  BuffSize = 1024;
+var
+  Buff: array[0..BuffSize - 1] of AnsiChar;
+  P, C, W: Integer;
+begin
+  P := 1;
+  while P <= Length(AHexString) do
+  begin
+    C := Length(AHexString) - P + 1;
+    if C > BuffSize * 2 then C := BuffSize * 2;
+    W := HexToBin(@AHexString[P], Buff, BuffSize);
+    MS.Write(Buff, W);
+    Inc(P, C);
+  end;
 end;
 
 { TyamlKeyValue }
