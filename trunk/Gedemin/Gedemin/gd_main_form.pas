@@ -738,12 +738,15 @@ end;
 procedure TfrmGedeminMain.DoAfterChangeCompany;
 var
   ShouldShowExplorer: Boolean;
+  {$IFNDEF DUNIT_TEST}
   q: TIBSQL;
+  {$ENDIF}
 begin
   {$IFNDEF DUNIT_TEST}
   if (IBLogin <> nil)
     and IBLogin.IsIBUserAdmin
     and (IBLogin.CompanyKey < cstUserIDStart)
+    and (System.Copy(IBLogin.CompanyName, 1, 1) = '<')
     and (not gd_CmdLineParams.QuietMode)
     and (gd_CmdLineParams.LoadSettingFileName = '') then
   begin
