@@ -1461,6 +1461,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         object TBItem13: TTBItem
           Action = actNew
         end
+        object TBItem31: TTBItem
+          Action = actExternalEditor
+        end
         object TBSeparatorItem6: TTBSeparatorItem
         end
         object TBItem12: TTBItem
@@ -1539,14 +1542,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Action = actMakeSelect
         end
         object Label13: TLabel
-          Left = 370
+          Left = 470
           Top = 4
           Width = 51
           Height = 13
           Caption = 'Таблицы: '
         end
         object iblkupTable: TgsIBLookupComboBox
-          Left = 421
+          Left = 521
           Top = 0
           Width = 145
           Height = 21
@@ -1838,6 +1841,11 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       ImageIndex = 219
       OnExecute = actShowTreeExecute
       OnUpdate = actShowTreeUpdate
+    end
+    object actExternalEditor: TAction
+      Caption = 'actExternalEditor'
+      OnExecute = actExternalEditorExecute
+      OnUpdate = actExternalEditorUpdate
     end
   end
   object ibsqlPlan: TIBSQL

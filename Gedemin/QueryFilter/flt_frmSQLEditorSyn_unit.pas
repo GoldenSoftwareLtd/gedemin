@@ -225,6 +225,8 @@ type
     spMonitor: TSplitter;
     dbseSQLText: TDBSynEdit;
     chlbTransactionParams: TCheckListBox;
+    actExternalEditor: TAction;
+    TBItem31: TTBItem;
     procedure actPrepareExecute(Sender: TObject);
     procedure actExecuteExecute(Sender: TObject);
     procedure actCommitExecute(Sender: TObject);
@@ -291,6 +293,8 @@ type
     procedure actShowTreeExecute(Sender: TObject);
     procedure seQuerySpecialLineColors(Sender: TObject; Line: Integer;
       var Special: Boolean; var FG, BG: TColor);
+    procedure actExternalEditorExecute(Sender: TObject);
+    procedure actExternalEditorUpdate(Sender: TObject);
   private
     FOldDelete, FOldInsert, FOldUpdate, FOldIndRead, FOldSeqRead: TStrings;
     FOldRead, FOldWrite, FOldFetches: Integer;
@@ -2183,6 +2187,46 @@ begin
     BG := clRed;
     FG := clWhite;
   end;
+end;
+
+procedure TfrmSQLEditorSyn.actExternalEditorExecute(Sender: TObject);
+var
+  StartupInfo: TStartupInfo;
+  ProcessInfo: TProcessInformation;
+  FName: String;
+  TempPath: array[0..1023] of Char;
+  TempFileName: array[0..1023] of Char;
+begin
+  if (GetTempPath(SizeOf(TempPath), TempPath) = 0) or
+    (GetTempFileName(TempPath, 'gd', 0, TempFileName) = 0) then
+      raise Exception.Create('Can not get a name for temp file');
+
+  seQuery.Lines.SaveToFile(TempFileName);
+  try
+    FName := 'C:\Program Files (x86)\Notepad++\notepad++.exe';
+    FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
+    StartupInfo.cb := SizeOf(TStartupInfo);
+    if not CreateProcess(PChar(FName),
+      PChar('"' + FName + '" -multiInst -nosession -lsql "' + TempFileName + '"'),
+      nil, nil, False, NORMAL_PRIORITY_CLASS, nil, nil,
+      StartupInfo, ProcessInfo) then
+    begin
+      raise Exception.Create('Can not start external editor. ' +
+        SysErrorMessage(GetLastError));
+    end;
+
+    WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
+
+    seQuery.Lines.LoadFromFile(TempFileName);
+  finally
+    DeleteFile(TempFileName);
+  end;
+end;
+
+procedure TfrmSQLEditorSyn.actExternalEditorUpdate(Sender: TObject);
+begin
+  actExternalEditor.Enabled := (pcMain.ActivePage = tsQuery)
+    and (seQuery.Text > '');
 end;
 
 initialization
