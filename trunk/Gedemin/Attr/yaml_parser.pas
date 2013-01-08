@@ -146,7 +146,7 @@ type
   private
     MS: TStream;
 
-    procedure HexStringToBin(const AHexString: AnsiString);
+    procedure Base64ToBin(const AStr: AnsiString);
     function GetAsStream: TStream;
 
   public
@@ -232,7 +232,7 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils, JclMime;
 
 function ConvertToInteger(const S: AnsiString; out I: Integer): Boolean;
 begin
@@ -472,7 +472,7 @@ begin
         Result := TyamlDateTime.CreateDateTime(Scanner.Scalar)
       else if ATag = '!!null' then
         Result := TyamlNull.Create
-      else if ATag = '!stream' then
+      else if ATag = '!!binary' then
         Result := TyamlBinary.CreateBinary(Scanner.Scalar)
       else  
         raise EyamlSyntaxError.Create('Unknown tag');  
@@ -795,7 +795,7 @@ constructor TyamlBinary.CreateBinary(const AValue: AnsiString);
 begin
   inherited Create;
   MS := TMemoryStream.Create;
-  HexStringToBin(AValue);
+  Base64ToBin(AValue);
 end;
 
 destructor TyamlBinary.Destroy;
@@ -809,21 +809,15 @@ begin
   Result := MS;
 end;
 
-procedure TyamlBinary.HexStringToBin(const AHexString: AnsiString);
-const
-  BuffSize = 1024;
+procedure TyamlBinary.Base64ToBin(const AStr: AnsiString);
 var
-  Buff: array[0..BuffSize - 1] of AnsiChar;
-  P, C, W: Integer;
+  SS: TStringStream;
 begin
-  P := 1;
-  while P <= Length(AHexString) do
-  begin
-    C := Length(AHexString) - P + 1;
-    if C > BuffSize * 2 then C := BuffSize * 2;
-    W := HexToBin(@AHexString[P], Buff, BuffSize);
-    MS.Write(Buff, W);
-    Inc(P, C);
+  SS := TStringStream.Create(AStr);
+  try
+    MimeDecodeStream(SS, MS);
+  finally
+    SS.Free;
   end;
 end;
 

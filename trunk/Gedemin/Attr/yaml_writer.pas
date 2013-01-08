@@ -50,7 +50,7 @@ type
 implementation
 
 uses
-  JclStrings;
+  JclStrings, JclMime;
 
 const
   DefBufferSize   = 65536;
@@ -187,35 +187,17 @@ end;
 
 procedure TyamlWriter.WriteBinary(AStream: TStream); 
 var
-  Buff: array[0..15] of AnsiChar;
-  P, Size, CountRead: Integer;
-  TempS: AnsiString;
+  SS: TStringStream;  
 begin
   Assert(AStream <> nil);
-  Size := 1024;
-  SetLength(TempS, Size);
-  CountRead := AStream.Read(Buff, SizeOf(Buff));
-  P := 1;
-  while CountRead > 0 do
-  begin
-    if (Size - P + 1) < (2 * CountRead + 2) then
-    begin
-      Size := Size * 2;
-      SetLength(TempS, Size);
-    end;
-    BinToHex(Buff, @TempS[P], CountRead);
-    Inc(P, CountRead * 2 + 2);
-    CountRead := AStream.Read(Buff, SizeOf(Buff));
-    if CountRead > 0 then
-    begin
-      TempS[P - 2] := #13;
-      TempS[P - 1] := #10;
-    end else
-      Dec(P, 2);
+  SS := TStringStream.Create('');
+  try
+    MimeEncodeStream(AStream, SS);
+    WriteTag('!!binary');
+    WriteText(SS.DataString, qPlain, sFolded);
+  finally
+    SS.Free;
   end;
-  SetLength(TempS, P - 1);
-  WriteTag('!stream');
-  WriteText(TempS, qPlain, sFolded);    
 end;
 
 procedure TyamlWriter.WriteTag(const ATag: AnsiString);
