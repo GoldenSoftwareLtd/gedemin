@@ -1453,8 +1453,6 @@ begin
 end;
 
 procedure Tgdc_frmSetting.actSet2NSExecute(Sender: TObject);
-var
-  WorkedOut: TList;
 
   procedure ParseSetting(const AnID: Integer;
     const AFileName: String = '');
@@ -1462,9 +1460,6 @@ var
     Obj: TgdcBase;
     SW: TatSettingWalker;
   begin
-    if WorkedOut.IndexOf(Pointer(AnID)) <> -1 then
-      exit;
-
     Obj := TgdcSetting.CreateSingularByID(Self, AnID, gdcObject.SubType);
     try
       IDLink.Clear;
@@ -1484,8 +1479,6 @@ var
         finally
           SW.Stream.Free;
         end;
-
-        WorkedOut.Add(Pointer(AnID));
       finally
         SW.Free;
       end;
@@ -1508,7 +1501,6 @@ begin
   gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
 
   OldCursor := Screen.Cursor;
-  WorkedOut := TList.Create;
   SList := TStringList.Create;
   SCount := TStringList.Create;
   SDiff := TStringList.Create;
@@ -1549,7 +1541,6 @@ begin
     SDiff.Free;
     SCRC32.Free;
     IDLink.Free;
-    WorkedOut.Free;
     FakeStream.Free;
     Screen.Cursor := OldCursor;
   end;
