@@ -174,6 +174,9 @@ type
     btnCopyRUIDFunction: TButton;
     edtRUIDFunction: TEdit;
     tsHistory: TSuperTabSheet;
+    actExternalEditor: TAction;
+    nExternalEditor: TMenuItem;
+    nExternalEditorBreak: TMenuItem;
     procedure PageControlChanging(Sender: TObject;
       var AllowChange: Boolean);
     procedure PageControlChange(Sender: TObject);
@@ -245,6 +248,7 @@ type
     procedure btnCopyRUIDFunctionClick(Sender: TObject);
     procedure pMainResize(Sender: TObject);
     procedure gdcDelphiObjectAfterScroll(DataSet: TDataSet);
+    procedure actExternalEditorExecute(Sender: TObject);
   private
     FFunctionParams: TgsParamList;
     FParamLines: TObjectList;
@@ -397,10 +401,11 @@ uses
   gdcConstants, rp_frmParamLineSE_unit, scr_i_FunctionList,
   rp_BaseReport_unit, gd_i_ScriptFactory, syn_ManagerInterface_unit,
   prp_Messages, prp_i_VBProposal, prp_MessageConst, gd_ScriptFactory,
-  prp_frmGedeminProperty_Unit, IBSQL, IBDatabase, mtd_i_Base, Clipbrd, gd_createable_form,
-  jclStrings, CodeExplorerParser, rp_report_const, prp_dfPropertyTree_Unit,
-  gd_security_operationconst, prp_PropertySettings, prp_dlgInputLineNumber_unit,
-  prp_dlgBreakPointProperty_unit, wiz_Main_Unit, gdcClasses, prp_FunctionHistoryFrame_unit
+  prp_frmGedeminProperty_Unit, IBSQL, IBDatabase, mtd_i_Base, Clipbrd,
+  gd_createable_form, jclStrings, CodeExplorerParser, rp_report_const,
+  prp_dfPropertyTree_Unit, gd_security_operationconst, prp_PropertySettings,
+  prp_dlgInputLineNumber_unit, prp_dlgBreakPointProperty_unit, wiz_Main_Unit,
+  gdcClasses, prp_FunctionHistoryFrame_unit, gd_ExternalEditor
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -3016,6 +3021,11 @@ end;
 procedure TFunctionFrame.gdcDelphiObjectAfterScroll(DataSet: TDataSet);
 begin
   FOldName:= gdcFunction.FieldByName('name').AsString;
+end;
+
+procedure TFunctionFrame.actExternalEditorExecute(Sender: TObject);
+begin
+  InvokeExternalEditor('vb', gsFunctionSynEdit.Lines);
 end;
 
 initialization

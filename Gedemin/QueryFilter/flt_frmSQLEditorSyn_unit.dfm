@@ -1453,8 +1453,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
         Top = 0
         Caption = 'Панель инструментов'
         CloseButton = False
+        Font.Charset = RUSSIAN_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
         FullSize = True
         Images = dmImages.il16x16
+        ParentFont = False
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
@@ -1542,14 +1548,14 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
           Action = actMakeSelect
         end
         object Label13: TLabel
-          Left = 470
+          Left = 393
           Top = 4
           Width = 51
           Height = 13
           Caption = 'Таблицы: '
         end
         object iblkupTable: TgsIBLookupComboBox
-          Left = 521
+          Left = 444
           Top = 0
           Width = 145
           Height = 21
@@ -1843,7 +1849,9 @@ object frmSQLEditorSyn: TfrmSQLEditorSyn
       OnUpdate = actShowTreeUpdate
     end
     object actExternalEditor: TAction
-      Caption = 'actExternalEditor'
+      Caption = 'Внешний редактор...'
+      Hint = 'Редактировать текст запроса во внешнем редакторе'
+      ImageIndex = 177
       OnExecute = actExternalEditorExecute
       OnUpdate = actExternalEditorUpdate
     end

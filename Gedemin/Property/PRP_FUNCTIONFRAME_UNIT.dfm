@@ -26,7 +26,7 @@ inherited FunctionFrame: TFunctionFrame
       end
       inherited pMain: TPanel
         Top = 28
-        Height = 222
+        Height = 211
         OnResize = pMainResize
         inherited lbDescription: TLabel
           Top = 80
@@ -151,8 +151,8 @@ inherited FunctionFrame: TFunctionFrame
       object gsFunctionSynEdit: TgsFunctionSynEdit
         Left = 0
         Top = 0
-        Width = 439
-        Height = 250
+        Width = 431
+        Height = 239
         Cursor = crIBeam
         HelpContext = 318
         gdcFunction = gdcFunction
@@ -532,8 +532,8 @@ inherited FunctionFrame: TFunctionFrame
         object Label19: TLabel
           Left = 0
           Top = 0
-          Width = 439
-          Height = 227
+          Width = 82
+          Height = 13
           Align = alClient
           Alignment = taCenter
           Caption = 'Нет параметров'
@@ -559,14 +559,14 @@ inherited FunctionFrame: TFunctionFrame
         Left = 217
         Top = 0
         Width = 3
-        Height = 254
+        Height = 243
         Cursor = crHSplit
       end
       object pnlDependent: TPanel
         Left = 0
         Top = 0
         Width = 217
-        Height = 254
+        Height = 243
         Align = alLeft
         BevelOuter = bvNone
         TabOrder = 0
@@ -592,7 +592,7 @@ inherited FunctionFrame: TFunctionFrame
           Left = 0
           Top = 17
           Width = 217
-          Height = 237
+          Height = 226
           Align = alClient
           ItemHeight = 13
           PopupMenu = pmDependent
@@ -603,15 +603,15 @@ inherited FunctionFrame: TFunctionFrame
       object pnlDependedFrom: TPanel
         Left = 220
         Top = 0
-        Width = 223
-        Height = 254
+        Width = 215
+        Height = 243
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
         object Panel4: TPanel
           Left = 0
           Top = 0
-          Width = 223
+          Width = 215
           Height = 17
           Align = alTop
           Alignment = taLeftJustify
@@ -629,8 +629,8 @@ inherited FunctionFrame: TFunctionFrame
         object lbDependedFrom: TListBox
           Left = 0
           Top = 17
-          Width = 223
-          Height = 237
+          Width = 215
+          Height = 226
           Align = alClient
           ItemHeight = 13
           PopupMenu = pmDependedFrom
@@ -652,15 +652,21 @@ inherited FunctionFrame: TFunctionFrame
     Images = dmImages.il16x16
     OnPopup = PopupMenuPopup
     Left = 304
-    object miEnableBreakPoint: TMenuItem [0]
+    object nExternalEditor: TMenuItem [0]
+      Action = actExternalEditor
+    end
+    object nExternalEditorBreak: TMenuItem [1]
+      Caption = '-'
+    end
+    object miEnableBreakPoint: TMenuItem [2]
       Action = actEnableBreakPoint
       Visible = False
     end
-    object miPropertyBreakPoint: TMenuItem [1]
+    object miPropertyBreakPoint: TMenuItem [3]
       Action = actPropertyBreakPoint
       Visible = False
     end
-    object miSeparator: TMenuItem [2]
+    object miSeparator: TMenuItem [4]
       Caption = '-'
       Visible = False
     end
@@ -827,6 +833,10 @@ inherited FunctionFrame: TFunctionFrame
       ImageIndex = 236
       OnExecute = actWizardExecute
       OnUpdate = actWizardUpdate
+    end
+    object actExternalEditor: TAction
+      Caption = 'Внешний редактор...'
+      OnExecute = actExternalEditorExecute
     end
   end
   object gdcFunction: TgdcFunction

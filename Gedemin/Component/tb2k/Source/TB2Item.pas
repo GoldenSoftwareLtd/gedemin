@@ -6955,6 +6955,11 @@ begin
   if Forms.GetNonClientMetrics(NonClientMetrics) then
   {$ENDIF}
     ToolbarFont.Handle := CreateFontIndirect(NonClientMetrics.lfMenuFont);
+
+  {$IFDEF GEDEMIN}
+  { http://gsbelarus.com/gs/modules.php?name=Forums&file=viewtopic&t=629 }
+  ToolbarFont.Charset := RUSSIAN_CHARSET;
+  {$ENDIF}
 end;
 
 var

@@ -35,6 +35,8 @@ type
     function GetWebServerBindings: String;
     function GetWebServerUpdatePath: String;
 
+    function GetExternalEditor(const ALang: String): String;
+
     property LocalAppDataDir: String read FLocalAddDataDir;
     property NetworkDrive: Boolean read FNetworkDrive;
     property CDROMDrive: Boolean read FCDROMDrive;
@@ -145,6 +147,11 @@ begin
     and (not CDROMDrive)
     and (not SecondaryInstance)
     and (not FNeedRestartForUpdate);
+end;
+
+function Tgd_GlobalParams.GetExternalEditor(const ALang: String): String;
+begin
+  Result := FIniFile.ReadString('EXTERNAL EDITOR', ALang, '');
 end;
 
 initialization
