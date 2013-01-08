@@ -28,7 +28,7 @@ type
 
     procedure SaveNamespaceToStream(St: TStream);
     procedure SaveNamespaceToFile(const AFileName: String = '');
-    procedure CompareWithData;
+    procedure CompareWithData(const AFileName: String);
   end;
 
   TgdcNamespaceObject = class(TgdcBase)
@@ -206,7 +206,8 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
   end;
 
 const
-  PassFieldName = ';ID;EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;';
+  PassFieldName = ';ID;EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED' +
+                  ';ENTEREDPARAMS;BREAKPOINTS;EDITORSTATE;TESTRESULT;RDB$PROCEDURE_BLR;RDB$TRIGGER_BLR;RDB$VIEW_BLR;';
 var
   I, L: Integer;
   R: TatRelation;
@@ -218,6 +219,9 @@ var
   Obj: TgdcBase;
   C: TgdcFullClass;
   BlobStream: TStream;
+  TempS, Sign, Grid: String;
+  StIn, StOut: TStringStream;
+  Flag: Boolean;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(AgdcObject <> nil);
@@ -329,11 +333,38 @@ begin
           ftMemo: AWriter.WriteText(F.AsString, qPlain, sLiteral);
           ftBlob, ftGraphic:
           begin
-            BlobStream := AgdcObject.CreateBlobStream(F, bmRead);
-            try
-              AWriter.WriteBinary(BlobStream);
-            finally
-              FreeAndNil(BlobStream);
+            Flag := False;
+
+            if (AgdcObject.ClassName = 'TgdcStorageValue') and (AgdcObject.FieldByName('name').AsString = 'dfm') then
+            begin
+              TempS := F.AsString;
+
+              Sign := UpperCase(System.Copy(TempS, 0, 3));
+              Grid := UpperCase(System.Copy(TempS, 7, 11));
+
+              if (Sign = 'TPF') and (Grid <> 'GRID_STREAM') then
+              begin
+                StIn := TStringStream.Create(TempS);
+                StOut := TStringStream.Create('');
+                try
+                  ObjectBinaryToText(StIn, StOut);
+                  AWriter.WriteText(StOut.DataString, qPlain, sLiteral);
+                  Flag := True;
+                finally
+                  StIn.Free;
+                  StOut.Free;
+                end;
+              end;
+            end;
+
+            if not Flag then
+            begin
+              BlobStream := AgdcObject.CreateBlobStream(F, bmRead);
+              try
+                AWriter.WriteBinary(BlobStream);
+              finally
+                FreeAndNil(BlobStream);
+              end;
             end;
           end;
           ftInteger, ftLargeint, ftSmallint, ftWord: AWriter.WriteInteger(F.AsInteger);
@@ -909,7 +940,6 @@ begin
       Edit;
       try
         FS.Position := 0;
-        (FieldByName('data') as TBLOBField).LoadFromStream(FS);
       finally
         Post;
       end;
@@ -957,7 +987,6 @@ begin
       '  Optional: False'#13#10 +
       '  Internal: True'#13#10 +
       '  DBVersion: ' + IBLogin.DBVersion + #13#10 +
-      '  AlwaysOverwrite: True'#13#10 +
       'Uses: '#13#10 +
       '  - '#13#10 +
       '  - '#13#10 +
@@ -972,23 +1001,26 @@ begin
   {END MACRO}
 end;
 
-procedure TgdcNamespace.CompareWithData;
+procedure TgdcNamespace.CompareWithData(const AFileName: String);
 var
   ScriptComparer: Tprp_ScriptComparer;
   S1, S2: TStringStream;
+  FS: TFileStream;
 begin
+  FS := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
   S1 := TStringStream.Create('');
   S2 := TStringStream.Create('');
   ScriptComparer := Tprp_ScriptComparer.Create(nil);
   try
     SaveNamespaceToStream(S1);
-    (FieldByName('data') as TBlobField).SaveToStream(S2);
+    S2.CopyFrom(FS, 0);
 
     ScriptComparer.Compare(S1.DataString, S2.DataString);
     ScriptComparer.LeftCaption('Текущее состояние в базе данных:');
-    ScriptComparer.RightCaption('Сохраненная версия:');
+    ScriptComparer.RightCaption(AFileName);
     ScriptComparer.ShowModal;
   finally
+    FS.Free;
     S1.Free;
     S2.Free;
     ScriptComparer.Free;

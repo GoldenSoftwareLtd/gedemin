@@ -54,8 +54,19 @@ begin
 end;
 
 procedure Tgdc_frmNamespace.actCompareWithDataExecute(Sender: TObject);
+var
+  OD: TOpenDialog;
 begin
-  (gdcObject as TgdcNamespace).CompareWithData;
+  OD := TOpenDialog.Create(nil);
+  try
+    OD.Filter := 'װאיכû YAML (*.yml)|*.YML';
+    OD.DefaultExt := 'yml';
+    OD.Options := [ofFileMustExist, ofEnableSizing];
+    if OD.Execute then
+      (gdcObject as TgdcNamespace).CompareWithData(OD.FileName);
+  finally
+    OD.Free;
+  end;
 end;
 
 procedure Tgdc_frmNamespace.actCompareWithDataUpdate(Sender: TObject);
