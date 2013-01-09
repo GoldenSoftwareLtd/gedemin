@@ -490,7 +490,8 @@ end;
 procedure TdlgToSetting.SetConditionsForSetting;
 begin
   qrySetting.Close;
-  Assert(FgdcSettingObject is TgdcSettingStorage, 'Работа с элементами хранилища должна осуществляться через б/о');
+  Assert(not (FgdcSettingObject is TgdcSettingStorage),
+    'Работа с элементами хранилища должна осуществляться через б/о');
 end;
 
 function TdlgToSetting.GetSettingSQLByPosRUID: String;

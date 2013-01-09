@@ -48,8 +48,8 @@ implementation
 
 uses
   Controls, ComCtrls, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
-  at_sql_parser, jclStrings, gdcTree, yaml_common, gdc_dlgNamespaceObjectPos_unit,
-  prp_ScriptComparer_unit;
+  at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
+  prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit;
 
 const
   cst_str_WithoutName = 'Без наименования';
@@ -219,8 +219,7 @@ var
   Obj: TgdcBase;
   C: TgdcFullClass;
   BlobStream: TStream;
-  TempS, Sign, Grid: String;
-  StIn, StOut: TStringStream;
+  TempS: String;
   Flag: Boolean;
 begin
   Assert(gdcBaseManager <> nil);
@@ -338,22 +337,10 @@ begin
             if (AgdcObject.ClassName = 'TgdcStorageValue') and (AgdcObject.FieldByName('name').AsString = 'dfm') then
             begin
               TempS := F.AsString;
-
-              Sign := UpperCase(System.Copy(TempS, 0, 3));
-              Grid := UpperCase(System.Copy(TempS, 7, 11));
-
-              if (Sign = 'TPF') and (Grid <> 'GRID_STREAM') then
+              if TryObjectBinaryToText(TempS) then
               begin
-                StIn := TStringStream.Create(TempS);
-                StOut := TStringStream.Create('');
-                try
-                  ObjectBinaryToText(StIn, StOut);
-                  AWriter.WriteText(StOut.DataString, qPlain, sLiteral);
-                  Flag := True;
-                finally
-                  StIn.Free;
-                  StOut.Free;
-                end;
+                AWriter.WriteText(TempS, qPlain, sLiteral);
+                Flag := True;
               end;
             end;
 
@@ -497,7 +484,6 @@ var
   FN: String;
   FS: TFileStream;
   Parser: TyamlParser; 
-  BlobStream: TStream;
   SS: TStringStream;
   Temps: String;
   I: Integer;
@@ -572,13 +558,6 @@ begin
                 end;
               finally
                 Writer.Free;
-              end;
-
-              BlobStream := CreateBlobStream(FieldByName('header'), bmWrite);
-              try
-                BlobStream.CopyFrom(SS, 0);
-              finally
-                FreeAndNil(BlobStream);
               end;
             finally
               SS.Free;
@@ -979,20 +958,6 @@ begin
 
   inherited;
 
-  if FieldByName('header').IsNull then
-  begin
-    FieldByName('header').AsString :=
-      'Properties: '#13#10 +
-      '  Version: 1.0.0.0'#13#10 +
-      '  Optional: False'#13#10 +
-      '  Internal: True'#13#10 +
-      '  DBVersion: ' + IBLogin.DBVersion + #13#10 +
-      'Uses: '#13#10 +
-      '  - '#13#10 +
-      '  - '#13#10 +
-      '  - '#13#10;
-  end;
-
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCNAMESPACE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
@@ -1051,8 +1016,6 @@ begin
   finally
     W.Free;
   end;
-
-  (FieldByName('header') as TBLOBField).SaveToStream(St);
 
   W := TyamlWriter.Create(St);
   try

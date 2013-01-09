@@ -216,6 +216,18 @@ begin
         Break;
       end;
     end;
+
+    if not Gr.SettingsLoaded then
+    begin
+      for I := 0 to Gr.Columns.Count - 1 do
+      begin
+        if AnsiCompareText(Gr.Columns[I].Field.FieldName,
+          (DS.DataSet as TgdcBase).GetListField((DS.DataSet as TgdcBase).SubType)) <> 0 then
+        begin
+          Gr.Columns[I].Visible := False;
+        end;
+      end;
+    end;
   end;
 end;
 

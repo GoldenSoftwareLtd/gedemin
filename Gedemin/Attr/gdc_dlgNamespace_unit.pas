@@ -4,15 +4,27 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, at_Container, DBCtrls,
+  gdc_dlgTRPC_unit, IBDatabase, Menus, Db, ActnList, at_Container, DBCtrls,
   StdCtrls, ComCtrls, Mask, SynEdit, SynDBEdit;
 
 type
-  Tgdc_dlgNamespace = class(Tgdc_dlgTR)
-    dbseHeader: TDBSynEdit;
-    dbedName: TDBEdit;
+  Tgdc_dlgNamespace = class(Tgdc_dlgTRPC)
     Label1: TLabel;
+    dbedName: TDBEdit;
     Label2: TLabel;
+    dbedCaption: TDBEdit;
+    Label3: TLabel;
+    dbedFileName: TDBEdit;
+    Label4: TLabel;
+    Label5: TLabel;
+    dbedFileTimestamp: TDBEdit;
+    dbedVersion: TDBEdit;
+    dbedDBVersion: TDBEdit;
+    Label6: TLabel;
+    dbchbxOptional: TDBCheckBox;
+    dbchbxInternal: TDBCheckBox;
+    dbmComment: TDBMemo;
+    Label7: TLabel;
   private
     { Private declarations }
   public

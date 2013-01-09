@@ -62,6 +62,7 @@ object gdc_framSetControl: Tgdc_framSetControl
     ConditionsActive = False
     CheckBox.Visible = False
     CheckBox.FirstColumn = False
+    ScaleColumns = True
     MinColWidth = 40
     ColumnEditors = <>
     Aliases = <>

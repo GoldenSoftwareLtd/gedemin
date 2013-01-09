@@ -48,6 +48,9 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       object TBItem11: TTBItem
         Action = actSet2NS
       end
+      object TBItem12: TTBItem
+        Action = actSet2NSAll
+      end
     end
     inherited tbMainMenu: TTBToolbar
       inherited tbsiMainMenuObject: TTBSubmenuItem
@@ -509,6 +512,10 @@ inherited gdc_frmSetting: Tgdc_frmSetting
     object actSet2NS: TAction
       Caption = 'NS'
       OnExecute = actSet2NSExecute
+    end
+    object actSet2NSAll: TAction
+      Caption = 'NSAll'
+      OnExecute = actSet2NSAllExecute
     end
   end
   inherited dsMain: TDataSource
