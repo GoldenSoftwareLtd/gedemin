@@ -1,0 +1,46 @@
+package XPComPack;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS OFF}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS OFF}
+{$LOCALSYMBOLS OFF}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE ON}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'Пакет компонентов в стиле Windows XP'}
+{$IMPLICITBUILD ON}
+
+requires
+  vcl,
+  rtl,
+  VclSmp,
+  MyVCLDesign;
+
+contains
+  XPGroupBox in 'XPGroupBox.pas',
+  XPPanel in 'XPPanel.pas',
+  XPEdit in 'XPEdit.pas',
+  XPCheckBox in 'XPCheckBox.pas',
+  XPRadioButton in 'XPRadioButton.pas',
+  XPLabel in 'XPLabel.pas',
+  XPComboBox in 'XPComboBox.pas',
+  XPButton in 'XPButton.pas',
+  XPTreeView in 'XPTreeView.pas',
+  XPListView in 'XPListView.pas';
+
+end.
