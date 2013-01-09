@@ -3414,7 +3414,7 @@ begin
     begin
       FInternalTransaction := TIBTransaction.Create(Self);
       FInternalTransaction.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait'#13#10;
-      FInternalTransaction.Name := 'Internal';
+      FInternalTransaction.Name := 'ibtrInternal';
       FInternalTransaction.AutoStopAction := saNone;
       Transaction := FInternalTransaction;
     end;
@@ -16252,9 +16252,7 @@ function TgdcBase.ChooseItems(Cl: CgdcBase; KeyArray: TgdKeyArray;
   const ChooseExtraConditions: String = ''): Boolean;
 var
   Obj: TgdcBase;
-  C: TPersistentClass;
   ChComponent: TComponent;
-  OwnerF: TComponent;
   F: TForm;
 begin
   Result := False;
@@ -16264,16 +16262,14 @@ begin
     Obj := CgdcBase(Self.ClassType).CreateSubType(Owner, ChooseSubType);
   try
     Obj.Transaction := Transaction;
-    //Obj.Open;
-    C := GetClass(Obj.GetViewFormClassName(ChooseSubType));
-    if Self.Owner <> nil then
-      OwnerF := Self.Owner
-    else
-      OwnerF := Application;
-    if (C <> nil) and C.InheritsFrom(Tgdc_frmG) then
-    begin
-      F := CgdcCreateableForm(C).CreateSubType(OwnerF, ChooseSubType);
 
+    if Obj.Owner = nil then
+      F := CreateViewForm(Application, '', Obj.SubType, True)
+    else
+      F := CreateViewForm(Obj.Owner, '', Obj.SubType, True);
+
+    if F is Tgdc_frmG then  
+    begin
       with F as Tgdc_frmG do
       begin
         try

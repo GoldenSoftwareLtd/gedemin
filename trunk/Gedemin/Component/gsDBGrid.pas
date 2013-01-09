@@ -1199,6 +1199,7 @@ type
     property GroupFieldName: String read FGroupFieldName write SetGroupFieldName;
 
     //
+    property SettingsLoaded: Boolean read FSettingsLoaded;
     property SettingsModified: Boolean read FSettingsModified write FSettingsModified;
     property DontLoadSettings: Boolean read FDontLoadSettings write FDontLoadSettings;
 

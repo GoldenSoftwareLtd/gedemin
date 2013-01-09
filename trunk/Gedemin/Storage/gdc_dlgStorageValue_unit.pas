@@ -39,7 +39,8 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList, gsStorage, gdcStorage, gdcStorage_Types, dlgEditDFM_unit;
+  gd_ClassList, gsStorage, gdcStorage, gdcStorage_Types, dlgEditDFM_unit,
+  gd_common_functions;
 
 procedure Tgdc_dlgStorageValue.dsgdcBaseDataChange(Sender: TObject;
   Field: TField);
@@ -81,33 +82,9 @@ var
   S: String;
   StIn, StOut: TStringStream;
   Flag: Boolean;
-  Sign, Grid: String;
 begin
   S := gdcObject.FieldByName('blob_data').AsString;
-
-  Sign := UpperCase(Copy(S, 0, 3));
-  Grid := UpperCase(Copy(S, 7, 11));
-
-  if (Sign = 'TPF') and (Grid <> 'GRID_STREAM') then
-  begin
-    StIn := TStringStream.Create(S);
-    StOut := TStringStream.Create('');
-    try
-      try
-        ObjectBinaryToText(StIn, StOut);
-        S := StOut.DataString;
-        Flag := True;
-      except
-        S := gdcObject.FieldByName('blob_data').AsString;
-        Flag := False;
-      end;
-    finally
-      StIn.Free;
-      StOut.Free;
-    end;
-  end else
-    Flag := False;
-
+  Flag := TryObjectBinaryToText(S);
   if EditDFM(gdcObject.ObjectName, S) then
   begin
     if Flag then

@@ -96,6 +96,8 @@ type
     TBItem10: TTBItem;
     actSet2NS: TAction;
     TBItem11: TTBItem;
+    actSet2NSAll: TAction;
+    TBItem12: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actSetActiveExecute(Sender: TObject);
@@ -150,6 +152,7 @@ type
     procedure actSet2TxtUpdate(Sender: TObject);
     procedure ibgrDetailDblClick(Sender: TObject);
     procedure actSet2NSExecute(Sender: TObject);
+    procedure actSet2NSAllExecute(Sender: TObject);
 
   private
     FFieldStorageOrigin: TStringList;
@@ -187,6 +190,8 @@ type
     procedure OnObjectLoad2New_NS(Sender: TatSettingWalker; const AClassName, ASubType: String; ADataSet: TDataSet);
 
     procedure OnFakeLoad(Sender: TgdcBase; CDS: TDataSet);
+
+    procedure SaveObjectToNS;
 
   protected
     procedure RemoveSubSetList(S: TStrings); override;
@@ -1453,6 +1458,91 @@ begin
 end;
 
 procedure Tgdc_frmSetting.actSet2NSExecute(Sender: TObject);
+begin
+  SaveObjectToNS;
+end;
+
+procedure Tgdc_frmSetting.OnObjectLoad2_NS(Sender: TatSettingWalker;
+  const AClassName, ASubType: String; ADataSet: TDataSet;
+  APrSet: TgdcPropertySet; const ASR: TgsStreamRecord);
+var
+  T: String;
+begin
+  ADataSet.First;
+  while not ADataSet.EOF do
+  begin
+    T := ADataSet.FieldByName('_xid').AsString + '_' +
+      ADataSet.FieldByName('_dbid').AsString;
+    if SCount.IndexOf(T) = -1 then
+    begin
+      SCount.Add(T);
+
+      gdcNamespaceObject.Insert;
+      gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
+      if (ADataSet.FindField('name') <> nil) and (ADataSet.FieldByName('name').AsString > '') then
+        gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
+      else if (ADataSet.FindField('usr$name') <> nil) and (ADataSet.FieldByName('usr$name').AsString > '') then
+        gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('usr$name').AsString
+      else
+        gdcNamespaceObject.FieldByName('objectname').AsString :=
+          ADataSet.FieldByName('_xid').AsString + '_' + ADataSet.FieldByName('_dbid').AsString;
+      gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
+      gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
+      gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+      gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
+      gdcNamespaceObject.Post;
+    end;
+
+    ADataSet.Next;
+  end;
+
+  (*
+    if Added then
+    begin
+      if APrSet.Count > 0 then
+        SList.Add(#13#10'Свойства'#13#10);
+      for I := 0 to APrSet.Count - 1 do
+        SList.Add(Format({'%2d: }'%20s', [{I, }APrSet.Name[I]]) + ':  ' + VarToStr(APrSet.Value[APrSet.Name[I]]));
+      SList.Add('');
+    end else
+      SList.Delete(SList.Count - 1);
+  *)
+end;
+
+procedure Tgdc_frmSetting.OnObjectLoad2New_NS(Sender: TatSettingWalker;
+  const AClassName, ASubType: String; ADataSet: TDataSet);
+begin
+  if not ADataSet.EOF then
+  begin
+    gdcNamespaceObject.Insert;
+    gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
+    if ADataSet.FindField('name') <> nil then
+      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
+    else if ADataSet.FindField('usr$name') <> nil then
+      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('usr$name').AsString
+    else
+      gdcNamespaceObject.FieldByName('objectname').AsString :=
+        ADataSet.FieldByName('_xid').AsString + '_' + ADataSet.FieldByName('_dbid').AsString;
+    gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
+    gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
+    gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
+    gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
+    gdcNamespaceObject.Post;
+  end;
+end;
+
+procedure Tgdc_frmSetting.OnStartLoading2_NS(Sender: TatSettingWalker;
+  AnObjectSet: TgdcObjectSet);
+begin
+  //
+end;
+
+procedure Tgdc_frmSetting.OnStartLoading2New_NS(Sender: TatSettingWalker);
+begin
+  //
+end;
+
+procedure Tgdc_frmSetting.SaveObjectToNS;
 
   procedure ParseSetting(const AnID: Integer;
     const AFileName: String = '');
@@ -1525,6 +1615,17 @@ begin
     gdcNamespace.Open;
     gdcNamespace.Insert;
     gdcNamespace.FieldByName('name').AsString := gdcObject.ObjectName;
+    if gdcObject.FieldByName('description').AsString > '' then
+      gdcNamespace.FieldByName('caption').AsString := gdcObject.FieldByName('description').AsString;
+    gdcNamespace.FieldByName('version').AsString := '1.0.0.' +
+      gdcObject.FieldByName('version').AsString;
+    if gdcObject.FieldByName('mindbversion').AsString > '' then
+      gdcNamespace.FieldByName('dbversion').AsString := gdcObject.FieldByName('mindbversion').AsString;
+    if gdcObject.FieldByName('ending').AsInteger = 0 then
+      gdcNamespace.FieldByName('internal').AsInteger := 1
+    else
+      gdcNamespace.FieldByName('internal').AsInteger := 0;
+    gdcNamespace.FieldByName('settingruid').AsString := gdcBaseManager.GetRUIDStringByID(gdcObject.ID);  
     gdcNamespace.Post;
 
     gdcNamespaceObject.Open;
@@ -1546,75 +1647,65 @@ begin
   end;
 end;
 
-procedure Tgdc_frmSetting.OnObjectLoad2_NS(Sender: TatSettingWalker;
-  const AClassName, ASubType: String; ADataSet: TDataSet;
-  APrSet: TgdcPropertySet; const ASR: TgsStreamRecord);
+procedure Tgdc_frmSetting.actSet2NSAllExecute(Sender: TObject);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
 begin
-  ADataSet.First;
-  while not ADataSet.EOF do
+  gdcObject.First;
+  while not gdcObject.EOF do
   begin
-    gdcNamespaceObject.Insert;
-    gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
-    if ADataSet.FindField('name') <> nil then
-      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
-    else if ADataSet.FindField('usr$name') <> nil then
-      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('usr$name').AsString
-    else
-      gdcNamespaceObject.FieldByName('objectname').AsString :=
-        ADataSet.FieldByName('_xid').AsString + '_' + ADataSet.FieldByName('_dbid').AsString;
-    gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
-    gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
-    gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
-    gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
-    gdcNamespaceObject.Post;
-
-    ADataSet.Next;
+    SaveObjectToNS;
+    gdcObject.Next;
   end;
 
-  (*
-    if Added then
-    begin
-      if APrSet.Count > 0 then
-        SList.Add(#13#10'Свойства'#13#10);
-      for I := 0 to APrSet.Count - 1 do
-        SList.Add(Format({'%2d: }'%20s', [{I, }APrSet.Name[I]]) + ':  ' + VarToStr(APrSet.Value[APrSet.Name[I]]));
-      SList.Add('');
-    end else
-      SList.Delete(SList.Count - 1);
-  *)
-end;
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
 
-procedure Tgdc_frmSetting.OnObjectLoad2New_NS(Sender: TatSettingWalker;
-  const AClassName, ASubType: String; ADataSet: TDataSet);
-begin
-  if not ADataSet.EOF then
-  begin
-    gdcNamespaceObject.Insert;
-    gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
-    if ADataSet.FindField('name') <> nil then
-      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
-    else if ADataSet.FindField('usr$name') <> nil then
-      gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('usr$name').AsString
-    else
-      gdcNamespaceObject.FieldByName('objectname').AsString :=
-        ADataSet.FieldByName('_xid').AsString + '_' + ADataSet.FieldByName('_dbid').AsString;
-    gdcNamespaceObject.FieldByName('objectclass').AsString := AClassName;
-    gdcNamespaceObject.FieldByName('subtype').AsString := ASubType;
-    gdcNamespaceObject.FieldByName('xid').AsInteger := ADataSet.FieldByName('_xid').AsInteger;
-    gdcNamespaceObject.FieldByName('dbid').AsInteger := ADataSet.FieldByName('_dbid').AsInteger;
-    gdcNamespaceObject.Post;
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'UPDATE at_object o '#13#10 +
+      'SET o.alwaysoverwrite = 0 '#13#10 +
+      'WHERE '#13#10 +
+      'EXISTS (SELECT p.* FROM at_settingpos p WHERE p.xid = o.xid AND p.dbid = o.dbid AND p.needmodify = 0) '#13#10 +
+      'AND o.alwaysoverwrite <> 0';
+    q.ExecQuery;
+
+    q.SQL.Text :=
+      'EXECUTE BLOCK '#13#10 +
+      'AS '#13#10 +
+      '  DECLARE VARIABLE id INTEGER; '#13#10 +
+      '  DECLARE VARIABLE id2 INTEGER; '#13#10 +
+      '  DECLARE VARIABLE sr VARCHAR(1024); '#13#10 +
+      'BEGIN '#13#10 +
+      '  FOR '#13#10 +
+      '    SELECT n.id, s.settingsruid '#13#10 +
+      '    FROM at_setting s '#13#10 +
+      '      JOIN gd_ruid r ON r.id = s.id '#13#10 +
+      '      JOIN at_namespace n ON n.settingruid = r.xid || ''_'' || r.dbid '#13#10 +
+      '    INTO :id, :sr '#13#10 +
+      '  DO BEGIN '#13#10 +
+      '    FOR '#13#10 +
+      '      SELECT n2.id '#13#10 +
+      '      FROM at_namespace n2 '#13#10 +
+      '      WHERE POSITION(n2.settingruid IN :sr) <> 0 '#13#10 +
+      '      INTO :id2 '#13#10 +
+      '    DO BEGIN '#13#10 +
+      '      INSERT INTO at_namespace_link (namespacekey, useskey) '#13#10 +
+      '      VALUES (:id, :id2); '#13#10 +
+      '    END '#13#10 +
+      '  END '#13#10 +
+      'END ';
+    q.ExecQuery;  
+
+    Tr.Commit;  
+  finally
+    q.Free;
+    Tr.Free;
   end;
-end;
-
-procedure Tgdc_frmSetting.OnStartLoading2_NS(Sender: TatSettingWalker;
-  AnObjectSet: TgdcObjectSet);
-begin
-  //
-end;
-
-procedure Tgdc_frmSetting.OnStartLoading2New_NS(Sender: TatSettingWalker);
-begin
-  //
 end;
 
 initialization

@@ -20,6 +20,7 @@ procedure ParseDatabaseName(ADatabaseName: String; out AServer: String;
 function ALIPAddrToName(IPAddr: String): String;
 function AnsiCharToHex(const B: AnsiChar): String;
 function HexToAnsiChar(const St: AnsiString; const P: Integer = 1): AnsiChar;
+function TryObjectBinaryToText(var S: String): Boolean;
 
 implementation
 
@@ -175,6 +176,30 @@ end;
 function ReadIntegerFromStream(Stream: TStream): Integer;
 begin
   Stream.ReadBuffer(Result, SizeOf(Result));
+end;
+
+function TryObjectBinaryToText(var S: String): Boolean;
+var
+  StIn, StOut: TStringStream;
+begin
+  if (UpperCase(Copy(S, 0, 3)) = 'TPF') and (UpperCase(Copy(S, 7, 11)) <> 'GRID_STREAM') then
+  begin
+    StIn := TStringStream.Create(S);
+    StOut := TStringStream.Create('');
+    try
+      try
+        ObjectBinaryToText(StIn, StOut);
+        S := StOut.DataString;
+        Result := True;
+      except
+        Result := False;
+      end;
+    finally
+      StIn.Free;
+      StOut.Free;
+    end;
+  end else
+    Result := False;
 end;
 
 end.
