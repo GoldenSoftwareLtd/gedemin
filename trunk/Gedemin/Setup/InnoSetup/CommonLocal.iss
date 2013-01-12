@@ -55,8 +55,8 @@ Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 
 [INI]
-Filename: "{app}\databases.ini"; Section: "{code:GetSafeAppName}"; Key: "FileName"; String: "Database\{code:GetDBFileName}"
-Filename: "{app}\databases.ini"; Section: "{code:GetSafeAppName}"; Key: "Selected"; String: "1"
+Filename: "{app}\databases.ini"; Section: "{code:GetSafeAppName}"; Key: "FileName"; String: "Database\{code:GetDBFileName}"; Tasks: "databasefile"
+Filename: "{app}\databases.ini"; Section: "{code:GetSafeAppName}"; Key: "Selected"; String: "1"; Tasks: "databasefile"
 
 [Icons]
 Name: "{group}\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; WorkingDir: "{app}"

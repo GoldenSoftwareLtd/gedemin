@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Script
 
@@ -90,14 +90,7 @@ CREATE TABLE at_settingpos (
 
 );
 
-
-
 ALTER TABLE at_settingpos ADD CONSTRAINT at_pk_settingpos PRIMARY KEY (id);
-
-/* По идее, здесь должен быть уникальный ключ,
-   но возникает проблема  при сортировке, поэтому пока убрано */
-/* ALTER TABLE at_settingpos ADD CONSTRAINT at_uk_settingpos_order
- UNIQUE (settingkey, objectorder); */
 
 ALTER TABLE at_settingpos ADD CONSTRAINT at_uk_settingpos
  UNIQUE (settingkey, xid, dbid);
@@ -156,4 +149,113 @@ BEGIN
     NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
 END
 ^
+
 SET TERM ; ^
+
+/*
+
+CREATE TABLE at_namespace (
+  id            dintkey,
+  name          dtext255 NOT NULL UNIQUE,
+  caption       dtext255,
+  filename      dtext255,
+  filetimestamp TIMESTAMP,
+  version       dtext20 DEFAULT '1.0.0.0' NOT NULL,
+  dbversion     dtext20,
+  optional      dboolean_notnull DEFAULT 0,
+  internal      dboolean_notnull DEFAULT 1,
+  comment       dblobtext80_1251,
+  settingruid   VARCHAR(21),
+
+  CONSTRAINT at_pk_namespace PRIMARY KEY (id)
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER at_biu_namespace FOR at_namespace
+  ACTIVE
+  BEFORE INSERT OR UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+  IF (NEW.caption IS NULL) THEN
+    NEW.caption = NEW.name;
+END
+^
+
+SET TERM ; ^
+
+CREATE TABLE at_object (
+  id              dintkey,
+  namespacekey    dintkey,
+  objectname      dname,
+  objectclass     dclassname NOT NULL,
+  subtype         dtext60,
+  xid             dinteger_notnull,
+  dbid            dinteger_notnull,
+  objectpos       dinteger,
+  alwaysoverwrite dboolean_notnull DEFAULT 1,
+  dontremove      dboolean_notnull DEFAULT 0,
+  includesiblings dboolean_notnull DEFAULT 0,
+  headobjectkey   dforeignkey,
+
+  CONSTRAINT at_pk_object PRIMARY KEY (id),
+  CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),
+  CONSTRAINT at_fk_object_namespacekey FOREIGN KEY (namespacekey)
+    REFERENCES at_namespace (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT at_fk_object_headobjectkey FOREIGN KEY (headobjectkey)
+    REFERENCES at_object (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER at_biu_object FOR at_object
+  ACTIVE
+  BEFORE INSERT OR UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
+
+  IF (NEW.objectpos IS NULL) THEN
+  BEGIN
+    SELECT MAX(objectpos) + 1
+    FROM at_object
+    WHERE namespacekey = NEW.namespacekey
+    INTO NEW.objectpos;
+
+    IF (NEW.objectpos IS NULL) THEN
+      NEW.objectpos = 0;
+  END
+END
+^
+
+SET TERM ; ^
+
+CREATE TABLE at_namespace_link (
+  namespacekey   dintkey,
+  useskey        dintkey,
+
+  CONSTRAINT at_pk_namespace_link PRIMARY KEY (namespacekey, useskey),
+  CONSTRAINT at_fk_namespace_link_nsk FOREIGN KEY (namespacekey)
+    REFERENCES at_namespace (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT at_fk_namespace_link_usk FOREIGN KEY (useskey)
+    REFERENCES at_namespace (id)
+    ON UPDATE CASCADE
+    ON DELETE NO ACTION,
+  CONSTRAINT at_chk_namespace_link CHECK (namespacekey <> useskey)
+);
+
+*/
+
+COMMIT;

@@ -1467,6 +1467,7 @@ procedure Tgdc_frmSetting.OnObjectLoad2_NS(Sender: TatSettingWalker;
   APrSet: TgdcPropertySet; const ASR: TgsStreamRecord);
 var
   T: String;
+  C: TPersistentClass;
 begin
   ADataSet.First;
   while not ADataSet.EOF do
@@ -1479,7 +1480,11 @@ begin
 
       gdcNamespaceObject.Insert;
       gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
-      if (ADataSet.FindField('name') <> nil) and (ADataSet.FieldByName('name').AsString > '') then
+
+      C := GetClass(AClassName);
+      if C.InheritsFrom(TgdcBase) and (ADataSet.FieldByName(CgdcBase(C).GetListField(ASubType)).AsString > '') then
+        gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName(CgdcBase(C).GetListField(ASubType)).AsString
+      else if (ADataSet.FindField('name') <> nil) and (ADataSet.FieldByName('name').AsString > '') then
         gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
       else if (ADataSet.FindField('usr$name') <> nil) and (ADataSet.FieldByName('usr$name').AsString > '') then
         gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('usr$name').AsString
