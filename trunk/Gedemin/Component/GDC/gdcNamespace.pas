@@ -14,14 +14,18 @@ type
     procedure CheckUses(AValue: TyamlSequence; AWriter: TyamlWriter);
 
   protected
+    function GetOrderClause: String; override;
     procedure _DoOnNewRecord; override;
 
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
+    class function GetSubSetList: String; override;
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
+
     class procedure WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter);
+    class procedure ScanDirectory(ADataSet: TDataSet; const APath: String);
 
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
@@ -49,7 +53,8 @@ implementation
 uses
   Controls, ComCtrls, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
   at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
-  prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit;
+  prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, at_frmSyncNamespace_unit,
+  jclFileUtils;
 
 const
   cst_str_WithoutName = 'Без наименования';
@@ -897,8 +902,51 @@ begin
 end;
 
 function TgdcNamespaceObject.GetOrderClause: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
 begin
+  {@UNFOLD MACRO INH_ORIG_GETORDERCLAUSE('TGDCNAMESPACEOBJECT', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCNAMESPACEOBJECT', KEYGETORDERCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETORDERCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCNAMESPACEOBJECT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCNAMESPACEOBJECT',
+  {M}          'GETORDERCLAUSE', KEYGETORDERCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETORDERCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TGDCNAMESPACEOBJECT(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCNAMESPACEOBJECT' then
+  {M}        begin
+  {M}          Result := Inherited GetOrderClause;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
   Result := 'ORDER BY z.objectpos';
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCNAMESPACEOBJECT', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCNAMESPACEOBJECT', 'GETORDERCLAUSE', KEYGETORDERCLAUSE);
+  {M}  end;
+  {END MACRO}
 end;
 
 procedure TgdcNamespace.SaveNamespaceToFile(const AFileName: String = '');
@@ -1065,6 +1113,124 @@ begin
   finally
     W.Free;
   end;
+end;
+
+class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
+  const APath: String);
+var
+  SL: TStringList;
+  Obj: TgdcNamespace;
+  I: Integer;
+  S1, S2: String;
+begin
+  Obj := TgdcNamespace.Create(nil);
+  SL := TStringList.Create;
+  try
+    SL.Sorted := True;
+    SL.Duplicates := dupError;
+
+    if AdvBuildFileList(IncludeTrailingBackslash(APath) + '*.yml',
+      faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
+    begin
+      I := 0;
+
+      Obj.SubSet := 'OrderByName';
+      Obj.Open;
+
+      while (not Obj.EOF) or (I < SL.Count) do
+      begin
+        ADataSet.Append;
+
+        if not Obj.EOF then
+          S1 := Obj.ObjectName
+        else
+          S1 := '';
+
+        if (I < SL.Count) then
+          S2 := ExtractFileName(SL[I])
+        else
+          S2 := '';
+
+        if AnsiCompareText(S1, S2) > 0 then
+        begin
+          ADataSet.FieldByName('namespacename').AsString := S1;
+          Obj.Next;
+        end
+        else if AnsiCompareText(S1, S2) < 0 then
+        begin
+          ADataSet.FieldByName('filenamespacename').AsString := S2;
+          Inc(I);
+        end else
+        begin
+          ADataSet.FieldByName('namespacename').AsString := S1;
+          ADataSet.FieldByName('filenamespacename').AsString := S2;
+          Obj.Next;
+          Inc(I);
+        end;
+
+        ADataSet.Post;
+      end;
+    end;
+  finally
+    SL.Free;
+    Obj.Free;
+  end;
+end;
+
+function TgdcNamespace.GetOrderClause: String;
+  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
+  {M}VAR
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+begin
+  {@UNFOLD MACRO INH_ORIG_GETORDERCLAUSE('TGDCNAMESPACE', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCNAMESPACE', KEYGETORDERCLAUSE);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYGETORDERCLAUSE]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCNAMESPACE') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCNAMESPACE',
+  {M}          'GETORDERCLAUSE', KEYGETORDERCLAUSE, Params, LResult) then
+  {M}          begin
+  {M}            if (VarType(LResult) = varOleStr) or (VarType(LResult) = varString) then
+  {M}              Result := String(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'GETORDERCLAUSE' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TGDCNAMESPACE(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не строковый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCNAMESPACE' then
+  {M}        begin
+  {M}          Result := Inherited GetOrderClause;
+  {M}          Exit;
+  {M}        end;
+  {M}    end;
+  {END MACRO}
+
+  if HasSubSet('OrderByName') then
+    Result := 'ORDER BY z.name'
+  else
+    Result := '';  
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCNAMESPACE', 'GETORDERCLAUSE', KEYGETORDERCLAUSE)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCNAMESPACE', 'GETORDERCLAUSE', KEYGETORDERCLAUSE);
+  {M}  end;
+  {END MACRO}
+end;
+
+class function TgdcNamespace.GetSubSetList: String;
+begin
+  Result := inherited GetSubSetList + 'OrderByName;';
 end;
 
 initialization
