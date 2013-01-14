@@ -41,10 +41,10 @@ type
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
     procedure cdsFilterRecord(DataSet: TDataSet; var Accept: Boolean);
-  private
-    { Private declarations }
+
   public
-    { Public declarations }
+    procedure SaveSettings; override;
+    procedure LoadSettingsAfterCreate; override;
   end;
 
 var
@@ -55,7 +55,7 @@ implementation
 {$R *.DFM}
 
 uses
-  FileCtrl, gdcNamespace;
+  FileCtrl, gdcNamespace, gd_GlobalParams_unit;
 
 procedure Tat_frmSyncNamespace.actChooseDirExecute(Sender: TObject);
 var
@@ -82,6 +82,18 @@ procedure Tat_frmSyncNamespace.cdsFilterRecord(DataSet: TDataSet;
   var Accept: Boolean);
 begin
   Accept := True;
+end;
+
+procedure Tat_frmSyncNamespace.LoadSettingsAfterCreate;
+begin
+  inherited;
+  tbedPath.Text := gd_GlobalParams.NamespacePath;
+end;
+
+procedure Tat_frmSyncNamespace.SaveSettings;
+begin
+  gd_GlobalParams.NamespacePath := tbedPath.Text;
+  inherited;
 end;
 
 initialization

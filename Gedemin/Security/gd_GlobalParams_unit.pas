@@ -22,6 +22,8 @@ type
     procedure SetAutoUpdate(const Value: Boolean);
     procedure ReadFromIniFile;
     function GetCanUpdate: Boolean;
+    function GetNamespacePath: String;
+    procedure SetNamespacePath(const Value: String);
 
   public
     constructor Create;
@@ -46,6 +48,7 @@ type
     property IniFileName: String read FIniFileName;
     property CanUpdate: Boolean read GetCanUpdate;
     property NeedRestartForUpdate: Boolean read FNeedRestartForUpdate write FNeedRestartForUpdate;
+    property NamespacePath: String read GetNamespacePath write SetNamespacePath;
   end;
 
 var
@@ -152,6 +155,16 @@ end;
 function Tgd_GlobalParams.GetExternalEditor(const ALang: String): String;
 begin
   Result := FIniFile.ReadString('EXTERNAL EDITOR', ALang, '');
+end;
+
+function Tgd_GlobalParams.GetNamespacePath: String;
+begin
+  Result := FIniFile.ReadString('NAMESPACE', 'Path', '');
+end;
+
+procedure Tgd_GlobalParams.SetNamespacePath(const Value: String);
+begin
+  FIniFile.WriteString('NAMESPACE', 'Path', Value);
 end;
 
 initialization
