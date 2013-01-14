@@ -1122,6 +1122,9 @@ var
   Obj: TgdcNamespace;
   I: Integer;
   S1, S2: String;
+  FillInNamespaceFile: Boolean;
+  FS: TFileStream;
+  Parser: TyamlParser;
 begin
   Obj := TgdcNamespace.Create(nil);
   SL := TStringList.Create;
@@ -1141,6 +1144,8 @@ begin
       begin
         ADataSet.Append;
 
+        FillInNamespaceFile := False;
+
         if not Obj.EOF then
           S1 := Obj.ObjectName
         else
@@ -1158,14 +1163,32 @@ begin
         end
         else if AnsiCompareText(S1, S2) < 0 then
         begin
-          ADataSet.FieldByName('filenamespacename').AsString := S2;
+          FillInNamespaceFile := True;
           Inc(I);
         end else
         begin
-          ADataSet.FieldByName('namespacename').AsString := S1;
-          ADataSet.FieldByName('filenamespacename').AsString := S2;
+          FillInNamespaceFile := True;
           Obj.Next;
           Inc(I);
+        end;
+
+        if FillInNamespaceFile then
+        begin
+          ADataSet.FieldByName('filename').AsString := SL[I];
+          ADataSet.FieldByName('filenamespacename').AsString := S2;
+
+          FS := TFileStream.Create(SL[I], fmOpenRead);
+          Parser := TyamlParser.Create;
+          try
+            Parser.Parse(FS);
+                M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
+                Temps := M.ReadString('Name');
+                if Temps = '' then
+                  raise Exception.Create('Invalid namespace name!');
+          finally
+            Parser.Free;
+            FS.Free;
+          end;
         end;
 
         ADataSet.Post;
