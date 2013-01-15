@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   dmImages_unit, gd_createable_form, TB2ExtItems, TB2Item, ActnList, Db,
   Grids, DBGrids, gsDBGrid, TB2Dock, TB2Toolbar, ComCtrls, DBClient,
-  StdCtrls;
+  StdCtrls, ExtCtrls;
 
 type
   Tat_frmSyncNamespace = class(TCreateableForm)
@@ -15,7 +15,7 @@ type
     sb: TStatusBar;
     TBDock: TTBDock;
     TBToolbar: TTBToolbar;
-    gsDBGrid1: TgsDBGrid;
+    gr: TgsDBGrid;
     cdsNamespacekey: TIntegerField;
     cdsNamespaceName: TStringField;
     cdsNamespaceVersion: TStringField;
@@ -33,14 +33,24 @@ type
     TBItem2: TTBItem;
     TBSeparatorItem1: TTBSeparatorItem;
     cdsFileName2: TStringField;
-    TBSeparatorItem2: TTBSeparatorItem;
     tbedName: TTBEditItem;
     TBControlItem1: TTBControlItem;
     Label1: TLabel;
+    mMessages: TMemo;
+    splMessages: TSplitter;
+    TBSeparatorItem3: TTBSeparatorItem;
+    actSetFilter: TAction;
+    tbiFilter: TTBItem;
+    actSaveToFile: TAction;
+    TBItem3: TTBItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
     procedure cdsFilterRecord(DataSet: TDataSet; var Accept: Boolean);
+    procedure actSetFilterExecute(Sender: TObject);
+    procedure actSetFilterUpdate(Sender: TObject);
+    procedure actSaveToFileUpdate(Sender: TObject);
+    procedure actSaveToFileExecute(Sender: TObject);
 
   public
     procedure SaveSettings; override;
@@ -74,8 +84,15 @@ end;
 
 procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
 begin
-  cds.EmptyDataSet;
-  TgdcNamespace.ScanDirectory(cds, tbedPath.Text);
+  cds.DisableControls;
+  try
+    cds.EmptyDataSet;
+    cds.Filtered := False;
+    mMessages.Lines.Clear;
+    TgdcNamespace.ScanDirectory(cds, tbedPath.Text, mMessages.Lines);
+  finally
+    cds.EnableControls;
+  end;
 end;
 
 procedure Tat_frmSyncNamespace.cdsFilterRecord(DataSet: TDataSet;
@@ -94,6 +111,51 @@ procedure Tat_frmSyncNamespace.SaveSettings;
 begin
   gd_GlobalParams.NamespacePath := tbedPath.Text;
   inherited;
+end;
+
+procedure Tat_frmSyncNamespace.actSetFilterExecute(Sender: TObject);
+begin
+  cds.Filtered := not cds.Filtered;
+end;
+
+procedure Tat_frmSyncNamespace.actSetFilterUpdate(Sender: TObject);
+begin
+  actSetFilter.Checked := cds.Filtered;
+end;
+
+procedure Tat_frmSyncNamespace.actSaveToFileUpdate(Sender: TObject);
+begin
+  actSaveToFile.Enabled := DirectoryExists(tbedPath.Text);
+end;
+
+procedure Tat_frmSyncNamespace.actSaveToFileExecute(Sender: TObject);
+var
+  I: Integer;
+  Obj: TgdcNamespace;
+begin
+  Obj := TgdcNamespace.Create(nil);
+  try
+    Obj.SubSet := 'ByID';
+
+    cds.DisableControls;
+    try
+      for I := 0 to gr.SelectedRows.Count - 1 do
+      begin
+        cds.Bookmark := gr.SelectedRows[I];
+        if cds.FieldByName('namespacekey').AsInteger > 0 then
+        begin
+          Obj.ID := cds.FieldByName('namespacekey').AsInteger;
+          Obj.Open;
+          Obj.SaveNamespaceToFile;
+          Obj.Close;
+        end;
+      end;
+    finally
+      cds.EnableControls;
+    end;
+  finally
+    Obj.Free;
+  end;
 end;
 
 initialization

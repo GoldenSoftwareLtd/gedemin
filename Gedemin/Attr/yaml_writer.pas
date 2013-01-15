@@ -23,6 +23,7 @@ type
 
     procedure Flush;
 
+    procedure WriteDirective(const ADirective: AnsiString);
     procedure WriteDocumentStart(const Folding: TyamlScalarStyle = sPlain);
     procedure WriteDocumentEnd;
     procedure WriteInteger(const I: Integer);
@@ -301,6 +302,11 @@ begin
     WriteBuffer(StringOfChar(#32, FIndent))
   else
     WriteBuffer(#13#10 + StringOfChar(#32, FIndent));
+end;
+
+procedure TyamlWriter.WriteDirective(const ADirective: AnsiString);
+begin
+  WriteString('%' + ADirective);
 end;
 
 end.

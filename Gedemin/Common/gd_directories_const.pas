@@ -238,6 +238,9 @@ const
   DEFAULT_WEB_SERVER_PORT            = 80;
   STORAGE_WEB_SERVER_PORT_VALUE_NAME = 'WebServerPort';
 
+  //
+  WIN1251_CODEPAGE                = 1251;
+
 function IsGedeminSystemID(const AnID: Integer): Boolean;
 function IsGedeminNonSystemID(const AnID: Integer): Boolean;
 

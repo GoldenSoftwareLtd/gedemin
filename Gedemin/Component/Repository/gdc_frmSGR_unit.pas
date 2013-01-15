@@ -66,24 +66,8 @@ uses
   , gdc_frmStreamSaver;
 
 function Tgdc_frmSGR.Get_SelectedKey: OleVariant;
-{var
-  I: Integer;}
 begin
   Result := CreateSelectedArr(gdcObject, ibgrMain.SelectedRows);
-
-{  if not (gdcObject.Active and (gdcObject.RecordCount > 0)) then
-    Result := VarArrayOf([])
-  else
-    if ibgrMain.SelectedRows.Count = 0 then
-      Result := VarArrayOf([gdcObject.ID])
-    else
-    begin
-      Result := VarArrayCreate([0, ibgrMain.SelectedRows.Count - 1], varVariant);
-      for I := 0 to ibgrMain.SelectedRows.Count - 1 do
-      begin
-        Result[I] := gdcObject.GetIDForBookmark(ibgrMain.SelectedRows.Items[I]);
-      end;
-    end;}
 end;
 
 procedure Tgdc_frmSGR.LoadSettings;

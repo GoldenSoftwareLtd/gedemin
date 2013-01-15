@@ -220,7 +220,7 @@ end;
 
 procedure TgdWebServerControl.ServerOnCommandGetSync;
 var
-  RequestToken: String;
+  RequestToken, S: String;
   HandlerCounter: Integer;
   Handler: TgdHttpHandler;
   HandlerFunction: TrpCustomFunction;
@@ -289,11 +289,17 @@ begin
 
       if not Processed then
       begin
+        S := 'Gedemin Web Server.';
+        if (FFileList <> nil) and (FFileList.FindItem('gedemin.exe') <> nil) then
+          S := S + ' v.' + FFileList.FindItem('gedemin.exe').Version;
+        S := S + '<br/>Copyright (c) 2013 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
+        S := S + '<br/>All rights reserved.';
+
         FResponseInfo.ResponseNo := 200;
         FResponseInfo.ContentType := 'text/html;';
         FResponseInfo.ContentText :=
           '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
-          '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>Hello World!</BODY></HTML>';
+          '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>' + S + '</BODY></HTML>';
       end;
     end;
   except
