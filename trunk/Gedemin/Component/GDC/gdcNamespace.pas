@@ -1,3 +1,4 @@
+
 unit gdcNamespace;
 
 interface
@@ -25,7 +26,8 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     class procedure WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter);
-    class procedure ScanDirectory(ADataSet: TDataSet; const APath: String);
+    class procedure ScanDirectory(ADataSet: TDataSet; const APath: String;
+      Messages: TStrings);
 
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
@@ -51,10 +53,10 @@ type
 implementation
 
 uses
-  Controls, ComCtrls, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
+  Windows, Controls, ComCtrls, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
   at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
   prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, at_frmSyncNamespace_unit,
-  jclFileUtils;
+  jclFileUtils, jclUnicode, gd_directories_const;
 
 const
   cst_str_WithoutName = 'Без наименования';
@@ -62,11 +64,28 @@ const
 procedure Register;
 begin
   RegisterComponents('gdcNamespace', [TgdcNamespace, TgdcNamespaceObject]);
-end; 
+end;
 
-function AddSpaces(const Name: String): String;
+function GetFileLastWrite(const AFullName: String): TDateTime;
+var
+  T: TFileTime;
+  S: TSystemTime;
+  f: THandle;
 begin
-  Result := Name + StringOfChar(' ', 20 - Length(Name));
+  Result := 0;
+  begin
+    f := FileOpen(AFullName, fmOpenRead or fmShareDenyNone);
+    try
+      if (f <> 0) and GetFileTime(f, nil, nil, @T)
+        and FileTimeToSystemTime(T, S) then
+      begin
+        Result := EncodeDate(S.wYear, S.wMonth, S.wDay) +
+          EncodeTime(S.wHour, S.wMinute, S.wSecond, 0);
+      end;
+    finally
+      FileClose(f);
+    end;
+  end;
 end;
 
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
@@ -316,7 +335,7 @@ begin
                 end;
 
                 AWriter.StartNewLine;
-                AWriter.WriteKey(AddSpaces(F.FieldName));
+                AWriter.WriteKey(F.FieldName);
                 AWriter.WriteString(gdcBaseManager.GetRUIDStringByID(F.AsInteger, AgdcObject.Transaction));
                 AWriter.WriteChar(' ');
                 AWriter.WriteText(FN, qSingleQuoted);
@@ -328,7 +347,7 @@ begin
       end;
 
       AWriter.StartNewLine;
-      AWriter.WriteKey(AddSpaces(F.FieldName));
+      AWriter.WriteKey(F.FieldName);
       if not F.IsNull then
       begin
         case F.DataType of
@@ -339,7 +358,8 @@ begin
           begin
             Flag := False;
 
-            if (AgdcObject.ClassName = 'TgdcStorageValue') and (AgdcObject.FieldByName('name').AsString = 'dfm') then
+            if (AgdcObject.ClassName = 'TgdcStorageValue') and ((AgdcObject.FieldByName('name').AsString = 'dfm')
+              or CheckRUID(AgdcObject.FieldByName('name').AsString)) then
             begin
               TempS := F.AsString;
               if TryObjectBinaryToText(TempS) then
@@ -488,11 +508,11 @@ procedure TgdcNamespace.LoadFromFile(const AFileName: String = '');
 var
   FN: String;
   FS: TFileStream;
-  Parser: TyamlParser; 
-  SS: TStringStream;
+  Parser: TyamlParser;
+  SS, SS1251, SSUTF8: TStringStream;
   Temps: String;
   I: Integer;
-  DidActivate: Boolean; 
+  DidActivate: Boolean;
   M: TyamlMapping;
   N: TyamlNode;
   Writer: TyamlWriter;
@@ -504,7 +524,21 @@ begin
 
   if FN > '' then
   begin
-    FS := TFileStream.Create(FN,fmOpenRead);
+    SSUTF8 := TStringStream.Create('');
+    try
+      FS := TFileStream.Create(FN, fmOpenRead);
+      try
+        SSUTF8.CopyFrom(FS, 0);
+      finally
+        FS.Free;
+      end;
+
+      SS1251 := TStringStream.Create(WideStringToStringEx(
+        UTF8ToWideString(SSUTF8.DataString), WIN1251_CODEPAGE));
+    finally
+      SSUTF8.Free;
+    end;
+
     try
       DidActivate := False;
       try
@@ -513,7 +547,7 @@ begin
           Transaction.StartTransaction;
         Parser := TyamlParser.Create;
         try
-          Parser.Parse(FS);
+          Parser.Parse(SS1251);
           M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
           Temps := M.ReadString('Name');
           if Temps = '' then
@@ -597,7 +631,7 @@ begin
         end;
       end;
     finally
-      FS.Free;
+      SS1251.Free;
     end;
   end;
 end;
@@ -953,27 +987,39 @@ procedure TgdcNamespace.SaveNamespaceToFile(const AFileName: String = '');
 var
   FN: String;
   FS: TFileStream;
+  SS1251, SSUTF8: TStringStream;
 begin
   if AFileName > '' then
     FN := AFileName
   else
     FN := QuerySaveFileName('', 'yml', 'Файлы YML|*.yml');
 
-  if FN > '' then
-  begin
-    FS := TFileStream.Create(FN, fmCreate);
+  if FN = '' then
+    exit;
+
+  FS := TFileStream.Create(FN, fmCreate);
+  try
+    SS1251 := TStringStream.Create('');
     try
-      SaveNamespaceToStream(FS);
-      Edit;
+      SaveNamespaceToStream(SS1251);
+      SSUTF8 := TStringStream.Create(WideStringToUTF8(StringToWideStringEx(
+        SS1251.DataString, WIN1251_CODEPAGE)));
       try
-        FS.Position := 0;
+        FS.CopyFrom(SSUTF8, 0)
       finally
-        Post;
+        SSUTF8.Free;
       end;
     finally
-      FS.Free;
+      SS1251.Free;
     end;
+  finally
+    FS.Free;
   end;
+
+  Edit;
+  FieldByName('filename').AsString := FN;
+  FieldByName('filetimestamp').AsDateTime := GetFileLastWrite(FN);
+  Post;
 end;
 
 procedure TgdcNamespace._DoOnNewRecord;
@@ -1055,11 +1101,41 @@ begin
 
   W := TyamlWriter.Create(St);
   try
+    W.WriteDirective('YAML 1.1');
+    W.StartNewLine;
     W.WriteKey('StructureVersion');
     W.WriteString('1.0');
     W.StartNewLine;
+    W.WriteKey('Properties');
+    W.IncIndent;
+    W.StartNewLine;
     W.WriteKey('Name');
     W.WriteString(FieldByName('name').AsString);
+    W.StartNewLine;
+    W.WriteKey('Caption');
+    W.WriteString(FieldByName('caption').AsString);
+    W.StartNewLine;
+    W.WriteKey('Version');
+    W.WriteString(FieldByName('version').AsString);
+    W.StartNewLine;
+    W.WriteKey('Optional');
+    W.WriteBoolean(FieldByName('optional').AsInteger <> 0);
+    W.StartNewLine;
+    W.WriteKey('Internal');
+    W.WriteBoolean(FieldByName('internal').AsInteger <> 0);
+    if FieldByName('dbversion').AsString > '' then
+    begin
+      W.StartNewLine;
+      W.WriteKey('DBVersion');
+      W.WriteString(FieldByName('dbversion').AsString);
+    end;
+    if FieldByName('comment').AsString > '' then
+    begin
+      W.StartNewLine;
+      W.WriteKey('Comment');
+      W.WriteText(FieldByName('comment').AsString);
+    end;
+    W.DecIndent;
     W.StartNewLine;
   finally
     W.Free;
@@ -1116,16 +1192,77 @@ begin
 end;
 
 class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
-  const APath: String);
+  const APath: String; Messages: TStrings);
+
+  procedure FillInNamespace(AnObj: TgdcBase; const AnInsert: Boolean);
+  begin
+    if AnInsert then
+      ADataSet.Insert
+    else
+      ADataSet.Edit;
+    ADataSet.FieldByName('namespacekey').AsInteger := AnObj.ID;
+    ADataSet.FieldByName('namespacename').AsString := AnObj.ObjectName;
+    ADataSet.FieldByName('namespaceversion').AsString := AnObj.FieldByName('version').AsString;
+    if not AnObj.FieldByName('filetimestamp').IsNull then
+      ADataSet.FieldByName('namespacetimestamp').AsDateTime := AnObj.FieldByName('filetimestamp').AsDateTime;
+    ADataSet.Post;
+  end;
+
+  procedure FillInNamespaceFile(const S: String);
+  var
+    FS: TFileStream;
+    Parser: TyamlParser;
+    M: TyamlMapping;
+  begin
+    FS := TFileStream.Create(S, fmOpenRead);
+    Parser := TyamlParser.Create;
+    try
+      Parser.Parse(FS);
+
+      if (Parser.YAMLStream.Count > 0)
+        and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
+        and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
+      begin
+        M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
+
+        if M.ReadString('Properties\Name') = '' then
+        begin
+          Messages.Add('Неверный формат файла ' + S);
+        end else
+        begin
+          if ADataSet.Locate('filenamespacename', M.ReadString('Properties\Name'), [loCaseInsensitive]) then
+          begin
+            Messages.Add('Пространство имен: "' + M.ReadString('Properties\Name') + '" содержится в файлах:');
+            Messages.Add('1: ' + ADataSet.FieldByName('filename').AsString);
+            Messages.Add('2: ' + S);
+            Messages.Add('Только первый файл будет обработан!');
+          end else
+          begin
+            ADataSet.Append;
+            ADataSet.FieldByName('filename').AsString := S;
+            ADataSet.FieldByName('filenamespacename').AsString := M.ReadString('Properties\Name');
+            ADataSet.FieldByName('fileversion').AsString := M.ReadString('Properties\Version');
+            ADataSet.FieldByName('filetimestamp').AsDateTime := GetFileLastWrite(S);
+            ADataSet.FieldByName('filesize').AsInteger := FileGetSize(S);
+            ADataSet.Post;
+          end;
+        end;
+      end;
+    finally
+      Parser.Free;
+      FS.Free;
+    end;
+  end;
+
 var
   SL: TStringList;
   Obj: TgdcNamespace;
   I: Integer;
-  S1, S2: String;
-  FillInNamespaceFile: Boolean;
-  FS: TFileStream;
-  Parser: TyamlParser;
+  CurrDir, Bm: String;
 begin
+  Assert(ADataSet <> nil);
+  Assert(Messages <> nil);
+
   Obj := TgdcNamespace.Create(nil);
   SL := TStringList.Create;
   try
@@ -1135,64 +1272,41 @@ begin
     if AdvBuildFileList(IncludeTrailingBackslash(APath) + '*.yml',
       faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
     begin
-      I := 0;
+      CurrDir := '';
+
+      for I := 0 to SL.Count - 1 do
+      begin
+        if ExtractFilePath(SL[I]) <> CurrDir then
+        begin
+          CurrDir := ExtractFilePath(SL[I]);
+          ADataSet.Append;
+          ADataSet.FieldByName('filenamespacename').AsString := CurrDir;
+          ADataSet.Post;
+        end;
+        FillInNamespaceFile(SL[I]);
+      end;
+
+      ADataSet.First;
 
       Obj.SubSet := 'OrderByName';
       Obj.Open;
 
-      while (not Obj.EOF) or (I < SL.Count) do
+      while not Obj.EOF do
       begin
-        ADataSet.Append;
-
-        FillInNamespaceFile := False;
-
-        if not Obj.EOF then
-          S1 := Obj.ObjectName
-        else
-          S1 := '';
-
-        if (I < SL.Count) then
-          S2 := ExtractFileName(SL[I])
-        else
-          S2 := '';
-
-        if AnsiCompareText(S1, S2) > 0 then
+        Bm := ADataSet.Bookmark;
+        if ADataSet.Locate('filenamespacename', Obj.ObjectName, [loCaseInsensitive]) then
         begin
-          ADataSet.FieldByName('namespacename').AsString := S1;
-          Obj.Next;
-        end
-        else if AnsiCompareText(S1, S2) < 0 then
-        begin
-          FillInNamespaceFile := True;
-          Inc(I);
+          FillInNamespace(Obj, False);
+          ADataSet.Bookmark := Bm
         end else
         begin
-          FillInNamespaceFile := True;
-          Obj.Next;
-          Inc(I);
+          FillInNamespace(Obj, True);
+          ADataSet.Next;
         end;
-
-        if FillInNamespaceFile then
-        begin
-          ADataSet.FieldByName('filename').AsString := SL[I];
-          ADataSet.FieldByName('filenamespacename').AsString := S2;
-
-          FS := TFileStream.Create(SL[I], fmOpenRead);
-          Parser := TyamlParser.Create;
-          try
-            Parser.Parse(FS);
-                M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-                Temps := M.ReadString('Name');
-                if Temps = '' then
-                  raise Exception.Create('Invalid namespace name!');
-          finally
-            Parser.Free;
-            FS.Free;
-          end;
-        end;
-
-        ADataSet.Post;
+        Obj.Next;
       end;
+
+      ADataSet.First;
     end;
   finally
     SL.Free;

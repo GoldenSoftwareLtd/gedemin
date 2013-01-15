@@ -633,7 +633,6 @@ const
   DETAIL_DOMAIN_TREE = 'DPARENT';
 
   cst_StreamVersionNew = 3;
-  WIN1251_CODEPAGE = 1251;
 
   function GetStreamType(Stream: TStream): TgsStreamType;
 

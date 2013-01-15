@@ -14326,30 +14326,20 @@ begin
         ofNoReadOnlyReturn,ofEnableSizing];
       DefaultExt := aDefaultExt;
       Filter := aFilter;
-      {$IFDEF GEDEMIN}
       if Assigned(UserStorage) then
       begin
         InitialDir := UserStorage.ReadString('GDC\' + Self.ClassName + SubType, 'SaveDir', '');
-        //зачем считывать имя последнего сохраненного файла?
-        //Не легче ли указывать имя а-ля FieldByName(GetListField(SubType)).AsString
-        //так логичнее. Если я сохраняю настройку с названием Справочники
-        //то название файла логичнее сделать Справочники.dat,
-        //а не брать имя последнего сохраненного файла 22222.dat
         FileName := CorrectFileName(FieldByName(GetListField(SubType)).AsString);
       end;
-      {$ENDIF}
       if not Execute then
       begin
         Result := '';
         exit;
       end;
-      {$IFDEF GEDEMIN}
       if Assigned(UserStorage) then
       begin
         UserStorage.WriteString('GDC\' + Self.ClassName + SubType, 'SaveDir', InitialDir);
-        UserStorage.WriteString('GDC\' + Self.ClassName + SubType, 'SaveFileName', FileName);
       end;
-      {$ENDIF}
       Result := FileName;
     finally
       Free;

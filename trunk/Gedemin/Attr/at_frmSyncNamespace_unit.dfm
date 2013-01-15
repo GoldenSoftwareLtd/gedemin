@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 224
-  Top = 232
+  Left = 366
+  Top = 202
   Width = 1142
   Height = 656
   Caption = 'at_frmSyncNamespace'
@@ -13,6 +13,14 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
+  object splMessages: TSplitter
+    Left = 0
+    Top = 533
+    Width = 1126
+    Height = 3
+    Cursor = crVSplit
+    Align = alBottom
+  end
   object sb: TStatusBar
     Left = 0
     Top = 599
@@ -49,7 +57,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem2: TTBItem
         Action = actCompare
       end
-      object TBSeparatorItem2: TTBSeparatorItem
+      object TBItem3: TTBItem
+        Action = actSaveToFile
+      end
+      object TBSeparatorItem3: TTBSeparatorItem
+      end
+      object tbiFilter: TTBItem
+        Action = actSetFilter
       end
       object TBControlItem1: TTBControlItem
         Control = Label1
@@ -58,22 +72,23 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         EditWidth = 96
       end
       object Label1: TLabel
-        Left = 299
+        Left = 345
         Top = 4
-        Width = 80
+        Width = 86
         Height = 13
-        Caption = 'Наименование: '
+        Caption = '  Наименование: '
       end
     end
   end
-  object gsDBGrid1: TgsDBGrid
+  object gr: TgsDBGrid
     Left = 0
     Top = 26
     Width = 1126
-    Height = 573
+    Height = 507
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
+    Options = [dgTitles, dgIndicator, dgColumnResize, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
     ReadOnly = True
     TabOrder = 2
     InternalMenuKind = imkWithSeparator
@@ -147,10 +162,18 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Visible = True
       end>
   end
+  object mMessages: TMemo
+    Left = 0
+    Top = 536
+    Width = 1126
+    Height = 63
+    Align = alBottom
+    ScrollBars = ssVertical
+    TabOrder = 3
+  end
   object cds: TClientDataSet
     Active = True
     Aggregates = <>
-    Filtered = True
     Params = <>
     OnFilterRecord = cdsFilterRecord
     Left = 552
@@ -224,6 +247,18 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Caption = 'Сравнить'
       OnExecute = actCompareExecute
       OnUpdate = actCompareUpdate
+    end
+    object actSetFilter: TAction
+      Caption = 'Фильтр'
+      ImageIndex = 20
+      OnExecute = actSetFilterExecute
+      OnUpdate = actSetFilterUpdate
+    end
+    object actSaveToFile: TAction
+      Caption = 'actSaveToFile'
+      ImageIndex = 25
+      OnExecute = actSaveToFileExecute
+      OnUpdate = actSaveToFileUpdate
     end
   end
 end

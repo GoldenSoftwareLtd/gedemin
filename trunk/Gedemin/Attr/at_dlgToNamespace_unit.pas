@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Db, DBClient, StdCtrls, IBDatabase, gsIBLookupComboBox, Grids, DBGrids,
-  gsDBGrid, gsIBGrid, ActnList, dmDatabase_unit, gdcBaseInterface, gdcBase,
+  gsDBGrid, ActnList, dmDatabase_unit, gdcBaseInterface, gdcBase,
   DBCtrls, Buttons;
 
 type
@@ -13,7 +13,7 @@ type
     lkup: TgsIBLookupComboBox;
     cdsLink: TClientDataSet;
     dsMain: TDataSource;
-    Button1: TButton;
+    bShowLink: TButton;
     dbgrListLink: TgsDBGrid;
     eLimit: TEdit;
     lLimit: TLabel;
@@ -21,22 +21,28 @@ type
     ActionList: TActionList;
     actShowLink: TAction;
     IBTransaction: TIBTransaction;
-    cbAlwaysOverwrite: TCheckBox;
+    cbAlwaysOverwrite: TCheckBox;                                      
     cbDontRemove: TCheckBox;
     btnOK: TBitBtn;
     actOK: TAction;
     cbIncludeSiblings: TCheckBox;
     btnCancel: TBitBtn;
     actCancel: TAction;
+    btnDelete: TBitBtn;
+    actClear: TAction;
     procedure FormCreate(Sender: TObject);
     procedure actShowLinkExecute(Sender: TObject);
     procedure actOKExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
+    procedure actClearExecute(Sender: TObject);
   private
     FgdcObject: TgdcBase;
+    FIsAdded: Boolean;
 
     procedure GetNamespace(AnObject: TgdcBase; out AnID: Integer; out AName: String);
     procedure CreateList(AnObject: TgdcBase);
+    procedure DeleteObjects;
+    procedure AddObjects;
     procedure OnChecked(Sender: TObject; CheckID: String;
       var Checked: Boolean);
 
@@ -58,8 +64,10 @@ implementation
 uses
   at_classes, gd_security, at_sql_parser, IBSQL, Storages, gdcNamespace;
 
-{$R *.DFM} 
+{$R *.DFM}
 
+const
+  DefCount = 60;
 
 procedure TdlgToNamespace.FormCreate(Sender: TObject);
 begin
@@ -69,6 +77,7 @@ begin
   cdsLink.Open;
   cdsLink.EmptyDataSet;
 
+  eLimit.Text := IntToStr(DefCount);
   dbgrListLink.CheckBox.CheckBoxEvent := OnChecked;
   cbAlwaysOverwrite.Checked := True;
   cbDontRemove.Checked := False;
@@ -99,11 +108,13 @@ begin
 
   if not IBTransaction.InTransaction then
     IBTransaction.StartTransaction;
-
+    
+  FIsAdded := False;
   GetNamespace(FgdcObject, ID, Name);
 
   if ID <> -1 then
   begin
+    FIsAdded := True;
     lkup.CurrentKeyInt := ID;
     q := TIBSQL.Create(nil);
     try
@@ -144,7 +155,7 @@ begin
   if Assigned(UserStorage) then
   begin
     UserStorage.LoadComponent(dbgrListLink, dbgrListLink.LoadFromStream);
-    lkup.CurrentKeyInt := UserStorage.ReadInteger('dlgToNamespace', 'CurrentSetting', -1);
+  //  lkup.CurrentKeyInt := UserStorage.ReadInteger('dlgToNamespace', 'CurrentNamespace', -1);
   end;
 end;
 
@@ -154,7 +165,7 @@ begin
   begin
     if dbgrListLink.SettingsModified then
       UserStorage.SaveComponent(dbgrListLink, dbgrListLink.SaveToStream);
-    UserStorage.WriteInteger('dlgToNamespace', 'CurrentSetting', lkup.CurrentKeyInt);
+   // UserStorage.WriteInteger('dlgToNamespace', 'CurrentNamespace', lkup.CurrentKeyInt);
   end;  
 end;
 
@@ -187,6 +198,87 @@ begin
   end;
 end;
 
+procedure TdlgToNamespace.DeleteObjects;
+var
+  q: TIBSQL;
+  I: Integer;
+  XID, DBID: TID;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := IBTransaction;
+    q.SQL.Text := 'DELETE FROM at_object WHERE xid = :xid and dbid = :dbid';
+    gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
+    q.ParamByName('xid').AsInteger := XID;
+    q.ParamByName('dbid').AsInteger := DBID;
+    q.ExecQuery;
+
+    q.Close;
+    for I := 0 to dbgrListLink.CheckBox.CheckList.Count - 1 do
+    begin
+      if cdsLink.Locate('id', StrToInt(dbgrListLink.CheckBox.CheckList[I]), []) then
+      begin
+        gdcBaseManager.GetRUIDByID(cdsLink.FieldByName('id').AsInteger, XID, DBID, IBTransaction);
+        q.ParamByName('xid').AsInteger := XID;
+        q.ParamByName('dbid').AsInteger := DBID;
+        q.ExecQuery;
+        q.Close;
+      end;
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
+procedure TdlgToNamespace.AddObjects;
+var
+  I: Integer;
+  q: TIBSQL;
+  XID, DBID: TID;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := IBTransaction;
+    q.SQL.Text :=
+      'UPDATE OR INSERT INTO at_object ' +
+      '  (namespacekey, objectname, objectclass, subtype, xid, dbid, ' +
+      '  alwaysoverwrite, dontremove, includesiblings) ' +
+      'VALUES (:NSK, :ON, :OC, :ST, :XID, :DBID, :OW, :DR, :IS) ' +
+      'MATCHING (xid, dbid) ';
+    q.ParamByName('NSK').AsInteger := lkup.CurrentKeyInt;
+    q.ParamByName('ON').AsString := FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString;
+    q.ParamByName('OC').AsString := FgdcObject.ClassName;
+    q.ParamByName('ST').AsString := FgdcObject.SubType;
+    gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
+    q.ParamByName('XID').AsInteger := XID;;
+    q.ParamByName('DBID').AsInteger := DBID;
+    q.ParamByName('OW').AsInteger := Integer(cbAlwaysOverwrite.Checked);
+    q.ParamByName('DR').AsInteger := Integer(cbDontRemove.Checked);
+    q.ParamByName('IS').AsInteger := Integer(cbIncludeSiblings.Checked);
+    q.ExecQuery;
+
+    q.Close;
+
+    for I := 0 to dbgrListLink.CheckBox.CheckList.Count - 1 do
+    begin
+      if cdsLink.Locate('id', StrToInt(dbgrListLink.CheckBox.CheckList[I]), []) then
+      begin
+        q.ParamByName('NSK').AsInteger := lkup.CurrentKeyInt;
+        q.ParamByName('ON').AsString := cdsLink.FieldByName('name').AsString;
+        q.ParamByName('OC').AsString := cdsLink.FieldByName('class').AsString;
+        q.ParamByName('ST').AsString := cdsLink.FieldByName('subtype').AsString;
+        gdcBaseManager.GetRUIDByID(cdsLink.FieldByName('id').AsInteger, XID, DBID, IBTransaction);
+
+        q.ParamByName('XID').AsInteger := XID;
+        q.ParamByName('DBID').AsInteger := DBID;
+        q.ExecQuery;
+        q.Close;
+      end;
+    end;
+  finally
+    q.Free;
+  end;
+end;
 
 procedure TdlgToNamespace.actShowLinkExecute(Sender: TObject);
 begin
@@ -195,48 +287,12 @@ begin
 end;
 
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
-var
-  gdcNSObj: TgdcNamespaceObject;
-  I: Integer;
 begin
-  if lkup.CurrentKey = '' then
-    SetFocusedControl(btnOk);
   if lkup.CurrentKey > '' then
-  begin
-    gdcNSObj := TgdcNamespaceObject.Create(nil);
-    try
-      gdcNSObj.Transaction := IBTransaction;
-      gdcNSObj.Open;
-      gdcNSObj.Insert;
-      gdcNSObj.FieldByName('objectname').AsString := FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString;
-      gdcNSObj.FieldByName('objectclass').AsString := FgdcObject.ClassName;
-      gdcNSObj.FieldByName('namespacekey').AsString := lkup.CurrentKey;
-      gdcNSObj.FieldByName('xid').AsInteger := FgdcObject.GetRUID.XID;
-      gdcNSObj.FieldByName('dbid').AsInteger := FgdcObject.GetRUID.DBID;
-      gdcNSObj.FieldByName('subtype').AsString := FgdcObject.SubType;
-      gdcNSObj.FieldByName('alwaysoverwrite').AsInteger:= Integer(cbAlwaysOverwrite.Checked);
-      gdcNSObj.FieldByName('dontremove').AsInteger := Integer(cbDontRemove.Checked);
-      gdcNSObj.FieldByName('includesiblings').AsInteger := Integer(cbIncludeSiblings.Checked);
-      gdcNSObj.Post;
-
-      for I := 0 to dbgrListLink.CheckBox.CheckList.Count - 1 do
-      begin
-        if cdsLink.Locate('id', StrToInt(dbgrListLink.CheckBox.CheckList[I]), []) then
-        begin
-          gdcNSObj.Insert;
-          gdcNSObj.FieldByName('objectname').AsString := cdsLink.FieldByName('name').AsString;
-          gdcNSObj.FieldByName('objectclass').AsString := cdsLink.FieldByName('class').AsString;
-          gdcNSObj.FieldByName('namespacekey').AsString := lkup.CurrentKey;
-          gdcNSObj.FieldByName('xid').AsInteger := gdcBasemanager.GetRUIDRecByID(cdsLink.FieldByName('id').AsInteger, IBTransaction).XID;
-          gdcNSObj.FieldByName('dbid').AsInteger := gdcBasemanager.GetRUIDRecByID(cdsLink.FieldByName('id').AsInteger, IBTransaction).DBID;
-          gdcNSObj.FieldByName('subtype').AsString := cdsLink.FieldByName('subtype').AsString; 
-          gdcNSObj.Post;
-        end;
-      end;
-    finally
-      gdcNSObj.Free;
-    end;
-  end;
+    AddObjects
+  else
+    if FIsAdded then
+      DeleteObjects;
 
   if IBTransaction.InTransaction then
     IBTransaction.Commit;
@@ -246,13 +302,13 @@ end;
 procedure TdlgToNamespace.OnChecked(Sender: TObject; CheckID: String;
   var Checked: Boolean);
 begin
-  if not cdsLink.FieldByName('namespacekey').IsNull then
+  if (not cdsLink.FieldByName('namespacekey').IsNull) and not FIsAdded then
   begin
     Checked := False;
-    Application.MessageBox('Нельзя добавить объект!'#13#10 +
-      'Он уже входит в другое пространство имен!',
-      'Внимание!',
-      0);
+    Application.MessageBox(PChar('Нельзя добавить объект!'#13#10 +
+      'Объект уже входит в пространство имен ''' + cdsLink.FieldByName('namespace').AsString + '''!'),
+      'Внимание',
+      MB_OK or MB_ICONHAND or MB_TASKMODAL);
   end;
 end;
 
@@ -274,6 +330,8 @@ procedure TdlgToNamespace.CreateList(AnObject: TgdcBase);
 
     for I := 0 to R.RelationFields.Count - 1 do
     begin
+      if cdsLink.RecordCount >= DefCount then
+        break;
 
       if AnsiPos(';' + Trim(R.RelationFields[I].FieldName) + ';', NotSavedField) > 0 then
         continue;
@@ -323,7 +381,7 @@ procedure TdlgToNamespace.CreateList(AnObject: TgdcBase);
               cdsLink.FieldByName('Namespacekey').AsInteger := ID;
               cdsLink.FieldByName('namespace').AsString := Name;
             end;
-            cdsLink.Post;
+            cdsLink.Post; 
           end;
           CreateList(Obj);
         finally
@@ -372,6 +430,11 @@ begin
   if IBTransaction.InTransaction then
     IBTransaction.Rollback;
   ModalResult := mrCancel;
+end;
+
+procedure TdlgToNamespace.actClearExecute(Sender: TObject);
+begin
+  lkup.CurrentKey := '';
 end;
 
 end.

@@ -525,14 +525,29 @@ end;
 
 function TyamlMapping.FindByName(const AName: String): TyamlNode;
 var
-  I: Integer;
+  I, E: Integer;
+  S: String;
 begin
   Result := nil;
+
+  E := 1;
+  while (E <= Length(AName)) and (AName[E] <> '\') do
+    Inc(E);
+  S := Copy(AName, 1, E - 1);
+
   for I := 0 to Count - 1 do
-    if AnsiCompareText((Items[I] as TyamlKeyValue).Key, AName) = 0 then
+  begin
+    if AnsiCompareText((Items[I] as TyamlKeyValue).Key, S) = 0 then
     begin
-      Result := (Items[I] as TyamlKeyValue).Value;
+      if E > Length(AName) then
+        Result := (Items[I] as TyamlKeyValue).Value
+      else if (Items[I] as TyamlKeyValue).Value is TyamlMapping then
+        Result := ((Items[I] as TyamlKeyValue).Value as TyamlMapping).FindByName(
+          Copy(AName, E + 1, 65536))
+      else
+        break;    
     end;
+  end;
 end;
 
 function TyamlContainer.GetCount: Integer;
