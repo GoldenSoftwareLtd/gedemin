@@ -55,8 +55,8 @@ implementation
 uses
   Windows, Controls, ComCtrls, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
   at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
-  prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, at_frmSyncNamespace_unit,
-  jclFileUtils, jclUnicode, gd_directories_const;
+  prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, jclUnicode,
+  at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const;
 
 const
   cst_str_WithoutName = 'Без наименования';
@@ -358,8 +358,14 @@ begin
           begin
             Flag := False;
 
-            if (AgdcObject.ClassName = 'TgdcStorageValue') and ((AgdcObject.FieldByName('name').AsString = 'dfm')
-              or CheckRUID(AgdcObject.FieldByName('name').AsString)) then
+            if
+              (AgdcObject.ClassName = 'TgdcStorageValue')
+              and
+              (
+                (AgdcObject.FieldByName('name').AsString = 'dfm')
+                or
+                CheckRUID(AgdcObject.FieldByName('name').AsString)
+              ) then
             begin
               TempS := F.AsString;
               if TryObjectBinaryToText(TempS) then
@@ -367,6 +373,15 @@ begin
                 AWriter.WriteText(TempS, qPlain, sLiteral);
                 Flag := True;
               end;
+            end else if
+              (AgdcObject.ClassName = 'TgdcTemplate')
+              and
+              (AgdcObject.FieldByName('templatetype').AsString = 'FR4')
+              and
+              (F.FieldName = 'TEMPLATEDATA') then
+            begin
+              AWriter.WriteText(F.AsString, qPlain, sLiteral);
+              Flag := True;
             end;
 
             if not Flag then
@@ -507,15 +522,14 @@ end;
 procedure TgdcNamespace.LoadFromFile(const AFileName: String = '');
 var
   FN: String;
-  FS: TFileStream;
   Parser: TyamlParser;
-  SS, SS1251, SSUTF8: TStringStream;
   Temps: String;
   I: Integer;
   DidActivate: Boolean;
   M: TyamlMapping;
   N: TyamlNode;
   Writer: TyamlWriter;
+  SS: TStringStream;
 begin
   if AFileName = '' then
     FN := QueryLoadFileName(AFileName, 'yml', 'Модули|*.yml')
@@ -524,114 +538,95 @@ begin
 
   if FN > '' then
   begin
-    SSUTF8 := TStringStream.Create('');
+    DidActivate := False;
     try
-      FS := TFileStream.Create(FN, fmOpenRead);
+      DidActivate := not Transaction.InTransaction;
+      if DidActivate then
+        Transaction.StartTransaction;
+      Parser := TyamlParser.Create;
       try
-        SSUTF8.CopyFrom(FS, 0);
-      finally
-        FS.Free;
-      end;
+        Parser.Parse(FN);
+        M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
+        Temps := M.ReadString('Name');
+        if Temps = '' then
+          raise Exception.Create('Invalid namespace name!');
 
-      SS1251 := TStringStream.Create(WideStringToStringEx(
-        UTF8ToWideString(SSUTF8.DataString), WIN1251_CODEPAGE));
-    finally
-      SSUTF8.Free;
-    end;
+        if Active then Close;
+        SubSet := 'ByName';
+        ParamByName(GetListField(SubType)).AsString := Temps;
+        Open;
 
-    try
-      DidActivate := False;
-      try
-        DidActivate := not Transaction.InTransaction;
-        if DidActivate then
-          Transaction.StartTransaction;
-        Parser := TyamlParser.Create;
-        try
-          Parser.Parse(SS1251);
-          M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-          Temps := M.ReadString('Name');
-          if Temps = '' then
-            raise Exception.Create('Invalid namespace name!');
-
-          if Active then Close;
-          SubSet := 'ByName';
-          ParamByName(GetListField(SubType)).AsString := Temps;
-          Open;
-
-          if not Eof then
-            Edit
-          else
-          begin
-            Insert;
-            FieldByName('name').AsString := Temps;
-          end;
+        if not Eof then
+          Edit
+        else
+        begin
+          Insert;
+          FieldByName('name').AsString := Temps;
+        end;
 
 
-          N := M.FindByName('Properties');
-          if N <> nil then
-          begin
-            SS := TStringStream.Create('');
+        N := M.FindByName('Properties');
+        if N <> nil then
+        begin
+          SS := TStringStream.Create('');
+          try
+            Writer := TyamlWriter.Create(SS);
             try
-              Writer := TyamlWriter.Create(SS);
-              try
-                Writer.WriteKey('Properties');
-                Writer.IncIndent;
+              Writer.WriteKey('Properties');
+              Writer.IncIndent;
 
-                N := (N as TyamlMapping).FindByName('Version');
-                if N <> nil then
-                begin
-                  Writer.StartNewLine;
-                  Writer.WriteKey('Version');
-                  Writer.WriteString(FloatToStr((N as TyamlFloat).AsFloat));
-                end;
-                Writer.DecIndent;
+              N := (N as TyamlMapping).FindByName('Version');
+              if N <> nil then
+              begin
                 Writer.StartNewLine;
+                Writer.WriteKey('Version');
+                Writer.WriteString(FloatToStr((N as TyamlFloat).AsFloat)); //!!!!
+              end;
+              Writer.DecIndent;
+              Writer.StartNewLine;
 
-                N := M.FindByName('Uses');
-                if N <> nil then
-                begin
-                 if not (N is TyamlSequence) then
-                   raise Exception.Create('Invalid uses object!');
+              N := M.FindByName('Uses');
+              if N <> nil then
+              begin
+               if not (N is TyamlSequence) then
+                 raise Exception.Create('Invalid uses object!');
 
-                 CheckUses(N as TyamlSequence, Writer);
-                end;
-              finally
-                Writer.Free;
+               CheckUses(N as TyamlSequence, Writer);
               end;
             finally
-              SS.Free;
+              Writer.Free;
             end;
+          finally
+            SS.Free;
           end;
-
-          Post;
-
-          N := M.FindByName('Objects');
-          if N <> nil then
-          begin
-            if not (N is TyamlSequence) then
-              raise Exception.Create('Invalid objects!');
-            with N as TyamlSequence do
-            begin
-              for I := 0 to Count - 1 do
-                LoadObject(Items[I] as TyamlMapping, Transaction)
-            end;
-          end;
-        finally
-          Parser.Free;
         end;
 
-        if DidActivate and Transaction.InTransaction then
-          Transaction.Commit;
-      except
-        on E: Exception do
+        Post;
+
+        N := M.FindByName('Objects');
+        if N <> nil then
         begin
-          if DidActivate and Transaction.InTransaction then
-            Transaction.Rollback;
-          raise;
+          if not (N is TyamlSequence) then
+            raise Exception.Create('Invalid objects!');
+          with N as TyamlSequence do
+          begin
+            for I := 0 to Count - 1 do
+              LoadObject(Items[I] as TyamlMapping, Transaction)
+          end;
         end;
+      finally
+        Parser.Free;
       end;
-    finally
-      SS1251.Free;
+
+      if DidActivate and Transaction.InTransaction then
+        Transaction.Commit;
+    except
+      on E: Exception do
+      begin
+        if DidActivate and Transaction.InTransaction then
+          Transaction.Rollback;
+        raise;
+      end;
     end;
   end;
 end;
@@ -990,12 +985,17 @@ var
   SS1251, SSUTF8: TStringStream;
 begin
   if AFileName > '' then
-    FN := AFileName
-  else
+  begin
+    if DirectoryExists(AFileName) then
+      FN := IncludeTrailingBackSlash(AFileName) + ObjectName + '.yml'
+    else
+      FN := AFileName;
+  end else
+  begin
     FN := QuerySaveFileName('', 'yml', 'Файлы YML|*.yml');
-
-  if FN = '' then
-    exit;
+    if FN = '' then
+      exit;
+  end;
 
   FS := TFileStream.Create(FN, fmCreate);
   try
@@ -1110,10 +1110,10 @@ begin
     W.IncIndent;
     W.StartNewLine;
     W.WriteKey('Name');
-    W.WriteString(FieldByName('name').AsString);
+    W.WriteText(FieldByName('name').AsString, qSingleQuoted);
     W.StartNewLine;
     W.WriteKey('Caption');
-    W.WriteString(FieldByName('caption').AsString);
+    W.WriteText(FieldByName('caption').AsString, qSingleQuoted);
     W.StartNewLine;
     W.WriteKey('Version');
     W.WriteString(FieldByName('version').AsString);
@@ -1210,14 +1210,12 @@ class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
 
   procedure FillInNamespaceFile(const S: String);
   var
-    FS: TFileStream;
     Parser: TyamlParser;
     M: TyamlMapping;
   begin
-    FS := TFileStream.Create(S, fmOpenRead);
     Parser := TyamlParser.Create;
     try
-      Parser.Parse(FS);
+      Parser.Parse(S, 'Objects', 1024);
 
       if (Parser.YAMLStream.Count > 0)
         and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
@@ -1250,7 +1248,6 @@ class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
       end;
     finally
       Parser.Free;
-      FS.Free;
     end;
   end;
 

@@ -39,6 +39,8 @@ type
     FIndent: Integer;
     FLine: Integer;
     FToken: TyamlToken;
+    FSetEOF: Boolean;
+    FStopKey: AnsiString;
 
     function GetEOF: Boolean;
 
@@ -51,6 +53,7 @@ type
     property EOF: Boolean read GetEOF;
     property Indent: Integer read FIndent;
     property Line: Integer read FLine;
+    property StopKey: AnsiString read FStopKey write FStopKey;
 
     property Token: TyamlToken read FToken;
     property Quoting: TyamlScalarQuoting read FQuoting;
@@ -72,6 +75,8 @@ begin
   FReader := TyamlReader.Create(AStream);
   FState := sAtStreamStart;
   FStyle := sPlain;
+  FSetEOF := False;
+  FStopKey := '';
 end;
 
 destructor TyamlScanner.Destroy;
@@ -82,7 +87,7 @@ end;
 
 function TyamlScanner.GetEOF: Boolean;
 begin
-  Result := FReader.EOF;
+  Result := FReader.EOF or FSetEOF;
 end;
 
 function TyamlScanner.GetNextToken: TyamlToken;
@@ -286,10 +291,16 @@ begin
     end;
   end;
 
+  if (Result = tKey) and (FStopKey > '') and (FKey = FStopKey) then
+  begin
+    FSetEOF := True;
+    Result := tStreamEnd;
+  end;
+
   if Result = tUndefined then
     Result := tStreamEnd;
 
-  FToken := Result; 
+  FToken := Result;
 end;
 
 end.

@@ -202,10 +202,13 @@ begin
     begin
       ResponseData := TStringStream.Create('');
       try
-        FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_files_list'), ResponseData);
+        FHTTP.Get(TidURI.URLEncode(gdWebServerURL + '/get_files_list?' +
+          'update_token=' + FUpdateToken),
+          ResponseData);
         if ResponseData.Size > 0 then
           ResponseData.Position := 0;
         FServerFileList := TFLCollection.Create;
+        FServerFileList.UpdateToken := FUpdateToken;
         FServerFileList.ParseYAML(ResponseData);
         FServerFileList.OnProgressWatch := DoOnProgressWatch;
       finally
