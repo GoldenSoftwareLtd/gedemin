@@ -109,6 +109,7 @@ type
     FOldWorkEnd: TWorkEndEvent;
     FOldWork: TWorkEvent;
     FOnProgressWatch: TProgressWatchEvent;
+    FUpdateToken: String;
 
     procedure DoWorkBegin(Sender: TObject; AWorkMode: TWorkMode; const AWorkCountMax: Integer);
     procedure DoWorkEnd(Sender: TObject; AWorkMode: TWorkMode);
@@ -135,6 +136,7 @@ type
 
     property RootPath: String read FRootPath write SetRootPath;
     property OnProgressWatch: TProgressWatchEvent read FOnProgressWatch write FOnProgressWatch;
+    property UpdateToken: String read FUpdateToken write FUpdateToken;
   end;
 
   EFLError = class(Exception);
@@ -849,7 +851,8 @@ procedure TFLItem.UpdateFile(AHTTP: TidHTTP; const AnURL: String;
   begin
     MS := TMemoryStream.Create;
     try
-      AHTTP.Get(TidURI.URLEncode(AnURL + '/get_file?fn=' + RelativeName), MS);
+      AHTTP.Get(TidURI.URLEncode(AnURL + '/get_file?fn=' + RelativeName +
+        '&update_token=' + (Collection as TFLCollection).UpdateToken), MS);
       MS.Position := 0;
       WriteToDisk(ALocalName, MS);
     finally

@@ -51,6 +51,11 @@ type
     procedure actSetFilterUpdate(Sender: TObject);
     procedure actSaveToFileUpdate(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure ActionListUpdate(Action: TBasicAction; var Handled: Boolean);
+
+  private
+    FSaving: Boolean;  
 
   public
     procedure SaveSettings; override;
@@ -125,36 +130,76 @@ end;
 
 procedure Tat_frmSyncNamespace.actSaveToFileUpdate(Sender: TObject);
 begin
-  actSaveToFile.Enabled := DirectoryExists(tbedPath.Text);
+  actSaveToFile.Enabled := DirectoryExists(tbedPath.Text)
+    and (cds.RecordCount > 0);
 end;
 
 procedure Tat_frmSyncNamespace.actSaveToFileExecute(Sender: TObject);
 var
   I: Integer;
   Obj: TgdcNamespace;
+
+  procedure SaveID;
+  begin
+    if cds.FieldByName('namespacekey').AsInteger > 0 then
+    begin
+      Obj.ID := cds.FieldByName('namespacekey').AsInteger;
+      Obj.Open;
+      if not Obj.EOF then
+      begin
+        if cds.FieldByName('filename').AsString > '' then
+          Obj.SaveNamespaceToFile(cds.FieldByName('filename').AsString)
+        else
+          Obj.SaveNamespaceToFile(tbedPath.Text);
+        mMessages.Lines.Add('Пространство имен "' + Obj.ObjectName + '" записано в файл.');
+      end;
+      Obj.Close;
+    end;
+  end;
+
 begin
+  mMessages.Lines.Clear;
+  FSaving := True;
   Obj := TgdcNamespace.Create(nil);
   try
     Obj.SubSet := 'ByID';
 
-    cds.DisableControls;
-    try
-      for I := 0 to gr.SelectedRows.Count - 1 do
-      begin
-        cds.Bookmark := gr.SelectedRows[I];
-        if cds.FieldByName('namespacekey').AsInteger > 0 then
+    if gr.SelectedRows.Count > 0 then
+    begin
+      cds.DisableControls;
+      try
+        for I := 0 to gr.SelectedRows.Count - 1 do
         begin
-          Obj.ID := cds.FieldByName('namespacekey').AsInteger;
-          Obj.Open;
-          Obj.SaveNamespaceToFile;
-          Obj.Close;
+          Application.ProcessMessages;
+          if Application.Terminated then
+            break;
+          cds.Bookmark := gr.SelectedRows[I];
+          SaveID;
         end;
+      finally
+        cds.EnableControls;
       end;
-    finally
-      cds.EnableControls;
-    end;
+    end else
+      SaveID;
   finally
     Obj.Free;
+    FSaving := False;
+  end;
+end;
+
+procedure Tat_frmSyncNamespace.FormCloseQuery(Sender: TObject;
+  var CanClose: Boolean);
+begin
+  CanClose := not FSaving;
+end;
+
+procedure Tat_frmSyncNamespace.ActionListUpdate(Action: TBasicAction;
+  var Handled: Boolean);
+begin
+  if FSaving and (Action is TCustomAction) then
+  begin
+    TCustomAction(Action).Enabled := False;
+    Handled := True;
   end;
 end;
 

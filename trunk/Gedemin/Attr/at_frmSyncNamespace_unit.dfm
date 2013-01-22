@@ -11,6 +11,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCloseQuery = FormCloseQuery
   PixelsPerInch = 96
   TextHeight = 13
   object splMessages: TSplitter
@@ -69,6 +70,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = Label1
       end
       object tbedName: TTBEditItem
+        Caption = 'Наименование:'
+        EditCaption = 'Наименование:'
         EditWidth = 96
       end
       object Label1: TLabel
@@ -88,7 +91,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
-    Options = [dgTitles, dgIndicator, dgColumnResize, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
+    Options = [dgTitles, dgColumnResize, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
     ReadOnly = True
     TabOrder = 2
     InternalMenuKind = imkWithSeparator
@@ -99,6 +102,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     ConditionsActive = False
     CheckBox.Visible = False
     CheckBox.FirstColumn = False
+    ScaleColumns = True
     MinColWidth = 40
     Columns = <
       item
@@ -140,7 +144,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Expanded = False
         FieldName = 'FileNamespaceName'
-        Width = 244
+        Width = 294
         Visible = True
       end
       item
@@ -194,17 +198,19 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Visible = False
     end
     object cdsNamespaceName: TStringField
-      DisplayWidth = 40
+      DisplayWidth = 72
       FieldName = 'NamespaceName'
       Size = 255
     end
     object cdsNamespaceVersion: TStringField
+      DisplayWidth = 12
       FieldName = 'NamespaceVersion'
     end
     object cdsNamespaceTimeStamp: TDateTimeField
       FieldName = 'NamespaceTimeStamp'
     end
     object cdsOperation: TStringField
+      DisplayWidth = 2
       FieldName = 'Operation'
       Size = 1
     end
@@ -215,11 +221,12 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Size = 255
     end
     object cdsFileName: TStringField
-      DisplayWidth = 40
+      DisplayWidth = 72
       FieldName = 'FileNamespaceName'
       Size = 255
     end
     object cdsFileVersion: TStringField
+      DisplayWidth = 12
       FieldName = 'FileVersion'
     end
     object cdsFileTimeStamp: TDateTimeField
@@ -236,6 +243,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object ActionList: TActionList
     Images = dmImages.il16x16
+    OnUpdate = ActionListUpdate
     Left = 552
     Top = 242
     object actChooseDir: TAction

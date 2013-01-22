@@ -36,7 +36,7 @@ type
     FHttpGetHandlerList: TObjectList;
     FVarParam: TVarParamEvent;
     FReturnVarParam: TVarParamEvent;
-    FFileList: TFLCollection;
+    FFileList: TObjectList;
     FRequestInfo: TIdHTTPRequestInfo;
     FResponseInfo: TIdHTTPResponseInfo;
 
@@ -52,12 +52,15 @@ type
     procedure ProcessFileRequest;
     procedure ProcessBLOBRequest;
     procedure Log(const AnIPAddress: String; const AnOp: String;
-      const Names: array of String; const Values: array of String);
+      const Names: array of String; const Values: array of String); overload;
+    procedure Log(const AnIPAddress: String; const AnOp: String;
+      Params: TStrings); overload;
     function GetActive: Boolean;
     procedure SetActive(const Value: Boolean);
 
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    function GetFLCollection(const AnUpdateToken: String = ''): TFLCollection;
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -103,6 +106,7 @@ begin
   inherited Create(AOwner);
   FHttpServer := nil;
   FHttpGetHandlerList := TObjectList.Create(True);
+  FFileList := TObjectList.Create(True);
 end;
 
 destructor TgdWebServerControl.Destroy;
@@ -290,8 +294,8 @@ begin
       if not Processed then
       begin
         S := 'Gedemin Web Server.';
-        if (FFileList <> nil) and (FFileList.FindItem('gedemin.exe') <> nil) then
-          S := S + ' v.' + FFileList.FindItem('gedemin.exe').Version;
+        if (GetFLCollection <> nil) and (GetFLCollection.FindItem('gedemin.exe') <> nil) then
+          S := S + ' v.' + GetFLCollection.FindItem('gedemin.exe').Version;
         S := S + '<br/>Copyright (c) 2013 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
         S := S + '<br/>All rights reserved.';
 
@@ -433,25 +437,21 @@ procedure TgdWebServerControl.ProcessQueryRequest;
 var
   UP: String;
   FI: TFLItem;
+  FC: TFLCollection;
 begin
   FResponseInfo.ResponseNo := 200;
   FResponseInfo.ContentType := 'text/plain;';
   FResponseInfo.ContentText := '';
 
-  Log(FRequestInfo.RemoteIP, 'QERY',
-    ['dbid', 'c_name', 'c_ruid', 'loc_ip', 'exe_ver', 'update_token'],
-    [FRequestInfo.Params.Values['dbid'],
-     FRequestInfo.Params.Values['c_name'],
-     FRequestInfo.Params.Values['c_ruid'],
-     FRequestInfo.Params.Values['loc_ip'],
-     FRequestInfo.Params.Values['exe_ver'],
-     FRequestInfo.Params.Values['update_token']]);
+  Log(FRequestInfo.RemoteIP, 'QERY', FRequestInfo.Params);
 
   if DirectoryExists(gd_GlobalParams.GetWebServerUpdatePath) then
   begin
-    if FRequestInfo.Params.Values['update_token'] = '' then
-      UP := IncludeTrailingBackslash(gd_GlobalParams.GetWebServerUpdatePath) + 'Normal'
-    else
+    if (FRequestInfo.Params.Values['update_token'] = '') or
+      (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'STABLE') = 0) then
+    begin
+      UP := IncludeTrailingBackslash(gd_GlobalParams.GetWebServerUpdatePath) + 'Normal';
+    end else
       UP := IncludeTrailingBackslash(gd_GlobalParams.GetWebServerUpdatePath) +
         FRequestInfo.Params.Values['update_token'];
 
@@ -460,14 +460,18 @@ begin
 
     if DirectoryExists(UP) then
     begin
-      if FFileList = nil then
-        FFileList := TFLCollection.Create;
-      if FFileList.RootPath <> UP then
+      FC := GetFLCollection(FRequestInfo.Params.Values['update_token']);
+
+      if FC = nil then
       begin
-        FFileList.RootPath := UP;
-        FFileList.BuildEtalonFileSet;
+        FC := TFLCollection.Create;
+        FC.UpdateToken := FRequestInfo.Params.Values['update_token'];
+        FC.RootPath := UP;
+        FC.BuildEtalonFileSet;
+        FFileList.Add(FC);
       end;
-      FI := FFileList.FindItem('gedemin.exe');
+
+      FI := FC.FindItem('gedemin.exe');
       if FI <> nil then
       begin
         if TFLItem.CompareVersionStrings(FI.Version,
@@ -515,14 +519,14 @@ var
   FI: TFLItem;
   MS: TMemoryStream;
 begin
-  Log(FRequestInfo.RemoteIP, 'RQFL', ['file_name'],
-    [FRequestInfo.Params.Values['fn']]);
+  Log(FRequestInfo.RemoteIP, 'RQFL', FRequestInfo.Params);
 
   FResponseInfo.ResponseNo := 400;
 
-  if FFileList <> nil then
+  if GetFLCollection(FRequestInfo.Params.Values['update_token']) <> nil then
   begin
-    FI := FFileList.FindItem(FRequestInfo.Params.Values['fn']);
+    FI := GetFLCollection(FRequestInfo.Params.Values['update_token']).FindItem(
+      FRequestInfo.Params.Values['fn']);
     if FI <> nil then
     begin
       MS := TMemoryStream.Create;
@@ -601,11 +605,14 @@ end;
 
 procedure TgdWebServerControl.ProcessFilesListRequest;
 begin
-  Assert(FFileList <> nil);
-  FResponseInfo.ResponseNo := 200;
-  FResponseInfo.ContentType := 'application/octet-stream;';
-  FResponseInfo.ContentStream := TMemoryStream.Create;
-  FFileList.GetYAML(FResponseInfo.ContentStream);
+  if GetFLCollection(FRequestInfo.Params.Values['update_token']) = nil then
+    FResponseInfo.ResponseNo := 400
+  else begin
+    FResponseInfo.ResponseNo := 200;
+    FResponseInfo.ContentType := 'application/octet-stream;';
+    FResponseInfo.ContentStream := TMemoryStream.Create;
+    GetFLCollection(FRequestInfo.Params.Values['update_token']).GetYAML(FResponseInfo.ContentStream);
+  end;
 end;
 
 procedure TgdWebServerControl.ProcessBLOBRequest;
@@ -642,10 +649,44 @@ begin
   end;
 end;
 
+procedure TgdWebServerControl.Log(const AnIPAddress, AnOp: String;
+  Params: TStrings);
+var
+  Names, Values: array of String;
+  I: Integer;
+begin
+  Assert(Params <> nil);
+
+  SetLength(Names, Params.Count);
+  SetLength(Values, Params.Count);
+  for I := 0 to Params.Count - 1 do
+  begin
+    Names[I] := Params.Names[I];
+    Values[I] := Params.Values[Names[I]];
+  end;
+  Log(AnIPAddress, AnOp, Names, Values);
+end;
+
+function TgdWebServerControl.GetFLCollection(
+  const AnUpdateToken: String): TFLCollection;
+var
+  I: Integer;
+begin
+  Result := nil;
+  for I := 0 to FFileList.Count - 1 do
+  begin
+    if AnsiCompareText((FFileList[I] as TFLCollection).UpdateToken, AnUpdateToken) = 0 then
+    begin
+      Result := FFileList[I] as TFLCollection;
+      break;
+    end;
+  end;
+end;
+
 initialization
   gdWebServerControl := TgdWebServerControl.Create(nil);
 
 finalization
   FreeAndNil(gdWebServerControl);
 end.
-                   
+

@@ -224,7 +224,9 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Parse(AStream: TStream);
+    procedure Parse(AStream: TStream; const AStopKey: String = ''); overload;
+    procedure Parse(const AFileName: String; const AStopKey: String = '';
+      const ALimitSize: Integer = 0); overload;
 
     property YAMLStream: TyamlStream read FYAMLStream;
   end;
@@ -232,7 +234,7 @@ type
 implementation
 
 uses
-  SysUtils, JclMime;
+  SysUtils, JclMime, JclUnicode, JclFileUtils, gd_directories_const;
 
 function ConvertToInteger(const S: AnsiString; out I: Integer): Boolean;
 begin
@@ -630,17 +632,48 @@ begin
   inherited;
 end;
 
-procedure TyamlParser.Parse(AStream: TStream);
+procedure TyamlParser.Parse(AStream: TStream; const AStopKey: String = '');
 var
   Scanner: TyamlScanner;
 begin
   Scanner := TyamlScanner.Create(AStream);
   try
+    Scanner.StopKey := AStopKey;
     if Scanner.GetNextToken <> tStreamEnd then
       FYAMLStream.Parse(Scanner);
   finally
     Scanner.Free;
   end;
+end;
+
+procedure TyamlParser.Parse(const AFileName: String; const AStopKey: String = '';
+  const ALimitSize: Integer = 0);
+var
+  FS: TFileStream;
+  SS1251, SSUTF8: TStringStream;
+  Limit: Integer;
+begin
+  SSUTF8 := TStringStream.Create('');
+  try
+    if FileGetSize(AFileName) < ALimitSize then
+      Limit := FileGetSize(AFileName)
+    else
+      Limit := ALimitSize;
+
+    FS := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
+    try
+      SSUTF8.CopyFrom(FS, Limit);
+    finally
+      FS.Free;
+    end;
+
+    SS1251 := TStringStream.Create(WideStringToStringEx(
+      UTF8ToWideString(SSUTF8.DataString), WIN1251_CODEPAGE));
+  finally
+    SSUTF8.Free;
+  end;
+
+  Parse(SS1251, AStopKey);
 end;
 
 { TyamlInteger }

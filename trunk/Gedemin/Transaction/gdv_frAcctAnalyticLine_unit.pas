@@ -12,6 +12,11 @@ uses
 type
   TAnalyticFieldType = (aftReference, aftString, aftDate, aftTime, aftDateTime);
 
+  TgsIBLookupComboBoxAnalytic = class(TgsIBLookupComboBox)
+  protected
+    procedure DropDown; override;
+  end;
+
   TfrAcctAnalyticLine = class(TFrame)
     lAnaliticName: TLabel;
     eAnalitic: TEdit;
@@ -76,6 +81,28 @@ const
   FrameHeight = 22;
   ButtonHeight = 18;
   ButtonWidth = 14;
+
+{ TgsIBLookupComboBoxAnalytic }
+
+procedure TgsIBLookupComboBoxAnalytic.DropDown;
+var
+  F: TdlgSelectDocument;
+begin
+  if UpperCase(ListTable) = 'GD_DOCUMENT' then
+  begin
+    F := TdlgSelectDocument.Create(nil);
+    try
+      F.ShowModal;
+      if F.SelectedId > - 1 then
+      begin
+        CurrentKeyInt := F.SelectedId;
+      end;
+    finally
+      F.Free;
+    end;
+  end else
+    inherited;
+end;
 
 { TfrAcctAnalyticLine }
 
@@ -253,7 +280,7 @@ begin
     
   case FieldType of
     aftReference:
-    begin  
+    begin
       FKASet.CommaText := Value;
       if FKASet.Count > 0 then
       begin
@@ -389,7 +416,7 @@ end;
 
 function TfrAcctAnalyticLine.CreateLookUp: TgsIBLookupComboBox;
 begin
-  Result := TgsIBLookupComboBox.Create(Self);
+  Result := TgsIBLookupComboBoxAnalytic.Create(Self);
   with Result do
   begin
     Parent := Self;
@@ -457,8 +484,8 @@ begin
 
     if FLookUp.Count = 1 then
       (FLookUp[0] as TgsIBLookupComboBox).CurrentKey := '';
-  end else
-    SetValue(''); 
+  end;
+  SetValue('');
 end;
 
 procedure TfrAcctAnalyticLine.actVisibleUpdate(Sender: TObject);

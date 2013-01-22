@@ -20,6 +20,7 @@ type
     imFunction: TImageList;
     ImageList: TImageList;
     ilConditionType: TImageList;
+    ilSelectDoc: TImageList;
     procedure DataModuleCreate(Sender: TObject);
 
   end;
