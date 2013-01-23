@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2012 by Golden Software of Belarus
+  Copyright (c) 2012-2013 by Golden Software of Belarus
 
   Module
 
@@ -230,6 +230,7 @@ var
   HandlerFunction: TrpCustomFunction;
   LParams, LResult: Variant;
   Processed: Boolean;
+  I: Integer;
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
@@ -294,10 +295,19 @@ begin
       if not Processed then
       begin
         S := 'Gedemin Web Server.';
-        if (GetFLCollection <> nil) and (GetFLCollection.FindItem('gedemin.exe') <> nil) then
-          S := S + ' v.' + GetFLCollection.FindItem('gedemin.exe').Version;
         S := S + '<br/>Copyright (c) 2013 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
         S := S + '<br/>All rights reserved.';
+
+        S := S + '<br/><br/>Serve tokens:<ol>';
+        for I := 0 to FFileList.Count - 1 do
+        begin
+          if (FFileList[I] as TFLCollection).FindItem('gedemin.exe') <> nil then
+          begin
+            S := S + '<li/>' + (FFileList[I] as TFLCollection).UpdateToken + ' - ' +
+              (FFileList[I] as TFLCollection).FindItem('gedemin.exe').Version;
+          end;
+        end;
+        S := S + '</ol>';
 
         FResponseInfo.ResponseNo := 200;
         FResponseInfo.ContentType := 'text/html;';
