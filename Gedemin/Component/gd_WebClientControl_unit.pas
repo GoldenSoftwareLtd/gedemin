@@ -327,6 +327,7 @@ var
   ProcessInfo: TProcessInformation;
   FName: String;
 begin
+  FServerFileList.OnProgressWatch := nil;
   if Assigned(FCmdList) then
   try
     if FCmdList.Count > 0 then
@@ -335,21 +336,20 @@ begin
       FName := FPath + Gedemin_Updater;
       FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
       StartupInfo.cb := SizeOf(TStartupInfo);
-      if not CreateProcess(PChar(FName),
+      if CreateProcess(PChar(FName),
         PChar('"' + FName + '" ' + IntToStr(GetCurrentProcessID)),
         nil, nil, False, NORMAL_PRIORITY_CLASS or CREATE_NO_WINDOW, nil, nil,
         StartupInfo, ProcessInfo) then
       begin
+        if ErrorMessage = '' then
+          Synchronize(SyncFinishUpdate);
+      end else
         ErrorMessage := 'Can not start ' + Gedemin_Updater + '. ' +
           SysErrorMessage(GetLastError);
-      end;
     end;
   finally
     FreeAndNil(FCmdList);
   end;
-  FServerFileList.OnProgressWatch := nil;
-  if ErrorMessage = '' then
-    Synchronize(SyncFinishUpdate);
 end;
 
 procedure TgdWebClientThread.StartUpdateFiles;

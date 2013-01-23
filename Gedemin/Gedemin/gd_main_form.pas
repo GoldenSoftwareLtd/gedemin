@@ -429,7 +429,9 @@ uses
   pr_dlgLicence_unit,
   {$ENDIF}
 
-{$IFNDEF WITH_INDY}
+{$IFDEF WITH_INDY}
+  gd_WebServerControl_unit,
+{$ELSE}
   {$IFDEF GEDEMIN_LOCK}
     gd_dlgReg_unit,
     gd_registration,
@@ -650,8 +652,16 @@ end;
 procedure TfrmGedeminMain.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 var
-  i: Integer;
+  I: Integer;
 begin
+  {$IFDEF WITH_INDY}
+  if (gdWebServerControl <> nil) and gdWebServerControl.InProcess then
+  begin
+    CanClose := False;
+    exit;
+  end;
+  {$ENDIF}
+
   if Assigned(IBLogin) and (IBLogin.Database <> nil)
     and (not IBLogin.Database.TestConnected) then
   begin

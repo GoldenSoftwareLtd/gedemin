@@ -135,6 +135,7 @@ type
     function DocumentTypeKey: Integer; virtual;
 
     function Reduction(BL: TBookmarkList): Boolean; override;
+    function EditDialog(const ADlgClassName: String = ''): Boolean; override;
 
     class function GetDocumentClassPart: TgdcDocumentClassPart; virtual;
     class function GetDisplayName(const ASubType: TgdcSubType): String; override;
@@ -2362,6 +2363,73 @@ begin
     Result := DocTypeCache.CacheItemsByIndex[DoCacheDocumentType(FieldByName('documenttypekey').AsInteger, '', False)].IsCheckNumber;
   end else
     Result := icnNever;
+end;
+
+function TgdcDocument.EditDialog(const ADlgClassName: String): Boolean;
+var
+  {@UNFOLD MACRO INH_ORIG_PARAMS()}
+  {M}
+  {M}  Params, LResult: Variant;
+  {M}  tmpStrings: TStackStrings;
+  {END MACRO}
+  gdcAcctComplexRecord: TgdcAcctComplexRecord;
+begin
+  {@UNFOLD MACRO INH_ORIG_EDITDIALOG('TGDCDOCUMENT', 'EDITDIALOG', KEYEDITDIALOG)}
+  {M}  Result := False;
+  {M}  try
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}    begin
+  {M}      SetFirstMethodAssoc('TGDCDOCUMENT', KEYEDITDIALOG);
+  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYEDITDIALOG]);
+  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCDOCUMENT') = -1) then
+  {M}      begin
+  {M}        Params := VarArrayOf([GetGdcInterface(Self), ADlgClassName]);
+  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCDOCUMENT',
+  {M}          'EDITDIALOG', KEYEDITDIALOG, Params, LResult) then
+  {M}          begin
+  {M}            Result := False;
+  {M}            if VarType(LResult) = varBoolean then
+  {M}              Result := Boolean(LResult)
+  {M}            else
+  {M}              begin
+  {M}                raise Exception.Create('Для метода ''' + 'EDITDIALOG' + ' ''' +
+  {M}                  ' класса ' + Self.ClassName + TgdcBase(Self).SubType + #10#13 +
+  {M}                  'Из макроса возвращен не булевый тип');
+  {M}              end;
+  {M}            exit;
+  {M}          end;
+  {M}      end else
+  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCDOCUMENT' then
+  {M}          Exit;
+  {M}    end;
+  {END MACRO}
+
+  if Active and (not EOF) and (ADlgClassName = '')
+    and (FieldByName('documenttypekey').AsInteger = DefaultDocumentTypeKey) then
+  begin
+    gdcAcctComplexRecord := TgdcAcctComplexRecord.Create(nil);
+    try
+      gdcAcctComplexRecord.Transaction := Transaction;
+      gdcAcctComplexRecord.ReadTransaction := ReadTransaction;
+      gdcAcctComplexRecord.SubSet := 'ByDocument';
+      gdcAcctComplexRecord.ParamByName('documentkey').AsInteger := Self.ID;
+      gdcAcctComplexRecord.Open;
+      if gdcAcctComplexRecord.EOF then
+        Result := inherited EditDialog(ADlgClassName)
+      else
+        Result := gdcAcctComplexRecord.EditDialog(ADlgClassName);
+    finally
+      gdcAcctComplexRecord.Free;
+    end;
+  end else
+    Result := inherited EditDialog(ADlgClassName);
+
+  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCDOCUMENT', 'EDITDIALOG', KEYEDITDIALOG)}
+  {M}  finally
+  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
+  {M}      ClearMacrosStack2('TGDCDOCUMENT', 'EDITDIALOG', KEYEDITDIALOG);
+  {M}  end;
+  {END MACRO}
 end;
 
 { TgdcBaseDocumentType }
