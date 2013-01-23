@@ -26,8 +26,8 @@ unit gd_WebServerControl_unit;
 interface
 
 uses
-  Classes, Contnrs, SyncObjs, IdHTTPServer, IdCustomHTTPServer, IdTCPServer,
-  evt_i_Base, gd_FileList_unit;
+  Classes, Contnrs, SyncObjs, evt_i_Base, gd_FileList_unit,
+  IdHTTPServer, IdCustomHTTPServer, IdTCPServer, idThreadSafe;
 
 type
   TgdWebServerControl = class(TComponent)
@@ -39,6 +39,8 @@ type
     FFileList: TObjectList;
     FRequestInfo: TIdHTTPRequestInfo;
     FResponseInfo: TIdHTTPResponseInfo;
+    FLastToken: String;
+    FInProcess: TidThreadSafeInteger;
 
     function GetVarInterface(const AnValue: Variant): OleVariant;
     function GetVarParam(const AnValue: Variant): OleVariant;
@@ -57,6 +59,7 @@ type
       Params: TStrings); overload;
     function GetActive: Boolean;
     procedure SetActive(const Value: Boolean);
+    function GetInProcess: Boolean;
 
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -75,6 +78,7 @@ type
     function GetBindings: String;
 
     property Active: Boolean read GetActive write SetActive;
+    property InProcess: Boolean read GetInProcess;
   end;
 
 var
@@ -107,6 +111,7 @@ begin
   FHttpServer := nil;
   FHttpGetHandlerList := TObjectList.Create(True);
   FFileList := TObjectList.Create(True);
+  FInProcess := TidThreadSafeInteger.Create;
 end;
 
 destructor TgdWebServerControl.Destroy;
@@ -115,6 +120,7 @@ begin
   FreeAndNil(FHttpServer);
   FreeAndNil(FHttpGetHandlerList);
   FreeAndNil(FFileList);
+  FreeAndNil(FInProcess);
 end;
 
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
@@ -217,9 +223,14 @@ end;
 procedure TgdWebServerControl.ServerOnCommandGet(AThread: TIdPeerThread;
   ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
 begin
-  FRequestInfo := ARequestInfo;
-  FResponseInfo := AResponseInfo;
-  AThread.Synchronize(ServerOnCommandGetSync);
+  FInProcess.Value := 1;
+  try
+    FRequestInfo := ARequestInfo;
+    FResponseInfo := AResponseInfo;
+    AThread.Synchronize(ServerOnCommandGetSync);
+  finally
+    FInProcess.Value := 0;
+  end;
 end;
 
 procedure TgdWebServerControl.ServerOnCommandGetSync;
@@ -303,8 +314,10 @@ begin
         begin
           if (FFileList[I] as TFLCollection).FindItem('gedemin.exe') <> nil then
           begin
-            S := S + '<li/>' + (FFileList[I] as TFLCollection).UpdateToken + ' - ' +
-              (FFileList[I] as TFLCollection).FindItem('gedemin.exe').Version;
+            S := S + '<li/>';
+            if (FFileList[I] as TFLCollection).UpdateToken > '' then
+              S := S + (FFileList[I] as TFLCollection).UpdateToken + ' - ';
+            S := S + (FFileList[I] as TFLCollection).FindItem('gedemin.exe').Version;
           end;
         end;
         S := S + '</ol>';
@@ -457,6 +470,8 @@ begin
 
   if DirectoryExists(gd_GlobalParams.GetWebServerUpdatePath) then
   begin
+    FLastToken := '';
+
     if (FRequestInfo.Params.Values['update_token'] = '') or
       (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'STABLE') = 0) then
     begin
@@ -488,6 +503,7 @@ begin
           FRequestInfo.Params.Values['exe_ver'], 4) > 0 then
         begin
           FResponseInfo.ContentText := 'UPDATE';
+          FLastToken := FRequestInfo.Params.Values['update_token'];
         end;
       end;
     end;
@@ -528,15 +544,20 @@ procedure TgdWebServerControl.ProcessFileRequest;
 var
   FI: TFLItem;
   MS: TMemoryStream;
+  FC: TFLCollection;
 begin
   Log(FRequestInfo.RemoteIP, 'RQFL', FRequestInfo.Params);
 
   FResponseInfo.ResponseNo := 400;
 
-  if GetFLCollection(FRequestInfo.Params.Values['update_token']) <> nil then
+  if FRequestInfo.Params.IndexOfName('update_token') > -1 then
+    FC := GetFLCollection(FRequestInfo.Params.Values['update_token'])
+  else
+    FC := GetFLCollection(FLastToken);
+
+  if FC <> nil then
   begin
-    FI := GetFLCollection(FRequestInfo.Params.Values['update_token']).FindItem(
-      FRequestInfo.Params.Values['fn']);
+    FI := FC.FindItem(FRequestInfo.Params.Values['fn']);
     if FI <> nil then
     begin
       MS := TMemoryStream.Create;
@@ -614,14 +635,21 @@ begin
 end;
 
 procedure TgdWebServerControl.ProcessFilesListRequest;
+var
+  FC: TFLCollection;
 begin
-  if GetFLCollection(FRequestInfo.Params.Values['update_token']) = nil then
+  if FRequestInfo.Params.IndexOfName('update_token') > -1 then
+    FC := GetFLCollection(FRequestInfo.Params.Values['update_token'])
+  else
+    FC := GetFLCollection(FLastToken);
+
+  if FC = nil then
     FResponseInfo.ResponseNo := 400
   else begin
     FResponseInfo.ResponseNo := 200;
     FResponseInfo.ContentType := 'application/octet-stream;';
     FResponseInfo.ContentStream := TMemoryStream.Create;
-    GetFLCollection(FRequestInfo.Params.Values['update_token']).GetYAML(FResponseInfo.ContentStream);
+    FC.GetYAML(FResponseInfo.ContentStream);
   end;
 end;
 
@@ -691,6 +719,11 @@ begin
       break;
     end;
   end;
+end;
+
+function TgdWebServerControl.GetInProcess: Boolean;
+begin
+  Result := FInProcess.Value <> 0;
 end;
 
 initialization

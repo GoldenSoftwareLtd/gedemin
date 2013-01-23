@@ -4627,14 +4627,16 @@ end;
 
 class function TgdcAcctComplexRecord.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + ByTransaction + ';';
+  Result := inherited GetSubSetList + ByDocument + ';' + ByTransaction + ';';
 end;
 
 procedure TgdcAcctComplexRecord.GetWhereClauseConditions(S: TStrings);
 begin
   inherited;
+  if HasSubSet(ByDocument) then
+    S.Add(' z.documentkey = :documentkey ');
   if HasSubSet(ByTransaction) then
-    S.Add(' transactionkey = :transactionkey ');
+    S.Add(' z.transactionkey = :transactionkey ');
 end;
 
 procedure TgdcAcctComplexRecord.OnAfterLineDelete(DataSet: TDataSet);
