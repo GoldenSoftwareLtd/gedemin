@@ -3590,33 +3590,8 @@ end;
 function TgdcBase.TestCopyField(const FieldName, DontCopyList: String): Boolean;
 var
   F: TField;
-  I: Integer;
 begin
-  I := StrIPos(FieldName, DontCopyList);
-
-  if I > 1 then
-  begin
-    if StrIsAlphaNumUnderscore(DontCopyList[I - 1]) then
-    begin
-      // Если перед найденным именем поля не пустой знак, значит мы наткнулись
-      //  на имя другого поля которое содержит в себе искомое, поищем еще раз без него
-      if Self.TestCopyField(FieldName, StrRestOf(DontCopyList, I + Length(FieldName))) then
-        I := 0;
-    end;
-  end;
-
-  if I > 0 then
-  begin
-    if StrIsAlphaNumUnderscore(System.Copy(DontCopyList, I + Length(FieldName), 1)) then
-    begin
-      // Если перед найденным именем поля не пустой знак, значит мы наткнулись
-      //  на имя другого поля которое содержит в себе искомое, поищем еще раз без него
-      if Self.TestCopyField(FieldName, StrRestOf(DontCopyList, I + Length(FieldName))) then
-        I := 0;
-    end;
-  end;
-
-  if I = 0 then
+  if FDataTransfer or (StrIPos(',' + FieldName + ',', ',' + DontCopyList + ',') = 0) then
   begin
     F := FindField(FieldName);
     Result := (F <> nil) and (not F.ReadOnly);
@@ -4504,11 +4479,10 @@ begin
     UserChoice := True;
 
   if (DetailLinksCount > 0) and UserChoice then
-    // Скопируем объект с детальными объектами
     Result := CopyObject(True, True)
   else
-    // Скопируем объект без детальных объектов
     Result := CopyObject(False, True);
+
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCBASE', 'COPYDIALOG', KEYCOPYDIALOG)}
   {M}  finally
   {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
