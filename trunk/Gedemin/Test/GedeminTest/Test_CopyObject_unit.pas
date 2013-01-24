@@ -10,7 +10,7 @@ type
   TTestCopyObject = class(TgsDBTestCase)
   published
     procedure TestCopySimpleObject;
-    {procedure TestCopyObjectWithDetail;}
+    procedure TestCopyInheritedObject;
     procedure TestCopyProcedure;
   end;
 
@@ -18,231 +18,108 @@ implementation
 
 uses
   gdcBase, gdcBaseInterface, IBDatabase, Classes, SysUtils,
-  db, gdcInvDocument_unit, gdcAttrUserDefined, gdcWgPosition,
-  gdcConstants, gdcMetadata, ibsql, at_frmSQLProcess;
+  db, gdcAttrUserDefined, gdcWgPosition, gdcContacts,
+  gdcMetadata, ibsql, at_frmSQLProcess;
 
 procedure TTestCopyObject.TestCopySimpleObject;
 var
-  WriteTransaction: TIBTransaction;
   gdcObject: TgdcBase;
-  OriginalRecordKey: TID;
+  OrigID: TID;
 begin
-  WriteTransaction := TIBTransaction.Create(nil);
+  gdcObject := TgdcWgPosition.Create(nil);
   try
-    WriteTransaction.DefaultDatabase := gdcBaseManager.Database;
-    WriteTransaction.StartTransaction;
+    gdcObject.Open;
 
-    gdcObject := TgdcWgPosition.
-      CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, '', ssById);
-    try
-      gdcObject.Transaction := WriteTransaction;
-      gdcObject.ReadTransaction := WriteTransaction;
-      gdcObject.Open;
+    gdcObject.Insert;
+    gdcObject.FieldByName('NAME').AsString := 'test_pos';
+    gdcObject.Post;
 
-      gdcObject.Insert;
-      gdcObject.FieldByName('NAME').AsString := 'test_pos';
-      gdcObject.Post;
+    OrigID := gdcObject.ID;
+    Check(OrigID > -1);
 
-      Check(gdcObject.ID > -1);
-      OriginalRecordKey := gdcObject.ID;
+    gdcObject.CopyObject(False, False);
 
-      gdcObject.CopyObject(False, False);
+    Check(gdcObject.ID > -1);
+    Check(OrigID <> gdcObject.ID);
 
-      Check(gdcObject.ID > -1);
-      Check(OriginalRecordKey <> gdcObject.ID, 'Объект не указывает на скопированную запись');
-    finally
-      gdcObject.Free;
-    end;
+    gdcObject.Delete;
+    Check(gdcObject.Locate('id', OrigID, []));
+    gdcObject.Delete;
   finally
-    WriteTransaction.Free;
+    gdcObject.Free;
   end;
 end;
 
-{procedure TTestCopyObject.TestCopyObjectWithDetail;
-const
-  GDC_SUBTYPE = '147012468_486813904';
-  GDC_ADDINFO = 'USR$INV_ADDINFO';
+procedure TTestCopyObject.TestCopyInheritedObject;
 var
-  WriteTransaction: TIBTransaction;
-  gdcObject, gdcObjectLine, gdcAttrUser: TgdcBase;
-  ibsqlGood: TIBSQL;
-  DS: TDataSource;
-  OriginalRecordKey, GoodKey: TID;
+  gdcBaseContact, gdcCompany, gdcFolder: TgdcBase;
+  OrigID, FolderID: TID;
 begin
-  // Транзакция на запись
-  WriteTransaction := TIBTransaction.Create(nil);
+  gdcFolder := TgdcFolder.Create(nil);
   try
-    WriteTransaction.DefaultDatabase := gdcBaseManager.Database;
-    WriteTransaction.StartTransaction;
-    try
-      // Создаем новый объект типа Накладная на приход
-      try
-        gdcObject := TgdcInvDocument.
-          CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, GDC_SUBTYPE, ssById);
-      except
-        Check(False, 'Нет складского документа с SubType = 147012468_486813904')
-      end;
-      DS := TDataSource.Create(nil);
-      gdcObjectLine := TgdcInvDocumentLine.
-        CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, GDC_SUBTYPE, ssById);
-      gdcAttrUser := TgdcAttrUserDefined.
-        CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, GDC_ADDINFO, ssById);
-      ibsqlGood := TIBSQL.Create(nil);
-      try
-        GoodKey := -1;
-        // Берем любой товар
-        ibsqlGood.Transaction := WriteTransaction;
-        ibsqlGood.SQL.Text := 'SELECT FIRST(1) id FROM gd_good';
-        ibsqlGood.ExecQuery;
-        if ibsqlGood.RecordCount > 0 then
-          GoodKey := ibsqlGood.FieldByName('ID').AsInteger;
-        ibsqlGood.Close;
-
-        if GoodKey > -1 then
-        begin
-          gdcObject.Transaction := WriteTransaction;
-          gdcObject.ReadTransaction := WriteTransaction;
-          gdcObjectLine.Transaction := WriteTransaction;
-          gdcObjectLine.ReadTransaction := WriteTransaction;
-          gdcAttrUser.Transaction := WriteTransaction;
-          gdcAttrUser.ReadTransaction := WriteTransaction;
-
-          // Свяжем и откроем объекты
-          DS.DataSet := gdcObject;
-          gdcObjectLine.MasterSource := DS;
-          gdcObjectLine.MasterField := 'ID';
-          gdcObjectLine.DetailField := 'PARENT';
-          gdcObjectLine.SubSet := ssByParent;
-
-          gdcAttrUser.MasterSource := DS;
-          gdcAttrUser.MasterField := 'ID';
-          gdcAttrUser.DetailField := 'ID';
-
-          gdcObject.Open;
-          gdcObjectLine.Open;
-
-          // Вставим новую запись
-          gdcObject.Insert;
-          gdcObject.FieldByName('USR$CONTACTKEY').AsInteger := gdcBaseManager.GetIDByRUID(650010, 17);
-          gdcObject.FieldByName('USR$DEPTKEY').AsInteger := gdcBaseManager.GetIDByRUID(650010, 17);
-          gdcObject.Post;
-
-          gdcAttrUser.Insert;
-          gdcAttrUser.FieldByName('USR$CUSTOMERKEY').AsInteger := gdcBaseManager.GetIDByRUID(650010, 17);
-          gdcAttrUser.Post;
-
-          // Вставим позиции
-          gdcObjectLine.Insert;
-          gdcObjectLine.FieldByName('GOODKEY').AsInteger := GoodKey;
-          gdcObjectLine.FieldByName('QUANTITY').AsCurrency := 33;
-          gdcObjectLine.Post;
-
-          gdcObjectLine.Insert;
-          gdcObjectLine.FieldByName('GOODKEY').AsInteger := GoodKey;
-          gdcObjectLine.FieldByName('QUANTITY').AsCurrency := 66;
-          gdcObjectLine.Post;
-
-          gdcObjectLine.Insert;
-          gdcObjectLine.FieldByName('GOODKEY').AsInteger := GoodKey;
-          gdcObjectLine.FieldByName('QUANTITY').AsCurrency := 11;
-          gdcObjectLine.Post;
-
-          OriginalRecordKey := gdcObject.ID;
-
-          // Скопируем запись
-          gdcObject.CopyObject(True, False);
-
-          Check((gdcObject.ID > -1) and (OriginalRecordKey <> gdcObject.ID), 'Объект не указывает на скопированную запись');
-          Check((gdcAttrUser.ID > -1) and (gdcAttrUser.ID <> OriginalRecordKey), '1-к-1 не скопирован');
-          Check(gdcAttrUser.FieldByName('USR$CUSTOMERKEY').AsInteger = gdcBaseManager.GetIDByRUID(650010, 17),
-            '1-к-1 скопирован неверно');
-
-          // Пройдем по всем позициям для верного RecordCount
-          while not gdcObjectLine.Eof do
-            gdcObjectLine.Next;
-
-          Check(gdcObjectLine.RecordCount = 3, 'Скопированы не все позиции');
-
-          gdcObjectLine.Close;
-          gdcAttrUser.Close;
-          gdcObject.Close;
-        end
-        else
-        begin
-          Fail('Нет ни одного товара (TgdcGood) для копирования!');
-        end;
-      finally
-        FreeAndNil(ibsqlGood);
-        FreeAndNil(gdcObjectLine);
-        FreeAndNil(gdcAttrUser);
-        FreeAndNil(DS);
-        FreeAndNil(gdcObject);
-      end;
-    except
-      if WriteTransaction.InTransaction then
-        WriteTransaction.Rollback;
-    end;
+    gdcFolder.Open;
+    Check(not gdcFolder.EOF);
+    FolderID := gdcFolder.ID;
   finally
-    // Откатим транзакцию после окончания теста
-    if WriteTransaction.InTransaction then
-      WriteTransaction.Rollback;
-    FreeAndNil(WriteTransaction);
+    gdcFolder.Free;
   end;
-end;}
+
+  gdcCompany := TgdcCompany.Create(nil);
+  try
+    gdcCompany.Open;
+    gdcCompany.Insert;
+    gdcCompany.FieldByName('parent').AsInteger := FolderID;
+    gdcCompany.FieldByName('name').AsString := 'COMPANY';
+    gdcCompany.FieldByName('fullname').AsString := 'COMPANY';
+    gdcCompany.Post;
+
+    OrigID := gdcCompany.ID;
+  finally
+    gdcCompany.Free;
+  end;
+
+  gdcBaseContact := TgdcBaseContact.Create(nil);
+  try
+    gdcBaseContact.Open;
+    Check(gdcBaseContact.Locate('id', OrigID, []));
+    gdcBaseContact.CopyObject(False, False);
+    Check(gdcBaseContact.ID > -1);
+    Check(OrigID <> gdcBaseContact.ID);
+
+    gdcBaseContact.Delete;
+    Check(gdcBaseContact.Locate('id', OrigID, []));
+    gdcBaseContact.Delete;
+  finally
+    gdcBaseContact.Free;
+  end;
+end;
 
 procedure TTestCopyObject.TestCopyProcedure;
 var
-  WriteTransaction: TIBTransaction;
   gdcObject: TgdcBase;
-  ProcKey: TID;
-  ibsqlProc: TIBSQL;
-  OriginalProcName: String;
+  OrigID: TID;
+  OrigProcName: String;
 begin
-  Check(SettingsLoaded, 'Должны быть загружены настройки');
-
-  WriteTransaction := TIBTransaction.Create(nil);
+  gdcObject := TgdcStoredProc.Create(nil);
   try
-    WriteTransaction.DefaultDatabase := gdcBaseManager.Database;
-    WriteTransaction.StartTransaction;
+    gdcObject.Open;
 
-    ibsqlProc := TIBSQL.Create(nil);
-    try
-      ibsqlProc.Transaction := WriteTransaction;
-      ibsqlProc.SQL.Text := 'SELECT FIRST(1) id FROM at_procedures WHERE procedurename STARTING WITH ''USR$''';
-      ibsqlProc.ExecQuery;
-      if ibsqlProc.RecordCount > 0 then
-        ProcKey := ibsqlProc.FieldByName('ID').AsInteger
-      else
-        ProcKey := -1;
+    Check(gdcObject.Locate('procedurename', 'USR$', [loPartialKey]),
+      'В базе данных отсутствуют пользовательские процедуры');
 
-      Check(ProcKey > -1, 'Нет ни одной пользовательской процедуры для копирования!');
-    finally
-      ibsqlProc.Free;
-    end;
+    OrigID := gdcObject.ID;
+    OrigProcName := gdcObject.FieldByName('procedurename').AsString;
 
-    gdcObject := TgdcStoredProc.
-      CreateWithParams(nil, gdcBaseManager.Database, WriteTransaction, '', ssById);
-    try
-      gdcObject.Transaction := WriteTransaction;
-      gdcObject.ReadTransaction := WriteTransaction;
-      gdcObject.Open;
-      gdcObject.ID := ProcKey;
+    gdcObject.CopyObject(False, False);
 
-      Check(not gdcObject.EOF);
-      OriginalProcName := gdcObject.FieldByName('PROCEDURENAME').AsString;
+    Check(gdcObject.ID > -1);
+    Check(OrigID <> gdcObject.ID);
+    Check(gdcObject.FieldByName('procedurename').AsString > '');
+    Check(gdcObject.FieldByName('procedurename').AsString <> OrigProcName);
 
-      gdcObject.CopyObject(False, False);
-
-      Check(gdcObject.ID > -1);
-      Check(ProcKey <> gdcObject.ID, 'Объект не указывает на скопированную запись');
-      Check(gdcObject.FieldByName('PROCEDURENAME').AsString > '');
-      Check(gdcObject.FieldByName('PROCEDURENAME').AsString <> OriginalProcName,
-        'Ошибка в наименовании скопированного объекта');
-    finally
-      gdcObject.Free;
-    end;
+    gdcObject.Delete;
   finally
-    WriteTransaction.Free;
+    gdcObject.Free;
   end;
 
   if frmSQLProcess <> nil then
