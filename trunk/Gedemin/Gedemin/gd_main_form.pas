@@ -748,11 +748,8 @@ end;
 procedure TfrmGedeminMain.DoAfterChangeCompany;
 var
   ShouldShowExplorer: Boolean;
-  {$IFNDEF DUNIT_TEST}
   q: TIBSQL;
-  {$ENDIF}
 begin
-  {$IFNDEF DUNIT_TEST}
   if (IBLogin <> nil)
     and IBLogin.IsIBUserAdmin
     and (IBLogin.CompanyKey < cstUserIDStart)
@@ -781,12 +778,11 @@ begin
         finally
           Free;
         end;
-      end;  
+      end;
     finally
       q.Free;
     end;
   end;
-  {$ENDIF}
 
   //
   //  Загружаем рабочий стол

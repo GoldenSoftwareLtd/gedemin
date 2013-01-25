@@ -514,7 +514,7 @@ type
     property Column: TgsColumn read GetColumn;
 
   published
-    property Alignment stored IsAlignmentStored;
+    property Alignment stored IsAlignmentStored;          
     property Caption stored IsCaptionStored;
     property Color stored IsColorStored;
     property Font stored IsFontStored;
@@ -7261,7 +7261,7 @@ var
   CurrField: TField;
   Lines: array of Integer;
   I: Integer;
-  temp: Integer;
+  temp, H: Integer;
   TR: TRect;
 begin
   Result := 1;
@@ -7299,7 +7299,7 @@ begin
       begin
         if Columns[I].Visible then
         begin
-          TR := Rect(0, 0, 10, 0);
+          TR := Rect(0, 0, Columns[I].Width - 4, 0);
           if not HandleAllocated then
           begin
             DrawBitmap.Canvas.Font := TitleFont;
@@ -7311,7 +7311,10 @@ begin
             DrawText(Canvas.Handle, PChar(Columns[I].Title.Caption), Length(Columns[I].Title.Caption) + 1, TR,
               DT_CALCRECT or DT_LEFT or DT_WORDBREAK or DT_NOPREFIX or DrawTextBiDiModeFlagsReadingOnly);
           end;
-          temp := (TR.Bottom - TR.Top) div GetDefaultTitleRowHeight + 1;
+          H := TR.Bottom - TR.Top;
+          temp := H div GetDefaultTitleRowHeight;
+          if H mod GetDefaultTitleRowHeight <> 0 then
+            temp := temp + 1; 
           if temp > Result then
             Result := temp;
         end;

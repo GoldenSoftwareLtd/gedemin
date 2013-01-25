@@ -2112,16 +2112,23 @@ uses
   , gdc_frmStreamSaver, gdcStreamSaver, gdcLBRBTreeMetaData, gdcTableMetaData;
 
 const
-  cst_sql_SelectRuidByID = 'SELECT * FROM gd_ruid WHERE id=:id';
-  cst_sql_SelectRuidByXID = 'SELECT * FROM gd_ruid WHERE xid=:xid AND dbid=:dbid';
-  cst_sql_InsertRuid = 'INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) VALUES ' +
+  cst_sql_SelectRuidByID =
+    'SELECT * FROM gd_ruid WHERE id=:id';
+  cst_sql_SelectRuidByXID =
+    'SELECT * FROM gd_ruid WHERE xid=:xid AND dbid=:dbid';
+  cst_sql_InsertRuid =
+    'INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) VALUES ' +
     ' (:id, :xid, :dbid, :modified, :editorkey) ';
-  cst_sql_UpdateRuidByXID = 'UPDATE gd_ruid SET editorkey = :editorkey, id = :id, ' +
+  cst_sql_UpdateRuidByXID =
+    'UPDATE gd_ruid SET editorkey = :editorkey, id = :id, ' +
     ' modified=:modified WHERE xid=:xid AND dbid=:dbid';
-  cst_sql_UpdateRuidByID = 'UPDATE gd_ruid SET editorkey = :editorkey, ' +
+  cst_sql_UpdateRuidByID =
+    'UPDATE gd_ruid SET editorkey = :editorkey, ' +
     ' modified=:modified, xid=:xid, dbid=:dbid WHERE id = :id';
-  cst_sql_DeleteRuidByXID = 'DELETE FROM gd_ruid WHERE xid=:xid AND dbid=:dbid';
-  cst_sql_DeleteRuidByID = 'DELETE FROM gd_ruid WHERE id=:id';
+  cst_sql_DeleteRuidByXID =
+    'DELETE FROM gd_ruid WHERE xid=:xid AND dbid=:dbid';
+  cst_sql_DeleteRuidByID =
+    'DELETE FROM gd_ruid WHERE id=:id';
 
 const
   SM_REMOTESESSION = $1000;
@@ -6650,7 +6657,7 @@ var
   pbd: PBlobDataArray;
   DidActivate: Boolean;
   _id: TID;
-  RUID: TRUID;
+  //RUID: TRUID;
   FSavepoint, S: String;
 begin
   {$R-}
@@ -6672,7 +6679,7 @@ begin
       Inc(j);
     end;
   }
-  
+
   FInternalProcess := True;
   try
     if not FDataTransfer then
@@ -6810,8 +6817,10 @@ begin
             end;
           until CutOff = 0;
 
-          if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
-            and Assigned(gdcBaseManager) and (not (sLoadFromStream in BaseState)) then
+          if Assigned(IBLogin)
+            and IBLogin.IsIBUserAdmin
+            and Assigned(gdcBaseManager)
+            and (not (sLoadFromStream in BaseState)) then
           begin
             if (Qry = QInsert) then
             begin
@@ -6832,17 +6841,16 @@ begin
             end else
             if (Qry = QModify) then
             begin
-              RUID := GetRUID;
-              try
+              ExecSingleQuery(
+                'UPDATE gd_ruid SET modified = CURRENT_TIMESTAMP,' +
+                'editorkey = :ek WHERE id = :id', VarArrayOf([IBLogin.ContactKey, Self.ID]));
+              {try
+                RUID := GetRUID;
                 gdcBaseManager.UpdateRUIDByXID(ID, RUID.XID, RUID.DBID, Now, IBLogin.ContactKey, Transaction);
               except
-                // подавляем нарушение первичного ключа
-                on E: EIBError do
-                begin
-                  if E.IBErrorCode <> isc_unique_key_violation then
-                    raise;
-                end;
-              end;
+                on E: Exception do
+                  Application.HandleException(E);
+              end;}
             end;
           end;
 
@@ -11822,11 +11830,9 @@ begin
   begin
     WasCreate := True;
     Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := IBLogin.Database;
   end;
   try
-    if WasCreate then
-      Tr.DefaultDatabase := IBLogin.Database;
-
     FIBSQL.Close;
     DidActivate := not Tr.InTransaction;
     try
@@ -11848,7 +11854,6 @@ begin
 
       if (CacheList <> nil) and CacheList.Has(RUIDToStr(RUID(AXID, ADBID))) then
         CacheList.Remove(RUIDToStr(RUID(AXID, ADBID)));
-
     except
       if DidActivate and Tr.InTransaction then
         Tr.Rollback;
@@ -12019,11 +12024,9 @@ begin
   begin
     WasCreate := True;
     Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := IBLogin.Database;
   end;
   try
-    if WasCreate then
-      Tr.DefaultDatabase := IBLogin.Database;
-
     FIBSQL.Close;
     DidActivate := not Tr.InTransaction;
     try
