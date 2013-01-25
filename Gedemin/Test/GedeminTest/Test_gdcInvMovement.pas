@@ -372,7 +372,8 @@ var
   Dept: TgdcDepartment;
   R: OleVariant;
 begin
-  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_contact where contacttype = 4 and UPPER(name) = UPPER(:name)',
+  gdcBaseManager.ExecSingleQueryResult(
+    'SELECT id FROM gd_contact where contacttype = 4 and UPPER(name) = UPPER(:name)',
     'бяе ондпюгдекемхъ', R, FTr); 
 
   Dept := TgdcDepartment.Create(nil);

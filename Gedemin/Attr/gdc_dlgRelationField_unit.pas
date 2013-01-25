@@ -2,7 +2,7 @@
 {++
 
 
-  Copyright (c) 2001 - 2009 by Golden Software of Belarus
+  Copyright (c) 2001 - 2013 by Golden Software of Belarus
 
   Module
 
@@ -125,20 +125,16 @@ implementation
 
 uses
   gdcMetaData, IBSQL, at_classes, gdcBase, gd_ClassList,
-  gd_resourcestring,
-  at_sql_tools;
+  gd_resourcestring, jclStrings, at_sql_tools;
 
 const
-  cst_Restrict = 'RESTRICT';
-  cst_Cascade = 'CASCADE';
-  cst_SetNull = 'SET NULL';
+  cst_Restrict   = 'RESTRICT';
+  cst_Cascade    = 'CASCADE';
+  cst_SetNull    = 'SET NULL';
   cst_SetDefault = 'SET DEFAULT';
 
   //Длина краткого имени поля
   LShortNameLong = 20;
-
-  //Ограничение на длину наименования поля
-//  cstMaxFieldNameLen = 16;
 
 { Tgdc_dlgRelationField }
 
@@ -256,7 +252,9 @@ begin
   {M}      end;
   {M}  end;
   {END MACRO}
+
   Result := inherited TestCorrect;
+
   if Result then
   begin
     if cbCalculated.Checked and (Trim(dbmComputed.Text) = '') then
@@ -265,7 +263,7 @@ begin
       dbmComputed.SetFocus;
       raise Egdc_dlgRelationField.Create('Укажите выражение для вычисляемого поля');
     end;
-  end;  
+  end;
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'TESTCORRECT', KEYTESTCORRECT)}
   {M}finally
@@ -713,15 +711,17 @@ begin
   {M}    end;
   {END MACRO}
   inherited;
+
   //
   //  Проверка наличия префикса поля пользователя
+  if Trim(dbedRelationFieldName.Text) <> dbedRelationFieldName.Text then
+    dbedRelationFieldName.Text := Trim(dbedRelationFieldName.Text);
 
-  if (gdcObject.State = dsInsert) and
-    (AnsiPos(UserPrefix, AnsiUpperCase(dbedRelationFieldName.Field.AsString)) <> 1)
-  then
-    dbedRelationFieldName.Field.AsString := UserPrefix +
-      dbedRelationFieldName.Field.AsString;
+  if StrIPos(UserPrefix, dbedRelationFieldName.Text) <> 1 then
+    dbedRelationFieldName.Text := UserPrefix + dbedRelationFieldName.Text;
 
+  if Length(dbedRelationFieldName.Text) <= Length(UserPrefix) then
+    raise Egdc_dlgRelationField.Create('Укажите название поля на английском языке!');
 
   if comboBusinessClass.ItemIndex >= 0 then
   begin
@@ -750,7 +750,9 @@ begin
 
   if (gdcObject.State = dsInsert) and cmbRuleDelete.Visible then
     gdcObject.FieldByName('deleterule').asString := cmbRuleDelete.Text;
+    
   WriteObjectState;
+
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'BEFOREPOST', KEYBEFOREPOST)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -878,7 +880,6 @@ begin
     end;
   end;
 
-//  LoadClasses;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_DLGRELATIONFIELD', 'SETUPRECORD', KEYSETUPRECORD)}
   {M}finally
   {M}  if Assigned(gdcMethodControl) and Assigned(ClassMethodAssoc) then
@@ -1001,5 +1002,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgRelationField);
-
 end.

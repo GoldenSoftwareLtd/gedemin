@@ -10,29 +10,24 @@ inherited gdc_dlgRelationField: Tgdc_dlgRelationField
   TextHeight = 13
   inherited btnAccess: TButton
     Top = 406
-    Anchors = [akLeft, akBottom]
     TabOrder = 3
   end
   inherited btnNew: TButton
     Top = 406
-    Anchors = [akLeft, akBottom]
     TabOrder = 4
   end
   inherited btnHelp: TButton
     Top = 406
-    Anchors = [akLeft, akBottom]
     TabOrder = 5
   end
   inherited btnOK: TButton
     Left = 311
     Top = 406
-    Anchors = [akRight, akBottom]
     TabOrder = 1
   end
   inherited btnCancel: TButton
     Left = 391
     Top = 406
-    Anchors = [akRight, akBottom]
     TabOrder = 2
   end
   object pcRelationField: TPageControl [5]

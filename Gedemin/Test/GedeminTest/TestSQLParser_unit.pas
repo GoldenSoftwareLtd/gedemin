@@ -63,8 +63,8 @@ begin
     for I := 0 to MAXINT do
     begin
 
-      InputFileName := Format('d:\golden\gedemin\qa\regression\SQLParser\input.%.3d', [I]);
-      OutputFileName := Format('d:\golden\gedemin\qa\regression\SQLParser\output.%.3d', [I]);
+      InputFileName := Format('\golden\gedemin\qa\regression\SQLParser\input.%.3d', [I]);
+      OutputFileName := Format('\golden\gedemin\qa\regression\SQLParser\output.%.3d', [I]);
 
       {
       InputFileName := Format('%s\SQLParser\input.%.3d', [

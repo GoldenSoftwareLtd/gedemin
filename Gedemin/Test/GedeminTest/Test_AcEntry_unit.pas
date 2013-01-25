@@ -156,7 +156,7 @@ procedure Tgs_AcEntryTest.Test_AcEntry;
 const
   DocTypeID = 806000;
   TrID      = 807001;
-  CompanyID = 650010;
+  //CompanyID = 650010;
   TrRecordID= 807100;
   Acc00     = 300003;
   Acc01     = 300100;
@@ -225,7 +225,7 @@ const
     q.ParamByName('dt').AsInteger := DocTypeID;
     q.ParamByName('tk').AsInteger := TrID;
     q.ParamByName('n').AsString := N;
-    q.ParamByName('ck').AsInteger := CompanyID;
+    q.ParamByName('ck').AsInteger := IBLogin.CompanyKey;
     q.ParamByName('uk').AsInteger := IBLogin.ContactKey;
     q.ExecQuery;
     Result := AnID;
@@ -295,7 +295,7 @@ begin
   DocID2 := InsertDoc(FQ, gdcBaseManager.GetNextID, '2');
 
   // у голой шапки проводки incorrect = 1
-  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, CompanyID);
+  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, IBLogin.CompanyKey);
   FQ.SQL.Text := 'SELECT * FROM ac_record WHERE id = :id';
   FQ.ParamByName('id').AsInteger := RecID;
   FQ.ExecQuery;
@@ -327,19 +327,19 @@ begin
 
   // проверим работу списка некорректных проводок, когда
   // их ИД умещаются в строку
-  TestIncorrectList(10, DocID, CompanyID);
+  TestIncorrectList(10, DocID, IBLogin.CompanyKey);
 
   // проверим работу списка некорректных проводок, когда
   // их ИД не умещаются в строку
-  TestIncorrectList(1000, DocID, CompanyID);
+  TestIncorrectList(1000, DocID, IBLogin.CompanyKey);
 
   // шапка должна удалиться, после удаления последней
   // записи в ac_entry
-  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, CompanyID);
+  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, IBLogin.CompanyKey);
   EntryID := InsertAcEntry(FQ, gdcBaseManager.GetNextID, RecID, Acc01, 'D',
     100, 100, 100, 100, 100, 100, BelRubID,
     EncodeDate(2000, 01, 01),
-    CompanyID, DocID, DocID, TrID);
+    IBLogin.CompanyKey, DocID, DocID, TrID);
   FQ.Close;
   FQ.SQL.Text := 'DELETE FROM ac_entry WHERE id = :id';
   FQ.ParamByName('id').AsInteger := EntryID;
@@ -351,12 +351,12 @@ begin
   Check(FQ.EOF);
 
   // тестируем позиции проводки
-  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, CompanyID);
+  RecID := InsertAcRecord(FQ, gdcBaseManager.GetNextID, DocID, IBLogin.CompanyKey);
 
   EntryID := InsertAcEntry(FQ, gdcBaseManager.GetNextID, RecID, Acc01, 'D',
     100, 100, 100, 100, 100, 100, BelRubID,
     EncodeDate(2000, 01, 01),
-    CompanyID, DocID, DocID, TrID);
+    IBLogin.CompanyKey, DocID, DocID, TrID);
 
   // у шапки неполной проводки incorrect = 1
   FQ.Close;
@@ -374,7 +374,7 @@ begin
   EntryID2 := InsertAcEntry(FQ, gdcBaseManager.GetNextID, RecID, Acc08, 'C',
     100, 100, 100, 100, 100, 100, BelRubID,
     EncodeDate(2000, 01, 01),
-    CompanyID, DocID, DocID, TrID);
+    IBLogin.CompanyKey, DocID, DocID, TrID);
 
   // теперь incorrect = 0
   FQ.Close;
@@ -399,7 +399,7 @@ begin
   EntryID3:= InsertAcEntry(FQ, gdcBaseManager.GetNextID, RecID, Acc25, 'C',
     100, 100, 100, 100, 100, 100, BelRubID,
     EncodeDate(2000, 01, 01),
-    CompanyID, DocID, DocID, TrID);
+    IBLogin.CompanyKey, DocID, DocID, TrID);
 
   // incorrect = 1
   FQ.Close;
