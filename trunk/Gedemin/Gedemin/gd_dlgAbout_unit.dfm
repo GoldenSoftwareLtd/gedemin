@@ -23,7 +23,7 @@ object gd_dlgAbout: Tgd_dlgAbout
     Top = 8
     Width = 547
     Height = 371
-    ActivePage = tsUpdate
+    ActivePage = tsAbout
     TabOrder = 0
     object tsAbout: TTabSheet
       Caption = 'О программе'

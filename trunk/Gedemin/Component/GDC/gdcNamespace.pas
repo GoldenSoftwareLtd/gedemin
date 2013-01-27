@@ -1063,25 +1063,36 @@ end;
 procedure TgdcNamespace.CompareWithData(const AFileName: String);
 var
   ScriptComparer: Tprp_ScriptComparer;
-  S1, S2: TStringStream;
   FS: TFileStream;
+  SS, SS1251, SSUTF8: TStringStream;
 begin
-  FS := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
-  S1 := TStringStream.Create('');
-  S2 := TStringStream.Create('');
+  SSUTF8 := TStringStream.Create('');
+  try
+    FS := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
+    try
+      SSUTF8.CopyFrom(FS, 0);
+    finally
+      FS.Free;
+    end;
+
+    SS1251 := TStringStream.Create(WideStringToStringEx(
+      UTF8ToWideString(SSUTF8.DataString), WIN1251_CODEPAGE));
+  finally
+    SSUTF8.Free;
+  end;
+
+  SS := TStringStream.Create('');
   ScriptComparer := Tprp_ScriptComparer.Create(nil);
   try
-    SaveNamespaceToStream(S1);
-    S2.CopyFrom(FS, 0);
+    SaveNamespaceToStream(SS);
 
-    ScriptComparer.Compare(S1.DataString, S2.DataString);
+    ScriptComparer.Compare(SS.DataString, SS1251.DataString);
     ScriptComparer.LeftCaption('Текущее состояние в базе данных:');
     ScriptComparer.RightCaption(AFileName);
     ScriptComparer.ShowModal;
   finally
-    FS.Free;
-    S1.Free;
-    S2.Free;
+    SS.Free;
+    SS1251.Free;
     ScriptComparer.Free;
   end;
 end;

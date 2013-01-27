@@ -12,6 +12,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   Font.Style = []
   OldCreateOrder = False
   OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object splMessages: TSplitter
@@ -92,6 +93,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     BorderStyle = bsNone
     DataSource = ds
     Options = [dgTitles, dgColumnResize, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
+    PopupMenu = pmSync
     ReadOnly = True
     TabOrder = 2
     InternalMenuKind = imkWithSeparator
@@ -267,6 +269,36 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       ImageIndex = 25
       OnExecute = actSaveToFileExecute
       OnUpdate = actSaveToFileUpdate
+    end
+    object actEditNamespace: TAction
+      Caption = '<-- Редактировать пространство имен'
+      ImageIndex = 1
+      OnExecute = actEditNamespaceExecute
+      OnUpdate = actEditNamespaceUpdate
+    end
+    object actEditFile: TAction
+      Caption = 'Редактировать файл пространства имен -->'
+      OnExecute = actEditFileExecute
+      OnUpdate = actEditFileUpdate
+    end
+    object actCompareWithData: TAction
+      Caption = '<-- Сравнить с файлом -->'
+      OnExecute = actCompareWithDataExecute
+      OnUpdate = actCompareWithDataUpdate
+    end
+  end
+  object pmSync: TPopupMenu
+    Images = dmImages.il16x16
+    Left = 408
+    Top = 160
+    object actEditNamespace1: TMenuItem
+      Action = actEditNamespace
+    end
+    object N1: TMenuItem
+      Action = actEditFile
+    end
+    object N2: TMenuItem
+      Action = actCompareWithData
     end
   end
 end

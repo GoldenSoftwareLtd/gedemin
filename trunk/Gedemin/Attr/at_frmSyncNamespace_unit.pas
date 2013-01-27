@@ -6,7 +6,8 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   dmImages_unit, gd_createable_form, TB2ExtItems, TB2Item, ActnList, Db,
   Grids, DBGrids, gsDBGrid, TB2Dock, TB2Toolbar, ComCtrls, DBClient,
-  StdCtrls, ExtCtrls;
+  StdCtrls, ExtCtrls, Menus, dmDatabase_unit, IBCustomDataSet, gdcBase,
+  gdcNamespace;
 
 type
   Tat_frmSyncNamespace = class(TCreateableForm)
@@ -43,6 +44,13 @@ type
     tbiFilter: TTBItem;
     actSaveToFile: TAction;
     TBItem3: TTBItem;
+    pmSync: TPopupMenu;
+    actEditNamespace: TAction;
+    actEditNamespace1: TMenuItem;
+    actEditFile: TAction;
+    N1: TMenuItem;
+    actCompareWithData: TAction;
+    N2: TMenuItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -53,11 +61,22 @@ type
     procedure actSaveToFileExecute(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure ActionListUpdate(Action: TBasicAction; var Handled: Boolean);
+    procedure actEditNamespaceUpdate(Sender: TObject);
+    procedure actEditNamespaceExecute(Sender: TObject);
+    procedure actEditFileUpdate(Sender: TObject);
+    procedure actEditFileExecute(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure actCompareWithDataUpdate(Sender: TObject);
+    procedure actCompareWithDataExecute(Sender: TObject);
 
   private
-    FSaving: Boolean;  
+    FSaving: Boolean;
+    FgdcNamespace: TgdcNamespace;
 
   public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+
     procedure SaveSettings; override;
     procedure LoadSettingsAfterCreate; override;
   end;
@@ -70,7 +89,7 @@ implementation
 {$R *.DFM}
 
 uses
-  FileCtrl, gdcNamespace, gd_GlobalParams_unit;
+  FileCtrl, gd_GlobalParams_unit, gd_ExternalEditor;
 
 procedure Tat_frmSyncNamespace.actChooseDirExecute(Sender: TObject);
 var
@@ -201,6 +220,63 @@ begin
     TCustomAction(Action).Enabled := False;
     Handled := True;
   end;
+end;
+
+procedure Tat_frmSyncNamespace.actEditNamespaceUpdate(Sender: TObject);
+begin
+  actEditNamespace.Enabled := (not cds.EOF)
+    and (cds.FieldByName('namespacekey').AsInteger > 0);
+end;
+
+procedure Tat_frmSyncNamespace.actEditNamespaceExecute(Sender: TObject);
+begin
+  if FgdcNamespace.Active and (not FgdcNamespace.EOF) then
+    FgdcNamespace.EditDialog;
+end;
+
+procedure Tat_frmSyncNamespace.actEditFileUpdate(Sender: TObject);
+begin
+  actEditFile.Enabled := (not cds.EOF)
+    and FileExists(cds.FieldByName('filename').AsString);
+end;
+
+procedure Tat_frmSyncNamespace.actEditFileExecute(Sender: TObject);
+begin
+  InvokeExternalEditor('yaml', cds.FieldByName('filename').AsString);
+end;
+
+procedure Tat_frmSyncNamespace.FormCreate(Sender: TObject);
+begin
+  FgdcNamespace.SubSet := 'ByID';
+  FgdcNamespace.MasterSource := ds;
+  FgdcNamespace.MasterField := 'namespacekey';
+  FgdcNamespace.DetailField := 'id';
+  FgdcNamespace.Open;
+end;
+
+procedure Tat_frmSyncNamespace.actCompareWithDataUpdate(Sender: TObject);
+begin
+  actCompareWithData.Enabled := (not cds.EOF)
+    and FileExists(cds.FieldByName('filename').AsString)
+    and FgdcNamespace.Active
+    and (not FgdcNamespace.EOF);
+end;
+
+procedure Tat_frmSyncNamespace.actCompareWithDataExecute(Sender: TObject);
+begin
+  FgdcNamespace.CompareWithData(cds.FieldByName('filename').AsString);
+end;
+
+constructor Tat_frmSyncNamespace.Create(AnOwner: TComponent);
+begin
+  inherited;
+  FgdcNamespace := TgdcNamespace.Create(nil);
+end;
+
+destructor Tat_frmSyncNamespace.Destroy;
+begin
+  FgdcNamespace.Free;
+  inherited;
 end;
 
 initialization
