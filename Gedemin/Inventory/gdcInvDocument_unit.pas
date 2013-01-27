@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2001 by Golden Software of Belarus
+  Copyright (c) 2001-2013 by Golden Software of Belarus
 
   Module
 
@@ -20,6 +19,7 @@
 
     Initial  17-09-2001  Dennis  Initial version.
     Changed  09-11-2001  Michael Minor changes
+
 --}
 
 unit gdcInvDocument_unit;
@@ -61,7 +61,6 @@ const
   // Версия 2.6
   gdcInvDocument_Version2_6 = 'IDV2.6';
 
-
 {$IFDEF DEBUGMOVE}
 const
   TimeCustomInsertUSR: LongWord = 0;
@@ -77,7 +76,6 @@ const
   TimePostInPosition: LongWord = 0;
 {$ENDIF}
 
-
 type
   TgdcInvRelationAlias = record
     RelationName: String[31];
@@ -86,9 +84,7 @@ type
 
   TgdcInvRelationAliases = array of TgdcInvRelationAlias;
 
-type
   TgdcInvDocumentType = class;
-
   TgdcInvBaseDocument = class;
   TgdcInvBaseDocumentClass = class of TgdcInvBaseDocument;
 
@@ -181,10 +177,7 @@ type
   private
     FJoins: TStringList;
 
-//    FIsPrePosted: Boolean;
-
   protected
-
     function GetSelectClause: String; override;
     function GetFromClause(const ARefresh: Boolean = False): String; override;
     function GetGroupClause: String; override;
@@ -196,12 +189,6 @@ type
 
     procedure _DoOnNewRecord; override;
 
-    procedure DoAfterCancel; override;
-    procedure DoAfterClose; override;
-    procedure DoAfterDelete; override;
-    procedure DoAfterOpen; override;
-    procedure DoAfterPost; override;
-
     function CreateDialogForm: TCreateableForm; override;
 
     function GetJoins: TStringList; override;
@@ -209,18 +196,13 @@ type
     function GetDetailObject: TgdcDocument; override;
 
   public
-    procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
-
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
 
-//    procedure PrePostDocumentData;
-
-  published
-
+    procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
   end;
 
   TgdcInvDocumentLine = class(TgdcInvBaseDocument)
@@ -344,17 +326,11 @@ type
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
       WithDetailList: TgdKeyArray; const SaveDetailObjects: Boolean = True); override;
-
-  published
-
   end;
 
   TgdcInvDocumentType = class(TgdcDocumentType)
   protected
     procedure CreateFields; override;
-
-    function CreateDialogForm: TCreateableForm; override;
-
     procedure DoBeforePost; override;
 
   public
@@ -362,8 +338,8 @@ type
 
     class function InvDocumentTypeBranchKey: Integer;
     class function GetHeaderDocumentClass: CgdcBase; override;
-
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
   EgdcInvBaseDocument = class(Exception);
@@ -434,7 +410,6 @@ begin
       (ByFieldName('QUANTITY') <> nil)
     then
       Result := irtSimple
-
     else
       Result := irtInvalid;
   end;
@@ -785,15 +760,11 @@ begin
 end;
 
 class function TgdcInvBaseDocument.GetSubTypeList(SubTypeList: TStrings): Boolean;
-{var
-  ibsql: TIBSQL;
-  ibtr: TIBTransaction;}
 begin
   Assert(Assigned(gdcInvDocumentCache));
 
   Result := gdcInvDocumentCache.GetSubTypeList(TgdcInvDocumentType.InvDocumentTypeBranchKey,
     SubTypeList);
-
 end;
 
 function TgdcInvBaseDocument.JoinListFieldByFieldName(
@@ -808,117 +779,112 @@ var
 begin
   Assert(not Active);
 
-    { TODO -oJulia : Это зачем? }
-    {Active := False;}
+  Index := CacheDocumentTypeByRUID(SubType);
+  if Index > - 1 then
+  begin
+    FReportGroupKey := DocTypeCache.CacheItemsByIndex[Index].ReportGroupKey;
+    FBranchKey := DocTypeCache.CacheItemsByIndex[Index].BranchKey;
+  end else
+    raise EgdcInvDocumentType.Create('Складской документ не найден!');
 
-    Index := CacheDocumentTypeByRUID(SubType);
-    if Index > - 1 then
+  with TReader.Create(Stream, 1024) do
+  try
+    FCurrentStreamVersion := ReadString;
+
+    if FCurrentStreamVersion = gdcInv_Document_Undone then
+      raise EgdcInvBaseDocument.
+        Create('Попытка загрузить незаконченный складской документ!');
+
+    FRelationName := ReadString;
+    FRelationLineName := ReadString;
+
+    if (FCurrentStreamVersion <> gdcInvDocument_Version2_0) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_1) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_2) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_3) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_4) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_5) and
+       (FCurrentStreamVersion <> gdcInvDocument_Version2_6)
+    then
+      //Раньше считывался тип документа
+      ReadInteger;
+
+    if (FCurrentStreamVersion = gdcInvDocument_Version1_9) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_0) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
+      (FCurrentStreamVersion = gdcInvDocument_Version2_6)
+    then
+      //Раньше считывался кей группы отчетов
+      ReadInteger;
+
+    SetLength(FMovementTarget.Predefined, 0);
+    SetLength(FMovementTarget.SubPredefined, 0);
+
+    FMovementTarget.RelationName := ReadString;
+    FMovementTarget.SourceFieldName := ReadString;
+    FMovementTarget.SubRelationName := ReadString;
+    FMovementTarget.SubSourceFieldName := ReadString;
+    Read(FMovementTarget.ContactType, SizeOf(TgdcInvMovementContactType));
+
+    ReadListBegin;
+    while not EndOfList do
     begin
-      FReportGroupKey := DocTypeCache.CacheItemsByIndex[Index].ReportGroupKey;
-      FBranchKey := DocTypeCache.CacheItemsByIndex[Index].BranchKey;
-    end else
-      raise EgdcInvDocumentType.Create('Складской документ не найден!');
-
-
-    with TReader.Create(Stream, 1024) do
-    try
-      FCurrentStreamVersion := ReadString;
-
-      if FCurrentStreamVersion = gdcInv_Document_Undone then
-        raise EgdcInvBaseDocument.
-          Create('Попытка загрузить незаконченный складской документ!');
-
-      FRelationName := ReadString;
-      FRelationLineName := ReadString;
-
-      if (FCurrentStreamVersion <> gdcInvDocument_Version2_0) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_1) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_2) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_3) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_4) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_5) and
-         (FCurrentStreamVersion <> gdcInvDocument_Version2_6)
-      then
-        //Раньше считывался тип документа
+      SetLength(FMovementTarget.Predefined,
+        Length(FMovementTarget.Predefined) + 1);
+      FMovementTarget.Predefined[Length(FMovementTarget.Predefined) - 1] :=
         ReadInteger;
-
-      if (FCurrentStreamVersion = gdcInvDocument_Version1_9) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_0) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_1) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_2) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_4) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_5) or
-        (FCurrentStreamVersion = gdcInvDocument_Version2_6)
-      then
-        //Раньше считывался кей группы отчетов
-        ReadInteger;
-
-      SetLength(FMovementTarget.Predefined, 0);
-      SetLength(FMovementTarget.SubPredefined, 0);
-
-      FMovementTarget.RelationName := ReadString;
-      FMovementTarget.SourceFieldName := ReadString;
-      FMovementTarget.SubRelationName := ReadString;
-      FMovementTarget.SubSourceFieldName := ReadString;
-      Read(FMovementTarget.ContactType, SizeOf(TgdcInvMovementContactType));
-
-      ReadListBegin;
-      while not EndOfList do
-      begin
-        SetLength(FMovementTarget.Predefined,
-          Length(FMovementTarget.Predefined) + 1);
-        FMovementTarget.Predefined[Length(FMovementTarget.Predefined) - 1] :=
-          ReadInteger;
-      end;
-      ReadListEnd;
-
-      ReadListBegin;
-      while not EndOfList do
-      begin
-        SetLength(FMovementTarget.SubPredefined,
-          Length(FMovementTarget.SubPredefined) + 1);
-        FMovementTarget.SubPredefined[Length(FMovementTarget.SubPredefined) - 1] :=
-          ReadInteger;
-      end;
-      ReadListEnd;
-
-
-      SetLength(FMovementSource.Predefined, 0);
-      SetLength(FMovementSource.SubPredefined, 0);
-
-      FMovementSource.RelationName := ReadString;
-      FMovementSource.SourceFieldName := ReadString;
-      FMovementSource.SubRelationName := ReadString;
-      FMovementSource.SubSourceFieldName := ReadString;
-
-      Read(FMovementSource.ContactType, SizeOf(TgdcInvMovementContactType));
-
-      ReadListBegin;
-      while not EndOfList do
-      begin
-        SetLength(FMovementSource.Predefined,
-          Length(FMovementSource.Predefined) + 1);
-        FMovementSource.Predefined[Length(FMovementSource.Predefined) - 1] :=
-          ReadInteger;
-      end;
-      ReadListEnd;
-
-      ReadListBegin;
-      while not EndOfList do
-      begin
-        SetLength(FMovementSource.SubPredefined,
-          Length(FMovementSource.SubPredefined) + 1);
-        FMovementSource.SubPredefined[Length(FMovementSource.SubPredefined) - 1] :=
-          ReadInteger;
-      end;
-      ReadListEnd;
-
-      if Self is TgdcInvDocument then
-        FSetupProceeded := True;
-    finally
-      Free;
     end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FMovementTarget.SubPredefined,
+        Length(FMovementTarget.SubPredefined) + 1);
+      FMovementTarget.SubPredefined[Length(FMovementTarget.SubPredefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    SetLength(FMovementSource.Predefined, 0);
+    SetLength(FMovementSource.SubPredefined, 0);
+
+    FMovementSource.RelationName := ReadString;
+    FMovementSource.SourceFieldName := ReadString;
+    FMovementSource.SubRelationName := ReadString;
+    FMovementSource.SubSourceFieldName := ReadString;
+
+    Read(FMovementSource.ContactType, SizeOf(TgdcInvMovementContactType));
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FMovementSource.Predefined,
+        Length(FMovementSource.Predefined) + 1);
+      FMovementSource.Predefined[Length(FMovementSource.Predefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    ReadListBegin;
+    while not EndOfList do
+    begin
+      SetLength(FMovementSource.SubPredefined,
+        Length(FMovementSource.SubPredefined) + 1);
+      FMovementSource.SubPredefined[Length(FMovementSource.SubPredefined) - 1] :=
+        ReadInteger;
+    end;
+    ReadListEnd;
+
+    if Self is TgdcInvDocument then
+      FSetupProceeded := True;
+  finally
+    Free;
+  end;
 end;
 
 procedure TgdcInvBaseDocument.UpdatePredefinedFields;
@@ -993,15 +959,9 @@ var
 begin
   with TWriter.Create(Stream, 1024) do
   try
-    {
-      TODO 3 -oденис -cсделать:
-      Проверка на случай создания поля с переподключением к DB: gdcInv_Document_Undone.
-    }
-
     WriteString(gdcInvDocument_Version2_6);
     WriteString(FRelationName);
     WriteString(FRelationLineName);
-    //WriteInteger(FDocumentTypeKey);
 
     WriteInteger(FReportGroupKey);
 
@@ -1125,12 +1085,7 @@ end;
 procedure TgdcInvBaseDocument.SetActive(Value: Boolean);
 begin
   if (SubType > '') or not Value then
-    inherited
-  else
-{    MessageBox(0,
-      'Нельзя открывать складской документ не присвоив подтип!',
-      'Внимание',
-      MB_ICONHAND or MB_OK)};
+    inherited;
 end;
 
 class function TgdcInvBaseDocument.GetViewFormClassName(
@@ -1195,10 +1150,7 @@ end;
 constructor TgdcInvDocument.Create(AnOwner: TComponent);
 begin
   inherited;
-
   FJoins := TStringList.Create;
-//  FIsPrePosted := False;
-
 end;
 
 function TgdcInvDocument.CreateDialogForm: TCreateableForm;
@@ -1351,126 +1303,6 @@ destructor TgdcInvDocument.Destroy;
 begin
   FJoins.Free;
   inherited;
-end;
-
-procedure TgdcInvDocument.DoAfterCancel;
-begin
-  inherited;
-//  FIsPrePosted := False;
-end;
-
-procedure TgdcInvDocument.DoAfterClose;
-begin
-  inherited;
-//  FIsPrePosted := False;
-end;
-
-procedure TgdcInvDocument.DoAfterDelete;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENT', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENT', KEYDOAFTERDELETE);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERDELETE]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENT',
-  {M}          'DOAFTERDELETE', KEYDOAFTERDELETE, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-//  FIsPrePosted := False;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENT', 'DOAFTERDELETE', KEYDOAFTERDELETE)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENT', 'DOAFTERDELETE', KEYDOAFTERDELETE);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcInvDocument.DoAfterOpen;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENT', 'DOAFTEROPEN', KEYDOAFTEROPEN)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENT', KEYDOAFTEROPEN);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTEROPEN]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENT',
-  {M}          'DOAFTEROPEN', KEYDOAFTEROPEN, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-//  FIsPrePosted := False;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENT', 'DOAFTEROPEN', KEYDOAFTEROPEN)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENT', 'DOAFTEROPEN', KEYDOAFTEROPEN);
-  {M}  end;
-  {END MACRO}
-end;
-
-procedure TgdcInvDocument.DoAfterPost;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_WITHOUTPARAM('TGDCINVDOCUMENT', 'DOAFTERPOST', KEYDOAFTERPOST)}
-  {M}  try
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENT', KEYDOAFTERPOST);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYDOAFTERPOST]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENT',
-  {M}          'DOAFTERPOST', KEYDOAFTERPOST, Params, LResult) then exit;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENT' then
-  {M}        begin
-  {M}          Inherited;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  inherited;
-//  FIsPrePosted := False;
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENT', 'DOAFTERPOST', KEYDOAFTERPOST)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENT', 'DOAFTERPOST', KEYDOAFTERPOST);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcInvDocument._DoOnNewRecord;
@@ -1805,7 +1637,6 @@ var
             '-', '', [rfReplaceAll]), 1, 30);
         try
           Transaction.SetSavePoint(FLSavePoint);
-          //ExecSingleQuery('SAVEPOINT ' + FLSavePoint);
         except
           FLSavePoint := '';
         end;
@@ -1836,8 +1667,6 @@ var
               begin
                 Transaction.RollBackToSavePoint(FLSavePoint);
                 Transaction.ReleaseSavePoint(FLSavePoint);
-                //ExecSingleQuery('ROLLBACK TO ' + FLSavePoint);
-                //ExecSingleQuery('RELEASE SAVEPOINT ' + FLSavePoint);
                 FLSavePoint := '';
                 if sDialog in BaseState then
                   Field.FocusControl;
@@ -1968,7 +1797,6 @@ begin
         '-', '', [rfReplaceAll]), 1, 30);
     try
       Transaction.SetSavePoint(FLocalSavePoint);
-      //ExecSingleQuery('SAVEPOINT ' + FLocalSavePoint);
     except
       FLocalSavePoint := '';
     end;
@@ -1994,8 +1822,6 @@ begin
           begin
             Transaction.RollBackToSavePoint(FLocalSavePoint);
             Transaction.ReleaseSavePoint(FLocalSavePoint);
-            //ExecSingleQuery('ROLLBACK TO ' + FLocalSavePoint);
-            //ExecSingleQuery('RELEASE SAVEPOINT ' + FLocalSavePoint);
             FLocalSavePoint := '';
           end;
           Close;
@@ -2011,7 +1837,6 @@ begin
       try
         if Transaction.InTransaction then
           Transaction.ReleaseSavePoint(FLocalSavePoint);
-          //ExecSingleQuery('RELEASE SAVEPOINT ' + FLocalSavePoint);
         FLocalSavePoint := '';
       except
         FLocalSavePoint := '';
@@ -2616,7 +2441,6 @@ end;
 destructor TgdcInvDocumentLine.Destroy;
 begin
   FreeAndNil(FLineJoins);
-//  FreeAndNil(FMovement);
 
   if Assigned(FGoodSQL) then
     FreeAndNil(FGoodSQL);
@@ -2696,6 +2520,7 @@ begin
       FMovement.GetRemains;
     end;
   end;
+
 {$IFDEF DEBUGMOVE}
   TimePostInPosition := GetTickCount - TimePostInPosition;
 {$ENDIF}
@@ -2765,10 +2590,10 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   {$IFDEF DEBUGMOVE}
   TempTime := GetTickCount;
   {$ENDIF}
-
 
   inherited;
 
@@ -2801,7 +2626,6 @@ begin
   {$IFDEF DEBUGMOVE}
   TimeDoOnNewRecord := TimeDoOnNewRecord + GetTickCount - TempTime;
   {$ENDIF}
-
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTLINE', '_DOONNEWRECORD', KEY_DOONNEWRECORD)}
   {M}  finally
@@ -2855,7 +2679,6 @@ begin
       Result := Result + ' AS ' + AsName + Relation.RelationFields[I].FieldName;
   end;
 end;
-
 
 class function TgdcInvDocumentLine.GetDocumentClassPart: TgdcDocumentClassPart;
 begin
@@ -3184,7 +3007,6 @@ begin
   end;
 
   S.Add('INVLINE.documentkey IS NOT NULL');
-
 end;
 
 function TgdcInvDocumentLine.IsFeatureUsed(const FieldName: String;
@@ -3297,7 +3119,6 @@ begin
         end;
       end;
       ReadListEnd;
-
     end;
 
     if (FCurrentStreamVersion = gdcInvDocument_Version2_3) or
@@ -3352,7 +3173,6 @@ begin
         '-', '', [rfReplaceAll]), 1, 30);
     try
       Transaction.SetSavePoint(FSavepoint);
-      //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
     except
       FSavepoint := '';
     end;
@@ -3377,8 +3197,6 @@ begin
           begin
             Transaction.RollBackToSavePoint(FSavepoint);
             Transaction.ReleaseSavePoint(FSavepoint);
-            //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-            //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
           end;
           FSavepoint := '';
           Close;
@@ -3394,7 +3212,6 @@ begin
       try
         if Transaction.InTransaction then
           Transaction.ReleaseSavePoint(FSavepoint);
-          //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
         FSavepoint := '';
       except
         FSavepoint := '';
@@ -3417,9 +3234,6 @@ begin
     Close;
     FViewMovementPart := Value;
     FSQLInitialized := False;
-
-    {if FgdcDataLink.Active then
-      FgdcDataLink.RefreshParams(True);}
   end;
 end;
 
@@ -3437,7 +3251,6 @@ begin
   end;
 
   FGoodSQL.Transaction := ReadTransaction;
-//  Transaction.Active := True;
 
   FGoodSQL.ParamByName('ID').AsInteger := FieldByName('GoodKey').AsInteger;
   FGoodSQL.ExecQuery;
@@ -3449,7 +3262,6 @@ begin
   end;
 
   FGoodSQL.Close;
-
 end;
 
 procedure TgdcInvDocumentLine.WriteOptions(Stream: TStream);
@@ -3629,7 +3441,6 @@ begin
   Result := TgdcInvDocument.CreateSubType(Owner, SubType);
 end;
 
-
 function TgdcInvDocumentLine.GetNotCopyField: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -3794,60 +3605,7 @@ end;
 constructor TgdcInvDocumentType.Create(AnOwner: TComponent);
 begin
   inherited;
-
   CustomProcess := [cpInsert, cpModify];
-end;
-
-function TgdcInvDocumentType.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCINVDOCUMENTTYPE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTTYPE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTTYPE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTTYPE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTTYPE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := Tgdc_dlgSetupInvDocument.Create(ParentForm);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTTYPE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENTTYPE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcInvDocumentType.CreateFields;
@@ -3926,6 +3684,12 @@ begin
   {END MACRO}
 end;
 
+class function TgdcInvDocumentType.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'Tgdc_dlgSetupInvDocument';
+end;
+
 class function TgdcInvDocumentType.GetHeaderDocumentClass: CgdcBase;
 begin
   Result := TgdcInvDocument;
@@ -3953,6 +3717,5 @@ finalization
   UnRegisterGdcClass(TgdcInvDocumentType);
   UnRegisterGdcClass(TgdcInvDocument);
   UnRegisterGdcClass(TgdcInvDocumentLine);
-
 end.
 
