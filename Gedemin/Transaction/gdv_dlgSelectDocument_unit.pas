@@ -11,15 +11,12 @@ uses
 
 type
   TdlgSelectDocument = class(TgdcCreateableForm)
-    Panel1: TPanel;
-    Button1: TButton;
-    Button2: TButton;
+    pnlBottom: TPanel;
     Button3: TButton;
     Panel2: TPanel;
     Splitter1: TSplitter;
     Panel3: TPanel;
     tvDocumentType: TgsDBTreeView;
-    Bevel1: TBevel;
     gdcDocumentType: TgdcBaseDocumentType;
     dsDocumentType: TDataSource;
     dsDocument: TDataSource;
@@ -44,6 +41,9 @@ type
     TBSeparatorItem1: TTBSeparatorItem;
     Panel4: TPanel;
     Panel6: TPanel;
+    Panel1: TPanel;
+    Button2: TButton;
+    Button1: TButton;
     procedure actOkExecute(Sender: TObject);
     procedure actcancelExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);

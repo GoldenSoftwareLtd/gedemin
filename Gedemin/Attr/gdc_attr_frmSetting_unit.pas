@@ -98,6 +98,8 @@ type
     TBItem11: TTBItem;
     actSet2NSAll: TAction;
     TBItem12: TTBItem;
+    actSetScanDir: TAction;
+    TBItem13: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actSetActiveExecute(Sender: TObject);
@@ -153,6 +155,7 @@ type
     procedure ibgrDetailDblClick(Sender: TObject);
     procedure actSet2NSExecute(Sender: TObject);
     procedure actSet2NSAllExecute(Sender: TObject);
+    procedure actSetScanDirExecute(Sender: TObject);
 
   private
     FFieldStorageOrigin: TStringList;
@@ -206,15 +209,14 @@ var
 implementation
 
 uses
-  gd_ClassList, gdcBaseInterface, at_frmUserForm_unit,
-  gd_directories_const, gsStorage, Storages, gdcStorage,
-  frm_SettingView_unit, gd_security, gd_common_functions,
-  jclSelected, IBDatabase, gdc_attr_dlgSetToTxt_unit
+  gd_ClassList, gdcBaseInterface, at_frmUserForm_unit, gd_directories_const,
+  gsStorage, Storages, gdcStorage, frm_SettingView_unit, gd_security,
+  gd_common_functions, jclSelected, IBDatabase, gdc_attr_dlgSetToTxt_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
   {$ENDIF}
-  , gdc_frmStreamSaver, gsStreamHelper, ShellAPI;
+  , gdc_frmStreamSaver, gsStreamHelper, ShellAPI, FileCtrl, jclFileUtils;
   
 {$R *.DFM}
 
@@ -1713,10 +1715,46 @@ begin
   end;
 end;
 
+procedure Tgdc_frmSetting.actSetScanDirExecute(Sender: TObject);
+var
+  Dir: String;
+  SL: TStringList;
+  Obj: TgdcSetting;
+begin
+  Obj := TgdcSetting.Create(nil);
+  SL := TStringList.Create;
+  try
+    if SelectDirectory(Dir, [], 0) and AdvBuildFileList(IncludeTrailingBackslash(Dir) + '*.*',
+      faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
+    begin
+      while SL.Count > 0 do
+      begin
+        if (AnsiCompareText(ExtractFileExt(SL[0]), '.gsf') = 0) or
+          (AnsiCompareText(ExtractFileExt(SL[0]), '.xml') = 0) then
+        begin
+          try
+            Obj.Open;
+            Obj.LoadFromFile(SL[0]);
+            Obj.Close;
+          except
+            Obj.Close;
+            if SL.Count = 1 then
+              break;
+            SL.Add(SL[0]);
+          end;
+        end;
+        SL.Delete(0);
+      end;
+    end;
+  finally
+    SL.Free;
+    Obj.Free;
+  end;
+end;
+
 initialization
   RegisterFrmClass(Tgdc_frmSetting);
 
 finalization
   UnRegisterFrmClass(Tgdc_frmSetting);
-
 end.

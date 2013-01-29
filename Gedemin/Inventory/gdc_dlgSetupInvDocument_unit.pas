@@ -781,7 +781,6 @@ begin
   inherited;
 
   FOperationCount := 0;
-//  FReportGroupKey := -1;
   FMetaChangeCount := 0;
 
   FTemplates := TObjectList.Create(False);
@@ -789,7 +788,6 @@ begin
   FSourceFeatures := TStringList.Create;
   FDestFeatures := TStringList.Create;
   FMinusFeatures := TStringList.Create;
-
 end;
 
 procedure Tgdc_dlgSetupInvDocument.CreateDocumentTemplateData;

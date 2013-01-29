@@ -189,8 +189,6 @@ type
 
     procedure _DoOnNewRecord; override;
 
-    function CreateDialogForm: TCreateableForm; override;
-
     function GetJoins: TStringList; override;
     procedure SetJoins(const Value: TStringList); override;
     function GetDetailObject: TgdcDocument; override;
@@ -200,6 +198,7 @@ type
     destructor Destroy; override;
 
     class function GetViewFormClassName(const ASubType: TgdcSubType): String; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
 
     procedure InternalSetFieldData(Field: TField; Buffer: Pointer); override;
@@ -260,7 +259,6 @@ type
     procedure CustomModify(Buff: Pointer); override;
     procedure CustomDelete(Buff: Pointer); override;
 
-    function CreateDialogForm: TCreateableForm; override;
     procedure CreateFields; override;
 
     procedure _DoOnNewRecord; override;
@@ -291,6 +289,7 @@ type
     procedure SetFeatures(isFrom, isTo: Boolean);
 
     class function GetDocumentClassPart: TgdcDocumentClassPart; override;
+    class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
 
     property Sources: TgdcInvReferenceSources read FSources;
     property Direction: TgdcInvMovementDirection read FDirection;
@@ -312,7 +311,6 @@ type
     property isChooseRemains: Boolean read FisChooseRemains
       write FisChooseRemains;
 
-
     property isChangeCardValue: Boolean read FisChangeCardValue write FisChangeCardValue;
     property isAppendCardValue: Boolean read FisAppendCardValue write FisAppendCardValue;
     property isUseCompanyKey: Boolean read FIsUseCompanyKey write FIsUseCompanyKey;
@@ -321,7 +319,7 @@ type
 
     property isCheckDestFeatures: Boolean read FisCheckDestFeatures write FisCheckDestFeatures default True;
     property UseGoodKeyForMakeMovement: Boolean read FUseGoodKeyForMakeMovement write FUseGoodKeyForMakeMovement default False;
-    property IsMakeMovementOnFromCardKeyOnly: Boolean read FIsMakeMovementOnFromCardKeyOnly write SetIsMakeMovementOnFromCardKeyOnly default False; 
+    property IsMakeMovementOnFromCardKeyOnly: Boolean read FIsMakeMovementOnFromCardKeyOnly write SetIsMakeMovementOnFromCardKeyOnly default False;
 
     procedure _SaveToStream(Stream: TStream; ObjectSet: TgdcObjectSet;
       PropertyList: TgdcPropertySets; BindedList: TgdcObjectSet;
@@ -1153,58 +1151,6 @@ begin
   FJoins := TStringList.Create;
 end;
 
-function TgdcInvDocument.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCINVDOCUMENT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENT', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENT') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENT',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENT' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := TdlgInvDocument.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENT', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
-end;
-
 procedure TgdcInvDocument.CustomInsert(Buff: Pointer);
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
   {M}VAR
@@ -1774,6 +1720,12 @@ begin
   Result := TgdcInvDocumentLine.CreateSubType(Owner, SubType);
 end;
 
+class function TgdcInvDocument.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'TdlgInvDocument';
+end;
+
 { TgdcInvDocumentLine }
 
 function TgdcInvDocumentLine.ChooseRemains: Boolean;
@@ -1882,58 +1834,6 @@ begin
   FEndMonthRemains := False;
   FUseCachedUpdates := False;
   FCanBeDelayed := False;
-end;
-
-function TgdcInvDocumentLine.CreateDialogForm: TCreateableForm;
-  {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
-  {M}VAR
-  {M}  Params, LResult: Variant;
-  {M}  tmpStrings: TStackStrings;
-  {END MACRO}
-begin
-  {@UNFOLD MACRO INH_ORIG_FUNCCREATEDIALOGFORM('TGDCINVDOCUMENTLINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  try
-  {M}    Result := nil;
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}    begin
-  {M}      SetFirstMethodAssoc('TGDCINVDOCUMENTLINE', KEYCREATEDIALOGFORM);
-  {M}      tmpStrings := TStackStrings(ClassMethodAssoc.IntByKey[KEYCREATEDIALOGFORM]);
-  {M}      if (tmpStrings = nil) or (tmpStrings.IndexOf('TGDCINVDOCUMENTLINE') = -1) then
-  {M}      begin
-  {M}        Params := VarArrayOf([GetGdcInterface(Self)]);
-  {M}        if gdcBaseMethodControl.ExecuteMethodNew(ClassMethodAssoc, Self, 'TGDCINVDOCUMENTLINE',
-  {M}          'CREATEDIALOGFORM', KEYCREATEDIALOGFORM, Params, LResult) then
-  {M}          begin
-  {M}            Result := nil;
-  {M}            if VarType(LResult) <> varDispatch then
-  {M}              raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен не объект.')
-  {M}            else
-  {M}              if IDispatch(LResult) = nil then
-  {M}                raise Exception.Create('Скрипт-функция: ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + 'CREATEDIALOGFORM' + #13#10 + 'Для метода ''' +
-  {M}                  'CREATEDIALOGFORM' + ' ''' + 'класса ' + Self.ClassName +
-  {M}                  TgdcBase(Self).SubType + #10#13 + 'Из макроса возвращен пустой (null) объект.');
-  {M}            Result := GetInterfaceToObject(LResult) as TCreateableForm;
-  {M}            exit;
-  {M}          end;
-  {M}      end else
-  {M}        if tmpStrings.LastClass.gdClassName <> 'TGDCINVDOCUMENTLINE' then
-  {M}        begin
-  {M}          Result := Inherited CreateDialogForm;
-  {M}          Exit;
-  {M}        end;
-  {M}    end;
-  {END MACRO}
-  Result := TdlgInvDocumentLine.CreateSubType(ParentForm, SubType);
-  {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCINVDOCUMENTLINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM)}
-  {M}  finally
-  {M}    if (not FDataTransfer) and Assigned(gdcBaseMethodControl) then
-  {M}      ClearMacrosStack2('TGDCINVDOCUMENTLINE', 'CREATEDIALOGFORM', KEYCREATEDIALOGFORM);
-  {M}  end;
-  {END MACRO}
 end;
 
 procedure TgdcInvDocumentLine.CreateFields;
@@ -3598,6 +3498,12 @@ begin
     FIsMakeMovementOnFromCardKeyOnly := Value;
     Movement.ClearCardQuery;
   end;
+end;
+
+class function TgdcInvDocumentLine.GetDialogFormClassName(
+  const ASubType: TgdcSubType): String;
+begin
+  Result := 'TdlgInvDocumentLine';
 end;
 
 { TgdcInvDocumentType }

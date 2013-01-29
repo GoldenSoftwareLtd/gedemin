@@ -4,7 +4,7 @@ unit gsIBLookupComboBoxInterface;
 interface
 
 uses
-  Windows, gdcBaseInterface;
+  Windows, Messages, gdcBaseInterface;
 
 (*
 
@@ -28,6 +28,10 @@ type
     property Handle: HWND read GetHandle;
     property gdClassName: TgdcClassName read GetgdClassName write SetgdClassName;
   end;
+
+const
+  WM_GD_SELECTDOCUMENT            = WM_USER + 2220;
+  WM_GD_OPENACCTACCCARD           = WM_USER + 2221;
 
 implementation
 

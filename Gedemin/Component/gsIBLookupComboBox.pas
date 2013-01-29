@@ -158,6 +158,10 @@ type
     function GetParamValue(const S: String): Variant;
     procedure SetSortField(const Value: String);
     procedure SetSortOrder(const Value: TgsSortOrder);
+    procedure WMGDSelectDocument(var Msg: TMessage);
+      message WM_GD_SELECTDOCUMENT;
+    procedure WMGDOpenAcctAccCard(var Msg: TMessage);
+     message WM_GD_OPENACCtACCCARD;
 
   protected
     procedure DropDown; override;
@@ -337,7 +341,8 @@ uses
   gdcTree, gdcClasses,
   gdHelp_Interface,
   Storages,
-  gd_converttext, jclStrHashMap, IBErrorCodes
+  gd_converttext, jclStrHashMap, IBErrorCodes,
+  gdv_dlgSelectDocument_unit, gdv_frmAcctAccCard_unit
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub
@@ -844,18 +849,6 @@ begin
           finally
             Free;
           end;
-          {
-          MessageBoxResult := MessageBox(Handle,
-            'Не найдено ни одного объекта, удовлетворяющего'#13#10 +
-            'указанному критерию поиска. Вывести весь список?'#13#10 +
-            #13#10 +
-            'Выберите:'#13#10 +
-            'Да -- вывести список всех объектов.'#13#10 +
-            'Нет -- создать новый объект.'#13#10 +
-            'Отмена -- закрыть это окно.',
-            'Внимание!',
-            MB_YESNOCANCEL or MB_ICONQUESTION or MB_TASKMODAL);
-          }
         end else
         begin
           MessageBoxResult := MessageBox(Handle,
@@ -1544,6 +1537,7 @@ begin
       end;
 
       FdlgDropDown.FLastKey := 0;
+      FdlgDropDown.FLastMessage := 0;
       if FdlgDropDown.ShowModal = mrOk then
       begin
         if FCurrentKey <> FdlgDropDown.ibdsList.Fields[1].AsString then
@@ -1573,7 +1567,9 @@ begin
           SetFocus;
       end;
       if FdlgDropDown.FLastKey <> 0 then
-        PostMessage(Self.Handle,  WM_KEYDOWN, FdlgDropDown.FLastKey, 0);
+        PostMessage(Self.Handle,  WM_KEYDOWN, FdlgDropDown.FLastKey, 0)
+      else if FdlgDropDown.FLastMessage <> 0 then
+        PostMessage(Self.Handle,  FdlgDropDown.FLastMessage, 0, 0);
     end;
   finally
     if (not WasActive) and FdlgDropDown.ibdsList.ReadTransaction.InTransaction then
@@ -2076,6 +2072,7 @@ begin
   if not Assigned(FdlgDropDown) then
     FdlgDropDown := TdlgDropDown.Create(Self);
   FdlgDropDown.FIBLookup := Self;
+  FdlgDropDown.FIsDocument := (gdClass <> nil) and gdClass.InheritsFrom(TgdcDocument);
   if (gdClass <> nil)
     and IsTree
     and ((Text = '') or ValidObject) then
@@ -2785,6 +2782,50 @@ begin
   inherited;
 end;
 
+procedure TgsIBLookupComboBox.WMGDSelectDocument(var Msg: TMessage);
+var
+  F: TdlgSelectDocument;
+begin
+  F := TdlgSelectDocument.Create(nil);
+  try
+    F.ShowModal;
+    if F.SelectedId > - 1 then
+    begin
+      CurrentKeyInt := F.SelectedId;
+    end;
+  finally
+    F.Free;
+  end;
+end;
+
+procedure TgsIBLookupComboBox.WMGDOpenAcctAccCard(var Msg: TMessage);
+var
+  F: Tgdv_frmAcctAccCard;
+begin
+  F := Tgdv_frmAcctAccCard.Create(nil);
+  try
+    MessageBox(0,
+      'Для выбора объекта установите на него курсор и закройте окно.'#13#10#13#10 +
+      'Изменения данных объекта, сделанные Вами в форме просмотра и'#13#10 +
+      'выбора, могут быть недоступны в выпадающем списке.'#13#10 +
+      '',
+      'Выбор объекта',
+      MB_OK or MB_ICONINFORMATION or MB_TASKMODAL);
+    F.ShowModal;
+    if MessageBox(0,
+      'Вы подтверждаете свой выбор?',
+      'Внимание',
+      MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+    begin
+      if F.gdvObject <> nil then
+        CurrentKeyInt := F.gdvObject.FieldByName('documentkey').AsInteger;
+    end;
+  finally
+    F.Free;
+  end;
+end;
+
+
 procedure TgsIBLookupComboBox.CMGetDataLink(var Message: TMessage);
 begin
   Message.Result := Integer(FDataLink);
@@ -3110,24 +3151,6 @@ begin
     Result := Copy(S, 2, Length(S) - 2);
   end else
   begin
-{    try
-      Result := StrToInt(S);
-      exit;
-    except
-    end;
-
-    try
-      Result := StrToCurr(S);
-      exit;
-    except
-    end;
-
-    try
-      Result := StrToFloat(S);
-      exit;
-    except
-    end;}
-
     Result := S;
   end;
 end;
