@@ -27,9 +27,15 @@ type
     SpeedButton5: TSpeedButton;
     sbGrow: TSpeedButton;
     actShrink: TAction;
-    actGrow: TAction;
+    actGrow: TAction;                           
     gsDBGrid: TgsDBGrid;
     tv: TgsDBTreeView;
+    sbSelectObj: TSpeedButton;
+    actSelectObj: TAction;
+    sbSelectDoc: TSpeedButton;
+    actSelectDoc: TAction;
+    sbAcctAccCard: TSpeedButton;
+    actAcctAccCard: TAction;
     procedure FormShow(Sender: TObject);
     procedure FormHide(Sender: TObject);
     procedure FormMouseDown(Sender: TObject; Button: TMouseButton;
@@ -56,10 +62,14 @@ type
     procedure FormCreate(Sender: TObject);
     procedure gsDBGridMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
+    procedure actSelectObjExecute(Sender: TObject);
+    procedure actSelectDocUpdate(Sender: TObject);
+    procedure actSelectDocExecute(Sender: TObject);
+    procedure actAcctAccCardExecute(Sender: TObject);
 
   private
     FMouseFlag: Boolean;
-    
+
     procedure WMGetDlgCode(var Message: TWMGetDlgCode);
       message WM_GETDLGCODE;
     procedure CMDialogKey(var Message: TCMDialogKey);
@@ -69,12 +79,17 @@ type
     FIBLookup: IgsIBLookupComboBox;
     FWasTabKey: Boolean;
     FLastKey: Word;
+    FLastMessage: Integer;
+    FIsDocument: Boolean;
 
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
   end;
 
 implementation
+
+uses
+  gdcClasses, gd_directories_const;
 
 {$R *.DFM}
 
@@ -106,7 +121,6 @@ begin
               Result := 1;
             end else
             begin
-              //SendMessage(Handle, wParam, 0, MakeLParam(pt.X, pt.Y)); // was PostMessage
               Result := 0;
             end;
           end
@@ -138,6 +152,7 @@ begin
   gsDbGrid.ShowTotals := False;
   FWasTabKey := False;
   FLastKey := 0;
+  FLastMessage := 0;
 end;
 
 procedure TdlgDropDown.FormShow(Sender: TObject);
@@ -145,10 +160,15 @@ var
   R: TRect;
   Pt: TPoint;
 begin
-  if gsCOMBOHOOK = 0 then
-    gsCOMBOHOOK := SetWindowsHookEx(WH_MOUSE, @gsComboHookProc, HINSTANCE, GetCurrentThreadID);
+  if (gsCOMBOHOOK = 0) and (not (csDesigning in ComponentState)) then
+  begin
+    gsCOMBOHOOK := SetWindowsHookEx(WH_MOUSE, @gsComboHookProc,
+      HINSTANCE, GetCurrentThreadID);
+  end;    
+
   FWasTabKey := False;
   FLastKey := 0;
+  FLastMessage := 0;
 
   GetWindowRect(gsdbGrid.Handle, R);
   GetCursorPos(Pt);
@@ -183,12 +203,12 @@ end;
 
 procedure TdlgDropDown.actNewExecute(Sender: TObject);
 begin
-  SendMessage(gsdbGrid.Handle,  WM_KEYDOWN, VK_F2, 0);
+  SendMessage(gsdbGrid.Handle, WM_KEYDOWN, VK_F2, 0);
 end;
 
 procedure TdlgDropDown.actDeleteExecute(Sender: TObject);
 begin
-  SendMessage(gsdbGrid.Handle,  WM_KEYDOWN, VK_F8, 0);
+  SendMessage(gsdbGrid.Handle, WM_KEYDOWN, VK_F8, 0);
 end;
 
 procedure TdlgDropDown.actMergeExecute(Sender: TObject);
@@ -220,20 +240,13 @@ end;
 
 procedure TdlgDropDown.actGrowUpdate(Sender: TObject);
 begin
-  actGrow.Enabled := Left + Width < Screen.Width - 20;
+  actGrow.Enabled := (Screen <> nil) and (Left + Width < Screen.Width - 20);
 end;
-
 
 procedure TdlgDropDown.gsDBGridDblClick(Sender: TObject);
 begin
   ModalResult := mrOk;
 end;
-
-{procedure TdlgDropDown.gsDBGridMouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-begin
-  ModalResult := mrOk;
-end;}
 
 procedure TdlgDropDown.CMDialogKey(var Message: TCMDialogKey);
 begin
@@ -257,9 +270,6 @@ end;
 
 procedure TdlgDropDown.actNewUpdate(Sender: TObject);
 begin
-{ TODO :
-не совсем хорошее сравнение. имя класса может быть задано неверно.
-надо найти способ проверять именно наличие класса, а не его имени. }
   (Sender as TAction).Enabled := Assigned(FIBLookup) and
     (FIBLookup.gdClassName > '');
 end;
@@ -269,9 +279,9 @@ procedure TdlgDropDown.FormKeyDown(Sender: TObject; var Key: Word;
 begin
   if Key in [VK_RETURN, VK_TAB, VK_F4, {VK_F5, VK_F6,} VK_F8] then
     ModalResult := mrOk
-  else if Key in [VK_ESCAPE, VK_F2, VK_F3, VK_F7] then
+  else if Key in [VK_ESCAPE, VK_F2, VK_F3, VK_F7, VK_F9] then
     ModalResult := mrCancel;
-  if Key in [VK_F2, VK_F3, VK_F4, {VK_F5, VK_F6,} VK_F7, VK_F8] then
+  if Key in [VK_F2, VK_F3, VK_F4, {VK_F5, VK_F6,} VK_F7, VK_F8, VK_F9] then
     FLastKey := Key
 end;
 
@@ -280,9 +290,9 @@ procedure TdlgDropDown.tvKeyDown(Sender: TObject; var Key: Word;
 begin
   if Key in [VK_RETURN, VK_TAB, VK_F4, {VK_F5, VK_F6,} VK_F8] then
     ModalResult := mrOk
-  else if Key in [VK_ESCAPE, VK_F2, VK_F3, VK_F7] then
+  else if Key in [VK_ESCAPE, VK_F2, VK_F3, VK_F7, VK_F9] then
     ModalResult := mrCancel;
-  if Key in [VK_F2, VK_F3, VK_F4, {VK_F5, VK_F6,} VK_F7, VK_F8] then
+  if Key in [VK_F2, VK_F3, VK_F4, {VK_F5, VK_F6,} VK_F7, VK_F8, VK_F9] then
     FLastKey := Key
 end;
 
@@ -291,18 +301,11 @@ procedure TdlgDropDown.gsDBGridKeyDown(Sender: TObject; var Key: Word;
 begin
   if Key in [VK_RETURN, VK_TAB, VK_F4, {VK_F5, VK_F6,} VK_F8] then
     ModalResult := mrOk
-  else if Key in [VK_ESCAPE, VK_F2, VK_F3, VK_F7] then
+  else if Key in [VK_ESCAPE, VK_F2, VK_F3, VK_F7, VK_F9] then
     ModalResult := mrCancel;
-  if Key in [VK_F2, VK_F3, VK_F4, {VK_F5, VK_F6,} VK_F7, VK_F8] then
+  if Key in [VK_F2, VK_F3, VK_F4, {VK_F5, VK_F6,} VK_F7, VK_F8, VK_F9] then
     FLastKey := Key
 end;
-
-{procedure TdlgDropDown.tvMouseUp(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if htOnItem in tv.GetHitTestInfoAt(X, Y)  then
-    ModalResult := mrOk;
-end;}
 
 procedure TdlgDropDown.tvClick(Sender: TObject);
 var
@@ -333,6 +336,28 @@ procedure TdlgDropDown.gsDBGridMouseMove(Sender: TObject;
 begin
   if ssLeft in Shift then
     ModalResult:= mrOk;
+end;
+
+procedure TdlgDropDown.actSelectObjExecute(Sender: TObject);
+begin
+  SendMessage(gsdbGrid.Handle, WM_KEYDOWN, VK_F9, 0);
+end;
+
+procedure TdlgDropDown.actSelectDocUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := Assigned(FIBLookup) and FIsDocument;
+end;
+
+procedure TdlgDropDown.actSelectDocExecute(Sender: TObject);
+begin
+  FLastMessage := WM_GD_SELECTDOCUMENT;
+  ModalResult := mrCancel;
+end;
+
+procedure TdlgDropDown.actAcctAccCardExecute(Sender: TObject);
+begin
+  FLastMessage := WM_GD_OPENACCTACCCARD;
+  ModalResult := mrCancel;
 end;
 
 end.

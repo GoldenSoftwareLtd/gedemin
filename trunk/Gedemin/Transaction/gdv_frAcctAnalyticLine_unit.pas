@@ -9,13 +9,8 @@ uses
   Buttons, ExtCtrls, contnrs, gd_KeyAssoc;
 
 
-type
+type         
   TAnalyticFieldType = (aftReference, aftString, aftDate, aftTime, aftDateTime);
-
-  TgsIBLookupComboBoxAnalytic = class(TgsIBLookupComboBox)
-  protected
-    procedure DropDown; override;
-  end;
 
   TfrAcctAnalyticLine = class(TFrame)
     lAnaliticName: TLabel;
@@ -81,28 +76,6 @@ const
   FrameHeight = 22;
   ButtonHeight = 18;
   ButtonWidth = 14;
-
-{ TgsIBLookupComboBoxAnalytic }
-
-procedure TgsIBLookupComboBoxAnalytic.DropDown;
-var
-  F: TdlgSelectDocument;
-begin
-  if UpperCase(ListTable) = 'GD_DOCUMENT' then
-  begin
-    F := TdlgSelectDocument.Create(nil);
-    try
-      F.ShowModal;
-      if F.SelectedId > - 1 then
-      begin
-        CurrentKeyInt := F.SelectedId;
-      end;
-    finally
-      F.Free;
-    end;
-  end else
-    inherited;
-end;
 
 { TfrAcctAnalyticLine }
 
@@ -416,7 +389,7 @@ end;
 
 function TfrAcctAnalyticLine.CreateLookUp: TgsIBLookupComboBox;
 begin
-  Result := TgsIBLookupComboBoxAnalytic.Create(Self);
+  Result := TgsIBLookupComboBox.Create(Self);
   with Result do
   begin
     Parent := Self;

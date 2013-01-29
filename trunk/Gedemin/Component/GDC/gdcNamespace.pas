@@ -28,6 +28,7 @@ type
     class procedure WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter);
     class procedure ScanDirectory(ADataSet: TDataSet; const APath: String;
       Messages: TStrings);
+    class procedure ScanLinkNamespace(ADataSet: TDataSet; const APath: String);
 
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
@@ -1104,6 +1105,7 @@ var
   InstID: Integer;
   InstObj: TgdcBase;
   InstClass: TPersistentClass;
+  q: TIBSQL;
 begin
   Assert(St <> nil);
 
@@ -1148,12 +1150,40 @@ begin
     end;
     W.DecIndent;
     W.StartNewLine;
-  finally
-    W.Free;
-  end;
 
-  W := TyamlWriter.Create(St);
-  try
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+        'SELECT n.name, (r.xid || ''_'' || r.dbid) as ruid ' +
+        'FROM at_namespace_link l JOIN at_namespace n ' +
+        '  ON l.useskey = n.id ' +
+        '  JOIN gd_ruid r ON r.id = n.id ' +
+        'WHERE l.namespacekey = :NK';
+      q.ParamByName('NK').AsInteger := Self.ID;
+      q.ExecQuery;
+
+      if not q.EOF then
+      begin
+        W.WriteKey('Uses');
+        W.IncIndent;
+        W.StartNewLine;
+        while not q.EOF do
+        begin
+          W.StartNewLine;
+          W.WriteSequenceIndicator;
+          W.WriteString(q.FieldByName('ruid').AsString);
+          W.WriteChar(' ');
+          W.WriteText(q.FieldByName('name').AsString, qSingleQuoted);
+          q.Next;
+        end;
+        W.DecIndent;
+        W.StartNewLine;
+      end;
+    finally
+      q.Free;
+    end;
+
     W.WriteKey('Objects');
     W.IncIndent;
 
@@ -1319,6 +1349,112 @@ begin
   finally
     SL.Free;
     Obj.Free;
+  end;
+end;
+
+class procedure TgdcNamespace.ScanLinkNamespace(ADataSet: TDataSet; const APath: String);
+var
+  SL: TStringList;
+
+  function FindFile(const AName: String): String;
+  var
+    I: Integer;
+  begin
+    Assert(SL <> nil);
+    Result := '';
+    for I := 0 to SL.Count - 1 do
+    begin
+      if AnsiCompareText(ExtractFileName(SL[I]), AName + '.yml') = 0 then
+      begin
+        Result := SL[I];
+        break;
+      end;
+    end;
+  end;
+
+  procedure SetLinkToNamespace(const S: String; parent: integer);
+  var
+    Parser: TyamlParser;
+    M: TyamlMapping;
+    N: TyamlNode;
+    I: Integer;
+    Temps: String;
+  begin
+    Parser := TyamlParser.Create;
+    try
+      Parser.Parse(S, 'Objects', 1024);
+
+      if (Parser.YAMLStream.Count > 0)
+        and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
+        and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
+      begin
+        M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
+        N := M.FindByName('USES');
+
+        if (N <> nil) and (N is TyamlSequence)
+          and ((N as TyamlSequence).Count > 0) then
+        begin
+          if not ADataSet.Locate('NamespaceName', M.ReadString('Properties\Name'), [loCaseInsensitive])
+            or (ADataSet.Locate('NamespaceName', M.ReadString('Properties\Name'), [loCaseInsensitive]) and (not ADataSet.FieldByName('parent').IsNull) and (parent > 0)) then
+          begin
+            ADataSet.Append;
+            if parent > 0 then
+              ADataSet.FieldByName('parent').AsInteger := parent;
+            ADataSet.FieldByName('NamespaceName').AsString := M.ReadString('Properties\Name');
+            ADataSet.Post;
+
+            parent := ADataSet.FieldByName('id').AsInteger;
+
+            with N as TyamlSequence do
+            begin
+              for I := 0 to Count - 1 do
+              begin
+                if not (Items[I] is TyamlScalar) then
+                  raise Exception.Create('Invalid data!');
+                Temps := FindFile((Items[I] as TyamlScalar).AsString);
+                if Temps <> '' then
+                  SetLinkToNamespace(Temps, parent)
+                else
+                begin
+                  ADataSet.Append;
+                  ADataSet.FieldByName('parent').AsInteger := parent;
+                  ADataSet.FieldByName('NamespaceName').AsString := (Items[I] as TyamlScalar).AsString;
+                  ADataSet.Post;
+                end;
+              end;
+            end;
+          end else
+          if (ADataSet.FieldByName('parent').IsNull) and (parent > 0) then
+          begin
+            ADataSet.Edit;
+            ADataSet.FieldByName('parent').AsInteger := parent;
+            ADataSet.Post;
+          end;
+        end;
+      end;
+    finally
+      Parser.Free;
+    end;
+  end;
+
+var
+  I: Integer; 
+begin
+  Assert(ADataSet <> nil);
+
+  SL := TStringList.Create;
+  try
+    SL.Sorted := True;
+    SL.Duplicates := dupError;
+
+    if AdvBuildFileList(IncludeTrailingBackslash(APath) + '*.yml',
+      faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
+    begin
+      for I := 0 to SL.Count - 1 do
+        SetLinkToNamespace(SL[I], -1);
+    end;
+  finally
+    SL.Free;
   end;
 end;
 
