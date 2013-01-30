@@ -21,6 +21,7 @@ function ALIPAddrToName(IPAddr: String): String;
 function AnsiCharToHex(const B: AnsiChar): String;
 function HexToAnsiChar(const St: AnsiString; const P: Integer = 1): AnsiChar;
 function TryObjectBinaryToText(var S: String): Boolean;
+function GetFileLastWrite(const AFullName: String): TDateTime;
 
 implementation
 
@@ -200,6 +201,31 @@ begin
     end;
   end else
     Result := False;
+end;
+
+function GetFileLastWrite(const AFullName: String): TDateTime;
+var
+  T: TFileTime;
+  S, L: TSystemTime;
+  f: THandle;
+  TZ: TTimeZoneInformation;
+begin
+  Result := 0;
+  begin
+    f := FileOpen(AFullName, fmOpenRead or fmShareDenyNone);
+    try
+      if (f <> 0) and GetFileTime(f, nil, nil, @T)
+        and (GetTimeZoneInformation(TZ) <> $FFFFFFFF)
+        and FileTimeToSystemTime(T, S)
+        and SystemTimeToTzSpecificLocalTime(@TZ, S, L) then
+      begin
+        Result := EncodeDate(L.wYear, L.wMonth, L.wDay) +
+          EncodeTime(L.wHour, L.wMinute, L.wSecond, 0);
+      end;
+    finally
+      FileClose(f);
+    end;
+  end;
 end;
 
 end.
