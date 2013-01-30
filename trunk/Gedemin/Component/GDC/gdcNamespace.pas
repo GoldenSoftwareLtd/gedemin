@@ -17,6 +17,7 @@ type
   protected
     function GetOrderClause: String; override;
     procedure _DoOnNewRecord; override;
+    procedure GetWhereClauseConditions(S: TStrings); override;
 
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
@@ -65,28 +66,6 @@ const
 procedure Register;
 begin
   RegisterComponents('gdcNamespace', [TgdcNamespace, TgdcNamespaceObject]);
-end;
-
-function GetFileLastWrite(const AFullName: String): TDateTime;
-var
-  T: TFileTime;
-  S: TSystemTime;
-  f: THandle;
-begin
-  Result := 0;
-  begin
-    f := FileOpen(AFullName, fmOpenRead or fmShareDenyNone);
-    try
-      if (f <> 0) and GetFileTime(f, nil, nil, @T)
-        and FileTimeToSystemTime(T, S) then
-      begin
-        Result := EncodeDate(S.wYear, S.wMonth, S.wDay) +
-          EncodeTime(S.wHour, S.wMinute, S.wSecond, 0);
-      end;
-    finally
-      FileClose(f);
-    end;
-  end;
 end;
 
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
@@ -1019,7 +998,7 @@ begin
 
   Edit;
   FieldByName('filename').AsString := FN;
-  FieldByName('filetimestamp').AsDateTime := GetFileLastWrite(FN);
+  FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(FN);
   Post;
 end;
 
@@ -1121,6 +1100,9 @@ begin
     W.StartNewLine;
     W.WriteKey('Properties');
     W.IncIndent;
+    W.StartNewLine;
+    W.WriteKey('RUID');
+    W.WriteString(RUIDToStr(GetRUID));
     W.StartNewLine;
     W.WriteKey('Name');
     W.WriteText(FieldByName('name').AsString, qSingleQuoted);
@@ -1281,7 +1263,7 @@ class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
             ADataSet.FieldByName('filename').AsString := S;
             ADataSet.FieldByName('filenamespacename').AsString := M.ReadString('Properties\Name');
             ADataSet.FieldByName('fileversion').AsString := M.ReadString('Properties\Version');
-            ADataSet.FieldByName('filetimestamp').AsDateTime := GetFileLastWrite(S);
+            ADataSet.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(S);
             ADataSet.FieldByName('filesize').AsInteger := FileGetSize(S);
             ADataSet.Post;
           end;
@@ -1511,7 +1493,14 @@ end;
 
 class function TgdcNamespace.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + 'OrderByName;';
+  Result := inherited GetSubSetList + 'OrderByName;BySettingRUID;';
+end;
+
+procedure TgdcNamespace.GetWhereClauseConditions(S: TStrings);
+begin
+  inherited;
+  if HasSubSet('BySettingRUID') then
+    S.Add('z.settingruid=:SettingRUID');
 end;
 
 initialization

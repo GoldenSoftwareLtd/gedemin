@@ -145,7 +145,7 @@ implementation
 
 uses
   Windows, Forms, FileCtrl, jclFileUtils, gd_directories_const,
-  JclWin32, zlib, idURI;
+  JclWin32, zlib, idURI, gd_common_functions;
 
 const
   {FileListSchemaXML =
@@ -642,29 +642,6 @@ end;}
 
 class procedure TFLItem.InternalScan(const AFullName: String; const IsDirectory: Boolean;
   out AnExists: Boolean; out ADate: TDateTime; out ASize: Int64; out AVersion: String);
-
-  function GetFileLastWrite: TDateTime;
-  var
-    T: TFileTime;
-    S: TSystemTime;
-    f: THandle;
-  begin
-    Result := 0;
-    begin
-      f := FileOpen(AFullName, fmOpenRead or fmShareDenyNone);
-      try
-        if (f <> 0) and GetFileTime(f, nil, nil, @T)
-          and FileTimeToSystemTime(T, S) then
-        begin
-          Result := EncodeDate(S.wYear, S.wMonth, S.wDay) +
-            EncodeTime(S.wHour, S.wMinute, S.wSecond, 0);
-        end;
-      finally
-        FileClose(f);
-      end;
-    end;
-  end;
-
 begin
   AVersion := '';
   ADate := 0;
@@ -676,14 +653,14 @@ begin
     if DirectoryExists(AFullName) then
     begin
       AnExists := True;
-      ADate := GetFileLastWrite;
+      ADate := gd_common_functions.GetFileLastWrite(AFullName);
     end;
   end else
   begin
     if FileExists(AFullName) then
     begin
       AnExists := True;
-      ADate := GetFileLastWrite;
+      ADate := gd_common_functions.GetFileLastWrite(AFullName);
       ASize := FileGetSize(AFullName);
       if VersionResourceAvailable(AFullName) then
         with TjclFileVersionInfo.Create(AFullName) do

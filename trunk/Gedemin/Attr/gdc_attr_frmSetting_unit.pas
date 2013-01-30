@@ -1619,8 +1619,13 @@ begin
     SCRC32.Sorted := True;
     SCRC32.Duplicates := dupError;
 
+    gdcNamespace.SubSet := 'BySettingRUID';
+    gdcNamespace.ParamByName('SettingRUID').AsString := RUIDToStr(gdcObject.GetRUID);
     gdcNamespace.Open;
-    gdcNamespace.Insert;
+    if gdcNamespace.EOF then
+      gdcNamespace.Insert
+    else
+      gdcNamespace.Edit;
     gdcNamespace.FieldByName('name').AsString := gdcObject.ObjectName;
     if gdcObject.FieldByName('description').AsString > '' then
       gdcNamespace.FieldByName('caption').AsString := gdcObject.FieldByName('description').AsString;
@@ -1632,7 +1637,7 @@ begin
       gdcNamespace.FieldByName('internal').AsInteger := 1
     else
       gdcNamespace.FieldByName('internal').AsInteger := 0;
-    gdcNamespace.FieldByName('settingruid').AsString := gdcBaseManager.GetRUIDStringByID(gdcObject.ID);  
+    gdcNamespace.FieldByName('settingruid').AsString := RUIDToStr(gdcObject.GetRUID);
     gdcNamespace.Post;
 
     gdcNamespaceObject.Open;
