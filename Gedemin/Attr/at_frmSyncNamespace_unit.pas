@@ -51,6 +51,10 @@ type
     N1: TMenuItem;
     actCompareWithData: TAction;
     N2: TMenuItem;
+    TBSeparatorItem2: TTBSeparatorItem;
+    TBItem4: TTBItem;
+    TBItem5: TTBItem;
+    TBItem6: TTBItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -98,6 +102,7 @@ begin
   if SelectDirectory('Корневая папка с файлами пространств имен:', '', Dir) then
   begin
     tbedPath.Text := Dir;
+    actCompare.Execute;
   end;
 end;
 

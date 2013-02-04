@@ -45,7 +45,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       FullSize = True
       Images = dmImages.il16x16
       MenuBar = True
+      ParentShowHint = False
       ProcessShortCuts = True
+      ShowHint = True
       ShrinkMode = tbsmWrap
       TabOrder = 0
       object tbedPath: TTBEditItem
@@ -62,6 +64,17 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem3: TTBItem
         Action = actSaveToFile
       end
+      object TBSeparatorItem2: TTBSeparatorItem
+      end
+      object TBItem4: TTBItem
+        Action = actEditNamespace
+      end
+      object TBItem5: TTBItem
+        Action = actEditFile
+      end
+      object TBItem6: TTBItem
+        Action = actCompareWithData
+      end
       object TBSeparatorItem3: TTBSeparatorItem
       end
       object tbiFilter: TTBItem
@@ -76,7 +89,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         EditWidth = 96
       end
       object Label1: TLabel
-        Left = 345
+        Left = 379
         Top = 4
         Width = 86
         Height = 13
@@ -250,23 +263,30 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Top = 242
     object actChooseDir: TAction
       Caption = 'actChooseDir'
+      Hint = 'Выбрать папку с файлами пространств имен'
       ImageIndex = 27
       OnExecute = actChooseDirExecute
     end
     object actCompare: TAction
       Caption = 'Сравнить'
+      Hint = 
+        'Сравнить пространства имен из базы данных с файлами в указанной ' +
+        'папке'
+      ImageIndex = 131
       OnExecute = actCompareExecute
       OnUpdate = actCompareUpdate
     end
     object actSetFilter: TAction
       Caption = 'Фильтр'
+      Hint = 'Установить фильтр'
       ImageIndex = 20
       OnExecute = actSetFilterExecute
       OnUpdate = actSetFilterUpdate
     end
     object actSaveToFile: TAction
       Caption = 'actSaveToFile'
-      ImageIndex = 25
+      Hint = 'Сохранить выбранные пространства имен в файл(ы)'
+      ImageIndex = 202
       OnExecute = actSaveToFileExecute
       OnUpdate = actSaveToFileUpdate
     end
@@ -278,11 +298,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object actEditFile: TAction
       Caption = 'Редактировать файл пространства имен -->'
+      ImageIndex = 177
       OnExecute = actEditFileExecute
       OnUpdate = actEditFileUpdate
     end
     object actCompareWithData: TAction
       Caption = '<-- Сравнить с файлом -->'
+      ImageIndex = 203
       OnExecute = actCompareWithDataExecute
       OnUpdate = actCompareWithDataUpdate
     end
