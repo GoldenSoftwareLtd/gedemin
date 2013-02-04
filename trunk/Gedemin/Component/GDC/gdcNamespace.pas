@@ -7,6 +7,13 @@ uses
   SysUtils, gdcBase, gdcBaseInterface, Classes, gd_ClassList, gd_createable_form,
   at_classes, IBSQL, db, yaml_writer, yaml_parser, IBDatabase, gd_security, dbgrids;
 
+const
+  nvNotInstalled = 1;
+  nvNewer = 2;
+  nvEqual = 3;
+  nvOlder = 4;
+  nvIndefinite = 5;
+  
 type
   TgdcNamespace = class(TgdcBase)
   private
@@ -29,7 +36,8 @@ type
     class procedure WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter);
     class procedure ScanDirectory(ADataSet: TDataSet; const APath: String;
       Messages: TStrings);
-    class procedure ScanLinkNamespace(ADataSet: TDataSet; const APath: String);
+    class procedure ScanLinkNamespace(ADataSet: TDataSet; const APath: String); 
+    class procedure InstallPackeges(SL: TStringList);
 
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
@@ -58,7 +66,7 @@ uses
   Windows, Controls, ComCtrls, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
   at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
   prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, jclUnicode,
-  at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const;
+  at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const, gd_FileList_unit;
 
 const
   cst_str_WithoutName = 'Без наименования';
@@ -169,7 +177,8 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
               q.Close;
               q.SQL.Text := 'SELECT ' + FD.FieldName +
                 ' FROM ' + FD.Relation.RelationName +
-                ' WHERE ' + F.FieldName + ' = ' + AObj.FieldByName(F.ReferencesField.FieldName).AsString;
+                ' WHERE ' + F.FieldName + ' = :rf';
+              q.ParamByName('rf').AsString := AObj.FieldByName(F.ReferencesField.FieldName).AsString;
               q.ExecQuery;
 
               if q.RecordCount > 0 then
@@ -1149,7 +1158,6 @@ begin
       begin
         W.WriteKey('Uses');
         W.IncIndent;
-        W.StartNewLine;
         while not q.EOF do
         begin
           W.StartNewLine;
@@ -1334,9 +1342,51 @@ begin
   end;
 end;
 
+class procedure TgdcNamespace.InstallPackeges(SL: TStringList);
+var
+  I: Integer;
+  Obj: TgdcNamespace;
+begin
+  Obj := TgdcNamespace.Create(nil);
+  try
+    for I := 0 to SL.Count - 1 do
+      Obj.LoadFromFile(SL[I]);
+  finally
+    Obj.Free;
+  end;
+end;
+
 class procedure TgdcNamespace.ScanLinkNamespace(ADataSet: TDataSet; const APath: String);
 var
   SL: TStringList;
+
+  function GetVerInfo(const AName, AVersion: String): Byte;
+  var
+    gdcNamespace: TgdcNamespace;
+    Temps: String;
+  begin
+    Result := nvIndefinite;
+    gdcNamespace := TgdcNamespace.Create(nil);
+    try
+      gdcNamespace.SubSet := 'ByName';
+      gdcNamespace.ParamByName(gdcNamespace.GetListField(gdcNamespace.SubType)).AsString := Trim(AName);
+      gdcNamespace.Open;
+      if not gdcNamespace.Eof then
+      begin
+        Temps := Trim(gdcNamespace.FieldByName('version').AsString);
+        if TFLItem.CompareVersionStrings(Temps, AVersion, 4) > 0 then
+          Result := nvOlder
+        else
+          if TFLItem.CompareVersionStrings(Temps, AVersion, 4) < 0 then
+            Result := nvNewer
+          else
+            Result := nvEqual;
+      end else
+        Result := nvNotInstalled;
+    finally
+      gdcNamespace.Free;
+    end;
+  end;
 
   function FindFile(const AName: String): String;
   var
@@ -1354,17 +1404,20 @@ var
     end;
   end;
 
-  procedure SetLinkToNamespace(const S: String; parent: integer);
+  procedure SetLinkToNamespace(const S: String; parent: integer; Required: Boolean = False);
   var
     Parser: TyamlParser;
     M: TyamlMapping;
     N: TyamlNode;
-    I: Integer;
+    I, K: Integer;
     Temps: String;
+    RUID, FN: String;
+    Add: Boolean;
+    Currparent: Integer;
   begin
     Parser := TyamlParser.Create;
     try
-      Parser.Parse(S, 'Objects', 1024);
+      Parser.Parse(S, 'Objects', 4096);
 
       if (Parser.YAMLStream.Count > 0)
         and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
@@ -1373,40 +1426,63 @@ var
         M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
         N := M.FindByName('USES');
 
-        if (N <> nil) and (N is TyamlSequence)
-          and ((N as TyamlSequence).Count > 0) then
+        Add := (N <> nil) and (N is TyamlSequence) and ((N as TyamlSequence).Count > 0);
+        if Add or Required then
         begin
           if not ADataSet.Locate('NamespaceName', M.ReadString('Properties\Name'), [loCaseInsensitive])
-            or (ADataSet.Locate('NamespaceName', M.ReadString('Properties\Name'), [loCaseInsensitive]) and (not ADataSet.FieldByName('parent').IsNull) and (parent > 0)) then
+            or ((ADataSet.FieldByName('parent').AsInteger > 0) and Required)
+          then
           begin
             ADataSet.Append;
-            if parent > 0 then
-              ADataSet.FieldByName('parent').AsInteger := parent;
+            ADataSet.FieldByName('parent').AsInteger := parent;
             ADataSet.FieldByName('NamespaceName').AsString := M.ReadString('Properties\Name');
+            ADataSet.FieldByName('Version').AsString := M.ReadString('Properties\Version');
+            ADataSet.FieldByName('RUID').AsString := M.ReadString('Properties\RUID');
+            ADataSet.FieldByName('DBVersion').AsString := M.ReadString('Properties\DBVersion');
+            ADataSet.FieldByName('VersionInfo').AsInteger := GetVerInfo(Trim(ADataSet.FieldByName('NamespaceName').AsString), Trim(ADataSet.FieldByName('Version').AsString));
+            ADataSet.FieldByName('filename').AsString := S;
+            ADataSet.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(S);
             ADataSet.Post;
 
-            parent := ADataSet.FieldByName('id').AsInteger;
+            Currparent := ADataSet.FieldByName('id').AsInteger;
 
-            with N as TyamlSequence do
+            if Add then
             begin
-              for I := 0 to Count - 1 do
+              with N as TyamlSequence do
               begin
-                if not (Items[I] is TyamlScalar) then
-                  raise Exception.Create('Invalid data!');
-                Temps := FindFile((Items[I] as TyamlScalar).AsString);
-                if Temps <> '' then
-                  SetLinkToNamespace(Temps, parent)
-                else
+                for I := 0 to Count - 1 do
                 begin
-                  ADataSet.Append;
-                  ADataSet.FieldByName('parent').AsInteger := parent;
-                  ADataSet.FieldByName('NamespaceName').AsString := (Items[I] as TyamlScalar).AsString;
-                  ADataSet.Post;
+                  if not (Items[I] is TyamlScalar) or not (Items[I] is TyamlString) then
+                    raise Exception.Create('Invalid data! FileName = ' + S + ';ClassNaem=' + IntToStr((Items[I] as TyamlScalar).AsInteger));
+
+
+                  Temps := (Items[I] as TyamlScalar).AsString;
+                  RUID := '';
+                  FN := '';
+                  for K := 1 to Length(Temps) do
+                  begin
+                    if not CharIsDigit(Temps[K]) and (Temps[K] <> '_') then
+                      break;
+                    RUID := RUID + Temps[K];
+                  end;
+                  Temps := Trim(System.Copy(Temps, K, Length(TempS)));
+                  Temps := StrTrimQuotes(Temps);
+
+                  FN := FindFile(Temps);
+                  if FN <> '' then
+                    SetLinkToNamespace(FN, Currparent, True)
+                  else
+                  begin
+                    ADataSet.Append;
+                    ADataSet.FieldByName('parent').AsInteger := Currparent;
+                    ADataSet.FieldByName('NamespaceName').AsString := FN;
+                    ADataSet.Post;
+                  end;
                 end;
               end;
             end;
           end else
-          if (ADataSet.FieldByName('parent').IsNull) and (parent > 0) then
+          if (ADataSet.FieldByName('parent').AsInteger <= 0) and Required then
           begin
             ADataSet.Edit;
             ADataSet.FieldByName('parent').AsInteger := parent;
@@ -1426,19 +1502,17 @@ begin
 
   SL := TStringList.Create;
   try
-    SL.Sorted := True;
     SL.Duplicates := dupError;
-
     if AdvBuildFileList(IncludeTrailingBackslash(APath) + '*.yml',
       faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
     begin
       for I := 0 to SL.Count - 1 do
-        SetLinkToNamespace(SL[I], -1);
-    end;
+        SetLinkToNamespace(SL[I], 0);
+    end; 
   finally
     SL.Free;
   end;
-end;
+end; 
 
 function TgdcNamespace.GetOrderClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
