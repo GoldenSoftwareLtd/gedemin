@@ -10,6 +10,8 @@ uses
   gdcNamespace;
 
 type
+  TIterateProc = procedure (AnObj: TObject; const Data: String) of object;
+
   Tat_frmSyncNamespace = class(TCreateableForm)
     cds: TClientDataSet;
     ds: TDataSource;
@@ -29,19 +31,11 @@ type
     ActionList: TActionList;
     actChooseDir: TAction;
     TBItem1: TTBItem;
-    tbedPath: TTBEditItem;
     actCompare: TAction;
     TBItem2: TTBItem;
-    TBSeparatorItem1: TTBSeparatorItem;
     cdsFileName2: TStringField;
-    tbedName: TTBEditItem;
-    TBControlItem1: TTBControlItem;
-    Label1: TLabel;
     mMessages: TMemo;
     splMessages: TSplitter;
-    TBSeparatorItem3: TTBSeparatorItem;
-    actSetFilter: TAction;
-    tbiFilter: TTBItem;
     actSaveToFile: TAction;
     TBItem3: TTBItem;
     pmSync: TPopupMenu;
@@ -55,12 +49,28 @@ type
     TBItem4: TTBItem;
     TBItem5: TTBItem;
     TBItem6: TTBItem;
+    actSaveToFile1: TMenuItem;
+    actSetForSaving: TAction;
+    actSetForLoading: TAction;
+    actClear: TAction;
+    N3: TMenuItem;
+    N4: TMenuItem;
+    N5: TMenuItem;
+    N6: TMenuItem;
+    tbedPath: TEdit;
+    TBControlItem2: TTBControlItem;
+    N7: TMenuItem;
+    actLoadFromFile: TAction;
+    N8: TMenuItem;
+    TBItem7: TTBItem;
+    TBSeparatorItem4: TTBSeparatorItem;
+    TBSeparatorItem1: TTBSeparatorItem;
+    TBItem8: TTBItem;
+    TBItem9: TTBItem;
+    TBItem10: TTBItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
-    procedure cdsFilterRecord(DataSet: TDataSet; var Accept: Boolean);
-    procedure actSetFilterExecute(Sender: TObject);
-    procedure actSetFilterUpdate(Sender: TObject);
     procedure actSaveToFileUpdate(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -72,10 +82,21 @@ type
     procedure FormCreate(Sender: TObject);
     procedure actCompareWithDataUpdate(Sender: TObject);
     procedure actCompareWithDataExecute(Sender: TObject);
+    procedure actSetForLoadingUpdate(Sender: TObject);
+    procedure actSetForLoadingExecute(Sender: TObject);
+    procedure actSetForSavingUpdate(Sender: TObject);
+    procedure actSetForSavingExecute(Sender: TObject);
+    procedure actClearUpdate(Sender: TObject);
+    procedure actClearExecute(Sender: TObject);
+    procedure actLoadFromFileUpdate(Sender: TObject);
 
   private
     FSaving: Boolean;
     FgdcNamespace: TgdcNamespace;
+
+    procedure IterateSelected(Proc: TIterateProc; AnObj: TObject; const AData: String);
+    procedure SetOperation(AnObj: TObject; const AData: String);
+    procedure SaveID(AnObj: TObject; const AData: String);
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -116,18 +137,11 @@ begin
   cds.DisableControls;
   try
     cds.EmptyDataSet;
-    cds.Filtered := False;
     mMessages.Lines.Clear;
     TgdcNamespace.ScanDirectory(cds, tbedPath.Text, mMessages.Lines);
   finally
     cds.EnableControls;
   end;
-end;
-
-procedure Tat_frmSyncNamespace.cdsFilterRecord(DataSet: TDataSet;
-  var Accept: Boolean);
-begin
-  Accept := True;
 end;
 
 procedure Tat_frmSyncNamespace.LoadSettingsAfterCreate;
@@ -142,73 +156,17 @@ begin
   inherited;
 end;
 
-procedure Tat_frmSyncNamespace.actSetFilterExecute(Sender: TObject);
-begin
-  cds.Filtered := not cds.Filtered;
-end;
-
-procedure Tat_frmSyncNamespace.actSetFilterUpdate(Sender: TObject);
-begin
-  actSetFilter.Checked := cds.Filtered;
-end;
-
 procedure Tat_frmSyncNamespace.actSaveToFileUpdate(Sender: TObject);
 begin
   actSaveToFile.Enabled := DirectoryExists(tbedPath.Text)
-    and (cds.RecordCount > 0);
+    and (not cds.EOF)
+    and (cds.FieldByName('namespacename').AsString > '');
 end;
 
 procedure Tat_frmSyncNamespace.actSaveToFileExecute(Sender: TObject);
-var
-  I: Integer;
-  Obj: TgdcNamespace;
-
-  procedure SaveID;
-  begin
-    if cds.FieldByName('namespacekey').AsInteger > 0 then
-    begin
-      Obj.ID := cds.FieldByName('namespacekey').AsInteger;
-      Obj.Open;
-      if not Obj.EOF then
-      begin
-        if cds.FieldByName('filename').AsString > '' then
-          Obj.SaveNamespaceToFile(cds.FieldByName('filename').AsString)
-        else
-          Obj.SaveNamespaceToFile(tbedPath.Text);
-        mMessages.Lines.Add('Пространство имен "' + Obj.ObjectName + '" записано в файл.');
-      end;
-      Obj.Close;
-    end;
-  end;
-
 begin
   mMessages.Lines.Clear;
-  FSaving := True;
-  Obj := TgdcNamespace.Create(nil);
-  try
-    Obj.SubSet := 'ByID';
-
-    if gr.SelectedRows.Count > 0 then
-    begin
-      cds.DisableControls;
-      try
-        for I := 0 to gr.SelectedRows.Count - 1 do
-        begin
-          Application.ProcessMessages;
-          if Application.Terminated then
-            break;
-          cds.Bookmark := gr.SelectedRows[I];
-          SaveID;
-        end;
-      finally
-        cds.EnableControls;
-      end;
-    end else
-      SaveID;
-  finally
-    Obj.Free;
-    FSaving := False;
-  end;
+  IterateSelected(SaveID, nil, '');
 end;
 
 procedure Tat_frmSyncNamespace.FormCloseQuery(Sender: TObject;
@@ -282,6 +240,115 @@ destructor Tat_frmSyncNamespace.Destroy;
 begin
   FgdcNamespace.Free;
   inherited;
+end;
+
+procedure Tat_frmSyncNamespace.IterateSelected(Proc: TIterateProc;
+  AnObj: TObject; const AData: String);
+var
+  I: Integer;
+begin
+  Assert(not FSaving);
+
+  FSaving := True;
+  try
+    if gr.SelectedRows.Count > 0 then
+    begin
+      cds.DisableControls;
+      try
+        for I := 0 to gr.SelectedRows.Count - 1 do
+        begin
+          Application.ProcessMessages;
+          if Application.Terminated then
+            break;
+          cds.Bookmark := gr.SelectedRows[I];
+          Proc(AnObj, AData);
+        end;
+      finally
+        cds.EnableControls;
+      end;
+    end
+    else if not cds.EOF then
+      Proc(AnObj, AData);
+  finally
+    FSaving := False;
+  end;
+end;
+
+procedure Tat_frmSyncNamespace.actSetForLoadingUpdate(Sender: TObject);
+begin
+  actSetForLoading.Enabled := not cds.EOF;
+end;
+
+procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
+begin
+  IterateSelected(SetOperation, cds, '<<');
+end;
+
+procedure Tat_frmSyncNamespace.SetOperation(AnObj: TObject; const AData: String);
+begin
+  Assert(AnObj is TClientDataSet);
+  if
+    (
+      (AData = '<<')
+      and
+      ((AnObj as TClientDataSet).FieldByName('fileversion').AsString > '')
+    )
+    or
+    (
+      (AData = '>>')
+      and
+      ((AnObj as TClientDataSet).FieldByName('namespacename').AsString > '')
+    )
+    or
+    (
+      AData = '  '
+    ) then
+  begin
+    (AnObj as TClientDataSet).Edit;
+    (AnObj as TClientDataSet).FieldByName('operation').AsString := AData;
+    (AnObj as TClientDataSet).Post;
+  end;
+end;
+
+procedure Tat_frmSyncNamespace.actSetForSavingUpdate(Sender: TObject);
+begin
+  actSetForSaving.Enabled := not cds.EOF;
+end;
+
+procedure Tat_frmSyncNamespace.actSetForSavingExecute(Sender: TObject);
+begin
+  IterateSelected(SetOperation, cds, '>>');
+end;
+
+procedure Tat_frmSyncNamespace.actClearUpdate(Sender: TObject);
+begin
+  actClear.Enabled := not cds.EOF;
+end;
+
+procedure Tat_frmSyncNamespace.actClearExecute(Sender: TObject);
+begin
+  IterateSelected(SetOperation, cds, '  ');
+end;
+
+procedure Tat_frmSyncNamespace.SaveID(AnObj: TObject; const AData: String);
+begin
+  if cds.FieldByName('namespacekey').AsInteger > 0 then
+  begin
+    if not FgdcNamespace.EOF then
+    begin
+      if cds.FieldByName('filename').AsString > '' then
+        FgdcNamespace.SaveNamespaceToFile(cds.FieldByName('filename').AsString)
+      else
+        FgdcNamespace.SaveNamespaceToFile(tbedPath.Text);
+      mMessages.Lines.Add('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
+    end;
+  end;
+end;
+
+procedure Tat_frmSyncNamespace.actLoadFromFileUpdate(Sender: TObject);
+begin
+  actLoadFromFile.Enabled := (not cds.EOF)
+    and (cds.FieldByName('fileversion').AsString > '');
 end;
 
 initialization
