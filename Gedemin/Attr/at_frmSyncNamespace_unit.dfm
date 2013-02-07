@@ -1,8 +1,8 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 366
-  Top = 202
-  Width = 1142
-  Height = 656
+  Left = 333
+  Top = 183
+  Width = 949
+  Height = 505
   Caption = 'at_frmSyncNamespace'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -17,16 +17,16 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   TextHeight = 13
   object splMessages: TSplitter
     Left = 0
-    Top = 533
-    Width = 1126
+    Top = 382
+    Width = 933
     Height = 3
     Cursor = crVSplit
     Align = alBottom
   end
   object sb: TStatusBar
     Left = 0
-    Top = 599
-    Width = 1126
+    Top = 448
+    Width = 933
     Height = 19
     Panels = <>
     SimplePanel = False
@@ -34,7 +34,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object TBDock: TTBDock
     Left = 0
     Top = 0
-    Width = 1126
+    Width = 933
     Height = 26
     object TBToolbar: TTBToolbar
       Left = 0
@@ -50,16 +50,19 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       ShowHint = True
       ShrinkMode = tbsmWrap
       TabOrder = 0
-      object tbedPath: TTBEditItem
-        EditWidth = 200
+      object TBControlItem2: TTBControlItem
+        Control = tbedPath
       end
       object TBItem1: TTBItem
         Action = actChooseDir
       end
-      object TBSeparatorItem1: TTBSeparatorItem
-      end
       object TBItem2: TTBItem
         Action = actCompare
+      end
+      object TBSeparatorItem4: TTBSeparatorItem
+      end
+      object TBItem7: TTBItem
+        Action = actLoadFromFile
       end
       object TBItem3: TTBItem
         Action = actSaveToFile
@@ -75,37 +78,35 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem6: TTBItem
         Action = actCompareWithData
       end
-      object TBSeparatorItem3: TTBSeparatorItem
+      object TBSeparatorItem1: TTBSeparatorItem
       end
-      object tbiFilter: TTBItem
-        Action = actSetFilter
+      object TBItem9: TTBItem
+        Action = actSetForLoading
       end
-      object TBControlItem1: TTBControlItem
-        Control = Label1
+      object TBItem8: TTBItem
+        Action = actSetForSaving
       end
-      object tbedName: TTBEditItem
-        Caption = 'Наименование:'
-        EditCaption = 'Наименование:'
-        EditWidth = 96
+      object TBItem10: TTBItem
+        Action = actClear
       end
-      object Label1: TLabel
-        Left = 379
-        Top = 4
-        Width = 86
-        Height = 13
-        Caption = '  Наименование: '
+      object tbedPath: TEdit
+        Left = 0
+        Top = 0
+        Width = 163
+        Height = 21
+        TabOrder = 0
       end
     end
   end
   object gr: TgsDBGrid
     Left = 0
     Top = 26
-    Width = 1126
-    Height = 507
+    Width = 933
+    Height = 356
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
-    Options = [dgTitles, dgColumnResize, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
+    Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
     PopupMenu = pmSync
     ReadOnly = True
     TabOrder = 2
@@ -147,7 +148,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Expanded = False
         FieldName = 'Operation'
-        Width = 52
+        Title.Caption = 'Op'
+        Width = 40
         Visible = True
       end
       item
@@ -159,7 +161,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Expanded = False
         FieldName = 'FileNamespaceName'
-        Width = 294
+        Width = 105
         Visible = True
       end
       item
@@ -183,8 +185,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object mMessages: TMemo
     Left = 0
-    Top = 536
-    Width = 1126
+    Top = 385
+    Width = 933
     Height = 63
     Align = alBottom
     ScrollBars = ssVertical
@@ -193,8 +195,56 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object cds: TClientDataSet
     Active = True
     Aggregates = <>
+    FieldDefs = <
+      item
+        Name = 'Namespacekey'
+        DataType = ftInteger
+      end
+      item
+        Name = 'NamespaceName'
+        DataType = ftString
+        Size = 255
+      end
+      item
+        Name = 'NamespaceVersion'
+        DataType = ftString
+        Size = 20
+      end
+      item
+        Name = 'NamespaceTimeStamp'
+        DataType = ftDateTime
+      end
+      item
+        Name = 'Operation'
+        DataType = ftString
+        Size = 2
+      end
+      item
+        Name = 'FileName'
+        DataType = ftString
+        Size = 255
+      end
+      item
+        Name = 'FileNamespaceName'
+        DataType = ftString
+        Size = 255
+      end
+      item
+        Name = 'FileVersion'
+        DataType = ftString
+        Size = 20
+      end
+      item
+        Name = 'FileTimeStamp'
+        DataType = ftDateTime
+      end
+      item
+        Name = 'FileSize'
+        DataType = ftInteger
+      end>
+    IndexDefs = <>
     Params = <>
-    OnFilterRecord = cdsFilterRecord
+    StoreDefs = True
     Left = 552
     Top = 296
     Data = {
@@ -203,7 +253,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       0049000000010005574944544802000200FF00104E616D657370616365566572
       73696F6E0100490000000100055749445448020002001400124E616D65737061
       636554696D655374616D700800080000000000094F7065726174696F6E010049
-      00000001000557494454480200020001000846696C654E616D65020049000000
+      00000001000557494454480200020002000846696C654E616D65020049000000
       010005574944544802000200FF001146696C654E616D6573706163654E616D65
       020049000000010005574944544802000200FF000B46696C6556657273696F6E
       01004900000001000557494454480200020014000D46696C6554696D65537461
@@ -225,9 +275,10 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       FieldName = 'NamespaceTimeStamp'
     end
     object cdsOperation: TStringField
+      DisplayLabel = 'Op'
       DisplayWidth = 2
       FieldName = 'Operation'
-      Size = 1
+      Size = 2
     end
     object cdsFileName2: TStringField
       DisplayWidth = 40
@@ -263,50 +314,71 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Top = 242
     object actChooseDir: TAction
       Caption = 'actChooseDir'
-      Hint = 'Выбрать папку с файлами пространств имен'
-      ImageIndex = 27
+      Hint = 'Открыть папку'
+      ImageIndex = 132
       OnExecute = actChooseDirExecute
     end
     object actCompare: TAction
       Caption = 'Сравнить'
-      Hint = 
-        'Сравнить пространства имен из базы данных с файлами в указанной ' +
-        'папке'
+      Hint = 'Сравнить с файлами'
       ImageIndex = 131
       OnExecute = actCompareExecute
       OnUpdate = actCompareUpdate
     end
-    object actSetFilter: TAction
-      Caption = 'Фильтр'
-      Hint = 'Установить фильтр'
-      ImageIndex = 20
-      OnExecute = actSetFilterExecute
-      OnUpdate = actSetFilterUpdate
-    end
     object actSaveToFile: TAction
-      Caption = 'actSaveToFile'
-      Hint = 'Сохранить выбранные пространства имен в файл(ы)'
+      Caption = '--> Сохранить в файл'
+      Hint = 'Сохранить в файл'
       ImageIndex = 202
       OnExecute = actSaveToFileExecute
       OnUpdate = actSaveToFileUpdate
     end
     object actEditNamespace: TAction
-      Caption = '<-- Редактировать пространство имен'
+      Caption = '<-- Редактировать объект'
+      Hint = 'Редактировать объект'
       ImageIndex = 1
       OnExecute = actEditNamespaceExecute
       OnUpdate = actEditNamespaceUpdate
     end
     object actEditFile: TAction
-      Caption = 'Редактировать файл пространства имен -->'
+      Caption = 'Редактировать файл -->'
+      Hint = 'Редактировать файл'
       ImageIndex = 177
       OnExecute = actEditFileExecute
       OnUpdate = actEditFileUpdate
     end
     object actCompareWithData: TAction
       Caption = '<-- Сравнить с файлом -->'
+      Hint = 'Сравнить с файлом'
       ImageIndex = 203
       OnExecute = actCompareWithDataExecute
       OnUpdate = actCompareWithDataUpdate
+    end
+    object actSetForSaving: TAction
+      Caption = '>> Пометить для сохранения'
+      Hint = 'Пометить для сохранения'
+      ImageIndex = 240
+      OnExecute = actSetForSavingExecute
+      OnUpdate = actSetForSavingUpdate
+    end
+    object actSetForLoading: TAction
+      Caption = '<< Пометить для загрузки'
+      Hint = 'Пометить для загрузки'
+      ImageIndex = 239
+      OnExecute = actSetForLoadingExecute
+      OnUpdate = actSetForLoadingUpdate
+    end
+    object actClear: TAction
+      Caption = 'Снять отметку'
+      Hint = 'Снять пометку'
+      ImageIndex = 117
+      OnExecute = actClearExecute
+      OnUpdate = actClearUpdate
+    end
+    object actLoadFromFile: TAction
+      Caption = 'Загрузить из файла <--'
+      Hint = 'Загрузить из файла'
+      ImageIndex = 27
+      OnUpdate = actLoadFromFileUpdate
     end
   end
   object pmSync: TPopupMenu
@@ -321,6 +393,27 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object N2: TMenuItem
       Action = actCompareWithData
+    end
+    object N7: TMenuItem
+      Caption = '-'
+    end
+    object actSaveToFile1: TMenuItem
+      Action = actSaveToFile
+    end
+    object N8: TMenuItem
+      Action = actLoadFromFile
+    end
+    object N3: TMenuItem
+      Caption = '-'
+    end
+    object N4: TMenuItem
+      Action = actSetForLoading
+    end
+    object N5: TMenuItem
+      Action = actSetForSaving
+    end
+    object N6: TMenuItem
+      Action = actClear
     end
   end
 end

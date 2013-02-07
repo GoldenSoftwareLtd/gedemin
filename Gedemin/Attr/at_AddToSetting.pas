@@ -13,16 +13,16 @@ implementation
 
 uses
   Windows, IBDatabase, IBSQL, gdcBaseInterface, at_dlgToSetting_unit,
-  gdcNamespace;
+  at_dlgToNamespace_unit, gdcNamespace;
 
 procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
   AgdcObject: TgdcBase; BL: TBookmarkList);
-var
+{var
   Tr: TIBTransaction;
   q: TIBSQL;
   I: Integer;
   NamespaceID, SelectedID, XID, DBID: TID;
-  FC: TgdcFullClass;
+  FC: TgdcFullClass;}
 begin
   Assert(gdcBaseManager <> nil);
   Assert(gdcBaseManager.Database <> nil);
@@ -43,7 +43,15 @@ begin
     end;
   end else
   begin
-    Tr := TIBTransaction.Create(nil);
+    with TdlgToNamespace.Create(nil) do
+    try
+      Setup(AgdcObject);
+      ShowModal;
+    finally
+      Free;
+    end;
+
+    {Tr := TIBTransaction.Create(nil);
     q := TIBSQL.Create(nil);
     try
       Tr.DefaultDatabase := gdcBaseManager.Database;
@@ -54,7 +62,7 @@ begin
       else
         gdcBaseManager.GetRUIDByID(AgdcObject.ID, XID, DBID, Tr);
 
-      q.Transaction := Tr;  
+      q.Transaction := Tr;
       q.SQL.Text :=
         'SELECT o.namespacekey FROM at_object o ' +
         'WHERE o.xid = :XID AND o.dbid = :DBID';
@@ -105,7 +113,7 @@ begin
     finally
       q.Free;
       Tr.Free;
-    end;
+    end;}
   end;
 end;
 

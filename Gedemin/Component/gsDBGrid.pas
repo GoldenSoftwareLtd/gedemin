@@ -1,8 +1,7 @@
 
 {++
 
-
-  Copyright (c) 2000 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Module
 
@@ -623,75 +622,6 @@ type
   TCustomDBGridCracker = class(TCustomDBGrid);
   TWinControlCracker = class(TWinControl);
 
-  // типы агрегатных значений: сумма, среднее, минимальное, максимальное,
-  // количество выделенных значений, количество числовых значений в
-  // выделенных значениях
-  {TgsAggregateType = (atSum, atAvg, atMin, atMax, atCount, atNumCount, atNone);
-
-  TgsAggregate = class(TObject)
-  private
-    FGrid: TgsCustomDBGrid;
-    FRows: TStringList;
-    FSum, FAvg, FMin, FMax: Double;
-    FCount, FNumCount: Integer;
-    FCol: Integer;
-    FOnChanged: TNotifyEvent;
-    FCache: TBookmarkStr;
-    FCacheIndex: Integer;
-    FCacheFind: Boolean;
-    FAggregateType: TgsAggregateType;
-    pm: TPopupMenu;
-    FInitialRow: TBookmarkStr;
-    FMessageShowed: Boolean;
-    procedure StringsChanged(Sender: TObject);
-    function GetRowsCount: Integer;
-    procedure MenuClicked2(Sender: TObject);
-    procedure SetAggregateType(const Value: TgsAggregateType);
-    function GetAggregateText: String;
-
-  protected
-    procedure Clear(const AUserInteraction: Boolean = True);
-    procedure Add(AField: TField; const AUserInteraction: Boolean = True);
-    procedure Delete(AField: TField; const AUserInteraction: Boolean = True);
-    procedure Switch(AField: TField);
-    procedure Switch2(AField: TField);
-    procedure SelectCol(AField: TField);
-    function Compare(const Item1, Item2: TBookmarkStr): Integer;
-    procedure AddToAggregates(AField: TField);
-    procedure DeleteFromAggregates(AField: TField);
-    procedure DoOnChanged;
-
-    property InitialRow: TBookmarkStr read FInitialRow;
-
-  public
-    constructor Create(AGrid: TgsCustomDBGrid);
-    destructor Destroy; override;
-
-    function Find(const Item: TBookmarkStr; var Index: Integer): Boolean;
-    function IndexOf(const Item: TBookmarkStr): Integer;
-
-    // выводит на экран всплывающее меню для выбора агрегатного значения
-    // меню выводится в текущих координатах мыши
-    procedure PopupMenu(const X: Integer = -1; const Y: Integer = -1);
-
-    property Sum: Double read FSum;
-    property Avg: Double read FAvg;
-    property Min: Double read FMin;
-    property Max: Double read FMax;
-    property Count: Integer read FCount;
-    property NumCount: Integer read FNumCount;
-
-    property Col: Integer read FCol write FCol;
-    property RowsCount: Integer read GetRowsCount;
-
-    // свойство используется для установки
-    property AggregateType: TgsAggregateType read FAggregateType write SetAggregateType;
-    property AggregateText: String read GetAggregateText;
-
-    // вызывается при включении/исключении записей в агрегатную выборку
-    property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
-  end;}
-  ///^^^
   TgsDataLink = class(TDataLink)
   protected
     procedure DataSetChanged; override;
@@ -701,7 +631,6 @@ type
     constructor Create;
     destructor Destroy; override;
   end;
-
 
   TStripeKind = (skOdd, skEven, skNone);
   TRefreshType = (rtRefresh, rtCloseOpen, rtNone);
@@ -717,16 +646,7 @@ type
     FMasterAct, FRefreshAct, FFindAct, FFindNextAct, FPanelAct,
     FHideColAct, FGroupAct, FInputCaptionAct, FFrozeColumnAct, FCancelAutoFilterAct,
     FFirst, FLast, FNext, FPrior, FPageUp, FPageDown,
-    {$IFDEF NEW_GRID}
-    FUnGroupAct,
-    FGroupWrapAct, FGroupUnWrapAct,
-    FGroupOneWrapAct, FGroupOneUnWrapAct,
-    FGroupNextAct, FGroupPriorAct,
-    FCopyToClipboardAct : TAction;
-    {$ELSE}
     FCopyToClipboardAct: TAction;
-    {$ENDIF}
-
 
     FSelectedFont: TFont;                 // Шрифт выделенного текста
     FSelectedColor: TColor;               // Цвет выдлеленного текста
@@ -821,14 +741,6 @@ type
     FIsResize: Boolean;
 
     FTempKey: Word;
-    //^^^
-    //_FDataLink: TgsDataLink;
-
-    //
-    //FInternalCanShowEditor: Boolean;
-    //FInternalSetFocus: Boolean;
-
-    // Методы обработки свойств компонента
 
     function GetTableFont: TFont;
     procedure SetTableFont(const Value: TFont);
@@ -904,18 +816,6 @@ type
     procedure DoOnPageDown(Sender: TObject);
 
     procedure DoOnHideColumn(Sender: TObject);
-    {$IFDEF NEW_GRID}
-    procedure DoOnGroup(Sender: TObject);
-    procedure DoOnUnGroup(Sender: TObject);
-    procedure DoOnGroupWrap(Sender: TObject);
-    procedure DoOnGroupUnWrap(Sender: TObject);
-    procedure DoOnGroupOneWrap(Sender: TObject);
-    procedure DoOnGroupOneUnWrap(Sender: TObject);
-    procedure DoOnGroupNext(Sender: TObject);
-    procedure DoOnGroupPrior(Sender: TObject);
-
-    procedure _OnPseudoRecordsOn(DataSet: TDataSet; var Accept: Boolean);
-    {$ENDIF}
     procedure DoOnInputCaption(Sender: TObject);
     procedure DoOnFrozeColumn(Sender: TObject);
     procedure DoOnFrozeColumnUpdate(Sender: TObject);
@@ -1351,15 +1251,11 @@ uses
   Math, ClipBrd, DsgnIntf, TypInfo, gsdbGrid_dlgFilter, jclStrings
   {$IFDEF GEDEMIN}
   , Storages, gd_security, gsDBGrid_dlgMaster, gsdbGrid_dlgFind_unit, ComObj
-    {$IFDEF NEW_GRID}
-    , IBCustomDataSet_dlgSortGroupProp_unit
-    {$ENDIF}
   {$ENDIF}
   {must be placed after Windows unit!}
   {$IFDEF LOCALIZATION}
     , gd_localization_stub, gd_localization
   {$ENDIF}
-  //, udemo1 //&&&
   ;
 
 {$IFDEF GEDEMIN}
@@ -3828,15 +3724,6 @@ begin
   FPanelAct := nil;
   FHideColAct := nil;
   FGroupAct := nil;
-  {$IFDEF NEW_GRID}
-  FUnGroupAct := nil;
-  FGroupWrapAct := nil;
-  FGroupUnWrapAct := nil;
-  FGroupOneWrapAct := nil;
-  FGroupOneUnWrapAct := nil;
-  FGroupNextAct := nil;
-  FGroupPriorAct := nil;
-  {$ENDIF}
   FInputCaptionAct := nil;
   FFrozeColumnAct := nil;
   FCancelAutoFilterAct := nil;
@@ -3901,10 +3788,8 @@ begin
   FDeferedLoading := False;
   FDeferedStream := nil;
 
-  //FAggregate := TgsAggregate.Create(Self);
-
   Options := [dgEditing, dgTitles, dgIndicator, dgColumnResize,
-    dgColLines, {dgRowLines,} dgTabs, dgConfirmDelete, dgCancelOnExit];
+    dgColLines, dgTabs, dgConfirmDelete, dgCancelOnExit];
 
   FSettingsModified := False;
 
@@ -3918,7 +3803,6 @@ begin
 
   FDataSetOpenCounter := -1;
   FFilterDataSetOpenCounter := -1;
-  //HelpContext := 3;
 
   Items := nil;
   P := nil;
@@ -3926,10 +3810,6 @@ begin
   FAllowDrawTotals := True;
   FInDrawTotals := False;
   FIsResize := False;
-
-  //^^^
-  //_FDataLink:=TgsDataLink.Create;
-  //_FDataLink.DataSource:=DataSource;
 end;
 
 destructor TgsCustomDBGrid.Destroy;
@@ -3958,7 +3838,6 @@ begin
   FOddKeys.Free;
   FEvenKeys.Free;
 
-  //P := nil;
   FreeAndNil(Items);
 
   if (UserCount = 0) and not (csDesigning in ComponentState) then
@@ -4162,11 +4041,6 @@ begin
         if not Assigned(P) then
         begin
           if (Assigned(PopupMenu) and not ((Cell.Y = 0) and (dgTitles in Options)))
-            {$IFDEF NEW_GRID} { меню для заголовка группы }
-            and not ((DataSource <> nil) and (DataSource.DataSet is TIBCustomDataSet)
-            and (TIBCustomDataSet(DataSource.DataSet).RecordKind in [rkHeader, rkGroup])
-            and (Column <> nil) )
-            {$ENDIF}
           then begin
             P := PopupMenu;
             MenuCreateKind := mckUser;
@@ -4179,8 +4053,6 @@ begin
 
         for I := Items.Count - 1 downto 0 do
         begin
-          {if (P <> nil) then
-            P.Items.Remove(Items[I]);}
           TObject(Items[I]).Free;
         end;
 
@@ -4198,27 +4070,12 @@ begin
             begin
               P.Popup(X, Y);
             end;
-            //Application.ProcessMessages;
           end;
         finally
           Result := 0;
 
           if MenuCreateKind <> mckInternal then
             P := nil;
-
-          {if (not (csDestroying in ComponentState)) and Assigned(P) then
-          begin
-            if MenuCreateKind = mckInternal then
-              FreeAndNil(P)
-            else
-            begin
-              for I := Items.Count - 1 downto 0 do
-              begin
-                P.Items.Remove(Items[I]);
-                TObject(Items[I]).Free;
-              end;
-            end;
-          end;}
         end;
       end;    {  --  if not EditorMode  --  }
     end;      {  --  with TWMRButtonUp(Msg)  --  }
@@ -4268,7 +4125,6 @@ var
   I: Integer;
   Version: String;
   O: TDBGridOptions;
-//  SelectedFieldName: String;
 
   function ReadColor(DefColor: TColor): TColor;
   begin
@@ -4542,49 +4398,11 @@ end;
   ************************
 }
 
-{$IFDEF NEW_GRID}
-var
-  FIDS: TIBCustomDataSet; //для присваивания в процедурах для уменьшения длины строки кода
-
-function DataSetIsIBCustom(DataSource: TDataSource): Boolean;
-begin
-   Result := Assigned(DataSource)
-     and (DataSource.DataSet is TIBCustomDataSet);
-end;
-
-function GridGroupSortResult(gsGrid: TgsCustomDBGrid): string;
-var I, J: Integer;
-    F: TGroupSortField; FieldCaption: string;
-    DS: TIBCustomDataSet;
-begin
-   Result := '';
-   if DataSetIsIBCustom(gsGrid.DataSource) then
-   with gsGrid do begin
-     DS := TIBCustomDataSet(DataSource.DataSet);
-     for I := 0 to DS.GroupSortFields.Count - 1 do begin
-       F := DS.GroupSortFields[I];// as TGroupSortField;
-       if not (F.GroupSortOrder in [gsoGroupAsc, gsoGroupDesc]) then
-         continue;
-       FieldCaption := F.Field.FieldName;
-       for J := 0 to Columns.Count - 1 do begin
-         if UpperCase(F.Field.FieldName) = UpperCase(Columns[J].FieldName) then
-         begin
-           FieldCaption := Columns[J].Title.Caption;
-           break;
-         end;
-       end;
-       //Result := Result + ', ' + FieldCaption + '={' + F.Field.asString+'}';
-       Result := Result + ', ' + F.Field.asString+'';
-     end;
-   end;
-   System.Delete(Result, 1, 1);
-end;
-{$ENDIF}
-
 procedure VertLine(Canvas: TCanvas; X, Y, Height: Integer);
 begin
   Canvas.Polyline([Point(X, Y), Point(X, Y + Height)]);
 end;
+
 procedure HorzLine(Canvas: TCanvas; X, Y, Width: Integer);
 begin
   Canvas.Polyline([Point(X, Y), Point(X + Width, Y)]);
@@ -4606,7 +4424,6 @@ var
   OldActive: LongInt; // Сохраненный № пп в таблице
   HighLight: Boolean; // Флаг выделения записей таблицы
   Value: string;   // Значение, которое будет нарисовано
-  //InAggregates: Boolean; //флаг вхождения ячейки в агрегаты
   DrawColumn: TColumn; // Текущая таблица, в которой производится рисование
   ExpandsList: TList; // Список элементов расширенного отображения
   CurrExpand: TColumnExpand; // Текущий элемент расширенного отображения
@@ -4622,27 +4439,6 @@ var
   OldBrushStyle: TBrushStyle;
   FGroup: TField;
   Da: Boolean; // для присваивания значений длинных выражений для дальнейшего исп.
-  {$IFDEF NEW_GRID}
-  ValF: string;  // значение Value для формулы
-  MarginVal: Integer;   // начало вывода текста, может быть отр. для группировочной записи
-  W1, W2: Integer;
-  MarginF: Integer;
-  RecKind: TRecordKind;
-  DX, DY : Integer;
-
-  OldPseudoRecordsOn: Boolean;
-
-  function WidthBefore: Integer;
-  var I: integer;
-  begin
-    Result := 0;
-    for I:=GetFirstVisible to ACol - 1 do
-      Result := Result + ColWidths[I]
-        + GridLineWidth * Integer(dgColLines in Options);
-    if Result > 0 then
-      Result := Result + GridLineWidth * Integer(dgColLines in Options);
-  end;
-  {$ENDIF}
 
   // Производит рисование CheckBox-ов
   procedure DrawCheckBox(const BMP: TBitmap; const R: TRect);
@@ -4818,12 +4614,7 @@ begin
       and (DataSource.DataSet is TIBCustomDataSet)
       and (DrawColumn.FieldName > '') then
     begin
-      {$IFDEF NEW_GRID}
-      FIDS := TIBCustomDataSet(DataSource.DataSet);
-      if FIDS.IsGroupSortField(DrawColumn.Field) then
-      {$ELSE}
       if DrawColumn.FieldName = TIBCustomDataSet(DataSource.DataSet).SortField then
-      {$ENDIF}
       with ARect, Canvas do
       begin
         OldBrushStyle := Brush.Style;
@@ -4836,16 +4627,7 @@ begin
           Brush.Color := clRed;
           Pen.Color := clMaroon;
 
-          Da := false;
-          {$IFDEF NEW_GRID}
-          //if FIDS.IsGroupSortField(DrawColumn.Field, True) then
-          //  Brush.Color := clYellow;
-          if FIDS.IsGroupSortFieldAsc(DrawColumn.Field) then
-            Da := True;
-          {$ELSE}
-          if TIBCustomDataSet(DataSource.DataSet).SortAscending then
-            Da := True;
-          {$ENDIF}
+          Da := TIBCustomDataSet(DataSource.DataSet).SortAscending;
 
           if Da then
             Polygon([Point(Right - 6, Top),
@@ -4886,16 +4668,7 @@ begin
     begin//////////////////////////////////////////////////////////////////
         // Устанавливаем указатель в базе данных на необходимую запись для
         // получения данных
-      //_FDataLink.DataSource := DataSource;
       OldActive := DataLink.ActiveRecord;
-      {$IFDEF NEW_GRID} { TODO : ^^^^ DataLink.ActiveRecord в прорисовке грида }
-      if DataSetIsIBCustom(DataSource) then begin
-        if TIBCustomDataSet(DataSource.DataSet).GroupSortExist then
-          //OldPseudoRecordsOn := TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn;
-        TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn := True;
-        OldPseudoRecordsOn := false;
-      end;
-      {$ENDIF}
       try
         // Получаем необходиму запись
         DataLink.ActiveRecord := ARow - Integer(dgTitles in Options);
@@ -4949,94 +4722,76 @@ begin
 
         // Устанавливаем необходимость рисования данной ячейки выделенной
         Highlight := HighlightCell(ACol, ARow, Value, AState);
-        //InAggregates := AggregateCell(ACol, ARow);
+
         //////////////////////////////////////////////////////////
         // Проверяем дополнительные опции по выбору шрифта и цвета
 
         if Highlight then
           Self.Canvas.Font := FSelectedFont;
 
-        (*if Highlight then
+        ///////////////////////////////////////
+        // Используется режим полосатой таблицы
+
+        // Выбираем цвет текущей полосы в таблице
+        if FStriped and (not GridStripeProh) then
         begin
-
-          //////////////////////////////////////////////////////////////
-          // Устанавливаем цвет и шрифт для рисования выделенного текста
-
-          Brush.Color := FSelectedColor;
-          Self.Canvas.Font := FSelectedFont;
-          {if InAggregates then
+          if (FGroupFieldName > '')
+            and Assigned(DataSource)
+            and (DataSource.DataSet is TIBCustomDataSet) then
           begin
-            Self.Canvas.Font.Style := Self.Canvas.Font.Style + [fsBold];
-            Brush.Color := FHalfSelectedTone;
-          end}
-        end else *)begin
+            if (FDataSetOpenCounter <> TIBCustomdataSet(DataLink.DataSet).OpenCounter) then
+            begin
+              FDataSetOpenCounter := TIBCustomdataSet(DataLink.DataSet).OpenCounter;
 
-          {$IFDEF NEW_GRID}
-          RecKind := rkRecord;{чтобы была поменьше длина кода при проверке типа записи}
+              FreeAndNil(FOddKeys);
+              FreeAndNil(FEvenKeys);
+            end;
 
-          if DataSetIsIBCustom(DataSource) then begin
-             RecKind := TIBCustomDataSet(DataSource.DataSet).RecordKind;
-          end;
+            FGroup := DataSource.DataSet.FindField(FGroupFieldName);
+          end else
+            FGroup := nil;
 
-          if (RecKind <> rkRecord) then
+          if FGroup = nil then
           begin
-            case RecKind of
-              rkGroup: Brush.Color := clBtnFace;        //--clOlive;
-              rkHeader: Brush.Color := clBtnFace;       //-- clTeal;
-              rkHeaderRecord: Brush.Color := clBtnFace; //--clTeal;
-              rkFooter: AdjustColor(clBtnFace, -20);//--clLime;
-             // rkHiddenRecord: Brush.Color := clRed;
-             // rkGhost: Brush.Color := clGreen;
-            else
-              Brush.Color := clYellow;{на всякий случай если понадобятся новые разновидности}
+            if (ARow mod 2) = 0 then
+            begin
+              if FMyOdd = skOdd then
+                Brush.Color := FStripeOdd
+              else if FMyOdd = skEven then
+                Brush.Color := FStripeEven;
+            end else begin
+              if FMyEven = skOdd then
+                Brush.Color := FStripeOdd
+              else if FMyEven = skEven then
+                Brush.Color := FStripeEven;
             end;
           end else
-          begin { Настоящие записи (не-псевдо) }
-          {$ENDIF}
-            ///////////////////////////////////////
-            // Используется режим полосатой таблицы
-
-            // Выбираем цвет текущей полосы в таблице
-            if FStriped and (not GridStripeProh) then
+          begin
+            if FOddKeys = nil then
             begin
-              if (FGroupFieldName > '')
-                and Assigned(DataSource)
-                and (DataSource.DataSet is TIBCustomDataSet) then
+              FOddKeys := TgdKeyArray.Create;
+              FEvenKeys := TgdKeyArray.Create;
+              GKey := FGroup.AsInteger;
+              if Odd(GKey) then
               begin
-                if (FDataSetOpenCounter <> TIBCustomdataSet(DataLink.DataSet).OpenCounter) then
-                begin
-                  FDataSetOpenCounter := TIBCustomdataSet(DataLink.DataSet).OpenCounter;
-
-                  FreeAndNil(FOddKeys);
-                  FreeAndNil(FEvenKeys);
-                end;
-
-                FGroup := DataSource.DataSet.FindField(FGroupFieldName);
-              end else
-                FGroup := nil;
-
-              if FGroup = nil then
-              begin
-                if (ARow mod 2) = 0 then
-                begin
-                  if FMyOdd = skOdd then
-                    Brush.Color := FStripeOdd
-                  else if FMyOdd = skEven then
-                    Brush.Color := FStripeEven;
-                end else begin
-                  if FMyEven = skOdd then
-                    Brush.Color := FStripeOdd
-                  else if FMyEven = skEven then
-                    Brush.Color := FStripeEven;
-                end;
+                GColor := FStripeOdd;
+                FOddKeys.Add(GKey);
               end else
               begin
-                if FOddKeys = nil then
-                begin
-                  FOddKeys := TgdKeyArray.Create;
-                  FEvenKeys := TgdKeyArray.Create;
-                  GKey := FGroup.AsInteger;
-                  if Odd(GKey) then
+                GColor := FStripeEven;
+                FEvenKeys.Add(GKey);
+              end;
+            end else
+            begin
+              if GKey <> FGroup.AsInteger then
+              begin
+                GKey := FGroup.AsInteger;
+                if FOddKeys.IndexOf(GKey) <> -1 then
+                  GColor := FStripeOdd
+                else if FEvenKeys.IndexOf(GKey) <> -1 then
+                  GColor := FStripeEven
+                else begin
+                  if GColor = FStripeEven then
                   begin
                     GColor := FStripeOdd;
                     FOddKeys.Add(GKey);
@@ -5045,94 +4800,66 @@ begin
                     GColor := FStripeEven;
                     FEvenKeys.Add(GKey);
                   end;
-                end else
-                begin
-                  if GKey <> FGroup.AsInteger then
-                  begin
-                    GKey := FGroup.AsInteger;
-                    if FOddKeys.IndexOf(GKey) <> -1 then
-                      GColor := FStripeOdd
-                    else if FEvenKeys.IndexOf(GKey) <> -1 then
-                      GColor := FStripeEven
-                    else begin
-                      if GColor = FStripeEven then
-                      begin
-                        GColor := FStripeOdd;
-                        FOddKeys.Add(GKey);
-                      end else
-                      begin
-                        GColor := FStripeEven;
-                        FEvenKeys.Add(GKey);
-                      end;
-                    end;
-                  end;
-                end;
-
-                if FGroup <> nil then
-                  Brush.Color := GColor
-                else
-                begin
-                  if (ARow mod 2) = 0 then
-                  begin
-                    if FMyOdd = skOdd then
-                      Brush.Color := AdjustColor(GColor, 12)
-                    else if FMyOdd = skEven then
-                      Brush.Color := AdjustColor(GColor, -12);
-                  end else begin
-                    if FMyEven = skOdd then
-                      Brush.Color := AdjustColor(GColor, 12)
-                    else if FMyEven = skEven then
-                      Brush.Color := AdjustColor(GColor, -12);
-                  end;
-                end;
-              end;
-            end;{ if FStriped and (not GridStripeProh) }
-
-            ////////////////////////////////////////////
-            // Если используется условное форматирование
-            if FConditionsActive and Assigned(DrawColumn.Field) and not HighLight then
-            begin
-              for I := 0 to FConditions.Count - 1 do
-              begin
-                // Пропускаем условия с ошибками
-                if FConditions[I].ConditionState = csError then Continue;
-
-                // Работаем с условием только, если его следует отображать
-                // в данной колонке
-                if FConditions[I].Suits(DrawColumn.Field) then
-                begin
-                 // Подготавливаем условия, если они еще не подготовлены
-                 if FConditions[I].ConditionState = csUnPrepared then
-                    FConditions[I].Prepare;
-
-                  // Пропускаем условия с ошибками
-                  if FConditions[I].ConditionState = csError then
-                    Continue;
-
-                  // Производим проверку и нанесение цвета и шрифта
-                  try
-                    FConditions[I].CheckAndApply;
-                  except
-                  end;
                 end;
               end;
             end;
+
+            if FGroup <> nil then
+              Brush.Color := GColor
+            else
+            begin
+              if (ARow mod 2) = 0 then
+              begin
+                if FMyOdd = skOdd then
+                  Brush.Color := AdjustColor(GColor, 12)
+                else if FMyOdd = skEven then
+                  Brush.Color := AdjustColor(GColor, -12);
+              end else begin
+                if FMyEven = skOdd then
+                  Brush.Color := AdjustColor(GColor, 12)
+                else if FMyEven = skEven then
+                  Brush.Color := AdjustColor(GColor, -12);
+              end;
+            end;
           end;
-        {$IFDEF NEW_GRID}
+        end;{ if FStriped and (not GridStripeProh) }
+
+        ////////////////////////////////////////////
+        // Если используется условное форматирование
+        if FConditionsActive and Assigned(DrawColumn.Field) and not HighLight then
+        begin
+          for I := 0 to FConditions.Count - 1 do
+          begin
+            // Пропускаем условия с ошибками
+            if FConditions[I].ConditionState = csError then Continue;
+
+            // Работаем с условием только, если его следует отображать
+            // в данной колонке
+            if FConditions[I].Suits(DrawColumn.Field) then
+            begin
+             // Подготавливаем условия, если они еще не подготовлены
+             if FConditions[I].ConditionState = csUnPrepared then
+                FConditions[I].Prepare;
+
+              // Пропускаем условия с ошибками
+              if FConditions[I].ConditionState = csError then
+                Continue;
+
+              // Производим проверку и нанесение цвета и шрифта
+              try
+                FConditions[I].CheckAndApply;
+              except
+              end;
+            end;
+          end;
         end;
-        {$ENDIF}
 
         if Highlight then
         begin
           if (SelectedRows.Count > 1) and (not (gdSelected in AState)) then
             Brush.Color := MixColors(Brush.Color, FSelectedColor)
           else
-          {$IFDEF NEW_GRID}
-            if not (RecKind in [rkGroup, rkHeader, rkFooter]) then
-              Brush.Color := FSelectedColor;
-          {$ELSE}
             Brush.Color := FSelectedColor;
-          {$ENDIF}
         end
         else if OldActive = DataLink.ActiveRecord then
             Canvas.Brush.Color := AdjustColor(Canvas.Brush.Color, -40);
@@ -5141,12 +4868,7 @@ begin
         begin
           if (DataSource <> nil)
             and (DataSource.DataSet is TIBCustomDataSet)
-            {$IFDEF NEW_GRID}
-            and TIBCustomDataSet(DataSource.DataSet).IsGroupSortField(DrawColumn.Field)
-            and not (RecKind in [rkGroup, rkHeader, rkFooter, rkHeaderRecord]) then
-            {$ELSE}
             and (DrawColumn.FieldName = TIBCustomDataSet(DataSource.DataSet).SortField) then
-            {$ENDIF}
           begin
         { уменьшаем светимость группироваочной(сортировочной) колонки  }
             Canvas.Brush.Color := AdjustColor(Canvas.Brush.Color, -30);
@@ -5193,7 +4915,6 @@ begin
                   (CurrExpand.LineCount > 1)
                 then
                   Value := StringReplace(DrawColumn.Field.AsString, #13#10, ' ', [rfReplaceAll]);
-                  //Value := DrawColumn.Field.AsString;
 
                 WriteText
                 ( Canvas,
@@ -5291,97 +5012,6 @@ begin
           end else begin
             //////////////////////////
             // Обычный режим рисования
-
-          {$IFDEF NEW_GRID}
-            MarginVal := 0;
-            ValF := '';
-            if DataSetIsIBCustom(DataSource) then
-            begin
-             if (RecKind in [rkGroup, rkHeader, rkHeaderRecord])
-               or (RecKind in [rkFooter]) and (ACol = GetFirstVisible) then
-                 MarginVal := MarginVal + 12;
-                          {  Текст для заголовка группы  }
-             if (RecKind in [rkGroup, rkHeader])
-             then begin
-               ValF := TIBCustomDataSet(DataSource.DataSet).GetFormulaByField(DrawColumn.Field);
-               if {(ACol <> GetFirstVisible) and} (ValF <> '') then begin
-                        {  Текст значения формулы поля  }
-                 ValF := FormatFloat('#,##0.####',DrawColumn.Field.asFloat);
-                 MarginF := ARect.Right - ARect.Left - Canvas.TextWidth(ValF) - 4;
-               end;{ else
-                 ValF := '';}
-
-               Value := GridGroupSortResult(Self);
-               W1 := WidthBefore;  W2 := Canvas.TextWidth(Value);
-               if (W2 + MarginVal) < W1 then begin
-                 Value := '';{ValF;}
-               end else if (ACol <> GetFirstVisible) then begin
-                 MarginVal := MarginVal - W1 + 1;
-                if dgIndicator in Options then
-                  MarginVal := MarginVal;
-               end;
-
-               if (ValF <> '') and ((W2 - W1) > (MarginF - 7)) then
-                 ValF := '';
-             end;
-                          {  Текст для подножия группы  }
-          { Раньше выводилось подножие. Не прошло }
-//             if (RecKind in [rkFooter]) then begin
-          { Раньше перед значением формулч выводилось её названиие. Не прошло }
-//               ValTmp := TIBCustomDataSet(DataSource.DataSet).GetFormulaByField(DrawColumn.Field);
-//               if ValTmp <> '' then
-//                 Value := ValTmp + '= ' + }Value;
-//             end;
-
-                      {   псевдозаписи выводятся без разделения колонок }
-             if (RecKind in [rkGroup, rkHeader, rkFooter]) then begin
-               Canvas.Brush.Color := clBtnFace;
-               Canvas.Font.Color := clWindowText;
-               if RecKind = rkFooter then
-                 Canvas.Brush.Color := AdjustColor(clBtnFace, -5);
-               //else with TGroupSortField(DrawColumn.Field) do
-               // if (IntScale <> 1) or (DateScale <> dsType) then
-               //   Canvas.Font.Color := clNavy;
-
-               ARect.Right := ARect.Right + GridLineWidth * Integer(dgColLines in Options);
-               if ([gdFocused] * AState) <> [] then
-                 Canvas.Brush.Color := AdjustColor(Canvas.Brush.Color, 15);
-             end else
-               if TIBCustomDataSet(DataSource.DataSet).UpdateStatus = usDeleted then
-                 Canvas.Brush.Color := $00DBB7FF;
-
-           end;     {  --  if DataSetIsIBCustom(DataSource)  -- }
-
-           if (RecKind in [rkGroup, rkHeader, rkFooter]) then begin
-             WriteText( Canvas, ARect, ARect,
-               MarginVal , 2,  Value, taLeftJustify, False, False );
-             if ValF <> '' then begin
-               Canvas.Font.Color := clNavy;
-               ARect.Left := ARect.Left + MarginF;
-               WriteText( Canvas, ARect, ARect,
-                 0 , 2, ValF, taLeftJustify, False, False);
-               ARect.Left := ARect.Left - MarginF;
-             end;
-           end else
-             WriteText( Canvas, ARect, ARect,
-               2 + (CHECK_WIDTH + 2) * Integer(IsCheckBoxField), 2,
-               Value, DrawColumn.Alignment,
-               UseRightToLeftAlignmentForField(DrawColumn.Field, DrawColumn.Alignment),
-               False );
-
-           if DataSetIsIBCustom(DataSource) then
-             if (ARow = Row) and (RecKind in [rkGroup, rkHeader, rkFooter]) then
-             begin
-               Canvas.Pen.Color := clBlack;
-               Canvas.Pen.Style := psSolid;   {ARect.Right - ARect.Left}
-               HorzLine(Canvas, 0, ARect.Top, ClientRect.Right);
-               HorzLine(Canvas, 0, ARect.Bottom - 1, ClientRect.Right);
-             end else if (ARow <> Row) and (RecKind in [rkGroup, rkHeader, rkFooter]) then begin
-               Canvas.Pen.Color := AdjustColor(clBtnFace, -33);
-               HorzLine(Canvas, 0, ARect.Bottom - 1, ClientRect.Right);
-             end;
-
-          {$ELSE}
             WriteText
             ( Canvas, ARect, ARect,
               2 + (CHECK_WIDTH + 2) * Integer(IsCheckBoxField), 2,
@@ -5389,8 +5019,6 @@ begin
               UseRightToLeftAlignmentForField(DrawColumn.Field, DrawColumn.Alignment),
               False
             );
-          {$ENDIF}
-
           end;     {  --  else  if FExpandsActive  --  }
 
           if IsCheckBoxField then
@@ -5412,57 +5040,6 @@ begin
                   ARect.Right,    ARect.Top + DefRowHeight + 1
                 )
               );
-        {$IFDEF NEW_GRID}
-          if (ACol = GetFirstVisible)
-            and Assigned(DataSource)
-            and (DataSource.DataSet is TIBCustomDataSet) then
-          begin
-            case TIBCustomDataSet(DataSource.DataSet).RecordKind of
-              rkHeader, rkGroup, rkFooter:
-                with ARect, Canvas do
-                begin
-                  OldBrushStyle := Brush.Style;
-                  OldPenStyle := Pen.Style;
-                  OldBrushColor := Brush.Color;
-                  OldPenColor := Pen.Color;
-                  try
-                    Brush.Style := bsSolid;
-                    Brush.Color := AdjustColor(clBtnFace, 20);
-                    Pen.Color := clBlack;
-                    Pen.Style := psSolid;
-
-                    if RecKind <> rkFooter then begin
-                      Polygon([Point(Left + 2, Top + 2),
-                        Point(Left + 2 + 10, Top + 2),
-                        Point(Left + 2 + 10, Top + 2 + 10),
-                        Point(Left + 2, Top + 2 + 10)]);
-
-                      HorzLine(Canvas, Left + 4, Top + 2 + 5, 7);
-                      if TIBCustomDataSet(DataSource.DataSet).RecordKind = rkGroup then
-                        VertLine(Canvas, Left + 7, Top + 2 + 2, 7)
-
-                    end else begin
-                      //Pen.Color := clWhite;
-                      DX := 2; DY := 3;
-                      HorzLine(Canvas, Left + DX, Bottom - DY    , 12);
-                      HorzLine(Canvas, Left + DX, Bottom - DY - 2, 10);
-                      HorzLine(Canvas, Left + DX, Bottom - DY - 4, 8);
-                      HorzLine(Canvas, Left + DX, Bottom - DY - 6, 6);
-                      HorzLine(Canvas, Left + DX, Bottom - DY - 8, 4);
-                      HorzLine(Canvas, Left + DX, Bottom - DY - 10,2);
-                    end;
-
-                  finally
-                    Pen.Color := OldPenColor;
-                    Pen.Style := OldPenStyle;
-                    Brush.Color := OldBrushColor;
-                    Brush.Style := OldBrushStyle;
-                  end;
-                end;
-            end;
-          end;
-
-        {$ENDIF}
         end;{ if DefaultDrawing }
 
         if Columns.State = csDefault then
@@ -5472,9 +5049,6 @@ begin
           DrawColumn, AState);
       finally
         DataLink.ActiveRecord := OldActive;
-        {$IFDEF NEW_GRID}
-        // TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn := OldPseudoRecordsOn;
-        {$ENDIF}
       end;
 
       // Ресуем Focus
@@ -5503,7 +5077,6 @@ begin
   end;
 end;
 
-
 {
   Изменение состояния источника данных. Необходимо
   произвести действия с колонками.
@@ -5514,7 +5087,7 @@ var
   I: Integer;
 begin
   FDataSetOpenCounter := -1;
-  FFilterDataSetOpenCounter := -1; 
+  FFilterDataSetOpenCounter := -1;
 
   inherited LinkActive(Active);
 
@@ -5570,15 +5143,6 @@ begin
   end else
   begin
     inherited LayoutChanged;
-
-    {if DataLink.Active then
-      CountScaleColumns;}
-
-    //
-    //  Необходимо осуществить обновление форматов полей.
-    //  Посылаем для этого сообщение самому себе.
-{    if HandleAllocated then
-      PostMessage(Handle, WM_CHANGEDISPLAYFORMTS, 0, 0);}
   end;
 end;
 
@@ -5731,71 +5295,6 @@ var
   OldBm, NewBm: String;
   WasEOF: Boolean;
 begin
-  {$IFDEF NEW_GRID}
-  {DBG}{не забыть удалить}
-//  if (Key = Word('G')) and ([ssCtrl] = Shift) then begin
-//     FIDS:= TIBCustomDataSet(DataSource.DataSet); //dbg/
-//     FIDS.ClearGroupSort;       //dbg/       CITY
-//     //FIDS.AddGroupSortField(FIDS.FieldByName('EDITIONDATE'), //dbg/
-//     //   gsoGroupAsc, 1, dsType, '');  //dbg/
-//     //FIDS.AddGroupSortField(FIDS.FieldByName('ID'), //dbg/
-//     //     gsoGroupAsc, 10000, dsType, '');  //dbg/
-//     //FIDS.AddFormulaField(FIDS.FieldByName('ZIP'), 'SUM');  //dbg/
-//
-//     FIDS.AddGroupSortField(FIDS.FieldByName('UserID'), gsoGroupAsc, 1, dsType, '');
-//     FIDS.AddGroupSortField(FIDS.FieldByName('WorkID'), gsoSortDesc, 1, dsType, '');
-//
-//     FIDS.Group;                //dbg/
-//     FIDS.WrapAllGroups;        //dbg/
-//  end else if (Key = VK_F11) and (Shift = []) then begin
-//     DataSource.DataSet.Last
-//  end else if (Key = VK_F2) and (Shift = []) then begin
-//    if not (DataSource.DataSet.State in dsEditModes) then
-//      DataSource.DataSet.Edit
-//  end else if (Key = VK_F8) and (Shift = []) then begin
-//    if not (DataSource.DataSet.State in dsEditModes) then
-//      DataSource.DataSet.Delete;
-//  end else {DBG}
-  if (Key = Word('G')) and ([ssCtrl] = Shift) then begin
-    DoOnGroup(Self); exit;
-  end;
-
-  if (DataSource.DataSet is TIBCustomDataSet) then
-
-   if TIBCustomDataSet(DataSource.DataSet).GroupSortExist then begin
-     FIDS := TIBCustomDataSet(DataSource.DataSet);
-
-     if (Key = VK_F2) and (FIDS.RecordKind in [rkGroup, rkHeader, rkFooter]) then begin
-       Key := 0;
-       exit;
-     end;
-
-     if TIBCustomDataSet(DataSource.DataSet).GroupSortExist then begin
-       if (Key = VK_DIVIDE) and ([ssCtrl] = Shift) then begin
-         DoOnGroupWrap(Self);
-         exit;
-       end else if (Key = VK_MULTIPLY) and ([ssCtrl] = Shift) then begin
-         DoOnGroupUnWrap(Self);
-         exit;
-       end else if (Key = VK_SUBTRACT) and ([ssCtrl] = Shift) then begin
-         DoOnGroupOneWrap(Self);
-         exit;
-       end else if (Key = VK_ADD) and ([ssCtrl] = Shift) then begin
-         DoOnGroupOneUnWrap(Self);
-         exit;
-       end else if (Key = VK_UP) and ([ssCtrl] = Shift) then begin
-         DoOnGroupPrior(Self);
-         exit;
-       end else if (Key = VK_DOWN) and ([ssCtrl] = Shift) then begin
-         DoOnGroupNext(Self);
-         exit;
-       end
-
-     end;
-
-   end;
-  {$ENDIF}
-
   if (Key = VK_F3) and (Shift = []) then {!!!}
   begin
     if Assigned(FFindNextAct) then FFindNextAct.Execute;
@@ -5861,7 +5360,7 @@ procedure TgsCustomDBGrid.MouseDown(Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   GridCoord: TGridCoord;
-  OldActive{, OldCol, OldRow}: Integer;
+  OldActive: Integer;
   SelField, DataField: TField;
   SL, SLSave: TStringList;
   Bm: String;
@@ -5883,15 +5382,7 @@ var
       Point(X, Y)
     );
   end;
-{$IFDEF NEW_GRID}
-var OldPseudoRecordsOn: Boolean;
-{$ENDIF}
 begin
-{  OldCol := Col;
-  OldRow := Row;}
-
-{  FInternalCanShowEditor := FInternalSetFocus;
-  try}
   if Sizing(X, Y) then
   begin
     inherited MouseDown(Button, Shift, X, Y);
@@ -5910,7 +5401,6 @@ begin
   end;
 
   GridCoord := MouseCoord(X, Y);
-//^^^
 
   if DataLink.Active and (GridCoord.X >= Integer(dgIndicator in Options)) then
     SelField := GetColField(GridCoord.X - Integer(dgIndicator in Options))
@@ -6034,67 +5524,17 @@ begin
       end;
     end else
     begin
-      {$IFDEF NEW_GRID} {TODO: unedit 3 MouseDown DataLink}
-      if (DataSetIsIBCustom(DataSource)) { and DataLink.Active }
-        and (TIBCustomDataSet(DataSource.DataSet).RecordKind
-                  in [rkGroup, rkHeader, rkFooter]) then
-      begin
-        if (ssDouble in Shift) then begin
-          Shift := Shift - [ssDouble];
-          exit;
-        end;
-        if (dgEditing in Options) //^^^
-          and (GridCoord.Y >= (Integer(dgTitles in Options)))
-          and (GridCoord.Y < RowCount) then begin
-            X := - 1;
-          end;
-      end;
-      //^^^
-      if (DataSetIsIBCustom(DataSource)) then
-      with TIBCustomDataSet(DataSource.DataSet) do
-      begin
-        OldPseudoRecordsOn := PseudoRecordsOn;
-        PseudoRecordsOn := True;
-        try
-          inherited MouseDown(Button, Shift, X, Y);
-        finally
-         PseudoRecordsOn := OldPseudoRecordsOn;
-        end;
-      end else
-      {$ENDIF}
       inherited MouseDown(Button, Shift, X, Y);
-
-      { TODO : проверять на Frozen? }
-      {$IFDEF GEDEMIN}
-      if (not (dgTitles in Options)) or (Y > RowHeights[0]) then
-        ClampInView(FCurrent);
-      {$ENDIF}
     end;
   end;
 
-  {if (Button = mbRight) and
-    DataLink.Active and
-    (GridCoord.Y < RowCount) then
-  begin
-    SelectedRows.CurrentRowSelected := True;
-  end;}
-
-  //!!??
   if (DataLink.DataSet is TIBCustomDataSet) then
   begin
     FDataSetOpenCounter := TIBCustomdataSet(DataLink.DataSet).OpenCounter;
   end;
 
-  { TODO : может не всегда перерисовывать а только когда надо? }
   DrawTotals(False);
-
-{  finally
-    if (not FInternalCanShowEditor) and (Col = OldCol) and (Row = OldRow) then
-      //
-    else
-      FInternalCanShowEditor := FInternalSetFocus;
-  end;    }
-end;        {  procedure TgsCustomDBGrid.MouseDown  }
+end;        
 
 procedure TgsCustomDBGrid.MouseMove(Shift: TShiftState; X, Y: Integer);
 var
@@ -6218,23 +5658,6 @@ begin
       GridHintWindow.HideGridHint;
   end else
     GridHintWindow.HideGridHint;
-
-  {$IFDEF NEW_GRID}
-//   if (GridCoord.X = Integer(dgIndicator in Options))
-//     and (GridCoord.Y >=Integer(dgTitles in Options))
-//     and (DataSource <> nil)
-//     and (not (DataSource.DataSet.State in dsEditModes))
-//     and (DataSource.DataSet is TIBCustomDataSet)
-//     and (TIBCustomDataSet(DataSource.DataSet).RecordKind in [rkGroup])
-//   then
-//   begin
-//     CellR := CellRect(Col, Row);
-//     if (X >= CellR.Left + 2) and (X <= CellR.Left + 12)
-//       and (Y >= CellR.Top + 2) and (Y <= CellR.Top + 12) then
-//         TIBCustomDataSet(DataSource.DataSet).WrapGroup;
-//   end;
-  {$ENDIF}
-
 end;
 
 {
@@ -6356,15 +5779,11 @@ var
   SizedColumn: TColumn;
   ExpandsList: TList;
   Main, CurrExpand: TColumnExpand;
-  TheField{, SelField}: TField;
-  CurrWidth, MaxWidth{, CaptionWidth}: Integer;
+  TheField: TField;
+  CurrWidth, MaxWidth: Integer;
   OldActive: Integer;
   I, K: Integer;
-  {GridCoord: TGridCoord;}
 begin
-{  FInternalCanShowEditor := FInternalSetFocus;
-  try}
-
   SizedColumn := nil;
   
   if
@@ -6428,77 +5847,28 @@ begin
                     if MaxWidth < CurrWidth then MaxWidth := CurrWidth;
                   end;
                 end;
-            end;       
+            end;
           finally
             DataLink.ActiveRecord := OldActive;
 
             if FShowTotals and ((SizedColumn as TgsColumn).TotalWidth <> -1) then
-              begin
-                CurrWidth := (SizedColumn as TgsColumn).TotalWidth;
-                if MaxWidth < CurrWidth then
-                  MaxWidth := CurrWidth;
-              end;
+            begin
+              CurrWidth := (SizedColumn as TgsColumn).TotalWidth;
+              if MaxWidth < CurrWidth then
+                MaxWidth := CurrWidth;
+            end;
 
-            //Canvas.Font := SizedColumn.Title.Font;
-            //CaptionWidth := CountFullCaptionWidth(SizedColumn) + 4;
-
-            //if (SizedColumn as TgsColumn).Filterable
-            //  and (SizedColumn.Title.Alignment <> taRightJustify) then
-            //begin
-            //  CaptionWidth := CaptionWidth + 12; {место для кнопочки автофильтрации}
-            //  if SizedColumn.Title.Alignment = taCenter then
-            //    CaptionWidth := CaptionWidth + 12; {место для кнопочки автофильтрации}
-            //end;
-
-            //if MaxWidth > CaptionWidth then
-              SizedColumn.Width := MaxWidth
-            //else
-            //  SizedColumn.Width := CaptionWidth;
+            SizedColumn.Width := MaxWidth
           end;
         end;
       finally
         ExpandsList.Free;
       end;
     end;
-  end {else
-  begin
-    GridCoord := MouseCoord(X, Y);
-
-    if (GridCoord.X = -1) or (GridCoord.Y = -1) then
-      exit;
-
-    if DataLink.Active and (GridCoord.X >= Integer(dgIndicator in Options)) then
-      SelField := GetColField(GridCoord.X - Integer(dgIndicator in Options))
-    else
-      SelField := nil;
-
-    if SelField <> nil then
-    begin
-    end;
-  end};
-   {$IFDEF NEW_GRID}
-      if DataLink.Active
-        and DataSetIsIBCustom(DataSource)
-        and (TIBCustomDataSet(DataSource.DataSet).RecordKind in [rkGroup, rkHeader, rkFooter])
-        then
-          exit;
-   {$ENDIF}
+  end;
   if SizedColumn = nil then
     inherited DblClick;
-{  finally
-    FInternalCanShowEditor := FInternalSetFocus;
-  end;}
-end;  {  --  TgsCustomDBGrid.DblClick  --  }
-
-{
-  Запрет на редактирование.
-}
-{ TODO : DBG9 CanEditShow}
-{
-function TgsCustomDBGrid.CanEditShow: Boolean;
-begin
-//  Result := FInternalCanShowEditor and (inherited CanEditShow) and (not FRestriction);
-end;}
+end;
 
 {
   Рассчитываем кол-во строчек
@@ -6752,9 +6122,7 @@ begin
 
   if Operation = opRemove then
   begin
-    {if AComponent = FToolBar then
-      FToolBar := nil
-    else} if AComponent = FFilteredDataset then
+    if AComponent = FFilteredDataset then
     begin
       FFilteredDataset := nil;
       FOldFiltered := False;
@@ -6788,9 +6156,6 @@ var
   Rgn: hRgn;
 
   OldBrushColor, OldPenColor: TColor;
-  {$IFDEF NEW_GRID}
-  OldPseudoRecordsOn: Boolean;
-  {$ENDIF}
 begin
   if FScaleColumns and FCanScale and DataLink.Active and Assigned(Parent)
     and (not DataLink.Editing) then
@@ -6831,16 +6196,6 @@ begin
       DeleteObject(Rgn);
     end;
   end;
-  //^^^
-      {$IFDEF NEW_GRID} { TODO : ^^^^ DataLink.ActiveRecord в Paint грида }
-      if DataSetIsIBCustom(DataSource) then begin
-        if TIBCustomDataSet(DataSource.DataSet).GroupSortExist then
-          //OldPseudoRecordsOn := TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn;
-        TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn := True;
-//fm1.Memo1.Lines.Add('Paint start: '+fm1.Q1ORDERKEY.asString+', '//&&&
-//        +TIBCustomDataSet(DataSource.DataSet).Dbg1);//&&&
-      end;
-      {$ENDIF}
 
   try
     inherited Paint;
@@ -6983,8 +6338,6 @@ begin
           end;
         end;
 
-        //ShowMessage('2');
-
         if (dgColLines in Options) or (dgRowLines in Options) then
         begin
           Canvas.Pen.Color := clSilver;
@@ -6994,8 +6347,6 @@ begin
         if dgColLines in Options then
           PolyPolyLine(Canvas.Handle, Rects^, PointCount^, TotalColCount);
 
-        //ShowMessage('3');
-
         if dgRowLines in Options then
           PolyPolyLine(
             Canvas.Handle,
@@ -7003,9 +6354,6 @@ begin
             PIntegerArray(PointCount)^[TotalColCount],
             TotalRowCount
           );
-
-
-        //ShowMessage('4');
 
         ////////////////////////////////////////////////////////////////////////
         // Если используется индикатор, то осуществляем рисование линий для него
@@ -7046,8 +6394,6 @@ begin
             );
         end;{if dgIndicator}
 
-        //ShowMessage('5');
-
         Canvas.Brush.Color := Color;
         Canvas.FillRect(Rect(
           X + Integer(dgColLines in Options) * GridLineWidth,
@@ -7072,12 +6418,6 @@ begin
     end;
 
   finally
-    {$IFDEF NEW_GRID}
-            OldPseudoRecordsOn := false;
-        TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn := OldPseudoRecordsOn;
-//     fm1.Memo1.Lines.Add('Paint end: '+fm1.Q1ORDERKEY.asString+', '//&&&
-//        +TIBCustomDataSet(DataSource.DataSet).Dbg1);//&&&
-    {$ENDIF}
     SelectClipRgn(Canvas.Handle, 0);
   end;
 end;
@@ -7314,7 +6654,7 @@ begin
           H := TR.Bottom - TR.Top;
           temp := H div GetDefaultTitleRowHeight;
           if H mod GetDefaultTitleRowHeight <> 0 then
-            temp := temp + 1; 
+            temp := temp + 1;
           if temp > Result then
             Result := temp;
         end;
@@ -7322,7 +6662,6 @@ begin
     end;
   end;
 end;
-
 
 {
   Возвращает кол-во видимых колонок.
@@ -7473,29 +6812,6 @@ end;
 procedure TgsCustomDBGrid.SetToolBar(const Value: TToolBar);
 begin
 end;
-(*
-begin
-  if FToolBar <> Value then
-  begin
-    if
-      Assigned(FToolBar)
-        and
-      not (csDesigning in ComponentState)
-    then
-      RemoveActions(FToolBar);
-
-    FToolBar := Value;
-
-    if
-      Assigned(FToolBar)
-        and
-      not (csDesigning in ComponentState)
-    then
-      SetupActions(FToolBar);
-  end;
-end;
-
-*)
 
 {
   Заканчивать ли рисование до края таблицы вертикально
@@ -7577,12 +6893,10 @@ begin
   //
   FCopyToClipboardAct := NewAction;
   FCopyToClipboardAct.OnExecute := DoOnCopyToClipboardExecute;
-  //FCopyToClipboardAct.ShortCut := ;
   FCopyToClipboardAct.Caption := MENU_COPYTOCLIPBOARD;
   FCopyToClipboardAct.ImageIndex := 10;
   FCopyToClipboardAct.Hint := MENU_COPYTOCLIPBOARD;
 
-  //^^^^^
   {$IFDEF GEDEMIN}
   if (GlobalStorage.ReadInteger('Options\Policy',
     GD_POL_EDIT_UI_ID, GD_POL_EDIT_UI_MASK, False) and IBLogin.InGroup) <> 0 then
@@ -7592,62 +6906,6 @@ begin
   FHideColAct.OnExecute := DoOnHideColumn;
   FHideColAct.Caption := MENU_HIDECOL;
   FHideColAct.Hint := MENU_HIDECOL;
-
-  {$IFDEF NEW_GRID}
-  // пункт Группировать
-  FGroupAct := NewACtion;
-  FGroupAct.OnExecute := DoOnGroup;
-  FGroupAct.Caption := MENU_GROUP;
-  FGroupAct.Hint := MENU_GROUP;
-
-  // пункт Группировать
-  FUnGroupAct := NewACtion;
-  FUnGroupAct.OnExecute := DoOnUnGroup;
-  FUnGroupAct.Caption := MENU_UNGROUP;
-  FUnGroupAct.Hint := MENU_UNGROUP;
-
-  // пункт Свернуть все группы
-  FGroupWrapAct := NewAction;
-  FGroupWrapAct.OnExecute := DoOnGroupWrap;          //Ctrl- /
-  FGroupWrapAct.ShortCut := TextToShortCut('Ctrl+/');
-  FGroupWrapAct.Caption := MENU_GROUPWRAP;
-  FGroupWrapAct.Hint := MENU_GROUPWRAP;
-
-  // пункт Развернуть все группы
-  FGroupUnWrapAct := NewAction;
-  FGroupUnWrapAct.OnExecute := DoOnGroupUnWrap; //Ctrl- *
-  //FGroupUnWrapAct.ShortCut := TextToShortCut('Ctrl+*');
-  FGroupUnWrapAct.Caption := MENU_GROUPUNWRAP;
-  FGroupUnWrapAct.Hint := MENU_GROUPUNWRAP;
-
-  // пункт Свернуть группу   //^^^
-  FGroupOneWrapAct := NewAction;
-  FGroupOneWrapAct.OnExecute := DoOnGroupOneWrap;       //Ctrl- -
-  FGroupOneWrapAct.ShortCut := TextToShortCut('Ctrl+-');
-  FGroupOneWrapAct.Caption := MENU_GROUPONEWRAP;
-  FGroupOneWrapAct.Hint := MENU_GROUPONEWRAP;
-
-  // пункт Развернуть группу
-  FGroupOneUnWrapAct := NewAction;
-  FGroupOneUnWrapAct.OnExecute := DoOnGroupOneUnWrap; //Ctrl- +
-  //FGroupOneUnWrapAct.ShortCut := TextToShortCut('Ctrl++');
-  FGroupOneUnWrapAct.Caption := MENU_GROUPONEUNWRAP;
-  FGroupOneUnWrapAct.Hint := MENU_GROUPONEUNWRAP;
-
-  // пункт Следующая группа
-  FGroupNextAct := NewAction;
-  FGroupNextAct.OnExecute := DoOnGroupNext;             //Ctrl- стрелка вниз
-  FGroupNextAct.ShortCut := TextToShortCut('Ctrl+Down');
-  FGroupNextAct.Caption := MENU_GROUPNEXT;
-  FGroupNextAct.Hint := MENU_GROUPNEXT;
-
-  // пункт Предыдущая группа
-  FGroupPriorAct := NewAction;
-  FGroupPriorAct.OnExecute := DoOnGroupPrior;           //Ctrl- стрелка вверх
-  FGroupPriorAct.ShortCut := TextToShortCut('Ctrl+Up');
-  FGroupPriorAct.Caption := MENU_GROUPPRIOR;
-  FGroupPriorAct.Hint := MENU_GROUPPRIOR;
-  {$ENDIF}
 
   //
   FInputCaptionAct := NewAction;
@@ -7729,18 +6987,6 @@ procedure TgsCustomDBGrid.FullFillMenu(PopupColumn: TColumn;
 
 var
   MenuItem: TMenuItem;
-  {$IFDEF NEW_GRID}
-  function GroupSortPresent(): Boolean;
-  begin
-    Result := (DataSource.DataSet is TIBCustomDataSet)
-      and TIBCustomDataSet(DataSource.DataSet).GroupSortExist;
-  end;
-  function GroupSortRecordKind(): TRecordKind;
-  begin
-    Result := TIBCustomDataSet(DataSource.DataSet).RecordKind;
-  end;
-  {$ENDIF}
-
 
   // Добавляем элемент в меню
   function AddItem(Group: TMenuItem; S: String): TMenuItem;
@@ -7788,36 +7034,6 @@ begin
       // Разделитель
       Items.Add(AddItem(APopupMenu.Items, '-'));
 
-      {$IFDEF NEW_GRID} { Заголовок грида }
-      if Assigned(FGroupAct) then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupAct;
-        Items.Add(MenuItem);
-      end;
-
-      if Assigned(FUnGroupAct) and GroupSortPresent then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FUnGroupAct;
-        Items.Add(MenuItem);
-      end;
-
-      if Assigned(FGroupWrapAct) and GroupSortPresent then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupWrapAct;
-        Items.Add(MenuItem);
-      end;
-
-      if Assigned(FGroupUnWrapAct) and GroupSortPresent then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupUnWrapAct;
-        Items.Add(MenuItem);
-      end;
-      {$ENDIF}
-
       if FFilteredDataSet <> nil then
       begin
         MenuItem := AddItem(APopupMenu.Items, '');
@@ -7827,88 +7043,6 @@ begin
 
       exit;
     end;
-
-    {$IFDEF NEW_GRID}
-    // меню для заголовка группы
-    if (DataSource <> nil) and (DataSource.DataSet is TIBCustomDataSet)
-      and (TIBCustomDataSet(DataSource.DataSet).RecordKind in [rkHeader, rkGroup]) then
-    begin
-      // пункт Группировать
-      if Assigned(FGroupAct) then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupAct;
-        Items.Add(MenuItem);
-      end;
-
-      // Пункт Обновить данные
-      if FRefreshType <> rtNone then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FRefreshAct;
-        Items.Add(MenuItem);
-      end;
-
-      // Разделитель
-      Items.Add(AddItem(APopupMenu.Items, '-'));
-
-      // пункт Свернуть все группы
-      if Assigned(FGroupWrapAct) and GroupSortPresent then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupWrapAct;
-        Items.Add(MenuItem);
-      end;
-
-      // пункт Развернуть все группы
-      if Assigned(FGroupUnWrapAct) and GroupSortPresent then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupUnWrapAct;
-        Items.Add(MenuItem);
-      end;
-
-            // Разделитель
-      Items.Add(AddItem(APopupMenu.Items, '-'));
-
-      //^^^
-      if Assigned(FGroupOneWrapAct) and GroupSortPresent then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupOneWrapAct;
-        MenuItem.Enabled := (GroupSortRecordKind = rkHeader);
-        Items.Add(MenuItem);
-      end;
-
-      if Assigned(FGroupOneUnWrapAct) and GroupSortPresent  then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupOneUnWrapAct;
-        MenuItem.Enabled := (GroupSortRecordKind = rkGroup);        
-        Items.Add(MenuItem);
-      end;
-
-      // Разделитель
-      Items.Add(AddItem(APopupMenu.Items, '-'));
-
-      if Assigned(FGroupNextAct) and GroupSortPresent  then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupNextAct;
-        Items.Add(MenuItem);
-      end;
-
-      if Assigned(FGroupPriorAct) and GroupSortPresent then
-      begin
-        MenuItem := AddItem(APopupMenu.Items, '');
-        MenuItem.Action := FGroupPriorAct;
-        Items.Add(MenuItem);
-      end;
-
-      exit;
-    end;
-    {$ENDIF}
-
 
     // Пункт Мастер установок
     if (FInternalMenuKind <> imkNone) and Assigned(FMasterAct) then
@@ -7950,149 +7084,8 @@ begin
       MenuItem.Action := FFindNextAct;
       Items.Add(MenuItem);
     end;
-
-    {if Assigned(FToolBar) then
-    begin
-      // Разделитель
-      Items.Add(AddItem(APopupMenu.Items, '-'));
-
-      // Пункт панель инструментов
-      MenuItem := AddItem(APopupMenu.Items, '');
-      MenuItem.Action := FPanelAct;
-      Items.Add(MenuItem);
-      FPanelAct.Checked := FToolBar.Visible;
-    end;}
   end;
 end;
-
-{
-  Добавляет кнопки в панель управления.
-}
-
-(*
-procedure TgsCustomDBGrid.SetupActions(AToolBar: TToolBar);
-var
-  T: TToolButton;
-
-  // Позиция, куда будет добавлена новая кнопка
-  function GetStartPosition: Integer;
-  var
-    Z: Integer;
-  begin
-    with AToolBar do
-    begin
-      Result := 0;
-      for Z := 0 to ButtonCount - 1 do
-        Inc(Result, Buttons[Z].Width);
-    end;
-  end;
-
-begin
-  AToolBar.Images := FImages;
-
-  if (FInternalMenuKind <> imkNone) and Assigned(FMasterAct) then
-  begin
-    T := TToolButton.Create(AToolBar);
-    AToolBar.InsertControl(T);
-    T.Style := tbsButton;
-    T.Left := GetStartPosition;
-    T.Action := FMasterAct;
-    T.Tag := Integer(Self);
-  end;
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsButton;
-  T.Left := GetStartPosition;
-  T.Action := FRefreshAct;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsSeparator;
-  T.Left := GetStartPosition;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsButton;
-  T.Left := GetStartPosition;
-  T.Action := FFindAct;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsButton;
-  T.Left := GetStartPosition;
-  T.Action := FFindNextAct;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsSeparator;
-  T.Left := GetStartPosition;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsButton;
-  T.Left := GetStartPosition;
-  T.Action := FPrior;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsButton;
-  T.Left := GetStartPosition;
-  T.Action := FNext;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsButton;
-  T.Left := GetStartPosition;
-  T.Action := FPageUp;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsButton;
-  T.Left := GetStartPosition;
-  T.Action := FPageDown;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsButton;
-  T.Left := GetStartPosition;
-  T.Action := FFirst;
-  T.Tag := Integer(Self);
-
-  T := TToolButton.Create(AToolBar);
-  AToolBar.InsertControl(T);
-  T.Style := tbsButton;
-  T.Left := GetStartPosition;
-  T.Action := FLast;
-  T.Tag := Integer(Self);
-
-  AToolBar.Width := GetStartPosition + T.Width;
-end;
-
-{
-  Удаляет кнопки из панели управления.
-}
-
-procedure TgsCustomDBGrid.RemoveActions(AToolBar: TToolBar);
-var
-  I: Integer;
-begin
-  with AToolBar do
-  for I := ButtonCount - 1 downto 0 do
-    if (Pointer(Buttons[I].Tag) = Self) then
-      Buttons[I].Free;
-end;
-
-*)
 
 {
   Показывает мастер установок таблицы.
@@ -8177,31 +7170,18 @@ var
   F: Boolean;
   WasDialog: Boolean;
   S: String;
-  {$IFDEF NEW_GRID}
-  bmGroup: TBookmarkStr;
-  RecHidden: Boolean;
-  IBDS: TIBCustomDataSet;
-  {$ENDIF}
   procedure ToBookmark(bm: TBookmarkStr);
   begin
-   {$IFDEF NEW_GRID}
-     if Assigned(IBDS) then IBDS.SetFinding(false);
-   {$ENDIF}
     ReEnableControls(DataSource.DataSet);
     if DataSource.DataSet.BookmarkValid(Pointer(bm)) then
       DataSource.DataSet.Bookmark := bm;
     DataSource.DataSet.DisableControls;
-    {$IFDEF NEW_GRID}
-     if Assigned(IBDS) then IBDS.SetFinding(True);
-    {$ENDIF}
   end;
   function FindAtField(CurrField: TField): Boolean;
   begin
     Result := false;
 
     if not Assigned(CurrField) then exit;
-
-//    VarTypeToDataType(TVarData(V).VType)
 
     if not (FFindDlg.chbxMatchCase.Checked) then
     begin
@@ -8246,10 +7226,6 @@ var
 begin
   if not DataLink.Active then
     Exit;
-
-  {$IFDEF NEW_GRID}
-  RecHidden := false;
-  {$ENDIF}
 
   SelectedRows.Clear;
 
@@ -8306,17 +7282,7 @@ begin
 
       OldCursor := Screen.Cursor;
       Screen.Cursor := crAppStart;
-      {$IFDEF NEW_GRID}
-      IBDS := nil;
-      {$ENDIF}
       try
-        {$IFDEF NEW_GRID}
-        if DataSetIsIBCustom(DataSource) then begin
-          IBDS := TIBCustomDataSet(DataSource.DataSet);
-          IBDS.SetFinding(True);
-        end;
-        {$ENDIF}
-
         if FFindDlg.rbBegin.Checked and WasDialog then
         begin
           if FFindDlg.rbDown.Checked then
@@ -8364,35 +7330,17 @@ begin
             end;  {  --  if DataSource.DataSet.BOF  --  }
           end; { -- if FFindDlg.rbDown.Checked else  -- }
 
-          {$IFDEF NEW_GRID}
-          { по псевдозаписям поиск не производится }
-          if Assigned(IBDS) then
-            RecHidden := (IBDS.RecordKind = rkHiddenRecord);
-          if Assigned(IBDS) and (IBDS.RecordKind in [rkRecord, rkHiddenRecord,
-            rkHeaderRecord{, rkGroup}]) then
-          {$ENDIF}
-            for I := 0 to Fields.Count - 1 do begin
-              Found := FindAtField(Fields[I]);
-              if Found then
-                Break;
-            end;
-
-          if Found then begin
-            bmFound := DataSource.DataSet.Bookmark;
-            {$IFDEF NEW_GRID}
-            if RecHidden then begin
-              while not IBDS.BOF
-                  and (IBDS.RecordKind <> rkGroup) do
-              begin
-                DataSource.DataSet.Prior;
-                if IBDS.RecordKind = rkGroup then
-                  bmGroup := DataSource.DataSet.Bookmark;
-              end;
-            end;
-            {$ENDIF}
-            break;
+          for I := 0 to Fields.Count - 1 do begin
+            Found := FindAtField(Fields[I]);
+            if Found then
+              Break;
           end;
 
+          if Found then
+          begin
+            bmFound := DataSource.DataSet.Bookmark;
+            break;
+          end;
         end;       {  --  while (GetAsyncKeyState(VK_ESCAPE) shr 1) = 0  --  }
 
         if not Found then begin
@@ -8402,15 +7350,8 @@ begin
             'Внимание!',
             MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
           FFindColumn := nil;
-        end else begin
-         {$IFDEF NEW_GRID}
-          IBDS.SetFinding(false);
-          if RecHidden then
-            if IBDS.BookmarkValid(Pointer(bmGroup)) then begin
-              IBDS.Bookmark := bmGroup;
-              IBDS.WrapGroup;
-            end;
-          {$ENDIF}
+        end else
+        begin
           ToBookmark(bmFound);
           if bmOrg = DataSource.DataSet.Bookmark then
             MessageBox(Handle,
@@ -8420,9 +7361,6 @@ begin
         end;
 
       finally
-        {$IFDEF NEW_GRID}
-        IBDS.SetFinding(false);
-        {$ENDIF}
         ReEnableControls(DataSource.DataSet);
         Screen.Cursor := OldCursor;
       end;
@@ -8430,9 +7368,6 @@ begin
   finally
     FFindDlg.Free;
     Fields.Free;
-    {$IFDEF NEW_GRID}
-    //Refresh;//??//
-    {$ENDIF}
   end;
 end;
 {$ELSE}
@@ -8484,6 +7419,9 @@ var
   RC: Integer;
   DS: TDataSet;
 begin
+  if not (DataLink.DataSet is TIBCustomDataSet) then
+    exit;
+
   {$IFDEF GEDEMIN}
   ID := -1;
   {$ENDIF}
@@ -8496,7 +7434,6 @@ begin
 
       rtCloseOpen:
       begin
-        { TODO : этот код надо бы перенести gsIBGrid? }
         if (DataLink.DataSet is TIBDataset) and
           TIBDataSet(DataLink.DataSet).CachedUpdates then
         begin
@@ -8625,7 +7562,6 @@ end;
 
 procedure TgsCustomDBGrid.DoOnPanel(Sender: TObject);
 begin
-  //FToolBar.Visible := not FPanelAct.Checked;
 end;
 
 procedure TgsCustomDBGrid.DoOnPrior(Sender: TObject);
@@ -9006,34 +7942,6 @@ end;
 
 { TgsDBGrid }
 
-
-{
-  *********************
-  ***  Public Part  ***
-  *********************
-}
-
-
-{
-  ************************
-  ***  Protected Part  ***
-  ************************
-}
-
-
-{
-  **********************
-  ***  Private Part  ***
-  **********************
-}
-
-
-{
-  ********************************
-  ***  Registering Components  ***
-  ********************************
-}
-
 type
   TDBStringProperty = class(TStringProperty)
   public
@@ -9230,347 +8138,6 @@ begin
   {$ENDIF}
 end;
 
-{ TgsAggregate }
-
-{procedure TgsAggregate.Add(AField: TField; const AUserInteraction: Boolean = True);
-var
-  Index: Integer;
-  Current: TBookmarkStr;
-begin
-  Current := AField.DataSet.Bookmark;
-  if (Length(Current) = 0) or Find(Current, Index) then Exit;
-  AddToAggregates(AField);
-  FRows.Insert(Index, Current);
-  if FInitialRow = '' then FInitialRow := Current;
-  TCustomDBGridCracker(FGrid).InvalidateRow(TCustomDBGridCracker(FGrid).Row);
-  if AUserInteraction then DoOnChanged;
-end;
-
-procedure TgsAggregate.AddToAggregates(AField: TField);
-var
-  V: Double;
-begin
-  V := AField.AsFloat;
-  FSum := FSum + V;
-  FAvg := (FAvg * FCount + V) / (FCount + 1);
-  if FMin > V then FMin := V;
-  if FMax < V then FMax := V;
-  Inc(FCount);
-  Inc(FNumCount);
-end;
-
-procedure TgsAggregate.Clear(const AUserInteraction: Boolean = True);
-begin
-  FRows.Clear;
-  FSum := 0;
-  FAvg := 0;
-  FMin := MAXDOUBLE;
-  FMax := MINDOUBLE;
-  FCount := 0;
-  FNumCount := 0;
-  if AUserInteraction then
-    TCustomDBGridCracker(FGrid).InvalidateCol(FCol);
-  FCol := -1;
-  FInitialRow := '';
-  if AUserInteraction then
-    DoOnChanged;
-end;
-
-function TgsAggregate.Compare(const Item1, Item2: TBookmarkStr): Integer;
-begin
-  with TCustomDBGridCracker(FGrid).Datalink.Datasource.Dataset do
-    Result := CompareBookmarks(TBookmark(Item1), TBookmark(Item2));
-end;
-
-constructor TgsAggregate.Create(AGrid: TgsCustomDBGrid);
-begin
-  FGrid := AGrid;
-  FRows := TStringList.Create;
-  FRows.OnChange := StringsChanged;
-  FCol := -1;
-  FAggregateType := atSum;
-  FMin := MAXDOUBLE;
-  FMax := MINDOUBLE;
-  FSum := 0;
-  FAvg := 0;
-  FCount := 0;
-  FNumCount := 0;
-  FMessageShowed := False;
-end;
-
-procedure TgsAggregate.Delete(AField: TField; const AUserInteraction: Boolean = True);
-var
-  Index: Integer;
-  Current: TBookmarkStr;
-begin
-  Current := AField.DataSet.Bookmark;
-  if (Length(Current) = 0) or (not Find(Current, Index)) then Exit;
-  DeleteFromAggregates(AField);
-  FRows.Delete(Index);
-  if FRows.Count = 0 then FInitialRow := '';
-  TCustomDBGridCracker(FGrid).InvalidateRow(TCustomDBGridCracker(FGrid).Row);
-  if AUserInteraction then DoOnChanged;
-end;
-
-procedure TgsAggregate.DeleteFromAggregates(AField: TField);
-var
-  V: Double;
-begin
-  V := AField.AsFloat;
-  FSum := FSum - V;
-  if FCount = 1 then FAvg := 0 else
-    FAvg := (FAvg * FCount - V) / (FCount - 1);
-  if V = FMin then FMin := MAXDOUBLE;
-  if V = FMax then FMax := MINDOUBLE;
-  Dec(FCount);
-  Dec(FNumCount);
-end;
-
-destructor TgsAggregate.Destroy;
-begin
-  FRows.Free;
-  if Assigned(pm) then pm.Free;
-
-  inherited;
-end;}
-
-(*
-procedure TgsAggregate.DoOnChanged;
-begin
-  { TODO : только чтобы перерисовать итого?? }
-  if FGrid.ShowFooter then
-    FGrid.DrawTotals;
-    //FGrid.Invalidate;
-
-  if Assigned(FOnChanged) and
-    (FGrid <> nil) and
-    (TCustomDBGridCracker(FGrid).UpdateLock = 0) then FOnChanged(FGrid);
-end;
-
-function TgsAggregate.Find(const Item: TBookmarkStr; var Index: Integer): Boolean;
-var
-  L, H, I, C: Integer;
-begin
-  if (Item = FCache) and (FCacheIndex >= 0) then
-  begin
-    Index := FCacheIndex;
-    Result := FCacheFind;
-    Exit;
-  end;
-  Result := False;
-  L := 0;
-  H := FRows.Count - 1;
-  while L <= H do
-  begin
-    I := (L + H) shr 1;
-    C := Compare(FRows[I], Item);
-    if C < 0 then L := I + 1 else
-    begin
-      H := I - 1;
-      if C = 0 then
-      begin
-        Result := True;
-        L := I;
-      end;
-    end;
-  end;
-  Index := L;
-  FCache := Item;
-  FCacheIndex := Index;
-  FCacheFind := Result;
-end;
-
-function TgsAggregate.GetAggregateText: String;
-
-  function fmt(D: Double): String;
-  begin
-    if Frac(D) = 0 then
-      Result := FloatToStrF(D, ffNumber, 15, 0)
-    else
-      Result := FloatToStrF(D, ffNumber, 15, 2)
-  end;
-
-begin
-  if RowsCount = 0 then
-  begin
-    {if (FGrid = nil) or (FGrid.DataSource = nil) or (FGrid.DataSource.DataSet = nil) then
-      Result := ''
-    else
-      Result := 'Скачано записей: ' + fmt(FGrid.DataSource.DataSet.RecordCount);}
-  end else
-    case FAggregateType of
-      atNone: Result := '';
-      atSum: Result := 'Сумма = ' + fmt(FSum);
-      atAvg: Result := 'Среднее = ' + fmt(FAvg);
-      atMin: if FMin < MAXDOUBLE - 0.01 then Result := 'Минимум = ' + fmt(FMin)
-               else Result := 'Нет данных. Повторите выделение группы записей.';
-      atMax: if FMax > MINDOUBLE + 0.01 then Result := 'Максимум = ' + fmt(FMax)
-               else Result := 'Нет данных. Повторите выделение группы записей.';
-      atCount: Result := 'Количество = ' + fmt(FCount);
-      atNumCount: Result := 'Чисел = ' + fmt(FNumCount);
-    end;
-end;
-
-function TgsAggregate.GetRowsCount: Integer;
-begin
-  Result := FRows.Count;
-end;
-
-function TgsAggregate.IndexOf(const Item: TBookmarkStr): Integer;
-begin
-  if not Find(Item, Result) then
-    Result := -1;
-end;
-
-procedure TgsAggregate.MenuClicked2(Sender: TObject);
-begin
-  if Sender is TMenuItem then
-  begin
-    (Sender as TMenuItem).Checked := True;
-    AggregateType := TgsAggregateType((Sender as TMenuItem).Tag);
-  end;
-end;
-
-procedure TgsAggregate.PopupMenu(const X: Integer = -1; const Y: Integer = -1);
-
-  procedure InitMenuItem(const ACaption: String; const AnAggType: TgsAggregateType);
-  var
-    mi: TMenuItem;
-  begin
-    mi := TMenuItem.Create(pm);
-    mi.Caption := ACAption;
-    if ACaption <> '-' then
-    begin
-      mi.GroupIndex := 1;
-      mi.RadioItem := True;
-      mi.OnClick := MenuClicked2;
-      mi.Tag := Integer(AnAggType);
-      if FAggregateType = AnAggType then mi.Checked := True;
-    end;
-    pm.Items.Add(mi);
-  end;
-
-var
-  pt: TPoint;
-
-begin
-  if pm = nil then
-  begin
-    pm := TPopupMenu.Create(nil);
-    InitMenuItem('Нет', atNone);
-    InitMenuItem('-', atNone);
-    InitMenuItem('Сумма', atSum);
-    InitMenuItem('Среднее', atAvg);
-    InitMenuItem('Минимум', atMin);
-    InitMenuItem('Максимум', atMax);
-    InitMenuItem('Количество', atCount);
-    InitMenuItem('Количество чисел', atNumCount);
-  end;
-
-  if (X = -1) and (Y = -1) then
-    GetCursorPos(pt)
-  else
-    pt := Point(X, Y);
-  pm.Popup(pt.X, pt.Y);
-end;
-
-procedure TgsAggregate.SelectCol(AField: TField);
-var
-  Bm: TBookmarkStr;
-  I: Integer;
-begin
-  with TCustomDBGridCracker(FGrid) do
-  begin
-    //BeginUpdate;
-    DataLink.DataSet.DisableControls;
-    Bm := DataLink.DataSet.Bookmark;
-    try
-      I := 0;
-      DataLink.DataSet.First;
-      while not DataLink.DataSet.EOF do
-      begin
-        Add(AField, False);
-        DataLink.DataSet.Next;
-        Inc(I);
-        if ((I = 1000) or (I = 10000)) and (not FMessageShowed)
-          and (I >= DataLink.DataSet.RecordCount) then
-        begin
-          FMessageShowed := True;
-          if MessageDlg('Возможно таблица содержит большой набор данных. Прервать подсчет?',
-            mtConfirmation,
-            [mbYes, mbNo], 0) = IDYES then
-          begin
-            FMessageShowed := False;
-            Clear;
-            break;
-          end;
-          FMessageShowed := False;
-          Application.ProcessMessages;
-        end;
-      end;
-      DoOnChanged;
-    finally
-      if DataLink.DataSet.BookmarkValid(Pointer(Bm)) then
-        DataLink.DataSet.Bookmark := Bm;
-      DataLink.DataSet.EnableControls;
-      //EndUpdate;
-    end;
-  end;
-end;
-
-procedure TgsAggregate.SetAggregateType(const Value: TgsAggregateType);
-begin
-  if FAggregateType <> Value then
-  begin
-    FAggregateType := Value;
-    DoOnChanged;
-  end;
-end;
-
-procedure TgsAggregate.StringsChanged(Sender: TObject);
-begin
-  FCache := '';
-  FCacheIndex := -1;
-end;
-
-procedure TgsAggregate.Switch(AField: TField);
-begin
-  if IndexOf(AField.DataSet.Bookmark) = -1 then Add(AField)
-    else Delete(AField);
-end;
-*)
-
-(*
-function TgsCustomDBGrid.GetOnAggregateChanged: TNotifyEvent;
-begin
-  Result := FAggregate.OnChanged;
-end;
-
-procedure TgsCustomDBGrid.SetOnAggregateChanged(const Value: TNotifyEvent);
-begin
-  FAggregate.OnChanged := Value;
-end;
-*)
-
-(*
-procedure TgsAggregate.Switch2(AField: TField);
-var
-  OldActive: Integer;
-begin
-  with TCustomDBGridCracker(FGrid) do
-  begin
-    OldActive := DataLink.ActiveRecord;
-    try
-      // Получаем необходимую запись
-      DataLink.ActiveRecord := Row - Integer(dgTitles in Options);
-      Switch(AField);
-    finally
-      DataLink.ActiveRecord := OldActive;
-    end;
-  end;
-end;
-*)                         
-
 procedure TgsCustomDBGrid.MouseUp(Button: TMouseButton; Shift: TShiftState;
   X, Y: Integer);
 var
@@ -9586,11 +8153,7 @@ var
   TM: TTextMetric;
   OldCursor: TCursor;
   FlagShowZero: Boolean;
-  {$IFDEF NEW_GRID}
-  ARect: TRect;
-  {$ENDIF}
 begin
-//  try
   inherited MouseUp(Button, Shift, X, Y);
 
   if Sizing(X, Y) then
@@ -9608,18 +8171,10 @@ begin
     if (GridCoord.X - Integer(dgIndicator in Options) < 0) or (GridCoord.Y < 0) then
       exit;
 
-    {$IFDEF NEW_GRID}  //^^^
-
-    {$ENDIF}
-
     if (Button = mbRight)
       and DataLink.Active and (GridCoord.Y < RowCount)
       and (GridCoord.Y >= (Integer(dgTitles in Options)))
-      {$IFDEF NEW_GRID}
-      and (DataSetIsIBCustom(DataSource))
-      and not (TIBCustomDataSet(DataSource.DataSet).RecordKind in [rkGroup, rkHeader])
-      {$ENDIF}
-    then begin {TODO: unedit 1 MouseUp}
+    then begin
       SelectedRows.CurrentRowSelected := True;
     end;
 
@@ -9628,39 +8183,6 @@ begin
       SelField := GetColField(GridCoord.X - Integer(dgIndicator in Options))
     else
       SelField := nil;
-
-{$IFDEF NEW_GRID}
-    if (Button = mbLeft)
-      and (GridCoord.X = Integer(dgIndicator in Options))
-      and (GridCoord.Y >=Integer(dgTitles in Options))
-      and (DataSource <> nil)
-      and (DataSource.DataSet is TIBCustomDataSet)
-      and (TIBCustomDataSet(DataSource.DataSet).RecordKind in [rkHeader, rkGroup])
-      and (not (DataSource.DataSet.State in dsEditModes))
-    then
-    begin
-      ARect := CellRect(GridCoord.X, GridCoord.Y);
-      if (X >= ARect.Left + 2) and (X <= ARect.Left + 12)
-        and (Y >= ARect.Top + 2) and (Y <= ARect.Top + 12) then
-          TIBCustomDataSet(DataSource.DataSet).WrapGroup;   {TODO: unedit 4 MouseUp DataLink}
-      { если последний ряд в гриде то двигаем вверх записи группы }
-      if TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn then
-      if DataLink.ActiveRecord = DataLink.BufferCount - 1 then
-      begin
-        I := 0;
-        DataLink.DataSet.DisableControls;
-        while not DataLink.DataSet.Eof do begin
-        DataLink.DataSet.Next;
-        Inc(I);
-        if (TIBCustomDataSet(DataLink.DataSet).RecordKind <> rkRecord)
-          or (I = DataLink.BufferCount - 1) then
-            break;
-        end;
-        DataLink.DataSet.EnableControls;
-      end;
-      exit;
-    end;
-{$ENDIF}
 
     CR := CellRect(GridCoord.X, GridCoord.Y);
     CR.Left := CR.Right - 14;
@@ -9671,7 +8193,6 @@ begin
       and PtInRect(CR, Point(X, Y))
       and (Button = mbLeft)
       and (dgTitles in Options)
-      //and (DataSource <> nil)
       and (DataSource.DataSet is TIBCustomDataSet)
       and (GridCoord.Y = 0) then
     begin
@@ -9844,10 +8365,6 @@ begin
         if EditorMode then
           EditorMode := False;
 
-        {$IFDEF NEW_GRID}
-        if DataSetIsIBCustom(DataSource) then
-          TIBCustomDataSet(DataSource.DataSet).SortGroupSortAtField(C.Field);{~qa~}
-        {$ELSE}
         if (C.FieldName = TIBCustomDataSet(DataSource.DataSet).SortField)
           and (TIBCustomDataSet(DataSource.DataSet).SortAscending) then
         begin
@@ -9860,7 +8377,6 @@ begin
           else
             TIBCustomDataSet(DataSource.DataSet).Sort(SelField);
         end;
-        {$ENDIF}
 
         SelectedRows.Clear;
       end;
@@ -9989,7 +8505,7 @@ begin
             begin
               FTempKey := 0;
               ClampInView(Coord);
-            end;  
+            end;
             exit;
           end;
         end;
@@ -10241,7 +8757,6 @@ begin
   if (FTopLeft.X <> OldTopLeft.X) or (FTopLeft.Y <> OldTopLeft.Y) then
     TopLeftMoved(OldTopLeft);
 end;
-
 {$ENDIF}
 
 procedure TgsCustomDBGrid.Loaded;
@@ -10370,7 +8885,6 @@ begin
     begin
       FSearchKey := '';
       Datalink.Dataset.BookMark := BM;
-      //MessageBeep(0);
     end
     else
     begin
@@ -10428,8 +8942,7 @@ begin
   if (not (csDesigning in ComponentState))
     and Assigned(DataSource)
     and Assigned(DataSource.DataSet)
-    and Focused
-    {and (DataSource.DataSet.State = dsBrowse)} then
+    and Focused then
   begin
     Key := VK_DOWN;
     KeyDown(Key, Shift);
@@ -10445,8 +8958,7 @@ begin
   if (not (csDesigning in ComponentState))
     and Assigned(DataSource)
     and Assigned(DataSource.DataSet)
-    and Focused
-    {and (DataSource.DataSet.State = dsBrowse)} then
+    and Focused then
   begin
     Key := VK_UP;
     KeyDown(Key, Shift);
@@ -10648,20 +9160,7 @@ procedure TgsCustomDBGrid._OnFilterRecord(DataSet: TDataSet;
 
 var
   I: Integer;
- {$IFDEF NEW_GRID}
-  DS: TIBCustomDataSet;
-  {$ENDIF}
 begin
-  {$IFDEF NEW_GRID}
-  if DataSetIsIBCustom(DataSource) then begin
-    DS := TIBCustomDataSet(DataSource.DataSet);
-    if (DS.GroupSortFields <> nil) then
-      if (DS.GroupSortFields.Count > 0) then
-        if   DS.RecordGroupFilterAccept   then // эти записи уже были отобраны
-          exit;        // при вызове функции группировки в наборе данных грида
-  end;
-  {$ENDIF}
-
   if Assigned(FOldOnFilterRecord) then
   begin
     FOldOnFilterRecord(DataSet, Accept);
@@ -10760,14 +9259,8 @@ end;
 function TgsCustomDBGrid.GetClientRect: TRect;
 begin
   Result := inherited GetClientRect;
-  if FShowTotals {and (DataSource <> nil) and (DataSource.DataSet <> nil)
-    and (not DataSource.DataSet.IsEmpty)} then
+  if FShowTotals  then
     Result.Bottom := Result.Bottom - DefaultRowHeight;
-  {$IFDEF NEW_GRID}
-    if ( DataSetIsIBCustom(DataSource)
-      and TIBCustomDataSet(DataSource.DataSet).GroupSortExist ) then
-        exit;
-  {$ENDIF}
   if FShowFooter then
     Result.Bottom := Result.Bottom - DefaultRowHeight;
 end;
@@ -10804,7 +9297,6 @@ begin
     if (DataSource = nil) or (DataSource.DataSet = nil) then
       exit;
 
-    { TODO : вставить проверку, а не выполнять эти действия каждый раз! }
     CalcDrawInfo(DrawInfo);
 
     R := ClientRect;
@@ -10992,10 +9484,6 @@ begin
       Canvas.FillRect(
         Rect(DrawInfo.Horz.GridBoundary, R.Top, ClientRect.Right, R.Bottom));
 
-      {$IFDEF NEW_GRID}
-      if not ( (DataSource.DataSet is TIBCustomDataSet)
-        and TIBCustomDataSet(DataSource.DataSet).GroupSortExist ) then
-      {$ENDIF}
       if FShowFooter then
       begin
         Inc(R.Bottom, DefaultRowHeight);
@@ -11003,10 +9491,6 @@ begin
       end;
     end;
 
-    {$IFDEF NEW_GRID}
-    if not ( (DataSource.DataSet is TIBCustomDataSet)
-      and TIBCustomDataSet(DataSource.DataSet).GroupSortExist ) then
-    {$ENDIF}
     if FShowFooter and DataSource.DataSet.Active then
     begin
       R := Rect(ClientRect.Left, R.Top, DrawInfo.Horz.GridBoundary - 1, R.Bottom);
@@ -11113,141 +9597,6 @@ begin
       end;
   end;
 end;
-
-{$IFDEF NEW_GRID}
-procedure TgsCustomDBGrid.DoOnGroup(Sender: TObject);
-begin
-  if DataSource.DataSet is TIBCustomDataSet then
-  begin
-    with TIBCustomDataSet_dlgSortGroupProp.Create(Self) do
-    try
-      TIBCustomDataSet(DataSource.DataSet).OnPseudoRecordsOn  := _OnPseudoRecordsOn;
-      Setup(DataSource.DataSet as TIBCustomDataSet, Self);
-      ShowModal;
-    finally
-      Free;
-    end;
-  end;
-end;
-
-procedure TgsCustomDBGrid.DoOnUnGroup(Sender: TObject);
-begin
-  if DataSource.DataSet is TIBCustomDataSet then
-    with (DataSource.DataSet as TIBCustomDataSet) do
-      if GroupSortExist then begin
-        ClearGroupSort;
-        UnGroup(false);
-      end;
-end;
-
-procedure TgsCustomDBGrid.DoOnGroupWrap(Sender: TObject);
-begin
-  if DataSource.DataSet is TIBCustomDataSet then
-    with (DataSource.DataSet as TIBCustomDataSet) do
-      if GroupSortExist then
-        WrapAllGroups;
-end;
-
-procedure TgsCustomDBGrid.DoOnGroupUnWrap(Sender: TObject);
-begin
-  if DataSource.DataSet is TIBCustomDataSet then
-    with (DataSource.DataSet as TIBCustomDataSet) do
-      if GroupSortExist then
-         UnWrapAllGroups;
-end;
-
-procedure TgsCustomDBGrid.DoOnGroupOneWrap(Sender: TObject);
-var
-  DS: TIBCustomDataSet;
-begin
-  if DataSource.DataSet is TIBCustomDataSet then begin
-    DS := TIBCustomDataSet(DataSource.DataSet);
-    if DS.GroupSortExist and not (DS.RecordKind in [rkGroup]) then
-    begin
-        DS.DisableControls;
-        try
-          while not DS.Bof do begin
-            if (DS.RecordKind in [rkHeader]) then
-              break;
-            DS.Prior;
-          end;
-        finally
-          DS.EnableControls;
-          DS.WrapGroup;
-        end;
-      end;
-    end;
-end;
-
-procedure TgsCustomDBGrid.DoOnGroupOneUnWrap(Sender: TObject);
-begin
-  if DataSource.DataSet is TIBCustomDataSet then
-    with (DataSource.DataSet as TIBCustomDataSet) do
-      if GroupSortExist and (RecordKind in [rkGroup]) then
-        WrapGroup;
-end;
-
-procedure TgsCustomDBGrid.DoOnGroupNext(Sender: TObject);
-var
-  OldBm: string;
-  DS: TIBCustomDataSet;
-begin
-  DS := DataSource.DataSet as TIBCustomDataSet;
-  OldBm := DataLink.DataSet.Bookmark;
-  DS.DisableControls;
-  try
-    if (DS.RecordKind in [rkHeader, rkGroup]) then
-      DS.Next;
-    while not DS.Eof do begin
-      if (DS.RecordKind in [rkHeader, rkGroup]) then
-        break;
-      DS.Next;
-    end;
-
-    if DS.Eof then
-      DataLink.DataSet.Bookmark := OldBm
-    else begin
-      if (DS.RecordKind in [rkGroup]) then
-        DS.WrapGroup;
-      DS.Next;
-    end;
-  finally
-    DS.EnableControls;
-  end;
-end;
-
-procedure TgsCustomDBGrid.DoOnGroupPrior(Sender: TObject);
-var
-  DS: TIBCustomDataSet;
-begin
-  DS := DataSource.DataSet as TIBCustomDataSet;
-  DS.DisableControls;
-  try
-    while not DS.Bof do begin
-        if (DS.RecordKind in [rkHeader, rkGroup]) then
-          break;
-        DS.Prior;
-    end;
-    while not DS.Bof do begin
-      DS.Prior;
-      if (DS.RecordKind in [rkHeader, rkGroup]) then begin
-        break;
-      end;
-    end;
-
-    if (DS.RecordKind in [rkGroup]) then
-      DS.WrapGroup;
-    DS.Next;
-  finally
-    DS.EnableControls;
-  end;
-end;
-
-procedure TgsCustomDBGrid._OnPseudoRecordsOn(DataSet: TDataSet; var Accept: Boolean);
-begin
-  Accept := True;
-end;
-{$ENDIF}
 
 procedure TgsCustomDBGrid.DoOnInputCaption(Sender: TObject);
 var
@@ -11667,56 +10016,15 @@ begin
   end;
 end;
 
-//^^^
-
 procedure TgsDataLink.DataSetChanged;
-//var
-//  OldPseudoRecordsOn: Boolean;
-//  DS: TIBCustomDataSet;
 begin
-//      {$IFDEF NEW_GRID} { TODO : ^^^^ DataLink.ActiveRecord в DataSetChanged грида }
-//      if DataSetIsIBCustom(DataSource) then begin
-//        if TIBCustomDataSet(DataSource.DataSet).GroupSortExist then
-//          OldPseudoRecordsOn := TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn;
-//        DS := TIBCustomDataSet(DataSource.DataSet);
-//        TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn := True;
-//     fm1.Memo1.Lines.Add('DataSetChanged: '+fm1.Q1ORDERKEY.asString+', '
-//        +DS.Dbg1);//&&&
-//     fm1.Memo1.Lines.Add( IntToStr(DS.CurRecord) + ', '  + IntToStr(DS.RecordCount) );
-//     if EOF then fm1.Memo1.Lines.Add('EOF');//&&&
-//      end;
-//      {$ENDIF}
    inherited DataSetChanged;
 end;
 
 procedure TgsDataLink.DataEvent(Event: TDataEvent; Info: Longint);
-//var
-//  OldPseudoRecordsOn: Boolean;
-//  DS: TIBCustomDataSet;
 begin
-  if (Event <> deUpdateState) and Active then
-    if Event = deDataSetChange then
-    begin
-      {$IFDEF NEW_GRID} { TODO : ^^^^ DataLink.ActiveRecord в DataSetChanged грида }
-      if DataSetIsIBCustom(DataSource) then
-        if TIBCustomDataSet(DataSource.DataSet).GroupSortExist then
-        begin
-//        DS := TIBCustomDataSet(DataSource.DataSet);
-//fm1.Memo1.Lines.Add('_ DataEvent: '+fm1.Q1ORDERKEY.asString+', '
-//        +DS.Dbg1);//&&&
-//fm1.Memo1.Lines.Add( IntToStr(DS.CurRecord) + ', '  + IntToStr(DS.RecordCount) );
-//if EOF then fm1.Memo1.Lines.Add('EOF');//&&&
-        if TIBCustomDataSet(DataSource.DataSet).PseudoSkip > 0 then begin
-//          OldPseudoRecordsOn := TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn;
-          TIBCustomDataSet(DataSource.DataSet).PseudoRecordsOn := True;
-          //TIBCustomDataSet(DataSource.DataSet).Resync([]);
-        end;  
-      end;
-      {$ENDIF}
-    end;
   inherited DataEvent(Event, Info);
 end;
-
 
 constructor TgsDataLink.Create;
 begin
@@ -11729,7 +10037,6 @@ begin
 end;
 
 initialization
-
   GridHintWindow := nil;
 
   {$IFDEF GEDEMIN}
@@ -11737,7 +10044,6 @@ initialization
   {$ENDIF}
 
 finalization
-
   {$IFDEF GEDEMIN}
   RegExp := Unassigned;
   {$ENDIF}
@@ -11750,7 +10056,6 @@ finalization
 
   if GridHintWindow <> nil then
     FreeAndNil(GridHintWindow);
-
 end.
 
 

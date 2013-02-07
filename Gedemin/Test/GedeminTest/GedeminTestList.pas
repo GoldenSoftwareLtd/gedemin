@@ -27,6 +27,7 @@ uses
   , Test_dlgAbout_unit
   , Test_gdcObject_unit
   , Test_gd_Security_unit
+  , Test_Apps_FA_unit
   {$ENDIF}
   ;
   
