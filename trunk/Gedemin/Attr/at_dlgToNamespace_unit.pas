@@ -14,7 +14,6 @@ type
     dsMain: TDataSource;
     ActionList: TActionList;
     actShowLink: TAction;
-    IBTransaction: TIBTransaction;
     actOK: TAction;
     actCancel: TAction;
     actClear: TAction;
@@ -35,6 +34,7 @@ type
     Panel1: TPanel;
     btnOK: TBitBtn;
     btnCancel: TBitBtn;
+    IBTransaction: TIBTransaction;
     procedure FormCreate(Sender: TObject);
     procedure actShowLinkExecute(Sender: TObject);
     procedure actOKExecute(Sender: TObject);
@@ -44,10 +44,8 @@ type
   private
     FgdcObject: TgdcBase;
     FIsAdded: Boolean;
-    FClearId: Integer;
+    FClearId: Integer; 
 
-    procedure GetNamespace(AnObject: TgdcBase; out AnID: Integer; out AName: String);
-    procedure CreateList(AnObject: TgdcBase);
     procedure DeleteObjects;
     procedure AddObjects;
     procedure OnChecked(Sender: TObject; CheckID: String;
@@ -99,9 +97,8 @@ end;
 
 procedure TdlgToNamespace.Setup(AnObject: TObject);
 var
-  ID: Integer;
-  Name: String;
   q: TIBSQL;
+  KSA: TgdKeyStringAssoc;
 begin
   Assert(gdcBaseManager <> nil);
   Assert(AnObject is TgdcBase);
@@ -111,62 +108,37 @@ begin
 
   if not IBTransaction.InTransaction then
     IBTransaction.StartTransaction;
-    
+
   FIsAdded := False;
   FClearId := -1;
-  GetNamespace(FgdcObject, ID, Name);
 
-  if ID <> -1 then
-  begin
-    FIsAdded := True;
-    lkup.CurrentKeyInt := ID;
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := IBTransaction;
-      q.SQL.Text := 'SELECT * FROM at_object WHERE xid = :xid AND dbid = :dbid';
-      q.ParamByName('xid').AsInteger := FgdcObject.GetRuid.XID;
-      q.ParamByName('dbid').AsInteger := FgdcObject.GetRuid.DBID;
-      q.ExecQuery;
-
-      if not q.EOF then
-      begin
-        cbAlwaysOverwrite.Checked := q.FieldByName('alwaysoverwrite').AsInteger = 1;
-        cbDontRemove.Checked := q.FieldByName('dontremove').AsInteger = 1;
-        cbIncludeSiblings.Checked := q.FieldByName('includesiblings').AsInteger = 1;
-      end;
-    finally
-      q.Free;
-    end;
-  end;
-end;
-
-procedure TdlgToNamespace.GetNamespace(AnObject: TgdcBase; out AnID: Integer; out AName: String);
-var
-  q: TIBSQL;
-  RUID: TRUID;
-begin
-  Assert(AnObject <> nil);
-  
-  AnID := -1;
-  AName := '';
-
-  q := TIBSQL.Create(nil);
+  KSA := TgdKeyStringAssoc.Create;
   try
-    q.Transaction := IBTransaction;
-    q.SQL.Text := 'SELECT n.id, n.name FROM at_object o ' +
-      'LEFT JOIN at_namespace n ON o.namespacekey = n.id ' +
-      'WHERE o.xid = :xid and o.dbid = :dbid';
-    RUID := AnObject.GetRUID;
-    q.ParamByName('xid').AsInteger := RUID.XID;
-    q.ParamByName('dbid').AsInteger := RUID.DBID;
-    q.ExecQuery;
-    if not q.EOF then
+    TgdcNamespace.SetNamespaceForObject(FgdcObject, KSA, IBTransaction);
+    if KSA.Count > 0 then
     begin
-      AnID := q.FieldByName('id').AsInteger;
-      AName := q.FieldByName('name').AsString;
+      FIsAdded := True;
+      lkup.CurrentKeyInt := KSA[0];
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := IBTransaction;
+        q.SQL.Text := 'SELECT * FROM at_object WHERE xid = :xid AND dbid = :dbid';
+        q.ParamByName('xid').AsInteger := FgdcObject.GetRuid.XID;
+        q.ParamByName('dbid').AsInteger := FgdcObject.GetRuid.DBID;
+        q.ExecQuery;
+
+        if not q.EOF then
+        begin
+          cbAlwaysOverwrite.Checked := q.FieldByName('alwaysoverwrite').AsInteger = 1;
+          cbDontRemove.Checked := q.FieldByName('dontremove').AsInteger = 1;
+          cbIncludeSiblings.Checked := q.FieldByName('includesiblings').AsInteger = 1;
+        end;
+      finally
+        q.Free;
+      end;
     end;
   finally
-    q.Free;
+    KSA.Free;
   end;
 end;
 
@@ -239,8 +211,13 @@ end;
 
 procedure TdlgToNamespace.actShowLinkExecute(Sender: TObject);
 begin
-  cdsLink.EmptyDataSet;
-  CreateList(FgdcObject);
+  cdsLink.DisableControls;
+  try
+    cdsLink.EmptyDataSet;
+    TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction);
+  finally
+    cdsLink.EnableControls;
+  end;
 end;
 
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
@@ -266,119 +243,6 @@ begin
       'Объект уже входит в пространство имен ''' + cdsLink.FieldByName('namespace').AsString + '''!'),
       'Внимание',
       MB_OK or MB_ICONHAND or MB_TASKMODAL);
-  end;
-end;
-
-procedure TdlgToNamespace.CreateList(AnObject: TgdcBase);
-
-  procedure GetBindedObjectsForTable(const ATableName: String);
-  const
-    NotSavedField = ';LB;RB;CREATORKEY;EDITORKEY;';
-  var
-    R: TatRelation;
-    I, ID: Integer;
-    C: TgdcFullClass;
-    Obj: TgdcBase;
-    F: TField;
-    Name: String;
-  begin
-    R := atDatabase.Relations.ByRelationName(ATableName);
-    Assert(R <> nil);
-
-    for I := 0 to R.RelationFields.Count - 1 do
-    begin
-      if cdsLink.RecordCount >= DefCount then
-        break;
-
-      if AnsiPos(';' + Trim(R.RelationFields[I].FieldName) + ';', NotSavedField) > 0 then
-        continue;
-
-      F := AnObject.FindField(R.RelationName, R.RelationFields[I].FieldName);
-      if (F = nil) or F.IsNull or (F.DataType <> ftInteger) then
-      begin
-        continue;
-      end;
-
-      if R.RelationFields[I].gdClass <> nil then
-      begin
-        C.gdClass := CgdcBase(R.RelationFields[I].gdClass);
-        C.SubType := R.RelationFields[I].gdSubType;
-      end else
-      begin
-        C.gdClass := nil;
-        C.SubType := '';
-      end;
-
-      if (C.gdClass = nil) and (R.RelationFields[I].References <> nil) then
-      begin
-        C := GetBaseClassForRelationByID(R.RelationFields[I].References.RelationName,
-          AnObject.FieldByName(R.RelationName, R.RelationFields[I].FieldName).AsInteger,
-          IBTransaction);
-      end;
-
-      if (C.gdClass <> nil) and
-        (not (FgdcObject.ClassType.InheritsFrom(C.gdClass) and (F.AsInteger = FgdcObject.ID))) then
-      begin
-        Obj := C.gdClass.CreateSingularByID(nil,
-          IBTransaction.DefaultDatabase,
-          IBTransaction,
-          F.AsInteger,
-          C.SubType);
-        try
-          if not cdsLink.Locate('id', Obj.ID, []) then
-          begin
-            cdsLink.Insert;
-            cdsLink.FieldByName('id').AsInteger := Obj.ID;
-            cdsLink.FieldByName('Name').AsString := Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString;
-            cdsLink.FieldByname('Class').AsString := Obj.ClassName;
-            cdsLink.FieldByName('SubType').AsString := Obj.SubType;
-            GetNamespace(Obj, ID, Name);
-            if ID > -1 then
-            begin
-              cdsLink.FieldByName('Namespacekey').AsInteger := ID;
-              cdsLink.FieldByName('namespace').AsString := Name;
-            end;
-            cdsLink.Post; 
-          end;
-          CreateList(Obj);
-        finally
-          Obj.Free;
-        end;
-      end;
-    end;
-  end;
-
-var
-  LinkTableList: TStringList;
-  LT: TStrings;
-  I: Integer;
-begin
-  Assert(atDatabase <> nil);
-
-  LinkTableList := TStringList.Create;
-  LT := TStringList.Create;
-  try
-    (LT as TStringList).Duplicates := dupIgnore;
-    GetTablesName(AnObject.SelectSQL.Text, LT);
-    LinkTableList.Clear;
-    LinkTableList.Add(AnObject.GetListTable(FgdcObject.SubType));
-
-    for I := 0 to LT.Count - 1 do
-    begin
-      if (LinkTableList.IndexOf(LT[I]) = -1)
-        and (AnObject.ClassType.InheritsFrom(GetBaseClassForRelation(LT[I]).gdClass))
-      then
-        LinkTableList.Add(LT[I]);
-    end;
-
-    for I := 0 to LinkTableList.Count - 1 do
-      GetBindedObjectsForTable(LinkTableList[I]);
-
-    if FgdcObject.SetTable > '' then
-      GetBindedObjectsForTable(AnObject.SetTable);
-  finally
-    LT.Free;
-    LinkTableList.Free;
   end;
 end;
 

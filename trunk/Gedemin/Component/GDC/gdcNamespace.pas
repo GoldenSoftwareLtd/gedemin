@@ -41,6 +41,8 @@ type
     class procedure InstallPackages(SL: TStringList);
     class procedure DeleteObjectsFromNamespace(ANamespacekey: Integer; AnObjectIDList: TgdKeyArray; ATr: TIBTransaction);
     class procedure SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
+    class procedure SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
+   
 
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
@@ -1720,7 +1722,7 @@ begin
   finally
     q.Free;
   end;
-end;
+end; 
 
 class procedure TgdcNamespace.SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
 var
@@ -1752,7 +1754,148 @@ begin
   finally
     q.Free;
   end;
-end; 
+end;
+
+
+class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
+
+  procedure GetTableList(Obj: TgdcBase; SL: TStringList);
+  var
+    LT: TStrings;
+    I: Integer;
+  begin 
+    LT := TStringList.Create;
+    try
+      (LT as TStringList).Duplicates := dupIgnore;
+      GetTablesName(Obj.SelectSQL.Text, LT);
+      SL.Clear;
+      SL.Add(AnObject.GetListTable(Obj.SubType));
+
+      for I := 0 to LT.Count - 1 do
+      begin
+        if (SL.IndexOf(LT[I]) = -1)
+          and (Obj.ClassType.InheritsFrom(GetBaseClassForRelation(LT[I]).gdClass))
+        then
+          SL.Add(LT[I]);
+      end;
+    finally
+      LT.Free;
+    end;
+  end;
+
+  procedure GetBindedObjectsForTable(AnObj: TgdcBase; const ATableName: String);
+  const
+    NotSavedField = ';LB;RB;CREATORKEY;EDITORKEY;';
+  var
+    R: TatRelation;
+    I, J: Integer;
+    C: TgdcFullClass;
+    Obj: TgdcBase;
+    F: TField;
+
+    SL: TStringList;
+    KSA: TgdKeyStringAssoc;
+  begin
+    R := atDatabase.Relations.ByRelationName(ATableName);
+    Assert(R <> nil);
+
+    for I := 0 to R.RelationFields.Count - 1 do
+    begin 
+      if AnsiPos(';' + Trim(R.RelationFields[I].FieldName) + ';', NotSavedField) > 0 then
+        continue;
+
+      F := AnObj.FindField(R.RelationName, R.RelationFields[I].FieldName);
+      if (F = nil) or F.IsNull or (F.DataType <> ftInteger) then
+      begin
+        continue;
+      end;
+
+      if R.RelationFields[I].gdClass <> nil then
+      begin
+        C.gdClass := CgdcBase(R.RelationFields[I].gdClass);
+        C.SubType := R.RelationFields[I].gdSubType;
+      end else
+      begin
+        C.gdClass := nil;
+        C.SubType := '';
+      end;
+
+      if (C.gdClass = nil) and (R.RelationFields[I].References <> nil) then
+      begin
+        C := GetBaseClassForRelationByID(R.RelationFields[I].References.RelationName,
+          AnObj.FieldByName(R.RelationName, R.RelationFields[I].FieldName).AsInteger,
+          ATr);
+      end;
+
+      if (C.gdClass <> nil) and
+        (not (AnObject.ClassType.InheritsFrom(C.gdClass) and (F.AsInteger = AnObject.ID))) then
+      begin
+        Obj := C.gdClass.CreateSingularByID(nil,
+          ATr.DefaultDatabase,
+          ATr,
+          F.AsInteger,
+          C.SubType);
+        try
+          if not ADataSet.Locate('id', Obj.ID, []) then
+          begin
+            ADataSet.Insert;
+            ADataSet.FieldByName('id').AsInteger := Obj.ID;
+            ADataSet.FieldByName('Name').AsString := Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString;
+            ADataSet.FieldByname('Class').AsString := Obj.ClassName;
+            ADataSet.FieldByName('SubType').AsString := Obj.SubType;
+            KSA := TgdKeyStringAssoc.Create;
+            try
+              SetNamespaceForObject(Obj, KSA, ATr);
+              if KSA.Count > 0 then
+              begin
+                ADataSet.FieldByName('Namespacekey').AsInteger := KSA[0];
+                ADataSet.FieldByName('namespace').AsString := KSA.ValuesByIndex[0];
+              end;
+            finally
+              KSA.Free;
+            end;
+            ADataSet.Post;
+          end;
+          SL := TStringList.Create;
+          try
+            GetTableList(Obj, SL);
+            for J := 0 to SL.Count - 1 do
+              GetBindedObjectsForTable(Obj, SL[J]);
+            if Obj.SetTable > '' then
+              GetBindedObjectsForTable(Obj,Obj.SetTable);
+          finally
+            SL.Free;
+          end;
+        finally
+          Obj.Free;
+        end;
+      end;
+    end;
+  end;
+
+var
+  LinkTableList: TStringList;
+  I: Integer;
+begin
+  Assert(atDatabase <> nil);
+  Assert(ADataSet <> nil);
+
+  if (ATr = nil) or (not ATr.InTransaction) then
+    raise Exception.Create('Invalid transaction!');
+
+  LinkTableList := TStringList.Create;
+  try
+    GetTableList(AnObject, LinkTableList);
+
+    for I := 0 to LinkTableList.Count - 1 do
+      GetBindedObjectsForTable(AnObject, LinkTableList[I]);
+
+    if AnObject.SetTable > '' then
+      GetBindedObjectsForTable(AnObject, AnObject.SetTable);
+  finally
+    LinkTableList.Free;
+  end; 
+end;
 
 function TgdcNamespace.GetOrderClause: String;
   {@UNFOLD MACRO INH_ORIG_PARAMS(VAR)}
