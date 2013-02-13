@@ -18,18 +18,19 @@ object dlgToNamespace: TdlgToNamespace
   object pnlGrid: TPanel
     Left = 0
     Top = 135
-    Width = 569
-    Height = 281
+    Width = 577
+    Height = 292
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object dbgrListLink: TgsDBGrid
       Left = 0
       Top = 0
-      Width = 569
-      Height = 250
+      Width = 577
+      Height = 261
       Align = alClient
       DataSource = dsMain
+      Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
       ParentFont = False
       ReadOnly = True
       TabOrder = 0
@@ -49,20 +50,28 @@ object dlgToNamespace: TdlgToNamespace
       TitleFont.Name = 'Tahoma'
       TitleFont.Style = []
       InternalMenuKind = imkWithSeparator
-      Expands = <>
-      ExpandsActive = False
+      Expands = <
+        item
+          DisplayField = 'displayname'
+          LineCount = 3
+          Options = [ceoMultiline]
+        end>
+      ExpandsActive = True
       ExpandsSeparate = False
       Conditions = <>
       ConditionsActive = False
+      CheckBox.DisplayField = 'displayname'
       CheckBox.FieldName = 'id'
       CheckBox.Visible = True
       CheckBox.FirstColumn = True
+      ScaleColumns = True
       MinColWidth = 40
+      ShowTotals = False
     end
     object pnlButtons: TPanel
       Left = 0
-      Top = 250
-      Width = 569
+      Top = 261
+      Width = 577
       Height = 31
       Align = alBottom
       BevelOuter = bvNone
@@ -83,7 +92,7 @@ object dlgToNamespace: TdlgToNamespace
         TabOrder = 1
       end
       object Panel1: TPanel
-        Left = 394
+        Left = 402
         Top = 0
         Width = 175
         Height = 31
@@ -127,7 +136,7 @@ object dlgToNamespace: TdlgToNamespace
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 569
+    Width = 577
     Height = 135
     Align = alTop
     BevelOuter = bvNone

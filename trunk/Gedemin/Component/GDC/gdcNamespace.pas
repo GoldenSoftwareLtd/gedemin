@@ -42,7 +42,8 @@ type
     class procedure DeleteObjectsFromNamespace(ANamespacekey: Integer; AnObjectIDList: TgdKeyArray; ATr: TIBTransaction);
     class procedure SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
     class procedure SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
-   
+    class procedure AddObject(ANamespacekey: Integer; const AName: String; const AClass: String; const ASubType: String;
+      xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1; ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
 
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
@@ -1634,7 +1635,7 @@ class procedure TgdcNamespace.ScanLinkNamespace2(const APath: String);
           N := M.FindByName('USES');
           if (N <> nil) and (N is TyamlSequence) and ((N as TyamlSequence).Count > 0) then
           begin
-            q.SQL.Text := 'UPDATE OR INSERT INTO at_namespaceGTT ' +
+            q.SQL.Text := 'UPDATE OR INSERT INTO at_namespace_link_gtt ' +
               '  (namespaceruid, usesruid) ' +
               'VALUES (:NSR, :UR) ' +
               'MATCHING (namespaceruid, usesruid) ';
@@ -1800,7 +1801,7 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
     Assert(R <> nil);
 
     for I := 0 to R.RelationFields.Count - 1 do
-    begin 
+    begin
       if AnsiPos(';' + Trim(R.RelationFields[I].FieldName) + ';', NotSavedField) > 0 then
         continue;
 
@@ -1827,8 +1828,11 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
           ATr);
       end;
 
-      if (C.gdClass <> nil) and
-        (not (AnObject.ClassType.InheritsFrom(C.gdClass) and (F.AsInteger = AnObject.ID))) then
+      if (C.gdClass <> nil)
+        and
+        (F.AsInteger > cstUserIDStart)
+        and
+        (F.AsInteger <> AnObject.ID) then
       begin
         Obj := C.gdClass.CreateSingularByID(nil,
           ATr.DefaultDatabase,
@@ -1838,18 +1842,26 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
         try
           if not ADataSet.Locate('id', Obj.ID, []) then
           begin
-            ADataSet.Insert;
+            ADataSet.Append;
             ADataSet.FieldByName('id').AsInteger := Obj.ID;
-            ADataSet.FieldByName('Name').AsString := Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString;
-            ADataSet.FieldByname('Class').AsString := Obj.ClassName;
-            ADataSet.FieldByName('SubType').AsString := Obj.SubType;
+            ADataSet.FieldByName('name').AsString := Obj.ObjectName;
+            ADataSet.FieldByname('class').AsString := Obj.ClassName;
+            ADataSet.FieldByName('subtype').AsString := Obj.SubType;
+            if Obj.SubType > '' then
+              ADataSet.FieldByName('displayname').AsString := Obj.ClassName + '\' + Obj.SubType
+            else
+              ADataSet.FieldByName('displayname').AsString := Obj.ClassName;
+            ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
+              #13#10 + Obj.ObjectName;
             KSA := TgdKeyStringAssoc.Create;
             try
               SetNamespaceForObject(Obj, KSA, ATr);
               if KSA.Count > 0 then
               begin
-                ADataSet.FieldByName('Namespacekey').AsInteger := KSA[0];
+                ADataSet.FieldByName('namespacekey').AsInteger := KSA[0];
                 ADataSet.FieldByName('namespace').AsString := KSA.ValuesByIndex[0];
+                ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
+                  #13#10 + KSA.ValuesByIndex[0];
               end;
             finally
               KSA.Free;
@@ -1894,7 +1906,39 @@ begin
       GetBindedObjectsForTable(AnObject, AnObject.SetTable);
   finally
     LinkTableList.Free;
-  end; 
+  end;
+end;
+
+class procedure TgdcNamespace.AddObject(ANamespacekey: Integer; const AName: String; const AClass: String; const ASubType: String;
+  xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1; ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
+var
+  q: TIBSQL;
+begin
+  if (ATr = nil) or (not ATr.InTransaction) then
+    raise Exception.Create('Invalid transaction!');
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ATr;
+    q.SQL.Text :=
+      'UPDATE OR INSERT INTO at_object ' +
+      '  (namespacekey, objectname, objectclass, subtype, xid, dbid, ' +
+      '  alwaysoverwrite, dontremove, includesiblings) ' +
+      'VALUES (:NSK, :ON, :OC, :ST, :XID, :DBID, :OW, :DR, :IS) ' +
+      'MATCHING (xid, dbid, namespacekey)';
+    q.ParamByName('NSK').AsInteger := ANamespacekey;
+    q.ParamByName('ON').AsString := AName;
+    q.ParamByName('OC').AsString := AClass;
+    q.ParamByName('ST').AsString := ASubType;
+    q.ParamByName('XID').AsInteger := XID;;
+    q.ParamByName('DBID').AsInteger := DBID;
+    q.ParamByName('OW').AsInteger := AnAlwaysOverwrite;
+    q.ParamByName('DR').AsInteger := ADontRemove;
+    q.ParamByName('IS').AsInteger := AnIncludeSiblings;
+    q.ExecQuery;    
+  finally
+    q.Free;
+  end;
 end;
 
 function TgdcNamespace.GetOrderClause: String;
