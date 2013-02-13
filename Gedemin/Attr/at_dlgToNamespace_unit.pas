@@ -76,8 +76,13 @@ begin
   CreateFields;
 
   cdsLink.CreateDataSet;
+  cdsLink.FieldByName('id').Visible := False;
+  cdsLink.FieldByName('name').Visible := False;
+  cdsLink.FieldByName('class').Visible := False;
+  cdsLink.FieldByName('subtype').Visible := False;
+  cdsLink.FieldByName('namespacekey').Visible := False;
+  cdsLink.FieldByName('namespace').Visible := False;
   cdsLink.Open;
-  cdsLink.EmptyDataSet;
 
   dbgrListLink.CheckBox.CheckBoxEvent := OnChecked;
   cbAlwaysOverwrite.Checked := True;
@@ -87,12 +92,13 @@ end;
 
 procedure TdlgToNamespace.CreateFields;
 begin
-  cdsLink.FieldDefs.Add('ID', ftInteger, 0, True);
-  cdsLink.FieldDefs.Add('Name', ftString, 60, False);
-  cdsLink.FieldDefs.Add('Class', ftString, 40, True);
-  cdsLink.FieldDefs.Add('SubType', ftString, 60, False);
-  cdsLink.FieldDefs.Add('Namespacekey', ftInteger, 0, False);
-  cdsLink.FieldDefs.Add('Namespace', ftString, 255, False);
+  cdsLink.FieldDefs.Add('id', ftInteger, 0, True);
+  cdsLink.FieldDefs.Add('displayname', ftString, 255, False);
+  cdsLink.FieldDefs.Add('name', ftString, 60, False);
+  cdsLink.FieldDefs.Add('class', ftString, 60, True);
+  cdsLink.FieldDefs.Add('subtype', ftString, 60, False);
+  cdsLink.FieldDefs.Add('namespacekey', ftInteger, 0, False);
+  cdsLink.FieldDefs.Add('namespace', ftString, 255, False);
 end;
 
 procedure TdlgToNamespace.Setup(AnObject: TObject);
@@ -161,51 +167,21 @@ end;
 
 procedure TdlgToNamespace.AddObjects;
 var
-  I: Integer;
-  q: TIBSQL;
+  I: Integer;  
   XID, DBID: TID;
 begin
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := IBTransaction;
-    q.SQL.Text :=
-      'UPDATE OR INSERT INTO at_object ' +
-      '  (namespacekey, objectname, objectclass, subtype, xid, dbid, ' +
-      '  alwaysoverwrite, dontremove, includesiblings) ' +
-      'VALUES (:NSK, :ON, :OC, :ST, :XID, :DBID, :OW, :DR, :IS) ' +
-      'MATCHING (xid, dbid, namespacekey)';
-    q.ParamByName('NSK').AsInteger := lkup.CurrentKeyInt;
-    q.ParamByName('ON').AsString := FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString;
-    q.ParamByName('OC').AsString := FgdcObject.ClassName;
-    q.ParamByName('ST').AsString := FgdcObject.SubType;
-    gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
-    q.ParamByName('XID').AsInteger := XID;;
-    q.ParamByName('DBID').AsInteger := DBID;
-    q.ParamByName('OW').AsInteger := Integer(cbAlwaysOverwrite.Checked);
-    q.ParamByName('DR').AsInteger := Integer(cbDontRemove.Checked);
-    q.ParamByName('IS').AsInteger := Integer(cbIncludeSiblings.Checked);
-    q.ExecQuery;
+  gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
+  TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
+  FgdcObject.SubType, XID, DBID, IBTransaction, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
 
-    q.Close;
-
-    for I := 0 to dbgrListLink.CheckBox.CheckList.Count - 1 do
+  for I := 0 to dbgrListLink.CheckBox.CheckList.Count - 1 do
+  begin
+    if cdsLink.Locate('id', dbgrListLink.CheckBox.CheckList[I], []) then
     begin
-      if cdsLink.Locate('id', StrToInt(dbgrListLink.CheckBox.CheckList[I]), []) then
-      begin
-        q.ParamByName('NSK').AsInteger := lkup.CurrentKeyInt;
-        q.ParamByName('ON').AsString := cdsLink.FieldByName('name').AsString;
-        q.ParamByName('OC').AsString := cdsLink.FieldByName('class').AsString;
-        q.ParamByName('ST').AsString := cdsLink.FieldByName('subtype').AsString;
-        gdcBaseManager.GetRUIDByID(cdsLink.FieldByName('id').AsInteger, XID, DBID, IBTransaction);
-
-        q.ParamByName('XID').AsInteger := XID;
-        q.ParamByName('DBID').AsInteger := DBID;
-        q.ExecQuery;
-        q.Close;
-      end;
+      gdcBaseManager.GetRUIDByID(cdsLink.FieldByName('id').AsInteger, XID, DBID, IBTransaction);
+      TgdcNamespace.AddObject(lkup.CurrentKeyInt, cdsLink.FieldByName('name').AsString, cdsLink.FieldByName('class').AsString,
+        cdsLink.FieldByName('subtype').AsString, XID, DBID, IBTransaction);
     end;
-  finally
-    q.Free;
   end;
 end;
 

@@ -2591,10 +2591,7 @@ begin
   FCurrNCUKey := -1;
 
   FDebitEntryLine := TgdcAcctEntryLine.Create(Self);
-
-
   FCreditEntryLine := TgdcAcctEntryLine.Create(Self);
-
 
   FTransactionKey := -1;
 end;
@@ -2643,17 +2640,18 @@ begin
 
     ExecSingleQuery(
       'INSERT INTO GD_DOCUMENT ' +
-      '  (ID, DOCUMENTTYPEKEY, NUMBER, DOCUMENTDATE, ' +
+      '  (ID, DOCUMENTTYPEKEY, NUMBER, DESCRIPTION, DOCUMENTDATE, ' +
       '   CURRKEY, COMPANYKEY, AVIEW, ACHAG, AFULL, ' +
       '   CREATORKEY, CREATIONDATE, EDITORKEY, EDITIONDATE, TRANSACTIONKEY) ' +
       'VALUES ' +
-      '  (:ID, :DOCUMENTTYPEKEY, :NUMBER, :DOCUMENTDATE, ' +
+      '  (:ID, :DOCUMENTTYPEKEY, :NUMBER, :DESCRIPTION, :DOCUMENTDATE, ' +
       '   :CURRKEY, :COMPANYKEY, :AVIEW, :ACHAG, :AFULL, ' +
       '   :CREATORKEY, :CREATIONDATE, :EDITORKEY, :EDITIONDATE, :TRANSACTIONKEY) ',
       VarArrayOf([
         FieldByName('documentkey').AsInteger,
         DefaultDocumentTypeKey,
         FieldByName('NUMBER').AsString,
+        FieldByName('DESCRIPTION').AsString,
         FieldByName('RECORDDATE').AsDateTime,
         FieldByName('CURRKEY').AsInteger,
         IBLogin.CompanyKey,
@@ -2670,12 +2668,13 @@ begin
   else
     ExecSingleQuery(
       'UPDATE GD_DOCUMENT SET ' +
-      '  NUMBER = :NUMBER, DOCUMENTDATE = :DOCUMENTDATE, ' +
+      '  NUMBER = :NUMBER, DESCRIPTION = :DESCRIPTION, DOCUMENTDATE = :DOCUMENTDATE, ' +
       '   CURRKEY = :CURRKEY, AVIEW = :AVIEW, ACHAG = :ACHAG, AFULL = :AFULL, ' +
       '   EDITORKEY = :EDITORKEY, EDITIONDATE = :EDITIONDATE, TRANSACTIONKEY = :TRANSACTIONKEY ' +
       'WHERE ID = :ID ',
       VarArrayOf([
         FieldByName('NUMBER').AsString,
+        FieldByName('DESCRIPTION').AsString,
         FieldByName('RECORDDATE').AsDateTime,
         FieldByName('CURRKEY').AsInteger,
         FieldByName('AVIEW').AsInteger,
@@ -2686,7 +2685,6 @@ begin
         FieldByName('documentkey').AsInteger
       ])
     );
-
 
   {@UNFOLD MACRO INH_ORIG_FINALLY('TGDCACCTSIMPLERECORD', 'DOBEFOREPOST', KEYDOBEFOREPOST)}
   {M}  finally
