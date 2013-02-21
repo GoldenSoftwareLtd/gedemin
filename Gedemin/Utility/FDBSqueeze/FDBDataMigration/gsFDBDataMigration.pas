@@ -193,10 +193,10 @@ begin
   FDatabase.DatabaseName := FDatabaseName;    // *.fdb
   FDatabase.Params.Clear;
   FDatabase.Params.Add('user_name=' + DEFAULT_IB_USER_NAME);
-  if ConnectionInformation.CharacterSet <> '' then                                                    //=========================== !!!!!!!!!!
-    FDatabase.Params.Add('lc_ctype=' + ConnectionInformation.CharacterSet); //кодировка для базы
+                                               
+    FDatabase.Params.Add('lc_ctype=' + DEFAULT_CHARACTER_SET); //кодировка для базы   /// ?
   FDatabase.LoginPrompt := False;
-  //Database.SQLDialect := 3; // 3-ий диалект
+  //FDatabase.SQLDialect := 3; // 3-ий диалект
   FDatabase.Open;
   
   FReadTransaction.StartTransaction; //Запуск читающей транзакции
@@ -388,8 +388,8 @@ begin
     end;
 end;  
   
-//===================  ListPkFk  
-//===========================================================[temp2] ListPkFk, master tables, detail tables, 1to1 master tables     /// ДОДЕЛАТЬ !
+//===================  /// ОФОРМИТЬ & ДОДЕЛАТЬ!
+//===========================================================[temp] ListPkFk, master tables, detail tables, 1to1 master tables  
     var
     textSQL: String;
     i: integer;
@@ -615,8 +615,8 @@ begin
   end;	 
 end;
 
-//=============================== MIGRATE 1-TO-1 DETAIL TABLES ================================
-procedure TgsFDBDataMigration.h_Migrate1to1DetailTbls(const A1to1DetailTblsPK: TIntList);           /// доделать! найти дитейл таблицы в связи
+//=============================== MIGRATE 1-TO-1 DETAIL TABLES ================================  ///  ПЕРЕПРОВЕРИТЬ !
+procedure TgsFDBDataMigration.h_Migrate1to1DetailTbls(const A1to1DetailTblsPK: TIntList);           
 var i, ii: integer;
 begin 
   //проверим таблицу-мастер для этой таблицы на ее наличичие в M
@@ -636,7 +636,7 @@ begin
   end;
 end;
 
-//============================= MIGRATE TABLES WITH MASTERKEY ==================================     ///доделать
+//============================= MIGRATE TABLES WITH MASTERKEY ==================================  ///  ДОДЕЛАТЬ !
 procedure TgsFDBDataMigration.h_MigrateMasterkeyTbls(const AMasterkeyTblsPK: TIntList, const AMasterkeys: TIntList);   
 var i: integer;
 begin
@@ -650,7 +650,7 @@ begin
 	end;
   end;
 
-
+//========================== ОФОРМИТЬ !!!
  //=================================[temp] private procedure перенос таблицы-связки_migration (TIntList ACrossList, TIntList masterPK)  //список РК связок и список РК мастер содержащии множество
 
   for i:=0 to list.Count-1 do
