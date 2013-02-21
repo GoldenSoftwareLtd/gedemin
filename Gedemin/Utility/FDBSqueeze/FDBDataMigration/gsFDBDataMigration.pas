@@ -3,10 +3,10 @@ unit GsFDBDataMigration;
 interface
 
 uses
-  IBDatabase, IBDatabaseInfo, IBSQL, Classes, Windows, SysUtils, gsHugeIntSet;
+  IBDatabase, IBDatabaseInfo, IBSQL, Classes, Windows, SysUtils, GsHugeIntSet;
 
 //const  
- 
+
 type
 
 TgsFDBDataMigration = class(TObject)
@@ -22,34 +22,36 @@ TgsFDBDataMigration = class(TObject)
     FDatabaseOriginalName: String;
     FDatabaseCopyName: String;
    
-    procedure SetDatabaseName(const Value: String);  ?
-    function GetDatabaseName: String;  ?
+    procedure SetDatabaseName(const Value: String);
+    function GetDatabaseName: String;
    
     IBSQLRead: TIBSQL;
     IBSQLWrite: TIBSQL;
-  //  slActivTriggers: TStringList; 
+  //  slActivTriggers: TStringList;
    
     function h_GetActivTriggers: TStringList;
     function h_GetActivIndices: TStringList;
    
-    procedure h_SwitchActivityTriggers(const ADisableFlag: integer, const ATriggers: TStringList, AIBSQL: TIBSQL); 
+    procedure h_SwitchActivityTriggers(const ADisableFlag: integer, const ATriggers: TStringList, AIBSQL: TIBSQL);
     procedure h_SwitchActivityIndices(const ADisableFlag: integer, const AIndices: TStringList, AIBSQL: TIBSQL);
    
     procedure h_DeleteAllConstraints;
     procedure h_RecreateAllConstraints;
-   
-   
-     X: TIntList  														              /// переделать в TIntList
-	 slPkFk: TStringList //ListPkFk
+
+    function h_IsFKField(const AFieldName, const ATableName: string): Boolean;
+    function h_IsFK(const AKey: Integer): Boolean;
+
+    ilFK: TIntList
+    commaTextPkFk : String
+
+    X: TIntList  														              /// переделать в TIntList
+    slPkFk: TStringList //ListPkFk
    
     procedure h_MigrateMasterTbls(const AMastersTblsPK: TIntList);
     procedure h_Migrate1to1DetailTbls(const A1to1DetailTblsPK: TIntList);
-    procedure h_MigrateMasterkeyTbls(const AMasterkeyTblsPK: TIntList, const AMasterkeys: TIntList); 
-
-///
-	
+    procedure h_MigrateMasterkeyTbls(const AMasterkeyTblsPK: TIntList, const AMasterkeys: TIntList);
+///...
   public
-  
     constructor Create;
     destructor Destroy; override;
 
@@ -61,34 +63,31 @@ TgsFDBDataMigration = class(TObject)
     // Копировать файл БД
     procedure CopyFile(const ADatabaseOriginalPath, ADatabaseCopyPath: String);
 	
-	procedure MigrateTbls; //-
+    procedure MigrateTbls; //-
     procedure BeforeMigrationPrepareDB; //-
-	procedure AfterMigrationPrepareDB; //-
+    procedure AfterMigrationPrepareDB; //-
 	
-  	property Database: TIBDatabase read FDatabase;
+    property Database: TIBDatabase read FDatabase;
     property DatabaseName: String read GetDatabaseName write SetDatabaseName;
     property DatabaseOriginalName: String read FDatabaseOriginalName write FDatabaseOriginalName;
     property DatabaseCopyName: String read FDatabaseCopyName write FDatabaseCopyName;
-	
-end;
-  
+
+///...
 implementation
 
 uses
-  SysUtils, IB, IBIntf, IBServices, IBHeader, IBErrorCodes,
-  gsSysUtils, JclStrings, gsFDBConvertLocalization_unit, forms;
-
+  SysUtils, IB;  //...
 const
   DEFAULT_IB_USER_NAME = 'SYSDBA';
   DEFAULT_IB_USER_PASSWORD = 'masterkey';
   DEFAULT_CHARACTER_SET = 'WIN1251';
 //DEFAULT_PAGE_SIZE = 8192;
-//DEFAULT_NUM_BUFFERS = 8192;  
- 
-//============================= CONSTRUCTOR CREATE =============================
+//DEFAULT_NUM_BUFFERS = 8192;
+
+//============================= CONSTRUCTOR CREATE =============================  /// Доделать
 constructor TgsFDBDataMigration.Create;
 begin
- // Создадим объекты базы данных, и информации о БД и свяжем их
+  // Создадим объекты базы данных, и информации о БД и свяжем их
   FDatabase := TIBDatabase.Create(nil);
   FDatabaseInfo := TIBDatabaseInfo.Create(nil);
   FDatabaseInfo.Database := Database;
@@ -104,8 +103,8 @@ begin
 
   FDatabaseCopyName := '';
 
-   M := TgsHugeIntSet.Create;
-   M2 := TgsHugeIntSet.Create;
+  M := TgsHugeIntSet.Create;
+  M2 := TgsHugeIntSet.Create;
    {  IBSQLRead.SQL.Text := ' SELECT GEN_ID(gd_g_unique, 1) as ID_UNIQUE ' +
      ' FROM RDB$DATABASE ';
    try
@@ -118,9 +117,10 @@ begin
      IBSQLRead.Close;
    end;
     }
-end; 
 
-//============================= DECTRUCTOR DESTROY =============================
+end;
+
+//============================= DECTRUCTOR DESTROY ============================= /// Доделать
 destructor TgsFDBDataMigration.Destroy;
 begin
   inherited;
@@ -133,7 +133,6 @@ begin
   FreeAndNil(DatabaseInfo);
   FreeAndNil(Database);
 
-  
 end;
 
 //============================= GET DB NAME ================================
@@ -144,14 +143,13 @@ end;
 //============================= SET DB NAME ================================
 procedure TgsFDBDataMigration.SetDatabaseName(const Value: String);
 begin
-  FDatabaseName := ExpandFileName(Value);               //добавит перед именем путь текущей директории  /// ? 
+  FDatabaseName := ExpandFileName(Value);               //добавит перед именем путь текущей директории  /// ?
 end;
-
 
 //============================= COPY DB FILE ================================
 procedure TgsFDBDataMigration.CopyFile(const ADatabaseOriginalPath, ADatabaseCopyPath: String);
 const
-  BUFFER_SIZE = 10240;  /// ?
+  BUFFER_SIZE = 10240;                                                           /// ?
 var
   Buffer: array[0..BUFFER_SIZE - 1] of byte;
   NumRead: Integer;
@@ -194,7 +192,7 @@ begin
   FDatabase.Params.Clear;
   FDatabase.Params.Add('user_name=' + DEFAULT_IB_USER_NAME);
                                                
-    FDatabase.Params.Add('lc_ctype=' + DEFAULT_CHARACTER_SET); //кодировка для базы   /// ?
+    FDatabase.Params.Add('lc_ctype=' + DEFAULT_CHARACTER_SET); //кодировка для базы /// ?
   FDatabase.LoginPrompt := False;
   //FDatabase.SQLDialect := 3; // 3-ий диалект
   FDatabase.Open;
@@ -219,23 +217,24 @@ end;
 //========================== GET ACTIV TRIGGERS ============================     ///переделать в SAVE ACTIV TRIGGERS (добавить private property slActivTriggers)
   {Result: список имен rdb$trigger_name всех активных триггеров}
 function TgsFDBDataMigration.h_GetActivTriggers: TStringList;
-var slActivTriggers: TStringList 
+var slActivTriggers: TStringList
 begin
   ///IBSQLRead.Close;
-  
+
   IBSQLRead.SQL.Text := ' SELECT g.Rdb$trigger_name AS trigger_name ' +
     ' FROM Rdb$triggers g ' +
     ' WHERE rdb$trigger_inactive = 0 ';
   try
-	IBSQLRead.ExecQuery;
-	if IBSQLRead.RecordCount > 0 then
+	  IBSQLRead.ExecQuery;
+	  if IBSQLRead.RecordCount > 0 then
     begin
-	   slActivTriggers:= TStringList.Create;
-	   while not IBSQLRead.Eof do
-       begin
-		 slActivTriggers.Add(IBSQLRead.FieldByName('trigger_name').AsString);
-		 IBSQLRead.Next;
-	   end;
+      slActivTriggers:= TStringList.Create;
+      while not IBSQLRead.Eof do
+      begin
+		    slActivTriggers.Add(IBSQLRead.FieldByName('trigger_name').AsString);
+		    IBSQLRead.Next;
+      end;
+    end;
   finally
     IBSQLRead.Close;
   end;
@@ -258,11 +257,12 @@ begin
     AIBSQL.Prepare;
     try
       AIBSQL.ExecQuery;
-	  AIBSQL.ParamByName('disableFlag').AsInteger := ADisableFlag;
-	  AIBSQL.ParamByName('trig_name').AsString := ATriggers[i];
-	finally
+	    AIBSQL.ParamByName('disableFlag').AsInteger := ADisableFlag;
+	    AIBSQL.ParamByName('trig_name').AsString := ATriggers[i];
+	  finally
       AIBSQL.Close;
     end;
+  end;
 end;
 
 //========================== GET ACTIV INDICES ============================        ///переделать в SAVE ACTIV INDICES (добавить private property slActivIndices)
@@ -275,20 +275,21 @@ begin
     ' FROM RDB$INDICES I ' +
     ' WHERE I.RDB$INDEX_INACTIVE = 0 ';
   try
-	IBSQLRead.ExecQuery;
-	if IBSQLRead.RecordCount > 0 then
+	  IBSQLRead.ExecQuery;
+	  if IBSQLRead.RecordCount > 0 then
     begin
-	  slActivIndices:= TStringList.Create;
+	    slActivIndices:= TStringList.Create;
       while not IBSQLRead.Eof do
       begin
-		slActivIndices.Add(IBSQLRead.FieldByName('index_name').AsString);
-		IBSQLRead.Next;
-	  end;
+		    slActivIndices.Add(IBSQLRead.FieldByName('index_name').AsString);
+		    IBSQLRead.Next;
+	    end;
+    end;
   finally
     IBSQLRead.Close;
   end;
-  Result := slActivTriggers;
-end;  
+  Result := slActivIndices;
+end;
 
 //======================= SWITCH ACTIVITY INDICES =========================
   {AIndices: состоит из rdb$index_name
@@ -306,53 +307,54 @@ begin
     AIBSQL.Prepare;
     try
       AIBSQL.ExecQuery;
-	  AIBSQL.ParamByName('disableFlag').AsInteger := ADisableFlag;
-	  AIBSQL.ParamByName('index_name').AsString := AIndices[i];
-	finally
+	    AIBSQL.ParamByName('disableFlag').AsInteger := ADisableFlag;
+	    AIBSQL.ParamByName('index_name').AsString := AIndices[i];
+    finally
       AIBSQL.Close;
     end;
 end;
 
-//========================= SAVE ALL CONSTRAINTS ==========================                    ///////////////////////     ДОДЕЛАТЬ !
+//========================= SAVE ALL CONSTRAINTS ==========================      ///  ДОДЕЛАТЬ
 
-//все ограничения (PK,FK,UNIC,CHEK,NOT NULL)
-IBSQLRead.SQL.Text := ' SELECT r.RDB$CONSTRAINT_TYPE as type, r.RDB$CONSTRAINT_NAME as name, ' +
-  ' r.RDB$INDEX_NAME as index, r.RDB$RELATION_NAME as relation ' +
-  ' FROM RDB$RELATION_CONSTRAINTS r '
-  ' ORDER BY RDB$CONSTRAINT_TYPE ';                                                         /// не пригодилось
-try
-  IBSQLRead.ExecQuery;
-  if IBSQLRead.RecordCount > 0 then
-  begin
-    //списки: тип, имя ограничения, имя индекса, имя таблицы    (СООТВЕТСТВЕННО)            /// лучше создать временно ТАБЛИЦУ и туда перенести ?
-	ConstrTypeList := TStringList.Create;
-	ConstraintNameList := TStringList.Create;
-    IndexNameList := TStringList.Create;
-	RelationNameList := TStringList.Create;
 
-	while not IBSQLRead.Eof do
-    begin
-     ConstrTypeList.Add(IBSQLRead.FieldByName('type').AsString);
-	 ConstraintNameList.Add(IBSQLRead.FieldByName('name').AsString);
-	 IndexNameList.Add(IBSQLRead.FieldByName('index').AsString);
-	 RelationNameList.Add(IBSQLRead.FieldByName('relation').AsString);
+  //все ограничения (PK,FK,UNIC,CHEK,NOT NULL)
+  IBSQLRead.SQL.Text := ' SELECT r.RDB$CONSTRAINT_TYPE as type, r.RDB$CONSTRAINT_NAME as name, ' +
+    ' r.RDB$INDEX_NAME as index, r.RDB$RELATION_NAME as relation ' +
+    ' FROM RDB$RELATION_CONSTRAINTS r '
+    ' ORDER BY RDB$CONSTRAINT_TYPE ';                                              /// не пригодилось
+    try
+      IBSQLRead.ExecQuery;
+      if IBSQLRead.RecordCount > 0 then
+      begin
+        //списки: тип, имя ограничения, имя индекса, имя таблицы    (СООТВЕТСТВЕННО) /// лучше создать временно ТАБЛИЦУ и туда перенести ?
+        ConstrTypeList := TStringList.Create;
+        ConstraintNameList := TStringList.Create;
+        IndexNameList := TStringList.Create;
+        RelationNameList := TStringList.Create;
+
+        while not IBSQLRead.Eof do
+        begin
+          ConstrTypeList.Add(IBSQLRead.FieldByName('type').AsString);
+          ConstraintNameList.Add(IBSQLRead.FieldByName('name').AsString);
+          IndexNameList.Add(IBSQLRead.FieldByName('index').AsString);
+          RelationNameList.Add(IBSQLRead.FieldByName('relation').AsString);
 	 
 
-	 { case IBSQLRead.FieldByName('type').AsString of
-        'UNIC' : begin
-		.Add(IBSQLRead.FieldByName('').AsString);
-		  end;
-		'PRIMARY KEY':
-		'FOREIGN KEY':
-        'CHECK':
-        'NOT NULL':
-	  }
-      IBSQLRead.Next;
-	end;
-  end;
-finally
-  IBSQLRead.Close;
-end;
+         { case IBSQLRead.FieldByName('type').AsString of
+            'UNIC' : begin
+                  .Add(IBSQLRead.FieldByName('').AsString);
+           end;
+          'PRIMARY KEY':
+          'FOREIGN KEY':
+          'CHECK':
+          'NOT NULL':
+         }
+          IBSQLRead.Next;
+        end;
+      end;
+    finally
+      IBSQLRead.Close;
+    end;
 
 //======================== DELETE ALL CONSTRAINTS =========================
 procedure TgsFDBDataMigration.h_DeleteAllConstraints;
@@ -364,7 +366,7 @@ begin
   finally
     IBSQLWrite.Close;
   end;
-end; 
+end;
 
 //======================= RECREATE ALL CONSTRAINTS ========================
 procedure TgsFDBDataMigration.h_RecreateAllConstraints;
@@ -372,200 +374,211 @@ var i: integer
 begin
   for i:=0 to ConstraintNameList.Count-1 do
   begin
-    IBSQLRead.ParamCheck := True;
-    IBSQLRead.SQL.Text := ' INSERT INTO RDB$RELATION_CONSTRAINTS ' +
+    IBSQLWrite.ParamCheck := True;
+    IBSQLWrite.SQL.Text := ' INSERT INTO RDB$RELATION_CONSTRAINTS ' +
       ' (RDB$CONSTRAINT_TYPE, RDB$CONSTRAINT_NAME, RDB$INDEX_NAME, RDB$RELATION_NAME) ' +
       ' VALUES (:constraint_type, :constraint_name, :inx_name, :relation_name) ';
-    IBSQLRead.Prepare;
+    IBSQLWrite.Prepare;
     try
-      IBSQLRead.ExecQuery;
-	  IBSQLRead.ParamByName('constraint_type').AsString := ConstrTypeList[i];
-      IBSQLRead.ParamByName('constraint_name').AsString := ConstraintNameList[i];
-      IBSQLRead.ParamByName('inx_name').AsString := IndexNameList[i];
-      IBSQLRead.ParamByName('relation_name').AsString := RelationNameList[i];
+      IBSQLWrite.ExecQuery;
+	    IBSQLWrite.ParamByName('constraint_type').AsString := ConstrTypeList[i];
+      IBSQLWrite.ParamByName('constraint_name').AsString := ConstraintNameList[i];
+      IBSQLWrite.ParamByName('inx_name').AsString := IndexNameList[i];
+      IBSQLWrite.ParamByName('relation_name').AsString := RelationNameList[i];
     finally
       IBSQLRead.Close;
     end;
-end;  
-  
-//===================  /// ОФОРМИТЬ & ДОДЕЛАТЬ!
-//===========================================================[temp] ListPkFk, master tables, detail tables, 1to1 master tables  
-    var
-    textSQL: String;
-    i: integer;
-    master_table_name: TStringList;
-    master_field_name: TStringList;
+  end;
+end;
+
+//=============================================================================  /// ОФОРМИТЬ & ДОДЕЛАТЬ!
+//===================[temp] ListPkFk, master tables, detail tables, 1to1 master tables
+
+var
+  textSQL: String;
+  i: integer;
+  master_table_name: TStringList;
+  master_field_name: TStringList;
 	master_pk_field_name: TStringList;
-    detail_table_name: TStringList;   
-    detail_field_name: TStringList; 
+  detail_table_name: TStringList;
+  detail_field_name: TStringList;
     ///IntList  !
-	GD_DOCUMENT_pk_field: TStringList; 
+	GD_DOCUMENT_pk_field: TStringList;
 	masterkey_table_pk_field: TStringList; //содержащие masterkey или masterdockey
 	
 	
-    IBSQLRead.SQL.Text := ' SELECT I.rdb$relation_name   as Master_Table_Name ' +
-       ' I_S.rdb$field_name    as Master_Field_Name, ' +
-       ' F.rdb$field_name      as Master_PK_Field_Name, ' +
-       ' I1.rdb$relation_name  as Detail_Table_Name, ' +
-       ' I_S1.rdb$field_name   as Detail_Field_Name ';
-     ' FROM rdb$indices I ' +
-       ' JOIN rdb$index_segments I_S on I.rdb$index_name = I_S.rdb$index_name ' +
-       ' JOIN rdb$indices I1 on I1.rdb$index_name = I.rdb$foreign_key ' +
-       ' JOIN rdb$index_segments I_S1 on I1.rdb$index_name = I_S1.rdb$index_name ' +
-       ' JOIN RDB$RELATION_CONSTRAINTS C on I.rdb$relation_name = C.RDB$RELATION_NAME ' +
-       ' JOIN rdb$index_segments F on C.RDB$INDEX_NAME = F.RDB$INDEX_NAME ' +
-       ' WHERE  I.rdb$foreign_key is not null ' +
-       ' AND (C.RDB$CONSTRAINT_TYPE IN ('PRIMARY KEY')) ';
+  IBSQLRead.SQL.Text := ' SELECT I.rdb$relation_name   as Master_Table_Name ' +
+    ' I_S.rdb$field_name    as Master_Field_Name, ' +
+    ' F.rdb$field_name      as Master_PK_Field_Name, ' +
+    ' I1.rdb$relation_name  as Detail_Table_Name, ' +
+    ' I_S1.rdb$field_name   as Detail_Field_Name ';
+    ' FROM rdb$indices I ' +
+      ' JOIN rdb$index_segments I_S on I.rdb$index_name = I_S.rdb$index_name ' +
+      ' JOIN rdb$indices I1 on I1.rdb$index_name = I.rdb$foreign_key ' +
+      ' JOIN rdb$index_segments I_S1 on I1.rdb$index_name = I_S1.rdb$index_name ' +
+      ' JOIN RDB$RELATION_CONSTRAINTS C on I.rdb$relation_name = C.RDB$RELATION_NAME ' +
+      ' JOIN rdb$index_segments F on C.RDB$INDEX_NAME = F.RDB$INDEX_NAME ' +
+    ' WHERE  I.rdb$foreign_key is not null ' +
+      ' AND (C.RDB$CONSTRAINT_TYPE IN ("PRIMARY KEY")) ';
+
+  try
+    IBSQLRead.ExecQuery;
+
+    if IBSQLRead.RecordCount > 0 then
+    begin
+      master_table_name:= TStringList.Create;
+      master_field_name:= TStringList.Create;
+      master_pk_field_name:= TStringList.Create;
+      detail_table_name:= TStringList.Create;                                    // не пригодилось
+      detail_field_name:= TStringList.Create;                                    // не пригодилось
+
+
+      var                                                                        /// уже не надо?
+      field_master_table_name : string;
+      field_master_field_name : string;
+
+
+      i := 0;
+      while not IBSQLRead.Eof do
+      begin
+        field_master_table_name := IBSQLRead.FieldByName('Master_Table_Name').AsString;
+        field_master_field_name := IBSQLRead.FieldByName('Master_Field_Name').AsString;
+
+          master_pk_field_name.Add(IBSQLRead.FieldByName('Master_PK_Field_Name').AsString);
+          master_table_name.Add(IBSQLRead.FieldByName('Master_Table_Name').AsString);
+          master_field_name.Add(IBSQLRead.FieldByName('Master_Field_Name').AsString);
+          // пока не пригодятся
+          detail_table_name.Add(IBSQLRead.FieldByName('Detail_Table_Name').AsString);
+          detail_field_name[i] := IBSQLRead.FieldByName('Detail_Field_Name').AsString;
+
+         i := i+1;
+         IBSQLRead.Next;
+      end;
+      //Result := List.Text;
+
+    end;
+  finally
+    IBSQLRead.Close;
+  end;
+
+  var
+  List: TStringList;
+  ElementStr: String;
+
+
+  Result := '';
+
+	//TablesNameList.Delete('GD_DOCUMENT');
+
+  for i := 0 to master_field_name.Count-1 do
+  begin
+    textSQL := 'SELECT '+master_pk_field_name[i]+' as Master_PK, '+master_field_name[i]+'as Master_FK FROM '+master_table_name[i] ;
+    IBSQLRead.SQL.Text := textSQL;
 
     try
       IBSQLRead.ExecQuery;
-
       if IBSQLRead.RecordCount > 0 then
       begin
-	    master_table_name:= TStringList.Create;
-		master_field_name:= TStringList.Create;
-		master_pk_field_name:= TStringList.Create;
-		detail_table_name:= TStringList.Create;
-		detail_field_name:= TStringList.Create;
-        
-		
-		
-		///уже не надо???
-		var 
-		field_master_table_name : string;
-		field_master_field_name : string;
-		
-		
-		i := 0;
-        // Пройдем по списку
+        ////                                                                     /// в констуктор
+        ilFK := TIntList.Create;
+
+
+	      GD_DOCUMENT_pk := TStringList.Create;                                    /// ПЕРЕДЕЛАТЬ в TIntList !
+        masterkey_table_pk:= TStringList.Create;
+
+        ///ilFK сортировка по возрастанию
+        ilFK := TIntList.Create;
+        ilFK.Compressed := True;   //cодержит повторяющиеся элементы
+
+        ListPkFk := TStringList.Create;
+        commaTextPkFk := '';
+        ////
+
+
+        //составляем списки pk таблиц                                              /// ИСКЛЮЧИТЬ таблицы-связки! (их через другой запрос надо)
         while not IBSQLRead.Eof do
         begin
-		  field_master_table_name := IBSQLRead.FieldByName('Master_Table_Name').AsString; 
-		  field_master_field_name := IBSQLRead.FieldByName('Master_Field_Name').AsString;
-		  	  
-		  
-		 
-		  else 
-		  begin
-		 
-	//	  else //в любом случае  
-	//	   begin
-			master_pk_field_name.Add(IBSQLRead.FieldByName('Master_PK_Field_Name').AsString);   //.Add()
-            master_table_name.Add(IBSQLRead.FieldByName('Master_Table_Name').AsString;
-            master_field_name.Add(IBSQLRead.FieldByName('Master_Field_Name').AsString;
-		// пока не пригодятся	
-            detail_table_name.Add(IBSQLRead.FieldByName('Detail_Table_Name').AsString;   
-            detail_field_name[i] := IBSQLRead.FieldByName('Detail_Field_Name').AsString; 
-    //     end;
-		  end;
-           i := i+1;
-           IBSQLRead.Next;
+          if(master_table_name[i] <> 'GD_RUID') then
+          begin
+            //[1]список pk Детальных таблиц
+            if (master_pk_field_name[i] = 'MASTERKEY')
+              or (master_pk_field_name[i] = 'MASTERDOCKEY') then
+            begin
+              masterkey_table_pk.Add(IBSQLRead.FieldByName('Master_PK').AsInteger);
+              TablesNameList.Values[master_table_name[i]] := IntToStr(StrToInt(TablesNameList.Values[master_table_name[i]]) + 1);//колво fk ++
+            end;
+            else begin
+            //[2] cписок pk GD_DOCUMENT
+              if(master_table_name[i] = 'GD_DOCUMENT') then
+              begin
+                GD_DOCUMENT_pk.Add(IBSQLRead.FieldByName('Master_PK').AsInteger);
+                //TablesNameList.Values['GD_DOCUMENT'] := IntToStr(StrToInt(TablesNameList.Values['GD_DOCUMENT']) + 1); //колво fk ++
+              end;
+              else begin
+            //[4]список таблиц 1-к-1 (не Главных)                                  /// условие УТОЧНИТЬ !
+                if (master_field_name[i] = master_pk_field_name[i]) then
+                begin
+                  master_1to1_pk.Add(IBSQLRead.FieldByName('Master_PK').AsInteger);
+                  TablesNameList.Values[master_table_name[i]] := IntToStr(StrToInt(TablesNameList.Values[master_table_name[i]]) + 1);//колво fk ++
+                end;
+                else begin
+            //[3]список таблиц-связок
+                 //	ID	         FIELDNAME	        RELATIONNAME	FIELDSOURCE	        CROSSTABLE	           CROSSFIELD	RELATIONKEY	FIELDSOURCEKEY	CROSSTABLEKEY	CROSSFIELDKEY
+                 //  147084221	USR$TESTTEST_FIELD	USR$TESTTEST	USR$ACC_DACCOUNTSET	USR$CROSS1045_2012822647	ALIAS	147084216	147039906
+
+                end;
+              end;
+            end;
+
+            //...
+          end;
+
+          //для function IsFK необходимо составить список из id fk
+          ilFK.Add(IBSQLRead.FieldByName('Master_FK').AsString);
+                                                                                   /// после цикла отсортировать по возрастанию
+
+          commaTextPkFk := IBSQLRead.FieldByName('Master_PK').AsString + '=' +
+            IBSQLRead.FieldByName('Master_FK').AsString ;
+
+          IBSQLRead.Next;
+          if not IBSQLRead.Eof then commaTextPkFk := commaTextPkFk + ', ';
         end;
-        //Result := List.Text;
-
-       end;
-     finally
-         IBSQLRead.Close;
-     end;
-
-
-    
-    List: TStringList;
-    ElementStr: String;
-    Result := '';
-
-	//TablesNameList.Delete('GD_DOCUMENT'); 
-		  
-	  
-  /// try
-   for i := 0 to master_field_name.Count-1 do
-   begin
-     textSQL := 'SELECT '+master_pk_field_name[i]+' as Master_PK, '+master_field_name[i]+'as Master_FK FROM '+master_table_name[i] ;
-  
-     IBSQLRead.SQL.Text := textSQL;
-
-     try
-     IBSQLRead.ExecQuery;
-     if IBSQLRead.RecordCount > 0 then
-     begin
-	 ///Int !
-	 GD_DOCUMENT_pk := TStringList.Create;
-     //GD_RUID_pk := TStringList.Create;	 
-     masterkey_table_pk:= TStringList.Create
-	 
-	 //составляем списки pk таблиц          /// ИСКЛЮЧИТЬ таблицы-связки! (их через другой запрос надо)
-	 if(master_table_name[i] <> 'GD_RUID') then 
-	 begin
-
-	   //[1]список pk Детальных таблиц
-	   if (master_pk_field_name[i] = 'MASTERKEY') 
-	    or (master_pk_field_name[i] = 'MASTERDOCKEY') then 
-	   begin 
-         masterkey_table_pk.Add(IBSQLRead.FieldByName('Master_PK').AsInteger);
-	     TablesNameList.Values[master_table_name[i]] := IntToStr(StrToInt(TablesNameList.Values[master_table_name[i]]) + 1);//колво fk ++
-	   end;
-	   else begin
-	     //[2] cписок pk GD_DOCUMENT
-		 if(master_table_name[i] = 'GD_DOCUMENT') then
-		 begin
-		   GD_DOCUMENT_pk.Add(IBSQLRead.FieldByName('Master_PK').AsInteger);
-	       //TablesNameList.Values['GD_DOCUMENT'] := IntToStr(StrToInt(TablesNameList.Values['GD_DOCUMENT']) + 1); //колво fk ++
-         end; 
-         else begin
-		   //[4]список таблиц 1-к-1 (не Главных)                     ///условие УТОЧНИТЬ !
-		   if (master_field_name[i] = master_pk_field_name[i]) then
-		   begin
-		     master_1to1_pk.Add(IBSQLRead.FieldByName('Master_PK').AsInteger);
-			 TablesNameList.Values[master_table_name[i]] := IntToStr(StrToInt(TablesNameList.Values[master_table_name[i]]) + 1);//колво fk ++
-		   end;
-		   else begin
-		     //[3]список таблиц-связок 
-//			 ID	         FIELDNAME	        RELATIONNAME	FIELDSOURCE	        CROSSTABLE	           CROSSFIELD	RELATIONKEY	FIELDSOURCEKEY	CROSSTABLEKEY	CROSSFIELDKEY	
-//            147084221	USR$TESTTEST_FIELD	USR$TESTTEST	USR$ACC_DACCOUNTSET	USR$CROSS1045_2012822647	ALIAS	147084216	147039906		
- 
-		   end;
-		 end;
-	   end;
-		
-		 
-
-	 end;
-	  
-	 
-       ListPkFk := TStringList.Create;
-       
-	   var commaTextPkFk : String  //глобальная!
-	   
-	   commaTextPkFk := '';
-		while not IBSQLRead.Eof do
-        begin 
-		  commaTextPkFk := IBSQLRead.FieldByName('Master_PK').AsString + '=' + IBSQLRead.FieldByName('Master_FK').AsString ; 
-          
-		  IBSQLRead.Next;
-		  if not IBSQLRead.Eof then commaTextPkFk := commaTextPkFk + ', '; 
-        end;
-     
-        //Result := List.Text;
-    
-	    ListPkFk.CommaText := commaTextPkFk; ///for i := 0 to ListPkFk.Count-1 do begin ShowMessage(ListPkFk.Names[i]+' - это PK '+ListPkFk.ValueFromIndex[i] + ' - это FK'); end;
-     end;
-	 finally
-       IBSQLRead.Close;
-     end;
+        ListPkFk.CommaText := commaTextPkFk;
+      end;
+	  finally
+      IBSQLRead.Close;
+    end;
 	end;
-     
 
-   ///
-  //finally
-  //  FreeAndNil(List);
-  //end; 
 
+//================================= IS FK FIELD ========================================
+function TgsFDBDataMigration.h_IsFKField(const AFieldName, const ATableName: string): Boolean;
+var iIndexTable, iIndexName: Integer;
+begin
+  Result := False;
+  for iIndexTable := 0 to master_table_name.Count-1 do
+  begin
+    if master_table_name[iIndexTable] = ATableName then
+    begin
+      if master_field_name[iIndexTable] = AFieldName then
+        Result := True;
+    end;
+  end;
+end;
+
+//==================================== IS FK ===========================================
+function TgsFDBDataMigration.h_IsFK(const AKey: Integer): Boolean;
+begin
+  if ilFK.IndexOf(AKey) <> -1 then
+    Result := True;
+  else Result := False;
+end;
 
 //=============================== MIGRATE MASTER TABLES ================================
-                                 /// X : TgsHugeIntSet   ПЕРЕДЕЛАТЬ в TIntList, X - список id записей от которых мы первоначально хотели избавиться
+   /// X : TgsHugeIntSet   ПЕРЕДЕЛАТЬ в TIntList, X - список id записей от которых мы первоначально хотели избавиться
   {AMastersTblsPK: cписок значений PK Главных таблиц }  
-procedure TgsFDBDataMigration.h_MigrateMasterTbls(const AMastersTblsPK: TIntList);   
-var iValue, i, ii: integer; 
+procedure TgsFDBDataMigration.h_MigrateMasterTbls(const AMastersTblsPK: TIntList);
+var iValue, i, ii: integer;
 begin    
   for i:=0 to AMastersTblsPK.Count-1 do
   begin
@@ -573,46 +586,46 @@ begin
     if (not X.Has(AMastersTblsPK[i]-147000000)) then
     begin
       M.Include(AMastersTblsPK[i]-147000000);
-	  //обработаем и все ее FK
-	  for ii:=0 to ListPkFk.Count-1 do
-	  begin
+	    //обработаем и все ее FK
+      for ii:=0 to ListPkFk.Count-1 do
+      begin
         if (ListPkFk.Names[ii] = AMastersTblsPK[i]) then
-	    begin
-	      iValue := ListPkFk.ValueFromIndex[ii]-147000000; 
-		  //while masFK[i] = NULL do i=i+1;  //не обрабатываем FK с NULL           /// ? 
-		  M.Include(iValue);
-		  if (M2.Has(iValue)) then
-		  begin 
-	        M2.Exclude(iValue);
-		  end;
-	    end;
-	  end;
-	  //из L удалить уже обработанные => ненужные записи
-	  for ii := 0 to ListPkFk.Count-1 do   
-	  begin
-        if (ListPkFk.Names[ii] = AMastersTblsPK[i])  then 
+        begin
+          iValue := ListPkFk.ValueFromIndex[ii]-147000000;
+          //while masFK[i] = NULL do i=i+1;  //не обрабатываем FK с NULL           /// ?
+          M.Include(iValue);
+          if (M2.Has(iValue)) then
+          begin
+            M2.Exclude(iValue);
+          end;
+        end;
+      end;
+      //из L удалить уже обработанные => ненужные записи
+      for ii := 0 to ListPkFk.Count-1 do
+      begin
+        if (ListPkFk.Names[ii] = AMastersTblsPK[i])  then
           //удалить значение-ключ из списка
-	      ListPkFk.Delete(ii);                         ///??
-	  end;
+          ListPkFk.Delete(ii);                         ///??
+      end;
     end;
     else begin //запись НЕ удовлетворяет условию
       M2.Include(AMastersTblsPK[i]-147000000);
-	  for ii:=0 to ListPkFk.Count-1 do
-	  begin
+      for ii:=0 to ListPkFk.Count-1 do
+      begin
         if (ListPkFk.Names[ii] = AMastersTblsPK[i]) then
-	    begin
-	      iValue := ListPkFk.ValueFromIndex[ii]-147000000; 
-		  //while iValue = NULL do i=i+1;  //не обрабатываем FK с NULL        /// ?
-		  if (not M.Has(iValue)) then
+        begin
+          iValue := ListPkFk.ValueFromIndex[ii]-147000000;
+          //while iValue = NULL do i=i+1;  //не обрабатываем FK с NULL        /// ?
+          if (not M.Has(iValue)) then
           begin
-		  //добавить значение-ключ в ListPkFk
+            //добавить значение-ключ в ListPkFk
             commaTextPkFk := commaTextPkFk + ', ' + IntToStr(AMastersTblsPK[i]) + '=' + IntToStr(iValue);
-          end;			   
-	    end;  
-	  end;
-	  ListPkFk.CommaText := commaTextPkFk;
+          end;
+        end;
+      end;
+	    ListPkFk.CommaText := commaTextPkFk;
     end;
-  end;	 
+  end;
 end;
 
 //=============================== MIGRATE 1-TO-1 DETAIL TABLES ================================  ///  ПЕРЕПРОВЕРИТЬ !
@@ -623,16 +636,16 @@ begin
   for i:=0 to A1to1DetailTblsPK.Count-1 do
   begin
     i2:=0;
-    while(ListPkFk.Values[i2] <> A1to1DetailTblsPK[i]) then
-	begin
-	  i2 := i2+1; 
-	end;
-	if (M.Has(ListPkFk.Names[i2]-147000000)) then //мастер таблица  pk
-	begin
-	//переносим ссыль
-	  M.Include(A1to1DetailTblsPK[i]-147000000);
-	  
-	end;
+    while(ListPkFk.Values[i2] <> A1to1DetailTblsPK[i]) do
+    begin
+        i2 := i2+1;
+    end;
+    if (M.Has(ListPkFk.Names[i2]-147000000)) then //мастер таблица  pk
+    begin
+      //переносим ссыль
+      M.Include(A1to1DetailTblsPK[i]-147000000);
+
+    end;
   end;
 end;
 
@@ -643,141 +656,139 @@ begin
   for i:=0 to AMasterkeyTblsPK.Count-1 do
   begin
     if (M.Has(AMasterkeys[i]-147000000)) then //мастер таблица  pk
-	begin
-	//переносим 
-	  M.Include(AMasterkeyTblsPK[i]-147000000);
-	                                                     /// ? 
-	end;
+	  begin
+	    //переносим
+	    M.Include(AMasterkeyTblsPK[i]-147000000);
+	                                                                               /// ?
+	  end;
   end;
-
-//========================== ОФОРМИТЬ !!!
- //=================================[temp] private procedure перенос таблицы-связки_migration (TIntList ACrossList, TIntList masterPK)  //список РК связок и список РК мастер содержащии множество
+end;
+//========================== ОФОРМИТЬ & ДОДЕЛАТЬ !
+//=================================[temp] private procedure перенос таблицы-связки_migration (TIntList ACrossList, TIntList masterPK)  //список РК связок и список РК мастер содержащии множество
 
   for i:=0 to list.Count-1 do
   begin
     if (M.Has(masterPK[i]-147000000)) then //мастер таблица  pk
-	begin
-	//переносим связку
-	  M.Include(list[i]-147000000);
-	                                                     /// ? 
-	end;
+	  begin
+	    //переносим связку
+	    M.Include(list[i]-147000000);
+                                                                                 /// ?
+	  end;
   end;
 
 //======================================================== temp [обработка  gd_document], cуществует X: TList c ID  неудовлетворяющими условию  
 
 procedure 
-   var id, i: integer;   
-   masFK: array[1..7] of integer;
-begin   
+var id, i: integer;
+masFK: array[1..7] of integer;
+begin
   // обработка шапок
-   IBSQLRead.SQL.Text := ' SELECT doc.ID, doc.DOCUMENTTYPEKEY, doc.TRTYPEKEY, doc.TRANSACTIONKEY, ' + 
-   ' doc.COMPANYKEY, doc.CREATORKEY, doc.CURRKEY, doc.EDITORKEY ' +
-   ' FROM GD_DOCUMENT doc ' +
-   ' WHERE doc.PARENT is NULL ';
-   try
-	 IBSQLRead.ExecQuery;
-	 if IBSQLRead.RecordCount > 0 then
-     begin
-		while not IBSQLRead.Eof do
-        begin
-		  masFK[0] := IBSQLRead.FieldByName('DOCUMENTTYPEKEY').AsInteger;
-		  masFK[1] := IBSQLRead.FieldByName('TRTYPEKEY').AsInteger;      //null??
-		  masFK[2] := IBSQLRead.FieldByName('COMPANYKEY').AsInteger;
-		  masFK[3] := IBSQLRead.FieldByName('CREATORKEY').AsInteger;
-		  masFK[4] := IBSQLRead.FieldByName('CURRKEY').AsInteger;        //null??
-		  masFK[5] := IBSQLRead.FieldByName('EDITORKEY').AsInteger;
-		  masFK[6] := IBSQLRead.FieldByName('TRANSACTIONKEY').AsInteger; //null??
-		
-          id = IBSQLRead.FieldByName('ID').AsInteger;		
+  IBSQLRead.SQL.Text := ' SELECT doc.ID, doc.DOCUMENTTYPEKEY, doc.TRTYPEKEY, doc.TRANSACTIONKEY, ' +
+  ' doc.COMPANYKEY, doc.CREATORKEY, doc.CURRKEY, doc.EDITORKEY ' +
+  ' FROM GD_DOCUMENT doc ' +
+  ' WHERE doc.PARENT is NULL ';
+  try
+    IBSQLRead.ExecQuery;
+    if IBSQLRead.RecordCount > 0 then
+    begin
+		  while not IBSQLRead.Eof do
+      begin
+        masFK[0] := IBSQLRead.FieldByName('DOCUMENTTYPEKEY').AsInteger;
+		    masFK[1] := IBSQLRead.FieldByName('TRTYPEKEY').AsInteger;               //null??
+        masFK[2] := IBSQLRead.FieldByName('COMPANYKEY').AsInteger;
+        masFK[3] := IBSQLRead.FieldByName('CREATORKEY').AsInteger;
+        masFK[4] := IBSQLRead.FieldByName('CURRKEY').AsInteger;                 //null??
+        masFK[5] := IBSQLRead.FieldByName('EDITORKEY').AsInteger;
+        masFK[6] := IBSQLRead.FieldByName('TRANSACTIONKEY').AsInteger;          //null??
+
+        id = IBSQLRead.FieldByName('ID').AsInteger;
 	      //если удовлетворяет условию
-	      if ( X.IndexOf(id)<> -1) then //поиск для неотсортированного списка  (-1 если отсутствует)
+	      if ( X.IndexOf(id)<> -1) then
 	      begin
-            M[id-147000000] := 1;
+          M[id-147000000] := 1;
 
 	        for i:=0 to masFK.Count-1 do
-			begin
-			  while masFK[i] = NULL do i=i+1;  //не обрабатываем FK с NULL
-			  M[masFK[i]-147000000] := 1;
-			  if (M2[masFK[i]-147000000] = 1) then // M2.Has(...)
-			  begin 
-			    M2.Exclude(...);  //
-			  end;
+			    begin
+            while masFK[i] = NULL do i=i+1;  //не обрабатываем FK с NULL
+            M[masFK[i]-147000000] := 1;
+            if (M2[masFK[i]-147000000] = 1) then // M2.Has(...)
+            begin
+              M2.Exclude(...);  //
+            end;
 	        end;
-			 //из L удалить все fk записи шапки
-			 for i := 0 to ListPkFk.Count-1 do   
-			 begin 
-			 if (ListPkFk.Names[i]= id )  then //PK GD_DOCUMENT
-			 //удалить значение-ключ из списка          //  ListPkFk.ValueFromIndex[i]  //ListPkFk.Value - это FK 
-			 ListPkFk.Delete(i);                         ///??
-			 end;
+			    //из L удалить все fk записи шапки
+			    for i := 0 to ListPkFk.Count-1 do
+			    begin
+			      if (ListPkFk.Names[i]= id )  then //PK GD_DOCUMENT
+			        //удалить значение-ключ из списка          //  ListPkFk.ValueFromIndex[i]  //ListPkFk.Value - это FK
+              ListPkFk.Delete(i);                         ///??
+			    end;
 	      end;
 	      //если запись НЕ удовлетворяет условию
-		  else 
-		  begin
-		    M2[id-147000000] := 1;
-			
-			for i:=0 to masFK.Count-1 do
-			begin
-			  while masFK[i] = NULL do i=i+1;  //не обрабатываем FK с NULL
-              if(M[masFK[i]-147000000] = 0) then
-              begin
-			   //добавить значение-ключ в ListPkFk
-               commaTextPkFk := commaTextPkFk + ', ' + id +'=' + masFK[i];
-              end;			   
-			end; 
-			ListPkFk.CommaText := commaTextPkFk;
-		  end;
+		    else
+		    begin
+		      M2[id-147000000] := 1;
+          for i:=0 to masFK.Count-1 do
+			    begin
+			      while masFK[i] = NULL do i=i+1;  //не обрабатываем FK с NULL
+            if(M[masFK[i]-147000000] = 0) then
+            begin
+			        //добавить значение-ключ в ListPkFk
+              commaTextPkFk := commaTextPkFk + ', ' + id +'=' + masFK[i];
+            end;
+          end;
+          ListPkFk.CommaText := commaTextPkFk;
+		    end;
 		  
 	      IBSQLRead.Next;
 	    end;
-   finally
-     IBSQLRead.Close;
-   end;
-   
-   //обработка позиций
-   IBSQLRead.SQL.Text := ' SELECT doc.ID, doc.PARENT, doc.DOCUMENTTYPEKEY, doc.TRTYPEKEY, doc.TRANSACTIONKEY, ' + 
-   ' doc.COMPANYKEY, doc.CREATORKEY, doc.CURRKEY, doc.EDITORKEY ' +
-   ' FROM GD_DOCUMENT doc ' +
-   ' WHERE doc.PARENT is NOT NULL ';
-   try
-	 IBSQLRead.ExecQuery;
-	 if IBSQLRead.RecordCount > 0 then
-     begin
-		while not IBSQLRead.Eof do
+    end;
+  finally
+    IBSQLRead.Close;
+  end;
+
+  //обработка позиций
+  IBSQLRead.SQL.Text := ' SELECT doc.ID, doc.PARENT, doc.DOCUMENTTYPEKEY, doc.TRTYPEKEY, doc.TRANSACTIONKEY, ' +
+    ' doc.COMPANYKEY, doc.CREATORKEY, doc.CURRKEY, doc.EDITORKEY ' +
+    ' FROM GD_DOCUMENT doc ' +
+    ' WHERE doc.PARENT is NOT NULL ';
+  try
+	  IBSQLRead.ExecQuery;
+	  if IBSQLRead.RecordCount > 0 then
+    begin
+		  while not IBSQLRead.Eof do
+      begin
+        if (M[IBSQLRead.FieldByName('PARENT').AsInteger - 147000000] = 1) then // M.Has(...)
         begin
-          if (M[IBSQLRead.FieldByName('PARENT').AsInteger - 147000000] = 1) then // M.Has(...)
-		  begin 
-			M[IBSQLRead.FieldByName('ID').AsInteger - 147000000] = 1;
-			
-			/// а FK надо??
-		  end;
-   
-          IBSQLRead.Next;
+          M[IBSQLRead.FieldByName('ID').AsInteger - 147000000] = 1;
+
+			                                                                          /// а FK надо??
+        end;
+
+        IBSQLRead.Next;
 	    end;
-   finally
-     IBSQLRead.Close;
-   end;
-   
+    end;
+  finally
+    IBSQLRead.Close;
+  end;
 end;
-  
-  
+
 //========================================================[temp] удалить из GD_RUID неподходящие записи (id)
 procedure 
 //....
 begin
-    for i:=0 to M.Count-1  do 
-	begin 
-	 if(M[i]=0) then  
-       IBSQLWrite.SQL.Text := ' DELETE FROM  GD_RUID ' +
+  for i:=0 to M.Count-1  do
+	begin
+	  if(M[i]=0) then
+    IBSQLWrite.SQL.Text := ' DELETE FROM  GD_RUID ' +
 	    ' WHERE id = :id ';
-	   try
-         IBSQLWrite.ExecQuery;
-         IBSQLWrite.ParamByName('id').AsInteger := i + 147000000 + 1;
-	   finally
-         IBSQLWrite.Close;
-       end;
+    try
+      IBSQLWrite.ExecQuery;
+      IBSQLWrite.ParamByName('id').AsInteger := i + 147000000 + 1;
+    finally
+      IBSQLWrite.Close;
     end;
- end;
+  end;
+end;
 
- 
 end.
