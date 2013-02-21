@@ -199,7 +199,7 @@ begin
   //FDatabase.SQLDialect := 3; // 3-ий диалект
   FDatabase.Open;
   
-  FReadTransaction.StartTransaction; //Запуск читающей транзакции
+  FReadTransaction.StartTransaction; //запуск читающей транзакции
 end;
 
 //============================== DISCONNECT ================================
