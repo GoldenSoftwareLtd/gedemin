@@ -144,7 +144,7 @@ end;
 //============================= SET DB NAME ================================
 procedure TgsFDBDataMigration.SetDatabaseName(const Value: String);
 begin
-  FDatabaseName := ExpandFileName(Value);               добавит перед именем путь текущей директории    /////////////////////////////////////////////// ! 
+  FDatabaseName := ExpandFileName(Value);               //добавит перед именем путь текущей директории  /// ? 
 end;
 
 
@@ -761,7 +761,7 @@ begin
 end;
   
   
-//========================================================[temp]end : удалить из GD_RUID неподходящие записи (id)
+//========================================================[temp] удалить из GD_RUID неподходящие записи (id)
 procedure 
 //....
 begin
