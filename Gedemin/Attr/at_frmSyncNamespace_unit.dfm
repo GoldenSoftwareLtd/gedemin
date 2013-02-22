@@ -1,5 +1,5 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 333
+  Left = 417
   Top = 183
   Width = 949
   Height = 505

@@ -38,7 +38,6 @@ Source: "gedemin.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gedemin_upd.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gedemin.exe.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "fbembed.dll"; DestDir: "{app}"; Flags: ignoreversion
-; Source: "gedemin.jpg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "gsdbquery.dll"; DestDir: "{app}"; Flags: ignoreversion regserver
 Source: "UDF\gudf.dll"; DestDir: "{app}\UDF"; Flags: ignoreversion
 Source: "ib_util.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -67,20 +66,8 @@ Name: "{commondesktop}\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; Ta
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; Tasks: quicklaunchicon
 Name: "{group}\{cm:UninstallProgram,{code:GetSafeAppName}}"; Filename: "{uninstallexe}"; WorkingDir: "{app}"
 
-;[Registry]
-;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access"; ValueType: string; ValueName: "UserName"; ValueData: ""; Flags: deletevalue uninsdeletevalue
-;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\ExecuteFiles"; ValueType: dword; ValueName: "{app}\gedemin.exe"; ValueData: 0; Flags: deletevalue uninsdeletevalue
-;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion"; ValueType: string; ValueName: "ServerName"; ValueData: "{app}\Database\{code:GetDBFileName}"; Flags: deletevalue uninsdeletevalue
-;Root: HKLM; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access\{code:GetRegAccessSubKey}"; ValueType: string; ValueName: "Database"; ValueData: "{app}\Database\{code:GetDBFileName}"; Flags: deletekey uninsdeletekey
-;Root: HKLM; SubKey: "Software\Golden Software"; Flags: uninsdeletekeyifempty
-;Root: HKLM; Subkey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Setting"; Flags: uninsdeletekey
-;Root: HKCU; SubKey: "SOFTWARE\Golden Software\Gedemin\Client\CurrentVersion\Access\{code:GetRegAccessSubKey}"; Flags: deletekey uninsdeletekey
-;Root: HKCU; SubKey: "Software\Golden Software\Gedemin\Client"; Flags: uninsdeletekey
-;Root: HKCU; SubKey: "Software\Golden Software\Gedemin"; Flags: uninsdeletekeyifempty
-;Root: HKCU; SubKey: "Software\Golden Software"; Flags: uninsdeletekeyifempty
-
 [Run]
-FileName: "{app}\gedemin.exe"; Parameters: "/r EMBEDDED ""{app}\Database\{code:GetBKFileName}"" ""{app}\Database\{code:GetDBFileName}"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden; Tasks: databasefile
+FileName: "{app}\gedemin.exe"; Parameters: "/rd /r EMBEDDED ""{app}\Database\{code:GetBKFileName}"" ""{app}\Database\{code:GetDBFileName}"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden; Tasks: databasefile
 Filename: "{app}\gedemin.exe"; Description: "{cm:LaunchProgram,{code:GetSafeAppName}}"; WorkingDir: {app}; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
@@ -99,37 +86,3 @@ function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := PageID = wpFinished;
 end;
-
-(*
-
-function InitializeSetup(): Boolean;
-begin
-  Result := True;
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-var
-  RC: Integer;
-begin
-  if CurStep = ssInstall then
-  begin
-    if FileExists(ExpandConstant('{app}') + '\unins000.exe') and FileExists(ExpandConstant('{app}') + '\gedemin.exe') then
-    begin
-      if MsgBox('В указанном каталоге обнаружена ранее установленная программа Гедымин. Выполнить ее деинстоляцию?', mbConfirmation, MB_YESNO) = IDYES then
-      begin
-        if not Exec(ExpandConstant('{app}') + '\unins000.exe', '', ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, RC) then
-        begin
-          MsgBox(SysErrorMessage(RC), mbError, MB_OK);
-          Abort;
-        end;
-      end else
-      begin
-        MsgBox('Удалите программу Гедымин вручную и повторите установку.', mbError, MB_OK);
-        Abort;
-      end;
-    end;
-  end;
-end;
-
-*)
-

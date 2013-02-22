@@ -254,6 +254,7 @@ object dlgSecLogIn2: TdlgSecLogIn2
     object actVer: TAction
       Caption = 'Информация...'
       OnExecute = actVerExecute
+      OnUpdate = actVerUpdate
     end
     object actSelectDB: TAction
       Caption = '...'

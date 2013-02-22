@@ -27,6 +27,8 @@ uses
   Registry,  
   IBIntf,
   IBServices,
+  IBDatabase,
+  IBSQL,
   gdcInvDocumentCache_body,
   gd_regionalsettings_dlgEdit,               
   gd_security,
@@ -374,19 +376,17 @@ end;
 {$ENDIF}
 
 function RestoreDatabase: Boolean;
-var
-  IBRestore: TIBRestoreService;
-begin
-  if gd_CmdLineParams.RestoreServer = '' then
-    Result := False
-  else begin
-    Result := True;
 
+  function DoRestore: Boolean;
+  var
+    IBRestore: TIBRestoreService;
+  begin
     if AnsiCompareText(gd_CmdLineParams.RestoreServer, 'EMBEDDED') = 0 then
     begin
       if FileExists(gd_CmdLineParams.RestoreDBFile)
         or (not (FileExists(gd_CmdLineParams.RestoreBKFile))) then
       begin
+        Result := False;
         exit;
       end;
     end;
@@ -417,27 +417,79 @@ begin
       IBRestore.Options := [CreateNewDB];
       IBRestore.Verbose := False;
 
-      try
-        IBRestore.Active := True;
-        IBRestore.ServiceStart;
-        while (not IBRestore.EOF) and IBRestore.IsServiceRunning do
-        begin
-          IBRestore.GetNextLine;
-        end;
-        IBRestore.Active := False;
-        ExitCode := 0;
-      except
-        on E: Exception do
-        begin
-          MessageBox(0,
-            PChar('Ошибка при распаковке БД: ' + E.Message),
-            'Ошибка',
-            MB_OK or MB_TASKMODAL or MB_ICONHAND);
-          ExitCode := 1;
-        end;
-      end;
+      IBRestore.Active := True;
+      IBRestore.ServiceStart;
+      while (not IBRestore.EOF) and IBRestore.IsServiceRunning do
+        IBRestore.GetNextLine;
+      IBRestore.Active := False;
     finally
       IBRestore.Free;
+    end;
+
+    Result := True;
+  end;
+
+  procedure DoClearDBID;
+  var
+    IBDB: TIBDatabase;
+    IBTr: TIBTransaction;
+    q: TIBSQL;
+  begin
+    IBDB := TIBDatabase.Create(nil);
+    try
+      if (gd_CmdLineParams.RestoreServer > '')
+        and (AnsiCompareText(gd_CmdLineParams.RestoreServer, 'EMBEDDED') <> 0) then
+      begin
+        IBDB.DatabaseName := gd_CmdLineParams.RestoreServer + ':' + gd_CmdLineParams.RestoreDBFile;
+      end else
+        IBDB.DatabaseName := gd_CmdLineParams.RestoreDBFile;
+
+      IBDB.LoginPrompt := False;
+      IBDB.Params.Add('user_name=' + gd_CmdLineParams.RestoreUser);
+      IBDB.Params.Add('password=' + gd_CmdLineParams.RestorePassword);
+      IBDB.Connected := True;
+
+      IBTr := TIBTransaction.Create(nil);
+      q := TIBSQL.Create(nil);
+      try
+        IBTr.DefaultDatabase := IBDB;
+        IBTr.StartTransaction;
+
+        q.Transaction := IBTr;
+        q.SQL.Text := 'SET GENERATOR gd_g_dbid TO 0';
+        q.ExecQuery;
+
+        IBTr.Commit;
+      finally
+        q.Free;
+        IBTr.Free;
+      end;
+    finally
+      IBDB.Free;
+    end;
+  end;
+
+begin
+  if gd_CmdLineParams.RestoreServer = '' then
+    Result := False
+  else begin
+    Result := True;
+    try
+      if DoRestore then
+      begin
+        if gd_CmdLineParams.ClearDBID then
+          DoClearDBID;
+      end;
+      ExitCode := 0;
+    except
+      on E: Exception do
+      begin
+        MessageBox(0,
+          PChar('Ошибка при распаковке БД: ' + E.Message),
+          'Ошибка',
+          MB_OK or MB_TASKMODAL or MB_ICONHAND);
+        ExitCode := 1;
+      end;
     end;
   end;
 end;

@@ -21,6 +21,7 @@ function ALIPAddrToName(IPAddr: String): String;
 function AnsiCharToHex(const B: AnsiChar): String;
 function HexToAnsiChar(const St: AnsiString; const P: Integer = 1): AnsiChar;
 function TryObjectBinaryToText(var S: String): Boolean;
+function TryObjectTextToBinary(var S: String): Boolean;
 function GetFileLastWrite(const AFullName: String): TDateTime;
 
 implementation
@@ -202,6 +203,30 @@ begin
   end else
     Result := False;
 end;
+
+function TryObjectTextToBinary(var S: String): Boolean;
+var
+  StIn, StOut: TStringStream;
+begin
+  if AnsiPos('object', S) > 0 then
+  begin
+    StIn := TStringStream.Create(S);
+    StOut := TStringStream.Create('');
+    try
+      try
+        ObjectTextToBinary(StIn, StOut);
+        S := StOut.DataString;
+        Result := True;
+      except
+        Result := False;
+      end;
+    finally
+      StOut.Free;
+      StIn.Free;
+    end;
+  end else
+    Result := False;
+end; 
 
 function GetFileLastWrite(const AFullName: String): TDateTime;
 var

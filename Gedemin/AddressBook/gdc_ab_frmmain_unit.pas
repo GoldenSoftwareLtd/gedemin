@@ -85,12 +85,6 @@ begin
   gdcDetailObject := gdcContacts;
 
   inherited;
-
-  {$IFDEF DEPARTMENT}
-     ibgrDetail.CheckBox.FieldName := 'ID';
-     ibgrDetail.CheckBox.FirstColumn := True;
-     ibgrDetail.CheckBox.Visible := True;
-  {$ENDIF}
 end;
 
 procedure Tgdc_ab_frmmain.actAddFolderExecute(Sender: TObject);

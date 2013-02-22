@@ -1,5 +1,5 @@
 inherited gdc_frmMDH: Tgdc_frmMDH
-  Left = 337
+  Left = 423
   Top = 229
   Width = 740
   Height = 495
@@ -9,7 +9,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Top = 425
+    Top = 438
     Width = 724
   end
   inherited TBDockTop: TTBDock
@@ -74,14 +74,14 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 365
+    Height = 378
   end
   inherited TBDockRight: TTBDock
     Left = 715
-    Height = 365
+    Height = 378
   end
   inherited TBDockBottom: TTBDock
-    Top = 416
+    Top = 429
     Width = 724
   end
   inherited pnlWorkArea: TPanel

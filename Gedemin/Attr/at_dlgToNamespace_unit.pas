@@ -20,8 +20,6 @@ type
     pnlGrid: TPanel;
     dbgrListLink: TgsDBGrid;
     pnlTop: TPanel;
-    bShowLink: TButton;
-    lLimit: TLabel;
     cbIncludeSiblings: TCheckBox;
     cbDontRemove: TCheckBox;
     cbAlwaysOverwrite: TCheckBox;
@@ -29,7 +27,6 @@ type
     lMessage: TLabel;
     pnlButtons: TPanel;
     Label1: TLabel;
-    eLimit: TxSpinEdit;
     btnDelete: TBitBtn;
     Panel1: TPanel;
     btnOK: TBitBtn;
@@ -41,10 +38,11 @@ type
     procedure actCancelExecute(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
     procedure lkupChange(Sender: TObject);
+
   private
     FgdcObject: TgdcBase;
     FIsAdded: Boolean;
-    FClearId: Integer; 
+    FClearId: Integer;
 
     procedure DeleteObjects;
     procedure AddObjects;
@@ -73,6 +71,7 @@ const
 
 procedure TdlgToNamespace.FormCreate(Sender: TObject);
 begin
+  IBTransaction.DefaultDatabase := dmDatabase.ibdbGAdmin;
   CreateFields;
 
   cdsLink.CreateDataSet;
@@ -146,6 +145,8 @@ begin
   finally
     KSA.Free;
   end;
+
+  actShowLink.Execute;
 end;
 
 procedure TdlgToNamespace.DeleteObjects;
@@ -170,19 +171,19 @@ var
   I: Integer;  
   XID, DBID: TID;
 begin
-  gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
-  TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
-  FgdcObject.SubType, XID, DBID, IBTransaction, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
-
   for I := 0 to dbgrListLink.CheckBox.CheckList.Count - 1 do
   begin
     if cdsLink.Locate('id', dbgrListLink.CheckBox.CheckList[I], []) then
     begin
       gdcBaseManager.GetRUIDByID(cdsLink.FieldByName('id').AsInteger, XID, DBID, IBTransaction);
       TgdcNamespace.AddObject(lkup.CurrentKeyInt, cdsLink.FieldByName('name').AsString, cdsLink.FieldByName('class').AsString,
-        cdsLink.FieldByName('subtype').AsString, XID, DBID, IBTransaction);
+        cdsLink.FieldByName('subtype').AsString, XID, DBID, IBTransaction, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
     end;
   end;
+
+  gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
+  TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
+  FgdcObject.SubType, XID, DBID, IBTransaction, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
 end;
 
 procedure TdlgToNamespace.actShowLinkExecute(Sender: TObject);

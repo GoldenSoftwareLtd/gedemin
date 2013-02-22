@@ -28,6 +28,7 @@ uses
   , Test_gdcObject_unit
   , Test_gd_Security_unit
   , Test_Apps_FA_unit
+  , Test_gdcNamespace
   {$ENDIF}
   ;
   

@@ -1124,12 +1124,10 @@ end;
 
 procedure TfrmGedeminMain.DoBeforeDisconnect;
 begin
-  {$IFNDEF BMKK}
-  Caption := 'Гедымин';
-  {$ENDIF}
-
   {$IFDEF NOGEDEMIN}
   Caption := '';
+  {$ELSE}
+  Caption := 'Гедымин';
   {$ENDIF}
 
   FFirstTime := True;
@@ -1246,12 +1244,6 @@ begin
   actBackup.Enabled := (not IBLogin.LoggedIn)
     or IBLogin.IsUserAdmin
     or ((IBLogin.InGroup and GD_UG_ARCHIVEOPERATORS) <> 0);
-  {$IFDEF DEPARTMENT}
-  if not IBLogin.IsUserAdmin then
-    actBackup.Visible := False
-  else
-    actBackup.Visible := True;
-  {$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actRestoreExecute(Sender: TObject);
@@ -1264,13 +1256,6 @@ begin
   actRestore.Enabled := (not IBLogin.LoggedIn)
     or IBLogin.IsUserAdmin
     or ((IBLogin.InGroup and GD_UG_ARCHIVEOPERATORS) <> 0);
-
-  {$IFDEF DEPARTMENT}
-  if not IBLogin.IsUserAdmin then
-    actRestore.Visible := False
-  else
-    actRestore.Visible := True;
-  {$ENDIF}
 end;
 
 procedure TfrmGedeminMain.Loaded;
@@ -1493,13 +1478,6 @@ begin
   actEditForm.Enabled := Assigned(IBLogin)
     and IBLogin.LoggedIn
     and IBLogin.IsIBUserAdmin;
-
-  {$IFDEF DEPARTMENT}
-    if IBLogin.IsUserAdmin then
-      actEditForm.Visible := True
-    else
-      actEditForm.Visible := False;  
-  {$ENDIF}
 end;
 
 procedure TfrmGedeminMain.actPropertyExecute(Sender: TObject);

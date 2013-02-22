@@ -1,5 +1,5 @@
 inherited gdc_frmSetting: Tgdc_frmSetting
-  Left = 317
+  Left = 398
   Top = 188
   Width = 823
   HelpContext = 22

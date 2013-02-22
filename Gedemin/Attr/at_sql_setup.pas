@@ -1619,18 +1619,9 @@ begin
 
   if AnObjects.Count = 0 then
   begin
-//Делаем, что для всех неотмеченных по умолчанию отображаться везде
-    {$IFDEF DEPARTMENT}
-    Result := False;
-    {$ELSE}
-    Result := True;//False;
-    {$ENDIF}
-    Exit;
-  end{ else if IsNess then
-  begin
     Result := True;
     Exit;
-  end};
+  end;
 
   for I := 0 to AnObjects.Count - 1 do
   begin
