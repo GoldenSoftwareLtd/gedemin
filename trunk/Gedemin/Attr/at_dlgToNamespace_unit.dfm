@@ -1,6 +1,6 @@
 object dlgToNamespace: TdlgToNamespace
-  Left = 492
-  Top = 329
+  Left = 599
+  Top = 149
   Width = 585
   Height = 454
   Caption = 'Добавление объекта в пространство имен'
@@ -8,7 +8,7 @@ object dlgToNamespace: TdlgToNamespace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
@@ -17,17 +17,17 @@ object dlgToNamespace: TdlgToNamespace
   TextHeight = 13
   object pnlGrid: TPanel
     Left = 0
-    Top = 135
-    Width = 577
-    Height = 292
+    Top = 129
+    Width = 569
+    Height = 287
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object dbgrListLink: TgsDBGrid
       Left = 0
       Top = 0
-      Width = 577
-      Height = 261
+      Width = 569
+      Height = 256
       Align = alClient
       DataSource = dsMain
       Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -50,12 +50,7 @@ object dlgToNamespace: TdlgToNamespace
       TitleFont.Name = 'Tahoma'
       TitleFont.Style = []
       InternalMenuKind = imkWithSeparator
-      Expands = <
-        item
-          DisplayField = 'displayname'
-          LineCount = 3
-          Options = [ceoMultiline]
-        end>
+      Expands = <>
       ExpandsActive = True
       ExpandsSeparate = False
       Conditions = <>
@@ -70,8 +65,8 @@ object dlgToNamespace: TdlgToNamespace
     end
     object pnlButtons: TPanel
       Left = 0
-      Top = 261
-      Width = 577
+      Top = 256
+      Width = 569
       Height = 31
       Align = alBottom
       BevelOuter = bvNone
@@ -92,7 +87,7 @@ object dlgToNamespace: TdlgToNamespace
         TabOrder = 1
       end
       object Panel1: TPanel
-        Left = 402
+        Left = 394
         Top = 0
         Width = 175
         Height = 31
@@ -136,24 +131,11 @@ object dlgToNamespace: TdlgToNamespace
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 577
-    Height = 135
+    Width = 569
+    Height = 129
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
-    object lLimit: TLabel
-      Left = 209
-      Top = 110
-      Width = 43
-      Height = 13
-      Caption = 'Первые:'
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = []
-      ParentFont = False
-    end
     object lMessage: TLabel
       Left = 8
       Top = 8
@@ -171,23 +153,9 @@ object dlgToNamespace: TdlgToNamespace
     object Label1: TLabel
       Left = 8
       Top = 110
-      Width = 107
+      Width = 195
       Height = 13
-      Caption = 'Связанные объекты:'
-    end
-    object bShowLink: TButton
-      Left = 120
-      Top = 107
-      Width = 80
-      Height = 21
-      Action = actShowLink
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = []
-      ParentFont = False
-      TabOrder = 4
+      Caption = 'Связанные объекты (не более 60-ти):'
     end
     object cbIncludeSiblings: TCheckBox
       Left = 8
@@ -248,18 +216,6 @@ object dlgToNamespace: TdlgToNamespace
       ShowHint = True
       TabOrder = 0
       OnChange = lkupChange
-    end
-    object eLimit: TxSpinEdit
-      Left = 257
-      Top = 107
-      Width = 54
-      Height = 21
-      Value = 60
-      IntValue = 60
-      Increment = 1
-      DecDigits = 0
-      SpinCursor = 17555
-      TabOrder = 5
     end
   end
   object cdsLink: TClientDataSet

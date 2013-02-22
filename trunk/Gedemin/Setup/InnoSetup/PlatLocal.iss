@@ -8,7 +8,6 @@ AppVerName=Гедымин: Платежные документы
 
 [Files]
 Source: "Database\plat.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
-;Source: "Database\plat.fdb"; DestDir: "{app}\Database"; Flags: onlyifdoesntexist uninsneveruninstall
 
 [Code]
 function GetSafeAppName(Param: String): String;

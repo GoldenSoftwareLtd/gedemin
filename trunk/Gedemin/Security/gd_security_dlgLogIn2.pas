@@ -71,6 +71,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure cbUserChange(Sender: TObject);
     procedure actMoreExecute(Sender: TObject);
+    procedure actVerUpdate(Sender: TObject);
 
   private
     KL: Integer;
@@ -292,6 +293,13 @@ begin
     pnlAdditionalInfo.Visible := False;
     actMore.Caption := Chr(187);
   end;
+end;
+
+procedure TdlgSecLogIn2.actVerUpdate(Sender: TObject);
+begin
+  {$IFDEF NOGEDEMIN}
+  actVer.Enabled := False;
+  {$ENDIF}
 end;
 
 end.

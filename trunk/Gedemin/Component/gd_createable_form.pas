@@ -898,10 +898,6 @@ begin
 end;
 
 procedure TCreateableForm.ResizerOnActivate(var Activate: Boolean);
-{$IFDEF DEPARTMENT}
-var
-  S: String;
-{$ENDIF}
 begin
   if FUseDesigner and Assigned(IBLogin) and IBlogin.Database.Connected then
   begin
@@ -918,20 +914,6 @@ begin
           MB_OK or MB_ICONHAND or MB_TASKMODAL);
       end;
     end;
-
-    {$IFDEF DEPARTMENT}
-    if Activate then
-    begin
-      Activate := False;
-      if InputPassword('', 'Введите пароль для редактирования формы', S) then
-      begin
-        if S = 'masterkey' then
-          Activate := True
-        else
-          MessageBox(Self.Handle ,'Неверный пароль', 'Ошибка', MB_OK);
-      end;
-    end;
-    {$ENDIF}
   end
   else
     Activate := False;
