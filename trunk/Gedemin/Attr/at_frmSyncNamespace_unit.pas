@@ -253,18 +253,13 @@ begin
   try
     if gr.SelectedRows.Count > 0 then
     begin
-      cds.DisableControls;
-      try
-        for I := 0 to gr.SelectedRows.Count - 1 do
-        begin
-          Application.ProcessMessages;
-          if Application.Terminated then
-            break;
-          cds.Bookmark := gr.SelectedRows[I];
-          Proc(AnObj, AData);
-        end;
-      finally
-        cds.EnableControls;
+      for I := 0 to gr.SelectedRows.Count - 1 do
+      begin
+        Application.ProcessMessages;
+        if Application.Terminated then
+          break;
+        cds.Bookmark := gr.SelectedRows[I];
+        Proc(AnObj, AData);
       end;
     end
     else if not cds.EOF then

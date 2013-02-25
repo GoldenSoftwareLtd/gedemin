@@ -1994,7 +1994,7 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
     finally
       LT.Free;
     end;
-  end;
+  end; 
 
   procedure GetBindedObjectsForTable(AnObj: TgdcBase; const ATableName: String);
   const
@@ -2079,16 +2079,17 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
               KSA.Free;
             end;
             ADataSet.Post;
-          end;
-          SL := TStringList.Create;
-          try
-            GetTableList(Obj, SL);
-            for J := 0 to SL.Count - 1 do
-              GetBindedObjectsForTable(Obj, SL[J]);
-            if Obj.SetTable > '' then
-              GetBindedObjectsForTable(Obj,Obj.SetTable);
-          finally
-            SL.Free;
+
+            SL := TStringList.Create;
+            try
+              GetTableList(Obj, SL);
+              for J := 0 to SL.Count - 1 do
+                GetBindedObjectsForTable(Obj, SL[J]);
+              if Obj.SetTable > '' then
+                GetBindedObjectsForTable(Obj, Obj.SetTable);
+            finally
+              SL.Free;
+            end;
           end;
         finally
           Obj.Free;

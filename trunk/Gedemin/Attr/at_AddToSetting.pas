@@ -45,7 +45,7 @@ begin
   begin
     with TdlgToNamespace.Create(nil) do
     try
-      Setup(AgdcObject);
+      SetupParams(AgdcObject, BL);
       ShowModal;
     finally
       Free;
