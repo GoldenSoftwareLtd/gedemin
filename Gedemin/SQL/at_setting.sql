@@ -233,8 +233,15 @@ BEGIN
     INTO NEW.objectpos;
 
     IF (NEW.objectpos IS NULL) THEN
-      NEW.objectpos = 0;
-  END
+      NEW.objectpos = 0;  
+  END ELSE
+  IF (INSERTING) THEN
+  BEGIN
+    UPDATE at_object SET
+	  objectpos = objectpos + 1
+    WHERE 
+      objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey; 	
+  END  
 END
 ^
 

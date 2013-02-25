@@ -75,8 +75,10 @@ ALTER TABLE gd_user ADD CONSTRAINT gd_pk_user
 CREATE UNIQUE ASC INDEX gd_x_user_name ON gd_user
   (name);
 
+/*
 CREATE UNIQUE INDEX gd_x_user_ibname ON
   gd_user (ibname);
+*/  
 
 COMMIT;
 
