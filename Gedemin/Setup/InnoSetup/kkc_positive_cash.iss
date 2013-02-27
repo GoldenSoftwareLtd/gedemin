@@ -60,7 +60,7 @@ Source: "midas.sxs.manifest"; DestDir: "{app}"; Flags: ignoreversion
 Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "menufront.jpg"; DestDir: "{app}"; DestName: "gedemin.jpg"; Flags: ignoreversion
-Source: "Database\menufront.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
+Source: "Database\cash.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
 
 [INI]
 Filename: "{app}\databases.ini"; Section: "{code:GetSafeAppName}"; Key: "FileName"; String: "Database\{code:GetDBFileName}"; Tasks: "databasefile"

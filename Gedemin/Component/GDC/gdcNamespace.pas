@@ -76,7 +76,7 @@ uses
   at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
   prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, jclUnicode,
   at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const, gd_FileList_unit,
-  gdcClasses;
+  gdcClasses, at_sql_metadata;
 
 const
   cst_str_WithoutName = 'Без наименования';
@@ -657,7 +657,93 @@ var
   SL: TStringList;
   q: TIBSQL;
   Tr: TIBTransaction;
-  Obj: TgdcNamespace;  
+  Obj: TgdcNamespace;
+  Namespacekey: Integer;
+
+  procedure DisconnectDatabase(const WithCommit: Boolean);
+  begin
+    if gdcBaseManager.ReadTransaction.InTransaction then
+      gdcBaseManager.ReadTransaction.Commit;
+    if Tr.InTransaction then
+    begin
+    if WithCommit then
+      begin
+        Tr.Commit;
+      end else
+      begin
+        Tr.Rollback;
+      end;
+    end;
+    Tr.DefaultDatabase.Connected := False;
+  end;
+
+  procedure ConnectDatabase;
+  begin
+    Tr.DefaultDatabase.Connected := True;
+    if not Tr.InTransaction then
+      Tr.StartTransaction;
+    if not gdcBaseManager.ReadTransaction.InTransaction then
+      gdcBaseManager.ReadTransaction.StartTransaction;
+  end;
+
+  procedure ReConnectDatabase(const WithCommit: Boolean = True);
+  begin
+    try
+      DisconnectDatabase(WithCommit);
+    except
+      on E: Exception do
+      begin
+        if MessageBox(0,
+          PChar('В процессе загрузки пространства имен произошла ошибка:'#13#10 +
+          E.Message + #13#10#13#10 +
+          'Продолжать загрузку?'),
+          'Ошибка',
+          MB_ICONEXCLAMATION or MB_YESNO or MB_TASKMODAL) = IDNO then
+        begin
+          raise;
+        end;  
+      end;
+    end;
+    ConnectDatabase;
+  end;
+
+  procedure RunMultiConnection;
+  var
+    WasConnect: Boolean;
+    ibsql: TIBSQL;
+  begin
+    Assert(atDatabase <> nil, 'Не загружена база атрибутов');
+    if atDatabase.InMultiConnection then
+    begin
+      ibsql := TIBSQL.Create(nil);
+      try
+        ibsql.Transaction := Tr;
+        ibsql.SQL.Text := 'SELECT FIRST 1 * FROM at_transaction ';
+        ibsql.ExecQuery;
+
+        if ibsql.RecordCount = 0 then
+        begin
+          atDatabase.CancelMultiConnectionTransaction(True);
+        end else
+        begin
+          with TmetaMultiConnection.Create do
+          try
+            WasConnect := Tr.DefaultDatabase.Connected;
+            DisconnectDatabase(True);
+            RunScripts(False);
+            ConnectDatabase;
+            if not WasConnect then
+              DisconnectDatabase(True);
+          finally
+            Free;
+          end;
+        end;
+
+      finally
+        ibsql.Free;
+      end;
+    end;
+  end;
 begin
   if AFileName = '' then
     FN := QueryLoadFileName(AFileName, 'yml', 'Модули|*.yml')
@@ -669,17 +755,18 @@ begin
     Tr := TIBTransaction.Create(nil);
     try
       Tr.DefaultDatabase := gdcBaseManager.Database;
-      Tr.StartTransaction;
+      ConnectDatabase;
 
       Parser := TyamlParser.Create;
       SL := TStringList.Create;
       try
-        Parser.Parse(FN);
+        Parser.Parse(FN); 
 
         M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
         Temps := M.ReadString('Properties\RUID');
         if not CheckRUID(Temps) then
           raise Exception.Create('Invalid namespace name!');
+
 
         Obj := TgdcNamespace.Create(nil);
         try
@@ -710,6 +797,7 @@ begin
           end;
 
           Obj.Post;
+          Namespacekey := Obj.ID;
 
           if gdcBaseManager.GetRUIDRecByID(Obj.ID, Tr).XID = -1 then
           begin
@@ -722,7 +810,6 @@ begin
               StrToRUID(Temps).DBID,
               Now, IBLogin.ContactKey, Tr);
           end;
-
 
           q := TIBSQL.Create(nil);
           try
@@ -742,6 +829,9 @@ begin
             q.Free;
           end;
 
+          RunMultiConnection;
+          atDataBase.ProceedLoading(True);
+          
           N := M.FindByName('Objects');
           if N <> nil then
           begin
@@ -750,7 +840,11 @@ begin
             with N as TyamlSequence do
             begin
               for I := 0 to Count - 1 do
-                LoadObject(Items[I] as TyamlMapping, Obj.ID, Tr);
+              begin 
+                atDatabase.SyncIndicesAndTriggers(Tr);
+                LoadObject(Items[I] as TyamlMapping, Namespacekey, Tr);
+                RunMultiConnection;
+              end;  
             end;
           end;
         finally
@@ -881,7 +975,7 @@ begin
   RUID := AMapping.ReadString('Properties\RUID');
   AlwaysOverwrite := AMapping.ReadBoolean('Properties\Alwaysoverwrite');
 
-  if (ClassName = '') or (RUID = '') then
+  if (ClassName = '') or (RUID = '') or not CheckRUID(RUID) then
     raise Exception.Create('Invalid object!');
 
   Fields := AMapping.FindByName('Fields') as TyamlMapping;
@@ -893,10 +987,16 @@ begin
       Obj.Subset := 'ByID';
       Obj.ID := RuidRec.ID;
       Obj.Open;
+      Obj.BaseState := Obj.BaseState + [sLoadFromStream];
+      if AlwaysOverwrite then
+        Obj.ModifyFromStream := True;
+
       if Obj.RecordCount = 0 then
       begin
         gdcBaseManager.DeleteRUIDbyXID(RuidRec.XID, RuidRec.DBID, ATr);
         Obj.Insert;
+        if (RuidRec.XID < cstUserIDStart) and (RuidRec.DBID = 17) then
+          Obj.FieldByName(Obj.GetKeyField(Obj.SubType)).AsInteger := RuidRec.ID;
       end else
       begin
         if AlwaysOverwrite then
@@ -1007,7 +1107,8 @@ begin
           end;
         end;
 
-        Obj.Post;
+        if (Obj.State = dsInsert) and (not Obj.CheckTheSame(True)) then
+          Obj.Post;
 
         if gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr).XID = -1 then
         begin
@@ -1040,6 +1141,7 @@ begin
           ANamespacekey,
           OV,
           ATr);
+
 
         if not VarIsEmpty(OV) then
         begin

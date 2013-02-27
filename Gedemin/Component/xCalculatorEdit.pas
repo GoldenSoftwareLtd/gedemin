@@ -152,6 +152,8 @@ type
     procedure CMExit(var Message: TCMExit);
       message CM_EXIT;
 
+    function SafeStrToFloat(S: String): Double;  
+
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -759,9 +761,9 @@ begin
     SL.Text := Text;
     try
       if (L < SL.Count) and (SL[L] > '') then
-        Result := StrToFloat(SL[L])
+        Result := SafeStrToFloat(SL[L])
       else
-        Result := StrToFloat(SL[0]);
+        Result := SafeStrToFloat(SL[0]);
     except
       on EConvertError do ;
     end;
@@ -1488,7 +1490,7 @@ begin
 
       if (Message.LParam <> 0) and (PChar(Message.LParam)^ <> #0) then
       begin
-        S := FormatFloat('#,##0.########', StrToFloat(PChar(Message.LParam)));
+        S := FormatFloat('#,##0.########', SafeStrToFloat(PChar(Message.LParam)));
         B := PChar(S);
         Message.LParam := LongInt(B);
       end;
@@ -1530,6 +1532,16 @@ begin
   S := Text;
   if S > '' then
     Perform(WM_SETTEXT, 0, Longint(PChar(S)));
+end;
+
+function TxCalculatorEdit.SafeStrToFloat(S: String): Double;
+begin
+  S := StringReplace(S, ThousandSeparator, '', [rfReplaceAll]);
+  if DecimalSeparator = '.' then
+    S := StringReplace(S, ',', DecimalSeparator, [])
+  else
+    S := StringReplace(S, '.', DecimalSeparator, []);
+  Result := StrToFloat(S);
 end;
 
 end.

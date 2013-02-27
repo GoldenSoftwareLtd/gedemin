@@ -1,0 +1,1 @@
+select * from rdb$database order by upper(rdb$description) asc, lower(rdb$description) desc

@@ -677,15 +677,15 @@ end;
 procedure Tgdc_frmSetting.actLoadFromFileExecute(Sender: TObject);
 var
   FN: String;
-  frmStreamSaver: TForm;
+  frmStreamSaver: Tgdc_frmStreamSaver;
 begin
   FN := gdcObject.QueryLoadFileName('', gsfExtension, gsfxmlDialogFilter);
   if FN > '' then
   begin
-    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
-    (frmStreamSaver as Tgdc_frmStreamSaver).FileName := FN;
-    (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject);
-    (frmStreamSaver as Tgdc_frmStreamSaver).ShowLoadSettingForm;
+    frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self) as Tgdc_frmStreamSaver;
+    frmStreamSaver.FileName := FN;
+    frmStreamSaver.SetParams(gdcObject);
+    frmStreamSaver.ShowLoadSettingForm;
 
     if Assigned(gdcObject) and gdcObject.Active then
     begin
