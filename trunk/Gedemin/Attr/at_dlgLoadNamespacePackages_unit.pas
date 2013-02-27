@@ -61,7 +61,7 @@ var
   at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages;
 
 implementation
-
+                               
 {$R *.DFM}
 
 uses
@@ -99,14 +99,14 @@ begin
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT * FROM at_namespace_gtt WHERE settingruid = :sr';
+    q.SQL.Text := 'SELECT * FROM at_namespace_gtt WHERE id = :id';
 
     for I := 0 to gsTreeView.Items.Count - 1 do
     begin
       if gsTreeView.Items[I].StateIndex = 1 then
       begin
         q.Close;
-        q.ParamByName('sr').AsString := String(gsTreeView.Items[I].Data);
+        q.ParamByName('id').AsInteger:= Integer(gsTreeView.Items[I].Data);
         q.ExecQuery;
 
         if not q.Eof then
@@ -239,7 +239,7 @@ begin
   SL := TStringList.Create;
   try
     SetFileList(SL);
-   // TgdcNamespace.InstallPackages(SL);
+    TgdcNamespace.InstallPackages(SL);
   finally
     SL.Free;
   end;
@@ -280,7 +280,7 @@ procedure Tat_dlgLoadNamespacePackages.CreateTree;
 
        if not q.Eof then
        begin
-         Temp := gsTreeView.Items.AddChildObject(Node, q.FieldByname('name').AsString, PChar(q.FieldByname('settingruid').AsString));
+         Temp := gsTreeView.Items.AddChildObject(Node, q.FieldByname('name').AsString, Pointer(q.FieldByname('id').AsInteger));
          Temp.StateIndex := 2;
          q.Close;
          q.SQL.Text := 'SELECT * FROM at_namespace_link_gtt WHERE namespaceruid = :ur';

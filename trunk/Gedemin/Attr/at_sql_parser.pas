@@ -2170,6 +2170,20 @@ begin
             Continue;
           end;
 
+          cAsc:
+          begin
+            if ((FName = '') and (FFuncClause.Count = 0)) or (eoDesc in FDone) then
+              break;
+            Include(FDone, eoAsc);
+          end;
+
+          cDesc:
+          begin
+            if ((FName = '') and (FFuncClause.Count = 0)) or (eoAsc in FDone) then
+              break;
+            Include(FDone, eoDesc);
+          end;
+
           else begin
             Break;
           end;
@@ -2500,6 +2514,12 @@ begin
     (FJoins[I] as TsqlStatement).BuildStatement(subsql);
     sql := sql + ' ' + subsql;
   end;
+
+  if eoAsc in FDone then
+    sql := sql + ' ASC';
+
+  if eoDesc in FDone then
+    sql := sql + ' DESC';
 end;
 
 function TsqlFunction.GetLastClass: TClass;
@@ -4446,12 +4466,16 @@ begin
       begin
         case Token.Clause of
           cOrder, cBy:
-          begin
             Include(FDone, Token.Clause);
-          end; 
+
+          cUnion:
+            break;
 
           else begin
-            Break;
+            CurrStatement := TsqlFunction.Create(FParser, True);
+            FFields.Add(CurrStatement);
+            CurrStatement.ParseStatement;
+            Continue;
           end;
         end;
       end;

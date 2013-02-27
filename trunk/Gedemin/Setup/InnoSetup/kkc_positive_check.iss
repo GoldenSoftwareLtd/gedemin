@@ -74,6 +74,7 @@ Name: "{commondesktop}\{code:GetSafeAppName} Фронт-офис"; Filename: "{app}\gedem
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; WorkingDir: "{app}"; Tasks: quicklaunchicon
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{code:GetSafeAppName} Фронт-офис"; Filename: "{app}\gedemin.exe"; Parameters: "/sn ""{app}\Database\{code:GetDBFileName}"" /user Term /password 1"; WorkingDir: "{app}"; Tasks: quicklaunchicon
 Name: "{group}\{cm:UninstallProgram,{code:GetSafeAppName}}"; Filename: "{uninstallexe}"; WorkingDir: "{app}"
+Name: "{group}\Документация"; Filename: "http://gsbelarus.com/gs/content/downloads/doc/rest_front.pdf"; IconFileName: "{app}\gedemin.exe"
 
 [Run]
 FileName: "{app}\gedemin.exe"; Parameters: "/rd /r EMBEDDED ""{app}\Database\{code:GetBKFileName}"" ""{app}\Database\{code:GetDBFileName}"" SYSDBA masterkey 8192 8192"; WorkingDir: {app}; StatusMsg: "Распаковка базы данных..."; Flags: waituntilterminated runhidden; Tasks: databasefile

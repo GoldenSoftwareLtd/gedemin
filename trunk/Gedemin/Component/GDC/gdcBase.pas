@@ -14332,15 +14332,11 @@ function TgdcBase.QueryLoadFileName(
 begin
   Result := AFileName;
 
-  while (Result = '') or (not FileExists(Result)) do
-    with TOpenDialog.Create(FParentForm) do
+  if not FileExists(Result) then
+  begin
+    with TOpenDialog.Create(nil) do
     try
-      {if (FParentForm <> nil)
-        and (FParentForm.FindComponent('SDialogRT') = nil) then
-      begin
-        Name := 'SDialogRT';
-      end;}
-      Options := [ofPathMustExist,ofFileMustExist,ofEnableSizing];
+      Options := [ofPathMustExist, ofFileMustExist, ofEnableSizing];
       DefaultExt := aDefaultExt;
       Filter := aFilter;
       {$IFDEF GEDEMIN}
@@ -14352,21 +14348,22 @@ begin
       {$ENDIF}
         FileName := Result;
       if not Execute then
+        Result := ''
+      else
       begin
-        Result := '';
-        exit;
+        {$IFDEF GEDEMIN}
+        if (AFileName = '') and Assigned(UserStorage) then
+        begin
+          UserStorage.WriteString('GDC\' + Self.ClassName + SubType, 'SaveDir', InitialDir);
+          UserStorage.WriteString('GDC\' + Self.ClassName + SubType, 'SaveFileName', FileName);
+        end;
+        {$ENDIF}
+        Result := FileName;
       end;
-      {$IFDEF GEDEMIN}
-      if (AFileName = '') and Assigned(UserStorage) then
-      begin
-        UserStorage.WriteString('GDC\' + Self.ClassName + SubType, 'SaveDir', InitialDir);
-        UserStorage.WriteString('GDC\' + Self.ClassName + SubType, 'SaveFileName', FileName);
-      end;
-      {$ENDIF}
-      Result := FileName;
     finally
       Free;
     end;
+  end;
 end;
 
 procedure TgdcBase.GetWhereClauseConditions(S: TStrings);
