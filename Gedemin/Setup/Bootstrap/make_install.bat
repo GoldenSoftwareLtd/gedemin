@@ -152,7 +152,7 @@ copy %install_source_path%\database\%2.fdb Gedemin\Database\%2.fdb /Y
 
 del Gedemin\databases.ini > nul
 del Gedemin\gedemin.ini > nul
-del Gedemin\gedemin.jpg > nul
+del Gedemin\*.jpg > nul
 
 "c:\program files\winrar\winrar.exe" a -ibck %2_portable.rar Gedemin
 
