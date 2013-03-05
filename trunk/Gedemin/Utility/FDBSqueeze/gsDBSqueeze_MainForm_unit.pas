@@ -45,6 +45,8 @@ begin
   FgsDBSqueeze.UserName := edUserName.Text;
   FgsDBSqueeze.Password := edPassword.Text;
   FgsDBSqueeze.Connect;
+
+  FgsDBSqueeze.BeforeMigrationPrepareDB;                  //////
 end;
 
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
@@ -74,6 +76,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
 begin
+  //FgsDBSqueeze.AfterMigrationPrepareDB;                         //////
   FgsDBSqueeze.Disconnect;
 end;
 
