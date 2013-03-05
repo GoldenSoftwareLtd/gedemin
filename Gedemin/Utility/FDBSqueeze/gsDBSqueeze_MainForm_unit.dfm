@@ -42,6 +42,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 272
     Height = 21
     TabOrder = 0
+    Text = 'C:\Users\mk\Desktop\BUSINESS_2.fdb'
   end
   object edUserName: TEdit
     Left = 55
@@ -49,6 +50,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 88
     Height = 21
     TabOrder = 1
+    Text = 'SYSDBA'
   end
   object edPassword: TEdit
     Left = 208
@@ -57,6 +59,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Height = 21
     PasswordChar = '*'
     TabOrder = 2
+    Text = 'masterkey'
   end
   object btnConnect: TButton
     Left = 138

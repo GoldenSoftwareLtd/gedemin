@@ -121,9 +121,12 @@ begin
       'RELATION_NAME   CHAR(31), ' +
       'INDEX_NAME      CHAR(31)) ';
     execSQL(q, sql);
-    ///     Tr.Commit;
 
-    ////////   ìá íå íàäî ?
+    Tr.Commit;     //
+    Tr.StartTransaction;
+    //q.Transaction := Tr;
+
+    ////////   ìá íå íàäî
     sql := 'DELETE FROM DBS_REF_CONSTRAINTS ';
     execSQL(q, sql);
 
@@ -132,7 +135,10 @@ begin
 
     sql := 'DELETE FROM DBS_INDEX_SEGMENTS ';
     execSQL(q, sql);
-    ////////  Tr.Commit;
+    ////////
+    Tr.Commit;    //
+    Tr.StartTransaction;
+    //q.Transaction := Tr;
 
     sql := 'INSERT INTO DBS_REF_CONSTRAINTS ' +
       ' (CONSTRAINT_NAME, CONST_NAME_UQ, UPDATE_RULE, DELETE_RULE) SELECT ' +
@@ -143,7 +149,7 @@ begin
     sql := 'INSERT INTO DBS_RELATION_CONSTRAINTS ' +
       ' (CONSTRAINT_NAME, CONSTRAINT_TYPE, RELATION_NAME, INDEX_NAME) SELECT ' +
       ' RDB$CONSTRAINT_NAME, RDB$CONSTRAINT_TYPE, RDB$RELATION_NAME, RDB$INDEX_NAME ' +
-      'FROM RDB$RELATION_CONSTRAINTS ' +
+      'FROM RDB$RELATION_CONSTRAINTS c' +
          'JOIN rdb$indices i ON i.rdb$index_name = c.rdb$index_name ' +
       'WHERE c.rdb$constraint_type = ''FOREIGN KEY'' and '+
          '(i.RDB$SYSTEM_FLAG IS NULL OR i.RDB$SYSTEM_FLAG = 0) ';
@@ -189,7 +195,6 @@ begin
         'JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = c.RDB$INDEX_NAME ' +
       'WHERE c.RDB$CONSTRAINT_TYPE = ''FOREIGN KEY'' AND '+
         '(i.RDB$SYSTEM_FLAG IS NULL OR i.RDB$SYSTEM_FLAG = 0) ';
-
     q.ExecQuery;
     while not q.Eof do
     begin
@@ -197,6 +202,7 @@ begin
         ' DROP CONSTRAINT ' + q.FieldByName('Constraint_Name').AsString;
 
       q2.SQL.Text := textSql;
+      q2.Transaction.StartTransaction;
       q2.ExecQuery;
       q2.Close;
 
