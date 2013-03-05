@@ -1,9 +1,9 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 192
-  Top = 117
+  Left = 197
+  Top = 469
   BorderStyle = bsDialog
   Caption = 'gsDBSqueeze_MainForm'
-  ClientHeight = 124
+  ClientHeight = 165
   ClientWidth = 315
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
