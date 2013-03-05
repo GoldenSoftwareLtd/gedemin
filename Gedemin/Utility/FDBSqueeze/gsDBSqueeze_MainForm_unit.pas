@@ -19,6 +19,8 @@ type
     lbl1: TLabel;
     lbl2: TLabel;
     lbl3: TLabel;
+    mLog: TMemo;
+    lblLog: TLabel;
     procedure actConnectExecute(Sender: TObject);
     procedure actConnectUpdate(Sender: TObject);
     procedure actDisconnectUpdate(Sender: TObject);
@@ -26,6 +28,8 @@ type
 
   private
     FgsDBSqueeze: TgsDBSqueeze;
+
+    procedure LogEvent(const S: String);
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -53,6 +57,7 @@ constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
   FgsDBSqueeze := TgsDBSqueeze.Create;
+  FgsDBSqueeze.OnLogEvent := LogEvent;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
@@ -78,6 +83,11 @@ procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
 begin
   //FgsDBSqueeze.AfterMigrationPrepareDB;                         //////
   FgsDBSqueeze.Disconnect;
+end;
+
+procedure TgsDBSqueeze_MainForm.LogEvent(const S: String);
+begin
+  mLog.Lines.Add(S);
 end;
 
 end.

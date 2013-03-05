@@ -1,10 +1,10 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 197
-  Top = 469
+  Left = 331
+  Top = 137
   BorderStyle = bsDialog
   Caption = 'gsDBSqueeze_MainForm'
-  ClientHeight = 165
-  ClientWidth = 315
+  ClientHeight = 312
+  ClientWidth = 494
   Color = clBtnFace
   Font.Charset = RUSSIAN_CHARSET
   Font.Color = clWindowText
@@ -35,6 +35,13 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 50
     Height = 13
     Caption = 'Password:'
+  end
+  object lblLog: TLabel
+    Left = 25
+    Top = 135
+    Width = 71
+    Height = 13
+    Caption = 'Выполняется:'
   end
   object edDatabaseName: TEdit
     Left = 24
@@ -76,6 +83,16 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Height = 21
     Action = actDisconnect
     TabOrder = 4
+  end
+  object mLog: TMemo
+    Left = 23
+    Top = 152
+    Width = 450
+    Height = 150
+    Lines.Strings = (
+      'mLog')
+    ScrollBars = ssVertical
+    TabOrder = 5
   end
   object ActionList: TActionList
     Left = 256

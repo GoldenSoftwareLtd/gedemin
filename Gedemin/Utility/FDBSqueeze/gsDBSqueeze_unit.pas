@@ -6,6 +6,8 @@ uses
   IB, IBDatabase, IBSQL;
 
 type
+  TOnLogEvent = procedure(const S: String) of object;
+
   TgsDBSqueeze = class(TObject)
   private
     FIBSQL: TIBSQL;
@@ -14,11 +16,19 @@ type
     FPassword: String;
     FDatabaseName: String;
     FIBDatabase: TIBDatabase;
+    FOnLogEvent: TOnLogEvent;
+
     function GetConnected: Boolean;
+
+
+    function  h_CreateTblsForSaveConstr: Boolean;
+    procedure h_InsertTblsForSaveConstr;
+    procedure h_TblsForSaveConstr;
 
     procedure h_SaveAllConstraints;
     procedure h_DeleteAllConstraints;
     procedure h_RecreateAllConstraints;
+    procedure LogEvent(const AMsg: String);
 
   public
     constructor Create;
@@ -34,6 +44,7 @@ type
     property UserName: String read FUserName write FUserName;
     property Password: String read FPassword write FPassword;
     property Connected: Boolean read GetConnected;
+    property OnLogEvent: TOnLogEvent read FOnLogEvent write FOnLogEvent;
 
   end;
 
@@ -81,18 +92,96 @@ begin
   Result := FIBDatabase.Connected;
 end;
 
-procedure TgsDBSqueeze.h_SaveAllConstraints; //FK
 
-    procedure execSQL(AQ: TIBSQL; const ASqlText: string);
+function TgsDBSqueeze.h_CreateTblsForSaveConstr: Boolean;
+var
+  q, q2: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+
+  Result := False;
+
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+
+    LogEvent('Creating tables for saving FK constraint ...');
+
+    q.SQL.Text :=
+      'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
+
+    q.ParamByName('RN').AsString := 'DBS_INDEX_SEGMENTS';
+    q.ExecQuery;
+    if q.EOF then
     begin
-      AQ.SQL.Text := ASqlText;
-      AQ.ExecQuery;
-      AQ.Close;
-    end;
+      q2.SQL.Text := 'CREATE TABLE DBS_INDEX_SEGMENTS (' +
+        '  INDEX_NAME CHAR(31), ' +
+        '  FIELD_NAME CHAR(31) ' +
+        '  PRIMARY KEY (INDEX_NAME, FIELD_NAME) ' +
+        ')';
+      q2.ExecQuery;
+      q2.Close;
+      LogEvent('DBS_INDEX_SEGMENTS table has been created.');
 
+
+      q.ParamByName('RN').AsString := 'DBS_REF_CONSTRAINTS';
+      q.ExecQuery;
+      if q.EOF then
+      begin
+        q2.SQL.Text := 'CREATE TABLE DBS_REF_CONSTRAINTS ( ' +
+          ' CONSTRAINT_NAME CHAR(31) ' +
+          ' CONST_NAME_UQ   CHAR(31), ' +
+          ' UPDATE_RULE     CHAR(11), ' +
+          ' DELETE_RULE     CHAR(11) ' +
+          ' PRIMARY KEY (INDEX_NAME, FIELD_NAME)) ';
+        q2.ExecQuery;
+        q2.Close;
+        LogEvent('DBS_REF_CONSTRAINTS table has been created.');
+
+        q.ParamByName('RN').AsString := 'DBS_RELATION_CONSTRAINTS';         //
+        q.ExecQuery;
+        if q.EOF then
+        begin
+          q2.SQL.Text :=  'CREATE TABLE DBS_RELATION_CONSTRAINTS ( '+
+          'CONSTRAINT_NAME CHAR(31), ' +
+          'CONSTRAINT_TYPE CHAR(11), ' +
+          'RELATION_NAME   CHAR(31), ' +
+          'INDEX_NAME      CHAR(31)) ' +
+          ' PRIMARY KEY (CONSTRAINT_NAME, CONSTRAINT_TYPE, RELATION_NAME, INDEX_NAME)) ';
+          q2.ExecQuery;
+          q2.Close;
+          LogEvent('DBS_RELATION_CONSTRAINTS table has been created.');
+
+          Result := True;
+        end;
+        LogEvent('DBS_RELATION_CONSTRAINTS table HASN''T been created.');
+      end;
+      LogEvent('DBS_INDEX_SEGMENTS table HASN''T been created.');
+
+    end;
+    LogEvent('DBS_REF_CONSTRAINTS table HASN''T been created.');
+
+    q.Close;
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+  end;
+  LogEvent('Creating tables for saving FK constraint ... OK');
+end;
+
+
+procedure TgsDBSqueeze.h_InsertTblsForSaveConstr;
 var
   q: TIBSQL;
-  sql: String;
   Tr: TIBTransaction;
 begin
   Assert(Connected);
@@ -101,73 +190,91 @@ begin
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
+
     q.Transaction := Tr;
 
-    sql := 'CREATE TABLE DBS_INDEX_SEGMENTS (' +
-      'INDEX_NAME CHAR(31), ' +
-      'FIELD_NAME CHAR(31)) ';
-    execSQL(q, sql);
-
-    sql := 'CREATE TABLE DBS_REF_CONSTRAINTS ( ' +
-      'CONSTRAINT_NAME CHAR(31), ' +
-      'CONST_NAME_UQ   CHAR(31), ' +
-      'UPDATE_RULE     CHAR(11), ' +
-      'DELETE_RULE     CHAR(11)) ';
-    execSQL(q, sql);
-
-    sql := 'CREATE TABLE DBS_RELATION_CONSTRAINTS ( '+
-      'CONSTRAINT_NAME CHAR(31), ' +
-      'CONSTRAINT_TYPE CHAR(11), ' +
-      'RELATION_NAME   CHAR(31), ' +
-      'INDEX_NAME      CHAR(31)) ';
-    execSQL(q, sql);
-
-    Tr.Commit;     //
-    Tr.StartTransaction;
-    //q.Transaction := Tr;
-
-    ////////   мб не надо
-    sql := 'DELETE FROM DBS_REF_CONSTRAINTS ';
-    execSQL(q, sql);
-
-    sql := 'DELETE FROM DBS_RELATION_CONSTRAINTS ';
-    execSQL(q, sql);
-
-    sql := 'DELETE FROM DBS_INDEX_SEGMENTS ';
-    execSQL(q, sql);
-    ////////
-    Tr.Commit;    //
-    Tr.StartTransaction;
-    //q.Transaction := Tr;
-
-    sql := 'INSERT INTO DBS_REF_CONSTRAINTS ' +
+    q.SQL.Text :=
+      'INSERT INTO DBS_REF_CONSTRAINTS ' +
       ' (CONSTRAINT_NAME, CONST_NAME_UQ, UPDATE_RULE, DELETE_RULE) SELECT ' +
       ' RDB$CONSTRAINT_NAME, RDB$CONST_NAME_UQ, RDB$UPDATE_RULE, RDB$DELETE_RULE ' +
       'FROM RDB$REF_CONSTRAINTS ';
-    execSQL(q, sql);
+    q.ExecQuery;
+    q.Close;
 
-    sql := 'INSERT INTO DBS_RELATION_CONSTRAINTS ' +
-      ' (CONSTRAINT_NAME, CONSTRAINT_TYPE, RELATION_NAME, INDEX_NAME) SELECT ' +
-      ' RDB$CONSTRAINT_NAME, RDB$CONSTRAINT_TYPE, RDB$RELATION_NAME, RDB$INDEX_NAME ' +
-      'FROM RDB$RELATION_CONSTRAINTS c' +
-         'JOIN rdb$indices i ON i.rdb$index_name = c.rdb$index_name ' +
-      'WHERE c.rdb$constraint_type = ''FOREIGN KEY'' and '+
-         '(i.RDB$SYSTEM_FLAG IS NULL OR i.RDB$SYSTEM_FLAG = 0) ';
-    execSQL(q, sql);
+    q.SQL.Text :=
+      'INSERT INTO DBS_RELATION_CONSTRAINTS ' +
+      ' (CONSTRAINT_NAME,     CONSTRAINT_TYPE,     RELATION_NAME,     INDEX_NAME) ' +
+      'SELECT ' +
+      '  c.RDB$CONSTRAINT_NAME, c.RDB$CONSTRAINT_TYPE, c.RDB$RELATION_NAME, c.RDB$INDEX_NAME ' +
+      'FROM RDB$RELATION_CONSTRAINTS c ' +
+      'WHERE c.rdb$constraint_type = ''FOREIGN KEY'' '+
+      '  AND NOT c.rdb$relation_name LIKE ''RDB$%'' ';
+    q.ExecQuery;
+    q.Close;
 
-    sql := 'INSERT INTO DBS_INDEX_SEGMENTS ' +
+    q.SQL.Text :=
+      'INSERT INTO DBS_INDEX_SEGMENTS ' +
       ' (INDEX_NAME, FIELD_NAME) SELECT ' +
       ' RDB$INDEX_NAME, RDB$FIELD_NAME ' +
       ' FROM RDB$INDEX_SEGMENTS ' +
       ' WHERE RDB$INDEX_NAME IN (SELECT INDEX_NAME FROM DBS_RELATION_CONSTRAINTS) ';
-    execSQL(q, sql);
+    q.ExecQuery;
+    q.Close;
 
     Tr.Commit;
+
+    LogEvent('Inserting in DBS_REF_CONSTRAINTS, DBS_RELATION_CONSTRAINTS, DBS_INDEX_SEGMENTS tables ... OK');
   finally
     q.Free;
     Tr.Free;
   end;
+end;
 
+
+procedure TgsDBSqueeze.h_TblsForSaveConstr;
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+  q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    if not h_CreateTblsForSaveConstr then
+    begin
+      q.SQL.Text := 'DELETE FROM DBS_REF_CONSTRAINTS ';
+      q.ExecQuery;
+      q.Close;
+      q.SQL.Text := 'DELETE FROM DBS_RELATION_CONSTRAINTS ';
+      q.ExecQuery;
+      q.Close;
+      q.SQL.Text := 'DELETE FROM DBS_INDEX_SEGMENTS ';
+      q.ExecQuery;
+      q.Close;
+
+      Tr.Commit;
+      LogEvent('Deleting from DBS_REF_CONSTRAINTS, DBS_RELATION_CONSTRAINTS, DBS_INDEX_SEGMENTS ... OK');
+    end;
+
+    h_InsertTblsForSaveConstr;
+
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+
+procedure TgsDBSqueeze.h_SaveAllConstraints;
+begin
+  LogEvent('Saving FK constraints ...');
+  h_TblsForSaveConstr; //save fk
+  LogEvent('Saving FK constraints ... OK');
 end;
 
 procedure TgsDBSqueeze.h_DeleteAllConstraints;
@@ -202,7 +309,6 @@ begin
         ' DROP CONSTRAINT ' + q.FieldByName('Constraint_Name').AsString;
 
       q2.SQL.Text := textSql;
-      q2.Transaction.StartTransaction;
       q2.ExecQuery;
       q2.Close;
 
@@ -317,5 +423,11 @@ begin
 end;
 
 
+
+procedure TgsDBSqueeze.LogEvent(const AMsg: String);
+begin
+  if Assigned(FOnLogEvent) then
+    FOnLogEvent(AMsg);
+end;
 
 end.
