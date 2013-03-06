@@ -313,24 +313,18 @@ end;
 
 procedure TgsInvMovementDocuments.CreateCompany;
 var
-  Company: TgdcCompany;
-  R: OleVariant;
+  Company: TgdcCompany; 
 begin
-  gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_contact where contacttype = 0 and UPPER(name) = UPPER(:name)',
-    'ОРГАНИЗАЦИИ', R, FTr);
-
   Company := TgdcCompany.Create(nil);
-  try
+  try 
     Company.Open;
     Company.Insert;
     Company.FieldByName('Name').AsString := 'Test_Компания1';
-    Company.FieldByName('Parent').AsInteger := R[0, 0];
     Company.Post;
     FCompanyId1 := Company.ID;
 
     Company.Insert;
-    Company.FieldByName('Name').AsString := 'Test_Компания2';
-    Company.FieldByName('Parent').AsInteger := R[0, 0];
+    Company.FieldByName('Name').AsString := 'Test_Компания2';    
     Company.Post;
     FCompanyId2 := Company.ID;
   finally
@@ -369,25 +363,18 @@ end;
 
 procedure TgsInvMovementDocuments.CreateDepartments;
 var
-  Dept: TgdcDepartment;
-  R: OleVariant;
+  Dept: TgdcDepartment; 
 begin
-  gdcBaseManager.ExecSingleQueryResult(
-    'SELECT id FROM gd_contact where contacttype = 4 and UPPER(name) = UPPER(:name)',
-    'ВСЕ ПОДРАЗДЕЛЕНИЯ', R, FTr); 
-
   Dept := TgdcDepartment.Create(nil);
-  try
+  try 
     Dept.Open;
     Dept.Insert;
     Dept.FieldByName('name').AsString := 'Test_склад1';
-    Dept.FieldByName('parent').AsInteger := R[0, 0];
     Dept.Post;
     FDeptID1 := Dept.ID;
 
     Dept.Insert;
     Dept.FieldByName('name').AsString := 'Test_склад2';
-    Dept.FieldByName('parent').AsInteger := R[0, 0];
     Dept.Post;
     FDeptID2 := Dept.ID;
   finally

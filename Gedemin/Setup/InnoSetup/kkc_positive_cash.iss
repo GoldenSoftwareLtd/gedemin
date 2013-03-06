@@ -61,6 +61,9 @@ Source: "Help\fr24rus.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "Help\vbs55.chm"; DestDir: "{app}\Help"; Flags: ignoreversion
 Source: "menufront.jpg"; DestDir: "{app}"; DestName: "gedemin.jpg"; Flags: ignoreversion
 Source: "Database\cash.bk"; DestDir: "{app}\Database"; Flags: deleteafterinstall; Tasks: databasefile
+Source: "USBPD.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "PDPosiFlexCommand.dll"; DestDir: "{app}"; Flags: ignoreversion 
+Source: "PDComWriter.dll"; DestDir: "{app}"; Flags: ignoreversion 
 
 [INI]
 Filename: "{app}\databases.ini"; Section: "{code:GetSafeAppName}"; Key: "FileName"; String: "Database\{code:GetDBFileName}"; Tasks: "databasefile"
@@ -69,7 +72,9 @@ Filename: "{app}\gedemin.ini"; Section: "WEB CLIENT"; Key: "Token"; String: "POS
 
 [Icons]
 Name: "{group}\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; WorkingDir: "{app}"
+Name: "{group}\{code:GetSafeAppName} Касса"; Filename: "{app}\gedemin.exe"; Parameters: "/sn ""{app}\Database\{code:GetDBFileName}"" /user Кассир /password 1"; WorkingDir: "{app}"
 Name: "{commondesktop}\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; Tasks: desktopicon
+Name: "{commondesktop}\{code:GetSafeAppName} Касса"; Filename: "{app}\gedemin.exe"; Parameters: "/sn ""{app}\Database\{code:GetDBFileName}"" /user Кассир /password 1"; WorkingDir: "{app}"; Tasks: desktopicon
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{code:GetSafeAppName}"; Filename: "{app}\gedemin.exe"; Tasks: quicklaunchicon
 Name: "{group}\{cm:UninstallProgram,{code:GetSafeAppName}}"; Filename: "{uninstallexe}"; WorkingDir: "{app}"
 

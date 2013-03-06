@@ -1,7 +1,7 @@
 inherited gdc_frmSetting: Tgdc_frmSetting
-  Left = 398
-  Top = 188
-  Width = 823
+  Left = 402
+  Top = 192
+  Width = 815
   HelpContext = 22
   Caption = 'Настройки'
   PixelsPerInch = 96
@@ -146,7 +146,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       Left = 531
       Top = 173
       Width = 3
-      Height = 100
+      Height = 102
       Cursor = crHSplit
       Align = alRight
       Visible = False
@@ -208,7 +208,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       Left = 534
       Top = 173
       Width = 255
-      Height = 100
+      Height = 102
       Align = alRight
       BevelOuter = bvNone
       TabOrder = 3
@@ -254,7 +254,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         Left = 0
         Top = 26
         Width = 160
-        Height = 74
+        Height = 76
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -264,7 +264,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
           Left = 0
           Top = 0
           Width = 160
-          Height = 44
+          Height = 46
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -274,7 +274,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         end
         object pnlSearchStorageButton: TPanel
           Left = 0
-          Top = 44
+          Top = 46
           Width = 160
           Height = 30
           Align = alBottom
@@ -305,7 +305,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         Left = 160
         Top = 26
         Width = 95
-        Height = 74
+        Height = 76
         HelpContext = 3
         Align = alClient
         BorderStyle = bsNone

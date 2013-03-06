@@ -396,7 +396,7 @@ end;
 
 procedure TgdcUser.CreateIBUser;
 begin
-  if Active and (not EOF) then
+  if Active and ((State = dsInsert) or (not EOF)) then
   begin
     try
       if not IBLogin.IsEmbeddedServer then

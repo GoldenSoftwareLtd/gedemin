@@ -1,8 +1,8 @@
 inherited gdc_frmMDH: Tgdc_frmMDH
-  Left = 423
-  Top = 229
-  Width = 740
-  Height = 495
+  Left = 427
+  Top = 233
+  Width = 732
+  Height = 484
   HelpContext = 115
   Caption = 'gdc_frmMDH'
   Font.Charset = DEFAULT_CHARSET
@@ -74,11 +74,11 @@ inherited gdc_frmMDH: Tgdc_frmMDH
     end
   end
   inherited TBDockLeft: TTBDock
-    Height = 378
+    Height = 380
   end
   inherited TBDockRight: TTBDock
     Left = 715
-    Height = 378
+    Height = 380
   end
   inherited TBDockBottom: TTBDock
     Top = 429
@@ -86,7 +86,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
   end
   inherited pnlWorkArea: TPanel
     Width = 706
-    Height = 378
+    Height = 380
     TabOrder = 0
     object sMasterDetail: TSplitter [0]
       Left = 0
@@ -98,7 +98,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       MinSize = 20
     end
     inherited spChoose: TSplitter
-      Top = 273
+      Top = 275
       Width = 706
       Height = 6
     end
@@ -119,7 +119,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       end
     end
     inherited pnChoose: TPanel
-      Top = 279
+      Top = 281
       Width = 706
       TabOrder = 2
       inherited pnButtonChoose: TPanel
@@ -136,7 +136,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
       Left = 0
       Top = 173
       Width = 706
-      Height = 100
+      Height = 102
       Align = alClient
       BevelOuter = bvLowered
       Constraints.MinHeight = 100
@@ -224,7 +224,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
         Left = 1
         Top = 27
         Width = 160
-        Height = 72
+        Height = 74
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -236,7 +236,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
           Left = 0
           Top = 0
           Width = 160
-          Height = 34
+          Height = 36
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -246,7 +246,7 @@ inherited gdc_frmMDH: Tgdc_frmMDH
         end
         object pnlSearchDetailButton: TPanel
           Left = 0
-          Top = 34
+          Top = 36
           Width = 160
           Height = 38
           Align = alBottom

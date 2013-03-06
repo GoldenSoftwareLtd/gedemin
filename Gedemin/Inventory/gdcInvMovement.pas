@@ -6631,6 +6631,8 @@ begin
     try
       ParamByName('DepartmentKey').AsInteger := DepartmentKeys[Low(DepartmentKeys)]
     except
+      // в запросе может не быть параметра с именем DepartmentKey
+      on E: EIBClientError do ;
     end
   else
     if (Length(SubDepartmentKeys) = 1) then
