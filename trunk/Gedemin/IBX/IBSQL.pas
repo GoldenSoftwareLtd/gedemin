@@ -1510,8 +1510,6 @@ begin
 
   if result > '' then
     SetLength(result, Length(result) - 2);
-
-//  result := FNames.Text;
 end;
 
 function TIBXSQLDA.GetRecordSize: Integer;

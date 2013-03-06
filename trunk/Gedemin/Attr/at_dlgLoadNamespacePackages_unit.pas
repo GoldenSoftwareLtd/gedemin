@@ -41,13 +41,18 @@ type
     procedure actSearchUpdate(Sender: TObject);
     procedure actInstallPackageExecute(Sender: TObject);
     procedure actInstallPackageUpdate(Sender: TObject);
+    procedure gsTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView;
+      Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
+      var PaintImages, DefaultDraw: Boolean);
+    procedure gsTreeViewClick(Sender: TObject);
   private
     FgdcNamespace: TgdcNamespace;
     FOldWndProc: TWndMethod;
 
+
     procedure SelectAllChild(Node: TTreeNode; bSel: boolean);
     procedure OverridingWndProc(var Message: TMessage);
-    procedure SetFileList(SL: TStringList);
+
     procedure CreateTree; 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -55,6 +60,7 @@ type
 
     procedure SaveSettings; override;
     procedure LoadSettingsAfterCreate; override;
+    procedure SetFileList(SL: TStringList);
   end;
 
 var
@@ -65,7 +71,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_GlobalParams_unit, gd_security, gdcBaseInterface, IBDatabase;
+  gd_GlobalParams_unit, gd_security, gdcBaseInterface, IBDatabase,  gd_KeyAssoc;
 
 constructor Tat_dlgLoadNamespacePackages.Create(AnOwner: TComponent);
 begin
@@ -92,34 +98,83 @@ end;
 procedure Tat_dlgLoadNamespacePackages.SetFileList(SL: TStringList);
 var
   I, Index: Integer;
-  q: TIBSQL;
+  q: TIBSQL; 
+  KA: TgdKeyArray;
 begin
   Assert(SL <> nil);
 
-  q := TIBSQL.Create(nil);
+  KA := TgdKeyArray.Create;
   try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT * FROM at_namespace_gtt WHERE id = :id';
-
     for I := 0 to gsTreeView.Items.Count - 1 do
     begin
       if gsTreeView.Items[I].StateIndex = 1 then
-      begin
-        q.Close;
-        q.ParamByName('id').AsInteger:= Integer(gsTreeView.Items[I].Data);
-        q.ExecQuery;
+        KA.Add(Integer(gsTreeView.Items[I].Data), True);
+    end;
 
-        if not q.Eof then
+    if KA.Count > 0 then
+    begin
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := gdcBaseManager.ReadTransaction;
+        q.SQL.Text :=
+          'WITH RECURSIVE ' +
+          '  ns_tree AS ( ' +
+          '    SELECT ' +
+          '      n.settingruid, ' +
+          '      n.id, ' +
+          '      0 AS cnt, ' +
+          '      n.filename ' +
+          '    FROM ' +
+          '      at_namespace_gtt n ' +
+          '    WHERE ' +
+          '      id = :id ' +
+          '    UNION ALL ' +
+          '    SELECT ' +
+          '      u.settingruid, ' +
+          '      u.id, ' + 
+          '      (t.cnt + 1), ' +
+          '      u.filename ' +
+          '    FROM at_namespace_link_gtt l ' +
+          '      JOIN ns_tree t ON l.namespaceruid = t.settingruid ' +
+          '      JOIN at_namespace_gtt u ON u.settingruid = l.usesruid' +
+          '    WHERE ' +
+          '      t.cnt < 20 ' +
+          '  ) ' +
+          'SELECT ' +
+          '  id, cnt, filename ' +
+          'FROM ' +
+          '  ns_tree ' +
+          'ORDER BY cnt desc';
+
+        while KA.Count > 0 do
         begin
-          Index := SL.IndexOf(q.FieldByName('filename').AsString);
-          if Index <> -1 then
-            SL.Delete(Index);
-          SL.Insert(0, q.FieldByName('filename').AsString);
+          q.Close;
+          q.ParamByName('id').AsInteger := KA[0];
+          q.ExecQuery;
+
+          if q.Eof then
+          begin
+            KA.Delete(0);
+            continue;
+          end;
+
+          while not q.Eof do
+          begin
+            Index := KA.IndexOf(q.FieldByName('id').AsInteger);
+            if  Index <> -1 then
+            begin
+              SL.Add(q.FieldByName('filename').AsString);
+              KA.Delete(Index);
+            end;
+            q.Next;
+          end;
         end;
+      finally
+        q.Free;
       end;
     end;
   finally
-    q.Free;
+    KA.Free; 
   end;
 end;
 
@@ -233,22 +288,14 @@ end;
 
 procedure Tat_dlgLoadNamespacePackages.actInstallPackageExecute(
   Sender: TObject);
-var
-  SL: TStringList;
 begin
-  SL := TStringList.Create;
-  try
-    SetFileList(SL);
-    TgdcNamespace.InstallPackages(SL);
-  finally
-    SL.Free;
-  end;
+  ModalResult := mrOK;
 end;
 
 procedure Tat_dlgLoadNamespacePackages.actInstallPackageUpdate(
   Sender: TObject);
 begin
-  TAction(Sender).Enabled := Assigned(IBLogin)
+  TAction(Sender).Enabled := Assigned(IBLogin) 
     and IBLogin.IsIBUserAdmin;
 end;
 
@@ -316,6 +363,60 @@ begin
     end;
   finally
     q.Free;
+  end;
+end;
+
+procedure Tat_dlgLoadNamespacePackages.gsTreeViewAdvancedCustomDrawItem(
+  Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState;
+  Stage: TCustomDrawStage; var PaintImages, DefaultDraw: Boolean);
+var
+  R: OleVariant;
+begin
+  if (Stage = cdPrePaint) and (Node <> nil) and (Integer(Node.Data) > 0) then
+  begin
+    gdcBaseManager.ExecSingleQueryResult(
+      'SELECT operation FROM at_namespace_gtt WHERE id = :id',
+      Integer(Node.Data), R);
+    if not VarIsEmpty(R) then
+    begin
+      if cdsSelected in State then
+        gsTreeView.Canvas.Font.Color := clWhite
+      else
+        gsTreeView.Canvas.Font.Color := TItemColor[Integer(R[0, 0]) - 1];
+        gsTreeView.Canvas.Font.Style := TItemFontStyles[Integer(R[0, 0]) - 1];
+    end;
+    DefaultDraw := True;
+  end;
+
+end;
+
+procedure Tat_dlgLoadNamespacePackages.gsTreeViewClick(Sender: TObject);
+var
+  Node: TTreeNode;
+  q: TIBSQL;
+begin
+  mInfo.Clear;
+  Node := gsTreeView.Selected;
+  if Node <> nil then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text := 'SELECT * FROM at_namespace_gtt WHERE id = :id';
+      q.ParamByName('id').AsInteger := Integer(Node.Data);
+      q.ExecQuery;
+
+      if not q.EOF then
+      begin
+        mInfo.Lines.Add(q.FieldByName('Name').AsString);
+        mInfo.Lines.Add('Версия: ' + q.FieldByName('version').AsString);
+        mInfo.Lines.Add('RUID: ' + q.FieldByName('settingruid').AsString);
+        mInfo.Lines.Add('Путь: ' + q.FieldByName('filename').AsString);
+        mInfo.Lines.Add('Изменен: ' + q.FieldByName('filetimestamp').AsString);
+      end;
+    finally
+      q.Free;
+    end;
   end;
 end;
 

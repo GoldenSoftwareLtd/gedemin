@@ -4439,6 +4439,7 @@ procedure TsqlOrderBy.ParseStatement;
 var
   CurrStatement: TsqlStatement;
   CommaCount: Integer;
+  WasSpace: Boolean;
 begin
   CommaCount := 0;
 
@@ -4450,6 +4451,38 @@ begin
       ttSymbolClause:
       begin
         case Token.SymbolClause of
+
+          scBracketOpen:
+          begin
+            RollBack;
+
+            if FFields.Count > 0 then
+            begin
+              if (FFields[FFields.Count - 1] is TsqlField) then
+              begin
+                WasSpace := False;
+                while Token.TokenType = ttSpace do
+                begin
+                  RollBack;
+                  WasSpace := True;
+                end;
+
+                if (AnsiCompareText(TsqlField(FFields[FFields.Count - 1]).FieldName, Token.Text) = 0)
+                then
+                begin
+                  FFields.Delete(FFields.Count - 1);
+                  while Token.TokenType = ttSpace do
+                    RollBack;
+                end else if WasSpace then
+                  ReadNext;
+              end;
+            end;
+
+            CurrStatement := TsqlFunction.Create(FParser, False);
+            FFields.Add(CurrStatement);
+            CurrStatement.ParseStatement;
+            Continue;
+          end;
 
           scComma:
           begin
@@ -4492,6 +4525,8 @@ begin
               CurrStatement := TsqlField.Create(FParser, False);
               FFields.Add(CurrStatement);
               CurrStatement.ParseStatement;
+              if (FFields[FFields.Count - 1] as TsqlField).FieldName = '' then
+                FFields.Delete(FFields.Count - 1);
               Continue;
             end;
 

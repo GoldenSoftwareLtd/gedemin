@@ -1,8 +1,8 @@
 object dlgToNamespace: TdlgToNamespace
-  Left = 599
-  Top = 149
-  Width = 585
-  Height = 454
+  Left = 603
+  Top = 153
+  Width = 577
+  Height = 443
   Caption = 'Добавление объекта в пространство имен'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET

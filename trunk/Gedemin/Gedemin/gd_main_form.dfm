@@ -1,8 +1,8 @@
 object frmGedeminMain: TfrmGedeminMain
-  Left = 389
-  Top = 83
-  Width = 977
-  Height = 85
+  Left = 393
+  Top = 87
+  Width = 969
+  Height = 80
   HelpContext = 76
   HorzScrollBar.Visible = False
   VertScrollBar.Visible = False
@@ -322,21 +322,21 @@ object frmGedeminMain: TfrmGedeminMain
         Control = lblDatabase
       end
       object Label1: TLabel
-        Left = 235
+        Left = 224
         Top = 4
         Width = 32
         Height = 13
         Caption = 'Стол: '
       end
       object Label2: TLabel
-        Left = 487
+        Left = 476
         Top = 4
         Width = 73
         Height = 13
         Caption = 'Организация: '
       end
       object lblDatabase: TLabel
-        Left = 734
+        Left = 723
         Top = 4
         Width = 3
         Height = 13
@@ -345,7 +345,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnDblClick = actCopyExecute
       end
       object cbDesktop: TComboBox
-        Left = 267
+        Left = 256
         Top = 0
         Width = 145
         Height = 21
@@ -358,7 +358,7 @@ object frmGedeminMain: TfrmGedeminMain
         OnChange = cbDesktopChange
       end
       object gsiblkupCompany: TgsIBLookupComboBox
-        Left = 560
+        Left = 549
         Top = 0
         Width = 145
         Height = 21

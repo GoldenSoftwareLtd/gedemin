@@ -27,7 +27,7 @@ uses
   Registry,  
   IBIntf,
   IBServices,
-  IBDatabase,
+  IBDatabase,                   
   IBSQL,
   gdcInvDocumentCache_body,
   gd_regionalsettings_dlgEdit,               

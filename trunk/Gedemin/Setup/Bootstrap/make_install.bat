@@ -154,6 +154,14 @@ del Gedemin\databases.ini > nul
 del Gedemin\gedemin.ini > nul
 del Gedemin\*.jpg > nul
 
+if not [%2]==[cash] goto make_arc
+
+del Gedemin\USBPD.DLL > nul
+del Gedemin\PDPosiFlexCommand.DLL > nul
+del Gedemin\PDComWriter.DLL > nul
+
+:make_arc
+
 "c:\program files\winrar\winrar.exe" a -ibck %2_portable.rar Gedemin
 
 if exist ftp.txt del ftp.txt

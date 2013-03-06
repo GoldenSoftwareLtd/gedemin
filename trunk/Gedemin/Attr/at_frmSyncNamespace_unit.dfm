@@ -1,8 +1,8 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 417
-  Top = 183
-  Width = 949
-  Height = 505
+  Left = 421
+  Top = 187
+  Width = 941
+  Height = 494
   Caption = 'at_frmSyncNamespace'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET

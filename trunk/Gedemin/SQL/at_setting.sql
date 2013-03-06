@@ -263,6 +263,50 @@ CREATE TABLE at_namespace_link (
   CONSTRAINT at_chk_namespace_link CHECK (namespacekey <> useskey)
 );
 
+CREATE global TEMPORARY TABLE at_namespace_gtt(
+  id            dintkey,
+  name          dtext255 NOT NULL UNIQUE,
+  caption       dtext255,
+  filename      dtext255,
+  filetimestamp TIMESTAMP,
+  version       dtext20 DEFAULT '1.0.0.0' NOT NULL,
+  dbversion     dtext20,
+  optional      dboolean_notnull DEFAULT 0,
+  internal      dboolean_notnull DEFAULT 1,
+  comment       dblobtext80_1251,
+  settingruid   VARCHAR(21),
+  operation     dinteger,
+  
+  CONSTRAINT at_pk_namespace_gtt PRIMARY KEY (id)
+) ON commit preserve rows;
+
+SET TERM ^ ;
+
+CREATE OR ALTER TRIGGER at_bi_namespace_gtt FOR at_namespace_gtt
+ACTIVE BEFORE INSERT POSITION 0
+AS
+BEGIN
+  IF (NEW.id IS NULL) THEN
+  BEGIN
+    SELECT MAX(id) + 1
+    FROM at_namespace_gtt    
+    INTO NEW.id;
+
+    IF (NEW.id IS NULL) THEN
+      NEW.id = 1;  
+  END
+END
+^
+
+SET TERM ; ^
+
+CREATE global TEMPORARY TABLE at_namespace_link_gtt(
+  namespaceruid   VARCHAR(21),
+  usesruid        VARCHAR(21),
+  
+  CONSTRAINT at_uk_object_link_gtt UNIQUE (namespaceruid, usesruid)
+) ON commit preserve rows;
+
 */
 
 COMMIT;

@@ -840,7 +840,8 @@ begin
 
   if ShouldShowExplorer
     and (gdc_frmExplorer <> nil)
-    and (not gdc_frmExplorer.Visible) then
+    and (not gdc_frmExplorer.Visible)
+    and Self.Visible then
   begin
     gdc_frmExplorer.Show;
   end;

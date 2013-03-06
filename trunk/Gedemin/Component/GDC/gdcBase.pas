@@ -243,9 +243,10 @@ type
     sSkipMultiple,   // идет обработка нескольких записей и пользователь выбрал пропуск
                      // проблемных записей. Имеет смысл только в совокупности с
                      // флагом sMultiple
-    sAskMultiple     // идет обработка нескольких записей и пользователя необходимо
+    sAskMultiple,    // идет обработка нескольких записей и пользователя необходимо
                      // спросить в случае позникновения проблем. Имеет смысл только
                      // в совокупности с флагом sMultiple
+    sLoadNamespace   // идет загрузка пространства имен
   );
   TgdcStates = set of TgdcState;
 
@@ -452,10 +453,8 @@ type
   private
     FMasterField: TStringList;
     FDetailField: TStringList;
-    //FTimer: TTimer;
     FDetailObject: TgdcBase;
 
-    //procedure DoOnTimer(Sender: TObject);
     function GetDetailField: String;
     function GetMasterField: String;
     procedure SetDetailField(const Value: String);
@@ -467,7 +466,6 @@ type
     procedure ActiveChanged; override;
     procedure EditingChanged; override;
     procedure RecordChanged(F: TField); override;
-    //procedure RefreshParams(const AnyWay: Boolean);
 
   public
     constructor Create(ADetailObject: TgdcBase);
@@ -14673,7 +14671,7 @@ begin
       begin
         CDS := TClientDataSet.Create(nil);
         try
-          if Modify and (sLoadFromStream in BaseState) then
+          if Modify and (([sLoadFromStream, sLoadNamespace] * BaseState) <> []) then
           begin
             for I := 0 to FieldDefs.Count - 1 do
             begin
@@ -14709,9 +14707,20 @@ begin
               ' с идентификатором ' +  q.Fields[0].AsString +
               ' не найдена! ');
 
-          if Modify and ModifyFromStream
-            and (sLoadFromStream in BaseState)
-            and CheckNeedModify(CDS, nil) then
+          if Modify and
+            (
+              (
+                ModifyFromStream
+                and
+                (sLoadFromStream in BaseState)
+                and
+                CheckNeedModify(CDS, nil)
+              )
+              or
+              (
+                sLoadNamespace in BaseState
+              )
+            ) then
           begin
             try
               Edit;
