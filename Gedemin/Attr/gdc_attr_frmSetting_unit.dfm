@@ -2,15 +2,16 @@ inherited gdc_frmSetting: Tgdc_frmSetting
   Left = 402
   Top = 192
   Width = 815
+  Height = 495
   HelpContext = 22
   Caption = 'Настройки'
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
-    Width = 807
+    Width = 799
   end
   inherited TBDockTop: TTBDock
-    Width = 807
+    Width = 799
     inherited tbMainCustom: TTBToolbar
       Left = 431
       DockPos = 431
@@ -129,50 +130,50 @@ inherited gdc_frmSetting: Tgdc_frmSetting
     end
   end
   inherited TBDockRight: TTBDock
-    Left = 798
+    Left = 790
   end
   inherited TBDockBottom: TTBDock
-    Width = 807
+    Width = 799
   end
   inherited pnlWorkArea: TPanel
-    Width = 789
+    Width = 781
     inherited sMasterDetail: TSplitter
-      Width = 789
+      Width = 781
     end
     inherited spChoose: TSplitter
-      Width = 789
+      Width = 781
     end
     object spltStorrage: TSplitter [2]
-      Left = 531
+      Left = 523
       Top = 173
       Width = 3
-      Height = 102
+      Height = 100
       Cursor = crHSplit
       Align = alRight
       Visible = False
     end
     inherited pnlMain: TPanel
-      Width = 789
+      Width = 781
       inherited ibgrMain: TgsIBGrid
-        Width = 629
+        Width = 621
       end
     end
     inherited pnChoose: TPanel
-      Width = 789
+      Width = 781
       inherited pnButtonChoose: TPanel
-        Left = 684
+        Left = 676
       end
       inherited ibgrChoose: TgsIBGrid
-        Width = 684
+        Width = 676
       end
       inherited pnlChooseCaption: TPanel
-        Width = 789
+        Width = 781
       end
     end
     inherited pnlDetail: TPanel
-      Width = 531
+      Width = 523
       inherited TBDockDetail: TTBDock
-        Width = 531
+        Width = 523
         inherited tbDetailToolbar: TTBToolbar
           object tbiOpenObject: TTBItem
             Action = actOpenObject
@@ -201,14 +202,14 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         end
       end
       inherited ibgrDetail: TgsIBGrid
-        Width = 371
+        Width = 363
       end
     end
     object pnlStorage: TPanel
-      Left = 534
+      Left = 526
       Top = 173
       Width = 255
-      Height = 102
+      Height = 100
       Align = alRight
       BevelOuter = bvNone
       TabOrder = 3
@@ -254,7 +255,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         Left = 0
         Top = 26
         Width = 160
-        Height = 76
+        Height = 74
         Align = alLeft
         BevelOuter = bvNone
         Color = 14741233
@@ -264,7 +265,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
           Left = 0
           Top = 0
           Width = 160
-          Height = 46
+          Height = 44
           HorzScrollBar.Style = ssFlat
           HorzScrollBar.Visible = False
           VertScrollBar.Style = ssFlat
@@ -274,7 +275,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         end
         object pnlSearchStorageButton: TPanel
           Left = 0
-          Top = 46
+          Top = 44
           Width = 160
           Height = 30
           Align = alBottom
@@ -305,7 +306,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
         Left = 160
         Top = 26
         Width = 95
-        Height = 76
+        Height = 74
         HelpContext = 3
         Align = alClient
         BorderStyle = bsNone

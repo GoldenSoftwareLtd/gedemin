@@ -16324,6 +16324,7 @@ CREATE global TEMPORARY TABLE at_namespace_gtt(
   internal      dboolean_notnull DEFAULT 1,
   comment       dblobtext80_1251,
   settingruid   VARCHAR(21),
+  operation     dinteger,
   
   CONSTRAINT at_pk_namespace_gtt PRIMARY KEY (id)
 ) ON commit preserve rows;
