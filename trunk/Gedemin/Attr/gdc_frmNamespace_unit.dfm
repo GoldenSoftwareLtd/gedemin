@@ -1,6 +1,6 @@
 inherited gdc_frmNamespace: Tgdc_frmNamespace
-  Left = 389
-  Top = 126
+  Left = 326
+  Top = 220
   Width = 1090
   Height = 742
   Caption = 'Пространство имен'
@@ -19,6 +19,12 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       end
       object TBItem2: TTBItem
         Action = actCompareWithData
+      end
+      object TBItem3: TTBItem
+        Action = actShowDuplicates
+      end
+      object TBItem4: TTBItem
+        Action = actShowRecursion
       end
     end
   end
@@ -93,6 +99,16 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       Caption = 'actCompareWithData'
       OnExecute = actCompareWithDataExecute
       OnUpdate = actCompareWithDataUpdate
+    end
+    object actShowDuplicates: TAction
+      Caption = 'actShowDuplicates'
+      OnExecute = actShowDuplicatesExecute
+      OnUpdate = actShowDuplicatesUpdate
+    end
+    object actShowRecursion: TAction
+      Caption = 'actShowRecursion'
+      OnExecute = actShowRecursionExecute
+      OnUpdate = actShowRecursionUpdate
     end
   end
   object gdcNamespace: TgdcNamespace

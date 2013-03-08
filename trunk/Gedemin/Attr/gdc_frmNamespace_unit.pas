@@ -16,12 +16,20 @@ type
     TBItem1: TTBItem;
     actCompareWithData: TAction;
     TBItem2: TTBItem;
+    actShowDuplicates: TAction;
+    TBItem3: TTBItem;
+    actShowRecursion: TAction;
+    TBItem4: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actSetObjectPosExecute(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
     procedure actCompareWithDataExecute(Sender: TObject);
     procedure actCompareWithDataUpdate(Sender: TObject);
     procedure actSetObjectPosUpdate(Sender: TObject);
+    procedure actShowDuplicatesExecute(Sender: TObject);
+    procedure actShowRecursionExecute(Sender: TObject);
+    procedure actShowRecursionUpdate(Sender: TObject);
+    procedure actShowDuplicatesUpdate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -33,7 +41,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_ClassList;
+  gd_ClassList, at_frmDuplicates_unit, at_frmNSRecursion_unit;
 
 procedure Tgdc_frmNamespace.FormCreate(Sender: TObject);
 begin
@@ -79,6 +87,32 @@ end;
 procedure Tgdc_frmNamespace.actSetObjectPosUpdate(Sender: TObject);
 begin
   actSetObjectPos.Enabled := (gdcObject <> nil)
+    and (gdcObject.State = dsBrowse)
+    and (not gdcObject.EOF);
+end;
+
+procedure Tgdc_frmNamespace.actShowDuplicatesExecute(Sender: TObject);
+begin
+  with Tat_frmDuplicates.Create(nil) do
+    Show;
+end;
+
+procedure Tgdc_frmNamespace.actShowRecursionExecute(Sender: TObject);
+begin
+  with Tat_frmNSRecursion.Create(nil) do
+    Show;
+end;
+
+procedure Tgdc_frmNamespace.actShowRecursionUpdate(Sender: TObject);
+begin
+  actShowRecursion.Enabled := (gdcObject <> nil)
+    and (gdcObject.State = dsBrowse)
+    and (not gdcObject.EOF);
+end;
+
+procedure Tgdc_frmNamespace.actShowDuplicatesUpdate(Sender: TObject);
+begin
+  actShowDuplicates.Enabled := (gdcObject <> nil)
     and (gdcObject.State = dsBrowse)
     and (not gdcObject.EOF);
 end;

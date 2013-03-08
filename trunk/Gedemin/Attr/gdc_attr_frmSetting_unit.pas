@@ -1711,9 +1711,61 @@ begin
       '    END '#13#10 +
       '  END '#13#10 +
       'END ';
-    q.ExecQuery;  
+    q.ExecQuery;
 
-    Tr.Commit;  
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    q.SQL.Text :=
+      'RECREATE PROCEDURE at_del_duplicates ('#13#10 +
+      '  DeleteFromID INTEGER,'#13#10 +
+      '  CurrentID INTEGER,'#13#10 +
+      '  Stack VARCHAR(32000))'#13#10 +
+      'AS'#13#10 +
+      '  DECLARE VARIABLE id INTEGER;'#13#10 +
+      '  DECLARE VARIABLE nsid INTEGER;'#13#10 +
+      'BEGIN'#13#10 +
+      '  IF (:DeleteFromID <> :CurrentID) THEN'#13#10 +
+      '  BEGIN'#13#10 +
+      '    FOR'#13#10 +
+      '      SELECT o1.id'#13#10 +
+      '      FROM at_object o1 JOIN at_object o2'#13#10 +
+      '        ON o1.xid = o2.xid AND o1.dbid = o2.dbid'#13#10 +
+      '      WHERE o1.NAMESPACEKEY = :DeleteFromID'#13#10 +
+      '        AND o2.NAMESPACEKEY = :CurrentID'#13#10 +
+      '      INTO :id'#13#10 +
+      '    DO BEGIN'#13#10 +
+      '      DELETE FROM at_object WHERE id = :id;'#13#10 +
+      '    END'#13#10 +
+      '  END'#13#10 +
+      ''#13#10 +
+      '  FOR'#13#10 +
+      '    SELECT l.useskey'#13#10 +
+      '    FROM at_namespace_link l'#13#10 +
+      '    WHERE l.namespacekey = :CurrentID'#13#10 +
+      '      AND POSITION((''('' || l.useskey || '')'') IN :Stack) = 0'#13#10 +
+      '    INTO :nsid'#13#10 +
+      '  DO BEGIN'#13#10 +
+      '    EXECUTE PROCEDURE at_del_duplicates (:DeleteFromID, :nsid,'#13#10 +
+      '      :Stack || ''('' || :nsid || '')'');'#13#10 +
+      '  END'#13#10 +
+      'END';
+    q.ExecQuery;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    q.SQL.Text :=
+      'EXECUTE BLOCK'#13#10 +
+      'AS'#13#10 +
+      '  DECLARE VARIABLE id INTEGER;'#13#10 +
+      'BEGIN'#13#10 +
+      '  FOR SELECT id FROM at_namespace INTO :id'#13#10 +
+      '  DO EXECUTE PROCEDURE at_del_duplicates(:id, :id, '''');'#13#10 +
+      'END';
+    q.ExecQuery;
+
+    Tr.Commit;
   finally
     q.Free;
     Tr.Free;
