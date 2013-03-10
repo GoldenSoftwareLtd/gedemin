@@ -53,7 +53,7 @@ object at_frmDuplicates: Tat_frmDuplicates
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
-    Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
+    Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
     ReadOnly = True
     TabOrder = 2
     InternalMenuKind = imkWithSeparator

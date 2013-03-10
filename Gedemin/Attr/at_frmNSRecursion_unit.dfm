@@ -11,6 +11,7 @@ object at_frmNSRecursion: Tat_frmNSRecursion
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object sb: TStatusBar
@@ -32,6 +33,7 @@ object at_frmNSRecursion: Tat_frmNSRecursion
       Caption = 'tb'
       CloseButton = False
       FullSize = True
+      Images = dmImages.il16x16
       MenuBar = True
       ProcessShortCuts = True
       ShrinkMode = tbsmWrap
@@ -44,7 +46,10 @@ object at_frmNSRecursion: Tat_frmNSRecursion
     Width = 1126
     Height = 573
     Align = alClient
+    BorderStyle = bsNone
     DataSource = ds
+    Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
+    ReadOnly = True
     TabOrder = 2
     InternalMenuKind = imkWithSeparator
     Expands = <>
@@ -69,13 +74,27 @@ object at_frmNSRecursion: Tat_frmNSRecursion
   object ibds: TIBDataSet
     Database = dmDatabase.ibdbGAdmin
     Transaction = ibtr
+    SelectSQL.Strings = (
+      'SELECT DISTINCT'
+      '  f.OutPath'
+      'FROM'
+      '  at_namespace n LEFT JOIN at_p_findnsrec('#39#39', n.id, n.id) f'
+      '    ON f.OutFirstID = n.id'
+      'WHERE'
+      '  f.OutPath > '#39#39)
     ReadTransaction = ibtr
     Left = 584
     Top = 296
   end
   object ds: TDataSource
     DataSet = ibds
+    OnDataChange = dsDataChange
     Left = 616
     Top = 296
+  end
+  object ActionList: TActionList
+    Images = dmImages.il16x16
+    Left = 800
+    Top = 80
   end
 end

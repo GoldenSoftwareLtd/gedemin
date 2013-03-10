@@ -252,7 +252,8 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
 
 const
   PassFieldName = ';ID;EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED' +
-                  ';ENTEREDPARAMS;BREAKPOINTS;EDITORSTATE;TESTRESULT;RDB$PROCEDURE_BLR;RDB$TRIGGER_BLR;RDB$VIEW_BLR;';
+                  ';ENTEREDPARAMS;BREAKPOINTS;EDITORSTATE;TESTRESULT;RDB$PROCEDURE_BLR;RDB$TRIGGER_BLR;RDB$VIEW_BLR' +
+                  ';LASTEXTIME;';
 var
   I, L: Integer;
   R: TatRelation;
@@ -286,13 +287,13 @@ begin
   AWriter.WriteKey('RUID');
   AWriter.WriteString(gdcBaseManager.GetRUIDStringByID(AgdcObject.ID));
   AWriter.StartNewLine;
-  AWriter.WriteKey('Alwaysoverwrite');
+  AWriter.WriteKey('AlwaysOverwrite');
   AWriter.WriteBoolean(AnAlwaysoverwrite);
   AWriter.StartNewLine;
-  AWriter.WriteKey('Dontremove');
+  AWriter.WriteKey('DontRemove');
   AWriter.WriteBoolean(ADontremove);
   AWriter.StartNewLine;
-  AWriter.WriteKey('Includesiblings');
+  AWriter.WriteKey('IncludeSiblings');
   AWriter.WriteBoolean(AnIncludesiblings);
   AWriter.DecIndent;
   AWriter.StartNewLine;
@@ -980,9 +981,9 @@ begin
                       gdcNamespaceObj.FieldByName('subtype').AsString := Obj.SubType;
                       gdcNamespaceObj.FieldByName('xid').AsInteger := Obj.GetRUID.XID;
                       gdcNamespaceObj.FieldByName('dbid').AsInteger := Obj.GetRUID.DBID;
-                      gdcNamespaceObj.FieldByName('alwaysoverwrite').AsInteger := Integer(M.ReadBoolean('Properties\Alwaysoverwrite'));
-                      gdcNamespaceObj.FieldByName('dontremove').AsInteger := Integer(M.ReadBoolean('Properties\Dontremove'));
-                      gdcNamespaceObj.FieldByName('includesiblings').AsInteger := Integer(M.ReadBoolean('Properties\Includesiblings'));
+                      gdcNamespaceObj.FieldByName('alwaysoverwrite').AsInteger := Integer(M.ReadBoolean('Properties\AlwaysOverwrite'));
+                      gdcNamespaceObj.FieldByName('dontremove').AsInteger := Integer(M.ReadBoolean('Properties\DontRemove'));
+                      gdcNamespaceObj.FieldByName('includesiblings').AsInteger := Integer(M.ReadBoolean('Properties\IncludeSiblings'));
                       gdcNamespaceObj.Post;
                     end;
                   finally
@@ -1326,7 +1327,7 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
             end;
           end;
         end
-        else if not Obj.CheckTheSame(SourceYAML.ReadBoolean('Properties\Alwaysoverwrite')) then
+        else if not Obj.CheckTheSame(SourceYAML.ReadBoolean('Properties\AlwaysOverwrite')) then
           Obj.Post;
 
         if Assigned(RUOL) then
@@ -1458,7 +1459,7 @@ begin
   Assert(AMapping <> nil);
 
   RUID := AMapping.ReadString('Properties\RUID');
-  AlwaysOverwrite := AMapping.ReadBoolean('Properties\Alwaysoverwrite');
+  AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite');
 
   if UpdateList = nil then
   begin

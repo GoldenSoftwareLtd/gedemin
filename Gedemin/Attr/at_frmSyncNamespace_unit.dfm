@@ -1,9 +1,9 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 421
-  Top = 187
+  Left = 338
+  Top = 177
   Width = 941
   Height = 494
-  Caption = 'at_frmSyncNamespace'
+  Caption = 'Синхронизация пространств имен'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -17,16 +17,16 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   TextHeight = 13
   object splMessages: TSplitter
     Left = 0
-    Top = 382
-    Width = 933
+    Top = 371
+    Width = 925
     Height = 3
     Cursor = crVSplit
     Align = alBottom
   end
   object sb: TStatusBar
     Left = 0
-    Top = 448
-    Width = 933
+    Top = 437
+    Width = 925
     Height = 19
     Panels = <>
     SimplePanel = False
@@ -34,7 +34,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object TBDock: TTBDock
     Left = 0
     Top = 0
-    Width = 933
+    Width = 925
     Height = 26
     object TBToolbar: TTBToolbar
       Left = 0
@@ -89,6 +89,11 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem10: TTBItem
         Action = actClear
       end
+      object TBSeparatorItem3: TTBSeparatorItem
+      end
+      object TBItem11: TTBItem
+        Action = actSync
+      end
       object tbedPath: TEdit
         Left = 0
         Top = 0
@@ -101,8 +106,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object gr: TgsDBGrid
     Left = 0
     Top = 26
-    Width = 933
-    Height = 356
+    Width = 925
+    Height = 345
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -161,7 +166,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Expanded = False
         FieldName = 'FileNamespaceName'
-        Width = 105
+        Width = 97
         Visible = True
       end
       item
@@ -185,8 +190,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object mMessages: TMemo
     Left = 0
-    Top = 385
-    Width = 933
+    Top = 374
+    Width = 925
     Height = 63
     Align = alBottom
     ScrollBars = ssVertical
@@ -379,6 +384,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Hint = 'Загрузить из файла'
       ImageIndex = 27
       OnUpdate = actLoadFromFileUpdate
+    end
+    object actSync: TAction
+      Caption = 'Синхронизировать'
+      Hint = 'Синхронизировать'
+      ImageIndex = 21
+      OnExecute = actSyncExecute
+      OnUpdate = actSyncUpdate
     end
   end
   object pmSync: TPopupMenu

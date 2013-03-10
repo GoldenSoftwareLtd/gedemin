@@ -8,6 +8,7 @@ inherited gdc_frmSetting: Tgdc_frmSetting
   PixelsPerInch = 96
   TextHeight = 13
   inherited sbMain: TStatusBar
+    Top = 438
     Width = 799
   end
   inherited TBDockTop: TTBDock
@@ -129,10 +130,15 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       DockPos = 398
     end
   end
+  inherited TBDockLeft: TTBDock
+    Height = 378
+  end
   inherited TBDockRight: TTBDock
     Left = 790
+    Height = 378
   end
   inherited TBDockBottom: TTBDock
+    Top = 429
     Width = 799
   end
   inherited pnlWorkArea: TPanel
