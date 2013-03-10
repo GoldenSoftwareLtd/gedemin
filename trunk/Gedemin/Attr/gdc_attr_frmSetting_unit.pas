@@ -1484,9 +1484,11 @@ begin
       gdcNamespaceObject.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
 
       C := GetClass(AClassName);
-      if C.InheritsFrom(TgdcBase) and (ADataSet.FieldByName(CgdcBase(C).GetListField(ASubType)).AsString > '') then
-        gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName(CgdcBase(C).GetListField(ASubType)).AsString
-      else if (ADataSet.FindField('name') <> nil) and (ADataSet.FieldByName('name').AsString > '') then
+      if C.InheritsFrom(TgdcBase) and (CgdcBase(C).GetListField(ASubType) > '')
+        and (ADataSet.FieldByName(CgdcBase(C).GetListField(ASubType)).AsString > '') then
+      begin
+        gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName(CgdcBase(C).GetListField(ASubType)).AsString;
+      end else if (ADataSet.FindField('name') <> nil) and (ADataSet.FieldByName('name').AsString > '') then
         gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('name').AsString
       else if (ADataSet.FindField('usr$name') <> nil) and (ADataSet.FieldByName('usr$name').AsString > '') then
         gdcNamespaceObject.FieldByName('objectname').AsString := ADataSet.FieldByName('usr$name').AsString

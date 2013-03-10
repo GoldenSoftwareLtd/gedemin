@@ -68,6 +68,9 @@ type
     TBItem8: TTBItem;
     TBItem9: TTBItem;
     TBItem10: TTBItem;
+    TBSeparatorItem3: TTBSeparatorItem;
+    actSync: TAction;
+    TBItem11: TTBItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -89,6 +92,8 @@ type
     procedure actClearUpdate(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
     procedure actLoadFromFileUpdate(Sender: TObject);
+    procedure actSyncUpdate(Sender: TObject);
+    procedure actSyncExecute(Sender: TObject);
 
   private
     FSaving: Boolean;
@@ -234,6 +239,7 @@ constructor Tat_frmSyncNamespace.Create(AnOwner: TComponent);
 begin
   inherited;
   FgdcNamespace := TgdcNamespace.Create(nil);
+  ShowSpeedButton := True;
 end;
 
 destructor Tat_frmSyncNamespace.Destroy;
@@ -344,6 +350,21 @@ procedure Tat_frmSyncNamespace.actLoadFromFileUpdate(Sender: TObject);
 begin
   actLoadFromFile.Enabled := (not cds.EOF)
     and (cds.FieldByName('fileversion').AsString > '');
+end;
+
+procedure Tat_frmSyncNamespace.actSyncUpdate(Sender: TObject);
+begin
+  actSync.Enabled := not cds.EOF;
+end;
+
+procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
+begin
+  cds.First;
+  while not cds.EOF do
+  begin
+    cds.Next;
+  end;
+  actCompare.Execute;
 end;
 
 initialization

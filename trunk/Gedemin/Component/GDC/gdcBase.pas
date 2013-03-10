@@ -6654,7 +6654,7 @@ var
   i, j, k, CutOff: Integer;
   pbd: PBlobDataArray;
   DidActivate: Boolean;
-  _id: TID;
+  //_id: TID;
   //RUID: TRUID;
   FSavepoint, S: String;
 begin
@@ -6822,7 +6822,11 @@ begin
           begin
             if (Qry = QInsert) then
             begin
-              try
+              ExecSingleQuery(
+                'UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
+                'VALUES (:id, :id, :dbid, CURRENT_TIMESTAMP, :ek) ' +
+                'MATCHING (id)', VarArrayOf([Self.ID, IBLogin.DBID, IBLogin.ContactKey]));
+              {try
                 _id := gdcBaseManager.GetIdByRUID(ID, IBLogin.DBID);
                 if _id = - 1 then
                   gdcBaseManager.InsertRUID(ID, ID, IBLogin.DBID, Now, IBLogin.ContactKey, Transaction);
@@ -6835,7 +6839,7 @@ begin
                   if E.IBErrorCode <> isc_unique_key_violation then
                     raise;
                 end;
-              end;
+              end;}
             end else
             if (Qry = QModify) then
             begin
@@ -16310,6 +16314,9 @@ begin
               gdcLinkChoose.Open;
             end;
           end;
+
+          if F.Visible then
+            F.Hide;
 
           if ShowModal = mrOk then
           begin

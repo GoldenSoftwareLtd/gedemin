@@ -30,7 +30,7 @@ type
     procedure DoOnClick(Sender: TObject);
     
   public
-    { Public declarations }
+    constructor Create(AnOwner: TComponent); override;
   end;
 
 var
@@ -128,6 +128,12 @@ begin
   finally
     Obj.Free;
   end;
+end;
+
+constructor Tat_frmDuplicates.Create(AnOwner: TComponent);
+begin
+  inherited;
+  ShowSpeedButton := True;
 end;
 
 end.

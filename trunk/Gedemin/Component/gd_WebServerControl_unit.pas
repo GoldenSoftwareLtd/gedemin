@@ -468,6 +468,12 @@ begin
 
   Log(FRequestInfo.RemoteIP, 'QERY', FRequestInfo.Params);
 
+  if (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CASH') = 0)
+    or (AnsiCompareText(FRequestInfo.Params.Values['update_token'], 'POSITIVE_CHECK') = 0) then
+  begin
+    exit;
+  end;
+
   if DirectoryExists(gd_GlobalParams.GetWebServerUpdatePath) then
   begin
     FLastToken := '';

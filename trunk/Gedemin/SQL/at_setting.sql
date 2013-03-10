@@ -124,7 +124,7 @@ CREATE TABLE at_setting_storage
   id           dintkey NOT NULL,         /* идентификатор */
   settingkey   dmasterkey NOT NULL,     /* ссылка на настройку*/
   branchname   dblobtext80_1251,        /* наименование ветки стораджа */
-  valuename    dtext255,                /* наименование параметра. 
+  valuename    dtext255,                /* наименование параметра.
                                            ≈сли пустое, значит сохранена вс€ ветка*/
   crc          dinteger
 );
@@ -309,7 +309,7 @@ CREATE GLOBAL TEMPORARY TABLE at_namespace_link_gtt(
 
 SET TERM ^ ;
 
-CREATE OR ALTER PROCEDURE at_findnsrec (InPath VARCHAR(32000), InFirstID INTEGER, InID INTEGER)
+CREATE OR ALTER PROCEDURE at_p_findnsrec (InPath VARCHAR(32000), InFirstID INTEGER, InID INTEGER)
   RETURNS (OutPath VARCHAR(32000), OutFirstID INTEGER, OutID INTEGER)
 AS
   DECLARE VARIABLE ID INTEGER;
@@ -332,7 +332,7 @@ BEGIN
     BEGIN
       FOR
         SELECT OutPath, OutFirstID, OutID
-        FROM FindRec(:InPath || :ID || '=' || :NAME || ',', :InFirstID, :ID)
+        FROM at_p_findnsrec(:InPath || :ID || '=' || :NAME || ',', :InFirstID, :ID)
         INTO :OutPath, :OutFirstID, :OutID
       DO BEGIN
         IF (:OutPath > '') THEN
@@ -341,15 +341,16 @@ BEGIN
     END
   END
 END
+^
 
 SET TERM ; ^
 
-GRANT ALL ON at_namespace          TO administrator;
-GRANT ALL ON at_object             TO administrator;
-GRANT ALL ON at_namespace_link     TO administrator;
-GRANT ALL ON at_namespace_gtt      TO administrator;
-GRANT ALL ON at_namespace_link_gtt TO administrator;
-GRANT EXECUTE ON at_findnsrec      TO administrator;
+GRANT ALL     ON at_namespace             TO administrator;
+GRANT ALL     ON at_object                TO administrator;
+GRANT ALL     ON at_namespace_link        TO administrator;
+GRANT ALL     ON at_namespace_gtt         TO administrator;
+GRANT ALL     ON at_namespace_link_gtt    TO administrator;
+GRANT EXECUTE ON PROCEDURE at_p_findnsrec TO administrator;
 
 INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)

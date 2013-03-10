@@ -16173,7 +16173,7 @@ CREATE TABLE at_setting_storage
   id           dintkey NOT NULL,         /* идентификатор */
   settingkey   dmasterkey NOT NULL,     /* ссылка на настройку*/
   branchname   dblobtext80_1251,        /* наименование ветки стораджа */
-  valuename    dtext255,                /* наименование параметра. 
+  valuename    dtext255,                /* наименование параметра.
                                            Если пустое, значит сохранена вся ветка*/
   crc          dinteger
 );
@@ -16282,15 +16282,13 @@ BEGIN
     INTO NEW.objectpos;
 
     IF (NEW.objectpos IS NULL) THEN
-      NEW.objectpos = 0;  
+      NEW.objectpos = 0;
   END ELSE
   IF (INSERTING) THEN
   BEGIN
-    UPDATE at_object SET
-	  objectpos = objectpos + 1
-    WHERE 
-      objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey; 	
-  END  
+    UPDATE at_object SET objectpos = objectpos + 1
+    WHERE objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey;
+  END
 END
 ^
 
@@ -16312,7 +16310,7 @@ CREATE TABLE at_namespace_link (
   CONSTRAINT at_chk_namespace_link CHECK (namespacekey <> useskey)
 );
 
-CREATE global TEMPORARY TABLE at_namespace_gtt(
+CREATE GLOBAL TEMPORARY TABLE at_namespace_gtt(
   id            dintkey,
   name          dtext255 NOT NULL UNIQUE,
   caption       dtext255,
@@ -16325,36 +16323,99 @@ CREATE global TEMPORARY TABLE at_namespace_gtt(
   comment       dblobtext80_1251,
   settingruid   VARCHAR(21),
   operation     dinteger,
-  
+
   CONSTRAINT at_pk_namespace_gtt PRIMARY KEY (id)
 ) ON commit preserve rows;
 
 SET TERM ^ ;
 
 CREATE OR ALTER TRIGGER at_bi_namespace_gtt FOR at_namespace_gtt
-ACTIVE BEFORE INSERT POSITION 0
+  ACTIVE
+  BEFORE INSERT
+  POSITION 0
 AS
 BEGIN
   IF (NEW.id IS NULL) THEN
   BEGIN
     SELECT MAX(id) + 1
-    FROM at_namespace_gtt    
+    FROM at_namespace_gtt
     INTO NEW.id;
 
     IF (NEW.id IS NULL) THEN
-      NEW.id = 1;  
+      NEW.id = 1;
   END
 END
 ^
 
 SET TERM ; ^
 
-CREATE global TEMPORARY TABLE at_namespace_link_gtt(
+CREATE GLOBAL TEMPORARY TABLE at_namespace_link_gtt(
   namespaceruid   VARCHAR(21),
   usesruid        VARCHAR(21),
-  
+
   CONSTRAINT at_uk_object_link_gtt UNIQUE (namespaceruid, usesruid)
-) ON commit preserve rows;
+) ON COMMIT PRESERVE ROWS;
+
+SET TERM ^ ;
+
+CREATE OR ALTER PROCEDURE at_p_findnsrec (InPath VARCHAR(32000), InFirstID INTEGER, InID INTEGER)
+  RETURNS (OutPath VARCHAR(32000), OutFirstID INTEGER, OutID INTEGER)
+AS
+  DECLARE VARIABLE ID INTEGER;
+  DECLARE VARIABLE NAME VARCHAR(255);
+BEGIN
+  FOR
+    SELECT l.useskey, n.name
+    FROM at_namespace_link l JOIN at_namespace n
+      ON n.id = l.useskey
+    WHERE l.namespacekey = :InID
+    INTO :ID, :NAME
+  DO BEGIN
+    IF (POSITION(:ID || '=' || :NAME || ',' IN :InPath) > 0) THEN
+    BEGIN
+      OutPath = :InPath || :ID || '=' || :NAME;
+      OutID = :ID;
+      OutFirstID = :InFirstID;
+      SUSPEND;
+    END ELSE
+    BEGIN
+      FOR
+        SELECT OutPath, OutFirstID, OutID
+        FROM at_p_findnsrec(:InPath || :ID || '=' || :NAME || ',', :InFirstID, :ID)
+        INTO :OutPath, :OutFirstID, :OutID
+      DO BEGIN
+        IF (:OutPath > '') THEN
+          SUSPEND;
+      END
+    END
+  END
+END
+^
+
+SET TERM ; ^
+
+GRANT ALL     ON at_namespace             TO administrator;
+GRANT ALL     ON at_object                TO administrator;
+GRANT ALL     ON at_namespace_link        TO administrator;
+GRANT ALL     ON at_namespace_gtt         TO administrator;
+GRANT ALL     ON at_namespace_link_gtt    TO administrator;
+GRANT EXECUTE ON PROCEDURE at_p_findnsrec TO administrator;
+
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741108,740400,'Пространства имен','gdcNamespace',0,NULL,80,NULL,'TgdcNamespace',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+  VALUES (
+    741109,
+    740400,
+    'Синхронизация ПИ',
+    '',
+    'Tat_frmSyncNamespace',
+    NULL,
+    0
+  );
 
 */
 
