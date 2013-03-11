@@ -38,7 +38,6 @@ type
     procedure actCancelExecute(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
     procedure lkupChange(Sender: TObject);
-
   private
     FgdcObject: TgdcBase;
     FIsAdded: Boolean;
@@ -47,9 +46,6 @@ type
 
     procedure DeleteObjects;
     procedure AddObjects;
-    procedure OnChecked(Sender: TObject; CheckID: String;
-      var Checked: Boolean);
-
   protected
     procedure CreateFields;
 
@@ -84,7 +80,6 @@ begin
   cdsLink.FieldByName('namespace').Visible := False;
   cdsLink.Open;
 
-  dbgrListLink.CheckBox.CheckBoxEvent := OnChecked;
   cbAlwaysOverwrite.Checked := True;
   cbDontRemove.Checked := False;
   cbIncludeSiblings.Checked := False;
@@ -107,8 +102,7 @@ var
   KSA: TgdKeyStringAssoc;
 begin
   Assert(gdcBaseManager <> nil);
-  Assert(AnObject is TgdcBase);
-  Assert(not (AnObject as TgdcBase).EOF);
+  Assert(not AnObject.EOF);
 
   FgdcObject := AnObject;
   FBL := BL;
@@ -199,14 +193,9 @@ begin
       end;
     end else
     begin
-      FgdcObject.First;
-      while not FgdcObject.Eof do
-      begin
-        gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
-        TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
-          FgdcObject.SubType, XID, DBID, IBTransaction, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
-        FgdcObject.Next;
-      end;
+      gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
+      TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
+        FgdcObject.SubType, XID, DBID, IBTransaction, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
     end;
   finally
     FgdcObject.Bookmark := Bm;
@@ -234,14 +223,7 @@ begin
           TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction);
         end;
       end else
-      begin
-        FgdcObject.First;
-        while not FgdcObject.Eof do
-        begin
-          TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction);
-          FgdcObject.Next;
-        end;
-      end;
+        TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction);
     finally
       FgdcObject.Bookmark := Bm;
       FgdcObject.EnableControls;
@@ -262,19 +244,6 @@ begin
   if IBTransaction.InTransaction then
     IBTransaction.Commit;
   ModalResult := mrOk;
-end;
-
-procedure TdlgToNamespace.OnChecked(Sender: TObject; CheckID: String;
-  var Checked: Boolean);
-begin
-  if not cdsLink.FieldByName('namespacekey').IsNull and not FIsAdded then
-  begin
-    Checked := False;
-    Application.MessageBox(PChar('Нельзя добавить объект!'#13#10 +
-      'Объект уже входит в пространство имен ''' + cdsLink.FieldByName('namespace').AsString + '''!'),
-      'Внимание',
-      MB_OK or MB_ICONHAND or MB_TASKMODAL);
-  end;
 end;
 
 procedure TdlgToNamespace.actCancelExecute(Sender: TObject);

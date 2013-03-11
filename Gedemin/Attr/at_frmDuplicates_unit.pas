@@ -21,10 +21,14 @@ type
     actOpenObject: TAction;
     TBItem1: TTBItem;
     TBSeparatorItem1: TTBSeparatorItem;
+    actDelDuplicates: TAction;
+    TBItem2: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actOpenObjectUpdate(Sender: TObject);
     procedure actOpenObjectExecute(Sender: TObject);
     procedure dsDataChange(Sender: TObject; Field: TField);
+    procedure actDelDuplicatesUpdate(Sender: TObject);
+    procedure actDelDuplicatesExecute(Sender: TObject);
 
   private
     procedure DoOnClick(Sender: TObject);
@@ -41,7 +45,7 @@ implementation
 {$R *.DFM}
 
 uses
-  gd_classlist, gdcBase, gdcBaseInterface, gdcNamespace;
+  gd_classlist, gdcBase, gdcBaseInterface, gdcNamespace, IBSQL;
 
 procedure Tat_frmDuplicates.FormCreate(Sender: TObject);
 begin
@@ -134,6 +138,35 @@ constructor Tat_frmDuplicates.Create(AnOwner: TComponent);
 begin
   inherited;
   ShowSpeedButton := True;
+end;
+
+procedure Tat_frmDuplicates.actDelDuplicatesUpdate(Sender: TObject);
+begin
+  actDelDuplicates.Enabled := not ibds.EOF;
+end;
+
+procedure Tat_frmDuplicates.actDelDuplicatesExecute(Sender: TObject);
+var
+  q: TIBSQL;
+begin
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := ibtr;
+    q.SQL.Text :=
+      'EXECUTE BLOCK'#13#10 +
+      'AS'#13#10 +
+      '  DECLARE VARIABLE id INTEGER;'#13#10 +
+      'BEGIN'#13#10 +
+      '  FOR SELECT id FROM at_namespace INTO :id'#13#10 +
+      '  DO EXECUTE PROCEDURE at_p_del_duplicates(:id, :id, '''');'#13#10 +
+      'END';
+    q.ExecQuery;
+  finally
+    q.Free;
+  end;
+
+  ibds.Close;
+  ibds.Open;
 end;
 
 end.

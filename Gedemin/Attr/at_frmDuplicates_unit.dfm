@@ -33,6 +33,9 @@ object at_frmDuplicates: Tat_frmDuplicates
       object TBItem1: TTBItem
         Action = actOpenObject
       end
+      object TBItem2: TTBItem
+        Action = actDelDuplicates
+      end
       object TBSeparatorItem1: TTBSeparatorItem
       end
     end
@@ -75,10 +78,18 @@ object at_frmDuplicates: Tat_frmDuplicates
     Left = 816
     Top = 80
     object actOpenObject: TAction
-      Caption = 'actOpenObject'
+      Caption = 'Открыть объект...'
+      Hint = 'Открыть объект...'
       ImageIndex = 1
       OnExecute = actOpenObjectExecute
       OnUpdate = actOpenObjectUpdate
+    end
+    object actDelDuplicates: TAction
+      Caption = 'Удалить дубликаты'
+      Hint = 'Удалить дубликаты'
+      ImageIndex = 178
+      OnExecute = actDelDuplicatesExecute
+      OnUpdate = actDelDuplicatesUpdate
     end
   end
   object ibtr: TIBTransaction

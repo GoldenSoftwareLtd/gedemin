@@ -343,6 +343,41 @@ BEGIN
 END
 ^
 
+CREATE PROCEDURE at_p_del_duplicates (
+  DeleteFromID INTEGER,
+  CurrentID INTEGER,
+  Stack VARCHAR(32000))
+AS
+  DECLARE VARIABLE id INTEGER;
+  DECLARE VARIABLE nsid INTEGER;
+BEGIN
+  IF (:DeleteFromID <> :CurrentID) THEN
+  BEGIN
+    FOR
+      SELECT o1.id
+      FROM at_object o1 JOIN at_object o2
+        ON o1.xid = o2.xid AND o1.dbid = o2.dbid
+      WHERE o1.NAMESPACEKEY = :DeleteFromID
+        AND o2.NAMESPACEKEY = :CurrentID
+      INTO :id
+    DO BEGIN
+      DELETE FROM at_object WHERE id = :id;
+    END
+  END
+
+  FOR
+    SELECT l.useskey
+    FROM at_namespace_link l
+    WHERE l.namespacekey = :CurrentID
+      AND POSITION(('(' || l.useskey || ')') IN :Stack) = 0
+    INTO :nsid
+  DO BEGIN
+    EXECUTE PROCEDURE at_p_del_duplicates (:DeleteFromID, :nsid,
+      :Stack || '(' || :nsid || ')');
+  END
+END
+^
+
 SET TERM ; ^
 
 GRANT ALL     ON at_namespace             TO administrator;
@@ -351,6 +386,7 @@ GRANT ALL     ON at_namespace_link        TO administrator;
 GRANT ALL     ON at_namespace_gtt         TO administrator;
 GRANT ALL     ON at_namespace_link_gtt    TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_findnsrec TO administrator;
+GRANT EXECUTE ON PROCEDURE at_p_del_duplicates TO administrator;
 
 INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
