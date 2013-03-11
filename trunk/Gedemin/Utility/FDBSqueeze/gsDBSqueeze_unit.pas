@@ -116,18 +116,24 @@ begin
 
     q.SQL.Text :=
       'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
-
     q.ParamByName('RN').AsString := 'DBS_INDEX_SEGMENTS';
     q.ExecQuery;
     bTable1 := q.EOF;
+    q.Close;
 
+    q.SQL.Text :=
+      'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
     q.ParamByName('RN').AsString := 'DBS_REF_CONSTRAINTS';
     q.ExecQuery;
     bTable2 := q.EOF;
+    q.Close;
 
+    q.SQL.Text :=
+      'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
     q.ParamByName('RN').AsString := 'DBS_RELATION_CONSTRAINTS';
     q.ExecQuery;
     bTable3 := q.EOF;
+    q.Close;
 
     Result := (bTable1 and bTable2) and bTable3;          ///false если хоть одна таблица уже имеется
 
@@ -174,7 +180,6 @@ begin
     else
       LogEvent('DBS_RELATION_CONSTRAINTS table HASN''T been created.');
 
-    q.Close;
     Tr.Commit;
   finally
     q.Free;
@@ -392,13 +397,12 @@ begin
       q.Next;
     end;
     Tr.Commit;
+    LogEvent('Recreating FK constraints ... OK');
   finally
     q.Free;
     q2.Free;
     Tr.Free;
   end;
-
-
 
 
 {

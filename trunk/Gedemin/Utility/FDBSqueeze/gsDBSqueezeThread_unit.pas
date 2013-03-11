@@ -58,6 +58,7 @@ end;
 constructor TgsDBSqueezeThread.Create(const CreateSuspended: Boolean);
 begin
   FDBS := TgsDBSqueeze.Create;
+  FDBS.OnLogEvent := Log;
   FDatabaseName := TIdThreadSafeString.Create;
   FUserName := TIdThreadSafeString.Create;
   FPassword := TIdThreadSafeString.Create;
@@ -117,6 +118,7 @@ begin
     WM_DBS_CONNECT:
     begin
       FDBS.Connect;
+      FDBS.BeforeMigrationPrepareDB;
       FConnected.Value := 1;
       Log('connected');
       Result := True;
@@ -124,6 +126,7 @@ begin
 
     WM_DBS_DISCONNECT:
     begin
+      FDBS.AfterMigrationPrepareDB;
       FDBS.Disconnect;
       FConnected.Value := 0;
       Log('disconnected');
