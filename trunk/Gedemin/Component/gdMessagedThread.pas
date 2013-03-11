@@ -51,11 +51,11 @@ const
 
 constructor TgdMessagedThread.Create(CreateSuspended: Boolean);
 begin
-  inherited Create(CreateSuspended);
   FTimeOut := INFINITE;
   FCreatedEvent := TEvent.Create(nil, True, False, '');
   FWaitingEvent := TEvent.Create(nil, True, False, '');
   FCriticalSection := TCriticalSection.Create;
+  inherited Create(CreateSuspended);
 end;
 
 destructor TgdMessagedThread.Destroy;
