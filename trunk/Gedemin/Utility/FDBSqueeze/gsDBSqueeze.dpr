@@ -3,8 +3,9 @@ program gsDBSqueeze;
 uses
   Forms,
   gsDBSqueeze_MainForm_unit,
-  gsDBSqueeze_unit in 'gsDBSqueeze_unit.pas';
-
+  gsDBSqueeze_unit in 'gsDBSqueeze_unit.pas',
+  gsDBSqueezeThread_unit in 'gsDBSqueezeThread_unit.pas',
+  gdMessagedThread in 'D:\Golden\Gedemin\Component\gdMessagedThread.pas';
 {$R *.RES}
 
 begin

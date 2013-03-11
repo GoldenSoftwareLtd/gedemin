@@ -13,6 +13,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   Font.Style = []
   OldCreateOrder = False
   Position = poDesktopCenter
+  OnCloseQuery = FormCloseQuery
   PixelsPerInch = 96
   TextHeight = 13
   object lbl1: TLabel
