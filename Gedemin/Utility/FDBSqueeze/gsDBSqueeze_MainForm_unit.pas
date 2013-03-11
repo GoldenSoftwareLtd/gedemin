@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  gsDBSqueeze_unit, ActnList, StdCtrls;
+  ActnList, StdCtrls, gsDBSqueezeThread_unit;
 
 type
   TgsDBSqueeze_MainForm = class(TForm)
@@ -21,15 +21,19 @@ type
     lbl3: TLabel;
     mLog: TMemo;
     lblLog: TLabel;
+
     procedure actConnectExecute(Sender: TObject);
     procedure actConnectUpdate(Sender: TObject);
     procedure actDisconnectUpdate(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 
   private
-    FgsDBSqueeze: TgsDBSqueeze;
+    FSThread: TgsDBSqueezeThread;
 
     procedure LogEvent(const S: String);
+    //Процедура обработки сообщения из потока
+    procedure OnThreadNotify(var Message : TMessage); message WM_DBS_LOG;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -45,30 +49,28 @@ implementation
 
 procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
 begin
-  FgsDBSqueeze.DatabaseName := edDatabaseName.Text;
-  FgsDBSqueeze.UserName := edUserName.Text;
-  FgsDBSqueeze.Password := edPassword.Text;
-  FgsDBSqueeze.Connect;
+  FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text,
+    edPassword.Text);
 
-  FgsDBSqueeze.BeforeMigrationPrepareDB;                  //////
+  FSThread.Connect;
 end;
 
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
-  FgsDBSqueeze := TgsDBSqueeze.Create;
-  FgsDBSqueeze.OnLogEvent := LogEvent;
+  FSThread := TgsDBSqueezeThread.Create(gsDBSqueeze_MainForm.Handle);
+  FSThread.OnLogEvent := LogEvent;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
 begin
-  FgsDBSqueeze.Free;
+  FSThread.Free;  
   inherited;
 end;
 
 procedure TgsDBSqueeze_MainForm.actConnectUpdate(Sender: TObject);
 begin
-  actConnect.Enabled := (not FgsDBSqueeze.Connected)
+  actConnect.Enabled := (not FSThread.Connected)
     and (edDatabaseName.Text > '')
     and (edUserName.Text > '')
     and (edPassword.Text > '');
@@ -76,18 +78,30 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actDisconnectUpdate(Sender: TObject);
 begin
-  actDisconnect.Enabled := FgsDBSqueeze.Connected;
+  actDisconnect.Enabled := FSThread.Connected;
 end;
 
 procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
 begin
-  //FgsDBSqueeze.AfterMigrationPrepareDB;                         //////
-  FgsDBSqueeze.Disconnect;
+
+  FSThread.Disconnect;
 end;
+
+procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;
+  var CanClose: Boolean);
+begin
+  CanClose := not FSThread.Busy;
+end;
+
 
 procedure TgsDBSqueeze_MainForm.LogEvent(const S: String);
 begin
-  mLog.Lines.Add(S);
+  mLog.Lines.Add(FormatDateTime('h:n:s:z', Now) + '  ' + S);
+end;
+
+procedure TgsDBSqueeze_MainForm.OnThreadNotify(var Message : TMessage);
+begin
+  LogEvent(String(Pointer(Message.LParam)));
 end;
 
 end.
