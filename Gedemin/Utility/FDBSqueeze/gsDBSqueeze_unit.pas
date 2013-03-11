@@ -21,7 +21,7 @@ type
     function GetConnected: Boolean;
 
     function  h_CreateTblsForSaveFK: Boolean;
-    function  h_CreateTblsForSaveConstr: Boolean;
+    procedure h_CreateTblsForSaveConstr;
     procedure h_InsertTblsForSaveFK;
     procedure h_InsertTblsForSaveConstr;
     procedure h_SaveFKConstraints;
@@ -95,7 +95,7 @@ begin
   Result := FIBDatabase.Connected;
 end;
 
-function TgsDBSqueeze.h_CreateTblsForSaveConstr: Boolean;
+procedure TgsDBSqueeze.h_CreateTblsForSaveConstr;
 begin
   LogEvent('Creating tables for saving constraints ...');
   h_CreateTblsForSaveFK;
@@ -276,7 +276,7 @@ begin
     q.Transaction := Tr;
     LogEvent('[1]Saving FK constraints ...');
 
-    if not h_CreateTblsForSaveConstr then
+    if not h_CreateTblsForSaveFK then
     begin
       q.SQL.Text := 'DELETE FROM DBS_REF_CONSTRAINTS ';
       q.ExecQuery;
@@ -292,7 +292,7 @@ begin
       LogEvent('Deleting data from tables for saving FK constraints ... OK');
     end;
 
-    h_InsertTblsForSaveConstr;
+    h_InsertTblsForSaveFK;
 
   finally
     q.Free;
