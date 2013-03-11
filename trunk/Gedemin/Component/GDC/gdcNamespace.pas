@@ -38,7 +38,7 @@ type
     class procedure ScanDirectory(ADataSet: TDataSet; const APath: String;
       Messages: TStrings);
 
-    class procedure ScanLinkNamespace(ADataSet: TDataSet; const APath: String); 
+    class procedure ScanLinkNamespace(ADataSet: TDataSet; const APath: String);
     class procedure ScanLinkNamespace2(const APath: String);
     class procedure InstallPackages;
     class procedure DeleteObjectsFromNamespace(ANamespacekey: Integer; AnObjectIDList: TgdKeyArray; ATr: TIBTransaction);
@@ -69,6 +69,7 @@ type
   end;
 
   procedure Register;
+
 
 implementation
 
@@ -2513,7 +2514,7 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
       (LT as TStringList).Duplicates := dupIgnore;
       GetTablesName(Obj.SelectSQL.Text, LT);
       SL.Clear;
-      SL.Add(AnObject.GetListTable(Obj.SubType));
+      SL.Add(Obj.GetListTable(Obj.SubType));
 
       for I := 0 to LT.Count - 1 do
       begin
@@ -2575,7 +2576,7 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
         and
         (F.AsInteger > cstUserIDStart)
         and
-        (F.AsInteger <> AnObject.ID) then
+        (F.AsInteger <> AnObj.ID) then
       begin
         Obj := C.gdClass.CreateSingularByID(nil,
           ATr.DefaultDatabase,
@@ -2656,30 +2657,50 @@ end;
 class procedure TgdcNamespace.AddObject(ANamespacekey: Integer; const AName: String; const AClass: String; const ASubType: String;
   xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1; ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
 var
-  q: TIBSQL;
+  q, SQL: TIBSQL;
 begin
   if (ATr = nil) or (not ATr.InTransaction) then
     raise Exception.Create('Invalid transaction!');
 
   q := TIBSQL.Create(nil);
+  SQL := TIBSQL.Create(nil);
   try
     q.Transaction := ATr;
-    q.SQL.Text :=
-      'UPDATE OR INSERT INTO at_object ' +
-      '  (namespacekey, objectname, objectclass, subtype, xid, dbid, ' +
-      '  alwaysoverwrite, dontremove, includesiblings) ' +
-      'VALUES (:NSK, :ON, :OC, :ST, :XID, :DBID, :OW, :DR, :IS) ' +
-      'MATCHING (xid, dbid, namespacekey)';
-    q.ParamByName('NSK').AsInteger := ANamespacekey;
-    q.ParamByName('ON').AsString := AName;
-    q.ParamByName('OC').AsString := AClass;
-    q.ParamByName('ST').AsString := ASubType;
-    q.ParamByName('XID').AsInteger := XID;;
-    q.ParamByName('DBID').AsInteger := DBID;
-    q.ParamByName('OW').AsInteger := AnAlwaysOverwrite;
-    q.ParamByName('DR').AsInteger := ADontRemove;
-    q.ParamByName('IS').AsInteger := AnIncludeSiblings;
-    q.ExecQuery;    
+    SQL.Transaction := ATr;
+    SQL.SQL.Text := 'SELECT * FROM at_object WHERE namespacekey <> :nk and xid = :xid and dbid = :dbid';
+    SQL.ParamByName('nk').AsInteger := ANamespacekey;
+    SQL.ParamByName('xid').AsInteger := xid;
+    SQL.ParamByName('dbid').AsInteger := dbid;
+    SQL.ExecQuery;
+
+    if (not SQL.Eof) then
+    begin
+      q.SQL.Text := 'UPDATE OR INSERT INTO at_namespace_link ' +
+        '  (namespacekey, useskey) ' +
+        'VALUES (:nk, :uk) ' +
+        'MATCHING (namespacekey, useskey)';
+      q.ParamByName('nk').AsInteger := ANamespacekey;
+      q.ParamByName('uk').AsInteger := SQL.FieldByName('namespacekey').AsInteger;
+      q.ExecQuery;  
+    end else
+    begin
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO at_object ' +
+        '  (namespacekey, objectname, objectclass, subtype, xid, dbid, ' +
+        '  alwaysoverwrite, dontremove, includesiblings) ' +
+        'VALUES (:NSK, :ON, :OC, :ST, :XID, :DBID, :OW, :DR, :IS) ' +
+        'MATCHING (xid, dbid, namespacekey)';
+      q.ParamByName('NSK').AsInteger := ANamespacekey;
+      q.ParamByName('ON').AsString := AName;
+      q.ParamByName('OC').AsString := AClass;
+      q.ParamByName('ST').AsString := ASubType;
+      q.ParamByName('XID').AsInteger := XID;;
+      q.ParamByName('DBID').AsInteger := DBID;
+      q.ParamByName('OW').AsInteger := AnAlwaysOverwrite;
+      q.ParamByName('DR').AsInteger := ADontRemove;
+      q.ParamByName('IS').AsInteger := AnIncludeSiblings;
+      q.ExecQuery;
+    end;
   finally
     q.Free;
   end;

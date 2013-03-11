@@ -19,7 +19,7 @@ implementation
 uses
   Windows, Forms, SysUtils, IBSQL, gdcBase, gdcBaseInterface,
   gd_ClassList, gdcClasses, gd_directories_const, gdcTableCalendar,
-  gdcInvMovement, Test_Global_unit, gdcGood, IB;
+  gdcInvMovement, Test_Global_unit, gdcGood, IB, gd_security;
 
 type
   TgdcBaseCrack = class(TgdcBase)
@@ -89,6 +89,13 @@ begin
     Check(Obj.IsHoliday(Date));
     Check(Obj.QIsHoliday(Date));
     Check(Obj.FieldByName('name').AsString = HolidayName);
+
+    FQ.SQL.Text := 'SELECT * FROM gd_ruid WHERE id = :id AND xid = :id AND dbid = :dbid';
+    FQ.ParamByName('id').AsInteger := Obj.ID;
+    FQ.ParamByName('dbid').AsInteger := IBLogin.DBID;
+    FQ.ExecQuery;
+    Check(not FQ.EOF);
+    FQ.Close;
 
     Obj.Edit;
     Obj.FieldByName('disabled').AsInteger := 1;
