@@ -20,7 +20,7 @@ type
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
     //Окно, в которе будем отправлять нотификации/информацию
-    FwndForNotify : THandle;
+    FwndForNotify : HWND;//THandle;
 
     FDBSqueeze: TgsDBSqueeze;
 
@@ -28,8 +28,8 @@ type
 
 
     FCommand: TgsDBSqueezeCommand;
-    FOnLogEvent: TOnLogEvent;
-  //  FMessage: String;
+    //FOnLogEvent: TOnLogEvent;
+  
     FConnected: Boolean;
 
     function GetBusy: Boolean;
@@ -44,7 +44,7 @@ type
     procedure LogEvent(const S: String);
 
   public
-    constructor Create(AWndForNotify : THandle); reintroduce;
+    constructor Create(AWndForNotify : HWND);//reintroduce;//THandle
     destructor Destroy; override;
 
     procedure SetDBParams(const ADBName: string;
@@ -53,7 +53,7 @@ type
     procedure Disconnect;
 
     property Busy: Boolean read GetBusy;
-    property OnLogEvent: TOnLogEvent read FOnLogEvent write FOnLogEvent;
+    //property OnLogEvent: TOnLogEvent read FOnLogEvent write FOnLogEvent;
     property Connected: Boolean read GetConnected;
   end;
 
@@ -88,7 +88,7 @@ end;
 
 
 
-constructor TgsDBSqueezeThread.Create(AWndForNotify : THandle); //reintroduce;
+constructor TgsDBSqueezeThread.Create(AWndForNotify : HWND);//THandle);
 begin
   inherited Create(True);
   FCommand := dbscNone;
@@ -121,55 +121,56 @@ begin
   Result := True;
 
   case Msg.Message of
-  WM_DBS_CONNECT:
-  begin
-    Lock;
-    try
-      FDBSqueeze.Connect;
-      FDBSqueeze.BeforeMigrationPrepareDB;
-      FCommand := dbscNone;
-
-      FCSConnected.Enter;
+    WM_DBS_CONNECT:
+    begin
+      Lock;
       try
-        FConnected := FDBSqueeze.Connected;
+        FDBSqueeze.Connect;
+        FDBSqueeze.BeforeMigrationPrepareDB;
+
+        FCommand := dbscNone;
+
+        FCSConnected.Enter;
+        try
+          FConnected := FDBSqueeze.Connected;
+        finally
+          FCSConnected.Leave;
+        end;
       finally
-        FCSConnected.Leave;
+        Unlock;
       end;
-    finally
-      Unlock;
     end;
-  end;
 
-  WM_DBS_DISCONNECT:
-  begin
-    Lock;
-    try
-      FDBSqueeze.AfterMigrationPrepareDB;
-      FDBSqueeze.Disconnect;
-      FCommand := dbscNone;
-
-      FCSConnected.Enter;
+    WM_DBS_DISCONNECT:
+    begin
+      Lock;
       try
-        FConnected := FDBSqueeze.Connected;
-      finally
-        FCSConnected.Leave;
-      end;
-    finally
-      Unlock;
-    end;
-  end;
+        FDBSqueeze.AfterMigrationPrepareDB;
+        FDBSqueeze.Disconnect;
 
-  WM_DBS_EXIT:
-  begin
-    FCommand := dbscNone;
-    Break;
-  end;
+        FCommand := dbscNone;
+
+        FCSConnected.Enter;
+        try
+          FConnected := FDBSqueeze.Connected;
+        finally
+          FCSConnected.Leave;
+        end;
+      finally
+        Unlock;
+      end;
+    end;
+
+    WM_DBS_EXIT:
+    begin
+      FCommand := dbscNone;
+      Break;
+    end;
 
   else
     Result := False;
   end;
 end;
-///////////////////////////
 
 
 procedure TgsDBSqueezeThread.SetDBParams(const ADBName, AUserName,
@@ -203,13 +204,10 @@ begin
   Unlock;
   //FEvent.SetEvent;
   case ACmd of
-  dbscNone: PostMsg(WM_DBS_NONE);
-
-  dbscConnect: PostMsg(WM_DBS_CONNECT);
-
-  dbscDisconnect: PostMsg(WM_DBS_DISCONNECT);
-
-  dbscExit: PostMsg(WM_DBS_EXIT);
+    dbscNone: PostMsg(WM_DBS_NONE);
+    dbscConnect: PostMsg(WM_DBS_CONNECT);
+    dbscDisconnect: PostMsg(WM_DBS_DISCONNECT);
+    dbscExit: PostMsg(WM_DBS_EXIT);
   end;
 end;
 

@@ -129,8 +129,7 @@ begin
     q.ExecQuery;
     bTable3 := q.EOF;
 
-    //Result :=  (bTable1 and bTable2) and bTable3;                                    //
-    Result := true;
+    Result := (bTable1 and bTable2) and bTable3;          ///false если хоть одна таблица уже имеется
 
     if bTable1 then
     begin
@@ -144,7 +143,7 @@ begin
     end
     else
       LogEvent('DBS_INDEX_SEGMENTS table HASN''T been created.');
-    
+
     if bTable2 then
     begin
       q2.SQL.Text := 'CREATE TABLE DBS_REF_CONSTRAINTS ( ' +
