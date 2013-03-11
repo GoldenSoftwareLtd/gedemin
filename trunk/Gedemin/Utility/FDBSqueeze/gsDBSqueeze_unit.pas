@@ -20,13 +20,15 @@ type
 
     function GetConnected: Boolean;
 
-
+    function  h_CreateTblsForSaveFK: Boolean;
     function  h_CreateTblsForSaveConstr: Boolean;
+    procedure h_InsertTblsForSaveFK;
     procedure h_InsertTblsForSaveConstr;
-    procedure h_TblsForSaveConstr;
-
+    procedure h_SaveFKConstraints;
     procedure h_SaveAllConstraints;
+    procedure h_DeleteFKConstraints;
     procedure h_DeleteAllConstraints;
+    procedure h_RecreateFKConstraints;
     procedure h_RecreateAllConstraints;
     procedure LogEvent(const AMsg: String);
 
@@ -93,8 +95,15 @@ begin
   Result := FIBDatabase.Connected;
 end;
 
-
 function TgsDBSqueeze.h_CreateTblsForSaveConstr: Boolean;
+begin
+  LogEvent('Creating tables for saving constraints ...');
+  h_CreateTblsForSaveFK;
+  //...
+  LogEvent('Creating tables for saving constraints ... OK');
+end;
+
+function TgsDBSqueeze.h_CreateTblsForSaveFK: Boolean;
 var
   q, q2: TIBSQL;
   Tr: TIBTransaction;
@@ -112,7 +121,7 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
 
-    LogEvent('Creating tables for saving FK constraints ...');
+    LogEvent('[1]Creating tables for saving FK constraints ...');
 
     q.SQL.Text :=
       'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
@@ -186,11 +195,20 @@ begin
     q2.Free;
     Tr.Free;
   end;
-  LogEvent('Creating tables for saving FK constraints ... OK');
+  LogEvent('[1]Creating tables for saving FK constraints ... OK');
 end;
 
 
 procedure TgsDBSqueeze.h_InsertTblsForSaveConstr;
+begin
+  LogEvent('Inserting in tables for saving constraints ... OK');
+  h_InsertTblsForSaveFK;
+  //...
+  LogEvent('Inserting in tables for saving constraints ... OK');
+end;
+
+
+procedure TgsDBSqueeze.h_InsertTblsForSaveFK;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -220,7 +238,7 @@ begin
       '  c.RDB$CONSTRAINT_NAME, c.RDB$CONSTRAINT_TYPE, c.RDB$RELATION_NAME, c.RDB$INDEX_NAME ' +
       'FROM RDB$RELATION_CONSTRAINTS c ' +
       'WHERE c.rdb$constraint_type = ''FOREIGN KEY'' ' +
-      '  AND NOT c.rdb$relation_name LIKE ''RDB$%'' ';
+      '  AND NOT c.rdb$relation_name LIKE ''RDB$%'' ';                          //
     q.ExecQuery;
     q.Close;
 
@@ -235,7 +253,7 @@ begin
     q.Close;
 
     Tr.Commit;
-    LogEvent('Inserting in tables for saving FK constraints ... OK');
+    LogEvent('[1]Inserting in tables for saving FK constraints ... OK');
   finally
     q.Free;
     Tr.Free;
@@ -243,7 +261,7 @@ begin
 end;
 
 
-procedure TgsDBSqueeze.h_TblsForSaveConstr;
+procedure TgsDBSqueeze.h_SaveFKConstraints;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -256,6 +274,7 @@ begin
     Tr.StartTransaction;
 
     q.Transaction := Tr;
+    LogEvent('[1]Saving FK constraints ...');
 
     if not h_CreateTblsForSaveConstr then
     begin
@@ -279,18 +298,26 @@ begin
     q.Free;
     Tr.Free;
   end;
+  LogEvent('[1]Saving FK constraints ... OK');
 end;
-
 
 procedure TgsDBSqueeze.h_SaveAllConstraints;
 begin
-  LogEvent('Saving FK constraints ...');
-  h_TblsForSaveConstr;                                                          //save FK
-  LogEvent('Saving FK constraints ... OK');
+  LogEvent('Saving All constraints ...');
+  h_SaveFKConstraints;
+  //...
+  LogEvent('Saving All constraints ... OK');
 end;
 
-
 procedure TgsDBSqueeze.h_DeleteAllConstraints;
+begin
+  LogEvent('Deleting All constraints ...');
+  h_DeleteFKConstraints;
+  //...
+  LogEvent('Deleting All constraints ... OK');
+end;
+
+procedure TgsDBSqueeze.h_DeleteFKConstraints;
 var
   textSql: String;
   q, q2:  TIBSQL;
@@ -328,6 +355,7 @@ begin
       q.Next;
     end;
     Tr.Commit;
+    LogEvent('[1]Deleting FK constraints ... OK');
   finally
     q.Free;
     q2.Free;
@@ -336,6 +364,15 @@ begin
 end;
 
 procedure TgsDBSqueeze.h_RecreateAllConstraints;
+begin
+  LogEvent('Recreating All constraints ...');
+  h_RecreateFKConstraints;
+  //...
+  LogEvent('Recreating All constraints ... OK');
+end;
+
+
+procedure TgsDBSqueeze.h_RecreateFKConstraints;
 var
   textSql: String;
   q, q2: TIBSQL;
@@ -397,7 +434,7 @@ begin
       q.Next;
     end;
     Tr.Commit;
-    LogEvent('Recreating FK constraints ... OK');
+    LogEvent('[1]Recreating FK constraints ... OK');
   finally
     q.Free;
     q2.Free;
