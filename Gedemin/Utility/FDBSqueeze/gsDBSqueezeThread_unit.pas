@@ -1,170 +1,133 @@
+
 unit gsDBSqueezeThread_unit;
 
 interface
 
 uses
-  Classes, SyncObjs, Messages, gsDBSqueeze_unit, gdMessagedThread, Windows;
+  Classes, SyncObjs, Messages, gsDBSqueeze_unit, gdMessagedThread, Windows,
+  idThreadSafe;
 
 const
-  WM_DBS_LOG        = WM_USER + 1;
-
-  WM_DBS_NONE       = WM_USER + 2;
-  WM_DBS_CONNECT    = WM_USER + 3;
-  WM_DBS_DISCONNECT = WM_USER + 4;
-  WM_DBS_EXIT       = WM_USER + 5;
+  WM_DBS_SET_PARAMS   = WM_USER + 1;
+  WM_DBS_CONNECT      = WM_USER + 2;
+  WM_DBS_DISCONNECT   = WM_USER + 3;
 
 type
-  TgsDBSqueezeCommand = (dbscNone, dbscConnect, dbscDisconnect, dbscExit);
-
+  TLogEvent = procedure (const Msg: String) of object;
 
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
-    //Окно, в которе будем отправлять нотификации/информацию
-    FwndForNotify : HWND;//THandle;
+    FDBS: TgsDBSqueeze;
+    FDatabaseName, FUserName, FPassword: TidThreadSafeString;
+    FConnected: TidThreadSafeInteger;
+    FOnLog: TLogEvent;
+    FMessage: String;
 
-    FDBSqueeze: TgsDBSqueeze;
-
-    FCSConnected: TCriticalSection; //
-
-
-    FCommand: TgsDBSqueezeCommand;
-    //FOnLogEvent: TOnLogEvent;
-  
-    FConnected: Boolean;
-
-    function GetBusy: Boolean;
     function GetConnected: Boolean;
+    function GetBusy: Boolean;
+    procedure DoOnLogSync;
+    procedure Log(const AMessage: String);
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
 
-
-   // procedure Execute; override;
-    procedure SetCommand(const ACmd: TgsDBSqueezeCommand);
-    procedure LogEvent(const S: String);
-
   public
-    constructor Create(AWndForNotify : HWND);//reintroduce;//THandle
+    constructor Create(const CreateSuspended: Boolean);
     destructor Destroy; override;
 
-    procedure SetDBParams(const ADBName: string;
-      const AUserName: string; const APassword: String);
+    procedure SetDBParams(const ADatabaseName: String; const AUserName: String;
+      const APassword: String);
     procedure Connect;
     procedure Disconnect;
 
-    property Busy: Boolean read GetBusy;
-    //property OnLogEvent: TOnLogEvent read FOnLogEvent write FOnLogEvent;
     property Connected: Boolean read GetConnected;
+    property Busy: Boolean read GetBusy;
+    property OnLog: TLogEvent read FOnLog write FOnLog;
   end;
 
 implementation
 
-//uses
-//  Windows;
-
 { TgsDBSqueezeThread }
 
-{
-procedure TgsDBSqueezeThread.Execute;
+procedure TgsDBSqueezeThread.Connect;
 begin
-  while not Terminated do
-  begin
-    if not GetWaiting then
-    begin
-      FCommand := dbscNone;
-      Break;
-    end;
-
-
-    case FCommand of
-
-    end;
-
-    //FEvent.ResetEvent;
-  end;
+  if not Connected then
+    PostMsg(WM_DBS_CONNECT);
 end;
-}
 
-
-
-
-constructor TgsDBSqueezeThread.Create(AWndForNotify : HWND);//THandle);
+constructor TgsDBSqueezeThread.Create(const CreateSuspended: Boolean);
 begin
-  inherited Create(True);
-  FCommand := dbscNone;
-  FDBSqueeze := TgsDBSqueeze.Create;
-  FDBSqueeze.OnLogEvent := LogEvent;
-
-  //Запомним хендл окна
-  FwndForNotify := AWndForNotify;
-  // Поток чистит память сам по завершению
-  FreeOnTerminate := True;
-
-  FCSConnected := TCriticalSection.Create;
-  Resume;
+  FDBS := TgsDBSqueeze.Create;
+  FDatabaseName := TIdThreadSafeString.Create;
+  FUserName := TIdThreadSafeString.Create;
+  FPassword := TIdThreadSafeString.Create;
+  FConnected := TIdThreadSafeInteger.Create;
+  inherited Create(CreateSuspended);
 end;
 
 destructor TgsDBSqueezeThread.Destroy;
 begin
-  if not Suspended then
-    SetCommand(dbscExit); //PostMsg(WM_DBS_EXIT);
   inherited;
-  FDBSqueeze.Free;
-
-  FCSConnected.Free;
+  FDBS.Free;
+  FDatabaseName.Free;
+  FUserName.Free;
+  FPassword.Free;
+  FConnected.Free;
 end;
 
+procedure TgsDBSqueezeThread.Disconnect;
+begin
+  if Connected then
+    PostMsg(WM_DBS_DISCONNECT);
+end;
 
-/////////////////////////////
+procedure TgsDBSqueezeThread.Log(const AMessage: String);
+begin
+  FMessage := AMessage;
+  Synchronize(DoOnLogSync);
+end;
+
+procedure TgsDBSqueezeThread.DoOnLogSync;
+begin
+  if Assigned(FOnLog) then
+    FOnLog(FMessage);
+end;
+
+function TgsDBSqueezeThread.GetBusy: Boolean;
+begin
+  Result := False;
+end;
+
+function TgsDBSqueezeThread.GetConnected: Boolean;
+begin
+  Result := FConnected.Value <> 0;
+end;
+
 function TgsDBSqueezeThread.ProcessMessage(var Msg: TMsg): Boolean;
 begin
-  Result := True;
-
   case Msg.Message of
+    WM_DBS_SET_PARAMS:
+    begin
+      FDBS.DatabaseName := FDatabaseName.Value;
+      FDBS.UserName := FUserName.Value;
+      FDBS.Password := FPassword.Value;
+      Result := True;
+    end;
+
     WM_DBS_CONNECT:
     begin
-      Lock;
-      try
-        FDBSqueeze.Connect;
-        FDBSqueeze.BeforeMigrationPrepareDB;
-
-        FCommand := dbscNone;
-
-        FCSConnected.Enter;
-        try
-          FConnected := FDBSqueeze.Connected;
-        finally
-          FCSConnected.Leave;
-        end;
-      finally
-        Unlock;
-      end;
+      FDBS.Connect;
+      FConnected.Value := 1;
+      Log('connected');
+      Result := True;
     end;
 
     WM_DBS_DISCONNECT:
     begin
-      Lock;
-      try
-        FDBSqueeze.AfterMigrationPrepareDB;
-        FDBSqueeze.Disconnect;
-
-        FCommand := dbscNone;
-
-        FCSConnected.Enter;
-        try
-          FConnected := FDBSqueeze.Connected;
-        finally
-          FCSConnected.Leave;
-        end;
-      finally
-        Unlock;
-      end;
-    end;
-
-    WM_DBS_EXIT:
-    begin
-      FCommand := dbscNone;
-      Break;
+      FDBS.Disconnect;
+      FConnected.Value := 0;
+      Log('disconnected');
+      Result := True;
     end;
 
   else
@@ -172,74 +135,13 @@ begin
   end;
 end;
 
-
-procedure TgsDBSqueezeThread.SetDBParams(const ADBName, AUserName,
+procedure TgsDBSqueezeThread.SetDBParams(const ADatabaseName, AUserName,
   APassword: String);
 begin
-  Lock;
-  try
-    FDBSqueeze.DatabaseName := ADBName;
-    FDBSqueeze.UserName := AUserName;
-    FDBSqueeze.Password := APassword;
-  finally
-    Unlock;
-  end;
+  FDatabaseName.Value := ADatabaseName;
+  FUserName.Value := AUserName;
+  FPassword.Value := APassword;
+  PostMsg(WM_DBS_SET_PARAMS);
 end;
-
-procedure TgsDBSqueezeThread.Connect;
-begin
-  SetCommand(dbscConnect);    //PostMsg(WM_DBS_CONNECT);
-end;
-
-procedure TgsDBSqueezeThread.Disconnect;
-begin
-  SetCommand(dbscDisconnect); //PostMsg(WM_DBS_DISCONNECT);
-end;
-
-
-procedure TgsDBSqueezeThread.SetCommand(const ACmd: TgsDBSqueezeCommand);
-begin
-  Lock;
-  FCommand := ACmd;
-  Unlock;
-  //FEvent.SetEvent;
-  case ACmd of
-    dbscNone: PostMsg(WM_DBS_NONE);
-    dbscConnect: PostMsg(WM_DBS_CONNECT);
-    dbscDisconnect: PostMsg(WM_DBS_DISCONNECT);
-    dbscExit: PostMsg(WM_DBS_EXIT);
-  end;
-end;
-
-
-function TgsDBSqueezeThread.GetBusy: Boolean;
-begin
-  Lock;
-  Result := (not Suspended) and (FCommand <> dbscNone);
-  Unlock;
-end;
-
-procedure TgsDBSqueezeThread.LogEvent(const S: String);
-begin
-  //FMessage := S;
-  //Synchronize(SyncLogEvent);
-
-{  PostMsg(WM_DBS_LOG, 0, Integer(Pointer(S)));       }
-
-  SendMessage(
-      FwndForNotify,                        //Хендл окна
-      WM_DBS_LOG,                           //Сообщение
-      0,
-      Integer(Pointer(S))                   //Текст
-      );
-end;
-
-function TgsDBSqueezeThread.GetConnected: Boolean;
-begin
-  FCSConnected.Enter;
-  Result := FConnected;
-  FCSConnected.Leave;
-end;
-
 
 end.

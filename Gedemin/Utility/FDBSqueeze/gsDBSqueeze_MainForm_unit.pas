@@ -32,8 +32,6 @@ type
     FSThread: TgsDBSqueezeThread;
 
     procedure LogEvent(const S: String);
-    //Процедура обработки сообщения из потока
-    procedure OnThreadNotify(var Message : TMessage); message WM_DBS_LOG;
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -51,20 +49,19 @@ procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
 begin
   FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text,
     edPassword.Text);
-
   FSThread.Connect;
 end;
 
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
-  FSThread := TgsDBSqueezeThread.Create(gsDBSqueeze_MainForm.Handle);
-  //FSThread.OnLogEvent := LogEvent;
+  FSThread := TgsDBSqueezeThread.Create(False);
+  FSThread.OnLog := LogEvent;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
 begin
-  FSThread.Free;  
+  FSThread.Free;
   inherited;
 end;
 
@@ -83,7 +80,6 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actDisconnectExecute(Sender: TObject);
 begin
-
   FSThread.Disconnect;
 end;
 
@@ -93,15 +89,9 @@ begin
   CanClose := not FSThread.Busy;
 end;
 
-
 procedure TgsDBSqueeze_MainForm.LogEvent(const S: String);
 begin
   mLog.Lines.Add(FormatDateTime('h:n:s:z', Now) + '  ' + S);
-end;
-
-procedure TgsDBSqueeze_MainForm.OnThreadNotify(var Message : TMessage);
-begin
-  LogEvent(String(Pointer(Message.LParam)));
 end;
 
 end.
