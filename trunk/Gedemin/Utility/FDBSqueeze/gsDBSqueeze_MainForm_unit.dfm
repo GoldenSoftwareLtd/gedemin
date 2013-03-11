@@ -90,8 +90,6 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Top = 152
     Width = 450
     Height = 150
-    Lines.Strings = (
-      'mLog')
     ScrollBars = ssVertical
     TabOrder = 5
   end

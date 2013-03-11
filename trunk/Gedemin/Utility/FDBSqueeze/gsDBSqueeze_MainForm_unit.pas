@@ -59,7 +59,7 @@ constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
   FSThread := TgsDBSqueezeThread.Create(gsDBSqueeze_MainForm.Handle);
-  FSThread.OnLogEvent := LogEvent;
+  //FSThread.OnLogEvent := LogEvent;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
