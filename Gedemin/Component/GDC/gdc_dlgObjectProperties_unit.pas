@@ -296,7 +296,7 @@ begin
       try
         W := TyamlWriter.Create(SS);
         try
-          TgdcNamespace.WriteObject(gdcObject, W);
+          TgdcNamespace.WriteObject(gdcObject, W, '');
         finally
           W.Free;
         end;

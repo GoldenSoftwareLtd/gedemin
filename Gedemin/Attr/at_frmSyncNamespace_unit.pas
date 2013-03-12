@@ -71,13 +71,14 @@ type
     TBSeparatorItem3: TTBSeparatorItem;
     actSync: TAction;
     TBItem11: TTBItem;
+    actDeleteFile: TAction;
+    N9: TMenuItem;
+    N10: TMenuItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
     procedure actSaveToFileUpdate(Sender: TObject);
     procedure actSaveToFileExecute(Sender: TObject);
-    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-    procedure ActionListUpdate(Action: TBasicAction; var Handled: Boolean);
     procedure actEditNamespaceUpdate(Sender: TObject);
     procedure actEditNamespaceExecute(Sender: TObject);
     procedure actEditFileUpdate(Sender: TObject);
@@ -94,14 +95,17 @@ type
     procedure actLoadFromFileUpdate(Sender: TObject);
     procedure actSyncUpdate(Sender: TObject);
     procedure actSyncExecute(Sender: TObject);
+    procedure actDeleteFileUpdate(Sender: TObject);
+    procedure actDeleteFileExecute(Sender: TObject);
 
   private
-    FSaving: Boolean;
     FgdcNamespace: TgdcNamespace;
 
     procedure IterateSelected(Proc: TIterateProc; AnObj: TObject; const AData: String);
     procedure SetOperation(AnObj: TObject; const AData: String);
     procedure SaveID(AnObj: TObject; const AData: String);
+    procedure DeleteFile(AnObj: TObject; const AData: String);
+    procedure Log(const S: String);
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -142,8 +146,9 @@ begin
   cds.DisableControls;
   try
     cds.EmptyDataSet;
-    mMessages.Lines.Clear;
     TgdcNamespace.ScanDirectory(cds, tbedPath.Text, mMessages.Lines);
+    gr.SelectedRows.Clear;
+    Log('Выполнено сравнение с каталогом ' + tbedPath.Text);
   finally
     cds.EnableControls;
   end;
@@ -170,24 +175,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actSaveToFileExecute(Sender: TObject);
 begin
-  mMessages.Lines.Clear;
   IterateSelected(SaveID, nil, '');
-end;
-
-procedure Tat_frmSyncNamespace.FormCloseQuery(Sender: TObject;
-  var CanClose: Boolean);
-begin
-  CanClose := not FSaving;
-end;
-
-procedure Tat_frmSyncNamespace.ActionListUpdate(Action: TBasicAction;
-  var Handled: Boolean);
-begin
-  if FSaving and (Action is TCustomAction) then
-  begin
-    TCustomAction(Action).Enabled := False;
-    Handled := True;
-  end;
 end;
 
 procedure Tat_frmSyncNamespace.actEditNamespaceUpdate(Sender: TObject);
@@ -253,26 +241,17 @@ procedure Tat_frmSyncNamespace.IterateSelected(Proc: TIterateProc;
 var
   I: Integer;
 begin
-  Assert(not FSaving);
-
-  FSaving := True;
-  try
-    if gr.SelectedRows.Count > 0 then
+  if gr.SelectedRows.Count > 0 then
+  begin
+    for I := 0 to gr.SelectedRows.Count - 1 do
     begin
-      for I := 0 to gr.SelectedRows.Count - 1 do
-      begin
-        Application.ProcessMessages;
-        if Application.Terminated then
-          break;
-        cds.Bookmark := gr.SelectedRows[I];
-        Proc(AnObj, AData);
-      end;
-    end
-    else if not cds.EOF then
+      cds.Bookmark := gr.SelectedRows[I];
       Proc(AnObj, AData);
-  finally
-    FSaving := False;
-  end;
+      UpdateWindow(mMessages.Handle);
+    end;
+  end
+  else if not cds.EOF then
+    Proc(AnObj, AData);
 end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingUpdate(Sender: TObject);
@@ -341,7 +320,7 @@ begin
         FgdcNamespace.SaveNamespaceToFile(cds.FieldByName('filename').AsString)
       else
         FgdcNamespace.SaveNamespaceToFile(tbedPath.Text);
-      mMessages.Lines.Add('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
+      Log('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
     end;
   end;
 end;
@@ -362,9 +341,48 @@ begin
   cds.First;
   while not cds.EOF do
   begin
+    if cds.FieldByName('operation').AsString = '>>' then
+      SaveID(nil, '')
+    else if cds.FieldByName('operation').AsString = '<<' then
+    begin
+    end;
     cds.Next;
   end;
+
   actCompare.Execute;
+end;
+
+procedure Tat_frmSyncNamespace.actDeleteFileUpdate(Sender: TObject);
+begin
+  actDeleteFile.Enabled := (not cds.EOF)
+    and (cds.FieldByName('fileversion').AsString > '');
+end;
+
+procedure Tat_frmSyncNamespace.DeleteFile(AnObj: TObject;
+  const AData: String);
+begin
+  if SysUtils.DeleteFile(cds.FieldByName('filename').AsString) then
+  begin
+    Log('Файл ' + cds.FieldByName('filename').AsString + ' был удален.');
+    cds.Edit;
+    cds.FieldByName('filename').Clear;
+    cds.FieldByName('filenamespacename').Clear;
+    cds.FieldByName('fileversion').Clear;
+    cds.FieldByName('filetimestamp').Clear;
+    cds.FieldByName('filesize').Clear;
+    cds.FieldByName('operation').Clear;
+    cds.Post;
+  end;
+end;
+
+procedure Tat_frmSyncNamespace.actDeleteFileExecute(Sender: TObject);
+begin
+  IterateSelected(DeleteFile, nil, '');
+end;
+
+procedure Tat_frmSyncNamespace.Log(const S: String);
+begin
+  mMessages.Lines.Add(FormatDateTime('hh:nn:ss ', Now) + S);
 end;
 
 initialization
