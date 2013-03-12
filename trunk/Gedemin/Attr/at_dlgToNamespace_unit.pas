@@ -59,7 +59,8 @@ var
 implementation
 
 uses
-  at_classes, gd_security, at_sql_parser, IBSQL, Storages, gdcNamespace, gd_KeyAssoc;
+  at_classes, gd_security, at_sql_parser, IBSQL, Storages, gdcNamespace, gd_KeyAssoc,
+  contnrs;
 
 {$R *.DFM}
 
@@ -78,6 +79,7 @@ begin
   cdsLink.FieldByName('subtype').Visible := False;
   cdsLink.FieldByName('namespacekey').Visible := False;
   cdsLink.FieldByName('namespace').Visible := False;
+  cdsLink.FieldByName('headobject').Visible := False;
   cdsLink.Open;
 
   cbAlwaysOverwrite.Checked := True;
@@ -94,6 +96,7 @@ begin
   cdsLink.FieldDefs.Add('subtype', ftString, 60, False);
   cdsLink.FieldDefs.Add('namespacekey', ftInteger, 0, False);
   cdsLink.FieldDefs.Add('namespace', ftString, 255, False);
+  cdsLink.FieldDefs.Add('headobject', ftString, 21, False);
 end;
 
 procedure TdlgToNamespace.SetupParams(AnObject: TgdcBase; BL: TBookmarkList);
@@ -165,42 +168,85 @@ end;
 procedure TdlgToNamespace.AddObjects;
 var
   I: Integer;  
-  XID, DBID: TID;
+  //XID, DBID: TID;
   Bm: String;
+  InstObj: TgdcBase;
+  InstClass: TPersistentClass;
+  gdcNamespace: TgdcNamespace;
+  OL: TObjectList;
 begin
-  for I := dbgrListLink.CheckBox.CheckList.Count - 1 downto 0 do
-  begin
-    if cdsLink.Locate('id', dbgrListLink.CheckBox.CheckList[I], []) then
-    begin
-      gdcBaseManager.GetRUIDByID(cdsLink.FieldByName('id').AsInteger, XID, DBID, IBTransaction);
-      TgdcNamespace.AddObject(lkup.CurrentKeyInt, cdsLink.FieldByName('name').AsString, cdsLink.FieldByName('class').AsString,
-        cdsLink.FieldByName('subtype').AsString, XID, DBID, IBTransaction, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
-    end;
-  end;
-
-  Bm := FgdcObject.Bookmark;
-  FgdcObject.DisableControls;
+  gdcNamespace := TgdcNamespace.Create(nil);
   try
-    if FBL <> nil then
-    begin
-      FBL.Refresh;
-      for I := 0 to FBL.Count - 1 do
+    gdcnamespace.Transaction := IBTransaction;
+    gdcNamespace.SubSet := 'ByID';
+    gdcNamespace.ID := lkup.CurrentKeyInt;
+    gdcNamespace.Open;
+
+    OL := TObjectList.Create(True);
+    try
+      if not gdcNamespace.Eof then
       begin
-        FgdcObject.Bookmark := FBL[I];
-        gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
-        TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
-          FgdcObject.SubType, XID, DBID, IBTransaction, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+        for I := dbgrListLink.CheckBox.CheckList.Count - 1 downto 0 do
+        begin
+          if cdsLink.Locate('id', dbgrListLink.CheckBox.CheckList[I], []) then
+          begin
+             InstClass := GetClass(cdsLink.FieldByName('class').AsString);
+             if (InstClass <> nil) then
+             begin
+               InstObj := CgdcBase(InstClass).CreateSubType(nil,
+                 cdsLink.FieldByName('subtype').AsString, 'ByID');
+               try
+                 InstObj.ID := cdsLink.FieldByName('id').AsInteger;
+                 InstObj.Open;
+                 if not InstObj.EOF then
+                 begin
+                   gdcNamespace.AddObject2(InstObj, OL, cdsLink.FieldByName('headobject').AsString,
+                     Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+                 end;
+               finally
+                 InstObj.Free;
+               end;
+             end;
+           // gdcBaseManager.GetRUIDByID(cdsLink.FieldByName('id').AsInteger, XID, DBID, IBTransaction);
+          //  TgdcNamespace.AddObject(lkup.CurrentKeyInt, cdsLink.FieldByName('name').AsString, cdsLink.FieldByName('class').AsString,
+            //  cdsLink.FieldByName('subtype').AsString, XID, DBID, IBTransaction, cdsLink.FieldByName('headobject').AsString, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+          end;
+        end;
+
+        Bm := FgdcObject.Bookmark;
+        FgdcObject.DisableControls;
+        try
+          if FBL <> nil then
+          begin
+            FBL.Refresh;
+            for I := 0 to FBL.Count - 1 do
+            begin
+              gdcNamespace.AddObject2(FgdcObject, OL, '',
+                Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+             // FgdcObject.Bookmark := FBL[I];
+             // gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
+             // TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
+              //  FgdcObject.SubType, XID, DBID, IBTransaction, cdsLink.FieldByName('headobject').AsString, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+            end;
+          end else
+          begin
+            gdcNamespace.AddObject2(FgdcObject, OL, '',
+              Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+            //gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
+           // TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
+            //  FgdcObject.SubType, XID, DBID, IBTransaction, cdsLink.FieldByName('headobject').AsString, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+          end;
+        finally
+          FgdcObject.Bookmark := Bm;
+          FgdcObject.EnableControls;
+        end;
       end;
-    end else
-    begin
-      gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
-      TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
-        FgdcObject.SubType, XID, DBID, IBTransaction, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+    finally
+      OL.Free;
     end;
   finally
-    FgdcObject.Bookmark := Bm;
-    FgdcObject.EnableControls;
-  end;  
+    gdcNamespace.Free;
+  end;
 end;
 
 procedure TdlgToNamespace.actShowLinkExecute(Sender: TObject);

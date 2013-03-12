@@ -51,8 +51,7 @@ type
 
 
     procedure SelectAllChild(Node: TTreeNode; bSel: boolean);
-    procedure OverridingWndProc(var Message: TMessage);
-
+    procedure OverridingWndProc(var Message: TMessage); 
     procedure CreateTree; 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -386,14 +385,14 @@ begin
         gsTreeView.Canvas.Font.Style := TItemFontStyles[Integer(R[0, 0]) - 1];
     end;
     DefaultDraw := True;
-  end;
-
+  end; 
 end;
 
 procedure Tat_dlgLoadNamespacePackages.gsTreeViewClick(Sender: TObject);
 var
   Node: TTreeNode;
   q: TIBSQL;
+  Ver: String;
 begin
   mInfo.Clear;
   Node := gsTreeView.Selected;
@@ -408,11 +407,21 @@ begin
 
       if not q.EOF then
       begin
+        case q.FieldByName('operation').AsInteger of
+          nvNotInstalled: Ver := ' - пакет не установлен';
+          nvNewer: Ver := ' - новая версия';
+          nvEqual: Ver := ' - версии совпадают';
+          nvOlder: Ver := ' - старая версия';
+          nvIndefinite: Ver := ' - INDEFINITE';
+        else
+          Ver := '';
+        end;
         mInfo.Lines.Add(q.FieldByName('Name').AsString);
-        mInfo.Lines.Add('Версия: ' + q.FieldByName('version').AsString);
-        mInfo.Lines.Add('RUID: ' + q.FieldByName('settingruid').AsString);
-        mInfo.Lines.Add('Путь: ' + q.FieldByName('filename').AsString);
+        mInfo.Lines.Add('Версия: ' + q.FieldByName('version').AsString + Ver);
         mInfo.Lines.Add('Изменен: ' + q.FieldByName('filetimestamp').AsString);
+        mInfo.Lines.Add('RUID: ' + q.FieldByName('settingruid').AsString);
+        mInfo.Lines.Add('Путь: ' + ExtractFilePath(q.FieldByName('filename').AsString));
+        mInfo.Lines.Add('Файл: ' + ExtractFileName(q.FieldByName('filename').AsString));
       end;
     finally
       q.Free;
@@ -424,5 +433,5 @@ initialization
   RegisterClass(Tat_dlgLoadNamespacePackages);
 
 finalization
-  UnRegisterClass(Tat_dlgLoadNamespacePackages);
+  UnRegisterClass(Tat_dlgLoadNamespacePackages); 
 end.

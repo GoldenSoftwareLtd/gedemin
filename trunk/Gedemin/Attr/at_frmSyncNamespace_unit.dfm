@@ -11,7 +11,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
@@ -314,7 +313,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object ActionList: TActionList
     Images = dmImages.il16x16
-    OnUpdate = ActionListUpdate
     Left = 552
     Top = 242
     object actChooseDir: TAction
@@ -392,6 +390,13 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnExecute = actSyncExecute
       OnUpdate = actSyncUpdate
     end
+    object actDeleteFile: TAction
+      Caption = 'Удалить файл -->'
+      Hint = 'Удалить файл'
+      ImageIndex = 178
+      OnExecute = actDeleteFileExecute
+      OnUpdate = actDeleteFileUpdate
+    end
   end
   object pmSync: TPopupMenu
     Images = dmImages.il16x16
@@ -414,6 +419,12 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object N8: TMenuItem
       Action = actLoadFromFile
+    end
+    object N9: TMenuItem
+      Caption = '-'
+    end
+    object N10: TMenuItem
+      Action = actDeleteFile
     end
     object N3: TMenuItem
       Caption = '-'
