@@ -41,13 +41,13 @@ type
     class procedure ScanLinkNamespace(ADataSet: TDataSet; const APath: String);
     class procedure ScanLinkNamespace2(const APath: String);
     class procedure InstallPackages;
-    class procedure DeleteObjectsFromNamespace(ANamespacekey: Integer; AnObjectIDList: TgdKeyArray; ATr: TIBTransaction);
     class procedure SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
     class procedure SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
     class procedure AddObject(ANamespacekey: Integer; const AName: String; const AClass: String; const ASubType: String;
       xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1; ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
 
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList; const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1; ADontRemove: Integer = 0; AnIncludeSiblings: Integer = 0);
+    procedure DeleteObject(xid, dbid: Integer);
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
 
@@ -1160,7 +1160,7 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
           Obj.Open;
           if Obj.RecordCount > 0 then
           begin
-            Obj.BaseState := Obj.BaseState + [sLoadNamespace];
+            Obj.BaseState := Obj.BaseState + [sLoadNamespace, sLoadFromStream];
             Obj.Edit;
             Obj.FieldByName((UL[I] as TgdcReferenceUpdate).FieldName).AsInteger := TargetKeyValue;
             Obj.Post;
@@ -1538,7 +1538,8 @@ begin
     begin
       try
         AddText('Начата загрузка объекта ' + AMapping.ReadString('Properties\Class') + ' ' + AMapping.ReadString('Properties\RUID'), clBlack);
-        AnObj.BaseState := AnObj.BaseState + [sLoadNamespace];
+        AnObj.BaseState := AnObj.BaseState + [sLoadNamespace, sLoadFromStream];
+        AnObj.ModifyFromStream := AlwaysOverwrite;
         RuidRec := gdcBaseManager.GetRUIDRecByXID(StrToRUID(RUID).XID,
           StrToRUID(RUID).DBID, ATr);
         D := RuidRec.ID;
@@ -1608,7 +1609,7 @@ begin
           end;
         end;
       finally
-        AnObj.BaseState := AnObj.BaseState - [sLoadNamespace];
+        AnObj.BaseState := AnObj.BaseState - [sLoadNamespace, sLoadFromStream];
       end;
     end else
       raise Exception.Create('Invalid fields!');
@@ -2514,34 +2515,6 @@ begin
   finally
     SL.Free;
   end;
-end;
-
-class procedure TgdcNamespace.DeleteObjectsFromNamespace(ANamespacekey: Integer; AnObjectIDList: TgdKeyArray; ATr: TIBTransaction);
-var
-  q: TIBSQL;
-  I: Integer;
-  XID, DBID: TID;
-begin
-  if (ATr = nil) or (not ATr.InTransaction) then
-    raise Exception.Create('Invalid transaction!');
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := ATr;
-    q.SQL.Text := 'DELETE FROM at_object WHERE xid = :xid and dbid = :dbid and namespacekey = :nk';
-
-    for I := 0 to AnObjectIDList.Count - 1 do
-    begin
-      q.Close;
-      gdcBaseManager.GetRUIDByID(AnObjectIDList[I], XID, DBID, ATr);
-      q.ParamByName('xid').AsInteger := XID;
-      q.ParamByName('dbid').AsInteger := DBID;
-      q.ParamByName('nk').AsInteger := ANamespacekey;
-      q.ExecQuery;
-    end; 
-  finally
-    q.Free;
-  end;
 end; 
 
 class procedure TgdcNamespace.SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
@@ -2898,6 +2871,26 @@ begin
     end;
   finally
     q.Free;
+  end;
+end;
+
+procedure TgdcNamespace.DeleteObject(xid, dbid: Integer);
+var
+  gdcNamespaceObject: TgdcNamespaceObject;
+begin
+  gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+  try
+    gdcNamespaceObject.Transaction := Transaction;
+    gdcNamespaceObject.SubSet := 'ByObject';
+    gdcNamespaceObject.ParamByName('namespacekey').AsInteger := Self.ID;
+    gdcNamespaceObject.ParamByName('xid').AsInteger := xid;
+    gdcNamespaceObject.ParamByName('dbid').AsInteger := dbid;
+    gdcNamespaceObject.Open;
+
+    if not gdcNamespaceObject.Eof then
+      gdcNamespaceObject.Delete;
+  finally
+    gdcNamespaceObject.Free;
   end;
 end;
 
