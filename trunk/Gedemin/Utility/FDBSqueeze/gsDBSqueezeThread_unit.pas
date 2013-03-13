@@ -119,6 +119,7 @@ begin
     begin
       FDBS.Connect;
       FDBS.BeforeMigrationPrepareDB;
+
       FConnected.Value := 1;
       Log('connected');
       Result := True;
@@ -128,6 +129,7 @@ begin
     begin
       FDBS.AfterMigrationPrepareDB;
       FDBS.Disconnect;
+
       FConnected.Value := 0;
       Log('disconnected');
       Result := True;
