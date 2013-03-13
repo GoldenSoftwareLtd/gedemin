@@ -149,19 +149,20 @@ begin
 end;
 
 procedure TdlgToNamespace.DeleteObjects;
-var
-  I: Integer;
-  KA: TgdKeyArray;
+var 
+  gdcNamespace: TgdcNamespace;
 begin
-  KA := TgdKeyArray.Create;
+  gdcNamespace := TgdcNamespace.Create(nil);
   try
-    KA.Add(FgdcObject.ID);
-    for I := 0 to dbgrListLink.CheckBox.CheckList.Count - 1 do
-      KA.Add(StrToInt(dbgrListLink.CheckBox.CheckList[I]));
+    gdcNamespace.Transaction := IBTransaction;
+    gdcNamespace.SubSet := 'ByID';
+    gdcNamespace.ID := lkup.CurrentKeyInt;
+    gdcNamespace.Open;
 
-    TgdcNamespace.DeleteObjectsFromNamespace(lkup.Currentkeyint, KA, IBTransaction);
+    if not gdcNamespace.Eof then
+      gdcNamespace.DeleteObject(FgdcObject.GetRUID.XID, FgdcObject.GetRUID.DBID);
   finally
-    KA.Free;
+    gdcNamespace.Free;
   end;
 end;
 
