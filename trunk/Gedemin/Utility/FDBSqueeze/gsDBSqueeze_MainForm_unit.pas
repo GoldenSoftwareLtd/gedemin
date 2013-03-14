@@ -91,7 +91,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.LogEvent(const S: String);
 begin
-  mLog.Lines.Add(FormatDateTime('h:n:s:z', Now) + '  ' + S);
+  mLog.Lines.Add(FormatDateTime('h:nn:ss:zzz', Now) + '  ' + S);
 end;
 
 end.
