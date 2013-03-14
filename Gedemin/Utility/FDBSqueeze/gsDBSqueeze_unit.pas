@@ -23,33 +23,27 @@ type
 
     function h_CreateTblForSaveFK: Boolean;
     function h_CreateTblForSavePkUnique: Boolean;
-  //  function h_CreateTblForSaveNotNull: Boolean;
     procedure h_InsertTblForSaveFK;
     procedure h_InsertTblForSavePkUnique;
-  //  procedure h_InsertTblForSaveNotNull;
     procedure h_SaveFKConstr;
     procedure h_SavePkUniqueConstr;
-  //  procedure h_SaveNotNullConstr;
 
     procedure h_SaveAllConstr;
 
     procedure h_DeleteFKConstr;
     procedure h_DeletePkUniqueConstr;
- //   procedure h_DeleteNotNullConstr;
 
     procedure h_DeleteAllConstr;
 
     procedure h_RecreateFKConstr;
     procedure h_RecreatePkUniqueConstr;
- //   procedure h_RecreateNotNullConstr;
 
     procedure h_RecreateAllConstr;
 
- //   procedure h_SwitchActivityIndices(AEnableFlag: Integer);
+    procedure h_SwitchActivityIndices(AEnableFlag: Integer);
     procedure h_SwitchActivityTriggers(const AEnableFlag: Integer);
 
     procedure LogEvent(const AMsg: String);
-
   public
     constructor Create;
     destructor Destroy; override;
@@ -286,7 +280,7 @@ begin
       '  JOIN RDB$REF_CONSTRAINTS refc ON c.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +
       '  JOIN RDB$RELATION_CONSTRAINTS c2 ON refc.RDB$CONST_NAME_UQ = c2.RDB$CONSTRAINT_NAME ' +
       'WHERE c.rdb$constraint_type = ''FOREIGN KEY'' ' +
-      '  AND NOT c.rdb$relation_name LIKE ''RDB$%'' ';                                          //
+      '  AND NOT c.rdb$relation_name LIKE ''RDB$%'' ';                                          // ??
     q.ExecQuery;
 
     while not q.EOF  do
@@ -426,8 +420,8 @@ begin
 
   h_InsertTblForSaveFK;
 
-
-   try                                                                              //test
+//==================================== TEST
+   try
      q := TIBSQL.Create(nil);
      Tr := TIBTransaction.Create(nil);
      Tr.DefaultDatabase := FIBDatabase;
@@ -444,7 +438,7 @@ begin
       q.Free;
       Tr.Free;
    end;
-
+//==================================== end
   LogEvent('[1]Saving FK constraints ... OK');
 end;
 
@@ -480,8 +474,8 @@ begin
   end;
 
   h_InsertTblForSavePkUnique;
-
-  try                                                                              //test
+//==================================== TEST
+  try
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
     Tr.DefaultDatabase := FIBDatabase;
@@ -498,7 +492,7 @@ begin
     q.Free;
     Tr.Free;
   end;
-
+//==================================== end
 
   LogEvent('[2]Saving PK and UNIQUE constraints ... OK');
 end;
@@ -560,8 +554,8 @@ begin
     Tr.Free;
   end;
 
-
-  try                                                                              //test
+//==================================== TEST
+  try
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
     Tr.DefaultDatabase := FIBDatabase;
@@ -578,9 +572,7 @@ begin
     q.Free;
     Tr.Free;
   end;
-
-
-
+//==================================== end
 end;
 
 procedure TgsDBSqueeze.h_DeletePkUniqueConstr;
@@ -628,7 +620,8 @@ begin
     Tr.Free;
   end;
 
-  try                                                                              //test
+//==================================== TEST
+  try
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
     Tr.DefaultDatabase := FIBDatabase;
@@ -646,7 +639,7 @@ begin
     q.Free;
     Tr.Free;
   end;
-
+//==================================== end
 end;
 
 procedure TgsDBSqueeze.h_DeleteAllConstr;
@@ -716,8 +709,8 @@ begin
     q2.Free;
     Tr.Free;
   end;
-
-  try                                                                              //test
+//==================================== TEST
+  try
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
     Tr.DefaultDatabase := FIBDatabase;
@@ -734,7 +727,7 @@ begin
     q.Free;
     Tr.Free;
   end;
-
+//==================================== end
 
 end;
 
@@ -783,8 +776,8 @@ begin
     q2.Free;
     Tr.Free;
   end;
-
-  try                                                                              //test
+//==================================== TEST
+  try
      q := TIBSQL.Create(nil);
      Tr := TIBTransaction.Create(nil);
      Tr.DefaultDatabase := FIBDatabase;
@@ -803,7 +796,7 @@ begin
       q.Free;
       Tr.Free;
   end;
-
+//==================================== end
 
 end;
 
@@ -826,8 +819,8 @@ var
   s: String;                                                                       //t
 begin
   Assert(Connected);
-
-  try                                                                              //test
+ //==================================== TEST
+  try
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
     Tr.DefaultDatabase := FIBDatabase;
@@ -853,6 +846,8 @@ begin
     q.Free;
     Tr.Free;
   end;
+ //==================================== end
+
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
   Tr := TIBTransaction.Create(nil);
@@ -901,7 +896,8 @@ begin
     Tr.Free;
   end;
 
-  try                                                                              //test
+//==================================== TEST
+  try
     q := TIBSQL.Create(nil);
     Tr := TIBTransaction.Create(nil);
     Tr.DefaultDatabase := FIBDatabase;
@@ -923,7 +919,7 @@ begin
     q.Free;
     Tr.Free;
   end;
- 
+//==================================== end 
 
 end;
 
@@ -931,7 +927,7 @@ procedure  TgsDBSqueeze.BeforeMigrationPrepareDB;
 begin
   h_SaveAllConstr;
   h_DeleteAllConstr;
-  //h_SwitchActivityIndices(0);
+  h_SwitchActivityIndices(0);
   h_SwitchActivityTriggers(0);
 
   //...
@@ -939,7 +935,7 @@ end;
 
 procedure TgsDBSqueeze.AfterMigrationPrepareDB;
 begin
-  //h_SwitchActivityIndices(1);
+  h_SwitchActivityIndices(1);
   h_SwitchActivityTriggers(1);
   h_RecreateAllConstr;
   //...
@@ -951,14 +947,43 @@ begin
     FOnLogEvent(AMsg);
 end;
 
-{
-//ADisableFlag:  0-деактивировать, 1-активировать
-procedure TgsDBSqueeze.h_SwitchActivityIndices(AEnableFlag: Integer);    //const
+
+//AEnableFlag:  0-деактивировать, 1-активировать
+procedure TgsDBSqueeze.h_SwitchActivityIndices(AEnableFlag: Integer);            //c
 var
   q, q2: TIBSQL;
   Tr: TIBTransaction;
+  s: String;                                                                     //t
 begin
   Assert(Connected);
+
+  //==================================== TEST
+  try
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    if (AEnableFlag = 1) then  s := ' DEACTIVATED '
+    else if (AEnableFlag = 0) then  s := ' ACTIVATED ';
+
+    q.Transaction := Tr;
+    q.SQL.Text := 'select count(i.RDB$INDEX_NAME) as Kolvo FROM RDB$INDICES i ' +
+      ' WHERE i.RDB$INDEX_INACTIVE = :enableFlag ' +
+      '   AND i.RDB$SYSTEM_FLAG <> 1';
+    q.ParamByName('enableFlag').AsInteger := AEnableFlag;
+    q.ExecQuery;
+
+    LogEvent('======== COUNT' + s + 'INDICES before UPDATE: ' + q.FieldByName('Kolvo').AsString );
+    q.Close;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+//==================================== end
+
 
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
@@ -971,7 +996,8 @@ begin
 
     q.Transaction := Tr;
     q.SQL.Text :=  'SELECT i.RDB$INDEX_NAME as Index_Name FROM RDB$INDICES i ' +
-      ' WHERE i.RDB$INDEX_INACTIVE = :enableFlag ';
+      ' WHERE i.RDB$INDEX_INACTIVE = :enableFlag ' +
+      ' AND i.RDB$SYSTEM_FLAG <> 1';
     q.ParamByName('enableFlag').AsInteger := AEnableFlag;
     q.ExecQuery;
 
@@ -1002,8 +1028,33 @@ begin
     q2.Free;
     Tr.Free;
   end;
+
+//==================================== TEST
+  try
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text := 'select count(i.RDB$INDEX_NAME) as Kolvo FROM RDB$INDICES i ' +
+      ' WHERE i.RDB$INDEX_INACTIVE = :enableFlag ' +
+      '   AND i.RDB$SYSTEM_FLAG <> 1';
+
+    q.ParamByName('enableFlag').AsInteger := AEnableFlag;
+    q.ExecQuery;
+
+    LogEvent('======== COUNT' + s + 'INDICES after UPDATE: ' + q.FieldByName('Kolvo').AsString );
+    q.Close;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+//==================================== end
 end;
-}
+
 
 
 end.
