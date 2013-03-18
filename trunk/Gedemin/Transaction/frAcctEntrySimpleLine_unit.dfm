@@ -137,7 +137,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cbAccount: TgsIBLookupComboBox
           Left = 56
           Top = 3
-          Width = 386
+          Width = 403
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -173,7 +173,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cSum: TxDBCalculatorEdit
           Left = 56
           Top = 26
-          Width = 386
+          Width = 403
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 193
@@ -187,6 +187,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           ParentFont = False
           TabOrder = 1
           OnChange = cSumChange
+          DecDigits = 4
           DataField = 'DEBITNCU'
           DataSource = DataSource
         end
@@ -225,7 +226,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cRate: TxCalculatorEdit
           Left = 93
           Top = 95
-          Width = 349
+          Width = 366
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -244,7 +245,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cCurrSum: TxDBCalculatorEdit
           Left = 93
           Top = 118
-          Width = 349
+          Width = 366
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -265,7 +266,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cEQSum: TxDBCalculatorEdit
           Left = 122
           Top = 49
-          Width = 320
+          Width = 337
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           AutoSize = False
@@ -280,6 +281,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           ParentFont = False
           TabOrder = 5
           OnChange = cSumChange
+          DecDigits = 4
           DataField = 'DEBITEQ'
           DataSource = DataSource
         end
