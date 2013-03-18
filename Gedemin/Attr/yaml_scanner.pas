@@ -260,7 +260,7 @@ begin
           else if FReader.PeekChar in EOL then
           begin
             FReader.SkipUntilEOL;
-            if (FQuoting = qPlain) and ((FReader.Indent <= FBlockIndent) or (FReader.PeekChar in ['-', '!'])) then
+            if (FQuoting = qPlain) and ((FReader.Indent <= FBlockIndent) or ((FStyle = sPlain) and (FReader.PeekChar in ['-', '!']))) then
               break;
             if FStyle = sLiteral then
               FScalar := FScalar + #13#10
