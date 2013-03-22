@@ -48,7 +48,7 @@ type
   private
     FgdcNamespace: TgdcNamespace;
     FOldWndProc: TWndMethod;
-
+    List: TgsyamlList;
 
     procedure SelectAllChild(Node: TTreeNode; bSel: boolean);
     procedure OverridingWndProc(var Message: TMessage); 
@@ -76,11 +76,13 @@ constructor Tat_dlgLoadNamespacePackages.Create(AnOwner: TComponent);
 begin
   inherited;
   FgdcNamespace := TgdcNamespace.Create(nil);
+  List := TgsyamlList.Create;
 end;
 
 destructor Tat_dlgLoadNamespacePackages.Destroy;
 begin
   FgdcNamespace.Free;
+  List.Free;
   inherited;
 end;
 
@@ -182,7 +184,22 @@ var
   Tr: TIBTransaction;
   q: TIBSQL;
 begin
-  Assert(gdcBaseManager <> nil);
+  gsTreeView.SortType := stNone;
+  gsTreeView.Items.Clear;
+  gsTreeView.Invalidate;
+  List.Clear;
+
+    if Trim(eSearchPath.Text) <> '' then
+      List.GetFilesForPath(Trim(eSearchPath.Text));
+
+    minfo.Lines.Add('количество = ' + IntToStr(List.Count));
+    gsTreeView.Items.BeginUpdate;
+    try
+      TgdcNamespace.FillTree(gsTreeView, List, True);
+    finally
+      gsTreeView.Items.EndUpdate;
+    end; 
+ { Assert(gdcBaseManager <> nil);
 
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
@@ -219,7 +236,7 @@ begin
     finally
       gsTreeView.Items.EndUpdate;
     end;
-  end;
+  end; }
 end;
 
 procedure Tat_dlgLoadNamespacePackages.FormCreate(Sender: TObject);
@@ -244,18 +261,20 @@ end;
 procedure Tat_dlgLoadNamespacePackages.actSearchUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := Trim(eSearchPath.Text) <> '';
-end; 
+end;
 
 procedure Tat_dlgLoadNamespacePackages.SelectAllChild(Node: TTreeNode; bSel: boolean);
 begin
   if (Node <> nil) then
   begin
+
     if bSel then
-      Node.StateIndex := 1
-    else
+    begin
+      if TgsyamlNode(Node.Data).Optional = False then
+        Node.StateIndex := 1
+    end else
       Node.StateIndex := 2;
-    if Node.HasChildren then
-      SelectAllChild(Node.getFirstChild, bSel);
+    SelectAllChild(Node.getFirstChild, bSel);
     SelectAllChild(Node.Parent.getNextChild(Node), bSel);
   end;
 end;
@@ -288,6 +307,7 @@ end;
 procedure Tat_dlgLoadNamespacePackages.actInstallPackageExecute(
   Sender: TObject);
 begin
+  FgdcNamespace.DoLoadNamespace(List);
   ModalResult := mrOK;
 end;
 
@@ -371,7 +391,8 @@ procedure Tat_dlgLoadNamespacePackages.gsTreeViewAdvancedCustomDrawItem(
 var
   R: OleVariant;
 begin
-  if (Stage = cdPrePaint) and (Node <> nil) and (Integer(Node.Data) > 0) then
+  DefaultDraw := True;
+ { if (Stage = cdPrePaint) and (Node <> nil) and (Integer(Node.Data) > 0) then
   begin
     gdcBaseManager.ExecSingleQueryResult(
       'SELECT operation FROM at_namespace_gtt WHERE id = :id',
@@ -385,7 +406,7 @@ begin
         gsTreeView.Canvas.Font.Style := TItemFontStyles[Integer(R[0, 0]) - 1];
     end;
     DefaultDraw := True;
-  end; 
+  end; }
 end;
 
 procedure Tat_dlgLoadNamespacePackages.gsTreeViewClick(Sender: TObject);
@@ -395,6 +416,17 @@ var
   Ver: String;
 begin
   mInfo.Clear;
+  Node := gsTreeView.Selected;
+  if Node <> nil then
+  begin
+    mInfo.Lines.Add(TgsyamlNode(Node.Data).Name);
+    mInfo.Lines.Add('Версия: ' + TgsyamlNode(Node.Data).Version);
+    //mInfo.Lines.Add('Изменен: ' + q.FieldByName('filetimestamp').AsString);
+    mInfo.Lines.Add('RUID: ' + TgsyamlNode(Node.Data).settingruid);
+    mInfo.Lines.Add('Путь: ' + ExtractFilePath(TgsyamlNode(Node.Data).Filename));
+    mInfo.Lines.Add('Файл: ' + ExtractFileName(TgsyamlNode(Node.Data).Filename));
+  end;
+ { mInfo.Clear;
   Node := gsTreeView.Selected;
   if Node <> nil then
   begin
@@ -426,7 +458,7 @@ begin
     finally
       q.Free;
     end;
-  end;
+  end;}
 end;
 
 initialization
