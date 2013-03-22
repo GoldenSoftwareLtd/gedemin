@@ -1,6 +1,6 @@
 object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
-  Left = 418
-  Top = 255
+  Left = 384
+  Top = 119
   Width = 575
   Height = 515
   Caption = 'at_dlgLoadNamespacePackages'
@@ -31,8 +31,8 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
   object Panel1: TPanel
     Left = 0
     Top = 57
-    Width = 567
-    Height = 327
+    Width = 559
+    Height = 316
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -68,7 +68,6 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       Height = 305
       Indent = 19
       TabOrder = 1
-      OnAdvancedCustomDrawItem = gsTreeViewAdvancedCustomDrawItem
       OnClick = gsTreeViewClick
       WithCheckBox = True
     end
@@ -76,7 +75,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
   object Panel5: TPanel
     Left = 0
     Top = 0
-    Width = 567
+    Width = 559
     Height = 57
     Align = alTop
     BevelOuter = bvNone
@@ -121,8 +120,8 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
   end
   object Panel6: TPanel
     Left = 0
-    Top = 384
-    Width = 567
+    Top = 373
+    Width = 559
     Height = 104
     Align = alBottom
     BevelOuter = bvNone
