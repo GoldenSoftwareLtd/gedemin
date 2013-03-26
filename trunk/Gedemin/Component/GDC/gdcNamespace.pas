@@ -708,144 +708,7 @@ end;
 procedure TgdcNamespace.LoadFromFile(const AFileName: String = '');
 var
   FN: String;
-  Parser: TyamlParser;
-  Temps, RelName: String;
-  I: Integer;
-  M: TyamlMapping;
-  N: TyamlNode;
   SL: TStringList;
-  q: TIBSQL;
-  Tr: TIBTransaction;
-  Obj: TgdcBase;
-  Namespacekey: Integer;
-  UpdateList: TObjectList;
-  WasMetaData: Boolean;
-
-  procedure DisconnectDatabase(const WithCommit: Boolean);
-  begin
-    if gdcBaseManager.ReadTransaction.InTransaction then
-      gdcBaseManager.ReadTransaction.Commit;
-    if Tr.InTransaction then
-    begin
-    if WithCommit then
-      begin
-        Tr.Commit;
-      end else
-      begin
-        Tr.Rollback;
-      end;
-    end;
-    Tr.DefaultDatabase.Connected := False;
-  end;
-
-  procedure ConnectDatabase;
-  begin
-    Tr.DefaultDatabase.Connected := True;
-    if not Tr.InTransaction then
-      Tr.StartTransaction;
-    if not gdcBaseManager.ReadTransaction.InTransaction then
-      gdcBaseManager.ReadTransaction.StartTransaction;
-  end;
-
-  procedure ReConnectDatabase(const WithCommit: Boolean = True);
-  begin
-    try
-      DisconnectDatabase(WithCommit);
-    except
-      on E: Exception do
-      begin
-        if MessageBox(0,
-          PChar('В процессе загрузки пространства имен произошла ошибка:'#13#10 +
-          E.Message + #13#10#13#10 +
-          'Продолжать загрузку?'),
-          'Ошибка',
-          MB_ICONEXCLAMATION or MB_YESNO or MB_TASKMODAL) = IDNO then
-        begin
-          raise;
-        end;  
-      end;
-    end;
-    ConnectDatabase;
-  end;
-
-  procedure RunMultiConnection;
-  var
-    WasConnect: Boolean;
-    ibsql: TIBSQL;
-    R: TatRelation;
-  begin
-    Assert(atDatabase <> nil, 'Не загружена база атрибутов');
-    if atDatabase.InMultiConnection then
-    begin
-      ibsql := TIBSQL.Create(nil);
-      try
-        ibsql.Transaction := Tr;
-        ibsql.SQL.Text := 'SELECT FIRST 1 * FROM at_transaction ';
-        ibsql.ExecQuery;
-
-        if ibsql.RecordCount = 0 then
-        begin
-          atDatabase.CancelMultiConnectionTransaction(True);
-        end else
-        begin
-          with TmetaMultiConnection.Create do
-          try
-            WasConnect := Tr.DefaultDatabase.Connected;
-            DisconnectDatabase(True);
-            RunScripts(False);
-            ConnectDatabase;
-            R := atDatabase.Relations.ByRelationName(RelName);
-            if Assigned(R) then
-              R.RefreshConstraints(Tr.DefaultDatabase, Tr);
-            if not WasConnect then
-              DisconnectDatabase(True);
-          finally
-            Free;
-          end;
-        end;
-
-      finally
-        ibsql.Free;
-      end;
-    end;
-  end;
-
-  {procedure HeadObjectUpdate(UL: TObjectList; SourceRUID: String; TargetKeyValue: Integer);
-  var
-    I: Integer;
-    q: TIBSQL;
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := Tr;
-      q.SQL.Text := 'UPDATE at_object SET headobjectkey = :hk WHERE namespacekey = :nk AND xid = :xid AND dbid = :dbid';
-      for I := UL.Count - 1 downto 0 do
-      begin
-        if ((UL[I] as TgdcHeadObjectUpdate).RefRUID = SourceRUID)
-          and ((UL[I] as TgdcHeadObjectUpdate).Namesapcekey = Namespacekey) then
-        begin
-          q.ParamByName('hk').AsInteger := TargetKeyValue;
-          q.ParamByName('nk').AsInteger := Namespacekey;
-          q.ParamByName('xid').AsInteger := StrToRUID((UL[I] as TgdcHeadObjectUpdate).RUID).XID;
-          q.ParamByName('dbid').AsInteger := StrToRUID((UL[I] as TgdcHeadObjectUpdate).RUID).dbid;
-          q.ExecQuery;
-
-          UL.Delete(I);
-        end;
-      end;
-    finally
-      q.Free;
-    end;
-  end; }
-
-var
-  LoadClassName, RUID, LoadSubType, OldClassName, OldSubType: String;
-  C, OldClass: TClass;
-  ObjList: TStringList;
-  Ind: Integer;
-  gdcNamespaceObj: TgdcNamespaceObject;
-  UL: TObjectList;
- // HO: TgdcHeadObjectUpdate;
 begin
   if AFileName = '' then
     FN := QueryLoadFileName(AFileName, 'yml', 'Модули|*.yml')
@@ -854,297 +717,12 @@ begin
 
   if FN > '' then
   begin
-    WasMetaData := False;
-    OldClassName := '';
-    OldSubType := '';
-    OldClass := TObject;
-    NamespaceKey := -1;
-
-    if (GlobalStorage <> nil) and GlobalStorage.IsModified then
-      GlobalStorage.SaveToDatabase;
-
-    if (UserStorage <> nil) and UserStorage.IsModified then
-      UserStorage.SaveToDatabase;
-
-    if (CompanyStorage <> nil) and CompanyStorage.IsModified then
-      CompanyStorage.SaveToDatabase;
-
-    DesktopManager.WriteDesktopData('Последний', True);
-    Tr := TIBTransaction.Create(nil);
+    SL := TStringList.Create;
     try
-      Tr.DefaultDatabase := IBLogin.Database;
-      Tr.Params.Add('nowait');
-      Tr.Params.Add('read_committed');
-      Tr.Params.Add('rec_version');
-      
-      Parser := TyamlParser.Create;
-      SL := TStringList.Create;
-      UpdateList := TObjectList.Create(True);
-      ObjList := TStringList.Create;
-      UL := TObjectList.Create(True);
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := Tr;
-        Parser.Parse(FN);
-
-        M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-        Temps := M.ReadString('Properties\RUID');
-        if not CheckRUID(Temps) then
-          raise Exception.Create('Invalid namespace name!');
-
-        ConnectDatabase;
-
-       // FreeAllForms(False);
-        AddText('Начата синхронизация триггеров и индексов', clBlack);
-        atDataBase.ProceedLoading(True);
-        atDatabase.SyncIndicesAndTriggers(Tr);
-        AddText('Закончена синхронизация триггеров и индексов', clBlack);
-        DisconnectDatabase(True);
-
-        ConnectDatabase;
-
-        Obj := TgdcNamespace.Create(nil);
-        try
-          Obj.Transaction := Tr;
-          Obj.SubSet := 'ByID';
-          Obj.ID := gdcBaseManager.GetIDByRUIDString(Temps, Tr);
-          Obj.Open;
-          if Obj.Eof then
-          begin
-            gdcBaseManager.DeleteRUIDbyXID(StrToRUID(Temps).XID, StrToRUID(Temps).DBID, Tr);
-            Obj.Insert;
-          end else
-            Obj.Edit;
-
-          Obj.FieldByName('name').AsString := M.ReadString('Properties\Name');
-          Obj.FieldByName('caption').AsString := M.ReadString('Properties\Caption');
-          Obj.FieldByName('version').AsString := M.ReadString('Properties\Version');
-          Obj.FieldByName('dbversion').AsString := M.ReadString('Properties\DBversion');
-          Obj.FieldByName('optional').AsInteger := Integer(M.ReadBoolean('Properties\Optional', False));
-          Obj.FieldByName('internal').AsInteger := Integer(M.ReadBoolean('Properties\internal', True));
-          Obj.FieldByName('settingruid').AsString := Temps;
-
-          N := M.FindByName('Uses');
-          if N <> nil then
-          begin
-            if not (N is TyamlSequence) then
-              raise Exception.Create('Invalid uses object!');
-            CheckUses(N as TyamlSequence, SL);
-          end;
-
-          Obj.Post;
-          Namespacekey := Obj.ID;
-
-          if gdcBaseManager.GetRUIDRecByID(Obj.ID, Tr).XID = -1 then
-          begin
-            gdcBaseManager.InsertRUID(Obj.ID, StrToRUID(Temps).XID,
-              StrToRUID(Temps).DBID,
-              Now, IBLogin.ContactKey, Tr);
-          end else
-          begin
-            gdcBaseManager.UpdateRUIDByID(Obj.ID, StrToRUID(Temps).XID,
-              StrToRUID(Temps).DBID,
-              Now, IBLogin.ContactKey, Tr);
-          end;
-          q.SQL.Text := 'UPDATE OR INSERT INTO at_namespace_link ' +
-            ' (namespacekey, useskey) ' +
-            'VALUES (:nk, :uk) '+
-            'MATCHING (namespacekey, useskey) ';
-          for I := 0 to SL.Count - 1 do
-          begin
-            q.Close;
-            q.ParamByName('nk').AsInteger := Namespacekey;
-            q.ParamByName('uk').AsInteger := gdcBaseManager.GetIDByRUIDString(SL[I], Tr);
-            q.ExecQuery;
-          end;
-
-          ReconnectDatabase;
-        finally
-          FreeAndNil(Obj);
-          q.Close;
-        end;
-
-        N := M.FindByName('Objects');
-        if N <> nil then
-        begin
-          if not (N is TyamlSequence) then
-            raise Exception.Create('Invalid objects!');
-          with N as TyamlSequence do
-          begin
-            try
-              ConnectDatabase;
-              for I := 0 to Count - 1 do
-              begin
-                M := Items[I] as TyamlMapping;
-                LoadClassName := M.ReadString('Properties\Class');
-                LoadSubType := M.ReadString('Properties\SubType');
-                RUID := M.ReadString('Properties\RUID');
-
-                if (LoadClassName = '') or (RUID = '') or not CheckRUID(RUID) then
-                  raise Exception.Create('Invalid object!');
-
-                if LoadClassName = OldClassName then
-                begin
-                  C := OldClass;
-                end else
-                begin
-                  C := GetClass(LoadClassName);
-                end;
-
-                if C = nil then
-                  continue;
-
-                if CgdcBase(C).InheritsFrom(TgdcMetaBase) then
-                  WasMetaData := True
-                else
-                  begin
-                    if WasMetaData then
-                      ReconnectDatabase;
-                    WasMetaData := False;
-                  end;
-
-                ConnectDatabase;
-
-                if (LoadClassName <> OldClassName) or (LoadSubType <> OldSubType) then
-                begin
-                  OldClass := C;
-                  OldClassName := LoadClassName;
-                  OldSubType := LoadSubType;
-                  Ind := ObjList.IndexOf(LoadClassName + '('+ LoadSubType + ')');
-                  if Ind = -1 then
-                  begin
-                    Obj := CgdcBase(C).CreateWithParams(nil,
-                      Tr.DefaultDatabase, Tr, LoadSubType);
-                    Obj.ReadTransaction := Tr;
-                    Obj.SetRefreshSQLOn(False);
-                    ObjList.AddObject(LoadClassName + '('+ LoadSubType + ')', Obj);
-                    ObjList.Sort;
-                  end else
-                    Obj := TgdcBase(ObjList.Objects[Ind]);
-                end;
-
-                RunMultiConnection;
-
-                try
-                  if Obj.SubSet <> 'ByID' then
-                    Obj.SubSet := 'ByID';
-                  Obj.Open;
-                except
-                  ReconnectDatabase;
-                  Obj.Open;
-                end;
-
-                try
-                  LoadObject(Obj, M, UpdateList, Tr);
-                  Obj.CheckBrowseMode;
-
-                  gdcNamespaceObj :=  TgdcNamespaceObject.Create(nil);
-                  try
-                    gdcNamespaceObj.Transaction := Tr;
-                    gdcNamespaceObj.ReadTransaction := Tr;
-                    gdcNamespaceObj.SubSet := 'ByObject';
-                    gdcNamespaceObj.ParamByName('namespacekey').AsInteger := Namespacekey;
-                    gdcNamespaceObj.ParamByName('xid').AsInteger := Obj.GetRUID.XID;
-                    gdcNamespaceObj.ParamByName('dbid').AsInteger := Obj.GetRUID.DBID;
-                    gdcNamespaceObj.Open;
-                    if gdcNamespaceObj.Eof then
-                    begin
-                      gdcNamespaceObj.Insert;
-                      gdcNamespaceObj.FieldByName('namespacekey').AsInteger := Namespacekey;
-                      gdcNamespaceObj.FieldByName('objectname').AsString := Obj.FieldByName(Obj.GetListField(Obj.SubType)).AsString;
-                      gdcNamespaceObj.FieldByName('objectclass').AsString := Obj.ClassName;
-                      gdcNamespaceObj.FieldByName('subtype').AsString := Obj.SubType;
-                      gdcNamespaceObj.FieldByName('xid').AsInteger := Obj.GetRUID.XID;
-                      gdcNamespaceObj.FieldByName('dbid').AsInteger := Obj.GetRUID.DBID;
-                      gdcNamespaceObj.FieldByName('alwaysoverwrite').AsInteger := Integer(M.ReadBoolean('Properties\AlwaysOverwrite'));
-                      gdcNamespaceObj.FieldByName('dontremove').AsInteger := Integer(M.ReadBoolean('Properties\DontRemove'));
-                      gdcNamespaceObj.FieldByName('includesiblings').AsInteger := Integer(M.ReadBoolean('Properties\IncludeSiblings'));
-
-                      if M.ReadString('Properties\HeadObject') <> '' then
-                      begin
-                        q.SQL.Text := 'SELECT * FROM at_object WHERE xid || ''_'' || dbid = :r AND namespacekey = :nk';
-                        q.ParamByName('r').AsString := M.ReadString('Properties\HeadObject');
-                        q.ParamByName('nk').AsInteger := Namespacekey;
-                        q.ExecQuery;
-
-                        if not q.Eof then
-                        begin
-                          gdcNamespaceObj.FieldByName('headobjectkey').AsInteger := q.FieldByName('id').AsInteger;
-                        end{ else
-                        begin
-                          HO := TgdcHeadObjectUpdate.Create;
-                          HO.Namesapcekey := Namespacekey;
-                          HO.RUID := RUIDToStr(Obj.GetRUID);
-                          HO.RefRUID := M.ReadString('Properties\HeadObject');
-                          UL.Add(HO);
-                        end;}
-                      end;  
-                      gdcNamespaceObj.Post;
-                    end;
-                   // HeadObjectUpdate(UL, RUIDToStr(Obj.GetRUID), gdcNamespaceObj.ID);
-                  finally
-                    gdcNamespaceObj.Free;
-                  end;
-                except
-                  on E: Exception do
-                  begin
-                    if Tr.InTransaction then
-                      Tr.Rollback;
-                    AddMistake(E.Message, clRed);
-                    raise;
-                  end;
-                end;
-
-                if (Obj is TgdcRelationField) then
-                  RelName := Obj.FieldByName('relationname').AsString
-                else
-                  RelName := '';
-              end;
-
-              RunMultiConnection;
-            except
-              on E: Exception do
-              begin
-                if Tr.InTransaction then
-                  Tr.Rollback;
-                AddMistake(E.Message, clRed);
-                raise;
-              end;
-            end;
-          end;
-        end;
-
-        DisconnectDatabase(True);
-      finally
-        for I := 0 to ObjList.Count - 1 do
-        begin
-          Obj := TgdcBase(ObjList.Objects[I]);
-          ObjList.Objects[I] := nil;
-          if Assigned(Obj) then
-            FreeAndNil(Obj);
-        end;
-        ObjList.Free;
-        Parser.Free;
-        SL.Free;
-        UpdateList.Free;
-        UL.Free;
-        q.Free;
-      end;
+      SL.Add(FN);
+      DoLoadNamespace(SL);
     finally
-      try
-        ConnectDatabase;
-
-        if IBLogin.LoggedIn then
-        begin
-          Clear_atSQLSetupCache;
-          IBLogin.Relogin;
-        end else
-          IBLogin.Login;
-      finally
-        if Tr.InTransaction then
-          Tr.Commit;
-        Tr.Free;
-      end;
+      SL.Free;
     end;
   end;
 end;
@@ -1152,6 +730,7 @@ end;
 procedure TgdcNamespace.DoLoadNamespace(ANamespaceList: TStringList);
 var
   Tr: TIBTransaction;
+  RelName: String;
 
   procedure FillObjectsRUIDInDB(const RUID: String; SL: TStringList);
   var
@@ -1222,6 +801,47 @@ var
       end;
     end;
     ConnectDatabase;
+  end;
+
+  procedure RunMultiConnection;
+  var
+    WasConnect: Boolean;
+    ibsql: TIBSQL;
+    R: TatRelation;
+  begin
+    Assert(atDatabase <> nil, 'Не загружена база атрибутов');
+    if atDatabase.InMultiConnection then
+    begin
+      ibsql := TIBSQL.Create(nil);
+      try
+        ibsql.Transaction := Tr;
+        ibsql.SQL.Text := 'SELECT FIRST 1 * FROM at_transaction ';
+        ibsql.ExecQuery;
+
+        if ibsql.RecordCount = 0 then
+        begin
+          atDatabase.CancelMultiConnectionTransaction(True);
+        end else
+        begin
+          with TmetaMultiConnection.Create do
+          try
+            WasConnect := Tr.DefaultDatabase.Connected;
+            DisconnectDatabase(True);
+            RunScripts(False);
+            ConnectDatabase;
+            R := atDatabase.Relations.ByRelationName(RelName);
+            if Assigned(R) then
+              R.RefreshConstraints(Tr.DefaultDatabase, Tr);
+            if not WasConnect then
+              DisconnectDatabase(True);
+          finally
+            Free;
+          end;
+        end;
+      finally
+        ibsql.Free;
+      end;
+    end;
   end;
 
   procedure HeadObjectUpdate(UL: TStringList; NamespaceKey: Integer; SourceRUID: String; TargetKeyValue: Integer);
@@ -1342,7 +962,6 @@ var
               DestObj.Post;
               gdcNamespaceObj.Next;
             end;
-
           finally
             DestObj.Free;
           end;
@@ -1354,18 +973,17 @@ var
       Dest.Free;
     end;
   end;
-
 var
   LoadNamespace: TStringList;
   LoadObjectsRUID: TStringList;
   CurrObjectsRUID: TStringList;
   Parser: TyamlParser;
   I, J, Ind: Integer;
-  gdcNamespace, SourceNamespace: TgdcNamespace;
+  gdcNamespace: TgdcNamespace;
   TempNamespaceID: Integer;
   M, ObjMapping: TyamlMapping;
   N: TyamlNode;
-  RUID, HeadRUID, Name: String;
+  RUID, HeadRUID: String;
   WasMetaData: Boolean;
   LoadClassName, LoadSubType: String;
   C: TClass;
@@ -1375,8 +993,6 @@ var
   UpdateList: TObjectList;
   UpdateHeadList: TStringList;
   q: TIBSQL;
-
- // HO: TgdcHeadObjectUpdate;
 begin
   LoadNamespace:= TStringlist.Create;
   LoadObjectsRUID := TStringList.Create;
@@ -1490,6 +1106,8 @@ begin
                     Obj := TgdcBase(ObjList.Objects[Ind]);
                 end;
 
+                RunMultiConnection;
+
                 try
                   if Obj.SubSet <> 'ByID' then
                     Obj.SubSet := 'ByID';
@@ -1499,8 +1117,16 @@ begin
                   Obj.Open;
                 end;
 
+
                 LoadObject(Obj, ObjMapping, UpdateList, Tr);
                 LoadObjectsRUID.Add(RUIDToStr(Obj.GetRUID));
+
+                if (Obj is TgdcRelationField) then
+                  RelName := Obj.FieldByName('relationname').AsString
+                else
+                  RelName := '';
+
+                RunMultiConnection;
 
                 gdcNamespaceObj :=  TgdcNamespaceObject.Create(nil);
                 try
@@ -1558,18 +1184,17 @@ begin
             end;
           end;
 
-          SourceNamespace := TgdcNamespace.Create(nil);
           gdcNamespace := TgdcNamespace.Create(nil);
           try
-            SourceNamespace.Transaction := Tr;
-            SourceNamespace.ReadTransaction := Tr;
-            SourceNamespace.SubSet := 'ByID';
-            SourceNamespace.ID := TempNamespaceID;
-            SourceNamespace.Open;
-            if not SourceNamespace.Eof then
+            gdcNamespace.Transaction := Tr;
+            gdcNamespace.ReadTransaction := Tr;
+            gdcNamespace.SubSet := 'ByID';
+            gdcNamespace.ID := TempNamespaceID;
+            gdcNamespace.Open;
+            if not gdcNamespace.Eof then
             begin
-              UpdateNamespace(SourceNamespace, CurrObjectsRUID, LoadObjectsRUID);
-              SourceNamespace.Delete;
+              UpdateNamespace(gdcNamespace, CurrObjectsRUID, LoadObjectsRUID);
+              gdcNamespace.Delete;
             end;
           finally
             gdcNamespace.Free;
@@ -1578,8 +1203,9 @@ begin
 
         if WasMetaData then
           ReconnectDatabase;
-      end;//конец загрузки одного namespace
+      end;
 
+      DisconnectDatabase(True);
     except
       on E: Exception do
       begin
@@ -1590,20 +1216,32 @@ begin
       end;
     end;
   finally
-    LoadNamespace.Free;
-    LoadObjectsRUID.Free;
-    CurrObjectsRUID.Free;
-    Tr.Free;
-    Parser.Free;
-    UpdateList.Free;
-    q.Free;
-    for I := 0 to UpdateHeadList.Count - 1 do
-      UpdateHeadList.Objects[I].Free;
-    UpdateHeadList.Free;
+    try
+      ConnectDatabase;
 
-    for I := 0 to ObjList.Count - 1 do
-      ObjList.Objects[I].Free;
-    ObjList.Free;
+      if IBLogin.LoggedIn then
+      begin
+        Clear_atSQLSetupCache;
+        IBLogin.Relogin;
+      end else
+        IBLogin.Login;
+    finally
+      LoadNamespace.Free;
+      LoadObjectsRUID.Free;
+      CurrObjectsRUID.Free;
+      Tr.Free;
+      Parser.Free;
+      UpdateList.Free;
+      q.Free;
+      for I := 0 to UpdateHeadList.Count - 1 do
+        UpdateHeadList.Objects[I].Free;
+      UpdateHeadList.Free;
+
+      for I := 0 to ObjList.Count - 1 do
+        ObjList.Objects[I].Free;
+      ObjList.Free;
+      Tr.Free;
+    end;
   end;
 end;
 
