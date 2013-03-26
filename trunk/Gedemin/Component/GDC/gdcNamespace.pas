@@ -48,7 +48,7 @@ type
 
     class procedure FillTree(ATreeView: TgsTreeView; AList: TgsyamlList; AnInternal: Boolean);
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList; const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1; ADontRemove: Integer = 0; AnIncludeSiblings: Integer = 0);
-    procedure DeleteObject(xid, dbid: Integer);
+    procedure DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
     procedure DoLoadNamespace(ANamespaceList: TStringList);
@@ -1254,107 +1254,104 @@ var
     end;
   end;
 
-  procedure UpdateNamespace(SourceNamespace: TgdcNamespace; CurrOL, LoadOL: TStringList);
+  procedure UpdateNamespace(Source: TgdcNamespace; CurrOL, LoadOL: TStringList);
+  const
+    DontCopyList = ';ID;NAME;NAMESPACEKEY;';
   var
-    Namespace: TgdcNamespace;  
-    q, SQL: TIBSQL;
-    Name: String;
-    I, Ind: Integer;
+    I: Integer;
     gdcNamespaceObj: TgdcNamespaceObject;
+    Dest: TgdcNamespace;
+    DestObj: TgdcNamespaceObject;
   begin
-    Assert(SourceNamespace <> nil);
-    Assert(not SourceNamespace.Eof);
-
-    Namespace := TgdcNamespace.Create(nil);
-    q := TIBSQL.Create(nil);
-    SQL := TIBSQL.Create(nil);
+    Dest := TgdcNamespace.Create(nil);
     try
-      q.Transaction := Tr;
-      q.SQL.Text := 'SELECT * FROM at_object WHERE namespacekey <> :nk and xid = :xid and dbid = :dbid';
-      SQL.Transaction := Tr;
-      SQL.SQL.Text := 'DELETE at_object WHERE namespacekey = :nk and xid = :xid and dbid = :dbid';
-      Namespace.Transaction := Tr;
-      Namespace.ReadTransaction := Tr;
-      Namespace.SubSet := 'ByID';
-      Namespace.ID := gdcBaseManager.GetIDByRUIDString(SourceNamespace.FieldByName('settingruid').AsString, Tr);
-      Namespace.Open;
-      if not Namespace.Eof then
+      Dest.Transaction := Tr;
+      Dest.ReadTransaction := Tr;
+      Dest.SubSet := 'ByID';
+      Dest.ID := gdcBaseManager.GetIDByRUIDString(Source.FieldByName('settingruid').AsString, Tr);
+      Dest.Open;
+
+      if Dest.Eof then
       begin
-        Namespace.Edit;
-        Name := SourceNamespace.FieldByName('name').AsString;
-        Name := System.Copy(name, 6, Length(name));
-        Namespace.FieldByName('name').AsString := Name;
-        Namespace.FieldByName('caption').AsString := SourceNamespace.FieldByName('caption').AsString;
-        Namespace.FieldByName('version').AsString := SourceNamespace.FieldByName('version').AsString;
-        Namespace.FieldByName('dbversion').AsString := SourceNamespace.FieldByName('dbversion').AsString;
-        Namespace.FieldByName('optional').AsInteger := SourceNamespace.FieldByName('optional').AsInteger;
-        Namespace.FieldByName('internal').AsInteger := SourceNamespace.FieldByName('internal').AsInteger;
-        Namespace.FieldByName('comment').AsString := SourceNamespace.FieldByName('comment').AsString;
-        Namespace.FieldByName('settingruid').AsString := SourceNamespace.FieldByName('settingruid').AsString;
-        Namespace.Post;
+        gdcBaseManager.DeleteRUIDbyXID(StrToRUID(Source.FieldByName('settingruid').AsString).XID, StrToRUID(Source.FieldByName('settingruid').AsString).DBID, Tr);
+        Dest.Insert;
+      end else
+        Dest.Edit;
 
-        for I := 0 to CurrOL.Count - 1 do
+      for I := 0 to Dest.FieldCount - 1 do
+      begin
+        if (StrIPos(';' + Dest.Fields[I].FieldName + ';', DontCopyList) = 0) then
+          Dest.Fields[I].Value := Source.FieldByName(Dest.Fields[I].FieldName).Value;
+      end;
+
+      Dest.FieldByName('name').AsString := System.Copy(Source.FieldByName('name').AsString, 6, Length(Source.FieldByName('name').AsString));
+      Dest.Post;
+
+      if gdcBaseManager.GetRUIDRecByID(Dest.ID, Tr).XID = -1 then
+      begin
+        gdcBaseManager.InsertRUID(Dest.ID, StrToRUID(Dest.FieldByName('settingruid').AsString).XID,
+          StrToRUID(Dest.FieldByName('settingruid').AsString).DBID,
+          Now, IBLogin.ContactKey, Tr);
+      end else
+      begin
+        gdcBaseManager.UpdateRUIDByID(Dest.ID, StrToRUID(Dest.FieldByName('settingruid').AsString).XID,
+          StrToRUID(Dest.FieldByName('settingruid').AsString).DBID,
+          Now, IBLogin.ContactKey, Tr);
+      end;
+
+      for I := 0 to CurrOL.Count - 1 do
+      begin
+        if LoadOL.IndexOf(CurrOL[I]) = -1 then
+          Dest.DeleteObject(StrToRUID(CurrOL[I]).XID, StrToRUID(CurrOL[I]).DBID);
+      end;
+
+      gdcNamespaceObj := TgdcNamespaceObject.Create(nil);
+      try
+        gdcNamespaceObj.Transaction := Tr;
+        gdcNamespaceObj.ReadTransaction := Tr;
+        gdcNamespaceObj.SubSet := 'ByNamespace';
+        gdcNamespaceObj.ParamByName('namespacekey').AsInteger := Source.ID;
+        gdcNamespaceObj.Open;
+
+        if not gdcNamespaceObj.Eof then
         begin
-          Ind := LoadOL.IndexOf(CurrOL[I]);
-          q.Close;
-          q.ParamByName('nk').AsInteger := Namespace.ID;
-          q.ParamByName('xid').AsInteger := StrToRUID(CurrOL[I]).XID;
-          q.ParamByName('dbid').AsInteger := StrToRUID(CurrOL[I]).DBID;
-          q.ExecQuery;
-
-          if Ind > -1 then
-          begin
-            if not q.Eof then
+          DestObj := TgdcNamespaceObject.Create(nil);
+          try
+            DestObj.Transaction := Tr;
+            DestObj.ReadTransaction := Tr;
+            DestObj.SubSet := 'ByObject';
+            while not gdcNamespaceObj.Eof do
             begin
-              SQL.Close;
-              SQL.ParamByName('nk').AsInteger := Namespace.ID;
-              SQL.ParamByName('xid').AsInteger := StrToRUID(CurrOL[I]).XID;
-              SQL.ParamByName('dbid').AsInteger := StrToRUID(CurrOL[I]).DBID;
-            end else
-              Namespace.DeleteObject(StrToRUID(CurrOL[I]).XID, StrToRUID(CurrOL[I]).DBID);
+              DestObj.Close;
+              DestObj.ParamByName('namespacekey').AsInteger := Dest.ID;
+              DestObj.ParamByName('xid').AsInteger := gdcNamespaceObj.FieldByName('xid').AsInteger;
+              DestObj.ParamByName('dbid').AsInteger := gdcNamespaceObj.FieldByName('dbid').AsInteger;
+              DestObj.Open;
+              if not DestObj.Eof then
+                DestObj.Edit
+              else
+                DestObj.Insert;
+
+              for I := 0 to gdcNamespaceObj.FieldCount - 1 do
+              begin
+                if (StrIPos(';' + DestObj.Fields[I].FieldName + ';', DontCopyList) = 0) then
+                  DestObj.Fields[I].Value := gdcNamespaceObj.FieldByName(DestObj.Fields[I].FieldName).Value;
+              end;
+
+              DestObj.FieldByName('namespacekey').AsInteger := Dest.ID;
+              DestObj.Post;
+              gdcNamespaceObj.Next;
+            end;
+
+          finally
+            DestObj.Free;
           end;
         end;
-
-
-        q.Close;
-        q.SQL.Text :=
-          'UPDATE OR INSERT INTO at_object ' +
-          '  (namespacekey, objectname, objectclass, subtype, xid, dbid, ' +
-          '  alwaysoverwrite, dontremove, includesiblings, headobjectkey) ' +
-          'VALUES (:NSK, :ON, :OC, :ST, :XID, :DBID, :OW, :DR, :IS, :HO) ' +
-          'MATCHING (xid, dbid, namespacekey)';
-        gdcNamespaceObj := TgdcNamespaceObject.Create(nil);
-        try
-          gdcNamespaceObj.Transaction := Tr;
-          gdcNamespaceObj.ReadTransaction := Tr;
-          gdcNamespaceObj.SubSet := 'ByNamespace';
-          gdcNamespaceObj.ParamByName('namespacekey').AsInteger := SourceNamespace.ID;
-          gdcNamespaceObj.Open;
-
-          while not gdcNamespaceObj.Eof do
-          begin
-            q.Close;
-            q.ParamByName('NSK').AsInteger := Namespace.ID;
-            q.ParamByName('ON').AsString := gdcNamespaceObj.FieldByName('objectname').AsString;
-            q.ParamByName('OC').AsString := gdcNamespaceObj.FieldByName('objectclass').AsString;
-            q.ParamByName('ST').AsString := gdcNamespaceObj.FieldByName('subtype').AsString;
-            q.ParamByName('XID').AsInteger := gdcNamespaceObj.FieldByName('xid').AsInteger;
-            q.ParamByName('DBID').AsInteger := gdcNamespaceObj.FieldByName('dbid').AsInteger;
-            q.ParamByName('OW').AsInteger := gdcNamespaceObj.FieldByName('alwaysoverwrite').AsInteger;
-            q.ParamByName('DR').AsInteger := gdcNamespaceObj.FieldByName('dontremove').AsInteger;
-            q.ParamByName('IS').AsInteger := gdcNamespaceObj.FieldByName('includesiblings').AsInteger;
-            q.ParamByName('HO').AsInteger := gdcNamespaceObj.FieldByName('headobjectkey').AsInteger;
-            q.ExecQuery;
-            gdcNamespaceObj.Next;
-          end;
-        finally
-          gdcNamespaceObj.Free;
-        end;
-
-        SourceNamespace.Delete;
+      finally
+        gdcNamespaceObj.Free; 
       end;
     finally
-      Namespace.Free;
+      Dest.Free;
     end;
   end;
 
@@ -1364,7 +1361,7 @@ var
   CurrObjectsRUID: TStringList;
   Parser: TyamlParser;
   I, J, Ind: Integer;
-  gdcNamespace: TgdcNamespace;
+  gdcNamespace, SourceNamespace: TgdcNamespace;
   TempNamespaceID: Integer;
   M, ObjMapping: TyamlMapping;
   N: TyamlNode;
@@ -1561,15 +1558,19 @@ begin
             end;
           end;
 
+          SourceNamespace := TgdcNamespace.Create(nil);
           gdcNamespace := TgdcNamespace.Create(nil);
           try
-            gdcNamespace.Transaction := Tr;
-            gdcNamespace.ReadTransaction := Tr;
-            gdcNamespace.SubSet := 'ByID';
-            gdcNamespace.ID := TempNamespaceID;
-            gdcNamespace.Open;
-
-            UpdateNamespace(gdcNamespace, CurrObjectsRUID, LoadObjectsRUID);
+            SourceNamespace.Transaction := Tr;
+            SourceNamespace.ReadTransaction := Tr;
+            SourceNamespace.SubSet := 'ByID';
+            SourceNamespace.ID := TempNamespaceID;
+            SourceNamespace.Open;
+            if not SourceNamespace.Eof then
+            begin
+              UpdateNamespace(SourceNamespace, CurrObjectsRUID, LoadObjectsRUID);
+              SourceNamespace.Delete;
+            end;
           finally
             gdcNamespace.Free;
           end;
@@ -3365,12 +3366,19 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.DeleteObject(xid, dbid: Integer);
+procedure TgdcNamespace.DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
 var
   gdcNamespaceObject: TgdcNamespaceObject;
+  q: TIBSQL;
+  InstID: Integer;
+  InstObj: TgdcBase;
+  InstClass: TPersistentClass;
 begin
   gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
+  q := TIBSQL.Create(nil);
   try
+    q.Transaction := Transaction;
+    q.SQL.Text := 'SELECT * FROM at_object WHERE namespacekey <> :nk and xid = :xid and dbid = :dbid';
     gdcNamespaceObject.Transaction := Transaction;
     gdcNamespaceObject.SubSet := 'ByObject';
     gdcNamespaceObject.ParamByName('namespacekey').AsInteger := Self.ID;
@@ -3379,9 +3387,41 @@ begin
     gdcNamespaceObject.Open;
 
     if not gdcNamespaceObject.Eof  then
+    begin
+      if RemoveObj then
+      begin
+        q.ParamByName('nk').AsInteger := Self.ID;
+        q.ParamByName('xid').AsInteger := xid;
+        q.ParamByName('dbid').AsInteger := dbid;
+        q.ExecQuery;
+
+        if q.Eof and (RemoveObj or (gdcNamespaceObject.FieldByName('dontremove').AsInteger = 0)) then
+        begin
+          InstID := gdcBaseManager.GetIDByRUID(gdcNamespaceObject.FieldByName('xid').AsInteger,
+            gdcNamespaceObject.FieldByName('dbid').AsInteger);
+
+          InstClass := GetClass(gdcNamespaceObject.FieldByName('objectclass').AsString);
+          if InstClass <> nil then
+          begin
+            InstObj := CgdcBase(InstClass).CreateSubType(nil,
+              gdcNamespaceObject.FieldByName('subtype').AsString, 'ByID');
+            try
+              InstObj.ID := InstID;
+              InstObj.Open;
+              if not InstObj.EOF then
+                InstObj.Delete;
+            finaLLY
+              InstObj.Free;
+            end;
+          end;
+        end;
+        q.Close;
+      end;
       gdcNamespaceObject.Delete;
+    end;
   finally
     gdcNamespaceObject.Free;
+    q.Free;
   end;
 end;
 
