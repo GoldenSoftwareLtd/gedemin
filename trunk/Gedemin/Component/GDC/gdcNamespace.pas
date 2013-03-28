@@ -19,7 +19,6 @@ type
   TgsyamlList = class;
   TgdcNamespace = class(TgdcBase)
   private
-    procedure CheckUses(AValue: TyamlSequence; AList: TStringList);
     procedure CheckIncludesiblings; 
   protected
     function GetOrderClause: String; override;
@@ -655,56 +654,6 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.CheckUses(AValue: TyamlSequence; AList: TStringList);
-var
-  q: TIBSQL;
-  I, J: Integer;
-  RUID, Temps: String;
-begin
-  Assert(gdcBaseManager <> nil);
-  Assert(AList <> nil);
-  
-  if AValue.Count > 0 then
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text := 'SELECT * FROM at_namespace WHERE settingruid = :sr';
-
-      for I := 0 to AValue.Count - 1 do
-      begin
-        if not (AValue[I] is TyamlString) then
-          raise Exception.Create('Invalid uses value!');
-
-        Temps := (AValue[I] as TyamlString).AsString;
-        RUID := '';
-        for J := 1 to Length(Temps) do
-        begin
-          if Temps[J] in ['0'..'9', '_'] then
-            RUID := RUID + Temps[J]
-          else
-            break;
-        end;
-
-        if CheckRUID(RUID) then
-        begin
-          q.Close;
-          q.ParamByName('sr').AsString := RUID;
-          q.ExecQuery;
-
-          if not q.Eof then
-            AList.Add(RUID)
-          else
-            raise Exception.Create('Uses ''' + (AValue[I] as TyamlString).AsString + ''' not found!');
-        end else
-          raise Exception.Create('Invalid RUID ''' + RUID + '''');
-      end;
-    finally
-      q.Free;
-    end;
-  end;
-end;
-
 procedure TgdcNamespace.LoadFromFile(const AFileName: String = '');
 var
   FN: String;
@@ -734,7 +683,7 @@ var
 
   procedure FillObjectsRUIDInDB(const RUID: String; SL: TStringList);
   var
-    q: TIBSQL; 
+    q: TIBSQL;
   begin
     Assert(SL <> nil);
 
@@ -750,7 +699,7 @@ var
       q.ExecQuery;
 
       if not q.Eof then
-        SL.Add(q.FieldByName('ruid').AsString);   
+        SL.Add(q.FieldByName('ruid').AsString);
     finally
       q.Free;
     end;
@@ -874,7 +823,78 @@ var
     end;
   end;
 
-  procedure UpdateNamespace(Source: TgdcNamespace; CurrOL, LoadOL: TStringList);
+  procedure CheckUses(Seq: TyamlSequence; Namespacekey: Integer);
+  var
+    I, J: Integer;
+    gdcNamespace: TgdcNamespace;
+    Temps, RUID: String;
+    q: TIBSQL;
+  begin
+    if Seq.Count > 0 then
+    begin
+      gdcNamespace := TgdcNamespace.Create(nil);
+      q := TIBSQL.Create(nil);
+      try
+        q.Transaction := Tr;
+        q.SQL.Text := 'UPDATE OR INSERT INTO at_namespace_link ' +
+          '(namespacekey, useskey) ' +
+          'VALUES (:NK, :UK) ' +
+          'MATCHING (namespacekey, useskey)';
+        gdcNamespace.Transaction := Tr;
+        gdcNamespace.ReadTransaction := Tr;
+        gdcNamespace.SubSet := 'ByID';
+        for I := 0 to Seq.Count - 1 do
+        begin
+          Temps := (Seq[I] as TyamlString).AsString;
+          RUID := '';
+          for J := 1 to Length(Temps) do
+          begin
+            if Temps[J] in ['0'..'9', '_'] then
+              RUID := RUID + Temps[J]
+            else
+              break;
+          end;
+
+          if CheckRUID(RUID) then
+          begin
+            gdcNamespace.Close;
+            gdcNamespace.ID := gdcBaseManager.GetIDByRUIDString(RUID, Tr);
+            gdcNamespace.Open;
+            if gdcNamespace.Eof then
+            begin
+              gdcBaseManager.DeleteRUIDbyXID(StrToRUID(RUID).XID, StrToRUID(RUID).DBID, Tr);
+              gdcNamespace.Insert;
+              gdcNamespace.FieldByName('name').AsString := System.Copy(Temps, J + 1, Length(Temps));
+              gdcNamespace.FieldByName('settingruid').AsString := RUID;
+              gdcNamespace.Post;
+
+              if gdcBaseManager.GetRUIDRecByID(gdcNamespace.ID, Tr).XID = -1 then
+              begin
+                gdcBaseManager.InsertRUID(gdcNamespace.ID, StrToRUID(gdcNamespace.FieldByName('settingruid').AsString).XID,
+                  StrToRUID(gdcNamespace.FieldByName('settingruid').AsString).DBID,
+                  Now, IBLogin.ContactKey, Tr);
+              end else
+              begin
+                gdcBaseManager.UpdateRUIDByID(gdcNamespace.ID, StrToRUID(gdcNamespace.FieldByName('settingruid').AsString).XID,
+                  StrToRUID(gdcNamespace.FieldByName('settingruid').AsString).DBID,
+                  Now, IBLogin.ContactKey, Tr);
+              end;
+
+              q.Close;
+              q.ParamByName('nk').AsInteger := Namespacekey;
+              q.ParamByName('uk').AsInteger := gdcNamespace.ID;
+              q.ExecQuery;
+            end;
+          end;
+        end;
+      finally
+        gdcNamespace.Free;
+        q.Free;
+      end;
+    end;
+  end;
+
+  function UpdateNamespace(Source: TgdcNamespace; CurrOL, LoadOL: TStringList): Integer;
   const
     DontCopyList = ';ID;NAME;NAMESPACEKEY;';
   var
@@ -883,6 +903,7 @@ var
     Dest: TgdcNamespace;
     DestObj: TgdcNamespaceObject;
   begin
+    Result := -1;
     Dest := TgdcNamespace.Create(nil);
     try
       Dest.Transaction := Tr;
@@ -967,8 +988,9 @@ var
           end;
         end;
       finally
-        gdcNamespaceObj.Free; 
+        gdcNamespaceObj.Free;
       end;
+      Result := Dest.ID;
     finally
       Dest.Free;
     end;
@@ -993,6 +1015,7 @@ var
   UpdateList: TObjectList;
   UpdateHeadList: TStringList;
   q: TIBSQL;
+  CurrID: Integer;
 begin
   LoadNamespace:= TStringlist.Create;
   LoadObjectsRUID := TStringList.Create;
@@ -1032,7 +1055,7 @@ begin
         UpdateHeadList.Clear;
         LoadObjectsRUID.Clear;
         CurrObjectsRUID.Clear;
-        
+
         Parser.Parse(ANamespaceList[I]);
 
         if (Parser.YAMLStream.Count > 0)
@@ -1073,7 +1096,7 @@ begin
 
               for J := 0 to Count - 1 do
               begin
-                ObjMapping := Items[I] as TyamlMapping;
+                ObjMapping := Items[J] as TyamlMapping;
                 LoadClassName := ObjMapping.ReadString('Properties\Class');
                 LoadSubType := ObjMapping.ReadString('Properties\SubType');
                 RUID := ObjMapping.ReadString('Properties\RUID');
@@ -1105,8 +1128,6 @@ begin
                   end else
                     Obj := TgdcBase(ObjList.Objects[Ind]);
                 end;
-
-                RunMultiConnection;
 
                 try
                   if Obj.SubSet <> 'ByID' then
@@ -1193,8 +1214,11 @@ begin
             gdcNamespace.Open;
             if not gdcNamespace.Eof then
             begin
-              UpdateNamespace(gdcNamespace, CurrObjectsRUID, LoadObjectsRUID);
+              CurrID := UpdateNamespace(gdcNamespace, CurrObjectsRUID, LoadObjectsRUID);
               gdcNamespace.Delete;
+              N := M.FindByName('USES');
+              if (N <> nil) and (N is TyamlSequence) and (CurrID > -1) then
+                CheckUses(N as TyamlSequence, CurrID);
             end;
           finally
             gdcNamespace.Free;
