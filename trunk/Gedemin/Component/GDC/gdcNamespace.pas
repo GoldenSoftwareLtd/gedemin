@@ -1033,6 +1033,8 @@ begin
     Tr.Params.Add('rec_version');
     ConnectDatabase;
     Obj := nil;
+    q.Transaction := Tr;
+    q.SQL.Text := 'SELECT * FROM at_object WHERE xid || ''_'' || dbid = :r AND namespacekey = :nk';
     try
       if (GlobalStorage <> nil) and GlobalStorage.IsModified then
       GlobalStorage.SaveToDatabase;
@@ -1064,6 +1066,7 @@ begin
         begin
           M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
           RUID := M.ReadString('Properties\RUID');
+
 
           gdcNamespace := TgdcNamespace.Create(nil);
           try
@@ -1138,7 +1141,6 @@ begin
                   Obj.Open;
                 end;
 
-
                 LoadObject(Obj, ObjMapping, UpdateList, Tr);
                 LoadObjectsRUID.Add(RUIDToStr(Obj.GetRUID));
 
@@ -1174,7 +1176,7 @@ begin
                     HeadRUID := ObjMapping.ReadString('Properties\HeadObject');
                     if HeadRUID <> '' then
                     begin
-                      q.SQL.Text := 'SELECT * FROM at_object WHERE xid || ''_'' || dbid = :r AND namespacekey = :nk';
+                      q.Close;
                       q.ParamByName('r').AsString := HeadRUID;
                       q.ParamByName('nk').AsInteger := TempNamespaceID;
                       q.ExecQuery;
@@ -1223,10 +1225,12 @@ begin
           finally
             gdcNamespace.Free;
           end;
-        end;
 
-        if WasMetaData then
-          ReconnectDatabase;
+          LoadNamespace.Add(ANamespaceList[I]);
+
+          if WasMetaData then
+            ReconnectDatabase;
+        end;
       end;
 
       DisconnectDatabase(True);
