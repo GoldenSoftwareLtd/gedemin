@@ -689,7 +689,6 @@ begin
             raise;
         end;
 
-        
         {$IFDEF NOGEDEMIN}
         Application.Title := '';
         {$ELSE}

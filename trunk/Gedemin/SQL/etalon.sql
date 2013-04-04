@@ -16230,7 +16230,7 @@ BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
 
-  IF (NEW.caption IS NULL) THEN
+  IF (TRIM(COALESCE(NEW.caption, '')) = '') THEN
     NEW.caption = NEW.name;
 END
 ^

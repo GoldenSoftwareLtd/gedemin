@@ -44,6 +44,7 @@ type
     procedure h_SwitchActivityTriggers(const AEnableFlag: Integer);
 
     procedure LogEvent(const AMsg: String);
+
   public
     constructor Create;
     destructor Destroy; override;
