@@ -2042,7 +2042,7 @@ begin
     W.WriteDirective('YAML 1.1');
     W.StartNewLine;
     W.WriteKey('StructureVersion');
-    W.WriteString('1.0');
+    W.WriteText('1.0', qSingleQuoted);
     W.StartNewLine;
     W.WriteKey('Properties');
     W.IncIndent;
