@@ -1,8 +1,8 @@
 object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
-  Left = 384
-  Top = 119
+  Left = 380
+  Top = 58
   Width = 575
-  Height = 515
+  Height = 527
   Caption = 'at_dlgLoadNamespacePackages'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -32,7 +32,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
     Left = 0
     Top = 57
     Width = 559
-    Height = 316
+    Height = 328
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -54,7 +54,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       Left = 290
       Top = 16
       Width = 273
-      Height = 305
+      Height = 236
       TabStop = False
       Color = clWhite
       ReadOnly = True
@@ -68,8 +68,25 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       Height = 305
       Indent = 19
       TabOrder = 1
+      OnAdvancedCustomDrawItem = gsTreeViewAdvancedCustomDrawItem
       OnClick = gsTreeViewClick
       WithCheckBox = True
+    end
+    object cbAlwaysOverwrite: TCheckBox
+      Left = 290
+      Top = 276
+      Width = 199
+      Height = 17
+      Caption = 'Всегда перезаписывать'
+      TabOrder = 2
+    end
+    object cbDontRemove: TCheckBox
+      Left = 290
+      Top = 305
+      Width = 159
+      Height = 17
+      Caption = 'Не удалять объекты'
+      TabOrder = 3
     end
   end
   object Panel5: TPanel
@@ -120,7 +137,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
   end
   object Panel6: TPanel
     Left = 0
-    Top = 373
+    Top = 385
     Width = 559
     Height = 104
     Align = alBottom
@@ -138,7 +155,8 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       Top = 72
       Width = 73
       Height = 21
-      Action = actInstallPackage
+      Caption = 'Установить'
+      ModalResult = 1
       TabOrder = 0
     end
     object btnClose: TButton
@@ -196,8 +214,6 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
     end
     object actInstallPackage: TAction
       Caption = 'Установить'
-      OnExecute = actInstallPackageExecute
-      OnUpdate = actInstallPackageUpdate
     end
   end
 end

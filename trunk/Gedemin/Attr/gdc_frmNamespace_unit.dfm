@@ -20,6 +20,9 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       object TBItem2: TTBItem
         Action = actCompareWithData
       end
+      object TBItem5: TTBItem
+        Action = actLoadPack
+      end
       object TBItem3: TTBItem
         Action = actShowDuplicates
       end
@@ -109,6 +112,10 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       Caption = 'actShowRecursion'
       OnExecute = actShowRecursionExecute
       OnUpdate = actShowRecursionUpdate
+    end
+    object actLoadPack: TAction
+      Caption = 'actLoadPack'
+      OnExecute = actLoadPackExecute
     end
   end
   object gdcNamespace: TgdcNamespace

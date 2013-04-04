@@ -18,16 +18,16 @@ object dlgToNamespace: TdlgToNamespace
   object pnlGrid: TPanel
     Left = 0
     Top = 129
-    Width = 569
-    Height = 287
+    Width = 561
+    Height = 276
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object dbgrListLink: TgsDBGrid
       Left = 0
       Top = 0
-      Width = 569
-      Height = 256
+      Width = 561
+      Height = 245
       Align = alClient
       DataSource = dsMain
       Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -65,8 +65,8 @@ object dlgToNamespace: TdlgToNamespace
     end
     object pnlButtons: TPanel
       Left = 0
-      Top = 256
-      Width = 569
+      Top = 245
+      Width = 561
       Height = 31
       Align = alBottom
       BevelOuter = bvNone
@@ -87,7 +87,7 @@ object dlgToNamespace: TdlgToNamespace
         TabOrder = 1
       end
       object Panel1: TPanel
-        Left = 394
+        Left = 386
         Top = 0
         Width = 175
         Height = 31
@@ -131,7 +131,7 @@ object dlgToNamespace: TdlgToNamespace
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 569
+    Width = 561
     Height = 129
     Align = alTop
     BevelOuter = bvNone

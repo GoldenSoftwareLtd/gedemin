@@ -208,6 +208,7 @@ begin
                  InstObj.Free;
                end;
              end;
+             
            // gdcBaseManager.GetRUIDByID(cdsLink.FieldByName('id').AsInteger, XID, DBID, IBTransaction);
           //  TgdcNamespace.AddObject(lkup.CurrentKeyInt, cdsLink.FieldByName('name').AsString, cdsLink.FieldByName('class').AsString,
             //  cdsLink.FieldByName('subtype').AsString, XID, DBID, IBTransaction, cdsLink.FieldByName('headobject').AsString, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));

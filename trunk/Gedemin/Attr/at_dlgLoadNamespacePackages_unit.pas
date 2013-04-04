@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, StdCtrls, FileCtrl, ActnList, gdcNamespace, Db, DBClient,
-  ComCtrls, gsDBTreeView, CheckLst, IBSQL, gsTreeView, gd_createable_form;
+  ComCtrls, gsDBTreeView, CheckLst, IBSQL, gsTreeView, gd_createable_form, gdcBase;
 
 const
   TItemColor: array [0..4] of TColor = (clBlack, clBlue, clBlack, clRed, clBlack);
@@ -33,14 +33,14 @@ type
     Panel2: TPanel;
     cbLegend: TCheckListBox;
     Label2: TLabel;
+    cbAlwaysOverwrite: TCheckBox;
+    cbDontRemove: TCheckBox;
     procedure btnBrowseClick(Sender: TObject);
     procedure actSearchExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure cbLegendDrawItem(Control: TWinControl; Index: Integer;
       Rect: TRect; State: TOwnerDrawState);
-    procedure actSearchUpdate(Sender: TObject);
-    procedure actInstallPackageExecute(Sender: TObject);
-    procedure actInstallPackageUpdate(Sender: TObject);
+    procedure actSearchUpdate(Sender: TObject);  
     procedure gsTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView;
       Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
       var PaintImages, DefaultDraw: Boolean);
@@ -51,8 +51,7 @@ type
     List: TgsyamlList;
 
     procedure SelectAllChild(Node: TTreeNode; bSel: boolean);
-    procedure OverridingWndProc(var Message: TMessage); 
-    procedure CreateTree; 
+    procedure OverridingWndProc(var Message: TMessage);  
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -98,84 +97,16 @@ end;
 
 procedure Tat_dlgLoadNamespacePackages.SetFileList(SL: TStringList);
 var
-  I, Index: Integer;
-  q: TIBSQL; 
-  KA: TgdKeyArray;
+  I: Integer;
 begin
   Assert(SL <> nil);
 
-  KA := TgdKeyArray.Create;
-  try
-    for I := 0 to gsTreeView.Items.Count - 1 do
+  for I := gsTreeView.Items.Count - 1 downto 0 do
+  begin
+    if gsTreeView.Items[I].StateIndex = 1 then
     begin
-      if gsTreeView.Items[I].StateIndex = 1 then
-        KA.Add(Integer(gsTreeView.Items[I].Data), True);
+      SL.Add(TgsyamlNode(gsTreeView.Items[I].Data).FileName);
     end;
-
-    if KA.Count > 0 then
-    begin
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := gdcBaseManager.ReadTransaction;
-        q.SQL.Text :=
-          'WITH RECURSIVE ' +
-          '  ns_tree AS ( ' +
-          '    SELECT ' +
-          '      n.settingruid, ' +
-          '      n.id, ' +
-          '      0 AS cnt, ' +
-          '      n.filename ' +
-          '    FROM ' +
-          '      at_namespace_gtt n ' +
-          '    WHERE ' +
-          '      id = :id ' +
-          '    UNION ALL ' +
-          '    SELECT ' +
-          '      u.settingruid, ' +
-          '      u.id, ' + 
-          '      (t.cnt + 1), ' +
-          '      u.filename ' +
-          '    FROM at_namespace_link_gtt l ' +
-          '      JOIN ns_tree t ON l.namespaceruid = t.settingruid ' +
-          '      JOIN at_namespace_gtt u ON u.settingruid = l.usesruid' +
-          '    WHERE ' +
-          '      t.cnt < 20 ' +
-          '  ) ' +
-          'SELECT ' +
-          '  id, cnt, filename ' +
-          'FROM ' +
-          '  ns_tree ' +
-          'ORDER BY cnt desc';
-
-        while KA.Count > 0 do
-        begin
-          q.Close;
-          q.ParamByName('id').AsInteger := KA[0];
-          q.ExecQuery;
-
-          if q.Eof then
-          begin
-            KA.Delete(0);
-            continue;
-          end;
-
-          while not q.Eof do
-          begin
-            Index := KA.IndexOf(q.FieldByName('id').AsInteger);
-            if  Index <> -1 then
-            begin
-              SL.Add(q.FieldByName('filename').AsString);
-              KA.Delete(Index);
-            end;
-            q.Next;
-          end;
-        end;
-      finally
-        q.Free;
-      end;
-    end;
-  finally
-    KA.Free; 
   end;
 end;
 
@@ -192,7 +123,6 @@ begin
     if Trim(eSearchPath.Text) <> '' then
       List.GetFilesForPath(Trim(eSearchPath.Text));
 
-    minfo.Lines.Add('количество = ' + IntToStr(List.Count));
     gsTreeView.Items.BeginUpdate;
     try
       TgdcNamespace.FillTree(gsTreeView, List, True);
@@ -267,7 +197,6 @@ procedure Tat_dlgLoadNamespacePackages.SelectAllChild(Node: TTreeNode; bSel: boo
 begin
   if (Node <> nil) then
   begin
-
     if bSel then
     begin
       if TgsyamlNode(Node.Data).Optional = False then
@@ -304,20 +233,6 @@ begin
   if Old then FOldWndProc(Message);
 end;
 
-procedure Tat_dlgLoadNamespacePackages.actInstallPackageExecute(
-  Sender: TObject);
-begin
-  FgdcNamespace.DoLoadNamespace(List);
-  ModalResult := mrOK;
-end;
-
-procedure Tat_dlgLoadNamespacePackages.actInstallPackageUpdate(
-  Sender: TObject);
-begin
-  TAction(Sender).Enabled := Assigned(IBLogin) 
-    and IBLogin.IsIBUserAdmin;
-end;
-
 procedure Tat_dlgLoadNamespacePackages.LoadSettingsAfterCreate;
 begin
   inherited;
@@ -328,85 +243,22 @@ procedure Tat_dlgLoadNamespacePackages.SaveSettings;
 begin
   gd_GlobalParams.NamespacePath := eSearchPath.Text;
   inherited;
-end;
-
-procedure Tat_dlgLoadNamespacePackages.CreateTree;
-
-  procedure AddNamespace(Node: TTreeNode; const RUID: String);
-  var
-    q: TIBSQL;
-    Temp: TTreeNode;
-  begin
-     q := TIBSQL.Create(nil);
-     try
-       q.Transaction := gdcBasemanager.ReadTransaction;
-       q.SQL.Text := 'SELECT * FROM at_namespace_gtt WHERE settingruid = :sr';
-       q.ParamByName('sr').AsString := RUID;
-       q.ExecQuery;
-
-       if not q.Eof then
-       begin
-         Temp := gsTreeView.Items.AddChildObject(Node, q.FieldByname('name').AsString, Pointer(q.FieldByname('id').AsInteger));
-         Temp.StateIndex := 2;
-         q.Close;
-         q.SQL.Text := 'SELECT * FROM at_namespace_link_gtt WHERE namespaceruid = :ur';
-         q.ParamByName('ur').AsString := RUID;
-         q.ExecQuery;
-
-         while not q.Eof do
-         begin
-           AddNamespace(Temp, q.FieldByName('usesruid').AsString);
-           q.Next;
-         end;
-       end;
-     finally
-       q.Free;
-     end;
-  end;
-  
-var
-  q: TIBSQL;
-begin
-
-  q := TIBSQL.Create(nil);
-  try
-    q.Transaction := gdcBaseManager.ReadTransaction;
-    q.SQL.Text := 'SELECT * FROM at_namespace_gtt n ' +
-      'WHERE EXISTS(SELECT * FROM at_namespace_link_gtt WHERE namespaceruid = n.settingruid) ' +
-      '  AND NOT EXISTS(SELECT * FROM at_namespace_link_gtt WHERE usesruid = n.settingruid)';
-    q.ExecQuery;
-    while not q.Eof do
-    begin
-      AddNamespace(nil, q.FieldByName('settingruid').AsString);
-      q.Next;
-    end;
-  finally
-    q.Free;
-  end;
-end;
+end; 
 
 procedure Tat_dlgLoadNamespacePackages.gsTreeViewAdvancedCustomDrawItem(
   Sender: TCustomTreeView; Node: TTreeNode; State: TCustomDrawState;
   Stage: TCustomDrawStage; var PaintImages, DefaultDraw: Boolean);
-var
-  R: OleVariant;
 begin
-  DefaultDraw := True;
- { if (Stage = cdPrePaint) and (Node <> nil) and (Integer(Node.Data) > 0) then
+  if (Stage = cdPrePaint) and (Node <> nil) then
   begin
-    gdcBaseManager.ExecSingleQueryResult(
-      'SELECT operation FROM at_namespace_gtt WHERE id = :id',
-      Integer(Node.Data), R);
-    if not VarIsEmpty(R) then
-    begin
-      if cdsSelected in State then
-        gsTreeView.Canvas.Font.Color := clWhite
-      else
-        gsTreeView.Canvas.Font.Color := TItemColor[Integer(R[0, 0]) - 1];
-        gsTreeView.Canvas.Font.Style := TItemFontStyles[Integer(R[0, 0]) - 1];
-    end;
+    if cdsSelected in State then
+      gsTreeView.Canvas.Font.Color := clWhite
+    else
+      gsTreeView.Canvas.Font.Color := TItemColor[TgsyamlNode(Node.Data).VersionInfo - 1];
+      gsTreeView.Canvas.Font.Style := TItemFontStyles[TgsyamlNode(Node.Data).VersionInfo - 1];
+
     DefaultDraw := True;
-  end; }
+  end;
 end;
 
 procedure Tat_dlgLoadNamespacePackages.gsTreeViewClick(Sender: TObject);
@@ -421,6 +273,7 @@ begin
   begin
     mInfo.Lines.Add(TgsyamlNode(Node.Data).Name);
     mInfo.Lines.Add('Версия: ' + TgsyamlNode(Node.Data).Version);
+    mInfo.Lines.Add('Версия в базе данных: ' + TgsyamlNode(Node.Data).VersionInDB);
     //mInfo.Lines.Add('Изменен: ' + q.FieldByName('filetimestamp').AsString);
     mInfo.Lines.Add('RUID: ' + TgsyamlNode(Node.Data).settingruid);
     mInfo.Lines.Add('Путь: ' + ExtractFilePath(TgsyamlNode(Node.Data).Filename));
