@@ -24,6 +24,7 @@ type
     function GetOrderClause: String; override;
     procedure _DoOnNewRecord; override;
     procedure GetWhereClauseConditions(S: TStrings); override;
+    procedure DoLoadNamespace(ANamespaceList: TStringList; const AnAlwaysoverwrite: Boolean = False; const ADontRemove: Boolean = False);
   public
     class function GetListTable(const ASubType: TgdcSubType): String; override;
     class function GetListField(const ASubType: TgdcSubType): String; override;
@@ -39,7 +40,6 @@ type
 
     class procedure ScanLinkNamespace(ADataSet: TDataSet; const APath: String);
     class procedure ScanLinkNamespace2(const APath: String);
-    class procedure InstallPackages;
     class procedure SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
     class procedure SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
     class procedure AddObject(ANamespacekey: Integer; const AName: String; const AClass: String; const ASubType: String;
@@ -48,9 +48,9 @@ type
     class procedure FillTree(ATreeView: TgsTreeView; AList: TgsyamlList; AnInternal: Boolean);
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList; const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1; ADontRemove: Integer = 0; AnIncludeSiblings: Integer = 0);
     procedure DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
+    procedure InstallPackages;
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
-    procedure DoLoadNamespace(ANamespaceList: TStringList);
     procedure SaveNamespaceToStream(St: TStream);
     procedure SaveNamespaceToFile(const AFileName: String = '');
     procedure CompareWithData(const AFileName: String);
@@ -84,6 +84,7 @@ type
     Comment: String;
     Settingruid: String;
     VersionInDB: String;
+    VersionInfo: Integer;
 
     constructor Create; virtual;
     destructor Destroy; override;
@@ -676,7 +677,7 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.DoLoadNamespace(ANamespaceList: TStringList);
+procedure TgdcNamespace.DoLoadNamespace(ANamespaceList: TStringList; const AnAlwaysoverwrite: Boolean = False; const ADontRemove: Boolean = False);
 var
   Tr: TIBTransaction;
   RelName: String;
@@ -2315,12 +2316,13 @@ begin
   end;
 end;
 
-class procedure TgdcNamespace.InstallPackages;
+procedure TgdcNamespace.InstallPackages;
 var
-  I: Integer;
-  Obj: TgdcNamespace;
   SL: TStringList;
+  AlwaysOverwrite, DontRemove: Boolean;
 begin
+  AlwaysOverwrite := False;
+  DontRemove := False;
   SL := TStringList.Create;
   try
     with Tat_dlgLoadNamespacePackages.Create(nil) do
@@ -2328,21 +2330,15 @@ begin
       if ShowModal = mrOk then
       begin
         SetFileList(SL);
+        AlwaysOverwrite := cbAlwaysOverwrite.Checked;
+        DontRemove := cbDontRemove.Checked;
       end;
     finally
       Free;
     end;
 
     if SL.Count > 0 then
-    begin
-      Obj := TgdcNamespace.Create(nil);
-      try
-        for I := 0 to SL.Count - 1 do
-          Obj.LoadFromFile(SL[I]);
-      finally
-        Obj.Free;
-      end;
-    end;
+      DoLoadNamespace(SL, AlwaysOverwrite, DontRemove);
   finally
     SL.Free;
   end;
@@ -2538,7 +2534,7 @@ class procedure TgdcNamespace.ScanLinkNamespace2(const APath: String);
   begin
     Result := nvIndefinite;
     R := TFLItem.CompareVersionStrings(V1, V2);
-    
+
     if V1 > '' then
     begin
       if R < 0 then
@@ -3218,9 +3214,21 @@ end;
 constructor TgsyamlNode.Create;
 begin
   inherited;
-  
+
   IsCreate := False;
   RUIDUses := TStringList.Create;
+  Name := '';
+  Caption := '';
+  Filename := '';
+  Filetimestamp := 0;  
+  Version := '';
+  DBVersion := '';
+  Optional := False;
+  Internal := True;
+  Comment := '';
+  Settingruid := '';
+  VersionInDB := '';
+  VersionInfo := nvIndefinite;
 end;
 
 destructor TgsyamlNode.Destroy;
@@ -3232,6 +3240,27 @@ end;
 
 procedure TgsyamlList.GetFilesForPath(Path: String);
 
+  function CompareVer(const V1: String; const V2: String): Integer;
+  var
+    R: Integer;
+  begin
+    Result := nvIndefinite;
+    R := TFLItem.CompareVersionStrings(V1, V2);
+
+    if V1 > '' then
+    begin
+      if R < 0 then
+        Result := nvNewer
+      else if R > 0 then
+        Result := nvOlder
+      else
+        Result := nvEqual;
+    end
+    else if V2 > '' then
+      Result := nvNotInstalled;
+  end;
+
+
   function GetYAMLNode(const Name: String; var IsCreate: Boolean): TgsyamlNode;
   var
     Parser: TyamlParser;
@@ -3239,6 +3268,7 @@ procedure TgsyamlList.GetFilesForPath(Path: String);
     N: TyamlNode;
     Ind, I, K: Integer;
     Temps, RUID: String;
+    q: TIBSQL;
   begin
     Assert(Name <> '');
 
@@ -3271,6 +3301,21 @@ procedure TgsyamlList.GetFilesForPath(Path: String);
         Result.Comment := M.ReadString('Properties\Comment');
         Result.Settingruid :=  M.ReadString('Properties\RUID');
         Result.IsCreate := True;
+
+        q := TIBSQL.Create(nil);
+        try
+          q.Transaction := gdcBaseManager.ReadTransaction;
+          q.SQL.Text := 'SELECT version FROM at_namespace WHERE settingruid = :sr';
+          q.ParamByName('sr').AsString := Result.Settingruid;
+          q.ExecQuery;
+
+          if not q.Eof then
+            Result.VersionInDB :=  q.Fields[0].AsString;
+
+          Result.VersionInfo := CompareVer(Result.VersionInDB, Result.Version);
+        finally
+          q.Free;
+        end;
 
         N := M.FindByName('USES');
         if (N <> nil) and (N is TyamlSequence) and ((N as TyamlSequence).Count > 0) then
@@ -3348,8 +3393,7 @@ var
   I: Integer;
 begin
   for I := 0 to Count - 1 do
-    if Assigned(Objects[I]) then
-      (Objects[I] as TgsyamlNode).Free;
+    Objects[I].Free;
 
   inherited;
 end;
