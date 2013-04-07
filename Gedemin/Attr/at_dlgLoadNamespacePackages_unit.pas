@@ -5,42 +5,37 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, StdCtrls, FileCtrl, ActnList, gdcNamespace, Db, DBClient,
-  ComCtrls, gsDBTreeView, CheckLst, IBSQL, gsTreeView, gd_createable_form, gdcBase;
+  ComCtrls, gsDBTreeView, CheckLst, IBSQL, gsTreeView, gd_createable_form,
+  gdcBase, gsNSObjects;
 
-const
-  TItemColor: array [0..4] of TColor = (clBlack, clBlue, clBlack, clRed, clBlack);
-  TItemFontStyles: array [0..4] of TFontStyles = ([fsBold], [fsBold], [], [], []);
-
-type 
+type
   Tat_dlgLoadNamespacePackages = class(TCreateableForm)
     Panel1: TPanel;
     ActionListLoad: TActionList;
     actSearch: TAction;
-    lPackages: TLabel;
-    mInfo: TMemo;
-    Label3: TLabel;
     actInstallPackage: TAction;
     gsTreeView: TgsTreeView;
-    Panel5: TPanel;
+    pnlTop: TPanel;
     lSearch: TLabel;
     Label1: TLabel;
     eSearchPath: TEdit;
-    btnBrowse: TButton;
     btnSearch: TButton;
-    Panel6: TPanel;
+    pnlBottom: TPanel;
+    mInfo: TMemo;
+    lPackages: TLabel;
+    pnlBottomRight: TPanel;
     btnInstallPackage: TButton;
     btnClose: TButton;
-    Panel2: TPanel;
-    cbLegend: TCheckListBox;
-    Label2: TLabel;
     cbAlwaysOverwrite: TCheckBox;
     cbDontRemove: TCheckBox;
-    procedure btnBrowseClick(Sender: TObject);
+    Panel2: TPanel;
+    lblLegendNotInstalled: TLabel;
+    lblLegendNewer: TLabel;
+    lblLegendEqual: TLabel;
+    Label2: TLabel;
+    lblLegendOlder: TLabel;
     procedure actSearchExecute(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
-    procedure cbLegendDrawItem(Control: TWinControl; Index: Integer;
-      Rect: TRect; State: TOwnerDrawState);
-    procedure actSearchUpdate(Sender: TObject);  
+    procedure FormCreate(Sender: TObject);  
     procedure gsTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView;
       Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
       var PaintImages, DefaultDraw: Boolean);
@@ -48,10 +43,10 @@ type
   private
     FgdcNamespace: TgdcNamespace;
     FOldWndProc: TWndMethod;
-    List: TgsyamlList;
+    List: TgsNSList;
 
     procedure SelectAllChild(Node: TTreeNode; bSel: boolean);
-    procedure OverridingWndProc(var Message: TMessage);  
+    procedure OverridingWndProc(var Message: TMessage);
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -65,17 +60,21 @@ var
   at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages;
 
 implementation
-                               
+
 {$R *.DFM}
 
 uses
   gd_GlobalParams_unit, gd_security, gdcBaseInterface, IBDatabase,  gd_KeyAssoc;
 
+const
+  TItemColor: array [TgsNSState] of TColor = (clBlack, clBlack, clBlue, clRed, clBlack);
+  TItemFontStyles: array [TgsNSState] of TFontStyles = ([], [fsBold], [], [], []);
+
 constructor Tat_dlgLoadNamespacePackages.Create(AnOwner: TComponent);
 begin
   inherited;
   FgdcNamespace := TgdcNamespace.Create(nil);
-  List := TgsyamlList.Create;
+  List := TgsNSList.Create;
 end;
 
 destructor Tat_dlgLoadNamespacePackages.Destroy;
@@ -83,16 +82,6 @@ begin
   FgdcNamespace.Free;
   List.Free;
   inherited;
-end;
-
-procedure Tat_dlgLoadNamespacePackages.btnBrowseClick(Sender: TObject);
-var
-  Path: String;
-begin
-  if SelectDirectory('Укажите папку', '', Path) then
-  begin
-    eSearchPath.Text := Path;
-  end;
 end;
 
 procedure Tat_dlgLoadNamespacePackages.SetFileList(SL: TStringList);
@@ -105,92 +94,35 @@ begin
   begin
     if gsTreeView.Items[I].StateIndex = 1 then
     begin
-      SL.Add(TgsyamlNode(gsTreeView.Items[I].Data).FileName);
+      SL.Add(TgsNSNode(gsTreeView.Items[I].Data).FileName);
     end;
   end;
 end;
 
 procedure Tat_dlgLoadNamespacePackages.actSearchExecute(Sender: TObject);
 var
-  Tr: TIBTransaction;
-  q: TIBSQL;
+  Path: String;
 begin
-  gsTreeView.SortType := stNone;
-  gsTreeView.Items.Clear;
-  gsTreeView.Invalidate;
-  List.Clear;
-
-    if Trim(eSearchPath.Text) <> '' then
-      List.GetFilesForPath(Trim(eSearchPath.Text));
-
-    gsTreeView.Items.BeginUpdate;
-    try
-      TgdcNamespace.FillTree(gsTreeView, List, True);
-    finally
-      gsTreeView.Items.EndUpdate;
-    end; 
- { Assert(gdcBaseManager <> nil);
-
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  try
-    Tr.DefaultDatabase := gdcBaseManager.Database;
-    Tr.StartTransaction;
-    q.Transaction := Tr;
-    q.SQL.Text := 'DELETE FROM at_namespace_gtt';
-    q.ExecQuery;
-    q.Close;
-
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    q.SQL.Text := 'DELETE FROM at_namespace_link_gtt';
-    q.ExecQuery;
-    q.Close;
-
-    Tr.Commit;
-  finally
-    Tr.Free;
-    q.Free;
-  end;
-
-  gsTreeView.SortType := stNone;
-  gsTreeView.Items.Clear;
-
-  if Trim(eSearchPath.Text) <> '' then
+  Path := eSearchPath.Text;
+  if SelectDirectory(Path, [], 0) then
   begin
-    TgdcNamespace.ScanLinkNamespace2(eSearchPath.Text);
+    eSearchPath.Text := Path;
+    List.GetFilesForPath(Path);
+
     gsTreeView.Items.BeginUpdate;
     try
-      CreateTree;
+      gsTreeView.Items.Clear;
+      List.FillTree(gsTreeView, True);
     finally
       gsTreeView.Items.EndUpdate;
     end;
-  end; }
+  end;
 end;
 
 procedure Tat_dlgLoadNamespacePackages.FormCreate(Sender: TObject);
 begin
   FOldWndProc := gsTreeView.WindowProc;
   gsTreeView.WindowProc := OverridingWndProc;
-end; 
-
-procedure Tat_dlgLoadNamespacePackages.cbLegendDrawItem(
-  Control: TWinControl; Index: Integer; Rect: TRect;
-  State: TOwnerDrawState);
-var
-  R: TRect;
-begin
-  R := Rect;
-  cbLegend.Canvas.Font.Color := TItemColor[Index];
-  cbLegend.Canvas.Font.Style  := TItemFontStyles[Index];
-  cbLegend.Canvas.FillRect(Rect);
-  cbLegend.Canvas.TextOut(R.left, R.top, cbLegend.Items[index]);
-end;
-
-procedure Tat_dlgLoadNamespacePackages.actSearchUpdate(Sender: TObject);
-begin
-  TAction(Sender).Enabled := Trim(eSearchPath.Text) <> '';
 end;
 
 procedure Tat_dlgLoadNamespacePackages.SelectAllChild(Node: TTreeNode; bSel: boolean);
@@ -199,7 +131,7 @@ begin
   begin
     if bSel then
     begin
-      if TgsyamlNode(Node.Data).Optional = False then
+      if TgsNSNode(Node.Data).Optional = False then
         Node.StateIndex := 1
     end else
       Node.StateIndex := 2;
@@ -254,8 +186,8 @@ begin
     if cdsSelected in State then
       gsTreeView.Canvas.Font.Color := clWhite
     else
-      gsTreeView.Canvas.Font.Color := TItemColor[TgsyamlNode(Node.Data).VersionInfo - 1];
-      gsTreeView.Canvas.Font.Style := TItemFontStyles[TgsyamlNode(Node.Data).VersionInfo - 1];
+      gsTreeView.Canvas.Font.Color := TItemColor[TgsNSNode(Node.Data).GetNSState];
+      gsTreeView.Canvas.Font.Style := TItemFontStyles[TgsNSNode(Node.Data).GetNSState];
 
     DefaultDraw := True;
   end;
@@ -264,54 +196,11 @@ end;
 procedure Tat_dlgLoadNamespacePackages.gsTreeViewClick(Sender: TObject);
 var
   Node: TTreeNode;
-  q: TIBSQL;
-  Ver: String;
 begin
   mInfo.Clear;
   Node := gsTreeView.Selected;
-  if Node <> nil then
-  begin
-    mInfo.Lines.Add(TgsyamlNode(Node.Data).Name);
-    mInfo.Lines.Add('Версия: ' + TgsyamlNode(Node.Data).Version);
-    mInfo.Lines.Add('Версия в базе данных: ' + TgsyamlNode(Node.Data).VersionInDB);
-    //mInfo.Lines.Add('Изменен: ' + q.FieldByName('filetimestamp').AsString);
-    mInfo.Lines.Add('RUID: ' + TgsyamlNode(Node.Data).settingruid);
-    mInfo.Lines.Add('Путь: ' + ExtractFilePath(TgsyamlNode(Node.Data).Filename));
-    mInfo.Lines.Add('Файл: ' + ExtractFileName(TgsyamlNode(Node.Data).Filename));
-  end;
- { mInfo.Clear;
-  Node := gsTreeView.Selected;
-  if Node <> nil then
-  begin
-    q := TIBSQL.Create(nil);
-    try
-      q.Transaction := gdcBaseManager.ReadTransaction;
-      q.SQL.Text := 'SELECT * FROM at_namespace_gtt WHERE id = :id';
-      q.ParamByName('id').AsInteger := Integer(Node.Data);
-      q.ExecQuery;
-
-      if not q.EOF then
-      begin
-        case q.FieldByName('operation').AsInteger of
-          nvNotInstalled: Ver := ' - пакет не установлен';
-          nvNewer: Ver := ' - новая версия';
-          nvEqual: Ver := ' - версии совпадают';
-          nvOlder: Ver := ' - старая версия';
-          nvIndefinite: Ver := ' - INDEFINITE';
-        else
-          Ver := '';
-        end;
-        mInfo.Lines.Add(q.FieldByName('Name').AsString);
-        mInfo.Lines.Add('Версия: ' + q.FieldByName('version').AsString + Ver);
-        mInfo.Lines.Add('Изменен: ' + q.FieldByName('filetimestamp').AsString);
-        mInfo.Lines.Add('RUID: ' + q.FieldByName('settingruid').AsString);
-        mInfo.Lines.Add('Путь: ' + ExtractFilePath(q.FieldByName('filename').AsString));
-        mInfo.Lines.Add('Файл: ' + ExtractFileName(q.FieldByName('filename').AsString));
-      end;
-    finally
-      q.Free;
-    end;
-  end;}
+  if (Node <> nil) and (Node.Data <> nil) then
+    TgsNSNode(Node.Data).FillInfo(mInfo.Lines);
 end;
 
 initialization

@@ -4,19 +4,11 @@ unit gdcNamespace;
 interface
 
 uses
-  SysUtils, gdcBase, gdcBaseInterface, Classes, gd_ClassList, gd_createable_form,
-  at_classes, IBSQL, db, yaml_writer, yaml_parser, IBDatabase, gd_security, dbgrids,
-  gd_KeyAssoc, contnrs, IB, gsTreeView;
+  SysUtils, gdcBase, gdcBaseInterface, Classes, gd_ClassList,
+  gd_createable_form, at_classes, IBSQL, db, yaml_writer, yaml_parser,
+  IBDatabase, gd_security, dbgrids, gd_KeyAssoc, contnrs, IB;
 
-const
-  nvNotInstalled = 1;
-  nvNewer = 2;
-  nvEqual = 3;
-  nvOlder = 4;
-  nvIndefinite = 5;
-  
 type
-  TgsyamlList = class;
   TgdcNamespace = class(TgdcBase)
   private
     procedure CheckIncludesiblings; 
@@ -38,14 +30,11 @@ type
     class procedure ScanDirectory(ADataSet: TDataSet; const APath: String;
       Messages: TStrings);
 
-    class procedure ScanLinkNamespace(ADataSet: TDataSet; const APath: String);
-    class procedure ScanLinkNamespace2(const APath: String);
     class procedure SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
     class procedure SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
     class procedure AddObject(ANamespacekey: Integer; const AName: String; const AClass: String; const ASubType: String;
       xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1; ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
 
-    class procedure FillTree(ATreeView: TgsTreeView; AList: TgsyamlList; AnInternal: Boolean);
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList; const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1; ADontRemove: Integer = 0; AnIncludeSiblings: Integer = 0);
     procedure DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
     procedure InstallPackages;
@@ -69,50 +58,18 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
-  TgsyamlNode = class(TObject)
-  public
-    IsCreate: Boolean;
-    RUIDUses: TStringList;
-    Name: String;
-    Caption: String;
-    Filename: String;
-    Filetimestamp: TDateTime;
-    Version: String;
-    DBVersion: String;
-    Optional: Boolean;
-    Internal: Boolean;
-    Comment: String;
-    Settingruid: String;
-    VersionInDB: String;
-    VersionInfo: Integer;
-
-    constructor Create; virtual;
-    destructor Destroy; override;
-  end;
-
-  TgsyamlList = class(TStringList)
-  private
-    function Valid(ANode: TgsyamlNode): Boolean;  
-  public
-    destructor Destroy; override;
-    function AddObject(const S: string; AObject: TObject): Integer; override;
-    procedure GetFilesForPath(Path: String);
-    procedure Clear; override;
-  end;
-
-
   procedure Register;
-
 
 implementation
 
 uses
-  Windows, Controls, ComCtrls, gdc_dlgNamespacePos_unit, gdc_dlgNamespace_unit, gdc_frmNamespace_unit,
-  at_sql_parser, jclStrings, gdcTree, yaml_common, gd_common_functions,
-  prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit, jclUnicode,
-  at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const, gd_FileList_unit,
-  gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess, Graphics, IBErrorCodes,
-  Storages, gdcMetadata, at_sql_setup, gsDesktopManager, at_dlgLoadNamespacePackages_unit;
+  Windows, Controls, ComCtrls, gdc_dlgNamespacePos_unit, gdc_dlgNamespace_unit,
+  gdc_frmNamespace_unit, at_sql_parser, jclStrings, gdcTree, yaml_common,
+  gd_common_functions, prp_ScriptComparer_unit, gdc_dlgNamespaceObjectPos_unit,
+  jclUnicode, at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const,
+  gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
+  Graphics, IBErrorCodes, Storages, gdcMetadata, at_sql_setup, gsDesktopManager,
+  at_dlgLoadNamespacePackages_unit, gsNSObjects;
 
 const
   cst_str_WithoutName = 'Без наименования';
@@ -128,7 +85,7 @@ type
 
   TgdcHeadObjectUpdate = class(TObject)
   public
-    Namesapcekey: Integer;
+    NamespaceKey: Integer;
     RUID: String;
     RefRUID: String;
   end;
@@ -904,7 +861,6 @@ var
     Dest: TgdcNamespace;
     DestObj: TgdcNamespaceObject;
   begin
-    Result := -1;
     Dest := TgdcNamespace.Create(nil);
     try
       Dest.Transaction := Tr;
@@ -2192,7 +2148,7 @@ class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
   begin
     Parser := TyamlParser.Create;
     try
-      Parser.Parse(S, 'Objects', 1024);
+      Parser.Parse(S, 'Objects', 8192);
 
       if (Parser.YAMLStream.Count > 0)
         and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
@@ -2343,333 +2299,6 @@ begin
     SL.Free;
   end;
 end;
-
-class procedure TgdcNamespace.ScanLinkNamespace(ADataSet: TDataSet; const APath: String);
-var
-  SL: TStringList;
-
-  function GetVerInfo(const AName, AVersion: String): Byte;
-  var
-    gdcNamespace: TgdcNamespace;
-    R: Integer;
-  begin
-    Result := nvIndefinite;
-    gdcNamespace := TgdcNamespace.Create(nil);
-    try
-      gdcNamespace.SubSet := 'ByName';
-      gdcNamespace.ParamByName(gdcNamespace.GetListField(gdcNamespace.SubType)).AsString := Trim(AName);
-      gdcNamespace.Open;
-      if not gdcNamespace.Eof then
-      begin
-        R := TFLItem.CompareVersionStrings(gdcNamespace.FieldByName('version').AsString, AVersion, 4);
-        if R > 0 then
-          Result := nvOlder
-        else
-          if R < 0 then
-            Result := nvNewer
-          else
-            Result := nvEqual;
-      end else
-        Result := nvNotInstalled;
-    finally
-      gdcNamespace.Free;
-    end;
-  end;
-
-  function IsMatching(const ADBVersion: String): Boolean;
-  var
-    CurDBVersion: String;
-  begin
-    Result := False;
-    Assert(IBLogin <> nil);
-    CurDBVersion := IBLogin.DBVersion;
-
-    Result := not (ADBVersion > '') or not (TFLItem.CompareVersionStrings(ADBVersion, CurDBVersion) > 0);
-  end;
-
-  function FindFile(const AName: String): String;
-  var
-    I: Integer;
-  begin
-    Assert(SL <> nil);
-    Result := '';
-    for I := 0 to SL.Count - 1 do
-    begin
-      if AnsiCompareText(ExtractFileName(SL[I]), AName + '.yml') = 0 then
-      begin
-        Result := SL[I];
-        break;
-      end;
-    end;
-  end;
-
-  function SetLinkToNamespace(const S: String; parent: integer; Required: Boolean = False): Boolean;
-  var
-    Parser: TyamlParser;
-    M: TyamlMapping;
-    N: TyamlNode;
-    I, K: Integer;
-    Temps: String;
-    RUID, FN: String;
-    Add: Boolean;
-    Currparent: Integer;
-  begin
-    Result := True; 
-    Parser := TyamlParser.Create;
-    try
-      Parser.Parse(S, 'Objects', 4096);
-
-      if (Parser.YAMLStream.Count > 0)
-        and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
-        and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
-      begin
-        M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-        N := M.FindByName('USES');
-
-        Add := (N <> nil) and (N is TyamlSequence) and ((N as TyamlSequence).Count > 0);
-        if Add or Required then
-        begin
-          if not ADataSet.Locate('NamespaceName', M.ReadString('Properties\Name'), [loCaseInsensitive])
-            or ((ADataSet.FieldByName('parent').AsInteger > 0) and Required)
-          then
-          begin
-            ADataSet.Append;
-            ADataSet.FieldByName('parent').AsInteger := parent;
-            ADataSet.FieldByName('NamespaceName').AsString := M.ReadString('Properties\Name');
-            ADataSet.FieldByName('Version').AsString := M.ReadString('Properties\Version');
-            ADataSet.FieldByName('RUID').AsString := M.ReadString('Properties\RUID');
-            ADataSet.FieldByName('DBVersion').AsString := M.ReadString('Properties\DBVersion');
-            ADataSet.FieldByName('VersionInfo').AsInteger := GetVerInfo(Trim(ADataSet.FieldByName('NamespaceName').AsString), Trim(ADataSet.FieldByName('Version').AsString));
-            ADataSet.FieldByName('DBVersionInfo').AsBoolean := IsMatching(Trim(ADataSet.FieldByName('DBVersion').AsString));
-            ADataSet.FieldByName('filename').AsString := S;
-            ADataSet.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(S);
-            ADataSet.FieldByName('CorrectPack').AsBoolean := True;
-            ADataSet.Post;
-
-            Currparent := ADataSet.FieldByName('id').AsInteger;
-
-            if Add then
-            begin
-              with N as TyamlSequence do
-              begin
-                for I := 0 to Count - 1 do
-                begin
-                  if not (Items[I] is TyamlScalar) or not (Items[I] is TyamlString) then
-                    raise Exception.Create('Invalid data! FileName = ' + S + ';ClassNaem=' + IntToStr((Items[I] as TyamlScalar).AsInteger));
-
-                  Temps := (Items[I] as TyamlScalar).AsString;
-                  RUID := '';
-                  FN := '';
-                  for K := 1 to Length(Temps) do
-                  begin
-                    if not CharIsDigit(Temps[K]) and (Temps[K] <> '_') then
-                      break;
-                    RUID := RUID + Temps[K];
-                  end;
-                  Temps := Trim(System.Copy(Temps, K, Length(TempS)));
-                  Temps := StrTrimQuotes(Temps);
-
-                  FN := FindFile(Temps);
-                  if FN <> '' then
-                    SetLinkToNamespace(FN, Currparent, True)
-                   { begin
-                      ADataSet.Locate('id', currentparent, []);
-                      ADataSet.Edit;
-                      ADataSet.FieldByName('CorrectPack').AsBoolean := False;
-                      ADataSet.FieldByName('ErrMessage').AsString := errmessage;
-                      ADataSet.Post;
-                      Result := False;
-                      break;
-                    end; }
-                  else
-                  begin
-                    ADataSet.Edit;
-                    ADataSet.FieldByName('CorrectPack').AsBoolean := False; 
-                    ADataSet.FieldByName('ErrMessage').AsString := 'Не найдена промежуточная настройка или пакет, от которого зависит данный.' +
-                      ' Имя пакета: ''' + Temps + ''' (RUID = ' + RUID + ')';
-                    ADataSet.Post;
-                    break;
-                  end;
-                end;
-              end;
-            end;
-          end else
-          if (ADataSet.FieldByName('parent').AsInteger <= 0) and Required then
-          begin
-            ADataSet.Edit;
-            ADataSet.FieldByName('parent').AsInteger := parent;
-            ADataSet.Post;
-          end;
-        end;
-      end;
-    finally
-      Parser.Free;
-    end;
-  end;
-
-var
-  I: Integer; 
-begin
-  Assert(ADataSet <> nil);
-
-  SL := TStringList.Create;
-  try
-    SL.Duplicates := dupError;
-    if AdvBuildFileList(IncludeTrailingBackslash(APath) + '*.yml',
-      faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
-    begin
-      for I := 0 to SL.Count - 1 do
-        SetLinkToNamespace(SL[I], 0);
-    end; 
-  finally
-    SL.Free;
-  end;
-end;
-
-class procedure TgdcNamespace.ScanLinkNamespace2(const APath: String);
-
-  function CompareVer(const V1: String; const V2: String): Integer;
-  var
-    R: Integer;
-  begin
-    Result := nvIndefinite;
-    R := TFLItem.CompareVersionStrings(V1, V2);
-
-    if V1 > '' then
-    begin
-      if R < 0 then
-        Result := nvNewer
-      else if R > 0 then
-        Result := nvOlder
-      else
-        Result := nvEqual;
-    end
-    else if V2 > '' then
-      Result := nvNotInstalled;
-  end;
-
-  procedure SetLinkToNamespace(const S: String);
-  var
-    Parser: TyamlParser;
-    q, SQL: TIBSQL;
-    Tr: TIBTransaction;
-    M: TyamlMapping;
-    N: TyamlNode;
-    K, I: Integer;
-    Temps, RUID: String;
-  begin
-    Tr := TIBTransaction.Create(nil);
-    q := TIBSQL.Create(nil);
-    SQL := TIBSQL.Create(nil);
-    try
-      Tr.DefaultDatabase := gdcBaseManager.Database;
-      Tr.StartTransaction;
-      q.Transaction := Tr;
-      SQL.Transaction := Tr;
-      q.SQL.Text := 'UPDATE OR INSERT INTO at_namespace_gtt ' +
-        '  (name, caption, filename, filetimestamp, version, dbversion, ' +
-        '  optional, internal, comment, settingruid, operation) ' +
-        'VALUES (:N, :Cap, :FN, :FT, :V, :DBV, :O, :I, :C, :SR, :OP) ' +
-        'MATCHING (settingruid) ';
-      SQL.SQL.Text := 'SELECT * FROM at_namespace WHERE settingruid = :sr';
-
-
-      Parser := TyamlParser.Create;
-      try
-        Parser.Parse(S, 'Objects', 4096);
-
-        if (Parser.YAMLStream.Count > 0)
-          and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
-          and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
-        begin
-          M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-
-          q.Close;
-          q.ParamByName('N').AsString := M.ReadString('Properties\Name');
-          q.ParamByName('Cap').AsString := M.ReadString('Properties\Caption');
-          q.ParamByName('FN').AsString := S;
-          q.ParamByName('FT').AsDateTime := gd_common_functions.GetFileLastWrite(S);
-          q.ParamByName('V').AsString := M.ReadString('Properties\Version');
-          q.ParamByName('DBV').AsString := M.ReadString('Properties\DBVersion');
-          q.ParamByName('O').AsInteger := Integer(M.ReadBoolean('Properties\Optional'));
-          q.ParamByName('I').AsInteger := Integer(M.ReadBoolean('Properties\Internal'));
-          q.ParamByName('C').AsString := M.ReadString('Properties\Comment');
-          q.ParamByName('SR').AsString := M.ReadString('Properties\RUID');
-          SQL.ParamByName('sr').AsString := M.ReadString('Properties\RUID');
-          SQL.ExecQuery;
-          if not SQL.Eof then
-            q.ParamByName('OP').AsInteger := CompareVer(SQl.FieldByName('version').AsString, M.ReadString('Properties\Version'))
-          else
-            q.ParamByName('OP').AsInteger := CompareVer('', M.ReadString('Properties\Version'));
-
-          q.ExecQuery;
-          q.Close;
-          SQL.Close;
-
-          N := M.FindByName('USES');
-          if (N <> nil) and (N is TyamlSequence) and ((N as TyamlSequence).Count > 0) then
-          begin
-            q.SQL.Text := 'UPDATE OR INSERT INTO at_namespace_link_gtt ' +
-              '  (namespaceruid, usesruid) ' +
-              'VALUES (:NSR, :UR) ' +
-              'MATCHING (namespaceruid, usesruid) ';
-
-            with N as TyamlSequence do
-            begin
-              for I := 0 to Count - 1 do
-              begin
-                if not (Items[I] is TyamlScalar) then
-                  raise Exception.Create('Invalid data!');
-
-                Temps := (Items[I] as TyamlScalar).AsString;
-                RUID := '';
-
-                for K := 1 to Length(Temps) do
-                begin
-                  if Temps[K] in ['0'..'9', '_'] then
-                    RUID := RUID + Temps[K]
-                  else
-                    Break;
-                end;
-
-                if CheckRUID(RUID) then
-                begin
-                  q.Close;
-                  q.ParamByName('NSR').AsString :=  M.ReadString('Properties\RUID');
-                  q.ParamByName('UR').AsString := RUID;
-                  q.ExecQuery;
-                end;
-              end;
-            end;
-          end;
-          Tr.Commit;
-        end;
-      finally
-        Parser.Free;
-      end;
-    finally
-      Tr.Free;
-      q.Free;
-    end;
-  end;
-
-var
-  SL: TStringList;
-  I: Integer;
-begin
-  SL := TStringList.Create;
-  try
-    SL.Duplicates := dupError;
-    if AdvBuildFileList(IncludeTrailingBackslash(APath) + '*.yml',
-      faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
-    begin
-      for I := 0 to SL.Count - 1 do
-        SetLinkToNamespace(SL[I]);
-    end;
-  finally
-    SL.Free;
-  end;
-end; 
 
 class procedure TgdcNamespace.SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
 var
@@ -2924,7 +2553,7 @@ procedure TgdcNamespace.AddObject2(AnObject: TgdcBase; AnUL: TObjectList; const 
       for I := UL.Count - 1 downto 0 do
       begin
         if ((UL[I] as TgdcHeadObjectUpdate).RefRUID = SourceRUID)
-          and ((UL[I] as TgdcHeadObjectUpdate).Namesapcekey = Self.ID) then
+          and ((UL[I] as TgdcHeadObjectUpdate).NamespaceKey = Self.ID) then
         begin
           q.ParamByName('hk').AsInteger := TargetKeyValue;
           q.ParamByName('nk').AsInteger := Self.ID;
@@ -3009,7 +2638,7 @@ begin
             end else
             begin
               HO := TgdcHeadObjectUpdate.Create;
-              HO.Namesapcekey := Self.ID;
+              HO.NamespaceKey := Self.ID;
               HO.RUID := RUIDToStr(AnObject.GetRUID);
               HO.RefRUID := AHeadObjectRUID;
               AnUL.Add(HO);
@@ -3148,307 +2777,6 @@ begin
   inherited;
   if HasSubSet('BySettingRUID') then
     S.Add('z.settingruid=:SettingRUID');
-end;
-
-class procedure TgdcNamespace.FillTree(ATreeView: TgsTreeView; AList: TgsyamlList; AnInternal: Boolean);
-
-  procedure AddNode(Node: TTreeNode; yamlNode: TgsyamlNode);
-  var
-    Temp: TTreeNode;
-    I, Ind: Integer;
-  begin
-    Temp := Node;
-    if AnInternal or not yamlNode.Internal then
-    begin
-      Temp := ATreeView.Items.AddChildObject(Node, yamlNode.Caption, yamlNode);
-      Temp.StateIndex := 2;
-    end;
-    
-    for I := 0 to yamlNode.RUIDUses.Count - 1 do
-    begin
-      Ind := AList.IndexOf(yamlNode.RUIDUses[I]);
-      if (Ind = -1) or not (AList.Objects[Ind] as TgsyamlNode).IsCreate then
-        raise Exception.Create('Файл ' + (AList.Objects[Ind] as TgsyamlNode).Name + '(RUID=' + (AList.Objects[Ind] as TgsyamlNode).settingruid + ') не найден!')
-      else
-        AddNode(Temp, AList.Objects[Ind] as TgsyamlNode);
-    end;
-  end;
-
-var
-  I, K: Integer;
-  Link: Boolean;
-  Parent: TList;
-begin
-  Assert(ATreeView <> nil);
-  Assert(AList <> nil);
-
-  Parent := TList.Create;
-  try
-    for I := 0 to AList.Count - 1 do
-    begin
-      Link := False;
-      for K := 0 to AList.Count - 1 do
-      begin
-        if (I <> K) and
-          ((AList.Objects[K] as TgsyamlNode).RUIDUses.IndexOf(AList[I]) > -1)
-         // ((AList.Objects[K] as TgsyamlNode).IDUses.IndexOf(AList.Objects[I]) > -1)
-        then
-        begin
-          Link := True;
-          break;
-        end;
-      end;
-      
-      if not Link then
-        Parent.Add(AList.Objects[I]);
-    //    AddNode(nil, AList.Objects[I] as TgsyamlNode, RUIDList);
-    end;
-
-    for I := 0 to Parent.Count - 1 do
-      AddNode(nil, TgsyamlNode(Parent[I]));
-  finally
-    Parent.Free;  
-  end;
-end;
-
-constructor TgsyamlNode.Create;
-begin
-  inherited;
-
-  IsCreate := False;
-  RUIDUses := TStringList.Create;
-  Name := '';
-  Caption := '';
-  Filename := '';
-  Filetimestamp := 0;  
-  Version := '';
-  DBVersion := '';
-  Optional := False;
-  Internal := True;
-  Comment := '';
-  Settingruid := '';
-  VersionInDB := '';
-  VersionInfo := nvIndefinite;
-end;
-
-destructor TgsyamlNode.Destroy;
-begin
-  RUIDUses.Free;
-
-  inherited;
-end;
-
-procedure TgsyamlList.GetFilesForPath(Path: String);
-
-  function CompareVer(const V1: String; const V2: String): Integer;
-  var
-    R: Integer;
-  begin
-    Result := nvIndefinite;
-    R := TFLItem.CompareVersionStrings(V1, V2);
-
-    if V1 > '' then
-    begin
-      if R < 0 then
-        Result := nvNewer
-      else if R > 0 then
-        Result := nvOlder
-      else
-        Result := nvEqual;
-    end
-    else if V2 > '' then
-      Result := nvNotInstalled;
-  end;
-
-
-  function GetYAMLNode(const Name: String; var IsCreate: Boolean): TgsyamlNode;
-  var
-    Parser: TyamlParser;
-    M: TyamlMapping;
-    N: TyamlNode;
-    Ind, I, K: Integer;
-    Temps, RUID: String;
-    q: TIBSQL;
-  begin
-    Assert(Name <> '');
-
-    Result := nil;
-    Parser := TyamlParser.Create;
-    try
-      Parser.Parse(Name, 'Objects', 4096);
-
-      if (Parser.YAMLStream.Count > 0)
-        and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
-        and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
-      begin
-        M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-
-        Ind := Self.IndexOf(M.ReadString('Properties\RUID'));
-        if Ind > -1 then
-        begin
-          Result := Self.Objects[Ind] as TgsyamlNode;
-          IsCreate := False;
-        end else
-          Result := TgsyamlNode.Create;
-        Result.Name := M.ReadString('Properties\Name');
-        Result.Caption := M.ReadString('Properties\Caption');
-        Result.Filename := Name;
-        Result.Filetimestamp := gd_common_functions.GetFileLastWrite(Name);
-        Result.Version := M.ReadString('Properties\Version');
-        Result.DBVersion := M.ReadString('Properties\DBVersion');
-        Result.Optional := M.ReadBoolean('Properties\Optional');
-        Result.Internal := M.ReadBoolean('Properties\Internal');
-        Result.Comment := M.ReadString('Properties\Comment');
-        Result.Settingruid :=  M.ReadString('Properties\RUID');
-        Result.IsCreate := True;
-
-        q := TIBSQL.Create(nil);
-        try
-          q.Transaction := gdcBaseManager.ReadTransaction;
-          q.SQL.Text := 'SELECT version FROM at_namespace WHERE settingruid = :sr';
-          q.ParamByName('sr').AsString := Result.Settingruid;
-          q.ExecQuery;
-
-          if not q.Eof then
-            Result.VersionInDB :=  q.Fields[0].AsString;
-
-          Result.VersionInfo := CompareVer(Result.VersionInDB, Result.Version);
-        finally
-          q.Free;
-        end;
-
-        N := M.FindByName('USES');
-        if (N <> nil) and (N is TyamlSequence) and ((N as TyamlSequence).Count > 0) then
-        begin
-          with N as TyamlSequence do
-          begin
-            for I := 0 to Count - 1 do
-            begin
-              if not (Items[I] is TyamlScalar) then
-                raise Exception.Create('Invalid data!');
-
-              Temps := (Items[I] as TyamlScalar).AsString;
-              RUID := '';
-
-              for K := 1 to Length(Temps) do
-              begin
-                if Temps[K] in ['0'..'9', '_'] then
-                  RUID := RUID + Temps[K]
-                else
-                  Break;
-              end;
-
-              if CheckRUID(RUID) then
-              begin
-                Ind := Self.IndexOf(RUID);
-                if Ind > -1 then
-                begin
-                  if Valid(Self.Objects[Ind] as TgsyamlNode) then
-                    Result.RUIDUses.Add(RUID)
-                  else
-                    raise Exception.Create('Not valid object ' + (Self.Objects[Ind] as TgsyamlNode).Caption + '!');
-                end else
-                begin
-                  Ind := Self.AddObject(RUID, TgsyamlNode.Create);
-                  (Self.Objects[Ind] as TgsyamlNode).settingruid := RUID;
-                  (Self.Objects[Ind] as TgsyamlNode).Name := Copy(Temps, K + 1, Length(Temps));
-                  Result.RUIDUses.Add(RUID);
-                end;
-              end;
-            end;
-          end;
-        end;
-      end;
-    finally
-      Parser.Free;
-    end;
-  end;
-var
-  SL: TStringList;
-  I: Integer;
-  Node: TgsyamlNode;
-  IsCreate: Boolean;
-begin
-  SL := TStringList.Create;
-  try
-    SL.Duplicates := dupError;
-    if AdvBuildFileList(IncludeTrailingBackslash(Path) + '*.yml',
-      faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
-    begin
-      for I := 0 to SL.Count - 1 do
-      begin
-        IsCreate := True;
-        Node := GetYAMLNode(SL[I], IsCreate);
-        if IsCreate then
-          Self.AddObject(Node.Settingruid, Node);
-      end;
-    end;
-  finally
-    SL.Free;
-  end;
-end;
-
-procedure TgsyamlList.Clear;
-var
-  I: Integer;
-begin
-  for I := 0 to Count - 1 do
-    Objects[I].Free;
-
-  inherited;
-end;
-
-destructor TgsyamlList.Destroy;
-begin
-  Clear;
-
-  inherited;
-end;
-
-function TgsyamlList.AddObject(const S: string; AObject: TObject): Integer;
-begin
-  Result := Self.IndexOf(S);
-  if Result > -1 then
-  begin
-    raise Exception.Create('Дубликат!')
-  end
-  else
-    Result := inherited AddObject(S, AObject);
-end;
-
-function TgsyamlList.Valid(ANode: TgsyamlNode): Boolean;
-
-  function Acyclic(Obj: TgsyamlNode): Boolean;
-  var
-    I, Ind: Integer;
-  begin
-    Result := True;
-
-    if Obj = ANode then
-      Result := False
-    else
-    begin
-      for I := 0 to Obj.RUIDUses.Count - 1 do
-      begin
-        Ind := Self.IndexOf(Obj.RUIDUses[I]);
-        Result := Acyclic(Self.Objects[Ind] as TgsyamlNode);
-        if not Result then
-          break;
-      end;
-    end;
-  end;
-  
-var
-  I, Ind: Integer;
-begin
-  Result := True;
-  for I := 0 to ANode.RUIDUses.Count - 1 do
-  begin
-    Ind := Self.IndexOf(ANode.RUIDUses[I]);
-    Result := Acyclic(Self.Objects[Ind] as TgsyamlNode);
-    if not Result then
-      break;
-  end; 
 end;
 
 initialization
