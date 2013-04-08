@@ -96,7 +96,7 @@ begin
   begin
     if gsTreeView.Items[I].StateIndex = 1 then
     begin
-      if not cbInternal.Checked then
+      if cbInternal.Checked then
         List.GetAllUses(TgsNSNode(gsTreeView.Items[I].Data).RUID, SL)
       else
         SL.Add(TgsNSNode(gsTreeView.Items[I].Data).FileName);
@@ -119,7 +119,7 @@ begin
     gsTreeView.Items.BeginUpdate;
     try
       gsTreeView.Items.Clear;
-      List.FillTree(gsTreeView, cbInternal.Checked);
+      List.FillTree(gsTreeView, not cbInternal.Checked);
     finally
       gsTreeView.Items.EndUpdate;
     end;

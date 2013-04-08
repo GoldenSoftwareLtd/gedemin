@@ -278,12 +278,8 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
     Temp: TTreeNode;
     I, Ind: Integer;
   begin
-    Temp := Node;
-    if AnInternal or not yamlNode.Internal then
-    begin
-      Temp := ATreeView.Items.AddChildObject(Node, yamlNode.Caption, yamlNode);
-      Temp.StateIndex := 2;
-    end;
+    Temp := ATreeView.Items.AddChildObject(Node, yamlNode.Caption, yamlNode);
+    Temp.StateIndex := 2;
 
     for I := 0 to yamlNode.UsesList.Count - 1 do
     begin
@@ -299,34 +295,48 @@ var
   I, K: Integer;
   Link: Boolean;
   Parent: TList;
+  Temp: TTreeNode;
 begin
   Assert(ATreeView <> nil);
 
-  Parent := TList.Create;
-  try
+  if not AnInternal then
+  begin
     for I := 0 to Count - 1 do
     begin
-      Link := False;
-      for K := 0 to Count - 1 do
+      if not (Objects[I] as TgsNSNode).Internal then
       begin
-        if (I <> K) and
-          ((Objects[K] as TgsNSNode).UsesList.IndexOf(Strings[I]) > -1)
-        then
+        Temp := ATreeView.Items.AddChildObject(nil, (Objects[I] as TgsNSNode).Caption, Objects[I] as TgsNSNode);
+        Temp.StateIndex := 2;
+      end;
+    end;
+  end else
+  begin
+    Parent := TList.Create;
+    try
+      for I := 0 to Count - 1 do
+      begin
+        Link := False;
+        for K := 0 to Count - 1 do
         begin
-          Link := True;
-          break;
+          if (I <> K) and
+            ((Objects[K] as TgsNSNode).UsesList.IndexOf(Strings[I]) > -1)
+          then
+          begin
+            Link := True;
+            break;
+          end;
         end;
+
+        if not Link then
+          Parent.Add(Objects[I]);
       end;
 
-      if not Link then
-        Parent.Add(Objects[I]);
+      for I := 0 to Parent.Count - 1 do
+        AddNode(nil, TgsNSNode(Parent[I]));
+    finally
+      Parent.Free;
     end;
-
-    for I := 0 to Parent.Count - 1 do
-      AddNode(nil, TgsNSNode(Parent[I]));
-  finally
-    Parent.Free;
-  end;
+  end;  
 end;
 
 procedure TgsNSList.GetAllUses(const RUID: String; SL: TStringList);
