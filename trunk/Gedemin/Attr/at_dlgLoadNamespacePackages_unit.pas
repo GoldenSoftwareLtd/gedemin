@@ -34,12 +34,14 @@ type
     lblLegendEqual: TLabel;
     Label2: TLabel;
     lblLegendOlder: TLabel;
+    cbInternal: TCheckBox;
     procedure actSearchExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);  
     procedure gsTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView;
       Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
       var PaintImages, DefaultDraw: Boolean);
     procedure gsTreeViewClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     FgdcNamespace: TgdcNamespace;
     FOldWndProc: TWndMethod;
@@ -94,9 +96,14 @@ begin
   begin
     if gsTreeView.Items[I].StateIndex = 1 then
     begin
-      SL.Add(TgsNSNode(gsTreeView.Items[I].Data).FileName);
+      if not cbInternal.Checked then
+        List.GetAllUses(TgsNSNode(gsTreeView.Items[I].Data).RUID, SL)
+      else
+        SL.Add(TgsNSNode(gsTreeView.Items[I].Data).FileName);
     end;
   end;
+
+  mInfo.Text := SL.Text;
 end;
 
 procedure Tat_dlgLoadNamespacePackages.actSearchExecute(Sender: TObject);
@@ -112,7 +119,7 @@ begin
     gsTreeView.Items.BeginUpdate;
     try
       gsTreeView.Items.Clear;
-      List.FillTree(gsTreeView, True);
+      List.FillTree(gsTreeView, cbInternal.Checked);
     finally
       gsTreeView.Items.EndUpdate;
     end;
@@ -201,6 +208,18 @@ begin
   Node := gsTreeView.Selected;
   if (Node <> nil) and (Node.Data <> nil) then
     TgsNSNode(Node.Data).FillInfo(mInfo.Lines);
+end;
+
+procedure Tat_dlgLoadNamespacePackages.Button1Click(Sender: TObject);
+var
+  SL: TStringList;
+begin
+  SL := TStringList.Create;
+  try
+    SetFileList(SL);  
+  finally
+    SL.Free;
+  end;
 end;
 
 initialization

@@ -26,7 +26,7 @@ type
 
     class procedure WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWriter; const AHeadObject: String; AnAlwaysoverwrite: Boolean = True;
       ADontremove: Boolean = False; AnIncludesiblings: Boolean = False);
-    class procedure LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping; UpdateList: TObjectList; ATr: TIBTransaction);
+    class procedure LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping; UpdateList: TObjectList; ATr: TIBTransaction; const AnAlwaysoverwrite: Boolean = False);
     class procedure ScanDirectory(ADataSet: TDataSet; const APath: String;
       Messages: TStrings);
 
@@ -650,10 +650,10 @@ var
       q.Transaction := Tr;
       q.SQL.Text := 'SELECT o.xid || ''_'' || o.dbid as ruid ' +
         'FROM at_object o ' +
-        '  LEFT JOIN at_namespace n ' +
-        '    ON n.id = o.namespacekey ' +
-        'WHERE n.settingruid = :r';
-      q.ParamByName('r').AsString := RUID;
+        '  LEFT JOIN gd_ruid r' +
+        '    ON  o.namespacekey = r.id ' +
+        'WHERE r.xid || ''_'' || r.dbid = :ruid';
+      q.ParamByName('ruid').AsString := RUID;
       q.ExecQuery;
 
       if not q.Eof then
@@ -828,13 +828,13 @@ var
 
               if gdcBaseManager.GetRUIDRecByID(gdcNamespace.ID, Tr).XID = -1 then
               begin
-                gdcBaseManager.InsertRUID(gdcNamespace.ID, StrToRUID(gdcNamespace.FieldByName('settingruid').AsString).XID,
-                  StrToRUID(gdcNamespace.FieldByName('settingruid').AsString).DBID,
+                gdcBaseManager.InsertRUID(gdcNamespace.ID, StrToRUID(RUID).XID,
+                  StrToRUID(RUID).DBID,
                   Now, IBLogin.ContactKey, Tr);
               end else
               begin
-                gdcBaseManager.UpdateRUIDByID(gdcNamespace.ID, StrToRUID(gdcNamespace.FieldByName('settingruid').AsString).XID,
-                  StrToRUID(gdcNamespace.FieldByName('settingruid').AsString).DBID,
+                gdcBaseManager.UpdateRUIDByID(gdcNamespace.ID, StrToRUID(RUID).XID,
+                  StrToRUID(RUID).DBID,
                   Now, IBLogin.ContactKey, Tr);
               end;
 
@@ -900,7 +900,7 @@ var
       for I := 0 to CurrOL.Count - 1 do
       begin
         if LoadOL.IndexOf(CurrOL[I]) = -1 then
-          Dest.DeleteObject(StrToRUID(CurrOL[I]).XID, StrToRUID(CurrOL[I]).DBID);
+          Dest.DeleteObject(StrToRUID(CurrOL[I]).XID, StrToRUID(CurrOL[I]).DBID, not ADontRemove);
       end;
 
       gdcNamespaceObj := TgdcNamespaceObject.Create(nil);
@@ -1230,7 +1230,7 @@ begin
   end;
 end;
 
-class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping; UpdateList: TObjectList; ATr: TIBTransaction);
+class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping; UpdateList: TObjectList; ATr: TIBTransaction; const AnAlwaysoverwrite: Boolean = False);
 
   procedure InsertRecord(SourceYAML: TyamlMapping; Obj: TgdcBase; UL: TObjectList; const ID: Integer = -1); forward;
   
@@ -1508,7 +1508,7 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
             end;
           end;
         end
-        else if not Obj.CheckTheSame(true) then
+        else if not Obj.CheckTheSame(True) then
           Obj.Post;
 
         if Assigned(RUOL) then
@@ -1640,7 +1640,7 @@ begin
   Assert(AMapping <> nil);
 
   RUID := AMapping.ReadString('Properties\RUID');
-  AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite');
+  AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite') or AnAlwaysoverwrite;
 
   if UpdateList = nil then
   begin

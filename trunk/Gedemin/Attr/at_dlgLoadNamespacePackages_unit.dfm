@@ -1,7 +1,7 @@
 object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
-  Left = 467
-  Top = 266
-  Width = 704
+  Left = 369
+  Top = 90
+  Width = 650
   Height = 584
   Caption = 'at_dlgLoadNamespacePackages'
   Color = clBtnFace
@@ -31,7 +31,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
   object Panel1: TPanel
     Left = 0
     Top = 45
-    Width = 688
+    Width = 634
     Height = 326
     Align = alClient
     BevelOuter = bvNone
@@ -40,7 +40,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
     object gsTreeView: TgsTreeView
       Left = 4
       Top = 4
-      Width = 680
+      Width = 626
       Height = 318
       Align = alClient
       Indent = 19
@@ -53,7 +53,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 688
+    Width = 634
     Height = 45
     Align = alTop
     BevelOuter = bvNone
@@ -93,11 +93,21 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       Action = actSearch
       TabOrder = 1
     end
+    object cbInternal: TCheckBox
+      Left = 399
+      Top = 31
+      Width = 241
+      Height = 17
+      Caption = 'Показывать все пространства имен'
+      Checked = True
+      State = cbChecked
+      TabOrder = 2
+    end
   end
   object pnlBottom: TPanel
     Left = 0
     Top = 371
-    Width = 688
+    Width = 634
     Height = 175
     Align = alBottom
     BevelOuter = bvNone
@@ -106,7 +116,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
     object mInfo: TMemo
       Left = 4
       Top = 4
-      Width = 322
+      Width = 268
       Height = 167
       TabStop = False
       Align = alClient
@@ -115,7 +125,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       TabOrder = 0
     end
     object pnlBottomRight: TPanel
-      Left = 326
+      Left = 272
       Top = 4
       Width = 358
       Height = 167
