@@ -42,6 +42,7 @@ type
     procedure GetFilesForPath(Path: String);
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
+    procedure GetAllUses(const RUID: String; SL: TStringList);
   end;
 
 implementation
@@ -325,6 +326,23 @@ begin
       AddNode(nil, TgsNSNode(Parent[I]));
   finally
     Parent.Free;
+  end;
+end;
+
+procedure TgsNSList.GetAllUses(const RUID: String; SL: TStringList);
+var
+  I, Ind: Integer;
+  NSNode: TgsNSNode;
+begin
+  Assert(SL <> nil);
+  
+  Ind := IndexOf(RUID);
+  if Ind > -1 then
+  begin
+    NSNode := Objects[Ind] as TgsNSNode;
+    for I := 0 to NSNode.UsesList.Count - 1 do
+      GetAllUses(NSNode.UsesList[I], SL);
+    SL.Add(NSNode.FileName);
   end;
 end;
 
