@@ -98,7 +98,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       Top = 31
       Width = 241
       Height = 17
-      Caption = 'Показывать все пространства имен'
+      Caption = 'Показывать пакеты пространств имен'
       Checked = True
       State = cbChecked
       TabOrder = 2
