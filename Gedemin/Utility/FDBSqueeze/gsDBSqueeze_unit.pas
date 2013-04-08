@@ -7,6 +7,7 @@ uses
 
 type
   TOnLogEvent = procedure(const S: String) of object;
+  TActivateIndexFlag = (aiActivate, aiDeactivate);
 
   TgsDBSqueeze = class(TObject)
   private
@@ -20,6 +21,14 @@ type
 
     function GetConnected: Boolean;
 
+    procedure h_SaveTypeTbls;
+
+    function h_CreateTblForSaveInactivTrig: Boolean;
+    procedure h_SaveInactivTrig;
+    function h_CreateTblForSaveInactivIndices: Boolean;
+    procedure h_SaveInactivIndices;
+    procedure h_SwitchActivityIndices(const AnActivateIndexFlag: TActivateIndexFlag);
+    procedure h_SwitchActivityTriggers(const AnActivateIndexFlag: TActivateIndexFlag);
 
     function h_CreateTblForSaveFK: Boolean;
     function h_CreateTblForSavePkUnique: Boolean;
@@ -40,11 +49,7 @@ type
 
     procedure h_RecreateAllConstr;
 
-    procedure h_SwitchActivityIndices(AEnableFlag: Integer);
-    procedure h_SwitchActivityTriggers(const AEnableFlag: Integer);
-
     procedure LogEvent(const AMsg: String);
-
   public
     constructor Create;
     destructor Destroy; override;
@@ -109,6 +114,160 @@ begin
 end;
 
 
+procedure TgsDBSqueeze.h_SaveTypeTbls;
+var
+  q, q2: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+//creating table
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+
+    q.SQL.Text :=
+      'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
+    q.ParamByName('RN').AsString := 'DBS_TYPE_TABLES';
+    q.ExecQuery;
+    if q.EOF then
+    begin
+      q2.SQL.Text := ' CREATE TABLE DBS_TYPE_TABLES ( ' +
+        ' TABLE_NAME  VARCHAR(31), ' +
+        ' TYPE_NAME   VARCHAR(20), ' +
+        ' PRIMARY KEY (TABLE_NAME)) ';
+      q2.ExecQuery;
+      q2.Close;
+      LogEvent('DBS_TYPE_TABLES table has been created.');
+    end
+    else
+    begin
+      LogEvent('DBS_TYPE_TABLES table HASN''T been created.');
+    end;
+    q.Close;
+    Tr.Commit;
+//inserting to table
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+  //имеют составной PK
+    q.SQL.Text := ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
+    ' FROM RDB$RELATIONS r ' +
+    ' WHERE RDB$SYSTEM_FLAG = 0 AND RDB$VIEW_BLR IS NULL ' +
+    '   AND RDB$RELATION_NAME NOT IN ( ' +
+    '     SELECT ind.rdb$relation_name, rcon.RDB$CONSTRAINT_TYPE ' +
+    '     FROM RDB$INDICES ind ' +
+    '     JOIN RDB$RELATION_CONSTRAINTS rcon ON rcon.RDB$INDEX_NAME = ind.RDB$INDEX_NAME ' +
+    '     WHERE ind.rdb$segment_count > 1 AND rcon.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
+    '       AND r.RDB$RELATION_NAME NOT IN (SELECT TABLE_NAME FROM DBS_TYPE_TABLES) ' +
+    '   )';
+    q.ExecQuery;
+
+    while (not q.EOF) do
+    begin
+      q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
+        ' ( TABLE_NAME, ' +
+        ' TYPE_NAME ) VALUES ( ' +
+        ' :tblName, ' +
+        ' :typeName ) ';
+      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
+      q2.ParamByName('typeName').AsString := 'composite PK';
+      q2.Close;
+      q.Next;
+    end;
+    q.Close;
+    Tr.Commit;
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+  //Детальные
+    q.SQL.Text := ' SELECT RELATION_NAME as Table_Name ' +
+    ' FROM DBS_FK_CONSTRAINTS ' +
+    ' WHERE LIST_FIELD = ''MASTERKEY'' OR LIST_FIELD = ''MASTERDOCKEY'' ' +
+    '   AND RELATION_NAME NOT IN (SELECT TABLE_NAME FROM DBS_TYPE_TABLES) ';
+    q.ExecQuery;
+
+    q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
+      ' ( TABLE_NAME, ' +
+      ' TYPE_NAME ) VALUES ( ' +
+      ' :tblName, ' +
+      ' :typeName ) ';
+    q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
+    q2.ParamByName('typeName').AsString := 'detail';
+    q2.Close;
+    q.Close;
+    Tr.Commit;
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+  //Cross
+    q.SQL.Text := ' SELECT CROSSTABLE as Table_Name' +
+      ' FROM AT_RELATION_FIELDS ' +
+      ' WHERE CROSSTABLE IS NOT NULL ' +
+      '   AND RELATION_NAME NOT IN (SELECT TABLE_NAME FROM DBS_TYPE_TABLES) ';
+    q.ExecQuery;
+
+    while (not q.EOF) do
+    begin
+      q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
+        ' ( TABLE_NAME, ' +
+        ' TYPE_NAME ) VALUES ( ' +
+        ' :tblName, ' +
+        ' :typeName ) ';
+      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
+      q2.ParamByName('typeName').AsString := 'cross';
+      q2.Close;
+      q.Next;
+    end;
+    q.Close;
+    Tr.Commit;
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+  //1-к-1
+    q.SQL.Text := ' SELECT f.RELATION_NAME as Table_Name ' +
+      ' FROM DBS_FK_CONSTRAINTS f' +
+      ' JOIN DBS_PK_CONSTRAINTS p ON f.RELATION_NAME = p.RELATION_NAME ' +
+      ' WHERE f.LIST_FIELD = p.LIST_FIELDS ' +
+      '   AND f.RELATION_NAME NOT IN (SELECT TABLE_NAME FROM DBS_TYPE_TABLES) ';
+    q.ExecQuery;
+
+    while (not q.EOF) do
+    begin
+      q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
+        ' ( TABLE_NAME, ' +
+        ' TYPE_NAME ) VALUES ( ' +
+        ' :tblName, ' +
+        ' :typeName ) ';
+      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
+      q2.ParamByName('typeName').AsString := '1to1';
+      q2.Close;
+      q.Next;
+    end;
+    q.Close;
+
+
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+  end;
+
+end;
 
 function TgsDBSqueeze.h_CreateTblForSaveFK: Boolean;
 var
@@ -530,11 +689,11 @@ begin
 
     q.SQL.Text :=
       'SELECT c.RDB$RELATION_NAME as Relation_Name, ' +
-        'c.RDB$CONSTRAINT_NAME as Constraint_Name ' +
+      '  c.RDB$CONSTRAINT_NAME as Constraint_Name ' +
       'FROM RDB$RELATION_CONSTRAINTS c ' +
-        'JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = c.RDB$INDEX_NAME ' +
+      '  JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = c.RDB$INDEX_NAME ' +
       'WHERE c.RDB$CONSTRAINT_TYPE = ''FOREIGN KEY'' AND '+
-        '(i.RDB$SYSTEM_FLAG IS NULL OR i.RDB$SYSTEM_FLAG = 0) ';                 //
+      '  (i.RDB$SYSTEM_FLAG IS NULL OR i.RDB$SYSTEM_FLAG = 0) ';                 //
     q.ExecQuery;
     while not q.Eof do
     begin
@@ -563,7 +722,9 @@ begin
     Tr.StartTransaction;
 
     q.Transaction := Tr;
-    q.SQL.Text := 'select count(c.RDB$CONSTRAINT_NAME) as Kolvo FROM RDB$RELATION_CONSTRAINTS c WHERE c.rdb$constraint_type = ''FOREIGN KEY'' '; //test
+    q.SQL.Text := 'SELECT count(c.RDB$CONSTRAINT_NAME) as Kolvo ' +
+      'FROM RDB$RELATION_CONSTRAINTS c ' +
+      'WHERE c.rdb$constraint_type = ''FOREIGN KEY'' '; //test
     q.ExecQuery;
     LogEvent('======== COUNT FK after DROP: ' + q.FieldByName('Kolvo').AsString );
     q.Close;
@@ -596,11 +757,11 @@ begin
 
     q.SQL.Text :=
       'SELECT c.RDB$RELATION_NAME as Relation_Name, ' +
-        'c.RDB$CONSTRAINT_NAME as Constraint_Name ' +
+      '  c.RDB$CONSTRAINT_NAME as Constraint_Name ' +
       'FROM RDB$RELATION_CONSTRAINTS c ' +
-        'JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = c.RDB$INDEX_NAME ' +
+      '  JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = c.RDB$INDEX_NAME ' +
       'WHERE (c.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' OR c.RDB$CONSTRAINT_TYPE = ''UNIQUE'') AND '+
-        '(i.RDB$SYSTEM_FLAG IS NULL OR i.RDB$SYSTEM_FLAG = 0) ';                 //
+      '  (i.RDB$SYSTEM_FLAG IS NULL OR i.RDB$SYSTEM_FLAG = 0) ';                 //
     q.ExecQuery;
     while not q.Eof do
     begin
@@ -629,7 +790,7 @@ begin
     Tr.StartTransaction;
 
     q.Transaction := Tr;
-    q.SQL.Text := 'select count(c.RDB$CONSTRAINT_NAME) as Kolvo FROM RDB$RELATION_CONSTRAINTS c ' +
+    q.SQL.Text := 'SELECT count(c.RDB$CONSTRAINT_NAME) as Kolvo FROM RDB$RELATION_CONSTRAINTS c ' +
       'WHERE c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'' '; //test
     q.ExecQuery;
     LogEvent('======== COUNT PK and UNIQUE after DROP: ' + q.FieldByName('Kolvo').AsString );
@@ -718,7 +879,7 @@ begin
     Tr.StartTransaction;
 
     q.Transaction := Tr;
-    q.SQL.Text := 'select count(c.RDB$CONSTRAINT_NAME) as Kolvo FROM RDB$RELATION_CONSTRAINTS c WHERE c.rdb$constraint_type = ''FOREIGN KEY'' '; //test
+    q.SQL.Text := 'SELECT count(c.RDB$CONSTRAINT_NAME) as Kolvo FROM RDB$RELATION_CONSTRAINTS c WHERE c.rdb$constraint_type = ''FOREIGN KEY'' '; //test
     q.ExecQuery;
     LogEvent('======== COUNT FK after ADD: ' + q.FieldByName('Kolvo').AsString );
     q.Close;
@@ -785,7 +946,7 @@ begin
      Tr.StartTransaction;
 
      q.Transaction := Tr;
-     q.SQL.Text := 'select count(c.RDB$CONSTRAINT_NAME) as Kolvo FROM RDB$RELATION_CONSTRAINTS c ' +
+     q.SQL.Text := 'SELECT count(c.RDB$CONSTRAINT_NAME) as Kolvo FROM RDB$RELATION_CONSTRAINTS c ' +
        'WHERE c.rdb$constraint_type = ''PRIMARY KEY'' OR c.rdb$constraint_type = ''UNIQUE'' ';
 
      q.ExecQuery;
@@ -812,43 +973,12 @@ begin
 end;
 
 
-{ AEnableFlag:  0-деактивировать, 1-активировать }
-procedure TgsDBSqueeze.h_SwitchActivityTriggers(const AEnableFlag: Integer);
+function TgsDBSqueeze.h_CreateTblForSaveInactivTrig: Boolean;
 var
   q, q2: TIBSQL;
   Tr: TIBTransaction;
-  s: String;                                                                       //t
 begin
   Assert(Connected);
- //==================================== TEST
-  try
-    q := TIBSQL.Create(nil);
-    Tr := TIBTransaction.Create(nil);
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    if (AEnableFlag = 1) then  s := ' DEACTIVATED '
-    else if (AEnableFlag = 0) then  s := ' ACTIVATED ';
-
-    q.Transaction := Tr;
-    q.SQL.Text := 'select count(t.RDB$TRIGGER_NAME) as Kolvo FROM RDB$TRIGGERS t ' +
-      ' WHERE((t.RDB$SYSTEM_FLAG = 0) or (t.RDB$SYSTEM_FLAG is NULL)) ' +                                                         //
-      ' AND t.RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
-      ' AND t.RDB$TRIGGER_INACTIVE  = :enableFlag ';
-    q.ParamByName('enableFlag').AsInteger := AEnableFlag;
-
-    q.ExecQuery;
-
-    LogEvent('======== COUNT' + s + 'TRIGGERS before UPDATE: ' + q.FieldByName('Kolvo').AsString );
-    q.Close;
-
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-  end;
- //==================================== end
-
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
   Tr := TIBTransaction.Create(nil);
@@ -857,87 +987,329 @@ begin
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
 
+    q.Transaction := Tr;
     q2.Transaction := Tr;
 
-    q.Transaction := Tr;
-    q.SQL.Text :=  ' SELECT t.RDB$TRIGGER_NAME AS Trigger_Name ' +
-    ' FROM RDB$TRIGGERS t ' +
-    //' WHERE  t.RDB$SYSTEM_FLAG <> 1 ' +
-    ' WHERE((t.RDB$SYSTEM_FLAG = 0) or (t.RDB$SYSTEM_FLAG is NULL)) ' +                                                            //
-    '   AND t.RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
-    '   AND t.RDB$TRIGGER_INACTIVE = :enableFlag ';
-    q.ParamByName('enableFlag').AsInteger := AEnableFlag;
+    q.SQL.Text :=
+      'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
+    q.ParamByName('RN').AsString := 'DBS_INACTIV_TRIGGERS';
     q.ExecQuery;
-
-    while not q.EOF do
+    if q.EOF then
     begin
-      q2.SQL.Text := ' UPDATE RDB$TRIGGERS t ' +
-        ' SET t.RDB$TRIGGER_INACTIVE =  :flag ' +
-        ' WHERE t.RDB$TRIGGER_NAME = :trigName ';
-      if AEnableFlag = 0 then
-        q2.ParamByName('flag').AsInteger := 1
-      else if AEnableFlag = 1 then
-        q2.ParamByName('flag').AsInteger := 0;
-
-      q2.ParamByName('trigName').AsString := q.FieldByName('Trigger_Name').AsString;
+      q2.SQL.Text := 'CREATE TABLE DBS_INACTIV_TRIGGERS ( ' +
+        ' TRIGGER_NAME     CHAR(31), ' +
+        'PRIMARY KEY (TRIGGER_NAME)) ';
       q2.ExecQuery;
       q2.Close;
-
-      q.Next;
+      LogEvent('DBS_INACTIV_TRIGGERS table has been created.');
+      Result := True;
+    end
+    else
+    begin
+      LogEvent('DBS_INACTIV_TRIGGERS table HASN''T been created.');
+      Result := False;
     end;
-    Tr.Commit;
-
-    if AEnableFlag = 0 then
-      LogEvent('Deactivation triggers ... OK')
-    else if AEnableFlag = 1 then
-      LogEvent('Activation triggers ... OK');
-  finally
-    q.Free;
-    q2.Free;
-    Tr.Free;
-  end;
-
-//==================================== TEST
-  try
-    q := TIBSQL.Create(nil);
-    Tr := TIBTransaction.Create(nil);
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q.SQL.Text := 'select count(t.RDB$TRIGGER_NAME) as Kolvo FROM RDB$TRIGGERS t ' +
-      ' WHERE((t.RDB$SYSTEM_FLAG = 0) or (t.RDB$SYSTEM_FLAG is NULL)) ' +                                                           //
-      ' AND t.RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ' +
-      ' AND t.RDB$TRIGGER_INACTIVE  = :enableFlag ';
-    q.ParamByName('enableFlag').AsInteger := AEnableFlag;
-    q.ExecQuery;
-
-    LogEvent('======== COUNT' + s + 'TRIGGERS after UPDATE: ' + q.FieldByName('Kolvo').AsString );
     q.Close;
 
     Tr.Commit;
   finally
     q.Free;
+    q2.Free;
     Tr.Free;
   end;
-//==================================== end 
-
 end;
 
-procedure  TgsDBSqueeze.BeforeMigrationPrepareDB;
+procedure TgsDBSqueeze.h_SaveInactivTrig;
+var
+  q, q2: TIBSQL;
+  Tr: TIBTransaction;
 begin
+  Assert(Connected);
+  
+  h_CreateTblForSaveInactivTrig;
+  
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q2.Transaction := Tr;
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT RDB$TRIGGER_NAME ' +
+      'FROM RDB$TRIGGERS ' +
+      'WHERE RDB$TRIGGER_INACTIVE = 1 ' +
+      '  AND RDB$SYSTEM_FLAG IS DISTINCT FROM 1';
+    
+    while not q.EOF do
+    begin
+      q2.SQL.Text := 'INSERT INTO DBS_INACTIV_TRIGGERS ( ' +
+        ' TRIGGER_NAME ) ' +
+        'VALUES ( ' +
+        ':trig_name ) ';
+      q2.ParamByName('trig_name').AsString := q.FieldByName('RDB$TRIGGER_NAME').AsString;
+      q2.ExecQuery;
+	  
+      q.Next;
+    end;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+  end;
+end;
+
+
+function TgsDBSqueeze.h_CreateTblForSaveInactivIndices: Boolean;
+var
+  q, q2: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+
+    q.SQL.Text :=
+      'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
+    q.ParamByName('RN').AsString := 'DBS_INACTIV_INDICES';
+    q.ExecQuery;
+    if q.EOF then
+    begin
+      q2.SQL.Text := 'CREATE TABLE DBS_INACTIV_INDICES ( ' +
+        ' INDEX_NAME     CHAR(31), ' +
+        'PRIMARY KEY (INDEX_NAME)) ';
+      q2.ExecQuery;
+      q2.Close;
+      LogEvent('DBS_INACTIV_INDICES table has been created.');
+      Result := True;
+    end
+    else
+    begin
+      LogEvent('DBS_INACTIV_INDICES table HASN''T been created.');
+      Result := False;
+    end;
+    q.Close;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure TgsDBSqueeze.h_SaveInactivIndices;
+var
+  q, q2: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  h_CreateTblForSaveInactivIndices;
+  
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q2.Transaction := Tr;
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT RDB$INDEX_NAME ' +
+      'FROM RDB$INDICES ' +
+      'WHERE RDB$INDEX_INACTIVE = 1 ' +
+      '  AND RDB$SYSTEM_FLAG IS DISTINCT FROM 1';
+    
+    while not q.EOF do
+    begin
+      q2.SQL.Text := 'INSERT INTO DBS_INACTIV_INDICES ( ' +
+        ' INDEX_NAME ) ' +
+        'VALUES ( ' +
+        ':index_name ) ';
+      q2.ParamByName('index_name').AsString := q.FieldByName('RDB$INDEX_NAME').AsString;
+      q2.ExecQuery;
+	  
+      q.Next;
+    end;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+  end;
+end;
+
+
+procedure TgsDBSqueeze.h_SwitchActivityIndices(const AnActivateIndexFlag: TActivateIndexFlag);
+var
+  q, q2, q3: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  q3 := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q2.Transaction := Tr;
+	q3.Transaction := Tr;
+    
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT i.RDB$INDEX_NAME ' +
+      'FROM RDB$INDICES i ' +
+      'WHERE i.RDB$INDEX_INACTIVE = :index_inactive ' +
+      '  AND i.RDB$SYSTEM_FLAG IS DISTINCT FROM 1';
+    if AnActivateIndexFlag = aiActivate then
+      q.ParamByName('index_inactive').AsInteger := 1
+    else
+      q.ParamByName('index_inactive').AsInteger := 0;
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin	
+      q2.SQL.Text := 'ALTER INDEX ' + q.FieldByName('RDB$INDEX_NAME').AsString;
+      
+      q3.SQL.Text :=
+        'SELECT INDEX_NAME ' +
+        'FROM DBS_INACTIV_INDICES ' +
+        'WHERE INDEX_NAME = :inx_name';
+      q3.ParamByName('inx_name').AsString := q.FieldByName('RDB$INDEX_NAME').AsString;
+      q3.ExecQuery;
+	  
+      if (AnActivateIndexFlag = aiActivate) and (q3.EOF) then
+        q2.SQL.Add('ACTIVE')
+      else
+        q2.SQL.Add('INACTIVE');
+      q2.ExecQuery;
+      
+      if AnActivateIndexFlag = aiActivate then
+        LogEvent('Index ' + q.FieldByName('RDB$INDEX_NAME').AsString + ' activated.')
+      else
+        LogEvent('Index ' + q.FieldByName('RDB$INDEX_NAME').AsString + ' deactivated.');
+      q.Next;
+    end;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+	q3.Free;
+    Tr.Free;
+  end;
+end;
+
+
+
+procedure TgsDBSqueeze.h_SwitchActivityTriggers(const AnActivateIndexFlag: TActivateIndexFlag);
+var
+  q, q2, q3: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+  q3 := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q2.Transaction := Tr;
+	q3.Transaction := Tr;
+    
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT i.RDB$TRIGGER_NAME ' +
+      'FROM RDB$TRIGGERS i ' +
+      'WHERE i.RDB$TRIGGER_INACTIVE = :trig_inactive ' +
+	  '  AND((t.RDB$SYSTEM_FLAG = 0) or (t.RDB$SYSTEM_FLAG is NULL)) ' +                                                            //
+      '  AND t.RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ';
+    if AnActivateIndexFlag = aiActivate then
+      q.ParamByName('trig_inactive').AsInteger := 1
+    else
+      q.ParamByName('trig_inactive').AsInteger := 0;
+    q.ExecQuery;
+
+    while not q.EOF do
+    begin	
+      q2.SQL.Text := 'ALTER TRIGGER ' + q.FieldByName('RDB$TRIGGER_NAME').AsString;
+      
+      q3.SQL.Text :=
+        'SELECT TRIGGER_NAME ' +
+        'FROM DBS_INACTIV_TRIGGERS ' +
+        'WHERE TRIGGER_NAME = :trig_name';
+      q3.ParamByName('trig_name').AsString := q.FieldByName('RDB$TRIGGER_NAME').AsString;
+      q3.ExecQuery;
+	  
+      if (AnActivateIndexFlag = aiActivate) and (q3.EOF) then
+        q2.SQL.Add('ACTIVE')
+      else
+        q2.SQL.Add('INACTIVE');
+      q2.ExecQuery;
+      if AnActivateIndexFlag = aiActivate then
+        LogEvent('Trigger ' + q.FieldByName('RDB$TRIGGER_NAME').AsString + ' activated.')
+      else
+        LogEvent('Trigger ' + q.FieldByName('RDB$TRIGGER_NAME').AsString + ' deactivated.');
+      q.Next;
+    end;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    q3.Free;
+    Tr.Free;
+  end;
+end;
+
+
+
+
+procedure  TgsDBSqueeze.BeforeMigrationPrepareDB;
+var
+  DeactivateIndexFlag: TActivateIndexFlag;
+begin
+  DeactivateIndexFlag := aiDeactivate;
+  h_SaveInactivTrig;
+  h_SaveInactivIndices;
+  h_SaveTypeTbls;
   h_SaveAllConstr;
   h_DeleteAllConstr;
-  h_SwitchActivityIndices(0);
-  h_SwitchActivityTriggers(0);
-
+  h_SwitchActivityIndices(DeactivateIndexFlag);
+  h_SwitchActivityTriggers(DeactivateIndexFlag);
   //...
 end;
 
 procedure TgsDBSqueeze.AfterMigrationPrepareDB;
+var
+  ActivateIndexFlag: TActivateIndexFlag;
 begin
-  h_SwitchActivityIndices(1);
-  h_SwitchActivityTriggers(1);
+  ActivateIndexFlag := aiActivate;
+  h_SwitchActivityIndices(ActivateIndexFlag);
+  h_SwitchActivityTriggers(ActivateIndexFlag);
   h_RecreateAllConstr;
   //...
 end;
@@ -949,114 +1321,6 @@ begin
 end;
 
 
-//AEnableFlag:  0-деактивировать, 1-активировать
-procedure TgsDBSqueeze.h_SwitchActivityIndices(AEnableFlag: Integer);            //c
-var
-  q, q2: TIBSQL;
-  Tr: TIBTransaction;
-  s: String;                                                                     //t
-begin
-  Assert(Connected);
-
-  //==================================== TEST
-  try
-    q := TIBSQL.Create(nil);
-    Tr := TIBTransaction.Create(nil);
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    if (AEnableFlag = 1) then  s := ' DEACTIVATED '
-    else if (AEnableFlag = 0) then  s := ' ACTIVATED ';
-
-    q.Transaction := Tr;
-    q.SQL.Text := 'select count(i.RDB$INDEX_NAME) as Kolvo FROM RDB$INDICES i ' +
-      ' WHERE i.RDB$INDEX_INACTIVE = :enableFlag ' +
-      '   AND i.RDB$SYSTEM_FLAG <> 1';
-    q.ParamByName('enableFlag').AsInteger := AEnableFlag;
-    q.ExecQuery;
-
-    LogEvent('======== COUNT' + s + 'INDICES before UPDATE: ' + q.FieldByName('Kolvo').AsString );
-    q.Close;
-
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-  end;
-//==================================== end
-
-
-  q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q2.Transaction := Tr;
-
-    q.Transaction := Tr;
-    q.SQL.Text :=  'SELECT i.RDB$INDEX_NAME as Index_Name FROM RDB$INDICES i ' +
-      ' WHERE i.RDB$INDEX_INACTIVE = :enableFlag ' +
-      ' AND i.RDB$SYSTEM_FLAG <> 1';
-    q.ParamByName('enableFlag').AsInteger := AEnableFlag;
-    q.ExecQuery;
-
-    while not q.EOF do
-    begin
-      q2.SQL.Text := ' UPDATE RDB$INDICES i ' +
-        ' SET i.RDB$INDEX_INACTIVE =  :flag ' +
-        ' WHERE I.RDB$INDEX_NAME = :index_name ';
-      if AEnableFlag = 0 then
-        q2.ParamByName('flag').AsInteger := 1
-      else if AEnableFlag = 1 then
-        q2.ParamByName('flag').AsInteger := 0;
-
-      q2.ParamByName('index_name').AsString := q.FieldByName('Index_Name').AsString;
-      q2.ExecQuery;
-      q2.Close;
-
-      q.Next;
-    end;
-    Tr.Commit;
-
-    if AEnableFlag = 0 then
-      LogEvent('Deactivation indices ... OK')
-    else if AEnableFlag = 1 then
-      LogEvent('Activation indices ... OK');
-  finally
-    q.Free;
-    q2.Free;
-    Tr.Free;
-  end;
-
-//==================================== TEST
-  try
-    q := TIBSQL.Create(nil);
-    Tr := TIBTransaction.Create(nil);
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q.SQL.Text := 'select count(i.RDB$INDEX_NAME) as Kolvo FROM RDB$INDICES i ' +
-      ' WHERE i.RDB$INDEX_INACTIVE = :enableFlag ' +
-      '   AND i.RDB$SYSTEM_FLAG <> 1';
-
-    q.ParamByName('enableFlag').AsInteger := AEnableFlag;
-    q.ExecQuery;
-
-    LogEvent('======== COUNT' + s + 'INDICES after UPDATE: ' + q.FieldByName('Kolvo').AsString );
-    q.Close;
-
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-  end;
-//==================================== end
-end;
-
 
 
 end.
-
