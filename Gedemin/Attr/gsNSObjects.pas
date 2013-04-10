@@ -28,7 +28,9 @@ type
     destructor Destroy; override;
 
     function GetNSState: TgsNSState;
+    function CheckDBVersion: Boolean;
     procedure FillInfo(S: TStrings);
+    function Valid: Boolean;
   end;
 
   TgsNSList = class(TStringList)
@@ -48,8 +50,8 @@ type
 implementation
 
 uses
-  SysUtils, ComCtrls, gd_common_functions, gd_FileList_unit, yaml_parser,
-  IB, IBSQL, gdcBaseInterface, jclFileUtils;
+  Windows, SysUtils, ComCtrls, gd_common_functions, gd_FileList_unit, yaml_parser,
+  IB, IBSQL, gdcBaseInterface, jclFileUtils, Forms, gd_security;
 
 constructor TgsNSNode.Create(const ARUID: String);
 begin
@@ -93,6 +95,16 @@ begin
     else
       Result := nsEqual;
   end;
+end;
+
+function TgsNSNode.CheckDBVersion: Boolean;
+begin
+  Result :=  TFLItem.CompareVersionStrings(DBVersion, IBLogin.DBVersion) <= 0;
+end;
+
+function TgsNSNode.Valid: Boolean;
+begin
+  Result := FileExists(FileName);
 end;
 
 constructor TgsNSList.Create;
@@ -238,7 +250,8 @@ procedure TgsNSList.GetFilesForPath(Path: String);
                 if Valid(Self.Objects[Ind] as TgsNSNode) then
                   Obj.UsesList.Add(RUID)
                 else
-                  raise Exception.Create('Invalid object "' + (Self.Objects[Ind] as TgsNSNode).Name + '"!');
+                  Application.MessageBox(PChar('Циклическая ссылка, файл ''' + (Self.Objects[Ind] as TgsNSNode).Name + '''!'), 'Внимание',
+                    MB_OK or MB_ICONWARNING);
               end else
               begin
                 Self.AddObject(RUID, TgsNSNode.Create(RUID));
@@ -278,15 +291,26 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
     Temp: TTreeNode;
     I, Ind: Integer;
   begin
-    Temp := ATreeView.Items.AddChildObject(Node, yamlNode.Caption, yamlNode);
-    Temp.StateIndex := 2;
+    if not yamlNode.Valid then
+    begin
+      Application.MessageBox(PChar('Файл (RUID = ' + yamlNode.RUID + ') не найден!'), 'Внимание',
+        MB_OK or MB_ICONWARNING);
+      Temp := ATreeView.Items.AddChildObject(Node, yamlNode.RUID, yamlNode);
+      Temp.StateIndex := 0;
+    end else
+    begin
+      Temp := ATreeView.Items.AddChildObject(Node, yamlNode.Caption, yamlNode);
+      Temp.StateIndex := 2;
+    end;  
 
     for I := 0 to yamlNode.UsesList.Count - 1 do
     begin
       Ind := IndexOf(yamlNode.UsesList[I]);
-      if (Ind = -1) or (not FileExists((Objects[Ind] as TgsNSNode).FileName)) then
-        raise Exception.Create('Файл ' + (Objects[Ind] as TgsNSNode).Name + '(RUID=' + (Objects[Ind] as TgsNSNode).RUID + ') не найден!')
-      else
+      if  Ind = -1 then
+      begin
+        Application.MessageBox(PChar('Файл (RUID = ' + yamlNode.UsesList[I] + ') не найден!'), 'Внимание',
+          MB_OK or MB_ICONWARNING);
+      end else
         AddNode(Temp, Objects[Ind] as TgsNSNode);
     end;
   end;
@@ -345,14 +369,19 @@ var
   NSNode: TgsNSNode;
 begin
   Assert(SL <> nil);
-  
+
   Ind := IndexOf(RUID);
   if Ind > -1 then
   begin
     NSNode := Objects[Ind] as TgsNSNode;
     for I := 0 to NSNode.UsesList.Count - 1 do
       GetAllUses(NSNode.UsesList[I], SL);
-    SL.Add(NSNode.FileName);
+    if not NSNode.Valid then
+    begin
+      Application.MessageBox(PChar('Файл (RUID = ' + NSNode.RUID + ') не найден!'), 'Внимание',
+        MB_OK or MB_ICONWARNING);
+    end else
+      SL.Add(NSNode.FileName);
   end;
 end;
 
