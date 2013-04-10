@@ -990,6 +990,7 @@ begin
     ConnectDatabase;
     Obj := nil;
     WasMetaData := False;
+    TempNamespaceID := -1;
     q.Transaction := Tr;
     q.SQL.Text := 'SELECT * FROM at_object WHERE xid || ''_'' || dbid = :r AND namespacekey = :nk';
     try
@@ -1003,7 +1004,7 @@ begin
         CompanyStorage.SaveToDatabase;
 
       DesktopManager.WriteDesktopData('Последний', True);
-
+      FreeAllForms(False);
       for I := 0 to ANamespaceList.Count - 1 do
       begin
         if LoadNamespace.IndexOf(ANamespaceList[I]) > -1 then
@@ -1207,6 +1208,19 @@ begin
       begin
         if Tr.InTransaction then
           Tr.Rollback;
+        if TempNamespaceID > 0 then
+        begin
+          gdcNamespace := TgdcNamespace.Create(nil);
+          try
+            gdcNamespace.SubSet := 'ByID';
+            gdcNamespace.ID := TempNamespaceID;
+            gdcNamespace.Open;
+            if not gdcNamespace.Eof then
+              gdcNamespace.Delete;
+          finally
+            gdcNamespace.Free;
+          end;
+        end;
         AddMistake(E.Message, clRed);
         raise;
       end;

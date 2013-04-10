@@ -69,8 +69,9 @@ uses
   gd_GlobalParams_unit, gd_security, gdcBaseInterface, IBDatabase,  gd_KeyAssoc;
 
 const
-  TItemColor: array [TgsNSState] of TColor = (clBlack, clBlack, clBlue, clRed, clBlack);
-  TItemFontStyles: array [TgsNSState] of TFontStyles = ([], [fsBold], [], [], []);
+  TItemColor: array [TgsNSState] of TColor = (clBlack, clBlack, clBlack, clGray, clBlack);
+  TItemFontStyles: array [TgsNSState] of TFontStyles = ([], [fsBold], [fsBold], [], []);
+  InvalidFile = clRed;
 
 constructor Tat_dlgLoadNamespacePackages.Create(AnOwner: TComponent);
 begin
@@ -138,7 +139,9 @@ begin
   begin
     if bSel then
     begin
-      if TgsNSNode(Node.Data).Optional = False then
+      if (TgsNSNode(Node.Data).Optional = False)
+        and (TgsNSNode(Node.Data).GetNSState in [nsNotInstalled, nsNewer, nsEqual])
+      then
         Node.StateIndex := 1
     end else
       Node.StateIndex := 2;
@@ -160,11 +163,18 @@ begin
       Node := gsTreeView.GetNodeAt(TWMLButtonDown(Message).XPos, TWMLButtonDown(Message).YPos);
       if Node <> nil then
       begin
-        if Node.StateIndex <> 1 then
-          Node.StateIndex := 1
-        else
-          Node.StateIndex := 2; 
-        SelectAllChild(Node.getFirstChild, Node.StateIndex = 1);
+        case Node.StateIndex of
+          1:
+          begin
+            Node.StateIndex := 2;
+            SelectAllChild(Node.getFirstChild, False);
+          end;
+          2:
+          begin
+            Node.StateIndex := 1;
+            SelectAllChild(Node.getFirstChild, True);
+          end;
+        end; 
       end;
       Old := False;
     end;
@@ -193,8 +203,17 @@ begin
     if cdsSelected in State then
       gsTreeView.Canvas.Font.Color := clWhite
     else
-      gsTreeView.Canvas.Font.Color := TItemColor[TgsNSNode(Node.Data).GetNSState];
-      gsTreeView.Canvas.Font.Style := TItemFontStyles[TgsNSNode(Node.Data).GetNSState];
+      if not TgsNSNode(Node.Data).Valid then
+      begin
+        gsTreeView.Canvas.Font.Color := InvalidFile;
+      end else
+      begin
+        gsTreeView.Canvas.Font.Color := TItemColor[TgsNSNode(Node.Data).GetNSState];
+        gsTreeView.Canvas.Font.Style := TItemFontStyles[TgsNSNode(Node.Data).GetNSState];
+
+        if not TgsNSNode(Node.Data).CheckDBVersion then
+          gsTreeView.Canvas.Font.Style := gsTreeView.Canvas.Font.Style + [fsStrikeOut];
+      end;
 
     DefaultDraw := True;
   end;

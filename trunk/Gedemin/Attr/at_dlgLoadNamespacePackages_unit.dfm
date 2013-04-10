@@ -177,16 +177,28 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
         object lblLegendNotInstalled: TLabel
           Left = 32
           Top = 24
-          Width = 108
+          Width = 125
           Height = 13
           Caption = 'Пакет не установлен'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = [fsBold]
+          ParentFont = False
         end
         object lblLegendNewer: TLabel
           Left = 32
           Top = 40
-          Width = 154
+          Width = 175
           Height = 13
           Caption = 'В файле новая версия пакета '
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = [fsBold]
+          ParentFont = False
         end
         object lblLegendEqual: TLabel
           Left = 32
@@ -208,6 +220,12 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
           Width = 117
           Height = 13
           Caption = 'В файле старая версия'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clGray
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
         end
       end
     end
