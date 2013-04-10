@@ -247,7 +247,7 @@ begin
               QuoteMatched := True;
             end;
           end
-          else if (FReader.PeekChar = '#')  and (FQuoting = qPlain) then
+          else if (FReader.PeekChar = '#')  and (FQuoting = qPlain) and (FStyle = sPlain) then
           begin
             FReader.SkipUntilEOL;
             if EOF or ((FQuoting = qPlain) and (FReader.Indent <= FBlockIndent)) then

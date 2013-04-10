@@ -327,7 +327,7 @@ begin
   begin
     for I := 0 to Count - 1 do
     begin
-      if not (Objects[I] as TgsNSNode).Internal then
+      if (Objects[I] as TgsNSNode).Valid and (not (Objects[I] as TgsNSNode).Internal) then
       begin
         Temp := ATreeView.Items.AddChildObject(nil, (Objects[I] as TgsNSNode).Caption, Objects[I] as TgsNSNode);
         Temp.StateIndex := 2;
@@ -378,8 +378,9 @@ begin
       GetAllUses(NSNode.UsesList[I], SL);
     if not NSNode.Valid then
     begin
-      Application.MessageBox(PChar('Файл (RUID = ' + NSNode.RUID + ') не найден!'), 'Внимание',
-        MB_OK or MB_ICONWARNING);
+      raise Exception.Create('Файл (RUID = ' + NSNode.RUID + ') не найден!');
+     // Application.MessageBox(PChar('Файл (RUID = ' + NSNode.RUID + ') не найден!'), 'Внимание',
+       // MB_OK or MB_ICONWARNING);
     end else
       SL.Add(NSNode.FileName);
   end;
