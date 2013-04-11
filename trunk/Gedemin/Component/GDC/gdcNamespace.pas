@@ -1296,7 +1296,7 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
           Obj.Open;
           if Obj.RecordCount > 0 then
           begin
-            Obj.BaseState := Obj.BaseState + [sLoadNamespace, sLoadFromStream];
+            Obj.BaseState := Obj.BaseState + [sLoadFromStream];
             Obj.Edit;
             Obj.FieldByName((UL[I] as TgdcReferenceUpdate).FieldName).AsInteger := TargetKeyValue;
             Obj.Post;

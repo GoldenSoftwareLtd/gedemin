@@ -243,10 +243,9 @@ type
     sSkipMultiple,   // идет обработка нескольких записей и пользователь выбрал пропуск
                      // проблемных записей. Имеет смысл только в совокупности с
                      // флагом sMultiple
-    sAskMultiple,    // идет обработка нескольких записей и пользователя необходимо
+    sAskMultiple     // идет обработка нескольких записей и пользователя необходимо
                      // спросить в случае позникновения проблем. Имеет смысл только
                      // в совокупности с флагом sMultiple
-    sLoadNamespace   // идет загрузка пространства имен
   );
   TgdcStates = set of TgdcState;
 
@@ -14675,7 +14674,7 @@ begin
       begin
         CDS := TClientDataSet.Create(nil);
         try
-          if Modify and (([sLoadFromStream, sLoadNamespace] * BaseState) <> []) then
+          if Modify and (sLoadFromStream in BaseState) then
           begin
             for I := 0 to FieldDefs.Count - 1 do
             begin
@@ -14713,17 +14712,11 @@ begin
 
           if Modify and
             (
-              (
-                ModifyFromStream
-                and
-                (sLoadFromStream in BaseState)
-                and
-                CheckNeedModify(CDS, nil)
-              )
-              or
-              (
-                sLoadNamespace in BaseState
-              )
+              ModifyFromStream
+              and
+              (sLoadFromStream in BaseState)
+              and
+              CheckNeedModify(CDS, nil)
             ) then
           begin
             try
