@@ -98,13 +98,7 @@ begin
   Result := tUndefined;
   FStyle := sPlain;
   while (Result = tUndefined) and (not EOF) do
-  begin
-    if FReader.PeekChar = '#' then
-    begin
-      FReader.SkipUntilEOL;
-      continue;
-    end;
-
+  begin  
     FLine := FReader.Line;
     FIndent := FReader.Indent;
 
@@ -141,6 +135,11 @@ begin
           Result := tDocumentEnd;
         end else
           case FReader.PeekChar of
+            '#':
+            begin
+              FReader.SkipUntilEOL;
+              continue;
+            end;
             '-':
             begin
               if FReader.PeekChar(1) in [#32, #13, #10] then
