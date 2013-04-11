@@ -53,9 +53,6 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       object TBItem12: TTBItem
         Action = actSet2NSAll
       end
-      object TBItem13: TTBItem
-        Action = actSetScanDir
-      end
     end
     inherited tbMainMenu: TTBToolbar
       inherited tbsiMainMenuObject: TTBSubmenuItem
@@ -520,16 +517,12 @@ inherited gdc_frmSetting: Tgdc_frmSetting
       OnUpdate = actSet2TxtUpdate
     end
     object actSet2NS: TAction
-      Caption = 'NS'
+      Caption = 'Set2NS'
       OnExecute = actSet2NSExecute
     end
     object actSet2NSAll: TAction
-      Caption = 'NSAll'
+      Caption = 'AllSet2NS'
       OnExecute = actSet2NSAllExecute
-    end
-    object actSetScanDir: TAction
-      Caption = 'ScanDir'
-      OnExecute = actSetScanDirExecute
     end
   end
   inherited dsMain: TDataSource

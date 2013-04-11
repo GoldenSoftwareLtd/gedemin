@@ -4383,6 +4383,8 @@ end;
 
 procedure TatBodyPrimaryKey.RefreshData(ibsql: TIBSQL);
 begin
+  Assert(ibsql <> nil);
+
   if AnsiCompareText(ibsql.FieldByName('RDB$CONSTRAINT_NAME').AsTrimString,
     FConstraintName) <> 0
   then
@@ -4411,10 +4413,13 @@ begin
     ibsql.Next;
   end;
 
-  if Assigned(FRelation) and (ConstraintFields.Count > 0) then
-    TatBodyRelation(FRelation).FPrimaryKey := Self
-  else
-    TatBodyRelation(FRelation).FPrimaryKey := nil;
+  if FRelation is TatBodyRelation then
+  begin
+    if (ConstraintFields.Count > 0) then
+      TatBodyRelation(FRelation).FPrimaryKey := Self
+    else
+      TatBodyRelation(FRelation).FPrimaryKey := nil;
+  end;    
 end;
 
 procedure TatBodyPrimaryKey.LoadFromStream(S: TStream);
