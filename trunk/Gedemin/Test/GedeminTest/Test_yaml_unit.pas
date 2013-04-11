@@ -264,6 +264,18 @@ begin
       Check(Scanner.Scalar = 'x');
       Check(Scanner.Quoting = qPlain);
 
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'k');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'test'+ #13#10 + '#.##.#');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'l');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'test #.##.#');
+      Check(Scanner.Quoting = qPlain);
+
       Check(Scanner.GetNextToken = tDocumentStart);
 
       Check(Scanner.GetNextToken = tSequenceStart);
