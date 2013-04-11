@@ -963,7 +963,7 @@ var
   M, ObjMapping: TyamlMapping;
   N: TyamlNode;
   RUID, HeadRUID: String;
-  WasMetaData: Boolean;
+  WasMetaData, WasMetaDataInSetting: Boolean;
   LoadClassName, LoadSubType: String;
   C: TClass;
   ObjList: TStringList;
@@ -974,6 +974,8 @@ var
   q: TIBSQL;
   CurrID: Integer;
 begin
+  Assert(atDatabase <> nil, 'Не загружена atDatabase');
+  
   LoadNamespace:= TStringlist.Create;
   LoadObjectsRUID := TStringList.Create;
   CurrObjectsRUID := TStringList.Create;
@@ -990,6 +992,7 @@ begin
     ConnectDatabase;
     Obj := nil;
     WasMetaData := False;
+    WasMetaDataInSetting := True;
     TempNamespaceID := -1;
     q.Transaction := Tr;
     q.SQL.Text := 'SELECT * FROM at_object WHERE xid || ''_'' || dbid = :r AND namespacekey = :nk';
@@ -1006,7 +1009,7 @@ begin
       DesktopManager.WriteDesktopData('Последний', True);
       FreeAllForms(False);
       for I := 0 to ANamespaceList.Count - 1 do
-      begin
+      begin          
         if LoadNamespace.IndexOf(ANamespaceList[I]) > -1 then
           continue;
 
@@ -1024,6 +1027,13 @@ begin
             and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
             and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
           begin
+            if WasMetaDataInSetting then
+            begin
+              atDataBase.ProceedLoading(True);
+              WasMetaDataInSetting := False;
+            end;
+            atDatabase.SyncIndicesAndTriggers(Tr);
+            
             M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
             RUID := M.ReadString('Properties\RUID');
 
@@ -1075,6 +1085,7 @@ begin
                   if (CgdcBase(C).InheritsFrom(TgdcMetaBase)) then
                   begin
                     WasMetaData := True;
+                    WasMetaDataInSetting := True;
                   end else
                   begin
                     if WasMetaData then
@@ -1111,6 +1122,7 @@ begin
                   end;
 
                   LoadObject(Obj, ObjMapping, UpdateList, Tr);
+
                   LoadObjectsRUID.Add(RUIDToStr(Obj.GetRUID));
 
                   if (Obj is TgdcRelationField) then
@@ -1193,7 +1205,7 @@ begin
               gdcNamespace.Free;
             end;
 
-            LoadNamespace.Add(ANamespaceList[I]);
+            LoadNamespace.Add(ANamespaceList[I]); 
 
             RunMultiConnection;
           end;
@@ -1248,8 +1260,7 @@ begin
 
       for I := 0 to ObjList.Count - 1 do
         ObjList.Objects[I].Free;
-      ObjList.Free;
-      Tr.Free;
+      ObjList.Free; 
     end;
   end;
 end;
@@ -1597,7 +1608,7 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
     end;
   end;
 
-  procedure LoadSet(AValue: TyamlMapping; AnID: Integer; ATransaction: TIBTransaction);
+  procedure LoadSet(AValue: TyamlMapping; AnID: Integer);
   var
     RN: String;
     J: Integer;
@@ -1605,10 +1616,11 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
     R: TatRelation;
     N: TyamlNode;
     ID: Integer;
+    Pr: TatPrimaryKey;
   begin
     q := TIBSQL.Create(nil);
     try
-      q.Transaction := ATransaction;
+      q.Transaction := ATr;
 
       RN := AValue.ReadString('Table');
       if RN <> '' then
@@ -1617,16 +1629,26 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
         if (N <> nil) and (N is TyamlSequence) then
         begin
           R := atDatabase.Relations.ByRelationName(RN);
-          if Assigned(R) then
+          Pr := R.PrimaryKey;
+
+          if not Assigned(Pr) then
           begin
-            q.SQL.Text := 'DELETE FROM ' + RN + ' WHERE ' + R.PrimaryKey.ConstraintFields[0].FieldName + ' = :id';
+            R.RefreshData(ATr.DefaultDatabase, ATr, True);
+            R.RefreshConstraints(ATr.DefaultDatabase, ATr);
+
+            Pr := R.PrimaryKey;
+          end;
+
+          if Assigned(Pr) then
+          begin
+            q.SQL.Text := 'DELETE FROM ' + RN + ' WHERE ' + Pr.ConstraintFields[0].FieldName + ' = :id';
 
             q.ParamByName('id').AsInteger := AnID;
             q.ExecQuery;
             q.Close;
 
-            q.SQl.Text := 'INSERT INTO ' + RN + '(' + R.PrimaryKey.ConstraintFields[0].FieldName +
-              ', ' + R.PrimaryKey.ConstraintFields[1].FieldName + ') VALUES(:id1, :id2)';
+            q.SQl.Text := 'INSERT INTO ' + RN + '(' + Pr.ConstraintFields[0].FieldName +
+              ', ' + Pr.ConstraintFields[1].FieldName + ') VALUES(:id1, :id2)';
 
             with N as TyamlSequence do
             begin
@@ -1635,7 +1657,7 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
                 if not (Items[J] is TyamlScalar) then
                   raise Exception.Create('Invalid data!');
 
-                ID := gdcBaseManager.GetIDByRUIDString((Items[J] as TyamlScalar).AsString, ATransaction);
+                ID := gdcBaseManager.GetIDByRUIDString((Items[J] as TyamlScalar).AsString, ATr);
                 if ID > 0 then
                 begin
                   q.ParamByName('id1').AsInteger := AnID;
@@ -1643,11 +1665,11 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
                   q.ExecQuery;
                   q.Close;
                 end else
-                  raise Exception.Create('Id not found! Error load set!');
+                  AddWarning(#13#10 + 'Запись в таблицу ' + RN + ' не добавлена!'#13#10, clRed);
               end;
             end;
           end else
-            raise Exception.Create('Table ''' +  RN + ''' not found in databese!');
+             AddWarning(#13#10 + 'Данные множества ' + RN + ' не были добавлены!'#13#10, clRed);
         end;
       end;
     finally
@@ -1746,7 +1768,7 @@ begin
           with N as TyamlSequence do
           begin
             for J := 0 to Count - 1 do
-              LoadSet(Items[J] as TyamlMapping, AnObj.ID, ATr);
+              LoadSet(Items[J] as TyamlMapping, AnObj.ID);
           end;
         end;
       finally
