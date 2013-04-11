@@ -371,9 +371,7 @@ begin
 
                 AWriter.StartNewLine;
                 AWriter.WriteKey(F.FieldName);
-                AWriter.WriteString(gdcBaseManager.GetRUIDStringByID(F.AsInteger, AgdcObject.Transaction));
-                AWriter.WriteChar(' ');
-                AWriter.WriteText(FN, qSingleQuoted);
+                AWriter.WriteText(gdcBaseManager.GetRUIDStringByID(F.AsInteger, AgdcObject.Transaction) + ' ' + QuotedStr(FN), qSingleQuoted); 
                 continue;
               end;
             end;
@@ -1037,7 +1035,7 @@ begin
             M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
             RUID := M.ReadString('Properties\RUID');
 
-
+            AddText('Ќачата загрузка пространства имен ' + M.ReadString('Properties\Name'), clBlack);
             gdcNamespace := TgdcNamespace.Create(nil);
             try
               gdcNamespace.Transaction := Tr;
@@ -1224,6 +1222,7 @@ begin
             LoadNamespace.Add(ANamespaceList[I]); 
 
             RunMultiConnection;
+            AddText('«акончена загрузка пространства имен ' + M.ReadString('Properties\Name'), clBlack);
           end;
         finally
           Parser.Free;
@@ -2116,9 +2115,7 @@ begin
       begin
         W.StartNewLine;
         W.WriteSequenceIndicator;
-        W.WriteString(q.FieldByName('ruid').AsString);
-        W.WriteChar(' ');
-        W.WriteText(q.FieldByName('name').AsString, qSingleQuoted);
+        W.WriteText(q.FieldByName('ruid').AsString + ' ' + QuotedStr(q.FieldByName('name').AsString), qSingleQuoted);
         q.Next;
       end;
       W.DecIndent;

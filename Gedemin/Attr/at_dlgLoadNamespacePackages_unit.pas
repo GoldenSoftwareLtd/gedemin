@@ -102,9 +102,7 @@ begin
       else
         SL.Add(TgsNSNode(gsTreeView.Items[I].Data).FileName);
     end;
-  end;
-
-  mInfo.Text := SL.Text;
+  end;  
 end;
 
 procedure Tat_dlgLoadNamespacePackages.actSearchExecute(Sender: TObject);
