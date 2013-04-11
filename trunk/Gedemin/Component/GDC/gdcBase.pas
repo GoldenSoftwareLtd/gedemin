@@ -3165,6 +3165,7 @@ begin
   {END MACRO}
 
   inherited;
+
   if FOldValues <> nil then
     FOldValues.Clear;
 
@@ -16836,10 +16837,7 @@ begin
         if ((FOldValues[I] as TFieldValue).Value = Field.AsString) and
           ((FOldValues[I] as TFieldValue).IsNull = Field.IsNull) then
         begin
-          if FOldValues.Count = 1 then
-            FreeAndNil(FOldValues)
-          else
-            FOldValues.Delete(I);
+          FOldValues.Delete(I);
           { TODO : это под большим вопросом! }
           FDSModified := True;
         end;
