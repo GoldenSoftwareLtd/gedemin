@@ -957,20 +957,20 @@ var
   LoadObjectsRUID: TStringList;
   CurrObjectsRUID: TStringList;
   Parser: TyamlParser;
-  I, J, Ind: Integer;
+  I, J, Ind, K: Integer;
   gdcNamespace: TgdcNamespace;
   TempNamespaceID: Integer;
   M, ObjMapping: TyamlMapping;
   N: TyamlNode;
   RUID, HeadRUID: String;
-  WasMetaData, WasMetaDataInSetting: Boolean;
+  WasMetaData, WasMetaDataInSetting, SubTypeFound: Boolean;
   LoadClassName, LoadSubType: String;
   C: TClass;
   ObjList: TStringList;
   Obj: TgdcBase;
   gdcNamespaceObj: TgdcNamespaceObject;
   UpdateList: TObjectList;
-  UpdateHeadList: TStringList;
+  UpdateHeadList, SubTypes: TStringList;
   q: TIBSQL;
   CurrID: Integer;
 begin
@@ -1093,6 +1093,8 @@ begin
                     WasMetaData := False;
                   end;
 
+                  RunMultiConnection;
+
                   if (Obj = nil)
                     or (Obj.ClassType <> C)
                     or (LoadSubType <> Obj.SubType) then
@@ -1100,6 +1102,27 @@ begin
                     Ind := ObjList.IndexOf(LoadClassName + '('+ LoadSubType + ')');
                     if Ind = -1 then
                     begin
+                      if LoadSubType > '' then
+                      begin
+                        SubTypes := TStringList.Create;
+                        try
+                          CgdcBase(C).GetSubTypeList(SubTypes);
+                          SubTypeFound := False;
+                          for K := 0 to SubTypes.Count - 1 do
+                          begin
+                            if Pos('=' + LoadSubType + '^', SubTypes[K] + '^') > 0 then
+                            begin
+                              SubTypeFound := True;
+                              break;
+                            end;
+                          end;
+                          if not SubTypeFound then
+                            ReconnectDatabase;
+                        finally
+                          SubTypes.Free;
+                        end;
+                      end;
+
                       Obj := CgdcBase(C).CreateWithParams(nil,
                         Tr.DefaultDatabase, Tr, LoadSubType);
                       Obj.ReadTransaction := Tr;
@@ -1110,16 +1133,9 @@ begin
                       Obj := TgdcBase(ObjList.Objects[Ind]);
                   end;
 
-                  RunMultiConnection;
-
-                  try
-                    if Obj.SubSet <> 'ByID' then
-                      Obj.SubSet := 'ByID';
-                    Obj.Open;
-                  except
-                    ReconnectDatabase;
-                    Obj.Open;
-                  end;
+                  if Obj.SubSet <> 'ByID' then
+                    Obj.SubSet := 'ByID';
+                  Obj.Open;
 
                   LoadObject(Obj, ObjMapping, UpdateList, Tr);
 
@@ -1128,7 +1144,7 @@ begin
                   if (Obj is TgdcRelationField) then
                     RelName := Obj.FieldByName('relationname').AsString
                   else
-                    RelName := '';  
+                    RelName := '';
 
                   gdcNamespaceObj :=  TgdcNamespaceObject.Create(nil);
                   try

@@ -98,8 +98,6 @@ type
     TBItem11: TTBItem;
     actSet2NSAll: TAction;
     TBItem12: TTBItem;
-    actSetScanDir: TAction;
-    TBItem13: TTBItem;
     procedure FormCreate(Sender: TObject);
     procedure actDetailNewExecute(Sender: TObject);
     procedure actSetActiveExecute(Sender: TObject);
@@ -155,7 +153,6 @@ type
     procedure ibgrDetailDblClick(Sender: TObject);
     procedure actSet2NSExecute(Sender: TObject);
     procedure actSet2NSAllExecute(Sender: TObject);
-    procedure actSetScanDirExecute(Sender: TObject);
 
   private
     FFieldStorageOrigin: TStringList;
@@ -1719,43 +1716,6 @@ begin
   finally
     q.Free;
     Tr.Free;
-  end;
-end;
-
-procedure Tgdc_frmSetting.actSetScanDirExecute(Sender: TObject);
-var
-  Dir: String;
-  SL: TStringList;
-  Obj: TgdcSetting;
-begin
-  Obj := TgdcSetting.Create(nil);
-  SL := TStringList.Create;
-  try
-    if SelectDirectory(Dir, [], 0) and AdvBuildFileList(IncludeTrailingBackslash(Dir) + '*.*',
-      faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
-    begin
-      while SL.Count > 0 do
-      begin
-        if (AnsiCompareText(ExtractFileExt(SL[0]), '.gsf') = 0) or
-          (AnsiCompareText(ExtractFileExt(SL[0]), '.xml') = 0) then
-        begin
-          try
-            Obj.Open;
-            Obj.LoadFromFile(SL[0]);
-            Obj.Close;
-          except
-            Obj.Close;
-            if SL.Count = 1 then
-              break;
-            SL.Add(SL[0]);
-          end;
-        end;
-        SL.Delete(0);
-      end;
-    end;
-  finally
-    SL.Free;
-    Obj.Free;
   end;
 end;
 

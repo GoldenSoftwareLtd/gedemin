@@ -1047,7 +1047,7 @@ begin
       begin
         for I := 0 to SL.Count - 1 do
         begin
-          if Pos('=' + ASubType, SL[I]) > 0 then
+          if Pos('=' + ASubType + '^', SL[I] + '^') > 0 then
           begin
             Result := True;
             exit;

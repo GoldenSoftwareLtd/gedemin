@@ -1,6 +1,8 @@
 program gsDBSqueeze;
 
 uses
+  FastMM4,
+  FastMove,
   Forms,
   gsDBSqueeze_MainForm_unit,
   gsDBSqueeze_unit in 'gsDBSqueeze_unit.pas',
