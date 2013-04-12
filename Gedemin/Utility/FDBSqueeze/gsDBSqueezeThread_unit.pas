@@ -120,6 +120,8 @@ begin
       FDBS.Connect;
       FDBS.BeforeMigrationPrepareDB;
 
+      FDBS.Delete;
+
       FConnected.Value := 1;
       Log('connected');
       Result := True;
