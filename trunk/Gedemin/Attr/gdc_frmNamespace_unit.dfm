@@ -94,27 +94,37 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
   end
   inherited alMain: TActionList
     object actSetObjectPos: TAction
-      Caption = 'actSetObjectPos'
+      Caption = 'Установить очередность объектов'
+      Hint = 'Установить очередность объектов'
+      ImageIndex = 206
       OnExecute = actSetObjectPosExecute
       OnUpdate = actSetObjectPosUpdate
     end
     object actCompareWithData: TAction
-      Caption = 'actCompareWithData'
+      Caption = 'Сравнить с файлом'
+      Hint = 'Сравнить с файлом'
+      ImageIndex = 131
       OnExecute = actCompareWithDataExecute
       OnUpdate = actCompareWithDataUpdate
     end
     object actShowDuplicates: TAction
-      Caption = 'actShowDuplicates'
+      Caption = 'Показать дубликаты'
+      Hint = 'Показать дубликаты'
+      ImageIndex = 100
       OnExecute = actShowDuplicatesExecute
       OnUpdate = actShowDuplicatesUpdate
     end
     object actShowRecursion: TAction
-      Caption = 'actShowRecursion'
+      Caption = 'Показать рекурсивные зависимости'
+      Hint = 'Показать рекурсивные зависимости'
+      ImageIndex = 203
       OnExecute = actShowRecursionExecute
       OnUpdate = actShowRecursionUpdate
     end
     object actLoadPack: TAction
-      Caption = 'actLoadPack'
+      Caption = 'Установить пакеты'
+      Hint = 'Установить пакеты'
+      ImageIndex = 80
       OnExecute = actLoadPackExecute
     end
   end
