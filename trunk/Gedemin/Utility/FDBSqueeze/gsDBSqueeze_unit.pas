@@ -3,7 +3,7 @@ unit gsDBSqueeze_unit;
 interface
 
 uses
-  IB, IBDatabase, IBSQL, UNIT;
+  IB, IBDatabase, IBSQL, Classes;
 
 type
   TOnLogEvent = procedure(const S: String) of object;
