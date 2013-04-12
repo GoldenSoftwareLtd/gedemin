@@ -68,7 +68,7 @@ uses
   gd_localization_stub,
   {$ENDIF}
 
-  IBSQL;
+  IBSQL, gsNSObjects, gdcNamespace;
 
 {$R *.DFM}
 
@@ -407,6 +407,9 @@ var
   i: Integer;
   gdcSetting: TgdcSetting;
   isFound: Boolean;
+  NSList: TgsNSList;
+  SL: TStringList;
+  gdcNamespace: TgdcNamespace;
 begin
   if (LoadSettingFileName > '') then
     if
@@ -415,51 +418,81 @@ begin
      FileExists(LoadSettingFileName) and
      DirectoryExists(LoadSettingPath) then
     begin
-      gdcSetting := TgdcSetting.Create(nil);
-      gdcSetting.Subset := 'ByID';
-      AllGSFList := TGSFList.Create;
-      try
-        AllGSFList.gdcSetts := gdcSetting;
-        AllGSFList.isYesToAll := True;           // YesToAll на запросы
-        AllGSFList.GetFilesForPath({ExtractFilePath(}LoadSettingPath{)});
-        AllGSFList.LoadPackageInfo;
-
-        isFound := False;
-        for i := 0 to AllGSFList.Count-1 do
-          if ( AnsiCompareText((AllGSFList.Objects[i] as TGSFHeader).FilePath, ExtractFilePath(LoadSettingFileName)) = 0 ) and
-             ( AnsiCompareText((AllGSFList.Objects[i] as TGSFHeader).FileName, ExtractFileName(LoadSettingFileName)) = 0 ) then
+      if ExtractFileExt(LoadSettingFileName) = '.yml' then
+      begin
+        NSList := TgsNSList.Create;
+        try
+          isFound := False;
+          NSList.GetFilesForPath(LoadSettingPath);
+          for I := 0 to NSList.Count - 1 do
+            if (AnsiCompareText((NSList.Objects[I] as TgsNSNode).FileName, LoadSettingFileName) = 0) then
+            begin
+              isFound := True;
+              break;
+            end;
+          if isFound then
           begin
-            isFound := True;
-            Break;
+            SL := TStringList.Create;
+            gdcNamespace := TgdcNamespace.Create(nil);
+            try
+              NSList.GetAllUses((NSList.Objects[I] as TgsNSNode).RUID, SL);
+              gdcNamespace.InstallPackages(SL);
+            finally
+              SL.Free;
+              gdcNamespace.Free;
+            end;
           end;
-        if isFound then      // пакет найден
-        begin
-          if (AllGSFList.Objects[i] as TGSFHeader).FullCorrect then  // и корректен
-          begin
-            AllGSFList.InstallPackage(i, True);
-            AllGSFList.ActivatePackages;
-            LoadSettingFileName := ''; // иначе после переподключения снова начнет устанавливать
-          end else
-          with (AllGSFList.Objects[i] as TGSFHeader) do
-          begin
-            if not CorrectPack then
-              MessageBox(0, 'Пакет некорректен!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL) else
-            if avNotApprEXEVersion in ApprVersion then
-              MessageBox(0, 'Пакет не подходит по версии исполняемого модуля!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL) else
-            if avNotApprDBVersion in ApprVersion then
-              MessageBox(0, 'Пакет не подходит по версии базы данных!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL) else
-          end
-        end
-        else begin
-          MessageBox(0,
-            PChar('Пакет "' + LoadSettingFileName + '" не найден!'),
-            'Гедымин',
-            MB_OK or MB_ICONERROR or MB_TASKMODAL);
+        finally
+          NSList.Free;
         end;
+      end else
+      begin
+        gdcSetting := TgdcSetting.Create(nil);
+        gdcSetting.Subset := 'ByID';
+        AllGSFList := TGSFList.Create;
+        try
+          AllGSFList.gdcSetts := gdcSetting;
+          AllGSFList.isYesToAll := True;           // YesToAll на запросы
+          AllGSFList.GetFilesForPath({ExtractFilePath(}LoadSettingPath{)});
+          AllGSFList.LoadPackageInfo;
 
-      finally
-        AllGSFList.Free;
-        gdcSetting.Free;
+          isFound := False;
+          for i := 0 to AllGSFList.Count-1 do
+            if ( AnsiCompareText((AllGSFList.Objects[i] as TGSFHeader).FilePath, ExtractFilePath(LoadSettingFileName)) = 0 ) and
+               ( AnsiCompareText((AllGSFList.Objects[i] as TGSFHeader).FileName, ExtractFileName(LoadSettingFileName)) = 0 ) then
+            begin
+              isFound := True;
+              Break;
+            end;
+          if isFound then      // пакет найден
+          begin
+            if (AllGSFList.Objects[i] as TGSFHeader).FullCorrect then  // и корректен
+            begin
+              AllGSFList.InstallPackage(i, True);
+              AllGSFList.ActivatePackages;
+              LoadSettingFileName := ''; // иначе после переподключения снова начнет устанавливать
+            end else
+            with (AllGSFList.Objects[i] as TGSFHeader) do
+            begin
+              if not CorrectPack then
+                MessageBox(0, 'Пакет некорректен!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL) else
+              if avNotApprEXEVersion in ApprVersion then
+                MessageBox(0, 'Пакет не подходит по версии исполняемого модуля!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL) else
+              if avNotApprDBVersion in ApprVersion then
+                MessageBox(0, 'Пакет не подходит по версии базы данных!', 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL) else
+            end
+          end
+          else begin
+            MessageBox(0,
+              PChar('Пакет "' + LoadSettingFileName + '" не найден!'),
+              'Гедымин',
+              MB_OK or MB_ICONERROR or MB_TASKMODAL);
+          end;
+
+        finally
+          AllGSFList.Free;
+          gdcSetting.Free;
+        end;
       end;
 
       Application.Terminate;

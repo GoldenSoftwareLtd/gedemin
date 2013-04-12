@@ -11,7 +11,7 @@ uses
 type
   TgdcNamespace = class(TgdcBase)
   private
-    procedure CheckIncludesiblings; 
+    procedure CheckIncludesiblings;
   protected
     function GetOrderClause: String; override;
     procedure _DoOnNewRecord; override;
@@ -37,7 +37,7 @@ type
 
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList; const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1; ADontRemove: Integer = 0; AnIncludeSiblings: Integer = 0);
     procedure DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
-    procedure InstallPackages;
+    procedure InstallPackages(ANSList: TStringList; const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
     procedure SaveNamespaceToStream(St: TStream);
@@ -57,6 +57,9 @@ type
     class function GetSubSetList: String; override;
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
+
+  function GetReferenceStr(const ARUID: String; const AName: String): String;
+  procedure GetReferenceParams(const AStr: String; out ARUID: String; out AName: String);
 
   procedure Register;
 
@@ -93,6 +96,27 @@ type
 procedure Register;
 begin
   RegisterComponents('gdcNamespace', [TgdcNamespace, TgdcNamespaceObject]);
+end;
+
+function GetReferenceStr(const ARUID: String; const AName: String): String;
+begin
+  Result := ARUID + ' ' + AName;
+end;
+
+procedure GetReferenceParams(const AStr: String; out ARUID: String; out AName: String);
+var
+  P: Integer;
+begin
+  P := Pos(' ', AStr);
+  if P > 0 then
+  begin
+    ARUID := System.Copy(AStr, 1, P - 1);
+    AName := System.Copy(AStr, P + 1, MaxInt);
+  end else
+  begin
+    ARUID := '';
+    AName := '';
+  end; 
 end;
 
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
@@ -371,7 +395,7 @@ begin
 
                 AWriter.StartNewLine;
                 AWriter.WriteKey(F.FieldName);
-                AWriter.WriteText(gdcBaseManager.GetRUIDStringByID(F.AsInteger, AgdcObject.Transaction) + ' ' + QuotedStr(FN), qSingleQuoted); 
+                AWriter.WriteText(GetReferenceStr(gdcBaseManager.GetRUIDStringByID(F.AsInteger, AgdcObject.Transaction),FN), qSingleQuoted);
                 continue;
               end;
             end;
@@ -2115,7 +2139,7 @@ begin
       begin
         W.StartNewLine;
         W.WriteSequenceIndicator;
-        W.WriteText(q.FieldByName('ruid').AsString + ' ' + QuotedStr(q.FieldByName('name').AsString), qSingleQuoted);
+        W.WriteText(GetReferenceStr(q.FieldByName('ruid').AsString, q.FieldByName('name').AsString), qSingleQuoted);
         q.Next;
       end;
       W.DecIndent;
@@ -2333,31 +2357,39 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.InstallPackages;
+procedure TgdcNamespace.InstallPackages(ANSList: TStringList; const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
 var
-  SL: TStringList;
-  AlwaysOverwrite, DontRemove: Boolean;
+  AlwaysOverwrite, DontRemove, NSListCreated: Boolean;
 begin
-  AlwaysOverwrite := False;
-  DontRemove := False;
-  SL := TStringList.Create;
+  AlwaysOverwrite := AnAlwaysoverwrite;
+  DontRemove := ADontremove;
+  if ANSList = nil then
+  begin
+    ANSList := TStringList.Create;
+    NSListCreated := True;
+  end else
+    NSListCreated := False;
   try
-    with Tat_dlgLoadNamespacePackages.Create(nil) do
-    try
-      if ShowModal = mrOk then
-      begin
-        SetFileList(SL);
-        AlwaysOverwrite := cbAlwaysOverwrite.Checked;
-        DontRemove := cbDontRemove.Checked;
+    if NSListCreated then
+    begin
+      with Tat_dlgLoadNamespacePackages.Create(nil) do
+      try
+        if ShowModal = mrOk then
+        begin
+          SetFileList(ANSList);
+          AlwaysOverwrite := cbAlwaysOverwrite.Checked;
+          DontRemove := cbDontRemove.Checked;
+        end;
+      finally
+        Free;
       end;
-    finally
-      Free;
     end;
 
-    if SL.Count > 0 then
-      DoLoadNamespace(SL, AlwaysOverwrite, DontRemove);
+    if ANSList.Count > 0 then
+      DoLoadNamespace(ANSList, AlwaysOverwrite, DontRemove);
   finally
-    SL.Free;
+    if NSListCreated then
+      ANSList.Free;
   end;
 end;
 
