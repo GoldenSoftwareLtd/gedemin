@@ -855,13 +855,12 @@ var
                   StrToRUID(RUID).DBID,
                   Now, IBLogin.ContactKey, Tr);
               end;
-
-              q.Close;
-              q.ParamByName('nk').AsInteger := Namespacekey;
-              q.ParamByName('uk').AsInteger := gdcNamespace.ID;
-              q.ExecQuery;
             end;
-          end;
+            q.Close;
+            q.ParamByName('nk').AsInteger := Namespacekey;
+            q.ParamByName('uk').AsInteger := gdcNamespace.ID;
+            q.ExecQuery;
+          end
         end;
       finally
         gdcNamespace.Free;
@@ -2128,15 +2127,18 @@ begin
     q.Close;
     q.SQL.Text := 'SELECT xid || ''_'' || dbid as ruid FROM at_object WHERE id = :id';
 
-    W.WriteKey('Objects');
-    W.IncIndent;
-
     CheckIncludesiblings;
     Obj := TgdcNamespaceObject.Create(nil);
     try
       Obj.SubSet := 'ByNamespace';
       Obj.ParamByName('namespacekey').AsInteger := Self.ID;
       Obj.Open;
+
+      if not Obj.Eof then
+      begin
+        W.WriteKey('Objects');
+        W.IncIndent;
+      end;
       while not Obj.Eof do
       begin
         InstID := gdcBaseManager.GetIDByRUID(Obj.FieldByName('xid').AsInteger,
