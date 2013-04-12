@@ -108,15 +108,20 @@ var
   P: Integer;
 begin
   P := Pos(' ', AStr);
-  if P > 0 then
+  if (P = 0) and (Trim(AStr) <> '') then
   begin
-    ARUID := System.Copy(AStr, 1, P - 1);
-    AName := System.Copy(AStr, P + 1, MaxInt);
-  end else
-  begin
-    ARUID := '';
+    ARUID := AStr;
     AName := '';
-  end; 
+  end else
+    if P > 0 then
+    begin
+      ARUID := System.Copy(AStr, 1, P - 1);
+      AName := System.Copy(AStr, P + 1, MaxInt);
+    end else
+    begin
+      ARUID := '';
+      AName := '';
+    end;
 end;
 
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
@@ -805,7 +810,7 @@ var
 
   procedure CheckUses(Seq: TyamlSequence; Namespacekey: Integer);
   var
-    I, J: Integer;
+    I: Integer;
     gdcNamespace: TgdcNamespace;
     Temps, RUID: String;
     q: TIBSQL;
@@ -825,16 +830,7 @@ var
         gdcNamespace.SubSet := 'ByID';
         for I := 0 to Seq.Count - 1 do
         begin
-          Temps := (Seq[I] as TyamlString).AsString;
-          RUID := '';
-          for J := 1 to Length(Temps) do
-          begin
-            if Temps[J] in ['0'..'9', '_'] then
-              RUID := RUID + Temps[J]
-            else
-              break;
-          end;
-
+          GetReferenceParams((Seq[I] as TyamlString).AsString, RUID, Temps); 
           if CheckRUID(RUID) then
           begin
             gdcNamespace.Close;
@@ -844,7 +840,7 @@ var
             begin
               gdcBaseManager.DeleteRUIDbyXID(StrToRUID(RUID).XID, StrToRUID(RUID).DBID, Tr);
               gdcNamespace.Insert;
-              gdcNamespace.FieldByName('name').AsString := System.Copy(Temps, J + 1, Length(Temps));
+              gdcNamespace.FieldByName('name').AsString := Temps;
               gdcNamespace.FieldByName('settingruid').AsString := RUID;
               gdcNamespace.Post;
 
@@ -1115,8 +1111,6 @@ begin
                     WasMetaData := False;
                   end;
 
-                  RunMultiConnection;
-
                   if (Obj = nil)
                     or (Obj.ClassType <> C)
                     or (LoadSubType <> Obj.SubType) then
@@ -1154,6 +1148,7 @@ begin
                     end else
                       Obj := TgdcBase(ObjList.Objects[Ind]);
                   end;
+                  RunMultiConnection;
 
                   if Obj.SubSet <> 'ByID' then
                     Obj.SubSet := 'ByID';
@@ -1415,20 +1410,6 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
     end;
   end;
 
-  function ExtractRUID(const ARUID: String): String;
-  var
-    I: Integer;
-  begin
-    Result := '';
-    for I := 1 to Length(ARUID) do
-    begin
-      if ARUID[I] in ['0'..'9', '_'] then
-        Result := Result + ARUID[I]
-      else
-        break;
-    end;
-  end;
-
   function CopyRecord(SourceYAML: TyamlMapping; Obj: TgdcBase; UL: TObjectList): Boolean;
   var
     I, Key: Integer;
@@ -1441,7 +1422,7 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
     RUOL: TList;
     Fields: TyamlMapping;
     N: TyamlNode;
-    RUID, RefRUID: String;
+    RUID, RefRUID, Name: String;
   begin
     Result := False;
     RUOL := nil;
@@ -1488,8 +1469,7 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
               if not (N is TyamlString) then
                 raise Exception.Create('Invalid YAML data type!');
 
-              RefRUID := ExtractRUID(TyamlString(N).AsString);
-
+              GetReferenceParams(TyamlString(N).AsString, RefRUID, Name);
               if CheckRUID(RefRUID) then
               begin
                 Key := gdcBaseManager.GetIDByRUIDString(RefRUID, ATr);
@@ -1506,7 +1486,7 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
               raise Exception.Create('Invalid YAML data type!');
 
             if not TyamlScalar(N).IsNull then
-              RefRUID := ExtractRUID(TyamlString(N).AsString)
+              GetReferenceParams(TyamlString(N).AsString, RefRUID, Name)
             else
               IsNull := True;
 
