@@ -1188,8 +1188,8 @@ begin
     q.ExecQuery;
 
     if AnActivateFlag = aiActivate then
-      LogEvent('======== COUNT deactiv indices before SWITCH: ' + q.FieldByName('Kolvo').AsString )
-    else LogEvent('======== COUNT activ indices before SWITCH: ' + q.FieldByName('Kolvo').AsString );
+      LogEvent('======== COUNT deactiv INDICES before SWITCH: ' + q.FieldByName('Kolvo').AsString )
+    else LogEvent('======== COUNT activ INDICES before SWITCH: ' + q.FieldByName('Kolvo').AsString );
     q.Close;
 
     Tr.Commit;
@@ -1275,8 +1275,8 @@ begin
     q.ExecQuery;
 
     if AnActivateFlag = aiActivate then
-      LogEvent('======== COUNT deactiv indices after SWITCH: ' + q.FieldByName('Kolvo').AsString )
-    else LogEvent('======== COUNT activ indices after SWITCH: ' + q.FieldByName('Kolvo').AsString );
+      LogEvent('======== COUNT deactiv INDICES after SWITCH: ' + q.FieldByName('Kolvo').AsString )
+    else LogEvent('======== COUNT activ INDICES after SWITCH: ' + q.FieldByName('Kolvo').AsString );
     q.Close;
 
     Tr.Commit;
@@ -1295,6 +1295,38 @@ var
   Tr: TIBTransaction;
 begin
   Assert(Connected);
+
+  //==================================== TEST
+  try
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text := 'SELECT count(t.RDB$TRIGGER_NAME) AS Kolvo ' +
+      'FROM RDB$TRIGGERS t ' +
+      'WHERE t.RDB$TRIGGER_INACTIVE = :trig_inactive ' +
+      '  AND((t.RDB$SYSTEM_FLAG = 0) or (t.RDB$SYSTEM_FLAG is NULL)) ' +                                                            //
+      '  AND t.RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ';
+    if AnActivateFlag = aiActivate then
+      q.ParamByName('trig_inactive').AsInteger := 1
+    else
+      q.ParamByName('trig_inactive').AsInteger := 0;
+
+    q.ExecQuery;
+
+    if AnActivateFlag = aiActivate then
+      LogEvent('======== COUNT deactiv TRIGGERS before SWITCH: ' + q.FieldByName('Kolvo').AsString )
+    else LogEvent('======== COUNT activ TRIGGERS before SWITCH: ' + q.FieldByName('Kolvo').AsString );
+    q.Close;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+//==================================== end
 
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
@@ -1352,6 +1384,38 @@ begin
     q3.Free;
     Tr.Free;
   end;
+
+   //==================================== TEST
+  try
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text := 'SELECT count(t.RDB$TRIGGER_NAME) AS Kolvo ' +
+      'FROM RDB$TRIGGERS t ' +
+      'WHERE t.RDB$TRIGGER_INACTIVE = :trig_inactive ' +
+      '  AND((t.RDB$SYSTEM_FLAG = 0) or (t.RDB$SYSTEM_FLAG is NULL)) ' +                                                            //
+      '  AND t.RDB$TRIGGER_NAME NOT IN (SELECT RDB$TRIGGER_NAME FROM RDB$CHECK_CONSTRAINTS) ';
+    if AnActivateFlag = aiActivate then
+      q.ParamByName('trig_inactive').AsInteger := 1
+    else
+      q.ParamByName('trig_inactive').AsInteger := 0;
+
+    q.ExecQuery;
+
+    if AnActivateFlag = aiActivate then
+      LogEvent('======== COUNT deactiv TRIGGERS after SWITCH: ' + q.FieldByName('Kolvo').AsString )
+    else LogEvent('======== COUNT activ TRIGGERS after SWITCH: ' + q.FieldByName('Kolvo').AsString );
+    q.Close;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+//==================================== end
 end;
 
 
@@ -1391,7 +1455,7 @@ var
   StrListFields: TStringList;
 begin
   Assert(Connected);
-
+ {
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
   q3 := TIBSQL.Create(nil);
@@ -1498,7 +1562,7 @@ begin
     Tr.Free;
     StrListFields.Free;
   end;
-
+ }
 end;
 
 
