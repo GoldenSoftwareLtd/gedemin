@@ -56,7 +56,7 @@ end;
 procedure Tgdc_frmNamespace.actSetObjectPosExecute(Sender: TObject);
 begin
   if (gdcObject as TgdcNamespace).MakePos then
-    gdcDetailObject.CloseOpen;
+    gdcDetailObject.CloseOpen; 
 end;
 
 procedure Tgdc_frmNamespace.actSaveToFileExecute(Sender: TObject);
@@ -122,7 +122,7 @@ end;
 
 procedure Tgdc_frmNamespace.actLoadPackExecute(Sender: TObject);
 begin
-  (gdcObject as TgdcNamespace).InstallPackages;
+  (gdcObject as TgdcNamespace).InstallPackages(nil);
 end;
 
 initialization
