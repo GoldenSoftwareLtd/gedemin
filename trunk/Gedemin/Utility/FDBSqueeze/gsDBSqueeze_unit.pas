@@ -116,8 +116,9 @@ begin
   Result := FIBDatabase.Connected;
 end;
 
+{ TODO  : SaveTypeTbls доделать }
 {
-procedure TgsDBSqueeze.h_SaveTypeTbls;                                          // ИСПРАВИТЬ !
+procedure TgsDBSqueeze.h_SaveTypeTbls;
 var
   q, q2: TIBSQL;
   Tr: TIBTransaction;
@@ -1161,12 +1162,42 @@ begin
 end;
 
 
-procedure TgsDBSqueeze.h_SwitchActivityIndices(const AnActivateFlag: TActivateFlag);
+procedure TgsDBSqueeze.h_SwitchActivityIndices(const AnActivateFlag: TActivateFlag);   
 var
   q, q2, q3: TIBSQL;
   Tr: TIBTransaction;
 begin
   Assert(Connected);
+  //==================================== TEST
+  try
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text := 'SELECT count(RDB$INDEX_NAME) AS Kolvo ' +
+      'FROM RDB$INDICES ' +
+      'WHERE RDB$INDEX_INACTIVE = :index_inactive ' +
+      'AND RDB$SYSTEM_FLAG <> 1';//'  AND i.RDB$SYSTEM_FLAG IS DISTINCT FROM 1';
+    if AnActivateFlag = aiActivate then
+      q.ParamByName('index_inactive').AsInteger := 1
+    else
+      q.ParamByName('index_inactive').AsInteger := 0;
+
+    q.ExecQuery;
+
+    if AnActivateFlag = aiActivate then
+      LogEvent('======== COUNT deactiv indices before SWITCH: ' + q.FieldByName('Kolvo').AsString )
+    else LogEvent('======== COUNT activ indices before SWITCH: ' + q.FieldByName('Kolvo').AsString );
+    q.Close;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+//==================================== end
 
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
@@ -1210,12 +1241,8 @@ begin
           q2.SQL.Add(' INACTIVE');
         q2.ExecQuery;
 
-        if AnActivateFlag = aiActivate then
-          LogEvent('Index ' + q.FieldByName('RDB$INDEX_NAME').AsString + ' activated.')
-        else
-          LogEvent('Index ' + q.FieldByName('RDB$INDEX_NAME').AsString + ' deactivated.');
-
       end;
+      q3.Close;
 
       q.Next;
     end;
@@ -1227,6 +1254,37 @@ begin
     q3.Free;
     Tr.Free;
   end;
+
+ //==================================== TEST
+  try
+    q := TIBSQL.Create(nil);
+    Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text := 'SELECT count(RDB$INDEX_NAME) AS Kolvo ' +
+      'FROM RDB$INDICES ' +
+      'WHERE RDB$INDEX_INACTIVE = :index_inactive ' +
+      'AND RDB$SYSTEM_FLAG <> 1';//'  AND i.RDB$SYSTEM_FLAG IS DISTINCT FROM 1';
+    if AnActivateFlag = aiActivate then
+      q.ParamByName('index_inactive').AsInteger := 1
+    else
+      q.ParamByName('index_inactive').AsInteger := 0;
+
+    q.ExecQuery;
+
+    if AnActivateFlag = aiActivate then
+      LogEvent('======== COUNT deactiv indices after SWITCH: ' + q.FieldByName('Kolvo').AsString )
+    else LogEvent('======== COUNT activ indices after SWITCH: ' + q.FieldByName('Kolvo').AsString );
+    q.Close;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+//==================================== end
 end;
 
 
@@ -1281,12 +1339,9 @@ begin
           q2.SQL.Add('INACTIVE');
         q2.ExecQuery;
 
-        if AnActivateFlag = aiActivate then
-          LogEvent('Trigger ' + q.FieldByName('TN').AsString + ' activated.')
-        else
-          LogEvent('Trigger ' + q.FieldByName('TN').AsString + ' deactivated.');
       end;
-
+      q3.Close;
+      
       q.Next;
     end;
 
@@ -1317,7 +1372,19 @@ begin
 end;
 
 
-procedure TgsDBSqueeze.Delete;
+procedure TgsDBSqueeze.AfterMigrationPrepareDB;
+var
+  ActivateFlag: TActivateFlag;
+begin
+  ActivateFlag := aiActivate;
+  h_SwitchActivityIndices(ActivateFlag);
+  h_SwitchActivityTriggers(ActivateFlag);
+  h_RecreateAllConstr;
+  //...
+end;
+
+
+procedure TgsDBSqueeze.Delete;     { TODO : Delete доделать }
 var
   q, q2, q3, q4: TIBSQL;
   Tr: TIBTransaction;
@@ -1352,8 +1419,8 @@ begin
     while not q.Eof do
     begin
                                    //распарсим список полей FK                  ///не пригодится! тогда берем только первое
-      StrListFields.Delimiter := ','; //каждый элемент списка разделен запятой
-      StrListFields.DelimitedText := q.FieldByName('LIST_FIELDS').AsString;
+
+      StrListFields.CommaText := q.FieldByName('LIST_FIELDS').AsString;                 ///переделать для 5!
                                    //добавим fk в М
       q2.SQL.Text := ' SELECT g_his_include(0, ' + StrListFields[0] +  ') FROM ' + q.FieldByName('RELATION_NAME').AsString;
       q2.ExecQuery;
@@ -1370,7 +1437,7 @@ begin
 
    // обработка всех ID в базе
     q.Close;
-    q.SQL.Text = ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
+    q.SQL.Text := ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
     ' FROM RDB$RELATIONS r ' +
     ' WHERE r.RDB$SYSTEM_FLAG = 0 AND r.RDB$VIEW_BLR IS NULL ';
     q.ExecQuery;
@@ -1385,7 +1452,7 @@ begin
 
                                //распарсим список полей PK                      ///не пригодится! тогда берем только первое
     StrListFields.Clear;
-    StrListFields.DelimitedText := q2.FieldByName('LIST_FIELDS').AsString;
+    StrListFields.CommaText := q2.FieldByName('LIST_FIELDS').AsString;
                                //получаем набор ID
     q3.SQL.Text :=  'SELECT ' + StrListFields[0] + ' AS _ID, ' +
       ' g_his_has(0, ' + StrListFields[0]  + ') AS HAS_IN_M ' +
@@ -1435,16 +1502,6 @@ begin
 end;
 
 
-procedure TgsDBSqueeze.AfterMigrationPrepareDB;
-var
-  ActivateFlag: TActivateFlag;
-begin
-  ActivateFlag := aiActivate;
-  h_SwitchActivityIndices(ActivateFlag);
-  h_SwitchActivityTriggers(ActivateFlag);
-  h_RecreateAllConstr;
-  //...
-end;
 
 procedure TgsDBSqueeze.LogEvent(const AMsg: String);
 begin
