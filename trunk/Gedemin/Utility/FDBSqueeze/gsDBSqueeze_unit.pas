@@ -1344,8 +1344,8 @@ begin
     q.ExecQuery;
 
     q.Close;
-    q.SQL.Text := ' SELECT RELATION_NAME, LIST_FIELDS
-      ' FROM DBS_FK_CONSTRAINTS '
+    q.SQL.Text := ' SELECT RELATION_NAME, LIST_FIELDS ' +
+      ' FROM DBS_FK_CONSTRAINTS ';
     q.ExecQuery;
 
     StrListFields := TStringList.Create;
@@ -1403,7 +1403,7 @@ begin
           q4.SQL.Text := 'SELECT g_his_include(0, ' + q3.FieldByName('_ID').AsString + ') FROM RDB$DATABASE ';
           q4.ExecQuery;
         end;
-      end;
+      end
       else begin                                        //если есть ссылки на нее
         if(q.FieldByName('HAS_IN_M').AsInteger = 1) then
         begin                                           //ислючим из M2
