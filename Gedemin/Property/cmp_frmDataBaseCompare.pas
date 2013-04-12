@@ -44,18 +44,8 @@ type
     odExternalDB: TOpenDialog;
     pnMain: TPanel;
     pnTop: TPanel;
-    gbExternalConnection: TGroupBox;
-    edExtDatabaseName: TEdit;
-    btnExtOpen: TButton;
-    lbExtUserName: TLabel;
-    edExtUserName: TEdit;
-    lbExtPassword: TLabel;
-    edExtPassword: TEdit;
-    lbExServer: TLabel;
-    edExtServerName: TEdit;
     ibExtDataBase: TIBDatabase;
     pnBottom: TPanel;
-    btnCompareDB: TButton;
     alCompareDB: TActionList;
     actCompareDB: TAction;
     gbViewItems: TGroupBox;
@@ -77,7 +67,6 @@ type
     cbReport: TCheckBox;
     cbMethod: TCheckBox;
     cbEvents: TCheckBox;
-    btnCompareSetting: TButton;
     cbEntry: TCheckBox;
     sbDBCompare: TStatusBar;
     SuperPageControl1: TSuperPageControl;
@@ -93,6 +82,19 @@ type
     cbView: TCheckBox;
     cbSP: TCheckBox;
     cbTable: TCheckBox;
+    pc: TPageControl;
+    tsDB: TTabSheet;
+    tsSetting: TTabSheet;
+    btnCompareSetting: TButton;
+    btnCompareDB: TButton;
+    edExtDatabaseName: TEdit;
+    btnExtOpen: TButton;
+    lbExtUserName: TLabel;
+    edExtUserName: TEdit;
+    edExtServerName: TEdit;
+    edExtPassword: TEdit;
+    lbExtPassword: TLabel;
+    lbExServer: TLabel;
     procedure btnExtOpenClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -221,7 +223,10 @@ end;
 procedure TDataBaseCompare.ConnectToDataBase;
 begin
   try
-    ibExtDataBase.DatabaseName := edExtServerName.Text+ ':' + edExtDatabaseName.Text;
+    if Trim(edExtServerName.Text) > '' then
+      ibExtDataBase.DatabaseName := Trim(edExtServerName.Text) + ':' + edExtDatabaseName.Text
+    else
+      ibExtDataBase.DatabaseName := edExtDatabaseName.Text;
     ibExtDataBase.Params.Values['user_name'] := edExtUserName.Text;
     ibExtDataBase.Params.Values['password'] := edExtPassword.Text;
     ibExtDataBase.Params.Values['lc_ctype'] := 'WIN1251';
@@ -987,7 +992,7 @@ var
   ScriptComparer: Tprp_ScriptComparer;
   S, S1, SQL: String;
   DBName, ExtDBName: String;
-  FTransaction{, Tr}: TIBTransaction;
+  FTransaction: TIBTransaction;
   ListView: TListView;
 begin
   ListView := (Sender as TListView);
@@ -1081,57 +1086,10 @@ begin
 
     ScriptComparer := Tprp_ScriptComparer.Create(nil);
     try
-//      ScriptComparer.CanEdit := True;
       ScriptComparer.Compare(S, S1);
       ScriptComparer.LeftCaption(DBName);
       ScriptComparer.RightCaption(ExtDBName);
       ScriptComparer.ShowModal;
-{      if ScriptComparer.ModalResult = mrOK then
-      begin
-        FTransaction := TIBTransaction.Create(nil);
-        FTransaction.Params.Add('read_committed');
-        FTransaction.Params.Add('rec_version');
-        FTransaction.Params.Add('nowait');
-        FTransaction.DefaultDatabase := ibExtDataBase;
-
-        Tr := TIBTransaction.Create(nil);
-        Tr.Params.Add('read_committed');
-        Tr.Params.Add('rec_version');
-        Tr.Params.Add('nowait');
-        Tr.DefaultDatabase := IBLogin.Database;
-        try
-//          FTransaction.StartTransaction;
-          Tr.StartTransaction;
-
-          FSQL := TIBSQL.Create(nil);
-          FSQL.Transaction := Tr;
-          FSQL.SQL.Text := ' UPDATE GD_FUNCTION ' +
-            ' SET SCRIPT = :script ' +
-            ' WHERE ID = :ID ';
-          FSQL.Params[0].AsString := ScriptComparer.GetText1;
-          FSQL.Params[1].AsInteger := TRecordData(lvMacros.Selected.Data).FRecordInfo.ID;
-
-{          FExtSQL := TIBSQL.Create(nil);
-          FExtSQL.Transaction := FTransaction;
-          FExtSQL.SQL.Text := ' UPDATE GD_FUNCTION ' +
-            ' SET SCRIPT = :script ' +
-            ' WHERE ID = :ID ';
-          FExtSQL.Params[0].AsString := ScriptComparer.GetText2;
-          FExtSQL.Params[1].AsInteger := TRecordData(lvMacros.Selected.Data).FRecordInfo.ExtID;
-          try
-            FSQL.ExecQuery;
-//            FExtSQL.ExecQuery;
-          finally
-            FSQL.Free;
-//            FExtSQL.Free;
-          end;
-//          FTransaction.Commit;
-          Tr.Commit;
-        finally
-//          FTransaction.Free;
-          Tr.Free;
-        end;
-      end;     }
     finally
       ScriptComparer.Free;
     end;
@@ -2435,5 +2393,4 @@ initialization
 
 finalization
   UnRegisterClass(TDataBaseCompare);
-
 end.
