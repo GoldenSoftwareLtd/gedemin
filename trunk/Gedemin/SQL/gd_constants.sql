@@ -1505,6 +1505,22 @@ INSERT INTO gd_command
 VALUES
   (741120,740400,'Внешние ключи','gdcFKManager',0,NULL,228,NULL,'TgdcFKManager',NULL,1,1,1,0,NULL);
 
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741108,740400,'Пространства имен','gdcNamespace',0,NULL,80,NULL,'TgdcNamespace',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+  VALUES (
+    741109,
+    740400,
+    'Синхронизация ПИ',
+    '',
+    'Tat_frmSyncNamespace',
+    NULL,
+    0
+  );
+
 /* 799000 - 800000 Department */
 
 COMMIT;

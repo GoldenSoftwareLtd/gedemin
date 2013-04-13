@@ -35,6 +35,7 @@ type
 
     procedure DoLoadSetting;
     procedure DoLoadNamespace;
+
   public
     constructor CreateAndConnect(AOwner: TComponent; const ALoginType: TLoginType;
       const AUser: String = ''; const APassword: String = ''; const ADBPath: string = '');
@@ -460,27 +461,27 @@ end;
 procedure TdmLogin.DoLoadNamespace;
 var
   I: Integer;
-  isFound: Boolean;
   NSList: TgsNSList;
+  NSNode: TgsNSNode;
   SL: TStringList;
   gdcNamespace: TgdcNamespace;
 begin
   NSList := TgsNSList.Create;
   try
-    isFound := False;
+    NSNode := nil;
     NSList.GetFilesForPath(LoadSettingPath);
     for I := 0 to NSList.Count - 1 do
       if (AnsiCompareText((NSList.Objects[I] as TgsNSNode).FileName, LoadSettingFileName) = 0) then
       begin
-        isFound := True;
+        NSNode := NSList.Objects[I] as TgsNSNode;
         break;
       end;
-    if isFound then
+    if NSNode <> nil then
     begin
       SL := TStringList.Create;
       gdcNamespace := TgdcNamespace.Create(nil);
       try
-        NSList.GetAllUses((NSList.Objects[I] as TgsNSNode).RUID, SL);
+        NSList.GetAllUses(NSNode.RUID, SL);
         gdcNamespace.InstallPackages(SL);
       finally
         SL.Free;
@@ -494,29 +495,21 @@ end;
 
 procedure TdmLogin.LoadSettings;
 begin
-  if (LoadSettingFileName > '') then
-    if
-     UserParamExists and
-     PasswordParamExists and
-     FileExists(LoadSettingFileName) and
-     DirectoryExists(LoadSettingPath) then
-    begin
-      if UpperCase(ExtractFileExt(LoadSettingFileName)) = UpperCase('.yml') then
-        DoLoadNamespace
-      else
-        DoLoadSetting;
+  if (LoadSettingFileName > '')
+    and UserParamExists
+    and PasswordParamExists then
+  begin
+    if not FileExists(LoadSettingFileName) then
+      MessageBox(0, PChar('Файл ' + LoadSettingFileName + ' не найден!'), 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL)
+    else if not DirectoryExists(LoadSettingPath) then
+      MessageBox(0, PChar('Путь ' + LoadSettingPath + ' не найден!'), 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL)
+    else if UpperCase(ExtractFileExt(LoadSettingFileName)) = '.YML' then
+      DoLoadNamespace
+    else
+      DoLoadSetting;
 
-      Application.Terminate;
-    end else
-    begin
-      if UserParamExists and PasswordParamExists then
-      begin
-        if not FileExists(LoadSettingFileName) then
-          MessageBox(0, PChar('Файл ' + LoadSettingFileName + ' не найден!'), 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL);
-        if not DirectoryExists(LoadSettingPath) then
-          MessageBox(0, PChar('Путь ' + LoadSettingPath + ' не найден!'), 'Gedemin', MB_OK or MB_ICONERROR or MB_TASKMODAL);
-      end;
-    end;
+    Application.Terminate;
+  end;
 end;
 
 initialization

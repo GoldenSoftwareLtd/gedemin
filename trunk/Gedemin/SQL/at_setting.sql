@@ -152,8 +152,6 @@ END
 
 SET TERM ; ^
 
-/*
-
 CREATE TABLE at_namespace (
   id            dintkey,
   name          dtext255 NOT NULL UNIQUE,
@@ -240,6 +238,13 @@ BEGIN
     UPDATE at_object SET objectpos = objectpos + 1
     WHERE objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey;
   END
+
+  IF (UPDATING) THEN
+  BEGIN
+    IF (NEW.namespacekey <> OLD.namespacekey) THEN
+      UPDATE at_object SET namespacekey = NEW.namespacekey
+      WHERE headobjectkey = NEW.id;
+  END
 END
 ^
 
@@ -297,7 +302,7 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE at_p_del_duplicates (
+CREATE OR ALTER PROCEDURE at_p_del_duplicates (
   DeleteFromID INTEGER,
   CurrentID INTEGER,
   Stack VARCHAR(32000))
@@ -313,6 +318,8 @@ BEGIN
         ON o1.xid = o2.xid AND o1.dbid = o2.dbid
       WHERE o1.NAMESPACEKEY = :DeleteFromID
         AND o2.NAMESPACEKEY = :CurrentID
+        AND o1.headobjectkey IS NULL
+        AND o2.headobjectkey IS NULL
       INTO :id
     DO BEGIN
       DELETE FROM at_object WHERE id = :id;
@@ -339,23 +346,5 @@ GRANT ALL     ON at_object                TO administrator;
 GRANT ALL     ON at_namespace_link        TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_findnsrec TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_del_duplicates TO administrator;
-
-INSERT INTO gd_command
-  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
-VALUES
-  (741108,740400,'Пространства имен','gdcNamespace',0,NULL,80,NULL,'TgdcNamespace',NULL,1,1,1,0,NULL);
-
-INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-  VALUES (
-    741109,
-    740400,
-    'Синхронизация ПИ',
-    '',
-    'Tat_frmSyncNamespace',
-    NULL,
-    0
-  );
-
-*/
 
 COMMIT;

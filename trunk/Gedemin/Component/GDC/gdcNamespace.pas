@@ -37,7 +37,8 @@ type
 
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList; const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1; ADontRemove: Integer = 0; AnIncludeSiblings: Integer = 0);
     procedure DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = True);
-    procedure InstallPackages(ANSList: TStringList; const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
+    procedure InstallPackages(ANSList: TStringList;
+      const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
     procedure SaveNamespaceToStream(St: TStream);
@@ -2339,7 +2340,8 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.InstallPackages(ANSList: TStringList; const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
+procedure TgdcNamespace.InstallPackages(ANSList: TStringList;
+  const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
 var
   AlwaysOverwrite, DontRemove, NSListCreated: Boolean;
 begin

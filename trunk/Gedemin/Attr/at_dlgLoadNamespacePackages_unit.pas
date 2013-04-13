@@ -10,7 +10,7 @@ uses
 
 type
   Tat_dlgLoadNamespacePackages = class(TCreateableForm)
-    Panel1: TPanel;
+    pnlTree: TPanel;
     ActionListLoad: TActionList;
     actSearch: TAction;
     actInstallPackage: TAction;
@@ -28,13 +28,12 @@ type
     btnClose: TButton;
     cbAlwaysOverwrite: TCheckBox;
     cbDontRemove: TCheckBox;
-    Panel2: TPanel;
+    cbInternal: TCheckBox;
+    GroupBox1: TGroupBox;
     lblLegendNotInstalled: TLabel;
     lblLegendNewer: TLabel;
     lblLegendEqual: TLabel;
-    Label2: TLabel;
     lblLegendOlder: TLabel;
-    cbInternal: TCheckBox;
     procedure actSearchExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);  
     procedure gsTreeViewAdvancedCustomDrawItem(Sender: TCustomTreeView;
@@ -42,6 +41,7 @@ type
       var PaintImages, DefaultDraw: Boolean);
     procedure gsTreeViewClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+
   private
     FgdcNamespace: TgdcNamespace;
     FOldWndProc: TWndMethod;
@@ -49,6 +49,7 @@ type
 
     procedure SelectAllChild(Node: TTreeNode; bSel: boolean);
     procedure OverridingWndProc(var Message: TMessage);
+
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;

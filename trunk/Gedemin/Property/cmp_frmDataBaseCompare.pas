@@ -94,7 +94,7 @@ type
     edExtServerName: TEdit;
     edExtPassword: TEdit;
     lbExtPassword: TLabel;
-    lbExServer: TLabel;
+    Label1: TLabel;
     procedure btnExtOpenClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);

@@ -1,7 +1,7 @@
 object DataBaseCompare: TDataBaseCompare
-  Left = 440
+  Left = 608
   Top = 258
-  Width = 1094
+  Width = 926
   Height = 583
   Caption = 'Сравнение баз данных'
   Color = clBtnFace
@@ -20,7 +20,7 @@ object DataBaseCompare: TDataBaseCompare
   object pnMain: TPanel
     Left = 0
     Top = 0
-    Width = 1078
+    Width = 910
     Height = 545
     Align = alClient
     BevelOuter = bvNone
@@ -28,7 +28,7 @@ object DataBaseCompare: TDataBaseCompare
     object pnTop: TPanel
       Left = 0
       Top = 0
-      Width = 1078
+      Width = 910
       Height = 120
       Align = alTop
       BevelOuter = bvNone
@@ -233,25 +233,25 @@ object DataBaseCompare: TDataBaseCompare
         object tsDB: TTabSheet
           Caption = 'База данных'
           object lbExtUserName: TLabel
-            Left = 4
+            Left = 5
             Top = 32
             Width = 76
             Height = 13
             Caption = 'Пользователь:'
           end
           object lbExtPassword: TLabel
-            Left = 4
-            Top = 58
+            Left = 214
+            Top = 32
             Width = 41
             Height = 13
             Caption = 'Пароль:'
           end
-          object lbExServer: TLabel
-            Left = 192
-            Top = 31
-            Width = 41
+          object Label1: TLabel
+            Left = 97
+            Top = 6
+            Width = 4
             Height = 13
-            Caption = 'Сервер:'
+            Caption = ':'
           end
           object btnCompareDB: TButton
             Left = 274
@@ -259,14 +259,15 @@ object DataBaseCompare: TDataBaseCompare
             Width = 75
             Height = 21
             Action = actCompareDB
-            TabOrder = 0
+            TabOrder = 5
           end
           object edExtDatabaseName: TEdit
-            Left = 4
+            Left = 104
             Top = 3
-            Width = 326
+            Width = 227
             Height = 21
             TabOrder = 1
+            Text = '<файл БД>'
           end
           object btnExtOpen: TButton
             Left = 330
@@ -286,19 +287,20 @@ object DataBaseCompare: TDataBaseCompare
             Text = 'SYSDBA'
           end
           object edExtServerName: TEdit
-            Left = 240
+            Left = 4
+            Top = 3
+            Width = 90
+            Height = 21
+            TabOrder = 0
+            Text = '<сервер>'
+          end
+          object edExtPassword: TEdit
+            Left = 261
             Top = 28
             Width = 89
             Height = 21
-            TabOrder = 4
-          end
-          object edExtPassword: TEdit
-            Left = 84
-            Top = 53
-            Width = 89
-            Height = 21
             PasswordChar = '*'
-            TabOrder = 5
+            TabOrder = 4
             Text = 'masterkey'
           end
         end
@@ -320,7 +322,7 @@ object DataBaseCompare: TDataBaseCompare
     object pnBottom: TPanel
       Left = 0
       Top = 120
-      Width = 1078
+      Width = 910
       Height = 425
       Align = alClient
       BevelOuter = bvNone
@@ -328,7 +330,7 @@ object DataBaseCompare: TDataBaseCompare
       object sbDBCompare: TStatusBar
         Left = 0
         Top = 406
-        Width = 1078
+        Width = 910
         Height = 19
         Panels = <
           item
@@ -345,7 +347,7 @@ object DataBaseCompare: TDataBaseCompare
       object SuperPageControl1: TSuperPageControl
         Left = 0
         Top = 0
-        Width = 1078
+        Width = 910
         Height = 406
         BorderStyle = bsNone
         TabsVisible = True
@@ -358,7 +360,7 @@ object DataBaseCompare: TDataBaseCompare
           object lvMacros: TgsListView
             Left = 0
             Top = 0
-            Width = 1078
+            Width = 910
             Height = 383
             Align = alClient
             Columns = <
