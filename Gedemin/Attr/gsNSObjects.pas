@@ -41,7 +41,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure GetFilesForPath(Path: String);
+    procedure GetFilesForPath(const Path: String);
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
     procedure GetAllUses(const RUID: String; SL: TStringList);
@@ -166,7 +166,7 @@ begin
   end;
 end;
 
-procedure TgsNSList.GetFilesForPath(Path: String);
+procedure TgsNSList.GetFilesForPath(const Path: String);
 
   procedure GetYAMLNode(const Name: String);
   var

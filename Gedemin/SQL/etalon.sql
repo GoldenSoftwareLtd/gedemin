@@ -1324,6 +1324,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (162, '0000.0001.0000.0193', '14.11.2012', 'Delete cbAnalytic from script.');
 
+INSERT INTO fin_versioninfo
+  VALUES (163, '0000.0001.0000.0194', '11.04.2013', 'Namespace tables added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -16201,8 +16204,6 @@ END
 
 SET TERM ; ^
 
-/*
-
 CREATE TABLE at_namespace (
   id            dintkey,
   name          dtext255 NOT NULL UNIQUE,
@@ -16289,6 +16290,13 @@ BEGIN
     UPDATE at_object SET objectpos = objectpos + 1
     WHERE objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey;
   END
+
+  IF (UPDATING) THEN
+  BEGIN
+    IF (NEW.namespacekey <> OLD.namespacekey) THEN
+      UPDATE at_object SET namespacekey = NEW.namespacekey
+      WHERE headobjectkey = NEW.id;
+  END
 END
 ^
 
@@ -16309,52 +16317,6 @@ CREATE TABLE at_namespace_link (
     ON DELETE NO ACTION,
   CONSTRAINT at_chk_namespace_link CHECK (namespacekey <> useskey)
 );
-
-CREATE GLOBAL TEMPORARY TABLE at_namespace_gtt(
-  id            dintkey,
-  name          dtext255 NOT NULL UNIQUE,
-  caption       dtext255,
-  filename      dtext255,
-  filetimestamp TIMESTAMP,
-  version       dtext20 DEFAULT '1.0.0.0' NOT NULL,
-  dbversion     dtext20,
-  optional      dboolean_notnull DEFAULT 0,
-  internal      dboolean_notnull DEFAULT 1,
-  comment       dblobtext80_1251,
-  settingruid   VARCHAR(21),
-  operation     dinteger,
-
-  CONSTRAINT at_pk_namespace_gtt PRIMARY KEY (id)
-) ON commit preserve rows;
-
-SET TERM ^ ;
-
-CREATE OR ALTER TRIGGER at_bi_namespace_gtt FOR at_namespace_gtt
-  ACTIVE
-  BEFORE INSERT
-  POSITION 0
-AS
-BEGIN
-  IF (NEW.id IS NULL) THEN
-  BEGIN
-    SELECT MAX(id) + 1
-    FROM at_namespace_gtt
-    INTO NEW.id;
-
-    IF (NEW.id IS NULL) THEN
-      NEW.id = 1;
-  END
-END
-^
-
-SET TERM ; ^
-
-CREATE GLOBAL TEMPORARY TABLE at_namespace_link_gtt(
-  namespaceruid   VARCHAR(21),
-  usesruid        VARCHAR(21),
-
-  CONSTRAINT at_uk_object_link_gtt UNIQUE (namespaceruid, usesruid)
-) ON COMMIT PRESERVE ROWS;
 
 SET TERM ^ ;
 
@@ -16392,7 +16354,7 @@ BEGIN
 END
 ^
 
-CREATE PROCEDURE at_p_del_duplicates (
+CREATE OR ALTER PROCEDURE at_p_del_duplicates (
   DeleteFromID INTEGER,
   CurrentID INTEGER,
   Stack VARCHAR(32000))
@@ -16408,6 +16370,8 @@ BEGIN
         ON o1.xid = o2.xid AND o1.dbid = o2.dbid
       WHERE o1.NAMESPACEKEY = :DeleteFromID
         AND o2.NAMESPACEKEY = :CurrentID
+        AND o1.headobjectkey IS NULL
+        AND o2.headobjectkey IS NULL
       INTO :id
     DO BEGIN
       DELETE FROM at_object WHERE id = :id;
@@ -16432,28 +16396,8 @@ SET TERM ; ^
 GRANT ALL     ON at_namespace             TO administrator;
 GRANT ALL     ON at_object                TO administrator;
 GRANT ALL     ON at_namespace_link        TO administrator;
-GRANT ALL     ON at_namespace_gtt         TO administrator;
-GRANT ALL     ON at_namespace_link_gtt    TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_findnsrec TO administrator;
 GRANT EXECUTE ON PROCEDURE at_p_del_duplicates TO administrator;
-
-INSERT INTO gd_command
-  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
-VALUES
-  (741108,740400,'Пространства имен','gdcNamespace',0,NULL,80,NULL,'TgdcNamespace',NULL,1,1,1,0,NULL);
-
-INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-  VALUES (
-    741109,
-    740400,
-    'Синхронизация ПИ',
-    '',
-    'Tat_frmSyncNamespace',
-    NULL,
-    0
-  );
-
-*/
 
 COMMIT;
 
@@ -21236,6 +21180,22 @@ INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
 VALUES
   (741120,740400,'Внешние ключи','gdcFKManager',0,NULL,228,NULL,'TgdcFKManager',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741108,740400,'Пространства имен','gdcNamespace',0,NULL,80,NULL,'TgdcNamespace',NULL,1,1,1,0,NULL);
+
+INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
+  VALUES (
+    741109,
+    740400,
+    'Синхронизация ПИ',
+    '',
+    'Tat_frmSyncNamespace',
+    NULL,
+    0
+  );
 
 /* 799000 - 800000 Department */
 
