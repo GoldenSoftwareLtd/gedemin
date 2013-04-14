@@ -116,9 +116,9 @@ begin
   Result := FIBDatabase.Connected;
 end;
 
-{ TODO  : SaveTypeTbls доделать }
+{ TODO  : SaveTypeTbls доделать Master }
 {
-procedure TgsDBSqueeze.h_SaveTypeTbls;
+procedure TgsDBSqueeze.h_SaveTypeTbls;                                           
 var
   q, q2: TIBSQL;
   Tr: TIBTransaction;
@@ -156,6 +156,78 @@ begin
     q.Close;
     Tr.Commit;
 //inserting to table
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+  //вставим имена всех таблиц
+    q.SQL.Text := ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
+    ' FROM RDB$RELATIONS r ' +
+    ' WHERE  RDB$VIEW_BLR IS NULL ';
+    q.ExecQuery;
+
+    while (not q.EOF) do
+    begin
+      q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
+        ' (TABLE_NAME) VALUES (:tblName) ';
+      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
+      q2.Close;
+
+      q.Next;
+    end;
+    q.Close;
+    Tr.Commit;
+
+  //добавляем тип таблиц
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+  //системные
+    q.SQL.Text := ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
+    ' FROM RDB$RELATIONS r ' +
+    ' WHERE RDB$SYSTEM_FLAG = 1 AND RDB$VIEW_BLR IS NULL ';
+    q.ExecQuery;
+
+    while (not q.EOF) do
+    begin
+      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
+        ' TYPE_NAME = ''system'' ' +
+        ' WHERE TABLE_NAME = :tblName ';
+      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
+      q2.Close;
+      q.Next;
+    end;
+    q.Close;
+    Tr.Commit;
+
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+  //gd_ruid
+    q.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
+      ' TYPE_NAME = ''gd_ruid'' ' +
+      ' WHERE TABLE_NAME = ''GD_RUID'' ';
+    q.Close;
+    Tr.Commit;
+
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+  //gd_document
+    q.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
+      ' TYPE_NAME = ''gd_document'' ' +
+      ' WHERE TABLE_NAME = ''GD_DOCUMENT'' ';
+    q.Close;
+    Tr.Commit;
+
 
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
@@ -163,27 +235,51 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
   //имеют составной PK
-    q.SQL.Text := ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
-    ' FROM RDB$RELATIONS r ' +
-    ' WHERE RDB$SYSTEM_FLAG = 0 AND RDB$VIEW_BLR IS NULL ' +
-    '   AND RDB$RELATION_NAME NOT IN ( ' +
-    '     SELECT ind.rdb$relation_name, rcon.RDB$CONSTRAINT_TYPE ' +
-    '     FROM RDB$INDICES ind ' +
-    '     JOIN RDB$RELATION_CONSTRAINTS rcon ON rcon.RDB$INDEX_NAME = ind.RDB$INDEX_NAME ' +
-    '     WHERE ind.rdb$segment_count > 1 AND rcon.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
-    '       AND r.RDB$RELATION_NAME NOT IN (SELECT TABLE_NAME FROM DBS_TYPE_TABLES) ' +
-    '   )';
+    q.SQL.Text := ' SELECT t.RELATION_NAME as Table_Name ' +
+      'FROM DBS_TYPE_TABLES t ' +
+      'WHERE t.TYPE_NAME IS NULL ' +
+      '  AND t.RELATION_NAME IN ( ' +
+      '    SELECT ind.rdb$relation_name ' +
+      '    FROM RDB$INDICES ind ' +
+      '      JOIN RDB$RELATION_CONSTRAINTS rcon ON rcon.RDB$INDEX_NAME = ind.RDB$INDEX_NAME ' +
+      '    WHERE ind.rdb$segment_count > 1 AND rcon.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
+      '  ) ';
     q.ExecQuery;
 
     while (not q.EOF) do
     begin
-      q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
-        ' ( TABLE_NAME, ' +
-        ' TYPE_NAME ) VALUES ( ' +
-        ' :tblName, ' +
-        ' :typeName ) ';
+      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
+        ' TYPE_NAME = ''composite PK'' ' +
+        ' WHERE TABLE_NAME = :tblName ';
       q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-      q2.ParamByName('typeName').AsString := 'composite PK';
+      q2.Close;
+      q.Next;
+    end;
+    q.Close;
+    Tr.Commit;
+
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+  //не имеют PK
+    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
+      'FROM DBS_TYPE_TABLES r ' +
+      'WHERE TYPE_NAME IS NULL ' +
+      '  AND r.RELATION_NAME NOT IN ( ' +
+      '    SELECT RDB$RELATION_NAME FROM RDB$RELATION_CONSTRAINTS ' +
+      '    WHERE RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
+      '    )';
+    q.ExecQuery;
+
+    while (not q.EOF) do
+    begin
+      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
+        ' TYPE_NAME = ''without PK'' ' +
+        ' WHERE TABLE_NAME = :tblName ';
+      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
       q2.Close;
       q.Next;
     end;
@@ -195,19 +291,43 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
   //Детальные
-    q.SQL.Text := ' SELECT RELATION_NAME as Table_Name ' +
-    ' FROM DBS_FK_CONSTRAINTS ' +
-    ' WHERE LIST_FIELD = ''MASTERKEY'' OR LIST_FIELD = ''MASTERDOCKEY'' ' +
-    '   AND RELATION_NAME NOT IN (SELECT TABLE_NAME FROM DBS_TYPE_TABLES) ';
+    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
+      'FROM DBS_TYPE_TABLES r ' +
+      'WHERE r.TYPE_NAME IS NULL ' +
+      '  AND r.RELATION_NAME IN ( ' +
+      '    SELECT RELATION_NAME ' +
+      '    FROM DBS_FK_CONSTRAINTS ' +
+      '    WHERE LIST_FIELD = ''MASTERKEY'' ' +
+      '  )';
     q.ExecQuery;
 
-    q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
-      ' ( TABLE_NAME, ' +
-      ' TYPE_NAME ) VALUES ( ' +
-      ' :tblName, ' +
-      ' :typeName ) ';
+    q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
+      'TYPE_NAME = ''detail masterkey'' ' +
+      'WHERE TABLE_NAME = :tblName ';
     q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-    q2.ParamByName('typeName').AsString := 'detail';
+    q2.Close;
+    q.Close;
+    Tr.Commit;
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+
+    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
+      'FROM DBS_TYPE_TABLES r ' +
+      'WHERE r.TYPE_NAME IS NULL ' +
+      '  AND r.RELATION_NAME IN ( ' +
+      '    SELECT RELATION_NAME ' +
+      '    FROM DBS_FK_CONSTRAINTS ' +
+      '    WHERE LIST_FIELD = ''MASTERDOCKEY'' ' +
+      '  )';
+    q.ExecQuery;
+
+    q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
+      'TYPE_NAME = ''detail masterdockey'' ' +
+      'WHERE TABLE_NAME = :tblName ';
+    q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
     q2.Close;
     q.Close;
     Tr.Commit;
@@ -217,21 +337,23 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
   //Cross
-    q.SQL.Text := ' SELECT CROSSTABLE as Table_Name' +
-      ' FROM AT_RELATION_FIELDS ' +
-      ' WHERE CROSSTABLE IS NOT NULL ' +
-      '   AND RELATION_NAME NOT IN (SELECT TABLE_NAME FROM DBS_TYPE_TABLES) ';
+    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
+      'FROM DBS_TYPE_TABLES r ' +
+      'WHERE r.TYPE_NAME IS NULL ' +
+      '  AND r.RELATION_NAME IN ( ' +
+      '    SELECT CROSSTABLE ' +
+      '    FROM AT_RELATION_FIELDS ' +
+      '    WHERE CROSSTABLE IS NOT NULL ' +
+      '  )';
     q.ExecQuery;
 
     while (not q.EOF) do
     begin
-      q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
-        ' ( TABLE_NAME, ' +
-        ' TYPE_NAME ) VALUES ( ' +
-        ' :tblName, ' +
-        ' :typeName ) ';
+      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
+        'TYPE_NAME = ''cross'' ' +
+        'WHERE TABLE_NAME = :tblName ';
       q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-      q2.ParamByName('typeName').AsString := 'cross';
+
       q2.Close;
       q.Next;
     end;
@@ -243,22 +365,24 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
   //1-к-1
-    q.SQL.Text := ' SELECT f.RELATION_NAME as Table_Name ' +
-      ' FROM DBS_FK_CONSTRAINTS f' +
-      ' JOIN DBS_PK_CONSTRAINTS p ON f.RELATION_NAME = p.RELATION_NAME ' +
-      ' WHERE f.LIST_FIELD = p.LIST_FIELDS ' +
-      '   AND f.RELATION_NAME NOT IN (SELECT TABLE_NAME FROM DBS_TYPE_TABLES) ';
+    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
+      'FROM DBS_TYPE_TABLES r ' +
+      'WHERE TYPE_NAME IS NULL ' +
+      '  AND r.RELATION_NAME IN ( ' +
+      '    SELECT fk.RELATION_NAME ' +
+      '    FROM DBS_FK_CONSTRAINTS fk ' +
+      '      JOIN DBS_PK_CONSTRAINTS pk ON fk.RELATION_NAME = pk.RELATION_NAME ' +
+      '    WHERE fk.LIST_FIELD = pk.LIST_FIELDS ' +
+      '    )';
     q.ExecQuery;
 
     while (not q.EOF) do
     begin
-      q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
-        ' ( TABLE_NAME, ' +
-        ' TYPE_NAME ) VALUES ( ' +
-        ' :tblName, ' +
-        ' :typeName ) ';
+      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
+        'TYPE_NAME = ''1to1'' ' +
+        'WHERE TABLE_NAME = :tblName ';
       q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-      q2.ParamByName('typeName').AsString := '1to1';
+
       q2.Close;
       q.Next;
     end;
@@ -270,7 +394,7 @@ begin
     q2.Free;
     Tr.Free;
   end;
-
+ 
 end;
 }
 
@@ -1326,7 +1450,7 @@ begin
     q.Free;
     Tr.Free;
   end;
-//==================================== end
+//===================================== end
 
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
@@ -1455,7 +1579,7 @@ var
   StrListFields: TStringList;
 begin
   Assert(Connected);
- {
+
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
   q3 := TIBSQL.Create(nil);
@@ -1484,7 +1608,7 @@ begin
     begin
                                    //распарсим список полей FK                  ///не пригодится! тогда берем только первое
 
-      StrListFields.CommaText := q.FieldByName('LIST_FIELDS').AsString;                 ///переделать для 5!
+      StrListFields.CommaText := q.FieldByName('LIST_FIELDS').AsString;
                                    //добавим fk в М
       q2.SQL.Text := ' SELECT g_his_include(0, ' + StrListFields[0] +  ') FROM ' + q.FieldByName('RELATION_NAME').AsString;
       q2.ExecQuery;
@@ -1562,7 +1686,7 @@ begin
     Tr.Free;
     StrListFields.Free;
   end;
- }
+ 
 end;
 
 
