@@ -38,6 +38,7 @@ type
     procedure h_SaveAllConstr;
 
     //procedure h_SaveTypeTbls;
+    procedure h_Delete;       //
 
     procedure h_DeleteFKConstr;
     procedure h_DeletePkUniqueConstr;
@@ -1572,6 +1573,58 @@ begin
 end;
 
 
+procedure TgsDBSqueeze.h_Delete;
+var
+  q, q2, q3, q4: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+
+  q := TIBSQL.Create(nil);
+  q2 := TIBSQL.Create(nil);
+
+  Tr := TIBTransaction.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+
+    q.SQL.Text := ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
+    ' FROM RDB$RELATIONS r ' +
+    ' WHERE r.RDB$SYSTEM_FLAG = 0 AND r.RDB$VIEW_BLR IS NULL ';
+    q.ExecQuery;
+
+    while not q.EOF  do
+    begin
+      q2.SQL.Text := 'SELECT LIST_FIELDS as PK' +
+        'FROM DBS_PK_UNIQUE_CONSTRAINTS ' +
+        'WHERE CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
+        '  AND RELATION_NAME = :RELAT_NAME ';
+      q2.ParamByName('RELAT_NAME').AsString := q.FieldByName('Table_Name').AsString;
+      q2.ExecQuery;
+
+      if not q2.EOF then
+      begin
+        q3.SQL.Text := ' DELETE FROM ' + q.FieldByName('Table_Name').AsString +
+          ' WHERE g_his_has(0, ' + q3.FieldByName('PK').AsString + ') = 0';
+        q3.ExecQuery;
+        q3.Close;
+      end;
+      q2.Close;
+      q.Next;
+    end;
+
+    q.Close;
+    Tr.Commit;
+  finally
+    q.Free;
+    q2.Free;
+    Tr.Free;
+  end;
+end;
+
 procedure TgsDBSqueeze.Delete;     { TODO : Delete доделать }
 var
   q, q2, q3, q4: TIBSQL;
@@ -1594,7 +1647,7 @@ begin
     q3.Transaction := Tr;
     q4.Transaction := Tr;
 
-  {  // объ€вим функции UDF
+   // объ€вим функции UDF
     q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_CREATE ' +
       ' INTEGER, ' +
       ' INTEGER ' +
@@ -1632,7 +1685,7 @@ begin
       'RETURNS INTEGER BY VALUE ' +
       'ENTRY_POINT ''g_his_include'' MODULE_NAME ''gudf'' ';
     q.ExecQuery;
-   }
+  
 
    //сохраним все ID, на которые есть ссылки
     q.Close;
@@ -1661,7 +1714,7 @@ begin
     q.Close;
     q.SQL.Text := ' SELECT g_his_create(1, 0)';
     q.ExecQuery;
-      //...заполнение
+      //...заполнение добавить
 
 
    // обработка всех ID в базе
@@ -1711,6 +1764,18 @@ begin
       q3.Next;
     end;
 
+    Tr.Commit;
+
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q2.Transaction := Tr;
+
+    ///...удаление
+      h_Delete;
+
+
     q.Close;
     q.SQL.Text := 'SELECT g_his_destroy(0) FROM RDB$DATABASE ';
     q.ExecQuery;
@@ -1719,15 +1784,17 @@ begin
     q.SQL.Text := 'SELECT g_his_destroy(1) FROM RDB$DATABASE ';
     q.ExecQuery;
 
+    q.Close;
     Tr.Commit;
   finally
     q.Free;
     q2.Free;
     q3.Free;
+    q4.Free;
     Tr.Free;
     StrListFields.Free;
   end;
- 
+
 end;
 
 
