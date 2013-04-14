@@ -1594,7 +1594,47 @@ begin
     q3.Transaction := Tr;
     q4.Transaction := Tr;
 
+    // объ€вим функции UDF
+    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_CREATE ' +
+      ' INTEGER, ' +
+      ' INTEGER ' +
+      'RETURNS INTEGER BY VALUE ' +
+      'ENTRY_POINT ''g_his_create'' MODULE_NAME ''gudf'' ';
+    q.ExecQuery;
+
+    q.Close;
+    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_DESTROY ' +
+      ' INTEGER ' +
+      'RETURNS INTEGER BY VALUE ' +
+      'ENTRY_POINT ''g_his_destroy'' MODULE_NAME ''gudf'' ';
+    q.ExecQuery;
+
+    q.Close;
+    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_EXCLUDE ' +
+      ' INTEGER, ' +
+      ' INTEGER ' +
+      'RETURNS INTEGER BY VALUE ' +
+      'ENTRY_POINT ''g_his_exclude'' MODULE_NAME ''gudf'' ';
+    q.ExecQuery;
+
+    q.Close;
+    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_HAS ' +
+      ' INTEGER, ' +
+      ' INTEGER  ' +
+      'RETURNS INTEGER BY VALUE ' +
+      'ENTRY_POINT ''g_his_has'' MODULE_NAME ''gudf'' ';
+    q.ExecQuery;
+
+    q.Close;
+    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_INCLUDE ' +
+      ' INTEGER, ' +
+      ' INTEGER ' +
+      'RETURNS INTEGER BY VALUE ' +
+      'ENTRY_POINT ''g_his_include'' MODULE_NAME ''gudf'' ';
+    q.ExecQuery;
+
    //сохраним все ID, на которые есть ссылки
+    q.Close;
     q.SQL.Text := 'SELECT g_his_create(0, 0) FROM RDB$DATABASE ';               //создание M
     q.ExecQuery;
 
