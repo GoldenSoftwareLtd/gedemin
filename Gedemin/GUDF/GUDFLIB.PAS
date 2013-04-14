@@ -3,14 +3,12 @@
 {                                                        }
 {       InterBase User Defined Fuctions                  }
 {       GUDF library                                     }
-{       Copyright (c) 1999-2000 by Golden Software       }
+{       Copyright (c) 1999-2013 by Golden Software       }
 {                                                        }
 {       Thanks:                                          }
 {         Oleg Kukarthev                                 }
 {                                                        }
 {********************************************************}
-
-//  21.03.2002 Nick добавлена сложного округления  g_m_complround
 
 {$ALIGN OFF}
 
@@ -65,7 +63,7 @@ const                               // Date translation constants
 implementation
 
 uses
-  JclStrings, FindCompare, GsHugeIntSet, syncobjs, gsStorageLink;
+  JclStrings, FindCompare, GsHugeIntSet, syncobjs;
 
 const
   SmallNumber        = 0.0000000000001;
@@ -74,8 +72,6 @@ const
 var
   arrHugeIntSet: array[0..HugeIntSetMaxCount - 1] of TgsHugeIntSet;
   csHugeIntSet: TCriticalSection;
-  StorageID: TgsStorageID;
-
 
 (*
 
@@ -1165,23 +1161,15 @@ end;
 function g_his_create(var AnIndex: Integer; var ASize: Integer): Integer;
   cdecl; export;
 begin
-  Result := -1;
+  Result := 0;
   csHugeIntSet.Enter;
   try
-    if arrHugeIntSet[AnIndex] = nil then
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (arrHugeIntSet[AnIndex] = nil) then
     begin
       arrHugeIntSet[AnIndex] := TgsHugeIntSet.Create;
       Result := 1;
     end;
-    {for I := 0 to HugeIntSetMaxCount - 1 do
-    begin
-      if arrHugeIntSet[I] = nil then
-      begin
-        arrHugeIntSet[I] := TgsHugeIntSet.CreateNew(Pchar(CString));
-        Result := I;
-        break;
-      end;
-    end;}
   finally
     csHugeIntSet.Leave;
   end;
@@ -1191,10 +1179,16 @@ function g_his_exclude(var AnIndex: Integer; var AnElement: Integer): Integer;
   cdecl; export;
 begin
   Result := 0;
-  if arrHugeIntSet[AnIndex] <> nil then
-  begin
-    arrHugeIntSet[AnIndex].Exclude(AnElement);
-    Result := 1;
+  csHugeIntSet.Enter;
+  try
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (arrHugeIntSet[AnIndex] <> nil) then
+    begin
+      arrHugeIntSet[AnIndex].Exclude(AnElement);
+      Result := 1;
+    end;
+  finally
+    csHugeIntSet.Leave;
   end;
 end;
 
@@ -1202,34 +1196,42 @@ function g_his_include(var AnIndex: Integer; var AnElement: Integer): Integer;
   cdecl; export;
 begin
   Result := 0;
-  if (AnElement >= 147000000) and (arrHugeIntSet[AnIndex] <> nil) then
-  begin
-    arrHugeIntSet[AnIndex].Include(AnElement);
-    Result := 1;
+  csHugeIntSet.Enter;
+  try
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (AnElement >= 147000000) and (arrHugeIntSet[AnIndex] <> nil) then
+    begin
+      arrHugeIntSet[AnIndex].Include(AnElement);
+      Result := 1;
+    end;
+  finally
+    csHugeIntSet.Leave;
   end;
 end;
 
 function g_his_has(var AnIndex: Integer; var AnElement: Integer): Integer;
   cdecl; export;
 begin
-  if arrHugeIntSet[AnIndex] <> nil then
-  begin
-    if (AnElement < 147000000) or (arrHugeIntSet[AnIndex].Has(AnElement)) then
-      Result := 1
-    else
+  csHugeIntSet.Enter;
+  try
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (arrHugeIntSet[AnIndex] <> nil) then
+    begin
+      if (AnElement < 147000000) or arrHugeIntSet[AnIndex].Has(AnElement) then
+        Result := 1
+      else
+        Result := 0;
+    end else
       Result := 0;
-  end else
-    Result := 0;
+  finally
+    csHugeIntSet.Leave;
+  end;
 end;
 
 function g_his_count(var AnIndex: Integer): Integer;
   cdecl; export;
 begin
   Result := 0;
-  {if arrHugeIntSet[AnIndex] <> nil then
-  begin
-    Result := arrHugeIntSet[AnIndex].Count;
-  end;}
 end;
 
 function g_his_destroy(var AnIndex: Integer): Integer;
@@ -1237,8 +1239,9 @@ function g_his_destroy(var AnIndex: Integer): Integer;
 begin
   Result := 0;
   csHugeIntSet.Enter;
-  try                         
-    if arrHugeIntSet[AnIndex] <> nil then
+  try
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
+      and (arrHugeIntSet[AnIndex] <> nil) then
     begin
       FreeAndNil(arrHugeIntSet[AnIndex]);
       Result := 1;
@@ -1248,86 +1251,7 @@ begin
   end;
 end;
 
-function g_storage_create(var ACount: Cardinal): Integer;
-  cdecl; export;
-begin
-  Result := 0;
-  if StorageID = nil then
-  begin
-    StorageID := TgsStorageID.Create(ACount);
-    Result := 1;
-  end;
-end;
-
-function g_storage_includeID(var AnItem, AnElement: Cardinal): Integer;
-  cdecl; export;
-begin
-  Result := 0;
-  if StorageID <> nil then
-  begin
-    StorageID.IncludeID(AnItem, AnElement);
-    Result := 1;
-  end;
-end;
-
-function g_storage_includeID2(var AnItem, AnElement: Cardinal): Integer;
-  cdecl; export;
-begin
-  Result := 0;
-  if StorageID <> nil then
-  begin
-    StorageID.IncludeID2(AnItem, AnElement);
-    Result := 1;
-  end;
-end;
-
-function g_storage_getlink(var AnElement: Cardinal): PChar;
-  cdecl; export;
-begin
-  if StorageID <> nil then
-    Result := PChar(StorageID.GetLink(AnElement))
-  else
-    Result := '';  
-end;
-
-function g_storage_add(var AnItem: Cardinal): Integer;
-  cdecl; export;
-begin
-  Result := 0;
-  if StorageID <> nil then
-  begin
-    Result := 1;
-    StorageID.Add(AnItem);
-  end;
-end;
-
-function g_storage_SetStorage_ID: Integer;
-  cdecl; export;
-begin
-  Result := 0;
-  if StorageID <> nil then
-  begin
-    StorageID.SetStorage_ID;
-    Result := 1;
-  end;
-end;
-
-function g_storage_destroy: integer;
-  cdecl; export;
-begin
-  if StorageID <> nil then
-    FreeAndNil(StorageID);
-end;
-
 exports
-  g_storage_create,
-  g_storage_includeID, 
-  g_storage_destroy,
-  g_storage_getlink,
-  g_storage_add,
-  g_storage_includeID2,
-  g_storage_SetStorage_ID,
-
   g_sec_test,
   g_sec_testall,
 
@@ -1399,7 +1323,6 @@ exports
   g_blob_blobtocstring,
   g_blob_cstringtoblob;
 
-
 var
   I: Integer;
 
@@ -1408,10 +1331,8 @@ initialization
   for I := 0 to HugeIntSetMaxCount - 1 do
     arrHugeIntSet[I] := nil;
 
-
 finalization
   csHugeIntSet.Free;
   for I := 0 to HugeIntSetMaxCount - 1 do
     arrHugeIntSet[I].Free;
-
 end.
