@@ -1621,6 +1621,7 @@ begin
   finally
     q.Free;
     q2.Free;
+    q3.Free;
     Tr.Free;
   end;
 end;
@@ -1700,11 +1701,14 @@ begin
     StrListFields := TStringList.Create;
     while not q.Eof do
     begin
-                                   //распарсим список полей FK                  ///не пригодится! тогда берем только первое
+     {                              //распарсим список полей FK                  ///не пригодится! тогда берем только первое
 
       StrListFields.CommaText := q.FieldByName('LIST_FIELDS').AsString;
                                    //добавим fk в М
       q2.SQL.Text := ' SELECT g_his_include(0, ' + StrListFields[0] +  ') FROM ' + q.FieldByName('RELATION_NAME').AsString;
+      }
+
+      q2.SQL.Text := ' SELECT g_his_include(0, ' + q.FieldByName('LIST_FIELDS').AsString +  ') FROM ' + q.FieldByName('RELATION_NAME').AsString;
       q2.ExecQuery;
 
       q.Next;
@@ -1712,7 +1716,7 @@ begin
 
    // cоздание M2 - множество для удаления
     q.Close;
-    q.SQL.Text := ' SELECT g_his_create(1, 0)';
+    q.SQL.Text := ' SELECT g_his_create(1, 0) FROM RDB$DATABASE';
     q.ExecQuery;
       //...заполнение добавить
 
@@ -1732,6 +1736,7 @@ begin
     q2.ParamByName('RELAT_NAME').AsString := q.FieldByName('Table_Name').AsString;
     q2.ExecQuery;
 
+  {
                                //распарсим список полей PK                      ///не пригодится! тогда берем только первое
     StrListFields.Clear;
     StrListFields.CommaText := q2.FieldByName('LIST_FIELDS').AsString;
@@ -1741,45 +1746,55 @@ begin
       ' g_his_has(1, ' + StrListFields[0]  + ') AS HAS_IN_M2 ' +
       ' FROM ' + q.FieldByName('Table_Name').AsString;
     q3.ExecQuery;
+  }
 
-    while not q3.EOF do
+    if not q2.EOF then
     begin
-                               //обрабатываем запись
-      if (q.FieldByName('HAS_IN_M2').AsInteger = 0) then    //если нет в множестве для удаления
+      q3.SQL.Text :=  'SELECT ' + q2.FieldByName('LIST_FIELDS').AsString + ' AS _ID, ' +
+        ' g_his_has(0, ' + q2.FieldByName('LIST_FIELDS').AsString  + ') AS HAS_IN_M, ' +
+        ' g_his_has(1, ' + q2.FieldByName('LIST_FIELDS').AsString  + ') AS HAS_IN_M2 ' +
+        ' FROM ' + q.FieldByName('Table_Name').AsString;
+      q3.ExecQuery;
+
+      while not q3.EOF do
       begin
-        if(q.FieldByName('HAS_IN_M').AsInteger = 0) then
-        begin                                              //добавим в M
-          q4.SQL.Text := 'SELECT g_his_include(0, ' + q3.FieldByName('_ID').AsString + ') FROM RDB$DATABASE ';
-          q4.ExecQuery;
+                                 //обрабатываем запись
+        if (q.FieldByName('HAS_IN_M2').AsInteger = 0) then    //если нет в множестве для удаления
+        begin
+          if(q.FieldByName('HAS_IN_M').AsInteger = 0) then
+          begin                                              //добавим в M
+            q4.SQL.Text := 'SELECT g_his_include(0, ' + q3.FieldByName('_ID').AsString + ') FROM RDB$DATABASE ';
+            q4.ExecQuery;
+          end;
+        end
+        else begin                                        //если есть ссылки на нее
+          if(q.FieldByName('HAS_IN_M').AsInteger = 1) then
+          begin                                           //ислючим из M2
+            q4.SQL.Text := 'SELECT g_his_exclude(1, ' + q3.FieldByName('_ID').AsString + ') FROM RDB$DATABASE ';
+            q4.ExecQuery;
+          end;
         end;
-      end
-      else begin                                        //если есть ссылки на нее
-        if(q.FieldByName('HAS_IN_M').AsInteger = 1) then
-        begin                                           //ислючим из M2
-          q4.SQL.Text := 'SELECT g_his_exclude(1, ' + q3.FieldByName('_ID').AsString + ') FROM RDB$DATABASE ';
-          q4.ExecQuery;
-        end;
+
+        q3.Next;
       end;
 
-      q3.Next;
-    end;
+      Tr.Commit;
 
-    Tr.Commit;
+      Tr.DefaultDatabase := FIBDatabase;
+      Tr.StartTransaction;
 
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
+      q.Transaction := Tr;
+      q2.Transaction := Tr;
 
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-
-    ///...удаление
+      ///...удаление
       h_Delete;
-
+    end;
 
     q.Close;
     q.SQL.Text := 'SELECT g_his_destroy(0) FROM RDB$DATABASE ';
     q.ExecQuery;
 
+   
     q.Close;
     q.SQL.Text := 'SELECT g_his_destroy(1) FROM RDB$DATABASE ';
     q.ExecQuery;
