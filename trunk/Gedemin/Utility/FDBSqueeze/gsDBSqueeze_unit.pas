@@ -1594,7 +1594,7 @@ begin
     q3.Transaction := Tr;
     q4.Transaction := Tr;
 
-    // объ€вим функции UDF
+  {  // объ€вим функции UDF
     q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_CREATE ' +
       ' INTEGER, ' +
       ' INTEGER ' +
@@ -1632,6 +1632,7 @@ begin
       'RETURNS INTEGER BY VALUE ' +
       'ENTRY_POINT ''g_his_include'' MODULE_NAME ''gudf'' ';
     q.ExecQuery;
+   }
 
    //сохраним все ID, на которые есть ссылки
     q.Close;
@@ -1658,7 +1659,7 @@ begin
 
    // cоздание M2 - множество дл€ удалени€
     q.Close;
-    q.SQL.Text := ' SELECT g_his_create(0, 0)';
+    q.SQL.Text := ' SELECT g_his_create(1, 0)';
     q.ExecQuery;
       //...заполнение
 
