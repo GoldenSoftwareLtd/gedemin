@@ -87,6 +87,9 @@ procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 begin
   CanClose := not FSThread.Busy;
+
+  if CanClose and FSThread.Connected then
+    FSThread.Disconnect;
 end;
 
 procedure TgsDBSqueeze_MainForm.UpdateProgress(

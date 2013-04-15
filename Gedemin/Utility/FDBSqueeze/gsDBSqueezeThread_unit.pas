@@ -14,6 +14,7 @@ const
   WM_DBS_TESTANDCREATEMETADATA = WM_USER + 4;
   WM_DBS_PREPAREDB             = WM_USER + 5;
   WM_DBS_RESTOREDB             = WM_USER + 6;
+  WM_DBS_FINISHED              = WM_USER + 7;
 
 type
   TgsDBSqueezeThread = class(TgdMessagedThread)
@@ -21,6 +22,7 @@ type
     FDBS: TgsDBSqueeze;
     FDatabaseName, FUserName, FPassword: TidThreadSafeString;
     FConnected: TidThreadSafeInteger;
+    FBusy: TidThreadSafeInteger;
 
     function GetConnected: Boolean;
     function GetBusy: Boolean;
@@ -59,6 +61,7 @@ begin
   FUserName := TIdThreadSafeString.Create;
   FPassword := TIdThreadSafeString.Create;
   FConnected := TIdThreadSafeInteger.Create;
+  FBusy := TIdThreadSafeInteger.Create;
   inherited Create(CreateSuspended);
 end;
 
@@ -70,17 +73,18 @@ begin
   FUserName.Free;
   FPassword.Free;
   FConnected.Free;
+  FBusy.Free;
 end;
 
 procedure TgsDBSqueezeThread.Disconnect;
 begin
-  if Connected then
+  if Connected and (not Busy) then
     PostMsg(WM_DBS_DISCONNECT);
 end;
 
 function TgsDBSqueezeThread.GetBusy: Boolean;
 begin
-  Result := False;
+  Result := FBusy.Value <> 0;
 end;
 
 function TgsDBSqueezeThread.GetConnected: Boolean;
@@ -111,6 +115,7 @@ begin
     begin
       if FConnected.Value = 1 then
       begin
+        FBusy.Value := 1;
         FDBS.TestAndCreateMetadata;
         PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
       end;
@@ -132,7 +137,14 @@ begin
       if FConnected.Value = 1 then
       begin
         FDBS.RestoreDB;
+        PostThreadMessage(ThreadID, WM_DBS_FINISHED, 0, 0);
       end;
+      Result := True;
+    end;
+
+    WM_DBS_FINISHED:
+    begin
+      FBusy.Value := 0;
       Result := True;
     end;
 

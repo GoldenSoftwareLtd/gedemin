@@ -21,24 +21,18 @@ type
 
     function GetConnected: Boolean;
 
-    function h_CreateTblForSaveFK: Boolean;
     function h_CreateTblForSavePkUnique: Boolean;
-    procedure h_InsertTblForSaveFK;
     procedure h_InsertTblForSavePkUnique;
-    procedure h_SaveFKConstr;
     procedure h_SavePkUniqueConstr;
 
     procedure h_SaveAllConstr;
 
-    //procedure h_SaveTypeTbls;
-    procedure h_Delete;       //
+    procedure h_Delete;
 
-    procedure h_DeleteFKConstr;
     procedure h_DeletePkUniqueConstr;
 
     procedure h_DeleteAllConstr;
 
-    procedure h_RecreateFKConstr;
     procedure h_RecreatePkUniqueConstr;
 
     procedure h_RecreateAllConstr;
@@ -117,340 +111,6 @@ begin
   Result := FIBDatabase.Connected;
 end;
 
-{ TODO  : SaveTypeTbls доделать Master }
-{
-procedure TgsDBSqueeze.h_SaveTypeTbls;                                           
-var
-  q, q2: TIBSQL;
-  Tr: TIBTransaction;
-begin
-  Assert(Connected);
-  q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-//creating table
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-
-    q.SQL.Text :=
-      'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
-    q.ParamByName('RN').AsString := 'DBS_TYPE_TABLES';
-    q.ExecQuery;
-    if q.EOF then
-    begin
-      q2.SQL.Text := ' CREATE TABLE DBS_TYPE_TABLES ( ' +
-        ' TABLE_NAME  VARCHAR(31), ' +
-        ' TYPE_NAME   VARCHAR(20), ' +
-        ' PRIMARY KEY (TABLE_NAME)) ';
-      q2.ExecQuery;
-      q2.Close;
-      LogEvent('DBS_TYPE_TABLES table has been created.');
-    end
-    else
-    begin
-      LogEvent('DBS_TYPE_TABLES table HASN''T been created.');
-    end;
-    q.Close;
-    Tr.Commit;
-//inserting to table
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-  //вставим имена всех таблиц
-    q.SQL.Text := ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
-    ' FROM RDB$RELATIONS r ' +
-    ' WHERE  RDB$VIEW_BLR IS NULL ';
-    q.ExecQuery;
-
-    while (not q.EOF) do
-    begin
-      q2.SQL.Text := ' INSERT INTO DBS_TYPE_TABLES ' +
-        ' (TABLE_NAME) VALUES (:tblName) ';
-      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-      q2.Close;
-
-      q.Next;
-    end;
-    q.Close;
-    Tr.Commit;
-
-  //добавл€ем тип таблиц
-
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-  //системные
-    q.SQL.Text := ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
-    ' FROM RDB$RELATIONS r ' +
-    ' WHERE RDB$SYSTEM_FLAG = 1 AND RDB$VIEW_BLR IS NULL ';
-    q.ExecQuery;
-
-    while (not q.EOF) do
-    begin
-      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
-        ' TYPE_NAME = ''system'' ' +
-        ' WHERE TABLE_NAME = :tblName ';
-      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-      q2.Close;
-      q.Next;
-    end;
-    q.Close;
-    Tr.Commit;
-
-
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-  //gd_ruid
-    q.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
-      ' TYPE_NAME = ''gd_ruid'' ' +
-      ' WHERE TABLE_NAME = ''GD_RUID'' ';
-    q.Close;
-    Tr.Commit;
-
-
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-  //gd_document
-    q.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
-      ' TYPE_NAME = ''gd_document'' ' +
-      ' WHERE TABLE_NAME = ''GD_DOCUMENT'' ';
-    q.Close;
-    Tr.Commit;
-
-
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-  //имеют составной PK
-    q.SQL.Text := ' SELECT t.RELATION_NAME as Table_Name ' +
-      'FROM DBS_TYPE_TABLES t ' +
-      'WHERE t.TYPE_NAME IS NULL ' +
-      '  AND t.RELATION_NAME IN ( ' +
-      '    SELECT ind.rdb$relation_name ' +
-      '    FROM RDB$INDICES ind ' +
-      '      JOIN RDB$RELATION_CONSTRAINTS rcon ON rcon.RDB$INDEX_NAME = ind.RDB$INDEX_NAME ' +
-      '    WHERE ind.rdb$segment_count > 1 AND rcon.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
-      '  ) ';
-    q.ExecQuery;
-
-    while (not q.EOF) do
-    begin
-      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
-        ' TYPE_NAME = ''composite PK'' ' +
-        ' WHERE TABLE_NAME = :tblName ';
-      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-      q2.Close;
-      q.Next;
-    end;
-    q.Close;
-    Tr.Commit;
-
-
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-  //не имеют PK
-    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
-      'FROM DBS_TYPE_TABLES r ' +
-      'WHERE TYPE_NAME IS NULL ' +
-      '  AND r.RELATION_NAME NOT IN ( ' +
-      '    SELECT RDB$RELATION_NAME FROM RDB$RELATION_CONSTRAINTS ' +
-      '    WHERE RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
-      '    )';
-    q.ExecQuery;
-
-    while (not q.EOF) do
-    begin
-      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
-        ' TYPE_NAME = ''without PK'' ' +
-        ' WHERE TABLE_NAME = :tblName ';
-      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-      q2.Close;
-      q.Next;
-    end;
-    q.Close;
-    Tr.Commit;
-
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-  //ƒетальные
-    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
-      'FROM DBS_TYPE_TABLES r ' +
-      'WHERE r.TYPE_NAME IS NULL ' +
-      '  AND r.RELATION_NAME IN ( ' +
-      '    SELECT RELATION_NAME ' +
-      '    FROM DBS_FK_CONSTRAINTS ' +
-      '    WHERE LIST_FIELD = ''MASTERKEY'' ' +
-      '  )';
-    q.ExecQuery;
-
-    q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
-      'TYPE_NAME = ''detail masterkey'' ' +
-      'WHERE TABLE_NAME = :tblName ';
-    q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-    q2.Close;
-    q.Close;
-    Tr.Commit;
-
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-
-    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
-      'FROM DBS_TYPE_TABLES r ' +
-      'WHERE r.TYPE_NAME IS NULL ' +
-      '  AND r.RELATION_NAME IN ( ' +
-      '    SELECT RELATION_NAME ' +
-      '    FROM DBS_FK_CONSTRAINTS ' +
-      '    WHERE LIST_FIELD = ''MASTERDOCKEY'' ' +
-      '  )';
-    q.ExecQuery;
-
-    q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
-      'TYPE_NAME = ''detail masterdockey'' ' +
-      'WHERE TABLE_NAME = :tblName ';
-    q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-    q2.Close;
-    q.Close;
-    Tr.Commit;
-
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-  //Cross
-    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
-      'FROM DBS_TYPE_TABLES r ' +
-      'WHERE r.TYPE_NAME IS NULL ' +
-      '  AND r.RELATION_NAME IN ( ' +
-      '    SELECT CROSSTABLE ' +
-      '    FROM AT_RELATION_FIELDS ' +
-      '    WHERE CROSSTABLE IS NOT NULL ' +
-      '  )';
-    q.ExecQuery;
-
-    while (not q.EOF) do
-    begin
-      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
-        'TYPE_NAME = ''cross'' ' +
-        'WHERE TABLE_NAME = :tblName ';
-      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-
-      q2.Close;
-      q.Next;
-    end;
-    q.Close;
-    Tr.Commit;
-
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-  //1-к-1
-    q.SQL.Text := ' SELECT r.RELATION_NAME as Table_Name ' +
-      'FROM DBS_TYPE_TABLES r ' +
-      'WHERE TYPE_NAME IS NULL ' +
-      '  AND r.RELATION_NAME IN ( ' +
-      '    SELECT fk.RELATION_NAME ' +
-      '    FROM DBS_FK_CONSTRAINTS fk ' +
-      '      JOIN DBS_PK_CONSTRAINTS pk ON fk.RELATION_NAME = pk.RELATION_NAME ' +
-      '    WHERE fk.LIST_FIELD = pk.LIST_FIELDS ' +
-      '    )';
-    q.ExecQuery;
-
-    while (not q.EOF) do
-    begin
-      q2.SQL.Text := ' UPDATE DBS_TYPE_TABLES SET' +
-        'TYPE_NAME = ''1to1'' ' +
-        'WHERE TABLE_NAME = :tblName ';
-      q2.ParamByName('tblName').AsString := q.FieldByName('Table_Name').AsString;
-
-      q2.Close;
-      q.Next;
-    end;
-    q.Close;
-    Tr.Commit;
-
-  finally
-    q.Free;
-    q2.Free;
-    Tr.Free;
-  end;
- 
-end;
-}
-
-function TgsDBSqueeze.h_CreateTblForSaveFK: Boolean;
-var
-  q, q2: TIBSQL;
-  Tr: TIBTransaction;
-begin
-  Assert(Connected);
-  q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-
-    q.SQL.Text :=
-      'SELECT * FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = :RN ';
-    q.ParamByName('RN').AsString := 'DBS_FK_CONSTRAINTS';
-    q.ExecQuery;
-    if q.EOF then
-    begin
-      q2.SQL.Text := 'CREATE TABLE DBS_FK_CONSTRAINTS ( ' +
-        ' RELATION_NAME     CHAR(31), ' +
-        ' CONSTRAINT_NAME   CHAR(31), ' +
-        ' LIST_FIELDS       VARCHAR(310), ' +
-        ' REF_RELATION_NAME CHAR(31), ' +
-        ' LIST_REF_FIELDS   VARCHAR(310), ' +
-        ' UPDATE_RULE       CHAR(11), ' +
-        ' DELETE_RULE       CHAR(11), ' +
-        'PRIMARY KEY (CONSTRAINT_NAME)) ';
-      q2.ExecQuery;
-      q2.Close;
-      LogEvent('DBS_FK_CONSTRAINTS table has been created.');
-      Result := True;
-    end
-    else
-    begin
-      LogEvent('DBS_FK_CONSTRAINTS table HASN''T been created.');
-      Result := False;
-    end;
-    q.Close;
-
-    Tr.Commit;
-  finally
-    q.Free;
-    q2.Free;
-    Tr.Free;
-  end;
-end;
-
 function TgsDBSqueeze.h_CreateTblForSavePkUnique: Boolean;
 var
   q, q2: TIBSQL;
@@ -500,141 +160,6 @@ begin
   end;
 end;
 
-
-procedure TgsDBSqueeze.h_InsertTblForSaveFK;
-var
-  q, q2, q3, q4: TIBSQL;
-  Tr, Tr4: TIBTransaction;
-begin
-  Assert(Connected);
-  q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
-  q3 := TIBSQL.Create(nil);
-  q4 := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-  Tr4 := TIBTransaction.Create(nil);
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    Tr4.DefaultDatabase := FIBDatabase;
-
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-    q3.Transaction := Tr;
-    q4.Transaction := Tr4;
-  {  q.SQL.Text :='INSERT INTO DBS_FK_CONSTRAINTS ( ' +
-      ' RELATION_NAME, ' +
-      ' CONSTRAINT_NAME, ' +
-      ' LIST_FIELDS, ' +
-      ' REF_RELATION_NAME, ' +
-      ' LIST_REF_FIELDS, ' +
-      ' UPDATE_RULE, ' +
-      ' DELETE_RULE ) ' +
-      'SELECT ' +
-      '  c.RDB$RELATION_NAME, ' +
-      '  c.RDB$CONSTRAINT_NAME, ' +
-      '  i.List_Fields, ' +
-      '  c2.RDB$RELATION_NAME, ' +
-      ' i2.List_Fields2, ' +
-      ' refc.RDB$UPDATE_RULE, ' +
-      ' refc.RDB$DELETE_RULE ' +
-      'FROM RDB$RELATION_CONSTRAINTS c ' +
-      '  JOIN (SELECT inx.rdb$INDEX_NAME, ' +
-      '    list(inx.RDB$FIELD_NAME) as List_Fields ' +
-      '    FROM RDB$INDEX_SEGMENTS inx ' +
-      '    GROUP BY inx.rdb$INDEX_NAME ' +
-      '  ) i ON c.rdb$INDEX_NAME = i.rdb$INDEX_NAME ' +
-      '  JOIN RDB$REF_CONSTRAINTS refc ON c.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +
-      '  JOIN RDB$RELATION_CONSTRAINTS c2 ON refc.RDB$CONST_NAME_UQ = c2.RDB$CONSTRAINT_NAME ' +
-      '  JOIN (SELECT inx.rdb$INDEX_NAME, ' +
-      '    list(inx.RDB$FIELD_NAME) as List_Fields2 ' +
-      '    FROM RDB$INDEX_SEGMENTS inx ' +
-      '  GROUP BY inx.rdb$INDEX_NAME' +
-      '  ) i2 ON c2.rdb$INDEX_NAME = i2.rdb$INDEX_NAME ' +
-      'WHERE c.rdb$constraint_type = ''FOREIGN KEY'' ' +
-      '  AND NOT c.rdb$relation_name LIKE ''RDB$%'' ';                           //
-    q.ExecQuery;
-    q.Close;
- }
-
-    q.SQL.Text := 'SELECT ' +
-      ' c.RDB$INDEX_NAME as Index_Name, ' +
-      ' c.RDB$RELATION_NAME as Relation_Name, ' +
-      ' c.RDB$CONSTRAINT_NAME as Constraint_Name, ' +
-      ' c2.RDB$INDEX_NAME as Index_Name2, ' +
-      ' c2.RDB$RELATION_NAME as Relation_Name2, ' +
-      ' refc.RDB$UPDATE_RULE as Update_Rule, ' +
-      ' refc.RDB$DELETE_RULE as Delete_Rule ' +
-      'FROM RDB$RELATION_CONSTRAINTS c ' +
-      '  JOIN RDB$REF_CONSTRAINTS refc ON c.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +
-      '  JOIN RDB$RELATION_CONSTRAINTS c2 ON refc.RDB$CONST_NAME_UQ = c2.RDB$CONSTRAINT_NAME ' +
-      'WHERE c.rdb$constraint_type = ''FOREIGN KEY'' ' +
-      '  AND NOT c.rdb$relation_name LIKE ''RDB$%'' ';                                          // ??
-    q.ExecQuery;
-
-    while not q.EOF  do
-    begin
-      q2.SQL.Text := ' SELECT list(inx.RDB$FIELD_NAME) as List_Fields ' +
-        ' FROM RDB$INDEX_SEGMENTS inx ' +
-        ' WHERE inx.RDB$INDEX_NAME = :c_index_name ';
-      q2.ParamByName('c_index_name').AsString := q.FieldByName('Index_Name').AsString;
-      q2.ExecQuery;
-
-      q3.SQL.Text := ' SELECT list(inx.RDB$FIELD_NAME) as List_Fields2 ' +
-        ' FROM RDB$INDEX_SEGMENTS inx ' +
-        ' WHERE inx.RDB$INDEX_NAME = :c2_index_name ';
-      q3.ParamByName('c2_index_name').AsString := q.FieldByName('Index_Name2').AsString;
-      q3.ExecQuery;
-
-      Tr4.StartTransaction;
-      q4.SQL.Text := 'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
-        ' RELATION_NAME, ' +
-        ' CONSTRAINT_NAME, ' +
-        ' LIST_FIELDS, ' +
-        ' REF_RELATION_NAME, ' +
-        ' LIST_REF_FIELDS, ' +
-        ' UPDATE_RULE, ' +
-        ' DELETE_RULE ) ' +
-        'VALUES ( ' +
-        ':relation_name, ' +
-        ':constraint_name, ' +
-        ':list_fields, ' +
-        ':ref_relation_name, ' +
-        ':list_ref_fields, ' +
-        ':update_rule, ' +
-        ':delete_rule ) ';
-      q4.ParamByName('relation_name').AsString := q.FieldByName('Relation_Name').AsString;
-      q4.ParamByName('constraint_name').AsString := q.FieldByName('Constraint_Name').AsString;
-      q4.ParamByName('list_fields').AsString := q2.FieldByName('List_Fields').AsString;
-      q4.ParamByName('ref_relation_name').AsString := q.FieldByName('Relation_Name2').AsString;
-      q4.ParamByName('list_ref_fields').AsString := q3.FieldByName('List_Fields2').AsString;
-      q4.ParamByName('update_rule').AsString := q.FieldByName('Update_Rule').AsString;
-      q4.ParamByName('delete_rule').AsString := q.FieldByName('Delete_Rule').AsString;
-      q4.ExecQuery;
-      q4.Close;
-      Tr4.Commit;
-
-      q3.Close;
-      q2.Close;
-
-      q.Next;
-    end;
-
-    q.Close;
-    Tr.Commit;
-    LogEvent('Inserting in tables for saving FK constraints ... OK');
-
-  finally
-    q.Free;
-    q2.Free;
-    q3.Free;
-    q4.Free;
-    Tr.Free;
-    Tr4.Free;
-  end;
-end;
-
 procedure TgsDBSqueeze.h_InsertTblForSavePkUnique;
 var
   q: TIBSQL;
@@ -676,60 +201,6 @@ begin
     q.Free;
     Tr.Free;
   end;
-end;
-
-procedure TgsDBSqueeze.h_SaveFKConstr;
-var
-  q: TIBSQL;
-  Tr: TIBTransaction;
-begin
-  Assert(Connected);
-  q := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-  LogEvent('[1]Saving FK constraints ... ');
-  if not h_CreateTblForSaveFK then
-  begin
-    try
-      Tr.DefaultDatabase := FIBDatabase;
-      Tr.StartTransaction;
-
-      q.Transaction := Tr;
-
-      q.SQL.Text := 'DELETE FROM DBS_FK_CONSTRAINTS ';
-      q.ExecQuery;
-      q.Close;
-
-
-      Tr.Commit;
-      LogEvent('Deleting data from DBS_FK_CONSTRAINTS ... OK');
-    finally
-      q.Free;
-      Tr.Free;
-    end;
-  end;
-
-  h_InsertTblForSaveFK;
-
-//==================================== TEST
-   try
-     q := TIBSQL.Create(nil);
-     Tr := TIBTransaction.Create(nil);
-     Tr.DefaultDatabase := FIBDatabase;
-     Tr.StartTransaction;
-
-     q.Transaction := Tr;
-     q.SQL.Text := 'SELECT count(c.CONSTRAINT_NAME) as Kolvo FROM DBS_FK_CONSTRAINTS c ';
-     q.ExecQuery;
-     LogEvent('======== COUNT FK before DROP: ' + q.FieldByName('Kolvo').AsString );
-     q.Close;
-
-     Tr.Commit;
-   finally
-      q.Free;
-      Tr.Free;
-   end;
-//==================================== end
-  LogEvent('[1]Saving FK constraints ... OK');
 end;
 
 procedure TgsDBSqueeze.h_SavePkUniqueConstr;
@@ -789,82 +260,9 @@ end;
 
 procedure TgsDBSqueeze.h_SaveAllConstr;
 begin
-
   LogEvent('Saving All constraints ...');
-
-  h_SaveFKConstr;
   h_SavePkUniqueConstr;
-  //...
-
   LogEvent('Saving All constraints ... OK');
-end;
-
-procedure TgsDBSqueeze.h_DeleteFKConstr;
-var
-  textSql: String;
-  q, q2:  TIBSQL;
-  Tr: TIBTransaction;
-begin
-  Assert(Connected);
-
-  q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q2.Transaction := Tr;
-
-    q.SQL.Text :=
-      'SELECT c.RDB$RELATION_NAME as Relation_Name, ' +
-      '  c.RDB$CONSTRAINT_NAME as Constraint_Name ' +
-      'FROM RDB$RELATION_CONSTRAINTS c ' +
-      '  JOIN RDB$INDICES i ON i.RDB$INDEX_NAME = c.RDB$INDEX_NAME ' +
-      'WHERE c.RDB$CONSTRAINT_TYPE = ''FOREIGN KEY'' AND '+
-      '  (i.RDB$SYSTEM_FLAG IS NULL OR i.RDB$SYSTEM_FLAG = 0) ';                 //
-    q.ExecQuery;
-    while not q.Eof do
-    begin
-      textSql := 'ALTER TABLE ' + q.FieldByName('Relation_Name').AsString +
-        ' DROP CONSTRAINT ' + q.FieldByName('Constraint_Name').AsString;
-
-      q2.SQL.Text := textSql;
-      q2.ExecQuery;
-      q2.Close;
-
-      q.Next;
-    end;
-    Tr.Commit;
-    LogEvent('[1]Deleting FK constraints ... OK');
-  finally
-    q.Free;
-    q2.Free;
-    Tr.Free;
-  end;
-
-//==================================== TEST
-  try
-    q := TIBSQL.Create(nil);
-    Tr := TIBTransaction.Create(nil);
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q.SQL.Text := 'SELECT count(c.RDB$CONSTRAINT_NAME) as Kolvo ' +
-      'FROM RDB$RELATION_CONSTRAINTS c ' +
-      'WHERE c.rdb$constraint_type = ''FOREIGN KEY'' '; //test
-    q.ExecQuery;
-    LogEvent('======== COUNT FK after DROP: ' + q.FieldByName('Kolvo').AsString );
-    q.Close;
-
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-  end;
-//==================================== end
 end;
 
 procedure TgsDBSqueeze.h_DeletePkUniqueConstr;
@@ -937,90 +335,9 @@ end;
 procedure TgsDBSqueeze.h_DeleteAllConstr;
 begin
   LogEvent('Deleting All constraints ...');
-  h_DeleteFKConstr;
   h_DeletePkUniqueConstr;
   //...
   LogEvent('Deleting All constraints ... OK');
-end;
-
-
-procedure TgsDBSqueeze.h_RecreateFKConstr;
-var
-  OnDelete, OnUpdate, textSql: String;
-  q, q2: TIBSQL;
-  Tr: TIBTransaction;
-begin
-  Assert(Connected);
-
-  q := TIBSQL.Create(nil);
-  q2 := TIBSQL.Create(nil);
-  Tr := TIBTransaction.Create(nil);
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q2.Transaction := Tr;
-
-    q.Transaction := Tr;
-    q.SQL.Text := 'SELECT ' +
-      ' RELATION_NAME as Relation_Name, ' +
-      ' CONSTRAINT_NAME as Constraint_Name, ' +
-      ' LIST_FIELDS as List_Fields, ' +
-      ' REF_RELATION_NAME as Ref_Relation_Name, ' +
-      ' LIST_REF_FIELDS as List_Ref_Fields, ' +
-      ' UPDATE_RULE as Update_Rule, ' +
-      ' DELETE_RULE as Delete_Rule ' +
-      'FROM DBS_FK_CONSTRAINTS ';
-    q.ExecQuery;
-    while not q.EOF do
-    begin
-      if (Pos('RESTRICT', q.FieldByName('Delete_Rule').AsString) = 0) then
-        OnDelete := ' ON DELETE ' + q.FieldByName('Delete_Rule').AsString
-      else OnDelete := ' ON DELETE NO ACTION ';//OnDelete := ' ';
-      if (Pos('RESTRICT', q.FieldByName('Update_Rule').AsString) = 0) then
-        OnUpdate := ' ON UPDATE ' + q.FieldByName('Update_Rule').AsString
-      else OnUpdate := ' ON UPDATE NO ACTION '; //OnUpdate := ' ';
-
-      textSql :=
-        'ALTER TABLE ' + q.FieldByName('Relation_Name').AsString + ' ADD CONSTRAINT ' +
-        q.FieldByName('Constraint_Name').AsString + ' FOREIGN KEY (' +
-        q.FieldByName('List_Fields').AsString +  ') ' + ' REFERENCES ' +
-        q.FieldByName('Ref_Relation_Name').AsString + ' (' +
-        q.FieldByName('List_Ref_Fields').AsString +') ' + OnDelete + OnUpdate;
-      q2.SQL.Text := textSql;
-      q2.ExecQuery;
-      q2.Close;
-      q.Next;
-    end;
-    Tr.Commit;
-    LogEvent('[2]Recreating FK constraints ... OK');
-
-    //удаление  DBS_FK_CONSTRAINTS за ненадобностью
-  finally
-    q.Free;
-    q2.Free;
-    Tr.Free;
-  end;
-//==================================== TEST
-  try
-    q := TIBSQL.Create(nil);
-    Tr := TIBTransaction.Create(nil);
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-    q.SQL.Text := 'SELECT count(c.RDB$CONSTRAINT_NAME) as Kolvo FROM RDB$RELATION_CONSTRAINTS c WHERE c.rdb$constraint_type = ''FOREIGN KEY'' '; //test
-    q.ExecQuery;
-    LogEvent('======== COUNT FK after ADD: ' + q.FieldByName('Kolvo').AsString );
-    q.Close;
-
-    Tr.Commit;
-  finally
-    q.Free;
-    Tr.Free;
-  end;
-//==================================== end
-
 end;
 
 procedure TgsDBSqueeze.h_RecreatePkUniqueConstr;
@@ -1092,12 +409,10 @@ begin
 
 end;
 
-
 procedure TgsDBSqueeze.h_RecreateAllConstr;
 begin
   LogEvent('Recreating All constraints ...');
   h_RecreatePkUniqueConstr;
-  h_RecreateFKConstr;
   //...
   LogEvent('Recreating All constraints ... OK');
 end;
@@ -1190,46 +505,6 @@ begin
     q2.Transaction := Tr;
     q3.Transaction := Tr;
     q4.Transaction := Tr;
-
-   // объ€вим функции UDF
-    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_CREATE ' +
-      ' INTEGER, ' +
-      ' INTEGER ' +
-      'RETURNS INTEGER BY VALUE ' +
-      'ENTRY_POINT ''g_his_create'' MODULE_NAME ''gudf'' ';
-    q.ExecQuery;
-
-    q.Close;
-    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_DESTROY ' +
-      ' INTEGER ' +
-      'RETURNS INTEGER BY VALUE ' +
-      'ENTRY_POINT ''g_his_destroy'' MODULE_NAME ''gudf'' ';
-    q.ExecQuery;
-
-    q.Close;
-    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_EXCLUDE ' +
-      ' INTEGER, ' +
-      ' INTEGER ' +
-      'RETURNS INTEGER BY VALUE ' +
-      'ENTRY_POINT ''g_his_exclude'' MODULE_NAME ''gudf'' ';
-    q.ExecQuery;
-
-    q.Close;
-    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_HAS ' +
-      ' INTEGER, ' +
-      ' INTEGER  ' +
-      'RETURNS INTEGER BY VALUE ' +
-      'ENTRY_POINT ''g_his_has'' MODULE_NAME ''gudf'' ';
-    q.ExecQuery;
-
-    q.Close;
-    q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_INCLUDE ' +
-      ' INTEGER, ' +
-      ' INTEGER ' +
-      'RETURNS INTEGER BY VALUE ' +
-      'ENTRY_POINT ''g_his_include'' MODULE_NAME ''gudf'' ';
-    q.ExecQuery;
-  
 
    //сохраним все ID, на которые есть ссылки
     q.Close;
@@ -1369,18 +644,10 @@ procedure TgsDBSqueeze.TestAndCreateMetadata;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
-begin
-  Assert(Connected);
 
-  Tr := TIBTransaction.Create(nil);
-  q := TIBSQL.Create(nil);
-  try
-    Tr.DefaultDatabase := FIBDatabase;
-    Tr.StartTransaction;
-
-    q.Transaction := Tr;
-
-    if RelationExists2('DBS_INACTIVE_TRIGGERS', Tr) then
+  procedure CreateDBSInactiveTriggers;
+  begin
+    if RelationExist2('DBS_INACTIVE_TRIGGERS', Tr) then
     begin
       q.SQL.Text := 'DELETE FROM DBS_INACTIVE_TRIGGERS';
       q.ExecQuery;
@@ -1394,8 +661,11 @@ begin
       q.ExecQuery;
       LogEvent('Table DBS_INACTIVE_TRIGGERS has been created.');
     end;
+  end;
 
-    if RelationExists2('DBS_INACTIVE_INDICES', Tr) then
+  procedure CreateDBSInactiveIndices;
+  begin
+    if RelationExist2('DBS_INACTIVE_INDICES', Tr) then
     begin
       q.SQL.Text := 'DELETE FROM DBS_INACTIVE_INDICES';
       q.ExecQuery;
@@ -1409,6 +679,113 @@ begin
       q.ExecQuery;
       LogEvent('Table DBS_INACTIVE_INDICES has been created.');
     end;
+  end;
+
+  procedure CreateDBSFKConstraints;
+  begin
+    if RelationExist2('DBS_FK_CONSTRAINTS', Tr) then
+    begin
+      q.SQL.Text := 'DELETE FROM DBS_FK_CONSTRAINTS';
+      q.ExecQuery;
+      LogEvent('Table DBS_FK_CONSTRAINTS exists.');
+    end else
+    begin
+      q.SQL.Text :=
+        'CREATE TABLE DBS_FK_CONSTRAINTS ( ' +
+        '  CONSTRAINT_NAME   CHAR(31), ' +
+        '  RELATION_NAME     CHAR(31), ' +
+        '  LIST_FIELDS       VARCHAR(8192), ' +
+        '  REF_RELATION_NAME CHAR(31), ' +
+        '  LIST_REF_FIELDS   VARCHAR(8192), ' +
+        '  UPDATE_RULE       CHAR(11), ' +
+        '  DELETE_RULE       CHAR(11), ' +
+        '  PRIMARY KEY (CONSTRAINT_NAME)) ';
+      q.ExecQuery;
+      LogEvent('Table DBS_FK_CONSTRAINTS has been created.');
+    end;
+  end;
+
+  procedure CreateUDFs;
+  begin
+    if FunctionExist2('G_HIS_CREATE', Tr) then
+      LogEvent('Function g_his_create exists.')
+    else begin
+      q.SQL.Text :=
+        'DECLARE EXTERNAL FUNCTION G_HIS_CREATE ' +
+        '  INTEGER, ' +
+        '  INTEGER ' +
+        'RETURNS INTEGER BY VALUE ' +
+        'ENTRY_POINT ''g_his_create'' MODULE_NAME ''gudf'' ';
+      q.ExecQuery;
+      LogEvent('Function g_his_create has been declared.');
+    end;
+
+    if FunctionExist2('G_HIS_DESTROY', Tr) then
+      LogEvent('Function g_his_destroy exists.')
+    else begin
+      q.SQL.Text :=
+        'DECLARE EXTERNAL FUNCTION G_HIS_DESTROY ' +
+        '  INTEGER ' +
+        'RETURNS INTEGER BY VALUE ' +
+        'ENTRY_POINT ''g_his_destroy'' MODULE_NAME ''gudf'' ';
+      q.ExecQuery;
+      LogEvent('Function g_his_destroy has been declared.');
+    end;
+
+    if FunctionExist2('G_HIS_EXCLUDE', Tr) then
+      LogEvent('Function g_his_exclude exists.')
+    else begin
+      q.SQL.Text :=
+        'DECLARE EXTERNAL FUNCTION G_HIS_EXCLUDE ' +
+        '  INTEGER, ' +
+        '  INTEGER ' +
+        'RETURNS INTEGER BY VALUE ' +
+        'ENTRY_POINT ''g_his_exclude'' MODULE_NAME ''gudf'' ';
+      q.ExecQuery;
+      LogEvent('Function g_his_exclude has been declared.');
+    end;
+
+    if FunctionExist2('G_HIS_HAS', Tr) then
+      LogEvent('Function g_his_has exists.')
+    else begin
+      q.SQL.Text :=
+        'DECLARE EXTERNAL FUNCTION G_HIS_HAS ' +
+        ' INTEGER, ' +
+        ' INTEGER  ' +
+        'RETURNS INTEGER BY VALUE ' +
+        'ENTRY_POINT ''g_his_has'' MODULE_NAME ''gudf'' ';
+      q.ExecQuery;
+      LogEvent('Function g_his_has has been declared.');
+    end;
+
+    if FunctionExist2('G_HIS_INCLUDE', Tr) then
+      LogEvent('Function g_his_include exists.')
+    else begin
+      q.SQL.Text :=  'DECLARE EXTERNAL FUNCTION G_HIS_INCLUDE ' +
+        ' INTEGER, ' +
+        ' INTEGER ' +
+        'RETURNS INTEGER BY VALUE ' +
+        'ENTRY_POINT ''g_his_include'' MODULE_NAME ''gudf'' ';
+      q.ExecQuery;
+      LogEvent('Function g_his_include has been declared.');
+    end;
+  end;
+
+begin
+  Assert(Connected);
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    CreateDBSInactiveTriggers;
+    CreateDBSInactiveIndices;
+    CreateDBSFKConstraints;
+    CreateUDFs;
 
     Tr.Commit;
   finally
@@ -1478,6 +855,54 @@ var
     LogEvent('Indices deactivated.');
   end;
 
+  procedure PrepareFKConstraints;
+  begin
+    q.SQL.Text :=
+      'INSERT INTO DBS_FK_CONSTRAINTS ( ' +
+      '  CONSTRAINT_NAME, RELATION_NAME, REF_RELATION_NAME, ' +
+      '  UPDATE_RULE, DELETE_RULE, LIST_FIELDS, LIST_REF_FIELDS) ' +
+      'SELECT ' +
+      '  c.RDB$CONSTRAINT_NAME AS Constraint_Name, ' +
+      '  c.RDB$RELATION_NAME AS Relation_Name, ' +
+      '  c2.RDB$RELATION_NAME AS Ref_Relation_Name, ' +
+      '  refc.RDB$UPDATE_RULE AS Update_Rule, ' +
+      '  refc.RDB$DELETE_RULE AS Delete_Rule, ' +
+      '  LIST(iseg.rdb$field_name, '','') AS Fields, ' +
+      '  LIST(ref_iseg.rdb$field_name, '','') AS Ref_Fields ' +
+      'FROM ' +
+      '  RDB$RELATION_CONSTRAINTS c ' +
+      '  JOIN RDB$REF_CONSTRAINTS refc ' +
+      '    ON c.RDB$CONSTRAINT_NAME = refc.RDB$CONSTRAINT_NAME ' +
+      '  JOIN RDB$RELATION_CONSTRAINTS c2 ' +
+      '    ON refc.RDB$CONST_NAME_UQ = c2.RDB$CONSTRAINT_NAME ' +
+      '  JOIN rdb$index_segments iseg ' +
+      '    ON iseg.rdb$index_name = c.rdb$index_name ' +
+      '  JOIN rdb$index_segments ref_iseg ' +
+      '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +
+      'WHERE ' +
+      '  NOT (c.rdb$constraint_name LIKE ''RDB$%'' ' +
+      '    OR c.rdb$constraint_name LIKE ''INTEG_%'') ' +
+      'GROUP BY ' +
+      '  1, 2, 3, 4, 5';
+    q.ExecQuery;
+
+    q.SQL.Text :=
+      'EXECUTE BLOCK ' +
+      'AS ' +
+      '  DECLARE VARIABLE CN CHAR(31); ' +
+      '  DECLARE VARIABLE RN CHAR(31); ' +
+      'BEGIN ' +
+      '  FOR ' +
+      '    SELECT constraint_name, relation_name ' +
+      '    FROM dbs_fk_constraints ' +
+      '    INTO :CN, :RN ' +
+      '  DO ' +
+      '    EXECUTE STATEMENT ''ALTER TABLE '' || :RN || '' DROP CONSTRAINT '' || :CN; ' +
+      'END';
+    q.ExecQuery;
+    LogEvent('FKs dropped.');
+  end;
+
 begin
   Assert(Connected);
 
@@ -1492,6 +917,7 @@ begin
 
     PrepareTriggers;
     PrepareIndices;
+    PrepareFKConstraints;
 
     Tr.Commit;
   finally
@@ -1525,6 +951,10 @@ var
       '  DELETE FROM dbs_inactive_triggers; ' +
       'END';
     q.ExecQuery;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
     LogEvent('Triggers reactivated.');
   end;
 
@@ -1548,7 +978,38 @@ var
       '  DELETE FROM dbs_inactive_indices; ' +
       'END';
     q.ExecQuery;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
     LogEvent('Indices reactivated.');
+  end;
+
+  procedure RestoreFKConstraints;
+  begin
+    q.SQL.Text :=
+      'EXECUTE BLOCK ' +
+      'AS ' +
+      '  DECLARE VARIABLE S CHAR(16384); ' +
+      'BEGIN ' +
+      '  FOR ' +
+      '    SELECT ''ALTER TABLE '' || relation_name || '' ADD CONSTRAINT '' || ' +
+      '      constraint_name || '' FOREIGN KEY ('' || list_fields || '') REFERENCES '' || ' +
+      '      ref_relation_name || ''('' || list_ref_fields || '') '' || ' +
+      '      IIF(update_rule = ''RESTRICT'', '''', '' ON UPDATE '' || update_rule) || ' +
+      '      IIF(delete_rule = ''RESTRICT'', '''', '' ON DELETE '' || delete_rule) ' +
+      '    FROM dbs_fk_constraints ' +
+      '    INTO :S ' +
+      '  DO ' +
+      '    EXECUTE STATEMENT :S; ' +
+      '  DELETE FROM dbs_fk_constraints; ' +
+      'END';
+    q.ExecQuery;
+
+    Tr.Commit;
+    Tr.StartTransaction;
+
+    LogEvent('FKs restored.');
   end;
 
 begin
@@ -1565,6 +1026,7 @@ begin
 
     RestoreIndices;
     RestoreTriggers;
+    RestoreFKConstraints;
 
     Tr.Commit;
   finally
