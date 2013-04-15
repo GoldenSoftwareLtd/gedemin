@@ -146,7 +146,7 @@ begin
   cds.DisableControls;
   try
     cds.EmptyDataSet;
-    TgdcNamespace.ScanDirectory(cds, tbedPath.Text, mMessages.Lines);
+    TgdcNamespace.ScanDirectory(cds, tbedPath.Text, Log);
     gr.SelectedRows.Clear;
     Log('Выполнено сравнение с каталогом ' + tbedPath.Text);
   finally

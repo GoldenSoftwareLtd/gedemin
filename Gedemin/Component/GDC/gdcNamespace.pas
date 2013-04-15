@@ -6,7 +6,7 @@ interface
 uses
   SysUtils, gdcBase, gdcBaseInterface, Classes, gd_ClassList,
   gd_createable_form, at_classes, IBSQL, db, yaml_writer, yaml_parser,
-  IBDatabase, gd_security, dbgrids, gd_KeyAssoc, contnrs, IB;
+  IBDatabase, gd_security, dbgrids, gd_KeyAssoc, contnrs, IB, gsNSObjects;
 
 type
   TgdcNamespace = class(TgdcBase)
@@ -28,7 +28,8 @@ type
       ADontremove: Boolean = False; AnIncludesiblings: Boolean = False);
     class procedure LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping; UpdateList: TObjectList; ATr: TIBTransaction; const AnAlwaysoverwrite: Boolean = False);
     class procedure ScanDirectory(ADataSet: TDataSet; const APath: String;
-      Messages: TStrings);
+      Log: TNSLog);
+   //   Messages: TStrings);
 
     class procedure SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);
     class procedure SetObjectLink(AnObject: TgdcBase; ADataSet: TDataSet; ATr: TIBTransaction);
@@ -73,7 +74,7 @@ uses
   jclUnicode, at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const,
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
   Graphics, IBErrorCodes, Storages, gdcMetadata, at_sql_setup, gsDesktopManager,
-  at_dlgLoadNamespacePackages_unit, gsNSObjects;
+  at_dlgLoadNamespacePackages_unit;
 
 const
   cst_str_WithoutName = 'Без наименования';
@@ -536,7 +537,7 @@ begin
   finally
     q.Free;
   end;
-end;
+end; 
 
 procedure TgdcNamespace.CheckIncludesiblings;
 var
@@ -1111,6 +1112,8 @@ begin
                     WasMetaData := False;
                   end;
 
+                  RunMultiConnection;
+
                   if (Obj = nil)
                     or (Obj.ClassType <> C)
                     or (LoadSubType <> Obj.SubType) then
@@ -1148,7 +1151,6 @@ begin
                     end else
                       Obj := TgdcBase(ObjList.Objects[Ind]);
                   end;
-                  RunMultiConnection;
 
                   if Obj.SubSet <> 'ByID' then
                     Obj.SubSet := 'ByID';
@@ -1330,11 +1332,9 @@ class procedure TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping
     begin
       if (UL[I] as TgdcReferenceUpdate).RefRUID = SourceRUID then
       begin
-        // На обновление полей в б-о могут быть заданы к-л операции => Сделано через б-о, а не через ibsql
         Obj := (UL[I] as TgdcReferenceUpdate).FullClass.gdClass.CreateSubType(nil,
           (UL[I] as TgdcReferenceUpdate).FullClass.SubType, 'ByID');
         try
-          // Транзакция должна быть открыта
           Obj.Transaction := ATr;
           Obj.ReadTransaction := ATr;
           Obj.ID := (UL[I] as TgdcReferenceUpdate).ID;
@@ -2193,151 +2193,69 @@ begin
 end;
 
 class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
-  const APath: String; Messages: TStrings);
-
-  procedure FillInNamespace(AnObj: TgdcBase; const AnInsert: Boolean);
-  begin
-    if AnInsert then
-      ADataSet.Insert
-    else
-      ADataSet.Edit;
-    ADataSet.FieldByName('namespacekey').AsInteger := AnObj.ID;
-    ADataSet.FieldByName('namespacename').AsString := AnObj.ObjectName;
-    ADataSet.FieldByName('namespaceversion').AsString := AnObj.FieldByName('version').AsString;
-    if not AnObj.FieldByName('filetimestamp').IsNull then
-      ADataSet.FieldByName('namespacetimestamp').AsDateTime := AnObj.FieldByName('filetimestamp').AsDateTime;
-    ADataSet.Post;
-  end;
-
-  procedure FillInNamespaceFile(const S: String);
-  var
-    Parser: TyamlParser;
-    M: TyamlMapping;
-  begin
-    Parser := TyamlParser.Create;
-    try
-      Parser.Parse(S, 'Objects', 8192);
-
-      if (Parser.YAMLStream.Count > 0)
-        and ((Parser.YAMLStream[0] as TyamlDocument).Count > 0)
-        and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
-      begin
-        M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-
-        if M.ReadString('Properties\Name') = '' then
-        begin
-          Messages.Add('Неверный формат файла ' + S);
-        end else
-        begin
-          if ADataSet.Locate('filenamespacename', M.ReadString('Properties\Name'), [loCaseInsensitive]) then
-          begin
-            Messages.Add('Пространство имен: "' + M.ReadString('Properties\Name') + '" содержится в файлах:');
-            Messages.Add('1: ' + ADataSet.FieldByName('filename').AsString);
-            Messages.Add('2: ' + S);
-            Messages.Add('Только первый файл будет обработан!');
-          end else
-          begin
-            ADataSet.Append;
-            ADataSet.FieldByName('filename').AsString := S;
-            ADataSet.FieldByName('filenamespacename').AsString := M.ReadString('Properties\Name');
-            ADataSet.FieldByName('fileversion').AsString := M.ReadString('Properties\Version');
-            ADataSet.FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(S);
-            ADataSet.FieldByName('filesize').AsInteger := FileGetSize(S);
-            ADataSet.Post;
-          end;
-        end;                       
-      end;
-    finally
-      Parser.Free;
-    end;
-  end;
-
+  const APath: String; Log: TNSLog);
+  
 var
-  SL: TStringList;
-  Obj: TgdcNamespace;
-  I, R: Integer;
-  CurrDir, Bm: String;
+  I: Integer;
+  CurrDir: String;
+  NSList: TgsNSList;
+  NSNode: TgsNSNode;
 begin
   Assert(ADataSet <> nil);
-  Assert(Messages <> nil);
+  //Assert(Messages <> nil);
 
-  Obj := TgdcNamespace.Create(nil);
-  SL := TStringList.Create;
+  NSList := TgsNSList.Create;
   try
-    SL.Sorted := True;
-    SL.Duplicates := dupError;
+    NSList.Log := Log;
+    NSList.GetFilesForPath(APath);
 
-    if AdvBuildFileList(IncludeTrailingBackslash(APath) + '*.yml',
-      faAnyFile, SL, amAny,  [flFullNames, flRecursive], '*.*', nil) then
+    CurrDir := '';
+
+    for I := 0 to NSList.Count - 1 do
     begin
-      CurrDir := '';
+      NSNode := NSList.Objects[I] as TgsNSNode;
 
-      for I := 0 to SL.Count - 1 do
+      if (NSNode.FileName > '') and (ExtractFilePath(NSNode.FileName) <> CurrDir) then
       begin
-        if ExtractFilePath(SL[I]) <> CurrDir then
-        begin
-          CurrDir := ExtractFilePath(SL[I]);
-          ADataSet.Append;
-          ADataSet.FieldByName('filenamespacename').AsString := CurrDir;
-          ADataSet.Post;
-        end;
-        FillInNamespaceFile(SL[I]);
+        CurrDir := ExtractFilePath(NSNode.FileName);
+        ADataSet.Append;
+        ADataSet.FieldByName('filenamespacename').AsString := CurrDir;
+        ADataSet.Post;
       end;
 
-      ADataSet.First;
+      ADataSet.Append;
+      ADataSet.FieldByName('filename').AsString := NSNode.FileName;
+      ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name;
+      ADataSet.FieldByName('fileversion').AsString := NSNode.Version;
+      if NSNode.FileTimestamp <> 0 then
+        ADataSet.FieldByName('filetimestamp').AsDateTime := NSNode.FileTimestamp;
+      ADataSet.FieldByName('filesize').AsInteger := NSNode.Filesize;
 
-      Obj.SubSet := 'OrderByName';
-      Obj.Open;
-
-      while not Obj.EOF do
-      begin
-        Bm := ADataSet.Bookmark;
-        if ADataSet.Locate('filenamespacename', Obj.ObjectName, [loCaseInsensitive]) then
+      ADataSet.FieldByName('namespacekey').AsInteger := NSNode.Namespacekey;
+      ADataSet.FieldByName('namespacename').AsString := NSNode.NamespaceName;
+      ADataSet.FieldByName('namespaceversion').AsString := NSNode.VersionInDB;
+      if  NSNode.NamespaceTimestamp <> 0 then
+        ADataSet.FieldByName('namespacetimestamp').AsDateTime := NSNode.NamespaceTimestamp;
+      case NSNode.GetNSState of
+        nsUndefined:
         begin
-          FillInNamespace(Obj, False);
-          ADataSet.Bookmark := Bm
-        end else
-        begin
-          FillInNamespace(Obj, True);
-          ADataSet.Next;
-        end;
-        Obj.Next;
-      end;
-
-      ADataSet.First;
-
-      while not ADataSet.EOF do
-      begin
-        R := TFLItem.CompareVersionStrings(
-              ADataSet.FieldByName('namespaceversion').AsString,
-              ADataSet.FieldByName('fileversion').AsString);
-
-        ADataSet.Edit;
-
-        if ADataSet.FieldByName('namespaceversion').AsString > '' then
-        begin
-          if R < 0 then
-            ADataSet.FieldByName('operation').AsString := '<<'
-          else if R > 0 then
+          if NSNode.VersionInDB > '' then
             ADataSet.FieldByName('operation').AsString := '>>'
           else
-            ADataSet.FieldByName('operation').AsString := '==';
-        end
-        else if ADataSet.FieldByName('fileversion').AsString > '' then
-          ADataSet.FieldByName('operation').AsString := '<<'
-        else
-          ADataSet.FieldByName('operation').AsString := '';
+            ADataSet.FieldByName('operation').AsString := '';
+        end;
 
-        ADataSet.Post;  
-        ADataSet.Next;
+        nsNotInstalled, nsNewer: ADataSet.FieldByName('operation').AsString := '<<';
+        nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
+        nsEqual: ADataSet.FieldByName('operation').AsString := '==';
       end;
-
-      ADataSet.First;
+      ADataSet.Post;
     end;
+
+    ADataSet.First;
   finally
-    SL.Free;
-    Obj.Free;
-  end;
+    NSList.Free;
+  end;  
 end;
 
 procedure TgdcNamespace.InstallPackages(ANSList: TStringList;
