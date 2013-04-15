@@ -49,7 +49,7 @@ type
 
     procedure SelectAllChild(Node: TTreeNode; bSel: boolean);
     procedure OverridingWndProc(var Message: TMessage);
-
+    procedure Log(const AMessage: string);
   public
     constructor Create(AnOwner: TComponent); override;
     destructor Destroy; override;
@@ -79,6 +79,7 @@ begin
   inherited;
   FgdcNamespace := TgdcNamespace.Create(nil);
   List := TgsNSList.Create;
+  List.Log := Log;
 end;
 
 destructor Tat_dlgLoadNamespacePackages.Destroy;
@@ -104,6 +105,11 @@ begin
         SL.Add(TgsNSNode(gsTreeView.Items[I].Data).FileName);
     end;
   end;  
+end;
+
+procedure Tat_dlgLoadNamespacePackages.Log(const AMessage: string);
+begin
+  mInfo.Lines.Add(AMessage);
 end;
 
 procedure Tat_dlgLoadNamespacePackages.actSearchExecute(Sender: TObject);

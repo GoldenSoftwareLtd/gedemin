@@ -8,6 +8,7 @@ uses
 
 type
   TgsNSState = (nsUndefined, nsNotInstalled, nsNewer, nsOlder, nsEqual);
+  TNSLog = procedure(const AMessage: string) of object;
 
   TgsNSNode = class(TObject)
   public
@@ -21,7 +22,13 @@ type
     Optional: Boolean;
     Internal: Boolean;
     Comment: String;
+    Filesize: Integer;
+
     VersionInDB: String;
+    Namespacekey: Integer;
+    NamespaceName: String;
+    NamespaceTimestamp: TDateTime;
+    OnlyInDB: Boolean;
     UsesList: TStringList;
 
     constructor Create(const ARUID: String);
@@ -35,8 +42,8 @@ type
 
   TgsNSList = class(TStringList)
   private
+    FLog: TNSLog;
     function Valid(ANode: TgsNSNode): Boolean;
-
   public
     constructor Create;
     destructor Destroy; override;
@@ -45,6 +52,7 @@ type
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
     procedure GetAllUses(const RUID: String; SL: TStringList);
+    property Log: TNSLog read FLog write FLog;
   end;
 
 implementation
@@ -60,6 +68,7 @@ begin
   UsesList := TStringList.Create;
   UsesList.Sorted := True;
   UsesList.Duplicates := dupError;
+  OnlyInDB := False;
 end;
 
 destructor TgsNSNode.Destroy;
@@ -168,15 +177,62 @@ end;
 
 procedure TgsNSList.GetFilesForPath(const Path: String);
 
-  procedure GetYAMLNode(const Name: String);
+  procedure FillInNamespace;
+  var
+    q: TIBSQL;
+    Ind: Integer;
+    Obj: TgsNSNode;
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.SQL.Text :=
+        'SELECT n.id, n.name, n.version, n.filetimestamp, r.xid || ''_'' || r.dbid as RUID ' +
+        'FROM at_namespace n JOIN gd_ruid r ' +
+        '  ON n.id = r.id ';
+        { +
+        'WHERE r.xid || ''_'' || r.dbid = :ruid';
+      q.ParamByName('ruid').AsString := AnObj.RUID;}
+      q.ExecQuery;
+
+      while not q.Eof do
+      begin
+        Ind := Self.IndexOf(q.Fields[4].AsString);
+        if Ind > -1 then
+        begin
+          Obj := Self.Objects[Ind] as TgsNSNode;
+        end else
+        begin
+          Obj := TgsNSNode.Create(q.Fields[4].AsString);
+          Obj.OnlyInDB := True;
+          AddObject(q.Fields[4].AsString, Obj);
+        end;
+        Obj.VersionInDB := q.Fields[2].AsString;
+        Obj.Namespacekey := q.Fields[0].AsInteger;
+        Obj.NamespaceName := q.Fields[1].AsString;
+        Obj.NamespaceTimestamp := q.Fields[3].AsDateTime; 
+        q.Next;
+      end;
+     { if not q.Eof then
+      begin
+        AnObj.VersionInDB := q.Fields[2].AsString;
+        AnObj.Namespacekey := q.Fields[0].AsInteger;
+        AnObj.NamespaceName := q.Fields[1].AsString;
+        AnObj.NamespaceTimestamp := q.Fields[3].AsDateTime;
+      end;}
+    finally
+      q.Free;
+    end;
+  end;
+
+  procedure GetYAMLNode(const Name: String; SL: TStringList);
   var
     Parser: TyamlParser;
     M: TyamlMapping;
     N: TyamlNode;
     S: TyamlSequence;
     Ind, I: Integer;
-    RUID: String;
-    q: TIBSQL;
+    RUID: String; 
     Obj: TgsNSNode;
   begin
     Parser := TyamlParser.Create;
@@ -188,77 +244,87 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
         and ((Parser.YAMLStream[0] as TyamlDocument)[0] is TyamlMapping) then
       begin
         M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-
-        Ind := Self.IndexOf(M.ReadString('Properties\RUID'));
-
-        if Ind = -1 then
+        if M.ReadString('Properties\Name') = '' then
         begin
-          Obj := TgsNSNode.Create(M.ReadString('Properties\RUID'));
-          AddObject(M.ReadString('Properties\RUID'), Obj);
+          if Assigned(FLog) then
+            FLog('Неверный формат файла ' + Name);
         end else
-          Obj := Self.Objects[Ind] as TgsNSNode;
-
-        Obj.Name := M.ReadString('Properties\Name');
-        Obj.Caption := M.ReadString('Properties\Caption');
-        Obj.FileName := Name;
-        Obj.FileTimestamp := gd_common_functions.GetFileLastWrite(Name);
-        Obj.Version := M.ReadString('Properties\Version');
-        Obj.DBVersion := M.ReadString('Properties\DBVersion');
-        Obj.Optional := M.ReadBoolean('Properties\Optional');
-        Obj.Internal := M.ReadBoolean('Properties\Internal');
-        Obj.Comment := M.ReadString('Properties\Comment');
-
-        q := TIBSQL.Create(nil);
-        try
-          q.Transaction := gdcBaseManager.ReadTransaction;
-          q.SQL.Text :=
-            'SELECT n.version ' +
-            'FROM at_namespace n JOIN gd_ruid r ' +
-            '  ON n.id = r.id ' +
-            'WHERE r.xid || ''_'' || r.dbid = :ruid';
-          q.ParamByName('ruid').AsString := Obj.RUID;
-          q.ExecQuery;
-
-          if not q.Eof then
-            Obj.VersionInDB := q.Fields[0].AsString;
-        finally
-          q.Free;
-        end;
-
-        N := M.FindByName('Uses');
-
-        if N <> nil then
         begin
-          if not (N is TyamlSequence) then
-            raise Exception.Create('Invalid data!');
-
-          S := N as TyamlSequence;
-          for I := 0 to S.Count - 1 do
+          Ind := SL.IndexOfName(M.ReadString('Properties\Name'));
+          if Ind > -1 then
           begin
-            if not (S.Items[I] is TyamlScalar) then
-              raise Exception.Create('Invalid data!');
-
-            RUID := (S.Items[I] as TyamlScalar).AsString;
-            if Pos(' ', RUID) > 0 then
-              SetLength(RUID, Pos(' ', RUID) - 1);
-
-            if CheckRUID(RUID) then
+            if Assigned(FLog) then
+              FLog('Пространство имен: "' + M.ReadString('Properties\Name') + '" содержится в файлах:' + #13#10 +
+                '1: ' + SL.Values[SL.Names[Ind]] + #13#10 + '2: ' + Name + #13#10 +
+                'Только первый файл будет обработан!');
+          end else
+          begin
+            Ind := Self.IndexOf(M.ReadString('Properties\RUID'));
+            if Ind = -1 then
             begin
-              Ind := Self.IndexOf(RUID);
-              if Ind > -1 then
+              Obj := TgsNSNode.Create(M.ReadString('Properties\RUID'));
+              AddObject(M.ReadString('Properties\RUID'), Obj);
+            end else
+              Obj := Self.Objects[Ind] as TgsNSNode;
+
+
+            if (Obj.FileName > '') then
+            begin
+              if Assigned(FLog) then
+                FLog('Пространство имен: "' + M.ReadString('Properties\Name') + '" содержится в файлах:' + #13#10 +
+                  '1: ' + Obj.FileName + #13#10 + '2: ' + Name + #13#10 +
+                  'Только первый файл будет обработан!');
+            end else
+            begin
+              Obj.Name := M.ReadString('Properties\Name');
+              Obj.Caption := M.ReadString('Properties\Caption');
+              Obj.FileName := Name;
+              Obj.FileTimestamp := gd_common_functions.GetFileLastWrite(Name);
+              Obj.Version := M.ReadString('Properties\Version');
+              Obj.DBVersion := M.ReadString('Properties\DBVersion');
+              Obj.Optional := M.ReadBoolean('Properties\Optional');
+              Obj.Internal := M.ReadBoolean('Properties\Internal');
+              Obj.Comment := M.ReadString('Properties\Comment');
+              Obj.Filesize := FileGetSize(Name);
+              SL.Add(Obj.Name + '=' + Name);
+
+              N := M.FindByName('Uses');
+
+              if N <> nil then
               begin
-                if Valid(Self.Objects[Ind] as TgsNSNode) then
-                  Obj.UsesList.Add(RUID)
-                else
-                  Application.MessageBox(PChar('Циклическая ссылка, файл ''' + (Self.Objects[Ind] as TgsNSNode).Name + '''!'), 'Внимание',
-                    MB_OK or MB_ICONWARNING);
-              end else
-              begin
-                Self.AddObject(RUID, TgsNSNode.Create(RUID));
-                Obj.UsesList.Add(RUID);
+                if not (N is TyamlSequence) then
+                  raise Exception.Create('Invalid data!');
+
+                S := N as TyamlSequence;
+                for I := 0 to S.Count - 1 do
+                begin
+                  if not (S.Items[I] is TyamlScalar) then
+                    raise Exception.Create('Invalid data!');
+
+                  RUID := (S.Items[I] as TyamlScalar).AsString;
+                  if Pos(' ', RUID) > 0 then
+                    SetLength(RUID, Pos(' ', RUID) - 1);
+
+                  if CheckRUID(RUID) then
+                  begin
+                    Ind := Self.IndexOf(RUID);
+                    if Ind > -1 then
+                    begin
+                      if Valid(Self.Objects[Ind] as TgsNSNode) then
+                        Obj.UsesList.Add(RUID)
+                      else
+                        if Assigned(FLog) then
+                          FLog('Циклическая ссылка, файл ''' + (Self.Objects[Ind] as TgsNSNode).Name + '''!');
+                    end else
+                    begin
+                      Self.AddObject(RUID, TgsNSNode.Create(RUID));
+                      Obj.UsesList.Add(RUID);
+                    end;
+                  end;
+                end;
               end;
             end;
-          end;  
+          end;
         end;
       end;
     finally
@@ -268,19 +334,24 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
 
 var
   SL: TStringList;
+  NSL: TStringList;
   I: Integer;
 begin
   Clear;
   SL := TStringList.Create;
-  try
+  NSL := TStringList.Create;
+  try 
     if AdvBuildFileList(IncludeTrailingBackslash(Path) + '*.yml',
       faAnyFile, SL, amAny, [flFullNames, flRecursive], '*.*', nil) then
     begin
       for I := 0 to SL.Count - 1 do
-        GetYAMLNode(SL[I]);
+        GetYAMLNode(SL[I], NSL);
+
+      FillInNamespace;
     end;
-  finally
+  finally   
     SL.Free;
+    NSL.Free;
   end;
 end;
 
@@ -293,8 +364,8 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
   begin
     if not yamlNode.Valid then
     begin
-      Application.MessageBox(PChar('Файл (RUID = ' + yamlNode.RUID + ') не найден!'), 'Внимание',
-        MB_OK or MB_ICONWARNING);
+      if Assigned(FLog) then
+        FLog('Файл (RUID = ' + yamlNode.RUID + ') не найден!');
       Temp := ATreeView.Items.AddChildObject(Node, yamlNode.RUID, yamlNode);
       Temp.StateIndex := 0;
     end else
@@ -308,8 +379,8 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
       Ind := IndexOf(yamlNode.UsesList[I]);
       if  Ind = -1 then
       begin
-        Application.MessageBox(PChar('Файл (RUID = ' + yamlNode.UsesList[I] + ') не найден!'), 'Внимание',
-          MB_OK or MB_ICONWARNING);
+        if Assigned(FLog) then
+          FLog('Файл (RUID = ' + yamlNode.UsesList[I] + ') не найден!');
       end else
         AddNode(Temp, Objects[Ind] as TgsNSNode);
     end;
@@ -327,7 +398,9 @@ begin
   begin
     for I := 0 to Count - 1 do
     begin
-      if (Objects[I] as TgsNSNode).Valid and (not (Objects[I] as TgsNSNode).Internal) then
+      if not (Objects[I] as TgsNSNode).OnlyInDB
+        and (Objects[I] as TgsNSNode).Valid
+        and (not (Objects[I] as TgsNSNode).Internal) then
       begin
         Temp := ATreeView.Items.AddChildObject(nil, (Objects[I] as TgsNSNode).Caption, Objects[I] as TgsNSNode);
         Temp.StateIndex := 2;
@@ -339,6 +412,8 @@ begin
     try
       for I := 0 to Count - 1 do
       begin
+        if (Objects[I] as TgsNSNode).OnlyInDB then
+          continue;
         Link := False;
         for K := 0 to Count - 1 do
         begin
