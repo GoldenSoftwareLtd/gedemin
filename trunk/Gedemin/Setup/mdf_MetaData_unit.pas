@@ -85,7 +85,7 @@ function ProcedureExist2(const AProcName: String; ATr: TIBTransaction): Boolean;
 procedure DropProcedure2(const AProcName: String; ATr: TIBTransaction);
 
 function RelationExist(Table: TmdfTable; Db: TIbdataBase): Boolean;
-function RelationExists2(const ARelationName: String; ATr: TIBTransaction): Boolean;
+function RelationExist2(const ARelationName: String; ATr: TIBTransaction): Boolean;
 procedure CreateRelation(Table: TmdfTable; Db: TIBdatabase);
 procedure DropRelation(Table: TmdfTable; Db: TIBdatabase);
 procedure AlterRelation(Table: TmdfTable; Db: TIBdatabase);
@@ -725,7 +725,7 @@ begin
   end;
 end;
 
-function RelationExists2(const ARelationName: String; ATr: TIBTransaction): Boolean;
+function RelationExist2(const ARelationName: String; ATr: TIBTransaction): Boolean;
 var
   SQL: TIBSQL;
 begin
