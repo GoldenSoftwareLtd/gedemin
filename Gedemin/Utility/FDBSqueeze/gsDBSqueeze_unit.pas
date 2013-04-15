@@ -3,7 +3,7 @@ unit gsDBSqueeze_unit;
 interface
 
 uses
-  IB, IBDatabase, IBSQL, Classes;
+  IB, IBDatabase, IBSQL, Classes, gd_ProgressNotifier_unit;
 
 type
   TOnLogEvent = procedure(const S: String) of object;
@@ -17,7 +17,7 @@ type
     FPassword: String;
     FDatabaseName: String;
     FIBDatabase: TIBDatabase;
-    FOnLogEvent: TOnLogEvent;
+    FOnProgressWatch: TProgressWatchEvent;
 
     function GetConnected: Boolean;
 
@@ -51,25 +51,26 @@ type
     procedure h_RecreateAllConstr;
 
     procedure LogEvent(const AMsg: String);
+
   public
-
-    procedure Delete;
-
     constructor Create;
     destructor Destroy; override;
 
     procedure Connect;
     procedure Disconnect;
 
+    procedure TestAndCreateMetadata;
+
     procedure BeforeMigrationPrepareDB;
     procedure AfterMigrationPrepareDB;
+
+    procedure Delete;
 
     property DatabaseName: String read FDatabaseName write FDatabaseName;
     property UserName: String read FUserName write FUserName;
     property Password: String read FPassword write FPassword;
     property Connected: Boolean read GetConnected;
-    property OnLogEvent: TOnLogEvent read FOnLogEvent write FOnLogEvent;
-
+    property OnProgressWatch: TProgressWatchEvent read FOnProgressWatch write FOnProgressWatch;
   end;
 
 implementation
@@ -85,7 +86,7 @@ begin
     'password=' + FPassword + #13#10 +
     'lc_ctype=win1251';
   FIBDatabase.Connected := True;
-  LogEvent('Connecting to DB ... OK');
+  LogEvent('Connecting to DB... OK');
 end;
 
 constructor TgsDBSqueeze.Create;
@@ -109,7 +110,7 @@ end;
 procedure TgsDBSqueeze.Disconnect;
 begin
   FIBDatabase.Connected := False;
-  LogEvent('Disconnecting to DB ... OK');
+  LogEvent('Disconnecting from DB... OK');
 end;
 
 function TgsDBSqueeze.GetConnected: Boolean;
@@ -1294,9 +1295,9 @@ var
 begin
   Assert(Connected);
   //==================================== TEST
+  q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
   try
-    q := TIBSQL.Create(nil);
-    Tr := TIBTransaction.Create(nil);
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
 
@@ -1422,9 +1423,9 @@ begin
   Assert(Connected);
 
   //==================================== TEST
+  q := TIBSQL.Create(nil);
+  Tr := TIBTransaction.Create(nil);
   try
-    q := TIBSQL.Create(nil);
-    Tr := TIBTransaction.Create(nil);
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
 
@@ -1575,13 +1576,14 @@ end;
 
 procedure TgsDBSqueeze.h_Delete;
 var
-  q, q2, q3, q4: TIBSQL;
+  q, q2, q3: TIBSQL;
   Tr: TIBTransaction;
 begin
   Assert(Connected);
 
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
+  q3 := TIBSQL.Create(nil);
 
   Tr := TIBTransaction.Create(nil);
   try
@@ -1590,6 +1592,7 @@ begin
 
     q.Transaction := Tr;
     q2.Transaction := Tr;
+    q3.Transaction := Tr;
 
     q.SQL.Text := ' SELECT r.RDB$RELATION_NAME as Table_Name ' +
     ' FROM RDB$RELATIONS r ' +
@@ -1639,6 +1642,7 @@ begin
   q3 := TIBSQL.Create(nil);
   q4 := TIBSQL.Create(nil);
   Tr := TIBTransaction.Create(nil);
+  StrListFields := TStringList.Create;
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.StartTransaction;
@@ -1698,7 +1702,6 @@ begin
       ' FROM DBS_FK_CONSTRAINTS ';
     q.ExecQuery;
 
-    StrListFields := TStringList.Create;
     while not q.Eof do
     begin
      {                              //распарсим список полей FK                  ///не пригодится! тогда берем только первое
@@ -1809,18 +1812,25 @@ begin
     Tr.Free;
     StrListFields.Free;
   end;
-
 end;
 
 
 
 procedure TgsDBSqueeze.LogEvent(const AMsg: String);
+var
+  PI: TgdProgressInfo;
 begin
-  if Assigned(FOnLogEvent) then
-    FOnLogEvent(AMsg);
+  if Assigned(FOnProgressWatch) then
+  begin
+    PI.State := psMessage;
+    PI.Message := AMsg;
+    FOnProgressWatch(Self, PI);
+  end;
 end;
 
+procedure TgsDBSqueeze.TestAndCreateMetadata;
+begin
 
-
+end;
 
 end.
