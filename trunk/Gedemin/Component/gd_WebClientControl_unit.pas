@@ -17,8 +17,6 @@ type
     FHTTP: TidHTTP;
     FCmdList: TStringList;
     FURI: TidURI;
-    FProgressWatch: IgdProgressWatch;
-    FPI: TgdProgressInfo;
     FDBID: Integer;
     FCompanyName, FCompanyRUID: String;
     FLocalIP: String;
@@ -42,17 +40,13 @@ type
     procedure SetgdWebServerURL(const Value: String);
 
     procedure DoOnWork(Sender: TObject; AWorkMode: TWorkMode; const AWorkCount: Integer);
-    procedure DoOnProgressWatch(Sender: TObject; const AProgressInfo: TgdProgressInfo);
-    procedure SyncProgressWatch;
-    function GetProgressWatch: IgdProgressWatch;
-    procedure SetProgressWatch(const Value: IgdProgressWatch);
     function GetConnected: Boolean;
     function GetInUpdate: Boolean;
     function GetWebServerResponse: String;
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
-    procedure LogError; override;
+    procedure LogErrorSync; override;
     procedure Setup; override;
     procedure TearDown; override;
 
@@ -65,7 +59,6 @@ type
 
     property gdWebServerURL: String read GetgdWebServerURL write SetgdWebServerURL;
     property WebServerResponse: String read GetWebServerResponse;
-    property ProgressWatch: IgdProgressWatch read GetProgressWatch write SetProgressWatch;
     property Connected: Boolean read GetConnected;
     property InUpdate: Boolean read GetInUpdate;
   end;
@@ -268,7 +261,7 @@ begin
   end;
 end;
 
-procedure TgdWebClientThread.LogError;
+procedure TgdWebClientThread.LogErrorSync;
 begin
   TgdcJournal.AddEvent(ErrorMessage, 'HTTPClient', -1, nil, True);
 
@@ -366,40 +359,6 @@ procedure TgdWebClientThread.DoOnWork(Sender: TObject;
 begin
   if Terminated then
     Abort;
-end;
-
-procedure TgdWebClientThread.DoOnProgressWatch(Sender: TObject;
-  const AProgressInfo: TgdProgressInfo);
-begin
-  FPI := AProgressInfo;
-  Synchronize(SyncProgressWatch);
-end;
-
-procedure TgdWebClientThread.SyncProgressWatch;
-begin
-  if Assigned(FProgressWatch) then
-    FProgressWatch.UpdateProgress(FPI);
-end;
-
-function TgdWebClientThread.GetProgressWatch: IgdProgressWatch;
-begin
-  Lock;
-  try
-    Result := FProgressWatch;
-  finally
-    Unlock;
-  end;
-end;
-
-procedure TgdWebClientThread.SetProgressWatch(
-  const Value: IgdProgressWatch);
-begin
-  Lock;
-  try
-    FProgressWatch := Value;
-  finally
-    Unlock;
-  end;
 end;
 
 function TgdWebClientThread.GetConnected: Boolean;

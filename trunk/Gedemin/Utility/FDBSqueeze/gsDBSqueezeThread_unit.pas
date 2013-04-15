@@ -5,7 +5,7 @@ interface
 
 uses
   Classes, SyncObjs, Messages, gsDBSqueeze_unit, gdMessagedThread, Windows,
-  idThreadSafe;
+  idThreadSafe, gd_ProgressNotifier_unit;
 
 const
   WM_DBS_SET_PARAMS   = WM_USER + 1;
@@ -13,20 +13,14 @@ const
   WM_DBS_DISCONNECT   = WM_USER + 3;
 
 type
-  TLogEvent = procedure (const Msg: String) of object;
-
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
     FDBS: TgsDBSqueeze;
     FDatabaseName, FUserName, FPassword: TidThreadSafeString;
     FConnected: TidThreadSafeInteger;
-    FOnLog: TLogEvent;
-    FMessage: String;
 
     function GetConnected: Boolean;
     function GetBusy: Boolean;
-    procedure DoOnLogSync;
-    procedure Log(const AMessage: String);
 
   protected
     function ProcessMessage(var Msg: TMsg): Boolean; override;
@@ -42,7 +36,6 @@ type
 
     property Connected: Boolean read GetConnected;
     property Busy: Boolean read GetBusy;
-    property OnLog: TLogEvent read FOnLog write FOnLog;
   end;
 
 implementation
@@ -58,7 +51,7 @@ end;
 constructor TgsDBSqueezeThread.Create(const CreateSuspended: Boolean);
 begin
   FDBS := TgsDBSqueeze.Create;
-  FDBS.OnLogEvent := Log;
+  FDBS.OnProgressWatch := DoOnProgressWatch;
   FDatabaseName := TIdThreadSafeString.Create;
   FUserName := TIdThreadSafeString.Create;
   FPassword := TIdThreadSafeString.Create;
@@ -80,18 +73,6 @@ procedure TgsDBSqueezeThread.Disconnect;
 begin
   if Connected then
     PostMsg(WM_DBS_DISCONNECT);
-end;
-
-procedure TgsDBSqueezeThread.Log(const AMessage: String);
-begin
-  FMessage := AMessage;
-  Synchronize(DoOnLogSync);
-end;
-
-procedure TgsDBSqueezeThread.DoOnLogSync;
-begin
-  if Assigned(FOnLog) then
-    FOnLog(FMessage);
 end;
 
 function TgsDBSqueezeThread.GetBusy: Boolean;
@@ -118,25 +99,16 @@ begin
     WM_DBS_CONNECT:
     begin
       FDBS.Connect;
-      FDBS.BeforeMigrationPrepareDB;
-
-      FDBS.Delete;
-
       FConnected.Value := 1;
-      Log('connected');
       Result := True;
     end;
 
     WM_DBS_DISCONNECT:
     begin
-      FDBS.AfterMigrationPrepareDB;
       FDBS.Disconnect;
-
       FConnected.Value := 0;
-      Log('disconnected');
       Result := True;
     end;
-
   else
     Result := False;
   end;

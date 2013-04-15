@@ -4,7 +4,7 @@ unit gdMessagedThread;
 interface
 
 uses
-  Classes, Windows, SyncObjs;
+  Classes, Windows, SyncObjs, gd_ProgressNotifier_unit;
 
 type
   TgdMessagedThread = class(TThread)
@@ -12,10 +12,13 @@ type
     FCreatedEvent, FWaitingEvent: TEvent;
     FCriticalSection: TCriticalSection;
     FTimeout: DWORD;
+
     function GetWaiting: Boolean;
 
   protected
     FErrorMessage: String;
+    FProgressWatch: IgdProgressWatch;
+    FPI: TgdProgressInfo;
 
     procedure PostMsg(const AMsg: Word; const AWParam: WPARAM = 0;
       const ALParam: LPARAM = 0);
@@ -24,10 +27,15 @@ type
     procedure Setup; virtual;
     procedure TearDown; virtual;
     function ProcessMessage(var Msg: TMsg): Boolean; virtual;
-    procedure LogError; virtual;
+    procedure LogErrorSync; virtual;
     procedure SetTimeout(const ATimeout: DWORD);
     procedure Lock;
     procedure Unlock;
+    procedure SyncProgressWatch;
+    function GetProgressWatch: IgdProgressWatch;
+    procedure SetProgressWatch(const Value: IgdProgressWatch);
+    procedure LogMessage(const AMessage: String);
+    procedure DoOnProgressWatch(Sender: TObject; const AProgressInfo: TgdProgressInfo);
 
     property ErrorMessage: String read FErrorMessage write FErrorMessage;
 
@@ -36,6 +44,7 @@ type
     destructor Destroy; override;
 
     property Waiting: Boolean read GetWaiting;
+    property ProgressWatch: IgdProgressWatch read GetProgressWatch write SetProgressWatch;
   end;
 
 implementation
@@ -71,6 +80,13 @@ begin
   FCreatedEvent.Free;
   FWaitingEvent.Free;
   FCriticalSection.Free;
+end;
+
+procedure TgdMessagedThread.DoOnProgressWatch(Sender: TObject;
+  const AProgressInfo: TgdProgressInfo);
+begin
+  FPI := AProgressInfo;
+  Synchronize(SyncProgressWatch);
 end;
 
 procedure TgdMessagedThread.Execute;
@@ -118,7 +134,7 @@ begin
             begin
               FErrorMessage := FErrorMessage + #13#10 +
                 'Message ID: ' + IntToStr(Msg.Message);
-              Synchronize(LogError);
+              Synchronize(LogErrorSync);
               FErrorMessage := '';
             end;
           end;
@@ -127,6 +143,16 @@ begin
     end;
   finally
     TearDown;
+  end;
+end;
+
+function TgdMessagedThread.GetProgressWatch: IgdProgressWatch;
+begin
+  Lock;
+  try
+    Result := FProgressWatch;
+  finally
+    Unlock;
   end;
 end;
 
@@ -140,12 +166,25 @@ begin
   FCriticalSection.Enter;
 end;
 
-procedure TgdMessagedThread.LogError;
+procedure TgdMessagedThread.LogErrorSync;
 begin
-  MessageBox(0,
-    PChar(FErrorMessage),
-    'Error',
-    MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+  if Assigned(FProgressWatch) then
+  begin
+    FPI.State := psError;
+    FPI.Message := ErrorMessage;
+    FProgressWatch.UpdateProgress(FPI);
+  end else
+    MessageBox(0,
+      PChar(FErrorMessage),
+      'Error',
+      MB_OK or MB_ICONEXCLAMATION or MB_TASKMODAL);
+end;
+
+procedure TgdMessagedThread.LogMessage(const AMessage: String);
+begin
+  FPI.State := psMessage;
+  FPI.Message := AMessage;
+  Synchronize(SyncProgressWatch);
 end;
 
 procedure TgdMessagedThread.PostMsg(const AMsg: Word; const AWParam: WPARAM = 0;
@@ -163,6 +202,17 @@ begin
   Result := False;
 end;
 
+procedure TgdMessagedThread.SetProgressWatch(
+  const Value: IgdProgressWatch);
+begin
+  Lock;
+  try
+    FProgressWatch := Value;
+  finally
+    Unlock;
+  end;
+end;
+
 procedure TgdMessagedThread.SetTimeout(const ATimeout: DWORD);
 begin
   PostMsg(WM_GD_UPDATE_TIMER, 0, ATimeout);
@@ -171,6 +221,12 @@ end;
 procedure TgdMessagedThread.Setup;
 begin
   //
+end;
+
+procedure TgdMessagedThread.SyncProgressWatch;
+begin
+  if Assigned(FProgressWatch) then
+    FProgressWatch.UpdateProgress(FPI);
 end;
 
 procedure TgdMessagedThread.TearDown;

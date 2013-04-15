@@ -4,10 +4,10 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ActnList, StdCtrls, gsDBSqueezeThread_unit;
+  ActnList, StdCtrls, gsDBSqueezeThread_unit, gd_ProgressNotifier_unit;
 
 type
-  TgsDBSqueeze_MainForm = class(TForm)
+  TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
     edDatabaseName: TEdit;
     edUserName: TEdit;
     edPassword: TEdit;
@@ -31,7 +31,7 @@ type
   private
     FSThread: TgsDBSqueezeThread;
 
-    procedure LogEvent(const S: String);
+    procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
 
   public
     constructor Create(AnOwner: TComponent); override;
@@ -56,7 +56,7 @@ constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
   FSThread := TgsDBSqueezeThread.Create(False);
-  FSThread.OnLog := LogEvent;
+  FSThread.ProgressWatch := Self;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
@@ -89,9 +89,11 @@ begin
   CanClose := not FSThread.Busy;
 end;
 
-procedure TgsDBSqueeze_MainForm.LogEvent(const S: String);
+procedure TgsDBSqueeze_MainForm.UpdateProgress(
+  const AProgressInfo: TgdProgressInfo);
 begin
-  mLog.Lines.Add(FormatDateTime('h:nn:ss:zzz', Now) + '  ' + S);
+  if AProgressInfo.Message > '' then
+    mLog.Lines.Add(FormatDateTime('h:nn:ss', Now) + ' -- ' + AProgressInfo.Message);
 end;
 
 end.
