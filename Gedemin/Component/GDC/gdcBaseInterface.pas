@@ -128,6 +128,9 @@ type
 
   //Проверяет, является ли переданная строка руидом
   function CheckRuid(const RUIDString: String): Boolean;
+  function RUIDToStr(const ARUID: TRUID): String;
+  function StrToRUID(const AString: String): TRUID;
+  function RUID(const XID, DBID: TID): TRUID;
 
 const
   IDCacheRegKey = ClientRootRegistrySubKey + 'IDCache\';
@@ -153,6 +156,43 @@ begin
   Result := (I > 0)
     and (StrToIntDef(Copy(RUIDString, 1, I - 1), -1) >= 0)
     and (StrToIntDef(Copy(RUIDString, I + 1, 1024), -1) >= 0);
+end;
+
+function RUIDToStr(const ARUID: TRUID): String;
+begin
+  with ARUID do
+    if (XID = -1) or (DBID = -1) then
+      Result := ''
+    else
+      Result := IntToStr(XID) + '_' + IntToStr(DBID);
+end;
+
+function StrToRUID(const AString: String): TRUID;
+var
+  P: Integer;
+begin
+  with Result do
+    if AString = '' then
+    begin
+      XID := -1;
+      DBID := -1;
+    end else begin
+      P := Pos('_', AString);
+      if P = 0 then
+        raise Exception.Create('Invalid RUID string')
+      else begin
+        XID := StrToIntDef(Copy(AString, 1, P - 1), -1);
+        DBID := StrToIntDef(Copy(AString, P + 1, 255), -1);
+        if (XID <= 0) or (DBID <= 0) then
+          raise Exception.Create('Invalid RUID string')
+      end;
+    end;
+end;
+
+function RUID(const XID, DBID: TID): TRUID;
+begin
+  Result.XID := XID;
+  Result.DBID := DBID;
 end;
 
 end.

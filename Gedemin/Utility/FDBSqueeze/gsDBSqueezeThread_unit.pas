@@ -8,9 +8,12 @@ uses
   idThreadSafe, gd_ProgressNotifier_unit;
 
 const
-  WM_DBS_SET_PARAMS   = WM_USER + 1;
-  WM_DBS_CONNECT      = WM_USER + 2;
-  WM_DBS_DISCONNECT   = WM_USER + 3;
+  WM_DBS_SET_PARAMS            = WM_USER + 1;
+  WM_DBS_CONNECT               = WM_USER + 2;
+  WM_DBS_DISCONNECT            = WM_USER + 3;
+  WM_DBS_TESTANDCREATEMETADATA = WM_USER + 4;
+  WM_DBS_PREPAREDB             = WM_USER + 5;
+  WM_DBS_RESTOREDB             = WM_USER + 6;
 
 type
   TgsDBSqueezeThread = class(TgdMessagedThread)
@@ -100,13 +103,46 @@ begin
     begin
       FDBS.Connect;
       FConnected.Value := 1;
+      PostThreadMessage(ThreadID, WM_DBS_TESTANDCREATEMETADATA, 0, 0);
+      Result := True;
+    end;
+
+    WM_DBS_TESTANDCREATEMETADATA:
+    begin
+      if FConnected.Value = 1 then
+      begin
+        FDBS.TestAndCreateMetadata;
+        PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
+      end;
+      Result := True;
+    end;
+
+    WM_DBS_PREPAREDB:
+    begin
+      if FConnected.Value = 1 then
+      begin
+        FDBS.PrepareDB;
+        PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
+      end;
+      Result := True;
+    end;
+
+    WM_DBS_RESTOREDB:
+    begin
+      if FConnected.Value = 1 then
+      begin
+        FDBS.RestoreDB;
+      end;
       Result := True;
     end;
 
     WM_DBS_DISCONNECT:
     begin
-      FDBS.Disconnect;
-      FConnected.Value := 0;
+      if FConnected.Value = 1 then
+      begin
+        FDBS.Disconnect;
+        FConnected.Value := 0;
+      end;
       Result := True;
     end;
   else

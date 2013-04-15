@@ -84,7 +84,8 @@ procedure ExecuteProcedure(SP: TmdfStoredProcedure; DB: TIBDataBase);
 function ProcedureExist2(const AProcName: String; ATr: TIBTransaction): Boolean;
 procedure DropProcedure2(const AProcName: String; ATr: TIBTransaction);
 
-function RelationExist(Table: TmdfTable; Db: TIbdataBase): boolean;
+function RelationExist(Table: TmdfTable; Db: TIbdataBase): Boolean;
+function RelationExists2(const ARelationName: String; ATr: TIBTransaction): Boolean;
 procedure CreateRelation(Table: TmdfTable; Db: TIBdatabase);
 procedure DropRelation(Table: TmdfTable; Db: TIBdatabase);
 procedure AlterRelation(Table: TmdfTable; Db: TIBdatabase);
@@ -117,7 +118,7 @@ function HasDependencies(const AName: String; ATr: TIBTransaction): Boolean;
 implementation
 
 uses
-  SysUtils, gdcBase;
+  SysUtils;
 
 function FieldExist(Field: TmdfField; DB: TIBDataBase): Boolean;
 var
@@ -721,6 +722,24 @@ begin
     Transaction.Commit;
   finally
     Transaction.Free;
+  end;
+end;
+
+function RelationExists2(const ARelationName: String; ATr: TIBTransaction): Boolean;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text :=
+      'SELECT rdb$relation_name FROM rdb$relations WHERE ' +
+      ' rdb$relation_name = :relationname ';
+    SQL.ParamByName('relationname').AsString := UpperCase(ARelationName);
+    SQL.ExecQuery;
+    Result := not SQL.EOF;
+  finally
+    SQL.Free;
   end;
 end;
 
