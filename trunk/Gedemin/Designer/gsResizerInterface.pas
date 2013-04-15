@@ -1,8 +1,11 @@
+
 {++
-  Copyright (c) 2002 by Golden Software of Belarus
+
+  Copyright (c) 2002-2013 by Golden Software of Belarus
 
   Module
     gsResizerInterface
+
   Abstract
 
     интерфейс к класу TgsResizerManager
@@ -14,6 +17,7 @@
   Revisions history
 
     Initial  17-01-2002  Nick  Initial version.
+
 --}
 
 unit gsResizerInterface;
@@ -32,7 +36,6 @@ const
   USERFORM_PREFIX = 'usrf_';
   MACROSCOMPONENT_PREFIX = 'usrl_';
 
-
   MESSAGE_SHIFT = WM_USER + $400;
   CM_NEWCONTROL = MESSAGE_SHIFT + 1;
   CM_RESIZECONTROL = MESSAGE_SHIFT + 2;
@@ -50,15 +53,12 @@ const
   CM_SHOWEVENTS = MESSAGE_SHIFT + 14;
   CM_SHOWEDITFORM = MESSAGE_SHIFT + 15;
 
-
   PropertyTypes = [tkInteger, tkChar, tkEnumeration, tkWChar, tkFloat, tkString,
                     tkSet, tkClass, tkLString, tkWString, tkVariant,
                     tkArray, tkRecord, {tkInterface,} tkInt64, tkDynArray];
 
 type
   ESetProperty = Exception;
-
-//  CCollection = class of TCollection;
 
   TgsAction = class(TAction)
   private
@@ -131,7 +131,6 @@ type
     function SameValue(AnObject: TObject; APropInfo: PPropInfo): boolean; override;
     constructor Create(AnObject: TObject; APropInfo: PPropInfo); override;
   end;
-
 
   {tkClass, tkMethod, tkWChar,
    tkVariant, tkArray, tkRecord, tkInterface, tkDynArray}
@@ -302,13 +301,11 @@ type
   end;
 
   function GlobalFindComponent(AComponentName: TComponentName; AnOwner: TComponent): TComponent;
-//  procedure DesignerSetDefaultValues(AComponent, ARoot: TComponent);
-//  function DesignerSetPropertyValue(AComponent: TObject; const PropertyName, PropertyValue: String; ARoot: TComponent): String;
 
 implementation
 
-uses evt_base, evt_i_base;
-
+uses
+  evt_base, evt_i_base;
 
 function GlobalFindComponent(AComponentName: TComponentName; AnOwner: TComponent): TComponent;
 
@@ -354,14 +351,11 @@ begin
       begin
         if AnsiUpperCase(AComponentName) = AnsiUpperCase(AnOwner.Components[I].Name) then
            Result := AnOwner.Components[I];
-        //  Result := GlobalFindComponent(AComponentName, AnOwner.Components[I]);
         Inc(I);
       end;
     end;
   end;
-
 end;
-
 
 (*procedure DesignerSetDefaultValues(AComponent, ARoot: TComponent);
 var
@@ -504,9 +498,6 @@ begin
   inherited Delete(Index);
 end;
 
-
-
-
 destructor TChangedPropList.Destroy;
 begin
   Clear;
@@ -546,11 +537,7 @@ begin
   end
   else
     Result := False;
-
 end;
-
-{ TComponentCracker }
-
 
 { TChangedProp }
 
@@ -726,39 +713,26 @@ constructor TPropertyValue_Class.Create(AnObject: TObject;
   APropInfo: PPropInfo);
 var
   V: TObject;
-//  C: TPersistentClass;
 begin
   V := TObject(GetOrdProp(AnObject, APropInfo));
 
   FValue := '';
-//  FCollectionValue := nil;
   if (V <> nil) then
   begin
     if (V is TComponent) then
       FValue := TComponent(V).Name
-  {  else if (V is TCollection) then
-    begin
-      C := GetClass(TCollection(V).ClassName);
-      if C <> nil then
-      begin
-        FCollectionValue := CCollection(C).Create(TCollection(V).ItemClass);
-        FCollectionValue.Assign(TCollection(V));
-      end;
-    end;}
   end;
 end;
 
 destructor TPropertyValue_Class.Destroy;
 begin
   inherited;
-//  FCollectionValue.Free;
 end;
 
 function TPropertyValue_Class.SameValue(AnObject: TObject;
   APropInfo: PPropInfo): boolean;
 var
   V: TObject;
-//  C: TPersistentClass;
 begin
   V := TObject(GetOrdProp(AnObject, APropInfo));
 
@@ -767,10 +741,6 @@ begin
   begin
     if (V is TComponent) then
       Result := SameText(TComponent(V).Name, FValue)
-{    else if (V is TCollection) then
-    begin
-      Result := CollectionsEqual(FCollectionValue, TCollection(V));
-    end}
   end
   else if (V = nil) and (FValue = '') then
     Result := True;
@@ -847,8 +817,5 @@ function TChangedEventList.GetItem(const Index: Integer): TChangedEvent;
 begin
   Result := TChangedEvent(inherited Items[Index]);
 end;
-
-initialization
-finalization
 
 end.

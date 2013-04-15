@@ -2062,12 +2062,6 @@ function IndexOfStr(const S: String; const A: array of String): Integer;
 function MakeFullClass(C: CgdcBase; const ASubType: TgdcSubType): TgdcFullClass;
 
 //
-function RUIDToStr(const ARUID: TRUID): String;
-function StrToRUID(const AString: String): TRUID;
-function RUID(const XID, DBID: TID): TRUID;
-
-
-//
 function gdcFullClass(const AgdClass: CgdcBase;
   const ASubType: TgdcSubType): TgdcFullClass;
 function gdcFullClassName(const AgdClassName: TgdcClassName;
@@ -2279,43 +2273,6 @@ begin
       end;
     end;
   end;
-end;
-
-function RUIDToStr(const ARUID: TRUID): String;
-begin
-  with ARUID do
-    if (XID = -1) or (DBID = -1) then
-      Result := ''
-    else
-      Result := IntToStr(XID) + '_' + IntToStr(DBID);
-end;
-
-function StrToRUID(const AString: String): TRUID;
-var
-  P: Integer;
-begin
-  with Result do
-    if AString = '' then
-    begin
-      XID := -1;
-      DBID := -1;
-    end else begin
-      P := Pos('_', AString);
-      if P = 0 then
-        raise Exception.Create('Invalid RUID string')
-      else begin
-        XID := StrToIntDef(Copy(AString, 1, P - 1), -1);
-        DBID := StrToIntDef(Copy(AString, P + 1, 255), -1);
-        if (XID <= 0) or (DBID <= 0) then
-          raise Exception.Create('Invalid RUID string')
-      end;
-    end;
-end;
-
-function RUID(const XID, DBID: TID): TRUID;
-begin
-  Result.XID := XID;
-  Result.DBID := DBID;
 end;
 
 function IndexOfStr(const S: String; const A: array of String): Integer;
