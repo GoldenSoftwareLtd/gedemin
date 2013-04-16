@@ -51,7 +51,7 @@ implementation
 procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
 begin
   FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text,
-    edPassword.Text, DateToStr(dtp.Date));
+    edPassword.Text, FormatDateTime('dd.mm.yyyy', dtp.Date));
   FSThread.Connect;
 end;
 
