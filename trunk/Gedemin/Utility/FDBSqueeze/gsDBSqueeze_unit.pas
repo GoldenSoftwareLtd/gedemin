@@ -402,6 +402,7 @@ var
       '    FROM rdb$triggers ' +
       '    WHERE rdb$trigger_inactive = 0 ' +
       '      AND RDB$SYSTEM_FLAG = 0 ' +
+      '      AND RDB$TRIGGER_TYPE IN (6, 14, 78, 22, 5, 13, 77, 21) ' +
       '    INTO :TN ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' INACTIVE ''; ' +
@@ -611,7 +612,6 @@ var
     LogEvent('Indices reactivated.');
   end;
 
-  
   procedure RestorePkUniqueConstraints;
   begin
     q.SQL.Text :=
