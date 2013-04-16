@@ -20,7 +20,7 @@ type
   TgsDBSqueezeThread = class(TgdMessagedThread)
   private
     FDBS: TgsDBSqueeze;
-    FDatabaseName, FUserName, FPassword: TidThreadSafeString;
+    FDatabaseName, FUserName, FPassword, FDelCondition: TidThreadSafeString;
     FConnected: TidThreadSafeInteger;
     FBusy: TidThreadSafeInteger;
 
@@ -35,7 +35,7 @@ type
     destructor Destroy; override;
 
     procedure SetDBParams(const ADatabaseName: String; const AUserName: String;
-      const APassword: String);
+      const APassword: String; const ADelCondition: String);
     procedure Connect;
     procedure Disconnect;
 
@@ -60,6 +60,7 @@ begin
   FDatabaseName := TIdThreadSafeString.Create;
   FUserName := TIdThreadSafeString.Create;
   FPassword := TIdThreadSafeString.Create;
+  FDelCondition := TIdThreadSafeString.Create;
   FConnected := TIdThreadSafeInteger.Create;
   FBusy := TIdThreadSafeInteger.Create;
   inherited Create(CreateSuspended);
@@ -72,6 +73,7 @@ begin
   FDatabaseName.Free;
   FUserName.Free;
   FPassword.Free;
+  FDelCondition.Free;
   FConnected.Free;
   FBusy.Free;
 end;
@@ -100,6 +102,7 @@ begin
       FDBS.DatabaseName := FDatabaseName.Value;
       FDBS.UserName := FUserName.Value;
       FDBS.Password := FPassword.Value;
+      FDBS.DelCondition := FDelCondition.Value;
       Result := True;
     end;
 
@@ -162,12 +165,13 @@ begin
   end;
 end;
 
-procedure TgsDBSqueezeThread.SetDBParams(const ADatabaseName, AUserName,
-  APassword: String);
+procedure TgsDBSqueezeThread.SetDBParams(const ADatabaseName: String; const AUserName: String;
+      const APassword: String; const ADelCondition: String);
 begin
   FDatabaseName.Value := ADatabaseName;
   FUserName.Value := AUserName;
   FPassword.Value := APassword;
+  FDelCondition.Value := ADelCondition;
   PostMsg(WM_DBS_SET_PARAMS);
 end;
 

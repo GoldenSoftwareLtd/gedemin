@@ -17,6 +17,8 @@ type
     FIBDatabase: TIBDatabase;
     FOnProgressWatch: TProgressWatchEvent;
 
+    FDelCondition: String;
+
     function GetConnected: Boolean;
 
     procedure LogEvent(const AMsg: String);
@@ -32,11 +34,14 @@ type
     procedure PrepareDB;
     procedure RestoreDB;
 
+    procedure AddDelCondition(ATable_Name: String; WHERE_Condition: String);
     procedure Delete;
+    
 
     property DatabaseName: String read FDatabaseName write FDatabaseName;
     property UserName: String read FUserName write FUserName;
     property Password: String read FPassword write FPassword;
+    property DelCondition: String read FDelCondition write FDelCondition;
     property Connected: Boolean read GetConnected;
     property OnProgressWatch: TProgressWatchEvent read FOnProgressWatch
       write FOnProgressWatch;
@@ -84,6 +89,156 @@ end;
 function TgsDBSqueeze.GetConnected: Boolean;
 begin
   Result := FIBDatabase.Connected;
+end;
+
+procedure TgsDBSqueeze.AddDelCondition(ATable_Name: String; WHERE_Condition: String);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Assert(Connected);
+ //EXECUTE PROCEDURE DBS_ADD_DEL_CONDITION('gd_document', 'documentdate < ''11.11.2011'' ')
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    {
+  CREATE PROCEDURE DBS_ADD_DEL_CONDITION (ATable_Name VARCHAR(31), AWHERE_Condition VARCHAR(310))
+   AS
+    DECLARE VARIABLE ID_FIELD VARCHAR(31);
+    DECLARE VARIABLE ID_VALUE VARCHAR(31);
+    DECLARE VARIABLE M2 INTEGER = 1;
+    DECLARE VARIABLE PK_VALUE INTEGER;
+    DECLARE VARIABLE FK_VALUE INTEGER;
+    DECLARE VARIABLE RELAT_NAME VARCHAR(31);
+    DECLARE VARIABLE PK_FIELD VARCHAR(31);
+    DECLARE VARIABLE FK_FIELD VARCHAR(31);
+    DECLARE VARIABLE REF_TABLE VARCHAR(31);
+  BEGIN
+    g_his_create(M2, 0);
+    SELECT LIST_FIELDS
+    FROM DBS_PK_UNIQUE_CONSTRAINTS
+    WHERE CONSTRAINT_TYPE = 'PRIMARY KEY'
+    AND RELATION_NAME = :RELAT_NAME
+    INTO :ID_FIELD
+    FOR
+      EXECUTE STATEMENT 'SELECT ' || :ID_FIELD || ' FROM ' || :ATable_Name || ' WHERE ' || :AWHERE_Condition
+      INTO :ID_VALUE
+    DO BEGIN
+       g_his_include(M2, :ID_VALUE);
+    END
+    REF_TABLE = :ATable_Name;
+    FLAG = true;
+    WHILE (FLAG) DO
+    BEGIN
+      FOR
+        SELECT RELATION_NAME, LIST_FIELDS
+        FROM DBS_FK_CONSTRAINTS
+        WHERE REF_RELATION_NAME = :REF_TABLE
+        INTO :RELAT_NAME, :FK_FIELD
+      DO BEGIN
+        if (RELAT_NAME IS NOT NULL) then
+        begin           
+          FOR
+            EXECUTE STATEMENT 'SELECT ' || :FK_FIELD || ' FROM ' || :RELAT_NAME || ' WHERE g_his_has(' ||:M2|| ', ' || :FK_FIELD || ') '
+          INTO :FK_VALUE
+          DO BEGIN
+            SELECT LIST_FIELDS
+            FROM DBS_PK_UNIQUE_CONSTRAINTS
+            WHERE CONSTRAINT_TYPE = 'PRIMARY KEY'
+            AND RELATION_NAME = :RELAT_NAME
+            INTO :PK_FIELD
+
+            FOR
+              EXECUTE STATEMENT 'SELECT ' || :PK_FIELD || ' FROM ' || :RELAT_NAME || ' WHERE ' || :FK_FIELD || ' = ' || :FK_VALUE  
+            INTO :PK_VALUE
+            DO g_his_include(M2, :PK_VALUE);
+          END  
+          REF_TABLE = :RELAT_NAME;
+        end
+        else FLAG = false;
+      END
+    END
+  END
+
+
+  EXECUTE PROCEDURE DBS_ADD_DEL_CONDITION('gd_document', 'documentdate < ''01.02.2013'' ')
+
+  }
+
+    q.SQL.Text :=
+      ' EXECUTE BLOCK ' +
+      'AS ' +
+      ' DECLARE VARIABLE ID_FIELD VARCHAR(31); ' +
+      ' DECLARE VARIABLE ID_VALUE VARCHAR(31); ' +
+      ' DECLARE VARIABLE M2 INTEGER = 1; ' +
+      ' DECLARE VARIABLE PK_VALUE INTEGER; ' +
+      ' DECLARE VARIABLE FK_VALUE INTEGER; ' +
+      ' DECLARE VARIABLE RELAT_NAME VARCHAR(31); ' +
+      ' DECLARE VARIABLE PK_FIELD VARCHAR(31); ' +
+      ' DECLARE VARIABLE FK_FIELD VARCHAR(31); ' +
+      ' DECLARE VARIABLE REF_TABLE VARCHAR(31); ' +
+      'BEGIN ' +
+      '  g_his_create(M2, 0); ' +
+        //добавляем IDs, удовлетворяющие условию удаления
+      '  SELECT LIST_FIELDS ' +
+      '  FROM DBS_PK_UNIQUE_CONSTRAINTS ' +
+      '  WHERE CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
+      '  AND RELATION_NAME = :RELAT_NAME ' +
+      '  INTO :ID_FIELD ' +
+      '  FOR ' +
+      '    EXECUTE STATEMENT ''SELECT '' || :ID_FIELD || '' FROM '' ' + ATable_Name + ' '' WHERE '' ' + WHERE_Condition +
+      '    INTO :ID_VALUE ' +
+      '  DO BEGIN ' +
+      '    g_his_include(M2, :ID_VALUE); ' +
+      '  END ' +
+        //добавляем IDs, захватываемые внешними ключами
+      '  REF_TABLE = ' + ATable_Name + '; ' +
+      '  FLAG = true; ' +
+      '  WHILE (FLAG) DO ' +
+      '  BEGIN ' +
+      '    FOR ' +
+      '      SELECT RELATION_NAME, LIST_FIELDS ' +
+      '      FROM DBS_FK_CONSTRAINTS ' +
+      '      WHERE REF_RELATION_NAME = :REF_TABLE ' +
+      '      INTO :RELAT_NAME, :FK_FIELD ' +
+      '    DO BEGIN ' +
+      '      if (RELAT_NAME IS NOT NULL) then  ' +
+      '      begin  ' +
+      '        FOR ' +
+      '          EXECUTE STATEMENT ''SELECT '' || :FK_FIELD || '' FROM '' || :RELAT_NAME ' +
+      '             || '' WHERE g_his_has('' || :M2 || '', '' || :FK_FIELD || '') '' ' +
+      '        INTO :FK_VALUE ' +
+      '        DO BEGIN ' +
+      '          SELECT LIST_FIELDS ' +                                //узнаем название поля c ID
+      '          FROM DBS_PK_UNIQUE_CONSTRAINTS ' +
+      '          WHERE CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
+      '          AND RELATION_NAME = :RELAT_NAME ' +
+      '          INTO :PK_FIELD ' +
+      '          FOR ' +
+      '            EXECUTE STATEMENT ''SELECT '' || :PK_FIELD || '' FROM '' || :RELAT_NAME || '' WHERE '' ' +
+      '              || :FK_FIELD || '' = '' || :FK_VALUE ' +
+      '          INTO :PK_VALUE ' +
+      '          DO g_his_include(M2, :PK_VALUE); ' +
+      '        END ' +
+      '        REF_TABLE = :RELAT_NAME; ' +
+      '      end ' +
+      '      else FLAG = false; ' +
+      '    END ' +
+      '  END ' +
+      'END; ';
+    q.ExecQuery;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+
 end;
 
 procedure TgsDBSqueeze.Delete;
@@ -577,6 +732,8 @@ begin
 
     q.ParamCheck := False;
     q.Transaction := Tr;
+
+    AddDelCondition('GD_DOCUMENT', ' documentdate < '+ DelCondition);            ///
 
     RestoreIndices;
     RestoreTriggers;
