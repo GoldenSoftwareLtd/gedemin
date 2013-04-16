@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ActnList, StdCtrls, gsDBSqueezeThread_unit, gd_ProgressNotifier_unit;
+  ActnList, StdCtrls, gsDBSqueezeThread_unit, gd_ProgressNotifier_unit,
+  ComCtrls;
 
 type
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
@@ -21,6 +22,8 @@ type
     lbl3: TLabel;
     mLog: TMemo;
     lblLog: TLabel;
+    Label1: TLabel;
+    dtp: TDateTimePicker;
 
     procedure actConnectExecute(Sender: TObject);
     procedure actConnectUpdate(Sender: TObject);
