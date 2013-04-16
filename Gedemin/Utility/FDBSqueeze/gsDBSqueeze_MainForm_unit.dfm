@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 381
-  Top = 202
+  Left = 80
+  Top = 203
   BorderStyle = bsDialog
   Caption = 'gsDBSqueeze_MainForm'
   ClientHeight = 465
@@ -64,7 +64,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Top = 52
     Width = 88
     Height = 21
-    TabOrder = 1
+    TabOrder = 2
     Text = 'SYSDBA'
   end
   object edPassword: TEdit
@@ -73,7 +73,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 88
     Height = 21
     PasswordChar = '*'
-    TabOrder = 2
+    TabOrder = 3
     Text = 'masterkey'
   end
   object btnConnect: TButton
@@ -82,7 +82,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 75
     Height = 21
     Action = actConnect
-    TabOrder = 3
+    TabOrder = 4
   end
   object btnDisconnect: TButton
     Left = 204
@@ -90,7 +90,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 75
     Height = 21
     Action = actDisconnect
-    TabOrder = 4
+    TabOrder = 5
   end
   object mLog: TMemo
     Left = 288
@@ -98,7 +98,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 377
     Height = 433
     ScrollBars = ssVertical
-    TabOrder = 6
+    TabOrder = 1
   end
   object dtp: TDateTimePicker
     Left = 199
@@ -108,11 +108,12 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     CalAlignment = dtaLeft
     Date = 41380.5593590046
     Time = 41380.5593590046
+    Color = clWhite
     DateFormat = dfShort
     DateMode = dmComboBox
     Kind = dtkDate
     ParseInput = False
-    TabOrder = 5
+    TabOrder = 6
   end
   object ActionList: TActionList
     Left = 240
