@@ -126,6 +126,12 @@ begin
     end;
 end;
 
+function CompareFolder(List: TStringList; Index1, Index2: Integer): Integer;
+begin
+  Result := AnsiCompareText(ExtractFilePath((List.Objects[Index1] as TgsNSNode).FileName),
+                            ExtractFilePath((List.Objects[Index2] as TgsNSNode).FileName));
+end;
+
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
 begin
   Result := 'Tgdc_dlgNamespace';
@@ -2194,7 +2200,8 @@ end;
 
 class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
   const APath: String; Log: TNSLog);
-  
+
+
 var
   I: Integer;
   CurrDir: String;
@@ -2206,8 +2213,10 @@ begin
 
   NSList := TgsNSList.Create;
   try
+    NSList.Sorted := False;
     NSList.Log := Log;
     NSList.GetFilesForPath(APath);
+    NSList.CustomSort(CompareFolder);
 
     CurrDir := '';
 
@@ -2215,7 +2224,7 @@ begin
     begin
       NSNode := NSList.Objects[I] as TgsNSNode;
 
-      if (NSNode.FileName > '') and (ExtractFilePath(NSNode.FileName) <> CurrDir) then
+      if ExtractFilePath(NSNode.FileName) <> CurrDir then
       begin
         CurrDir := ExtractFilePath(NSNode.FileName);
         ADataSet.Append;
