@@ -163,12 +163,12 @@ begin
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item6');
       Check(Scanner.GetNextToken = tScalar);
-      Check(Scanner.Scalar = '123 456  '#13#10'  789 111   '#13#10'568');
+      Check(Scanner.Scalar = '123 456   '#13#10#13#10'  789 111'#13#10'568');
       Check(Scanner.Quoting = qPlain);
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item7');
       Check(Scanner.GetNextToken = tScalar);
-      Check(Scanner.Scalar = '123 456 789 111     568');
+      Check(Scanner.Scalar = '123 456   789 111     568');
       Check(Scanner.Quoting = qPlain);
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item8');
@@ -286,6 +286,34 @@ begin
       Check(Scanner.Key = 'm');
       Check(Scanner.GetNextToken = tScalar);
       Check(Scanner.Scalar = 'test');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tDocumentStart);
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.GetNextToken = tScalar);
+
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'j');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = #13#10'test');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'p');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'i'#13#10#13#10#13#10'j');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'o');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'h'#13#10'  '#13#10'h');
+      Check(Scanner.Quoting = qPlain);
+
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'h');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = 'test'#13#10#13#10'  '#13#10'test');
       Check(Scanner.Quoting = qPlain);
 
       Check(Scanner.GetNextToken = tDocumentStart);
