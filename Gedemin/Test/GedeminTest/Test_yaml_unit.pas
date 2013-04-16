@@ -14,7 +14,7 @@ type
   published
     procedure TestScanner;
     procedure TestWriter;
-    procedure TestParser;
+    procedure TestParser;   
   end;
 
 implementation
@@ -163,12 +163,12 @@ begin
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item6');
       Check(Scanner.GetNextToken = tScalar);
-      Check(Scanner.Scalar = '123 456'#13#10'789 111'#13#10'568');
+      Check(Scanner.Scalar = '123 456  '#13#10'  789 111   '#13#10'568');
       Check(Scanner.Quoting = qPlain);
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item7');
       Check(Scanner.GetNextToken = tScalar);
-      Check(Scanner.Scalar = '123 456 789 111 568');
+      Check(Scanner.Scalar = '123 456 789 111     568');
       Check(Scanner.Quoting = qPlain);
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'Item8');
@@ -267,7 +267,7 @@ begin
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'k');
       Check(Scanner.GetNextToken = tScalar);
-      Check(Scanner.Scalar = 'test'+ #13#10 + '#.##.#');
+      Check(Scanner.Scalar = 'test'#13#10'#.##.#');
       Check(Scanner.Quoting = qPlain);
 
       Check(Scanner.GetNextToken = tKey);
@@ -373,7 +373,8 @@ end;
 procedure TyamlTest.TestParser;
 var
   FS: TFileStream;
-  Parser: TyamlParser;
+  Parser: TyamlParser;   
+  M: TyamlMapping;
 begin
   FS := TFileStream.Create(TestDataPath + '\yaml\test.yml', fmOpenRead);
   Parser := TyamlParser.Create;
@@ -383,7 +384,11 @@ begin
     Check(((Parser.YAMLStream[0] as TYAMLDocument)[0] as TyamlString).AsString = 'aaa "bbb');
     Check(((Parser.YAMLStream[1] as TYAMLDocument)[0] as TyamlString).AsString = 'aaa ''bbb');
     Check(((Parser.YAMLStream[2] as TYAMLDocument)[0] as TyamlInteger).AsInteger = 123);
-    Check(((Parser.YAMLStream[8] as TYAMLDocument)[0] as TyamlSequence)[1] is TyamlSequence);
+    Check(((Parser.YAMLStream[9] as TYAMLDocument)[0] as TyamlSequence)[1] is TyamlSequence);
+    M := (Parser.YAMLStream[8] as TYAMLDocument)[0] as TyamlMapping;
+    Check(M[0] is TyamlKeyValue);
+    Check((M[0] as TyamlKeyValue).Value is TyamlScalar);
+    Check(((M[0] as TyamlKeyValue).Value as TyamlScalar).AsString = '123 456   '#13#10' 111');
   finally
     Parser.Free;
     FS.Free;
