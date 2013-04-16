@@ -1164,10 +1164,12 @@ begin
   Result := 0;
   csHugeIntSet.Enter;
   try
-    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount)
-      and (arrHugeIntSet[AnIndex] = nil) then
+    if (AnIndex >= 0) and (AnIndex < HugeIntSetMaxCount) then
     begin
-      arrHugeIntSet[AnIndex] := TgsHugeIntSet.Create;
+      if arrHugeIntSet[AnIndex] = nil then
+        arrHugeIntSet[AnIndex] := TgsHugeIntSet.Create
+      else
+        (arrHugeIntSet[AnIndex] as TgsHugeIntSet).Clear;
       Result := 1;
     end;
   finally

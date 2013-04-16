@@ -14,6 +14,7 @@ type
   TgsHugeIntSet = class(TObject)
   private
     FData: PgsHugeByteArr;
+    FSize: Integer;
 
   public
     constructor Create;
@@ -22,6 +23,7 @@ type
     procedure Include(const AnItem: Integer);
     procedure Exclude(const AnItem: Integer);
     function Has(const AnItem: Integer): Boolean;
+    procedure Clear;
   end;
 
   TgsIntArr = array[0..0] of Integer;
@@ -54,7 +56,8 @@ const
 constructor TgsHugeIntSet.Create;
 begin
   inherited Create;
-  FData := AllocMem(High(Integer) div 8);
+  FSize := High(Integer) div 8;
+  FData := AllocMem(FSize);
 end;
 
 procedure TgsHugeIntSet.Include(const AnItem: Integer);
@@ -103,6 +106,11 @@ destructor TgsRecRefArr.Destroy;
 begin
   FreeMem(FData);
   inherited;
+end;
+
+procedure TgsHugeIntSet.Clear;
+begin
+  FillChar(FData^, FSize, #00);
 end;
 
 end.

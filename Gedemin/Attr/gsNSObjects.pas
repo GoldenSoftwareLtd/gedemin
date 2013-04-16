@@ -79,7 +79,7 @@ end;
 
 procedure TgsNSNode.FillInfo(S: TStrings);
 begin
-  S.Add(Name);
+  S.Add(Caption);
   S.Add('RUID: ' + RUID);
   S.Add('Версия: ' + Version);
   S.Add('Версия в базе данных: ' + VersionInDB);
@@ -108,7 +108,7 @@ end;
 
 function TgsNSNode.CheckDBVersion: Boolean;
 begin
-  Result :=  TFLItem.CompareVersionStrings(DBVersion, IBLogin.DBVersion) <= 0;
+  Result := TFLItem.CompareVersionStrings(DBVersion, IBLogin.DBVersion) <= 0;
 end;
 
 function TgsNSNode.Valid: Boolean;
@@ -190,9 +190,6 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
         'SELECT n.id, n.name, n.version, n.filetimestamp, r.xid || ''_'' || r.dbid as RUID ' +
         'FROM at_namespace n JOIN gd_ruid r ' +
         '  ON n.id = r.id ';
-        { +
-        'WHERE r.xid || ''_'' || r.dbid = :ruid';
-      q.ParamByName('ruid').AsString := AnObj.RUID;}
       q.ExecQuery;
 
       while not q.Eof do
@@ -210,16 +207,9 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
         Obj.VersionInDB := q.Fields[2].AsString;
         Obj.Namespacekey := q.Fields[0].AsInteger;
         Obj.NamespaceName := q.Fields[1].AsString;
-        Obj.NamespaceTimestamp := q.Fields[3].AsDateTime; 
+        Obj.NamespaceTimestamp := q.Fields[3].AsDateTime;
         q.Next;
       end;
-     { if not q.Eof then
-      begin
-        AnObj.VersionInDB := q.Fields[2].AsString;
-        AnObj.Namespacekey := q.Fields[0].AsInteger;
-        AnObj.NamespaceName := q.Fields[1].AsString;
-        AnObj.NamespaceTimestamp := q.Fields[3].AsDateTime;
-      end;}
     finally
       q.Free;
     end;
