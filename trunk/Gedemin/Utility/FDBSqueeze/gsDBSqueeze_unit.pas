@@ -97,7 +97,6 @@ var
   Tr: TIBTransaction;
 begin
   Assert(Connected);
- //EXECUTE PROCEDURE DBS_ADD_DEL_CONDITION('gd_document', 'documentdate < ''11.11.2011'' ')
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   try
@@ -106,7 +105,7 @@ begin
 
     q.Transaction := Tr;
 
-    {
+  {
   CREATE PROCEDURE DBS_ADD_DEL_CONDITION (ATable_Name VARCHAR(31), AWHERE_Condition VARCHAR(310))
    AS
     DECLARE VARIABLE ID_FIELD VARCHAR(31);
@@ -191,7 +190,7 @@ begin
       '  AND RELATION_NAME = :RELAT_NAME ' +
       '  INTO :ID_FIELD ' +
       '  FOR ' +
-      '    EXECUTE STATEMENT ''SELECT '' || :ID_FIELD || '' FROM '' ' + ATable_Name + ' '' WHERE '' ' + WHERE_Condition +
+      '    EXECUTE STATEMENT ''SELECT '' || :ID_FIELD || '' FROM ' + ATable_Name + ' WHERE ' + WHERE_Condition + ' '' ' +
       '    INTO :ID_VALUE ' +
       '  DO BEGIN ' +
       '    g_his_include(M2, :ID_VALUE); ' +
@@ -733,7 +732,7 @@ begin
     q.ParamCheck := False;
     q.Transaction := Tr;
 
-    AddDelCondition('GD_DOCUMENT', ' documentdate < '+ DelCondition);            ///
+    AddDelCondition('GD_DOCUMENT', ' documentdate < ' + DelCondition);            ///
 
     RestoreIndices;
     RestoreTriggers;
