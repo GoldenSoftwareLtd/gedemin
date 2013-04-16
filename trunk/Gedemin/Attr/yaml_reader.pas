@@ -32,6 +32,7 @@ type
     FBufferCount: Integer;
     FPosition: Integer;
     FIndent: Integer;
+    FInitialIndent: Integer;
     FLine: Integer;
     FPositionInLine: Integer;
 
@@ -55,6 +56,7 @@ type
     property Indent: Integer read FIndent;
     property Line: Integer read FLine;
     property PositionInLine: Integer read FPositionInLine;
+    property InitialIndent: Integer read FInitialIndent write FInitialIndent;   
   end;
 
 implementation
@@ -83,6 +85,7 @@ begin
     FBufferSize := DefBufferSize
   else
     FBufferSize := ABufferSize;
+  FInitialIndent := 0;  
   GetMem(FBuffer, FBufferSize);
   ReadNextBlock;
   GetIndent;
@@ -117,6 +120,8 @@ begin
   FIndent := 0;
   while (not EOF) and (FBuffer[FPosition] = #32) do
   begin
+    if (FInitialIndent <> 0) and (FInitialIndent <= FIndent) then
+      break;
     Inc(FIndent);
     Inc(FPosition);
     ReadNextBlock;
