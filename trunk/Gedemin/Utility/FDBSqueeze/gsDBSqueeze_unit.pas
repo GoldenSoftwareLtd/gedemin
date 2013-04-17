@@ -34,9 +34,7 @@ type
     procedure PrepareDB;
     procedure RestoreDB;
 
-    procedure Delete;//(const ADate: TDateTime);
-
-
+    procedure Delete;
 
     property DatabaseName: String read FDatabaseName write FDatabaseName;
     property UserName: String read FUserName write FUserName;
@@ -168,44 +166,6 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
     end;
   end;
 
-  {
-    EXECUTE BLOCK
-    AS
-      DECLARE VARIABLE M2 INTEGER = 0;
-      DECLARE VARIABLE id INTEGER;
-      DECLARE VARIABLE RELAT_NAME VARCHAR(31);
-      DECLARE VARIABLE FIELD VARCHAR(31);
-    BEGIN
-      g_his_create(M2, 0);
-      FOR
-        SELECT RELATION_NAME, LIST_FIELDS
-        FROM DBS_FK_CONSTRAINTS
-        WHERE update_rule <> 'CASCADE'
-        INTO :RELAT_NAME, :FIELD
-      DO BEGIN
-          FOR
-            EXECUTE STATEMENT 'SELECT ' || :FIELD || ' FROM ' || :RELAT_NAME
-            INTO :id
-          DO BEGIN
-            if (g_his_has(M2, :id) = 1) then g_his_exclude(M2, :id);
-          END
-      END
-    END;
-  }
-  {
-SELECT
-  CASE F.RDB$FIELD_TYPE
-    WHEN 8 THEN
-      CASE F.RDB$FIELD_SUB_TYPE
-        WHEN 0 THEN 'INTEGER'
-        ELSE 'NOT INTEGER'
-      END
-    ELSE 'NOT INTEGER'
-  END FIELD_TYPE
-FROM RDB$RELATION_FIELDS RF
-JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE)
-WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD)
-  }
   procedure ExcludeFKs(ATr: TIBTransaction);
   var
     q: TIBSQL;
@@ -216,41 +176,37 @@ WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD)
       LogEvent('ExcludeFKs...   --test');
       q.SQL.Text :=
         'EXECUTE BLOCK ' +
-        ' AS ' +
-        'DECLARE VARIABLE M2 INTEGER = 0; ' +
-        'DECLARE VARIABLE id INTEGER; ' +
-        'DECLARE VARIABLE type_field VARCHAR(20); ' +
-        'DECLARE VARIABLE RELAT_NAME VARCHAR(31); ' +
-        'DECLARE VARIABLE FIELD VARCHAR(31); ' +
+        'AS ' +
+        '  DECLARE VARIABLE RN CHAR(31); ' +
+        '  DECLARE VARIABLE FN CHAR(31); ' +
+        '  DECLARE VARIABLE S  VARCHAR(8192); ' +
         'BEGIN ' +
         '  FOR ' +
-        '    SELECT RELATION_NAME, LIST_FIELDS  ' +
-        '    FROM DBS_FK_CONSTRAINTS ' +
-        '    WHERE update_rule <> ''CASCADE'' ' +                               /// ?
-        '    INTO :RELAT_NAME, :FIELD ' +
+        '    SELECT ' +
+        '      DISTINCT c.relation_name ' +
+        '    FROM ' +
+        '      dbs_fk_constraints c ' +
+        '    INTO :RN ' +
         '  DO BEGIN ' +
-        '    SELECT ' +                                                       //проверка типа поля
-        '    CASE F.RDB$FIELD_TYPE ' +
-        '      WHEN 8 THEN ' +
-        '        CASE F.RDB$FIELD_SUB_TYPE ' +
-        '          WHEN 0 THEN ''INTEGER'' ' +
-        '          ELSE ''NOT INTEGER'' ' +
-        '      END ' +
-        '      ELSE ''NOT INTEGER'' ' +
-        '    END FIELD_TYPE ' +
-        '    FROM RDB$RELATION_FIELDS RF ' +
-        '      JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
-        '    WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ' +
-        '    INTO :type_field ' + ' ; ' +
-        '    if (type_field = ''INTEGER'') then' +
-        '    begin ' +
-        '      FOR ' +
-        '        EXECUTE STATEMENT ''SELECT '' || :FIELD || '' FROM '' || :RELAT_NAME ' +
-        '      INTO :id  ' +
-        '      DO BEGIN  ' +
-        '        if (g_his_has(M2, :id) = 1) then g_his_exclude(M2, :id); ' +
-        '      END ' +
-        '    end ' +
+        '    S = ''''; ' +
+        '    FOR ' +
+        '      SELECT ' +
+        '        c.list_fields  ' +
+        '      FROM ' +
+        '        dbs_fk_constraints c ' +
+        '        JOIN rdb$relation_fields rf ON rf.rdb$field_name = c.list_fields ' +
+        '          AND rf.rdb$relation_name = c.relation_name ' +
+        '        JOIN rdb$fields f ON f.rdb$field_name = rf.rdb$field_source ' +
+        '      WHERE ' +
+        '        c.update_rule IN (''RESTRICT'', ''NO ACTION'') ' +
+        '        AND f.rdb$field_type = 8 ' +
+        '        AND c.relation_name = :RN ' +
+        '      INTO :FN ' +
+        '    DO BEGIN ' +
+        '      S = IIF(:S = '''', :S, :S || '','') || ' +
+        '        '' SUM(g_his_exclude(0, '' || :FN || ''))''; ' +
+        '    END ' +
+        '    EXECUTE STATEMENT ''SELECT '' || :S || '' FROM '' || :RN; ' +
         '  END ' +
         'END; ';
       q.ExecQuery;
