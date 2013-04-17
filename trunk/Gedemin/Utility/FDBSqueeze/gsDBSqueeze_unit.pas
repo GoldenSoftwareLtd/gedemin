@@ -95,13 +95,14 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
 
   procedure DoCascade(const ATableName: String; ATr: TIBTransaction);
   var
-    q, q2: TIBSQL;
+    q, q2, q3: TIBSQL;
   begin
     q := TIBSQL.Create(nil);
     q2 := TIBSQL.Create(nil);
+    q3 := TIBSQL.Create(nil);
     try
       q2.Transaction := ATr;
-
+      q3.Transaction := ATr;
       q.Transaction := ATr;
       LogEvent('DoCascade...   --test');
       q.SQL.Text :=
@@ -121,25 +122,51 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
       q.ExecQuery;
       while not q.Eof do
       begin
+                                                                                                        ///ц
         q2.SQL.Text :=
-          'SELECT SUM(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ') ' +
-          'FROM ' +
-          '  ' + q.FieldByName('relation_name').AsString + ' ' +
-          'WHERE ' +
-          '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1';
+          'SELECT ' +                                                       //проверка типа поля РК
+          '  CASE F.RDB$FIELD_TYPE ' +
+          '    WHEN 8 THEN ' +
+          '      CASE F.RDB$FIELD_SUB_TYPE ' +
+          '        WHEN 0 THEN ''INTEGER'' ' +
+          '        ELSE ''NOT INTEGER'' ' +
+          '    END ' +
+          '    ELSE ''NOT INTEGER'' ' +
+          '  END FIELD_TYPE ' +
+          'FROM RDB$RELATION_FIELDS RF ' +
+          'JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
+          'WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ';
+        q2.ParamByName('RELAT_NAME').AsString := q.FieldByName('relation_name').AsString;
+        q2.ParamByName('FIELD').AsString := q.FieldByName('pk_fields').AsString;
         q2.ExecQuery;
 
-        DoCascade(q.FieldByName('relation_name').AsString, ATr);
+        if q2.FieldByName('type').AsString = 'INTEGER' then
+        begin
+          q2.ParamByName('FIELD').AsString := q.FieldByName('list_fields').AsString;
+          q2.ExecQuery;
+
+          if q2.FieldByName('type').AsString = 'INTEGER' then
+          begin
+            q3.SQL.Text :=
+              'SELECT SUM(g_his_include(0, ' + q.FieldByName('pk_fields').AsString + ') ' +
+              'FROM ' +
+              '  ' + q.FieldByName('relation_name').AsString + ' ' +
+              'WHERE ' +
+              '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1';
+            q3.ExecQuery;
+
+            DoCascade(q.FieldByName('relation_name').AsString, ATr);
+          end;
+        end;
         q.Next;
       end;
       LogEvent('DoCascade...OK   --test');
     finally
       q2.Free;
+      q3.Free;
       q.Free;
     end;
   end;
-
-
 
   {
     EXECUTE BLOCK
@@ -165,6 +192,20 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
       END
     END;
   }
+  {
+SELECT
+  CASE F.RDB$FIELD_TYPE
+    WHEN 8 THEN
+      CASE F.RDB$FIELD_SUB_TYPE
+        WHEN 0 THEN 'INTEGER'
+        ELSE 'NOT INTEGER'
+      END
+    ELSE 'NOT INTEGER'
+  END FIELD_TYPE
+FROM RDB$RELATION_FIELDS RF
+JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE)
+WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD)
+  }
   procedure ExcludeFKs(ATr: TIBTransaction);
   var
     q: TIBSQL;
@@ -178,6 +219,7 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
         ' AS ' +
         'DECLARE VARIABLE M2 INTEGER = 0; ' +
         'DECLARE VARIABLE id INTEGER; ' +
+        'DECLARE VARIABLE type_field VARCHAR(20); ' +
         'DECLARE VARIABLE RELAT_NAME VARCHAR(31); ' +
         'DECLARE VARIABLE FIELD VARCHAR(31); ' +
         'BEGIN ' +
@@ -187,12 +229,28 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
         '    WHERE update_rule <> ''CASCADE'' ' +
         '    INTO :RELAT_NAME, :FIELD ' +
         '  DO BEGIN ' +
-        '    FOR ' +
-        '      EXECUTE STATEMENT ''SELECT '' || :FIELD || '' FROM '' || :RELAT_NAME ' +
-        '    INTO :id  ' +
-        '    DO BEGIN  ' +
-        '      if (g_his_has(M2, :id) = 1) then g_his_exclude(M2, :id); ' +
-        '    END ' +
+        '    SELECT ' +                                                       //проверка типа поля
+        '    CASE F.RDB$FIELD_TYPE ' +
+        '      WHEN 8 THEN ' +
+        '        CASE F.RDB$FIELD_SUB_TYPE ' +
+        '          WHEN 0 THEN ''INTEGER'' ' +
+        '          ELSE ''NOT INTEGER'' ' +
+        '      END ' +
+        '      ELSE ''NOT INTEGER'' ' +
+        '    END FIELD_TYPE ' +
+        '    FROM RDB$RELATION_FIELDS RF ' +
+        '      JOIN RDB$FIELDS F ON (F.RDB$FIELD_NAME = RF.RDB$FIELD_SOURCE) ' +
+        '    WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD) ' +
+        '    INTO :type_field ' + ' ; ' +
+        '    if (type_field = ''INTEGER'') then' +
+        '    begin ' +
+        '      FOR ' +
+        '        EXECUTE STATEMENT ''SELECT '' || :FIELD || '' FROM '' || :RELAT_NAME ' +
+        '      INTO :id  ' +
+        '      DO BEGIN  ' +
+        '        if (g_his_has(M2, :id) = 1) then g_his_exclude(M2, :id); ' +
+        '      END ' +
+        '    end ' +
         '  END ' +
         'END; ';
       q.ExecQuery;
