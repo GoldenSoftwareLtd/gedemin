@@ -15,6 +15,7 @@ const
   WM_DBS_PREPAREDB             = WM_USER + 5;
   WM_DBS_RESTOREDB             = WM_USER + 6;
   WM_DBS_FINISHED              = WM_USER + 7;
+  WM_DBS_DELETE                = WM_USER + 8;
 
 type
   TgsDBSqueezeThread = class(TgdMessagedThread)
@@ -121,6 +122,17 @@ begin
         FBusy.Value := 1;
         FDBS.TestAndCreateMetadata;
         PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
+      end;
+      Result := True;
+    end;
+
+    WM_DBS_DELETE:
+    begin
+      if FConnected.Value = 1 then
+      begin
+        FBusy.Value := 1;
+        FDBS.Delete;
+        PostThreadMessage(ThreadID, WM_DBS_DELETE, 0, 0);
       end;
       Result := True;
     end;

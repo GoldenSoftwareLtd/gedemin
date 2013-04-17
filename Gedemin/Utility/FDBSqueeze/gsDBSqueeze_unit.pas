@@ -34,7 +34,9 @@ type
     procedure PrepareDB;
     procedure RestoreDB;
 
-    procedure Delete(const ADate: TDateTime);
+    procedure Delete;//(const ADate: TDateTime);
+
+
 
     property DatabaseName: String read FDatabaseName write FDatabaseName;
     property UserName: String read FUserName write FUserName;
@@ -89,7 +91,7 @@ begin
   Result := FIBDatabase.Connected;
 end;
 
-procedure TgsDBSqueeze.Delete(const ADate: TDateTime);
+procedure TgsDBSqueeze.Delete;//(const ADate: String);
 
   procedure DoCascade(const ATableName: String; ATr: TIBTransaction);
   var
@@ -123,7 +125,7 @@ procedure TgsDBSqueeze.Delete(const ADate: TDateTime);
           'FROM ' +
           '  ' + q.FieldByName('relation_name').AsString + ' ' +
           'WHERE ' +
-          '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ')';
+          '  g_his_has(0, ' + q.FieldByName('list_fields').AsString + ') = 1';
         q2.ExecQuery;
 
         DoCascade(q.FieldByName('relation_name').AsString, ATr);
@@ -135,6 +137,67 @@ procedure TgsDBSqueeze.Delete(const ADate: TDateTime);
     end;
   end;
 
+
+
+  {
+    EXECUTE BLOCK
+    AS
+      DECLARE VARIABLE M2 INTEGER = 0;
+      DECLARE VARIABLE id INTEGER;
+      DECLARE VARIABLE RELAT_NAME VARCHAR(31);
+      DECLARE VARIABLE FIELD VARCHAR(31);
+    BEGIN
+      g_his_create(M2, 0);
+      FOR
+        SELECT RELATION_NAME, LIST_FIELDS
+        FROM DBS_FK_CONSTRAINTS
+        WHERE update_rule <> 'CASCADE'
+        INTO :RELAT_NAME, :FIELD
+      DO BEGIN
+          FOR
+            EXECUTE STATEMENT 'SELECT ' || :FIELD || ' FROM ' || :RELAT_NAME
+            INTO :id
+          DO BEGIN
+            if (g_his_has(M2, :id) = 1) then g_his_exclude(M2, :id);
+          END
+      END
+    END;
+  }
+  procedure ExcludeFKs(ATr: TIBTransaction);
+  var
+    q: TIBSQL;
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := ATr;
+
+      q.SQL.Text :=
+        'EXECUTE BLOCK ' +
+        ' AS ' +
+        'DECLARE VARIABLE M2 INTEGER = 0; ' +
+        'DECLARE VARIABLE id INTEGER; ' +
+        'DECLARE VARIABLE RELAT_NAME VARCHAR(31); ' +
+        'DECLARE VARIABLE FIELD VARCHAR(31); ' +
+        'BEGIN ' +
+        '  FOR ' +
+        '    SELECT RELATION_NAME, LIST_FIELDS  ' +
+        '    FROM DBS_FK_CONSTRAINTS ' +
+        '    WHERE update_rule <> ''CASCADE'' ' +
+        '    INTO :RELAT_NAME, :FIELD ' +
+        '  DO BEGIN ' +
+        '    FOR ' +
+        '      EXECUTE STATEMENT ''SELECT '' || :FIELD || '' FROM '' || :RELAT_NAME ' +
+        '    INTO :id  ' +
+        '    DO BEGIN  ' +
+        '      if (g_his_has(M2, :id) = 1) then g_his_exclude(M2, :id); ' +
+        '    END ' +
+        '  END ' +
+        'END; ';
+      q.ExecQuery;
+    finally
+      q.Free;
+    end;
+  end;
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -155,10 +218,18 @@ begin
 
     q.SQL.Text :=
       'SELECT SUM(g_his_include(0, id)) FROM gd_document WHERE documentdate < :D';
-    q.ParamByName('D').AsDateTime := ADate;
+    q.ParamByName('D').AsString := DelCondition; //ADate;
     q.ExecQuery;
 
     DoCascade('gd_document', Tr);
+    Tr.Commit;
+
+    Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+
+    ExcludeFKs(Tr);
 
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
@@ -173,7 +244,7 @@ begin
       '    INTO :RN, :FN ' +
       '  DO BEGIN ' +
       '    EXECUTE STATEMENT ''DELETE FROM '' || :RN || '' WHERE '' || ' +
-      '      ''g_his_has(0, '' || :FN || '')''; ' +
+      '      ''g_his_has(0, '' || :FN || '') = 1''; ' +
       '  END ' +
       'END';
 
@@ -182,6 +253,7 @@ begin
     q.ExecQuery;
 
     Tr.Commit;
+    LogEvent('Deleting from DB  --test');
   finally
     q.Free;
     Tr.Free;
@@ -402,7 +474,6 @@ var
       '    FROM rdb$triggers ' +
       '    WHERE rdb$trigger_inactive = 0 ' +
       '      AND RDB$SYSTEM_FLAG = 0 ' +
-      '      AND RDB$TRIGGER_TYPE IN (6, 14, 78, 22, 5, 13, 77, 21) ' +
       '    INTO :TN ' +
       '  DO ' +
       '    EXECUTE STATEMENT ''ALTER TRIGGER '' || :TN || '' INACTIVE ''; ' +
@@ -612,6 +683,7 @@ var
     LogEvent('Indices reactivated.');
   end;
 
+  
   procedure RestorePkUniqueConstraints;
   begin
     q.SQL.Text :=
