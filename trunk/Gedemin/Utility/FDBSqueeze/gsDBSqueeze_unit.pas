@@ -103,6 +103,7 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
       q2.Transaction := ATr;
 
       q.Transaction := ATr;
+      LogEvent('DoCascade...   --test');
       q.SQL.Text :=
         'SELECT ' +
         '  fc.relation_name, ' +
@@ -131,6 +132,7 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
         DoCascade(q.FieldByName('relation_name').AsString, ATr);
         q.Next;
       end;
+      LogEvent('DoCascade...OK   --test');
     finally
       q2.Free;
       q.Free;
@@ -170,7 +172,7 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
     q := TIBSQL.Create(nil);
     try
       q.Transaction := ATr;
-
+      LogEvent('ExcludeFKs...   --test');
       q.SQL.Text :=
         'EXECUTE BLOCK ' +
         ' AS ' +
@@ -194,6 +196,7 @@ procedure TgsDBSqueeze.Delete;//(const ADate: String);
         '  END ' +
         'END; ';
       q.ExecQuery;
+      LogEvent('ExcludeFKs... OK  --test');
     finally
       q.Free;
     end;
@@ -211,6 +214,8 @@ begin
     Tr.StartTransaction;
 
     q.Transaction := Tr;
+
+    LogEvent('Deleting from DB...   --test');
 
     q.SQL.Text :=
       'EXECUTE BLOCK AS BEGIN g_his_create(0, 0); END';
@@ -253,7 +258,7 @@ begin
     q.ExecQuery;
 
     Tr.Commit;
-    LogEvent('Deleting from DB  --test');
+    LogEvent('Deleting from DB... OK  --test');
   finally
     q.Free;
     Tr.Free;
