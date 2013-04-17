@@ -132,7 +132,7 @@ begin
       begin
         FBusy.Value := 1;
         FDBS.Delete;
-        PostThreadMessage(ThreadID, WM_DBS_DELETE, 0, 0);
+        PostThreadMessage(ThreadID, DBS_RESTOREDB, 0, 0);
       end;
       Result := True;
     end;
@@ -142,7 +142,7 @@ begin
       if FConnected.Value = 1 then
       begin
         FDBS.PrepareDB;
-        PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
+        PostThreadMessage(ThreadID, WM_DBS_DELETE, 0, 0);
       end;
       Result := True;
     end;
