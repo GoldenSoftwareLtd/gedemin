@@ -7,7 +7,8 @@ uses
   gsDBSqueeze_MainForm_unit,
   gsDBSqueeze_unit in 'gsDBSqueeze_unit.pas',
   gsDBSqueezeThread_unit in 'gsDBSqueezeThread_unit.pas',
-  gdMessagedThread in 'D:\Golden\Gedemin\Component\gdMessagedThread.pas';
+  gdMessagedThread in '..\..\Component\gdMessagedThread.pas';
+
 {$R *.RES}
 
 begin

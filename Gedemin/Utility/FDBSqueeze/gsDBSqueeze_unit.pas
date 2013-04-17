@@ -226,7 +226,7 @@ WHERE (RF.RDB$RELATION_NAME = :RELAT_NAME) AND (RF.RDB$FIELD_NAME = :FIELD)
         '  FOR ' +
         '    SELECT RELATION_NAME, LIST_FIELDS  ' +
         '    FROM DBS_FK_CONSTRAINTS ' +
-        '    WHERE update_rule <> ''CASCADE'' ' +
+        '    WHERE update_rule <> ''CASCADE'' ' +                               /// ?
         '    INTO :RELAT_NAME, :FIELD ' +
         '  DO BEGIN ' +
         '    SELECT ' +                                                       //проверка типа поля
@@ -280,10 +280,11 @@ begin
     q.ExecQuery;
 
     q.SQL.Text :=
-      'SELECT SUM(g_his_include(0, id)) FROM gd_document WHERE documentdate < :D';
+      'SELECT COUNT(g_his_include(0, id)) as Kolvo FROM gd_document WHERE documentdate < :D';
     q.ParamByName('D').AsString := DelCondition; //ADate;
     q.ExecQuery;
 
+    LogEvent('--COUNT BEFORE deleting from db: ' + q.FieldByName('Kolvo').AsString + '  --test');
     DoCascade('gd_document', Tr);
     Tr.Commit;
 
