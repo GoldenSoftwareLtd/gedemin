@@ -284,7 +284,7 @@ begin
     q.ParamByName('D').AsString := DelCondition; //ADate;
     q.ExecQuery;
 
-    LogEvent('--COUNT BEFORE deleting from db: ' + q.FieldByName('Kolvo').AsString + '  --test');
+    LogEvent('--COUNT records for delete BEFORE Deleting from db: ' + q.FieldByName('Kolvo').AsString + '  --test');
     DoCascade('gd_document', Tr);
     Tr.Commit;
 
@@ -307,8 +307,8 @@ begin
       '    WHERE constraint_type = ''PRIMARY KEY'' ' +
       '    INTO :RN, :FN ' +
       '  DO BEGIN ' +
-      '    EXECUTE STATEMENT ''DELETE FROM '' || :RN || '' WHERE '' || ' +
-      '      ''g_his_has(0, '' || :FN || '') = 1''; ' +
+      '    EXECUTE STATEMENT ''DELETE FROM '' || :RN || '' WHERE ' +
+      '      g_his_has(0, '' || :FN || '') = 1''; ' +
       '  END ' +
       'END';
 
@@ -317,7 +317,19 @@ begin
     q.ExecQuery;
 
     Tr.Commit;
+
+    Tr := TIBTransaction.Create(nil);
+    Tr.DefaultDatabase := FIBDatabase;
+    Tr.StartTransaction;
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'SELECT COUNT (id) as Kolvo FROM gd_document WHERE documentdate < :D';
+    q.ParamByName('D').AsString := DelCondition; //ADate;
+    q.ExecQuery;
+
+    LogEvent('--COUNT records for delete AFTER deleting from db: ' + q.FieldByName('Kolvo').AsString + '  --test');
     LogEvent('Deleting from DB... OK  --test');
+    Tr.Commit;
   finally
     q.Free;
     Tr.Free;
@@ -810,8 +822,6 @@ begin
 
     q.ParamCheck := False;
     q.Transaction := Tr;
-
-   // AddDelCondition('GD_DOCUMENT', ' documentdate < ' + DelCondition);            ///
 
     RestoreIndices;
     RestoreTriggers;
