@@ -132,7 +132,7 @@ begin
       begin
         FBusy.Value := 1;
         FDBS.Delete;
-        PostThreadMessage(ThreadID, DBS_RESTOREDB, 0, 0);
+        PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
       end;
       Result := True;
     end;
