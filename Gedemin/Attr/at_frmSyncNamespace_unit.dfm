@@ -381,6 +381,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Caption = 'Загрузить из файла <--'
       Hint = 'Загрузить из файла'
       ImageIndex = 27
+      OnExecute = actLoadFromFileExecute
       OnUpdate = actLoadFromFileUpdate
     end
     object actSync: TAction
