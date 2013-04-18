@@ -7,7 +7,7 @@ uses
   dmImages_unit, gd_createable_form, TB2ExtItems, TB2Item, ActnList, Db,
   Grids, DBGrids, gsDBGrid, TB2Dock, TB2Toolbar, ComCtrls, DBClient,
   StdCtrls, ExtCtrls, Menus, dmDatabase_unit, IBCustomDataSet, gdcBase,
-  gdcNamespace;
+  gdcNamespace, IBDatabase;
 
 type
   TIterateProc = procedure (AnObj: TObject; const Data: String) of object;
@@ -214,8 +214,8 @@ procedure Tat_frmSyncNamespace.actCompareWithDataUpdate(Sender: TObject);
 begin
   actCompareWithData.Enabled := (not cds.EOF)
     and FileExists(cds.FieldByName('filename').AsString)
-    and FgdcNamespace.Active
-    and (not FgdcNamespace.EOF);
+    and FgdcNamespace.Active;
+  //  and (not FgdcNamespace.EOF);
 end;
 
 procedure Tat_frmSyncNamespace.actCompareWithDataExecute(Sender: TObject);
