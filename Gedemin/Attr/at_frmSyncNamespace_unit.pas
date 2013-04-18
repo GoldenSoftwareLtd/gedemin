@@ -97,6 +97,7 @@ type
     procedure actSyncExecute(Sender: TObject);
     procedure actDeleteFileUpdate(Sender: TObject);
     procedure actDeleteFileExecute(Sender: TObject);
+    procedure actLoadFromFileExecute(Sender: TObject);
 
   private
     FgdcNamespace: TgdcNamespace;
@@ -383,6 +384,11 @@ end;
 procedure Tat_frmSyncNamespace.Log(const S: String);
 begin
   mMessages.Lines.Add(FormatDateTime('hh:nn:ss ', Now) + S);
+end;
+
+procedure Tat_frmSyncNamespace.actLoadFromFileExecute(Sender: TObject);
+begin
+  FgdcNamespace.LoadFromFile(cds.FieldByName('filename').AsString);
 end;
 
 initialization
