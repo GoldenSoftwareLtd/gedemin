@@ -4,7 +4,7 @@ unit gsNSObjects;
 interface
 
 uses
-  Classes, gsTreeView, IBDatabase;
+  Classes, gsTreeView;
 
 type
   TgsNSState = (nsUndefined, nsNotInstalled, nsNewer, nsOlder, nsEqual);
@@ -48,7 +48,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure GetFilesForPath(const Path: String; const ATr: TIBTransaction = nil);
+    procedure GetFilesForPath(const Path: String);
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
     procedure GetAllUses(const RUID: String; SL: TStringList);
@@ -175,7 +175,7 @@ begin
   end;
 end;
 
-procedure TgsNSList.GetFilesForPath(const Path: String; const ATr: TIBTransaction = nil);
+procedure TgsNSList.GetFilesForPath(const Path: String);
 
   procedure FillInNamespace;
   var
@@ -185,10 +185,8 @@ procedure TgsNSList.GetFilesForPath(const Path: String; const ATr: TIBTransactio
   begin
     q := TIBSQL.Create(nil);
     try
-      if (ATr = nil) or (not ATr.InTransaction) then
-        q.Transaction := gdcBaseManager.ReadTransaction
-      else
-        q.Transaction := ATr;
+      q.Transaction := gdcBaseManager.ReadTransaction;
+
       q.SQL.Text :=
         'SELECT n.id, n.name, n.version, n.filetimestamp, r.xid || ''_'' || r.dbid as RUID ' +
         'FROM at_namespace n JOIN gd_ruid r ' +
