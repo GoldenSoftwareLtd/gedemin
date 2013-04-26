@@ -227,6 +227,10 @@ begin
     ComponentPath := BuildComponentPath(Self);
     frAcctAnalyticsGroup.ppMain.Unwraped := UserStorage.ReadBoolean(ComponentPath, 'AnalyticGroupUnwraped', True);
     frAcctTreeAnalytic.ppMain.Unwraped := UserStorage.ReadBoolean(ComponentPath, 'TreeAnalyticUnwraped', True);
+    cbShowDebit.Checked := UserStorage.ReadBoolean(ComponentPath, 'ShowDebit', True);
+    cbShowCredit.Checked := UserStorage.ReadBoolean(ComponentPath, 'ShowCredit', True);
+    cbShowCorrSubAccount.Checked := UserStorage.ReadBoolean(ComponentPath, 'ShowCorrSubAccount', True);
+
 //    Panel2.Height := UserStorage.ReadInteger(BuildComponentPath(Self), 'PanelHeight', 159);
   end;
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDV_FRMACCTLEDGER', 'LOADSETTINGS', KEYLOADSETTINGS)}
@@ -272,6 +276,9 @@ begin
     ComponentPath := BuildComponentPath(Self);
     UserStorage.WriteBoolean(ComponentPath, 'AnalyticGroupUnwraped', frAcctAnalyticsGroup.ppMain.Unwraped);
     UserStorage.WriteBoolean(ComponentPath, 'TreeAnalyticUnwraped', frAcctTreeAnalytic.ppMain.Unwraped);
+    UserStorage.WriteBoolean(ComponentPath, 'ShowDebit', cbShowDebit.Checked);
+    UserStorage.WriteBoolean(ComponentPath, 'ShowCredit', cbShowCredit.Checked);
+    UserStorage.WriteBoolean(ComponentPath, 'ShowCorrSubAccount', cbShowCorrSubAccount.Checked);
 
 //    UserStorage.WriteInteger(BuildComponentPath(Self), 'PanelHeight', Panel2.Height);
   end;
