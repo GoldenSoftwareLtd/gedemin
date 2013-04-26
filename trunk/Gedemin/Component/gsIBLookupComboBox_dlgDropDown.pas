@@ -70,10 +70,13 @@ type
   private
     FMouseFlag: Boolean;
 
+    function GetDropDownDialogMinWidth: Integer;
     procedure WMGetDlgCode(var Message: TWMGetDlgCode);
       message WM_GETDLGCODE;
     procedure CMDialogKey(var Message: TCMDialogKey);
       message CM_DIALOGKEY;
+    procedure WMSize(var Message: TWMSize);
+      message WM_SIZE;
 
   public
     FIBLookup: IgsIBLookupComboBox;
@@ -91,7 +94,7 @@ implementation
 uses
   gdcClasses, gd_directories_const;
 
-{$R *.DFM}
+{$R *.DFM} 
 
 var
   gsCOMBOHOOK: HHOOK = 0;
@@ -134,6 +137,30 @@ procedure TdlgDropDown.WMGetDlgCode(var Message: TWMGetDlgCode);
 begin
   inherited;
   Message.Result := Message.Result or DLGC_WANTALLKEYS;
+end;
+
+procedure TdlgDropDown.WMSize(var Message: TWMSize);
+var
+  MinWidth: Integer;
+begin
+  inherited;
+
+  MinWidth := GetDropDownDialogMinWidth;
+  if Width < MinWidth then
+    Width := MinWidth;
+end;
+
+function TdlgDropDown.GetDropDownDialogMinWidth: Integer;
+begin
+  Result := 32;
+  if Assigned(FIBLookup) then
+  begin
+    if FIsDocument then
+      Result := Result + sbAcctAccCard.Left + sbAcctAccCard.Width
+    else
+      if FIBLookup.gdClassName > '' then
+        Result := Result + sbSelectObj.Left + sbSelectObj.Width;     
+  end;
 end;
 
 destructor TdlgDropDown.Destroy;
@@ -220,9 +247,15 @@ end;
 procedure TdlgDropDown.actShrinkExecute(Sender: TObject);
 var
   Pt: TPoint;
+  W, MinWidth: Integer;
 begin
-  Width := Width - 20;
-  if GetCursorPos(Pt) then SetCursorPos(Pt.X - 20, Pt.Y);
+  MinWidth := GetDropDownDialogMinWidth;
+  if Width - 20 <= MinWidth then
+    W := Width - MinWidth
+  else
+    W := 20;
+  Width := Width - W;
+  if GetCursorPos(Pt) then SetCursorPos(Pt.X - W, Pt.Y);
 end;
 
 procedure TdlgDropDown.actGrowExecute(Sender: TObject);
@@ -235,7 +268,7 @@ end;
 
 procedure TdlgDropDown.actShrinkUpdate(Sender: TObject);
 begin
-  actShrink.Enabled := Width > 100;
+  actShrink.Enabled := Width > GetDropDownDialogMinWidth;
 end;
 
 procedure TdlgDropDown.actGrowUpdate(Sender: TObject);
