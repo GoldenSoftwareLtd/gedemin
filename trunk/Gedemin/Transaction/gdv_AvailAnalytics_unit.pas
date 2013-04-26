@@ -111,11 +111,7 @@ begin
   F := atDatabase.FindRelationField(AC_ENTRY, ENTRYDATE);
   if F <> nil then
   begin
-    A := TgdvAnalytics.Create;
-    A.Field := F;
-    if A.Field.LName = ENTRYDATE then
-      A.Caption := 'Дата';
-    Add(A);
+    AddAnalytics(ENTRYDATE, 'Дата проводки', F, '') 
   end;
 
   AddAnalytics(MONTH, 'Месяц', nil, '1');
