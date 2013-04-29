@@ -27,7 +27,8 @@ type
 
     function IDList: string;
     procedure ValueList(const ValueList: TStrings; const AccountList: TList; BeginDate,
-      EndDate: TDateTime);
+      EndDate: TDateTime;
+      const WithSubAccounts: Boolean = False);
 
     // Общее число количественных величин на компоненте
     property ValueCount: Integer read GetValueCount;
@@ -188,7 +189,43 @@ begin
 end;
 
 procedure TfrAcctQuantity.ValueList(const ValueList: TStrings;
-  const AccountList: TList; BeginDate, EndDate: TDateTime);
+  const AccountList: TList; BeginDate, EndDate: TDateTime;
+  const WithSubAccounts: Boolean = False);
+
+  function GetIDList: String;
+  var
+    ibsql: TIBSQL;
+    L: TList;
+  begin
+    Result := '';
+    if AccountList.Count > 0 then
+    begin
+      if WithSubAccounts then
+      begin
+        L := TList.Create;
+        ibsql := TIBSQL.Create(nil);
+        try
+          ibsql.Transaction := gdcBaseManager.ReadTransaction;
+          ibsql.SQL.Text := Format(
+            ' SELECT a2.id FROM ac_account a1, ac_account a2 WHERE a1.id in(%s) and ' +
+            ' a2.lb >= a1.lb and a2.rb <= a1.rb and a2.ACCOUNTTYPE in (''A'', ''S'')',
+            [AcctUtils.IDList(AccountList)]);
+          ibsql.ExecQuery;
+          while not ibsql.Eof do
+          begin
+            if L.IndexOf(Pointer(ibsql.Fields[0].AsInteger)) = -1 then
+              L.Add(Pointer(ibsql.Fields[0].AsInteger));
+            ibsql.Next;
+          end;
+          Result := AcctUtils.IDList(L);
+        finally
+          ibsql.Free;
+          L.Free;
+        end;
+      end else
+        Result := AcctUtils.IDList(AccountList);
+    end;
+  end;
 var
   SQL: TIBSQL;
 begin
@@ -210,7 +247,7 @@ begin
         '  JOIN gd_value v ON v.id = q.valuekey ' +
         'WHERE ';
       if AccountList.Count > 0 then
-        SQL.SQL.Add('  e.accountkey IN(' + AcctUtils.IDList(AccountList) + ') AND ');
+        SQL.SQL.Add('  e.accountkey IN(' + GetIDList + ') AND ');
 
       SQL.SQL.Text := SQL.SQl.Text +
         '  e.entrydate <= :enddate AND ' +

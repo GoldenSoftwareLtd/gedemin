@@ -115,7 +115,7 @@ type
     procedure actRunUpdate(Sender: TObject);
   private
     function GetIncSubAccounts: Boolean;
-    procedure SetIncSubAccounts(const Value: Boolean);
+    procedure SetIncSubAccounts(const Value: Boolean); 
   protected
     FFieldInfos: TgdvFieldInfos;
     FAccountIDs: TList;
@@ -427,10 +427,11 @@ begin
   if FAccountIDs = nil then
     FAccountIDs := TList.Create;
 
-  // ѕолучим список выбранных количественных показателей из панели формы
-  frAcctQuantity.ValueList(FValueList, FAccountIDs, Self.DateBegin, Self.DateEnd);
   // ѕеренесем строку выбранных счетов в список, опционально с субсчетами
-  SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts);
+  SetAccountIDs(cbAccounts, FAccountIDs, IncSubAccounts);  
+
+  // ѕолучим список выбранных количественных показателей из панели формы
+  frAcctQuantity.ValueList(FValueList, FAccountIDs, Self.DateBegin, Self.DateEnd, IncSubAccounts);
 
   // Ћокализуем пол€ сумм дл€ количественных показателей по умолчанию
   if FValueList.Count > 0 then
