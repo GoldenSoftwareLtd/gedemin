@@ -42,7 +42,7 @@ object dlgDropDown: TdlgDropDown
       object sbNew: TSpeedButton
         Left = 0
         Top = 0
-        Width = 16
+        Width = 17
         Height = 16
         Action = actNew
         AllowAllUp = True
@@ -142,7 +142,7 @@ object dlgDropDown: TdlgDropDown
         ParentShowHint = False
         ShowHint = True
       end
-      object SpeedButton5: TSpeedButton
+      object sbShrink: TSpeedButton
         Left = 296
         Top = 0
         Width = 16
