@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 80
-  Top = 203
+  Left = 83
+  Top = 206
   BorderStyle = bsDialog
   Caption = 'gsDBSqueeze_MainForm'
   ClientHeight = 465
@@ -57,7 +57,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 272
     Height = 21
     TabOrder = 0
-    Text = 'C:\Users\mk\Desktop\BUSINESS_2.fdb'
+    Text = 'C:\_BP.fdb'
   end
   object edUserName: TEdit
     Left = 39
