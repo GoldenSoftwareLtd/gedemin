@@ -168,7 +168,7 @@ begin
             begin
               FStyle := sFolded;
               FReader.SkipUntilEOL;
-              FReader.InitialIndent := FReader.PositionInLine;
+              FReader.RememberIndent;
               FQuoting := qPlain;
               FScalar := '';
               FState := sScalar;
@@ -178,7 +178,7 @@ begin
             begin
               FStyle := sLiteral;
               FReader.SkipUntilEOL;
-              FReader.InitialIndent := FReader.PositionInLine;
+              FReader.RememberIndent;
               FQuoting := qPlain;
               FScalar := '';
               FState := sScalar;
@@ -276,7 +276,7 @@ begin
           else
             FReader.SkipSpacesUntilEOL;
         FScalar := TrimRight(FScalar);
-        FReader.InitialIndent := 0;
+        FReader.ResetIndent;
         FState := sDocument;
       end;
 

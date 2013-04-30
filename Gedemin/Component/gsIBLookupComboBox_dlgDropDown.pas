@@ -24,7 +24,7 @@ type
     actEdit: TAction;
     actDelete: TAction;
     actMerge: TAction;
-    SpeedButton5: TSpeedButton;
+    sbShrink: TSpeedButton;
     sbGrow: TSpeedButton;
     actShrink: TAction;
     actGrow: TAction;                           
@@ -152,14 +152,13 @@ end;
 
 function TdlgDropDown.GetDropDownDialogMinWidth: Integer;
 begin
-  Result := 32;
+  Result := sbShrink.Width + sbGrow.Width;
   if Assigned(FIBLookup) then
   begin
     if FIsDocument then
-      Result := Result + sbAcctAccCard.Left + sbAcctAccCard.Width
-    else
-      if FIBLookup.gdClassName > '' then
-        Result := Result + sbSelectObj.Left + sbSelectObj.Width;     
+      Inc(Result, sbAcctAccCard.Left + sbAcctAccCard.Width)
+    else if FIBLookup.gdClassName > '' then
+      Inc(Result, sbSelectObj.Left + sbSelectObj.Width);
   end;
 end;
 

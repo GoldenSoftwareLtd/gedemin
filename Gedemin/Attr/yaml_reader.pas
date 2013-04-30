@@ -51,12 +51,13 @@ type
     procedure SkipSpacesUntilEOL;
     procedure Skip(N: Integer; const Spaces: Boolean = False);
     function GetString(N: Integer): AnsiString;
+    procedure RememberIndent;
+    procedure ResetIndent;
 
     property EOF: Boolean read FEOF;
     property Indent: Integer read FIndent;
     property Line: Integer read FLine;
     property PositionInLine: Integer read FPositionInLine;
-    property InitialIndent: Integer read FInitialIndent write FInitialIndent;   
   end;
 
 implementation
@@ -168,6 +169,16 @@ begin
     FBufferCount := FStream.Read(FBuffer^, FBufferSize);
     FEOF := FBufferCount = 0;
   end;
+end;
+
+procedure TyamlReader.RememberIndent;
+begin
+  FInitialIndent := FPositionInLine; 
+end;
+
+procedure TyamlReader.ResetIndent;
+begin
+  FInitialIndent := 0;
 end;
 
 procedure TyamlReader.ShiftBuffer(const Offset: Integer);
