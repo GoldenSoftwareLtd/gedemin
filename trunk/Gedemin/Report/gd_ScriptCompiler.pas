@@ -181,10 +181,12 @@ const
           prComment:
           begin
 //            CI := GetNewStrPos(Str, CI) - 1;
-            CI := GetNewStrPos(Str, CI);
-            Result := CutCommentAndStrConst(Str, CI, ResList);
-            Break;
-
+            if CI < CL then
+            begin
+              CI := GetNewStrPos(Str, CI);
+              Result := CutCommentAndStrConst(Str, CI, ResList);
+              Break;
+            end;
           end;
           prInNewStr:
           begin
