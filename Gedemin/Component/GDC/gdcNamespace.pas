@@ -1035,6 +1035,7 @@ var
   q: TIBSQL;
   CurrID: Integer;
   gdcFullClass: TgdcFullClass;
+  IsLoad: Boolean;
 begin
   Assert(atDatabase <> nil, 'Не загружена atDatabase');
 
@@ -1201,28 +1202,7 @@ begin
                     Obj.SubSet := 'ByID';
                   Obj.Open;
 
-                  if LoadObject(Obj, ObjMapping, UpdateList, Tr) then
-                  begin
-                    if Obj is TgdcRelationField then
-                    begin
-                      gdcFullClass := GetBaseClassForRelation(Obj.FieldByName('relationname').AsString);
-                      if gdcFullClass.gdClass <> nil then
-                      begin
-                        for K := ObjList.Count - 1 downto 0 do
-                        begin
-                          if ObjList.Objects[K].ClassType.InheritsFrom(gdcFullClass.gdClass)
-                            and ((ObjList.Objects[K] as TgdcBase).SubType = gdcFullClass.SubType)  then
-                          begin
-                            ObjList.Objects[K].Free;
-                            ObjList.Delete(K);
-                          end;
-                        end;
-                      end;
-                    end;
-
-                    LoadObjectsRUID.Add(RUIDToStr(Obj.GetRUID));
-                  end;                 
-
+                  IsLoad := LoadObject(Obj, ObjMapping, UpdateList, Tr);
 
                   if (Obj is TgdcRelationField) then
                     RelName := Obj.FieldByName('relationname').AsString
@@ -1282,6 +1262,29 @@ begin
                     end;
                     HeadObjectUpdate(UpdateHeadList, TempNamespaceID,
                       RUIDToStr(Obj.GetRUID), gdcNamespaceObj.ID);
+
+                    if IsLoad then
+                    begin
+                      LoadObjectsRUID.Add(RUIDToStr(Obj.GetRUID));
+                      if Obj is TgdcRelationField then
+                      begin
+                        gdcFullClass := GetBaseClassForRelation(Obj.FieldByName('relationname').AsString);
+                        if gdcFullClass.gdClass <> nil then
+                        begin
+                          for K := ObjList.Count - 1 downto 0 do
+                          begin
+                            if ObjList.Objects[K].ClassType.InheritsFrom(gdcFullClass.gdClass)
+                              and ((ObjList.Objects[K] as TgdcBase).SubType = gdcFullClass.SubType)  then
+                            begin
+                              if Obj = ObjList.Objects[K] then
+                                Obj := nil;
+                              ObjList.Objects[K].Free;
+                              ObjList.Delete(K);
+                            end;
+                          end;
+                        end;
+                      end;
+                    end;
                   finally
                     gdcNamespaceObj.Free;
                   end;
