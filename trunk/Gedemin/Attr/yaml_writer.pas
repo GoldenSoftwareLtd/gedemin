@@ -231,11 +231,12 @@ procedure TyamlWriter.WriteText(const AText: AnsiString; AQuoting: TyamlScalarQu
 
 var
   P: Integer;
+  Temps: AnsiString;
 begin
   if AStyle = sPlain then
     case AQuoting of
-      qDoubleQuoted:  WriteBuffer(QuoteString(AText, '"'));
-      qSingleQuoted:  WriteBuffer(QuoteString(AText, ''''));
+      qDoubleQuoted: WriteBuffer(QuoteString(AText, '"'));
+      qSingleQuoted: WriteBuffer(QuoteString(AText, ''''));
       qPlain: WriteBuffer(AText);
     end
   else begin
@@ -244,11 +245,16 @@ begin
     else
       WriteString('> ');
     IncIndent;
+
+    if (AText > '') and (AText[1] = ' ') then
+      Temps := InitSpace + AText
+    else
+      Temps := AText;
     P := 1;
-    while P <= Length(AText) do
+    while P <= Length(Temps) do
     begin
       StartNewLine;
-      WriteString(BreakLine(AText, P));
+      WriteString(BreakLine(Temps, P));
     end;
     DecIndent;
   end;

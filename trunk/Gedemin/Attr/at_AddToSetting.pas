@@ -27,7 +27,7 @@ begin
   Assert(gdcBaseManager <> nil);
   Assert(gdcBaseManager.Database <> nil);
   Assert(AgdcObject <> nil);
-  Assert(not AgdcObject.Eof);
+  Assert(AgdcObject.RecordCount > 0);
 
   if MessageBox(0,
     'Добавить в настройку? (Нет -- добавление в пространство имен)',

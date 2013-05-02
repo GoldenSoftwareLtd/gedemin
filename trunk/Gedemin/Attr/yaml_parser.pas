@@ -707,7 +707,10 @@ constructor TyamlString.CreateString(const AValue: AnsiString;
   const AQuoting: TyamlScalarQuoting; const AStyle: TyamlScalarStyle);
 begin
   inherited Create;
-  FValue := AValue;
+  if Pos(InitSpace, AValue) = 1 then
+    FValue := Copy(AValue, Length(InitSpace) + 1, MaxInt)
+  else
+    FValue := AValue; 
   FQuoting := AQuoting;
   FStyle := AStyle;
 end;
