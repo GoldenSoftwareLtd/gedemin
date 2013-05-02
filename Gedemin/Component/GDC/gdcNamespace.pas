@@ -1034,6 +1034,7 @@ var
   UpdateHeadList, SubTypes: TStringList;
   q: TIBSQL;
   CurrID: Integer;
+  gdcFullClass: TgdcFullClass;
 begin
   Assert(atDatabase <> nil, 'Не загружена atDatabase');
 
@@ -1204,12 +1205,17 @@ begin
                   begin
                     if Obj is TgdcRelationField then
                     begin
-                      for K := ObjList.Count - 1 downto 0  do
+                      gdcFullClass := GetBaseClassForRelation(Obj.FieldByName('relationname').AsString);
+                      if gdcFullClass.gdClass <> nil then
                       begin
-                        if UpperCase(Trim(Obj.FieldByName('relationname').AsString)) = UpperCase((ObjList.Objects[K] as TgdcBase).SubType) then
+                        for K := ObjList.Count - 1 downto 0 do
                         begin
-                          ObjList.Objects[K].Free;
-                          ObjList.Delete(K);
+                          if ObjList.Objects[K].ClassType.InheritsFrom(gdcFullClass.gdClass)
+                            and ((ObjList.Objects[K] as TgdcBase).SubType = gdcFullClass.SubType)  then
+                          begin
+                            ObjList.Objects[K].Free;
+                            ObjList.Delete(K);
+                          end;
                         end;
                       end;
                     end;
