@@ -316,6 +316,12 @@ begin
       Check(Scanner.Scalar = 'test'#13#10#13#10'  '#13#10'test');
       Check(Scanner.Quoting = qPlain);
 
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 's');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = '#^   test');
+      Check(Scanner.Quoting = qPlain);
+
       Check(Scanner.GetNextToken = tDocumentStart);
 
       Check(Scanner.GetNextToken = tSequenceStart);
@@ -417,6 +423,7 @@ begin
     Check(M[0] is TyamlKeyValue);
     Check((M[0] as TyamlKeyValue).Value is TyamlScalar);
     Check(((M[0] as TyamlKeyValue).Value as TyamlScalar).AsString = '123 456   '#13#10' 111');
+    Check(((M[5] as TyamlKeyValue).Value as TyamlScalar).AsString = '   test');
   finally
     Parser.Free;
     FS.Free;

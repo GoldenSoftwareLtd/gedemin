@@ -23,6 +23,7 @@ type
 const
   EOL       = [#13, #10];
   DefIndent = 2;
+  InitSpace = '#^';
 
 implementation
 
