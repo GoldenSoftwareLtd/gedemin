@@ -1,3 +1,4 @@
+
 unit gdv_frAcctQuantity_unit;
 
 interface
@@ -11,12 +12,14 @@ type
   TfrAcctQuantity = class(TFrame)
     ppMain: TgdvParamPanel;
     procedure ppMainResize(Sender: TObject);
+
   private
     { Private declarations }
     FCheckBoxList: TObjectList;
     procedure SetSelected(const Value: string);
     function GetSelected: string;
     function GetValueCount: Integer;
+
   public
     { Public declarations }
     procedure SaveToStream(const Stream: TStream);
@@ -25,7 +28,7 @@ type
     destructor Destroy; override;
     procedure UpdateQuantityList(AIdList: TList);
 
-    function IDList: string;
+    function IDList: String;
     procedure ValueList(const ValueList: TStrings; const AccountList: TList; BeginDate,
       EndDate: TDateTime;
       const WithSubAccounts: Boolean = False);
@@ -36,7 +39,10 @@ type
   end;
 
 implementation
-uses Math;
+
+uses
+  Math;
+
 {$R *.DFM}
 
 { TfrAcctQuantity }
@@ -197,7 +203,7 @@ procedure TfrAcctQuantity.ValueList(const ValueList: TStrings;
     ibsql: TIBSQL;
     L: TList;
   begin
-    Result := '';
+    Result := '-1';
     if AccountList.Count > 0 then
     begin
       if WithSubAccounts then
@@ -226,6 +232,7 @@ procedure TfrAcctQuantity.ValueList(const ValueList: TStrings;
         Result := AcctUtils.IDList(AccountList);
     end;
   end;
+
 var
   SQL: TIBSQL;
 begin

@@ -271,11 +271,18 @@ begin
             FScalar := FScalar + FReader.GetChar;
         end;
         if FQuoting in [qSingleQuoted, qDoubleQuoted] then
+        begin
           if not QuoteMatched  then
             raise EyamlSyntaxError.Create('Syntax error')
           else
             FReader.SkipSpacesUntilEOL;
-        FScalar := TrimRight(FScalar);
+        end else
+        begin
+          if FStyle <> sLiteral then
+            FScalar := TrimRight(FScalar)
+          else if (FScalar > '') and (FScalar[1] = SpaceSubstitute) then
+            FScalar := Copy(FScalar, 2, MaxInt);  
+        end;
         FReader.ResetIndent;
         FState := sDocument;
       end;
