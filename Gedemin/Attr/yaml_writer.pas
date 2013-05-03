@@ -231,7 +231,7 @@ procedure TyamlWriter.WriteText(const AText: AnsiString; AQuoting: TyamlScalarQu
 
 var
   P: Integer;
-  Temps: AnsiString;
+  TempS: AnsiString;
 begin
   if AStyle = sPlain then
     case AQuoting of
@@ -241,20 +241,25 @@ begin
     end
   else begin
     if AStyle = sLiteral then
-      WriteString('| ')
-    else
+    begin
+      WriteString('| ');
+      if (AText > '') and ((AText[1] = ' ') or (AText[1] = SpaceSubstitute)) then
+        TempS := SpaceSubstitute + AText
+      else
+        TempS := AText;
+    end else
+    begin
       WriteString('> ');
+      TempS := AText;
+    end;
+
     IncIndent;
 
-    if (AText > '') and (AText[1] = ' ') then
-      Temps := InitSpace + AText
-    else
-      Temps := AText;
     P := 1;
-    while P <= Length(Temps) do
+    while P <= Length(TempS) do
     begin
       StartNewLine;
-      WriteString(BreakLine(Temps, P));
+      WriteString(BreakLine(TempS, P));
     end;
     DecIndent;
   end;

@@ -21,9 +21,9 @@ type
   EyamlSyntaxError = class(EyamlException);
 
 const
-  EOL       = [#13, #10];
-  DefIndent = 2;
-  InitSpace = '#^';
+  EOL             = [#13, #10];
+  DefIndent       = 2;
+  SpaceSubstitute = '@';
 
 implementation
 

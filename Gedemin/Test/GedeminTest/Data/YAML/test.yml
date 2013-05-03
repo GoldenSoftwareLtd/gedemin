@@ -79,7 +79,7 @@ c: !!seq
     test
     #.##.#
   n: '#.##.#'
-  m: test	
+  m: test
 ---
   r: |
     123 456   
@@ -95,14 +95,15 @@ c: !!seq
   o: |
     h
       
-    h	  
+    h 
   h: |
     test
     
       
     test
+    
   s: |
-    #^   test  
+    @   test  
 ---
 -
 -

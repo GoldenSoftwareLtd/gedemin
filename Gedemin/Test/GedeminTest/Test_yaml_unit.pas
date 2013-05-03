@@ -307,19 +307,19 @@ begin
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'o');
       Check(Scanner.GetNextToken = tScalar);
-      Check(Scanner.Scalar = 'h'#13#10'  '#13#10'h');
+      Check(Scanner.Scalar = 'h'#13#10'  '#13#10'h ');
       Check(Scanner.Quoting = qPlain);
 
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 'h');
       Check(Scanner.GetNextToken = tScalar);
-      Check(Scanner.Scalar = 'test'#13#10#13#10'  '#13#10'test');
+      Check(Scanner.Scalar = 'test'#13#10#13#10'  '#13#10'test'#13#10);
       Check(Scanner.Quoting = qPlain);
 
       Check(Scanner.GetNextToken = tKey);
       Check(Scanner.Key = 's');
       Check(Scanner.GetNextToken = tScalar);
-      Check(Scanner.Scalar = '#^   test');
+      Check(Scanner.Scalar = '   test  ');
       Check(Scanner.Quoting = qPlain);
 
       Check(Scanner.GetNextToken = tDocumentStart);
@@ -387,16 +387,24 @@ end;
 procedure TyamlTest.TestWriter;
 var
   FS: TFileStream;
-  S1, S2: TStringStream;
+  S1, S2: TMemoryStream;
 begin
   FS := TFileStream.Create(TestDataPath + '\yaml\test.yml', fmOpenRead);
-  S1 := TStringStream.Create('');
-  S2 := TStringStream.Create('');
+  S1 := TMemoryStream.Create;
+  S2 := TMemoryStream.Create;
   try
     TransformationStream(FS, S1);
     S1.Position := 0;
     TransformationStream(S1, S2);
-    Check(S1.DataString = S2.DataString);
+
+    if (S1.Size <> S2.Size) or (not CompareMem(S1.Memory, S2.Memory, S1.Size)) then
+    begin
+      S1.SaveToFile('c:\temp\s1.yml');
+      S2.SaveToFile('c:\temp\s2.yml');
+    end;
+
+    Check(S1.Size = S2.Size);
+    Check(CompareMem(S1.Memory, S2.Memory, S1.Size));
   finally
     FS.Free;
     S1.Free;
@@ -423,7 +431,7 @@ begin
     Check(M[0] is TyamlKeyValue);
     Check((M[0] as TyamlKeyValue).Value is TyamlScalar);
     Check(((M[0] as TyamlKeyValue).Value as TyamlScalar).AsString = '123 456   '#13#10' 111');
-    Check(((M[5] as TyamlKeyValue).Value as TyamlScalar).AsString = '   test');
+    Check(((M[5] as TyamlKeyValue).Value as TyamlScalar).AsString = '   test  ');
   finally
     Parser.Free;
     FS.Free;
