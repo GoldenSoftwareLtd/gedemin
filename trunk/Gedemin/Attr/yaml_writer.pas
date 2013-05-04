@@ -243,7 +243,7 @@ begin
     if AStyle = sLiteral then
     begin
       WriteString('| ');
-      if (AText > '') and ((AText[1] = ' ') or (AText[1] = SpaceSubstitute)) then
+      if (AText > '') and (AText[1] in [' ', SpaceSubstitute]) then
         TempS := SpaceSubstitute + AText
       else
         TempS := AText;
