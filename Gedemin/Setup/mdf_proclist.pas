@@ -39,16 +39,19 @@ uses
   mdf_ModifyBlockTriggers2, mdf_ModifyRecordTriggers, mdf_CirculationList3,
   mdf_DropLBRBUniqueIndices, msf_CorrectBadInvCard, mdf_AddGoodKeyIntoMovement_unit,
   mdf_SuperNewGeneralLedger, mdf_SQLMonitor, mdf_AddBranchToBankAndIndex,
-  mdf_AddEmployeeCmd, mdf_AddDTBlock, mdf_RemakeAcEntry, mdf_CorrectInvTrigger, mdf_AddInvMakeRest,
-  mdf_ModifyBlockTriggers3, mdf_ModifyBlockTriggers4, mdf_wageUpdateFields, mdf_AddGenerators,
-  mdf_AddCheckConstraints, mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
-  mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables, mdf_ConvertStorage,
-  mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean, mdf_ConvertBNStatementCommentToBlob, mdf_AddFieldReportlistModalPreview,
-  mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument, mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
+  mdf_AddEmployeeCmd, mdf_AddDTBlock, mdf_RemakeAcEntry, mdf_CorrectInvTrigger,
+  mdf_AddInvMakeRest, mdf_ModifyBlockTriggers3, mdf_ModifyBlockTriggers4,
+  mdf_wageUpdateFields, mdf_AddGenerators, mdf_AddCheckConstraints,
+  mdf_AddUseCompanyKey_Balance, mdf_AddRPLTables, mdf_AddAcEntryBalanceAndAT_P_SYNC,
+  mdf_AddOKULPCodeToCompanyCode, mdf_AddIsInternalField, mdf_AddSQLHistTables,
+  mdf_ConvertStorage, mdf_AddFKManagerMetadata, mdf_RegenerateLBRBTree, mdf_AddDefaultToBoolean,
+  mdf_ConvertBNStatementCommentToBlob, mdf_AddFieldReportlistModalPreview,
+  mdf_ChangeUSRCOEF, mdf_ChangeDuplicateAccount, mdf_MovementDocument,
+  mdf_Delete_BITrigger_AtSettingPos, mdf_ReportCommand, mdf_DeleteInvCardParams,
   mdf_DeletecbAnalyticFromScript;
 
 const
-  cProcCount = 179;
+  cProcCount = 180;
 
 type
   TModifyProc = record
@@ -335,7 +338,8 @@ const
     (ModifyProc: DeleteCardParamsItem; ModifyVersion: '0000.0001.0000.0189'; NeedDBShutdown: True),
     (ModifyProc: Correct_inv_bu_movement_triggers; ModifyVersion: '0000.0001.0000.0190'; NeedDBShutdown: True),
     (ModifyProc: ChangeDuplicateAccount2; ModifyVersion: '0000.0001.0000.0191'; NeedDBShutdown: True),
-    (ModifyProc: DeletecbAnalyticFromScript; ModifyVersion: '0000.0001.0000.0192'; NeedDBShutdown: True)
+    (ModifyProc: DeletecbAnalyticFromScript; ModifyVersion: '0000.0001.0000.0192'; NeedDBShutdown: True),
+    (ModifyProc: AddNSMetadata; ModifyVersion: '0000.0001.0000.0193'; NeedDBShutdown: True)
   );
 
 implementation
