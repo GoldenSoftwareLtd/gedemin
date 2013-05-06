@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Script
 
@@ -294,6 +294,22 @@ AS
 BEGIN
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
+END
+^
+
+CREATE EXCEPTION gd_e_good 'Error'
+^
+
+CREATE OR ALTER TRIGGER gd_aiu_good FOR gd_good
+  AFTER INSERT OR UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (INSERTING OR (UPDATING AND NEW.groupkey <> OLD.groupkey)) THEN
+  BEGIN
+    IF (EXISTS(SELECT * FROM gd_goodgroup WHERE id = NEW.groupkey AND COALESCE(disabled, 0) <> 0)) THEN
+      EXCEPTION gd_e_good 'Нельзя добавлять/изменять товар в отключенной группе.';
+  END
 END
 ^
 

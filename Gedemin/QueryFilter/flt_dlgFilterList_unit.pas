@@ -5,24 +5,26 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ActnList, StdCtrls, ComCtrls, gd_security, Db, IBCustomDataSet, IBQuery,
-  flt_dlgShowFilter_unit, IBSQL, Menus;
+  flt_dlgShowFilter_unit, IBSQL, Menus, ExtCtrls;
 
 type
   TdlgFilterList = class(TForm)
-    lvFilter: TListView;
-    btnClose: TButton;
-    btnEdit: TButton;
-    btnDelete: TButton;
     alFilter: TActionList;
     acDelete: TAction;
     acEdit: TAction;
-    btnSelect: TButton;
     actSelect: TAction;
     ibsqlFilter: TIBSQL;
-    PopupMenu1: TPopupMenu;
+    pm: TPopupMenu;
     N1: TMenuItem;
     N2: TMenuItem;
     N3: TMenuItem;
+    Panel1: TPanel;
+    lvFilter: TListView;
+    pnlRightButtons: TPanel;
+    btnEdit: TButton;
+    btnDelete: TButton;
+    btnSelect: TButton;
+    btnClose: TButton;
     procedure acEditExecute(Sender: TObject);
     procedure acDeleteExecute(Sender: TObject);
     procedure actSelectExecute(Sender: TObject);

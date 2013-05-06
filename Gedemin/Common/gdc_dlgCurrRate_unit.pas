@@ -1,6 +1,7 @@
+
 {++
-   Project GDReference
-   Copyright © 2000- by Golden Software
+
+   Copyright © 2000-2013 by Golden Software
 
    Модуль
 
@@ -18,6 +19,7 @@
    История
 
      ver    date         who    what
+
      1.00 - 27.08.2000 - SAI - Первая версия
      2.00 - 18.06.2002 - Julie - Modification
 
@@ -39,17 +41,17 @@ type
     Label1: TLabel;
     xdbForDate: TxDateDBEdit;
     Label3: TLabel;
-    Label4: TLabel;
-    Label5: TLabel;
     dbeCoeff: TxDBCalculatorEdit;
     dblcbFromCurr: TgsIBLookupComboBox;
     dblcbToCurr: TgsIBLookupComboBox;
+    Label2: TLabel;
   end;
 
 var
   gdc_dlgCurrRate: Tgdc_dlgCurrRate;
 
 implementation
+
 uses
   gd_ClassList;
 
@@ -60,5 +62,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_dlgCurrRate);
-
 end.
