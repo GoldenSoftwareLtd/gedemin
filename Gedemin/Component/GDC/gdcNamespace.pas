@@ -2461,13 +2461,15 @@ var
   I: Integer;
   CurrDir: String;
   NSList: TgsNSList;
-  NSNode: TgsNSNode;
+  NSNode, N: TgsNSNode;
+  NL: TStringList;
 begin
   Assert(ADataSet <> nil);
   //Assert(Messages <> nil);
 
   NSList := TgsNSList.Create;
-  try 
+  NL := TStringList.Create;
+  try
     NSList.Sorted := False;
     NSList.Log := Log;
     NSList.GetFilesForPath(APath);
@@ -2475,7 +2477,7 @@ begin
 
     CurrDir := '';
 
-    for I := 0 to NSList.Count - 1 do
+    for I := NSList.Count - 1 downto 0 do
     begin
       NSNode := NSList.Objects[I] as TgsNSNode;
 
@@ -2488,37 +2490,61 @@ begin
       end;
 
       ADataSet.Append;
-      ADataSet.FieldByName('filename').AsString := NSNode.FileName;
-      ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name;
-      ADataSet.FieldByName('fileversion').AsString := NSNode.Version;
-      if NSNode.FileTimestamp <> 0 then
-        ADataSet.FieldByName('filetimestamp').AsDateTime := NSNode.FileTimestamp;
-      ADataSet.FieldByName('filesize').AsInteger := NSNode.Filesize;
+      if (NSNode.FileName <> '') or (NL.IndexOf(IntToStr(NSNode.Namespacekey)) = -1) then
+      begin
+        ADataSet.FieldByName('filename').AsString := NSNode.FileName;
+        ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name;
+        ADataSet.FieldByName('fileversion').AsString := NSNode.Version;
+        if NSNode.FileTimestamp <> 0 then
+          ADataSet.FieldByName('filetimestamp').AsDateTime := NSNode.FileTimestamp;
+        ADataSet.FieldByName('filesize').AsInteger := NSNode.Filesize;
 
-      ADataSet.FieldByName('namespacekey').AsInteger := NSNode.Namespacekey;
-      ADataSet.FieldByName('namespacename').AsString := NSNode.NamespaceName;
-      ADataSet.FieldByName('namespaceversion').AsString := NSNode.VersionInDB;
-      if  NSNode.NamespaceTimestamp <> 0 then
-        ADataSet.FieldByName('namespacetimestamp').AsDateTime := NSNode.NamespaceTimestamp;
-      case NSNode.GetNSState of
-        nsUndefined:
+
+        if NSNode.NamespaceName = '' then
         begin
-          if NSNode.VersionInDB > '' then
-            ADataSet.FieldByName('operation').AsString := '>>'
-          else
-            ADataSet.FieldByName('operation').AsString := '';
-        end;
+          N := NSList.GetNSInDBByName(NSNode.Name);
+          if N <> nil then
+          begin
+            if Assigned(Log) then
+              Log('Пространство имен ' + NSNode.Name + ' найдено по имени!');
+            NSNode.Namespacekey := N.Namespacekey;
+            NSNode.NamespaceName := N.NamespaceName;
+            NSNode.VersionInDB := N.VersionInDB;
+            NSNode.NamespaceTimestamp := N.NamespaceTimestamp;
+            NL.Add(IntToStr(N.Namespacekey));
+          end;
+        end else
+          if Assigned(Log)
+            and (UpperCase(NSNode.Name) <> UpperCase(NSNode.NamespaceName))
+          then
+            Log('Пространство имен ' + NSNode.Name + ' найдено по руиду!');
 
-        nsNotInstalled, nsNewer: ADataSet.FieldByName('operation').AsString := '<<';
-        nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
-        nsEqual: ADataSet.FieldByName('operation').AsString := '==';
-      end;
-      ADataSet.Post;
+        ADataSet.FieldByName('namespacekey').AsInteger := NSNode.Namespacekey;
+        ADataSet.FieldByName('namespacename').AsString := NSNode.NamespaceName;
+        ADataSet.FieldByName('namespaceversion').AsString := NSNode.VersionInDB;
+        if  NSNode.NamespaceTimestamp <> 0 then
+          ADataSet.FieldByName('namespacetimestamp').AsDateTime := NSNode.NamespaceTimestamp;
+        case NSNode.GetNSState of
+          nsUndefined:
+          begin
+            if NSNode.VersionInDB > '' then
+              ADataSet.FieldByName('operation').AsString := '>>'
+            else
+              ADataSet.FieldByName('operation').AsString := '';
+          end;
+
+          nsNotInstalled, nsNewer: ADataSet.FieldByName('operation').AsString := '<<';
+          nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
+          nsEqual: ADataSet.FieldByName('operation').AsString := '==';
+        end;
+        ADataSet.Post;
+      end
     end;
 
     ADataSet.First;
   finally
     NSList.Free;
+    NL.Free;
   end;  
 end;
 
