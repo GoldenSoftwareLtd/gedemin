@@ -714,14 +714,17 @@ begin
 
   //
   //  Проверка наличия префикса поля пользователя
-  if Trim(dbedRelationFieldName.Text) <> dbedRelationFieldName.Text then
-    dbedRelationFieldName.Text := Trim(dbedRelationFieldName.Text);
+  if gdcObject.State = dsInsert then
+  begin
+    if Trim(dbedRelationFieldName.Text) <> dbedRelationFieldName.Text then
+      dbedRelationFieldName.Text := Trim(dbedRelationFieldName.Text);
 
-  if StrIPos(UserPrefix, dbedRelationFieldName.Text) <> 1 then
-    dbedRelationFieldName.Text := UserPrefix + dbedRelationFieldName.Text;
+    if StrIPos(UserPrefix, dbedRelationFieldName.Text) <> 1 then
+      dbedRelationFieldName.Text := UserPrefix + dbedRelationFieldName.Text;
 
-  if Length(dbedRelationFieldName.Text) <= Length(UserPrefix) then
-    raise Egdc_dlgRelationField.Create('Укажите название поля на английском языке!');
+    if Length(dbedRelationFieldName.Text) <= Length(UserPrefix) then
+      raise Egdc_dlgRelationField.Create('Укажите название поля на английском языке!');
+  end;
 
   if comboBusinessClass.ItemIndex >= 0 then
   begin
