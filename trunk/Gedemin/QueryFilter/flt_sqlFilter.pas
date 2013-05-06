@@ -250,10 +250,6 @@ type
     procedure MakePopupMenu(AnPopupMenu: TMenu);
     procedure CreateActions;
 
-    // Получение ключа пользователя
-    //function GetUserKey: String;
-    function GetISUserKey: String;
-
     // Отображение предупреждения
     procedure ShowWarning;
 
@@ -1459,14 +1455,6 @@ begin
   end;
 end;
 
-function TgsQueryFilter.GetISUserKey: String;
-begin
-  if IBLogin <> nil then
-    Result := ' = ' + IntToStr(IBLogin.UserKey)
-  else
-    Result := ' = ' + IntToStr(ADMIN_KEY); // ' IS NULL '
-end;
-
 // Наименование приложения
 function TgsSQLFilter.GetApplicationName: String;
 {$IFDEF GEDEMIN}
@@ -1822,9 +1810,18 @@ begin
     end;
 
     // Вытягиваем список фильтров
-    ibsqlFilterList.SQL.Text := 'SELECT id, name FROM flt_savedfilter WHERE'
-     + ' componentkey = ' + IntToStr(FComponentKey) + ' AND (userkey '
-     + GetISUserKey + ' OR userkey IS NULL) ORDER BY readcount DESC';
+    ibsqlFilterList.SQL.Text :=
+      'SELECT id, name ' +
+      'FROM flt_savedfilter ' +
+      'WHERE ' +
+      ' componentkey = :CK ' +
+      ' AND (userkey = :UK OR userkey IS NULL) ' +
+      'ORDER BY name';
+    ibsqlFilterList.ParamByName('CK').AsInteger := FComponentKey;
+    if IBLogin <> nil then
+      ibsqlFilterList.ParamByName('UK').AsInteger := IBLogin.UserKey
+    else
+      ibsqlFilterList.ParamByName('UK').AsInteger := ADMIN_KEY;
     ibsqlFilterList.ExecQuery;
 
     TempPM := AnPopupMenu.Items;
@@ -2276,7 +2273,7 @@ begin
     F.ibsqlFilter.Database := Database;
     F.ibsqlFilter.Transaction := Transaction;
 
-    FillPopupMenu(F.PopupMenu1);
+    FillPopupMenu(F.PopupMenu);
 
     // Получаем ключ выбранного фильтра
     I := F.ViewFilterList(FComponentKey, Flag, FSelectText.Text + FFromText.Text +

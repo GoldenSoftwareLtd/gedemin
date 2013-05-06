@@ -1,71 +1,65 @@
 inherited gdc_dlgCurrRate: Tgdc_dlgCurrRate
-  Left = 364
-  Top = 315
+  Left = 637
+  Top = 471
   HelpContext = 49
   BorderIcons = [biSystemMenu]
   BorderWidth = 5
-  Caption = 'Курс валюты'
-  ClientHeight = 128
-  ClientWidth = 356
+  Caption = 'Курс обмена валюты'
+  ClientHeight = 106
+  ClientWidth = 471
+  Position = poDesktopCenter
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel [0]
-    Left = 0
-    Top = 30
-    Width = 93
+    Left = 2
+    Top = 53
+    Width = 44
     Height = 13
-    Caption = 'Из какой валюты:'
+    Caption = 'За один:'
   end
   object Label3: TLabel [1]
-    Left = 0
-    Top = 4
-    Width = 81
+    Left = 2
+    Top = 8
+    Width = 45
     Height = 13
-    Caption = 'На какую дату:'
+    Caption = 'На дату:'
   end
-  object Label4: TLabel [2]
-    Left = 0
-    Top = 55
-    Width = 88
+  object Label2: TLabel [2]
+    Left = 2
+    Top = 30
+    Width = 128
     Height = 13
-    Caption = 'В какую валюту:'
-  end
-  object Label5: TLabel [3]
-    Left = 0
-    Top = 79
-    Width = 74
-    Height = 13
-    Caption = 'Коэффициент:'
+    Caption = 'Курс обмена составляет:'
   end
   inherited btnAccess: TButton
     Left = 0
-    Top = 106
+    Top = 84
     TabOrder = 7
   end
   inherited btnNew: TButton
     Left = 71
-    Top = 106
+    Top = 84
     TabOrder = 6
-  end
-  inherited btnOK: TButton
-    Left = 216
-    Top = 106
-    TabOrder = 4
-  end
-  inherited btnCancel: TButton
-    Left = 288
-    Top = 106
-    TabOrder = 5
   end
   inherited btnHelp: TButton
     Left = 143
-    Top = 106
+    Top = 84
     TabOrder = 8
   end
-  object xdbForDate: TxDateDBEdit [9]
-    Left = 103
-    Top = 0
-    Width = 253
+  inherited btnOK: TButton
+    Left = 331
+    Top = 84
+    TabOrder = 4
+  end
+  inherited btnCancel: TButton
+    Left = 403
+    Top = 84
+    TabOrder = 5
+  end
+  object xdbForDate: TxDateDBEdit [8]
+    Left = 52
+    Top = 4
+    Width = 66
     Height = 21
     DataField = 'FORDATE'
     DataSource = dsgdcBase
@@ -74,19 +68,19 @@ inherited gdc_dlgCurrRate: Tgdc_dlgCurrRate
     MaxLength = 10
     TabOrder = 0
   end
-  object dbeCoeff: TxDBCalculatorEdit [10]
-    Left = 103
-    Top = 75
-    Width = 253
+  object dbeCoeff: TxDBCalculatorEdit [9]
+    Left = 225
+    Top = 49
+    Width = 74
     Height = 21
-    TabOrder = 3
+    TabOrder = 2
     DataField = 'COEFF'
     DataSource = dsgdcBase
   end
-  object dblcbFromCurr: TgsIBLookupComboBox [11]
-    Left = 103
-    Top = 25
-    Width = 253
+  object dblcbFromCurr: TgsIBLookupComboBox [10]
+    Left = 52
+    Top = 49
+    Width = 168
     Height = 21
     HelpContext = 1
     Database = dmDatabase.ibdbGAdmin
@@ -101,10 +95,10 @@ inherited gdc_dlgCurrRate: Tgdc_dlgCurrRate
     ShowHint = True
     TabOrder = 1
   end
-  object dblcbToCurr: TgsIBLookupComboBox [12]
-    Left = 103
-    Top = 50
-    Width = 253
+  object dblcbToCurr: TgsIBLookupComboBox [11]
+    Left = 304
+    Top = 49
+    Width = 168
     Height = 21
     HelpContext = 1
     Database = dmDatabase.ibdbGAdmin
@@ -117,18 +111,22 @@ inherited gdc_dlgCurrRate: Tgdc_dlgCurrRate
     ItemHeight = 13
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 2
+    TabOrder = 3
   end
   inherited alBase: TActionList
-    Left = 185
-    Top = 15
+    Left = 433
+    Top = 7
   end
   inherited dsgdcBase: TDataSource
-    Left = 155
-    Top = 15
+    Left = 339
+    Top = 7
   end
   inherited pm_dlgG: TPopupMenu
-    Left = 256
-    Top = 40
+    Left = 400
+    Top = 8
+  end
+  inherited ibtrCommon: TIBTransaction
+    Left = 368
+    Top = 8
   end
 end

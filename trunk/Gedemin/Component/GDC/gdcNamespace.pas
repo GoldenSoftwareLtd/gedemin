@@ -2506,7 +2506,7 @@ begin
           if N <> nil then
           begin
             if Assigned(Log) then
-              Log('Пространство имен ' + NSNode.Name + ' найдено по имени!');
+              Log('Пространство имен "' + NSNode.Name + '" найдено по имени.');
             NSNode.Namespacekey := N.Namespacekey;
             NSNode.NamespaceName := N.NamespaceName;
             NSNode.VersionInDB := N.VersionInDB;
@@ -2517,7 +2517,7 @@ begin
           if Assigned(Log)
             and (UpperCase(NSNode.Name) <> UpperCase(NSNode.NamespaceName))
           then
-            Log('Пространство имен ' + NSNode.Name + ' найдено по руиду!');
+            Log('Пространство имен "' + NSNode.Name + '" найдено по РУИДу.');
 
         ADataSet.FieldByName('namespacekey').AsInteger := NSNode.Namespacekey;
         ADataSet.FieldByName('namespacename').AsString := NSNode.NamespaceName;

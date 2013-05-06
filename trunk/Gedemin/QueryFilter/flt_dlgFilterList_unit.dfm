@@ -1,89 +1,110 @@
 object dlgFilterList: TdlgFilterList
-  Left = 787
-  Top = 438
+  Left = 538
+  Top = 297
   HelpContext = 8
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Список фильтров'
-  ClientHeight = 236
-  ClientWidth = 320
+  ClientHeight = 396
+  ClientWidth = 598
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
-  Position = poScreenCenter
+  Position = poDesktopCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
-  object lvFilter: TListView
-    Left = 4
-    Top = 2
-    Width = 312
-    Height = 199
-    Color = clWhite
-    Columns = <
-      item
-        AutoSize = True
-        Caption = 'Наименование'
-      end
-      item
-        Caption = 'Время выполнения'
-        Width = 79
-      end
-      item
-        Caption = 'Кол-во обращений'
-        Width = 79
-      end>
-    HideSelection = False
-    ReadOnly = True
-    RowSelect = True
-    PopupMenu = PopupMenu1
-    SortType = stText
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 598
+    Height = 396
+    Align = alClient
+    BevelOuter = bvNone
+    BorderWidth = 4
     TabOrder = 0
-    ViewStyle = vsReport
-    OnDblClick = lvFilterDblClick
-  end
-  object btnClose: TButton
-    Left = 163
-    Top = 209
-    Width = 75
-    Height = 23
-    Cancel = True
-    Caption = 'Закрыть'
-    ModalResult = 2
-    TabOrder = 1
-  end
-  object btnEdit: TButton
-    Left = 3
-    Top = 209
-    Width = 75
-    Height = 23
-    Action = acEdit
-    Cancel = True
-    TabOrder = 2
-  end
-  object btnDelete: TButton
-    Left = 83
-    Top = 209
-    Width = 75
-    Height = 23
-    Action = acDelete
-    Cancel = True
-    TabOrder = 3
-  end
-  object btnSelect: TButton
-    Left = 243
-    Top = 209
-    Width = 75
-    Height = 23
-    Action = actSelect
-    Cancel = True
-    ModalResult = 1
-    TabOrder = 4
+    object lvFilter: TListView
+      Left = 4
+      Top = 4
+      Width = 508
+      Height = 388
+      Align = alClient
+      BorderStyle = bsNone
+      Color = clWhite
+      Columns = <
+        item
+          AutoSize = True
+          Caption = 'Наименование'
+        end
+        item
+          Caption = 'Время вып.'
+          Width = 79
+        end
+        item
+          Caption = 'Кол-во обр.'
+          Width = 89
+        end>
+      HideSelection = False
+      ReadOnly = True
+      RowSelect = True
+      PopupMenu = pm
+      TabOrder = 0
+      ViewStyle = vsReport
+      OnDblClick = lvFilterDblClick
+    end
+    object pnlRightButtons: TPanel
+      Left = 512
+      Top = 4
+      Width = 82
+      Height = 388
+      Align = alRight
+      BevelOuter = bvNone
+      TabOrder = 1
+      object btnEdit: TButton
+        Left = 6
+        Top = 18
+        Width = 75
+        Height = 23
+        Action = acEdit
+        Cancel = True
+        TabOrder = 0
+      end
+      object btnDelete: TButton
+        Left = 6
+        Top = 46
+        Width = 75
+        Height = 23
+        Action = acDelete
+        Cancel = True
+        TabOrder = 1
+      end
+      object btnSelect: TButton
+        Left = 6
+        Top = 74
+        Width = 75
+        Height = 23
+        Action = actSelect
+        Cancel = True
+        ModalResult = 1
+        TabOrder = 2
+      end
+      object btnClose: TButton
+        Left = 6
+        Top = 362
+        Width = 75
+        Height = 23
+        Cancel = True
+        Caption = 'Закрыть'
+        Default = True
+        ModalResult = 2
+        TabOrder = 3
+      end
+    end
   end
   object alFilter: TActionList
     Left = 150
@@ -109,19 +130,20 @@ object dlgFilterList: TdlgFilterList
   object ibsqlFilter: TIBSQL
     SQL.Strings = (
       'SELECT '
-      '  *'
+      '  f.*'
       'FROM'
-      '  flt_savedfilter'
+      '  flt_savedfilter f'
       'WHERE'
-      '  componentkey = :componentkey'
-      '  AND (userkey = :userkey'
-      '           OR userkey IS NULL)'
-      'ORDER BY readcount DESC'
+      '  f.componentkey = :componentkey'
+      '  AND (f.userkey = :userkey'
+      '           OR f.userkey IS NULL)'
+      'ORDER BY '
+      '  f.name'
       '   ')
     Left = 184
     Top = 56
   end
-  object PopupMenu1: TPopupMenu
+  object pm: TPopupMenu
     Left = 216
     Top = 56
     object N1: TMenuItem

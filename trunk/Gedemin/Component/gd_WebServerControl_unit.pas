@@ -90,7 +90,8 @@ uses
   SysUtils, Forms, Windows, IBSQL, IBDatabase, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit, gdcBaseInterface,
   prp_methods, Gedemin_TLB, Storages, WinSock, ComObj, JclSimpleXML, jclSysInfo,
-  gd_directories_const, ActiveX, FileCtrl, gd_GlobalParams_unit, gdcJournal;
+  gd_directories_const, ActiveX, FileCtrl, gd_GlobalParams_unit, gdcJournal,
+  gdNotifierThread_unit;
 
 type
   TgdHttpHandler = class(TObject)
@@ -631,6 +632,11 @@ begin
       end;
 
       q.ExecQuery;
+
+      if (AnOp = 'QERY') and (Names[I] = 'c_name') then
+        gdNotifierThread.Add('Подключение ' + Values[I] + '...', 0, 4000)
+      else if (AnOp = 'RQFL') and (Names[I] = 'file_name') then
+        gdNotifierThread.Add('Передача файла ' + Values[I] + '...', 0, 2000);
     end;
 
     Tr.Commit;

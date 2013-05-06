@@ -7,8 +7,12 @@ uses
 
 procedure DeleteCardParamsItem(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddNSMetadata(IBDB: TIBDatabase; Log: TModifyLog);
+procedure Issue2846(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
+
+uses
+  mdf_metadata_unit;
 
 procedure DeleteCardParamsItem(IBDB: TIBDatabase; Log: TModifyLog);
 var
@@ -67,26 +71,31 @@ begin
     Tr.StartTransaction;
 
     try
+      DropIndex2('gd_x_user_ibname', Tr);
+
       q.ParamCheck := False;
       q.Transaction := Tr;
 
-      q.SQL.Text :=
-        'CREATE TABLE at_namespace ('#13#10 +
-        '  id            dintkey,'#13#10 +
-        '  name          dtext255 NOT NULL UNIQUE,'#13#10 +
-        '  caption       dtext255,'#13#10 +
-        '  filename      dtext255,'#13#10 +
-        '  filetimestamp TIMESTAMP,'#13#10 +
-        '  version       dtext20 DEFAULT ''1.0.0.0'' NOT NULL,'#13#10 +
-        '  dbversion     dtext20,'#13#10 +
-        '  optional      dboolean_notnull DEFAULT 0,'#13#10 +
-        '  internal      dboolean_notnull DEFAULT 1,'#13#10 +
-        '  comment       dblobtext80_1251,'#13#10 +
-        '  settingruid   VARCHAR(21),'#13#10 +
-        ''#13#10 +
-        '  CONSTRAINT at_pk_namespace PRIMARY KEY (id)'#13#10 +
-        ')';
-      q.ExecQuery;
+      if not RelationExist2('at_namespace', Tr) then
+      begin
+        q.SQL.Text :=
+          'CREATE TABLE at_namespace ('#13#10 +
+          '  id            dintkey,'#13#10 +
+          '  name          dtext255 NOT NULL UNIQUE,'#13#10 +
+          '  caption       dtext255,'#13#10 +
+          '  filename      dtext255,'#13#10 +
+          '  filetimestamp TIMESTAMP,'#13#10 +
+          '  version       dtext20 DEFAULT ''1.0.0.0'' NOT NULL,'#13#10 +
+          '  dbversion     dtext20,'#13#10 +
+          '  optional      dboolean_notnull DEFAULT 0,'#13#10 +
+          '  internal      dboolean_notnull DEFAULT 1,'#13#10 +
+          '  comment       dblobtext80_1251,'#13#10 +
+          '  settingruid   VARCHAR(21),'#13#10 +
+          ''#13#10 +
+          '  CONSTRAINT at_pk_namespace PRIMARY KEY (id)'#13#10 +
+          ')';
+        q.ExecQuery;
+      end;
 
       q.SQL.Text :=
         'CREATE OR ALTER TRIGGER at_biu_namespace FOR at_namespace'#13#10 +
@@ -103,33 +112,36 @@ begin
         'END';
       q.ExecQuery;
 
-      q.SQL.Text :=
-        'CREATE TABLE at_object ('#13#10 +
-        '  id              dintkey,'#13#10 +
-        '  namespacekey    dintkey,'#13#10 +
-        '  objectname      dname,'#13#10 +
-        '  objectclass     dclassname NOT NULL,'#13#10 +
-        '  subtype         dtext60,'#13#10 +
-        '  xid             dinteger_notnull,'#13#10 +
-        '  dbid            dinteger_notnull,'#13#10 +
-        '  objectpos       dinteger,'#13#10 +
-        '  alwaysoverwrite dboolean_notnull DEFAULT 1,'#13#10 +
-        '  dontremove      dboolean_notnull DEFAULT 0,'#13#10 +
-        '  includesiblings dboolean_notnull DEFAULT 0,'#13#10 +
-        '  headobjectkey   dforeignkey,'#13#10 +
-        ''#13#10 +
-        '  CONSTRAINT at_pk_object PRIMARY KEY (id),'#13#10 +
-        '  CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),'#13#10 +
-        '  CONSTRAINT at_fk_object_namespacekey FOREIGN KEY (namespacekey)'#13#10 +
-        '    REFERENCES at_namespace (id)'#13#10 +
-        '    ON DELETE CASCADE'#13#10 +
-        '    ON UPDATE CASCADE,'#13#10 +
-        '  CONSTRAINT at_fk_object_headobjectkey FOREIGN KEY (headobjectkey)'#13#10 +
-        '    REFERENCES at_object (id)'#13#10 +
-        '    ON DELETE CASCADE'#13#10 +
-        '    ON UPDATE CASCADE'#13#10 +
-        ')';
-      q.ExecQuery;
+      if not RelationExist2('at_object', Tr) then
+      begin
+        q.SQL.Text :=
+          'CREATE TABLE at_object ('#13#10 +
+          '  id              dintkey,'#13#10 +
+          '  namespacekey    dintkey,'#13#10 +
+          '  objectname      dname,'#13#10 +
+          '  objectclass     dclassname NOT NULL,'#13#10 +
+          '  subtype         dtext60,'#13#10 +
+          '  xid             dinteger_notnull,'#13#10 +
+          '  dbid            dinteger_notnull,'#13#10 +
+          '  objectpos       dinteger,'#13#10 +
+          '  alwaysoverwrite dboolean_notnull DEFAULT 1,'#13#10 +
+          '  dontremove      dboolean_notnull DEFAULT 0,'#13#10 +
+          '  includesiblings dboolean_notnull DEFAULT 0,'#13#10 +
+          '  headobjectkey   dforeignkey,'#13#10 +
+          ''#13#10 +
+          '  CONSTRAINT at_pk_object PRIMARY KEY (id),'#13#10 +
+          '  CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),'#13#10 +
+          '  CONSTRAINT at_fk_object_namespacekey FOREIGN KEY (namespacekey)'#13#10 +
+          '    REFERENCES at_namespace (id)'#13#10 +
+          '    ON DELETE CASCADE'#13#10 +
+          '    ON UPDATE CASCADE,'#13#10 +
+          '  CONSTRAINT at_fk_object_headobjectkey FOREIGN KEY (headobjectkey)'#13#10 +
+          '    REFERENCES at_object (id)'#13#10 +
+          '    ON DELETE CASCADE'#13#10 +
+          '    ON UPDATE CASCADE'#13#10 +
+          ')';
+        q.ExecQuery;
+      end;
 
       q.SQL.Text :=
         'CREATE OR ALTER TRIGGER at_biu_object FOR at_object'#13#10 +
@@ -166,23 +178,26 @@ begin
         'END';
       q.ExecQuery;
 
-      q.SQL.Text :=
-        'CREATE TABLE at_namespace_link ('#13#10 +
-        '  namespacekey   dintkey,'#13#10 +
-        '  useskey        dintkey,'#13#10 +
-        ''#13#10 +
-        '  CONSTRAINT at_pk_namespace_link PRIMARY KEY (namespacekey, useskey),'#13#10 +
-        '  CONSTRAINT at_fk_namespace_link_nsk FOREIGN KEY (namespacekey)'#13#10 +
-        '    REFERENCES at_namespace (id)'#13#10 +
-        '    ON UPDATE CASCADE'#13#10 +
-        '    ON DELETE CASCADE,'#13#10 +
-        '  CONSTRAINT at_fk_namespace_link_usk FOREIGN KEY (useskey)'#13#10 +
-        '    REFERENCES at_namespace (id)'#13#10 +
-        '    ON UPDATE CASCADE'#13#10 +
-        '    ON DELETE NO ACTION,'#13#10 +
-        '  CONSTRAINT at_chk_namespace_link CHECK (namespacekey <> useskey)'#13#10 +
-        ')';
-      q.ExecQuery;
+      if not RelationExist2('at_namespace_link', Tr) then
+      begin
+        q.SQL.Text :=
+          'CREATE TABLE at_namespace_link ('#13#10 +
+          '  namespacekey   dintkey,'#13#10 +
+          '  useskey        dintkey,'#13#10 +
+          ''#13#10 +
+          '  CONSTRAINT at_pk_namespace_link PRIMARY KEY (namespacekey, useskey),'#13#10 +
+          '  CONSTRAINT at_fk_namespace_link_nsk FOREIGN KEY (namespacekey)'#13#10 +
+          '    REFERENCES at_namespace (id)'#13#10 +
+          '    ON UPDATE CASCADE'#13#10 +
+          '    ON DELETE CASCADE,'#13#10 +
+          '  CONSTRAINT at_fk_namespace_link_usk FOREIGN KEY (useskey)'#13#10 +
+          '    REFERENCES at_namespace (id)'#13#10 +
+          '    ON UPDATE CASCADE'#13#10 +
+          '    ON DELETE NO ACTION,'#13#10 +
+          '  CONSTRAINT at_chk_namespace_link CHECK (namespacekey <> useskey)'#13#10 +
+          ')';
+        q.ExecQuery;
+      end;
 
       q.SQL.Text :=
         'CREATE OR ALTER PROCEDURE at_p_findnsrec (InPath VARCHAR(32000),'#13#10 +
@@ -307,6 +322,60 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (163, ''0000.0001.0000.0194'', ''11.04.2013'', ''Namespace tables added.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure Issue2846(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      CreateException2('gd_e_good', 'Error', Tr);
+
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER gd_aiu_good FOR gd_good'#13#10 +
+        '  AFTER INSERT OR UPDATE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF (INSERTING OR (UPDATING AND NEW.groupkey <> OLD.groupkey)) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    IF (EXISTS(SELECT * FROM gd_goodgroup WHERE id = NEW.groupkey AND COALESCE(disabled, 0) <> 0)) THEN'#13#10 +
+        '      EXCEPTION gd_e_good ''Нельзя добавлять/изменять товар в отключенной группе.'';'#13#10 +
+        '  END'#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (164, ''0000.0001.0000.0195'', ''06.05.2013'', ''Issue 2846.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
