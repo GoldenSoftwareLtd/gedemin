@@ -28,7 +28,6 @@ type
     Namespacekey: Integer;
     NamespaceName: String;
     NamespaceTimestamp: TDateTime;
-    OnlyInDB: Boolean;
     UsesList: TStringList;
 
     constructor Create(const ARUID: String);
@@ -36,6 +35,7 @@ type
 
     function GetNSState: TgsNSState;
     function CheckDBVersion: Boolean;
+    function CheckOnlyInDB: Boolean;
     procedure FillInfo(S: TStrings);
     function Valid: Boolean;
   end;
@@ -48,6 +48,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    function GetNSInDBByName(const AName: String): TgsNSNode;
     procedure GetFilesForPath(const Path: String);
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
@@ -67,8 +68,7 @@ begin
   RUID := ARUID;
   UsesList := TStringList.Create;
   UsesList.Sorted := True;
-  UsesList.Duplicates := dupError;
-  OnlyInDB := False;
+  UsesList.Duplicates := dupError;    
 end;
 
 destructor TgsNSNode.Destroy;
@@ -114,6 +114,11 @@ end;
 function TgsNSNode.Valid: Boolean;
 begin
   Result := FileExists(FileName);
+end;
+
+function TgsNSNode.CheckOnlyInDB: Boolean;
+begin
+  Result := FileName = ''; 
 end;
 
 constructor TgsNSList.Create;
@@ -201,8 +206,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
           Obj := Self.Objects[Ind] as TgsNSNode;
         end else
         begin
-          Obj := TgsNSNode.Create(q.Fields[4].AsString);
-          Obj.OnlyInDB := True;
+          Obj := TgsNSNode.Create(q.Fields[4].AsString); 
           AddObject(q.Fields[4].AsString, Obj);
         end;
         Obj.VersionInDB := q.Fields[2].AsString;
@@ -212,7 +216,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
         q.Next;
       end;
     finally
-      q.Free;
+      q.Free;  
     end;
   end;
 
@@ -346,6 +350,23 @@ begin
   end;
 end;
 
+function TgsNSList.GetNSInDBByName(const AName: String): TgsNSNode;
+var
+  I: Integer; 
+begin
+  Result := nil;
+
+  for I := 0 to Count - 1 do
+  begin
+    if (Objects[I] as TgsNSNode).CheckOnlyInDB
+      and (UpperCase((Objects[I] as TgsNSNode).NamespaceName) = UpperCase(AName)) then
+    begin
+      Result := Objects[I] as TgsNSNode;
+      break;
+    end;
+  end;
+end; 
+
 procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
 
   procedure AddNode(Node: TTreeNode; yamlNode: TgsNSNode);
@@ -389,7 +410,7 @@ begin
   begin
     for I := 0 to Count - 1 do
     begin
-      if not (Objects[I] as TgsNSNode).OnlyInDB
+      if not (Objects[I] as TgsNSNode).CheckOnlyInDB
         and (Objects[I] as TgsNSNode).Valid
         and (not (Objects[I] as TgsNSNode).Internal) then
       begin
@@ -403,7 +424,7 @@ begin
     try
       for I := 0 to Count - 1 do
       begin
-        if (Objects[I] as TgsNSNode).OnlyInDB then
+        if (Objects[I] as TgsNSNode).CheckOnlyInDB then
           continue;
         Link := False;
         for K := 0 to Count - 1 do
