@@ -892,6 +892,7 @@ var
               end;
             end;
             q.Close;
+
             q.ParamByName('nk').AsInteger := Namespacekey;
             q.ParamByName('uk').AsInteger := gdcNamespace.ID;
             q.ExecQuery;
@@ -912,9 +913,11 @@ var
     gdcNamespaceObj: TgdcNamespaceObject;
     Dest: TgdcNamespace;
     DestObj: TgdcNamespaceObject;
+    CurrName: String;
   begin
     Dest := TgdcNamespace.Create(nil);
     try
+      CurrName := System.Copy(Source.FieldByName('name').AsString, 6, MaxInt);
       Dest.Transaction := Tr;
       Dest.ReadTransaction := Tr;
       Dest.SubSet := 'ByID';
@@ -924,18 +927,17 @@ var
 
       if Dest.Eof then
       begin
+        gdcBaseManager.DeleteRUIDbyXID(
+          StrToRUID(Source.FieldByName('settingruid').AsString).XID,
+          StrToRUID(Source.FieldByName('settingruid').AsString).DBID, Tr);
         Dest.Close;
         Dest.RemoveSubSet('ByID');
         Dest.AddSubSet('ByName');
-        Dest.ParamByName(Dest.GetListField(Dest.SubType)).AsString := Source.FieldByName('name').AsString;
+        Dest.ParamByName(Dest.GetListField(Dest.SubType)).AsString := CurrName;
         Dest.Open;
         if Dest.Eof then
-        begin
-          gdcBaseManager.DeleteRUIDbyXID(
-            StrToRUID(Source.FieldByName('settingruid').AsString).XID,
-            StrToRUID(Source.FieldByName('settingruid').AsString).DBID, Tr);
-          Dest.Insert;
-        end else
+          Dest.Insert
+        else
           Dest.Edit;
       end else
         Dest.Edit;
@@ -946,9 +948,7 @@ var
           Dest.Fields[I].Value := Source.FieldByName(Dest.Fields[I].FieldName).Value;
       end;
 
-      Dest.FieldByName('name').AsString := System.Copy(
-        Source.FieldByName('name').AsString, 6,
-        Length(Source.FieldByName('name').AsString));
+      Dest.FieldByName('name').AsString := CurrName;
       Dest.Post;
 
       if gdcBaseManager.GetRUIDRecByID(Dest.ID, Tr).XID = -1 then
