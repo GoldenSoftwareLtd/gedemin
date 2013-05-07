@@ -106,23 +106,35 @@ CREATE OR ALTER TRIGGER AC_AIU_ACCOUNT_CHECKALIAS FOR AC_ACCOUNT
   POSITION 32000
 AS
   DECLARE VARIABLE P VARCHAR(1) = NULL;
+  DECLARE VARIABLE A daccountalias;
 BEGIN
   IF (INSERTING OR (NEW.alias <> OLD.alias)) THEN
   BEGIN
     IF (EXISTS
-      (SELECT
-         root.id, UPPER(TRIM(allacc.alias)), COUNT(*)
-       FROM ac_account root
-         JOIN ac_account allacc ON allacc.lb > root.lb AND allacc.rb <= root.rb
-       WHERE
-         root.parent IS NULL
-       GROUP BY
-         1, 2
-       HAVING
-         COUNT(*) > 1)
-      )
-     THEN
-       EXCEPTION ac_e_duplicateaccount 'Account ' || NEW.alias || ' already exists.';
+        (SELECT
+           root.id, UPPER(TRIM(allacc.alias)), COUNT(*)
+         FROM ac_account root
+           JOIN ac_account allacc ON allacc.lb > root.lb AND allacc.rb <= root.rb
+         WHERE
+           root.parent IS NULL
+         GROUP BY
+           1, 2
+         HAVING
+           COUNT(*) > 1)
+        )
+      THEN
+        EXCEPTION ac_e_duplicateaccount 'Дублируется наименование ' || NEW.alias;
+
+    IF (NEW.accounttype = 'A' AND (POSITION('.' IN NEW.alias) <> 0)) THEN
+      EXCEPTION ac_e_invalidaccount 'Номер счета не может содержать точку. Счет: ' || NEW.alias;
+
+    IF (NEW.accounttype = 'S') THEN
+    BEGIN
+      SELECT alias FROM ac_account WHERE id = NEW.parent INTO :A;
+
+      IF (POSITION(:A IN NEW.alias) <> 1) THEN
+        EXCEPTION ac_e_invalidaccount 'Номер субсчета должен начинаться с номера вышележащего счета/субсчета. Субсчет: ' || NEW.alias;
+    END
   END
 
   IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)
@@ -131,17 +143,17 @@ BEGIN
     SELECT accounttype FROM ac_account WHERE id = NEW.parent INTO :P;
     P = COALESCE(:P, 'Z');
 
-    IF (NOT (
-        (NEW.accounttype = 'C' AND NEW.parent IS NULL)
-        OR
-        (NEW.accounttype = 'F' AND :P IN ('C', 'F'))
-        OR
-        (NEW.accounttype = 'A' AND :P IN ('C', 'F'))
-        OR
-        (NEW.accounttype = 'S' AND :P IN ('A', 'S')) )) THEN
-    BEGIN
-      EXCEPTION ac_e_invalidaccount 'Invalid account ' || NEW.alias;
-    END
+    IF (NEW.accounttype = 'C' AND NOT (NEW.parent IS NULL)) THEN
+      EXCEPTION ac_e_invalidaccount 'План счетов не может входить в другой план счетов или раздел.';
+
+    IF (NEW.accounttype = 'F' AND NOT (:P IN ('C', 'F'))) THEN
+      EXCEPTION ac_e_invalidaccount 'Раздел должен входить в план счетов или другой раздел.';
+
+    IF (NEW.accounttype = 'A' AND NOT (:P IN ('C', 'F'))) THEN
+      EXCEPTION ac_e_invalidaccount 'Счет должен входить в план счетов или раздел.';
+
+    IF (NEW.accounttype = 'S' AND NOT (:P IN ('A', 'S'))) THEN
+      EXCEPTION ac_e_invalidaccount 'Субсчет должен входить в счет или субсчет.';
   END
 END
 ^

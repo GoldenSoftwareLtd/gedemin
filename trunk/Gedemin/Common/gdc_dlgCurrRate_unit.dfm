@@ -7,7 +7,7 @@ inherited gdc_dlgCurrRate: Tgdc_dlgCurrRate
   Caption = 'Курс обмена валюты'
   ClientHeight = 106
   ClientWidth = 471
-  Position = poDesktopCenter
+  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel [0]

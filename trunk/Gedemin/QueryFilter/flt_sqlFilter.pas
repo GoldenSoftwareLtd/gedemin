@@ -2324,7 +2324,7 @@ end;
 
 procedure TgsQueryFilter.FillPopupMenu(AnSender: TObject);
 begin
-//
+  Assert(Assigned(AnSender));
 end;
 
 procedure TgsQueryFilter.DoOnUpdate(Sender: TObject);

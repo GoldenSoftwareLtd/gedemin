@@ -1326,6 +1326,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (163, '0000.0001.0000.0194', '11.04.2013', 'Namespace tables added.');
 
+INSERT INTO fin_versioninfo
+  VALUES (164, '0000.0001.0000.0195', '06.05.2013', 'Issue 2846.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

@@ -2709,16 +2709,16 @@ class procedure TgdcNamespace.SetObjectLink(AnObject: TgdcBase; ADataSet: TDataS
             else
               ADataSet.FieldByName('displayname').AsString := Obj.ClassName;
             ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
-              ' "' + Obj.ObjectName + '"';
+              '/' + Obj.ObjectName;
             KSA := TgdKeyStringAssoc.Create;
-            try        
+            try
               SetNamespaceForObject(Obj, KSA, ATr);
               if KSA.Count > 0 then
               begin
                 ADataSet.FieldByName('namespacekey').AsInteger := KSA[0];
                 ADataSet.FieldByName('namespace').AsString := KSA.ValuesByIndex[0];
                 ADataSet.FieldByName('displayname').AsString := ADataSet.FieldByName('displayname').AsString +
-                  ' "' + KSA.ValuesByIndex[0] + '"';
+                  '/' + KSA.ValuesByIndex[0];
               end;
             finally
               KSA.Free;

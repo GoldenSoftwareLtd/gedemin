@@ -191,7 +191,7 @@ type
 
     procedure OnFakeLoad(Sender: TgdcBase; CDS: TDataSet);
 
-    procedure SaveObjectToNS;
+    function SaveObjectToNS: Integer;
 
   protected
     procedure RemoveSubSetList(S: TStrings); override;
@@ -1457,8 +1457,62 @@ begin
 end;
 
 procedure Tgdc_frmSetting.actSet2NSExecute(Sender: TObject);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+  NSID: Integer;
 begin
-  SaveObjectToNS;
+  NSID := SaveObjectToNS;
+
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := gdcBaseManager.Database;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+    q.SQL.Text :=
+      'UPDATE at_object o '#13#10 +
+      'SET o.alwaysoverwrite = 0 '#13#10 +
+      'WHERE '#13#10 +
+      'EXISTS (SELECT p.* FROM at_settingpos p WHERE p.xid = o.xid AND p.dbid = o.dbid AND p.needmodify = 0) '#13#10 +
+      'AND o.alwaysoverwrite <> 0 '#13#10 +
+      'AND o.namespacekey = ' + IntToStr(NSID);
+    q.ExecQuery;
+
+    q.SQL.Text :=
+      'EXECUTE BLOCK '#13#10 +
+      'AS '#13#10 +
+      '  DECLARE VARIABLE id INTEGER; '#13#10 +
+      '  DECLARE VARIABLE id2 INTEGER; '#13#10 +
+      '  DECLARE VARIABLE sr VARCHAR(1024); '#13#10 +
+      'BEGIN '#13#10 +
+      '  FOR '#13#10 +
+      '    SELECT n.id, s.settingsruid '#13#10 +
+      '    FROM at_setting s '#13#10 +
+      '      JOIN gd_ruid r ON r.id = s.id '#13#10 +
+      '      JOIN at_namespace n ON n.settingruid = r.xid || ''_'' || r.dbid '#13#10 +
+      '    WHERE n.id = ' + IntToStr(NSID) + #13#10 +
+      '    INTO :id, :sr '#13#10 +
+      '  DO BEGIN '#13#10 +
+      '    FOR '#13#10 +
+      '      SELECT n2.id '#13#10 +
+      '      FROM at_namespace n2 '#13#10 +
+      '      WHERE POSITION(n2.settingruid IN :sr) <> 0 '#13#10 +
+      '      INTO :id2 '#13#10 +
+      '    DO BEGIN '#13#10 +
+      '      INSERT INTO at_namespace_link (namespacekey, useskey) '#13#10 +
+      '      VALUES (:id, :id2); '#13#10 +
+      '    END '#13#10 +
+      '  END '#13#10 +
+      'END ';
+    q.ExecQuery;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
 end;
 
 procedure Tgdc_frmSetting.OnObjectLoad2_NS(Sender: TatSettingWalker;
@@ -1548,7 +1602,7 @@ begin
   //
 end;
 
-procedure Tgdc_frmSetting.SaveObjectToNS;
+function Tgdc_frmSetting.SaveObjectToNS: Integer;
 
   procedure ParseSetting(const AnID: Integer;
     const AFileName: String = '');
@@ -1638,6 +1692,8 @@ begin
       gdcNamespace.FieldByName('internal').AsInteger := 0;
     gdcNamespace.FieldByName('settingruid').AsString := RUIDToStr(gdcObject.GetRUID);
     gdcNamespace.Post;
+
+    Result := gdcNamespace.ID;
 
     gdcNamespaceObject.Open;
 
