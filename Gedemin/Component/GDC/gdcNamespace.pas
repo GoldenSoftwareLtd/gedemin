@@ -2124,43 +2124,52 @@ var
   FN: String;
   FS: TFileStream;
   SS1251, SSUTF8: TStringStream;
+  DidActivate: Boolean;
 begin
-  if AFileName > '' then
-  begin
-    if DirectoryExists(AFileName) then
-      FN := IncludeTrailingBackSlash(AFileName) + ObjectName + '.yml'
-    else
-      FN := AFileName;
-  end else
-  begin
-    FN := QuerySaveFileName('', 'yml', 'װאיכû YML|*.yml');
-    if FN = '' then
-      exit;
-  end;
-
-  FS := TFileStream.Create(FN, fmCreate);
+  DidActivate := not Transaction.InTransaction;
+  if DidActivate then
+    Transaction.StartTransaction;
   try
-    SS1251 := TStringStream.Create('');
+    if AFileName > '' then
+    begin
+      if DirectoryExists(AFileName) then
+        FN := IncludeTrailingBackSlash(AFileName) + ObjectName + '.yml'
+      else
+        FN := AFileName;
+    end else
+    begin
+      FN := QuerySaveFileName('', 'yml', 'װאיכû YML|*.yml');
+      if FN = '' then
+        exit;
+    end;
+
+    FS := TFileStream.Create(FN, fmCreate);
     try
-      SaveNamespaceToStream(SS1251);
-      SSUTF8 := TStringStream.Create(WideStringToUTF8(StringToWideStringEx(
-        SS1251.DataString, WIN1251_CODEPAGE)));
+      SS1251 := TStringStream.Create('');
       try
-        FS.CopyFrom(SSUTF8, 0)
+        SaveNamespaceToStream(SS1251);
+        SSUTF8 := TStringStream.Create(WideStringToUTF8(StringToWideStringEx(
+          SS1251.DataString, WIN1251_CODEPAGE)));
+        try
+          FS.CopyFrom(SSUTF8, 0)
+        finally
+          SSUTF8.Free;
+        end;
       finally
-        SSUTF8.Free;
+        SS1251.Free;
       end;
     finally
-      SS1251.Free;
+      FS.Free;
     end;
-  finally
-    FS.Free;
-  end;
 
-  Edit;
-  FieldByName('filename').AsString := FN;
-  FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(FN);
-  Post;
+    Edit;
+    FieldByName('filename').AsString := FN;
+    FieldByName('filetimestamp').AsDateTime := gd_common_functions.GetFileLastWrite(FN);
+    Post;
+  finally
+    if DidActivate and Transaction.InTransaction then
+      Transaction.Commit;
+  end;
 end;
 
 procedure TgdcNamespace._DoOnNewRecord;
