@@ -2039,8 +2039,8 @@ begin
 
   inherited;
 
-  if (FieldByName('nickname').AsString = '')
-    and (FieldByName('surname').AsString > '') then
+  if (FieldChanged('surname') or FieldChanged('firstname') or FieldChanged('middlename'))
+    and ((FieldByName('nickname').AsString = '') or (not FieldChanged('nickname'))) then
   begin
     Temps := AnsiUpperCase(System.Copy(FieldByName('surname').AsString, 1, 1))
       + System.Copy(FieldByName('surname').AsString, 2, 1024);

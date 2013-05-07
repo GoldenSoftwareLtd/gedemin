@@ -40,13 +40,13 @@ ImageBase=4194304
 ExeDescription=
 [Directories]
 OutputDir=
-UnitOutputDir=
-PackageDLLOutputDir=
-PackageDCPOutputDir=
-SearchPath=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows;D:\Golden\Gedemin\IBX;D:\Golden\Gedemin\Component;D:\Golden\Gedemin\ClassTree;D:\Golden\Gedemin\QueryFilter
+UnitOutputDir=..\..\dcu
+PackageDLLOutputDir=..\..\bpl
+PackageDCPOutputDir=..\..\bpl
+SearchPath=..\..\jcl\Source;..\..\jcl\Source\windows;..\..\jcl\Source\vcl;..\..\jcl\Source\common;..\..\jcl\packages;..\..\ibx;..\..\..\comp5\xstorm;..\..\..\comp5;..\..\FastReport 4\Source;..\..\FastReport 4\FastScript;..\..\FastReport 4\Source\ExportPack;..\..\FastReport 4\Source\ADO;..\..\FastReport 4\FastQB;..\..\FastReport 4\Source\IBX;..\..\setup;..\..\imports;..\..\component;..\..\component\diff;..\..\component\textdiff;..\..\component\gdc;..\..\component\repository;..\..\Component\tb2k\Source;..\..\Component\SynEdit\Source;..\..\common;$(DELPHI)\Source\Vcl;$(DELPHI)\Source\Toolsapi;$(DELPHI)\Ocx\Servers;$(DELPHI)\lib;..\..\designer;..\..\property;..\..\transaction;..\..\property\functionwizard;..\..\document;..\..\gdcFile;..\..\FastReport\source;..\..\report;..\..\zlib;..\..\..\comp5\async4\source;..\..\const;..\..\inventory;..\..\wage;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\attr;..\..\storage;..\..\bank;..\..\newtransaction;..\..\realization;..\..\gudf;..\..\protect;..\..\gedemin;..\..\images;..\..\tax;..\..\backup;$(DELPHI)\Imports;..\..\cattle;..\..\modem;..\..\planning;..\..\Department;..\..\component\repository\gd;..\..\1stclass\source;..\..\component\indy;..\..\test\dunit\src;..\..\test\GedeminTest;..\..\DCU;..\..\setup;..\..\designer
 Packages=Vcl50;Vclx50;VclSmp50;Vcldb50;vclado50;Vclbde50;vcldbx50;Qrpt50;TeeUI50;TeeDB50;Tee50;Dss50;TeeQR50;Vclmid50;vclie50;Inetdb50;Inet50;NMFast50;webmid50;dclocx50;dclaxserver50;SynEdit_D5;Fr5;fs5;fqb50;frx5;greference
 Conditionals=
-DebugSourceDirs=
+DebugSourceDirs=..\..\jcl\Source;..\..\jcl\Source\windows;..\..\jcl\Source\vcl;..\..\jcl\Source\common;..\..\jcl\packages;..\..\ibx;..\..\..\comp5\xstorm;..\..\..\comp5;..\..\FastReport 4\Source;..\..\FastReport 4\FastScript;..\..\FastReport 4\Source\ExportPack;..\..\FastReport 4\Source\ADO;..\..\FastReport 4\FastQB;..\..\FastReport 4\Source\IBX;..\..\setup;..\..\imports;..\..\component;..\..\component\diff;..\..\component\textdiff;..\..\component\gdc;..\..\component\repository;..\..\Component\tb2k\Source;..\..\Component\SynEdit\Source;..\..\common;$(DELPHI)\Source\Vcl;$(DELPHI)\Source\Toolsapi;$(DELPHI)\Ocx\Servers;$(DELPHI)\lib;..\..\designer;..\..\property;..\..\transaction;..\..\property\functionwizard;..\..\document;..\..\gdcFile;..\..\FastReport\source;..\..\report;..\..\zlib;..\..\..\comp5\async4\source;..\..\const;..\..\inventory;..\..\wage;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\attr;..\..\storage;..\..\bank;..\..\newtransaction;..\..\realization;..\..\gudf;..\..\protect;..\..\gedemin;..\..\images;..\..\tax;..\..\backup;$(DELPHI)\Imports;..\..\cattle;..\..\modem;..\..\planning;..\..\Department;..\..\component\repository\gd;..\..\1stclass\source;..\..\component\indy;..\..\test\dunit\src;..\..\test\GedeminTest;..\..\DCU;..\..\setup;..\..\designer
 UsePackages=0
 [Parameters]
 RunParams=
@@ -78,14 +78,28 @@ ProductVersion=1.0.0.0
 Comments=
 [Excluded Packages]
 $(DELPHI)\Bin\dclite50.bpl=Borland Integrated Translation Environment
+[HistoryLists\hlDebugSourcePath]
+Count=1
+Item0=..\..\jcl\Source;..\..\jcl\Source\windows;..\..\jcl\Source\vcl;..\..\jcl\Source\common;..\..\jcl\packages;..\..\ibx;..\..\..\comp5\xstorm;..\..\..\comp5;..\..\FastReport 4\Source;..\..\FastReport 4\FastScript;..\..\FastReport 4\Source\ExportPack;..\..\FastReport 4\Source\ADO;..\..\FastReport 4\FastQB;..\..\FastReport 4\Source\IBX;..\..\setup;..\..\imports;..\..\component;..\..\component\diff;..\..\component\textdiff;..\..\component\gdc;..\..\component\repository;..\..\Component\tb2k\Source;..\..\Component\SynEdit\Source;..\..\common;$(DELPHI)\Source\Vcl;$(DELPHI)\Source\Toolsapi;$(DELPHI)\Ocx\Servers;$(DELPHI)\lib;..\..\designer;..\..\property;..\..\transaction;..\..\property\functionwizard;..\..\document;..\..\gdcFile;..\..\FastReport\source;..\..\report;..\..\zlib;..\..\..\comp5\async4\source;..\..\const;..\..\inventory;..\..\wage;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\attr;..\..\storage;..\..\bank;..\..\newtransaction;..\..\realization;..\..\gudf;..\..\protect;..\..\gedemin;..\..\images;..\..\tax;..\..\backup;$(DELPHI)\Imports;..\..\cattle;..\..\modem;..\..\planning;..\..\Department;..\..\component\repository\gd;..\..\1stclass\source;..\..\component\indy;..\..\test\dunit\src;..\..\test\GedeminTest;..\..\DCU;..\..\setup;..\..\designer
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=6
-Item0=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows;D:\Golden\Gedemin\IBX;D:\Golden\Gedemin\Component;D:\Golden\Gedemin\ClassTree;D:\Golden\Gedemin\QueryFilter
-Item1=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows;D:\Golden\Gedemin\IBX;D:\Golden\Gedemin\Component;D:\Golden\Gedemin\ClassTree
-Item2=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows;D:\Golden\Gedemin\IBX;D:\Golden\Gedemin\Component
-Item3=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows;D:\Golden\Gedemin\IBX
-Item4=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows
-Item5=D:\Golden\Gedemin\jcl\source\common
+Count=8
+Item0=..\..\jcl\Source;..\..\jcl\Source\windows;..\..\jcl\Source\vcl;..\..\jcl\Source\common;..\..\jcl\packages;..\..\ibx;..\..\..\comp5\xstorm;..\..\..\comp5;..\..\FastReport 4\Source;..\..\FastReport 4\FastScript;..\..\FastReport 4\Source\ExportPack;..\..\FastReport 4\Source\ADO;..\..\FastReport 4\FastQB;..\..\FastReport 4\Source\IBX;..\..\setup;..\..\imports;..\..\component;..\..\component\diff;..\..\component\textdiff;..\..\component\gdc;..\..\component\repository;..\..\Component\tb2k\Source;..\..\Component\SynEdit\Source;..\..\common;$(DELPHI)\Source\Vcl;$(DELPHI)\Source\Toolsapi;$(DELPHI)\Ocx\Servers;$(DELPHI)\lib;..\..\designer;..\..\property;..\..\transaction;..\..\property\functionwizard;..\..\document;..\..\gdcFile;..\..\FastReport\source;..\..\report;..\..\zlib;..\..\..\comp5\async4\source;..\..\const;..\..\inventory;..\..\wage;..\..\gadmin;..\..\security;..\..\addressbook;..\..\bugbase;..\..\greference;..\..\log;..\..\directorygood;..\..\messaging;..\..\queryfilter;..\..\classtree;..\..\attr;..\..\storage;..\..\bank;..\..\newtransaction;..\..\realization;..\..\gudf;..\..\protect;..\..\gedemin;..\..\images;..\..\tax;..\..\backup;$(DELPHI)\Imports;..\..\cattle;..\..\modem;..\..\planning;..\..\Department;..\..\component\repository\gd;..\..\1stclass\source;..\..\component\indy;..\..\test\dunit\src;..\..\test\GedeminTest;..\..\DCU;..\..\setup;..\..\designer
+Item1=..\jcl\Source;..\jcl\Source\windows;..\jcl\Source\vcl;..\jcl\Source\common;..\jcl\packages;..\ibx;..\..\comp5\xstorm;..\..\comp5;..\FastReport 4\Source;..\FastReport 4\FastScript;..\FastReport 4\Source\ExportPack;..\FastReport 4\Source\ADO;..\FastReport 4\FastQB;..\FastReport 4\Source\IBX;..\setup;..\imports;..\component;..\component\diff;..\component\textdiff;..\component\gdc;..\component\repository;..\Component\tb2k\Source;..\Component\SynEdit\Source;..\common;$(DELPHI)\Source\Vcl;$(DELPHI)\Source\Toolsapi;$(DELPHI)\Ocx\Servers;$(DELPHI)\lib;..\designer;..\property;..\transaction;..\property\functionwizard;..\document;..\gdcFile;..\FastReport\source;..\report;..\zlib;..\..\comp5\async4\source;..\const;..\inventory;..\wage;..\gadmin;..\security;..\addressbook;..\bugbase;..\greference;..\log;..\directorygood;..\messaging;..\queryfilter;..\classtree;..\attr;..\storage;..\bank;..\newtransaction;..\realization;..\gudf;..\protect;..\gedemin;..\images;..\tax;..\backup;$(DELPHI)\Imports;..\cattle;..\modem;..\planning;..\Department;..\component\repository\gd;..\1stclass\source;..\component\indy;..\test\dunit\src;..\test\GedeminTest;..\DCU
+Item2=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows;D:\Golden\Gedemin\IBX;D:\Golden\Gedemin\Component;D:\Golden\Gedemin\ClassTree;D:\Golden\Gedemin\QueryFilter
+Item3=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows;D:\Golden\Gedemin\IBX;D:\Golden\Gedemin\Component;D:\Golden\Gedemin\ClassTree
+Item4=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows;D:\Golden\Gedemin\IBX;D:\Golden\Gedemin\Component
+Item5=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows;D:\Golden\Gedemin\IBX
+Item6=D:\Golden\Gedemin\jcl\source\common;D:\Golden\Gedemin\jcl\source;D:\Golden\Gedemin\jcl\source\windows
+Item7=D:\Golden\Gedemin\jcl\source\common
+[HistoryLists\hlUnitOutputDirectory]
+Count=1
+Item0=..\..\dcu
+[HistoryLists\hlBPLOutput]
+Count=1
+Item0=..\..\bpl
+[HistoryLists\hlDCPOutput]
+Count=1
+Item0=..\..\bpl

@@ -1,8 +1,8 @@
 object dlgToNamespace: TdlgToNamespace
-  Left = 603
-  Top = 153
-  Width = 577
-  Height = 443
+  Left = 442
+  Top = 165
+  Width = 697
+  Height = 542
   Caption = 'Добавление объекта в пространство имен'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,16 +18,16 @@ object dlgToNamespace: TdlgToNamespace
   object pnlGrid: TPanel
     Left = 0
     Top = 129
-    Width = 561
-    Height = 276
+    Width = 681
+    Height = 375
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object dbgrListLink: TgsDBGrid
       Left = 0
       Top = 0
-      Width = 561
-      Height = 245
+      Width = 681
+      Height = 344
       Align = alClient
       DataSource = dsMain
       Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -65,8 +65,8 @@ object dlgToNamespace: TdlgToNamespace
     end
     object pnlButtons: TPanel
       Left = 0
-      Top = 245
-      Width = 561
+      Top = 344
+      Width = 681
       Height = 31
       Align = alBottom
       BevelOuter = bvNone
@@ -87,7 +87,7 @@ object dlgToNamespace: TdlgToNamespace
         TabOrder = 1
       end
       object Panel1: TPanel
-        Left = 386
+        Left = 506
         Top = 0
         Width = 175
         Height = 31
@@ -131,7 +131,7 @@ object dlgToNamespace: TdlgToNamespace
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 561
+    Width = 681
     Height = 129
     Align = alTop
     BevelOuter = bvNone
@@ -160,9 +160,9 @@ object dlgToNamespace: TdlgToNamespace
     object cbIncludeSiblings: TCheckBox
       Left = 8
       Top = 84
-      Width = 265
+      Width = 337
       Height = 17
-      Caption = 'Включать вложенные объекты'
+      Caption = 'Для древовидных иерархий включать вложенные объекты'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -11

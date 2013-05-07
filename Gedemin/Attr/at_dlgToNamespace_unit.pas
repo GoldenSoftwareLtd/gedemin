@@ -80,6 +80,7 @@ begin
   cdsLink.FieldByName('namespacekey').Visible := False;
   cdsLink.FieldByName('namespace').Visible := False;
   cdsLink.FieldByName('headobject').Visible := False;
+  cdsLink.FieldByName('displayname').DisplayLabel := 'Класс/Имя объекта/Пространство имен';
   cdsLink.Open;
 
   cbAlwaysOverwrite.Checked := True;

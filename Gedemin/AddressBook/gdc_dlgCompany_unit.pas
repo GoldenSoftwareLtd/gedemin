@@ -33,7 +33,7 @@ uses
   IBCustomDataSet, gdcBase, ActnList, at_Container, ComCtrls, ToolWin,
   ExtCtrls, gsDBTreeView, gsIBLookupComboBox, Grids,
   DBGrids, gsDBGrid, gsIBGrid, Mask, IBDatabase, gdcTree, TB2Item, TB2Dock,
-  TB2Toolbar;
+  TB2Toolbar, JvDBImage;
 
 type
   Tgdc_dlgCompany = class(Tgdc_dlgCustomCompany)

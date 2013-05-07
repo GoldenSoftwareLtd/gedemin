@@ -14,7 +14,8 @@ object dlgFilterList: TdlgFilterList
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
-  Position = poDesktopCenter
+  PopupMenu = pm
+  Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
