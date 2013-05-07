@@ -44,11 +44,11 @@ type
   private
     FLog: TNSLog;
     function Valid(ANode: TgsNSNode): Boolean;
+    procedure CorrectFill;
   public
     constructor Create;
     destructor Destroy; override;
-
-    function GetNSInDBByName(const AName: String): TgsNSNode;
+    
     procedure GetFilesForPath(const Path: String);
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
@@ -118,7 +118,7 @@ end;
 
 function TgsNSNode.CheckOnlyInDB: Boolean;
 begin
-  Result := FileName = ''; 
+  Result := FileName = '';
 end;
 
 constructor TgsNSList.Create;
@@ -179,6 +179,60 @@ begin
     end;
   end;
 end;
+
+procedure TgsNSList.CorrectFill;
+var
+  q: TIBSQL;
+  I, Ind: Integer;
+  SL: TStringList;
+  N: TgsNSNode;
+begin
+  q := TIBSQL.Create(nil);
+  SL := TStringList.Create;
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text :=
+      'SELECT n.id, n.name, n.version, n.filetimestamp, r.xid || ''_'' || r.dbid as RUID ' +
+      'FROM at_namespace n JOIN gd_ruid r ' +
+      '  ON n.id = r.id ' +
+      'WHERE UPPER(n.name) = UPPER(:n)';
+
+    for I := 0 to Count - 1 do
+    begin
+      N := Objects[I] as TgsNSNode;
+      if N.NamespaceName = '' then
+      begin
+        q.Close;
+        q.ParamByName('n').AsString := N.Name;
+        q.ExecQuery;
+
+        if not q.Eof then
+        begin
+          N.VersionInDB := q.Fields[2].AsString;
+          N.Namespacekey := q.Fields[0].AsInteger;
+          N.NamespaceName := q.Fields[1].AsString;
+          N.NamespaceTimestamp := q.Fields[3].AsDateTime;
+          if Assigned(FLog) then
+            FLog('Пространство имен "' + N.Name + '" найдено по имени.');
+          Ind := IndexOf(q.Fields[4].AsString);
+          if (Ind > - 1) and (not (Objects[Ind] as TgsNSNode).Valid) then
+            SL.Add(q.Fields[4].AsString);
+        end;
+      end;
+    end;
+
+    for I := 0 to SL.Count - 1 do
+    begin
+      Ind := Indexof(SL[I]);
+      Objects[Ind].Free;
+      Delete(Ind);
+    end;
+  finally
+    q.Free;
+    SL.Free;
+  end;
+end;
+
 
 procedure TgsNSList.GetFilesForPath(const Path: String);
 
@@ -343,27 +397,11 @@ begin
         GetYAMLNode(SL[I], NSL);
 
       FillInNamespace;
+      CorrectFill;
     end;
   finally   
     SL.Free;
     NSL.Free;
-  end;
-end;
-
-function TgsNSList.GetNSInDBByName(const AName: String): TgsNSNode;
-var
-  I: Integer; 
-begin
-  Result := nil;
-
-  for I := 0 to Count - 1 do
-  begin
-    if (Objects[I] as TgsNSNode).CheckOnlyInDB
-      and (UpperCase((Objects[I] as TgsNSNode).NamespaceName) = UpperCase(AName)) then
-    begin
-      Result := Objects[I] as TgsNSNode;
-      break;
-    end;
   end;
 end; 
 

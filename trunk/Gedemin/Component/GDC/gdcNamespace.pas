@@ -924,10 +924,19 @@ var
 
       if Dest.Eof then
       begin
-        gdcBaseManager.DeleteRUIDbyXID(
-          StrToRUID(Source.FieldByName('settingruid').AsString).XID,
-          StrToRUID(Source.FieldByName('settingruid').AsString).DBID, Tr);
-        Dest.Insert;
+        Dest.Close;
+        Dest.RemoveSubSet('ByID');
+        Dest.AddSubSet('ByName');
+        Dest.ParamByName(Dest.GetListField(Dest.SubType)).AsString := Source.FieldByName('name').AsString;
+        Dest.Open;
+        if Dest.Eof then
+        begin
+          gdcBaseManager.DeleteRUIDbyXID(
+            StrToRUID(Source.FieldByName('settingruid').AsString).XID,
+            StrToRUID(Source.FieldByName('settingruid').AsString).DBID, Tr);
+          Dest.Insert;
+        end else
+          Dest.Edit;
       end else
         Dest.Edit;
 
@@ -2461,11 +2470,10 @@ var
   I: Integer;
   CurrDir: String;
   NSList: TgsNSList;
-  NSNode, N: TgsNSNode;
+  NSNode: TgsNSNode;
   NL: TStringList;
 begin
   Assert(ADataSet <> nil);
-  //Assert(Messages <> nil);
 
   NSList := TgsNSList.Create;
   NL := TStringList.Create;
@@ -2490,62 +2498,40 @@ begin
       end;
 
       ADataSet.Append;
-      if (NSNode.FileName <> '') or (NL.IndexOf(IntToStr(NSNode.Namespacekey)) = -1) then
-      begin
-        ADataSet.FieldByName('filename').AsString := NSNode.FileName;
-        ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name;
-        ADataSet.FieldByName('fileversion').AsString := NSNode.Version;
-        if NSNode.FileTimestamp <> 0 then
-          ADataSet.FieldByName('filetimestamp').AsDateTime := NSNode.FileTimestamp;
-        ADataSet.FieldByName('filesize').AsInteger := NSNode.Filesize;
 
+      ADataSet.FieldByName('filename').AsString := NSNode.FileName;
+      ADataSet.FieldByName('filenamespacename').AsString := NSNode.Name;
+      ADataSet.FieldByName('fileversion').AsString := NSNode.Version;
+      if NSNode.FileTimestamp <> 0 then
+        ADataSet.FieldByName('filetimestamp').AsDateTime := NSNode.FileTimestamp;
+      ADataSet.FieldByName('filesize').AsInteger := NSNode.Filesize; 
 
-        if NSNode.NamespaceName = '' then
+      ADataSet.FieldByName('namespacekey').AsInteger := NSNode.Namespacekey;
+      ADataSet.FieldByName('namespacename').AsString := NSNode.NamespaceName;
+      ADataSet.FieldByName('namespaceversion').AsString := NSNode.VersionInDB;
+      if  NSNode.NamespaceTimestamp <> 0 then
+        ADataSet.FieldByName('namespacetimestamp').AsDateTime := NSNode.NamespaceTimestamp;
+      case NSNode.GetNSState of
+        nsUndefined:
         begin
-          N := NSList.GetNSInDBByName(NSNode.Name);
-          if N <> nil then
-          begin
-            if Assigned(Log) then
-              Log('Пространство имен "' + NSNode.Name + '" найдено по имени.');
-            NSNode.Namespacekey := N.Namespacekey;
-            NSNode.NamespaceName := N.NamespaceName;
-            NSNode.VersionInDB := N.VersionInDB;
-            NSNode.NamespaceTimestamp := N.NamespaceTimestamp;
-            NL.Add(IntToStr(N.Namespacekey));
-          end;
-        end else
-          if Assigned(Log)
-            and (UpperCase(NSNode.Name) <> UpperCase(NSNode.NamespaceName))
-          then
-            Log('Пространство имен "' + NSNode.Name + '" найдено по РУИДу.');
-
-        ADataSet.FieldByName('namespacekey').AsInteger := NSNode.Namespacekey;
-        ADataSet.FieldByName('namespacename').AsString := NSNode.NamespaceName;
-        ADataSet.FieldByName('namespaceversion').AsString := NSNode.VersionInDB;
-        if  NSNode.NamespaceTimestamp <> 0 then
-          ADataSet.FieldByName('namespacetimestamp').AsDateTime := NSNode.NamespaceTimestamp;
-        case NSNode.GetNSState of
-          nsUndefined:
-          begin
-            if NSNode.VersionInDB > '' then
-              ADataSet.FieldByName('operation').AsString := '>>'
-            else
-              ADataSet.FieldByName('operation').AsString := '';
-          end;
-
-          nsNotInstalled, nsNewer: ADataSet.FieldByName('operation').AsString := '<<';
-          nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
-          nsEqual: ADataSet.FieldByName('operation').AsString := '==';
+          if NSNode.VersionInDB > '' then
+            ADataSet.FieldByName('operation').AsString := '>>'
+          else
+            ADataSet.FieldByName('operation').AsString := '';
         end;
-        ADataSet.Post;
-      end
+
+        nsNotInstalled, nsNewer: ADataSet.FieldByName('operation').AsString := '<<';
+        nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
+        nsEqual: ADataSet.FieldByName('operation').AsString := '==';
+      end;
+      ADataSet.Post;
     end;
 
     ADataSet.First;
   finally
     NSList.Free;
     NL.Free;
-  end;  
+  end;
 end;
 
 procedure TgdcNamespace.InstallPackages(ANSList: TStringList;
