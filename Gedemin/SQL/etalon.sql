@@ -1329,6 +1329,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (164, '0000.0001.0000.0195', '06.05.2013', 'Issue 2846.');
 
+INSERT INTO fin_versioninfo
+  VALUES (165, '0000.0001.0000.0196', '08.05.2013', 'Issue 2688.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -8855,23 +8858,38 @@ CREATE OR ALTER TRIGGER AC_AIU_ACCOUNT_CHECKALIAS FOR AC_ACCOUNT
   POSITION 32000
 AS
   DECLARE VARIABLE P VARCHAR(1) = NULL;
+  DECLARE VARIABLE A daccountalias;
 BEGIN
   IF (INSERTING OR (NEW.alias <> OLD.alias)) THEN
   BEGIN
     IF (EXISTS
-      (SELECT
-         root.id, UPPER(TRIM(allacc.alias)), COUNT(*)
-       FROM ac_account root
-         JOIN ac_account allacc ON allacc.lb > root.lb AND allacc.rb <= root.rb
-       WHERE
-         root.parent IS NULL
-       GROUP BY
-         1, 2
-       HAVING
-         COUNT(*) > 1)
-      )
-     THEN
-       EXCEPTION ac_e_duplicateaccount 'Account ' || NEW.alias || ' already exists.';
+        (SELECT
+           root.id, UPPER(TRIM(allacc.alias)), COUNT(*)
+         FROM ac_account root
+           JOIN ac_account allacc ON allacc.lb > root.lb AND allacc.rb <= root.rb
+         WHERE
+           root.parent IS NULL
+         GROUP BY
+           1, 2
+         HAVING
+           COUNT(*) > 1)
+        )
+      THEN
+        EXCEPTION ac_e_duplicateaccount 'Дублируется наименование ' || NEW.alias;
+
+    IF (NEW.accounttype = 'A' AND (POSITION('.' IN NEW.alias) <> 0)) THEN
+      EXCEPTION ac_e_invalidaccount 'Номер счета не может содержать точку. Счет: ' || NEW.alias;
+
+    IF (COALESCE(NEW.disabled, 0) = 0) THEN
+    BEGIN
+      IF (NEW.accounttype = 'S') THEN
+      BEGIN
+        SELECT alias FROM ac_account WHERE id = NEW.parent INTO :A;
+
+        IF (POSITION(:A IN NEW.alias) <> 1) THEN
+          EXCEPTION ac_e_invalidaccount 'Номер субсчета должен начинаться с номера вышележащего счета/субсчета. Субсчет: ' || NEW.alias;
+      END
+    END  
   END
 
   IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)
@@ -8880,17 +8898,17 @@ BEGIN
     SELECT accounttype FROM ac_account WHERE id = NEW.parent INTO :P;
     P = COALESCE(:P, 'Z');
 
-    IF (NOT (
-        (NEW.accounttype = 'C' AND NEW.parent IS NULL)
-        OR
-        (NEW.accounttype = 'F' AND :P IN ('C', 'F'))
-        OR
-        (NEW.accounttype = 'A' AND :P IN ('C', 'F'))
-        OR
-        (NEW.accounttype = 'S' AND :P IN ('A', 'S')) )) THEN
-    BEGIN
-      EXCEPTION ac_e_invalidaccount 'Invalid account ' || NEW.alias;
-    END
+    IF (NEW.accounttype = 'C' AND NOT (NEW.parent IS NULL)) THEN
+      EXCEPTION ac_e_invalidaccount 'План счетов не может входить в другой план счетов или раздел.';
+
+    IF (NEW.accounttype = 'F' AND NOT (:P IN ('C', 'F'))) THEN
+      EXCEPTION ac_e_invalidaccount 'Раздел должен входить в план счетов или другой раздел.';
+
+    IF (NEW.accounttype = 'A' AND NOT (:P IN ('C', 'F'))) THEN
+      EXCEPTION ac_e_invalidaccount 'Счет должен входить в план счетов или раздел.';
+
+    IF (NEW.accounttype = 'S' AND NOT (:P IN ('A', 'S'))) THEN
+      EXCEPTION ac_e_invalidaccount 'Субсчет должен входить в счет или субсчет.';
   END
 END
 ^
@@ -20093,9 +20111,9 @@ INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCUR
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (393006, 300002, 'Бланки строгой отчетности', '006', 'A', 'A', 0, 1, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367100, 360000, 'Расчеты с подотчетными лицами', '71', 'A', 'A', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367300, 360000, 'Расчеты с персоналом по прочим операциям', '73', 'A', 'A', 0, 0, -1, -1, -1);
-INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367301, 367000, 'Расчеты за товары, продан. в кредит', '73.01', 'A', 'S', 0, 0, -1, -1, -1);
-INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367302, 367000, 'Расчеты по предоставл. займам', '73.02', 'A', 'S', 0, 0, -1, -1, -1);
-INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367303, 367000, 'Расчеты по возмещ. мат. ущерба', '73.03', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367301, 367300, 'Расчеты за товары, продан. в кредит', '73.01', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367302, 367300, 'Расчеты по предоставл. займам', '73.02', 'A', 'S', 0, 0, -1, -1, -1);
+INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367303, 367300, 'Расчеты по возмещ. мат. ущерба', '73.03', 'A', 'S', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367500, 360000, 'Расчеты с учредителями', '75', 'A', 'A', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367501, 367500, 'Расчеты по вкладам в УФ', '75.01', 'A', 'S', 0, 0, -1, -1, -1);
 INSERT INTO AC_ACCOUNT (ID, PARENT, NAME, ALIAS, ACTIVITY, ACCOUNTTYPE, MULTYCURR, OFFBALANCE, AFULL, ACHAG, AVIEW) VALUES (367502, 367500, 'Расчеты по доходам', '75.02', 'A', 'S', 0, 0, -1, -1, -1);
