@@ -128,13 +128,16 @@ BEGIN
     IF (NEW.accounttype = 'A' AND (POSITION('.' IN NEW.alias) <> 0)) THEN
       EXCEPTION ac_e_invalidaccount 'Номер счета не может содержать точку. Счет: ' || NEW.alias;
 
-    IF (NEW.accounttype = 'S') THEN
+    IF (COALESCE(NEW.disabled, 0) = 0) THEN
     BEGIN
-      SELECT alias FROM ac_account WHERE id = NEW.parent INTO :A;
+      IF (NEW.accounttype = 'S') THEN
+      BEGIN
+        SELECT alias FROM ac_account WHERE id = NEW.parent INTO :A;
 
-      IF (POSITION(:A IN NEW.alias) <> 1) THEN
-        EXCEPTION ac_e_invalidaccount 'Номер субсчета должен начинаться с номера вышележащего счета/субсчета. Субсчет: ' || NEW.alias;
-    END
+        IF (POSITION(:A IN NEW.alias) <> 1) THEN
+          EXCEPTION ac_e_invalidaccount 'Номер субсчета должен начинаться с номера вышележащего счета/субсчета. Субсчет: ' || NEW.alias;
+      END
+    END  
   END
 
   IF (INSERTING OR (NEW.parent IS DISTINCT FROM OLD.parent)

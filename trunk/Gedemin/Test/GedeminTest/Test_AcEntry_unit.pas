@@ -38,6 +38,7 @@ type
   published
     procedure Test_AcEntry;
     procedure Test_gdcAcctEntryRegister;
+    procedure Test_AcAccount;
   end;
 
 implementation
@@ -150,6 +151,24 @@ begin
     'SELECT RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AC_RECORD_UNLOCK'') FROM rdb$database';
   q.ExecQuery;
   Check(q.Fields[0].IsNull);
+end;
+
+procedure Tgs_AcEntryTest.Test_AcAccount;
+begin
+  FQ.Close;
+  FQ.SQL.Text :=
+    'select '#13#10 +
+    '  s.id '#13#10 +
+    'from '#13#10 +
+    '  ac_account s left join '#13#10 +
+    '    ac_account a on s.parent = a.id and position(a.alias in s.alias) = 1 '#13#10 +
+    'where '#13#10 +
+    '  a.alias is null '#13#10 +
+    '  and '#13#10 +
+    '  s.accounttype=''S'' ';
+  FQ.ExecQuery;
+  Check(FQ.EOF, 'Ќомер субсчета должен начинатьс€ с номера счета.');
+  FQ.Close;  
 end;
 
 procedure Tgs_AcEntryTest.Test_AcEntry;
