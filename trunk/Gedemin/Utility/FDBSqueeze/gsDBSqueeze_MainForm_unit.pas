@@ -5,35 +5,43 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ActnList, StdCtrls, gsDBSqueezeThread_unit, gd_ProgressNotifier_unit,
-  ComCtrls;
+  ComCtrls, DBCtrls;
 
 type
   TgsDBSqueeze_MainForm = class(TForm, IgdProgressWatch)
-    edDatabaseName: TEdit;
-    edUserName: TEdit;
-    edPassword: TEdit;
-    btnConnect: TButton;
+
     ActionList: TActionList;
     actConnect: TAction;
     actDisconnect: TAction;
+    actSetCompanyName: TAction;
+    btnConnect: TButton;
     btnDisconnect: TButton;
+    btnGo: TButton;
+    cbbCompany: TComboBox;
+    dtpDocumentdateWhereClause: TDateTimePicker;
+    edDatabaseName: TEdit;
+    edUserName: TEdit;
+    edPassword: TEdit;
     lbl1: TLabel;
     lbl2: TLabel;
     lbl3: TLabel;
+    lbl6: TLabel;
+    lbl4: TLabel;
+    lbl5: TLabel;
     mLog: TMemo;
-    lblLog: TLabel;
-    Label1: TLabel;
-    dtp: TDateTimePicker;
 
     procedure actConnectExecute(Sender: TObject);
     procedure actConnectUpdate(Sender: TObject);
-    procedure actDisconnectUpdate(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
+    procedure actDisconnectUpdate(Sender: TObject);
+    procedure actSetCompanyNameExecute(Sender: TObject);
+    procedure actSetCompanyNameUpdate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 
   private
     FSThread: TgsDBSqueezeThread;
 
+    procedure SetItemsCbbEvent(const ACompanies: TStringList);
     procedure UpdateProgress(const AProgressInfo: TgdProgressInfo);
 
   public
@@ -48,24 +56,25 @@ implementation
 
 {$R *.DFM}
 
-procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
-begin
-  FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text,
-    edPassword.Text, FormatDateTime('dd.mm.yyyy', dtp.Date));
-  FSThread.Connect;
-end;
-
 constructor TgsDBSqueeze_MainForm.Create(AnOwner: TComponent);
 begin
   inherited;
   FSThread := TgsDBSqueezeThread.Create(False);
   FSThread.ProgressWatch := Self;
+  FSThread.OnSetItemsCbb := SetItemsCbbEvent;
 end;
 
 destructor TgsDBSqueeze_MainForm.Destroy;
 begin
   FSThread.Free;
   inherited;
+end;
+
+procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
+begin
+  FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text,
+    edPassword.Text, FormatDateTime('dd.mm.yyyy', dtpDocumentdateWhereClause.Date));
+  FSThread.Connect;
 end;
 
 procedure TgsDBSqueeze_MainForm.actConnectUpdate(Sender: TObject);
@@ -86,6 +95,16 @@ begin
   FSThread.Disconnect;
 end;
 
+procedure TgsDBSqueeze_MainForm.actSetCompanyNameExecute(Sender: TObject);
+begin
+  FSThread.SetCompanyName(cbbCompany.Text);
+end;
+
+procedure TgsDBSqueeze_MainForm.actSetCompanyNameUpdate(Sender: TObject);
+begin
+  actSetCompanyName.Enabled := FSThread.Connected;
+end;
+
 procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;
   var CanClose: Boolean);
 begin
@@ -93,6 +112,11 @@ begin
 
   if CanClose and FSThread.Connected then
     FSThread.Disconnect;
+end;
+
+procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
+begin
+  cbbCompany.Items.AddStrings(ACompanies);
 end;
 
 procedure TgsDBSqueeze_MainForm.UpdateProgress(
