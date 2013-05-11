@@ -1332,6 +1332,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (165, '0000.0001.0000.0196', '08.05.2013', 'Issue 2688.');
 
+INSERT INTO fin_versioninfo
+  VALUES (166, '0000.0001.0000.0197', '11.05.2013', 'Added unique constraint on xid, dbid fields to gd_ruid table.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -3437,7 +3440,13 @@ CREATE TABLE gd_ruid
 ALTER TABLE gd_ruid ADD CONSTRAINT gd_chk_ruid_etalon
   CHECK((xid >= 147000000) OR ((dbid = 17) AND (id = xid)));
 
+ALTER TABLE gd_ruid ADD CONSTRAINT gd_uniq_ruid
+  UNIQUE (xid, dbid);
+
+/*
 CREATE UNIQUE INDEX gd_x_ruid_xid ON gd_ruid(xid, dbid);
+*/
+
 COMMIT;
 
 SET TERM ^ ;
@@ -16296,6 +16305,10 @@ CREATE TABLE at_object (
     ON UPDATE CASCADE,
   CONSTRAINT at_fk_object_headobjectkey FOREIGN KEY (headobjectkey)
     REFERENCES at_object (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT at_fk_object_ruid FOREIGN KEY (xid, dbid)
+    REFERENCES gd_ruid (xid, dbid)
     ON DELETE CASCADE
     ON UPDATE CASCADE
 );

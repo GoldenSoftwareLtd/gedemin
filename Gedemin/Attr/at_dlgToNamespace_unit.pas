@@ -32,12 +32,16 @@ type
     btnOK: TBitBtn;
     btnCancel: TBitBtn;
     IBTransaction: TIBTransaction;
+    Label2: TLabel;
+    edObjectName: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure actShowLinkExecute(Sender: TObject);
     procedure actOKExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
     procedure lkupChange(Sender: TObject);
+    procedure actShowLinkUpdate(Sender: TObject);
+    
   private
     FgdcObject: TgdcBase;
     FIsAdded: Boolean;
@@ -46,6 +50,7 @@ type
 
     procedure DeleteObjects;
     procedure AddObjects;
+
   protected
     procedure CreateFields;
 
@@ -74,12 +79,17 @@ begin
 
   cdsLink.CreateDataSet;
   cdsLink.FieldByName('id').Visible := False;
-  cdsLink.FieldByName('name').Visible := False;
-  cdsLink.FieldByName('class').Visible := False;
-  cdsLink.FieldByName('subtype').Visible := False;
+  cdsLink.FieldByName('class').Visible := True;
+  cdsLink.FieldByName('class').DisplayWidth := 24;
+  cdsLink.FieldByName('subtype').Visible := True;
+  cdsLink.FieldByName('subtype').DisplayWidth := 24;
+  cdsLink.FieldByName('name').Visible := True;
+  cdsLink.FieldByName('name').DisplayWidth := 40;
+  cdsLink.FieldByName('namespace').Visible := True;
+  cdsLink.FieldByName('namespace').DisplayWidth := 40;
   cdsLink.FieldByName('namespacekey').Visible := False;
-  cdsLink.FieldByName('namespace').Visible := False;
   cdsLink.FieldByName('headobject').Visible := False;
+  cdsLink.FieldByName('displayname').Visible := False;
   cdsLink.FieldByName('displayname').DisplayLabel := 'Класс/Имя объекта/Пространство имен';
   cdsLink.Open;
 
@@ -92,11 +102,11 @@ procedure TdlgToNamespace.CreateFields;
 begin
   cdsLink.FieldDefs.Add('id', ftInteger, 0, True);
   cdsLink.FieldDefs.Add('displayname', ftString, 255, False);
-  cdsLink.FieldDefs.Add('name', ftString, 60, False);
   cdsLink.FieldDefs.Add('class', ftString, 60, True);
   cdsLink.FieldDefs.Add('subtype', ftString, 60, False);
-  cdsLink.FieldDefs.Add('namespacekey', ftInteger, 0, False);
+  cdsLink.FieldDefs.Add('name', ftString, 60, False);
   cdsLink.FieldDefs.Add('namespace', ftString, 255, False);
+  cdsLink.FieldDefs.Add('namespacekey', ftInteger, 0, False);
   cdsLink.FieldDefs.Add('headobject', ftString, 21, False);
 end;
 
@@ -147,6 +157,15 @@ begin
   end;
 
   actShowLink.Execute;
+
+  if FgdcObject <> nil then
+  begin
+    edObjectName.Text := FgdcObject.ObjectName + ' ('
+      + FgdcObject.GetDisplayName(FgdcObject.SubType) + ')';
+    if (BL <> nil) and (BL.Count > 1) then
+      edObjectName.Text := edObjectName.Text + ' и еще ' +
+        IntToStr(BL.Count - 1) + ' объект(а, ов)';
+  end;
 end;
 
 procedure TdlgToNamespace.DeleteObjects;
@@ -170,7 +189,6 @@ end;
 procedure TdlgToNamespace.AddObjects;
 var
   I: Integer;  
-  //XID, DBID: TID;
   Bm: String;
   InstObj: TgdcBase;
   InstClass: TPersistentClass;
@@ -202,17 +220,16 @@ begin
                  InstObj.Open;
                  if not InstObj.EOF then
                  begin
-                   gdcNamespace.AddObject2(InstObj, OL, cdsLink.FieldByName('headobject').AsString,
-                     Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+                   gdcNamespace.AddObject2(InstObj, OL,
+                     cdsLink.FieldByName('headobject').AsString,
+                     Integer(cbAlwaysOverwrite.Checked),
+                     Integer(cbDontRemove.Checked),
+                     Integer(cbIncludeSiblings.Checked));
                  end;
                finally
                  InstObj.Free;
                end;
              end;
-             
-           // gdcBaseManager.GetRUIDByID(cdsLink.FieldByName('id').AsInteger, XID, DBID, IBTransaction);
-          //  TgdcNamespace.AddObject(lkup.CurrentKeyInt, cdsLink.FieldByName('name').AsString, cdsLink.FieldByName('class').AsString,
-            //  cdsLink.FieldByName('subtype').AsString, XID, DBID, IBTransaction, cdsLink.FieldByName('headobject').AsString, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
           end;
         end;
 
@@ -225,19 +242,16 @@ begin
             for I := 0 to FBL.Count - 1 do
             begin
               gdcNamespace.AddObject2(FgdcObject, OL, '',
-                Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
-             // FgdcObject.Bookmark := FBL[I];
-             // gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
-             // TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
-              //  FgdcObject.SubType, XID, DBID, IBTransaction, cdsLink.FieldByName('headobject').AsString, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+                Integer(cbAlwaysOverwrite.Checked),
+                Integer(cbDontRemove.Checked),
+                Integer(cbIncludeSiblings.Checked));
             end;
           end else
           begin
             gdcNamespace.AddObject2(FgdcObject, OL, '',
-              Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
-            //gdcBaseManager.GetRUIDByID(FgdcObject.ID, XID, DBID, IBTransaction);
-           // TgdcNamespace.AddObject(lkup.CurrentKeyInt, FgdcObject.FieldByName(FgdcObject.GetListField(FgdcObject.SubType)).AsString, FgdcObject.ClassName,
-            //  FgdcObject.SubType, XID, DBID, IBTransaction, cdsLink.FieldByName('headobject').AsString, Integer(cbAlwaysOverwrite.Checked), Integer(cbDontRemove.Checked), Integer(cbIncludeSiblings.Checked));
+              Integer(cbAlwaysOverwrite.Checked),
+              Integer(cbDontRemove.Checked),
+              Integer(cbIncludeSiblings.Checked));
           end;
         finally
           FgdcObject.Bookmark := Bm;
@@ -273,6 +287,9 @@ begin
         end;
       end else
         TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction);
+
+      if cdsLink.Active then
+        cdsLink.First;
     finally
       FgdcObject.Bookmark := Bm;
       FgdcObject.EnableControls;
@@ -313,6 +330,13 @@ procedure TdlgToNamespace.lkupChange(Sender: TObject);
 begin
   if lkup.Currentkey > '' then
     FClearId := -1;
+end;
+
+procedure TdlgToNamespace.actShowLinkUpdate(Sender: TObject);
+begin
+  actShowLink.Enabled := (FgdcObject <> nil)
+    and FgdcObject.Active
+    and (not FgdcObject.EOF);
 end;
 
 end.

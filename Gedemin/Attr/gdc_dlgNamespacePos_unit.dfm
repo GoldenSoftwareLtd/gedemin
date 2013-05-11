@@ -2,31 +2,31 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
   Left = 397
   Top = 433
   Caption = 'Свойства'
-  ClientHeight = 153
-  ClientWidth = 328
+  ClientHeight = 408
+  ClientWidth = 522
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
-    Top = 53
+    Top = 380
   end
   inherited btnNew: TButton
-    Top = 53
+    Top = 380
   end
   inherited btnHelp: TButton
-    Top = 53
+    Top = 380
   end
   inherited btnOK: TButton
-    Left = 176
-    Top = 123
+    Left = 370
+    Top = 378
   end
   inherited btnCancel: TButton
-    Left = 248
-    Top = 123
+    Left = 442
+    Top = 378
   end
   object Panel1: TPanel [5]
     Left = 0
     Top = 0
-    Width = 328
+    Width = 522
     Height = 113
     Align = alTop
     BevelOuter = bvNone
@@ -73,9 +73,9 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
     object dbchbxincludesiblings: TDBCheckBox
       Left = 8
       Top = 90
-      Width = 233
+      Width = 329
       Height = 17
-      Caption = 'Включать вложенные объекты'
+      Caption = 'Для древовидных иерархий включать вложенные объекты'
       DataField = 'includesiblings'
       DataSource = dsgdcBase
       TabOrder = 2
@@ -83,8 +83,28 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
       ValueUnchecked = '0'
     end
   end
+  object gsIBGrid1: TgsIBGrid [6]
+    Left = 8
+    Top = 120
+    Width = 505
+    Height = 233
+    DataSource = dsNSDependent
+    TabOrder = 6
+    InternalMenuKind = imkWithSeparator
+    Expands = <>
+    ExpandsActive = False
+    ExpandsSeparate = False
+    TitlesExpanding = False
+    Conditions = <>
+    ConditionsActive = False
+    CheckBox.Visible = False
+    CheckBox.FirstColumn = False
+    MinColWidth = 40
+    ColumnEditors = <>
+    Aliases = <>
+  end
   inherited alBase: TActionList
-    Left = 446
+    Left = 454
     Top = 7
   end
   inherited dsgdcBase: TDataSource
@@ -98,5 +118,17 @@ inherited gdc_dlgNamespacePos: Tgdc_dlgNamespacePos
   inherited ibtrCommon: TIBTransaction
     Left = 424
     Top = 8
+  end
+  object gdcNSDependent: TgdcNamespaceObject
+    MasterSource = dsgdcBase
+    MasterField = 'id'
+    DetailField = 'headobjectkey'
+    SubSet = 'ByHeadObject'
+    Left = 376
+    Top = 272
+  end
+  object dsNSDependent: TDataSource
+    Left = 408
+    Top = 272
   end
 end

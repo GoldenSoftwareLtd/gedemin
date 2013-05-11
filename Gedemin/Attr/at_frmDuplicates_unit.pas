@@ -20,7 +20,6 @@ type
     ds: TDataSource;
     actOpenObject: TAction;
     TBItem1: TTBItem;
-    TBSeparatorItem1: TTBSeparatorItem;
     actDelDuplicates: TAction;
     TBItem2: TTBItem;
     procedure FormCreate(Sender: TObject);

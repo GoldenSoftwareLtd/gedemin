@@ -10,6 +10,7 @@ procedure DeleteCardParamsItem(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddNSMetadata(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue2846(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue2688(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddUqConstraintToGD_RUID(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -505,6 +506,62 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (165, ''0000.0001.0000.0196'', ''08.05.2013'', ''Issue 2688.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure AddUqConstraintToGD_RUID(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      DropIndex2('gd_x_ruid_xid', Tr);
+
+      Tr.Commit;
+      Tr.StartTransaction;
+
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'ALTER TABLE gd_ruid ADD CONSTRAINT gd_uniq_ruid ' +
+        '  UNIQUE (xid, dbid)';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'ALTER TABLE at_object ADD CONSTRAINT at_fk_object_ruid ' +
+        '  FOREIGN KEY (xid, dbid) ' +
+        '  REFERENCES gd_ruid (xid, dbid) ' +
+        '  ON DELETE CASCADE ' +
+        '  ON UPDATE CASCADE';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (166, ''0000.0001.0000.0197'', ''11.05.2013'', ''Added unique constraint on xid, dbid fields to gd_ruid table.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

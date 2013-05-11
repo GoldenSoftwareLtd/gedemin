@@ -29,6 +29,9 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       object TBItem4: TTBItem
         Action = actShowRecursion
       end
+      object TBItem6: TTBItem
+        Action = actNSObjects
+      end
     end
   end
   inherited TBDockLeft: TTBDock
@@ -126,6 +129,13 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       Hint = 'Установить пакеты'
       ImageIndex = 80
       OnExecute = actLoadPackExecute
+    end
+    object actNSObjects: TAction
+      Caption = 'Список объектов'
+      Hint = 'Список объектов'
+      ImageIndex = 181
+      OnExecute = actNSObjectsExecute
+      OnUpdate = actNSObjectsUpdate
     end
   end
   object gdcNamespace: TgdcNamespace

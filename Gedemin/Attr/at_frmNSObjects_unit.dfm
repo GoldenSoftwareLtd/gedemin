@@ -1,9 +1,9 @@
-object at_frmDuplicates: Tat_frmDuplicates
+object at_frmNSObjects: Tat_frmNSObjects
   Left = 359
   Top = 231
   Width = 1142
   Height = 654
-  Caption = 'Дубликаты позиций пространств имен'
+  Caption = 'Список объектов'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -36,7 +36,7 @@ object at_frmDuplicates: Tat_frmDuplicates
         Action = actOpenObject
       end
       object TBItem2: TTBItem
-        Action = actDelDuplicates
+        Action = actAddToNamespace
       end
     end
   end
@@ -84,12 +84,11 @@ object at_frmDuplicates: Tat_frmDuplicates
       OnExecute = actOpenObjectExecute
       OnUpdate = actOpenObjectUpdate
     end
-    object actDelDuplicates: TAction
-      Caption = 'Удалить дубликаты'
-      Hint = 'Удалить дубликаты'
-      ImageIndex = 178
-      OnExecute = actDelDuplicatesExecute
-      OnUpdate = actDelDuplicatesUpdate
+    object actAddToNamespace: TAction
+      Caption = 'Добавить в пространство имен'
+      ImageIndex = 81
+      OnExecute = actAddToNamespaceExecute
+      OnUpdate = actAddToNamespaceUpdate
     end
   end
   object ibtr: TIBTransaction
@@ -104,19 +103,25 @@ object at_frmDuplicates: Tat_frmDuplicates
     Transaction = ibtr
     SelectSQL.Strings = (
       'SELECT'
+      '  '#39'TgdcReport'#39' AS ObjectClass,'
+      '  '#39#39' AS SubType,'
+      '  ruid.xid,'
+      '  ruid.dbid,'
+      '  r.name,'
+      '  list(n.id || '#39'='#39' || n.name) AS ns_list'
+      'FROM'
+      '  rp_reportlist r'
+      '  JOIN gd_ruid ruid ON ruid.id = r.id'
       
-        '  o.objectclass, o.subtype, o.objectname, o.xid, o.dbid, list(n.' +
-        'id || '#39'='#39' || n.name) as ns_list, count(*)'
-      'FROM '
-      '  at_object o JOIN at_namespace n ON n.id = o.namespacekey'
-      'WHERE'
-      '  o.xid > 147000000'
+        '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.db' +
+        'id'
+      '  LEFT JOIN at_namespace n ON n.id = o.namespacekey'
       'GROUP BY'
-      '  o.objectclass, o.subtype, o.objectname, o.xid, o.dbid'
-      'HAVING'
-      '  count(*) > 1'
-      'ORDER BY'
-      '  o.objectclass, o.subtype, o.objectname')
+      '  1, 2, 3, 4, 5'
+      ''
+      ' '
+      ' '
+      ' ')
     ReadTransaction = ibtr
     Left = 592
     Top = 296
