@@ -209,6 +209,10 @@ CREATE TABLE at_object (
   CONSTRAINT at_fk_object_headobjectkey FOREIGN KEY (headobjectkey)
     REFERENCES at_object (id)
     ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT at_fk_object_ruid FOREIGN KEY (xid, dbid)
+    REFERENCES gd_ruid (xid, dbid)
+    ON DELETE CASCADE
     ON UPDATE CASCADE
 );
 

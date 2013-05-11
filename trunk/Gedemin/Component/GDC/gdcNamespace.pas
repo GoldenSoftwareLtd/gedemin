@@ -324,6 +324,7 @@ begin
   Assert(gdcBaseManager <> nil);
   Assert(AgdcObject <> nil);
   Assert(not AgdcObject.EOF);
+  Assert(atDatabase <> nil);
 
   AWriter.WriteKey('Properties');
   AWriter.IncIndent;
@@ -459,6 +460,8 @@ begin
                 (AgdcObject.FieldByName('name').AsString = 'dfm')
                 or
                 CheckRUID(AgdcObject.FieldByName('name').AsString)
+                or
+                (atDatabase.Relations.ByRelationName(AgdcObject.FieldByName('name').AsString) <> nil)
               ) then
             begin
               TempS := F.AsString;
@@ -2054,7 +2057,7 @@ end;
 
 class function TgdcNamespaceObject.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + 'ByNamespace;ByObject;';
+  Result := inherited GetSubSetList + 'ByNamespace;ByObject;ByHeadObject;';
 end;
 
 class function TgdcNamespaceObject.GetDialogFormClassName(const ASubType: TgdcSubType): String;
@@ -2069,6 +2072,8 @@ begin
     S.Add('z.namespacekey = :namespacekey');
   if HasSubSet('ByObject') then
     S.Add('z.namespacekey = :namespacekey and z.xid = :xid and z.dbid = :dbid');
+  if HasSubSet('ByHeadObject') then
+    S.Add('z.headobjectkey = :headobjectkey');
 end;
 
 function TgdcNamespaceObject.GetOrderClause: String;

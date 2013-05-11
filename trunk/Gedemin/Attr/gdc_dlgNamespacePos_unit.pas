@@ -5,7 +5,8 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, StdCtrls, DBCtrls,
-  ExtCtrls;
+  ExtCtrls, IBCustomDataSet, gdcBase, gdcNamespace, Grids, DBGrids,
+  gsDBGrid, gsIBGrid;
 
 type
   Tgdc_dlgNamespacePos = class(Tgdc_dlgTR)
@@ -15,6 +16,10 @@ type
     dbchbxdontremove: TDBCheckBox;
     dbchbxincludesiblings: TDBCheckBox;
     dbtxtName: TDBText;
+    gdcNSDependent: TgdcNamespaceObject;
+    dsNSDependent: TDataSource;
+    gsIBGrid1: TgsIBGrid;
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -31,10 +36,15 @@ implementation
 uses
   gd_ClassList;
 
+procedure Tgdc_dlgNamespacePos.FormCreate(Sender: TObject);
+begin
+  inherited;
+  gdcNSDependent.Open;
+end;
+
 initialization
   RegisterFRMClass(Tgdc_dlgNamespacePos);
 
 finalization
   UnRegisterFRMClass(Tgdc_dlgNamespacePos);
-
 end.

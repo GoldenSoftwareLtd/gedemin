@@ -1,8 +1,8 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
   Left = 338
   Top = 177
-  Width = 941
-  Height = 494
+  Width = 952
+  Height = 518
   Caption = 'Синхронизация пространств имен'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,16 +16,16 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   TextHeight = 13
   object splMessages: TSplitter
     Left = 0
-    Top = 371
-    Width = 925
+    Top = 395
+    Width = 936
     Height = 3
     Cursor = crVSplit
     Align = alBottom
   end
   object sb: TStatusBar
     Left = 0
-    Top = 437
-    Width = 925
+    Top = 461
+    Width = 936
     Height = 19
     Panels = <>
     SimplePanel = False
@@ -33,7 +33,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object TBDock: TTBDock
     Left = 0
     Top = 0
-    Width = 925
+    Width = 936
     Height = 26
     object TBToolbar: TTBToolbar
       Left = 0
@@ -105,8 +105,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   object gr: TgsDBGrid
     Left = 0
     Top = 26
-    Width = 925
-    Height = 345
+    Width = 936
+    Height = 369
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -165,7 +165,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Expanded = False
         FieldName = 'FileNamespaceName'
-        Width = 97
+        Width = 108
         Visible = True
       end
       item
@@ -189,8 +189,8 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
   end
   object mMessages: TMemo
     Left = 0
-    Top = 374
-    Width = 925
+    Top = 398
+    Width = 936
     Height = 63
     Align = alBottom
     ScrollBars = ssVertical

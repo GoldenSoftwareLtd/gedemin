@@ -1,7 +1,7 @@
 object dlgToNamespace: TdlgToNamespace
   Left = 442
   Top = 165
-  Width = 697
+  Width = 760
   Height = 542
   Caption = 'Добавление объекта в пространство имен'
   Color = clBtnFace
@@ -17,17 +17,17 @@ object dlgToNamespace: TdlgToNamespace
   TextHeight = 13
   object pnlGrid: TPanel
     Left = 0
-    Top = 129
-    Width = 681
-    Height = 375
+    Top = 112
+    Width = 744
+    Height = 392
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
     object dbgrListLink: TgsDBGrid
       Left = 0
       Top = 0
-      Width = 681
-      Height = 344
+      Width = 744
+      Height = 361
       Align = alClient
       DataSource = dsMain
       Options = [dgTitles, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
@@ -55,7 +55,7 @@ object dlgToNamespace: TdlgToNamespace
       ExpandsSeparate = False
       Conditions = <>
       ConditionsActive = False
-      CheckBox.DisplayField = 'displayname'
+      CheckBox.DisplayField = 'class'
       CheckBox.FieldName = 'id'
       CheckBox.Visible = True
       CheckBox.FirstColumn = True
@@ -65,8 +65,8 @@ object dlgToNamespace: TdlgToNamespace
     end
     object pnlButtons: TPanel
       Left = 0
-      Top = 344
-      Width = 681
+      Top = 361
+      Width = 744
       Height = 31
       Align = alBottom
       BevelOuter = bvNone
@@ -87,7 +87,7 @@ object dlgToNamespace: TdlgToNamespace
         TabOrder = 1
       end
       object Panel1: TPanel
-        Left = 506
+        Left = 569
         Top = 0
         Width = 175
         Height = 31
@@ -131,8 +131,8 @@ object dlgToNamespace: TdlgToNamespace
   object pnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 681
-    Height = 129
+    Width = 744
+    Height = 112
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
@@ -152,14 +152,21 @@ object dlgToNamespace: TdlgToNamespace
     end
     object Label1: TLabel
       Left = 8
-      Top = 110
+      Top = 96
       Width = 195
       Height = 13
       Caption = 'Связанные объекты (не более 60-ти):'
     end
-    object cbIncludeSiblings: TCheckBox
+    object Label2: TLabel
       Left = 8
-      Top = 84
+      Top = 51
+      Width = 43
+      Height = 13
+      Caption = 'Объект:'
+    end
+    object cbIncludeSiblings: TCheckBox
+      Left = 334
+      Top = 55
       Width = 337
       Height = 17
       Caption = 'Для древовидных иерархий включать вложенные объекты'
@@ -169,11 +176,11 @@ object dlgToNamespace: TdlgToNamespace
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      TabOrder = 3
+      TabOrder = 4
     end
     object cbDontRemove: TCheckBox
-      Left = 8
-      Top = 68
+      Left = 334
+      Top = 39
       Width = 289
       Height = 17
       Caption = 'Не удалять при удалении пространства имен'
@@ -183,11 +190,11 @@ object dlgToNamespace: TdlgToNamespace
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      TabOrder = 2
+      TabOrder = 3
     end
     object cbAlwaysOverwrite: TCheckBox
-      Left = 8
-      Top = 51
+      Left = 334
+      Top = 22
       Width = 233
       Height = 17
       Caption = 'Всегда перезаписывать при загрузке'
@@ -197,7 +204,7 @@ object dlgToNamespace: TdlgToNamespace
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      TabOrder = 1
+      TabOrder = 2
     end
     object lkup: TgsIBLookupComboBox
       Left = 8
@@ -216,6 +223,15 @@ object dlgToNamespace: TdlgToNamespace
       ShowHint = True
       TabOrder = 0
       OnChange = lkupChange
+    end
+    object edObjectName: TEdit
+      Left = 8
+      Top = 66
+      Width = 305
+      Height = 21
+      Color = clBtnFace
+      ReadOnly = True
+      TabOrder = 1
     end
   end
   object cdsLink: TClientDataSet
@@ -238,6 +254,7 @@ object dlgToNamespace: TdlgToNamespace
     object actShowLink: TAction
       Caption = 'Показать'
       OnExecute = actShowLinkExecute
+      OnUpdate = actShowLinkUpdate
     end
     object actOK: TAction
       Caption = '&ОК'
