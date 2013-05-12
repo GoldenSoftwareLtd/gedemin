@@ -37,6 +37,7 @@ type
     procedure actLoadPackExecute(Sender: TObject);
     procedure actNSObjectsExecute(Sender: TObject);
     procedure actNSObjectsUpdate(Sender: TObject);
+    procedure actLoadFromFileExecute(Sender: TObject);
   private
     { Private declarations }
   public
@@ -140,6 +141,11 @@ procedure Tgdc_frmNamespace.actNSObjectsUpdate(Sender: TObject);
 begin
   actNSObjects.Enabled := (gdcObject <> nil)
     and (gdcObject.State = dsBrowse);
+end;
+
+procedure Tgdc_frmNamespace.actLoadFromFileExecute(Sender: TObject);
+begin
+  (gdcObject as TgdcNamespace).LoadFromFile;
 end;
 
 initialization
