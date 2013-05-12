@@ -877,7 +877,6 @@ var
               gdcBaseManager.DeleteRUIDbyXID(StrToRUID(RUID).XID, StrToRUID(RUID).DBID, Tr);
               gdcNamespace.Insert;
               gdcNamespace.FieldByName('name').AsString := Temps;
-              gdcNamespace.FieldByName('settingruid').AsString := RUID;
               gdcNamespace.Post;
 
               if gdcBaseManager.GetRUIDRecByID(gdcNamespace.ID, Tr).XID = -1 then
