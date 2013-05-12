@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2000-2001 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Module
 
@@ -28,8 +28,8 @@ interface
 
 uses
   Classes, rp_BaseReport_unit, MSScriptControl_TLB, IBDatabase,
-  ActiveX, SysUtils, Windows, Provider{, Gedemin_TLB}, gd_KeyAssoc,
-  gd_ScrException, gd_DebugLog, contnrs
+  ActiveX, SysUtils, Windows, Provider, gd_KeyAssoc, gd_ScrException,
+  gd_DebugLog, contnrs
   {$IFDEF GEDEMIN}
   , obj_i_Debugger
   {$ENDIF};
@@ -86,7 +86,6 @@ type
     function  FunctionIsRun(const AFunctionKey, AModuleKey: Integer): Integer;
     function  RunCount: Integer;
 
-//    procedure EverywhereRemoveLoadKey(const AFunctionKey: Integer);
     procedure GetLoadModuleList(const ModuleList: TgdKeyArray; const AFunctionKey: Integer);
     procedure GetRunModuleList(const ModuleList: TgdKeyArray; const AFunctionKey: Integer);
     procedure GetReloadModuleList(const ModuleList: TgdKeyArray; const AFunctionKey: Integer);
@@ -143,7 +142,6 @@ type
     //Используется для разделения ошибок времени выполнения и компиляции
     FAddCodeMode: Boolean;
 
-
     function SetParams(var AnParam: Variant): Boolean;
     // Сбрасывает скрипт-контрол
     function  ClearMethod: Boolean;
@@ -162,10 +160,6 @@ type
     function  GetEventInherited: IDispatch;
     function  GetMethodInherited: IDispatch;
 
-{    function  GetListFunctionKey(const FunctionName: String;
-      FunctionList: TStringList; out Index: Integer): Integer;
-    procedure SetListFunctionKey(AFunction: TrpCustomFunction; const Index: Integer;
-      FunctionList: TStringList);}
     procedure SetOnEventInherited(const Value: TOnGetInherited);
     procedure SetOnMethodInherited(const Value: TOnGetInherited);
 
@@ -281,9 +275,9 @@ type
 
     property OnCreateModuleVBClasses: TOnCreateModuleVBClass read
       FOnCreateModuleVBClasses write SetOnCreateModuleVBClasses;
-//    property OnCreateModule:
     // Событие вызывается после создания всех гл.объектов и добавления гл.скриптов
     property OnIsCreated: TNotifyEvent read FOnIsCreated write SetOnIsCreated;
+
   published
     property OnCreateConst: TOnCreateObject read FOnCreateConst write FOnCreateConst;
     property OnCreateGlobalObj: TOnCreateObject
@@ -439,7 +433,6 @@ var
   ParamsArray: PSafeArray;
   hRes: HRESULT;
   Data: Variant;
-//  scrException: EScrException;
   LFuncIndex: Integer;
   LModuleName: String;
   {$IFDEF GEDEMIN}
@@ -680,10 +673,7 @@ begin
   if AnsiUpperCase(Language) <> AnsiUpperCase(AnLanguage) then
   begin
     ClearMethod;
-//    FClearFlag := True;
     Language := AnLanguage;
-//    FIsCreate := False;
-//    IsCreate;
   end;
 end;
 
@@ -846,16 +836,7 @@ begin
         FOnIsCreated(Self);
     end else
       raise Exception.Create('Задан некорректный язык программирования.');
-{      if AnsiUpperCase(Language) = 'JSCRIPT' then
-      begin
-        CreateObject;
-        FClearFlag := False;
-        FIsCreate := True;
-       end;
-       }
   except
-//    FClearFlag := True;
-//    raise;
   end;
 end;
 
@@ -874,8 +855,6 @@ procedure TReportScript.Reset;
 begin
   ClearFlag := True;
   ClearMethod;
-//  if ClearMethod then
-//    IsCreate;
 end;
 
 procedure TReportScript.SetOnEventInherited(const Value: TOnGetInherited);
@@ -968,8 +947,6 @@ begin
   begin
     if (FNonLoadSFList <> nil) and (FNonLoadSFList.IndexOf(IncludingList[i]) > -1) then
       Continue;
-//    if dm_i_ClientReport.GetStaticSFList.IndexOf(IncludingList[i]) > -1 then
-//      Continue;
 
     LocInclFunc := nil;
     IncFuncIndex := -1;
@@ -989,7 +966,6 @@ begin
     begin
       // Добавление СФ
       if not Assigned(LocInclFunc) then
-//        LocInclFunc := glbFunctionList.FindFunction(IncludingList[i]);
         LocInclFunc := GetFunctionByID(IncludingList[i]);
 
       if not Assigned(LocInclFunc) then
@@ -1004,7 +980,6 @@ begin
             AddScript(LocInclFunc, GetModuleName(AModuleKey), AModuleKey, TestInLoaded);
             if FUseCache then
             begin
-//              FHistoryList.AddLoadKey(LocInclFunc.FunctionKey, AModuleKey);
               AddIncludingScript(AModuleKey, LocInclFunc.IncludingList, TestInLoaded);
             end;
           end else
@@ -1012,7 +987,6 @@ begin
               AddScript(LocInclFunc, '', OBJ_APPLICATION, TestInLoaded);
               if FUseCache then
               begin
-//                FHistoryList.AddLoadKey(LocInclFunc.FunctionKey, OBJ_APPLICATION);
                 AddIncludingScript(OBJ_APPLICATION, LocInclFunc.IncludingList, TestInLoaded);
               end;
             end;
@@ -1163,7 +1137,6 @@ begin
   Result := 0;
   for i := 0 to FHistoryList.Count - 1 do
     Result := Result + GetByIndex(i).RunCount;
-
 end;
 
 procedure TscHistory.Reset;
@@ -1212,12 +1185,6 @@ begin
             LoadModuleList.Remove(j);
           end else
             Inc(k);
-
-//          if LoadModuleList.Count = 0 then
-//          begin
-//            RemoveReloadFunction(CurSF);
-//            LoadModuleList := nil;
-//          end;
         finally
           if glbFunctionList <> nil then
             glbFunctionList.ReleaseFunction(LocFunc);
@@ -1370,8 +1337,6 @@ begin
     end;
     {$ENDIF}
     try
-//      try
-//        FReloadList.Remove(AnFunction.FunctionKey);
         if Length(ModuleName) > 0 then
         begin
           FAddCodeMode := True;
@@ -1386,20 +1351,6 @@ begin
           end;
         AddIncludingScript(ModuleKey, AnFunction.IncludingList, TestInLoaded);
         FHistoryList.AddLoadKey(AnFunction.FunctionKey, ModuleKey);
-{      except
-        if FReloadList.IndexOf(AnFunction.FunctionKey) > -1 then
-        begin
-          FReloadList.Remove(AnFunction.FunctionKey);
-          AddScript(AnFunction, ModuleName, ModuleKey, TestInLoaded);
-//          ReloadFunction;
-//            AddScript(AnFunction, ModuleName, ModuleKey, TestInLoaded);
-        end else
-          begin
-            // Если ошибка при добавлении, то удаляем из списка загруженных
-            FHistoryList.RemoveLoadKey(AnFunction.FunctionKey);
-            raise;
-          end;
-      end;}
     finally
       {$IFDEF GEDEMIN}
       if Assigned(Debugger) then

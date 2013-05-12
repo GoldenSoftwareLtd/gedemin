@@ -1,6 +1,6 @@
 object at_frmNSObjects: Tat_frmNSObjects
-  Left = 359
-  Top = 231
+  Left = 288
+  Top = 48
   Width = 1142
   Height = 654
   Caption = 'Список объектов'
@@ -24,6 +24,7 @@ object at_frmNSObjects: Tat_frmNSObjects
       Top = 0
       Caption = 'tb'
       CloseButton = False
+      DockMode = dmCannotFloatOrChangeDocks
       FullSize = True
       Images = dmImages.il16x16
       MenuBar = True
@@ -37,6 +38,8 @@ object at_frmNSObjects: Tat_frmNSObjects
       end
       object TBItem2: TTBItem
         Action = actAddToNamespace
+      end
+      object TBSeparatorItem1: TTBSeparatorItem
       end
     end
   end
@@ -57,6 +60,7 @@ object at_frmNSObjects: Tat_frmNSObjects
     BorderStyle = bsNone
     DataSource = ds
     Options = [dgTitles, dgColumnResize, dgColLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgMultiSelect]
+    PopupMenu = pm
     ReadOnly = True
     TabOrder = 2
     InternalMenuKind = imkWithSeparator
@@ -119,7 +123,47 @@ object at_frmNSObjects: Tat_frmNSObjects
       'GROUP BY'
       '  1, 2, 3, 4, 5'
       ''
-      ' '
+      'UNION ALL'
+      ''
+      'SELECT'
+      '  '#39'TgdcMacros'#39' AS ObjectClass,'
+      '  '#39#39' AS SubType,'
+      '  ruid.xid,'
+      '  ruid.dbid,'
+      '  r.name,'
+      '  list(n.id || '#39'='#39' || n.name) AS ns_list'
+      'FROM'
+      '  evt_macroslist r'
+      '  JOIN gd_ruid ruid ON ruid.id = r.id'
+      
+        '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.db' +
+        'id'
+      '  LEFT JOIN at_namespace n ON n.id = o.namespacekey'
+      'GROUP BY'
+      '  1, 2, 3, 4, 5'
+      ''
+      'UNION ALL'
+      ''
+      'SELECT'
+      '  '#39'TgdcBaseTable'#39' AS ObjectClass,'
+      '  '#39#39' AS SubType,'
+      '  ruid.xid,'
+      '  ruid.dbid,'
+      '  r.relationname,'
+      '  list(n.id || '#39'='#39' || n.name) AS ns_list'
+      'FROM'
+      '  at_relations r'
+      '  JOIN gd_ruid ruid ON ruid.id = r.id'
+      
+        '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.db' +
+        'id'
+      '  LEFT JOIN at_namespace n ON n.id = o.namespacekey'
+      'GROUP BY'
+      '  1, 2, 3, 4, 5'
+      ''
+      ''
+      ''
+      ''
       ' '
       ' ')
     ReadTransaction = ibtr
@@ -131,5 +175,9 @@ object at_frmNSObjects: Tat_frmNSObjects
     OnDataChange = dsDataChange
     Left = 552
     Top = 336
+  end
+  object pm: TPopupMenu
+    Left = 128
+    Top = 280
   end
 end

@@ -146,7 +146,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Width = 364
           Height = 21
           Style = csDropDownList
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 1
           OnChange = cbStreamFormatChange
         end
@@ -405,7 +405,7 @@ object gdc_frmStreamSaver: Tgdc_frmStreamSaver
           Width = 222
           Height = 21
           Style = csDropDownList
-          ItemHeight = 13
+          ItemHeight = 0
           TabOrder = 1
           Visible = False
           OnChange = cbSettingFormatChange
