@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gd_createable_form, Db, IBCustomDataSet, IBDatabase, Grids, DBGrids,
   gsDBGrid, gsIBGrid, ComCtrls, ActnList, TB2Dock, TB2Toolbar, dmDatabase_unit,
-  dmImages_unit, TB2Item, gdcBase, gdcBaseInterface;
+  dmImages_unit, TB2Item, gdcBase, gdcBaseInterface, Menus;
 
 type
   Tat_frmNSObjects = class(TCreateableForm)
@@ -22,6 +22,8 @@ type
     TBItem1: TTBItem;
     actAddToNamespace: TAction;
     TBItem2: TTBItem;
+    TBSeparatorItem1: TTBSeparatorItem;
+    pm: TPopupMenu;
     procedure FormCreate(Sender: TObject);
     procedure actOpenObjectUpdate(Sender: TObject);
     procedure actOpenObjectExecute(Sender: TObject);

@@ -2125,7 +2125,6 @@ const
   SM_REMOTESESSION = $1000;
 
 var
-  //CacheDBID: TID;
   CacheList: TStringHashMap;
   CacheBaseClassForRel: TStringList;
   UseSavepoints: Boolean;
@@ -11868,12 +11867,6 @@ var
   WasCreate: Boolean;
   S: String;
 begin
-{  Assert(
-    ((ADBID = 17) and (AnID = AXID) and (AnID < cstUserIDStart))
-    or
-    ((ADBID <> 17) and (AnID >= cstUserIDStart))
-  ); }
-
   if AXID < cstUserIDStart then
     exit;
 

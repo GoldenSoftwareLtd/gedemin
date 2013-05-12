@@ -72,8 +72,8 @@ type
     class function GetDialogFormClassName(const ASubType: TgdcSubType): String; override;
   end;
 
-  function GetReferenceStr(const ARUID: String; const AName: String): String;
-  procedure GetReferenceParams(const AStr: String; out ARUID: String; out AName: String);
+  function GetReferenceString(const ARUID: String; const AName: String): String;
+  function ParseReferenceString(const AStr: String; out ARUID: String; out AName: String): Boolean;
 
   procedure Register;
 
@@ -110,30 +110,27 @@ begin
   RegisterComponents('gdcNamespace', [TgdcNamespace, TgdcNamespaceObject]);
 end;
 
-function GetReferenceStr(const ARUID: String; const AName: String): String;
+function GetReferenceString(const ARUID: String; const AName: String): String;
 begin
   Result := ARUID + ' ' + AName;
 end;
 
-procedure GetReferenceParams(const AStr: String; out ARUID: String; out AName: String);
+function ParseReferenceString(const AStr: String;
+  out ARUID: String; out AName: String): Boolean;
 var
   P: Integer;
 begin
   P := Pos(' ', AStr);
-  if (P = 0) and (Trim(AStr) <> '') then
+  if P = 0 then
   begin
     ARUID := AStr;
     AName := '';
   end else
-    if P > 0 then
-    begin
-      ARUID := System.Copy(AStr, 1, P - 1);
-      AName := System.Copy(AStr, P + 1, MaxInt);
-    end else
-    begin
-      ARUID := '';
-      AName := '';
-    end;
+  begin
+    ARUID := System.Copy(AStr, 1, P - 1);
+    AName := System.Copy(AStr, P + 1, MaxInt);
+  end;
+  Result := CheckRUID(ARUID);
 end;
 
 function CompareFolder(List: TStringList; Index1, Index2: Integer): Integer;
@@ -427,8 +424,10 @@ begin
 
                 AWriter.StartNewLine;
                 AWriter.WriteKey(F.FieldName);
-                AWriter.WriteText(GetReferenceStr(gdcBaseManager.GetRUIDStringByID(
-                  F.AsInteger, AgdcObject.Transaction),FN), qSingleQuoted);
+                AWriter.WriteText(GetReferenceString(
+                  gdcBaseManager.GetRUIDStringByID(
+                    F.AsInteger, AgdcObject.Transaction),
+                  FN), qSingleQuoted);
                 continue;
               end;
             end;
@@ -868,8 +867,7 @@ var
         gdcNamespace.SubSet := 'ByID';
         for I := 0 to Seq.Count - 1 do
         begin
-          GetReferenceParams((Seq[I] as TyamlString).AsString, RUID, Temps);
-          if CheckRUID(RUID) then
+          if ParseReferenceString((Seq[I] as TyamlString).AsString, RUID, Temps) then
           begin
             gdcNamespace.Close;
             gdcNamespace.ID := gdcBaseManager.GetIDByRUIDString(RUID, Tr);
@@ -1696,8 +1694,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
               if not (N is TyamlString) then
                 raise Exception.Create('Invalid YAML data type!');
 
-              GetReferenceParams(TyamlString(N).AsString, RefRUID, Name);
-              if CheckRUID(RefRUID) then
+              if ParseReferenceString(TyamlString(N).AsString, RefRUID, Name) then
               begin
                 Key := gdcBaseManager.GetIDByRUIDString(RefRUID, ATr);
                 if Key > -1 then
@@ -1713,8 +1710,10 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
             if not (N is TyamlScalar) then
               raise Exception.Create('Invalid YAML data type!');
 
+            //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
             if not TyamlScalar(N).IsNull then
-              GetReferenceParams(TyamlString(N).AsString, RefRUID, Name)
+              ParseReferenceString(TyamlString(N).AsString, RefRUID, Name)
             else
               IsNull := True;
 
@@ -2401,7 +2400,10 @@ begin
       begin
         W.StartNewLine;
         W.WriteSequenceIndicator;
-        W.WriteText(GetReferenceStr(q.FieldByName('ruid').AsString, q.FieldByName('name').AsString), qSingleQuoted);
+        W.WriteText(GetReferenceString(
+          q.FieldByName('ruid').AsString,
+          q.FieldByName('name').AsString),
+          qSingleQuoted);
         q.Next;
       end;
       W.DecIndent;

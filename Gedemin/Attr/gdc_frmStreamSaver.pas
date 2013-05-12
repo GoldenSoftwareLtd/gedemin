@@ -112,7 +112,6 @@ type
     procedure DeactivateSetting;
     procedure ReactivateSetting;
     procedure MakeSetting;
-    {procedure DoAfterAbortProcess;}
     procedure DoAfterException(ErrorMsg: String);
   public
     constructor Create(AOwner: TComponent); override;
@@ -493,10 +492,8 @@ begin
       PageControl.ActivePage := tbsSetting;
   end;
 end;
-                                         
+
 procedure Tgdc_frmStreamSaver.Save;
-{var
-  IncrementDatabaseKey: Integer;}
 begin
   try
     // Дадим пользователю выбрать файл для сохранения информации
@@ -507,10 +504,6 @@ begin
     // Если файл выбран
     if FFileName <> '' then
     begin
-      {if FIncrementSaving and FframeDatabases.gdcDatabases.Active then
-        IncrementDatabaseKey := FframeDatabases.gdcDatabases.FieldByName('ID').AsInteger
-      else
-        IncrementDatabaseKey := -1;}
       gdcObject.SaveToFile(FFileName, FgdcDetailObject, FBL, FOnlyCurrent, FStreamFormat{, IncrementDatabaseKey});
     end
     else
@@ -640,23 +633,6 @@ begin
           if stRecord.StreamVersion >= 1 then
             S.ReadBuffer(stRecord.StreamDBID, SizeOf(stRecord.StreamDBID));
 
-          // список баз данных из таблицы RPL_DATABASE
-          {S.ReadBuffer(I, SizeOf(I));
-          if I > 0 then
-          begin
-            for J := 1 to I do
-            begin
-              S.ReadBuffer(TempValue, SizeOf(TempValue));
-              StreamReadString(S);
-            end;
-          end;
-
-          // считываем ИД базы пославшей поток
-          S.ReadBuffer(I, SizeOf(I));
-          SourceBaseKey := I;
-          // считываем ИД базы на которую поток был отправлен
-          S.ReadBuffer(I, SizeOf(I));
-          TargetBaseKey := I;}
           TargetBaseKey := -1;
           SourceBaseKey := -1;
           S.Position := 0;
@@ -846,13 +822,6 @@ begin
     end;
   end;
 end;
-
-{procedure Tgdc_frmStreamSaver.DoAfterAbortProcess;
-begin
-  lblProcessText.Caption := '';
-  lblResult.Caption := 'Выполнение прервано';
-  btnClose.Enabled := True;
-end;}
 
 procedure Tgdc_frmStreamSaver.DoAfterException(ErrorMsg: String);
 begin
