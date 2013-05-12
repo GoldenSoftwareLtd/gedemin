@@ -545,18 +545,24 @@ begin
       q.ParamCheck := False;
       q.Transaction := Tr;
 
-      q.SQL.Text :=
-        'ALTER TABLE gd_ruid ADD CONSTRAINT gd_uniq_ruid ' +
-        '  UNIQUE (xid, dbid)';
-      q.ExecQuery;
+      if not ConstraintExist2('gd_ruid', 'gd_uniq_ruid', Tr) then
+      begin
+        q.SQL.Text :=
+          'ALTER TABLE gd_ruid ADD CONSTRAINT gd_uniq_ruid ' +
+          '  UNIQUE (xid, dbid)';
+        q.ExecQuery;
+      end;
 
-      q.SQL.Text :=
-        'ALTER TABLE at_object ADD CONSTRAINT at_fk_object_ruid ' +
-        '  FOREIGN KEY (xid, dbid) ' +
-        '  REFERENCES gd_ruid (xid, dbid) ' +
-        '  ON DELETE CASCADE ' +
-        '  ON UPDATE CASCADE';
-      q.ExecQuery;
+      if not ConstraintExist2('at_object', 'at_fk_object_ruid', Tr) then
+      begin
+        q.SQL.Text :=
+          'ALTER TABLE at_object ADD CONSTRAINT at_fk_object_ruid ' +
+          '  FOREIGN KEY (xid, dbid) ' +
+          '  REFERENCES gd_ruid (xid, dbid) ' +
+          '  ON DELETE CASCADE ' +
+          '  ON UPDATE CASCADE';
+        q.ExecQuery;
+      end;
 
       q.Close;
       q.SQL.Text :=

@@ -12,7 +12,7 @@ procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
 implementation
 
 uses
-  Windows, IBDatabase, IBSQL, gdcBaseInterface, at_dlgToSetting_unit,
+  Windows, DB, IBDatabase, IBSQL, gdcBaseInterface, at_dlgToSetting_unit,
   at_dlgToNamespace_unit, gdcNamespace;
 
 procedure AddToSetting(FromStorage: Boolean; ABranchName, AValueName: String;
@@ -22,6 +22,9 @@ begin
   Assert(gdcBaseManager.Database <> nil);
   Assert(AgdcObject <> nil);
   Assert(AgdcObject.RecordCount > 0);
+
+  if AgdcObject.State in [dsEdit, dsInsert] then
+    AgdcObject.Post;
 
   if MessageBox(0,
     'Добавить в настройку? (Нет -- добавление в пространство имен)',

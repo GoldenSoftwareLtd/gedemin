@@ -848,60 +848,73 @@ var
   var
     I: Integer;
     gdcNamespace: TgdcNamespace;
-    Temps, RUID: String;
+    NSName, RUID: String;
     q: TIBSQL;
+    NSID: TID;
   begin
-    if Seq.Count > 0 then
-    begin
-      gdcNamespace := TgdcNamespace.Create(nil);
-      q := TIBSQL.Create(nil);
-      try
-        q.Transaction := Tr;
-        q.SQL.Text :=
-          'UPDATE OR INSERT INTO at_namespace_link ' +
-          '(namespacekey, useskey) ' +
-          'VALUES (:NK, :UK) ' +
-          'MATCHING (namespacekey, useskey)';
-        gdcNamespace.Transaction := Tr;
-        gdcNamespace.ReadTransaction := Tr;
-        gdcNamespace.SubSet := 'ByID';
-        for I := 0 to Seq.Count - 1 do
+    if Seq.Count = 0 then
+      exit;
+
+    gdcNamespace := TgdcNamespace.Create(nil);
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := Tr;
+      gdcNamespace.Transaction := Tr;
+
+      for I := 0 to Seq.Count - 1 do
+      begin
+        if not (Seq[I] is TyamlString) then
+          break;
+
+        if ParseReferenceString((Seq[I] as TyamlString).AsString, RUID, NSName) then
         begin
-          if ParseReferenceString((Seq[I] as TyamlString).AsString, RUID, Temps) then
+          q.SQL.Text :=
+            'SELECT n.id ' +
+            'FROM at_namespace n ' +
+            '  JOIN gd_ruid r ON r.id = n.id ' +
+            'WHERE ' +
+            '  r.xid = :xid AND r.dbid = :dbid ';
+          q.ParamByName('xid').AsInteger := StrToRUID(RUID).XID;
+          q.ParamByName('dbid').AsInteger := StrToRUID(RUID).DBID;
+          q.ExecQuery;
+
+          if q.EOF then
           begin
-            gdcNamespace.Close;
-            gdcNamespace.ID := gdcBaseManager.GetIDByRUIDString(RUID, Tr);
             gdcNamespace.Open;
-            if gdcNamespace.Eof then
-            begin
-              gdcBaseManager.DeleteRUIDbyXID(StrToRUID(RUID).XID, StrToRUID(RUID).DBID, Tr);
-              gdcNamespace.Insert;
-              gdcNamespace.FieldByName('name').AsString := Temps;
-              gdcNamespace.Post;
+            gdcNamespace.Insert;
+            gdcNamespace.FieldByName('name').AsString := NSName;
+            gdcNamespace.Post;
+            NSID := gdcNamespace.ID;
+            gdcNamespace.Close;
+          end else
+            NSID := q.FieldByName('id').AsInteger;
 
-              if gdcBaseManager.GetRUIDRecByID(gdcNamespace.ID, Tr).XID = -1 then
-              begin
-                gdcBaseManager.InsertRUID(gdcNamespace.ID, StrToRUID(RUID).XID,
-                  StrToRUID(RUID).DBID,
-                  Now, IBLogin.ContactKey, Tr);
-              end else
-              begin
-                gdcBaseManager.UpdateRUIDByID(gdcNamespace.ID, StrToRUID(RUID).XID,
-                  StrToRUID(RUID).DBID,
-                  Now, IBLogin.ContactKey, Tr);
-              end;
-            end;
-            q.Close;
+          if gdcBaseManager.GetRUIDRecByID(NSID, Tr).XID = -1 then
+          begin
+            gdcBaseManager.InsertRUID(NSID,
+              StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
+              Now, IBLogin.ContactKey, Tr);
+          end else
+          begin
+            gdcBaseManager.UpdateRUIDByID(NSID,
+              StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
+              Now, IBLogin.ContactKey, Tr);
+          end;
 
-            q.ParamByName('nk').AsInteger := Namespacekey;
-            q.ParamByName('uk').AsInteger := gdcNamespace.ID;
-            q.ExecQuery;
-          end
-        end;
-      finally
-        gdcNamespace.Free;
-        q.Free;
+          q.Close;
+          q.SQL.Text :=
+            'UPDATE OR INSERT INTO at_namespace_link ' +
+            '(namespacekey, useskey) ' +
+            'VALUES (:NK, :UK) ' +
+            'MATCHING (namespacekey, useskey)';
+          q.ParamByName('nk').AsInteger := Namespacekey;
+          q.ParamByName('uk').AsInteger := NSID;
+          q.ExecQuery;
+        end
       end;
+    finally
+      gdcNamespace.Free;
+      q.Free;
     end;
   end;
 

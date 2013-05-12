@@ -1256,45 +1256,6 @@ begin
   Result := BaseName + RUIDStr;
 end;
 
-
-{function TBaseFrame.GetUniname(SQLText, BaseName: String;
-  const NameList: TStrings; const IBSQL: TIBSQL): String;
-var
-  I: Integer;
-begin
-  if IBSQL.Open then
-    IBSQL.Close;
-
-  IBSQL.SQL.Text := SQLText;
-
-  IBSQL.ExecQuery;
-  while not IBSQL.Eof do
-  begin
-    NameList.Add(IBSQL.Fields[0].AsString);
-    IBSQL.Next;
-  end;
-
-  AddNameInFrond(NameList);
-
-  I := 1;
-  while True do
-  begin
-    Result := IntToStr(I);
-    if (Length(BaseName) + Length(Result) + dfDeltaName) > 60 then
-      BaseName := System.Copy(BaseName, 1, 60 - Length(Result) - dfDeltaName);
-    Result := Format(dfCopyName, [BaseName, Result]);
-    if NameList.IndexOf(Result) = -1 then
-      Break;
-
-    Inc(I);
-  end;
-  IBSQL.Close;
-end;
-}
-{procedure TBaseFrame.ShowTypeInfo;
-begin
-end;
- }
 procedure TBaseFrame.ShowTypeInfo;
 begin
 //

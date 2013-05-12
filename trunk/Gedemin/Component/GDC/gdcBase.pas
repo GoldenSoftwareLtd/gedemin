@@ -3595,26 +3595,21 @@ var
     ibsql: TIBSQL;
     ChkStm: String;
   begin
-    Result := False;
-
     ChkStm := AObject.CheckTheSameStatement;
-    if ChkStm <> '' then
-    begin
-      ibsql := TIBSQL.Create(Owner);
+    if ChkStm = '' then
+      Result := False
+    else begin
+      ibsql := TIBSQL.Create(nil);
       try
-        ibsql.Database := Database;
         if Transaction.Active then
           ibsql.Transaction := Transaction
         else
           ibsql.Transaction := gdcBaseManager.ReadTransaction;
         ibsql.SQL.Text := ChkStm;
         ibsql.ExecQuery;
-        ibsql.Next;
-
-        if ibsql.RecordCount >= 1 then
-          Result := True;
+        Result := not ibsql.EOF;
       finally
-        FreeAndNil(ibsql);
+        ibsql.Free;
       end;
     end;
   end;
@@ -6894,7 +6889,7 @@ begin
         FSavepoint := '';
         DidActivate := ActivateTransaction;
         try
-      //!!!
+        //!!!
           {savepoints support}
           if (not DidActivate) and UseSavepoints then
           begin
@@ -6904,7 +6899,6 @@ begin
                 '-', '', [rfReplaceAll]), 1, 30);
             try
               Transaction.SetSavePoint(FSavepoint);
-              //ExecSingleQuery('SAVEPOINT ' + FSavepoint);
             except
               UseSavepoints := False;
               FSavepoint := '';
@@ -6924,7 +6918,6 @@ begin
           CutOff := 5;
           repeat
             try
-              //FRowsAffected := 0;
               if (Qry = QDelete) then
                 _CustomDelete(Buff);
               CutOff := 0;
@@ -6971,7 +6964,7 @@ begin
           if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
             and Assigned(gdcBaseManager) then
           begin
-            gdcBaseManager.DeleteRUIDByXID(ID, IBLogin.DBID, Transaction);
+            gdcBaseManager.DeleteRUIDByID(ID, Transaction);
           end;
 
           if Assigned(AfterInternalDeleteRecord) then
@@ -6985,7 +6978,6 @@ begin
           begin
             try
               Transaction.ReleaseSavePoint(FSavepoint);
-              //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
             except
             end;
           end;
@@ -6997,8 +6989,6 @@ begin
             try
               Transaction.RollBackToSavePoint(FSavepoint);
               Transaction.ReleaseSavePoint(FSavepoint);
-              //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-              //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
             except
             end;
           end;
@@ -7057,7 +7047,7 @@ begin
               else
                 Exclude(FBaseState, sSkipMultiple);
             end;
-            
+
             break;
           finally
             Obj.Free;
@@ -9396,7 +9386,6 @@ begin
       end;
       Result.XID := XID;
       Result.DBID := DBID;
-
     finally
       FIBSQL.Close;
     end;
@@ -9555,12 +9544,8 @@ function TgdcBaseManager.GetIDByRUIDString(const RUID: TRUIDString;
 var
   R: TRUID;
 begin
-  if (CacheList = nil) or
-    (not CacheList.Find(RUID, Result)) then
-  begin
-    R := StrToRUID(RUID);
-    Result := GetIDByRUID(R.XID, R.DBID, Tr);
-  end;
+  R := StrToRUID(RUID);
+  Result := GetIDByRUID(R.XID, R.DBID, Tr);
 end;
 
 function TgdcBaseManager.GetNextID(const ResetCache: Boolean = False): TID;
@@ -11383,29 +11368,11 @@ begin
   {M}    end;
   {END MACRO}
 
-  //Удаляем запись из настроек.
-  {Этого делать нельзя!!!
-   Во-первых, по РУИД-у нельзя однозначно опеределить объект: например пользователь,
-    и хранилище пользователя
-   Во-вторых, позиция была включена в настройку не просто так.
-   Может я ее случайно удалила, при пересохранении настройки выдаст ошибку,
-   что позволит в случае необходимости востановить объект.}
-{  if Assigned(IBLogin) and (IBLogin.IsIBUserAdmin) then
-  begin
-    if not (sLoadFromStream in BaseState) then
-    begin
-      RUID := GetRUID;
-      ExecSingleQuery(Format('DELETE FROM AT_SETTINGPOS WHERE xid = %d AND dbid = %d ',
-        [RUID.XID, RUID.DBID]));
-    end;
-  end;}
-
   if FSetTable > '' then
   else
   begin
     SetInternalSQLParams(FQDelete, Buff);
     FQDelete.ExecQuery;
-    //FRowsAffected := FQDelete.RowsAffected;
     FLastQuery := lqDelete;
   end;
 
@@ -11449,7 +11416,6 @@ begin
   begin
     SetInternalSQLParams(QInsert, Buff);
     QInsert.ExecQuery;
-    //FRowsAffected := QInsert.RowsAffected;
     FLastQuery := lqInsert;
   end;
 
@@ -11887,56 +11853,53 @@ begin
     FIBSQL.Close;
     DidActivate := not Tr.InTransaction;
     try
-      if DidActivate then Tr.StartTransaction;
+      if DidActivate then
+        Tr.StartTransaction;
 
       FIBSQL.Transaction := Tr;
 
-      repeat
-        FIBSQL.SQL.Text := cst_sql_InsertRUID;
-        FIBSQL.ParamByName(fnxid).AsInteger := AXID;
-        if AXID < cstUserIDStart then
-          FIBSQL.ParamByName(fndbid).AsInteger := 17
-        else
-          FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
-        FIBSQL.ParamByName(fnid).AsInteger := AnID;
-        FIBSQL.ParamByName(fneditorkey).AsInteger := AnEditorKey;
-        FIBSQL.ParamByName(fnmodified).AsDateTime := AModified;
+      FIBSQL.SQL.Text :=
+        'INSERT INTO gd_ruid (id, xid, dbid, editorkey, modified) ' +
+        '  VALUES (:id, :xid, :dbid, :editorkey, :modified) ';
+      FIBSQL.ParamByName('id').AsInteger := AnID;
+      FIBSQL.ParamByName('xid').AsInteger := AXID;
+      FIBSQL.ParamByName('dbid').AsInteger := ADBID;
+      FIBSQL.ParamByName('editorkey').AsInteger := AnEditorKey;
+      FIBSQL.ParamByName('modified').AsDateTime := AModified;
 
-        try
-          FIBSQL.ExecQuery;
-        except
-          FIBSQL.Close;
-          FIBSQL.SQL.Text := cst_sql_SelectRuidByXID;
-          FIBSQL.ParamByName(fnxid).AsInteger := AXID;
-          FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
-          FIBSQL.ExecQuery;
-          if not FIBSQL.Eof then
-            raise EgdcException.Create(
-              'Попытка добавить запись с повторяющимся ИД в таблицу GD_RUID.'#13#10 +
-              'ID=' + IntToStr(AnID) + ', XID=' + IntToStr(AXID) + ', DBID=' + IntToStr(ADBID))
-          else
-          begin
-            if (CacheList <> nil) and CacheList.Has(RUIDToStr(RUID(AXID, ADBID))) then
-              CacheList.Remove(RUIDToStr(RUID(AXID, ADBID)));
+      try
+        FIBSQL.ExecQuery;
+      except
+        FIBSQL.SQL.Text :=
+          'SELECT id FROM gd_ruid WHERE xid = :xid AND dbid = :dbid';
+        FIBSQL.ParamByName('xid').AsInteger := AXID;
+        FIBSQL.ParamByName('dbid').AsInteger := ADBID;
+        FIBSQL.ExecQuery;
 
-            FIBSQL.Close;
-            FIBSQL.SQL.Text := cst_sql_DeleteRuidByXID;
-            FIBSQL.ParamByName(fnxid).AsInteger := AXID;
-            FIBSQL.ParamByName(fndbid).AsInteger := ADBID;
-            FIBSQL.ExecQuery;
-            FIBSQL.Close;
+        if not FIBSQL.Eof then
+          raise EgdcException.Create(
+            'Попытка добавить повторяющийся РУИД в таблицу GD_RUID.'#13#10 +
+            'ID=' + IntToStr(AnID) + ', XID=' + IntToStr(AXID) + ', DBID=' + IntToStr(ADBID));
 
-            IBLogin.AddEvent('При попытке создать RUID для ID=' +
-              IntToStr(AnID) +
-              ' выяснилось, что запись с таким XID, DBID уже существует. Прежняя запись была удалена.',
-              'TgdcBaseManager');
-
-            continue;
-          end;
-        end;
+        if (CacheList <> nil) and CacheList.Has(RUIDToStr(RUID(AXID, ADBID))) then
+          CacheList.Remove(RUIDToStr(RUID(AXID, ADBID)));
 
         FIBSQL.Close;
-      until True;
+        FIBSQL.SQL.Text :=
+          'UPDATE gd_ruid SET id = :id, editorkey = :editorkey, modified = :modified ' +
+          'WHERE xid = :xid AND dbid = :dbid ';
+        FIBSQL.ParamByName('id').AsInteger := AnID;
+        FIBSQL.ParamByName('xid').AsInteger := AXID;
+        FIBSQL.ParamByName('dbid').AsInteger := ADBID;
+        FIBSQL.ParamByName('editorkey').AsInteger := AnEditorKey;
+        FIBSQL.ParamByName('modified').AsDateTime := AModified;
+        FIBSQL.ExecQuery;
+        FIBSQL.Close;
+
+        IBLogin.AddEvent('При попытке создать RUID для ID=' + IntToStr(AnID) +
+          ' выяснилось, что запись с таким ID уже существует.',
+          'TgdcBaseManager');
+      end;
 
       if DidActivate and Tr.InTransaction then
       begin
@@ -11949,7 +11912,6 @@ begin
             CacheList.Add(S, AnID);
         end;
       end;
-
     except
       if DidActivate and Tr.InTransaction then
         Tr.Rollback;
@@ -17020,9 +16982,11 @@ end;
 function TgdcBase.DeleteTheSame(AnID: Integer; AName: String): Boolean;
 begin
   Result := False;
+
   //Стандартные записи мы удалять не будем
   if AnID < cstUserIDStart then
-    Exit;
+    exit;
+
   if not (sLoadFromStream in BaseState) then
     raise EgdcException.Create('Объект должен быть в состоянии загрузки из потока!');
 
@@ -17030,11 +16994,9 @@ begin
   if Active and (not IsEmpty) then
   begin
     Delete;
-
     gdcBaseManager.DeleteRUIDByID(AnID, Transaction);
     Result := True;
   end;
-
 end;
 
 class function TgdcBase.SelectObject(const AMessage: String = '';
