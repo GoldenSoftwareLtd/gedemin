@@ -9,13 +9,13 @@ uses
 const
   WM_DBS_SETPARAMS             = WM_USER + 1;
   WM_DBS_CONNECT               = WM_USER + 2;
-  WM_DBS_SETCOMPANY            = WM_USER + 3;    
-  WM_DBS_SETCBBITEMS           = WM_USER + 4;
-  WM_DBS_TESTANDCREATEMETADATA = WM_USER + 5;
-  WM_DBS_SETCOMPANYNAME        = WM_USER + 6;
-  WM_DBS_CALCULATESALDO        = WM_USER + 7;
-  WM_DBS_PREPAREDB             = WM_USER + 8;
-  WM_DBS_DELETE                = WM_USER + 9;
+  WM_DBS_SETCBBITEMS           = WM_USER + 3;
+  WM_DBS_SETDOCWHERECLAUSE     = WM_USER + 4;
+  WM_DBS_SETCOMPANYNAME        = WM_USER + 5;
+  WM_DBS_TESTANDCREATEMETADATA = WM_USER + 6;
+  WM_DBS_PREPAREDB             = WM_USER + 7;
+  WM_DBS_CALCULATESALDO        = WM_USER + 8;
+  WM_DBS_DELETEDOCS            = WM_USER + 9;
   WM_DBS_RESTOREDB             = WM_USER + 10;
   WM_DBS_FINISHED              = WM_USER + 11;
   WM_DBS_DISCONNECT            = WM_USER + 12;
@@ -28,7 +28,8 @@ type
     FBusy: TidThreadSafeInteger;
     FCompanyName: TidThreadSafeString;
     FConnected: TidThreadSafeInteger;
-    FDatabaseName, FUserName, FPassword, FDocumentdateWhereClause: TidThreadSafeString;
+    FDatabaseName, FUserName, FPassword: TidThreadSafeString;
+    FDocumentdateWhereClause: TidThreadSafeString;
     FDBS: TgsDBSqueeze;
     FMessageStrList: TStringList;
     FOnSetItemsCbb: TCbbEvent;
@@ -50,7 +51,8 @@ type
     procedure Disconnect;
     procedure SetCompanyName(const ACompanyName: String);
     procedure SetDBParams(const ADatabaseName: String; const AUserName: String;
-      const APassword: String; const ADocumentdateWhereClause: String);
+      const APassword: String);
+    procedure SetDocumentdateWhereClause(const ADocumentdateWhereClause: String);
 
     property Busy: Boolean read GetBusy;
     property Connected: Boolean read GetConnected;
@@ -126,7 +128,6 @@ begin
         FDBS.DatabaseName := FDatabaseName.Value;
         FDBS.UserName := FUserName.Value;
         FDBS.Password := FPassword.Value;
-        FDBS.DocumentdateWhereClause := FDocumentdateWhereClause.Value;
         Result := True;
       end;
 
@@ -144,6 +145,22 @@ begin
         begin
           FBusy.Value := 1;
           FDBS.SetItemsCbbEvent;
+        end;
+        Result := True;
+      end;
+
+    WM_DBS_SETDOCWHERECLAUSE:
+      begin
+        FDBS.DocumentdateWhereClause := FDocumentdateWhereClause.Value;
+        Result := True;
+      end;
+
+    WM_DBS_SETCOMPANYNAME:
+      begin
+        if FConnected.Value = 1 then
+        begin
+          FBusy.Value := 1;
+          FDBS.CompanyName := FCompanyName.Value;
           PostThreadMessage(ThreadID, WM_DBS_TESTANDCREATEMETADATA, 0, 0);
         end;
         Result := True;
@@ -155,16 +172,16 @@ begin
         begin
           FBusy.Value := 1;
           FDBS.TestAndCreateMetadata;
+          PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
         end;
         Result := True;
       end;
 
-    WM_DBS_SETCOMPANYNAME:
+    WM_DBS_PREPAREDB:
       begin
         if FConnected.Value = 1 then
         begin
-          FBusy.Value := 1;
-          FDBS.CompanyName :=  FCompanyName.Value;
+          FDBS.PrepareDB;
           PostThreadMessage(ThreadID, WM_DBS_CALCULATESALDO, 0, 0);
         end;
         Result := True;
@@ -177,27 +194,17 @@ begin
           FBusy.Value := 1;
           FDBS.CalculateAcSaldo;
           //FDBS.CalculateInvSaldo;
-          PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
+          PostThreadMessage(ThreadID, WM_DBS_DELETEDOCS, 0, 0);
         end;
         Result := True;
       end;
 
-    WM_DBS_PREPAREDB:
-      begin
-        if FConnected.Value = 1 then
-        begin
-          FDBS.PrepareDB;
-          PostThreadMessage(ThreadID, WM_DBS_DELETE, 0, 0);
-        end;
-        Result := True;
-      end;
-
-    WM_DBS_DELETE:
+    WM_DBS_DELETEDOCS:
       begin
         if FConnected.Value = 1 then
         begin
           FBusy.Value := 1;
-          FDBS.Delete;
+          ///FDBS.DeleteDocuments;
           PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
         end;
         Result := True;
@@ -240,13 +247,18 @@ begin
 end;
 
 procedure TgsDBSqueezeThread.SetDBParams(const ADatabaseName: String; const AUserName: String;
-      const APassword: String; const ADocumentdateWhereClause: String);
+      const APassword: String);
 begin
   FDatabaseName.Value := ADatabaseName;
   FUserName.Value := AUserName;
   FPassword.Value := APassword;
-  FDocumentdateWhereClause.Value := ADocumentdateWhereClause;
   PostMsg(WM_DBS_SETPARAMS);
+end;
+
+procedure TgsDBSqueezeThread.SetDocumentdateWhereClause(const ADocumentdateWhereClause: String);
+begin
+  FDocumentdateWhereClause.Value := ADocumentdateWhereClause;
+  PostMsg(WM_DBS_SETDOCWHERECLAUSE);
 end;
 
 procedure TgsDBSqueezeThread.SetItemsCbb(const AMessageStrList: TStringList);

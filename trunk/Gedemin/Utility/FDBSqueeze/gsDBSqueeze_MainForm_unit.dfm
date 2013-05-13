@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 58
-  Top = 177
+  Left = 63
+  Top = 175
   BorderStyle = bsDialog
   Caption = 'gsDBSqueeze_MainForm'
   ClientHeight = 465
@@ -64,7 +64,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Width = 272
     Height = 21
     TabOrder = 0
-    Text = 'C:\_BP.fdb'
+    Text = 'C:\_AKSAMIT.fdb'
   end
   object edUserName: TEdit
     Left = 39
@@ -136,7 +136,7 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     Top = 208
     Width = 75
     Height = 21
-    Action = actSetCompanyName
+    Action = actGo
     Caption = 'Go!'
     ParentShowHint = False
     ShowHint = True
@@ -150,10 +150,10 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       OnExecute = actConnectExecute
       OnUpdate = actConnectUpdate
     end
-    object actSetCompanyName: TAction
-      Caption = 'actSetCompanyName'
-      OnExecute = actSetCompanyNameExecute
-      OnUpdate = actSetCompanyNameUpdate
+    object actGo: TAction
+      Caption = 'actGo'
+      OnExecute = actGoExecute
+      OnUpdate = actGoUpdate
     end
     object actDisconnect: TAction
       Caption = 'Disconnect'

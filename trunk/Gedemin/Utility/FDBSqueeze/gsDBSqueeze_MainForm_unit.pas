@@ -13,7 +13,7 @@ type
     ActionList: TActionList;
     actConnect: TAction;
     actDisconnect: TAction;
-    actSetCompanyName: TAction;
+    actGo: TAction;
     btnConnect: TButton;
     btnDisconnect: TButton;
     btnGo: TButton;
@@ -34,8 +34,8 @@ type
     procedure actConnectUpdate(Sender: TObject);
     procedure actDisconnectExecute(Sender: TObject);
     procedure actDisconnectUpdate(Sender: TObject);
-    procedure actSetCompanyNameExecute(Sender: TObject);
-    procedure actSetCompanyNameUpdate(Sender: TObject);
+    procedure actGoExecute(Sender: TObject);
+    procedure actGoUpdate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 
   private
@@ -72,8 +72,7 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actConnectExecute(Sender: TObject);
 begin
-  FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text,
-    edPassword.Text, FormatDateTime('dd.mm.yyyy', dtpDocumentdateWhereClause.Date));
+  FSThread.SetDBParams(edDatabaseName.Text, edUserName.Text, edPassword.Text);
   FSThread.Connect;
 end;
 
@@ -95,14 +94,15 @@ begin
   FSThread.Disconnect;
 end;
 
-procedure TgsDBSqueeze_MainForm.actSetCompanyNameExecute(Sender: TObject);
+procedure TgsDBSqueeze_MainForm.actGoExecute(Sender: TObject);
 begin
   FSThread.SetCompanyName(cbbCompany.Text);
+  FSThread.SetDocumentdateWhereClause(FormatDateTime('dd.mm.yyyy', dtpDocumentdateWhereClause.Date));
 end;
 
-procedure TgsDBSqueeze_MainForm.actSetCompanyNameUpdate(Sender: TObject);
+procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
 begin
-  actSetCompanyName.Enabled := FSThread.Connected;
+  actGo.Enabled := FSThread.Connected;
 end;
 
 procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;
