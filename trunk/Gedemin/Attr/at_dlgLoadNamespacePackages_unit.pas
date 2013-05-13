@@ -117,6 +117,7 @@ var
   Path: String;
 begin
   Path := eSearchPath.Text;
+  mInfo.Clear;
   if SelectDirectory(Path, [], 0) then
   begin
     eSearchPath.Text := Path;

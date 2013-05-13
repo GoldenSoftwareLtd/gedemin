@@ -35,7 +35,7 @@ type
 
     function GetNSState: TgsNSState;
     function CheckDBVersion: Boolean;
-    function CheckOnlyInDB: Boolean;
+    function CheckOnlyInDB: Boolean; 
     procedure FillInfo(S: TStrings);
     function Valid: Boolean;
   end;
@@ -45,6 +45,7 @@ type
     FLog: TNSLog;
     function Valid(ANode: TgsNSNode): Boolean;
     procedure CorrectFill;
+    procedure CorrectPack(const ARUID: String);
   public
     constructor Create;
     destructor Destroy; override;
@@ -85,7 +86,7 @@ begin
   S.Add('Версия в базе данных: ' + VersionInDB);
   S.Add('Путь: ' + ExtractFilePath(FileName));
   S.Add('Файл: ' + ExtractFileName(FileName));
-end;
+end;   
 
 function TgsNSNode.GetNSState: TgsNSState;
 var
@@ -452,6 +453,7 @@ begin
         and (Objects[I] as TgsNSNode).Valid
         and (not (Objects[I] as TgsNSNode).Internal) then
       begin
+        CorrectPack((Objects[I] as TgsNSNode).RUID);
         Temp := ATreeView.Items.AddChildObject(nil, (Objects[I] as TgsNSNode).Caption, Objects[I] as TgsNSNode);
         Temp.StateIndex := 2;
       end;
@@ -486,6 +488,28 @@ begin
       Parent.Free;
     end;
   end;  
+end;
+
+procedure TgsNSList.CorrectPack(const ARUID: String);
+var
+  Ind, I: Integer;
+  Node: TgsNSNode;
+begin
+  Ind := IndexOf(ARUID);
+  if Ind > -1 then
+  begin
+    Node := Objects[Ind] as TgsNSNode;
+    if not Node.Valid and Assigned(FLog) then
+      FLog('Файл (RUID = ' + Node.RUID + ') не найден!');
+    for I := 0 to Node.UsesList.Count - 1 do
+    begin
+      Ind := IndexOf(Node.UsesList[I]);
+      if  (Ind = -1) and Assigned(FLog) then
+        FLog('Файл (RUID = ' + Node.UsesList[I] + ') не найден!')
+      else
+        CorrectPack(Node.UsesList[I]);
+    end;
+  end;
 end;
 
 procedure TgsNSList.GetAllUses(const RUID: String; SL: TStringList);
