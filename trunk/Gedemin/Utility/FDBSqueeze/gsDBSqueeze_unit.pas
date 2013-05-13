@@ -386,11 +386,11 @@ var
         else
           q5.SQL.Add('  DEBITNCU, ' + '  DEBITCURR, ' + '  DEBITEQ');
 
-      {  for I := 0 to UsrFieldsList.Count - 1 do                                
+        for I := 0 to UsrFieldsList.Count - 1 do
         begin
-          if ((UsrFieldsList[I] <> ' ') and (UsrFieldsList[I] <> '') and (UsrFieldsList[I] <> NULL)) then
+          if q3.FieldByName(UsrFieldsList[I]).AsString <> '' then
             q5.SQL.Add(', ' + UsrFieldsList[I]);
-        end;              }                                                     { TODO: протестить }
+        end;                                                                    { TODO: протестить }
 
         q5.SQL.Add(') ' +
           'VALUES ( ' +
@@ -419,11 +419,11 @@ var
             ', '' ' + q3.FieldByName('SALDO_CURR').AsString + ' '' ' +
             ', '' ' + q3.FieldByName('SALDO_EQ').AsString + ' '' ');
 
-       { for I := 0 to UsrFieldsList.Count - 1 do
+        for I := 0 to UsrFieldsList.Count - 1 do
         begin
-          if ((UsrFieldsList[I] <> ' ') and (UsrFieldsList[I] <> '') and (UsrFieldsList[I] <> NULL)) then //test
-            q5.SQL.Add(', '' ' + q3.FieldByName(UsrFieldsList[I]).AsString + ' '' ');
-        end;  }
+          if q3.FieldByName(UsrFieldsList[I]).AsString <> '' then
+            q5.SQL.Add(', ''' + q3.FieldByName(UsrFieldsList[I]).AsString + ''' ');
+        end;
         q5.SQL.Add(')');
         q5.ExecQuery;
 
@@ -448,9 +448,11 @@ var
         else
           q5.SQL.Add('  DEBITNCU, ' + '  DEBITCURR, ' + '  DEBITEQ ');
 
-      {  for I := 0 to UsrFieldsList.Count - 1 do
-          q5.SQL.Add(', ' + UsrFieldsList[I]);        }
-
+        for I := 0 to UsrFieldsList.Count - 1 do
+        begin
+          if q3.FieldByName(UsrFieldsList[I]).AsString <> '' then
+            q5.SQL.Add(', ' + UsrFieldsList[I]);
+        end;
         q5.SQL.Add(') ' +
           'VALUES ( ' +
              'GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0), ' + ' '' ' +
@@ -478,9 +480,11 @@ var
             ', '' ' + q3.FieldByName('SALDO_CURR').AsString + ' '' ' +
             ', '' ' + q3.FieldByName('SALDO_EQ').AsString + ' '' ');
 
-      {  for I := 0 to UsrFieldsList.Count - 1 do
-          q5.SQL.Add(', '' ' + q3.FieldByName(UsrFieldsList[I]).AsString + ' '' '); }
-
+        for I := 0 to UsrFieldsList.Count - 1 do
+        begin
+          if q3.FieldByName(UsrFieldsList[I]).AsString <> '' then
+            q5.SQL.Add(', ''' + q3.FieldByName(UsrFieldsList[I]).AsString + ''' ');
+        end;
         q5.SQL.Add(')');
         q5.ExecQuery;
 
@@ -531,7 +535,7 @@ begin
     CreateMasterDoc;
     CreateDetailDoc;
     CalculateAcSaldo_CreateAcEntries;
-    DeleteOldAcEntry;
+    ///DeleteOldAcEntry;                                                         { TODO :  13.05.2013 12:04:10 }
     LogEvent('Calculating entry balance... OK');
   finally
     Tr.Free;
@@ -1240,7 +1244,7 @@ begin
     RestoreIndices;
     RestoreTriggers;
     RestorePkUniqueConstraints;
-    RestoreFKConstraints;
+    ///RestoreFKConstraints;                                                    { TODO:  13.05.2013 12:04:51 }
 
     Tr.Commit;
   finally
