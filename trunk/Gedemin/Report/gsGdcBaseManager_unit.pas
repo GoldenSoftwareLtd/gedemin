@@ -85,7 +85,7 @@ var
 begin
   if Assigned(gdcBaseManager) then
   begin
-    gdcBaseManager.GetFullRUIDByID(ID, FXID, FDBID);
+    gdcBaseManager.GetRUIDByID(ID, FXID, FDBID);
     XID := FXID;
     DBID := FDBID;
   end else

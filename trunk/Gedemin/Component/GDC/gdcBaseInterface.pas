@@ -54,7 +54,6 @@ type
     function GetIDByRUIDString(const RUID: TRUIDString; const Tr: TIBTransaction = nil): TID;
     function GetRUIDStringByID(const ID: TID; const Tr: TIBTransaction = nil): TRUIDString;
     procedure GetRUIDByID(const ID: TID; out XID, DBID: TID; const Tr: TIBTransaction = nil);
-    procedure GetFullRUIDByID(const ID: TID; out XID, DBID: TID);
     function ProcessSQL(const S: String): String;
     function AdjustMetaName(const S: String): String;
     function GetExplorer: IgdcBase;

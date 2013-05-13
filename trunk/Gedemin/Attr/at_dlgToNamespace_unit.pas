@@ -195,73 +195,71 @@ var
   gdcNamespace: TgdcNamespace;
   OL: TObjectList;
 begin
-  gdcNamespace := TgdcNamespace.Create(nil);
+  gdcNamespace := TgdcNamespace.CreateSingularByID(nil,
+    IBTransaction.DefaultDatabase, IBTransaction, lkup.CurrentKeyInt) as TgdcNamespace;
+  OL := TObjectList.Create(True);
   try
-    gdcnamespace.Transaction := IBTransaction;
-    gdcNamespace.SubSet := 'ByID';
-    gdcNamespace.ID := lkup.CurrentKeyInt;
-    gdcNamespace.Open;
-
-    OL := TObjectList.Create(True);
-    try
-      if not gdcNamespace.Eof then
+    for I := dbgrListLink.CheckBox.CheckList.Count - 1 downto 0 do
+    begin
+      if cdsLink.Locate('id', dbgrListLink.CheckBox.CheckList[I], []) then
       begin
-        for I := dbgrListLink.CheckBox.CheckList.Count - 1 downto 0 do
-        begin
-          if cdsLink.Locate('id', dbgrListLink.CheckBox.CheckList[I], []) then
-          begin
-             InstClass := GetClass(cdsLink.FieldByName('class').AsString);
-             if (InstClass <> nil) then
+         InstClass := GetClass(cdsLink.FieldByName('class').AsString);
+         if (InstClass <> nil) and InstClass.InheritsFrom(TgdcBase) then
+         begin
+           InstObj := CgdcBase(InstClass).CreateSubType(nil,
+             cdsLink.FieldByName('subtype').AsString, 'ByID');
+           try
+             InstObj.ID := cdsLink.FieldByName('id').AsInteger;
+             InstObj.Open;
+             if not InstObj.EOF then
              begin
-               InstObj := CgdcBase(InstClass).CreateSubType(nil,
-                 cdsLink.FieldByName('subtype').AsString, 'ByID');
-               try
-                 InstObj.ID := cdsLink.FieldByName('id').AsInteger;
-                 InstObj.Open;
-                 if not InstObj.EOF then
-                 begin
-                   gdcNamespace.AddObject2(InstObj, OL,
-                     cdsLink.FieldByName('headobject').AsString,
-                     Integer(cbAlwaysOverwrite.Checked),
-                     Integer(cbDontRemove.Checked),
-                     Integer(cbIncludeSiblings.Checked));
-                 end;
-               finally
-                 InstObj.Free;
-               end;
+               gdcNamespace.AddObject2(InstObj, OL,
+                 cdsLink.FieldByName('headobject').AsString,
+                 Integer(cbAlwaysOverwrite.Checked),
+                 Integer(cbDontRemove.Checked),
+                 Integer(cbIncludeSiblings.Checked));
              end;
-          end;
-        end;
+           finally
+             InstObj.Free;
+           end;
+         end;
+      end;
+    end;
 
-        Bm := FgdcObject.Bookmark;
-        FgdcObject.DisableControls;
-        try
-          if FBL <> nil then
+    if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) then
+      gdcNamespace.AddObject2(FgdcObject, OL, '',
+        Integer(cbAlwaysOverwrite.Checked),
+        Integer(cbDontRemove.Checked),
+        Integer(cbIncludeSiblings.Checked))
+    else begin
+      Bm := FgdcObject.Bookmark;
+      FgdcObject.DisableControls;
+      try
+        if FBL <> nil then
+        begin
+          FBL.Refresh;
+          for I := 0 to FBL.Count - 1 do
           begin
-            FBL.Refresh;
-            for I := 0 to FBL.Count - 1 do
-            begin
-              gdcNamespace.AddObject2(FgdcObject, OL, '',
-                Integer(cbAlwaysOverwrite.Checked),
-                Integer(cbDontRemove.Checked),
-                Integer(cbIncludeSiblings.Checked));
-            end;
-          end else
-          begin
+            FgdcObject.Bookmark := FBL[I];
             gdcNamespace.AddObject2(FgdcObject, OL, '',
               Integer(cbAlwaysOverwrite.Checked),
               Integer(cbDontRemove.Checked),
               Integer(cbIncludeSiblings.Checked));
           end;
-        finally
-          FgdcObject.Bookmark := Bm;
-          FgdcObject.EnableControls;
+        end else
+        begin
+          gdcNamespace.AddObject2(FgdcObject, OL, '',
+            Integer(cbAlwaysOverwrite.Checked),
+            Integer(cbDontRemove.Checked),
+            Integer(cbIncludeSiblings.Checked));
         end;
+      finally
+        FgdcObject.Bookmark := Bm;
+        FgdcObject.EnableControls;
       end;
-    finally
-      OL.Free;
     end;
   finally
+    OL.Free;
     gdcNamespace.Free;
   end;
 end;
@@ -274,26 +272,31 @@ begin
   cdsLink.DisableControls;
   try
     cdsLink.EmptyDataSet;
-    Bm := FgdcObject.Bookmark;
-    FgdcObject.DisableControls;
-    try
-      if Assigned(FBL) then
-      begin
-        FBL.Refresh;
-        for I := 0 to FBL.Count - 1 do
-        begin
-          FgdcObject.Bookmark := FBL[I];
-          TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction);
-        end;
-      end else
-        TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction);
 
-      if cdsLink.Active then
-        cdsLink.First;
-    finally
-      FgdcObject.Bookmark := Bm;
-      FgdcObject.EnableControls;
+    if (FgdcObject.State in [dsEdit, dsInsert]) or (FBL = nil) then
+      TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction)
+    else begin
+      Bm := FgdcObject.Bookmark;
+      FgdcObject.DisableControls;
+      try
+        if Assigned(FBL) then
+        begin
+          FBL.Refresh;
+          for I := 0 to FBL.Count - 1 do
+          begin
+            FgdcObject.Bookmark := FBL[I];
+            TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction);
+          end;
+        end else
+          TgdcNamespace.SetObjectLink(FgdcObject, cdsLink, IBTransaction);
+      finally
+        FgdcObject.Bookmark := Bm;
+        FgdcObject.EnableControls;
+      end;
     end;
+
+    if cdsLink.Active then
+      cdsLink.First;
   finally
     cdsLink.EnableControls;
   end;

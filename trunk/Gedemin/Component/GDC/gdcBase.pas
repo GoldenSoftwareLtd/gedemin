@@ -388,7 +388,6 @@ type
     function  GetRUIDStringByID(const ID: TID; const Tr: TIBTransaction = nil): TRUIDString;
     //Возвращает поля xid, dbid из таблицы gd_ruid по id
     //Если запись по id не найдена вернет xid = id, dbid = IBLogin.DBID
-    procedure GetFullRUIDByID(const ID: TID; out XID, DBID: TID);
     function ProcessSQL(const S: String): String;
     function AdjustMetaName(const S: String): String;
 
@@ -9373,7 +9372,7 @@ begin
       FIBSQL.ParamByName(fnDBID).AsInteger := DBID;
       FIBSQL.ExecQuery;
 
-      if FIBSQL.RecordCount = 0 then
+      if FIBSQL.EOF then
       begin
         Result.ID := -1;
         Result.Modified := 0;
@@ -9384,6 +9383,7 @@ begin
         Result.Modified := FIBSQL.FieldByName(fnModified).AsDateTime;
         Result.EditorKey := FIBSQL.FieldByName(fnEditorkey).AsInteger;
       end;
+      
       Result.XID := XID;
       Result.DBID := DBID;
     finally
@@ -9491,13 +9491,6 @@ end;
 function TgdcBaseManager.GetExplorer: IgdcBase;
 begin
   Result := FExplorer;
-end;
-
-procedure TgdcBaseManager.GetFullRUIDByID(const ID: TID; out XID,
-  DBID: TID);
-begin
-//Устарело
-  GetRUIDByID(ID, XID, DBID);
 end;
 
 function TgdcBaseManager.GetIDByRUID(const XID, DBID: TID; const Tr: TIBTransaction = nil): TID;
@@ -11803,7 +11796,7 @@ begin
     FIBSQL.ParamByName(fnID).AsInteger := AnID;
     FIBSQL.ExecQuery;
 
-    if FIBSQL.RecordCount = 0 then
+    if FIBSQL.EOF then
     begin
       Result.ID := AnID;
       Result.Modified := 0;
@@ -11818,7 +11811,6 @@ begin
       Result.XID := FIBSQL.FieldByName(fnxid).AsInteger;
       Result.DBID := FIBSQL.FieldByName(fndbid).AsInteger;
     end;
-
   finally
     FIBSQL.Close;
   end;

@@ -1523,7 +1523,6 @@ begin
 
               with N as TyamlSequence do
               begin
-
                 for J := 0 to Count - 1 do
                 begin
                   ObjMapping := Items[J] as TyamlMapping;
