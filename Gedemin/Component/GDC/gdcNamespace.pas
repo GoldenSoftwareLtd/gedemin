@@ -89,6 +89,8 @@ uses
   at_dlgLoadNamespacePackages_unit, at_Classes_body;
 
 type
+  TNSFound = (nsfNone, nsfByName, nsfByRUID);
+
   TgdcReferenceUpdate = class(TObject)
   public
     FieldName: String;
@@ -698,11 +700,54 @@ var
   Tr: TIBTransaction;
   RelName: String;
 
+  function LoadedNS(const Name: String; var RUID: String): TNSFound;
+  var
+    q: TIBSQL;
+    Temps: String;
+  begin
+    Result := nsfNone;
+    Temps := RUID;
+    RUID := '';
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := Tr;
+      q.SQL.Text := 'SELECT * FROM at_namespace n ' +
+        'LEFT JOIN gd_ruid r ON n.id = r.id ' +
+        'WHERE r.xid || ''_'' || r.dbid = :ruid';
+      q.ParamByName('ruid').AsString := Temps;
+      q.ExecQuery;
+
+      if not q.Eof then
+      begin
+        RUID := Temps;
+        Result := nsfByRUID;
+      end else
+      begin
+        q.Close;
+        q.SQL.Text := 'SELECT r.xid || ''_'' || r.dbid as ruid FROM at_namespace n ' +
+          'LEFT JOIN gd_ruid r ON n.id = r.id ' +
+          'WHERE UPPER(name) = UPPER(:name)';
+        q.ParamByName('name').AsString := Name;
+        q.ExecQuery;
+        if not q.Eof then
+        begin
+          RUID := q.Fields[0].AsString;
+          Result := nsfByName;
+        end;
+      end;
+    finally
+      q.Free;
+    end;   
+  end;
+
   procedure FillObjectsRUIDInDB(const RUID: String; SL: TStringList);
   var
     q: TIBSQL;
   begin
     Assert(SL <> nil);
+
+    if RUID = '' then
+      exit;
 
     q := TIBSQL.Create(nil);
     try
@@ -716,8 +761,11 @@ var
       q.ParamByName('ruid').AsString := RUID;
       q.ExecQuery;
 
-      if not q.Eof then
+      while not q.Eof do
+      begin
         SL.Add(q.FieldByName('ruid').AsString);
+        q.Next;
+      end;
     finally
       q.Free;
     end;
@@ -848,7 +896,7 @@ var
   var
     I: Integer;
     gdcNamespace: TgdcNamespace;
-    NSName, RUID: String;
+    NSName, RUID, TempS: String;
     q: TIBSQL;
     NSID: TID;
   begin
@@ -868,17 +916,13 @@ var
 
         if ParseReferenceString((Seq[I] as TyamlString).AsString, RUID, NSName) then
         begin
-          q.SQL.Text :=
-            'SELECT n.id ' +
-            'FROM at_namespace n ' +
-            '  JOIN gd_ruid r ON r.id = n.id ' +
-            'WHERE ' +
-            '  r.xid = :xid AND r.dbid = :dbid ';
-          q.ParamByName('xid').AsInteger := StrToRUID(RUID).XID;
-          q.ParamByName('dbid').AsInteger := StrToRUID(RUID).DBID;
-          q.ExecQuery;
-
-          if q.EOF then
+          TempS := RUID;
+          LoadedNS(NSName, TempS);
+          if TempS <> '' then
+          begin
+            NSID := gdcBaseManager.GetIDByRUIDString(
+              Temps, Tr);
+          end else
           begin
             gdcNamespace.Open;
             gdcNamespace.Insert;
@@ -886,8 +930,7 @@ var
             gdcNamespace.Post;
             NSID := gdcNamespace.ID;
             gdcNamespace.Close;
-          end else
-            NSID := q.FieldByName('id').AsInteger;
+          end; 
 
           if gdcBaseManager.GetRUIDRecByID(NSID, Tr).XID = -1 then
           begin
@@ -918,7 +961,7 @@ var
     end;
   end;
 
-  function UpdateNamespace(Source: TgdcNamespace; CurrOL, LoadOL: TStringList): Integer;
+  function UpdateNamespace(Source: TgdcNamespace; const RUID: String; CurrOL, LoadOL: TStringList): Integer;
   const
     DontCopyList = ';ID;NAME;NAMESPACEKEY;';
   var
@@ -927,6 +970,7 @@ var
     Dest: TgdcNamespace;
     DestObj: TgdcNamespaceObject;
     CurrName: String;
+    TempS: String;
   begin
     Dest := TgdcNamespace.Create(nil);
     try
@@ -934,26 +978,37 @@ var
       Dest.Transaction := Tr;
       Dest.ReadTransaction := Tr;
       Dest.SubSet := 'ByID';
-      Dest.ID := gdcBaseManager.GetIDByRUIDString(
-        Source.FieldByName('settingruid').AsString, Tr);
-      Dest.Open;
+      TempS := RUID;
 
-      if Dest.Eof then
-      begin
-        gdcBaseManager.DeleteRUIDbyXID(
-          StrToRUID(Source.FieldByName('settingruid').AsString).XID,
-          StrToRUID(Source.FieldByName('settingruid').AsString).DBID, Tr);
-        Dest.Close;
-        Dest.RemoveSubSet('ByID');
-        Dest.AddSubSet('ByName');
-        Dest.ParamByName(Dest.GetListField(Dest.SubType)).AsString := CurrName;
-        Dest.Open;
-        if Dest.Eof then
-          Dest.Insert
-        else
+      case LoadedNS(CurrName, TempS) of
+        nsfByRUID:
+        begin
+          Dest.ID := gdcBaseManager.GetIDByRUIDString(
+            Temps, Tr);
+          Dest.Open;
           Dest.Edit;
-      end else
-        Dest.Edit;
+        end;
+        nsfByName:
+        begin
+          gdcBaseManager.DeleteRUIDbyXID(
+            StrToRUID(RUID).XID,
+            StrToRUID(RUID).DBID, Tr);
+          Dest.ID := gdcBaseManager.GetIDByRUIDString(
+            Temps, Tr);
+          Dest.Open;
+          Dest.Edit;
+        end;
+        nsfNone:
+        begin
+          gdcBaseManager.DeleteRUIDbyXID(
+            StrToRUID(RUID).XID,
+            StrToRUID(RUID).DBID, Tr);
+          Dest.ID := -1;
+          Dest.Open;
+          Dest.Insert;
+        end;
+      end;
+
 
       for I := 0 to Dest.FieldCount - 1 do
       begin
@@ -962,19 +1017,19 @@ var
       end;
 
       Dest.FieldByName('name').AsString := CurrName;
-      Dest.Post;
+      Dest.Post; 
 
       if gdcBaseManager.GetRUIDRecByID(Dest.ID, Tr).XID = -1 then
       begin
         gdcBaseManager.InsertRUID(Dest.ID,
-          StrToRUID(Dest.FieldByName('settingruid').AsString).XID,
-          StrToRUID(Dest.FieldByName('settingruid').AsString).DBID,
+          StrToRUID(RUID).XID,
+          StrToRUID(RUID).DBID,
           Now, IBLogin.ContactKey, Tr);
       end else
       begin
         gdcBaseManager.UpdateRUIDByID(Dest.ID,
-          StrToRUID(Dest.FieldByName('settingruid').AsString).XID,
-          StrToRUID(Dest.FieldByName('settingruid').AsString).DBID,
+          StrToRUID(RUID).XID,
+          StrToRUID(RUID).DBID,
           Now, IBLogin.ContactKey, Tr);
       end;
 
@@ -1045,7 +1100,7 @@ var
   TempNamespaceID: Integer;
   M, ObjMapping: TyamlMapping;
   N: TyamlNode;
-  RUID, HeadRUID: String;
+  RUID, HeadRUID, LoadNSRUID: String;
   WasMetaData, WasMetaDataInSetting, SubTypeFound: Boolean;
   LoadClassName, LoadSubType: String;
   C: TClass;
@@ -1122,7 +1177,7 @@ begin
             atDatabase.SyncIndicesAndTriggers(Tr);   
 
             M := (Parser.YAMLStream[0] as TyamlDocument)[0] as TyamlMapping;
-            RUID := M.ReadString('Properties\RUID');
+            LoadNSRUID := M.ReadString('Properties\RUID');
             AddText('Начата загрузка пространства имен ' + M.ReadString('Properties\Name'), clBlack);
             gdcNamespace := TgdcNamespace.Create(nil);
             try
@@ -1136,13 +1191,14 @@ begin
               gdcNamespace.FieldByName('optional').AsInteger := Integer(M.ReadBoolean('Properties\Optional', False));
               gdcNamespace.FieldByName('internal').AsInteger := Integer(M.ReadBoolean('Properties\internal', True));
               gdcNamespace.FieldByName('comment').AsString := M.ReadString('Properties\Comment');
-              gdcNamespace.FieldByName('settingruid').AsString := RUID;
               gdcNamespace.Post;
               TempNamespaceID := gdcNamespace.ID;
             finally
               gdcNamespace.Free;
             end;
 
+            RUID := LoadNSRUID;
+            LoadedNS(M.ReadString('Properties\Name'), RUID); 
             FillObjectsRUIDInDB(RUID, CurrObjectsRUID);
 
             N := M.FindByName('Objects');
@@ -1323,7 +1379,7 @@ begin
               gdcNamespace.Open;
               if not gdcNamespace.Eof then
               begin
-                CurrID := UpdateNamespace(gdcNamespace, CurrObjectsRUID, LoadObjectsRUID);
+                CurrID := UpdateNamespace(gdcNamespace, LoadNSRUID, CurrObjectsRUID, LoadObjectsRUID);
                 gdcNamespace.Delete;
                 N := M.FindByName('USES');
                 if (N <> nil) and (N is TyamlSequence) and (CurrID > -1) then
@@ -1614,6 +1670,8 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
               (SourceFields.ReadString('name') = 'dfm')
               or
               CheckRUID(SourceFields.ReadString('name'))
+              or
+              (atDatabase.Relations.ByRelationName(SourceFields.ReadString('name')) <> nil)
             ) then
           begin
             TempS := TyamlScalar(N).AsString;
