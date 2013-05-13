@@ -1,6 +1,6 @@
 object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
-  Left = 376
-  Top = 214
+  Left = 373
+  Top = 131
   Width = 670
   Height = 584
   Caption = 'Загрузка пространств имен'
@@ -122,6 +122,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       Align = alClient
       Color = clWhite
       ReadOnly = True
+      ScrollBars = ssVertical
       TabOrder = 0
     end
     object pnlBottomRight: TPanel
