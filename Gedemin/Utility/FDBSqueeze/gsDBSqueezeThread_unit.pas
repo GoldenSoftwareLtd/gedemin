@@ -13,8 +13,8 @@ const
   WM_DBS_SETDOCWHERECLAUSE     = WM_USER + 4;
   WM_DBS_SETCOMPANYNAME        = WM_USER + 5;
   WM_DBS_TESTANDCREATEMETADATA = WM_USER + 6;
-  WM_DBS_PREPAREDB             = WM_USER + 7;
-  WM_DBS_CALCULATESALDO        = WM_USER + 8;
+  WM_DBS_CALCULATESALDO        = WM_USER + 7;
+  WM_DBS_PREPAREDB             = WM_USER + 8;
   WM_DBS_DELETEDOCS            = WM_USER + 9;
   WM_DBS_RESTOREDB             = WM_USER + 10;
   WM_DBS_FINISHED              = WM_USER + 11;
@@ -172,16 +172,6 @@ begin
         begin
           FBusy.Value := 1;
           FDBS.TestAndCreateMetadata;
-          PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
-        end;
-        Result := True;
-      end;
-
-    WM_DBS_PREPAREDB:
-      begin
-        if FConnected.Value = 1 then
-        begin
-          FDBS.PrepareDB;
           PostThreadMessage(ThreadID, WM_DBS_CALCULATESALDO, 0, 0);
         end;
         Result := True;
@@ -194,6 +184,17 @@ begin
           FBusy.Value := 1;
           FDBS.CalculateAcSaldo;
           //FDBS.CalculateInvSaldo;
+
+          PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
+        end;
+        Result := True;
+      end;
+
+    WM_DBS_PREPAREDB:
+      begin
+        if FConnected.Value = 1 then
+        begin
+          FDBS.PrepareDB;
           PostThreadMessage(ThreadID, WM_DBS_DELETEDOCS, 0, 0);
         end;
         Result := True;

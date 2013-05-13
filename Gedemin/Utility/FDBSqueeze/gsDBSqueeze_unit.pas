@@ -118,7 +118,7 @@ var
       '  WHERE companykey = ' +  ' ''' + CompanyKey + ''' ' +
       '    AND entrydate < ' + ' ''' + FDocumentdateWhereClause +  ''' ' +
       ') ';
-    q.ExecQuery;}                                                               {TODO: oчень долго}
+    q.ExecQuery;}                                                               /// долго
 
     q.SQL.Text :=
       'DELETE FROM AC_RECORD ' +
@@ -126,21 +126,12 @@ var
       '  AND recorddate < ' + ' ''' + FDocumentdateWhereClause +  ''' ';
     q.ExecQuery;
 
-    q.SQL.Text :=
-      'DELETE FROM AC_ENTRY ' +
-      'WHERE companykey = ' +  '''' + CompanyKey + ''' ' +
-      '  AND entrydate < ' + ' ''' + FDocumentdateWhereClause +  ''' ';
-    q.ExecQuery;
-
-    Tr.Commit;
-    Tr.StartTransaction;
-
-    q.SQL.Text :=
+    {q.SQL.Text :=
       'DELETE FROM ac_autoentry ' +
       'WHERE NOT EXISTS (SELECT id FROM ac_entry) ';
-    q.ExecQuery;
-    Tr.Commit;
+    q.ExecQuery;}
 
+    Tr.Commit;
     LogEvent('Deleting old entries... OK');
   end;
 
@@ -1063,7 +1054,7 @@ var
       '  JOIN rdb$index_segments ref_iseg ' +
       '    ON ref_iseg.rdb$index_name = c2.rdb$index_name ' +
       'WHERE ' +
-      '  (c.rdb$constraint_type = ''FOREIGN KEY'')  ' +                         {TODO: added test}
+      '  (c.rdb$constraint_type = ''FOREIGN KEY'')  ' +                        
       '  AND (NOT c.rdb$constraint_name LIKE ''RDB$%'') ' +
       '    AND (NOT c.rdb$constraint_name LIKE ''INTEG_%'') '  + // c.rdb$index_name LIKE ''INTEG_%'' '
       'GROUP BY ' +
@@ -1198,7 +1189,7 @@ var
     LogEvent('PKs&UNIQs restored.');
   end;
 
-  procedure RestoreFKConstraints;                                               {TODO: ошибка! FK_AC_AUTOENTRY_ENTRYKEY}
+  procedure RestoreFKConstraints;                                              
   begin
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
@@ -1343,7 +1334,7 @@ var
 
   procedure CreateDBSPkUniqueConstraints;
   begin
-    if RelationExist2('DBS_PK_UNIQUE_CONSTRAINTS', Tr) then
+    if RelationExist2('DBS_PK_UNIQUE_CONSTRAINTS', Tr) then                     {TODO: не выполняется RelationExist2}
     begin
       q.SQL.Text := 'DELETE FROM DBS_PK_UNIQUE_CONSTRAINTS';
       q.ExecQuery;
@@ -1363,9 +1354,9 @@ var
     end;
   end;
 
-  procedure CreateDBSFKConstraints;                                             {TODO: протестить}
+  procedure CreateDBSFKConstraints;
   begin
-    {if RelationExist2('DBS_FK_CONSTRAINTS', Tr) then
+    {if RelationExist2('DBS_FK_CONSTRAINTS', Tr) then                           
     begin
       q.SQL.Text := 'DELETE FROM DBS_FK_CONSTRAINTS';
       q.ExecQuery;
