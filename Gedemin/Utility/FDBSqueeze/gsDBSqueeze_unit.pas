@@ -109,8 +109,8 @@ var
 
   procedure DeleteOldAcEntry; // удаление старых бухгалтерских проводок
   begin
-    LogEvent('Deleting old entries...');                                        {TODO: Очень долго-искать проблему(?)}
-    {q.SQL.Text :=
+    LogEvent('Deleting old entries...');                                       
+    {q.SQL.Text :=                                                               
       'DELETE FROM AC_RECORD r ' +
       'WHERE r.id IN (' +
       '  SELECT DISTINCT recordkey ' +
@@ -118,21 +118,29 @@ var
       '  WHERE companykey = ' +  ' ''' + CompanyKey + ''' ' +
       '    AND entrydate < ' + ' ''' + FDocumentdateWhereClause +  ''' ' +
       ') ';
-    q.ExecQuery;}
+    q.ExecQuery;}                                                               {TODO: oчень долго}
 
-    q.SQL.Text := ' SELECT DISTINCT recordkey as rkey FROM AC_ENTRY ' +
-      'WHERE companykey = ' + '''' + CompanyKey + ''' ' +
+    q.SQL.Text :=
+      'DELETE FROM AC_RECORD ' +
+      'WHERE companykey = ' +  '''' + CompanyKey + ''' ' +
+      '  AND recorddate < ' + ' ''' + FDocumentdateWhereClause +  ''' ';
+    q.ExecQuery;
+
+    q.SQL.Text :=
+      'DELETE FROM AC_ENTRY ' +
+      'WHERE companykey = ' +  '''' + CompanyKey + ''' ' +
       '  AND entrydate < ' + ' ''' + FDocumentdateWhereClause +  ''' ';
     q.ExecQuery;
-    while not q.EOF do
-    begin
-      q2.SQL.Text := 'DELETE FROM AC_RECORD r WHERE r.id = ' +''''+ q.FieldByName('rkey').AsString + '''';
-      q2.ExecQuery;
-      q.Next;
-    end;
-    q.Close;
 
     Tr.Commit;
+    Tr.StartTransaction;
+
+    q.SQL.Text :=
+      'DELETE FROM ac_autoentry ' +
+      'WHERE NOT EXISTS (SELECT id FROM ac_entry) ';
+    q.ExecQuery;
+    Tr.Commit;
+
     LogEvent('Deleting old entries... OK');
   end;
 
@@ -187,7 +195,7 @@ var
     LogEvent('Master document has been created.');
   end;
 
-  procedure CreateDetailDoc;                                                    {TODO: можно использовать вместо него masterDoc}
+  procedure CreateDetailDoc;                                                    { TODO: избыточен. можно вместо Detail использовать MasterDoc }
   begin
     q.SQL.Text :=
       'SELECT ' +
@@ -354,20 +362,8 @@ var
         q4.ExecQuery;
 
         DecimalSeparator := '.';   // тип Currency в SQL имееет DecimalSeparator = ','
-       { ///test
-        LogEvent('SALDO_NCU=' + q3.FieldByName('SALDO_NCU').AsString + '  ');
-        LogEvent(CurrToStr(q3.FieldByName('SALDO_NCU').AsCurrency));
-        LogEvent('SALDO_CURR=' + q3.FieldByName('SALDO_CURR').AsString + '  ');
-        LogEvent(CurrToStr(Abs(q3.FieldByName('SALDO_CURR').AsCurrency)));
-        LogEvent('SALDO_EQ=' + q3.FieldByName('SALDO_EQ').AsString + '  ');
-        LogEvent(CurrToStr(Abs(q3.FieldByName('SALDO_EQ').AsCurrency)));
-        LogEvent('UsrFieldsList: ');
-        for I := 0 to UsrFieldsList.Count - 1 do
-          LogEvent(', ' + UsrFieldsList[I]);
-        LogEvent('end UsrFieldsList');
-        ///  }
 
-        q5.SQL.Text :=                                                          { TODO : error при включенных FK (AC_FK_ENTRY_RK) }
+        q5.SQL.Text :=                                                          
           'INSERT INTO ac_entry (' +
           '  ID, ' +
           '  ENTRYDATE, ' +
@@ -390,7 +386,7 @@ var
         begin
           if q3.FieldByName(UsrFieldsList[I]).AsString <> '' then
             q5.SQL.Add(', ' + UsrFieldsList[I]);
-        end;                                                                    { TODO: протестить }
+        end;                                                                    
 
         q5.SQL.Add(') ' +
           'VALUES ( ' +
@@ -535,7 +531,7 @@ begin
     CreateMasterDoc;
     CreateDetailDoc;
     CalculateAcSaldo_CreateAcEntries;
-    ///DeleteOldAcEntry;                                                         { TODO :  13.05.2013 12:04:10 }
+    DeleteOldAcEntry;                                                        
     LogEvent('Calculating entry balance... OK');
   finally
     Tr.Free;
@@ -1202,7 +1198,7 @@ var
     LogEvent('PKs&UNIQs restored.');
   end;
 
-  procedure RestoreFKConstraints;                                               {TODO: ошибка! AC_ENTRY  FK}
+  procedure RestoreFKConstraints;                                               {TODO: ошибка! FK_AC_AUTOENTRY_ENTRYKEY}
   begin
     q.SQL.Text :=
       'EXECUTE BLOCK ' +
@@ -1244,7 +1240,7 @@ begin
     RestoreIndices;
     RestoreTriggers;
     RestorePkUniqueConstraints;
-    ///RestoreFKConstraints;                                                    { TODO:  13.05.2013 12:04:51 }
+    RestoreFKConstraints;                                                    
 
     Tr.Commit;
   finally
