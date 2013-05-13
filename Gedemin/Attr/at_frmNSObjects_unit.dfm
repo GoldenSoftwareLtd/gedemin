@@ -1,6 +1,6 @@
 object at_frmNSObjects: Tat_frmNSObjects
-  Left = 288
-  Top = 48
+  Left = 302
+  Top = 132
   Width = 1142
   Height = 654
   Caption = 'Список объектов'
@@ -107,7 +107,7 @@ object at_frmNSObjects: Tat_frmNSObjects
     Transaction = ibtr
     SelectSQL.Strings = (
       'SELECT'
-      '  '#39'TgdcReport'#39' AS ObjectClass,'
+      '  CAST('#39'TgdcReport'#39' AS VARCHAR(60)) AS ObjectClass,'
       '  '#39#39' AS SubType,'
       '  ruid.xid,'
       '  ruid.dbid,'

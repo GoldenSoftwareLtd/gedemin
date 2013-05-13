@@ -14309,7 +14309,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Script
 
@@ -14403,23 +14403,19 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE TRIGGER evt_bi_object FOR evt_object
+CREATE OR ALTER TRIGGER evt_bi_object FOR evt_object
   BEFORE INSERT
   POSITION 0
 AS
 BEGIN
-  /* Если ключ не присвоен, присваиваем */
   IF (NEW.ID IS NULL) THEN
     NEW.ID = GEN_ID(gd_g_unique, 1) + GEN_ID(gd_g_offset, 0);
 
-  IF (NEW.parent IS NULL) THEN
-    NEW.parentindex = 1;
-  ELSE
-    NEW.parentindex = NEW.parent;
+  NEW.parentindex = COALESCE(NEW.parent, 1);
 END
 ^
 
-CREATE TRIGGER evt_bi_object1 FOR evt_object
+CREATE OR ALTER TRIGGER evt_bi_object1 FOR evt_object
   ACTIVE
   BEFORE INSERT
   POSITION 1
@@ -14464,7 +14460,7 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER evt_bi_object2 FOR evt_object
+CREATE OR ALTER TRIGGER evt_bi_object2 FOR evt_object
   ACTIVE
   BEFORE INSERT
   POSITION 2
@@ -14476,7 +14472,7 @@ BEGIN
     WHERE
     (UPPER(objectname) = UPPER(NEW.objectname))  AND
     (UPPER(classname) = UPPER(NEW.classname)) AND
-    (parentindex = NEW.parentindex) AND
+    (parent IS NOT DISTINCT FROM NEW.parent) AND
     (UPPER(subtype) = UPPER(NEW.subtype)) AND
     (id <> NEW.id)))
   THEN
@@ -14502,19 +14498,16 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER evt_bu_object FOR evt_object
+CREATE OR ALTER TRIGGER evt_bu_object FOR evt_object
   BEFORE UPDATE
   POSITION 0
 AS
 BEGIN
-  IF (NEW.parent IS NULL) THEN
-    NEW.parentindex = 1;
-  ELSE
-    NEW.parentindex = NEW.parent;
+  NEW.parentindex = COALESCE(NEW.parent, 1);
 END
 ^
 
-CREATE TRIGGER evt_bu_object1 FOR evt_object
+CREATE OR ALTER TRIGGER evt_bu_object1 FOR evt_object
 ACTIVE BEFORE UPDATE POSITION 1
 AS
 BEGIN
@@ -14557,7 +14550,7 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER evt_bu_object2 FOR evt_object
+CREATE OR ALTER TRIGGER evt_bu_object2 FOR evt_object
   ACTIVE
   BEFORE UPDATE
   POSITION 2
@@ -14569,7 +14562,7 @@ BEGIN
     WHERE
     (UPPER(objectname) = UPPER(NEW.objectname))  AND
     (UPPER(classname) = UPPER(NEW.classname)) AND
-    (parentindex = NEW.parentindex) AND
+    (parent IS NOT DISTINCT FROM NEW.parent) AND
     (UPPER(subtype) = UPPER(NEW.subtype)) AND
     (id <> NEW.id)))
   THEN
@@ -14595,7 +14588,7 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER evt_bi_object5 FOR evt_object
+CREATE OR ALTER TRIGGER evt_bi_object5 FOR evt_object
   BEFORE INSERT
   POSITION 5
 AS
@@ -14608,7 +14601,7 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER evt_bu_object5 FOR evt_object
+CREATE OR ALTER TRIGGER evt_bu_object5 FOR evt_object
   BEFORE UPDATE
   POSITION 5
 AS
@@ -14668,7 +14661,7 @@ CREATE UNIQUE INDEX evt_idx_objectevent ON evt_objectevent (eventname, objectkey
 COMMIT;
 
 SET TERM ^ ;
-CREATE TRIGGER evt_bi_objectevent5 FOR evt_objectevent
+CREATE OR ALTER TRIGGER evt_bi_objectevent5 FOR evt_objectevent
   BEFORE INSERT POSITION 5
 AS
 BEGIN
@@ -14679,7 +14672,7 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER evt_bu_objectevent5 FOR evt_objectevent
+CREATE OR ALTER TRIGGER evt_bu_objectevent5 FOR evt_objectevent
   BEFORE UPDATE POSITION 5
 AS
 BEGIN
@@ -14739,7 +14732,7 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE TRIGGER evt_bi_macrosgroup5 FOR evt_macrosgroup
+CREATE OR ALTER TRIGGER evt_bi_macrosgroup5 FOR evt_macrosgroup
   BEFORE INSERT POSITION 5
 AS
 BEGIN
@@ -14750,7 +14743,7 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER evt_bu_macrosgroup5 FOR evt_macrosgroup
+CREATE OR ALTER TRIGGER evt_bu_macrosgroup5 FOR evt_macrosgroup
   BEFORE UPDATE POSITION 5
 AS
 BEGIN
@@ -14823,7 +14816,7 @@ COMMIT;
 
 SET TERM ^ ;
 
-CREATE TRIGGER evt_bi_macroslist5 FOR evt_macroslist
+CREATE OR ALTER TRIGGER evt_bi_macroslist5 FOR evt_macroslist
   BEFORE INSERT POSITION 5
 AS
 BEGIN
@@ -14834,7 +14827,7 @@ BEGIN
 END
 ^
 
-CREATE TRIGGER evt_bu_macroslist5 FOR evt_macroslist
+CREATE OR ALTER TRIGGER evt_bu_macroslist5 FOR evt_macroslist
   BEFORE UPDATE POSITION 5
 AS
 BEGIN
@@ -21390,8 +21383,8 @@ INSERT INTO EVT_MACROSGROUP (ID, LB, RB, NAME, ISGLOBAL)
   VALUES (1020001, 1, 2, 'Глобальные макросы', 1);
 
 /*Поле name должно будет удалено*/
-INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACROSGROUPKEY, PARENTINDEX, OBJECTNAME)
-  VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 1, 'APPLICATION');
+INSERT INTO EVT_OBJECT (ID, NAME, LB, RB, AFULL, ACHAG, AVIEW, OBJECTTYPE, MACROSGROUPKEY, OBJECTNAME)
+  VALUES (1010001, 'APPLICATION', 1, 2, -1, -1, -1, 0, 1020001, 'APPLICATION');
 
 COMMIT;
 
