@@ -67,6 +67,7 @@ procedure DropView(View: TmdfView; Db: TIBDataBase);
 function ConstraintExist(Constraint: TmdfConstraint; Db: TIBDataBase): Boolean;
 function ConstraintExist2(const ATableName, AConstraintName: String; ATr: TIBTransaction): Boolean;
 procedure DropConstraint(Constraint: TmdfConstraint; Db: TIBDataBase);
+procedure DropConstraint2(const ATableName, AConstraintName: String; ATr: TIBTransaction);
 procedure AddConstraint(Constraint: TmdfConstraint; Db: TIBDataBase);
 
 function IndexExist2(const AnIndexName: String; ATr: TIBTransaction): boolean;
@@ -401,6 +402,25 @@ begin
       Transaction.Commit;
     finally
       Transaction.Free;
+    end;
+  end;
+end;
+
+procedure DropConstraint2(const ATableName, AConstraintName: String; ATr: TIBTransaction);
+var
+  SQL: TIBSQL;
+begin
+  if ConstraintExist2(ATableName, AConstraintName, ATr) then
+  begin
+    SQL := TIBSQL.Create(nil);
+    try
+      SQL.Transaction := ATr;
+      SQL.SQL.Text :=
+        'ALTER TABLE ' + ATableName +
+        ' DROP CONSTRAINT ' + AConstraintName;
+      SQL.ExecQuery;
+    finally
+      SQl.Free;
     end;
   end;
 end;

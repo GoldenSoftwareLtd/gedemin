@@ -11,6 +11,7 @@ procedure AddNSMetadata(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue2846(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue2688(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddUqConstraintToGD_RUID(IBDB: TIBDatabase; Log: TModifyLog);
+procedure DropConstraintFromAT_OBJECT(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -568,6 +569,87 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (166, ''0000.0001.0000.0197'', ''11.05.2013'', ''Added unique constraint on xid, dbid fields to gd_ruid table.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure DropConstraintFromAT_OBJECT(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      DropConstraint2('at_object', 'at_fk_object_ruid', Tr);
+
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER at_biu_object FOR at_object'#13#10 +
+        '  ACTIVE'#13#10 +
+        '  BEFORE INSERT OR UPDATE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF (NEW.id IS NULL) THEN'#13#10 +
+        '    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);'#13#10 +
+        ''#13#10 +
+        '  IF ((NEW.xid < 147000000 AND NEW.dbid = 17) OR EXISTS(SELECT * FROM gd_ruid'#13#10 +
+        '    WHERE xid = NEW.xid AND dbid = NEW.dbid)) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    IF (NEW.objectpos IS NULL) THEN'#13#10 +
+        '    BEGIN'#13#10 +
+        '      SELECT MAX(objectpos) + 1'#13#10 +
+        '      FROM at_object'#13#10 +
+        '      WHERE namespacekey = NEW.namespacekey'#13#10 +
+        '      INTO NEW.objectpos;'#13#10 +
+        ''#13#10 +
+        '      IF (NEW.objectpos IS NULL) THEN'#13#10 +
+        '        NEW.objectpos = 0;'#13#10 +
+        '    END ELSE'#13#10 +
+        '    IF (INSERTING) THEN'#13#10 +
+        '    BEGIN'#13#10 +
+        '      UPDATE at_object SET objectpos = objectpos + 1'#13#10 +
+        '      WHERE objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey;'#13#10 +
+        '    END'#13#10 +
+        ''#13#10 +
+        '    IF (UPDATING) THEN'#13#10 +
+        '    BEGIN'#13#10 +
+        '      IF (NEW.namespacekey <> OLD.namespacekey) THEN'#13#10 +
+        '        UPDATE at_object SET namespacekey = NEW.namespacekey'#13#10 +
+        '        WHERE headobjectkey = NEW.id;'#13#10 +
+        '    END'#13#10 +
+        '  END ELSE'#13#10 +
+        '    EXCEPTION gd_e_invalid_ruid ''Invalid ruid. XID = '' ||'#13#10 +
+        '      NEW.xid || '', DBID = '' || NEW.dbid || ''.'';'#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (167, ''0000.0001.0000.0198'', ''14.05.2013'', ''Drop FK to gd_ruid in at_object.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
