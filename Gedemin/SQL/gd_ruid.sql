@@ -66,7 +66,7 @@ END
 CREATE EXCEPTION gd_e_invalid_ruid 'Invalid ruid specified'
 ^
 
-CREATE PROCEDURE GD_P_GETID(XID INTEGER, DBID INTEGER)
+CREATE OR ALTER PROCEDURE GD_P_GETID(XID INTEGER, DBID INTEGER)
   RETURNS (ID INTEGER)
 AS
 BEGIN
@@ -79,7 +79,8 @@ BEGIN
 
   IF (ID IS NULL) THEN
   BEGIN
-    EXCEPTION gd_e_invalid_ruid;
+    EXCEPTION gd_e_invalid_ruid 'Invalid ruid. XID = ' ||
+      :XID || ', DBID = ' || :DBID || '.';
   END
 
   SUSPEND;

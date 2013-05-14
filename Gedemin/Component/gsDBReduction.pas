@@ -423,7 +423,11 @@ begin
   FReductionTable := TReductionTable.Create;
   FTransferData := True;
 
+  {$IFDEF DUNIT_TEST}
+  FIgnoryQuestion := True;
+  {$ELSE}
   FIgnoryQuestion := False;
+  {$ENDIF}
 
   FDatabase := nil;
   FTransaction := nil;
