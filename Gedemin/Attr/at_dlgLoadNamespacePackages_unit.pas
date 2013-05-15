@@ -70,7 +70,7 @@ uses
   gd_GlobalParams_unit, gd_security, gdcBaseInterface, IBDatabase,  gd_KeyAssoc;
 
 const
-  TItemColor: array [TgsNSState] of TColor = (clBlack, clBlack, clBlack, clGray, clBlack);
+  TItemColor: array [TgsNSState] of TColor = (clBlack, clBlack, clRed, clGray, clBlack);
   TItemFontStyles: array [TgsNSState] of TFontStyles = ([], [fsBold], [fsBold], [], []);
   InvalidFile = clRed;
 
