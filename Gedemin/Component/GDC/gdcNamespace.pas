@@ -1040,6 +1040,11 @@ var
       q := TIBSQL.Create(nil);
       try
         q.Transaction := Tr;
+        q.SQL.Text := 'DELETE FROM at_object WHERE namespacekey = :nsk';
+        q.ParamByName('nsk').AsInteger := Dest.ID;
+        q.ExecQuery;
+        q.Close;
+        
         q.SQL.Text := 'UPDATE at_object SET namespacekey = :nsk1 WHERE namespacekey = :nsk2';
         q.ParamByName('nsk1').AsInteger := Dest.ID;
         q.ParamByName('nsk2').AsInteger := Source.ID;
