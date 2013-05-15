@@ -195,7 +195,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
           Height = 13
           Caption = 'В файле новая версия пакета '
           Font.Charset = DEFAULT_CHARSET
-          Font.Color = clWindowText
+          Font.Color = clRed
           Font.Height = -11
           Font.Name = 'Tahoma'
           Font.Style = [fsBold]
