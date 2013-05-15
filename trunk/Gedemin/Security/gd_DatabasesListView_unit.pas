@@ -30,7 +30,7 @@ type
     actImport: TAction;
     TBSeparatorItem2: TTBSeparatorItem;
     TBItem1: TTBItem;
-    Button1: TButton;
+    btnCancel: TButton;
     actCancel: TAction;
     edFilter: TEdit;
     TBControlItem2: TTBControlItem;
@@ -63,6 +63,9 @@ type
     procedure actCopyExecute(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure alUpdate(Action: TBasicAction; var Handled: Boolean);
+    procedure actCancelUpdate(Sender: TObject);
+    procedure actBackupUpdate(Sender: TObject);
+    procedure actRestoreUpdate(Sender: TObject);
 
   private
     FChosen: Tgd_DatabaseItem;
@@ -351,6 +354,21 @@ begin
       Handled := True;
     end;
   end;
+end;
+
+procedure Tgd_DatabasesListView.actCancelUpdate(Sender: TObject);
+begin
+  actCancel.Enabled := True;
+end;
+
+procedure Tgd_DatabasesListView.actBackupUpdate(Sender: TObject);
+begin
+  actBackup.Enabled := True;
+end;
+
+procedure Tgd_DatabasesListView.actRestoreUpdate(Sender: TObject);
+begin
+  actRestore.Enabled := True;
 end;
 
 end.

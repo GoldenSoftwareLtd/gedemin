@@ -1722,6 +1722,9 @@ begin
   gdcObject.First;
   while not gdcObject.EOF do
   begin
+    (gdcDetailObject as TgdcSettingPos).Valid;
+    gdcDetailObject.First;
+    (gdcObject as TgdcSetting).SaveSettingToBlob(sttBinaryOld);
     SaveObjectToNS;
     gdcObject.Next;
   end;
