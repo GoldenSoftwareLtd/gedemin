@@ -43,6 +43,7 @@ type
   TgsNSList = class(TStringList)
   private
     FLog: TNSLog;
+    FErrorNS: TStringList;
     function Valid(ANode: TgsNSNode): Boolean;
     procedure CorrectFill;
     procedure CorrectPack(const ARUID: String);
@@ -127,11 +128,15 @@ begin
   inherited;
   Sorted := True;
   Duplicates := dupError;
+  FErrorNS := TStringList.Create;
+  FErrorNS.Sorted := True;
+  FErrorNS.Duplicates := dupIgnore;
 end;
 
 destructor TgsNSList.Destroy;
 begin
   Clear;
+  FErrorNS.Free;
   inherited;
 end;
 
@@ -201,24 +206,28 @@ begin
     for I := 0 to Count - 1 do
     begin
       N := Objects[I] as TgsNSNode;
-      if N.NamespaceName = '' then
+      if (N.NamespaceName = '') then
       begin
-        q.Close;
-        q.ParamByName('n').AsString := N.Name;
-        q.ExecQuery;
-
-        if not q.Eof then
+        if N.Valid then
         begin
-          N.VersionInDB := q.Fields[2].AsString;
-          N.Namespacekey := q.Fields[0].AsInteger;
-          N.NamespaceName := q.Fields[1].AsString;
-          N.NamespaceTimestamp := q.Fields[3].AsDateTime;
-          if Assigned(FLog) then
-            FLog('Пространство имен "' + N.Name + '" найдено по имени.');
-          Ind := IndexOf(q.Fields[4].AsString);
-          if (Ind > - 1) and (not (Objects[Ind] as TgsNSNode).Valid) then
-            SL.Add(q.Fields[4].AsString);
-        end;
+          q.Close;
+          q.ParamByName('n').AsString := N.Name;
+          q.ExecQuery;
+
+          if not q.Eof then
+          begin
+            N.VersionInDB := q.Fields[2].AsString;
+            N.Namespacekey := q.Fields[0].AsInteger;
+            N.NamespaceName := q.Fields[1].AsString;
+            N.NamespaceTimestamp := q.Fields[3].AsDateTime;
+            if Assigned(FLog) then
+              FLog('Пространство имен "' + N.Name + '" найдено по имени.');
+            Ind := IndexOf(q.Fields[4].AsString);
+            if (Ind > - 1) and (not (Objects[Ind] as TgsNSNode).Valid) then
+              SL.Add(q.Fields[4].AsString);
+          end;
+        end else
+          SL.Add(N.RUID);
       end;
     end;
 
@@ -397,7 +406,7 @@ begin
       for I := 0 to SL.Count - 1 do
         GetYAMLNode(SL[I], NSL);
 
-      FillInNamespace;
+      FillInNamespace;  
       CorrectFill;
     end;
   finally   
@@ -430,8 +439,12 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
       Ind := IndexOf(yamlNode.UsesList[I]);
       if  Ind = -1 then
       begin
-        if Assigned(FLog) then
-          FLog('Файл (RUID = ' + yamlNode.UsesList[I] + ') не найден!');
+        if Assigned(FLog) and (FErrorNS.IndexOf(yamlNode.Name) = -1) then
+        begin
+          FLog('Файл (RUID = ' + yamlNode.UsesList[I] + ') не найден! Пространство имен ''' +
+            yamlNode.Name + ''' установится некорректно!');
+          FErrorNS.Add(yamlNode.Name);
+        end;
       end else
         AddNode(Temp, Objects[Ind] as TgsNSNode);
     end;
@@ -444,7 +457,8 @@ var
   Temp: TTreeNode;
 begin
   Assert(ATreeView <> nil);
-
+  FErrorNS.Clear;
+  
   if not AnInternal then
   begin
     for I := 0 to Count - 1 do
@@ -504,9 +518,14 @@ begin
     for I := 0 to Node.UsesList.Count - 1 do
     begin
       Ind := IndexOf(Node.UsesList[I]);
-      if  (Ind = -1) and Assigned(FLog) then
-        FLog('Файл (RUID = ' + Node.UsesList[I] + ') не найден!')
-      else
+      if  (Ind = -1)
+        and (FErrorNS.IndexOf(Node.Name) = -1)
+        and Assigned(FLog) then
+      begin
+        FLog('Файл (RUID = ' + Node.UsesList[I] + ') не найден! Пространство имен ''' +
+          Node.Name + ''' установится некорректно!');
+        FErrorNS.Add(Node.Name);
+     end else
         CorrectPack(Node.UsesList[I]);
     end;
   end;
