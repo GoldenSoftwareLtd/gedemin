@@ -95,13 +95,6 @@ var
   Port: Integer;
 begin
   edServer.Text := IBLogin.ServerName;
-
-  {if (edServer.Text = '') and IBLogin.LoggedIn then
-  begin
-    edServer.Visible := False;
-    lblServer.Visible := False;
-  end;}
-
   edDatabase.Text := '';
 
   if IBLogin.LoggedIn then

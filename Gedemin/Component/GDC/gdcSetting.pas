@@ -1201,19 +1201,10 @@ begin
           FreeAndNil(BlobStream);
         end;
 
-        // 22.03.2010: Мы больше не используем отдельное сохранение хранилища
-        {BlobStream := CreateBlobStream(FieldByName('StorageData'), bmWrite);
-        try
-          BlobStream.CopyFrom(StorageStream, 0);
-        finally
-          FreeAndNil(BlobStream);
-        end;}
-
         FieldByName('modifydate').AsDateTime := Now;
         FieldByName('version').AsInteger := FieldByName('version').AsInteger + 1;
 
         Post;
-
       except
         on E: Exception do
         begin
@@ -1542,11 +1533,6 @@ begin
       ibsqlPos.Free;
     end;
   end;
-
-  // Вынесем скрытые записи в позиции настройки
-  {if Assigned(atDatabase) and Assigned(atDatabase.FindRelationField('AT_SETTINGPOS', 'AUTOADDED'))
-     and InNewFormatTemp then
-    Self.AddMissedPositions;}
 end;
 
 procedure TgdcSetting.DoBeforeEdit;

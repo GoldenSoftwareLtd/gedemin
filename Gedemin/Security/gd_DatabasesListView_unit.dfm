@@ -1,6 +1,6 @@
 object gd_DatabasesListView: Tgd_DatabasesListView
-  Left = 349
-  Top = 113
+  Left = 677
+  Top = 354
   Width = 741
   Height = 606
   Caption = 'Список баз данных'
@@ -41,7 +41,7 @@ object gd_DatabasesListView: Tgd_DatabasesListView
         Default = True
         TabOrder = 0
       end
-      object Button1: TButton
+      object btnCancel: TButton
         Left = 104
         Top = 7
         Width = 75
@@ -177,8 +177,8 @@ object gd_DatabasesListView: Tgd_DatabasesListView
   object al: TActionList
     Images = dmImages.il16x16
     OnUpdate = alUpdate
-    Left = 32
-    Top = 232
+    Left = 240
+    Top = 208
     object actOk: TAction
       Caption = 'Сохранить'
       OnExecute = actOkExecute
@@ -211,16 +211,19 @@ object gd_DatabasesListView: Tgd_DatabasesListView
     object actCancel: TAction
       Caption = 'Отмена'
       OnExecute = actCancelExecute
+      OnUpdate = actCancelUpdate
     end
     object actBackup: TAction
       Caption = 'Архивное копирование...'
       ImageIndex = 109
       OnExecute = actBackupExecute
+      OnUpdate = actBackupUpdate
     end
     object actRestore: TAction
       Caption = 'Восстановление из архива...'
       ImageIndex = 106
       OnExecute = actRestoreExecute
+      OnUpdate = actRestoreUpdate
     end
     object actCopy: TAction
       Caption = 'Дублировать...'
