@@ -222,6 +222,7 @@ object dlgToNamespace: TdlgToNamespace
       ParentShowHint = False
       ShowHint = True
       TabOrder = 0
+      OnChange = lkupChange
     end
     object edObjectName: TEdit
       Left = 8
