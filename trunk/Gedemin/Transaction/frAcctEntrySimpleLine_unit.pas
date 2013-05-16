@@ -426,7 +426,7 @@ var
   atF: TatRelationField;
   F: TField;
   S: TStrings;
-  V, N, sTmp: string;
+  V, sTmp: string;
 begin
   if FDataSet <> nil then
   begin
@@ -484,10 +484,9 @@ begin
           S.Text := frQuantity.Values;
           for I := 0 to S.Count - 1 do
           begin
-            N := S.Names[I];
             gdcQuantity.Insert;
-            gdcQuantity.FieldByName('valuekey').AsInteger := StrToInt(N);
-            gdcQuantity.FieldByName('quantity').AsCurrency := StrToCurr(S.Values[N]);
+            gdcQuantity.FieldByName('valuekey').AsString := S.Names[I];
+            gdcQuantity.FieldByName('quantity').AsString := S.Values[S.Names[I]];
             gdcQuantity.Post;
           end;
         finally

@@ -61,8 +61,8 @@ type
 implementation
 
 uses
-  Windows, SysUtils, ComCtrls, gd_common_functions, gd_FileList_unit, yaml_parser,
-  IB, IBSQL, gdcBaseInterface, jclFileUtils, Forms, gd_security;
+  Windows, SysUtils, ComCtrls, gd_common_functions, gd_FileList_unit,
+  yaml_parser, IB, IBSQL, gdcBaseInterface, jclFileUtils, Forms, gd_security;
 
 constructor TgsNSNode.Create(const ARUID: String);
 begin
@@ -198,7 +198,8 @@ begin
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text :=
-      'SELECT n.id, n.name, n.version, n.filetimestamp, r.xid || ''_'' || r.dbid as RUID ' +
+      'SELECT n.id, n.name, n.version, n.filetimestamp, ' +
+      '  r.xid || ''_'' || r.dbid as RUID ' +
       'FROM at_namespace n JOIN gd_ruid r ' +
       '  ON n.id = r.id ' +
       'WHERE UPPER(n.name) = UPPER(:n)';
@@ -257,7 +258,8 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
       q.Transaction := gdcBaseManager.ReadTransaction;
 
       q.SQL.Text :=
-        'SELECT n.id, n.name, n.version, n.filetimestamp, r.xid || ''_'' || r.dbid as RUID ' +
+        'SELECT n.id, n.name, n.version, n.filetimestamp, ' +
+        '  r.xid || ''_'' || r.dbid as RUID ' +
         'FROM at_namespace n JOIN gd_ruid r ' +
         '  ON n.id = r.id ';
       q.ExecQuery;
@@ -270,7 +272,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
           Obj := Self.Objects[Ind] as TgsNSNode;
         end else
         begin
-          Obj := TgsNSNode.Create(q.Fields[4].AsString); 
+          Obj := TgsNSNode.Create(q.Fields[4].AsString);
           AddObject(q.Fields[4].AsString, Obj);
         end;
         Obj.VersionInDB := q.Fields[2].AsString;
@@ -291,7 +293,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
     N: TyamlNode;
     S: TyamlSequence;
     Ind, I: Integer;
-    RUID: String; 
+    RUID: String;
     Obj: TgsNSNode;
   begin
     Parser := TyamlParser.Create;
@@ -313,7 +315,9 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
           if Ind > -1 then
           begin
             if Assigned(FLog) then
-              FLog('Пространство имен: "' + M.ReadString('Properties\Name') + '" содержится в файлах:' + #13#10 +
+              FLog('Пространство имен: "' +
+                M.ReadString('Properties\Name') +
+                '" содержится в файлах:' + #13#10 +
                 '1: ' + SL.Values[SL.Names[Ind]] + #13#10 + '2: ' + Name + #13#10 +
                 'Только первый файл будет обработан!');
           end else
@@ -330,7 +334,9 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
             if (Obj.FileName > '') then
             begin
               if Assigned(FLog) then
-                FLog('Пространство имен: "' + M.ReadString('Properties\Name') + '" содержится в файлах:' + #13#10 +
+                FLog('Пространство имен: "' +
+                  M.ReadString('Properties\Name') +
+                  '" содержится в файлах:' + #13#10 +
                   '1: ' + Obj.FileName + #13#10 + '2: ' + Name + #13#10 +
                   'Только первый файл будет обработан!');
             end else
@@ -373,7 +379,8 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
                         Obj.UsesList.Add(RUID)
                       else
                         if Assigned(FLog) then
-                          FLog('Циклическая ссылка, файл ''' + (Self.Objects[Ind] as TgsNSNode).Name + '''!');
+                          FLog('Циклическая ссылка, файл ''' +
+                          (Self.Objects[Ind] as TgsNSNode).Name + '''!');
                     end else
                     begin
                       Self.AddObject(RUID, TgsNSNode.Create(RUID));
@@ -430,7 +437,7 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
       Temp.StateIndex := 0;
     end else
     begin
-      Temp := ATreeView.Items.AddChildObject(Node, yamlNode.Caption, yamlNode);
+      Temp := ATreeView.Items.AddChildObject(Node, yamlNode.Name, yamlNode);
       Temp.StateIndex := 2;
     end;  
 
@@ -441,7 +448,8 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
       begin
         if Assigned(FLog) and (FErrorNS.IndexOf(yamlNode.Name) = -1) then
         begin
-          FLog('Файл (RUID = ' + yamlNode.UsesList[I] + ') не найден! Пространство имен ''' +
+          FLog('Файл (RUID = ' +
+            yamlNode.UsesList[I] + ') не найден! Пространство имен ''' +
             yamlNode.Name + ''' установится некорректно!');
           FErrorNS.Add(yamlNode.Name);
         end;
@@ -468,7 +476,9 @@ begin
         and (not (Objects[I] as TgsNSNode).Internal) then
       begin
         CorrectPack((Objects[I] as TgsNSNode).RUID);
-        Temp := ATreeView.Items.AddChildObject(nil, (Objects[I] as TgsNSNode).Caption, Objects[I] as TgsNSNode);
+        Temp := ATreeView.Items.AddChildObject(nil,
+          (Objects[I] as TgsNSNode).Name,
+          Objects[I] as TgsNSNode);
         Temp.StateIndex := 2;
       end;
     end;
@@ -522,7 +532,8 @@ begin
         and (FErrorNS.IndexOf(Node.Name) = -1)
         and Assigned(FLog) then
       begin
-        FLog('Файл (RUID = ' + Node.UsesList[I] + ') не найден! Пространство имен ''' +
+        FLog('Файл (RUID = ' +
+          Node.UsesList[I] + ') не найден! Пространство имен ''' +
           Node.Name + ''' установится некорректно!');
         FErrorNS.Add(Node.Name);
      end else
@@ -545,11 +556,8 @@ begin
     for I := 0 to NSNode.UsesList.Count - 1 do
       GetAllUses(NSNode.UsesList[I], SL);
     if not NSNode.Valid then
-    begin
-      raise Exception.Create('Файл (RUID = ' + NSNode.RUID + ') не найден!');
-     // Application.MessageBox(PChar('Файл (RUID = ' + NSNode.RUID + ') не найден!'), 'Внимание',
-       // MB_OK or MB_ICONWARNING);
-    end else
+      raise Exception.Create('Файл (RUID = ' + NSNode.RUID + ') не найден!')
+    else
       SL.Add(NSNode.FileName);
   end;
 end;

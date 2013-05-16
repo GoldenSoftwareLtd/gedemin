@@ -12,6 +12,7 @@ procedure Issue2846(IBDB: TIBDatabase; Log: TModifyLog);
 procedure Issue2688(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddUqConstraintToGD_RUID(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DropConstraintFromAT_OBJECT(IBDB: TIBDatabase; Log: TModifyLog);
+procedure MoveSubObjects(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -419,6 +420,14 @@ begin
         'UPDATE ac_account SET parent = 367300 WHERE id IN (367301, 367302, 367303)';
       q.ExecQuery;
 
+      if not DomainExist2('daccountalias', Tr) then
+      begin
+        q.SQL.Text :=
+          'CREATE DOMAIN daccountalias ' +
+          '  AS VARCHAR(40) CHARACTER SET WIN1251 NOT NULL COLLATE PXW_CYRL';
+        q.ExecQuery;  
+      end;
+
       q.SQL.Text :=
         'CREATE OR ALTER TRIGGER AC_AIU_ACCOUNT_CHECKALIAS FOR AC_ACCOUNT'#13#10 +
         '  ACTIVE'#13#10 +
@@ -650,6 +659,59 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (167, ''0000.0001.0000.0198'', ''14.05.2013'', ''Drop FK to gd_ruid in at_object.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure MoveSubObjects(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER at_aiu_object FOR at_object'#13#10 +
+        '  ACTIVE'#13#10 +
+        '  AFTER INSERT OR UPDATE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF (NEW.namespacekey IS DISTINCT FROM OLD.namespacekey) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    UPDATE at_object SET namespacekey = NEW.namespacekey'#13#10 +
+        '      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id;'#13#10 +
+        '  END'#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (168, ''0000.0001.0000.0199'', ''16.05.2013'', ''Move subobjects along with a head object.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

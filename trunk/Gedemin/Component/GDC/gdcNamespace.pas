@@ -2505,19 +2505,20 @@ begin
                 W.DecIndent;
               end;
             end else
-              if MessageBox(0, PChar(' Ошибка при считывании объекта ' +
-                Obj.FieldByName('objectname').AsString + #13#10 +
-                ' (с XID = ' +  Obj.FieldByName('xid').AsString +
-                '   DBID = ' + Obj.FieldByName('dbid').AsString + ')'#13#10 +
-                ' Класс ' + Obj.FieldByName('objectclass').AsString + ' не найден!' + #13#10 +
-                'Удалить позицию настройки?'), 'Ошибка',
+              if MessageBox(0,
+                PChar(
+                  'В базе данных не найден объект "' + Obj.FieldByName('objectname').AsString + '"'#13#10 +
+                  'RUID: XID = ' +  Obj.FieldByName('xid').AsString + ', DBID = ' + Obj.FieldByName('dbid').AsString + #13#10 +
+                  'Класс: ' + Obj.FieldByName('objectclass').AsString + Obj.FieldByName('subtype').AsString + #13#10#13#10 +
+                  'Удалить запись об объекте из пространства имен?'),
+                'Ошибка',
                 MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES
               then
               begin
                 Obj.Delete;
                 WasDelete := True;
               end;
-          finaLLY
+          finally
             InstObj.Free;
           end;
         end;
