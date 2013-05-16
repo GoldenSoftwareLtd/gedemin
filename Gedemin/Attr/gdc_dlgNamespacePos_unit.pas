@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gdc_dlgTR_unit, IBDatabase, Menus, Db, ActnList, StdCtrls, DBCtrls,
   ExtCtrls, IBCustomDataSet, gdcBase, gdcNamespace, Grids, DBGrids,
-  gsDBGrid, gsIBGrid;
+  gsDBGrid, gsIBGrid, gsIBLookupComboBox;
 
 type
   Tgdc_dlgNamespacePos = class(Tgdc_dlgTR)
@@ -17,8 +17,10 @@ type
     dbchbxincludesiblings: TDBCheckBox;
     dbtxtName: TDBText;
     gdcNSDependent: TgdcNamespaceObject;
-    dsNSDependent: TDataSource;
+    dsNSDependent: TDataSource;                              
     gsIBGrid1: TgsIBGrid;
+    iblkupNamespace: TgsIBLookupComboBox;
+    Label1: TLabel;
     procedure FormCreate(Sender: TObject);
   private
     { Private declarations }

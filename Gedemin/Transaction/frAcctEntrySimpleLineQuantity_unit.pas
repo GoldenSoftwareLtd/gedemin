@@ -57,26 +57,19 @@ function TfrEntrySimpleLineQuantity.GetValues: string;
 var
   I: Integer;
   L: TfrAcctQuantityLine;
-  S: TStrings;
 begin
   Result := '';
   if FAnalyticsLineList <> nil then
   begin
-    S := TStringList.Create;
-    try
-      for I := 0 to FAnalyticsLineList.Count - 1 do
+    for I := 0 to FAnalyticsLineList.Count - 1 do
+    begin
+      L := FAnalyticsLineList[i] as TfrAcctQuantityLine;
+      if not L.IsEmpty then
       begin
-        L := TfrAcctQuantityLine(FAnalyticsLineList[i]);
-
-        if not L.IsEmpty then
-        begin
-          S.Add(Format('%d=%f', [L.ValueId, L.Value]));
-        end;
+        if Result > '' then
+          Result := Result + #13#10;
+        Result := Result + IntToStr(L.ValueId) + '=' + FloatToStr(L.Value);
       end;
-
-      Result := S.Text;
-    finally
-      S.Free;
     end;
   end;
 end;

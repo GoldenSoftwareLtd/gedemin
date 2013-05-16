@@ -135,7 +135,7 @@ begin
 
         for K := 0 to ExceptionCount - 1 do
         begin
-          if not ExceptionExists(Exceptions[K], IBDB) then
+          if not ExceptionExist(Exceptions[K], IBDB) then
           begin
             Log(Format('Добавление исключения %s ', [Exceptions[K].ExceptionName]));
             try

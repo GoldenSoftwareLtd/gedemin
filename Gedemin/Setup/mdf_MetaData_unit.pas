@@ -98,8 +98,7 @@ procedure AlterTrigger(Trigger: TmdfTrigger; Db: TIBDataBase);
 function TriggerExist2(const ATriggerName: String; ATr: TIBTransaction): Boolean;
 procedure DropTrigger2(const ATriggerName: String; ATr: TIBTransaction);
 
-function ExceptionExists(Ex: TmdfException; Db: TIBDataBase): Boolean;
-function ExceptionExists2(const AnException: String; ATr: TIBTransaction): Boolean;
+function ExceptionExist(Ex: TmdfException; Db: TIBDataBase): Boolean;
 
 procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
 procedure CreateException2(const AnException, AMessage: String; ATr: TIBTransaction);
@@ -115,6 +114,8 @@ procedure AddFinVersion(const ID: Integer; const NumVersion, Comment, DateOper: 
 
 function FunctionExist2(const AFunctionName: String; ATr: TIBTransaction): Boolean;
 function HasDependencies(const AName: String; ATr: TIBTransaction): Boolean;
+
+function DomainExist2(const ADomainName: String; ATr: TIBTransaction): Boolean;
 
 implementation
 
@@ -1006,7 +1007,7 @@ begin
   end;
 end;
 
-function ExceptionExists(Ex: TmdfException; Db: TIBDataBase ): boolean;
+function ExceptionExist(Ex: TmdfException; Db: TIBDataBase ): boolean;
 var
   Transaction: TIBTransaction;
   SQL: TIBSQl;
@@ -1031,28 +1032,12 @@ begin
   end;
 end;
 
-function ExceptionExists2(const AnException: String; ATr: TIBTransaction): Boolean;
-var
-  SQL: TIBSQl;
-begin
-  SQL := TIBSQL.Create(nil);
-  try
-    SQL.Transaction := ATr;
-    SQL.SQL.Text := Format('SELECT * FROM rdb$exceptions WHERE rdb$exception_name  = ''%s''',
-      [UpperCase(AnException)]);
-    SQL.ExecQuery;
-    Result := not SQL.EOF;
-  finally
-    SQL.Free;
-  end;
-end;
-
 procedure CreateException(Ex: TmdfException; Db: TIBDataBase);
 var
   Transaction: TIBTransaction;
   Script: TIBSQL;
 begin
-  if not ExceptionExists(Ex, DB) then
+  if not ExceptionExist(Ex, DB) then
   begin
     Transaction := TIBTransaction.Create(nil);
     try
@@ -1080,7 +1065,7 @@ procedure CreateException2(const AnException, AMessage: String; ATr: TIBTransact
 var
   SQL: TIBSQL;
 begin
-  if not ExceptionExists2(AnException, ATr) then
+  if not ExceptionExist2(AnException, ATr) then
   begin
     SQL := TIBSQL.Create(nil);
     try
@@ -1214,6 +1199,24 @@ begin
     Result := not ibsql.EOF;
   finally
     ibsql.Free;
+  end;
+end;
+
+function DomainExist2(const ADomainName: String; ATr: TIBTransaction): Boolean;
+var
+  SQL: TIBSQL;
+begin
+  SQL := TIBSQL.Create(nil);
+  try
+    SQL.Transaction := ATr;
+    SQL.SQL.Text :=
+      'SELECT rdb$field_name FROM rdb$fields WHERE ' +
+      ' rdb$field_name = :name ';
+    SQL.ParamByName('name').AsString := UpperCase(ADomainName);
+    SQL.ExecQuery;
+    Result := not SQL.EOF;
+  finally
+    SQl.Free;
   end;
 end;
 

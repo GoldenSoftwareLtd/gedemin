@@ -137,7 +137,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cbAccount: TgsIBLookupComboBox
           Left = 56
           Top = 3
-          Width = 403
+          Width = 420
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -173,7 +173,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cSum: TxDBCalculatorEdit
           Left = 56
           Top = 26
-          Width = 403
+          Width = 420
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 193
@@ -226,7 +226,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cRate: TxCalculatorEdit
           Left = 93
           Top = 95
-          Width = 366
+          Width = 383
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -245,7 +245,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cCurrSum: TxDBCalculatorEdit
           Left = 93
           Top = 118
-          Width = 366
+          Width = 383
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -266,7 +266,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cEQSum: TxDBCalculatorEdit
           Left = 122
           Top = 49
-          Width = 337
+          Width = 354
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           AutoSize = False

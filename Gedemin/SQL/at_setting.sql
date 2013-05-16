@@ -254,6 +254,20 @@ BEGIN
 END
 ^
 
+CREATE OR ALTER TRIGGER at_aiu_object FOR at_object
+  ACTIVE
+  AFTER INSERT OR UPDATE
+  POSITION 0
+AS
+BEGIN
+  IF (NEW.namespacekey IS DISTINCT FROM OLD.namespacekey) THEN
+  BEGIN
+    UPDATE at_object SET namespacekey = NEW.namespacekey
+      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id;
+  END
+END
+^
+
 SET TERM ; ^
 
 CREATE TABLE at_namespace_link (

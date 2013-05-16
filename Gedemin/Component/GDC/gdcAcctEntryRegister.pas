@@ -3943,7 +3943,7 @@ end;
 
 class function TgdcAcctQuantity.GetSubSetList: String;
 begin
-  Result := inherited GetSubSetList + ByEntry + '; ';
+  Result := inherited GetSubSetList + ByEntry + ';';
 end;
 
 procedure TgdcAcctQuantity.GetWhereClauseConditions(S: TStrings);

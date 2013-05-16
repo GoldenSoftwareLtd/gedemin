@@ -36,7 +36,7 @@ begin
   Result := eCalc.Value;
 end;
 
-function TfrAcctQuantityLine.IsEmpty: boolean;
+function TfrAcctQuantityLine.IsEmpty: Boolean;
 begin
   Result := (eCalc.Text = '') or (eCalc.Value = 0);
 end;
@@ -45,7 +45,6 @@ procedure TfrAcctQuantityLine.SetOnValueChange(const Value: TNotifyEvent);
 begin
   FOnValueChange := Value;
 end;
-
 
 procedure TfrAcctQuantityLine.SetValue(const Value: Double);
 begin

@@ -533,6 +533,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (167, '0000.0001.0000.0198', '14.05.2013', 'Drop FK to gd_ruid in at_object.');
 
+INSERT INTO fin_versioninfo
+  VALUES (168, '0000.0001.0000.0199', '16.05.2013', 'Move subobjects along with a head object.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
