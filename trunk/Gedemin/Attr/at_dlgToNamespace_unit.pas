@@ -40,20 +40,25 @@ type
     procedure actCancelExecute(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
     procedure actShowLinkUpdate(Sender: TObject);
+    procedure lkupChange(Sender: TObject);
     
   private
     FgdcObject: TgdcBase;
-    FIsAdded: Boolean;
     FClearId: Integer;
     FBL: TBookmarkList;
+    FCheckList: TStringList;
 
-    procedure DeleteObjects;
+    procedure DeleteObject;
     procedure AddObjects;
-
+    procedure CheckLink;
+    procedure DeleteLinkObject;
   protected
     procedure CreateFields;
 
   public
+    constructor Create(AnOwner: TComponent); override;
+    destructor Destroy; override;
+    
     procedure SetupParams(AnObject: TgdcBase; BL: TBookmarkList);
   end;
 
@@ -70,6 +75,17 @@ uses
 
 const
   DefCount = 60;
+
+constructor TdlgToNamespace.Create(AnOwner: TComponent);
+begin
+  inherited;
+  FCheckList := TStringList.Create;
+end;
+
+destructor TdlgToNamespace.Destroy;
+begin
+  FCheckList.Free;
+end;
 
 procedure TdlgToNamespace.FormCreate(Sender: TObject);
 begin
@@ -123,15 +139,13 @@ begin
   if not IBTransaction.InTransaction then
     IBTransaction.StartTransaction;
 
-  FIsAdded := False;
   FClearId := -1;
 
   KSA := TgdKeyStringAssoc.Create;
   try
     TgdcNamespace.SetNamespaceForObject(FgdcObject, KSA, IBTransaction);
     if KSA.Count > 0 then
-    begin
-      FIsAdded := True;
+    begin  
       lkup.CurrentKeyInt := KSA[0];
       FClearId := KSA[0];
       q := TIBSQL.Create(nil);
@@ -168,9 +182,9 @@ begin
   end;
 end;
 
-procedure TdlgToNamespace.DeleteObjects;
-var 
-  gdcNamespace: TgdcNamespace;
+procedure TdlgToNamespace.DeleteObject;
+var
+  gdcNamespace: TgdcNamespace; 
 begin
   gdcNamespace := TgdcNamespace.Create(nil);
   try
@@ -180,9 +194,64 @@ begin
     gdcNamespace.Open;
 
     if not gdcNamespace.Eof then
-      gdcNamespace.DeleteObject(FgdcObject.GetRUID.XID, FgdcObject.GetRUID.DBID);
+      gdcNamespace.DeleteObject(FgdcObject.GetRUID.XID, FgdcObject.GetRUID.DBID, False);
   finally
     gdcNamespace.Free;
+  end;
+end;
+
+procedure TdlgToNamespace.DeleteLinkObject;
+var
+  gdcNamespace: TgdcNamespace;
+  RUID: String;
+  I: Integer;
+begin
+  gdcNamespace := TgdcNamespace.Create(nil);
+  try
+    gdcNamespace.Transaction := IBTransaction;
+    gdcNamespace.SubSet := 'ByID';
+    gdcNamespace.ID := lkup.CurrentKeyInt;
+    gdcNamespace.Open;
+
+    if not gdcNamespace.Eof then
+    begin
+      for I := 0 to FCheckList.Count - 1 do
+      begin
+        if dbgrListLink.CheckBox.CheckList.IndexOf(FCheckList[I]) = -1 then
+        begin
+          RUID := gdcBaseManager.GetRUIDStringByID(StrToInt(FCheckList[I]), IBTransaction);
+          gdcNamespace.DeleteObject(StrToRUID(RUID).XID, StrToRUID(RUID).DBID, False);
+        end;
+      end;
+    end;
+  finally
+    gdcNamespace.Free;
+  end;
+end;
+
+procedure TdlgToNamespace.CheckLink;
+begin
+  cdsLink.DisableControls;
+  try
+    dbgrListLink.CheckBox.Clear;
+    FCheckList.Clear;
+
+    cdsLink.First;
+    while not cdsLink.Eof do
+    begin
+      if not cdsLink.FieldByName('namespacekey').IsNull
+        and (dbgrListLink.CheckBox.CheckList.IndexOf(cdsLink.FieldByName('id').AsString) = -1)
+        and (lkup.CurrentKey = cdsLink.FieldByName('namespacekey').AsString)
+      then
+      begin
+        dbgrListLink.CheckBox.AddCheck(cdsLink.FieldByName('id').AsString);
+        FCheckList.Add(cdsLink.FieldByName('id').AsString);
+      end;
+      cdsLink.Next;
+    end;
+    cdsLink.First;
+  finally
+    cdsLink.EnableConstraints;
   end;
 end;
 
@@ -296,7 +365,10 @@ begin
     end;
 
     if cdsLink.Active then
+    begin
       cdsLink.First;
+      CheckLink;
+    end;   
   finally
     cdsLink.EnableControls;
   end;
@@ -305,10 +377,13 @@ end;
 procedure TdlgToNamespace.actOKExecute(Sender: TObject);
 begin
   if lkup.CurrentKey > '' then
-    AddObjects
-  else
-    if FIsAdded then
-      DeleteObjects;
+  begin
+    AddObjects;
+    if (FCheckList.Count > 0) then
+      DeleteLinkObject;
+  end else
+    if FClearId > -1 then
+      DeleteObject;
 
   if IBTransaction.InTransaction then
     IBTransaction.Commit;
@@ -334,6 +409,12 @@ begin
   actShowLink.Enabled := (FgdcObject <> nil)
     and FgdcObject.Active
     and (not FgdcObject.EOF);
+end;
+
+procedure TdlgToNamespace.lkupChange(Sender: TObject);
+begin
+  if lkup.CurrentKey > '' then
+    CheckLink;
 end;
 
 end.
