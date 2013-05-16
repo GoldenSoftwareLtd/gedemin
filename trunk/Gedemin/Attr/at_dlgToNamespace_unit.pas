@@ -85,6 +85,7 @@ end;
 destructor TdlgToNamespace.Destroy;
 begin
   FCheckList.Free;
+  inherited;
 end;
 
 procedure TdlgToNamespace.FormCreate(Sender: TObject);
@@ -205,7 +206,7 @@ var
   gdcNamespace: TgdcNamespace;
   RUID: String;
   I: Integer;
-begin
+begin   
   gdcNamespace := TgdcNamespace.Create(nil);
   try
     gdcNamespace.Transaction := IBTransaction;
@@ -249,9 +250,9 @@ begin
       end;
       cdsLink.Next;
     end;
-    cdsLink.First;
   finally
-    cdsLink.EnableConstraints;
+    cdsLink.First;
+    cdsLink.EnableControls;
   end;
 end;
 
