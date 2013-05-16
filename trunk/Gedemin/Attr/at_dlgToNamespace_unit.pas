@@ -39,7 +39,6 @@ type
     procedure actOKExecute(Sender: TObject);
     procedure actCancelExecute(Sender: TObject);
     procedure actClearExecute(Sender: TObject);
-    procedure lkupChange(Sender: TObject);
     procedure actShowLinkUpdate(Sender: TObject);
     
   private
@@ -134,6 +133,7 @@ begin
     begin
       FIsAdded := True;
       lkup.CurrentKeyInt := KSA[0];
+      FClearId := KSA[0];
       q := TIBSQL.Create(nil);
       try
         q.Transaction := IBTransaction;
@@ -176,7 +176,7 @@ begin
   try
     gdcNamespace.Transaction := IBTransaction;
     gdcNamespace.SubSet := 'ByID';
-    gdcNamespace.ID := lkup.CurrentKeyInt;
+    gdcNamespace.ID := FClearID;
     gdcNamespace.Open;
 
     if not gdcNamespace.Eof then
@@ -327,12 +327,6 @@ begin
   if lkup.CurrentKey > '' then
     FClearId := lkup.CurrentKeyInt;
   lkup.CurrentKey := '';
-end;
-
-procedure TdlgToNamespace.lkupChange(Sender: TObject);
-begin
-  if lkup.Currentkey > '' then
-    FClearId := -1;
 end;
 
 procedure TdlgToNamespace.actShowLinkUpdate(Sender: TObject);
