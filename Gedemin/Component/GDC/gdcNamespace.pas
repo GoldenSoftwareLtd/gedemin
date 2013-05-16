@@ -365,7 +365,7 @@ begin
     begin
       F := AgdcObject.Fields[I];
 
-      if StrIPos(F.FieldName, PassFieldName) > 0 then
+      if StrIPos(';' + F.FieldName + ';', PassFieldName) > 0 then
         continue;
 
       FN := '';
@@ -2369,6 +2369,7 @@ var
   InstClass: TPersistentClass;
   q: TIBSQL;
   HeadObject: String;
+  WasDelete: Boolean;
 begin
   Assert(St <> nil);
 
@@ -2452,6 +2453,7 @@ begin
     q.SQL.Text := 'SELECT xid || ''_'' || dbid as ruid FROM at_object WHERE id = :id';
 
     CheckIncludesiblings;
+    WasDelete := False;
     Obj := TgdcNamespaceObject.Create(nil);
     try
       Obj.Transaction := Transaction;
@@ -2502,13 +2504,28 @@ begin
               finally
                 W.DecIndent;
               end;
-            end;
+            end else
+              if MessageBox(0, PChar(' Ошибка при считывании объекта ' +
+                Obj.FieldByName('objectname').AsString + #13#10 +
+                ' (с XID = ' +  Obj.FieldByName('xid').AsString +
+                '   DBID = ' + Obj.FieldByName('dbid').AsString + ')'#13#10 +
+                ' Класс ' + Obj.FieldByName('objectclass').AsString + ' не найден!' + #13#10 +
+                'Удалить позицию настройки?'), 'Ошибка',
+                MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES
+              then
+              begin
+                Obj.Delete;
+                WasDelete := True;
+              end;
           finaLLY
             InstObj.Free;
           end;
         end;
 
-        Obj.Next;
+        if WasDelete then
+          WasDelete := False
+        else
+          Obj.Next;
       end;
     finally
       Obj.Free;
