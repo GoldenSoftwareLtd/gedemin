@@ -758,7 +758,8 @@ var
         'FROM at_object o ' +
         '  LEFT JOIN gd_ruid r' +
         '    ON  o.namespacekey = r.id ' +
-        'WHERE r.xid || ''_'' || r.dbid = :ruid';
+        'WHERE r.xid || ''_'' || r.dbid = :ruid ' +
+        'ORDER BY o.objectpos asc';
       q.ParamByName('ruid').AsString := RUID;
       q.ExecQuery;
 
@@ -1032,7 +1033,7 @@ var
           Now, IBLogin.ContactKey, Tr);
       end;
 
-      for I := 0 to CurrOL.Count - 1 do
+      for I := CurrOL.Count - 1 downto 0 do
       begin
         if LoadOL.IndexOf(CurrOL[I]) = -1 then
           Dest.DeleteObject(StrToRUID(CurrOL[I]).XID, StrToRUID(CurrOL[I]).DBID, not ADontRemove);
