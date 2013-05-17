@@ -6,7 +6,8 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   gd_createable_form, Db, IBCustomDataSet, IBDatabase, Grids, DBGrids,
   gsDBGrid, gsIBGrid, ComCtrls, ActnList, TB2Dock, TB2Toolbar, dmDatabase_unit,
-  dmImages_unit, TB2Item, gdcBase, gdcBaseInterface, Menus;
+  dmImages_unit, TB2Item, gdcBase, gdcBaseInterface, Menus, ExtCtrls,
+  StdCtrls;
 
 type
   Tat_frmNSObjects = class(TCreateableForm)
@@ -14,7 +15,7 @@ type
     tb: TTBToolbar;
     ActionList: TActionList;
     sb: TStatusBar;
-    gsIBGrid1: TgsIBGrid;
+    gsIBGrid: TgsIBGrid;
     ibtr: TIBTransaction;
     ibds: TIBDataSet;
     ds: TDataSource;
@@ -24,12 +25,25 @@ type
     TBItem2: TTBItem;
     TBSeparatorItem1: TTBSeparatorItem;
     pm: TPopupMenu;
+    pnlTopFilter: TPanel;
+    pnlFilterButtons: TPanel;
+    btnClearAll: TButton;
+    pnlFilter: TPanel;
+    actSetFilter: TAction;
+    actClearAll: TAction;
+    actSetAll: TAction;
+    btnSetAll: TButton;
+    btnSetFilter: TButton;
+    chbxInNS: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure actOpenObjectUpdate(Sender: TObject);
     procedure actOpenObjectExecute(Sender: TObject);
     procedure dsDataChange(Sender: TObject; Field: TField);
     procedure actAddToNamespaceUpdate(Sender: TObject);
     procedure actAddToNamespaceExecute(Sender: TObject);
+    procedure actClearAllExecute(Sender: TObject);
+    procedure actSetAllExecute(Sender: TObject);
+    procedure actSetFilterExecute(Sender: TObject);
 
   private
     procedure DoOnClick(Sender: TObject);
@@ -49,10 +63,44 @@ implementation
 uses
   gd_classlist, gdcNamespace, IBSQL, at_AddToSetting;
 
+const
+  ArrayOfGDC: array[0..15] of String = (
+    'TgdcBaseTable',
+    'TgdcField',
+    'TgdcStoredProc',
+    'TgdcTrigger',
+    'TgdcRelationField',
+    'TgdcCheckConstraint',
+    'TgdcException',
+    'TgdcGenerator',
+    'TgdcIndex',
+    'TgdcReport',
+    'TgdcMacros',
+    'TgdcFunction',
+    'TgdcEvent',
+    'TgdcDelphiObject',
+    'TgdcBaseAcctTransactionEntry',
+    'TgdcBaseAcctTransaction'
+  );
+
 procedure Tat_frmNSObjects.FormCreate(Sender: TObject);
+var
+  I: Integer;
+  C: TCheckBox;
 begin
+  for I := Low(ArrayOfGDC) to High(ArrayOfGDC) do
+  begin
+    C := TCheckBox.Create(pnlFilter);
+    C.Parent := pnlFilter;
+    C.Width := 180;
+    C.Height := 16;
+    C.Left := 8 + (I mod 4) * C.Width;
+    C.Top := 8 + (I div 4) * C.Height;
+    C.Caption := ArrayOfGDC[I];
+    C.Checked := False;
+  end;
+
   ibtr.StartTransaction;
-  ibds.Open;
 end;
 
 procedure Tat_frmNSObjects.actOpenObjectUpdate(Sender: TObject);
@@ -169,6 +217,81 @@ begin
   finally
     Obj.Free;
   end;
+end;
+
+procedure Tat_frmNSObjects.actClearAllExecute(Sender: TObject);
+var
+  I: Integer;
+begin
+  for I := 0 to pnlFilter.ComponentCount - 1 do
+    if pnlFilter.Components[I] is TCheckBox then
+      (pnlFilter.Components[I] as TCheckBox).Checked := False;
+end;
+
+procedure Tat_frmNSObjects.actSetAllExecute(Sender: TObject);
+var
+  I: Integer;
+begin
+  for I := 0 to pnlFilter.ComponentCount - 1 do
+    if pnlFilter.Components[I] is TCheckBox then
+      (pnlFilter.Components[I] as TCheckBox).Checked := True;
+end;
+
+procedure Tat_frmNSObjects.actSetFilterExecute(Sender: TObject);
+var
+  S: String;
+  C: TPersistentClass;
+  I: Integer;
+begin
+  S := '';
+  for I := 0 to pnlFilter.ComponentCount - 1 do
+    if (pnlFilter.Components[I] is TCheckBox)
+      and (pnlFilter.Components[I] as TCheckBox).Checked then
+    begin
+      C := GetClass((pnlFilter.Components[I] as TCheckBox).Caption);
+      if (C <> nil) and C.InheritsFrom(TgdcBase)
+        and (CgdcBase(C).GetListTable('') > '') then
+      begin
+        if S > '' then
+          S := S + #13#10#13#10 + 'UNION ALL'#13#10#13#10;
+        if chbxInNS.Checked then
+          S := S +
+            'SELECT'#13#10 +
+            '  CAST(''' + (pnlFilter.Components[I] as TCheckBox).Caption + ''' AS VARCHAR(60)) AS ObjectClass,'#13#10 +
+            '  '''' AS SubType,'#13#10 +
+            '  ruid.xid,'#13#10 +
+            '  ruid.dbid,'#13#10 +
+            '  r.' + CgdcBase(C).GetListField('') + ','#13#10 +
+            '  list(n.id || ''='' || n.name) AS ns_list'#13#10 +
+            'FROM'#13#10 +
+            '  ' +  CgdcBase(C).GetListTable('') + ' r'#13#10 +
+            '  JOIN gd_ruid ruid ON ruid.id = r.id'#13#10 +
+            '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
+            '  LEFT JOIN at_namespace n ON n.id = o.namespacekey'#13#10 +
+            'GROUP BY'#13#10 +
+            '  1, 2, 3, 4, 5'#13#10
+        else
+          S := S +
+            'SELECT'#13#10 +
+            '  CAST(''' + (pnlFilter.Components[I] as TCheckBox).Caption + ''' AS VARCHAR(60)) AS ObjectClass,'#13#10 +
+            '  '''' AS SubType,'#13#10 +
+            '  ruid.xid,'#13#10 +
+            '  ruid.dbid,'#13#10 +
+            '  r.' + CgdcBase(C).GetListField('') + ','#13#10 +
+            '  '''' AS ns_list'#13#10 +
+            'FROM'#13#10 +
+            '  ' +  CgdcBase(C).GetListTable('') + ' r'#13#10 +
+            '  JOIN gd_ruid ruid ON ruid.id = r.id'#13#10 +
+            '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
+            'WHERE'#13#10 +
+            '  o.id IS NULL'#13#10;
+      end;
+    end;
+
+  ibds.Close;
+  ibds.SelectSQL.Text := S;
+  if S > '' then
+    ibds.Open;
 end;
 
 end.

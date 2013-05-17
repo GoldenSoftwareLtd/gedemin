@@ -81,16 +81,14 @@ begin
         FIBSQL.SQL.Text := 'ALTER TABLE gd_documenttype ALTER ischecknumber TYPE SMALLINT';
         FIBSQL.ExecQuery;
 
-        FIBSQL.Close;
         FIBSQL.SQL.Text := 'ALTER TABLE gd_documenttype ALTER ischecknumber SET DEFAULT 0';
         FIBSQL.ExecQuery;
 
-        FIBSQL.Close;
-        FIBSQL.SQL.Text :=
-          'ALTER TABLE gd_documenttype ADD CONSTRAINT gd_chck_icn_documenttype CHECK (ischecknumber BETWEEN 0 AND 3)';
-        try
+        if not ConstraintExist2('gd_documenttype', 'gd_chck_icn_documenttype', FTransaction) then
+        begin
+          FIBSQL.SQL.Text :=
+            'ALTER TABLE gd_documenttype ADD CONSTRAINT gd_chck_icn_documenttype CHECK (ischecknumber BETWEEN 0 AND 3)';
           FIBSQL.ExecQuery;
-        except
         end;  
 
         FIBSQL.Close;

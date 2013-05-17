@@ -536,6 +536,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (168, '0000.0001.0000.0199', '16.05.2013', 'Move subobjects along with a head object.');
 
+INSERT INTO fin_versioninfo
+  VALUES (169, '0000.0001.0000.0200', '17.05.2013', 'Added MODIFIED field to AT_OBJECT.');
+
+INSERT INTO fin_versioninfo
+  VALUES (170, '0000.0001.0000.0201', '17.05.2013', 'Constraint on at_object changed.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

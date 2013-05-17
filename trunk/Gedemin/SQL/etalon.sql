@@ -1338,6 +1338,15 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (167, '0000.0001.0000.0198', '14.05.2013', 'Drop FK to gd_ruid in at_object.');
 
+INSERT INTO fin_versioninfo
+  VALUES (168, '0000.0001.0000.0199', '16.05.2013', 'Move subobjects along with a head object.');
+
+INSERT INTO fin_versioninfo
+  VALUES (169, '0000.0001.0000.0200', '17.05.2013', 'Added MODIFIED field to AT_OBJECT.');
+
+INSERT INTO fin_versioninfo
+  VALUES (170, '0000.0001.0000.0201', '17.05.2013', 'Constraint on at_object changed.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -16293,6 +16302,7 @@ CREATE TABLE at_object (
   dontremove      dboolean_notnull DEFAULT 0,
   includesiblings dboolean_notnull DEFAULT 0,
   headobjectkey   dforeignkey,
+  modified        TIMESTAMP,
 
   CONSTRAINT at_pk_object PRIMARY KEY (id),
   CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),
@@ -16356,8 +16366,9 @@ AS
 BEGIN
   IF (NEW.namespacekey IS DISTINCT FROM OLD.namespacekey) THEN
   BEGIN
-    UPDATE at_object SET namespacekey = NEW.namespacekey
-      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id;
+    UPDATE at_object SET namespacekey = NEW.namespacekey, objectpos = NULL
+      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id
+      ORDER BY objectpos;
   END
 END
 ^

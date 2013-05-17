@@ -133,9 +133,10 @@ begin
           '  dontremove      dboolean_notnull DEFAULT 0,'#13#10 +
           '  includesiblings dboolean_notnull DEFAULT 0,'#13#10 +
           '  headobjectkey   dforeignkey,'#13#10 +
+          '  modified        TIMESTAMP,'#13#10 +
           ''#13#10 +
           '  CONSTRAINT at_pk_object PRIMARY KEY (id),'#13#10 +
-          '  CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),'#13#10 +
+          '  CONSTRAINT at_uk_object UNIQUE (xid, dbid, namespacekey),'#13#10 +
           '  CONSTRAINT at_fk_object_namespacekey FOREIGN KEY (namespacekey)'#13#10 +
           '    REFERENCES at_namespace (id)'#13#10 +
           '    ON DELETE CASCADE'#13#10 +
@@ -555,22 +556,24 @@ begin
       q.ParamCheck := False;
       q.Transaction := Tr;
 
+      q.SQL.Text :=
+        'delete from gd_ruid where id in ('#13#10 +
+        'select'#13#10 +
+        '  r1.id'#13#10 +
+        'from'#13#10 +
+        '  gd_ruid r1 join gd_ruid r2'#13#10 +
+        '    on r1.xid=r2.xid and r1.dbid=r2.dbid and r1.id<r2.id'#13#10 +
+        ')';
+      q.ExecQuery;
+
+      Tr.Commit;
+      Tr.StartTransaction;
+      
       if not ConstraintExist2('gd_ruid', 'gd_uniq_ruid', Tr) then
       begin
         q.SQL.Text :=
           'ALTER TABLE gd_ruid ADD CONSTRAINT gd_uniq_ruid ' +
           '  UNIQUE (xid, dbid)';
-        q.ExecQuery;
-      end;
-
-      if not ConstraintExist2('at_object', 'at_fk_object_ruid', Tr) then
-      begin
-        q.SQL.Text :=
-          'ALTER TABLE at_object ADD CONSTRAINT at_fk_object_ruid ' +
-          '  FOREIGN KEY (xid, dbid) ' +
-          '  REFERENCES gd_ruid (xid, dbid) ' +
-          '  ON DELETE CASCADE ' +
-          '  ON UPDATE CASCADE';
         q.ExecQuery;
       end;
 
@@ -693,6 +696,12 @@ begin
       q.ParamCheck := False;
       q.Transaction := Tr;
 
+      if not FieldExist2('at_object', 'modified', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TABLE at_object ADD modified TIMESTAMP';
+        q.ExecQuery;
+      end;
+
       q.SQL.Text :=
         'CREATE OR ALTER TRIGGER at_aiu_object FOR at_object'#13#10 +
         '  ACTIVE'#13#10 +
@@ -702,16 +711,40 @@ begin
         'BEGIN'#13#10 +
         '  IF (NEW.namespacekey IS DISTINCT FROM OLD.namespacekey) THEN'#13#10 +
         '  BEGIN'#13#10 +
-        '    UPDATE at_object SET namespacekey = NEW.namespacekey'#13#10 +
-        '      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id;'#13#10 +
+        '    UPDATE at_object SET namespacekey = NEW.namespacekey, objectpos = NULL'#13#10 +
+        '      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id'#13#10 +
+        '      ORDER BY objectpos;'#13#10 +
         '  END'#13#10 +
         'END';
+      q.ExecQuery;
+
+      DropConstraint2('at_object', 'at_uk_object', Tr);
+
+      Tr.Commit;
+      Tr.StartTransaction;
+
+      q.SQL.Text :=
+        'ALTER TABLE at_object ADD CONSTRAINT at_uk_object UNIQUE (xid, dbid, namespacekey)';
       q.ExecQuery;
 
       q.Close;
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (168, ''0000.0001.0000.0199'', ''16.05.2013'', ''Move subobjects along with a head object.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (169, ''0000.0001.0000.0200'', ''17.05.2013'', ''Added MODIFIED field to AT_OBJECT.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (170, ''0000.0001.0000.0201'', ''17.05.2013'', ''Constraint on at_object changed.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

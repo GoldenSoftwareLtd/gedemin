@@ -1,7 +1,7 @@
 object frAcctQuantityLine: TfrAcctQuantityLine
   Left = 0
   Top = 0
-  Width = 435
+  Width = 443
   Height = 23
   Align = alTop
   TabOrder = 0

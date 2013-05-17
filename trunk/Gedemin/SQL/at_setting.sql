@@ -199,6 +199,7 @@ CREATE TABLE at_object (
   dontremove      dboolean_notnull DEFAULT 0,
   includesiblings dboolean_notnull DEFAULT 0,
   headobjectkey   dforeignkey,
+  modified        TIMESTAMP,
 
   CONSTRAINT at_pk_object PRIMARY KEY (id),
   CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),
@@ -262,8 +263,9 @@ AS
 BEGIN
   IF (NEW.namespacekey IS DISTINCT FROM OLD.namespacekey) THEN
   BEGIN
-    UPDATE at_object SET namespacekey = NEW.namespacekey
-      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id;
+    UPDATE at_object SET namespacekey = NEW.namespacekey, objectpos = NULL
+      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id
+      ORDER BY objectpos;
   END
 END
 ^
