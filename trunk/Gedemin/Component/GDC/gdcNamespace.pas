@@ -2588,12 +2588,13 @@ begin
         nsUndefined:
         begin
           if NSNode.VersionInDB > '' then
-            ADataSet.FieldByName('operation').AsString := '>>'
+            ADataSet.FieldByName('operation').AsString := '>'
           else
             ADataSet.FieldByName('operation').AsString := '';
         end;
 
-        nsNotInstalled, nsNewer: ADataSet.FieldByName('operation').AsString := '<<';
+        nsNotInstalled: ADataSet.FieldByName('operation').AsString := '<';
+        nsNewer: ADataSet.FieldByName('operation').AsString := '<<';
         nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
         nsEqual: ADataSet.FieldByName('operation').AsString := '==';
       end;

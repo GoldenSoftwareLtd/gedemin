@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 338
-  Top = 177
+  Left = 316
+  Top = 253
   Width = 952
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -57,6 +57,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       end
       object TBItem2: TTBItem
         Action = actCompare
+        AutoCheck = True
       end
       object TBSeparatorItem4: TTBSeparatorItem
       end
@@ -93,12 +94,53 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem11: TTBItem
         Action = actSync
       end
+      object TBSeparatorItem5: TTBSeparatorItem
+      end
+      object TBItem13: TTBItem
+        Action = actFLTOnlyDB
+      end
+      object TBItem12: TTBItem
+        Action = actFLT
+        Caption = '<'
+      end
+      object TBItem14: TTBItem
+        Action = actFLTEqual
+      end
+      object TBItem15: TTBItem
+        Action = actFLTOlder
+      end
+      object TBItem16: TTBItem
+        Action = actFLTNewer
+      end
+      object TBSeparatorItem6: TTBSeparatorItem
+      end
+      object TBControlItem1: TTBControlItem
+        Control = lSearch
+      end
+      object TBControlItem3: TTBControlItem
+        Control = edFilter
+      end
+      object lSearch: TLabel
+        Left = 576
+        Top = 4
+        Width = 45
+        Height = 13
+        Caption = 'Фильтр: '
+      end
       object tbedPath: TEdit
         Left = 0
         Top = 0
         Width = 163
         Height = 21
         TabOrder = 0
+      end
+      object edFilter: TEdit
+        Left = 621
+        Top = 0
+        Width = 140
+        Height = 21
+        TabOrder = 1
+        OnChange = edFilterChange
       end
     end
   end
@@ -249,6 +291,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     IndexDefs = <>
     Params = <>
     StoreDefs = True
+    OnFilterRecord = cdsFilterRecord
     Left = 552
     Top = 296
     Data = {
@@ -397,6 +440,25 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       ImageIndex = 178
       OnExecute = actDeleteFileExecute
       OnUpdate = actDeleteFileUpdate
+    end
+    object actFLT: TAction
+      OnExecute = actFLTExecute
+    end
+    object actFLTOnlyDB: TAction
+      Caption = '>'
+      OnExecute = actFLTExecute
+    end
+    object actFLTEqual: TAction
+      Caption = '=='
+      OnExecute = actFLTExecute
+    end
+    object actFLTOlder: TAction
+      Caption = '>>'
+      OnExecute = actFLTExecute
+    end
+    object actFLTNewer: TAction
+      Caption = '<<'
+      OnExecute = actFLTExecute
     end
   end
   object pmSync: TPopupMenu
