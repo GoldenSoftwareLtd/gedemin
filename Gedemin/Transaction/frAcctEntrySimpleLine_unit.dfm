@@ -1,7 +1,7 @@
 object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
   Left = 0
   Top = 0
-  Width = 435
+  Width = 492
   Height = 234
   Align = alTop
   AutoSize = True
@@ -15,7 +15,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 435
+    Width = 492
     Height = 234
     Align = alTop
     AutoSize = True
@@ -27,7 +27,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
     object ppMain: TgdvParamPanel
       Left = 1
       Top = 1
-      Width = 433
+      Width = 490
       Height = 232
       Align = alTop
       AutoSize = True
@@ -50,7 +50,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
       object Panel5: TPanel
         Left = 4
         Top = 17
-        Width = 425
+        Width = 482
         Height = 140
         Align = alTop
         BevelOuter = bvNone
@@ -137,7 +137,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cbAccount: TgsIBLookupComboBox
           Left = 56
           Top = 3
-          Width = 403
+          Width = 419
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -173,7 +173,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cSum: TxDBCalculatorEdit
           Left = 56
           Top = 26
-          Width = 403
+          Width = 419
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 193
@@ -220,13 +220,13 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           ParentFont = False
           ParentShowHint = False
           ShowHint = True
-          TabOrder = 2
+          TabOrder = 3
           OnChange = cbCurrencyChange
         end
         object cRate: TxCalculatorEdit
           Left = 93
           Top = 95
-          Width = 366
+          Width = 382
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -238,14 +238,14 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Style = []
           ParentCtl3D = False
           ParentFont = False
-          TabOrder = 3
+          TabOrder = 5
           OnChange = cRateChange
           DecDigits = 4
         end
         object cCurrSum: TxDBCalculatorEdit
           Left = 93
           Top = 118
-          Width = 366
+          Width = 382
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -257,7 +257,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Style = []
           ParentCtl3D = False
           ParentFont = False
-          TabOrder = 4
+          TabOrder = 6
           OnChange = cCurrSumChange
           DecDigits = 4
           DataField = 'DEBITCURR'
@@ -266,7 +266,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cEQSum: TxDBCalculatorEdit
           Left = 122
           Top = 49
-          Width = 337
+          Width = 353
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           AutoSize = False
@@ -279,30 +279,30 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Style = []
           ParentCtl3D = False
           ParentFont = False
-          TabOrder = 5
+          TabOrder = 2
           OnChange = cSumChange
           DecDigits = 4
           DataField = 'DEBITEQ'
           DataSource = DataSource
         end
         object cbRounded: TCheckBox
-          Left = 249
+          Left = 252
           Top = 74
           Width = 84
           Height = 17
           Caption = 'Округлять'
           Checked = True
           State = cbChecked
-          TabOrder = 6
+          TabOrder = 4
         end
       end
       inline frAcctAnalytics: TfrAcctAnalytics
         Left = 4
         Top = 157
-        Width = 425
+        Width = 482
         TabOrder = 1
         inherited ppAnalytics: TgdvParamPanel
-          Width = 425
+          Width = 482
           Color = 16053492
           ParentColor = False
           TabStop = False
@@ -313,11 +313,11 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
       inline frQuantity: TfrEntrySimpleLineQuantity
         Left = 4
         Top = 198
-        Width = 425
+        Width = 482
         Height = 33
         TabOrder = 2
         inherited ppMain: TgdvParamPanel
-          Width = 425
+          Width = 482
           Height = 33
           Color = 16053492
           Font.Color = 14705703

@@ -11,6 +11,7 @@ type
   TfrEntrySimpleLineQuantity = class(TFrame)
     ppMain: TgdvParamPanel;
     procedure FrameResize(Sender: TObject);
+
   private
     FAnalyticsLineList: TObjectList;
 
@@ -21,8 +22,10 @@ type
     procedure SetValues(const Value: string);
     procedure SortLine;
     function GetQuantityCount: Integer;
+
   public
     destructor Destroy; override;
+
     procedure UpdateQuantityList(AIDList: TList);
 
     property QuantityCount: Integer read GetQuantityCount;
@@ -256,7 +259,6 @@ end;
 destructor TfrEntrySimpleLineQuantity.Destroy;
 begin
   FreeAndNil(FAnalyticsLineList);
-
   inherited;
 end;
 

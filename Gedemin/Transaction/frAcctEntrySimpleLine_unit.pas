@@ -310,7 +310,7 @@ end;
 
 function TfrAcctEntrySimpleLine.GetId: Integer;
 begin
-  Result := - 1;
+  Result := -1;
   if FDataSet <> nil then
   begin
     Result := FDataSet.FieldByName('id').AsInteger;
@@ -401,9 +401,8 @@ begin
           gdcQuantity.First;
           while not gdcQuantity.Eof do
           begin
-            S.Add(Format('%s=%s', [gdcQuantity.FieldByName('valuekey').AsString,
-              gdcQuantity.FieldByName('quantity').AsString]));
-
+            S.Add(gdcQuantity.FieldByName('valuekey').AsString + '=' +
+              gdcQuantity.FieldByName('quantity').AsString);
             gdcQuantity.Next;
           end;
 
@@ -545,7 +544,7 @@ var
   NCUCurrKey: Integer;
 begin
   Result := 0;
-  ibsql := TIBSQL.Create(Self);
+  ibsql := TIBSQL.Create(nil);
   try
     ibsql.Transaction := gdcBaseManager.ReadTransaction;
     ibsql.SQL.Text := 'SELECT isncu FROM gd_curr where id = :id';
@@ -657,13 +656,13 @@ begin
 end;
 
 destructor TfrAcctEntrySimpleLine.Destroy;
-var
-  ComponentPath: String;
 begin
   try
-    ComponentPath := BuildComponentPath(Self);
-    CompanyStorage.WriteBoolean(ComponentPath, 'Rounded', cbRounded.Checked);
+    if CompanyStorage <> nil then
+      CompanyStorage.WriteBoolean(BuildComponentPath(Self), 'Rounded', cbRounded.Checked);
   except
+    on E: Exception do
+      Application.ShowException(E);
   end;
 
   inherited;
@@ -675,7 +674,6 @@ begin
   if cbCurrency.Visible and (cbCurrency.CurrentKeyInt = CurrKey) and (zRate <> Rate) then
     cRate.Value := Rate;
 end;
-
 
 function TfrAcctEntrySimpleLine.GetCRate: Currency;
 begin
