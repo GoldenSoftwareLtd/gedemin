@@ -240,9 +240,20 @@ begin
     cdsLink.First;
     while not cdsLink.Eof do
     begin
-      if not cdsLink.FieldByName('namespacekey').IsNull
-        and (dbgrListLink.CheckBox.CheckList.IndexOf(cdsLink.FieldByName('id').AsString) = -1)
-        and (lkup.CurrentKey = cdsLink.FieldByName('namespacekey').AsString)
+      if
+        (
+          not cdsLink.FieldByName('namespacekey').IsNull
+          and
+          (dbgrListLink.CheckBox.CheckList.IndexOf(cdsLink.FieldByName('id').AsString) = -1)
+          and
+          (lkup.CurrentKey = cdsLink.FieldByName('namespacekey').AsString) 
+        )
+        or
+        (
+          (FClearID = -1)
+          and
+          (cdsLink.FieldByName('namespacekey').IsNull)
+        )
       then
       begin
         dbgrListLink.CheckBox.AddCheck(cdsLink.FieldByName('id').AsString);
@@ -415,7 +426,11 @@ end;
 procedure TdlgToNamespace.lkupChange(Sender: TObject);
 begin
   if lkup.CurrentKey > '' then
+  begin
+    if FClearID > -1 then
+      FClearID := lkup.CurrentKeyInt;
     CheckLink;
+  end;
 end;
 
 end.
