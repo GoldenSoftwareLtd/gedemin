@@ -51,7 +51,7 @@ uses
   mdf_DeletecbAnalyticFromScript;
 
 const
-  cProcCount = 185;
+  cProcCount = 186;
 
 type
   TModifyProc = record
@@ -344,7 +344,8 @@ const
     (ModifyProc: Issue2688; ModifyVersion: '0000.0001.0000.0195'; NeedDBShutdown: False),
     (ModifyProc: AddUqConstraintToGD_RUID; ModifyVersion: '0000.0001.0000.0196'; NeedDBShutdown: True),
     (ModifyProc: DropConstraintFromAT_OBJECT; ModifyVersion: '0000.0001.0000.0197'; NeedDBShutdown: True),
-    (ModifyProc: MoveSubObjects; ModifyVersion: '0000.0001.0000.0200'; NeedDBShutdown: False)
+    (ModifyProc: MoveSubObjects; ModifyVersion: '0000.0001.0000.0200'; NeedDBShutdown: False),
+    (ModifyProc: AddUqConstraintToGD_RUID2; ModifyVersion: '0000.0001.0000.0201'; NeedDBShutdown: True)
   );
 
 implementation
