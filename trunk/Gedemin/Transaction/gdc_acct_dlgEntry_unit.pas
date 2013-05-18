@@ -217,30 +217,16 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   if gdcObject.Owner is TgdcBase then
     if (gdcObject.Owner as TgdcBase).Active then
       pTransaction.Visible := False;
   ActivateTransaction(gdcObject.Transaction);
-//  SetupEntry;
   inherited;
-//  ActivateTransaction(gdcObject.Transaction);
   if gdcObject.State = dsInsert then
     Caption := 'ƒобавление хоз€йственной операции'
   else
     Caption := '–едактирование хоз€йственной операции';
-
-//  SetupEntry;
-
-{  gdcObject.FieldByName('debitncu').OnChange := DoAmountFieldChange;
-  dsDebitLine.DataSet.FieldByName('debitcurr').OnChange := DoAmountFieldChange;
-  dsCreditLine.DataSet.FieldByName('creditcurr').OnChange := DoAmountFieldChange;
-
-  if dsDebitLine.DataSet.FieldByName('debitcurr').AsCurrency <> 0 then
-    ceRate.Value := gdcObject.FieldByName('debitncu').AsCurrency /
-      dsDebitLine.DataSet.FieldByName('debitcurr').AsCurrency;
-  if dsCreditLine.DataSet.FieldByName('creditcurr').AsCurrency <> 0 then
-    ceCreditRate.Value := gdcObject.FieldByName('debitncu').AsCurrency /
-      dsCreditLine.DataSet.FieldByName('creditcurr').AsCurrency;}
 
   {@UNFOLD MACRO INH_CRFORM_FINALLY('TGDC_ACCT_DLGENTRY', 'SETUPDIALOG', KEYSETUPDIALOG)}
   {M}finally
