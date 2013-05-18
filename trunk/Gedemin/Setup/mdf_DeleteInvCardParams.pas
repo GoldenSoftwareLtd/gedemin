@@ -557,13 +557,20 @@ begin
       q.Transaction := Tr;
 
       q.SQL.Text :=
-        'delete from gd_ruid where id in ('#13#10 +
-        'select'#13#10 +
-        '  r1.id'#13#10 +
-        'from'#13#10 +
-        '  gd_ruid r1 join gd_ruid r2'#13#10 +
-        '    on r1.xid=r2.xid and r1.dbid=r2.dbid and r1.id<r2.id'#13#10 +
-        ')';
+        'execute block ' +
+        'as ' +
+        '  declare variable id integer; ' +
+        'begin ' +
+        '  for ' +
+        '    select ' +
+        '      r1.id ' +
+        '    from ' +
+        '      gd_ruid r1 join gd_ruid r2 ' +
+        '        on r1.xid=r2.xid and r1.dbid=r2.dbid and r1.id<r2.id ' +
+        '    into :id ' +
+        '  do ' +
+        '    delete from gd_ruid where id = :id; ' +
+        'end';
       q.ExecQuery;
 
       Tr.Commit;
