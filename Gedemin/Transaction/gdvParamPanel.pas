@@ -287,8 +287,6 @@ begin
   FFillColor := Color;
   FStripeOdd := PaletteRGB(168, 186, 212);
   FStripeEven := PaletteRGB(234, 239, 244);
-//  TabStop := True;
-//  UpdateCaptionBounds;
 end;
 
 function TgdvParamPanel.GetButtonRect: TRect;
@@ -401,7 +399,6 @@ begin
   R := GetClientRect;
   Canvas.Brush.Style := bsSolid;
   Canvas.Brush.Color := FFillColor;
-//  GradientFill(Canvas, R, FFillColor, Color, FOrigin, FSteps);
   Canvas.FillRect(R);
 
   R := GetButtonRect;
@@ -447,13 +444,6 @@ end;
 
 procedure TgdvParamPanel.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
-{  if not FWrapping then
-   FUnwrapedHeight := AHeight;
-
-  if not FUnwraped then
-  begin
-    AHeight := HeaderHeight + 1
-  end;}
   if csLoading in ComponentState then
     FUnwrapedHeight := AHeight;
 

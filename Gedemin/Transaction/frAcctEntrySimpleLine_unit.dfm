@@ -1,7 +1,7 @@
 object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
   Left = 0
   Top = 0
-  Width = 492
+  Width = 435
   Height = 234
   Align = alTop
   AutoSize = True
@@ -15,7 +15,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 492
+    Width = 435
     Height = 234
     Align = alTop
     AutoSize = True
@@ -27,7 +27,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
     object ppMain: TgdvParamPanel
       Left = 1
       Top = 1
-      Width = 490
+      Width = 433
       Height = 232
       Align = alTop
       AutoSize = True
@@ -35,7 +35,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clNavy
       Font.Height = -11
-      Font.Name = 'MS Sans Serif'
+      Font.Name = 'Tahoma'
       Font.Style = [fsBold]
       ParentFont = False
       TabOrder = 0
@@ -50,7 +50,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
       object Panel5: TPanel
         Left = 4
         Top = 17
-        Width = 482
+        Width = 425
         Height = 140
         Align = alTop
         BevelOuter = bvNone
@@ -59,52 +59,52 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object lAccount: TLabel
           Left = 8
           Top = 7
-          Width = 26
+          Width = 29
           Height = 13
           Caption = 'Счет:'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
         end
         object lSum: TLabel
           Left = 8
           Top = 30
-          Width = 37
+          Width = 35
           Height = 13
           Caption = 'Сумма:'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
         end
         object lCurr: TLabel
           Left = 8
           Top = 77
-          Width = 41
+          Width = 43
           Height = 13
           Caption = 'Валюта:'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
         end
         object lRate: TLabel
           Left = 8
           Top = 99
-          Width = 27
+          Width = 28
           Height = 13
           Caption = 'Курс:'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
         end
@@ -117,27 +117,27 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
         end
         object lEQ: TLabel
           Left = 8
           Top = 53
-          Width = 114
+          Width = 112
           Height = 13
           Caption = 'Сумма в эквиваленте:'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentFont = False
         end
         object cbAccount: TgsIBLookupComboBox
           Left = 56
           Top = 3
-          Width = 419
+          Width = 363
           Height = 21
           HelpContext = 1
           Database = dmDatabase.ibdbGAdmin
@@ -161,7 +161,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ItemHeight = 13
           ParentCtl3D = False
@@ -173,7 +173,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cSum: TxDBCalculatorEdit
           Left = 56
           Top = 26
-          Width = 419
+          Width = 363
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 193
@@ -181,7 +181,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentCtl3D = False
           ParentFont = False
@@ -213,7 +213,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ItemHeight = 13
           ParentCtl3D = False
@@ -226,7 +226,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cRate: TxCalculatorEdit
           Left = 93
           Top = 95
-          Width = 382
+          Width = 326
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -234,7 +234,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentCtl3D = False
           ParentFont = False
@@ -245,7 +245,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cCurrSum: TxDBCalculatorEdit
           Left = 93
           Top = 118
-          Width = 382
+          Width = 326
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           Constraints.MinWidth = 156
@@ -253,7 +253,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentCtl3D = False
           ParentFont = False
@@ -266,7 +266,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
         object cEQSum: TxDBCalculatorEdit
           Left = 122
           Top = 49
-          Width = 353
+          Width = 297
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           AutoSize = False
@@ -275,7 +275,7 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -11
-          Font.Name = 'MS Sans Serif'
+          Font.Name = 'Tahoma'
           Font.Style = []
           ParentCtl3D = False
           ParentFont = False
@@ -292,6 +292,12 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
           Height = 17
           Caption = 'Округлять'
           Checked = True
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWindowText
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = []
+          ParentFont = False
           State = cbChecked
           TabOrder = 4
         end
@@ -299,11 +305,12 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
       inline frAcctAnalytics: TfrAcctAnalytics
         Left = 4
         Top = 157
-        Width = 482
+        Width = 425
         TabOrder = 1
         inherited ppAnalytics: TgdvParamPanel
-          Width = 482
+          Width = 425
           Color = 16053492
+          Font.Name = 'Tahoma'
           ParentColor = False
           TabStop = False
           HorisontalOffset = 8
@@ -313,14 +320,15 @@ object frAcctEntrySimpleLine: TfrAcctEntrySimpleLine
       inline frQuantity: TfrEntrySimpleLineQuantity
         Left = 4
         Top = 198
-        Width = 482
+        Width = 425
         Height = 33
         TabOrder = 2
         inherited ppMain: TgdvParamPanel
-          Width = 482
+          Width = 425
           Height = 33
           Color = 16053492
           Font.Color = 14705703
+          Font.Name = 'Tahoma'
           TabStop = False
           HorisontalOffset = 8
           FillColor = clWhite

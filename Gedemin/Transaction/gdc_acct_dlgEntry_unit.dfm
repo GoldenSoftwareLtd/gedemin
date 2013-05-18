@@ -1,45 +1,39 @@
 inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
-  Left = 377
-  Top = 298
-  Width = 750
+  Left = 340
+  Top = 202
+  Width = 749
   Height = 517
   BorderStyle = bsSizeable
   BorderWidth = 5
   Caption = 'Хозяйственная операция'
   Font.Charset = DEFAULT_CHARSET
-  Font.Name = 'MS Sans Serif'
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
   inherited btnAccess: TButton
     Left = 0
     Top = 446
-    Anchors = [akLeft, akBottom]
   end
   inherited btnNew: TButton
     Left = 72
     Top = 446
-    Anchors = [akLeft, akBottom]
   end
   inherited btnHelp: TButton
     Left = 144
     Top = 446
-    Anchors = [akLeft, akBottom]
   end
   inherited btnOK: TButton
-    Left = 584
+    Left = 583
     Top = 446
-    Anchors = [akRight, akBottom]
   end
   inherited btnCancel: TButton
-    Left = 656
+    Left = 655
     Top = 446
-    Anchors = [akRight, akBottom]
   end
   inherited pgcMain: TPageControl
     Left = 0
     Top = 25
-    Width = 724
+    Width = 723
     Height = 414
     Align = alTop
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -47,7 +41,6 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
       inherited labelID: TLabel
         Left = 4
         Top = 368
-        Width = 83
         Anchors = [akLeft, akBottom]
         Visible = False
       end
@@ -59,36 +52,36 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 716
-        Height = 69
+        Width = 715
+        Height = 54
         Align = alTop
         BevelOuter = bvNone
         TabOrder = 0
         object Label16: TLabel
           Left = 6
           Top = 8
-          Width = 26
+          Width = 30
           Height = 13
-          Caption = 'Дата'
+          Caption = 'Дата:'
         end
         object Label17: TLabel
-          Left = 334
+          Left = 118
           Top = 8
-          Width = 34
+          Width = 35
           Height = 13
-          Caption = 'Номер'
+          Caption = 'Номер:'
         end
         object Label18: TLabel
           Left = 6
-          Top = 28
-          Width = 101
+          Top = 34
+          Width = 104
           Height = 13
-          Caption = 'Описание операции'
+          Caption = 'Описание операции:'
         end
         object xDateDBEdit1: TxDateDBEdit
-          Left = 53
+          Left = 41
           Top = 4
-          Width = 276
+          Width = 68
           Height = 21
           DataField = 'RECORDDATE'
           DataSource = dsgdcBase
@@ -100,9 +93,9 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           TabOrder = 0
         end
         object DBEdit1: TDBEdit
-          Left = 382
+          Left = 157
           Top = 4
-          Width = 291
+          Width = 99
           Height = 21
           Ctl3D = True
           DataField = 'NUMBER'
@@ -111,9 +104,9 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           TabOrder = 1
         end
         object DBEdit2: TDBEdit
-          Left = 6
-          Top = 43
-          Width = 667
+          Left = 115
+          Top = 31
+          Width = 594
           Height = 21
           Ctl3D = True
           DataField = 'DESCRIPTION'
@@ -124,9 +117,9 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
       end
       object Panel2: TPanel
         Left = 0
-        Top = 97
-        Width = 716
-        Height = 289
+        Top = 87
+        Width = 715
+        Height = 299
         Align = alClient
         BevelOuter = bvNone
         Caption = 'Panel2'
@@ -135,7 +128,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           Left = 356
           Top = 0
           Width = 3
-          Height = 289
+          Height = 299
           Cursor = crHSplit
           AutoSnap = False
         end
@@ -143,7 +136,7 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           Left = 0
           Top = 0
           Width = 356
-          Height = 289
+          Height = 299
           Align = alLeft
           BevelOuter = bvNone
           Constraints.MinWidth = 100
@@ -152,18 +145,17 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
             Left = 0
             Top = 0
             Width = 356
-            Height = 17
+            Height = 21
             Align = alTop
             Alignment = taLeftJustify
             BevelOuter = bvNone
-            BorderStyle = bsSingle
             Caption = ' Дебет '
-            Color = clWhite
+            Color = clActiveCaption
             Ctl3D = False
             Font.Charset = DEFAULT_CHARSET
-            Font.Color = clBlack
+            Font.Color = clCaptionText
             Font.Height = -11
-            Font.Name = 'MS Sans Serif'
+            Font.Name = 'Tahoma'
             Font.Style = [fsBold]
             ParentCtl3D = False
             ParentFont = False
@@ -171,14 +163,16 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           end
           object TBDock1: TTBDock
             Left = 0
-            Top = 17
+            Top = 21
             Width = 356
             Height = 26
             object TBToolbar1: TTBToolbar
               Left = 0
               Top = 0
+              BorderStyle = bsNone
               Caption = 'TBToolbar1'
-              DockMode = dmCannotFloat
+              CloseButton = False
+              DockMode = dmCannotFloatOrChangeDocks
               FullSize = True
               Images = dmImages.il16x16
               TabOrder = 0
@@ -192,9 +186,9 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           end
           object sboxDebit: TgdvParamScrolBox
             Left = 0
-            Top = 43
+            Top = 47
             Width = 356
-            Height = 246
+            Height = 252
             HorzScrollBar.Visible = False
             VertScrollBar.Increment = 31
             VertScrollBar.Style = ssFlat
@@ -208,8 +202,8 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
         object Panel6: TPanel
           Left = 359
           Top = 0
-          Width = 357
-          Height = 289
+          Width = 356
+          Height = 299
           Align = alClient
           BevelOuter = bvNone
           Constraints.MinWidth = 100
@@ -217,19 +211,18 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           object Panel7: TPanel
             Left = 0
             Top = 0
-            Width = 357
-            Height = 17
+            Width = 356
+            Height = 21
             Align = alTop
             Alignment = taLeftJustify
             BevelOuter = bvNone
-            BorderStyle = bsSingle
             Caption = ' Кредит'
-            Color = clWhite
+            Color = clActiveCaption
             Ctl3D = False
             Font.Charset = DEFAULT_CHARSET
-            Font.Color = clMenuText
+            Font.Color = clCaptionText
             Font.Height = -11
-            Font.Name = 'MS Sans Serif'
+            Font.Name = 'Tahoma'
             Font.Style = [fsBold]
             ParentCtl3D = False
             ParentFont = False
@@ -237,13 +230,16 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           end
           object TBDock2: TTBDock
             Left = 0
-            Top = 17
-            Width = 357
+            Top = 21
+            Width = 356
             Height = 26
             object TBToolbar2: TTBToolbar
               Left = 0
               Top = 0
+              BorderStyle = bsNone
               Caption = 'TBToolbar1'
+              CloseButton = False
+              DockMode = dmCannotFloatOrChangeDocks
               FullSize = True
               Images = dmImages.il16x16
               TabOrder = 0
@@ -257,9 +253,9 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
           end
           object sboxCredit: TgdvParamScrolBox
             Left = 0
-            Top = 43
-            Width = 357
-            Height = 246
+            Top = 47
+            Width = 356
+            Height = 252
             HorzScrollBar.Style = ssFlat
             HorzScrollBar.Visible = False
             VertScrollBar.Style = ssFlat
@@ -273,23 +269,23 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
       end
       object pTransaction: TPanel
         Left = 0
-        Top = 69
-        Width = 716
-        Height = 28
+        Top = 54
+        Width = 715
+        Height = 33
         Align = alTop
         BevelOuter = bvNone
         TabOrder = 1
         object Label1: TLabel
           Left = 6
           Top = 6
-          Width = 94
+          Width = 97
           Height = 13
-          Caption = 'Типовая операция'
+          Caption = 'Типовая операция:'
         end
         object iblcTransaction: TgsIBLookupComboBox
-          Left = 112
-          Top = 2
-          Width = 561
+          Left = 115
+          Top = 3
+          Width = 593
           Height = 21
           HelpContext = 1
           Transaction = ibtrCommon
@@ -308,15 +304,15 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
     end
     inherited tbsAttr: TTabSheet
       inherited atcMain: TatContainer
-        Width = 679
-        Height = 461
+        Width = 715
+        Height = 386
       end
     end
   end
   object pnlHolding: TPanel [6]
     Left = 0
     Top = 0
-    Width = 724
+    Width = 723
     Height = 25
     Align = alTop
     BevelOuter = bvNone
@@ -324,12 +320,12 @@ inherited gdc_acct_dlgEntry: Tgdc_acct_dlgEntry
     object lblCompany: TLabel
       Left = 8
       Top = 5
-      Width = 54
+      Width = 53
       Height = 13
       Caption = 'Компания:'
     end
     object iblkCompany: TgsIBLookupComboBox
-      Left = 88
+      Left = 66
       Top = 2
       Width = 193
       Height = 21
