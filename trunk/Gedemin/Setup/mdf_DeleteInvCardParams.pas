@@ -13,6 +13,7 @@ procedure Issue2688(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddUqConstraintToGD_RUID(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DropConstraintFromAT_OBJECT(IBDB: TIBDatabase; Log: TModifyLog);
 procedure MoveSubObjects(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddUqConstraintToGD_RUID2(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -548,13 +549,17 @@ begin
     Tr.StartTransaction;
 
     try
-      DropIndex2('gd_x_ruid_xid', Tr);
-
-      Tr.Commit;
-      Tr.StartTransaction;
-
       q.ParamCheck := False;
       q.Transaction := Tr;
+
+      if not IndexExist2('gd_x_ruid_xid', Tr) then
+      begin
+        q.SQL.Text := 'CREATE INDEX gd_x_ruid_xid ON gd_ruid (xid, dbid)';
+        q.ExecQuery;
+
+        Tr.Commit;
+        Tr.StartTransaction;
+      end;
 
       q.SQL.Text :=
         'execute block ' +
@@ -572,17 +577,6 @@ begin
         '    delete from gd_ruid where id = :id; ' +
         'end';
       q.ExecQuery;
-
-      Tr.Commit;
-      Tr.StartTransaction;
-      
-      if not ConstraintExist2('gd_ruid', 'gd_uniq_ruid', Tr) then
-      begin
-        q.SQL.Text :=
-          'ALTER TABLE gd_ruid ADD CONSTRAINT gd_uniq_ruid ' +
-          '  UNIQUE (xid, dbid)';
-        q.ExecQuery;
-      end;
 
       q.Close;
       q.SQL.Text :=
@@ -752,6 +746,57 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (170, ''0000.0001.0000.0201'', ''17.05.2013'', ''Constraint on at_object changed.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure AddUqConstraintToGD_RUID2(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      DropIndex2('gd_x_ruid_xid', Tr);
+
+      Tr.Commit;
+      Tr.StartTransaction;
+
+      if not ConstraintExist2('gd_ruid', 'gd_uniq_ruid', Tr) then
+      begin
+        q.SQL.Text :=
+          'ALTER TABLE gd_ruid ADD CONSTRAINT gd_uniq_ruid ' +
+          '  UNIQUE (xid, dbid)';
+        q.ExecQuery;
+      end;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (171, ''0000.0001.0000.0202'', ''18.05.2013'', ''Added unique constraint on xid, dbid fields to gd_ruid table. Attempt #2.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
