@@ -545,6 +545,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (171, '0000.0001.0000.0202', '18.05.2013', 'Added unique constraint on xid, dbid fields to gd_ruid table. Attempt #2.');
 
+INSERT INTO fin_versioninfo
+  VALUES (172, '0000.0001.0000.0203', '19.05.2013', 'Curr_modified field added to at_object.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
