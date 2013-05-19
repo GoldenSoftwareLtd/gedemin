@@ -14,6 +14,7 @@ procedure AddUqConstraintToGD_RUID(IBDB: TIBDatabase; Log: TModifyLog);
 procedure DropConstraintFromAT_OBJECT(IBDB: TIBDatabase; Log: TModifyLog);
 procedure MoveSubObjects(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddUqConstraintToGD_RUID2(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddCurrModified(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -130,11 +131,12 @@ begin
           '  xid             dinteger_notnull,'#13#10 +
           '  dbid            dinteger_notnull,'#13#10 +
           '  objectpos       dinteger,'#13#10 +
-          '  alwaysoverwrite dboolean_notnull DEFAULT 1,'#13#10 +
+          '  alwaysoverwrite dboolean_notnull DEFAULT 0,'#13#10 +
           '  dontremove      dboolean_notnull DEFAULT 0,'#13#10 +
           '  includesiblings dboolean_notnull DEFAULT 0,'#13#10 +
           '  headobjectkey   dforeignkey,'#13#10 +
           '  modified        TIMESTAMP,'#13#10 +
+          '  curr_modified   TIMESTAMP,'#13#10 +
           ''#13#10 +
           '  CONSTRAINT at_pk_object PRIMARY KEY (id),'#13#10 +
           '  CONSTRAINT at_uk_object UNIQUE (xid, dbid, namespacekey),'#13#10 +
@@ -797,6 +799,54 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (171, ''0000.0001.0000.0202'', ''18.05.2013'', ''Added unique constraint on xid, dbid fields to gd_ruid table. Attempt #2.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure AddCurrModified(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      if not FieldExist2('at_object', 'curr_modified', Tr) then
+      begin
+        q.SQL.Text := 'ALTER TABLE at_object ADD curr_modified TIMESTAMP';
+        q.ExecQuery;
+      end;
+
+      q.SQL.Text :=
+        'ALTER TABLE at_object ALTER COLUMN alwaysoverwrite SET DEFAULT 0';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (172, ''0000.0001.0000.0203'', ''19.05.2013'', ''Curr_modified field added to at_object.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 

@@ -195,11 +195,12 @@ CREATE TABLE at_object (
   xid             dinteger_notnull,
   dbid            dinteger_notnull,
   objectpos       dinteger,
-  alwaysoverwrite dboolean_notnull DEFAULT 1,
+  alwaysoverwrite dboolean_notnull DEFAULT 0,
   dontremove      dboolean_notnull DEFAULT 0,
   includesiblings dboolean_notnull DEFAULT 0,
   headobjectkey   dforeignkey,
   modified        TIMESTAMP,
+  curr_modified   TIMESTAMP,
 
   CONSTRAINT at_pk_object PRIMARY KEY (id),
   CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),
