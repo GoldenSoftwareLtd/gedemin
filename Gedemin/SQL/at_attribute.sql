@@ -60,11 +60,9 @@ CREATE UNIQUE INDEX at_x_relations_rn ON at_relations
   (relationname);
 
 CREATE UNIQUE INDEX at_x_relations_ln ON at_relations
-  /*COMPUTED BY (UPPER(lname));*/
   (lname);
 
 CREATE UNIQUE INDEX at_x_relations_lsn ON at_relations
-  /*COMPUTED BY (UPPER(lshortname));*/
   (lshortname);
 
 COMMIT;
@@ -618,7 +616,6 @@ BEGIN
 END
 ^
 
-
 CREATE TRIGGER at_ai_exceptions FOR at_exceptions
 AFTER INSERT POSITION 0
 AS
@@ -627,7 +624,6 @@ BEGIN
   VERSION = GEN_ID(gd_g_attr_version, 1);
 END
 ^
-
 
 CREATE TRIGGER at_au_exceptions FOR at_exceptions
 AFTER UPDATE POSITION 0
@@ -638,8 +634,6 @@ BEGIN
 END
 ^
 
-
-
 CREATE TRIGGER at_bi_exceptions FOR at_exceptions
 BEFORE INSERT POSITION 0
 AS
@@ -649,7 +643,6 @@ BEGIN
 
 END
 ^
-
 
 CREATE TRIGGER at_bi_exceptions5 FOR at_exceptions
   BEFORE INSERT POSITION 5
@@ -678,9 +671,10 @@ COMMIT;
 
 /*Таблица чеков */
 CREATE TABLE AT_CHECK_CONSTRAINTS (
-    ID                DINTKEY,
-    CHECKNAME         DTABLENAME NOT NULL,
-    MSG               DTEXT80 COLLATE PXW_CYRL
+  id                dintkey,
+  checkname         dtablename NOT NULL,
+  msg               dtext80 COLLATE PXW_CYRL,
+  editiondate       deditiondate
 );
 
 COMMIT;

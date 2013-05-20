@@ -7,7 +7,7 @@ uses
   gd_createable_form, Db, IBCustomDataSet, IBDatabase, Grids, DBGrids,
   gsDBGrid, gsIBGrid, ComCtrls, ActnList, TB2Dock, TB2Toolbar, dmDatabase_unit,
   dmImages_unit, TB2Item, gdcBase, gdcBaseInterface, Menus, ExtCtrls,
-  StdCtrls;
+  StdCtrls, gsPeriodEdit;
 
 type
   Tat_frmNSObjects = class(TCreateableForm)
@@ -35,6 +35,8 @@ type
     btnSetAll: TButton;
     btnSetFilter: TButton;
     chbxInNS: TCheckBox;
+    gsPeriodEdit: TgsPeriodEdit;
+    Label1: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure actOpenObjectUpdate(Sender: TObject);
     procedure actOpenObjectExecute(Sender: TObject);
@@ -64,7 +66,7 @@ uses
   gd_classlist, gdcNamespace, IBSQL, at_AddToSetting;
 
 const
-  ArrayOfGDC: array[0..15] of String = (
+  ArrayOfGDC: array[0..23] of String = (
     'TgdcBaseTable',
     'TgdcField',
     'TgdcStoredProc',
@@ -74,11 +76,19 @@ const
     'TgdcException',
     'TgdcGenerator',
     'TgdcIndex',
+    'TgdcConst',
+    'TgdcFile',
+    'TgdcStorage',
+    'TgdcSavedFilter',
+    'TgdcExplorer',
+    'TgdcReportGroup',
     'TgdcReport',
     'TgdcMacros',
     'TgdcFunction',
     'TgdcEvent',
     'TgdcDelphiObject',
+    'TgdcAcctAccount',
+    'TgdcDocumentType',
     'TgdcBaseAcctTransactionEntry',
     'TgdcBaseAcctTransaction'
   );
@@ -92,7 +102,7 @@ begin
   begin
     C := TCheckBox.Create(pnlFilter);
     C.Parent := pnlFilter;
-    C.Width := 180;
+    C.Width := 160;
     C.Height := 16;
     C.Left := 8 + (I mod 4) * C.Width;
     C.Top := 8 + (I div 4) * C.Height;
@@ -262,14 +272,17 @@ begin
             '  ruid.xid,'#13#10 +
             '  ruid.dbid,'#13#10 +
             '  r.' + CgdcBase(C).GetListField('') + ','#13#10 +
+            '  r.editiondate,'#13#10 +
             '  list(n.id || ''='' || n.name) AS ns_list'#13#10 +
             'FROM'#13#10 +
             '  ' +  CgdcBase(C).GetListTable('') + ' r'#13#10 +
             '  JOIN gd_ruid ruid ON ruid.id = r.id'#13#10 +
             '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
             '  LEFT JOIN at_namespace n ON n.id = o.namespacekey'#13#10 +
+            'WHERE '#13#10 +
+            '  r.editiondate IS NULL OR r.editiondate BETWEEN :DB AND :DE'#13#10 +
             'GROUP BY'#13#10 +
-            '  1, 2, 3, 4, 5'#13#10
+            '  1, 2, 3, 4, 5, 6'#13#10
         else
           S := S +
             'SELECT'#13#10 +
@@ -278,20 +291,26 @@ begin
             '  ruid.xid,'#13#10 +
             '  ruid.dbid,'#13#10 +
             '  r.' + CgdcBase(C).GetListField('') + ','#13#10 +
+            '  r.editiondate,'#13#10 +
             '  '''' AS ns_list'#13#10 +
             'FROM'#13#10 +
             '  ' +  CgdcBase(C).GetListTable('') + ' r'#13#10 +
             '  JOIN gd_ruid ruid ON ruid.id = r.id'#13#10 +
             '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
-            'WHERE'#13#10 +
-            '  o.id IS NULL'#13#10;
+            'WHERE '#13#10 +
+            '  (r.editiondate IS NULL OR r.editiondate BETWEEN :DB AND :DE)'#13#10 +
+            '  AND (o.id IS NULL)'#13#10;
       end;
     end;
 
   ibds.Close;
   ibds.SelectSQL.Text := S;
   if S > '' then
+  begin
+    ibds.ParamByName('DB').AsDateTime := gsPeriodEdit.Date;
+    ibds.ParamByName('DE').AsDateTime := gsPeriodEdit.EndDate;
     ibds.Open;
+  end;
 end;
 
 end.

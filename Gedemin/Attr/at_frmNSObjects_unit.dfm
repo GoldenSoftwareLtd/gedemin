@@ -53,9 +53,9 @@ object at_frmNSObjects: Tat_frmNSObjects
   end
   object gsIBGrid: TgsIBGrid
     Left = 0
-    Top = 106
+    Top = 138
     Width = 1126
-    Height = 491
+    Height = 459
     Align = alClient
     BorderStyle = bsNone
     DataSource = ds
@@ -81,17 +81,24 @@ object at_frmNSObjects: Tat_frmNSObjects
     Left = 0
     Top = 26
     Width = 1126
-    Height = 80
+    Height = 112
     Align = alTop
     TabOrder = 3
     object pnlFilterButtons: TPanel
       Left = 1
       Top = 1
       Width = 219
-      Height = 78
+      Height = 110
       Align = alLeft
       BevelOuter = bvNone
       TabOrder = 0
+      object Label1: TLabel
+        Left = 6
+        Top = 59
+        Width = 54
+        Height = 13
+        Caption = 'Изменены:'
+      end
       object btnClearAll: TButton
         Left = 4
         Top = 5
@@ -110,26 +117,33 @@ object at_frmNSObjects: Tat_frmNSObjects
       end
       object btnSetFilter: TButton
         Left = 112
-        Top = 50
+        Top = 83
         Width = 102
         Height = 21
         Action = actSetFilter
-        TabOrder = 3
+        TabOrder = 4
       end
       object chbxInNS: TCheckBox
         Left = 5
-        Top = 30
+        Top = 34
         Width = 193
         Height = 17
         Caption = 'Входят в пространство имен'
         TabOrder = 2
+      end
+      object gsPeriodEdit: TgsPeriodEdit
+        Left = 67
+        Top = 56
+        Width = 148
+        Height = 21
+        TabOrder = 3
       end
     end
     object pnlFilter: TPanel
       Left = 220
       Top = 1
       Width = 905
-      Height = 78
+      Height = 110
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1

@@ -15,6 +15,7 @@ procedure DropConstraintFromAT_OBJECT(IBDB: TIBDatabase; Log: TModifyLog);
 procedure MoveSubObjects(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddUqConstraintToGD_RUID2(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddCurrModified(IBDB: TIBDatabase; Log: TModifyLog);
+procedure AddEditionDate(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -847,6 +848,62 @@ begin
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (172, ''0000.0001.0000.0203'', ''19.05.2013'', ''Curr_modified field added to at_object.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure AddEditionDate(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+
+  procedure AddEditionDateField(const ATableName: String);
+  begin
+    if not FieldExist2(ATableName, 'editiondate', Tr) then
+    begin
+      q.SQL.Text := 'ALTER TABLE ' + ATableName + ' ADD editiondate deditiondate';
+      q.ExecQuery;
+    end;
+  end;
+
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
+
+      AddEditionDateField('AT_CHECK_CONSTRAINTS');
+      AddEditionDateField('GD_COMMAND');
+      AddEditionDateField('rp_reportgroup');
+      AddEditionDateField('gd_documenttype');
+      AddEditionDateField('ac_account');
+      AddEditionDateField('ac_transaction');
+      AddEditionDateField('ac_trrecord');
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (173, ''0000.0001.0000.0204'', ''20.05.2013'', ''Missed editiondate fields added.'') ' +
         '  MATCHING (id)';
       q.ExecQuery;
 
