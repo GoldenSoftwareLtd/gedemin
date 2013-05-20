@@ -39,6 +39,8 @@ CREATE TABLE gd_documenttype
   achag                   dsecurity,
   aview                   dsecurity,
 
+  editiondate             deditiondate,
+
   disabled                dboolean DEFAULT 0,
   ruid                    druid,                     /* Хранит руид документа  */
   branchkey               dforeignkey,               /* Ветка в исследователе */

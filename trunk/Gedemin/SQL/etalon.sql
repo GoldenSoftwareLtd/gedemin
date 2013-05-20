@@ -1350,6 +1350,12 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (171, '0000.0001.0000.0202', '18.05.2013', 'Added unique constraint on xid, dbid fields to gd_ruid table. Attempt #2.');
 
+INSERT INTO fin_versioninfo
+  VALUES (172, '0000.0001.0000.0203', '19.05.2013', 'Curr_modified field added to at_object.');
+
+INSERT INTO fin_versioninfo
+  VALUES (173, '0000.0001.0000.0204', '20.05.2013', 'Missed editiondate fields added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
@@ -3588,11 +3594,9 @@ CREATE UNIQUE INDEX at_x_relations_rn ON at_relations
   (relationname);
 
 CREATE UNIQUE INDEX at_x_relations_ln ON at_relations
-  /*COMPUTED BY (UPPER(lname));*/
   (lname);
 
 CREATE UNIQUE INDEX at_x_relations_lsn ON at_relations
-  /*COMPUTED BY (UPPER(lshortname));*/
   (lshortname);
 
 COMMIT;
@@ -4146,7 +4150,6 @@ BEGIN
 END
 ^
 
-
 CREATE TRIGGER at_ai_exceptions FOR at_exceptions
 AFTER INSERT POSITION 0
 AS
@@ -4155,7 +4158,6 @@ BEGIN
   VERSION = GEN_ID(gd_g_attr_version, 1);
 END
 ^
-
 
 CREATE TRIGGER at_au_exceptions FOR at_exceptions
 AFTER UPDATE POSITION 0
@@ -4166,8 +4168,6 @@ BEGIN
 END
 ^
 
-
-
 CREATE TRIGGER at_bi_exceptions FOR at_exceptions
 BEFORE INSERT POSITION 0
 AS
@@ -4177,7 +4177,6 @@ BEGIN
 
 END
 ^
-
 
 CREATE TRIGGER at_bi_exceptions5 FOR at_exceptions
   BEFORE INSERT POSITION 5
@@ -4206,9 +4205,10 @@ COMMIT;
 
 /*Таблица чеков */
 CREATE TABLE AT_CHECK_CONSTRAINTS (
-    ID                DINTKEY,
-    CHECKNAME         DTABLENAME NOT NULL,
-    MSG               DTEXT80 COLLATE PXW_CYRL
+  id                dintkey,
+  checkname         dtablename NOT NULL,
+  msg               dtext80 COLLATE PXW_CYRL,
+  editiondate       deditiondate
 );
 
 COMMIT;
@@ -5534,6 +5534,8 @@ CREATE TABLE gd_documenttype
   afull                   dsecurity,
   achag                   dsecurity,
   aview                   dsecurity,
+
+  editiondate             deditiondate,
 
   disabled                dboolean DEFAULT 0,
   ruid                    druid,                     /* Хранит руид документа  */
@@ -7726,24 +7728,26 @@ SET TERM ; ^
 
 COMMIT;
 CREATE TABLE gd_command (
-  id         dintkey,                      /* унікальны ідэнтыфікатар */
-  parent     dparent,                      /* спасылка на бацьку      */
+  id          dintkey,                      /* унікальны ідэнтыфікатар */
+  parent      dparent,                      /* спасылка на бацьку      */
 
-  name       dname,                        /* імя элементу            */
-  cmd        dtext20,                      /* каманда                 */
-  cmdtype    dinteger DEFAULT 0 NOT NULL,
-  hotkey     dhotkey,                      /* гарачая клявіша         */
-  imgindex   dsmallint DEFAULT 0 NOT NULL, /* індэкс малюнка          */
-  ordr       dinteger,                     /* парадак                 */
-  classname  dclassname,                   /* имя класса              */
-  subtype    dtext40,                      /* подтип класса           */
+  name        dname,                        /* імя элементу            */
+  cmd         dtext20,                      /* каманда                 */
+  cmdtype     dinteger DEFAULT 0 NOT NULL,
+  hotkey      dhotkey,                      /* гарачая клявіша         */
+  imgindex    dsmallint DEFAULT 0 NOT NULL, /* індэкс малюнка          */
+  ordr        dinteger,                     /* парадак                 */
+  classname   dclassname,                   /* имя класса              */
+  subtype     dtext40,                      /* подтип класса           */
 
-  aview      dsecurity,                    /* бяспека                 */
-  achag      dsecurity,
-  afull      dsecurity,
+  aview       dsecurity,                    /* бяспека                 */
+  achag       dsecurity,
+  afull       dsecurity,
 
-  disabled   ddisabled,
-  reserved   dreserved
+  editiondate deditiondate,
+
+  disabled    ddisabled,
+  reserved    dreserved
 );
 
 COMMIT;
@@ -8840,6 +8844,8 @@ CREATE TABLE ac_account
   achag            dsecurity,
   aview            dsecurity,
 
+  editiondate      deditiondate,
+
   fullname         COMPUTED BY (case when ALIAS is null then '' else ALIAS || ' ' end || case when NAME is null then '' else NAME end),
 
   description      dblobtext80_1251,
@@ -9001,6 +9007,8 @@ CREATE TABLE ac_transaction
   achag            dsecurity,
   aview            dsecurity,
 
+  editiondate      deditiondate,
+
   disabled         dboolean DEFAULT 0,
   reserved         dinteger,
   AUTOTRANSACTION  DBOOLEAN  /*Признак автоматической операции*/
@@ -9055,6 +9063,8 @@ CREATE TABLE ac_trrecord (
   afull            dsecurity,           /* Дескрипторы безопасности */
   achag            dsecurity,
   aview            dsecurity,
+
+  editiondate      deditiondate,
 
   disabled         dboolean DEFAULT 0,
   reserved         dinteger,
@@ -13864,7 +13874,7 @@ COMMIT;
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Script
 
@@ -13975,11 +13985,12 @@ CREATE TABLE rp_reportgroup
   parent         dforeignkey,
   name           dname,
   description    dtext180,
-  lb               dlb,
-  rb               drb,
+  lb             dlb,
+  rb             drb,
   afull          dsecurity,
   achag          dsecurity,
   aview          dsecurity,
+  editiondate    deditiondate,
   usergroupname  dname DEFAULT '',
   reserved       dinteger
 );
@@ -16301,11 +16312,12 @@ CREATE TABLE at_object (
   xid             dinteger_notnull,
   dbid            dinteger_notnull,
   objectpos       dinteger,
-  alwaysoverwrite dboolean_notnull DEFAULT 1,
+  alwaysoverwrite dboolean_notnull DEFAULT 0,
   dontremove      dboolean_notnull DEFAULT 0,
   includesiblings dboolean_notnull DEFAULT 0,
   headobjectkey   dforeignkey,
   modified        TIMESTAMP,
+  curr_modified   TIMESTAMP,
 
   CONSTRAINT at_pk_object PRIMARY KEY (id),
   CONSTRAINT at_uk_object UNIQUE (namespacekey, xid, dbid),

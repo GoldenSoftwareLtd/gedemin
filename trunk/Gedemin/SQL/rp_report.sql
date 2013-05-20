@@ -1,7 +1,7 @@
 
 /*
 
-  Copyright (c) 2000-2012 by Golden Software of Belarus
+  Copyright (c) 2000-2013 by Golden Software of Belarus
 
   Script
 
@@ -112,11 +112,12 @@ CREATE TABLE rp_reportgroup
   parent         dforeignkey,
   name           dname,
   description    dtext180,
-  lb               dlb,
-  rb               drb,
+  lb             dlb,
+  rb             drb,
   afull          dsecurity,
   achag          dsecurity,
   aview          dsecurity,
+  editiondate    deditiondate,
   usergroupname  dname DEFAULT '',
   reserved       dinteger
 );

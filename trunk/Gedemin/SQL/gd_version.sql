@@ -548,6 +548,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (172, '0000.0001.0000.0203', '19.05.2013', 'Curr_modified field added to at_object.');
 
+INSERT INTO fin_versioninfo
+  VALUES (173, '0000.0001.0000.0204', '20.05.2013', 'Missed editiondate fields added.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id

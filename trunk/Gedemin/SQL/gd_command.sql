@@ -1,23 +1,25 @@
 
 CREATE TABLE gd_command (
-  id         dintkey,                      /* унікальны ідэнтыфікатар */
-  parent     dparent,                      /* спасылка на бацьку      */
+  id          dintkey,                      /* унікальны ідэнтыфікатар */
+  parent      dparent,                      /* спасылка на бацьку      */
 
-  name       dname,                        /* імя элементу            */
-  cmd        dtext20,                      /* каманда                 */
-  cmdtype    dinteger DEFAULT 0 NOT NULL,
-  hotkey     dhotkey,                      /* гарачая клявіша         */
-  imgindex   dsmallint DEFAULT 0 NOT NULL, /* індэкс малюнка          */
-  ordr       dinteger,                     /* парадак                 */
-  classname  dclassname,                   /* имя класса              */
-  subtype    dtext40,                      /* подтип класса           */
+  name        dname,                        /* імя элементу            */
+  cmd         dtext20,                      /* каманда                 */
+  cmdtype     dinteger DEFAULT 0 NOT NULL,
+  hotkey      dhotkey,                      /* гарачая клявіша         */
+  imgindex    dsmallint DEFAULT 0 NOT NULL, /* індэкс малюнка          */
+  ordr        dinteger,                     /* парадак                 */
+  classname   dclassname,                   /* имя класса              */
+  subtype     dtext40,                      /* подтип класса           */
 
-  aview      dsecurity,                    /* бяспека                 */
-  achag      dsecurity,
-  afull      dsecurity,
+  aview       dsecurity,                    /* бяспека                 */
+  achag       dsecurity,
+  afull       dsecurity,
 
-  disabled   ddisabled,
-  reserved   dreserved
+  editiondate deditiondate,
+
+  disabled    ddisabled,
+  reserved    dreserved
 );
 
 COMMIT;

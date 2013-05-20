@@ -63,6 +63,8 @@ CREATE TABLE ac_account
   achag            dsecurity,
   aview            dsecurity,
 
+  editiondate      deditiondate,
+
   fullname         COMPUTED BY (case when ALIAS is null then '' else ALIAS || ' ' end || case when NAME is null then '' else NAME end),
 
   description      dblobtext80_1251,
@@ -224,6 +226,8 @@ CREATE TABLE ac_transaction
   achag            dsecurity,
   aview            dsecurity,
 
+  editiondate      deditiondate,
+
   disabled         dboolean DEFAULT 0,
   reserved         dinteger,
   AUTOTRANSACTION  DBOOLEAN  /*Признак автоматической операции*/
@@ -278,6 +282,8 @@ CREATE TABLE ac_trrecord (
   afull            dsecurity,           /* Дескрипторы безопасности */
   achag            dsecurity,
   aview            dsecurity,
+
+  editiondate      deditiondate,
 
   disabled         dboolean DEFAULT 0,
   reserved         dinteger,

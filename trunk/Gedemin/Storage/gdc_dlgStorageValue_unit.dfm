@@ -1,6 +1,7 @@
 inherited gdc_dlgStorageValue: Tgdc_dlgStorageValue
   Left = 643
   Top = 247
+  Caption = 'Значение хранилища'
   ClientHeight = 255
   ClientWidth = 375
   Font.Charset = DEFAULT_CHARSET
