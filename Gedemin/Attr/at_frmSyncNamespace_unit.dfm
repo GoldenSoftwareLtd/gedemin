@@ -59,6 +59,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Action = actCompare
         AutoCheck = True
       end
+      object TBControlItem4: TTBControlItem
+        Control = chbxUpdateCurrModified
+      end
       object TBSeparatorItem4: TTBSeparatorItem
       end
       object TBItem7: TTBItem
@@ -121,7 +124,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = edFilter
       end
       object lSearch: TLabel
-        Left = 576
+        Left = 675
         Top = 4
         Width = 45
         Height = 13
@@ -135,12 +138,23 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 621
+        Left = 720
         Top = 0
         Width = 140
         Height = 21
         TabOrder = 1
         OnChange = edFilterChange
+      end
+      object chbxUpdateCurrModified: TCheckBox
+        Left = 209
+        Top = 2
+        Width = 99
+        Height = 17
+        Alignment = taLeftJustify
+        Caption = '  ќбн. дату изм.'
+        Checked = True
+        State = cbChecked
+        TabOrder = 2
       end
     end
   end

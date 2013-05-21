@@ -90,6 +90,8 @@ type
     actFLTEqual: TAction;
     actFLTOlder: TAction;
     actFLTNewer: TAction;
+    chbxUpdateCurrModified: TCheckBox;
+    TBControlItem4: TTBControlItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -183,6 +185,9 @@ end;
 
 procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
 begin
+  if chbxUpdateCurrModified.Checked then
+    TgdcNamespace.UpdateCurrModified;
+
   cds.DisableControls;
   try
     cds.EmptyDataSet;
@@ -255,7 +260,6 @@ begin
   actCompareWithData.Enabled := (not cds.EOF)
     and FileExists(cds.FieldByName('filename').AsString)
     and FgdcNamespace.Active;
-  //  and (not FgdcNamespace.EOF);
 end;
 
 procedure Tat_frmSyncNamespace.actCompareWithDataExecute(Sender: TObject);
