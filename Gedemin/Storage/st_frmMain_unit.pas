@@ -150,13 +150,13 @@ type
     procedure actHelpExecute(Sender: TObject);
     procedure actShowInSettExecute(Sender: TObject);
     procedure actShowInSettUpdate(Sender: TObject);
-    procedure lvCustomDrawItem(Sender: TCustomListView; Item: TListItem;
-      State: TCustomDrawState; var DefaultDraw: Boolean);
     procedure lvCustomDrawSubItem(Sender: TCustomListView; Item: TListItem;
       SubItem: Integer; State: TCustomDrawState; var DefaultDraw: Boolean);
     procedure actLoadFromFileUpdate(Sender: TObject);
     procedure tvEditing(Sender: TObject; Node: TTreeNode;
       var AllowEdit: Boolean);
+    procedure lvCustomDrawItem(Sender: TCustomListView; Item: TListItem;
+      State: TCustomDrawState; var DefaultDraw: Boolean);
 
   private
     L: TList;
@@ -1188,6 +1188,32 @@ begin
     and Assigned(gdcBaseManager.ReadTransaction);
 end;
 
+procedure Tst_frmMain.lvCustomDrawSubItem(Sender: TCustomListView;
+  Item: TListItem; SubItem: Integer; State: TCustomDrawState;
+  var DefaultDraw: Boolean);
+begin
+  DefaultDraw := True;
+
+  if lvSearch.Focused and (lvSearch.Selected <> nil) then
+  begin
+    if Item.Selected then
+      Sender.Canvas.Font.Style := [fsBold]
+    else
+      Sender.Canvas.Font.Style := lv.Font.Style;
+  end;
+end;
+
+procedure Tst_frmMain.actLoadFromFileUpdate(Sender: TObject);
+begin
+  actLoadFromFile.Enabled := Assigned(CurrentStorage);
+end;
+
+procedure Tst_frmMain.tvEditing(Sender: TObject; Node: TTreeNode;
+  var AllowEdit: Boolean);
+begin
+  AllowEdit := (Node <> nil) and (Node.Parent <> nil);
+end;
+
 procedure Tst_frmMain.lvCustomDrawItem(Sender: TCustomListView;
   Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
 var
@@ -1195,6 +1221,14 @@ var
   V: TgsStorageValue;
 begin
   DefaultDraw := True;
+
+  if lvSearch.Focused and (lvSearch.Selected <> nil) then
+  begin
+    if Item.Selected then
+      Sender.Canvas.Font.Style := [fsBold]
+    else
+      Sender.Canvas.Font.Style := lv.Font.Style;
+  end;
 
   if InSett = nil then
     exit;
@@ -1212,31 +1246,13 @@ begin
         Sender.Canvas.Font.Color := clBlue;
 
       if V.Changed then
-        Sender.Canvas.Font.Style := [fsUnderline]
+        Sender.Canvas.Font.Style := Sender.Canvas.Font.Style + [fsUnderline]
       else
-        Sender.Canvas.Font.Style := [];
+        Sender.Canvas.Font.Style := Sender.Canvas.Font.Style - [fsUnderline];
     end;
   finally
     CurrentStorage.CloseFolder(F);
   end;
-end;
-
-procedure Tst_frmMain.lvCustomDrawSubItem(Sender: TCustomListView;
-  Item: TListItem; SubItem: Integer; State: TCustomDrawState;
-  var DefaultDraw: Boolean);
-begin
-  DefaultDraw := True;
-end;
-
-procedure Tst_frmMain.actLoadFromFileUpdate(Sender: TObject);
-begin
-  actLoadFromFile.Enabled := Assigned(CurrentStorage);
-end;
-
-procedure Tst_frmMain.tvEditing(Sender: TObject; Node: TTreeNode;
-  var AllowEdit: Boolean);
-begin
-  AllowEdit := (Node <> nil) and (Node.Parent <> nil);
 end;
 
 initialization
