@@ -2650,12 +2650,16 @@ var
   NSList: TgsNSList;
   NSNode: TgsNSNode;
   NL: TStringList;
+  q: TIBSQL;
 begin
   Assert(ADataSet <> nil);
 
   NSList := TgsNSList.Create;
   NL := TStringList.Create;
+  q := TIBSQL.Create(nil);
   try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT * FROM at_object o WHERE namespacekey = :nsk and o.modified is distinct from o.curr_modified';
     NSList.Sorted := False;
     NSList.Log := Log;
     NSList.GetFilesForPath(APath);
@@ -2699,7 +2703,16 @@ begin
         end;
 
         nsNotInstalled: ADataSet.FieldByName('operation').AsString := '<';
-        nsNewer: ADataSet.FieldByName('operation').AsString := '<<';
+        nsNewer:
+        begin
+          q.ParamByName('nsk').AsInteger := NSNode.Namespacekey;
+          q.ExecQuery;
+          if not q.Eof then
+            ADataSet.FieldByName('operation').AsString := '?'
+          else
+            ADataSet.FieldByName('operation').AsString := '<<';
+          q.Close;  
+        end;
         nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
         nsEqual: ADataSet.FieldByName('operation').AsString := '==';
       end;
