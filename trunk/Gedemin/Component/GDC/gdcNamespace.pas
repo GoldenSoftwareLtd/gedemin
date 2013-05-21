@@ -44,7 +44,8 @@ type
       const AClass: String; const ASubType: String;
       xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1;
       ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
-    class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;  
+    class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;
+    class procedure UpdateCurrModified; 
 
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList;
       const AHeadObjectRUID: String = ''; AnAlwaysOverwrite: Integer = 1;
@@ -3184,6 +3185,70 @@ begin
   inherited;
   if HasSubSet('BySettingRUID') then
     S.Add('z.settingruid=:SettingRUID');
+end;
+
+class procedure TgdcNamespace.UpdateCurrModified;
+var
+  Tr: TIBTransaction;
+  qList, q: TIBSQL;
+  C: TPersistentClass;
+  LT: String;
+begin
+  Assert(IBLogin <> nil);
+  Assert(IBLogin.Database <> nil);
+
+  Tr := TIBTransaction.Create(nil);
+  qList := TIBSQL.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBLogin.Database;
+    Tr.StartTransaction;
+
+    q.Transaction := Tr;
+
+    qList.Transaction := Tr;
+    qList.SQL.Text :=
+      'SELECT DISTINCT o.objectclass, o.subtype ' +
+      'FROM at_object o';
+    qList.ExecQuery;
+
+    while not qList.EOF do
+    begin
+      C := GetClass(qList.FieldByName('objectclass').AsString);
+      if (C <> nil) and C.InheritsFrom(TgdcBase) then
+      begin
+        LT := CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString);
+
+        q.Close;
+        q.SQL.Text :=
+          'SELECT rdb$relation_name FROM rdb$relation_fields ' +
+          'WHERE rdb$relation_name = :RN AND rdb$field_name = ''EDITIONDATE'' ';
+        q.ParamByName('RN').AsString := LT;
+        q.ExecQuery;
+
+        if not q.EOF then
+        begin
+          q.Close;
+          q.SQL.Text :=
+            'merge into at_object o '#13#10 +
+            '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
+            '    from ' + LT + ' d join gd_ruid r '#13#10 +
+            '    on r.id = d.id) de on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
+            'when matched then '#13#10 +
+            '  update set o.curr_modified = de.editiondate';
+          q.ExecQuery;
+        end;
+      end;
+
+      qList.Next;
+    end;
+
+    Tr.Commit;
+  finally
+    q.Free;
+    qList.Free;
+    Tr.Free;
+  end;
 end;
 
 initialization
