@@ -9,6 +9,8 @@ uses
   IBDatabase, gd_security, dbgrids, gd_KeyAssoc, contnrs, IB, gsNSObjects;
 
 type
+  TLoadedStatus = (lsNone, lsUnModified, lsModified, lsInsert);
+
   TgdcNamespace = class(TgdcBase)
   private
     procedure CheckIncludesiblings;
@@ -31,8 +33,8 @@ type
       const AHeadObject: String; AnAlwaysoverwrite: Boolean = True;
       ADontremove: Boolean = False; AnIncludesiblings: Boolean = False; const ATr: TIBTransaction = nil);
     class function LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
-      UpdateList: TObjectList; ATr: TIBTransaction;
-      const AnAlwaysoverwrite: Boolean = False): Boolean;
+      UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
+      const AnAlwaysoverwrite: Boolean = False): TLoadedStatus;
     class procedure ScanDirectory(ADataSet: TDataSet; const APath: String;
       Log: TNSLog);
 
@@ -87,7 +89,7 @@ uses
   jclUnicode, at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const,
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
   Graphics, IBErrorCodes, Storages, gdcMetadata, at_sql_setup, gsDesktopManager,
-  at_dlgLoadNamespacePackages_unit, at_Classes_body;
+  at_dlgLoadNamespacePackages_unit, at_Classes_body, dbclient, at_dlgCompareNSRecords_unit;
 
 type
   TNSFound = (nsfNone, nsfByName, nsfByRUID);
@@ -106,6 +108,13 @@ type
     NamespaceKey: Integer;
     RUID: String;
     RefRUID: String;
+  end;
+
+  TgdcAt_Object = class(TObject)
+  public
+    modified: TDateTime;
+
+    constructor Create(AModified: TDateTime);
   end;
 
 procedure Register;
@@ -141,6 +150,13 @@ begin
   Result := AnsiCompareText(
     ExtractFilePath((List.Objects[Index1] as TgsNSNode).FileName),
     ExtractFilePath((List.Objects[Index2] as TgsNSNode).FileName));
+end;
+
+constructor TgdcAt_Object.Create(AModified: TDateTime);
+begin
+  inherited Create;
+
+  modified := AModified;
 end;
 
 class function TgdcNamespace.GetDialogFormClassName(const ASubType: TgdcSubType): String;
@@ -355,6 +371,12 @@ begin
     AWriter.StartNewLine;
     AWriter.WriteKey('HeadObject');
     AWriter.WriteString(AHeadObject);
+  end;
+  if AgdcObject.FindField('editiondate') <> nil then
+  begin
+    AWriter.StartNewLine;
+    AWriter.WriteKey('Modified');
+    AWriter.WriteTimestamp(AgdcObject.FieldByName('editiondate').AsDateTime);
   end;
   AWriter.DecIndent;
   AWriter.StartNewLine;
@@ -755,7 +777,7 @@ var
     try
       q.Transaction := Tr;
       q.SQL.Text :=
-        'SELECT o.xid || ''_'' || o.dbid as ruid ' +
+        'SELECT o.xid || ''_'' || o.dbid as ruid, o.modified ' +
         'FROM at_object o ' +
         '  LEFT JOIN gd_ruid r' +
         '    ON  o.namespacekey = r.id ' +
@@ -766,7 +788,7 @@ var
 
       while not q.Eof do
       begin
-        SL.Add(q.FieldByName('ruid').AsString);
+        SL.AddObject(q.Fields[0].AsString, TgdcAt_Object.Create(q.Fields[1].AsDateTime));
         q.Next;
       end;
     finally
@@ -1032,7 +1054,7 @@ var
           StrToRUID(RUID).XID,
           StrToRUID(RUID).DBID,
           Now, IBLogin.ContactKey, Tr);
-      end; 
+      end;
 
       for I := CurrOL.Count - 1 downto 0 do
       begin
@@ -1083,7 +1105,7 @@ var
   q: TIBSQL;
   CurrID: Integer;
   gdcFullClass: TgdcFullClass;
-  IsLoad: Boolean;
+  IsLoad: TLoadedStatus;
 begin
   Assert(atDatabase <> nil, 'Не загружена atDatabase');
 
@@ -1251,7 +1273,7 @@ begin
                     Obj.SubSet := 'ByID';
                   Obj.Open;
 
-                  IsLoad := LoadObject(Obj, ObjMapping, UpdateList, Tr);
+                  IsLoad := LoadObject(Obj, ObjMapping, UpdateList, CurrObjectsRUID, Tr);
 
                   if (Obj is TgdcRelationField) then
                     RelName := Obj.FieldByName('relationname').AsString
@@ -1282,6 +1304,8 @@ begin
                       gdcNamespaceObj.FieldByName('alwaysoverwrite').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\AlwaysOverwrite'));
                       gdcNamespaceObj.FieldByName('dontremove').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\DontRemove'));
                       gdcNamespaceObj.FieldByName('includesiblings').AsInteger := Integer(ObjMapping.ReadBoolean('Properties\IncludeSiblings'));
+                      if Obj.FindField('editiondate') <> nil then
+                        gdcNamespaceObj.FieldByName('modified').AsDateTime := Obj.FieldByName('editiondate').AsDateTime;
 
                       HeadRUID := ObjMapping.ReadString('Properties\HeadObject');
                       if HeadRUID <> '' then
@@ -1312,7 +1336,7 @@ begin
                     HeadObjectUpdate(UpdateHeadList, TempNamespaceID,
                       RUIDToStr(Obj.GetRUID), gdcNamespaceObj.ID);
 
-                    if IsLoad then
+                    if IsLoad <> lsNone then
                     begin
                       LoadObjectsRUID.Add(RUIDToStr(Obj.GetRUID));
                       if Obj is TgdcRelationField then
@@ -1405,7 +1429,9 @@ begin
         IBLogin.Login;
     finally
       LoadNamespace.Free;
-      LoadObjectsRUID.Free; 
+      LoadObjectsRUID.Free;
+      for I := 0 to CurrObjectsRUID.Count - 1 do
+        CurrObjectsRUID.Objects[I].Free;
       CurrObjectsRUID.Free;
       Tr.Free;  
       UpdateList.Free;
@@ -1542,10 +1568,11 @@ begin
 end;
 
 class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
-  UpdateList: TObjectList; ATr: TIBTransaction; const AnAlwaysoverwrite: Boolean = False): Boolean;
+  UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
+  const AnAlwaysoverwrite: Boolean = False): TLoadedStatus;  
 
   function InsertRecord(SourceYAML: TyamlMapping; Obj: TgdcBase;
-    UL: TObjectList; const RUID: String): Boolean; forward;
+    UL: TObjectList; const RUID: String): TLoadedStatus; forward;
 
   procedure CheckDataType(F: TField; Value: TyamlNode);
   var
@@ -1671,7 +1698,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     end;
   end;
 
-  function CopyRecord(SourceYAML: TyamlMapping; Obj: TgdcBase; UL: TObjectList): Boolean;
+  function CopyRecord(SourceYAML: TyamlMapping; Obj: TgdcBase; UL: TObjectList): TLoadedStatus;
   var
     I, Key: Integer;
     R: TatRelation;
@@ -1687,7 +1714,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
   begin
     Assert(Obj.State in [dsInsert, dsEdit], 'Not in a insert or edit state!');
     
-    Result := False;
+    Result := lsNone;
     RUOL := nil;
     try
       Fields := SourceYAML.FindByName('Fields') as TyamlMapping;
@@ -1699,8 +1726,8 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       begin
         TargetField := Obj.Fields[I];
         if TargetField = nil then
-          raise Exception.Create('Invalid field!');
-
+          raise Exception.Create('Invalid field!');   
+          
         N := Fields.FindByName(TargetField.FieldName);
         if N <> nil then
         begin
@@ -1815,7 +1842,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           try
             Obj.Post;
             AddText('Объект обновлен данными из загружаемого пространства имен!', clBlack);
-
+            Result := lsModified;
           except
             on E: EIBError do
             begin
@@ -1832,7 +1859,16 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           end;
         end
         else if not Obj.CheckTheSame(True) then
+        begin
           Obj.Post;
+          Result := lsInsert;
+        end else
+        begin
+          if Obj.DSModified then
+            Result := lsModified
+          else
+            Result := lsUnModified;
+        end;
 
         if Assigned(RUOL) then
         begin
@@ -1844,7 +1880,6 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
           RUID,
           Obj.ID);
 
-        Result := True;
       except
         on E: EDatabaseError do
         begin
@@ -1859,7 +1894,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
                Fields.ReadString(Obj.GetListField(Obj.SubType)),
                RUID]);
 
-          AddMistake(E.Message, clRed);
+          AddMistake(ErrorSt, clRed);
           Obj.Cancel;
         end;
       end;
@@ -1870,13 +1905,13 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
   end;
 
   function InsertRecord(SourceYAML: TyamlMapping; Obj: TgdcBase;
-    UL: TObjectList; const RUID: String): Boolean;
-  begin
-    Result := False;
+    UL: TObjectList; const RUID: String): TLoadedStatus;
+  begin 
     Obj.Insert;
     if StrToRUID(RUID).XID < cstUserIDStart then
-      Obj.ID := StrToRUID(RUID).XID; 
-    if CopyRecord(SourceYAML, Obj, UL) then
+      Obj.ID := StrToRUID(RUID).XID;
+    Result := CopyRecord(SourceYAML, Obj, UL);
+    if  Result <> lsNone then
     begin
       Obj.CheckBrowseMode;
       if gdcBaseManager.GetRUIDRecByID(Obj.ID, ATr).XID = -1 then
@@ -1888,7 +1923,6 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
         gdcBaseManager.UpdateRUIDByID(Obj.ID, StrToRUID(RUID).XID, StrToRUID(RUID).DBID,
           now, IBLogin.ContactKey, ATr);
       end;
-      Result := True;
     end;
   end;
 
@@ -1971,21 +2005,29 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       q.Free;
     end;
   end;
+
+
 var
   D, J: Integer;
   RUID: String;
   RuidRec: TRuidRec;
   AlwaysOverwrite, ULCreated: Boolean;
   N: TyamlNode;
+  Ind: Integer;
+  Modify: TDateTime;
+  at_obj: TgdcAt_Object;
+  Compare: Boolean;
+  CompareResult: TLoadRecord;
 begin
   Assert(ATr <> nil);
   Assert(gdcBaseManager <> nil);
   Assert(AMapping <> nil);
 
-  Result := False;
+  Result := lsNone;
   RUID := AMapping.ReadString('Properties\RUID');
+  Modify := AMapping.ReadDateTime('Properties\Modified');
   AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite')
-    or AnAlwaysoverwrite;
+    or AnAlwaysoverwrite;     
 
   if UpdateList = nil then
   begin
@@ -2037,40 +2079,95 @@ begin
             gdcBaseManager.DeleteRUIDbyXID(StrToRUID(RUID).XID,
               StrToRUID(RUID).DBID, ATr);
 
-            Result := InsertRecord(AMapping, AnObj, UpdateList, RUID); 
+            Result := InsertRecord(AMapping, AnObj, UpdateList, RUID);
           end else
           begin
             AddText('Объект найден по РУИДу'#13#10, clBlue);
 
-            if AlwaysOverwrite then
+            Ind := RUIDList.IndexOf(RUID);
+            if (Ind > -1) then
+            begin
+              at_obj := RUIDList.Objects[Ind] as TgdcAt_Object;
+              if (AnObj.FindField('editiondate') <> nil) then
+              begin
+                if at_obj.modified = AnObj.FieldByName('editiondate').AsDateTime then
+                begin
+                  AlwaysOverwrite := AlwaysOverwrite or (Modify > AnObj.FieldByName('editiondate').AsDateTime);
+                end else
+                begin
+                  Compare := (AnObj.FieldByName('editiondate').AsDateTime > at_obj.modified)
+                    and
+                    (
+                      ((Modify = at_obj.modified) and AlwaysOverwrite)
+                      or
+                      (Modify > at_obj.modified)
+                    );
+                  if Compare then
+                  begin
+                    with TdlgCompareNSRecords.Create(nil) do
+                    try
+                      lCaption.Caption := AnObj.FieldByName(AnObj.GetListField(AnObj.SubType)).AsString;
+                      ShowModal;
+                      CompareResult := LoadRecord;
+                    finally
+                      Free;
+                    end;
+
+                    if CompareResult = lrFromFile then
+                    begin
+                      AnObj.Edit;
+                      AnObj.ModifyFromStream := True;
+                      Result := CopyRecord(AMapping, AnObj, UpdateList);
+                      if Result <> lsNone then
+                      begin
+                        AnObj.CheckBrowseMode;
+                        gdcBaseManager.UpdateRUIDByXID(AnObj.ID,
+                        StrToRUID(RUID).XID,
+                        StrToRUID(RUID).DBID,
+                        now, IBLogin.ContactKey, ATr);
+                      end;
+                    end else
+                      Result := lsUnModified;
+                  end;
+                end;
+              end;
+            end;
+
+            if (Result = lsNone) and (AlwaysOverwrite) then
             begin
               AnObj.Edit;
-              if CopyRecord(AMapping, AnObj, UpdateList) then
+              AnObj.ModifyFromStream := AlwaysOverwrite;
+              Result := CopyRecord(AMapping, AnObj, UpdateList);
+              if Result <> lsNone then
               begin
                 AnObj.CheckBrowseMode;
-
                 gdcBaseManager.UpdateRUIDByXID(AnObj.ID,
                   StrToRUID(RUID).XID,
                   StrToRUID(RUID).DBID,
                   now, IBLogin.ContactKey, ATr);
-                Result := True;  
               end;
-            end else
+            end;
+
+            if Result in [lsNone, lsUnModified] then
             begin
               ApplyDelayedUpdates(UpdateList,
                 AMapping.ReadString('Properties\RUID'),
                 AnObj.ID);
+              Result := lsUnModified;
             end;
           end;
         end;
 
-        N := AMapping.FindByName('Set');
-        if (N <> nil) and (N is TyamlSequence) then
+        if Result in [lsModified, lsInsert] then
         begin
-          with N as TyamlSequence do
+          N := AMapping.FindByName('Set');
+          if (N <> nil) and (N is TyamlSequence) then
           begin
-            for J := 0 to Count - 1 do
-              LoadSet(Items[J] as TyamlMapping, AnObj.ID, UpdateList);
+            with N as TyamlSequence do
+            begin
+              for J := 0 to Count - 1 do
+                LoadSet(Items[J] as TyamlMapping, AnObj.ID, UpdateList);
+            end;
           end;
         end;
       finally
@@ -2496,12 +2593,19 @@ begin
 
                   if not q.Eof then
                     HeadObject := q.FieldByName('ruid').AsString;
-                  q.Close;  
+                  q.Close;
                 end;
                 WriteObject(InstObj, W, HeadObject,
                   Obj.FieldByName('alwaysoverwrite').AsInteger = 1,
                   Obj.FieldByName('dontremove').AsInteger = 1,
                   Obj.FieldByName('includesiblings').AsInteger = 1, Transaction);
+
+                if InstObj.FindField('editiondate') <> nil then
+                begin
+                  Obj.Edit;
+                  Obj.FieldByName('modified').Value := InstObj.FindField('editiondate').Value;
+                  Obj.Post;
+                end;
               finally
                 W.DecIndent;
               end;
@@ -3021,6 +3125,7 @@ procedure TgdcNamespace.DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = Tr
     Tr: TIBTransaction;
     q: TIBSQL;
   begin
+    
     Result := True;
     Error := '';
     Tr := TIBTransaction.Create(nil);
