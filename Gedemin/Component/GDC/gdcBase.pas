@@ -16359,37 +16359,26 @@ end;
 
 procedure TgdcBase.SetInclude(const AnID: TID);
 begin
-  { TODO : нужна проверка находимся ли мы в режиме множества. }
   CheckBrowseMode;
 
   if AnID = -1 then
     exit;
 
+  ExecSingleQuery(Format(
+    'UPDATE OR INSERT INTO %s (%s, %s) VALUES (%d, %d) MATCHING (%s, %s)',
+    [FSetTable, FSetMasterField, FSetItemField,
+     ParamByName('MASTER_RECORD_ID').AsInteger, AnID,
+     FSetMasterField, FSetItemField]));
+
+  FDSModified := True;
+
+  DisableControls;
   try
-    ExecSingleQuery(Format('INSERT INTO %s (%s, %s) VALUES (%d, %d)',
-      [FSetTable, FSetMasterField, FSetItemField,
-       ParamByName('MASTER_RECORD_ID').AsInteger, AnID]));
-
-    FDSModified := True;
-
-    DisableControls;
-    try
-      Close;
-      Open;
-      Locate(cstSetPrefix + FSetItemField, AnID, []);
-    finally
-      EnableControls;
-    end;
-
-  except
-    on E: EIBError do
-    begin
-      // при попытке добавить элемент второй раз
-      // будет исключение
-      // подавим его
-      if E.IBErrorCode <> isc_unique_key_violation then
-        raise;
-    end;
+    Close;
+    Open;
+    Locate(cstSetPrefix + FSetItemField, AnID, []);
+  finally
+    EnableControls;
   end;
 end;
 

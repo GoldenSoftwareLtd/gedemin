@@ -517,11 +517,9 @@ var
   I, J, ID: Integer;
   q: TIBSQL;
   Tr: TIBTransaction;
-  //SL: TStringList;
 begin
   Check(FTableName > '');
 
-  //SL := TStringList.Create;
   L := TgdKeyArray.Create;
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
@@ -555,7 +553,6 @@ begin
             end;
 
             q.ExecQuery;
-            //SL.Add(Trim(q.SQL.Text) + ';');
             L.Add(ID);
           end;
 
@@ -573,7 +570,6 @@ begin
                   ' WHERE id=' + IntToStr(L.Keys[Random(L.Count)]);
               try
                 q.ExecQuery;
-                //SL.Add(Trim(q.SQL.Text) + ';');
               except
                 on E: Exception do
                   if (Pos('Invalid parent specified', E.Message) = 0)
@@ -607,7 +603,6 @@ begin
               q.Close;
               q.SQL.Text := 'DELETE FROM ' + FTableName + ' WHERE id=' + IntToStr(ID);
               q.ExecQuery;
-              //SL.Add(Trim(q.SQL.Text) + ';');
             end;
           end;
         end;

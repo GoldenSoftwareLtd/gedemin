@@ -496,8 +496,11 @@ CREATE INDEX ac_entry_balance_accountkey ON ac_entry_balance (accountkey);
 COMMIT;
 
 SET TERM ^;
+
 CREATE OR ALTER TRIGGER ac_bi_entry_balance FOR ac_entry_balance
-ACTIVE BEFORE INSERT POSITION 0 
+  ACTIVE
+  BEFORE INSERT
+  POSITION 0 
 AS 
 BEGIN 
   IF (NEW.ID IS NULL) THEN
@@ -714,7 +717,8 @@ END
 /*                                                   */
 /*****************************************************/
 
-CREATE EXCEPTION ac_e_invalidentry 'Invalid entry'^
+CREATE EXCEPTION ac_e_invalidentry 'Invalid entry'
+^
 
 CREATE OR ALTER TRIGGER ac_bi_record FOR ac_record
   BEFORE INSERT
@@ -755,12 +759,9 @@ BEGIN
   END
 
   IF (NEW.debitncu IS DISTINCT FROM OLD.debitncu OR
-    NEW.creditncu IS DISTINCT FROM OLD.creditncu OR
-    NEW.debitcurr IS DISTINCT FROM OLD.debitcurr OR
-    NEW.creditcurr IS DISTINCT FROM OLD.creditcurr) THEN
+    NEW.creditncu IS DISTINCT FROM OLD.creditncu) THEN
   BEGIN
-    NEW.incorrect = IIF((NEW.debitncu IS DISTINCT FROM NEW.creditncu)
-      OR (NEW.debitcurr IS DISTINCT FROM NEW.creditcurr), 1, 0);
+    NEW.incorrect = IIF(NEW.debitncu IS DISTINCT FROM NEW.creditncu, 1, 0);
   END ELSE
     NEW.incorrect = OLD.incorrect;
 
@@ -4494,8 +4495,11 @@ CREATE EXCEPTION AC_E_AUTOTRCANTCONTAINTR 'Can`t move transaction into autotrans
 CREATE EXCEPTION AC_E_TRCANTCONTAINAUTOTR 'Can`t move autotransaction into transaction';
 
 SET TERM ^;
+
 CREATE TRIGGER AC_TRANSACTION_BU0 FOR AC_TRANSACTION
-ACTIVE BEFORE UPDATE POSITION 0
+  ACTIVE
+  BEFORE UPDATE
+  POSITION 0
 AS
   DECLARE a SMALLINT;
 begin
@@ -4525,9 +4529,11 @@ begin
 end^
 
 CREATE TRIGGER AC_TRANSACTION_BI0 FOR AC_TRANSACTION
-ACTIVE BEFORE INSERT POSITION 0
+  ACTIVE
+  BEFORE INSERT
+  POSITION 0
 AS
-   DECLARE a SMALLINT;
+  DECLARE a SMALLINT;
 begin
   if (not new.parent is null) then
   begin

@@ -46,7 +46,7 @@ type
       xid, dbid: Integer; ATr: TIBTransaction; AnAlwaysoverwrite: Integer = 1;
       ADontremove: Integer = 0; AnIncludesiblings: Integer = 0);
     class function LoadNSInfo(const Path: String; ATr: TIBTransaction): Integer;
-    class procedure UpdateCurrModified;
+    class procedure UpdateCurrModified(const ANamespaceKey: Integer = -1);
     class procedure FillSet(AnObj: TgdcBase; AnOL: TObjectList; ATr: TIBTransaction); 
 
     procedure AddObject2(AnObject: TgdcBase; AnUL: TObjectList;
@@ -3428,7 +3428,7 @@ begin
     S.Add('z.settingruid=:SettingRUID');
 end;
 
-class procedure TgdcNamespace.UpdateCurrModified;
+class procedure TgdcNamespace.UpdateCurrModified(const ANamespaceKey: Integer = -1);
 var
   Tr: TIBTransaction;
   qList, q: TIBSQL;
@@ -3450,7 +3450,10 @@ begin
     qList.Transaction := Tr;
     qList.SQL.Text :=
       'SELECT DISTINCT o.objectclass, o.subtype ' +
-      'FROM at_object o';
+      'FROM at_object o ';
+    if ANamespaceKey > -1 then
+      qList.SQL.Text := qList.SQL.Text +
+        'WHERE o.namespacekey = ' + IntToStr(ANamespaceKey);
     qList.ExecQuery;
 
     while not qList.EOF do
