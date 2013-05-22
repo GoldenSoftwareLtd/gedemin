@@ -3091,7 +3091,7 @@ begin
           gdcNamespaceObject.Insert;
           gdcNamespaceObject.FieldByName('namespacekey').AsInteger := Self.ID;
           gdcNamespaceObject.FieldByName('objectname').AsString := AnObject.FieldByName(AnObject.GetListField(AnObject.SubType)).AsString;
-          gdcNamespaceObject.FieldByName('objectclass').AsString :=  AnObject.ClassName;
+          gdcNamespaceObject.FieldByName('objectclass').AsString :=  AnObject.GetCurrRecordClass.gdClass.ClassName;
           gdcNamespaceObject.FieldByName('subtype').AsString := AnObject.SubType;
           gdcNamespaceObject.FieldByName('xid').AsInteger := AnObject.GetRUID.XID;
           gdcNamespaceObject.FieldByName('dbid').AsInteger := AnObject.GetRUID.DBID;
@@ -3174,13 +3174,13 @@ procedure TgdcNamespace.DeleteObject(xid, dbid: Integer; RemoveObj: Boolean = Tr
 var
   gdcNamespaceObject: TgdcNamespaceObject;
   q: TIBSQL;
-  InstID: Integer;
   InstObj: TgdcBase;
   InstClass: TPersistentClass;
   Error: String;
   WasDelete: Boolean;
+  RUIDRec: TRUIDRec;
 begin
-  WasDelete := False;
+  WasDelete := True;
   gdcNamespaceObject := TgdcNamespaceObject.Create(nil);
   q := TIBSQL.Create(nil);
   try
@@ -3206,8 +3206,8 @@ begin
 
         if q.Eof and (RemoveObj or (gdcNamespaceObject.FieldByName('dontremove').AsInteger = 0)) then
         begin
-          InstID := gdcBaseManager.GetIDByRUID(gdcNamespaceObject.FieldByName('xid').AsInteger,
-            gdcNamespaceObject.FieldByName('dbid').AsInteger);
+          RUIDRec := gdcBaseManager.GetRUIDRecByXID(gdcNamespaceObject.FieldByName('xid').AsInteger,
+            gdcNamespaceObject.FieldByName('dbid').AsInteger, Transaction);
 
           InstClass := GetClass(gdcNamespaceObject.FieldByName('objectclass').AsString);
           if InstClass <> nil then
@@ -3215,16 +3215,18 @@ begin
             InstObj := CgdcBase(InstClass).CreateSubType(nil,
               gdcNamespaceObject.FieldByName('subtype').AsString, 'ByID');
             try
-              InstObj.ID := InstID;
+              InstObj.ID := RUIDRec.ID;
               InstObj.Open;
               if (not InstObj.EOF) then
               begin
                 if CanDeleteObj(InstObj, Error) then
                 begin
                   InstObj.Delete;
-                  WasDelete := True;
                 end else
+                begin
+                  WasDelete := False;
                   AddMistake(Error, clRed);
+                end;
               end;
             finaLLY
               InstObj.Free;
