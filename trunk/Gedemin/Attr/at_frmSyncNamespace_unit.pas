@@ -92,6 +92,9 @@ type
     actFLTNewer: TAction;
     chbxUpdateCurrModified: TCheckBox;
     TBControlItem4: TTBControlItem;
+    ActionList1: TActionList;
+    TBItem17: TTBItem;
+    actFLTNone: TAction;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -173,6 +176,8 @@ begin
     Result := Result + 'operation = ''' + TBItem15.Caption + ''' or ';
   if TBItem16.Checked then
     Result := Result + 'operation = ''' + TBItem16.Caption + ''' or ';
+  if TBItem17.Checked then
+    Result := Result + 'operation = ''' + TBItem17.Caption + ''' or ';
   Result := Trim(Result);
   if Result > '' then
     SetLength(Result, Length(Result) - 3);
@@ -385,7 +390,7 @@ begin
   cds.First;
   while not cds.EOF do
   begin
-    if cds.FieldByName('operation').AsString = '>>' then
+    if Pos('>', cds.FieldByName('operation').AsString) > 0 then
       SaveID(nil, '')
     else if cds.FieldByName('operation').AsString = '<<' then
     begin

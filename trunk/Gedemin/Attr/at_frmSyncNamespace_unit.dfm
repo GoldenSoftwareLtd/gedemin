@@ -115,6 +115,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBItem16: TTBItem
         Action = actFLTNewer
       end
+      object TBItem17: TTBItem
+        Action = actFLTNone
+      end
       object TBSeparatorItem6: TTBSeparatorItem
       end
       object TBControlItem1: TTBControlItem
@@ -124,7 +127,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = edFilter
       end
       object lSearch: TLabel
-        Left = 675
+        Left = 692
         Top = 4
         Width = 45
         Height = 13
@@ -138,7 +141,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 720
+        Left = 737
         Top = 0
         Width = 140
         Height = 21
@@ -474,6 +477,10 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Caption = '<<'
       OnExecute = actFLTExecute
     end
+    object actFLTNone: TAction
+      Caption = '?'
+      OnExecute = actFLTExecute
+    end
   end
   object pmSync: TPopupMenu
     Images = dmImages.il16x16
@@ -515,5 +522,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object N6: TMenuItem
       Action = actClear
     end
+  end
+  object ActionList1: TActionList
+    Left = 536
+    Top = 10
   end
 end
