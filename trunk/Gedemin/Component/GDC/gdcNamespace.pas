@@ -1536,8 +1536,8 @@ begin
                   gdcNamespaceObj.ParamByName('dbid').AsInteger := StrToRUID(RUID).DBID;
                   gdcNamespaceObj.Open;
 
-                  if gdcNamespaceObj.Eof then
-                  begin
+                  if gdcNamespaceObj.Eof and (gdcBaseManager.GetIDByRUIDString(RUID) > 0) then
+                  begin 
                     gdcNamespaceObj.Insert;
                     gdcNamespaceObj.FieldByName('namespacekey').AsInteger := gdcNamespace.ID;
                     gdcNamespaceObj.FieldByName('objectname').AsString := LoadClassName + '(' + LoadSubType + ')';
@@ -2403,7 +2403,7 @@ var
   FS: TFileStream;
   SS, SS1251, SSUTF8: TStringStream;
   Tr: TIBTransaction;
-  gdcNamespace: TgdcNamespace;
+  gdcNamespace: TgdcNamespace;  
 begin
   SSUTF8 := TStringStream.Create('');
   try
