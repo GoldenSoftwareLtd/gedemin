@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 316
-  Top = 253
+  Left = 364
+  Top = 53
   Width = 952
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -59,9 +59,6 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Action = actCompare
         AutoCheck = True
       end
-      object TBControlItem4: TTBControlItem
-        Control = chbxUpdateCurrModified
-      end
       object TBSeparatorItem4: TTBSeparatorItem
       end
       object TBItem7: TTBItem
@@ -99,23 +96,22 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       end
       object TBSeparatorItem5: TTBSeparatorItem
       end
-      object TBItem13: TTBItem
-        Action = actFLTOnlyDB
+      object tbiFLTOnlyInDB: TTBItem
+        Action = actFLTOnlyInDB
       end
-      object TBItem12: TTBItem
-        Action = actFLT
-        Caption = '<'
-      end
-      object TBItem14: TTBItem
-        Action = actFLTEqual
-      end
-      object TBItem15: TTBItem
+      object tbiFLTOlder: TTBItem
         Action = actFLTOlder
       end
-      object TBItem16: TTBItem
+      object tbiFLTEqual: TTBItem
+        Action = actFLTEqual
+      end
+      object tbiFLTOnlyInFile: TTBItem
+        Action = actFLTOnlyInFile
+      end
+      object tbiFLTNewer: TTBItem
         Action = actFLTNewer
       end
-      object TBItem17: TTBItem
+      object tbiFLTNone: TTBItem
         Action = actFLTNone
       end
       object TBSeparatorItem6: TTBSeparatorItem
@@ -127,7 +123,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Control = edFilter
       end
       object lSearch: TLabel
-        Left = 692
+        Left = 593
         Top = 4
         Width = 45
         Height = 13
@@ -141,23 +137,12 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         TabOrder = 0
       end
       object edFilter: TEdit
-        Left = 737
+        Left = 638
         Top = 0
         Width = 140
         Height = 21
         TabOrder = 1
         OnChange = edFilterChange
-      end
-      object chbxUpdateCurrModified: TCheckBox
-        Left = 209
-        Top = 2
-        Width = 99
-        Height = 17
-        Alignment = taLeftJustify
-        Caption = '  Обн. дату изм.'
-        Checked = True
-        State = cbChecked
-        TabOrder = 2
       end
     end
   end
@@ -458,28 +443,35 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       OnExecute = actDeleteFileExecute
       OnUpdate = actDeleteFileUpdate
     end
-    object actFLT: TAction
-      OnExecute = actFLTExecute
-    end
-    object actFLTOnlyDB: TAction
+    object actFLTOnlyInDB: TAction
       Caption = '>'
-      OnExecute = actFLTExecute
+      OnExecute = actFLTOnlyInDBExecute
+      OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTEqual: TAction
       Caption = '=='
-      OnExecute = actFLTExecute
+      OnExecute = actFLTOnlyInDBExecute
+      OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTOlder: TAction
       Caption = '>>'
-      OnExecute = actFLTExecute
+      OnExecute = actFLTOnlyInDBExecute
+      OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTNewer: TAction
       Caption = '<<'
-      OnExecute = actFLTExecute
+      OnExecute = actFLTOnlyInDBExecute
+      OnUpdate = actFLTOnlyInDBUpdate
     end
     object actFLTNone: TAction
       Caption = '?'
-      OnExecute = actFLTExecute
+      OnExecute = actFLTOnlyInDBExecute
+      OnUpdate = actFLTOnlyInDBUpdate
+    end
+    object actFLTOnlyInFile: TAction
+      Caption = '<'
+      OnExecute = actFLTOnlyInDBExecute
+      OnUpdate = actFLTOnlyInDBUpdate
     end
   end
   object pmSync: TPopupMenu
@@ -522,9 +514,5 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     object N6: TMenuItem
       Action = actClear
     end
-  end
-  object ActionList1: TActionList
-    Left = 536
-    Top = 10
   end
 end

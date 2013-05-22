@@ -75,26 +75,23 @@ type
     N9: TMenuItem;
     N10: TMenuItem;
     TBSeparatorItem5: TTBSeparatorItem;
-    TBItem12: TTBItem;
-    actFLT: TAction;
-    TBItem13: TTBItem;
-    TBItem14: TTBItem;
-    TBItem15: TTBItem;
-    TBItem16: TTBItem;
+    tbiFLTOnlyInFile: TTBItem;
+    tbiFLTOnlyInDB: TTBItem;
+    tbiFLTEqual: TTBItem;
+    tbiFLTOlder: TTBItem;
+    tbiFLTNewer: TTBItem;
     TBSeparatorItem6: TTBSeparatorItem;
     TBControlItem1: TTBControlItem;
     lSearch: TLabel;
     edFilter: TEdit;
     TBControlItem3: TTBControlItem;
-    actFLTOnlyDB: TAction;
+    actFLTOnlyInDB: TAction;
     actFLTEqual: TAction;
     actFLTOlder: TAction;
     actFLTNewer: TAction;
-    chbxUpdateCurrModified: TCheckBox;
-    TBControlItem4: TTBControlItem;
-    ActionList1: TActionList;
-    TBItem17: TTBItem;
+    tbiFLTNone: TTBItem;
     actFLTNone: TAction;
+    actFLTOnlyInFile: TAction;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -119,15 +116,15 @@ type
     procedure actDeleteFileUpdate(Sender: TObject);
     procedure actDeleteFileExecute(Sender: TObject);
     procedure actLoadFromFileExecute(Sender: TObject);
-    procedure actFLTExecute(Sender: TObject);
     procedure edFilterChange(Sender: TObject);
     procedure cdsFilterRecord(DataSet: TDataSet; var Accept: Boolean);
+    procedure actFLTOnlyInDBExecute(Sender: TObject);
+    procedure actFLTOnlyInDBUpdate(Sender: TObject);
 
   private
     FgdcNamespace: TgdcNamespace;
 
-    function GetFilterText: String;
-    procedure FindRecord;
+    procedure ApplyFilter;
     procedure IterateSelected(Proc: TIterateProc; AnObj: TObject; const AData: String);
     procedure SetOperation(AnObj: TObject; const AData: String);
     procedure SaveID(AnObj: TObject; const AData: String);
@@ -163,26 +160,6 @@ begin
   end;
 end;
 
-function Tat_frmSyncNamespace.GetFilterText: String;
-begin
-  Result := '';
-  if TBItem12.Checked then
-    Result := Result + 'operation = ''' + TBItem12.Caption + ''' or ';
-  if TBItem13.Checked then
-    Result := Result + 'operation = ''' + TBItem13.Caption + ''' or ';
-  if TBItem14.Checked then
-    Result := Result + 'operation = ''' + TBItem14.Caption + ''' or ';
-  if TBItem15.Checked then
-    Result := Result + 'operation = ''' + TBItem15.Caption + ''' or ';
-  if TBItem16.Checked then
-    Result := Result + 'operation = ''' + TBItem16.Caption + ''' or ';
-  if TBItem17.Checked then
-    Result := Result + 'operation = ''' + TBItem17.Caption + ''' or ';
-  Result := Trim(Result);
-  if Result > '' then
-    SetLength(Result, Length(Result) - 3);
-end;
-
 procedure Tat_frmSyncNamespace.actCompareUpdate(Sender: TObject);
 begin
   actCompare.Enabled := DirectoryExists(tbedPath.Text);
@@ -190,8 +167,9 @@ end;
 
 procedure Tat_frmSyncNamespace.actCompareExecute(Sender: TObject);
 begin
-  if chbxUpdateCurrModified.Checked then
-    TgdcNamespace.UpdateCurrModified;
+  Log('Начато обновление даты изменения объекта...');
+  TgdcNamespace.UpdateCurrModified;
+  Log('Окончено обновление даты изменения объекта...');
 
   cds.DisableControls;
   try
@@ -219,7 +197,7 @@ end;
 procedure Tat_frmSyncNamespace.actSaveToFileUpdate(Sender: TObject);
 begin
   actSaveToFile.Enabled := DirectoryExists(tbedPath.Text)
-    and (not cds.EOF)
+    and (not cds.IsEmpty)
     and (cds.FieldByName('namespacename').AsString > '');
 end;
 
@@ -230,7 +208,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actEditNamespaceUpdate(Sender: TObject);
 begin
-  actEditNamespace.Enabled := (not cds.EOF)
+  actEditNamespace.Enabled := (not cds.IsEmpty)
     and (cds.FieldByName('namespacekey').AsInteger > 0);
 end;
 
@@ -242,7 +220,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actEditFileUpdate(Sender: TObject);
 begin
-  actEditFile.Enabled := (not cds.EOF)
+  actEditFile.Enabled := (not cds.IsEmpty)
     and FileExists(cds.FieldByName('filename').AsString);
 end;
 
@@ -262,7 +240,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actCompareWithDataUpdate(Sender: TObject);
 begin
-  actCompareWithData.Enabled := (not cds.EOF)
+  actCompareWithData.Enabled := (not cds.IsEmpty)
     and FileExists(cds.FieldByName('filename').AsString)
     and FgdcNamespace.Active;
 end;
@@ -299,13 +277,14 @@ begin
       UpdateWindow(mMessages.Handle);
     end;
   end
-  else if not cds.EOF then
+  else if not cds.IsEmpty then
     Proc(AnObj, AData);
 end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingUpdate(Sender: TObject);
 begin
-  actSetForLoading.Enabled := not cds.EOF;
+  actSetForLoading.Enabled := (not cds.IsEmpty)
+    and (cds.FieldByName('operation').AsString > '');
 end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
@@ -341,7 +320,8 @@ end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingUpdate(Sender: TObject);
 begin
-  actSetForSaving.Enabled := not cds.EOF;
+  actSetForSaving.Enabled := (not cds.IsEmpty)
+    and (cds.FieldByName('operation').AsString > '');
 end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingExecute(Sender: TObject);
@@ -351,7 +331,8 @@ end;
 
 procedure Tat_frmSyncNamespace.actClearUpdate(Sender: TObject);
 begin
-  actClear.Enabled := not cds.EOF;
+  actClear.Enabled := (not cds.IsEmpty)
+    and (cds.FieldByName('operation').AsString > '');
 end;
 
 procedure Tat_frmSyncNamespace.actClearExecute(Sender: TObject);
@@ -376,13 +357,13 @@ end;
 
 procedure Tat_frmSyncNamespace.actLoadFromFileUpdate(Sender: TObject);
 begin
-  actLoadFromFile.Enabled := (not cds.EOF)
+  actLoadFromFile.Enabled := (not cds.IsEmpty)
     and (cds.FieldByName('fileversion').AsString > '');
 end;
 
 procedure Tat_frmSyncNamespace.actSyncUpdate(Sender: TObject);
 begin
-  actSync.Enabled := not cds.EOF;
+  actSync.Enabled := not cds.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
@@ -390,7 +371,7 @@ begin
   cds.First;
   while not cds.EOF do
   begin
-    if Pos('>', cds.FieldByName('operation').AsString) > 0 then
+    if Pos('>', cds.FieldByName('operation').AsString) = 1 then
       SaveID(nil, '')
     else if cds.FieldByName('operation').AsString = '<<' then
     begin
@@ -403,7 +384,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actDeleteFileUpdate(Sender: TObject);
 begin
-  actDeleteFile.Enabled := (not cds.EOF)
+  actDeleteFile.Enabled := (not cds.IsEmpty)
     and (cds.FieldByName('fileversion').AsString > '');
 end;
 
@@ -439,44 +420,83 @@ begin
   FgdcNamespace.LoadFromFile(cds.FieldByName('filename').AsString);
 end;
 
-procedure Tat_frmSyncNamespace.FindRecord;
-var
-  TempS: String;
+procedure Tat_frmSyncNamespace.ApplyFilter;
 begin
-  TempS := GetFilterText;
   cds.Filtered := False;
-  cds.Filter := '';
-  if (TempS > '') or (edFilter.Text > '') then
-  begin
-    cds.Filter := TempS;
-    cds.Filtered := True;
-  end;
-end;
-
-procedure Tat_frmSyncNamespace.actFLTExecute(Sender: TObject);
-begin
-  TAction(Sender).Checked := not TAction(Sender).Checked;
-  FindRecord;
+  cds.Filtered := (edFilter.Text > '')
+    or actFLTOnlyInDB.Checked
+    or actFLTOlder.Checked
+    or actFLTEqual.Checked
+    or actFLTOnlyInFile.Checked
+    or actFLTNewer.Checked
+    or actFLTNone.Checked;
 end;
 
 procedure Tat_frmSyncNamespace.edFilterChange(Sender: TObject);
 begin
-  FindRecord;
+  ApplyFilter;
 end;
 
 procedure Tat_frmSyncNamespace.cdsFilterRecord(DataSet: TDataSet;
   var Accept: Boolean);
 begin
-  if edFilter.Text > '' then
-    Accept := StrIPos(edFilter.Text, cds.FieldByName('namespacename').AsString +
-      cds.FieldByName('NamespaceVersion').AsString +
-      cds.FieldByName('NamespaceTimeStamp').AsString +
-      cds.FieldByName('FileNamespaceName').AsString +
-      cds.FieldByName('FileVersion').AsString +
-      cds.FieldByName('FileTimeStamp').AsString +
-      cds.FieldByName('FileSize').AsString) > 0
-  else
-    Accept := True;
+  Accept :=
+    (cds.FieldByName('operation').AsString = '')
+    or
+    (
+      (
+        (edFilter.Text = '')
+        or
+        (
+          StrIPos(edFilter.Text, cds.FieldByName('namespacename').AsString +
+          cds.FieldByName('NamespaceVersion').AsString +
+          cds.FieldByName('NamespaceTimeStamp').AsString +
+          cds.FieldByName('FileNamespaceName').AsString +
+          cds.FieldByName('FileVersion').AsString +
+          cds.FieldByName('FileTimeStamp').AsString +
+          cds.FieldByName('FileSize').AsString) > 0
+        )
+      )
+      and
+      (
+        (
+          (not actFLTOnlyInDB.Checked)
+          and
+          (not actFLTOlder.Checked)
+          and
+          (not actFLTEqual.Checked)
+          and
+          (not actFLTOnlyInFile.Checked)
+          and
+          (not actFLTNewer.Checked)
+          and
+          (not actFLTNone.Checked)
+        )
+        or
+        (actFLTOnlyInDB.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInDB.Caption))
+        or
+        (actFLTOlder.Checked and (cds.FieldByName('operation').AsString = actFLTOlder.Caption))
+        or
+        (actFLTEqual.Checked and (cds.FieldByName('operation').AsString = actFLTEqual.Caption))
+        or
+        (actFLTOnlyInFile.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInFile.Caption))
+        or
+        (actFLTNewer.Checked and (cds.FieldByName('operation').AsString = actFLTNewer.Caption))
+        or
+        (actFLTNone.Checked and (cds.FieldByName('operation').AsString = actFLTNone.Caption))
+      )
+    );
+end;
+
+procedure Tat_frmSyncNamespace.actFLTOnlyInDBExecute(Sender: TObject);
+begin
+  (Sender as TAction).Checked := not (Sender as TAction).Checked;
+  ApplyFilter;
+end;
+
+procedure Tat_frmSyncNamespace.actFLTOnlyInDBUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := cds.Filtered or (not cds.IsEmpty);
 end;
 
 initialization

@@ -86,8 +86,8 @@ procedure Tgs_AcEntryTest.TestEqualOfDebitAndCreditSum(q: TIBSQL);
 begin
   q.Close;
   q.SQL.Text :=
-    'select * from ac_record where ((creditncu <> debitncu and creditncu <> 0 and debitncu <> 0) ' +
-    '  or (creditcurr <> debitcurr and creditcurr <> 0 and debitcurr <> 0)) and incorrect=0 ';
+    'select * from ac_record where creditncu <> debitncu and creditncu <> 0 and debitncu <> 0 ' +
+    '  and incorrect=0 ';
   q.ExecQuery;
   Check(q.EOF, 'Проверка дебетовой и кредитовой части в шапке проводки');
 

@@ -23,23 +23,20 @@ begin
   Assert(AgdcObject <> nil);
   Assert(AgdcObject.RecordCount > 0);
 
-  if MessageBox(0,
-    'Добавить в настройку? (Нет -- добавление в пространство имен)',
-    'Внимание',
-    MB_YESNO or MB_ICONQUESTION or MB_TASKMODAL) = IDYES then
+  if (GetAsyncKeyState(VK_SHIFT) shr 1) = 0 then
   begin
-    with TdlgToSetting.Create(nil) do
+    with TdlgToNamespace.Create(nil) do
     try
-      Setup(FromStorage, ABranchName, AValueName, AgdcObject, BL);
+      SetupParams(AgdcObject, BL);
       ShowModal;
     finally
       Free;
     end;
   end else
   begin
-    with TdlgToNamespace.Create(nil) do
+    with TdlgToSetting.Create(nil) do
     try
-      SetupParams(AgdcObject, BL);
+      Setup(FromStorage, ABranchName, AValueName, AgdcObject, BL);
       ShowModal;
     finally
       Free;
