@@ -182,7 +182,7 @@ begin
         if FConnected.Value = 1 then
         begin
           FBusy.Value := 1;
-          //FDBS.CalculateAcSaldo;
+          FDBS.CalculateAcSaldo;
           FDBS.CalculateInvSaldo;
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
