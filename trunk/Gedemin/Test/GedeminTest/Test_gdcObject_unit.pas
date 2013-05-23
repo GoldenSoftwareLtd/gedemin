@@ -19,7 +19,8 @@ implementation
 uses
   Windows, Forms, SysUtils, IBSQL, gdcBase, gdcBaseInterface,
   gd_ClassList, gdcClasses, gd_directories_const, gdcTableCalendar,
-  gdcInvMovement, Test_Global_unit, gdcGood, IB, gd_security;
+  gdcInvMovement, Test_Global_unit, gdcGood, IB, gd_security,
+  at_frmSQLProcess;
 
 type
   TgdcBaseCrack = class(TgdcBase)
@@ -153,7 +154,7 @@ begin
             Obj := C.Create(nil);
           try
             Inc(Cnt);
-            OutputDebugString(PChar(IntToStr(I) + ': ' + C.ClassName +
+            AddText(PChar(IntToStr(I) + ': ' + C.ClassName +
               ' (' + IntToStr(J) + ': ' + Obj.SubType + '), ' + IntToStr(Cnt)));
 
             if DN = '' then

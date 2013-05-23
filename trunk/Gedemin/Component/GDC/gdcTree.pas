@@ -885,6 +885,7 @@ begin
       'EXECUTE BLOCK (ID INTEGER = :ID)'#13#10 +
       '  RETURNS(Path VARCHAR(8192))'#13#10 +
       'AS'#13#10 +
+      '  DECLARE VARIABLE NewID INTEGER = NULL;'#13#10 +
       'BEGIN'#13#10 +
       '  Path = '''';'#13#10 +
       '  WHILE (:ID IS DISTINCT FROM NULL) DO'#13#10 +
@@ -892,9 +893,11 @@ begin
       '    SELECT ' + GetListField(SubType) + ' || ''\'' || :Path, parent'#13#10 +
       '    FROM ' + GetListTable(SubType) + #13#10 +
       '    WHERE id = :ID'#13#10 +
-      '    INTO :Path, :ID;'#13#10 +
+      '    INTO :Path, :NewID;'#13#10 +
+      '    ID = :NewID;'#13#10 +
       '  END'#13#10 +
-      '  Path = SUBSTRING(:Path FROM 1 FOR CHARACTER_LENGTH(:Path) - 1);'#13#10 +
+      '  IF (:Path <> '''') THEN'#13#10 +
+      '    Path = SUBSTRING(:Path FROM 1 FOR CHARACTER_LENGTH(:Path) - 1);'#13#10 +
       '  SUSPEND;'#13#10 +
       'END';
     if AnIncludeSelf then

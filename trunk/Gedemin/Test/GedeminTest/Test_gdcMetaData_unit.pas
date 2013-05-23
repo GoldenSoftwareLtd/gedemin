@@ -80,6 +80,7 @@ type
   private
     FDomainName, FTableName, FFieldName, FDBState, FDBStateAfterCreate: String;
     FDomainKey, FTableKey: Integer;
+
   protected
     procedure CreateTable;
     function GetFileName: String;
@@ -88,6 +89,7 @@ type
     procedure TestAddToSetting;
     procedure TestLoadSetting;
     procedure TestDrop;
+
   published
     procedure DoTest;
   end;
@@ -818,14 +820,14 @@ var
   gdcSetting: TgdcSetting;
   gdcSettingPos: TgdcSettingPos;
 begin
-  Check(FTableName > '');
+  Check(FTableName > '', 'Table name is empty');
 
   FTable := TgdcPrimeTable.Create(nil);
   try
     FTable.SubSet := 'ByName';
     FTable.ParamByName(FTable.GetListField(FTable.SubType)).AsString := FTableName;
     FTable.Open;
-    Check(not FTable.EOF);
+    Check(not FTable.EOF, 'Table is empty');
 
     gdcSetting := TgdcSetting.Create(nil);
     try
@@ -881,7 +883,7 @@ function TgdcSetTest.GetFileName: String;
 var
   TempPath: array[0..1023] of Char;
 begin
-  Check(FTableName > '');
+  Check(FTableName > '', 'Table name is empty');
 
   GetTempPath(SizeOf(TempPath), TempPath);
   Result := IncludeTrailingBackslash(TempPath) + FTableName + '.xml'

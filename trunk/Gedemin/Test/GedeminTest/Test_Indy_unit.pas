@@ -16,7 +16,6 @@ type
     procedure Test;
     procedure Test_FLFlags;
     procedure Test_FLCollection;
-    //procedure Test_FLCollectionXML;
     procedure Test_FLCollectionYAML;
     procedure Test_CompareVersionStrings;
   end;
@@ -38,7 +37,7 @@ end;
 
 procedure TgsIndyTest.Test;
 begin
-  Check(gdWebClientThread.gdWebServerURL > '');
+  Check(gdWebClientThread.gdWebServerURL > '', 'WebServer not found.');
 end;
 
 procedure TgsIndyTest.Test_CompareVersionStrings;
@@ -78,36 +77,6 @@ begin
     LocalFiles.Free;
   end;
 end;
-
-{procedure TgsIndyTest.Test_FLCollectionXML;
-var
-  S: String;
-  C1, C2: TFLCollection;
-  StS, StF: TStream;
-begin
-  C1 := TFLCollection.Create;
-  C2 := TFLCollection.Create;
-  try
-    C1.BuildEtalonFileSet;
-    S := C1.GetXML;
-    Check(S > '');
-
-    StF := TFileStream.Create(TempPath + '\test.xml', fmCreate);
-    StS := TStringStream.Create(S);
-    try
-      StF.CopyFrom(StS, 0);
-    finally
-      StS.Free;
-      StF.Free;
-    end;
-
-    C2.ParseXML(S);
-    Check(S = C2.GetXML);
-  finally
-    C1.Free;
-    C2.Free;
-  end;
-end;}
 
 procedure TgsIndyTest.Test_FLCollectionYAML;
 var

@@ -2592,6 +2592,7 @@ procedure TgdcOurCompany.CustomInsert(Buff: Pointer);
   {M}  Params, LResult: Variant;
   {M}  tmpStrings: TStackStrings;
   {END MACRO}
+  q: TIBSQL;
 begin
   {@UNFOLD MACRO INH_ORIG_CUSTOMINSERT('TGDCOURCOMPANY', 'CUSTOMINSERT', KEYCUSTOMINSERT)}
   {M}  try
@@ -2614,18 +2615,23 @@ begin
   {M}    end;
   {END MACRO}
 
-  if (FAddCompany) or (sLoadFromStream in BaseState) then
-  try
-    inherited;
-  except
-    // суть этого подавления в том, что у нас может быть уже
-    // в базе компания с таким ИД, но она не рабочая компания
-    on E: EIBError do
-    begin
-      if (E.IBErrorCode <> isc_unique_key_violation) or (not (sLoadFromStream in BaseState)) then
-        raise;
+  if sLoadFromStream in BaseState then
+  begin
+    q := TIBSQL.Create(nil);
+    try
+      q.Transaction := Transaction;
+      q.SQL.Text := 'SELECT contactkey FROM gd_company WHERE contactkey = :ID';
+      q.ParamByName('id').AsInteger := ID;
+      q.ExecQuery;
+
+      if q.EOF then
+        inherited;
+    finally
+      q.Free;
     end;
-  end;
+  end
+  else if FAddCompany then
+    inherited;
 
   CustomExecQuery('INSERT INTO gd_ourcompany(COMPANYKEY, AVIEW, ACHAG, AFULL) ' +
    ' VALUES (:NEW_ID, :NEW_AVIEW, :NEW_ACHAG, :NEW_AFULL)', Buff);
