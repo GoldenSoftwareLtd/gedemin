@@ -1362,111 +1362,6 @@ COMMIT;
       15
     );
 
-  /*
-  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-    VALUES (
-      780000,
-      710000,
-      'Расчеты с поставщиками скота',
-      'Cattle',
-      '',
-      NULL,
-      0
-    );
-
-
-  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-    VALUES (
-      780010,
-      780000,
-      'Справочники учета поступления скота',
-      'CattleRef',
-      'Tctl_frmReferences',
-      NULL,
-      0
-    );
-
-  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-    VALUES (
-      780020,
-      780000,
-      'Справочник скота и мяса',
-      'CattleRefGood',
-      'Tctl_frmCattle',
-      NULL,
-      0
-    );
-
-  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-    VALUES (
-      780030,
-      780000,
-      'Справочник поставщиков мяса',
-      'CattleRefClient',
-      'Tctl_frmClient',
-      NULL,
-      0
-    );
-
-  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-    VALUES (
-      780040,
-      780000,
-      'Отвес-накладная',
-      'CattleInvoice',
-      'Tctl_frmCattlePurchasing',
-      NULL,
-      0
-    );
-
-  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-    VALUES (
-      780050,
-      780000,
-      'Приемная квитанция',
-      'CattleReceipt',
-      'Tctl_frmCattleReceipt',
-      NULL,
-      0
-    );
-
-  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-    VALUES (
-      780060,
-      780000,
-      'Транспортные тарифы',
-      'CattleTraffic',
-      'Tctl_frmTransportCoeff',
-      NULL,
-      0
-    );
-  */
-
-  /*  Склад  */
-
-/*  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-    VALUES (
-      714030,
-      714000,
-      'Оборотка по аналитике',
-      '714030_17',
-      'TfrmProcessingAnalitics',
-      NULL,
-      0
-    );*/
-
-/*  INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
-    VALUES (
-      714040,
-      714000,
-      'Карта по аналитике',
-      '714040_17',
-      'Tgdv_frmMapOfAnalitic',
-      NULL,
-      0
-    );*/
-
-
 INSERT INTO GD_COMMAND
   (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
 VALUES
@@ -1485,6 +1380,7 @@ INSERT INTO GD_COMMAND
   (ID,CMD,CMDTYPE,PARENT,HOTKEY,NAME,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AFULL,ACHAG,AVIEW,DISABLED,RESERVED)
 VALUES
   (741104,'gdcStoredProc',0,740400,NULL,'Процедуры',253,NULL,'TgdcStoredProc',NULL,1,1,1,0,NULL);
+
 INSERT INTO gd_command
   (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
 VALUES
@@ -1520,6 +1416,11 @@ INSERT INTO gd_command (id, parent, name, cmd, classname, hotkey, imgindex)
     NULL,
     0
   );
+
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741115,740400,'Индексы','gdcIndex',0,NULL,206,NULL,'TgdcIndex',NULL,1,1,1,0,NULL);
 
 /* 799000 - 800000 Department */
 

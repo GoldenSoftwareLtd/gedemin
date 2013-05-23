@@ -3451,7 +3451,8 @@ begin
       Q.Database := Database;
       Q.Transaction := Transaction;
       DidActivate := ActivateTransaction;
-      Q.SQL.Text := Format('UPDATE %s SET %s=:V WHERE %s=%d', [GetListTable(SubType), AFieldName, GetKeyField(SubType), AnID]);
+      Q.SQL.Text := Format('UPDATE %s SET %s=:V WHERE %s=%d',
+        [GetListTable(SubType), AFieldName, GetKeyField(SubType), AnID]);
       Q.Prepare;
       if VarIsNull(AValue) then
         Q.ParamByName('V').Clear
@@ -5759,135 +5760,8 @@ begin
 end;
 
 function TgdcBase.EditMultiple(BL: TBookmarkList; const ADlgClassName: String = ''): Boolean;
-{var
-  I, K, ErrCount: Integer;
-  Bm: String;
-  CFull: TgdcFullClass;}
 begin
-
   Result := EditMultiple2(CreateSelectedArr(Self, BL), ADlgClassName);
-
-(*  Assert(not (sMultiple in BaseState));
-
-  if not ((sDialog in BaseState) or (Assigned(MasterSource) and
-      (MasterSource.DataSet is TgdcBase) and (sDialog in (MasterSource.DataSet as TgdcBase).BaseState))) and
-      (Transaction <> ReadTransaction)
-  then
-    Assert(not Transaction.Active, 'Transaction must be closed!');
-
-  if Assigned(BL) then
-    BL.Refresh;
-
-  if (BL = nil) or (BL.Count <= 1) then
-    Result := EditDialog(ADlgClassName)
-  else begin
-    if Assigned(UserStorage) and UserStorage.ReadBoolean('Options\Confirmations', 'EditMultiple', True) then
-    begin
-      if MessageBox(ParentHandle,
-        PChar(Format('Выделено для редактирования записей: %d. Продолжить?', [BL.Count])),
-        'Внимание',
-        MB_YESNO or MB_ICONQUESTION) = IDNO then
-      begin
-        Result := False;
-        exit;
-      end;
-    end;
-
-    CFull := GetCurrRecordClass;
-
-    Assert(SLInitial = nil);
-    Assert(SLChanged = nil);
-
-    SLInitial := TStringList.Create;
-    SLChanged := TStringList.Create;
-    try
-      Include(FBaseState, sMultiple);
-      Bm := Bookmark;
-      Result := EditDialog(ADlgClassName);
-      if Result then
-      begin
-        if Bm <> Bookmark then
-        begin
-          MessageBox(ParentHandle,
-            'Была изменена только одна запись. '#13#10'Проверьте, не установлена ли у Вас автофильтрация. '#13#10'Если да, то отмените ее и повторите редактирование группы записей.',
-            'Внимание',
-            MB_OK or MB_ICONINFORMATION);
-          exit;
-        end;
-
-        if SLChanged.Count > 0 then
-        begin
-          DisableControls;
-          ErrCount := 0;
-          try
-            for I := 0 to BL.Count - 1 do
-            begin
-              if (BL[I] = Bm) or not BookmarkValid(Pointer(BL[I])) then
-                continue;
-              Bookmark := BL[I];
-              if (GetCurrRecordClass.gdClass <> CFull.gdClass)
-                or (GetCurrRecordClass.SubType <> CFull.SubType) then
-              begin
-                MessageBox(ParentHandle,
-                  'Для изменения выделены записи разных типов. Изменения будут применены не ко всем записям.',
-                  'Внимание',
-                  MB_OK or MB_TASKMODAL or MB_ICONEXCLAMATION);
-                continue;
-              end;
-              try
-                Edit;
-                try
-                  for K := 0 to SLChanged.Count - 1 do
-                  begin
-                    { TODO : механизм надо переделывать }
-                    if FindField(SLChanged.Names[K]) <> nil then
-                    begin
-                      if SLChanged.Objects[K] <> nil then
-                        FieldByName(SLChanged.Names[K]).Clear
-                      else
-                        FieldByName(SLChanged.Names[K]).AsString := SLChanged.Values[SLChanged.Names[K]];
-                    end;
-                  end;
-                  Post;
-                except
-                  if State = dsEdit then
-                    Cancel;
-                  raise;
-                end;
-              except
-                if MessageBox(ParentHandle,
-                  'При изменении записи произошла ошибка. Продолжать изменение выделенных записей?',
-                  'Внимание',
-                  MB_YESNO or MB_ICONEXCLAMATION or MB_TASKMODAL) = IDNO then
-                begin
-                  raise;
-                end;
-
-                Inc(ErrCount);
-              end;
-            end;
-            if BookmarkValid(Pointer(Bm)) then
-              Bookmark := Bm;
-          finally
-            EnableControls;
-          end;
-
-          if ErrCount > 0 then
-          begin
-            MessageBox(ParentHandle,
-              PChar(Format('В процессе редактирования возникли ошибки в %d записи(ях).',
-                [ErrCount])),
-              'Внимание',
-              MB_OK or MB_ICONHAND);
-          end;
-        end;
-      end;
-    finally
-      Exclude(FBaseState, sMultiple);
-      FreeAndNil(SLInitial);
-      FreeAndNil(SLChanged);
-    end;
-  end; *)
 end;
 
 function TgdcBase.GetDeleteSQLText: String;
@@ -6604,30 +6478,10 @@ var
   i, j, k, CutOff: Integer;
   pbd: PBlobDataArray;
   DidActivate: Boolean;
-  //_id: TID;
-  //RUID: TRUID;
   FSavepoint, S: String;
+  RF: TatRelationField;
 begin
   {$R-}
-  {
-  pbd := PBlobDataArray(PChar(Buff) + FBlobCacheOffset);
-  j := 0;
-  for i := 0 to FieldCount - 1 do
-    if Fields[i].IsBlob then
-    begin
-      k := FMappedFieldPosition[Fields[i].FieldNo -1];
-      if pbd^[j] <> nil then
-      begin
-        pbd^[j].Finalize;
-        PISC_QUAD(
-          PChar(Buff) + PRecordData(Buff)^.rdFields[k].fdDataOfs)^ :=
-          pbd^[j].BlobID;
-        PRecordData(Buff)^.rdFields[k].fdIsNull := pbd^[j].Size = 0;
-      end;
-      Inc(j);
-    end;
-  }
-
   FInternalProcess := True;
   try
     if not FDataTransfer then
@@ -6768,41 +6622,26 @@ begin
           if Assigned(IBLogin)
             and IBLogin.IsIBUserAdmin
             and Assigned(gdcBaseManager)
-            and (not (sLoadFromStream in BaseState)) then
+            and (not (sLoadFromStream in BaseState))
+            and Assigned(atDatabase) then
           begin
-            if (Qry = QInsert) then
+            RF := atDatabase.FindRelationField(GetListTable(SubType), GetKeyField(SubType));
+
+            if (RF <> nil) and (RF.References = nil) then
             begin
-              ExecSingleQuery(
-                'UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
-                'VALUES (:id, :id, :dbid, CURRENT_TIMESTAMP, :ek) ' +
-                'MATCHING (id)', VarArrayOf([Self.ID, IBLogin.DBID, IBLogin.ContactKey]));
-              {try
-                _id := gdcBaseManager.GetIdByRUID(ID, IBLogin.DBID);
-                if _id = - 1 then
-                  gdcBaseManager.InsertRUID(ID, ID, IBLogin.DBID, Now, IBLogin.ContactKey, Transaction);
-              except
-                // подавляем нарушение первичного ключа
-                // на случай если перед этим РУИД уже сформирован
-                // вручную
-                on E: EIBError do
-                begin
-                  if E.IBErrorCode <> isc_unique_key_violation then
-                    raise;
-                end;
-              end;}
-            end else
-            if (Qry = QModify) then
-            begin
-              ExecSingleQuery(
-                'UPDATE gd_ruid SET modified = CURRENT_TIMESTAMP,' +
-                'editorkey = :ek WHERE id = :id', VarArrayOf([IBLogin.ContactKey, Self.ID]));
-              {try
-                RUID := GetRUID;
-                gdcBaseManager.UpdateRUIDByXID(ID, RUID.XID, RUID.DBID, Now, IBLogin.ContactKey, Transaction);
-              except
-                on E: Exception do
-                  Application.HandleException(E);
-              end;}
+              if (Qry = QInsert) then
+              begin
+                ExecSingleQuery(
+                  'UPDATE OR INSERT INTO gd_ruid (id, xid, dbid, modified, editorkey) ' +
+                  'VALUES (:id, :id, :dbid, CURRENT_TIMESTAMP, :ek) ' +
+                  'MATCHING (id)', VarArrayOf([Self.ID, IBLogin.DBID, IBLogin.ContactKey]));
+              end else
+              if (Qry = QModify) then
+              begin
+                ExecSingleQuery(
+                  'UPDATE gd_ruid SET modified = CURRENT_TIMESTAMP,' +
+                  'editorkey = :ek WHERE id = :id', VarArrayOf([IBLogin.ContactKey, Self.ID]));
+              end;
             end;
           end;
 
@@ -6815,7 +6654,6 @@ begin
           begin
             try
               Transaction.ReleaseSavePoint(FSavepoint);
-              //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
             except
               // подавляем исключение, если
               // сэйвпоинт уже пропала, напр. транзакцию скомитили
@@ -6830,8 +6668,6 @@ begin
             try
               Transaction.RollBackToSavePoint(FSavepoint);
               Transaction.ReleaseSavePoint(FSavepoint);
-              //ExecSingleQuery('ROLLBACK TO ' + FSavepoint);
-              //ExecSingleQuery('RELEASE SAVEPOINT ' + FSavepoint);
             except
               // подавляем исключение, если
               // сэйвпоинт уже пропала, напр. транзакцию скомитили
@@ -6875,6 +6711,7 @@ var
   CutOff: Integer;
   FirstPass: Boolean;
   FSavepoint: String;
+  RF: TatRelationField;
 begin
   FInternalProcess := True;
   try
@@ -6960,10 +6797,15 @@ begin
             end;
           until CutOff = 0;
 
-          if Assigned(IBLogin) and IBLogin.IsIBUserAdmin
-            and Assigned(gdcBaseManager) then
+          if Assigned(IBLogin)
+            and IBLogin.IsIBUserAdmin
+            and Assigned(gdcBaseManager)
+            and Assigned(atDatabase) then
           begin
-            gdcBaseManager.DeleteRUIDByID(ID, Transaction);
+            RF := atDatabase.FindRelationField(GetListTable(SubType), GetKeyField(SubType));
+
+            if (RF <> nil) and (RF.References = nil) then
+              gdcBaseManager.DeleteRUIDByID(ID, Transaction);
           end;
 
           if Assigned(AfterInternalDeleteRecord) then

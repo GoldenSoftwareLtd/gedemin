@@ -8472,6 +8472,7 @@ begin
   {M}        end;
   {M}    end;
   {END MACRO}
+
   if AnsiPos(UserPrefix, AnsiUpperCase(FieldByName('indexname').AsString)) = 1 then
     MetaDataCreate;
   inherited;
