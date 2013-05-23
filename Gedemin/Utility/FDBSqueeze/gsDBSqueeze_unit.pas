@@ -597,7 +597,7 @@ var
     end;
   end;
 
-  procedure CalculateInvEntryBalance(q: TIBSQL); // формируем складской остаток на дату
+  procedure CalculateInvBalance(q: TIBSQL); // формируем складской остаток на дату
   begin
     // запрос на складские остатки
     q.SQL.Text :=
@@ -645,18 +645,23 @@ var
 
   function CreateHeaderInvDoc(
     const AFromContact, AToContact, ACompanyKey: String;
-    const AInvDocType, ACurUserContactKey: String;
-    ATr: TIBTransaction
+    const AInvDocType, ACurUserContactKey: String
   ): String;
   var
     NewDocumentKey: String;
     q: TIBSQL;
+    Tr2: TIBTransaction;
   begin
     Assert(Connected);
 
+    //LogEvent('[test] CreateHeaderInvDoc');
+
+    Tr2:= TIBTransaction.Create(nil);
     q := TIBSQL.Create(nil);
     try
-      q.Transaction := ATr;
+      Tr2.DefaultDatabase := FIBDatabase;
+      Tr2.StartTransaction;
+      q.Transaction := Tr2;
 
       NewDocumentKey := GetNewID;
 
@@ -689,35 +694,37 @@ var
       q.ParamByName('INCONTACT').AsString := AToContact;
       q.ExecQuery;   }
 
-      //Tr.Commit;
-      //Tr.StartTransaction;
+      Tr2.Commit;
     finally
       Result := NewDocumentKey;
       q.Free;
+      Tr2.Free;
     end;
   end;
 
-  {TODO: Error!
-   violation of FOREIGN KEY constraint "INV_FK_MOVEMENT_CK" on table "INV_MOVEMENT"
-   Foreign key reference target does not exist
-  } //на GD_CONTACT(ID)
   function CreatePositionInvDoc(
     const ADocumentParentKey, AFromContact, AToContact, ACompanyKey, ACardGoodKey: String;
     const AGoodQuantity: Currency;
     const AInvDocType, ACurUserContactKey: String;
-    ATr: TIBTransaction;
     AUsrFieldsDataset: TIBSQL = nil
   ): String;
   var
     NewDocumentKey, NewMovementKey, NewCardKey: String;
     I: Integer;
     q: TIBSQL;
+    Tr2: TIBTransaction;
   begin
     Assert(Connected);
 
+    //LogEvent('[test] CreatePositionInvDoc');
+
+    Tr2 := TIBTransaction.Create(nil);
     q := TIBSQL.Create(nil);
     try
-      q.Transaction := ATr;
+
+      Tr2.DefaultDatabase := FIBDatabase;
+      Tr2.StartTransaction;
+      q.Transaction := Tr2;
 
       NewDocumentKey := GetNewID;
 
@@ -737,6 +744,9 @@ var
       q.ParamByName('CREATORKEY').AsString := ACurUserContactKey;
       q.ParamByName('EDITORKEY').AsString := ACurUserContactKey;
       q.ExecQuery;
+
+      Tr2.Commit;
+      Tr2.StartTransaction;
 
       NewCardKey := GetNewID;
 
@@ -779,6 +789,9 @@ var
         q.ParamByName('USR$INV_ADDLINEKEY').AsString := NewDocumentKey;
       q.ExecQuery;
 
+      Tr2.Commit;                                                                  /// test
+      Tr2.StartTransaction;
+
       NewMovementKey := GetNewID;
 
       // —оздадим дебетовую часть складского движени€
@@ -791,12 +804,14 @@ var
 
       q.ParamByName('MOVEMENTKEY').AsString := NewMovementKey;
       q.ParamByName('DOCUMENTKEY').AsString := NewDocumentKey;
-      q.ParamByName('CONTACTKEY').AsString := AToContact;                         /// ERROR !
+      q.ParamByName('CONTACTKEY').AsString := AToContact;
       q.ParamByName('CARDKEY').AsString := NewCardKey;
       q.ParamByName('DEBIT').AsCurrency := AGoodQuantity;
       q.ParamByName('CREDIT').AsCurrency := 0;
       q.ExecQuery;
 
+      Tr2.Commit;
+      Tr2.StartTransaction;
 
       // —оздадим кредитовую часть складского движени€
       q.SQL.Text :=
@@ -804,7 +819,7 @@ var
         '  (movementkey, movementdate, documentkey, contactkey, cardkey, debit, credit) ' +
         'VALUES ' +
         '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
-      q.ParamByName('MOVEMENTDATE').AsString := FDocumentdateWhereClause; //q2.FieldByName(  'CUR_DATE').AsString;
+      q.ParamByName('MOVEMENTDATE').AsString := FDocumentdateWhereClause; //FCurDate;
 
       q.ParamByName('MOVEMENTKEY').AsString := NewMovementKey;
       q.ParamByName('DOCUMENTKEY').AsString := NewDocumentKey;
@@ -813,6 +828,9 @@ var
       q.ParamByName('DEBIT').AsCurrency := 0;
       q.ParamByName('CREDIT').AsCurrency := AGoodQuantity;
       q.ExecQuery;
+
+      Tr2.Commit;
+      Tr2.StartTransaction;
 
       // ¬ставим запись в дополнительную таблицу документа позиции
 {      q.SQL.Text := Format(
@@ -826,12 +844,13 @@ var
       q.ParamByName('QUANTITY').AsCurrency := AGoodQuantity;
       q.ExecQuery;
 }
-      //Tr.Commit;
-      //Tr.StartTransaction;
+      //Tr2.Commit;
+      //Tr2.StartTransaction;
     finally
       Result := NewCardKey;
 
       q.Free;
+      Tr2.Free;
     end;
   end;
 
@@ -1044,10 +1063,9 @@ var
                 CurrentFromContactkey,
                 q.FieldByName('COMPANYKEY').AsString,
                 InvDocTypeKey,
-                FCurUserContactKey,
-                Tr);
+                FCurUserContactKey);
 
-              CalculateInvEntryBalance(q3);  // ѕо компании строим запрос на складские остатки
+              CalculateInvBalance(q3);  // ѕо компании строим запрос на складские остатки
               NewCardKey := CreatePositionInvDoc(
                 DocumentParentKey,
                 CurrentFromContactkey,
@@ -1057,7 +1075,6 @@ var
                 0,
                 InvDocTypeKey,
                 FCurUserContactKey,
-                Tr,
                 q3);
               q3.Close;
 
@@ -1190,12 +1207,14 @@ var
     end;
   end;
 
-
 begin
   Tr := TIBTransaction.Create(nil);
   q := TIBSQL.Create(nil);
   q2 := TIBSQL.Create(nil);
   UsrFieldsList := TStringList.Create;
+
+  LogEvent('Calculating inventory balance...');
+
   try
     Tr.DefaultDatabase := FIBDatabase;
     Tr.Params.Add('no_auto_undo');
@@ -1284,6 +1303,8 @@ begin
         'WHERE gc.name = ''ќрганизации'' ';
       q2.ExecQuery;
 
+      PseudoClientKey := GetNewID;
+
       q.SQL.Text :=
         'INSERT INTO gd_contact ( ' +
         '  id, ' +
@@ -1301,19 +1322,19 @@ begin
         '  -1, ' +
         '  -1, ' +
         '  -1)';                                                                /// disabled = 1  добавить?
-      q.ParamByName('id').AsString := GetNewId;
+      q.ParamByName('id').AsString := PseudoClientKey;
       q.ParamByName('parent').AsInteger := q2.FieldByName('ParentId').AsInteger;
       q.ExecQuery;
 
-      PseudoClientKey := GetNewID;
       q2.Close;
+      Tr.Commit;
+      Tr.StartTransaction;
     end
     else
       PseudoClientKey := q.FieldByName('id').AsString;
     q.Close;
 
-
-    CalculateInvEntryBalance(q);  // строим запрос на складские остатки дл€ компании
+    CalculateInvBalance(q);  // строим запрос на складские остатки дл€ компании
 
     DecimalSeparator := '.';   // тип Currency в SQL имееет DecimalSeparator = ','
 
@@ -1324,6 +1345,8 @@ begin
     // ѕройдем по остаткам “ћ÷
     while not q.EOF do
     begin
+      //LogEvent('[test] SALDO record: ' + IntToStr(q.RecordCount));
+
       // ≈сли по полю USR$INV_ADDLINEKEY карточки нашли поставщика, создадим  приход остатка с него
       if not q.FieldByName('SUPPLIERKEY').IsNull then
         NextSupplierKey := q.FieldByName('SUPPLIERKEY').AsString
@@ -1354,8 +1377,7 @@ begin
           CurrentContactKey,
           q.FieldByName('COMPANYKEY').AsString,                                 ///
           InvDocTypeKey,
-          FCurUserContactKey,
-          Tr);
+          FCurUserContactKey);
 
         CreatePositionInvDoc(
           DocumentParentKey,
@@ -1366,7 +1388,6 @@ begin
           q.FieldByName('BALANCE').AsCurrency,
           InvDocTypeKey,
           FCurUserContactKey,
-          Tr,
           q);
       end
       else begin
@@ -1376,10 +1397,9 @@ begin
           PseudoClientKey,
           q.FieldByName('COMPANYKEY').AsString,
           InvDocTypeKey,
-          FCurUserContactKey,
-          Tr);
+          FCurUserContactKey);
 
-        CreatePositionInvDoc(                                                    ///error
+        CreatePositionInvDoc(                                                    
           DocumentParentKey,
           CurrentContactKey,
           PseudoClientKey,
@@ -1388,7 +1408,6 @@ begin
           -(q.FieldByName('BALANCE').AsCurrency),
           InvDocTypeKey,
           FCurUserContactKey,
-          Tr,
           q);
       end;
       Inc(LineCount);
@@ -1396,7 +1415,6 @@ begin
       q.Next;
     end;
     q.Close;
-
 
     RebindInvCards;
 
@@ -1409,6 +1427,7 @@ begin
     Tr.Free;
     UsrFieldsList.Free;
   end;
+  LogEvent('Calculating inventory balance... OK');
 end;
 
 
