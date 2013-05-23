@@ -199,6 +199,9 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
     q: TIBSQL;
     SetAttr: TgdcSetAttr;
     AddedTitle: Boolean;
+    InstObj: TgdcBase;
+    InstClass: TPersistentClass;
+    FN: String;
   begin
     OL := TObjectList.Create;
     q := TIBSQL.Create(nil);
@@ -213,6 +216,12 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
       for I := 0 to OL.Count - 1 do
       begin
         SetAttr := OL[I] as TgdcSetAttr;
+        InstObj := nil;
+        if SetAttr.SubType <> 'NULL' then
+          InstClass := GetClass(SetAttr.ClassName)
+        else
+          InstClass := nil; 
+
         q.Close;
         q.SQL.Text := SetAttr.SQL;
         q.ParamByName('rf').AsInteger := AObj.FieldByName(SetAttr.RefFieldName).AsInteger;
@@ -242,13 +251,33 @@ class procedure TgdcNamespace.WriteObject(AgdcObject: TgdcBase; AWriter: TyamlWr
 
             AWriter.IncIndent;
             try
-              while not q.Eof do
+              if InstClass <> nil then
               begin
-                AWriter.StartNewLine;
-                AWriter.WriteSequenceIndicator;
-                AWriter.WriteString(gdcBaseManager.GetRUIDStringByID(
-                  q.Fields[0].AsInteger, AObj.Transaction));
-                q.Next;
+                InstObj := CgdcBase(InstClass).CreateSubType(nil,
+                  SetAttr.SubType, 'ByID');
+                InstObj.Transaction := AObj.Transaction;
+              end;
+              try
+                while not q.Eof do
+                begin
+                  AWriter.StartNewLine;
+                  AWriter.WriteSequenceIndicator;
+                  InstObj.Close;
+                  InstObj.ID := q.Fields[0].AsInteger;
+                  InstObj.Open;
+                  if not InstObj.EOF then
+                    FN := InstObj.FieldByName(InstObj.GetListField(InstObj.SubType)).AsString
+                  else
+                    FN := '';
+
+                  AWriter.WriteText(GetReferenceString(
+                    gdcBaseManager.GetRUIDStringByID(
+                      q.Fields[0].AsInteger, AObj.Transaction),
+                    FN), qSingleQuoted);  
+                  q.Next;
+                end;
+              finally
+                InstObj.Free;
               end;
             finally
               AWriter.DecIndent;
@@ -1990,6 +2019,7 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     ID: Integer;
     Pr: TatPrimaryKey;
     RU: TgdcReferenceUpdate;
+    Name, RUID: String;
   begin
     q := TIBSQL.Create(nil);
     try
@@ -2033,22 +2063,25 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
                 if not (Items[J] is TyamlScalar) then
                   raise Exception.Create('Invalid data!');
 
-                ID := gdcBaseManager.GetIDByRUIDString((Items[J] as TyamlScalar).AsString, ATr);
-                if ID > 0 then
+                if ParseReferenceString((Items[J] as TyamlScalar).AsString, RUID, Name) then
                 begin
-                  q.ParamByName('id1').AsInteger := AnID;
-                  q.ParambyName('id2').AsInteger := ID;
-                  q.ExecQuery;
-                  q.Close;
+                  ID := gdcBaseManager.GetIDByRUIDString(RUID, ATr);
+                  if ID > 0 then
+                  begin
+                    q.ParamByName('id1').AsInteger := AnID;
+                    q.ParambyName('id2').AsInteger := ID;
+                    q.ExecQuery;
+                    q.Close;
+                  end else
+                  begin
+                    RU := TgdcReferenceUpdate.Create;
+                    RU.ID := AnID;
+                    RU.SQL := q.SQl.Text;
+                    RU.RefRUID := (Items[J] as TyamlScalar).AsString;
+                    UL.Add(RU);
+                  end;
                 end else
-                begin
-                  RU := TgdcReferenceUpdate.Create;
-                  RU.ID := AnID;
-                  RU.SQL := q.SQl.Text;
-                  RU.RefRUID := (Items[J] as TyamlScalar).AsString;
-                  UL.Add(RU);
-                end;
-                //  AddWarning(#13#10 + 'Запись в таблицу ' + RN + ' не добавлена!'#13#10, clRed);
+                  AddWarning(#13#10 + 'Запись ''' + (Items[J] as TyamlScalar).AsString + ''' в таблицу ' + RN + ' не добавлена! RUID некорректен!'#13#10, clRed);
               end;
             end;
           end else
