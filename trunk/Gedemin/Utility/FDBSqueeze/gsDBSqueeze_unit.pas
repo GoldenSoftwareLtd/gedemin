@@ -67,6 +67,7 @@ constructor TgsDBSqueeze.Create;
 begin
   inherited;
   FIBDatabase := TIBDatabase.Create(nil);
+
 end;
 
 destructor TgsDBSqueeze.Destroy;
@@ -248,6 +249,7 @@ var
     try
       NewDetailDocKey := GetNewID;
 
+      q.Transaction := Tr;
       q.SQL.Text :=
         'INSERT INTO GD_DOCUMENT ( ' +
         '  ID, ' +
@@ -365,7 +367,6 @@ var
     q.ExecQuery;
 
     AllUsrFieldsNames := q.FieldByName('UsrFieldsList').AsString;
-    UsrFieldsList.Text := StringReplace(AllUsrFieldsNames, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
     q.Close;
 
     //-------------------------------------------- вычисление сальдо для счета
@@ -389,11 +390,17 @@ var
 
     while (not q.EOF) do // считаем сальдо для каждого счета
     begin
+      UsrFieldsList.Text := StringReplace(AllUsrFieldsNames, ',', #13#10, [rfReplaceAll, rfIgnoreCase]);
       // получаем cписок аналитик, по которым ведется учет для счета
-      for I := 0 to UsrFieldsList.Count - 1 do
+      I := 0;
+      while I < UsrFieldsList.Count - 1 do
       begin
         if q.FieldByName(Trim(UsrFieldsList[I])).AsInteger <> 1 then
+        begin
           UsrFieldsList.Delete(I);
+        end
+        else
+          Inc(I);
       end;
 
       // подсчет сальдо в разрезе компании, счета, валюты, аналитик
@@ -461,9 +468,9 @@ var
         q2.Next;
       end;
       UsrFieldsList.Clear;
-      q.Next;
       q2.Close;
-      LogEvent('[test] account closed');
+
+      q.Next;
     end;
     q.Close;
     Tr.Commit;
@@ -492,7 +499,7 @@ begin
       '  gd.id         AS AccDocTypeKey, ' +
       '  atr.id        AS ProizvolnyeTransactionKey, ' +    // 807001
       '  atrr.id       AS ProizvolnyeTrRecordKey, ' +       // 807100
-      '  aac.id        AS OstatkiAccountKey, ' +
+      '  aac.id        AS OstatkiAccountKey ' +
       'FROM ' +
       '  GD_DOCUMENTTYPE gd, GD_USER gu, AC_TRANSACTION atr, AC_ACCOUNT aac, GD_DOCUMENTTYPE gd_inv ' +
       '  JOIN AC_TRRECORD atrr ON atr.id = atrr.transactionkey ' +
@@ -550,6 +557,46 @@ var
   InvDocumentInField, InvDocumentOutField: ShortString;
   InvRelationName, InvRelationLineName: ShortString;
 
+  procedure SetTriggerActive(SetActive: Boolean); //переключение активности триггеров, мешающих CalculateInvSaldo
+  const
+    AlterTriggerCount = 4;
+
+    AlterTriggerArray: array[0 .. AlterTriggerCount - 1] of String =
+      ('INV_BD_MOVEMENT', 'INV_BU_MOVEMENT', 'AC_ENTRY_DO_BALANCE', 'INV_BU_CARD');
+  var
+    q: TIBSQL;
+    StateStr: String;
+    I: Integer;
+    Tr: TIBTransaction;
+  begin
+    if SetActive then
+    begin
+      StateStr := 'ACTIVE';
+    end
+    else begin
+      StateStr := 'INACTIVE';
+    end;
+
+    Tr := TIBTransaction.Create(nil);
+    q := TIBSQL.Create(nil);
+    try
+      Tr.DefaultDatabase := FIBDatabase;
+      Tr.StartTransaction;
+      q.Transaction := Tr;
+
+      for I := 0 to AlterTriggerCount - 1 do
+      begin
+        q.SQL.Text := 'ALTER TRIGGER ' + AlterTriggerArray[I] + ' '  + StateStr;
+        q.ExecQuery;
+        q.Close;
+      end;
+      Tr.Commit;
+    finally
+      q.Free;
+      Tr.Free;
+    end;
+  end;
+
   procedure CalculateInvEntryBalance(q: TIBSQL); // формируем складской остаток на дату
   begin
     // запрос на складские остатки
@@ -584,7 +631,7 @@ var
       '  im.contactkey, ' +
       '  gc.name, ' +
       '  ic.goodkey, ' +
-      '  ic.companykey ');                                                           { TODO: для всех компаний->для выбранной?}
+      '  ic.companykey ');                                                          { TODO: для всех компаний->для выбранной?}
     if Pos('USR$INV_ADDLINEKEY', UsrFieldsNames) <> 0 then
       q.SQL.Add(', ' +
         'inv_doc.usr$contactkey ');
@@ -625,13 +672,13 @@ var
       q.ParamByName('DOCUMENTTYPEKEY').AsString := AInvDocType;                        ///вынести
       q.ParamByName('PARENT').Clear;
       q.ParamByName('COMPANYKEY').AsString := ACompanyKey;
-      q.ParamByName('DOCUMENTDATE').AsString := FDocumentdateWhereClause;//q2.FieldByName(  'CUR_DATE').AsString;
+      q.ParamByName('DOCUMENTDATE').AsString := FDocumentdateWhereClause;//FCurDate;
       q.ParamByName('CREATORKEY').AsString := ACurUserContactKey;
       q.ParamByName('EDITORKEY').AsString := ACurUserContactKey;
       q.ExecQuery;
 
        // Вставим запись в дополнительную таблицу документа шапки
-      q.SQL.Text := Format(
+  {    q.SQL.Text := Format(
         'INSERT INTO %0:s ' +
         '  (documentkey, %1:s, %2:s) ' +
         'VALUES ' +
@@ -640,7 +687,7 @@ var
       q.ParamByName('DOCUMENTKEY').AsString := NewDocumentKey;
       q.ParamByName('OUTCONTACT').AsString := AFromContact;
       q.ParamByName('INCONTACT').AsString := AToContact;
-      q.ExecQuery;
+      q.ExecQuery;   }
 
       //Tr.Commit;
       //Tr.StartTransaction;
@@ -650,6 +697,10 @@ var
     end;
   end;
 
+  {TODO: Error!
+   violation of FOREIGN KEY constraint "INV_FK_MOVEMENT_CK" on table "INV_MOVEMENT"
+   Foreign key reference target does not exist
+  } //на GD_CONTACT(ID)
   function CreatePositionInvDoc(
     const ADocumentParentKey, AFromContact, AToContact, ACompanyKey, ACardGoodKey: String;
     const AGoodQuantity: Currency;
@@ -682,7 +733,7 @@ var
       q.ParamByName('DOCUMENTTYPEKEY').AsString := AInvDocType;
       q.ParamByName('PARENT').AsString := ADocumentParentKey;
       q.ParamByName('COMPANYKEY').AsString := ACompanyKey;
-      q.ParamByName('DOCUMENTDATE').AsString := FDocumentdateWhereClause; //q2.FieldByName(  'CUR_DATE').AsString;
+      q.ParamByName('DOCUMENTDATE').AsString := FDocumentdateWhereClause; //FCurDate;
       q.ParamByName('CREATORKEY').AsString := ACurUserContactKey;
       q.ParamByName('EDITORKEY').AsString := ACurUserContactKey;
       q.ExecQuery;
@@ -705,7 +756,7 @@ var
       q.SQL.Add(
         ')');
 
-      q.ParamByName('FIRSTDATE').AsString := FDocumentdateWhereClause; //q2.FieldByName('CUR_DATE').AsString;
+      q.ParamByName('FIRSTDATE').AsString := FDocumentdateWhereClause; //FCurDate;
       q.ParamByName('ID').AsString := NewCardKey;
       q.ParamByName('GOODKEY').AsString := ACardGoodKey;
       q.ParamByName('DOCUMENTKEY').AsString := NewDocumentKey;
@@ -736,15 +787,16 @@ var
         '  (movementkey, movementdate, documentkey, contactkey, cardkey, debit, credit) ' +
         'VALUES ' +
         '  (:movementkey, :movementdate, :documentkey, :contactkey, :cardkey, :debit, :credit) ';
-      q.ParamByName('MOVEMENTDATE').AsString := FDocumentdateWhereClause; //q2.FieldByName('CUR_DATE').AsString;
+      q.ParamByName('MOVEMENTDATE').AsString := FDocumentdateWhereClause; //FCurDate;
 
       q.ParamByName('MOVEMENTKEY').AsString := NewMovementKey;
       q.ParamByName('DOCUMENTKEY').AsString := NewDocumentKey;
-      q.ParamByName('CONTACTKEY').AsString := AToContact;
+      q.ParamByName('CONTACTKEY').AsString := AToContact;                         /// ERROR !
       q.ParamByName('CARDKEY').AsString := NewCardKey;
       q.ParamByName('DEBIT').AsCurrency := AGoodQuantity;
       q.ParamByName('CREDIT').AsCurrency := 0;
       q.ExecQuery;
+
 
       // Создадим кредитовую часть складского движения
       q.SQL.Text :=
@@ -763,7 +815,7 @@ var
       q.ExecQuery;
 
       // Вставим запись в дополнительную таблицу документа позиции
-      q.SQL.Text := Format(
+{      q.SQL.Text := Format(
         'INSERT INTO %0:s ' +
         '  (documentkey, masterkey, fromcardkey, quantity) ' +
         'VALUES ' +
@@ -772,8 +824,8 @@ var
       q.ParamByName('MASTERKEY').AsString := ADocumentParentKey;
       q.ParamByName('FROMCARDKEY').AsString := NewCardKey;
       q.ParamByName('QUANTITY').AsCurrency := AGoodQuantity;
-      q.ExecQuery;                                                                   
-
+      q.ExecQuery;
+}
       //Tr.Commit;
       //Tr.StartTransaction;
     finally
@@ -1146,9 +1198,12 @@ begin
   UsrFieldsList := TStringList.Create;
   try
     Tr.DefaultDatabase := FIBDatabase;
+    Tr.Params.Add('no_auto_undo');
     Tr.StartTransaction;
     q.Transaction := Tr;
     q2.Transaction := Tr;
+
+    SetTriggerActive(false);
 
     q.SQL.Text :=
      'SELECT ' +
@@ -1156,16 +1211,17 @@ begin
       'FROM ' +
       '  GD_DOCUMENTTYPE gd_inv ' +
       'WHERE ' +
-      '  AND gd_inv.name = '' '' ';             ///                              { TODO: ВСТАВИТЬ имя типа складского документа }
+      '  gd_inv.name = ''01. Накладная на получение материалов, ОС, МБП'' ';{ TODO: тип складского документа '01. Накладная на получение материалов, ОС, МБП' ?? }
     q.ExecQuery;
 
     InvDocTypeKey := q.FieldByName('InvDocTypeKey').AsString;
     q.Close;
 
 //---
+{
     gdcObject := TgdcInvDocument.Create(nil);
     try
-      gdcObject.Transaction := Tr;
+      gdcObject.Transaction := Tr;                                              // TODO: исп gdcBaseManager: TgdcBaseManager ?
       gdcObject.SubType := InvDocTypeKey;
       gdcObject.SubSet := 'ByID';
 
@@ -1178,6 +1234,9 @@ begin
     finally
       gdcObject.Free;
     end;
+ }
+
+    /// alter
     {q.SQL.Text :=
       'SELECT ' +
       '  ar_header.relationname AS HeaderRelName, ' +
@@ -1265,7 +1324,7 @@ begin
     // Пройдем по остаткам ТМЦ
     while not q.EOF do
     begin
-      // Если по полю USR$INV_ADDLINEKEY карточки нашли поставщика, создадим   приход остатка с него
+      // Если по полю USR$INV_ADDLINEKEY карточки нашли поставщика, создадим  приход остатка с него
       if not q.FieldByName('SUPPLIERKEY').IsNull then
         NextSupplierKey := q.FieldByName('SUPPLIERKEY').AsString
       else
@@ -1320,7 +1379,7 @@ begin
           FCurUserContactKey,
           Tr);
 
-        CreatePositionInvDoc(
+        CreatePositionInvDoc(                                                    ///error
           DocumentParentKey,
           CurrentContactKey,
           PseudoClientKey,
@@ -1340,6 +1399,8 @@ begin
 
 
     RebindInvCards;
+
+    SetTriggerActive(true);
 
     Tr.Commit;
   finally
