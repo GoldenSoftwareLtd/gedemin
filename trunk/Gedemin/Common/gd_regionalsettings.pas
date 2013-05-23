@@ -7,7 +7,6 @@ uses
   Windows, SysUtils;
 
 const
-
   // Константы хранилища
   st_rs_RegionalSettingsPath    = 'RegionalSettings';
   st_rs_UseSystemSettings       = 'UseSystemSettings';
@@ -72,7 +71,6 @@ const
   Def_CurrSeparator: Char = ' ';
   Def_CurrThousandSeparator: Char = ' ';
 
-
 var
   NumberDecimals: Integer;
   NumberGroupCount: Integer;
@@ -82,7 +80,6 @@ var
   NegativeFormat: Integer;
   LeadingZero: Integer;
   CurrGroup: Integer;
-
 
 procedure LoadSystemLocalSettingsIntoDelphiVars;
 
@@ -110,17 +107,22 @@ begin
   CurrencyString := GetLocaleSetting(LOCALE_SCURRENCY);
   CurrencyFormat := StrToIntDef(GetLocaleSetting(LOCALE_ICURRENCY), 1);
   NegCurrFormat := StrToIntDef(GetLocaleSetting(LOCALE_INEGCURR), 5);
-  ThousandSeparator := GetLocaleSetting(LOCALE_STHOUSAND)[1];
-  DecimalSeparator := GetLocaleSetting(LOCALE_SDECIMAL)[1];
+  if GetLocaleSetting(LOCALE_STHOUSAND) > '' then
+    ThousandSeparator := GetLocaleSetting(LOCALE_STHOUSAND)[1];
+  if GetLocaleSetting(LOCALE_SDECIMAL) > '' then
+    DecimalSeparator := GetLocaleSetting(LOCALE_SDECIMAL)[1];
   CurrencyDecimals := StrToIntDef(GetLocaleSetting(LOCALE_ICURRDIGITS), 2);
-  DateSeparator := GetLocaleSetting(LOCALE_SDATE)[1];
+  if GetLocaleSetting(LOCALE_SDATE) > '' then
+    DateSeparator := GetLocaleSetting(LOCALE_SDATE)[1];
   ShortDateFormat := GetLocaleSetting(LOCALE_SSHORTDATE);
   LongDateFormat := GetLocaleSetting(LOCALE_SLONGDATE);
-  TimeSeparator := GetLocaleSetting(LOCALE_STIME)[1];
+  if GetLocaleSetting(LOCALE_STIME) > '' then
+    TimeSeparator := GetLocaleSetting(LOCALE_STIME)[1];
   TimeAMString := GetLocaleSetting(LOCALE_S1159);
   TimePMString := GetLocaleSetting(LOCALE_S2359);
   ShortTimeFormat := GetLocaleSetting(LOCALE_STIMEFORMAT);
-  ListSeparator := GetLocaleSetting(LOCALE_SLIST)[1];
+  if GetLocaleSetting(LOCALE_SLIST) > '' then
+    ListSeparator := GetLocaleSetting(LOCALE_SLIST)[1];
 
   NumberDecimals := Def_NumberDecimals;
   NumberGroupCount := Def_NumberGroupCount;
