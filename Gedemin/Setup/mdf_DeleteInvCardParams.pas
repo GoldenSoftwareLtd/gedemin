@@ -938,6 +938,12 @@ begin
       q.ParamCheck := False;
       q.Transaction := Tr;
 
+(*
+INSERT INTO gd_command
+  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
+VALUES
+  (741115,740400,'Индексы','gdcIndex',0,NULL,206,NULL,'TgdcIndex',NULL,1,1,1,0,NULL);
+*) 
 
 
       q.Close;
