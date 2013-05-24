@@ -95,6 +95,10 @@ object at_frmDuplicates: Tat_frmDuplicates
   object ibtr: TIBTransaction
     Active = False
     DefaultDatabase = dmDatabase.ibdbGAdmin
+    Params.Strings = (
+      'read_committed'
+      'rec_version'
+      'nowait')
     AutoStopAction = saNone
     Left = 552
     Top = 296

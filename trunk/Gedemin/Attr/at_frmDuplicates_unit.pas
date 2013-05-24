@@ -164,8 +164,13 @@ begin
     q.Free;
   end;
 
-  ibds.Close;
-  ibds.Open;
+  if ibtr.InTransaction then
+  begin
+    ibds.Close;
+    ibtr.Commit;
+    ibtr.StartTransaction;
+    ibds.Open;
+  end;  
 end;
 
 end.
