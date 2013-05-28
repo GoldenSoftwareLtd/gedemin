@@ -29,6 +29,10 @@ type
     lbl4: TLabel;
     lbl5: TLabel;
     mLog: TMemo;
+    rbAllOurCompanies: TRadioButton;
+    rbAllContacts: TRadioButton;
+    rbCompany: TRadioButton;
+    actCompany: TAction;
 
     procedure actConnectExecute(Sender: TObject);
     procedure actConnectUpdate(Sender: TObject);
@@ -37,6 +41,8 @@ type
     procedure actGoExecute(Sender: TObject);
     procedure actGoUpdate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure actCompanyUpdate(Sender: TObject);
+    procedure actCompanyExecute(Sender: TObject);
 
   private
     FSThread: TgsDBSqueezeThread;
@@ -96,13 +102,22 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actGoExecute(Sender: TObject);
 begin
-  FSThread.SetCompanyName(cbbCompany.Text);
-  FSThread.SetDocumentdateWhereClause(FormatDateTime('dd.mm.yyyy', dtpDocumentdateWhereClause.Date));
+  FSThread.SetDocumentdateWhereClause(
+    FormatDateTime('dd.mm.yyyy', dtpDocumentdateWhereClause.Date));
+
+  FSThread.SetSaldoParams(
+    rbAllContacts.Checked,
+    rbAllOurCompanies.Checked,
+    rbCompany.Checked);
+
+  if rbCompany.Checked then
+    FSThread.SetCompanyName(cbbCompany.Text);
 end;
 
 procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
 begin
-  actGo.Enabled := FSThread.Connected;
+  actGo.Enabled := FSThread.Connected
+    and (rbAllContacts.Checked or rbAllOurCompanies.Checked or rbCompany.Checked);
 end;
 
 procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;
@@ -116,7 +131,8 @@ end;
 
 procedure TgsDBSqueeze_MainForm.SetItemsCbbEvent(const ACompanies: TStringList);
 begin
-  cbbCompany.Items.AddStrings(ACompanies);
+  if rbCompany.Checked then
+    cbbCompany.Items.AddStrings(ACompanies);
 end;
 
 procedure TgsDBSqueeze_MainForm.UpdateProgress(
@@ -124,6 +140,16 @@ procedure TgsDBSqueeze_MainForm.UpdateProgress(
 begin
   if AProgressInfo.Message > '' then
     mLog.Lines.Add(FormatDateTime('h:nn:ss', Now) + ' -- ' + AProgressInfo.Message);
+end;
+
+procedure TgsDBSqueeze_MainForm.actCompanyUpdate(Sender: TObject);
+begin
+  cbbCompany.Enabled := rbCompany.Checked ;
+end;
+
+procedure TgsDBSqueeze_MainForm.actCompanyExecute(Sender: TObject);
+begin
+  FSThread.DoSetItemsCbb;
 end;
 
 end.

@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 64
-  Top = 176
+  Left = 23
+  Top = 191
   BorderStyle = bsDialog
   Caption = 'gsDBSqueeze_MainForm'
   ClientHeight = 465
@@ -54,9 +54,9 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   object lbl6: TLabel
     Left = 8
     Top = 152
-    Width = 227
-    Height = 13
-    Caption = 'Компания, для которой рассчитать сальдо: '
+    Width = 183
+    Height = 17
+    Caption = 'Рассчитать и сохранить сальдо по: '
   end
   object edDatabaseName: TEdit
     Left = 8
@@ -124,23 +124,49 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
     TabOrder = 6
   end
   object cbbCompany: TComboBox
-    Left = 7
-    Top = 176
-    Width = 273
+    Left = 24
+    Top = 248
+    Width = 257
     Height = 21
+    Enabled = False
     ItemHeight = 13
-    TabOrder = 7
+    TabOrder = 10
   end
   object btnGo: TButton
     Left = 104
-    Top = 208
+    Top = 344
     Width = 75
     Height = 21
     Action = actGo
     Caption = 'Go!'
     ParentShowHint = False
     ShowHint = True
+    TabOrder = 11
+  end
+  object rbAllOurCompanies: TRadioButton
+    Left = 8
+    Top = 200
+    Width = 225
+    Height = 17
+    Caption = 'всем рабочим организациям'
     TabOrder = 8
+  end
+  object rbAllContacts: TRadioButton
+    Left = 8
+    Top = 176
+    Width = 169
+    Height = 17
+    Caption = 'абсолютно всем контактам'
+    TabOrder = 7
+  end
+  object rbCompany: TRadioButton
+    Left = 8
+    Top = 224
+    Width = 225
+    Height = 17
+    Action = actCompany
+    Caption = 'рабочей организации'
+    TabOrder = 9
   end
   object ActionList: TActionList
     Left = 240
@@ -159,6 +185,11 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
       Caption = 'Disconnect'
       OnExecute = actDisconnectExecute
       OnUpdate = actDisconnectUpdate
+    end
+    object actCompany: TAction
+      Caption = 'actCompany'
+      OnExecute = actCompanyExecute
+      OnUpdate = actCompanyUpdate
     end
   end
 end
