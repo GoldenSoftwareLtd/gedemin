@@ -7395,13 +7395,19 @@ procedure TgdcBase._LoadFromStreamInternal(Stream: TStream; IDMapping: TgdKeyInt
               Key := TargetDS.FieldByName(TargetDS.GetKeyField(TargetDS.SubType)).AsInteger
             else
             begin
-              //Ищем его в карте идентификаторов
-              Key := IDMapping.IndexOf(SourceField.AsInteger);
-              if Key <> -1 then
-              begin
-                Key := IDMapping.ValuesByIndex[Key];
-                IsNull := Key = -1;
-              end;
+              if SourceField.IsNull then
+                IsNull := True
+              else if SourceField.AsInteger < cstUserIDStart then
+                Key := SourceField.AsInteger
+              else begin
+                //Ищем его в карте идентификаторов
+                Key := IDMapping.IndexOf(SourceField.AsInteger);
+                if Key <> -1 then
+                begin
+                  Key := IDMapping.ValuesByIndex[Key];
+                  IsNull := Key = -1;
+                end;
+              end;  
             end;
 
             if (Key = -1) and (ObjectSet.Find(SourceField.AsInteger) <> -1) and
