@@ -4235,7 +4235,9 @@ var
               end
               else
               begin
-                ErrorMessageForSetting := ErrorMessageForSetting + IntToStr(GetLastError) + ': ' + E.Message + ' ' + Obj.ClassName + '_' + Obj.SubType + #13#10;
+                ErrorMessageForSetting := ErrorMessageForSetting +
+                  IntToStr(GetLastError) + ': ' + E.Message + ' ' +
+                  Obj.ClassName + '_' + Obj.SubType + #13#10;
                 if Obj.State in [dsEdit, dsInsert] then Obj.Cancel;
               end;
             end;
