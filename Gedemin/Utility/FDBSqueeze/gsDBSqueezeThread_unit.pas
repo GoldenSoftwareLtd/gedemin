@@ -9,16 +9,17 @@ uses
 const
   WM_DBS_SETPARAMS             = WM_USER + 1;
   WM_DBS_CONNECT               = WM_USER + 2;
-  WM_DBS_SETCBBITEMS           = WM_USER + 3;
-  WM_DBS_SETDOCWHERECLAUSE     = WM_USER + 4;
-  WM_DBS_SETCOMPANYNAME        = WM_USER + 5;
-  WM_DBS_TESTANDCREATEMETADATA = WM_USER + 6;
-  WM_DBS_CALCULATESALDO        = WM_USER + 7;
-  WM_DBS_PREPAREDB             = WM_USER + 8;
-  WM_DBS_DELETEDOCS            = WM_USER + 9;
-  WM_DBS_RESTOREDB             = WM_USER + 10;
-  WM_DBS_FINISHED              = WM_USER + 11;
-  WM_DBS_DISCONNECT            = WM_USER + 12;
+  WM_DBS_SETSALDOPARAMS        = WM_USER + 3;
+  WM_DBS_SETCBBITEMS           = WM_USER + 4;
+  WM_DBS_SETDOCWHERECLAUSE     = WM_USER + 5;
+  WM_DBS_SETCOMPANYNAME        = WM_USER + 6;
+  WM_DBS_TESTANDCREATEMETADATA = WM_USER + 7;
+  WM_DBS_CALCULATESALDO        = WM_USER + 8;
+  WM_DBS_PREPAREDB             = WM_USER + 9;
+  WM_DBS_DELETEDOCS            = WM_USER + 10;
+  WM_DBS_RESTOREDB             = WM_USER + 11;
+  WM_DBS_FINISHED              = WM_USER + 12;
+  WM_DBS_DISCONNECT            = WM_USER + 13;
 
 type
   TCbbEvent = procedure (const MsgStrList: TStringList) of object;
@@ -33,6 +34,10 @@ type
     FDBS: TgsDBSqueeze;
     FMessageStrList: TStringList;
     FOnSetItemsCbb: TCbbEvent;
+
+    FAllContactsSaldo: Boolean;
+    FOnlyOurCompaniesSaldo: Boolean;
+    FOnlyCompanySaldo: Boolean;
 
     function GetBusy: Boolean;
     function GetConnected: Boolean;
@@ -49,6 +54,8 @@ type
 
     procedure Connect;
     procedure Disconnect;
+    procedure SetSaldoParams(const AAllContacts: Boolean; const AOnlyOurCompanies: Boolean; const AOnlyCompany: Boolean);
+    procedure DoSetItemsCbb;
     procedure SetCompanyName(const ACompanyName: String);
     procedure SetDBParams(const ADatabaseName: String; const AUserName: String;
       const APassword: String);
@@ -72,7 +79,7 @@ begin
   FUserName := TIdThreadSafeString.Create;
   FPassword := TIdThreadSafeString.Create;
   FDocumentdateWhereClause := TIdThreadSafeString.Create;
-  FCompanyName := TIdThreadSafeString.Create;                                    
+  FCompanyName := TIdThreadSafeString.Create;
   FConnected := TIdThreadSafeInteger.Create;
   FBusy := TIdThreadSafeInteger.Create;
 
@@ -135,7 +142,17 @@ begin
       begin
         FDBS.Connect;
         FConnected.Value := 1;
-        PostThreadMessage(ThreadID, WM_DBS_SETCBBITEMS, 0, 0);
+
+        //PostThreadMessage(ThreadID, WM_DBS_SETCBBITEMS, 0, 0);
+        Result := True;
+      end;
+
+    WM_DBS_SETSALDOPARAMS:
+      begin
+        FDBS.AllContactsSaldo := FAllContactsSaldo;
+        FDBS.OnlyOurCompaniesSaldo := FOnlyOurCompaniesSaldo;
+        FDBS.OnlyCompanySaldo := FOnlyCompanySaldo;
+
         Result := True;
       end;
 
@@ -182,7 +199,7 @@ begin
         if FConnected.Value = 1 then
         begin
           FBusy.Value := 1;
-          //FDBS.CalculateAcSaldo;
+          FDBS.CalculateAcSaldo;
           FDBS.CalculateInvSaldo;
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
@@ -260,6 +277,19 @@ procedure TgsDBSqueezeThread.SetDocumentdateWhereClause(const ADocumentdateWhere
 begin
   FDocumentdateWhereClause.Value := ADocumentdateWhereClause;
   PostMsg(WM_DBS_SETDOCWHERECLAUSE);
+end;
+
+procedure TgsDBSqueezeThread.SetSaldoParams(const AAllContacts: Boolean; const AOnlyOurCompanies: Boolean; const AOnlyCompany: Boolean);
+begin
+  FAllContactsSaldo := AAllContacts;
+  FOnlyOurCompaniesSaldo := AOnlyOurCompanies;
+  FOnlyCompanySaldo := AOnlyCompany;
+  PostMsg(WM_DBS_SETSALDOPARAMS);
+end;
+
+procedure TgsDBSqueezeThread.DoSetItemsCbb;
+begin
+  PostMsg(WM_DBS_SETCBBITEMS);
 end;
 
 procedure TgsDBSqueezeThread.SetItemsCbb(const AMessageStrList: TStringList);

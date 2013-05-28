@@ -21,6 +21,10 @@ type
     FPassword: String;
     FUserName: String;
 
+    FAllContactsSaldo: Boolean;
+    FOnlyOurCompaniesSaldo: Boolean;
+    FOnlyCompanySaldo: Boolean;
+
     FCurDate, FCurUserContactKey: String;
 
     procedure LogEvent(const AMsg: String);
@@ -42,6 +46,11 @@ type
     procedure RestoreDB;
     procedure SetItemsCbbEvent;
     procedure TestAndCreateMetadata;
+
+
+    property AllContactsSaldo: Boolean read FAllContactsSaldo write FAllContactsSaldo;
+    property OnlyOurCompaniesSaldo: Boolean read FOnlyOurCompaniesSaldo write FOnlyOurCompaniesSaldo;
+    property OnlyCompanySaldo: Boolean read FOnlyCompanySaldo write FOnlyCompanySaldo;
 
     property CompanyName: String read FCompanyName write FCompanyName;
     property Connected: Boolean read GetConnected;
@@ -681,8 +690,6 @@ var
 
       Tr2.Commit;
       Tr2.StartTransaction;
-
-
 
       NewCardKey := GetNewID;
 
