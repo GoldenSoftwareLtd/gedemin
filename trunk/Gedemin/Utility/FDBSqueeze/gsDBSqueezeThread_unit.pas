@@ -35,8 +35,7 @@ type
     FMessageStrList: TStringList;
     FOnSetItemsCbb: TCbbEvent;
 
-    FAllContactsSaldo: Boolean;
-    FOnlyOurCompaniesSaldo: Boolean;
+    FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
 
     function GetBusy: Boolean;
@@ -54,7 +53,7 @@ type
 
     procedure Connect;
     procedure Disconnect;
-    procedure SetSaldoParams(const AAllContacts: Boolean; const AOnlyOurCompanies: Boolean; const AOnlyCompany: Boolean);
+    procedure SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean);
     procedure DoSetItemsCbb;
     procedure SetCompanyName(const ACompanyName: String);
     procedure SetDBParams(const ADatabaseName: String; const AUserName: String;
@@ -143,14 +142,12 @@ begin
         FDBS.Connect;
         FConnected.Value := 1;
 
-        //PostThreadMessage(ThreadID, WM_DBS_SETCBBITEMS, 0, 0);
         Result := True;
       end;
 
     WM_DBS_SETSALDOPARAMS:
       begin
-        FDBS.AllContactsSaldo := FAllContactsSaldo;
-        FDBS.OnlyOurCompaniesSaldo := FOnlyOurCompaniesSaldo;
+        FDBS.AllOurCompaniesSaldo := FAllOurCompaniesSaldo;
         FDBS.OnlyCompanySaldo := FOnlyCompanySaldo;
         PostThreadMessage(ThreadID, WM_DBS_TESTANDCREATEMETADATA, 0, 0);
         Result := True;
@@ -278,10 +275,9 @@ begin
   PostMsg(WM_DBS_SETDOCWHERECLAUSE);
 end;
 
-procedure TgsDBSqueezeThread.SetSaldoParams(const AAllContacts: Boolean; const AOnlyOurCompanies: Boolean; const AOnlyCompany: Boolean);
+procedure TgsDBSqueezeThread.SetSaldoParams(const AAllOurCompanies: Boolean; const AOnlyCompany: Boolean);
 begin
-  FAllContactsSaldo := AAllContacts;
-  FOnlyOurCompaniesSaldo := AOnlyOurCompanies;
+  FAllOurCompaniesSaldo := AAllOurCompanies;
   FOnlyCompanySaldo := AOnlyCompany;
   PostMsg(WM_DBS_SETSALDOPARAMS);
 end;
