@@ -30,7 +30,6 @@ type
     lbl5: TLabel;
     mLog: TMemo;
     rbAllOurCompanies: TRadioButton;
-    rbAllContacts: TRadioButton;
     rbCompany: TRadioButton;
     actCompany: TAction;
 
@@ -109,7 +108,6 @@ begin
     FormatDateTime('dd.mm.yyyy', dtpDocumentdateWhereClause.Date));
 
   FSThread.SetSaldoParams(
-    rbAllContacts.Checked,
     rbAllOurCompanies.Checked,
     rbCompany.Checked);
 
@@ -118,7 +116,7 @@ end;
 procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
 begin
   actGo.Enabled := FSThread.Connected
-    and (rbAllContacts.Checked or rbAllOurCompanies.Checked or rbCompany.Checked);
+    and (rbAllOurCompanies.Checked or rbCompany.Checked);
 end;
 
 procedure TgsDBSqueeze_MainForm.FormCloseQuery(Sender: TObject;

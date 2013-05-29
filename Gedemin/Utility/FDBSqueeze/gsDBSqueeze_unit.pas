@@ -21,8 +21,7 @@ type
     FPassword: String;
     FUserName: String;
 
-    FAllContactsSaldo: Boolean;
-    FOnlyOurCompaniesSaldo: Boolean;
+    FAllOurCompaniesSaldo: Boolean;
     FOnlyCompanySaldo: Boolean;
 
     FCurDate, FCurUserContactKey: String;
@@ -48,8 +47,7 @@ type
     procedure TestAndCreateMetadata;
 
 
-    property AllContactsSaldo: Boolean read FAllContactsSaldo write FAllContactsSaldo;
-    property OnlyOurCompaniesSaldo: Boolean read FOnlyOurCompaniesSaldo write FOnlyOurCompaniesSaldo;
+    property AllOurCompaniesSaldo: Boolean read FAllOurCompaniesSaldo write FAllOurCompaniesSaldo;
     property OnlyCompanySaldo: Boolean read FOnlyCompanySaldo write FOnlyCompanySaldo;
 
     property CompanyName: String read FCompanyName write FCompanyName;
@@ -509,7 +507,7 @@ begin
     q.ExecQuery;
 
 
-    if FOnlyOurCompaniesSaldo then
+    if FAllOurCompaniesSaldo then
     begin
       q.SQL.Text :=
         'SELECT LIST(companykey) AS OurCompaniesList ' +
@@ -604,18 +602,18 @@ var
       'WHERE ' +
       '  im.disabled = 0 ' +
       '  AND im.movementdate < :RemainsDate ');
-    if FOnlyOurCompaniesSaldo then
+    if FAllOurCompaniesSaldo then
       q.SQL.Add(' '+
         'AND ic.companykey IN (' + OurCompaniesListStr + ') ');
     if FOnlyCompanySaldo then
       q.SQL.Add(
-        'AND ic.companykey = ' + CompanyKey);                                        ///
+        'AND ic.companykey = ' + CompanyKey);
     q.SQL.Add(' ' +
       'GROUP BY ' +
       '  im.contactkey, ' +
       '  gc.name, ' +
       '  ic.goodkey, ' +
-      '  ic.companykey ');                                                      { TODO: для всех компаний->для выбранной?}
+      '  ic.companykey ');
     if (UsrFieldsNames <> '') then
       q.SQL.Add(', ' +
         StringReplace(UsrFieldsNames, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]));
@@ -812,7 +810,7 @@ var
   end;
 
   // Перепривязка складских карточек и движения
-  procedure RebindInvCards;                                                     { TODO : String -> Int ID }
+  procedure RebindInvCards;                                                     { TODO : перепроверить для компаний, String -> Int ID }
   const
     CardkeyFieldCount = 2;
     CardkeyFieldNames: array[0..CardkeyFieldCount - 1] of String = ('FROMCARDKEY', 'TOCARDKEY');
@@ -1176,7 +1174,7 @@ begin
     q.Transaction := Tr;
     q2.Transaction := Tr;
 
-    if FOnlyOurCompaniesSaldo then
+    if FAllOurCompaniesSaldo then
     begin
       q.SQL.Text :=
         'SELECT LIST(companykey) AS OurCompaniesList ' +

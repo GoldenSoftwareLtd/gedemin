@@ -1,6 +1,6 @@
 object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
-  Left = 32
-  Top = 35
+  Left = 59
+  Top = 176
   BorderStyle = bsDialog
   Caption = 'gsDBSqueeze_MainForm'
   ClientHeight = 465
@@ -125,48 +125,40 @@ object gsDBSqueeze_MainForm: TgsDBSqueeze_MainForm
   end
   object cbbCompany: TComboBox
     Left = 24
-    Top = 248
+    Top = 224
     Width = 257
     Height = 21
     Enabled = False
     ItemHeight = 13
-    TabOrder = 10
+    TabOrder = 9
   end
   object btnGo: TButton
     Left = 104
-    Top = 344
+    Top = 320
     Width = 75
     Height = 21
     Action = actGo
     Caption = 'Go!'
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 11
+    TabOrder = 10
   end
   object rbAllOurCompanies: TRadioButton
     Left = 8
-    Top = 200
+    Top = 176
     Width = 225
     Height = 17
     Caption = 'всем рабочим организациям'
-    TabOrder = 8
-  end
-  object rbAllContacts: TRadioButton
-    Left = 8
-    Top = 176
-    Width = 169
-    Height = 17
-    Caption = 'абсолютно всем контактам'
     TabOrder = 7
   end
   object rbCompany: TRadioButton
     Left = 8
-    Top = 224
+    Top = 200
     Width = 225
     Height = 17
     Action = actCompany
     Caption = 'рабочей организации'
-    TabOrder = 9
+    TabOrder = 8
   end
   object ActionList: TActionList
     Left = 240
