@@ -152,7 +152,7 @@ begin
         FDBS.AllContactsSaldo := FAllContactsSaldo;
         FDBS.OnlyOurCompaniesSaldo := FOnlyOurCompaniesSaldo;
         FDBS.OnlyCompanySaldo := FOnlyCompanySaldo;
-
+        PostThreadMessage(ThreadID, WM_DBS_TESTANDCREATEMETADATA, 0, 0);
         Result := True;
       end;
 
@@ -178,7 +178,6 @@ begin
         begin
           FBusy.Value := 1;
           FDBS.CompanyName := FCompanyName.Value;
-          PostThreadMessage(ThreadID, WM_DBS_TESTANDCREATEMETADATA, 0, 0);
         end;
         Result := True;
       end;
@@ -199,7 +198,7 @@ begin
         if FConnected.Value = 1 then
         begin
           FBusy.Value := 1;
-          FDBS.CalculateAcSaldo;
+          //FDBS.CalculateAcSaldo;
           FDBS.CalculateInvSaldo;
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);

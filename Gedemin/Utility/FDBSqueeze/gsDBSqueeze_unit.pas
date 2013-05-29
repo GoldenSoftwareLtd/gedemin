@@ -166,6 +166,7 @@ var
   q, q2, q3: TIBSQL;
   Tr: TIBTransaction;
   AccDocTypeKey, ProizvolnyeTransactionKey, ProizvolnyeTrRecordKey, OstatkiAccountKey: String;
+  OurCompaniesListStr: String;
   CompanyKey: String;
   UsrFieldsList: TStringList;  // cписок активных аналитик дл€ счета
   NewMasterDocKey, NewDetailDocKey: String;
@@ -233,7 +234,7 @@ var
            AccDocTypeKey + ''' ' + ', ' +
            '1' + ', ' +  ' ''' +
            FCurDate + ''' '  + ', ' +  ' ''' +
-           CompanyKey + ''' ' +  ', ' +
+           CompanyKey + ''' ' +  ', ' +                                               {TODO: заменить на что-то}
            '-1' + ', ' +
            '-1' + ', ' +
            '-1' + ', ' + ' ''' +
@@ -278,7 +279,7 @@ var
            AccDocTypeKey + ''' ' +  ', ' +
            '1' + ', ' +  ' ''' +
            FCurDate + ''' ' +  ', ' +  ' ''' +
-           CompanyKey + ''' ' +  ', ' +
+           CompanyKey + ''' ' +  ', ' +                                         { TODO: заменить на что-то }
            '-1' + ', ' +
            '-1' + ', ' +
            '-1' + ', ' + ' ''' +
@@ -503,12 +504,41 @@ begin
     q2.Transaction := Tr;
     q3.Transaction := Tr;
 
+    // ”далим старые данные сальдо
+    q.SQL.Text := 'DELETE FROM ac_entry_balance';
+    q.ExecQuery;
+
+
+    if FOnlyOurCompaniesSaldo then
+    begin
+      q.SQL.Text :=
+        'SELECT LIST(companykey) AS OurCompaniesList ' +
+        'FROM gd_ourcompany';
+      q.ExecQuery;
+
+      OurCompaniesListStr := q.FieldByName('OurCompaniesList').AsString;
+      q.Close;
+    end;
+
+    if FOnlyCompanySaldo then
+    begin
+      q.SQL.Text :=
+        'SELECT contactkey AS CompanyKey ' +
+        'FROM GD_COMPANY gc ' +
+        'WHERE fullname = :CompanyName ';
+      q.ParamByName('CompanyName').AsString := FCompanyName;
+      q.ExecQuery;
+
+      CompanyKey := q.FieldByName('CompanyKey').AsString;
+      q.Close;
+    end;
+    
     q.SQL.Text :=
       'SELECT ' +
-      '  gd.id         AS AccDocTypeKey, ' +
-      '  atr.id        AS ProizvolnyeTransactionKey, ' +    // 807001
-      '  atrr.id       AS ProizvolnyeTrRecordKey, ' +       // 807100
-      '  aac.id        AS OstatkiAccountKey ' +
+      '  gd.id    AS AccDocTypeKey, ' +
+      '  atr.id   AS ProizvolnyeTransactionKey, ' +    // 807001
+      '  atrr.id  AS ProizvolnyeTrRecordKey, ' +       // 807100
+      '  aac.id   AS OstatkiAccountKey ' +
       'FROM ' +
       '  GD_DOCUMENTTYPE gd, GD_USER gu, AC_TRANSACTION atr, AC_ACCOUNT aac, GD_DOCUMENTTYPE gd_inv ' +
       '  JOIN AC_TRRECORD atrr ON atr.id = atrr.transactionkey ' +
@@ -522,16 +552,6 @@ begin
     ProizvolnyeTransactionKey := Trim(q.FieldByName('ProizvolnyeTransactionKey').AsString);
     ProizvolnyeTrRecordKey := Trim(q.FieldByName('ProizvolnyeTrRecordKey').AsString);
     OstatkiAccountKey := Trim(q.FieldByName('OstatkiAccountKey').AsString);
-    q.Close;
-
-    q.SQL.Text :=
-      'SELECT gc.contactkey as CompKey ' +
-      'FROM GD_COMPANY gc ' +
-      'WHERE gc.fullname = :compName ';
-    q.ParamByName('compName').AsString := FCompanyName;
-    q.ExecQuery;
-
-    CompanyKey := q.FieldByName('CompKey').AsString;
     q.Close;
 
     CreateHeaderAcDoc;
@@ -560,6 +580,8 @@ var
 
   LineCount: Integer;
   DocumentParentKey: String;
+
+  OurCompaniesListStr: String;
   CompanyKey: String;
 
   procedure CalculateInvBalance(q: TIBSQL); // формируем складской остаток на дату
@@ -578,12 +600,17 @@ var
     q.SQL.Add(
       'FROM  inv_movement im ' +
       '  JOIN inv_card ic ON im.cardkey = ic.id ' +
-      '  LEFT JOIN gd_contact gc ON gc.id = im.contactkey ');
-    q.SQL.Add(
+      '  LEFT JOIN gd_contact gc ON gc.id = im.contactkey ' +
       'WHERE ' +
-      '  ic.companykey = ' + CompanyKey +
-      '  AND im.disabled = 0 ' +
-      '  AND im.movementdate < :RemainsDate ' +
+      '  im.disabled = 0 ' +
+      '  AND im.movementdate < :RemainsDate ');
+    if FOnlyOurCompaniesSaldo then
+      q.SQL.Add(' '+
+        'AND ic.companykey IN (' + OurCompaniesListStr + ') ');
+    if FOnlyCompanySaldo then
+      q.SQL.Add(
+        'AND ic.companykey = ' + CompanyKey);                                        ///
+    q.SQL.Add(' ' +
       'GROUP BY ' +
       '  im.contactkey, ' +
       '  gc.name, ' +
@@ -592,6 +619,9 @@ var
     if (UsrFieldsNames <> '') then
       q.SQL.Add(', ' +
         StringReplace(UsrFieldsNames, 'USR$', 'ic.USR$', [rfReplaceAll, rfIgnoreCase]));
+    q.SQL.Add(' ' +
+      'ORDER BY ' +
+      '  gc.name ');                                                                ///
 
     q.ParamByName('RemainsDate').AsString := FDocumentdateWhereClause;
     q.ExecQuery;
@@ -1142,23 +1172,36 @@ begin
 
   try
     Tr.DefaultDatabase := FIBDatabase;
-    Tr.Params.Add('no_auto_undo');
     Tr.StartTransaction;
     q.Transaction := Tr;
     q2.Transaction := Tr;
 
-    q.SQL.Text :=
-      'SELECT gc.contactkey as CompKey ' +
-      'FROM GD_COMPANY gc ' +
-      'WHERE gc.fullname = :compName ';
-    q.ParamByName('compName').AsString := FCompanyName;
-    q.ExecQuery;
+    if FOnlyOurCompaniesSaldo then
+    begin
+      q.SQL.Text :=
+        'SELECT LIST(companykey) AS OurCompaniesList ' +
+        'FROM gd_ourcompany';
+      q.ExecQuery;
 
-    CompanyKey := q.FieldByName('CompKey').AsString;
-    q.Close;
+      OurCompaniesListStr := q.FieldByName('OurCompaniesList').AsString;
+      q.Close;
+    end;
+
+    if FOnlyCompanySaldo then
+    begin
+      q.SQL.Text :=
+        'SELECT contactkey AS CompanyKey ' +
+        'FROM GD_COMPANY gc ' +
+        'WHERE fullname = :CompanyName ';
+      q.ParamByName('CompanyName').AsString := FCompanyName;
+      q.ExecQuery;
+
+      CompanyKey := q.FieldByName('CompanyKey').AsString;
+      q.Close;
+    end;
 
     q.SQL.Text :=
-     'SELECT ' +
+      'SELECT ' +
       '  gd.id AS InvDocTypeKey ' +
       'FROM ' +
       '  GD_DOCUMENTTYPE gd ' +
@@ -1239,7 +1282,7 @@ begin
     while not q.EOF do
     begin
 
-      // ≈сли кол-во позиций в документе > 2000, то создадим новую шапку документа
+      // ≈сли кол-во позиций в документе > 1000(например), то создадим новую шапку документа
       { ...}
 
       if q.FieldByName('BALANCE').AsCurrency >= 0 then

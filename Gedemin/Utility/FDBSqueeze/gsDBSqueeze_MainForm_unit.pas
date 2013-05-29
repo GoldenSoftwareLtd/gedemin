@@ -102,6 +102,9 @@ end;
 
 procedure TgsDBSqueeze_MainForm.actGoExecute(Sender: TObject);
 begin
+  if rbCompany.Checked then
+    FSThread.SetCompanyName(cbbCompany.Text);
+
   FSThread.SetDocumentdateWhereClause(
     FormatDateTime('dd.mm.yyyy', dtpDocumentdateWhereClause.Date));
 
@@ -110,8 +113,6 @@ begin
     rbAllOurCompanies.Checked,
     rbCompany.Checked);
 
-  if rbCompany.Checked then
-    FSThread.SetCompanyName(cbbCompany.Text);
 end;
 
 procedure TgsDBSqueeze_MainForm.actGoUpdate(Sender: TObject);
