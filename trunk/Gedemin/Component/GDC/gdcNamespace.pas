@@ -749,7 +749,7 @@ var
 
     q := TIBSQL.Create(nil);
     try
-      q.Transaction := gdcBaseManager.ReadTransaction;
+      q.Transaction := Tr;
       q.SQL.Text :=
         'SELECT o.xid || ''_'' || o.dbid as ruid, o.modified, o.curr_modified, o.objectclass, o.subtype, n.filetimestamp, ' +
         ' n.id ' +
@@ -2112,11 +2112,106 @@ class function TgdcNamespace.LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
     finally
       q.Free;
     end;
+  end;  
+
+  procedure FillDataSet(CDS: TClientDataSet; Obj: TgdcBase; Fields: TyamlMapping);
+  const
+    PassFieldName = ';ID;EDITIONDATE;CREATIONDATE;CREATORKEY;EDITORKEY;ACHAG;AVIEW;AFULL;LB;RB;RESERVED;';
+  var
+    FN: String;
+    F: TField;
+    R: TatRelation;
+    RF: TatRelationField;
+    RefList: TStringList;
+    RUID, Name: String;
+    I: Integer;
+    N: TyamlNode;
+  begin
+    RefList := TStringList.Create;
+    try
+      CDS.FieldDefs.Add('LR_FieldName', ftString, 255, False); 
+      CDS.FieldDefs.Add('LR_Ref', ftInteger, 0, False);
+      CDS.FieldDefs.Add('LR_NewValue', ftInteger, 0 , False);
+      for I := 0 to Obj.FieldDefs.Count - 1 do
+      begin
+        if (Obj.FieldDefs[I].DataType in [ftBlob, ftGraphic])
+          or Obj.FieldDefs[I].InternalCalcField
+          or (StrIPos(';' + Obj.FieldDefs[I].Name + ';', PassFieldName) > 0)
+        then
+          continue;
+          
+        R := atDatabase.Relations.ByRelationName(Obj.RelationByAliasName(Obj.FieldDefs[I].Name));
+        if R <> nil then
+        begin
+          RF := R.RelationFields.ByFieldName(Obj.FieldNameByAliasName(Obj.FieldDefs[I].Name));
+
+          if (RF <> nil)
+            and (RF.References <> nil)
+            and (Obj.FieldDefs[I].DataType in [ftSmallint, ftInteger, ftWord, ftLargeint]) then
+          begin
+            RefList.Add(AnObj.FieldDefs[I].Name);
+            CDS.FieldDefs.Add('L_' + Obj.FieldDefs[I].Name, ftString, 21, False);
+            CDS.FieldDefs.Add('R_' + Obj.FieldDefs[I].Name, ftString, 21, False);
+          end else
+          begin
+            CDS.FieldDefs.Add('L_' + Obj.FieldDefs[I].Name, Obj.FieldDefs[I].DataType, Obj.FieldDefs[I].Size, False);
+            CDS.FieldDefs.Add('R_' + Obj.FieldDefs[I].Name, Obj.FieldDefs[I].DataType, Obj.FieldDefs[I].Size, False);
+          end;
+        end else
+        begin
+          CDS.FieldDefs.Add('L_' + Obj.FieldDefs[I].Name, Obj.FieldDefs[I].DataType, Obj.FieldDefs[I].Size, False);
+          CDS.FieldDefs.Add('R_' + Obj.FieldDefs[I].Name, Obj.FieldDefs[I].DataType, Obj.FieldDefs[I].Size, False);
+        end;
+      end;
+      CDS.CreateDataSet;
+      CDS.Open;
+      try
+        for I := 0 to  Obj.Fields.Count - 1 do
+        begin
+          FN := Obj.Fields[I].FieldName;
+          if CDS.FindField('L_' + FN) = nil then
+            continue;
+          CDS.Insert;
+          CDS.FieldByName('LR_FieldName').AsString := FN;
+          CDS.FieldByName('LR_NewValue').AsInteger := 1;
+          if RefList.IndexOf(FN) > -1 then
+          begin
+            CDS.FieldByName('LR_Ref').AsInteger := 1;
+            CDS.FieldByName('L_' + FN).AsString := gdcBaseManager.GetRUIDStringByID(AnObj.Fields[I].AsInteger, ATr);
+            N := Fields.FindByName(FN);
+            if (N <> nil) and (N is TyamlString) then
+            begin
+              if ParseReferenceString(TyamlString(N).AsString, RUID, Name) then
+                CDS.FieldByName('R_' + FN).AsString := RUID;
+            end;
+          end else
+          begin 
+            if (Obj.Fields[I].AsString > '')
+              and (Trim(Obj.Fields[I].AsString) = '')
+            then
+              CDS.FieldByName('L_' + FN).AsString := Obj.Fields[I].AsString
+            else
+              CDS.FieldByName('L_' + FN).AsString := Trim(Obj.Fields[I].AsString);
+
+            N := Fields.FindByName(FN);
+            F := CDS.FieldByName('R_' + FN);
+            if (N <> nil) and (F <> nil) then
+              SetValue(F, N, Fields);
+          end;
+          CDS.Post;
+        end;
+      except
+        if CDS.State in dsEditModes then
+          CDS.Cancel;
+        raise;
+      end;
+    finally
+      RefList.Free;
+    end;
   end;
 
-
 var
-  D, J: Integer;
+  D, J, I: Integer;
   RUID: String;
   RuidRec: TRuidRec;
   AlwaysOverwrite, ULCreated: Boolean;
@@ -2124,8 +2219,9 @@ var
   Ind: Integer;
   Modify: TDateTime;
   at_obj: TgdcAt_Object;
-  Compare: Boolean;
-  CompareResult: TLoadRecord;
+  Compare: Boolean; 
+  CDS: TClientDataSet;
+  TempID: Integer;
 begin
   Assert(ATr <> nil);
   Assert(gdcBaseManager <> nil);
@@ -2135,7 +2231,7 @@ begin
   RUID := AMapping.ReadString('Properties\RUID');
   Modify := AMapping.ReadDateTime('Properties\Modified');
   AlwaysOverwrite := AMapping.ReadBoolean('Properties\AlwaysOverwrite')
-    or AnAlwaysoverwrite;     
+    or AnAlwaysoverwrite;    
 
   if UpdateList = nil then
   begin
@@ -2212,30 +2308,47 @@ begin
                     );
                   if Compare then
                   begin
-                    with TdlgCompareNSRecords.Create(nil) do
+                    CDS := TClientDataSet.Create(nil);
                     try
-                      lCaption.Caption := AnObj.FieldByName(AnObj.GetListField(AnObj.SubType)).AsString;
-                      ShowModal;
-                      CompareResult := LoadRecord;
-                    finally
-                      Free;
-                    end;
-
-                    if CompareResult = lrFromFile then
-                    begin
-                      AnObj.Edit;
-                      AnObj.ModifyFromStream := True;
-                      Result := CopyRecord(AMapping, AnObj, UpdateList);
-                      if Result <> lsNone then
-                      begin
-                        AnObj.CheckBrowseMode;
-                        gdcBaseManager.UpdateRUIDByXID(AnObj.ID,
-                        StrToRUID(RUID).XID,
-                        StrToRUID(RUID).DBID,
-                        now, IBLogin.ContactKey, ATr);
+                      FillDataSet(CDS, AnObj, AMapping.FindByName('Fields') as TyamlMapping);
+                      with TdlgCompareNSRecords.Create(nil) do
+                      try
+                        Records := CDS;
+                        lblClassname.Caption := AnObj.GetDisplayName(AnObj.SubType);
+                        lblName.Caption := AnObj.FieldByName(AnObj.GetListField(AnObj.SubType)).AsString;
+                        lblID.Caption := IntToStr(AnObj.ID);
+                        if ShowModal = mrOK then
+                        begin
+                          CDS.First;
+                          AnObj.Edit;
+                          for I := 0 to AnObj.Fields.Count - 1 do
+                          begin
+                            if CDS.Locate('LR_FieldName',  AnObj.Fields[I].FieldName, []) then
+                            begin
+                              if CDS.FieldByName('LR_NewValue').AsInteger = 1 then
+                              begin
+                                if CDS.FieldByName('LR_Ref').AsInteger = 1 then
+                                begin
+                                  TempID := gdcBaseManager.GetIDByRUIDString(CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString, ATr);
+                                  if TempID > 0 then
+                                    AnObj.Fields[I].AsInteger := TempID
+                                  else
+                                    AddWarning(#13#10 + 'При обновлении данных, объект (RUID =  ''' + CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).AsString + ''') в базе не найден! '#13#10, clRed);
+                                end else
+                                  AnObj.Fields[I].Value := CDS.FieldByName('R_' + AnObj.Fields[I].FieldName).Value;
+                              end;
+                            end;
+                          end;
+                          AnObj.Post;
+                          Result := lsModified;
+                        end else
+                          Result := lsUnModified;
+                      finally
+                        Free;
                       end;
-                    end else
-                      Result := lsUnModified;
+                    finally
+                      CDS.Free;
+                    end;
                   end;
                 end;
               end;
@@ -2261,7 +2374,6 @@ begin
               ApplyDelayedUpdates(UpdateList,
                 AMapping.ReadString('Properties\RUID'),
                 AnObj.ID);
-              Result := lsUnModified;
             end;
           end;
         end;
