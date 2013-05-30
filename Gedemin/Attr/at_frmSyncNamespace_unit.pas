@@ -367,19 +367,48 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
+var
+  LoadCount, SaveCount: Integer;
 begin
-  cds.First;
-  while not cds.EOF do
-  begin
-    if Pos('>', cds.FieldByName('operation').AsString) = 1 then
-      SaveID(nil, '')
-    else if cds.FieldByName('operation').AsString = '<<' then
+  LoadCount := 0;
+  SaveCount := 0;
+  cds.DisableControls;
+  try
+    cds.First;
+    while not cds.Eof do
     begin
+      if Pos('>', cds.FieldByName('operation').AsString) = 1 then
+        Inc(SaveCount)
+      else if Pos('<', cds.FieldByName('operation').AsString) = 1 then
+        Inc(LoadCount);
+      cds.Next;  
     end;
-    cds.Next;
+
+  finally
+    cds.First;
+    cds.EnableControls;
   end;
 
-  actCompare.Execute;
+  if Application.MessageBox(PChar(
+    'Помечено для сохранения в файл ' + IntToStr(SaveCount) + ' ПИ.'#13#10 +
+    'Помечено для загрузки из файла ' + IntToStr(LoadCount) + ' ПИ.'#13#10 +
+    'Продолжить синхронизацию?'),
+    'Внимание',
+    MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES then
+  begin
+    while not cds.EOF do
+    begin
+      if Pos('>', cds.FieldByName('operation').AsString) = 1 then
+        SaveID(nil, '')
+      else if Pos('<', cds.FieldByName('operation').AsString) = 1 then
+      begin
+        FgdcNamespace.LoadFromFile(cds.FieldByName('filename').AsString);
+      end;
+      cds.Next;
+    end;
+
+    actCompare.Execute;
+  end;
 end;
 
 procedure Tat_frmSyncNamespace.actDeleteFileUpdate(Sender: TObject);
