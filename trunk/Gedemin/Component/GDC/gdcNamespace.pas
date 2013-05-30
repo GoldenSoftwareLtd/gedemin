@@ -57,7 +57,7 @@ type
       const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
     function MakePos: Boolean;
     procedure LoadFromFile(const AFileName: String = ''); override;
-    procedure SaveNamespaceToStream(St: TStream);
+    procedure SaveNamespaceToStream(St: TStream; const AnAnswer: Integer = 0);
     procedure SaveNamespaceToFile(const AFileName: String = '');
     procedure CompareWithData(const AFileName: String);
     procedure DeleteNamespaceWithObjects;
@@ -2656,7 +2656,7 @@ begin
         gdcNamespace.ID := TgdcNamespace.LoadNSInfo(AFileName, Tr);
         gdcNamespace.Open;
 
-        gdcNamespace.SaveNamespaceToStream(SS);
+        gdcNamespace.SaveNamespaceToStream(SS, IDCANCEL);
       finally
         if Tr.InTransaction then
           Tr.Rollback;
@@ -2664,7 +2664,7 @@ begin
         gdcNamespace.Free;
       end;
     end else
-      SaveNamespaceToStream(SS);
+      SaveNamespaceToStream(SS, IDCANCEL);
 
 
     ScriptComparer.Compare(SS.DataString, SS1251.DataString);
@@ -2678,7 +2678,7 @@ begin
   end;
 end;
 
-procedure TgdcNamespace.SaveNamespaceToStream(St: TStream);
+procedure TgdcNamespace.SaveNamespaceToStream(St: TStream; const AnAnswer: Integer = 0);
 var
   Obj: TgdcNamespaceObject;
   W: TyamlWriter;
@@ -2688,12 +2688,14 @@ var
   q: TIBSQL;
   HeadObject: String;
   WasDelete: Boolean;
+  Answer: Integer;
 begin
   Assert(St <> nil);
 
   if State <> dsBrowse then
     raise EgdcException.CreateObj('Not in a browse state', Self);
 
+  Answer := AnAnswer;
   W := TyamlWriter.Create(St);
   q := TIBSQL.Create(nil);
   try
@@ -2830,19 +2832,22 @@ begin
                 W.DecIndent;
               end;
             end else
-              if MessageBox(0,
-                PChar(
-                  'В базе данных не найден объект "' + Obj.FieldByName('objectname').AsString + '"'#13#10 +
-                  'RUID: XID = ' +  Obj.FieldByName('xid').AsString + ', DBID = ' + Obj.FieldByName('dbid').AsString + #13#10 +
-                  'Класс: ' + Obj.FieldByName('objectclass').AsString + Obj.FieldByName('subtype').AsString + #13#10#13#10 +
-                  'Удалить запись об объекте из пространства имен?'),
-                'Ошибка',
-                MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES
-              then
+            begin
+              if Answer = mrNone then
+                Answer := MessageBox(0,
+                  PChar(
+                    'В базе данных не найден объект "' + Obj.FieldByName('objectname').AsString + '"'#13#10 +
+                    'RUID: XID = ' +  Obj.FieldByName('xid').AsString + ', DBID = ' + Obj.FieldByName('dbid').AsString + #13#10 +
+                    'Класс: ' + Obj.FieldByName('objectclass').AsString + Obj.FieldByName('subtype').AsString + #13#10#13#10 +
+                    'Удалить запись об объекте из пространства имен?'),
+                  'Ошибка',
+                  MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL);
+              if Answer = IDYES then
               begin
                 Obj.Delete;
                 WasDelete := True;
               end;
+            end;
           finally
             InstObj.Free;
           end;
