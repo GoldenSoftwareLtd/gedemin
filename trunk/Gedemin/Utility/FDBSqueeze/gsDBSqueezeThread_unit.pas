@@ -196,7 +196,7 @@ begin
         begin
           FBusy.Value := 1;
           FDBS.CalculateAcSaldo;
-          //FDBS.CalculateInvSaldo;
+          FDBS.CalculateInvSaldo;
 
           PostThreadMessage(ThreadID, WM_DBS_PREPAREDB, 0, 0);
         end;
