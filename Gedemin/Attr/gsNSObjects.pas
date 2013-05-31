@@ -8,7 +8,26 @@ uses
 
 type
   TgsNSState = (nsUndefined, nsNotInstalled, nsNewer, nsOlder, nsEqual);
+  TgsNSStates = set of TgsNSState;
   TNSLog = procedure(const AMessage: string) of object;
+
+  TgsNSNode = class;
+
+  TgsNSTreeNode = class(TObject)
+  public
+    YamlNode: TgsNSNode;
+    UsesObject: TStringList;
+
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+  TgsNSTree = class(TStringList)
+  public   
+    function AddNode(Node: TgsNSTreeNode; yamlNode: TgsNSNode): TgsNSTreeNode;
+    function GetTreeNodeByRUID(const ARUID: String): TgsNSTreeNode;
+    function GetDependState(const ARUID: String): TgsNSStates;
+  end;
 
   TgsNSNode = class(TObject)
   public
@@ -27,12 +46,13 @@ type
     VersionInDB: String;
     Namespacekey: Integer;
     NamespaceName: String;
-    NamespaceTimestamp: TDateTime;
+    NamespaceTimestamp: TDateTime;   
     UsesList: TStringList;
 
-    constructor Create(const ARUID: String);
+    constructor Create(const ARUID: String; const AName: String = '');
     destructor Destroy; override;
 
+    function GetUsesString: String;
     function GetNSState: TgsNSState;
     function CheckDBVersion: Boolean;
     function CheckOnlyInDB: Boolean; 
@@ -44,30 +64,37 @@ type
   private
     FLog: TNSLog;
     FErrorNS: TStringList;
+    FNSTree: TgsNSTree;
+
     function Valid(ANode: TgsNSNode): Boolean;
     procedure CorrectFill;
+    procedure CreateNSTree;
     procedure CorrectPack(const ARUID: String);
   public
+
     constructor Create;
     destructor Destroy; override;
-    
+
+    function GetAllUsesString: String;
     procedure GetFilesForPath(const Path: String);
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
     procedure GetAllUses(const RUID: String; SL: TStringList);
     property Log: TNSLog read FLog write FLog;
+    property NSTree: TgsNSTree read FNSTree;
   end;
 
 implementation
 
 uses
   Windows, SysUtils, ComCtrls, gd_common_functions, gd_FileList_unit,
-  yaml_parser, IB, IBSQL, gdcBaseInterface, jclFileUtils, Forms, gd_security;
+  yaml_parser, IB, IBSQL, gdcBaseInterface, jclFileUtils, Forms, gd_security, gdcNamespace;
 
-constructor TgsNSNode.Create(const ARUID: String);
+constructor TgsNSNode.Create(const ARUID: String; const AName: String = '');
 begin
   inherited Create;
   RUID := ARUID;
+  Name := AName; 
   UsesList := TStringList.Create;
   UsesList.Sorted := True;
   UsesList.Duplicates := dupError;    
@@ -87,7 +114,17 @@ begin
   S.Add('Версия в базе данных: ' + VersionInDB);
   S.Add('Путь: ' + ExtractFilePath(FileName));
   S.Add('Файл: ' + ExtractFileName(FileName));
-end;   
+end;
+
+function TgsNSNode.GetUsesString: String;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to UsesList.Count - 1 do
+    Result := Result + UsesList[I] + ';';
+  SetLength(Result, Length(Result) - 1);  
+end;
 
 function TgsNSNode.GetNSState: TgsNSState;
 var
@@ -120,7 +157,7 @@ end;
 
 function TgsNSNode.CheckOnlyInDB: Boolean;
 begin
-  Result := FileName = '';
+  Result := (FileName = '') and (Namespacekey > 0);
 end;
 
 constructor TgsNSList.Create;
@@ -131,10 +168,12 @@ begin
   FErrorNS := TStringList.Create;
   FErrorNS.Sorted := True;
   FErrorNS.Duplicates := dupIgnore;
+  FNSTree := TgsNSTree.Create;
 end;
 
 destructor TgsNSList.Destroy;
 begin
+  FNSTree.Free;
   Clear;
   FErrorNS.Free;
   inherited;
@@ -147,6 +186,16 @@ begin
   for I := 0 to Count - 1 do
     Objects[I].Free;
   inherited;
+end;
+
+function TgsNSList.GetAllUsesString: String;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Count - 1 do
+    Result := Result + (Objects[I] as TgsNSNode).GetUsesString + ';';
+  Result := ';' + Result;
 end;
 
 function TgsNSList.Valid(ANode: TgsNSNode): Boolean;
@@ -293,7 +342,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
     N: TyamlNode;
     S: TyamlSequence;
     Ind, I: Integer;
-    RUID: String;
+    RUID, Temps: String;
     Obj: TgsNSNode;
   begin
     Parser := TyamlParser.Create;
@@ -363,15 +412,11 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
                 S := N as TyamlSequence;
                 for I := 0 to S.Count - 1 do
                 begin
-                  if not (S.Items[I] is TyamlScalar) then
+                  if not (S.Items[I] is TyamlString) then
                     raise Exception.Create('Invalid data!');
 
-                  RUID := (S.Items[I] as TyamlScalar).AsString;
-                  if Pos(' ', RUID) > 0 then
-                    SetLength(RUID, Pos(' ', RUID) - 1);
-
-                  if CheckRUID(RUID) then
-                  begin
+                  if ParseReferenceString((S.Items[I] as TyamlString).AsString, RUID, Temps) then
+                  begin 
                     Ind := Self.IndexOf(RUID);
                     if Ind > -1 then
                     begin
@@ -383,7 +428,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
                           (Self.Objects[Ind] as TgsNSNode).Name + '''!');
                     end else
                     begin
-                      Self.AddObject(RUID, TgsNSNode.Create(RUID));
+                      Self.AddObject(RUID, TgsNSNode.Create(RUID, Name));
                       Obj.UsesList.Add(RUID);
                     end;
                   end;
@@ -415,12 +460,55 @@ begin
 
       FillInNamespace;  
       CorrectFill;
+      CreateNSTree;
     end;
   finally   
     SL.Free;
     NSL.Free;
   end;
-end; 
+end;
+
+procedure TgsNSList.CreateNSTree;
+
+  procedure AddNode(Node: TgsNSTreeNode; yamlNode: TgsNSNode);
+  var
+    Temp: TgsNSTreeNode;
+    I, Ind: Integer;
+  begin
+    Temp := FNSTree.AddNode(Node, yamlNode);
+
+    for I := 0 to yamlNode.UsesList.Count - 1 do
+    begin
+      Ind := IndexOf(yamlNode.UsesList[I]);
+      if  Ind > -1 then
+        AddNode(Temp, Objects[Ind] as TgsNSNode);
+    end;
+  end;
+  
+var
+  Parent: TList;
+  I: Integer;
+  UsesString: String;
+begin
+  NSTree.Clear;
+  Parent := TList.Create;
+  try
+    UsesString := GetAllUsesString;
+    for I := 0 to Count - 1 do
+    begin
+      if (Objects[I] as TgsNSNode).CheckOnlyInDB then
+        continue;
+      if Pos(';' + Strings[I] + ';', UsesString) = 0 then
+        Parent.Add(Objects[I]);
+    end;
+
+
+    for I := 0 to Parent.Count - 1 do
+      AddNode(nil, TgsNSNode(Parent[I]));
+  finally
+    Parent.Free;
+  end;
+end;
 
 procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
 
@@ -439,7 +527,7 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
     begin
       Temp := ATreeView.Items.AddChildObject(Node, yamlNode.Name, yamlNode);
       Temp.StateIndex := 2;
-    end;  
+    end;
 
     for I := 0 to yamlNode.UsesList.Count - 1 do
     begin
@@ -459,14 +547,15 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
   end;
 
 var
-  I, K: Integer;
-  Link: Boolean;
-  Parent: TList;
+  I{, K}: Integer;
+//  Link: Boolean;
+ // Parent: TList;
   Temp: TTreeNode;
+ // NSTree: TgsNSTree;
 begin
   Assert(ATreeView <> nil);
   FErrorNS.Clear;
-  
+
   if not AnInternal then
   begin
     for I := 0 to Count - 1 do
@@ -484,7 +573,8 @@ begin
     end;
   end else
   begin
-    Parent := TList.Create;
+
+    {Parent := TList.Create;
     try
       for I := 0 to Count - 1 do
       begin
@@ -504,13 +594,16 @@ begin
 
         if not Link then
           Parent.Add(Objects[I]);
-      end;
+      end; }
 
-      for I := 0 to Parent.Count - 1 do
-        AddNode(nil, TgsNSNode(Parent[I]));
-    finally
-      Parent.Free;
-    end;
+      for I := 0 to FNSTree.Count - 1 do
+        AddNode(nil, (FNSTree.Objects[I] as TgsNSTreeNode).yamlNode);
+;
+     // for I := 0 to Parent.Count - 1 do
+       // AddNode(nil, TgsNSNode(Parent[I]));
+    //finally
+   //   Parent.Free;
+   // end;
   end;  
 end;
 
@@ -519,6 +612,7 @@ var
   Ind, I: Integer;
   Node: TgsNSNode;
 begin
+
   Ind := IndexOf(ARUID);
   if Ind > -1 then
   begin
@@ -537,7 +631,7 @@ begin
           Node.Name + ''' установится некорректно!');
         FErrorNS.Add(Node.Name);
      end else
-        CorrectPack(Node.UsesList[I]);
+       CorrectPack(Node.UsesList[I]);
     end;
   end;
 end;
@@ -562,4 +656,99 @@ begin
   end;
 end;
 
+function TgsNSTree.AddNode(Node: TgsNSTreeNode; yamlNode: TgsNSNode): TgsNSTreeNode;
+begin
+  if Node = nil then
+  begin
+    Result := TgsNSTreeNode.Create;
+    Result.YamlNode := yamlNode;
+    AddObject(yamlNode.RUID, Result);
+  end else
+  begin
+    Result := TgsNSTreeNode.Create;
+    Result.YamlNode := yamlNode;
+    Node.UsesObject.AddObject(yamlNode.RUID, Result);
+  end;
+end;
+
+function TgsNSTree.GetTreeNodeByRUID(const ARUID: String): TgsNSTreeNode;
+
+  function FindNode(Node: TgsNSTreeNode): TgsNSTreeNode;
+  var
+    I, Ind: Integer;
+  begin
+    Result := nil;
+    Ind := Node.UsesObject.IndexOf(ARUID);
+    if Ind > 0 then
+    begin
+      Result := Node.UsesObject.Objects[Ind] as TgsNSTreeNode;
+    end else
+    begin
+      for I := 0 to Node.UsesObject.Count - 1 do
+      begin
+        Result := FindNode(Node.UsesObject.Objects[I] as TgsNSTreeNode);
+        if Result <> nil then
+          break;
+      end;
+    end;
+  end;
+  
+var
+  I, Ind: Integer;
+begin
+  Result := nil;
+  Ind := IndexOf(ARUID);
+  if Ind > -1 then
+  begin
+    Result := Objects[Ind] as TgsNSTreeNode;
+  end else
+  begin
+    for I := 0 to Count - 1 do
+    begin
+      Result := FindNode(Objects[I] as TgsNSTreeNode);
+      if Result <> nil then
+        break;
+    end;
+  end;
+end;
+
+function TgsNSTree.GetDependState(const ARUID: String): TgsNSStates;
+
+  procedure SetState(Node: TgsNSTreeNode; var State: TgsNSStates);
+  var
+    I: Integer;
+  begin
+    if Node.YamlNode <> nil then
+    begin
+      if not Node.YamlNode.CheckOnlyInDB then
+        Include(State, Node.YamlNode.GetNSState);
+      for I := 0 to Node.UsesObject.Count - 1 do
+        SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode, State);
+   end;
+  end;
+var
+  Node: TgsNSTreeNode;
+  I: Integer;
+begin
+  Result := [];
+  Node := GetTreeNodeByRUID(ARUID);
+  if Node <> nil then
+  begin
+    for I := 0 to Node.UsesObject.Count - 1 do
+      SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode, Result);
+  end;
+end;
+
+constructor TgsNSTreeNode.Create;
+begin
+  inherited;
+  UsesObject := TStringList.Create;
+end;
+
+destructor TgsNSTreeNode.Destroy;
+begin
+  UsesObject.Free;
+
+  inherited;  
+end; 
 end.
