@@ -2876,6 +2876,8 @@ var
   NSNode: TgsNSNode;
   NL: TStringList;
   q: TIBSQL;
+  TempS: String;
+  UsesStates: TgsNSStates;
 begin
   Assert(ADataSet <> nil);
 
@@ -2890,11 +2892,13 @@ begin
     NSList.GetFilesForPath(APath);
     NSList.CustomSort(CompareFolder);
 
+    TempS := NSList.GetAllUsesString;
     CurrDir := '';
 
     for I := NSList.Count - 1 downto 0 do
     begin
       NSNode := NSList.Objects[I] as TgsNSNode;
+       
 
       if ExtractFilePath(NSNode.FileName) <> CurrDir then
       begin
@@ -2939,7 +2943,16 @@ begin
           q.Close;  
         end;
         nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
-        nsEqual: ADataSet.FieldByName('operation').AsString := '==';
+        nsEqual:
+        begin
+          UsesStates := NSList.NSTree.GetDependState(NSNode.RUID);
+          if  nsNewer in UsesStates then
+            ADataSet.FieldByName('operation').AsString := '<='
+          else if nsOlder in UsesStates then
+             ADataSet.FieldByName('operation').AsString := '=>'
+          else
+            ADataSet.FieldByName('operation').AsString := '==';
+        end;
       end;
       ADataSet.Post;
     end;
