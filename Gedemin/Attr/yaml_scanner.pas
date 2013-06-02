@@ -91,6 +91,8 @@ begin
 end;
 
 function TyamlScanner.GetNextToken: TyamlToken;
+const
+  HexDigits: AnsiString = '0123456789ABCDEF';
 var
   QuoteMatched: Boolean;
   L: Integer;
@@ -224,7 +226,32 @@ begin
         Result := tScalar;
         while (not EOF) and (not QuoteMatched) do
         begin
-          if (FQuoting = qSingleQuoted) and (FReader.PeekChar = '''') then
+          if (FQuoting = qDoubleQuoted) and (FReader.PeekChar = '\') then
+          begin
+            case FReader.PeekChar(1) of
+              '\':
+              begin
+                FScalar := FScalar + '\';
+                FReader.Skip(2, False);
+              end;
+
+              '"':
+              begin
+                FScalar := FScalar + '"';
+                FReader.Skip(2, False);
+              end;
+
+              'x':
+              begin
+                FScalar := FScalar +
+                  Chr(StrToInt('$' + FReader.PeekChar(2) + FReader.PeekChar(3)));
+                FReader.Skip(4, False);
+              end;
+            else
+              raise EyamlSyntaxError.Create('Invalid escape sequence');
+            end;
+          end
+          else if (FQuoting = qSingleQuoted) and (FReader.PeekChar = '''') then
           begin
             if FReader.PeekChar(1) = '''' then
             begin
@@ -238,15 +265,8 @@ begin
           end
           else if (FQuoting = qDoubleQuoted) and (FReader.PeekChar = '"') then
           begin
-            if FReader.PeekChar(1) = '"' then
-            begin
-              FScalar := FScalar + '"';
-              FReader.Skip(2, False);
-            end else
-            begin
-              FReader.GetChar;
-              QuoteMatched := True;
-            end;
+            FReader.GetChar;
+            QuoteMatched := True;
           end
           else if (FReader.PeekChar = '#')  and (FQuoting = qPlain) and (FStyle = sPlain) then
           begin
