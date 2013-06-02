@@ -3373,7 +3373,7 @@ begin
     if Transaction = nil then
     begin
       FInternalTransaction := TIBTransaction.Create(Self);
-      FInternalTransaction.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait'#13#10;
+      FInternalTransaction.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait';
       FInternalTransaction.Name := 'ibtrInternal';
       FInternalTransaction.AutoStopAction := saNone;
       Transaction := FInternalTransaction;

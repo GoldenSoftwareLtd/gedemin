@@ -2703,7 +2703,7 @@ begin
       q.Transaction := gdcBaseManager.ReadTransaction
     else
       q.Transaction := Transaction;
-    W.WriteDirective('YAML 1.1');
+    W.WriteDirective(dirYAML11);
     W.StartNewLine;
     W.WriteKey('StructureVersion');
     W.WriteText('1.0', qSingleQuoted);
