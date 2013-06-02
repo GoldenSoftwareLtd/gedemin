@@ -173,7 +173,7 @@ var
   Buff: array[0..1024] of Char;
 begin
   Windows.GetTempPath(SizeOf(Buff), Buff);
-  Result := Buff;
+  Result := ExcludeTrailingBackslash(Buff);
 end;
 
 function TgsTestCase.GetTestDataPath: String;

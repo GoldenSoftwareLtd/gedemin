@@ -14,7 +14,8 @@ type
   published
     procedure TestScanner;
     procedure TestWriter;
-    procedure TestParser;   
+    procedure TestParser;
+    procedure TestEscape;
   end;
 
 implementation
@@ -415,7 +416,7 @@ end;
 procedure TyamlTest.TestParser;
 var
   FS: TFileStream;
-  Parser: TyamlParser;   
+  Parser: TyamlParser;
   M: TyamlMapping;
 begin
   FS := TFileStream.Create(TestDataPath + '\yaml\test.yml', fmOpenRead);
@@ -435,6 +436,55 @@ begin
   finally
     Parser.Free;
     FS.Free;
+  end;
+end;
+
+procedure TyamlTest.TestEscape;
+var
+  Writer: TyamlWriter;
+  Scanner: TyamlScanner;
+  I: Integer;
+  S, FN: AnsiString;
+  FS: TFileStream;
+begin
+  SetLength(S, 256);
+  for I := 0 to 255 do
+    S[I + 1] := Chr(I);
+
+  FN := TempPath + '\test_escape.yml';
+  try
+    DeleteFile(FN);
+
+    FS := TFileStream.Create(FN, fmCreate);
+    Writer := TyamlWriter.Create(FS);
+    try
+      Writer.WriteDirective(dirYAML11);
+      Writer.StartNewLine;
+      Writer.WriteKey('TD');
+      Writer.WriteText(S, qDoubleQuoted, sPlain);
+    finally
+      Writer.Free;
+      FS.Free;
+    end;
+
+    FS := TFileStream.Create(FN, fmOpenRead);
+    Scanner := TyamlScanner.Create(FS);
+    try
+      Check(Scanner.GetNextToken = tStreamStart);
+
+      Check(Scanner.GetNextToken = tKey);
+      Check(Scanner.Key = 'TD');
+      Check(Scanner.GetNextToken = tScalar);
+      Check(Scanner.Scalar = S);
+      Check(Scanner.Quoting = qDoubleQuoted);
+
+      Check(Scanner.GetNextToken = tStreamEnd);
+    finally
+      Scanner.Free;
+      FS.Free;
+    end;
+  finally
+    DeleteFile(FN);
   end;
 end;
 

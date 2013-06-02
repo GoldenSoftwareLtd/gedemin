@@ -229,13 +229,57 @@ procedure TyamlWriter.WriteText(const AText: AnsiString; AQuoting: TyamlScalarQu
       QuoteChar;
   end;
 
+  function EscapeString(const S: AnsiString): AnsiString;
+  const
+    HexDigits: AnsiString = '0123456789ABCDEF';
+  var
+    L, I: Integer;
+  begin
+    SetLength(Result, Length(S) * 4 + 2);
+    L := 1;
+    Result[1] := '"';
+    for I := 1 to Length(S) do
+    begin
+      case S[I] of
+        '\':
+        begin
+          Result[L + 1] := '\';
+          Result[L + 2] := '\';
+          Inc(L, 2);
+        end;
+
+        '"':
+        begin
+          Result[L + 1] := '\';
+          Result[L + 2] := '"';
+          Inc(L, 2);
+        end;
+
+        #00..#31:
+        begin
+          Result[L + 1] := '\';
+          Result[L + 2] := 'x';
+          Result[L + 3] := HexDigits[(Ord(S[I]) div 16) + 1];
+          Result[L + 4] := HexDigits[(Ord(S[I]) mod 16) + 1];
+          Inc(L, 4);
+        end;
+      else
+        Result[L + 1] := S[I];
+        Inc(L);
+      end;
+    end;
+    Inc(L);
+    Result[L] := '"';
+    SetLength(Result, L);
+  end;
+
 var
   P: Integer;
   TempS: AnsiString;
 begin
   if AStyle = sPlain then
     case AQuoting of
-      qDoubleQuoted: WriteBuffer(QuoteString(AText, '"'));
+      qDoubleQuoted: WriteBuffer(EscapeString(AText));
       qSingleQuoted: WriteBuffer(QuoteString(AText, ''''));
       qPlain: WriteBuffer(AText);
     end

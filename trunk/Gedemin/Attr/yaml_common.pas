@@ -24,6 +24,7 @@ const
   EOL             = [#13, #10];
   DefIndent       = 2;
   SpaceSubstitute = '@';
+  dirYAML11       = 'YAML 1.1';
 
 implementation
 
