@@ -249,12 +249,9 @@ begin
 end;
 
 function TgdcStandartTableTest.GetFileName: String;
-var
-  TempPath: array[0..1023] of Char;
 begin
   Check(FTableName > '');
-  GetTempPath(SizeOf(TempPath), TempPath);
-  Result := String(TempPath) + '\' + FTableName + '.xml'
+  Result := TempPath + '\' + FTableName + '.xml'
 end;
 
 procedure TgdcStandartTableTest.InitObject(AnObj: TgdcBase);
@@ -880,12 +877,8 @@ begin
 end;
 
 function TgdcSetTest.GetFileName: String;
-var
-  TempPath: array[0..1023] of Char;
 begin
   Check(FTableName > '', 'Table name is empty');
-
-  GetTempPath(SizeOf(TempPath), TempPath);
   Result := IncludeTrailingBackslash(TempPath) + FTableName + '.xml'
 end;
 
@@ -1084,12 +1077,9 @@ begin
 end;
 
 function TgdcStandartSaveToXMLTest.GetFileName(ANumber: Integer): String;
-var
-  TempPath: array[0..1023] of Char;
 begin
   Check(FTableName > '');
-  GetTempPath(SizeOf(TempPath), TempPath);
-  Result := String(TempPath) + '\' + FTableName + 'part' + IntToStr(ANumber) + '.xml';  
+  Result := TempPath + '\' + FTableName + 'part' + IntToStr(ANumber) + '.xml';  
 end;
 
 procedure TgdcStandartSaveToXMLTest.InitObject(AnObj: TgdcBase);

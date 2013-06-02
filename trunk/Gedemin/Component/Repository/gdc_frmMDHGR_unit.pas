@@ -168,38 +168,7 @@ begin
 end;
 
 function Tgdc_frmMDHGR.Get_SelectedKey: OleVariant;
-{var
-  I: Integer;
-  MasterA, DetailA: Variant;}
 begin
-{  if not (gdcObject.Active and (gdcObject.RecordCount > 0)) then
-    MasterA := VarArrayOf([])
-  else
-    if ibgrMain.SelectedRows.Count = 0 then
-      MasterA := VarArrayOf([gdcObject.ID])
-    else
-    begin
-      MasterA := VarArrayCreate([0, ibgrMain.SelectedRows.Count - 1], varVariant);
-        for I := 0 to ibgrMain.SelectedRows.Count - 1 do
-        begin
-          MasterA[I] := gdcObject.GetIDForBookmark(ibgrMain.SelectedRows.Items[I]);
-        end;
-    end;
-
-  if not (gdcDetailObject.Active and (gdcDetailObject.RecordCount > 0)) then
-    DetailA := VarArrayOf([])
-  else
-    if ibgrDetail.SelectedRows.Count = 0 then
-      DetailA := VarArrayOf([gdcDetailObject.ID])
-    else
-    begin
-      DetailA := VarArrayCreate([0, ibgrDetail.SelectedRows.Count - 1], varVariant);
-      for I := 0 to ibgrDetail.SelectedRows.Count - 1 do
-      begin
-        DetailA[I] := gdcDetailObject.GetIDForBookmark(ibgrDetail.SelectedRows.Items[I]);
-      end;
-    end;}
-    
   Result := VarArrayOf([CreateSelectedArr(gdcObject, ibgrMain.SelectedRows),
     CreateSelectedArr(gdcDetailObject, ibgrDetail.SelectedRows)])
 end;
@@ -265,10 +234,7 @@ end;
 
 procedure Tgdc_frmMDHGR.sbMainClick(Sender: TObject);
 begin
-  {if ibgrDetail.Focused then
-    ibgrDetail.Aggregate.PopupMenu(-1, -1)
-  else
-    ibgrMain.Aggregate.PopupMenu(-1, -1);}
+  //
 end;
 
 procedure Tgdc_frmMDHGR.ibgrMainEnter(Sender: TObject);
@@ -414,7 +380,6 @@ begin
     except
       raise Exception.Create('Ошибка при выборе записи. Неверный id: '+ CheckID);
     end;
-
 end;
 
 procedure Tgdc_frmMDHGR.ibgrDetailClickCheck(Sender: TObject;
@@ -484,10 +449,8 @@ var
 begin
   frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
   if ibgrMain.SelectedRows.Count > 0 then
-    //gdcObject.SaveToFile('', gdcDetailObject, ibgrMain.SelectedRows, False)
     (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, gdcDetailObject, ibgrMain.SelectedRows, False)
   else
-    //gdcObject.SaveToFile('', gdcDetailObject);
     (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcObject, gdcDetailObject);
   (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
 end;
@@ -498,10 +461,8 @@ var
 begin
   frmStreamSaver := Tgdc_frmStreamSaver.CreateAndAssign(Self);
   if ibgrDetail.SelectedRows.Count > 0 then
-    //gdcDetailObject.SaveToFile('', nil, ibgrDetail.SelectedRows, False)
     (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject, nil, ibgrDetail.SelectedRows, False)
   else
-    //gdcDetailObject.SaveToFile;
     (frmStreamSaver as Tgdc_frmStreamSaver).SetParams(gdcDetailObject);
   (frmStreamSaver as Tgdc_frmStreamSaver).ShowSaveForm;
 end;
@@ -635,5 +596,4 @@ initialization
 
 finalization
   UnRegisterFrmClass(Tgdc_frmMDHGR);
-
 end.

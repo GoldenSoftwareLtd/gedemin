@@ -73,11 +73,8 @@ begin
 end;
 
 function Tgs_gdcNamespaceTest.GetFileName: String;
-var
-  TempPath: array[0..1023] of Char;
 begin
   Check(FNamespacename > '');
-  GetTempPath(SizeOf(TempPath), TempPath);
   Result := IncludeTrailingBackslash(TempPath) + FNamespacename + '.yml'
 end;
 

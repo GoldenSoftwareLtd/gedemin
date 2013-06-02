@@ -26,7 +26,7 @@ unit gd_WebServerControl_unit;
 interface
 
 uses
-  Classes, Contnrs, SyncObjs, evt_i_Base, gd_FileList_unit,
+  Classes, Contnrs, SyncObjs, evt_i_Base, gd_FileList_unit, IBDatabase,
   IdHTTPServer, IdCustomHTTPServer, IdTCPServer, idThreadSafe;
 
 type
@@ -41,6 +41,7 @@ type
     FResponseInfo: TIdHTTPResponseInfo;
     FLastToken: String;
     FInProcess: TidThreadSafeInteger;
+    FUserSessions: TObjectList;
 
     function GetVarInterface(const AnValue: Variant): OleVariant;
     function GetVarParam(const AnValue: Variant): OleVariant;
@@ -53,6 +54,9 @@ type
     procedure ProcessFilesListRequest;
     procedure ProcessFileRequest;
     procedure ProcessBLOBRequest;
+    procedure ProcessTestRequest;
+    procedure ProcessLoginRequest;
+    procedure ProcessLogoffRequest;
     procedure Log(const AnIPAddress: String; const AnOp: String;
       const Names: array of String; const Values: array of String); overload;
     procedure Log(const AnIPAddress: String; const AnOp: String;
@@ -81,17 +85,34 @@ type
     property InProcess: Boolean read GetInProcess;
   end;
 
+  TgdWebUserSession = class(TObject)
+  private
+    FTransaction: TIBTransaction;
+    FID: String;
+    FUserName: String;
+
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function OpenSession(const AUserName, APassword: String): Boolean;
+
+    property Transaction: TIBTransaction read FTransaction;
+    property ID: String read FID;
+    property UserName: String read FUserName;
+  end;
+
 var
   gdWebServerControl: TgdWebServerControl;
 
 implementation
 
 uses
-  SysUtils, Forms, Windows, IBSQL, IBDatabase, IdSocketHandle, gdcOLEClassList,
+  SysUtils, Forms, Windows, IBSQL, IdSocketHandle, gdcOLEClassList,
   gd_i_ScriptFactory, scr_i_FunctionList, rp_BaseReport_unit, gdcBaseInterface,
   prp_methods, Gedemin_TLB, Storages, WinSock, ComObj, JclSimpleXML, jclSysInfo,
   gd_directories_const, ActiveX, FileCtrl, gd_GlobalParams_unit, gdcJournal,
-  gdNotifierThread_unit;
+  gdNotifierThread_unit, gd_security;
 
 type
   TgdHttpHandler = class(TObject)
@@ -113,6 +134,7 @@ begin
   FHttpGetHandlerList := TObjectList.Create(True);
   FFileList := TObjectList.Create(True);
   FInProcess := TidThreadSafeInteger.Create;
+  FUserSessions := TObjectList.Create(True);
 end;
 
 destructor TgdWebServerControl.Destroy;
@@ -122,6 +144,7 @@ begin
   FreeAndNil(FHttpGetHandlerList);
   FreeAndNil(FFileList);
   FreeAndNil(FInProcess);
+  FreeAndNil(FUserSessions);
 end;
 
 procedure TgdWebServerControl.RegisterOnGetEvent(const AComponent: TComponent;
@@ -243,6 +266,7 @@ var
   LParams, LResult: Variant;
   Processed: Boolean;
   I: Integer;
+  SL: TStringList;
 begin
   Assert(FHTTPGetHandlerList <> nil);
 
@@ -255,6 +279,12 @@ begin
       ProcessFileRequest
     else if AnsiCompareText(FRequestInfo.Document, '/get_blob') = 0 then
       ProcessBLOBRequest
+    else if AnsiCompareText(FRequestInfo.Document, '/test') = 0 then
+      ProcessTestRequest
+    else if AnsiCompareText(FRequestInfo.Document, '/login') = 0 then
+      ProcessLoginRequest
+    else if AnsiCompareText(FRequestInfo.Document, '/logoff') = 0 then
+      ProcessLogoffRequest
     else begin
       Processed := False;
       RequestToken := FRequestInfo.Params.Values[PARAM_TOKEN];
@@ -306,28 +336,42 @@ begin
 
       if not Processed then
       begin
-        S := 'Gedemin Web Server.';
-        S := S + '<br/>Copyright (c) 2013 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
-        S := S + '<br/>All rights reserved.';
-
-        S := S + '<br/><br/>Serve tokens:<ol>';
-        for I := 0 to FFileList.Count - 1 do
+        if FileExists(ExtractFilePath(Application.EXEName) + 'test.html') then
         begin
-          if (FFileList[I] as TFLCollection).FindItem('gedemin.exe') <> nil then
-          begin
-            S := S + '<li/>';
-            if (FFileList[I] as TFLCollection).UpdateToken > '' then
-              S := S + (FFileList[I] as TFLCollection).UpdateToken + ' - ';
-            S := S + (FFileList[I] as TFLCollection).FindItem('gedemin.exe').Version;
+          SL := TStringList.Create;
+          try
+            SL.LoadFromFile(ExtractFilePath(Application.EXEName) + 'test.html');
+            FResponseInfo.ResponseNo := 200;
+            FResponseInfo.ContentType := 'text/html;';
+            FResponseInfo.ContentText := SL.Text;
+          finally
+            SL.Free;
           end;
-        end;
-        S := S + '</ol>';
+        end else
+        begin
+          S := 'Gedemin Web Server.';
+          S := S + '<br/>Copyright (c) 2013 by <a href="http://gsbelarus.com">Golden Software of Belarus, Ltd.</a>';
+          S := S + '<br/>All rights reserved.';
 
-        FResponseInfo.ResponseNo := 200;
-        FResponseInfo.ContentType := 'text/html;';
-        FResponseInfo.ContentText :=
-          '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
-          '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>' + S + '</BODY></HTML>';
+          S := S + '<br/><br/>Now serving tokens:<ol>';
+          for I := 0 to FFileList.Count - 1 do
+          begin
+            if (FFileList[I] as TFLCollection).FindItem('gedemin.exe') <> nil then
+            begin
+              S := S + '<li/>';
+              if (FFileList[I] as TFLCollection).UpdateToken > '' then
+                S := S + (FFileList[I] as TFLCollection).UpdateToken + ' - ';
+              S := S + (FFileList[I] as TFLCollection).FindItem('gedemin.exe').Version;
+            end;
+          end;
+          S := S + '</ol>';
+
+          FResponseInfo.ResponseNo := 200;
+          FResponseInfo.ContentType := 'text/html;';
+          FResponseInfo.ContentText :=
+            '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">'#13#10 +
+            '<HTML><HEAD><TITLE>Gedemin Web Server</TITLE></HEAD><BODY>' + S + '</BODY></HTML>';
+        end;
       end;
     end;
   except
@@ -736,6 +780,115 @@ end;
 function TgdWebServerControl.GetInProcess: Boolean;
 begin
   Result := FInProcess.Value <> 0;
+end;
+
+procedure TgdWebServerControl.ProcessTestRequest;
+var
+  q: TIBSQL;
+begin
+  FResponseInfo.ResponseNo := 200;
+  FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT * FROM gd_user WHERE name = :N AND passw = :P';
+    q.ParamByName('N').AsString := FRequestInfo.Params.Values['user_name'];
+    q.ParamByName('P').AsString := FRequestInfo.Params.Values['password'];
+    q.ExecQuery;
+
+    if q.EOF then
+      FResponseInfo.ContentText := 'Invalid user name or password'
+    else
+      FResponseInfo.ContentText := 'Ok';
+  finally
+    q.Free;
+  end;
+end;
+
+procedure TgdWebServerControl.ProcessLoginRequest;
+var
+  WS: TgdWebUserSession;
+begin
+  WS := TgdWebUserSession.Create;
+  try
+    if WS.OpenSession(FRequestInfo.Params.Values['user_name'],
+      FRequestInfo.Params.Values['password']) then
+    begin
+      FResponseInfo.ResponseNo := 200;
+      FResponseInfo.ContentType := 'text/plain; charset=Windows-1251';
+      FResponseInfo.ContentText := WS.ID;
+      FUserSessions.Add(WS);
+      WS := nil;
+    end else
+      FResponseInfo.ResponseNo := 403;
+  finally
+    WS.Free;
+  end;
+end;
+
+procedure TgdWebServerControl.ProcessLogoffRequest;
+var
+  I: Integer;
+begin
+  FResponseInfo.ResponseNo := 403;
+  for I := 0 to FUserSessions.Count - 1 do
+  begin
+    if (FUserSessions[I] as TgdWebUserSession).ID =
+      FRequestInfo.Params.Values['session_id'] then
+    begin
+      FUserSessions.Delete(I);
+      FResponseInfo.ResponseNo := 200;
+      break;
+    end;
+  end;
+end;
+
+{ TgdWebUserSession }
+
+constructor TgdWebUserSession.Create;
+begin
+  inherited;
+end;
+
+destructor TgdWebUserSession.Destroy;
+begin
+  FTransaction.Free;
+  inherited;
+end;
+
+function TgdWebUserSession.OpenSession(const AUserName,
+  APassword: String): Boolean;
+var
+  q: TIBSQL;
+begin
+  Assert(FTransaction = nil);
+  Assert(IBLogin <> nil);
+
+  q := TIBSQL.Create(nil);
+  try
+    q.Transaction := gdcBaseManager.ReadTransaction;
+    q.SQL.Text := 'SELECT * FROM gd_user WHERE name = :N AND passw = :P';
+    q.ParamByName('N').AsString := AUserName;
+    q.ParamByName('P').AsString := APassword;
+    q.ExecQuery;
+
+    if q.EOF then
+      Result := False
+    else begin
+      FTransaction := TIBTransaction.Create(nil);
+      FTransaction.DefaultDatabase := gdcBaseManager.Database;
+      FTransaction.Params.Text := 'read_committed'#13#10'rec_version'#13#10'nowait';
+      FTransaction.StartTransaction;
+
+      FUserName := AUserName;
+      FID := RUIDToStr(RUID(gdcBaseManager.GetNextID, IBLogin.DBID));
+
+      Result := True;
+    end;
+  finally
+    q.Free;
+  end;
 end;
 
 initialization

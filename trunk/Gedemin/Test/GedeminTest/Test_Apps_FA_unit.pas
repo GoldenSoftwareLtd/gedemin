@@ -20,6 +20,11 @@ procedure TgsTestAppsFA.DoTest;
 begin
   Check(SettingsLoaded);
 
+  FQ.SQL.Text := 'SELECT * FROM rdb$procedures WHERE rdb$procedure_name = ''USR$FA_P_YEAR_BETWEEN'' ';
+  FQ.ExecQuery;
+  Check(not FQ.EOF, 'Procedure USR$FA_P_YEAR_BETWEEN not found.');
+
+  FQ.Close;
   FQ.SQL.Text := 'SELECT * FROM USR$FA_P_YEAR_BETWEEN(:D1, :D2)';
 
   FQ.Close;
