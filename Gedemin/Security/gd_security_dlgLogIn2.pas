@@ -1,7 +1,7 @@
 
 {++
 
-  Copyright (c) 2012 by Golden Software of Belarus
+  Copyright (c) 2012-2013 by Golden Software of Belarus
 
   Module
 
@@ -58,6 +58,7 @@ type
     chbxSingleUser: TCheckBox;
     btnVer: TButton;
     Label1: TLabel;
+    actSingleUser: TAction;
 
     procedure actCancelExecute(Sender: TObject);
     procedure TimerTimer(Sender: TObject);
@@ -72,6 +73,8 @@ type
     procedure cbUserChange(Sender: TObject);
     procedure actMoreExecute(Sender: TObject);
     procedure actVerUpdate(Sender: TObject);
+    procedure actSingleUserUpdate(Sender: TObject);
+    procedure chbxSingleUserClick(Sender: TObject);
 
   private
     KL: Integer;
@@ -300,6 +303,16 @@ begin
   {$IFDEF NOGEDEMIN}
   actVer.Enabled := False;
   {$ENDIF}
+end;
+
+procedure TdlgSecLogIn2.actSingleUserUpdate(Sender: TObject);
+begin
+  actSingleUser.Enabled := cbUser.Text = 'Administrator';
+end;
+
+procedure TdlgSecLogIn2.chbxSingleUserClick(Sender: TObject);
+begin
+  actSingleUser.Checked := chbxSingleUser.Checked;
 end;
 
 end.

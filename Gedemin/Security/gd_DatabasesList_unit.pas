@@ -666,7 +666,7 @@ begin
       begin
         WriteToINIFile;
         WithoutConnection := chbxWithoutConnection.Checked;
-        SingleUserMode := chbxSingleUser.Checked;
+        SingleUserMode := actSingleUser.Enabled and actSingleUser.Checked;
         DI := FindSelected;
       end;
     finally
