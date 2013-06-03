@@ -356,6 +356,8 @@ inherited gdc_dlgObjectProperties: Tgdc_dlgObjectProperties
         Height = 22
         Align = alTop
         Caption = 'tbLinks'
+        CloseButton = False
+        DockMode = dmCannotFloatOrChangeDocks
         ParentShowHint = False
         ShowHint = True
         TabOrder = 1

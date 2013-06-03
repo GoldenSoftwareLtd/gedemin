@@ -461,6 +461,18 @@ begin
       Add(AddSpaces('Левая граница:') + IntToStr((gdcObject as TgdcLBRBTree).LB));
       Add(AddSpaces('Правая граница:') + IntToStr((gdcObject as TgdcLBRBTree).RB));
     end;
+    if tiCreationInfo in gdcObject.gdcTableInfos then
+    begin
+      Add(AddSpaces('Когда создан:') + gdcObject.FieldByName('creationdate').AsString);
+      if gdcObject.CreatorName > '' then
+        Add(AddSpaces('Кем создан:') + gdcObject.CreatorName);
+    end;
+    if tiEditionInfo in gdcObject.gdcTableInfos then
+    begin
+      Add(AddSpaces('Когда изменен:') + gdcObject.FieldByName('editiondate').AsString);
+      if gdcObject.EditorName > '' then
+        Add(AddSpaces('Кем изменен:') + gdcObject.EditorName);
+    end;
     Add(AddSpaces('Главная таблица:') + gdcObject.GetListTable(gdcObject.SubType));
     S := '';
     Lst := TObjectList.Create(False);
@@ -485,18 +497,6 @@ begin
       Lst.Free;
     end;
     if S > '' then Add(AddSpaces('Связанные таблицы:') + S);
-    if tiCreationInfo in gdcObject.gdcTableInfos then
-    begin
-      Add(AddSpaces('Когда создан:') + gdcObject.FieldByName('creationdate').AsString);
-      if gdcObject.CreatorName > '' then
-        Add(AddSpaces('Кем создан:') + gdcObject.CreatorName);
-    end;
-    if tiEditionInfo in gdcObject.gdcTableInfos then
-    begin
-      Add(AddSpaces('Когда изменен:') + gdcObject.FieldByName('editiondate').AsString);
-      if gdcObject.EditorName > '' then
-        Add(AddSpaces('Кем изменен:') + gdcObject.EditorName);
-    end;
     if gdcObject.FindField('aview') <> nil then
       Add(AddSpaces('Только просмотр:') + TgdcUserGroup.GetGroupList(gdcObject.FindField('aview').AsInteger));
     if gdcObject.FindField('achag') <> nil then
