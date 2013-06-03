@@ -34,7 +34,7 @@ type
     class function LoadObject(AnObj: TgdcBase; AMapping: TyamlMapping;
       UpdateList: TObjectList; RUIDList: TStringList; ATr: TIBTransaction;
       const AnAlwaysoverwrite: Boolean = False): TLoadedStatus;
-    class procedure ScanDirectory(ADataSet: TDataSet; const APath: String;
+    class procedure ScanDirectory(ADataSet: TDataSet; ANSList: TgsNSList;
       Log: TNSLog);
 
     class procedure SetNamespaceForObject(AnObject: TgdcBase;
@@ -2374,6 +2374,7 @@ begin
               ApplyDelayedUpdates(UpdateList,
                 AMapping.ReadString('Properties\RUID'),
                 AnObj.ID);
+              Result := lsUnModified;
             end;
           end;
         end;
@@ -2868,11 +2869,10 @@ begin
 end;
 
 class procedure TgdcNamespace.ScanDirectory(ADataSet: TDataSet;
-  const APath: String; Log: TNSLog);
+  ANSList: TgsNSList; Log: TNSLog);
 var
   I: Integer;
   CurrDir: String;
-  NSList: TgsNSList;
   NSNode: TgsNSNode;
   NL: TStringList;
   q: TIBSQL;
@@ -2880,25 +2880,24 @@ var
   UsesStates: TgsNSStates;
 begin
   Assert(ADataSet <> nil);
+  Assert(ANSList <> nil);
 
-  NSList := TgsNSList.Create;
   NL := TStringList.Create;
   q := TIBSQL.Create(nil);
   try
     q.Transaction := gdcBaseManager.ReadTransaction;
     q.SQL.Text := 'SELECT * FROM at_object o WHERE namespacekey = :nsk and o.modified is distinct from o.curr_modified';
-    NSList.Sorted := False;
-    NSList.Log := Log;
-    NSList.GetFilesForPath(APath);
-    NSList.CustomSort(CompareFolder);
+   // ANSList.Sorted := False;
+   // ANSList.Log := Log;
+   // ANSList.GetFilesForPath(APath);
+    ANSList.CustomSort(CompareFolder);
 
-    TempS := NSList.GetAllUsesString;
+    TempS := ANSList.GetAllUsesString;
     CurrDir := '';
 
-    for I := NSList.Count - 1 downto 0 do
+    for I := ANSList.Count - 1 downto 0 do
     begin
-      NSNode := NSList.Objects[I] as TgsNSNode;
-       
+      NSNode := ANSList.Objects[I] as TgsNSNode;
 
       if ExtractFilePath(NSNode.FileName) <> CurrDir then
       begin
@@ -2915,11 +2914,14 @@ begin
       ADataSet.FieldByName('fileversion').AsString := NSNode.Version;
       if NSNode.FileTimestamp <> 0 then
         ADataSet.FieldByName('filetimestamp').AsDateTime := NSNode.FileTimestamp;
-      ADataSet.FieldByName('filesize').AsInteger := NSNode.Filesize; 
+      ADataSet.FieldByName('filesize').AsInteger := NSNode.Filesize;
+      ADataSet.FieldByName('fileruid').AsString := NSNode.RUID;
+      ADataSet.FieldByName('fileinternal').AsInteger := Integer(NSNode.Internal);
 
       ADataSet.FieldByName('namespacekey').AsInteger := NSNode.Namespacekey;
       ADataSet.FieldByName('namespacename').AsString := NSNode.NamespaceName;
       ADataSet.FieldByName('namespaceversion').AsString := NSNode.VersionInDB;
+      ADataSet.FieldByName('namespaceinternal').AsInteger := Integer(NSNode.NamespaceInternal);
       if  NSNode.NamespaceTimestamp <> 0 then
         ADataSet.FieldByName('namespacetimestamp').AsDateTime := NSNode.NamespaceTimestamp;
       case NSNode.GetNSState of
@@ -2947,7 +2949,7 @@ begin
         nsOlder: ADataSet.FieldByName('operation').AsString := '>>';
         nsEqual:
         begin
-          UsesStates := NSList.NSTree.GetDependState(NSNode.RUID);
+          UsesStates := ANSList.NSTree.GetDependState(NSNode.RUID);
           if nsNewer in UsesStates then
             ADataSet.FieldByName('operation').AsString := '<='
           else if nsOlder in UsesStates then
@@ -2961,7 +2963,7 @@ begin
 
     ADataSet.First;
   finally
-    NSList.Free;
+    q.Free;
     NL.Free;
   end;
 end;

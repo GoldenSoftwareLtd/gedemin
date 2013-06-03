@@ -1,6 +1,6 @@
 object at_frmSyncNamespace: Tat_frmSyncNamespace
-  Left = 364
-  Top = 53
+  Left = 341
+  Top = 193
   Width = 952
   Height = 518
   Caption = 'Синхронизация пространств имен'
@@ -122,6 +122,9 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object TBControlItem3: TTBControlItem
         Control = edFilter
       end
+      object TBControlItem4: TTBControlItem
+        Control = cbInternal
+      end
       object lSearch: TLabel
         Left = 593
         Top = 4
@@ -143,6 +146,16 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         Height = 21
         TabOrder = 1
         OnChange = edFilterChange
+      end
+      object cbInternal: TCheckBox
+        Left = 778
+        Top = 2
+        Width = 97
+        Height = 17
+        Action = actFLTInternal
+        Checked = True
+        State = cbChecked
+        TabOrder = 2
       end
     end
   end
@@ -178,19 +191,19 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Expanded = False
         FieldName = 'NamespaceName'
-        Width = 244
+        Width = 40
         Visible = True
       end
       item
         Expanded = False
         FieldName = 'NamespaceVersion'
-        Width = 124
+        Width = 112
         Visible = True
       end
       item
         Expanded = False
         FieldName = 'NamespaceTimeStamp'
-        Width = 112
+        Width = 101
         Visible = True
       end
       item
@@ -209,7 +222,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Expanded = False
         FieldName = 'FileNamespaceName'
-        Width = 108
+        Width = 335
         Visible = True
       end
       item
@@ -229,6 +242,24 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
         FieldName = 'FileSize'
         Width = 64
         Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'FileRUID'
+        Width = -1
+        Visible = False
+      end
+      item
+        Expanded = False
+        FieldName = 'FileInternal'
+        Width = -1
+        Visible = False
+      end
+      item
+        Expanded = False
+        FieldName = 'NamespaceInternal'
+        Width = -1
+        Visible = False
       end>
   end
   object mMessages: TMemo
@@ -289,6 +320,19 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       item
         Name = 'FileSize'
         DataType = ftInteger
+      end
+      item
+        Name = 'FileRUID'
+        DataType = ftString
+        Size = 20
+      end
+      item
+        Name = 'FileInternal'
+        DataType = ftInteger
+      end
+      item
+        Name = 'NamespaceInternal'
+        DataType = ftInteger
       end>
     IndexDefs = <>
     Params = <>
@@ -297,7 +341,7 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     Left = 552
     Top = 296
     Data = {
-      390100009619E0BD01000000180000000A00000000000300000039010C4E616D
+      850100009619E0BD01000000180000000D00000000000300000085010C4E616D
       6573706163656B657904000100000000000D4E616D6573706163654E616D6502
       0049000000010005574944544802000200FF00104E616D657370616365566572
       73696F6E0100490000000100055749445448020002001400124E616D65737061
@@ -306,7 +350,10 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       010005574944544802000200FF001146696C654E616D6573706163654E616D65
       020049000000010005574944544802000200FF000B46696C6556657273696F6E
       01004900000001000557494454480200020014000D46696C6554696D65537461
-      6D7008000800000000000846696C6553697A6504000100000000000000}
+      6D7008000800000000000846696C6553697A6504000100000000000846696C65
+      5255494401004900000001000557494454480200020014000C46696C65496E74
+      65726E616C0400010000000000114E616D657370616365496E7465726E616C04
+      000100000000000000}
     object cdsNamespacekey: TIntegerField
       FieldName = 'Namespacekey'
       Visible = False
@@ -322,6 +369,10 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object cdsNamespaceTimeStamp: TDateTimeField
       FieldName = 'NamespaceTimeStamp'
+    end
+    object cdsNamespaceInternal: TIntegerField
+      FieldName = 'NamespaceInternal'
+      Visible = False
     end
     object cdsOperation: TStringField
       DisplayLabel = 'Op'
@@ -349,6 +400,14 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
     end
     object cdsFileSize: TIntegerField
       FieldName = 'FileSize'
+    end
+    object cdsFileRUID: TStringField
+      FieldName = 'FileRUID'
+      Visible = False
+    end
+    object cdsFileInternal: TIntegerField
+      FieldName = 'FileInternal'
+      Visible = False
     end
   end
   object ds: TDataSource
@@ -472,6 +531,10 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       Caption = '<'
       OnExecute = actFLTOnlyInDBExecute
       OnUpdate = actFLTOnlyInDBUpdate
+    end
+    object actFLTInternal: TAction
+      Caption = 'Только пакеты'
+      OnExecute = actFLTInternalExecute
     end
   end
   object pmSync: TPopupMenu
