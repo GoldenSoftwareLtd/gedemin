@@ -28,6 +28,7 @@ type
     function GetTreeNodeByRUID(const ARUID: String): TgsNSTreeNode;
     function GetDependState(const ARUID: String): TgsNSStates;
     function CheckNSCorrect(const ARUID: String; var AError: String): Boolean;
+    procedure SetNSFileName(const ARUID: String; AFileList: TStringList);
   end;
 
   TgsNSNode = class(TObject)
@@ -47,7 +48,9 @@ type
     VersionInDB: String;
     Namespacekey: Integer;
     NamespaceName: String;
-    NamespaceTimestamp: TDateTime;   
+    NamespaceTimestamp: TDateTime;
+    NamespaceOptional: Boolean;
+    NamespaceInternal: Boolean;
     UsesList: TStringList;
 
 
@@ -310,7 +313,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
 
       q.SQL.Text :=
         'SELECT n.id, n.name, n.version, n.filetimestamp, ' +
-        '  r.xid || ''_'' || r.dbid as RUID ' +
+        '  r.xid || ''_'' || r.dbid as RUID, n.internal, n.optional ' +
         'FROM at_namespace n JOIN gd_ruid r ' +
         '  ON n.id = r.id ';
       q.ExecQuery;
@@ -330,6 +333,8 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
         Obj.Namespacekey := q.Fields[0].AsInteger;
         Obj.NamespaceName := q.Fields[1].AsString;
         Obj.NamespaceTimestamp := q.Fields[3].AsDateTime;
+        Obj.NamespaceOptional := Boolean(q.Fields[6].AsInteger);
+        Obj.NamespaceInternal := Boolean(q.Fields[5].AsInteger);
         q.Next;
       end;
     finally
@@ -684,21 +689,39 @@ function TgsNSTree.CheckNSCorrect(const ARUID: String; var AError: String): Bool
   end;
   
 var
-  Node: TgsNSTreeNode;
-  I: Integer;
+  Node: TgsNSTreeNode; 
 begin
   Result := True;
   AError := '';
   Node := GetTreeNodeByRUID(ARUID);
   if Node <> nil then
   begin
-    for I := 0 to Node.UsesObject.Count - 1 do
-    begin
-      Result := CheckNSNode(Node.UsesObject.Objects[I] as TgsNSTreeNode);
-      if not Result then
-        break;
-    end;
+    Result := CheckNSNode(Node);
   end;
+end;
+
+procedure TgsNSTree.SetNSFileName(const ARUID: String; AFileList: TStringList);
+
+  procedure FillFileList(Node: TgsNSTreeNode);
+  var
+    I: Integer;
+  begin
+    if Node.YamlNode <> nil then
+    begin
+      for I := 0 to Node.UsesObject.Count - 1 do
+        FillFileList(Node.UsesObject.Objects[I] as TgsNSTreeNode);
+      if AFileList.IndexOf(Node.YamlNode.FileName) = -1 then
+        AFileList.Add(Node.YamlNode.FileName);
+   end;
+  end;
+var
+  Node: TgsNSTreeNode;
+begin
+  Assert(AFileList <> nil);
+
+  Node := GetTreeNodeByRUID(ARUID);
+  if Node <> nil then
+    FillFileList(Node);
 end;
 
 function TgsNSTree.AddNode(Node: TgsNSTreeNode; yamlNode: TgsNSNode): TgsNSTreeNode;
@@ -772,16 +795,13 @@ function TgsNSTree.GetDependState(const ARUID: String): TgsNSStates;
    end;
   end;
 var
-  Node: TgsNSTreeNode;
-  I: Integer;
+  Node: TgsNSTreeNode; 
 begin
   Result := [];
   Node := GetTreeNodeByRUID(ARUID);
   if Node <> nil then
-  begin
-    for I := 0 to Node.UsesObject.Count - 1 do
-      SetState(Node.UsesObject.Objects[I] as TgsNSTreeNode, Result);
-  end;
+    SetState(Node, Result);
+
 end;
 
 constructor TgsNSTreeNode.Create;

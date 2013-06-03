@@ -7,7 +7,7 @@ uses
   dmImages_unit, gd_createable_form, TB2ExtItems, TB2Item, ActnList, Db,
   Grids, DBGrids, gsDBGrid, TB2Dock, TB2Toolbar, ComCtrls, DBClient,
   StdCtrls, ExtCtrls, Menus, dmDatabase_unit, IBCustomDataSet, gdcBase,
-  gdcNamespace, IBDatabase;
+  gdcNamespace, IBDatabase, gsNSObjects;
 
 type
   TIterateProc = procedure (AnObj: TObject; const Data: String) of object;
@@ -32,8 +32,7 @@ type
     actChooseDir: TAction;
     TBItem1: TTBItem;
     actCompare: TAction;
-    TBItem2: TTBItem;
-    cdsFileName2: TStringField;
+    TBItem2: TTBItem;   
     mMessages: TMemo;
     splMessages: TSplitter;
     actSaveToFile: TAction;
@@ -92,6 +91,12 @@ type
     tbiFLTNone: TTBItem;
     actFLTNone: TAction;
     actFLTOnlyInFile: TAction;
+    cdsFileRUID: TStringField;
+    cdsFileInternal: TIntegerField;
+    cbInternal: TCheckBox;
+    TBControlItem4: TTBControlItem;
+    actFLTInternal: TAction;
+    cdsNamespaceInternal: TIntegerField;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -120,15 +125,18 @@ type
     procedure cdsFilterRecord(DataSet: TDataSet; var Accept: Boolean);
     procedure actFLTOnlyInDBExecute(Sender: TObject);
     procedure actFLTOnlyInDBUpdate(Sender: TObject);
+    procedure actFLTInternalExecute(Sender: TObject);
 
   private
     FgdcNamespace: TgdcNamespace;
+    FNSList: TgsNSList;
+    FLoadFileList, FSaveFileList: TStringList;
 
     procedure ApplyFilter;
     procedure IterateSelected(Proc: TIterateProc; AnObj: TObject; const AData: String);
     procedure SetOperation(AnObj: TObject; const AData: String);
     procedure SaveID(AnObj: TObject; const AData: String);
-    procedure DeleteFile(AnObj: TObject; const AData: String);
+    procedure DeleteFile(AnObj: TObject; const AData: String); 
     procedure Log(const S: String);
 
   public
@@ -147,7 +155,7 @@ implementation
 {$R *.DFM}
 
 uses
-  FileCtrl, gd_GlobalParams_unit, gd_ExternalEditor, jclStrings;
+  FileCtrl, gd_GlobalParams_unit, gd_ExternalEditor, jclStrings, at_dlgCheckOperation_unit;
 
 procedure Tat_frmSyncNamespace.actChooseDirExecute(Sender: TObject);
 var
@@ -174,9 +182,12 @@ begin
   cds.DisableControls;
   try
     cds.EmptyDataSet;
-    TgdcNamespace.ScanDirectory(cds, tbedPath.Text, Log);
+    FNSList.Clear;
+    FNSList.GetFilesForPath(tbedPath.Text);
+    TgdcNamespace.ScanDirectory(cds, FNSList, Log);
     gr.SelectedRows.Clear;
     Log('Выполнено сравнение с каталогом ' + tbedPath.Text);
+    ApplyFilter;
   finally
     cds.EnableControls;
   end;
@@ -255,11 +266,22 @@ begin
   inherited;
   FgdcNamespace := TgdcNamespace.Create(nil);
   ShowSpeedButton := True;
+  FNSList := TgsNSList.Create;
+  FNSList.Sorted := False;
+  FNSList.Log := Log;
+  FLoadFileList := TStringList.Create;
+  FLoadFileList.Sorted := False;
+  FSaveFileList := TStringList.Create;
+  FSaveFileList.Sorted := True;
+  FSaveFileList.Duplicates := dupIgnore;
 end;
 
 destructor Tat_frmSyncNamespace.Destroy;
 begin
   FgdcNamespace.Free;
+  FNSList.Free;
+  FLoadFileList.Free;
+  FSaveFileList.Free;
   inherited;
 end;
 
@@ -353,7 +375,7 @@ begin
       Log('Пространство имен "' + FgdcNamespace.ObjectName + '" записано в файл.');
     end;
   end;
-end;
+end; 
 
 procedure Tat_frmSyncNamespace.actLoadFromFileUpdate(Sender: TObject);
 begin
@@ -368,45 +390,62 @@ end;
 
 procedure Tat_frmSyncNamespace.actSyncExecute(Sender: TObject);
 var
-  LoadCount, SaveCount: Integer;
+  Error: String;
+  AlwaysOverwrite, DontRemove, IncVersion: Boolean;
+  Sync: Boolean;
+  I: Integer;
 begin
-  LoadCount := 0;
-  SaveCount := 0;
+  FLoadFileList.Clear;
+  FSaveFileList.Clear;
+  Sync := False;
+  AlwaysOverwrite := False;
+  DontRemove := False;
   cds.DisableControls;
   try
     cds.First;
     while not cds.Eof do
     begin
       if Pos('>', cds.FieldByName('operation').AsString) = 1 then
-        Inc(SaveCount)
-      else if Pos('<', cds.FieldByName('operation').AsString) = 1 then
-        Inc(LoadCount);
-      cds.Next;  
+      begin
+        if cds.FieldByName('namespacekey').AsInteger > 0 then
+          FSaveFileList.Add(cds.FieldByName('namespacekey').AsString);
+      end else if Pos('<', cds.FieldByName('operation').AsString) = 1 then
+      begin
+        if FNSList.NSTree.CheckNSCorrect(cds.FieldByName('fileruid').AsString, Error) then
+        begin
+          FNSList.NSTree.SetNSFileName(cds.FieldByName('fileruid').AsString, FLoadFileList);
+        end else
+          Log(Error);
+      end;
+      cds.Next;
     end;
-
   finally
     cds.First;
     cds.EnableControls;
   end;
 
-  if Application.MessageBox(PChar(
-    'Помечено для сохранения в файл ' + IntToStr(SaveCount) + ' ПИ.'#13#10 +
-    'Помечено для загрузки из файла ' + IntToStr(LoadCount) + ' ПИ.'#13#10 +
-    'Продолжить синхронизацию?'),
-    'Внимание',
-    MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES then
+  with TdlgCheckOperation.Create(nil) do
   begin
-    while not cds.EOF do
+    lLoadRecords.Caption := 'Помечено для загрузки из файла ' + IntToStr(FLoadFileList.Count) + ' ПИ.';
+    lSaveRecords.Caption := 'Помечено для сохранения в файл ' + IntToStr(FSaveFileList.Count) + ' ПИ.';
+    if ShowModal = mrOk then
     begin
-      if Pos('>', cds.FieldByName('operation').AsString) = 1 then
-        SaveID(nil, '')
-      else if Pos('<', cds.FieldByName('operation').AsString) = 1 then
-      begin
-        FgdcNamespace.LoadFromFile(cds.FieldByName('filename').AsString);
-      end;
-      cds.Next;
+      Sync := True;
+      AlwaysOverwrite := cbAlwaysOverwrite.Checked;
+      DontRemove := cbDontRemove.Checked;
+      IncVersion := cbIncVersion.Checked;
+    end;
+  end;
+
+  if Sync then
+  begin
+    for I := 0 to FSaveFileList.Count - 1 do
+    begin
+      if cds.Locate('namespacekey', FSaveFileList[I], []) then
+        SaveID(nil, '');
     end;
 
+    FgdcNamespace.InstallPackages(FLoadFileList, AlwaysOverwrite, DontRemove);
     actCompare.Execute;
   end;
 end;
@@ -458,7 +497,8 @@ begin
     or actFLTEqual.Checked
     or actFLTOnlyInFile.Checked
     or actFLTNewer.Checked
-    or actFLTNone.Checked;
+    or actFLTNone.Checked
+    or cbInternal.Checked;
 end;
 
 procedure Tat_frmSyncNamespace.edFilterChange(Sender: TObject);
@@ -468,11 +508,31 @@ end;
 
 procedure Tat_frmSyncNamespace.cdsFilterRecord(DataSet: TDataSet;
   var Accept: Boolean);
-begin
+begin  
   Accept :=
     (cds.FieldByName('operation').AsString = '')
     or
     (
+      cbInternal.Checked
+      and
+      (
+        (
+          (cds.FieldByName('filename').AsString > '')
+          and
+          (cds.FieldByName('fileinternal').AsInteger = 0)
+        )
+        or
+        (
+          (cds.FieldByName('namespacekey').AsInteger > 0)
+          and
+          (cds.FieldByName('namespaceinternal').AsInteger = 0)
+        )
+      )
+    )
+    or
+    (
+      not cbInternal.Checked
+      and
       (
         (edFilter.Text = '')
         or
@@ -526,6 +586,11 @@ end;
 procedure Tat_frmSyncNamespace.actFLTOnlyInDBUpdate(Sender: TObject);
 begin
   (Sender as TAction).Enabled := cds.Filtered or (not cds.IsEmpty);
+end;
+
+procedure Tat_frmSyncNamespace.actFLTInternalExecute(Sender: TObject);
+begin
+  ApplyFilter;
 end;
 
 initialization
