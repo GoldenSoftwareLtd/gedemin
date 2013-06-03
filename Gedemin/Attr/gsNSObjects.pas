@@ -27,6 +27,7 @@ type
     function AddNode(Node: TgsNSTreeNode; yamlNode: TgsNSNode): TgsNSTreeNode;
     function GetTreeNodeByRUID(const ARUID: String): TgsNSTreeNode;
     function GetDependState(const ARUID: String): TgsNSStates;
+    function CheckNSCorrect(const ARUID: String; var AError: String): Boolean;
   end;
 
   TgsNSNode = class(TObject)
@@ -48,6 +49,7 @@ type
     NamespaceName: String;
     NamespaceTimestamp: TDateTime;   
     UsesList: TStringList;
+
 
     constructor Create(const ARUID: String; const AName: String = '');
     destructor Destroy; override;
@@ -75,7 +77,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    function GetAllUsesString: String;
+    function GetAllUsesString: String;  
     procedure GetFilesForPath(const Path: String);
     procedure Clear; override;
     procedure FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
@@ -428,7 +430,7 @@ procedure TgsNSList.GetFilesForPath(const Path: String);
                           (Self.Objects[Ind] as TgsNSNode).Name + '''!');
                     end else
                     begin
-                      Self.AddObject(RUID, TgsNSNode.Create(RUID, Name));
+                      Self.AddObject(RUID, TgsNSNode.Create(RUID, Temps));
                       Obj.UsesList.Add(RUID);
                     end;
                   end;
@@ -653,6 +655,49 @@ begin
       raise Exception.Create('Файл (RUID = ' + NSNode.RUID + ') не найден!')
     else
       SL.Add(NSNode.FileName);
+  end;
+end;
+
+function TgsNSTree.CheckNSCorrect(const ARUID: String; var AError: String): Boolean;
+
+  function CheckNSNode(Node: TgsNSTreeNode): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := True;
+    if Node.YamlNode <> nil then
+    begin
+      if not Node.YamlNode.Valid then
+      begin
+        AError := 'Отсутствует на диске файл пространства имен ''' + Node.YamlNode.Name + '''';
+        Result := False;
+      end else
+      begin
+        for I := 0 to Node.UsesObject.Count - 1 do
+        begin
+          Result := CheckNSNode(Node.UsesObject.Objects[I] as TgsNSTreeNode);
+          if not Result then
+            break;
+        end;
+      end;
+    end;
+  end;
+  
+var
+  Node: TgsNSTreeNode;
+  I: Integer;
+begin
+  Result := True;
+  AError := '';
+  Node := GetTreeNodeByRUID(ARUID);
+  if Node <> nil then
+  begin
+    for I := 0 to Node.UsesObject.Count - 1 do
+    begin
+      Result := CheckNSNode(Node.UsesObject.Objects[I] as TgsNSTreeNode);
+      if not Result then
+        break;
+    end;
   end;
 end;
 

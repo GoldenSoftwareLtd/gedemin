@@ -2925,7 +2925,9 @@ begin
       case NSNode.GetNSState of
         nsUndefined:
         begin
-          if NSNode.VersionInDB > '' then
+          if Pos(';' + NSNode.RUID + ';', TempS) > 0 then
+            ADataSet.FieldByName('operation').AsString := '!'
+          else if NSNode.VersionInDB > '' then
             ADataSet.FieldByName('operation').AsString := '>'
           else
             ADataSet.FieldByName('operation').AsString := '';
@@ -2946,7 +2948,7 @@ begin
         nsEqual:
         begin
           UsesStates := NSList.NSTree.GetDependState(NSNode.RUID);
-          if  nsNewer in UsesStates then
+          if nsNewer in UsesStates then
             ADataSet.FieldByName('operation').AsString := '<='
           else if nsOlder in UsesStates then
              ADataSet.FieldByName('operation').AsString := '=>'
