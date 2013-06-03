@@ -1,6 +1,6 @@
 object dlgSecLogIn2: TdlgSecLogIn2
-  Left = 587
-  Top = 452
+  Left = 549
+  Top = 253
   HelpContext = 39
   ActiveControl = edPassword
   BorderIcons = [biSystemMenu]
@@ -222,8 +222,9 @@ object dlgSecLogIn2: TdlgSecLogIn2
       Top = 27
       Width = 256
       Height = 17
-      Caption = 'Однопользовательский режим подключения'
+      Action = actSingleUser
       TabOrder = 1
+      OnClick = chbxSingleUserClick
     end
     object btnVer: TButton
       Left = 8
@@ -264,6 +265,10 @@ object dlgSecLogIn2: TdlgSecLogIn2
     object actMore: TAction
       Caption = '»'
       OnExecute = actMoreExecute
+    end
+    object actSingleUser: TAction
+      Caption = 'Однопользовательский режим подключения'
+      OnUpdate = actSingleUserUpdate
     end
   end
   object Timer: TTimer
