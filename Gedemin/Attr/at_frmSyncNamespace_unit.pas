@@ -315,6 +315,23 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.SetOperation(AnObj: TObject; const AData: String);
+
+  procedure SetLoadState(Node: TgsNSTreeNode);
+  var
+    I: Integer;
+  begin
+    if Node <> nil then
+    begin
+      if cds.Locate('fileruid', Node.YamlNode.RUID, []) then
+      begin
+        (AnObj as TClientDataSet).Edit;
+        (AnObj as TClientDataSet).FieldByName('operation').AsString := AData;
+        (AnObj as TClientDataSet).Post;
+      end;
+      for I := 0 to Node.UsesObject.Count - 1 do
+        SetLoadState(Node.UsesObject.Objects[I] as TgsNSTreeNode);
+    end;
+  end;
 begin
   Assert(AnObj is TClientDataSet);
   if
@@ -334,9 +351,20 @@ begin
       AData = '  '
     ) then
   begin
-    (AnObj as TClientDataSet).Edit;
-    (AnObj as TClientDataSet).FieldByName('operation').AsString := AData;
-    (AnObj as TClientDataSet).Post;
+    if AData = '<<' then
+    begin
+      (AnObj as TClientDataSet).DisableControls;
+      try
+        SetLoadState(FNSList.NSTree.GetTreeNodeByRUID((AnObj as TClientDataSet).FieldByName('fileruid').AsString))
+      finally
+        (AnObj as TClientDataSet).EnableControls;
+      end;
+    end else
+    begin
+      (AnObj as TClientDataSet).Edit;
+      (AnObj as TClientDataSet).FieldByName('operation').AsString := AData;
+      (AnObj as TClientDataSet).Post;
+    end;
   end;
 end;
 
@@ -415,7 +443,11 @@ begin
         begin
           FNSList.NSTree.SetNSFileName(cds.FieldByName('fileruid').AsString, FLoadFileList);
         end else
-          Log(Error);
+          Application.MessageBox(
+            PChar(Error + #13#10 +
+            'Пространство имен ''' + cds.FieldByName('FileNamespaceName').AsString + ''' не будет загружен.'),
+            'Внимание',
+            MB_ICONERROR or MB_OK or MB_TASKMODAL);
       end;
       cds.Next;
     end;
@@ -484,8 +516,19 @@ begin
 end;
 
 procedure Tat_frmSyncNamespace.actLoadFromFileExecute(Sender: TObject);
+var
+  Error: String;
 begin
-  FgdcNamespace.LoadFromFile(cds.FieldByName('filename').AsString);
+  FLoadFileList.Clear;
+  if FNSList.NSTree.CheckNSCorrect(cds.FieldByName('fileruid').AsString, Error) then
+  begin
+    FNSList.NSTree.SetNSFileName(cds.FieldByName('fileruid').AsString, FLoadFileList);
+  end else
+    Application.MessageBox(
+      PChar(Error + #13#10 +
+      'Пространство имен ''' + cds.FieldByName('FileNamespaceName').AsString + ''' не будет загружен.'),
+      'Внимание',
+      MB_ICONERROR or MB_OK or MB_TASKMODAL);
 end;
 
 procedure Tat_frmSyncNamespace.ApplyFilter;
