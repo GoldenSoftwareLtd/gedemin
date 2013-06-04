@@ -1,6 +1,6 @@
 object dlgToNamespace: TdlgToNamespace
-  Left = 442
-  Top = 165
+  Left = 445
+  Top = 223
   Width = 760
   Height = 542
   Caption = 'Добавление объекта в пространство имен'
@@ -181,9 +181,9 @@ object dlgToNamespace: TdlgToNamespace
     object cbDontRemove: TCheckBox
       Left = 334
       Top = 39
-      Width = 289
+      Width = 331
       Height = 17
-      Caption = 'Не удалять при удалении пространства имен'
+      Caption = 'Не удалять объекты при удалении пространства имен'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -11

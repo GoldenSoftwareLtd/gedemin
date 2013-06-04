@@ -241,7 +241,7 @@ BEGIN
     IF (INSERTING) THEN
     BEGIN
       UPDATE at_object SET objectpos = objectpos + 1
-      WHERE objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey;
+      WHERE objectpos >= NEW.objectpos AND namespacekey = NEW.namespacekey;
     END
 
     IF (UPDATING) THEN

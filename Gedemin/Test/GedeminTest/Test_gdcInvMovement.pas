@@ -136,7 +136,7 @@ begin
   FQ.SQL.Text := 'SELECT * FROM gd_documenttype WHERE ruid = ''147010993_109092844''';
   FQ.ExecQuery;
 
-  Check(not FQ.Eof);
+  Check(not FQ.Eof, 'Document type 147010993_109092844 not found.');
   Obj := TgdcInvDocument.Create(nil);
   try
     Obj.SubType := '147010993_109092844';
@@ -339,6 +339,8 @@ var
 begin
   gdcBaseManager.ExecSingleQueryResult('SELECT id FROM gd_goodgroup where UPPER(name) = UPPER(:name)',
     'ВСЕ ТМЦ', R, FTr);
+
+  Check(VarIsArray(R), 'Отсутствует товарная группа ВСЕ ТМЦ.');
 
   Good := TgdcGood.Create(nil);
   try
