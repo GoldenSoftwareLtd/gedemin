@@ -158,7 +158,7 @@ begin
   FQ.Close;
   FQ.SQL.Text :=
     'select '#13#10 +
-    '  s.id '#13#10 +
+    '  s.alias '#13#10 +
     'from '#13#10 +
     '  ac_account s left join '#13#10 +
     '    ac_account a on s.parent = a.id and position(a.alias in s.alias) = 1 '#13#10 +

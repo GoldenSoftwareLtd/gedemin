@@ -298,8 +298,10 @@ begin
             '  JOIN gd_ruid ruid ON ruid.id = r.id'#13#10 +
             '  LEFT JOIN at_object o ON o.xid = ruid.xid AND o.dbid = ruid.dbid'#13#10 +
             'WHERE '#13#10 +
-            '  (r.editiondate IS NULL OR r.editiondate BETWEEN :DB AND :DE)'#13#10 +
-            '  AND (o.id IS NULL)'#13#10;
+            '  (o.id IS NULL)'#13#10;
+          if gsPeriodEdit.Text > '' then
+            S := S +
+            '  AND (r.editiondate IS NULL OR r.editiondate BETWEEN :DB AND :DE)'#13#10;
       end;
     end;
 
@@ -307,8 +309,11 @@ begin
   ibds.SelectSQL.Text := S;
   if S > '' then
   begin
-    ibds.ParamByName('DB').AsDateTime := gsPeriodEdit.Date;
-    ibds.ParamByName('DE').AsDateTime := gsPeriodEdit.EndDate;
+    if gsPeriodEdit.Text > '' then
+    begin
+      ibds.ParamByName('DB').AsDateTime := gsPeriodEdit.Date;
+      ibds.ParamByName('DE').AsDateTime := gsPeriodEdit.EndDate + 1;
+    end;  
     ibds.Open;
   end;
 end;

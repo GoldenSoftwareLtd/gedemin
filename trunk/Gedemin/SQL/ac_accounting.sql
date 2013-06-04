@@ -834,16 +834,12 @@ CREATE OR ALTER TRIGGER ac_tc_record
   POSITION 9000
 AS
   DECLARE VARIABLE S VARCHAR(255);
-  /*
   DECLARE VARIABLE ID INTEGER;
   DECLARE VARIABLE STM VARCHAR(512);
-  */
 BEGIN
   S = RDB$GET_CONTEXT('USER_TRANSACTION', 'AC_RECORD_INCORRECT');
   IF (:S IS NOT NULL) THEN
   BEGIN
-    EXCEPTION ac_e_invalidentry 'Попытка сохранить некорректную проводку с ИД: ' || :S;
-    /*
     STM =
       'SELECT r.id FROM ac_record r LEFT JOIN ac_entry e ' ||
       '  ON e.recordkey = r.id LEFT JOIN ac_account a ON a.id = e.accountkey ' ||
@@ -856,9 +852,11 @@ BEGIN
 
     FOR EXECUTE STATEMENT (:STM) INTO :ID
     DO BEGIN
+      EXCEPTION ac_e_invalidentry 'Попытка сохранить некорректную проводку с ИД: ' || :ID;
+      /*
       EXECUTE STATEMENT ('DELETE FROM ac_record WHERE id=' || :ID);
+      */
     END
-    */
   END
 END
 ^
