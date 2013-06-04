@@ -674,7 +674,7 @@ function TgsNSTree.CheckNSCorrect(const ARUID: String; var AError: String): Bool
     begin
       if not Node.YamlNode.Valid then
       begin
-        AError := 'Отсутствует на диске файл пространства имен ''' + Node.YamlNode.Name + '''';
+        AError := 'Отсутствует на диске файл пространства имен ''' + Node.YamlNode.Name + '''.';
         Result := False;
       end else
       begin
