@@ -18,7 +18,6 @@ inherited gdc_dlgNamespace: Tgdc_dlgNamespace
   inherited btnOK: TButton
     Left = 412
     Top = 370
-    Default = False
   end
   inherited btnCancel: TButton
     Left = 484
