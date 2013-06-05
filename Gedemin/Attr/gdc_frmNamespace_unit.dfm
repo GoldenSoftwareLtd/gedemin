@@ -20,9 +20,6 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       object TBItem2: TTBItem
         Action = actCompareWithData
       end
-      object TBItem5: TTBItem
-        Action = actLoadPack
-      end
       object TBItem3: TTBItem
         Action = actShowDuplicates
       end
@@ -123,12 +120,6 @@ inherited gdc_frmNamespace: Tgdc_frmNamespace
       ImageIndex = 203
       OnExecute = actShowRecursionExecute
       OnUpdate = actShowRecursionUpdate
-    end
-    object actLoadPack: TAction
-      Caption = 'Установить пакеты'
-      Hint = 'Установить пакеты'
-      ImageIndex = 80
-      OnExecute = actLoadPackExecute
     end
     object actNSObjects: TAction
       Caption = 'Список объектов'

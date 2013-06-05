@@ -83,7 +83,7 @@ type
     function GetAllUsesString: String;  
     procedure GetFilesForPath(const Path: String);
     procedure Clear; override;
-    procedure FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
+    procedure FillTree(ATreeView: TgsTreeView);
     procedure GetAllUses(const RUID: String; SL: TStringList);
     property Log: TNSLog read FLog write FLog;
     property NSTree: TgsNSTree read FNSTree;
@@ -281,8 +281,7 @@ begin
             if (Ind > - 1) and (not (Objects[Ind] as TgsNSNode).Valid) then
               SL.Add(q.Fields[4].AsString);
           end;
-        end else
-          SL.Add(N.RUID);
+        end;
       end;
     end;
 
@@ -517,7 +516,7 @@ begin
   end;
 end;
 
-procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
+procedure TgsNSList.FillTree(ATreeView: TgsTreeView);
 
   procedure AddNode(Node: TTreeNode; yamlNode: TgsNSNode);
   var
@@ -554,64 +553,11 @@ procedure TgsNSList.FillTree(ATreeView: TgsTreeView; AnInternal: Boolean);
   end;
 
 var
-  I{, K}: Integer;
-//  Link: Boolean;
- // Parent: TList;
-  Temp: TTreeNode;
- // NSTree: TgsNSTree;
+  I: Integer; 
 begin
   Assert(ATreeView <> nil);
-  FErrorNS.Clear;
-
-  if not AnInternal then
-  begin
-    for I := 0 to Count - 1 do
-    begin
-      if not (Objects[I] as TgsNSNode).CheckOnlyInDB
-        and (Objects[I] as TgsNSNode).Valid
-        and (not (Objects[I] as TgsNSNode).Internal) then
-      begin
-        CorrectPack((Objects[I] as TgsNSNode).RUID);
-        Temp := ATreeView.Items.AddChildObject(nil,
-          (Objects[I] as TgsNSNode).Name,
-          Objects[I] as TgsNSNode);
-        Temp.StateIndex := 2;
-      end;
-    end;
-  end else
-  begin
-
-    {Parent := TList.Create;
-    try
-      for I := 0 to Count - 1 do
-      begin
-        if (Objects[I] as TgsNSNode).CheckOnlyInDB then
-          continue;
-        Link := False;
-        for K := 0 to Count - 1 do
-        begin
-          if (I <> K) and
-            ((Objects[K] as TgsNSNode).UsesList.IndexOf(Strings[I]) > -1)
-          then
-          begin
-            Link := True;
-            break;
-          end;
-        end;
-
-        if not Link then
-          Parent.Add(Objects[I]);
-      end; }
-
-      for I := 0 to FNSTree.Count - 1 do
-        AddNode(nil, (FNSTree.Objects[I] as TgsNSTreeNode).yamlNode);
-;
-     // for I := 0 to Parent.Count - 1 do
-       // AddNode(nil, TgsNSNode(Parent[I]));
-    //finally
-   //   Parent.Free;
-   // end;
-  end;  
+  for I := 0 to FNSTree.Count - 1 do
+    AddNode(nil, (FNSTree.Objects[I] as TgsNSTreeNode).yamlNode);  
 end;
 
 procedure TgsNSList.CorrectPack(const ARUID: String);
