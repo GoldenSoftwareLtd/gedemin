@@ -428,6 +428,7 @@ begin
   Sync := False;
   AlwaysOverwrite := False;
   DontRemove := False;
+  IncVersion := False;
   cds.DisableControls;
   try
     cds.First;
@@ -471,6 +472,7 @@ begin
 
   if Sync then
   begin
+    FgdcNamespace.IncBuildVersion := IncVersion;
     for I := 0 to FSaveFileList.Count - 1 do
     begin
       if cds.Locate('namespacekey', FSaveFileList[I], []) then

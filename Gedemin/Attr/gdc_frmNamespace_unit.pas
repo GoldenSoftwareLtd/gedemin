@@ -50,7 +50,7 @@ implementation
 
 uses
   gd_ClassList, at_frmDuplicates_unit, at_frmNSRecursion_unit,
-  at_frmNSObjects_unit;
+  at_frmNSObjects_unit, at_frmSyncNamespace_unit;
 
 procedure Tgdc_frmNamespace.FormCreate(Sender: TObject);
 begin
@@ -134,7 +134,11 @@ end;
 procedure Tgdc_frmNamespace.actNSObjectsExecute(Sender: TObject);
 begin
   with Tat_frmNSObjects.Create(nil) do
-    Show;
+  try
+    ShowModal;
+  finally
+    Free;
+  end;
 end;
 
 procedure Tgdc_frmNamespace.actNSObjectsUpdate(Sender: TObject);
@@ -145,7 +149,9 @@ end;
 
 procedure Tgdc_frmNamespace.actLoadFromFileExecute(Sender: TObject);
 begin
-  (gdcObject as TgdcNamespace).LoadFromFile;
+  with Tat_frmSyncNamespace.Create(nil) do
+    ShowModal;
+ // (gdcObject as TgdcNamespace).LoadFromFile;
 end;
 
 initialization
