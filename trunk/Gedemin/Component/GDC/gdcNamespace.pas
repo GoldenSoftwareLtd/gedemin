@@ -93,7 +93,7 @@ uses
   jclUnicode, at_frmSyncNamespace_unit, jclFileUtils, gd_directories_const,
   gd_FileList_unit, gdcClasses, at_sql_metadata, gdcConstants, at_frmSQLProcess,
   Graphics, IBErrorCodes, Storages, gdcMetadata, at_sql_setup, gsDesktopManager,
-  at_dlgLoadNamespacePackages_unit, at_Classes_body, dbclient, at_dlgCompareNSRecords_unit;
+  at_Classes_body, dbclient, at_dlgCompareNSRecords_unit;
 
 type
   TNSFound = (nsfNone, nsfByName, nsfByRUID);
@@ -3010,39 +3010,11 @@ end;
 
 procedure TgdcNamespace.InstallPackages(ANSList: TStringList;
   const AnAlwaysoverwrite: Boolean = False; const ADontremove: Boolean = False);
-var
-  AlwaysOverwrite, DontRemove, NSListCreated: Boolean;
 begin
-  AlwaysOverwrite := AnAlwaysoverwrite;
-  DontRemove := ADontremove;
-  if ANSList = nil then
-  begin
-    ANSList := TStringList.Create;
-    NSListCreated := True;
-  end else
-    NSListCreated := False;
-  try
-    if NSListCreated then
-    begin
-      with Tat_dlgLoadNamespacePackages.Create(nil) do
-      try
-        if ShowModal = mrOk then
-        begin
-          SetFileList(ANSList);
-          AlwaysOverwrite := cbAlwaysOverwrite.Checked;
-          DontRemove := cbDontRemove.Checked;
-        end;
-      finally
-        Free;
-      end;
-    end;
+  Assert(ANSList <> nil);
 
-    if ANSList.Count > 0 then
-      DoLoadNamespace(ANSList, AlwaysOverwrite, DontRemove);
-  finally
-    if NSListCreated then
-      ANSList.Free;
-  end;
+  if ANSList.Count > 0 then
+    DoLoadNamespace(ANSList, AnAlwaysOverwrite, ADontRemove);
 end;
 
 class procedure TgdcNamespace.SetNamespaceForObject(AnObject: TgdcBase; ANSL: TgdKeyStringAssoc; ATr: TIBTransaction = nil);

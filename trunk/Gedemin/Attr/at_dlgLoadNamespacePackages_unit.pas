@@ -28,7 +28,6 @@ type
     btnClose: TButton;
     cbAlwaysOverwrite: TCheckBox;
     cbDontRemove: TCheckBox;
-    cbInternal: TCheckBox;
     GroupBox1: TGroupBox;
     lblLegendNotInstalled: TLabel;
     lblLegendNewer: TLabel;
@@ -40,8 +39,6 @@ type
       Node: TTreeNode; State: TCustomDrawState; Stage: TCustomDrawStage;
       var PaintImages, DefaultDraw: Boolean);
     procedure gsTreeViewClick(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
-
   private
     FgdcNamespace: TgdcNamespace;
     FOldWndProc: TWndMethod;
@@ -56,7 +53,6 @@ type
 
     procedure SaveSettings; override;
     procedure LoadSettingsAfterCreate; override;
-    procedure SetFileList(SL: TStringList);
   end;
 
 var
@@ -89,24 +85,6 @@ begin
   inherited;
 end;
 
-procedure Tat_dlgLoadNamespacePackages.SetFileList(SL: TStringList);
-var
-  I: Integer;
-begin
-  Assert(SL <> nil);
-
-  for I := gsTreeView.Items.Count - 1 downto 0 do
-  begin
-    if gsTreeView.Items[I].StateIndex = 1 then
-    begin
-      if cbInternal.Checked then
-        List.GetAllUses(TgsNSNode(gsTreeView.Items[I].Data).RUID, SL)
-      else
-        SL.Add(TgsNSNode(gsTreeView.Items[I].Data).FileName);
-    end;
-  end;  
-end;
-
 procedure Tat_dlgLoadNamespacePackages.Log(const AMessage: string);
 begin
   mInfo.Lines.Add(AMessage);
@@ -126,7 +104,7 @@ begin
     gsTreeView.Items.BeginUpdate;
     try
       gsTreeView.Items.Clear;
-      List.FillTree(gsTreeView, not cbInternal.Checked);
+      List.FillTree(gsTreeView);
     finally
       gsTreeView.Items.EndUpdate;
     end;
@@ -230,21 +208,9 @@ begin
     TgsNSNode(Node.Data).FillInfo(mInfo.Lines);
 end;
 
-procedure Tat_dlgLoadNamespacePackages.Button1Click(Sender: TObject);
-var
-  SL: TStringList;
-begin
-  SL := TStringList.Create;
-  try
-    SetFileList(SL);  
-  finally
-    SL.Free;
-  end;
-end;
-
-initialization
+initialization  
   RegisterClass(Tat_dlgLoadNamespacePackages);
 
 finalization
-  UnRegisterClass(Tat_dlgLoadNamespacePackages); 
+  UnRegisterClass(Tat_dlgLoadNamespacePackages);
 end.

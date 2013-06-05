@@ -20,8 +20,6 @@ type
     TBItem3: TTBItem;
     actShowRecursion: TAction;
     TBItem4: TTBItem;
-    actLoadPack: TAction;
-    TBItem5: TTBItem;
     actNSObjects: TAction;
     TBItem6: TTBItem;
     procedure FormCreate(Sender: TObject);
@@ -34,7 +32,6 @@ type
     procedure actShowRecursionExecute(Sender: TObject);
     procedure actShowRecursionUpdate(Sender: TObject);
     procedure actShowDuplicatesUpdate(Sender: TObject);
-    procedure actLoadPackExecute(Sender: TObject);
     procedure actNSObjectsExecute(Sender: TObject);
     procedure actNSObjectsUpdate(Sender: TObject);
     procedure actLoadFromFileExecute(Sender: TObject);
@@ -124,11 +121,6 @@ begin
   actShowDuplicates.Enabled := (gdcObject <> nil)
     and (gdcObject.State = dsBrowse)
     and (not gdcObject.EOF);
-end;
-
-procedure Tgdc_frmNamespace.actLoadPackExecute(Sender: TObject);
-begin
-  (gdcObject as TgdcNamespace).InstallPackages(nil);
 end;
 
 procedure Tgdc_frmNamespace.actNSObjectsExecute(Sender: TObject);

@@ -86,21 +86,11 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
       TabOrder = 0
     end
     object btnSearch: TButton
-      Left = 507
+      Left = 398
       Top = 7
       Width = 73
       Height = 21
       Action = actSearch
-      TabOrder = 2
-    end
-    object cbInternal: TCheckBox
-      Left = 402
-      Top = 10
-      Width = 101
-      Height = 17
-      Caption = 'Только пакеты'
-      Checked = True
-      State = cbChecked
       TabOrder = 1
     end
   end
@@ -138,7 +128,7 @@ object at_dlgLoadNamespacePackages: Tat_dlgLoadNamespacePackages
         Top = 144
         Width = 81
         Height = 21
-        Caption = 'Установить'
+        Caption = 'ОК'
         ModalResult = 1
         TabOrder = 3
       end
