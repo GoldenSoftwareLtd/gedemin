@@ -16,6 +16,7 @@ procedure MoveSubObjects(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddUqConstraintToGD_RUID2(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddCurrModified(IBDB: TIBDatabase; Log: TModifyLog);
 procedure AddEditionDate(IBDB: TIBDatabase; Log: TModifyLog);
+procedure CorrectNSTriggers(IBDB: TIBDatabase; Log: TModifyLog);
 
 implementation
 
@@ -148,45 +149,11 @@ begin
           '  CONSTRAINT at_fk_object_headobjectkey FOREIGN KEY (headobjectkey)'#13#10 +
           '    REFERENCES at_object (id)'#13#10 +
           '    ON DELETE CASCADE'#13#10 +
-          '    ON UPDATE CASCADE'#13#10 +
+          '    ON UPDATE CASCADE,'#13#10 +
+          '  CONSTRAINT at_chk_object_hk CHECK (headobjectkey IS DISTINCT FROM id) '#13#10 +
           ')';
         q.ExecQuery;
       end;
-
-      q.SQL.Text :=
-        'CREATE OR ALTER TRIGGER at_biu_object FOR at_object'#13#10 +
-        '  ACTIVE'#13#10 +
-        '  BEFORE INSERT OR UPDATE'#13#10 +
-        '  POSITION 0'#13#10 +
-        'AS'#13#10 +
-        'BEGIN'#13#10 +
-        '  IF (NEW.id IS NULL) THEN'#13#10 +
-        '    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);'#13#10 +
-        ''#13#10 +
-        '  IF (NEW.objectpos IS NULL) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '    SELECT MAX(objectpos) + 1'#13#10 +
-        '    FROM at_object'#13#10 +
-        '    WHERE namespacekey = NEW.namespacekey'#13#10 +
-        '    INTO NEW.objectpos;'#13#10 +
-        ''#13#10 +
-        '    IF (NEW.objectpos IS NULL) THEN'#13#10 +
-        '      NEW.objectpos = 0;'#13#10 +
-        '  END ELSE'#13#10 +
-        '  IF (INSERTING) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '    UPDATE at_object SET objectpos = objectpos + 1'#13#10 +
-        '    WHERE objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey;'#13#10 +
-        '  END'#13#10 +
-        ''#13#10 +
-        '  IF (UPDATING) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '    IF (NEW.namespacekey <> OLD.namespacekey) THEN'#13#10 +
-        '      UPDATE at_object SET namespacekey = NEW.namespacekey'#13#10 +
-        '      WHERE headobjectkey = NEW.id;'#13#10 +
-        '  END'#13#10 +
-        'END';
-      q.ExecQuery;
 
       if not RelationExist2('at_namespace_link', Tr) then
       begin
@@ -618,51 +585,7 @@ begin
     try
       DropConstraint2('at_object', 'at_fk_object_ruid', Tr);
 
-      q.ParamCheck := False;
       q.Transaction := Tr;
-
-      q.SQL.Text :=
-        'CREATE OR ALTER TRIGGER at_biu_object FOR at_object'#13#10 +
-        '  ACTIVE'#13#10 +
-        '  BEFORE INSERT OR UPDATE'#13#10 +
-        '  POSITION 0'#13#10 +
-        'AS'#13#10 +
-        'BEGIN'#13#10 +
-        '  IF (NEW.id IS NULL) THEN'#13#10 +
-        '    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);'#13#10 +
-        ''#13#10 +
-        '  IF ((NEW.xid < 147000000 AND NEW.dbid = 17) OR EXISTS(SELECT * FROM gd_ruid'#13#10 +
-        '    WHERE xid = NEW.xid AND dbid = NEW.dbid)) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '    IF (NEW.objectpos IS NULL) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      SELECT MAX(objectpos) + 1'#13#10 +
-        '      FROM at_object'#13#10 +
-        '      WHERE namespacekey = NEW.namespacekey'#13#10 +
-        '      INTO NEW.objectpos;'#13#10 +
-        ''#13#10 +
-        '      IF (NEW.objectpos IS NULL) THEN'#13#10 +
-        '        NEW.objectpos = 0;'#13#10 +
-        '    END ELSE'#13#10 +
-        '    IF (INSERTING) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      UPDATE at_object SET objectpos = objectpos + 1'#13#10 +
-        '      WHERE objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey;'#13#10 +
-        '    END'#13#10 +
-        ''#13#10 +
-        '    IF (UPDATING) THEN'#13#10 +
-        '    BEGIN'#13#10 +
-        '      IF (NEW.namespacekey <> OLD.namespacekey) THEN'#13#10 +
-        '        UPDATE at_object SET namespacekey = NEW.namespacekey'#13#10 +
-        '        WHERE headobjectkey = NEW.id;'#13#10 +
-        '    END'#13#10 +
-        '  END ELSE'#13#10 +
-        '    EXCEPTION gd_e_invalid_ruid ''Invalid ruid. XID = '' ||'#13#10 +
-        '      NEW.xid || '', DBID = '' || NEW.dbid || ''.'';'#13#10 +
-        'END';
-      q.ExecQuery;
-
-      q.Close;
       q.SQL.Text :=
         'UPDATE OR INSERT INTO fin_versioninfo ' +
         '  VALUES (167, ''0000.0001.0000.0198'', ''14.05.2013'', ''Drop FK to gd_ruid in at_object.'') ' +
@@ -705,22 +628,6 @@ begin
         q.SQL.Text := 'ALTER TABLE at_object ADD modified TIMESTAMP';
         q.ExecQuery;
       end;
-
-      q.SQL.Text :=
-        'CREATE OR ALTER TRIGGER at_aiu_object FOR at_object'#13#10 +
-        '  ACTIVE'#13#10 +
-        '  AFTER INSERT OR UPDATE'#13#10 +
-        '  POSITION 0'#13#10 +
-        'AS'#13#10 +
-        'BEGIN'#13#10 +
-        '  IF (NEW.namespacekey IS DISTINCT FROM OLD.namespacekey) THEN'#13#10 +
-        '  BEGIN'#13#10 +
-        '    UPDATE at_object SET namespacekey = NEW.namespacekey, objectpos = NULL'#13#10 +
-        '      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id'#13#10 +
-        '      ORDER BY objectpos;'#13#10 +
-        '  END'#13#10 +
-        'END';
-      q.ExecQuery;
 
       DropConstraint2('at_object', 'at_uk_object', Tr);
 
@@ -923,7 +830,7 @@ begin
   end;
 end;
 
-procedure ChangeEntryTriggers(IBDB: TIBDatabase; Log: TModifyLog);
+procedure CorrectNSTriggers(IBDB: TIBDatabase; Log: TModifyLog);
 var
   q: TIBSQL;
   Tr: TIBTransaction;
@@ -938,13 +845,178 @@ begin
       q.ParamCheck := False;
       q.Transaction := Tr;
 
-(*
-INSERT INTO gd_command
-  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED)
-VALUES
-  (741115,740400,'Индексы','gdcIndex',0,NULL,206,NULL,'TgdcIndex',NULL,1,1,1,0,NULL);
-*) 
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO gd_command ' +
+        '  (ID,PARENT,NAME,CMD,CMDTYPE,HOTKEY,IMGINDEX,ORDR,CLASSNAME,SUBTYPE,AVIEW,ACHAG,AFULL,DISABLED,RESERVED) ' +
+        'VALUES ' +
+        '  (741115,740400,''Индексы'',''gdcIndex'',0,NULL,206,NULL,''TgdcIndex'',NULL,1,1,1,0,NULL) ' +
+        'MATCHING (id) ';
+      q.ExecQuery;
 
+      CreateException2('gd_e_exception', 'General exception', Tr);
+
+      DropTrigger2('at_biu_object', Tr);
+      DropTrigger2('at_aiu_object', Tr);
+
+      if not ConstraintExist2('at_object', 'at_chk_object_hk', Tr) then
+      begin
+        q.SQL.Text :=
+          'ALTER TABLE at_object ADD CONSTRAINT at_chk_object_hk CHECK (headobjectkey IS DISTINCT FROM id)';
+        q.ExecQuery;
+      end;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER at_bi_object FOR at_object'#13#10 +
+        '  ACTIVE'#13#10 +
+        '  BEFORE INSERT'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF (NEW.id IS NULL) THEN '#13#10 +
+        '    NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);'#13#10 +
+        ''#13#10 +
+        '  IF ((NEW.xid < 147000000 AND NEW.dbid <> 17) OR'#13#10 +
+        '    (NEW.xid >= 147000000 AND NOT EXISTS(SELECT * FROM gd_ruid WHERE xid = NEW.xid AND dbid = NEW.dbid))) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    EXCEPTION gd_e_invalid_ruid ''Invalid ruid. XID = '' ||'#13#10 +
+        '      NEW.xid || '', DBID = '' || NEW.dbid || ''.'';'#13#10 +
+        '  END'#13#10 +
+        ''#13#10 +
+        '  IF (NEW.objectpos IS NULL) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    SELECT MAX(objectpos)'#13#10 +
+        '    FROM at_object'#13#10 +
+        '    WHERE namespacekey = NEW.namespacekey'#13#10 +
+        '    INTO NEW.objectpos;'#13#10 +
+        '    NEW.objectpos = COALESCE(NEW.objectpos, 0) + 1;'#13#10 +
+        '  END ELSE'#13#10 +
+        '  BEGIN'#13#10 +
+        '    UPDATE at_object SET objectpos = objectpos + 1'#13#10 +
+        '    WHERE objectpos >= NEW.objectpos AND namespacekey = NEW.namespacekey;'#13#10 +
+        '  END'#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER at_bu_object FOR at_object'#13#10 +
+        '  ACTIVE'#13#10 +
+        '  BEFORE UPDATE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        '  DECLARE VARIABLE depend_id dintkey;'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF ((NEW.xid < 147000000 AND NEW.dbid <> 17) OR'#13#10 +
+        '    (NEW.xid >= 147000000 AND NOT EXISTS(SELECT * FROM gd_ruid WHERE xid = NEW.xid AND dbid = NEW.dbid))) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    EXCEPTION gd_e_invalid_ruid ''Invalid ruid. XID = '' ||'#13#10 +
+        '      NEW.xid || '', DBID = '' || NEW.dbid || ''.'';'#13#10 +
+        '  END'#13#10 +
+        ''#13#10 +
+        '  IF (NEW.namespacekey <> OLD.namespacekey) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK'','#13#10 +
+        '      COALESCE(CAST(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK'') AS INTEGER), 0) + 1);'#13#10 +
+        ''#13#10 +
+        '    FOR'#13#10 +
+        '      SELECT id'#13#10 +
+        '      FROM at_object'#13#10 +
+        '      WHERE headobjectkey = NEW.id AND objectpos <= OLD.objectpos'#13#10 +
+        '      ORDER BY objectpos'#13#10 +
+        '      INTO :depend_id'#13#10 +
+        '    DO BEGIN'#13#10 +
+        '      UPDATE at_object SET namespacekey = NEW.namespacekey'#13#10 +
+        '        WHERE id = :depend_id;'#13#10 +
+        '    END'#13#10 +
+        ''#13#10 +
+        '    SELECT MAX(objectpos)'#13#10 +
+        '    FROM at_object'#13#10 +
+        '    WHERE namespacekey = NEW.namespacekey'#13#10 +
+        '    INTO NEW.objectpos;'#13#10 +
+        '    NEW.objectpos = COALESCE(NEW.objectpos, 0) + 1;'#13#10 +
+        ''#13#10 +
+        '    FOR'#13#10 +
+        '      SELECT id'#13#10 +
+        '      FROM at_object'#13#10 +
+        '      WHERE headobjectkey = NEW.id AND objectpos > OLD.objectpos'#13#10 +
+        '      ORDER BY objectpos'#13#10 +
+        '      INTO :depend_id'#13#10 +
+        '    DO BEGIN'#13#10 +
+        '      UPDATE at_object SET namespacekey = NEW.namespacekey'#13#10 +
+        '        WHERE id = :depend_id;'#13#10 +
+        '    END'#13#10 +
+        ''#13#10 +
+        '    RDB$SET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK'','#13#10 +
+        '      CAST(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK'') AS INTEGER) - 1);'#13#10 +
+        '  END'#13#10 +
+        '  ELSE IF (NEW.objectpos IS NULL) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    SELECT MAX(objectpos)'#13#10 +
+        '    FROM at_object'#13#10 +
+        '    WHERE namespacekey = NEW.namespacekey'#13#10 +
+        '    INTO NEW.objectpos;'#13#10 +
+        '    NEW.objectpos = COALESCE(NEW.objectpos, 0) + 1;'#13#10 +
+        '  END'#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.SQL.Text :=
+        'CREATE OR ALTER TRIGGER at_au_object FOR at_object'#13#10 +
+        '  ACTIVE'#13#10 +
+        '  AFTER UPDATE'#13#10 +
+        '  POSITION 0'#13#10 +
+        'AS'#13#10 +
+        'BEGIN'#13#10 +
+        '  IF (NEW.namespacekey <> OLD.namespacekey) THEN'#13#10 +
+        '  BEGIN'#13#10 +
+        '    IF (COALESCE(RDB$GET_CONTEXT(''USER_TRANSACTION'', ''AT_OBJECT_LOCK''), 0) = 0) THEN'#13#10 +
+        '    BEGIN'#13#10 +
+        '      IF (EXISTS(SELECT * FROM at_object WHERE id = NEW.headobjectkey'#13#10 +
+        '        AND namespacekey <> NEW.namespacekey)) THEN'#13#10 +
+        '      BEGIN'#13#10 +
+        '        EXCEPTION gd_e_exception ''Нельзя перемещать подчиненный объект.'';'#13#10 +
+        '      END'#13#10 +
+        '    END  '#13#10 +
+        '  END'#13#10 +
+        'END';
+      q.ExecQuery;
+
+      q.Close;
+      q.SQL.Text :=
+        'UPDATE OR INSERT INTO fin_versioninfo ' +
+        '  VALUES (174, ''0000.0001.0000.0205'', ''05.06.2013'', ''Corrections for NS triggers.'') ' +
+        '  MATCHING (id)';
+      q.ExecQuery;
+
+      Tr.Commit;
+    except
+      on E: Exception do
+      begin
+        Log('Произошла ошибка: ' + E.Message);
+        if Tr.InTransaction then
+          Tr.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    q.Free;
+    Tr.Free;
+  end;
+end;
+
+procedure ChangeEntryTriggers(IBDB: TIBDatabase; Log: TModifyLog);
+var
+  q: TIBSQL;
+  Tr: TIBTransaction;
+begin
+  Tr := TIBTransaction.Create(nil);
+  q := TIBSQL.Create(nil);
+  try
+    Tr.DefaultDatabase := IBDB;
+    Tr.StartTransaction;
+
+    try
+      q.ParamCheck := False;
+      q.Transaction := Tr;
 
       q.Close;
       q.SQL.Text :=

@@ -32,4 +32,6 @@ CREATE EXCEPTION gd_e_block 'Period zablokirovan!';
 
 CREATE EXCEPTION tree_e_invalid_parent 'Invalid parent specified';
 
+CREATE EXCEPTION gd_e_exception 'General exception!';
+
 COMMIT;

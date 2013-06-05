@@ -48,6 +48,8 @@ CREATE EXCEPTION gd_e_block 'Period zablokirovan!';
 
 CREATE EXCEPTION tree_e_invalid_parent 'Invalid parent specified';
 
+CREATE EXCEPTION gd_e_exception 'General exception!';
+
 COMMIT;
 
 /*********************************************************/
@@ -1355,6 +1357,9 @@ INSERT INTO fin_versioninfo
 
 INSERT INTO fin_versioninfo
   VALUES (173, '0000.0001.0000.0204', '20.05.2013', 'Missed editiondate fields added.');
+
+INSERT INTO fin_versioninfo
+  VALUES (174, '0000.0001.0000.0205', '05.06.2013', 'Corrections for NS triggers.');
 
 COMMIT;
 
@@ -16337,62 +16342,120 @@ CREATE TABLE at_object (
   CONSTRAINT at_fk_object_headobjectkey FOREIGN KEY (headobjectkey)
     REFERENCES at_object (id)
     ON DELETE CASCADE
-    ON UPDATE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT at_chk_object_hk CHECK (headobjectkey IS DISTINCT FROM id)
 );
 
 SET TERM ^ ;
 
-CREATE OR ALTER TRIGGER at_biu_object FOR at_object
+CREATE OR ALTER TRIGGER at_bi_object FOR at_object
   ACTIVE
-  BEFORE INSERT OR UPDATE
+  BEFORE INSERT
   POSITION 0
 AS
 BEGIN
   IF (NEW.id IS NULL) THEN
     NEW.id = GEN_ID(gd_g_offset, 0) + GEN_ID(gd_g_unique, 1);
 
-  IF ((NEW.xid < 147000000 AND NEW.dbid = 17) OR EXISTS(SELECT * FROM gd_ruid
-    WHERE xid = NEW.xid AND dbid = NEW.dbid)) THEN
+  IF ((NEW.xid < 147000000 AND NEW.dbid <> 17) OR
+    (NEW.xid >= 147000000 AND NOT EXISTS(SELECT * FROM gd_ruid WHERE xid = NEW.xid AND dbid = NEW.dbid))) THEN
   BEGIN
-    IF (NEW.objectpos IS NULL) THEN
-    BEGIN
-      SELECT MAX(objectpos) + 1
-      FROM at_object
-      WHERE namespacekey = NEW.namespacekey
-      INTO NEW.objectpos;
-
-      IF (NEW.objectpos IS NULL) THEN
-        NEW.objectpos = 0;
-    END ELSE
-    IF (INSERTING) THEN
-    BEGIN
-      UPDATE at_object SET objectpos = objectpos + 1
-      WHERE objectpos >= NEW.objectpos and namespacekey = NEW.namespacekey;
-    END
-
-    IF (UPDATING) THEN
-    BEGIN
-      IF (NEW.namespacekey <> OLD.namespacekey) THEN
-        UPDATE at_object SET namespacekey = NEW.namespacekey
-        WHERE headobjectkey = NEW.id;
-    END
-  END ELSE
     EXCEPTION gd_e_invalid_ruid 'Invalid ruid. XID = ' ||
       NEW.xid || ', DBID = ' || NEW.dbid || '.';
+  END
+
+  IF (NEW.objectpos IS NULL) THEN
+  BEGIN
+    SELECT MAX(objectpos)
+    FROM at_object
+    WHERE namespacekey = NEW.namespacekey
+    INTO NEW.objectpos;
+    NEW.objectpos = COALESCE(NEW.objectpos, 0) + 1;
+  END ELSE
+  BEGIN
+    UPDATE at_object SET objectpos = objectpos + 1
+    WHERE objectpos >= NEW.objectpos AND namespacekey = NEW.namespacekey;
+  END
 END
 ^
 
-CREATE OR ALTER TRIGGER at_aiu_object FOR at_object
+CREATE OR ALTER TRIGGER at_bu_object FOR at_object
   ACTIVE
-  AFTER INSERT OR UPDATE
+  BEFORE UPDATE
+  POSITION 0
+AS
+  DECLARE VARIABLE depend_id dintkey;
+BEGIN
+  IF ((NEW.xid < 147000000 AND NEW.dbid <> 17) OR
+    (NEW.xid >= 147000000 AND NOT EXISTS(SELECT * FROM gd_ruid WHERE xid = NEW.xid AND dbid = NEW.dbid))) THEN
+  BEGIN
+    EXCEPTION gd_e_invalid_ruid 'Invalid ruid. XID = ' ||
+      NEW.xid || ', DBID = ' || NEW.dbid || '.';
+  END
+
+  IF (NEW.namespacekey <> OLD.namespacekey) THEN
+  BEGIN
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AT_OBJECT_LOCK',
+      COALESCE(CAST(RDB$GET_CONTEXT('USER_TRANSACTION', 'AT_OBJECT_LOCK') AS INTEGER), 0) + 1);
+
+    FOR
+      SELECT id
+      FROM at_object
+      WHERE headobjectkey = NEW.id AND objectpos <= OLD.objectpos
+      ORDER BY objectpos
+      INTO :depend_id
+    DO BEGIN
+      UPDATE at_object SET namespacekey = NEW.namespacekey
+        WHERE id = :depend_id;
+    END
+
+    SELECT MAX(objectpos)
+    FROM at_object
+    WHERE namespacekey = NEW.namespacekey
+    INTO NEW.objectpos;
+    NEW.objectpos = COALESCE(NEW.objectpos, 0) + 1;
+
+    FOR
+      SELECT id
+      FROM at_object
+      WHERE headobjectkey = NEW.id AND objectpos > OLD.objectpos
+      ORDER BY objectpos
+      INTO :depend_id
+    DO BEGIN
+      UPDATE at_object SET namespacekey = NEW.namespacekey
+        WHERE id = :depend_id;
+    END
+
+    RDB$SET_CONTEXT('USER_TRANSACTION', 'AT_OBJECT_LOCK',
+      CAST(RDB$GET_CONTEXT('USER_TRANSACTION', 'AT_OBJECT_LOCK') AS INTEGER) - 1);
+  END
+  ELSE IF (NEW.objectpos IS NULL) THEN
+  BEGIN
+    SELECT MAX(objectpos)
+    FROM at_object
+    WHERE namespacekey = NEW.namespacekey
+    INTO NEW.objectpos;
+    NEW.objectpos = COALESCE(NEW.objectpos, 0) + 1;
+  END
+END
+^
+
+CREATE OR ALTER TRIGGER at_au_object FOR at_object
+  ACTIVE
+  AFTER UPDATE
   POSITION 0
 AS
 BEGIN
-  IF (NEW.namespacekey IS DISTINCT FROM OLD.namespacekey) THEN
+  IF (NEW.namespacekey <> OLD.namespacekey) THEN
   BEGIN
-    UPDATE at_object SET namespacekey = NEW.namespacekey, objectpos = NULL
-      WHERE namespacekey = OLD.namespacekey AND headobjectkey = NEW.id
-      ORDER BY objectpos;
+    IF (COALESCE(RDB$GET_CONTEXT('USER_TRANSACTION', 'AT_OBJECT_LOCK'), 0) = 0) THEN
+    BEGIN
+      IF (EXISTS(SELECT * FROM at_object WHERE id = NEW.headobjectkey
+        AND namespacekey <> NEW.namespacekey)) THEN
+      BEGIN
+        EXCEPTION gd_e_exception 'Нельзя перемещать подчиненный объект.';
+      END
+    END  
   END
 END
 ^

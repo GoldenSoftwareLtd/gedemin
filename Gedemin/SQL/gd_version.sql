@@ -551,6 +551,9 @@ INSERT INTO fin_versioninfo
 INSERT INTO fin_versioninfo
   VALUES (173, '0000.0001.0000.0204', '20.05.2013', 'Missed editiondate fields added.');
 
+INSERT INTO fin_versioninfo
+  VALUES (174, '0000.0001.0000.0205', '05.06.2013', 'Corrections for NS triggers.');
+
 COMMIT;
 
 CREATE UNIQUE DESC INDEX fin_x_versioninfo_id
