@@ -112,13 +112,16 @@ type
 
   TgdcAt_Object = class(TObject)
   public
+    ID: Integer;
     RUID: String;
+    ObjectName: String;
     NamespaceKey: Integer; 
     Objectclass: String;
     SubType: String;
     Modified: TDateTime;
     Curr_modified: TDateTime;
     Filetimestamp: TDateTime;
+    Headobjectkey: Integer;
   end;
 
   TgdcSetAttr = class(TObject)
@@ -752,7 +755,7 @@ var
       q.Transaction := Tr;
       q.SQL.Text :=
         'SELECT o.xid || ''_'' || o.dbid as ruid, o.modified, o.curr_modified, o.objectclass, o.subtype, n.filetimestamp, ' +
-        ' n.id ' +
+        ' n.id, o.id, o.headobjectkey, o.objectname ' +
         'FROM at_object o ' +
         '  LEFT JOIN at_namespace n ' +
         '    ON o.namespacekey = n.id ' +
@@ -773,6 +776,9 @@ var
         At_Obj.Curr_modified := q.Fields[2].AsDateTime;
         At_Obj.Filetimestamp := q.Fields[5].AsDateTime;
         At_Obj.NamespaceKey := q.Fields[6].AsInteger;
+        At_Obj.ID := q.Fields[7].AsInteger;
+        At_Obj.Headobjectkey := q.Fields[8].AsInteger;
+        At_Obj.ObjectName := q.Fields[9].AsString;
         SL.AddObject(q.Fields[0].AsString, At_Obj);
         q.Next;
       end;
@@ -971,23 +977,22 @@ var
     end;
   end;
 
-  procedure UpdateObject(CurrOL, LoadOL: TStringList);
+  procedure DeleteObject(At_Obj: TgdcAt_Object; OL: TStringList);
 
     function CanDeleteObj(Obj: TgdcBase; var Error: String): Boolean;
     var
-      Tr: TIBTransaction;
+      TempTr: TIBTransaction;
       q: TIBSQL;
     begin
-
       Result := True;
       Error := '';
-      Tr := TIBTransaction.Create(nil);
+      TempTr := TIBTransaction.Create(nil);
       q := TIBSQL.Create(nil);
       try
-        Tr.DefaultDatabase := gdcBaseManager.Database;
-        Tr.StartTransaction;
+        TempTr.DefaultDatabase := gdcBaseManager.Database;
+        TempTr.StartTransaction;
         try
-          q.Transaction := Tr;
+          q.Transaction := TempTr;
           q.SQL.Text := Format('DELETE FROM %0:s WHERE %1:s = :id',
             [Obj.GetListTable(Obj.SubType), Obj.GetKeyField(Obj.SubType)]);
           q.ParamByName('id').AsInteger := Obj.ID;
@@ -1004,16 +1009,15 @@ var
           end;
         end;
       finally
-        if Tr.InTransaction then
-          Tr.Rollback;
+        if TempTr.InTransaction then
+          TempTr.Rollback;
         q.Free;
-        Tr.Free;
+        TempTr.Free;
       end;
     end;
 
   var
-    I: Integer;
-    At_Obj: TgdcAt_Object;
+    J: Integer;  
     InstObj: TgdcBase;
     InstClass: TPersistentClass;
     q: TIBSQL;
@@ -1024,71 +1028,82 @@ var
     try
       q.Transaction := Tr;
       q.SQl.Text := 'DELETE FROM at_object WHERE namespacekey = :nsk and xid = :xid and dbid = :dbid';
-      for I := CurrOL.Count - 1 downto 0 do
+      CanDelete := False; 
+      InstClass := GetClass(At_Obj.Objectclass);
+      if InstClass <> nil then
       begin
-        if LoadOL.IndexOf(CurrOL[I]) = -1 then
-        begin
-          CanDelete := False;
-          At_Obj := CurrOL.Objects[I] as TgdcAt_Object;
-          InstClass := GetClass(At_Obj.Objectclass);
-          if InstClass <> nil then
+        InstObj := CgdcBase(InstClass).CreateSubType(nil,
+          At_Obj.SubType, 'ByID');
+        try
+          InstObj.Transaction := Tr;
+          InstObj.ID := gdcBaseManager.GetRUIDRecByXID(StrToRUID(At_Obj.RUID).XID, StrToRUID(At_Obj.RUID).DBID, Tr).ID;
+          InstObj.Open;
+          if not InstObj.Eof then
           begin
-            InstObj := CgdcBase(InstClass).CreateSubType(nil,
-              At_Obj.SubType, 'ByID');
-            try
-              InstObj.Transaction := Tr;
-              InstObj.ID := gdcBaseManager.GetRUIDRecByXID(StrToRUID(At_Obj.RUID).XID, StrToRUID(At_Obj.RUID).DBID, Tr).ID;
-              InstObj.Open;
-              if not InstObj.Eof then
-              begin
-                if (At_Obj.Filetimestamp > 0)
-                  and (At_Obj.Curr_modified > 0)
-                  and (At_Obj.Filetimestamp >= At_Obj.Curr_modified)
-                then
-                  CanDelete := True
-                else
-                  if MessageBox(0,
-                    PChar(
-                      'В базе данных найден объект "' + InstObj.FieldByName(InstObj.GetListField(InstObj.SubType)).AsString + '"'#13#10 +
-                      'RUID: ' +  At_Obj.RUID + #13#10 +
-                      'Класс: ' + At_Obj.Objectclass + At_Obj.SubType + #13#10#13#10 +
-                      'Удалить объект из базы данных?'),
-                    'Внимание',
-                    MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES
-                  then
-                    CanDelete := True;
+            if (At_Obj.Filetimestamp > 0)
+              and (At_Obj.Curr_modified > 0)
+              and (At_Obj.Filetimestamp >= At_Obj.Curr_modified)
+            then
+              CanDelete := True
+            else
+              if MessageBox(0,
+                PChar(
+                  'В базе данных найден объект "' + InstObj.FieldByName(InstObj.GetListField(InstObj.SubType)).AsString + '"'#13#10 +
+                  'RUID: ' +  At_Obj.RUID + #13#10 +
+                  'Класс: ' + At_Obj.Objectclass + At_Obj.SubType + #13#10#13#10 +
+                  'Удалить объект из базы данных?'),
+                'Внимание',
+                MB_ICONQUESTION or MB_YESNO or MB_TASKMODAL) = IDYES
+              then
+                CanDelete := True;
 
-                  if CanDelete then
-                  begin
-                    if CanDeleteObj(InstObj, Error) then
-                    begin
-                      InstObj.Delete;
-                      q.Close;
-                      q.ParamByName('nsk').AsInteger := At_Obj.NamespaceKey;
-                      q.ParamByName('xid').AsInteger := StrToRUID(At_Obj.RUID).XID;
-                      q.ParamByName('dbid').AsInteger := StrToRUID(At_Obj.RUID).DBID;
-                      q.ExecQuery;
-                    end else
-                      AddMistake(Error, clRed);
-                  end;
-              end else
+              if CanDelete then
               begin
-                q.Close;
-                q.ParamByName('nsk').AsInteger := At_Obj.NamespaceKey;
-                q.ParamByName('xid').AsInteger := StrToRUID(At_Obj.RUID).XID;
-                q.ParamByName('dbid').AsInteger := StrToRUID(At_Obj.RUID).DBID;
-                q.ExecQuery;
+                if CanDeleteObj(InstObj, Error) then
+                begin
+                  InstObj.Delete;
+                  q.Close;
+                  q.ParamByName('nsk').AsInteger := At_Obj.NamespaceKey;
+                  q.ParamByName('xid').AsInteger := StrToRUID(At_Obj.RUID).XID;
+                  q.ParamByName('dbid').AsInteger := StrToRUID(At_Obj.RUID).DBID;
+                  q.ExecQuery;
+                  AddText('Объект ''' + At_Obj.ObjectName + ''' удален в процессе загрузки нового пространства имен.', clBlack);
+                  for J := 0 to OL.Count - 1 do
+                  begin
+                    if (OL.Objects[J] as TgdcAt_Object).Headobjectkey = At_Obj.ID then
+                      DeleteObject(OL.Objects[J] as TgdcAt_Object, OL);
+                  end;
+                end else
+                  AddMistake(Error, clRed);
               end;
-            finally
-              InstObj.Free;
-            end;
+          end else
+          begin
+            q.Close;
+            q.ParamByName('nsk').AsInteger := At_Obj.NamespaceKey;
+            q.ParamByName('xid').AsInteger := StrToRUID(At_Obj.RUID).XID;
+            q.ParamByName('dbid').AsInteger := StrToRUID(At_Obj.RUID).DBID;
+            q.ExecQuery;
           end;
+        finally
+          InstObj.Free;
         end;
       end;
     finally
       q.Free;
     end;
   end;
+
+  procedure UpdateObject(CurrOL, LoadOL: TStringList);
+  var
+    I: Integer;
+  begin
+    for I := CurrOL.Count - 1 downto 0 do
+    begin
+      if LoadOL.IndexOf(CurrOL[I]) = -1 then
+        DeleteObject(CurrOL.Objects[I] as TgdcAt_Object, CurrOL);
+    end;
+  end;
+  
 var
   LoadNamespace: TStringList;
   LoadObjectsRUID: TStringList;
