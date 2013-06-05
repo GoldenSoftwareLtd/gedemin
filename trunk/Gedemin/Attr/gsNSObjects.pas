@@ -801,7 +801,6 @@ begin
   Node := GetTreeNodeByRUID(ARUID);
   if Node <> nil then
     SetState(Node, Result);
-
 end;
 
 constructor TgsNSTreeNode.Create;

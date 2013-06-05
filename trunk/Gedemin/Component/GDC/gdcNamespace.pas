@@ -13,8 +13,9 @@ type
 
   TgdcNamespace = class(TgdcBase)
   private
+    FIncBuildVersion: Boolean;
     procedure CheckIncludesiblings;
-
+     
   protected
     function GetOrderClause: String; override;
     procedure _DoOnNewRecord; override;
@@ -61,6 +62,8 @@ type
     procedure SaveNamespaceToFile(const AFileName: String = '');
     procedure CompareWithData(const AFileName: String);
     procedure DeleteNamespaceWithObjects;
+
+    property IncBuildVersion: Boolean read FIncBuildVersion write FIncBuildVersion default False;
   end;
 
   TgdcNamespaceObject = class(TgdcBase)
@@ -77,6 +80,7 @@ type
 
   function GetReferenceString(const ARUID: String; const AName: String): String;
   function ParseReferenceString(const AStr: String; out ARUID: String; out AName: String): Boolean;
+  function IncVersion(const V: String; const TermChar: Char): String;
 
   procedure Register;
 
@@ -160,6 +164,21 @@ begin
     AName := System.Copy(AStr, P + 1, MaxInt);
   end;
   Result := CheckRUID(ARUID);
+end;
+
+function IncVersion(const V: String; const TermChar: Char): String;
+var
+  E, Ver: Integer;
+begin
+  E := Length(V);
+  while (E > 0) and (V[E] <> TermChar) do
+    Dec(E);
+  Ver := StrToIntDef(System.Copy(V, E + 1, MaxInt), 0);
+  Inc(Ver);
+  if E > 0 then
+    Result := System.Copy(V, 1, E) + IntToStr(Ver)
+  else
+    Result := IntToStr(Ver);
 end;
 
 function CompareFolder(List: TStringList; Index1, Index2: Integer): Integer;
@@ -2524,6 +2543,12 @@ begin
     try
       SS1251 := TStringStream.Create('');
       try
+        if FIncBuildVersion then
+        begin
+          Edit;
+          FieldByName('Version').AsString := IncVersion(FieldByName('Version').AsString, '.');
+          Post; 
+        end;
         SaveNamespaceToStream(SS1251);
         SSUTF8 := TStringStream.Create(WideStringToUTF8(StringToWideStringEx(
           SS1251.DataString, WIN1251_CODEPAGE)));
