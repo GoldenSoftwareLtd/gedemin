@@ -3634,6 +3634,7 @@ var
   qList, q: TIBSQL;
   C: TPersistentClass;
   LT: String;
+  SL: TStringList;
 begin
   Assert(IBLogin <> nil);
   Assert(IBLogin.Database <> nil);
@@ -3641,7 +3642,10 @@ begin
   Tr := TIBTransaction.Create(nil);
   qList := TIBSQL.Create(nil);
   q := TIBSQL.Create(nil);
+  SL := TStringList.Create;
   try
+    SL.Sorted := True;
+
     Tr.DefaultDatabase := IBLogin.Database;
     Tr.StartTransaction;
 
@@ -3663,24 +3667,29 @@ begin
       begin
         LT := CgdcBase(C).GetListTable(qList.FieldByName('subtype').AsString);
 
-        q.Close;
-        q.SQL.Text :=
-          'SELECT rdb$relation_name FROM rdb$relation_fields ' +
-          'WHERE rdb$relation_name = :RN AND rdb$field_name = ''EDITIONDATE'' ';
-        q.ParamByName('RN').AsString := UpperCase(LT);
-        q.ExecQuery;
-
-        if not q.EOF then
+        if SL.IndexOf(LT) = -1 then
         begin
+          SL.Add(LT);
+
           q.Close;
           q.SQL.Text :=
-            'merge into at_object o '#13#10 +
-            '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
-            '    from ' + LT + ' d join gd_ruid r '#13#10 +
-            '    on r.id = d.id) de on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
-            'when matched then '#13#10 +
-            '  update set o.curr_modified = de.editiondate';
+            'SELECT rdb$relation_name FROM rdb$relation_fields ' +
+            'WHERE rdb$relation_name = :RN AND rdb$field_name = ''EDITIONDATE'' ';
+          q.ParamByName('RN').AsString := UpperCase(LT);
           q.ExecQuery;
+
+          if not q.EOF then
+          begin
+            q.Close;
+            q.SQL.Text :=
+              'merge into at_object o '#13#10 +
+              '  using (select r.xid, r.dbid, d.editiondate '#13#10 +
+              '    from ' + LT + ' d join gd_ruid r '#13#10 +
+              '    on r.id = d.id) de on o.xid=de.xid and o.dbid=de.dbid '#13#10 +
+              'when matched then '#13#10 +
+              '  update set o.curr_modified = de.editiondate';
+            q.ExecQuery;
+          end;
         end;
       end;
 
@@ -3689,6 +3698,7 @@ begin
 
     Tr.Commit;
   finally
+    SL.Free;
     q.Free;
     qList.Free;
     Tr.Free;
