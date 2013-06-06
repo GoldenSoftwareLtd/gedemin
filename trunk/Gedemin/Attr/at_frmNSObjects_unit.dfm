@@ -182,6 +182,10 @@ object at_frmNSObjects: Tat_frmNSObjects
   object ibtr: TIBTransaction
     Active = False
     DefaultDatabase = dmDatabase.ibdbGAdmin
+    Params.Strings = (
+      'read_committed'
+      'rec_version'
+      'nowait')
     AutoStopAction = saNone
     Left = 552
     Top = 296

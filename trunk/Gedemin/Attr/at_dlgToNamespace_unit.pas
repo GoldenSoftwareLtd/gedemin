@@ -109,7 +109,7 @@ begin
   cdsLink.FieldByName('displayname').DisplayLabel := 'Класс/Имя объекта/Пространство имен';
   cdsLink.Open;
 
-  cbAlwaysOverwrite.Checked := True;
+  cbAlwaysOverwrite.Checked := False;
   cbDontRemove.Checked := False;
   cbIncludeSiblings.Checked := False;
 end;

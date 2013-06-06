@@ -153,9 +153,9 @@ object dlgToNamespace: TdlgToNamespace
     object Label1: TLabel
       Left = 8
       Top = 96
-      Width = 195
+      Width = 245
       Height = 13
-      Caption = 'Связанные объекты (не более 60-ти):'
+      Caption = 'Связанные объекты (показано не более 60-ти):'
     end
     object Label2: TLabel
       Left = 8
