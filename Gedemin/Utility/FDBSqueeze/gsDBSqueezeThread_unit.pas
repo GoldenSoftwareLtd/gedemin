@@ -218,7 +218,7 @@ begin
         if FConnected.Value = 1 then
         begin
           FBusy.Value := 1;
-          ///FDBS.DeleteDocuments;
+          FDBS.DeleteDocuments;
           PostThreadMessage(ThreadID, WM_DBS_RESTOREDB, 0, 0);
         end;
         Result := True;
