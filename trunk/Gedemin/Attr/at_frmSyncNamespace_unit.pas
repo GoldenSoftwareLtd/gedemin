@@ -280,6 +280,7 @@ begin
   FSaveFileList := TStringList.Create;
   FSaveFileList.Sorted := True;
   FSaveFileList.Duplicates := dupIgnore;
+  cds.LogChanges := False;
 end;
 
 destructor Tat_frmSyncNamespace.Destroy;
