@@ -319,8 +319,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingUpdate(Sender: TObject);
 begin
-  actSetForLoading.Enabled := (not cds.IsEmpty)
-    and (cds.FieldByName('operation').AsString > '');
+  actSetForLoading.Enabled := not cds.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actSetForLoadingExecute(Sender: TObject);
@@ -384,8 +383,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingUpdate(Sender: TObject);
 begin
-  actSetForSaving.Enabled := (not cds.IsEmpty)
-    and (cds.FieldByName('operation').AsString > '');
+  actSetForSaving.Enabled := not cds.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actSetForSavingExecute(Sender: TObject);
@@ -395,8 +393,7 @@ end;
 
 procedure Tat_frmSyncNamespace.actClearUpdate(Sender: TObject);
 begin
-  actClear.Enabled := (not cds.IsEmpty)
-    and (cds.FieldByName('operation').AsString > '');
+  actClear.Enabled := not cds.IsEmpty;
 end;
 
 procedure Tat_frmSyncNamespace.actClearExecute(Sender: TObject);

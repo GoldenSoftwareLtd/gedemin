@@ -110,23 +110,23 @@ object at_frmSyncNamespace: Tat_frmSyncNamespace
       object tbiFLTOlder: TTBItem
         Action = actFLTOlder
       end
+      object TBItem12: TTBItem
+        Action = actFLTEqualOlder
+      end
       object tbiFLTEqual: TTBItem
         Action = actFLTEqual
       end
-      object tbiFLTOnlyInFile: TTBItem
-        Action = actFLTOnlyInFile
+      object TBItem13: TTBItem
+        Action = actFLTEqualNewer
       end
       object tbiFLTNewer: TTBItem
         Action = actFLTNewer
       end
+      object tbiFLTOnlyInFile: TTBItem
+        Action = actFLTOnlyInFile
+      end
       object tbiFLTNone: TTBItem
         Action = actFLTNone
-      end
-      object TBItem12: TTBItem
-        Action = actFLTEqualOlder
-      end
-      object TBItem13: TTBItem
-        Action = actFLTEqualNewer
       end
       object TBItem14: TTBItem
         Action = actFLTInUses
