@@ -97,6 +97,12 @@ type
     TBControlItem4: TTBControlItem;
     actFLTInternal: TAction;
     cdsNamespaceInternal: TIntegerField;
+    TBItem12: TTBItem;
+    actFLTEqualOlder: TAction;
+    actFLTEqualNewer: TAction;
+    actFLTInUses: TAction;
+    TBItem13: TTBItem;
+    TBItem14: TTBItem;
     procedure actChooseDirExecute(Sender: TObject);
     procedure actCompareUpdate(Sender: TObject);
     procedure actCompareExecute(Sender: TObject);
@@ -289,7 +295,7 @@ procedure Tat_frmSyncNamespace.IterateSelected(Proc: TIterateProc;
   AnObj: TObject; const AData: String);
 var
   I: Integer;
-begin
+begin  
   if gr.SelectedRows.Count > 0 then
   begin
     for I := 0 to gr.SelectedRows.Count - 1 do
@@ -477,8 +483,7 @@ begin
     begin
       if cds.Locate('namespacekey', FSaveFileList[I], []) then
         SaveID(nil, '');
-    end;
-
+    end;  
     FgdcNamespace.InstallPackages(FLoadFileList, AlwaysOverwrite, DontRemove);
     actCompare.Execute;
   end;
@@ -543,6 +548,9 @@ begin
     or actFLTOnlyInFile.Checked
     or actFLTNewer.Checked
     or actFLTNone.Checked
+    or actFLTEqualOlder.Checked
+    or actFLTEqualNewer.Checked
+    or actFLTInUses.Checked
     or cbInternal.Checked;
 end;
 
@@ -605,6 +613,12 @@ begin
           (not actFLTNewer.Checked)
           and
           (not actFLTNone.Checked)
+          and
+          (not actFLTEqualOlder.Checked)
+          and
+          (not actFLTEqualNewer.Checked)
+          and
+          (not actFLTInUses.Checked)
         )
         or
         (actFLTOnlyInDB.Checked and (cds.FieldByName('operation').AsString = actFLTOnlyInDB.Caption))
@@ -618,6 +632,12 @@ begin
         (actFLTNewer.Checked and (cds.FieldByName('operation').AsString = actFLTNewer.Caption))
         or
         (actFLTNone.Checked and (cds.FieldByName('operation').AsString = actFLTNone.Caption))
+        or
+        (actFLTEqualOlder.Checked and (cds.FieldByName('operation').AsString = actFLTEqualOlder.Caption))
+        or
+        (actFLTEqualNewer.Checked and (cds.FieldByName('operation').AsString = actFLTEqualNewer.Caption))
+        or
+        (actFLTInUses.Checked and (cds.FieldByName('operation').AsString = actFLTInUses.Caption))
       )
     );
 end;
